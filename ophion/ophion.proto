@@ -1,0 +1,88 @@
+syntax = "proto3";
+
+package ophion;
+
+import "google/api/annotations.proto";
+import "google/protobuf/struct.proto";
+//import "google/protobuf/any.proto";
+
+message GraphQuery {
+    repeated GraphStatement query = 1;
+}
+
+message GraphStatement {
+    oneof statement {
+        string label = 1;
+        HasStatement has = 2;
+        string as = 3;
+        string in = 4;
+        string out = 5;
+        string inEdge = 6;
+        string outEdge = 7;
+        string inVertex = 8;
+        string outVertex = 9;
+        SelectStatement select = 10;
+        int64 limit = 12;
+        //methods with side effects, these should be ignored for read-only graphs
+        string addV = 13;
+        PropertyStatement property = 14;
+        string addE = 15;
+        string to = 16;
+    }
+}
+
+message PropertyStatement {
+  string key = 1;
+  //TODO: change from string values to 'any' data type
+  //google.protobuf.Any value = 2;
+  string value = 2;
+}
+
+message HasStatement {
+    message WithinStatement {
+        repeated string within = 1;
+    }
+    map<string, WithinStatement> properties = 1;
+}
+
+message SelectStatement {
+    repeated string steps = 1;
+}
+
+message Vertex {
+  string gid = 1;
+  string label = 2;
+  //map<string, google.protobuf.Any> properties = 3;
+  map<string, string> properties = 3;
+}
+
+message Edge {
+  string gid = 1;
+  string label = 2;
+  string in = 3;
+  string out = 4;
+  //map<string, google.protobuf.Any> properties = 5;
+  map<string, string> properties = 5;
+}
+
+
+message QueryResult {
+    oneof result {
+      google.protobuf.Struct struct = 1;
+      Vertex vertex = 2;
+      Edge edge = 3;
+      int64 int_value = 4;
+      double float_value = 5;
+      string str_value = 6;
+    }
+}
+
+
+service Query {
+  rpc Traversal(GraphQuery) returns (QueryResult) {
+    option (google.api.http) = {
+      post: "/v1/graph-query"
+      body: "*"
+    };
+  }
+}
