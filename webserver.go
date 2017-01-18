@@ -1,8 +1,8 @@
-
 package arachne
 
 import (
 	"fmt"
+	"github.com/bmeg/arachne/ophion"
 	"github.com/gorilla/mux"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"golang.org/x/net/context"
@@ -11,7 +11,6 @@ import (
 	"net/http"
 	"path/filepath"
 	"runtime/debug"
-  "github.com/bmeg/arachne/ophion"
 )
 
 func HandleError(w http.ResponseWriter, req *http.Request, error string, code int) {

@@ -12,22 +12,24 @@ message GraphQuery {
 
 message GraphStatement {
     oneof statement {
-        string label = 1;
-        HasStatement has = 2;
-        string as = 3;
-        string in = 4;
-        string out = 5;
-        string inEdge = 6;
-        string outEdge = 7;
-        string inVertex = 8;
-        string outVertex = 9;
-        SelectStatement select = 10;
-        int64 limit = 12;
+    	string V = 1;
+	string E = 2;
+        string label = 3;
+        HasStatement has = 4;
+        string as = 5;
+        string in = 6;
+        string out = 7;
+        string inEdge = 8;
+        string outEdge = 9;
+        string inVertex = 10;
+        string outVertex = 11;
+        SelectStatement select = 12;
+        int64 limit = 13;
         //methods with side effects, these should be ignored for read-only graphs
-        string addV = 13;
-        PropertyStatement property = 14;
-        string addE = 15;
-        string to = 16;
+        string addV = 14;
+        PropertyStatement property = 15;
+        string addE = 16;
+        string to = 17;
     }
 }
 
