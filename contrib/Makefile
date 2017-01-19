@@ -26,7 +26,7 @@ download:
 	go get github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway/
 
 tidy:
-	go fmt github.com/bmeg/arachne/
+	@find ./src/github.com/bmeg/arachne/ -type f | grep -v ".pb." | grep -E '.*\.go$$' | xargs gofmt -w
 
 test:
 	go test -v github.com/bmeg/arachne/

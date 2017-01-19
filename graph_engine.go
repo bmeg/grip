@@ -38,12 +38,34 @@ type Traversal struct {
 func (trav *Traversal) RunStatement(statement *ophion.GraphStatement) error {
 	if statement.GetAddV() != "" {
 		trav.Query = trav.Query.AddV(statement.GetAddV())
+	} else if statement.GetAddE() != "" {
+		trav.Query = trav.Query.AddE(statement.GetAddE())
+	} else if statement.GetTo() != "" {
+		trav.Query = trav.Query.To(statement.GetTo())
 	} else if x, ok := statement.GetStatement().(*ophion.GraphStatement_V); ok {
 		if x.V == "" {
 			trav.Query = trav.Query.V()
 		} else {
 			trav.Query = trav.Query.V(x.V)
 		}
+	} else if _, ok := statement.GetStatement().(*ophion.GraphStatement_E); ok {
+		trav.Query = trav.Query.E()
+	} else if x, ok := statement.GetStatement().(*ophion.GraphStatement_Out); ok {
+		if x.Out == "" {
+			trav.Query = trav.Query.Out()
+		} else {
+			trav.Query = trav.Query.Out(x.Out)
+		}
+	} else if x, ok := statement.GetStatement().(*ophion.GraphStatement_In); ok {
+		if x.In == "" {
+			trav.Query = trav.Query.In()
+		} else {
+			trav.Query = trav.Query.In(x.In)
+		}
+	} else if x := statement.GetHas(); x != nil {
+		trav.Query = trav.Query.Has(x.Key, x.Within...)
+	} else if x := statement.GetProperty(); x != nil {
+		trav.Query = trav.Query.Property(x.Key, x.Value)
 	} else if _, ok := statement.GetStatement().(*ophion.GraphStatement_Count); ok {
 		trav.Query = trav.Query.Count()
 	} else {

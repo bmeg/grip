@@ -11,12 +11,18 @@ class Ophion:
 
     def execute(self, query):
         payload = query.render()
-        print payload
+        #print payload
         headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
         request = urllib2.Request(self.url, payload, headers=headers)
         response = urllib2.urlopen(request)
-        result = response.read()
-        return json.loads(result)
+        out = []
+        for result in response.readlines():
+            try:
+                out.append(json.loads(result))
+            except ValueError, e:
+                print "Can't decode: %s" % result
+                raise e
+        return out
 
 class OphionQuery:
     def __init__(self, parent=None):
@@ -38,7 +44,7 @@ class OphionQuery:
     def has(self, prop, within):
         if not isinstance(within, list):
             within = [within]
-        self.query.append({'has': prop, 'within': within})
+        self.query.append({'has': { "key" : prop, 'within': within}})
         return self
 
     def values(self, v):
@@ -51,11 +57,11 @@ class OphionQuery:
         self.query.append({'cap': c})
         return self
 
-    def incoming(self, label):
+    def incoming(self, label=""):
         self.query.append({'in': label})
         return self
 
-    def outgoing(self, label):
+    def outgoing(self, label=""):
         self.query.append({'out': label})
         return self
 
@@ -103,9 +109,21 @@ class OphionQuery:
         self.query.append({'addV': id})
         return self
 
+    def addE(self, label):
+        self.query.append({"addE" : label})
+        return self
+
+    def to(self, dst):
+        self.query.append({"to" : dst})
+        return self
+
+    def property(self, key, value):
+        self.query.append({"property" : {"key" : key, "value" : value}})
+        return self
+
     def render(self):
         output = {'query': self.query}
         return json.dumps(output)
-    
+
     def execute(self):
         return self.parent.execute(self)

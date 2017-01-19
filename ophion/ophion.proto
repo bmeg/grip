@@ -42,10 +42,8 @@ message PropertyStatement {
 }
 
 message HasStatement {
-    message WithinStatement {
-        repeated string within = 1;
-    }
-    map<string, WithinStatement> properties = 1;
+    string key = 1;
+    repeated string within = 2;
 }
 
 message SelectStatement {
