@@ -3,7 +3,7 @@ package arachne
 import (
 	"github.com/bmeg/arachne/boltdb"
 	"github.com/bmeg/arachne/ophion"
-	"golang.org/x/net/context"
+	//"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"log"
 	"net"
@@ -34,6 +34,11 @@ func (server *ArachneServer) Start(hostPort string) {
 	go grpcServer.Serve(lis)
 }
 
-func (server *ArachneServer) Traversal(ctx context.Context, query *ophion.GraphQuery) (*ophion.QueryResult, error) {
-	return server.engine.RunTraversal(ctx, query)
+func (server *ArachneServer) Traversal(query *ophion.GraphQuery, queryServer ophion.Query_TraversalServer) error {
+	res, _ := server.engine.RunTraversal(query)
+	for i := range res {
+		l := i
+		queryServer.Send(&l)
+	}
+	return nil
 }

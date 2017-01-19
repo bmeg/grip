@@ -12,8 +12,8 @@ message GraphQuery {
 
 message GraphStatement {
     oneof statement {
-    	string V = 1;
-	string E = 2;
+        string V = 1;
+	      string E = 2;
         string label = 3;
         HasStatement has = 4;
         string as = 5;
@@ -25,11 +25,12 @@ message GraphStatement {
         string outVertex = 11;
         SelectStatement select = 12;
         int64 limit = 13;
+        string count = 14;
         //methods with side effects, these should be ignored for read-only graphs
-        string addV = 14;
-        PropertyStatement property = 15;
-        string addE = 16;
-        string to = 17;
+        string addV = 15;
+        PropertyStatement property = 16;
+        string addE = 17;
+        string to = 18;
     }
 }
 
@@ -81,7 +82,7 @@ message QueryResult {
 
 
 service Query {
-  rpc Traversal(GraphQuery) returns (QueryResult) {
+  rpc Traversal(GraphQuery) returns (stream QueryResult) {
     option (google.api.http) = {
       post: "/v1/graph-query"
       body: "*"
