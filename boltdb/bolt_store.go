@@ -157,7 +157,7 @@ func (self *BoltArachne) getOutList(key string) chan ophion.Vertex {
 		for i := range vo {
 			v := self.getVertex(i)
 			if v == nil {
-				log.Printf("Vertex Missing %s", i)
+				//log.Printf("Vertex Missing %s", i)
 			} else {
 				o <- *v
 			}
