@@ -11,6 +11,7 @@ type QueryInterface interface {
 	Has(prop string, value ...string) QueryInterface
 	Out(key ...string) QueryInterface
 	In(key ...string) QueryInterface
+  Limit(count int64) QueryInterface
 
 	//Read write methods
 	AddV(key string) QueryInterface

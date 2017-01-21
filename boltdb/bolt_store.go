@@ -413,6 +413,27 @@ func (self *BoltGremlinSet) Count() gdbi.QueryInterface {
 		})
 }
 
+func (self *BoltGremlinSet) Limit(limit int64) gdbi.QueryInterface {
+	return self.append(
+		func() chan ophion.QueryResult {
+			o := make(chan ophion.QueryResult, 1)
+			go func() {
+				defer close(o)
+				var count int64 = 0
+        //TODO: cancel the pipe once we're done with it, rather then 
+        //reading out the whole thing
+				for i := range self.pipe() {
+          if count < limit {
+            o <- i
+          }
+					count += 1
+				}
+			}()
+			return o
+		})
+}
+
+
 func (self *BoltGremlinSet) Execute() chan ophion.QueryResult {
 	if self.sideEffect {
 		o := make(chan ophion.QueryResult, 10)

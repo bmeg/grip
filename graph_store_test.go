@@ -86,3 +86,17 @@ func TestEdgeInsert(t *testing.T) {
 
 	G.Close()
 }
+
+func buildGraph(G gdbi.ArachneInterface) {
+  G.Query().AddV("vertex1").Property("field1", "value1").Run()
+	G.Query().AddV("vertex2").Property("field1", "value2").Run()
+	G.Query().AddV("vertex3").Property("field1", "value3").Run()
+	G.Query().AddV("vertex4").Property("field1", "value4").Run()
+
+	G.Query().V("vertex1").AddE("friend").To("vertex2").Run()
+	G.Query().V("vertex2").AddE("friend").To("vertex3").Run()
+	G.Query().V("vertex2").AddE("parent").To("vertex4").Run()
+
+}
+
+

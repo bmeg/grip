@@ -16,7 +16,7 @@ func NewGraphEngine(dbi gdbi.ArachneInterface) GraphEngine {
 }
 
 func (engine *GraphEngine) RunTraversal(query *ophion.GraphQuery) (chan ophion.QueryResult, error) {
-	log.Printf("Starting Query")
+	//log.Printf("Starting Query")
 	tr := engine.Query()
 	for _, s := range query.Query {
 		tr.RunStatement(s)
@@ -66,6 +66,8 @@ func (trav *Traversal) RunStatement(statement *ophion.GraphStatement) error {
 		trav.Query = trav.Query.Has(x.Key, x.Within...)
 	} else if x := statement.GetProperty(); x != nil {
 		trav.Query = trav.Query.Property(x.Key, x.Value)
+  } else if x, ok := statement.GetStatement().(*ophion.GraphStatement_Limit); ok {
+    trav.Query = trav.Query.Limit(x.Limit)
 	} else if _, ok := statement.GetStatement().(*ophion.GraphStatement_Count); ok {
 		trav.Query = trav.Query.Count()
 	} else {
