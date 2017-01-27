@@ -24,9 +24,9 @@ download:
 	go get -d github.com/bmeg/arachne
 	go get github.com/golang/protobuf/protoc-gen-go
 	go get github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway/
-
-tidy:
-	@find ./src/github.com/bmeg/arachne/ -type f | grep -v ".pb." | grep -E '.*\.go$$' | xargs gofmt -w
-
+	
 test:
 	go test -v github.com/bmeg/arachne/
+
+tidy:
+	@find ./src/github.com/bmeg/arachne -type f | grep -v ".pb." | grep -E '.*\.go$$' | xargs gofmt -w

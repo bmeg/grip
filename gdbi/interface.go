@@ -11,7 +11,7 @@ type QueryInterface interface {
 	Has(prop string, value ...string) QueryInterface
 	Out(key ...string) QueryInterface
 	In(key ...string) QueryInterface
-  Limit(count int64) QueryInterface
+	Limit(count int64) QueryInterface
 
 	//Read write methods
 	AddV(key string) QueryInterface
@@ -20,7 +20,8 @@ type QueryInterface interface {
 	Property(key string, value string) QueryInterface
 
 	Execute() chan ophion.QueryResult
-	Run() error //Do execute, but throw away the results
+	First() (ophion.QueryResult, error) //Only get one result
+	Run() error                         //Do execute, but throw away the results
 }
 
 type ArachneInterface interface {

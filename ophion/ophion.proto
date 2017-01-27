@@ -53,8 +53,8 @@ message SelectStatement {
 message Vertex {
   string gid = 1;
   string label = 2;
-  //map<string, google.protobuf.Any> properties = 3;
-  map<string, string> properties = 3;
+  //map<string, string> properties = 3;
+  google.protobuf.Struct properties = 3;
 }
 
 message Edge {
@@ -62,8 +62,8 @@ message Edge {
   string label = 2;
   string in = 3;
   string out = 4;
-  //map<string, google.protobuf.Any> properties = 5;
-  map<string, string> properties = 5;
+  //map<string, string> properties = 5;
+  google.protobuf.Struct properties = 5;
 }
 
 

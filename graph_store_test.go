@@ -87,8 +87,30 @@ func TestEdgeInsert(t *testing.T) {
 	G.Close()
 }
 
+func TestEdgeProp(t *testing.T) {
+	G := getDB()
+
+	G.Query().AddV("vertex1").Property("field1", "value1").Run()
+	G.Query().AddV("vertex2").Property("field1", "value2").Run()
+	G.Query().AddV("vertex3").Property("field1", "value3").Run()
+	G.Query().AddV("vertex4").Property("field1", "value4").Run()
+
+	G.Query().V("vertex1").AddE("friend").To("vertex2").Property("edgeNumber", "1").Run()
+	G.Query().V("vertex2").AddE("friend").To("vertex3").Property("edgeNumber", "2").Run()
+	G.Query().V("vertex2").AddE("parent").To("vertex4").Property("edgeNumber", "3").Run()
+
+	for i := range G.Query().E().Has("edgeNumber", "1").Execute() {
+		log.Printf("%#v", i.GetEdge())
+	}
+
+	i, _ := G.Query().E().Has("edgeNumber", "1").Count().First()
+	if i.GetIntValue() != 1 {
+		t.Error("Wrong Vertex Count")
+	}
+}
+
 func buildGraph(G gdbi.ArachneInterface) {
-  G.Query().AddV("vertex1").Property("field1", "value1").Run()
+	G.Query().AddV("vertex1").Property("field1", "value1").Run()
 	G.Query().AddV("vertex2").Property("field1", "value2").Run()
 	G.Query().AddV("vertex3").Property("field1", "value3").Run()
 	G.Query().AddV("vertex4").Property("field1", "value4").Run()
@@ -98,5 +120,3 @@ func buildGraph(G gdbi.ArachneInterface) {
 	G.Query().V("vertex2").AddE("parent").To("vertex4").Run()
 
 }
-
-

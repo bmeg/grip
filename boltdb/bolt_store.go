@@ -6,6 +6,7 @@ import (
 	"github.com/bmeg/arachne/ophion"
 	"github.com/boltdb/bolt"
 	proto "github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/ptypes/struct"
 	"log"
 )
 
@@ -81,6 +82,22 @@ func (self *BoltArachne) setVertex(vertex ophion.Vertex) error {
 	return err
 }
 
+func (self *BoltArachne) getVertexData(key string) *[]byte {
+	var out *[]byte = nil
+	err := self.db.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket(VertexBucket)
+		d := b.Get([]byte(key))
+		if d == nil {
+			return nil
+		}
+		out = &d
+		return nil
+	})
+	if err != nil {
+		return nil
+	}
+	return out
+}
 func (self *BoltArachne) getVertex(key string) *ophion.Vertex {
 	var out *ophion.Vertex = nil
 	err := self.db.View(func(tx *bolt.Tx) error {
@@ -116,23 +133,52 @@ func (self *BoltArachne) setEdge(edge ophion.Edge) error {
 	return err
 }
 
+type keyval struct {
+	key   string
+	value []byte
+}
+
+var NTHREAD = 5
+
 func (self *BoltArachne) getVertexList() chan ophion.Vertex {
 	o := make(chan ophion.Vertex, 100)
+	od := make(chan keyval, 100)
+
+	//read the data out of the DB
 	go func() {
-		defer close(o)
+		defer close(od)
 		self.db.View(func(tx *bolt.Tx) error {
 			vb := tx.Bucket(VertexBucket)
 			c := vb.Cursor()
 			for k, v := c.First(); k != nil; k, v = c.Next() {
-				i := ophion.Vertex{}
-				proto.Unmarshal(v, &i)
-				i.Gid = string(k)
-				//log.Printf("Found: %s %#v %#v", i.Gid, i, v)
-				o <- i
+				od <- keyval{key: string(k), value: v}
 			}
 			return nil
 		})
 	}()
+
+	//de-serialize
+	closer := make(chan bool, NTHREAD)
+	for i := 0; i < NTHREAD; i++ {
+		go func() {
+			for kv := range od {
+				i := ophion.Vertex{}
+				proto.Unmarshal(kv.value, &i)
+				i.Gid = string(kv.key)
+				o <- i
+			}
+			closer <- true
+		}()
+	}
+
+	//close channel after done
+	go func() {
+		for i := 0; i < NTHREAD; i++ {
+			<-closer
+		}
+		close(o)
+	}()
+
 	return o
 }
 
@@ -226,7 +272,7 @@ func (self *BoltGremlinSet) V(key ...string) gdbi.QueryInterface {
 	}
 	return self.append(
 		func() chan ophion.QueryResult {
-			o := make(chan ophion.QueryResult, 10)
+			o := make(chan ophion.QueryResult, 100)
 			go func() {
 				defer close(o)
 				for i := range self.db.getVertexList() {
@@ -261,11 +307,26 @@ func (self *BoltGremlinSet) Has(prop string, value ...string) gdbi.QueryInterfac
 			go func() {
 				defer close(o)
 				for i := range self.pipe() {
-					if v := i.GetVertex(); v != nil {
-						if p, ok := v.Properties[prop]; ok {
+					//Process Vertex Elements
+					if v := i.GetVertex(); v != nil && v.Properties != nil {
+						if p, ok := v.Properties.Fields[prop]; ok {
 							found := false
 							for _, s := range value {
-								if p == s {
+								if p.GetStringValue() == s {
+									found = true
+								}
+							}
+							if found {
+								o <- i
+							}
+						}
+					}
+					//Process Edge Elements
+					if e := i.GetEdge(); e != nil && e.Properties != nil {
+						if p, ok := e.Properties.Fields[prop]; ok {
+							found := false
+							for _, s := range value {
+								if p.GetStringValue() == s {
 									found = true
 								}
 							}
@@ -328,10 +389,18 @@ func (self *BoltGremlinSet) Property(key string, value string) gdbi.QueryInterfa
 					if v := i.GetVertex(); v != nil {
 						vl := *v //local copy
 						if vl.Properties == nil {
-							vl.Properties = make(map[string]string)
+							vl.Properties = &structpb.Struct{Fields: map[string]*structpb.Value{}}
 						}
-						vl.Properties[key] = value
+						vl.Properties.Fields[key] = &structpb.Value{Kind: &structpb.Value_StringValue{value}}
 						o <- ophion.QueryResult{&ophion.QueryResult_Vertex{&vl}}
+					}
+					if e := i.GetEdge(); e != nil {
+						el := *e
+						if el.Properties == nil {
+							el.Properties = &structpb.Struct{Fields: map[string]*structpb.Value{}}
+						}
+						el.Properties.Fields[key] = &structpb.Value{Kind: &structpb.Value_StringValue{value}}
+						o <- ophion.QueryResult{&ophion.QueryResult_Edge{&el}}
 					}
 				}
 			}()
@@ -420,19 +489,18 @@ func (self *BoltGremlinSet) Limit(limit int64) gdbi.QueryInterface {
 			go func() {
 				defer close(o)
 				var count int64 = 0
-        //TODO: cancel the pipe once we're done with it, rather then 
-        //reading out the whole thing
+				//TODO: cancel the pipe once we're done with it, rather then
+				//reading out the whole thing
 				for i := range self.pipe() {
-          if count < limit {
-            o <- i
-          }
+					if count < limit {
+						o <- i
+					}
 					count += 1
 				}
 			}()
 			return o
 		})
 }
-
 
 func (self *BoltGremlinSet) Execute() chan ophion.QueryResult {
 	if self.sideEffect {
@@ -462,4 +530,15 @@ func (self *BoltGremlinSet) Run() error {
 	for range self.Execute() {
 	}
 	return nil
+}
+
+func (self *BoltGremlinSet) First() (ophion.QueryResult, error) {
+	o := ophion.QueryResult{}
+	if self.err != nil {
+		return o, self.err
+	}
+	for i := range self.Execute() {
+		o = i
+	}
+	return o, nil
 }
