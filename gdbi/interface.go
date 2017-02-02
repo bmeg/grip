@@ -17,7 +17,7 @@ type QueryInterface interface {
 	AddV(key string) QueryInterface
 	AddE(key string) QueryInterface
 	To(key string) QueryInterface
-	Property(key string, value string) QueryInterface
+	Property(key string, value interface{}) QueryInterface
 
 	Execute() chan ophion.QueryResult
 	First() (ophion.QueryResult, error) //Only get one result

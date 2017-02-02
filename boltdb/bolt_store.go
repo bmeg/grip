@@ -379,7 +379,30 @@ func (self *BoltGremlinSet) In(key ...string) gdbi.QueryInterface {
 		})
 }
 
-func (self *BoltGremlinSet) Property(key string, value string) gdbi.QueryInterface {
+func StructSet(s *structpb.Struct, key string, value interface{}) {
+	switch v := value.(type) {
+		case string:
+		  s.Fields[key] = &structpb.Value{Kind: &structpb.Value_StringValue{v}}
+		case int:
+			s.Fields[key] = &structpb.Value{Kind: &structpb.Value_NumberValue{float64(v)}}
+		case int64:
+			s.Fields[key] = &structpb.Value{Kind: &structpb.Value_NumberValue{float64(v)}}
+		case float64:
+			s.Fields[key] = &structpb.Value{Kind: &structpb.Value_NumberValue{float64(v)}}
+		case bool:
+			s.Fields[key] = &structpb.Value{Kind: &structpb.Value_BoolValue{v}}
+		case map[string]interface{}:
+			o := &structpb.Struct{Fields: map[string]*structpb.Value{}}
+			for k, v := range v {
+				StructSet(o, k, v)
+			}
+			s.Fields[key] = &structpb.Value{Kind: &structpb.Value_StructValue{o}}
+		default:
+		  log.Printf("unknown: %T", value)
+	}
+}
+
+func (self *BoltGremlinSet) Property(key string, value interface{}) gdbi.QueryInterface {
 	return self.append(
 		func() chan ophion.QueryResult {
 			o := make(chan ophion.QueryResult, 10)
@@ -391,7 +414,8 @@ func (self *BoltGremlinSet) Property(key string, value string) gdbi.QueryInterfa
 						if vl.Properties == nil {
 							vl.Properties = &structpb.Struct{Fields: map[string]*structpb.Value{}}
 						}
-						vl.Properties.Fields[key] = &structpb.Value{Kind: &structpb.Value_StringValue{value}}
+						//vl.Properties.Fields[key] = &structpb.Value{Kind: &structpb.Value_StringValue{value}}
+						StructSet(vl.Properties, key, value)
 						o <- ophion.QueryResult{&ophion.QueryResult_Vertex{&vl}}
 					}
 					if e := i.GetEdge(); e != nil {
@@ -399,7 +423,8 @@ func (self *BoltGremlinSet) Property(key string, value string) gdbi.QueryInterfa
 						if el.Properties == nil {
 							el.Properties = &structpb.Struct{Fields: map[string]*structpb.Value{}}
 						}
-						el.Properties.Fields[key] = &structpb.Value{Kind: &structpb.Value_StringValue{value}}
+						StructSet(el.Properties, key, value)
+						//el.Properties.Fields[key] = &structpb.Value{Kind: &structpb.Value_StringValue{value}}
 						o <- ophion.QueryResult{&ophion.QueryResult_Edge{&el}}
 					}
 				}

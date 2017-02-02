@@ -107,6 +107,8 @@ func TestEdgeProp(t *testing.T) {
 	if i.GetIntValue() != 1 {
 		t.Error("Wrong Vertex Count")
 	}
+
+	G.Close()
 }
 
 func buildGraph(G gdbi.ArachneInterface) {
@@ -118,5 +120,36 @@ func buildGraph(G gdbi.ArachneInterface) {
 	G.Query().V("vertex1").AddE("friend").To("vertex2").Run()
 	G.Query().V("vertex2").AddE("friend").To("vertex3").Run()
 	G.Query().V("vertex2").AddE("parent").To("vertex4").Run()
+}
 
+func TestPropertyTypes(t *testing.T) {
+	G := getDB()
+
+	G.Query().AddV("vertex1").Property("field1", 1).Run()
+	G.Query().AddV("vertex2").Property("field1", 1.1).Run()
+	G.Query().AddV("vertex3").Property("field1", true).Run()
+	G.Query().AddV("vertex3").Property("field1", true).Run()
+	G.Query().AddV("vertex4").Property("field1", map[string]interface{}{"hello" : "world"}).Run()
+
+	v, _ := G.Query().V("vertex1").First()
+	if v.GetVertex().Properties.Fields["field1"].GetNumberValue() != 1 {
+		t.Errorf("Vertex wrong value" )
+	}
+
+	v, _ = G.Query().V("vertex2").First()
+	if v.GetVertex().Properties.Fields["field1"].GetNumberValue() != 1.1 {
+		t.Errorf("Vertex wrong value" )
+	}
+
+	v, _ = G.Query().V("vertex3").First()
+	if v.GetVertex().Properties.Fields["field1"].GetBoolValue() != true {
+		t.Errorf("Vertex wrong value" )
+	}
+
+	v, _ = G.Query().V("vertex4").First()
+	if v.GetVertex().Properties.Fields["field1"].GetStructValue().Fields["hello"].GetStringValue() != "world" {
+		t.Errorf("Vertex wrong value" )
+	}
+
+	G.Close()
 }
