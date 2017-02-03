@@ -28,17 +28,11 @@ message GraphStatement {
         string count = 14;
         //methods with side effects, these should be ignored for read-only graphs
         string addV = 15;
-        PropertyStatement property = 16;
+        google.protobuf.Struct property = 16;
         string addE = 17;
         string to = 18;
+        string drop = 19;
     }
-}
-
-message PropertyStatement {
-  string key = 1;
-  //TODO: change from string values to 'any' data type
-  //google.protobuf.Any value = 2;
-  string value = 2;
 }
 
 message HasStatement {
@@ -72,7 +66,7 @@ message QueryResult {
       google.protobuf.Struct struct = 1;
       Vertex vertex = 2;
       Edge edge = 3;
-      int64 int_value = 4;
+      int32 int_value = 4;
       double float_value = 5;
       string str_value = 6;
     }
