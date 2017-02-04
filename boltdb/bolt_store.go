@@ -182,7 +182,7 @@ func (self *BoltArachne) GetVertexList() chan ophion.Vertex {
 	return o
 }
 
-func (self *BoltArachne) GetOutList(key string) chan ophion.Vertex {
+func (self *BoltArachne) GetOutList(key string, filter gdbi.EdgeFilter) chan ophion.Vertex {
 	vo := make(chan string, 100)
 	o := make(chan ophion.Vertex, 100)
 	go func() {
@@ -191,9 +191,21 @@ func (self *BoltArachne) GetOutList(key string) chan ophion.Vertex {
 			eb := tx.Bucket(OEdgeBucket)
 			c := eb.Cursor()
 			pre := append([]byte(key), 0)
-			for k, _ := c.Seek(pre); bytes.HasPrefix(k, pre); k, _ = c.Next() {
-				pair := bytes.Split(k, []byte{0})
-				vo <- string(pair[1])
+			for k, v := c.Seek(pre); bytes.HasPrefix(k, pre); k, v = c.Next() {
+				send := false
+				if filter != nil {
+					e := ophion.Edge{}
+					proto.Unmarshal(v, &e)
+					if filter(e) {
+						send = true
+					}
+				} else {
+					send = true
+				}
+				if send {
+					pair := bytes.Split(k, []byte{0})
+					vo <- string(pair[1])
+				}
 			}
 			return nil
 		})
@@ -212,7 +224,7 @@ func (self *BoltArachne) GetOutList(key string) chan ophion.Vertex {
 	return o
 }
 
-func (self *BoltArachne) GetInList(key string) chan ophion.Vertex {
+func (self *BoltArachne) GetInList(key string, filter gdbi.EdgeFilter) chan ophion.Vertex {
 	vi := make(chan string, 100)
 	o := make(chan ophion.Vertex, 100)
 	go func() {

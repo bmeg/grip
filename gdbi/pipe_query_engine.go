@@ -11,20 +11,20 @@ type DBI interface {
 	GetVertexData(key string) *[]byte
 	GetVertexList() chan ophion.Vertex
 	GetEdgeList() chan ophion.Edge
-	GetOutList(key string) chan ophion.Vertex
-	GetInList(key string) chan ophion.Vertex
+	GetOutList(key string, filter EdgeFilter) chan ophion.Vertex
+	GetInList(key string, filter EdgeFilter) chan ophion.Vertex
 	DelVertex(key string) error
 	DelEdge(key string) error
 	SetVertex(vertex ophion.Vertex) error
 	SetEdge(edge ophion.Edge) error
 }
-
-type graphpipe func() chan ophion.QueryResult
+type EdgeFilter func(edge ophion.Edge) bool
+type GraphPipe func() chan ophion.QueryResult
 
 type PipeEngine struct {
 	db         DBI
 	readOnly   bool
-	pipe       graphpipe
+	pipe       GraphPipe
 	sideEffect bool
 	err        error
 }
@@ -33,7 +33,7 @@ func NewPipeEngine(db DBI, readOnly bool) *PipeEngine {
 	return &PipeEngine{db: db, readOnly: readOnly, sideEffect: false, err: nil}
 }
 
-func (self *PipeEngine) append(pipe graphpipe) *PipeEngine {
+func (self *PipeEngine) append(pipe GraphPipe) *PipeEngine {
 	return &PipeEngine{
 		db:         self.db,
 		readOnly:   self.readOnly,
@@ -137,9 +137,12 @@ func (self *PipeEngine) Out(key ...string) QueryInterface {
 				defer close(o)
 				for i := range self.pipe() {
 					if v := i.GetVertex(); v != nil {
-						for e := range self.db.GetOutList(v.Gid) {
-							el := e
-							o <- ophion.QueryResult{&ophion.QueryResult_Vertex{&el}}
+						for e := range self.db.GetOutList(v.Gid, nil) {
+							log.Printf("Out: %s %s", key, e.Label)
+							if (len(key) == 0 || len(key[0]) == 0 || key[0] == e.Label) {
+								el := e
+								o <- ophion.QueryResult{&ophion.QueryResult_Vertex{&el}}
+							}
 						}
 					}
 				}
@@ -156,9 +159,11 @@ func (self *PipeEngine) In(key ...string) QueryInterface {
 				defer close(o)
 				for i := range self.pipe() {
 					if v := i.GetVertex(); v != nil {
-						for e := range self.db.GetInList(v.Gid) {
-							el := e
-							o <- ophion.QueryResult{&ophion.QueryResult_Vertex{&el}}
+						for e := range self.db.GetInList(v.Gid, nil) {
+							if (len(key) == 0 || len(key[0]) == 0 || key[0] == e.Label) {
+								el := e
+								o <- ophion.QueryResult{&ophion.QueryResult_Vertex{&el}}
+							}
 						}
 					}
 				}
@@ -179,7 +184,6 @@ func (self *PipeEngine) Property(key string, value interface{}) QueryInterface {
 						if vl.Properties == nil {
 							vl.Properties = &structpb.Struct{Fields: map[string]*structpb.Value{}}
 						}
-						//vl.Properties.Fields[key] = &structpb.Value{Kind: &structpb.Value_StringValue{value}}
 						StructSet(vl.Properties, key, value)
 						o <- ophion.QueryResult{&ophion.QueryResult_Vertex{&vl}}
 					}
@@ -189,7 +193,6 @@ func (self *PipeEngine) Property(key string, value interface{}) QueryInterface {
 							el.Properties = &structpb.Struct{Fields: map[string]*structpb.Value{}}
 						}
 						StructSet(el.Properties, key, value)
-						//el.Properties.Fields[key] = &structpb.Value{Kind: &structpb.Value_StringValue{value}}
 						o <- ophion.QueryResult{&ophion.QueryResult_Edge{&el}}
 					}
 				}
