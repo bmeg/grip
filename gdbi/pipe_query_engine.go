@@ -1,24 +1,23 @@
 package gdbi
 
 import (
-  "log"
-  "github.com/bmeg/arachne/ophion"
-  "github.com/golang/protobuf/ptypes/struct"
+	"github.com/bmeg/arachne/ophion"
+	"github.com/golang/protobuf/ptypes/struct"
+	"log"
 )
 
 type DBI interface {
-  GetVertex(key string) *ophion.Vertex
-  GetVertexData(key string) *[]byte 
-  GetVertexList() chan ophion.Vertex
-  GetEdgeList() chan ophion.Edge
-  GetOutList(key string) chan ophion.Vertex
-  GetInList(key string) chan ophion.Vertex
-  DelVertex(key string) error
-  DelEdge(key string) error
-  SetVertex(vertex ophion.Vertex) error
-  SetEdge(edge ophion.Edge) error
+	GetVertex(key string) *ophion.Vertex
+	GetVertexData(key string) *[]byte
+	GetVertexList() chan ophion.Vertex
+	GetEdgeList() chan ophion.Edge
+	GetOutList(key string) chan ophion.Vertex
+	GetInList(key string) chan ophion.Vertex
+	DelVertex(key string) error
+	DelEdge(key string) error
+	SetVertex(vertex ophion.Vertex) error
+	SetEdge(edge ophion.Edge) error
 }
-
 
 type graphpipe func() chan ophion.QueryResult
 
@@ -31,9 +30,8 @@ type PipeEngine struct {
 }
 
 func NewPipeEngine(db DBI, readOnly bool) *PipeEngine {
-  return &PipeEngine{db:db, readOnly:readOnly, sideEffect: false, err: nil}
+	return &PipeEngine{db: db, readOnly: readOnly, sideEffect: false, err: nil}
 }
-
 
 func (self *PipeEngine) append(pipe graphpipe) *PipeEngine {
 	return &PipeEngine{
@@ -44,7 +42,6 @@ func (self *PipeEngine) append(pipe graphpipe) *PipeEngine {
 		err:        self.err,
 	}
 }
-
 
 func (self *PipeEngine) V(key ...string) QueryInterface {
 	if len(key) > 0 {
@@ -170,8 +167,6 @@ func (self *PipeEngine) In(key ...string) QueryInterface {
 		})
 }
 
-
-
 func (self *PipeEngine) Property(key string, value interface{}) QueryInterface {
 	return self.append(
 		func() chan ophion.QueryResult {
@@ -282,8 +277,6 @@ func (self *PipeEngine) Drop() QueryInterface {
 	out.sideEffect = true
 	return out
 }
-
-
 
 func (self *PipeEngine) Count() QueryInterface {
 	return self.append(

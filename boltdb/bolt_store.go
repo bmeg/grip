@@ -2,6 +2,7 @@ package boltdb
 
 import (
 	"bytes"
+	"fmt"
 	"github.com/bmeg/arachne/gdbi"
 	"github.com/bmeg/arachne/ophion"
 	"github.com/boltdb/bolt"
@@ -11,18 +12,28 @@ import (
 )
 
 //Outgoing edges
+//key: src 0x00 dest 0x00 edgeid
+//value: edge properties
 var OEdgeBucket = []byte("oedges")
 
 //Incoming edges
+//key: dest 0x00 src 0x00 edgeid
+//value: blank
 var IEdgeBucket = []byte("iedges")
 
+//Incoming edges
+//key: edgeid
+//value: src 0x00 dst 0x00 edgeid
+var EdgeBucket = []byte("edges")
+
 //Vertices
+//key: vertex id
+//value: vertex properties
 var VertexBucket = []byte("vertices")
 
 type BoltArachne struct {
 	db *bolt.DB
 }
-
 
 func NewBoltArachne(path string) gdbi.ArachneInterface {
 	db, _ := bolt.Open(path, 0600, nil)
@@ -33,6 +44,9 @@ func NewBoltArachne(path string) gdbi.ArachneInterface {
 		}
 		if tx.Bucket(IEdgeBucket) == nil {
 			tx.CreateBucket(IEdgeBucket)
+		}
+		if tx.Bucket(EdgeBucket) == nil {
+			tx.CreateBucket(EdgeBucket)
 		}
 		if tx.Bucket(VertexBucket) == nil {
 			tx.CreateBucket(VertexBucket)
@@ -48,11 +62,9 @@ func (self *BoltArachne) Query() gdbi.QueryInterface {
 	return gdbi.NewPipeEngine(self, false)
 }
 
-
 func (self *BoltArachne) Close() {
 	self.db.Close()
 }
-
 
 func (self *BoltArachne) SetVertex(vertex ophion.Vertex) error {
 	err := self.db.Update(func(tx *bolt.Tx) error {
@@ -102,15 +114,20 @@ func (self *BoltArachne) GetVertex(key string) *ophion.Vertex {
 
 func (self *BoltArachne) SetEdge(edge ophion.Edge) error {
 	err := self.db.Update(func(tx *bolt.Tx) error {
-		oe := tx.Bucket(OEdgeBucket)
-		ie := tx.Bucket(IEdgeBucket)
+		eb := tx.Bucket(EdgeBucket)
+		oeb := tx.Bucket(OEdgeBucket)
+		ieb := tx.Bucket(IEdgeBucket)
 		src := edge.Out
 		dst := edge.In
-		okey := bytes.Join([][]byte{[]byte(src), []byte(dst)}, []byte{0})
-		ikey := bytes.Join([][]byte{[]byte(dst), []byte(src)}, []byte{0})
+		eid_num, _ := eb.NextSequence()
+		eid := fmt.Sprintf("%d", eid_num)
+		edge.Gid = eid
+		okey := bytes.Join([][]byte{[]byte(src), []byte(dst), []byte(eid)}, []byte{0})
+		ikey := bytes.Join([][]byte{[]byte(dst), []byte(src), []byte(eid)}, []byte{0})
 		data, _ := proto.Marshal(&edge)
-		oe.Put(okey, data)
-		ie.Put(ikey, []byte{})
+		eb.Put([]byte(eid), okey)
+		oeb.Put(okey, data)
+		ieb.Put(ikey, []byte{})
 		return nil
 	})
 	return err
@@ -238,55 +255,58 @@ func (self *BoltArachne) GetEdgeList() chan ophion.Edge {
 	return o
 }
 
-
 func (self *BoltArachne) DelEdge(id string) error {
 	err := self.db.Update(func(tx *bolt.Tx) error {
+		eb := tx.Bucket(EdgeBucket)
 		oeb := tx.Bucket(OEdgeBucket)
 		ieb := tx.Bucket(IEdgeBucket)
-		
-		idel := make([][]byte, 0, 100)
+
+		odel := make([][]byte, 0, 100)
 		c := oeb.Cursor()
 		for k, _ := c.Seek([]byte(id)); bytes.HasPrefix(k, []byte(id)); k, _ = c.Next() {
-			idel = append(idel, k)
+			odel = append(odel, k)
 		}
-		
-		for _, okey := range idel {
+
+		for _, okey := range odel {
+			key_data := bytes.Split(okey, []byte{0})
+			ikey := bytes.Join([][]byte{[]byte(key_data[1]), []byte(key_data[0]), []byte(key_data[2])}, []byte{0})
+			eid := key_data[2]
+			eb.Delete(eid)
 			oeb.Delete(okey)
-			pair := bytes.Split(okey, []byte{0})
-			ikey := bytes.Join([][]byte{[]byte(pair[1]), []byte(pair[0])}, []byte{0})
 			ieb.Delete(ikey)
 		}
-		
+
 		return nil
 	})
 	return err
 }
-
 
 func (self *BoltArachne) DelVertex(id string) error {
 	log.Printf("del %s", id)
 	err := self.db.Update(func(tx *bolt.Tx) error {
+		eb := tx.Bucket(EdgeBucket)
 		oeb := tx.Bucket(OEdgeBucket)
 		ieb := tx.Bucket(IEdgeBucket)
 		vb := tx.Bucket(VertexBucket)
-		
+
 		vb.Delete([]byte(id))
-		
-		idel := make([][]byte, 0, 100)
+
+		odel := make([][]byte, 0, 100)
 		c := oeb.Cursor()
 		for k, _ := c.Seek([]byte(id)); bytes.HasPrefix(k, []byte(id)); k, _ = c.Next() {
-			idel = append(idel, k)
+			odel = append(odel, k)
 		}
-		
-		for _, okey := range idel {
+
+		for _, okey := range odel {
+			key_data := bytes.Split(okey, []byte{0})
+			ikey := bytes.Join([][]byte{[]byte(key_data[1]), []byte(key_data[0]), []byte(key_data[2])}, []byte{0})
+			eid := key_data[2]
+			eb.Delete(eid)
 			oeb.Delete(okey)
-			pair := bytes.Split(okey, []byte{0})
-			ikey := bytes.Join([][]byte{[]byte(pair[1]), []byte(pair[0])}, []byte{0})
 			ieb.Delete(ikey)
 		}
-		
+
 		return nil
 	})
 	return err
 }
-
