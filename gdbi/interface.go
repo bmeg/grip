@@ -13,6 +13,9 @@ type QueryInterface interface {
 	In(key ...string) QueryInterface
 	Limit(count int64) QueryInterface
 
+	OutE(key ...string) QueryInterface
+	InE(key ...string) QueryInterface
+
 	//Read write methods
 	AddV(key string) QueryInterface
 	AddE(key string) QueryInterface
@@ -29,3 +32,22 @@ type ArachneInterface interface {
 	Close()
 	Query() QueryInterface
 }
+
+type DBI interface {
+	GetVertex(key string) *ophion.Vertex
+	GetVertexData(key string) *[]byte
+	GetVertexList() chan ophion.Vertex
+	GetEdgeList() chan ophion.Edge
+	GetOutList(key string, filter EdgeFilter) chan ophion.Vertex
+	GetInList(key string, filter EdgeFilter) chan ophion.Vertex
+
+	GetOutEdgeList(key string, filter EdgeFilter) chan ophion.Edge
+	GetInEdgeList(key string, filter EdgeFilter) chan ophion.Edge
+
+	DelVertex(key string) error
+	DelEdge(key string) error
+	SetVertex(vertex ophion.Vertex) error
+	SetEdge(edge ophion.Edge) error
+}
+type EdgeFilter func(edge ophion.Edge) bool
+type GraphPipe func() chan ophion.QueryResult

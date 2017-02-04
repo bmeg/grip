@@ -62,6 +62,18 @@ func (trav *Traversal) RunStatement(statement *ophion.GraphStatement) error {
 		} else {
 			trav.Query = trav.Query.In(x.In)
 		}
+	} else if x, ok := statement.GetStatement().(*ophion.GraphStatement_OutEdge); ok {
+		if x.OutEdge == "" {
+			trav.Query = trav.Query.OutE()
+		} else {
+			trav.Query = trav.Query.OutE(x.OutEdge)
+		}
+	} else if x, ok := statement.GetStatement().(*ophion.GraphStatement_InEdge); ok {
+		if x.InEdge == "" {
+			trav.Query = trav.Query.InE()
+		} else {
+			trav.Query = trav.Query.InE(x.InEdge)
+		}
 	} else if x := statement.GetHas(); x != nil {
 		trav.Query = trav.Query.Has(x.Key, x.Within...)
 	} else if x := statement.GetProperty(); x != nil {

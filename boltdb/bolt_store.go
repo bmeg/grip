@@ -231,11 +231,28 @@ func (self *BoltArachne) GetInList(key string, filter gdbi.EdgeFilter) chan ophi
 		defer close(vi)
 		self.db.View(func(tx *bolt.Tx) error {
 			eb := tx.Bucket(IEdgeBucket)
+			ob := tx.Bucket(OEdgeBucket)
 			c := eb.Cursor()
 			pre := append([]byte(key), 0)
 			for k, _ := c.Seek(pre); bytes.HasPrefix(k, pre); k, _ = c.Next() {
-				pair := bytes.Split(k, []byte{0})
-				vi <- string(pair[1])
+				key_data := bytes.Split(k, []byte{0})
+
+				send := false
+				if filter != nil {
+					e := ophion.Edge{}
+					ikey := bytes.Join([][]byte{[]byte(key_data[1]), []byte(key_data[0]), []byte(key_data[2])}, []byte{0})
+					d := ob.Get([]byte(ikey))
+					proto.Unmarshal(d, &e)
+					if filter(e) {
+						send = true
+					}
+				} else {
+					send = true
+				}
+
+				if send {
+					vi <- string(key_data[1])
+				}
 			}
 			return nil
 		})
@@ -245,6 +262,68 @@ func (self *BoltArachne) GetInList(key string, filter gdbi.EdgeFilter) chan ophi
 		for i := range vi {
 			o <- *self.GetVertex(i)
 		}
+	}()
+	return o
+}
+
+func (self *BoltArachne) GetOutEdgeList(key string, filter gdbi.EdgeFilter) chan ophion.Edge {
+	o := make(chan ophion.Edge, 100)
+	go func() {
+		defer close(o)
+		self.db.View(func(tx *bolt.Tx) error {
+			eb := tx.Bucket(OEdgeBucket)
+			c := eb.Cursor()
+			pre := append([]byte(key), 0)
+			for k, v := c.Seek(pre); bytes.HasPrefix(k, pre); k, v = c.Next() {
+				send := false
+				e := ophion.Edge{}
+				proto.Unmarshal(v, &e)
+				if filter != nil {
+					if filter(e) {
+						send = true
+					}
+				} else {
+					send = true
+				}
+				if send {
+					o <- e
+				}
+			}
+			return nil
+		})
+	}()
+	return o
+}
+
+func (self *BoltArachne) GetInEdgeList(key string, filter gdbi.EdgeFilter) chan ophion.Edge {
+	o := make(chan ophion.Edge, 100)
+	go func() {
+		defer close(o)
+		self.db.View(func(tx *bolt.Tx) error {
+			eb := tx.Bucket(IEdgeBucket)
+			ob := tx.Bucket(OEdgeBucket)
+			c := eb.Cursor()
+			pre := append([]byte(key), 0)
+			for k, _ := c.Seek(pre); bytes.HasPrefix(k, pre); k, _ = c.Next() {
+				key_data := bytes.Split(k, []byte{0})
+				ikey := bytes.Join([][]byte{[]byte(key_data[1]), []byte(key_data[0]), []byte(key_data[2])}, []byte{0})
+				d := ob.Get([]byte(ikey))
+				e := ophion.Edge{}
+				proto.Unmarshal(d, &e)
+				send := false
+				if filter != nil {
+					if filter(e) {
+						send = true
+					}
+				} else {
+					send = true
+				}
+				if send {
+					o <- e
+				}
+			}
+			return nil
+		})
 	}()
 	return o
 }

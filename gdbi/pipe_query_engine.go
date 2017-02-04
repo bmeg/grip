@@ -6,21 +6,6 @@ import (
 	"log"
 )
 
-type DBI interface {
-	GetVertex(key string) *ophion.Vertex
-	GetVertexData(key string) *[]byte
-	GetVertexList() chan ophion.Vertex
-	GetEdgeList() chan ophion.Edge
-	GetOutList(key string, filter EdgeFilter) chan ophion.Vertex
-	GetInList(key string, filter EdgeFilter) chan ophion.Vertex
-	DelVertex(key string) error
-	DelEdge(key string) error
-	SetVertex(vertex ophion.Vertex) error
-	SetEdge(edge ophion.Edge) error
-}
-type EdgeFilter func(edge ophion.Edge) bool
-type GraphPipe func() chan ophion.QueryResult
-
 type PipeEngine struct {
 	db         DBI
 	readOnly   bool
@@ -135,14 +120,20 @@ func (self *PipeEngine) Out(key ...string) QueryInterface {
 			o := make(chan ophion.QueryResult, 10)
 			go func() {
 				defer close(o)
+				var filt EdgeFilter = nil
+				if len(key) > 0 && len(key[0]) > 0 {
+					filt = func(e ophion.Edge) bool {
+						if key[0] == e.Label {
+							return true
+						}
+						return false
+					}
+				}
 				for i := range self.pipe() {
 					if v := i.GetVertex(); v != nil {
-						for e := range self.db.GetOutList(v.Gid, nil) {
-							log.Printf("Out: %s %s", key, e.Label)
-							if (len(key) == 0 || len(key[0]) == 0 || key[0] == e.Label) {
-								el := e
-								o <- ophion.QueryResult{&ophion.QueryResult_Vertex{&el}}
-							}
+						for ov := range self.db.GetOutList(v.Gid, filt) {
+							lv := ov
+							o <- ophion.QueryResult{&ophion.QueryResult_Vertex{&lv}}
 						}
 					}
 				}
@@ -157,13 +148,76 @@ func (self *PipeEngine) In(key ...string) QueryInterface {
 			o := make(chan ophion.QueryResult, 10)
 			go func() {
 				defer close(o)
+				var filt EdgeFilter = nil
+				if len(key) > 0 && len(key[0]) > 0 {
+					filt = func(e ophion.Edge) bool {
+						if key[0] == e.Label {
+							return true
+						}
+						return false
+					}
+				}
 				for i := range self.pipe() {
 					if v := i.GetVertex(); v != nil {
-						for e := range self.db.GetInList(v.Gid, nil) {
-							if (len(key) == 0 || len(key[0]) == 0 || key[0] == e.Label) {
-								el := e
-								o <- ophion.QueryResult{&ophion.QueryResult_Vertex{&el}}
-							}
+						for e := range self.db.GetInList(v.Gid, filt) {
+							el := e
+							o <- ophion.QueryResult{&ophion.QueryResult_Vertex{&el}}
+						}
+					}
+				}
+			}()
+			return o
+		})
+}
+
+func (self *PipeEngine) OutE(key ...string) QueryInterface {
+	return self.append(
+		func() chan ophion.QueryResult {
+			o := make(chan ophion.QueryResult, 10)
+			go func() {
+				defer close(o)
+				var filt EdgeFilter = nil
+				if len(key) > 0 && len(key[0]) > 0 {
+					filt = func(e ophion.Edge) bool {
+						if key[0] == e.Label {
+							return true
+						}
+						return false
+					}
+				}
+				for i := range self.pipe() {
+					if v := i.GetVertex(); v != nil {
+						for oe := range self.db.GetOutEdgeList(v.Gid, filt) {
+							le := oe
+							o <- ophion.QueryResult{&ophion.QueryResult_Edge{&le}}
+						}
+					}
+				}
+			}()
+			return o
+		})
+}
+
+func (self *PipeEngine) InE(key ...string) QueryInterface {
+	return self.append(
+		func() chan ophion.QueryResult {
+			o := make(chan ophion.QueryResult, 10)
+			go func() {
+				defer close(o)
+				var filt EdgeFilter = nil
+				if len(key) > 0 && len(key[0]) > 0 {
+					filt = func(e ophion.Edge) bool {
+						if key[0] == e.Label {
+							return true
+						}
+						return false
+					}
+				}
+				for i := range self.pipe() {
+					if v := i.GetVertex(); v != nil {
+						for e := range self.db.GetInEdgeList(v.Gid, filt) {
+							el := e
+							o <- ophion.QueryResult{&ophion.QueryResult_Edge{&el}}
 						}
 					}
 				}
