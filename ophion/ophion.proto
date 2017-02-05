@@ -72,9 +72,13 @@ message QueryResult {
     }
 }
 
+message ResultRow {
+  QueryResult value = 1;
+  repeated QueryResult row = 2;
+}
 
 service Query {
-  rpc Traversal(GraphQuery) returns (stream QueryResult) {
+  rpc Traversal(GraphQuery) returns (stream ResultRow) {
     option (google.api.http) = {
       post: "/v1/graph-query"
       body: "*"
