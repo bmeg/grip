@@ -38,7 +38,7 @@ func (server *ArachneServer) Traversal(query *ophion.GraphQuery, queryServer oph
 	res, _ := server.engine.RunTraversal(query)
 	for i := range res {
 		l := i
-		queryServer.Send(&ophion.ResultRow{Value: &l})
+		queryServer.Send(&l)
 	}
 	return nil
 }

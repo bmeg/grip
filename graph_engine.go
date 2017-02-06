@@ -15,7 +15,7 @@ func NewGraphEngine(dbi gdbi.ArachneInterface) GraphEngine {
 	return GraphEngine{DBI: dbi}
 }
 
-func (engine *GraphEngine) RunTraversal(query *ophion.GraphQuery) (chan ophion.QueryResult, error) {
+func (engine *GraphEngine) RunTraversal(query *ophion.GraphQuery) (chan ophion.ResultRow, error) {
 	//log.Printf("Starting Query")
 	tr := engine.Query()
 	for _, s := range query.Query {
@@ -95,6 +95,6 @@ func (trav *Traversal) RunStatement(statement *ophion.GraphStatement) error {
 	return nil
 }
 
-func (trav *Traversal) GetResult() (chan ophion.QueryResult, error) {
+func (trav *Traversal) GetResult() (chan ophion.ResultRow, error) {
 	return trav.Query.Execute(), nil
 }

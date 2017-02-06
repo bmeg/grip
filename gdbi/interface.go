@@ -23,9 +23,9 @@ type QueryInterface interface {
 	Property(key string, value interface{}) QueryInterface
 	Drop() QueryInterface
 
-	Execute() chan ophion.QueryResult
-	First() (ophion.QueryResult, error) //Only get one result
-	Run() error                         //Do execute, but throw away the results
+	Execute() chan ophion.ResultRow
+	First() (ophion.ResultRow, error) //Only get one result
+	Run() error                       //Do execute, but throw away the results
 }
 
 type ArachneInterface interface {
@@ -49,5 +49,10 @@ type DBI interface {
 	SetVertex(vertex ophion.Vertex) error
 	SetEdge(edge ophion.Edge) error
 }
+
+type Traveler struct {
+	State map[string]ophion.QueryResult
+}
+
 type EdgeFilter func(edge ophion.Edge) bool
-type GraphPipe func() chan ophion.QueryResult
+type GraphPipe func() chan Traveler

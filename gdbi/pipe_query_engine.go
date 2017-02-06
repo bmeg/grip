@@ -3,7 +3,7 @@ package gdbi
 import (
 	"github.com/bmeg/arachne/ophion"
 	"github.com/golang/protobuf/ptypes/struct"
-	"log"
+	//"log"
 )
 
 type PipeEngine struct {
@@ -13,6 +13,10 @@ type PipeEngine struct {
 	sideEffect bool
 	err        error
 }
+
+const (
+	PIPE_SIZE = 100
+)
 
 func NewPipeEngine(db DBI, readOnly bool) *PipeEngine {
 	return &PipeEngine{db: db, readOnly: readOnly, sideEffect: false, err: nil}
@@ -31,26 +35,28 @@ func (self *PipeEngine) append(pipe GraphPipe) *PipeEngine {
 func (self *PipeEngine) V(key ...string) QueryInterface {
 	if len(key) > 0 {
 		return self.append(
-			func() chan ophion.QueryResult {
-				o := make(chan ophion.QueryResult, 1)
+			func() chan Traveler {
+				o := make(chan Traveler, PIPE_SIZE)
 				go func() {
 					defer close(o)
 					v := self.db.GetVertex(key[0])
 					if v != nil {
-						o <- ophion.QueryResult{&ophion.QueryResult_Vertex{v}}
+						c := Traveler{}
+						o <- c.AddCurrent(ophion.QueryResult{&ophion.QueryResult_Vertex{v}})
 					}
 				}()
 				return o
 			})
 	}
 	return self.append(
-		func() chan ophion.QueryResult {
-			o := make(chan ophion.QueryResult, 100)
+		func() chan Traveler {
+			o := make(chan Traveler, PIPE_SIZE)
 			go func() {
 				defer close(o)
 				for i := range self.db.GetVertexList() {
 					t := i //make a local copy
-					o <- ophion.QueryResult{&ophion.QueryResult_Vertex{&t}}
+					c := Traveler{}
+					o <- c.AddCurrent(ophion.QueryResult{&ophion.QueryResult_Vertex{&t}})
 				}
 			}()
 			return o
@@ -59,14 +65,14 @@ func (self *PipeEngine) V(key ...string) QueryInterface {
 
 func (self *PipeEngine) E() QueryInterface {
 	return self.append(
-		func() chan ophion.QueryResult {
-			o := make(chan ophion.QueryResult, 10)
+		func() chan Traveler {
+			o := make(chan Traveler, PIPE_SIZE)
 			go func() {
 				defer close(o)
-				log.Printf("Getting Edge List")
 				for i := range self.db.GetEdgeList() {
 					t := i //make a local copy
-					o <- ophion.QueryResult{&ophion.QueryResult_Edge{&t}}
+					c := Traveler{}
+					o <- c.AddCurrent(ophion.QueryResult{&ophion.QueryResult_Edge{&t}})
 				}
 			}()
 			return o
@@ -75,13 +81,13 @@ func (self *PipeEngine) E() QueryInterface {
 
 func (self *PipeEngine) Has(prop string, value ...string) QueryInterface {
 	return self.append(
-		func() chan ophion.QueryResult {
-			o := make(chan ophion.QueryResult, 10)
+		func() chan Traveler {
+			o := make(chan Traveler, PIPE_SIZE)
 			go func() {
 				defer close(o)
 				for i := range self.pipe() {
 					//Process Vertex Elements
-					if v := i.GetVertex(); v != nil && v.Properties != nil {
+					if v := i.GetCurrent().GetVertex(); v != nil && v.Properties != nil {
 						if p, ok := v.Properties.Fields[prop]; ok {
 							found := false
 							for _, s := range value {
@@ -95,7 +101,7 @@ func (self *PipeEngine) Has(prop string, value ...string) QueryInterface {
 						}
 					}
 					//Process Edge Elements
-					if e := i.GetEdge(); e != nil && e.Properties != nil {
+					if e := i.GetCurrent().GetEdge(); e != nil && e.Properties != nil {
 						if p, ok := e.Properties.Fields[prop]; ok {
 							found := false
 							for _, s := range value {
@@ -116,8 +122,8 @@ func (self *PipeEngine) Has(prop string, value ...string) QueryInterface {
 
 func (self *PipeEngine) Out(key ...string) QueryInterface {
 	return self.append(
-		func() chan ophion.QueryResult {
-			o := make(chan ophion.QueryResult, 10)
+		func() chan Traveler {
+			o := make(chan Traveler, PIPE_SIZE)
 			go func() {
 				defer close(o)
 				var filt EdgeFilter = nil
@@ -130,10 +136,10 @@ func (self *PipeEngine) Out(key ...string) QueryInterface {
 					}
 				}
 				for i := range self.pipe() {
-					if v := i.GetVertex(); v != nil {
+					if v := i.GetCurrent().GetVertex(); v != nil {
 						for ov := range self.db.GetOutList(v.Gid, filt) {
 							lv := ov
-							o <- ophion.QueryResult{&ophion.QueryResult_Vertex{&lv}}
+							o <- i.AddCurrent(ophion.QueryResult{&ophion.QueryResult_Vertex{&lv}})
 						}
 					}
 				}
@@ -144,8 +150,8 @@ func (self *PipeEngine) Out(key ...string) QueryInterface {
 
 func (self *PipeEngine) In(key ...string) QueryInterface {
 	return self.append(
-		func() chan ophion.QueryResult {
-			o := make(chan ophion.QueryResult, 10)
+		func() chan Traveler {
+			o := make(chan Traveler, PIPE_SIZE)
 			go func() {
 				defer close(o)
 				var filt EdgeFilter = nil
@@ -158,10 +164,10 @@ func (self *PipeEngine) In(key ...string) QueryInterface {
 					}
 				}
 				for i := range self.pipe() {
-					if v := i.GetVertex(); v != nil {
+					if v := i.GetCurrent().GetVertex(); v != nil {
 						for e := range self.db.GetInList(v.Gid, filt) {
 							el := e
-							o <- ophion.QueryResult{&ophion.QueryResult_Vertex{&el}}
+							o <- i.AddCurrent(ophion.QueryResult{&ophion.QueryResult_Vertex{&el}})
 						}
 					}
 				}
@@ -172,8 +178,8 @@ func (self *PipeEngine) In(key ...string) QueryInterface {
 
 func (self *PipeEngine) OutE(key ...string) QueryInterface {
 	return self.append(
-		func() chan ophion.QueryResult {
-			o := make(chan ophion.QueryResult, 10)
+		func() chan Traveler {
+			o := make(chan Traveler, PIPE_SIZE)
 			go func() {
 				defer close(o)
 				var filt EdgeFilter = nil
@@ -186,10 +192,10 @@ func (self *PipeEngine) OutE(key ...string) QueryInterface {
 					}
 				}
 				for i := range self.pipe() {
-					if v := i.GetVertex(); v != nil {
+					if v := i.GetCurrent().GetVertex(); v != nil {
 						for oe := range self.db.GetOutEdgeList(v.Gid, filt) {
 							le := oe
-							o <- ophion.QueryResult{&ophion.QueryResult_Edge{&le}}
+							o <- i.AddCurrent(ophion.QueryResult{&ophion.QueryResult_Edge{&le}})
 						}
 					}
 				}
@@ -200,8 +206,8 @@ func (self *PipeEngine) OutE(key ...string) QueryInterface {
 
 func (self *PipeEngine) InE(key ...string) QueryInterface {
 	return self.append(
-		func() chan ophion.QueryResult {
-			o := make(chan ophion.QueryResult, 10)
+		func() chan Traveler {
+			o := make(chan Traveler, PIPE_SIZE)
 			go func() {
 				defer close(o)
 				var filt EdgeFilter = nil
@@ -214,10 +220,10 @@ func (self *PipeEngine) InE(key ...string) QueryInterface {
 					}
 				}
 				for i := range self.pipe() {
-					if v := i.GetVertex(); v != nil {
+					if v := i.GetCurrent().GetVertex(); v != nil {
 						for e := range self.db.GetInEdgeList(v.Gid, filt) {
 							el := e
-							o <- ophion.QueryResult{&ophion.QueryResult_Edge{&el}}
+							o <- i.AddCurrent(ophion.QueryResult{&ophion.QueryResult_Edge{&el}})
 						}
 					}
 				}
@@ -228,26 +234,26 @@ func (self *PipeEngine) InE(key ...string) QueryInterface {
 
 func (self *PipeEngine) Property(key string, value interface{}) QueryInterface {
 	return self.append(
-		func() chan ophion.QueryResult {
-			o := make(chan ophion.QueryResult, 10)
+		func() chan Traveler {
+			o := make(chan Traveler, PIPE_SIZE)
 			go func() {
 				defer close(o)
 				for i := range self.pipe() {
-					if v := i.GetVertex(); v != nil {
+					if v := i.GetCurrent().GetVertex(); v != nil {
 						vl := *v //local copy
 						if vl.Properties == nil {
 							vl.Properties = &structpb.Struct{Fields: map[string]*structpb.Value{}}
 						}
 						StructSet(vl.Properties, key, value)
-						o <- ophion.QueryResult{&ophion.QueryResult_Vertex{&vl}}
+						o <- i.AddCurrent(ophion.QueryResult{&ophion.QueryResult_Vertex{&vl}})
 					}
-					if e := i.GetEdge(); e != nil {
+					if e := i.GetCurrent().GetEdge(); e != nil {
 						el := *e
 						if el.Properties == nil {
 							el.Properties = &structpb.Struct{Fields: map[string]*structpb.Value{}}
 						}
 						StructSet(el.Properties, key, value)
-						o <- ophion.QueryResult{&ophion.QueryResult_Edge{&el}}
+						o <- i.AddCurrent(ophion.QueryResult{&ophion.QueryResult_Edge{&el}})
 					}
 				}
 			}()
@@ -257,13 +263,14 @@ func (self *PipeEngine) Property(key string, value interface{}) QueryInterface {
 
 func (self *PipeEngine) AddV(key string) QueryInterface {
 	out := self.append(
-		func() chan ophion.QueryResult {
-			o := make(chan ophion.QueryResult, 1)
-			o <- ophion.QueryResult{&ophion.QueryResult_Vertex{
+		func() chan Traveler {
+			o := make(chan Traveler, PIPE_SIZE)
+			t := Traveler{}
+			o <- t.AddCurrent(ophion.QueryResult{&ophion.QueryResult_Vertex{
 				&ophion.Vertex{
 					Gid: key,
 				},
-			}}
+			}})
 			defer close(o)
 			return o
 		})
@@ -273,15 +280,15 @@ func (self *PipeEngine) AddV(key string) QueryInterface {
 
 func (self *PipeEngine) AddE(key string) QueryInterface {
 	out := self.append(
-		func() chan ophion.QueryResult {
-			o := make(chan ophion.QueryResult, 10)
+		func() chan Traveler {
+			o := make(chan Traveler, PIPE_SIZE)
 			go func() {
 				defer close(o)
 				for src := range self.pipe() {
-					if v := src.GetVertex(); v != nil {
-						o <- ophion.QueryResult{&ophion.QueryResult_Edge{
+					if v := src.GetCurrent().GetVertex(); v != nil {
+						o <- src.AddCurrent(ophion.QueryResult{&ophion.QueryResult_Edge{
 							&ophion.Edge{Out: v.Gid, Label: key},
-						}}
+						}})
 					}
 				}
 			}()
@@ -293,17 +300,17 @@ func (self *PipeEngine) AddE(key string) QueryInterface {
 
 func (self *PipeEngine) To(key string) QueryInterface {
 	out := self.append(
-		func() chan ophion.QueryResult {
-			o := make(chan ophion.QueryResult, 10)
+		func() chan Traveler {
+			o := make(chan Traveler, PIPE_SIZE)
 			go func() {
 				defer close(o)
 				for src := range self.pipe() {
-					if e := src.GetEdge(); e != nil {
+					if e := src.GetCurrent().GetEdge(); e != nil {
 						el := e
 						el.In = key
-						o <- ophion.QueryResult{&ophion.QueryResult_Edge{
+						o <- src.AddCurrent(ophion.QueryResult{&ophion.QueryResult_Edge{
 							el,
-						}}
+						}})
 					}
 				}
 			}()
@@ -316,15 +323,15 @@ func (self *PipeEngine) To(key string) QueryInterface {
 //delete incoming elements, emit nothing
 func (self *PipeEngine) Drop() QueryInterface {
 	out := self.append(
-		func() chan ophion.QueryResult {
-			o := make(chan ophion.QueryResult, 10)
+		func() chan Traveler {
+			o := make(chan Traveler, PIPE_SIZE)
 			go func() {
 				defer close(o)
 				for src := range self.pipe() {
-					if v := src.GetVertex(); v != nil {
+					if v := src.GetCurrent().GetVertex(); v != nil {
 						self.db.DelVertex(v.Gid)
 					}
-					if e := src.GetEdge(); e != nil {
+					if e := src.GetCurrent().GetEdge(); e != nil {
 						self.db.DelEdge(e.Gid)
 					}
 				}
@@ -337,15 +344,16 @@ func (self *PipeEngine) Drop() QueryInterface {
 
 func (self *PipeEngine) Count() QueryInterface {
 	return self.append(
-		func() chan ophion.QueryResult {
-			o := make(chan ophion.QueryResult, 1)
+		func() chan Traveler {
+			o := make(chan Traveler, 1)
 			go func() {
 				defer close(o)
 				var count int32 = 0
 				for range self.pipe() {
 					count += 1
 				}
-				o <- ophion.QueryResult{&ophion.QueryResult_IntValue{IntValue: count}}
+				t := Traveler{}
+				o <- t.AddCurrent(ophion.QueryResult{&ophion.QueryResult_IntValue{IntValue: count}})
 			}()
 			return o
 		})
@@ -353,8 +361,8 @@ func (self *PipeEngine) Count() QueryInterface {
 
 func (self *PipeEngine) Limit(limit int64) QueryInterface {
 	return self.append(
-		func() chan ophion.QueryResult {
-			o := make(chan ophion.QueryResult, 1)
+		func() chan Traveler {
+			o := make(chan Traveler, PIPE_SIZE)
 			go func() {
 				defer close(o)
 				var count int64 = 0
@@ -371,24 +379,31 @@ func (self *PipeEngine) Limit(limit int64) QueryInterface {
 		})
 }
 
-func (self *PipeEngine) Execute() chan ophion.QueryResult {
+func (self *PipeEngine) Execute() chan ophion.ResultRow {
 	if self.sideEffect {
-		o := make(chan ophion.QueryResult, 10)
+		o := make(chan ophion.ResultRow, PIPE_SIZE)
 		go func() {
 			defer close(o)
 			for i := range self.pipe() {
-				if v := i.GetVertex(); v != nil {
+				if v := i.GetCurrent().GetVertex(); v != nil {
 					self.db.SetVertex(*v)
-					o <- i
-				} else if v := i.GetEdge(); v != nil {
+					o <- ophion.ResultRow{Value: i.GetCurrent()}
+				} else if v := i.GetCurrent().GetEdge(); v != nil {
 					self.db.SetEdge(*v)
-					o <- i
+					o <- ophion.ResultRow{Value: i.GetCurrent()}
 				}
 			}
 		}()
 		return o
 	} else {
-		return self.pipe()
+		o := make(chan ophion.ResultRow, PIPE_SIZE)
+		go func() {
+			defer close(o)
+			for i := range self.pipe() {
+				o <- ophion.ResultRow{Value: i.GetCurrent()}
+			}
+		}()
+		return o
 	}
 }
 
@@ -401,13 +416,17 @@ func (self *PipeEngine) Run() error {
 	return nil
 }
 
-func (self *PipeEngine) First() (ophion.QueryResult, error) {
-	o := ophion.QueryResult{}
+func (self *PipeEngine) First() (ophion.ResultRow, error) {
+	o := ophion.ResultRow{}
 	if self.err != nil {
 		return o, self.err
 	}
+	first := true
 	for i := range self.Execute() {
-		o = i
+		if first {
+			o = i
+		}
+		first = false
 	}
 	return o, nil
 }
