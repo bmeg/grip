@@ -16,6 +16,9 @@ type QueryInterface interface {
 	OutE(key ...string) QueryInterface
 	InE(key ...string) QueryInterface
 
+	As(label string) QueryInterface
+	Select(labels []string) QueryInterface
+
 	//Read write methods
 	AddV(key string) QueryInterface
 	AddE(key string) QueryInterface

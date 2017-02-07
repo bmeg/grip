@@ -86,6 +86,10 @@ func (trav *Traversal) RunStatement(statement *ophion.GraphStatement) error {
 		trav.Query = trav.Query.Limit(x.Limit)
 	} else if _, ok := statement.GetStatement().(*ophion.GraphStatement_Count); ok {
 		trav.Query = trav.Query.Count()
+	} else if x, ok := statement.GetStatement().(*ophion.GraphStatement_As); ok {
+		trav.Query = trav.Query.As(x.As)
+	} else if x, ok := statement.GetStatement().(*ophion.GraphStatement_Select); ok {
+		trav.Query = trav.Query.Select(x.Select.Labels)
 	} else if _, ok := statement.GetStatement().(*ophion.GraphStatement_Drop); ok {
 		trav.Query = trav.Query.Drop()
 	} else {

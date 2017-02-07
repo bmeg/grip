@@ -12,6 +12,7 @@ type PipeEngine struct {
 	pipe       GraphPipe
 	sideEffect bool
 	err        error
+	selection  []string
 }
 
 const (
@@ -19,7 +20,7 @@ const (
 )
 
 func NewPipeEngine(db DBI, readOnly bool) *PipeEngine {
-	return &PipeEngine{db: db, readOnly: readOnly, sideEffect: false, err: nil}
+	return &PipeEngine{db: db, readOnly: readOnly, sideEffect: false, err: nil, selection: []string{}}
 }
 
 func (self *PipeEngine) append(pipe GraphPipe) *PipeEngine {
@@ -232,6 +233,26 @@ func (self *PipeEngine) InE(key ...string) QueryInterface {
 		})
 }
 
+func (self *PipeEngine) As(label string) QueryInterface {
+	return self.append(
+		func() chan Traveler {
+			o := make(chan Traveler, PIPE_SIZE)
+			go func() {
+				defer close(o)
+				for i := range self.pipe() {
+					o <- i.AddLabeled(label, *i.GetCurrent())
+				}
+			}()
+			return o
+		})
+}
+
+func (self *PipeEngine) Select(labels []string) QueryInterface {
+	o := self.append(self.pipe)
+	o.selection = labels
+	return o
+}
+
 func (self *PipeEngine) Property(key string, value interface{}) QueryInterface {
 	return self.append(
 		func() chan Traveler {
@@ -400,7 +421,15 @@ func (self *PipeEngine) Execute() chan ophion.ResultRow {
 		go func() {
 			defer close(o)
 			for i := range self.pipe() {
-				o <- ophion.ResultRow{Value: i.GetCurrent()}
+				if len(self.selection) == 0 {
+					o <- ophion.ResultRow{Value: i.GetCurrent()}
+				} else {
+					l := []*ophion.QueryResult{}
+					for _, r := range self.selection {
+						l = append(l, i.GetLabeled(r))
+					}
+					o <- ophion.ResultRow{Row: l}
+				}
 			}
 		}()
 		return o

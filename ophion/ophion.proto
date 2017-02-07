@@ -41,7 +41,7 @@ message HasStatement {
 }
 
 message SelectStatement {
-    repeated string steps = 1;
+    repeated string labels = 1;
 }
 
 message Vertex {
