@@ -1,4 +1,4 @@
-package gdbi
+package protoutil
 
 import (
 	"github.com/golang/protobuf/ptypes/struct"
@@ -52,4 +52,26 @@ func CopyStructToStructSub(dst *structpb.Struct, keys []string, src *structpb.St
 	for _, k := range keys {
 		StructSet(dst, k, src.Fields[k])
 	}
+}
+
+func AsMap(src *structpb.Struct) map[string]interface{} {
+	out := map[string]interface{}{}
+	for k, f := range src.Fields {
+		if v, ok := f.Kind.(*structpb.Value_StringValue); ok {
+			out[k] = v.StringValue
+		} else if v, ok := f.Kind.(*structpb.Value_NumberValue); ok {
+			out[k] = v.NumberValue
+		} else if v, ok := f.Kind.(*structpb.Value_StructValue); ok {
+			out[k] = AsMap(v.StructValue)
+		}
+	}
+	return out
+}
+
+func AsStruct(src map[string]interface{}) *structpb.Struct {
+	out := structpb.Struct{Fields: map[string]*structpb.Value{}}
+	for k, v := range src {
+		StructSet(&out, k, v)
+	}
+	return &out
 }

@@ -77,15 +77,15 @@ func (trav *Traversal) RunStatement(statement *ophion.GraphStatement) error {
 	} else if x := statement.GetHas(); x != nil {
 		trav.Query = trav.Query.Has(x.Key, x.Within...)
 	} else if x := statement.GetProperty(); x != nil {
-		log.Printf("Property :%#v", x)
 		for k, v := range x.Fields {
-			log.Printf("Adding %s %s", k, v)
 			trav.Query = trav.Query.Property(k, v)
 		}
 	} else if x, ok := statement.GetStatement().(*ophion.GraphStatement_Limit); ok {
 		trav.Query = trav.Query.Limit(x.Limit)
 	} else if x, ok := statement.GetStatement().(*ophion.GraphStatement_Values); ok {
 		trav.Query = trav.Query.Values(x.Values.Labels)
+	} else if x, ok := statement.GetStatement().(*ophion.GraphStatement_Map); ok {
+		trav.Query = trav.Query.Map(x.Map)
 	} else if _, ok := statement.GetStatement().(*ophion.GraphStatement_Count); ok {
 		trav.Query = trav.Query.Count()
 	} else if x, ok := statement.GetStatement().(*ophion.GraphStatement_As); ok {

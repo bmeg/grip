@@ -8,7 +8,7 @@ import (
 	"github.com/boltdb/bolt"
 	proto "github.com/golang/protobuf/proto"
 	//"github.com/golang/protobuf/ptypes/struct"
-	"log"
+	//"log"
 )
 
 //Outgoing edges
@@ -373,7 +373,7 @@ func (self *BoltArachne) DelEdge(id string) error {
 }
 
 func (self *BoltArachne) DelVertex(id string) error {
-	log.Printf("del %s", id)
+	//log.Printf("del %s", id)
 	err := self.db.Update(func(tx *bolt.Tx) error {
 		eb := tx.Bucket(EdgeBucket)
 		oeb := tx.Bucket(OEdgeBucket)

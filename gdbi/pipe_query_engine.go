@@ -1,9 +1,11 @@
 package gdbi
 
 import (
+	"github.com/bmeg/arachne/jsengine"
 	"github.com/bmeg/arachne/ophion"
+	"github.com/bmeg/arachne/protoutil"
 	"github.com/golang/protobuf/ptypes/struct"
-	//"log"
+	"log"
 )
 
 type PipeEngine struct {
@@ -269,9 +271,9 @@ func (self *PipeEngine) Values(labels []string) QueryInterface {
 					if props != nil {
 						out := structpb.Struct{Fields: map[string]*structpb.Value{}}
 						if len(labels) == 0 {
-							CopyStructToStruct(&out, props)
+							protoutil.CopyStructToStruct(&out, props)
 						} else {
-							CopyStructToStructSub(&out, labels, props)
+							protoutil.CopyStructToStructSub(&out, labels, props)
 						}
 						o <- i.AddCurrent(ophion.QueryResult{&ophion.QueryResult_Struct{&out}})
 					}
@@ -281,6 +283,28 @@ func (self *PipeEngine) Values(labels []string) QueryInterface {
 		})
 	o := self.append(self.pipe)
 	return o
+}
+
+func (self *PipeEngine) Map(source string) QueryInterface {
+	return self.append(
+		func() chan Traveler {
+			o := make(chan Traveler, PIPE_SIZE)
+			go func() {
+				defer close(o)
+				mfunc, err := jsengine.NewFunction(source)
+				if err != nil {
+					log.Printf("Script Error: %s", err)
+				}
+				for i := range self.pipe() {
+					out := mfunc.Call(i.GetCurrent())
+					if out != nil {
+						a := i.AddCurrent(*out)
+						o <- a
+					}
+				}
+			}()
+			return o
+		})
 }
 
 func (self *PipeEngine) Property(key string, value interface{}) QueryInterface {
@@ -295,7 +319,7 @@ func (self *PipeEngine) Property(key string, value interface{}) QueryInterface {
 						if vl.Properties == nil {
 							vl.Properties = &structpb.Struct{Fields: map[string]*structpb.Value{}}
 						}
-						StructSet(vl.Properties, key, value)
+						protoutil.StructSet(vl.Properties, key, value)
 						o <- i.AddCurrent(ophion.QueryResult{&ophion.QueryResult_Vertex{&vl}})
 					}
 					if e := i.GetCurrent().GetEdge(); e != nil {
@@ -303,7 +327,7 @@ func (self *PipeEngine) Property(key string, value interface{}) QueryInterface {
 						if el.Properties == nil {
 							el.Properties = &structpb.Struct{Fields: map[string]*structpb.Value{}}
 						}
-						StructSet(el.Properties, key, value)
+						protoutil.StructSet(el.Properties, key, value)
 						o <- i.AddCurrent(ophion.QueryResult{&ophion.QueryResult_Edge{&el}})
 					}
 				}

@@ -18,6 +18,10 @@ type QueryInterface interface {
 
 	As(label string) QueryInterface
 	Select(labels []string) QueryInterface
+	Values(labels []string) QueryInterface
+
+	//code based functions
+	Map(function string) QueryInterface
 
 	//Read write methods
 	AddV(key string) QueryInterface
@@ -25,7 +29,6 @@ type QueryInterface interface {
 	To(key string) QueryInterface
 	Property(key string, value interface{}) QueryInterface
 	Drop() QueryInterface
-	Values(labels []string) QueryInterface
 
 	Execute() chan ophion.ResultRow
 	First() (ophion.ResultRow, error) //Only get one result
