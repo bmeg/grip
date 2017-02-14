@@ -29,3 +29,27 @@ func StructSet(s *structpb.Struct, key string, value interface{}) {
 		log.Printf("unknown: %T", value)
 	}
 }
+
+func CopyToStructSub(s *structpb.Struct, keys []string, values map[string]interface{}) {
+	for _, i := range keys {
+		StructSet(s, i, values[i])
+	}
+}
+
+func CopyToStruct(s *structpb.Struct, values map[string]interface{}) {
+	for i := range values {
+		StructSet(s, i, values[i])
+	}
+}
+
+func CopyStructToStruct(dst *structpb.Struct, src *structpb.Struct) {
+	for k, v := range src.Fields {
+		StructSet(dst, k, v)
+	}
+}
+
+func CopyStructToStructSub(dst *structpb.Struct, keys []string, src *structpb.Struct) {
+	for _, k := range keys {
+		StructSet(dst, k, src.Fields[k])
+	}
+}

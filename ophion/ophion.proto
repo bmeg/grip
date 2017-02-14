@@ -24,14 +24,15 @@ message GraphStatement {
         string inVertex = 10;
         string outVertex = 11;
         SelectStatement select = 12;
-        int64 limit = 13;
-        string count = 14;
+        SelectStatement values = 13;
+        int64 limit = 14;
+        string count = 15;
         //methods with side effects, these should be ignored for read-only graphs
-        string addV = 15;
-        google.protobuf.Struct property = 16;
-        string addE = 17;
-        string to = 18;
-        string drop = 19;
+        string addV = 16;
+        google.protobuf.Struct property = 17;
+        string addE = 18;
+        string to = 19;
+        string drop = 20;
     }
 }
 

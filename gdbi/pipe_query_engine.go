@@ -253,6 +253,36 @@ func (self *PipeEngine) Select(labels []string) QueryInterface {
 	return o
 }
 
+func (self *PipeEngine) Values(labels []string) QueryInterface {
+	return self.append(
+		func() chan Traveler {
+			o := make(chan Traveler, PIPE_SIZE)
+			go func() {
+				defer close(o)
+				for i := range self.pipe() {
+					var props *structpb.Struct = nil
+					if v := i.GetCurrent().GetVertex(); v != nil && v.Properties != nil {
+						props = v.GetProperties()
+					} else if v := i.GetCurrent().GetEdge(); v != nil && v.Properties != nil {
+						props = v.GetProperties()
+					}
+					if props != nil {
+						out := structpb.Struct{Fields: map[string]*structpb.Value{}}
+						if len(labels) == 0 {
+							CopyStructToStruct(&out, props)
+						} else {
+							CopyStructToStructSub(&out, labels, props)
+						}
+						o <- i.AddCurrent(ophion.QueryResult{&ophion.QueryResult_Struct{&out}})
+					}
+				}
+			}()
+			return o
+		})
+	o := self.append(self.pipe)
+	return o
+}
+
 func (self *PipeEngine) Property(key string, value interface{}) QueryInterface {
 	return self.append(
 		func() chan Traveler {

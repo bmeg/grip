@@ -25,6 +25,7 @@ type QueryInterface interface {
 	To(key string) QueryInterface
 	Property(key string, value interface{}) QueryInterface
 	Drop() QueryInterface
+	Values(labels []string) QueryInterface
 
 	Execute() chan ophion.ResultRow
 	First() (ophion.ResultRow, error) //Only get one result
