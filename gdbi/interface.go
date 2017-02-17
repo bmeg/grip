@@ -21,7 +21,9 @@ type QueryInterface interface {
 	Values(labels []string) QueryInterface
 
 	//code based functions
+	Import(source string) QueryInterface
 	Map(function string) QueryInterface
+	Fold(function string) QueryInterface
 
 	//Read write methods
 	AddV(key string) QueryInterface

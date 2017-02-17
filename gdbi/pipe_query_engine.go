@@ -15,6 +15,7 @@ type PipeEngine struct {
 	sideEffect bool
 	err        error
 	selection  []string
+	imports    []string
 }
 
 const (
@@ -22,7 +23,7 @@ const (
 )
 
 func NewPipeEngine(db DBI, readOnly bool) *PipeEngine {
-	return &PipeEngine{db: db, readOnly: readOnly, sideEffect: false, err: nil, selection: []string{}}
+	return &PipeEngine{db: db, readOnly: readOnly, sideEffect: false, err: nil, selection: []string{}, imports: []string{}}
 }
 
 func (self *PipeEngine) append(pipe GraphPipe) *PipeEngine {
@@ -32,6 +33,7 @@ func (self *PipeEngine) append(pipe GraphPipe) *PipeEngine {
 		pipe:       pipe,
 		sideEffect: self.sideEffect,
 		err:        self.err,
+		imports:    self.imports,
 	}
 }
 
@@ -285,13 +287,19 @@ func (self *PipeEngine) Values(labels []string) QueryInterface {
 	return o
 }
 
+func (self *PipeEngine) Import(source string) QueryInterface {
+	o := self.append(self.pipe)
+	o.imports = append(o.imports, source)
+	return o
+}
+
 func (self *PipeEngine) Map(source string) QueryInterface {
 	return self.append(
 		func() chan Traveler {
 			o := make(chan Traveler, PIPE_SIZE)
 			go func() {
 				defer close(o)
-				mfunc, err := jsengine.NewFunction(source)
+				mfunc, err := jsengine.NewFunction(source, self.imports)
 				if err != nil {
 					log.Printf("Script Error: %s", err)
 				}
@@ -301,6 +309,36 @@ func (self *PipeEngine) Map(source string) QueryInterface {
 						a := i.AddCurrent(*out)
 						o <- a
 					}
+				}
+			}()
+			return o
+		})
+}
+
+func (self *PipeEngine) Fold(source string) QueryInterface {
+	return self.append(
+		func() chan Traveler {
+			o := make(chan Traveler, PIPE_SIZE)
+			go func() {
+				defer close(o)
+				mfunc, err := jsengine.NewFunction(source, self.imports)
+				if err != nil {
+					log.Printf("Script Error: %s", err)
+				}
+				var last *ophion.QueryResult = nil
+				first := true
+				for i := range self.pipe() {
+					if first {
+						last = i.GetCurrent()
+						first = false
+					} else {
+						last = mfunc.Call(last, i.GetCurrent())
+					}
+				}
+				if last != nil {
+					i := Traveler{}
+					a := i.AddCurrent(*last)
+					o <- a
 				}
 			}()
 			return o

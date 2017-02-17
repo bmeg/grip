@@ -6,28 +6,49 @@ import (
 )
 
 func StructSet(s *structpb.Struct, key string, value interface{}) {
+	vw := WrapValue(value)
+	s.Fields[key] = vw
+}
+
+func WrapValue(value interface{}) *structpb.Value {
 	switch v := value.(type) {
 	case string:
-		s.Fields[key] = &structpb.Value{Kind: &structpb.Value_StringValue{v}}
+		return &structpb.Value{Kind: &structpb.Value_StringValue{v}}
 	case int:
-		s.Fields[key] = &structpb.Value{Kind: &structpb.Value_NumberValue{float64(v)}}
+		return &structpb.Value{Kind: &structpb.Value_NumberValue{float64(v)}}
 	case int64:
-		s.Fields[key] = &structpb.Value{Kind: &structpb.Value_NumberValue{float64(v)}}
+		return &structpb.Value{Kind: &structpb.Value_NumberValue{float64(v)}}
 	case float64:
-		s.Fields[key] = &structpb.Value{Kind: &structpb.Value_NumberValue{float64(v)}}
+		return &structpb.Value{Kind: &structpb.Value_NumberValue{float64(v)}}
 	case bool:
-		s.Fields[key] = &structpb.Value{Kind: &structpb.Value_BoolValue{v}}
+		return &structpb.Value{Kind: &structpb.Value_BoolValue{v}}
 	case *structpb.Value:
-		s.Fields[key] = v
+		return v
+	case []interface{}:
+		o := make([]*structpb.Value, len(v))
+		for i, k := range v {
+			wv := WrapValue(k)
+			o[i] = wv
+		}
+		return &structpb.Value{Kind: &structpb.Value_ListValue{&structpb.ListValue{Values: o}}}
+	case []string:
+		o := make([]*structpb.Value, len(v))
+		for i, k := range v {
+			wv := &structpb.Value{Kind: &structpb.Value_StringValue{k}}
+			o[i] = wv
+		}
+		return &structpb.Value{Kind: &structpb.Value_ListValue{&structpb.ListValue{Values: o}}}
 	case map[string]interface{}:
 		o := &structpb.Struct{Fields: map[string]*structpb.Value{}}
 		for k, v := range v {
-			StructSet(o, k, v)
+			wv := WrapValue(v)
+			o.Fields[k] = wv
 		}
-		s.Fields[key] = &structpb.Value{Kind: &structpb.Value_StructValue{o}}
+		return &structpb.Value{Kind: &structpb.Value_StructValue{o}}
 	default:
-		log.Printf("unknown: %T", value)
+		log.Printf("unknown data type: %T", value)
 	}
+	return nil
 }
 
 func CopyToStructSub(s *structpb.Struct, keys []string, values map[string]interface{}) {

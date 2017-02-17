@@ -12,10 +12,17 @@ type CompiledFunction struct {
 	Function otto.Value
 }
 
-func NewFunction(source string) (CompiledFunction, error) {
+func NewFunction(source string, imports []string) (CompiledFunction, error) {
 
 	vm := otto.New()
-	_, err := vm.Eval("var userFunction = " + source)
+	for _, src := range imports {
+		_, err := vm.Run(src)
+		if err != nil {
+			return CompiledFunction{}, err
+		}
+	}
+
+	_, err := vm.Run("var userFunction = " + source)
 	if err != nil {
 		return CompiledFunction{}, err
 	}
@@ -31,19 +38,29 @@ func NewFunction(source string) (CompiledFunction, error) {
 	return CompiledFunction{}, fmt.Errorf("no Function")
 }
 
-func (self *CompiledFunction) Call(input *ophion.QueryResult) *ophion.QueryResult {
-	s := input.GetStruct()
-	m := protoutil.AsMap(s)
+func (self *CompiledFunction) Call(input ...*ophion.QueryResult) *ophion.QueryResult {
+
+	m := []interface{}{}
+	for _, i := range input {
+		s := i.GetStruct()
+		m_i := protoutil.AsMap(s)
+		m = append(m, m_i)
+	}
+
 	log.Printf("Inputs: %#v", m)
 	log.Printf("Function: %#v", self.Function)
 	/*
+	 // code to deal with panics inside of the JS engine
 	  defer func() {
 	       if r := recover(); r != nil {
 	           fmt.Println("Recovered in f", r)
 	       }
 	   }()
 	*/
-	value, _ := self.Function.Call(otto.Value{}, m)
+	value, err := self.Function.Call(otto.Value{}, m...)
+	if err != nil {
+		log.Printf("Exec Error: %s", err)
+	}
 
 	otto_val, _ := value.Export()
 
