@@ -20,8 +20,8 @@ type MemGraph struct {
   edge_sequence int64
 }
 
-func NewMemGraph() MemGraph {
-  return MemGraph{
+func NewMemGDBI() *MemGraph {
+  return &MemGraph{
     map[string]*ophion.Vertex{},
     map[string]map[string][]*ophion.Edge{},
     map[string]map[string][]string{},
