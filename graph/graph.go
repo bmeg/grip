@@ -29,16 +29,16 @@ func (graph *Graph) AddVertex(id string, prop map[string]interface{}) {
     Gid:id,
     Properties: protoutil.AsStruct(prop),
   }
-  graph.dbi.SetVertex(v) 
+  graph.dbi.SetVertex(v)
 }
 
 func (graph *Graph) AddEdge(out string, in string, prop map[string]interface{}) {
   e := ophion.Edge{
     Out: out,
-    In: in, 
+    In: in,
     Properties: protoutil.AsStruct(prop),
   }
-  graph.dbi.SetEdge(e)   
+  graph.dbi.SetEdge(e)
 }
 
 func (graph *Graph) GetVertices() chan ophion.Vertex {
@@ -63,12 +63,34 @@ func (graph *Graph) GetInEdgesArray(id string) []ophion.Edge {
 
 
 
-func (graph *Graph) AggregateMessages( 
-  func(v ophion.Vertex, e ophion.Edge) interface{},
-  func(v ophion.Vertex, msgs []interface{}) map[string]interface{},
-) *Graph {
-  //TODO: Actually implement this
-  return nil
+func (graph *Graph) AggregateMessages(
+  gen func(v ophion.Vertex, e ophion.Edge) interface{},
+  agg func(v ophion.Vertex, msgs []interface{}) map[string]interface{},
+) {
+
+  collection := map[string][]interface{}{}
+  for v := range graph.dbi.GetVertexList() {
+    for e := range graph.dbi.GetOutEdgeList(v.Gid, nil) {
+      i := gen(v, e)
+      if _, ok := collection[e.In]; !ok {
+        collection[e.In] = []interface{}{i}
+      } else {
+        collection[e.In] = append(collection[e.In], i)
+      }
+    }
+    for e := range graph.dbi.GetInEdgeList(v.Gid, nil) {
+      i := gen(v, e)
+      if _, ok := collection[e.In]; !ok {
+        collection[e.Out] = []interface{}{i}
+      } else {
+        collection[e.Out] = append(collection[e.Out], i)
+      }
+    }
+  }
+  for k, v := range collection {
+    vert := graph.dbi.GetVertex(k)
+    p := agg(*vert, v)
+    protoutil.CopyToStruct(vert.Properties, p)
+    graph.dbi.SetVertex(*vert)
+  }
 }
-
-

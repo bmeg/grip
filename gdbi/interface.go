@@ -42,6 +42,7 @@ type ArachneInterface interface {
 	Query() QueryInterface
 }
 
+
 type DBI interface {
 	GetVertex(key string) *ophion.Vertex
 	//GetVertexData(key string) *[]byte
