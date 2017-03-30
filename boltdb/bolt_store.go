@@ -77,25 +77,6 @@ func (self *BoltArachne) SetVertex(vertex ophion.Vertex) error {
 	return err
 }
 
-/*
-func (self *BoltArachne) GetVertexData(key string) *[]byte {
-	var out *[]byte = nil
-	err := self.db.View(func(tx *bolt.Tx) error {
-		b := tx.Bucket(VertexBucket)
-		d := b.Get([]byte(key))
-		if d == nil {
-			return nil
-		}
-		out = &d
-		return nil
-	})
-	if err != nil {
-		return nil
-	}
-	return out
-}
-*/
-
 func (self *BoltArachne) GetVertex(key string) *ophion.Vertex {
 	var out *ophion.Vertex = nil
 	err := self.db.View(func(tx *bolt.Tx) error {
