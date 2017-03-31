@@ -135,7 +135,9 @@ func (self *BoltArachne) GetVertexList() chan ophion.Vertex {
 			vb := tx.Bucket(VertexBucket)
 			c := vb.Cursor()
 			for k, v := c.First(); k != nil; k, v = c.Next() {
-				od <- keyval{key: string(k), value: v}
+				ov := make([]byte, len(v))
+				copy(ov, v) //don't move bolt values out of transaction, send copy instead
+				od <- keyval{key: string(k), value: ov} 
 			}
 			return nil
 		})
