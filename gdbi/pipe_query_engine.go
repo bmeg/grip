@@ -493,6 +493,9 @@ func (self *PipeEngine) Limit(limit int64) QueryInterface {
 }
 
 func (self *PipeEngine) Execute() chan ophion.ResultRow {
+	if self.pipe == nil {
+		return nil
+	}
 	if self.sideEffect {
 		o := make(chan ophion.ResultRow, PIPE_SIZE)
 		go func() {
@@ -512,15 +515,18 @@ func (self *PipeEngine) Execute() chan ophion.ResultRow {
 		o := make(chan ophion.ResultRow, PIPE_SIZE)
 		go func() {
 			defer close(o)
-			for i := range self.pipe() {
-				if len(self.selection) == 0 {
-					o <- ophion.ResultRow{Value: i.GetCurrent()}
-				} else {
-					l := []*ophion.QueryResult{}
-					for _, r := range self.selection {
-						l = append(l, i.GetLabeled(r))
+			pipe := self.pipe()
+			if pipe != nil {
+				for i := range pipe {
+					if len(self.selection) == 0 {
+						o <- ophion.ResultRow{Value: i.GetCurrent()}
+					} else {
+						l := []*ophion.QueryResult{}
+						for _, r := range self.selection {
+							l = append(l, i.GetLabeled(r))
+						}
+						o <- ophion.ResultRow{Row: l}
 					}
-					o <- ophion.ResultRow{Row: l}
 				}
 			}
 		}()
