@@ -1,6 +1,7 @@
 package arachne
 
 import (
+	"fmt"
 	"github.com/bmeg/arachne/gdbi"
 	"github.com/bmeg/arachne/ophion"
 	//"golang.org/x/net/context"
@@ -16,10 +17,14 @@ func NewGraphEngine(dbi gdbi.ArachneInterface) GraphEngine {
 }
 
 func (engine *GraphEngine) RunTraversal(query *ophion.GraphQuery) (chan ophion.ResultRow, error) {
-	//log.Printf("Starting Query")
 	tr := engine.Query()
+	//log.Printf("Starting Query: %#v", query.Query)
 	for _, s := range query.Query {
-		tr.RunStatement(s)
+		err := tr.RunStatement(s)
+		if err != nil {
+			log.Printf("Error: %s", err)
+			return nil, err
+		}
 	}
 	return tr.GetResult()
 }
@@ -100,11 +105,15 @@ func (trav *Traversal) RunStatement(statement *ophion.GraphStatement) error {
 		trav.Query = trav.Query.Drop()
 	} else {
 		log.Printf("Unknown Statement: %#v", statement)
+		return fmt.Errorf("Unknown Statement: %#v", statement)
 	}
-
 	return nil
 }
 
 func (trav *Traversal) GetResult() (chan ophion.ResultRow, error) {
-	return trav.Query.Execute(), nil
+	e := trav.Query.Execute()
+	if e == nil {
+		return nil, fmt.Errorf("Query Failed")
+	}
+	return e, nil
 }

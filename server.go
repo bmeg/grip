@@ -35,7 +35,10 @@ func (server *ArachneServer) Start(hostPort string) {
 }
 
 func (server *ArachneServer) Traversal(query *ophion.GraphQuery, queryServer ophion.Query_TraversalServer) error {
-	res, _ := server.engine.RunTraversal(query)
+	res, err := server.engine.RunTraversal(query)
+	if err != nil {
+		return err
+	}
 	for i := range res {
 		l := i
 		queryServer.Send(&l)
