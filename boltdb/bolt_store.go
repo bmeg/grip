@@ -23,7 +23,7 @@ var IEdgeBucket = []byte("iedges")
 
 //Incoming edges
 //key: edgeid
-//value: src 0x00 dst 0x00 edgeid
+//value: src 0x00 dst
 var EdgeBucket = []byte("edges")
 
 //Vertices
@@ -35,7 +35,8 @@ type BoltArachne struct {
 	db *bolt.DB
 }
 
-func NewBoltArachne(path string) gdbi.ArachneInterface {
+
+func NewBoltArachne(path string) gdbi.DBI {
 	db, _ := bolt.Open(path, 0600, nil)
 
 	db.Update(func(tx *bolt.Tx) error {
@@ -137,7 +138,7 @@ func (self *BoltArachne) GetVertexList() chan ophion.Vertex {
 			for k, v := c.First(); k != nil; k, v = c.Next() {
 				ov := make([]byte, len(v))
 				copy(ov, v) //don't move bolt values out of transaction, send copy instead
-				od <- keyval{key: string(k), value: ov} 
+				od <- keyval{key: string(k), value: ov}
 			}
 			return nil
 		})
