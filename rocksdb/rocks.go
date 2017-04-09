@@ -2,6 +2,7 @@
 package rocksdb
 
 import (
+  //"log"
   "fmt"
   "bytes"
   "github.com/bmeg/arachne/gdbi"
@@ -9,7 +10,6 @@ import (
   "github.com/tecbot/gorocksdb"
   proto "github.com/golang/protobuf/proto"
 )
-
 
 type RocksArachne struct {
   db *gorocksdb.DB
@@ -29,6 +29,7 @@ func NewRocksArachne(path string) gdbi.DBI {
 
   ro := gorocksdb.NewDefaultReadOptions()
   wo := gorocksdb.NewDefaultWriteOptions()
+  //wo.SetSync(true)
 
   return &RocksArachne{db:db, ro:ro, wo:wo, sequence:0}
 }
@@ -55,6 +56,7 @@ func (self *RocksArachne) SetEdge(edge ophion.Edge) error {
   self.sequence += 1
   edge.Gid = eid
   data, _ := proto.Marshal(&edge)
+  //log.Printf("SetEdge: %s %d", edge, len(data))
 
   src := edge.Out
   dst := edge.In
@@ -62,10 +64,12 @@ func (self *RocksArachne) SetEdge(edge ophion.Edge) error {
   okey := bytes.Join([][]byte{[]byte("o"), []byte(src), []byte(dst), []byte(eid)}, []byte{0})
   ikey := bytes.Join([][]byte{[]byte("i"), []byte(dst), []byte(src), []byte(eid)}, []byte{0})
 
-  self.db.Put(self.wo, ekey, okey)
-  self.db.Put(self.wo, okey, data)
-  self.db.Put(self.wo, ikey, []byte{})
-  return nil
+  wb := gorocksdb.NewWriteBatch()
+  wb.Put(ekey, okey)
+  wb.Put(okey, data)
+  wb.Put(ikey, []byte{})
+  err := self.db.Write(self.wo, wb)
+  return err
 }
 
 func (self *RocksArachne) DelEdge(eid string) error {
@@ -77,8 +81,8 @@ func (self *RocksArachne) DelEdge(eid string) error {
   }
   defer pair_value.Free()
   pair := bytes.Split(pair_value.Data(), []byte{0})
-  src := pair[0]
-  dst := pair[1]
+  src := pair[1]
+  dst := pair[2]
 
   okey := bytes.Join([][]byte{[]byte("o"), []byte(src), []byte(dst), []byte(eid)}, []byte{0})
   ikey := bytes.Join([][]byte{[]byte("i"), []byte(dst), []byte(src), []byte(eid)}, []byte{0})
@@ -113,24 +117,27 @@ func (self *RocksArachne) DelVertex(id string) error {
      key.Free()
      // get edge ID from key
      tmp := bytes.Split(okey, []byte{0})
-     eid := bytes.Join( [][]byte{ []byte("e"), tmp[2] }, []byte{0} )
+     eid := bytes.Join( [][]byte{ []byte("e"), tmp[3] }, []byte{0} )
      del_keys = append(del_keys, okey, eid)
   }
 
   it.Seek(ikey_prefix)
-  for it = it; it.ValidForPrefix(okey_prefix); it.Next() {
+  for it = it; it.ValidForPrefix(ikey_prefix); it.Next() {
     key := it.Key()
     ikey := key.Data()
     key.Free()
-    del_keys = append(del_keys, ikey)
+    // get edge ID from key
+    tmp := bytes.Split(ikey, []byte{0})
+    eid := bytes.Join( [][]byte{ []byte("e"), tmp[3] }, []byte{0} )
+    del_keys = append(del_keys, ikey, eid)
   }
 
+  wb := gorocksdb.NewWriteBatch()
   for _, k := range del_keys {
-    if err := self.db.Delete(self.wo, k); err != nil {
-      return err
-    }
+    wb.Delete(k)
   }
-  return nil
+  err := self.db.Write(self.wo, wb)
+  return err
 }
 
 
@@ -144,20 +151,24 @@ func (self *RocksArachne) GetEdgeList() chan ophion.Edge {
     it.Seek(e_prefix)
     for it = it; it.ValidForPrefix(e_prefix); it.Next() {
       key_value := it.Key()
-      eid := key_value.Data()
+      eid_tmp := bytes.Split(key_value.Data(), []byte{0})
+      eid := eid_tmp[1]
+      //log.Printf("EK:%#v", eid)
       key_value.Free()
       pair_value := it.Value()
       pair := bytes.Split(pair_value.Data(), []byte{0})
+      //log.Printf("EV:%#v", pair)
       pair_value.Free()
-      src := pair[0]
-      dst := pair[1]
+      src := pair[1]
+      dst := pair[2]
       okey := bytes.Join([][]byte{[]byte("o"), []byte(src), []byte(dst), []byte(eid)}, []byte{0})
       data_value, err := self.db.Get(self.ro, okey)
       if err == nil {
         data := data_value.Data()
-        data_value.Free()
         e := ophion.Edge{}
         proto.Unmarshal(data, &e)
+        //log.Printf("EP:%#v %s %d", okey, e, len(data))
+        data_value.Free()
         o <- e
       }
     }
@@ -259,9 +270,9 @@ func (self *RocksArachne) GetInList(id string, filter gdbi.EdgeFilter) chan ophi
       key_value := it.Key()
       tmp := bytes.Split(key_value.Data(), []byte{0})
       key_value.Free()
-      iid := tmp[0]
-      oid := tmp[1]
-      eid := tmp[2]
+      iid := tmp[1]
+      oid := tmp[2]
+      eid := tmp[3]
 
       okey := bytes.Join( [][]byte{ []byte("o"), oid, iid, eid}, []byte{0})
       vkey := bytes.Join( [][]byte{ []byte("v"), oid }, []byte{0} )
@@ -311,9 +322,9 @@ func (self *RocksArachne) GetOutList(id string, filter gdbi.EdgeFilter) chan oph
       key_value := it.Key()
       tmp := bytes.Split(key_value.Data(), []byte{0})
       key_value.Free()
-      //oid := tmp[0]
-      iid := tmp[1]
-      //eid := tmp[2]
+      //oid := tmp[1]
+      iid := tmp[2]
+      //eid := tmp[3]
 
       vkey := bytes.Join( [][]byte{ []byte("v"), iid }, []byte{0} )
 
