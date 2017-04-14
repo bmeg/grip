@@ -21,7 +21,9 @@ type RocksArachne struct {
 
 func NewRocksArachne(path string) gdbi.DBI {
   bbto := gorocksdb.NewDefaultBlockBasedTableOptions()
-  bbto.SetBlockCache(gorocksdb.NewLRUCache(3 << 30))
+  filter := gorocksdb.NewBloomFilter(10)
+  bbto.SetFilterPolicy(filter)
+  bbto.SetBlockCache(gorocksdb.NewLRUCache(512 * 1024 * 1024))
   opts := gorocksdb.NewDefaultOptions()
   opts.SetBlockBasedTableFactory(bbto)
   opts.SetCreateIfMissing(true)
@@ -69,6 +71,7 @@ func (self *RocksArachne) SetEdge(edge ophion.Edge) error {
   wb.Put(okey, data)
   wb.Put(ikey, []byte{})
   err := self.db.Write(self.wo, wb)
+  wb.Destroy()
   return err
 }
 
@@ -137,6 +140,7 @@ func (self *RocksArachne) DelVertex(id string) error {
     wb.Delete(k)
   }
   err := self.db.Write(self.wo, wb)
+  wb.Destroy()
   return err
 }
 
