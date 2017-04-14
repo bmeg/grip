@@ -5,7 +5,8 @@ PATH := ${PATH}:$(shell pwd)/bin
 export PATH
 
 build:
-	go install github.com/bmeg/arachne/cmd/arachne
+	go install -tags=embed github.com/bmeg/arachne/cmd/arachne
+	go install github.com/bmeg/arachne/cmd/arachne-rdf
 
 PROTO_INC= -I ./ -I ../googleapis
 
@@ -14,7 +15,6 @@ proto:
 	$(PROTO_INC) \
 	--go_out=\
 	Mgoogle/protobuf/struct.proto=github.com/golang/protobuf/ptypes/struct,\
-	Mgoogle/protobuf/any.proto=github.com/golang/protobuf/ptypes/any,\
 	plugins=grpc:./ \
 	--grpc-gateway_out=logtostderr=true:. \
 	ophion.proto
