@@ -34,14 +34,27 @@ func main() {
   count := 0
   fz, _ := gzip.NewReader(f)
   dec := rdf.NewTripleDecoder(fz, rdf.RDFXML)
+  var cur_query *ophion.QueryBuilder = nil
+  cur_subj := ""
   for triple, err := dec.Decode(); err != io.EOF; triple, err = dec.Decode() {
     subj := triple.Subj.String()
+    if subj != cur_subj && cur_query != nil {
+      cur_query.Run()
+      cur_query = nil
+    }
+    cur_subj = subj
     if _, ok := vert_map[subj]; !ok {
       ophion.Query(conn).AddV(subj).Run()
       vert_map[subj] = 1
     }
     if triple.Obj.Type() == rdf.TermLiteral {
-      ophion.Query(conn).V(subj).Property(triple.Pred.String(), triple.Obj.String()).Run()
+      //ophion.Query(conn).V(subj).Property(triple.Pred.String(), triple.Obj.String()).Run()
+      if cur_query == nil {
+        a := ophion.Query(conn).V(subj)
+        cur_query = &a
+      }
+      b := cur_query.Property(triple.Pred.String(), triple.Obj.String())
+      cur_query = &b
     } else {
       obj := triple.Obj.String()
       if _, ok := vert_map[obj]; !ok {
@@ -54,5 +67,8 @@ func main() {
       log.Printf("Processed %d triples", count)
     }
     count++
+  }
+  if cur_query != nil {
+    cur_query.Run()
   }
 }
