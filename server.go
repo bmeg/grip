@@ -19,7 +19,6 @@ func NewArachneServer(baseDir string) *ArachneServer {
 	return &ArachneServer{
 		//engine: NewGraphEngine(boltdb.NewBoltArachne(baseDir)),
 		engine: NewGraphEngine(rocksdb.NewRocksArachne(baseDir)),
-		
 	}
 }
 

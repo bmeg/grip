@@ -42,16 +42,19 @@ type ArachneInterface interface {
 	Query() QueryInterface
 }
 
+
 type DBI interface {
 	ArachneInterface
-	GetVertex(key string) *ophion.Vertex
-	GetVertexList() chan ophion.Vertex
-	GetEdgeList() chan ophion.Edge
-	GetOutList(key string, filter EdgeFilter) chan ophion.Vertex
-	GetInList(key string, filter EdgeFilter) chan ophion.Vertex
+	
+	GetVertex(key string, load bool) *ophion.Vertex
+	GetVertexList(load bool) chan ophion.Vertex
+	GetEdgeList(load bool) chan ophion.Edge
+	
+	GetOutList(key string, load bool, filter EdgeFilter) chan ophion.Vertex
+	GetInList(key string, load bool, filter EdgeFilter) chan ophion.Vertex
 
-	GetOutEdgeList(key string, filter EdgeFilter) chan ophion.Edge
-	GetInEdgeList(key string, filter EdgeFilter) chan ophion.Edge
+	GetOutEdgeList(key string, load bool, filter EdgeFilter) chan ophion.Edge
+	GetInEdgeList(key string, load bool, filter EdgeFilter) chan ophion.Edge
 
 	DelVertex(key string) error
 	DelEdge(key string) error
@@ -64,4 +67,9 @@ type Traveler struct {
 }
 
 type EdgeFilter func(edge ophion.Edge) bool
-type GraphPipe func() chan Traveler
+
+type PipeRequest struct {
+	LoadProperties bool
+}
+
+type GraphPipe func(PipeRequest) chan Traveler

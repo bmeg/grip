@@ -145,7 +145,7 @@ func (self *RocksArachne) DelVertex(id string) error {
 }
 
 
-func (self *RocksArachne) GetEdgeList() chan ophion.Edge {
+func (self *RocksArachne) GetEdgeList(loadProp bool) chan ophion.Edge {
 	o := make(chan ophion.Edge, 100)
 	go func() {
 		defer close(o)
@@ -165,15 +165,19 @@ func (self *RocksArachne) GetEdgeList() chan ophion.Edge {
       pair_value.Free()
       src := pair[1]
       dst := pair[2]
-      okey := bytes.Join([][]byte{[]byte("o"), []byte(src), []byte(dst), []byte(eid)}, []byte{0})
-      data_value, err := self.db.Get(self.ro, okey)
-      if err == nil {
-        data := data_value.Data()
-        e := ophion.Edge{}
-        proto.Unmarshal(data, &e)
-        //log.Printf("EP:%#v %s %d", okey, e, len(data))
-        data_value.Free()
-        o <- e
+      if loadProp {
+        okey := bytes.Join([][]byte{[]byte("o"), []byte(src), []byte(dst), []byte(eid)}, []byte{0})
+        data_value, err := self.db.Get(self.ro, okey)
+        if err == nil {
+            e := ophion.Edge{}
+            data := data_value.Data()
+            proto.Unmarshal(data, &e)
+            data_value.Free()
+          o <- e
+        }
+      } else {
+        e := ophion.Edge{Gid:string(eid), Out:string(src), In:string(dst)}
+        o <- e        
       }
     }
   }()
@@ -181,7 +185,7 @@ func (self *RocksArachne) GetEdgeList() chan ophion.Edge {
 }
 
 
-func (self *RocksArachne) GetInEdgeList(id string, filter gdbi.EdgeFilter) chan ophion.Edge {
+func (self *RocksArachne) GetInEdgeList(id string, loadProp bool, filter gdbi.EdgeFilter) chan ophion.Edge {
 	o := make(chan ophion.Edge, 100)
 	go func() {
 		defer close(o)
@@ -224,7 +228,7 @@ func (self *RocksArachne) GetInEdgeList(id string, filter gdbi.EdgeFilter) chan 
 }
 
 
-func (self *RocksArachne) GetOutEdgeList(id string, filter gdbi.EdgeFilter) chan ophion.Edge {
+func (self *RocksArachne) GetOutEdgeList(id string, loadProp bool, filter gdbi.EdgeFilter) chan ophion.Edge {
 	o := make(chan ophion.Edge, 100)
 	go func() {
 		defer close(o)
@@ -260,7 +264,7 @@ func (self *RocksArachne) GetOutEdgeList(id string, filter gdbi.EdgeFilter) chan
 }
 
 
-func (self *RocksArachne) GetInList(id string, filter gdbi.EdgeFilter) chan ophion.Vertex {
+func (self *RocksArachne) GetInList(id string, loadProp bool, filter gdbi.EdgeFilter) chan ophion.Vertex {
 	o := make(chan ophion.Vertex, 100)
 	go func() {
 		defer close(o)
@@ -312,7 +316,7 @@ func (self *RocksArachne) GetInList(id string, filter gdbi.EdgeFilter) chan ophi
 }
 
 
-func (self *RocksArachne) GetOutList(id string, filter gdbi.EdgeFilter) chan ophion.Vertex {
+func (self *RocksArachne) GetOutList(id string, loadProp bool, filter gdbi.EdgeFilter) chan ophion.Vertex {
 	o := make(chan ophion.Vertex, 100)
 	go func() {
 		defer close(o)
@@ -362,7 +366,7 @@ func (self *RocksArachne) GetOutList(id string, filter gdbi.EdgeFilter) chan oph
 
 
 
-func (self *RocksArachne) GetVertex(id string) *ophion.Vertex {
+func (self *RocksArachne) GetVertex(id string, loadProp bool) *ophion.Vertex {
   vkey := bytes.Join( [][]byte{ []byte("v"), []byte(id) }, []byte{0} )
   data_value, err := self.db.Get(self.ro, vkey)
   if err != nil {
@@ -377,7 +381,7 @@ func (self *RocksArachne) GetVertex(id string) *ophion.Vertex {
 }
 
 
-func (self *RocksArachne) GetVertexList() chan ophion.Vertex {
+func (self *RocksArachne) GetVertexList(loadProp bool) chan ophion.Vertex {
 	o := make(chan ophion.Vertex, 100)
 
 	go func() {
