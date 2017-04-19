@@ -2,7 +2,7 @@
 package rocksdb
 
 import (
-  //"log"
+  "log"
   "fmt"
   "bytes"
   "github.com/bmeg/arachne/gdbi"
@@ -18,6 +18,13 @@ type RocksArachne struct {
   sequence int64
 }
 
+//helper function to replicate bytes held in arrays created
+//from C pointers in rocks
+func bytes_copy(in []byte) []byte {
+  out := make([]byte, len(in))
+  copy(out, in)
+  return out
+}
 
 func NewRocksArachne(path string) gdbi.DBI {
   bbto := gorocksdb.NewDefaultBlockBasedTableOptions()
@@ -116,30 +123,35 @@ func (self *RocksArachne) DelVertex(id string) error {
   it.Seek(okey_prefix)
   for it = it; it.ValidForPrefix(okey_prefix); it.Next() {
 	   key := it.Key()
-     okey := key.Data()
+     okey := bytes_copy(key.Data())
      key.Free()
      // get edge ID from key
      tmp := bytes.Split(okey, []byte{0})
      eid := bytes.Join( [][]byte{ []byte("e"), tmp[3] }, []byte{0} )
+     //log.Printf("Adding %s", string(bytes.Replace(okey, []byte{0}, []byte{' '}, -1) ) )
      del_keys = append(del_keys, okey, eid)
   }
 
   it.Seek(ikey_prefix)
   for it = it; it.ValidForPrefix(ikey_prefix); it.Next() {
     key := it.Key()
-    ikey := key.Data()
+    ikey := bytes_copy(key.Data())
     key.Free()
     // get edge ID from key
-    tmp := bytes.Split(ikey, []byte{0})
-    eid := bytes.Join( [][]byte{ []byte("e"), tmp[3] }, []byte{0} )
-    del_keys = append(del_keys, ikey, eid)
+    //tmp := bytes.Split(ikey, []byte{0})
+    //eid := bytes.Join( [][]byte{ []byte("e"), tmp[3] }, []byte{0} )
+    del_keys = append(del_keys, ikey)
   }
 
   wb := gorocksdb.NewWriteBatch()
   for _, k := range del_keys {
+    //log.Printf("Delete %s", string(bytes.Replace(k, []byte{0}, []byte{' '}, -1) ) )
     wb.Delete(k)
   }
   err := self.db.Write(self.wo, wb)
+  if err != nil {
+    log.Printf("Del Error: %s", err)
+  }
   wb.Destroy()
   return err
 }
@@ -155,12 +167,12 @@ func (self *RocksArachne) GetEdgeList(loadProp bool) chan ophion.Edge {
     it.Seek(e_prefix)
     for it = it; it.ValidForPrefix(e_prefix); it.Next() {
       key_value := it.Key()
-      eid_tmp := bytes.Split(key_value.Data(), []byte{0})
+      eid_tmp := bytes.Split(bytes_copy(key_value.Data()), []byte{0})
       eid := eid_tmp[1]
       //log.Printf("EK:%#v", eid)
       key_value.Free()
       pair_value := it.Value()
-      pair := bytes.Split(pair_value.Data(), []byte{0})
+      pair := bytes.Split(bytes_copy(pair_value.Data()), []byte{0})
       //log.Printf("EV:%#v", pair)
       pair_value.Free()
       src := pair[1]
@@ -177,7 +189,7 @@ func (self *RocksArachne) GetEdgeList(loadProp bool) chan ophion.Edge {
         }
       } else {
         e := ophion.Edge{Gid:string(eid), Out:string(src), In:string(dst)}
-        o <- e        
+        o <- e
       }
     }
   }()
@@ -197,10 +209,10 @@ func (self *RocksArachne) GetInEdgeList(id string, loadProp bool, filter gdbi.Ed
     it.Seek(ikey_prefix)
     for it = it; it.ValidForPrefix(ikey_prefix); it.Next() {
       key_value := it.Key()
-      tmp := bytes.Split(key_value.Data(), []byte{0})
+      tmp := bytes.Split(bytes_copy(key_value.Data()), []byte{0})
       key_value.Free()
-      oid := tmp[1]
-      eid := tmp[2]
+      oid := tmp[2]
+      eid := tmp[3]
       okey := bytes.Join( [][]byte{ []byte("o"), oid, []byte(id), eid }, []byte{0} )
 
       data_value, err := self.db.Get(self.ro, okey)
@@ -276,7 +288,7 @@ func (self *RocksArachne) GetInList(id string, loadProp bool, filter gdbi.EdgeFi
     it.Seek(ikey_prefix)
     for it = it; it.ValidForPrefix(ikey_prefix); it.Next() {
       key_value := it.Key()
-      tmp := bytes.Split(key_value.Data(), []byte{0})
+      tmp := bytes.Split(bytes_copy(key_value.Data()), []byte{0})
       key_value.Free()
       iid := tmp[1]
       oid := tmp[2]
@@ -290,9 +302,9 @@ func (self *RocksArachne) GetInList(id string, loadProp bool, filter gdbi.EdgeFi
         data_value, err := self.db.Get(self.ro, okey)
         if err == nil {
           d := data_value.Data()
-          data_value.Free()
           e := ophion.Edge{}
           proto.Unmarshal(d, &e)
+          data_value.Free()
           if filter(e) {
             send = true
           }
@@ -328,10 +340,11 @@ func (self *RocksArachne) GetOutList(id string, loadProp bool, filter gdbi.EdgeF
     it.Seek(okey_prefix)
     for it = it; it.ValidForPrefix(okey_prefix); it.Next() {
       key_value := it.Key()
-      tmp := bytes.Split(key_value.Data(), []byte{0})
+      tmp := bytes.Split(bytes_copy(key_value.Data()), []byte{0})
       key_value.Free()
       //oid := tmp[1]
       iid := tmp[2]
+      //log.Printf("Vertex: %s", iid)
       //eid := tmp[3]
 
       vkey := bytes.Join( [][]byte{ []byte("v"), iid }, []byte{0} )
@@ -340,9 +353,9 @@ func (self *RocksArachne) GetOutList(id string, loadProp bool, filter gdbi.EdgeF
       if filter != nil {
         data_value := it.Value()
         d := data_value.Data()
-        data_value.Free()
         e := ophion.Edge{}
         proto.Unmarshal(d, &e)
+        data_value.Free()
         if filter(e) {
           send = true
         }
@@ -393,9 +406,9 @@ func (self *RocksArachne) GetVertexList(loadProp bool) chan ophion.Vertex {
     for it = it; it.ValidForPrefix(v_prefix); it.Next() {
       data_value := it.Value()
       d := data_value.Data()
-      data_value.Free()
       v := ophion.Vertex{}
       proto.Unmarshal(d, &v)
+      data_value.Free()
       o <- v
     }
 	} ()
