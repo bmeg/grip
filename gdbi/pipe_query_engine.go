@@ -90,7 +90,7 @@ func (self *PipeEngine) Has(prop string, value ...string) QueryInterface {
 			o := make(chan Traveler, PIPE_SIZE)
 			go func() {
 				defer close(o)
-				for i := range self.pipe(PipeRequest{LoadProperties:true}) {
+				for i := range self.pipe(PipeRequest{LoadProperties: true}) {
 					//Process Vertex Elements
 					if v := i.GetCurrent().GetVertex(); v != nil && v.Properties != nil {
 						if p, ok := v.Properties.Fields[prop]; ok {
@@ -224,7 +224,7 @@ func (self *PipeEngine) InE(key ...string) QueryInterface {
 						return false
 					}
 				}
-				for i := range self.pipe(PipeRequest{LoadProperties:false}) {
+				for i := range self.pipe(PipeRequest{LoadProperties: false}) {
 					if v := i.GetCurrent().GetVertex(); v != nil {
 						for e := range self.db.GetInEdgeList(v.Gid, request.LoadProperties, filt) {
 							el := e
@@ -243,7 +243,7 @@ func (self *PipeEngine) As(label string) QueryInterface {
 			o := make(chan Traveler, PIPE_SIZE)
 			go func() {
 				defer close(o)
-				for i := range self.pipe(PipeRequest{LoadProperties:true}) {
+				for i := range self.pipe(PipeRequest{LoadProperties: true}) {
 					o <- i.AddLabeled(label, *i.GetCurrent())
 				}
 			}()
@@ -263,7 +263,7 @@ func (self *PipeEngine) Values(labels []string) QueryInterface {
 			o := make(chan Traveler, PIPE_SIZE)
 			go func() {
 				defer close(o)
-				for i := range self.pipe(PipeRequest{LoadProperties:true}) {
+				for i := range self.pipe(PipeRequest{LoadProperties: true}) {
 					var props *structpb.Struct = nil
 					if v := i.GetCurrent().GetVertex(); v != nil && v.Properties != nil {
 						props = v.GetProperties()
@@ -303,7 +303,7 @@ func (self *PipeEngine) Map(source string) QueryInterface {
 				if err != nil {
 					log.Printf("Script Error: %s", err)
 				}
-				for i := range self.pipe(PipeRequest{LoadProperties:true}) {
+				for i := range self.pipe(PipeRequest{LoadProperties: true}) {
 					out := mfunc.Call(i.GetCurrent())
 					if out != nil {
 						a := i.AddCurrent(*out)
@@ -327,7 +327,7 @@ func (self *PipeEngine) Fold(source string) QueryInterface {
 				}
 				var last *ophion.QueryResult = nil
 				first := true
-				for i := range self.pipe(PipeRequest{LoadProperties:true}) {
+				for i := range self.pipe(PipeRequest{LoadProperties: true}) {
 					if first {
 						last = i.GetCurrent()
 						first = false
@@ -351,7 +351,7 @@ func (self *PipeEngine) Property(key string, value interface{}) QueryInterface {
 			o := make(chan Traveler, PIPE_SIZE)
 			go func() {
 				defer close(o)
-				for i := range self.pipe(PipeRequest{LoadProperties:true}) {
+				for i := range self.pipe(PipeRequest{LoadProperties: true}) {
 					if v := i.GetCurrent().GetVertex(); v != nil {
 						vl := *v //local copy
 						if vl.Properties == nil {
@@ -397,7 +397,7 @@ func (self *PipeEngine) AddE(key string) QueryInterface {
 			o := make(chan Traveler, PIPE_SIZE)
 			go func() {
 				defer close(o)
-				for src := range self.pipe(PipeRequest{LoadProperties:false}) {
+				for src := range self.pipe(PipeRequest{LoadProperties: false}) {
 					if v := src.GetCurrent().GetVertex(); v != nil {
 						o <- src.AddCurrent(ophion.QueryResult{&ophion.QueryResult_Edge{
 							&ophion.Edge{Out: v.Gid, Label: key},
@@ -417,7 +417,7 @@ func (self *PipeEngine) To(key string) QueryInterface {
 			o := make(chan Traveler, PIPE_SIZE)
 			go func() {
 				defer close(o)
-				for src := range self.pipe(PipeRequest{LoadProperties:false}) {
+				for src := range self.pipe(PipeRequest{LoadProperties: false}) {
 					if e := src.GetCurrent().GetEdge(); e != nil {
 						el := e
 						el.In = key
@@ -440,7 +440,7 @@ func (self *PipeEngine) Drop() QueryInterface {
 			o := make(chan Traveler, PIPE_SIZE)
 			go func() {
 				defer close(o)
-				for src := range self.pipe(PipeRequest{LoadProperties:false}) {
+				for src := range self.pipe(PipeRequest{LoadProperties: false}) {
 					if v := src.GetCurrent().GetVertex(); v != nil {
 						self.db.DelVertex(v.Gid)
 					}
@@ -462,7 +462,7 @@ func (self *PipeEngine) Count() QueryInterface {
 			go func() {
 				defer close(o)
 				var count int32 = 0
-				for range self.pipe(PipeRequest{LoadProperties:false}) {
+				for range self.pipe(PipeRequest{LoadProperties: false}) {
 					count += 1
 				}
 				t := Traveler{}
@@ -481,7 +481,7 @@ func (self *PipeEngine) Limit(limit int64) QueryInterface {
 				var count int64 = 0
 				//TODO: cancel the pipe once we're done with it, rather then
 				//reading out the whole thing
-				for i := range self.pipe(PipeRequest{LoadProperties:true}) {
+				for i := range self.pipe(PipeRequest{LoadProperties: true}) {
 					if count < limit {
 						o <- i
 					}
@@ -500,7 +500,7 @@ func (self *PipeEngine) Execute() chan ophion.ResultRow {
 		o := make(chan ophion.ResultRow, PIPE_SIZE)
 		go func() {
 			defer close(o)
-			for i := range self.pipe(PipeRequest{LoadProperties:true}) {
+			for i := range self.pipe(PipeRequest{LoadProperties: true}) {
 				if v := i.GetCurrent().GetVertex(); v != nil {
 					self.db.SetVertex(*v)
 					o <- ophion.ResultRow{Value: i.GetCurrent()}
@@ -515,7 +515,7 @@ func (self *PipeEngine) Execute() chan ophion.ResultRow {
 		o := make(chan ophion.ResultRow, PIPE_SIZE)
 		go func() {
 			defer close(o)
-			pipe := self.pipe(PipeRequest{LoadProperties:true})
+			pipe := self.pipe(PipeRequest{LoadProperties: true})
 			if pipe != nil {
 				for i := range pipe {
 					if len(self.selection) == 0 {
