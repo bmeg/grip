@@ -346,7 +346,7 @@ func (self *PipeEngine) Fold(source string) QueryInterface {
 }
 
 func (self *PipeEngine) Property(key string, value interface{}) QueryInterface {
-	return self.append(
+	out := self.append(
 		func(request PipeRequest) chan Traveler {
 			o := make(chan Traveler, PIPE_SIZE)
 			go func() {
@@ -371,7 +371,9 @@ func (self *PipeEngine) Property(key string, value interface{}) QueryInterface {
 				}
 			}()
 			return o
-		})
+	})
+	out.sideEffect = true
+	return out
 }
 
 func (self *PipeEngine) AddV(key string) QueryInterface {
