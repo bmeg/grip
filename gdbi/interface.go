@@ -48,14 +48,14 @@ type DBI interface {
 	ArachneInterface
 
 	GetVertex(key string, load bool) *ophion.Vertex
-	GetVertexList(load bool) chan ophion.Vertex
-	GetEdgeList(load bool) chan ophion.Edge
+	GetVertexList(ctx context.Context, load bool) chan ophion.Vertex
+	GetEdgeList(ctx context.Context, load bool) chan ophion.Edge
 
-	GetOutList(key string, load bool, filter EdgeFilter) chan ophion.Vertex
-	GetInList(key string, load bool, filter EdgeFilter) chan ophion.Vertex
+	GetOutList(ctx context.Context, key string, load bool, filter EdgeFilter) chan ophion.Vertex
+	GetInList(ctx context.Context, key string, load bool, filter EdgeFilter) chan ophion.Vertex
 
-	GetOutEdgeList(key string, load bool, filter EdgeFilter) chan ophion.Edge
-	GetInEdgeList(key string, load bool, filter EdgeFilter) chan ophion.Edge
+	GetOutEdgeList(ctx context.Context, key string, load bool, filter EdgeFilter) chan ophion.Edge
+	GetInEdgeList(ctx context.Context, key string, load bool, filter EdgeFilter) chan ophion.Edge
 
 	DelVertex(key string) error
 	DelEdge(key string) error

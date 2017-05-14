@@ -5,6 +5,7 @@ import (
   "log"
   "fmt"
   "bytes"
+  "context"
   "github.com/bmeg/arachne/gdbi"
   "github.com/bmeg/arachne/ophion"
   "github.com/tecbot/gorocksdb"
@@ -157,7 +158,7 @@ func (self *RocksArachne) DelVertex(id string) error {
 }
 
 
-func (self *RocksArachne) GetEdgeList(loadProp bool) chan ophion.Edge {
+func (self *RocksArachne) GetEdgeList(ctx context.Context, loadProp bool) chan ophion.Edge {
 	o := make(chan ophion.Edge, 100)
 	go func() {
 		defer close(o)
@@ -166,6 +167,9 @@ func (self *RocksArachne) GetEdgeList(loadProp bool) chan ophion.Edge {
     e_prefix := []byte("e")
     it.Seek(e_prefix)
     for it = it; it.ValidForPrefix(e_prefix); it.Next() {
+      if ctx.Done() != nil {
+        return
+      }
       key_value := it.Key()
       eid_tmp := bytes.Split(bytes_copy(key_value.Data()), []byte{0})
       eid := eid_tmp[1]
@@ -197,7 +201,7 @@ func (self *RocksArachne) GetEdgeList(loadProp bool) chan ophion.Edge {
 }
 
 
-func (self *RocksArachne) GetInEdgeList(id string, loadProp bool, filter gdbi.EdgeFilter) chan ophion.Edge {
+func (self *RocksArachne) GetInEdgeList(ctx context.Context, id string, loadProp bool, filter gdbi.EdgeFilter) chan ophion.Edge {
 	o := make(chan ophion.Edge, 100)
 	go func() {
 		defer close(o)
@@ -208,6 +212,9 @@ func (self *RocksArachne) GetInEdgeList(id string, loadProp bool, filter gdbi.Ed
 
     it.Seek(ikey_prefix)
     for it = it; it.ValidForPrefix(ikey_prefix); it.Next() {
+      if ctx.Done() != nil {
+        return
+      }
       key_value := it.Key()
       tmp := bytes.Split(bytes_copy(key_value.Data()), []byte{0})
       key_value.Free()
@@ -240,7 +247,7 @@ func (self *RocksArachne) GetInEdgeList(id string, loadProp bool, filter gdbi.Ed
 }
 
 
-func (self *RocksArachne) GetOutEdgeList(id string, loadProp bool, filter gdbi.EdgeFilter) chan ophion.Edge {
+func (self *RocksArachne) GetOutEdgeList(ctx context.Context, id string, loadProp bool, filter gdbi.EdgeFilter) chan ophion.Edge {
 	o := make(chan ophion.Edge, 100)
 	go func() {
 		defer close(o)
@@ -251,6 +258,9 @@ func (self *RocksArachne) GetOutEdgeList(id string, loadProp bool, filter gdbi.E
 
     it.Seek(okey_prefix)
     for it = it; it.ValidForPrefix(okey_prefix); it.Next() {
+      if ctx.Done() != nil {
+        return
+      }
       key_value := it.Key()
       key_value.Free()
       data_value := it.Value()
@@ -276,7 +286,7 @@ func (self *RocksArachne) GetOutEdgeList(id string, loadProp bool, filter gdbi.E
 }
 
 
-func (self *RocksArachne) GetInList(id string, loadProp bool, filter gdbi.EdgeFilter) chan ophion.Vertex {
+func (self *RocksArachne) GetInList(ctx context.Context, id string, loadProp bool, filter gdbi.EdgeFilter) chan ophion.Vertex {
 	o := make(chan ophion.Vertex, 100)
 	go func() {
 		defer close(o)
@@ -287,6 +297,9 @@ func (self *RocksArachne) GetInList(id string, loadProp bool, filter gdbi.EdgeFi
 
     it.Seek(ikey_prefix)
     for it = it; it.ValidForPrefix(ikey_prefix); it.Next() {
+      if ctx.Done() != nil {
+        return
+      }
       key_value := it.Key()
       tmp := bytes.Split(bytes_copy(key_value.Data()), []byte{0})
       key_value.Free()
@@ -328,7 +341,7 @@ func (self *RocksArachne) GetInList(id string, loadProp bool, filter gdbi.EdgeFi
 }
 
 
-func (self *RocksArachne) GetOutList(id string, loadProp bool, filter gdbi.EdgeFilter) chan ophion.Vertex {
+func (self *RocksArachne) GetOutList(ctx context.Context, id string, loadProp bool, filter gdbi.EdgeFilter) chan ophion.Vertex {
 	o := make(chan ophion.Vertex, 100)
 	go func() {
 		defer close(o)
@@ -339,6 +352,9 @@ func (self *RocksArachne) GetOutList(id string, loadProp bool, filter gdbi.EdgeF
 
     it.Seek(okey_prefix)
     for it = it; it.ValidForPrefix(okey_prefix); it.Next() {
+      if ctx.Done() != nil {
+        return
+      }
       key_value := it.Key()
       tmp := bytes.Split(bytes_copy(key_value.Data()), []byte{0})
       key_value.Free()
@@ -394,7 +410,7 @@ func (self *RocksArachne) GetVertex(id string, loadProp bool) *ophion.Vertex {
 }
 
 
-func (self *RocksArachne) GetVertexList(loadProp bool) chan ophion.Vertex {
+func (self *RocksArachne) GetVertexList(ctx context.Context, loadProp bool) chan ophion.Vertex {
 	o := make(chan ophion.Vertex, 100)
 
 	go func() {
@@ -404,6 +420,9 @@ func (self *RocksArachne) GetVertexList(loadProp bool) chan ophion.Vertex {
     v_prefix := []byte("v")
     it.Seek(v_prefix)
     for it = it; it.ValidForPrefix(v_prefix); it.Next() {
+      if ctx.Done() != nil {
+        return
+      }
       data_value := it.Value()
       d := data_value.Data()
       v := ophion.Vertex{}

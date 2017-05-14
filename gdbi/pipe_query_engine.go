@@ -61,7 +61,7 @@ func (self *PipeEngine) V(key ...string) QueryInterface {
 			o := make(chan Traveler, PIPE_SIZE)
 			go func() {
 				defer close(o)
-				for i := range self.db.GetVertexList(ctx.Value(PROP_LOAD).(bool)) {
+				for i := range self.db.GetVertexList(ctx, ctx.Value(PROP_LOAD).(bool)) {
 					t := i //make a local copy
 					c := Traveler{}
 					o <- c.AddCurrent(ophion.QueryResult{&ophion.QueryResult_Vertex{&t}})
@@ -77,7 +77,7 @@ func (self *PipeEngine) E() QueryInterface {
 			o := make(chan Traveler, PIPE_SIZE)
 			go func() {
 				defer close(o)
-				for i := range self.db.GetEdgeList(ctx.Value(PROP_LOAD).(bool)) {
+				for i := range self.db.GetEdgeList(ctx, ctx.Value(PROP_LOAD).(bool)) {
 					t := i //make a local copy
 					c := Traveler{}
 					o <- c.AddCurrent(ophion.QueryResult{&ophion.QueryResult_Edge{&t}})
@@ -145,7 +145,7 @@ func (self *PipeEngine) Out(key ...string) QueryInterface {
 				}
 				for i := range self.pipe(ctx) {
 					if v := i.GetCurrent().GetVertex(); v != nil {
-						for ov := range self.db.GetOutList(v.Gid, ctx.Value(PROP_LOAD).(bool), filt) {
+						for ov := range self.db.GetOutList(ctx, v.Gid, ctx.Value(PROP_LOAD).(bool), filt) {
 							lv := ov
 							o <- i.AddCurrent(ophion.QueryResult{&ophion.QueryResult_Vertex{&lv}})
 						}
@@ -173,7 +173,7 @@ func (self *PipeEngine) In(key ...string) QueryInterface {
 				}
 				for i := range self.pipe(ctx) {
 					if v := i.GetCurrent().GetVertex(); v != nil {
-						for e := range self.db.GetInList(v.Gid, ctx.Value(PROP_LOAD).(bool), filt) {
+						for e := range self.db.GetInList(ctx, v.Gid, ctx.Value(PROP_LOAD).(bool), filt) {
 							el := e
 							o <- i.AddCurrent(ophion.QueryResult{&ophion.QueryResult_Vertex{&el}})
 						}
@@ -201,7 +201,7 @@ func (self *PipeEngine) OutE(key ...string) QueryInterface {
 				}
 				for i := range self.pipe(ctx) {
 					if v := i.GetCurrent().GetVertex(); v != nil {
-						for oe := range self.db.GetOutEdgeList(v.Gid, ctx.Value(PROP_LOAD).(bool), filt) {
+						for oe := range self.db.GetOutEdgeList(ctx, v.Gid, ctx.Value(PROP_LOAD).(bool), filt) {
 							le := oe
 							o <- i.AddCurrent(ophion.QueryResult{&ophion.QueryResult_Edge{&le}})
 						}
@@ -229,7 +229,7 @@ func (self *PipeEngine) InE(key ...string) QueryInterface {
 				}
 				for i := range self.pipe(context.WithValue(ctx, PROP_LOAD, false)) {
 					if v := i.GetCurrent().GetVertex(); v != nil {
-						for e := range self.db.GetInEdgeList(v.Gid, ctx.Value(PROP_LOAD).(bool), filt) {
+						for e := range self.db.GetInEdgeList(ctx, v.Gid, ctx.Value(PROP_LOAD).(bool), filt) {
 							el := e
 							o <- i.AddCurrent(ophion.QueryResult{&ophion.QueryResult_Edge{&el}})
 						}
