@@ -484,7 +484,7 @@ func (self *PipeEngine) Limit(limit int64) QueryInterface {
 			go func() {
 				defer close(o)
 				var count int64 = 0
-				nctx, cancel := context.WithCancel(context.WithValue(ctx, PROP_LOAD, true))
+				nctx, cancel := context.WithCancel(ctx)
 				for i := range self.pipe(nctx) {
 					if count < limit {
 						o <- i

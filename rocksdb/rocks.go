@@ -167,8 +167,10 @@ func (self *RocksArachne) GetEdgeList(ctx context.Context, loadProp bool) chan o
     e_prefix := []byte("e")
     it.Seek(e_prefix)
     for it = it; it.ValidForPrefix(e_prefix); it.Next() {
-      if ctx.Done() != nil {
-        return
+      select {
+		    case <-ctx.Done():
+          return
+        default:
       }
       key_value := it.Key()
       eid_tmp := bytes.Split(bytes_copy(key_value.Data()), []byte{0})
@@ -212,8 +214,10 @@ func (self *RocksArachne) GetInEdgeList(ctx context.Context, id string, loadProp
 
     it.Seek(ikey_prefix)
     for it = it; it.ValidForPrefix(ikey_prefix); it.Next() {
-      if ctx.Done() != nil {
-        return
+      select {
+		    case <-ctx.Done():
+          return
+        default:
       }
       key_value := it.Key()
       tmp := bytes.Split(bytes_copy(key_value.Data()), []byte{0})
@@ -258,8 +262,10 @@ func (self *RocksArachne) GetOutEdgeList(ctx context.Context, id string, loadPro
 
     it.Seek(okey_prefix)
     for it = it; it.ValidForPrefix(okey_prefix); it.Next() {
-      if ctx.Done() != nil {
-        return
+      select {
+		    case <-ctx.Done():
+          return
+        default:
       }
       key_value := it.Key()
       key_value.Free()
@@ -297,8 +303,10 @@ func (self *RocksArachne) GetInList(ctx context.Context, id string, loadProp boo
 
     it.Seek(ikey_prefix)
     for it = it; it.ValidForPrefix(ikey_prefix); it.Next() {
-      if ctx.Done() != nil {
-        return
+      select {
+		    case <-ctx.Done():
+          return
+        default:
       }
       key_value := it.Key()
       tmp := bytes.Split(bytes_copy(key_value.Data()), []byte{0})
@@ -352,8 +360,10 @@ func (self *RocksArachne) GetOutList(ctx context.Context, id string, loadProp bo
 
     it.Seek(okey_prefix)
     for it = it; it.ValidForPrefix(okey_prefix); it.Next() {
-      if ctx.Done() != nil {
-        return
+      select {
+		    case <-ctx.Done():
+          return
+        default:
       }
       key_value := it.Key()
       tmp := bytes.Split(bytes_copy(key_value.Data()), []byte{0})
@@ -420,8 +430,10 @@ func (self *RocksArachne) GetVertexList(ctx context.Context, loadProp bool) chan
     v_prefix := []byte("v")
     it.Seek(v_prefix)
     for it = it; it.ValidForPrefix(v_prefix); it.Next() {
-      if ctx.Done() != nil {
-        return
+      select {
+		    case <-ctx.Done():
+          return
+        default:
       }
       data_value := it.Value()
       d := data_value.Data()
