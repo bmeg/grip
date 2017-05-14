@@ -1,6 +1,7 @@
 package gdbi
 
 import (
+	"context"
 	"github.com/bmeg/arachne/ophion"
 )
 
@@ -32,9 +33,9 @@ type QueryInterface interface {
 	Property(key string, value interface{}) QueryInterface
 	Drop() QueryInterface
 
-	Execute() chan ophion.ResultRow
-	First() (ophion.ResultRow, error) //Only get one result
-	Run() error                       //Do execute, but throw away the results
+	Execute(context.Context) chan ophion.ResultRow
+	First(context.Context) (ophion.ResultRow, error) //Only get one result
+	Run(context.Context) error                       //Do execute, but throw away the results
 }
 
 type ArachneInterface interface {
@@ -45,11 +46,11 @@ type ArachneInterface interface {
 
 type DBI interface {
 	ArachneInterface
-	
+
 	GetVertex(key string, load bool) *ophion.Vertex
 	GetVertexList(load bool) chan ophion.Vertex
 	GetEdgeList(load bool) chan ophion.Edge
-	
+
 	GetOutList(key string, load bool, filter EdgeFilter) chan ophion.Vertex
 	GetInList(key string, load bool, filter EdgeFilter) chan ophion.Vertex
 
@@ -72,4 +73,4 @@ type PipeRequest struct {
 	LoadProperties bool
 }
 
-type GraphPipe func(PipeRequest) chan Traveler
+type GraphPipe func(ctx context.Context) chan Traveler

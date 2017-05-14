@@ -2,10 +2,10 @@ package arachne
 
 import (
 	"fmt"
+	"log"
+	"context"
 	"github.com/bmeg/arachne/gdbi"
 	"github.com/bmeg/arachne/ophion"
-	//"golang.org/x/net/context"
-	"log"
 )
 
 type GraphEngine struct {
@@ -111,7 +111,7 @@ func (trav *Traversal) RunStatement(statement *ophion.GraphStatement) error {
 }
 
 func (trav *Traversal) GetResult() (chan ophion.ResultRow, error) {
-	e := trav.Query.Execute()
+	e := trav.Query.Execute(context.Background())
 	if e == nil {
 		return nil, fmt.Errorf("Query Failed")
 	}
