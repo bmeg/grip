@@ -2,8 +2,8 @@ package arachne
 
 import (
 	//"github.com/bmeg/arachne/boltdb"
-	"github.com/bmeg/arachne/rocksdb"
 	"github.com/bmeg/arachne/ophion"
+	"github.com/bmeg/arachne/rocksdb"
 	//"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"log"

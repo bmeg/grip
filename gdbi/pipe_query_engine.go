@@ -1,12 +1,12 @@
 package gdbi
 
 import (
-	"log"
 	"context"
 	"github.com/bmeg/arachne/jsengine"
 	"github.com/bmeg/arachne/ophion"
 	"github.com/bmeg/arachne/protoutil"
 	"github.com/golang/protobuf/ptypes/struct"
+	"log"
 )
 
 type PipeEngine struct {
@@ -47,7 +47,7 @@ func (self *PipeEngine) V(key ...string) QueryInterface {
 				o := make(chan Traveler, PIPE_SIZE)
 				go func() {
 					defer close(o)
-					v := self.db.GetVertex(key[0], ctx.Value(PROP_LOAD).(bool) )
+					v := self.db.GetVertex(key[0], ctx.Value(PROP_LOAD).(bool))
 					if v != nil {
 						c := Traveler{}
 						o <- c.AddCurrent(ophion.QueryResult{&ophion.QueryResult_Vertex{v}})
@@ -374,7 +374,7 @@ func (self *PipeEngine) Property(key string, value interface{}) QueryInterface {
 				}
 			}()
 			return o
-	})
+		})
 	out.sideEffect = true
 	return out
 }

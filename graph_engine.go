@@ -1,11 +1,11 @@
 package arachne
 
 import (
-	"fmt"
-	"log"
 	"context"
+	"fmt"
 	"github.com/bmeg/arachne/gdbi"
 	"github.com/bmeg/arachne/ophion"
+	"log"
 )
 
 type GraphEngine struct {

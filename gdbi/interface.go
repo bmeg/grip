@@ -43,7 +43,6 @@ type ArachneInterface interface {
 	Query() QueryInterface
 }
 
-
 type DBI interface {
 	ArachneInterface
 

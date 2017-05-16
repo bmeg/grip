@@ -81,7 +81,7 @@ func (self *BoltArachne) GetVertex(key string, loadProp bool) *ophion.Vertex {
 			proto.Unmarshal(d, o)
 			out = o
 		} else {
-			out = &ophion.Vertex{Gid:key}
+			out = &ophion.Vertex{Gid: key}
 		}
 		return nil
 	})
@@ -131,7 +131,7 @@ func (self *BoltArachne) GetVertexList(loadProp bool) chan ophion.Vertex {
 				if loadProp {
 					ov := make([]byte, len(v))
 					copy(ov, v) //don't move bolt values out of transaction, send copy instead
-					od <- keyval{key: string(k), value: ov} 
+					od <- keyval{key: string(k), value: ov}
 				} else {
 					//just need a stub vertex, with the id
 					od <- keyval{key: string(k)}
@@ -157,13 +157,13 @@ func (self *BoltArachne) GetVertexList(loadProp bool) chan ophion.Vertex {
 		} else {
 			go func() {
 				for kv := range od {
-				 o <- ophion.Vertex{Gid:string(kv.key)}
+					o <- ophion.Vertex{Gid: string(kv.key)}
 				}
 				closer <- true
 			}()
 		}
 	}
-	
+
 	//close channel after done
 	go func() {
 		for i := 0; i < NTHREAD; i++ {
@@ -214,7 +214,7 @@ func (self *BoltArachne) GetOutList(key string, loadProp bool, filter gdbi.EdgeF
 					o <- *v
 				}
 			} else {
-				o <- ophion.Vertex{Gid:i}
+				o <- ophion.Vertex{Gid: i}
 			}
 		}
 	}()
@@ -258,7 +258,7 @@ func (self *BoltArachne) GetInList(key string, loadProp bool, filter gdbi.EdgeFi
 			if loadProp {
 				o <- *self.GetVertex(i, loadProp)
 			} else {
-				o <- ophion.Vertex{Gid:i}
+				o <- ophion.Vertex{Gid: i}
 			}
 		}
 	}()
@@ -355,7 +355,7 @@ func (self *BoltArachne) GetEdgeList(loadProp bool) chan ophion.Edge {
 					o <- e
 				} else {
 					key_data := bytes.Split(k, []byte{0})
-					o <- ophion.Edge{Gid:string(key_data[2]), Out:string(key_data[0]), In:string(key_data[1])}
+					o <- ophion.Edge{Gid: string(key_data[2]), Out: string(key_data[0]), In: string(key_data[1])}
 				}
 			}
 			return nil
