@@ -103,6 +103,8 @@ func (trav *Traversal) RunStatement(statement *ophion.GraphStatement) error {
 		trav.Query = trav.Query.Select(x.Select.Labels)
 	} else if _, ok := statement.GetStatement().(*ophion.GraphStatement_Drop); ok {
 		trav.Query = trav.Query.Drop()
+	} else if x, ok := statement.GetStatement().(*ophion.GraphStatement_GroupCount); ok {
+		trav.Query = trav.Query.GroupCount(x.GroupCount)
 	} else {
 		log.Printf("Unknown Statement: %#v", statement)
 		return fmt.Errorf("Unknown Statement: %#v", statement)

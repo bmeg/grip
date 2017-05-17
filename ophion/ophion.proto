@@ -28,6 +28,8 @@ message GraphStatement {
         int64 limit = 14;
         string count = 15;
 
+        string groupCount = 16;
+
         //Function Methods
         string import = 50;
         string map = 51;

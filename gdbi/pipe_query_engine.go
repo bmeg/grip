@@ -254,6 +254,37 @@ func (self *PipeEngine) As(label string) QueryInterface {
 		})
 }
 
+func (self *PipeEngine) GroupCount(label string) QueryInterface {
+	return self.append(
+		func(ctx context.Context) chan Traveler {
+			o := make(chan Traveler, PIPE_SIZE)
+			go func() {
+				defer close(o)
+				groupCount := map[string]int{}
+				for i := range self.pipe(context.WithValue(ctx, PROP_LOAD, true)) {
+					var props *structpb.Struct = nil
+					if v := i.GetCurrent().GetVertex(); v != nil && v.Properties != nil {
+						props = v.GetProperties()
+					} else if v := i.GetCurrent().GetEdge(); v != nil && v.Properties != nil {
+						props = v.GetProperties()
+					}
+					if props != nil {
+						if x, ok := props.Fields[label]; ok {
+							groupCount[x.GetStringValue()] += 1 //BUG: Only supports string data
+						}
+					}
+				}
+				out := structpb.Struct{Fields: map[string]*structpb.Value{}}
+				for k, v := range groupCount {
+					out.Fields[k] = &structpb.Value{Kind: &structpb.Value_NumberValue{float64(v)}}
+				}
+				c := Traveler{}
+				o <- c.AddCurrent(ophion.QueryResult{&ophion.QueryResult_Struct{&out}})
+			}()
+			return o
+		})
+}
+
 func (self *PipeEngine) Select(labels []string) QueryInterface {
 	o := self.append(self.pipe)
 	o.selection = labels

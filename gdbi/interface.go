@@ -21,6 +21,8 @@ type QueryInterface interface {
 	Select(labels []string) QueryInterface
 	Values(labels []string) QueryInterface
 
+	GroupCount(label string) QueryInterface
+
 	//code based functions
 	Import(source string) QueryInterface
 	Map(function string) QueryInterface
