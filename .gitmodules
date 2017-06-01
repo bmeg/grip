@@ -1,3 +1,6 @@
 [submodule "googleapis"]
 	path = googleapis
 	url = https://github.com/googleapis/googleapis.git
+[submodule "vendor/github.com/tecbot/gorocksdb"]
+	path = vendor/github.com/tecbot/gorocksdb
+	url = https://github.com/tecbot/gorocksdb
