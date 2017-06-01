@@ -3,7 +3,7 @@ package gdbi
 import (
 	"context"
 	"github.com/bmeg/arachne/jsengine"
-	"github.com/bmeg/arachne/ophion"
+	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/protoutil"
 	"github.com/golang/protobuf/ptypes/struct"
 	"log"
@@ -50,7 +50,7 @@ func (self *PipeEngine) V(key ...string) QueryInterface {
 					v := self.db.GetVertex(key[0], ctx.Value(PROP_LOAD).(bool))
 					if v != nil {
 						c := Traveler{}
-						o <- c.AddCurrent(ophion.QueryResult{&ophion.QueryResult_Vertex{v}})
+						o <- c.AddCurrent(aql.QueryResult{&aql.QueryResult_Vertex{v}})
 					}
 				}()
 				return o
@@ -64,7 +64,7 @@ func (self *PipeEngine) V(key ...string) QueryInterface {
 				for i := range self.db.GetVertexList(ctx, ctx.Value(PROP_LOAD).(bool)) {
 					t := i //make a local copy
 					c := Traveler{}
-					o <- c.AddCurrent(ophion.QueryResult{&ophion.QueryResult_Vertex{&t}})
+					o <- c.AddCurrent(aql.QueryResult{&aql.QueryResult_Vertex{&t}})
 				}
 			}()
 			return o
@@ -80,7 +80,7 @@ func (self *PipeEngine) E() QueryInterface {
 				for i := range self.db.GetEdgeList(ctx, ctx.Value(PROP_LOAD).(bool)) {
 					t := i //make a local copy
 					c := Traveler{}
-					o <- c.AddCurrent(ophion.QueryResult{&ophion.QueryResult_Edge{&t}})
+					o <- c.AddCurrent(aql.QueryResult{&aql.QueryResult_Edge{&t}})
 				}
 			}()
 			return o
@@ -136,7 +136,7 @@ func (self *PipeEngine) Out(key ...string) QueryInterface {
 				defer close(o)
 				var filt EdgeFilter = nil
 				if len(key) > 0 && len(key[0]) > 0 {
-					filt = func(e ophion.Edge) bool {
+					filt = func(e aql.Edge) bool {
 						if key[0] == e.Label {
 							return true
 						}
@@ -147,7 +147,7 @@ func (self *PipeEngine) Out(key ...string) QueryInterface {
 					if v := i.GetCurrent().GetVertex(); v != nil {
 						for ov := range self.db.GetOutList(ctx, v.Gid, ctx.Value(PROP_LOAD).(bool), filt) {
 							lv := ov
-							o <- i.AddCurrent(ophion.QueryResult{&ophion.QueryResult_Vertex{&lv}})
+							o <- i.AddCurrent(aql.QueryResult{&aql.QueryResult_Vertex{&lv}})
 						}
 					}
 				}
@@ -164,7 +164,7 @@ func (self *PipeEngine) In(key ...string) QueryInterface {
 				defer close(o)
 				var filt EdgeFilter = nil
 				if len(key) > 0 && len(key[0]) > 0 {
-					filt = func(e ophion.Edge) bool {
+					filt = func(e aql.Edge) bool {
 						if key[0] == e.Label {
 							return true
 						}
@@ -175,7 +175,7 @@ func (self *PipeEngine) In(key ...string) QueryInterface {
 					if v := i.GetCurrent().GetVertex(); v != nil {
 						for e := range self.db.GetInList(ctx, v.Gid, ctx.Value(PROP_LOAD).(bool), filt) {
 							el := e
-							o <- i.AddCurrent(ophion.QueryResult{&ophion.QueryResult_Vertex{&el}})
+							o <- i.AddCurrent(aql.QueryResult{&aql.QueryResult_Vertex{&el}})
 						}
 					}
 				}
@@ -192,7 +192,7 @@ func (self *PipeEngine) OutE(key ...string) QueryInterface {
 				defer close(o)
 				var filt EdgeFilter = nil
 				if len(key) > 0 && len(key[0]) > 0 {
-					filt = func(e ophion.Edge) bool {
+					filt = func(e aql.Edge) bool {
 						if key[0] == e.Label {
 							return true
 						}
@@ -203,7 +203,7 @@ func (self *PipeEngine) OutE(key ...string) QueryInterface {
 					if v := i.GetCurrent().GetVertex(); v != nil {
 						for oe := range self.db.GetOutEdgeList(ctx, v.Gid, ctx.Value(PROP_LOAD).(bool), filt) {
 							le := oe
-							o <- i.AddCurrent(ophion.QueryResult{&ophion.QueryResult_Edge{&le}})
+							o <- i.AddCurrent(aql.QueryResult{&aql.QueryResult_Edge{&le}})
 						}
 					}
 				}
@@ -220,7 +220,7 @@ func (self *PipeEngine) InE(key ...string) QueryInterface {
 				defer close(o)
 				var filt EdgeFilter = nil
 				if len(key) > 0 && len(key[0]) > 0 {
-					filt = func(e ophion.Edge) bool {
+					filt = func(e aql.Edge) bool {
 						if key[0] == e.Label {
 							return true
 						}
@@ -231,7 +231,7 @@ func (self *PipeEngine) InE(key ...string) QueryInterface {
 					if v := i.GetCurrent().GetVertex(); v != nil {
 						for e := range self.db.GetInEdgeList(ctx, v.Gid, ctx.Value(PROP_LOAD).(bool), filt) {
 							el := e
-							o <- i.AddCurrent(ophion.QueryResult{&ophion.QueryResult_Edge{&el}})
+							o <- i.AddCurrent(aql.QueryResult{&aql.QueryResult_Edge{&el}})
 						}
 					}
 				}
@@ -279,7 +279,7 @@ func (self *PipeEngine) GroupCount(label string) QueryInterface {
 					out.Fields[k] = &structpb.Value{Kind: &structpb.Value_NumberValue{float64(v)}}
 				}
 				c := Traveler{}
-				o <- c.AddCurrent(ophion.QueryResult{&ophion.QueryResult_Struct{&out}})
+				o <- c.AddCurrent(aql.QueryResult{&aql.QueryResult_Struct{&out}})
 			}()
 			return o
 		})
@@ -311,7 +311,7 @@ func (self *PipeEngine) Values(labels []string) QueryInterface {
 						} else {
 							protoutil.CopyStructToStructSub(&out, labels, props)
 						}
-						o <- i.AddCurrent(ophion.QueryResult{&ophion.QueryResult_Struct{&out}})
+						o <- i.AddCurrent(aql.QueryResult{&aql.QueryResult_Struct{&out}})
 					}
 				}
 			}()
@@ -359,7 +359,7 @@ func (self *PipeEngine) Fold(source string) QueryInterface {
 				if err != nil {
 					log.Printf("Script Error: %s", err)
 				}
-				var last *ophion.QueryResult = nil
+				var last *aql.QueryResult = nil
 				first := true
 				for i := range self.pipe(context.WithValue(ctx, PROP_LOAD, true)) {
 					if first {
@@ -392,7 +392,7 @@ func (self *PipeEngine) Property(key string, value interface{}) QueryInterface {
 							vl.Properties = &structpb.Struct{Fields: map[string]*structpb.Value{}}
 						}
 						protoutil.StructSet(vl.Properties, key, value)
-						o <- i.AddCurrent(ophion.QueryResult{&ophion.QueryResult_Vertex{&vl}})
+						o <- i.AddCurrent(aql.QueryResult{&aql.QueryResult_Vertex{&vl}})
 					}
 					if e := i.GetCurrent().GetEdge(); e != nil {
 						el := *e
@@ -400,7 +400,7 @@ func (self *PipeEngine) Property(key string, value interface{}) QueryInterface {
 							el.Properties = &structpb.Struct{Fields: map[string]*structpb.Value{}}
 						}
 						protoutil.StructSet(el.Properties, key, value)
-						o <- i.AddCurrent(ophion.QueryResult{&ophion.QueryResult_Edge{&el}})
+						o <- i.AddCurrent(aql.QueryResult{&aql.QueryResult_Edge{&el}})
 					}
 				}
 			}()
@@ -415,8 +415,8 @@ func (self *PipeEngine) AddV(key string) QueryInterface {
 		func(ctx context.Context) chan Traveler {
 			o := make(chan Traveler, PIPE_SIZE)
 			t := Traveler{}
-			o <- t.AddCurrent(ophion.QueryResult{&ophion.QueryResult_Vertex{
-				&ophion.Vertex{
+			o <- t.AddCurrent(aql.QueryResult{&aql.QueryResult_Vertex{
+				&aql.Vertex{
 					Gid: key,
 				},
 			}})
@@ -435,8 +435,8 @@ func (self *PipeEngine) AddE(key string) QueryInterface {
 				defer close(o)
 				for src := range self.pipe(context.WithValue(ctx, PROP_LOAD, false)) {
 					if v := src.GetCurrent().GetVertex(); v != nil {
-						o <- src.AddCurrent(ophion.QueryResult{&ophion.QueryResult_Edge{
-							&ophion.Edge{Out: v.Gid, Label: key},
+						o <- src.AddCurrent(aql.QueryResult{&aql.QueryResult_Edge{
+							&aql.Edge{Out: v.Gid, Label: key},
 						}})
 					}
 				}
@@ -457,7 +457,7 @@ func (self *PipeEngine) To(key string) QueryInterface {
 					if e := src.GetCurrent().GetEdge(); e != nil {
 						el := e
 						el.In = key
-						o <- src.AddCurrent(ophion.QueryResult{&ophion.QueryResult_Edge{
+						o <- src.AddCurrent(aql.QueryResult{&aql.QueryResult_Edge{
 							el,
 						}})
 					}
@@ -502,7 +502,7 @@ func (self *PipeEngine) Count() QueryInterface {
 					count += 1
 				}
 				t := Traveler{}
-				o <- t.AddCurrent(ophion.QueryResult{&ophion.QueryResult_IntValue{IntValue: count}})
+				o <- t.AddCurrent(aql.QueryResult{&aql.QueryResult_IntValue{IntValue: count}})
 			}()
 			return o
 		})
@@ -529,40 +529,40 @@ func (self *PipeEngine) Limit(limit int64) QueryInterface {
 		})
 }
 
-func (self *PipeEngine) Execute(ctx context.Context) chan ophion.ResultRow {
+func (self *PipeEngine) Execute(ctx context.Context) chan aql.ResultRow {
 	if self.pipe == nil {
 		return nil
 	}
 	if self.sideEffect {
-		o := make(chan ophion.ResultRow, PIPE_SIZE)
+		o := make(chan aql.ResultRow, PIPE_SIZE)
 		go func() {
 			defer close(o)
 			for i := range self.pipe(context.WithValue(ctx, PROP_LOAD, true)) {
 				if v := i.GetCurrent().GetVertex(); v != nil {
 					self.db.SetVertex(*v)
-					o <- ophion.ResultRow{Value: i.GetCurrent()}
+					o <- aql.ResultRow{Value: i.GetCurrent()}
 				} else if v := i.GetCurrent().GetEdge(); v != nil {
 					self.db.SetEdge(*v)
-					o <- ophion.ResultRow{Value: i.GetCurrent()}
+					o <- aql.ResultRow{Value: i.GetCurrent()}
 				}
 			}
 		}()
 		return o
 	} else {
-		o := make(chan ophion.ResultRow, PIPE_SIZE)
+		o := make(chan aql.ResultRow, PIPE_SIZE)
 		go func() {
 			defer close(o)
 			pipe := self.pipe(context.WithValue(ctx, PROP_LOAD, true))
 			if pipe != nil {
 				for i := range pipe {
 					if len(self.selection) == 0 {
-						o <- ophion.ResultRow{Value: i.GetCurrent()}
+						o <- aql.ResultRow{Value: i.GetCurrent()}
 					} else {
-						l := []*ophion.QueryResult{}
+						l := []*aql.QueryResult{}
 						for _, r := range self.selection {
 							l = append(l, i.GetLabeled(r))
 						}
-						o <- ophion.ResultRow{Row: l}
+						o <- aql.ResultRow{Row: l}
 					}
 				}
 			}
@@ -580,8 +580,8 @@ func (self *PipeEngine) Run(ctx context.Context) error {
 	return nil
 }
 
-func (self *PipeEngine) First(ctx context.Context) (ophion.ResultRow, error) {
-	o := ophion.ResultRow{}
+func (self *PipeEngine) First(ctx context.Context) (aql.ResultRow, error) {
+	o := aql.ResultRow{}
 	if self.err != nil {
 		return o, self.err
 	}

@@ -1,15 +1,15 @@
 package gdbi
 
 import (
-	"github.com/bmeg/arachne/ophion"
+	"github.com/bmeg/arachne/aql"
 )
 
 const (
 	STATE_CURRENT = "_"
 )
 
-func (t Traveler) AddCurrent(r ophion.QueryResult) Traveler {
-	o := Traveler{State: map[string]ophion.QueryResult{}}
+func (t Traveler) AddCurrent(r aql.QueryResult) Traveler {
+	o := Traveler{State: map[string]aql.QueryResult{}}
 	for k, v := range t.State {
 		o.State[k] = v
 	}
@@ -17,8 +17,8 @@ func (t Traveler) AddCurrent(r ophion.QueryResult) Traveler {
 	return o
 }
 
-func (t Traveler) AddLabeled(label string, r ophion.QueryResult) Traveler {
-	o := Traveler{State: map[string]ophion.QueryResult{}}
+func (t Traveler) AddLabeled(label string, r aql.QueryResult) Traveler {
+	o := Traveler{State: map[string]aql.QueryResult{}}
 	for k, v := range t.State {
 		o.State[k] = v
 	}
@@ -26,12 +26,12 @@ func (t Traveler) AddLabeled(label string, r ophion.QueryResult) Traveler {
 	return o
 }
 
-func (t Traveler) GetLabeled(label string) *ophion.QueryResult {
+func (t Traveler) GetLabeled(label string) *aql.QueryResult {
 	lt := t.State[label]
 	return &lt
 }
 
-func (t Traveler) GetCurrent() *ophion.QueryResult {
+func (t Traveler) GetCurrent() *aql.QueryResult {
 	lt := t.State[STATE_CURRENT]
 	return &lt
 }

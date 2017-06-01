@@ -2,7 +2,7 @@ package gdbi
 
 import (
 	"context"
-	"github.com/bmeg/arachne/ophion"
+	"github.com/bmeg/arachne/aql"
 )
 
 type QueryInterface interface {
@@ -35,8 +35,8 @@ type QueryInterface interface {
 	Property(key string, value interface{}) QueryInterface
 	Drop() QueryInterface
 
-	Execute(context.Context) chan ophion.ResultRow
-	First(context.Context) (ophion.ResultRow, error) //Only get one result
+	Execute(context.Context) chan aql.ResultRow
+	First(context.Context) (aql.ResultRow, error) //Only get one result
 	Run(context.Context) error                       //Do execute, but throw away the results
 }
 
@@ -48,27 +48,27 @@ type ArachneInterface interface {
 type DBI interface {
 	ArachneInterface
 
-	GetVertex(key string, load bool) *ophion.Vertex
-	GetVertexList(ctx context.Context, load bool) chan ophion.Vertex
-	GetEdgeList(ctx context.Context, load bool) chan ophion.Edge
+	GetVertex(key string, load bool) *aql.Vertex
+	GetVertexList(ctx context.Context, load bool) chan aql.Vertex
+	GetEdgeList(ctx context.Context, load bool) chan aql.Edge
 
-	GetOutList(ctx context.Context, key string, load bool, filter EdgeFilter) chan ophion.Vertex
-	GetInList(ctx context.Context, key string, load bool, filter EdgeFilter) chan ophion.Vertex
+	GetOutList(ctx context.Context, key string, load bool, filter EdgeFilter) chan aql.Vertex
+	GetInList(ctx context.Context, key string, load bool, filter EdgeFilter) chan aql.Vertex
 
-	GetOutEdgeList(ctx context.Context, key string, load bool, filter EdgeFilter) chan ophion.Edge
-	GetInEdgeList(ctx context.Context, key string, load bool, filter EdgeFilter) chan ophion.Edge
+	GetOutEdgeList(ctx context.Context, key string, load bool, filter EdgeFilter) chan aql.Edge
+	GetInEdgeList(ctx context.Context, key string, load bool, filter EdgeFilter) chan aql.Edge
 
 	DelVertex(key string) error
 	DelEdge(key string) error
-	SetVertex(vertex ophion.Vertex) error
-	SetEdge(edge ophion.Edge) error
+	SetVertex(vertex aql.Vertex) error
+	SetEdge(edge aql.Edge) error
 }
 
 type Traveler struct {
-	State map[string]ophion.QueryResult
+	State map[string]aql.QueryResult
 }
 
-type EdgeFilter func(edge ophion.Edge) bool
+type EdgeFilter func(edge aql.Edge) bool
 
 type PipeRequest struct {
 	LoadProperties bool

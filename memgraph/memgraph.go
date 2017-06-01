@@ -3,7 +3,7 @@ package memgraph
 import (
 	"fmt"
 	"github.com/bmeg/arachne/gdbi"
-	"github.com/bmeg/arachne/ophion"
+	"github.com/bmeg/arachne/aql"
 )
 
 type edgepair struct {
@@ -12,8 +12,8 @@ type edgepair struct {
 }
 
 type MemGraph struct {
-	vertices      map[string]*ophion.Vertex
-	out_edges     map[string]map[string][]*ophion.Edge
+	vertices      map[string]*aql.Vertex
+	out_edges     map[string]map[string][]*aql.Edge
 	in_edges      map[string]map[string][]string
 	edges         map[string]edgepair
 	edge_sequence int64
@@ -21,20 +21,20 @@ type MemGraph struct {
 
 func NewMemGDBI() *MemGraph {
 	return &MemGraph{
-		map[string]*ophion.Vertex{},
-		map[string]map[string][]*ophion.Edge{},
+		map[string]*aql.Vertex{},
+		map[string]map[string][]*aql.Edge{},
 		map[string]map[string][]string{},
 		map[string]edgepair{},
 		0,
 	}
 }
 
-func (self *MemGraph) GetVertex(key string) *ophion.Vertex {
+func (self *MemGraph) GetVertex(key string) *aql.Vertex {
 	return self.vertices[key]
 }
 
-func (self *MemGraph) GetVertexList() chan ophion.Vertex {
-	out := make(chan ophion.Vertex, 100)
+func (self *MemGraph) GetVertexList() chan aql.Vertex {
+	out := make(chan aql.Vertex, 100)
 	go func() {
 		defer close(out)
 		for _, v := range self.vertices {
@@ -44,8 +44,8 @@ func (self *MemGraph) GetVertexList() chan ophion.Vertex {
 	return out
 }
 
-func (self *MemGraph) GetEdgeList() chan ophion.Edge {
-	out := make(chan ophion.Edge, 100)
+func (self *MemGraph) GetEdgeList() chan aql.Edge {
+	out := make(chan aql.Edge, 100)
 	go func() {
 		defer close(out)
 		for _, src := range self.out_edges {
@@ -59,8 +59,8 @@ func (self *MemGraph) GetEdgeList() chan ophion.Edge {
 	return out
 }
 
-func (self *MemGraph) GetOutList(key string, filter gdbi.EdgeFilter) chan ophion.Vertex {
-	o := make(chan ophion.Vertex, 100)
+func (self *MemGraph) GetOutList(key string, filter gdbi.EdgeFilter) chan aql.Vertex {
+	o := make(chan aql.Vertex, 100)
 	go func() {
 		defer close(o)
 		for dst, dst_list := range self.out_edges[key] {
@@ -82,8 +82,8 @@ func (self *MemGraph) GetOutList(key string, filter gdbi.EdgeFilter) chan ophion
 	return o
 }
 
-func (self *MemGraph) GetInList(key string, filter gdbi.EdgeFilter) chan ophion.Vertex {
-	o := make(chan ophion.Vertex, 100)
+func (self *MemGraph) GetInList(key string, filter gdbi.EdgeFilter) chan aql.Vertex {
+	o := make(chan aql.Vertex, 100)
 	go func() {
 		defer close(o)
 		for src, _ := range self.in_edges[key] {
@@ -106,8 +106,8 @@ func (self *MemGraph) GetInList(key string, filter gdbi.EdgeFilter) chan ophion.
 
 }
 
-func (self *MemGraph) GetOutEdgeList(key string, filter gdbi.EdgeFilter) chan ophion.Edge {
-	o := make(chan ophion.Edge, 100)
+func (self *MemGraph) GetOutEdgeList(key string, filter gdbi.EdgeFilter) chan aql.Edge {
+	o := make(chan aql.Edge, 100)
 	go func() {
 		defer close(o)
 		for _, dst_list := range self.out_edges[key] {
@@ -129,8 +129,8 @@ func (self *MemGraph) GetOutEdgeList(key string, filter gdbi.EdgeFilter) chan op
 	return o
 }
 
-func (self *MemGraph) GetInEdgeList(key string, filter gdbi.EdgeFilter) chan ophion.Edge {
-	o := make(chan ophion.Edge, 100)
+func (self *MemGraph) GetInEdgeList(key string, filter gdbi.EdgeFilter) chan aql.Edge {
+	o := make(chan aql.Edge, 100)
 	go func() {
 		defer close(o)
 		for src, _ := range self.in_edges[key] {
@@ -184,23 +184,23 @@ func (self *MemGraph) DelEdge(key string) error {
 	return nil
 }
 
-func (self *MemGraph) SetVertex(vertex ophion.Vertex) error {
+func (self *MemGraph) SetVertex(vertex aql.Vertex) error {
 	self.vertices[vertex.Gid] = &vertex
 	return nil
 }
 
-func (self *MemGraph) SetEdge(edge ophion.Edge) error {
+func (self *MemGraph) SetEdge(edge aql.Edge) error {
 	edge.Gid = fmt.Sprintf("%d", self.edge_sequence)
 	self.edge_sequence += 1
 	self.edges[edge.Gid] = edgepair{src: edge.Out, dst: edge.In}
 
 	if _, ok := self.out_edges[edge.Out]; !ok {
-		self.out_edges[edge.Out] = map[string][]*ophion.Edge{}
+		self.out_edges[edge.Out] = map[string][]*aql.Edge{}
 	}
 	if _, ok := self.out_edges[edge.Out][edge.In]; ok {
 		self.out_edges[edge.Out][edge.In] = append(self.out_edges[edge.Out][edge.In], &edge)
 	} else {
-		self.out_edges[edge.Out][edge.In] = []*ophion.Edge{&edge}
+		self.out_edges[edge.Out][edge.In] = []*aql.Edge{&edge}
 	}
 
 	if _, ok := self.in_edges[edge.In]; !ok {

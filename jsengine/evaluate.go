@@ -2,7 +2,7 @@ package jsengine
 
 import (
 	"fmt"
-	"github.com/bmeg/arachne/ophion"
+	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/protoutil"
 	"github.com/robertkrimen/otto"
 	"log"
@@ -38,7 +38,7 @@ func NewFunction(source string, imports []string) (CompiledFunction, error) {
 	return CompiledFunction{}, fmt.Errorf("no Function")
 }
 
-func (self *CompiledFunction) Call(input ...*ophion.QueryResult) *ophion.QueryResult {
+func (self *CompiledFunction) Call(input ...*aql.QueryResult) *aql.QueryResult {
 
 	m := []interface{}{}
 	for _, i := range input {
@@ -67,7 +67,7 @@ func (self *CompiledFunction) Call(input ...*ophion.QueryResult) *ophion.QueryRe
 	//struct_val := otto2map(otto_val)
 	log.Printf("function return: %#v", otto_val)
 	o := protoutil.AsStruct(otto_val.(map[string]interface{}))
-	return &ophion.QueryResult{&ophion.QueryResult_Struct{o}}
+	return &aql.QueryResult{&aql.QueryResult_Struct{o}}
 }
 
 func otto2map(obj *otto.Object) map[string]interface{} {

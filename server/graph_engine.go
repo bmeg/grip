@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/bmeg/arachne/gdbi"
-	"github.com/bmeg/arachne/ophion"
+	"github.com/bmeg/arachne/aql"
 	"log"
 )
 
@@ -16,7 +16,7 @@ func NewGraphEngine(dbi gdbi.ArachneInterface) GraphEngine {
 	return GraphEngine{DBI: dbi}
 }
 
-func (engine *GraphEngine) RunTraversal(ctx context.Context, query *ophion.GraphQuery) (chan ophion.ResultRow, error) {
+func (engine *GraphEngine) RunTraversal(ctx context.Context, query *aql.GraphQuery) (chan aql.ResultRow, error) {
 	tr := engine.Query()
 	//log.Printf("Starting Query: %#v", query.Query)
 	for _, s := range query.Query {
@@ -40,40 +40,40 @@ type Traversal struct {
 	Query    gdbi.QueryInterface
 }
 
-func (trav *Traversal) RunStatement(statement *ophion.GraphStatement) error {
+func (trav *Traversal) RunStatement(statement *aql.GraphStatement) error {
 	if statement.GetAddV() != "" {
 		trav.Query = trav.Query.AddV(statement.GetAddV())
 	} else if statement.GetAddE() != "" {
 		trav.Query = trav.Query.AddE(statement.GetAddE())
 	} else if statement.GetTo() != "" {
 		trav.Query = trav.Query.To(statement.GetTo())
-	} else if x, ok := statement.GetStatement().(*ophion.GraphStatement_V); ok {
+	} else if x, ok := statement.GetStatement().(*aql.GraphStatement_V); ok {
 		if x.V == "" {
 			trav.Query = trav.Query.V()
 		} else {
 			trav.Query = trav.Query.V(x.V)
 		}
-	} else if _, ok := statement.GetStatement().(*ophion.GraphStatement_E); ok {
+	} else if _, ok := statement.GetStatement().(*aql.GraphStatement_E); ok {
 		trav.Query = trav.Query.E()
-	} else if x, ok := statement.GetStatement().(*ophion.GraphStatement_Out); ok {
+	} else if x, ok := statement.GetStatement().(*aql.GraphStatement_Out); ok {
 		if x.Out == "" {
 			trav.Query = trav.Query.Out()
 		} else {
 			trav.Query = trav.Query.Out(x.Out)
 		}
-	} else if x, ok := statement.GetStatement().(*ophion.GraphStatement_In); ok {
+	} else if x, ok := statement.GetStatement().(*aql.GraphStatement_In); ok {
 		if x.In == "" {
 			trav.Query = trav.Query.In()
 		} else {
 			trav.Query = trav.Query.In(x.In)
 		}
-	} else if x, ok := statement.GetStatement().(*ophion.GraphStatement_OutEdge); ok {
+	} else if x, ok := statement.GetStatement().(*aql.GraphStatement_OutEdge); ok {
 		if x.OutEdge == "" {
 			trav.Query = trav.Query.OutE()
 		} else {
 			trav.Query = trav.Query.OutE(x.OutEdge)
 		}
-	} else if x, ok := statement.GetStatement().(*ophion.GraphStatement_InEdge); ok {
+	} else if x, ok := statement.GetStatement().(*aql.GraphStatement_InEdge); ok {
 		if x.InEdge == "" {
 			trav.Query = trav.Query.InE()
 		} else {
@@ -85,25 +85,25 @@ func (trav *Traversal) RunStatement(statement *ophion.GraphStatement) error {
 		for k, v := range x.Fields {
 			trav.Query = trav.Query.Property(k, v)
 		}
-	} else if x, ok := statement.GetStatement().(*ophion.GraphStatement_Limit); ok {
+	} else if x, ok := statement.GetStatement().(*aql.GraphStatement_Limit); ok {
 		trav.Query = trav.Query.Limit(x.Limit)
-	} else if x, ok := statement.GetStatement().(*ophion.GraphStatement_Values); ok {
+	} else if x, ok := statement.GetStatement().(*aql.GraphStatement_Values); ok {
 		trav.Query = trav.Query.Values(x.Values.Labels)
-	} else if x, ok := statement.GetStatement().(*ophion.GraphStatement_Import); ok {
+	} else if x, ok := statement.GetStatement().(*aql.GraphStatement_Import); ok {
 		trav.Query = trav.Query.Import(x.Import)
-	} else if x, ok := statement.GetStatement().(*ophion.GraphStatement_Map); ok {
+	} else if x, ok := statement.GetStatement().(*aql.GraphStatement_Map); ok {
 		trav.Query = trav.Query.Map(x.Map)
-	} else if x, ok := statement.GetStatement().(*ophion.GraphStatement_Fold); ok {
+	} else if x, ok := statement.GetStatement().(*aql.GraphStatement_Fold); ok {
 		trav.Query = trav.Query.Fold(x.Fold)
-	} else if _, ok := statement.GetStatement().(*ophion.GraphStatement_Count); ok {
+	} else if _, ok := statement.GetStatement().(*aql.GraphStatement_Count); ok {
 		trav.Query = trav.Query.Count()
-	} else if x, ok := statement.GetStatement().(*ophion.GraphStatement_As); ok {
+	} else if x, ok := statement.GetStatement().(*aql.GraphStatement_As); ok {
 		trav.Query = trav.Query.As(x.As)
-	} else if x, ok := statement.GetStatement().(*ophion.GraphStatement_Select); ok {
+	} else if x, ok := statement.GetStatement().(*aql.GraphStatement_Select); ok {
 		trav.Query = trav.Query.Select(x.Select.Labels)
-	} else if _, ok := statement.GetStatement().(*ophion.GraphStatement_Drop); ok {
+	} else if _, ok := statement.GetStatement().(*aql.GraphStatement_Drop); ok {
 		trav.Query = trav.Query.Drop()
-	} else if x, ok := statement.GetStatement().(*ophion.GraphStatement_GroupCount); ok {
+	} else if x, ok := statement.GetStatement().(*aql.GraphStatement_GroupCount); ok {
 		trav.Query = trav.Query.GroupCount(x.GroupCount)
 	} else {
 		log.Printf("Unknown Statement: %#v", statement)
@@ -112,7 +112,7 @@ func (trav *Traversal) RunStatement(statement *ophion.GraphStatement) error {
 	return nil
 }
 
-func (trav *Traversal) GetResult(ctx context.Context) (chan ophion.ResultRow, error) {
+func (trav *Traversal) GetResult(ctx context.Context) (chan aql.ResultRow, error) {
 	e := trav.Query.Execute(ctx)
 	if e == nil {
 		return nil, fmt.Errorf("Query Failed")

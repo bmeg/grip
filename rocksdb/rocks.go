@@ -5,7 +5,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/bmeg/arachne/gdbi"
-	"github.com/bmeg/arachne/ophion"
+	"github.com/bmeg/arachne/aql"
 	proto "github.com/golang/protobuf/proto"
 	"github.com/tecbot/gorocksdb"
 	"log"
@@ -52,14 +52,14 @@ func (self *RocksArachne) Query() gdbi.QueryInterface {
 	return nil
 }
 
-func (self *RocksArachne) SetVertex(vertex ophion.Vertex) error {
+func (self *RocksArachne) SetVertex(vertex aql.Vertex) error {
 	d, _ := proto.Marshal(&vertex)
 	k := bytes.Join([][]byte{[]byte("v"), []byte(vertex.Gid)}, []byte{0})
 	err := self.db.Put(self.wo, k, d)
 	return err
 }
 
-func (self *RocksArachne) SetEdge(edge ophion.Edge) error {
+func (self *RocksArachne) SetEdge(edge aql.Edge) error {
 	eid := fmt.Sprintf("%d", self.sequence)
 	self.sequence += 1
 	edge.Gid = eid
@@ -171,8 +171,8 @@ func (self *RocksArachne) DelVertex(id string) error {
 	return err
 }
 
-func (self *RocksArachne) GetEdgeList(ctx context.Context, loadProp bool) chan ophion.Edge {
-	o := make(chan ophion.Edge, 100)
+func (self *RocksArachne) GetEdgeList(ctx context.Context, loadProp bool) chan aql.Edge {
+	o := make(chan aql.Edge, 100)
 	go func() {
 		defer close(o)
 		it := self.db.NewIterator(self.ro)
@@ -200,14 +200,14 @@ func (self *RocksArachne) GetEdgeList(ctx context.Context, loadProp bool) chan o
 				okey := bytes.Join([][]byte{[]byte("o"), []byte(src), []byte(dst), []byte(eid)}, []byte{0})
 				data_value, err := self.db.Get(self.ro, okey)
 				if err == nil {
-					e := ophion.Edge{}
+					e := aql.Edge{}
 					data := data_value.Data()
 					proto.Unmarshal(data, &e)
 					data_value.Free()
 					o <- e
 				}
 			} else {
-				e := ophion.Edge{Gid: string(eid), Out: string(src), In: string(dst)}
+				e := aql.Edge{Gid: string(eid), Out: string(src), In: string(dst)}
 				o <- e
 			}
 		}
@@ -215,8 +215,8 @@ func (self *RocksArachne) GetEdgeList(ctx context.Context, loadProp bool) chan o
 	return o
 }
 
-func (self *RocksArachne) GetInEdgeList(ctx context.Context, id string, loadProp bool, filter gdbi.EdgeFilter) chan ophion.Edge {
-	o := make(chan ophion.Edge, 100)
+func (self *RocksArachne) GetInEdgeList(ctx context.Context, id string, loadProp bool, filter gdbi.EdgeFilter) chan aql.Edge {
+	o := make(chan aql.Edge, 100)
 	go func() {
 		defer close(o)
 
@@ -240,7 +240,7 @@ func (self *RocksArachne) GetInEdgeList(ctx context.Context, id string, loadProp
 
 			data_value, err := self.db.Get(self.ro, okey)
 			if err == nil {
-				e := ophion.Edge{}
+				e := aql.Edge{}
 				if loadProp {
 					d := data_value.Data()
 					proto.Unmarshal(d, &e)
@@ -268,8 +268,8 @@ func (self *RocksArachne) GetInEdgeList(ctx context.Context, id string, loadProp
 	return o
 }
 
-func (self *RocksArachne) GetOutEdgeList(ctx context.Context, id string, loadProp bool, filter gdbi.EdgeFilter) chan ophion.Edge {
-	o := make(chan ophion.Edge, 100)
+func (self *RocksArachne) GetOutEdgeList(ctx context.Context, id string, loadProp bool, filter gdbi.EdgeFilter) chan aql.Edge {
+	o := make(chan aql.Edge, 100)
 	go func() {
 		defer close(o)
 
@@ -288,7 +288,7 @@ func (self *RocksArachne) GetOutEdgeList(ctx context.Context, id string, loadPro
 			key_value.Free()
 			data_value := it.Value()
 			d := data_value.Data()
-			e := ophion.Edge{}
+			e := aql.Edge{}
 			proto.Unmarshal(d, &e)
 			data_value.Free()
 
@@ -308,8 +308,8 @@ func (self *RocksArachne) GetOutEdgeList(ctx context.Context, id string, loadPro
 	return o
 }
 
-func (self *RocksArachne) GetInList(ctx context.Context, id string, loadProp bool, filter gdbi.EdgeFilter) chan ophion.Vertex {
-	o := make(chan ophion.Vertex, 100)
+func (self *RocksArachne) GetInList(ctx context.Context, id string, loadProp bool, filter gdbi.EdgeFilter) chan aql.Vertex {
+	o := make(chan aql.Vertex, 100)
 	go func() {
 		defer close(o)
 
@@ -339,7 +339,7 @@ func (self *RocksArachne) GetInList(ctx context.Context, id string, loadProp boo
 				data_value, err := self.db.Get(self.ro, okey)
 				if err == nil {
 					d := data_value.Data()
-					e := ophion.Edge{}
+					e := aql.Edge{}
 					proto.Unmarshal(d, &e)
 					data_value.Free()
 					if filter(e) {
@@ -353,7 +353,7 @@ func (self *RocksArachne) GetInList(ctx context.Context, id string, loadProp boo
 				data_value, err := self.db.Get(self.ro, vkey)
 				if err == nil {
 					d := data_value.Data()
-					v := ophion.Vertex{}
+					v := aql.Vertex{}
 					proto.Unmarshal(d, &v)
 					data_value.Free()
 					o <- v
@@ -364,8 +364,8 @@ func (self *RocksArachne) GetInList(ctx context.Context, id string, loadProp boo
 	return o
 }
 
-func (self *RocksArachne) GetOutList(ctx context.Context, id string, loadProp bool, filter gdbi.EdgeFilter) chan ophion.Vertex {
-	o := make(chan ophion.Vertex, 100)
+func (self *RocksArachne) GetOutList(ctx context.Context, id string, loadProp bool, filter gdbi.EdgeFilter) chan aql.Vertex {
+	o := make(chan aql.Vertex, 100)
 	go func() {
 		defer close(o)
 
@@ -394,7 +394,7 @@ func (self *RocksArachne) GetOutList(ctx context.Context, id string, loadProp bo
 			if filter != nil {
 				data_value := it.Value()
 				d := data_value.Data()
-				e := ophion.Edge{}
+				e := aql.Edge{}
 				proto.Unmarshal(d, &e)
 				data_value.Free()
 				if filter(e) {
@@ -407,7 +407,7 @@ func (self *RocksArachne) GetOutList(ctx context.Context, id string, loadProp bo
 				data_value, err := self.db.Get(self.ro, vkey)
 				if err == nil {
 					d := data_value.Data()
-					v := ophion.Vertex{}
+					v := aql.Vertex{}
 					proto.Unmarshal(d, &v)
 					data_value.Free()
 					o <- v
@@ -418,13 +418,13 @@ func (self *RocksArachne) GetOutList(ctx context.Context, id string, loadProp bo
 	return o
 }
 
-func (self *RocksArachne) GetVertex(id string, loadProp bool) *ophion.Vertex {
+func (self *RocksArachne) GetVertex(id string, loadProp bool) *aql.Vertex {
 	vkey := bytes.Join([][]byte{[]byte("v"), []byte(id)}, []byte{0})
 	data_value, err := self.db.Get(self.ro, vkey)
 	if err != nil {
 		return nil
 	}
-	v := ophion.Vertex{}
+	v := aql.Vertex{}
 	if loadProp {
 		d := data_value.Data()
 		proto.Unmarshal(d, &v)
@@ -435,9 +435,9 @@ func (self *RocksArachne) GetVertex(id string, loadProp bool) *ophion.Vertex {
 	return &v
 }
 
-func (self *RocksArachne) GetVertexList(ctx context.Context, loadProp bool) chan ophion.Vertex {
+func (self *RocksArachne) GetVertexList(ctx context.Context, loadProp bool) chan aql.Vertex {
 	log.Printf("GetVertexList: %s", loadProp)
-	o := make(chan ophion.Vertex, 100)
+	o := make(chan aql.Vertex, 100)
 	go func() {
 		defer close(o)
 		it := self.db.NewIterator(self.ro)
@@ -450,7 +450,7 @@ func (self *RocksArachne) GetVertexList(ctx context.Context, loadProp bool) chan
 				return
 			default:
 			}
-			v := ophion.Vertex{}
+			v := aql.Vertex{}
 			if loadProp {
 				data_value := it.Value()
 				d := data_value.Data()

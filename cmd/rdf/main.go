@@ -8,7 +8,7 @@ import (
 	"compress/gzip"
 	"github.com/knakk/rdf"
 	"github.com/spf13/cobra"
-	ophion "github.com/bmeg/ophion/client/go"
+	"github.com/bmeg/arachne/aql"
 )
 
 
@@ -19,7 +19,7 @@ func LoadRDFCmd(cmd *cobra.Command, args []string) error {
 		os.Exit(1)
 	}
 	server := args[0]
-	conn, err := ophion.Connect(server)
+	conn, err := aql.Connect(server)
 	if err != nil {
 		log.Printf("%s", err)
 		os.Exit(1)
@@ -30,7 +30,7 @@ func LoadRDFCmd(cmd *cobra.Command, args []string) error {
 	count := 0
 	fz, _ := gzip.NewReader(f)
 	dec := rdf.NewTripleDecoder(fz, rdf.RDFXML)
-	var cur_query *ophion.QueryBuilder = nil
+	var cur_query *aql.QueryBuilder = nil
 	cur_subj := ""
 	for triple, err := dec.Decode(); err != io.EOF; triple, err = dec.Decode() {
 		subj := triple.Subj.String()
@@ -40,13 +40,13 @@ func LoadRDFCmd(cmd *cobra.Command, args []string) error {
 		}
 		cur_subj = subj
 		if _, ok := vert_map[subj]; !ok {
-			ophion.Query(conn).AddV(subj).Run()
+			aql.Query(conn).AddV(subj).Run()
 			vert_map[subj] = 1
 		}
 		if triple.Obj.Type() == rdf.TermLiteral {
-			//ophion.Query(conn).V(subj).Property(triple.Pred.String(), triple.Obj.String()).Run()
+			//aql.Query(conn).V(subj).Property(triple.Pred.String(), triple.Obj.String()).Run()
 			if cur_query == nil {
-				a := ophion.Query(conn).V(subj)
+				a := aql.Query(conn).V(subj)
 				cur_query = &a
 			}
 			b := cur_query.Property(triple.Pred.String(), triple.Obj.String())
@@ -54,10 +54,10 @@ func LoadRDFCmd(cmd *cobra.Command, args []string) error {
 		} else {
 			obj := triple.Obj.String()
 			if _, ok := vert_map[obj]; !ok {
-				ophion.Query(conn).AddV(obj).Run()
+				aql.Query(conn).AddV(obj).Run()
 				vert_map[obj] = 1
 			}
-			ophion.Query(conn).V(subj).AddE(triple.Pred.String()).To(obj).Run()
+			aql.Query(conn).V(subj).AddE(triple.Pred.String()).To(obj).Run()
 		}
 		if count%1000 == 0 {
 			log.Printf("Processed %d triples", count)

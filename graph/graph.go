@@ -3,7 +3,7 @@ package graph
 import (
 	"github.com/bmeg/arachne/gdbi"
 	"github.com/bmeg/arachne/memgraph"
-	"github.com/bmeg/arachne/ophion"
+	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/protoutil"
 )
 
@@ -20,7 +20,7 @@ func NewMemGraph() Graph {
 }
 
 func (graph *Graph) AddVertex(id string, prop map[string]interface{}) {
-	v := ophion.Vertex{
+	v := aql.Vertex{
 		Gid:        id,
 		Properties: protoutil.AsStruct(prop),
 	}
@@ -28,7 +28,7 @@ func (graph *Graph) AddVertex(id string, prop map[string]interface{}) {
 }
 
 func (graph *Graph) AddEdge(out string, in string, prop map[string]interface{}) {
-	e := ophion.Edge{
+	e := aql.Edge{
 		Out:        out,
 		In:         in,
 		Properties: protoutil.AsStruct(prop),
@@ -36,20 +36,20 @@ func (graph *Graph) AddEdge(out string, in string, prop map[string]interface{}) 
 	graph.dbi.SetEdge(e)
 }
 
-func (graph *Graph) GetVertices() chan ophion.Vertex {
+func (graph *Graph) GetVertices() chan aql.Vertex {
 	return graph.dbi.GetVertexList()
 }
 
-func (graph *Graph) GetOutEdgesArray(id string) []ophion.Edge {
-	out := []ophion.Edge{}
+func (graph *Graph) GetOutEdgesArray(id string) []aql.Edge {
+	out := []aql.Edge{}
 	for i := range graph.dbi.GetOutEdgeList(id, nil) {
 		out = append(out, i)
 	}
 	return out
 }
 
-func (graph *Graph) GetInEdgesArray(id string) []ophion.Edge {
-	out := []ophion.Edge{}
+func (graph *Graph) GetInEdgesArray(id string) []aql.Edge {
+	out := []aql.Edge{}
 	for i := range graph.dbi.GetInEdgeList(id, nil) {
 		out = append(out, i)
 	}
@@ -57,8 +57,8 @@ func (graph *Graph) GetInEdgesArray(id string) []ophion.Edge {
 }
 
 func (graph *Graph) AggregateMessages(
-	gen func(v ophion.Vertex, e ophion.Edge) interface{},
-	agg func(v ophion.Vertex, msgs []interface{}) map[string]interface{},
+	gen func(v aql.Vertex, e aql.Edge) interface{},
+	agg func(v aql.Vertex, msgs []interface{}) map[string]interface{},
 ) {
 
 	collection := map[string][]interface{}{}

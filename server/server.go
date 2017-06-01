@@ -2,7 +2,7 @@ package arachne
 
 import (
 	//"github.com/bmeg/arachne/boltdb"
-	"github.com/bmeg/arachne/ophion"
+	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/rocksdb"
 	//"golang.org/x/net/context"
 	"google.golang.org/grpc"
@@ -30,13 +30,13 @@ func (server *ArachneServer) Start(hostPort string) {
 	}
 	grpcServer := grpc.NewServer()
 
-	ophion.RegisterQueryServer(grpcServer, server)
+	aql.RegisterQueryServer(grpcServer, server)
 
 	log.Println("TCP+RPC server listening on " + hostPort)
 	go grpcServer.Serve(lis)
 }
 
-func (server *ArachneServer) Traversal(query *ophion.GraphQuery, queryServer ophion.Query_TraversalServer) error {
+func (server *ArachneServer) Traversal(query *aql.GraphQuery, queryServer aql.Query_TraversalServer) error {
 	res, err := server.engine.RunTraversal(queryServer.Context(), query)
 	if err != nil {
 		return err

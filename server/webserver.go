@@ -2,7 +2,7 @@ package arachne
 
 import (
 	"fmt"
-	"github.com/bmeg/arachne/ophion"
+	"github.com/bmeg/arachne/aql"
 	"github.com/golang/protobuf/proto"
 	"github.com/gorilla/mux"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
@@ -63,7 +63,7 @@ func StartHttpProxy(rpcPort string, httpPort string, contentDir string) {
 	opts := []grpc.DialOption{grpc.WithInsecure()}
 
 	log.Println("HTTP proxy connecting to localhost:" + rpcPort)
-	err := ophion.RegisterQueryHandlerFromEndpoint(ctx, grpcMux, "localhost:"+rpcPort, opts)
+	err := aql.RegisterQueryHandlerFromEndpoint(ctx, grpcMux, "localhost:"+rpcPort, opts)
 	if err != nil {
 		fmt.Println("Register Error", err)
 

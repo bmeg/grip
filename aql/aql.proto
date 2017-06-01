@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package ophion;
+package aql;
 
 import "google/api/annotations.proto";
 import "google/protobuf/struct.proto";

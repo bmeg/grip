@@ -2,7 +2,7 @@ package rocksdb
 
 import (
 	"fmt"
-	"github.com/bmeg/arachne/ophion"
+	"github.com/bmeg/arachne/aql"
 	"os"
 	"testing"
 )
@@ -10,7 +10,7 @@ import (
 func BenchmarkSetVertex(b *testing.B) {
 	db := NewRocksArachne("bench_test.db")
 	for i := 0; i < b.N; i++ {
-		db.SetVertex(ophion.Vertex{Gid: fmt.Sprintf("%d", i)})
+		db.SetVertex(aql.Vertex{Gid: fmt.Sprintf("%d", i)})
 	}
 	db.Close()
 	os.RemoveAll("bench_test.db")
@@ -41,10 +41,10 @@ func BenchmarkAddE(b *testing.B) {
 func BenchmarkSetE(b *testing.B) {
 	db := NewRocksArachne("bench_test.db")
 	for i := 0; i < b.N; i++ {
-		db.SetVertex(ophion.Vertex{Gid: fmt.Sprintf("%d", i)})
+		db.SetVertex(aql.Vertex{Gid: fmt.Sprintf("%d", i)})
 	}
 	for i := 0; i < b.N-1; i++ {
-		db.SetEdge(ophion.Edge{Out: fmt.Sprintf("%d", i), In: fmt.Sprintf("%d", i+1)})
+		db.SetEdge(aql.Edge{Out: fmt.Sprintf("%d", i), In: fmt.Sprintf("%d", i+1)})
 	}
 
 	db.Close()
