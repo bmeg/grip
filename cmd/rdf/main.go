@@ -1,25 +1,24 @@
-package main
+package rdf
 
 import (
-	"flag"
 	"io"
 	"log"
 	"os"
 	//"fmt"
 	"compress/gzip"
-	ophion "github.com/bmeg/ophion/client/go"
 	"github.com/knakk/rdf"
+	"github.com/spf13/cobra"
+	ophion "github.com/bmeg/ophion/client/go"
 )
 
-func main() {
-	flag.Parse()
 
-	f, err := os.Open(flag.Arg(0))
+func LoadRDFCmd(cmd *cobra.Command, args []string) error {
+	f, err := os.Open(args[0])
 	if err != nil {
 		log.Printf("Error: %s", err)
 		os.Exit(1)
 	}
-	server := flag.Arg(1)
+	server := args[0]
 	conn, err := ophion.Connect(server)
 	if err != nil {
 		log.Printf("%s", err)
@@ -68,4 +67,13 @@ func main() {
 	if cur_query != nil {
 		cur_query.Run()
 	}
+	return nil
+}
+
+
+var Cmd = &cobra.Command{
+	Use: "rdf",
+	Short: "Loads RDF data",
+	Long: ``,
+	RunE: LoadRDFCmd,
 }
