@@ -1,10 +1,11 @@
 package cmd
 
 import (
-  "os"
-	"github.com/bmeg/arachne/cmd/server"
+	"github.com/bmeg/arachne/cmd/load"
 	"github.com/bmeg/arachne/cmd/rdf"
+	"github.com/bmeg/arachne/cmd/server"
 	"github.com/spf13/cobra"
+	"os"
 )
 
 // RootCmd represents the root command
@@ -17,9 +18,9 @@ var RootCmd = &cobra.Command{
 func init() {
 	RootCmd.AddCommand(server.Cmd)
 	RootCmd.AddCommand(rdf.Cmd)
+	RootCmd.AddCommand(load.Cmd)
 	RootCmd.AddCommand(genBashCompletionCmd)
 }
-
 
 var genBashCompletionCmd = &cobra.Command{
 	Use: "bash",
