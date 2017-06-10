@@ -4,10 +4,10 @@ package aql;
 
 import "google/api/annotations.proto";
 import "google/protobuf/struct.proto";
-//import "google/protobuf/any.proto";
 
 message GraphQuery {
-    repeated GraphStatement query = 1;
+    string graph = 1;
+    repeated GraphStatement query = 2;
 }
 
 message GraphStatement {
@@ -34,13 +34,6 @@ message GraphStatement {
         string import = 50;
         string map = 51;
         string fold = 52;
-
-        //methods with side effects, these should be ignored for read-only graphs
-        string addV = 100;
-        google.protobuf.Struct property = 101;
-        string addE = 102;
-        string to = 103;
-        string drop = 104;
     }
 }
 
@@ -56,16 +49,14 @@ message SelectStatement {
 message Vertex {
   string gid = 1;
   string label = 2;
-  //map<string, string> properties = 3;
   google.protobuf.Struct properties = 3;
 }
 
 message Edge {
   string gid = 1;
   string label = 2;
-  string in = 3;
-  string out = 4;
-  //map<string, string> properties = 5;
+  string src = 3;
+  string dst = 4;
   google.protobuf.Struct properties = 5;
 }
 
@@ -86,10 +77,45 @@ message ResultRow {
   repeated QueryResult row = 2;
 }
 
+message EditResult {
+  oneof result {
+    string error = 1;
+    string id = 2;
+  }
+}
+
+/*
+message EdgeBundle {
+  string src = 1;
+  string label = 2;
+  map<string, float>    float_edges = 3;
+  map<string, int64>    int_edges = 4;
+  map<string, string>   str_edges = 5;
+}
+*/
+
+message GraphElement {
+  string graph = 1;
+  oneof element {
+    Vertex vertex = 2;
+    Edge edge = 3;
+//    EdgeBundle edge_bundle = 4;
+  }
+}
+
 service Query {
   rpc Traversal(GraphQuery) returns (stream ResultRow) {
     option (google.api.http) = {
-      post: "/v1/graph-query"
+      post: "/v1/graph/{graph}/query"
+      body: "*"
+    };
+  }
+}
+
+service Edit {
+  rpc Add(GraphElement) returns (EditResult) {
+    option (google.api.http) = {
+      post: "/v1/graph/{graph}"
       body: "*"
     };
   }

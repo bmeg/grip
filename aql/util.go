@@ -7,70 +7,66 @@ import (
 	"context"
 	"google.golang.org/grpc"
 	"github.com/golang/protobuf/jsonpb"
+	structpb "github.com/golang/protobuf/ptypes/struct"
 	"encoding/json"
 )
 
 
-func Connect(address string) (QueryClient, error) {
+type AQLClient struct {
+	QueryC QueryClient
+	EditC  EditClient
+}
+
+func Connect(address string, write bool) (AQLClient, error) {
 	conn, err := grpc.Dial(address, grpc.WithInsecure())
   if err != nil {
-    return nil, err
+    return AQLClient{}, err
   }
-  out := NewQueryClient(conn)
-  return out, err
+  query_out := NewQueryClient(conn)
+	if !write {
+		return AQLClient{query_out, nil}, err
+	} else {
+		edit_out := NewEditClient(conn)
+		return AQLClient{query_out, edit_out}, err
+	}
 }
 
 type QueryBuilder struct {
 	client QueryClient
+	graph  string
 	query  []*GraphStatement
 }
 
-func Query(client QueryClient) QueryBuilder {
-	return QueryBuilder{client, []*GraphStatement{}}
+func (client AQLClient) AddV(graph string, v Vertex) error {
+	client.EditC.Add(context.Background(), &GraphElement{Graph:graph, Element:&GraphElement_Vertex{Vertex:&v}})
+	return nil
+}
+
+func (client AQLClient) AddE(graph string, e Edge) error {
+	client.EditC.Add(context.Background(), &GraphElement{Graph:graph, Element:&GraphElement_Edge{Edge:&e}})
+	return nil
+}
+
+func (client AQLClient) Query(graph string) QueryBuilder {
+	return QueryBuilder{client.QueryC, graph, []*GraphStatement{}}
 }
 
 func (q QueryBuilder) V(id ...string) QueryBuilder {
 	if len(id) > 0 {
-		return QueryBuilder{ q.client, append(q.query, &GraphStatement{&GraphStatement_V{id[0]}}) }
+		return QueryBuilder{ q.client, q.graph, append(q.query, &GraphStatement{&GraphStatement_V{id[0]}}) }
 	} else {
-		return QueryBuilder{ q.client, append(q.query, &GraphStatement{&GraphStatement_V{}}) }
+		return QueryBuilder{ q.client, q.graph, append(q.query, &GraphStatement{&GraphStatement_V{}}) }
 	}
 }
 
-func (q QueryBuilder) AddV(id string) QueryBuilder {
-	return QueryBuilder{ q.client, append(q.query, &GraphStatement{&GraphStatement_AddV{id}}) }
-}
-
-func (q QueryBuilder) AddE(edgeType string) QueryBuilder {
-	return QueryBuilder{ q.client, append(q.query, &GraphStatement{&GraphStatement_AddE{edgeType}}) }
-}
-
-
-func (q QueryBuilder) To(id string) QueryBuilder {
-	return QueryBuilder{ q.client, append(q.query, &GraphStatement{&GraphStatement_To{id}}) }
-}
-
-func (q QueryBuilder) Property(v ...interface{}) QueryBuilder {
-	if len(v) == 1 {
-		return QueryBuilder{ q.client, append(q.query, &GraphStatement{
-			&GraphStatement_Property{ AsStruct(v[0].(map[string]interface{})) },
-		})}
-	} else {
-		return QueryBuilder{ q.client, append(q.query, &GraphStatement{
-			&GraphStatement_Property{ AsStruct( map[string]interface{}{
-				v[0].(string) : v[1],
-			} ) },
-		})}
-	}
-}
 
 func (q QueryBuilder) Count() QueryBuilder {
-	return QueryBuilder{ q.client, append(q.query, &GraphStatement{&GraphStatement_Count{}}) }
+	return QueryBuilder{ q.client, q.graph, append(q.query, &GraphStatement{&GraphStatement_Count{}}) }
 }
 
 
 func (q QueryBuilder) Execute() (chan *ResultRow, error) {
-	tclient, err := q.client.Traversal(context.TODO(), &GraphQuery{q.query})
+	tclient, err := q.client.Traversal(context.TODO(), &GraphQuery{q.graph, q.query})
 	if err != nil {
 		return nil, err
 	}
@@ -96,9 +92,18 @@ func (q QueryBuilder) Run() error {
 
 func (q QueryBuilder) Render() map[string]interface{} {
 	m := jsonpb.Marshaler{}
-	s, _ := m.MarshalToString(&GraphQuery{q.query})
+	s, _ := m.MarshalToString(&GraphQuery{q.graph, q.query})
 	fmt.Printf("%s = %s\n", q, s)
 	out := map[string]interface{}{}
 	json.Unmarshal([]byte(s), &out)
 	return out
+}
+
+
+func (vertex *Vertex) SetProperty(key string, value interface{}) {
+	if vertex.Properties == nil {
+		vertex.Properties = &structpb.Struct{Fields:map[string]*structpb.Value{} }
+	}
+	//BUG: This is only supporting strings at the moment
+	vertex.Properties.Fields[key] = &structpb.Value{Kind: &structpb.Value_StringValue{value.(string)}}
 }

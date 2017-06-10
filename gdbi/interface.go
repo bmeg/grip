@@ -29,11 +29,13 @@ type QueryInterface interface {
 	Fold(function string) QueryInterface
 
 	//Read write methods
+	/*
 	AddV(key string) QueryInterface
 	AddE(key string) QueryInterface
 	To(key string) QueryInterface
 	Property(key string, value interface{}) QueryInterface
 	Drop() QueryInterface
+	*/
 
 	Execute(context.Context) chan aql.ResultRow
 	First(context.Context) (aql.ResultRow, error) //Only get one result
@@ -62,6 +64,7 @@ type DBI interface {
 	DelEdge(key string) error
 	SetVertex(vertex aql.Vertex) error
 	SetEdge(edge aql.Edge) error
+	//SetEdgeBundle(edge aql.EdgeBundle) error
 }
 
 type Traveler struct {

@@ -11,6 +11,9 @@ import (
 	"github.com/bmeg/arachne/aql"
 )
 
+var host string = "localhost:9090"
+var graph string = "default"
+
 
 func LoadRDFCmd(cmd *cobra.Command, args []string) error {
 	f, err := os.Open(args[0])
@@ -18,8 +21,7 @@ func LoadRDFCmd(cmd *cobra.Command, args []string) error {
 		log.Printf("Error: %s", err)
 		os.Exit(1)
 	}
-	server := args[0]
-	conn, err := aql.Connect(server)
+	conn, err := aql.Connect(host, true)
 	if err != nil {
 		log.Printf("%s", err)
 		os.Exit(1)
@@ -30,42 +32,39 @@ func LoadRDFCmd(cmd *cobra.Command, args []string) error {
 	count := 0
 	fz, _ := gzip.NewReader(f)
 	dec := rdf.NewTripleDecoder(fz, rdf.RDFXML)
-	var cur_query *aql.QueryBuilder = nil
+	var cur_vertex *aql.Vertex = nil
 	cur_subj := ""
 	for triple, err := dec.Decode(); err != io.EOF; triple, err = dec.Decode() {
 		subj := triple.Subj.String()
-		if subj != cur_subj && cur_query != nil {
-			cur_query.Run()
-			cur_query = nil
+		if subj != cur_subj && cur_vertex != nil {
+			conn.AddV(graph, *cur_vertex)
+			cur_vertex = nil
 		}
 		cur_subj = subj
 		if _, ok := vert_map[subj]; !ok {
-			aql.Query(conn).AddV(subj).Run()
+			conn.AddV(graph, aql.Vertex{Gid:subj})
 			vert_map[subj] = 1
 		}
 		if triple.Obj.Type() == rdf.TermLiteral {
-			//aql.Query(conn).V(subj).Property(triple.Pred.String(), triple.Obj.String()).Run()
-			if cur_query == nil {
-				a := aql.Query(conn).V(subj)
-				cur_query = &a
+			if cur_vertex == nil {
+				cur_vertex = &aql.Vertex{Gid:subj}
 			}
-			b := cur_query.Property(triple.Pred.String(), triple.Obj.String())
-			cur_query = &b
+			cur_vertex.SetProperty(triple.Pred.String(), triple.Obj.String())
 		} else {
 			obj := triple.Obj.String()
 			if _, ok := vert_map[obj]; !ok {
-				aql.Query(conn).AddV(obj).Run()
+				conn.AddV(graph, aql.Vertex{Gid:obj})
 				vert_map[obj] = 1
 			}
-			aql.Query(conn).V(subj).AddE(triple.Pred.String()).To(obj).Run()
+			conn.AddE(graph, aql.Edge{Src:subj, Dst:obj, Label:triple.Pred.String()})
 		}
 		if count%1000 == 0 {
 			log.Printf("Processed %d triples", count)
 		}
 		count++
 	}
-	if cur_query != nil {
-		cur_query.Run()
+	if cur_vertex != nil {
+		conn.AddV(graph, *cur_vertex)
 	}
 	return nil
 }
@@ -76,4 +75,11 @@ var Cmd = &cobra.Command{
 	Short: "Loads RDF data",
 	Long: ``,
 	RunE: LoadRDFCmd,
+}
+
+
+func init() {
+	flags := Cmd.Flags()
+	flags.StringVar(&host, "host", "localhost:9090", "Host Server")
+	flags.StringVar(&graph, "graph", "default", "Graph")
 }

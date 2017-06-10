@@ -66,8 +66,8 @@ func (self *RocksArachne) SetEdge(edge aql.Edge) error {
 	data, _ := proto.Marshal(&edge)
 	//log.Printf("SetEdge: %s %d", edge, len(data))
 
-	src := edge.Out
-	dst := edge.In
+	src := edge.Src
+	dst := edge.Dst
 	ekey := bytes.Join([][]byte{[]byte("e"), []byte(eid)}, []byte{0})
 	okey := bytes.Join([][]byte{[]byte("o"), []byte(src), []byte(dst), []byte(eid)}, []byte{0})
 	ikey := bytes.Join([][]byte{[]byte("i"), []byte(dst), []byte(src), []byte(eid)}, []byte{0})
@@ -207,7 +207,7 @@ func (self *RocksArachne) GetEdgeList(ctx context.Context, loadProp bool) chan a
 					o <- e
 				}
 			} else {
-				e := aql.Edge{Gid: string(eid), Out: string(src), In: string(dst)}
+				e := aql.Edge{Gid: string(eid), Src: string(src), Dst: string(dst)}
 				o <- e
 			}
 		}
@@ -247,8 +247,8 @@ func (self *RocksArachne) GetInEdgeList(ctx context.Context, id string, loadProp
 					data_value.Free()
 				} else {
 					e.Gid = string(eid)
-					e.Out = string(oid)
-					e.In = id
+					e.Src = string(oid)
+					e.Dst = id
 				}
 
 				send := false

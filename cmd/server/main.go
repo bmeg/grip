@@ -5,7 +5,7 @@ import (
 	"log"
 	"path/filepath"
 	"github.com/spf13/cobra"
-	"github.com/bmeg/arachne/server"
+	"github.com/bmeg/arachne/graphserver"
 )
 
 var httpPort string = "8000"
@@ -21,9 +21,9 @@ var Cmd = &cobra.Command{
 		contentDir := filepath.Join(dir, "..", "..", "share")
 
 		log.Printf("Starting Server")
-		server := arachne.NewArachneServer(dbPath)
+		server := graphserver.NewArachneServer(dbPath)
 		server.Start(rpcPort)
-		arachne.StartHttpProxy(rpcPort, httpPort, contentDir)
+		graphserver.StartHttpProxy(rpcPort, httpPort, contentDir)
 		return nil
 	},
 }

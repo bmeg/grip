@@ -1,4 +1,4 @@
-package arachne
+package graphserver
 
 import (
 	"context"
@@ -9,12 +9,26 @@ import (
 )
 
 type GraphEngine struct {
-	DBI gdbi.ArachneInterface
+	DBI gdbi.DBI
 }
 
-func NewGraphEngine(dbi gdbi.ArachneInterface) GraphEngine {
+func NewGraphEngine(dbi gdbi.DBI) GraphEngine {
 	return GraphEngine{DBI: dbi}
 }
+
+func (engine *GraphEngine) AddEdge(edge aql.Edge) error {
+	return engine.DBI.SetEdge(edge)
+}
+
+func (engine *GraphEngine) AddVertex(vertex aql.Vertex) error {
+	return engine.DBI.SetVertex(vertex)
+}
+
+/*
+func (engine *GraphEngine) AddEdgeBundle(edgeBundle aql.EdgeBundle) error {
+	return engine.DBI.SetEdgeBundle(edgeBundle)
+}
+*/
 
 func (engine *GraphEngine) RunTraversal(ctx context.Context, query *aql.GraphQuery) (chan aql.ResultRow, error) {
 	tr := engine.Query()
@@ -41,6 +55,7 @@ type Traversal struct {
 }
 
 func (trav *Traversal) RunStatement(statement *aql.GraphStatement) error {
+	/*
 	if statement.GetAddV() != "" {
 		trav.Query = trav.Query.AddV(statement.GetAddV())
 	} else if statement.GetAddE() != "" {
@@ -53,7 +68,15 @@ func (trav *Traversal) RunStatement(statement *aql.GraphStatement) error {
 		} else {
 			trav.Query = trav.Query.V(x.V)
 		}
-	} else if _, ok := statement.GetStatement().(*aql.GraphStatement_E); ok {
+	} else if x := statement.GetProperty(); x != nil {
+			for k, v := range x.Fields {
+				trav.Query = trav.Query.Property(k, v)
+			}
+	} else if _, ok := statement.GetStatement().(*aql.GraphStatement_Drop); ok {
+		trav.Query = trav.Query.Drop()
+  } else
+	*/
+	if _, ok := statement.GetStatement().(*aql.GraphStatement_E); ok {
 		trav.Query = trav.Query.E()
 	} else if x, ok := statement.GetStatement().(*aql.GraphStatement_Out); ok {
 		if x.Out == "" {
@@ -81,10 +104,6 @@ func (trav *Traversal) RunStatement(statement *aql.GraphStatement) error {
 		}
 	} else if x := statement.GetHas(); x != nil {
 		trav.Query = trav.Query.Has(x.Key, x.Within...)
-	} else if x := statement.GetProperty(); x != nil {
-		for k, v := range x.Fields {
-			trav.Query = trav.Query.Property(k, v)
-		}
 	} else if x, ok := statement.GetStatement().(*aql.GraphStatement_Limit); ok {
 		trav.Query = trav.Query.Limit(x.Limit)
 	} else if x, ok := statement.GetStatement().(*aql.GraphStatement_Values); ok {
@@ -101,8 +120,6 @@ func (trav *Traversal) RunStatement(statement *aql.GraphStatement) error {
 		trav.Query = trav.Query.As(x.As)
 	} else if x, ok := statement.GetStatement().(*aql.GraphStatement_Select); ok {
 		trav.Query = trav.Query.Select(x.Select.Labels)
-	} else if _, ok := statement.GetStatement().(*aql.GraphStatement_Drop); ok {
-		trav.Query = trav.Query.Drop()
 	} else if x, ok := statement.GetStatement().(*aql.GraphStatement_GroupCount); ok {
 		trav.Query = trav.Query.GroupCount(x.GroupCount)
 	} else {

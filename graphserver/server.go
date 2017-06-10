@@ -1,10 +1,10 @@
-package arachne
+package graphserver
 
 import (
 	//"github.com/bmeg/arachne/boltdb"
 	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/rocksdb"
-	//"golang.org/x/net/context"
+	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"log"
 	"net"
@@ -29,9 +29,8 @@ func (server *ArachneServer) Start(hostPort string) {
 		panic("Cannot open port")
 	}
 	grpcServer := grpc.NewServer()
-
 	aql.RegisterQueryServer(grpcServer, server)
-
+	aql.RegisterEditServer(grpcServer, server) //TODO config for read only
 	log.Println("TCP+RPC server listening on " + hostPort)
 	go grpcServer.Serve(lis)
 }
@@ -46,4 +45,19 @@ func (server *ArachneServer) Traversal(query *aql.GraphQuery, queryServer aql.Qu
 		queryServer.Send(&l)
 	}
 	return nil
+}
+
+
+func (server *ArachneServer) Add(ctx context.Context, elem *aql.GraphElement) (*aql.EditResult, error) {
+	var id string = ""
+	if x, ok := elem.GetElement().(*aql.GraphElement_Vertex); ok {
+		server.engine.AddVertex(*x.Vertex)
+		id = x.Vertex.Gid
+	}	else if x, ok := elem.GetElement().(*aql.GraphElement_Edge); ok {
+		server.engine.AddEdge(*x.Edge)
+		id = x.Edge.Gid
+	//} else if x, ok := elem.GetElement().(*aql.AddElement_EdgeBundle); ok {
+	//	server.engine.AddEdgeBundle(*x.EdgeBundle)
+	}
+	return &aql.EditResult{Result:&aql.EditResult_Id{id}}, nil
 }

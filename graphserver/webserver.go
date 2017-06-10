@@ -1,4 +1,4 @@
-package arachne
+package graphserver
 
 import (
 	"fmt"
