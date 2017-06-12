@@ -2,8 +2,9 @@ package graphserver
 
 import (
 	//"github.com/bmeg/arachne/boltdb"
+	//"github.com/bmeg/arachne/rocksdb"
+	"github.com/bmeg/arachne/badgerdb"
 	"github.com/bmeg/arachne/aql"
-	"github.com/bmeg/arachne/rocksdb"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"log"
@@ -18,7 +19,8 @@ type ArachneServer struct {
 func NewArachneServer(baseDir string) *ArachneServer {
 	return &ArachneServer{
 		//engine: NewGraphEngine(boltdb.NewBoltArachne(baseDir)),
-		engine: NewGraphEngine(rocksdb.NewRocksArachne(baseDir)),
+		//engine: NewGraphEngine(rocksdb.NewRocksArachne(baseDir)),
+		engine: NewGraphEngine(badgerdb.NewBadgerArachne(baseDir)),
 	}
 }
 
