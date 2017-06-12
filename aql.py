@@ -2,9 +2,9 @@ import json
 import urllib2
 
 class Connection:
-    def __init__(self, host):
+    def __init__(self, host, graph):
         self.host = host
-        self.url = host + "/v1/graph-query"
+        self.url =  "%s/v1/graph/%s" % (host, graph)
 
     def query(self):
         return Query(self)
@@ -13,7 +13,7 @@ class Connection:
         payload = query.render()
         #print payload
         headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
-        request = urllib2.Request(self.url, payload, headers=headers)
+        request = urllib2.Request(self.url + "/query", payload, headers=headers)
         response = urllib2.urlopen(request)
         out = []
         for result in response.readlines():

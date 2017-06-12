@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 
 # curl -O http://snap.stanford.edu/data/bigdata/amazon/amazon-meta.txt.gz
 
@@ -20,24 +21,24 @@ class Writer:
 
     def add_record(self, rec):
         q = self.o.query().addV(rec['ASIN'])
-        
+
         for i in ["Id", "group", "title", "salesrank"]:
             if i in rec:
                 q = q.property(i, rec[i])
         q.execute()
-        
+
         for i in rec.get('similar', []):
             self.o.query().V(rec['ASIN']).addE("similar").to(i).execute()
-        
+
         self.record_count += 1
         if self.record_count % 1000 == 0:
             print "%s vertices written" % (self.record_count)
-        
-    
+
+
 writer = Writer(sys.argv[2])
 
 with gzip.GzipFile(sys.argv[1]) as handle:
-    
+
     record = None
     for line in handle:
         if len(line.rstrip()) == 0:
@@ -80,4 +81,3 @@ with gzip.GzipFile(sys.argv[1]) as handle:
                 else:
                     print e
                 #print e[0]
-            
