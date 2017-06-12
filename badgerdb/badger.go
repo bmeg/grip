@@ -1,37 +1,33 @@
-
-package badger_gd
-
+package badgerdb
 
 import (
-  "fmt"
-  "bytes"
-  "context"
-  "github.com/bmeg/arachne/aql"
-  "github.com/bmeg/arachne/gdbi"
-  "github.com/dgraph-io/badger/badger"
-  proto "github.com/golang/protobuf/proto"
+	"bytes"
+	"context"
+	"fmt"
+	"github.com/bmeg/arachne/aql"
+	"github.com/bmeg/arachne/gdbi"
+	"github.com/dgraph-io/badger/badger"
+	proto "github.com/golang/protobuf/proto"
+	"log"
 )
 
-
 type BadgerGDB struct {
-  kv *badger.KV
-  sequence int64
+	kv       *badger.KV
+	sequence int64
 }
 
 func NewBadgerArachne(path string) gdbi.DBI {
-  opts := &badger.Options{}
-  *opts = badger.DefaultOptions
-  opts.Dir = path
-  opts.ValueDir = path
-  kv, _ := badger.NewKV(opts)
-  return &BadgerGDB{kv:kv}
+	opts := &badger.Options{}
+	*opts = badger.DefaultOptions
+	opts.Dir = path
+	opts.ValueDir = path
+	kv, _ := badger.NewKV(opts)
+	return &BadgerGDB{kv: kv}
 }
-
 
 func (self *BadgerGDB) Close() {
 	self.kv.Close()
 }
-
 
 func (self *BadgerGDB) Query() gdbi.QueryInterface {
 	return gdbi.NewPipeEngine(self, false)
@@ -58,27 +54,27 @@ func (self *BadgerGDB) SetEdge(edge aql.Edge) error {
 	okey := bytes.Join([][]byte{[]byte("o"), []byte(src), []byte(dst), []byte(eid)}, []byte{0})
 	ikey := bytes.Join([][]byte{[]byte("i"), []byte(dst), []byte(src), []byte(eid)}, []byte{0})
 
-  entries := make([]*badger.Entry, 3)
-  entries[0] = &badger.Entry{ Key:  ekey, Value: okey }
-  entries[1] = &badger.Entry{ Key:  okey, Value: data }
-  entries[2] = &badger.Entry{ Key:  ikey, Value: []byte{} }
-  self.kv.BatchSet(entries)
-  for _, e := range entries {
-    if e.Error != nil {
-      return e.Error
-    }
-  }
-  return nil
+	entries := make([]*badger.Entry, 3)
+	entries[0] = &badger.Entry{Key: ekey, Value: okey}
+	entries[1] = &badger.Entry{Key: okey, Value: data}
+	entries[2] = &badger.Entry{Key: ikey, Value: []byte{}}
+	self.kv.BatchSet(entries)
+	for _, e := range entries {
+		if e.Error != nil {
+			return e.Error
+		}
+	}
+	return nil
 }
 
 func (self *BadgerGDB) DelEdge(eid string) error {
 	ekey := bytes.Join([][]byte{[]byte("e"), []byte(eid)}, []byte{0})
-  item := badger.KVItem{}
+	item := badger.KVItem{}
 	err := self.kv.Get(ekey, &item)
 	if err != nil {
 		return err
 	}
-  pair_value := item.Value()
+	pair_value := item.Value()
 
 	pair := bytes.Split(pair_value, []byte{0})
 	src := pair[1]
@@ -124,13 +120,10 @@ func (self *BadgerGDB) DelVertex(id string) error {
 
 	del_keys := make([][]byte, 0, 1000)
 
-	it := self.kv.NewIterator(self.ro)
+	it := self.kv.NewIterator(badger.DefaultIteratorOptions)
 	defer it.Close()
-	it.Seek(okey_prefix)
-	for it = it; it.ValidForPrefix(okey_prefix); it.Next() {
-		key := it.Key()
-		okey := bytes_copy(key.Data())
-		key.Free()
+	for it.Seek(okey_prefix); it.Valid() && bytes.HasPrefix(it.Item().Key(), okey_prefix); it.Next() {
+		okey := it.Item().Key()
 		// get edge ID from key
 		tmp := bytes.Split(okey, []byte{0})
 		eid := bytes.Join([][]byte{[]byte("e"), tmp[3]}, []byte{0})
@@ -138,63 +131,61 @@ func (self *BadgerGDB) DelVertex(id string) error {
 		del_keys = append(del_keys, okey, eid)
 	}
 
-	it.Seek(ikey_prefix)
-	for it = it; it.ValidForPrefix(ikey_prefix); it.Next() {
-		key := it.Key()
-		ikey := bytes_copy(key.Data())
-		key.Free()
+	for it.Seek(ikey_prefix); it.Valid() && bytes.HasPrefix(it.Item().Key(), ikey_prefix); it.Next() {
+		ikey := it.Item().Key()
 		// get edge ID from key
 		//tmp := bytes.Split(ikey, []byte{0})
 		//eid := bytes.Join( [][]byte{ []byte("e"), tmp[3] }, []byte{0} )
 		del_keys = append(del_keys, ikey)
 	}
 
-	wb := gorocksdb.NewWriteBatch()
+	entries := make([]*badger.Entry, 0, 100)
 	for _, k := range del_keys {
 		//log.Printf("Delete %s", string(bytes.Replace(k, []byte{0}, []byte{' '}, -1) ) )
-		wb.Delete(k)
+		entries = badger.EntriesDelete(entries, k)
 	}
-	err := self.kv.Write(self.wo, wb)
+	err := self.kv.BatchSet(entries)
 	if err != nil {
-		log.Printf("Del Error: %s", err)
+		return err
 	}
-	wb.Destroy()
-	return err
+	for _, e := range entries {
+		if e.Error != nil {
+			return e.Error
+		}
+	}
+	return nil
 }
 
 func (self *BadgerGDB) GetEdgeList(ctx context.Context, loadProp bool) chan aql.Edge {
 	o := make(chan aql.Edge, 100)
 	go func() {
 		defer close(o)
-		it := self.kv.NewIterator(self.ro)
+		it := self.kv.NewIterator(badger.DefaultIteratorOptions)
 		defer it.Close()
 		e_prefix := []byte("e")
-		it.Seek(e_prefix)
-		for it = it; it.ValidForPrefix(e_prefix); it.Next() {
+		for it.Seek(e_prefix); it.Valid() && bytes.HasPrefix(it.Item().Key(), e_prefix); it.Next() {
 			select {
 			case <-ctx.Done():
 				return
 			default:
 			}
-			key_value := it.Key()
-			eid_tmp := bytes.Split(bytes_copy(key_value.Data()), []byte{0})
+			key_value := it.Item().Key()
+			eid_tmp := bytes.Split(key_value, []byte{0})
 			eid := eid_tmp[1]
 			//log.Printf("EK:%#v", eid)
-			key_value.Free()
-			pair_value := it.Value()
-			pair := bytes.Split(bytes_copy(pair_value.Data()), []byte{0})
+			pair_value := it.Item().Value()
+			pair := bytes.Split(pair_value, []byte{0})
 			//log.Printf("EV:%#v", pair)
-			pair_value.Free()
 			src := pair[1]
 			dst := pair[2]
 			if loadProp {
 				okey := bytes.Join([][]byte{[]byte("o"), []byte(src), []byte(dst), []byte(eid)}, []byte{0})
-				data_value, err := self.kv.Get(self.ro, okey)
+				data_value := badger.KVItem{}
+				err := self.kv.Get(okey, &data_value)
 				if err == nil {
 					e := aql.Edge{}
-					data := data_value.Data()
+					data := data_value.Value()
 					proto.Unmarshal(data, &e)
-					data_value.Free()
 					o <- e
 				}
 			} else {
@@ -212,30 +203,27 @@ func (self *BadgerGDB) GetInEdgeList(ctx context.Context, id string, loadProp bo
 		defer close(o)
 
 		ikey_prefix := bytes.Join([][]byte{[]byte("i"), []byte(id)}, []byte{0})
-		it := self.kv.NewIterator(self.ro)
+		it := self.kv.NewIterator(badger.DefaultIteratorOptions)
 		defer it.Close()
-
-		it.Seek(ikey_prefix)
-		for it = it; it.ValidForPrefix(ikey_prefix); it.Next() {
+		for it.Seek(ikey_prefix); it.Valid() && bytes.HasPrefix(it.Item().Key(), ikey_prefix); it.Next() {
 			select {
 			case <-ctx.Done():
 				return
 			default:
 			}
-			key_value := it.Key()
-			tmp := bytes.Split(bytes_copy(key_value.Data()), []byte{0})
-			key_value.Free()
+			key_value := it.Item().Key()
+			tmp := bytes.Split(key_value, []byte{0})
 			oid := tmp[2]
 			eid := tmp[3]
 			okey := bytes.Join([][]byte{[]byte("o"), oid, []byte(id), eid}, []byte{0})
 
-			data_value, err := self.kv.Get(self.ro, okey)
+			data_value := badger.KVItem{}
+			err := self.kv.Get(okey, &data_value)
 			if err == nil {
 				e := aql.Edge{}
 				if loadProp {
-					d := data_value.Data()
+					d := data_value.Value()
 					proto.Unmarshal(d, &e)
-					data_value.Free()
 				} else {
 					e.Gid = string(eid)
 					e.Src = string(oid)
@@ -265,23 +253,18 @@ func (self *BadgerGDB) GetOutEdgeList(ctx context.Context, id string, loadProp b
 		defer close(o)
 
 		okey_prefix := bytes.Join([][]byte{[]byte("o"), []byte(id)}, []byte{0})
-		it := self.kv.NewIterator(self.ro)
+		it := self.kv.NewIterator(badger.DefaultIteratorOptions)
 		defer it.Close()
-
-		it.Seek(okey_prefix)
-		for it = it; it.ValidForPrefix(okey_prefix); it.Next() {
+		for it.Seek(okey_prefix); it.Valid() && bytes.HasPrefix(it.Item().Key(), okey_prefix); it.Next() {
 			select {
 			case <-ctx.Done():
 				return
 			default:
 			}
-			key_value := it.Key()
-			key_value.Free()
-			data_value := it.Value()
-			d := data_value.Data()
+			//key_value := it.Item().Key()
+			data_value := it.Item().Value()
 			e := aql.Edge{}
-			proto.Unmarshal(d, &e)
-			data_value.Free()
+			proto.Unmarshal(data_value, &e)
 
 			send := false
 			if filter != nil {
@@ -305,19 +288,17 @@ func (self *BadgerGDB) GetInList(ctx context.Context, id string, loadProp bool, 
 		defer close(o)
 
 		ikey_prefix := bytes.Join([][]byte{[]byte("i"), []byte(id)}, []byte{0})
-		it := self.kv.NewIterator(self.ro)
+		it := self.kv.NewIterator(badger.DefaultIteratorOptions)
 		defer it.Close()
 
-		it.Seek(ikey_prefix)
-		for it = it; it.ValidForPrefix(ikey_prefix); it.Next() {
+		for it.Seek(ikey_prefix); it.Valid() && bytes.HasPrefix(it.Item().Key(), ikey_prefix); it.Next() {
 			select {
 			case <-ctx.Done():
 				return
 			default:
 			}
-			key_value := it.Key()
-			tmp := bytes.Split(bytes_copy(key_value.Data()), []byte{0})
-			key_value.Free()
+			key_value := it.Item().Key()
+			tmp := bytes.Split(key_value, []byte{0})
 			iid := tmp[1]
 			oid := tmp[2]
 			eid := tmp[3]
@@ -327,12 +308,12 @@ func (self *BadgerGDB) GetInList(ctx context.Context, id string, loadProp bool, 
 
 			send := false
 			if filter != nil {
-				data_value, err := self.kv.Get(self.ro, okey)
+				data_value := badger.KVItem{}
+				err := self.kv.Get(okey, &data_value)
 				if err == nil {
-					d := data_value.Data()
+					d := data_value.Value()
 					e := aql.Edge{}
 					proto.Unmarshal(d, &e)
-					data_value.Free()
 					if filter(e) {
 						send = true
 					}
@@ -341,12 +322,12 @@ func (self *BadgerGDB) GetInList(ctx context.Context, id string, loadProp bool, 
 				send = true
 			}
 			if send {
-				data_value, err := self.kv.Get(self.ro, vkey)
+				data_value := badger.KVItem{}
+				err := self.kv.Get(vkey, &data_value)
 				if err == nil {
-					d := data_value.Data()
+					d := data_value.Value()
 					v := aql.Vertex{}
 					proto.Unmarshal(d, &v)
-					data_value.Free()
 					o <- v
 				}
 			}
@@ -361,19 +342,17 @@ func (self *BadgerGDB) GetOutList(ctx context.Context, id string, loadProp bool,
 		defer close(o)
 
 		okey_prefix := bytes.Join([][]byte{[]byte("o"), []byte(id)}, []byte{0})
-		it := self.kv.NewIterator(self.ro)
+		it := self.kv.NewIterator(badger.DefaultIteratorOptions)
 		defer it.Close()
 
-		it.Seek(okey_prefix)
-		for it = it; it.ValidForPrefix(okey_prefix); it.Next() {
+		for it.Seek(okey_prefix); it.Valid() && bytes.HasPrefix(it.Item().Key(), okey_prefix); it.Next() {
 			select {
 			case <-ctx.Done():
 				return
 			default:
 			}
-			key_value := it.Key()
-			tmp := bytes.Split(bytes_copy(key_value.Data()), []byte{0})
-			key_value.Free()
+			key_value := it.Item().Key()
+			tmp := bytes.Split(key_value, []byte{0})
 			//oid := tmp[1]
 			iid := tmp[2]
 			//log.Printf("Vertex: %s", iid)
@@ -383,11 +362,9 @@ func (self *BadgerGDB) GetOutList(ctx context.Context, id string, loadProp bool,
 
 			send := false
 			if filter != nil {
-				data_value := it.Value()
-				d := data_value.Data()
+				data_value := it.Item().Value()
 				e := aql.Edge{}
-				proto.Unmarshal(d, &e)
-				data_value.Free()
+				proto.Unmarshal(data_value, &e)
 				if filter(e) {
 					send = true
 				}
@@ -395,12 +372,12 @@ func (self *BadgerGDB) GetOutList(ctx context.Context, id string, loadProp bool,
 				send = true
 			}
 			if send {
-				data_value, err := self.kv.Get(self.ro, vkey)
+				data_value := badger.KVItem{}
+				err := self.kv.Get(vkey, &data_value)
 				if err == nil {
-					d := data_value.Data()
+					d := data_value.Value()
 					v := aql.Vertex{}
 					proto.Unmarshal(d, &v)
-					data_value.Free()
 					o <- v
 				}
 			}
@@ -411,15 +388,15 @@ func (self *BadgerGDB) GetOutList(ctx context.Context, id string, loadProp bool,
 
 func (self *BadgerGDB) GetVertex(id string, loadProp bool) *aql.Vertex {
 	vkey := bytes.Join([][]byte{[]byte("v"), []byte(id)}, []byte{0})
-	data_value, err := self.kv.Get(self.ro, vkey)
+	data_value := badger.KVItem{}
+	err := self.kv.Get(vkey, &data_value)
 	if err != nil {
 		return nil
 	}
 	v := aql.Vertex{}
 	if loadProp {
-		d := data_value.Data()
+		d := data_value.Value()
 		proto.Unmarshal(d, &v)
-		data_value.Free()
 	} else {
 		v.Gid = id
 	}
@@ -431,11 +408,11 @@ func (self *BadgerGDB) GetVertexList(ctx context.Context, loadProp bool) chan aq
 	o := make(chan aql.Vertex, 100)
 	go func() {
 		defer close(o)
-		it := self.kv.NewIterator(self.ro)
+		it := self.kv.NewIterator(badger.DefaultIteratorOptions)
 		defer it.Close()
 		v_prefix := []byte("v")
-		it.Seek(v_prefix)
-		for it = it; it.ValidForPrefix(v_prefix); it.Next() {
+
+		for it.Seek(v_prefix); it.Valid() && bytes.HasPrefix(it.Item().Key(), v_prefix); it.Next() {
 			select {
 			case <-ctx.Done():
 				return
@@ -443,16 +420,13 @@ func (self *BadgerGDB) GetVertexList(ctx context.Context, loadProp bool) chan aq
 			}
 			v := aql.Vertex{}
 			if loadProp {
-				data_value := it.Value()
-				d := data_value.Data()
-				proto.Unmarshal(d, &v)
-				data_value.Free()
+				data_value := it.Item().Value()
+				proto.Unmarshal(data_value, &v)
 			} else {
-				key_value := it.Key()
-				tmp := bytes.Split(bytes_copy(key_value.Data()), []byte{0})
+				key_value := it.Item().Key()
+				tmp := bytes.Split(key_value, []byte{0})
 				iid := tmp[1]
 				v.Gid = string(iid)
-				key_value.Free()
 			}
 			o <- v
 		}
