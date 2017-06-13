@@ -3,8 +3,8 @@ package graphserver
 import (
 	//"github.com/bmeg/arachne/boltdb"
 	//"github.com/bmeg/arachne/rocksdb"
-	"github.com/bmeg/arachne/badgerdb"
 	"github.com/bmeg/arachne/aql"
+	"github.com/bmeg/arachne/badgerdb"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"log"
@@ -49,17 +49,16 @@ func (server *ArachneServer) Traversal(query *aql.GraphQuery, queryServer aql.Qu
 	return nil
 }
 
-
 func (server *ArachneServer) Add(ctx context.Context, elem *aql.GraphElement) (*aql.EditResult, error) {
 	var id string = ""
 	if x, ok := elem.GetElement().(*aql.GraphElement_Vertex); ok {
 		server.engine.AddVertex(*x.Vertex)
 		id = x.Vertex.Gid
-	}	else if x, ok := elem.GetElement().(*aql.GraphElement_Edge); ok {
+	} else if x, ok := elem.GetElement().(*aql.GraphElement_Edge); ok {
 		server.engine.AddEdge(*x.Edge)
 		id = x.Edge.Gid
-	//} else if x, ok := elem.GetElement().(*aql.AddElement_EdgeBundle); ok {
-	//	server.engine.AddEdgeBundle(*x.EdgeBundle)
+		//} else if x, ok := elem.GetElement().(*aql.AddElement_EdgeBundle); ok {
+		//	server.engine.AddEdgeBundle(*x.EdgeBundle)
 	}
-	return &aql.EditResult{Result:&aql.EditResult_Id{id}}, nil
+	return &aql.EditResult{Result: &aql.EditResult_Id{id}}, nil
 }

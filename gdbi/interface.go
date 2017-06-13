@@ -30,16 +30,16 @@ type QueryInterface interface {
 
 	//Read write methods
 	/*
-	AddV(key string) QueryInterface
-	AddE(key string) QueryInterface
-	To(key string) QueryInterface
-	Property(key string, value interface{}) QueryInterface
-	Drop() QueryInterface
+		AddV(key string) QueryInterface
+		AddE(key string) QueryInterface
+		To(key string) QueryInterface
+		Property(key string, value interface{}) QueryInterface
+		Drop() QueryInterface
 	*/
 
 	Execute(context.Context) chan aql.ResultRow
 	First(context.Context) (aql.ResultRow, error) //Only get one result
-	Run(context.Context) error                       //Do execute, but throw away the results
+	Run(context.Context) error                    //Do execute, but throw away the results
 }
 
 type ArachneInterface interface {

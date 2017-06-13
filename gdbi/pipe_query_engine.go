@@ -2,8 +2,8 @@ package gdbi
 
 import (
 	"context"
-	"github.com/bmeg/arachne/jsengine"
 	"github.com/bmeg/arachne/aql"
+	"github.com/bmeg/arachne/jsengine"
 	"github.com/bmeg/arachne/protoutil"
 	"github.com/golang/protobuf/ptypes/struct"
 	"log"

@@ -1,15 +1,15 @@
 package badgerdb
 
 import (
-	"os"
-	"fmt"
 	"bytes"
 	"context"
+	"fmt"
 	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/gdbi"
 	"github.com/dgraph-io/badger/badger"
 	proto "github.com/golang/protobuf/proto"
 	"log"
+	"os"
 )
 
 type BadgerGDB struct {
@@ -21,7 +21,7 @@ func NewBadgerArachne(path string) gdbi.DBI {
 
 	_, err := os.Stat(path)
 	if os.IsNotExist(err) {
-		 os.Mkdir(path, 0700)
+		os.Mkdir(path, 0700)
 	}
 
 	opts := &badger.Options{}
@@ -29,9 +29,9 @@ func NewBadgerArachne(path string) gdbi.DBI {
 	opts.Dir = path
 	opts.ValueDir = path
 	kv, err := badger.NewKV(opts)
-  if err != nil {
-    log.Printf("Error: %s", err)
-  }
+	if err != nil {
+		log.Printf("Error: %s", err)
+	}
 	return &BadgerGDB{kv: kv}
 }
 

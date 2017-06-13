@@ -1,12 +1,12 @@
 package load
 
 import (
-	"log"
-	"strings"
-	"github.com/spf13/cobra"
+	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/golib"
 	"github.com/golang/protobuf/jsonpb"
-  "github.com/bmeg/arachne/aql"
+	"github.com/spf13/cobra"
+	"log"
+	"strings"
 )
 
 var host string = "localhost:9090"
@@ -14,17 +14,17 @@ var vertexFile string = ""
 var edgeFile string = ""
 
 var Cmd = &cobra.Command{
-	Use: "load",
+	Use:   "load",
 	Short: "Load Data into Arachne Server",
-	Long: ``,
+	Long:  ``,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		log.Printf("Loading Data")
 
 		/*
-    conn, err := aql.Connect(host)
-    if err != nil {
-      return err
-    }
+		   conn, err := aql.Connect(host)
+		   if err != nil {
+		     return err
+		   }
 		*/
 
 		if vertexFile != "" {
@@ -52,9 +52,6 @@ var Cmd = &cobra.Command{
 				log.Printf("%#v", v)
 			}
 		}
-
-
-
 
 		return nil
 	},

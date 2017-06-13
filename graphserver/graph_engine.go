@@ -3,8 +3,8 @@ package graphserver
 import (
 	"context"
 	"fmt"
-	"github.com/bmeg/arachne/gdbi"
 	"github.com/bmeg/arachne/aql"
+	"github.com/bmeg/arachne/gdbi"
 	"log"
 )
 
@@ -56,19 +56,19 @@ type Traversal struct {
 
 func (trav *Traversal) RunStatement(statement *aql.GraphStatement) error {
 	/*
-	if statement.GetAddV() != "" {
-		trav.Query = trav.Query.AddV(statement.GetAddV())
-	} else if statement.GetAddE() != "" {
-		trav.Query = trav.Query.AddE(statement.GetAddE())
-	} else if statement.GetTo() != "" {
-		trav.Query = trav.Query.To(statement.GetTo())
-	} else if x := statement.GetProperty(); x != nil {
-			for k, v := range x.Fields {
-				trav.Query = trav.Query.Property(k, v)
-			}
-	} else if _, ok := statement.GetStatement().(*aql.GraphStatement_Drop); ok {
-		trav.Query = trav.Query.Drop()
-  } else
+		if statement.GetAddV() != "" {
+			trav.Query = trav.Query.AddV(statement.GetAddV())
+		} else if statement.GetAddE() != "" {
+			trav.Query = trav.Query.AddE(statement.GetAddE())
+		} else if statement.GetTo() != "" {
+			trav.Query = trav.Query.To(statement.GetTo())
+		} else if x := statement.GetProperty(); x != nil {
+				for k, v := range x.Fields {
+					trav.Query = trav.Query.Property(k, v)
+				}
+		} else if _, ok := statement.GetStatement().(*aql.GraphStatement_Drop); ok {
+			trav.Query = trav.Query.Drop()
+	  } else
 	*/
 	if x, ok := statement.GetStatement().(*aql.GraphStatement_V); ok {
 		if x.V == "" {

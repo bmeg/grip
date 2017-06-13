@@ -71,8 +71,7 @@ func StartHttpProxy(rpcPort string, httpPort string, contentDir string) {
 	if err != nil {
 		fmt.Println("Register Error", err)
 	}
-	
-	
+
 	r := mux.NewRouter()
 
 	runtime.OtherErrorHandler = HandleError
