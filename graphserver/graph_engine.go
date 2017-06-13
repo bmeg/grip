@@ -62,12 +62,6 @@ func (trav *Traversal) RunStatement(statement *aql.GraphStatement) error {
 		trav.Query = trav.Query.AddE(statement.GetAddE())
 	} else if statement.GetTo() != "" {
 		trav.Query = trav.Query.To(statement.GetTo())
-	} else if x, ok := statement.GetStatement().(*aql.GraphStatement_V); ok {
-		if x.V == "" {
-			trav.Query = trav.Query.V()
-		} else {
-			trav.Query = trav.Query.V(x.V)
-		}
 	} else if x := statement.GetProperty(); x != nil {
 			for k, v := range x.Fields {
 				trav.Query = trav.Query.Property(k, v)
@@ -76,7 +70,13 @@ func (trav *Traversal) RunStatement(statement *aql.GraphStatement) error {
 		trav.Query = trav.Query.Drop()
   } else
 	*/
-	if _, ok := statement.GetStatement().(*aql.GraphStatement_E); ok {
+	if x, ok := statement.GetStatement().(*aql.GraphStatement_V); ok {
+		if x.V == "" {
+			trav.Query = trav.Query.V()
+		} else {
+			trav.Query = trav.Query.V(x.V)
+		}
+	} else if _, ok := statement.GetStatement().(*aql.GraphStatement_E); ok {
 		trav.Query = trav.Query.E()
 	} else if x, ok := statement.GetStatement().(*aql.GraphStatement_Out); ok {
 		if x.Out == "" {

@@ -3,12 +3,16 @@
 import os
 import sys
 import imp
-import aql
 from glob import glob
 import traceback
 
-BASE = os.path.dirname(__file__)
+BASE = os.path.dirname(os.path.abspath(__file__))
 TESTS = os.path.join(BASE, "tests")
+
+sys.path.append( os.path.dirname(BASE) )
+
+import aql
+
 
 def clear_db(O):
     O.query().V().drop().execute()
@@ -22,7 +26,7 @@ def clear_db(O):
 if __name__ == "__main__":
     server = sys.argv[1]
 
-    O = aql.Connection(server)
+    O = aql.Connection(server, True)
     if int(O.query().V().count().first()['int_value']) != 0:
         print "Need to start with empty DB"
         sys.exit()

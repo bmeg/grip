@@ -1,9 +1,10 @@
 package badgerdb
 
 import (
+	"os"
+	"fmt"
 	"bytes"
 	"context"
-	"fmt"
 	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/gdbi"
 	"github.com/dgraph-io/badger/badger"
@@ -17,6 +18,12 @@ type BadgerGDB struct {
 }
 
 func NewBadgerArachne(path string) gdbi.DBI {
+
+	_, err := os.Stat(path)
+	if os.IsNotExist(err) {
+		 os.Mkdir(path, 0600)
+	}
+
 	opts := &badger.Options{}
 	*opts = badger.DefaultOptions
 	opts.Dir = path
