@@ -414,7 +414,6 @@ func (self *BadgerGDB) GetVertex(id string, loadProp bool) *aql.Vertex {
 }
 
 func (self *BadgerGDB) GetVertexList(ctx context.Context, loadProp bool) chan aql.Vertex {
-	log.Printf("GetVertexList: %s", loadProp)
 	o := make(chan aql.Vertex, 100)
 	go func() {
 		defer close(o)
