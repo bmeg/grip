@@ -12,7 +12,7 @@ class Connection:
     def addVertex(self, id, prop={}):
         payload = json.dumps({
             "vertex" : {
-                "gid" : "id",
+                "gid" : id,
                 "properties" : prop
             }
         })
@@ -23,6 +23,20 @@ class Connection:
         result = response.read()
         return json.loads(result)
 
+    def addEdge(self, src, dst, label, prop={}):
+        payload = json.dumps({
+            "edge" : {
+                "src" : src,
+                "dst" : dst,
+                "label" : label,
+                "properties" : prop
+            }
+        })
+        headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
+        request = urllib2.Request(self.url, payload, headers=headers)
+        response = urllib2.urlopen(request)
+        result = response.read()
+        return json.loads(result)
 
 
 class Query:
@@ -122,10 +136,6 @@ class Query:
 
     def fold(self, func):
         self.query.append({"fold" : func})
-        return self
-
-    def drop(self):
-        self.query.append({"drop" : ''})
         return self
 
     def render(self):
