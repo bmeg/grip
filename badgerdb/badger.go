@@ -21,14 +21,17 @@ func NewBadgerArachne(path string) gdbi.DBI {
 
 	_, err := os.Stat(path)
 	if os.IsNotExist(err) {
-		 os.Mkdir(path, 0600)
+		 os.Mkdir(path, 0700)
 	}
 
 	opts := &badger.Options{}
 	*opts = badger.DefaultOptions
 	opts.Dir = path
 	opts.ValueDir = path
-	kv, _ := badger.NewKV(opts)
+	kv, err := badger.NewKV(opts)
+  if err != nil {
+    log.Printf("Error: %s", err)
+  }
 	return &BadgerGDB{kv: kv}
 }
 
