@@ -3,6 +3,7 @@ package graphserver
 import (
 	//"github.com/bmeg/arachne/boltdb"
 	//"github.com/bmeg/arachne/rocksdb"
+	"fmt"
 	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/badgerdb"
 	"golang.org/x/net/context"
@@ -49,6 +50,7 @@ func (server *ArachneServer) Traversal(query *aql.GraphQuery, queryServer aql.Qu
 	return nil
 }
 
+/*
 func (server *ArachneServer) Add(ctx context.Context, elem *aql.GraphElement) (*aql.EditResult, error) {
 	var id string = ""
 	if x, ok := elem.GetElement().(*aql.GraphElement_Vertex); ok {
@@ -61,4 +63,45 @@ func (server *ArachneServer) Add(ctx context.Context, elem *aql.GraphElement) (*
 		//	server.engine.AddEdgeBundle(*x.EdgeBundle)
 	}
 	return &aql.EditResult{Result: &aql.EditResult_Id{id}}, nil
+}
+*/
+
+func (server *ArachneServer) DeleteGraph(ctx context.Context, elem *aql.ElementID) (*aql.EditResult, error) {
+	//TODO: Add multiple graphs
+	return &aql.EditResult{Result: &aql.EditResult_Id{elem.Id}}, nil
+}
+
+func (server *ArachneServer) AddGraph(ctx context.Context, elem *aql.ElementID) (*aql.EditResult, error) {
+	//TODO: Add multiple graphs
+	return &aql.EditResult{Result: &aql.EditResult_Id{elem.Id}}, nil
+}
+
+func (server *ArachneServer) AddVertex(ctx context.Context, elem *aql.GraphElement) (*aql.EditResult, error) {
+	var id string = ""
+	server.engine.AddVertex(*elem.Vertex)
+	id = elem.Vertex.Gid
+	return &aql.EditResult{Result: &aql.EditResult_Id{id}}, nil
+}
+
+func (server *ArachneServer) AddEdge(ctx context.Context, elem *aql.GraphElement) (*aql.EditResult, error) {
+	var id string = ""
+	server.engine.AddEdge(*elem.Edge)
+	id = elem.Edge.Gid
+	return &aql.EditResult{Result: &aql.EditResult_Id{id}}, nil
+}
+
+func (server *ArachneServer) DeleteVertex(ctx context.Context, elem *aql.ElementID) (*aql.EditResult, error) {
+	err := server.engine.DBI.DelVertex(elem.Id)
+	if err != nil {
+		return &aql.EditResult{Result: &aql.EditResult_Error{Error: fmt.Sprintf("%s", err)}}, nil
+	}
+	return &aql.EditResult{Result: &aql.EditResult_Id{elem.Id}}, nil
+}
+
+func (server *ArachneServer) DeleteEdge(ctx context.Context, elem *aql.ElementID) (*aql.EditResult, error) {
+	err := server.engine.DBI.DelEdge(elem.Id)
+	if err != nil {
+		return &aql.EditResult{Result: &aql.EditResult_Error{Error: fmt.Sprintf("%s", err)}}, nil
+	}
+	return &aql.EditResult{Result: &aql.EditResult_Id{elem.Id}}, nil
 }

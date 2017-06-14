@@ -38,12 +38,12 @@ type QueryBuilder struct {
 }
 
 func (client AQLClient) AddV(graph string, v Vertex) error {
-	client.EditC.Add(context.Background(), &GraphElement{Graph:graph, Element:&GraphElement_Vertex{Vertex:&v}})
+	client.EditC.AddVertex(context.Background(), &GraphElement{Graph:graph,Vertex:&v})
 	return nil
 }
 
 func (client AQLClient) AddE(graph string, e Edge) error {
-	client.EditC.Add(context.Background(), &GraphElement{Graph:graph, Element:&GraphElement_Edge{Edge:&e}})
+	client.EditC.AddEdge(context.Background(), &GraphElement{Graph:graph, Edge:&e})
 	return nil
 }
 
