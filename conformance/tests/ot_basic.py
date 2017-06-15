@@ -3,14 +3,23 @@
 def test_count(O):
     errors = []
 
-    O.query().addV("vertex1").property("field1", "value1").property("field2", "value2").execute()
-    O.query().addV("vertex2").execute()
-    O.query().addV("vertex3").property("field1", "value3").property("field2", "value4").execute()
-    O.query().addV("vertex4").execute()
+    #O.query().addV("vertex1").property("field1", "value1").property("field2", "value2").execute()
+    #O.query().addV("vertex2").execute()
+    #O.query().addV("vertex3").property("field1", "value3").property("field2", "value4").execute()
+    #O.query().addV("vertex4").execute()
 
-    O.query().V("vertex1").addE("friend").to("vertex2").execute()
-    O.query().V("vertex2").addE("friend").to("vertex3").execute()
-    O.query().V("vertex2").addE("parent").to("vertex4").execute()
+    O.addVertex("vertex1", {"field1" : "value1", "field2" : "value2"})
+    O.addVertex("vertex2")
+    O.addVertex("vertex3", {"field1" : "value3", "field2" : "value4"})
+    O.addVertex("vertex4")
+
+    #O.query().V("vertex1").addE("friend").to("vertex2").execute()
+    #O.query().V("vertex2").addE("friend").to("vertex3").execute()
+    #O.query().V("vertex2").addE("parent").to("vertex4").execute()
+    O.addEdge("vertex1", "vertex2", "friend")
+    O.addEdge("vertex2", "vertex3", "friend")
+    O.addEdge("vertex2", "vertex4", "parent")
+
 
     count = 0
     for i in O.query().V().execute():
@@ -41,14 +50,22 @@ def test_count(O):
 def test_outgoing(O):
     errors = []
 
-    O.query().addV("vertex1").property("field1", "value1").property("field2", "value2").execute()
-    O.query().addV("vertex2").execute()
-    O.query().addV("vertex3").property("field1", "value3").property("field2", "value4").execute()
-    O.query().addV("vertex4").execute()
+    #O.query().addV("vertex1").property("field1", "value1").property("field2", "value2").execute()
+    #O.query().addV("vertex2").execute()
+    #O.query().addV("vertex3").property("field1", "value3").property("field2", "value4").execute()
+    #O.query().addV("vertex4").execute()
 
-    O.query().V("vertex1").addE("friend").to("vertex2").execute()
-    O.query().V("vertex2").addE("friend").to("vertex3").execute()
-    O.query().V("vertex2").addE("parent").to("vertex4").execute()
+    O.addVertex("vertex1", {"field1" : "value1", "field2" : "value2"})
+    O.addVertex("vertex2")
+    O.addVertex("vertex3", {"field1" : "value3", "field2" : "value4"})
+    O.addVertex("vertex4")
+
+    #O.query().V("vertex1").addE("friend").to("vertex2").execute()
+    #O.query().V("vertex2").addE("friend").to("vertex3").execute()
+    #O.query().V("vertex2").addE("parent").to("vertex4").execute()
+    O.addEdge("vertex1", "vertex2", "friend")
+    O.addEdge("vertex2", "vertex3", "friend")
+    O.addEdge("vertex2", "vertex4", "parent")
 
     if O.query().V("vertex2").outgoing().count().first()["int_value"] != 2:
         errors.append("blank outgoing doesn't work")
@@ -65,12 +82,17 @@ def test_outgoing(O):
 
 def test_duplicate(O):
     errors = []
-    O.query().addV("vertex1").execute()
-    O.query().addV("vertex1").execute()
-    O.query().addV("vertex2").execute()
+    #O.query().addV("vertex1").execute()
+    #O.query().addV("vertex1").execute()
+    #O.query().addV("vertex2").execute()
+    O.addVertex("vertex1")
+    O.addVertex("vertex1")
+    O.addVertex("vertex2")
 
-    O.query().V("vertex1").addE("friend").to("vertex2").execute()
-    O.query().V("vertex1").addE("friend").to("vertex2").execute()
+    #O.query().V("vertex1").addE("friend").to("vertex2").execute()
+    #O.query().V("vertex1").addE("friend").to("vertex2").execute()
+    O.addEdge("vertex1", "vertex2")
+    O.addEdge("vertex1", "vertex2")
 
     if O.query().V().count().first()['int_value'] != 2:
         errors.append("duplicate vertex add error")
