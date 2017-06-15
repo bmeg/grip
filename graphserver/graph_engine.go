@@ -16,6 +16,19 @@ func NewGraphEngine(dbi gdbi.DBI) GraphEngine {
 	return GraphEngine{DBI: dbi}
 }
 
+func (engine *GraphEngine) GetGraphs() []string {
+	return engine.DBI.GetGraphs()	
+}
+
+func (engine *GraphEngine) GetVertex(id string) *aql.Vertex {
+	return engine.DBI.GetVertex(id, true)
+}
+
+func (engine *GraphEngine) GetEdge(id string) *aql.Edge {
+	return engine.DBI.GetEdge(id, true)
+}
+
+
 func (engine *GraphEngine) AddEdge(edge aql.Edge) error {
 	return engine.DBI.SetEdge(edge)
 }

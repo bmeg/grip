@@ -66,6 +66,24 @@ func (server *ArachneServer) Add(ctx context.Context, elem *aql.GraphElement) (*
 }
 */
 
+func (server *ArachneServer) GetGraphs(empty *aql.Empty, queryServer aql.Query_GetGraphsServer) error {
+	for name := range server.engine.GetGraphs() {
+		queryServer.Send(name)
+	}
+	return nil
+}
+
+func (server *ArachneServer) GetVertex(ctx context.Context, elem *aql.ElementID) (*aql.Vertex, error) {
+	o := server.engine.Vertex(elem.Id)
+	return o, nil
+}
+
+func (server *ArachneServer) GetEdge(ctx context.Context, elem *aql.ElementID) (*aql.Edge, error) {
+	o := server.engine.Edge(elem.Id)
+	return o, nil
+}
+
+
 func (server *ArachneServer) DeleteGraph(ctx context.Context, elem *aql.ElementID) (*aql.EditResult, error) {
 	//TODO: Add multiple graphs
 	return &aql.EditResult{Result: &aql.EditResult_Id{elem.Id}}, nil

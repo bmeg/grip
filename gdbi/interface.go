@@ -28,15 +28,6 @@ type QueryInterface interface {
 	Map(function string) QueryInterface
 	Fold(function string) QueryInterface
 
-	//Read write methods
-	/*
-		AddV(key string) QueryInterface
-		AddE(key string) QueryInterface
-		To(key string) QueryInterface
-		Property(key string, value interface{}) QueryInterface
-		Drop() QueryInterface
-	*/
-
 	Execute(context.Context) chan aql.ResultRow
 	First(context.Context) (aql.ResultRow, error) //Only get one result
 	Run(context.Context) error                    //Do execute, but throw away the results
@@ -44,11 +35,12 @@ type QueryInterface interface {
 
 type ArachneInterface interface {
 	Close()
-	Query() QueryInterface
+	Query(string) QueryInterface
+	Graph(string) DBI
 }
 
 type DBI interface {
-	ArachneInterface
+	Query() QueryInterface
 
 	GetVertex(key string, load bool) *aql.Vertex
 	GetVertexList(ctx context.Context, load bool) chan aql.Vertex

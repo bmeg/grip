@@ -12,13 +12,16 @@ import (
 	"os"
 )
 
-type BadgerGDB struct {
+type BadgerArachne struct {
 	kv       *badger.KV
-	sequence int64
 }
 
-func NewBadgerArachne(path string) gdbi.DBI {
+type BadgerGDB struct {
+	kv       *badger.KV
+	graph		 string
+}
 
+func NewBadgerArachne(path string) gdbi.ArachneInterface {
 	_, err := os.Stat(path)
 	if os.IsNotExist(err) {
 		os.Mkdir(path, 0700)
@@ -32,10 +35,18 @@ func NewBadgerArachne(path string) gdbi.DBI {
 	if err != nil {
 		log.Printf("Error: %s", err)
 	}
-	return &BadgerGDB{kv: kv}
+	return &BadgerArachne{kv: kv}
 }
 
-func (self *BadgerGDB) Close() {
+func (self *BadgerArachne) Graph(graph string) gdbi.DBI {
+	return &BadgerGDB{kv:self.kv, graph:graph}
+}
+
+func (self *BadgerArachne) Query(graph string) gdbi.QueryInterface {
+	return self.Graph(graph).Query()
+}
+
+func (self *BadgerArachne) Close() {
 	self.kv.Close()
 }
 
