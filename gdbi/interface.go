@@ -35,6 +35,7 @@ type QueryInterface interface {
 
 type ArachneInterface interface {
 	Close()
+	GetGraphs() []string
 	Query(string) QueryInterface
 	Graph(string) DBI
 }
@@ -43,6 +44,7 @@ type DBI interface {
 	Query() QueryInterface
 
 	GetVertex(key string, load bool) *aql.Vertex
+	GetEdge(key string, load bool) *aql.Edge
 	GetVertexList(ctx context.Context, load bool) chan aql.Vertex
 	GetEdgeList(ctx context.Context, load bool) chan aql.Edge
 

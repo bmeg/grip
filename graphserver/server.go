@@ -67,22 +67,21 @@ func (server *ArachneServer) Add(ctx context.Context, elem *aql.GraphElement) (*
 */
 
 func (server *ArachneServer) GetGraphs(empty *aql.Empty, queryServer aql.Query_GetGraphsServer) error {
-	for name := range server.engine.GetGraphs() {
-		queryServer.Send(name)
+	for _, name := range server.engine.GetGraphs() {
+		queryServer.Send(&aql.ElementID{Graph: name})
 	}
 	return nil
 }
 
 func (server *ArachneServer) GetVertex(ctx context.Context, elem *aql.ElementID) (*aql.Vertex, error) {
-	o := server.engine.Vertex(elem.Id)
+	o := server.engine.GetVertex(elem.Graph, elem.Id)
 	return o, nil
 }
 
 func (server *ArachneServer) GetEdge(ctx context.Context, elem *aql.ElementID) (*aql.Edge, error) {
-	o := server.engine.Edge(elem.Id)
+	o := server.engine.GetEdge(elem.Graph, elem.Id)
 	return o, nil
 }
-
 
 func (server *ArachneServer) DeleteGraph(ctx context.Context, elem *aql.ElementID) (*aql.EditResult, error) {
 	//TODO: Add multiple graphs
@@ -96,20 +95,20 @@ func (server *ArachneServer) AddGraph(ctx context.Context, elem *aql.ElementID) 
 
 func (server *ArachneServer) AddVertex(ctx context.Context, elem *aql.GraphElement) (*aql.EditResult, error) {
 	var id string = ""
-	server.engine.AddVertex(*elem.Vertex)
+	server.engine.AddVertex(elem.Graph, *elem.Vertex)
 	id = elem.Vertex.Gid
 	return &aql.EditResult{Result: &aql.EditResult_Id{id}}, nil
 }
 
 func (server *ArachneServer) AddEdge(ctx context.Context, elem *aql.GraphElement) (*aql.EditResult, error) {
 	var id string = ""
-	server.engine.AddEdge(*elem.Edge)
+	server.engine.AddEdge(elem.Graph, *elem.Edge)
 	id = elem.Edge.Gid
 	return &aql.EditResult{Result: &aql.EditResult_Id{id}}, nil
 }
 
 func (server *ArachneServer) DeleteVertex(ctx context.Context, elem *aql.ElementID) (*aql.EditResult, error) {
-	err := server.engine.DBI.DelVertex(elem.Id)
+	err := server.engine.Arachne.Graph(elem.Graph).DelVertex(elem.Id)
 	if err != nil {
 		return &aql.EditResult{Result: &aql.EditResult_Error{Error: fmt.Sprintf("%s", err)}}, nil
 	}
@@ -117,7 +116,7 @@ func (server *ArachneServer) DeleteVertex(ctx context.Context, elem *aql.Element
 }
 
 func (server *ArachneServer) DeleteEdge(ctx context.Context, elem *aql.ElementID) (*aql.EditResult, error) {
-	err := server.engine.DBI.DelEdge(elem.Id)
+	err := server.engine.Arachne.Graph(elem.Graph).DelEdge(elem.Id)
 	if err != nil {
 		return &aql.EditResult{Result: &aql.EditResult_Error{Error: fmt.Sprintf("%s", err)}}, nil
 	}
