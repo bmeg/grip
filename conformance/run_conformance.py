@@ -9,13 +9,16 @@ import traceback
 BASE = os.path.dirname(os.path.abspath(__file__))
 TESTS = os.path.join(BASE, "tests")
 
+GRAPH = "test-graph"
+
 sys.path.append( os.path.dirname(BASE) )
 
 import aql
 
 
-def clear_db(O):
-    O.query().V().drop().execute()
+def clear_db(conn):
+    conn.delete(GRAPH)
+    O = conn.graph(GRAPH)
     if int(O.query().V().count().first()['int_value']) != 0:
         print "Unable to clear database"
         sys.exit()
@@ -26,8 +29,8 @@ def clear_db(O):
 if __name__ == "__main__":
     server = sys.argv[1]
 
-    O = aql.Connection(server, True)
-    if int(O.query().V().count().first()['int_value']) != 0:
+    conn = aql.Connection(server)
+    if int(conn.graph(GRAPH).query().V().count().first()['int_value']) != 0:
         print "Need to start with empty DB"
         sys.exit()
 
@@ -41,7 +44,7 @@ if __name__ == "__main__":
                 func = getattr(mod,f)
                 if callable(func):
                     try:
-                        e = func(O)
+                        e = func(conn.graph(GRAPH))
                         if len(e) == 0:
                             correct += 1
                             print "Passed: %s %s " % (name, f[5:])
@@ -53,6 +56,6 @@ if __name__ == "__main__":
                         print "Crashed: %s %s %s" % (name, f[5:], e)
                         traceback.print_exc()
                     total += 1
-                    clear_db(O)
+                    clear_db(conn)
 
     print "Passed %s out of %s" % (correct, total)

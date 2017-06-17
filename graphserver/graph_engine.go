@@ -16,6 +16,14 @@ func NewGraphEngine(a gdbi.ArachneInterface) GraphEngine {
 	return GraphEngine{Arachne: a}
 }
 
+func (engine *GraphEngine) AddGraph(graph string) error {
+	return engine.Arachne.AddGraph(graph)
+}
+
+func (engine *GraphEngine) DeleteGraph(graph string) error {
+	return engine.Arachne.DeleteGraph(graph)
+}
+
 func (engine *GraphEngine) GetGraphs() []string {
 	return engine.Arachne.GetGraphs()
 }

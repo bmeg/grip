@@ -34,8 +34,8 @@ var EDGE_PREFIX []byte = []byte("e")
 var SEDGE_PREFIX []byte = []byte("s")
 var DEDGE_PREFIX []byte = []byte("d")
 
-func GraphKey(graph, id string) []byte {
-	return bytes.Join([][]byte{GRAPH_PREFIX, []byte(graph), []byte(id)}, []byte{0})
+func GraphKey(graph string) []byte {
+	return bytes.Join([][]byte{GRAPH_PREFIX, []byte(graph)}, []byte{0})
 }
 
 func GraphPrefix() []byte {
@@ -57,6 +57,10 @@ func EdgeKeyParse(key []byte) (string, string) {
 	graph := tmp[1]
 	eid := tmp[2]
 	return string(graph), string(eid)
+}
+
+func VertexListPrefix(graph string) []byte {
+	return bytes.Join([][]byte{VERTEX_PREFIX, []byte(graph)}, []byte{0})
 }
 
 func EdgeListPrefix(graph string) []byte {
@@ -83,6 +87,14 @@ func DstEdgeKeyParse(key []byte) (string, string, string, string) {
 	src := tmp[3]
 	eid := tmp[4]
 	return string(graph), string(src), string(dst), string(eid)
+}
+
+func SrcEdgeListPrefix(graph string) []byte {
+	return bytes.Join([][]byte{SEDGE_PREFIX, []byte(graph)}, []byte{0})
+}
+
+func DstEdgeListPrefix(graph string) []byte {
+	return bytes.Join([][]byte{DEDGE_PREFIX, []byte(graph)}, []byte{0})
 }
 
 func SrcEdgePrefix(graph, id string) []byte {
@@ -116,6 +128,48 @@ func NewBadgerArachne(path string) gdbi.ArachneInterface {
 		log.Printf("Error: %s", err)
 	}
 	return &BadgerArachne{kv: kv}
+}
+
+func (self *BadgerArachne) AddGraph(graph string) error {
+	self.kv.Set(GraphKey(graph), []byte{})
+	return nil
+}
+
+func (self *BadgerArachne) prefixDelete(prefix []byte) {
+	DELETE_BLOCK_SIZE := 1000
+	wb := make([]*badger.Entry, 0, DELETE_BLOCK_SIZE)
+
+	it := self.kv.NewIterator(badger.DefaultIteratorOptions)
+	defer it.Close()
+	for it.Seek(prefix); it.Valid() && bytes.HasPrefix(it.Item().Key(), prefix); it.Next() {
+		if len(wb) >= DELETE_BLOCK_SIZE {
+			self.kv.BatchSet(wb)
+			wb = make([]*badger.Entry, 0, DELETE_BLOCK_SIZE)
+		}
+		wb = badger.EntriesDelete(wb, it.Item().Key())
+	}
+	if len(wb) > 0 {
+		self.kv.BatchSet(wb)
+	}
+}
+
+func (self *BadgerArachne) DeleteGraph(graph string) error {
+	eprefix := EdgeListPrefix(graph)
+	self.prefixDelete(eprefix)
+
+	vprefix := VertexListPrefix(graph)
+	self.prefixDelete(vprefix)
+
+	sprefix := SrcEdgeListPrefix(graph)
+	self.prefixDelete(sprefix)
+
+	dprefix := DstEdgeListPrefix(graph)
+	self.prefixDelete(dprefix)
+
+	graphKey := GraphKey(graph)
+	self.kv.Delete(graphKey)
+
+	return nil
 }
 
 func (self *BadgerArachne) Graph(graph string) gdbi.DBI {
@@ -162,7 +216,7 @@ func (self *BadgerGDB) SetEdge(edge aql.Edge) error {
 	}
 	eid := edge.Gid
 	data, _ := proto.Marshal(&edge)
-	//log.Printf("SetEdge: %s %d", edge, len(data))
+	log.Printf("SetEdge: %s %d", edge, len(data))
 
 	src := edge.Src
 	dst := edge.Dst
@@ -457,9 +511,9 @@ func (self *BadgerGDB) GetOutList(ctx context.Context, id string, loadProp bool,
 			default:
 			}
 			key_value := it.Item().Key()
-			_, src, _, _ := SrcEdgeKeyParse(key_value)
+			_, _, dst, _ := SrcEdgeKeyParse(key_value)
 
-			vkey := VertexKey(self.graph, src) //bytes.Join([][]byte{[]byte("v"), iid}, []byte{0})
+			vkey := VertexKey(self.graph, dst) //bytes.Join([][]byte{[]byte("v"), iid}, []byte{0})
 
 			send := false
 			if filter != nil {
@@ -527,7 +581,8 @@ func (self *BadgerGDB) GetVertexList(ctx context.Context, loadProp bool) chan aq
 		defer close(o)
 		it := self.kv.NewIterator(badger.DefaultIteratorOptions)
 		defer it.Close()
-		v_prefix := []byte("v")
+
+		v_prefix := VertexListPrefix(self.graph)
 
 		for it.Seek(v_prefix); it.Valid() && bytes.HasPrefix(it.Item().Key(), v_prefix); it.Next() {
 			select {

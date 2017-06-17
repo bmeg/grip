@@ -25,7 +25,7 @@ def test_count(O):
     for i in O.query().V().execute():
         count += 1
     if count != 4:
-        errors.append("Fail: O.query().V()")
+        errors.append("Fail: O.query().V() %s != %s" % (count, 4))
 
     count = 0
     for i in O.query().E().execute():
@@ -91,8 +91,8 @@ def test_duplicate(O):
 
     #O.query().V("vertex1").addE("friend").to("vertex2").execute()
     #O.query().V("vertex1").addE("friend").to("vertex2").execute()
-    O.addEdge("vertex1", "vertex2")
-    O.addEdge("vertex1", "vertex2")
+    O.addEdge("vertex1", "vertex2", "friend")
+    O.addEdge("vertex1", "vertex2", "friend")
 
     if O.query().V().count().first()['int_value'] != 2:
         errors.append("duplicate vertex add error")

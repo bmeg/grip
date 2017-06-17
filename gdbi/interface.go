@@ -35,6 +35,8 @@ type QueryInterface interface {
 
 type ArachneInterface interface {
 	Close()
+	AddGraph(string) error
+	DeleteGraph(string) error
 	GetGraphs() []string
 	Query(string) QueryInterface
 	Graph(string) DBI

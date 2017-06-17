@@ -50,22 +50,6 @@ func (server *ArachneServer) Traversal(query *aql.GraphQuery, queryServer aql.Qu
 	return nil
 }
 
-/*
-func (server *ArachneServer) Add(ctx context.Context, elem *aql.GraphElement) (*aql.EditResult, error) {
-	var id string = ""
-	if x, ok := elem.GetElement().(*aql.GraphElement_Vertex); ok {
-		server.engine.AddVertex(*x.Vertex)
-		id = x.Vertex.Gid
-	} else if x, ok := elem.GetElement().(*aql.GraphElement_Edge); ok {
-		server.engine.AddEdge(*x.Edge)
-		id = x.Edge.Gid
-		//} else if x, ok := elem.GetElement().(*aql.AddElement_EdgeBundle); ok {
-		//	server.engine.AddEdgeBundle(*x.EdgeBundle)
-	}
-	return &aql.EditResult{Result: &aql.EditResult_Id{id}}, nil
-}
-*/
-
 func (server *ArachneServer) GetGraphs(empty *aql.Empty, queryServer aql.Query_GetGraphsServer) error {
 	for _, name := range server.engine.GetGraphs() {
 		queryServer.Send(&aql.ElementID{Graph: name})
@@ -84,13 +68,13 @@ func (server *ArachneServer) GetEdge(ctx context.Context, elem *aql.ElementID) (
 }
 
 func (server *ArachneServer) DeleteGraph(ctx context.Context, elem *aql.ElementID) (*aql.EditResult, error) {
-	//TODO: Add multiple graphs
-	return &aql.EditResult{Result: &aql.EditResult_Id{elem.Id}}, nil
+	server.engine.DeleteGraph(elem.Graph)
+	return &aql.EditResult{Result: &aql.EditResult_Id{elem.Graph}}, nil
 }
 
 func (server *ArachneServer) AddGraph(ctx context.Context, elem *aql.ElementID) (*aql.EditResult, error) {
-	//TODO: Add multiple graphs
-	return &aql.EditResult{Result: &aql.EditResult_Id{elem.Id}}, nil
+	server.engine.AddGraph(elem.Graph)
+	return &aql.EditResult{Result: &aql.EditResult_Id{elem.Graph}}, nil
 }
 
 func (server *ArachneServer) AddVertex(ctx context.Context, elem *aql.GraphElement) (*aql.EditResult, error) {
