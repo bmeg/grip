@@ -2,8 +2,8 @@ package memgraph
 
 import (
 	"fmt"
-	"github.com/bmeg/arachne/gdbi"
 	"github.com/bmeg/arachne/aql"
+	"github.com/bmeg/arachne/gdbi"
 )
 
 type edgepair struct {

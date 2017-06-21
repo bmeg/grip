@@ -178,19 +178,21 @@ class Query:
         headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
         request = urllib2.Request(self.parent.url + "/query", payload, headers=headers)
         response = urllib2.urlopen(request)
-        out = []
-        for result in response.readlines():
+        #out = []
+        for result in response:
             try:
                 d = json.loads(result)
                 if 'value' in d:
-                    out.append(d['value'])
+                    #out.append(d['value'])
+                    yield d['value']
                 elif 'row' in d:
-                    out.append(d['row'])
+                    #out.append(d['row'])
+                    yield d['row']
             except ValueError, e:
                 #print "Can't decode: %s" % result
                 raise e
-        return out
+        #return out
 
 
     def first(self):
-        return self.execute()[0]
+        return list(self.execute())[0]

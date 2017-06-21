@@ -3,8 +3,8 @@ package boltdb
 import (
 	"bytes"
 	"fmt"
-	"github.com/bmeg/arachne/gdbi"
 	"github.com/bmeg/arachne/aql"
+	"github.com/bmeg/arachne/gdbi"
 	"github.com/boltdb/bolt"
 	proto "github.com/golang/protobuf/proto"
 	//"github.com/golang/protobuf/ptypes/struct"

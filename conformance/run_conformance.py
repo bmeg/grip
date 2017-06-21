@@ -18,6 +18,7 @@ import aql
 
 def clear_db(conn):
     conn.delete(GRAPH)
+    conn.new(GRAPH)
     O = conn.graph(GRAPH)
     if int(O.query().V().count().first()['int_value']) != 0:
         print "Unable to clear database"

@@ -135,21 +135,29 @@ func (self *BadgerArachne) AddGraph(graph string) error {
 	return nil
 }
 
-func (self *BadgerArachne) prefixDelete(prefix []byte) {
-	DELETE_BLOCK_SIZE := 1000
-	wb := make([]*badger.Entry, 0, DELETE_BLOCK_SIZE)
+func bytes_copy(in []byte) []byte {
+	out := make([]byte, len(in))
+	copy(out, in)
+	return out
+}
 
-	it := self.kv.NewIterator(badger.DefaultIteratorOptions)
-	defer it.Close()
-	for it.Seek(prefix); it.Valid() && bytes.HasPrefix(it.Item().Key(), prefix); it.Next() {
-		if len(wb) >= DELETE_BLOCK_SIZE {
-			self.kv.BatchSet(wb)
-			wb = make([]*badger.Entry, 0, DELETE_BLOCK_SIZE)
+func (self *BadgerArachne) prefixDelete(prefix []byte) {
+	DELETE_BLOCK_SIZE := 10000
+
+	for found := true; found; {
+		found = false
+		wb := make([]*badger.Entry, 0, DELETE_BLOCK_SIZE)
+		opts := badger.DefaultIteratorOptions
+		opts.FetchValues = false
+		it := self.kv.NewIterator(opts)
+		for it.Seek(prefix); it.Valid() && bytes.HasPrefix(it.Item().Key(), prefix) && len(wb) < DELETE_BLOCK_SIZE-1; it.Next() {
+			wb = badger.EntriesDelete(wb, bytes_copy(it.Item().Key()))
 		}
-		wb = badger.EntriesDelete(wb, it.Item().Key())
-	}
-	if len(wb) > 0 {
-		self.kv.BatchSet(wb)
+		it.Close()
+		if len(wb) > 0 {
+			self.kv.BatchSet(wb)
+			found = true
+		}
 	}
 }
 
@@ -216,7 +224,6 @@ func (self *BadgerGDB) SetEdge(edge aql.Edge) error {
 	}
 	eid := edge.Gid
 	data, _ := proto.Marshal(&edge)
-	log.Printf("SetEdge: %s %d", edge, len(data))
 
 	src := edge.Src
 	dst := edge.Dst

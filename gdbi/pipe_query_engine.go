@@ -36,6 +36,7 @@ func (self *PipeEngine) append(pipe GraphPipe) *PipeEngine {
 		pipe:       pipe,
 		sideEffect: self.sideEffect,
 		err:        self.err,
+		selection:  self.selection,
 		imports:    self.imports,
 	}
 }
