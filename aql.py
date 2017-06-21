@@ -2,31 +2,72 @@ import json
 import urllib2
 
 class Connection:
-    def __init__(self, host, graph):
+    def __init__(self, host):
         self.host = host
-        self.url =  "%s/v1/graph/%s" % (host, graph)
+        self.url =  "%s/v1/graph" % (host)
+
+    def list(self):
+        request = urllib2.Request(self.url)
+        response = urllib2.urlopen(request)
+        txt = response.read()
+        if len(txt) == 0:
+            return []
+        lines = txt.rstrip().split("\n")
+        out = []
+        for i in lines:
+            out.append(json.loads(i))
+        return out
+
+    def new(self, name):
+        headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
+        request = urllib2.Request("%s/%s" % (self.url, name), "{}", headers=headers)
+        response = urllib2.urlopen(request)
+        result = response.read()
+        return json.loads(result)
+
+    def delete(self, name):
+        headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
+        request = urllib2.Request("%s/%s" % (self.url, name), headers=headers)
+        request.get_method = lambda: "DELETE"
+        response = urllib2.urlopen(request)
+        result = response.read()
+        return json.loads(result)
+
+    def graph(self, name):
+        return Graph("%s/%s" % (self.url, name))
+
+
+class Graph:
+    def __init__(self, url):
+        self.url = url
 
     def query(self):
         return Query(self)
 
-    def execute(self, query):
-        payload = query.render()
-        #print payload
+    def addVertex(self, id, prop={}):
+        payload = json.dumps({
+            "gid" : id,
+            "properties" : prop
+        })
         headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
-        request = urllib2.Request(self.url + "/query", payload, headers=headers)
+        request = urllib2.Request(self.url + "/vertex", payload, headers=headers)
         response = urllib2.urlopen(request)
-        out = []
-        for result in response.readlines():
-            try:
-                d = json.loads(result)
-                if 'value' in d:
-                    out.append(d['value'])
-                elif 'row' in d:
-                    out.append(d['row'])
-            except ValueError, e:
-                print "Can't decode: %s" % result
-                raise e
-        return out
+        result = response.read()
+        return json.loads(result)
+
+    def addEdge(self, src, dst, label, prop={}):
+        payload = json.dumps({
+            "src" : src,
+            "dst" : dst,
+            "label" : label,
+            "properties" : prop
+        })
+        headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
+        request = urllib2.Request(self.url + "/edge", payload, headers=headers)
+        response = urllib2.urlopen(request)
+        result = response.read()
+        return json.loads(result)
+
 
 class Query:
     def __init__(self, parent=None):
@@ -119,27 +160,6 @@ class Query:
         self.query.append({'by': label})
         return self
 
-    def addV(self, id):
-        self.query.append({'addV': id})
-        return self
-
-    def addE(self, label):
-        self.query.append({"addE" : label})
-        return self
-
-    def to(self, dst):
-        self.query.append({"to" : dst})
-        return self
-
-    def property(self, *args):
-        if len(args) == 2:
-            self.query.append({"property" : {args[0]:args[1]}})
-        elif len(args) == 1 and isinstance(args[0], dict):
-            self.query.append({"property" : args[0]})
-        else:
-            raise Exception("Argument Error")
-        return self
-
     def map(self, func):
         self.query.append({"map" : func})
         return self
@@ -148,16 +168,31 @@ class Query:
         self.query.append({"fold" : func})
         return self
 
-    def drop(self):
-        self.query.append({"drop" : ''})
-        return self
-
     def render(self):
         output = {'query': self.query}
         return json.dumps(output)
 
     def execute(self):
-        return self.parent.execute(self)
+        payload = self.render()
+        #print payload
+        headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
+        request = urllib2.Request(self.parent.url + "/query", payload, headers=headers)
+        response = urllib2.urlopen(request)
+        #out = []
+        for result in response:
+            try:
+                d = json.loads(result)
+                if 'value' in d:
+                    #out.append(d['value'])
+                    yield d['value']
+                elif 'row' in d:
+                    #out.append(d['row'])
+                    yield d['row']
+            except ValueError, e:
+                #print "Can't decode: %s" % result
+                raise e
+        #return out
+
 
     def first(self):
-        return self.execute()[0]
+        return list(self.execute())[0]

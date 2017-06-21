@@ -96,11 +96,18 @@ message EdgeBundle {
 
 message GraphElement {
   string graph = 1;
-  oneof element {
-    Vertex vertex = 2;
-    Edge edge = 3;
+  Vertex vertex = 2;
+  Edge edge = 3;
 //    EdgeBundle edge_bundle = 4;
-  }
+}
+
+message ElementID {
+  string graph = 1;
+  string id = 2;
+}
+
+message Empty {
+
 }
 
 service Query {
@@ -110,13 +117,64 @@ service Query {
       body: "*"
     };
   }
+
+  rpc GetVertex(ElementID) returns (Vertex) {
+    option (google.api.http) = {
+      get: "/v1/graph/{graph}/vertex/{id}"
+    };
+  }
+
+  rpc GetEdge(ElementID) returns (Edge) {
+    option (google.api.http) = {
+      get: "/v1/graph/{graph}/edge/{id}"
+    };
+  }
+
+  rpc GetGraphs(Empty) returns (stream ElementID) {
+    option (google.api.http) = {
+      get: "/v1/graph"
+    };
+  }
+
 }
 
 service Edit {
-  rpc Add(GraphElement) returns (EditResult) {
+  rpc AddVertex(GraphElement) returns (EditResult) {
     option (google.api.http) = {
-      post: "/v1/graph/{graph}"
-      body: "*"
+      post: "/v1/graph/{graph}/vertex"
+      body: "vertex"
     };
   }
+
+  rpc AddEdge(GraphElement) returns (EditResult) {
+    option (google.api.http) = {
+      post: "/v1/graph/{graph}/edge"
+      body: "edge"
+    };
+  }
+
+  rpc AddGraph(ElementID) returns (EditResult) {
+    option (google.api.http) = {
+      post: "/v1/graph/{graph}"
+    };
+  }
+
+  rpc DeleteGraph(ElementID) returns (EditResult) {
+    option (google.api.http) = {
+      delete: "/v1/graph/{graph}"
+    };
+  }
+
+  rpc DeleteVertex(ElementID) returns (EditResult) {
+    option (google.api.http) = {
+      delete: "/v1/graph/{graph}/vertex/{id}"
+    };
+  }
+
+  rpc DeleteEdge(ElementID) returns (EditResult) {
+    option (google.api.http) = {
+      delete: "/v1/graph/{graph}/edge/{id}"
+    };
+  }
+
 }

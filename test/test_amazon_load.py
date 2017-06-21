@@ -5,7 +5,7 @@
 import sys
 import gzip
 import re
-import ophion
+import json
 
 def line_read(line):
     res = re.search(r'^\s*([\w]+):\s+(.*)\s*$', line.rstrip())
@@ -15,25 +15,29 @@ def line_read(line):
 
 
 class Writer:
-    def __init__(self, host):
-        self.o = ophion.Ophion(host)
+    def __init__(self, outpath):
+        self.vert_handle = open(outpath + ".vertex", "w")
+        self.edge_handle = open(outpath + ".edge", "w")
         self.record_count = 0
 
     def add_record(self, rec):
-        q = self.o.query().addV(rec['ASIN'])
-
+        q = {"gid" : rec['ASIN'], "properties" : {}}
         for i in ["Id", "group", "title", "salesrank"]:
             if i in rec:
-                q = q.property(i, rec[i])
-        q.execute()
+                q["properties"][i] = rec[i]
+        self.vert_handle.write(json.dumps(q) + "\n")
 
         for i in rec.get('similar', []):
-            self.o.query().V(rec['ASIN']).addE("similar").to(i).execute()
+            e = { "src" : rec['ASIN'], "dst" : i, "label" : "similar" }
+            self.edge_handle.write(json.dumps(e) + "\n")
 
         self.record_count += 1
         if self.record_count % 1000 == 0:
             print "%s vertices written" % (self.record_count)
 
+    def close(self):
+        self.vert_handle.close()
+        self.edge_handle.close()
 
 writer = Writer(sys.argv[2])
 
@@ -81,3 +85,4 @@ with gzip.GzipFile(sys.argv[1]) as handle:
                 else:
                     print e
                 #print e[0]
+writer.close()

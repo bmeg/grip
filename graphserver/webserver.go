@@ -66,8 +66,12 @@ func StartHttpProxy(rpcPort string, httpPort string, contentDir string) {
 	err := aql.RegisterQueryHandlerFromEndpoint(ctx, grpcMux, "localhost:"+rpcPort, opts)
 	if err != nil {
 		fmt.Println("Register Error", err)
-
 	}
+	err = aql.RegisterEditHandlerFromEndpoint(ctx, grpcMux, "localhost:"+rpcPort, opts)
+	if err != nil {
+		fmt.Println("Register Error", err)
+	}
+
 	r := mux.NewRouter()
 
 	runtime.OtherErrorHandler = HandleError

@@ -2,8 +2,10 @@ package graphserver
 
 import (
 	//"github.com/bmeg/arachne/boltdb"
+	//"github.com/bmeg/arachne/rocksdb"
+	"fmt"
 	"github.com/bmeg/arachne/aql"
-	"github.com/bmeg/arachne/rocksdb"
+	"github.com/bmeg/arachne/badgerdb"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"log"
@@ -18,7 +20,8 @@ type ArachneServer struct {
 func NewArachneServer(baseDir string) *ArachneServer {
 	return &ArachneServer{
 		//engine: NewGraphEngine(boltdb.NewBoltArachne(baseDir)),
-		engine: NewGraphEngine(rocksdb.NewRocksArachne(baseDir)),
+		//engine: NewGraphEngine(rocksdb.NewRocksArachne(baseDir)),
+		engine: NewGraphEngine(badgerdb.NewBadgerArachne(baseDir)),
 	}
 }
 
@@ -47,17 +50,59 @@ func (server *ArachneServer) Traversal(query *aql.GraphQuery, queryServer aql.Qu
 	return nil
 }
 
-
-func (server *ArachneServer) Add(ctx context.Context, elem *aql.GraphElement) (*aql.EditResult, error) {
-	var id string = ""
-	if x, ok := elem.GetElement().(*aql.GraphElement_Vertex); ok {
-		server.engine.AddVertex(*x.Vertex)
-		id = x.Vertex.Gid
-	}	else if x, ok := elem.GetElement().(*aql.GraphElement_Edge); ok {
-		server.engine.AddEdge(*x.Edge)
-		id = x.Edge.Gid
-	//} else if x, ok := elem.GetElement().(*aql.AddElement_EdgeBundle); ok {
-	//	server.engine.AddEdgeBundle(*x.EdgeBundle)
+func (server *ArachneServer) GetGraphs(empty *aql.Empty, queryServer aql.Query_GetGraphsServer) error {
+	for _, name := range server.engine.GetGraphs() {
+		queryServer.Send(&aql.ElementID{Graph: name})
 	}
-	return &aql.EditResult{Result:&aql.EditResult_Id{id}}, nil
+	return nil
+}
+
+func (server *ArachneServer) GetVertex(ctx context.Context, elem *aql.ElementID) (*aql.Vertex, error) {
+	o := server.engine.GetVertex(elem.Graph, elem.Id)
+	return o, nil
+}
+
+func (server *ArachneServer) GetEdge(ctx context.Context, elem *aql.ElementID) (*aql.Edge, error) {
+	o := server.engine.GetEdge(elem.Graph, elem.Id)
+	return o, nil
+}
+
+func (server *ArachneServer) DeleteGraph(ctx context.Context, elem *aql.ElementID) (*aql.EditResult, error) {
+	server.engine.DeleteGraph(elem.Graph)
+	return &aql.EditResult{Result: &aql.EditResult_Id{elem.Graph}}, nil
+}
+
+func (server *ArachneServer) AddGraph(ctx context.Context, elem *aql.ElementID) (*aql.EditResult, error) {
+	server.engine.AddGraph(elem.Graph)
+	return &aql.EditResult{Result: &aql.EditResult_Id{elem.Graph}}, nil
+}
+
+func (server *ArachneServer) AddVertex(ctx context.Context, elem *aql.GraphElement) (*aql.EditResult, error) {
+	var id string = ""
+	server.engine.AddVertex(elem.Graph, *elem.Vertex)
+	id = elem.Vertex.Gid
+	return &aql.EditResult{Result: &aql.EditResult_Id{id}}, nil
+}
+
+func (server *ArachneServer) AddEdge(ctx context.Context, elem *aql.GraphElement) (*aql.EditResult, error) {
+	var id string = ""
+	server.engine.AddEdge(elem.Graph, *elem.Edge)
+	id = elem.Edge.Gid
+	return &aql.EditResult{Result: &aql.EditResult_Id{id}}, nil
+}
+
+func (server *ArachneServer) DeleteVertex(ctx context.Context, elem *aql.ElementID) (*aql.EditResult, error) {
+	err := server.engine.Arachne.Graph(elem.Graph).DelVertex(elem.Id)
+	if err != nil {
+		return &aql.EditResult{Result: &aql.EditResult_Error{Error: fmt.Sprintf("%s", err)}}, nil
+	}
+	return &aql.EditResult{Result: &aql.EditResult_Id{elem.Id}}, nil
+}
+
+func (server *ArachneServer) DeleteEdge(ctx context.Context, elem *aql.ElementID) (*aql.EditResult, error) {
+	err := server.engine.Arachne.Graph(elem.Graph).DelEdge(elem.Id)
+	if err != nil {
+		return &aql.EditResult{Result: &aql.EditResult_Error{Error: fmt.Sprintf("%s", err)}}, nil
+	}
+	return &aql.EditResult{Result: &aql.EditResult_Id{elem.Id}}, nil
 }

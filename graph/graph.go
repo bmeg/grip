@@ -1,9 +1,9 @@
 package graph
 
 import (
+	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/gdbi"
 	"github.com/bmeg/arachne/memgraph"
-	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/protoutil"
 )
 

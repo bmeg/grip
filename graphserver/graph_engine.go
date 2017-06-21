@@ -3,25 +3,45 @@ package graphserver
 import (
 	"context"
 	"fmt"
-	"github.com/bmeg/arachne/gdbi"
 	"github.com/bmeg/arachne/aql"
+	"github.com/bmeg/arachne/gdbi"
 	"log"
 )
 
 type GraphEngine struct {
-	DBI gdbi.DBI
+	Arachne gdbi.ArachneInterface
 }
 
-func NewGraphEngine(dbi gdbi.DBI) GraphEngine {
-	return GraphEngine{DBI: dbi}
+func NewGraphEngine(a gdbi.ArachneInterface) GraphEngine {
+	return GraphEngine{Arachne: a}
 }
 
-func (engine *GraphEngine) AddEdge(edge aql.Edge) error {
-	return engine.DBI.SetEdge(edge)
+func (engine *GraphEngine) AddGraph(graph string) error {
+	return engine.Arachne.AddGraph(graph)
 }
 
-func (engine *GraphEngine) AddVertex(vertex aql.Vertex) error {
-	return engine.DBI.SetVertex(vertex)
+func (engine *GraphEngine) DeleteGraph(graph string) error {
+	return engine.Arachne.DeleteGraph(graph)
+}
+
+func (engine *GraphEngine) GetGraphs() []string {
+	return engine.Arachne.GetGraphs()
+}
+
+func (engine *GraphEngine) GetVertex(graph, id string) *aql.Vertex {
+	return engine.Arachne.Graph(graph).GetVertex(id, true)
+}
+
+func (engine *GraphEngine) GetEdge(graph, id string) *aql.Edge {
+	return engine.Arachne.Graph(graph).GetEdge(id, true)
+}
+
+func (engine *GraphEngine) AddEdge(graph string, edge aql.Edge) error {
+	return engine.Arachne.Graph(graph).SetEdge(edge)
+}
+
+func (engine *GraphEngine) AddVertex(graph string, vertex aql.Vertex) error {
+	return engine.Arachne.Graph(graph).SetVertex(vertex)
 }
 
 /*
@@ -31,7 +51,7 @@ func (engine *GraphEngine) AddEdgeBundle(edgeBundle aql.EdgeBundle) error {
 */
 
 func (engine *GraphEngine) RunTraversal(ctx context.Context, query *aql.GraphQuery) (chan aql.ResultRow, error) {
-	tr := engine.Query()
+	tr := engine.Query(query.Graph)
 	//log.Printf("Starting Query: %#v", query.Query)
 	for _, s := range query.Query {
 		err := tr.RunStatement(s)
@@ -43,40 +63,39 @@ func (engine *GraphEngine) RunTraversal(ctx context.Context, query *aql.GraphQue
 	return tr.GetResult(ctx)
 }
 
-func (engine *GraphEngine) Query() *Traversal {
-	out := &Traversal{DBI: engine.DBI, ReadOnly: false, Query: engine.DBI.Query()}
+func (engine *GraphEngine) Query(graph string) *Traversal {
+	out := &Traversal{Query: engine.Arachne.Query(graph), ReadOnly: false}
 	return out
 }
 
 type Traversal struct {
 	ReadOnly bool
-	DBI      gdbi.ArachneInterface
 	Query    gdbi.QueryInterface
 }
 
 func (trav *Traversal) RunStatement(statement *aql.GraphStatement) error {
 	/*
-	if statement.GetAddV() != "" {
-		trav.Query = trav.Query.AddV(statement.GetAddV())
-	} else if statement.GetAddE() != "" {
-		trav.Query = trav.Query.AddE(statement.GetAddE())
-	} else if statement.GetTo() != "" {
-		trav.Query = trav.Query.To(statement.GetTo())
-	} else if x, ok := statement.GetStatement().(*aql.GraphStatement_V); ok {
+			if statement.GetAddV() != "" {
+				trav.Query = trav.Query.AddV(statement.GetAddV())
+			} else if statement.GetAddE() != "" {
+				trav.Query = trav.Query.AddE(statement.GetAddE())
+			} else if statement.GetTo() != "" {
+				trav.Query = trav.Query.To(statement.GetTo())
+			} else if x := statement.GetProperty(); x != nil {
+					for k, v := range x.Fields {
+						trav.Query = trav.Query.Property(k, v)
+					}
+			} else if _, ok := statement.GetStatement().(*aql.GraphStatement_Drop); ok {
+				trav.Query = trav.Query.Drop()
+		  } else
+	*/
+	if x, ok := statement.GetStatement().(*aql.GraphStatement_V); ok {
 		if x.V == "" {
 			trav.Query = trav.Query.V()
 		} else {
 			trav.Query = trav.Query.V(x.V)
 		}
-	} else if x := statement.GetProperty(); x != nil {
-			for k, v := range x.Fields {
-				trav.Query = trav.Query.Property(k, v)
-			}
-	} else if _, ok := statement.GetStatement().(*aql.GraphStatement_Drop); ok {
-		trav.Query = trav.Query.Drop()
-  } else
-	*/
-	if _, ok := statement.GetStatement().(*aql.GraphStatement_E); ok {
+	} else if _, ok := statement.GetStatement().(*aql.GraphStatement_E); ok {
 		trav.Query = trav.Query.E()
 	} else if x, ok := statement.GetStatement().(*aql.GraphStatement_Out); ok {
 		if x.Out == "" {

@@ -1,11 +1,11 @@
 package server
 
 import (
-	"os"
-	"log"
-	"path/filepath"
-	"github.com/spf13/cobra"
 	"github.com/bmeg/arachne/graphserver"
+	"github.com/spf13/cobra"
+	"log"
+	"os"
+	"path/filepath"
 )
 
 var httpPort string = "8000"
@@ -13,9 +13,9 @@ var rpcPort string = "9090"
 var dbPath string = "graph.db"
 
 var Cmd = &cobra.Command{
-	Use: "server",
+	Use:   "server",
 	Short: "Starts arachne server",
-	Long: ``,
+	Long:  ``,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		dir, _ := filepath.Abs(os.Args[0])
 		contentDir := filepath.Join(dir, "..", "..", "share")
