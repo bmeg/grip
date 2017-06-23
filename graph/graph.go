@@ -1,6 +1,7 @@
 package graph
 
 import (
+	"context"
 	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/gdbi"
 	"github.com/bmeg/arachne/memgraph"
@@ -27,22 +28,22 @@ func (graph *Graph) AddVertex(id string, prop map[string]interface{}) {
 	graph.dbi.SetVertex(v)
 }
 
-func (graph *Graph) AddEdge(out string, in string, prop map[string]interface{}) {
+func (graph *Graph) AddEdge(src string, dst string, prop map[string]interface{}) {
 	e := aql.Edge{
-		Out:        out,
-		In:         in,
+		Src:        src,
+		Dst:        dst,
 		Properties: protoutil.AsStruct(prop),
 	}
 	graph.dbi.SetEdge(e)
 }
 
 func (graph *Graph) GetVertices() chan aql.Vertex {
-	return graph.dbi.GetVertexList()
+	return graph.dbi.GetVertexList(context.Background(), true)
 }
 
 func (graph *Graph) GetOutEdgesArray(id string) []aql.Edge {
 	out := []aql.Edge{}
-	for i := range graph.dbi.GetOutEdgeList(id, nil) {
+	for i := range graph.dbi.GetOutEdgeList(context.Background(), id, true, nil) {
 		out = append(out, i)
 	}
 	return out
@@ -50,7 +51,7 @@ func (graph *Graph) GetOutEdgesArray(id string) []aql.Edge {
 
 func (graph *Graph) GetInEdgesArray(id string) []aql.Edge {
 	out := []aql.Edge{}
-	for i := range graph.dbi.GetInEdgeList(id, nil) {
+	for i := range graph.dbi.GetInEdgeList(context.Background(), id, true, nil) {
 		out = append(out, i)
 	}
 	return out
@@ -62,21 +63,21 @@ func (graph *Graph) AggregateMessages(
 ) {
 
 	collection := map[string][]interface{}{}
-	for v := range graph.dbi.GetVertexList() {
-		for e := range graph.dbi.GetOutEdgeList(v.Gid, nil) {
+	for v := range graph.dbi.GetVertexList(context.Background(), true) {
+		for e := range graph.dbi.GetOutEdgeList(context.Background(), v.Gid, true, nil) {
 			i := gen(v, e)
-			if _, ok := collection[e.In]; !ok {
-				collection[e.In] = []interface{}{i}
+			if _, ok := collection[e.Dst]; !ok {
+				collection[e.Dst] = []interface{}{i}
 			} else {
-				collection[e.In] = append(collection[e.In], i)
+				collection[e.Dst] = append(collection[e.Dst], i)
 			}
 		}
-		for e := range graph.dbi.GetInEdgeList(v.Gid, nil) {
+		for e := range graph.dbi.GetInEdgeList(context.Background(), v.Gid, true, nil) {
 			i := gen(v, e)
-			if _, ok := collection[e.In]; !ok {
-				collection[e.Out] = []interface{}{i}
+			if _, ok := collection[e.Dst]; !ok {
+				collection[e.Src] = []interface{}{i}
 			} else {
-				collection[e.Out] = append(collection[e.Out], i)
+				collection[e.Src] = append(collection[e.Src], i)
 			}
 		}
 	}
