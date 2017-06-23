@@ -205,7 +205,6 @@ func (self *BadgerArachne) GetGraphs() []string {
 
 func (self *BadgerGDB) Query() gdbi.QueryInterface {
 	return gdbi.NewPipeEngine(self, false)
-	return nil
 }
 
 func (self *BadgerGDB) SetVertex(vertex aql.Vertex) error {

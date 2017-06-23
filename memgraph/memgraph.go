@@ -30,8 +30,17 @@ func NewMemGDBI() *MemGraph {
 	}
 }
 
-func (self *MemGraph) GetVertex(key string) *aql.Vertex {
+func (self *MemGraph) Query() gdbi.QueryInterface {
+	return gdbi.NewPipeEngine(self, false)
+}
+
+
+func (self *MemGraph) GetVertex(key string, load bool) *aql.Vertex {
 	return self.vertices[key]
+}
+
+func (self *MemGraph) GetEdge(key string, load bool) *aql.Edge {
+	return self.edges[key]
 }
 
 func (self *MemGraph) GetVertexList(ctx context.Context, load bool) chan aql.Vertex {
@@ -45,7 +54,7 @@ func (self *MemGraph) GetVertexList(ctx context.Context, load bool) chan aql.Ver
 	return out
 }
 
-func (self *MemGraph) GetEdgeList() chan aql.Edge {
+func (self *MemGraph) GetEdgeList(ctx context.Context, load bool) chan aql.Edge {
 	out := make(chan aql.Edge, 100)
 	go func() {
 		defer close(out)
@@ -60,7 +69,7 @@ func (self *MemGraph) GetEdgeList() chan aql.Edge {
 	return out
 }
 
-func (self *MemGraph) GetOutList(key string, filter gdbi.EdgeFilter) chan aql.Vertex {
+func (self *MemGraph) GetOutList(ctx context.Context, key string, load bool, filter gdbi.EdgeFilter) chan aql.Vertex {
 	o := make(chan aql.Vertex, 100)
 	go func() {
 		defer close(o)
@@ -83,7 +92,7 @@ func (self *MemGraph) GetOutList(key string, filter gdbi.EdgeFilter) chan aql.Ve
 	return o
 }
 
-func (self *MemGraph) GetInList(key string, filter gdbi.EdgeFilter) chan aql.Vertex {
+func (self *MemGraph) GetInList(ctx context.Context, key string, load bool, filter gdbi.EdgeFilter) chan aql.Vertex {
 	o := make(chan aql.Vertex, 100)
 	go func() {
 		defer close(o)
@@ -107,7 +116,7 @@ func (self *MemGraph) GetInList(key string, filter gdbi.EdgeFilter) chan aql.Ver
 
 }
 
-func (self *MemGraph) GetOutEdgeList(key string, filter gdbi.EdgeFilter) chan aql.Edge {
+func (self *MemGraph) GetOutEdgeList(ctx context.Context, key string, load bool, filter gdbi.EdgeFilter) chan aql.Edge {
 	o := make(chan aql.Edge, 100)
 	go func() {
 		defer close(o)
@@ -130,7 +139,7 @@ func (self *MemGraph) GetOutEdgeList(key string, filter gdbi.EdgeFilter) chan aq
 	return o
 }
 
-func (self *MemGraph) GetInEdgeList(key string, filter gdbi.EdgeFilter) chan aql.Edge {
+func (self *MemGraph) GetInEdgeList(ctx context.Context, key string, load bool, filter gdbi.EdgeFilter) chan aql.Edge {
 	o := make(chan aql.Edge, 100)
 	go func() {
 		defer close(o)
@@ -168,7 +177,7 @@ func (self *MemGraph) DelVertex(key string) error {
 func (self *MemGraph) DelEdge(key string) error {
 	p := self.edges[key]
 	for i := 0; i < len(self.out_edges[p.Src][p.Dst]); i++ {
-		if self.out_edges[p.Src][p.Dst][i].Gid == key {
+		if self.out_edges[p.Src][p.Dst][i] == key {
 			l := len(self.out_edges[p.Src][p.Dst])
 			self.out_edges[p.Src][p.Dst][i] = self.out_edges[p.Src][p.Dst][l-1]
 			self.out_edges[p.Src][p.Dst] = self.out_edges[p.Src][p.Dst][:l-1]
@@ -193,15 +202,15 @@ func (self *MemGraph) SetVertex(vertex aql.Vertex) error {
 func (self *MemGraph) SetEdge(edge aql.Edge) error {
 	edge.Gid = fmt.Sprintf("%d", self.edge_sequence)
 	self.edge_sequence += 1
-	self.edges[edge.Gid] = edgepair{src: edge.Src, dst: edge.Dst}
+	self.edges[edge.Gid] = &edge
 
 	if _, ok := self.out_edges[edge.Src]; !ok {
-		self.out_edges[edge.Src] = map[string][]*aql.Edge{}
+		self.out_edges[edge.Src] = map[string][]string{}
 	}
 	if _, ok := self.out_edges[edge.Src][edge.Dst]; ok {
-		self.out_edges[edge.Src][edge.Dst] = append(self.out_edges[edge.Src][edge.Dst], &edge)
+		self.out_edges[edge.Src][edge.Dst] = append(self.out_edges[edge.Src][edge.Dst], edge.Gid)
 	} else {
-		self.out_edges[edge.Src][edge.Dst] = []*aql.Edge{&edge}
+		self.out_edges[edge.Src][edge.Dst] = []string{edge.Gid}
 	}
 
 	if _, ok := self.in_edges[edge.Src]; !ok {

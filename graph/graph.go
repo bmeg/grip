@@ -82,7 +82,7 @@ func (graph *Graph) AggregateMessages(
 		}
 	}
 	for k, v := range collection {
-		vert := graph.dbi.GetVertex(k)
+		vert := graph.dbi.GetVertex(k, true)
 		p := agg(*vert, v)
 		protoutil.CopyToStruct(vert.Properties, p)
 		graph.dbi.SetVertex(*vert)
