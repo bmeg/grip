@@ -6,6 +6,7 @@ import (
 	//"fmt"
 	"context"
 	"encoding/json"
+	"github.com/bmeg/arachne/protoutil"
 	"github.com/golang/protobuf/jsonpb"
 	structpb "github.com/golang/protobuf/ptypes/struct"
 	"google.golang.org/grpc"
@@ -137,6 +138,13 @@ func (vertex *Vertex) SetProperty(key string, value interface{}) {
 	if vertex.Properties == nil {
 		vertex.Properties = &structpb.Struct{Fields: map[string]*structpb.Value{}}
 	}
-	//BUG: This is only supporting strings at the moment
-	vertex.Properties.Fields[key] = &structpb.Value{Kind: &structpb.Value_StringValue{value.(string)}}
+	protoutil.StructSet(vertex.Properties, key, value)
+}
+
+func (vertex *Vertex) GetProperty(key string) interface{} {
+	if vertex.Properties == nil {
+		return nil
+	}
+	m := protoutil.AsMap(vertex.Properties)
+	return m[key]
 }

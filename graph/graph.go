@@ -28,6 +28,10 @@ func (graph *Graph) AddVertex(id string, prop map[string]interface{}) {
 	graph.dbi.SetVertex(v)
 }
 
+func (graph *Graph) UpdateVertex(v *aql.Vertex) {
+	graph.dbi.SetVertex(*v)
+}
+
 func (graph *Graph) AddEdge(src string, dst string, prop map[string]interface{}) {
 	e := aql.Edge{
 		Src:        src,
@@ -36,6 +40,11 @@ func (graph *Graph) AddEdge(src string, dst string, prop map[string]interface{})
 	}
 	graph.dbi.SetEdge(e)
 }
+
+func (graph *Graph) GetVertex(id string) *aql.Vertex {
+	return graph.dbi.GetVertex(id, true)
+}
+
 
 func (graph *Graph) GetVertices() chan aql.Vertex {
 	return graph.dbi.GetVertexList(context.Background(), true)
