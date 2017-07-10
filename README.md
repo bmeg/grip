@@ -30,7 +30,7 @@ curl -O http://snap.stanford.edu/data/bigdata/amazon/amazon-meta.txt.gz
 
 Convert the data
 ```
-python $GOPATH/src/github.com/bmeg/arachne/test/test_amazon_load.py amazon-meta.txt.gz test.data
+python $GOPATH/src/github.com/bmeg/arachne/test/amazon_convert.py amazon-meta.txt.gz test.data
 ```
 
 Create Amazon Graph
