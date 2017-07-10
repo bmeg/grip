@@ -1,8 +1,8 @@
 package memgraph
 
 import (
-	"fmt"
 	"context"
+	"fmt"
 	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/gdbi"
 )
@@ -33,7 +33,6 @@ func NewMemGDBI() *MemGraph {
 func (self *MemGraph) Query() gdbi.QueryInterface {
 	return gdbi.NewPipeEngine(self, false)
 }
-
 
 func (self *MemGraph) GetVertex(key string, load bool) *aql.Vertex {
 	return self.vertices[key]

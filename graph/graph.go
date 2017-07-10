@@ -45,7 +45,6 @@ func (graph *Graph) GetVertex(id string) *aql.Vertex {
 	return graph.dbi.GetVertex(id, true)
 }
 
-
 func (graph *Graph) GetVertices() chan aql.Vertex {
 	return graph.dbi.GetVertexList(context.Background(), true)
 }

@@ -53,13 +53,30 @@ func (self *MarshalClean) Unmarshal(data []byte, v interface{}) error {
 	return self.m.Unmarshal(data, v)
 }
 
-func StartHttpProxy(rpcPort string, httpPort string, contentDir string) {
+type Proxy struct {
+	cancel   context.CancelFunc
+	server   *http.Server
+	httpPort string
+}
+
+func (self Proxy) Run() {
+	log.Printf("HTTP API listening on port: %s\n", self.httpPort)
+	self.server.ListenAndServe()
+}
+
+func (self Proxy) Stop() {
+	log.Printf("Stopping Server")
+	self.server.Close()
+	self.cancel()
+}
+
+func NewHttpProxy(rpcPort string, httpPort string, contentDir string) Proxy {
 	//setup RESTful proxy
 	marsh := MarshalClean{m: &runtime.JSONPb{OrigName: true}}
 	grpcMux := runtime.NewServeMux(runtime.WithMarshalerOption("*", &marsh))
 	ctx := context.Background()
 	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
+	//defer cancel()
 	opts := []grpc.DialOption{grpc.WithInsecure()}
 
 	log.Println("HTTP proxy connecting to localhost:" + rpcPort)
@@ -83,6 +100,15 @@ func StartHttpProxy(rpcPort string, httpPort string, contentDir string) {
 	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir(contentDir))))
 
 	r.PathPrefix("/v1/").Handler(grpcMux)
-	log.Printf("HTTP API listening on port: %s\n", httpPort)
-	http.ListenAndServe(":"+httpPort, r)
+
+	//http.ListenAndServe(":"+httpPort, r)
+
+	return Proxy{
+		cancel,
+		&http.Server{
+			Addr:    ":" + httpPort,
+			Handler: r,
+		},
+		httpPort,
+	}
 }

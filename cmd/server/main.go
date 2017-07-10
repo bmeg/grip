@@ -5,6 +5,7 @@ import (
 	"github.com/spf13/cobra"
 	"log"
 	"os"
+	"os/signal"
 	"path/filepath"
 )
 
@@ -23,7 +24,15 @@ var Cmd = &cobra.Command{
 		log.Printf("Starting Server")
 		server := graphserver.NewArachneServer(dbPath)
 		server.Start(rpcPort)
-		graphserver.StartHttpProxy(rpcPort, httpPort, contentDir)
+		proxy := graphserver.NewHttpProxy(rpcPort, httpPort, contentDir)
+
+		c := make(chan os.Signal, 1)
+		signal.Notify(c, os.Interrupt)
+		go func() {
+			<-c
+			proxy.Stop()
+		}()
+		proxy.Run()
 		return nil
 	},
 }
