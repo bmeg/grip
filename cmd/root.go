@@ -14,7 +14,7 @@ import (
 
 // RootCmd represents the root command
 var RootCmd = &cobra.Command{
-	Use:           "funnel",
+	Use:           "arachne",
 	SilenceErrors: true,
 	SilenceUsage:  true,
 }

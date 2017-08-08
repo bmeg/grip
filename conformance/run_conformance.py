@@ -9,7 +9,7 @@ import traceback
 BASE = os.path.dirname(os.path.abspath(__file__))
 TESTS = os.path.join(BASE, "tests")
 
-GRAPH = "test-graph"
+GRAPH = "test_graph"
 
 sys.path.append( os.path.dirname(BASE) )
 

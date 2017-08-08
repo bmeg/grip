@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/badgerdb"
+	"github.com/bmeg/arachne/mongo"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"log"
@@ -16,11 +17,14 @@ type ArachneServer struct {
 	engine GraphEngine
 }
 
-// TODO: documentation
-func NewArachneServer(baseDir string) *ArachneServer {
+func NewArachneMongoServer(url string, database string) *ArachneServer {
 	return &ArachneServer{
-		//engine: NewGraphEngine(boltdb.NewBoltArachne(baseDir)),
-		//engine: NewGraphEngine(rocksdb.NewRocksArachne(baseDir)),
+		engine: NewGraphEngine(mongo.NewMongoArachne(url, database)),
+	}
+}
+
+func NewArachneBadgerServer(baseDir string) *ArachneServer {
+	return &ArachneServer{
 		engine: NewGraphEngine(badgerdb.NewBadgerArachne(baseDir)),
 	}
 }

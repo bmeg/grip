@@ -91,6 +91,8 @@ func AsMap(src *structpb.Struct) map[string]interface{} {
 			out[k] = v.NumberValue
 		} else if v, ok := f.Kind.(*structpb.Value_StructValue); ok {
 			out[k] = AsMap(v.StructValue)
+		} else if v, ok := f.Kind.(*structpb.Value_BoolValue); ok {
+			out[k] = v.BoolValue
 		}
 	}
 	return out
