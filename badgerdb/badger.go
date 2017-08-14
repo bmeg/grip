@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/gdbi"
-	"github.com/dgraph-io/badger/badger"
+	"github.com/dgraph-io/badger"
 	proto "github.com/golang/protobuf/proto"
 	"log"
 	"math/rand"
@@ -131,7 +131,7 @@ func NewBadgerArachne(path string) gdbi.ArachneInterface {
 }
 
 func (self *BadgerArachne) AddGraph(graph string) error {
-	self.kv.Set(GraphKey(graph), []byte{})
+	self.kv.Set(GraphKey(graph), []byte{}, 0x00)
 	return nil
 }
 
@@ -210,7 +210,7 @@ func (self *BadgerGDB) Query() gdbi.QueryInterface {
 func (self *BadgerGDB) SetVertex(vertex aql.Vertex) error {
 	d, _ := proto.Marshal(&vertex)
 	k := VertexKey(self.graph, vertex.Gid)
-	err := self.kv.Set(k, d)
+	err := self.kv.Set(k, d, 0x00)
 	return err
 }
 
