@@ -84,7 +84,7 @@ message EditResult {
   }
 }
 
-/*
+
 message EdgeBundle {
   string src = 1;
   string label = 2;
@@ -92,13 +92,12 @@ message EdgeBundle {
   map<string, int64>    int_edges = 4;
   map<string, string>   str_edges = 5;
 }
-*/
 
 message GraphElement {
   string graph = 1;
   Vertex vertex = 2;
   Edge edge = 3;
-//    EdgeBundle edge_bundle = 4;
+  EdgeBundle edge_bundle = 4;
 }
 
 message ElementID {

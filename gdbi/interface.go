@@ -60,7 +60,9 @@ type DBI interface {
 	DelEdge(key string) error
 	SetVertex(vertex aql.Vertex) error
 	SetEdge(edge aql.Edge) error
+
 	//SetEdgeBundle(edge aql.EdgeBundle) error
+	//DelEdgeBundle(key string) error
 }
 
 type Traveler struct {
