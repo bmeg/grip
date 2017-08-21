@@ -20,5 +20,10 @@ def test_bundle_filter(O):
     #for i in O.query().V("srcVertex").groupBundle().execute():
     #    print i
 
+    count = 0
     for i in O.query().V("srcVertex").outEdge("related").filter("function(x) { return x.val > 50; }").outgoing().execute():
-        print i
+        count += 1
+
+    if count != 49:
+        errors.append("Fail: Bundle Filter %s != %s" % (count, 49))
+    return errors
