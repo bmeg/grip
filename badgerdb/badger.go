@@ -252,6 +252,33 @@ func (self *BadgerGDB) SetEdge(edge aql.Edge) error {
 	return nil
 }
 
+func (self *BadgerGDB) SetBundle(bundle aql.Bundle) error {
+	if bundle.Gid == "" {
+		eid := fmt.Sprintf("%d", rand.Uint64())
+		for ; HasKey(self.kv, EdgeKeyPrefix(self.graph, eid)); eid = fmt.Sprintf("%d", rand.Uint64()) {
+		}
+		bundle.Gid = eid
+	}
+	eid := bundle.Gid
+	data, _ := proto.Marshal(&bundle)
+
+	src := bundle.Src
+	dst := ""
+	ekey := EdgeKey(self.graph, eid, src, dst)
+	skey := SrcEdgeKey(self.graph, src, dst, eid)
+
+	entries := make([]*badger.Entry, 2)
+	entries[0] = &badger.Entry{Key: ekey, Value: data, UserMeta: EDGE_BUNDLE}
+	entries[1] = &badger.Entry{Key: skey, Value: []byte{}, UserMeta: EDGE_BUNDLE}
+	self.kv.BatchSet(entries)
+	for _, e := range entries {
+		if e.Error != nil {
+			return e.Error
+		}
+	}
+	return nil
+}
+
 func (self *BadgerGDB) DelEdge(eid string) error {
 	ekey_prefix := EdgeKeyPrefix(self.graph, eid)
 	var ekey []byte = nil
@@ -293,6 +320,43 @@ func (self *BadgerGDB) DelEdge(eid string) error {
 		fin <- nil
 	}()
 	<-fin
+	<-fin
+	<-fin
+	return nil
+}
+
+func (self *BadgerGDB) DelBundle(eid string) error {
+	ekey_prefix := EdgeKeyPrefix(self.graph, eid)
+	var ekey []byte = nil
+	it := self.kv.NewIterator(badger.DefaultIteratorOptions)
+	defer it.Close()
+	for it.Seek(ekey_prefix); it.Valid() && bytes.HasPrefix(it.Item().Key(), ekey_prefix); it.Next() {
+		ekey = it.Item().Key()
+	}
+
+	if ekey == nil {
+		return fmt.Errorf("Edge Not Found")
+	}
+
+	_, _, sid, _ := EdgeKeyParse(ekey)
+
+	skey := SrcEdgeKey(self.graph, sid, "", eid)
+
+	fin := make(chan error)
+	go func() {
+		if err := self.kv.Delete(ekey); err != nil {
+			fin <- err
+			return
+		}
+		fin <- nil
+	}()
+	go func() {
+		if err := self.kv.Delete(skey); err != nil {
+			fin <- err
+			return
+		}
+		fin <- nil
+	}()
 	<-fin
 	<-fin
 	return nil
@@ -423,7 +487,7 @@ func (self *BadgerGDB) GetOutEdgeList(ctx context.Context, id string, loadProp b
 	o := make(chan aql.Edge, 100)
 	go func() {
 		defer close(o)
-		log.Printf("GetOutList")
+		//log.Printf("GetOutList")
 		skey_prefix := SrcEdgePrefix(self.graph, id)
 		it := self.kv.NewIterator(badger.DefaultIteratorOptions)
 		defer it.Close()
@@ -436,33 +500,48 @@ func (self *BadgerGDB) GetOutEdgeList(ctx context.Context, id string, loadProp b
 			key_value := it.Item().Key()
 			_, src, dst, eid := SrcEdgeKeyParse(key_value)
 
-			log.Printf("Found %s %s %s", src, dst, eid)
-
-			e := aql.Edge{}
-			if loadProp {
-				ekey := EdgeKey(self.graph, eid, src, dst)
+			//log.Printf("Found %s %s %s", src, dst, eid)
+			if it.Item().UserMeta() == EDGE_SINGLE {
+				e := aql.Edge{}
+				if loadProp {
+					ekey := EdgeKey(self.graph, eid, src, dst)
+					data_value := badger.KVItem{}
+					err := self.kv.Get(ekey, &data_value)
+					if err == nil {
+						d := data_value.Value()
+						proto.Unmarshal(d, &e)
+					}
+				} else {
+					e.Gid = string(eid)
+					e.Src = string(src)
+					e.Dst = dst
+				}
+				if filter != nil {
+					if filter(e) {
+						o <- e
+					}
+				} else {
+					o <- e
+				}
+			} else if it.Item().UserMeta() == EDGE_BUNDLE {
+				bundle := aql.Bundle{}
+				ekey := EdgeKey(self.graph, eid, src, "")
 				data_value := badger.KVItem{}
 				err := self.kv.Get(ekey, &data_value)
 				if err == nil {
 					d := data_value.Value()
-					proto.Unmarshal(d, &e)
+					proto.Unmarshal(d, &bundle)
+					for k, v := range bundle.Bundle {
+						e := aql.Edge{Gid: bundle.Gid, Label: bundle.Label, Src: bundle.Src, Dst: k, Properties: v}
+						if filter != nil {
+							if filter(e) {
+								o <- e
+							}
+						} else {
+							o <- e
+						}
+					}
 				}
-			} else {
-				e.Gid = string(eid)
-				e.Src = string(src)
-				e.Dst = dst
-			}
-
-			send := false
-			if filter != nil {
-				if filter(e) {
-					send = true
-				}
-			} else {
-				send = true
-			}
-			if send {
-				o <- e
 			}
 		}
 	}()
@@ -522,9 +601,11 @@ func (self *BadgerGDB) GetInList(ctx context.Context, id string, loadProp bool, 
 
 func (self *BadgerGDB) GetOutList(ctx context.Context, id string, loadProp bool, filter gdbi.EdgeFilter) chan aql.Vertex {
 	o := make(chan aql.Vertex, 100)
-	go func() {
-		defer close(o)
 
+	vertex_chan := make(chan []byte, 100)
+
+	go func() {
+		defer close(vertex_chan)
 		skey_prefix := SrcEdgePrefix(self.graph, id)
 		it := self.kv.NewIterator(badger.DefaultIteratorOptions)
 		defer it.Close()
@@ -539,30 +620,53 @@ func (self *BadgerGDB) GetOutList(ctx context.Context, id string, loadProp bool,
 			_, src, dst, eid := SrcEdgeKeyParse(key_value)
 
 			vkey := VertexKey(self.graph, dst)
-			ekey := EdgeKey(self.graph, eid, src, dst)
-			send := false
-			if filter != nil {
-				data_value := badger.KVItem{}
-				err := self.kv.Get(ekey, &data_value)
+
+			if it.Item().UserMeta() == EDGE_SINGLE {
+				ekey := EdgeKey(self.graph, eid, src, dst)
+				if filter != nil {
+					data_value := badger.KVItem{}
+					err := self.kv.Get(ekey, &data_value)
+					if err == nil {
+						e := aql.Edge{}
+						proto.Unmarshal(data_value.Value(), &e)
+						if filter(e) {
+							vertex_chan <- vkey
+						}
+					}
+				} else {
+					vertex_chan <- vkey
+				}
+			} else if it.Item().UserMeta() == EDGE_BUNDLE {
+				bkey := EdgeKey(self.graph, eid, src, "")
+				bundle_value := badger.KVItem{}
+				err := self.kv.Get(bkey, &bundle_value)
 				if err == nil {
-					e := aql.Edge{}
-					proto.Unmarshal(data_value.Value(), &e)
-					if filter(e) {
-						send = true
+					bundle := aql.Bundle{}
+					proto.Unmarshal(bundle_value.Value(), &bundle)
+					for k, v := range bundle.Bundle {
+						e := aql.Edge{Gid: bundle.Gid, Label: bundle.Label, Src: bundle.Src, Dst: k, Properties: v}
+						if filter != nil {
+							if filter(e) {
+								vertex_chan <- VertexKey(self.graph, k)
+							}
+						} else {
+							vertex_chan <- VertexKey(self.graph, k)
+						}
 					}
 				}
-			} else {
-				send = true
 			}
-			if send {
-				data_value := badger.KVItem{}
-				err := self.kv.Get(vkey, &data_value)
-				if err == nil {
-					d := data_value.Value()
-					v := aql.Vertex{}
-					proto.Unmarshal(d, &v)
-					o <- v
-				}
+		}
+	}()
+	go func() {
+		defer close(o)
+		for vkey := range vertex_chan {
+			data_value := badger.KVItem{}
+			err := self.kv.Get(vkey, &data_value)
+			if err == nil {
+				d := data_value.Value()
+				v := aql.Vertex{}
+				proto.Unmarshal(d, &v)
+				o <- v
 			}
 		}
 	}()
@@ -570,7 +674,7 @@ func (self *BadgerGDB) GetOutList(ctx context.Context, id string, loadProp bool,
 }
 
 func (self *BadgerGDB) GetVertex(id string, loadProp bool) *aql.Vertex {
-	vkey := VertexKey(self.graph, id) //bytes.Join([][]byte{[]byte("v"), []byte(id)}, []byte{0})
+	vkey := VertexKey(self.graph, id)
 	data_value := badger.KVItem{}
 	err := self.kv.Get(vkey, &data_value)
 	if err != nil || data_value.Value() == nil {
@@ -608,6 +712,20 @@ func (self *BadgerGDB) GetEdge(id string, loadProp bool) *aql.Edge {
 	return e
 }
 
+func (self *BadgerGDB) GetBundle(id string, load bool) *aql.Bundle {
+	ekey_prefix := EdgeKeyPrefix(self.graph, id)
+
+	var e *aql.Bundle = nil
+	it := self.kv.NewIterator(badger.DefaultIteratorOptions)
+	defer it.Close()
+	for it.Seek(ekey_prefix); it.Valid() && bytes.HasPrefix(it.Item().Key(), ekey_prefix); it.Next() {
+		e := &aql.Bundle{}
+		d := it.Item().Value()
+		proto.Unmarshal(d, e)
+	}
+	return e
+}
+
 func (self *BadgerGDB) GetVertexList(ctx context.Context, loadProp bool) chan aql.Vertex {
 	o := make(chan aql.Vertex, 100)
 	go func() {
@@ -637,16 +755,4 @@ func (self *BadgerGDB) GetVertexList(ctx context.Context, loadProp bool) chan aq
 		}
 	}()
 	return o
-}
-
-func (self *BadgerGDB) GetBundle(id string, load bool) *aql.Bundle {
-	return nil
-}
-
-func (self *BadgerGDB) SetBundle(edge aql.Bundle) error {
-	return nil
-}
-
-func (self *BadgerGDB) DelBundle(id string) error {
-	return nil
 }
