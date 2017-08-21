@@ -34,6 +34,7 @@ message GraphStatement {
         string import = 50;
         string map = 51;
         string fold = 52;
+        string filter = 53;
     }
 }
 
@@ -60,15 +61,23 @@ message Edge {
   google.protobuf.Struct properties = 5;
 }
 
+message Bundle {
+  string gid = 1;
+  string label = 2;
+  string src = 3;
+  map<string, google.protobuf.Struct>    bundle = 4;
+}
+
 
 message QueryResult {
     oneof result {
       google.protobuf.Struct struct = 1;
       Vertex vertex = 2;
       Edge edge = 3;
-      int32 int_value = 4;
-      double float_value = 5;
-      string str_value = 6;
+      Bundle bundle = 4;
+      int32 int_value = 5;
+      double float_value = 6;
+      string str_value = 7;
     }
 }
 
@@ -84,21 +93,12 @@ message EditResult {
   }
 }
 
-/*
-message EdgeBundle {
-  string src = 1;
-  string label = 2;
-  map<string, float>    float_edges = 3;
-  map<string, int64>    int_edges = 4;
-  map<string, string>   str_edges = 5;
-}
-*/
 
 message GraphElement {
   string graph = 1;
   Vertex vertex = 2;
   Edge edge = 3;
-//    EdgeBundle edge_bundle = 4;
+  Bundle bundle = 4;
 }
 
 message ElementID {
@@ -130,6 +130,12 @@ service Query {
     };
   }
 
+  rpc GetBundle(ElementID) returns (Bundle) {
+    option (google.api.http) = {
+      get: "/v1/graph/{graph}/bundle/{id}"
+    };
+  }
+
   rpc GetGraphs(Empty) returns (stream ElementID) {
     option (google.api.http) = {
       get: "/v1/graph"
@@ -150,6 +156,13 @@ service Edit {
     option (google.api.http) = {
       post: "/v1/graph/{graph}/edge"
       body: "edge"
+    };
+  }
+
+  rpc AddBundle(GraphElement) returns (EditResult) {
+    option (google.api.http) = {
+      post: "/v1/graph/{graph}/bundle"
+      body: "bundle"
     };
   }
 

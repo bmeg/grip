@@ -611,3 +611,15 @@ func (self *BadgerGDB) GetVertexList(ctx context.Context, loadProp bool) chan aq
 	}()
 	return o
 }
+
+func (self *BadgerGDB) GetBundle(id string, load bool) *aql.Bundle {
+	return nil
+}
+
+func (self *BadgerGDB) SetBundle(edge aql.Bundle) error {
+	return nil
+}
+
+func (self *BadgerGDB) DelBundle(id string) error {
+	return nil
+}

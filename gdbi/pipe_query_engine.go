@@ -150,6 +150,9 @@ func (self *PipeEngine) Out(key ...string) QueryInterface {
 							lv := ov
 							o <- i.AddCurrent(aql.QueryResult{&aql.QueryResult_Vertex{&lv}})
 						}
+					} else if e := i.GetCurrent().GetEdge(); e != nil {
+						v := self.db.GetVertex(e.Dst, ctx.Value(PROP_LOAD).(bool))
+						o <- i.AddCurrent(aql.QueryResult{&aql.QueryResult_Vertex{v}})
 					}
 				}
 			}()
@@ -178,6 +181,9 @@ func (self *PipeEngine) In(key ...string) QueryInterface {
 							el := e
 							o <- i.AddCurrent(aql.QueryResult{&aql.QueryResult_Vertex{&el}})
 						}
+					} else if e := i.GetCurrent().GetEdge(); e != nil {
+						v := self.db.GetVertex(e.Src, ctx.Value(PROP_LOAD).(bool))
+						o <- i.AddCurrent(aql.QueryResult{&aql.QueryResult_Vertex{v}})
 					}
 				}
 			}()
@@ -374,6 +380,27 @@ func (self *PipeEngine) Fold(source string) QueryInterface {
 					i := Traveler{}
 					a := i.AddCurrent(*last)
 					o <- a
+				}
+			}()
+			return o
+		})
+}
+
+func (self *PipeEngine) Filter(source string) QueryInterface {
+	return self.append(
+		func(ctx context.Context) chan Traveler {
+			o := make(chan Traveler, PIPE_SIZE)
+			go func() {
+				defer close(o)
+				mfunc, err := jsengine.NewFunction(source, self.imports)
+				if err != nil {
+					log.Printf("Script Error: %s", err)
+				}
+				for i := range self.pipe(context.WithValue(ctx, PROP_LOAD, true)) {
+					out := mfunc.CallBool(i.GetCurrent())
+					if out {
+						o <- i
+					}
 				}
 			}()
 			return o

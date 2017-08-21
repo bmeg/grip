@@ -69,6 +69,20 @@ class Graph:
         return json.loads(result)
 
 
+    def addBundle(self, src, bundle, label):
+        payload = json.dumps({
+            "src" : src,
+            "bundle" : bundle,
+            "label" : label,
+        })
+        headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
+        request = urllib2.Request(self.url + "/bundle", payload, headers=headers)
+        response = urllib2.urlopen(request)
+        result = response.read()
+        return json.loads(result)
+
+
+
 class Query:
     def __init__(self, parent=None):
         self.query = []
@@ -162,6 +176,10 @@ class Query:
 
     def map(self, func):
         self.query.append({"map" : func})
+        return self
+
+    def filter(self, func):
+        self.query.append({"filter" : func})
         return self
 
     def fold(self, func):

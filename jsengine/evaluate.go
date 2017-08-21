@@ -47,8 +47,8 @@ func (self *CompiledFunction) Call(input ...*aql.QueryResult) *aql.QueryResult {
 		m = append(m, m_i)
 	}
 
-	log.Printf("Inputs: %#v", m)
-	log.Printf("Function: %#v", self.Function)
+	//log.Printf("Inputs: %#v", m)
+	//log.Printf("Function: %#v", self.Function)
 	/*
 	 // code to deal with panics inside of the JS engine
 	  defer func() {
@@ -68,6 +68,37 @@ func (self *CompiledFunction) Call(input ...*aql.QueryResult) *aql.QueryResult {
 	log.Printf("function return: %#v", otto_val)
 	o := protoutil.AsStruct(otto_val.(map[string]interface{}))
 	return &aql.QueryResult{&aql.QueryResult_Struct{o}}
+}
+
+func (self *CompiledFunction) CallBool(input ...*aql.QueryResult) bool {
+
+	m := []interface{}{}
+	for _, i := range input {
+		if x, ok := i.GetResult().(*aql.QueryResult_Edge); ok {
+			m_i := protoutil.AsMap(x.Edge.Properties)
+			m = append(m, m_i)
+		} else if x, ok := i.GetResult().(*aql.QueryResult_Struct); ok {
+			m_i := protoutil.AsMap(x.Struct)
+			m = append(m, m_i)
+		}
+	}
+
+	//log.Printf("Inputs: %#v", m)
+	//log.Printf("Function: %#v", self.Function)
+	/*
+	 // code to deal with panics inside of the JS engine
+	  defer func() {
+	       if r := recover(); r != nil {
+	           fmt.Println("Recovered in f", r)
+	       }
+	   }()
+	*/
+	value, err := self.Function.Call(otto.Value{}, m...)
+	if err != nil {
+		log.Printf("Exec Error: %s", err)
+	}
+	otto_val, _ := value.ToBoolean()
+	return otto_val
 }
 
 func otto2map(obj *otto.Object) map[string]interface{} {
