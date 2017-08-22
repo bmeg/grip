@@ -421,14 +421,24 @@ func (self *BadgerGDB) GetEdgeList(ctx context.Context, loadProp bool) chan aql.
 			}
 			key_value := it.Item().Key()
 			_, eid, sid, did := EdgeKeyParse(key_value)
-			if loadProp {
-				edge_data := it.Item().Value()
-				e := aql.Edge{}
-				proto.Unmarshal(edge_data, &e)
-				o <- e
+			if it.Item().UserMeta() == EDGE_SINGLE {
+				if loadProp {
+					edge_data := it.Item().Value()
+					e := aql.Edge{}
+					proto.Unmarshal(edge_data, &e)
+					o <- e
+				} else {
+					e := aql.Edge{Gid: string(eid), Src: sid, Dst: did}
+					o <- e
+				}
 			} else {
-				e := aql.Edge{Gid: string(eid), Src: sid, Dst: did}
-				o <- e
+				bundle := aql.Bundle{}
+				edge_data := it.Item().Value()
+				proto.Unmarshal(edge_data, &bundle)
+				for k, v := range bundle.Bundle {
+					e := aql.Edge{Gid: bundle.Gid, Label: bundle.Label, Src: bundle.Src, Dst: k, Properties: v}
+					o <- e
+				}
 			}
 		}
 	}()

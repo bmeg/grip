@@ -129,8 +129,16 @@ func (self *MongoGraph) GetEdgeList(ctx context.Context, loadProp bool) chan aql
 		iter := self.edges.Find(nil).Iter()
 		result := map[string]interface{}{}
 		for iter.Next(&result) {
-			v := UnpackEdge(result)
-			o <- v
+			if _, ok := result[FIELD_DST]; ok {
+				e := UnpackEdge(result)
+				o <- e
+			} else if _, ok := result[FIELD_BUNDLE]; ok {
+				bundle := UnpackBundle(result)
+				for k, v := range bundle.Bundle {
+					e := aql.Edge{Gid: bundle.Gid, Label: bundle.Label, Src: bundle.Src, Dst: k, Properties: v}
+					o <- e
+				}
+			}
 		}
 		if err := iter.Close(); err != nil {
 			//do something
