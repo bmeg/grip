@@ -1,7 +1,7 @@
 package mongo
 
 import (
-	"fmt"
+	//"fmt"
 	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/protoutil"
 	"gopkg.in/mgo.v2/bson"
@@ -15,7 +15,7 @@ func PackVertex(v aql.Vertex) map[string]interface{} {
 	if v.Properties != nil {
 		p = protoutil.AsMap(v.Properties)
 	}
-	fmt.Printf("proto:%s\nmap:%s\n", v.Properties, p)
+	//fmt.Printf("proto:%s\nmap:%s\n", v.Properties, p)
 	return map[string]interface{}{
 		"_id":        v.Gid,
 		"label":      v.Label,

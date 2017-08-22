@@ -8,6 +8,7 @@ import (
 	"github.com/bmeg/arachne/cmd/load"
 	"github.com/bmeg/arachne/cmd/rdf"
 	"github.com/bmeg/arachne/cmd/server"
+	"github.com/bmeg/arachne/cmd/stream"
 	"github.com/spf13/cobra"
 	"os"
 )
@@ -23,6 +24,7 @@ func init() {
 	RootCmd.AddCommand(server.Cmd)
 	RootCmd.AddCommand(rdf.Cmd)
 	RootCmd.AddCommand(load.Cmd)
+	RootCmd.AddCommand(stream.Cmd)
 	RootCmd.AddCommand(create.Cmd)
 	RootCmd.AddCommand(drop.Cmd)
 	RootCmd.AddCommand(list.Cmd)
