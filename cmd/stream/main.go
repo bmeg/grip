@@ -81,47 +81,8 @@ var Cmd = &cobra.Command{
 			}
 			done <- true
 		}()
-
 		<-done
 		<-done
-
-		/*
-			if vertexFile != "" {
-				log.Printf("Loading %s", vertexFile)
-				reader, err := golib.ReadFileLines(vertexFile)
-				if err != nil {
-					return err
-				}
-				count := 0
-				for line := range reader {
-					v := aql.Vertex{}
-					jsonpb.Unmarshal(strings.NewReader(string(line)), &v)
-					conn.AddVertex(graph, v)
-					count += 1
-					if count%1000 == 0 {
-						log.Printf("Loaded %d vertices", count)
-					}
-				}
-			}
-			if edgeFile != "" {
-				log.Printf("Loading %s", edgeFile)
-				reader, err := golib.ReadFileLines(edgeFile)
-				if err != nil {
-					return err
-				}
-				count := 0
-				for line := range reader {
-					e := aql.Edge{}
-					jsonpb.Unmarshal(strings.NewReader(string(line)), &e)
-					conn.AddEdge(graph, e)
-					count += 1
-					if count%1000 == 0 {
-						log.Printf("Loaded %d edges", count)
-					}
-				}
-			}
-		*/
-
 		return nil
 	},
 }
