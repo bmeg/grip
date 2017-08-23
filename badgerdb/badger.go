@@ -233,8 +233,8 @@ func (self *BadgerGDB) SetEdge(edge aql.Edge) error {
 	eid := edge.Gid
 	data, _ := proto.Marshal(&edge)
 
-	src := edge.Src
-	dst := edge.Dst
+	src := edge.From
+	dst := edge.To
 	ekey := EdgeKey(self.graph, eid, src, dst)
 	skey := SrcEdgeKey(self.graph, src, dst, eid)
 	dkey := DstEdgeKey(self.graph, src, dst, eid)
@@ -363,7 +363,7 @@ func (self *BadgerGDB) GetEdgeList(ctx context.Context, loadProp bool) chan aql.
 				proto.Unmarshal(edge_data, &e)
 				o <- e
 			} else {
-				e := aql.Edge{Gid: string(eid), Src: sid, Dst: did}
+				e := aql.Edge{Gid: string(eid), From: sid, To: did}
 				o <- e
 			}
 		}
@@ -399,8 +399,8 @@ func (self *BadgerGDB) GetInEdgeList(ctx context.Context, id string, loadProp bo
 				}
 			} else {
 				e.Gid = string(eid)
-				e.Src = string(src)
-				e.Dst = dst
+				e.From = string(src)
+				e.To = dst
 			}
 
 			send := false
@@ -449,8 +449,8 @@ func (self *BadgerGDB) GetOutEdgeList(ctx context.Context, id string, loadProp b
 				}
 			} else {
 				e.Gid = string(eid)
-				e.Src = string(src)
-				e.Dst = dst
+				e.From = string(src)
+				e.To = dst
 			}
 
 			send := false
@@ -601,8 +601,8 @@ func (self *BadgerGDB) GetEdge(id string, loadProp bool) *aql.Edge {
 		} else {
 			e := &aql.Edge{}
 			e.Gid = eid
-			e.Src = src
-			e.Dst = dst
+			e.From = src
+			e.To = dst
 		}
 	}
 	return e

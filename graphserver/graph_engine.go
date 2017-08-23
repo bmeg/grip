@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/gdbi"
+	"github.com/bmeg/arachne/protoutil"
 	"log"
 )
 
@@ -98,29 +99,17 @@ func (trav *Traversal) RunStatement(statement *aql.GraphStatement) error {
 	} else if _, ok := statement.GetStatement().(*aql.GraphStatement_E); ok {
 		trav.Query = trav.Query.E()
 	} else if x, ok := statement.GetStatement().(*aql.GraphStatement_Out); ok {
-		if x.Out == "" {
-			trav.Query = trav.Query.Out()
-		} else {
-			trav.Query = trav.Query.Out(x.Out)
-		}
+		labels := protoutil.AsStringList(x.Out)
+		trav.Query = trav.Query.Out(labels...)
 	} else if x, ok := statement.GetStatement().(*aql.GraphStatement_In); ok {
-		if x.In == "" {
-			trav.Query = trav.Query.In()
-		} else {
-			trav.Query = trav.Query.In(x.In)
-		}
+		labels := protoutil.AsStringList(x.In)
+		trav.Query = trav.Query.In(labels...)
 	} else if x, ok := statement.GetStatement().(*aql.GraphStatement_OutEdge); ok {
-		if x.OutEdge == "" {
-			trav.Query = trav.Query.OutE()
-		} else {
-			trav.Query = trav.Query.OutE(x.OutEdge)
-		}
+		labels := protoutil.AsStringList(x.OutEdge)
+		trav.Query = trav.Query.OutE(labels...)
 	} else if x, ok := statement.GetStatement().(*aql.GraphStatement_InEdge); ok {
-		if x.InEdge == "" {
-			trav.Query = trav.Query.InE()
-		} else {
-			trav.Query = trav.Query.InE(x.InEdge)
-		}
+		labels := protoutil.AsStringList(x.InEdge)
+		trav.Query = trav.Query.InE(labels...)
 	} else if x := statement.GetHas(); x != nil {
 		trav.Query = trav.Query.Has(x.Key, x.Within...)
 	} else if x, ok := statement.GetStatement().(*aql.GraphStatement_Limit); ok {

@@ -105,3 +105,11 @@ func AsStruct(src map[string]interface{}) *structpb.Struct {
 	}
 	return &out
 }
+
+func AsStringList(src *structpb.ListValue) []string {
+	out := make([]string, len(src.Values))
+	for i := range src.Values {
+		out[i] = src.Values[i].GetStringValue()
+	}
+	return out
+}

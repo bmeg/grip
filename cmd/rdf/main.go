@@ -55,7 +55,7 @@ func LoadRDFCmd(cmd *cobra.Command, args []string) error {
 				conn.AddVertex(graph, aql.Vertex{Gid: obj})
 				vert_map[obj] = 1
 			}
-			conn.AddEdge(graph, aql.Edge{Src: subj, Dst: obj, Label: triple.Pred.String()})
+			conn.AddEdge(graph, aql.Edge{From: subj, To: obj, Label: triple.Pred.String()})
 		}
 		if count%1000 == 0 {
 			log.Printf("Processed %d triples", count)
