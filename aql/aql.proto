@@ -13,7 +13,7 @@ message GraphQuery {
 message GraphStatement {
     oneof statement {
         string V = 1;
-	      string E = 2;
+        string E = 2;
         string label = 3;
         HasStatement has = 4;
         string as = 5;
