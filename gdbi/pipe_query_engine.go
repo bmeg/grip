@@ -437,7 +437,7 @@ func (self *PipeEngine) AddE(key string) QueryInterface {
 				for src := range self.pipe(context.WithValue(ctx, PROP_LOAD, false)) {
 					if v := src.GetCurrent().GetVertex(); v != nil {
 						o <- src.AddCurrent(aql.QueryResult{&aql.QueryResult_Edge{
-							&aql.Edge{Src: v.Gid, Label: key},
+							&aql.Edge{From: v.Gid, Label: key},
 						}})
 					}
 				}
@@ -457,7 +457,7 @@ func (self *PipeEngine) To(key string) QueryInterface {
 				for src := range self.pipe(context.WithValue(ctx, PROP_LOAD, false)) {
 					if e := src.GetCurrent().GetEdge(); e != nil {
 						el := e
-						el.Dst = key
+						el.To = key
 						o <- src.AddCurrent(aql.QueryResult{&aql.QueryResult_Edge{
 							el,
 						}})

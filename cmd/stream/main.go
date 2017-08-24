@@ -2,7 +2,6 @@ package stream
 
 import (
 	//"fmt"
-	"encoding/json"
 	"github.com/bmeg/arachne/aql"
 	//"github.com/bmeg/golib"
 	"github.com/Shopify/sarama"
@@ -57,22 +56,8 @@ var Cmd = &cobra.Command{
 		go func() {
 			count := 0
 			for msg := range edgeConsumer.Messages() {
-				//fix from -> src and to -> dst
-				j := map[string]interface{}{}
-				json.Unmarshal(msg.Value, &j)
-
-				if _, ok := j["from"]; ok {
-					j["src"] = j["from"]
-					delete(j, "from")
-				}
-				if _, ok := j["to"]; ok {
-					j["dst"] = j["to"]
-					delete(j, "to")
-				}
-				txt, _ := json.Marshal(j)
 				e := aql.Edge{}
-				jsonpb.Unmarshal(strings.NewReader(string(txt)), &e)
-				//fmt.Printf("%#v\n", e)
+				jsonpb.Unmarshal(strings.NewReader(string(msg.Value)), &e)
 				conn.AddEdge(graph, e)
 				count += 1
 				if count%1000 == 0 {

@@ -7,8 +7,8 @@ import (
 	"gopkg.in/mgo.v2/bson"
 )
 
-var FIELD_SRC string = "src"
-var FIELD_DST string = "dst"
+var FIELD_SRC string = "from"
+var FIELD_DST string = "to"
 
 func PackVertex(v aql.Vertex) map[string]interface{} {
 	p := map[string]interface{}{}
@@ -29,8 +29,8 @@ func PackEdge(e aql.Edge) map[string]interface{} {
 		p = protoutil.AsMap(e.Properties)
 	}
 	o := map[string]interface{}{
-		FIELD_SRC:    e.Src,
-		FIELD_DST:    e.Dst,
+		FIELD_SRC:    e.From,
+		FIELD_DST:    e.To,
 		"label":      e.Label,
 		"properties": p,
 	}
@@ -57,8 +57,8 @@ func UnpackEdge(i map[string]interface{}) aql.Edge {
 		o.Gid = id.(string)
 	}
 	o.Label = i["label"].(string)
-	o.Src = i[FIELD_SRC].(string)
-	o.Dst = i[FIELD_DST].(string)
+	o.From = i[FIELD_SRC].(string)
+	o.To = i[FIELD_DST].(string)
 	o.Properties = protoutil.AsStruct(i["properties"].(map[string]interface{}))
 	return o
 }
