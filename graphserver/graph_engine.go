@@ -37,6 +37,10 @@ func (engine *GraphEngine) GetEdge(graph, id string) *aql.Edge {
 	return engine.Arachne.Graph(graph).GetEdge(id, true)
 }
 
+func (engine *GraphEngine) GetBundle(graph, id string) *aql.Bundle {
+	return engine.Arachne.Graph(graph).GetBundle(id, true)
+}
+
 func (engine *GraphEngine) AddEdge(graph string, edge aql.Edge) error {
 	return engine.Arachne.Graph(graph).SetEdge(edge)
 }
@@ -45,11 +49,9 @@ func (engine *GraphEngine) AddVertex(graph string, vertex aql.Vertex) error {
 	return engine.Arachne.Graph(graph).SetVertex(vertex)
 }
 
-/*
-func (engine *GraphEngine) AddEdgeBundle(edgeBundle aql.EdgeBundle) error {
-	return engine.DBI.SetEdgeBundle(edgeBundle)
+func (engine *GraphEngine) AddBundle(graph string, bundle aql.Bundle) error {
+	return engine.Arachne.Graph(graph).SetBundle(bundle)
 }
-*/
 
 func (engine *GraphEngine) RunTraversal(ctx context.Context, query *aql.GraphQuery) (chan aql.ResultRow, error) {
 	tr := engine.Query(query.Graph)
@@ -75,21 +77,6 @@ type Traversal struct {
 }
 
 func (trav *Traversal) RunStatement(statement *aql.GraphStatement) error {
-	/*
-			if statement.GetAddV() != "" {
-				trav.Query = trav.Query.AddV(statement.GetAddV())
-			} else if statement.GetAddE() != "" {
-				trav.Query = trav.Query.AddE(statement.GetAddE())
-			} else if statement.GetTo() != "" {
-				trav.Query = trav.Query.To(statement.GetTo())
-			} else if x := statement.GetProperty(); x != nil {
-					for k, v := range x.Fields {
-						trav.Query = trav.Query.Property(k, v)
-					}
-			} else if _, ok := statement.GetStatement().(*aql.GraphStatement_Drop); ok {
-				trav.Query = trav.Query.Drop()
-		  } else
-	*/
 	if x, ok := statement.GetStatement().(*aql.GraphStatement_V); ok {
 		if x.V == "" {
 			trav.Query = trav.Query.V()
@@ -122,6 +109,8 @@ func (trav *Traversal) RunStatement(statement *aql.GraphStatement) error {
 		trav.Query = trav.Query.Map(x.Map)
 	} else if x, ok := statement.GetStatement().(*aql.GraphStatement_Fold); ok {
 		trav.Query = trav.Query.Fold(x.Fold)
+	} else if x, ok := statement.GetStatement().(*aql.GraphStatement_Filter); ok {
+		trav.Query = trav.Query.Filter(x.Filter)
 	} else if _, ok := statement.GetStatement().(*aql.GraphStatement_Count); ok {
 		trav.Query = trav.Query.Count()
 	} else if x, ok := statement.GetStatement().(*aql.GraphStatement_As); ok {

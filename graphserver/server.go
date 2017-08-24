@@ -71,6 +71,11 @@ func (server *ArachneServer) GetEdge(ctx context.Context, elem *aql.ElementID) (
 	return o, nil
 }
 
+func (server *ArachneServer) GetBundle(ctx context.Context, elem *aql.ElementID) (*aql.Bundle, error) {
+	o := server.engine.GetBundle(elem.Graph, elem.Id)
+	return o, nil
+}
+
 func (server *ArachneServer) DeleteGraph(ctx context.Context, elem *aql.ElementID) (*aql.EditResult, error) {
 	server.engine.DeleteGraph(elem.Graph)
 	return &aql.EditResult{Result: &aql.EditResult_Id{elem.Graph}}, nil
@@ -92,6 +97,13 @@ func (server *ArachneServer) AddEdge(ctx context.Context, elem *aql.GraphElement
 	var id string = ""
 	server.engine.AddEdge(elem.Graph, *elem.Edge)
 	id = elem.Edge.Gid
+	return &aql.EditResult{Result: &aql.EditResult_Id{id}}, nil
+}
+
+func (server *ArachneServer) AddBundle(ctx context.Context, elem *aql.GraphElement) (*aql.EditResult, error) {
+	var id string = ""
+	server.engine.AddBundle(elem.Graph, *elem.Bundle)
+	id = elem.Bundle.Gid
 	return &aql.EditResult{Result: &aql.EditResult_Id{id}}, nil
 }
 

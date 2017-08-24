@@ -27,6 +27,7 @@ type QueryInterface interface {
 	Import(source string) QueryInterface
 	Map(function string) QueryInterface
 	Fold(function string) QueryInterface
+	Filter(function string) QueryInterface
 
 	Execute(context.Context) chan aql.ResultRow
 	First(context.Context) (aql.ResultRow, error) //Only get one result
@@ -47,6 +48,8 @@ type DBI interface {
 
 	GetVertex(key string, load bool) *aql.Vertex
 	GetEdge(key string, load bool) *aql.Edge
+	GetBundle(key string, load bool) *aql.Bundle
+
 	GetVertexList(ctx context.Context, load bool) chan aql.Vertex
 	GetEdgeList(ctx context.Context, load bool) chan aql.Edge
 
@@ -56,13 +59,13 @@ type DBI interface {
 	GetOutEdgeList(ctx context.Context, key string, load bool, filter EdgeFilter) chan aql.Edge
 	GetInEdgeList(ctx context.Context, key string, load bool, filter EdgeFilter) chan aql.Edge
 
-	DelVertex(key string) error
-	DelEdge(key string) error
 	SetVertex(vertex aql.Vertex) error
 	SetEdge(edge aql.Edge) error
+	SetBundle(edge aql.Bundle) error
 
-	//SetEdgeBundle(edge aql.EdgeBundle) error
-	//DelEdgeBundle(key string) error
+	DelVertex(key string) error
+	DelEdge(key string) error
+	DelBundle(id string) error
 }
 
 type Traveler struct {
