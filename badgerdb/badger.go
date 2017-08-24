@@ -233,8 +233,8 @@ func (self *BadgerGDB) SetEdge(edge aql.Edge) error {
 	eid := edge.Gid
 	data, _ := proto.Marshal(&edge)
 
-	src := edge.Src
-	dst := edge.Dst
+	src := edge.From
+	dst := edge.To
 	ekey := EdgeKey(self.graph, eid, src, dst)
 	skey := SrcEdgeKey(self.graph, src, dst, eid)
 	dkey := DstEdgeKey(self.graph, src, dst, eid)
@@ -262,7 +262,7 @@ func (self *BadgerGDB) SetBundle(bundle aql.Bundle) error {
 	eid := bundle.Gid
 	data, _ := proto.Marshal(&bundle)
 
-	src := bundle.Src
+	src := bundle.From
 	dst := ""
 	ekey := EdgeKey(self.graph, eid, src, dst)
 	skey := SrcEdgeKey(self.graph, src, dst, eid)
@@ -428,7 +428,7 @@ func (self *BadgerGDB) GetEdgeList(ctx context.Context, loadProp bool) chan aql.
 					proto.Unmarshal(edge_data, &e)
 					o <- e
 				} else {
-					e := aql.Edge{Gid: string(eid), Src: sid, Dst: did}
+					e := aql.Edge{Gid: string(eid), From: sid, To: did}
 					o <- e
 				}
 			} else {
@@ -436,7 +436,7 @@ func (self *BadgerGDB) GetEdgeList(ctx context.Context, loadProp bool) chan aql.
 				edge_data := it.Item().Value()
 				proto.Unmarshal(edge_data, &bundle)
 				for k, v := range bundle.Bundle {
-					e := aql.Edge{Gid: bundle.Gid, Label: bundle.Label, Src: bundle.Src, Dst: k, Properties: v}
+					e := aql.Edge{Gid: bundle.Gid, Label: bundle.Label, From: bundle.From, To: k, Properties: v}
 					o <- e
 				}
 			}
@@ -473,8 +473,8 @@ func (self *BadgerGDB) GetInEdgeList(ctx context.Context, id string, loadProp bo
 				}
 			} else {
 				e.Gid = string(eid)
-				e.Src = string(src)
-				e.Dst = dst
+				e.From = string(src)
+				e.To = dst
 			}
 
 			send := false
@@ -523,8 +523,8 @@ func (self *BadgerGDB) GetOutEdgeList(ctx context.Context, id string, loadProp b
 					}
 				} else {
 					e.Gid = string(eid)
-					e.Src = string(src)
-					e.Dst = dst
+					e.From = string(src)
+					e.To = dst
 				}
 				if filter != nil {
 					if filter(e) {
@@ -542,7 +542,7 @@ func (self *BadgerGDB) GetOutEdgeList(ctx context.Context, id string, loadProp b
 					d := data_value.Value()
 					proto.Unmarshal(d, &bundle)
 					for k, v := range bundle.Bundle {
-						e := aql.Edge{Gid: bundle.Gid, Label: bundle.Label, Src: bundle.Src, Dst: k, Properties: v}
+						e := aql.Edge{Gid: bundle.Gid, Label: bundle.Label, From: bundle.From, To: k, Properties: v}
 						if filter != nil {
 							if filter(e) {
 								o <- e
@@ -654,7 +654,7 @@ func (self *BadgerGDB) GetOutList(ctx context.Context, id string, loadProp bool,
 					bundle := aql.Bundle{}
 					proto.Unmarshal(bundle_value.Value(), &bundle)
 					for k, v := range bundle.Bundle {
-						e := aql.Edge{Gid: bundle.Gid, Label: bundle.Label, Src: bundle.Src, Dst: k, Properties: v}
+						e := aql.Edge{Gid: bundle.Gid, Label: bundle.Label, From: bundle.From, To: k, Properties: v}
 						if filter != nil {
 							if filter(e) {
 								vertex_chan <- VertexKey(self.graph, k)
@@ -715,8 +715,8 @@ func (self *BadgerGDB) GetEdge(id string, loadProp bool) *aql.Edge {
 		} else {
 			e := &aql.Edge{}
 			e.Gid = eid
-			e.Src = src
-			e.Dst = dst
+			e.From = src
+			e.To = dst
 		}
 	}
 	return e

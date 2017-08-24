@@ -13,16 +13,15 @@ message GraphQuery {
 message GraphStatement {
     oneof statement {
         string V = 1;
-	      string E = 2;
+        string E = 2;
         string label = 3;
         HasStatement has = 4;
         string as = 5;
-        string in = 6;
-        string out = 7;
-        string inEdge = 8;
-        string outEdge = 9;
-        string inVertex = 10;
-        string outVertex = 11;
+        google.protobuf.ListValue in = 6;
+        google.protobuf.ListValue out = 7;
+        google.protobuf.ListValue inEdge = 8;
+        google.protobuf.ListValue outEdge = 9;
+
         SelectStatement select = 12;
         SelectStatement values = 13;
         int64 limit = 14;
@@ -56,15 +55,15 @@ message Vertex {
 message Edge {
   string gid = 1;
   string label = 2;
-  string src = 3;
-  string dst = 4;
+  string from = 3;
+  string to = 4;
   google.protobuf.Struct properties = 5;
 }
 
 message Bundle {
   string gid = 1;
   string label = 2;
-  string src = 3;
+  string from = 3;
   map<string, google.protobuf.Struct>    bundle = 4;
 }
 

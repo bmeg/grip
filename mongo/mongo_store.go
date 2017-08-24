@@ -135,7 +135,7 @@ func (self *MongoGraph) GetEdgeList(ctx context.Context, loadProp bool) chan aql
 			} else if _, ok := result[FIELD_BUNDLE]; ok {
 				bundle := UnpackBundle(result)
 				for k, v := range bundle.Bundle {
-					e := aql.Edge{Gid: bundle.Gid, Label: bundle.Label, Src: bundle.Src, Dst: k, Properties: v}
+					e := aql.Edge{Gid: bundle.Gid, Label: bundle.Label, From: bundle.From, To: k, Properties: v}
 					o <- e
 				}
 			}
@@ -172,7 +172,7 @@ func (self *MongoGraph) GetOutList(ctx context.Context, key string, load bool, f
 				if filter != nil {
 					bundle := UnpackBundle(result)
 					for k, v := range bundle.Bundle {
-						e := aql.Edge{Gid: bundle.Gid, Label: bundle.Label, Src: bundle.Src, Dst: k, Properties: v}
+						e := aql.Edge{Gid: bundle.Gid, Label: bundle.Label, From: bundle.From, To: k, Properties: v}
 						if filter(e) {
 							vertex_chan <- k
 						}
@@ -252,7 +252,7 @@ func (self *MongoGraph) GetOutEdgeList(ctx context.Context, key string, load boo
 			} else if _, ok := result[FIELD_BUNDLE]; ok {
 				bundle := UnpackBundle(result)
 				for k, v := range bundle.Bundle {
-					e := aql.Edge{Gid: bundle.Gid, Label: bundle.Label, Src: bundle.Src, Dst: k, Properties: v}
+					e := aql.Edge{Gid: bundle.Gid, Label: bundle.Label, From: bundle.From, To: k, Properties: v}
 					if filter != nil {
 						if filter(e) {
 							o <- e
