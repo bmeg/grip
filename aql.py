@@ -100,8 +100,10 @@ class Query:
         self.query.append({"E":id})
         return self
 
-    def label(self, label):
-        self.query.append({'label': label})
+    def labeled(self, label):
+        if not isinstance(label, list):
+            label = [label]
+        self.query.append({'labeled': label})
         return self
 
     def has(self, prop, within):

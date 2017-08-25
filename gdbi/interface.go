@@ -9,6 +9,7 @@ type QueryInterface interface {
 	V(key ...string) QueryInterface
 	E() QueryInterface
 	Count() QueryInterface
+	Labeled(labels ...string) QueryInterface
 	Has(prop string, value ...string) QueryInterface
 	Out(key ...string) QueryInterface
 	In(key ...string) QueryInterface
@@ -66,6 +67,14 @@ type DBI interface {
 	DelVertex(key string) error
 	DelEdge(key string) error
 	DelBundle(id string) error
+}
+
+type Indexer interface {
+	IndexVertex(vertex aql.Vertex)
+	IndexEdge(edge aql.Edge)
+
+	VertexLabelScan(label string) chan string
+	EdgeLabelScan(label string) chan string
 }
 
 type Traveler struct {

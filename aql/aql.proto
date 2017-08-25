@@ -14,7 +14,7 @@ message GraphStatement {
     oneof statement {
         string V = 1;
         string E = 2;
-        string label = 3;
+        google.protobuf.ListValue labeled = 3;
         HasStatement has = 4;
         string as = 5;
         google.protobuf.ListValue in = 6;

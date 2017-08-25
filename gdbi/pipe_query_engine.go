@@ -88,6 +88,43 @@ func (self *PipeEngine) E() QueryInterface {
 		})
 }
 
+func (self *PipeEngine) Labeled(labels ...string) QueryInterface {
+	return self.append(
+		func(ctx context.Context) chan Traveler {
+			o := make(chan Traveler, PIPE_SIZE)
+			go func() {
+				defer close(o)
+				for i := range self.pipe(ctx) {
+					//Process Vertex Elements
+					if v := i.GetCurrent().GetVertex(); v != nil {
+						found := false
+						for _, s := range labels {
+							if v.Label == s {
+								found = true
+							}
+						}
+						if found {
+							o <- i
+						}
+					}
+					//Process Edge Elements
+					if e := i.GetCurrent().GetEdge(); e != nil {
+						found := false
+						for _, s := range labels {
+							if e.Label == s {
+								found = true
+							}
+						}
+						if found {
+							o <- i
+						}
+					}
+				}
+			}()
+			return o
+		})
+}
+
 func (self *PipeEngine) Has(prop string, value ...string) QueryInterface {
 	return self.append(
 		func(ctx context.Context) chan Traveler {
