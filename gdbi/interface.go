@@ -44,7 +44,7 @@ type ArachneInterface interface {
 	Graph(string) DBI
 }
 
-type DBI interface {
+type GraphDB interface {
 	Query() QueryInterface
 
 	GetVertex(key string, load bool) *aql.Vertex
@@ -70,11 +70,13 @@ type DBI interface {
 }
 
 type Indexer interface {
-	IndexVertex(vertex aql.Vertex)
-	IndexEdge(edge aql.Edge)
+	VertexLabelScan(ctx context.Context, label string) chan string
+	EdgeLabelScan(ctx context.Context, label string) chan string
+}
 
-	VertexLabelScan(label string) chan string
-	EdgeLabelScan(label string) chan string
+type DBI interface {
+	GraphDB
+	Indexer
 }
 
 type Traveler struct {

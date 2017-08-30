@@ -9,14 +9,20 @@ import (
 	"log"
 )
 
+const (
+	STATE_CUSTOM          = 0
+	STATE_RAW_VERTEX_LIST = 1
+	STATE_RAW_EDGE_LIST   = 2
+)
+
 type PipeEngine struct {
 	db         DBI
-	readOnly   bool
 	pipe       GraphPipe
 	sideEffect bool
 	err        error
 	selection  []string
 	imports    []string
+	state      int
 }
 
 const (
@@ -25,19 +31,26 @@ const (
 
 var PROP_LOAD string = "load"
 
-func NewPipeEngine(db DBI, readOnly bool) *PipeEngine {
-	return &PipeEngine{db: db, readOnly: readOnly, sideEffect: false, err: nil, selection: []string{}, imports: []string{}}
+func NewPipeEngine(db DBI) *PipeEngine {
+	return &PipeEngine{
+		db:         db,
+		sideEffect: false,
+		err:        nil,
+		selection:  []string{},
+		imports:    []string{},
+		state:      STATE_CUSTOM,
+	}
 }
 
 func (self *PipeEngine) append(pipe GraphPipe) *PipeEngine {
 	return &PipeEngine{
 		db:         self.db,
-		readOnly:   self.readOnly,
 		pipe:       pipe,
 		sideEffect: self.sideEffect,
 		err:        self.err,
 		selection:  self.selection,
 		imports:    self.imports,
+		state:      STATE_CUSTOM, //by default, state isn't passed down the operation chain
 	}
 }
 
@@ -57,7 +70,7 @@ func (self *PipeEngine) V(key ...string) QueryInterface {
 				return o
 			})
 	}
-	return self.append(
+	out := self.append(
 		func(ctx context.Context) chan Traveler {
 			o := make(chan Traveler, PIPE_SIZE)
 			go func() {
@@ -70,10 +83,12 @@ func (self *PipeEngine) V(key ...string) QueryInterface {
 			}()
 			return o
 		})
+	out.state = STATE_RAW_VERTEX_LIST
+	return out
 }
 
 func (self *PipeEngine) E() QueryInterface {
-	return self.append(
+	out := self.append(
 		func(ctx context.Context) chan Traveler {
 			o := make(chan Traveler, PIPE_SIZE)
 			go func() {
@@ -86,6 +101,8 @@ func (self *PipeEngine) E() QueryInterface {
 			}()
 			return o
 		})
+	out.state = STATE_RAW_VERTEX_LIST
+	return out
 }
 
 func (self *PipeEngine) Labeled(labels ...string) QueryInterface {
@@ -94,29 +111,53 @@ func (self *PipeEngine) Labeled(labels ...string) QueryInterface {
 			o := make(chan Traveler, PIPE_SIZE)
 			go func() {
 				defer close(o)
-				for i := range self.pipe(ctx) {
-					//Process Vertex Elements
-					if v := i.GetCurrent().GetVertex(); v != nil {
-						found := false
-						for _, s := range labels {
-							if v.Label == s {
-								found = true
+				//if the 'state' is of a raw output, ie the output of query.V() or query.E(),
+				//we can skip calling the upstream element and reference the index
+				if self.state == STATE_RAW_VERTEX_LIST {
+					for _, l := range labels {
+						for id := range self.db.VertexLabelScan(ctx, l) {
+							v := self.db.GetVertex(id, ctx.Value(PROP_LOAD).(bool))
+							if v != nil {
+								c := Traveler{}
+								o <- c.AddCurrent(aql.QueryResult{&aql.QueryResult_Vertex{v}})
 							}
-						}
-						if found {
-							o <- i
 						}
 					}
-					//Process Edge Elements
-					if e := i.GetCurrent().GetEdge(); e != nil {
-						found := false
-						for _, s := range labels {
-							if e.Label == s {
-								found = true
+				} else if self.state == STATE_RAW_EDGE_LIST {
+					for _, l := range labels {
+						for id := range self.db.EdgeLabelScan(ctx, l) {
+							v := self.db.GetEdge(id, ctx.Value(PROP_LOAD).(bool))
+							if v != nil {
+								c := Traveler{}
+								o <- c.AddCurrent(aql.QueryResult{&aql.QueryResult_Edge{v}})
 							}
 						}
-						if found {
-							o <- i
+					}
+				} else {
+					for i := range self.pipe(ctx) {
+						//Process Vertex Elements
+						if v := i.GetCurrent().GetVertex(); v != nil {
+							found := false
+							for _, s := range labels {
+								if v.Label == s {
+									found = true
+								}
+							}
+							if found {
+								o <- i
+							}
+						}
+						//Process Edge Elements
+						if e := i.GetCurrent().GetEdge(); e != nil {
+							found := false
+							for _, s := range labels {
+								if e.Label == s {
+									found = true
+								}
+							}
+							if found {
+								o <- i
+							}
 						}
 					}
 				}

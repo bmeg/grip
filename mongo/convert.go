@@ -70,7 +70,7 @@ func UnpackEdge(i map[string]interface{}) aql.Edge {
 	o := aql.Edge{}
 	id := i["_id"]
 	if idb, ok := id.(bson.ObjectId); ok {
-		o.Gid = idb.Hex()
+		o.Gid = idb.String()
 	} else {
 		o.Gid = id.(string)
 	}
