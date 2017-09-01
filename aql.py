@@ -71,7 +71,7 @@ class Graph:
 
     def addBundle(self, src, bundle, label):
         payload = json.dumps({
-            "src" : src,
+            "from" : src,
             "bundle" : bundle,
             "label" : label,
         })
@@ -124,28 +124,28 @@ class Query:
         self.query.append({'cap': c})
         return self
 
-    def incoming(self, label=""):
+    def incoming(self, label=[]):
+        if not isinstance(label, list):
+            label = [label]
         self.query.append({'in': label})
         return self
 
-    def outgoing(self, label=""):
+    def outgoing(self, label=[]):
+        if not isinstance(label, list):
+            label = [label]
         self.query.append({'out': label})
         return self
 
-    def inEdge(self, label=""):
+    def inEdge(self, label=[]):
+        if not isinstance(label, list):
+            label = [label]
         self.query.append({'inEdge': label})
         return self
 
-    def outEdge(self, label=""):
+    def outEdge(self, label=[]):
+        if not isinstance(label, list):
+            label = [label]
         self.query.append({'outEdge': label})
-        return self
-
-    def inVertex(self, label):
-        self.query.append({'inVertex': label})
-        return self
-
-    def outVertex(self, label):
-        self.query.append({'outVertex': label})
         return self
 
     def mark(self, label):
