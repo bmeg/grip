@@ -62,7 +62,9 @@ func UnpackVertex(i map[string]interface{}) aql.Vertex {
 	o := aql.Vertex{}
 	o.Gid = i["_id"].(string)
 	o.Label = i["label"].(string)
-	o.Properties = protoutil.AsStruct(i["properties"].(map[string]interface{}))
+	if p, ok := i["properties"]; ok {
+		o.Properties = protoutil.AsStruct(p.(map[string]interface{}))
+	}
 	return o
 }
 

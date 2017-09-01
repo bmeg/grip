@@ -88,5 +88,3 @@ type EdgeFilter func(edge aql.Edge) bool
 type PipeRequest struct {
 	LoadProperties bool
 }
-
-type GraphPipe func(ctx context.Context) chan Traveler
