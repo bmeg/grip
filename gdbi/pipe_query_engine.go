@@ -13,9 +13,26 @@ import (
 
 const (
 	STATE_CUSTOM          = 0
-	STATE_RAW_VERTEX_LIST = 1
-	STATE_RAW_EDGE_LIST   = 2
+	STATE_VERTEX_LIST     = 1
+	STATE_EDGE_LIST       = 2
+	STATE_RAW_VERTEX_LIST = 3
+	STATE_RAW_EDGE_LIST   = 4
 )
+
+func state_custom(i int) int {
+	switch i {
+	case STATE_EDGE_LIST:
+		return STATE_EDGE_LIST
+	case STATE_VERTEX_LIST:
+		return STATE_VERTEX_LIST
+	case STATE_RAW_EDGE_LIST:
+		return STATE_EDGE_LIST
+	case STATE_RAW_VERTEX_LIST:
+		return STATE_VERTEX_LIST
+	default:
+		return STATE_CUSTOM
+	}
+}
 
 type timer interface {
 	start_timer()
@@ -54,7 +71,7 @@ func NewPipeEngine(db DBI) *PipeEngine {
 	}
 }
 
-func (self *PipeEngine) append(name string, pipe GraphPipe) *PipeEngine {
+func (self *PipeEngine) append(name string, state int, pipe GraphPipe) *PipeEngine {
 	return &PipeEngine{
 		name:      name,
 		db:        self.db,
@@ -62,7 +79,7 @@ func (self *PipeEngine) append(name string, pipe GraphPipe) *PipeEngine {
 		err:       self.err,
 		selection: self.selection,
 		imports:   self.imports,
-		state:     STATE_CUSTOM, //by default, state isn't passed down the operation chain
+		state:     state,
 		parent:    self,
 	}
 }
@@ -85,7 +102,7 @@ func (self *PipeEngine) start_pipe(ctx context.Context) chan Traveler {
 
 func (self *PipeEngine) V(key ...string) QueryInterface {
 	if len(key) > 0 {
-		return self.append(fmt.Sprintf("V %s", key),
+		return self.append(fmt.Sprintf("V %s", key), STATE_VERTEX_LIST,
 			func(t timer, ctx context.Context) chan Traveler {
 				o := make(chan Traveler, PIPE_SIZE)
 				go func() {
@@ -101,7 +118,7 @@ func (self *PipeEngine) V(key ...string) QueryInterface {
 				return o
 			})
 	}
-	out := self.append("V",
+	return self.append("V", STATE_RAW_VERTEX_LIST,
 		func(t timer, ctx context.Context) chan Traveler {
 			o := make(chan Traveler, PIPE_SIZE)
 			go func() {
@@ -114,12 +131,10 @@ func (self *PipeEngine) V(key ...string) QueryInterface {
 			}()
 			return o
 		})
-	out.state = STATE_RAW_VERTEX_LIST
-	return out
 }
 
 func (self *PipeEngine) E() QueryInterface {
-	out := self.append("E",
+	return self.append("E", STATE_RAW_VERTEX_LIST,
 		func(t timer, ctx context.Context) chan Traveler {
 			o := make(chan Traveler, PIPE_SIZE)
 			go func() {
@@ -132,12 +147,10 @@ func (self *PipeEngine) E() QueryInterface {
 			}()
 			return o
 		})
-	out.state = STATE_RAW_VERTEX_LIST
-	return out
 }
 
 func (self *PipeEngine) Labeled(labels ...string) QueryInterface {
-	return self.append(fmt.Sprintf("Labeled: %s", labels),
+	return self.append(fmt.Sprintf("Labeled: %s", labels), state_custom(self.state),
 		func(t timer, ctx context.Context) chan Traveler {
 			o := make(chan Traveler, PIPE_SIZE)
 			go func() {
@@ -198,7 +211,7 @@ func (self *PipeEngine) Labeled(labels ...string) QueryInterface {
 }
 
 func (self *PipeEngine) Has(prop string, value ...string) QueryInterface {
-	return self.append(fmt.Sprintf("Has: %s", prop),
+	return self.append(fmt.Sprintf("Has: %s", prop), state_custom(self.state),
 		func(t timer, ctx context.Context) chan Traveler {
 			o := make(chan Traveler, PIPE_SIZE)
 			go func() {
@@ -239,7 +252,7 @@ func (self *PipeEngine) Has(prop string, value ...string) QueryInterface {
 }
 
 func (self *PipeEngine) Out(key ...string) QueryInterface {
-	return self.append(fmt.Sprintf("Out: %s", key),
+	return self.append(fmt.Sprintf("Out: %s", key), STATE_VERTEX_LIST,
 		func(t timer, ctx context.Context) chan Traveler {
 			o := make(chan Traveler, PIPE_SIZE)
 			go func() {
@@ -254,16 +267,46 @@ func (self *PipeEngine) Out(key ...string) QueryInterface {
 						return false
 					}
 				}
-				for i := range self.start_pipe(context.WithValue(ctx, PROP_LOAD, false)) {
-					if v := i.GetCurrent().GetVertex(); v != nil {
-						for ov := range self.db.GetOutList(ctx, v.Gid, ctx.Value(PROP_LOAD).(bool), filt) {
-							lv := ov
-							o <- i.AddCurrent(aql.QueryResult{&aql.QueryResult_Vertex{&lv}})
+				/*
+					for i := range self.start_pipe(context.WithValue(ctx, PROP_LOAD, false)) {
+						if v := i.GetCurrent().GetVertex(); v != nil {
+							for ov := range self.db.GetOutList(ctx, v.Gid, ctx.Value(PROP_LOAD).(bool), filt) {
+								lv := ov
+								o <- i.AddCurrent(aql.QueryResult{&aql.QueryResult_Vertex{&lv}})
+							}
+						} else if e := i.GetCurrent().GetEdge(); e != nil {
+							v := self.db.GetVertex(e.To, ctx.Value(PROP_LOAD).(bool))
+							o <- i.AddCurrent(aql.QueryResult{&aql.QueryResult_Vertex{v}})
 						}
-					} else if e := i.GetCurrent().GetEdge(); e != nil {
-						v := self.db.GetVertex(e.To, ctx.Value(PROP_LOAD).(bool))
+					}
+				*/
+				if self.state == STATE_VERTEX_LIST || self.state == STATE_RAW_VERTEX_LIST {
+					for i := range self.start_pipe(context.WithValue(ctx, PROP_LOAD, false)) {
+						if v := i.GetCurrent().GetVertex(); v != nil {
+							for ov := range self.db.GetOutList(ctx, v.Gid, ctx.Value(PROP_LOAD).(bool), filt) {
+								lv := ov
+								o <- i.AddCurrent(aql.QueryResult{&aql.QueryResult_Vertex{&lv}})
+							}
+						}
+					}
+				} else if self.state == STATE_EDGE_LIST || self.state == STATE_RAW_EDGE_LIST {
+					id_list := make(chan string, 100)
+					traveler_list := make(chan Traveler, 100)
+					log.Printf("Starting Vertex Stream")
+					go func() {
+						defer close(id_list)
+						defer close(traveler_list)
+						for i := range self.start_pipe(context.WithValue(ctx, PROP_LOAD, false)) {
+							e := i.GetCurrent().GetEdge()
+							id_list <- e.To
+							traveler_list <- i
+						}
+					}()
+					for v := range self.db.GetVertexListByID(ctx, id_list, ctx.Value(PROP_LOAD).(bool)) {
+						i := <-traveler_list
 						o <- i.AddCurrent(aql.QueryResult{&aql.QueryResult_Vertex{v}})
 					}
+					log.Printf("Ending Vertex Stream")
 				}
 				t.end_timer()
 			}()
@@ -272,7 +315,7 @@ func (self *PipeEngine) Out(key ...string) QueryInterface {
 }
 
 func (self *PipeEngine) In(key ...string) QueryInterface {
-	return self.append(fmt.Sprintf("In: %s", key),
+	return self.append(fmt.Sprintf("In: %s", key), STATE_VERTEX_LIST,
 		func(t timer, ctx context.Context) chan Traveler {
 			o := make(chan Traveler, PIPE_SIZE)
 			go func() {
@@ -305,7 +348,7 @@ func (self *PipeEngine) In(key ...string) QueryInterface {
 }
 
 func (self *PipeEngine) OutE(key ...string) QueryInterface {
-	return self.append(fmt.Sprintf("OutE: %s", key),
+	return self.append(fmt.Sprintf("OutE: %s", key), STATE_EDGE_LIST,
 		func(t timer, ctx context.Context) chan Traveler {
 			o := make(chan Traveler, PIPE_SIZE)
 			go func() {
@@ -322,10 +365,12 @@ func (self *PipeEngine) OutE(key ...string) QueryInterface {
 				}
 				for i := range self.start_pipe(context.WithValue(ctx, PROP_LOAD, false)) {
 					if v := i.GetCurrent().GetVertex(); v != nil {
+						//log.Printf("GetEdgeList: %s", v.Gid)
 						for oe := range self.db.GetOutEdgeList(ctx, v.Gid, ctx.Value(PROP_LOAD).(bool), filt) {
 							le := oe
 							o <- i.AddCurrent(aql.QueryResult{&aql.QueryResult_Edge{&le}})
 						}
+						//log.Printf("Done GetEdgeList: %s", v.Gid)
 					}
 				}
 				t.end_timer()
@@ -335,7 +380,7 @@ func (self *PipeEngine) OutE(key ...string) QueryInterface {
 }
 
 func (self *PipeEngine) InE(key ...string) QueryInterface {
-	return self.append(fmt.Sprintf("InE: %s", key),
+	return self.append(fmt.Sprintf("InE: %s", key), STATE_EDGE_LIST,
 		func(t timer, ctx context.Context) chan Traveler {
 			o := make(chan Traveler, PIPE_SIZE)
 			go func() {
@@ -363,7 +408,7 @@ func (self *PipeEngine) InE(key ...string) QueryInterface {
 }
 
 func (self *PipeEngine) As(label string) QueryInterface {
-	return self.append(fmt.Sprintf("As: %s", label),
+	return self.append(fmt.Sprintf("As: %s", label), self.state,
 		func(t timer, ctx context.Context) chan Traveler {
 			o := make(chan Traveler, PIPE_SIZE)
 			go func() {
@@ -377,7 +422,7 @@ func (self *PipeEngine) As(label string) QueryInterface {
 }
 
 func (self *PipeEngine) GroupCount(label string) QueryInterface {
-	return self.append(fmt.Sprintf("GroupCount: %s", label),
+	return self.append(fmt.Sprintf("GroupCount: %s", label), STATE_CUSTOM,
 		func(t timer, ctx context.Context) chan Traveler {
 			o := make(chan Traveler, PIPE_SIZE)
 			go func() {
@@ -408,13 +453,13 @@ func (self *PipeEngine) GroupCount(label string) QueryInterface {
 }
 
 func (self *PipeEngine) Select(labels []string) QueryInterface {
-	o := self.append("Select", self.pipe)
+	o := self.append("Select", self.state, self.pipe)
 	o.selection = labels
 	return o
 }
 
 func (self *PipeEngine) Values(labels []string) QueryInterface {
-	return self.append(fmt.Sprintf("Values: %s", labels),
+	return self.append(fmt.Sprintf("Values: %s", labels), STATE_CUSTOM,
 		func(t timer, ctx context.Context) chan Traveler {
 			o := make(chan Traveler, PIPE_SIZE)
 			go func() {
@@ -442,13 +487,13 @@ func (self *PipeEngine) Values(labels []string) QueryInterface {
 }
 
 func (self *PipeEngine) Import(source string) QueryInterface {
-	o := self.append("Import", self.pipe)
+	o := self.append("Import", self.state, self.pipe)
 	o.imports = append(o.imports, source)
 	return o
 }
 
 func (self *PipeEngine) Map(source string) QueryInterface {
-	return self.append("Map",
+	return self.append("Map", STATE_CUSTOM,
 		func(t timer, ctx context.Context) chan Traveler {
 			o := make(chan Traveler, PIPE_SIZE)
 			go func() {
@@ -470,7 +515,7 @@ func (self *PipeEngine) Map(source string) QueryInterface {
 }
 
 func (self *PipeEngine) Fold(source string) QueryInterface {
-	return self.append("Fold",
+	return self.append("Fold", STATE_CUSTOM,
 		func(t timer, ctx context.Context) chan Traveler {
 			o := make(chan Traveler, PIPE_SIZE)
 			go func() {
@@ -500,7 +545,7 @@ func (self *PipeEngine) Fold(source string) QueryInterface {
 }
 
 func (self *PipeEngine) Filter(source string) QueryInterface {
-	return self.append("Filter",
+	return self.append("Filter", state_custom(self.state),
 		func(t timer, ctx context.Context) chan Traveler {
 			o := make(chan Traveler, PIPE_SIZE)
 			go func() {
@@ -523,24 +568,26 @@ func (self *PipeEngine) Filter(source string) QueryInterface {
 }
 
 func (self *PipeEngine) Count() QueryInterface {
-	return self.append("Count",
+	return self.append("Count", STATE_CUSTOM,
 		func(t timer, ctx context.Context) chan Traveler {
 			o := make(chan Traveler, 1)
 			go func() {
+				t.start_timer()
 				defer close(o)
 				var count int32 = 0
 				for range self.start_pipe(context.WithValue(ctx, PROP_LOAD, false)) {
 					count += 1
 				}
-				t := Traveler{}
-				o <- t.AddCurrent(aql.QueryResult{&aql.QueryResult_IntValue{IntValue: count}})
+				trav := Traveler{}
+				o <- trav.AddCurrent(aql.QueryResult{&aql.QueryResult_IntValue{IntValue: count}})
+				t.end_timer()
 			}()
 			return o
 		})
 }
 
 func (self *PipeEngine) Limit(limit int64) QueryInterface {
-	return self.append("Limit",
+	return self.append("Limit", state_custom(self.state),
 		func(t timer, ctx context.Context) chan Traveler {
 			o := make(chan Traveler, PIPE_SIZE)
 			go func() {
@@ -569,6 +616,7 @@ func (self *PipeEngine) Execute(ctx context.Context) chan aql.ResultRow {
 	o := make(chan aql.ResultRow, PIPE_SIZE)
 	go func() {
 		defer close(o)
+		self.start_timer()
 		pipe := self.start_pipe(context.WithValue(ctx, PROP_LOAD, true))
 		if pipe != nil {
 			for i := range pipe {
@@ -583,8 +631,9 @@ func (self *PipeEngine) Execute(ctx context.Context) chan aql.ResultRow {
 				}
 			}
 		}
+		self.end_timer()
 		log.Printf("---StartTiming---")
-		for p := self.parent; p != nil; p = p.parent {
+		for p := self; p != nil; p = p.parent {
 			log.Printf("%s %s", p.name, p.get_time())
 		}
 		log.Printf("---EndTiming---")

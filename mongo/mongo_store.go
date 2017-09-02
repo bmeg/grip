@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/gdbi"
+	"github.com/bmeg/golib/timing"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 	"log"
@@ -82,7 +83,10 @@ func (self *MongoGraph) GetEdge(id string, loadProp bool) *aql.Edge {
 func (self *MongoGraph) GetVertex(key string, load bool) *aql.Vertex {
 	//log.Printf("GetVertex: %s", key)
 	d := map[string]interface{}{}
-	q := self.vertices.FindId(key)
+	q := self.vertices.Find(map[string]interface{}{"_id": key}).Limit(1)
+	if !load {
+		q = q.Select(map[string]interface{}{"_id": 1, "label": 1})
+	}
 	q.One(d)
 	v := UnpackVertex(d)
 	return &v
@@ -156,6 +160,62 @@ func (self *MongoGraph) GetEdgeList(ctx context.Context, loadProp bool) chan aql
 		}
 	}()
 	return o
+}
+
+var BATCH_SIZE int = 100
+
+func (self *MongoGraph) GetVertexListByID(ctx context.Context, ids chan string, load bool) chan *aql.Vertex {
+	batches := make(chan []string, 100)
+	go func() {
+		defer close(batches)
+		o := make([]string, 0, BATCH_SIZE)
+		for id := range ids {
+			o = append(o, id)
+			if len(o) >= BATCH_SIZE {
+				batches <- o
+				o = make([]string, 0, BATCH_SIZE)
+			}
+		}
+		batches <- o
+	}()
+
+	out := make(chan *aql.Vertex, 100)
+	go func() {
+		defer close(out)
+		for batch := range batches {
+			//log.Printf("Getting Batch")
+			query := bson.M{"_id": bson.M{"$in": batch}}
+			//log.Printf("Query: %s", query)
+			q := self.vertices.Find(query)
+			if !load {
+				q = q.Select(map[string]interface{}{"_id": 1, "label": 1})
+			}
+			iter := q.Iter()
+			if iter.Err() != nil {
+				log.Printf("batch err: %s", iter.Err())
+			}
+			defer iter.Close()
+			chunk := map[string]*aql.Vertex{}
+			result := map[string]interface{}{}
+			for iter.Next(&result) {
+				v := UnpackVertex(result)
+				chunk[v.Gid] = &v
+			}
+			//if iter.Err() != nil {
+			//	log.Printf("batch err: %s", iter.Err())
+			//}
+
+			for _, id := range batch {
+				if x, ok := chunk[id]; ok {
+					out <- x
+				} else {
+					out <- nil
+				}
+			}
+		}
+	}()
+
+	return out
 }
 
 func (self *MongoGraph) GetOutList(ctx context.Context, key string, load bool, filter gdbi.EdgeFilter) chan aql.Vertex {
@@ -260,8 +320,7 @@ func (self *MongoGraph) GetInList(ctx context.Context, key string, load bool, fi
 }
 
 func (self *MongoGraph) GetOutEdgeList(ctx context.Context, key string, load bool, filter gdbi.EdgeFilter) chan aql.Edge {
-	//log.Printf("OutEdge %s %s", key, load)
-	o := make(chan aql.Edge, 100)
+	o := make(chan aql.Edge, 1000)
 	go func() {
 		defer close(o)
 		selection := map[string]interface{}{
@@ -280,20 +339,25 @@ func (self *MongoGraph) GetOutEdgeList(ctx context.Context, key string, load boo
 					o <- e
 				}
 			} else if _, ok := result[FIELD_BUNDLE]; ok {
+				timer := timing.NewTimer()
 				bundle := UnpackBundle(result)
 				for k, v := range bundle.Bundle {
+					timer.Start()
 					e := aql.Edge{Gid: bundle.Gid, Label: bundle.Label, From: bundle.From, To: k, Properties: v}
+					timer.End("Allocate")
 					if filter != nil {
 						if filter(e) {
+							timer.Start()
 							o <- e
+							timer.End("Channel")
 						}
 					} else {
 						o <- e
 					}
 				}
+				//log.Printf("OutE %s:%s", filter, timer.String())
 			}
 		}
-		//log.Printf("OutEdge Done")
 	}()
 	return o
 }

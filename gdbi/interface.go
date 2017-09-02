@@ -54,6 +54,8 @@ type GraphDB interface {
 	GetVertexList(ctx context.Context, load bool) chan aql.Vertex
 	GetEdgeList(ctx context.Context, load bool) chan aql.Edge
 
+	GetVertexListByID(ctx context.Context, ids chan string, load bool) chan *aql.Vertex
+
 	GetOutList(ctx context.Context, key string, load bool, filter EdgeFilter) chan aql.Vertex
 	GetInList(ctx context.Context, key string, load bool, filter EdgeFilter) chan aql.Vertex
 

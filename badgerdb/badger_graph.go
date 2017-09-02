@@ -700,6 +700,34 @@ func (self *BadgerGDB) GetVertex(id string, loadProp bool) *aql.Vertex {
 	return &v
 }
 
+func (self *BadgerGDB) GetVertexListByID(ctx context.Context, ids chan string, load bool) chan *aql.Vertex {
+
+	data := make(chan []byte, 100)
+	go func() {
+		defer close(data)
+		for id := range ids {
+			vkey := VertexKey(self.graph, id)
+			data_value := badger.KVItem{}
+			err := self.kv.Get(vkey, &data_value)
+			if err == nil && data_value.Value() == nil {
+				data <- data_value.Value()
+			}
+		}
+	}()
+
+	out := make(chan *aql.Vertex, 100)
+	go func() {
+		defer close(out)
+		for d := range data {
+			v := aql.Vertex{}
+			proto.Unmarshal(d, &v)
+			out <- &v
+		}
+	}()
+
+	return out
+}
+
 func (self *BadgerGDB) GetEdge(id string, loadProp bool) *aql.Edge {
 	ekey_prefix := EdgeKeyPrefix(self.graph, id)
 
