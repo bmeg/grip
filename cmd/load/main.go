@@ -13,6 +13,7 @@ var host string = "localhost:9090"
 var graph string = "data"
 var vertexFile string = ""
 var edgeFile string = ""
+var bundleFile string = ""
 
 var Cmd = &cobra.Command{
 	Use:   "load",
@@ -60,6 +61,24 @@ var Cmd = &cobra.Command{
 			}
 		}
 
+		if bundleFile != "" {
+			log.Printf("Loading %s", bundleFile)
+			reader, err := golib.ReadFileLines(bundleFile)
+			if err != nil {
+				return err
+			}
+			count := 0
+			for line := range reader {
+				e := aql.Bundle{}
+				jsonpb.Unmarshal(strings.NewReader(string(line)), &e)
+				conn.AddBundle(graph, e)
+				count += 1
+				if count%1000 == 0 {
+					log.Printf("Loaded %d bundles", count)
+				}
+			}
+		}
+
 		return nil
 	},
 }
@@ -70,4 +89,5 @@ func init() {
 	flags.StringVar(&graph, "graph", "data", "Graph")
 	flags.StringVar(&vertexFile, "vertex", "", "Vertex File")
 	flags.StringVar(&edgeFile, "edge", "", "Edge File")
+	flags.StringVar(&bundleFile, "bundle", "", "Edge Bundle File")
 }

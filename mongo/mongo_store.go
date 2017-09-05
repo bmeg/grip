@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/gdbi"
-	"github.com/bmeg/golib/timing"
+	//"github.com/bmeg/golib/timing"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 	"log"
@@ -339,17 +339,17 @@ func (self *MongoGraph) GetOutEdgeList(ctx context.Context, key string, load boo
 					o <- e
 				}
 			} else if _, ok := result[FIELD_BUNDLE]; ok {
-				timer := timing.NewTimer()
+				//timer := timing.NewTimer()
 				bundle := UnpackBundle(result)
 				for k, v := range bundle.Bundle {
-					timer.Start()
+					//timer.Start()
 					e := aql.Edge{Gid: bundle.Gid, Label: bundle.Label, From: bundle.From, To: k, Properties: v}
-					timer.End("Allocate")
+					//timer.End("Allocate")
 					if filter != nil {
 						if filter(e) {
-							timer.Start()
+							//timer.Start()
 							o <- e
-							timer.End("Channel")
+							//timer.End("Channel")
 						}
 					} else {
 						o <- e

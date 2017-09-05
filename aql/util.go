@@ -76,6 +76,11 @@ func (client AQLClient) AddEdge(graph string, e Edge) error {
 	return nil
 }
 
+func (client AQLClient) AddBundle(graph string, e Bundle) error {
+	client.EditC.AddBundle(context.Background(), &GraphElement{Graph: graph, Bundle: &e})
+	return nil
+}
+
 func (client AQLClient) Query(graph string) QueryBuilder {
 	return QueryBuilder{client.QueryC, graph, []*GraphStatement{}}
 }
