@@ -9,6 +9,7 @@ type QueryInterface interface {
 	V(key ...string) QueryInterface
 	E() QueryInterface
 	Count() QueryInterface
+	Labeled(labels ...string) QueryInterface
 	Has(prop string, value ...string) QueryInterface
 	Out(key ...string) QueryInterface
 	In(key ...string) QueryInterface
@@ -43,7 +44,7 @@ type ArachneInterface interface {
 	Graph(string) DBI
 }
 
-type DBI interface {
+type GraphDB interface {
 	Query() QueryInterface
 
 	GetVertex(key string, load bool) *aql.Vertex
@@ -66,6 +67,16 @@ type DBI interface {
 	DelVertex(key string) error
 	DelEdge(key string) error
 	DelBundle(id string) error
+}
+
+type Indexer interface {
+	VertexLabelScan(ctx context.Context, label string) chan string
+	EdgeLabelScan(ctx context.Context, label string) chan string
+}
+
+type DBI interface {
+	GraphDB
+	Indexer
 }
 
 type Traveler struct {
