@@ -377,6 +377,32 @@ func (self *MongoGraph) GetOutEdgeList(ctx context.Context, key string, load boo
 	return o
 }
 
+func (self *MongoGraph) GetOutBundleList(ctx context.Context, key string, load bool, filter gdbi.BundleFilter) chan aql.Bundle {
+	o := make(chan aql.Bundle, 1000)
+	go func() {
+		defer close(o)
+		selection := map[string]interface{}{
+			FIELD_SRC: key,
+		}
+		iter := self.edges.Find(selection).Iter()
+		result := map[string]interface{}{}
+		for iter.Next(&result) {
+			if _, ok := result[FIELD_BUNDLE]; ok {
+				//timer := timing.NewTimer()
+				bundle := UnpackBundle(result)
+				if filter != nil {
+					if filter(bundle) {
+						o <- bundle
+					}
+				} else {
+					o <- bundle
+				}
+			}
+		}
+	}()
+	return o
+}
+
 func (self *MongoGraph) GetInEdgeList(ctx context.Context, key string, load bool, filter gdbi.EdgeFilter) chan aql.Edge {
 	o := make(chan aql.Edge, 100)
 	go func() {

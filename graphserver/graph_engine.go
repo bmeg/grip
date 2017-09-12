@@ -97,6 +97,9 @@ func (trav *Traversal) RunStatement(statement *aql.GraphStatement) error {
 	} else if x, ok := statement.GetStatement().(*aql.GraphStatement_InEdge); ok {
 		labels := protoutil.AsStringList(x.InEdge)
 		trav.Query = trav.Query.InE(labels...)
+	} else if x, ok := statement.GetStatement().(*aql.GraphStatement_OutBundle); ok {
+		labels := protoutil.AsStringList(x.OutBundle)
+		trav.Query = trav.Query.OutBundle(labels...)
 	} else if x := statement.GetHas(); x != nil {
 		trav.Query = trav.Query.Has(x.Key, x.Within...)
 	} else if x, ok := statement.GetStatement().(*aql.GraphStatement_Labeled); ok {

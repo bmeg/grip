@@ -18,6 +18,8 @@ type QueryInterface interface {
 	OutE(key ...string) QueryInterface
 	InE(key ...string) QueryInterface
 
+	OutBundle(key ...string) QueryInterface
+
 	As(label string) QueryInterface
 	Select(labels []string) QueryInterface
 	Values(labels []string) QueryInterface
@@ -62,6 +64,8 @@ type GraphDB interface {
 	GetOutEdgeList(ctx context.Context, key string, load bool, filter EdgeFilter) chan aql.Edge
 	GetInEdgeList(ctx context.Context, key string, load bool, filter EdgeFilter) chan aql.Edge
 
+	GetOutBundleList(ctx context.Context, key string, load bool, filter BundleFilter) chan aql.Bundle
+
 	SetVertex(vertex aql.Vertex) error
 	SetEdge(edge aql.Edge) error
 	SetBundle(edge aql.Bundle) error
@@ -86,6 +90,7 @@ type Traveler struct {
 }
 
 type EdgeFilter func(edge aql.Edge) bool
+type BundleFilter func(edge aql.Bundle) bool
 
 type PipeRequest struct {
 	LoadProperties bool

@@ -17,6 +17,7 @@ const (
 	STATE_EDGE_LIST       = 2
 	STATE_RAW_VERTEX_LIST = 3
 	STATE_RAW_EDGE_LIST   = 4
+	STATE_BUNDLE_LIST     = 5
 )
 
 func state_custom(i int) int {
@@ -377,6 +378,38 @@ func (self *PipeEngine) OutE(key ...string) QueryInterface {
 						for oe := range self.db.GetOutEdgeList(ctx, v.Gid, ctx.Value(PROP_LOAD).(bool), filt) {
 							le := oe
 							o <- i.AddCurrent(aql.QueryResult{&aql.QueryResult_Edge{&le}})
+						}
+						//log.Printf("Done GetEdgeList: %s", v.Gid)
+					}
+				}
+				t.end_timer()
+			}()
+			return o
+		})
+}
+
+func (self *PipeEngine) OutBundle(key ...string) QueryInterface {
+	return self.append(fmt.Sprintf("OutBundle: %s", key), STATE_BUNDLE_LIST,
+		func(t timer, ctx context.Context) chan Traveler {
+			o := make(chan Traveler, PIPE_SIZE)
+			go func() {
+				t.start_timer()
+				defer close(o)
+				var filt BundleFilter = nil
+				if len(key) > 0 && len(key[0]) > 0 {
+					filt = func(e aql.Bundle) bool {
+						if key[0] == e.Label {
+							return true
+						}
+						return false
+					}
+				}
+				for i := range self.start_pipe(context.WithValue(ctx, PROP_LOAD, false)) {
+					if v := i.GetCurrent().GetVertex(); v != nil {
+						//log.Printf("GetEdgeList: %s", v.Gid)
+						for oe := range self.db.GetOutBundleList(ctx, v.Gid, ctx.Value(PROP_LOAD).(bool), filt) {
+							le := oe
+							o <- i.AddCurrent(aql.QueryResult{&aql.QueryResult_Bundle{&le}})
 						}
 						//log.Printf("Done GetEdgeList: %s", v.Gid)
 					}
