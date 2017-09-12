@@ -44,9 +44,10 @@ class Graph:
     def query(self):
         return Query(self)
 
-    def addVertex(self, id, prop={}):
+    def addVertex(self, id, label, prop={}):
         payload = json.dumps({
             "gid" : id,
+            "label" : label,
             "properties" : prop
         })
         headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
@@ -57,8 +58,8 @@ class Graph:
 
     def addEdge(self, src, dst, label, prop={}):
         payload = json.dumps({
-            "src" : src,
-            "dst" : dst,
+            "from" : src,
+            "to" : dst,
             "label" : label,
             "properties" : prop
         })

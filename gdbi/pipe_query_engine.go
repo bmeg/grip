@@ -123,11 +123,13 @@ func (self *PipeEngine) V(key ...string) QueryInterface {
 			o := make(chan Traveler, PIPE_SIZE)
 			go func() {
 				defer close(o)
+				t.start_timer()
 				for i := range self.db.GetVertexList(ctx, ctx.Value(PROP_LOAD).(bool)) {
 					t := i //make a local copy
 					c := Traveler{}
 					o <- c.AddCurrent(aql.QueryResult{&aql.QueryResult_Vertex{&t}})
 				}
+				t.end_timer()
 			}()
 			return o
 		})
@@ -139,11 +141,13 @@ func (self *PipeEngine) E() QueryInterface {
 			o := make(chan Traveler, PIPE_SIZE)
 			go func() {
 				defer close(o)
+				t.start_timer()
 				for i := range self.db.GetEdgeList(ctx, ctx.Value(PROP_LOAD).(bool)) {
 					t := i //make a local copy
 					c := Traveler{}
 					o <- c.AddCurrent(aql.QueryResult{&aql.QueryResult_Edge{&t}})
 				}
+				t.end_timer()
 			}()
 			return o
 		})
@@ -155,6 +159,7 @@ func (self *PipeEngine) Labeled(labels ...string) QueryInterface {
 			o := make(chan Traveler, PIPE_SIZE)
 			go func() {
 				defer close(o)
+				t.start_timer()
 				//if the 'state' is of a raw output, ie the output of query.V() or query.E(),
 				//we can skip calling the upstream element and reference the index
 				if self.state == STATE_RAW_VERTEX_LIST {
@@ -205,6 +210,7 @@ func (self *PipeEngine) Labeled(labels ...string) QueryInterface {
 						}
 					}
 				}
+				t.end_timer()
 			}()
 			return o
 		})
@@ -216,6 +222,7 @@ func (self *PipeEngine) Has(prop string, value ...string) QueryInterface {
 			o := make(chan Traveler, PIPE_SIZE)
 			go func() {
 				defer close(o)
+				t.start_timer()
 				for i := range self.start_pipe(context.WithValue(ctx, PROP_LOAD, true)) {
 					//Process Vertex Elements
 					if v := i.GetCurrent().GetVertex(); v != nil && v.Properties != nil {
@@ -246,6 +253,7 @@ func (self *PipeEngine) Has(prop string, value ...string) QueryInterface {
 						}
 					}
 				}
+				t.end_timer()
 			}()
 			return o
 		})
@@ -384,6 +392,7 @@ func (self *PipeEngine) InE(key ...string) QueryInterface {
 		func(t timer, ctx context.Context) chan Traveler {
 			o := make(chan Traveler, PIPE_SIZE)
 			go func() {
+				t.start_timer()
 				defer close(o)
 				var filt EdgeFilter = nil
 				if len(key) > 0 && len(key[0]) > 0 {
@@ -402,6 +411,7 @@ func (self *PipeEngine) InE(key ...string) QueryInterface {
 						}
 					}
 				}
+				t.end_timer()
 			}()
 			return o
 		})
@@ -412,10 +422,12 @@ func (self *PipeEngine) As(label string) QueryInterface {
 		func(t timer, ctx context.Context) chan Traveler {
 			o := make(chan Traveler, PIPE_SIZE)
 			go func() {
+				t.start_timer()
 				defer close(o)
 				for i := range self.start_pipe(context.WithValue(ctx, PROP_LOAD, true)) {
 					o <- i.AddLabeled(label, *i.GetCurrent())
 				}
+				t.end_timer()
 			}()
 			return o
 		})
@@ -427,6 +439,7 @@ func (self *PipeEngine) GroupCount(label string) QueryInterface {
 			o := make(chan Traveler, PIPE_SIZE)
 			go func() {
 				defer close(o)
+				t.start_timer()
 				groupCount := map[string]int{}
 				for i := range self.start_pipe(context.WithValue(ctx, PROP_LOAD, true)) {
 					var props *structpb.Struct = nil
@@ -447,6 +460,7 @@ func (self *PipeEngine) GroupCount(label string) QueryInterface {
 				}
 				c := Traveler{}
 				o <- c.AddCurrent(aql.QueryResult{&aql.QueryResult_Struct{&out}})
+				t.end_timer()
 			}()
 			return o
 		})
@@ -464,6 +478,7 @@ func (self *PipeEngine) Values(labels []string) QueryInterface {
 			o := make(chan Traveler, PIPE_SIZE)
 			go func() {
 				defer close(o)
+				t.start_timer()
 				for i := range self.start_pipe(context.WithValue(ctx, PROP_LOAD, true)) {
 					var props *structpb.Struct = nil
 					if v := i.GetCurrent().GetVertex(); v != nil && v.Properties != nil {
@@ -481,6 +496,7 @@ func (self *PipeEngine) Values(labels []string) QueryInterface {
 						o <- i.AddCurrent(aql.QueryResult{&aql.QueryResult_Struct{&out}})
 					}
 				}
+				t.end_timer()
 			}()
 			return o
 		})
@@ -498,6 +514,7 @@ func (self *PipeEngine) Map(source string) QueryInterface {
 			o := make(chan Traveler, PIPE_SIZE)
 			go func() {
 				defer close(o)
+				t.start_timer()
 				mfunc, err := jsengine.NewFunction(source, self.imports)
 				if err != nil {
 					log.Printf("Script Error: %s", err)
@@ -509,6 +526,7 @@ func (self *PipeEngine) Map(source string) QueryInterface {
 						o <- a
 					}
 				}
+				t.end_timer()
 			}()
 			return o
 		})
@@ -520,6 +538,7 @@ func (self *PipeEngine) Fold(source string) QueryInterface {
 			o := make(chan Traveler, PIPE_SIZE)
 			go func() {
 				defer close(o)
+				t.start_timer()
 				mfunc, err := jsengine.NewFunction(source, self.imports)
 				if err != nil {
 					log.Printf("Script Error: %s", err)
@@ -539,6 +558,7 @@ func (self *PipeEngine) Fold(source string) QueryInterface {
 					a := i.AddCurrent(*last)
 					o <- a
 				}
+				t.end_timer()
 			}()
 			return o
 		})

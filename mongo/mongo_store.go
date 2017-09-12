@@ -32,8 +32,12 @@ type MongoGraph struct {
 func (self *MongoArachne) AddGraph(graph string) error {
 	graphs := self.db.C(fmt.Sprintf("graphs"))
 	graphs.Insert(map[string]string{"_id": graph})
-	//db.bmeg_edges.createIndex({"from":"hashed"})
-	//db.bmeg_edges.createIndex({"to":"hashed"})
+
+	//v := self.db.C(fmt.Sprintf("%s_vertices", graph))
+	e := self.db.C(fmt.Sprintf("%s_edges", graph))
+
+	e.EnsureIndex(mgo.Index{Key: []string{"$hashed:from"}})
+	e.EnsureIndex(mgo.Index{Key: []string{"$hashed:to"}})
 
 	return nil
 }
@@ -54,6 +58,15 @@ func (self *MongoArachne) DeleteGraph(graph string) error {
 
 func (self *MongoArachne) GetGraphs() []string {
 	out := make([]string, 0, 100)
+	g := self.db.C(fmt.Sprintf("graphs"))
+
+	iter := g.Find(nil).Iter()
+	defer iter.Close()
+	result := map[string]interface{}{}
+	for iter.Next(&result) {
+		out = append(out, result["_id"].(string))
+	}
+
 	return out
 }
 
@@ -270,9 +283,11 @@ func (self *MongoGraph) GetOutList(ctx context.Context, key string, load bool, f
 				q = q.Select(map[string]interface{}{"_id": 1, "label": 1})
 			}
 			d := map[string]interface{}{}
-			q.One(d)
-			v := UnpackVertex(d)
-			o <- v
+			err := q.One(d)
+			if err == nil {
+				v := UnpackVertex(d)
+				o <- v
+			}
 		}
 	}()
 	return o

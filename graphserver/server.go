@@ -55,6 +55,7 @@ func (server *ArachneServer) Traversal(query *aql.GraphQuery, queryServer aql.Qu
 }
 
 func (server *ArachneServer) GetGraphs(empty *aql.Empty, queryServer aql.Query_GetGraphsServer) error {
+	log.Printf("Graph List")
 	for _, name := range server.engine.GetGraphs() {
 		queryServer.Send(&aql.ElementID{Graph: name})
 	}
