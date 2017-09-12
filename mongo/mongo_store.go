@@ -31,6 +31,9 @@ type MongoGraph struct {
 func (self *MongoArachne) AddGraph(graph string) error {
 	graphs := self.db.C(fmt.Sprintf("graphs"))
 	graphs.Insert(map[string]string{"_id": graph})
+	//db.bmeg_edges.createIndex({"from":"hashed"})
+	//db.bmeg_edges.createIndex({"to":"hashed"})
+
 	return nil
 }
 
@@ -77,6 +80,7 @@ func (self *MongoGraph) GetEdge(id string, loadProp bool) *aql.Edge {
 }
 
 func (self *MongoGraph) GetVertex(key string, load bool) *aql.Vertex {
+	//log.Printf("GetVertex: %s", key)
 	d := map[string]interface{}{}
 	q := self.vertices.FindId(key)
 	q.One(d)
@@ -163,8 +167,14 @@ func (self *MongoGraph) GetOutList(ctx context.Context, key string, load bool, f
 			FIELD_SRC: key,
 		}
 		iter := self.edges.Find(selection).Iter()
+		defer iter.Close()
 		result := map[string]interface{}{}
 		for iter.Next(&result) {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+			}
 			if _, ok := result[FIELD_DST]; ok {
 				if filter != nil {
 					e := UnpackEdge(result)
@@ -196,6 +206,9 @@ func (self *MongoGraph) GetOutList(ctx context.Context, key string, load bool, f
 		defer close(o)
 		for dst := range vertex_chan {
 			q := self.vertices.FindId(dst)
+			if !load {
+				q = q.Select(map[string]interface{}{"_id": 1, "label": 1})
+			}
 			d := map[string]interface{}{}
 			q.One(d)
 			v := UnpackVertex(d)
@@ -206,6 +219,7 @@ func (self *MongoGraph) GetOutList(ctx context.Context, key string, load bool, f
 }
 
 func (self *MongoGraph) GetInList(ctx context.Context, key string, load bool, filter gdbi.EdgeFilter) chan aql.Vertex {
+	//log.Printf("In %s %s", key, load)
 	o := make(chan aql.Vertex, 100)
 	go func() {
 		defer close(o)
@@ -213,8 +227,14 @@ func (self *MongoGraph) GetInList(ctx context.Context, key string, load bool, fi
 			FIELD_DST: key,
 		}
 		iter := self.edges.Find(selection).Iter()
+		defer iter.Close()
 		result := map[string]interface{}{}
 		for iter.Next(&result) {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+			}
 			send := false
 			if filter != nil {
 				e := UnpackEdge(result)
@@ -226,6 +246,9 @@ func (self *MongoGraph) GetInList(ctx context.Context, key string, load bool, fi
 			}
 			if send {
 				q := self.vertices.FindId(result[FIELD_SRC])
+				if !load {
+					q = q.Select(map[string]interface{}{"_id": 1, "label": 1})
+				}
 				d := map[string]interface{}{}
 				q.One(d)
 				v := UnpackVertex(d)
@@ -237,6 +260,7 @@ func (self *MongoGraph) GetInList(ctx context.Context, key string, load bool, fi
 }
 
 func (self *MongoGraph) GetOutEdgeList(ctx context.Context, key string, load bool, filter gdbi.EdgeFilter) chan aql.Edge {
+	//log.Printf("OutEdge %s %s", key, load)
 	o := make(chan aql.Edge, 100)
 	go func() {
 		defer close(o)
@@ -269,6 +293,7 @@ func (self *MongoGraph) GetOutEdgeList(ctx context.Context, key string, load boo
 				}
 			}
 		}
+		//log.Printf("OutEdge Done")
 	}()
 	return o
 }
