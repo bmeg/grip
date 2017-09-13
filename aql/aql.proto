@@ -21,7 +21,7 @@ message GraphStatement {
         google.protobuf.ListValue out = 7;
         google.protobuf.ListValue inEdge = 8;
         google.protobuf.ListValue outEdge = 9;
-        
+
         google.protobuf.ListValue outBundle = 10;
 
         SelectStatement select = 12;
@@ -164,6 +164,12 @@ service Edit {
     option (google.api.http) = {
       post: "/v1/graph/{graph}/bundle"
       body: "bundle"
+    };
+  }
+
+  rpc StreamElements(stream GraphElement) returns (EditResult) {
+    option (google.api.http) = {
+      post: "/v1/graph"
     };
   }
 

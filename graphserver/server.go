@@ -9,6 +9,7 @@ import (
 	"github.com/bmeg/arachne/mongo"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
+	"io"
 	"log"
 	"net"
 )
@@ -106,6 +107,26 @@ func (server *ArachneServer) AddBundle(ctx context.Context, elem *aql.GraphEleme
 	server.engine.AddBundle(elem.Graph, *elem.Bundle)
 	id = elem.Bundle.Gid
 	return &aql.EditResult{Result: &aql.EditResult_Id{id}}, nil
+}
+
+func (server *ArachneServer) StreamElements(stream aql.Edit_StreamElementsServer) error {
+	for {
+		element, err := stream.Recv()
+		if err == io.EOF {
+			return stream.SendAndClose(&aql.EditResult{Result: &aql.EditResult_Id{}})
+		}
+		if err != nil {
+			return err
+		}
+		if element.Vertex != nil {
+			server.AddVertex(context.Background(), element)
+		} else if element.Edge != nil {
+			server.AddEdge(context.Background(), element)
+		} else if element.Bundle != nil {
+			server.AddBundle(context.Background(), element)
+		}
+	}
+
 }
 
 func (server *ArachneServer) DeleteVertex(ctx context.Context, elem *aql.ElementID) (*aql.EditResult, error) {

@@ -316,6 +316,47 @@ func request_Edit_AddBundle_0(ctx context.Context, marshaler runtime.Marshaler, 
 
 }
 
+func request_Edit_StreamElements_0(ctx context.Context, marshaler runtime.Marshaler, client EditClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
+	var metadata runtime.ServerMetadata
+	stream, err := client.StreamElements(ctx)
+	if err != nil {
+		grpclog.Printf("Failed to start streaming: %v", err)
+		return nil, metadata, err
+	}
+	dec := marshaler.NewDecoder(req.Body)
+	for {
+		var protoReq GraphElement
+		err = dec.Decode(&protoReq)
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			grpclog.Printf("Failed to decode request: %v", err)
+			return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+		}
+		if err = stream.Send(&protoReq); err != nil {
+			grpclog.Printf("Failed to send request: %v", err)
+			return nil, metadata, err
+		}
+	}
+
+	if err := stream.CloseSend(); err != nil {
+		grpclog.Printf("Failed to terminate client stream: %v", err)
+		return nil, metadata, err
+	}
+	header, err := stream.Header()
+	if err != nil {
+		grpclog.Printf("Failed to get header from client: %v", err)
+		return nil, metadata, err
+	}
+	metadata.HeaderMD = header
+
+	msg, err := stream.CloseAndRecv()
+	metadata.TrailerMD = stream.Trailer()
+	return msg, metadata, err
+
+}
+
 var (
 	filter_Edit_AddGraph_0 = &utilities.DoubleArray{Encoding: map[string]int{"graph": 0}, Base: []int{1, 1, 0}, Check: []int{0, 1, 2}}
 )
@@ -508,6 +549,7 @@ func RegisterQueryHandler(ctx context.Context, mux *runtime.ServeMux, conn *grpc
 		rctx, err := runtime.AnnotateContext(ctx, mux, req)
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
+			return
 		}
 		resp, md, err := request_Query_Traversal_0(rctx, inboundMarshaler, client, req, pathParams)
 		ctx = runtime.NewServerMetadataContext(ctx, md)
@@ -536,6 +578,7 @@ func RegisterQueryHandler(ctx context.Context, mux *runtime.ServeMux, conn *grpc
 		rctx, err := runtime.AnnotateContext(ctx, mux, req)
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
+			return
 		}
 		resp, md, err := request_Query_GetVertex_0(rctx, inboundMarshaler, client, req, pathParams)
 		ctx = runtime.NewServerMetadataContext(ctx, md)
@@ -564,6 +607,7 @@ func RegisterQueryHandler(ctx context.Context, mux *runtime.ServeMux, conn *grpc
 		rctx, err := runtime.AnnotateContext(ctx, mux, req)
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
+			return
 		}
 		resp, md, err := request_Query_GetEdge_0(rctx, inboundMarshaler, client, req, pathParams)
 		ctx = runtime.NewServerMetadataContext(ctx, md)
@@ -592,6 +636,7 @@ func RegisterQueryHandler(ctx context.Context, mux *runtime.ServeMux, conn *grpc
 		rctx, err := runtime.AnnotateContext(ctx, mux, req)
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
+			return
 		}
 		resp, md, err := request_Query_GetBundle_0(rctx, inboundMarshaler, client, req, pathParams)
 		ctx = runtime.NewServerMetadataContext(ctx, md)
@@ -620,6 +665,7 @@ func RegisterQueryHandler(ctx context.Context, mux *runtime.ServeMux, conn *grpc
 		rctx, err := runtime.AnnotateContext(ctx, mux, req)
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
+			return
 		}
 		resp, md, err := request_Query_GetGraphs_0(rctx, inboundMarshaler, client, req, pathParams)
 		ctx = runtime.NewServerMetadataContext(ctx, md)
@@ -705,6 +751,7 @@ func RegisterEditHandler(ctx context.Context, mux *runtime.ServeMux, conn *grpc.
 		rctx, err := runtime.AnnotateContext(ctx, mux, req)
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
+			return
 		}
 		resp, md, err := request_Edit_AddVertex_0(rctx, inboundMarshaler, client, req, pathParams)
 		ctx = runtime.NewServerMetadataContext(ctx, md)
@@ -733,6 +780,7 @@ func RegisterEditHandler(ctx context.Context, mux *runtime.ServeMux, conn *grpc.
 		rctx, err := runtime.AnnotateContext(ctx, mux, req)
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
+			return
 		}
 		resp, md, err := request_Edit_AddEdge_0(rctx, inboundMarshaler, client, req, pathParams)
 		ctx = runtime.NewServerMetadataContext(ctx, md)
@@ -761,6 +809,7 @@ func RegisterEditHandler(ctx context.Context, mux *runtime.ServeMux, conn *grpc.
 		rctx, err := runtime.AnnotateContext(ctx, mux, req)
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
+			return
 		}
 		resp, md, err := request_Edit_AddBundle_0(rctx, inboundMarshaler, client, req, pathParams)
 		ctx = runtime.NewServerMetadataContext(ctx, md)
@@ -770,6 +819,35 @@ func RegisterEditHandler(ctx context.Context, mux *runtime.ServeMux, conn *grpc.
 		}
 
 		forward_Edit_AddBundle_0(ctx, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
+
+	})
+
+	mux.Handle("POST", pattern_Edit_StreamElements_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+		ctx, cancel := context.WithCancel(ctx)
+		defer cancel()
+		if cn, ok := w.(http.CloseNotifier); ok {
+			go func(done <-chan struct{}, closed <-chan bool) {
+				select {
+				case <-done:
+				case <-closed:
+					cancel()
+				}
+			}(ctx.Done(), cn.CloseNotify())
+		}
+		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
+		rctx, err := runtime.AnnotateContext(ctx, mux, req)
+		if err != nil {
+			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
+			return
+		}
+		resp, md, err := request_Edit_StreamElements_0(rctx, inboundMarshaler, client, req, pathParams)
+		ctx = runtime.NewServerMetadataContext(ctx, md)
+		if err != nil {
+			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
+			return
+		}
+
+		forward_Edit_StreamElements_0(ctx, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
 
 	})
 
@@ -789,6 +867,7 @@ func RegisterEditHandler(ctx context.Context, mux *runtime.ServeMux, conn *grpc.
 		rctx, err := runtime.AnnotateContext(ctx, mux, req)
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
+			return
 		}
 		resp, md, err := request_Edit_AddGraph_0(rctx, inboundMarshaler, client, req, pathParams)
 		ctx = runtime.NewServerMetadataContext(ctx, md)
@@ -817,6 +896,7 @@ func RegisterEditHandler(ctx context.Context, mux *runtime.ServeMux, conn *grpc.
 		rctx, err := runtime.AnnotateContext(ctx, mux, req)
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
+			return
 		}
 		resp, md, err := request_Edit_DeleteGraph_0(rctx, inboundMarshaler, client, req, pathParams)
 		ctx = runtime.NewServerMetadataContext(ctx, md)
@@ -845,6 +925,7 @@ func RegisterEditHandler(ctx context.Context, mux *runtime.ServeMux, conn *grpc.
 		rctx, err := runtime.AnnotateContext(ctx, mux, req)
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
+			return
 		}
 		resp, md, err := request_Edit_DeleteVertex_0(rctx, inboundMarshaler, client, req, pathParams)
 		ctx = runtime.NewServerMetadataContext(ctx, md)
@@ -873,6 +954,7 @@ func RegisterEditHandler(ctx context.Context, mux *runtime.ServeMux, conn *grpc.
 		rctx, err := runtime.AnnotateContext(ctx, mux, req)
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
+			return
 		}
 		resp, md, err := request_Edit_DeleteEdge_0(rctx, inboundMarshaler, client, req, pathParams)
 		ctx = runtime.NewServerMetadataContext(ctx, md)
@@ -895,6 +977,8 @@ var (
 
 	pattern_Edit_AddBundle_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 1, 0, 4, 1, 5, 1, 2, 2}, []string{"v1", "graph", "bundle"}, ""))
 
+	pattern_Edit_StreamElements_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"v1", "graph"}, ""))
+
 	pattern_Edit_AddGraph_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 1, 0, 4, 1, 5, 1}, []string{"v1", "graph"}, ""))
 
 	pattern_Edit_DeleteGraph_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 1, 0, 4, 1, 5, 1}, []string{"v1", "graph"}, ""))
@@ -910,6 +994,8 @@ var (
 	forward_Edit_AddEdge_0 = runtime.ForwardResponseMessage
 
 	forward_Edit_AddBundle_0 = runtime.ForwardResponseMessage
+
+	forward_Edit_StreamElements_0 = runtime.ForwardResponseMessage
 
 	forward_Edit_AddGraph_0 = runtime.ForwardResponseMessage
 
