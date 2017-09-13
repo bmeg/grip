@@ -34,12 +34,13 @@ class Connection:
         return json.loads(result)
 
     def graph(self, name):
-        return Graph("%s/%s" % (self.url, name))
+        return Graph(self.url, name)
 
 
 class Graph:
-    def __init__(self, url):
+    def __init__(self, url, name):
         self.url = url
+        self.name = name
 
     def query(self):
         return Query(self)
@@ -51,7 +52,7 @@ class Graph:
             "properties" : prop
         })
         headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
-        request = urllib2.Request(self.url + "/vertex", payload, headers=headers)
+        request = urllib2.Request(self.url + "/" + self.name + "/vertex", payload, headers=headers)
         response = urllib2.urlopen(request)
         result = response.read()
         return json.loads(result)
@@ -64,7 +65,7 @@ class Graph:
             "properties" : prop
         })
         headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
-        request = urllib2.Request(self.url + "/edge", payload, headers=headers)
+        request = urllib2.Request(self.url + "/" + self.name + "/edge", payload, headers=headers)
         response = urllib2.urlopen(request)
         result = response.read()
         return json.loads(result)
@@ -77,13 +78,51 @@ class Graph:
             "label" : label,
         })
         headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
-        request = urllib2.Request(self.url + "/bundle", payload, headers=headers)
+        request = urllib2.Request(self.url + "/" + self.name + "/bundle", payload, headers=headers)
         response = urllib2.urlopen(request)
         result = response.read()
         return json.loads(result)
+    
+    def bulkAdd(self):
+        return BulkAdd(self.url, self.name)
 
+class BulkAdd:
+    def __init__(self, url, graph):
+        self.url = url
+        self.graph = graph
+        self.elements = []
+    
+    def addVertex(self, id, label, prop={}):
+        payload = json.dumps({
+            "graph" : self.graph,
+            "vertex" : {
+                "gid" : id,
+                "label" : label,
+                "properties" : prop
+            }
+        })
+        self.elements.append(payload)
 
-
+    def addEdge(self, src, dst, label, prop={}):
+        payload = json.dumps({
+            "graph" : self.graph,
+            "edge" : {
+                "from" : src,
+                "to" : dst,
+                "label" : label,
+                "properties" : prop
+            }
+        })
+        self.elements.append(payload)
+    
+    def commit(self):
+        payload = "\n".join(self.elements)
+        headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
+        request = urllib2.Request(self.url, payload, headers=headers)
+        response = urllib2.urlopen(request)
+        result = response.read()
+        return json.loads(result)
+    
 class Query:
     def __init__(self, parent=None):
         self.query = []
@@ -203,7 +242,7 @@ class Query:
         payload = self.render()
         #print payload
         headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
-        request = urllib2.Request(self.parent.url + "/query", payload, headers=headers)
+        request = urllib2.Request(self.parent.url + "/" + self.parent.name + "/query", payload, headers=headers)
         response = urllib2.urlopen(request)
         #out = []
         for result in response:
