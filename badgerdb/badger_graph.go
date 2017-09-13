@@ -558,6 +558,46 @@ func (self *BadgerGDB) GetOutEdgeList(ctx context.Context, id string, loadProp b
 	return o
 }
 
+func (self *BadgerGDB) GetOutBundleList(ctx context.Context, id string, load bool, filter gdbi.BundleFilter) chan aql.Bundle {
+	o := make(chan aql.Bundle, 100)
+	go func() {
+		defer close(o)
+		//log.Printf("GetOutList")
+		skey_prefix := SrcEdgePrefix(self.graph, id)
+		it := self.kv.NewIterator(badger.DefaultIteratorOptions)
+		defer it.Close()
+		for it.Seek(skey_prefix); it.Valid() && bytes.HasPrefix(it.Item().Key(), skey_prefix); it.Next() {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+			}
+			key_value := it.Item().Key()
+			_, src, _, eid := SrcEdgeKeyParse(key_value)
+
+			//log.Printf("Found %s %s %s", src, dst, eid)
+			if it.Item().UserMeta() == EDGE_BUNDLE {
+				bundle := aql.Bundle{}
+				ekey := EdgeKey(self.graph, eid, src, "")
+				data_value := badger.KVItem{}
+				err := self.kv.Get(ekey, &data_value)
+				if err == nil {
+					d := data_value.Value()
+					proto.Unmarshal(d, &bundle)
+					if filter != nil {
+						if filter(bundle) {
+							o <- bundle
+						}
+					} else {
+						o <- bundle
+					}
+				}
+			}
+		}
+	}()
+	return o
+}
+
 func (self *BadgerGDB) GetInList(ctx context.Context, id string, loadProp bool, filter gdbi.EdgeFilter) chan aql.Vertex {
 	o := make(chan aql.Vertex, 100)
 	go func() {
@@ -698,6 +738,34 @@ func (self *BadgerGDB) GetVertex(id string, loadProp bool) *aql.Vertex {
 		v.Gid = id
 	}
 	return &v
+}
+
+func (self *BadgerGDB) GetVertexListByID(ctx context.Context, ids chan string, load bool) chan *aql.Vertex {
+
+	data := make(chan []byte, 100)
+	go func() {
+		defer close(data)
+		for id := range ids {
+			vkey := VertexKey(self.graph, id)
+			data_value := badger.KVItem{}
+			err := self.kv.Get(vkey, &data_value)
+			if err == nil && data_value.Value() == nil {
+				data <- data_value.Value()
+			}
+		}
+	}()
+
+	out := make(chan *aql.Vertex, 100)
+	go func() {
+		defer close(out)
+		for d := range data {
+			v := aql.Vertex{}
+			proto.Unmarshal(d, &v)
+			out <- &v
+		}
+	}()
+
+	return out
 }
 
 func (self *BadgerGDB) GetEdge(id string, loadProp bool) *aql.Edge {

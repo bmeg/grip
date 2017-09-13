@@ -44,9 +44,10 @@ class Graph:
     def query(self):
         return Query(self)
 
-    def addVertex(self, id, prop={}):
+    def addVertex(self, id, label, prop={}):
         payload = json.dumps({
             "gid" : id,
+            "label" : label,
             "properties" : prop
         })
         headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
@@ -57,8 +58,8 @@ class Graph:
 
     def addEdge(self, src, dst, label, prop={}):
         payload = json.dumps({
-            "src" : src,
-            "dst" : dst,
+            "from" : src,
+            "to" : dst,
             "label" : label,
             "properties" : prop
         })
@@ -136,16 +137,22 @@ class Query:
         self.query.append({'out': label})
         return self
 
-    def inEdge(self, label=[]):
+    def incomingEdge(self, label=[]):
         if not isinstance(label, list):
             label = [label]
         self.query.append({'inEdge': label})
         return self
 
-    def outEdge(self, label=[]):
+    def outgoingEdge(self, label=[]):
         if not isinstance(label, list):
             label = [label]
         self.query.append({'outEdge': label})
+        return self
+
+    def outgoingBundle(self, label=[]):
+        if not isinstance(label, list):
+            label = [label]
+        self.query.append({'outBundle': label})
         return self
 
     def mark(self, label):

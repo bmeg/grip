@@ -18,6 +18,8 @@ type QueryInterface interface {
 	OutE(key ...string) QueryInterface
 	InE(key ...string) QueryInterface
 
+	OutBundle(key ...string) QueryInterface
+
 	As(label string) QueryInterface
 	Select(labels []string) QueryInterface
 	Values(labels []string) QueryInterface
@@ -54,11 +56,15 @@ type GraphDB interface {
 	GetVertexList(ctx context.Context, load bool) chan aql.Vertex
 	GetEdgeList(ctx context.Context, load bool) chan aql.Edge
 
+	GetVertexListByID(ctx context.Context, ids chan string, load bool) chan *aql.Vertex
+
 	GetOutList(ctx context.Context, key string, load bool, filter EdgeFilter) chan aql.Vertex
 	GetInList(ctx context.Context, key string, load bool, filter EdgeFilter) chan aql.Vertex
 
 	GetOutEdgeList(ctx context.Context, key string, load bool, filter EdgeFilter) chan aql.Edge
 	GetInEdgeList(ctx context.Context, key string, load bool, filter EdgeFilter) chan aql.Edge
+
+	GetOutBundleList(ctx context.Context, key string, load bool, filter BundleFilter) chan aql.Bundle
 
 	SetVertex(vertex aql.Vertex) error
 	SetEdge(edge aql.Edge) error
@@ -84,6 +90,7 @@ type Traveler struct {
 }
 
 type EdgeFilter func(edge aql.Edge) bool
+type BundleFilter func(edge aql.Bundle) bool
 
 type PipeRequest struct {
 	LoadProperties bool

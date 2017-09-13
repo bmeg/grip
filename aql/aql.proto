@@ -21,6 +21,8 @@ message GraphStatement {
         google.protobuf.ListValue out = 7;
         google.protobuf.ListValue inEdge = 8;
         google.protobuf.ListValue outEdge = 9;
+        
+        google.protobuf.ListValue outBundle = 10;
 
         SelectStatement select = 12;
         SelectStatement values = 13;
