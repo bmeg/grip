@@ -34,8 +34,9 @@ message GraphStatement {
         //Function Methods
         string import = 50;
         string map = 51;
-        string fold = 52;
-        string filter = 53;
+        FoldStatement fold = 52;
+        FoldStatement vertexFold = 53;
+        string filter = 54;
     }
 }
 
@@ -46,6 +47,11 @@ message HasStatement {
 
 message SelectStatement {
     repeated string labels = 1;
+}
+
+message FoldStatement {
+  string source = 1;
+  google.protobuf.Value init = 2;
 }
 
 message Vertex {

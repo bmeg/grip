@@ -114,7 +114,7 @@ func (trav *Traversal) RunStatement(statement *aql.GraphStatement) error {
 	} else if x, ok := statement.GetStatement().(*aql.GraphStatement_Map); ok {
 		trav.Query = trav.Query.Map(x.Map)
 	} else if x, ok := statement.GetStatement().(*aql.GraphStatement_Fold); ok {
-		trav.Query = trav.Query.Fold(x.Fold)
+		trav.Query = trav.Query.Fold(x.Fold.Source)
 	} else if x, ok := statement.GetStatement().(*aql.GraphStatement_Filter); ok {
 		trav.Query = trav.Query.Filter(x.Filter)
 	} else if _, ok := statement.GetStatement().(*aql.GraphStatement_Count); ok {
