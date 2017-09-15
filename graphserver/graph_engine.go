@@ -55,7 +55,6 @@ func (engine *GraphEngine) AddBundle(graph string, bundle aql.Bundle) error {
 
 func (engine *GraphEngine) RunTraversal(ctx context.Context, query *aql.GraphQuery) (chan aql.ResultRow, error) {
 	tr := engine.Query(query.Graph)
-	//log.Printf("Starting Query: %#v", query.Query)
 	for _, s := range query.Query {
 		err := tr.RunStatement(s)
 		if err != nil {
@@ -66,14 +65,31 @@ func (engine *GraphEngine) RunTraversal(ctx context.Context, query *aql.GraphQue
 	return tr.GetResult(ctx)
 }
 
+func UnpackQuery(query *aql.GraphQuery, tr *Traversal) (*Traversal, error) {
+	for _, s := range query.Query {
+		err := tr.RunStatement(s)
+		if err != nil {
+			log.Printf("Error: %s", err)
+			return nil, err
+		}
+	}
+	return tr, nil
+}
+
+
 func (engine *GraphEngine) Query(graph string) *Traversal {
-	out := &Traversal{Query: engine.Arachne.Query(graph), ReadOnly: false}
+	out := &Traversal{Query: engine.Arachne.Query(graph), engine:engine, graph:graph}
 	return out
 }
 
 type Traversal struct {
-	ReadOnly bool
+	graph    string
+	engine   *GraphEngine
 	Query    gdbi.QueryInterface
+}
+
+func (trav *Traversal) SubQuery() *Traversal {
+	return &Traversal{Query: trav.engine.Arachne.Query(trav.graph), engine:trav.engine, graph:trav.graph}
 }
 
 func (trav *Traversal) RunStatement(statement *aql.GraphStatement) error {
@@ -125,6 +141,17 @@ func (trav *Traversal) RunStatement(statement *aql.GraphStatement) error {
 		trav.Query = trav.Query.Select(x.Select.Labels)
 	} else if x, ok := statement.GetStatement().(*aql.GraphStatement_GroupCount); ok {
 		trav.Query = trav.Query.GroupCount(x.GroupCount)
+	} else if x, ok := statement.GetStatement().(*aql.GraphStatement_Match); ok {
+		matches := []*gdbi.QueryInterface{}
+		for _, q := range x.Match.Queries {
+			tr := trav.SubQuery()
+			subtr, err := UnpackQuery(q, tr)
+			if err != nil {
+				return err
+			}
+			matches = append(matches, &subtr.Query)
+		}
+		trav.Query = trav.Query.Match(matches)
 	} else {
 		log.Printf("Unknown Statement: %#v", statement)
 		return fmt.Errorf("Unknown Statement: %#v", statement)

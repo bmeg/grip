@@ -10,6 +10,10 @@ message GraphQuery {
     repeated GraphStatement query = 2;
 }
 
+message GraphQuerySet {
+  repeated GraphQuery queries = 1;
+}
+
 message GraphStatement {
     oneof statement {
         string V = 1;
@@ -30,6 +34,8 @@ message GraphStatement {
         string count = 15;
 
         string groupCount = 16;
+
+        GraphQuerySet match = 30;
 
         //Function Methods
         string import = 50;

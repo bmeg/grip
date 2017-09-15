@@ -662,6 +662,18 @@ func (self *PipeEngine) Limit(limit int64) QueryInterface {
 		})
 }
 
+
+
+func (self *PipeEngine) Match(matches []*QueryInterface) QueryInterface {
+	return self.append("Match", state_custom(self.state),
+		func(t timer, ctx context.Context) chan Traveler {
+
+
+			return nil
+	})
+}
+
+
 func (self *PipeEngine) Execute(ctx context.Context) chan aql.ResultRow {
 	if self.pipe == nil {
 		return nil

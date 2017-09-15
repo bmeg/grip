@@ -26,6 +26,9 @@ type QueryInterface interface {
 
 	GroupCount(label string) QueryInterface
 
+	//Subqueries
+	Match(matches []*QueryInterface) QueryInterface
+
 	//code based functions
 	Import(source string) QueryInterface
 	Map(function string) QueryInterface
