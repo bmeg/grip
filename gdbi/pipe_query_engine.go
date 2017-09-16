@@ -63,7 +63,7 @@ var PROP_LOAD string = "load"
 
 func NewPipeEngine(db DBI) *PipeEngine {
 	return &PipeEngine{
-		name:      "start",
+		name:      "start_node",
 		db:        db,
 		err:       nil,
 		selection: []string{},
@@ -71,6 +71,7 @@ func NewPipeEngine(db DBI) *PipeEngine {
 		state:     STATE_CUSTOM,
 		parent:    nil,
 		input:		 nil,
+		pipe:      nil,
 	}
 }
 
@@ -100,6 +101,10 @@ func (self *PipeEngine) get_time() time.Duration {
 }
 
 func (self *PipeEngine) start_pipe(ctx context.Context) chan Traveler {
+	if self.input != nil {
+		log.Printf("Using chained input")
+		return self.input
+	}
 	return self.pipe(self, ctx)
 }
 
@@ -278,19 +283,6 @@ func (self *PipeEngine) Out(key ...string) QueryInterface {
 						return false
 					}
 				}
-				/*
-					for i := range self.start_pipe(context.WithValue(ctx, PROP_LOAD, false)) {
-						if v := i.GetCurrent().GetVertex(); v != nil {
-							for ov := range self.db.GetOutList(ctx, v.Gid, ctx.Value(PROP_LOAD).(bool), filt) {
-								lv := ov
-								o <- i.AddCurrent(aql.QueryResult{&aql.QueryResult_Vertex{&lv}})
-							}
-						} else if e := i.GetCurrent().GetEdge(); e != nil {
-							v := self.db.GetVertex(e.To, ctx.Value(PROP_LOAD).(bool))
-							o <- i.AddCurrent(aql.QueryResult{&aql.QueryResult_Vertex{v}})
-						}
-					}
-				*/
 				if self.state == STATE_VERTEX_LIST || self.state == STATE_RAW_VERTEX_LIST {
 					for i := range self.start_pipe(context.WithValue(ctx, PROP_LOAD, false)) {
 						if v := i.GetCurrent().GetVertex(); v != nil {
@@ -303,7 +295,6 @@ func (self *PipeEngine) Out(key ...string) QueryInterface {
 				} else if self.state == STATE_EDGE_LIST || self.state == STATE_RAW_EDGE_LIST {
 					id_list := make(chan string, 100)
 					traveler_list := make(chan Traveler, 100)
-					log.Printf("Starting Vertex Stream")
 					go func() {
 						defer close(id_list)
 						defer close(traveler_list)
@@ -317,7 +308,8 @@ func (self *PipeEngine) Out(key ...string) QueryInterface {
 						i := <-traveler_list
 						o <- i.AddCurrent(aql.QueryResult{&aql.QueryResult_Vertex{v}})
 					}
-					log.Printf("Ending Vertex Stream")
+				} else {
+					log.Printf("Weird State")
 				}
 				t.end_timer()
 			}()
@@ -376,12 +368,10 @@ func (self *PipeEngine) OutE(key ...string) QueryInterface {
 				}
 				for i := range self.start_pipe(context.WithValue(ctx, PROP_LOAD, false)) {
 					if v := i.GetCurrent().GetVertex(); v != nil {
-						//log.Printf("GetEdgeList: %s", v.Gid)
 						for oe := range self.db.GetOutEdgeList(ctx, v.Gid, ctx.Value(PROP_LOAD).(bool), filt) {
 							le := oe
 							o <- i.AddCurrent(aql.QueryResult{&aql.QueryResult_Edge{&le}})
 						}
-						//log.Printf("Done GetEdgeList: %s", v.Gid)
 					}
 				}
 				t.end_timer()
@@ -669,12 +659,14 @@ func (self *PipeEngine) Limit(limit int64) QueryInterface {
 func (self *PipeEngine) Match(matches []*QueryInterface) QueryInterface {
 	return self.append("Match", state_custom(self.state),
 		func(t timer, ctx context.Context) chan Traveler {
+			t.start_timer()
 			pipe := self.start_pipe(context.WithValue(ctx, PROP_LOAD, true))
 			if pipe != nil {
 					for _, match_step := range matches {
 						pipe = (*match_step).Chain(ctx, pipe)
 					}
-			}		
+			}
+			t.end_timer()
 			return pipe
 	})
 }
@@ -722,13 +714,24 @@ func (self *PipeEngine) Chain(ctx context.Context, input chan Traveler) chan Tra
 	go func() {
 		defer close(o)
 		self.start_timer()
+
+		for p := self; p != nil; p = p.parent {
+			if p.parent == nil {
+				log.Printf("Setting input for %s", p)
+				p.input = input
+			}
+		}
+
 		pipe := self.start_pipe(context.WithValue(ctx, PROP_LOAD, true))
+		count := 0
 		if pipe != nil {
 			for i := range pipe {
 				o <- i
+				count++
 			}
 		}
 		self.end_timer()
+		log.Printf("Processed %d", count)
 		log.Printf("---StartTiming---")
 		for p := self; p != nil; p = p.parent {
 			log.Printf("%s %s", p.name, p.get_time())

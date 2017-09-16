@@ -5,6 +5,8 @@ import json
 
 conn = aql.Connection("http://localhost:8000")
 
+conn.delete("test-graph")
+
 conn.new("test-graph")
 O = conn.graph("test-graph")
 
@@ -22,14 +24,13 @@ O.addEdge("4", "3", "created", {"weight":0.4})
 O.addEdge("6", "3", "created", {"weight":0.2})
 O.addEdge("4", "5", "created", {"weight":1.0})
 
+
 query = O.query().V().match([
     O.mark('a').outgoing('created').mark('b'),
     O.mark('b').has('name', 'lop'),
     O.mark('b').incoming('created').mark('c'),
     O.mark('c').has('age', "29")
 ]).select(['a','c']) #.by('name')
-
-print query.render()
 
 for row in query.execute():
     print row

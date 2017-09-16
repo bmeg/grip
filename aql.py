@@ -254,7 +254,8 @@ class Query:
         payload = self.render()
         #print payload
         headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
-        request = urllib2.Request(self.parent.url + "/" + self.parent.name + "/query", payload, headers=headers)
+        url = self.parent.url + "/" + self.parent.name + "/query"
+        request = urllib2.Request(url, payload, headers=headers)
         response = urllib2.urlopen(request)
         #out = []
         for result in response:
