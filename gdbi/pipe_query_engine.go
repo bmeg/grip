@@ -52,6 +52,7 @@ type PipeEngine struct {
 	state                int
 	parent               *PipeEngine
 	start_time, end_time time.Time
+	input                chan Traveler
 }
 
 const (
@@ -69,6 +70,7 @@ func NewPipeEngine(db DBI) *PipeEngine {
 		imports:   []string{},
 		state:     STATE_CUSTOM,
 		parent:    nil,
+		input:		 nil,
 	}
 }
 
@@ -667,9 +669,13 @@ func (self *PipeEngine) Limit(limit int64) QueryInterface {
 func (self *PipeEngine) Match(matches []*QueryInterface) QueryInterface {
 	return self.append("Match", state_custom(self.state),
 		func(t timer, ctx context.Context) chan Traveler {
-
-
-			return nil
+			pipe := self.start_pipe(context.WithValue(ctx, PROP_LOAD, true))
+			if pipe != nil {
+					for _, match_step := range matches {
+						pipe = (*match_step).Chain(ctx, pipe)
+					}
+			}		
+			return pipe
 	})
 }
 
@@ -705,6 +711,33 @@ func (self *PipeEngine) Execute(ctx context.Context) chan aql.ResultRow {
 	}()
 	return o
 }
+
+
+
+func (self *PipeEngine) Chain(ctx context.Context, input chan Traveler) chan Traveler {
+	if self.pipe == nil {
+		return nil
+	}
+	o := make(chan Traveler, PIPE_SIZE)
+	go func() {
+		defer close(o)
+		self.start_timer()
+		pipe := self.start_pipe(context.WithValue(ctx, PROP_LOAD, true))
+		if pipe != nil {
+			for i := range pipe {
+				o <- i
+			}
+		}
+		self.end_timer()
+		log.Printf("---StartTiming---")
+		for p := self; p != nil; p = p.parent {
+			log.Printf("%s %s", p.name, p.get_time())
+		}
+		log.Printf("---EndTiming---")
+	}()
+	return o
+}
+
 
 func (self *PipeEngine) Run(ctx context.Context) error {
 	if self.err != nil {

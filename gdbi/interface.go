@@ -38,6 +38,7 @@ type QueryInterface interface {
 	Execute(context.Context) chan aql.ResultRow
 	First(context.Context) (aql.ResultRow, error) //Only get one result
 	Run(context.Context) error                    //Do execute, but throw away the results
+	Chain(context.Context, chan Traveler) chan Traveler
 }
 
 type ArachneInterface interface {
