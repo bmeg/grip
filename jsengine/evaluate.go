@@ -77,6 +77,9 @@ func (self *CompiledFunction) CallBool(input ...*aql.QueryResult) bool {
 		if x, ok := i.GetResult().(*aql.QueryResult_Edge); ok {
 			m_i := protoutil.AsMap(x.Edge.Properties)
 			m = append(m, m_i)
+		} else if x, ok := i.GetResult().(*aql.QueryResult_Vertex); ok {
+			m_i := protoutil.AsMap(x.Vertex.Properties)
+			m = append(m, m_i)
 		} else if x, ok := i.GetResult().(*aql.QueryResult_Struct); ok {
 			m_i := protoutil.AsMap(x.Struct)
 			m = append(m, m_i)
@@ -94,6 +97,33 @@ func (self *CompiledFunction) CallBool(input ...*aql.QueryResult) bool {
 	   }()
 	*/
 	value, err := self.Function.Call(otto.Value{}, m...)
+	if err != nil {
+		log.Printf("Exec Error: %s", err)
+	}
+	otto_val, _ := value.ToBoolean()
+	return otto_val
+}
+
+func (self *CompiledFunction) CallValueMapBool(input map[string]aql.QueryResult) bool {
+
+	c := map[string]interface{}{}
+	for k, v := range input {
+		l := map[string]interface{}{}
+		if x, ok := v.GetResult().(*aql.QueryResult_Edge); ok {
+			l["gid"] = x.Edge.Gid
+			l["from"] = x.Edge.From
+			l["to"] = x.Edge.To
+			l["label"] = x.Edge.Label		
+			l["data"] = protoutil.AsMap(x.Edge.Properties)
+		} else if x, ok := v.GetResult().(*aql.QueryResult_Vertex); ok {
+			l["gid"] = x.Vertex.Gid
+			l["label"] = x.Vertex.Label
+			l["data"] = protoutil.AsMap(x.Vertex.Properties)
+		}
+		c[k] = l
+	}
+	//log.Printf("Eval: %s", c)
+	value, err := self.Function.Call(otto.Value{}, c)
 	if err != nil {
 		log.Printf("Exec Error: %s", err)
 	}

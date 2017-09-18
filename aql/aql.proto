@@ -42,6 +42,7 @@ message GraphStatement {
         string map = 51;
         string fold = 52;
         string filter = 53;
+        string filterValues = 54;
     }
 }
 

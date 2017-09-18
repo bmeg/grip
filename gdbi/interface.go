@@ -34,6 +34,7 @@ type QueryInterface interface {
 	Map(function string) QueryInterface
 	Fold(function string) QueryInterface
 	Filter(function string) QueryInterface
+	FilterValues(source string) QueryInterface
 
 	Execute(context.Context) chan aql.ResultRow
 	First(context.Context) (aql.ResultRow, error) //Only get one result

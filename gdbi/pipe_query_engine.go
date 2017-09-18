@@ -103,7 +103,7 @@ func (self *PipeEngine) get_time() time.Duration {
 
 func (self *PipeEngine) start_pipe(ctx context.Context) PipeOut {
 	if self.input != nil {
-		log.Printf("Using chained input")
+		//log.Printf("Using chained input")
 		return *self.input
 	}
 	pi := self.pipe(self, ctx)
@@ -635,6 +635,30 @@ func (self *PipeEngine) Filter(source string) QueryInterface {
 		})
 }
 
+func (self *PipeEngine) FilterValues(source string) QueryInterface {
+	return self.append("FilterValues",
+		func(t timer, ctx context.Context) PipeOut {
+			o := make(chan Traveler, PIPE_SIZE)
+			pipe := self.start_pipe(context.WithValue(ctx, PROP_LOAD, true))
+			go func() {
+				t.start_timer()
+				defer close(o)
+				mfunc, err := jsengine.NewFunction(source, self.imports)
+				if err != nil {
+					log.Printf("Script Error: %s", err)
+				}
+				for i := range pipe.Travelers {
+					out := mfunc.CallValueMapBool(i.State)
+					if out {
+						o <- i
+					}
+				}
+				t.end_timer()
+			}()
+			return NewPipeOut(o, state_custom(pipe.State))
+		})
+}
+
 func (self *PipeEngine) Count() QueryInterface {
 	return self.append("Count",
 		func(t timer, ctx context.Context) PipeOut {
@@ -726,7 +750,7 @@ func (self *PipeEngine) Execute(ctx context.Context) chan aql.ResultRow {
 func (self *PipeEngine) Chain(ctx context.Context, input PipeOut) PipeOut {
 
 	o := make(chan Traveler, PIPE_SIZE)
-	log.Printf("Chaining")
+	//log.Printf("Chaining")
 	for p := self; p != nil; p = p.parent {
 		if p.parent == nil {
 			p.input = &input
