@@ -17,6 +17,11 @@ func (t Traveler) AddCurrent(r aql.QueryResult) Traveler {
 	return o
 }
 
+func (t Traveler) HasLabeled(label string) bool {
+	_, ok := t.State[label]
+	return ok
+}
+
 func (t Traveler) AddLabeled(label string, r aql.QueryResult) Traveler {
 	o := Traveler{State: map[string]aql.QueryResult{}}
 	for k, v := range t.State {

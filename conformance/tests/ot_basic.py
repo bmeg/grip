@@ -8,10 +8,10 @@ def test_count(O):
     #O.query().addV("vertex3").property("field1", "value3").property("field2", "value4").execute()
     #O.query().addV("vertex4").execute()
 
-    O.addVertex("vertex1", {"field1" : "value1", "field2" : "value2"})
-    O.addVertex("vertex2")
-    O.addVertex("vertex3", {"field1" : "value3", "field2" : "value4"})
-    O.addVertex("vertex4")
+    O.addVertex("vertex1", "person", {"field1" : "value1", "field2" : "value2"})
+    O.addVertex("vertex2", "person")
+    O.addVertex("vertex3", "person", {"field1" : "value3", "field2" : "value4"})
+    O.addVertex("vertex4", "person")
 
     #O.query().V("vertex1").addE("friend").to("vertex2").execute()
     #O.query().V("vertex2").addE("friend").to("vertex3").execute()
@@ -55,10 +55,10 @@ def test_outgoing(O):
     #O.query().addV("vertex3").property("field1", "value3").property("field2", "value4").execute()
     #O.query().addV("vertex4").execute()
 
-    O.addVertex("vertex1", {"field1" : "value1", "field2" : "value2"})
-    O.addVertex("vertex2")
-    O.addVertex("vertex3", {"field1" : "value3", "field2" : "value4"})
-    O.addVertex("vertex4")
+    O.addVertex("vertex1", "person", {"field1" : "value1", "field2" : "value2"})
+    O.addVertex("vertex2", "person")
+    O.addVertex("vertex3", "person", {"field1" : "value3", "field2" : "value4"})
+    O.addVertex("vertex4", "person")
 
     #O.query().V("vertex1").addE("friend").to("vertex2").execute()
     #O.query().V("vertex2").addE("friend").to("vertex3").execute()
@@ -85,9 +85,9 @@ def test_duplicate(O):
     #O.query().addV("vertex1").execute()
     #O.query().addV("vertex1").execute()
     #O.query().addV("vertex2").execute()
-    O.addVertex("vertex1")
-    O.addVertex("vertex1")
-    O.addVertex("vertex2")
+    O.addVertex("vertex1", "person")
+    O.addVertex("vertex1", "person")
+    O.addVertex("vertex2", "person")
 
     #O.query().V("vertex1").addE("friend").to("vertex2").execute()
     #O.query().V("vertex1").addE("friend").to("vertex2").execute()

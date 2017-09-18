@@ -76,20 +76,19 @@ func UnpackQuery(query *aql.GraphQuery, tr *Traversal) (*Traversal, error) {
 	return tr, nil
 }
 
-
 func (engine *GraphEngine) Query(graph string) *Traversal {
-	out := &Traversal{Query: engine.Arachne.Query(graph), engine:engine, graph:graph}
+	out := &Traversal{Query: engine.Arachne.Query(graph), engine: engine, graph: graph}
 	return out
 }
 
 type Traversal struct {
-	graph    string
-	engine   *GraphEngine
-	Query    gdbi.QueryInterface
+	graph  string
+	engine *GraphEngine
+	Query  gdbi.QueryInterface
 }
 
 func (trav *Traversal) SubQuery() *Traversal {
-	return &Traversal{Query: trav.engine.Arachne.Query(trav.graph), engine:trav.engine, graph:trav.graph}
+	return &Traversal{Query: trav.engine.Arachne.Query(trav.graph), engine: trav.engine, graph: trav.graph}
 }
 
 func (trav *Traversal) RunStatement(statement *aql.GraphStatement) error {

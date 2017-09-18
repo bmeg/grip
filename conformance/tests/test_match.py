@@ -12,7 +12,7 @@ O = conn.graph("test-graph")
 
 O.addVertex("1", "Person", {"name":"marko", "age":"29"})
 O.addVertex("2", "Person", {"name":"vadas", "age":"27"})
-O.addVertex("3", "Software", {"name":"marko", "lang":"java"})
+O.addVertex("3", "Software", {"name":"lop", "lang":"java"})
 O.addVertex("4", "Person", {"name":"josh", "age":"32"})
 O.addVertex("5", "Software", {"name":"ripple", "lang":"java"})
 O.addVertex("6", "Person", {"name":"peter", "age":"35"})
