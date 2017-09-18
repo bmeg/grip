@@ -24,7 +24,9 @@ O.addEdge("4", "3", "created", {"weight":0.4})
 O.addEdge("6", "3", "created", {"weight":0.2})
 O.addEdge("4", "5", "created", {"weight":1.0})
 
-
+"""
+query = O.query().V()
+"""
 query = O.query().V().match([
     O.mark('a').outgoing('created').mark('b'),
     O.mark('b').has('name', 'lop'),
