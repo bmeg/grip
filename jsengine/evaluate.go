@@ -5,6 +5,7 @@ import (
 	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/protoutil"
 	"github.com/robertkrimen/otto"
+	_ "github.com/robertkrimen/otto/underscore"
 	"log"
 )
 
@@ -113,7 +114,7 @@ func (self *CompiledFunction) CallValueMapBool(input map[string]aql.QueryResult)
 			l["gid"] = x.Edge.Gid
 			l["from"] = x.Edge.From
 			l["to"] = x.Edge.To
-			l["label"] = x.Edge.Label		
+			l["label"] = x.Edge.Label
 			l["data"] = protoutil.AsMap(x.Edge.Properties)
 		} else if x, ok := v.GetResult().(*aql.QueryResult_Vertex); ok {
 			l["gid"] = x.Vertex.Gid
@@ -129,6 +130,51 @@ func (self *CompiledFunction) CallValueMapBool(input map[string]aql.QueryResult)
 	}
 	otto_val, _ := value.ToBoolean()
 	return otto_val
+}
+
+func (self *CompiledFunction) CallValueToVertex(input map[string]aql.QueryResult) []string {
+	c := map[string]interface{}{}
+	for k, v := range input {
+		l := map[string]interface{}{}
+		if x, ok := v.GetResult().(*aql.QueryResult_Edge); ok {
+			l["gid"] = x.Edge.Gid
+			l["from"] = x.Edge.From
+			l["to"] = x.Edge.To
+			l["label"] = x.Edge.Label
+			l["data"] = protoutil.AsMap(x.Edge.Properties)
+		} else if x, ok := v.GetResult().(*aql.QueryResult_Vertex); ok {
+			l["gid"] = x.Vertex.Gid
+			l["label"] = x.Vertex.Label
+			l["data"] = protoutil.AsMap(x.Vertex.Properties)
+		} else if x, ok := v.GetResult().(*aql.QueryResult_Bundle); ok {
+			l["gid"] = x.Bundle.Gid
+			l["from"] = x.Bundle.From
+			l["label"] = x.Bundle.Label
+			b := map[string]interface{}{}
+			for k, v := range x.Bundle.Bundle {
+				b[k] = protoutil.AsMap(v)
+			}
+			l["bundle"] = b
+		}
+		c[k] = l
+	}
+	//log.Printf("Eval: %s", c)
+	value, err := self.Function.Call(otto.Value{}, c)
+	if err != nil {
+		log.Printf("Exec Error: %s", err)
+	}
+	if value.Class() == "Array" {
+		otto_val, _ := value.Export()
+		if x, ok := otto_val.([]string); ok {
+			out := make([]string, len(x))
+			for i := range x {
+				out[i] = x[i]
+			}
+			return out
+		}
+	}
+	log.Printf("Weirdness: %s", value.Class())
+	return []string{}
 }
 
 func otto2map(obj *otto.Object) map[string]interface{} {

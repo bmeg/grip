@@ -659,6 +659,33 @@ func (self *PipeEngine) FilterValues(source string) QueryInterface {
 		})
 }
 
+func (self *PipeEngine) VertexFromValues(source string) QueryInterface {
+	return self.append("VertexFromValues",
+		func(t timer, ctx context.Context) PipeOut {
+			o := make(chan Traveler, PIPE_SIZE)
+			pipe := self.start_pipe(context.WithValue(ctx, PROP_LOAD, true))
+			go func() {
+				t.start_timer()
+				defer close(o)
+				mfunc, err := jsengine.NewFunction(source, self.imports)
+				if err != nil {
+					log.Printf("Script Error: %s", err)
+				}
+				for i := range pipe.Travelers {
+					out := mfunc.CallValueToVertex(i.State)
+					for _, j := range out {
+						v := self.db.GetVertex(j, ctx.Value(PROP_LOAD).(bool))
+						if v != nil {
+							o <- i.AddCurrent(aql.QueryResult{&aql.QueryResult_Vertex{v}})
+						}
+					}
+				}
+				t.end_timer()
+			}()
+			return NewPipeOut(o, state_custom(pipe.State))
+		})
+}
+
 func (self *PipeEngine) Count() QueryInterface {
 	return self.append("Count",
 		func(t timer, ctx context.Context) PipeOut {

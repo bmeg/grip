@@ -43,6 +43,8 @@ message GraphStatement {
         string fold = 52;
         string filter = 53;
         string filterValues = 54;
+
+        string vertexFromValues = 55;
     }
 }
 

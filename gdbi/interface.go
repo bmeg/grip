@@ -35,6 +35,7 @@ type QueryInterface interface {
 	Fold(function string) QueryInterface
 	Filter(function string) QueryInterface
 	FilterValues(source string) QueryInterface
+	VertexFromValues(source string) QueryInterface
 
 	Execute(context.Context) chan aql.ResultRow
 	First(context.Context) (aql.ResultRow, error) //Only get one result

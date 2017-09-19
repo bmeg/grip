@@ -239,6 +239,10 @@ class Query:
         self.query.append({"fold" : func})
         return self
 
+    def vertexFromValues(self, func):
+        self.query.append({"vertexFromValues" : func})
+        return self
+
     def match(self, queries):
         mq = []
         for i in queries:
