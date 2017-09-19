@@ -100,7 +100,10 @@ func (self *MongoGraph) GetVertex(key string, load bool) *aql.Vertex {
 	if !load {
 		q = q.Select(map[string]interface{}{"_id": 1, "label": 1})
 	}
-	q.One(d)
+	err := q.One(d)
+	if err != nil {
+		return nil
+	}
 	v := UnpackVertex(d)
 	return &v
 }
