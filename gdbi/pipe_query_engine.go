@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/jsengine"
+	_ "github.com/bmeg/arachne/jsengine/ottoengine"
 	"github.com/bmeg/arachne/protoutil"
 	"github.com/golang/protobuf/ptypes/struct"
 	"log"
@@ -584,7 +585,7 @@ func (self *PipeEngine) Map(source string) QueryInterface {
 			go func() {
 				defer close(o)
 				t.start_timer("all")
-				mfunc, err := jsengine.NewFunction(source, self.imports)
+				mfunc, err := jsengine.NewJSEngine(source, self.imports)
 				if err != nil {
 					log.Printf("Script Error: %s", err)
 				}
@@ -609,7 +610,7 @@ func (self *PipeEngine) Fold(source string) QueryInterface {
 			go func() {
 				defer close(o)
 				t.start_timer("all")
-				mfunc, err := jsengine.NewFunction(source, self.imports)
+				mfunc, err := jsengine.NewJSEngine(source, self.imports)
 				if err != nil {
 					log.Printf("Script Error: %s", err)
 				}
@@ -642,7 +643,7 @@ func (self *PipeEngine) Filter(source string) QueryInterface {
 			go func() {
 				t.start_timer("all")
 				defer close(o)
-				mfunc, err := jsengine.NewFunction(source, self.imports)
+				mfunc, err := jsengine.NewJSEngine(source, self.imports)
 				if err != nil {
 					log.Printf("Script Error: %s", err)
 				}
@@ -666,7 +667,7 @@ func (self *PipeEngine) FilterValues(source string) QueryInterface {
 			go func() {
 				t.start_timer("all")
 				defer close(o)
-				mfunc, err := jsengine.NewFunction(source, self.imports)
+				mfunc, err := jsengine.NewJSEngine(source, self.imports)
 				if err != nil {
 					log.Printf("Script Error: %s", err)
 				}
@@ -690,7 +691,7 @@ func (self *PipeEngine) VertexFromValues(source string) QueryInterface {
 			go func() {
 				t.start_timer("all")
 				defer close(o)
-				mfunc, err := jsengine.NewFunction(source, self.imports)
+				mfunc, err := jsengine.NewJSEngine(source, self.imports)
 				if err != nil {
 					log.Printf("Script Error: %s", err)
 				}
