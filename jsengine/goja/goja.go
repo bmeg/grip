@@ -1,32 +1,33 @@
-
-
 package goja
 
 import (
-  "fmt"
-  "log"
-  "github.com/bmeg/arachne/aql"
-  "github.com/bmeg/arachne/jsengine"
-  "github.com/bmeg/arachne/protoutil"
-  "github.com/dop251/goja"
+	"fmt"
+	"github.com/bmeg/arachne/aql"
+	"github.com/bmeg/arachne/jsengine"
+	"github.com/bmeg/arachne/protoutil"
+	"github.com/dop251/goja"
+	"log"
 )
 
-
 type GojaRuntime struct {
-	vm *goja.Runtime
-  call goja.Callable
+	vm   *goja.Runtime
+	call goja.Callable
 }
 
 var added = jsengine.AddEngine("goja", NewFunction)
 
 func NewFunction(source string, imports []string) (jsengine.JSEngine, error) {
 
-  vm := goja.New()
+	vm := goja.New()
 	for _, src := range imports {
 		_, err := vm.RunString(src)
 		if err != nil {
 			return nil, err
 		}
+	}
+
+	if _, err := vm.RunString(string(_underscoreJs)); err != nil {
+		return nil, err
 	}
 
 	_, err := vm.RunString("var userFunction = " + source)
@@ -35,14 +36,12 @@ func NewFunction(source string, imports []string) (jsengine.JSEngine, error) {
 	}
 
 	out := vm.Get("userFunction")
-  f, callable := goja.AssertFunction(out)
-  if !callable {
+	f, callable := goja.AssertFunction(out)
+	if !callable {
 		return nil, fmt.Errorf("no Function")
 	}
-	return &GojaRuntime{vm,f}, nil
+	return &GojaRuntime{vm, f}, nil
 }
-
-
 
 func (self *GojaRuntime) Call(input ...*aql.QueryResult) *aql.QueryResult {
 	m := []goja.Value{}
@@ -61,7 +60,6 @@ func (self *GojaRuntime) Call(input ...*aql.QueryResult) *aql.QueryResult {
 	return &aql.QueryResult{&aql.QueryResult_Struct{o}}
 }
 
-
 func (self *GojaRuntime) CallBool(input ...*aql.QueryResult) bool {
 	m := []goja.Value{}
 	for _, i := range input {
@@ -70,7 +68,7 @@ func (self *GojaRuntime) CallBool(input ...*aql.QueryResult) bool {
 			m = append(m, self.vm.ToValue(m_i))
 		} else if x, ok := i.GetResult().(*aql.QueryResult_Vertex); ok {
 			m_i := protoutil.AsMap(x.Vertex.Properties)
-			m = append(m,self.vm.ToValue(m_i))
+			m = append(m, self.vm.ToValue(m_i))
 		} else if x, ok := i.GetResult().(*aql.QueryResult_Struct); ok {
 			m_i := protoutil.AsMap(x.Struct)
 			m = append(m, self.vm.ToValue(m_i))
@@ -143,16 +141,22 @@ func (self *GojaRuntime) CallValueToVertex(input map[string]aql.QueryResult) []s
 		log.Printf("Exec Error: %s", err)
 	}
 	//if value.Class() == "Array" {
-		goja_val := value.Export()
-		if x, ok := goja_val.([]string); ok {
-			out := make([]string, len(x))
-			for i := range x {
-				out[i] = x[i]
-			}
-			return out
+	goja_val := value.Export()
+	if x, ok := goja_val.([]string); ok {
+		out := make([]string, len(x))
+		for i := range x {
+			out[i] = x[i]
 		}
+		return out
+	}
+	if x, ok := goja_val.([]interface{}); ok {
+		out := make([]string, len(x))
+		for i := range x {
+			out[i] = x[i].(string) //BUG: This is effing stupid, check types!!!!
+		}
+		return out
+	}
 	//}
-	log.Printf("Weirdness: %s", goja_val)
+	log.Printf("Weirdness: %s", value.ExportType())
 	return []string{}
 }
-
