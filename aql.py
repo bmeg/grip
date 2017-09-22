@@ -181,6 +181,12 @@ class Query:
         self.query.append({'out': label})
         return self
 
+    def both(self, label=[]):
+        if not isinstance(label, list):
+            label = [label]
+        self.query.append({'both': label})
+        return self
+
     def incomingEdge(self, label=[]):
         if not isinstance(label, list):
             label = [label]
@@ -191,6 +197,12 @@ class Query:
         if not isinstance(label, list):
             label = [label]
         self.query.append({'outEdge': label})
+        return self
+
+    def bothEdge(self, label=[]):
+        if not isinstance(label, list):
+            label = [label]
+        self.query.append({'bothEdge': label})
         return self
 
     def outgoingBundle(self, label=[]):

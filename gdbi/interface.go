@@ -13,10 +13,12 @@ type QueryInterface interface {
 	Has(prop string, value ...string) QueryInterface
 	Out(key ...string) QueryInterface
 	In(key ...string) QueryInterface
+	Both(key ...string) QueryInterface
 	Limit(count int64) QueryInterface
 
 	OutE(key ...string) QueryInterface
 	InE(key ...string) QueryInterface
+	BothE(key ...string) QueryInterface
 
 	OutBundle(key ...string) QueryInterface
 

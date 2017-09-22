@@ -25,15 +25,17 @@ message GraphStatement {
         google.protobuf.ListValue out = 7;
         google.protobuf.ListValue inEdge = 8;
         google.protobuf.ListValue outEdge = 9;
+        google.protobuf.ListValue both = 10;
+        google.protobuf.ListValue bothEdge = 11;
+        
+        google.protobuf.ListValue outBundle = 12;
 
-        google.protobuf.ListValue outBundle = 10;
+        SelectStatement select = 13;
+        SelectStatement values = 14;
+        int64 limit = 15;
+        string count = 16;
 
-        SelectStatement select = 12;
-        SelectStatement values = 13;
-        int64 limit = 14;
-        string count = 15;
-
-        string groupCount = 16;
+        string groupCount = 17;
 
         GraphQuerySet match = 30;
 

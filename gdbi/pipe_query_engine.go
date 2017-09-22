@@ -342,6 +342,65 @@ func (self *PipeEngine) Out(key ...string) QueryInterface {
 		})
 }
 
+func (self *PipeEngine) Both(key ...string) QueryInterface {
+	return self.append(fmt.Sprintf("Both: %s", key),
+		func(t timer, ctx context.Context) PipeOut {
+			o := make(chan Traveler, PIPE_SIZE)
+			pipe := self.start_pipe(context.WithValue(ctx, PROP_LOAD, false))
+			go func() {
+				t.start_timer("all")
+				defer close(o)
+				var filt EdgeFilter = nil
+				if len(key) > 0 && len(key[0]) > 0 {
+					filt = func(e aql.Edge) bool {
+						if key[0] == e.Label {
+							return true
+						}
+						return false
+					}
+				}
+				if pipe.State == STATE_VERTEX_LIST || pipe.State == STATE_RAW_VERTEX_LIST {
+					for i := range pipe.Travelers {
+						if v := i.GetCurrent().GetVertex(); v != nil {
+							for ov := range self.db.GetOutList(ctx, v.Gid, ctx.Value(PROP_LOAD).(bool), filt) {
+								lv := ov
+								o <- i.AddCurrent(aql.QueryResult{&aql.QueryResult_Vertex{&lv}})
+							}
+							for ov := range self.db.GetInList(ctx, v.Gid, ctx.Value(PROP_LOAD).(bool), filt) {
+								lv := ov
+								o <- i.AddCurrent(aql.QueryResult{&aql.QueryResult_Vertex{&lv}})
+							}
+						}
+					}
+				} else if pipe.State == STATE_EDGE_LIST || pipe.State == STATE_RAW_EDGE_LIST {
+					id_list := make(chan string, 100)
+					traveler_list := make(chan Traveler, 100)
+					go func() {
+						defer close(id_list)
+						defer close(traveler_list)
+						for i := range pipe.Travelers {
+							e := i.GetCurrent().GetEdge()
+							id_list <- e.To
+							traveler_list <- i
+							id_list <- e.From
+							traveler_list <- i
+						}
+					}()
+					for v := range self.db.GetVertexListByID(ctx, id_list, ctx.Value(PROP_LOAD).(bool)) {
+						i := <-traveler_list
+						if v != nil {
+							o <- i.AddCurrent(aql.QueryResult{&aql.QueryResult_Vertex{v}})
+						}
+					}
+				} else {
+					log.Printf("Weird State: %s", pipe.State)
+				}
+				t.end_timer("all")
+			}()
+			return NewPipeOut(o, STATE_VERTEX_LIST, pipe.ValueStates)
+		})
+}
+
 func (self *PipeEngine) In(key ...string) QueryInterface {
 	return self.append(fmt.Sprintf("In: %s", key),
 		func(t timer, ctx context.Context) PipeOut {
@@ -359,15 +418,21 @@ func (self *PipeEngine) In(key ...string) QueryInterface {
 						return false
 					}
 				}
-				for i := range pipe.Travelers {
-					if v := i.GetCurrent().GetVertex(); v != nil {
-						for e := range self.db.GetInList(ctx, v.Gid, ctx.Value(PROP_LOAD).(bool), filt) {
-							el := e
-							o <- i.AddCurrent(aql.QueryResult{&aql.QueryResult_Vertex{&el}})
+				if pipe.State == STATE_VERTEX_LIST || pipe.State == STATE_RAW_VERTEX_LIST {
+						for i := range pipe.Travelers {
+							if v := i.GetCurrent().GetVertex(); v != nil {
+								for e := range self.db.GetInList(ctx, v.Gid, ctx.Value(PROP_LOAD).(bool), filt) {
+									el := e
+									o <- i.AddCurrent(aql.QueryResult{&aql.QueryResult_Vertex{&el}})
+								}
+							}
 						}
-					} else if e := i.GetCurrent().GetEdge(); e != nil {
-						v := self.db.GetVertex(e.From, ctx.Value(PROP_LOAD).(bool))
-						o <- i.AddCurrent(aql.QueryResult{&aql.QueryResult_Vertex{v}})
+				} else if pipe.State == STATE_EDGE_LIST || pipe.State == STATE_RAW_EDGE_LIST {
+					for i := range pipe.Travelers {					
+						if e := i.GetCurrent().GetEdge(); e != nil {
+							v := self.db.GetVertex(e.From, ctx.Value(PROP_LOAD).(bool))
+							o <- i.AddCurrent(aql.QueryResult{&aql.QueryResult_Vertex{v}})
+						}
 					}
 				}
 				t.end_timer("all")
@@ -396,6 +461,41 @@ func (self *PipeEngine) OutE(key ...string) QueryInterface {
 				for i := range pipe.Travelers {
 					if v := i.GetCurrent().GetVertex(); v != nil {
 						for oe := range self.db.GetOutEdgeList(ctx, v.Gid, ctx.Value(PROP_LOAD).(bool), filt) {
+							le := oe
+							o <- i.AddCurrent(aql.QueryResult{&aql.QueryResult_Edge{&le}})
+						}
+					}
+				}
+				t.end_timer("all")
+			}()
+			return NewPipeOut(o, STATE_EDGE_LIST, pipe.ValueStates)
+		})
+}
+
+func (self *PipeEngine) BothE(key ...string) QueryInterface {
+	return self.append(fmt.Sprintf("BothE: %s", key),
+		func(t timer, ctx context.Context) PipeOut {
+			o := make(chan Traveler, PIPE_SIZE)
+			pipe := self.start_pipe(context.WithValue(ctx, PROP_LOAD, false))
+			go func() {
+				t.start_timer("all")
+				defer close(o)
+				var filt EdgeFilter = nil
+				if len(key) > 0 && len(key[0]) > 0 {
+					filt = func(e aql.Edge) bool {
+						if key[0] == e.Label {
+							return true
+						}
+						return false
+					}
+				}
+				for i := range pipe.Travelers {
+					if v := i.GetCurrent().GetVertex(); v != nil {
+						for oe := range self.db.GetOutEdgeList(ctx, v.Gid, ctx.Value(PROP_LOAD).(bool), filt) {
+							le := oe
+							o <- i.AddCurrent(aql.QueryResult{&aql.QueryResult_Edge{&le}})
+						}
+						for oe := range self.db.GetInEdgeList(ctx, v.Gid, ctx.Value(PROP_LOAD).(bool), filt) {
 							le := oe
 							o <- i.AddCurrent(aql.QueryResult{&aql.QueryResult_Edge{&le}})
 						}
