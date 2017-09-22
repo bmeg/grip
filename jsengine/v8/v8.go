@@ -1,90 +1,101 @@
-package goja
+package v8
 
 import (
+	"encoding/json"
 	"fmt"
+	"github.com/augustoroman/v8"
 	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/jsengine"
 	"github.com/bmeg/arachne/jsengine/underscore"
 	"github.com/bmeg/arachne/protoutil"
-	"github.com/dop251/goja"
 	"log"
 )
 
-type GojaRuntime struct {
-	vm   *goja.Runtime
-	call goja.Callable
+type V8Runtime struct {
+	ctx  *v8.Context
+	user *v8.Value
 }
 
-var added = jsengine.AddEngine("goja", NewFunction)
+var added = jsengine.AddEngine("v8", NewFunction)
 
 func NewFunction(source string, imports []string) (jsengine.JSEngine, error) {
 
-	vm := goja.New()
+	ctx := v8.NewIsolate().NewContext()
 	for _, src := range imports {
-		_, err := vm.RunString(src)
+		_, err := ctx.Eval(src, "")
 		if err != nil {
 			return nil, err
 		}
 	}
 
 	us, _ := underscore.Asset("underscore.js")
-	if _, err := vm.RunString(string(us)); err != nil {
+	if _, err := ctx.Eval(string(us), "underscore.js"); err != nil {
 		return nil, err
 	}
 
-	_, err := vm.RunString("var userFunction = " + source)
+	_, err := ctx.Eval("var userFunction = "+source, "user.js")
 	if err != nil {
 		return nil, err
 	}
 
-	out := vm.Get("userFunction")
-	f, callable := goja.AssertFunction(out)
-	if !callable {
-		return nil, fmt.Errorf("no Function")
+	f, err := ctx.Global().Get("userFunction")
+	if err != nil {
+		return nil, fmt.Errorf("Compile Error: %s", err)
 	}
-	return &GojaRuntime{vm, f}, nil
+	return &V8Runtime{ctx, f}, nil
 }
 
-func (self *GojaRuntime) Call(input ...*aql.QueryResult) *aql.QueryResult {
-	m := []goja.Value{}
+func (self *V8Runtime) Call(input ...*aql.QueryResult) *aql.QueryResult {
+	m := []*v8.Value{}
 	for _, i := range input {
 		s := i.GetStruct()
 		m_i := protoutil.AsMap(s)
-		m = append(m, self.vm.ToValue(m_i))
+		v, _ := self.ctx.Create(m_i)
+		m = append(m, v)
 	}
-	value, err := self.call(nil, m...)
+	value, err := self.user.Call(nil, m...)
 	if err != nil {
 		log.Printf("Exec Error: %s", err)
 	}
-	val := value.Export()
+
+	//there has to be a better way
+	val := map[string]interface{}{}
+	jv, _ := value.MarshalJSON()
+	json.Unmarshal(jv, &val)
+
 	log.Printf("function return: %#v", val)
-	o := protoutil.AsStruct(val.(map[string]interface{}))
+	o := protoutil.AsStruct(val)
 	return &aql.QueryResult{&aql.QueryResult_Struct{o}}
 }
 
-func (self *GojaRuntime) CallBool(input ...*aql.QueryResult) bool {
-	m := []goja.Value{}
+func (self *V8Runtime) CallBool(input ...*aql.QueryResult) bool {
+	m := []*v8.Value{}
 	for _, i := range input {
 		if x, ok := i.GetResult().(*aql.QueryResult_Edge); ok {
 			m_i := protoutil.AsMap(x.Edge.Properties)
-			m = append(m, self.vm.ToValue(m_i))
+			v, _ := self.ctx.Create(m_i)
+			m = append(m, v)
 		} else if x, ok := i.GetResult().(*aql.QueryResult_Vertex); ok {
 			m_i := protoutil.AsMap(x.Vertex.Properties)
-			m = append(m, self.vm.ToValue(m_i))
+			v, _ := self.ctx.Create(m_i)
+			m = append(m, v)
 		} else if x, ok := i.GetResult().(*aql.QueryResult_Struct); ok {
 			m_i := protoutil.AsMap(x.Struct)
-			m = append(m, self.vm.ToValue(m_i))
+			v, _ := self.ctx.Create(m_i)
+			m = append(m, v)
 		}
 	}
-	value, err := self.call(nil, m...)
+	value, err := self.user.Call(nil, m...)
 	if err != nil {
 		log.Printf("Exec Error: %s", err)
 	}
-	otto_val := value.ToBoolean()
-	return otto_val
+	val := false
+	jv, _ := value.MarshalJSON()
+	json.Unmarshal(jv, &val)
+	return val
 }
 
-func (self *GojaRuntime) CallValueMapBool(input map[string]aql.QueryResult) bool {
+func (self *V8Runtime) CallValueMapBool(input map[string]aql.QueryResult) bool {
 
 	c := map[string]interface{}{}
 	for k, v := range input {
@@ -102,16 +113,18 @@ func (self *GojaRuntime) CallValueMapBool(input map[string]aql.QueryResult) bool
 		}
 		c[k] = l
 	}
-	//log.Printf("Eval: %s", c)
-	value, err := self.call(nil, self.vm.ToValue(c))
+	v, _ := self.ctx.Create(c)
+	value, err := self.user.Call(nil, v)
 	if err != nil {
 		log.Printf("Exec Error: %s", err)
 	}
-	otto_val := value.ToBoolean()
-	return otto_val
+	val := false
+	jv, _ := value.MarshalJSON()
+	json.Unmarshal(jv, &val)
+	return val
 }
 
-func (self *GojaRuntime) CallValueToVertex(input map[string]aql.QueryResult) []string {
+func (self *V8Runtime) CallValueToVertex(input map[string]aql.QueryResult) []string {
 	c := map[string]interface{}{}
 	for k, v := range input {
 		l := map[string]interface{}{}
@@ -138,27 +151,13 @@ func (self *GojaRuntime) CallValueToVertex(input map[string]aql.QueryResult) []s
 		c[k] = l
 	}
 	//log.Printf("Eval: %s", c)
-	value, err := self.call(nil, self.vm.ToValue(c))
+	v, _ := self.ctx.Create(c)
+	value, err := self.user.Call(nil, v)
 	if err != nil {
 		log.Printf("Exec Error: %s", err)
 	}
-	//if value.Class() == "Array" {
-	goja_val := value.Export()
-	if x, ok := goja_val.([]string); ok {
-		out := make([]string, len(x))
-		for i := range x {
-			out[i] = x[i]
-		}
-		return out
-	}
-	if x, ok := goja_val.([]interface{}); ok {
-		out := make([]string, len(x))
-		for i := range x {
-			out[i] = x[i].(string) //BUG: This is effing stupid, check types!!!!
-		}
-		return out
-	}
-	//}
-	log.Printf("Weirdness: %s", value.ExportType())
-	return []string{}
+	val := []string{}
+	jv, _ := value.MarshalJSON()
+	json.Unmarshal(jv, &val)
+	return val
 }

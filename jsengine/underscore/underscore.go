@@ -3,7 +3,7 @@
 // underscore.js
 // DO NOT EDIT!
 
-package goja
+package underscore
 
 import (
 	"fmt"
@@ -61,7 +61,7 @@ func underscoreJs() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "underscore.js", size: 16449, mode: os.FileMode(420), modTime: time.Unix(1506009550, 0)}
+	info := bindataFileInfo{name: "underscore.js", size: 16449, mode: os.FileMode(420), modTime: time.Unix(1506054937, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
