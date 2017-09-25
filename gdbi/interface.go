@@ -6,11 +6,14 @@ import (
 )
 
 type QueryInterface interface {
-	V(key ...string) QueryInterface
+	V(ids []string) QueryInterface
 	E() QueryInterface
 	Count() QueryInterface
-	Labeled(labels ...string) QueryInterface
+
 	Has(prop string, value ...string) QueryInterface
+	HasLabel(labels ...string) QueryInterface
+	HasId(ids ...string) QueryInterface
+
 	Out(key ...string) QueryInterface
 	In(key ...string) QueryInterface
 	Both(key ...string) QueryInterface

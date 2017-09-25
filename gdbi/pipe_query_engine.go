@@ -127,7 +127,7 @@ func (self *PipeEngine) start_pipe(ctx context.Context) PipeOut {
 	return pi
 }
 
-func (self *PipeEngine) V(key ...string) QueryInterface {
+func (self *PipeEngine) V(key []string) QueryInterface {
 	if len(key) > 0 {
 		return self.append(fmt.Sprintf("V %s", key),
 			func(t timer, ctx context.Context) PipeOut {
@@ -135,10 +135,12 @@ func (self *PipeEngine) V(key ...string) QueryInterface {
 				go func() {
 					t.start_timer("all")
 					defer close(o)
-					v := self.db.GetVertex(key[0], ctx.Value(PROP_LOAD).(bool))
-					if v != nil {
-						c := Traveler{}
-						o <- c.AddCurrent(aql.QueryResult{&aql.QueryResult_Vertex{v}})
+					for _, k := range key {
+						v := self.db.GetVertex(k, ctx.Value(PROP_LOAD).(bool))
+						if v != nil {
+							c := Traveler{}
+							o <- c.AddCurrent(aql.QueryResult{&aql.QueryResult_Vertex{v}})
+						}
 					}
 					t.end_timer("all")
 				}()
@@ -180,11 +182,51 @@ func (self *PipeEngine) E() QueryInterface {
 		})
 }
 
-func (self *PipeEngine) Labeled(labels ...string) QueryInterface {
-	return self.append(fmt.Sprintf("Labeled: %s", labels),
+func contains(a []string, v string) bool {
+	for _, i := range a {
+		if i == v {
+			return true
+		}
+	}
+	return false
+}
+
+func (self *PipeEngine) HasId(ids ...string) QueryInterface {
+	return self.append(fmt.Sprintf("HasId: %s", ids),
 		func(t timer, ctx context.Context) PipeOut {
 			o := make(chan Traveler, PIPE_SIZE)
 			pipe := self.start_pipe(ctx)
+			go func() {
+				defer close(o)
+				t.start_timer("all")
+				if pipe.State == STATE_VERTEX_LIST || pipe.State == STATE_RAW_VERTEX_LIST {
+					for i := range pipe.Travelers {
+						if v := i.GetCurrent().GetVertex(); v != nil {
+							if contains(ids, v.Gid) {
+								o <- i
+							}
+						}
+					}
+				} else if pipe.State == STATE_EDGE_LIST || pipe.State == STATE_RAW_EDGE_LIST {
+					for i := range pipe.Travelers {
+						if e := i.GetCurrent().GetEdge(); e != nil {
+							if contains(ids, e.Gid) {
+								o <- i
+							}
+						}
+					}
+				}
+				t.end_timer("all")
+			}()
+			return NewPipeOut(o, state_custom(pipe.State), pipe.ValueStates)
+		})
+}
+
+func (self *PipeEngine) HasLabel(labels ...string) QueryInterface {
+	return self.append(fmt.Sprintf("HasLabel: %s", labels),
+		func(t timer, ctx context.Context) PipeOut {
+			o := make(chan Traveler, PIPE_SIZE)
+			pipe := self.start_pipe(context.WithValue(ctx, PROP_LOAD, true)) //BUG: shouldn't have to load data to get label
 			go func() {
 				defer close(o)
 				t.start_timer("all")
@@ -419,16 +461,16 @@ func (self *PipeEngine) In(key ...string) QueryInterface {
 					}
 				}
 				if pipe.State == STATE_VERTEX_LIST || pipe.State == STATE_RAW_VERTEX_LIST {
-						for i := range pipe.Travelers {
-							if v := i.GetCurrent().GetVertex(); v != nil {
-								for e := range self.db.GetInList(ctx, v.Gid, ctx.Value(PROP_LOAD).(bool), filt) {
-									el := e
-									o <- i.AddCurrent(aql.QueryResult{&aql.QueryResult_Vertex{&el}})
-								}
+					for i := range pipe.Travelers {
+						if v := i.GetCurrent().GetVertex(); v != nil {
+							for e := range self.db.GetInList(ctx, v.Gid, ctx.Value(PROP_LOAD).(bool), filt) {
+								el := e
+								o <- i.AddCurrent(aql.QueryResult{&aql.QueryResult_Vertex{&el}})
 							}
 						}
+					}
 				} else if pipe.State == STATE_EDGE_LIST || pipe.State == STATE_RAW_EDGE_LIST {
-					for i := range pipe.Travelers {					
+					for i := range pipe.Travelers {
 						if e := i.GetCurrent().GetEdge(); e != nil {
 							v := self.db.GetVertex(e.From, ctx.Value(PROP_LOAD).(bool))
 							o <- i.AddCurrent(aql.QueryResult{&aql.QueryResult_Vertex{v}})
@@ -826,6 +868,7 @@ func (self *PipeEngine) Count() QueryInterface {
 				for range pipe.Travelers {
 					count += 1
 				}
+				log.Printf("Counted: %d", count)
 				trav := Traveler{}
 				o <- trav.AddCurrent(aql.QueryResult{&aql.QueryResult_IntValue{IntValue: count}})
 				t.end_timer("all")
@@ -879,7 +922,8 @@ func (self *PipeEngine) Execute(ctx context.Context) chan aql.ResultRow {
 	o := make(chan aql.ResultRow, PIPE_SIZE)
 	go func() {
 		defer close(o)
-		self.start_timer("all")
+		//self.start_timer("all")
+		count := 0
 		pipe := self.start_pipe(context.WithValue(ctx, PROP_LOAD, true))
 		for i := range pipe.Travelers {
 			if len(self.selection) == 0 {
@@ -891,13 +935,14 @@ func (self *PipeEngine) Execute(ctx context.Context) chan aql.ResultRow {
 				}
 				o <- aql.ResultRow{Row: l}
 			}
+			count++
 		}
-		self.end_timer("all")
+		//self.end_timer("all")
 		log.Printf("---StartTiming---")
 		for p := self; p != nil; p = p.parent {
 			log.Printf("%s %s", p.name, p.get_time())
 		}
-		log.Printf("---EndTiming---")
+		log.Printf("---EndTiming, Processed: %d---", count)
 	}()
 	return o
 }

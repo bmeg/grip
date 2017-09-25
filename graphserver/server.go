@@ -43,6 +43,10 @@ func (server *ArachneServer) Start(hostPort string) {
 	go grpcServer.Serve(lis)
 }
 
+func (server *ArachneServer) CloseDB() {
+	server.engine.Close()
+}
+
 func (server *ArachneServer) Traversal(query *aql.GraphQuery, queryServer aql.Query_TraversalServer) error {
 	res, err := server.engine.RunTraversal(queryServer.Context(), query)
 	if err != nil {
