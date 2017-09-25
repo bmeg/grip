@@ -138,6 +138,8 @@ class Query:
         return self
 
     def V(self, id=None):
+        if not isinstance(id, list):
+            id = [id]
         self.query.append({"V":id})
         return self
 
@@ -271,6 +273,9 @@ class Query:
     def render(self):
         output = {'query': self.query}
         return json.dumps(output)
+
+    def __iter__(self):
+        return self.execute()
 
     def execute(self):
         payload = self.render()
