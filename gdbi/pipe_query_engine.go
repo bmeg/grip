@@ -129,7 +129,7 @@ func (self *PipeEngine) start_pipe(ctx context.Context) PipeOut {
 
 func (self *PipeEngine) V(key []string) QueryInterface {
 	if len(key) > 0 {
-		return self.append(fmt.Sprintf("V %s", key),
+		return self.append(fmt.Sprintf("V (%d keys) %s", len(key), key),
 			func(t timer, ctx context.Context) PipeOut {
 				o := make(chan Traveler, PIPE_SIZE)
 				go func() {
@@ -234,6 +234,7 @@ func (self *PipeEngine) HasLabel(labels ...string) QueryInterface {
 				//if the 'state' is of a raw output, ie the output of query.V() or query.E(),
 				//we can skip calling the upstream element and reference the index
 				if pipe.State == STATE_RAW_VERTEX_LIST {
+					t.start_timer("indexScan")
 					for _, l := range labels {
 						for id := range self.db.VertexLabelScan(ctx, l) {
 							v := self.db.GetVertex(id, ctx.Value(PROP_LOAD).(bool))
@@ -243,6 +244,7 @@ func (self *PipeEngine) HasLabel(labels ...string) QueryInterface {
 							}
 						}
 					}
+					t.end_timer("indexScan")
 				} else if pipe.State == STATE_RAW_EDGE_LIST {
 					for _, l := range labels {
 						for id := range self.db.EdgeLabelScan(ctx, l) {
@@ -923,17 +925,22 @@ func (self *PipeEngine) Execute(ctx context.Context) chan aql.ResultRow {
 	go func() {
 		defer close(o)
 		//self.start_timer("all")
+		var client time.Duration = 0
 		count := 0
 		pipe := self.start_pipe(context.WithValue(ctx, PROP_LOAD, true))
 		for i := range pipe.Travelers {
 			if len(self.selection) == 0 {
+				ct := time.Now()
 				o <- aql.ResultRow{Value: i.GetCurrent()}
+				client += time.Now().Sub(ct)
 			} else {
 				l := []*aql.QueryResult{}
 				for _, r := range self.selection {
 					l = append(l, i.GetLabeled(r))
 				}
+				ct := time.Now()
 				o <- aql.ResultRow{Row: l}
+				client += time.Now().Sub(ct)
 			}
 			count++
 		}
@@ -942,7 +949,7 @@ func (self *PipeEngine) Execute(ctx context.Context) chan aql.ResultRow {
 		for p := self; p != nil; p = p.parent {
 			log.Printf("%s %s", p.name, p.get_time())
 		}
-		log.Printf("---EndTiming, Processed: %d---", count)
+		log.Printf("---EndTiming, Processed: %d, Client wait %s---", count, client)
 	}()
 	return o
 }

@@ -137,7 +137,7 @@ class Query:
         self.query.append({"import":src})
         return self
 
-    def V(self, id=None):
+    def V(self, id=[]):
         if not isinstance(id, list):
             id = [id]
         self.query.append({"V":id})
