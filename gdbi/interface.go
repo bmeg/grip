@@ -34,6 +34,8 @@ type QueryInterface interface {
 	Map(function string) QueryInterface
 	Fold(function string) QueryInterface
 	Filter(function string) QueryInterface
+	FilterValues(source string) QueryInterface
+	VertexFromValues(source string) QueryInterface
 
 	Execute(context.Context) chan aql.ResultRow
 	First(context.Context) (aql.ResultRow, error) //Only get one result
@@ -89,9 +91,19 @@ type DBI interface {
 	Indexer
 }
 
+const (
+	STATE_CUSTOM          = 0
+	STATE_VERTEX_LIST     = 1
+	STATE_EDGE_LIST       = 2
+	STATE_RAW_VERTEX_LIST = 3
+	STATE_RAW_EDGE_LIST   = 4
+	STATE_BUNDLE_LIST     = 5
+)
+
 type PipeOut struct {
-	Travelers chan Traveler
-	State     int
+	Travelers   chan Traveler
+	State       int
+	ValueStates map[string]int
 }
 
 type Traveler struct {
