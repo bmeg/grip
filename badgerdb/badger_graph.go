@@ -122,6 +122,13 @@ func VertexKey(graph, id string) []byte {
 	return bytes.Join([][]byte{VERTEX_PREFIX, []byte(graph), []byte(id)}, []byte{0})
 }
 
+func VertexKeyParse(key []byte) (string, string) {
+	tmp := bytes.Split(key, []byte{0})
+	graph := tmp[1]
+	vid := tmp[2]
+	return string(graph), string(vid)
+}
+
 func NewBadgerArachne(path string) gdbi.ArachneInterface {
 	_, err := os.Stat(path)
 	if os.IsNotExist(err) {
@@ -749,8 +756,10 @@ func (self *BadgerGDB) GetVertexListByID(ctx context.Context, ids chan string, l
 			vkey := VertexKey(self.graph, id)
 			data_value := badger.KVItem{}
 			err := self.kv.Get(vkey, &data_value)
-			if err == nil && data_value.Value() == nil {
+			if err == nil && data_value.Value() != nil {
 				data <- data_value.Value()
+			} else {
+				data <- nil
 			}
 		}
 	}()
@@ -759,9 +768,13 @@ func (self *BadgerGDB) GetVertexListByID(ctx context.Context, ids chan string, l
 	go func() {
 		defer close(out)
 		for d := range data {
-			v := aql.Vertex{}
-			proto.Unmarshal(d, &v)
-			out <- &v
+			if d != nil {
+				v := aql.Vertex{}
+				proto.Unmarshal(d, &v)
+				out <- &v
+			} else {
+				out <- nil
+			}
 		}
 	}()
 
@@ -825,9 +838,8 @@ func (self *BadgerGDB) GetVertexList(ctx context.Context, loadProp bool) chan aq
 				proto.Unmarshal(data_value, &v)
 			} else {
 				key_value := it.Item().Key()
-				tmp := bytes.Split(key_value, []byte{0})
-				iid := tmp[1]
-				v.Gid = string(iid)
+				_, vid := VertexKeyParse(key_value)
+				v.Gid = string(vid)
 			}
 			o <- v
 		}

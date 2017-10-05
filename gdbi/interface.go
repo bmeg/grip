@@ -26,6 +26,9 @@ type QueryInterface interface {
 
 	GroupCount(label string) QueryInterface
 
+	//Subqueries
+	Match(matches []*QueryInterface) QueryInterface
+
 	//code based functions
 	Import(source string) QueryInterface
 	Map(function string) QueryInterface
@@ -35,6 +38,7 @@ type QueryInterface interface {
 	Execute(context.Context) chan aql.ResultRow
 	First(context.Context) (aql.ResultRow, error) //Only get one result
 	Run(context.Context) error                    //Do execute, but throw away the results
+	Chain(context.Context, PipeOut) PipeOut
 }
 
 type ArachneInterface interface {
@@ -83,6 +87,11 @@ type Indexer interface {
 type DBI interface {
 	GraphDB
 	Indexer
+}
+
+type PipeOut struct {
+	Travelers chan Traveler
+	State     int
 }
 
 type Traveler struct {

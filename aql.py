@@ -82,16 +82,21 @@ class Graph:
         response = urllib2.urlopen(request)
         result = response.read()
         return json.loads(result)
-    
+
     def bulkAdd(self):
         return BulkAdd(self.url, self.name)
+
+    def mark(self, name):
+        q = self.query()
+        q.mark(name)
+        return q
 
 class BulkAdd:
     def __init__(self, url, graph):
         self.url = url
         self.graph = graph
         self.elements = []
-    
+
     def addVertex(self, id, label, prop={}):
         payload = json.dumps({
             "graph" : self.graph,
@@ -114,7 +119,7 @@ class BulkAdd:
             }
         })
         self.elements.append(payload)
-    
+
     def commit(self):
         payload = "\n".join(self.elements)
         headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
@@ -122,7 +127,7 @@ class BulkAdd:
         response = urllib2.urlopen(request)
         result = response.read()
         return json.loads(result)
-    
+
 class Query:
     def __init__(self, parent=None):
         self.query = []
@@ -234,6 +239,13 @@ class Query:
         self.query.append({"fold" : func})
         return self
 
+    def match(self, queries):
+        mq = []
+        for i in queries:
+            mq.append( {'query': i.query} )
+        self.query.append({'match': {'queries': mq }})
+        return self
+
     def render(self):
         output = {'query': self.query}
         return json.dumps(output)
@@ -242,7 +254,8 @@ class Query:
         payload = self.render()
         #print payload
         headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
-        request = urllib2.Request(self.parent.url + "/" + self.parent.name + "/query", payload, headers=headers)
+        url = self.parent.url + "/" + self.parent.name + "/query"
+        request = urllib2.Request(url, payload, headers=headers)
         response = urllib2.urlopen(request)
         #out = []
         for result in response:
