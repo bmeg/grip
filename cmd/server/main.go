@@ -40,6 +40,8 @@ var Cmd = &cobra.Command{
 			proxy.Stop()
 		}()
 		proxy.Run()
+		log.Printf("Server Stoped, closing database")
+		server.CloseDB()
 		return nil
 	},
 }

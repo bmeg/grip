@@ -16,26 +16,32 @@ message GraphQuerySet {
 
 message GraphStatement {
     oneof statement {
-        string V = 1;
+        google.protobuf.ListValue V = 1;
         string E = 2;
-        google.protobuf.ListValue labeled = 3;
-        HasStatement has = 4;
-        string as = 5;
-        google.protobuf.ListValue in = 6;
-        google.protobuf.ListValue out = 7;
-        google.protobuf.ListValue inEdge = 8;
-        google.protobuf.ListValue outEdge = 9;
 
-        google.protobuf.ListValue outBundle = 10;
+        HasStatement has = 5;
+        google.protobuf.ListValue hasLabel = 6;
+        google.protobuf.ListValue hasId = 7;
 
-        SelectStatement select = 12;
-        SelectStatement values = 13;
-        int64 limit = 14;
-        string count = 15;
+        google.protobuf.ListValue in = 10;
+        google.protobuf.ListValue out = 11;
+        google.protobuf.ListValue inEdge = 12;
+        google.protobuf.ListValue outEdge = 13;
+        google.protobuf.ListValue both = 14;
+        google.protobuf.ListValue bothEdge = 15;
 
-        string groupCount = 16;
+        google.protobuf.ListValue outBundle = 16;
 
-        GraphQuerySet match = 30;
+        string as = 20;
+        SelectStatement select = 21;
+        SelectStatement values = 22;
+
+        int64 limit = 25;
+        string count = 26;
+
+        string groupCount = 30;
+
+        GraphQuerySet match = 40;
 
         //Function Methods
         string import = 50;
