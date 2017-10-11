@@ -14,18 +14,23 @@ import (
 )
 
 type BadgerArachne struct {
-	kv *badger.KV
+	kv *badger.DB
 }
 
 type BadgerGDB struct {
-	kv    *badger.KV
+	kv    *badger.DB
 	graph string
 }
 
-func HasKey(kv *badger.KV, key []byte) bool {
-	data_value := badger.KVItem{}
-	kv.Get(key, &data_value)
-	return data_value.Value() != nil
+func HasKey(kv *badger.DB, key []byte) bool {
+	out := false
+	kv.View(func(tx *badger.Txn) error {
+		item, err := tx.Get(key)
+		if err != nil {
+				out = true
+		}
+	})
+	return out
 }
 
 var GRAPH_PREFIX []byte = []byte("g")
@@ -135,11 +140,11 @@ func NewBadgerArachne(path string) gdbi.ArachneInterface {
 		os.Mkdir(path, 0700)
 	}
 
-	opts := &badger.Options{}
-	*opts = badger.DefaultOptions
+	opts := badger.Options{}
+	opts = badger.DefaultOptions
 	opts.Dir = path
 	opts.ValueDir = path
-	kv, err := badger.NewKV(opts)
+	kv, err := badger.Open(opts)
 	if err != nil {
 		log.Printf("Error: %s", err)
 	}
@@ -147,7 +152,10 @@ func NewBadgerArachne(path string) gdbi.ArachneInterface {
 }
 
 func (self *BadgerArachne) AddGraph(graph string) error {
-	self.kv.Set(GraphKey(graph), []byte{}, 0x00)
+	self.kv.Update(func(tx *badger.Txn) error {
+			tx.Set(GraphKey(graph), []byte{}, 0x00)
+			return nil
+	})
 	return nil
 }
 
@@ -162,18 +170,20 @@ func (self *BadgerArachne) prefixDelete(prefix []byte) {
 
 	for found := true; found; {
 		found = false
-		wb := make([]*badger.Entry, 0, DELETE_BLOCK_SIZE)
+		wb := make([][]byte, 0, DELETE_BLOCK_SIZE)
 		opts := badger.DefaultIteratorOptions
-		opts.FetchValues = false
-		it := self.kv.NewIterator(opts)
-		for it.Seek(prefix); it.Valid() && bytes.HasPrefix(it.Item().Key(), prefix) && len(wb) < DELETE_BLOCK_SIZE-1; it.Next() {
-			wb = badger.EntriesDelete(wb, bytes_copy(it.Item().Key()))
-		}
-		it.Close()
-		if len(wb) > 0 {
-			self.kv.BatchSet(wb)
-			found = true
-		}
+		opts.PrefetchValues = false
+		self.kv.Update(func(tx *badger.Txn) error {
+			it := tx.NewIterator(opts)
+			for it.Seek(prefix); it.Valid() && bytes.HasPrefix(it.Item().Key(), prefix) && len(wb) < DELETE_BLOCK_SIZE-1; it.Next() {
+				wb = append(wb, bytes_copy(it.Item().Key()))
+			}
+			it.Close()
+			for _, i := range wb {
+				tx.Delete(i)
+				found = true
+			}
+		})
 	}
 }
 
@@ -191,7 +201,9 @@ func (self *BadgerArachne) DeleteGraph(graph string) error {
 	self.prefixDelete(dprefix)
 
 	graphKey := GraphKey(graph)
-	self.kv.Delete(graphKey)
+	self.kv.Update(func(tx *badger.Txn) error {
+		tx.Delete(graphKey)
+	})
 
 	return nil
 }
@@ -211,11 +223,13 @@ func (self *BadgerArachne) Close() {
 func (self *BadgerArachne) GetGraphs() []string {
 	out := make([]string, 0, 100)
 	g_prefix := GraphPrefix()
-	it := self.kv.NewIterator(badger.DefaultIteratorOptions)
-	defer it.Close()
-	for it.Seek(g_prefix); it.Valid() && bytes.HasPrefix(it.Item().Key(), g_prefix); it.Next() {
-		out = append(out, GraphKeyParse(it.Item().Key()))
-	}
+	self.kv.View(func(tx *badger.Txn) error {
+		it := tx.NewIterator(badger.DefaultIteratorOptions)
+		defer it.Close()
+		for it.Seek(g_prefix); it.Valid() && bytes.HasPrefix(it.Item().Key(), g_prefix); it.Next() {
+			out = append(out, GraphKeyParse(it.Item().Key()))
+		}
+	})
 	return out
 }
 
@@ -226,7 +240,9 @@ func (self *BadgerGDB) Query() gdbi.QueryInterface {
 func (self *BadgerGDB) SetVertex(vertex aql.Vertex) error {
 	d, _ := proto.Marshal(&vertex)
 	k := VertexKey(self.graph, vertex.Gid)
-	err := self.kv.Set(k, d, 0x00)
+	err := self.kv.Update(func(tx *badger.Txn) error {
+		return tx.Set(k, d, 0x00)
+	})
 	return err
 }
 
@@ -246,17 +262,14 @@ func (self *BadgerGDB) SetEdge(edge aql.Edge) error {
 	skey := SrcEdgeKey(self.graph, src, dst, eid)
 	dkey := DstEdgeKey(self.graph, src, dst, eid)
 
-	entries := make([]*badger.Entry, 3)
-	entries[0] = &badger.Entry{Key: ekey, Value: data, UserMeta: EDGE_SINGLE}
-	entries[1] = &badger.Entry{Key: skey, Value: []byte{}, UserMeta: EDGE_SINGLE}
-	entries[2] = &badger.Entry{Key: dkey, Value: []byte{}, UserMeta: EDGE_SINGLE}
-	self.kv.BatchSet(entries)
-	for _, e := range entries {
-		if e.Error != nil {
-			return e.Error
-		}
-	}
-	return nil
+	return self.kv.Update(func(tx *badger.Txn) error {
+		err := tx.Set( ekey, data, EDGE_SINGLE )
+		if err != nil { return err }
+		err = tx.Set( skey, []byte{}, EDGE_SINGLE )
+		if err != nil { return err }
+		err = tx.Set( dkey, []byte{}, EDGE_SINGLE )
+		if err != nil { return err }
+	})
 }
 
 func (self *BadgerGDB) SetBundle(bundle aql.Bundle) error {
