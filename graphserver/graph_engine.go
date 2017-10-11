@@ -17,6 +17,10 @@ func NewGraphEngine(a gdbi.ArachneInterface) GraphEngine {
 	return GraphEngine{Arachne: a}
 }
 
+func (engine *GraphEngine) Close() {
+	engine.Arachne.Close()
+}
+
 func (engine *GraphEngine) AddGraph(graph string) error {
 	return engine.Arachne.AddGraph(graph)
 }
@@ -93,11 +97,8 @@ func (trav *Traversal) SubQuery() *Traversal {
 
 func (trav *Traversal) RunStatement(statement *aql.GraphStatement) error {
 	if x, ok := statement.GetStatement().(*aql.GraphStatement_V); ok {
-		if x.V == "" {
-			trav.Query = trav.Query.V()
-		} else {
-			trav.Query = trav.Query.V(x.V)
-		}
+		vlist := protoutil.AsStringList(x.V)
+		trav.Query = trav.Query.V(vlist)
 	} else if _, ok := statement.GetStatement().(*aql.GraphStatement_E); ok {
 		trav.Query = trav.Query.E()
 	} else if x, ok := statement.GetStatement().(*aql.GraphStatement_Out); ok {
@@ -106,20 +107,29 @@ func (trav *Traversal) RunStatement(statement *aql.GraphStatement) error {
 	} else if x, ok := statement.GetStatement().(*aql.GraphStatement_In); ok {
 		labels := protoutil.AsStringList(x.In)
 		trav.Query = trav.Query.In(labels...)
+	} else if x, ok := statement.GetStatement().(*aql.GraphStatement_Both); ok {
+		labels := protoutil.AsStringList(x.Both)
+		trav.Query = trav.Query.Both(labels...)
 	} else if x, ok := statement.GetStatement().(*aql.GraphStatement_OutEdge); ok {
 		labels := protoutil.AsStringList(x.OutEdge)
 		trav.Query = trav.Query.OutE(labels...)
 	} else if x, ok := statement.GetStatement().(*aql.GraphStatement_InEdge); ok {
 		labels := protoutil.AsStringList(x.InEdge)
 		trav.Query = trav.Query.InE(labels...)
+	} else if x, ok := statement.GetStatement().(*aql.GraphStatement_BothEdge); ok {
+		labels := protoutil.AsStringList(x.BothEdge)
+		trav.Query = trav.Query.BothE(labels...)
 	} else if x, ok := statement.GetStatement().(*aql.GraphStatement_OutBundle); ok {
 		labels := protoutil.AsStringList(x.OutBundle)
 		trav.Query = trav.Query.OutBundle(labels...)
 	} else if x := statement.GetHas(); x != nil {
 		trav.Query = trav.Query.Has(x.Key, x.Within...)
-	} else if x, ok := statement.GetStatement().(*aql.GraphStatement_Labeled); ok {
-		labels := protoutil.AsStringList(x.Labeled)
-		trav.Query = trav.Query.Labeled(labels...)
+	} else if x, ok := statement.GetStatement().(*aql.GraphStatement_HasLabel); ok {
+		labels := protoutil.AsStringList(x.HasLabel)
+		trav.Query = trav.Query.HasLabel(labels...)
+	} else if x, ok := statement.GetStatement().(*aql.GraphStatement_HasId); ok {
+		ids := protoutil.AsStringList(x.HasId)
+		trav.Query = trav.Query.HasId(ids...)
 	} else if x, ok := statement.GetStatement().(*aql.GraphStatement_Limit); ok {
 		trav.Query = trav.Query.Limit(x.Limit)
 	} else if x, ok := statement.GetStatement().(*aql.GraphStatement_Values); ok {

@@ -83,6 +83,12 @@ func UnpackEdge(i map[string]interface{}) aql.Edge {
 	return o
 }
 
+type pair struct {
+	key          string
+	value_map    interface{}
+	value_struct *structpb.Struct
+}
+
 func UnpackBundle(i map[string]interface{}) aql.Bundle {
 	o := aql.Bundle{}
 	id := i["_id"]
@@ -94,8 +100,34 @@ func UnpackBundle(i map[string]interface{}) aql.Bundle {
 	o.Label = i["label"].(string)
 	o.From = i[FIELD_SRC].(string)
 	m := map[string]*structpb.Struct{}
-	for k, v := range i[FIELD_BUNDLE].(map[string]interface{}) {
-		m[k] = protoutil.AsStruct(v.(map[string]interface{}))
+
+	p1 := make(chan pair, 100)
+	go func() {
+		for k, v := range i[FIELD_BUNDLE].(map[string]interface{}) {
+			p1 <- pair{k, v, nil}
+		}
+		close(p1)
+	}()
+	p2 := make(chan pair, 100)
+	pclose := make(chan bool)
+	NWORKERS := 8
+	for i := 0; i < NWORKERS; i++ {
+		go func() {
+			for p := range p1 {
+				p2 <- pair{p.key, nil, protoutil.AsStruct(p.value_map.(map[string]interface{}))}
+			}
+			pclose <- true
+		}()
+	}
+	go func() {
+		for i := 0; i < NWORKERS; i++ {
+			<-pclose
+		}
+		close(p2)
+	}()
+
+	for p := range p2 {
+		m[p.key] = p.value_struct
 	}
 	o.Bundle = m
 	return o

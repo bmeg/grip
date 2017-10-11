@@ -137,7 +137,9 @@ class Query:
         self.query.append({"import":src})
         return self
 
-    def V(self, id=None):
+    def V(self, id=[]):
+        if not isinstance(id, list):
+            id = [id]
         self.query.append({"V":id})
         return self
 
@@ -145,10 +147,16 @@ class Query:
         self.query.append({"E":id})
         return self
 
-    def labeled(self, label):
+    def hasLabel(self, label):
         if not isinstance(label, list):
             label = [label]
-        self.query.append({'labeled': label})
+        self.query.append({'hasLabel': label})
+        return self
+
+    def hasId(self, id):
+        if not isinstance(id, list):
+            id = [id]
+        self.query.append({'hasId': id})
         return self
 
     def has(self, prop, within):
@@ -181,6 +189,12 @@ class Query:
         self.query.append({'out': label})
         return self
 
+    def both(self, label=[]):
+        if not isinstance(label, list):
+            label = [label]
+        self.query.append({'both': label})
+        return self
+
     def incomingEdge(self, label=[]):
         if not isinstance(label, list):
             label = [label]
@@ -191,6 +205,12 @@ class Query:
         if not isinstance(label, list):
             label = [label]
         self.query.append({'outEdge': label})
+        return self
+
+    def bothEdge(self, label=[]):
+        if not isinstance(label, list):
+            label = [label]
+        self.query.append({'bothEdge': label})
         return self
 
     def outgoingBundle(self, label=[]):
@@ -253,6 +273,9 @@ class Query:
     def render(self):
         output = {'query': self.query}
         return json.dumps(output)
+
+    def __iter__(self):
+        return self.execute()
 
     def execute(self):
         payload = self.render()

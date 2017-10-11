@@ -113,3 +113,12 @@ func AsStringList(src *structpb.ListValue) []string {
 	}
 	return out
 }
+
+func AsListValue(str []string) *structpb.ListValue {
+	v := make([]*structpb.Value, len(str))
+	for i := range str {
+		v[i] = &structpb.Value{&structpb.Value_StringValue{str[i]}}
+	}
+	o := structpb.ListValue{Values: v}
+	return &o
+}
