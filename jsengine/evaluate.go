@@ -3,6 +3,7 @@ package jsengine
 import (
 	"fmt"
 	"github.com/bmeg/arachne/aql"
+	"log"
 )
 
 type JSEngine interface {
@@ -17,6 +18,7 @@ type genfunc func(string, []string) (JSEngine, error)
 var engines map[string]genfunc = make(map[string]genfunc)
 
 func AddEngine(name string, gen genfunc) bool {
+	log.Printf("Adding %s JS engine", name)
 	engines[name] = gen
 	return true
 }
