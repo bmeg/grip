@@ -1,3 +1,6 @@
+
+// +build v8
+
 package v8
 
 import (
