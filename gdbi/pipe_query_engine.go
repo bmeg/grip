@@ -870,7 +870,7 @@ func (self *PipeEngine) Count() QueryInterface {
 				for range pipe.Travelers {
 					count += 1
 				}
-				log.Printf("Counted: %d", count)
+				//log.Printf("Counted: %d", count)
 				trav := Traveler{}
 				o <- trav.AddCurrent(aql.QueryResult{&aql.QueryResult_IntValue{IntValue: count}})
 				t.end_timer("all")
@@ -945,11 +945,13 @@ func (self *PipeEngine) Execute(ctx context.Context) chan aql.ResultRow {
 			count++
 		}
 		//self.end_timer("all")
-		log.Printf("---StartTiming---")
-		for p := self; p != nil; p = p.parent {
-			log.Printf("%s %s", p.name, p.get_time())
+		if client > 1 * time.Second { //only report timing if query takes longer then a second
+			log.Printf("---StartTiming---")
+			for p := self; p != nil; p = p.parent {
+				log.Printf("%s %s", p.name, p.get_time())
+			}
+			log.Printf("---EndTiming, Processed: %d, Client wait %s---", count, client)
 		}
-		log.Printf("---EndTiming, Processed: %d, Client wait %s---", count, client)
 	}()
 	return o
 }
