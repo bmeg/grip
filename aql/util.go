@@ -81,6 +81,18 @@ func (client AQLClient) AddBundle(graph string, e Bundle) error {
 	return nil
 }
 
+func (client AQLClient) StreamElements(elemChan chan GraphElement) error {
+	sc, err := client.EditC.StreamElements(context.Background())
+	if err != nil {
+		return err
+	}
+	for elem := range elemChan {
+		sc.Send(&elem)
+	}
+	_, err = sc.CloseAndRecv()
+	return err
+}
+
 func (client AQLClient) Query(graph string) QueryBuilder {
 	return QueryBuilder{client.QueryC, graph, []*GraphStatement{}}
 }
