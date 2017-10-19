@@ -114,20 +114,36 @@ func (server *ArachneServer) AddBundle(ctx context.Context, elem *aql.GraphEleme
 }
 
 func (server *ArachneServer) StreamElements(stream aql.Edit_StreamElementsServer) error {
+	vert_count := 0
+	edge_count := 0
+	bundle_count := 0
 	for {
 		element, err := stream.Recv()
 		if err == io.EOF {
+			if vert_count != 0 {
+				log.Printf("%d vertices streamed", vert_count)
+			}
+			if edge_count != 0 {
+				log.Printf("%d edges streamed", edge_count)
+			}
+			if bundle_count != 0 {
+				log.Printf("%d bundles streamed", bundle_count)
+			}
 			return stream.SendAndClose(&aql.EditResult{Result: &aql.EditResult_Id{}})
 		}
 		if err != nil {
+			log.Printf("Streaming Error: %s", err)
 			return err
 		}
 		if element.Vertex != nil {
 			server.AddVertex(context.Background(), element)
+			vert_count += 1
 		} else if element.Edge != nil {
 			server.AddEdge(context.Background(), element)
+			edge_count += 1
 		} else if element.Bundle != nil {
 			server.AddBundle(context.Background(), element)
+			bundle_count += 1
 		}
 	}
 

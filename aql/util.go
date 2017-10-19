@@ -87,7 +87,10 @@ func (client AQLClient) StreamElements(elemChan chan GraphElement) error {
 		return err
 	}
 	for elem := range elemChan {
-		sc.Send(&elem)
+		err := sc.Send(&elem)
+		if err != nil {
+			return err
+		}
 	}
 	_, err = sc.CloseAndRecv()
 	return err
@@ -98,12 +101,8 @@ func (client AQLClient) Query(graph string) QueryBuilder {
 }
 
 func (q QueryBuilder) V(id ...string) QueryBuilder {
-	if len(id) > 0 {
-		vlist := protoutil.AsListValue(id)
-		return QueryBuilder{q.client, q.graph, append(q.query, &GraphStatement{&GraphStatement_V{vlist}})}
-	} else {
-		return QueryBuilder{q.client, q.graph, append(q.query, &GraphStatement{&GraphStatement_V{}})}
-	}
+	vlist := protoutil.AsListValue(id)
+	return QueryBuilder{q.client, q.graph, append(q.query, &GraphStatement{&GraphStatement_V{vlist}})}
 }
 
 func (q QueryBuilder) E(id ...string) QueryBuilder {

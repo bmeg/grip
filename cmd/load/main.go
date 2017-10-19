@@ -34,8 +34,10 @@ var Cmd = &cobra.Command{
 			}
 			count := 0
 			elemChan := make(chan aql.GraphElement)
+			wait := make(chan bool)
 			go func() {
 				conn.StreamElements(elemChan)
+				wait <- false
 			}()
 			for line := range reader {
 				v := aql.Vertex{}
@@ -47,7 +49,9 @@ var Cmd = &cobra.Command{
 					log.Printf("Loaded %d vertices", count)
 				}
 			}
+			log.Printf("Loaded %d vertices", count)
 			close(elemChan)
+			<- wait
 		}
 		if edgeFile != "" {
 			log.Printf("Loading %s", edgeFile)
@@ -57,20 +61,32 @@ var Cmd = &cobra.Command{
 			}
 			count := 0
 			elemChan := make(chan aql.GraphElement)
+			wait := make(chan bool)
 			go func() {
-				conn.StreamElements(elemChan)
+				if err := conn.StreamElements(elemChan); err != nil {
+					log.Printf("StreamError: %s", err)
+				}
+				wait <- false
 			}()
 			for line := range reader {
-				e := aql.Edge{}
-				jsonpb.Unmarshal(strings.NewReader(string(line)), &e)
-				//conn.AddEdge(graph, e)
-				elemChan <- aql.GraphElement{Graph:graph, Edge: &e}
-				count += 1
-				if count%1000 == 0 {
-					log.Printf("Loaded %d edges", count)
+				if len(line) > 0 {
+					e := aql.Edge{}
+					err := jsonpb.Unmarshal(strings.NewReader(string(line)), &e)
+					if err != nil {
+						log.Printf("Error: %s : '%s'", err, line)
+					} else {
+						//conn.AddEdge(graph, e)
+						elemChan <- aql.GraphElement{Graph:graph, Edge: &e}
+						count += 1
+					}
+					if count%1000 == 0 {
+						log.Printf("Loaded %d edges", count)
+					}
 				}
 			}
+			log.Printf("Loaded %d edges", count)
 			close(elemChan)
+			<- wait
 		}
 
 		if bundleFile != "" {
