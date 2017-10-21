@@ -69,13 +69,13 @@ type GraphDB interface {
 
 	GetVertexListByID(ctx context.Context, ids chan string, load bool) chan *aql.Vertex
 
-	GetOutList(ctx context.Context, key string, load bool, filter EdgeFilter) chan aql.Vertex
-	GetInList(ctx context.Context, key string, load bool, filter EdgeFilter) chan aql.Vertex
+	GetOutList(ctx context.Context, key string, load bool, edgeLabels []string) chan aql.Vertex
+	GetInList(ctx context.Context, key string, load bool, edgeLabels []string) chan aql.Vertex
 
-	GetOutEdgeList(ctx context.Context, key string, load bool, filter EdgeFilter) chan aql.Edge
-	GetInEdgeList(ctx context.Context, key string, load bool, filter EdgeFilter) chan aql.Edge
+	GetOutEdgeList(ctx context.Context, key string, load bool, edgeLabels []string) chan aql.Edge
+	GetInEdgeList(ctx context.Context, key string, load bool, edgeLabels []string) chan aql.Edge
 
-	GetOutBundleList(ctx context.Context, key string, load bool, filter BundleFilter) chan aql.Bundle
+	GetOutBundleList(ctx context.Context, key string, load bool, edgeLabels []string) chan aql.Bundle
 
 	SetVertex(vertex aql.Vertex) error
 	SetEdge(edge aql.Edge) error
@@ -114,9 +114,6 @@ type PipeOut struct {
 type Traveler struct {
 	State map[string]aql.QueryResult
 }
-
-type EdgeFilter func(edge aql.Edge) bool
-type BundleFilter func(edge aql.Bundle) bool
 
 type PipeRequest struct {
 	LoadProperties bool
