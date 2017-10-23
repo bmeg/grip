@@ -74,3 +74,14 @@ print O.query().V().groupCount("group").execute()
 for a in O.query().V().has("group", "Book").mark("a").outgoing("similar").has("group", "DVD").mark("b").select(["a", "b"]).execute():
     print a
 ```
+
+Matrix Data loading Example
+---------------------------
+```
+curl -O https://tcga.xenahubs.net/download/TCGA.BRCA.sampleMap/HiSeqV2.gz
+gunzip HiSeqV2.gz
+curl -O https://tcga.xenahubs.net/download/TCGA.BRCA.sampleMap/BRCA_clinicalMatrix.gz
+
+python test/load_matrix.py HiSeqV2
+
+```
