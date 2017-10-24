@@ -77,11 +77,38 @@ for a in O.query().V().has("group", "Book").mark("a").outgoing("similar").has("g
 
 Matrix Data loading Example
 ---------------------------
+
+Load Pathway information
+```
+curl -O http://www.pathwaycommons.org/archives/PC2/v9/PathwayCommons9.All.hgnc.sif.gz
+gunzip PathwayCommons9.All.hgnc.sif.gz
+python ./test/load_sif.py PathwayCommons9.All.hgnc.sif
+```
+
+Load Matrix data
 ```
 curl -O https://tcga.xenahubs.net/download/TCGA.BRCA.sampleMap/HiSeqV2.gz
 gunzip HiSeqV2.gz
+arachne create test-data
+python ./test/load_matrix.py HiSeqV2
+```
+
+Load clinical information
+```
 curl -O https://tcga.xenahubs.net/download/TCGA.BRCA.sampleMap/BRCA_clinicalMatrix.gz
+gunzip BRCA_clinicalMatrix.gz
+./test/load_property_matrix.py BRCA_clinicalMatrix
+```
 
-python test/load_matrix.py HiSeqV2
+Python Query: Open Connection
+```
+import aql
+conn = aql.Connection("http://localhost:8000")
+O = conn.graph("test-data")
+```
 
+Print out expression data of all Stage IIA samples
+```
+for row in O.query().V().hasLabel("Sample").has("pathologic_stage", "Stage IIA").outgoing("has").hasLabel("Data:expression").outgoingBundle("value"):
+  print row
 ```

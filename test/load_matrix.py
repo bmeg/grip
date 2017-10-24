@@ -15,23 +15,35 @@ def load_matrix(args):
 
     for c in matrix.columns:
         if O.query().V(c).count().first()['int_value'] == 0:
-            O.addVertex(c, "Protein")
+            if args.debug:
+                print "AddVertex", c
+            else:
+                O.addVertex(c, "Protein")
 
     for name, row in matrix.iterrows():
         src = "%s:%s" % (args.data_type, name)
         print "Loading: %s" % (src)
-        O.addVertex(name, "Sample")
-        O.addVertex(src, "Data:%s" % (args.data_type))
-        O.addEdge(name, src, "has")
+        if args.debug:
+            print "Add Vertex", name
+        else:
+            O.addVertex(name, "Sample")
+        if args.debug:
+            print "AddVertex", "Data:%s" % (args.data_type)
+        else:
+            O.addVertex(src, "Data:%s" % (args.data_type))
+        if args.debug:
+            print "AddEdge", name
+        else:
+            O.addEdge(name, src, "has")
         data = {}
         for c in matrix.columns:
             v = row[c]
             if not math.isnan(v):
                 data[c] = {"v" : v}
-        O.addBundle(src, data, "value")
-        #print src, data
-
-
+        if args.debug:
+            print "AddBundle", data
+        else:
+            O.addBundle(src, data, "value")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -40,7 +52,7 @@ if __name__ == "__main__":
     parser.add_argument("--data-type", dest="data_type", default="expression")
     parser.add_argument("--db", default="test-data")
     parser.add_argument("-p", "--prefix", default="")
-    parser.add_argument("-o", "--out", default="matrix_graph")
+    parser.add_argument("-d", dest="debug", action="store_true", default=False )
 
     args = parser.parse_args()
 
