@@ -78,6 +78,21 @@ for a in O.query().V().has("group", "Book").mark("a").outgoing("similar").has("g
 Matrix Data loading Example
 ---------------------------
 
+Create the graph
+```
+arachne create test-data
+```
+
+Add aql.py Python Library to PYTHONPATH
+```
+export PYTHONPATH=`pwd`
+```
+
+Install Pandas if you don't already have it
+```
+pip install pandas
+```
+
 Load Pathway information
 ```
 curl -O http://www.pathwaycommons.org/archives/PC2/v9/PathwayCommons9.All.hgnc.sif.gz
@@ -89,7 +104,6 @@ Load Matrix data
 ```
 curl -O https://tcga.xenahubs.net/download/TCGA.BRCA.sampleMap/HiSeqV2.gz
 gunzip HiSeqV2.gz
-arachne create test-data
 python ./test/load_matrix.py HiSeqV2
 ```
 
@@ -97,8 +111,10 @@ Load clinical information
 ```
 curl -O https://tcga.xenahubs.net/download/TCGA.BRCA.sampleMap/BRCA_clinicalMatrix.gz
 gunzip BRCA_clinicalMatrix.gz
-./test/load_property_matrix.py BRCA_clinicalMatrix
+python ./test/load_property_matrix.py BRCA_clinicalMatrix
 ```
+
+
 
 Python Query: Open Connection
 ```
