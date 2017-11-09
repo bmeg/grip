@@ -154,7 +154,7 @@ func NewBadgerArachne(path string) gdbi.ArachneInterface {
 
 func (self *BadgerArachne) AddGraph(graph string) error {
 	self.kv.Update(func(tx *badger.Txn) error {
-		tx.Set(GraphKey(graph), []byte{}, 0x00)
+		tx.Set(GraphKey(graph), []byte{})
 		return nil
 	})
 	return nil
@@ -245,7 +245,7 @@ func (self *BadgerGDB) SetVertex(vertex aql.Vertex) error {
 	d, _ := proto.Marshal(&vertex)
 	k := VertexKey(self.graph, vertex.Gid)
 	err := self.kv.Update(func(tx *badger.Txn) error {
-		return tx.Set(k, d, 0x00)
+		return tx.Set(k, d)
 	})
 	return err
 }
@@ -267,15 +267,15 @@ func (self *BadgerGDB) SetEdge(edge aql.Edge) error {
 	dkey := DstEdgeKey(self.graph, src, dst, eid)
 
 	return self.kv.Update(func(tx *badger.Txn) error {
-		err := tx.Set(ekey, data, EDGE_SINGLE)
+		err := tx.SetWithMeta(ekey, data, EDGE_SINGLE)
 		if err != nil {
 			return err
 		}
-		err = tx.Set(skey, []byte{}, EDGE_SINGLE)
+		err = tx.SetWithMeta(skey, []byte{}, EDGE_SINGLE)
 		if err != nil {
 			return err
 		}
-		err = tx.Set(dkey, []byte{}, EDGE_SINGLE)
+		err = tx.SetWithMeta(dkey, []byte{}, EDGE_SINGLE)
 		if err != nil {
 			return err
 		}
@@ -299,10 +299,10 @@ func (self *BadgerGDB) SetBundle(bundle aql.Bundle) error {
 	skey := SrcEdgeKey(self.graph, src, dst, eid)
 
 	return self.kv.Update(func(tx *badger.Txn) error {
-		if err := tx.Set(ekey, data, EDGE_BUNDLE); err != nil {
+		if err := tx.SetWithMeta(ekey, data, EDGE_BUNDLE); err != nil {
 			return err
 		}
-		if err := tx.Set(skey, []byte{}, EDGE_BUNDLE); err != nil {
+		if err := tx.SetWithMeta(skey, []byte{}, EDGE_BUNDLE); err != nil {
 			return err
 		}
 		return nil
