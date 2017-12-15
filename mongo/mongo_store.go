@@ -234,13 +234,16 @@ func (self *MongoGraph) GetVertexListByID(ctx context.Context, ids chan string, 
 	return out
 }
 
-func (self *MongoGraph) GetOutList(ctx context.Context, key string, load bool, filter gdbi.EdgeFilter) chan aql.Vertex {
+func (self *MongoGraph) GetOutList(ctx context.Context, key string, load bool, edgeLabels []string) chan aql.Vertex {
 	o := make(chan aql.Vertex, 100)
 	vertex_chan := make(chan string, 100)
 	go func() {
 		defer close(vertex_chan)
 		selection := map[string]interface{}{
 			FIELD_SRC: key,
+		}
+		if len(edgeLabels) > 0 {
+			selection[FIELD_LABEL] = bson.M{"$in": edgeLabels}
 		}
 		iter := self.edges.Find(selection).Iter()
 		defer iter.Close()
@@ -252,27 +255,10 @@ func (self *MongoGraph) GetOutList(ctx context.Context, key string, load bool, f
 			default:
 			}
 			if _, ok := result[FIELD_DST]; ok {
-				if filter != nil {
-					e := UnpackEdge(result)
-					if filter(e) {
-						vertex_chan <- result[FIELD_DST].(string)
-					}
-				} else {
-					vertex_chan <- result[FIELD_DST].(string)
-				}
+				vertex_chan <- result[FIELD_DST].(string)
 			} else if val, ok := result[FIELD_BUNDLE]; ok {
-				if filter != nil {
-					bundle := UnpackBundle(result)
-					for k, v := range bundle.Bundle {
-						e := aql.Edge{Gid: bundle.Gid, Label: bundle.Label, From: bundle.From, To: k, Properties: v}
-						if filter(e) {
-							vertex_chan <- k
-						}
-					}
-				} else {
-					for k, _ := range val.(map[string]interface{}) {
-						vertex_chan <- k
-					}
+				for k, _ := range val.(map[string]interface{}) {
+					vertex_chan <- k
 				}
 			}
 		}
@@ -296,13 +282,15 @@ func (self *MongoGraph) GetOutList(ctx context.Context, key string, load bool, f
 	return o
 }
 
-func (self *MongoGraph) GetInList(ctx context.Context, key string, load bool, filter gdbi.EdgeFilter) chan aql.Vertex {
-	//log.Printf("In %s %s", key, load)
+func (self *MongoGraph) GetInList(ctx context.Context, key string, load bool, edgeLabels []string) chan aql.Vertex {
 	o := make(chan aql.Vertex, 100)
 	go func() {
 		defer close(o)
 		selection := map[string]interface{}{
 			FIELD_DST: key,
+		}
+		if len(edgeLabels) > 0 {
+			selection[FIELD_LABEL] = bson.M{"$in": edgeLabels}
 		}
 		iter := self.edges.Find(selection).Iter()
 		defer iter.Close()
@@ -313,121 +301,84 @@ func (self *MongoGraph) GetInList(ctx context.Context, key string, load bool, fi
 				return
 			default:
 			}
-			send := false
-			if filter != nil {
-				e := UnpackEdge(result)
-				if filter(e) {
-					send = true
-				}
-			} else {
-				send = true
+			q := self.vertices.FindId(result[FIELD_SRC])
+			if !load {
+				q = q.Select(map[string]interface{}{"_id": 1, "label": 1})
 			}
-			if send {
-				q := self.vertices.FindId(result[FIELD_SRC])
-				if !load {
-					q = q.Select(map[string]interface{}{"_id": 1, "label": 1})
-				}
-				d := map[string]interface{}{}
-				q.One(d)
-				v := UnpackVertex(d)
-				o <- v
-			}
+			d := map[string]interface{}{}
+			q.One(d)
+			v := UnpackVertex(d)
+			o <- v
 		}
 	}()
 	return o
 }
 
-func (self *MongoGraph) GetOutEdgeList(ctx context.Context, key string, load bool, filter gdbi.EdgeFilter) chan aql.Edge {
+func (self *MongoGraph) GetOutEdgeList(ctx context.Context, key string, load bool, edgeLabels []string) chan aql.Edge {
 	o := make(chan aql.Edge, 1000)
 	go func() {
 		defer close(o)
 		selection := map[string]interface{}{
 			FIELD_SRC: key,
 		}
+		if len(edgeLabels) > 0 {
+			selection[FIELD_LABEL] = bson.M{"$in": edgeLabels}
+		}
 		iter := self.edges.Find(selection).Iter()
 		result := map[string]interface{}{}
 		for iter.Next(&result) {
 			if _, ok := result[FIELD_DST]; ok {
 				e := UnpackEdge(result)
-				if filter != nil {
-					if filter(e) {
-						o <- e
-					}
-				} else {
-					o <- e
-				}
+				o <- e
 			} else if _, ok := result[FIELD_BUNDLE]; ok {
-				//timer := timing.NewTimer()
 				bundle := UnpackBundle(result)
 				for k, v := range bundle.Bundle {
-					//timer.Start()
 					e := aql.Edge{Gid: bundle.Gid, Label: bundle.Label, From: bundle.From, To: k, Properties: v}
-					//timer.End("Allocate")
-					if filter != nil {
-						if filter(e) {
-							//timer.Start()
-							o <- e
-							//timer.End("Channel")
-						}
-					} else {
-						o <- e
-					}
+					o <- e
 				}
-				//log.Printf("OutE %s:%s", filter, timer.String())
 			}
 		}
 	}()
 	return o
 }
 
-func (self *MongoGraph) GetOutBundleList(ctx context.Context, key string, load bool, filter gdbi.BundleFilter) chan aql.Bundle {
+func (self *MongoGraph) GetOutBundleList(ctx context.Context, key string, load bool, edgeLabels []string) chan aql.Bundle {
 	o := make(chan aql.Bundle, 1000)
 	go func() {
 		defer close(o)
 		selection := map[string]interface{}{
 			FIELD_SRC: key,
 		}
+		if len(edgeLabels) > 0 {
+			selection[FIELD_LABEL] = bson.M{"$in": edgeLabels}
+		}
 		iter := self.edges.Find(selection).Iter()
 		result := map[string]interface{}{}
 		for iter.Next(&result) {
 			if _, ok := result[FIELD_BUNDLE]; ok {
-				//timer := timing.NewTimer()
 				bundle := UnpackBundle(result)
-				if filter != nil {
-					if filter(bundle) {
-						o <- bundle
-					}
-				} else {
-					o <- bundle
-				}
+				o <- bundle
 			}
 		}
 	}()
 	return o
 }
 
-func (self *MongoGraph) GetInEdgeList(ctx context.Context, key string, load bool, filter gdbi.EdgeFilter) chan aql.Edge {
+func (self *MongoGraph) GetInEdgeList(ctx context.Context, key string, load bool, edgeLabels []string) chan aql.Edge {
 	o := make(chan aql.Edge, 100)
 	go func() {
 		defer close(o)
 		selection := map[string]interface{}{
 			FIELD_DST: key,
 		}
+		if len(edgeLabels) > 0 {
+			selection[FIELD_LABEL] = bson.M{"$in": edgeLabels}
+		}
 		iter := self.edges.Find(selection).Iter()
 		result := map[string]interface{}{}
 		for iter.Next(&result) {
-			send := false
 			e := UnpackEdge(result)
-			if filter != nil {
-				if filter(e) {
-					send = true
-				}
-			} else {
-				send = true
-			}
-			if send {
-				o <- e
-			}
+			o <- e
 		}
 	}()
 	return o

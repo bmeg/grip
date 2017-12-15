@@ -341,19 +341,10 @@ func (self *PipeEngine) Out(key ...string) QueryInterface {
 			go func() {
 				t.start_timer("all")
 				defer close(o)
-				var filt EdgeFilter = nil
-				if len(key) > 0 && len(key[0]) > 0 {
-					filt = func(e aql.Edge) bool {
-						if key[0] == e.Label {
-							return true
-						}
-						return false
-					}
-				}
 				if pipe.State == STATE_VERTEX_LIST || pipe.State == STATE_RAW_VERTEX_LIST {
 					for i := range pipe.Travelers {
 						if v := i.GetCurrent().GetVertex(); v != nil {
-							for ov := range self.db.GetOutList(ctx, v.Gid, ctx.Value(PROP_LOAD).(bool), filt) {
+							for ov := range self.db.GetOutList(ctx, v.Gid, ctx.Value(PROP_LOAD).(bool), key) {
 								lv := ov
 								o <- i.AddCurrent(aql.QueryResult{&aql.QueryResult_Vertex{&lv}})
 							}
@@ -394,23 +385,14 @@ func (self *PipeEngine) Both(key ...string) QueryInterface {
 			go func() {
 				t.start_timer("all")
 				defer close(o)
-				var filt EdgeFilter = nil
-				if len(key) > 0 && len(key[0]) > 0 {
-					filt = func(e aql.Edge) bool {
-						if key[0] == e.Label {
-							return true
-						}
-						return false
-					}
-				}
 				if pipe.State == STATE_VERTEX_LIST || pipe.State == STATE_RAW_VERTEX_LIST {
 					for i := range pipe.Travelers {
 						if v := i.GetCurrent().GetVertex(); v != nil {
-							for ov := range self.db.GetOutList(ctx, v.Gid, ctx.Value(PROP_LOAD).(bool), filt) {
+							for ov := range self.db.GetOutList(ctx, v.Gid, ctx.Value(PROP_LOAD).(bool), key) {
 								lv := ov
 								o <- i.AddCurrent(aql.QueryResult{&aql.QueryResult_Vertex{&lv}})
 							}
-							for ov := range self.db.GetInList(ctx, v.Gid, ctx.Value(PROP_LOAD).(bool), filt) {
+							for ov := range self.db.GetInList(ctx, v.Gid, ctx.Value(PROP_LOAD).(bool), key) {
 								lv := ov
 								o <- i.AddCurrent(aql.QueryResult{&aql.QueryResult_Vertex{&lv}})
 							}
@@ -453,19 +435,10 @@ func (self *PipeEngine) In(key ...string) QueryInterface {
 			go func() {
 				t.start_timer("all")
 				defer close(o)
-				var filt EdgeFilter = nil
-				if len(key) > 0 && len(key[0]) > 0 {
-					filt = func(e aql.Edge) bool {
-						if key[0] == e.Label {
-							return true
-						}
-						return false
-					}
-				}
 				if pipe.State == STATE_VERTEX_LIST || pipe.State == STATE_RAW_VERTEX_LIST {
 					for i := range pipe.Travelers {
 						if v := i.GetCurrent().GetVertex(); v != nil {
-							for e := range self.db.GetInList(ctx, v.Gid, ctx.Value(PROP_LOAD).(bool), filt) {
+							for e := range self.db.GetInList(ctx, v.Gid, ctx.Value(PROP_LOAD).(bool), key) {
 								el := e
 								o <- i.AddCurrent(aql.QueryResult{&aql.QueryResult_Vertex{&el}})
 							}
@@ -493,18 +466,9 @@ func (self *PipeEngine) OutE(key ...string) QueryInterface {
 			go func() {
 				t.start_timer("all")
 				defer close(o)
-				var filt EdgeFilter = nil
-				if len(key) > 0 && len(key[0]) > 0 {
-					filt = func(e aql.Edge) bool {
-						if key[0] == e.Label {
-							return true
-						}
-						return false
-					}
-				}
 				for i := range pipe.Travelers {
 					if v := i.GetCurrent().GetVertex(); v != nil {
-						for oe := range self.db.GetOutEdgeList(ctx, v.Gid, ctx.Value(PROP_LOAD).(bool), filt) {
+						for oe := range self.db.GetOutEdgeList(ctx, v.Gid, ctx.Value(PROP_LOAD).(bool), key) {
 							le := oe
 							o <- i.AddCurrent(aql.QueryResult{&aql.QueryResult_Edge{&le}})
 						}
@@ -524,22 +488,13 @@ func (self *PipeEngine) BothE(key ...string) QueryInterface {
 			go func() {
 				t.start_timer("all")
 				defer close(o)
-				var filt EdgeFilter = nil
-				if len(key) > 0 && len(key[0]) > 0 {
-					filt = func(e aql.Edge) bool {
-						if key[0] == e.Label {
-							return true
-						}
-						return false
-					}
-				}
 				for i := range pipe.Travelers {
 					if v := i.GetCurrent().GetVertex(); v != nil {
-						for oe := range self.db.GetOutEdgeList(ctx, v.Gid, ctx.Value(PROP_LOAD).(bool), filt) {
+						for oe := range self.db.GetOutEdgeList(ctx, v.Gid, ctx.Value(PROP_LOAD).(bool), key) {
 							le := oe
 							o <- i.AddCurrent(aql.QueryResult{&aql.QueryResult_Edge{&le}})
 						}
-						for oe := range self.db.GetInEdgeList(ctx, v.Gid, ctx.Value(PROP_LOAD).(bool), filt) {
+						for oe := range self.db.GetInEdgeList(ctx, v.Gid, ctx.Value(PROP_LOAD).(bool), key) {
 							le := oe
 							o <- i.AddCurrent(aql.QueryResult{&aql.QueryResult_Edge{&le}})
 						}
@@ -559,19 +514,10 @@ func (self *PipeEngine) OutBundle(key ...string) QueryInterface {
 			go func() {
 				t.start_timer("all")
 				defer close(o)
-				var filt BundleFilter = nil
-				if len(key) > 0 && len(key[0]) > 0 {
-					filt = func(e aql.Bundle) bool {
-						if key[0] == e.Label {
-							return true
-						}
-						return false
-					}
-				}
 				for i := range pipe.Travelers {
 					if v := i.GetCurrent().GetVertex(); v != nil {
 						//log.Printf("GetEdgeList: %s", v.Gid)
-						for oe := range self.db.GetOutBundleList(ctx, v.Gid, ctx.Value(PROP_LOAD).(bool), filt) {
+						for oe := range self.db.GetOutBundleList(ctx, v.Gid, ctx.Value(PROP_LOAD).(bool), key) {
 							le := oe
 							o <- i.AddCurrent(aql.QueryResult{&aql.QueryResult_Bundle{&le}})
 						}
@@ -592,18 +538,9 @@ func (self *PipeEngine) InE(key ...string) QueryInterface {
 			go func() {
 				t.start_timer("all")
 				defer close(o)
-				var filt EdgeFilter = nil
-				if len(key) > 0 && len(key[0]) > 0 {
-					filt = func(e aql.Edge) bool {
-						if key[0] == e.Label {
-							return true
-						}
-						return false
-					}
-				}
 				for i := range pipe.Travelers {
 					if v := i.GetCurrent().GetVertex(); v != nil {
-						for e := range self.db.GetInEdgeList(ctx, v.Gid, ctx.Value(PROP_LOAD).(bool), filt) {
+						for e := range self.db.GetInEdgeList(ctx, v.Gid, ctx.Value(PROP_LOAD).(bool), key) {
 							el := e
 							o <- i.AddCurrent(aql.QueryResult{&aql.QueryResult_Edge{&el}})
 						}
@@ -945,7 +882,7 @@ func (self *PipeEngine) Execute(ctx context.Context) chan aql.ResultRow {
 			count++
 		}
 		//self.end_timer("all")
-		if client > 1 * time.Second { //only report timing if query takes longer then a second
+		if client > 1*time.Second { //only report timing if query takes longer then a second
 			log.Printf("---StartTiming---")
 			for p := self; p != nil; p = p.parent {
 				log.Printf("%s %s", p.name, p.get_time())

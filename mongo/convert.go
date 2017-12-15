@@ -8,6 +8,7 @@ import (
 	"gopkg.in/mgo.v2/bson"
 )
 
+var FIELD_LABEL string = "label"
 var FIELD_SRC string = "from"
 var FIELD_DST string = "to"
 var FIELD_BUNDLE string = "bundle"
