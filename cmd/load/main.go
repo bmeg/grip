@@ -68,10 +68,11 @@ var Cmd = &cobra.Command{
 				}
 				wait <- false
 			}()
+			umarsh := jsonpb.Unmarshaler{AllowUnknownFields:true}
 			for line := range reader {
 				if len(line) > 0 {
 					e := aql.Edge{}
-					err := jsonpb.Unmarshal(strings.NewReader(string(line)), &e)
+					err := umarsh.Unmarshal(strings.NewReader(string(line)), &e)
 					if err != nil {
 						log.Printf("Error: %s : '%s'", err, line)
 					} else {
