@@ -464,7 +464,7 @@ func (self *BadgerGDB) GetEdgeList(ctx context.Context, loadProp bool) chan aql.
 					edge_data, _ := it.Item().Value()
 					proto.Unmarshal(edge_data, &bundle)
 					for k, v := range bundle.Bundle {
-						e := aql.Edge{Gid: bundle.Gid, Label: bundle.Label, From: bundle.From, To: k, Properties: v}
+						e := aql.Edge{Gid: bundle.Gid, Label: bundle.Label, From: bundle.From, To: k, Data: v}
 						o <- e
 					}
 				}
@@ -561,7 +561,7 @@ func (self *BadgerGDB) GetOutEdgeList(ctx context.Context, id string, loadProp b
 							d, _ := data_value.Value()
 							proto.Unmarshal(d, &bundle)
 							for k, v := range bundle.Bundle {
-								e := aql.Edge{Gid: bundle.Gid, Label: bundle.Label, From: bundle.From, To: k, Properties: v}
+								e := aql.Edge{Gid: bundle.Gid, Label: bundle.Label, From: bundle.From, To: k, Data: v}
 								o <- e
 							}
 						}

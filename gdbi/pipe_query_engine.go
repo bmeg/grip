@@ -299,8 +299,8 @@ func (self *PipeEngine) Has(prop string, value ...string) QueryInterface {
 				t.start_timer("all")
 				for i := range pipe.Travelers {
 					//Process Vertex Elements
-					if v := i.GetCurrent().GetVertex(); v != nil && v.Properties != nil {
-						if p, ok := v.Properties.Fields[prop]; ok {
+					if v := i.GetCurrent().GetVertex(); v != nil && v.Data != nil {
+						if p, ok := v.Data.Fields[prop]; ok {
 							found := false
 							for _, s := range value {
 								if p.GetStringValue() == s {
@@ -313,8 +313,8 @@ func (self *PipeEngine) Has(prop string, value ...string) QueryInterface {
 						}
 					}
 					//Process Edge Elements
-					if e := i.GetCurrent().GetEdge(); e != nil && e.Properties != nil {
-						if p, ok := e.Properties.Fields[prop]; ok {
+					if e := i.GetCurrent().GetEdge(); e != nil && e.Data != nil {
+						if p, ok := e.Data.Fields[prop]; ok {
 							found := false
 							for _, s := range value {
 								if p.GetStringValue() == s {
@@ -594,10 +594,10 @@ func (self *PipeEngine) GroupCount(label string) QueryInterface {
 				groupCount := map[string]int{}
 				for i := range pipe.Travelers {
 					var props *structpb.Struct = nil
-					if v := i.GetCurrent().GetVertex(); v != nil && v.Properties != nil {
-						props = v.GetProperties()
-					} else if v := i.GetCurrent().GetEdge(); v != nil && v.Properties != nil {
-						props = v.GetProperties()
+					if v := i.GetCurrent().GetVertex(); v != nil && v.Data != nil {
+						props = v.GetData()
+					} else if v := i.GetCurrent().GetEdge(); v != nil && v.Data != nil {
+						props = v.GetData()
 					}
 					if props != nil {
 						if x, ok := props.Fields[label]; ok {
@@ -633,10 +633,10 @@ func (self *PipeEngine) Values(labels []string) QueryInterface {
 				t.start_timer("all")
 				for i := range pipe.Travelers {
 					var props *structpb.Struct = nil
-					if v := i.GetCurrent().GetVertex(); v != nil && v.Properties != nil {
-						props = v.GetProperties()
-					} else if v := i.GetCurrent().GetEdge(); v != nil && v.Properties != nil {
-						props = v.GetProperties()
+					if v := i.GetCurrent().GetVertex(); v != nil && v.Data != nil {
+						props = v.GetData()
+					} else if v := i.GetCurrent().GetEdge(); v != nil && v.Data != nil {
+						props = v.GetData()
 					}
 					if props != nil {
 						out := structpb.Struct{Fields: map[string]*structpb.Value{}}

@@ -169,7 +169,7 @@ func (self *MongoGraph) GetEdgeList(ctx context.Context, loadProp bool) chan aql
 			} else if _, ok := result[FIELD_BUNDLE]; ok {
 				bundle := UnpackBundle(result)
 				for k, v := range bundle.Bundle {
-					e := aql.Edge{Gid: bundle.Gid, Label: bundle.Label, From: bundle.From, To: k, Properties: v}
+					e := aql.Edge{Gid: bundle.Gid, Label: bundle.Label, From: bundle.From, To: k, Data: v}
 					o <- e
 				}
 			}
@@ -333,7 +333,7 @@ func (self *MongoGraph) GetOutEdgeList(ctx context.Context, key string, load boo
 			} else if _, ok := result[FIELD_BUNDLE]; ok {
 				bundle := UnpackBundle(result)
 				for k, v := range bundle.Bundle {
-					e := aql.Edge{Gid: bundle.Gid, Label: bundle.Label, From: bundle.From, To: k, Properties: v}
+					e := aql.Edge{Gid: bundle.Gid, Label: bundle.Label, From: bundle.From, To: k, Data: v}
 					o <- e
 				}
 			}
