@@ -13,6 +13,10 @@ var Cmd = &cobra.Command{
 	Short: "Info on Arachne Graph",
 	Long:  ``,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if len(args) != 1 {
+			return cmd.Usage()
+		}
+
 		conn, err := aql.Connect(host, true)
 		if err != nil {
 			return err
