@@ -3,7 +3,6 @@ package jsengine
 import (
 	"fmt"
 	"github.com/bmeg/arachne/aql"
-	"log"
 )
 
 type JSEngine interface {
