@@ -152,16 +152,16 @@ func (q QueryBuilder) Render() map[string]interface{} {
 }
 
 func (vertex *Vertex) SetProperty(key string, value interface{}) {
-	if vertex.Properties == nil {
-		vertex.Properties = &structpb.Struct{Fields: map[string]*structpb.Value{}}
+	if vertex.Data == nil {
+		vertex.Data = &structpb.Struct{Fields: map[string]*structpb.Value{}}
 	}
-	protoutil.StructSet(vertex.Properties, key, value)
+	protoutil.StructSet(vertex.Data, key, value)
 }
 
 func (vertex *Vertex) GetProperty(key string) interface{} {
-	if vertex.Properties == nil {
+	if vertex.Data == nil {
 		return nil
 	}
-	m := protoutil.AsMap(vertex.Properties)
+	m := protoutil.AsMap(vertex.Data)
 	return m[key]
 }

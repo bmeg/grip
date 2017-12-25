@@ -66,7 +66,7 @@ message SelectStatement {
 message Vertex {
   string gid = 1;
   string label = 2;
-  google.protobuf.Struct properties = 3;
+  google.protobuf.Struct data = 3;
 }
 
 message Edge {
@@ -74,7 +74,7 @@ message Edge {
   string label = 2;
   string from = 3;
   string to = 4;
-  google.protobuf.Struct properties = 5;
+  google.protobuf.Struct data = 5;
 }
 
 message Bundle {
