@@ -1,12 +1,13 @@
 package graphserver
 
 import (
-	//"github.com/bmeg/arachne/boltdb"
-	//"github.com/bmeg/arachne/rocksdb"
 	"fmt"
 	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/badgerdb"
+	_ "github.com/bmeg/arachne/boltdb"
+	"github.com/bmeg/arachne/kvgraph"
 	"github.com/bmeg/arachne/mongo"
+	_ "github.com/bmeg/arachne/rocksdb"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"io"
@@ -27,6 +28,26 @@ func NewArachneMongoServer(url string, database string) *ArachneServer {
 func NewArachneBadgerServer(baseDir string) *ArachneServer {
 	return &ArachneServer{
 		engine: NewGraphEngine(badgerdb.NewBadgerArachne(baseDir)),
+	}
+}
+
+func NewArachneBoltServer(baseDir string) *ArachneServer {
+	a, err := kvgraph.NewKVArachne("bolt", baseDir)
+	if err != nil {
+		return nil
+	}
+	return &ArachneServer{
+		engine: NewGraphEngine(a),
+	}
+}
+
+func NewArachneRocksServer(baseDir string) *ArachneServer {
+	a, err := kvgraph.NewKVArachne("rocks", baseDir)
+	if err != nil {
+		return nil
+	}
+	return &ArachneServer{
+		engine: NewGraphEngine(a),
 	}
 }
 

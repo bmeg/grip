@@ -1,22 +1,42 @@
 package rocksdb
 
 import (
-	"bytes"
-	"context"
 	"fmt"
-	"github.com/bmeg/arachne/aql"
-	"github.com/bmeg/arachne/gdbi"
-	proto "github.com/golang/protobuf/proto"
-	"github.com/tecbot/gorocksdb"
 	"log"
+	"github.com/tecbot/gorocksdb"
+	"github.com/bmeg/arachne/kvgraph"
 )
 
-type RocksArachne struct {
+type RocksKV struct {
 	db       *gorocksdb.DB
 	ro       *gorocksdb.ReadOptions
 	wo       *gorocksdb.WriteOptions
-	sequence int64
 }
+
+
+func RocksBuilder(path string) (kvgraph.KVInterface, error) {
+	bbto := gorocksdb.NewDefaultBlockBasedTableOptions()
+	filter := gorocksdb.NewBloomFilter(10)
+	bbto.SetFilterPolicy(filter)
+	bbto.SetBlockCache(gorocksdb.NewLRUCache(512 * 1024 * 1024))
+	opts := gorocksdb.NewDefaultOptions()
+	opts.SetBlockBasedTableFactory(bbto)
+	opts.SetCreateIfMissing(true)
+	log.Printf("Starting RocksDB")
+	db, _ := gorocksdb.OpenDb(opts, path)
+
+	ro := gorocksdb.NewDefaultReadOptions()
+	wo := gorocksdb.NewDefaultWriteOptions()
+	//wo.SetSync(true)
+
+	return &RocksKV{
+		db: db,
+		ro: ro,
+		wo: wo,
+	}, nil
+}
+
+var Loaded error = kvgraph.AddKVDriver("rocks", RocksBuilder)
 
 //helper function to replicate bytes held in arrays created
 //from C pointers in rocks
@@ -26,141 +46,34 @@ func bytes_copy(in []byte) []byte {
 	return out
 }
 
-func NewRocksArachne(path string) gdbi.DBI {
-	bbto := gorocksdb.NewDefaultBlockBasedTableOptions()
-	filter := gorocksdb.NewBloomFilter(10)
-	bbto.SetFilterPolicy(filter)
-	bbto.SetBlockCache(gorocksdb.NewLRUCache(512 * 1024 * 1024))
-	opts := gorocksdb.NewDefaultOptions()
-	opts.SetBlockBasedTableFactory(bbto)
-	opts.SetCreateIfMissing(true)
-	db, _ := gorocksdb.OpenDb(opts, path)
 
-	ro := gorocksdb.NewDefaultReadOptions()
-	wo := gorocksdb.NewDefaultWriteOptions()
-	//wo.SetSync(true)
-
-	return &RocksArachne{db: db, ro: ro, wo: wo, sequence: 0}
-}
-
-func (self *RocksArachne) Close() {
+func (self *RocksKV) Close() error {
 	self.db.Close()
-}
-
-func (self *RocksArachne) Query() gdbi.QueryInterface {
-	return gdbi.NewPipeEngine(self, false)
 	return nil
 }
 
-func (self *RocksArachne) SetVertex(vertex aql.Vertex) error {
-	d, _ := proto.Marshal(&vertex)
-	k := bytes.Join([][]byte{[]byte("v"), []byte(vertex.Gid)}, []byte{0})
-	err := self.db.Put(self.wo, k, d)
-	return err
-}
-
-func (self *RocksArachne) SetEdge(edge aql.Edge) error {
-	eid := fmt.Sprintf("%d", self.sequence)
-	self.sequence += 1
-	edge.Gid = eid
-	data, _ := proto.Marshal(&edge)
-	//log.Printf("SetEdge: %s %d", edge, len(data))
-
-	src := edge.Src
-	dst := edge.Dst
-	ekey := bytes.Join([][]byte{[]byte("e"), []byte(eid)}, []byte{0})
-	okey := bytes.Join([][]byte{[]byte("o"), []byte(src), []byte(dst), []byte(eid)}, []byte{0})
-	ikey := bytes.Join([][]byte{[]byte("i"), []byte(dst), []byte(src), []byte(eid)}, []byte{0})
-
-	wb := gorocksdb.NewWriteBatch()
-	wb.Put(ekey, okey)
-	wb.Put(okey, data)
-	wb.Put(ikey, []byte{})
-	err := self.db.Write(self.wo, wb)
-	wb.Destroy()
-	return err
-}
-
-func (self *RocksArachne) DelEdge(eid string) error {
-	ekey := bytes.Join([][]byte{[]byte("e"), []byte(eid)}, []byte{0})
-
-	pair_value, err := self.db.Get(self.ro, ekey)
-	if err != nil {
+func (self *RocksKV) Delete(key []byte) error {
+	if err := self.db.Delete(self.wo, key); err != nil {
 		return err
 	}
-	defer pair_value.Free()
-	pair := bytes.Split(pair_value.Data(), []byte{0})
-	src := pair[1]
-	dst := pair[2]
-
-	okey := bytes.Join([][]byte{[]byte("o"), []byte(src), []byte(dst), []byte(eid)}, []byte{0})
-	ikey := bytes.Join([][]byte{[]byte("i"), []byte(dst), []byte(src), []byte(eid)}, []byte{0})
-
-	fin := make(chan error)
-	go func() {
-		if err := self.db.Delete(self.wo, ekey); err != nil {
-			fin <- err
-			return
-		}
-		fin <- nil
-	}()
-	go func() {
-		if err := self.db.Delete(self.wo, okey); err != nil {
-			fin <- err
-			return
-		}
-		fin <- nil
-	}()
-	go func() {
-		if err := self.db.Delete(self.wo, ikey); err != nil {
-			fin <- err
-			return
-		}
-		fin <- nil
-	}()
-	<-fin
-	<-fin
-	<-fin
 	return nil
 }
 
-func (self *RocksArachne) DelVertex(id string) error {
-	vid := bytes.Join([][]byte{[]byte("v"), []byte(id)}, []byte{0})
-	self.db.Delete(self.wo, vid)
 
-	okey_prefix := bytes.Join([][]byte{[]byte("o"), []byte(id)}, []byte{0})
-	ikey_prefix := bytes.Join([][]byte{[]byte("i"), []byte(id)}, []byte{0})
-
+func (self *RocksKV) DeletePrefix(prefix []byte) error {
 	del_keys := make([][]byte, 0, 1000)
 
 	it := self.db.NewIterator(self.ro)
 	defer it.Close()
-	it.Seek(okey_prefix)
-	for it = it; it.ValidForPrefix(okey_prefix); it.Next() {
+	it.Seek(prefix)
+	for it = it; it.ValidForPrefix(prefix); it.Next() {
 		key := it.Key()
 		okey := bytes_copy(key.Data())
 		key.Free()
-		// get edge ID from key
-		tmp := bytes.Split(okey, []byte{0})
-		eid := bytes.Join([][]byte{[]byte("e"), tmp[3]}, []byte{0})
-		//log.Printf("Adding %s", string(bytes.Replace(okey, []byte{0}, []byte{' '}, -1) ) )
-		del_keys = append(del_keys, okey, eid)
+		del_keys = append(del_keys, okey)
 	}
-
-	it.Seek(ikey_prefix)
-	for it = it; it.ValidForPrefix(ikey_prefix); it.Next() {
-		key := it.Key()
-		ikey := bytes_copy(key.Data())
-		key.Free()
-		// get edge ID from key
-		//tmp := bytes.Split(ikey, []byte{0})
-		//eid := bytes.Join( [][]byte{ []byte("e"), tmp[3] }, []byte{0} )
-		del_keys = append(del_keys, ikey)
-	}
-
 	wb := gorocksdb.NewWriteBatch()
 	for _, k := range del_keys {
-		//log.Printf("Delete %s", string(bytes.Replace(k, []byte{0}, []byte{' '}, -1) ) )
 		wb.Delete(k)
 	}
 	err := self.db.Write(self.wo, wb)
@@ -168,303 +81,117 @@ func (self *RocksArachne) DelVertex(id string) error {
 		log.Printf("Del Error: %s", err)
 	}
 	wb.Destroy()
+	return nil
+}
+
+
+func (self *RocksKV) HasKey(key []byte) bool {
+	data_value, err := self.db.Get(self.ro, key)
+	if err != nil {
+		return false
+	}
+	if data_value.Data() == nil {
+		return false
+	}
+	data_value.Free()
+	return true
+}
+
+func (self *RocksKV) Set(key []byte, value []byte) error {
+	err := self.db.Put(self.wo, key, value)
 	return err
 }
 
-func (self *RocksArachne) GetEdgeList(ctx context.Context, loadProp bool) chan aql.Edge {
-	o := make(chan aql.Edge, 100)
-	go func() {
-		defer close(o)
-		it := self.db.NewIterator(self.ro)
-		defer it.Close()
-		e_prefix := []byte("e")
-		it.Seek(e_prefix)
-		for it = it; it.ValidForPrefix(e_prefix); it.Next() {
-			select {
-			case <-ctx.Done():
-				return
-			default:
-			}
-			key_value := it.Key()
-			eid_tmp := bytes.Split(bytes_copy(key_value.Data()), []byte{0})
-			eid := eid_tmp[1]
-			//log.Printf("EK:%#v", eid)
-			key_value.Free()
-			pair_value := it.Value()
-			pair := bytes.Split(bytes_copy(pair_value.Data()), []byte{0})
-			//log.Printf("EV:%#v", pair)
-			pair_value.Free()
-			src := pair[1]
-			dst := pair[2]
-			if loadProp {
-				okey := bytes.Join([][]byte{[]byte("o"), []byte(src), []byte(dst), []byte(eid)}, []byte{0})
-				data_value, err := self.db.Get(self.ro, okey)
-				if err == nil {
-					e := aql.Edge{}
-					data := data_value.Data()
-					proto.Unmarshal(data, &e)
-					data_value.Free()
-					o <- e
-				}
-			} else {
-				e := aql.Edge{Gid: string(eid), Src: string(src), Dst: string(dst)}
-				o <- e
-			}
-		}
-	}()
-	return o
+
+type RocksTransaction struct {
+	db       *gorocksdb.DB
+	ro       *gorocksdb.ReadOptions
+	wo       *gorocksdb.WriteOptions
 }
 
-func (self *RocksArachne) GetInEdgeList(ctx context.Context, id string, loadProp bool, filter gdbi.EdgeFilter) chan aql.Edge {
-	o := make(chan aql.Edge, 100)
-	go func() {
-		defer close(o)
-
-		ikey_prefix := bytes.Join([][]byte{[]byte("i"), []byte(id)}, []byte{0})
-		it := self.db.NewIterator(self.ro)
-		defer it.Close()
-
-		it.Seek(ikey_prefix)
-		for it = it; it.ValidForPrefix(ikey_prefix); it.Next() {
-			select {
-			case <-ctx.Done():
-				return
-			default:
-			}
-			key_value := it.Key()
-			tmp := bytes.Split(bytes_copy(key_value.Data()), []byte{0})
-			key_value.Free()
-			oid := tmp[2]
-			eid := tmp[3]
-			okey := bytes.Join([][]byte{[]byte("o"), oid, []byte(id), eid}, []byte{0})
-
-			data_value, err := self.db.Get(self.ro, okey)
-			if err == nil {
-				e := aql.Edge{}
-				if loadProp {
-					d := data_value.Data()
-					proto.Unmarshal(d, &e)
-					data_value.Free()
-				} else {
-					e.Gid = string(eid)
-					e.Src = string(oid)
-					e.Dst = id
-				}
-
-				send := false
-				if filter != nil {
-					if filter(e) {
-						send = true
-					}
-				} else {
-					send = true
-				}
-				if send {
-					o <- e
-				}
-			}
-		}
-	}()
-	return o
+func (self RocksTransaction) Delete(key []byte) error {
+	if err := self.db.Delete(self.wo, key); err != nil {
+		return err
+	}
+	return nil
 }
 
-func (self *RocksArachne) GetOutEdgeList(ctx context.Context, id string, loadProp bool, filter gdbi.EdgeFilter) chan aql.Edge {
-	o := make(chan aql.Edge, 100)
-	go func() {
-		defer close(o)
-
-		okey_prefix := bytes.Join([][]byte{[]byte("o"), []byte(id)}, []byte{0})
-		it := self.db.NewIterator(self.ro)
-		defer it.Close()
-
-		it.Seek(okey_prefix)
-		for it = it; it.ValidForPrefix(okey_prefix); it.Next() {
-			select {
-			case <-ctx.Done():
-				return
-			default:
-			}
-			key_value := it.Key()
-			key_value.Free()
-			data_value := it.Value()
-			d := data_value.Data()
-			e := aql.Edge{}
-			proto.Unmarshal(d, &e)
-			data_value.Free()
-
-			send := false
-			if filter != nil {
-				if filter(e) {
-					send = true
-				}
-			} else {
-				send = true
-			}
-			if send {
-				o <- e
-			}
-		}
-	}()
-	return o
+func (self *RocksKV) Update(u func(tx kvgraph.KVTransaction) error) error {
+	ktx := RocksTransaction{db:self.db, ro:self.ro, wo:self.wo}
+	err := u(ktx)
+	return err
 }
 
-func (self *RocksArachne) GetInList(ctx context.Context, id string, loadProp bool, filter gdbi.EdgeFilter) chan aql.Vertex {
-	o := make(chan aql.Vertex, 100)
-	go func() {
-		defer close(o)
 
-		ikey_prefix := bytes.Join([][]byte{[]byte("i"), []byte(id)}, []byte{0})
-		it := self.db.NewIterator(self.ro)
-		defer it.Close()
-
-		it.Seek(ikey_prefix)
-		for it = it; it.ValidForPrefix(ikey_prefix); it.Next() {
-			select {
-			case <-ctx.Done():
-				return
-			default:
-			}
-			key_value := it.Key()
-			tmp := bytes.Split(bytes_copy(key_value.Data()), []byte{0})
-			key_value.Free()
-			iid := tmp[1]
-			oid := tmp[2]
-			eid := tmp[3]
-
-			okey := bytes.Join([][]byte{[]byte("o"), oid, iid, eid}, []byte{0})
-			vkey := bytes.Join([][]byte{[]byte("v"), oid}, []byte{0})
-
-			send := false
-			if filter != nil {
-				data_value, err := self.db.Get(self.ro, okey)
-				if err == nil {
-					d := data_value.Data()
-					e := aql.Edge{}
-					proto.Unmarshal(d, &e)
-					data_value.Free()
-					if filter(e) {
-						send = true
-					}
-				}
-			} else {
-				send = true
-			}
-			if send {
-				data_value, err := self.db.Get(self.ro, vkey)
-				if err == nil {
-					d := data_value.Data()
-					v := aql.Vertex{}
-					proto.Unmarshal(d, &v)
-					data_value.Free()
-					o <- v
-				}
-			}
-		}
-	}()
-	return o
+type RocksCursor struct {
+	db       *gorocksdb.DB
+	ro       *gorocksdb.ReadOptions
+	wo       *gorocksdb.WriteOptions
+	it       *gorocksdb.Iterator
+	key      []byte
+	value    []byte
 }
 
-func (self *RocksArachne) GetOutList(ctx context.Context, id string, loadProp bool, filter gdbi.EdgeFilter) chan aql.Vertex {
-	o := make(chan aql.Vertex, 100)
-	go func() {
-		defer close(o)
-
-		okey_prefix := bytes.Join([][]byte{[]byte("o"), []byte(id)}, []byte{0})
-		it := self.db.NewIterator(self.ro)
-		defer it.Close()
-
-		it.Seek(okey_prefix)
-		for it = it; it.ValidForPrefix(okey_prefix); it.Next() {
-			select {
-			case <-ctx.Done():
-				return
-			default:
-			}
-			key_value := it.Key()
-			tmp := bytes.Split(bytes_copy(key_value.Data()), []byte{0})
-			key_value.Free()
-			//oid := tmp[1]
-			iid := tmp[2]
-			//log.Printf("Vertex: %s", iid)
-			//eid := tmp[3]
-
-			vkey := bytes.Join([][]byte{[]byte("v"), iid}, []byte{0})
-
-			send := false
-			if filter != nil {
-				data_value := it.Value()
-				d := data_value.Data()
-				e := aql.Edge{}
-				proto.Unmarshal(d, &e)
-				data_value.Free()
-				if filter(e) {
-					send = true
-				}
-			} else {
-				send = true
-			}
-			if send {
-				data_value, err := self.db.Get(self.ro, vkey)
-				if err == nil {
-					d := data_value.Data()
-					v := aql.Vertex{}
-					proto.Unmarshal(d, &v)
-					data_value.Free()
-					o <- v
-				}
-			}
-		}
-	}()
-	return o
-}
-
-func (self *RocksArachne) GetVertex(id string, loadProp bool) *aql.Vertex {
-	vkey := bytes.Join([][]byte{[]byte("v"), []byte(id)}, []byte{0})
-	data_value, err := self.db.Get(self.ro, vkey)
+func (self *RocksCursor) Get(key []byte) ([]byte, error) {
+	value, err := self.db.Get(self.ro, key)
 	if err != nil {
-		return nil
+		return nil, err
 	}
-	v := aql.Vertex{}
-	if loadProp {
-		d := data_value.Data()
-		proto.Unmarshal(d, &v)
-		data_value.Free()
-	} else {
-		v.Gid = id
-	}
-	return &v
+	out := bytes_copy(value.Data())
+	value.Free()
+	return out, nil
 }
 
-func (self *RocksArachne) GetVertexList(ctx context.Context, loadProp bool) chan aql.Vertex {
-	log.Printf("GetVertexList: %s", loadProp)
-	o := make(chan aql.Vertex, 100)
-	go func() {
-		defer close(o)
-		it := self.db.NewIterator(self.ro)
-		defer it.Close()
-		v_prefix := []byte("v")
-		it.Seek(v_prefix)
-		for it = it; it.ValidForPrefix(v_prefix); it.Next() {
-			select {
-			case <-ctx.Done():
-				return
-			default:
-			}
-			v := aql.Vertex{}
-			if loadProp {
-				data_value := it.Value()
-				d := data_value.Data()
-				proto.Unmarshal(d, &v)
-				data_value.Free()
-			} else {
-				key_value := it.Key()
-				tmp := bytes.Split(bytes_copy(key_value.Data()), []byte{0})
-				iid := tmp[1]
-				v.Gid = string(iid)
-				key_value.Free()
-			}
-			o <- v
-		}
-	}()
-	return o
+func (self *RocksCursor) Key() []byte {
+	return self.key
+}
+
+func (self *RocksCursor) Value() ([]byte, error) {
+	return self.value, nil
+}
+
+func (self *RocksCursor) Seek(k []byte) error {
+	self.it.Seek(k)
+	if ! self.it.Valid() {
+		self.key = nil
+		self.value = nil
+		return fmt.Errorf("Done")
+	}
+	key_value := self.it.Key()
+	data_value := self.it.Value()
+	self.key = bytes_copy(key_value.Data())
+	self.value = bytes_copy(data_value.Data())
+	key_value.Free()
+	data_value.Free()
+	return self.it.Err()
+}
+
+func (self *RocksCursor) Valid() bool {
+	if self.key == nil || self.value == nil {
+		return false
+	}
+	return true
+}
+
+func (self *RocksCursor) Next() error {
+	self.it.Next()
+	if ! self.it.Valid() {
+		self.key = nil
+		self.value = nil
+		return fmt.Errorf("Done")
+	}
+	key_value := self.it.Key()
+	data_value := self.it.Value()
+	self.key = bytes_copy(key_value.Data())
+	self.value = bytes_copy(data_value.Data())
+	key_value.Free()
+	data_value.Free()
+	return nil
+}
+
+func (self *RocksKV) View(u func(tx kvgraph.KVIterator) error) error {
+	ktx := RocksCursor{db:self.db, ro:self.ro, wo:self.wo, it:self.db.NewIterator(self.ro)}
+	err := u(&ktx)
+	ktx.it.Close()
+	return err
 }

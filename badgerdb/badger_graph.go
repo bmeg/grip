@@ -168,6 +168,7 @@ func NewBadgerArachne(path string) gdbi.ArachneInterface {
 	if err != nil {
 		log.Printf("Error: %s", err)
 	}
+	log.Printf("Starting BadgerDB")
 	return &BadgerArachne{kv: kv}
 }
 

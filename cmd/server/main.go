@@ -13,6 +13,8 @@ var httpPort string = "8000"
 var rpcPort string = "9090"
 var dbPath string = "graph.db"
 var mongoUrl string = ""
+var boltPath string = ""
+var rocksPath string = ""
 
 var Cmd = &cobra.Command{
 	Use:   "server",
@@ -27,6 +29,10 @@ var Cmd = &cobra.Command{
 		var server *graphserver.ArachneServer = nil
 		if mongoUrl != "" {
 			server = graphserver.NewArachneMongoServer(mongoUrl, dbPath)
+		} else if boltPath != "" {
+			server = graphserver.NewArachneBoltServer(boltPath)
+		} else if rocksPath != "" {
+			server = graphserver.NewArachneRocksServer(rocksPath)
 		} else {
 			server = graphserver.NewArachneBadgerServer(dbPath)
 		}
@@ -52,4 +58,6 @@ func init() {
 	flags.StringVar(&rpcPort, "rpc", "9090", "TCP+RPC Port")
 	flags.StringVar(&dbPath, "db", "graph_db", "DB Path")
 	flags.StringVar(&mongoUrl, "mongo", "", "Mongo URL")
+	flags.StringVar(&boltPath, "bolt", "", "Bolt DB Path")
+	flags.StringVar(&rocksPath, "rocks", "", "RocksDB Path")
 }

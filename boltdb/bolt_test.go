@@ -3,9 +3,17 @@ package boltdb
 import (
 	"fmt"
 	"github.com/bmeg/arachne/aql"
+	"github.com/bmeg/arachne/kvgraph"
 	"os"
 	"testing"
 )
+
+func graphEngine(path string) {
+	r, err := RocksBuilder(path)
+	return kvgraph.KVGraph{r}
+
+	graphserver.NewGraphEngine(a)
+}
 
 func BenchmarkSetVertex(b *testing.B) {
 	db := NewBoltArachne("bench_test.db")
