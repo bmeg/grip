@@ -1,3 +1,5 @@
+// +build rocks
+
 package rocksdb
 
 import (
