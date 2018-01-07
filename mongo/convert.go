@@ -15,27 +15,27 @@ var FIELD_BUNDLE string = "bundle"
 
 func PackVertex(v aql.Vertex) map[string]interface{} {
 	p := map[string]interface{}{}
-	if v.Properties != nil {
-		p = protoutil.AsMap(v.Properties)
+	if v.Data != nil {
+		p = protoutil.AsMap(v.Data)
 	}
-	//fmt.Printf("proto:%s\nmap:%s\n", v.Properties, p)
+	//fmt.Printf("proto:%s\nmap:%s\n", v.Data, p)
 	return map[string]interface{}{
 		"_id":        v.Gid,
 		"label":      v.Label,
-		"properties": p,
+		"data": p,
 	}
 }
 
 func PackEdge(e aql.Edge) map[string]interface{} {
 	p := map[string]interface{}{}
-	if e.Properties != nil {
-		p = protoutil.AsMap(e.Properties)
+	if e.Data != nil {
+		p = protoutil.AsMap(e.Data)
 	}
 	o := map[string]interface{}{
 		FIELD_SRC:    e.From,
 		FIELD_DST:    e.To,
 		"label":      e.Label,
-		"properties": p,
+		"data": p,
 	}
 	if e.Gid != "" {
 		o["_id"] = e.Gid
@@ -97,8 +97,8 @@ func UnpackVertex(i map[string]interface{}) aql.Vertex {
 	o := aql.Vertex{}
 	o.Gid = i["_id"].(string)
 	o.Label = i["label"].(string)
-	if p, ok := i["properties"]; ok {
-		o.Properties = protoutil.AsStruct(p.(map[string]interface{}))
+	if p, ok := i["data"]; ok {
+		o.Data = protoutil.AsStruct(p.(map[string]interface{}))
 	}
 	return o
 }
@@ -114,7 +114,7 @@ func UnpackEdge(i map[string]interface{}) aql.Edge {
 	o.Label = i["label"].(string)
 	o.From = i[FIELD_SRC].(string)
 	o.To = i[FIELD_DST].(string)
-	o.Properties = protoutil.AsStruct(i["properties"].(map[string]interface{}))
+	o.Data = protoutil.AsStruct(i["data"].(map[string]interface{}))
 	return o
 }
 

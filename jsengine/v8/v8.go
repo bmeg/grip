@@ -75,11 +75,11 @@ func (self *V8Runtime) CallBool(input ...*aql.QueryResult) bool {
 	m := []*v8.Value{}
 	for _, i := range input {
 		if x, ok := i.GetResult().(*aql.QueryResult_Edge); ok {
-			m_i := protoutil.AsMap(x.Edge.Properties)
+			m_i := protoutil.AsMap(x.Edge.Data)
 			v, _ := self.ctx.Create(m_i)
 			m = append(m, v)
 		} else if x, ok := i.GetResult().(*aql.QueryResult_Vertex); ok {
-			m_i := protoutil.AsMap(x.Vertex.Properties)
+			m_i := protoutil.AsMap(x.Vertex.Data)
 			v, _ := self.ctx.Create(m_i)
 			m = append(m, v)
 		} else if x, ok := i.GetResult().(*aql.QueryResult_Struct); ok {
@@ -108,11 +108,11 @@ func (self *V8Runtime) CallValueMapBool(input map[string]aql.QueryResult) bool {
 			l["from"] = x.Edge.From
 			l["to"] = x.Edge.To
 			l["label"] = x.Edge.Label
-			l["data"] = protoutil.AsMap(x.Edge.Properties)
+			l["data"] = protoutil.AsMap(x.Edge.Data)
 		} else if x, ok := v.GetResult().(*aql.QueryResult_Vertex); ok {
 			l["gid"] = x.Vertex.Gid
 			l["label"] = x.Vertex.Label
-			l["data"] = protoutil.AsMap(x.Vertex.Properties)
+			l["data"] = protoutil.AsMap(x.Vertex.Data)
 		}
 		c[k] = l
 	}
@@ -136,11 +136,11 @@ func (self *V8Runtime) CallValueToVertex(input map[string]aql.QueryResult) []str
 			l["from"] = x.Edge.From
 			l["to"] = x.Edge.To
 			l["label"] = x.Edge.Label
-			l["data"] = protoutil.AsMap(x.Edge.Properties)
+			l["data"] = protoutil.AsMap(x.Edge.Data)
 		} else if x, ok := v.GetResult().(*aql.QueryResult_Vertex); ok {
 			l["gid"] = x.Vertex.Gid
 			l["label"] = x.Vertex.Label
-			l["data"] = protoutil.AsMap(x.Vertex.Properties)
+			l["data"] = protoutil.AsMap(x.Vertex.Data)
 		} else if x, ok := v.GetResult().(*aql.QueryResult_Bundle); ok {
 			l["gid"] = x.Bundle.Gid
 			l["from"] = x.Bundle.From
