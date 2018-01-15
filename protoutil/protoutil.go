@@ -52,6 +52,8 @@ func WrapValue(value interface{}) *structpb.Value {
 			o.Fields[k] = wv
 		}
 		return &structpb.Value{Kind: &structpb.Value_StructValue{o}}
+	case nil:
+		return nil
 	default:
 		log.Printf("unknown data type: %T", value)
 	}
