@@ -141,5 +141,30 @@ var sw_edges = []aql.Edge{
   //Wilhuff Tarkin Edges
   aql.Edge{Label:"friend", From:"1004", To:"1001"},
   aql.Edge{Label:"appearsIn", From:"1003", To:"4000"},
+}
 
+var sw_gql_vertices = []aql.Vertex{
+  aql.Vertex{Gid:"HumanObject", Label:"Object", Data:protoutil.AsStruct(
+      map[string]interface{}{
+        "label" : "Human",
+        "name" : "Human",
+        "fields" : map[string]interface{}{
+          "name" : "String",
+        },
+      },
+  )},
+  aql.Vertex{Gid:"HumanQuery", Label:"Query", Data:protoutil.AsStruct(
+      map[string]interface{}{
+        "name" : "Human",
+      },
+  )},
+}
+
+var sw_gql_edges = []aql.Edge{
+  aql.Edge{Label:"field", From:"HumanQuery", To:"HumanObject", Data:protoutil.AsStruct(
+      map[string]interface{}{
+        "name" : "Human",
+      },
+    ),
+  },
 }

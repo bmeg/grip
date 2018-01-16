@@ -35,6 +35,14 @@ var Cmd = &cobra.Command{
 		for _, edge := range sw_edges {
 			elemChan <- aql.GraphElement{Graph:graph, Edge: &edge}
 		}
+
+		for _, vertex := range sw_gql_vertices {
+			elemChan <- aql.GraphElement{Graph:"graphql", Vertex: &vertex}
+		}
+		for _, edge := range sw_gql_edges {
+			elemChan <- aql.GraphElement{Graph:"graphql", Edge: &edge}
+		}
+
 		close(elemChan)
 		<- wait
 		return nil

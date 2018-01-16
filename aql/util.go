@@ -113,6 +113,30 @@ func (q QueryBuilder) E(id ...string) QueryBuilder {
 	}
 }
 
+func (q QueryBuilder) Out(label ...string) QueryBuilder {
+	vlist := protoutil.AsListValue(label)
+	return QueryBuilder{q.client, q.graph, append(q.query, &GraphStatement{&GraphStatement_Out{vlist}})}
+}
+
+func (q QueryBuilder) OutEdge(label ...string) QueryBuilder {
+	vlist := protoutil.AsListValue(label)
+	return QueryBuilder{q.client, q.graph, append(q.query, &GraphStatement{&GraphStatement_OutEdge{vlist}})}
+}
+
+func (q QueryBuilder) HasLabel(id ...string) QueryBuilder {
+	idList := protoutil.AsListValue(id)
+	return QueryBuilder{q.client, q.graph, append(q.query, &GraphStatement{&GraphStatement_HasLabel{idList}})}
+}
+
+func (q QueryBuilder) As(id string) QueryBuilder {
+	return QueryBuilder{q.client, q.graph, append(q.query, &GraphStatement{&GraphStatement_As{id}})}
+}
+
+func (q QueryBuilder) Select(id ...string) QueryBuilder {
+	idList := SelectStatement{id}
+	return QueryBuilder{q.client, q.graph, append(q.query, &GraphStatement{&GraphStatement_Select{&idList}})}
+}
+
 func (q QueryBuilder) Count() QueryBuilder {
 	return QueryBuilder{q.client, q.graph, append(q.query, &GraphStatement{&GraphStatement_Count{}})}
 }
@@ -150,6 +174,11 @@ func (q QueryBuilder) Render() map[string]interface{} {
 	json.Unmarshal([]byte(s), &out)
 	return out
 }
+
+func (vertex *Vertex) GetDataMap() map[string]interface{} {
+	return protoutil.AsMap(vertex.Data)
+}
+
 
 func (vertex *Vertex) SetProperty(key string, value interface{}) {
 	if vertex.Data == nil {
