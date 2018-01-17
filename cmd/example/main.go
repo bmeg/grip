@@ -1,12 +1,10 @@
-
 package example
-
 
 import (
 	//"fmt"
-  "log"
 	"github.com/bmeg/arachne/aql"
 	"github.com/spf13/cobra"
+	"log"
 )
 
 var host string = "localhost:9090"
@@ -30,21 +28,25 @@ var Cmd = &cobra.Command{
 			wait <- false
 		}()
 		for _, vertex := range sw_vertices {
-			elemChan <- aql.GraphElement{Graph:graph, Vertex: &vertex}
+			v := vertex
+			elemChan <- aql.GraphElement{Graph: graph, Vertex: &v}
 		}
 		for _, edge := range sw_edges {
-			elemChan <- aql.GraphElement{Graph:graph, Edge: &edge}
+			e := edge
+			elemChan <- aql.GraphElement{Graph: graph, Edge: &e}
 		}
 
 		for _, vertex := range sw_gql_vertices {
-			elemChan <- aql.GraphElement{Graph:"graphql", Vertex: &vertex}
+			v := vertex
+			elemChan <- aql.GraphElement{Graph: "graphql", Vertex: &v}
 		}
 		for _, edge := range sw_gql_edges {
-			elemChan <- aql.GraphElement{Graph:"graphql", Edge: &edge}
+			e := edge
+			elemChan <- aql.GraphElement{Graph: "graphql", Edge: &e}
 		}
 
 		close(elemChan)
-		<- wait
+		<-wait
 		return nil
 	},
 }
@@ -52,6 +54,6 @@ var Cmd = &cobra.Command{
 func init() {
 	flags := Cmd.Flags()
 	flags.StringVar(&host, "host", "localhost:9090", "Host Server")
-  flags.StringVar(&graph, "graph", "example", "Graph")
-  flags.StringVar(&exampleSet, "exampleSet", "starwars", "Example Data Set")
+	flags.StringVar(&graph, "graph", "example", "Graph")
+	flags.StringVar(&exampleSet, "exampleSet", "starwars", "Example Data Set")
 }
