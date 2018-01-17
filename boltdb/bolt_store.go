@@ -3,413 +3,169 @@ package boltdb
 import (
 	"bytes"
 	"fmt"
-	"github.com/bmeg/arachne/aql"
-	"github.com/bmeg/arachne/gdbi"
+	"log"
+	//"github.com/bmeg/arachne/aql"
+	//"github.com/bmeg/arachne/gdbi"
+	"github.com/bmeg/arachne/kvgraph"
 	"github.com/boltdb/bolt"
-	proto "github.com/golang/protobuf/proto"
-	//"github.com/golang/protobuf/ptypes/struct"
-	//"log"
 )
 
-//Outgoing edges
-//key: src 0x00 dest 0x00 edgeid
-//value: edge properties
-var OEdgeBucket = []byte("oedges")
+var GRAPH_BUCKET = []byte("graph")
 
-//Incoming edges
-//key: dest 0x00 src 0x00 edgeid
-//value: blank
-var IEdgeBucket = []byte("iedges")
+func BoltBuilder(path string) (kvgraph.KVInterface, error) {
+	log.Printf("Starting BOLTDB")
+	db, _ := bolt.Open(path, 0600, nil)
+	db.Update(func(tx *bolt.Tx) error {
+		if tx.Bucket(GRAPH_BUCKET) == nil {
+			tx.CreateBucket(GRAPH_BUCKET)
+		}
+		return nil
+	})
+	return &BoltKV{
+		db: db,
+	}, nil
+}
 
-//Vertices
-//key: vertex id
-//value: vertex properties
-var VertexBucket = []byte("vertices")
+var Loaded error = kvgraph.AddKVDriver("bolt", BoltBuilder)
 
-type BoltArachne struct {
+type BoltKV struct {
 	db *bolt.DB
 }
 
-func NewBoltArachne(path string) gdbi.ArachneInterface {
-	db, _ := bolt.Open(path, 0600, nil)
-
-	db.Update(func(tx *bolt.Tx) error {
-		if tx.Bucket(OEdgeBucket) == nil {
-			tx.CreateBucket(OEdgeBucket)
-		}
-		if tx.Bucket(IEdgeBucket) == nil {
-			tx.CreateBucket(IEdgeBucket)
-		}
-		if tx.Bucket(VertexBucket) == nil {
-			tx.CreateBucket(VertexBucket)
-		}
-		return nil
-	})
-	return &BoltArachne{
-		db: db,
-	}
+func (self *BoltKV) Close() error {
+	return self.db.Close()
 }
 
-func (self *BoltArachne) Query() gdbi.QueryInterface {
-	return gdbi.NewPipeEngine(self, false)
-}
-
-func (self *BoltArachne) Close() {
-	self.db.Close()
-}
-
-func (self *BoltArachne) SetVertex(vertex aql.Vertex) error {
+func (self *BoltKV) Delete(id []byte) error {
 	err := self.db.Update(func(tx *bolt.Tx) error {
-		b := tx.Bucket(VertexBucket)
-		d, _ := proto.Marshal(&vertex)
-		b.Put([]byte(vertex.Gid), d)
+		b := tx.Bucket(GRAPH_BUCKET)
+		return b.Delete(id)
+	})
+	return err
+}
+
+func (self *BoltKV) DeletePrefix(id []byte) error {
+	err := self.db.Update(func(tx *bolt.Tx) error {
+		b := tx.Bucket(GRAPH_BUCKET)
+		odel := make([][]byte, 0, 100)
+		c := b.Cursor()
+		for k, _ := c.Seek([]byte(id)); bytes.HasPrefix(k, []byte(id)); k, _ = c.Next() {
+			odel = append(odel, k)
+		}
+		for _, okey := range odel {
+			b.Delete(okey)
+		}
 		return nil
 	})
 	return err
 }
 
-func (self *BoltArachne) GetVertex(key string, loadProp bool) *aql.Vertex {
-	var out *aql.Vertex = nil
-	err := self.db.View(func(tx *bolt.Tx) error {
-		b := tx.Bucket(VertexBucket)
-		o := &aql.Vertex{}
-		d := b.Get([]byte(key))
-		if d == nil {
-			return nil
-		}
-		if loadProp {
-			proto.Unmarshal(d, o)
-			out = o
-		} else {
-			out = &aql.Vertex{Gid: key}
+func (self *BoltKV) HasKey(id []byte) bool {
+	out := false
+	self.db.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket(GRAPH_BUCKET)
+		d := b.Get([]byte(id))
+		if d != nil {
+			out = true
 		}
 		return nil
 	})
-	if err != nil {
-		return nil
-	}
 	return out
 }
 
-func (self *BoltArachne) SetEdge(edge aql.Edge) error {
+func (self *BoltKV) Set(id []byte, val []byte) error {
 	err := self.db.Update(func(tx *bolt.Tx) error {
-		oeb := tx.Bucket(OEdgeBucket)
-		ieb := tx.Bucket(IEdgeBucket)
-		src := edge.Out
-		dst := edge.In
-		eid_num, _ := oeb.NextSequence()
-		eid := fmt.Sprintf("%d", eid_num)
-		edge.Gid = eid
-		okey := bytes.Join([][]byte{[]byte(src), []byte(dst), []byte(eid)}, []byte{0})
-		ikey := bytes.Join([][]byte{[]byte(dst), []byte(src), []byte(eid)}, []byte{0})
-		data, _ := proto.Marshal(&edge)
-		oeb.Put(okey, data)
-		ieb.Put(ikey, []byte{})
+		b := tx.Bucket(GRAPH_BUCKET)
+		b.Put(id, val)
 		return nil
 	})
 	return err
 }
 
-type keyval struct {
-	key   string
+type BoltTransaction struct {
+	tx *bolt.Tx
+	b  *bolt.Bucket
+}
+
+func (self BoltTransaction) Delete(id []byte) error {
+	return self.b.Delete(id)
+}
+
+func (self *BoltKV) Update(u func(tx kvgraph.KVTransaction) error) error {
+	err := self.db.Update(func(tx *bolt.Tx) error {
+		b := tx.Bucket(GRAPH_BUCKET)
+		ktx := BoltTransaction{tx, b}
+		return u(ktx)
+	})
+	return err
+}
+
+type BoltIterator struct {
+	tx    *bolt.Tx
+	b     *bolt.Bucket
+	c     *bolt.Cursor
+	key   []byte
 	value []byte
 }
 
-var NTHREAD = 5
+func copyBytes(in []byte) []byte {
+	out := make([]byte, len(in))
+	copy(out, in)
+	return out
+}
 
-func (self *BoltArachne) GetVertexList(loadProp bool) chan aql.Vertex {
-	o := make(chan aql.Vertex, 100)
-	od := make(chan keyval, 100)
-
-	//read the data out of the DB
-	go func() {
-		defer close(od)
-		self.db.View(func(tx *bolt.Tx) error {
-			vb := tx.Bucket(VertexBucket)
-			c := vb.Cursor()
-			for k, v := c.First(); k != nil; k, v = c.Next() {
-				if loadProp {
-					ov := make([]byte, len(v))
-					copy(ov, v) //don't move bolt values out of transaction, send copy instead
-					od <- keyval{key: string(k), value: ov}
-				} else {
-					//just need a stub vertex, with the id
-					od <- keyval{key: string(k)}
-				}
-			}
-			return nil
-		})
-	}()
-
-	//de-serialize
-	closer := make(chan bool, NTHREAD)
-	for i := 0; i < NTHREAD; i++ {
-		if loadProp {
-			go func() {
-				for kv := range od {
-					i := aql.Vertex{}
-					proto.Unmarshal(kv.value, &i)
-					i.Gid = string(kv.key)
-					o <- i
-				}
-				closer <- true
-			}()
-		} else {
-			go func() {
-				for kv := range od {
-					o <- aql.Vertex{Gid: string(kv.key)}
-				}
-				closer <- true
-			}()
-		}
+func (self *BoltIterator) Get(id []byte) ([]byte, error) {
+	o := self.b.Get(id)
+	if o == nil {
+		return nil, fmt.Errorf("Not Found")
 	}
-
-	//close channel after done
-	go func() {
-		for i := 0; i < NTHREAD; i++ {
-			<-closer
-		}
-		close(o)
-	}()
-
-	return o
+	return copyBytes(o), nil
 }
 
-func (self *BoltArachne) GetOutList(key string, loadProp bool, filter gdbi.EdgeFilter) chan aql.Vertex {
-	vo := make(chan string, 100)
-	o := make(chan aql.Vertex, 100)
-	go func() {
-		defer close(vo)
-		self.db.View(func(tx *bolt.Tx) error {
-			eb := tx.Bucket(OEdgeBucket)
-			c := eb.Cursor()
-			pre := append([]byte(key), 0)
-			for k, v := c.Seek(pre); bytes.HasPrefix(k, pre); k, v = c.Next() {
-				send := false
-				if filter != nil {
-					e := aql.Edge{}
-					proto.Unmarshal(v, &e)
-					if filter(e) {
-						send = true
-					}
-				} else {
-					send = true
-				}
-				if send {
-					pair := bytes.Split(k, []byte{0})
-					vo <- string(pair[1])
-				}
-			}
-			return nil
-		})
-	}()
-	go func() {
-		defer close(o)
-		for i := range vo {
-			if loadProp {
-				v := self.GetVertex(i, loadProp)
-				if v == nil {
-					//log.Printf("Vertex Missing %s", i)
-				} else {
-					o <- *v
-				}
-			} else {
-				o <- aql.Vertex{Gid: i}
-			}
-		}
-	}()
-	return o
+func (self *BoltIterator) Key() []byte {
+	return self.key
 }
 
-func (self *BoltArachne) GetInList(key string, loadProp bool, filter gdbi.EdgeFilter) chan aql.Vertex {
-	vi := make(chan string, 100)
-	o := make(chan aql.Vertex, 100)
-	go func() {
-		defer close(vi)
-		self.db.View(func(tx *bolt.Tx) error {
-			eb := tx.Bucket(IEdgeBucket)
-			ob := tx.Bucket(OEdgeBucket)
-			c := eb.Cursor()
-			pre := append([]byte(key), 0)
-			for k, _ := c.Seek(pre); bytes.HasPrefix(k, pre); k, _ = c.Next() {
-				key_data := bytes.Split(k, []byte{0})
-				send := false
-				if filter != nil {
-					e := aql.Edge{}
-					ikey := bytes.Join([][]byte{[]byte(key_data[1]), []byte(key_data[0]), []byte(key_data[2])}, []byte{0})
-					d := ob.Get([]byte(ikey))
-					proto.Unmarshal(d, &e)
-					if filter(e) {
-						send = true
-					}
-				} else {
-					send = true
-				}
-				if send {
-					vi <- string(key_data[1])
-				}
-			}
-			return nil
-		})
-	}()
-	go func() {
-		defer close(o)
-		for i := range vi {
-			if loadProp {
-				o <- *self.GetVertex(i, loadProp)
-			} else {
-				o <- aql.Vertex{Gid: i}
-			}
-		}
-	}()
-	return o
+func (self *BoltIterator) Value() ([]byte, error) {
+	return self.value, nil
 }
 
-func (self *BoltArachne) GetOutEdgeList(key string, loadProp bool, filter gdbi.EdgeFilter) chan aql.Edge {
-	o := make(chan aql.Edge, 100)
-	go func() {
-		defer close(o)
-		self.db.View(func(tx *bolt.Tx) error {
-			eb := tx.Bucket(OEdgeBucket)
-			c := eb.Cursor()
-			pre := append([]byte(key), 0)
-			for k, v := c.Seek(pre); bytes.HasPrefix(k, pre); k, v = c.Next() {
-				send := false
-				e := aql.Edge{}
-				if loadProp {
-					proto.Unmarshal(v, &e)
-				} else {
-					key_data := bytes.Split(k, []byte{0})
-					e.Out = string(key_data[0])
-					e.In = string(key_data[1])
-					e.Gid = string(key_data[2])
-				}
-				if filter != nil {
-					if filter(e) {
-						send = true
-					}
-				} else {
-					send = true
-				}
-				if send {
-					o <- e
-				}
-			}
-			return nil
-		})
-	}()
-	return o
-}
-
-func (self *BoltArachne) GetInEdgeList(key string, loadProp bool, filter gdbi.EdgeFilter) chan aql.Edge {
-	o := make(chan aql.Edge, 100)
-	go func() {
-		defer close(o)
-		self.db.View(func(tx *bolt.Tx) error {
-			eb := tx.Bucket(IEdgeBucket)
-			ob := tx.Bucket(OEdgeBucket)
-			c := eb.Cursor()
-			pre := append([]byte(key), 0)
-			for k, _ := c.Seek(pre); bytes.HasPrefix(k, pre); k, _ = c.Next() {
-				key_data := bytes.Split(k, []byte{0})
-				ikey := bytes.Join([][]byte{[]byte(key_data[1]), []byte(key_data[0]), []byte(key_data[2])}, []byte{0})
-				d := ob.Get([]byte(ikey))
-				e := aql.Edge{}
-				if loadProp {
-					proto.Unmarshal(d, &e)
-				} else {
-					key_data := bytes.Split(k, []byte{0})
-					e.In = string(key_data[0])
-					e.Out = string(key_data[1])
-					e.Gid = string(key_data[2])
-				}
-				send := false
-				if filter != nil {
-					if filter(e) {
-						send = true
-					}
-				} else {
-					send = true
-				}
-				if send {
-					o <- e
-				}
-			}
-			return nil
-		})
-	}()
-	return o
-}
-
-func (self *BoltArachne) GetEdgeList(loadProp bool) chan aql.Edge {
-	o := make(chan aql.Edge, 100)
-	go func() {
-		defer close(o)
-		self.db.View(func(tx *bolt.Tx) error {
-			vb := tx.Bucket(OEdgeBucket)
-			c := vb.Cursor()
-			for k, v := c.First(); k != nil; k, v = c.Next() {
-				if loadProp {
-					e := aql.Edge{}
-					proto.Unmarshal(v, &e)
-					o <- e
-				} else {
-					key_data := bytes.Split(k, []byte{0})
-					o <- aql.Edge{Gid: string(key_data[2]), Out: string(key_data[0]), In: string(key_data[1])}
-				}
-			}
-			return nil
-		})
-	}()
-	return o
-}
-
-func (self *BoltArachne) DelEdge(id string) error {
-	err := self.db.Update(func(tx *bolt.Tx) error {
-		oeb := tx.Bucket(OEdgeBucket)
-		ieb := tx.Bucket(IEdgeBucket)
-
-		odel := make([][]byte, 0, 100)
-		c := oeb.Cursor()
-		for k, _ := c.Seek([]byte(id)); bytes.HasPrefix(k, []byte(id)); k, _ = c.Next() {
-			odel = append(odel, k)
-		}
-
-		for _, okey := range odel {
-			key_data := bytes.Split(okey, []byte{0})
-			ikey := bytes.Join([][]byte{[]byte(key_data[1]), []byte(key_data[0]), []byte(key_data[2])}, []byte{0})
-			oeb.Delete(okey)
-			ieb.Delete(ikey)
-		}
-
+func (self *BoltIterator) Next() error {
+	k, v := self.c.Next()
+	if k == nil || v == nil {
+		self.key = nil
+		self.value = nil
 		return nil
-	})
-	return err
+	}
+	self.key = copyBytes(k)
+	self.value = copyBytes(v)
+	return nil
 }
 
-func (self *BoltArachne) DelVertex(id string) error {
-	//log.Printf("del %s", id)
-	err := self.db.Update(func(tx *bolt.Tx) error {
-		oeb := tx.Bucket(OEdgeBucket)
-		ieb := tx.Bucket(IEdgeBucket)
-		vb := tx.Bucket(VertexBucket)
+func (self *BoltIterator) Seek(id []byte) error {
+	k, v := self.c.Seek(id)
+	if k == nil || v == nil {
+		self.key = nil
+		self.value = nil
+		return fmt.Errorf("Seek error")
+	}
+	self.key = copyBytes(k)
+	self.value = copyBytes(v)
+	return nil
+}
 
-		vb.Delete([]byte(id))
+func (self *BoltIterator) Valid() bool {
+	if self.key == nil || self.value == nil {
+		return false
+	}
+	return true
+}
 
-		odel := make([][]byte, 0, 100)
-		c := oeb.Cursor()
-		for k, _ := c.Seek([]byte(id)); bytes.HasPrefix(k, []byte(id)); k, _ = c.Next() {
-			odel = append(odel, k)
-		}
-
-		for _, okey := range odel {
-			key_data := bytes.Split(okey, []byte{0})
-			ikey := bytes.Join([][]byte{[]byte(key_data[1]), []byte(key_data[0]), []byte(key_data[2])}, []byte{0})
-			oeb.Delete(okey)
-			ieb.Delete(ikey)
-		}
-
-		return nil
+func (self *BoltKV) View(u func(it kvgraph.KVIterator) error) error {
+	err := self.db.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket(GRAPH_BUCKET)
+		ktx := &BoltIterator{tx, b, b.Cursor(), nil, nil}
+		return u(ktx)
 	})
 	return err
 }
