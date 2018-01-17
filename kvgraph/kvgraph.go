@@ -23,12 +23,6 @@ func (self *KVGraph) AddGraph(graph string) error {
 	return self.kv.Set(GraphKey(graph), []byte{})
 }
 
-func bytes_copy(in []byte) []byte {
-	out := make([]byte, len(in))
-	copy(out, in)
-	return out
-}
-
 func (self *KVGraph) DeleteGraph(graph string) error {
 	eprefix := EdgeListPrefix(graph)
 	self.kv.DeletePrefix(eprefix)

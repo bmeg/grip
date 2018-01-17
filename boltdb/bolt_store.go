@@ -108,7 +108,7 @@ type BoltIterator struct {
 	value []byte
 }
 
-func bytes_copy(in []byte) []byte {
+func copyBytes(in []byte) []byte {
 	out := make([]byte, len(in))
 	copy(out, in)
 	return out
@@ -119,7 +119,7 @@ func (self *BoltIterator) Get(id []byte) ([]byte, error) {
 	if o == nil {
 		return nil, fmt.Errorf("Not Found")
 	}
-	return bytes_copy(o), nil
+	return copyBytes(o), nil
 }
 
 func (self *BoltIterator) Key() []byte {
@@ -137,8 +137,8 @@ func (self *BoltIterator) Next() error {
 		self.value = nil
 		return nil
 	}
-	self.key = bytes_copy(k)
-	self.value = bytes_copy(v)
+	self.key = copyBytes(k)
+	self.value = copyBytes(v)
 	return nil
 }
 
@@ -149,8 +149,8 @@ func (self *BoltIterator) Seek(id []byte) error {
 		self.value = nil
 		return fmt.Errorf("Seek error")
 	}
-	self.key = bytes_copy(k)
-	self.value = bytes_copy(v)
+	self.key = copyBytes(k)
+	self.value = copyBytes(v)
 	return nil
 }
 
