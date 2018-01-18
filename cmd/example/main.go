@@ -11,6 +11,15 @@ var host string = "localhost:9090"
 var graph string = "example"
 var exampleSet string = "starwars"
 
+func found(set []string, val string) bool {
+	for _, i := range set {
+		if i == val {
+			return true
+		}
+	}
+	return false
+}
+
 var Cmd = &cobra.Command{
 	Use:   "example",
 	Short: "Load example on Arachne Server",
@@ -20,6 +29,16 @@ var Cmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+
+		graphs := conn.GetGraphList()
+
+		if !found(graphs, "graphql") {
+			conn.AddGraph("graphql")
+		}
+		if !found(graphs, graph) {
+			conn.AddGraph(graph)
+		}
+
 		elemChan := make(chan aql.GraphElement)
 		wait := make(chan bool)
 		log.Printf("Loading %s into %s", exampleSet, graph)

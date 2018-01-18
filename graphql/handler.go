@@ -75,7 +75,7 @@ func getObjectFields(client aql.AQLClient, gqlDB string, queryGID string) map[st
 
 func BuildGraphQLSchema(client aql.AQLClient, gqlDB string) *graphql.Schema {
 
-	var dataGraph string = "example" //hard coded for the moment
+	var dataGraph string = "example" //TODO: hard coded for the moment
 
 	objects := map[string]*graphql.Object{}
 

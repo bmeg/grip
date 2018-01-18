@@ -56,6 +56,14 @@ func (client AQLClient) GetGraphs() chan string {
 	return out
 }
 
+func (client AQLClient) GetGraphList() []string {
+	out := []string{}
+	for i := range client.GetGraphs() {
+		out = append(out, i)
+	}
+	return out
+}
+
 func (client AQLClient) DeleteGraph(graph string) error {
 	_, err := client.EditC.DeleteGraph(context.Background(), &ElementID{Graph: graph})
 	return err
@@ -97,10 +105,9 @@ func (client AQLClient) StreamElements(elemChan chan GraphElement) error {
 }
 
 func (client AQLClient) GetVertex(graph string, id string) (*Vertex, error) {
-	v, err := client.QueryC.GetVertex(context.Background(), &ElementID{Graph:graph, Id:id})
+	v, err := client.QueryC.GetVertex(context.Background(), &ElementID{Graph: graph, Id: id})
 	return v, err
 }
-
 
 func (client AQLClient) Query(graph string) QueryBuilder {
 	return QueryBuilder{client.QueryC, graph, []*GraphStatement{}}
@@ -185,7 +192,6 @@ func (vertex *Vertex) GetDataMap() map[string]interface{} {
 	return protoutil.AsMap(vertex.Data)
 }
 
-
 func (vertex *Vertex) SetProperty(key string, value interface{}) {
 	if vertex.Data == nil {
 		vertex.Data = &structpb.Struct{Fields: map[string]*structpb.Value{}}
@@ -200,7 +206,6 @@ func (vertex *Vertex) GetProperty(key string) interface{} {
 	m := protoutil.AsMap(vertex.Data)
 	return m[key]
 }
-
 
 func (edge *Edge) GetProperty(key string) interface{} {
 	if edge.Data == nil {
