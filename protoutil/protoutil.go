@@ -87,7 +87,9 @@ func CopyStructToStructSub(dst *structpb.Struct, keys []string, src *structpb.St
 func AsMap(src *structpb.Struct) map[string]interface{} {
 	out := map[string]interface{}{}
 	for k, f := range src.Fields {
-		if v, ok := f.Kind.(*structpb.Value_StringValue); ok {
+		if f == nil {
+			out[k] = nil
+		} else if v, ok := f.Kind.(*structpb.Value_StringValue); ok {
 			out[k] = v.StringValue
 		} else if v, ok := f.Kind.(*structpb.Value_NumberValue); ok {
 			out[k] = v.NumberValue
