@@ -96,6 +96,12 @@ func (client AQLClient) StreamElements(elemChan chan GraphElement) error {
 	return err
 }
 
+func (client AQLClient) GetVertex(graph string, id string) (*Vertex, error) {
+	v, err := client.QueryC.GetVertex(context.Background(), &ElementID{Graph:graph, Id:id})
+	return v, err
+}
+
+
 func (client AQLClient) Query(graph string) QueryBuilder {
 	return QueryBuilder{client.QueryC, graph, []*GraphStatement{}}
 }
@@ -192,5 +198,14 @@ func (vertex *Vertex) GetProperty(key string) interface{} {
 		return nil
 	}
 	m := protoutil.AsMap(vertex.Data)
+	return m[key]
+}
+
+
+func (edge *Edge) GetProperty(key string) interface{} {
+	if edge.Data == nil {
+		return nil
+	}
+	m := protoutil.AsMap(edge.Data)
 	return m[key]
 }

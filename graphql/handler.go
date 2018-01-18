@@ -2,6 +2,7 @@
 package graphql
 
 import (
+  "fmt"
   "log"
   "net/http"
   "github.com/graphql-go/handler"
@@ -56,16 +57,14 @@ func getQueryFields(client aql.AQLClient, gqlDB string, queryGID string) map[str
   out := map[string]string{}
   results, _ := client.Query(gqlDB).V(queryGID).OutEdge("field").As("a").Out().As("b").Select("a", "b").Execute()
   for elem := range results {
-    log.Printf("%s", elem.GetRow()[0])
+    fieldName := elem.GetRow()[0].GetEdge().GetProperty("name").(string)
+    fieldObj := elem.GetRow()[1].GetVertex().Gid
+    out[fieldName] = fieldObj
   }
-
-  results, _ = client.Query(gqlDB).V(queryGID).OutEdge("field").Execute()
-  for elem := range results {
-    log.Printf("query vertex: %s", elem)
-  }
-
   return out
 }
+
+
 
 func BuildGraphQLSchema(client aql.AQLClient, gqlDB string) *graphql.Schema {
   /*
@@ -119,10 +118,10 @@ func BuildGraphQLSchema(client aql.AQLClient, gqlDB string) *graphql.Schema {
   for gid, data := range getQueries(client, gqlDB) {
     log.Printf("Query %s %s", gid, data)
     for edgeName, objID := range getQueryFields(client, gqlDB, gid) {
-      log.Printf("query field %s %s", edgeName, objID)
-      /*
+      log.Printf("query field %s %s %s", edgeName, objID, objects[objID])
+
       query_fields[edgeName] = &graphql.Field{
-        Type:graphql.String,
+        Type:objects[objID],
         Args: graphql.FieldConfigArgument{
   				"id": &graphql.ArgumentConfig{
   					Type: graphql.String,
@@ -130,14 +129,17 @@ func BuildGraphQLSchema(client aql.AQLClient, gqlDB string) *graphql.Schema {
   			},
         Resolve: func(p graphql.ResolveParams) (interface{}, error) {
           log.Printf("Scanning %s", p.Args)
-          return "Testing", nil
-  			    //return filterUser(data, p.Args), nil
+          v, err := client.GetVertex("example", p.Args["id"].(string))
+          if v == nil || err != nil {
+            return nil, fmt.Errorf("Not found")
+          }
+          return v.GetDataMap(), nil
   			},
       }
-      */
+
     }
   }
-
+  log.Printf("Fields: %#v", query_fields)
   queryType := graphql.NewObject(
   	graphql.ObjectConfig{
   		Name: "Query",

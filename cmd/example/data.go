@@ -150,6 +150,29 @@ var sw_gql_vertices = []aql.Vertex{
         "name" : "Human",
         "fields" : map[string]interface{}{
           "name" : "String",
+          "height" : "Float",
+          "mass" : "Float",
+          "homePlanet" : "String",
+        },
+      },
+  )},
+  aql.Vertex{Gid:"DroidObject", Label:"Object", Data:protoutil.AsStruct(
+      map[string]interface{}{
+        "label" : "Droid",
+        "name" : "Droid",
+        "fields" : map[string]interface{}{
+          "name" : "String",
+          "primaryFunction" : "String",
+        },
+      },
+  )},
+  aql.Vertex{Gid:"StarshipObject", Label:"Object", Data:protoutil.AsStruct(
+      map[string]interface{}{
+        "label" : "Starship",
+        "name" : "Starship",
+        "fields" : map[string]interface{}{
+          "name" : "String",
+          "length" : "Float",
         },
       },
   )},
@@ -158,10 +181,27 @@ var sw_gql_vertices = []aql.Vertex{
         "name" : "Human",
       },
   )},
+  aql.Vertex{Gid:"DroidQuery", Label:"Query", Data:protoutil.AsStruct(
+      map[string]interface{}{
+        "name" : "Droid",
+      },
+  )},
 }
 
 var sw_gql_edges = []aql.Edge{
   aql.Edge{Label:"field", From:"HumanQuery", To:"HumanObject", Data:protoutil.AsStruct(
+      map[string]interface{}{
+        "name" : "Human",
+      },
+    ),
+  },
+  aql.Edge{Label:"field", From:"DroidQuery", To:"DroidObject", Data:protoutil.AsStruct(
+      map[string]interface{}{
+        "name" : "Droid",
+      },
+    ),
+  },
+  aql.Edge{Label:"field", From:"HumanObject", To:"HumanObject", Data:protoutil.AsStruct(
       map[string]interface{}{
         "name" : "Human",
       },
