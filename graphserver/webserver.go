@@ -101,7 +101,7 @@ func NewHttpProxy(rpcPort string, httpPort string, contentDir string) Proxy {
 		})
 	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir(contentDir))))
 	r.PathPrefix("/falcor.json").Handler(falcor.NewHTTPHandler())
-	r.PathPrefix("/graphql").Handler(graphql.NewHTTPHandler("localhost:"+rpcPort))
+	r.PathPrefix("/graphql").Handler(graphql.NewHTTPHandler("localhost:" + rpcPort))
 
 	r.PathPrefix("/v1/").Handler(grpcMux)
 

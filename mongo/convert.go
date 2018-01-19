@@ -20,9 +20,9 @@ func PackVertex(v aql.Vertex) map[string]interface{} {
 	}
 	//fmt.Printf("proto:%s\nmap:%s\n", v.Data, p)
 	return map[string]interface{}{
-		"_id":        v.Gid,
-		"label":      v.Label,
-		"data": p,
+		"_id":   v.Gid,
+		"label": v.Label,
+		"data":  p,
 	}
 }
 
@@ -32,10 +32,10 @@ func PackEdge(e aql.Edge) map[string]interface{} {
 		p = protoutil.AsMap(e.Data)
 	}
 	o := map[string]interface{}{
-		FIELD_SRC:    e.From,
-		FIELD_DST:    e.To,
-		"label":      e.Label,
-		"data": p,
+		FIELD_SRC: e.From,
+		FIELD_DST: e.To,
+		"label":   e.Label,
+		"data":    p,
 	}
 	if e.Gid != "" {
 		o["_id"] = e.Gid
