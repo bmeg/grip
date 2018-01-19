@@ -5,11 +5,13 @@ import (
 	"log"
 )
 
+//StructSet take value and add it to Struct s using key
 func StructSet(s *structpb.Struct, key string, value interface{}) {
 	vw := WrapValue(value)
 	s.Fields[key] = vw
 }
 
+// WrapValue takes a value and turns it into a protobuf structpb Value
 func WrapValue(value interface{}) *structpb.Value {
 	switch v := value.(type) {
 	case string:
@@ -58,24 +60,29 @@ func WrapValue(value interface{}) *structpb.Value {
 	return nil
 }
 
+// CopyToStructSub copies a subset of keys from a map to a protobuf struct
 func CopyToStructSub(s *structpb.Struct, keys []string, values map[string]interface{}) {
 	for _, i := range keys {
 		StructSet(s, i, values[i])
 	}
 }
 
+// CopyToStruct copies values from map into protobuf struct
 func CopyToStruct(s *structpb.Struct, values map[string]interface{}) {
 	for i := range values {
 		StructSet(s, i, values[i])
 	}
 }
 
+// CopyStructToStruct copy the contents of one protobuf struct to another
 func CopyStructToStruct(dst *structpb.Struct, src *structpb.Struct) {
 	for k, v := range src.Fields {
 		StructSet(dst, k, v)
 	}
 }
 
+// CopyStructToStructSub copy the contents of one protobuf struct to another,
+// but only using a subset of the keys
 func CopyStructToStructSub(dst *structpb.Struct, keys []string, src *structpb.Struct) {
 	for _, k := range keys {
 		StructSet(dst, k, src.Fields[k])
