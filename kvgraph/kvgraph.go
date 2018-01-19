@@ -252,7 +252,7 @@ func (self *KVInterfaceGDB) GetEdgeList(ctx context.Context, loadProp bool) chan
 					edge_data, _ := it.Value()
 					proto.Unmarshal(edge_data, &bundle)
 					for k, v := range bundle.Bundle {
-						e := aql.Edge{Gid: bundle.Gid, Label: bundle.Label, From: bundle.From, To: k, Properties: v}
+						e := aql.Edge{Gid: bundle.Gid, Label: bundle.Label, From: bundle.From, To: k, Data: v}
 						o <- e
 					}
 				}
@@ -338,7 +338,7 @@ func (self *KVInterfaceGDB) GetOutEdgeList(ctx context.Context, id string, loadP
 						if err == nil {
 							proto.Unmarshal(data_value, &bundle)
 							for k, v := range bundle.Bundle {
-								e := aql.Edge{Gid: bundle.Gid, Label: bundle.Label, From: bundle.From, To: k, Properties: v}
+								e := aql.Edge{Gid: bundle.Gid, Label: bundle.Label, From: bundle.From, To: k, Data: v}
 								o <- e
 							}
 						}
