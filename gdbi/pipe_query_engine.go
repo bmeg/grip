@@ -938,6 +938,7 @@ func (self *PipeEngine) First(ctx context.Context) (aql.ResultRow, error) {
 	}
 	first := true
 	nctx, cancel := context.WithCancel(ctx)
+	defer cancel()
 	for i := range self.Execute(nctx) {
 		if first {
 			o = i
