@@ -21,17 +21,27 @@ depends:
 
 # Automatially update code formatting
 tidy:
-	@find . \(-path ./venv -o -path ./.git \) -prune -o -type f -print | grep -v "\.pb\." | grep -E '.*\.go$$' | xargs gofmt -w -s
+	@for f in $$(find ./ -name "*.go" -print | egrep -v "\.pb\.go|\.gw\.go|underscore\.go"); do \
+		go fmt $$f ;\
+	done;
 
 # Run code style and other checks
 lint:
 	@go get github.com/alecthomas/gometalinter
 	@gometalinter --install > /dev/null
 	@gometalinter --disable-all --enable=vet --enable=golint --enable=gofmt --enable=misspell \
+		--vendor --errors \
+		-e '.*bundle.go' -e ".*pb.go" -e ".*pb.gw.go" \
+		./...
+
+# Run code style and other checks
+lint-strict:
+	@go get github.com/alecthomas/gometalinter
+	@gometalinter --install > /dev/null
+	@gometalinter --disable-all --enable=vet --enable=golint --enable=gofmt --enable=misspell \
 		--vendor \
 		-e '.*bundle.go' -e ".*pb.go" -e ".*pb.gw.go" \
 		./...
-	@gometalinter --disable-all --enable=vet --enable=gofmt --enable=misspell --vendor ./cmd/termdash/...
 
 # Run all tests
 test:
@@ -95,7 +105,7 @@ docker: cross-compile
 	cp build/bin/arachne-linux-amd64 build/docker/arachne
 	cp docker/* build/docker/
 	cd build/docker/ && docker build -t arachne .
-	
+
 # Remove build/development files.
 clean:
 	@rm -rf ./bin ./pkg ./test_tmp ./build ./buildtools

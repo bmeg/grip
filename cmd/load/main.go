@@ -43,7 +43,7 @@ var Cmd = &cobra.Command{
 				v := aql.Vertex{}
 				jsonpb.Unmarshal(strings.NewReader(string(line)), &v)
 				//conn.AddVertex(graph, v)
-				elemChan <- aql.GraphElement{Graph:graph, Vertex: &v}
+				elemChan <- aql.GraphElement{Graph: graph, Vertex: &v}
 				count += 1
 				if count%1000 == 0 {
 					log.Printf("Loaded %d vertices", count)
@@ -51,7 +51,7 @@ var Cmd = &cobra.Command{
 			}
 			log.Printf("Loaded %d vertices", count)
 			close(elemChan)
-			<- wait
+			<-wait
 		}
 		if edgeFile != "" {
 			log.Printf("Loading %s", edgeFile)
@@ -68,7 +68,7 @@ var Cmd = &cobra.Command{
 				}
 				wait <- false
 			}()
-			umarsh := jsonpb.Unmarshaler{AllowUnknownFields:true}
+			umarsh := jsonpb.Unmarshaler{AllowUnknownFields: true}
 			for line := range reader {
 				if len(line) > 0 {
 					e := aql.Edge{}
@@ -77,7 +77,7 @@ var Cmd = &cobra.Command{
 						log.Printf("Error: %s : '%s'", err, line)
 					} else {
 						//conn.AddEdge(graph, e)
-						elemChan <- aql.GraphElement{Graph:graph, Edge: &e}
+						elemChan <- aql.GraphElement{Graph: graph, Edge: &e}
 						count += 1
 					}
 					if count%1000 == 0 {
@@ -87,7 +87,7 @@ var Cmd = &cobra.Command{
 			}
 			log.Printf("Loaded %d edges", count)
 			close(elemChan)
-			<- wait
+			<-wait
 		}
 
 		if bundleFile != "" {

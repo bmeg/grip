@@ -1,17 +1,16 @@
 package rocksdb
 
 import (
+	"context"
 	"fmt"
 	"github.com/bmeg/arachne/aql"
-	"github.com/bmeg/arachne/kvgraph"
 	"github.com/bmeg/arachne/gdbi"
+	"github.com/bmeg/arachne/kvgraph"
 	"github.com/bmeg/arachne/rocksdb"
-	"context"
+	"log"
 	"os"
 	"testing"
-	"log"
 )
-
 
 func graphEngine(path string) gdbi.ArachneInterface {
 	r, err := rocksdb.RocksBuilder(path)
@@ -20,7 +19,6 @@ func graphEngine(path string) gdbi.ArachneInterface {
 	}
 	return kvgraph.NewKVGraph(r)
 }
-
 
 func BenchmarkSetVertex(b *testing.B) {
 	db := graphEngine("bench_test.db")
@@ -32,7 +30,6 @@ func BenchmarkSetVertex(b *testing.B) {
 	db.Close()
 	os.RemoveAll("bench_test.db")
 }
-
 
 func TestSetVertex(b *testing.T) {
 	db := graphEngine("bench_test.db")
@@ -49,7 +46,6 @@ func TestSetVertex(b *testing.T) {
 	os.RemoveAll("bench_test.db")
 }
 
-
 func BenchmarkSetE(b *testing.B) {
 	db := graphEngine("bench_test.db")
 	db.AddGraph("test")
@@ -64,7 +60,6 @@ func BenchmarkSetE(b *testing.B) {
 	db.Close()
 	os.RemoveAll("bench_test.db")
 }
-
 
 func TestSetE(b *testing.T) {
 	db := graphEngine("bench_test.db")

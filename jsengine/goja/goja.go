@@ -59,7 +59,7 @@ func (self *GojaRuntime) Call(input ...*aql.QueryResult) *aql.QueryResult {
 	val := value.Export()
 	log.Printf("function return: %#v", val)
 	o := protoutil.AsStruct(val.(map[string]interface{}))
-	return &aql.QueryResult{&aql.QueryResult_Struct{o}}
+	return &aql.QueryResult{Result: &aql.QueryResult_Struct{Struct: o}}
 }
 
 func (self *GojaRuntime) CallBool(input ...*aql.QueryResult) bool {
