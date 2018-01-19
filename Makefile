@@ -21,7 +21,9 @@ depends:
 
 # Automatially update code formatting
 tidy:
-	@find . \(-path ./venv -o -path ./.git \) -prune -o -type f -print | grep -v "\.pb\." | grep -E '.*\.go$$' | xargs gofmt -w -s
+	@for f in $$(find ./ -name "*.go" -print | egrep -v "\.pb\.go|\.gw\.go|underscore\.go"); do \
+		go fmt $$f ;\
+	done;
 
 # Run code style and other checks
 lint:
@@ -95,7 +97,7 @@ docker: cross-compile
 	cp build/bin/arachne-linux-amd64 build/docker/arachne
 	cp docker/* build/docker/
 	cd build/docker/ && docker build -t arachne .
-	
+
 # Remove build/development files.
 clean:
 	@rm -rf ./bin ./pkg ./test_tmp ./build ./buildtools

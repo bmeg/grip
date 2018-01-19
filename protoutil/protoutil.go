@@ -82,6 +82,7 @@ func CopyStructToStructSub(dst *structpb.Struct, keys []string, src *structpb.St
 	}
 }
 
+// AsMap takes a protobuf Struct and converts it into a go map
 func AsMap(src *structpb.Struct) map[string]interface{} {
 	out := map[string]interface{}{}
 	for k, f := range src.Fields {
@@ -98,6 +99,7 @@ func AsMap(src *structpb.Struct) map[string]interface{} {
 	return out
 }
 
+// AsStruct takes a go map and converts it into a protobuf Struct
 func AsStruct(src map[string]interface{}) *structpb.Struct {
 	out := structpb.Struct{Fields: map[string]*structpb.Value{}}
 	for k, v := range src {
@@ -106,6 +108,7 @@ func AsStruct(src map[string]interface{}) *structpb.Struct {
 	return &out
 }
 
+// AsStringList takes a protobuf ListValue and converts it into a []string
 func AsStringList(src *structpb.ListValue) []string {
 	out := make([]string, len(src.Values))
 	for i := range src.Values {
@@ -114,6 +117,7 @@ func AsStringList(src *structpb.ListValue) []string {
 	return out
 }
 
+// AsListValue takes a go []string and converts it into a protobuf ListValue
 func AsListValue(str []string) *structpb.ListValue {
 	v := make([]*structpb.Value, len(str))
 	for i := range str {
