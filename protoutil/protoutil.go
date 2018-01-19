@@ -13,15 +13,15 @@ func StructSet(s *structpb.Struct, key string, value interface{}) {
 func WrapValue(value interface{}) *structpb.Value {
 	switch v := value.(type) {
 	case string:
-		return &structpb.Value{Kind: &structpb.Value_StringValue{v}}
+		return &structpb.Value{Kind: &structpb.Value_StringValue{StringValue: v}}
 	case int:
-		return &structpb.Value{Kind: &structpb.Value_NumberValue{float64(v)}}
+		return &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: float64(v)}}
 	case int64:
-		return &structpb.Value{Kind: &structpb.Value_NumberValue{float64(v)}}
+		return &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: float64(v)}}
 	case float64:
-		return &structpb.Value{Kind: &structpb.Value_NumberValue{float64(v)}}
+		return &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: float64(v)}}
 	case bool:
-		return &structpb.Value{Kind: &structpb.Value_BoolValue{v}}
+		return &structpb.Value{Kind: &structpb.Value_BoolValue{BoolValue: v}}
 	case *structpb.Value:
 		return v
 	case []interface{}:
@@ -30,28 +30,28 @@ func WrapValue(value interface{}) *structpb.Value {
 			wv := WrapValue(k)
 			o[i] = wv
 		}
-		return &structpb.Value{Kind: &structpb.Value_ListValue{&structpb.ListValue{Values: o}}}
+		return &structpb.Value{Kind: &structpb.Value_ListValue{ListValue: &structpb.ListValue{Values: o}}}
 	case []string:
 		o := make([]*structpb.Value, len(v))
 		for i, k := range v {
-			wv := &structpb.Value{Kind: &structpb.Value_StringValue{k}}
+			wv := &structpb.Value{Kind: &structpb.Value_StringValue{StringValue: k}}
 			o[i] = wv
 		}
-		return &structpb.Value{Kind: &structpb.Value_ListValue{&structpb.ListValue{Values: o}}}
+		return &structpb.Value{Kind: &structpb.Value_ListValue{ListValue: &structpb.ListValue{Values: o}}}
 	case map[string]interface{}:
 		o := &structpb.Struct{Fields: map[string]*structpb.Value{}}
 		for k, v := range v {
 			wv := WrapValue(v)
 			o.Fields[k] = wv
 		}
-		return &structpb.Value{Kind: &structpb.Value_StructValue{o}}
+		return &structpb.Value{Kind: &structpb.Value_StructValue{StructValue: o}}
 	case map[string]float64:
 		o := &structpb.Struct{Fields: map[string]*structpb.Value{}}
 		for k, v := range v {
 			wv := WrapValue(v)
 			o.Fields[k] = wv
 		}
-		return &structpb.Value{Kind: &structpb.Value_StructValue{o}}
+		return &structpb.Value{Kind: &structpb.Value_StructValue{StructValue: o}}
 	default:
 		log.Printf("unknown data type: %T", value)
 	}
@@ -117,7 +117,7 @@ func AsStringList(src *structpb.ListValue) []string {
 func AsListValue(str []string) *structpb.ListValue {
 	v := make([]*structpb.Value, len(str))
 	for i := range str {
-		v[i] = &structpb.Value{&structpb.Value_StringValue{str[i]}}
+		v[i] = &structpb.Value{Kind: &structpb.Value_StringValue{StringValue: str[i]}}
 	}
 	o := structpb.ListValue{Values: v}
 	return &o

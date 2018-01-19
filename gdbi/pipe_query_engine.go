@@ -139,7 +139,7 @@ func (self *PipeEngine) V(key []string) QueryInterface {
 						v := self.db.GetVertex(k, ctx.Value(PROP_LOAD).(bool))
 						if v != nil {
 							c := Traveler{}
-							o <- c.AddCurrent(aql.QueryResult{&aql.QueryResult_Vertex{v}})
+							o <- c.AddCurrent(aql.QueryResult{Result: &aql.QueryResult_Vertex{Vertex: v}})
 						}
 					}
 					t.end_timer("all")
@@ -156,7 +156,7 @@ func (self *PipeEngine) V(key []string) QueryInterface {
 				for i := range self.db.GetVertexList(ctx, ctx.Value(PROP_LOAD).(bool)) {
 					t := i //make a local copy
 					c := Traveler{}
-					o <- c.AddCurrent(aql.QueryResult{&aql.QueryResult_Vertex{&t}})
+					o <- c.AddCurrent(aql.QueryResult{Result: &aql.QueryResult_Vertex{Vertex: &t}})
 				}
 				t.end_timer("all")
 			}()
@@ -174,7 +174,7 @@ func (self *PipeEngine) E() QueryInterface {
 				for i := range self.db.GetEdgeList(ctx, ctx.Value(PROP_LOAD).(bool)) {
 					t := i //make a local copy
 					c := Traveler{}
-					o <- c.AddCurrent(aql.QueryResult{&aql.QueryResult_Edge{&t}})
+					o <- c.AddCurrent(aql.QueryResult{Result: &aql.QueryResult_Edge{Edge: &t}})
 				}
 				t.end_timer("all")
 			}()
@@ -240,7 +240,7 @@ func (self *PipeEngine) HasLabel(labels ...string) QueryInterface {
 							v := self.db.GetVertex(id, ctx.Value(PROP_LOAD).(bool))
 							if v != nil {
 								c := Traveler{}
-								o <- c.AddCurrent(aql.QueryResult{&aql.QueryResult_Vertex{v}})
+								o <- c.AddCurrent(aql.QueryResult{Result: &aql.QueryResult_Vertex{Vertex: v}})
 							}
 						}
 					}
@@ -248,10 +248,10 @@ func (self *PipeEngine) HasLabel(labels ...string) QueryInterface {
 				} else if pipe.State == STATE_RAW_EDGE_LIST {
 					for _, l := range labels {
 						for id := range self.db.EdgeLabelScan(ctx, l) {
-							v := self.db.GetEdge(id, ctx.Value(PROP_LOAD).(bool))
-							if v != nil {
+							e := self.db.GetEdge(id, ctx.Value(PROP_LOAD).(bool))
+							if e != nil {
 								c := Traveler{}
-								o <- c.AddCurrent(aql.QueryResult{&aql.QueryResult_Edge{v}})
+								o <- c.AddCurrent(aql.QueryResult{Result: &aql.QueryResult_Edge{Edge: e}})
 							}
 						}
 					}
@@ -346,7 +346,7 @@ func (self *PipeEngine) Out(key ...string) QueryInterface {
 						if v := i.GetCurrent().GetVertex(); v != nil {
 							for ov := range self.db.GetOutList(ctx, v.Gid, ctx.Value(PROP_LOAD).(bool), key) {
 								lv := ov
-								o <- i.AddCurrent(aql.QueryResult{&aql.QueryResult_Vertex{&lv}})
+								o <- i.AddCurrent(aql.QueryResult{Result: &aql.QueryResult_Vertex{Vertex: &lv}})
 							}
 						}
 					}
@@ -365,11 +365,11 @@ func (self *PipeEngine) Out(key ...string) QueryInterface {
 					for v := range self.db.GetVertexListByID(ctx, id_list, ctx.Value(PROP_LOAD).(bool)) {
 						i := <-traveler_list
 						if v != nil {
-							o <- i.AddCurrent(aql.QueryResult{&aql.QueryResult_Vertex{v}})
+							o <- i.AddCurrent(aql.QueryResult{Result: &aql.QueryResult_Vertex{Vertex: v}})
 						}
 					}
 				} else {
-					log.Printf("Weird State: %s", pipe.State)
+					log.Printf("Weird State: %d", pipe.State)
 				}
 				t.end_timer("all")
 			}()
@@ -390,11 +390,11 @@ func (self *PipeEngine) Both(key ...string) QueryInterface {
 						if v := i.GetCurrent().GetVertex(); v != nil {
 							for ov := range self.db.GetOutList(ctx, v.Gid, ctx.Value(PROP_LOAD).(bool), key) {
 								lv := ov
-								o <- i.AddCurrent(aql.QueryResult{&aql.QueryResult_Vertex{&lv}})
+								o <- i.AddCurrent(aql.QueryResult{Result: &aql.QueryResult_Vertex{Vertex: &lv}})
 							}
 							for ov := range self.db.GetInList(ctx, v.Gid, ctx.Value(PROP_LOAD).(bool), key) {
 								lv := ov
-								o <- i.AddCurrent(aql.QueryResult{&aql.QueryResult_Vertex{&lv}})
+								o <- i.AddCurrent(aql.QueryResult{Result: &aql.QueryResult_Vertex{Vertex: &lv}})
 							}
 						}
 					}
@@ -415,11 +415,11 @@ func (self *PipeEngine) Both(key ...string) QueryInterface {
 					for v := range self.db.GetVertexListByID(ctx, id_list, ctx.Value(PROP_LOAD).(bool)) {
 						i := <-traveler_list
 						if v != nil {
-							o <- i.AddCurrent(aql.QueryResult{&aql.QueryResult_Vertex{v}})
+							o <- i.AddCurrent(aql.QueryResult{Result: &aql.QueryResult_Vertex{Vertex: v}})
 						}
 					}
 				} else {
-					log.Printf("Weird State: %s", pipe.State)
+					log.Printf("Weird State: %d", pipe.State)
 				}
 				t.end_timer("all")
 			}()
@@ -440,7 +440,7 @@ func (self *PipeEngine) In(key ...string) QueryInterface {
 						if v := i.GetCurrent().GetVertex(); v != nil {
 							for e := range self.db.GetInList(ctx, v.Gid, ctx.Value(PROP_LOAD).(bool), key) {
 								el := e
-								o <- i.AddCurrent(aql.QueryResult{&aql.QueryResult_Vertex{&el}})
+								o <- i.AddCurrent(aql.QueryResult{Result: &aql.QueryResult_Vertex{Vertex: &el}})
 							}
 						}
 					}
@@ -448,7 +448,7 @@ func (self *PipeEngine) In(key ...string) QueryInterface {
 					for i := range pipe.Travelers {
 						if e := i.GetCurrent().GetEdge(); e != nil {
 							v := self.db.GetVertex(e.From, ctx.Value(PROP_LOAD).(bool))
-							o <- i.AddCurrent(aql.QueryResult{&aql.QueryResult_Vertex{v}})
+							o <- i.AddCurrent(aql.QueryResult{Result: &aql.QueryResult_Vertex{Vertex: v}})
 						}
 					}
 				}
@@ -470,7 +470,7 @@ func (self *PipeEngine) OutE(key ...string) QueryInterface {
 					if v := i.GetCurrent().GetVertex(); v != nil {
 						for oe := range self.db.GetOutEdgeList(ctx, v.Gid, ctx.Value(PROP_LOAD).(bool), key) {
 							le := oe
-							o <- i.AddCurrent(aql.QueryResult{&aql.QueryResult_Edge{&le}})
+							o <- i.AddCurrent(aql.QueryResult{Result: &aql.QueryResult_Edge{Edge: &le}})
 						}
 					}
 				}
@@ -492,11 +492,11 @@ func (self *PipeEngine) BothE(key ...string) QueryInterface {
 					if v := i.GetCurrent().GetVertex(); v != nil {
 						for oe := range self.db.GetOutEdgeList(ctx, v.Gid, ctx.Value(PROP_LOAD).(bool), key) {
 							le := oe
-							o <- i.AddCurrent(aql.QueryResult{&aql.QueryResult_Edge{&le}})
+							o <- i.AddCurrent(aql.QueryResult{Result: &aql.QueryResult_Edge{Edge: &le}})
 						}
 						for oe := range self.db.GetInEdgeList(ctx, v.Gid, ctx.Value(PROP_LOAD).(bool), key) {
 							le := oe
-							o <- i.AddCurrent(aql.QueryResult{&aql.QueryResult_Edge{&le}})
+							o <- i.AddCurrent(aql.QueryResult{Result: &aql.QueryResult_Edge{Edge: &le}})
 						}
 					}
 				}
@@ -519,7 +519,7 @@ func (self *PipeEngine) OutBundle(key ...string) QueryInterface {
 						//log.Printf("GetEdgeList: %s", v.Gid)
 						for oe := range self.db.GetOutBundleList(ctx, v.Gid, ctx.Value(PROP_LOAD).(bool), key) {
 							le := oe
-							o <- i.AddCurrent(aql.QueryResult{&aql.QueryResult_Bundle{&le}})
+							o <- i.AddCurrent(aql.QueryResult{Result: &aql.QueryResult_Bundle{Bundle: &le}})
 						}
 						//log.Printf("Done GetEdgeList: %s", v.Gid)
 					}
@@ -542,7 +542,7 @@ func (self *PipeEngine) InE(key ...string) QueryInterface {
 					if v := i.GetCurrent().GetVertex(); v != nil {
 						for e := range self.db.GetInEdgeList(ctx, v.Gid, ctx.Value(PROP_LOAD).(bool), key) {
 							el := e
-							o <- i.AddCurrent(aql.QueryResult{&aql.QueryResult_Edge{&el}})
+							o <- i.AddCurrent(aql.QueryResult{Result: &aql.QueryResult_Edge{Edge: &el}})
 						}
 					}
 				}
@@ -607,10 +607,10 @@ func (self *PipeEngine) GroupCount(label string) QueryInterface {
 				}
 				out := structpb.Struct{Fields: map[string]*structpb.Value{}}
 				for k, v := range groupCount {
-					out.Fields[k] = &structpb.Value{Kind: &structpb.Value_NumberValue{float64(v)}}
+					out.Fields[k] = &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: float64(v)}}
 				}
 				c := Traveler{}
-				o <- c.AddCurrent(aql.QueryResult{&aql.QueryResult_Struct{&out}})
+				o <- c.AddCurrent(aql.QueryResult{Result: &aql.QueryResult_Struct{Struct: &out}})
 				t.end_timer("all")
 			}()
 			return NewPipeOut(o, STATE_CUSTOM, pipe.ValueStates)
@@ -645,7 +645,7 @@ func (self *PipeEngine) Values(labels []string) QueryInterface {
 						} else {
 							protoutil.CopyStructToStructSub(&out, labels, props)
 						}
-						o <- i.AddCurrent(aql.QueryResult{&aql.QueryResult_Struct{&out}})
+						o <- i.AddCurrent(aql.QueryResult{Result: &aql.QueryResult_Struct{Struct: &out}})
 					}
 				}
 				t.end_timer("all")
@@ -785,7 +785,7 @@ func (self *PipeEngine) VertexFromValues(source string) QueryInterface {
 					for _, j := range out {
 						v := self.db.GetVertex(j, ctx.Value(PROP_LOAD).(bool))
 						if v != nil {
-							o <- i.AddCurrent(aql.QueryResult{&aql.QueryResult_Vertex{v}})
+							o <- i.AddCurrent(aql.QueryResult{Result: &aql.QueryResult_Vertex{Vertex: v}})
 						}
 					}
 				}
@@ -809,7 +809,7 @@ func (self *PipeEngine) Count() QueryInterface {
 				}
 				//log.Printf("Counted: %d", count)
 				trav := Traveler{}
-				o <- trav.AddCurrent(aql.QueryResult{&aql.QueryResult_IntValue{IntValue: count}})
+				o <- trav.AddCurrent(aql.QueryResult{Result: &aql.QueryResult_IntValue{IntValue: count}})
 				t.end_timer("all")
 			}()
 			return NewPipeOut(o, STATE_CUSTOM, pipe.ValueStates)

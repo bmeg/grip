@@ -26,7 +26,7 @@ func BoltBuilder(path string) (kvgraph.KVInterface, error) {
 	}, nil
 }
 
-var Loaded error = kvgraph.AddKVDriver("bolt", BoltBuilder)
+var Loaded = kvgraph.AddKVDriver("bolt", BoltBuilder)
 
 type BoltKV struct {
 	db *bolt.DB

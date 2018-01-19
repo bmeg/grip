@@ -71,7 +71,7 @@ func (self *CompiledFunction) Call(input ...*aql.QueryResult) *aql.QueryResult {
 	//struct_val := otto2map(otto_val)
 	log.Printf("function return: %#v", otto_val)
 	o := protoutil.AsStruct(otto_val.(map[string]interface{}))
-	return &aql.QueryResult{&aql.QueryResult_Struct{o}}
+	return &aql.QueryResult{Result: &aql.QueryResult_Struct{Struct: o}}
 }
 
 func (self *CompiledFunction) CallBool(input ...*aql.QueryResult) bool {
