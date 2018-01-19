@@ -36,7 +36,7 @@ func TestVertexInsert(t *testing.T) {
 		if !strings.HasPrefix(v.GetVertex().Gid, "vertex") {
 			t.Error("mis named vertex")
 		}
-		count += 1
+		count++
 	}
 	if count != 4 {
 		t.Error("wrong number of vertices")
