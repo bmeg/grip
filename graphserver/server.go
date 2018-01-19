@@ -105,33 +105,33 @@ func (server *ArachneServer) GetBundle(ctx context.Context, elem *aql.ElementID)
 
 func (server *ArachneServer) DeleteGraph(ctx context.Context, elem *aql.ElementID) (*aql.EditResult, error) {
 	server.engine.DeleteGraph(elem.Graph)
-	return &aql.EditResult{Result: &aql.EditResult_Id{elem.Graph}}, nil
+	return &aql.EditResult{Result: &aql.EditResult_Id{Id: elem.Graph}}, nil
 }
 
 func (server *ArachneServer) AddGraph(ctx context.Context, elem *aql.ElementID) (*aql.EditResult, error) {
 	server.engine.AddGraph(elem.Graph)
-	return &aql.EditResult{Result: &aql.EditResult_Id{elem.Graph}}, nil
+	return &aql.EditResult{Result: &aql.EditResult_Id{Id: elem.Graph}}, nil
 }
 
 func (server *ArachneServer) AddVertex(ctx context.Context, elem *aql.GraphElement) (*aql.EditResult, error) {
 	var id string = ""
 	server.engine.AddVertex(elem.Graph, *elem.Vertex)
 	id = elem.Vertex.Gid
-	return &aql.EditResult{Result: &aql.EditResult_Id{id}}, nil
+	return &aql.EditResult{Result: &aql.EditResult_Id{Id: id}}, nil
 }
 
 func (server *ArachneServer) AddEdge(ctx context.Context, elem *aql.GraphElement) (*aql.EditResult, error) {
 	var id string = ""
 	server.engine.AddEdge(elem.Graph, *elem.Edge)
 	id = elem.Edge.Gid
-	return &aql.EditResult{Result: &aql.EditResult_Id{id}}, nil
+	return &aql.EditResult{Result: &aql.EditResult_Id{Id: id}}, nil
 }
 
 func (server *ArachneServer) AddBundle(ctx context.Context, elem *aql.GraphElement) (*aql.EditResult, error) {
 	var id string = ""
 	server.engine.AddBundle(elem.Graph, *elem.Bundle)
 	id = elem.Bundle.Gid
-	return &aql.EditResult{Result: &aql.EditResult_Id{id}}, nil
+	return &aql.EditResult{Result: &aql.EditResult_Id{Id: id}}, nil
 }
 
 func (server *ArachneServer) StreamElements(stream aql.Edit_StreamElementsServer) error {
@@ -175,7 +175,7 @@ func (server *ArachneServer) DeleteVertex(ctx context.Context, elem *aql.Element
 	if err != nil {
 		return &aql.EditResult{Result: &aql.EditResult_Error{Error: fmt.Sprintf("%s", err)}}, nil
 	}
-	return &aql.EditResult{Result: &aql.EditResult_Id{elem.Id}}, nil
+	return &aql.EditResult{Result: &aql.EditResult_Id{Id: elem.Id}}, nil
 }
 
 func (server *ArachneServer) DeleteEdge(ctx context.Context, elem *aql.ElementID) (*aql.EditResult, error) {
@@ -183,5 +183,5 @@ func (server *ArachneServer) DeleteEdge(ctx context.Context, elem *aql.ElementID
 	if err != nil {
 		return &aql.EditResult{Result: &aql.EditResult_Error{Error: fmt.Sprintf("%s", err)}}, nil
 	}
-	return &aql.EditResult{Result: &aql.EditResult_Id{elem.Id}}, nil
+	return &aql.EditResult{Result: &aql.EditResult_Id{Id: elem.Id}}, nil
 }

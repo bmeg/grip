@@ -11,6 +11,8 @@ import (
 	"log"
 )
 
+// NewMongoArachne creates a new ArachneInterface using the given
+// mongo server url and database name
 func NewMongoArachne(url string, database string) gdbi.ArachneInterface {
 	session, err := mgo.Dial(url)
 	if err != nil {
@@ -29,12 +31,12 @@ type MongoGraph struct {
 	edges    *mgo.Collection
 }
 
-func (self *MongoArachne) AddGraph(graph string) error {
-	graphs := self.db.C(fmt.Sprintf("graphs"))
+func (ma *MongoArachne) AddGraph(graph string) error {
+	graphs := ma.db.C(fmt.Sprintf("graphs"))
 	graphs.Insert(map[string]string{"_id": graph})
 
-	//v := self.db.C(fmt.Sprintf("%s_vertices", graph))
-	e := self.db.C(fmt.Sprintf("%s_edges", graph))
+	//v := ma.db.C(fmt.Sprintf("%s_vertices", graph))
+	e := ma.db.C(fmt.Sprintf("%s_edges", graph))
 
 	e.EnsureIndex(mgo.Index{Key: []string{"$hashed:from"}})
 	e.EnsureIndex(mgo.Index{Key: []string{"$hashed:to"}})
@@ -432,14 +434,14 @@ func (self *MongoGraph) VertexLabelScan(ctx context.Context, label string) chan 
 	return out
 }
 
-func (self *MongoGraph) EdgeLabelScan(ctx context.Context, label string) chan string {
+func (mg *MongoGraph) EdgeLabelScan(ctx context.Context, label string) chan string {
 	out := make(chan string, 100)
 	go func() {
 		defer close(out)
 		selection := map[string]interface{}{
 			"label": label,
 		}
-		iter := self.edges.Find(selection).Select(map[string]interface{}{"_id": 1}).Iter()
+		iter := mg.edges.Find(selection).Select(map[string]interface{}{"_id": 1}).Iter()
 		defer iter.Close()
 		result := map[string]interface{}{}
 		for iter.Next(&result) {
