@@ -21,7 +21,7 @@ type ArachneServer struct {
 
 func NewArachneMongoServer(url string, database string) *ArachneServer {
 	return &ArachneServer{
-		engine: NewGraphEngine(mongo.NewMongoArachne(url, database)),
+		engine: NewGraphEngine(mongo.NewArachne(url, database)),
 	}
 }
 

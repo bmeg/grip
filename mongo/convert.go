@@ -8,11 +8,12 @@ import (
 	"gopkg.in/mgo.v2/bson"
 )
 
-var FIELD_LABEL string = "label"
-var FIELD_SRC string = "from"
-var FIELD_DST string = "to"
-var FIELD_BUNDLE string = "bundle"
+var fieldLabel = "label"
+var fieldSrc = "from"
+var fieldDst = "to"
+var fieldBundle = "bundle"
 
+// PackVertex take a AQL vertex and convert it to a mongo doc
 func PackVertex(v aql.Vertex) map[string]interface{} {
 	p := map[string]interface{}{}
 	if v.Data != nil {
@@ -26,14 +27,15 @@ func PackVertex(v aql.Vertex) map[string]interface{} {
 	}
 }
 
+// PackEdge takes a AQL edge and converts it to a mongo doc
 func PackEdge(e aql.Edge) map[string]interface{} {
 	p := map[string]interface{}{}
 	if e.Data != nil {
 		p = protoutil.AsMap(e.Data)
 	}
 	o := map[string]interface{}{
-		FIELD_SRC: e.From,
-		FIELD_DST: e.To,
+		fieldSrc: e.From,
+		fieldDst: e.To,
 		"label":   e.Label,
 		"data":    p,
 	}
@@ -45,17 +47,18 @@ func PackEdge(e aql.Edge) map[string]interface{} {
 
 type pair struct {
 	key          string
-	value_map    interface{}
-	value_struct *structpb.Struct
+	valueMap    interface{}
+	valueStruct *structpb.Struct
 }
 
+// PackBundle takes an AQL edge bundle and converts it into a mongo doc
 func PackBundle(e aql.Bundle) map[string]interface{} {
 	m := map[string]interface{}{}
 
 	p1 := make(chan pair, 100)
 	go func() {
 		for k, v := range e.Bundle {
-			p1 <- pair{key: k, value_struct: v}
+			p1 <- pair{key: k, valueStruct: v}
 		}
 		close(p1)
 	}()
@@ -66,7 +69,7 @@ func PackBundle(e aql.Bundle) map[string]interface{} {
 	for i := 0; i < NWORKERS; i++ {
 		go func() {
 			for i := range p1 {
-				p2 <- pair{key: i.key, value_map: protoutil.AsMap(i.value_struct)}
+				p2 <- pair{key: i.key, valueMap: protoutil.AsMap(i.valueStruct)}
 			}
 			pclose <- true
 		}()
@@ -79,12 +82,12 @@ func PackBundle(e aql.Bundle) map[string]interface{} {
 	}()
 
 	for i := range p2 {
-		m[i.key] = i.value_map
+		m[i.key] = i.valueMap
 	}
 
 	o := map[string]interface{}{
-		FIELD_SRC:    e.From,
-		FIELD_BUNDLE: m,
+		fieldSrc:    e.From,
+		fieldBundle: m,
 		"label":      e.Label,
 	}
 	if e.Gid != "" {
@@ -93,6 +96,7 @@ func PackBundle(e aql.Bundle) map[string]interface{} {
 	return o
 }
 
+// UnpackVertex takes a mongo doc and converts it into an aql.Vertex
 func UnpackVertex(i map[string]interface{}) aql.Vertex {
 	o := aql.Vertex{}
 	o.Gid = i["_id"].(string)
@@ -103,6 +107,7 @@ func UnpackVertex(i map[string]interface{}) aql.Vertex {
 	return o
 }
 
+// UnpackEdge takes a mongo doc and convertes it into an aql.Edge
 func UnpackEdge(i map[string]interface{}) aql.Edge {
 	o := aql.Edge{}
 	id := i["_id"]
@@ -112,12 +117,13 @@ func UnpackEdge(i map[string]interface{}) aql.Edge {
 		o.Gid = id.(string)
 	}
 	o.Label = i["label"].(string)
-	o.From = i[FIELD_SRC].(string)
-	o.To = i[FIELD_DST].(string)
+	o.From = i[fieldSrc].(string)
+	o.To = i[fieldDst].(string)
 	o.Data = protoutil.AsStruct(i["data"].(map[string]interface{}))
 	return o
 }
 
+// UnpackBundle take a mongo doc and converts it into an aql.Bundle
 func UnpackBundle(i map[string]interface{}) aql.Bundle {
 	o := aql.Bundle{}
 	id := i["_id"]
@@ -127,12 +133,12 @@ func UnpackBundle(i map[string]interface{}) aql.Bundle {
 		o.Gid = id.(string)
 	}
 	o.Label = i["label"].(string)
-	o.From = i[FIELD_SRC].(string)
+	o.From = i[fieldSrc].(string)
 	m := map[string]*structpb.Struct{}
 
 	p1 := make(chan pair, 100)
 	go func() {
-		for k, v := range i[FIELD_BUNDLE].(map[string]interface{}) {
+		for k, v := range i[fieldBundle].(map[string]interface{}) {
 			p1 <- pair{k, v, nil}
 		}
 		close(p1)
@@ -143,7 +149,7 @@ func UnpackBundle(i map[string]interface{}) aql.Bundle {
 	for i := 0; i < NWORKERS; i++ {
 		go func() {
 			for p := range p1 {
-				p2 <- pair{p.key, nil, protoutil.AsStruct(p.value_map.(map[string]interface{}))}
+				p2 <- pair{p.key, nil, protoutil.AsStruct(p.valueMap.(map[string]interface{}))}
 			}
 			pclose <- true
 		}()
@@ -156,7 +162,7 @@ func UnpackBundle(i map[string]interface{}) aql.Bundle {
 	}()
 
 	for p := range p2 {
-		m[p.key] = p.value_struct
+		m[p.key] = p.valueStruct
 	}
 	o.Bundle = m
 	return o
