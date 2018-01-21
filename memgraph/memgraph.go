@@ -95,7 +95,7 @@ func (self *MemGraph) GetInList(ctx context.Context, key string, load bool, filt
 	o := make(chan aql.Vertex, 100)
 	go func() {
 		defer close(o)
-		for src, _ := range self.in_edges[key] {
+		for src := range self.in_edges[key] {
 			for _, src_edge := range self.out_edges[src][key] {
 				send := false
 				if filter != nil {
@@ -142,7 +142,7 @@ func (self *MemGraph) GetInEdgeList(ctx context.Context, key string, load bool, 
 	o := make(chan aql.Edge, 100)
 	go func() {
 		defer close(o)
-		for src, _ := range self.in_edges[key] {
+		for src := range self.in_edges[key] {
 			for _, src_edge := range self.out_edges[src][key] {
 				send := false
 				if filter != nil {

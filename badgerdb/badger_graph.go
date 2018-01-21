@@ -680,7 +680,7 @@ func (self *BadgerGDB) GetOutList(ctx context.Context, id string, loadProp bool,
 							bundle := aql.Bundle{}
 							data, _ := bundle_value.Value()
 							proto.Unmarshal(data, &bundle)
-							for k, _ := range bundle.Bundle {
+							for k := range bundle.Bundle {
 								vertex_chan <- VertexKey(self.graph, k)
 							}
 						}

@@ -28,7 +28,7 @@ func GraphKeyParse(key []byte) string {
 }
 
 func EdgeKey(graph, id, src, dst, label string, etype byte) []byte {
-	return bytes.Join([][]byte{EDGE_PREFIX, []byte(graph), []byte(id), []byte(src), []byte(dst), []byte(label), []byte{etype}}, []byte{0})
+	return bytes.Join([][]byte{EDGE_PREFIX, []byte(graph), []byte(id), []byte(src), []byte(dst), []byte(label), {etype}}, []byte{0})
 }
 
 func EdgeKeyPrefix(graph, id string) []byte {
@@ -55,11 +55,11 @@ func EdgeListPrefix(graph string) []byte {
 }
 
 func SrcEdgeKey(graph, src, dst, eid, label string, etype byte) []byte {
-	return bytes.Join([][]byte{SEDGE_PREFIX, []byte(graph), []byte(src), []byte(dst), []byte(eid), []byte(label), []byte{etype}}, []byte{0})
+	return bytes.Join([][]byte{SEDGE_PREFIX, []byte(graph), []byte(src), []byte(dst), []byte(eid), []byte(label), {etype}}, []byte{0})
 }
 
 func DstEdgeKey(graph, src, dst, eid, label string, etype byte) []byte {
-	return bytes.Join([][]byte{DEDGE_PREFIX, []byte(graph), []byte(dst), []byte(src), []byte(eid), []byte(label), []byte{etype}}, []byte{0})
+	return bytes.Join([][]byte{DEDGE_PREFIX, []byte(graph), []byte(dst), []byte(src), []byte(eid), []byte(label), {etype}}, []byte{0})
 }
 
 func SrcEdgeKeyPrefix(graph, src, dst, eid string) []byte {

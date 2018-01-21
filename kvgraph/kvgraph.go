@@ -440,7 +440,7 @@ func (self *KVInterfaceGDB) GetOutList(ctx context.Context, id string, loadProp 
 						if err == nil {
 							bundle := aql.Bundle{}
 							proto.Unmarshal(bundle_value, &bundle)
-							for k, _ := range bundle.Bundle {
+							for k := range bundle.Bundle {
 								vertex_chan <- VertexKey(self.graph, k)
 							}
 						}
