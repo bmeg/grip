@@ -47,7 +47,7 @@ func (ma *Arachne) AddGraph(graph string) error {
 	return nil
 }
 
-// Close the conection
+// Close the connection
 func (ma *Arachne) Close() {
 	ma.db.Logout()
 }

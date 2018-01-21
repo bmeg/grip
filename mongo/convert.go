@@ -36,8 +36,8 @@ func PackEdge(e aql.Edge) map[string]interface{} {
 	o := map[string]interface{}{
 		fieldSrc: e.From,
 		fieldDst: e.To,
-		"label":   e.Label,
-		"data":    p,
+		"label":  e.Label,
+		"data":   p,
 	}
 	if e.Gid != "" {
 		o["_id"] = e.Gid
@@ -46,7 +46,7 @@ func PackEdge(e aql.Edge) map[string]interface{} {
 }
 
 type pair struct {
-	key          string
+	key         string
 	valueMap    interface{}
 	valueStruct *structpb.Struct
 }
@@ -88,7 +88,7 @@ func PackBundle(e aql.Bundle) map[string]interface{} {
 	o := map[string]interface{}{
 		fieldSrc:    e.From,
 		fieldBundle: m,
-		"label":      e.Label,
+		"label":     e.Label,
 	}
 	if e.Gid != "" {
 		o["_id"] = e.Gid
