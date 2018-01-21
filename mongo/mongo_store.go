@@ -87,18 +87,20 @@ func (self *MongoGraph) Query() gdbi.QueryInterface {
 	return gdbi.NewPipeEngine(self)
 }
 
-func (self *MongoGraph) GetEdge(id string, loadProp bool) *aql.Edge {
+// GetEdge loads an edge given an id. It returns nil if not found
+func (mg *MongoGraph) GetEdge(id string, loadProp bool) *aql.Edge {
 	d := map[string]interface{}{}
-	q := self.vertices.FindId(id)
+	q := mg.vertices.FindId(id)
 	q.One(d)
 	v := UnpackEdge(d)
 	return &v
 }
 
-func (self *MongoGraph) GetVertex(key string, load bool) *aql.Vertex {
+// GetVertex loads a vertex given an id. It returns a nil if not found
+func (mg *MongoGraph) GetVertex(key string, load bool) *aql.Vertex {
 	//log.Printf("GetVertex: %s", key)
 	d := map[string]interface{}{}
-	q := self.vertices.Find(map[string]interface{}{"_id": key}).Limit(1)
+	q := mg.vertices.Find(map[string]interface{}{"_id": key}).Limit(1)
 	if !load {
 		q = q.Select(map[string]interface{}{"_id": 1, "label": 1})
 	}
@@ -110,33 +112,40 @@ func (self *MongoGraph) GetVertex(key string, load bool) *aql.Vertex {
 	return &v
 }
 
-func (self *MongoGraph) SetVertex(vertex aql.Vertex) error {
-	_, err := self.vertices.UpsertId(vertex.Gid, PackVertex(vertex))
+// SetEdge adds an edge to the graph, if it already exists
+// in the graph, it is replaced
+func (mg *MongoGraph) SetVertex(vertex aql.Vertex) error {
+	_, err := mg.vertices.UpsertId(vertex.Gid, PackVertex(vertex))
 	return err
 }
 
-func (self *MongoGraph) SetEdge(edge aql.Edge) error {
+// SetEdge adds an edge to the graph, if the id is not "" and in already exists
+// in the graph, it is replaced
+func (mg *MongoGraph) SetEdge(edge aql.Edge) error {
 	if edge.Gid != "" {
-		_, err := self.edges.UpsertId(edge.Gid, PackEdge(edge))
+		_, err := mg.edges.UpsertId(edge.Gid, PackEdge(edge))
 		return err
 	}
-	err := self.edges.Insert(PackEdge(edge))
+	err := mg.edges.Insert(PackEdge(edge))
 	return err
 }
 
-func (self *MongoGraph) DelVertex(key string) error {
-	return self.vertices.RemoveId(key)
+// DelEdge deletes vertex with id `key`
+func (mg *MongoGraph) DelVertex(key string) error {
+	return mg.vertices.RemoveId(key)
 }
 
-func (self *MongoGraph) DelEdge(key string) error {
-	return self.edges.RemoveId(key)
+// DelEdge deletes edge with id `key`
+func (mg *MongoGraph) DelEdge(key string) error {
+	return mg.edges.RemoveId(key)
 }
 
-func (self *MongoGraph) GetVertexList(ctx context.Context, load bool) chan aql.Vertex {
+// GetVertexList produces a channel of all edges in the graph
+func (mg *MongoGraph) GetVertexList(ctx context.Context, load bool) chan aql.Vertex {
 	o := make(chan aql.Vertex, 100)
 	go func() {
 		defer close(o)
-		iter := self.vertices.Find(nil).Iter()
+		iter := mg.vertices.Find(nil).Iter()
 		defer iter.Close()
 		result := map[string]interface{}{}
 		for iter.Next(&result) {
@@ -152,11 +161,12 @@ func (self *MongoGraph) GetVertexList(ctx context.Context, load bool) chan aql.V
 	return o
 }
 
-func (self *MongoGraph) GetEdgeList(ctx context.Context, loadProp bool) chan aql.Edge {
+// GetEdgeList produces a channel of all edges in the graph
+func (mg *MongoGraph) GetEdgeList(ctx context.Context, loadProp bool) chan aql.Edge {
 	o := make(chan aql.Edge, 100)
 	go func() {
 		defer close(o)
-		iter := self.edges.Find(nil).Iter()
+		iter := mg.edges.Find(nil).Iter()
 		defer iter.Close()
 		result := map[string]interface{}{}
 		for iter.Next(&result) {
@@ -180,18 +190,21 @@ func (self *MongoGraph) GetEdgeList(ctx context.Context, loadProp bool) chan aql
 	return o
 }
 
-var BATCH_SIZE int = 100
+//TODO: move this into driver config parameter
+var BatchSize int = 100
 
-func (self *MongoGraph) GetVertexListByID(ctx context.Context, ids chan string, load bool) chan *aql.Vertex {
+// GetVertexListByID is passed a channel of vertex ids and it produces a channel
+// of vertices
+func (mg *MongoGraph) GetVertexListByID(ctx context.Context, ids chan string, load bool) chan *aql.Vertex {
 	batches := make(chan []string, 100)
 	go func() {
 		defer close(batches)
-		o := make([]string, 0, BATCH_SIZE)
+		o := make([]string, 0, BatchSize)
 		for id := range ids {
 			o = append(o, id)
-			if len(o) >= BATCH_SIZE {
+			if len(o) >= BatchSize {
 				batches <- o
-				o = make([]string, 0, BATCH_SIZE)
+				o = make([]string, 0, BatchSize)
 			}
 		}
 		batches <- o
@@ -204,7 +217,7 @@ func (self *MongoGraph) GetVertexListByID(ctx context.Context, ids chan string, 
 			//log.Printf("Getting Batch")
 			query := bson.M{"_id": bson.M{"$in": batch}}
 			//log.Printf("Query: %s", query)
-			q := self.vertices.Find(query)
+			q := mg.vertices.Find(query)
 			if !load {
 				q = q.Select(map[string]interface{}{"_id": 1, "label": 1})
 			}
@@ -236,7 +249,7 @@ func (self *MongoGraph) GetVertexListByID(ctx context.Context, ids chan string, 
 	return out
 }
 
-func (self *MongoGraph) GetOutList(ctx context.Context, key string, load bool, edgeLabels []string) chan aql.Vertex {
+func (mg *MongoGraph) GetOutList(ctx context.Context, key string, load bool, edgeLabels []string) chan aql.Vertex {
 	o := make(chan aql.Vertex, 100)
 	vertex_chan := make(chan string, 100)
 	go func() {
@@ -247,7 +260,7 @@ func (self *MongoGraph) GetOutList(ctx context.Context, key string, load bool, e
 		if len(edgeLabels) > 0 {
 			selection[FIELD_LABEL] = bson.M{"$in": edgeLabels}
 		}
-		iter := self.edges.Find(selection).Iter()
+		iter := mg.edges.Find(selection).Iter()
 		defer iter.Close()
 		result := map[string]interface{}{}
 		for iter.Next(&result) {
@@ -259,7 +272,7 @@ func (self *MongoGraph) GetOutList(ctx context.Context, key string, load bool, e
 			if _, ok := result[FIELD_DST]; ok {
 				vertex_chan <- result[FIELD_DST].(string)
 			} else if val, ok := result[FIELD_BUNDLE]; ok {
-				for k, _ := range val.(map[string]interface{}) {
+				for k := range val.(map[string]interface{}) {
 					vertex_chan <- k
 				}
 			}
@@ -269,7 +282,7 @@ func (self *MongoGraph) GetOutList(ctx context.Context, key string, load bool, e
 	go func() {
 		defer close(o)
 		for dst := range vertex_chan {
-			q := self.vertices.FindId(dst)
+			q := mg.vertices.FindId(dst)
 			if !load {
 				q = q.Select(map[string]interface{}{"_id": 1, "label": 1})
 			}
@@ -284,7 +297,7 @@ func (self *MongoGraph) GetOutList(ctx context.Context, key string, load bool, e
 	return o
 }
 
-func (self *MongoGraph) GetInList(ctx context.Context, key string, load bool, edgeLabels []string) chan aql.Vertex {
+func (mg *MongoGraph) GetInList(ctx context.Context, key string, load bool, edgeLabels []string) chan aql.Vertex {
 	o := make(chan aql.Vertex, 100)
 	go func() {
 		defer close(o)
@@ -294,7 +307,7 @@ func (self *MongoGraph) GetInList(ctx context.Context, key string, load bool, ed
 		if len(edgeLabels) > 0 {
 			selection[FIELD_LABEL] = bson.M{"$in": edgeLabels}
 		}
-		iter := self.edges.Find(selection).Iter()
+		iter := mg.edges.Find(selection).Iter()
 		defer iter.Close()
 		result := map[string]interface{}{}
 		for iter.Next(&result) {
@@ -303,7 +316,7 @@ func (self *MongoGraph) GetInList(ctx context.Context, key string, load bool, ed
 				return
 			default:
 			}
-			q := self.vertices.FindId(result[FIELD_SRC])
+			q := mg.vertices.FindId(result[FIELD_SRC])
 			if !load {
 				q = q.Select(map[string]interface{}{"_id": 1, "label": 1})
 			}
@@ -316,7 +329,9 @@ func (self *MongoGraph) GetInList(ctx context.Context, key string, load bool, ed
 	return o
 }
 
-func (self *MongoGraph) GetOutEdgeList(ctx context.Context, key string, load bool, edgeLabels []string) chan aql.Edge {
+// GetOutEdgeList given vertex `key` find all outgoing edges,
+// if len(edgeLabels) > 0 the edge labels must match a string in the array
+func (mg *MongoGraph) GetOutEdgeList(ctx context.Context, key string, load bool, edgeLabels []string) chan aql.Edge {
 	o := make(chan aql.Edge, 1000)
 	go func() {
 		defer close(o)
@@ -326,7 +341,7 @@ func (self *MongoGraph) GetOutEdgeList(ctx context.Context, key string, load boo
 		if len(edgeLabels) > 0 {
 			selection[FIELD_LABEL] = bson.M{"$in": edgeLabels}
 		}
-		iter := self.edges.Find(selection).Iter()
+		iter := mg.edges.Find(selection).Iter()
 		result := map[string]interface{}{}
 		for iter.Next(&result) {
 			if _, ok := result[FIELD_DST]; ok {
@@ -344,7 +359,10 @@ func (self *MongoGraph) GetOutEdgeList(ctx context.Context, key string, load boo
 	return o
 }
 
-func (self *MongoGraph) GetOutBundleList(ctx context.Context, key string, load bool, edgeLabels []string) chan aql.Bundle {
+// GetOutBundleList given vertex `key` find all outgoing bundles,
+// if len(edgeLabels) > 0 the edge labels must match a string in the array
+// load is ignored
+func (mg *MongoGraph) GetOutBundleList(ctx context.Context, key string, load bool, edgeLabels []string) chan aql.Bundle {
 	o := make(chan aql.Bundle, 1000)
 	go func() {
 		defer close(o)
@@ -354,7 +372,7 @@ func (self *MongoGraph) GetOutBundleList(ctx context.Context, key string, load b
 		if len(edgeLabels) > 0 {
 			selection[FIELD_LABEL] = bson.M{"$in": edgeLabels}
 		}
-		iter := self.edges.Find(selection).Iter()
+		iter := mg.edges.Find(selection).Iter()
 		result := map[string]interface{}{}
 		for iter.Next(&result) {
 			if _, ok := result[FIELD_BUNDLE]; ok {
@@ -366,7 +384,10 @@ func (self *MongoGraph) GetOutBundleList(ctx context.Context, key string, load b
 	return o
 }
 
-func (self *MongoGraph) GetInEdgeList(ctx context.Context, key string, load bool, edgeLabels []string) chan aql.Edge {
+// GetInEdgeList given vertex `key` find all incoming edges,
+// if len(edgeLabels) > 0 the edge labels must match a string in the array
+func (mg *MongoGraph) GetInEdgeList(ctx context.Context, key string, load bool, edgeLabels []string) chan aql.Edge {
+	//TODO: use the load variable to filter data field from scan if possible
 	o := make(chan aql.Edge, 100)
 	go func() {
 		defer close(o)
@@ -376,7 +397,7 @@ func (self *MongoGraph) GetInEdgeList(ctx context.Context, key string, load bool
 		if len(edgeLabels) > 0 {
 			selection[FIELD_LABEL] = bson.M{"$in": edgeLabels}
 		}
-		iter := self.edges.Find(selection).Iter()
+		iter := mg.edges.Find(selection).Iter()
 		result := map[string]interface{}{}
 		for iter.Next(&result) {
 			e := UnpackEdge(result)
@@ -386,35 +407,40 @@ func (self *MongoGraph) GetInEdgeList(ctx context.Context, key string, load bool
 	return o
 }
 
-func (self *MongoGraph) SetBundle(bundle aql.Bundle) error {
+// SetBundle adds a bundle to the graph
+func (mg *MongoGraph) SetBundle(bundle aql.Bundle) error {
 	if bundle.Gid != "" {
-		_, err := self.edges.UpsertId(bundle.Gid, PackBundle(bundle))
+		_, err := mg.edges.UpsertId(bundle.Gid, PackBundle(bundle))
 		return err
 	}
-	err := self.edges.Insert(PackBundle(bundle))
+	err := mg.edges.Insert(PackBundle(bundle))
 	return err
 }
 
-func (self *MongoGraph) GetBundle(id string, loadProp bool) *aql.Bundle {
+// GetBundle loads bundle of edges, given an id
+// loadProp is ignored
+func (mg *MongoGraph) GetBundle(id string, loadProp bool) *aql.Bundle {
 	d := map[string]interface{}{}
-	q := self.edges.FindId(id)
+	q := mg.edges.FindId(id)
 	q.One(d)
 	v := UnpackBundle(d)
 	return &v
 }
 
-func (self *MongoGraph) DelBundle(id string) error {
-	return self.edges.RemoveId(id)
+// DelBundle removes a bundle of edges given an id
+func (mg *MongoGraph) DelBundle(id string) error {
+	return mg.edges.RemoveId(id)
 }
 
-func (self *MongoGraph) VertexLabelScan(ctx context.Context, label string) chan string {
+// VertexLabelScan produces a channel of all edge ids where the edge label matches `label`
+func (mg *MongoGraph) VertexLabelScan(ctx context.Context, label string) chan string {
 	out := make(chan string, 100)
 	go func() {
 		defer close(out)
 		selection := map[string]interface{}{
 			"label": label,
 		}
-		iter := self.vertices.Find(selection).Select(map[string]interface{}{"_id": 1}).Iter()
+		iter := mg.vertices.Find(selection).Select(map[string]interface{}{"_id": 1}).Iter()
 		defer iter.Close()
 		result := map[string]interface{}{}
 		for iter.Next(&result) {
@@ -434,6 +460,7 @@ func (self *MongoGraph) VertexLabelScan(ctx context.Context, label string) chan 
 	return out
 }
 
+// EdgeLabelScan produces a channel of all edge ids where the edge label matches `label`
 func (mg *MongoGraph) EdgeLabelScan(ctx context.Context, label string) chan string {
 	out := make(chan string, 100)
 	go func() {
