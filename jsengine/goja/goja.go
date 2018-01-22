@@ -10,13 +10,14 @@ import (
 	"log"
 )
 
-type GojaRuntime struct {
+type gojaRuntime struct {
 	vm   *goja.Runtime
 	call goja.Callable
 }
 
 var added = jsengine.AddEngine("goja", NewFunction)
 
+// NewFunction returns a new javascript evaluator based on the `source` using the GOJA engine
 func NewFunction(source string, imports []string) (jsengine.JSEngine, error) {
 
 	vm := goja.New()
@@ -42,17 +43,19 @@ func NewFunction(source string, imports []string) (jsengine.JSEngine, error) {
 	if !callable {
 		return nil, fmt.Errorf("no Function")
 	}
-	return &GojaRuntime{vm, f}, nil
+	return &gojaRuntime{vm, f}, nil
 }
 
-func (self *GojaRuntime) Call(input ...*aql.QueryResult) *aql.QueryResult {
+// Call takes an array of results, and runs a javascript function to transform
+// them into a new results
+func (gojaRun *gojaRuntime) Call(input ...*aql.QueryResult) *aql.QueryResult {
 	m := []goja.Value{}
 	for _, i := range input {
 		s := i.GetStruct()
-		m_i := protoutil.AsMap(s)
-		m = append(m, self.vm.ToValue(m_i))
+		mI := protoutil.AsMap(s)
+		m = append(m, gojaRun.vm.ToValue(mI))
 	}
-	value, err := self.call(nil, m...)
+	value, err := gojaRun.call(nil, m...)
 	if err != nil {
 		log.Printf("Exec Error: %s", err)
 	}
@@ -62,30 +65,34 @@ func (self *GojaRuntime) Call(input ...*aql.QueryResult) *aql.QueryResult {
 	return &aql.QueryResult{Result: &aql.QueryResult_Struct{Struct: o}}
 }
 
-func (self *GojaRuntime) CallBool(input ...*aql.QueryResult) bool {
+// CallBool takes an array of results and evaluates them using the compiled
+// javascript function, which should return a boolean
+func (gojaRun *gojaRuntime) CallBool(input ...*aql.QueryResult) bool {
 	m := []goja.Value{}
 	for _, i := range input {
 		if x, ok := i.GetResult().(*aql.QueryResult_Edge); ok {
-			m_i := protoutil.AsMap(x.Edge.Data)
-			m = append(m, self.vm.ToValue(m_i))
+			mI := protoutil.AsMap(x.Edge.Data)
+			m = append(m, gojaRun.vm.ToValue(mI))
 		} else if x, ok := i.GetResult().(*aql.QueryResult_Vertex); ok {
-			m_i := protoutil.AsMap(x.Vertex.Data)
-			m = append(m, self.vm.ToValue(m_i))
+			mI := protoutil.AsMap(x.Vertex.Data)
+			m = append(m, gojaRun.vm.ToValue(mI))
 		} else if x, ok := i.GetResult().(*aql.QueryResult_Struct); ok {
-			m_i := protoutil.AsMap(x.Struct)
-			m = append(m, self.vm.ToValue(m_i))
+			mI := protoutil.AsMap(x.Struct)
+			m = append(m, gojaRun.vm.ToValue(mI))
 		}
 	}
-	value, err := self.call(nil, m...)
+	value, err := gojaRun.call(nil, m...)
 	if err != nil {
 		log.Printf("Exec Error: %s", err)
 	}
-	otto_val := value.ToBoolean()
-	return otto_val
+	gojaVal := value.ToBoolean()
+	return gojaVal
 }
 
-func (self *GojaRuntime) CallValueMapBool(input map[string]aql.QueryResult) bool {
 
+// CallValueMapBool takes a map of results and returns a boolean based on the
+// evaluation of compiled javascript function
+func (gojaRun *gojaRuntime) CallValueMapBool(input map[string]aql.QueryResult) bool {
 	c := map[string]interface{}{}
 	for k, v := range input {
 		l := map[string]interface{}{}
@@ -103,15 +110,17 @@ func (self *GojaRuntime) CallValueMapBool(input map[string]aql.QueryResult) bool
 		c[k] = l
 	}
 	//log.Printf("Eval: %s", c)
-	value, err := self.call(nil, self.vm.ToValue(c))
+	value, err := gojaRun.call(nil, gojaRun.vm.ToValue(c))
 	if err != nil {
 		log.Printf("Exec Error: %s", err)
 	}
-	otto_val := value.ToBoolean()
-	return otto_val
+	gojaVal := value.ToBoolean()
+	return gojaVal
 }
 
-func (self *GojaRuntime) CallValueToVertex(input map[string]aql.QueryResult) []string {
+// CallValueToVertex takes a map of query results and evaluates them using
+// the compiled javascript function, which should returns a series of vertex ids
+func (gojaRun *gojaRuntime) CallValueToVertex(input map[string]aql.QueryResult) []string {
 	c := map[string]interface{}{}
 	for k, v := range input {
 		l := map[string]interface{}{}
@@ -138,20 +147,20 @@ func (self *GojaRuntime) CallValueToVertex(input map[string]aql.QueryResult) []s
 		c[k] = l
 	}
 	//log.Printf("Eval: %s", c)
-	value, err := self.call(nil, self.vm.ToValue(c))
+	value, err := gojaRun.call(nil, gojaRun.vm.ToValue(c))
 	if err != nil {
 		log.Printf("Exec Error: %s", err)
 	}
 	//if value.Class() == "Array" {
-	goja_val := value.Export()
-	if x, ok := goja_val.([]string); ok {
+	gojaVal := value.Export()
+	if x, ok := gojaVal.([]string); ok {
 		out := make([]string, len(x))
 		for i := range x {
 			out[i] = x[i]
 		}
 		return out
 	}
-	if x, ok := goja_val.([]interface{}); ok {
+	if x, ok := gojaVal.([]interface{}); ok {
 		out := make([]string, len(x))
 		for i := range x {
 			out[i] = x[i].(string) //BUG: This is effing stupid, check types!!!!
