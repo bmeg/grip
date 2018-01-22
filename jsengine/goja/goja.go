@@ -89,7 +89,6 @@ func (gojaRun *gojaRuntime) CallBool(input ...*aql.QueryResult) bool {
 	return gojaVal
 }
 
-
 // CallValueMapBool takes a map of results and returns a boolean based on the
 // evaluation of compiled javascript function
 func (gojaRun *gojaRuntime) CallValueMapBool(input map[string]aql.QueryResult) bool {
