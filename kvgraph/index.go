@@ -4,12 +4,14 @@ import (
 	"context"
 )
 
-func (self *KVInterfaceGDB) VertexLabelScan(ctx context.Context, label string) chan string {
+// VertexLabelScan produces a channel of all vertex ids in a graph
+// that match a given label
+func (kgdb *KVInterfaceGDB) VertexLabelScan(ctx context.Context, label string) chan string {
 	//TODO: Make this work better
 	out := make(chan string, 100)
 	go func() {
 		defer close(out)
-		for i := range self.GetVertexList(ctx, true) {
+		for i := range kgdb.GetVertexList(ctx, true) {
 			if i.Label == label {
 				out <- i.Gid
 			}
@@ -18,12 +20,14 @@ func (self *KVInterfaceGDB) VertexLabelScan(ctx context.Context, label string) c
 	return out
 }
 
-func (self *KVInterfaceGDB) EdgeLabelScan(ctx context.Context, label string) chan string {
+// EdgeLabelScan produces a channel of all edge ids in a graph
+// that match a given label
+func (kgdb *KVInterfaceGDB) EdgeLabelScan(ctx context.Context, label string) chan string {
 	//TODO: Make this work better
 	out := make(chan string, 100)
 	go func() {
 		defer close(out)
-		for i := range self.GetEdgeList(ctx, true) {
+		for i := range kgdb.GetEdgeList(ctx, true) {
 			if i.Label == label {
 				out <- i.Gid
 			}

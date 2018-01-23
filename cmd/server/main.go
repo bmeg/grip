@@ -9,13 +9,14 @@ import (
 	"path/filepath"
 )
 
-var httpPort string = "8000"
-var rpcPort string = "9090"
-var dbPath string = "graph.db"
-var mongoUrl string = ""
-var boltPath string = ""
-var rocksPath string = ""
+var httpPort = "8000"
+var rpcPort = "9090"
+var dbPath = "graph.db"
+var mongoURL string
+var boltPath string
+var rocksPath string
 
+// Cmd the main command called by the cobra library
 var Cmd = &cobra.Command{
 	Use:   "server",
 	Short: "Starts arachne server",
@@ -27,8 +28,8 @@ var Cmd = &cobra.Command{
 		log.Printf("Starting Server")
 
 		var server *graphserver.ArachneServer = nil
-		if mongoUrl != "" {
-			server = graphserver.NewArachneMongoServer(mongoUrl, dbPath)
+		if mongoURL != "" {
+			server = graphserver.NewArachneMongoServer(mongoURL, dbPath)
 		} else if boltPath != "" {
 			server = graphserver.NewArachneBoltServer(boltPath)
 		} else if rocksPath != "" {
@@ -37,7 +38,7 @@ var Cmd = &cobra.Command{
 			server = graphserver.NewArachneBadgerServer(dbPath)
 		}
 		server.Start(rpcPort)
-		proxy := graphserver.NewHttpProxy(rpcPort, httpPort, contentDir)
+		proxy := graphserver.NewHTTPProxy(rpcPort, httpPort, contentDir)
 
 		c := make(chan os.Signal, 1)
 		signal.Notify(c, os.Interrupt)
@@ -57,7 +58,7 @@ func init() {
 	flags.StringVar(&httpPort, "port", "8000", "HTTP Port")
 	flags.StringVar(&rpcPort, "rpc", "9090", "TCP+RPC Port")
 	flags.StringVar(&dbPath, "db", "graph_db", "DB Path")
-	flags.StringVar(&mongoUrl, "mongo", "", "Mongo URL")
+	flags.StringVar(&mongoURL, "mongo", "", "Mongo URL")
 	flags.StringVar(&boltPath, "bolt", "", "Bolt DB Path")
 	flags.StringVar(&rocksPath, "rocks", "", "RocksDB Path")
 }

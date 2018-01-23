@@ -6,18 +6,18 @@ import (
 	"github.com/bmeg/arachne/jsengine"
 	"github.com/bmeg/arachne/protoutil"
 	"github.com/robertkrimen/otto"
-	_ "github.com/robertkrimen/otto/underscore"
+	//"github.com/robertkrimen/otto/underscore"
 	"log"
 )
 
-type CompiledFunction struct {
+type compiledFunction struct {
 	Function otto.Value
 }
 
 var added = jsengine.AddEngine("otto", NewFunction)
 
+// NewFunction returns a new javascript evaluator based on the `source` using the OTTO Engine
 func NewFunction(source string, imports []string) (jsengine.JSEngine, error) {
-
 	vm := otto.New()
 	for _, src := range imports {
 		_, err := vm.Run(src)
@@ -37,22 +37,24 @@ func NewFunction(source string, imports []string) (jsengine.JSEngine, error) {
 	}
 
 	if out.IsFunction() {
-		return &CompiledFunction{Function: out}, nil
+		return &compiledFunction{Function: out}, nil
 	}
 	return nil, fmt.Errorf("no Function")
 }
 
-func (self *CompiledFunction) Call(input ...*aql.QueryResult) *aql.QueryResult {
+// Call takes an array of results, and runs a javascript function to transform
+// them into a new results
+func (cfunc *compiledFunction) Call(input ...*aql.QueryResult) *aql.QueryResult {
 
 	m := []interface{}{}
 	for _, i := range input {
 		s := i.GetStruct()
-		m_i := protoutil.AsMap(s)
-		m = append(m, m_i)
+		mI := protoutil.AsMap(s)
+		m = append(m, mI)
 	}
 
 	//log.Printf("Inputs: %#v", m)
-	//log.Printf("Function: %#v", self.Function)
+	//log.Printf("Function: %#v", cfunc.Function)
 	/*
 	 // code to deal with panics inside of the JS engine
 	  defer func() {
@@ -61,37 +63,39 @@ func (self *CompiledFunction) Call(input ...*aql.QueryResult) *aql.QueryResult {
 	       }
 	   }()
 	*/
-	value, err := self.Function.Call(otto.Value{}, m...)
+	value, err := cfunc.Function.Call(otto.Value{}, m...)
 	if err != nil {
 		log.Printf("Exec Error: %s", err)
 	}
 
-	otto_val, _ := value.Export()
+	ottoVal, _ := value.Export()
 
-	//struct_val := otto2map(otto_val)
-	log.Printf("function return: %#v", otto_val)
-	o := protoutil.AsStruct(otto_val.(map[string]interface{}))
+	//struct_val := otto2map(ottoVal)
+	log.Printf("function return: %#v", ottoVal)
+	o := protoutil.AsStruct(ottoVal.(map[string]interface{}))
 	return &aql.QueryResult{Result: &aql.QueryResult_Struct{Struct: o}}
 }
 
-func (self *CompiledFunction) CallBool(input ...*aql.QueryResult) bool {
+// CallBool takes an array of results and evaluates them using the compiled
+// javascript function, which should return a boolean
+func (cfunc *compiledFunction) CallBool(input ...*aql.QueryResult) bool {
 
 	m := []interface{}{}
 	for _, i := range input {
 		if x, ok := i.GetResult().(*aql.QueryResult_Edge); ok {
-			m_i := protoutil.AsMap(x.Edge.Data)
-			m = append(m, m_i)
+			mI := protoutil.AsMap(x.Edge.Data)
+			m = append(m, mI)
 		} else if x, ok := i.GetResult().(*aql.QueryResult_Vertex); ok {
-			m_i := protoutil.AsMap(x.Vertex.Data)
-			m = append(m, m_i)
+			mI := protoutil.AsMap(x.Vertex.Data)
+			m = append(m, mI)
 		} else if x, ok := i.GetResult().(*aql.QueryResult_Struct); ok {
-			m_i := protoutil.AsMap(x.Struct)
-			m = append(m, m_i)
+			mI := protoutil.AsMap(x.Struct)
+			m = append(m, mI)
 		}
 	}
 
 	//log.Printf("Inputs: %#v", m)
-	//log.Printf("Function: %#v", self.Function)
+	//log.Printf("Function: %#v", cfunc.Function)
 	/*
 	 // code to deal with panics inside of the JS engine
 	  defer func() {
@@ -100,16 +104,17 @@ func (self *CompiledFunction) CallBool(input ...*aql.QueryResult) bool {
 	       }
 	   }()
 	*/
-	value, err := self.Function.Call(otto.Value{}, m...)
+	value, err := cfunc.Function.Call(otto.Value{}, m...)
 	if err != nil {
 		log.Printf("Exec Error: %s", err)
 	}
-	otto_val, _ := value.ToBoolean()
-	return otto_val
+	ottoVal, _ := value.ToBoolean()
+	return ottoVal
 }
 
-func (self *CompiledFunction) CallValueMapBool(input map[string]aql.QueryResult) bool {
-
+// CallValueMapBool takes a map of results and returns a boolean based on the
+// evaluation of compiled javascript function
+func (cfunc *compiledFunction) CallValueMapBool(input map[string]aql.QueryResult) bool {
 	c := map[string]interface{}{}
 	for k, v := range input {
 		l := map[string]interface{}{}
@@ -127,15 +132,17 @@ func (self *CompiledFunction) CallValueMapBool(input map[string]aql.QueryResult)
 		c[k] = l
 	}
 	//log.Printf("Eval: %s", c)
-	value, err := self.Function.Call(otto.Value{}, c)
+	value, err := cfunc.Function.Call(otto.Value{}, c)
 	if err != nil {
 		log.Printf("Exec Error: %s", err)
 	}
-	otto_val, _ := value.ToBoolean()
-	return otto_val
+	ottoVal, _ := value.ToBoolean()
+	return ottoVal
 }
 
-func (self *CompiledFunction) CallValueToVertex(input map[string]aql.QueryResult) []string {
+// CallValueToVertex takes a map of query results and evaluates them using
+// the compiled javascript function, which should returns a series of vertex ids
+func (cfunc *compiledFunction) CallValueToVertex(input map[string]aql.QueryResult) []string {
 	c := map[string]interface{}{}
 	for k, v := range input {
 		l := map[string]interface{}{}
@@ -162,13 +169,13 @@ func (self *CompiledFunction) CallValueToVertex(input map[string]aql.QueryResult
 		c[k] = l
 	}
 	//log.Printf("Eval: %s", c)
-	value, err := self.Function.Call(otto.Value{}, c)
+	value, err := cfunc.Function.Call(otto.Value{}, c)
 	if err != nil {
 		log.Printf("Exec Error: %s", err)
 	}
 	if value.Class() == "Array" {
-		otto_val, _ := value.Export()
-		if x, ok := otto_val.([]string); ok {
+		ottoVal, _ := value.Export()
+		if x, ok := ottoVal.([]string); ok {
 			out := make([]string, len(x))
 			for i := range x {
 				out[i] = x[i]

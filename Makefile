@@ -30,17 +30,8 @@ lint:
 	@go get github.com/alecthomas/gometalinter
 	@gometalinter --install > /dev/null
 	@gometalinter --disable-all --enable=vet --enable=golint --enable=gofmt --enable=misspell \
-		--vendor --errors \
-		-e '.*bundle.go' -e ".*pb.go" -e ".*pb.gw.go" \
-		./...
-
-# Run code style and other checks
-lint-strict:
-	@go get github.com/alecthomas/gometalinter
-	@gometalinter --install > /dev/null
-	@gometalinter --disable-all --enable=vet --enable=golint --enable=gofmt --enable=misspell \
 		--vendor \
-		-e '.*bundle.go' -e ".*pb.go" -e ".*pb.gw.go" \
+		-e '.*bundle.go' -e ".*pb.go" -e ".*pb.gw.go"  -e "underscore.go" \
 		./...
 
 # Run all tests

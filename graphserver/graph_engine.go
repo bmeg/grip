@@ -9,54 +9,69 @@ import (
 	"log"
 )
 
+// GraphEngine wraps the arachne interface and provides a traversal
+// compiler that takes the traversal request data structure and changes
+// it into a series of function calls
 type GraphEngine struct {
 	Arachne gdbi.ArachneInterface
 }
 
+// NewGraphEngine takes an ArachneInterface and returns a new graph engine
 func NewGraphEngine(a gdbi.ArachneInterface) GraphEngine {
 	return GraphEngine{Arachne: a}
 }
 
+// Close tell the arachne interface to close
 func (engine *GraphEngine) Close() {
 	engine.Arachne.Close()
 }
 
+// AddGraph wraps `ArachneInterface.AddGraph`
 func (engine *GraphEngine) AddGraph(graph string) error {
 	return engine.Arachne.AddGraph(graph)
 }
 
+// DeleteGraph wraps `ArachneInterface.DeleteGraph`
 func (engine *GraphEngine) DeleteGraph(graph string) error {
 	return engine.Arachne.DeleteGraph(graph)
 }
 
+// GetGraphs wraps `ArachneInterface.GetGraphs`
 func (engine *GraphEngine) GetGraphs() []string {
 	return engine.Arachne.GetGraphs()
 }
 
+// GetVertex wraps `ArachneInterface.GetVertex`
 func (engine *GraphEngine) GetVertex(graph, id string) *aql.Vertex {
 	return engine.Arachne.Graph(graph).GetVertex(id, true)
 }
 
+// GetEdge wraps `ArachneInterface.GetEdge`
 func (engine *GraphEngine) GetEdge(graph, id string) *aql.Edge {
 	return engine.Arachne.Graph(graph).GetEdge(id, true)
 }
 
+// GetBundle wraps `ArachneInterface.GetBundle`
 func (engine *GraphEngine) GetBundle(graph, id string) *aql.Bundle {
 	return engine.Arachne.Graph(graph).GetBundle(id, true)
 }
 
+// AddEdge wraps `ArachneInterface.AddEdge`
 func (engine *GraphEngine) AddEdge(graph string, edge aql.Edge) error {
 	return engine.Arachne.Graph(graph).SetEdge(edge)
 }
 
+// AddVertex wraps `ArachneInterface.AddVertex`
 func (engine *GraphEngine) AddVertex(graph string, vertex aql.Vertex) error {
 	return engine.Arachne.Graph(graph).SetVertex(vertex)
 }
 
+// AddBundle wraps `ArachneInterface.AddBundle`
 func (engine *GraphEngine) AddBundle(graph string, bundle aql.Bundle) error {
 	return engine.Arachne.Graph(graph).SetBundle(bundle)
 }
 
+// RunTraversal takes an aql.GraphQuery statement, compiles it and then executes it
 func (engine *GraphEngine) RunTraversal(ctx context.Context, query *aql.GraphQuery) (chan aql.ResultRow, error) {
 	tr := engine.Query(query.Graph)
 	for _, s := range query.Query {
@@ -69,6 +84,8 @@ func (engine *GraphEngine) RunTraversal(ctx context.Context, query *aql.GraphQue
 	return tr.GetResult(ctx)
 }
 
+// UnpackQuery takes a aql.GraphQuery subquery (ie a traversal run as a child element
+// of another traversal) and creates a valid Traversal
 func UnpackQuery(query *aql.GraphQuery, tr *Traversal) (*Traversal, error) {
 	for _, s := range query.Query {
 		err := tr.RunStatement(s)
@@ -80,21 +97,25 @@ func UnpackQuery(query *aql.GraphQuery, tr *Traversal) (*Traversal, error) {
 	return tr, nil
 }
 
+// Query takes a graph name and initializes a new Traversal structure
 func (engine *GraphEngine) Query(graph string) *Traversal {
 	out := &Traversal{Query: engine.Arachne.Query(graph), engine: engine, graph: graph}
 	return out
 }
 
+// Traversal is a compiled aql.GraphQuery connected to a ArachneInterface
 type Traversal struct {
 	graph  string
 	engine *GraphEngine
 	Query  gdbi.QueryInterface
 }
 
+// SubQuery initializes a new sub-traversal for a traversal
 func (trav *Traversal) SubQuery() *Traversal {
 	return &Traversal{Query: trav.engine.Arachne.Query(trav.graph), engine: trav.engine, graph: trav.graph}
 }
 
+// RunStatement adds on more query statement to a traversal
 func (trav *Traversal) RunStatement(statement *aql.GraphStatement) error {
 	if x, ok := statement.GetStatement().(*aql.GraphStatement_V); ok {
 		vlist := protoutil.AsStringList(x.V)
@@ -129,7 +150,7 @@ func (trav *Traversal) RunStatement(statement *aql.GraphStatement) error {
 		trav.Query = trav.Query.HasLabel(labels...)
 	} else if x, ok := statement.GetStatement().(*aql.GraphStatement_HasId); ok {
 		ids := protoutil.AsStringList(x.HasId)
-		trav.Query = trav.Query.HasId(ids...)
+		trav.Query = trav.Query.HasID(ids...)
 	} else if x, ok := statement.GetStatement().(*aql.GraphStatement_Limit); ok {
 		trav.Query = trav.Query.Limit(x.Limit)
 	} else if x, ok := statement.GetStatement().(*aql.GraphStatement_Values); ok {
@@ -172,6 +193,7 @@ func (trav *Traversal) RunStatement(statement *aql.GraphStatement) error {
 	return nil
 }
 
+// GetResult executes the Traversal
 func (trav *Traversal) GetResult(ctx context.Context) (chan aql.ResultRow, error) {
 	e := trav.Query.Execute(ctx)
 	if e == nil {
