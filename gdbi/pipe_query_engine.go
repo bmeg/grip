@@ -18,16 +18,16 @@ import (
 
 func stateCustom(i int) int {
 	switch i {
-	case STATE_EDGE_LIST:
-		return STATE_EDGE_LIST
-	case STATE_VERTEX_LIST:
-		return STATE_VERTEX_LIST
-	case STATE_RAW_EDGE_LIST:
-		return STATE_EDGE_LIST
-	case STATE_RAW_VERTEX_LIST:
-		return STATE_VERTEX_LIST
+	case StateEdgeList:
+		return StateEdgeList
+	case StateVertexList:
+		return StateVertexList
+	case StateRawEdgeList:
+		return StateEdgeList
+	case StateRawVertexList:
+		return StateVertexList
 	default:
-		return STATE_CUSTOM
+		return StateCustom
 	}
 }
 
@@ -151,7 +151,7 @@ func (pengine *PipeEngine) V(key []string) QueryInterface {
 					}
 					t.endTimer("all")
 				}()
-				return newPipeOut(o, STATE_VERTEX_LIST, map[string]int{})
+				return newPipeOut(o, StateVertexList, map[string]int{})
 			})
 	}
 	return pengine.append("V",
@@ -167,7 +167,7 @@ func (pengine *PipeEngine) V(key []string) QueryInterface {
 				}
 				t.endTimer("all")
 			}()
-			return newPipeOut(o, STATE_RAW_VERTEX_LIST, map[string]int{})
+			return newPipeOut(o, StateRawVertexList, map[string]int{})
 		})
 }
 
@@ -186,7 +186,7 @@ func (pengine *PipeEngine) E() QueryInterface {
 				}
 				t.endTimer("all")
 			}()
-			return newPipeOut(o, STATE_RAW_VERTEX_LIST, map[string]int{})
+			return newPipeOut(o, StateRawVertexList, map[string]int{})
 		})
 }
 
@@ -208,7 +208,7 @@ func (pengine *PipeEngine) HasID(ids ...string) QueryInterface {
 			go func() {
 				defer close(o)
 				t.startTimer("all")
-				if pipe.State == STATE_VERTEX_LIST || pipe.State == STATE_RAW_VERTEX_LIST {
+				if pipe.State == StateVertexList || pipe.State == StateRawVertexList {
 					for i := range pipe.Travelers {
 						if v := i.GetCurrent().GetVertex(); v != nil {
 							if contains(ids, v.Gid) {
@@ -216,7 +216,7 @@ func (pengine *PipeEngine) HasID(ids ...string) QueryInterface {
 							}
 						}
 					}
-				} else if pipe.State == STATE_EDGE_LIST || pipe.State == STATE_RAW_EDGE_LIST {
+				} else if pipe.State == StateEdgeList || pipe.State == StateRawEdgeList {
 					for i := range pipe.Travelers {
 						if e := i.GetCurrent().GetEdge(); e != nil {
 							if contains(ids, e.Gid) {
@@ -243,7 +243,7 @@ func (pengine *PipeEngine) HasLabel(labels ...string) QueryInterface {
 
 				//if the 'state' is of a raw output, ie the output of query.V() or query.E(),
 				//we can skip calling the upstream element and reference the index
-				if pipe.State == STATE_RAW_VERTEX_LIST {
+				if pipe.State == StateRawVertexList {
 					t.startTimer("indexScan")
 					for _, l := range labels {
 						for id := range pengine.db.VertexLabelScan(ctx, l) {
@@ -255,7 +255,7 @@ func (pengine *PipeEngine) HasLabel(labels ...string) QueryInterface {
 						}
 					}
 					t.endTimer("indexScan")
-				} else if pipe.State == STATE_RAW_EDGE_LIST {
+				} else if pipe.State == StateRawEdgeList {
 					for _, l := range labels {
 						for id := range pengine.db.EdgeLabelScan(ctx, l) {
 							e := pengine.db.GetEdge(id, ctx.Value(propLoad).(bool))
@@ -354,7 +354,7 @@ func (pengine *PipeEngine) Out(key ...string) QueryInterface {
 			go func() {
 				t.startTimer("all")
 				defer close(o)
-				if pipe.State == STATE_VERTEX_LIST || pipe.State == STATE_RAW_VERTEX_LIST {
+				if pipe.State == StateVertexList || pipe.State == StateRawVertexList {
 					for i := range pipe.Travelers {
 						if v := i.GetCurrent().GetVertex(); v != nil {
 							for ov := range pengine.db.GetOutList(ctx, v.Gid, ctx.Value(propLoad).(bool), key) {
@@ -363,7 +363,7 @@ func (pengine *PipeEngine) Out(key ...string) QueryInterface {
 							}
 						}
 					}
-				} else if pipe.State == STATE_EDGE_LIST || pipe.State == STATE_RAW_EDGE_LIST {
+				} else if pipe.State == StateEdgeList || pipe.State == StateRawEdgeList {
 					idList := make(chan string, 100)
 					travelerList := make(chan Traveler, 100)
 					go func() {
@@ -386,7 +386,7 @@ func (pengine *PipeEngine) Out(key ...string) QueryInterface {
 				}
 				t.endTimer("all")
 			}()
-			return newPipeOut(o, STATE_VERTEX_LIST, pipe.ValueStates)
+			return newPipeOut(o, StateVertexList, pipe.ValueStates)
 		})
 }
 
@@ -401,7 +401,7 @@ func (pengine *PipeEngine) Both(key ...string) QueryInterface {
 			go func() {
 				t.startTimer("all")
 				defer close(o)
-				if pipe.State == STATE_VERTEX_LIST || pipe.State == STATE_RAW_VERTEX_LIST {
+				if pipe.State == StateVertexList || pipe.State == StateRawVertexList {
 					for i := range pipe.Travelers {
 						if v := i.GetCurrent().GetVertex(); v != nil {
 							for ov := range pengine.db.GetOutList(ctx, v.Gid, ctx.Value(propLoad).(bool), key) {
@@ -414,7 +414,7 @@ func (pengine *PipeEngine) Both(key ...string) QueryInterface {
 							}
 						}
 					}
-				} else if pipe.State == STATE_EDGE_LIST || pipe.State == STATE_RAW_EDGE_LIST {
+				} else if pipe.State == StateEdgeList || pipe.State == StateRawEdgeList {
 					idList := make(chan string, 100)
 					travelerList := make(chan Traveler, 100)
 					go func() {
@@ -439,7 +439,7 @@ func (pengine *PipeEngine) Both(key ...string) QueryInterface {
 				}
 				t.endTimer("all")
 			}()
-			return newPipeOut(o, STATE_VERTEX_LIST, pipe.ValueStates)
+			return newPipeOut(o, StateVertexList, pipe.ValueStates)
 		})
 }
 
@@ -453,7 +453,7 @@ func (pengine *PipeEngine) In(key ...string) QueryInterface {
 			go func() {
 				t.startTimer("all")
 				defer close(o)
-				if pipe.State == STATE_VERTEX_LIST || pipe.State == STATE_RAW_VERTEX_LIST {
+				if pipe.State == StateVertexList || pipe.State == StateRawVertexList {
 					for i := range pipe.Travelers {
 						if v := i.GetCurrent().GetVertex(); v != nil {
 							for e := range pengine.db.GetInList(ctx, v.Gid, ctx.Value(propLoad).(bool), key) {
@@ -462,7 +462,7 @@ func (pengine *PipeEngine) In(key ...string) QueryInterface {
 							}
 						}
 					}
-				} else if pipe.State == STATE_EDGE_LIST || pipe.State == STATE_RAW_EDGE_LIST {
+				} else if pipe.State == StateEdgeList || pipe.State == StateRawEdgeList {
 					for i := range pipe.Travelers {
 						if e := i.GetCurrent().GetEdge(); e != nil {
 							v := pengine.db.GetVertex(e.From, ctx.Value(propLoad).(bool))
@@ -472,7 +472,7 @@ func (pengine *PipeEngine) In(key ...string) QueryInterface {
 				}
 				t.endTimer("all")
 			}()
-			return newPipeOut(o, STATE_VERTEX_LIST, pipe.ValueStates)
+			return newPipeOut(o, StateVertexList, pipe.ValueStates)
 		})
 }
 
@@ -496,7 +496,7 @@ func (pengine *PipeEngine) OutE(key ...string) QueryInterface {
 				}
 				t.endTimer("all")
 			}()
-			return newPipeOut(o, STATE_EDGE_LIST, pipe.ValueStates)
+			return newPipeOut(o, StateEdgeList, pipe.ValueStates)
 		})
 }
 
@@ -524,7 +524,7 @@ func (pengine *PipeEngine) BothE(key ...string) QueryInterface {
 				}
 				t.endTimer("all")
 			}()
-			return newPipeOut(o, STATE_EDGE_LIST, pipe.ValueStates)
+			return newPipeOut(o, StateEdgeList, pipe.ValueStates)
 		})
 }
 
@@ -550,7 +550,7 @@ func (pengine *PipeEngine) OutBundle(key ...string) QueryInterface {
 				}
 				t.endTimer("all")
 			}()
-			return newPipeOut(o, STATE_BUNDLE_LIST, pipe.ValueStates)
+			return newPipeOut(o, StateBundleList, pipe.ValueStates)
 		})
 }
 
@@ -575,7 +575,7 @@ func (pengine *PipeEngine) InE(key ...string) QueryInterface {
 				}
 				t.endTimer("all")
 			}()
-			return newPipeOut(o, STATE_EDGE_LIST, pipe.ValueStates)
+			return newPipeOut(o, StateEdgeList, pipe.ValueStates)
 		})
 }
 
@@ -645,7 +645,7 @@ func (pengine *PipeEngine) GroupCount(label string) QueryInterface {
 				o <- c.AddCurrent(aql.QueryResult{Result: &aql.QueryResult_Struct{Struct: &out}})
 				t.endTimer("all")
 			}()
-			return newPipeOut(o, STATE_CUSTOM, pipe.ValueStates)
+			return newPipeOut(o, StateCustom, pipe.ValueStates)
 		})
 }
 
@@ -686,7 +686,7 @@ func (pengine *PipeEngine) Values(labels []string) QueryInterface {
 				}
 				t.endTimer("all")
 			}()
-			return newPipeOut(o, STATE_CUSTOM, pipe.ValueStates)
+			return newPipeOut(o, StateCustom, pipe.ValueStates)
 		})
 }
 
@@ -721,7 +721,7 @@ func (pengine *PipeEngine) Map(source string) QueryInterface {
 				}
 				t.endTimer("all")
 			}()
-			return newPipeOut(o, STATE_CUSTOM, pipe.ValueStates)
+			return newPipeOut(o, StateCustom, pipe.ValueStates)
 		})
 }
 
@@ -755,7 +755,7 @@ func (pengine *PipeEngine) Fold(source string) QueryInterface {
 				}
 				t.endTimer("all")
 			}()
-			return newPipeOut(o, STATE_CUSTOM, pipe.ValueStates)
+			return newPipeOut(o, StateCustom, pipe.ValueStates)
 		})
 }
 
@@ -864,7 +864,7 @@ func (pengine *PipeEngine) Count() QueryInterface {
 				o <- trav.AddCurrent(aql.QueryResult{Result: &aql.QueryResult_IntValue{IntValue: count}})
 				t.endTimer("all")
 			}()
-			return newPipeOut(o, STATE_CUSTOM, pipe.ValueStates)
+			return newPipeOut(o, StateCustom, pipe.ValueStates)
 		})
 }
 
