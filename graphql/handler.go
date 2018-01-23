@@ -10,16 +10,18 @@ import (
 	"github.com/bmeg/arachne/aql"
 )
 
-type GraphQLHandler struct {
+// Handler is a GraphQL endpoint to query the Arachne database
+type Handler struct {
 	graphqlHadler *handler.Handler
-	client        aql.AQLClient
+	client        aql.Client
 }
 
+// NewHTTPHandler initilizes a new GraphQLHandler
 func NewHTTPHandler(address string) http.Handler {
 	client, _ := aql.Connect(address, false)
 
-	schema := BuildGraphQLSchema(client, "graphql")
-	return &GraphQLHandler{
+	schema := buildGraphQLSchema(client, "graphql")
+	return &Handler{
 		graphqlHadler: handler.New(&handler.Config{
 			Schema: schema,
 		}),
@@ -27,11 +29,12 @@ func NewHTTPHandler(address string) http.Handler {
 	}
 }
 
-func (self *GraphQLHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
-	self.graphqlHadler.ServeHTTP(writer, request)
+// ServeHTTP responds to HTTP graphql requests
+func (gh *Handler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
+	gh.graphqlHadler.ServeHTTP(writer, request)
 }
 
-func getObjects(client aql.AQLClient, gqlDB string) map[string]map[string]interface{} {
+func getObjects(client aql.Client, gqlDB string) map[string]map[string]interface{} {
 	out := map[string]map[string]interface{}{}
 	results, _ := client.Query(gqlDB).V().HasLabel("Object").Execute()
 	for elem := range results {
@@ -41,7 +44,7 @@ func getObjects(client aql.AQLClient, gqlDB string) map[string]map[string]interf
 	return out
 }
 
-func getQueries(client aql.AQLClient, gqlDB string) map[string]map[string]interface{} {
+func getQueries(client aql.Client, gqlDB string) map[string]map[string]interface{} {
 	out := map[string]map[string]interface{}{}
 	results, _ := client.Query(gqlDB).V().HasLabel("Query").Execute()
 	for elem := range results {
@@ -51,7 +54,7 @@ func getQueries(client aql.AQLClient, gqlDB string) map[string]map[string]interf
 	return out
 }
 
-func getQueryFields(client aql.AQLClient, gqlDB string, queryGID string) map[string]string {
+func getQueryFields(client aql.Client, gqlDB string, queryGID string) map[string]string {
 	out := map[string]string{}
 	results, _ := client.Query(gqlDB).V(queryGID).OutEdge("field").As("a").Out().As("b").Select("a", "b").Execute()
 	for elem := range results {
@@ -62,7 +65,7 @@ func getQueryFields(client aql.AQLClient, gqlDB string, queryGID string) map[str
 	return out
 }
 
-func getObjectFields(client aql.AQLClient, gqlDB string, queryGID string) map[string]string {
+func getObjectFields(client aql.Client, gqlDB string, queryGID string) map[string]string {
 	out := map[string]string{}
 	results, _ := client.Query(gqlDB).V(queryGID).OutEdge("field").As("a").Out().As("b").Select("a", "b").Execute()
 	for elem := range results {
@@ -73,9 +76,9 @@ func getObjectFields(client aql.AQLClient, gqlDB string, queryGID string) map[st
 	return out
 }
 
-func BuildGraphQLSchema(client aql.AQLClient, gqlDB string) *graphql.Schema {
+func buildGraphQLSchema(client aql.Client, gqlDB string) *graphql.Schema {
 
-	var dataGraph string = "example" //TODO: hard coded for the moment
+	var dataGraph = "example" //TODO: hard coded for the moment
 
 	objects := map[string]*graphql.Object{}
 
@@ -100,7 +103,7 @@ func BuildGraphQLSchema(client aql.AQLClient, gqlDB string) *graphql.Schema {
 		objects[gid] = gobj
 	}
 
-	for gid, _ := range getObjects(client, gqlDB) {
+	for gid := range getObjects(client, gqlDB) {
 		for edgeName, objID := range getObjectFields(client, gqlDB, gid) {
 			log.Printf("Object Field %s %s", edgeName, objID)
 			//lID := objID
@@ -124,13 +127,13 @@ func BuildGraphQLSchema(client aql.AQLClient, gqlDB string) *graphql.Schema {
 		}
 	}
 
-	query_fields := graphql.Fields{}
+	queryFields := graphql.Fields{}
 	for gid, data := range getQueries(client, gqlDB) {
 		log.Printf("Query %s %s", gid, data)
 		for edgeName, objID := range getQueryFields(client, gqlDB, gid) {
 			log.Printf("query field %s %s %s", edgeName, objID, objects[objID])
 
-			query_fields[edgeName] = &graphql.Field{
+			queryFields[edgeName] = &graphql.Field{
 				Type: objects[objID],
 				Args: graphql.FieldConfigArgument{
 					"id": &graphql.ArgumentConfig{
@@ -151,11 +154,11 @@ func BuildGraphQLSchema(client aql.AQLClient, gqlDB string) *graphql.Schema {
 
 		}
 	}
-	log.Printf("Fields: %#v", query_fields)
+	log.Printf("Fields: %#v", queryFields)
 	queryType := graphql.NewObject(
 		graphql.ObjectConfig{
 			Name:   "Query",
-			Fields: query_fields,
+			Fields: queryFields,
 		})
 	schemaConfig := graphql.SchemaConfig{
 		Query: queryType,

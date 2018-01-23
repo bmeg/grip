@@ -17,6 +17,7 @@ import (
 	"runtime/debug"
 )
 
+// HandleError logs errors and returns http respose codes
 func HandleError(w http.ResponseWriter, req *http.Request, error string, code int) {
 	fmt.Println(error)
 	fmt.Println(req.URL)
@@ -32,47 +33,60 @@ type MarshalClean struct {
 	m runtime.Marshaler
 }
 
-func (self *MarshalClean) ContentType() string {
-	return self.m.ContentType()
+// ContentType return content type of marshler
+func (mclean *MarshalClean) ContentType() string {
+	return mclean.m.ContentType()
 }
 
-func (self *MarshalClean) Marshal(v interface{}) ([]byte, error) {
+// Marshal serializes v into a JSON encoded byte array. If v is of
+// type `proto.Message` the then field "result" is extracted and returned by
+// itself. This is mainly to get around a weird behavior of the GRPC gateway
+// streaming output
+func (mclean *MarshalClean) Marshal(v interface{}) ([]byte, error) {
 	if x, ok := v.(map[string]proto.Message); ok {
-		return self.m.Marshal(x["result"])
+		return mclean.m.Marshal(x["result"])
 	}
-	return self.m.Marshal(v)
+	return mclean.m.Marshal(v)
 }
 
-func (self *MarshalClean) NewDecoder(r io.Reader) runtime.Decoder {
-	return self.m.NewDecoder(r)
+// NewDecoder shims runtime.Marshaler.NewDecoder
+func (mclean *MarshalClean) NewDecoder(r io.Reader) runtime.Decoder {
+	return mclean.m.NewDecoder(r)
 }
 
-func (self *MarshalClean) NewEncoder(w io.Writer) runtime.Encoder {
-	return self.m.NewEncoder(w)
+// NewEncoder shims runtime.Marshaler.NewEncoder
+func (mclean *MarshalClean) NewEncoder(w io.Writer) runtime.Encoder {
+	return mclean.m.NewEncoder(w)
 }
 
-func (self *MarshalClean) Unmarshal(data []byte, v interface{}) error {
-	return self.m.Unmarshal(data, v)
+// Unmarshal shims runtime.Marshaler.Unmarshal
+func (mclean *MarshalClean) Unmarshal(data []byte, v interface{}) error {
+	return mclean.m.Unmarshal(data, v)
 }
 
+// Proxy is a GRPC Arachne proxy
 type Proxy struct {
 	cancel   context.CancelFunc
 	server   *http.Server
 	httpPort string
 }
 
-func (self Proxy) Run() {
-	log.Printf("HTTP API listening on port: %s\n", self.httpPort)
-	self.server.ListenAndServe()
+// Run starts the server
+func (proxy Proxy) Run() {
+	log.Printf("HTTP API listening on port: %s\n", proxy.httpPort)
+	proxy.server.ListenAndServe()
 }
 
-func (self Proxy) Stop() {
+// Stop turns the proxy server off
+func (proxy Proxy) Stop() {
 	log.Printf("Stopping Server")
-	self.server.Close()
-	self.cancel()
+	proxy.server.Close()
+	proxy.cancel()
 }
 
-func NewHttpProxy(rpcPort string, httpPort string, contentDir string) Proxy {
+// NewHTTPProxy creates an HTTP based arachne endpoint on `httpPort` that
+// connects to `rpcPort` and serves data from `contentDir`
+func NewHTTPProxy(rpcPort string, httpPort string, contentDir string) Proxy {
 	//setup RESTful proxy
 	marsh := MarshalClean{m: &runtime.JSONPb{OrigName: true}}
 	grpcMux := runtime.NewServeMux(runtime.WithMarshalerOption("*", &marsh))

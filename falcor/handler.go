@@ -7,14 +7,17 @@ import (
 	"net/url"
 )
 
-type FalcorHandler struct {
+// Handler is a test HTTP handler to implements a Falcor endpoint on a Arachne backend
+type Handler struct {
 }
 
+// NewHTTPHandler creates a new FalcorHandler
 func NewHTTPHandler() http.Handler {
-	return &FalcorHandler{}
+	return &Handler{}
 }
 
-func (self *FalcorHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
+// ServeHTTP respond to HTTP Falcor requests
+func (falcor *Handler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 	m, _ := url.ParseQuery(request.URL.RawQuery)
 	if x, ok := m["paths"]; ok {
 		log.Printf("Request: %s", x)

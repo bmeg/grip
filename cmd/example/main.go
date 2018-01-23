@@ -7,9 +7,9 @@ import (
 	"log"
 )
 
-var host string = "localhost:9090"
-var graph string = "example"
-var exampleSet string = "starwars"
+var host = "localhost:9090"
+var graph = "example"
+var exampleSet = "starwars"
 
 func found(set []string, val string) bool {
 	for _, i := range set {
@@ -20,6 +20,7 @@ func found(set []string, val string) bool {
 	return false
 }
 
+// Cmd is the example loader command line definition
 var Cmd = &cobra.Command{
 	Use:   "example",
 	Short: "Load example on Arachne Server",
@@ -46,20 +47,20 @@ var Cmd = &cobra.Command{
 			conn.StreamElements(elemChan)
 			wait <- false
 		}()
-		for _, vertex := range sw_vertices {
+		for _, vertex := range swVertices {
 			v := vertex
 			elemChan <- aql.GraphElement{Graph: graph, Vertex: &v}
 		}
-		for _, edge := range sw_edges {
+		for _, edge := range swEdges {
 			e := edge
 			elemChan <- aql.GraphElement{Graph: graph, Edge: &e}
 		}
 
-		for _, vertex := range sw_gql_vertices {
+		for _, vertex := range swGQLVertices {
 			v := vertex
 			elemChan <- aql.GraphElement{Graph: "graphql", Vertex: &v}
 		}
-		for _, edge := range sw_gql_edges {
+		for _, edge := range swGQLEdges {
 			e := edge
 			elemChan <- aql.GraphElement{Graph: "graphql", Edge: &e}
 		}

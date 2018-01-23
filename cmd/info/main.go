@@ -6,8 +6,9 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var host string = "localhost:9090"
+var host = "localhost:9090"
 
+// Cmd line declaration
 var Cmd = &cobra.Command{
 	Use:   "info",
 	Short: "Info on Arachne Graph",

@@ -8,11 +8,12 @@ import (
 	"log"
 )
 
-var host string = "localhost:9090"
-var vertexDump bool = false
-var edgeDump bool = false
-var graph string = "data"
+var host = "localhost:9090"
+var vertexDump = false
+var edgeDump = false
+var graph = "data"
 
+// Cmd command line declaration
 var Cmd = &cobra.Command{
 	Use:   "dump",
 	Short: "Dump Data on Arachne Server",

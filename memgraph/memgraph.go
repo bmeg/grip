@@ -12,14 +12,16 @@ type edgepair struct {
 	dst string
 }
 
+// MemGraph is a memory based graph driver
 type MemGraph struct {
-	vertices      map[string]*aql.Vertex
-	out_edges     map[string]map[string][]string
-	in_edges      map[string]map[string][]string
-	edges         map[string]*aql.Edge
-	edge_sequence int64
+	vertices     map[string]*aql.Vertex
+	outEdges     map[string]map[string][]string
+	inEdges      map[string]map[string][]string
+	edges        map[string]*aql.Edge
+	edgeSequence int64
 }
 
+// NewMemGDBI creates new memory based ArachneInterface
 func NewMemGDBI() *MemGraph {
 	return &MemGraph{
 		map[string]*aql.Vertex{},
@@ -30,37 +32,42 @@ func NewMemGDBI() *MemGraph {
 	}
 }
 
-func (self *MemGraph) Query() gdbi.QueryInterface {
-	return gdbi.NewPipeEngine(self, false)
+// Query creates a QueryInterface for a particular Graph
+func (mg *MemGraph) Query() gdbi.QueryInterface {
+	return gdbi.NewPipeEngine(mg, false)
 }
 
-func (self *MemGraph) GetVertex(key string, load bool) *aql.Vertex {
-	return self.vertices[key]
+// GetVertex loads a vertex given an id. It returns a nil if not found
+func (mg *MemGraph) GetVertex(key string, load bool) *aql.Vertex {
+	return mg.vertices[key]
 }
 
-func (self *MemGraph) GetEdge(key string, load bool) *aql.Edge {
-	return self.edges[key]
+// GetEdge loads an edge given an id. It returns nil if not found
+func (mg *MemGraph) GetEdge(key string, load bool) *aql.Edge {
+	return mg.edges[key]
 }
 
-func (self *MemGraph) GetVertexList(ctx context.Context, load bool) chan aql.Vertex {
+// GetVertexList produces a channel of all edges in the graph
+func (mg *MemGraph) GetVertexList(ctx context.Context, load bool) chan aql.Vertex {
 	out := make(chan aql.Vertex, 100)
 	go func() {
 		defer close(out)
-		for _, v := range self.vertices {
+		for _, v := range mg.vertices {
 			out <- *v
 		}
 	}()
 	return out
 }
 
-func (self *MemGraph) GetEdgeList(ctx context.Context, load bool) chan aql.Edge {
+// GetEdgeList produces a channel of all edges in the graph
+func (mg *MemGraph) GetEdgeList(ctx context.Context, load bool) chan aql.Edge {
 	out := make(chan aql.Edge, 100)
 	go func() {
 		defer close(out)
-		for _, src := range self.out_edges {
+		for _, src := range mg.outEdges {
 			for _, dst := range src {
 				for _, e := range dst {
-					out <- *self.edges[e]
+					out <- *mg.edges[e]
 				}
 			}
 		}
@@ -68,22 +75,24 @@ func (self *MemGraph) GetEdgeList(ctx context.Context, load bool) chan aql.Edge 
 	return out
 }
 
-func (self *MemGraph) GetOutList(ctx context.Context, key string, load bool, filter gdbi.EdgeFilter) chan aql.Vertex {
+// GetOutList given vertex/edge `key` find vertices on outgoing edges,
+// if len(edgeLabels) > 0 the edge labels must match a string in the array
+func (mg *MemGraph) GetOutList(ctx context.Context, key string, load bool, filter gdbi.EdgeFilter) chan aql.Vertex {
 	o := make(chan aql.Vertex, 100)
 	go func() {
 		defer close(o)
-		for dst, dst_list := range self.out_edges[key] {
-			for _, dst_edge := range dst_list {
+		for dst, dstList := range mg.outEdges[key] {
+			for _, dstEdge := range dstList {
 				send := false
 				if filter != nil {
-					if filter(*self.edges[dst_edge]) {
+					if filter(*mg.edges[dstEdge]) {
 						send = true
 					}
 				} else {
 					send = true
 				}
 				if send {
-					o <- *self.vertices[dst]
+					o <- *mg.vertices[dst]
 				}
 			}
 		}
@@ -91,46 +100,49 @@ func (self *MemGraph) GetOutList(ctx context.Context, key string, load bool, fil
 	return o
 }
 
-func (self *MemGraph) GetInList(ctx context.Context, key string, load bool, filter gdbi.EdgeFilter) chan aql.Vertex {
+// GetInList given vertex `key` find vertices on incoming edges,
+// if len(edgeLabels) > 0 the edge labels must match a string in the array
+func (mg *MemGraph) GetInList(ctx context.Context, key string, load bool, filter gdbi.EdgeFilter) chan aql.Vertex {
 	o := make(chan aql.Vertex, 100)
 	go func() {
 		defer close(o)
-		for src := range self.in_edges[key] {
-			for _, src_edge := range self.out_edges[src][key] {
+		for src := range mg.inEdges[key] {
+			for _, srcEdge := range mg.outEdges[src][key] {
 				send := false
 				if filter != nil {
-					if filter(*self.edges[src_edge]) {
+					if filter(*mg.edges[srcEdge]) {
 						send = true
 					}
 				} else {
 					send = true
 				}
 				if send {
-					o <- *self.vertices[src]
+					o <- *mg.vertices[src]
 				}
 			}
 		}
 	}()
 	return o
-
 }
 
-func (self *MemGraph) GetOutEdgeList(ctx context.Context, key string, load bool, filter gdbi.EdgeFilter) chan aql.Edge {
+// GetOutEdgeList given vertex `key` find all outgoing edges,
+// if len(edgeLabels) > 0 the edge labels must match a string in the array
+func (mg *MemGraph) GetOutEdgeList(ctx context.Context, key string, load bool, filter gdbi.EdgeFilter) chan aql.Edge {
 	o := make(chan aql.Edge, 100)
 	go func() {
 		defer close(o)
-		for _, dst_list := range self.out_edges[key] {
-			for _, dst_edge := range dst_list {
+		for _, dstList := range mg.outEdges[key] {
+			for _, dstEdge := range dstList {
 				send := false
 				if filter != nil {
-					if filter(*self.edges[dst_edge]) {
+					if filter(*mg.edges[dstEdge]) {
 						send = true
 					}
 				} else {
 					send = true
 				}
 				if send {
-					o <- *self.edges[dst_edge]
+					o <- *mg.edges[dstEdge]
 				}
 			}
 		}
@@ -138,22 +150,24 @@ func (self *MemGraph) GetOutEdgeList(ctx context.Context, key string, load bool,
 	return o
 }
 
-func (self *MemGraph) GetInEdgeList(ctx context.Context, key string, load bool, filter gdbi.EdgeFilter) chan aql.Edge {
+// GetInEdgeList given vertex `key` find all incoming edges,
+// if len(edgeLabels) > 0 the edge labels must match a string in the array
+func (mg *MemGraph) GetInEdgeList(ctx context.Context, key string, load bool, filter gdbi.EdgeFilter) chan aql.Edge {
 	o := make(chan aql.Edge, 100)
 	go func() {
 		defer close(o)
-		for src := range self.in_edges[key] {
-			for _, src_edge := range self.out_edges[src][key] {
+		for src := range mg.inEdges[key] {
+			for _, srcEdge := range mg.outEdges[src][key] {
 				send := false
 				if filter != nil {
-					if filter(*self.edges[src_edge]) {
+					if filter(*mg.edges[srcEdge]) {
 						send = true
 					}
 				} else {
 					send = true
 				}
 				if send {
-					o <- *self.edges[src_edge]
+					o <- *mg.edges[srcEdge]
 				}
 			}
 		}
@@ -161,64 +175,73 @@ func (self *MemGraph) GetInEdgeList(ctx context.Context, key string, load bool, 
 	return o
 }
 
-func (self *MemGraph) DelVertex(key string) error {
-	delete(self.vertices, key)
-	for k, elist := range self.out_edges[key] {
+// DelVertex deletes vertex with id `key`
+func (mg *MemGraph) DelVertex(key string) error {
+	delete(mg.vertices, key)
+	for k, elist := range mg.outEdges[key] {
 		for _, e := range elist {
-			delete(self.edges, e)
+			delete(mg.edges, e)
 		}
-		delete(self.in_edges[k], key)
+		delete(mg.inEdges[k], key)
 	}
-	delete(self.out_edges, key)
+	delete(mg.outEdges, key)
 	return nil
 }
 
-func (self *MemGraph) DelEdge(key string) error {
-	p := self.edges[key]
-	for i := 0; i < len(self.out_edges[p.Src][p.Dst]); i++ {
-		if self.out_edges[p.Src][p.Dst][i] == key {
-			l := len(self.out_edges[p.Src][p.Dst])
-			self.out_edges[p.Src][p.Dst][i] = self.out_edges[p.Src][p.Dst][l-1]
-			self.out_edges[p.Src][p.Dst] = self.out_edges[p.Src][p.Dst][:l-1]
+// DelEdge deletes edge with id `key`
+func (mg *MemGraph) DelEdge(key string) error {
+	p := mg.edges[key]
+	for i := 0; i < len(mg.outEdges[p.Src][p.Dst]); i++ {
+		if mg.outEdges[p.Src][p.Dst][i] == key {
+			l := len(mg.outEdges[p.Src][p.Dst])
+			mg.outEdges[p.Src][p.Dst][i] = mg.outEdges[p.Src][p.Dst][l-1]
+			mg.outEdges[p.Src][p.Dst] = mg.outEdges[p.Src][p.Dst][:l-1]
 		}
 	}
-	for i := 0; i < len(self.in_edges[p.Dst][p.Src]); i++ {
-		if self.in_edges[p.Src][p.Dst][i] == key {
-			l := len(self.in_edges[p.Src][p.Dst])
-			self.in_edges[p.Src][p.Dst][i] = self.in_edges[p.Src][p.Dst][l-1]
-			self.in_edges[p.Src][p.Dst] = self.in_edges[p.Src][p.Dst][:l-1]
+	for i := 0; i < len(mg.inEdges[p.Dst][p.Src]); i++ {
+		if mg.inEdges[p.Src][p.Dst][i] == key {
+			l := len(mg.inEdges[p.Src][p.Dst])
+			mg.inEdges[p.Src][p.Dst][i] = mg.inEdges[p.Src][p.Dst][l-1]
+			mg.inEdges[p.Src][p.Dst] = mg.inEdges[p.Src][p.Dst][:l-1]
 		}
 	}
-	delete(self.edges, key)
+	delete(mg.edges, key)
 	return nil
 }
 
-func (self *MemGraph) SetVertex(vertex aql.Vertex) error {
-	self.vertices[vertex.Gid] = &vertex
+// SetVertex adds an edge to the graph, if it already exists
+// in the graph, it is replaced
+func (mg *MemGraph) SetVertex(vertex aql.Vertex) error {
+	mg.vertices[vertex.Gid] = &vertex
 	return nil
 }
 
-func (self *MemGraph) SetEdge(edge aql.Edge) error {
-	edge.Gid = fmt.Sprintf("%d", self.edge_sequence)
-	self.edge_sequence += 1
-	self.edges[edge.Gid] = &edge
-
-	if _, ok := self.out_edges[edge.Src]; !ok {
-		self.out_edges[edge.Src] = map[string][]string{}
+// SetEdge adds an edge to the graph, if the id is not "" and in already exists
+// in the graph, it is replaced
+func (mg *MemGraph) SetEdge(edge aql.Edge) error {
+	if edge.Gid == "" {
+		//BUG: this should check if the edge exists
+		edge.Gid = fmt.Sprintf("%d", mg.edgeSequence)
+		mg.edgeSequence++
 	}
-	if _, ok := self.out_edges[edge.Src][edge.Dst]; ok {
-		self.out_edges[edge.Src][edge.Dst] = append(self.out_edges[edge.Src][edge.Dst], edge.Gid)
+	mg.edges[edge.Gid] = &edge
+
+	if _, ok := mg.outEdges[edge.Src]; !ok {
+		mg.outEdges[edge.Src] = map[string][]string{}
+	}
+	if _, ok := mg.outEdges[edge.Src][edge.Dst]; ok {
+		mg.outEdges[edge.Src][edge.Dst] = append(mg.outEdges[edge.Src][edge.Dst], edge.Gid)
 	} else {
-		self.out_edges[edge.Src][edge.Dst] = []string{edge.Gid}
+		mg.outEdges[edge.Src][edge.Dst] = []string{edge.Gid}
 	}
 
-	if _, ok := self.in_edges[edge.Src]; !ok {
-		self.in_edges[edge.Src] = map[string][]string{}
+	if _, ok := mg.inEdges[edge.Src]; !ok {
+		mg.inEdges[edge.Src] = map[string][]string{}
 	}
-	if _, ok := self.in_edges[edge.Src][edge.Dst]; ok {
-		self.in_edges[edge.Src][edge.Dst] = append(self.in_edges[edge.Src][edge.Dst], edge.Gid)
+	if _, ok := mg.inEdges[edge.Src][edge.Dst]; ok {
+		mg.inEdges[edge.Src][edge.Dst] = append(mg.inEdges[edge.Src][edge.Dst], edge.Gid)
 	} else {
-		self.in_edges[edge.Src][edge.Dst] = []string{edge.Gid}
+		mg.inEdges[edge.Src][edge.Dst] = []string{edge.Gid}
 	}
 	return nil
 }

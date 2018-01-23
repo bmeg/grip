@@ -4,12 +4,13 @@ import (
 	"context"
 )
 
-func (self *BadgerGDB) VertexLabelScan(ctx context.Context, label string) chan string {
+// VertexLabelScan produces a channel of all edge ids where the edge label matches `label`
+func (bgdb *BadgerGDB) VertexLabelScan(ctx context.Context, label string) chan string {
 	//TODO: Make this work better
 	out := make(chan string, 100)
 	go func() {
 		defer close(out)
-		for i := range self.GetVertexList(ctx, true) {
+		for i := range bgdb.GetVertexList(ctx, true) {
 			if i.Label == label {
 				out <- i.Gid
 			}
@@ -18,12 +19,13 @@ func (self *BadgerGDB) VertexLabelScan(ctx context.Context, label string) chan s
 	return out
 }
 
-func (self *BadgerGDB) EdgeLabelScan(ctx context.Context, label string) chan string {
+// EdgeLabelScan produces a channel of all edge ids where the edge label matches `label`
+func (bgdb *BadgerGDB) EdgeLabelScan(ctx context.Context, label string) chan string {
 	//TODO: Make this work better
 	out := make(chan string, 100)
 	go func() {
 		defer close(out)
-		for i := range self.GetEdgeList(ctx, true) {
+		for i := range bgdb.GetEdgeList(ctx, true) {
 			if i.Label == label {
 				out <- i.Gid
 			}
