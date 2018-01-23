@@ -11,12 +11,13 @@ import (
 	"strings"
 )
 
-var kafka string = "localhost:9092"
-var host string = "localhost:9090"
-var graph string = "data"
-var vertexTopic string = "arachne_vertex"
-var edgeTopic string = "arachne_edge"
+var kafka = "localhost:9092"
+var host = "localhost:9090"
+var graph = "data"
+var vertexTopic = "arachne_vertex"
+var edgeTopic = "arachne_edge"
 
+// Cmd is the base command called by the cobra command line system
 var Cmd = &cobra.Command{
 	Use:   "stream",
 	Short: "Stream Data into Arachne Server",
@@ -45,7 +46,7 @@ var Cmd = &cobra.Command{
 				v := aql.Vertex{}
 				jsonpb.Unmarshal(strings.NewReader(string(msg.Value)), &v)
 				conn.AddVertex(graph, v)
-				count += 1
+				count++
 				if count%1000 == 0 {
 					log.Printf("Loaded %d vertices", count)
 				}
@@ -59,7 +60,7 @@ var Cmd = &cobra.Command{
 				e := aql.Edge{}
 				jsonpb.Unmarshal(strings.NewReader(string(msg.Value)), &e)
 				conn.AddEdge(graph, e)
-				count += 1
+				count++
 				if count%1000 == 0 {
 					log.Printf("Loaded %d edges", count)
 				}
