@@ -9,12 +9,13 @@ import (
 	"strings"
 )
 
-var host string = "localhost:9090"
-var graph string = "data"
-var vertexFile string = ""
-var edgeFile string = ""
-var bundleFile string = ""
+var host = "localhost:9090"
+var graph = "data"
+var vertexFile string
+var edgeFile string
+var bundleFile string
 
+// Cmd is the declaration of the command line
 var Cmd = &cobra.Command{
 	Use:   "load",
 	Short: "Load Data into Arachne Server",
@@ -44,7 +45,7 @@ var Cmd = &cobra.Command{
 				jsonpb.Unmarshal(strings.NewReader(string(line)), &v)
 				//conn.AddVertex(graph, v)
 				elemChan <- aql.GraphElement{Graph: graph, Vertex: &v}
-				count += 1
+				count++
 				if count%1000 == 0 {
 					log.Printf("Loaded %d vertices", count)
 				}
@@ -78,7 +79,7 @@ var Cmd = &cobra.Command{
 					} else {
 						//conn.AddEdge(graph, e)
 						elemChan <- aql.GraphElement{Graph: graph, Edge: &e}
-						count += 1
+						count++
 					}
 					if count%1000 == 0 {
 						log.Printf("Loaded %d edges", count)
@@ -101,7 +102,7 @@ var Cmd = &cobra.Command{
 				e := aql.Bundle{}
 				jsonpb.Unmarshal(strings.NewReader(string(line)), &e)
 				conn.AddBundle(graph, e)
-				count += 1
+				count++
 				if count%1000 == 0 {
 					log.Printf("Loaded %d bundles", count)
 				}
