@@ -335,10 +335,10 @@ func (bgdb *BadgerGDB) SetBundle(bundle aql.Bundle) error {
 	skey := srcEdgeKey(bgdb.graph, src, dst, eid, bundle.Label)
 
 	return bgdb.kv.Update(func(tx *badger.Txn) error {
-		if err := tx.SetWithMeta(ekey, data, cEdgeBundle) ; err != nil {
+		if err := tx.SetWithMeta(ekey, data, cEdgeBundle); err != nil {
 			return err
 		}
-		if err := tx.SetWithMeta(skey, []byte{}, cEdgeBundle) ; err != nil {
+		if err := tx.SetWithMeta(skey, []byte{}, cEdgeBundle); err != nil {
 			return err
 		}
 		return nil
