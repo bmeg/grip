@@ -10,14 +10,15 @@ import (
 	"github.com/boltdb/bolt"
 )
 
-var GRAPH_BUCKET = []byte("graph")
+var graphBucket = []byte("graph")
 
+// BoltBuilder creates a new bolt interface at `path`
 func BoltBuilder(path string) (kvgraph.KVInterface, error) {
 	log.Printf("Starting BOLTDB")
 	db, _ := bolt.Open(path, 0600, nil)
 	db.Update(func(tx *bolt.Tx) error {
-		if tx.Bucket(GRAPH_BUCKET) == nil {
-			tx.CreateBucket(GRAPH_BUCKET)
+		if tx.Bucket(graphBucket) == nil {
+			tx.CreateBucket(graphBucket)
 		}
 		return nil
 	})
@@ -26,27 +27,31 @@ func BoltBuilder(path string) (kvgraph.KVInterface, error) {
 	}, nil
 }
 
-var Loaded = kvgraph.AddKVDriver("bolt", BoltBuilder)
+var loaded = kvgraph.AddKVDriver("bolt", BoltBuilder)
 
+// BoltKV is an implementation of the KVStore for bolt
 type BoltKV struct {
 	db *bolt.DB
 }
 
-func (self *BoltKV) Close() error {
-	return self.db.Close()
+// Close closes the boltdb
+func (boltkv *BoltKV) Close() error {
+	return boltkv.db.Close()
 }
 
-func (self *BoltKV) Delete(id []byte) error {
-	err := self.db.Update(func(tx *bolt.Tx) error {
-		b := tx.Bucket(GRAPH_BUCKET)
+// Delete removes a key/value from a kvstore
+func (boltkv *BoltKV) Delete(id []byte) error {
+	err := boltkv.db.Update(func(tx *bolt.Tx) error {
+		b := tx.Bucket(graphBucket)
 		return b.Delete(id)
 	})
 	return err
 }
 
-func (self *BoltKV) DeletePrefix(id []byte) error {
-	err := self.db.Update(func(tx *bolt.Tx) error {
-		b := tx.Bucket(GRAPH_BUCKET)
+// DeletePrefix deletes all elements in kvstore that begin with prefix `id`
+func (boltkv *BoltKV) DeletePrefix(id []byte) error {
+	err := boltkv.db.Update(func(tx *bolt.Tx) error {
+		b := tx.Bucket(graphBucket)
 		odel := make([][]byte, 0, 100)
 		c := b.Cursor()
 		for k, _ := c.Seek([]byte(id)); bytes.HasPrefix(k, []byte(id)); k, _ = c.Next() {
@@ -60,10 +65,11 @@ func (self *BoltKV) DeletePrefix(id []byte) error {
 	return err
 }
 
-func (self *BoltKV) HasKey(id []byte) bool {
+// HasKey returns true if the key is exists in kv store
+func (boltkv *BoltKV) HasKey(id []byte) bool {
 	out := false
-	self.db.View(func(tx *bolt.Tx) error {
-		b := tx.Bucket(GRAPH_BUCKET)
+	boltkv.db.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket(graphBucket)
 		d := b.Get([]byte(id))
 		if d != nil {
 			out = true
@@ -73,34 +79,37 @@ func (self *BoltKV) HasKey(id []byte) bool {
 	return out
 }
 
-func (self *BoltKV) Set(id []byte, val []byte) error {
-	err := self.db.Update(func(tx *bolt.Tx) error {
-		b := tx.Bucket(GRAPH_BUCKET)
+// Set value in kv store
+func (boltkv *BoltKV) Set(id []byte, val []byte) error {
+	err := boltkv.db.Update(func(tx *bolt.Tx) error {
+		b := tx.Bucket(graphBucket)
 		b.Put(id, val)
 		return nil
 	})
 	return err
 }
 
-type BoltTransaction struct {
+type boltTransaction struct {
 	tx *bolt.Tx
 	b  *bolt.Bucket
 }
 
-func (self BoltTransaction) Delete(id []byte) error {
-	return self.b.Delete(id)
+// Delete removes key `id` from the kv store
+func (boltTrans boltTransaction) Delete(id []byte) error {
+	return boltTrans.b.Delete(id)
 }
 
-func (self *BoltKV) Update(u func(tx kvgraph.KVTransaction) error) error {
-	err := self.db.Update(func(tx *bolt.Tx) error {
-		b := tx.Bucket(GRAPH_BUCKET)
-		ktx := BoltTransaction{tx, b}
+// Update runs an alteration transition of the bolt kv store
+func (boltkv *BoltKV) Update(u func(tx kvgraph.KVTransaction) error) error {
+	err := boltkv.db.Update(func(tx *bolt.Tx) error {
+		b := tx.Bucket(graphBucket)
+		ktx := boltTransaction{tx, b}
 		return u(ktx)
 	})
 	return err
 }
 
-type BoltIterator struct {
+type boltIterator struct {
 	tx    *bolt.Tx
 	b     *bolt.Bucket
 	c     *bolt.Cursor
@@ -114,57 +123,64 @@ func copyBytes(in []byte) []byte {
 	return out
 }
 
-func (self *BoltIterator) Get(id []byte) ([]byte, error) {
-	o := self.b.Get(id)
+// Get retrieves the value of key `id`
+func (boltIt *boltIterator) Get(id []byte) ([]byte, error) {
+	o := boltIt.b.Get(id)
 	if o == nil {
 		return nil, fmt.Errorf("Not Found")
 	}
 	return copyBytes(o), nil
 }
 
-func (self *BoltIterator) Key() []byte {
-	return self.key
+// Key returns the key the iterator is currently pointed at
+func (boltIt *boltIterator) Key() []byte {
+	return boltIt.key
 }
 
-func (self *BoltIterator) Value() ([]byte, error) {
-	return self.value, nil
+// Value returns the valud of the iterator is currently pointed at
+func (boltIt *boltIterator) Value() ([]byte, error) {
+	return boltIt.value, nil
 }
 
-func (self *BoltIterator) Next() error {
-	k, v := self.c.Next()
+// Next move the iterator to the next key
+func (boltIt *boltIterator) Next() error {
+	k, v := boltIt.c.Next()
 	if k == nil || v == nil {
-		self.key = nil
-		self.value = nil
+		boltIt.key = nil
+		boltIt.value = nil
 		return nil
 	}
-	self.key = copyBytes(k)
-	self.value = copyBytes(v)
+	boltIt.key = copyBytes(k)
+	boltIt.value = copyBytes(v)
 	return nil
 }
 
-func (self *BoltIterator) Seek(id []byte) error {
-	k, v := self.c.Seek(id)
+// Seek moves the iterator to a new location
+func (boltIt *boltIterator) Seek(id []byte) error {
+	k, v := boltIt.c.Seek(id)
 	if k == nil || v == nil {
-		self.key = nil
-		self.value = nil
+		boltIt.key = nil
+		boltIt.value = nil
 		return fmt.Errorf("Seek error")
 	}
-	self.key = copyBytes(k)
-	self.value = copyBytes(v)
+	boltIt.key = copyBytes(k)
+	boltIt.value = copyBytes(v)
 	return nil
 }
 
-func (self *BoltIterator) Valid() bool {
-	if self.key == nil || self.value == nil {
+// Valid returns true if iterator is still in valid location
+func (boltIt *boltIterator) Valid() bool {
+	if boltIt.key == nil || boltIt.value == nil {
 		return false
 	}
 	return true
 }
 
-func (self *BoltKV) View(u func(it kvgraph.KVIterator) error) error {
-	err := self.db.View(func(tx *bolt.Tx) error {
-		b := tx.Bucket(GRAPH_BUCKET)
-		ktx := &BoltIterator{tx, b, b.Cursor(), nil, nil}
+// View run iterator on bolt keyvalue store
+func (boltkv *BoltKV) View(u func(it kvgraph.KVIterator) error) error {
+	err := boltkv.db.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket(graphBucket)
+		ktx := &boltIterator{tx, b, b.Cursor(), nil, nil}
 		return u(ktx)
 	})
 	return err
