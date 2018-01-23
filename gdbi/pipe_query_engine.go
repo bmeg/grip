@@ -42,7 +42,7 @@ func newPipeOut(t chan Traveler, state int, valueStates map[string]int) PipeOut 
 
 type graphPipe func(t timer, ctx context.Context) PipeOut
 
-// PipeEngine allows the contruction of a chain evaluation steps in a query pipeline
+// PipeEngine allows the construction of a chain evaluation steps in a query pipeline
 // and then will execute a complex query and filter on a graph database interface
 type PipeEngine struct {
 	name       string
