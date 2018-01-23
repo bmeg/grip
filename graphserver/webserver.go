@@ -3,6 +3,8 @@ package graphserver
 import (
 	"fmt"
 	"github.com/bmeg/arachne/aql"
+	"github.com/bmeg/arachne/falcor"
+	"github.com/bmeg/arachne/graphql"
 	"github.com/golang/protobuf/proto"
 	"github.com/gorilla/mux"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
@@ -112,6 +114,8 @@ func NewHTTPProxy(rpcPort string, httpPort string, contentDir string) Proxy {
 			http.ServeFile(w, r, filepath.Join(contentDir, "index.html"))
 		})
 	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir(contentDir))))
+	r.PathPrefix("/falcor.json").Handler(falcor.NewHTTPHandler())
+	r.PathPrefix("/graphql").Handler(graphql.NewHTTPHandler("localhost:" + rpcPort))
 
 	r.PathPrefix("/v1/").Handler(grpcMux)
 

@@ -54,6 +54,8 @@ func WrapValue(value interface{}) *structpb.Value {
 			o.Fields[k] = wv
 		}
 		return &structpb.Value{Kind: &structpb.Value_StructValue{StructValue: o}}
+	case nil:
+		return nil
 	default:
 		log.Printf("unknown data type: %T", value)
 	}
@@ -93,7 +95,9 @@ func CopyStructToStructSub(dst *structpb.Struct, keys []string, src *structpb.St
 func AsMap(src *structpb.Struct) map[string]interface{} {
 	out := map[string]interface{}{}
 	for k, f := range src.Fields {
-		if v, ok := f.Kind.(*structpb.Value_StringValue); ok {
+		if f == nil {
+			out[k] = nil
+		} else if v, ok := f.Kind.(*structpb.Value_StringValue); ok {
 			out[k] = v.StringValue
 		} else if v, ok := f.Kind.(*structpb.Value_NumberValue); ok {
 			out[k] = v.NumberValue
