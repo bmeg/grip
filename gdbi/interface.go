@@ -12,7 +12,7 @@ type QueryInterface interface {
 
 	Has(prop string, value ...string) QueryInterface
 	HasLabel(labels ...string) QueryInterface
-	HasId(ids ...string) QueryInterface
+	HasID(ids ...string) QueryInterface
 
 	Out(key ...string) QueryInterface
 	In(key ...string) QueryInterface

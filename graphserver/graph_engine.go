@@ -150,7 +150,7 @@ func (trav *Traversal) RunStatement(statement *aql.GraphStatement) error {
 		trav.Query = trav.Query.HasLabel(labels...)
 	} else if x, ok := statement.GetStatement().(*aql.GraphStatement_HasId); ok {
 		ids := protoutil.AsStringList(x.HasId)
-		trav.Query = trav.Query.HasId(ids...)
+		trav.Query = trav.Query.HasID(ids...)
 	} else if x, ok := statement.GetStatement().(*aql.GraphStatement_Limit); ok {
 		trav.Query = trav.Query.Limit(x.Limit)
 	} else if x, ok := statement.GetStatement().(*aql.GraphStatement_Values); ok {
