@@ -155,7 +155,7 @@ func (server *ArachneServer) AddBundle(ctx context.Context, elem *aql.GraphEleme
 	return &aql.EditResult{Result: &aql.EditResult_Id{Id: id}}, nil
 }
 
-// AddBundle adds a bundle of edges to the graph
+// AddSubGraph adds a full subgraph to the graph in one post
 func (server *ArachneServer) AddSubGraph(ctx context.Context, subgraph *aql.Graph) (*aql.EditResult, error) {
 	for _, i := range subgraph.Vertices {
 		server.engine.AddVertex(subgraph.Graph, *i)
