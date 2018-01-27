@@ -20,6 +20,8 @@ func WrapValue(value interface{}) *structpb.Value {
 		return &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: float64(v)}}
 	case int64:
 		return &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: float64(v)}}
+	case int32:
+		return &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: float64(v)}}
 	case float64:
 		return &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: float64(v)}}
 	case bool:
@@ -54,9 +56,35 @@ func WrapValue(value interface{}) *structpb.Value {
 			o.Fields[k] = wv
 		}
 		return &structpb.Value{Kind: &structpb.Value_StructValue{StructValue: o}}
+	case *structpb.Struct:
+		return &structpb.Value{Kind: &structpb.Value_StructValue{StructValue: v}}
 	default:
-		log.Printf("unknown data type: %T", value)
+		log.Printf("wrap unknown data type: %T", value)
 	}
+	return nil
+}
+
+// UnWrapValue takes protobuf structpb Value and return a native go value
+func UnWrapValue(value *structpb.Value) interface{} {
+	if value == nil {
+		return nil
+	}
+	if v, ok := value.Kind.(*structpb.Value_StringValue); ok {
+		return v.StringValue
+	} else if v, ok := value.Kind.(*structpb.Value_NumberValue); ok {
+		return v.NumberValue
+	} else if v, ok := value.Kind.(*structpb.Value_StructValue); ok {
+		return AsMap(v.StructValue)
+	} else if v, ok := value.Kind.(*structpb.Value_ListValue); ok {
+		out := make([]interface{}, len(v.ListValue.Values))
+		for i := range v.ListValue.Values {
+			out[i] = UnWrapValue(v.ListValue.Values[i])
+		}
+		return out
+	} else if v, ok := value.Kind.(*structpb.Value_BoolValue); ok {
+		return v.BoolValue
+	}
+	log.Printf("unwrap unknown data type: %T", value.Kind)
 	return nil
 }
 

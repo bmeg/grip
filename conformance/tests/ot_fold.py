@@ -1,6 +1,7 @@
 
 
-def test_subgraph_post(O):
+
+def test_fold(O):
     errors = []
 
     graph = {
@@ -24,23 +25,10 @@ def test_subgraph_post(O):
 
     O.addSubGraph(graph)
 
-    query = O.query().V().match([
-        O.mark('a').outgoing('created').mark('b'),
-        O.mark('b').has('name', 'lop'),
-        O.mark('b').incoming('created').mark('c'),
-        O.mark('c').has('age', "29")
-    ]).select(['a','c']) #.by('name')
+    foldFunc = """function(x,y){var z={}; z[y["name"]] = true; return _.extend(x,z) }"""
+    query = O.query().V().fold({}, foldFunc)
 
-    count = 0
-    for row in query.execute():
-        count += 1
-        if row[1]['vertex']['data']['name'] != "marko":
-            errors.append("Incorrect return")
-
-    count = 0
-    for row in O.query().V():
-        count += 1
-    if count != 6:
-        errors.append("Found %s rows, not 6" % count)
+    for row in query:
+        print row
 
     return errors

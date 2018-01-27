@@ -20,20 +20,20 @@ def clear_db(conn):
     conn.delete(GRAPH)
     conn.new(GRAPH)
     O = conn.graph(GRAPH)
-    if int(O.query().V().count().first()['int_value']) != 0:
+    if int(O.query().V().count().first()['data']) != 0:
         print "Unable to clear database"
         sys.exit()
-    if int(O.query().E().count().first()['int_value']) != 0:
+    if int(O.query().E().count().first()['data']) != 0:
         print "Unable to clear database"
         sys.exit()
 
 if __name__ == "__main__":
     server = sys.argv[1]
-    
+
     tests = sys.argv[2:]
 
     conn = aql.Connection(server)
-    if int(conn.graph(GRAPH).query().V().count().first()['int_value']) != 0:
+    if int(conn.graph(GRAPH).query().V().count().first()['data']) != 0:
         print "Need to start with empty DB"
         sys.exit()
 

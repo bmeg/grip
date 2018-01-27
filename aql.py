@@ -262,8 +262,8 @@ class Query:
         self.query.append({"filter" : func})
         return self
 
-    def fold(self, func):
-        self.query.append({"fold" : func})
+    def fold(self, init, func):
+        self.query.append({"fold": {"init" : init, "source" : func}})
         return self
 
     def vertexFromValues(self, func):
