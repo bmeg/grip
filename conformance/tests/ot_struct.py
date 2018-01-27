@@ -8,9 +8,9 @@ def test_vertex_struct(O):
     count = 0
     for i in O.query().V().execute():
         count += 1
-        p = i['vertex']['properties']['field1']
+        p = i['vertex']['data']['field1']
         if not isinstance(p,dict):
-            errors.append("Dictionary properties failed")
+            errors.append("Dictionary data failed")
             continue
         if "test" not in p or "value" not in p:
             errors.append("missing keys in structure field")
@@ -34,11 +34,11 @@ def test_edge_struct(O):
     O.addEdge("vertex1", "vertex2", "friend", {"edgevals": {"weight" : 3.14, "count" : 15}})
 
     for i in O.query().V("vertex1").outgoingEdge().execute():
-        if 'weight' not in i['edge']['properties']['edgevals'] or i['edge']['properties']['edgevals']['weight'] != 3.14:
-            errors.append("out edge properties not found")
+        if 'weight' not in i['edge']['data']['edgevals'] or i['edge']['data']['edgevals']['weight'] != 3.14:
+            errors.append("out edge data not found")
 
     for i in O.query().V("vertex2").incomingEdge().execute():
-        if 'weight' not in i['edge']['properties']['edgevals'] or i['edge']['properties']['edgevals']['weight'] != 3.14:
-            errors.append("in edge properties not found")
+        if 'weight' not in i['edge']['data']['edgevals'] or i['edge']['data']['edgevals']['weight'] != 3.14:
+            errors.append("in edge data not found")
 
     return errors

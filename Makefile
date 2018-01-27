@@ -19,6 +19,15 @@ depends:
 	@git submodule update --init --recursive
 	@go get -d github.com/bmeg/arachne
 
+proto:
+	cd aql && protoc \
+	-I ./ -I ../googleapis \
+	--go_out=\
+	Mgoogle/protobuf/struct.proto=github.com/golang/protobuf/ptypes/struct,\
+	plugins=grpc:./ \
+	--grpc-gateway_out=logtostderr=true:. \
+	aql.proto
+
 # Automatially update code formatting
 tidy:
 	@for f in $$(find ./ -name "*.go" -print | egrep -v "\.pb\.go|\.gw\.go|underscore\.go"); do \
