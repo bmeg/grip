@@ -3,123 +3,41 @@ package jsengine
 import (
 	"fmt"
 	"github.com/bmeg/arachne/aql"
-	"github.com/bmeg/arachne/protoutil"
-	"github.com/robertkrimen/otto"
-	"log"
 )
 
-type CompiledFunction struct {
-	Function otto.Value
+// JSEngine is the common JavaScript engine interface
+type JSEngine interface {
+	Call(input ...*aql.QueryResult) *aql.QueryResult
+	CallBool(input ...*aql.QueryResult) bool
+	CallValueMapBool(input map[string]aql.QueryResult) bool
+	CallValueToVertex(input map[string]aql.QueryResult) []string
 }
 
-func NewFunction(source string, imports []string) (CompiledFunction, error) {
+type genfunc func(string, []string) (JSEngine, error)
 
-	vm := otto.New()
-	for _, src := range imports {
-		_, err := vm.Run(src)
-		if err != nil {
-			return CompiledFunction{}, err
-		}
-	}
+var engines = make(map[string]genfunc)
 
-	_, err := vm.Run("var userFunction = " + source)
-	if err != nil {
-		return CompiledFunction{}, err
-	}
-
-	out, err := vm.Get("userFunction")
-	if err != nil {
-		return CompiledFunction{}, err
-	}
-
-	if out.IsFunction() {
-		return CompiledFunction{Function: out}, nil
-	}
-	return CompiledFunction{}, fmt.Errorf("no Function")
+// AddEngine adds JavaScript engine to common registry
+// Because some of the JS engines, like the V8 engine,
+// are optionally built with compile tags, this tracks
+// which drivers are actually avalible
+func AddEngine(name string, gen genfunc) bool {
+	engines[name] = gen
+	return true
 }
 
-func (self *CompiledFunction) Call(input ...*aql.QueryResult) *aql.QueryResult {
-
-	m := []interface{}{}
-	for _, i := range input {
-		s := i.GetStruct()
-		m_i := protoutil.AsMap(s)
-		m = append(m, m_i)
+// NewJSEngine creates a new JavaScript engine
+// using the 'best' driver (v8 in avalible). Its compiles
+// `code` and allows for multiple dependency imports (like underscore)
+func NewJSEngine(code string, imports []string) (JSEngine, error) {
+	if x, ok := engines["v8"]; ok {
+		return x(code, imports)
 	}
-
-	//log.Printf("Inputs: %#v", m)
-	//log.Printf("Function: %#v", self.Function)
-	/*
-	 // code to deal with panics inside of the JS engine
-	  defer func() {
-	       if r := recover(); r != nil {
-	           fmt.Println("Recovered in f", r)
-	       }
-	   }()
-	*/
-	value, err := self.Function.Call(otto.Value{}, m...)
-	if err != nil {
-		log.Printf("Exec Error: %s", err)
+	if x, ok := engines["goja"]; ok {
+		return x(code, imports)
 	}
-
-	otto_val, _ := value.Export()
-
-	//struct_val := otto2map(otto_val)
-	log.Printf("function return: %#v", otto_val)
-	o := protoutil.AsStruct(otto_val.(map[string]interface{}))
-	return &aql.QueryResult{&aql.QueryResult_Struct{o}}
-}
-
-func (self *CompiledFunction) CallBool(input ...*aql.QueryResult) bool {
-
-	m := []interface{}{}
-	for _, i := range input {
-		if x, ok := i.GetResult().(*aql.QueryResult_Edge); ok {
-			m_i := protoutil.AsMap(x.Edge.Properties)
-			m = append(m, m_i)
-		} else if x, ok := i.GetResult().(*aql.QueryResult_Struct); ok {
-			m_i := protoutil.AsMap(x.Struct)
-			m = append(m, m_i)
-		}
+	if x, ok := engines["otto"]; ok {
+		return x(code, imports)
 	}
-
-	//log.Printf("Inputs: %#v", m)
-	//log.Printf("Function: %#v", self.Function)
-	/*
-	 // code to deal with panics inside of the JS engine
-	  defer func() {
-	       if r := recover(); r != nil {
-	           fmt.Println("Recovered in f", r)
-	       }
-	   }()
-	*/
-	value, err := self.Function.Call(otto.Value{}, m...)
-	if err != nil {
-		log.Printf("Exec Error: %s", err)
-	}
-	otto_val, _ := value.ToBoolean()
-	return otto_val
-}
-
-func otto2map(obj *otto.Object) map[string]interface{} {
-	out := map[string]interface{}{}
-	for _, i := range obj.Keys() {
-		val, _ := obj.Get(i)
-		if val.IsBoolean() {
-			out[i], _ = val.ToBoolean()
-		}
-		if val.IsBoolean() {
-			out[i], _ = val.ToBoolean()
-		}
-		if val.IsString() {
-			out[i], _ = val.ToString()
-		}
-		if val.IsNumber() {
-			out[i], _ = val.Export()
-		}
-		if val.IsObject() {
-			out[i] = otto2map(val.Object())
-		}
-	}
-	return out
+	return nil, fmt.Errorf("Javascript Engine not found")
 }

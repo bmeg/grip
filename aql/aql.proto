@@ -10,26 +10,38 @@ message GraphQuery {
     repeated GraphStatement query = 2;
 }
 
+message GraphQuerySet {
+  repeated GraphQuery queries = 1;
+}
+
 message GraphStatement {
     oneof statement {
-        string V = 1;
+        google.protobuf.ListValue V = 1;
         string E = 2;
-        google.protobuf.ListValue labeled = 3;
-        HasStatement has = 4;
-        string as = 5;
-        google.protobuf.ListValue in = 6;
-        google.protobuf.ListValue out = 7;
-        google.protobuf.ListValue inEdge = 8;
-        google.protobuf.ListValue outEdge = 9;
 
-        google.protobuf.ListValue outBundle = 10;
+        HasStatement has = 5;
+        google.protobuf.ListValue hasLabel = 6;
+        google.protobuf.ListValue hasId = 7;
 
-        SelectStatement select = 12;
-        SelectStatement values = 13;
-        int64 limit = 14;
-        string count = 15;
+        google.protobuf.ListValue in = 10;
+        google.protobuf.ListValue out = 11;
+        google.protobuf.ListValue inEdge = 12;
+        google.protobuf.ListValue outEdge = 13;
+        google.protobuf.ListValue both = 14;
+        google.protobuf.ListValue bothEdge = 15;
 
-        string groupCount = 16;
+        google.protobuf.ListValue outBundle = 16;
+
+        string as = 20;
+        SelectStatement select = 21;
+        SelectStatement values = 22;
+
+        int64 limit = 25;
+        string count = 26;
+
+        string groupCount = 30;
+
+        GraphQuerySet match = 40;
 
         //Function Methods
         string import = 50;
@@ -37,6 +49,9 @@ message GraphStatement {
         FoldStatement fold = 52;
         FoldStatement vertexFold = 53;
         string filter = 54;
+        string filterValues = 55;
+
+        string vertexFromValues = 56;
     }
 }
 
@@ -57,7 +72,7 @@ message FoldStatement {
 message Vertex {
   string gid = 1;
   string label = 2;
-  google.protobuf.Struct properties = 3;
+  google.protobuf.Struct data = 3;
 }
 
 message Edge {
@@ -65,7 +80,7 @@ message Edge {
   string label = 2;
   string from = 3;
   string to = 4;
-  google.protobuf.Struct properties = 5;
+  google.protobuf.Struct data = 5;
 }
 
 message Bundle {
@@ -106,6 +121,12 @@ message GraphElement {
   Vertex vertex = 2;
   Edge edge = 3;
   Bundle bundle = 4;
+}
+
+message Graph {
+  string graph = 1;
+  repeated Edge edges = 2;
+  repeated Vertex vertices = 3;
 }
 
 message ElementID {
@@ -182,6 +203,12 @@ service Edit {
   rpc AddGraph(ElementID) returns (EditResult) {
     option (google.api.http) = {
       post: "/v1/graph/{graph}"
+    };
+  }
+
+  rpc AddSubGraph(Graph) returns (EditResult) {
+    option (google.api.http) = {
+      post: "/v1/graph/{graph}/subgraph"
     };
   }
 

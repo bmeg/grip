@@ -9,12 +9,13 @@ import (
 	"strings"
 )
 
-var host string = "localhost:9090"
-var graph string = "data"
-var vertexFile string = ""
-var edgeFile string = ""
-var bundleFile string = ""
+var host = "localhost:9090"
+var graph = "data"
+var vertexFile string
+var edgeFile string
+var bundleFile string
 
+// Cmd is the declaration of the command line
 var Cmd = &cobra.Command{
 	Use:   "load",
 	Short: "Load Data into Arachne Server",
@@ -33,15 +34,25 @@ var Cmd = &cobra.Command{
 				return err
 			}
 			count := 0
+			elemChan := make(chan aql.GraphElement)
+			wait := make(chan bool)
+			go func() {
+				conn.StreamElements(elemChan)
+				wait <- false
+			}()
 			for line := range reader {
 				v := aql.Vertex{}
 				jsonpb.Unmarshal(strings.NewReader(string(line)), &v)
-				conn.AddVertex(graph, v)
-				count += 1
+				//conn.AddVertex(graph, v)
+				elemChan <- aql.GraphElement{Graph: graph, Vertex: &v}
+				count++
 				if count%1000 == 0 {
 					log.Printf("Loaded %d vertices", count)
 				}
 			}
+			log.Printf("Loaded %d vertices", count)
+			close(elemChan)
+			<-wait
 		}
 		if edgeFile != "" {
 			log.Printf("Loading %s", edgeFile)
@@ -50,15 +61,34 @@ var Cmd = &cobra.Command{
 				return err
 			}
 			count := 0
+			elemChan := make(chan aql.GraphElement)
+			wait := make(chan bool)
+			go func() {
+				if err := conn.StreamElements(elemChan); err != nil {
+					log.Printf("StreamError: %s", err)
+				}
+				wait <- false
+			}()
+			umarsh := jsonpb.Unmarshaler{AllowUnknownFields: true}
 			for line := range reader {
-				e := aql.Edge{}
-				jsonpb.Unmarshal(strings.NewReader(string(line)), &e)
-				conn.AddEdge(graph, e)
-				count += 1
-				if count%1000 == 0 {
-					log.Printf("Loaded %d edges", count)
+				if len(line) > 0 {
+					e := aql.Edge{}
+					err := umarsh.Unmarshal(strings.NewReader(string(line)), &e)
+					if err != nil {
+						log.Printf("Error: %s : '%s'", err, line)
+					} else {
+						//conn.AddEdge(graph, e)
+						elemChan <- aql.GraphElement{Graph: graph, Edge: &e}
+						count++
+					}
+					if count%1000 == 0 {
+						log.Printf("Loaded %d edges", count)
+					}
 				}
 			}
+			log.Printf("Loaded %d edges", count)
+			close(elemChan)
+			<-wait
 		}
 
 		if bundleFile != "" {
@@ -72,7 +102,7 @@ var Cmd = &cobra.Command{
 				e := aql.Bundle{}
 				jsonpb.Unmarshal(strings.NewReader(string(line)), &e)
 				conn.AddBundle(graph, e)
-				count += 1
+				count++
 				if count%1000 == 0 {
 					log.Printf("Loaded %d bundles", count)
 				}

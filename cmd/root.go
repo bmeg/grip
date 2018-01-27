@@ -3,6 +3,7 @@ package cmd
 import (
 	"github.com/bmeg/arachne/cmd/create"
 	"github.com/bmeg/arachne/cmd/drop"
+	"github.com/bmeg/arachne/cmd/dump"
 	"github.com/bmeg/arachne/cmd/info"
 	"github.com/bmeg/arachne/cmd/list"
 	"github.com/bmeg/arachne/cmd/load"
@@ -24,6 +25,7 @@ func init() {
 	RootCmd.AddCommand(server.Cmd)
 	RootCmd.AddCommand(rdf.Cmd)
 	RootCmd.AddCommand(load.Cmd)
+	RootCmd.AddCommand(dump.Cmd)
 	RootCmd.AddCommand(stream.Cmd)
 	RootCmd.AddCommand(create.Cmd)
 	RootCmd.AddCommand(drop.Cmd)
