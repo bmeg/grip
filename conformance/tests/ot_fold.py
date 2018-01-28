@@ -12,6 +12,7 @@ def test_fold(O):
             {"gid": "4", "label": "Person", "data" : {"name":"josh", "age":"32"}},
             {"gid": "5", "label": "Software", "data" : {"name":"ripple", "lang":"java"}},
             {"gid": "6", "label": "Person", "data" : {"name":"peter", "age":"35"}},
+            {"gid": "7", "label": "Person", "data" : {"name":"josh", "age":"25"}},
         ],
         "edges" : [
             {"from": "1", "to": "3", "label": "created", "data" :{"weight":0.4}},
@@ -25,10 +26,12 @@ def test_fold(O):
 
     O.addSubGraph(graph)
 
-    foldFunc = """function(x,y){var z={}; z[y["name"]] = true; return _.extend(x,z) }"""
+    foldFunc = """function(x,y){
+       if (_.has(x,y["name"])) { x[y["name"]]++; } else {x[y["name"]]=1;}return x
+}"""
     query = O.query().V().fold({}, foldFunc)
 
     for row in query:
-        print row
-
+        if row['data']['josh'] != 2:
+            errors.append("wrong josh count in fold: %d != 2" % (row['data']['josh']))
     return errors
