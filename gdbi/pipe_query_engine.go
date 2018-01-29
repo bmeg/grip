@@ -734,7 +734,7 @@ func (pengine *PipeEngine) Fold(source string, init interface{}) QueryInterface 
 			go func() {
 				defer close(o)
 				t.startTimer("all")
-				log.Printf("Running %s init %s", source, init)
+				//log.Printf("Running %s init %s", source, init)
 				mfunc, err := jsengine.NewJSEngine(source, pengine.imports)
 				if err != nil || mfunc == nil {
 					log.Printf("Script Error: %s", err)
@@ -742,7 +742,7 @@ func (pengine *PipeEngine) Fold(source string, init interface{}) QueryInterface 
 				}
 				foldValue := &aql.QueryResult{Result: &aql.QueryResult_Data{Data: protoutil.WrapValue(init)}}
 				for i := range pipe.Travelers {
-					log.Printf("Fold Value: %s", foldValue)
+					//log.Printf("Fold Value: %s", foldValue)
 					foldValue = mfunc.Call(foldValue, i.GetCurrent())
 				}
 				if foldValue != nil {

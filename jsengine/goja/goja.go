@@ -67,7 +67,7 @@ func (gojaRun *gojaRuntime) Call(input ...*aql.QueryResult) *aql.QueryResult {
 		log.Printf("Exec Error: %s", err)
 	}
 	val := value.Export()
-	log.Printf("function return: %#v", val)
+	//log.Printf("function return: %#v", val)
 	o := protoutil.WrapValue(val)
 	return &aql.QueryResult{Result: &aql.QueryResult_Data{Data: o}}
 }
