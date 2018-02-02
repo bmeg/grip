@@ -216,6 +216,11 @@ func (vertex *Vertex) GetDataMap() map[string]interface{} {
 	return protoutil.AsMap(vertex.Data)
 }
 
+// SetDataMap obtains data attached to vertex in the form of a map
+func (vertex *Vertex) SetDataMap(i map[string]interface{}) {
+	vertex.Data = protoutil.AsStruct(i)
+}
+
 // SetProperty sets named field in Vertex data
 func (vertex *Vertex) SetProperty(key string, value interface{}) {
 	if vertex.Data == nil {
