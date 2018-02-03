@@ -49,7 +49,7 @@ class Graph:
         payload = json.dumps({
             "gid" : id,
             "label" : label,
-            "properties" : prop
+            "data" : prop
         })
         headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
         request = urllib2.Request(self.url + "/" + self.name + "/vertex", payload, headers=headers)
@@ -62,7 +62,7 @@ class Graph:
             "from" : src,
             "to" : dst,
             "label" : label,
-            "properties" : prop
+            "data" : prop
         })
         headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
         request = urllib2.Request(self.url + "/" + self.name + "/edge", payload, headers=headers)
@@ -70,6 +70,13 @@ class Graph:
         result = response.read()
         return json.loads(result)
 
+    def addSubGraph(self, graph):
+        payload = json.dumps(graph)
+        headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
+        request = urllib2.Request(self.url + "/" + self.name + "/subgraph", payload, headers=headers)
+        response = urllib2.urlopen(request)
+        result = response.read()
+        return json.loads(result)
 
     def addBundle(self, src, bundle, label):
         payload = json.dumps({
@@ -103,7 +110,7 @@ class BulkAdd:
             "vertex" : {
                 "gid" : id,
                 "label" : label,
-                "properties" : prop
+                "data" : prop
             }
         })
         self.elements.append(payload)
@@ -115,7 +122,7 @@ class BulkAdd:
                 "from" : src,
                 "to" : dst,
                 "label" : label,
-                "properties" : prop
+                "data" : prop
             }
         })
         self.elements.append(payload)
@@ -295,7 +302,7 @@ class Query:
                     #out.append(d['row'])
                     yield d['row']
             except ValueError, e:
-                #print "Can't decode: %s" % result
+                print "Can't decode: %s" % result
                 raise e
         #return out
 

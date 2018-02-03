@@ -155,6 +155,18 @@ func (server *ArachneServer) AddBundle(ctx context.Context, elem *aql.GraphEleme
 	return &aql.EditResult{Result: &aql.EditResult_Id{Id: id}}, nil
 }
 
+// AddSubGraph adds a full subgraph to the graph in one post
+func (server *ArachneServer) AddSubGraph(ctx context.Context, subgraph *aql.Graph) (*aql.EditResult, error) {
+	for _, i := range subgraph.Vertices {
+		server.engine.AddVertex(subgraph.Graph, *i)
+	}
+	for _, i := range subgraph.Edges {
+		server.engine.AddEdge(subgraph.Graph, *i)
+	}
+	id := subgraph.Graph
+	return &aql.EditResult{Result: &aql.EditResult_Id{Id: id}}, nil
+}
+
 // StreamElements takes a stream of inputs and loads them into the graph
 func (server *ArachneServer) StreamElements(stream aql.Edit_StreamElementsServer) error {
 	vertCount := 0
