@@ -918,6 +918,7 @@ func (pengine *PipeEngine) Execute(ctx context.Context) chan aql.ResultRow {
 	go func() {
 		defer close(o)
 		//pengine.startTimer("all")
+		startTime := time.Now()
 		var client time.Duration
 		count := 0
 		pipe := pengine.startPipe(context.WithValue(ctx, propLoad, true))
@@ -938,7 +939,7 @@ func (pengine *PipeEngine) Execute(ctx context.Context) chan aql.ResultRow {
 			count++
 		}
 		//pengine.endTimer("all")
-		if client > 1*time.Second { //only report timing if query takes longer then a second
+		if time.Now().Sub(startTime) > 1*time.Second { //only report timing if query takes longer then a second
 			log.Printf("---StartTiming---")
 			for p := pengine; p != nil; p = p.parent {
 				log.Printf("%s %s", p.name, p.getTime())
@@ -970,11 +971,13 @@ func (pengine *PipeEngine) Chain(ctx context.Context, input PipeOut) PipeOut {
 			count++
 		}
 		pengine.endTimer("all")
-		log.Printf("---StartTiming---")
-		for p := pengine; p != nil; p = p.parent {
-			log.Printf("%s %s", p.name, p.getTime())
+		if pengine.timing["all"] > 1*time.Second {
+			log.Printf("---StartTiming---")
+			for p := pengine; p != nil; p = p.parent {
+				log.Printf("%s %s", p.name, p.getTime())
+			}
+			log.Printf("---EndTiming Processed:%d---", count)
 		}
-		log.Printf("---EndTiming Processed:%d---", count)
 	}()
 	return newPipeOut(o, pipe.State, pipe.ValueStates)
 }

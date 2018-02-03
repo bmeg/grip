@@ -93,6 +93,9 @@ func CopyStructToStructSub(dst *structpb.Struct, keys []string, src *structpb.St
 
 // AsMap takes a protobuf Struct and converts it into a go map
 func AsMap(src *structpb.Struct) map[string]interface{} {
+	if src == nil {
+		return nil
+	}
 	out := map[string]interface{}{}
 	for k, f := range src.Fields {
 		if f == nil {
