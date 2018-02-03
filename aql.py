@@ -45,17 +45,24 @@ class Graph:
     def query(self):
         return Query(self)
 
-    def addVertex(self, id, label, prop={}):
+    def addVertex(self, id, label, prop={}, update=False):
         payload = json.dumps({
             "gid" : id,
             "label" : label,
             "data" : prop
         })
         headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
-        request = urllib2.Request(self.url + "/" + self.name + "/vertex", payload, headers=headers)
+        url = self.url + "/" + self.name + "/vertex"
+        if update:
+            url += "?update=true"
+        print url
+        request = urllib2.Request(url, payload, headers=headers)
         response = urllib2.urlopen(request)
         result = response.read()
         return json.loads(result)
+
+    def updateVertex(self, id, label, prop={}):
+        self.addVertex(id, label, prop, True)
 
     def addEdge(self, src, dst, label, prop={}):
         payload = json.dumps({
