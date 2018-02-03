@@ -134,16 +134,35 @@ func (server *ArachneServer) AddGraph(ctx context.Context, elem *aql.ElementID) 
 // AddVertex adds a vertex to the graph
 func (server *ArachneServer) AddVertex(ctx context.Context, elem *aql.GraphElement) (*aql.EditResult, error) {
 	var id string
-	server.engine.AddVertex(elem.Graph, *elem.Vertex)
 	id = elem.Vertex.Gid
+	if elem.Update {
+		o := server.engine.GetVertex(elem.Graph, id)
+		if o != nil {
+			for k, v := range o.Data.Fields {
+				if _, ok := elem.Vertex.Data.Fields[k]; !ok {
+					elem.Vertex.Data.Fields[k] = v
+				}
+			}
+		}
+	}
+	server.engine.AddVertex(elem.Graph, *elem.Vertex)
 	return &aql.EditResult{Result: &aql.EditResult_Id{Id: id}}, nil
 }
 
 // AddEdge adds an edge to the graph
 func (server *ArachneServer) AddEdge(ctx context.Context, elem *aql.GraphElement) (*aql.EditResult, error) {
-	var id string
+	var id = elem.Edge.Gid
+	if elem.Update {
+		o := server.engine.GetEdge(elem.Graph, id)
+		if o != nil {
+			for k, v := range o.Data.Fields {
+				if _, ok := elem.Edge.Data.Fields[k]; !ok {
+					elem.Edge.Data.Fields[k] = v
+				}
+			}
+		}
+	}
 	server.engine.AddEdge(elem.Graph, *elem.Edge)
-	id = elem.Edge.Gid
 	return &aql.EditResult{Result: &aql.EditResult_Id{Id: id}}, nil
 }
 

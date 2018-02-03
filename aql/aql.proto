@@ -115,6 +115,7 @@ message GraphElement {
   Vertex vertex = 2;
   Edge edge = 3;
   Bundle bundle = 4;
+  bool update = 5;
 }
 
 message ElementID {

@@ -38,6 +38,21 @@ lint:
 test:
 	@go test $(TESTS)
 
+
+proto:
+	cd aql && protoc \
+	 -I ./ -I ../googleapis \
+	--go_out=\
+	Mgoogle/protobuf/struct.proto=github.com/golang/protobuf/ptypes/struct,\
+	plugins=grpc:./ \
+	--grpc-gateway_out=logtostderr=true:. \
+	aql.proto
+
+proto-tool:
+	go get github.com/golang/protobuf/protoc-gen-go
+	go get github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway/
+
+
 # Build binaries for all OS/Architectures
 cross-compile: depends
 	@echo '=== Cross compiling... ==='
