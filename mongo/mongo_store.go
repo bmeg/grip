@@ -79,7 +79,7 @@ func (ma *Arachne) GetGraphs() []string {
 }
 
 // Graph obtains the gdbi.DBI for a particular graph
-func (ma *Arachne) Graph(graph string) gdbi.DBI {
+func (ma *Arachne) Graph(graph string) gdbi.GraphDB {
 	return &Graph{
 		ma.db.C(fmt.Sprintf("%s_vertices", graph)),
 		ma.db.C(fmt.Sprintf("%s_edges", graph)),

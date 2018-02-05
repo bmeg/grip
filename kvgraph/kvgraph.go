@@ -43,7 +43,7 @@ func (kgraph *KVGraph) DeleteGraph(graph string) error {
 }
 
 // Graph obtains the gdbi.DBI for a particular graph
-func (kgraph *KVGraph) Graph(graph string) gdbi.DBI {
+func (kgraph *KVGraph) Graph(graph string) gdbi.GraphDB {
 	return &KVInterfaceGDB{kv: kgraph.kv, graph: graph}
 }
 

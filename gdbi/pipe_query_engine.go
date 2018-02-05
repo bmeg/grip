@@ -46,7 +46,7 @@ type graphPipe func(t timer, ctx context.Context) PipeOut
 // and then will execute a complex query and filter on a graph database interface
 type PipeEngine struct {
 	name       string
-	db         DBI
+	db         GraphDB
 	pipe       graphPipe
 	err        error
 	selection  []string
@@ -66,8 +66,9 @@ type propKey string
 
 var propLoad propKey = "load"
 
+
 // NewPipeEngine creates a new PipeEngine based on the provided DBI
-func NewPipeEngine(db DBI) *PipeEngine {
+func NewPipeEngine(db GraphDB) *PipeEngine {
 	return &PipeEngine{
 		name:      "start_node",
 		db:        db,
@@ -81,6 +82,7 @@ func NewPipeEngine(db DBI) *PipeEngine {
 		timing:    map[string]time.Duration{},
 	}
 }
+
 
 func (pengine *PipeEngine) append(name string, pipe graphPipe) *PipeEngine {
 	return &PipeEngine{

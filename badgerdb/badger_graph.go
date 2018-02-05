@@ -237,8 +237,8 @@ func (ba *BadgerArachne) DeleteGraph(graph string) error {
 	return nil
 }
 
-// Graph obtains the gdbi.DBI for a particular graph
-func (ba *BadgerArachne) Graph(graph string) gdbi.DBI {
+// Graph obtains the gdbi.GraphDB for a particular graph
+func (ba *BadgerArachne) Graph(graph string) gdbi.GraphDB {
 	return &BadgerGDB{kv: ba.kv, graph: graph}
 }
 
