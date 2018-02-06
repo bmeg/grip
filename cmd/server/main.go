@@ -57,7 +57,7 @@ func init() {
 	flags := Cmd.Flags()
 	flags.StringVar(&httpPort, "port", "8000", "HTTP Port")
 	flags.StringVar(&rpcPort, "rpc", "9090", "TCP+RPC Port")
-	flags.StringVar(&dbPath, "db", "graph_db", "DB Path")
+	flags.StringVar(&dbPath, "db", "arachne", "DB Path")
 	flags.StringVar(&mongoURL, "mongo", "", "Mongo URL")
 	flags.StringVar(&boltPath, "bolt", "", "Bolt DB Path")
 	flags.StringVar(&rocksPath, "rocks", "", "RocksDB Path")
