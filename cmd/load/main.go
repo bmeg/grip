@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-var host = "localhost:9090"
+var host = "localhost:8202"
 var graph = "data"
 var vertexFile string
 var edgeFile string
@@ -115,7 +115,7 @@ var Cmd = &cobra.Command{
 
 func init() {
 	flags := Cmd.Flags()
-	flags.StringVar(&host, "host", "localhost:9090", "Host Server")
+	flags.StringVar(&host, "host", host, "Host Server")
 	flags.StringVar(&graph, "graph", "data", "Graph")
 	flags.StringVar(&vertexFile, "vertex", "", "Vertex File")
 	flags.StringVar(&edgeFile, "edge", "", "Edge File")

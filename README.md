@@ -54,7 +54,7 @@ Some example queries
 import aql
 import json
 
-conn = aql.Connection("http://localhost:8000")
+conn = aql.Connection("http://localhost:8201")
 
 O = conn.graph("amazon")
 
@@ -119,7 +119,7 @@ python ./test/load_property_matrix.py BRCA_clinicalMatrix
 Python Query: Open Connection
 ```
 import aql
-conn = aql.Connection("http://localhost:8000")
+conn = aql.Connection("http://localhost:8201")
 O = conn.graph("test-data")
 ```
 

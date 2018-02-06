@@ -3,7 +3,7 @@
 import aql
 import json
 
-conn = aql.Connection("http://localhost:8000")
+conn = aql.Connection("http://localhost:8201")
 
 conn.delete("test-graph")
 

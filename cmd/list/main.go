@@ -6,7 +6,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var host = "localhost:9090"
+var host = "localhost:8202"
 
 // Cmd is the declaration of the command line
 var Cmd = &cobra.Command{
@@ -27,5 +27,5 @@ var Cmd = &cobra.Command{
 
 func init() {
 	flags := Cmd.Flags()
-	flags.StringVar(&host, "host", "localhost:9090", "Host Server")
+	flags.StringVar(&host, "host", host, "Host Server")
 }
