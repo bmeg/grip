@@ -186,7 +186,7 @@ func (pengine *PipeEngine) E() QueryInterface {
 				}
 				t.endTimer("all")
 			}()
-			return newPipeOut(o, StateRawVertexList, map[string]int{})
+			return newPipeOut(o, StateRawEdgeList, map[string]int{})
 		})
 }
 
@@ -240,7 +240,6 @@ func (pengine *PipeEngine) HasLabel(labels ...string) QueryInterface {
 			go func() {
 				defer close(o)
 				t.startTimer("all")
-
 				//if the 'state' is of a raw output, ie the output of query.V() or query.E(),
 				//we can skip calling the upstream element and reference the index
 				if pipe.State == StateRawVertexList {
