@@ -7,7 +7,7 @@ import (
 	"log"
 )
 
-var host = "localhost:9090"
+var host = "localhost:8202"
 var graph = "example"
 var exampleSet = "starwars"
 
@@ -73,7 +73,7 @@ var Cmd = &cobra.Command{
 
 func init() {
 	flags := Cmd.Flags()
-	flags.StringVar(&host, "host", "localhost:9090", "Host Server")
+	flags.StringVar(&host, "host", host, "Host Server")
 	flags.StringVar(&graph, "graph", "example", "Graph")
 	flags.StringVar(&exampleSet, "exampleSet", "starwars", "Example Data Set")
 }

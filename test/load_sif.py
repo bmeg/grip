@@ -40,7 +40,7 @@ def load_sif(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("input")
-    parser.add_argument("--server", default="http://localhost:8000")
+    parser.add_argument("--server", default="http://localhost:8201")
     parser.add_argument("--db", default="test-data")
     
     args = parser.parse_args()
