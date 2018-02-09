@@ -7,6 +7,9 @@ class Connection:
         self.url =  "%s/v1/graph" % (host)
 
     def list(self):
+        """
+        List graphs.
+        """
         request = urllib2.Request(self.url)
         response = urllib2.urlopen(request)
         txt = response.read()
@@ -19,6 +22,9 @@ class Connection:
         return out
 
     def new(self, name):
+        """
+        New graph.
+        """
         headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
         request = urllib2.Request("%s/%s" % (self.url, name), "{}", headers=headers)
         response = urllib2.urlopen(request)
@@ -26,6 +32,9 @@ class Connection:
         return json.loads(result)
 
     def delete(self, name):
+        """
+        Delete graph.
+        """
         headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
         request = urllib2.Request("%s/%s" % (self.url, name), headers=headers)
         request.get_method = lambda: "DELETE"
@@ -34,6 +43,9 @@ class Connection:
         return json.loads(result)
 
     def graph(self, name):
+        """
+        Get a graph handle.
+        """
         return Graph(self.url, name)
 
 
@@ -43,9 +55,15 @@ class Graph:
         self.name = name
 
     def query(self):
+        """
+        Create a query handle.
+        """
         return Query(self)
 
     def addVertex(self, id, label, prop={}):
+        """
+        Add vertex to a graph.
+        """
         payload = json.dumps({
             "gid" : id,
             "label" : label,
@@ -58,6 +76,9 @@ class Graph:
         return json.loads(result)
 
     def addEdge(self, src, dst, label, prop={}):
+        """
+        Add edge to the graph.
+        """
         payload = json.dumps({
             "from" : src,
             "to" : dst,
@@ -141,80 +162,147 @@ class Query:
         self.parent = parent
 
     def js_import(self, src):
+        """
+        Initialize javascript engine with functions and global variables.
+        """
         self.query.append({"import":src})
         return self
 
     def V(self, id=[]):
+        """
+        Start the query at a vertex.
+
+        "id" is an ID or a list of vertex IDs to start from. Optional.
+        """
         if not isinstance(id, list):
             id = [id]
         self.query.append({"V":id})
         return self
 
     def E(self, id=None):
+        """
+        Start the query at an edge.
+
+        "id" is an ID to start from. Optional.
+        """
         self.query.append({"E":id})
         return self
 
     def hasLabel(self, label):
+        """
+        Match vertex/edge label.
+
+        "label" can be a list.
+        """
         if not isinstance(label, list):
             label = [label]
         self.query.append({'hasLabel': label})
         return self
 
     def hasId(self, id):
+        """
+        Match vertex/edge ID.
+
+        "id" can be a list.
+        """
         if not isinstance(id, list):
             id = [id]
         self.query.append({'hasId': id})
         return self
 
-    def has(self, prop, within):
-        if not isinstance(within, list):
-            within = [within]
-        self.query.append({'has': { "key" : prop, 'within': within}})
+    def has(self, key, value):
+        """
+        Match vertex/edge property.
+
+        If "value" is a list, then data must match at least one item.
+        """
+        if not isinstance(value, list):
+            value = [value]
+        self.query.append({'has': { "key" : prop, 'within': value}})
         return self
 
     def values(self, v):
+        """
+        Extract document properties into returned document.
+        """
         if not isinstance(v, list):
             v = [v]
         self.query.append({'values': {"labels" : v}})
         return self
 
-    def cap(self, c):
-        if not isinstance(c, list):
-            c = [c]
-        self.query.append({'cap': c})
-        return self
-
     def incoming(self, label=[]):
+        """
+        Follow an incoming edge to the source vertex.
+
+        "label" is the label of the edge to follow.
+        "label" can be a list.
+        """
         if not isinstance(label, list):
             label = [label]
         self.query.append({'in': label})
         return self
 
     def outgoing(self, label=[]):
+        """
+        Follow an outgoing edge to the destination vertex.
+
+        "label" is the label of the edge to follow.
+        "label" can be a list.
+        """
         if not isinstance(label, list):
             label = [label]
         self.query.append({'out': label})
         return self
 
     def both(self, label=[]):
+        """
+        Follow both incoming and outgoing edges to vertices.
+
+        "label" is the label of the edge to follow.
+        "label" can be a list.
+        """
         if not isinstance(label, list):
             label = [label]
         self.query.append({'both': label})
         return self
 
     def incomingEdge(self, label=[]):
+        """
+        Move from a vertex to an incoming edge.
+
+        "label" is the label of the edge to move to.
+        "label" can be a list.
+
+        Must be called from a vertex.
+        """
         if not isinstance(label, list):
             label = [label]
         self.query.append({'inEdge': label})
         return self
 
     def outgoingEdge(self, label=[]):
+        """
+        Move from a vertex to an outgoing edge.
+
+        "label" is the label of the edge to move to.
+        "label" can be a list.
+
+        Must be called from a vertex.
+        """
         if not isinstance(label, list):
             label = [label]
         self.query.append({'outEdge': label})
         return self
 
     def bothEdge(self, label=[]):
+        """
+        Move from a vertex to incoming/outgoing edges.
+
+        "label" is the label of the edge to move to.
+        "label" can be a list.
+
+        Must be called from a vertex.
+        """
         if not isinstance(label, list):
             label = [label]
         self.query.append({'bothEdge': label})
@@ -226,51 +314,84 @@ class Query:
         self.query.append({'outBundle': label})
         return self
 
-    def mark(self, label):
-        self.query.append({'as': label})
+    def mark(self, name):
+        """
+        Mark the current vertex/edge with the given name.
+
+        Used to return elements from select().
+        """
+        self.query.append({'as': name})
         return self
 
-    def select(self, labels):
-        self.query.append({'select': {"labels" : labels}})
+    def select(self, marks):
+        """
+        Returns rows of marked elements, with one item for each mark.
+
+        "marks" is a list of mark names.
+        The rows returned are all combinations of marks, e.g.
+        [
+            [A1, B1],
+            [A1, B2],
+            [A2, B1],
+            [A2, B2],
+        ]
+        """
+        self.query.append({'select': {"labels" : marks}})
         return self
 
     def limit(self, l):
+        """
+        Limits the number of results returned.
+        """
         self.query.append({'limit': l})
         return self
 
     def range(self, begin, end):
+        """
+        """
         self.query.append({'begin': begin, 'end': end})
         return self
 
     def count(self):
+        """
+        Return the number of results, instead of the elements.
+        """
         self.query.append({'count': ''})
         return self
 
     def groupCount(self, label):
+        """
+        Group results by the given property name and count each group.
+        """
         self.query.append({'groupCount': label})
         return self
 
-    def by(self, label):
-        self.query.append({'by': label})
-        return self
-
     def map(self, func):
+        """
+        Transform results by the given javascript function.
+        function(el) el
+        """
         self.query.append({"map" : func})
         return self
 
     def filter(self, func):
+        """
+        Filter results by the given javascript function.
+        function(el) bool
+        """
         self.query.append({"filter" : func})
         return self
 
-    def fold(self, func):
-        self.query.append({"fold" : func})
-        return self
-
     def vertexFromValues(self, func):
+        """
+        """
         self.query.append({"vertexFromValues" : func})
         return self
 
     def match(self, queries):
+        """
+        Intersect multiple queries.
+        """
         mq = []
         for i in queries:
             mq.append( {'query': i.query} )
@@ -278,6 +399,9 @@ class Query:
         return self
 
     def render(self):
+        """
+        Return the query as a JSON string.
+        """
         output = {'query': self.query}
         return json.dumps(output)
 
@@ -285,6 +409,9 @@ class Query:
         return self.execute()
 
     def execute(self):
+        """
+        Execute the query and return an iterator.
+        """
         payload = self.render()
         #print payload
         headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
@@ -308,4 +435,7 @@ class Query:
 
 
     def first(self):
+        """
+        Return only the first result.
+        """
         return list(self.execute())[0]
