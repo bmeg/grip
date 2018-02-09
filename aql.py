@@ -244,7 +244,7 @@ class Query:
 
     def count(self):
         self.query.append({'count': ''})
-        return self
+        return list(self.execute())[0]["int_value"]
 
     def groupCount(self, label):
         self.query.append({'groupCount': label})
