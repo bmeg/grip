@@ -24,11 +24,13 @@ var Cmd = &cobra.Command{
 		}
 		fmt.Printf("Graph: %s\n", args[0])
 
-		res, _ := conn.Query(args[0]).V().Count().Execute()
+		q := aql.NewQuery(args[0]).V().Count()
+		res, _ := conn.Execute(q)
 		for row := range res {
 			fmt.Printf("Vertex Count: %s\n", row)
 		}
-		res, _ = conn.Query(args[0]).E().Count().Execute()
+		q = aql.NewQuery(args[0]).E().Count()
+		res, _ = conn.Execute(q)
 		for row := range res {
 			fmt.Printf("Edge Count: %s\n", row)
 		}
