@@ -46,7 +46,6 @@ type QueryInterface interface {
 
 	Execute(context.Context) chan aql.ResultRow
 	First(context.Context) (aql.ResultRow, error) //Only get one result
-	Run(context.Context) error                    //Do execute, but throw away the results
 	Chain(context.Context, PipeOut) PipeOut
 }
 
@@ -103,39 +102,3 @@ type DBI interface {
 	GraphDB
 	Indexer
 }
-
-// These consts mark the type of a PipeOut traveler chan
-const (
-	// StateCustom The PipeOut will be emitting custom data structures
-	StateCustom = 0
-	// StateVertexList The PipeOut will be emitting a list of vertices
-	StateVertexList = 1
-	// StateEdgeList The PipeOut will be emitting a list of edges
-	StateEdgeList = 2
-	// StateRawVertexList The PipeOut will be emitting a list of all vertices, if there is an index
-	// based filter, you can use skip listening and use that
-	StateRawVertexList = 3
-	// StateRawEdgeList The PipeOut will be emitting a list of all edges, if there is an index
-	// based filter, you can use skip listening and use that
-	StateRawEdgeList = 4
-	// StateBundleList the PipeOut will be emittign a list of bundles
-	StateBundleList = 5
-)
-
-// PipeOut represents the output of a single pipeline chain
-type PipeOut struct {
-	Travelers   chan Traveler
-	State       int
-	ValueStates map[string]int
-}
-
-// Traveler represents one query element, tracking progress across the graph
-type Traveler struct {
-	State map[string]aql.QueryResult
-}
-
-/*
-type PipeRequest struct {
-	LoadProperties bool
-}
-*/

@@ -16,18 +16,39 @@ import (
 	"time"
 )
 
-func stateCustom(i int) int {
+type pipeOutputType int
+
+// These consts mark the type of a PipeOut traveler chan
+const (
+	// outputCustom The PipeOut will be emitting custom data structures
+	outputCustom pipeOutputType = iota
+	// outputVertexList The PipeOut will be emitting a list of vertices
+	outputVertexList
+	// outputEdgeList The PipeOut will be emitting a list of edges
+	outputEdgeList
+	// outputRawVertexList The PipeOut will be emitting a list of all vertices, if there is an index
+	// based filter, you can use skip listening and use that
+	outputRawVertexList
+	// outputRawEdgeList The PipeOut will be emitting a list of all edges, if there is an index
+	// based filter, you can use skip listening and use that
+	outputRawEdgeList
+	// outputBundleList the PipeOut will be emittign a list of bundles
+	outputBundleList
+)
+
+// WTF is stateCustom?
+func stateCustom(i pipeOutputType) pipeOutputType {
 	switch i {
-	case StateEdgeList:
-		return StateEdgeList
-	case StateVertexList:
-		return StateVertexList
-	case StateRawEdgeList:
-		return StateEdgeList
-	case StateRawVertexList:
-		return StateVertexList
+	case outputEdgeList:
+		return outputEdgeList
+	case outputVertexList:
+		return outputVertexList
+	case outputRawEdgeList:
+		return outputEdgeList
+	case outputRawVertexList:
+		return outputVertexList
 	default:
-		return StateCustom
+		return outputCustom
 	}
 }
 
@@ -36,8 +57,15 @@ type timer interface {
 	endTimer(label string)
 }
 
-func newPipeOut(t chan Traveler, state int, valueStates map[string]int) PipeOut {
-	return PipeOut{Travelers: t, State: state, ValueStates: valueStates}
+// PipeOut represents the output of a single pipeline chain
+type PipeOut struct {
+	Travelers   chan Traveler
+	OutputType       pipeOutputType
+	ValueStates map[string]int
+}
+
+func newPipeOut(t chan Traveler, ty pipeOutputType, valueStates map[string]int) PipeOut {
+	return PipeOut{Travelers: t, OutputType: ty, ValueStates: valueStates}
 }
 
 type graphPipe func(t timer, ctx context.Context) PipeOut
@@ -61,10 +89,6 @@ type PipeEngine struct {
 const (
 	pipeSize = 100
 )
-
-type propKey string
-
-var propLoad propKey = "load"
 
 // NewPipeEngine creates a new PipeEngine based on the provided DBI
 func NewPipeEngine(db DBI) *PipeEngine {
@@ -142,16 +166,9 @@ func (pengine *PipeEngine) V(key []string) QueryInterface {
 				go func() {
 					t.startTimer("all")
 					defer close(o)
-					for _, k := range key {
-						v := pengine.db.GetVertex(k, ctx.Value(propLoad).(bool))
-						if v != nil {
-							c := Traveler{}
-							o <- c.AddCurrent(aql.QueryResult{Result: &aql.QueryResult_Vertex{Vertex: v}})
-						}
-					}
 					t.endTimer("all")
 				}()
-				return newPipeOut(o, StateVertexList, map[string]int{})
+				return newPipeOut(o, outputVertexList, map[string]int{})
 			})
 	}
 	return pengine.append("V",
@@ -160,14 +177,9 @@ func (pengine *PipeEngine) V(key []string) QueryInterface {
 			go func() {
 				defer close(o)
 				t.startTimer("all")
-				for i := range pengine.db.GetVertexList(ctx, ctx.Value(propLoad).(bool)) {
-					t := i //make a local copy
-					c := Traveler{}
-					o <- c.AddCurrent(aql.QueryResult{Result: &aql.QueryResult_Vertex{Vertex: &t}})
-				}
 				t.endTimer("all")
 			}()
-			return newPipeOut(o, StateRawVertexList, map[string]int{})
+			return newPipeOut(o, outputRawVertexList, map[string]int{})
 		})
 }
 
@@ -179,24 +191,10 @@ func (pengine *PipeEngine) E() QueryInterface {
 			go func() {
 				defer close(o)
 				t.startTimer("all")
-				for i := range pengine.db.GetEdgeList(ctx, ctx.Value(propLoad).(bool)) {
-					t := i //make a local copy
-					c := Traveler{}
-					o <- c.AddCurrent(aql.QueryResult{Result: &aql.QueryResult_Edge{Edge: &t}})
-				}
 				t.endTimer("all")
 			}()
-			return newPipeOut(o, StateRawEdgeList, map[string]int{})
+			return newPipeOut(o, outputRawEdgeList, map[string]int{})
 		})
-}
-
-func contains(a []string, v string) bool {
-	for _, i := range a {
-		if i == v {
-			return true
-		}
-	}
-	return false
 }
 
 // HasID filters graph elements against a list ids
@@ -208,23 +206,6 @@ func (pengine *PipeEngine) HasID(ids ...string) QueryInterface {
 			go func() {
 				defer close(o)
 				t.startTimer("all")
-				if pipe.State == StateVertexList || pipe.State == StateRawVertexList {
-					for i := range pipe.Travelers {
-						if v := i.GetCurrent().GetVertex(); v != nil {
-							if contains(ids, v.Gid) {
-								o <- i
-							}
-						}
-					}
-				} else if pipe.State == StateEdgeList || pipe.State == StateRawEdgeList {
-					for i := range pipe.Travelers {
-						if e := i.GetCurrent().GetEdge(); e != nil {
-							if contains(ids, e.Gid) {
-								o <- i
-							}
-						}
-					}
-				}
 				t.endTimer("all")
 			}()
 			return newPipeOut(o, stateCustom(pipe.State), pipe.ValueStates)
@@ -240,58 +221,6 @@ func (pengine *PipeEngine) HasLabel(labels ...string) QueryInterface {
 			go func() {
 				defer close(o)
 				t.startTimer("all")
-				//if the 'state' is of a raw output, ie the output of query.V() or query.E(),
-				//we can skip calling the upstream element and reference the index
-				if pipe.State == StateRawVertexList {
-					t.startTimer("indexScan")
-					for _, l := range labels {
-						for id := range pengine.db.VertexLabelScan(ctx, l) {
-							v := pengine.db.GetVertex(id, ctx.Value(propLoad).(bool))
-							if v != nil {
-								c := Traveler{}
-								o <- c.AddCurrent(aql.QueryResult{Result: &aql.QueryResult_Vertex{Vertex: v}})
-							}
-						}
-					}
-					t.endTimer("indexScan")
-				} else if pipe.State == StateRawEdgeList {
-					for _, l := range labels {
-						for id := range pengine.db.EdgeLabelScan(ctx, l) {
-							e := pengine.db.GetEdge(id, ctx.Value(propLoad).(bool))
-							if e != nil {
-								c := Traveler{}
-								o <- c.AddCurrent(aql.QueryResult{Result: &aql.QueryResult_Edge{Edge: e}})
-							}
-						}
-					}
-				} else {
-					for i := range pipe.Travelers {
-						//Process Vertex Elements
-						if v := i.GetCurrent().GetVertex(); v != nil {
-							found := false
-							for _, s := range labels {
-								if v.Label == s {
-									found = true
-								}
-							}
-							if found {
-								o <- i
-							}
-						}
-						//Process Edge Elements
-						if e := i.GetCurrent().GetEdge(); e != nil {
-							found := false
-							for _, s := range labels {
-								if e.Label == s {
-									found = true
-								}
-							}
-							if found {
-								o <- i
-							}
-						}
-					}
-				}
 				t.endTimer("all")
 			}()
 			return newPipeOut(o, stateCustom(pipe.State), pipe.ValueStates)
@@ -307,36 +236,6 @@ func (pengine *PipeEngine) Has(prop string, value ...string) QueryInterface {
 			go func() {
 				defer close(o)
 				t.startTimer("all")
-				for i := range pipe.Travelers {
-					//Process Vertex Elements
-					if v := i.GetCurrent().GetVertex(); v != nil && v.Data != nil {
-						if p, ok := v.Data.Fields[prop]; ok {
-							found := false
-							for _, s := range value {
-								if p.GetStringValue() == s {
-									found = true
-								}
-							}
-							if found {
-								o <- i
-							}
-						}
-					}
-					//Process Edge Elements
-					if e := i.GetCurrent().GetEdge(); e != nil && e.Data != nil {
-						if p, ok := e.Data.Fields[prop]; ok {
-							found := false
-							for _, s := range value {
-								if p.GetStringValue() == s {
-									found = true
-								}
-							}
-							if found {
-								o <- i
-							}
-						}
-					}
-				}
 				t.endTimer("all")
 			}()
 			return newPipeOut(o, stateCustom(pipe.State), pipe.ValueStates)
@@ -353,39 +252,9 @@ func (pengine *PipeEngine) Out(key ...string) QueryInterface {
 			go func() {
 				t.startTimer("all")
 				defer close(o)
-				if pipe.State == StateVertexList || pipe.State == StateRawVertexList {
-					for i := range pipe.Travelers {
-						if v := i.GetCurrent().GetVertex(); v != nil {
-							for ov := range pengine.db.GetOutList(ctx, v.Gid, ctx.Value(propLoad).(bool), key) {
-								lv := ov
-								o <- i.AddCurrent(aql.QueryResult{Result: &aql.QueryResult_Vertex{Vertex: &lv}})
-							}
-						}
-					}
-				} else if pipe.State == StateEdgeList || pipe.State == StateRawEdgeList {
-					idList := make(chan string, 100)
-					travelerList := make(chan Traveler, 100)
-					go func() {
-						defer close(idList)
-						defer close(travelerList)
-						for i := range pipe.Travelers {
-							e := i.GetCurrent().GetEdge()
-							idList <- e.To
-							travelerList <- i
-						}
-					}()
-					for v := range pengine.db.GetVertexListByID(ctx, idList, ctx.Value(propLoad).(bool)) {
-						i := <-travelerList
-						if v != nil {
-							o <- i.AddCurrent(aql.QueryResult{Result: &aql.QueryResult_Vertex{Vertex: v}})
-						}
-					}
-				} else {
-					log.Printf("Weird State: %d", pipe.State)
-				}
 				t.endTimer("all")
 			}()
-			return newPipeOut(o, StateVertexList, pipe.ValueStates)
+			return newPipeOut(o, outputVertexList, pipe.ValueStates)
 		})
 }
 
@@ -400,45 +269,9 @@ func (pengine *PipeEngine) Both(key ...string) QueryInterface {
 			go func() {
 				t.startTimer("all")
 				defer close(o)
-				if pipe.State == StateVertexList || pipe.State == StateRawVertexList {
-					for i := range pipe.Travelers {
-						if v := i.GetCurrent().GetVertex(); v != nil {
-							for ov := range pengine.db.GetOutList(ctx, v.Gid, ctx.Value(propLoad).(bool), key) {
-								lv := ov
-								o <- i.AddCurrent(aql.QueryResult{Result: &aql.QueryResult_Vertex{Vertex: &lv}})
-							}
-							for ov := range pengine.db.GetInList(ctx, v.Gid, ctx.Value(propLoad).(bool), key) {
-								lv := ov
-								o <- i.AddCurrent(aql.QueryResult{Result: &aql.QueryResult_Vertex{Vertex: &lv}})
-							}
-						}
-					}
-				} else if pipe.State == StateEdgeList || pipe.State == StateRawEdgeList {
-					idList := make(chan string, 100)
-					travelerList := make(chan Traveler, 100)
-					go func() {
-						defer close(idList)
-						defer close(travelerList)
-						for i := range pipe.Travelers {
-							e := i.GetCurrent().GetEdge()
-							idList <- e.To
-							travelerList <- i
-							idList <- e.From
-							travelerList <- i
-						}
-					}()
-					for v := range pengine.db.GetVertexListByID(ctx, idList, ctx.Value(propLoad).(bool)) {
-						i := <-travelerList
-						if v != nil {
-							o <- i.AddCurrent(aql.QueryResult{Result: &aql.QueryResult_Vertex{Vertex: v}})
-						}
-					}
-				} else {
-					log.Printf("Weird State: %d", pipe.State)
-				}
 				t.endTimer("all")
 			}()
-			return newPipeOut(o, StateVertexList, pipe.ValueStates)
+			return newPipeOut(o, outputVertexList, pipe.ValueStates)
 		})
 }
 
@@ -452,26 +285,9 @@ func (pengine *PipeEngine) In(key ...string) QueryInterface {
 			go func() {
 				t.startTimer("all")
 				defer close(o)
-				if pipe.State == StateVertexList || pipe.State == StateRawVertexList {
-					for i := range pipe.Travelers {
-						if v := i.GetCurrent().GetVertex(); v != nil {
-							for e := range pengine.db.GetInList(ctx, v.Gid, ctx.Value(propLoad).(bool), key) {
-								el := e
-								o <- i.AddCurrent(aql.QueryResult{Result: &aql.QueryResult_Vertex{Vertex: &el}})
-							}
-						}
-					}
-				} else if pipe.State == StateEdgeList || pipe.State == StateRawEdgeList {
-					for i := range pipe.Travelers {
-						if e := i.GetCurrent().GetEdge(); e != nil {
-							v := pengine.db.GetVertex(e.From, ctx.Value(propLoad).(bool))
-							o <- i.AddCurrent(aql.QueryResult{Result: &aql.QueryResult_Vertex{Vertex: v}})
-						}
-					}
-				}
 				t.endTimer("all")
 			}()
-			return newPipeOut(o, StateVertexList, pipe.ValueStates)
+			return newPipeOut(o, outputVertexList, pipe.ValueStates)
 		})
 }
 
@@ -485,17 +301,9 @@ func (pengine *PipeEngine) OutE(key ...string) QueryInterface {
 			go func() {
 				t.startTimer("all")
 				defer close(o)
-				for i := range pipe.Travelers {
-					if v := i.GetCurrent().GetVertex(); v != nil {
-						for oe := range pengine.db.GetOutEdgeList(ctx, v.Gid, ctx.Value(propLoad).(bool), key) {
-							le := oe
-							o <- i.AddCurrent(aql.QueryResult{Result: &aql.QueryResult_Edge{Edge: &le}})
-						}
-					}
-				}
 				t.endTimer("all")
 			}()
-			return newPipeOut(o, StateEdgeList, pipe.ValueStates)
+			return newPipeOut(o, outputEdgeList, pipe.ValueStates)
 		})
 }
 
@@ -509,21 +317,9 @@ func (pengine *PipeEngine) BothE(key ...string) QueryInterface {
 			go func() {
 				t.startTimer("all")
 				defer close(o)
-				for i := range pipe.Travelers {
-					if v := i.GetCurrent().GetVertex(); v != nil {
-						for oe := range pengine.db.GetOutEdgeList(ctx, v.Gid, ctx.Value(propLoad).(bool), key) {
-							le := oe
-							o <- i.AddCurrent(aql.QueryResult{Result: &aql.QueryResult_Edge{Edge: &le}})
-						}
-						for oe := range pengine.db.GetInEdgeList(ctx, v.Gid, ctx.Value(propLoad).(bool), key) {
-							le := oe
-							o <- i.AddCurrent(aql.QueryResult{Result: &aql.QueryResult_Edge{Edge: &le}})
-						}
-					}
-				}
 				t.endTimer("all")
 			}()
-			return newPipeOut(o, StateEdgeList, pipe.ValueStates)
+			return newPipeOut(o, outputEdgeList, pipe.ValueStates)
 		})
 }
 
@@ -537,19 +333,9 @@ func (pengine *PipeEngine) OutBundle(key ...string) QueryInterface {
 			go func() {
 				t.startTimer("all")
 				defer close(o)
-				for i := range pipe.Travelers {
-					if v := i.GetCurrent().GetVertex(); v != nil {
-						//log.Printf("GetEdgeList: %s", v.Gid)
-						for oe := range pengine.db.GetOutBundleList(ctx, v.Gid, ctx.Value(propLoad).(bool), key) {
-							le := oe
-							o <- i.AddCurrent(aql.QueryResult{Result: &aql.QueryResult_Bundle{Bundle: &le}})
-						}
-						//log.Printf("Done GetEdgeList: %s", v.Gid)
-					}
-				}
 				t.endTimer("all")
 			}()
-			return newPipeOut(o, StateBundleList, pipe.ValueStates)
+			return newPipeOut(o, outputBundleList, pipe.ValueStates)
 		})
 }
 
@@ -564,17 +350,9 @@ func (pengine *PipeEngine) InE(key ...string) QueryInterface {
 			go func() {
 				t.startTimer("all")
 				defer close(o)
-				for i := range pipe.Travelers {
-					if v := i.GetCurrent().GetVertex(); v != nil {
-						for e := range pengine.db.GetInEdgeList(ctx, v.Gid, ctx.Value(propLoad).(bool), key) {
-							el := e
-							o <- i.AddCurrent(aql.QueryResult{Result: &aql.QueryResult_Edge{Edge: &el}})
-						}
-					}
-				}
 				t.endTimer("all")
 			}()
-			return newPipeOut(o, StateEdgeList, pipe.ValueStates)
+			return newPipeOut(o, outputEdgeList, pipe.ValueStates)
 		})
 }
 
@@ -588,14 +366,6 @@ func (pengine *PipeEngine) As(label string) QueryInterface {
 			go func() {
 				t.startTimer("all")
 				defer close(o)
-				for i := range pipe.Travelers {
-					if i.HasLabeled(label) {
-						c := i.GetLabeled(label)
-						o <- i.AddCurrent(*c)
-					} else {
-						o <- i.AddLabeled(label, *i.GetCurrent())
-					}
-				}
 				t.endTimer("all")
 			}()
 			if _, ok := pipe.ValueStates[label]; ok {
@@ -622,29 +392,9 @@ func (pengine *PipeEngine) GroupCount(label string) QueryInterface {
 			go func() {
 				defer close(o)
 				t.startTimer("all")
-				groupCount := map[string]int{}
-				for i := range pipe.Travelers {
-					var props *structpb.Struct
-					if v := i.GetCurrent().GetVertex(); v != nil && v.Data != nil {
-						props = v.GetData()
-					} else if v := i.GetCurrent().GetEdge(); v != nil && v.Data != nil {
-						props = v.GetData()
-					}
-					if props != nil {
-						if x, ok := props.Fields[label]; ok {
-							groupCount[x.GetStringValue()]++ //BUG: Only supports string data
-						}
-					}
-				}
-				out := structpb.Struct{Fields: map[string]*structpb.Value{}}
-				for k, v := range groupCount {
-					out.Fields[k] = &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: float64(v)}}
-				}
-				c := Traveler{}
-				o <- c.AddCurrent(aql.QueryResult{Result: &aql.QueryResult_Struct{Struct: &out}})
 				t.endTimer("all")
 			}()
-			return newPipeOut(o, StateCustom, pipe.ValueStates)
+			return newPipeOut(o, outputCustom, pipe.ValueStates)
 		})
 }
 
@@ -666,26 +416,9 @@ func (pengine *PipeEngine) Values(labels []string) QueryInterface {
 			go func() {
 				defer close(o)
 				t.startTimer("all")
-				for i := range pipe.Travelers {
-					var props *structpb.Struct
-					if v := i.GetCurrent().GetVertex(); v != nil && v.Data != nil {
-						props = v.GetData()
-					} else if v := i.GetCurrent().GetEdge(); v != nil && v.Data != nil {
-						props = v.GetData()
-					}
-					if props != nil {
-						out := structpb.Struct{Fields: map[string]*structpb.Value{}}
-						if len(labels) == 0 {
-							protoutil.CopyStructToStruct(&out, props)
-						} else {
-							protoutil.CopyStructToStructSub(&out, labels, props)
-						}
-						o <- i.AddCurrent(aql.QueryResult{Result: &aql.QueryResult_Struct{Struct: &out}})
-					}
-				}
 				t.endTimer("all")
 			}()
-			return newPipeOut(o, StateCustom, pipe.ValueStates)
+			return newPipeOut(o, outputCustom, pipe.ValueStates)
 		})
 }
 
@@ -707,20 +440,9 @@ func (pengine *PipeEngine) Map(source string) QueryInterface {
 			go func() {
 				defer close(o)
 				t.startTimer("all")
-				mfunc, err := jsengine.NewJSEngine(source, pengine.imports)
-				if err != nil {
-					log.Printf("Script Error: %s", err)
-				}
-				for i := range pipe.Travelers {
-					out := mfunc.Call(i.GetCurrent())
-					if out != nil {
-						a := i.AddCurrent(*out)
-						o <- a
-					}
-				}
 				t.endTimer("all")
 			}()
-			return newPipeOut(o, StateCustom, pipe.ValueStates)
+			return newPipeOut(o, outputCustom, pipe.ValueStates)
 		})
 }
 
@@ -733,28 +455,9 @@ func (pengine *PipeEngine) Fold(source string) QueryInterface {
 			go func() {
 				defer close(o)
 				t.startTimer("all")
-				mfunc, err := jsengine.NewJSEngine(source, pengine.imports)
-				if err != nil {
-					log.Printf("Script Error: %s", err)
-				}
-				var last *aql.QueryResult
-				first := true
-				for i := range pipe.Travelers {
-					if first {
-						last = i.GetCurrent()
-						first = false
-					} else {
-						last = mfunc.Call(last, i.GetCurrent())
-					}
-				}
-				if last != nil {
-					i := Traveler{}
-					a := i.AddCurrent(*last)
-					o <- a
-				}
 				t.endTimer("all")
 			}()
-			return newPipeOut(o, StateCustom, pipe.ValueStates)
+			return newPipeOut(o, outputCustom, pipe.ValueStates)
 		})
 }
 
@@ -769,16 +472,6 @@ func (pengine *PipeEngine) Filter(source string) QueryInterface {
 			go func() {
 				t.startTimer("all")
 				defer close(o)
-				mfunc, err := jsengine.NewJSEngine(source, pengine.imports)
-				if err != nil {
-					log.Printf("Script Error: %s", err)
-				}
-				for i := range pipe.Travelers {
-					out := mfunc.CallBool(i.GetCurrent())
-					if out {
-						o <- i
-					}
-				}
 				t.endTimer("all")
 			}()
 			return newPipeOut(o, stateCustom(pipe.State), pipe.ValueStates)
@@ -797,16 +490,6 @@ func (pengine *PipeEngine) FilterValues(source string) QueryInterface {
 			go func() {
 				t.startTimer("all")
 				defer close(o)
-				mfunc, err := jsengine.NewJSEngine(source, pengine.imports)
-				if err != nil {
-					log.Printf("Script Error: %s", err)
-				}
-				for i := range pipe.Travelers {
-					out := mfunc.CallValueMapBool(i.State)
-					if out {
-						o <- i
-					}
-				}
 				t.endTimer("all")
 			}()
 			return newPipeOut(o, stateCustom(pipe.State), pipe.ValueStates)
@@ -823,21 +506,6 @@ func (pengine *PipeEngine) VertexFromValues(source string) QueryInterface {
 			go func() {
 				t.startTimer("all")
 				defer close(o)
-				mfunc, err := jsengine.NewJSEngine(source, pengine.imports)
-				if err != nil {
-					log.Printf("Script Error: %s", err)
-				}
-				for i := range pipe.Travelers {
-					t.startTimer("javascript")
-					out := mfunc.CallValueToVertex(i.State)
-					t.endTimer("javascript")
-					for _, j := range out {
-						v := pengine.db.GetVertex(j, ctx.Value(propLoad).(bool))
-						if v != nil {
-							o <- i.AddCurrent(aql.QueryResult{Result: &aql.QueryResult_Vertex{Vertex: v}})
-						}
-					}
-				}
 				t.endTimer("all")
 			}()
 			return newPipeOut(o, stateCustom(pipe.State), pipe.ValueStates)
@@ -854,16 +522,9 @@ func (pengine *PipeEngine) Count() QueryInterface {
 			go func() {
 				t.startTimer("all")
 				defer close(o)
-				var count int32
-				for range pipe.Travelers {
-					count++
-				}
-				//log.Printf("Counted: %d", count)
-				trav := Traveler{}
-				o <- trav.AddCurrent(aql.QueryResult{Result: &aql.QueryResult_IntValue{IntValue: count}})
 				t.endTimer("all")
 			}()
-			return newPipeOut(o, StateCustom, pipe.ValueStates)
+			return newPipeOut(o, outputCustom, pipe.ValueStates)
 		})
 }
 
@@ -878,15 +539,6 @@ func (pengine *PipeEngine) Limit(limit int64) QueryInterface {
 			go func() {
 				t.startTimer("all")
 				defer close(o)
-				var count int64
-				for i := range pipe.Travelers {
-					if count < limit {
-						o <- i
-					} else {
-						cancel()
-					}
-					count++
-				}
 				t.endTimer("all")
 			}()
 			return newPipeOut(o, stateCustom(pipe.State), pipe.ValueStates)
@@ -899,10 +551,6 @@ func (pengine *PipeEngine) Match(matches []*QueryInterface) QueryInterface {
 	return pengine.append("Match",
 		func(t timer, ctx context.Context) PipeOut {
 			t.startTimer("all")
-			pipe := pengine.startPipe(context.WithValue(ctx, propLoad, true))
-			for _, matchStep := range matches {
-				pipe = (*matchStep).Chain(ctx, pipe)
-			}
 			t.endTimer("all")
 			return newPipeOut(pipe.Travelers, stateCustom(pipe.State), pipe.ValueStates)
 		})
@@ -911,8 +559,15 @@ func (pengine *PipeEngine) Match(matches []*QueryInterface) QueryInterface {
 // Execute runs the current Pipeline engine
 func (pengine *PipeEngine) Execute(ctx context.Context) chan aql.ResultRow {
 	if pengine.pipe == nil {
+    // TODO a nil channel would block forever. should return an error,
+    // panic, or a closed channel. Probably panic.
 		return nil
 	}
+
+  // TODO should this start a database transaction for the length of the traversal?
+  // TODO think about wrapping database in memory cache layer, to make vertex/edge
+  //      lookups fast? Does it matter when it's bolt/badger?
+
 	o := make(chan aql.ResultRow, pipeSize)
 	go func() {
 		defer close(o)
@@ -979,16 +634,6 @@ func (pengine *PipeEngine) Chain(ctx context.Context, input PipeOut) PipeOut {
 		}
 	}()
 	return newPipeOut(o, pipe.State, pipe.ValueStates)
-}
-
-// Run excutes a pipeline and ignores the outputs
-func (pengine *PipeEngine) Run(ctx context.Context) error {
-	if pengine.err != nil {
-		return pengine.err
-	}
-	for range pengine.Execute(ctx) {
-	}
-	return nil
 }
 
 // First runs PipeEngine process, obtains the first item, and then cancels the request
