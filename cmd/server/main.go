@@ -9,8 +9,8 @@ import (
 	"path/filepath"
 )
 
-var httpPort = "8000"
-var rpcPort = "9090"
+var httpPort = "8201"
+var rpcPort = "8202"
 var dbPath = "graph.db"
 var mongoURL string
 var boltPath string
@@ -55,9 +55,9 @@ var Cmd = &cobra.Command{
 
 func init() {
 	flags := Cmd.Flags()
-	flags.StringVar(&httpPort, "port", "8000", "HTTP Port")
-	flags.StringVar(&rpcPort, "rpc", "9090", "TCP+RPC Port")
-	flags.StringVar(&dbPath, "db", "graph_db", "DB Path")
+	flags.StringVar(&httpPort, "port", httpPort, "HTTP Port")
+	flags.StringVar(&rpcPort, "rpc", rpcPort, "TCP+RPC Port")
+	flags.StringVar(&dbPath, "db", "arachne", "DB Path")
 	flags.StringVar(&mongoURL, "mongo", "", "Mongo URL")
 	flags.StringVar(&boltPath, "bolt", "", "Bolt DB Path")
 	flags.StringVar(&rocksPath, "rocks", "", "RocksDB Path")

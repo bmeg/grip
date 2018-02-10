@@ -42,3 +42,26 @@ def test_edge_struct(O):
             errors.append("in edge data not found")
 
     return errors
+
+
+
+def test_nested_struct(O):
+    errors = []
+    #print O.query().addV("vertex1").property("field1", {"test" : 1, "value" : False}).render()
+    data = {"field1" : {"nested" : { "test" : 1, "array" : [{"value":{"entry":1}}]}}}
+    O.addVertex("vertex1", "person", data)
+    #print "vertices", O.query().V().execute()
+    count = 0
+    for i in O.query().V().execute():
+        count += 1
+        try:
+            p = i['vertex']['data']["field1"]['nested']["array"][0]["value"]["entry"]
+            if p != 1:
+                errors.append("Incorrect values in structure")
+        except KeyError:
+            errors.append("Vertex not packed correctly %s != %s" % (data, i['vertex']['data']))
+
+    if count != 1:
+        errors.append("Vertex struct property count failed")
+
+    return errors

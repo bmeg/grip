@@ -4,6 +4,7 @@ import (
 	"github.com/bmeg/arachne/cmd/create"
 	"github.com/bmeg/arachne/cmd/drop"
 	"github.com/bmeg/arachne/cmd/dump"
+	"github.com/bmeg/arachne/cmd/example"
 	"github.com/bmeg/arachne/cmd/info"
 	"github.com/bmeg/arachne/cmd/list"
 	"github.com/bmeg/arachne/cmd/load"
@@ -31,6 +32,7 @@ func init() {
 	RootCmd.AddCommand(drop.Cmd)
 	RootCmd.AddCommand(list.Cmd)
 	RootCmd.AddCommand(info.Cmd)
+	RootCmd.AddCommand(example.Cmd)
 	RootCmd.AddCommand(genBashCompletionCmd)
 }
 

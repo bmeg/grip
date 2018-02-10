@@ -12,7 +12,7 @@ import (
 )
 
 var kafka = "localhost:9092"
-var host = "localhost:9090"
+var host = "localhost:8202"
 var graph = "data"
 var vertexTopic = "arachne_vertex"
 var edgeTopic = "arachne_edge"
@@ -76,7 +76,7 @@ var Cmd = &cobra.Command{
 func init() {
 	flags := Cmd.Flags()
 	flags.StringVar(&kafka, "kafka", "localhost:9092", "Kafka Server")
-	flags.StringVar(&host, "host", "localhost:9090", "Arachne Server")
+	flags.StringVar(&host, "host", "localhost:8202", "Arachne Server")
 	flags.StringVar(&graph, "graph", "data", "Graph")
 	flags.StringVar(&vertexTopic, "vertex", "arachne_vertex", "Vertex File")
 	flags.StringVar(&edgeTopic, "edge", "arachne_vertex", "Edge File")

@@ -60,6 +60,15 @@ func (client Client) GetGraphs() chan string {
 	return out
 }
 
+// GetGraphList gets graphs from the server, as a list (rather then a channel)
+func (client Client) GetGraphList() []string {
+	out := []string{}
+	for i := range client.GetGraphs() {
+		out = append(out, i)
+	}
+	return out
+}
+
 // DeleteGraph deletes a graph and all of its contents
 func (client Client) DeleteGraph(graph string) error {
 	_, err := client.EditC.DeleteGraph(context.Background(), &ElementID{Graph: graph})
@@ -106,6 +115,12 @@ func (client Client) StreamElements(elemChan chan GraphElement) error {
 	return err
 }
 
+// GetVertex obtains a vertex from a graph by `id`
+func (client Client) GetVertex(graph string, id string) (*Vertex, error) {
+	v, err := client.QueryC.GetVertex(context.Background(), &ElementID{Graph: graph, Id: id})
+	return v, err
+}
+
 // Query initializes a query build for `graph`
 func (client Client) Query(graph string) QueryBuilder {
 	return QueryBuilder{client.QueryC, graph, []*GraphStatement{}}
@@ -123,6 +138,35 @@ func (q QueryBuilder) E(id ...string) QueryBuilder {
 		return QueryBuilder{q.client, q.graph, append(q.query, &GraphStatement{&GraphStatement_E{id[0]}})}
 	}
 	return QueryBuilder{q.client, q.graph, append(q.query, &GraphStatement{&GraphStatement_E{}})}
+}
+
+// Out follows outgoing edges to adjacent vertex
+func (q QueryBuilder) Out(label ...string) QueryBuilder {
+	vlist := protoutil.AsListValue(label)
+	return QueryBuilder{q.client, q.graph, append(q.query, &GraphStatement{&GraphStatement_Out{vlist}})}
+}
+
+// OutEdge moves to outgoing edge
+func (q QueryBuilder) OutEdge(label ...string) QueryBuilder {
+	vlist := protoutil.AsListValue(label)
+	return QueryBuilder{q.client, q.graph, append(q.query, &GraphStatement{&GraphStatement_OutEdge{vlist}})}
+}
+
+// HasLabel filters elements based on label
+func (q QueryBuilder) HasLabel(id ...string) QueryBuilder {
+	idList := protoutil.AsListValue(id)
+	return QueryBuilder{q.client, q.graph, append(q.query, &GraphStatement{&GraphStatement_HasLabel{idList}})}
+}
+
+// As marks current elements with tag
+func (q QueryBuilder) As(id string) QueryBuilder {
+	return QueryBuilder{q.client, q.graph, append(q.query, &GraphStatement{&GraphStatement_As{id}})}
+}
+
+// Select retreieves previously marked elemets
+func (q QueryBuilder) Select(id ...string) QueryBuilder {
+	idList := SelectStatement{id}
+	return QueryBuilder{q.client, q.graph, append(q.query, &GraphStatement{&GraphStatement_Select{&idList}})}
 }
 
 // Count adds a count step to the query
@@ -167,6 +211,16 @@ func (q QueryBuilder) Render() map[string]interface{} {
 	return out
 }
 
+// GetDataMap obtains data attached to vertex in the form of a map
+func (vertex *Vertex) GetDataMap() map[string]interface{} {
+	return protoutil.AsMap(vertex.Data)
+}
+
+// SetDataMap obtains data attached to vertex in the form of a map
+func (vertex *Vertex) SetDataMap(i map[string]interface{}) {
+	vertex.Data = protoutil.AsStruct(i)
+}
+
 // SetProperty sets named field in Vertex data
 func (vertex *Vertex) SetProperty(key string, value interface{}) {
 	if vertex.Data == nil {
@@ -181,5 +235,14 @@ func (vertex *Vertex) GetProperty(key string) interface{} {
 		return nil
 	}
 	m := protoutil.AsMap(vertex.Data)
+	return m[key]
+}
+
+// GetProperty get named field from edge data
+func (edge *Edge) GetProperty(key string) interface{} {
+	if edge.Data == nil {
+		return nil
+	}
+	m := protoutil.AsMap(edge.Data)
 	return m[key]
 }

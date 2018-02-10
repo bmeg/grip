@@ -8,7 +8,7 @@ import (
 	"log"
 )
 
-var host = "localhost:9090"
+var host = "localhost:8202"
 var vertexDump = false
 var edgeDump = false
 var graph = "data"
@@ -55,7 +55,7 @@ var Cmd = &cobra.Command{
 
 func init() {
 	flags := Cmd.Flags()
-	flags.StringVar(&host, "host", "localhost:9090", "Host Server")
+	flags.StringVar(&host, "host", host, "Host Server")
 	flags.StringVar(&graph, "graph", "data", "Graph")
 	flags.BoolVar(&vertexDump, "vertex", false, "Dump Vertices")
 	flags.BoolVar(&edgeDump, "edge", false, "Dump Edges")
