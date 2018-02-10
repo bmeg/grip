@@ -98,8 +98,9 @@ func (mg *Graph) Query() gdbi.QueryInterface {
 
 // GetEdge loads an edge given an id. It returns nil if not found
 func (mg *Graph) GetEdge(id string, loadProp bool) *aql.Edge {
+	log.Printf("GetEdge: %s", id)
 	d := map[string]interface{}{}
-	q := mg.vertices.FindId(id)
+	q := mg.edges.FindId(id)
 	q.One(d)
 	v := UnpackEdge(d)
 	return &v
@@ -135,6 +136,7 @@ func (mg *Graph) SetEdge(edge aql.Edge) error {
 		_, err := mg.edges.UpsertId(edge.Gid, PackEdge(edge))
 		return err
 	}
+	edge.Gid = bson.NewObjectId().Hex()
 	err := mg.edges.Insert(PackEdge(edge))
 	return err
 }
