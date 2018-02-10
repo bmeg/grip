@@ -114,10 +114,20 @@ class Graph:
     def bulkAdd(self):
         return BulkAdd(self.url, self.name)
 
-    def mark(self, name):
-        q = self.query()
-        q.mark(name)
-        return q
+    def addVertexIndex(self, label, field):
+        headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
+        url = self.url + "/" + self.name + "/vertex-index/" + label + "/" + field
+        request = urllib2.Request(url, "{}", headers=headers)
+        response = urllib2.urlopen(request)
+        result = response.read()
+        return json.loads(result)
+
+    def index(self):
+        """
+        Create a index handle.
+        """
+        return Index(self)
+
 
 class BulkAdd:
     def __init__(self, url, graph):
@@ -155,6 +165,18 @@ class BulkAdd:
         response = urllib2.urlopen(request)
         result = response.read()
         return json.loads(result)
+
+class Index:
+    def __init__(self, parent=None):
+        self.parent = parent
+
+    def getVertexIndex(self, label, field):
+        url = self.parent.url + "/" + self.parent.name + "/vertex-index/" + label + "/" + field
+        request = urllib2.Request(url)
+        response = urllib2.urlopen(request)
+        for result in response:
+            d = json.loads(result)
+            yield d
 
 class Query:
     def __init__(self, parent=None):

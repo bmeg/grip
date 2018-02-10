@@ -225,3 +225,49 @@ func (server *ArachneServer) DeleteEdge(ctx context.Context, elem *aql.ElementID
 	}
 	return &aql.EditResult{Result: &aql.EditResult_Id{Id: elem.Id}}, nil
 }
+
+
+func (server *ArachneServer) AddVertexIndex(ctx context.Context, idx *aql.IndexID) (*aql.EditResult, error) {
+	err := server.engine.Arachne.Graph(idx.Graph).AddVertexIndex(idx.Label, idx.Field)
+	if err != nil {
+		return &aql.EditResult{Result: &aql.EditResult_Error{Error: fmt.Sprintf("%s", err)}}, nil
+	}
+	return &aql.EditResult{Result: &aql.EditResult_Id{Id: idx.Field}}, nil
+}
+
+func (server *ArachneServer) AddEdgeIndex(ctx context.Context, idx *aql.IndexID) (*aql.EditResult, error) {
+	err := server.engine.Arachne.Graph(idx.Graph).AddEdgeIndex(idx.Label, idx.Field)
+	if err != nil {
+		return &aql.EditResult{Result: &aql.EditResult_Error{Error: fmt.Sprintf("%s", err)}}, nil
+	}
+	return &aql.EditResult{Result: &aql.EditResult_Id{Id: idx.Field}}, nil
+}
+
+func (server *ArachneServer) DeleteVertexIndex(ctx context.Context, idx *aql.IndexID) (*aql.EditResult, error) {
+	err := server.engine.Arachne.Graph(idx.Graph).DeleteVertexIndex(idx.Label, idx.Field)
+	if err != nil {
+		return &aql.EditResult{Result: &aql.EditResult_Error{Error: fmt.Sprintf("%s", err)}}, nil
+	}
+	return &aql.EditResult{Result: &aql.EditResult_Id{Id: idx.Field}}, nil
+}
+
+func (server *ArachneServer) DeleteEdgeIndex(ctx context.Context, idx *aql.IndexID) (*aql.EditResult, error) {
+	err := server.engine.Arachne.Graph(idx.Graph).AddEdgeIndex(idx.Label, idx.Field)
+	if err != nil {
+		return &aql.EditResult{Result: &aql.EditResult_Error{Error: fmt.Sprintf("%s", err)}}, nil
+	}
+	return &aql.EditResult{Result: &aql.EditResult_Id{Id: idx.Field}}, nil
+}
+
+func (server *ArachneServer) GetVertexIndex(idx *aql.IndexID, stream aql.Edit_GetVertexIndexServer) error {
+	res := server.engine.Arachne.Graph(idx.Graph).GetVertexTermCount(stream.Context(), idx.Label, idx.Field)
+	for i := range res {
+		l := i
+		stream.Send(&l)
+	}
+	return nil
+}
+
+func (server *ArachneServer) GetEdgeIndex(idx *aql.IndexID, stream aql.Edit_GetEdgeIndexServer) error {
+	return nil
+}

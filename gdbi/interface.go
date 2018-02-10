@@ -90,6 +90,15 @@ type GraphDB interface {
 	DelEdge(key string) error
 	DelBundle(id string) error
 
+	AddVertexIndex(label string, field string) error
+	AddEdgeIndex(label string, field string) error
+
+	DeleteVertexIndex(label string, field string) error
+	DeleteEdgeIndex(label string, field string) error
+
+	GetVertexTermCount(ctx context.Context, label string, field string) chan aql.IndexTermCount
+	GetEdgeTermCount(ctx context.Context, label string, field string) chan aql.IndexTermCount
+
 	VertexLabelScan(ctx context.Context, label string) chan string
 	EdgeLabelScan(ctx context.Context, label string) chan string
 }

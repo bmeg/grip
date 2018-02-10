@@ -131,6 +131,17 @@ message ElementID {
   string id = 2;
 }
 
+message IndexID {
+  string graph = 1;
+  string label = 2;
+  string field = 3;
+}
+
+message IndexTermCount {
+  google.protobuf.Value term = 1;
+  int32 count = 2;
+}
+
 message Empty {
 
 }
@@ -225,6 +236,42 @@ service Edit {
   rpc DeleteEdge(ElementID) returns (EditResult) {
     option (google.api.http) = {
       delete: "/v1/graph/{graph}/edge/{id}"
+    };
+  }
+
+  rpc AddVertexIndex(IndexID) returns (EditResult) {
+    option (google.api.http) = {
+      post: "/v1/graph/{graph}/vertex-index/{label}/{field}"
+    };
+  }
+
+  rpc AddEdgeIndex(IndexID) returns (EditResult) {
+    option (google.api.http) = {
+      post: "/v1/graph/{graph}/edge-index/{label}/{field}"
+    };
+  }
+
+  rpc DeleteVertexIndex(IndexID) returns (EditResult) {
+    option (google.api.http) = {
+      delete: "/v1/graph/{graph}/vertex-index/{label}/{field}"
+    };
+  }
+
+  rpc DeleteEdgeIndex(IndexID) returns (EditResult) {
+    option (google.api.http) = {
+      delete: "/v1/graph/{graph}/edge-index/{label}/{field}"
+    };
+  }
+
+  rpc GetVertexIndex(IndexID) returns (stream IndexTermCount) {
+    option (google.api.http) = {
+      get: "/v1/graph/{graph}/vertex-index/{label}/{field}"
+    };
+  }
+
+  rpc GetEdgeIndex(IndexID) returns (stream IndexTermCount) {
+    option (google.api.http) = {
+      get: "/v1/graph/{graph}/edge-index/{label}/{field}"
     };
   }
 

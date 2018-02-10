@@ -2,6 +2,7 @@ package kvgraph
 
 import (
 	"context"
+	"github.com/bmeg/arachne/aql"
 )
 
 // Field
@@ -16,6 +17,7 @@ import (
 // Key: 'd' | field_id | term_id | doc_id
 
 // FieldKeyParse : returns field int
+/*
 func FieldKeyParse(k []byte) (int) {
 
 }
@@ -25,7 +27,7 @@ func TermKeyParse(k []byte) ()
 
 const (
 	FieldString = iota
-	FieldInt    
+	FieldInt
 	FieldFloat
 )
 
@@ -36,6 +38,39 @@ func (kgdb *KVInterfaceGDB) AddIndex(graph, field string) {
 func (kgdb *KVInterfaceGDB) DeleteIndex(graph, field string) {
 
 }
+*/
+
+func (kgdb *KVInterfaceGDB) AddVertexIndex(label string, field string) error {
+
+	return nil
+}
+
+func (kgdb *KVInterfaceGDB) AddEdgeIndex(label string, field string) error {
+
+	return nil
+}
+
+func (kgdb *KVInterfaceGDB) GetVertexTermCount(ctx context.Context, label string, field string) chan aql.IndexTermCount {
+
+	return nil
+}
+
+func (kgdb *KVInterfaceGDB) GetEdgeTermCount(ctx context.Context, label string, field string) chan aql.IndexTermCount {
+
+	return nil
+}
+
+
+func (kgdb *KVInterfaceGDB) DeleteVertexIndex(label string, field string) error {
+
+	return nil
+}
+
+func (kgdb *KVInterfaceGDB) DeleteEdgeIndex(label string, field string) error {
+
+	return nil
+}
+
 
 
 // VertexLabelScan produces a channel of all vertex ids in a graph

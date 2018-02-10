@@ -98,7 +98,6 @@ func (mg *Graph) Query() gdbi.QueryInterface {
 
 // GetEdge loads an edge given an id. It returns nil if not found
 func (mg *Graph) GetEdge(id string, loadProp bool) *aql.Edge {
-	log.Printf("GetEdge: %s", id)
 	d := map[string]interface{}{}
 	q := mg.edges.FindId(id)
 	q.One(d)
@@ -448,60 +447,4 @@ func (mg *Graph) GetBundle(id string, loadProp bool) *aql.Bundle {
 // DelBundle removes a bundle of edges given an id
 func (mg *Graph) DelBundle(id string) error {
 	return mg.edges.RemoveId(id)
-}
-
-// VertexLabelScan produces a channel of all edge ids where the edge label matches `label`
-func (mg *Graph) VertexLabelScan(ctx context.Context, label string) chan string {
-	out := make(chan string, 100)
-	go func() {
-		defer close(out)
-		selection := map[string]interface{}{
-			"label": label,
-		}
-		iter := mg.vertices.Find(selection).Select(map[string]interface{}{"_id": 1}).Iter()
-		defer iter.Close()
-		result := map[string]interface{}{}
-		for iter.Next(&result) {
-			select {
-			case <-ctx.Done():
-				return
-			default:
-			}
-			id := result["_id"]
-			if idb, ok := id.(bson.ObjectId); ok {
-				out <- idb.String()
-			} else {
-				out <- id.(string)
-			}
-		}
-	}()
-	return out
-}
-
-// EdgeLabelScan produces a channel of all edge ids where the edge label matches `label`
-func (mg *Graph) EdgeLabelScan(ctx context.Context, label string) chan string {
-	out := make(chan string, 100)
-	go func() {
-		defer close(out)
-		selection := map[string]interface{}{
-			"label": label,
-		}
-		iter := mg.edges.Find(selection).Select(map[string]interface{}{"_id": 1}).Iter()
-		defer iter.Close()
-		result := map[string]interface{}{}
-		for iter.Next(&result) {
-			select {
-			case <-ctx.Done():
-				return
-			default:
-			}
-			id := result["_id"]
-			if idb, ok := id.(bson.ObjectId); ok {
-				out <- idb.String()
-			} else {
-				out <- id.(string)
-			}
-		}
-	}()
-	return out
 }
