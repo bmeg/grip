@@ -2,7 +2,6 @@ package kvgraph
 
 import (
 	"context"
-	"log"
 )
 
 // VertexLabelScan produces a channel of all vertex ids in a graph
@@ -28,10 +27,8 @@ func (kgdb *KVInterfaceGDB) EdgeLabelScan(ctx context.Context, label string) cha
 	out := make(chan string, 100)
 	go func() {
 		defer close(out)
-		log.Printf("EdgeIndex")
 		for i := range kgdb.GetEdgeList(ctx, true) {
 			if i.Label == label {
-				log.Printf("index: %s", i.Gid)
 				out <- i.Gid
 			}
 		}
