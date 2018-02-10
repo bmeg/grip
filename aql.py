@@ -218,7 +218,7 @@ class Query:
         """
         if not isinstance(value, list):
             value = [value]
-        self.query.append({'has': { "key" : prop, 'within': value}})
+        self.query.append({'has': { "key" : key, 'within': value}})
         return self
 
     def values(self, v):
@@ -380,6 +380,10 @@ class Query:
         function(el) bool
         """
         self.query.append({"filter" : func})
+        return self
+
+    def fold(self, init, func):
+        self.query.append({"fold": {"init" : init, "source" : func}})
         return self
 
     def vertexFromValues(self, func):

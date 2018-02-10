@@ -638,12 +638,12 @@ func (pengine *PipeEngine) GroupCount(label string) QueryInterface {
 						}
 					}
 				}
-				out := structpb.Struct{Fields: map[string]*structpb.Value{}}
+				out := map[string]interface{}{}
 				for k, v := range groupCount {
-					out.Fields[k] = &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: float64(v)}}
+					out[k] = v
 				}
 				c := Traveler{}
-				o <- c.AddCurrent(aql.QueryResult{Result: &aql.QueryResult_Struct{Struct: &out}})
+				o <- c.AddCurrent(aql.QueryResult{Result: &aql.QueryResult_Data{Data: protoutil.WrapValue(out)}})
 				t.endTimer("all")
 			}()
 			return newPipeOut(o, StateCustom, pipe.ValueStates)
@@ -682,7 +682,7 @@ func (pengine *PipeEngine) Values(labels []string) QueryInterface {
 						} else {
 							protoutil.CopyStructToStructSub(&out, labels, props)
 						}
-						o <- i.AddCurrent(aql.QueryResult{Result: &aql.QueryResult_Struct{Struct: &out}})
+						o <- i.AddCurrent(aql.QueryResult{Result: &aql.QueryResult_Data{Data: protoutil.WrapValue(out)}})
 					}
 				}
 				t.endTimer("all")
@@ -727,7 +727,7 @@ func (pengine *PipeEngine) Map(source string) QueryInterface {
 }
 
 // Fold adds a step to the pipeline that runs a 'fold' operations across all travelers
-func (pengine *PipeEngine) Fold(source string) QueryInterface {
+func (pengine *PipeEngine) Fold(source string, init interface{}) QueryInterface {
 	return pengine.append("Fold",
 		func(t timer, ctx context.Context) PipeOut {
 			o := make(chan Traveler, pipeSize)
@@ -735,23 +735,20 @@ func (pengine *PipeEngine) Fold(source string) QueryInterface {
 			go func() {
 				defer close(o)
 				t.startTimer("all")
+				//log.Printf("Running %s init %s", source, init)
 				mfunc, err := jsengine.NewJSEngine(source, pengine.imports)
-				if err != nil {
+				if err != nil || mfunc == nil {
 					log.Printf("Script Error: %s", err)
+					return
 				}
-				var last *aql.QueryResult
-				first := true
+				foldValue := &aql.QueryResult{Result: &aql.QueryResult_Data{Data: protoutil.WrapValue(init)}}
 				for i := range pipe.Travelers {
-					if first {
-						last = i.GetCurrent()
-						first = false
-					} else {
-						last = mfunc.Call(last, i.GetCurrent())
-					}
+					//log.Printf("Fold Value: %s", foldValue)
+					foldValue = mfunc.Call(foldValue, i.GetCurrent())
 				}
-				if last != nil {
+				if foldValue != nil {
 					i := Traveler{}
-					a := i.AddCurrent(*last)
+					a := i.AddCurrent(*foldValue)
 					o <- a
 				}
 				t.endTimer("all")
@@ -862,7 +859,7 @@ func (pengine *PipeEngine) Count() QueryInterface {
 				}
 				//log.Printf("Counted: %d", count)
 				trav := Traveler{}
-				o <- trav.AddCurrent(aql.QueryResult{Result: &aql.QueryResult_IntValue{IntValue: count}})
+				o <- trav.AddCurrent(aql.QueryResult{Result: &aql.QueryResult_Data{Data: protoutil.WrapValue(count)}})
 				t.endTimer("all")
 			}()
 			return newPipeOut(o, StateCustom, pipe.ValueStates)

@@ -809,11 +809,11 @@ func (bgdb *BadgerGDB) GetEdge(id string, loadProp bool) *aql.Edge {
 		for it.Seek(ekeyPrefix); it.Valid() && bytes.HasPrefix(it.Item().Key(), ekeyPrefix); it.Next() {
 			_, eid, src, dst := edgeKeyParse(it.Item().Key())
 			if loadProp {
-				e := &aql.Edge{}
+				e = &aql.Edge{}
 				d, _ := it.Item().Value()
 				proto.Unmarshal(d, e)
 			} else {
-				e := &aql.Edge{}
+				e = &aql.Edge{}
 				e.Gid = eid
 				e.From = src
 				e.To = dst

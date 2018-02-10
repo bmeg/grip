@@ -1,6 +1,7 @@
 
 
-def test_subgraph_post(O):
+
+def test_fold(O):
     errors = []
 
     graph = {
@@ -11,6 +12,7 @@ def test_subgraph_post(O):
             {"gid": "4", "label": "Person", "data" : {"name":"josh", "age":"32"}},
             {"gid": "5", "label": "Software", "data" : {"name":"ripple", "lang":"java"}},
             {"gid": "6", "label": "Person", "data" : {"name":"peter", "age":"35"}},
+            {"gid": "7", "label": "Person", "data" : {"name":"josh", "age":"25"}},
         ],
         "edges" : [
             {"from": "1", "to": "3", "label": "created", "data" :{"weight":0.4}},
@@ -24,23 +26,12 @@ def test_subgraph_post(O):
 
     O.addSubGraph(graph)
 
-    query = O.query().V().match([
-        O.mark('a').outgoing('created').mark('b'),
-        O.mark('b').has('name', 'lop'),
-        O.mark('b').incoming('created').mark('c'),
-        O.mark('c').has('age', "29")
-    ]).select(['a','c']) #.by('name')
+    foldFunc = """function(x,y){
+       if (_.has(x,y["name"])) { x[y["name"]]++; } else {x[y["name"]]=1;}return x
+}"""
+    query = O.query().V().fold({}, foldFunc)
 
-    count = 0
-    for row in query.execute():
-        count += 1
-        if row[1]['vertex']['data']['name'] != "marko":
-            errors.append("Incorrect return")
-
-    count = 0
-    for row in O.query().V():
-        count += 1
-    if count != 6:
-        errors.append("Found %s rows, not 6" % count)
-
+    for row in query:
+        if row['data']['josh'] != 2:
+            errors.append("wrong josh count in fold: %d != 2" % (row['data']['josh']))
     return errors

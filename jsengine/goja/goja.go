@@ -51,18 +51,25 @@ func NewFunction(source string, imports []string) (jsengine.JSEngine, error) {
 func (gojaRun *gojaRuntime) Call(input ...*aql.QueryResult) *aql.QueryResult {
 	m := []goja.Value{}
 	for _, i := range input {
-		s := i.GetStruct()
-		mI := protoutil.AsMap(s)
-		m = append(m, gojaRun.vm.ToValue(mI))
+		if x, ok := i.GetResult().(*aql.QueryResult_Edge); ok {
+			mI := protoutil.AsMap(x.Edge.Data)
+			m = append(m, gojaRun.vm.ToValue(mI))
+		} else if x, ok := i.GetResult().(*aql.QueryResult_Vertex); ok {
+			mI := protoutil.AsMap(x.Vertex.Data)
+			m = append(m, gojaRun.vm.ToValue(mI))
+		} else if x, ok := i.GetResult().(*aql.QueryResult_Data); ok {
+			mI := protoutil.UnWrapValue(x.Data)
+			m = append(m, gojaRun.vm.ToValue(mI))
+		}
 	}
 	value, err := gojaRun.call(nil, m...)
 	if err != nil {
 		log.Printf("Exec Error: %s", err)
 	}
 	val := value.Export()
-	log.Printf("function return: %#v", val)
-	o := protoutil.AsStruct(val.(map[string]interface{}))
-	return &aql.QueryResult{Result: &aql.QueryResult_Struct{Struct: o}}
+	//log.Printf("function return: %#v", val)
+	o := protoutil.WrapValue(val)
+	return &aql.QueryResult{Result: &aql.QueryResult_Data{Data: o}}
 }
 
 // CallBool takes an array of results and evaluates them using the compiled
@@ -76,8 +83,8 @@ func (gojaRun *gojaRuntime) CallBool(input ...*aql.QueryResult) bool {
 		} else if x, ok := i.GetResult().(*aql.QueryResult_Vertex); ok {
 			mI := protoutil.AsMap(x.Vertex.Data)
 			m = append(m, gojaRun.vm.ToValue(mI))
-		} else if x, ok := i.GetResult().(*aql.QueryResult_Struct); ok {
-			mI := protoutil.AsMap(x.Struct)
+		} else if x, ok := i.GetResult().(*aql.QueryResult_Data); ok {
+			mI := protoutil.UnWrapValue(x.Data)
 			m = append(m, gojaRun.vm.ToValue(mI))
 		}
 	}
