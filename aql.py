@@ -58,7 +58,7 @@ class Graph:
         """
         Create a query handle.
         """
-        return Query(self)
+        return Query(self.url + "/" + self.name + "/query")
 
     def addVertex(self, id, label, prop={}):
         """
@@ -116,8 +116,8 @@ class Graph:
 
     def addVertexIndex(self, label, field):
         headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
-        url = self.url + "/" + self.name + "/vertex-index/" + label + "/" + field
-        request = urllib2.Request(url, "{}", headers=headers)
+        url = self.url + "/" + self.name + "/vertex-index/" + label
+        request = urllib2.Request(url, json.dumps({"field":field}), headers=headers)
         response = urllib2.urlopen(request)
         result = response.read()
         return json.loads(result)
@@ -128,6 +128,13 @@ class Graph:
         """
         return Index(self)
 
+    def mark(self, name):
+        """
+        Create mark step for match query
+        """
+        q = self.query()
+        q.mark(name)
+        return q
 
 class BulkAdd:
     def __init__(self, url, graph):
@@ -178,10 +185,14 @@ class Index:
             d = json.loads(result)
             yield d
 
+    def query(self, label, field, value):
+        url = self.parent.url + "/" + self.parent.name + "/vertex-index/" + label + "/" + field
+        return Query(url)
+
 class Query:
-    def __init__(self, parent=None):
+    def __init__(self, url):
         self.query = []
-        self.parent = parent
+        self.url = url
 
     def js_import(self, src):
         """
@@ -441,8 +452,7 @@ class Query:
         payload = self.render()
         #print payload
         headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
-        url = self.parent.url + "/" + self.parent.name + "/query"
-        request = urllib2.Request(url, payload, headers=headers)
+        request = urllib2.Request(self.url, payload, headers=headers)
         response = urllib2.urlopen(request)
         #out = []
         for result in response:

@@ -259,7 +259,7 @@ func (server *ArachneServer) DeleteEdgeIndex(ctx context.Context, idx *aql.Index
 	return &aql.EditResult{Result: &aql.EditResult_Id{Id: idx.Field}}, nil
 }
 
-func (server *ArachneServer) GetVertexIndex(idx *aql.IndexID, stream aql.Edit_GetVertexIndexServer) error {
+func (server *ArachneServer) GetVertexIndex(idx *aql.IndexID, stream aql.Query_GetVertexIndexServer) error {
 	res := server.engine.Arachne.Graph(idx.Graph).GetVertexTermCount(stream.Context(), idx.Label, idx.Field)
 	for i := range res {
 		l := i
@@ -268,6 +268,26 @@ func (server *ArachneServer) GetVertexIndex(idx *aql.IndexID, stream aql.Edit_Ge
 	return nil
 }
 
-func (server *ArachneServer) GetEdgeIndex(idx *aql.IndexID, stream aql.Edit_GetEdgeIndexServer) error {
+func (server *ArachneServer) GetEdgeIndex(idx *aql.IndexID, stream aql.Query_GetEdgeIndexServer) error {
+	res := server.engine.Arachne.Graph(idx.Graph).GetEdgeTermCount(stream.Context(), idx.Label, idx.Field)
+	for i := range res {
+		l := i
+		stream.Send(&l)
+	}
+	return nil
+}
+
+func (server *ArachneServer) VertexIndexTraversal(idx *aql.IndexQuery, stream aql.Query_VertexIndexTraversalServer) error {
+	/*
+	res := server.engine.Arachne.Graph(idx.Graph).GetVertexTermCount(stream.Context(), idx.Label, idx.Field)
+	res, err := server.engine.RunTraversal(stream.Context(), query)
+	if err != nil {
+		return err
+	}
+	for i := range res {
+		l := i
+		queryServer.Send(&l)
+	}
+	*/
 	return nil
 }
