@@ -16,8 +16,10 @@ message GraphQuerySet {
 
 message GraphStatement {
     oneof statement {
+        // TODO get rid of ListValue?
         google.protobuf.ListValue V = 1;
-        string E = 2;
+        // TODO why is E only a single string?
+        google.protobuf.ListValue E = 2;
 
         HasStatement has = 5;
         google.protobuf.ListValue hasLabel = 6;
@@ -29,6 +31,7 @@ message GraphStatement {
         google.protobuf.ListValue outEdge = 13;
         google.protobuf.ListValue both = 14;
         google.protobuf.ListValue bothEdge = 15;
+        // TODO breaking protobuf style. need linter
 
         google.protobuf.ListValue outBundle = 16;
 
@@ -44,6 +47,7 @@ message GraphStatement {
         GraphQuerySet match = 40;
 
         //Function Methods
+        // TODO probably doesn't belong as a statement. should be global
         string import = 50;
         string map = 51;
         string fold = 52;
