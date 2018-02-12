@@ -1,29 +1,27 @@
 package engine
 
-import (
-  "github.com/bmeg/arachne/aql"
-)
+type reader <-chan *traveler
+type writer chan<- *traveler
 
-type pipe interface {
-  Process(in inCh, out outCh)
+type traveler struct {
+  id string
+  label string
+  data map[string]interface{}
+  marks map[string]*traveler
+  count int64
+  groupCounts map[string]int64
+  row []*traveler
+  dataType
 }
 
-type inCh <-chan *Element
-type outCh chan<- *Element
-
-type Element struct {
-  ID string
-  Label string
-  Type ElementType
-  Data map[string]interface{}
-}
-
-type ElementType uint8
+type dataType uint8
 const (
-  None ElementType = iota
-  Vertex
-  Edge
-  Count
+  noData dataType = iota
+  vertexData
+  edgeData
+  countData
+  groupCountData
+  rowData
 )
 
 type direction int
@@ -36,162 +34,28 @@ const (
 type DB interface {
 }
 
-type lookup struct {
-  db DB
-  ids []string
-  labels []string
-  load bool
-  elType ElementType
-}
-func (l *lookup) Process(in inCh, out outCh) {
-  defer close(out)
-  l.db.
-}
-
-type lookupAdj struct {
-  db DB
-  dir direction
-  labels []string
-}
-func (l *lookupAdj) Process(in inCh, out outCh) {
-}
-
-type lookupEnd struct {
-  db DB
-  dir direction
-  labels []string
-}
-func (l *lookupEnd) Process(in inCh, out outCh) {
-}
-
-type hasData struct {
-  stmt *aql.HasStatement
-}
-func (h *hasData) Process(in inCh, out outCh) {
-  defer close(out)
-  for el := range in {
-		if p, ok := el.Data[h.stmt.Key]; ok {
-      if s, ok := p.(string); ok && contains(h.stmt.Within, s) {
-        out <- el
-      }
-    }
-  }
-}
-
-type hasLabel struct {
-  labels []string
-}
-func (h *hasLabel) Process(in inCh, out outCh) {
-  defer close(out)
-  for el := range in {
-    if contains(h.labels, el.Label) {
-      out <- el
-    }
-  }
-}
-
-type hasID struct {
-  ids []string
-}
-func (h *hasID) Process(in inCh, out outCh) {
-  defer close(out)
-  for el := range in {
-    if contains(h.ids, el.ID) {
-      out <- el
-    }
-  }
-}
-
-type count struct {}
-func (c *count) Process(in inCh, out outCh) {
-  defer close(out)
-  var i int64
-  for range in {
-    i++
-  }
-  out <- &Element{
-    Type: Count,
-    Data: map[string]interface{}{
-      "count": i,
-    },
-  }
-}
-
-type limit struct {
-  count int64
-}
-func (l *limit) Process(in inCh, out outCh) {
-  defer close(out)
-  var i int64
-  for el := range in {
-    if i == l.count {
-      return
-    }
-    out <- el
-    i++
-  }
-}
-
-type chain struct {
-  pipes []pipe
-  buffer int
-}
-func (c chain) Process(in inCh, out outCh) {
-  if len(c.pipes) == 0 {
+func run(procs []processor, in reader, out writer, bufsize int) {
+  if len(procs) == 0 {
+    close(out)
     return
   }
-  if len(c.pipes) == 1 {
-    c.pipes[0].Process(in, out)
+  if len(procs) == 1 {
+    procs[0].process(in, out)
+    close(out)
     return
   }
-  buffer := 100
-  if c.buffer != 0 {
-    buffer = c.buffer
+
+  for i := 0; i < len(procs) - 1; i++ {
+    glue := make(chan *traveler, bufsize)
+    go func(i int, in reader, out writer) {
+      procs[i].process(in, out)
+      close(out)
+    }(i, in, glue)
+    in = glue
   }
-  mid := make(chan *Element, buffer)
-  for _, pipe := range c.pipes[:len(c.pipes)-1] {
-    go pipe.Process(in, mid)
-  }
-  c.pipes[len(c.pipes)-1].Process(mid, out)
+  procs[len(procs)-1].process(in, out)
+  close(out)
 }
-
-/*
-type groupCount struct {
-  key string
-}
-func (g *groupCount) Process(in inCh, out outCh) {
-  counts := map[string]int64{}
-  for el := range in {
-    if _, ok := el.Data[g.key]; ok {
-      
-    }
-  }
-  out <- &Element{
-    Type: GroupCount,
-    Data: counts,
-  }
-}
-
-func groupCountPipe() {
-	for i := range pipe.Travelers {
-		var props *structpb.Struct
-
-		if props != nil {
-			if x, ok := props.Fields[label]; ok {
-				groupCount[x.GetStringValue()]++ //BUG: Only supports string data
-			}
-		}
-	}
-
-	out := structpb.Struct{Fields: map[string]*structpb.Value{}}
-	for k, v := range groupCount {
-		out.Fields[k] = &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: float64(v)}}
-	}
-
-	c := Traveler{}
-	o <- c.AddCurrent(aql.QueryResult{Result: &aql.QueryResult_Struct{Struct: &out}})
-}
-*/
 
 /*
 func valuesPipe() {
@@ -302,17 +166,6 @@ func vertexFromValuesPipe() {
 }
 
 
-func asPipe() {
-	for i := range pipe.Travelers {
-		if i.HasLabeled(label) {
-			c := i.GetLabeled(label)
-			o <- i.AddCurrent(*c)
-		} else {
-			o <- i.AddLabeled(label, *i.GetCurrent())
-		}
-	}
-}
-
 func matchPipe() {
 	pipe := pengine.startPipe(context.WithValue(ctx, propLoad, true))
 	for _, matchStep := range matches {
@@ -320,6 +173,7 @@ func matchPipe() {
 	}
 }
 */
+
 func contains(a []string, v string) bool {
 	for _, i := range a {
 		if i == v {
