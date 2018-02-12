@@ -2,6 +2,7 @@ package engine
 
 import (
   "context"
+  "sync"
   "github.com/bmeg/arachne/aql"
   "github.com/bmeg/arachne/protoutil"
 )
@@ -17,12 +18,13 @@ type lookupVerts struct {
 }
 
 func (l *lookupVerts) process(in reader, out writer) {
-  for range in {
-    for v := range db.GetVertexList(context.Background(), false) {
+  for t := range in {
+    for v := range db.GetVertexList(context.Background(), true) {
       // TODO maybe don't bother copying the data
       out <- &traveler{
         id: v.Gid,
         label: v.Label,
+        marks: t.marks,
         data: protoutil.AsMap(v.Data),
         dataType: vertexData,
       }
@@ -37,11 +39,14 @@ type lookupEdges struct {
 }
 
 func (l *lookupEdges) process(in reader, out writer) {
-  for range in {
-    for v := range db.GetEdgeList(context.Background(), false) {
+  for t := range in {
+    for v := range db.GetEdgeList(context.Background(), true) {
       out <- &traveler{
         id: v.Gid,
         label: v.Label,
+        from: v.From,
+        to: v.To,
+        marks: t.marks,
         data: protoutil.AsMap(v.Data),
         dataType: edgeData,
       }
@@ -49,22 +54,88 @@ func (l *lookupEdges) process(in reader, out writer) {
   }
 }
 
-type lookupAdj struct {
+type lookupAdjOut struct {
   db DB
-  dir direction
   labels []string
 }
 
-func (l *lookupAdj) process(in reader, out writer) {
+func (l *lookupAdjOut) process(in reader, out writer) {
+  ctx := context.Background()
+  for t := range in {
+    for v := range l.db.GetOutList(ctx, t.id, true) {
+      out <- &traveler{
+        id: v.Gid,
+        label: v.Label,
+        marks: t.marks,
+        data: protoutil.AsMap(v.Data),
+        dataType: vertexData,
+      }
+    }
+  }
 }
 
-type lookupEnd struct {
+type lookupAdjIn struct {
   db DB
-  dir direction
   labels []string
 }
 
-func (l *lookupEnd) process(in reader, out writer) {
+func (l *lookupAdjIn) process(in reader, out writer) {
+  ctx := context.Background()
+  for t := range in {
+    for v := range l.db.GetInList(ctx, t.id, true) {
+      out <- &traveler{
+        id: v.Gid,
+        label: v.Label,
+        marks: t.marks,
+        data: protoutil.AsMap(v.Data),
+        dataType: vertexData,
+      }
+    }
+  }
+}
+
+type inEdge struct {
+  db DB
+  labels []string
+}
+
+func (i *inEdge) process(in reader, out writer) {
+  ctx := context.Background()
+  for t := range in {
+    for v := range i.db.GetInEdgeList(ctx, t.id, true) {
+      out <- &traveler{
+        id: v.Gid,
+        label: v.Label,
+        from: v.From,
+        to: v.To,
+        marks: t.marks,
+        data: protoutil.AsMap(v.Data),
+        dataType: edgeData,
+      }
+    }
+  }
+}
+
+type outEdge struct {
+  db DB
+  labels []string
+}
+
+func (o *outEdge) process(in reader, out writer) {
+  ctx := context.Background()
+  for t := range in {
+    for v := range o.db.GetOutEdgeList(ctx, t.id, true) {
+      out <- &traveler{
+        id: v.Gid,
+        label: v.Label,
+        from: v.From,
+        to: v.To,
+        marks: t.marks,
+        data: protoutil.AsMap(v.Data),
+        dataType: edgeData,
+      }
+    }
+  }
 }
 
 type hasData struct {
@@ -227,4 +298,29 @@ func (s *selectMany) process(in reader, out writer) {
       row: row,
     }
   }
+}
+
+type concat []processor
+func (c concat) process(in reader, out writer) {
+  chans := make([]chan *traveler, len(c))
+  for i, _ := range c {
+    chans[i] = make(chan *traveler)
+  }
+
+  wg := sync.WaitGroup{}
+  wg.Add(len(c))
+
+  for i, p := range c {
+    go func(i int) {
+      p.process(chans[i], out)
+      wg.Done()
+    }(i)
+  }
+
+  for t := range in {
+    for _, ch := range chans {
+      ch <- t
+    }
+  }
+  wg.Done()
 }

@@ -10,6 +10,10 @@ import (
 type DB interface {
   GetVertexList(context.Context, bool) <-chan *aql.Vertex
   GetEdgeList(context.Context, bool) <-chan *aql.Edge
+  GetInList(context.Context, string, bool) <-chan *aql.Vertex
+  GetOutList(context.Context, string, bool) <-chan *aql.Vertex
+	GetOutEdgeList(context.Context, string, bool) <-chan *aql.Edge
+	GetInEdgeList(context.Context, string, bool) <-chan *aql.Edge
 }
 
 // TODO with a query planner, "load" could instead be a list of property keys
@@ -66,6 +70,7 @@ gremlin> crew.V().hasLabel("person").as("x", "y").select("x", "y").count().selec
 gremlin> crew.V().hasLabel("person").as("x", "y").select("x", "y").groupCount().select("x")
 gremlin> crew.V().hasLabel("person").as("x", "y").select("x", "y").groupCount()
 ==>[[x:v[1],y:v[1]]:1,[x:v[8],y:v[8]]:1,[x:v[9],y:v[9]]:1,[x:v[7],y:v[7]]:1]
+
 */
 
 func compile(db DB, stmts []*aql.GraphStatement) ([]processor, error) {
@@ -119,7 +124,7 @@ func compile(db DB, stmts []*aql.GraphStatement) ([]processor, error) {
         return nil, fmt.Errorf(`"in" is only valid for the vertex type`)
       }
       labels := protoutil.AsStringList(stmt.In)
-      add(&lookupAdj{db, in, labels})
+      add(&lookupAdjIn{db, labels})
 
     case *aql.GraphStatement_Out:
 
@@ -131,7 +136,7 @@ func compile(db DB, stmts []*aql.GraphStatement) ([]processor, error) {
         return nil, fmt.Errorf(`"out" statement is only valid for the vertex type`)
       }
       labels := protoutil.AsStringList(stmt.Out)
-      add(&lookupAdj{db, out, labels})
+      add(&lookupAdjOut{db, labels})
 
     case *aql.GraphStatement_Both:
 
@@ -139,7 +144,10 @@ func compile(db DB, stmts []*aql.GraphStatement) ([]processor, error) {
         return nil, fmt.Errorf(`"both" statement is only valid for the vertex type`)
       }
       labels := protoutil.AsStringList(stmt.Both)
-      add(&lookupAdj{db, both, labels})
+      add(&concat{
+        &lookupAdjIn{db, labels},
+        &lookupAdjOut{db, labels},
+      })
 
     case *aql.GraphStatement_InEdge:
 
@@ -147,7 +155,7 @@ func compile(db DB, stmts []*aql.GraphStatement) ([]processor, error) {
         return nil, fmt.Errorf(`"inEdge" statement is only valid for the vertex type`)
       }
       labels := protoutil.AsStringList(stmt.InEdge)
-      add(&lookupEnd{db, in, labels})
+      add(&inEdge{db, labels})
       last = edgeData
 
     case *aql.GraphStatement_OutEdge:
@@ -156,7 +164,7 @@ func compile(db DB, stmts []*aql.GraphStatement) ([]processor, error) {
         return nil, fmt.Errorf(`"outEdge" statement is only valid for the vertex type`)
       }
       labels := protoutil.AsStringList(stmt.OutEdge)
-      add(&lookupEnd{db, out, labels})
+      add(&outEdge{db, labels})
       last = edgeData
 
     case *aql.GraphStatement_BothEdge:
@@ -165,7 +173,10 @@ func compile(db DB, stmts []*aql.GraphStatement) ([]processor, error) {
         return nil, fmt.Errorf(`"bothEdge" statement is only valid for the vertex type`)
       }
       labels := protoutil.AsStringList(stmt.BothEdge)
-      add(&lookupEnd{db, both, labels})
+      add(&concat{
+        &inEdge{db, labels},
+        &outEdge{db, labels},
+      })
       last = edgeData
 
     case *aql.GraphStatement_Limit:

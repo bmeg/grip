@@ -9,40 +9,8 @@ import (
 	"time"
 )
 
-type dat map[string]interface{}
+// TODO memgraph doesn't correctly support the "load" flag
 var db = memgraph.NewMemGraph()
-
-func vert(id, label string, d dat) *traveler {
-  v := &aql.Vertex{
-    Gid: id,
-    Label: label,
-    Data: protoutil.AsStruct(d),
-  }
-  db.SetVertex(v)
-  return &traveler{
-    id: id,
-    label: label,
-    dataType: vertexData,
-    data: d,
-  }
-}
-
-func edge(id, from, to, label string, d dat) *traveler {
-  v := &aql.Edge{
-    Gid: id,
-    From: from,
-    To: to,
-    Label: label,
-    Data: protoutil.AsStruct(d),
-  }
-  db.SetEdge(v)
-  return &traveler{
-    id: id,
-    label: label,
-    dataType: edgeData,
-    data: d,
-  }
-}
 
 var verts = []*traveler{
   vert("v0", "Human", dat{"name": "Alex"}),
@@ -56,14 +24,12 @@ var verts = []*traveler{
   vert("v8", "Clone", dat{"name": "Ryan"}),
   vert("v9", "Clone", nil),
   vert("v10", "Project", dat{"name": "Funnel"}),
+  vert("v11", "Project", dat{"name": "Gaia"}),
 }
 
 var edges = []*traveler{
   edge("e0", "v0", "v10", "WorksOn", nil),
-}
-
-func nq() *aql.Query {
-  return aql.NewQuery("test")
+  edge("e1", "v2", "v11", "WorksOn", nil),
 }
 
 var table = []struct {
@@ -129,6 +95,30 @@ var table = []struct {
     nq().E(),
     edges,
   },
+  {
+    nq().V().HasLabel("Human").Out(),
+    pick(verts, 10, 11),
+  },
+  {
+    nq().V().HasLabel("Human").Out().Has("name", "Funnel"),
+    pick(verts, 10),
+  },
+  {
+    nq().V().HasLabel("Human").As("x").Out().Has("name", "Funnel").Select("x"),
+    pick(verts, 0),
+  },
+  {
+    nq().V().HasLabel("Human").OutEdge(),
+    edges,
+  },
+  {
+    nq().V().HasLabel("Human").Has("name", "Alex").OutEdge(),
+    pick(edges, 0),
+  },
+  {
+    nq().V().HasLabel("Human").Has("name", "Alex").OutEdge().As("x"),
+    pick(edges, 0),
+  },
 }
 
 func TestProcs(t *testing.T) {
@@ -188,4 +178,42 @@ func pick(src []*traveler, is ...int) []*traveler {
 		out = append(out, src[i])
 	}
 	return out
+}
+
+func vert(id, label string, d dat) *traveler {
+  v := &aql.Vertex{
+    Gid: id,
+    Label: label,
+    Data: protoutil.AsStruct(d),
+  }
+  db.SetVertex(v)
+  return &traveler{
+    id: id,
+    label: label,
+    dataType: vertexData,
+    data: d,
+  }
+}
+
+func edge(id, from, to, label string, d dat) *traveler {
+  v := &aql.Edge{
+    Gid: id,
+    From: from,
+    To: to,
+    Label: label,
+    Data: protoutil.AsStruct(d),
+  }
+  db.SetEdge(v)
+  return &traveler{
+    id: id,
+    label: label,
+    dataType: edgeData,
+    data: d,
+  }
+}
+
+type dat map[string]interface{}
+
+func nq() *aql.Query {
+  return aql.NewQuery("test")
 }

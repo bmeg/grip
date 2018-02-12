@@ -70,13 +70,13 @@ func (mg *MemGraph) GetEdgeList(ctx context.Context, load bool) <-chan *aql.Edge
 
 // GetOutList given vertex/edge `key` find vertices on outgoing edges,
 // if len(edgeLabels) > 0 the edge labels must match a string in the array
-func (mg *MemGraph) GetOutList(ctx context.Context, key string, load bool) chan aql.Vertex {
-	o := make(chan aql.Vertex, 100)
+func (mg *MemGraph) GetOutList(ctx context.Context, key string, load bool) <-chan *aql.Vertex {
+	o := make(chan *aql.Vertex)
 	go func() {
 		defer close(o)
 		for dst, dstList := range mg.outEdges[key] {
 			for range dstList {
-					o <- *mg.vertices[dst]
+					o <- mg.vertices[dst]
 			}
 		}
 	}()
@@ -85,13 +85,13 @@ func (mg *MemGraph) GetOutList(ctx context.Context, key string, load bool) chan 
 
 // GetInList given vertex `key` find vertices on incoming edges,
 // if len(edgeLabels) > 0 the edge labels must match a string in the array
-func (mg *MemGraph) GetInList(ctx context.Context, key string, load bool) chan aql.Vertex {
-	o := make(chan aql.Vertex, 100)
+func (mg *MemGraph) GetInList(ctx context.Context, key string, load bool) <-chan *aql.Vertex {
+	o := make(chan *aql.Vertex)
 	go func() {
 		defer close(o)
 		for src := range mg.inEdges[key] {
 			for range mg.outEdges[src][key] {
-					o <- *mg.vertices[src]
+					o <- mg.vertices[src]
 			}
 		}
 	}()
@@ -100,13 +100,13 @@ func (mg *MemGraph) GetInList(ctx context.Context, key string, load bool) chan a
 
 // GetOutEdgeList given vertex `key` find all outgoing edges,
 // if len(edgeLabels) > 0 the edge labels must match a string in the array
-func (mg *MemGraph) GetOutEdgeList(ctx context.Context, key string, load bool) chan aql.Edge {
-	o := make(chan aql.Edge, 100)
+func (mg *MemGraph) GetOutEdgeList(ctx context.Context, key string, load bool) <-chan *aql.Edge {
+	o := make(chan *aql.Edge)
 	go func() {
 		defer close(o)
 		for _, dstList := range mg.outEdges[key] {
 			for _, dstEdge := range dstList {
-					o <- *mg.edges[dstEdge]
+					o <- mg.edges[dstEdge]
 			}
 		}
 	}()
@@ -115,13 +115,13 @@ func (mg *MemGraph) GetOutEdgeList(ctx context.Context, key string, load bool) c
 
 // GetInEdgeList given vertex `key` find all incoming edges,
 // if len(edgeLabels) > 0 the edge labels must match a string in the array
-func (mg *MemGraph) GetInEdgeList(ctx context.Context, key string, load bool) chan aql.Edge {
-	o := make(chan aql.Edge, 100)
+func (mg *MemGraph) GetInEdgeList(ctx context.Context, key string, load bool) <-chan *aql.Edge {
+	o := make(chan *aql.Edge)
 	go func() {
 		defer close(o)
 		for src := range mg.inEdges[key] {
 			for _, srcEdge := range mg.outEdges[src][key] {
-					o <- *mg.edges[srcEdge]
+					o <- mg.edges[srcEdge]
 			}
 		}
 	}()

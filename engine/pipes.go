@@ -6,6 +6,7 @@ type writer chan<- *traveler
 type traveler struct {
   id string
   label string
+  from, to string
   data map[string]interface{}
   marks map[string]*traveler
   count int64
