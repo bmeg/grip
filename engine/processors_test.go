@@ -27,21 +27,43 @@ func vert(id, label string, d dat) *traveler {
   }
 }
 
+func edge(id, from, to, label string, d dat) *traveler {
+  v := &aql.Edge{
+    Gid: id,
+    From: from,
+    To: to,
+    Label: label,
+    Data: protoutil.AsStruct(d),
+  }
+  db.SetEdge(v)
+  return &traveler{
+    id: id,
+    label: label,
+    dataType: edgeData,
+    data: d,
+  }
+}
+
 var verts = []*traveler{
-  vert("0", "Human", dat{"name": "Alex"}),
-  vert("1", "Human", dat{"name": "Kyle"}),
-  vert("2", "Human", dat{"name": "Ryan"}),
-  vert("3", "Robot", dat{"name": "C-3PO"}),
-  vert("4", "Robot", dat{"name": "R2-D2"}),
-  vert("5", "Robot", dat{"name": "Bender"}),
-  vert("6", "Clone", dat{"name": "Alex"}),
-  vert("7", "Clone", dat{"name": "Kyle"}),
-  vert("8", "Clone", dat{"name": "Ryan"}),
-  vert("9", "Clone", nil),
+  vert("v0", "Human", dat{"name": "Alex"}),
+  vert("v1", "Human", dat{"name": "Kyle"}),
+  vert("v2", "Human", dat{"name": "Ryan"}),
+  vert("v3", "Robot", dat{"name": "C-3PO"}),
+  vert("v4", "Robot", dat{"name": "R2-D2"}),
+  vert("v5", "Robot", dat{"name": "Bender"}),
+  vert("v6", "Clone", dat{"name": "Alex"}),
+  vert("v7", "Clone", dat{"name": "Kyle"}),
+  vert("v8", "Clone", dat{"name": "Ryan"}),
+  vert("v9", "Clone", nil),
+  vert("v10", "Project", dat{"name": "Funnel"}),
+}
+
+var edges = []*traveler{
+  edge("e0", "v0", "v10", "WorksOn", nil),
 }
 
 func nq() *aql.Query {
-  return aql.NewQuery("test").V()
+  return aql.NewQuery("test")
 }
 
 var table = []struct {
@@ -49,55 +71,63 @@ var table = []struct {
 	expected []*traveler
 }{
 	{
-    nq().Has("name", "Kyle", "Alex"),
-		pick(0, 1, 6, 7),
+    nq().V().Has("name", "Kyle", "Alex"),
+		pick(verts, 0, 1, 6, 7),
 	},
 	{
-    nq().Has("non-existant", "Kyle", "Alex"),
-		pick(),
+    nq().V().Has("non-existant", "Kyle", "Alex"),
+    pick(verts),
 	},
 	{
-    nq().HasLabel("Human"),
-		pick(0, 1, 2),
+    nq().V().HasLabel("Human"),
+		pick(verts, 0, 1, 2),
 	},
 	{
-    nq().HasLabel("Robot"),
-		pick(3, 4, 5),
+    nq().V().HasLabel("Robot"),
+		pick(verts, 3, 4, 5),
 	},
 	{
-    nq().HasLabel("Robot", "Human"),
-		pick(0, 1, 2, 3, 4, 5),
+    nq().V().HasLabel("Robot", "Human"),
+		pick(verts, 0, 1, 2, 3, 4, 5),
 	},
 	{
-    nq().HasLabel("non-existant"),
-		pick(),
+    nq().V().HasLabel("non-existant"),
+    pick(verts),
 	},
 	{
-    nq().HasID("0", "2"),
-		pick(0, 2),
+    nq().V().HasID("v0", "v2"),
+		pick(verts, 0, 2),
 	},
 	{
-    nq().HasID("non-existant"),
-		pick(),
+    nq().V().HasID("non-existant"),
+    pick(verts),
 	},
 	{
-    nq().Limit(2),
-		pick(0, 1),
+    nq().V().Limit(2),
+		pick(verts, 0, 1),
 	},
 	{
-    nq().Count(),
+    nq().V().Count(),
 		[]*traveler{
       {dataType: countData, count: int64(len(verts))},
 		},
 	},
   {
-    nq().HasLabel("Human").Has("name", "Ryan"),
-    pick(2),
+    nq().V().HasLabel("Human").Has("name", "Ryan"),
+    pick(verts, 2),
   },
   {
-    nq().HasLabel("Human").
+    nq().V().HasLabel("Human").
       As("x").Has("name", "Alex").Select("x"),
-    pick(0),
+    pick(verts, 0),
+  },
+  {
+    nq().V(),
+    verts,
+  },
+  {
+    nq().E(),
+    edges,
   },
 }
 
@@ -122,7 +152,6 @@ func TestProcs(t *testing.T) {
           close(in)
         }()
         q := desc.query.GraphQuery.Query
-        t.Log(desc.query.String())
         procs, err := compile(db, q)
         if err != nil {
           t.Fatal(err)
@@ -153,10 +182,10 @@ func TestProcs(t *testing.T) {
 	}
 }
 
-func pick(is ...int) []*traveler {
+func pick(src []*traveler, is ...int) []*traveler {
 	out := []*traveler{}
 	for _, i := range is {
-		out = append(out, verts[i])
+		out = append(out, src[i])
 	}
 	return out
 }
