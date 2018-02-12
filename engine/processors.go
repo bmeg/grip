@@ -138,6 +138,36 @@ func (o *outEdge) process(in reader, out writer) {
   }
 }
 
+type values struct {
+  keys []string
+}
+func (v *values) process(in reader, out writer) {
+  for t := range in {
+    if t.data == nil {
+      continue
+    }
+
+    if len(v.keys) == 0 {
+      out <- &traveler{
+        marks: t.marks,
+        value: t.data,
+        dataType: valueData,
+      }
+      continue
+    }
+
+    for _, key := range v.keys {
+      if z, ok := t.data[key]; ok {
+        out <- &traveler{
+          marks: t.marks,
+          value: z,
+          dataType: valueData,
+        }
+      }
+    }
+  }
+}
+
 type hasData struct {
   stmt *aql.HasStatement
 }

@@ -75,6 +75,11 @@ func (q *Query) Select(id ...string) *Query {
 	return q.with(&GraphStatement{&GraphStatement_Select{&idList}})
 }
 
+func (q *Query) Values(keys ...string) *Query {
+	idList := SelectStatement{keys}
+	return q.with(&GraphStatement{&GraphStatement_Values{&idList}})
+}
+
 // Count adds a count step to the query
 func (q *Query) Count() *Query {
 	return q.with(&GraphStatement{&GraphStatement_Count{}})

@@ -119,6 +119,10 @@ var table = []struct {
     nq().V().HasLabel("Human").Has("name", "Alex").OutEdge().As("x"),
     pick(edges, 0),
   },
+  {
+    nq().V().HasLabel("Human").Values(),
+    values_("Alex", "Kyle", "Ryan"),
+  },
 }
 
 func TestProcs(t *testing.T) {
@@ -193,6 +197,17 @@ func vert(id, label string, d dat) *traveler {
     dataType: vertexData,
     data: d,
   }
+}
+
+func values_(vals ...interface{}) []*traveler {
+  out := []*traveler{}
+  for _, val := range vals {
+    out = append(out, &traveler{
+      dataType: valueData,
+      value: val,
+    })
+  }
+  return out
 }
 
 func edge(id, from, to, label string, d dat) *traveler {

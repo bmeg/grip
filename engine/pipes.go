@@ -12,6 +12,7 @@ type traveler struct {
   count int64
   groupCounts map[string]int64
   row []*traveler
+  value interface{}
   dataType
 }
 
@@ -22,6 +23,7 @@ const (
   edgeData
   countData
   groupCountData
+  valueData
   rowData
 )
 
