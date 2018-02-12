@@ -9,29 +9,29 @@ const (
 )
 
 
-// These consts mark the type of a PipeOut traveler chan
+// These consts mark the type of a Pipeline traveler chan
 const (
-	// StateCustom The PipeOut will be emitting custom data structures
+	// StateCustom The Pipeline will be emitting custom data structures
 	StateCustom = 0
-	// StateVertexList The PipeOut will be emitting a list of vertices
+	// StateVertexList The Pipeline will be emitting a list of vertices
 	StateVertexList = 1
-	// StateEdgeList The PipeOut will be emitting a list of edges
+	// StateEdgeList The Pipeline will be emitting a list of edges
 	StateEdgeList = 2
-	// StateRawVertexList The PipeOut will be emitting a list of all vertices, if there is an index
+	// StateRawVertexList The Pipeline will be emitting a list of all vertices, if there is an index
 	// based filter, you can use skip listening and use that
 	StateRawVertexList = 3
-	// StateRawEdgeList The PipeOut will be emitting a list of all edges, if there is an index
+	// StateRawEdgeList The Pipeline will be emitting a list of all edges, if there is an index
 	// based filter, you can use skip listening and use that
 	StateRawEdgeList = 4
-	// StateBundleList the PipeOut will be emittign a list of bundles
+	// StateBundleList the Pipeline will be emittign a list of bundles
 	StateBundleList = 5
 )
 
-// PipeOut represents the output of a single pipeline chain
-type PipeOut struct {
-	Travelers   chan Traveler
-	State       int
-	ValueStates map[string]int
+// Pipeline represents the output of a single pipeline chain
+type Pipeline interface {
+	Start(ctx context.Context) chan Traveler
+	GetCurrentState() int
+	GetValueStates() map[string]int
 }
 
 // Traveler represents one query element, tracking progress across the graph

@@ -47,7 +47,8 @@ type QueryInterface interface {
 	Execute(context.Context) chan aql.ResultRow
 	First(context.Context) (aql.ResultRow, error) //Only get one result
 
-	Chain(context.Context, PipeOut) PipeOut
+	PipeIn(context.Context, Pipeline) QueryInterface
+	PipeOut() Pipeline
 }
 
 // ArachneInterface the base graph data storage interface

@@ -30,18 +30,38 @@ type timer interface {
 	endTimer(label string)
 }
 
-func newPipeOut(t chan Traveler, state int, valueStates map[string]int) PipeOut {
-	return PipeOut{Travelers: t, State: state, ValueStates: valueStates}
+type pipeStart func(ctx context.Context) chan Traveler
+type pipeState func() int
+type pipeValueStates func() map[string]int
+
+type pipeImpl struct {
+  start pipeStart
+  state pipeState
+  valueStates pipeValueStates
 }
 
-type graphPipe func(t timer, ctx context.Context) PipeOut
+func (p *pipeImpl) GetCurrentState() int {
+  return p.state()
+}
+
+func (p *pipeImpl) GetValueStates() map[string]int {
+  return p.valueStates()
+}
+
+func (p *pipeImpl) Start(ctx context.Context) chan Traveler {
+  return p.start(ctx)
+}
+
+func newPipeOut(a pipeStart, b pipeState, c pipeValueStates) Pipeline {
+	return &pipeImpl{start: a, state: b, valueStates: c}
+}
 
 // PipeEngine allows the construction of a chain evaluation steps in a query pipeline
 // and then will execute a complex query and filter on a graph database interface
 type PipeEngine struct {
 	name       string
 	db         GraphDB
-	pipe       graphPipe
+	pipe       Pipeline
 	err        error
 	selection  []string
 	imports    []string
@@ -49,7 +69,6 @@ type PipeEngine struct {
 	startTime  map[string]time.Time
 	timing     map[string]time.Duration
 	timingLock sync.Mutex
-	input      *PipeOut
 }
 
 const (
@@ -70,7 +89,6 @@ func NewPipeEngine(db GraphDB) *PipeEngine {
 		selection: []string{},
 		imports:   []string{},
 		parent:    nil,
-		input:     nil,
 		pipe:      nil,
 		startTime: map[string]time.Time{},
 		timing:    map[string]time.Duration{},
@@ -78,7 +96,7 @@ func NewPipeEngine(db GraphDB) *PipeEngine {
 }
 
 
-func (pengine *PipeEngine) append(name string, pipe graphPipe) *PipeEngine {
+func (pengine *PipeEngine) append(name string, pipe Pipeline) *PipeEngine {
 	return &PipeEngine{
 		name:      name,
 		db:        pengine.db,
@@ -119,18 +137,9 @@ func (pengine *PipeEngine) getTime() string {
 	return fmt.Sprintf("[%s]", strings.Join(o, ","))
 }
 
-func (pengine *PipeEngine) startPipe(ctx context.Context) PipeOut {
-	if pengine.input != nil {
-		//log.Printf("Using chained input")
-		return *pengine.input
-	}
-	pi := pengine.pipe(pengine, ctx)
-	return pi
-}
-
-
+/*
 // Chain runs a sub pipeline, that takes and from another pipeline
-func (pengine *PipeEngine) Chain(ctx context.Context, input PipeOut) PipeOut {
+func (pengine *PipeEngine) Chain(ctx context.Context, input Pipeline) Pipeline {
 
 	o := make(chan Traveler, pipeSize)
 	//log.Printf("Chaining")
@@ -160,7 +169,7 @@ func (pengine *PipeEngine) Chain(ctx context.Context, input PipeOut) PipeOut {
 	}()
 	return newPipeOut(o, pipe.State, pipe.ValueStates)
 }
-
+*/
 
 // Execute runs the current Pipeline engine
 func (pengine *PipeEngine) Execute(ctx context.Context) chan aql.ResultRow {
@@ -174,8 +183,8 @@ func (pengine *PipeEngine) Execute(ctx context.Context) chan aql.ResultRow {
 		startTime := time.Now()
 		var client time.Duration
 		count := 0
-		pipe := pengine.startPipe(context.WithValue(ctx, propLoad, true))
-		for i := range pipe.Travelers {
+		pipe := pengine.pipe.Start(context.WithValue(ctx, propLoad, true))
+		for i := range pipe {
 			if len(pengine.selection) == 0 {
 				ct := time.Now()
 				o <- aql.ResultRow{Value: i.GetCurrent()}
