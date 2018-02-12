@@ -1,33 +1,22 @@
 package aql
 
 import (
-	"bytes"
-	"encoding/json"
   "fmt"
   "strings"
 	"github.com/bmeg/arachne/protoutil"
-	"github.com/golang/protobuf/jsonpb"
 )
 
 // Query helps build graph queries.
 type Query struct {
-	*GraphQuery
-}
-
-// NewQuery returns a new query object.
-func NewQuery(graph string) *Query {
-	return &Query{
-		&GraphQuery{
-			Graph: graph,
-		},
-	}
+  Statements []*GraphStatement
 }
 
 func (q *Query) with(st *GraphStatement) *Query {
-	nq := NewQuery(q.GraphQuery.Graph)
-  nq.GraphQuery.Query = make([]*GraphStatement, len(q.GraphQuery.Query))
-	copy(nq.GraphQuery.Query, q.GraphQuery.Query)
-	nq.GraphQuery.Query = append(nq.GraphQuery.Query, st)
+  nq := &Query{
+    Statements: make([]*GraphStatement, len(q.Statements)),
+  }
+	copy(nq.Statements, q.Statements)
+	nq.Statements = append(nq.Statements, st)
 	return nq
 }
 
@@ -91,16 +80,6 @@ func (q *Query) Count() *Query {
 	return q.with(&GraphStatement{&GraphStatement_Count{}})
 }
 
-// Render renders the to a map.
-func (q *Query) Render() map[string]interface{} {
-	m := jsonpb.Marshaler{}
-	b := &bytes.Buffer{}
-	m.Marshal(b, q.GraphQuery)
-	out := map[string]interface{}{}
-	json.Unmarshal(b.Bytes(), &out)
-	return out
-}
-
 func (q *Query) String() string {
   parts := []string{}
   add := func(name string, x ...string) {
@@ -108,8 +87,8 @@ func (q *Query) String() string {
     parts = append(parts, fmt.Sprintf("%s(%s)", name, args))
   }
 
-  for _, gs := range q.GraphQuery.Query {
-    switch stmt := gs.Statement.(type) {
+  for _, gs := range q.Statements {
+    switch stmt := gs.GetStatement().(type) {
     case *GraphStatement_V:
       ids := protoutil.AsStringList(stmt.V)
       add("V", ids...)

@@ -71,6 +71,12 @@ gremlin> crew.V().hasLabel("person").as("x", "y").select("x", "y").groupCount().
 gremlin> crew.V().hasLabel("person").as("x", "y").select("x", "y").groupCount()
 ==>[[x:v[1],y:v[1]]:1,[x:v[8],y:v[8]]:1,[x:v[9],y:v[9]]:1,[x:v[7],y:v[7]]:1]
 
+
+gremlin> crew.V().E()
+No signature of method: org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.DefaultGraphTraversal.E() is applicable for argument types: () values: []
+Possible solutions: by(groovy.lang.Closure), is(java.lang.Object), use([Ljava.lang.Object;), use(java.util.List, groovy.lang.Closure), use(java.lang.Class, groovy.lang.Closure), max()
+    
+    In this case, I disagree. if q.V().V() is valid and explainable, then q.V().E() should be too.
 */
 
 func compile(db DB, stmts []*aql.GraphStatement) ([]processor, error) {
@@ -205,7 +211,7 @@ func compile(db DB, stmts []*aql.GraphStatement) ([]processor, error) {
       add(&marker{marks})
 
     case *aql.GraphStatement_Select:
-      // TODO should track mark types do "last" can be set after select
+      // TODO should track mark types so "last" can be set after select
       // TODO track mark names and fail when a name is missing.
       switch len(stmt.Select.Labels) {
       case 0:
@@ -214,6 +220,7 @@ func compile(db DB, stmts []*aql.GraphStatement) ([]processor, error) {
         add(&selectOne{stmt.Select.Labels[0]})
       default:
         add(&selectMany{stmt.Select.Labels})
+        last = rowData
       }
 
     /*

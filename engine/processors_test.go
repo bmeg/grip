@@ -141,7 +141,7 @@ func TestProcs(t *testing.T) {
           in <- &traveler{}
           close(in)
         }()
-        q := desc.query.GraphQuery.Query
+        q := desc.query.Statements
         procs, err := compile(db, q)
         if err != nil {
           t.Fatal(err)
@@ -215,5 +215,5 @@ func edge(id, from, to, label string, d dat) *traveler {
 type dat map[string]interface{}
 
 func nq() *aql.Query {
-  return aql.NewQuery("test")
+  return &aql.Query{}
 }
