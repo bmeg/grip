@@ -1,22 +1,52 @@
 package engine
 
 import (
+  "context"
   "github.com/bmeg/arachne/aql"
+  "github.com/bmeg/arachne/protoutil"
 )
 
 type processor interface {
   process(in reader, out writer)
 }
 
-type lookup struct {
+type lookupVerts struct {
   db DB
   ids []string
   labels []string
-  dontLoad bool
-  dataType
 }
 
-func (l *lookup) process(in reader, out writer) {
+func (l *lookupVerts) process(in reader, out writer) {
+  for range in {
+    for v := range db.GetVertexList(context.Background(), false) {
+      // TODO maybe don't bother copying the data
+      out <- &traveler{
+        id: v.Gid,
+        label: v.Label,
+        data: protoutil.AsMap(v.Data),
+        dataType: vertexData,
+      }
+    }
+  }
+}
+
+type lookupEdges struct {
+  db DB
+  ids []string
+  labels []string
+}
+
+func (l *lookupEdges) process(in reader, out writer) {
+  for range in {
+    for v := range db.GetEdgeList(context.Background(), false) {
+      out <- &traveler{
+        id: v.Gid,
+        label: v.Label,
+        data: protoutil.AsMap(v.Data),
+        dataType: edgeData,
+      }
+    }
+  }
 }
 
 type lookupAdj struct {

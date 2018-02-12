@@ -42,6 +42,7 @@ message GraphStatement {
         int64 limit = 25;
         string count = 26;
 
+        // TODO add "first"
         string groupCount = 30;
 
         GraphQuerySet match = 40;

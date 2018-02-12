@@ -31,9 +31,6 @@ const (
   both
 )
 
-type DB interface {
-}
-
 func run(procs []processor, in reader, out writer, bufsize int) {
   if len(procs) == 0 {
     close(out)

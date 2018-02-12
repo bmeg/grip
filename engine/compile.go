@@ -1,10 +1,16 @@
 package engine
 
 import (
+  "context"
 	"fmt"
 	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/protoutil"
 )
+
+type DB interface {
+  GetVertexList(context.Context, bool) <-chan *aql.Vertex
+  GetEdgeList(context.Context, bool) <-chan *aql.Edge
+}
 
 // TODO with a query planner, "load" could instead be a list of property keys
 
@@ -62,25 +68,38 @@ gremlin> crew.V().hasLabel("person").as("x", "y").select("x", "y").groupCount()
 ==>[[x:v[1],y:v[1]]:1,[x:v[8],y:v[8]]:1,[x:v[9],y:v[9]]:1,[x:v[7],y:v[7]]:1]
 */
 
-func compileStatements(db DB, stmts []*aql.GraphStatement) ([]processor, error) {
+func compile(db DB, stmts []*aql.GraphStatement) ([]processor, error) {
+  if len(stmts) == 0 {
+    return nil, nil
+  }
+
   last := noData
   procs := make([]processor, 0, len(stmts))
   add := func(p processor) {
     procs = append(procs, p)
   }
 
-  for _, gs := range stmts {
-    switch stmt := gs.Statement.(type) {
+  for i, gs := range stmts {
+    // Validate that the first statement is V() or E() 
+    if i == 0 {
+      switch gs.GetStatement().(type) {
+      case *aql.GraphStatement_V, *aql.GraphStatement_E:
+      default:
+        return nil, fmt.Errorf("first statement is not V() or E()")
+      }
+    }
+
+    switch stmt := gs.GetStatement().(type) {
 
     case *aql.GraphStatement_V:
       ids := protoutil.AsStringList(stmt.V)
-      add(&lookup{db: db, ids: ids, dataType: vertexData})
+      add(&lookupVerts{db: db, ids: ids})
       last = vertexData
 
     case *aql.GraphStatement_E:
       ids := protoutil.AsStringList(stmt.E)
-      add(&lookup{db: db, ids: ids, dataType: edgeData})
-      last = vertexData
+      add(&lookupEdges{db: db, ids: ids})
+      last = edgeData
 
     case *aql.GraphStatement_Has:
       add(&hasData{stmt.Has})
