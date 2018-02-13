@@ -28,6 +28,11 @@ proto:
 	--grpc-gateway_out=logtostderr=true:. \
 	aql.proto
 
+kvproto:
+	cd kvgraph && protoc \
+	-I ./ --go_out=. \
+	index.proto
+
 # Automatially update code formatting
 tidy:
 	@for f in $$(find ./ -name "*.go" -print | egrep -v "\.pb\.go|\.gw\.go|underscore\.go"); do \
