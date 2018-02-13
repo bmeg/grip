@@ -1,7 +1,7 @@
 package engine
 
-type reader <-chan *traveler
-type writer chan<- *traveler
+type inPipe <-chan *traveler
+type outPipe chan<- *traveler
 
 type traveler struct {
   id string
@@ -27,7 +27,7 @@ const (
   rowData
 )
 
-func run(procs []processor, in reader, out writer, bufsize int) {
+func run(procs []processor, in inPipe, out outPipe, bufsize int) {
   if len(procs) == 0 {
     close(out)
     return
@@ -40,7 +40,7 @@ func run(procs []processor, in reader, out writer, bufsize int) {
 
   for i := 0; i < len(procs) - 1; i++ {
     glue := make(chan *traveler, bufsize)
-    go func(i int, in reader, out writer) {
+    go func(i int, in inPipe, out outPipe) {
       procs[i].process(in, out)
       close(out)
     }(i, in, glue)

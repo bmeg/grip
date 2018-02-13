@@ -8,7 +8,7 @@ import (
 )
 
 type processor interface {
-  process(in reader, out writer)
+  process(in inPipe, out outPipe)
 }
 
 type lookupVerts struct {
@@ -17,7 +17,7 @@ type lookupVerts struct {
   labels []string
 }
 
-func (l *lookupVerts) process(in reader, out writer) {
+func (l *lookupVerts) process(in inPipe, out outPipe) {
   for t := range in {
     for v := range db.GetVertexList(context.Background(), true) {
       // TODO maybe don't bother copying the data
@@ -38,7 +38,7 @@ type lookupEdges struct {
   labels []string
 }
 
-func (l *lookupEdges) process(in reader, out writer) {
+func (l *lookupEdges) process(in inPipe, out outPipe) {
   for t := range in {
     for v := range db.GetEdgeList(context.Background(), true) {
       out <- &traveler{
@@ -59,7 +59,7 @@ type lookupAdjOut struct {
   labels []string
 }
 
-func (l *lookupAdjOut) process(in reader, out writer) {
+func (l *lookupAdjOut) process(in inPipe, out outPipe) {
   ctx := context.Background()
   for t := range in {
     for v := range l.db.GetOutList(ctx, t.id, true) {
@@ -79,7 +79,7 @@ type lookupAdjIn struct {
   labels []string
 }
 
-func (l *lookupAdjIn) process(in reader, out writer) {
+func (l *lookupAdjIn) process(in inPipe, out outPipe) {
   ctx := context.Background()
   for t := range in {
     for v := range l.db.GetInList(ctx, t.id, true) {
@@ -99,7 +99,7 @@ type inEdge struct {
   labels []string
 }
 
-func (i *inEdge) process(in reader, out writer) {
+func (i *inEdge) process(in inPipe, out outPipe) {
   ctx := context.Background()
   for t := range in {
     for v := range i.db.GetInEdgeList(ctx, t.id, true) {
@@ -121,7 +121,7 @@ type outEdge struct {
   labels []string
 }
 
-func (o *outEdge) process(in reader, out writer) {
+func (o *outEdge) process(in inPipe, out outPipe) {
   ctx := context.Background()
   for t := range in {
     for v := range o.db.GetOutEdgeList(ctx, t.id, true) {
@@ -141,7 +141,7 @@ func (o *outEdge) process(in reader, out writer) {
 type values struct {
   keys []string
 }
-func (v *values) process(in reader, out writer) {
+func (v *values) process(in inPipe, out outPipe) {
   for t := range in {
     if t.data == nil {
       continue
@@ -172,7 +172,7 @@ type hasData struct {
   stmt *aql.HasStatement
 }
 
-func (h *hasData) process(in reader, out writer) {
+func (h *hasData) process(in inPipe, out outPipe) {
   for t := range in {
     if t.data == nil {
       continue
@@ -188,7 +188,7 @@ func (h *hasData) process(in reader, out writer) {
 type hasLabel struct {
   labels []string
 }
-func (h *hasLabel) process(in reader, out writer) {
+func (h *hasLabel) process(in inPipe, out outPipe) {
   for t := range in {
     if contains(h.labels, t.label) {
       out <- t
@@ -199,7 +199,7 @@ func (h *hasLabel) process(in reader, out writer) {
 type hasID struct {
   ids []string
 }
-func (h *hasID) process(in reader, out writer) {
+func (h *hasID) process(in inPipe, out outPipe) {
   for t := range in {
     if contains(h.ids, t.id) {
       out <- t
@@ -208,7 +208,7 @@ func (h *hasID) process(in reader, out writer) {
 }
 
 type count struct {}
-func (c *count) process(in reader, out writer) {
+func (c *count) process(in inPipe, out outPipe) {
   var i int64
   for range in {
     i++
@@ -222,7 +222,7 @@ func (c *count) process(in reader, out writer) {
 type limit struct {
   count int64
 }
-func (l *limit) process(in reader, out writer) {
+func (l *limit) process(in inPipe, out outPipe) {
   var i int64
   for t := range in {
     if i == l.count {
@@ -238,13 +238,13 @@ type groupCount struct {
 }
 
 // TODO except, if you select.by("name") this is counting by value, not ID
-func (g *groupCount) countIDs(in reader, counts map[string]int64) {
+func (g *groupCount) countIDs(in inPipe, counts map[string]int64) {
   for t := range in {
     counts[t.id]++
   }
 }
 
-func (g *groupCount) countValues(in reader, counts map[string]int64) {
+func (g *groupCount) countValues(in inPipe, counts map[string]int64) {
   for t := range in {
     if t.data == nil {
       continue
@@ -261,7 +261,7 @@ func (g *groupCount) countValues(in reader, counts map[string]int64) {
   }
 }
 
-func (g *groupCount) process(in reader, out writer) {
+func (g *groupCount) process(in inPipe, out outPipe) {
   counts := map[string]int64{}
 
   if g.key != "" {
@@ -282,7 +282,7 @@ type marker struct {
   marks []string
 }
 
-func (m *marker) process(in reader, out writer) {
+func (m *marker) process(in inPipe, out outPipe) {
   for t := range in {
     // Processors are not synchronized; they are independent, concurrent, and buffered.
     // Marks must be copied when written, so that a downstream processor is guaranteed
@@ -305,7 +305,7 @@ type selectOne struct {
   mark string
 }
 
-func (s *selectOne) process(in reader, out writer) {
+func (s *selectOne) process(in inPipe, out outPipe) {
   for t := range in {
     x := t.marks[s.mark]
     out <- x
@@ -316,7 +316,7 @@ type selectMany struct {
   marks []string
 }
 
-func (s *selectMany) process(in reader, out writer) {
+func (s *selectMany) process(in inPipe, out outPipe) {
   for t := range in {
     row := make([]*traveler, len(s.marks))
     for _, mark := range s.marks {
@@ -331,7 +331,7 @@ func (s *selectMany) process(in reader, out writer) {
 }
 
 type concat []processor
-func (c concat) process(in reader, out writer) {
+func (c concat) process(in inPipe, out outPipe) {
   chans := make([]chan *traveler, len(c))
   for i, _ := range c {
     chans[i] = make(chan *traveler)
