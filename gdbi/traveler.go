@@ -1,6 +1,7 @@
 package gdbi
 
 import (
+	"context"
 	"github.com/bmeg/arachne/aql"
 )
 
@@ -29,6 +30,7 @@ const (
 
 // Pipeline represents the output of a single pipeline chain
 type Pipeline interface {
+	//StartInput(chan Traveler) error
 	Start(ctx context.Context) chan Traveler
 	GetCurrentState() int
 	GetValueStates() map[string]int

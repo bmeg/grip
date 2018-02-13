@@ -47,7 +47,7 @@ type QueryInterface interface {
 	Execute(context.Context) chan aql.ResultRow
 	First(context.Context) (aql.ResultRow, error) //Only get one result
 
-	PipeIn(context.Context, Pipeline) QueryInterface
+	PipeIn(context.Context, func() Pipeline) QueryInterface
 	PipeOut() Pipeline
 }
 
