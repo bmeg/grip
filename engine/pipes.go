@@ -27,13 +27,6 @@ const (
   rowData
 )
 
-type direction int
-const (
-  in direction = iota
-  out
-  both
-)
-
 func run(procs []processor, in reader, out writer, bufsize int) {
   if len(procs) == 0 {
     close(out)
@@ -58,27 +51,6 @@ func run(procs []processor, in reader, out writer, bufsize int) {
 }
 
 /*
-func valuesPipe() {
-	for i := range pipe.Travelers {
-		var props *structpb.Struct
-
-		if v := i.GetCurrent().GetVertex(); v != nil && v.Data != nil {
-			props = v.GetData()
-		} else if v := i.GetCurrent().GetEdge(); v != nil && v.Data != nil {
-			props = v.GetData()
-		}
-
-		if props != nil {
-			out := structpb.Struct{Fields: map[string]*structpb.Value{}}
-			if len(labels) == 0 {
-				protoutil.CopyStructToStruct(&out, props)
-			} else {
-				protoutil.CopyStructToStructSub(&out, labels, props)
-			}
-			o <- i.AddCurrent(aql.QueryResult{Result: &aql.QueryResult_Struct{Struct: &out}})
-		}
-	}
-}
 
 func mapPipe() {
 	mfunc, err := jsengine.NewJSEngine(source, pengine.imports)
@@ -165,13 +137,6 @@ func vertexFromValuesPipe() {
 	}
 }
 
-
-func matchPipe() {
-	pipe := pengine.startPipe(context.WithValue(ctx, propLoad, true))
-	for _, matchStep := range matches {
-		pipe = (*matchStep).Chain(ctx, pipe)
-	}
-}
 */
 
 func contains(a []string, v string) bool {

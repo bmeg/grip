@@ -166,7 +166,6 @@ func compile(db DB, stmts []*aql.GraphStatement) ([]processor, error) {
 
     /*
     case *aql.GraphStatement_Match:
-
     case *aql.GraphStatement_Import:
     case *aql.GraphStatement_Map:
     case *aql.GraphStatement_Fold:
