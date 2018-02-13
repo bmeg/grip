@@ -11,6 +11,7 @@ message GraphQuery {
 }
 
 message GraphQuerySet {
+  // TODO a sub query done by match() shouldn't change graphs.
   repeated GraphQuery queries = 1;
 }
 

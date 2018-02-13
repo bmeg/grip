@@ -4,50 +4,51 @@ type inPipe <-chan *traveler
 type outPipe chan<- *traveler
 
 type traveler struct {
-  id string
-  label string
-  from, to string
-  data map[string]interface{}
-  marks map[string]*traveler
-  count int64
-  groupCounts map[string]int64
-  row []*traveler
-  value interface{}
-  dataType
+	id          string
+	label       string
+	from, to    string
+	data        map[string]interface{}
+	marks       map[string]*traveler
+	count       int64
+	groupCounts map[string]int64
+	row         []*traveler
+	value       interface{}
+	dataType
 }
 
 type dataType uint8
+
 const (
-  noData dataType = iota
-  vertexData
-  edgeData
-  countData
-  groupCountData
-  valueData
-  rowData
+	noData dataType = iota
+	vertexData
+	edgeData
+	countData
+	groupCountData
+	valueData
+	rowData
 )
 
 func run(procs []processor, in inPipe, out outPipe, bufsize int) {
-  if len(procs) == 0 {
-    close(out)
-    return
-  }
-  if len(procs) == 1 {
-    procs[0].process(in, out)
-    close(out)
-    return
-  }
+	if len(procs) == 0 {
+		close(out)
+		return
+	}
+	if len(procs) == 1 {
+		procs[0].process(in, out)
+		close(out)
+		return
+	}
 
-  for i := 0; i < len(procs) - 1; i++ {
-    glue := make(chan *traveler, bufsize)
-    go func(i int, in inPipe, out outPipe) {
-      procs[i].process(in, out)
-      close(out)
-    }(i, in, glue)
-    in = glue
-  }
-  procs[len(procs)-1].process(in, out)
-  close(out)
+	for i := 0; i < len(procs)-1; i++ {
+		glue := make(chan *traveler, bufsize)
+		go func(i int, in inPipe, out outPipe) {
+			procs[i].process(in, out)
+			close(out)
+		}(i, in, glue)
+		in = glue
+	}
+	procs[len(procs)-1].process(in, out)
+	close(out)
 }
 
 /*

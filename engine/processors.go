@@ -1,356 +1,361 @@
 package engine
 
 import (
-  "context"
-  "sync"
-  "github.com/bmeg/arachne/aql"
-  "github.com/bmeg/arachne/protoutil"
+	"context"
+	"github.com/bmeg/arachne/aql"
+	"github.com/bmeg/arachne/protoutil"
+	"sync"
 )
 
 type processor interface {
-  process(in inPipe, out outPipe)
+	process(in inPipe, out outPipe)
 }
 
 type lookupVerts struct {
-  db DB
-  ids []string
-  labels []string
+	db     DB
+	ids    []string
+	labels []string
 }
 
 func (l *lookupVerts) process(in inPipe, out outPipe) {
-  for t := range in {
-    for v := range db.GetVertexList(context.Background(), true) {
-      // TODO maybe don't bother copying the data
-      out <- &traveler{
-        id: v.Gid,
-        label: v.Label,
-        marks: t.marks,
-        data: protoutil.AsMap(v.Data),
-        dataType: vertexData,
-      }
-    }
-  }
+	for t := range in {
+		for v := range db.GetVertexList(context.Background(), true) {
+			// TODO maybe don't bother copying the data
+			out <- &traveler{
+				id:       v.Gid,
+				label:    v.Label,
+				marks:    t.marks,
+				data:     protoutil.AsMap(v.Data),
+				dataType: vertexData,
+			}
+		}
+	}
 }
 
 type lookupEdges struct {
-  db DB
-  ids []string
-  labels []string
+	db     DB
+	ids    []string
+	labels []string
 }
 
 func (l *lookupEdges) process(in inPipe, out outPipe) {
-  for t := range in {
-    for v := range db.GetEdgeList(context.Background(), true) {
-      out <- &traveler{
-        id: v.Gid,
-        label: v.Label,
-        from: v.From,
-        to: v.To,
-        marks: t.marks,
-        data: protoutil.AsMap(v.Data),
-        dataType: edgeData,
-      }
-    }
-  }
+	for t := range in {
+		for v := range db.GetEdgeList(context.Background(), true) {
+			out <- &traveler{
+				id:       v.Gid,
+				label:    v.Label,
+				from:     v.From,
+				to:       v.To,
+				marks:    t.marks,
+				data:     protoutil.AsMap(v.Data),
+				dataType: edgeData,
+			}
+		}
+	}
 }
 
 type lookupAdjOut struct {
-  db DB
-  labels []string
+	db     DB
+	labels []string
 }
 
 func (l *lookupAdjOut) process(in inPipe, out outPipe) {
-  ctx := context.Background()
-  for t := range in {
-    for v := range l.db.GetOutList(ctx, t.id, true) {
-      out <- &traveler{
-        id: v.Gid,
-        label: v.Label,
-        marks: t.marks,
-        data: protoutil.AsMap(v.Data),
-        dataType: vertexData,
-      }
-    }
-  }
+	ctx := context.Background()
+	for t := range in {
+		for v := range l.db.GetOutList(ctx, t.id, true) {
+			out <- &traveler{
+				id:       v.Gid,
+				label:    v.Label,
+				marks:    t.marks,
+				data:     protoutil.AsMap(v.Data),
+				dataType: vertexData,
+			}
+		}
+	}
 }
 
 type lookupAdjIn struct {
-  db DB
-  labels []string
+	db     DB
+	labels []string
 }
 
 func (l *lookupAdjIn) process(in inPipe, out outPipe) {
-  ctx := context.Background()
-  for t := range in {
-    for v := range l.db.GetInList(ctx, t.id, true) {
-      out <- &traveler{
-        id: v.Gid,
-        label: v.Label,
-        marks: t.marks,
-        data: protoutil.AsMap(v.Data),
-        dataType: vertexData,
-      }
-    }
-  }
+	ctx := context.Background()
+	for t := range in {
+		for v := range l.db.GetInList(ctx, t.id, true) {
+			out <- &traveler{
+				id:       v.Gid,
+				label:    v.Label,
+				marks:    t.marks,
+				data:     protoutil.AsMap(v.Data),
+				dataType: vertexData,
+			}
+		}
+	}
 }
 
 type inEdge struct {
-  db DB
-  labels []string
+	db     DB
+	labels []string
 }
 
 func (i *inEdge) process(in inPipe, out outPipe) {
-  ctx := context.Background()
-  for t := range in {
-    for v := range i.db.GetInEdgeList(ctx, t.id, true) {
-      out <- &traveler{
-        id: v.Gid,
-        label: v.Label,
-        from: v.From,
-        to: v.To,
-        marks: t.marks,
-        data: protoutil.AsMap(v.Data),
-        dataType: edgeData,
-      }
-    }
-  }
+	ctx := context.Background()
+	for t := range in {
+		for v := range i.db.GetInEdgeList(ctx, t.id, true) {
+			out <- &traveler{
+				id:       v.Gid,
+				label:    v.Label,
+				from:     v.From,
+				to:       v.To,
+				marks:    t.marks,
+				data:     protoutil.AsMap(v.Data),
+				dataType: edgeData,
+			}
+		}
+	}
 }
 
 type outEdge struct {
-  db DB
-  labels []string
+	db     DB
+	labels []string
 }
 
 func (o *outEdge) process(in inPipe, out outPipe) {
-  ctx := context.Background()
-  for t := range in {
-    for v := range o.db.GetOutEdgeList(ctx, t.id, true) {
-      out <- &traveler{
-        id: v.Gid,
-        label: v.Label,
-        from: v.From,
-        to: v.To,
-        marks: t.marks,
-        data: protoutil.AsMap(v.Data),
-        dataType: edgeData,
-      }
-    }
-  }
+	ctx := context.Background()
+	for t := range in {
+		for v := range o.db.GetOutEdgeList(ctx, t.id, true) {
+			out <- &traveler{
+				id:       v.Gid,
+				label:    v.Label,
+				from:     v.From,
+				to:       v.To,
+				marks:    t.marks,
+				data:     protoutil.AsMap(v.Data),
+				dataType: edgeData,
+			}
+		}
+	}
 }
 
 type values struct {
-  keys []string
+	keys []string
 }
+
 func (v *values) process(in inPipe, out outPipe) {
-  for t := range in {
-    if t.data == nil {
-      continue
-    }
+	for t := range in {
+		if t.data == nil {
+			continue
+		}
 
-    if len(v.keys) == 0 {
-      out <- &traveler{
-        marks: t.marks,
-        value: t.data,
-        dataType: valueData,
-      }
-      continue
-    }
+		if len(v.keys) == 0 {
+			out <- &traveler{
+				marks:    t.marks,
+				value:    t.data,
+				dataType: valueData,
+			}
+			continue
+		}
 
-    for _, key := range v.keys {
-      if z, ok := t.data[key]; ok {
-        out <- &traveler{
-          marks: t.marks,
-          value: z,
-          dataType: valueData,
-        }
-      }
-    }
-  }
+		for _, key := range v.keys {
+			if z, ok := t.data[key]; ok {
+				out <- &traveler{
+					marks:    t.marks,
+					value:    z,
+					dataType: valueData,
+				}
+			}
+		}
+	}
 }
 
 type hasData struct {
-  stmt *aql.HasStatement
+	stmt *aql.HasStatement
 }
 
 func (h *hasData) process(in inPipe, out outPipe) {
-  for t := range in {
-    if t.data == nil {
-      continue
-    }
+	for t := range in {
+		if t.data == nil {
+			continue
+		}
 		if z, ok := t.data[h.stmt.Key]; ok {
-      if s, ok := z.(string); ok && contains(h.stmt.Within, s) {
-        out <- t
-      }
-    }
-  }
+			if s, ok := z.(string); ok && contains(h.stmt.Within, s) {
+				out <- t
+			}
+		}
+	}
 }
 
 type hasLabel struct {
-  labels []string
+	labels []string
 }
+
 func (h *hasLabel) process(in inPipe, out outPipe) {
-  for t := range in {
-    if contains(h.labels, t.label) {
-      out <- t
-    }
-  }
+	for t := range in {
+		if contains(h.labels, t.label) {
+			out <- t
+		}
+	}
 }
 
 type hasID struct {
-  ids []string
-}
-func (h *hasID) process(in inPipe, out outPipe) {
-  for t := range in {
-    if contains(h.ids, t.id) {
-      out <- t
-    }
-  }
+	ids []string
 }
 
-type count struct {}
+func (h *hasID) process(in inPipe, out outPipe) {
+	for t := range in {
+		if contains(h.ids, t.id) {
+			out <- t
+		}
+	}
+}
+
+type count struct{}
+
 func (c *count) process(in inPipe, out outPipe) {
-  var i int64
-  for range in {
-    i++
-  }
-  out <- &traveler{
-    dataType: countData,
-    count: i,
-  }
+	var i int64
+	for range in {
+		i++
+	}
+	out <- &traveler{
+		dataType: countData,
+		count:    i,
+	}
 }
 
 type limit struct {
-  count int64
+	count int64
 }
+
 func (l *limit) process(in inPipe, out outPipe) {
-  var i int64
-  for t := range in {
-    if i == l.count {
-      return
-    }
-    out <- t
-    i++
-  }
+	var i int64
+	for t := range in {
+		if i == l.count {
+			return
+		}
+		out <- t
+		i++
+	}
 }
 
 type groupCount struct {
-  key string
+	key string
 }
 
 // TODO except, if you select.by("name") this is counting by value, not ID
 func (g *groupCount) countIDs(in inPipe, counts map[string]int64) {
-  for t := range in {
-    counts[t.id]++
-  }
+	for t := range in {
+		counts[t.id]++
+	}
 }
 
 func (g *groupCount) countValues(in inPipe, counts map[string]int64) {
-  for t := range in {
-    if t.data == nil {
-      continue
-    }
-    if vi, ok := t.data[g.key]; ok {
-      // TODO only counting string values.
-      //      how to handle other simple types? (int, etc)
-      //      what to do for objects? gremlin returns an error.
-      //      how to return errors? Add Error travelerType?
-      if s, ok := vi.(string); ok {
-        counts[s]++
-      }
-    }
-  }
+	for t := range in {
+		if t.data == nil {
+			continue
+		}
+		if vi, ok := t.data[g.key]; ok {
+			// TODO only counting string values.
+			//      how to handle other simple types? (int, etc)
+			//      what to do for objects? gremlin returns an error.
+			//      how to return errors? Add Error travelerType?
+			if s, ok := vi.(string); ok {
+				counts[s]++
+			}
+		}
+	}
 }
 
 func (g *groupCount) process(in inPipe, out outPipe) {
-  counts := map[string]int64{}
+	counts := map[string]int64{}
 
-  if g.key != "" {
-    g.countValues(in, counts)
-  } else {
-    g.countIDs(in, counts)
-  }
+	if g.key != "" {
+		g.countValues(in, counts)
+	} else {
+		g.countIDs(in, counts)
+	}
 
-  eo := &traveler{
-    dataType: groupCountData,
-    groupCounts: counts,
-  }
-  out <- eo
+	eo := &traveler{
+		dataType:    groupCountData,
+		groupCounts: counts,
+	}
+	out <- eo
 }
 
-
 type marker struct {
-  marks []string
+	marks []string
 }
 
 func (m *marker) process(in inPipe, out outPipe) {
-  for t := range in {
-    // Processors are not synchronized; they are independent, concurrent, and buffered.
-    // Marks must be copied when written, so that a downstream processor is guaranteed
-    // a consistent view of the marks.
-    marks := t.marks
-    t.marks = map[string]*traveler{}
-    // copy the existing marks
-    for k, v := range marks {
-      t.marks[k] = v
-    }
-    // add the new marks
-    for _, k := range m.marks {
-      t.marks[k] = t
-    }
-    out <- t
-  }
+	for t := range in {
+		// Processors are not synchronized; they are independent, concurrent, and buffered.
+		// Marks must be copied when written, so that a downstream processor is guaranteed
+		// a consistent view of the marks.
+		marks := t.marks
+		t.marks = map[string]*traveler{}
+		// copy the existing marks
+		for k, v := range marks {
+			t.marks[k] = v
+		}
+		// add the new marks
+		for _, k := range m.marks {
+			t.marks[k] = t
+		}
+		out <- t
+	}
 }
 
 type selectOne struct {
-  mark string
+	mark string
 }
 
 func (s *selectOne) process(in inPipe, out outPipe) {
-  for t := range in {
-    x := t.marks[s.mark]
-    out <- x
-  }
+	for t := range in {
+		x := t.marks[s.mark]
+		out <- x
+	}
 }
 
 type selectMany struct {
-  marks []string
+	marks []string
 }
 
 func (s *selectMany) process(in inPipe, out outPipe) {
-  for t := range in {
-    row := make([]*traveler, len(s.marks))
-    for _, mark := range s.marks {
-      // TODO handle missing mark? rely on compiler to check this?
-      row = append(row, t.marks[mark])
-    }
-    out <- &traveler{
-      dataType: rowData,
-      row: row,
-    }
-  }
+	for t := range in {
+		row := make([]*traveler, len(s.marks))
+		for _, mark := range s.marks {
+			// TODO handle missing mark? rely on compiler to check this?
+			row = append(row, t.marks[mark])
+		}
+		out <- &traveler{
+			dataType: rowData,
+			row:      row,
+		}
+	}
 }
 
 type concat []processor
+
 func (c concat) process(in inPipe, out outPipe) {
-  chans := make([]chan *traveler, len(c))
-  for i, _ := range c {
-    chans[i] = make(chan *traveler)
-  }
+	chans := make([]chan *traveler, len(c))
+	for i, _ := range c {
+		chans[i] = make(chan *traveler)
+	}
 
-  wg := sync.WaitGroup{}
-  wg.Add(len(c))
+	wg := sync.WaitGroup{}
+	wg.Add(len(c))
 
-  for i, p := range c {
-    go func(i int) {
-      p.process(chans[i], out)
-      wg.Done()
-    }(i)
-  }
+	for i, p := range c {
+		go func(i int) {
+			p.process(chans[i], out)
+			wg.Done()
+		}(i)
+	}
 
-  for t := range in {
-    for _, ch := range chans {
-      ch <- t
-    }
-  }
-  wg.Done()
+	for t := range in {
+		for _, ch := range chans {
+			ch <- t
+		}
+	}
+	wg.Done()
 }
