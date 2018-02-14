@@ -18,7 +18,6 @@ class Connection:
         lines = txt.rstrip().split("\n")
         out = []
         for i in lines:
-            print i
             out.append(json.loads(i))
         return out
 
