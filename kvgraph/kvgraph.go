@@ -21,11 +21,13 @@ func contains(a []string, v string) bool {
 
 // AddGraph creates a new graph named `graph`
 func (kgraph *KVGraph) AddGraph(graph string) error {
+	kgraph.ts.Touch(graph)
 	return kgraph.kv.Set(GraphKey(graph), []byte{})
 }
 
 // DeleteGraph deletes `graph`
 func (kgraph *KVGraph) DeleteGraph(graph string) error {
+	kgraph.ts.Touch(graph)
 	eprefix := EdgeListPrefix(graph)
 	kgraph.kv.DeletePrefix(eprefix)
 
@@ -44,7 +46,7 @@ func (kgraph *KVGraph) DeleteGraph(graph string) error {
 
 // Graph obtains the gdbi.DBI for a particular graph
 func (kgraph *KVGraph) Graph(graph string) gdbi.DBI {
-	return &KVInterfaceGDB{kv: kgraph.kv, graph: graph}
+	return &KVInterfaceGDB{kv: kgraph.kv, graph: graph, ts: kgraph.ts}
 }
 
 // Query creates a QueryInterface for Graph graph
@@ -75,12 +77,19 @@ func (kgdb *KVInterfaceGDB) Query() gdbi.QueryInterface {
 	return gdbi.NewPipeEngine(kgdb)
 }
 
+// GetTimestamp returns the update timestamp
+func (kgdb *KVInterfaceGDB) GetTimestamp() string {
+	return kgdb.ts.Get(kgdb.graph)
+}
+
 // SetVertex adds an edge to the graph, if it already exists
 // in the graph, it is replaced
 func (kgdb *KVInterfaceGDB) SetVertex(vertex aql.Vertex) error {
 	d, _ := proto.Marshal(&vertex)
 	k := VertexKey(kgdb.graph, vertex.Gid)
-	return kgdb.kv.Set(k, d)
+	err := kgdb.kv.Set(k, d)
+	kgdb.ts.Touch(kgdb.graph)
+	return err
 }
 
 // SetEdge adds an edge to the graph, if the id is not "" and in already exists
@@ -114,6 +123,7 @@ func (kgdb *KVInterfaceGDB) SetEdge(edge aql.Edge) error {
 	if err != nil {
 		return err
 	}
+	kgdb.ts.Touch(kgdb.graph)
 	return nil
 }
 
@@ -139,6 +149,7 @@ func (kgdb *KVInterfaceGDB) SetBundle(bundle aql.Bundle) error {
 	if err := kgdb.kv.Set(skey, []byte{}); err != nil {
 		return err
 	}
+	kgdb.ts.Touch(kgdb.graph)
 	return nil
 }
 
@@ -171,6 +182,7 @@ func (kgdb *KVInterfaceGDB) DelEdge(eid string) error {
 	if err := kgdb.kv.Delete(dkey); err != nil {
 		return err
 	}
+	kgdb.ts.Touch(kgdb.graph)
 	return nil
 }
 
@@ -196,6 +208,7 @@ func (kgdb *KVInterfaceGDB) DelBundle(eid string) error {
 	if err := kgdb.kv.Delete(skey); err != nil {
 		return err
 	}
+	kgdb.ts.Touch(kgdb.graph)
 	return nil
 }
 
@@ -234,6 +247,7 @@ func (kgdb *KVInterfaceGDB) DelVertex(id string) error {
 				return err
 			}
 		}
+		kgdb.ts.Touch(kgdb.graph)
 		return nil
 	})
 }

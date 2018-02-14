@@ -128,6 +128,10 @@ message ElementID {
   string id = 2;
 }
 
+message Timestamp {
+  string timestamp = 1;
+}
+
 message Empty {
 
 }
@@ -161,6 +165,12 @@ service Query {
   rpc GetGraphs(Empty) returns (stream ElementID) {
     option (google.api.http) = {
       get: "/v1/graph"
+    };
+  }
+
+  rpc GetTimestamp(ElementID) returns (Timestamp) {
+    option (google.api.http) = {
+      get: "/v1/graph/{graph}/timestamp"
     };
   }
 

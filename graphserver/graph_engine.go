@@ -56,6 +56,13 @@ func (engine *GraphEngine) GetBundle(graph, id string) *aql.Bundle {
 	return engine.Arachne.Graph(graph).GetBundle(id, true)
 }
 
+// GetTimestamp wraps `ArachneInterface.GetTimestamp`
+func (engine *GraphEngine) GetTimestamp(graph string) *aql.Timestamp {
+	t := engine.Arachne.Graph(graph).GetTimestamp()
+	o := aql.Timestamp{Timestamp: t}
+	return &o
+}
+
 // AddEdge wraps `ArachneInterface.AddEdge`
 func (engine *GraphEngine) AddEdge(graph string, edge aql.Edge) error {
 	return engine.Arachne.Graph(graph).SetEdge(edge)

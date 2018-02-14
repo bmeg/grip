@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/gdbi"
+	"github.com/bmeg/arachne/timestamp"
 	"github.com/dgraph-io/badger"
 	proto "github.com/golang/protobuf/proto"
 	"log"
@@ -25,12 +26,14 @@ var cEdgeBundle byte = 0x01
 // BadgerArachne implements the Arachne interface using badger
 type BadgerArachne struct {
 	kv *badger.DB
+	ts *timestamp.Timestamp
 }
 
 //BadgerGDB represents interface to a single graph controlled by the badger driver
 type BadgerGDB struct {
 	kv    *badger.DB
 	graph string
+	ts    *timestamp.Timestamp
 }
 
 func hasKey(kv *badger.DB, key []byte) bool {
@@ -173,7 +176,12 @@ func NewBadgerArachne(path string) gdbi.ArachneInterface {
 		log.Printf("Error: %s", err)
 	}
 	log.Printf("Starting BadgerDB")
-	return &BadgerArachne{kv: kv}
+	ts := timestamp.NewTimestamp()
+	o := &BadgerArachne{kv: kv, ts: &ts}
+	for _, i := range o.GetGraphs() {
+		o.ts.Touch(i)
+	}
+	return o
 }
 
 // AddGraph creates a new graph named `graph`
@@ -182,6 +190,7 @@ func (ba *BadgerArachne) AddGraph(graph string) error {
 		tx.Set(graphKey(graph), []byte{})
 		return nil
 	})
+	ba.ts.Touch(graph)
 	return nil
 }
 
@@ -233,13 +242,13 @@ func (ba *BadgerArachne) DeleteGraph(graph string) error {
 		tx.Delete(graphKey)
 		return nil
 	})
-
+	ba.ts.Touch(graph)
 	return nil
 }
 
 // Graph obtains the gdbi.DBI for a particular graph
 func (ba *BadgerArachne) Graph(graph string) gdbi.DBI {
-	return &BadgerGDB{kv: ba.kv, graph: graph}
+	return &BadgerGDB{kv: ba.kv, graph: graph, ts: ba.ts}
 }
 
 // Query creates a QueryInterface for Graph graph
@@ -272,6 +281,11 @@ func (bgdb *BadgerGDB) Query() gdbi.QueryInterface {
 	return gdbi.NewPipeEngine(bgdb)
 }
 
+// GetTimestamp returns the update timestamp
+func (bgdb *BadgerGDB) GetTimestamp() string {
+	return bgdb.ts.Get(bgdb.graph)
+}
+
 // SetVertex adds an edge to the graph, if it already exists
 // in the graph, it is replaced
 func (bgdb *BadgerGDB) SetVertex(vertex aql.Vertex) error {
@@ -280,6 +294,7 @@ func (bgdb *BadgerGDB) SetVertex(vertex aql.Vertex) error {
 	err := bgdb.kv.Update(func(tx *badger.Txn) error {
 		return tx.Set(k, d)
 	})
+	bgdb.ts.Touch(bgdb.graph)
 	return err
 }
 
@@ -301,7 +316,7 @@ func (bgdb *BadgerGDB) SetEdge(edge aql.Edge) error {
 	skey := srcEdgeKey(bgdb.graph, src, dst, eid, edge.Label)
 	dkey := dstEdgeKey(bgdb.graph, src, dst, eid, edge.Label)
 
-	return bgdb.kv.Update(func(tx *badger.Txn) error {
+	err := bgdb.kv.Update(func(tx *badger.Txn) error {
 		err := tx.SetWithMeta(ekey, data, cEdgeSingle)
 		if err != nil {
 			return err
@@ -316,6 +331,8 @@ func (bgdb *BadgerGDB) SetEdge(edge aql.Edge) error {
 		}
 		return nil
 	})
+	bgdb.ts.Touch(bgdb.graph)
+	return err
 }
 
 // SetBundle adds a bundle to the graph
@@ -334,7 +351,7 @@ func (bgdb *BadgerGDB) SetBundle(bundle aql.Bundle) error {
 	ekey := edgeKey(bgdb.graph, eid, src, dst)
 	skey := srcEdgeKey(bgdb.graph, src, dst, eid, bundle.Label)
 
-	return bgdb.kv.Update(func(tx *badger.Txn) error {
+	err := bgdb.kv.Update(func(tx *badger.Txn) error {
 		if err := tx.SetWithMeta(ekey, data, cEdgeBundle); err != nil {
 			return err
 		}
@@ -343,6 +360,8 @@ func (bgdb *BadgerGDB) SetBundle(bundle aql.Bundle) error {
 		}
 		return nil
 	})
+	bgdb.ts.Touch(bgdb.graph)
+	return err
 }
 
 // DelEdge deletes edge with id `key`
@@ -367,7 +386,7 @@ func (bgdb *BadgerGDB) DelEdge(eid string) error {
 	skey := srcEdgeKeyPrefix(bgdb.graph, sid, did, eid)
 	dkey := dstEdgeKeyPrefix(bgdb.graph, sid, did, eid)
 
-	return bgdb.kv.Update(func(tx *badger.Txn) error {
+	err := bgdb.kv.Update(func(tx *badger.Txn) error {
 		if err := tx.Delete(ekey); err != nil {
 			return err
 		}
@@ -379,6 +398,8 @@ func (bgdb *BadgerGDB) DelEdge(eid string) error {
 		}
 		return nil
 	})
+	bgdb.ts.Touch(bgdb.graph)
+	return err
 }
 
 // DelBundle removes a bundle of edges given an id
@@ -401,7 +422,7 @@ func (bgdb *BadgerGDB) DelBundle(eid string) error {
 
 	skey := srcEdgeKeyPrefix(bgdb.graph, sid, "", eid)
 
-	return bgdb.kv.Update(func(tx *badger.Txn) error {
+	err := bgdb.kv.Update(func(tx *badger.Txn) error {
 		if err := tx.Delete(ekey); err != nil {
 			return err
 		}
@@ -410,6 +431,8 @@ func (bgdb *BadgerGDB) DelBundle(eid string) error {
 		}
 		return nil
 	})
+	bgdb.ts.Touch(bgdb.graph)
+	return err
 }
 
 // DelVertex deletes vertex with id `key`
@@ -440,7 +463,7 @@ func (bgdb *BadgerGDB) DelVertex(id string) error {
 		return nil
 	})
 
-	return bgdb.kv.Update(func(tx *badger.Txn) error {
+	err := bgdb.kv.Update(func(tx *badger.Txn) error {
 		if err := tx.Delete(vid); err != nil {
 			return err
 		}
@@ -451,6 +474,8 @@ func (bgdb *BadgerGDB) DelVertex(id string) error {
 		}
 		return nil
 	})
+	bgdb.ts.Touch(bgdb.graph)
+	return err
 }
 
 // GetEdgeList produces a channel of all edges in the graph
