@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/badgerdb"
-	"github.com/bmeg/arachne/engine"
 	_ "github.com/bmeg/arachne/boltdb" // import so bolt will register itself
-	"github.com/bmeg/arachne/kvgraph"
+	"github.com/bmeg/arachne/engine"
 	"github.com/bmeg/arachne/gdbi"
+	"github.com/bmeg/arachne/kvgraph"
 	"github.com/bmeg/arachne/mongo"
 	_ "github.com/bmeg/arachne/rocksdb" // import so rocks will register itself
 	"golang.org/x/net/context"
@@ -19,20 +19,20 @@ import (
 
 // ArachneServer is a GRPC based arachne server
 type ArachneServer struct {
-  db gdbi.DBI
+	db gdbi.DBI
 }
 
 // NewArachneMongoServer initializes a GRPC server that uses the mongo driver
 // to connect to the graph store
 func NewArachneMongoServer(url string, database string) *ArachneServer {
-  db := mongo.NewMongo(url, database)
+	db := mongo.NewMongo(url, database)
 	return &ArachneServer{db: db}
 }
 
 // NewArachneBadgerServer initializes a GRPC server that uses the badger driver
 // to run the graph store
 func NewArachneBadgerServer(baseDir string) *ArachneServer {
-  db := badgerdb.NewBadgerArachne(baseDir)
+	db := badgerdb.NewBadgerArachne(baseDir)
 	return &ArachneServer{db: db}
 }
 

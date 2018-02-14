@@ -7,15 +7,15 @@ import (
 )
 
 func V(ids ...string) *Query {
-  return NewQuery().V(ids...)
+	return NewQuery().V(ids...)
 }
 
 func E(ids ...string) *Query {
-  return NewQuery().E(ids...)
+	return NewQuery().E(ids...)
 }
 
 func NewQuery() *Query {
-  return &Query{}
+	return &Query{}
 }
 
 // Query helps build graph queries.

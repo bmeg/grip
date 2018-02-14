@@ -7,5 +7,5 @@ import (
 )
 
 func RunTraversal(ctx context.Context, q *aql.GraphQuery, db gdbi.GraphDB) (<-chan *aql.ResultRow, error) {
-  return nil, nil
+	return nil, nil
 }

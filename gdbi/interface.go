@@ -9,11 +9,10 @@ type GraphsDB interface {
 	AddGraph(string) error
 	DeleteGraph(string) error
 	GetGraphs() []string
-  Graph(id string) GraphDB
+	Graph(id string) GraphDB
 }
 
 type GraphDB interface {
-
 	GetVertex(key string, load bool) *aql.Vertex
 	GetEdge(key string, load bool) *aql.Edge
 	GetBundle(key string, load bool) *aql.Bundle

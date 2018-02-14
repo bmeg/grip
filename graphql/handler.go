@@ -36,7 +36,7 @@ func (gh *Handler) ServeHTTP(writer http.ResponseWriter, request *http.Request) 
 
 func getObjects(client aql.Client, gqlDB string) map[string]map[string]interface{} {
 	out := map[string]map[string]interface{}{}
-  q := aql.V().HasLabel("Object")
+	q := aql.V().HasLabel("Object")
 	results, _ := client.Execute(gqlDB, q)
 	for elem := range results {
 		d := elem.GetValue().GetVertex().GetDataMap()
@@ -47,7 +47,7 @@ func getObjects(client aql.Client, gqlDB string) map[string]map[string]interface
 
 func getQueries(client aql.Client, gqlDB string) map[string]map[string]interface{} {
 	out := map[string]map[string]interface{}{}
-  q := aql.V().HasLabel("Object")
+	q := aql.V().HasLabel("Object")
 	results, _ := client.Execute(gqlDB, q)
 	for elem := range results {
 		d := elem.GetValue().GetVertex().GetDataMap()
@@ -58,7 +58,7 @@ func getQueries(client aql.Client, gqlDB string) map[string]map[string]interface
 
 func getQueryFields(client aql.Client, gqlDB string, queryGID string) map[string]string {
 	out := map[string]string{}
-  q := aql.V(queryGID).OutEdge("field").As("a").Out().As("b").Select("a", "b")
+	q := aql.V(queryGID).OutEdge("field").As("a").Out().As("b").Select("a", "b")
 	results, _ := client.Execute(gqlDB, q)
 	for elem := range results {
 		fieldName := elem.GetRow()[0].GetEdge().GetProperty("name").(string)
@@ -70,7 +70,7 @@ func getQueryFields(client aql.Client, gqlDB string, queryGID string) map[string
 
 func getObjectFields(client aql.Client, gqlDB string, queryGID string) map[string]string {
 	out := map[string]string{}
-  q := aql.V(queryGID).OutEdge("field").As("a").Out().As("b").Select("a", "b")
+	q := aql.V(queryGID).OutEdge("field").As("a").Out().As("b").Select("a", "b")
 	results, _ := client.Execute(gqlDB, q)
 	for elem := range results {
 		fieldName := elem.GetRow()[0].GetEdge().GetProperty("name").(string)
@@ -117,7 +117,7 @@ func buildGraphQLSchema(client aql.Client, gqlDB string) *graphql.Schema {
 				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 					srcMap := p.Source.(map[string]interface{})
 					srcGid := srcMap["__gid"].(string)
-          q := aql.V(srcGid).Out(edgeName)
+					q := aql.V(srcGid).Out(edgeName)
 					result, _ := client.Execute(dataGraph, q)
 					out := []interface{}{}
 					for r := range result {
