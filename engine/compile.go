@@ -1,22 +1,13 @@
 package engine
 
 import (
-	"context"
 	"fmt"
 	"github.com/bmeg/arachne/aql"
+	"github.com/bmeg/arachne/gdbi"
 	"github.com/bmeg/arachne/protoutil"
 )
 
-type DB interface {
-	GetVertexList(context.Context, bool) <-chan *aql.Vertex
-	GetEdgeList(context.Context, bool) <-chan *aql.Edge
-	GetInList(context.Context, string, bool) <-chan *aql.Vertex
-	GetOutList(context.Context, string, bool) <-chan *aql.Vertex
-	GetOutEdgeList(context.Context, string, bool) <-chan *aql.Edge
-	GetInEdgeList(context.Context, string, bool) <-chan *aql.Edge
-}
-
-func compile(db DB, stmts []*aql.GraphStatement) ([]processor, error) {
+func compile(db gdbi.GraphDB, stmts []*aql.GraphStatement) ([]processor, error) {
 	if len(stmts) == 0 {
 		return nil, nil
 	}
@@ -161,17 +152,6 @@ func compile(db DB, stmts []*aql.GraphStatement) ([]processor, error) {
 			add(&values{stmt.Values.Labels})
 			last = valueData
 
-		case *aql.GraphStatement_Match:
-			subprocs := []processor{}
-			for _, q := range stmt.Match.Queries {
-				sp, err := compile(db, q.Query)
-				if err != nil {
-					return nil, fmt.Errorf("error processing match: %s", err)
-				}
-				subprocs = append(subprocs, sp...)
-			}
-			add(concat(subprocs))
-			// TODO set last
 		/*
 		   case *aql.GraphStatement_Import:
 		   case *aql.GraphStatement_Map:

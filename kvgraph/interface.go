@@ -2,7 +2,6 @@ package kvgraph
 
 import (
 	"fmt"
-	"github.com/bmeg/arachne/gdbi"
 )
 
 // KVBuilder is function implemented by the various key/value storage drivers
@@ -62,7 +61,7 @@ func AddKVDriver(name string, builder KVBuilder) error {
 
 // NewKVArachne intitalize a new key value driver give the name of the
 // driver and a path/url
-func NewKVArachne(name string, path string) (gdbi.ArachneInterface, error) {
+func NewKVArachne(name string, path string) (*KVGraph, error) {
 	if x, ok := kvMap[name]; ok {
 		kv, err := x(path)
 		return &KVGraph{kv: kv}, err
@@ -71,6 +70,6 @@ func NewKVArachne(name string, path string) (gdbi.ArachneInterface, error) {
 }
 
 // NewKVGraph creats a new instance of KVGraph given a KVInterface
-func NewKVGraph(kv KVInterface) gdbi.ArachneInterface {
+func NewKVGraph(kv KVInterface) *KVGraph {
 	return &KVGraph{kv: kv}
 }

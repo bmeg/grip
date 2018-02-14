@@ -6,6 +6,18 @@ import (
 	"strings"
 )
 
+func V(ids ...string) *Query {
+  return NewQuery().V(ids...)
+}
+
+func E(ids ...string) *Query {
+  return NewQuery().E(ids...)
+}
+
+func NewQuery() *Query {
+  return &Query{}
+}
+
 // Query helps build graph queries.
 type Query struct {
 	Statements []*GraphStatement

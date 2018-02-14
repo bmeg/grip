@@ -3,6 +3,7 @@ package engine
 import (
 	"context"
 	"github.com/bmeg/arachne/aql"
+	"github.com/bmeg/arachne/gdbi"
 	"github.com/bmeg/arachne/protoutil"
 	"sync"
 )
@@ -12,14 +13,14 @@ type processor interface {
 }
 
 type lookupVerts struct {
-	db     DB
+	db     gdbi.GraphDB
 	ids    []string
 	labels []string
 }
 
 func (l *lookupVerts) process(in inPipe, out outPipe) {
 	for t := range in {
-		for v := range db.GetVertexList(context.Background(), true) {
+		for v := range l.db.GetVertexList(context.Background(), true) {
 			// TODO maybe don't bother copying the data
 			out <- &traveler{
 				id:       v.Gid,
@@ -33,14 +34,14 @@ func (l *lookupVerts) process(in inPipe, out outPipe) {
 }
 
 type lookupEdges struct {
-	db     DB
+	db     gdbi.GraphDB
 	ids    []string
 	labels []string
 }
 
 func (l *lookupEdges) process(in inPipe, out outPipe) {
 	for t := range in {
-		for v := range db.GetEdgeList(context.Background(), true) {
+		for v := range l.db.GetEdgeList(context.Background(), true) {
 			out <- &traveler{
 				id:       v.Gid,
 				label:    v.Label,
@@ -55,14 +56,14 @@ func (l *lookupEdges) process(in inPipe, out outPipe) {
 }
 
 type lookupAdjOut struct {
-	db     DB
+	db     gdbi.GraphDB
 	labels []string
 }
 
 func (l *lookupAdjOut) process(in inPipe, out outPipe) {
 	ctx := context.Background()
 	for t := range in {
-		for v := range l.db.GetOutList(ctx, t.id, true) {
+		for v := range l.db.GetOutList(ctx, t.id, true, l.labels) {
 			out <- &traveler{
 				id:       v.Gid,
 				label:    v.Label,
@@ -75,14 +76,14 @@ func (l *lookupAdjOut) process(in inPipe, out outPipe) {
 }
 
 type lookupAdjIn struct {
-	db     DB
+	db     gdbi.GraphDB
 	labels []string
 }
 
 func (l *lookupAdjIn) process(in inPipe, out outPipe) {
 	ctx := context.Background()
 	for t := range in {
-		for v := range l.db.GetInList(ctx, t.id, true) {
+		for v := range l.db.GetInList(ctx, t.id, true, l.labels) {
 			out <- &traveler{
 				id:       v.Gid,
 				label:    v.Label,
@@ -95,14 +96,14 @@ func (l *lookupAdjIn) process(in inPipe, out outPipe) {
 }
 
 type inEdge struct {
-	db     DB
+	db     gdbi.GraphDB
 	labels []string
 }
 
 func (i *inEdge) process(in inPipe, out outPipe) {
 	ctx := context.Background()
 	for t := range in {
-		for v := range i.db.GetInEdgeList(ctx, t.id, true) {
+		for v := range i.db.GetInEdgeList(ctx, t.id, true, i.labels) {
 			out <- &traveler{
 				id:       v.Gid,
 				label:    v.Label,
@@ -117,14 +118,14 @@ func (i *inEdge) process(in inPipe, out outPipe) {
 }
 
 type outEdge struct {
-	db     DB
+	db     gdbi.GraphDB
 	labels []string
 }
 
 func (o *outEdge) process(in inPipe, out outPipe) {
 	ctx := context.Background()
 	for t := range in {
-		for v := range o.db.GetOutEdgeList(ctx, t.id, true) {
+		for v := range o.db.GetOutEdgeList(ctx, t.id, true, o.labels) {
 			out <- &traveler{
 				id:       v.Gid,
 				label:    v.Label,

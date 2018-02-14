@@ -158,7 +158,7 @@ func vertexKeyParse(key []byte) (string, string) {
 
 // NewBadgerArachne creates a new gdbi.ArachneInterface driver using the badger
 // driver at `path`
-func NewBadgerArachne(path string) gdbi.ArachneInterface {
+func NewBadgerArachne(path string) *BadgerArachne {
 	_, err := os.Stat(path)
 	if os.IsNotExist(err) {
 		os.Mkdir(path, 0700)
@@ -238,13 +238,8 @@ func (ba *BadgerArachne) DeleteGraph(graph string) error {
 }
 
 // Graph obtains the gdbi.DBI for a particular graph
-func (ba *BadgerArachne) Graph(graph string) gdbi.DBI {
+func (ba *BadgerArachne) Graph(graph string) gdbi.GraphDB {
 	return &BadgerGDB{kv: ba.kv, graph: graph}
-}
-
-// Query creates a QueryInterface for Graph graph
-func (ba *BadgerArachne) Query(graph string) gdbi.QueryInterface {
-	return ba.Graph(graph).Query()
 }
 
 // Close the connection
@@ -267,15 +262,10 @@ func (ba *BadgerArachne) GetGraphs() []string {
 	return out
 }
 
-// Query creates a QueryInterface for a particular Graph
-func (bgdb *BadgerGDB) Query() gdbi.QueryInterface {
-	return gdbi.NewPipeEngine(bgdb)
-}
-
-// SetVertex adds an edge to the graph, if it already exists
+// AddVertex adds an edge to the graph, if it already exists
 // in the graph, it is replaced
-func (bgdb *BadgerGDB) SetVertex(vertex aql.Vertex) error {
-	d, _ := proto.Marshal(&vertex)
+func (bgdb *BadgerGDB) AddVertex(vertex *aql.Vertex) error {
+	d, _ := proto.Marshal(vertex)
 	k := vertexKey(bgdb.graph, vertex.Gid)
 	err := bgdb.kv.Update(func(tx *badger.Txn) error {
 		return tx.Set(k, d)
@@ -283,9 +273,9 @@ func (bgdb *BadgerGDB) SetVertex(vertex aql.Vertex) error {
 	return err
 }
 
-// SetEdge adds an edge to the graph, if the id is not "" and in already exists
+// AddEdge adds an edge to the graph, if the id is not "" and in already exists
 // in the graph, it is replaced
-func (bgdb *BadgerGDB) SetEdge(edge aql.Edge) error {
+func (bgdb *BadgerGDB) AddEdge(edge *aql.Edge) error {
 	if edge.Gid == "" {
 		eid := fmt.Sprintf("%d", rand.Uint64())
 		for ; hasKey(bgdb.kv, edgeKeyPrefix(bgdb.graph, eid)); eid = fmt.Sprintf("%d", rand.Uint64()) {
@@ -293,7 +283,7 @@ func (bgdb *BadgerGDB) SetEdge(edge aql.Edge) error {
 		edge.Gid = eid
 	}
 	eid := edge.Gid
-	data, _ := proto.Marshal(&edge)
+	data, _ := proto.Marshal(edge)
 
 	src := edge.From
 	dst := edge.To
@@ -318,8 +308,8 @@ func (bgdb *BadgerGDB) SetEdge(edge aql.Edge) error {
 	})
 }
 
-// SetBundle adds a bundle to the graph
-func (bgdb *BadgerGDB) SetBundle(bundle aql.Bundle) error {
+// AddBundle adds a bundle to the graph
+func (bgdb *BadgerGDB) AddBundle(bundle *aql.Bundle) error {
 	if bundle.Gid == "" {
 		eid := fmt.Sprintf("%d", rand.Uint64())
 		for ; hasKey(bgdb.kv, edgeKeyPrefix(bgdb.graph, eid)); eid = fmt.Sprintf("%d", rand.Uint64()) {
@@ -327,7 +317,7 @@ func (bgdb *BadgerGDB) SetBundle(bundle aql.Bundle) error {
 		bundle.Gid = eid
 	}
 	eid := bundle.Gid
-	data, _ := proto.Marshal(&bundle)
+	data, _ := proto.Marshal(bundle)
 
 	src := bundle.From
 	dst := ""
@@ -454,8 +444,8 @@ func (bgdb *BadgerGDB) DelVertex(id string) error {
 }
 
 // GetEdgeList produces a channel of all edges in the graph
-func (bgdb *BadgerGDB) GetEdgeList(ctx context.Context, loadProp bool) chan aql.Edge {
-	o := make(chan aql.Edge, 100)
+func (bgdb *BadgerGDB) GetEdgeList(ctx context.Context, loadProp bool) <-chan *aql.Edge {
+	o := make(chan *aql.Edge, 100)
 	go func() {
 		defer close(o)
 		bgdb.kv.View(func(tx *badger.Txn) error {
@@ -473,19 +463,19 @@ func (bgdb *BadgerGDB) GetEdgeList(ctx context.Context, loadProp bool) chan aql.
 				if it.Item().UserMeta() == cEdgeSingle {
 					if loadProp {
 						edgeData, _ := it.Item().Value()
-						e := aql.Edge{}
-						proto.Unmarshal(edgeData, &e)
+						e := &aql.Edge{}
+						proto.Unmarshal(edgeData, e)
 						o <- e
 					} else {
-						e := aql.Edge{Gid: string(eid), From: sid, To: did}
+						e := &aql.Edge{Gid: string(eid), From: sid, To: did}
 						o <- e
 					}
 				} else {
-					bundle := aql.Bundle{}
+					bundle := &aql.Bundle{}
 					edgeData, _ := it.Item().Value()
-					proto.Unmarshal(edgeData, &bundle)
+					proto.Unmarshal(edgeData, bundle)
 					for k, v := range bundle.Bundle {
-						e := aql.Edge{Gid: bundle.Gid, Label: bundle.Label, From: bundle.From, To: k, Data: v}
+						e := &aql.Edge{Gid: bundle.Gid, Label: bundle.Label, From: bundle.From, To: k, Data: v}
 						o <- e
 					}
 				}
@@ -498,8 +488,8 @@ func (bgdb *BadgerGDB) GetEdgeList(ctx context.Context, loadProp bool) chan aql.
 
 // GetInEdgeList given vertex `key` find all incoming edges,
 // if len(edgeLabels) > 0 the edge labels must match a string in the array
-func (bgdb *BadgerGDB) GetInEdgeList(ctx context.Context, id string, loadProp bool, edgeLabels []string) chan aql.Edge {
-	o := make(chan aql.Edge, 100)
+func (bgdb *BadgerGDB) GetInEdgeList(ctx context.Context, id string, loadProp bool, edgeLabels []string) <-chan *aql.Edge {
+	o := make(chan *aql.Edge, 100)
 	go func() {
 		defer close(o)
 		dKeyPrefix := dstEdgePrefix(bgdb.graph, id)
@@ -516,14 +506,14 @@ func (bgdb *BadgerGDB) GetInEdgeList(ctx context.Context, id string, loadProp bo
 				}
 				keyValue := it.Item().Key()
 				_, src, dst, eid, label := dstEdgeKeyParse(keyValue)
-				e := aql.Edge{}
+				e := &aql.Edge{}
 				if len(edgeLabels) == 0 || contains(edgeLabels, label) {
 					if loadProp {
 						ekey := edgeKey(bgdb.graph, eid, src, dst)
 						dataValue, err := tx.Get(ekey)
 						if err == nil {
 							d, _ := dataValue.Value()
-							proto.Unmarshal(d, &e)
+							proto.Unmarshal(d, e)
 						}
 					} else {
 						e.Gid = string(eid)
@@ -542,8 +532,8 @@ func (bgdb *BadgerGDB) GetInEdgeList(ctx context.Context, id string, loadProp bo
 
 // GetOutEdgeList given vertex `key` find all outgoing edges,
 // if len(edgeLabels) > 0 the edge labels must match a string in the array
-func (bgdb *BadgerGDB) GetOutEdgeList(ctx context.Context, id string, loadProp bool, edgeLabels []string) chan aql.Edge {
-	o := make(chan aql.Edge, 100)
+func (bgdb *BadgerGDB) GetOutEdgeList(ctx context.Context, id string, loadProp bool, edgeLabels []string) <-chan *aql.Edge {
+	o := make(chan *aql.Edge, 100)
 	go func() {
 		defer close(o)
 		//log.Printf("GetOutList")
@@ -563,13 +553,13 @@ func (bgdb *BadgerGDB) GetOutEdgeList(ctx context.Context, id string, loadProp b
 				_, src, dst, eid, label := srcEdgeKeyParse(keyValue)
 				if len(edgeLabels) == 0 || contains(edgeLabels, label) {
 					if it.Item().UserMeta() == cEdgeSingle {
-						e := aql.Edge{}
+						e := &aql.Edge{}
 						if loadProp {
 							ekey := edgeKey(bgdb.graph, eid, src, dst)
 							dataValue, err := tx.Get(ekey)
 							if err == nil {
 								d, _ := dataValue.Value()
-								proto.Unmarshal(d, &e)
+								proto.Unmarshal(d, e)
 							}
 						} else {
 							e.Gid = string(eid)
@@ -579,14 +569,14 @@ func (bgdb *BadgerGDB) GetOutEdgeList(ctx context.Context, id string, loadProp b
 						}
 						o <- e
 					} else if it.Item().UserMeta() == cEdgeBundle {
-						bundle := aql.Bundle{}
+						bundle := &aql.Bundle{}
 						ekey := edgeKey(bgdb.graph, eid, src, "")
 						dataValue, err := tx.Get(ekey)
 						if err == nil {
 							d, _ := dataValue.Value()
-							proto.Unmarshal(d, &bundle)
+							proto.Unmarshal(d, bundle)
 							for k, v := range bundle.Bundle {
-								e := aql.Edge{Gid: bundle.Gid, Label: bundle.Label, From: bundle.From, To: k, Data: v}
+								e := &aql.Edge{Gid: bundle.Gid, Label: bundle.Label, From: bundle.From, To: k, Data: v}
 								o <- e
 							}
 						}
@@ -603,8 +593,8 @@ func (bgdb *BadgerGDB) GetOutEdgeList(ctx context.Context, id string, loadProp b
 // GetOutBundleList given vertex `key` find all outgoing bundles,
 // if len(edgeLabels) > 0 the edge labels must match a string in the array
 // load is ignored
-func (bgdb *BadgerGDB) GetOutBundleList(ctx context.Context, id string, load bool, edgeLabels []string) chan aql.Bundle {
-	o := make(chan aql.Bundle, 100)
+func (bgdb *BadgerGDB) GetOutBundleList(ctx context.Context, id string, load bool, edgeLabels []string) <-chan *aql.Bundle {
+	o := make(chan *aql.Bundle, 100)
 	go func() {
 		defer close(o)
 		bgdb.kv.View(func(tx *badger.Txn) error {
@@ -623,12 +613,12 @@ func (bgdb *BadgerGDB) GetOutBundleList(ctx context.Context, id string, load boo
 				_, src, _, eid, label := srcEdgeKeyParse(keyValue)
 				if len(edgeLabels) == 0 || contains(edgeLabels, label) {
 					if it.Item().UserMeta() == cEdgeBundle {
-						bundle := aql.Bundle{}
+						bundle := &aql.Bundle{}
 						ekey := edgeKey(bgdb.graph, eid, src, "")
 						dataValue, err := tx.Get(ekey)
 						if err == nil {
 							d, _ := dataValue.Value()
-							proto.Unmarshal(d, &bundle)
+							proto.Unmarshal(d, bundle)
 							o <- bundle
 						}
 					}
@@ -642,8 +632,8 @@ func (bgdb *BadgerGDB) GetOutBundleList(ctx context.Context, id string, load boo
 
 // GetInList given vertex/edge `key` find vertices on incoming edges,
 // if len(edgeLabels) > 0 the edge labels must match a string in the array
-func (bgdb *BadgerGDB) GetInList(ctx context.Context, id string, loadProp bool, edgeLabels []string) chan aql.Vertex {
-	o := make(chan aql.Vertex, 100)
+func (bgdb *BadgerGDB) GetInList(ctx context.Context, id string, loadProp bool, edgeLabels []string) <-chan *aql.Vertex {
+	o := make(chan *aql.Vertex, 100)
 	go func() {
 		defer close(o)
 
@@ -666,8 +656,8 @@ func (bgdb *BadgerGDB) GetInList(ctx context.Context, id string, loadProp bool, 
 					dataValue, err := tx.Get(vkey)
 					if err == nil {
 						d, _ := dataValue.Value()
-						v := aql.Vertex{}
-						proto.Unmarshal(d, &v)
+						v := &aql.Vertex{}
+						proto.Unmarshal(d, v)
 						o <- v
 					}
 				}
@@ -680,8 +670,8 @@ func (bgdb *BadgerGDB) GetInList(ctx context.Context, id string, loadProp bool, 
 
 // GetOutList given vertex/edge `key` find vertices on outgoing edges,
 // if len(edgeLabels) > 0 the edge labels must match a string in the array
-func (bgdb *BadgerGDB) GetOutList(ctx context.Context, id string, loadProp bool, edgeLabels []string) chan aql.Vertex {
-	o := make(chan aql.Vertex, 100)
+func (bgdb *BadgerGDB) GetOutList(ctx context.Context, id string, loadProp bool, edgeLabels []string) <-chan *aql.Vertex {
+	o := make(chan *aql.Vertex, 100)
 	vertexChan := make(chan []byte, 100)
 	go func() {
 		defer close(vertexChan)
@@ -708,9 +698,9 @@ func (bgdb *BadgerGDB) GetOutList(ctx context.Context, id string, loadProp bool,
 						bkey := edgeKey(bgdb.graph, eid, src, "")
 						bundleValue, err := tx.Get(bkey)
 						if err == nil {
-							bundle := aql.Bundle{}
+							bundle := &aql.Bundle{}
 							data, _ := bundleValue.Value()
-							proto.Unmarshal(data, &bundle)
+							proto.Unmarshal(data, bundle)
 							for k := range bundle.Bundle {
 								vertexChan <- vertexKey(bgdb.graph, k)
 							}
@@ -729,8 +719,8 @@ func (bgdb *BadgerGDB) GetOutList(ctx context.Context, id string, loadProp bool,
 				dataValue, err := tx.Get(vkey)
 				if err == nil {
 					d, _ := dataValue.Value()
-					v := aql.Vertex{}
-					proto.Unmarshal(d, &v)
+					v := &aql.Vertex{}
+					proto.Unmarshal(d, v)
 					o <- v
 				}
 			}
@@ -762,7 +752,7 @@ func (bgdb *BadgerGDB) GetVertex(id string, loadProp bool) *aql.Vertex {
 
 // GetVertexListByID is passed a channel of vertex ids and it produces a channel
 // of vertices
-func (bgdb *BadgerGDB) GetVertexListByID(ctx context.Context, ids chan string, load bool) chan *aql.Vertex {
+func (bgdb *BadgerGDB) GetVertexListByID(ctx context.Context, ids chan string, load bool) <-chan *aql.Vertex {
 	data := make(chan []byte, 100)
 	go func() {
 		defer close(data)
@@ -786,9 +776,9 @@ func (bgdb *BadgerGDB) GetVertexListByID(ctx context.Context, ids chan string, l
 		defer close(out)
 		for d := range data {
 			if d != nil {
-				v := aql.Vertex{}
-				proto.Unmarshal(d, &v)
-				out <- &v
+				v := &aql.Vertex{}
+				proto.Unmarshal(d, v)
+				out <- v
 			} else {
 				out <- nil
 			}
@@ -844,8 +834,8 @@ func (bgdb *BadgerGDB) GetBundle(id string, load bool) *aql.Bundle {
 }
 
 // GetVertexList produces a channel of all edges in the graph
-func (bgdb *BadgerGDB) GetVertexList(ctx context.Context, loadProp bool) chan aql.Vertex {
-	o := make(chan aql.Vertex, 100)
+func (bgdb *BadgerGDB) GetVertexList(ctx context.Context, loadProp bool) <-chan *aql.Vertex {
+	o := make(chan *aql.Vertex, 100)
 	go func() {
 		defer close(o)
 		bgdb.kv.View(func(tx *badger.Txn) error {
@@ -860,10 +850,10 @@ func (bgdb *BadgerGDB) GetVertexList(ctx context.Context, loadProp bool) chan aq
 					return nil
 				default:
 				}
-				v := aql.Vertex{}
+				v := &aql.Vertex{}
 				if loadProp {
 					dataValue, _ := it.Item().Value()
-					proto.Unmarshal(dataValue, &v)
+					proto.Unmarshal(dataValue, v)
 				} else {
 					keyValue := it.Item().Key()
 					_, vid := vertexKeyParse(keyValue)

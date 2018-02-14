@@ -76,7 +76,7 @@ func (mg *MemGraph) GetOutList(ctx context.Context, key string, load bool) <-cha
 		defer close(o)
 		for dst, dstList := range mg.outEdges[key] {
 			for range dstList {
-					o <- mg.vertices[dst]
+				o <- mg.vertices[dst]
 			}
 		}
 	}()
@@ -91,7 +91,7 @@ func (mg *MemGraph) GetInList(ctx context.Context, key string, load bool) <-chan
 		defer close(o)
 		for src := range mg.inEdges[key] {
 			for range mg.outEdges[src][key] {
-					o <- mg.vertices[src]
+				o <- mg.vertices[src]
 			}
 		}
 	}()
@@ -106,7 +106,7 @@ func (mg *MemGraph) GetOutEdgeList(ctx context.Context, key string, load bool) <
 		defer close(o)
 		for _, dstList := range mg.outEdges[key] {
 			for _, dstEdge := range dstList {
-					o <- mg.edges[dstEdge]
+				o <- mg.edges[dstEdge]
 			}
 		}
 	}()
@@ -121,7 +121,7 @@ func (mg *MemGraph) GetInEdgeList(ctx context.Context, key string, load bool) <-
 		defer close(o)
 		for src := range mg.inEdges[key] {
 			for _, srcEdge := range mg.outEdges[src][key] {
-					o <- mg.edges[srcEdge]
+				o <- mg.edges[srcEdge]
 			}
 		}
 	}()
