@@ -29,7 +29,6 @@ def clear_db(conn):
 
 if __name__ == "__main__":
     server = sys.argv[1]
-    
     tests = sys.argv[2:]
 
     conn = aql.Connection(server)
@@ -63,3 +62,5 @@ if __name__ == "__main__":
                         clear_db(conn)
 
     print "Passed %s out of %s" % (correct, total)
+    if correct != total:
+        sys.exit(1)
