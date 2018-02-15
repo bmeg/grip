@@ -834,7 +834,7 @@ func (bgdb *BadgerGDB) GetBundle(id string, load bool) *aql.Bundle {
 		it := tx.NewIterator(badger.DefaultIteratorOptions)
 		defer it.Close()
 		for it.Seek(ekeyPrefix); it.Valid() && bytes.HasPrefix(it.Item().Key(), ekeyPrefix); it.Next() {
-			e := &aql.Bundle{}
+			e = &aql.Bundle{}
 			d, _ := it.Item().Value()
 			proto.Unmarshal(d, e)
 		}
