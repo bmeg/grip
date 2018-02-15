@@ -12,26 +12,37 @@ import (
 
 // Handler is a GraphQL endpoint to query the Arachne database
 type Handler struct {
-	graphqlHadler *handler.Handler
-	client        aql.Client
+	graphqlHandler *handler.Handler
+	client         aql.Client
+	timestamp      string
 }
 
 // NewHTTPHandler initilizes a new GraphQLHandler
 func NewHTTPHandler(address string) http.Handler {
 	client, _ := aql.Connect(address, false)
-
-	schema := buildGraphQLSchema(client, "graphql")
-	return &Handler{
-		graphqlHadler: handler.New(&handler.Config{
-			Schema: schema,
-		}),
+	h := &Handler{
 		client: client,
 	}
+	h.setup()
+	return h
 }
 
 // ServeHTTP responds to HTTP graphql requests
 func (gh *Handler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
-	gh.graphqlHadler.ServeHTTP(writer, request)
+	gh.setup()
+	gh.graphqlHandler.ServeHTTP(writer, request)
+}
+
+func (gh *Handler) setup() {
+	ts, _ := gh.client.GetTimestamp("graphql")
+	if ts.Timestamp != gh.timestamp {
+		log.Printf("Reloading GraphQL")
+		schema := buildGraphQLSchema(gh.client, "graphql")
+		gh.graphqlHandler = handler.New(&handler.Config{
+			Schema: schema,
+		})
+		gh.timestamp = ts.Timestamp
+	}
 }
 
 func getObjects(client aql.Client, gqlDB string) map[string]map[string]interface{} {

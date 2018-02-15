@@ -69,6 +69,12 @@ func (client Client) GetGraphList() []string {
 	return out
 }
 
+// GetTimestamp get update timestamp for graph
+func (client Client) GetTimestamp(graph string) (*Timestamp, error) {
+	ts, err := client.QueryC.GetTimestamp(context.Background(), &ElementID{Graph: graph})
+	return ts, err
+}
+
 // DeleteGraph deletes a graph and all of its contents
 func (client Client) DeleteGraph(graph string) error {
 	_, err := client.EditC.DeleteGraph(context.Background(), &ElementID{Graph: graph})
