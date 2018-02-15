@@ -23,8 +23,11 @@ func NewQuery(graph string) *Query {
 
 func (q *Query) with(st *GraphStatement) *Query {
 	nq := NewQuery(q.GraphQuery.Graph)
-	copy(q.GraphQuery.Query, nq.GraphQuery.Query)
-	nq.GraphQuery.Query = append(nq.GraphQuery.Query, st)
+	nq.GraphQuery.Query = make([]*GraphStatement, len(q.GraphQuery.Query)+1)
+	for i := range q.GraphQuery.Query {
+		nq.GraphQuery.Query[i] = q.GraphQuery.Query[i]
+	}
+	nq.GraphQuery.Query[len(q.GraphQuery.Query)] = st
 	return nq
 }
 

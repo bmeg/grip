@@ -128,6 +128,12 @@ func (pengine *PipeEngine) startPipe(ctx context.Context) PipeOut {
 		//log.Printf("Using chained input")
 		return *pengine.input
 	}
+	if pengine.pipe == nil {
+		log.Printf("Uninitialized pipe")
+		o := PipeOut{Travelers: make(chan Traveler)}
+		close(o.Travelers)
+		return o
+	}
 	pi := pengine.pipe(pengine, ctx)
 	return pi
 }
