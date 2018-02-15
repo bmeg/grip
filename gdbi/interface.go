@@ -15,6 +15,7 @@ type QueryInterface interface {
 	Has(prop string, value ...string) QueryInterface
 	HasLabel(labels ...string) QueryInterface
 	HasID(ids ...string) QueryInterface
+	HasValue(key1, key2 string, condition aql.Condition) QueryInterface
 
 	Out(key ...string) QueryInterface
 	In(key ...string) QueryInterface

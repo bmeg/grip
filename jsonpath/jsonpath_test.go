@@ -33,31 +33,31 @@ func TestCompare(t *testing.T) {
 	bStruct := protoutil.AsStruct(b)
 	cStruct := protoutil.AsStruct(c)
 
-	if same, err := CompareFields(aStruct, bStruct, "$.a", "$.a", EQ); !same || err != nil {
+	if same, err := CompareStructFields(aStruct, bStruct, "$.a", "$.a", EQ); !same || err != nil {
 		t.Errorf("Fail $.a == $.a (%s)", err)
 	}
-	if same, err := CompareFields(aStruct, cStruct, "$.a", "$.a", EQ); same || err != nil {
+	if same, err := CompareStructFields(aStruct, cStruct, "$.a", "$.a", EQ); same || err != nil {
 		t.Errorf("Fail $.a != $.a (%s)", err)
 	}
 
-	if same, err := CompareFields(aStruct, bStruct, "$.b", "$.b", EQ); !same || err != nil {
+	if same, err := CompareStructFields(aStruct, bStruct, "$.b", "$.b", EQ); !same || err != nil {
 		t.Errorf("Fail $.b == $.b (%s)", err)
 	}
-	if same, err := CompareFields(aStruct, cStruct, "$.b", "$.b", EQ); same || err != nil {
+	if same, err := CompareStructFields(aStruct, cStruct, "$.b", "$.b", EQ); same || err != nil {
 		t.Errorf("Fail $.b != $.b (%s)", err)
 	}
 
-	if same, err := CompareFields(aStruct, bStruct, "$.c", "$.c", EQ); !same || err != nil {
+	if same, err := CompareStructFields(aStruct, bStruct, "$.c", "$.c", EQ); !same || err != nil {
 		t.Errorf("Fail $.c == $.c (%s)", err)
 	}
-	if same, err := CompareFields(aStruct, cStruct, "$.c", "$.c", EQ); same || err != nil {
+	if same, err := CompareStructFields(aStruct, cStruct, "$.c", "$.c", EQ); same || err != nil {
 		t.Errorf("Fail $.c != $.c (%s)", err)
 	}
 
-	if same, err := CompareFields(aStruct, bStruct, "$.d", "$.d", EQ); !same || err != nil {
+	if same, err := CompareStructFields(aStruct, bStruct, "$.d", "$.d", EQ); !same || err != nil {
 		t.Errorf("Fail $.d == $.d (%s)", err)
 	}
-	if same, err := CompareFields(aStruct, cStruct, "$.d", "$.d", EQ); same || err != nil {
+	if same, err := CompareStructFields(aStruct, cStruct, "$.d", "$.d", EQ); same || err != nil {
 		t.Errorf("Fail $.d != $.d (%s)", err)
 	}
 
