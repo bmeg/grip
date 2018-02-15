@@ -32,7 +32,7 @@ if __name__ == "__main__":
     if len(sys.argv) > 2:
         tests = sys.argv[2:]
     else:
-        test = []
+        tests = []
 
     conn = aql.Connection(server)
     if int(conn.graph(GRAPH).query().V().count().first()['data']) != 0:
