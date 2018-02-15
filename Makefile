@@ -47,6 +47,12 @@ lint:
 test:
 	@go test $(TESTS)
 
+start-test-server:
+	arachne server --rpc 18202 --port 18201 &
+
+test-conformance:
+	python conformance/run_conformance.py http://localhost:18201
+
 # Build binaries for all OS/Architectures
 cross-compile: depends
 	@echo '=== Cross compiling... ==='
