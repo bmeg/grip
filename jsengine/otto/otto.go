@@ -48,8 +48,8 @@ func (cfunc *compiledFunction) Call(input ...*aql.QueryResult) *aql.QueryResult 
 
 	m := []interface{}{}
 	for _, i := range input {
-		s := i.GetStruct()
-		mI := protoutil.AsMap(s)
+		s := i.GetData()
+		mI := protoutil.UnWrapValue(s)
 		m = append(m, mI)
 	}
 
@@ -72,8 +72,8 @@ func (cfunc *compiledFunction) Call(input ...*aql.QueryResult) *aql.QueryResult 
 
 	//struct_val := otto2map(ottoVal)
 	log.Printf("function return: %#v", ottoVal)
-	o := protoutil.AsStruct(ottoVal.(map[string]interface{}))
-	return &aql.QueryResult{Result: &aql.QueryResult_Struct{Struct: o}}
+	o := protoutil.WrapValue(ottoVal.(map[string]interface{}))
+	return &aql.QueryResult{Result: &aql.QueryResult_Data{Data: o}}
 }
 
 // CallBool takes an array of results and evaluates them using the compiled
@@ -88,8 +88,8 @@ func (cfunc *compiledFunction) CallBool(input ...*aql.QueryResult) bool {
 		} else if x, ok := i.GetResult().(*aql.QueryResult_Vertex); ok {
 			mI := protoutil.AsMap(x.Vertex.Data)
 			m = append(m, mI)
-		} else if x, ok := i.GetResult().(*aql.QueryResult_Struct); ok {
-			mI := protoutil.AsMap(x.Struct)
+		} else if x, ok := i.GetResult().(*aql.QueryResult_Data); ok {
+			mI := protoutil.UnWrapValue(x.Data)
 			m = append(m, mI)
 		}
 	}

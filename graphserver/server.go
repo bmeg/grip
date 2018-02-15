@@ -164,11 +164,16 @@ func (server *ArachneServer) AddBundle(ctx context.Context, elem *aql.GraphEleme
 // AddSubGraph adds a full subgraph to the graph in one post
 func (server *ArachneServer) AddSubGraph(ctx context.Context, subgraph *aql.Graph) (*aql.EditResult, error) {
 	for _, i := range subgraph.Vertices {
-		server.engine.AddVertex(subgraph.Graph, *i)
+		if err := server.engine.AddVertex(subgraph.Graph, *i); err != nil {
+			return nil, err
+		}
 	}
 	for _, i := range subgraph.Edges {
-		server.engine.AddEdge(subgraph.Graph, *i)
+		if err := server.engine.AddEdge(subgraph.Graph, *i); err != nil {
+			return nil, err
+		}
 	}
+	log.Printf("%d vertices and %d edges added to graph %s", len(subgraph.Vertices), len(subgraph.Edges), subgraph.Graph)
 	id := subgraph.Graph
 	return &aql.EditResult{Result: &aql.EditResult_Id{Id: id}}, nil
 }

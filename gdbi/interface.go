@@ -39,7 +39,7 @@ type QueryInterface interface {
 	//code based functions
 	Import(source string) QueryInterface
 	Map(function string) QueryInterface
-	Fold(function string) QueryInterface
+	Fold(function string, init interface{}) QueryInterface
 	Filter(function string) QueryInterface
 	FilterValues(source string) QueryInterface
 	VertexFromValues(source string) QueryInterface
