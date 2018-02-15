@@ -134,10 +134,8 @@ func (q QueryBuilder) V(id ...string) QueryBuilder {
 
 // E adds a edge selection step to the query
 func (q QueryBuilder) E(id ...string) QueryBuilder {
-	if len(id) > 0 {
-		return QueryBuilder{q.client, q.graph, append(q.query, &GraphStatement{&GraphStatement_E{id[0]}})}
-	}
-	return QueryBuilder{q.client, q.graph, append(q.query, &GraphStatement{&GraphStatement_E{}})}
+	elist := protoutil.AsListValue(id)
+	return QueryBuilder{q.client, q.graph, append(q.query, &GraphStatement{&GraphStatement_E{elist}})}
 }
 
 // Out follows outgoing edges to adjacent vertex
