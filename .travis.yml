@@ -27,7 +27,10 @@ jobs:
       script: make lint
       env:
         - n=lint
-    - script: make test
+    - script:
+      - make test
+      - make start-test-server
+      - make test-conformance
       env:
         - n=test
 
