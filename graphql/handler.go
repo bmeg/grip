@@ -36,8 +36,8 @@ func (gh *Handler) ServeHTTP(writer http.ResponseWriter, request *http.Request) 
 
 func getObjects(client aql.Client, gqlDB string) map[string]map[string]interface{} {
 	out := map[string]map[string]interface{}{}
-	q := aql.NewQuery(gqlDB).V().HasLabel("Object")
-	results, _ := client.Execute(q)
+	q := aql.V().HasLabel("Object")
+	results, _ := client.Execute(gqlDB, q)
 	for elem := range results {
 		d := elem.GetValue().GetVertex().GetDataMap()
 		out[elem.GetValue().GetVertex().Gid] = d
@@ -47,8 +47,8 @@ func getObjects(client aql.Client, gqlDB string) map[string]map[string]interface
 
 func getQueries(client aql.Client, gqlDB string) map[string]map[string]interface{} {
 	out := map[string]map[string]interface{}{}
-	q := aql.NewQuery(gqlDB).V().HasLabel("Object")
-	results, _ := client.Execute(q)
+	q := aql.V().HasLabel("Object")
+	results, _ := client.Execute(gqlDB, q)
 	for elem := range results {
 		d := elem.GetValue().GetVertex().GetDataMap()
 		out[elem.GetValue().GetVertex().Gid] = d
@@ -58,8 +58,8 @@ func getQueries(client aql.Client, gqlDB string) map[string]map[string]interface
 
 func getQueryFields(client aql.Client, gqlDB string, queryGID string) map[string]string {
 	out := map[string]string{}
-	q := aql.NewQuery(gqlDB).V(queryGID).OutEdge("field").As("a").Out().As("b").Select("a", "b")
-	results, _ := client.Execute(q)
+	q := aql.V(queryGID).OutEdge("field").As("a").Out().As("b").Select("a", "b")
+	results, _ := client.Execute(gqlDB, q)
 	for elem := range results {
 		fieldName := elem.GetRow()[0].GetEdge().GetProperty("name").(string)
 		fieldObj := elem.GetRow()[1].GetVertex().Gid
@@ -70,8 +70,8 @@ func getQueryFields(client aql.Client, gqlDB string, queryGID string) map[string
 
 func getObjectFields(client aql.Client, gqlDB string, queryGID string) map[string]string {
 	out := map[string]string{}
-	q := aql.NewQuery(gqlDB).V(queryGID).OutEdge("field").As("a").Out().As("b").Select("a", "b")
-	results, _ := client.Execute(q)
+	q := aql.V(queryGID).OutEdge("field").As("a").Out().As("b").Select("a", "b")
+	results, _ := client.Execute(gqlDB, q)
 	for elem := range results {
 		fieldName := elem.GetRow()[0].GetEdge().GetProperty("name").(string)
 		fieldObj := elem.GetRow()[1].GetVertex().Gid
@@ -117,8 +117,8 @@ func buildGraphQLSchema(client aql.Client, gqlDB string) *graphql.Schema {
 				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 					srcMap := p.Source.(map[string]interface{})
 					srcGid := srcMap["__gid"].(string)
-					q := aql.NewQuery(dataGraph).V(srcGid).Out(edgeName)
-					result, _ := client.Execute(q)
+					q := aql.V(srcGid).Out(edgeName)
+					result, _ := client.Execute(dataGraph, q)
 					out := []interface{}{}
 					for r := range result {
 						i := r.GetValue().GetVertex().GetDataMap()
