@@ -40,9 +40,12 @@ func (ma *Arachne) AddGraph(graph string) error {
 
 	//v := ma.db.C(fmt.Sprintf("%s_vertices", graph))
 	e := ma.db.C(fmt.Sprintf("%s_edges", graph))
-
 	e.EnsureIndex(mgo.Index{Key: []string{"$hashed:from"}})
 	e.EnsureIndex(mgo.Index{Key: []string{"$hashed:to"}})
+	e.EnsureIndex(mgo.Index{Key: []string{"$hashed:label"}})
+
+	v := ma.db.C(fmt.Sprintf("%s_vertices", graph))
+	v.EnsureIndex(mgo.Index{Key: []string{"$hashed:label"}})
 
 	return nil
 }
