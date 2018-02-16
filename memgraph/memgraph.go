@@ -40,6 +40,28 @@ func (mg *MemGraph) GetEdge(key string, load bool) *aql.Edge {
 	return mg.edges[key]
 }
 
+func (mg *MemGraph) AddBundle(*aql.Bundle) error {
+	return fmt.Errorf("unimplemented: memgraph does not implement bundles")
+}
+
+func (mg *MemGraph) GetBundle(string, bool) *aql.Bundle {
+	return nil
+}
+
+func (mg *MemGraph) DelBundle(string) error {
+	return fmt.Errorf("unimplemented: memgraph does not implement bundles")
+}
+
+func (mg *MemGraph) VertexLabelScan(ctx context.Context, label string) chan string {
+	return nil
+}
+func (mg *MemGraph) EdgeLabelScan(ctx context.Context, label string) chan string {
+	return nil
+}
+func (mg *MemGraph) GetOutBundleList(ctx context.Context, key string, load bool, edgeLabels []string) <-chan *aql.Bundle {
+	return nil
+}
+
 // GetVertexList produces a channel of all edges in the graph
 func (mg *MemGraph) GetVertexList(ctx context.Context, load bool) <-chan *aql.Vertex {
 	out := make(chan *aql.Vertex)
@@ -50,6 +72,10 @@ func (mg *MemGraph) GetVertexList(ctx context.Context, load bool) <-chan *aql.Ve
 		}
 	}()
 	return out
+}
+
+func (mg *MemGraph) GetVertexListByID(ctx context.Context, ids chan string, load bool) <-chan *aql.Vertex {
+	return nil
 }
 
 // GetEdgeList produces a channel of all edges in the graph
@@ -70,7 +96,7 @@ func (mg *MemGraph) GetEdgeList(ctx context.Context, load bool) <-chan *aql.Edge
 
 // GetOutList given vertex/edge `key` find vertices on outgoing edges,
 // if len(edgeLabels) > 0 the edge labels must match a string in the array
-func (mg *MemGraph) GetOutList(ctx context.Context, key string, load bool) <-chan *aql.Vertex {
+func (mg *MemGraph) GetOutList(ctx context.Context, key string, load bool, labels []string) <-chan *aql.Vertex {
 	o := make(chan *aql.Vertex)
 	go func() {
 		defer close(o)
@@ -85,7 +111,7 @@ func (mg *MemGraph) GetOutList(ctx context.Context, key string, load bool) <-cha
 
 // GetInList given vertex `key` find vertices on incoming edges,
 // if len(edgeLabels) > 0 the edge labels must match a string in the array
-func (mg *MemGraph) GetInList(ctx context.Context, key string, load bool) <-chan *aql.Vertex {
+func (mg *MemGraph) GetInList(ctx context.Context, key string, load bool, labels []string) <-chan *aql.Vertex {
 	o := make(chan *aql.Vertex)
 	go func() {
 		defer close(o)
@@ -100,7 +126,7 @@ func (mg *MemGraph) GetInList(ctx context.Context, key string, load bool) <-chan
 
 // GetOutEdgeList given vertex `key` find all outgoing edges,
 // if len(edgeLabels) > 0 the edge labels must match a string in the array
-func (mg *MemGraph) GetOutEdgeList(ctx context.Context, key string, load bool) <-chan *aql.Edge {
+func (mg *MemGraph) GetOutEdgeList(ctx context.Context, key string, load bool, labels []string) <-chan *aql.Edge {
 	o := make(chan *aql.Edge)
 	go func() {
 		defer close(o)
@@ -115,7 +141,7 @@ func (mg *MemGraph) GetOutEdgeList(ctx context.Context, key string, load bool) <
 
 // GetInEdgeList given vertex `key` find all incoming edges,
 // if len(edgeLabels) > 0 the edge labels must match a string in the array
-func (mg *MemGraph) GetInEdgeList(ctx context.Context, key string, load bool) <-chan *aql.Edge {
+func (mg *MemGraph) GetInEdgeList(ctx context.Context, key string, load bool, labels []string) <-chan *aql.Edge {
 	o := make(chan *aql.Edge)
 	go func() {
 		defer close(o)
@@ -162,16 +188,16 @@ func (mg *MemGraph) DelEdge(key string) error {
 	return nil
 }
 
-// SetVertex adds an edge to the graph, if it already exists
+// AddVertex adds an edge to the graph, if it already exists
 // in the graph, it is replaced
-func (mg *MemGraph) SetVertex(vertex *aql.Vertex) error {
+func (mg *MemGraph) AddVertex(vertex *aql.Vertex) error {
 	mg.vertices[vertex.Gid] = vertex
 	return nil
 }
 
-// SetEdge adds an edge to the graph, if the id is not "" and in already exists
+// AddEdge adds an edge to the graph, if the id is not "" and in already exists
 // in the graph, it is replaced
-func (mg *MemGraph) SetEdge(edge *aql.Edge) error {
+func (mg *MemGraph) AddEdge(edge *aql.Edge) error {
 	if edge.Gid == "" {
 		//BUG: this should check if the edge exists
 		edge.Gid = fmt.Sprintf("%d", mg.edgeSequence)

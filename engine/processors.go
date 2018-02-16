@@ -339,7 +339,7 @@ type concat []processor
 
 func (c concat) process(in inPipe, out outPipe) {
 	chans := make([]chan *traveler, len(c))
-	for i, _ := range c {
+	for i := range c {
 		chans[i] = make(chan *traveler)
 	}
 

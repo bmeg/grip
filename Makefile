@@ -31,7 +31,7 @@ proto:
 # Automatially update code formatting
 tidy:
 	@for f in $$(find ./ -name "*.go" -print | egrep -v "\.pb\.go|\.gw\.go|underscore\.go"); do \
-		go fmt $$f ;\
+		gofmt -w -s $$f ;\
 	done;
 
 # Run code style and other checks

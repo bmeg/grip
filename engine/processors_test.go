@@ -145,6 +145,13 @@ var table = []struct {
 		).Select("c"),
 		pick(verts, 0),
 	},
+	{
+		Q.V().Match(
+			Q.As("a").HasLabel("Human").As("b"),
+			Q.As("b").Has("name", "Alex").As("c"),
+		).Select("b", "c"),
+		pick(verts, 0),
+	},
 	/*
 	  TODO fairly certain match does not support this query from the gremlin docs
 	  gremlin> graph.io(graphml()).readGraph('data/grateful-dead.xml')
@@ -225,7 +232,7 @@ func vert(id, label string, d dat) *traveler {
 		Label: label,
 		Data:  protoutil.AsStruct(d),
 	}
-	db.SetVertex(v)
+	db.AddVertex(v)
 	return &traveler{
 		id:       id,
 		label:    label,
@@ -253,7 +260,7 @@ func edge(id, from, to, label string, d dat) *traveler {
 		Label: label,
 		Data:  protoutil.AsStruct(d),
 	}
-	db.SetEdge(v)
+	db.AddEdge(v)
 	return &traveler{
 		id:       id,
 		label:    label,
