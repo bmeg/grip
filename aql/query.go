@@ -6,14 +6,17 @@ import (
 	"strings"
 )
 
+// V starts a new vertex query, short for `NewQuery().V()`.
 func V(ids ...string) *Query {
 	return NewQuery().V(ids...)
 }
 
+// E starts a new vertex query, short for `NewQuery().E()`.
 func E(ids ...string) *Query {
 	return NewQuery().E(ids...)
 }
 
+// NewQuery creates a new Query instance.
 func NewQuery() *Query {
 	return &Query{}
 }
@@ -76,16 +79,19 @@ func (q *Query) HasLabel(id ...string) *Query {
 	return q.with(&GraphStatement{&GraphStatement_HasLabel{idList}})
 }
 
+// Has filters elements based on data properties.
 func (q *Query) Has(key string, value ...string) *Query {
 	return q.with(&GraphStatement{&GraphStatement_Has{
 		&HasStatement{key, value}}})
 }
 
+// HasID filters elements based on element ID.
 func (q *Query) HasID(id ...string) *Query {
 	idList := protoutil.AsListValue(id)
 	return q.with(&GraphStatement{&GraphStatement_HasId{idList}})
 }
 
+// Limit limits the number of results returned.
 func (q *Query) Limit(c int64) *Query {
 	return q.with(&GraphStatement{&GraphStatement_Limit{c}})
 }
@@ -101,11 +107,13 @@ func (q *Query) Select(id ...string) *Query {
 	return q.with(&GraphStatement{&GraphStatement_Select{&idList}})
 }
 
+// Values changes the result to be values from the element data at the given key.
 func (q *Query) Values(keys ...string) *Query {
 	idList := SelectStatement{keys}
 	return q.with(&GraphStatement{&GraphStatement_Values{&idList}})
 }
 
+// Match is used to concatenate multiple queries.
 func (q *Query) Match(qs ...*Query) *Query {
 	queries := []*GraphQuery{}
 	for _, q := range qs {
