@@ -30,7 +30,7 @@ proto:
 
 # Automatially update code formatting
 tidy:
-	@for f in $$(find ./ -name "*.go" -print | egrep -v "\.pb\.go|\.gw\.go|underscore\.go"); do \
+	@for f in $$(find . -name "*.go" -print | egrep -v "\.pb\.go|\.gw\.go|underscore\.go"); do \
 		gofmt -w -s $$f ;\
 	done;
 
@@ -46,6 +46,12 @@ lint:
 # Run all tests
 test:
 	@go test $(TESTS)
+
+start-test-server:
+	arachne server --rpc 18202 --port 18201 &
+
+test-conformance:
+	python conformance/run_conformance.py http://localhost:18201
 
 # Build binaries for all OS/Architectures
 cross-compile: depends
