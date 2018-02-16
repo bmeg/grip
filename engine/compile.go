@@ -7,7 +7,7 @@ import (
 	"github.com/bmeg/arachne/protoutil"
 )
 
-func compile(db gdbi.GraphDB, stmts []*aql.GraphStatement) ([]processor, error) {
+func compile(stmts []*aql.GraphStatement, db gdbi.GraphDB) ([]processor, error) {
 	if len(stmts) == 0 {
 		return nil, nil
 	}

@@ -28,27 +28,38 @@ const (
 	rowData
 )
 
-func run(procs []processor, in inPipe, out outPipe, bufsize int) {
+func start(procs []processor, bufsize int) <-chan *traveler {
 	if len(procs) == 0 {
-		close(out)
-		return
+		ch := make(chan *traveler)
+		close(ch)
+		return ch
 	}
-	if len(procs) == 1 {
-		procs[0].process(in, out)
-		close(out)
-		return
-	}
+
+	in := make(chan *traveler)
+	final := make(chan *traveler, bufsize)
+
+	// Write an empty traveler to input
+	// to trigger the computation.
+	go func() {
+		in <- &traveler{}
+		close(in)
+	}()
 
 	for i := 0; i < len(procs)-1; i++ {
 		glue := make(chan *traveler, bufsize)
-		go func(i int, in inPipe, out outPipe) {
-			procs[i].process(in, out)
-			close(out)
+		go func(i int, in inPipe, glue outPipe) {
+			procs[i].process(in, glue)
+			close(glue)
 		}(i, in, glue)
 		in = glue
 	}
-	procs[len(procs)-1].process(in, out)
-	close(out)
+
+	go func() {
+		procs[len(procs)-1].process(in, final)
+		close(final)
+	}()
+
+	return final
 }
 
 /*

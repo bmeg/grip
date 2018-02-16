@@ -1,10 +1,12 @@
 package engine
 
 import (
+	"context"
 	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/memgraph"
 	"github.com/bmeg/arachne/protoutil"
 	"github.com/go-test/deep"
+	"github.com/kr/pretty"
 	"testing"
 	"time"
 )
@@ -13,7 +15,7 @@ import (
 var db = memgraph.NewMemGraph()
 var Q = aql.Query{}
 
-var verts = []*traveler{
+var verts = []*aql.ResultRow{
 	vert("v0", "Human", dat{"name": "Alex"}),
 	vert("v1", "Human", dat{"name": "Kyle"}),
 	vert("v2", "Human", dat{"name": "Ryan"}),
@@ -28,14 +30,14 @@ var verts = []*traveler{
 	vert("v11", "Project", dat{"name": "Gaia"}),
 }
 
-var edges = []*traveler{
+var edges = []*aql.ResultRow{
 	edge("e0", "v0", "v10", "WorksOn", nil),
 	edge("e1", "v2", "v11", "WorksOn", nil),
 }
 
 var table = []struct {
 	query    *aql.Query
-	expected []*traveler
+	expected []*aql.ResultRow
 }{
 	{
 		Q.V().Has("name", "Kyle", "Alex"),
@@ -75,8 +77,12 @@ var table = []struct {
 	},
 	{
 		Q.V().Count(),
-		[]*traveler{
-			{dataType: countData, count: int64(len(verts))},
+		[]*aql.ResultRow{
+			{
+				Value: &aql.QueryResult{
+					&aql.QueryResult_IntValue{IntValue: int32(len(verts))},
+				},
+			},
 		},
 	},
 	{
@@ -172,38 +178,27 @@ func TestProcs(t *testing.T) {
 		t.Run(desc.query.String(), func(t *testing.T) {
 			// Catch pipes which forget to close their out channel
 			// by requiring they process quickly.
-			timer := time.NewTimer(time.Millisecond * 5000)
+			timer := time.NewTimer(time.Millisecond * 100)
 			// "done" is closed when the pipe finishes.
 			done := make(chan struct{})
 
 			go func() {
-				in := make(chan *traveler)
-				out := make(chan *traveler)
 				defer close(done)
 
-				// Write an empty traveler to input
-				// to trigger the computation.
-				go func() {
-					in <- &traveler{}
-					close(in)
-				}()
-				q := desc.query.Statements
-				procs, err := compile(db, q)
+				ctx := context.Background()
+				res, err := Run(ctx, desc.query.Statements, db)
 				if err != nil {
 					t.Fatal(err)
-				}
-				go run(procs, in, out, 10)
-
-				// Run processors and collect results
-				res := []*traveler{}
-				for t := range out {
-					res = append(res, t)
 				}
 
 				if !timer.Stop() {
 					<-timer.C
 				}
-				if diff := deep.Equal(res, desc.expected); diff != nil {
+				pretty.Println(res)
+				pretty.Println(desc.expected)
+				diff := deep.Equal(res, desc.expected)
+				pretty.Println(diff)
+				if diff != nil {
 					t.Error(diff)
 				}
 			}()
@@ -218,41 +213,40 @@ func TestProcs(t *testing.T) {
 	}
 }
 
-func pick(src []*traveler, is ...int) []*traveler {
-	out := []*traveler{}
+func pick(src []*aql.ResultRow, is ...int) []*aql.ResultRow {
+	out := []*aql.ResultRow{}
 	for _, i := range is {
 		out = append(out, src[i])
 	}
 	return out
 }
 
-func vert(id, label string, d dat) *traveler {
+func vert(id, label string, d dat) *aql.ResultRow {
 	v := &aql.Vertex{
 		Gid:   id,
 		Label: label,
 		Data:  protoutil.AsStruct(d),
 	}
 	db.AddVertex(v)
-	return &traveler{
-		id:       id,
-		label:    label,
-		dataType: vertexData,
-		data:     d,
+	return &aql.ResultRow{
+		Value: &aql.QueryResult{
+			&aql.QueryResult_Vertex{v},
+		},
 	}
 }
 
-func values_(vals ...interface{}) []*traveler {
-	out := []*traveler{}
-	for _, val := range vals {
-		out = append(out, &traveler{
-			dataType: valueData,
-			value:    val,
-		})
-	}
+func values_(vals ...interface{}) []*aql.ResultRow {
+	out := []*aql.ResultRow{}
+	/*
+		for _, val := range vals {
+			out = append(out, &aql.ResultRow{
+			})
+		}
+	*/
 	return out
 }
 
-func edge(id, from, to, label string, d dat) *traveler {
+func edge(id, from, to, label string, d dat) *aql.ResultRow {
 	v := &aql.Edge{
 		Gid:   id,
 		From:  from,
@@ -261,11 +255,10 @@ func edge(id, from, to, label string, d dat) *traveler {
 		Data:  protoutil.AsStruct(d),
 	}
 	db.AddEdge(v)
-	return &traveler{
-		id:       id,
-		label:    label,
-		dataType: edgeData,
-		data:     d,
+	return &aql.ResultRow{
+		Value: &aql.QueryResult{
+			&aql.QueryResult_Edge{v},
+		},
 	}
 }
 
