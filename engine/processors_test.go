@@ -9,6 +9,7 @@ import (
 	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/kr/pretty"
 	"regexp"
+	"strings"
 	"testing"
 	"time"
 )
@@ -17,7 +18,7 @@ import (
 var db = memgraph.NewMemGraph()
 var Q = aql.Query{}
 
-var verts = []*aql.ResultRow{
+var verts = []*aql.QueryResult{
 	vert("v0", "Human", dat{"name": "Alex"}),
 	vert("v1", "Human", dat{"name": "Kyle"}),
 	vert("v2", "Human", dat{"name": "Ryan"}),
@@ -32,7 +33,7 @@ var verts = []*aql.ResultRow{
 	vert("v11", "Project", dat{"name": "Gaia"}),
 }
 
-var edges = []*aql.ResultRow{
+var edges = []*aql.QueryResult{
 	edge("e0", "v0", "v10", "WorksOn", nil),
 	edge("e1", "v2", "v11", "WorksOn", nil),
 }
@@ -105,11 +106,11 @@ var table = []struct {
 	},
 	{
 		Q.V(),
-		verts,
+		wrap(verts...),
 	},
 	{
 		Q.E(),
-		edges,
+		wrap(edges...),
 	},
 	{
 		Q.V().HasLabel("Human").Out(),
@@ -125,7 +126,7 @@ var table = []struct {
 	},
 	{
 		Q.V().HasLabel("Human").OutEdge(),
-		edges,
+		wrap(edges...),
 	},
 	{
 		Q.V().HasLabel("Human").Has("name", "Alex").OutEdge(),
@@ -160,32 +161,36 @@ var table = []struct {
 		).Select("c"),
 		pick(verts, 0),
 	},
-	/*
-		{
-			Q.V().Match(
-				Q.As("a").HasLabel("Human").As("b"),
-				Q.As("b").Has("name", "Alex").As("c"),
-			).Select("b", "c"),
-			pick(verts, 0),
+	{
+		Q.V().Match(
+			Q.As("a").HasLabel("Human").As("b"),
+			Q.As("b").Has("name", "Alex").As("c"),
+		).Select("b", "c"),
+		[]*aql.ResultRow{
+			{
+				Row: []*aql.QueryResult{verts[0], verts[0]},
+			},
 		},
-		  TODO fairly certain match does not support this query from the gremlin docs
-		  gremlin> graph.io(graphml()).readGraph('data/grateful-dead.xml')
-		  gremlin> g = graph.traversal()
-		  ==>graphtraversalsource[tinkergraph[vertices:808 edges:8049], standard]
-		  gremlin> g.V().match(
-		                   __.as('a').has('name', 'Garcia'),
-		                   __.as('a').in('writtenBy').as('b'),
-		                   __.as('a').in('sungBy').as('b')).
-		                 select('b').values('name')
-		  ==>CREAM PUFF WAR
-		  ==>CRYPTICAL ENVELOPMENT
+	},
+	/*
+	  TODO fairly certain match does not support this query from the gremlin docs
+	  gremlin> graph.io(graphml()).readGraph('data/grateful-dead.xml')
+	  gremlin> g = graph.traversal()
+	  ==>graphtraversalsource[tinkergraph[vertices:808 edges:8049], standard]
+	  gremlin> g.V().match(
+	                   __.as('a').has('name', 'Garcia'),
+	                   __.as('a').in('writtenBy').as('b'),
+	                   __.as('a').in('sungBy').as('b')).
+	                 select('b').values('name')
+	  ==>CREAM PUFF WAR
+	  ==>CRYPTICAL ENVELOPMENT
 	*/
 }
 
-func TestProcs(t *testing.T) {
-	rx := regexp.MustCompile(`[\(\),]`)
+func TestEngine(t *testing.T) {
+
 	for _, desc := range table {
-		name := rx.ReplaceAllString(desc.query.String(), "_")
+		name := cleanName(desc.query.String())
 		t.Run(name, func(t *testing.T) {
 			// Catch pipes which forget to close their out channel
 			// by requiring they process quickly.
@@ -224,25 +229,23 @@ func TestProcs(t *testing.T) {
 	}
 }
 
-func pick(src []*aql.ResultRow, is ...int) []*aql.ResultRow {
+func pick(src []*aql.QueryResult, is ...int) []*aql.ResultRow {
 	out := []*aql.ResultRow{}
 	for _, i := range is {
-		out = append(out, src[i])
+		out = append(out, &aql.ResultRow{Value: src[i]})
 	}
 	return out
 }
 
-func vert(id, label string, d dat) *aql.ResultRow {
+func vert(id, label string, d dat) *aql.QueryResult {
 	v := &aql.Vertex{
 		Gid:   id,
 		Label: label,
 		Data:  protoutil.AsStruct(d),
 	}
 	db.AddVertex(v)
-	return &aql.ResultRow{
-		Value: &aql.QueryResult{
-			&aql.QueryResult_Vertex{v},
-		},
+	return &aql.QueryResult{
+		&aql.QueryResult_Vertex{v},
 	}
 }
 
@@ -262,7 +265,15 @@ func values_(vals ...interface{}) []*aql.ResultRow {
 	return out
 }
 
-func edge(id, from, to, label string, d dat) *aql.ResultRow {
+func wrap(qrs ...*aql.QueryResult) []*aql.ResultRow {
+	out := []*aql.ResultRow{}
+	for _, qr := range qrs {
+		out = append(out, &aql.ResultRow{Value: qr})
+	}
+	return out
+}
+
+func edge(id, from, to, label string, d dat) *aql.QueryResult {
 	v := &aql.Edge{
 		Gid:   id,
 		From:  from,
@@ -271,11 +282,19 @@ func edge(id, from, to, label string, d dat) *aql.ResultRow {
 		Data:  protoutil.AsStruct(d),
 	}
 	db.AddEdge(v)
-	return &aql.ResultRow{
-		Value: &aql.QueryResult{
-			&aql.QueryResult_Edge{v},
-		},
+	return &aql.QueryResult{
+		&aql.QueryResult_Edge{v},
 	}
+}
+
+var rx = regexp.MustCompile(`[\(\),\. ]`)
+var rx2 = regexp.MustCompile(`__*`)
+
+func cleanName(name string) string {
+	name = rx.ReplaceAllString(name, "_")
+	name = rx2.ReplaceAllString(name, "_")
+	name = strings.TrimSuffix(name, "_")
+	return name
 }
 
 type dat map[string]interface{}

@@ -323,7 +323,7 @@ type selectMany struct {
 
 func (s *selectMany) process(in inPipe, out outPipe) {
 	for t := range in {
-		row := make([]*traveler, len(s.marks))
+		row := make([]*traveler, 0, len(s.marks))
 		for _, mark := range s.marks {
 			// TODO handle missing mark? rely on compiler to check this?
 			row = append(row, t.marks[mark])

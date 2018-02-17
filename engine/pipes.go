@@ -144,12 +144,3 @@ func convert(t *traveler) *aql.ResultRow {
 		panic(fmt.Errorf("unhandled data type %d", t.dataType))
 	}
 }
-
-func contains(a []string, v string) bool {
-	for _, i := range a {
-		if i == v {
-			return true
-		}
-	}
-	return false
-}
