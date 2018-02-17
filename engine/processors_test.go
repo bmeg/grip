@@ -3,18 +3,18 @@ package engine
 import (
 	"context"
 	"github.com/bmeg/arachne/aql"
-	"github.com/bmeg/arachne/gdbi"
-	"github.com/bmeg/arachne/memgraph"
-	"github.com/bmeg/arachne/kvgraph"
+	"github.com/bmeg/arachne/badgerdb"
 	_ "github.com/bmeg/arachne/boltdb"
-  "github.com/bmeg/arachne/badgerdb"
+	"github.com/bmeg/arachne/gdbi"
+	"github.com/bmeg/arachne/kvgraph"
+	"github.com/bmeg/arachne/memgraph"
 	"github.com/bmeg/arachne/protoutil"
-	"github.com/go-test/deep"
-	structpb "github.com/golang/protobuf/ptypes/struct"
-	"github.com/kr/pretty"
-  "os"
-  "reflect"
+	"github.com/golang/protobuf/jsonpb"
+	"github.com/rs/xid"
+	"os"
+	"reflect"
 	"regexp"
+	"sort"
 	"strings"
 	"testing"
 	"time"
@@ -22,29 +22,29 @@ import (
 
 var Q = aql.Query{}
 
-var verts = []interface{}{
-	vert("v0", "Human", dat{"name": "Alex"}),
-	vert("v1", "Human", dat{"name": "Kyle"}),
-	vert("v2", "Human", dat{"name": "Ryan"}),
-	vert("v3", "Robot", dat{"name": "C-3PO"}),
-	vert("v4", "Robot", dat{"name": "R2-D2"}),
-	vert("v5", "Robot", dat{"name": "Bender"}),
-	vert("v6", "Clone", dat{"name": "Alex"}),
-	vert("v7", "Clone", dat{"name": "Kyle"}),
-	vert("v8", "Clone", dat{"name": "Ryan"}),
-	vert("v9", "Clone", nil),
-	vert("v10", "Project", dat{"name": "Funnel"}),
-	vert("v11", "Project", dat{"name": "Gaia"}),
+var verts = []*aql.Vertex{
+	vert("Human", dat{"name": "Alex"}),
+	vert("Human", dat{"name": "Kyle"}),
+	vert("Human", dat{"name": "Ryan"}),
+	vert("Robot", dat{"name": "C-3PO"}),
+	vert("Robot", dat{"name": "R2-D2"}),
+	vert("Robot", dat{"name": "Bender"}),
+	vert("Clone", dat{"name": "Alex"}),
+	vert("Clone", dat{"name": "Kyle"}),
+	vert("Clone", dat{"name": "Ryan"}),
+	vert("Clone", nil),
+	vert("Project", dat{"name": "Funnel"}),
+	vert("Project", dat{"name": "Gaia"}),
 }
 
-var edges = []interface{}{
-	edge("e0", "v0", "v10", "WorksOn", nil),
-	edge("e1", "v2", "v11", "WorksOn", nil),
+var edges = []*aql.Edge{
+	edge(verts[0], verts[10], "WorksOn", nil),
+	edge(verts[2], verts[11], "WorksOn", nil),
 }
 
 var table = []struct {
 	query    *aql.Query
-	expected []*aql.ResultRow
+	expected checker
 }{
 	{
 		Q.V().Has("name", "Kyle", "Alex"),
@@ -56,22 +56,22 @@ var table = []struct {
 	},
 	{
 		Q.V().HasLabel("Human"),
-		pick(verts[0:3]...),
+		pick(verts[0], verts[1], verts[2]),
 	},
 	{
 		Q.V().HasLabel("Robot"),
-		pick(verts[3:6]...),
+		pick(verts[3], verts[4], verts[5]),
 	},
 	{
 		Q.V().HasLabel("Robot", "Human"),
-		pick(verts[0:6]...),
+		pick(verts[0], verts[1], verts[2], verts[3], verts[4], verts[5]),
 	},
 	{
 		Q.V().HasLabel("non-existant"),
 		pick(),
 	},
 	{
-		Q.V().HasID("v0", "v2"),
+		Q.V().HasID(verts[0].Gid, verts[2].Gid),
 		pick(verts[0], verts[2]),
 	},
 	{
@@ -80,41 +80,32 @@ var table = []struct {
 	},
 	{
 		Q.V().Limit(2),
-		pick(verts[0:2]...),
+		func(t *testing.T, res []*aql.ResultRow) {
+			if len(res) != 2 {
+				t.Error("expected 2 results")
+			}
+		},
 	},
 	{
 		Q.V().Count(),
-		[]*aql.ResultRow{
-			{
-				Value: &aql.QueryResult{
-					&aql.QueryResult_Data{
-						&structpb.Value{
-							Kind: &structpb.Value_NumberValue{
-								// TODO wrong. should be int.
-								NumberValue: float64(len(verts)),
-							},
-						},
-					},
-				},
-			},
-		},
+		// TODO wrong. should be int.
+		values_(float64(len(verts))),
 	},
 	{
 		Q.V().HasLabel("Human").Has("name", "Ryan"),
 		pick(verts[2]),
 	},
 	{
-		Q.V().HasLabel("Human").
-			As("x").Has("name", "Alex").Select("x"),
+		Q.V().HasLabel("Human").As("x").Has("name", "Alex").Select("x"),
 		pick(verts[0]),
 	},
 	{
 		Q.V(),
-		pick(verts...),
+		pickAllVerts(),
 	},
 	{
 		Q.E(),
-		pick(edges...),
+		pickAllEdges(),
 	},
 	{
 		Q.V().HasLabel("Human").Out(),
@@ -130,7 +121,7 @@ var table = []struct {
 	},
 	{
 		Q.V().HasLabel("Human").OutEdge(),
-		pick(edges...),
+		pickAllEdges(),
 	},
 	{
 		Q.V().HasLabel("Human").Has("name", "Alex").OutEdge(),
@@ -141,8 +132,12 @@ var table = []struct {
 		pick(edges[0]),
 	},
 	{
-		Q.V().HasLabel("Human").Values(),
+		Q.V().HasLabel("Human").Values("name"),
 		values_("Alex", "Kyle", "Ryan"),
+	},
+	{
+		Q.V().HasLabel("Human").Values(),
+		values_(verts[0].Data, verts[1].Data, verts[2].Data),
 	},
 	{
 		Q.V().Match(
@@ -162,19 +157,8 @@ var table = []struct {
 		Q.V().Match(
 			Q.As("a").HasLabel("Human").As("b"),
 			Q.As("b").Has("name", "Alex").As("c"),
-		).Select("c"),
-		pick(verts[0]),
-	},
-	{
-		Q.V().Match(
-			Q.As("a").HasLabel("Human").As("b"),
-			Q.As("b").Has("name", "Alex").As("c"),
 		).Select("b", "c"),
-		[]*aql.ResultRow{
-			{
-				Row: pickrow(verts[0], verts[0]),
-			},
-		},
+		pickrow(verts[0], verts[0]),
 	},
 	/*
 	  TODO fairly certain match does not support this query from the gremlin docs
@@ -192,28 +176,27 @@ var table = []struct {
 }
 
 func TestEngine(t *testing.T) {
-  defer os.RemoveAll("test-badger.db")
-  defer os.Remove("test-bolt.db")
+	defer os.RemoveAll("test-badger.db")
+	defer os.Remove("test-bolt.db")
 
-  bolt, err := kvgraph.NewKVArachne("bolt", "test-bolt.db")
-  if err != nil {
-    t.Fatal(err)
-  }
+	bolt, err := kvgraph.NewKVArachne("bolt", "test-bolt.db")
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	dbs := map[string]gdbi.GraphDB{
-		// TODO memgraph doesn't correctly support the "load" flag
-		"mem": memgraph.NewMemGraph(),
-    "bolt": bolt.Graph("test-graph"),
-    "badger": badgerdb.NewBadgerArachne("test-badger.db").Graph("test-graph"),
+		"mem":    memgraph.NewMemGraph(),
+		"bolt":   bolt.Graph("test-graph"),
+		"badger": badgerdb.NewBadgerArachne("test-badger.db").Graph("test-graph"),
 	}
 
 	for dbname, db := range dbs {
 
 		for _, v := range verts {
-			db.AddVertex(v.(*aql.Vertex))
+			db.AddVertex(v)
 		}
 		for _, e := range edges {
-			db.AddEdge(e.(*aql.Edge))
+			db.AddEdge(e)
 		}
 
 		for _, desc := range table {
@@ -239,13 +222,7 @@ func TestEngine(t *testing.T) {
 						<-timer.C
 					}
 
-					if !reflect.DeepEqual(res, desc.expected) {
-            // Don't trust deep.Equal! It's only here to help, but is often wrong.
-					  diff := deep.Equal(res, desc.expected)
-						pretty.Println("actual", res)
-						pretty.Println("expected", desc.expected)
-						t.Error(diff)
-					}
+					desc.expected(t, res)
 				}()
 
 				select {
@@ -259,21 +236,58 @@ func TestEngine(t *testing.T) {
 	}
 }
 
-func pick(vals ...interface{}) []*aql.ResultRow {
-	out := []*aql.ResultRow{}
-	for _, ival := range vals {
-		res := pickres(ival)
-		out = append(out, &aql.ResultRow{Value: res})
+// checker is the interface of a function that validates the results of a test query.
+type checker func(t *testing.T, actual []*aql.ResultRow)
+
+// this sorts the results to account for non-determinstic ordering from the db.
+// TODO this will break sort tests
+func compare(expect []*aql.ResultRow) checker {
+	return func(t *testing.T, actual []*aql.ResultRow) {
+		mar := jsonpb.Marshaler{}
+		actualS := []string{}
+		expectS := []string{}
+
+		for _, r := range actual {
+			s, _ := mar.MarshalToString(r)
+			actualS = append(actualS, s)
+		}
+		for _, r := range expect {
+			s, _ := mar.MarshalToString(r)
+			expectS = append(expectS, s)
+		}
+
+		sort.Strings(actualS)
+		sort.Strings(expectS)
+
+		if !reflect.DeepEqual(actualS, expectS) {
+			for _, s := range actualS {
+				t.Log("actual", s)
+			}
+			for _, s := range expectS {
+				t.Log("expect", s)
+			}
+			t.Error("not equal")
+		}
 	}
-	return out
 }
 
-func pickrow(vals ...interface{}) []*aql.QueryResult {
-	out := []*aql.QueryResult{}
+func pick(vals ...interface{}) checker {
+	expect := []*aql.ResultRow{}
 	for _, ival := range vals {
-		out = append(out, pickres(ival))
+		res := pickres(ival)
+		expect = append(expect, &aql.ResultRow{Value: res})
 	}
-	return out
+	return compare(expect)
+}
+
+func pickrow(vals ...interface{}) checker {
+	expect := []*aql.QueryResult{}
+	for _, ival := range vals {
+		expect = append(expect, pickres(ival))
+	}
+	return compare([]*aql.ResultRow{
+		{Row: expect},
+	})
 }
 
 func pickres(ival interface{}) *aql.QueryResult {
@@ -291,18 +305,28 @@ func pickres(ival interface{}) *aql.QueryResult {
 	}
 }
 
-func vert(id, label string, d dat) *aql.Vertex {
-	return &aql.Vertex{
-		Gid:   id,
-		Label: label,
-		Data:  protoutil.AsStruct(d),
+func pickAllVerts() checker {
+	expect := []*aql.ResultRow{}
+	for _, ival := range verts {
+		res := pickres(ival)
+		expect = append(expect, &aql.ResultRow{Value: res})
 	}
+	return compare(expect)
 }
 
-func values_(vals ...interface{}) []*aql.ResultRow {
-	out := []*aql.ResultRow{}
+func pickAllEdges() checker {
+	expect := []*aql.ResultRow{}
+	for _, ival := range edges {
+		res := pickres(ival)
+		expect = append(expect, &aql.ResultRow{Value: res})
+	}
+	return compare(expect)
+}
+
+func values_(vals ...interface{}) checker {
+	expect := []*aql.ResultRow{}
 	for _, val := range vals {
-		out = append(out, &aql.ResultRow{
+		expect = append(expect, &aql.ResultRow{
 			Value: &aql.QueryResult{
 				&aql.QueryResult_Data{
 					// TODO would be better if this didn't depend on protoutil,
@@ -312,14 +336,22 @@ func values_(vals ...interface{}) []*aql.ResultRow {
 			},
 		})
 	}
-	return out
+	return compare(expect)
 }
 
-func edge(id, from, to, label string, d dat) *aql.Edge {
+func vert(label string, d dat) *aql.Vertex {
+	return &aql.Vertex{
+		Gid:   xid.New().String(),
+		Label: label,
+		Data:  protoutil.AsStruct(d),
+	}
+}
+
+func edge(from, to *aql.Vertex, label string, d dat) *aql.Edge {
 	return &aql.Edge{
-		Gid:   id,
-		From:  from,
-		To:    to,
+		Gid:   xid.New().String(),
+		From:  from.Gid,
+		To:    to.Gid,
 		Label: label,
 		Data:  protoutil.AsStruct(d),
 	}

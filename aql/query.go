@@ -180,7 +180,7 @@ func (q *Query) String() string {
 		case *GraphStatement_Match:
 			add("Match")
 		case *GraphStatement_Values:
-			add("Values")
+			add("Values", stmt.Values.Labels...)
 
 		case *GraphStatement_Import:
 			add("Import")

@@ -122,11 +122,9 @@ func convert(t *traveler) *aql.ResultRow {
 	case rowData:
 		res := &aql.ResultRow{}
 		for _, r := range t.row {
-			res.Row = append(res.Row, &aql.QueryResult{
-				&aql.QueryResult_Data{
-					protoutil.WrapValue(r.data),
-				},
-			})
+			// TODO a bit hacky. Technically, if r was somehow a row,
+			//      this would incorrectly return nil.
+			res.Row = append(res.Row, convert(r).Value)
 		}
 
 		return res
