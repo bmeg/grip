@@ -182,10 +182,10 @@ type graphElementArray struct {
 
 func newGraphElementArray(name string, vertexBufSize, edgeBufSize int) *graphElementArray {
 	if vertexBufSize != 0 {
-		return &graphElementArray{graph: name, vertices: make([]*aql.Vertex, vertexBufSize)}
+		return &graphElementArray{graph: name, vertices: make([]*aql.Vertex, 0, vertexBufSize)}
 	}
 	if edgeBufSize != 0 {
-		return &graphElementArray{graph: name, edges: make([]*aql.Edge, edgeBufSize)}
+		return &graphElementArray{graph: name, edges: make([]*aql.Edge, 0, edgeBufSize)}
 	}
 	return nil
 }
@@ -201,23 +201,25 @@ func (server *ArachneServer) StreamElements(stream aql.Edit_StreamElementsServer
 
 	vertexBatchChan := make(chan *graphElementArray)
 	edgeBatchChan := make(chan *graphElementArray)
-	defer close(edgeBatchChan)
-	defer close(vertexBatchChan)
+	closeChan := make(chan bool)
 
 	go func() {
 		for vBatch := range vertexBatchChan {
 			server.engine.AddVertex(vBatch.graph, vBatch.vertices)
 		}
+		closeChan <- true
 	}()
 	go func() {
 		for eBatch := range edgeBatchChan {
 			server.engine.AddEdge(eBatch.graph, eBatch.edges)
 		}
+		closeChan <- true
 	}()
 
 	vertexBatch := newGraphElementArray("", vertexBatchSize, 0)
 	edgeBatch := newGraphElementArray("", 0, edgeBatchSize)
-	for {
+	var loopErr error
+	for loopErr == nil {
 		element, err := stream.Recv()
 		if err == io.EOF {
 			if vertCount != 0 {
@@ -229,31 +231,44 @@ func (server *ArachneServer) StreamElements(stream aql.Edit_StreamElementsServer
 			if bundleCount != 0 {
 				log.Printf("%d bundles streamed", bundleCount)
 			}
-			return stream.SendAndClose(&aql.EditResult{Result: &aql.EditResult_Id{}})
-		}
-		if err != nil {
+			vertexBatchChan <- vertexBatch
+			edgeBatchChan <- edgeBatch
+			loopErr = err
+		} else if err != nil {
 			log.Printf("Streaming Error: %s", err)
-			return err
-		}
-		if element.Vertex != nil {
-			if vertexBatch.graph != element.Graph || len(vertexBatch.vertices) >= vertexBatchSize {
-				vertexBatchChan <- vertexBatch
-				vertexBatch = newGraphElementArray("", vertexBatchSize, 0)
+			loopErr = err
+		} else {
+			if element.Vertex != nil {
+				if vertexBatch.graph != element.Graph || len(vertexBatch.vertices) >= vertexBatchSize {
+					vertexBatchChan <- vertexBatch
+					vertexBatch = newGraphElementArray(element.Graph, vertexBatchSize, 0)
+				}
+				v := *element.Vertex
+				vertexBatch.vertices = append(vertexBatch.vertices, &v)
+				vertCount++
+			} else if element.Edge != nil {
+				if edgeBatch.graph != element.Graph || len(edgeBatch.edges) >= edgeBatchSize {
+					edgeBatchChan <- edgeBatch
+					edgeBatch = newGraphElementArray(element.Graph, 0, edgeBatchSize)
+				}
+				edgeBatch.edges = append(edgeBatch.edges, element.Edge)
+				edgeCount++
+			} else if element.Bundle != nil {
+				server.AddBundle(context.Background(), element)
+				bundleCount++
 			}
-			vertexBatch.vertices = append(vertexBatch.vertices, element.Vertex)
-			vertCount++
-		} else if element.Edge != nil {
-			if edgeBatch.graph != element.Graph || len(edgeBatch.vertices) >= edgeBatchSize {
-				edgeBatchChan <- edgeBatch
-				edgeBatch = newGraphElementArray("", 0, edgeBatchSize)
-			}
-			edgeBatch.vertices = append(edgeBatch.vertices, element.Vertex)
-			edgeCount++
-		} else if element.Bundle != nil {
-			server.AddBundle(context.Background(), element)
-			bundleCount++
 		}
 	}
+
+	close(edgeBatchChan)
+	close(vertexBatchChan)
+	<- closeChan
+	<- closeChan
+
+	if loopErr != io.EOF {
+		return loopErr
+	}
+	return stream.SendAndClose(&aql.EditResult{Result: &aql.EditResult_Id{}})
 }
 
 // DeleteVertex deletes a vertex from the server
