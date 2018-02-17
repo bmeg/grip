@@ -112,8 +112,11 @@ func (client Client) GetVertex(graph string, id string) (*Vertex, error) {
 }
 
 // Execute executes the given query.
-func (client Client) Execute(q *Query) (chan *ResultRow, error) {
-	tclient, err := client.QueryC.Traversal(context.TODO(), q.GraphQuery)
+func (client Client) Execute(graph string, q *Query) (chan *ResultRow, error) {
+	tclient, err := client.QueryC.Traversal(context.TODO(), &GraphQuery{
+		Graph: graph,
+		Query: q.Statements,
+	})
 	if err != nil {
 		return nil, err
 	}
