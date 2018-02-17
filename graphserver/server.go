@@ -140,7 +140,7 @@ func (server *ArachneServer) AddGraph(ctx context.Context, elem *aql.ElementID) 
 // AddVertex adds a vertex to the graph
 func (server *ArachneServer) AddVertex(ctx context.Context, elem *aql.GraphElement) (*aql.EditResult, error) {
 	var id string
-	server.engine.AddVertex(elem.Graph, *elem.Vertex)
+	server.engine.AddVertex(elem.Graph, []*aql.Vertex{elem.Vertex})
 	id = elem.Vertex.Gid
 	return &aql.EditResult{Result: &aql.EditResult_Id{Id: id}}, nil
 }
@@ -148,7 +148,7 @@ func (server *ArachneServer) AddVertex(ctx context.Context, elem *aql.GraphEleme
 // AddEdge adds an edge to the graph
 func (server *ArachneServer) AddEdge(ctx context.Context, elem *aql.GraphElement) (*aql.EditResult, error) {
 	var id string
-	server.engine.AddEdge(elem.Graph, *elem.Edge)
+	server.engine.AddEdge(elem.Graph, []*aql.Edge{elem.Edge})
 	id = elem.Edge.Gid
 	return &aql.EditResult{Result: &aql.EditResult_Id{Id: id}}, nil
 }
@@ -163,26 +163,60 @@ func (server *ArachneServer) AddBundle(ctx context.Context, elem *aql.GraphEleme
 
 // AddSubGraph adds a full subgraph to the graph in one post
 func (server *ArachneServer) AddSubGraph(ctx context.Context, subgraph *aql.Graph) (*aql.EditResult, error) {
-	for _, i := range subgraph.Vertices {
-		if err := server.engine.AddVertex(subgraph.Graph, *i); err != nil {
-			return nil, err
-		}
+	if err := server.engine.AddVertex(subgraph.Graph, subgraph.Vertices); err != nil {
+		return nil, err
 	}
-	for _, i := range subgraph.Edges {
-		if err := server.engine.AddEdge(subgraph.Graph, *i); err != nil {
-			return nil, err
-		}
+	if err := server.engine.AddEdge(subgraph.Graph, subgraph.Edges); err != nil {
+		return nil, err
 	}
 	log.Printf("%d vertices and %d edges added to graph %s", len(subgraph.Vertices), len(subgraph.Edges), subgraph.Graph)
 	id := subgraph.Graph
 	return &aql.EditResult{Result: &aql.EditResult_Id{Id: id}}, nil
 }
 
+type graphElementArray struct {
+	graph    string
+	vertices []*aql.Vertex
+	edges    []*aql.Edge
+}
+
+func newGraphElementArray(name string, vertexBufSize, edgeBufSize int) *graphElementArray {
+	if vertexBufSize != 0 {
+		return &graphElementArray{graph: name, vertices: make([]*aql.Vertex, vertexBufSize)}
+	}
+	if edgeBufSize != 0 {
+		return &graphElementArray{graph: name, edges: make([]*aql.Edge, edgeBufSize)}
+	}
+	return nil
+}
+
 // StreamElements takes a stream of inputs and loads them into the graph
 func (server *ArachneServer) StreamElements(stream aql.Edit_StreamElementsServer) error {
+	vertexBatchSize := 500
+	edgeBatchSize := 500
+
 	vertCount := 0
 	edgeCount := 0
 	bundleCount := 0
+
+	vertexBatchChan := make(chan *graphElementArray)
+	edgeBatchChan := make(chan *graphElementArray)
+	defer close(edgeBatchChan)
+	defer close(vertexBatchChan)
+
+	go func() {
+		for vBatch := range vertexBatchChan {
+			server.engine.AddVertex(vBatch.graph, vBatch.vertices)
+		}
+	}()
+	go func() {
+		for eBatch := range edgeBatchChan {
+			server.engine.AddEdge(eBatch.graph, eBatch.edges)
+		}
+	}()
+
+	vertexBatch := newGraphElementArray("", vertexBatchSize, 0)
+	edgeBatch := newGraphElementArray("", 0, edgeBatchSize)
 	for {
 		element, err := stream.Recv()
 		if err == io.EOF {
@@ -202,10 +236,18 @@ func (server *ArachneServer) StreamElements(stream aql.Edit_StreamElementsServer
 			return err
 		}
 		if element.Vertex != nil {
-			server.AddVertex(context.Background(), element)
+			if vertexBatch.graph != element.Graph || len(vertexBatch.vertices) >= vertexBatchSize {
+				vertexBatchChan <- vertexBatch
+				vertexBatch = newGraphElementArray("", vertexBatchSize, 0)
+			}
+			vertexBatch.vertices = append(vertexBatch.vertices, element.Vertex)
 			vertCount++
 		} else if element.Edge != nil {
-			server.AddEdge(context.Background(), element)
+			if edgeBatch.graph != element.Graph || len(edgeBatch.vertices) >= edgeBatchSize {
+				edgeBatchChan <- edgeBatch
+				edgeBatch = newGraphElementArray("", 0, edgeBatchSize)
+			}
+			edgeBatch.vertices = append(edgeBatch.vertices, element.Vertex)
 			edgeCount++
 		} else if element.Bundle != nil {
 			server.AddBundle(context.Background(), element)

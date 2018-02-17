@@ -146,22 +146,29 @@ func (mg *Graph) GetVertex(key string, load bool) *aql.Vertex {
 
 // SetVertex adds an edge to the graph, if it already exists
 // in the graph, it is replaced
-func (mg *Graph) SetVertex(vertex aql.Vertex) error {
-	_, err := mg.vertices.UpsertId(vertex.Gid, PackVertex(vertex))
+func (mg *Graph) SetVertex(vertexArray []*aql.Vertex) error {
+	bulk := mg.vertices.Bulk()
+	for _, vertex := range vertexArray {
+		bulk.Upsert(PackVertex(*vertex))
+	}
+	_, err := bulk.Run()
 	mg.ts.Touch(mg.graph)
 	return err
 }
 
 // SetEdge adds an edge to the graph, if the id is not "" and in already exists
 // in the graph, it is replaced
-func (mg *Graph) SetEdge(edge aql.Edge) error {
-	if edge.Gid != "" {
-		_, err := mg.edges.UpsertId(edge.Gid, PackEdge(edge))
-		mg.ts.Touch(mg.graph)
-		return err
+func (mg *Graph) SetEdge(edgeArray []*aql.Edge) error {
+	bulk := mg.edges.Bulk()
+	for _, edge := range edgeArray {
+		if edge.Gid != "" {
+			bulk.Upsert(PackEdge(*edge))
+		} else {
+			edge.Gid = bson.NewObjectId().Hex()
+			bulk.Insert(PackEdge(*edge))
+		}
 	}
-	edge.Gid = bson.NewObjectId().Hex()
-	err := mg.edges.Insert(PackEdge(edge))
+	_, err := bulk.Run()
 	mg.ts.Touch(mg.graph)
 	return err
 }

@@ -84,8 +84,8 @@ type GraphDB interface {
 
 	GetOutBundleList(ctx context.Context, key string, load bool, edgeLabels []string) chan aql.Bundle
 
-	SetVertex(vertex aql.Vertex) error
-	SetEdge(edge aql.Edge) error
+	SetVertex(vertex []*aql.Vertex) error
+	SetEdge(edge []*aql.Edge) error
 	SetBundle(edge aql.Bundle) error
 
 	DelVertex(key string) error
