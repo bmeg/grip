@@ -6,7 +6,9 @@ import (
 	"github.com/bmeg/arachne/memgraph"
 	"github.com/bmeg/arachne/protoutil"
 	"github.com/go-test/deep"
+	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/kr/pretty"
+	"regexp"
 	"testing"
 	"time"
 )
@@ -80,7 +82,14 @@ var table = []struct {
 		[]*aql.ResultRow{
 			{
 				Value: &aql.QueryResult{
-					&aql.QueryResult_IntValue{IntValue: int32(len(verts))},
+					&aql.QueryResult_Data{
+						&structpb.Value{
+							Kind: &structpb.Value_NumberValue{
+								// TODO wrong. should be int.
+								NumberValue: float64(len(verts)),
+							},
+						},
+					},
 				},
 			},
 		},
@@ -151,31 +160,33 @@ var table = []struct {
 		).Select("c"),
 		pick(verts, 0),
 	},
-	{
-		Q.V().Match(
-			Q.As("a").HasLabel("Human").As("b"),
-			Q.As("b").Has("name", "Alex").As("c"),
-		).Select("b", "c"),
-		pick(verts, 0),
-	},
 	/*
-	  TODO fairly certain match does not support this query from the gremlin docs
-	  gremlin> graph.io(graphml()).readGraph('data/grateful-dead.xml')
-	  gremlin> g = graph.traversal()
-	  ==>graphtraversalsource[tinkergraph[vertices:808 edges:8049], standard]
-	  gremlin> g.V().match(
-	                   __.as('a').has('name', 'Garcia'),
-	                   __.as('a').in('writtenBy').as('b'),
-	                   __.as('a').in('sungBy').as('b')).
-	                 select('b').values('name')
-	  ==>CREAM PUFF WAR
-	  ==>CRYPTICAL ENVELOPMENT
+		{
+			Q.V().Match(
+				Q.As("a").HasLabel("Human").As("b"),
+				Q.As("b").Has("name", "Alex").As("c"),
+			).Select("b", "c"),
+			pick(verts, 0),
+		},
+		  TODO fairly certain match does not support this query from the gremlin docs
+		  gremlin> graph.io(graphml()).readGraph('data/grateful-dead.xml')
+		  gremlin> g = graph.traversal()
+		  ==>graphtraversalsource[tinkergraph[vertices:808 edges:8049], standard]
+		  gremlin> g.V().match(
+		                   __.as('a').has('name', 'Garcia'),
+		                   __.as('a').in('writtenBy').as('b'),
+		                   __.as('a').in('sungBy').as('b')).
+		                 select('b').values('name')
+		  ==>CREAM PUFF WAR
+		  ==>CRYPTICAL ENVELOPMENT
 	*/
 }
 
 func TestProcs(t *testing.T) {
+	rx := regexp.MustCompile(`[\(\),]`)
 	for _, desc := range table {
-		t.Run(desc.query.String(), func(t *testing.T) {
+		name := rx.ReplaceAllString(desc.query.String(), "_")
+		t.Run(name, func(t *testing.T) {
 			// Catch pipes which forget to close their out channel
 			// by requiring they process quickly.
 			timer := time.NewTimer(time.Millisecond * 100)
@@ -194,11 +205,11 @@ func TestProcs(t *testing.T) {
 				if !timer.Stop() {
 					<-timer.C
 				}
-				pretty.Println(res)
-				pretty.Println(desc.expected)
+
 				diff := deep.Equal(res, desc.expected)
-				pretty.Println(diff)
 				if diff != nil {
+					pretty.Println("actual", res)
+					pretty.Println("expected", desc.expected)
 					t.Error(diff)
 				}
 			}()
@@ -237,12 +248,17 @@ func vert(id, label string, d dat) *aql.ResultRow {
 
 func values_(vals ...interface{}) []*aql.ResultRow {
 	out := []*aql.ResultRow{}
-	/*
-		for _, val := range vals {
-			out = append(out, &aql.ResultRow{
-			})
-		}
-	*/
+	for _, val := range vals {
+		out = append(out, &aql.ResultRow{
+			Value: &aql.QueryResult{
+				&aql.QueryResult_Data{
+					// TODO would be better if this didn't depend on protoutil,
+					//      since that is a major part of what is being tested.
+					protoutil.WrapValue(val),
+				},
+			},
+		})
+	}
 	return out
 }
 

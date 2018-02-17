@@ -1,5 +1,11 @@
 package engine
 
+import (
+	"fmt"
+	"github.com/bmeg/arachne/aql"
+	"github.com/bmeg/arachne/protoutil"
+)
+
 type inPipe <-chan *traveler
 type outPipe chan<- *traveler
 
@@ -40,116 +46,104 @@ func start(procs []processor, bufsize int) <-chan *traveler {
 
 	// Write an empty traveler to input
 	// to trigger the computation.
-	go func() {
-		in <- &traveler{}
-		close(in)
-	}()
+	go initPipe(in)
 
 	for i := 0; i < len(procs)-1; i++ {
 		glue := make(chan *traveler, bufsize)
-		go func(i int, in inPipe, glue outPipe) {
-			procs[i].process(in, glue)
-			close(glue)
-		}(i, in, glue)
+		go startOne(procs[i], in, glue)
 		in = glue
 	}
 
-	go func() {
-		procs[len(procs)-1].process(in, final)
-		close(final)
-	}()
+	last := procs[len(procs)-1]
+	go startOne(last, in, final)
 
 	return final
 }
 
-/*
-
-func mapPipe() {
-	mfunc, err := jsengine.NewJSEngine(source, pengine.imports)
-	if err != nil {
-		log.Printf("Script Error: %s", err)
-	}
-
-	for i := range pipe.Travelers {
-		out := mfunc.Call(i.GetCurrent())
-		if out != nil {
-			a := i.AddCurrent(*out)
-			o <- a
-		}
-	}
+// Sends an empty traveler to the pipe to kick off pipelines of processors.
+func initPipe(out outPipe) {
+	out <- &traveler{}
+	close(out)
 }
 
-func foldPipe() {
-	mfunc, err := jsengine.NewJSEngine(source, pengine.imports)
-	if err != nil {
-		log.Printf("Script Error: %s", err)
-	}
-
-	var last *aql.QueryResult
-	first := true
-	for i := range pipe.Travelers {
-		if first {
-			last = i.GetCurrent()
-			first = false
-		} else {
-			last = mfunc.Call(last, i.GetCurrent())
-		}
-	}
-	if last != nil {
-		i := Traveler{}
-		a := i.AddCurrent(*last)
-		o <- a
-	}
+func startOne(proc processor, in inPipe, out outPipe) {
+	proc.process(in, out)
+	close(out)
 }
 
-func filterPipe() {
-	mfunc, err := jsengine.NewJSEngine(source, pengine.imports)
-	if err != nil {
-		log.Printf("Script Error: %s", err)
-	}
-	for i := range pipe.Travelers {
-		out := mfunc.CallBool(i.GetCurrent())
-		if out {
-			o <- i
+func convert(t *traveler) *aql.ResultRow {
+	switch t.dataType {
+	case vertexData:
+		return &aql.ResultRow{
+			Value: &aql.QueryResult{
+				&aql.QueryResult_Vertex{
+					&aql.Vertex{
+						Gid:   t.id,
+						Label: t.label,
+						Data:  protoutil.AsStruct(t.data),
+					},
+				},
+			},
 		}
+
+	case edgeData:
+		return &aql.ResultRow{
+			Value: &aql.QueryResult{
+				&aql.QueryResult_Edge{
+					&aql.Edge{
+						Gid:   t.id,
+						From:  t.from,
+						To:    t.to,
+						Label: t.label,
+						Data:  protoutil.AsStruct(t.data),
+					},
+				},
+			},
+		}
+
+	case countData:
+		return &aql.ResultRow{
+			Value: &aql.QueryResult{
+				&aql.QueryResult_Data{
+					protoutil.WrapValue(t.count),
+				},
+			},
+		}
+
+	case groupCountData:
+		return &aql.ResultRow{
+			Value: &aql.QueryResult{
+				&aql.QueryResult_Data{
+					protoutil.WrapValue(t.groupCounts),
+				},
+			},
+		}
+
+	case rowData:
+		res := &aql.ResultRow{}
+		for _, r := range t.row {
+			res.Row = append(res.Row, &aql.QueryResult{
+				&aql.QueryResult_Data{
+					protoutil.WrapValue(r.data),
+				},
+			})
+		}
+
+		return res
+
+	case valueData:
+		return &aql.ResultRow{
+			Value: &aql.QueryResult{
+				&aql.QueryResult_Data{
+					protoutil.WrapValue(t.value),
+				},
+			},
+		}
+
+	default:
+		panic(fmt.Errorf("unhandled data type %d", t.dataType))
 	}
 }
-
-func filterValuesPipe() {
-  // TODO only create JS engine once?
-	mfunc, err := jsengine.NewJSEngine(source, pengine.imports)
-	if err != nil {
-		log.Printf("Script Error: %s", err)
-	}
-	for i := range pipe.Travelers {
-		out := mfunc.CallValueMapBool(i.State)
-		if out {
-			o <- i
-		}
-	}
-}
-
-func vertexFromValuesPipe() {
-	mfunc, err := jsengine.NewJSEngine(source, pengine.imports)
-	if err != nil {
-		log.Printf("Script Error: %s", err)
-	}
-	for i := range pipe.Travelers {
-
-		t.startTimer("javascript")
-		out := mfunc.CallValueToVertex(i.State)
-		t.endTimer("javascript")
-
-		for _, j := range out {
-			v := db.GetVertex(j, load)
-			if v != nil {
-				o <- i.AddCurrent(aql.QueryResult{Result: &aql.QueryResult_Vertex{Vertex: v}})
-			}
-		}
-	}
-}
-
-*/
 
 func contains(a []string, v string) bool {
 	for _, i := range a {

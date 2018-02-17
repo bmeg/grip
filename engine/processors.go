@@ -360,3 +360,92 @@ func (c concat) process(in inPipe, out outPipe) {
 	}
 	wg.Done()
 }
+
+/*
+
+func mapPipe() {
+	mfunc, err := jsengine.NewJSEngine(source, pengine.imports)
+	if err != nil {
+		log.Printf("Script Error: %s", err)
+	}
+
+	for i := range pipe.Travelers {
+		out := mfunc.Call(i.GetCurrent())
+		if out != nil {
+			a := i.AddCurrent(*out)
+			o <- a
+		}
+	}
+}
+
+func foldPipe() {
+	mfunc, err := jsengine.NewJSEngine(source, pengine.imports)
+	if err != nil {
+		log.Printf("Script Error: %s", err)
+	}
+
+	var last *aql.QueryResult
+	first := true
+	for i := range pipe.Travelers {
+		if first {
+			last = i.GetCurrent()
+			first = false
+		} else {
+			last = mfunc.Call(last, i.GetCurrent())
+		}
+	}
+	if last != nil {
+		i := Traveler{}
+		a := i.AddCurrent(*last)
+		o <- a
+	}
+}
+
+func filterPipe() {
+	mfunc, err := jsengine.NewJSEngine(source, pengine.imports)
+	if err != nil {
+		log.Printf("Script Error: %s", err)
+	}
+	for i := range pipe.Travelers {
+		out := mfunc.CallBool(i.GetCurrent())
+		if out {
+			o <- i
+		}
+	}
+}
+
+func filterValuesPipe() {
+  // TODO only create JS engine once?
+	mfunc, err := jsengine.NewJSEngine(source, pengine.imports)
+	if err != nil {
+		log.Printf("Script Error: %s", err)
+	}
+	for i := range pipe.Travelers {
+		out := mfunc.CallValueMapBool(i.State)
+		if out {
+			o <- i
+		}
+	}
+}
+
+func vertexFromValuesPipe() {
+	mfunc, err := jsengine.NewJSEngine(source, pengine.imports)
+	if err != nil {
+		log.Printf("Script Error: %s", err)
+	}
+	for i := range pipe.Travelers {
+
+		t.startTimer("javascript")
+		out := mfunc.CallValueToVertex(i.State)
+		t.endTimer("javascript")
+
+		for _, j := range out {
+			v := db.GetVertex(j, load)
+			if v != nil {
+				o <- i.AddCurrent(aql.QueryResult{Result: &aql.QueryResult_Vertex{Vertex: v}})
+			}
+		}
+	}
+}
+
+*/

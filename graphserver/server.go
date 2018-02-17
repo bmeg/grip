@@ -77,7 +77,7 @@ func (server *ArachneServer) CloseDB() {
 
 // Traversal parses a traversal request and streams the results back
 func (server *ArachneServer) Traversal(query *aql.GraphQuery, queryServer aql.Query_TraversalServer) error {
-	res, err := engine.RunTraversal(queryServer.Context(), query, server.db.Graph(query.Graph))
+	res, err := engine.Start(queryServer.Context(), query.Query, server.db.Graph(query.Graph))
 	if err != nil {
 		return err
 	}

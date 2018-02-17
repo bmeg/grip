@@ -33,7 +33,10 @@ func compile(stmts []*aql.GraphStatement, db gdbi.GraphDB) ([]processor, error) 
 			last = vertexData
 
 		case *aql.GraphStatement_E:
-			ids := protoutil.AsStringList(stmt.E)
+			var ids []string
+			if stmt.E != "" {
+				ids = append(ids, stmt.E)
+			}
 			add(&lookupEdges{db: db, ids: ids})
 			last = edgeData
 
