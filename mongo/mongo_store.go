@@ -149,7 +149,7 @@ func (mg *Graph) GetVertex(key string, load bool) *aql.Vertex {
 func (mg *Graph) SetVertex(vertexArray []*aql.Vertex) error {
 	bulk := mg.vertices.Bulk()
 	for _, vertex := range vertexArray {
-		bulk.Upsert(PackVertex(*vertex))
+		bulk.Upsert(bson.M{"_id": vertex.Gid}, PackVertex(*vertex))
 	}
 	_, err := bulk.Run()
 	mg.ts.Touch(mg.graph)
@@ -162,7 +162,7 @@ func (mg *Graph) SetEdge(edgeArray []*aql.Edge) error {
 	bulk := mg.edges.Bulk()
 	for _, edge := range edgeArray {
 		if edge.Gid != "" {
-			bulk.Upsert(PackEdge(*edge))
+			bulk.Upsert(bson.M{"_id": edge.Gid}, PackEdge(*edge))
 		} else {
 			edge.Gid = bson.NewObjectId().Hex()
 			bulk.Insert(PackEdge(*edge))
