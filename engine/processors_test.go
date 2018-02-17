@@ -5,10 +5,15 @@ import (
 	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/gdbi"
 	"github.com/bmeg/arachne/memgraph"
+	"github.com/bmeg/arachne/kvgraph"
+	_ "github.com/bmeg/arachne/boltdb"
+  "github.com/bmeg/arachne/badgerdb"
 	"github.com/bmeg/arachne/protoutil"
 	"github.com/go-test/deep"
 	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/kr/pretty"
+  "os"
+  "reflect"
 	"regexp"
 	"strings"
 	"testing"
@@ -187,10 +192,19 @@ var table = []struct {
 }
 
 func TestEngine(t *testing.T) {
+  defer os.RemoveAll("test-badger.db")
+  defer os.Remove("test-bolt.db")
+
+  bolt, err := kvgraph.NewKVArachne("bolt", "test-bolt.db")
+  if err != nil {
+    t.Fatal(err)
+  }
 
 	dbs := map[string]gdbi.GraphDB{
 		// TODO memgraph doesn't correctly support the "load" flag
 		"mem": memgraph.NewMemGraph(),
+    "bolt": bolt.Graph("test-graph"),
+    "badger": badgerdb.NewBadgerArachne("test-badger.db").Graph("test-graph"),
 	}
 
 	for dbname, db := range dbs {
@@ -225,8 +239,9 @@ func TestEngine(t *testing.T) {
 						<-timer.C
 					}
 
-					diff := deep.Equal(res, desc.expected)
-					if diff != nil {
+					if !reflect.DeepEqual(res, desc.expected) {
+            // Don't trust deep.Equal! It's only here to help, but is often wrong.
+					  diff := deep.Equal(res, desc.expected)
 						pretty.Println("actual", res)
 						pretty.Println("expected", desc.expected)
 						t.Error(diff)
