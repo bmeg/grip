@@ -119,6 +119,12 @@ func (server *ArachneServer) GetBundle(ctx context.Context, elem *aql.ElementID)
 	return o, nil
 }
 
+// GetTimestamp returns the update timestamp of a graph
+func (server *ArachneServer) GetTimestamp(ctx context.Context, elem *aql.ElementID) (*aql.Timestamp, error) {
+	o := server.engine.GetTimestamp(elem.Graph)
+	return o, nil
+}
+
 // DeleteGraph deletes a graph
 func (server *ArachneServer) DeleteGraph(ctx context.Context, elem *aql.ElementID) (*aql.EditResult, error) {
 	server.engine.DeleteGraph(elem.Graph)

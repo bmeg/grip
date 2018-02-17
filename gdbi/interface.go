@@ -63,6 +63,8 @@ type ArachneInterface interface {
 // GraphDB is the base Graph data storage interface, the PipeEngine will be able
 // to run queries on a data system backend that implements this interface
 type GraphDB interface {
+	GetTimestamp() string
+
 	Query() QueryInterface
 
 	GetVertex(key string, load bool) *aql.Vertex

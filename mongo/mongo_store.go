@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/gdbi"
+	"github.com/bmeg/arachne/timestamp"
+
 	//"github.com/bmeg/golib/timing"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
@@ -19,18 +21,26 @@ func NewArachne(url string, database string) gdbi.ArachneInterface {
 		log.Printf("%s", err)
 	}
 	db := session.DB(database)
-	return &Arachne{db}
+	ts := timestamp.NewTimestamp()
+	a := &Arachne{db: db, ts: &ts}
+	for _, i := range a.GetGraphs() {
+		a.ts.Touch(i)
+	}
+	return a
 }
 
 // Arachne is the base driver that manages multiple graphs in mongo
 type Arachne struct {
 	db *mgo.Database
+	ts *timestamp.Timestamp
 }
 
 // Graph is the tnterface to a single graph
 type Graph struct {
 	vertices *mgo.Collection
 	edges    *mgo.Collection
+	ts       *timestamp.Timestamp //BUG: This timestamp implementation doesn't work againt multiple mongo clients
+	graph    string
 }
 
 // AddGraph creates a new graph named `graph`
@@ -47,6 +57,7 @@ func (ma *Arachne) AddGraph(graph string) error {
 	v := ma.db.C(fmt.Sprintf("%s_vertices", graph))
 	v.EnsureIndex(mgo.Index{Key: []string{"$hashed:label"}})
 
+	ma.ts.Touch(graph)
 	return nil
 }
 
@@ -63,6 +74,7 @@ func (ma *Arachne) DeleteGraph(graph string) error {
 	v.DropCollection()
 	e.DropCollection()
 	g.RemoveId(graph)
+	ma.ts.Touch(graph)
 	return nil
 }
 
@@ -84,8 +96,10 @@ func (ma *Arachne) GetGraphs() []string {
 // Graph obtains the gdbi.DBI for a particular graph
 func (ma *Arachne) Graph(graph string) gdbi.DBI {
 	return &Graph{
-		ma.db.C(fmt.Sprintf("%s_vertices", graph)),
-		ma.db.C(fmt.Sprintf("%s_edges", graph)),
+		vertices: ma.db.C(fmt.Sprintf("%s_vertices", graph)),
+		edges:    ma.db.C(fmt.Sprintf("%s_edges", graph)),
+		graph:    graph,
+		ts:       ma.ts,
 	}
 }
 
@@ -109,6 +123,11 @@ func (mg *Graph) GetEdge(id string, loadProp bool) *aql.Edge {
 	return &v
 }
 
+//GetTimestamp gets the timestamp of last update
+func (mg *Graph) GetTimestamp() string {
+	return mg.ts.Get(mg.graph)
+}
+
 // GetVertex loads a vertex given an id. It returns a nil if not found
 func (mg *Graph) GetVertex(key string, load bool) *aql.Vertex {
 	//log.Printf("GetVertex: %s", key)
@@ -129,6 +148,7 @@ func (mg *Graph) GetVertex(key string, load bool) *aql.Vertex {
 // in the graph, it is replaced
 func (mg *Graph) SetVertex(vertex aql.Vertex) error {
 	_, err := mg.vertices.UpsertId(vertex.Gid, PackVertex(vertex))
+	mg.ts.Touch(mg.graph)
 	return err
 }
 
@@ -137,20 +157,24 @@ func (mg *Graph) SetVertex(vertex aql.Vertex) error {
 func (mg *Graph) SetEdge(edge aql.Edge) error {
 	if edge.Gid != "" {
 		_, err := mg.edges.UpsertId(edge.Gid, PackEdge(edge))
+		mg.ts.Touch(mg.graph)
 		return err
 	}
 	edge.Gid = bson.NewObjectId().Hex()
 	err := mg.edges.Insert(PackEdge(edge))
+	mg.ts.Touch(mg.graph)
 	return err
 }
 
 // DelVertex deletes vertex with id `key`
 func (mg *Graph) DelVertex(key string) error {
+	mg.ts.Touch(mg.graph)
 	return mg.vertices.RemoveId(key)
 }
 
 // DelEdge deletes edge with id `key`
 func (mg *Graph) DelEdge(key string) error {
+	mg.ts.Touch(mg.graph)
 	return mg.edges.RemoveId(key)
 }
 
@@ -435,6 +459,7 @@ func (mg *Graph) SetBundle(bundle aql.Bundle) error {
 		return err
 	}
 	err := mg.edges.Insert(PackBundle(bundle))
+	mg.ts.Touch(mg.graph)
 	return err
 }
 
@@ -450,7 +475,9 @@ func (mg *Graph) GetBundle(id string, loadProp bool) *aql.Bundle {
 
 // DelBundle removes a bundle of edges given an id
 func (mg *Graph) DelBundle(id string) error {
-	return mg.edges.RemoveId(id)
+	err := mg.edges.RemoveId(id)
+	mg.ts.Touch(mg.graph)
+	return err
 }
 
 // VertexLabelScan produces a channel of all edge ids where the edge label matches `label`
