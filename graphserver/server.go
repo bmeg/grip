@@ -205,7 +205,10 @@ func (server *ArachneServer) StreamElements(stream aql.Edit_StreamElementsServer
 
 	go func() {
 		for vBatch := range vertexBatchChan {
-			server.engine.AddVertex(vBatch.graph, vBatch.vertices)
+			err := server.engine.AddVertex(vBatch.graph, vBatch.vertices)
+			if err != nil {
+				log.Printf("Insert Error: %s", err)
+			}
 		}
 		closeChan <- true
 	}()
@@ -262,8 +265,8 @@ func (server *ArachneServer) StreamElements(stream aql.Edit_StreamElementsServer
 
 	close(edgeBatchChan)
 	close(vertexBatchChan)
-	<- closeChan
-	<- closeChan
+	<-closeChan
+	<-closeChan
 
 	if loopErr != io.EOF {
 		return loopErr
