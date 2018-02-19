@@ -183,11 +183,20 @@ func (mg *Graph) GetVertex(key string, load bool) *aql.Vertex {
 	return &v
 }
 
-var MaxRetries int = 3
+// MaxRetries is the number of times driver will reconnect on connection failure
+// TODO, move to per instance config, rather then global
+var MaxRetries = 3
 
 func isNetError(e error) bool {
 	if e == io.EOF {
 		return true
+	}
+	if b, ok := e.(*mgo.BulkError); ok {
+		for _, c := range b.Cases() {
+			if c.Err == io.EOF {
+				return true
+			}
+		}
 	}
 	return false
 }
@@ -207,6 +216,7 @@ func (mg *Graph) SetVertex(vertexArray []*aql.Vertex) error {
 			mg.ts.Touch(mg.graph)
 			return err
 		}
+		log.Printf("Refreshing Connection")
 		mg.ar.refresh()
 	}
 	return err
