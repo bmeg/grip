@@ -6,6 +6,7 @@ import (
 	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/gdbi"
 	"github.com/bmeg/arachne/timestamp"
+	"io"
 
 	//"github.com/bmeg/golib/timing"
 	"gopkg.in/mgo.v2"
@@ -182,16 +183,32 @@ func (mg *Graph) GetVertex(key string, load bool) *aql.Vertex {
 	return &v
 }
 
+var MaxRetries int = 3
+
+func isNetError(e error) bool {
+	if e == io.EOF {
+		return true
+	}
+	return false
+}
+
 // SetVertex adds an edge to the graph, if it already exists
 // in the graph, it is replaced
 func (mg *Graph) SetVertex(vertexArray []*aql.Vertex) error {
 	vCol := mg.ar.getVertexCollection(mg.graph)
-	bulk := vCol.Bulk()
-	for _, vertex := range vertexArray {
-		bulk.Upsert(bson.M{"_id": vertex.Gid}, PackVertex(*vertex))
+	var err error
+	for i := 0; i < MaxRetries; i++ {
+		bulk := vCol.Bulk()
+		for _, vertex := range vertexArray {
+			bulk.Upsert(bson.M{"_id": vertex.Gid}, PackVertex(*vertex))
+		}
+		_, err = bulk.Run()
+		if err == nil || !isNetError(err) {
+			mg.ts.Touch(mg.graph)
+			return err
+		}
+		mg.ar.refresh()
 	}
-	_, err := bulk.Run()
-	mg.ts.Touch(mg.graph)
 	return err
 }
 
