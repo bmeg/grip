@@ -214,7 +214,10 @@ func (server *ArachneServer) StreamElements(stream aql.Edit_StreamElementsServer
 	}()
 	go func() {
 		for eBatch := range edgeBatchChan {
-			server.engine.AddEdge(eBatch.graph, eBatch.edges)
+			err := server.engine.AddEdge(eBatch.graph, eBatch.edges)
+			if err != nil {
+				log.Printf("Insert Error: %s", err)
+			}
 		}
 		closeChan <- true
 	}()

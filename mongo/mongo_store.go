@@ -226,17 +226,25 @@ func (mg *Graph) SetVertex(vertexArray []*aql.Vertex) error {
 // in the graph, it is replaced
 func (mg *Graph) SetEdge(edgeArray []*aql.Edge) error {
 	eCol := mg.ar.getEdgeCollection(mg.graph)
-	bulk := eCol.Bulk()
-	for _, edge := range edgeArray {
-		if edge.Gid != "" {
-			bulk.Upsert(bson.M{"_id": edge.Gid}, PackEdge(*edge))
-		} else {
-			edge.Gid = bson.NewObjectId().Hex()
-			bulk.Insert(PackEdge(*edge))
+	var err error
+	for i := 0; i < MaxRetries; i++ {
+		bulk := eCol.Bulk()
+		for _, edge := range edgeArray {
+			if edge.Gid != "" {
+				bulk.Upsert(bson.M{"_id": edge.Gid}, PackEdge(*edge))
+			} else {
+				edge.Gid = bson.NewObjectId().Hex()
+				bulk.Insert(PackEdge(*edge))
+			}
 		}
+		_, err := bulk.Run()
+		if err == nil || !isNetError(err) {
+			mg.ts.Touch(mg.graph)
+			return err
+		}
+		log.Printf("Refreshing Connection")
+		mg.ar.refresh()
 	}
-	_, err := bulk.Run()
-	mg.ts.Touch(mg.graph)
 	return err
 }
 
