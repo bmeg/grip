@@ -535,37 +535,40 @@ func (kgdb *KVInterfaceGDB) GetVertex(id string, loadProp bool) *aql.Vertex {
 	return &v
 }
 
-// GetVertexListByID is passed a channel of vertex ids and it produces a channel
+type elementData struct {
+	req  *gdbi.ElementLookup
+	data []byte
+}
+
+// GetVertexChannel is passed a channel of vertex ids and it produces a channel
 // of vertices
-func (kgdb *KVInterfaceGDB) GetVertexListByID(ctx context.Context, ids chan string, load bool) chan *aql.Vertex {
-	data := make(chan []byte, 100)
+func (kgdb *KVInterfaceGDB) GetVertexChannel(ids chan *gdbi.ElementLookup, load bool) chan *gdbi.ElementLookup {
+	data := make(chan elementData, 100)
 	go func() {
 		defer close(data)
 		kgdb.kv.View(func(it KVIterator) error {
 			for id := range ids {
-				vkey := VertexKey(kgdb.graph, id)
+				vkey := VertexKey(kgdb.graph, id.ID)
 				dataValue, err := it.Get(vkey)
 				if err == nil {
-					data <- dataValue
-				} else {
-					data <- nil
+					data <- elementData{
+						req:  id,
+						data: dataValue,
+					}
 				}
 			}
 			return nil
 		})
 	}()
 
-	out := make(chan *aql.Vertex, 100)
+	out := make(chan *gdbi.ElementLookup, 100)
 	go func() {
 		defer close(out)
 		for d := range data {
-			if d != nil {
-				v := aql.Vertex{}
-				proto.Unmarshal(d, &v)
-				out <- &v
-			} else {
-				out <- nil
-			}
+			v := aql.Vertex{}
+			proto.Unmarshal(d.data, &v)
+			d.req.Vertex = &v
+			out <- d.req
 		}
 	}()
 

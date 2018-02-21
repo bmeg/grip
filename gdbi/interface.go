@@ -60,6 +60,14 @@ type ArachneInterface interface {
 	Graph(string) DBI
 }
 
+// ElementLookup request to look up data
+type ElementLookup struct {
+	ID     string
+	Ref    interface{}
+	Vertex *aql.Vertex
+	Edge   *aql.Edge
+}
+
 // GraphDB is the base Graph data storage interface, the PipeEngine will be able
 // to run queries on a data system backend that implements this interface
 type GraphDB interface {
@@ -74,7 +82,13 @@ type GraphDB interface {
 	GetVertexList(ctx context.Context, load bool) chan aql.Vertex
 	GetEdgeList(ctx context.Context, load bool) chan aql.Edge
 
-	GetVertexListByID(ctx context.Context, ids chan string, load bool) chan *aql.Vertex
+	GetVertexChannel(req chan *ElementLookup, load bool) chan *ElementLookup
+	/*
+		GetOutChannel(req chan ElementLookup, load bool) chan ElementLookup
+		GetInChannel(req chan ElementLookup, load bool) chan ElementLookup
+		GetOutEdgeChannel(req chan ElementLookup, load bool) chan ElementLookup
+		GetInEdgeChannel(req chan ElementLookup, load bool) chan ElementLookup
+	*/
 
 	GetOutList(ctx context.Context, key string, load bool, edgeLabels []string) chan aql.Vertex
 	GetInList(ctx context.Context, key string, load bool, edgeLabels []string) chan aql.Vertex

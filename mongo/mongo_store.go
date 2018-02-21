@@ -318,30 +318,34 @@ func (mg *Graph) GetEdgeList(ctx context.Context, loadProp bool) chan aql.Edge {
 //TODO: move this into driver config parameter
 var BatchSize = 100
 
-// GetVertexListByID is passed a channel of vertex ids and it produces a channel
+// GetVertexChannel is passed a channel of vertex ids and it produces a channel
 // of vertices
-func (mg *Graph) GetVertexListByID(ctx context.Context, ids chan string, load bool) chan *aql.Vertex {
-	batches := make(chan []string, 100)
+func (mg *Graph) GetVertexChannel(ids chan *gdbi.ElementLookup, load bool) chan *gdbi.ElementLookup {
+	batches := make(chan []*gdbi.ElementLookup, 100)
 	go func() {
 		defer close(batches)
-		o := make([]string, 0, BatchSize)
+		o := make([]*gdbi.ElementLookup, 0, BatchSize)
 		for id := range ids {
 			o = append(o, id)
 			if len(o) >= BatchSize {
 				batches <- o
-				o = make([]string, 0, BatchSize)
+				o = make([]*gdbi.ElementLookup, 0, BatchSize)
 			}
 		}
 		batches <- o
 	}()
 
-	out := make(chan *aql.Vertex, 100)
+	out := make(chan *gdbi.ElementLookup, 100)
 	go func() {
 		defer close(out)
 		vCol := mg.ar.getVertexCollection(mg.graph)
 		for batch := range batches {
 			//log.Printf("Getting Batch")
-			query := bson.M{"_id": bson.M{"$in": batch}}
+			idBatch := make([]string, len(batch))
+			for i := range batch {
+				idBatch[i] = batch[i].ID
+			}
+			query := bson.M{"_id": bson.M{"$in": idBatch}}
 			//log.Printf("Query: %s", query)
 			q := vCol.Find(query)
 			if !load {
@@ -363,10 +367,9 @@ func (mg *Graph) GetVertexListByID(ctx context.Context, ids chan string, load bo
 			//}
 
 			for _, id := range batch {
-				if x, ok := chunk[id]; ok {
-					out <- x
-				} else {
-					out <- nil
+				if x, ok := chunk[id.ID]; ok {
+					id.Vertex = x
+					out <- id
 				}
 			}
 		}

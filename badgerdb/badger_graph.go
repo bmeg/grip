@@ -795,38 +795,41 @@ func (bgdb *BadgerGDB) GetVertex(id string, loadProp bool) *aql.Vertex {
 	return &v
 }
 
-// GetVertexListByID is passed a channel of vertex ids and it produces a channel
+type elementData struct {
+	req  *gdbi.ElementLookup
+	data []byte
+}
+
+// GetVertexChannel is passed a channel of vertex ids and it produces a channel
 // of vertices
-func (bgdb *BadgerGDB) GetVertexListByID(ctx context.Context, ids chan string, load bool) chan *aql.Vertex {
-	data := make(chan []byte, 100)
+func (bgdb *BadgerGDB) GetVertexChannel(ids chan *gdbi.ElementLookup, load bool) chan *gdbi.ElementLookup {
+	data := make(chan elementData, 100)
 	go func() {
 		defer close(data)
 		bgdb.kv.View(func(tx *badger.Txn) error {
 			for id := range ids {
-				vkey := vertexKey(bgdb.graph, id)
+				vkey := vertexKey(bgdb.graph, id.ID)
 				dataValue, err := tx.Get(vkey)
 				if err == nil {
 					d, _ := dataValue.Value()
-					data <- d
-				} else {
-					data <- nil
+					data <- elementData{
+						req:  id,
+						data: d,
+					}
 				}
 			}
 			return nil
 		})
 	}()
 
-	out := make(chan *aql.Vertex, 100)
+	out := make(chan *gdbi.ElementLookup, 100)
 	go func() {
 		defer close(out)
 		for d := range data {
-			if d != nil {
-				v := aql.Vertex{}
-				proto.Unmarshal(d, &v)
-				out <- &v
-			} else {
-				out <- nil
-			}
+			v := aql.Vertex{}
+			proto.Unmarshal(d.data, &v)
+			d.req.Vertex = &v
+			out <- d.req
 		}
 	}()
 

@@ -369,22 +369,20 @@ func (pengine *PipeEngine) Out(key ...string) QueryInterface {
 						}
 					}
 				} else if pipe.State == StateEdgeList || pipe.State == StateRawEdgeList {
-					idList := make(chan string, 100)
-					travelerList := make(chan Traveler, 100)
+					reqList := make(chan *ElementLookup, 100)
 					go func() {
-						defer close(idList)
-						defer close(travelerList)
+						defer close(reqList)
 						for i := range pipe.Travelers {
 							e := i.GetCurrent().GetEdge()
-							idList <- e.To
-							travelerList <- i
+							reqList <- &ElementLookup{
+								ID:  e.To,
+								Ref: &i,
+							}
 						}
 					}()
-					for v := range pengine.db.GetVertexListByID(ctx, idList, ctx.Value(propLoad).(bool)) {
-						i := <-travelerList
-						if v != nil {
-							o <- i.AddCurrent(aql.QueryResult{Result: &aql.QueryResult_Vertex{Vertex: v}})
-						}
+					for v := range pengine.db.GetVertexChannel(reqList, ctx.Value(propLoad).(bool)) {
+						i := v.Ref.(*Traveler)
+						o <- i.AddCurrent(aql.QueryResult{Result: &aql.QueryResult_Vertex{Vertex: v.Vertex}})
 					}
 				} else {
 					log.Printf("Weird State: %d", pipe.State)
@@ -420,24 +418,20 @@ func (pengine *PipeEngine) Both(key ...string) QueryInterface {
 						}
 					}
 				} else if pipe.State == StateEdgeList || pipe.State == StateRawEdgeList {
-					idList := make(chan string, 100)
-					travelerList := make(chan Traveler, 100)
+					reqList := make(chan *ElementLookup, 100)
 					go func() {
-						defer close(idList)
-						defer close(travelerList)
+						defer close(reqList)
 						for i := range pipe.Travelers {
 							e := i.GetCurrent().GetEdge()
-							idList <- e.To
-							travelerList <- i
-							idList <- e.From
-							travelerList <- i
+							reqList <- &ElementLookup{
+								ID:  e.To,
+								Ref: &i,
+							}
 						}
 					}()
-					for v := range pengine.db.GetVertexListByID(ctx, idList, ctx.Value(propLoad).(bool)) {
-						i := <-travelerList
-						if v != nil {
-							o <- i.AddCurrent(aql.QueryResult{Result: &aql.QueryResult_Vertex{Vertex: v}})
-						}
+					for v := range pengine.db.GetVertexChannel(reqList, ctx.Value(propLoad).(bool)) {
+						i := v.Ref.(*Traveler)
+						o <- i.AddCurrent(aql.QueryResult{Result: &aql.QueryResult_Vertex{Vertex: v.Vertex}})
 					}
 				} else {
 					log.Printf("Weird State: %d", pipe.State)
