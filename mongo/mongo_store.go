@@ -320,22 +320,22 @@ var BatchSize = 100
 
 // GetVertexChannel is passed a channel of vertex ids and it produces a channel
 // of vertices
-func (mg *Graph) GetVertexChannel(ids chan *gdbi.ElementLookup, load bool) chan *gdbi.ElementLookup {
-	batches := make(chan []*gdbi.ElementLookup, 100)
+func (mg *Graph) GetVertexChannel(ids chan gdbi.ElementLookup, load bool) chan gdbi.ElementLookup {
+	batches := make(chan []gdbi.ElementLookup, 100)
 	go func() {
 		defer close(batches)
-		o := make([]*gdbi.ElementLookup, 0, BatchSize)
+		o := make([]gdbi.ElementLookup, 0, BatchSize)
 		for id := range ids {
 			o = append(o, id)
 			if len(o) >= BatchSize {
 				batches <- o
-				o = make([]*gdbi.ElementLookup, 0, BatchSize)
+				o = make([]gdbi.ElementLookup, 0, BatchSize)
 			}
 		}
 		batches <- o
 	}()
 
-	out := make(chan *gdbi.ElementLookup, 100)
+	out := make(chan gdbi.ElementLookup, 100)
 	go func() {
 		defer close(out)
 		vCol := mg.ar.getVertexCollection(mg.graph)
@@ -374,8 +374,202 @@ func (mg *Graph) GetVertexChannel(ids chan *gdbi.ElementLookup, load bool) chan 
 			}
 		}
 	}()
-
 	return out
+}
+
+func (mg *Graph) GetOutChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
+	batches := make(chan []gdbi.ElementLookup, 100)
+	go func() {
+		defer close(batches)
+		o := make([]gdbi.ElementLookup, 0, BatchSize)
+		for req := range reqChan {
+			o = append(o, req)
+			if len(o) >= BatchSize {
+				batches <- o
+				o = make([]gdbi.ElementLookup, 0, BatchSize)
+			}
+		}
+		batches <- o
+	}()
+
+	o := make(chan gdbi.ElementLookup, 100)
+	go func() {
+		defer close(o)
+		for batch := range batches {
+			idBatch := make([]string, len(batch))
+			batchMap := make(map[string][]gdbi.ElementLookup, len(batch))
+			for i := range batch {
+				idBatch[i] = batch[i].ID
+				batchMap[batch[i].ID] = append(batchMap[batch[i].ID], batch[i])
+			}
+			query := []bson.M{{"$match": bson.M{"from": bson.M{"$in": idBatch}}}}
+			if len(edgeLabels) > 0 {
+				query = append(query, bson.M{"$match": bson.M{fieldLabel: bson.M{"$in": edgeLabels}}})
+			}
+			vertCol := fmt.Sprintf("%s_vertices", mg.graph)
+			query = append(query, bson.M{"$lookup": bson.M{"from": vertCol, "localField": "to", "foreignField": "_id", "as": "dst"}})
+
+			eCol := mg.ar.getEdgeCollection(mg.graph)
+			iter := eCol.Pipe(query).Iter()
+			defer iter.Close()
+			result := map[string]interface{}{}
+			for iter.Next(&result) {
+				dst := result["dst"].([]interface{})
+				for _, d := range dst {
+					v := UnpackVertex(d.(map[string]interface{}))
+					r := batchMap[result["from"].(string)]
+					for _, ri := range r {
+						ri.Vertex = &v
+						o <- ri
+					}
+				}
+			}
+		}
+	}()
+	return o
+}
+
+func (mg *Graph) GetInChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
+	batches := make(chan []gdbi.ElementLookup, 100)
+	go func() {
+		defer close(batches)
+		o := make([]gdbi.ElementLookup, 0, BatchSize)
+		for req := range reqChan {
+			o = append(o, req)
+			if len(o) >= BatchSize {
+				batches <- o
+				o = make([]gdbi.ElementLookup, 0, BatchSize)
+			}
+		}
+		batches <- o
+	}()
+
+	o := make(chan gdbi.ElementLookup, 100)
+	go func() {
+		defer close(o)
+		for batch := range batches {
+			idBatch := make([]string, len(batch))
+			batchMap := make(map[string][]gdbi.ElementLookup, len(batch))
+			for i := range batch {
+				idBatch[i] = batch[i].ID
+				batchMap[batch[i].ID] = append(batchMap[batch[i].ID], batch[i])
+			}
+			query := []bson.M{{"$match": bson.M{"to": bson.M{"$in": idBatch}}}}
+			if len(edgeLabels) > 0 {
+				query = append(query, bson.M{"$match": bson.M{fieldLabel: bson.M{"$in": edgeLabels}}})
+			}
+			query = append(query, bson.M{"$lookup": bson.M{"from": "example_vertices", "localField": "to", "foreignField": "_id", "as": "src"}})
+
+			eCol := mg.ar.getEdgeCollection(mg.graph)
+			iter := eCol.Pipe(query).Iter()
+			defer iter.Close()
+			result := map[string]interface{}{}
+			for iter.Next(&result) {
+				dst := result["src"].([]interface{})
+				for _, d := range dst {
+					v := UnpackVertex(d.(map[string]interface{}))
+					r := batchMap[result["to"].(string)]
+					for _, ri := range r {
+						ri.Vertex = &v
+						o <- ri
+					}
+				}
+			}
+		}
+	}()
+	return o
+}
+
+func (mg *Graph) GetOutEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
+	batches := make(chan []gdbi.ElementLookup, 100)
+	go func() {
+		defer close(batches)
+		o := make([]gdbi.ElementLookup, 0, BatchSize)
+		for req := range reqChan {
+			o = append(o, req)
+			if len(o) >= BatchSize {
+				batches <- o
+				o = make([]gdbi.ElementLookup, 0, BatchSize)
+			}
+		}
+		batches <- o
+	}()
+
+	o := make(chan gdbi.ElementLookup, 100)
+	go func() {
+		defer close(o)
+		for batch := range batches {
+			idBatch := make([]string, len(batch))
+			batchMap := make(map[string][]gdbi.ElementLookup, len(batch))
+			for i := range batch {
+				idBatch[i] = batch[i].ID
+				batchMap[batch[i].ID] = append(batchMap[batch[i].ID], batch[i])
+			}
+			query := []bson.M{{"$match": bson.M{"from": bson.M{"$in": idBatch}}}}
+			if len(edgeLabels) > 0 {
+				query = append(query, bson.M{"$match": bson.M{fieldLabel: bson.M{"$in": edgeLabels}}})
+			}
+			eCol := mg.ar.getEdgeCollection(mg.graph)
+			iter := eCol.Pipe(query).Iter()
+			defer iter.Close()
+			result := map[string]interface{}{}
+			for iter.Next(&result) {
+				e := UnpackEdge(result)
+				r := batchMap[result["from"].(string)]
+				for _, ri := range r {
+					ri.Edge = &e
+					o <- ri
+				}
+			}
+		}
+	}()
+	return o
+}
+
+func (mg *Graph) GetInEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
+	batches := make(chan []gdbi.ElementLookup, 100)
+	go func() {
+		defer close(batches)
+		o := make([]gdbi.ElementLookup, 0, BatchSize)
+		for req := range reqChan {
+			o = append(o, req)
+			if len(o) >= BatchSize {
+				batches <- o
+				o = make([]gdbi.ElementLookup, 0, BatchSize)
+			}
+		}
+		batches <- o
+	}()
+
+	o := make(chan gdbi.ElementLookup, 100)
+	go func() {
+		defer close(o)
+		for batch := range batches {
+			idBatch := make([]string, len(batch))
+			batchMap := make(map[string][]gdbi.ElementLookup, len(batch))
+			for i := range batch {
+				idBatch[i] = batch[i].ID
+				batchMap[batch[i].ID] = append(batchMap[batch[i].ID], batch[i])
+			}
+			query := []bson.M{{"$match": bson.M{"to": bson.M{"$in": idBatch}}}}
+			if len(edgeLabels) > 0 {
+				query = append(query, bson.M{"$match": bson.M{fieldLabel: bson.M{"$in": edgeLabels}}})
+			}
+			eCol := mg.ar.getEdgeCollection(mg.graph)
+			iter := eCol.Pipe(query).Iter()
+			defer iter.Close()
+			result := map[string]interface{}{}
+			for iter.Next(&result) {
+				e := UnpackEdge(result)
+				r := batchMap[result["to"].(string)]
+				for _, ri := range r {
+					ri.Edge = &e
+					o <- ri
+				}
+			}
+		}
+	}()
+	return o
 }
 
 // GetOutList given vertex/edge `key` find vertices on outgoing edges,

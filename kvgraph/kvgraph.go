@@ -536,13 +536,13 @@ func (kgdb *KVInterfaceGDB) GetVertex(id string, loadProp bool) *aql.Vertex {
 }
 
 type elementData struct {
-	req  *gdbi.ElementLookup
+	req  gdbi.ElementLookup
 	data []byte
 }
 
 // GetVertexChannel is passed a channel of vertex ids and it produces a channel
 // of vertices
-func (kgdb *KVInterfaceGDB) GetVertexChannel(ids chan *gdbi.ElementLookup, load bool) chan *gdbi.ElementLookup {
+func (kgdb *KVInterfaceGDB) GetVertexChannel(ids chan gdbi.ElementLookup, load bool) chan gdbi.ElementLookup {
 	data := make(chan elementData, 100)
 	go func() {
 		defer close(data)
@@ -561,7 +561,7 @@ func (kgdb *KVInterfaceGDB) GetVertexChannel(ids chan *gdbi.ElementLookup, load 
 		})
 	}()
 
-	out := make(chan *gdbi.ElementLookup, 100)
+	out := make(chan gdbi.ElementLookup, 100)
 	go func() {
 		defer close(out)
 		for d := range data {
@@ -573,6 +573,192 @@ func (kgdb *KVInterfaceGDB) GetVertexChannel(ids chan *gdbi.ElementLookup, load 
 	}()
 
 	return out
+}
+
+func (kgdb *KVInterfaceGDB) GetOutChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
+	vertexChan := make(chan elementData, 100)
+	go func() {
+		defer close(vertexChan)
+		kgdb.kv.View(func(it KVIterator) error {
+			for req := range reqChan {
+				skeyPrefix := SrcEdgePrefix(kgdb.graph, req.ID)
+				for it.Seek(skeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), skeyPrefix); it.Next() {
+					keyValue := it.Key()
+					_, src, dst, eid, label, etype := SrcEdgeKeyParse(keyValue)
+					if len(edgeLabels) == 0 || contains(edgeLabels, label) {
+						vkey := VertexKey(kgdb.graph, dst)
+						if etype == edgeSingle {
+							vertexChan <- elementData{
+								data: vkey,
+								req:  req,
+							}
+						} else if etype == edgeBundle {
+							bkey := EdgeKey(kgdb.graph, eid, src, "", label, etype)
+							bundleValue, err := it.Get(bkey)
+							if err == nil {
+								bundle := aql.Bundle{}
+								proto.Unmarshal(bundleValue, &bundle)
+								for k := range bundle.Bundle {
+									vertexChan <- elementData{
+										data: VertexKey(kgdb.graph, k),
+										req:  req,
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+			return nil
+		})
+	}()
+
+	o := make(chan gdbi.ElementLookup, 100)
+	go func() {
+		defer close(o)
+		kgdb.kv.View(func(it KVIterator) error {
+			for req := range vertexChan {
+				dataValue, err := it.Get(req.data)
+				if err == nil {
+					v := aql.Vertex{}
+					proto.Unmarshal(dataValue, &v)
+					req.req.Vertex = &v
+					o <- req.req
+				}
+			}
+			return nil
+		})
+	}()
+	return o
+}
+
+func (kgdb *KVInterfaceGDB) GetInChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
+	o := make(chan gdbi.ElementLookup, 100)
+	go func() {
+		defer close(o)
+		kgdb.kv.View(func(it KVIterator) error {
+			for req := range reqChan {
+				dkeyPrefix := DstEdgePrefix(kgdb.graph, req.ID)
+				for it.Seek(dkeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), dkeyPrefix); it.Next() {
+					keyValue := it.Key()
+					_, src, _, _, label, _ := DstEdgeKeyParse(keyValue)
+					if len(edgeLabels) == 0 || contains(edgeLabels, label) {
+						vkey := VertexKey(kgdb.graph, src)
+						dataValue, err := it.Get(vkey)
+						if err == nil {
+							v := aql.Vertex{}
+							proto.Unmarshal(dataValue, &v)
+							req.Vertex = &v
+							o <- req
+						}
+					}
+				}
+			}
+			return nil
+		})
+	}()
+	return o
+}
+
+func (kgdb *KVInterfaceGDB) GetOutEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
+	o := make(chan gdbi.ElementLookup, 100)
+	go func() {
+		defer close(o)
+		//log.Printf("GetOutList")
+		kgdb.kv.View(func(it KVIterator) error {
+			for req := range reqChan {
+				skeyPrefix := SrcEdgePrefix(kgdb.graph, req.ID)
+				for it.Seek(skeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), skeyPrefix); it.Next() {
+					keyValue := it.Key()
+					_, src, dst, eid, label, edgeType := SrcEdgeKeyParse(keyValue)
+					if len(edgeLabels) == 0 || contains(edgeLabels, label) {
+						if edgeType == edgeSingle {
+							e := aql.Edge{}
+							if load {
+								ekey := EdgeKey(kgdb.graph, eid, src, dst, label, edgeType)
+								dataValue, err := it.Get(ekey)
+								if err == nil {
+									proto.Unmarshal(dataValue, &e)
+								}
+							} else {
+								e.Gid = string(eid)
+								e.From = string(src)
+								e.To = dst
+								e.Label = label
+							}
+							req.Edge = &e
+							o <- req
+						} else if edgeType == edgeBundle {
+							bundle := aql.Bundle{}
+							ekey := EdgeKey(kgdb.graph, eid, src, "", label, edgeType)
+							dataValue, err := it.Get(ekey)
+							if err == nil {
+								proto.Unmarshal(dataValue, &bundle)
+								for k, v := range bundle.Bundle {
+									e := aql.Edge{Gid: bundle.Gid, Label: bundle.Label, From: bundle.From, To: k, Data: v}
+									req.Edge = &e
+									o <- req
+								}
+							}
+						}
+					}
+				}
+			}
+			return nil
+		})
+
+	}()
+	return o
+}
+
+func (kgdb *KVInterfaceGDB) GetInEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
+	o := make(chan gdbi.ElementLookup, 100)
+	go func() {
+		defer close(o)
+		kgdb.kv.View(func(it KVIterator) error {
+			for req := range reqChan {
+				skeyPrefix := SrcEdgePrefix(kgdb.graph, req.ID)
+				for it.Seek(skeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), skeyPrefix); it.Next() {
+					keyValue := it.Key()
+					_, src, dst, eid, label, edgeType := SrcEdgeKeyParse(keyValue)
+					if len(edgeLabels) == 0 || contains(edgeLabels, label) {
+						if edgeType == edgeSingle {
+							e := aql.Edge{}
+							if load {
+								ekey := EdgeKey(kgdb.graph, eid, src, dst, label, edgeType)
+								dataValue, err := it.Get(ekey)
+								if err == nil {
+									proto.Unmarshal(dataValue, &e)
+								}
+							} else {
+								e.Gid = string(eid)
+								e.From = string(src)
+								e.To = dst
+								e.Label = label
+							}
+							req.Edge = &e
+							o <- req
+						} else if edgeType == edgeBundle {
+							bundle := aql.Bundle{}
+							ekey := EdgeKey(kgdb.graph, eid, src, "", label, edgeType)
+							dataValue, err := it.Get(ekey)
+							if err == nil {
+								proto.Unmarshal(dataValue, &bundle)
+								for k, v := range bundle.Bundle {
+									e := aql.Edge{Gid: bundle.Gid, Label: bundle.Label, From: bundle.From, To: k, Data: v}
+									req.Edge = &e
+									o <- req
+								}
+							}
+						}
+					}
+				}
+			}
+			return nil
+		})
+
+	}()
+	return o
 }
 
 // GetEdge loads an edge given an id. It returns nil if not found

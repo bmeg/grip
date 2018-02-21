@@ -54,6 +54,9 @@ test:
 start-test-server:
 	arachne server --rpc 18202 --port 18201 &
 
+start-test-mongo-server:
+	arachne server --rpc 18202 --port 18201 --mongo localhost &
+
 test-conformance:
 	python conformance/run_conformance.py http://localhost:18201
 

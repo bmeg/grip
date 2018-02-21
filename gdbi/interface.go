@@ -82,13 +82,11 @@ type GraphDB interface {
 	GetVertexList(ctx context.Context, load bool) chan aql.Vertex
 	GetEdgeList(ctx context.Context, load bool) chan aql.Edge
 
-	GetVertexChannel(req chan *ElementLookup, load bool) chan *ElementLookup
-	/*
-		GetOutChannel(req chan ElementLookup, load bool) chan ElementLookup
-		GetInChannel(req chan ElementLookup, load bool) chan ElementLookup
-		GetOutEdgeChannel(req chan ElementLookup, load bool) chan ElementLookup
-		GetInEdgeChannel(req chan ElementLookup, load bool) chan ElementLookup
-	*/
+	GetVertexChannel(req chan ElementLookup, load bool) chan ElementLookup
+	GetOutChannel(req chan ElementLookup, load bool, edgeLabels []string) chan ElementLookup
+	GetInChannel(req chan ElementLookup, load bool, edgeLabels []string) chan ElementLookup
+	GetOutEdgeChannel(req chan ElementLookup, load bool, edgeLabels []string) chan ElementLookup
+	GetInEdgeChannel(req chan ElementLookup, load bool, edgeLabels []string) chan ElementLookup
 
 	GetOutList(ctx context.Context, key string, load bool, edgeLabels []string) chan aql.Vertex
 	GetInList(ctx context.Context, key string, load bool, edgeLabels []string) chan aql.Vertex

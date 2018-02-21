@@ -796,13 +796,13 @@ func (bgdb *BadgerGDB) GetVertex(id string, loadProp bool) *aql.Vertex {
 }
 
 type elementData struct {
-	req  *gdbi.ElementLookup
+	req  gdbi.ElementLookup
 	data []byte
 }
 
 // GetVertexChannel is passed a channel of vertex ids and it produces a channel
 // of vertices
-func (bgdb *BadgerGDB) GetVertexChannel(ids chan *gdbi.ElementLookup, load bool) chan *gdbi.ElementLookup {
+func (bgdb *BadgerGDB) GetVertexChannel(ids chan gdbi.ElementLookup, load bool) chan gdbi.ElementLookup {
 	data := make(chan elementData, 100)
 	go func() {
 		defer close(data)
@@ -822,7 +822,7 @@ func (bgdb *BadgerGDB) GetVertexChannel(ids chan *gdbi.ElementLookup, load bool)
 		})
 	}()
 
-	out := make(chan *gdbi.ElementLookup, 100)
+	out := make(chan gdbi.ElementLookup, 100)
 	go func() {
 		defer close(out)
 		for d := range data {
@@ -834,6 +834,22 @@ func (bgdb *BadgerGDB) GetVertexChannel(ids chan *gdbi.ElementLookup, load bool)
 	}()
 
 	return out
+}
+
+func (bgdb *BadgerGDB) GetOutChannel(req chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
+	return nil
+}
+
+func (bgdb *BadgerGDB) GetInChannel(req chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
+	return nil
+}
+
+func (bgdb *BadgerGDB) GetOutEdgeChannel(req chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
+	return nil
+}
+
+func (bgdb *BadgerGDB) GetInEdgeChannel(req chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
+	return nil
 }
 
 // GetEdge loads an edge given an id. It returns nil if not found

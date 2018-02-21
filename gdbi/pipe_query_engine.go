@@ -369,12 +369,12 @@ func (pengine *PipeEngine) Out(key ...string) QueryInterface {
 						}
 					}
 				} else if pipe.State == StateEdgeList || pipe.State == StateRawEdgeList {
-					reqList := make(chan *ElementLookup, 100)
+					reqList := make(chan ElementLookup, 100)
 					go func() {
 						defer close(reqList)
 						for i := range pipe.Travelers {
 							e := i.GetCurrent().GetEdge()
-							reqList <- &ElementLookup{
+							reqList <- ElementLookup{
 								ID:  e.To,
 								Ref: &i,
 							}
@@ -418,12 +418,12 @@ func (pengine *PipeEngine) Both(key ...string) QueryInterface {
 						}
 					}
 				} else if pipe.State == StateEdgeList || pipe.State == StateRawEdgeList {
-					reqList := make(chan *ElementLookup, 100)
+					reqList := make(chan ElementLookup, 100)
 					go func() {
 						defer close(reqList)
 						for i := range pipe.Travelers {
 							e := i.GetCurrent().GetEdge()
-							reqList <- &ElementLookup{
+							reqList <- ElementLookup{
 								ID:  e.To,
 								Ref: &i,
 							}
