@@ -458,15 +458,16 @@ func (mg *Graph) GetInChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLa
 			if len(edgeLabels) > 0 {
 				query = append(query, bson.M{"$match": bson.M{fieldLabel: bson.M{"$in": edgeLabels}}})
 			}
-			query = append(query, bson.M{"$lookup": bson.M{"from": "example_vertices", "localField": "to", "foreignField": "_id", "as": "src"}})
+			vertCol := fmt.Sprintf("%s_vertices", mg.graph)
+			query = append(query, bson.M{"$lookup": bson.M{"from": vertCol, "localField": "from", "foreignField": "_id", "as": "src"}})
 
 			eCol := mg.ar.getEdgeCollection(mg.graph)
 			iter := eCol.Pipe(query).Iter()
 			defer iter.Close()
 			result := map[string]interface{}{}
 			for iter.Next(&result) {
-				dst := result["src"].([]interface{})
-				for _, d := range dst {
+				src := result["src"].([]interface{})
+				for _, d := range src {
 					v := UnpackVertex(d.(map[string]interface{}))
 					r := batchMap[result["to"].(string)]
 					for _, ri := range r {

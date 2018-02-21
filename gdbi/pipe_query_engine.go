@@ -360,13 +360,21 @@ func (pengine *PipeEngine) Out(key ...string) QueryInterface {
 				t.startTimer("all")
 				defer close(o)
 				if pipe.State == StateVertexList || pipe.State == StateRawVertexList {
-					for i := range pipe.Travelers {
-						if v := i.GetCurrent().GetVertex(); v != nil {
-							for ov := range pengine.db.GetOutList(ctx, v.Gid, ctx.Value(propLoad).(bool), key) {
-								lv := ov
-								o <- i.AddCurrent(aql.QueryResult{Result: &aql.QueryResult_Vertex{Vertex: &lv}})
+					queryChan := make(chan ElementLookup, 100)
+					go func() {
+						defer close(queryChan)
+						for i := range pipe.Travelers {
+							if v := i.GetCurrent().GetVertex(); v != nil {
+								queryChan <- ElementLookup{
+									ID:  v.Gid,
+									Ref: &i,
+								}
 							}
 						}
+					}()
+					for ov := range pengine.db.GetOutChannel(queryChan, ctx.Value(propLoad).(bool), key) {
+						i := ov.Ref.(*Traveler)
+						o <- i.AddCurrent(aql.QueryResult{Result: &aql.QueryResult_Vertex{Vertex: ov.Vertex}})
 					}
 				} else if pipe.State == StateEdgeList || pipe.State == StateRawEdgeList {
 					reqList := make(chan ElementLookup, 100)
@@ -405,18 +413,41 @@ func (pengine *PipeEngine) Both(key ...string) QueryInterface {
 				t.startTimer("all")
 				defer close(o)
 				if pipe.State == StateVertexList || pipe.State == StateRawVertexList {
-					for i := range pipe.Travelers {
-						if v := i.GetCurrent().GetVertex(); v != nil {
-							for ov := range pengine.db.GetOutList(ctx, v.Gid, ctx.Value(propLoad).(bool), key) {
-								lv := ov
-								o <- i.AddCurrent(aql.QueryResult{Result: &aql.QueryResult_Vertex{Vertex: &lv}})
-							}
-							for ov := range pengine.db.GetInList(ctx, v.Gid, ctx.Value(propLoad).(bool), key) {
-								lv := ov
-								o <- i.AddCurrent(aql.QueryResult{Result: &aql.QueryResult_Vertex{Vertex: &lv}})
+					queryChanIn := make(chan ElementLookup, 100)
+					queryChanOut := make(chan ElementLookup, 100)
+					go func() {
+						defer close(queryChanIn)
+						defer close(queryChanOut)
+						for i := range pipe.Travelers {
+							if v := i.GetCurrent().GetVertex(); v != nil {
+								e := ElementLookup{
+									ID:  v.Gid,
+									Ref: &i,
+								}
+								queryChanIn <- e
+								queryChanOut <- e
 							}
 						}
-					}
+					}()
+					wait := make(chan bool)
+					go func() {
+						for ov := range pengine.db.GetOutChannel(queryChanOut, ctx.Value(propLoad).(bool), key) {
+							log.Printf("Both Out Result")
+							i := ov.Ref.(*Traveler)
+							o <- i.AddCurrent(aql.QueryResult{Result: &aql.QueryResult_Vertex{Vertex: ov.Vertex}})
+						}
+						wait <- true
+					}()
+					go func() {
+						for ov := range pengine.db.GetInChannel(queryChanIn, ctx.Value(propLoad).(bool), key) {
+							log.Printf("Both In Result")
+							i := ov.Ref.(*Traveler)
+							o <- i.AddCurrent(aql.QueryResult{Result: &aql.QueryResult_Vertex{Vertex: ov.Vertex}})
+						}
+						wait <- true
+					}()
+					<- wait
+					<- wait
 				} else if pipe.State == StateEdgeList || pipe.State == StateRawEdgeList {
 					reqList := make(chan ElementLookup, 100)
 					go func() {
@@ -453,13 +484,21 @@ func (pengine *PipeEngine) In(key ...string) QueryInterface {
 				t.startTimer("all")
 				defer close(o)
 				if pipe.State == StateVertexList || pipe.State == StateRawVertexList {
-					for i := range pipe.Travelers {
-						if v := i.GetCurrent().GetVertex(); v != nil {
-							for e := range pengine.db.GetInList(ctx, v.Gid, ctx.Value(propLoad).(bool), key) {
-								el := e
-								o <- i.AddCurrent(aql.QueryResult{Result: &aql.QueryResult_Vertex{Vertex: &el}})
+					queryChan := make(chan ElementLookup, 100)
+					go func() {
+						defer close(queryChan)
+						for i := range pipe.Travelers {
+							if v := i.GetCurrent().GetVertex(); v != nil {
+								queryChan <- ElementLookup{
+									ID:  v.Gid,
+									Ref: &i,
+								}
 							}
 						}
+					}()
+					for ov := range pengine.db.GetInChannel(queryChan, ctx.Value(propLoad).(bool), key) {
+						i := ov.Ref.(*Traveler)
+						o <- i.AddCurrent(aql.QueryResult{Result: &aql.QueryResult_Vertex{Vertex: ov.Vertex}})
 					}
 				} else if pipe.State == StateEdgeList || pipe.State == StateRawEdgeList {
 					for i := range pipe.Travelers {
