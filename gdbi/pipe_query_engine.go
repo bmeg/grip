@@ -501,11 +501,21 @@ func (pengine *PipeEngine) In(key ...string) QueryInterface {
 						o <- i.AddCurrent(aql.QueryResult{Result: &aql.QueryResult_Vertex{Vertex: ov.Vertex}})
 					}
 				} else if pipe.State == StateEdgeList || pipe.State == StateRawEdgeList {
-					for i := range pipe.Travelers {
-						if e := i.GetCurrent().GetEdge(); e != nil {
-							v := pengine.db.GetVertex(e.From, ctx.Value(propLoad).(bool))
-							o <- i.AddCurrent(aql.QueryResult{Result: &aql.QueryResult_Vertex{Vertex: v}})
+					queryChan := make(chan ElementLookup, 100)
+					go func() {
+						defer close(queryChan)
+						for i := range pipe.Travelers {
+							if e := i.GetCurrent().GetEdge(); e != nil {
+								queryChan <- ElementLookup{
+									ID:  e.From,
+									Ref: &i,
+								}
+							}
 						}
+					}()
+					for v := range pengine.db.GetVertexChannel(queryChan, ctx.Value(propLoad).(bool)) {
+						i := v.Ref.(*Traveler)
+						o <- i.AddCurrent(aql.QueryResult{Result: &aql.QueryResult_Vertex{Vertex: v.Vertex}})
 					}
 				}
 				t.endTimer("all")
