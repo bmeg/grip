@@ -656,9 +656,10 @@ func (mg *Graph) GetInList(ctx context.Context, key string, load bool, edgeLabel
 				q = q.Select(map[string]interface{}{"_id": 1, "label": 1})
 			}
 			d := map[string]interface{}{}
-			q.One(d)
-			v := UnpackVertex(d)
-			o <- v
+			if err := q.One(d); err == nil {
+				v := UnpackVertex(d)
+				o <- v
+			}
 		}
 	}()
 	return o
