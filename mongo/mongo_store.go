@@ -38,6 +38,12 @@ func (ma *Arachne) newSession() *mgo.Session {
 	if err != nil {
 		log.Printf("%s", err)
 	}
+	b, _ := session.BuildInfo()
+	if !b.VersionAtLeast(3,2) {
+		log.Printf("Requires mongo 3.2 or later")
+		session.Close()
+		return nil
+	}
 	return session
 }
 
