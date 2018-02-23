@@ -153,7 +153,7 @@ func (mg *Graph) Query() gdbi.QueryInterface {
 
 // GetEdge loads an edge given an id. It returns nil if not found
 func (mg *Graph) GetEdge(id string, loadProp bool) *aql.Edge {
-	log.Printf("GetEdge: %s", id)
+	//log.Printf("GetEdge: %s", id)
 	d := map[string]interface{}{}
 	q := mg.ar.getEdgeCollection(mg.graph).FindId(id)
 	q.One(d)
@@ -460,7 +460,7 @@ func (mg *Graph) GetInChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLa
 			}
 			vertCol := fmt.Sprintf("%s_vertices", mg.graph)
 			query = append(query, bson.M{"$lookup": bson.M{"from": vertCol, "localField": "from", "foreignField": "_id", "as": "src"}})
-
+			//log.Printf("Doing Query %s", query)
 			eCol := mg.ar.getEdgeCollection(mg.graph)
 			iter := eCol.Pipe(query).Iter()
 			defer iter.Close()
@@ -475,6 +475,9 @@ func (mg *Graph) GetInChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLa
 						o <- ri
 					}
 				}
+			}
+			if err := iter.Err(); err != nil {
+				log.Printf("Iteration Error %s", err)
 			}
 		}
 	}()
