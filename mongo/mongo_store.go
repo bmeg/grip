@@ -420,15 +420,21 @@ func (mg *Graph) GetOutChannel(reqChan chan gdbi.ElementLookup, load bool, edgeL
 			defer iter.Close()
 			result := map[string]interface{}{}
 			for iter.Next(&result) {
-				dst := result["dst"].([]interface{})
-				for _, d := range dst {
-					v := UnpackVertex(d.(map[string]interface{}))
-					r := batchMap[result["from"].(string)]
-					for _, ri := range r {
-						ri.Vertex = &v
-						o <- ri
+				if val, ok := result[fieldBundle]; ok {
+					for k := range val.(map[string]interface{}) {
+						vertexChan <- k
+					}
+				} else if dst, ok := result["dst"].([]interface{}) {
+					for _, d := range dst {
+						v := UnpackVertex(d.(map[string]interface{}))
+						r := batchMap[result["from"].(string)]
+						for _, ri := range r {
+							ri.Vertex = &v
+							o <- ri
+						}
 					}
 				}
+
 			}
 		}
 	}()
@@ -524,11 +530,24 @@ func (mg *Graph) GetOutEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, e
 			defer iter.Close()
 			result := map[string]interface{}{}
 			for iter.Next(&result) {
-				e := UnpackEdge(result)
-				r := batchMap[result["from"].(string)]
-				for _, ri := range r {
-					ri.Edge = &e
-					o <- ri
+				if _, ok := result["bundle"]; ok {
+					log.Printf("Bundle: %s", result)
+					bundle := UnpackBundle(result)
+					for k, v := range bundle.Bundle {
+						e := aql.Edge{Gid: bundle.Gid, Label: bundle.Label, From: bundle.From, To: k, Data: v}
+						r := batchMap[result["from"].(string)]
+						for _, ri := range r {
+							ri.Edge = &e
+							o <- ri
+						}
+					}
+				} else {
+					e := UnpackEdge(result)
+					r := batchMap[result["from"].(string)]
+					for _, ri := range r {
+						ri.Edge = &e
+						o <- ri
+					}
 				}
 			}
 		}
