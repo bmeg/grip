@@ -88,11 +88,11 @@ type GraphDB interface {
 	GetOutEdgeChannel(req chan ElementLookup, load bool, edgeLabels []string) chan ElementLookup
 	GetInEdgeChannel(req chan ElementLookup, load bool, edgeLabels []string) chan ElementLookup
 
-	GetOutList(ctx context.Context, key string, load bool, edgeLabels []string) chan aql.Vertex
-	GetInList(ctx context.Context, key string, load bool, edgeLabels []string) chan aql.Vertex
-
-	GetOutEdgeList(ctx context.Context, key string, load bool, edgeLabels []string) chan aql.Edge
-	GetInEdgeList(ctx context.Context, key string, load bool, edgeLabels []string) chan aql.Edge
+	//These are redundant and can the depricated
+	//GetOutList(ctx context.Context, key string, load bool, edgeLabels []string) chan aql.Vertex
+	//GetInList(ctx context.Context, key string, load bool, edgeLabels []string) chan aql.Vertex
+	//GetOutEdgeList(ctx context.Context, key string, load bool, edgeLabels []string) chan aql.Edge
+	//GetInEdgeList(ctx context.Context, key string, load bool, edgeLabels []string) chan aql.Edge
 
 	GetOutBundleList(ctx context.Context, key string, load bool, edgeLabels []string) chan aql.Bundle
 

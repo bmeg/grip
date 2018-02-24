@@ -564,18 +564,39 @@ func (pengine *PipeEngine) BothE(key ...string) QueryInterface {
 			go func() {
 				t.startTimer("all")
 				defer close(o)
-				for i := range pipe.Travelers {
-					if v := i.GetCurrent().GetVertex(); v != nil {
-						for oe := range pengine.db.GetOutEdgeList(ctx, v.Gid, ctx.Value(propLoad).(bool), key) {
-							le := oe
-							o <- i.AddCurrent(aql.QueryResult{Result: &aql.QueryResult_Edge{Edge: &le}})
-						}
-						for oe := range pengine.db.GetInEdgeList(ctx, v.Gid, ctx.Value(propLoad).(bool), key) {
-							le := oe
-							o <- i.AddCurrent(aql.QueryResult{Result: &aql.QueryResult_Edge{Edge: &le}})
+				inQueryChan := make(chan ElementLookup, 100)
+				outQueryChan := make(chan ElementLookup, 100)
+				go func() {
+					defer close(inQueryChan)
+					defer close(outQueryChan)
+					for i := range pipe.Travelers {
+						if v := i.GetCurrent().GetVertex(); v != nil {
+							e := ElementLookup{
+								ID:  v.Gid,
+								Ref: &i,
+							}
+							inQueryChan <- e
+							outQueryChan <- e
 						}
 					}
-				}
+				}()
+				wait := make(chan bool)
+				go func() {
+					for v := range pengine.db.GetOutEdgeChannel(outQueryChan, ctx.Value(propLoad).(bool), key) {
+						i := v.Ref.(*Traveler)
+						o <- i.AddCurrent(aql.QueryResult{Result: &aql.QueryResult_Edge{Edge: v.Edge}})
+					}
+					wait <- true
+				}()
+				go func() {
+					for v := range pengine.db.GetInEdgeChannel(inQueryChan, ctx.Value(propLoad).(bool), key) {
+						i := v.Ref.(*Traveler)
+						o <- i.AddCurrent(aql.QueryResult{Result: &aql.QueryResult_Edge{Edge: v.Edge}})
+					}
+					wait <- true
+				}()
+				<-wait
+				<-wait
 				t.endTimer("all")
 			}()
 			return newPipeOut(o, StateEdgeList, pipe.ValueStates)
