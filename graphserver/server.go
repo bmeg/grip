@@ -3,7 +3,7 @@ package graphserver
 import (
 	"fmt"
 	"github.com/bmeg/arachne/aql"
-	"github.com/bmeg/arachne/badgerdb"
+	_ "github.com/bmeg/arachne/badgerdb" // import so badger will register itself
 	_ "github.com/bmeg/arachne/boltdb" // import so bolt will register itself
 	"github.com/bmeg/arachne/kvgraph"
 	"github.com/bmeg/arachne/mongo"
@@ -31,8 +31,13 @@ func NewArachneMongoServer(url string, database string) *ArachneServer {
 // NewArachneBadgerServer initializes a GRPC server that uses the badger driver
 // to run the graph store
 func NewArachneBadgerServer(baseDir string) *ArachneServer {
+	a, err := kvgraph.NewKVArachne("badger", baseDir)
+	if err != nil {
+		log.Printf("Error Starting Badger")
+		return nil
+	}
 	return &ArachneServer{
-		engine: NewGraphEngine(badgerdb.NewBadgerArachne(baseDir)),
+		engine: NewGraphEngine(a),
 	}
 }
 

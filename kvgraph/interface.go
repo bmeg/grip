@@ -68,7 +68,7 @@ func AddKVDriver(name string, builder KVBuilder) error {
 func NewKVArachne(name string, path string) (gdbi.ArachneInterface, error) {
 	if x, ok := kvMap[name]; ok {
 		kv, err := x(path)
-		return &KVGraph{kv: kv}, err
+		return NewKVGraph(kv), err
 	}
 	return nil, fmt.Errorf("Driver %s Not Found", name)
 }

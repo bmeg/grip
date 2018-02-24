@@ -717,10 +717,10 @@ func (kgdb *KVInterfaceGDB) GetInEdgeChannel(reqChan chan gdbi.ElementLookup, lo
 		defer close(o)
 		kgdb.kv.View(func(it KVIterator) error {
 			for req := range reqChan {
-				skeyPrefix := SrcEdgePrefix(kgdb.graph, req.ID)
-				for it.Seek(skeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), skeyPrefix); it.Next() {
+				dkeyPrefix := DstEdgePrefix(kgdb.graph, req.ID)
+				for it.Seek(dkeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), dkeyPrefix); it.Next() {
 					keyValue := it.Key()
-					_, src, dst, eid, label, edgeType := SrcEdgeKeyParse(keyValue)
+					_, src, dst, eid, label, edgeType := DstEdgeKeyParse(keyValue)
 					if len(edgeLabels) == 0 || contains(edgeLabels, label) {
 						if edgeType == edgeSingle {
 							e := aql.Edge{}
