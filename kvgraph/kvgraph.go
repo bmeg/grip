@@ -575,6 +575,7 @@ func (kgdb *KVInterfaceGDB) GetVertexChannel(ids chan gdbi.ElementLookup, load b
 	return out
 }
 
+//GetOutChannel process requests of vertex ids and find the connected vertices on outgoing edges
 func (kgdb *KVInterfaceGDB) GetOutChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
 	vertexChan := make(chan elementData, 100)
 	go func() {
@@ -632,6 +633,7 @@ func (kgdb *KVInterfaceGDB) GetOutChannel(reqChan chan gdbi.ElementLookup, load 
 	return o
 }
 
+//GetInChannel process requests of vertex ids and find the connected vertices on incoming edges
 func (kgdb *KVInterfaceGDB) GetInChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
 	o := make(chan gdbi.ElementLookup, 100)
 	go func() {
@@ -660,6 +662,7 @@ func (kgdb *KVInterfaceGDB) GetInChannel(reqChan chan gdbi.ElementLookup, load b
 	return o
 }
 
+//GetOutEdgeChannel process requests of vertex ids and find the connected outgoing edges
 func (kgdb *KVInterfaceGDB) GetOutEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
 	o := make(chan gdbi.ElementLookup, 100)
 	go func() {
@@ -711,6 +714,7 @@ func (kgdb *KVInterfaceGDB) GetOutEdgeChannel(reqChan chan gdbi.ElementLookup, l
 	return o
 }
 
+//GetInEdgeChannel process requests of vertex ids and find the connected incoming edges
 func (kgdb *KVInterfaceGDB) GetInEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
 	o := make(chan gdbi.ElementLookup, 100)
 	go func() {

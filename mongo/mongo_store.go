@@ -39,7 +39,7 @@ func (ma *Arachne) newSession() *mgo.Session {
 		log.Printf("%s", err)
 	}
 	b, _ := session.BuildInfo()
-	if !b.VersionAtLeast(3,2) {
+	if !b.VersionAtLeast(3, 2) {
 		log.Printf("Requires mongo 3.2 or later")
 		session.Close()
 		return nil
@@ -383,6 +383,7 @@ func (mg *Graph) GetVertexChannel(ids chan gdbi.ElementLookup, load bool) chan g
 	return out
 }
 
+//GetOutChannel process requests of vertex ids and find the connected vertices on outgoing edges
 func (mg *Graph) GetOutChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
 	batches := make(chan []gdbi.ElementLookup, 100)
 	go func() {
@@ -457,6 +458,7 @@ func (mg *Graph) GetOutChannel(reqChan chan gdbi.ElementLookup, load bool, edgeL
 	return o
 }
 
+//GetInChannel process requests of vertex ids and find the connected vertices on incoming edges
 func (mg *Graph) GetInChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
 	batches := make(chan []gdbi.ElementLookup, 100)
 	go func() {
@@ -512,6 +514,7 @@ func (mg *Graph) GetInChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLa
 	return o
 }
 
+//GetOutEdgeChannel process requests of vertex ids and find the connected outgoing edges
 func (mg *Graph) GetOutEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
 	batches := make(chan []gdbi.ElementLookup, 100)
 	go func() {
@@ -571,6 +574,7 @@ func (mg *Graph) GetOutEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, e
 	return o
 }
 
+//GetInEdgeChannel process requests of vertex ids and find the connected incoming edges
 func (mg *Graph) GetInEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
 	batches := make(chan []gdbi.ElementLookup, 100)
 	go func() {

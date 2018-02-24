@@ -1,18 +1,18 @@
 package badgerdb
 
 import (
-  "os"
 	"bytes"
 	"fmt"
-	"log"
 	"github.com/bmeg/arachne/kvgraph"
-  "github.com/dgraph-io/badger"
+	"github.com/dgraph-io/badger"
+	"log"
+	"os"
 )
 
 // BadgerBuilder creates new badger interface at `path`
 // driver at `path`
 func BadgerBuilder(path string) (kvgraph.KVInterface, error) {
-  log.Printf("Starting BadgerDB")
+	log.Printf("Starting BadgerDB")
 	_, err := os.Stat(path)
 	if os.IsNotExist(err) {
 		os.Mkdir(path, 0700)
@@ -40,7 +40,7 @@ func bytesCopy(in []byte) []byte {
 
 // BadgerKV is an implementation of the KVStore for badger
 type BadgerKV struct {
-  db *badger.DB
+	db *badger.DB
 }
 
 // Close closes the boltdb
@@ -58,9 +58,9 @@ func (badgerkv *BadgerKV) Delete(id []byte) error {
 
 // DeletePrefix deletes all elements in kvstore that begin with prefix `id`
 func (badgerkv *BadgerKV) DeletePrefix(prefix []byte) error {
-  deleteBlockSize := 10000
+	deleteBlockSize := 10000
 
-  for found := true; found; {
+	for found := true; found; {
 		found = false
 		wb := make([][]byte, 0, deleteBlockSize)
 		opts := badger.DefaultIteratorOptions
@@ -78,28 +78,28 @@ func (badgerkv *BadgerKV) DeletePrefix(prefix []byte) error {
 			return nil
 		})
 	}
-  return nil
+	return nil
 }
 
 // HasKey returns true if the key is exists in kv store
 func (badgerkv *BadgerKV) HasKey(id []byte) bool {
-  out := false
-  badgerkv.db.View(func(tx *badger.Txn) error {
-    _, err := tx.Get(id)
-    if err == nil {
-      out = true
-    }
-    return nil
-  })
-  return out
+	out := false
+	badgerkv.db.View(func(tx *badger.Txn) error {
+		_, err := tx.Get(id)
+		if err == nil {
+			out = true
+		}
+		return nil
+	})
+	return out
 }
 
 // Set value in kv store
 func (badgerkv *BadgerKV) Set(id []byte, val []byte) error {
-  err := badgerkv.db.Update(func(tx *badger.Txn) error {
-    return tx.Set(id, val)
-  })
-  return err
+	err := badgerkv.db.Update(func(tx *badger.Txn) error {
+		return tx.Set(id, val)
+	})
+	return err
 }
 
 type badgerTransaction struct {
@@ -108,10 +108,10 @@ type badgerTransaction struct {
 
 // Delete removes key `id` from the kv store
 func (badgerTrans badgerTransaction) Delete(id []byte) error {
-  if err := badgerTrans.tx.Delete(id); err != nil {
-      return err
-  }
-  return nil
+	if err := badgerTrans.tx.Delete(id); err != nil {
+		return err
+	}
+	return nil
 }
 
 // Update runs an alteration transition of the bolt kv store
@@ -124,7 +124,7 @@ func (badgerkv *BadgerKV) Update(u func(tx kvgraph.KVTransaction) error) error {
 }
 
 type badgerIterator struct {
-  tx    *badger.Txn
+	tx    *badger.Txn
 	c     *badger.Iterator
 	key   []byte
 	value []byte
@@ -142,11 +142,11 @@ func (badgerIt *badgerIterator) Get(id []byte) ([]byte, error) {
 	if o == nil || err != nil {
 		return nil, fmt.Errorf("Not Found")
 	}
-  dataValue, err := badgerIt.tx.Get(id)
-  if err != nil {
-    return nil, err
-  }
-  d, _ := dataValue.Value()
+	dataValue, err := badgerIt.tx.Get(id)
+	if err != nil {
+		return nil, err
+	}
+	d, _ := dataValue.Value()
 	return copyBytes(d), nil
 }
 
@@ -163,29 +163,29 @@ func (badgerIt *badgerIterator) Value() ([]byte, error) {
 // Next move the iterator to the next key
 func (badgerIt *badgerIterator) Next() error {
 	badgerIt.c.Next()
-  if !badgerIt.c.Valid() {
-    badgerIt.key = nil
-    badgerIt.value = nil
-    return fmt.Errorf("Invalid")
-  }
-  k := badgerIt.c.Item().Key()
-  badgerIt.key = copyBytes(k)
-  v, _ := badgerIt.c.Item().Value()
-  badgerIt.value = copyBytes(v)
-  return nil
+	if !badgerIt.c.Valid() {
+		badgerIt.key = nil
+		badgerIt.value = nil
+		return fmt.Errorf("Invalid")
+	}
+	k := badgerIt.c.Item().Key()
+	badgerIt.key = copyBytes(k)
+	v, _ := badgerIt.c.Item().Value()
+	badgerIt.value = copyBytes(v)
+	return nil
 }
 
 // Seek moves the iterator to a new location
 func (badgerIt *badgerIterator) Seek(id []byte) error {
-  badgerIt.c.Seek(id)
-  if !badgerIt.c.Valid() {
-    return fmt.Errorf("Invalid")
-  }
-  k := badgerIt.c.Item().Key()
-  badgerIt.key = copyBytes(k)
-  v, _ := badgerIt.c.Item().Value()
-  badgerIt.value = copyBytes(v)
-  return nil
+	badgerIt.c.Seek(id)
+	if !badgerIt.c.Valid() {
+		return fmt.Errorf("Invalid")
+	}
+	k := badgerIt.c.Item().Key()
+	badgerIt.key = copyBytes(k)
+	v, _ := badgerIt.c.Item().Value()
+	badgerIt.value = copyBytes(v)
+	return nil
 }
 
 // Valid returns true if iterator is still in valid location
@@ -199,12 +199,12 @@ func (badgerIt *badgerIterator) Valid() bool {
 // View run iterator on bolt keyvalue store
 func (badgerkv *BadgerKV) View(u func(it kvgraph.KVIterator) error) error {
 	err := badgerkv.db.View(func(tx *badger.Txn) error {
-    opts := badger.DefaultIteratorOptions
-    it := tx.NewIterator(opts)
+		opts := badger.DefaultIteratorOptions
+		it := tx.NewIterator(opts)
 		ktx := &badgerIterator{tx, it, nil, nil}
 		o := u(ktx)
-    it.Close()
-    return o
+		it.Close()
+		return o
 	})
 	return err
 }

@@ -444,8 +444,8 @@ func (pengine *PipeEngine) Both(key ...string) QueryInterface {
 						}
 						wait <- true
 					}()
-					<- wait
-					<- wait
+					<-wait
+					<-wait
 				} else if pipe.State == StateEdgeList || pipe.State == StateRawEdgeList {
 					reqList := make(chan ElementLookup, 100)
 					go func() {

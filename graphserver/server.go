@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/bmeg/arachne/aql"
 	_ "github.com/bmeg/arachne/badgerdb" // import so badger will register itself
-	_ "github.com/bmeg/arachne/boltdb" // import so bolt will register itself
+	_ "github.com/bmeg/arachne/boltdb"   // import so bolt will register itself
 	"github.com/bmeg/arachne/kvgraph"
 	"github.com/bmeg/arachne/mongo"
 	_ "github.com/bmeg/arachne/rocksdb" // import so rocks will register itself
