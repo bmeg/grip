@@ -432,7 +432,6 @@ func (pengine *PipeEngine) Both(key ...string) QueryInterface {
 					wait := make(chan bool)
 					go func() {
 						for ov := range pengine.db.GetOutChannel(queryChanOut, ctx.Value(propLoad).(bool), key) {
-							log.Printf("Both Out Result")
 							i := ov.Ref.(*Traveler)
 							o <- i.AddCurrent(aql.QueryResult{Result: &aql.QueryResult_Vertex{Vertex: ov.Vertex}})
 						}
@@ -440,7 +439,6 @@ func (pengine *PipeEngine) Both(key ...string) QueryInterface {
 					}()
 					go func() {
 						for ov := range pengine.db.GetInChannel(queryChanIn, ctx.Value(propLoad).(bool), key) {
-							log.Printf("Both In Result")
 							i := ov.Ref.(*Traveler)
 							o <- i.AddCurrent(aql.QueryResult{Result: &aql.QueryResult_Vertex{Vertex: ov.Vertex}})
 						}

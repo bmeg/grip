@@ -421,10 +421,26 @@ func (mg *Graph) GetOutChannel(reqChan chan gdbi.ElementLookup, load bool, edgeL
 			result := map[string]interface{}{}
 			for iter.Next(&result) {
 				if val, ok := result[fieldBundle]; ok {
-					for k := range val.(map[string]interface{}) {
-						vertexChan <- k
+					vMap := val.(map[string]interface{})
+					bkeys := make([]string, 0, len(vMap))
+					for k := range vMap {
+						bkeys = append(bkeys, k)
 					}
-				} else if dst, ok := result["dst"].([]interface{}) {
+					vCol := mg.ar.getVertexCollection(mg.graph)
+					query := bson.M{"_id": bson.M{"$in": bkeys}}
+					q := vCol.Find(query)
+					vIter := q.Iter()
+					r := batchMap[result["from"].(string)]
+					vResult := map[string]interface{}{}
+					for vIter.Next(&vResult) {
+						v := UnpackVertex(vResult)
+						for _, ri := range r {
+							ri.Vertex = &v
+							o <- ri
+						}
+					}
+					vIter.Close()
+				} else if dst, ok := result["dst"].([]interface{}); ok {
 					for _, d := range dst {
 						v := UnpackVertex(d.(map[string]interface{}))
 						r := batchMap[result["from"].(string)]
