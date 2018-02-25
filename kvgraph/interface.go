@@ -3,6 +3,7 @@ package kvgraph
 import (
 	"fmt"
 	"github.com/bmeg/arachne/gdbi"
+	"github.com/bmeg/arachne/timestamp"
 )
 
 // KVBuilder is function implemented by the various key/value storage drivers
@@ -42,12 +43,14 @@ type KVTransaction interface {
 // KVGraph implements the ArachneInterface using a generic key/value storage driver
 type KVGraph struct {
 	kv KVInterface
+	ts *timestamp.Timestamp
 }
 
 // KVInterfaceGDB implements the GDB interface using a genertic key/value storage driver
 type KVInterfaceGDB struct {
 	kv    KVInterface
 	graph string
+	ts    *timestamp.Timestamp
 }
 
 var kvMap = make(map[string]KVBuilder)
@@ -65,12 +68,17 @@ func AddKVDriver(name string, builder KVBuilder) error {
 func NewKVArachne(name string, path string) (gdbi.ArachneInterface, error) {
 	if x, ok := kvMap[name]; ok {
 		kv, err := x(path)
-		return &KVGraph{kv: kv}, err
+		return NewKVGraph(kv), err
 	}
 	return nil, fmt.Errorf("Driver %s Not Found", name)
 }
 
 // NewKVGraph creats a new instance of KVGraph given a KVInterface
 func NewKVGraph(kv KVInterface) gdbi.ArachneInterface {
-	return &KVGraph{kv: kv}
+	ts := timestamp.NewTimestamp()
+	o := &KVGraph{kv: kv, ts: &ts}
+	for _, i := range o.GetGraphs() {
+		o.ts.Touch(i)
+	}
+	return o
 }

@@ -20,11 +20,11 @@ def test_label_index(O):
     O.addEdge("4", "5", "created", {"weight":1.0})
 
     res = list(O.query().V().hasLabel("Person").count())[0]
-    if res['int_value'] != 4:
-        errors.append("Incorrect vertex index return count: %d != %d" % (res['int_value'], 4))
-    
+    if res['data'] != 4:
+        errors.append("Incorrect vertex index return count: %d != %d" % (res['data'], 4))
+
     res = list(O.query().E().hasLabel("knows").count())[0]
-    if res['int_value'] != 2:
-        errors.append("Incorrect edge index return count: %d != %d" % (res['int_value'], 2))
+    if res['data'] != 2:
+        errors.append("Incorrect edge index return count: %d != %d" % (res['data'], 2))
 
     return errors
