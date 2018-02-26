@@ -50,13 +50,13 @@ def test_outgoing(O):
     O.addEdge("vertex2", "vertex3", "friend")
     O.addEdge("vertex2", "vertex4", "parent")
 
-    if O.query().V("vertex2").outgoing().count().first()["int_value"] != 2:
+    if O.query().V("vertex2").outgoing().count().first()["data"] != 2:
         errors.append("blank outgoing doesn't work")
 
-    if O.query().V("vertex2").outgoing("friend").count().first()["int_value"] != 1:
+    if O.query().V("vertex2").outgoing("friend").count().first()["data"] != 1:
         errors.append("labeled outgoing doesn't work")
 
-    if O.query().V("vertex2").incoming().count().first()["int_value"] != 1:
+    if O.query().V("vertex2").incoming().count().first()["data"] != 1:
         errors.append("blank incoming doesn't work")
 
     return errors
@@ -94,9 +94,9 @@ def test_duplicate(O):
     O.addEdge("vertex1", "vertex2", "friend")
     O.addEdge("vertex1", "vertex2", "friend")
 
-    if O.query().V().count().first()['int_value'] != 2:
+    if O.query().V().count().first()['data'] != 2:
         errors.append("duplicate vertex add error")
 
-    if O.query().E().count().first()['int_value'] != 2:
+    if O.query().E().count().first()['data'] != 2:
         errors.append("duplicate edge add error")
     return errors

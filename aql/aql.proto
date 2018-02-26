@@ -46,11 +46,12 @@ message GraphStatement {
         //Function Methods
         string import = 50;
         string map = 51;
-        string fold = 52;
-        string filter = 53;
-        string filterValues = 54;
+        FoldStatement fold = 52;
+        FoldStatement vertexFold = 53;
+        string filter = 54;
+        string filterValues = 55;
 
-        string vertexFromValues = 55;
+        string vertexFromValues = 56;
     }
 }
 
@@ -61,6 +62,11 @@ message HasStatement {
 
 message SelectStatement {
     repeated string labels = 1;
+}
+
+message FoldStatement {
+  string source = 1;
+  google.protobuf.Value init = 2;
 }
 
 message Vertex {
@@ -87,13 +93,10 @@ message Bundle {
 
 message QueryResult {
     oneof result {
-      google.protobuf.Struct struct = 1;
-      Vertex vertex = 2;
-      Edge edge = 3;
-      Bundle bundle = 4;
-      int32 int_value = 5;
-      double float_value = 6;
-      string str_value = 7;
+      Vertex vertex = 1;
+      Edge edge = 2;
+      Bundle bundle = 3;
+      google.protobuf.Value data = 4;
     }
 }
 
@@ -213,6 +216,7 @@ service Edit {
   rpc AddSubGraph(Graph) returns (EditResult) {
     option (google.api.http) = {
       post: "/v1/graph/{graph}/subgraph"
+      body: "*"
     };
   }
 

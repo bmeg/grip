@@ -25,7 +25,8 @@ var Cmd = &cobra.Command{
 		}
 		if vertexDump {
 			jm := jsonpb.Marshaler{}
-			elems, err := conn.Query(graph).V().Execute()
+			q := aql.V()
+			elems, err := conn.Execute(graph, q)
 			if err != nil {
 				log.Printf("ERROR: %s", err)
 				return err
@@ -38,7 +39,8 @@ var Cmd = &cobra.Command{
 
 		if edgeDump {
 			jm := jsonpb.Marshaler{}
-			elems, err := conn.Query(graph).E().Execute()
+			q := aql.E()
+			elems, err := conn.Execute(graph, q)
 			if err != nil {
 				log.Printf("ERROR: %s", err)
 				return err

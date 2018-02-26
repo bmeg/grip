@@ -574,11 +574,11 @@ func (kgdb *KVInterfaceGDB) GetEdge(id string, loadProp bool) *aql.Edge {
 		for it.Seek(ekeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), ekeyPrefix); it.Next() {
 			_, eid, src, dst, label, _ := EdgeKeyParse(it.Key())
 			if loadProp {
-				e := &aql.Edge{}
+				e = &aql.Edge{}
 				d, _ := it.Value()
 				proto.Unmarshal(d, e)
 			} else {
-				e := &aql.Edge{}
+				e = &aql.Edge{}
 				e.Gid = eid
 				e.From = src
 				e.To = dst
