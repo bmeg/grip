@@ -56,14 +56,21 @@ func (engine *GraphEngine) GetBundle(graph, id string) *aql.Bundle {
 	return engine.Arachne.Graph(graph).GetBundle(id, true)
 }
 
+// GetTimestamp wraps `ArachneInterface.GetTimestamp`
+func (engine *GraphEngine) GetTimestamp(graph string) *aql.Timestamp {
+	t := engine.Arachne.Graph(graph).GetTimestamp()
+	o := aql.Timestamp{Timestamp: t}
+	return &o
+}
+
 // AddEdge wraps `ArachneInterface.AddEdge`
-func (engine *GraphEngine) AddEdge(graph string, edge aql.Edge) error {
-	return engine.Arachne.Graph(graph).SetEdge(edge)
+func (engine *GraphEngine) AddEdge(graph string, edgeArray []*aql.Edge) error {
+	return engine.Arachne.Graph(graph).SetEdge(edgeArray)
 }
 
 // AddVertex wraps `ArachneInterface.AddVertex`
-func (engine *GraphEngine) AddVertex(graph string, vertex aql.Vertex) error {
-	return engine.Arachne.Graph(graph).SetVertex(vertex)
+func (engine *GraphEngine) AddVertex(graph string, vertexArray []*aql.Vertex) error {
+	return engine.Arachne.Graph(graph).SetVertex(vertexArray)
 }
 
 // AddBundle wraps `ArachneInterface.AddBundle`
@@ -160,7 +167,7 @@ func (trav *Traversal) RunStatement(statement *aql.GraphStatement) error {
 	} else if x, ok := statement.GetStatement().(*aql.GraphStatement_Map); ok {
 		trav.Query = trav.Query.Map(x.Map)
 	} else if x, ok := statement.GetStatement().(*aql.GraphStatement_Fold); ok {
-		trav.Query = trav.Query.Fold(x.Fold)
+		trav.Query = trav.Query.Fold(x.Fold.Source, x.Fold.Init)
 	} else if x, ok := statement.GetStatement().(*aql.GraphStatement_Filter); ok {
 		trav.Query = trav.Query.Filter(x.Filter)
 	} else if x, ok := statement.GetStatement().(*aql.GraphStatement_FilterValues); ok {

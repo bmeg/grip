@@ -4,5 +4,5 @@ syntax = "proto3";
 package kvindex;
 
 message Doc {
-  repeated bytes terms =1;
+  repeated bytes terms = 1;
 }
