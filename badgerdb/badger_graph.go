@@ -288,51 +288,61 @@ func (bgdb *BadgerGDB) GetTimestamp() string {
 
 // SetVertex adds an edge to the graph, if it already exists
 // in the graph, it is replaced
-func (bgdb *BadgerGDB) SetVertex(vertex aql.Vertex) error {
-	d, _ := proto.Marshal(&vertex)
-	k := vertexKey(bgdb.graph, vertex.Gid)
-	err := bgdb.kv.Update(func(tx *badger.Txn) error {
-		return tx.Set(k, d)
-	})
-	bgdb.ts.Touch(bgdb.graph)
-	return err
+func (bgdb *BadgerGDB) SetVertex(vertexArray []*aql.Vertex) error {
+	for _, vertex := range vertexArray {
+		d, _ := proto.Marshal(vertex)
+		k := vertexKey(bgdb.graph, vertex.Gid)
+		err := bgdb.kv.Update(func(tx *badger.Txn) error {
+			return tx.Set(k, d)
+		})
+		if err != nil {
+			return err
+		}
+		bgdb.ts.Touch(bgdb.graph)
+	}
+	return nil
 }
 
 // SetEdge adds an edge to the graph, if the id is not "" and in already exists
 // in the graph, it is replaced
-func (bgdb *BadgerGDB) SetEdge(edge aql.Edge) error {
-	if edge.Gid == "" {
-		eid := fmt.Sprintf("%d", rand.Uint64())
-		for ; hasKey(bgdb.kv, edgeKeyPrefix(bgdb.graph, eid)); eid = fmt.Sprintf("%d", rand.Uint64()) {
+func (bgdb *BadgerGDB) SetEdge(edgeArray []*aql.Edge) error {
+	for _, edge := range edgeArray {
+		if edge.Gid == "" {
+			eid := fmt.Sprintf("%d", rand.Uint64())
+			for ; hasKey(bgdb.kv, edgeKeyPrefix(bgdb.graph, eid)); eid = fmt.Sprintf("%d", rand.Uint64()) {
+			}
+			edge.Gid = eid
 		}
-		edge.Gid = eid
+		eid := edge.Gid
+		data, _ := proto.Marshal(edge)
+
+		src := edge.From
+		dst := edge.To
+		ekey := edgeKey(bgdb.graph, eid, src, dst)
+		skey := srcEdgeKey(bgdb.graph, src, dst, eid, edge.Label)
+		dkey := dstEdgeKey(bgdb.graph, src, dst, eid, edge.Label)
+
+		err := bgdb.kv.Update(func(tx *badger.Txn) error {
+			err := tx.SetWithMeta(ekey, data, cEdgeSingle)
+			if err != nil {
+				return err
+			}
+			err = tx.SetWithMeta(skey, []byte{}, cEdgeSingle)
+			if err != nil {
+				return err
+			}
+			err = tx.SetWithMeta(dkey, []byte{}, cEdgeSingle)
+			if err != nil {
+				return err
+			}
+			return nil
+		})
+		if err != nil {
+			return err
+		}
+		bgdb.ts.Touch(bgdb.graph)
 	}
-	eid := edge.Gid
-	data, _ := proto.Marshal(&edge)
-
-	src := edge.From
-	dst := edge.To
-	ekey := edgeKey(bgdb.graph, eid, src, dst)
-	skey := srcEdgeKey(bgdb.graph, src, dst, eid, edge.Label)
-	dkey := dstEdgeKey(bgdb.graph, src, dst, eid, edge.Label)
-
-	err := bgdb.kv.Update(func(tx *badger.Txn) error {
-		err := tx.SetWithMeta(ekey, data, cEdgeSingle)
-		if err != nil {
-			return err
-		}
-		err = tx.SetWithMeta(skey, []byte{}, cEdgeSingle)
-		if err != nil {
-			return err
-		}
-		err = tx.SetWithMeta(dkey, []byte{}, cEdgeSingle)
-		if err != nil {
-			return err
-		}
-		return nil
-	})
-	bgdb.ts.Touch(bgdb.graph)
-	return err
+	return nil
 }
 
 // SetBundle adds a bundle to the graph

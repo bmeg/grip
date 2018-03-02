@@ -64,13 +64,13 @@ func (engine *GraphEngine) GetTimestamp(graph string) *aql.Timestamp {
 }
 
 // AddEdge wraps `ArachneInterface.AddEdge`
-func (engine *GraphEngine) AddEdge(graph string, edge aql.Edge) error {
-	return engine.Arachne.Graph(graph).SetEdge(edge)
+func (engine *GraphEngine) AddEdge(graph string, edgeArray []*aql.Edge) error {
+	return engine.Arachne.Graph(graph).SetEdge(edgeArray)
 }
 
 // AddVertex wraps `ArachneInterface.AddVertex`
-func (engine *GraphEngine) AddVertex(graph string, vertex aql.Vertex) error {
-	return engine.Arachne.Graph(graph).SetVertex(vertex)
+func (engine *GraphEngine) AddVertex(graph string, vertexArray []*aql.Vertex) error {
+	return engine.Arachne.Graph(graph).SetVertex(vertexArray)
 }
 
 // AddBundle wraps `ArachneInterface.AddBundle`

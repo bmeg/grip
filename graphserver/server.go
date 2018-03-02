@@ -140,7 +140,7 @@ func (server *ArachneServer) AddGraph(ctx context.Context, elem *aql.ElementID) 
 // AddVertex adds a vertex to the graph
 func (server *ArachneServer) AddVertex(ctx context.Context, elem *aql.GraphElement) (*aql.EditResult, error) {
 	var id string
-	server.engine.AddVertex(elem.Graph, *elem.Vertex)
+	server.engine.AddVertex(elem.Graph, []*aql.Vertex{elem.Vertex})
 	id = elem.Vertex.Gid
 	return &aql.EditResult{Result: &aql.EditResult_Id{Id: id}}, nil
 }
@@ -148,7 +148,7 @@ func (server *ArachneServer) AddVertex(ctx context.Context, elem *aql.GraphEleme
 // AddEdge adds an edge to the graph
 func (server *ArachneServer) AddEdge(ctx context.Context, elem *aql.GraphElement) (*aql.EditResult, error) {
 	var id string
-	server.engine.AddEdge(elem.Graph, *elem.Edge)
+	server.engine.AddEdge(elem.Graph, []*aql.Edge{elem.Edge})
 	id = elem.Edge.Gid
 	return &aql.EditResult{Result: &aql.EditResult_Id{Id: id}}, nil
 }
@@ -163,27 +163,69 @@ func (server *ArachneServer) AddBundle(ctx context.Context, elem *aql.GraphEleme
 
 // AddSubGraph adds a full subgraph to the graph in one post
 func (server *ArachneServer) AddSubGraph(ctx context.Context, subgraph *aql.Graph) (*aql.EditResult, error) {
-	for _, i := range subgraph.Vertices {
-		if err := server.engine.AddVertex(subgraph.Graph, *i); err != nil {
-			return nil, err
-		}
+	if err := server.engine.AddVertex(subgraph.Graph, subgraph.Vertices); err != nil {
+		return nil, err
 	}
-	for _, i := range subgraph.Edges {
-		if err := server.engine.AddEdge(subgraph.Graph, *i); err != nil {
-			return nil, err
-		}
+	if err := server.engine.AddEdge(subgraph.Graph, subgraph.Edges); err != nil {
+		return nil, err
 	}
 	log.Printf("%d vertices and %d edges added to graph %s", len(subgraph.Vertices), len(subgraph.Edges), subgraph.Graph)
 	id := subgraph.Graph
 	return &aql.EditResult{Result: &aql.EditResult_Id{Id: id}}, nil
 }
 
+type graphElementArray struct {
+	graph    string
+	vertices []*aql.Vertex
+	edges    []*aql.Edge
+}
+
+func newGraphElementArray(name string, vertexBufSize, edgeBufSize int) *graphElementArray {
+	if vertexBufSize != 0 {
+		return &graphElementArray{graph: name, vertices: make([]*aql.Vertex, 0, vertexBufSize)}
+	}
+	if edgeBufSize != 0 {
+		return &graphElementArray{graph: name, edges: make([]*aql.Edge, 0, edgeBufSize)}
+	}
+	return nil
+}
+
 // StreamElements takes a stream of inputs and loads them into the graph
 func (server *ArachneServer) StreamElements(stream aql.Edit_StreamElementsServer) error {
+	vertexBatchSize := 500
+	edgeBatchSize := 500
+
 	vertCount := 0
 	edgeCount := 0
 	bundleCount := 0
-	for {
+
+	vertexBatchChan := make(chan *graphElementArray)
+	edgeBatchChan := make(chan *graphElementArray)
+	closeChan := make(chan bool)
+
+	go func() {
+		for vBatch := range vertexBatchChan {
+			err := server.engine.AddVertex(vBatch.graph, vBatch.vertices)
+			if err != nil {
+				log.Printf("Insert Error: %s", err)
+			}
+		}
+		closeChan <- true
+	}()
+	go func() {
+		for eBatch := range edgeBatchChan {
+			err := server.engine.AddEdge(eBatch.graph, eBatch.edges)
+			if err != nil {
+				log.Printf("Insert Error: %s", err)
+			}
+		}
+		closeChan <- true
+	}()
+
+	vertexBatch := newGraphElementArray("", vertexBatchSize, 0)
+	edgeBatch := newGraphElementArray("", 0, edgeBatchSize)
+	var loopErr error
+	for loopErr == nil {
 		element, err := stream.Recv()
 		if err == io.EOF {
 			if vertCount != 0 {
@@ -195,23 +237,44 @@ func (server *ArachneServer) StreamElements(stream aql.Edit_StreamElementsServer
 			if bundleCount != 0 {
 				log.Printf("%d bundles streamed", bundleCount)
 			}
-			return stream.SendAndClose(&aql.EditResult{Result: &aql.EditResult_Id{}})
-		}
-		if err != nil {
+			vertexBatchChan <- vertexBatch
+			edgeBatchChan <- edgeBatch
+			loopErr = err
+		} else if err != nil {
 			log.Printf("Streaming Error: %s", err)
-			return err
-		}
-		if element.Vertex != nil {
-			server.AddVertex(context.Background(), element)
-			vertCount++
-		} else if element.Edge != nil {
-			server.AddEdge(context.Background(), element)
-			edgeCount++
-		} else if element.Bundle != nil {
-			server.AddBundle(context.Background(), element)
-			bundleCount++
+			loopErr = err
+		} else {
+			if element.Vertex != nil {
+				if vertexBatch.graph != element.Graph || len(vertexBatch.vertices) >= vertexBatchSize {
+					vertexBatchChan <- vertexBatch
+					vertexBatch = newGraphElementArray(element.Graph, vertexBatchSize, 0)
+				}
+				v := *element.Vertex
+				vertexBatch.vertices = append(vertexBatch.vertices, &v)
+				vertCount++
+			} else if element.Edge != nil {
+				if edgeBatch.graph != element.Graph || len(edgeBatch.edges) >= edgeBatchSize {
+					edgeBatchChan <- edgeBatch
+					edgeBatch = newGraphElementArray(element.Graph, 0, edgeBatchSize)
+				}
+				edgeBatch.edges = append(edgeBatch.edges, element.Edge)
+				edgeCount++
+			} else if element.Bundle != nil {
+				server.AddBundle(context.Background(), element)
+				bundleCount++
+			}
 		}
 	}
+
+	close(edgeBatchChan)
+	close(vertexBatchChan)
+	<-closeChan
+	<-closeChan
+
+	if loopErr != io.EOF {
+		return loopErr
+	}
+	return stream.SendAndClose(&aql.EditResult{Result: &aql.EditResult_Id{}})
 }
 
 // DeleteVertex deletes a vertex from the server

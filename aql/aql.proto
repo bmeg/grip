@@ -112,7 +112,6 @@ message EditResult {
   }
 }
 
-
 message GraphElement {
   string graph = 1;
   Vertex vertex = 2;

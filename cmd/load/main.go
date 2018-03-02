@@ -37,7 +37,9 @@ var Cmd = &cobra.Command{
 			elemChan := make(chan aql.GraphElement)
 			wait := make(chan bool)
 			go func() {
-				conn.StreamElements(elemChan)
+				if err := conn.StreamElements(elemChan); err != nil {
+					log.Printf("Load Error: %s", err)
+				}
 				wait <- false
 			}()
 			for line := range reader {
