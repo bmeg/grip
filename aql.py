@@ -60,14 +60,14 @@ class Graph:
         """
         return Query(self)
 
-    def addVertex(self, id, label, prop={}):
+    def addVertex(self, id, label, data={}):
         """
         Add vertex to a graph.
         """
         payload = json.dumps({
             "gid" : id,
             "label" : label,
-            "data" : prop
+            "data" : data
         })
         headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
         request = urllib2.Request(self.url + "/" + self.name + "/vertex", payload, headers=headers)
@@ -75,18 +75,20 @@ class Graph:
         result = response.read()
         return json.loads(result)
 
-    def addEdge(self, src, dst, label, prop={}):
+    def addEdge(self, src, dst, label, data={}, id=None):
         """
         Add edge to the graph.
         """
-        payload = json.dumps({
+        payload = {
             "from" : src,
             "to" : dst,
             "label" : label,
-            "data" : prop
-        })
+            "data" : data
+        }
+        if id is not None:
+            payload['gid'] = id
         headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
-        request = urllib2.Request(self.url + "/" + self.name + "/edge", payload, headers=headers)
+        request = urllib2.Request(self.url + "/" + self.name + "/edge", json.dumps(payload), headers=headers)
         response = urllib2.urlopen(request)
         result = response.read()
         return json.loads(result)
@@ -125,25 +127,25 @@ class BulkAdd:
         self.graph = graph
         self.elements = []
 
-    def addVertex(self, id, label, prop={}):
+    def addVertex(self, id, label, data={}):
         payload = json.dumps({
             "graph" : self.graph,
             "vertex" : {
                 "gid" : id,
                 "label" : label,
-                "data" : prop
+                "data" : data
             }
         })
         self.elements.append(payload)
 
-    def addEdge(self, src, dst, label, prop={}):
+    def addEdge(self, src, dst, label, data={}):
         payload = json.dumps({
             "graph" : self.graph,
             "edge" : {
                 "from" : src,
                 "to" : dst,
                 "label" : label,
-                "data" : prop
+                "data" : data
             }
         })
         self.elements.append(payload)
