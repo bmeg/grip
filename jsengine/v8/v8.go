@@ -50,10 +50,19 @@ func NewFunction(source string, imports []string) (jsengine.JSEngine, error) {
 func (self *V8Runtime) Call(input ...*aql.QueryResult) *aql.QueryResult {
 	m := []*v8.Value{}
 	for _, i := range input {
-		s := i.GetStruct()
-		m_i := protoutil.AsMap(s)
-		v, _ := self.ctx.Create(m_i)
-		m = append(m, v)
+		if x, ok := i.GetResult().(*aql.QueryResult_Edge); ok {
+			mI := protoutil.AsMap(x.Edge.Data)
+			v, _ := self.ctx.Create(mI)
+			m = append(m, v)
+		} else if x, ok := i.GetResult().(*aql.QueryResult_Vertex); ok {
+			mI := protoutil.AsMap(x.Vertex.Data)
+			v, _ := self.ctx.Create(mI)
+			m = append(m, v)
+		} else if x, ok := i.GetResult().(*aql.QueryResult_Data); ok {
+			mI := protoutil.UnWrapValue(x.Data)
+			v, _ := self.ctx.Create(mI)
+			m = append(m, v)
+		}
 	}
 	value, err := self.user.Call(nil, m...)
 	if err != nil {
@@ -65,9 +74,9 @@ func (self *V8Runtime) Call(input ...*aql.QueryResult) *aql.QueryResult {
 	jv, _ := value.MarshalJSON()
 	json.Unmarshal(jv, &val)
 
-	log.Printf("function return: %#v", val)
-	o := protoutil.AsStruct(val)
-	return &aql.QueryResult{&aql.QueryResult_Struct{o}}
+	//log.Printf("function return: %#v", val)
+	o := protoutil.WrapValue(val)
+	return &aql.QueryResult{&aql.QueryResult_Data{o}}
 }
 
 func (self *V8Runtime) CallBool(input ...*aql.QueryResult) bool {
@@ -81,8 +90,8 @@ func (self *V8Runtime) CallBool(input ...*aql.QueryResult) bool {
 			m_i := protoutil.AsMap(x.Vertex.Data)
 			v, _ := self.ctx.Create(m_i)
 			m = append(m, v)
-		} else if x, ok := i.GetResult().(*aql.QueryResult_Struct); ok {
-			m_i := protoutil.AsMap(x.Struct)
+		} else if x, ok := i.GetResult().(*aql.QueryResult_Data); ok {
+			m_i := protoutil.UnWrapValue(x.Data)
 			v, _ := self.ctx.Create(m_i)
 			m = append(m, v)
 		}

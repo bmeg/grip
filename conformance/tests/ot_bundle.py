@@ -27,4 +27,11 @@ def test_bundle_filter(O):
     if count != 49:
         errors.append("Fail: Bundle Filter %s != %s" % (count, 49))
 
+    count = 0
+    for i in O.query().V("srcVertex").outgoing("related").execute():
+        count += 1
+    if count != 100:
+        errors.append("Fail: Bundle outgoing %s != %s" % (count, 100))
+
+
     return errors
