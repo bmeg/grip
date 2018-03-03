@@ -13,7 +13,7 @@ type Operator int
 const (
 	//EQ Equal
 	EQ Operator = iota
-	//NE Not Equal
+	//NEQ Not Equal
 	NEQ
 	//GT
 	//LT
@@ -42,9 +42,7 @@ func CompareStructFields(a, b *structpb.Struct, aPath, bPath string, op Operator
 	return false, nil
 }
 
-
-
-//CompareStructFields compares two ProtoBuf json structs using JSONPaths
+//CompareFields compares two ProtoBuf json structs using JSONPaths
 func CompareFields(aMap, bMap map[string]interface{}, aPath, bPath string, op Operator) (bool, error) {
 	aRes, err := jsonpath.JsonPathLookup(aMap, aPath)
 	if err != nil {

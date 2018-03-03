@@ -8,9 +8,9 @@ import (
 	_ "github.com/bmeg/arachne/jsengine/goja" // import goja so it registers with the driver map
 	_ "github.com/bmeg/arachne/jsengine/otto" // import otto so it registers with the driver map
 	_ "github.com/bmeg/arachne/jsengine/v8"   // import v8 so it registers with the driver map
+	"github.com/bmeg/arachne/jsonpath"
 	"github.com/bmeg/arachne/protoutil"
 	"github.com/golang/protobuf/ptypes/struct"
-	"github.com/bmeg/arachne/jsonpath"
 	"log"
 	"strings"
 	"sync"
@@ -350,8 +350,7 @@ func (pengine *PipeEngine) Has(prop string, value ...string) QueryInterface {
 		})
 }
 
-
-// Has does a comparison of field `prop` in current graph element against list of values
+// HasValue does a comparison of field `prop` in current graph element against a value
 func (pengine *PipeEngine) HasValue(key1, key2 string, condition aql.Condition) QueryInterface {
 	return pengine.append(fmt.Sprintf("HasValue: %s %s %s", key1, key2, condition),
 		func(t timer, ctx context.Context) PipeOut {
@@ -361,29 +360,28 @@ func (pengine *PipeEngine) HasValue(key1, key2 string, condition aql.Condition) 
 				defer close(o)
 				t.startTimer("all")
 				for i := range pipe.Travelers {
-						c := map[string]interface{}{}
-						for k, _ := range i.State {
-							c[k] = i.ElementToMap(k) 
+					c := map[string]interface{}{}
+					for k := range i.State {
+						c[k] = i.ElementToMap(k)
+					}
+					pass := false
+					if condition == aql.Condition_EQ {
+						if ok, _ := jsonpath.CompareFields(c, c, key1, key2, jsonpath.EQ); ok {
+							pass = true
 						}
-						pass := false
-						if condition == aql.Condition_EQ {
-							if ok, _ := jsonpath.CompareFields(c, c, key1, key2, jsonpath.EQ); ok {
-								pass = true
-							}
-						} else if condition == aql.Condition_NEQ {
-							if ok, _ := jsonpath.CompareFields(c, c, key1, key2, jsonpath.NEQ); ok {
-								pass = true
-							}
+					} else if condition == aql.Condition_NEQ {
+						if ok, _ := jsonpath.CompareFields(c, c, key1, key2, jsonpath.NEQ); ok {
+							pass = true
 						}
-						if pass {
-							o <- i
-						}
+					}
+					if pass {
+						o <- i
+					}
 				}
 			}()
 			return newPipeOut(o, stateCustom(pipe.State), pipe.ValueStates)
 		})
 }
-
 
 // Out adds a step to the pipeline that moves the travels (can be on either an edge
 // or a vertex) to the vertex on the other side of an outgoing edge
