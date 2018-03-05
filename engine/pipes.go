@@ -1,144 +1,67 @@
 package engine
 
 import (
-	"fmt"
 	"github.com/bmeg/arachne/aql"
-	"github.com/bmeg/arachne/protoutil"
+	"github.com/bmeg/arachne/gdbi"
 )
 
-type inPipe <-chan *traveler
-type outPipe chan<- *traveler
-
-type traveler struct {
-	id          string
-	label       string
-	from, to    string
-	data        map[string]interface{}
-	marks       map[string]*traveler
-	count       int64
-	groupCounts map[string]int64
-	row         []*traveler
-	value       interface{}
-	dataType
+type Pipeline struct {
+	procs []gdbi.Processor
 }
 
-type dataType uint8
-
-const (
-	noData dataType = iota
-	vertexData
-	edgeData
-	countData
-	groupCountData
-	valueData
-	rowData
-)
-
-func start(procs []processor, bufsize int) <-chan *traveler {
-	if len(procs) == 0 {
-		ch := make(chan *traveler)
+func (pipe Pipeline) Start(bufsize int) gdbi.InPipe {
+	if len(pipe.procs) == 0 {
+		ch := make(chan *gdbi.Traveler)
 		close(ch)
 		return ch
 	}
 
-	in := make(chan *traveler)
-	final := make(chan *traveler, bufsize)
+	in := make(chan *gdbi.Traveler)
+	final := make(chan *gdbi.Traveler, bufsize)
 
 	// Write an empty traveler to input
 	// to trigger the computation.
 	go initPipe(in)
 
-	for i := 0; i < len(procs)-1; i++ {
-		glue := make(chan *traveler, bufsize)
-		go startOne(procs[i], in, glue)
+	for i := 0; i < len(pipe.procs)-1; i++ {
+		glue := make(chan *gdbi.Traveler, bufsize)
+		go startOne(pipe.procs[i], in, glue)
 		in = glue
 	}
 
-	last := procs[len(procs)-1]
+	last := pipe.procs[len(pipe.procs)-1]
 	go startOne(last, in, final)
 
 	return final
 }
 
+
+func (pipe Pipeline) Run() <-chan *aql.ResultRow {
+
+	bufsize := 100
+	resch := make(chan *aql.ResultRow, bufsize)
+
+	go func() {
+		defer close(resch)
+
+		for t := range pipe.Start(bufsize) {
+			resch <- t.Convert(gdbi.VertexData)
+		}
+	}()
+
+	return resch
+}
+
+
+
+
 // Sends an empty traveler to the pipe to kick off pipelines of processors.
-func initPipe(out outPipe) {
-	out <- &traveler{}
+func initPipe(out gdbi.OutPipe) {
+	out <- &gdbi.Traveler{}
 	close(out)
 }
 
-func startOne(proc processor, in inPipe, out outPipe) {
-	proc.process(in, out)
+func startOne(proc gdbi.Processor, in gdbi.InPipe, out gdbi.OutPipe) {
+	proc.Process(in, out)
 	close(out)
-}
-
-func convert(t *traveler) *aql.ResultRow {
-	switch t.dataType {
-	case vertexData:
-		return &aql.ResultRow{
-			Value: &aql.QueryResult{
-				&aql.QueryResult_Vertex{
-					&aql.Vertex{
-						Gid:   t.id,
-						Label: t.label,
-						Data:  protoutil.AsStruct(t.data),
-					},
-				},
-			},
-		}
-
-	case edgeData:
-		return &aql.ResultRow{
-			Value: &aql.QueryResult{
-				&aql.QueryResult_Edge{
-					&aql.Edge{
-						Gid:   t.id,
-						From:  t.from,
-						To:    t.to,
-						Label: t.label,
-						Data:  protoutil.AsStruct(t.data),
-					},
-				},
-			},
-		}
-
-	case countData:
-		return &aql.ResultRow{
-			Value: &aql.QueryResult{
-				&aql.QueryResult_Data{
-					protoutil.WrapValue(t.count),
-				},
-			},
-		}
-
-	case groupCountData:
-		return &aql.ResultRow{
-			Value: &aql.QueryResult{
-				&aql.QueryResult_Data{
-					protoutil.WrapValue(t.groupCounts),
-				},
-			},
-		}
-
-	case rowData:
-		res := &aql.ResultRow{}
-		for _, r := range t.row {
-			// TODO a bit hacky. Technically, if r was somehow a row,
-			//      this would incorrectly return nil.
-			res.Row = append(res.Row, convert(r).Value)
-		}
-
-		return res
-
-	case valueData:
-		return &aql.ResultRow{
-			Value: &aql.QueryResult{
-				&aql.QueryResult_Data{
-					protoutil.WrapValue(t.value),
-				},
-			},
-		}
-
-	default:
-		panic(fmt.Errorf("unhandled data type %d", t.dataType))
-	}
 }

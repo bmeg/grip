@@ -7,20 +7,20 @@ import (
 	"github.com/bmeg/arachne/protoutil"
 )
 
-func compile(stmts []*aql.GraphStatement, db gdbi.GraphDB) ([]processor, error) {
+func Compile(stmts []*aql.GraphStatement, db gdbi.GraphInterface) (Pipeline, error) {
 	if len(stmts) == 0 {
-		return nil, nil
+		return Pipeline{}, nil
 	}
 
 	stmts = flatten(stmts)
 
 	if err := validate(stmts); err != nil {
-		return nil, fmt.Errorf("invalid statments: %s", err)
+		return Pipeline{}, fmt.Errorf("invalid statments: %s", err)
 	}
 
-	last := noData
-	procs := make([]processor, 0, len(stmts))
-	add := func(p processor) {
+	last := gdbi.NoData
+	procs := make([]gdbi.Processor, 0, len(stmts))
+	add := func(p gdbi.Processor) {
 		procs = append(procs, p)
 	}
 
@@ -29,131 +29,135 @@ func compile(stmts []*aql.GraphStatement, db gdbi.GraphDB) ([]processor, error) 
 
 		case *aql.GraphStatement_V:
 			ids := protoutil.AsStringList(stmt.V)
-			add(&lookupVerts{db: db, ids: ids})
-			last = vertexData
+			add(&LookupVerts{db: db, ids: ids})
+			last = gdbi.VertexData
 
 		case *aql.GraphStatement_E:
 			var ids []string
 			if stmt.E != "" {
 				ids = append(ids, stmt.E)
 			}
-			add(&lookupEdges{db: db, ids: ids})
-			last = edgeData
+			add(&LookupEdges{db: db, ids: ids})
+			last = gdbi.EdgeData
 
 		case *aql.GraphStatement_Has:
-			add(&hasData{stmt.Has})
+			add(&HasData{stmt.Has})
 
 		case *aql.GraphStatement_HasLabel:
 			labels := protoutil.AsStringList(stmt.HasLabel)
-			add(&hasLabel{labels: labels})
+			add(&HasLabel{labels: labels})
 
 		case *aql.GraphStatement_HasId:
 			ids := protoutil.AsStringList(stmt.HasId)
-			add(&hasID{ids: ids})
+			add(&HasID{ids: ids})
 
 		case *aql.GraphStatement_In:
-			// TODO should validation happen in a pre-processing step?
-			//      there may end up being too many rules to fit here.
-			if last != vertexData {
-				return nil, fmt.Errorf(`"in" is only valid for the vertex type`)
-			}
 			labels := protoutil.AsStringList(stmt.In)
-			add(&lookupAdjIn{db, labels})
+			if last == gdbi.VertexData {
+				add(&LookupVertexAdjIn{db, labels})
+			} else if last == gdbi.EdgeData {
+				add(&LookupEdgeAdjIn{db, labels})
+			} else {
+				return Pipeline{}, fmt.Errorf(`"in" reached weird state`)
+			}
 
 		case *aql.GraphStatement_Out:
 
-			if last != vertexData {
-				// TODO need inV, outV, bothV
-				// TODO what does ophion do?
-				// TODO can coerce out() to accept edges? what does "labels" mean?
-				//      vertex label?
-				return nil, fmt.Errorf(`"out" statement is only valid for the vertex type`)
-			}
 			labels := protoutil.AsStringList(stmt.Out)
-			add(&lookupAdjOut{db, labels})
+			if last == gdbi.VertexData {
+				add(&LookupVertexAdjOut{db, labels})
+			} else if last == gdbi.EdgeData {
+				add(&LookupEdgeAdjOut{db, labels})
+			} else {
+				return Pipeline{}, fmt.Errorf(`"out" reached weird state`)
+			}
 
 		case *aql.GraphStatement_Both:
 
-			if last != vertexData {
-				return nil, fmt.Errorf(`"both" statement is only valid for the vertex type`)
-			}
 			labels := protoutil.AsStringList(stmt.Both)
-			add(&concat{
-				&lookupAdjIn{db, labels},
-				&lookupAdjOut{db, labels},
-			})
+			if last == gdbi.VertexData {
+				add(&concat{
+					&LookupVertexAdjIn{db, labels},
+					&LookupVertexAdjOut{db, labels},
+				})
+			} else if last == gdbi.EdgeData {
+				add(&concat{
+					&LookupEdgeAdjIn{db, labels},
+					&LookupEdgeAdjOut{db, labels},
+				})
+			} else {
+				return Pipeline{}, fmt.Errorf(`"both" reached weird state`)
+			}
 
 		case *aql.GraphStatement_InEdge:
 
-			if last != vertexData {
-				return nil, fmt.Errorf(`"inEdge" statement is only valid for the vertex type`)
+			if last != gdbi.VertexData {
+				return Pipeline{}, fmt.Errorf(`"inEdge" statement is only valid for the vertex type`)
 			}
 			labels := protoutil.AsStringList(stmt.InEdge)
-			add(&inEdge{db, labels})
-			last = edgeData
+			add(&InEdge{db, labels})
+			last = gdbi.EdgeData
 
 		case *aql.GraphStatement_OutEdge:
 
-			if last != vertexData {
-				return nil, fmt.Errorf(`"outEdge" statement is only valid for the vertex type`)
+			if last != gdbi.VertexData {
+				return Pipeline{}, fmt.Errorf(`"outEdge" statement is only valid for the vertex type`)
 			}
 			labels := protoutil.AsStringList(stmt.OutEdge)
-			add(&outEdge{db, labels})
-			last = edgeData
+			add(&OutEdge{db, labels})
+			last = gdbi.EdgeData
 
 		case *aql.GraphStatement_BothEdge:
 
-			if last != vertexData {
-				return nil, fmt.Errorf(`"bothEdge" statement is only valid for the vertex type`)
+			if last != gdbi.VertexData {
+				return Pipeline{}, fmt.Errorf(`"bothEdge" statement is only valid for the vertex type`)
 			}
 			labels := protoutil.AsStringList(stmt.BothEdge)
 			add(&concat{
-				&inEdge{db, labels},
-				&outEdge{db, labels},
+				&InEdge{db, labels},
+				&OutEdge{db, labels},
 			})
-			last = edgeData
+			last = gdbi.EdgeData
 
 		case *aql.GraphStatement_Limit:
-			add(&limit{stmt.Limit})
+			add(&Limit{stmt.Limit})
 
 		case *aql.GraphStatement_Count:
 			// TODO validate the types following a counter
-			add(&count{})
-			last = countData
+			add(&Count{})
+			last = gdbi.CountData
 
 		case *aql.GraphStatement_GroupCount:
 			// TODO validate the types following a counter
-			add(&groupCount{stmt.GroupCount})
-			last = groupCountData
+			add(&GroupCount{stmt.GroupCount})
+			last = gdbi.GroupCountData
 
 		case *aql.GraphStatement_As:
 			// TODO probably needs to be checked for a lot of statements.
-			if last == noData {
-				return nil, fmt.Errorf(`"as" statement is not valid at the beginning of a traversal`)
+			if last == gdbi.NoData {
+				return Pipeline{}, fmt.Errorf(`"as" statement is not valid at the beginning of a traversal`)
 			}
 			if stmt.As == "" {
-				return nil, fmt.Errorf(`"as" statement cannot have an empty name`)
+				return Pipeline{}, fmt.Errorf(`"as" statement cannot have an empty name`)
 			}
-			// TODO support multiple keys in aql
-			marks := []string{stmt.As}
-			add(&marker{marks})
+			add(&Marker{stmt.As})
 
 		case *aql.GraphStatement_Select:
 			// TODO should track mark types so "last" can be set after select
 			// TODO track mark names and fail when a name is missing.
 			switch len(stmt.Select.Labels) {
 			case 0:
-				return nil, fmt.Errorf(`"select" statement has an empty list of mark names`)
+				return Pipeline{}, fmt.Errorf(`"select" statement has an empty list of mark names`)
 			case 1:
 				add(&selectOne{stmt.Select.Labels[0]})
 			default:
 				add(&selectMany{stmt.Select.Labels})
-				last = rowData
+				last = gdbi.RowData
 			}
 
 		case *aql.GraphStatement_Values:
-			add(&values{stmt.Values.Labels})
-			last = valueData
+			add(&Values{stmt.Values.Labels})
+			last = gdbi.ValueData
 
 		/*
 		   case *aql.GraphStatement_Import:
@@ -165,7 +169,7 @@ func compile(stmts []*aql.GraphStatement, db gdbi.GraphDB) ([]processor, error) 
 		*/
 
 		default:
-			return nil, fmt.Errorf("unknown statement type")
+			return Pipeline{}, fmt.Errorf("unknown statement type")
 		}
 	}
 
@@ -186,7 +190,7 @@ func compile(stmts []*aql.GraphStatement, db gdbi.GraphDB) ([]processor, error) 
 	  }
 	*/
 
-	return procs, nil
+	return Pipeline{procs}, nil
 }
 
 func validate(stmts []*aql.GraphStatement) error {

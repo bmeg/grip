@@ -92,6 +92,8 @@ func UnWrapValue(value *structpb.Value) interface{} {
 		return out
 	} else if v, ok := value.Kind.(*structpb.Value_BoolValue); ok {
 		return v.BoolValue
+	} else if _, ok := value.Kind.(*structpb.Value_NullValue); ok {
+		return nil
 	}
 	log.Printf("unwrap unknown data type: %T", value.Kind)
 	return nil

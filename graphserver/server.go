@@ -3,8 +3,8 @@ package graphserver
 import (
 	"fmt"
 	"github.com/bmeg/arachne/aql"
-	"github.com/bmeg/arachne/badgerdb"
-	_ "github.com/bmeg/arachne/boltdb" // import so bolt will register itself
+	_ "github.com/bmeg/arachne/badgerdb" // import so badger will register itself
+	_ "github.com/bmeg/arachne/boltdb"   // import so bolt will register itself
 	"github.com/bmeg/arachne/engine"
 	"github.com/bmeg/arachne/gdbi"
 	"github.com/bmeg/arachne/kvgraph"
@@ -19,7 +19,7 @@ import (
 
 // ArachneServer is a GRPC based arachne server
 type ArachneServer struct {
-	db gdbi.DBI
+	db gdbi.GraphDB
 }
 
 // NewArachneMongoServer initializes a GRPC server that uses the mongo driver
@@ -32,8 +32,14 @@ func NewArachneMongoServer(url string, database string) *ArachneServer {
 // NewArachneBadgerServer initializes a GRPC server that uses the badger driver
 // to run the graph store
 func NewArachneBadgerServer(baseDir string) *ArachneServer {
-	db := badgerdb.NewBadgerArachne(baseDir)
-	return &ArachneServer{db: db}
+	a, err := kvgraph.NewKVArachne("badger", baseDir)
+	if err != nil {
+		log.Printf("Error Starting Badger")
+		return nil
+	}
+	return &ArachneServer{
+		db: a,
+	}
 }
 
 // NewArachneBoltServer initializes a GRPC server that uses the bolt driver
@@ -77,13 +83,16 @@ func (server *ArachneServer) CloseDB() {
 
 // Traversal parses a traversal request and streams the results back
 func (server *ArachneServer) Traversal(query *aql.GraphQuery, queryServer aql.Query_TraversalServer) error {
-	res, err := engine.Start(queryServer.Context(), query.Query, server.db.Graph(query.Graph))
+
+	pipeline, err := engine.Compile(query.Query, server.db.Graph(query.Graph))
 	if err != nil {
 		return err
 	}
+	res := pipeline.Run()
 	for row := range res {
 		queryServer.Send(row)
 	}
+
 	return nil
 }
 
@@ -114,6 +123,14 @@ func (server *ArachneServer) GetBundle(ctx context.Context, elem *aql.ElementID)
 	return o, nil
 }
 
+// GetTimestamp returns the update timestamp of a graph
+func (server *ArachneServer) GetTimestamp(ctx context.Context, elem *aql.ElementID) (*aql.Timestamp, error) {
+	o := aql.Timestamp{
+		server.db.Graph(elem.Graph).GetTimestamp(),
+	}
+	return &o, nil
+}
+
 // DeleteGraph deletes a graph
 func (server *ArachneServer) DeleteGraph(ctx context.Context, elem *aql.ElementID) (*aql.EditResult, error) {
 	server.db.DeleteGraph(elem.Graph)
@@ -129,7 +146,7 @@ func (server *ArachneServer) AddGraph(ctx context.Context, elem *aql.ElementID) 
 // AddVertex adds a vertex to the graph
 func (server *ArachneServer) AddVertex(ctx context.Context, elem *aql.GraphElement) (*aql.EditResult, error) {
 	var id string
-	server.db.Graph(elem.Graph).AddVertex(elem.Vertex)
+	server.db.Graph(elem.Graph).AddVertex([]*aql.Vertex{elem.Vertex})
 	id = elem.Vertex.Gid
 	return &aql.EditResult{Result: &aql.EditResult_Id{Id: id}}, nil
 }
@@ -137,7 +154,7 @@ func (server *ArachneServer) AddVertex(ctx context.Context, elem *aql.GraphEleme
 // AddEdge adds an edge to the graph
 func (server *ArachneServer) AddEdge(ctx context.Context, elem *aql.GraphElement) (*aql.EditResult, error) {
 	var id string
-	server.db.Graph(elem.Graph).AddEdge(elem.Edge)
+	server.db.Graph(elem.Graph).AddEdge([]*aql.Edge{elem.Edge})
 	id = elem.Edge.Gid
 	return &aql.EditResult{Result: &aql.EditResult_Id{Id: id}}, nil
 }
@@ -152,22 +169,69 @@ func (server *ArachneServer) AddBundle(ctx context.Context, elem *aql.GraphEleme
 
 // AddSubGraph adds a full subgraph to the graph in one post
 func (server *ArachneServer) AddSubGraph(ctx context.Context, subgraph *aql.Graph) (*aql.EditResult, error) {
-	for _, i := range subgraph.Vertices {
-		server.db.Graph(subgraph.Graph).AddVertex(i)
+	if err := server.db.Graph(subgraph.Graph).AddVertex(subgraph.Vertices); err != nil {
+		return nil, err
 	}
-	for _, i := range subgraph.Edges {
-		server.db.Graph(subgraph.Graph).AddEdge(i)
+	if err := server.db.Graph(subgraph.Graph).AddEdge(subgraph.Edges); err != nil {
+		return nil, err
 	}
+	log.Printf("%d vertices and %d edges added to graph %s", len(subgraph.Vertices), len(subgraph.Edges), subgraph.Graph)
 	id := subgraph.Graph
 	return &aql.EditResult{Result: &aql.EditResult_Id{Id: id}}, nil
 }
 
+type graphElementArray struct {
+	graph    string
+	vertices []*aql.Vertex
+	edges    []*aql.Edge
+}
+
+func newGraphElementArray(name string, vertexBufSize, edgeBufSize int) *graphElementArray {
+	if vertexBufSize != 0 {
+		return &graphElementArray{graph: name, vertices: make([]*aql.Vertex, 0, vertexBufSize)}
+	}
+	if edgeBufSize != 0 {
+		return &graphElementArray{graph: name, edges: make([]*aql.Edge, 0, edgeBufSize)}
+	}
+	return nil
+}
+
 // StreamElements takes a stream of inputs and loads them into the graph
 func (server *ArachneServer) StreamElements(stream aql.Edit_StreamElementsServer) error {
+	vertexBatchSize := 500
+	edgeBatchSize := 500
+
 	vertCount := 0
 	edgeCount := 0
 	bundleCount := 0
-	for {
+
+	vertexBatchChan := make(chan *graphElementArray)
+	edgeBatchChan := make(chan *graphElementArray)
+	closeChan := make(chan bool)
+
+	go func() {
+		for vBatch := range vertexBatchChan {
+			err := server.db.Graph(vBatch.graph).AddVertex(vBatch.vertices)
+			if err != nil {
+				log.Printf("Insert Error: %s", err)
+			}
+		}
+		closeChan <- true
+	}()
+	go func() {
+		for eBatch := range edgeBatchChan {
+			err := server.db.Graph(eBatch.graph).AddEdge(eBatch.edges)
+			if err != nil {
+				log.Printf("Insert Error: %s", err)
+			}
+		}
+		closeChan <- true
+	}()
+
+	vertexBatch := newGraphElementArray("", vertexBatchSize, 0)
+	edgeBatch := newGraphElementArray("", 0, edgeBatchSize)
+	var loopErr error
+	for loopErr == nil {
 		element, err := stream.Recv()
 		if err == io.EOF {
 			if vertCount != 0 {
@@ -179,23 +243,44 @@ func (server *ArachneServer) StreamElements(stream aql.Edit_StreamElementsServer
 			if bundleCount != 0 {
 				log.Printf("%d bundles streamed", bundleCount)
 			}
-			return stream.SendAndClose(&aql.EditResult{Result: &aql.EditResult_Id{}})
-		}
-		if err != nil {
+			vertexBatchChan <- vertexBatch
+			edgeBatchChan <- edgeBatch
+			loopErr = err
+		} else if err != nil {
 			log.Printf("Streaming Error: %s", err)
-			return err
-		}
-		if element.Vertex != nil {
-			server.AddVertex(context.Background(), element)
-			vertCount++
-		} else if element.Edge != nil {
-			server.AddEdge(context.Background(), element)
-			edgeCount++
-		} else if element.Bundle != nil {
-			server.AddBundle(context.Background(), element)
-			bundleCount++
+			loopErr = err
+		} else {
+			if element.Vertex != nil {
+				if vertexBatch.graph != element.Graph || len(vertexBatch.vertices) >= vertexBatchSize {
+					vertexBatchChan <- vertexBatch
+					vertexBatch = newGraphElementArray(element.Graph, vertexBatchSize, 0)
+				}
+				v := *element.Vertex
+				vertexBatch.vertices = append(vertexBatch.vertices, &v)
+				vertCount++
+			} else if element.Edge != nil {
+				if edgeBatch.graph != element.Graph || len(edgeBatch.edges) >= edgeBatchSize {
+					edgeBatchChan <- edgeBatch
+					edgeBatch = newGraphElementArray(element.Graph, 0, edgeBatchSize)
+				}
+				edgeBatch.edges = append(edgeBatch.edges, element.Edge)
+				edgeCount++
+			} else if element.Bundle != nil {
+				server.AddBundle(context.Background(), element)
+				bundleCount++
+			}
 		}
 	}
+
+	close(edgeBatchChan)
+	close(vertexBatchChan)
+	<-closeChan
+	<-closeChan
+
+	if loopErr != io.EOF {
+		return loopErr
+	}
+	return stream.SendAndClose(&aql.EditResult{Result: &aql.EditResult_Id{}})
 }
 
 // DeleteVertex deletes a vertex from the server

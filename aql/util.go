@@ -59,6 +59,12 @@ func (client Client) GetGraphList() []string {
 	return out
 }
 
+// GetTimestamp get update timestamp for graph
+func (client Client) GetTimestamp(graph string) (*Timestamp, error) {
+	ts, err := client.QueryC.GetTimestamp(context.Background(), &ElementID{Graph: graph})
+	return ts, err
+}
+
 // DeleteGraph deletes a graph and all of its contents
 func (client Client) DeleteGraph(graph string) error {
 	_, err := client.EditC.DeleteGraph(context.Background(), &ElementID{Graph: graph})
@@ -113,7 +119,11 @@ func (client Client) GetVertex(graph string, id string) (*Vertex, error) {
 
 // Execute executes the given query.
 func (client Client) Execute(graph string, q *Query) (chan *ResultRow, error) {
-	tclient, err := client.QueryC.Traversal(context.TODO(), &GraphQuery{graph, q.Statements})
+	tclient, err := client.QueryC.Traversal(context.TODO(), &GraphQuery{
+		Graph: graph,
+		Query: q.Statements,
+	})
+
 	if err != nil {
 		return nil, err
 	}

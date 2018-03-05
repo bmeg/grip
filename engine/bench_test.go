@@ -1,31 +1,31 @@
 package engine
 
 import (
-  "context"
-  "fmt"
-  "testing"
+	"context"
+	"fmt"
 	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/memgraph"
+	"testing"
 )
 
 // Dead simple baseline tests: get all vertices from a memory-backed graph.
 func BenchmarkBaselineV(b *testing.B) {
 	ctx := context.Background()
-  db := memgraph.NewMemGraph()
+	db := memgraph.NewMemGraph()
 
-  for i := 0; i < 1000; i++ {
-    gid := fmt.Sprintf("v-%d", i)
-    db.AddVertex(&aql.Vertex{Gid: gid, Label: "Vert"})
-  }
+	for i := 0; i < 1000; i++ {
+		gid := fmt.Sprintf("v-%d", i)
+		db.AddVertex(&aql.Vertex{Gid: gid, Label: "Vert"})
+	}
 
-  q := aql.V()
+	q := aql.V()
 
-  b.ResetTimer()
+	b.ResetTimer()
 
-  for i := 0; i < b.N; i++ {
-    _, err := Run(ctx, q.Statements, db)
-    if err != nil {
-      b.Fatal(err)
-    }
-  }
+	for i := 0; i < b.N; i++ {
+		_, err := Run(ctx, q.Statements, db)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
 }

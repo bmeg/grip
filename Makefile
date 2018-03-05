@@ -28,6 +28,10 @@ proto:
 	--grpc-gateway_out=logtostderr=true:. \
 	aql.proto
 
+proto-depends:
+	go install github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway
+	go install github.com/golang/protobuf/protoc-gen-go
+
 # Automatially update code formatting
 tidy:
 	@for f in $$(find . -name "*.go" -print | egrep -v "\.pb\.go|\.gw\.go|underscore\.go"); do \
@@ -49,6 +53,9 @@ test:
 
 start-test-server:
 	arachne server --rpc 18202 --port 18201 &
+
+start-test-mongo-server:
+	arachne server --rpc 18202 --port 18201 --mongo localhost &
 
 test-conformance:
 	python conformance/run_conformance.py http://localhost:18201
