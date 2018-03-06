@@ -5,7 +5,7 @@ import (
 	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/gdbi"
 	"github.com/bmeg/arachne/protoutil"
-	"log"
+	//"log"
 	"sync"
 )
 
@@ -66,8 +66,6 @@ type LookupVertexAdjOut struct {
 }
 
 func (l *LookupVertexAdjOut) Process(in gdbi.InPipe, out gdbi.OutPipe) {
-	log.Printf("VertexOutgoing")
-
 	queryChan := make(chan gdbi.ElementLookup, 100)
 	go func() {
 		defer close(queryChan)
@@ -120,7 +118,6 @@ type LookupVertexAdjIn struct {
 }
 
 func (l *LookupVertexAdjIn) Process(in gdbi.InPipe, out gdbi.OutPipe) {
-	log.Printf("VertexIncoming")
 	queryChan := make(chan gdbi.ElementLookup, 100)
 	go func() {
 		defer close(queryChan)
@@ -408,7 +405,6 @@ func (c concat) Process(in gdbi.InPipe, out gdbi.OutPipe) {
 
 	for i, p := range c {
 		go func(i int, p gdbi.Processor) {
-			log.Printf("Calling %T", p)
 			p.Process(chans[i], out)
 			wg.Done()
 		}(i, p)
