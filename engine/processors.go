@@ -5,6 +5,7 @@ import (
 	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/gdbi"
 	"github.com/bmeg/arachne/protoutil"
+	"log"
 	"sync"
 )
 
@@ -17,7 +18,6 @@ type LookupVerts struct {
 func (l *LookupVerts) Process(in gdbi.InPipe, out gdbi.OutPipe) {
 	for t := range in {
 		for v := range l.db.GetVertexList(context.Background(), true) {
-			// TODO maybe don't bother copying the data
 			out <- t.AddCurrent(&gdbi.DataElement{
 				Id:    v.Gid,
 				Label: v.Label,
@@ -55,20 +55,21 @@ type LookupVertexAdjOut struct {
 func (l *LookupVertexAdjOut) Process(in gdbi.InPipe, out gdbi.OutPipe) {
 	queryChan := make(chan gdbi.ElementLookup, 100)
 	go func() {
+		defer close(queryChan)
 		for i := range in {
-				queryChan <- gdbi.ElementLookup{
-					ID:  i.GetCurrent().Id,
-					Ref: i,
-				}
+			queryChan <- gdbi.ElementLookup{
+				ID:  i.GetCurrent().Id,
+				Ref: i,
+			}
 
 		}
 	}()
 	for ov := range l.db.GetOutChannel(queryChan, true, l.labels) {
 		i := ov.Ref.(*gdbi.Traveler)
 		out <- i.AddCurrent(&gdbi.DataElement{
-			Id: ov.Vertex.Gid,
+			Id:    ov.Vertex.Gid,
 			Label: ov.Vertex.Label,
-			Data: protoutil.AsMap(ov.Vertex.Data),
+			Data:  protoutil.AsMap(ov.Vertex.Data),
 		})
 	}
 }
@@ -83,7 +84,7 @@ func (l *LookupEdgeAdjOut) Process(in gdbi.InPipe, out gdbi.OutPipe) {
 	go func() {
 		defer close(queryChan)
 		for i := range in {
-			queryChan <- gdbi.ElementLookup {
+			queryChan <- gdbi.ElementLookup{
 				ID:  i.GetCurrent().To,
 				Ref: &i,
 			}
@@ -92,9 +93,9 @@ func (l *LookupEdgeAdjOut) Process(in gdbi.InPipe, out gdbi.OutPipe) {
 	for v := range l.db.GetVertexChannel(queryChan, true) {
 		i := v.Ref.(*gdbi.Traveler)
 		out <- i.AddCurrent(&gdbi.DataElement{
-			Id: v.Vertex.Gid,
+			Id:    v.Vertex.Gid,
 			Label: v.Vertex.Label,
-			Data: protoutil.AsMap(v.Vertex.Data),
+			Data:  protoutil.AsMap(v.Vertex.Data),
 		})
 	}
 }
@@ -107,19 +108,20 @@ type LookupVertexAdjIn struct {
 func (l *LookupVertexAdjIn) Process(in gdbi.InPipe, out gdbi.OutPipe) {
 	queryChan := make(chan gdbi.ElementLookup, 100)
 	go func() {
+		defer close(queryChan)
 		for i := range in {
-				queryChan <- gdbi.ElementLookup{
-					ID:  i.GetCurrent().Id,
-					Ref: i,
-				}
+			queryChan <- gdbi.ElementLookup{
+				ID:  i.GetCurrent().Id,
+				Ref: i,
+			}
 		}
 	}()
 	for v := range l.db.GetInChannel(queryChan, true, l.labels) {
 		i := v.Ref.(*gdbi.Traveler)
 		out <- i.AddCurrent(&gdbi.DataElement{
-			Id: v.Vertex.Gid,
+			Id:    v.Vertex.Gid,
 			Label: v.Vertex.Label,
-			Data: protoutil.AsMap(v.Vertex.Data),
+			Data:  protoutil.AsMap(v.Vertex.Data),
 		})
 	}
 }
@@ -143,9 +145,9 @@ func (l *LookupEdgeAdjIn) Process(in gdbi.InPipe, out gdbi.OutPipe) {
 	for v := range l.db.GetVertexChannel(queryChan, true) {
 		i := v.Ref.(*gdbi.Traveler)
 		out <- i.AddCurrent(&gdbi.DataElement{
-			Id: v.Vertex.Gid,
+			Id:    v.Vertex.Gid,
 			Label: v.Vertex.Label,
-			Data: protoutil.AsMap(v.Vertex.Data),
+			Data:  protoutil.AsMap(v.Vertex.Data),
 		})
 	}
 }
@@ -162,7 +164,7 @@ func (l *InEdge) Process(in gdbi.InPipe, out gdbi.OutPipe) {
 		for i := range in {
 			queryChan <- gdbi.ElementLookup{
 				ID:  i.GetCurrent().Id,
-				Ref: &i,
+				Ref: i,
 			}
 		}
 	}()
@@ -170,11 +172,11 @@ func (l *InEdge) Process(in gdbi.InPipe, out gdbi.OutPipe) {
 	for v := range l.db.GetInEdgeChannel(queryChan, true, l.labels) {
 		i := v.Ref.(*gdbi.Traveler)
 		out <- i.AddCurrent(&gdbi.DataElement{
-			Id: v.Edge.Gid,
-			To: v.Edge.To,
-			From: v.Edge.From,
+			Id:    v.Edge.Gid,
+			To:    v.Edge.To,
+			From:  v.Edge.From,
 			Label: v.Edge.Label,
-			Data: protoutil.AsMap(v.Vertex.Data),
+			Data:  protoutil.AsMap(v.Edge.Data),
 		})
 	}
 }
@@ -191,7 +193,7 @@ func (l *OutEdge) Process(in gdbi.InPipe, out gdbi.OutPipe) {
 		for i := range in {
 			queryChan <- gdbi.ElementLookup{
 				ID:  i.GetCurrent().Id,
-				Ref: &i,
+				Ref: i,
 			}
 		}
 	}()
@@ -199,11 +201,11 @@ func (l *OutEdge) Process(in gdbi.InPipe, out gdbi.OutPipe) {
 	for v := range l.db.GetOutEdgeChannel(queryChan, true, l.labels) {
 		i := v.Ref.(*gdbi.Traveler)
 		out <- i.AddCurrent(&gdbi.DataElement{
-			Id: v.Edge.Gid,
-			To: v.Edge.To,
-			From: v.Edge.From,
+			Id:    v.Edge.Gid,
+			To:    v.Edge.To,
+			From:  v.Edge.From,
 			Label: v.Edge.Label,
-			Data: protoutil.AsMap(v.Vertex.Data),
+			Data:  protoutil.AsMap(v.Edge.Data),
 		})
 	}
 
@@ -281,7 +283,7 @@ func (c *Count) Process(in gdbi.InPipe, out gdbi.OutPipe) {
 	for range in {
 		i++
 	}
-	out <- &gdbi.Traveler{Count:i}
+	out <- &gdbi.Traveler{Count: i}
 }
 
 type Limit struct {
@@ -374,7 +376,7 @@ func (s *selectMany) Process(in gdbi.InPipe, out gdbi.OutPipe) {
 			// TODO handle missing mark? rely on compiler to check this?
 			row = append(row, *t.GetMark(mark))
 		}
-		out <- t.AddCurrent(&gdbi.DataElement{Row:row})
+		out <- t.AddCurrent(&gdbi.DataElement{Row: row})
 	}
 }
 
@@ -401,7 +403,11 @@ func (c concat) Process(in gdbi.InPipe, out gdbi.OutPipe) {
 			ch <- t
 		}
 	}
-	wg.Done()
+	for _, ch := range chans {
+		close(ch)
+	}
+	wg.Wait()
+	log.Printf("Exit Concat")
 }
 
 /*

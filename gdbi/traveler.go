@@ -6,17 +6,13 @@ import (
 	"github.com/bmeg/arachne/protoutil"
 )
 
-const (
-	stateCurrent = "_"
-)
-
 // AddCurrent creates a new copy of the travel with new 'current' value
 func (t Traveler) AddCurrent(r *DataElement) *Traveler {
 	o := Traveler{marks: map[string]*DataElement{}}
 	for k, v := range t.marks {
 		o.marks[k] = v
 	}
-	o.marks[stateCurrent] = r
+	o.current = r
 	return &o
 }
 

@@ -190,7 +190,7 @@ func Compile(stmts []*aql.GraphStatement, db gdbi.GraphInterface) (Pipeline, err
 	  }
 	*/
 
-	return Pipeline{procs}, nil
+	return Pipeline{procs, last}, nil
 }
 
 func validate(stmts []*aql.GraphStatement) error {

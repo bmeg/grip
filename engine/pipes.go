@@ -3,10 +3,12 @@ package engine
 import (
 	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/gdbi"
+	"log"
 )
 
 type Pipeline struct {
-	procs []gdbi.Processor
+	procs    []gdbi.Processor
+	dataType gdbi.DataType
 }
 
 func (pipe Pipeline) Start(bufsize int) gdbi.InPipe {
@@ -35,7 +37,6 @@ func (pipe Pipeline) Start(bufsize int) gdbi.InPipe {
 	return final
 }
 
-
 func (pipe Pipeline) Run() <-chan *aql.ResultRow {
 
 	bufsize := 100
@@ -45,15 +46,12 @@ func (pipe Pipeline) Run() <-chan *aql.ResultRow {
 		defer close(resch)
 
 		for t := range pipe.Start(bufsize) {
-			resch <- t.Convert(gdbi.VertexData)
+			resch <- t.Convert(pipe.dataType)
 		}
 	}()
 
 	return resch
 }
-
-
-
 
 // Sends an empty traveler to the pipe to kick off pipelines of processors.
 func initPipe(out gdbi.OutPipe) {
