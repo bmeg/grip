@@ -17,12 +17,25 @@ type LookupVerts struct {
 
 func (l *LookupVerts) Process(in gdbi.InPipe, out gdbi.OutPipe) {
 	for t := range in {
-		for v := range l.db.GetVertexList(context.Background(), true) {
-			out <- t.AddCurrent(&gdbi.DataElement{
-				Id:    v.Gid,
-				Label: v.Label,
-				Data:  protoutil.AsMap(v.Data),
-			})
+		if len(l.ids) == 0 {
+			for v := range l.db.GetVertexList(context.Background(), true) {
+				out <- t.AddCurrent(&gdbi.DataElement{
+					Id:    v.Gid,
+					Label: v.Label,
+					Data:  protoutil.AsMap(v.Data),
+				})
+			}
+		} else {
+			for _, i := range l.ids {
+				v := l.db.GetVertex(i, true)
+				if v != nil {
+					out <- t.AddCurrent(&gdbi.DataElement{
+						Id:    v.Gid,
+						Label: v.Label,
+						Data:  protoutil.AsMap(v.Data),
+					})
+				}
+			}
 		}
 	}
 }
@@ -53,6 +66,8 @@ type LookupVertexAdjOut struct {
 }
 
 func (l *LookupVertexAdjOut) Process(in gdbi.InPipe, out gdbi.OutPipe) {
+	log.Printf("VertexOutgoing")
+
 	queryChan := make(chan gdbi.ElementLookup, 100)
 	go func() {
 		defer close(queryChan)
@@ -61,7 +76,6 @@ func (l *LookupVertexAdjOut) Process(in gdbi.InPipe, out gdbi.OutPipe) {
 				ID:  i.GetCurrent().Id,
 				Ref: i,
 			}
-
 		}
 	}()
 	for ov := range l.db.GetOutChannel(queryChan, true, l.labels) {
@@ -106,6 +120,7 @@ type LookupVertexAdjIn struct {
 }
 
 func (l *LookupVertexAdjIn) Process(in gdbi.InPipe, out gdbi.OutPipe) {
+	log.Printf("VertexIncoming")
 	queryChan := make(chan gdbi.ElementLookup, 100)
 	go func() {
 		defer close(queryChan)
@@ -392,10 +407,11 @@ func (c concat) Process(in gdbi.InPipe, out gdbi.OutPipe) {
 	wg.Add(len(c))
 
 	for i, p := range c {
-		go func(i int) {
+		go func(i int, p gdbi.Processor) {
+			log.Printf("Calling %T", p)
 			p.Process(chans[i], out)
 			wg.Done()
-		}(i)
+		}(i, p)
 	}
 
 	for t := range in {
@@ -407,7 +423,6 @@ func (c concat) Process(in gdbi.InPipe, out gdbi.OutPipe) {
 		close(ch)
 	}
 	wg.Wait()
-	log.Printf("Exit Concat")
 }
 
 /*

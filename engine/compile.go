@@ -5,6 +5,7 @@ import (
 	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/gdbi"
 	"github.com/bmeg/arachne/protoutil"
+	"log"
 )
 
 func Compile(stmts []*aql.GraphStatement, db gdbi.GraphInterface) (Pipeline, error) {
@@ -21,6 +22,7 @@ func Compile(stmts []*aql.GraphStatement, db gdbi.GraphInterface) (Pipeline, err
 	last := gdbi.NoData
 	procs := make([]gdbi.Processor, 0, len(stmts))
 	add := func(p gdbi.Processor) {
+		log.Printf("Adding %#V", p)
 		procs = append(procs, p)
 	}
 
@@ -76,6 +78,7 @@ func Compile(stmts []*aql.GraphStatement, db gdbi.GraphInterface) (Pipeline, err
 
 			labels := protoutil.AsStringList(stmt.Both)
 			if last == gdbi.VertexData {
+				log.Printf("Adding Both Vertex")
 				add(&concat{
 					&LookupVertexAdjIn{db, labels},
 					&LookupVertexAdjOut{db, labels},

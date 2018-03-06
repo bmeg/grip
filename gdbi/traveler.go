@@ -29,6 +29,7 @@ func (t Traveler) AddMark(label string, r *DataElement) *Traveler {
 		o.marks[k] = v
 	}
 	o.marks[label] = r
+	o.current = t.current
 	return &o
 }
 
@@ -81,17 +82,17 @@ func (t Traveler) Convert(dataType DataType) *aql.ResultRow {
 			},
 		}
 
-	/*
-		case RowData:
-			res := &aql.ResultRow{}
-			for _, r := range t.row {
-				// TODO a bit hacky. Technically, if r was somehow a row,
-				//      this would incorrectly return nil.
-				res.Row = append(res.Row, r.Value)
+	case RowData:
+		res := &aql.ResultRow{}
+		for _, r := range t.current.Row {
+			elem := &aql.QueryResult{
+				&aql.QueryResult_Vertex{
+					r.ToVertex(), //BUG: lost the type by this point, guess its a vertex
+				},
 			}
-
-			return res
-	*/
+			res.Row = append(res.Row, elem)
+		}
+		return res
 
 	case ValueData:
 		return &aql.ResultRow{
@@ -123,4 +124,22 @@ func (elem DataElement) ToEdge() *aql.Edge {
 		Label: elem.Label,
 		Data:  protoutil.AsStruct(elem.Data),
 	}
+}
+
+func (elem DataElement) ToDict() map[string]interface{} {
+	out := map[string]interface{}{}
+	if elem.Id != "" {
+		out["gid"] = elem.Id
+	}
+	if elem.Label != "" {
+		out["label"] = elem.Label
+	}
+	if elem.To != "" {
+		out["to"] = elem.To
+	}
+	if elem.From != "" {
+		out["from"] = elem.From
+	}
+	out["data"] = elem.Data
+	return out
 }
