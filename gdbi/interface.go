@@ -5,11 +5,15 @@ import (
 	"github.com/bmeg/arachne/aql"
 )
 
+// InPipe incoming traveler messages
 type InPipe <-chan *Traveler
+
+// OutPipe collects output traveler messages
 type OutPipe chan<- *Traveler
 
+// DataElement is a single data element
 type DataElement struct {
-	Id       string
+	ID       string
 	Label    string
 	From, To string
 	Data     map[string]interface{}
@@ -17,6 +21,7 @@ type DataElement struct {
 	Row      []DataElement
 }
 
+// Traveler is a query element that traverse the graph
 type Traveler struct {
 	current     *DataElement
 	marks       map[string]*DataElement
@@ -25,8 +30,10 @@ type Traveler struct {
 	value       interface{}
 }
 
+// DataType is a possible output data type
 type DataType uint8
 
+// DataTypes
 const (
 	NoData DataType = iota
 	VertexData
@@ -37,6 +44,7 @@ const (
 	RowData
 )
 
+// Processor is the interface for a step in the pipe engine
 type Processor interface {
 	//DataType() DataType
 	Process(in InPipe, out OutPipe)
@@ -95,6 +103,7 @@ type ElementLookup struct {
 	Bundle *aql.Bundle
 }
 
+// GraphDB is the base interface for graph databases
 type GraphDB interface {
 	AddGraph(string) error
 	DeleteGraph(string) error

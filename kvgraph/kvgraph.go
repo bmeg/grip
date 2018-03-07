@@ -104,7 +104,7 @@ func randomEdgeKeyAssignment(graph string, tx KVTransaction) string {
 	return eid
 }
 
-// SetEdge adds an edge to the graph, if the id is not "" and in already exists
+// AddEdge adds an edge to the graph, if the id is not "" and in already exists
 // in the graph, it is replaced
 func (kgdb *KVInterfaceGDB) AddEdge(edgeArray []*aql.Edge) error {
 	kgdb.kv.Update(func(tx KVTransaction) error {
@@ -405,7 +405,7 @@ func (kgdb *KVInterfaceGDB) GetOutEdgeList(ctx context.Context, id string, loadP
 	return o
 }
 
-// GetOutBundleList given vertex `key` find all outgoing bundles,
+// GetOutBundleChannel given vertex `key` find all outgoing bundles,
 // if len(edgeLabels) > 0 the edge labels must match a string in the array
 // load is ignored
 func (kgdb *KVInterfaceGDB) GetOutBundleChannel(ids chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {

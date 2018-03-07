@@ -15,13 +15,13 @@ func (t Traveler) AddCurrent(r *DataElement) *Traveler {
 	return &o
 }
 
-// HasLabeled checks to see if a results is stored in a travelers statemap
+// HasMark checks to see if a results is stored in a travelers statemap
 func (t Traveler) HasMark(label string) bool {
 	_, ok := t.marks[label]
 	return ok
 }
 
-// AddLabeled adds a result to travels state map using `label` as the name
+// AddMark adds a result to travels state map using `label` as the name
 func (t Traveler) AddMark(label string, r *DataElement) *Traveler {
 	o := Traveler{marks: map[string]*DataElement{}}
 	for k, v := range t.marks {
@@ -43,17 +43,19 @@ func (t Traveler) GetCurrent() *DataElement {
 	return t.current
 }
 
+// ToVertex converts data element to vertex
 func (elem DataElement) ToVertex() *aql.Vertex {
 	return &aql.Vertex{
-		Gid:   elem.Id,
+		Gid:   elem.ID,
 		Label: elem.Label,
 		Data:  protoutil.AsStruct(elem.Data),
 	}
 }
 
+// ToEdge converts data element to edge
 func (elem DataElement) ToEdge() *aql.Edge {
 	return &aql.Edge{
-		Gid:   elem.Id,
+		Gid:   elem.ID,
 		From:  elem.From,
 		To:    elem.To,
 		Label: elem.Label,
@@ -61,10 +63,11 @@ func (elem DataElement) ToEdge() *aql.Edge {
 	}
 }
 
+// ToDict converts data element to generic map
 func (elem DataElement) ToDict() map[string]interface{} {
 	out := map[string]interface{}{}
-	if elem.Id != "" {
-		out["gid"] = elem.Id
+	if elem.ID != "" {
+		out["gid"] = elem.ID
 	}
 	if elem.Label != "" {
 		out["label"] = elem.Label

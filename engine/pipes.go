@@ -7,6 +7,7 @@ import (
 	"github.com/bmeg/arachne/protoutil"
 )
 
+// Pipeline a set of runnable query operations
 type Pipeline struct {
 	procs     []gdbi.Processor
 	dataType  gdbi.DataType
@@ -14,6 +15,7 @@ type Pipeline struct {
 	rowTypes  []gdbi.DataType
 }
 
+// Start begins processing a query pipeline
 func (pipe Pipeline) Start(bufsize int) gdbi.InPipe {
 	if len(pipe.procs) == 0 {
 		ch := make(chan *gdbi.Traveler)
@@ -40,13 +42,14 @@ func (pipe Pipeline) Start(bufsize int) gdbi.InPipe {
 	return final
 }
 
+// Convert takes a traveler and converts it to query output
 func (pipe Pipeline) Convert(t *gdbi.Traveler) *aql.ResultRow {
 	switch pipe.dataType {
 	case gdbi.VertexData:
 		return &aql.ResultRow{
 			Value: &aql.QueryResult{
-				&aql.QueryResult_Vertex{
-					t.GetCurrent().ToVertex(),
+				Result: &aql.QueryResult_Vertex{
+					Vertex: t.GetCurrent().ToVertex(),
 				},
 			},
 		}
@@ -54,8 +57,8 @@ func (pipe Pipeline) Convert(t *gdbi.Traveler) *aql.ResultRow {
 	case gdbi.EdgeData:
 		return &aql.ResultRow{
 			Value: &aql.QueryResult{
-				&aql.QueryResult_Edge{
-					t.GetCurrent().ToEdge(),
+				Result: &aql.QueryResult_Edge{
+					Edge: t.GetCurrent().ToEdge(),
 				},
 			},
 		}
@@ -63,8 +66,8 @@ func (pipe Pipeline) Convert(t *gdbi.Traveler) *aql.ResultRow {
 	case gdbi.CountData:
 		return &aql.ResultRow{
 			Value: &aql.QueryResult{
-				&aql.QueryResult_Data{
-					protoutil.WrapValue(t.Count),
+				Result: &aql.QueryResult_Data{
+					Data: protoutil.WrapValue(t.Count),
 				},
 			},
 		}
@@ -72,8 +75,8 @@ func (pipe Pipeline) Convert(t *gdbi.Traveler) *aql.ResultRow {
 	case gdbi.GroupCountData:
 		return &aql.ResultRow{
 			Value: &aql.QueryResult{
-				&aql.QueryResult_Data{
-					protoutil.WrapValue(t.GroupCounts),
+				Result: &aql.QueryResult_Data{
+					Data: protoutil.WrapValue(t.GroupCounts),
 				},
 			},
 		}
@@ -83,15 +86,15 @@ func (pipe Pipeline) Convert(t *gdbi.Traveler) *aql.ResultRow {
 		for i, r := range t.GetCurrent().Row {
 			if pipe.rowTypes[i] == gdbi.VertexData {
 				elem := &aql.QueryResult{
-					&aql.QueryResult_Vertex{
-						r.ToVertex(),
+					Result: &aql.QueryResult_Vertex{
+						Vertex: r.ToVertex(),
 					},
 				}
 				res.Row = append(res.Row, elem)
 			} else if pipe.rowTypes[i] == gdbi.EdgeData {
 				elem := &aql.QueryResult{
-					&aql.QueryResult_Edge{
-						r.ToEdge(),
+					Result: &aql.QueryResult_Edge{
+						Edge: r.ToEdge(),
 					},
 				}
 				res.Row = append(res.Row, elem)
@@ -102,8 +105,8 @@ func (pipe Pipeline) Convert(t *gdbi.Traveler) *aql.ResultRow {
 	case gdbi.ValueData:
 		return &aql.ResultRow{
 			Value: &aql.QueryResult{
-				&aql.QueryResult_Data{
-					protoutil.WrapValue(t.GetCurrent().Data),
+				Result: &aql.QueryResult_Data{
+					Data: protoutil.WrapValue(t.GetCurrent().Data),
 				},
 			},
 		}
@@ -113,6 +116,7 @@ func (pipe Pipeline) Convert(t *gdbi.Traveler) *aql.ResultRow {
 	}
 }
 
+// Run starts a pipeline and converts the output to server output structures
 func (pipe Pipeline) Run() <-chan *aql.ResultRow {
 
 	bufsize := 100
@@ -120,7 +124,6 @@ func (pipe Pipeline) Run() <-chan *aql.ResultRow {
 
 	go func() {
 		defer close(resch)
-
 		for t := range pipe.Start(bufsize) {
 			resch <- pipe.Convert(t)
 		}

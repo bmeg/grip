@@ -8,6 +8,7 @@ import (
 	//"log"
 )
 
+// Compile take set of statments and turns them into a runnable pipeline
 func Compile(stmts []*aql.GraphStatement, db gdbi.GraphInterface) (Pipeline, error) {
 	if len(stmts) == 0 {
 		return Pipeline{}, nil

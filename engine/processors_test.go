@@ -51,7 +51,7 @@ var table = []struct {
 		pick(verts[0], verts[1], verts[6], verts[7]),
 	},
 	{
-		Q.V().Has("non-existant", "Kyle", "Alex"),
+		Q.V().Has("non-existent", "Kyle", "Alex"),
 		pick(),
 	},
 	{
@@ -67,7 +67,7 @@ var table = []struct {
 		pick(verts[0], verts[1], verts[2], verts[3], verts[4], verts[5]),
 	},
 	{
-		Q.V().HasLabel("non-existant"),
+		Q.V().HasLabel("non-existent"),
 		pick(),
 	},
 	{
@@ -75,7 +75,7 @@ var table = []struct {
 		pick(verts[0], verts[2]),
 	},
 	{
-		Q.V().HasID("non-existant"),
+		Q.V().HasID("non-existent"),
 		pick(),
 	},
 	{
@@ -89,7 +89,7 @@ var table = []struct {
 	{
 		Q.V().Count(),
 		// TODO wrong. should be int.
-		values_(float64(len(verts))),
+		values(float64(len(verts))),
 	},
 	{
 		Q.V().HasLabel("Human").Has("name", "Ryan"),
@@ -133,11 +133,11 @@ var table = []struct {
 	},
 	{
 		Q.V().HasLabel("Human").Values("name"),
-		values_("Alex", "Kyle", "Ryan"),
+		values("Alex", "Kyle", "Ryan"),
 	},
 	{
 		Q.V().HasLabel("Human").Values(),
-		values_(verts[0].Data, verts[1].Data, verts[2].Data),
+		values(verts[0].Data, verts[1].Data, verts[2].Data),
 	},
 	{
 		Q.V().Match(
@@ -294,11 +294,11 @@ func pickres(ival interface{}) *aql.QueryResult {
 	switch val := ival.(type) {
 	case *aql.Vertex:
 		return &aql.QueryResult{
-			&aql.QueryResult_Vertex{val},
+			Result: &aql.QueryResult_Vertex{Vertex: val},
 		}
 	case *aql.Edge:
 		return &aql.QueryResult{
-			&aql.QueryResult_Edge{val},
+			Result: &aql.QueryResult_Edge{Edge: val},
 		}
 	default:
 		panic("unknown")
@@ -323,15 +323,15 @@ func pickAllEdges() checker {
 	return compare(expect)
 }
 
-func values_(vals ...interface{}) checker {
+func values(vals ...interface{}) checker {
 	expect := []*aql.ResultRow{}
 	for _, val := range vals {
 		expect = append(expect, &aql.ResultRow{
 			Value: &aql.QueryResult{
-				&aql.QueryResult_Data{
+				Result: &aql.QueryResult_Data{
 					// TODO would be better if this didn't depend on protoutil,
 					//      since that is a major part of what is being tested.
-					protoutil.WrapValue(val),
+					Data: protoutil.WrapValue(val),
 				},
 			},
 		})

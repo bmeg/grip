@@ -20,6 +20,7 @@ type MemGraph struct {
 	edgeSequence int64
 }
 
+// NewMemGraph creates a new memory based graph
 func NewMemGraph() *MemGraph {
 	return &MemGraph{
 		map[string]*aql.Vertex{},
@@ -40,24 +41,32 @@ func (mg *MemGraph) GetEdge(key string, load bool) *aql.Edge {
 	return mg.edges[key]
 }
 
+// AddBundle is broken
 func (mg *MemGraph) AddBundle(*aql.Bundle) error {
 	return fmt.Errorf("unimplemented: memgraph does not implement bundles")
 }
 
+// GetBundle is broken
 func (mg *MemGraph) GetBundle(string, bool) *aql.Bundle {
 	return nil
 }
 
+// DelBundle is broken
 func (mg *MemGraph) DelBundle(string) error {
 	return fmt.Errorf("unimplemented: memgraph does not implement bundles")
 }
 
+// VertexLabelScan is broken
 func (mg *MemGraph) VertexLabelScan(ctx context.Context, label string) chan string {
 	return nil
 }
+
+// EdgeLabelScan is broken
 func (mg *MemGraph) EdgeLabelScan(ctx context.Context, label string) chan string {
 	return nil
 }
+
+// GetOutBundleList is broken
 func (mg *MemGraph) GetOutBundleList(ctx context.Context, key string, load bool, edgeLabels []string) <-chan *aql.Bundle {
 	return nil
 }
@@ -72,10 +81,6 @@ func (mg *MemGraph) GetVertexList(ctx context.Context, load bool) <-chan *aql.Ve
 		}
 	}()
 	return out
-}
-
-func (mg *MemGraph) GetVertexListByID(ctx context.Context, ids chan string, load bool) <-chan *aql.Vertex {
-	return nil
 }
 
 // GetEdgeList produces a channel of all edges in the graph

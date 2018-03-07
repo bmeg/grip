@@ -20,6 +20,7 @@ type Mongo struct {
 	ts       *timestamp.Timestamp
 }
 
+// NewMongo creates a new mongo graph database interface
 func NewMongo(url string, database string) gdbi.GraphDB {
 	ts := timestamp.NewTimestamp()
 	a := &Mongo{url: url, database: database, ts: &ts}
