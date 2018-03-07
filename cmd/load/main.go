@@ -6,6 +6,7 @@ import (
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/spf13/cobra"
 	"log"
+	"io/ioutil"
 	"strings"
 )
 
@@ -13,6 +14,7 @@ var host = "localhost:8202"
 var graph = "data"
 var vertexFile string
 var edgeFile string
+var graphFile string
 var bundleFile string
 
 // Cmd is the declaration of the command line
@@ -111,6 +113,18 @@ var Cmd = &cobra.Command{
 			}
 		}
 
+		if graphFile != "" {
+			log.Printf("Loading %s", graphFile)
+			content, err := ioutil.ReadFile(graphFile)
+			if err != nil {
+				return err
+			}
+			e := aql.Graph{}
+			jsonpb.Unmarshal(strings.NewReader(string(content)), &e)
+			conn.AddSubGraph(graph, e)
+			log.Printf("Subgraph Loaded")
+		}
+
 		return nil
 	},
 }
@@ -121,5 +135,6 @@ func init() {
 	flags.StringVar(&graph, "graph", "data", "Graph")
 	flags.StringVar(&vertexFile, "vertex", "", "Vertex File")
 	flags.StringVar(&edgeFile, "edge", "", "Edge File")
+	flags.StringVar(&graphFile, "data", "", "Graph File")
 	flags.StringVar(&bundleFile, "bundle", "", "Edge Bundle File")
 }

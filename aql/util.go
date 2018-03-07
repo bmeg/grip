@@ -95,6 +95,11 @@ func (client Client) AddBundle(graph string, e Bundle) error {
 	return nil
 }
 
+func (client Client) AddSubGraph(graph string, g Graph) error {
+	client.EditC.AddSubGraph(context.Background(), &Graph{Graph: graph, Edges:g.Edges, Vertices:g.Vertices})
+	return nil
+}
+
 // StreamElements allows for bulk continuous loading of graph elements into the datastore
 func (client Client) StreamElements(elemChan chan GraphElement) error {
 	sc, err := client.EditC.StreamElements(context.Background())

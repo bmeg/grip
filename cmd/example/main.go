@@ -1,7 +1,7 @@
 package example
 
 import (
-	//"fmt"
+	"fmt"
 	"github.com/bmeg/arachne/aql"
 	"github.com/spf13/cobra"
 	"log"
@@ -31,10 +31,12 @@ var Cmd = &cobra.Command{
 			return err
 		}
 
-		graphs := conn.GetGraphList()
 
-		if !found(graphs, "graphql") {
-			conn.AddGraph("graphql")
+		graphql := fmt.Sprintf("%s:schema", graph)
+
+		graphs := conn.GetGraphList()
+		if !found(graphs, graphql) {
+			conn.AddGraph(graphql)
 		}
 		if !found(graphs, graph) {
 			conn.AddGraph(graph)
@@ -58,11 +60,11 @@ var Cmd = &cobra.Command{
 
 		for _, vertex := range swGQLVertices {
 			v := vertex
-			elemChan <- aql.GraphElement{Graph: "graphql", Vertex: &v}
+			elemChan <- aql.GraphElement{Graph: graphql, Vertex: &v}
 		}
 		for _, edge := range swGQLEdges {
 			e := edge
-			elemChan <- aql.GraphElement{Graph: "graphql", Edge: &e}
+			elemChan <- aql.GraphElement{Graph: graphql, Edge: &e}
 		}
 
 		close(elemChan)
