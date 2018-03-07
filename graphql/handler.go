@@ -65,12 +65,21 @@ func (gh *graphHandler) setup() {
 	ts, _ := gh.client.GetTimestamp(gh.schema)
 	if ts.Timestamp != gh.timestamp {
 		log.Printf("Reloading GraphQL")
-		schema := buildGraphQLSchema(gh.client, gh.schema)
+		schema := buildGraphQLSchema(gh.client, gh.schema, gh.graph)
 		gh.gqlHandler = handler.New(&handler.Config{
 			Schema: schema,
 		})
 		gh.timestamp = ts.Timestamp
 	}
+}
+
+type object struct {
+	name string
+	fields map[string]graphql.Type
+}
+
+type query struct {
+	name string
 }
 
 func getObjects(client aql.Client, gqlDB string) map[string]map[string]interface{} {
@@ -119,9 +128,7 @@ func getObjectFields(client aql.Client, gqlDB string, queryGID string) map[strin
 	return out
 }
 
-func buildGraphQLSchema(client aql.Client, gqlDB string) *graphql.Schema {
-
-	var dataGraph = "example" //TODO: hard coded for the moment
+func buildGraphQLSchema(client aql.Client, gqlDB string, dataGraph string) *graphql.Schema {
 
 	objects := map[string]*graphql.Object{}
 
@@ -195,7 +202,6 @@ func buildGraphQLSchema(client aql.Client, gqlDB string) *graphql.Schema {
 					return d, nil
 				},
 			}
-
 		}
 	}
 	log.Printf("Fields: %#v", queryFields)
