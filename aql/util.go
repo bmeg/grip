@@ -179,7 +179,7 @@ func (edge *Edge) GetProperty(key string) interface{} {
 	return m[key]
 }
 
-// GetProperty get named field from edge data
+// HasProperty returns true is field is defined
 func (edge *Edge) HasProperty(key string) bool {
 	if edge.Data == nil {
 		return false

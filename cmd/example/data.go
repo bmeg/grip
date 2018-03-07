@@ -140,7 +140,7 @@ var swEdges = []aql.Edge{
 	{Label: "appearsIn", From: "1003", To: "4000"},
 }
 
-var swGQLGraph string = `{
+var swGQLGraph = `{
 	"vertices": [{
 			"gid": "HumanObject",
 			"label": "Object",

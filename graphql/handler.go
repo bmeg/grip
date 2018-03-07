@@ -187,7 +187,7 @@ func buildObjectMap(client aql.Client, gqlDB string, dataGraph string) map[strin
 					return out, nil
 				},
 			}
-			log.Printf("Add object field %s from %s to %s = %s", edgeName, gid, field, f)
+			log.Printf("Add object field %s from %s to %s = %#v", edgeName, gid, field, f)
 			objects[gid].AddFieldConfig(edgeName, &f)
 		}
 	}
@@ -221,7 +221,7 @@ func buildQueryObject(client aql.Client, gqlDB string, dataGraph string, objects
 					return d, nil
 				},
 			}
-			log.Printf("Add query field %s %s %s", objID, lEdgeName, f)
+			log.Printf("Add query field %s %s %#v", objID, lEdgeName, f)
 			queryFields[lEdgeName] = f
 		}
 	}
