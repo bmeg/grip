@@ -34,9 +34,11 @@ type KVIterator interface {
 	Get(key []byte) ([]byte, error)
 }
 
-// KVTransaction is a genetic interface used by KVInterface.Update to allow the
+// KVTransaction is a generic interface used by KVInterface.Update to allow the
 // KVGraph to alter the values stored in the key value driver
 type KVTransaction interface {
+	HasKey(key []byte) bool
+	Set(key, value []byte) error
 	Delete(key []byte) error
 }
 
