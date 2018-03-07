@@ -3,8 +3,10 @@ package example
 import (
 	"fmt"
 	"github.com/bmeg/arachne/aql"
+	"github.com/golang/protobuf/jsonpb"
 	"github.com/spf13/cobra"
 	"log"
+	"strings"
 )
 
 var host = "localhost:8202"
@@ -56,18 +58,15 @@ var Cmd = &cobra.Command{
 			e := edge
 			elemChan <- aql.GraphElement{Graph: graph, Edge: &e}
 		}
-
-		for _, vertex := range swGQLVertices {
-			v := vertex
-			elemChan <- aql.GraphElement{Graph: graphql, Vertex: &v}
-		}
-		for _, edge := range swGQLEdges {
-			e := edge
-			elemChan <- aql.GraphElement{Graph: graphql, Edge: &e}
-		}
-
 		close(elemChan)
 		<-wait
+
+		e := aql.Graph{}
+		if err := jsonpb.Unmarshal(strings.NewReader(swGQLGraph), &e); err != nil {
+			log.Printf("Error: %s", err)
+		}
+		conn.AddSubGraph(graphql, e)
+
 		return nil
 	},
 }
