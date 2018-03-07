@@ -98,7 +98,7 @@ func (l *LookupEdgeAdjOut) Process(in gdbi.InPipe, out gdbi.OutPipe) {
 		for i := range in {
 			queryChan <- gdbi.ElementLookup{
 				ID:  i.GetCurrent().To,
-				Ref: &i,
+				Ref: i,
 			}
 		}
 	}()
@@ -150,7 +150,7 @@ func (l *LookupEdgeAdjIn) Process(in gdbi.InPipe, out gdbi.OutPipe) {
 		for i := range in {
 			queryChan <- gdbi.ElementLookup{
 				ID:  i.GetCurrent().From,
-				Ref: &i,
+				Ref: i,
 			}
 		}
 	}()

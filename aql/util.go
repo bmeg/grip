@@ -96,7 +96,7 @@ func (client Client) AddBundle(graph string, e Bundle) error {
 }
 
 func (client Client) AddSubGraph(graph string, g Graph) error {
-	client.EditC.AddSubGraph(context.Background(), &Graph{Graph: graph, Edges:g.Edges, Vertices:g.Vertices})
+	client.EditC.AddSubGraph(context.Background(), &Graph{Graph: graph, Edges: g.Edges, Vertices: g.Vertices})
 	return nil
 }
 

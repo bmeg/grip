@@ -5,8 +5,8 @@ import (
 	"github.com/bmeg/golib"
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/spf13/cobra"
-	"log"
 	"io/ioutil"
+	"log"
 	"strings"
 )
 

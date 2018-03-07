@@ -31,7 +31,6 @@ var Cmd = &cobra.Command{
 			return err
 		}
 
-
 		graphql := fmt.Sprintf("%s:schema", graph)
 
 		graphs := conn.GetGraphList()

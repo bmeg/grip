@@ -6,39 +6,67 @@ import (
 	"github.com/graphql-go/handler"
 	"log"
 	"net/http"
+	"regexp"
 	//"github.com/graphql-go/graphql/testutil"
 	"github.com/bmeg/arachne/aql"
 )
 
+//handle the graphql queries for a single endpoint
+type graphHandler struct {
+	graph      string
+	schema     string
+	gqlHandler *handler.Handler
+	timestamp  string
+	client     aql.Client
+}
+
 // Handler is a GraphQL endpoint to query the Arachne database
 type Handler struct {
-	graphqlHandler *handler.Handler
-	client         aql.Client
-	timestamp      string
+	handlers map[string]*graphHandler
+	client   aql.Client
 }
 
 // NewHTTPHandler initilizes a new GraphQLHandler
 func NewHTTPHandler(address string) http.Handler {
 	client, _ := aql.Connect(address, false)
 	h := &Handler{
-		client: client,
+		client:   client,
+		handlers: map[string]*graphHandler{},
 	}
-	h.setup()
 	return h
 }
 
 // ServeHTTP responds to HTTP graphql requests
 func (gh *Handler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
-	gh.setup()
-	gh.graphqlHandler.ServeHTTP(writer, request)
+	pathRE, _ := regexp.Compile("/graphql/(.*)$")
+	graphName := pathRE.FindStringSubmatch(request.URL.Path)[1]
+	if v, ok := gh.handlers[graphName]; ok {
+		v.setup()
+		v.gqlHandler.ServeHTTP(writer, request)
+	} else {
+		v := newGraphHandler(graphName, gh.client)
+		v.setup()
+		gh.handlers[graphName] = v
+		v.gqlHandler.ServeHTTP(writer, request)
+	}
 }
 
-func (gh *Handler) setup() {
-	ts, _ := gh.client.GetTimestamp("graphql")
+func newGraphHandler(graph string, client aql.Client) *graphHandler {
+	o := &graphHandler{
+		graph:  graph,
+		schema: fmt.Sprintf("%s:schema", graph),
+		client: client,
+	}
+	o.setup()
+	return o
+}
+
+func (gh *graphHandler) setup() {
+	ts, _ := gh.client.GetTimestamp(gh.graph)
 	if ts.Timestamp != gh.timestamp {
 		log.Printf("Reloading GraphQL")
-		schema := buildGraphQLSchema(gh.client, "graphql")
-		gh.graphqlHandler = handler.New(&handler.Config{
+		schema := buildGraphQLSchema(gh.client, gh.schema)
+		gh.gqlHandler = handler.New(&handler.Config{
 			Schema: schema,
 		})
 		gh.timestamp = ts.Timestamp
