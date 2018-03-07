@@ -106,12 +106,24 @@ type badgerTransaction struct {
 	tx *badger.Txn
 }
 
+func (badgerTrans badgerTransaction) Set(key, val []byte) error {
+	return badgerTrans.tx.Set(key, val)
+}
+
 // Delete removes key `id` from the kv store
 func (badgerTrans badgerTransaction) Delete(id []byte) error {
 	if err := badgerTrans.tx.Delete(id); err != nil {
 		return err
 	}
 	return nil
+}
+
+func (badgerTrans badgerTransaction) HasKey(id []byte) bool {
+	_, err := badgerTrans.tx.Get(id)
+	if err == nil {
+		return true
+	}
+	return false
 }
 
 // Update runs an alteration transition of the bolt kv store
