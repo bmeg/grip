@@ -127,7 +127,7 @@ func (server *ArachneServer) GetBundle(ctx context.Context, elem *aql.ElementID)
 // GetTimestamp returns the update timestamp of a graph
 func (server *ArachneServer) GetTimestamp(ctx context.Context, elem *aql.ElementID) (*aql.Timestamp, error) {
 	o := aql.Timestamp{
-		server.db.Graph(elem.Graph).GetTimestamp(),
+		Timestamp: server.db.Graph(elem.Graph).GetTimestamp(),
 	}
 	return &o, nil
 }

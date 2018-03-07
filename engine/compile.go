@@ -8,6 +8,7 @@ import (
 	//"log"
 )
 
+// Compile take set of statments and turns them into a runnable pipeline
 func Compile(stmts []*aql.GraphStatement, db gdbi.GraphInterface) (Pipeline, error) {
 	if len(stmts) == 0 {
 		return Pipeline{}, nil
@@ -19,7 +20,10 @@ func Compile(stmts []*aql.GraphStatement, db gdbi.GraphInterface) (Pipeline, err
 		return Pipeline{}, fmt.Errorf("invalid statments: %s", err)
 	}
 
-	last := gdbi.NoData
+	lastType := gdbi.NoData
+	markTypes := map[string]gdbi.DataType{}
+	rowTypes := []gdbi.DataType{}
+
 	procs := make([]gdbi.Processor, 0, len(stmts))
 	add := func(p gdbi.Processor) {
 		procs = append(procs, p)
@@ -31,7 +35,7 @@ func Compile(stmts []*aql.GraphStatement, db gdbi.GraphInterface) (Pipeline, err
 		case *aql.GraphStatement_V:
 			ids := protoutil.AsStringList(stmt.V)
 			add(&LookupVerts{db: db, ids: ids})
-			last = gdbi.VertexData
+			lastType = gdbi.VertexData
 
 		case *aql.GraphStatement_E:
 			var ids []string
@@ -39,7 +43,7 @@ func Compile(stmts []*aql.GraphStatement, db gdbi.GraphInterface) (Pipeline, err
 				ids = append(ids, stmt.E)
 			}
 			add(&LookupEdges{db: db, ids: ids})
-			last = gdbi.EdgeData
+			lastType = gdbi.EdgeData
 
 		case *aql.GraphStatement_Has:
 			add(&HasData{stmt.Has})
@@ -54,34 +58,36 @@ func Compile(stmts []*aql.GraphStatement, db gdbi.GraphInterface) (Pipeline, err
 
 		case *aql.GraphStatement_In:
 			labels := protoutil.AsStringList(stmt.In)
-			if last == gdbi.VertexData {
+			if lastType == gdbi.VertexData {
 				add(&LookupVertexAdjIn{db, labels})
-			} else if last == gdbi.EdgeData {
+			} else if lastType == gdbi.EdgeData {
 				add(&LookupEdgeAdjIn{db, labels})
 			} else {
 				return Pipeline{}, fmt.Errorf(`"in" reached weird state`)
 			}
+			lastType = gdbi.VertexData
 
 		case *aql.GraphStatement_Out:
 
 			labels := protoutil.AsStringList(stmt.Out)
-			if last == gdbi.VertexData {
+			if lastType == gdbi.VertexData {
 				add(&LookupVertexAdjOut{db, labels})
-			} else if last == gdbi.EdgeData {
+			} else if lastType == gdbi.EdgeData {
 				add(&LookupEdgeAdjOut{db, labels})
 			} else {
 				return Pipeline{}, fmt.Errorf(`"out" reached weird state`)
 			}
+			lastType = gdbi.VertexData
 
 		case *aql.GraphStatement_Both:
 
 			labels := protoutil.AsStringList(stmt.Both)
-			if last == gdbi.VertexData {
+			if lastType == gdbi.VertexData {
 				add(&concat{
 					&LookupVertexAdjIn{db, labels},
 					&LookupVertexAdjOut{db, labels},
 				})
-			} else if last == gdbi.EdgeData {
+			} else if lastType == gdbi.EdgeData {
 				add(&concat{
 					&LookupEdgeAdjIn{db, labels},
 					&LookupEdgeAdjOut{db, labels},
@@ -89,28 +95,29 @@ func Compile(stmts []*aql.GraphStatement, db gdbi.GraphInterface) (Pipeline, err
 			} else {
 				return Pipeline{}, fmt.Errorf(`"both" reached weird state`)
 			}
+			lastType = gdbi.VertexData
 
 		case *aql.GraphStatement_InEdge:
 
-			if last != gdbi.VertexData {
+			if lastType != gdbi.VertexData {
 				return Pipeline{}, fmt.Errorf(`"inEdge" statement is only valid for the vertex type`)
 			}
 			labels := protoutil.AsStringList(stmt.InEdge)
 			add(&InEdge{db, labels})
-			last = gdbi.EdgeData
+			lastType = gdbi.EdgeData
 
 		case *aql.GraphStatement_OutEdge:
 
-			if last != gdbi.VertexData {
+			if lastType != gdbi.VertexData {
 				return Pipeline{}, fmt.Errorf(`"outEdge" statement is only valid for the vertex type`)
 			}
 			labels := protoutil.AsStringList(stmt.OutEdge)
 			add(&OutEdge{db, labels})
-			last = gdbi.EdgeData
+			lastType = gdbi.EdgeData
 
 		case *aql.GraphStatement_BothEdge:
 
-			if last != gdbi.VertexData {
+			if lastType != gdbi.VertexData {
 				return Pipeline{}, fmt.Errorf(`"bothEdge" statement is only valid for the vertex type`)
 			}
 			labels := protoutil.AsStringList(stmt.BothEdge)
@@ -118,7 +125,7 @@ func Compile(stmts []*aql.GraphStatement, db gdbi.GraphInterface) (Pipeline, err
 				&InEdge{db, labels},
 				&OutEdge{db, labels},
 			})
-			last = gdbi.EdgeData
+			lastType = gdbi.EdgeData
 
 		case *aql.GraphStatement_Limit:
 			add(&Limit{stmt.Limit})
@@ -126,39 +133,48 @@ func Compile(stmts []*aql.GraphStatement, db gdbi.GraphInterface) (Pipeline, err
 		case *aql.GraphStatement_Count:
 			// TODO validate the types following a counter
 			add(&Count{})
-			last = gdbi.CountData
+			lastType = gdbi.CountData
+
+		case *aql.GraphStatement_Fold:
+			add(&Fold{stmt.Fold, []string{}})
+			lastType = gdbi.ValueData
 
 		case *aql.GraphStatement_GroupCount:
 			// TODO validate the types following a counter
 			add(&GroupCount{stmt.GroupCount})
-			last = gdbi.GroupCountData
+			lastType = gdbi.GroupCountData
 
 		case *aql.GraphStatement_As:
 			// TODO probably needs to be checked for a lot of statements.
-			if last == gdbi.NoData {
+			if lastType == gdbi.NoData {
 				return Pipeline{}, fmt.Errorf(`"as" statement is not valid at the beginning of a traversal`)
 			}
 			if stmt.As == "" {
 				return Pipeline{}, fmt.Errorf(`"as" statement cannot have an empty name`)
 			}
+			markTypes[stmt.As] = lastType
 			add(&Marker{stmt.As})
 
 		case *aql.GraphStatement_Select:
-			// TODO should track mark types so "last" can be set after select
+			// TODO should track mark types so "lastType" can be set after select
 			// TODO track mark names and fail when a name is missing.
 			switch len(stmt.Select.Labels) {
 			case 0:
 				return Pipeline{}, fmt.Errorf(`"select" statement has an empty list of mark names`)
 			case 1:
 				add(&selectOne{stmt.Select.Labels[0]})
+				lastType = markTypes[stmt.Select.Labels[0]]
 			default:
 				add(&selectMany{stmt.Select.Labels})
-				last = gdbi.RowData
+				lastType = gdbi.RowData
+				for _, i := range stmt.Select.Labels {
+					rowTypes = append(rowTypes, markTypes[i])
+				}
 			}
 
 		case *aql.GraphStatement_Values:
 			add(&Values{stmt.Values.Labels})
-			last = gdbi.ValueData
+			lastType = gdbi.ValueData
 
 		/*
 		   case *aql.GraphStatement_Import:
@@ -191,7 +207,7 @@ func Compile(stmts []*aql.GraphStatement, db gdbi.GraphInterface) (Pipeline, err
 	  }
 	*/
 
-	return Pipeline{procs, last}, nil
+	return Pipeline{procs, lastType, markTypes, rowTypes}, nil
 }
 
 func validate(stmts []*aql.GraphStatement) error {
