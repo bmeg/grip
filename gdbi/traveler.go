@@ -98,7 +98,7 @@ func (t Traveler) Convert(dataType DataType) *aql.ResultRow {
 		return &aql.ResultRow{
 			Value: &aql.QueryResult{
 				&aql.QueryResult_Data{
-					protoutil.WrapValue(t.value),
+					protoutil.WrapValue(t.current.Data),
 				},
 			},
 		}

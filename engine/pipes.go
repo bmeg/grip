@@ -3,7 +3,7 @@ package engine
 import (
 	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/gdbi"
-	//"log"
+	"log"
 )
 
 type Pipeline struct {
