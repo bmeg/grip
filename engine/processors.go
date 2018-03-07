@@ -4,8 +4,13 @@ import (
 	"context"
 	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/gdbi"
+	"github.com/bmeg/arachne/jsengine"
+	_ "github.com/bmeg/arachne/jsengine/goja" // import goja so it registers with the driver map
+	_ "github.com/bmeg/arachne/jsengine/otto" // import otto so it registers with the driver map
+	_ "github.com/bmeg/arachne/jsengine/v8"   // import v8 so it registers with the driver map
 	"github.com/bmeg/arachne/protoutil"
-	//"log"
+	structpb "github.com/golang/protobuf/ptypes/struct"
+	"log"
 	"sync"
 )
 
@@ -98,7 +103,7 @@ func (l *LookupEdgeAdjOut) Process(in gdbi.InPipe, out gdbi.OutPipe) {
 		for i := range in {
 			queryChan <- gdbi.ElementLookup{
 				ID:  i.GetCurrent().To,
-				Ref: &i,
+				Ref: i,
 			}
 		}
 	}()
@@ -150,7 +155,7 @@ func (l *LookupEdgeAdjIn) Process(in gdbi.InPipe, out gdbi.OutPipe) {
 		for i := range in {
 			queryChan <- gdbi.ElementLookup{
 				ID:  i.GetCurrent().From,
-				Ref: &i,
+				Ref: i,
 			}
 		}
 	}()
@@ -310,6 +315,34 @@ func (l *Limit) Process(in gdbi.InPipe, out gdbi.OutPipe) {
 		}
 		out <- t
 		i++
+	}
+}
+
+type Fold struct {
+	fold    *aql.FoldStatement
+	imports []string
+}
+
+func (f *Fold) Process(in gdbi.InPipe, out gdbi.OutPipe) {
+	mfunc, err := jsengine.NewJSEngine(f.fold.Source, f.imports)
+	if err != nil || mfunc == nil {
+		log.Printf("Script Error: %s", err)
+		return
+	}
+	s := f.fold.Init.Kind.(*structpb.Value_StructValue)
+	foldValue := protoutil.AsMap(s.StructValue)
+	for i := range in {
+		foldValue, err = mfunc.CallDict(foldValue, i.GetCurrent().Data)
+		log.Printf("FoldReturn: %s", foldValue)
+		if err != nil {
+			log.Printf("Call error: %s", err)
+		}
+	}
+	if foldValue != nil {
+		log.Printf("Fold Out: %#v", foldValue)
+		i := gdbi.Traveler{}
+		a := i.AddCurrent(&gdbi.DataElement{Data: foldValue})
+		out <- a
 	}
 }
 

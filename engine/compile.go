@@ -128,6 +128,10 @@ func Compile(stmts []*aql.GraphStatement, db gdbi.GraphInterface) (Pipeline, err
 			add(&Count{})
 			last = gdbi.CountData
 
+		case *aql.GraphStatement_Fold:
+			add(&Fold{stmt.Fold, []string{}})
+			last = gdbi.ValueData
+
 		case *aql.GraphStatement_GroupCount:
 			// TODO validate the types following a counter
 			add(&GroupCount{stmt.GroupCount})
