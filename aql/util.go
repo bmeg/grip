@@ -178,3 +178,13 @@ func (edge *Edge) GetProperty(key string) interface{} {
 	m := protoutil.AsMap(edge.Data)
 	return m[key]
 }
+
+// GetProperty get named field from edge data
+func (edge *Edge) HasProperty(key string) bool {
+	if edge.Data == nil {
+		return false
+	}
+	m := protoutil.AsMap(edge.Data)
+	_, ok := m[key]
+	return ok
+}

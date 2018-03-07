@@ -133,7 +133,11 @@ var Cmd = &cobra.Command{
 				return err
 			}
 			e := aql.Graph{}
-			jsonpb.Unmarshal(strings.NewReader(string(content)), &e)
+			if err := jsonpb.Unmarshal(strings.NewReader(string(content)), &e); err != nil {
+				log.Printf("Error: %s", err)
+				return err
+			}
+
 			conn.AddSubGraph(graph, e)
 			log.Printf("Subgraph Loaded")
 		}
@@ -148,6 +152,6 @@ func init() {
 	flags.StringVar(&graph, "graph", "data", "Graph")
 	flags.StringVar(&vertexFile, "vertex", "", "Vertex File")
 	flags.StringVar(&edgeFile, "edge", "", "Edge File")
-	flags.StringVar(&graphFile, "data", "", "Graph File")
+	flags.StringVar(&graphFile, "json", "", "Graph File")
 	flags.StringVar(&bundleFile, "bundle", "", "Edge Bundle File")
 }

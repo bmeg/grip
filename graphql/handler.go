@@ -112,14 +112,25 @@ func getQueryFields(client aql.Client, gqlDB string, queryGID string) map[string
 	return out
 }
 
-func getObjectFields(client aql.Client, gqlDB string, queryGID string) map[string]string {
-	out := map[string]string{}
+// a field that represent a link to another object
+type objectField struct {
+	name    string
+	label   string
+	dstType string
+}
+
+func getObjectFields(client aql.Client, gqlDB string, queryGID string) map[string]objectField {
+	out := map[string]objectField{}
 	q := aql.V(queryGID).OutEdge("field").As("a").Out().As("b").Select("a", "b")
 	results, _ := client.Execute(gqlDB, q)
 	for elem := range results {
 		fieldName := elem.GetRow()[0].GetEdge().GetProperty("name").(string)
 		fieldObj := elem.GetRow()[1].GetVertex().Gid
-		out[fieldName] = fieldObj
+		label := fieldName
+		if elem.GetRow()[0].GetEdge().HasProperty("label") {
+			label = elem.GetRow()[0].GetEdge().GetProperty("label").(string)
+		}
+		out[fieldName] = objectField{fieldName, label, fieldObj}
 	}
 	return out
 }
@@ -153,20 +164,22 @@ func buildObjectMap(client aql.Client, gqlDB string, dataGraph string) map[strin
 	//list all objects, but this time find edges to other objects that create
 	//fields that expand into other objects
 	for gid := range getObjects(client, gqlDB) {
-		for edgeName, objID := range getObjectFields(client, gqlDB, gid) {
-			log.Printf("Object Field %s %s", edgeName, objID)
+		for edgeName, field := range getObjectFields(client, gqlDB, gid) {
+			log.Printf("Object Field %s %s", edgeName, field)
 			//lID := objID
-			edgeNameLocal := edgeName
+			lField := field
 			f := graphql.Field{
 				Name: edgeName,
-				Type: graphql.NewList(objects[gid]),
+				Type: graphql.NewList(objects[lField.dstType]),
 				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 					srcMap := p.Source.(map[string]interface{})
 					srcGid := srcMap["__gid"].(string)
-					q := aql.V(srcGid).Out(edgeNameLocal)
+					//log.Printf("Scanning edge from %s out '%s'", srcGid, lField.label)
+					q := aql.V(srcGid).Both(lField.label)
 					result, _ := client.Execute(dataGraph, q)
 					out := []interface{}{}
 					for r := range result {
+						//log.Printf("Results: %s", r)
 						i := r.GetValue().GetVertex().GetDataMap()
 						i["__gid"] = r.GetValue().GetVertex().Gid
 						out = append(out, i)
@@ -174,6 +187,7 @@ func buildObjectMap(client aql.Client, gqlDB string, dataGraph string) map[strin
 					return out, nil
 				},
 			}
+			log.Printf("Add object field %s from %s to %s = %s", edgeName, gid, field, f)
 			objects[gid].AddFieldConfig(edgeName, &f)
 		}
 	}
@@ -189,8 +203,7 @@ func buildQueryObject(client aql.Client, gqlDB string, dataGraph string, objects
 		for edgeName, objID := range getQueryFields(client, gqlDB, gid) {
 			lEdgeName := edgeName
 			log.Printf("query field %s %s %s", lEdgeName, objID, objects[objID])
-
-			queryFields[lEdgeName] = &graphql.Field{
+			f := &graphql.Field{
 				Type: objects[objID],
 				Args: graphql.FieldConfigArgument{
 					"id": &graphql.ArgumentConfig{
@@ -208,6 +221,8 @@ func buildQueryObject(client aql.Client, gqlDB string, dataGraph string, objects
 					return d, nil
 				},
 			}
+			log.Printf("Add query field %s %s %s", objID, lEdgeName, f)
+			queryFields[lEdgeName] = f
 		}
 	}
 	log.Printf("QueryFields: %#v", queryFields)
