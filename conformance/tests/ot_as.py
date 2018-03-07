@@ -51,12 +51,11 @@ def test_as_edge_select(O):
     O.addEdge("vertex2", "vertex3", "friend")
     O.addEdge("vertex2", "vertex4", "parent")
 
-
     for row in O.query().V("vertex1").mark("a").outgoingEdge().mark("b").outgoing().mark("c").select(["a", "b", "c"]).execute():
         res = dict(zip(["a","b","c"], row))
         if res["a"]["vertex"]["gid"] != "vertex1":
             errors.append("Incorrect as selection")
-        if "gid" in res["b"]["edge"]:
+        if "gid" not in res["b"]["edge"]:
             errors.append("Incorrect as edge selection")
         if res["c"]["vertex"]["gid"] not in ["vertex2"]:
             errors.append("Incorrect as selection")

@@ -333,13 +333,11 @@ func (f *Fold) Process(in gdbi.InPipe, out gdbi.OutPipe) {
 	foldValue := protoutil.AsMap(s.StructValue)
 	for i := range in {
 		foldValue, err = mfunc.CallDict(foldValue, i.GetCurrent().Data)
-		log.Printf("FoldReturn: %s", foldValue)
 		if err != nil {
 			log.Printf("Call error: %s", err)
 		}
 	}
 	if foldValue != nil {
-		log.Printf("Fold Out: %#v", foldValue)
 		i := gdbi.Traveler{}
 		a := i.AddCurrent(&gdbi.DataElement{Data: foldValue})
 		out <- a

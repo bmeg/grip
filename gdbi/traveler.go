@@ -1,7 +1,6 @@
 package gdbi
 
 import (
-	"fmt"
 	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/protoutil"
 )
@@ -42,70 +41,6 @@ func (t Traveler) GetMark(label string) *DataElement {
 // GetCurrent get current result value attached to the traveler
 func (t Traveler) GetCurrent() *DataElement {
 	return t.current
-}
-
-func (t Traveler) Convert(dataType DataType) *aql.ResultRow {
-	switch dataType {
-	case VertexData:
-		return &aql.ResultRow{
-			Value: &aql.QueryResult{
-				&aql.QueryResult_Vertex{
-					t.current.ToVertex(),
-				},
-			},
-		}
-
-	case EdgeData:
-		return &aql.ResultRow{
-			Value: &aql.QueryResult{
-				&aql.QueryResult_Edge{
-					t.current.ToEdge(),
-				},
-			},
-		}
-
-	case CountData:
-		return &aql.ResultRow{
-			Value: &aql.QueryResult{
-				&aql.QueryResult_Data{
-					protoutil.WrapValue(t.Count),
-				},
-			},
-		}
-
-	case GroupCountData:
-		return &aql.ResultRow{
-			Value: &aql.QueryResult{
-				&aql.QueryResult_Data{
-					protoutil.WrapValue(t.GroupCounts),
-				},
-			},
-		}
-
-	case RowData:
-		res := &aql.ResultRow{}
-		for _, r := range t.current.Row {
-			elem := &aql.QueryResult{
-				&aql.QueryResult_Vertex{
-					r.ToVertex(), //BUG: lost the type by this point, guess its a vertex
-				},
-			}
-			res.Row = append(res.Row, elem)
-		}
-		return res
-
-	case ValueData:
-		return &aql.ResultRow{
-			Value: &aql.QueryResult{
-				&aql.QueryResult_Data{
-					protoutil.WrapValue(t.current.Data),
-				},
-			},
-		}
-
-	default:
-		panic(fmt.Errorf("unhandled data type %d", dataType))
-	}
 }
 
 func (elem DataElement) ToVertex() *aql.Vertex {
