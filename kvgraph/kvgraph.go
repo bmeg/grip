@@ -93,11 +93,18 @@ func (kgdb *KVInterfaceGDB) SetVertex(vertexArray []*aql.Vertex) error {
 			if err != nil {
 				return err
 			}
-			kgdb.ts.Touch(kgdb.graph)
 		}
+		kgdb.ts.Touch(kgdb.graph)
 		return nil
 	})
 	return nil
+}
+
+func randomEdgeKeyAssignment(graph string, tx KVTransaction) string {
+	eid := fmt.Sprintf("%d", rand.Uint64())
+	for ; tx.HasKey(EdgeKeyPrefix(graph, eid)); eid = fmt.Sprintf("%d", rand.Uint64()) {
+	}
+	return eid
 }
 
 // SetEdge adds an edge to the graph, if the id is not "" and in already exists
@@ -106,13 +113,16 @@ func (kgdb *KVInterfaceGDB) SetEdge(edgeArray []*aql.Edge) error {
 	kgdb.kv.Update(func(tx KVTransaction) error {
 		for _, edge := range edgeArray {
 			if edge.Gid == "" {
-				eid := fmt.Sprintf("%d", rand.Uint64())
-				for ; tx.HasKey(EdgeKeyPrefix(kgdb.graph, eid)); eid = fmt.Sprintf("%d", rand.Uint64()) {
-				}
-				edge.Gid = eid
+				edge.Gid = randomEdgeKeyAssignment(kgdb.graph, tx)
 			}
 			eid := edge.Gid
-			data, _ := proto.Marshal(edge)
+			var err error
+			var data []byte
+
+			data, err = proto.Marshal(edge)
+			if err != nil {
+				return err
+			}
 
 			src := edge.From
 			dst := edge.To
@@ -120,7 +130,6 @@ func (kgdb *KVInterfaceGDB) SetEdge(edgeArray []*aql.Edge) error {
 			skey := SrcEdgeKey(kgdb.graph, src, dst, eid, edge.Label, edgeSingle)
 			dkey := DstEdgeKey(kgdb.graph, src, dst, eid, edge.Label, edgeSingle)
 
-			var err error
 			err = tx.Set(ekey, data)
 			if err != nil {
 				return err
