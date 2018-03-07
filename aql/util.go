@@ -95,6 +95,7 @@ func (client Client) AddBundle(graph string, e Bundle) error {
 	return nil
 }
 
+// AddSubGraph adds a complete subgraph to an existing graph
 func (client Client) AddSubGraph(graph string, g Graph) error {
 	client.EditC.AddSubGraph(context.Background(), &Graph{Graph: graph, Edges: g.Edges, Vertices: g.Vertices})
 	return nil

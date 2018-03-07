@@ -17,6 +17,15 @@ var edgeFile string
 var graphFile string
 var bundleFile string
 
+func found(set []string, val string) bool {
+	for _, i := range set {
+		if i == val {
+			return true
+		}
+	}
+	return false
+}
+
 // Cmd is the declaration of the command line
 var Cmd = &cobra.Command{
 	Use:   "load",
@@ -115,6 +124,10 @@ var Cmd = &cobra.Command{
 
 		if graphFile != "" {
 			log.Printf("Loading %s", graphFile)
+			graphs := conn.GetGraphList()
+			if !found(graphs, graph) {
+				conn.AddGraph(graph)
+			}
 			content, err := ioutil.ReadFile(graphFile)
 			if err != nil {
 				return err

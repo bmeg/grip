@@ -62,7 +62,7 @@ func newGraphHandler(graph string, client aql.Client) *graphHandler {
 }
 
 func (gh *graphHandler) setup() {
-	ts, _ := gh.client.GetTimestamp(gh.graph)
+	ts, _ := gh.client.GetTimestamp(gh.schema)
 	if ts.Timestamp != gh.timestamp {
 		log.Printf("Reloading GraphQL")
 		schema := buildGraphQLSchema(gh.client, gh.schema)
