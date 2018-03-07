@@ -99,6 +99,20 @@ func (boltTrans boltTransaction) Delete(id []byte) error {
 	return boltTrans.b.Delete(id)
 }
 
+func (boltTrans boltTransaction) Set(key, val []byte) error {
+	b := boltTrans.tx.Bucket(graphBucket)
+	return b.Put(key, val)
+}
+
+func (boltTrans boltTransaction) HasKey(id []byte) bool {
+	b := boltTrans.tx.Bucket(graphBucket)
+	d := b.Get([]byte(id))
+	if d != nil {
+		return true
+	}
+	return false
+}
+
 // Update runs an alteration transition of the bolt kv store
 func (boltkv *BoltKV) Update(u func(tx kvgraph.KVTransaction) error) error {
 	err := boltkv.db.Update(func(tx *bolt.Tx) error {

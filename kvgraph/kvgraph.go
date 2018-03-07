@@ -85,52 +85,67 @@ func (kgdb *KVInterfaceGDB) GetTimestamp() string {
 // SetVertex adds an edge to the graph, if it already exists
 // in the graph, it is replaced
 func (kgdb *KVInterfaceGDB) SetVertex(vertexArray []*aql.Vertex) error {
-	for _, vertex := range vertexArray {
-		d, _ := proto.Marshal(vertex)
-		k := VertexKey(kgdb.graph, vertex.Gid)
-		err := kgdb.kv.Set(k, d)
-		if err != nil {
-			return err
+	kgdb.kv.Update(func(tx KVTransaction) error {
+		for _, vertex := range vertexArray {
+			d, _ := proto.Marshal(vertex)
+			k := VertexKey(kgdb.graph, vertex.Gid)
+			err := tx.Set(k, d)
+			if err != nil {
+				return err
+			}
 		}
 		kgdb.ts.Touch(kgdb.graph)
-	}
+		return nil
+	})
 	return nil
+}
+
+func randomEdgeKeyAssignment(graph string, tx KVTransaction) string {
+	eid := fmt.Sprintf("%d", rand.Uint64())
+	for ; tx.HasKey(EdgeKeyPrefix(graph, eid)); eid = fmt.Sprintf("%d", rand.Uint64()) {
+	}
+	return eid
 }
 
 // SetEdge adds an edge to the graph, if the id is not "" and in already exists
 // in the graph, it is replaced
 func (kgdb *KVInterfaceGDB) SetEdge(edgeArray []*aql.Edge) error {
-	for _, edge := range edgeArray {
-		if edge.Gid == "" {
-			eid := fmt.Sprintf("%d", rand.Uint64())
-			for ; kgdb.kv.HasKey(EdgeKeyPrefix(kgdb.graph, eid)); eid = fmt.Sprintf("%d", rand.Uint64()) {
+	kgdb.kv.Update(func(tx KVTransaction) error {
+		for _, edge := range edgeArray {
+			if edge.Gid == "" {
+				edge.Gid = randomEdgeKeyAssignment(kgdb.graph, tx)
 			}
-			edge.Gid = eid
-		}
-		eid := edge.Gid
-		data, _ := proto.Marshal(edge)
+			eid := edge.Gid
+			var err error
+			var data []byte
 
-		src := edge.From
-		dst := edge.To
-		ekey := EdgeKey(kgdb.graph, eid, src, dst, edge.Label, edgeSingle)
-		skey := SrcEdgeKey(kgdb.graph, src, dst, eid, edge.Label, edgeSingle)
-		dkey := DstEdgeKey(kgdb.graph, src, dst, eid, edge.Label, edgeSingle)
+			data, err = proto.Marshal(edge)
+			if err != nil {
+				return err
+			}
 
-		var err error
-		err = kgdb.kv.Set(ekey, data)
-		if err != nil {
-			return err
+			src := edge.From
+			dst := edge.To
+			ekey := EdgeKey(kgdb.graph, eid, src, dst, edge.Label, edgeSingle)
+			skey := SrcEdgeKey(kgdb.graph, src, dst, eid, edge.Label, edgeSingle)
+			dkey := DstEdgeKey(kgdb.graph, src, dst, eid, edge.Label, edgeSingle)
+
+			err = tx.Set(ekey, data)
+			if err != nil {
+				return err
+			}
+			err = tx.Set(skey, []byte{})
+			if err != nil {
+				return err
+			}
+			err = tx.Set(dkey, []byte{})
+			if err != nil {
+				return err
+			}
+			kgdb.ts.Touch(kgdb.graph)
 		}
-		err = kgdb.kv.Set(skey, []byte{})
-		if err != nil {
-			return err
-		}
-		err = kgdb.kv.Set(dkey, []byte{})
-		if err != nil {
-			return err
-		}
-		kgdb.ts.Touch(kgdb.graph)
-	}
+		return nil
+	})
 	return nil
 }
 
