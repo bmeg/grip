@@ -6,7 +6,6 @@ import (
 	"log"
 	"os"
 	"os/signal"
-	"path/filepath"
 )
 
 var httpPort = "8201"
@@ -15,6 +14,7 @@ var dbPath = "graph.db"
 var mongoURL string
 var boltPath string
 var rocksPath string
+var contentDir string
 
 // Cmd the main command called by the cobra library
 var Cmd = &cobra.Command{
@@ -22,9 +22,6 @@ var Cmd = &cobra.Command{
 	Short: "Starts arachne server",
 	Long:  ``,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		dir, _ := filepath.Abs(os.Args[0])
-		contentDir := filepath.Join(dir, "..", "..", "share")
-
 		log.Printf("Starting Server")
 
 		var server *graphserver.ArachneServer = nil
@@ -47,7 +44,7 @@ var Cmd = &cobra.Command{
 			proxy.Stop()
 		}()
 		proxy.Run()
-		log.Printf("Server Stoped, closing database")
+		log.Printf("Server Stopped, closing database")
 		server.CloseDB()
 		return nil
 	},
@@ -61,4 +58,5 @@ func init() {
 	flags.StringVar(&mongoURL, "mongo", "", "Mongo URL")
 	flags.StringVar(&boltPath, "bolt", "", "Bolt DB Path")
 	flags.StringVar(&rocksPath, "rocks", "", "RocksDB Path")
+	flags.StringVar(&contentDir, "content", "", "Content Path")
 }
