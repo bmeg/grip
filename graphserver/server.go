@@ -197,8 +197,8 @@ func newGraphElementArray(name string, vertexBufSize, edgeBufSize int) *graphEle
 
 // StreamElements takes a stream of inputs and loads them into the graph
 func (server *ArachneServer) StreamElements(stream aql.Edit_StreamElementsServer) error {
-	vertexBatchSize := 500
-	edgeBatchSize := 500
+	vertexBatchSize := 50
+	edgeBatchSize := 50
 
 	vertCount := 0
 	edgeCount := 0
