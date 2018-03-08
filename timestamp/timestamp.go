@@ -24,5 +24,8 @@ func (ts *Timestamp) Touch(name string) {
 //Get gets the current timestamp
 func (ts *Timestamp) Get(name string) string {
 	o, _ := ts.stamps.Load(name)
+	if o == nil {
+		return ""
+	}
 	return o.(string)
 }
