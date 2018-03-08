@@ -141,7 +141,9 @@ var swEdges = []aql.Edge{
 }
 
 var swGQLGraph = `{
-	"vertices": [{
+	"vertices": [
+		{ "gid" : "root", "label" : "Query"},
+		{
 			"gid": "HumanObject",
 			"label": "Object",
 			"data": {
@@ -178,25 +180,11 @@ var swGQLGraph = `{
 					"length": "Float"
 				}
 			}
-		},
-		{
-			"gid": "HumanQuery",
-			"label": "Query",
-			"data": {
-				"name": "Human"
-			}
-		},
-		{
-			"gid": "DroidQuery",
-			"label": "Query",
-			"data": {
-				"name": "Droid"
-			}
 		}
 	],
 	"edges": [{
 			"label": "field",
-			"from": "HumanQuery",
+			"from": "root",
 			"to": "HumanObject",
 			"data": {
 				"name": "Human"
@@ -204,7 +192,7 @@ var swGQLGraph = `{
 		},
 		{
 			"label": "field",
-			"from": "DroidQuery",
+			"from": "root",
 			"to": "DroidObject",
 			"data": {
 				"name": "Droid"

@@ -88,17 +88,27 @@ func getObjects(client aql.Client, gqlDB string) map[string]map[string]interface
 	return out
 }
 
-func getQueries(client aql.Client, gqlDB string) map[string]map[string]interface{} {
-	out := map[string]map[string]interface{}{}
+// a field that represent a link to another object
+type objectField struct {
+	name    string
+	label   string
+	dstType string
+}
+
+func getQueries(client aql.Client, gqlDB string) map[string]objectField {
+	out := map[string]objectField{}
 	q := aql.V().HasLabel("Query")
 	results, _ := client.Execute(gqlDB, q)
 	for elem := range results {
-		d := elem.GetValue().GetVertex().GetDataMap()
-		out[elem.GetValue().GetVertex().Gid] = d
+		d := elem.GetValue().GetVertex().Gid
+		for k, v := range getObjectFields(client, gqlDB, d) {
+			out[k] = v
+		}
 	}
 	return out
 }
 
+/*
 func getQueryFields(client aql.Client, gqlDB string, queryGID string) map[string]string {
 	out := map[string]string{}
 	q := aql.V(queryGID).OutEdge("field").As("a").Out().As("b").Select("a", "b")
@@ -111,13 +121,7 @@ func getQueryFields(client aql.Client, gqlDB string, queryGID string) map[string
 	}
 	return out
 }
-
-// a field that represent a link to another object
-type objectField struct {
-	name    string
-	label   string
-	dstType string
-}
+*/
 
 func getObjectFields(client aql.Client, gqlDB string, queryGID string) map[string]objectField {
 	out := map[string]objectField{}
@@ -200,30 +204,26 @@ func buildQueryObject(client aql.Client, gqlDB string, dataGraph string, objects
 	//find all defined queries and add them as fields to the base query object
 	for gid, data := range getQueries(client, gqlDB) {
 		log.Printf("Query %s %s", gid, data)
-		for edgeName, objID := range getQueryFields(client, gqlDB, gid) {
-			lEdgeName := edgeName
-			log.Printf("query field %s %s %s", lEdgeName, objID, objects[objID])
-			f := &graphql.Field{
-				Type: objects[objID],
-				Args: graphql.FieldConfigArgument{
-					"id": &graphql.ArgumentConfig{
-						Type: graphql.String,
-					},
+		log.Printf("query field %s %s", data.name, objects[data.dstType])
+		f := &graphql.Field{
+			Type: objects[data.dstType],
+			Args: graphql.FieldConfigArgument{
+				"id": &graphql.ArgumentConfig{
+					Type: graphql.String,
 				},
-				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-					log.Printf("Scanning %s", p.Args)
-					v, err := client.GetVertex(dataGraph, p.Args["id"].(string))
-					if v == nil || err != nil {
-						return nil, fmt.Errorf("Not found")
-					}
-					d := v.GetDataMap()
-					d["__gid"] = v.Gid
-					return d, nil
-				},
-			}
-			log.Printf("Add query field %s %s %#v", objID, lEdgeName, f)
-			queryFields[lEdgeName] = f
+			},
+			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+				log.Printf("Scanning %s", p.Args)
+				v, err := client.GetVertex(dataGraph, p.Args["id"].(string))
+				if v == nil || err != nil {
+					return nil, fmt.Errorf("Not found")
+				}
+				d := v.GetDataMap()
+				d["__gid"] = v.Gid
+				return d, nil
+			},
 		}
+		queryFields[data.name] = f
 	}
 	log.Printf("QueryFields: %#v", queryFields)
 	queryType := graphql.NewObject(
