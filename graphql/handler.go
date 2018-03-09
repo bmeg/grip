@@ -106,9 +106,6 @@ type objectField struct {
 }
 
 func (f objectField) toGQL(client aql.Client, dataGraph string, objects map[string]*graphql.Object) *graphql.Field {
-
-	log.Printf("Generate Object Field %s %#v", f.name, f)
-
 	if f.fieldType == objectList {
 		o := &graphql.Field{
 			Name: f.name,
@@ -192,6 +189,7 @@ func getObjectFields(client aql.Client, gqlDB string, queryGID string) map[strin
 	q := aql.V(queryGID).OutEdge("field").As("a").Out().As("b").Select("a", "b")
 	results, _ := client.Execute(gqlDB, q)
 	for elem := range results {
+		log.Printf("objectField: %s %s %s", queryGID, elem.GetRow()[0], elem.GetRow()[1].GetVertex().Gid)
 		fieldName := elem.GetRow()[0].GetEdge().GetProperty("name").(string)
 		fieldObj := elem.GetRow()[1].GetVertex().Gid
 		label := fieldName
@@ -243,10 +241,10 @@ func buildObjectMap(client aql.Client, gqlDB string, dataGraph string) map[strin
 	//list all objects, but this time find edges to other objects that create
 	//fields that expand into other objects
 	for srcObj := range getObjects(client, gqlDB) {
-		for edgeName, field := range getObjectFields(client, gqlDB, srcObj) {
-			log.Printf("Object Field %s %s %s", srcObj, edgeName, field.dstType)
+		for fieldName, field := range getObjectFields(client, gqlDB, srcObj) {
+			log.Printf("Object Field %s %s %s", srcObj, fieldName, field.dstType)
 			f := field.toGQL(client, dataGraph, objects)
-			objects[srcObj].AddFieldConfig(edgeName, f)
+			objects[srcObj].AddFieldConfig(fieldName, f)
 		}
 	}
 	return objects
@@ -256,12 +254,12 @@ func buildQueryObject(client aql.Client, gqlDB string, dataGraph string, objects
 
 	queryFields := graphql.Fields{}
 	//find all defined queries and add them as fields to the base query object
-	for gid, field := range getQueries(client, gqlDB) {
-		log.Printf("query %s field %s %s", gid, field.name, objects[field.dstType])
+	for fieldName, field := range getQueries(client, gqlDB) {
+		//log.Printf("query %s field %s %s", gid, field.name, objects[field.dstType])
 		f := field.toGQL(client, dataGraph, objects)
-		queryFields[field.name] = f
+		queryFields[fieldName] = f
 	}
-	log.Printf("QueryFields: %#v", queryFields)
+	//log.Printf("QueryFields: %#v", queryFields)
 	queryType := graphql.NewObject(
 		graphql.ObjectConfig{
 			Name:   "Query",
@@ -276,7 +274,7 @@ func buildGraphQLSchema(client aql.Client, gqlDB string, dataGraph string) *grap
 	schemaConfig := graphql.SchemaConfig{
 		Query: queryType,
 	}
-	log.Printf("GraphQL Schema: %s", schemaConfig)
+	//log.Printf("GraphQL Schema: %s", schemaConfig)
 	schema, _ := graphql.NewSchema(schemaConfig)
 	return &schema
 }
