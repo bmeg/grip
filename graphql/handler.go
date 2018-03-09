@@ -212,29 +212,56 @@ func getObjectFields(client aql.Client, gqlDB string, queryGID string) map[strin
 	return out
 }
 
+func buildObject(name string, schema map[string]interface{}) *graphql.Object {
+	fields := graphql.Fields{}
+	log.Printf("BUILDING: %s", name)
+	for fname, ftype := range schema {
+		if x, ok := ftype.(map[string]interface{}); ok {
+			if m := buildObject(fname, x); m != nil {
+				fields[fname] = &graphql.Field{Type: m}
+			}
+		} else if x, ok := ftype.([]interface{}); ok {
+			log.Printf("array: %s", x)
+			//we only look at the first element to determine the schema of array elements
+			if len(x) > 0 {
+				y := x[0]
+				if z, ok := y.(map[string]interface{}); ok {
+					if m := buildObject(fname, z); m != nil {
+						fields[fname] = &graphql.Field{Type: graphql.NewList(m)}
+					}
+				} else {
+					log.Printf("Unknown GQL type %#v", ftype)
+				}
+			}
+		} else if x, ok := ftype.(string); ok {
+			log.Printf("%s %s", fname, ftype)
+			if x == "Int" {
+				fields[fname] = &graphql.Field{Type: graphql.Int}
+			} else if x == "String" || x == "string" {
+				fields[fname] = &graphql.Field{Type: graphql.String}
+			} else if x == "Float" {
+				fields[fname] = &graphql.Field{Type: graphql.Float}
+			}
+		} else {
+			log.Printf("Unknown GQL type %#v", ftype)
+		}
+	}
+	return graphql.NewObject(
+		graphql.ObjectConfig{
+			Name:   name,
+			Fields: fields,
+		},
+	)
+}
+
 func buildObjectMap(client aql.Client, gqlDB string, dataGraph string) map[string]*graphql.Object {
 
 	objects := map[string]*graphql.Object{}
 
 	//create instance of ever object type, and add constant fields
 	for gid, obj := range getObjects(client, gqlDB) {
-		fields := graphql.Fields{}
-		for fname, ftype := range obj["fields"].(map[string]interface{}) {
-			log.Printf("%s %s", fname, ftype)
-			if ftype == "Int" {
-				fields[fname] = &graphql.Field{Type: graphql.Int}
-			} else if ftype == "String" || ftype == "string" {
-				fields[fname] = &graphql.Field{Type: graphql.String}
-			} else if ftype == "Float" {
-				fields[fname] = &graphql.Field{Type: graphql.Float}
-			}
-		}
-		gobj := graphql.NewObject(
-			graphql.ObjectConfig{
-				Name:   gid,
-				Fields: fields,
-			},
-		)
+		schema := obj["fields"].(map[string]interface{})
+		gobj := buildObject(gid, schema)
 		objects[gid] = gobj
 	}
 
