@@ -25,7 +25,6 @@ def test_distinct(O):
 
     count = 0
     for i in O.query().V().outgoing().distinct("$.gid"):
-        print i
         if i['vertex']['gid'] == "3":
             count += 1
     if count != 1:

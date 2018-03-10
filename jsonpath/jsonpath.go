@@ -1,6 +1,7 @@
 package jsonpath
 
 import (
+	"fmt"
 	"github.com/bmeg/arachne/protoutil"
 	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/oliveagle/jsonpath"
@@ -59,4 +60,15 @@ func CompareFields(aMap, bMap map[string]interface{}, aPath, bPath string, op Op
 		return !reflect.DeepEqual(aRes, bRes), nil
 	}
 	return false, nil
+}
+
+func GetString(a map[string]interface{}, path string) string {
+	res, err := jsonpath.JsonPathLookup(a, path)
+	if err != nil {
+		return ""
+	}
+	if x, ok := res.(string); ok {
+		return x
+	}
+	return fmt.Sprintf("%#v", res)
 }

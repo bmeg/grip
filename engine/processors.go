@@ -1,6 +1,7 @@
 package engine
 
 import (
+	"bytes"
 	"context"
 	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/gdbi"
@@ -8,6 +9,7 @@ import (
 	_ "github.com/bmeg/arachne/jsengine/goja" // import goja so it registers with the driver map
 	_ "github.com/bmeg/arachne/jsengine/otto" // import otto so it registers with the driver map
 	_ "github.com/bmeg/arachne/jsengine/v8"   // import v8 so it registers with the driver map
+	"github.com/bmeg/arachne/jsonpath"
 	"github.com/bmeg/arachne/protoutil"
 	structpb "github.com/golang/protobuf/ptypes/struct"
 	"log"
@@ -427,13 +429,17 @@ func (g *Distinct) Process(man Manager, in gdbi.InPipe, out gdbi.OutPipe) {
 
 	kv := man.GetTempKV()
 	for t := range in {
-		//d := make([]string, len(g.vals))
-		//for i := range g.vals {
-		//}
-		kv.Set([]byte(t.GetCurrent().ID), []byte{0x01})
-		out <- t
+		cur := t.GetCurrent().ToDict()
+		s := make([][]byte, len(g.vals))
+		for i := range g.vals {
+			s[i] = []byte(jsonpath.GetString(cur, g.vals[i]))
+		}
+		k := bytes.Join(s, []byte{0x00})
+		if !kv.HasKey(k) {
+			kv.Set(k, []byte{0x01})
+			out <- t
+		}
 	}
-
 }
 
 // Marker marks the current element
