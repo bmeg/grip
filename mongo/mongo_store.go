@@ -10,6 +10,7 @@ import (
 	"gopkg.in/mgo.v2/bson"
 	"io"
 	"log"
+	"strings"
 )
 
 // Mongo is the base driver that manages multiple graphs in mongo
@@ -129,10 +130,17 @@ func (ma *Mongo) GetGraphs() []string {
 
 	iter := g.Find(nil).Iter()
 	defer iter.Close()
+	if err := iter.Err(); err != nil {
+		log.Printf("Error: %s", err)
+	}
 	result := map[string]interface{}{}
 	for iter.Next(&result) {
 		out = append(out, result["_id"].(string))
 	}
+	if err := iter.Err(); err != nil {
+		log.Printf("Error: %s", err)
+	}
+	log.Printf("Graphs: %s %s", ma.database, out)
 	return out
 }
 
@@ -195,6 +203,9 @@ func isNetError(e error) bool {
 	if b, ok := e.(*mgo.BulkError); ok {
 		for _, c := range b.Cases() {
 			if c.Err == io.EOF {
+				return true
+			}
+			if strings.Contains(c.Err.Error(), "connection") {
 				return true
 			}
 		}
