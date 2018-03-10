@@ -28,9 +28,15 @@ proto:
 	--grpc-gateway_out=logtostderr=true:. \
 	aql.proto
 
+kvproto:
+	cd kvgraph && protoc \
+	-I ./ --go_out=. \
+	index.proto
+
 proto-depends:
 	go install github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway
 	go install github.com/golang/protobuf/protoc-gen-go
+
 
 # Automatially update code formatting
 tidy:
