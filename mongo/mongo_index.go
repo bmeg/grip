@@ -12,11 +12,13 @@ import (
 
 func (mg *Graph) AddVertexIndex(label string, field string) error {
   log.Printf("Adding Index: %s", field)
-	return mg.vertices.EnsureIndex(mgo.Index{Key: []string{"label", "data." + field}})
+  c := mg.ar.getVertexCollection(mg.graph)
+	return c.EnsureIndex(mgo.Index{Key: []string{"label", "data." + field}})
 }
 
 func (mg *Graph) AddEdgeIndex(label string, field string) error {
-	return mg.edges.EnsureIndex(mgo.Index{Key: []string{"label", "data." + field}})
+	c := mg.ar.getEdgeCollection(mg.graph)
+  return c.EnsureIndex(mgo.Index{Key: []string{"label", "data." + field}})
 }
 
 func (mg *Graph) GetVertexTermCount(ctx context.Context, label string, field string) chan aql.IndexTermCount {
@@ -28,7 +30,8 @@ func (mg *Graph) GetVertexTermCount(ctx context.Context, label string, field str
       {"$match": bson.M{"label": label}},
       {"$group": bson.M{"_id": "$data." + field, "count": bson.M{"$sum":1}}},
     }
-    pipe := mg.vertices.Pipe(ag)
+    vcol := mg.ar.getVertexCollection(mg.graph)
+    pipe := vcol.Pipe(ag)
     iter := pipe.Iter()
     defer iter.Close()
     result := map[string]interface{}{}
@@ -54,7 +57,8 @@ func (mg *Graph) GetEdgeTermCount(ctx context.Context, label string, field strin
       {"$match": bson.M{"label": label}},
       {"$group": bson.M{"_id": "$data." + field, "count": bson.M{"$sum":1}}},
     }
-    pipe := mg.edges.Pipe(ag)
+    ecol := mg.ar.getEdgeCollection(mg.graph)
+    pipe := ecol.Pipe(ag)
     iter := pipe.Iter()
     defer iter.Close()
     result := map[string]interface{}{}
@@ -73,11 +77,13 @@ func (mg *Graph) GetEdgeTermCount(ctx context.Context, label string, field strin
 }
 
 func (mg *Graph) DeleteVertexIndex(label string, field string) error {
-  return mg.vertices.DropIndex("label", "data." + field)
+  vcol := mg.ar.getVertexCollection(mg.graph)
+  return vcol.DropIndex("label", "data." + field)
 }
 
 func (mg *Graph) DeleteEdgeIndex(label string, field string) error {
-  return mg.edges.DropIndex("label", "data." + field)
+  ecol := mg.ar.getEdgeCollection(mg.graph)
+  return ecol.DropIndex("label", "data." + field)
 }
 
 
@@ -89,7 +95,8 @@ func (mg *Graph) VertexLabelScan(ctx context.Context, label string) chan string 
 		selection := map[string]interface{}{
 			"label": label,
 		}
-		iter := mg.vertices.Find(selection).Select(map[string]interface{}{"_id": 1}).Iter()
+    vcol := mg.ar.getVertexCollection(mg.graph)
+		iter := vcol.Find(selection).Select(map[string]interface{}{"_id": 1}).Iter()
 		defer iter.Close()
 		result := map[string]interface{}{}
 		for iter.Next(&result) {
@@ -117,7 +124,8 @@ func (mg *Graph) EdgeLabelScan(ctx context.Context, label string) chan string {
 		selection := map[string]interface{}{
 			"label": label,
 		}
-		iter := mg.edges.Find(selection).Select(map[string]interface{}{"_id": 1}).Iter()
+    ecol := mg.ar.getEdgeCollection(mg.graph)
+		iter := ecol.Find(selection).Select(map[string]interface{}{"_id": 1}).Iter()
 		defer iter.Close()
 		result := map[string]interface{}{}
 		for iter.Next(&result) {

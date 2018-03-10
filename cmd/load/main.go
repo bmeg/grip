@@ -5,6 +5,7 @@ import (
 	"github.com/bmeg/golib"
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/spf13/cobra"
+	"io/ioutil"
 	"log"
 	"strings"
 )
@@ -13,7 +14,17 @@ var host = "localhost:8202"
 var graph = "data"
 var vertexFile string
 var edgeFile string
+var graphFile string
 var bundleFile string
+
+func found(set []string, val string) bool {
+	for _, i := range set {
+		if i == val {
+			return true
+		}
+	}
+	return false
+}
 
 // Cmd is the declaration of the command line
 var Cmd = &cobra.Command{
@@ -37,7 +48,9 @@ var Cmd = &cobra.Command{
 			elemChan := make(chan aql.GraphElement)
 			wait := make(chan bool)
 			go func() {
-				conn.StreamElements(elemChan)
+				if err := conn.StreamElements(elemChan); err != nil {
+					log.Printf("Load Error: %s", err)
+				}
 				wait <- false
 			}()
 			for line := range reader {
@@ -109,6 +122,27 @@ var Cmd = &cobra.Command{
 			}
 		}
 
+		if graphFile != "" {
+			log.Printf("Loading %s", graphFile)
+			graphs := conn.GetGraphList()
+			if !found(graphs, graph) {
+				conn.AddGraph(graph)
+			}
+			content, err := ioutil.ReadFile(graphFile)
+			if err != nil {
+				log.Printf("Error reading file: %s", err)
+				return err
+			}
+			e := aql.Graph{}
+			if err := jsonpb.Unmarshal(strings.NewReader(string(content)), &e); err != nil {
+				log.Printf("Error: %s", err)
+				return err
+			}
+
+			conn.AddSubGraph(graph, e)
+			log.Printf("Subgraph Loaded")
+		}
+
 		return nil
 	},
 }
@@ -119,5 +153,6 @@ func init() {
 	flags.StringVar(&graph, "graph", "data", "Graph")
 	flags.StringVar(&vertexFile, "vertex", "", "Vertex File")
 	flags.StringVar(&edgeFile, "edge", "", "Edge File")
+	flags.StringVar(&graphFile, "json", "", "Graph File")
 	flags.StringVar(&bundleFile, "bundle", "", "Edge Bundle File")
 }

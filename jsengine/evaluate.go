@@ -2,15 +2,13 @@ package jsengine
 
 import (
 	"fmt"
-	"github.com/bmeg/arachne/aql"
 )
 
 // JSEngine is the common JavaScript engine interface
 type JSEngine interface {
-	Call(input ...*aql.QueryResult) *aql.QueryResult
-	CallBool(input ...*aql.QueryResult) bool
-	CallValueMapBool(input map[string]aql.QueryResult) bool
-	CallValueToVertex(input map[string]aql.QueryResult) []string
+	CallDict(input ...map[string]interface{}) (map[string]interface{}, error)
+	CallBool(input ...map[string]interface{}) (bool, error)
+	CallString(input ...map[string]interface{}) (string, error)
 }
 
 type genfunc func(string, []string) (JSEngine, error)

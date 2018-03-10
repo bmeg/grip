@@ -112,7 +112,6 @@ message EditResult {
   }
 }
 
-
 message GraphElement {
   string graph = 1;
   Vertex vertex = 2;
@@ -147,6 +146,10 @@ message IndexQuery {
 message IndexTermCount {
   google.protobuf.Value term = 1;
   int32 count = 2;
+}
+
+message Timestamp {
+  string timestamp = 1;
 }
 
 message Empty {
@@ -185,6 +188,7 @@ service Query {
     };
   }
 
+
   rpc GetVertexIndex(IndexID) returns (stream IndexTermCount) {
     option (google.api.http) = {
       get: "/v1/graph/{graph}/vertex-index/{label}/{field}"
@@ -201,6 +205,12 @@ service Query {
     option (google.api.http) = {
       post: "/v1/graph/{graph}/vertex-index/{label}/{field}"
       body: "*"
+    };
+  }
+
+  rpc GetTimestamp(ElementID) returns (Timestamp) {
+    option (google.api.http) = {
+      get: "/v1/graph/{graph}/timestamp"
     };
   }
 

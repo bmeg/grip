@@ -5,9 +5,7 @@ import (
 	//"log"
 	//"fmt"
 	"context"
-	"encoding/json"
 	"github.com/bmeg/arachne/protoutil"
-	"github.com/golang/protobuf/jsonpb"
 	structpb "github.com/golang/protobuf/ptypes/struct"
 	"google.golang.org/grpc"
 )
@@ -30,14 +28,6 @@ func Connect(address string, write bool) (Client, error) {
 	}
 	editOut := NewEditClient(conn)
 	return Client{queryOut, editOut}, err
-}
-
-// QueryBuilder allows the user to build complex graph queries then serialize
-// them and then execute via GRPC
-type QueryBuilder struct {
-	client QueryClient
-	graph  string
-	query  []*GraphStatement
 }
 
 // GetGraphs lists the graphs
@@ -67,6 +57,12 @@ func (client Client) GetGraphList() []string {
 		out = append(out, i)
 	}
 	return out
+}
+
+// GetTimestamp get update timestamp for graph
+func (client Client) GetTimestamp(graph string) (*Timestamp, error) {
+	ts, err := client.QueryC.GetTimestamp(context.Background(), &ElementID{Graph: graph})
+	return ts, err
 }
 
 // DeleteGraph deletes a graph and all of its contents
@@ -99,6 +95,12 @@ func (client Client) AddBundle(graph string, e Bundle) error {
 	return nil
 }
 
+// AddSubGraph adds a complete subgraph to an existing graph
+func (client Client) AddSubGraph(graph string, g Graph) error {
+	client.EditC.AddSubGraph(context.Background(), &Graph{Graph: graph, Edges: g.Edges, Vertices: g.Vertices})
+	return nil
+}
+
 // StreamElements allows for bulk continuous loading of graph elements into the datastore
 func (client Client) StreamElements(elemChan chan GraphElement) error {
 	sc, err := client.EditC.StreamElements(context.Background())
@@ -121,62 +123,13 @@ func (client Client) GetVertex(graph string, id string) (*Vertex, error) {
 	return v, err
 }
 
-// Query initializes a query build for `graph`
-func (client Client) Query(graph string) QueryBuilder {
-	return QueryBuilder{client.QueryC, graph, []*GraphStatement{}}
-}
+// Execute executes the given query.
+func (client Client) Execute(graph string, q *Query) (chan *ResultRow, error) {
+	tclient, err := client.QueryC.Traversal(context.TODO(), &GraphQuery{
+		Graph: graph,
+		Query: q.Statements,
+	})
 
-// V adds a vertex selection step to the query
-func (q QueryBuilder) V(id ...string) QueryBuilder {
-	vlist := protoutil.AsListValue(id)
-	return QueryBuilder{q.client, q.graph, append(q.query, &GraphStatement{&GraphStatement_V{vlist}})}
-}
-
-// E adds a edge selection step to the query
-func (q QueryBuilder) E(id ...string) QueryBuilder {
-	if len(id) > 0 {
-		return QueryBuilder{q.client, q.graph, append(q.query, &GraphStatement{&GraphStatement_E{id[0]}})}
-	}
-	return QueryBuilder{q.client, q.graph, append(q.query, &GraphStatement{&GraphStatement_E{}})}
-}
-
-// Out follows outgoing edges to adjacent vertex
-func (q QueryBuilder) Out(label ...string) QueryBuilder {
-	vlist := protoutil.AsListValue(label)
-	return QueryBuilder{q.client, q.graph, append(q.query, &GraphStatement{&GraphStatement_Out{vlist}})}
-}
-
-// OutEdge moves to outgoing edge
-func (q QueryBuilder) OutEdge(label ...string) QueryBuilder {
-	vlist := protoutil.AsListValue(label)
-	return QueryBuilder{q.client, q.graph, append(q.query, &GraphStatement{&GraphStatement_OutEdge{vlist}})}
-}
-
-// HasLabel filters elements based on label
-func (q QueryBuilder) HasLabel(id ...string) QueryBuilder {
-	idList := protoutil.AsListValue(id)
-	return QueryBuilder{q.client, q.graph, append(q.query, &GraphStatement{&GraphStatement_HasLabel{idList}})}
-}
-
-// As marks current elements with tag
-func (q QueryBuilder) As(id string) QueryBuilder {
-	return QueryBuilder{q.client, q.graph, append(q.query, &GraphStatement{&GraphStatement_As{id}})}
-}
-
-// Select retreieves previously marked elemets
-func (q QueryBuilder) Select(id ...string) QueryBuilder {
-	idList := SelectStatement{id}
-	return QueryBuilder{q.client, q.graph, append(q.query, &GraphStatement{&GraphStatement_Select{&idList}})}
-}
-
-// Count adds a count step to the query
-func (q QueryBuilder) Count() QueryBuilder {
-	return QueryBuilder{q.client, q.graph, append(q.query, &GraphStatement{&GraphStatement_Count{}})}
-}
-
-// Execute takes the current query, and makes RPC call then streams the results
-func (q QueryBuilder) Execute() (chan *ResultRow, error) {
-	tclient, err := q.client.Traversal(context.TODO(), &GraphQuery{q.graph, q.query})
 	if err != nil {
 		return nil, err
 	}
@@ -188,27 +141,6 @@ func (q QueryBuilder) Execute() (chan *ResultRow, error) {
 		}
 	}()
 	return out, nil
-}
-
-// Run takes current query and executes it, ignoring the results
-func (q QueryBuilder) Run() error {
-	c, err := q.Execute()
-	if err != nil {
-		return err
-	}
-	for range c {
-	}
-	return nil
-}
-
-// Render takes the current query build and renders it to a map
-func (q QueryBuilder) Render() map[string]interface{} {
-	m := jsonpb.Marshaler{}
-	s, _ := m.MarshalToString(&GraphQuery{q.graph, q.query})
-	//fmt.Printf("%s = %s\n", q, s)
-	out := map[string]interface{}{}
-	json.Unmarshal([]byte(s), &out)
-	return out
 }
 
 // GetDataMap obtains data attached to vertex in the form of a map
@@ -245,4 +177,14 @@ func (edge *Edge) GetProperty(key string) interface{} {
 	}
 	m := protoutil.AsMap(edge.Data)
 	return m[key]
+}
+
+// HasProperty returns true is field is defined
+func (edge *Edge) HasProperty(key string) bool {
+	if edge.Data == nil {
+		return false
+	}
+	m := protoutil.AsMap(edge.Data)
+	_, ok := m[key]
+	return ok
 }

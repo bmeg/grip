@@ -56,6 +56,13 @@ func WrapValue(value interface{}) *structpb.Value {
 			o.Fields[k] = wv
 		}
 		return &structpb.Value{Kind: &structpb.Value_StructValue{StructValue: o}}
+	case map[string]int64:
+		o := &structpb.Struct{Fields: map[string]*structpb.Value{}}
+		for k, v := range v {
+			wv := WrapValue(v)
+			o.Fields[k] = wv
+		}
+		return &structpb.Value{Kind: &structpb.Value_StructValue{StructValue: o}}
 	case *structpb.Struct:
 		return &structpb.Value{Kind: &structpb.Value_StructValue{StructValue: v}}
 	case nil:
@@ -85,6 +92,8 @@ func UnWrapValue(value *structpb.Value) interface{} {
 		return out
 	} else if v, ok := value.Kind.(*structpb.Value_BoolValue); ok {
 		return v.BoolValue
+	} else if _, ok := value.Kind.(*structpb.Value_NullValue); ok {
+		return nil
 	}
 	log.Printf("unwrap unknown data type: %T", value.Kind)
 	return nil
