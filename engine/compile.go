@@ -144,6 +144,9 @@ func Compile(stmts []*aql.GraphStatement, db gdbi.GraphInterface, workDir string
 			add(&GroupCount{stmt.GroupCount})
 			lastType = gdbi.GroupCountData
 
+		case *aql.GraphStatement_Distinct:
+			add(&Distinct{protoutil.AsStringList(stmt.Distinct)})
+
 		case *aql.GraphStatement_As:
 			// TODO probably needs to be checked for a lot of statements.
 			if lastType == gdbi.NoData {

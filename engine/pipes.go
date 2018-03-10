@@ -16,7 +16,6 @@ type Pipeline struct {
 	workDir   string
 }
 
-
 // Start begins processing a query pipeline
 func (pipe Pipeline) Start(bufsize int) gdbi.InPipe {
 	if len(pipe.procs) == 0 {

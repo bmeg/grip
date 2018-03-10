@@ -368,6 +368,15 @@ class Query:
         self.query.append({'groupCount': label})
         return self
 
+    def distinct(self, val):
+        """
+        So distinct elements
+        """
+        if not isinstance(val, list):
+            val = [val]
+        self.query.append({"distinct" : val})
+        return self
+
     def map(self, func):
         """
         Transform results by the given javascript function.

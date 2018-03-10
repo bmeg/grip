@@ -44,7 +44,6 @@ const (
 	RowData
 )
 
-
 // QueryInterface defines the query engine interface. The primary implementation
 // is PipeEngine
 /*

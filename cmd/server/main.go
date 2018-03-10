@@ -29,7 +29,7 @@ var Cmd = &cobra.Command{
 		if os.IsNotExist(err) {
 			os.Mkdir(workDir, 0700)
 		}
-		
+
 		var server *graphserver.ArachneServer = nil
 		if mongoURL != "" {
 			server = graphserver.NewArachneMongoServer(mongoURL, dbName, workDir)

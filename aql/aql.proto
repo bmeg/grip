@@ -40,6 +40,7 @@ message GraphStatement {
         string count = 26;
 
         string groupCount = 30;
+        google.protobuf.ListValue distinct = 31;
 
         GraphQuerySet match = 40;
 

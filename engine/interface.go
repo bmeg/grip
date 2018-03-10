@@ -1,18 +1,16 @@
 package engine
 
 import (
-  "github.com/bmeg/arachne/kvgraph"
-  "github.com/bmeg/arachne/gdbi"
+	"github.com/bmeg/arachne/gdbi"
+	"github.com/bmeg/arachne/kvgraph"
 )
 
 type Manager interface {
-  //Get handle to temporary KeyValue store driver
-  GetTempKV() kvgraph.KVInterface
+	//Get handle to temporary KeyValue store driver
+	GetTempKV() kvgraph.KVInterface
 
-  Cleanup()
+	Cleanup()
 }
-
-
 
 // Processor is the interface for a step in the pipe engine
 type Processor interface {

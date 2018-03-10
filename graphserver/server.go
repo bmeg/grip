@@ -19,7 +19,7 @@ import (
 
 // ArachneServer is a GRPC based arachne server
 type ArachneServer struct {
-	db gdbi.GraphDB
+	db      gdbi.GraphDB
 	workDir string
 }
 
@@ -39,7 +39,7 @@ func NewArachneBadgerServer(baseDir string, workDir string) *ArachneServer {
 		return nil
 	}
 	return &ArachneServer{
-		db: a,
+		db:      a,
 		workDir: workDir,
 	}
 }
@@ -51,7 +51,7 @@ func NewArachneBoltServer(baseDir string, workDir string) *ArachneServer {
 	if err != nil {
 		return nil
 	}
-	return &ArachneServer{db: db, workDir:workDir}
+	return &ArachneServer{db: db, workDir: workDir}
 }
 
 // NewArachneRocksServer initializes a GRPC server that uses the rocks driver
@@ -62,7 +62,7 @@ func NewArachneRocksServer(baseDir string, workDir string) *ArachneServer {
 	if err != nil {
 		return nil
 	}
-	return &ArachneServer{db: db, workDir:workDir}
+	return &ArachneServer{db: db, workDir: workDir}
 }
 
 // Start starts an asynchronous GRPC server

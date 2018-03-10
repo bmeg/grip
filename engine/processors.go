@@ -419,6 +419,23 @@ func (g *GroupCount) Process(man Manager, in gdbi.InPipe, out gdbi.OutPipe) {
 	out <- eo
 }
 
+type Distinct struct {
+	vals []string
+}
+
+func (g *Distinct) Process(man Manager, in gdbi.InPipe, out gdbi.OutPipe) {
+
+	kv := man.GetTempKV()
+	for t := range in {
+		//d := make([]string, len(g.vals))
+		//for i := range g.vals {
+		//}
+		kv.Set([]byte(t.GetCurrent().ID), []byte{0x01})
+		out <- t
+	}
+
+}
+
 // Marker marks the current element
 type Marker struct {
 	mark string
