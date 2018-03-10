@@ -8,7 +8,6 @@ import (
 //val:
 var idxFieldPrefix = []byte("f")
 
-
 // GraphPrefix returns the byte array prefix for all graph entry keys
 func FieldPrefix() []byte {
 	return idxFieldPrefix
@@ -31,13 +30,13 @@ func FieldKeyParse(key []byte) string {
 var idxTermPrefix = []byte("f")
 
 func FieldTermKey(field string, term []byte) []byte {
-  return bytes.Join([][]byte{idxTermPrefix, []byte(field), term}, []byte{0})
+	return bytes.Join([][]byte{idxTermPrefix, []byte(field), term}, []byte{0})
 }
 
-func FieldTermKeyParse(key []byte) (string, []byte)  {
-  tmp := bytes.Split(key, []byte{0}) //BUG: term may have 0x00 in it
+func FieldTermKeyParse(key []byte) (string, []byte) {
+	tmp := bytes.Split(key, []byte{0}) //BUG: term may have 0x00 in it
 	field := string(tmp[1])
-  term := tmp[2]
+	term := tmp[2]
 	return field, term
 }
 
@@ -47,14 +46,14 @@ func FieldTermKeyParse(key []byte) (string, []byte)  {
 var idxTermDocPrefix = []byte("i")
 
 func FieldTermKey(field string, term []byte, docid string) []byte {
-  return bytes.Join([][]byte{idxTermDocPrefix, []byte(field), term, []byte(docid)}, []byte{0})
+	return bytes.Join([][]byte{idxTermDocPrefix, []byte(field), term, []byte(docid)}, []byte{0})
 }
 
 func FieldTermKeyParse(key []byte) (string, []byte, string) {
-  tmp := bytes.Split(key, []byte{0}) //BUG: term may have 0x00 in it
+	tmp := bytes.Split(key, []byte{0}) //BUG: term may have 0x00 in it
 	field := string(tmp[1])
-  term := tmp[2]
-  docid := tmp[3]
+	term := tmp[2]
+	docid := tmp[3]
 	return field, term, docid
 }
 
@@ -63,19 +62,14 @@ func FieldTermKeyParse(key []byte) (string, []byte, string) {
 
 var idxTermDocPrefix = []byte("b")
 
-
 type KVIndex struct {
-  kv KVInterface
+	kv KVInterface
 }
-
-
 
 func (idx *KVIndex) AddField(name string) error {
 
 }
 
-
-func (idx *KVIndex) AddDocField(field string, docId string, field interface{} ) {
-
+func (idx *KVIndex) AddDocField(field string, docId string, field interface{}) {
 
 }
