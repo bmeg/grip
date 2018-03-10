@@ -130,6 +130,7 @@ var Cmd = &cobra.Command{
 			}
 			content, err := ioutil.ReadFile(graphFile)
 			if err != nil {
+				log.Printf("Error reading file: %s", err)
 				return err
 			}
 			e := aql.Graph{}
