@@ -44,11 +44,6 @@ const (
 	RowData
 )
 
-// Processor is the interface for a step in the pipe engine
-type Processor interface {
-	//DataType() DataType
-	Process(in InPipe, out OutPipe)
-}
 
 // QueryInterface defines the query engine interface. The primary implementation
 // is PipeEngine

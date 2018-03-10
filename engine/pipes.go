@@ -9,11 +9,13 @@ import (
 
 // Pipeline a set of runnable query operations
 type Pipeline struct {
-	procs     []gdbi.Processor
+	procs     []Processor
 	dataType  gdbi.DataType
 	markTypes map[string]gdbi.DataType
 	rowTypes  []gdbi.DataType
+	workDir   string
 }
+
 
 // Start begins processing a query pipeline
 func (pipe Pipeline) Start(bufsize int) gdbi.InPipe {
@@ -32,12 +34,12 @@ func (pipe Pipeline) Start(bufsize int) gdbi.InPipe {
 
 	for i := 0; i < len(pipe.procs)-1; i++ {
 		glue := make(chan *gdbi.Traveler, bufsize)
-		go startOne(pipe.procs[i], in, glue)
+		go pipe.startOne(pipe.procs[i], in, glue)
 		in = glue
 	}
 
 	last := pipe.procs[len(pipe.procs)-1]
-	go startOne(last, in, final)
+	go pipe.startOne(last, in, final)
 
 	return final
 }
@@ -138,7 +140,9 @@ func initPipe(out gdbi.OutPipe) {
 	close(out)
 }
 
-func startOne(proc gdbi.Processor, in gdbi.InPipe, out gdbi.OutPipe) {
-	proc.Process(in, out)
+func (pipe Pipeline) startOne(proc Processor, in gdbi.InPipe, out gdbi.OutPipe) {
+	man := pipe.NewManager()
+	proc.Process(man, in, out)
+	man.Cleanup()
 	close(out)
 }

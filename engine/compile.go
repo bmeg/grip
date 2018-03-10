@@ -9,7 +9,7 @@ import (
 )
 
 // Compile take set of statments and turns them into a runnable pipeline
-func Compile(stmts []*aql.GraphStatement, db gdbi.GraphInterface) (Pipeline, error) {
+func Compile(stmts []*aql.GraphStatement, db gdbi.GraphInterface, workDir string) (Pipeline, error) {
 	if len(stmts) == 0 {
 		return Pipeline{}, nil
 	}
@@ -24,8 +24,8 @@ func Compile(stmts []*aql.GraphStatement, db gdbi.GraphInterface) (Pipeline, err
 	markTypes := map[string]gdbi.DataType{}
 	rowTypes := []gdbi.DataType{}
 
-	procs := make([]gdbi.Processor, 0, len(stmts))
-	add := func(p gdbi.Processor) {
+	procs := make([]Processor, 0, len(stmts))
+	add := func(p Processor) {
 		procs = append(procs, p)
 	}
 
@@ -207,7 +207,7 @@ func Compile(stmts []*aql.GraphStatement, db gdbi.GraphInterface) (Pipeline, err
 	  }
 	*/
 
-	return Pipeline{procs, lastType, markTypes, rowTypes}, nil
+	return Pipeline{procs, lastType, markTypes, rowTypes, workDir}, nil
 }
 
 func validate(stmts []*aql.GraphStatement) error {
