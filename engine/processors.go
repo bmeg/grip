@@ -1,6 +1,7 @@
 package engine
 
 import (
+	"bytes"
 	"context"
 	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/gdbi"
@@ -8,6 +9,7 @@ import (
 	_ "github.com/bmeg/arachne/jsengine/goja" // import goja so it registers with the driver map
 	_ "github.com/bmeg/arachne/jsengine/otto" // import otto so it registers with the driver map
 	_ "github.com/bmeg/arachne/jsengine/v8"   // import v8 so it registers with the driver map
+	"github.com/bmeg/arachne/jsonpath"
 	"github.com/bmeg/arachne/protoutil"
 	structpb "github.com/golang/protobuf/ptypes/struct"
 	"log"
@@ -22,7 +24,7 @@ type LookupVerts struct {
 }
 
 // Process LookupVerts
-func (l *LookupVerts) Process(in gdbi.InPipe, out gdbi.OutPipe) {
+func (l *LookupVerts) Process(man Manager, in gdbi.InPipe, out gdbi.OutPipe) {
 	for t := range in {
 		if len(l.ids) == 0 {
 			for v := range l.db.GetVertexList(context.Background(), true) {
@@ -55,7 +57,7 @@ type LookupEdges struct {
 }
 
 // Process runs LookupEdges
-func (l *LookupEdges) Process(in gdbi.InPipe, out gdbi.OutPipe) {
+func (l *LookupEdges) Process(man Manager, in gdbi.InPipe, out gdbi.OutPipe) {
 	for t := range in {
 		for v := range l.db.GetEdgeList(context.Background(), true) {
 			out <- t.AddCurrent(&gdbi.DataElement{
@@ -76,7 +78,7 @@ type LookupVertexAdjOut struct {
 }
 
 // Process runs out vertex
-func (l *LookupVertexAdjOut) Process(in gdbi.InPipe, out gdbi.OutPipe) {
+func (l *LookupVertexAdjOut) Process(man Manager, in gdbi.InPipe, out gdbi.OutPipe) {
 	queryChan := make(chan gdbi.ElementLookup, 100)
 	go func() {
 		defer close(queryChan)
@@ -104,7 +106,7 @@ type LookupEdgeAdjOut struct {
 }
 
 // Process runs LookupEdgeAdjOut
-func (l *LookupEdgeAdjOut) Process(in gdbi.InPipe, out gdbi.OutPipe) {
+func (l *LookupEdgeAdjOut) Process(man Manager, in gdbi.InPipe, out gdbi.OutPipe) {
 	queryChan := make(chan gdbi.ElementLookup, 100)
 	go func() {
 		defer close(queryChan)
@@ -132,7 +134,7 @@ type LookupVertexAdjIn struct {
 }
 
 // Process runs LookupVertexAdjIn
-func (l *LookupVertexAdjIn) Process(in gdbi.InPipe, out gdbi.OutPipe) {
+func (l *LookupVertexAdjIn) Process(man Manager, in gdbi.InPipe, out gdbi.OutPipe) {
 	queryChan := make(chan gdbi.ElementLookup, 100)
 	go func() {
 		defer close(queryChan)
@@ -160,7 +162,7 @@ type LookupEdgeAdjIn struct {
 }
 
 // Process runs LookupEdgeAdjIn
-func (l *LookupEdgeAdjIn) Process(in gdbi.InPipe, out gdbi.OutPipe) {
+func (l *LookupEdgeAdjIn) Process(man Manager, in gdbi.InPipe, out gdbi.OutPipe) {
 	queryChan := make(chan gdbi.ElementLookup, 100)
 	go func() {
 		defer close(queryChan)
@@ -188,7 +190,7 @@ type InEdge struct {
 }
 
 // Process runs InEdge
-func (l *InEdge) Process(in gdbi.InPipe, out gdbi.OutPipe) {
+func (l *InEdge) Process(man Manager, in gdbi.InPipe, out gdbi.OutPipe) {
 	queryChan := make(chan gdbi.ElementLookup, 100)
 	go func() {
 		defer close(queryChan)
@@ -219,7 +221,7 @@ type OutEdge struct {
 }
 
 // Process runs OutEdge
-func (l *OutEdge) Process(in gdbi.InPipe, out gdbi.OutPipe) {
+func (l *OutEdge) Process(man Manager, in gdbi.InPipe, out gdbi.OutPipe) {
 	queryChan := make(chan gdbi.ElementLookup, 100)
 	go func() {
 		defer close(queryChan)
@@ -250,7 +252,7 @@ type Values struct {
 }
 
 // Process runs Values step
-func (v *Values) Process(in gdbi.InPipe, out gdbi.OutPipe) {
+func (v *Values) Process(man Manager, in gdbi.InPipe, out gdbi.OutPipe) {
 	for t := range in {
 		if t.GetCurrent().Data == nil {
 			continue
@@ -276,7 +278,7 @@ type HasData struct {
 }
 
 // Process runs HasData
-func (h *HasData) Process(in gdbi.InPipe, out gdbi.OutPipe) {
+func (h *HasData) Process(man Manager, in gdbi.InPipe, out gdbi.OutPipe) {
 	for t := range in {
 		if t.GetCurrent().Data == nil {
 			continue
@@ -295,7 +297,7 @@ type HasLabel struct {
 }
 
 // Process runs HasLabel
-func (h *HasLabel) Process(in gdbi.InPipe, out gdbi.OutPipe) {
+func (h *HasLabel) Process(man Manager, in gdbi.InPipe, out gdbi.OutPipe) {
 	for t := range in {
 		if contains(h.labels, t.GetCurrent().Label) {
 			out <- t
@@ -309,7 +311,7 @@ type HasID struct {
 }
 
 // Process runs HasID
-func (h *HasID) Process(in gdbi.InPipe, out gdbi.OutPipe) {
+func (h *HasID) Process(man Manager, in gdbi.InPipe, out gdbi.OutPipe) {
 	for t := range in {
 		if contains(h.ids, t.GetCurrent().ID) {
 			out <- t
@@ -321,7 +323,7 @@ func (h *HasID) Process(in gdbi.InPipe, out gdbi.OutPipe) {
 type Count struct{}
 
 // Process runs Count
-func (c *Count) Process(in gdbi.InPipe, out gdbi.OutPipe) {
+func (c *Count) Process(man Manager, in gdbi.InPipe, out gdbi.OutPipe) {
 	var i int64
 	for range in {
 		i++
@@ -335,7 +337,7 @@ type Limit struct {
 }
 
 // Process runs Limit
-func (l *Limit) Process(in gdbi.InPipe, out gdbi.OutPipe) {
+func (l *Limit) Process(man Manager, in gdbi.InPipe, out gdbi.OutPipe) {
 	var i int64
 	for t := range in {
 		if i == l.count {
@@ -353,7 +355,7 @@ type Fold struct {
 }
 
 // Process runs fold
-func (f *Fold) Process(in gdbi.InPipe, out gdbi.OutPipe) {
+func (f *Fold) Process(man Manager, in gdbi.InPipe, out gdbi.OutPipe) {
 	mfunc, err := jsengine.NewJSEngine(f.fold.Source, f.imports)
 	if err != nil || mfunc == nil {
 		log.Printf("Script Error: %s", err)
@@ -404,7 +406,7 @@ func (g *GroupCount) countValues(in gdbi.InPipe, counts map[string]int64) {
 }
 
 // Process runs GroupCount
-func (g *GroupCount) Process(in gdbi.InPipe, out gdbi.OutPipe) {
+func (g *GroupCount) Process(man Manager, in gdbi.InPipe, out gdbi.OutPipe) {
 	counts := map[string]int64{}
 
 	if g.key != "" {
@@ -419,13 +421,34 @@ func (g *GroupCount) Process(in gdbi.InPipe, out gdbi.OutPipe) {
 	out <- eo
 }
 
+type Distinct struct {
+	vals []string
+}
+
+func (g *Distinct) Process(man Manager, in gdbi.InPipe, out gdbi.OutPipe) {
+
+	kv := man.GetTempKV()
+	for t := range in {
+		cur := t.GetCurrent().ToDict()
+		s := make([][]byte, len(g.vals))
+		for i := range g.vals {
+			s[i] = []byte(jsonpath.GetString(cur, g.vals[i]))
+		}
+		k := bytes.Join(s, []byte{0x00})
+		if !kv.HasKey(k) {
+			kv.Set(k, []byte{0x01})
+			out <- t
+		}
+	}
+}
+
 // Marker marks the current element
 type Marker struct {
 	mark string
 }
 
 // Process runs Marker
-func (m *Marker) Process(in gdbi.InPipe, out gdbi.OutPipe) {
+func (m *Marker) Process(man Manager, in gdbi.InPipe, out gdbi.OutPipe) {
 	for t := range in {
 		out <- t.AddMark(m.mark, t.GetCurrent())
 	}
@@ -435,7 +458,7 @@ type selectOne struct {
 	mark string
 }
 
-func (s *selectOne) Process(in gdbi.InPipe, out gdbi.OutPipe) {
+func (s *selectOne) Process(man Manager, in gdbi.InPipe, out gdbi.OutPipe) {
 	for t := range in {
 		c := t.GetMark(s.mark)
 		out <- t.AddCurrent(c)
@@ -446,7 +469,7 @@ type selectMany struct {
 	marks []string
 }
 
-func (s *selectMany) Process(in gdbi.InPipe, out gdbi.OutPipe) {
+func (s *selectMany) Process(man Manager, in gdbi.InPipe, out gdbi.OutPipe) {
 	for t := range in {
 		row := make([]gdbi.DataElement, 0, len(s.marks))
 		for _, mark := range s.marks {
@@ -457,9 +480,9 @@ func (s *selectMany) Process(in gdbi.InPipe, out gdbi.OutPipe) {
 	}
 }
 
-type concat []gdbi.Processor
+type concat []Processor
 
-func (c concat) Process(in gdbi.InPipe, out gdbi.OutPipe) {
+func (c concat) Process(man Manager, in gdbi.InPipe, out gdbi.OutPipe) {
 	chans := make([]chan *gdbi.Traveler, len(c))
 	for i := range c {
 		chans[i] = make(chan *gdbi.Traveler)
@@ -469,8 +492,8 @@ func (c concat) Process(in gdbi.InPipe, out gdbi.OutPipe) {
 	wg.Add(len(c))
 
 	for i, p := range c {
-		go func(i int, p gdbi.Processor) {
-			p.Process(chans[i], out)
+		go func(i int, p Processor) {
+			p.Process(man, chans[i], out)
 			wg.Done()
 		}(i, p)
 	}

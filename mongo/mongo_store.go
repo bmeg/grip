@@ -327,7 +327,7 @@ func (mg *Graph) GetEdgeList(ctx context.Context, loadProp bool) <-chan *aql.Edg
 
 // BatchSize controls size of batched mongo queries
 //TODO: move this into driver config parameter
-var BatchSize = 100
+var BatchSize = 1000
 
 // GetVertexChannel is passed a channel of vertex ids and it produces a channel
 // of vertices

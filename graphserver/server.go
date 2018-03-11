@@ -19,48 +19,50 @@ import (
 
 // ArachneServer is a GRPC based arachne server
 type ArachneServer struct {
-	db gdbi.GraphDB
+	db      gdbi.GraphDB
+	workDir string
 }
 
 // NewArachneMongoServer initializes a GRPC server that uses the mongo driver
 // to connect to the graph store
-func NewArachneMongoServer(url string, database string) *ArachneServer {
+func NewArachneMongoServer(url string, database string, workDir string) *ArachneServer {
 	db := mongo.NewMongo(url, database)
-	return &ArachneServer{db: db}
+	return &ArachneServer{db: db, workDir: workDir}
 }
 
 // NewArachneBadgerServer initializes a GRPC server that uses the badger driver
 // to run the graph store
-func NewArachneBadgerServer(baseDir string) *ArachneServer {
+func NewArachneBadgerServer(baseDir string, workDir string) *ArachneServer {
 	a, err := kvgraph.NewKVArachne("badger", baseDir)
 	if err != nil {
 		log.Printf("Error Starting Badger")
 		return nil
 	}
 	return &ArachneServer{
-		db: a,
+		db:      a,
+		workDir: workDir,
 	}
 }
 
 // NewArachneBoltServer initializes a GRPC server that uses the bolt driver
 // to run the graph store
-func NewArachneBoltServer(baseDir string) *ArachneServer {
+func NewArachneBoltServer(baseDir string, workDir string) *ArachneServer {
 	db, err := kvgraph.NewKVArachne("bolt", baseDir)
 	if err != nil {
 		return nil
 	}
-	return &ArachneServer{db: db}
+	return &ArachneServer{db: db, workDir: workDir}
 }
 
 // NewArachneRocksServer initializes a GRPC server that uses the rocks driver
 // to run the graph store. This may fail if the rocks driver was not compiled
 // (using the --tags rocks flag)
-func NewArachneRocksServer(baseDir string) *ArachneServer {
+func NewArachneRocksServer(baseDir string, workDir string) *ArachneServer {
 	db, err := kvgraph.NewKVArachne("rocks", baseDir)
 	if err != nil {
 		return nil
 	}
-	return &ArachneServer{db: db}
+	return &ArachneServer{db: db, workDir: workDir}
 }
 
 // Start starts an asynchronous GRPC server
@@ -84,7 +86,7 @@ func (server *ArachneServer) CloseDB() {
 // Traversal parses a traversal request and streams the results back
 func (server *ArachneServer) Traversal(query *aql.GraphQuery, queryServer aql.Query_TraversalServer) error {
 
-	pipeline, err := engine.Compile(query.Query, server.db.Graph(query.Graph))
+	pipeline, err := engine.Compile(query.Query, server.db.Graph(query.Graph), server.workDir)
 	if err != nil {
 		return err
 	}

@@ -44,12 +44,6 @@ const (
 	RowData
 )
 
-// Processor is the interface for a step in the pipe engine
-type Processor interface {
-	//DataType() DataType
-	Process(in InPipe, out OutPipe)
-}
-
 // QueryInterface defines the query engine interface. The primary implementation
 // is PipeEngine
 /*
@@ -61,6 +55,7 @@ type QueryInterface interface {
 	Has(prop string, value ...string) QueryInterface
 	HasLabel(labels ...string) QueryInterface
 	HasID(ids ...string) QueryInterface
+	HasValue(key1, key2 string, condition aql.Condition) QueryInterface
 
 	Out(key ...string) QueryInterface
 	In(key ...string) QueryInterface
