@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/bmeg/arachne/kvgraph"
 	"github.com/dgraph-io/badger"
+	"github.com/dgraph-io/badger/options"
 	"log"
 	"os"
 )
@@ -20,6 +21,7 @@ func BadgerBuilder(path string) (kvgraph.KVInterface, error) {
 
 	opts := badger.Options{}
 	opts = badger.DefaultOptions
+	opts.TableLoadingMode = options.MemoryMap
 	opts.Dir = path
 	opts.ValueDir = path
 	db, err := badger.Open(opts)
