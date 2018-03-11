@@ -14,7 +14,7 @@ var fieldDst = "to"
 var fieldBundle = "bundle"
 
 // PackVertex take a AQL vertex and convert it to a mongo doc
-func PackVertex(v aql.Vertex) map[string]interface{} {
+func PackVertex(v *aql.Vertex) map[string]interface{} {
 	p := map[string]interface{}{}
 	if v.Data != nil {
 		p = protoutil.AsMap(v.Data)
@@ -28,7 +28,7 @@ func PackVertex(v aql.Vertex) map[string]interface{} {
 }
 
 // PackEdge takes a AQL edge and converts it to a mongo doc
-func PackEdge(e aql.Edge) map[string]interface{} {
+func PackEdge(e *aql.Edge) map[string]interface{} {
 	p := map[string]interface{}{}
 	if e.Data != nil {
 		p = protoutil.AsMap(e.Data)
@@ -52,7 +52,7 @@ type pair struct {
 }
 
 // PackBundle takes an AQL edge bundle and converts it into a mongo doc
-func PackBundle(e aql.Bundle) map[string]interface{} {
+func PackBundle(e *aql.Bundle) map[string]interface{} {
 	m := map[string]interface{}{}
 
 	p1 := make(chan pair, 100)
@@ -97,8 +97,8 @@ func PackBundle(e aql.Bundle) map[string]interface{} {
 }
 
 // UnpackVertex takes a mongo doc and converts it into an aql.Vertex
-func UnpackVertex(i map[string]interface{}) aql.Vertex {
-	o := aql.Vertex{}
+func UnpackVertex(i map[string]interface{}) *aql.Vertex {
+	o := &aql.Vertex{}
 	o.Gid = i["_id"].(string)
 	o.Label = i["label"].(string)
 	if p, ok := i["data"]; ok {
@@ -108,8 +108,8 @@ func UnpackVertex(i map[string]interface{}) aql.Vertex {
 }
 
 // UnpackEdge takes a mongo doc and convertes it into an aql.Edge
-func UnpackEdge(i map[string]interface{}) aql.Edge {
-	o := aql.Edge{}
+func UnpackEdge(i map[string]interface{}) *aql.Edge {
+	o := &aql.Edge{}
 	id := i["_id"]
 	if idb, ok := id.(bson.ObjectId); ok {
 		o.Gid = idb.Hex()
@@ -124,8 +124,8 @@ func UnpackEdge(i map[string]interface{}) aql.Edge {
 }
 
 // UnpackBundle take a mongo doc and converts it into an aql.Bundle
-func UnpackBundle(i map[string]interface{}) aql.Bundle {
-	o := aql.Bundle{}
+func UnpackBundle(i map[string]interface{}) *aql.Bundle {
+	o := &aql.Bundle{}
 	id := i["_id"]
 	if idb, ok := id.(bson.ObjectId); ok {
 		o.Gid = idb.Hex()

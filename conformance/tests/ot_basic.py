@@ -53,6 +53,12 @@ def test_outgoing(O):
     if O.query().V("vertex2").outgoing().count().first()["data"] != 2:
         errors.append("blank outgoing doesn't work")
 
+    if O.query().V("vertex2").outgoing("friend").count().first()["data"] != 1:
+        errors.append("labeled outgoing doesn't work")
+
+    if O.query().V("vertex2").incoming().count().first()["data"] != 1:
+        errors.append("blank incoming doesn't work")
+
     for i in O.query().V("vertex2").outgoing():
         if i['vertex']['gid'] not in ["vertex3", "vertex4"]:
             errors.append("Wrong outgoing vertex %s" % (i['vertex']['gid']))

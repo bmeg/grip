@@ -67,6 +67,12 @@ func (q *Query) Out(label ...string) *Query {
 	return q.with(&GraphStatement{&GraphStatement_Out{vlist}})
 }
 
+// Both follows both incoming and outgoing edges to adjacent vertex
+func (q *Query) Both(label ...string) *Query {
+	vlist := protoutil.AsListValue(label)
+	return q.with(&GraphStatement{&GraphStatement_Both{vlist}})
+}
+
 // OutEdge moves to outgoing edge
 func (q *Query) OutEdge(label ...string) *Query {
 	vlist := protoutil.AsListValue(label)
@@ -200,7 +206,7 @@ func (q *Query) String() string {
 		case *GraphStatement_Match:
 			add("Match")
 		case *GraphStatement_Values:
-			add("Values")
+			add("Values", stmt.Values.Labels...)
 
 		case *GraphStatement_Import:
 			add("Import")

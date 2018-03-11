@@ -22,6 +22,7 @@ message GraphStatement {
         HasStatement has = 5;
         google.protobuf.ListValue hasLabel = 6;
         google.protobuf.ListValue hasId = 7;
+        HasValueStatement hasValue = 8;
 
         google.protobuf.ListValue in = 10;
         google.protobuf.ListValue out = 11;
@@ -40,6 +41,7 @@ message GraphStatement {
         string count = 26;
 
         string groupCount = 30;
+        google.protobuf.ListValue distinct = 31;
 
         GraphQuerySet match = 40;
 
@@ -58,6 +60,27 @@ message GraphStatement {
 message HasStatement {
     string key = 1;
     repeated string within = 2;
+}
+
+enum Condition {
+  UNKNOWN = 0;
+  EQ  = 1;
+  NEQ = 2;
+  GT  = 3;
+  GTE = 4;
+  LT  = 5;
+  LTE = 6;
+  BETWEEN = 7;
+  INSIDE = 8;
+  OUTSIDE = 9;
+  WITHIN = 10;
+  WITHOUT = 11;
+}
+
+message HasValueStatement {
+  string key1 = 1;
+  string key2 = 2;
+  Condition condition = 3;
 }
 
 message SelectStatement {

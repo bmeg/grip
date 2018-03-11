@@ -95,6 +95,12 @@ func (client Client) AddBundle(graph string, e Bundle) error {
 	return nil
 }
 
+// AddSubGraph adds a complete subgraph to an existing graph
+func (client Client) AddSubGraph(graph string, g Graph) error {
+	client.EditC.AddSubGraph(context.Background(), &Graph{Graph: graph, Edges: g.Edges, Vertices: g.Vertices})
+	return nil
+}
+
 // StreamElements allows for bulk continuous loading of graph elements into the datastore
 func (client Client) StreamElements(elemChan chan GraphElement) error {
 	sc, err := client.EditC.StreamElements(context.Background())
@@ -123,6 +129,7 @@ func (client Client) Execute(graph string, q *Query) (chan *ResultRow, error) {
 		Graph: graph,
 		Query: q.Statements,
 	})
+
 	if err != nil {
 		return nil, err
 	}
@@ -170,4 +177,14 @@ func (edge *Edge) GetProperty(key string) interface{} {
 	}
 	m := protoutil.AsMap(edge.Data)
 	return m[key]
+}
+
+// HasProperty returns true is field is defined
+func (edge *Edge) HasProperty(key string) bool {
+	if edge.Data == nil {
+		return false
+	}
+	m := protoutil.AsMap(edge.Data)
+	_, ok := m[key]
+	return ok
 }

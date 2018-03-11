@@ -5,6 +5,8 @@ import (
 	"github.com/bmeg/arachne/aql"
 	_ "github.com/bmeg/arachne/badgerdb" // import so badger will register itself
 	_ "github.com/bmeg/arachne/boltdb"   // import so bolt will register itself
+	"github.com/bmeg/arachne/engine"
+	"github.com/bmeg/arachne/gdbi"
 	"github.com/bmeg/arachne/kvgraph"
 	"github.com/bmeg/arachne/mongo"
 	_ "github.com/bmeg/arachne/rocksdb" // import so rocks will register itself
@@ -17,53 +19,50 @@ import (
 
 // ArachneServer is a GRPC based arachne server
 type ArachneServer struct {
-	engine GraphEngine
+	db      gdbi.GraphDB
+	workDir string
 }
 
 // NewArachneMongoServer initializes a GRPC server that uses the mongo driver
 // to connect to the graph store
-func NewArachneMongoServer(url string, database string) *ArachneServer {
-	return &ArachneServer{
-		engine: NewGraphEngine(mongo.NewArachne(url, database)),
-	}
+func NewArachneMongoServer(url string, database string, workDir string) *ArachneServer {
+	db := mongo.NewMongo(url, database)
+	return &ArachneServer{db: db, workDir: workDir}
 }
 
 // NewArachneBadgerServer initializes a GRPC server that uses the badger driver
 // to run the graph store
-func NewArachneBadgerServer(baseDir string) *ArachneServer {
+func NewArachneBadgerServer(baseDir string, workDir string) *ArachneServer {
 	a, err := kvgraph.NewKVArachne("badger", baseDir)
 	if err != nil {
 		log.Printf("Error Starting Badger")
 		return nil
 	}
 	return &ArachneServer{
-		engine: NewGraphEngine(a),
+		db:      a,
+		workDir: workDir,
 	}
 }
 
 // NewArachneBoltServer initializes a GRPC server that uses the bolt driver
 // to run the graph store
-func NewArachneBoltServer(baseDir string) *ArachneServer {
-	a, err := kvgraph.NewKVArachne("bolt", baseDir)
+func NewArachneBoltServer(baseDir string, workDir string) *ArachneServer {
+	db, err := kvgraph.NewKVArachne("bolt", baseDir)
 	if err != nil {
 		return nil
 	}
-	return &ArachneServer{
-		engine: NewGraphEngine(a),
-	}
+	return &ArachneServer{db: db, workDir: workDir}
 }
 
 // NewArachneRocksServer initializes a GRPC server that uses the rocks driver
 // to run the graph store. This may fail if the rocks driver was not compiled
 // (using the --tags rocks flag)
-func NewArachneRocksServer(baseDir string) *ArachneServer {
-	a, err := kvgraph.NewKVArachne("rocks", baseDir)
+func NewArachneRocksServer(baseDir string, workDir string) *ArachneServer {
+	db, err := kvgraph.NewKVArachne("rocks", baseDir)
 	if err != nil {
 		return nil
 	}
-	return &ArachneServer{
-		engine: NewGraphEngine(a),
-	}
+	return &ArachneServer{db: db, workDir: workDir}
 }
 
 // Start starts an asynchronous GRPC server
@@ -81,26 +80,29 @@ func (server *ArachneServer) Start(hostPort string) {
 
 // CloseDB tells the driver to close connection or file
 func (server *ArachneServer) CloseDB() {
-	server.engine.Close()
+	server.db.Close()
 }
 
 // Traversal parses a traversal request and streams the results back
 func (server *ArachneServer) Traversal(query *aql.GraphQuery, queryServer aql.Query_TraversalServer) error {
-	res, err := server.engine.RunTraversal(queryServer.Context(), query)
+
+	pipeline, err := engine.Compile(query.Query, server.db.Graph(query.Graph), server.workDir)
 	if err != nil {
 		return err
 	}
-	for i := range res {
-		l := i
-		queryServer.Send(&l)
+	//log.Printf("Running: %s", pipeline)
+	res := pipeline.Run()
+	for row := range res {
+		queryServer.Send(row)
 	}
+
 	return nil
 }
 
 // GetGraphs returns a list of graphs managed by the driver
 func (server *ArachneServer) GetGraphs(empty *aql.Empty, queryServer aql.Query_GetGraphsServer) error {
 	log.Printf("Graph List")
-	for _, name := range server.engine.GetGraphs() {
+	for _, name := range server.db.GetGraphs() {
 		queryServer.Send(&aql.ElementID{Graph: name})
 	}
 	return nil
@@ -108,44 +110,46 @@ func (server *ArachneServer) GetGraphs(empty *aql.Empty, queryServer aql.Query_G
 
 // GetVertex returns a vertex given a aql.Element
 func (server *ArachneServer) GetVertex(ctx context.Context, elem *aql.ElementID) (*aql.Vertex, error) {
-	o := server.engine.GetVertex(elem.Graph, elem.Id)
+	o := server.db.Graph(elem.Graph).GetVertex(elem.Id, true)
 	return o, nil
 }
 
 // GetEdge returns an edge given a aql.Element
 func (server *ArachneServer) GetEdge(ctx context.Context, elem *aql.ElementID) (*aql.Edge, error) {
-	o := server.engine.GetEdge(elem.Graph, elem.Id)
+	o := server.db.Graph(elem.Graph).GetEdge(elem.Id, true)
 	return o, nil
 }
 
 // GetBundle returns a bundle given a aql.Element
 func (server *ArachneServer) GetBundle(ctx context.Context, elem *aql.ElementID) (*aql.Bundle, error) {
-	o := server.engine.GetBundle(elem.Graph, elem.Id)
+	o := server.db.Graph(elem.Graph).GetBundle(elem.Id, true)
 	return o, nil
 }
 
 // GetTimestamp returns the update timestamp of a graph
 func (server *ArachneServer) GetTimestamp(ctx context.Context, elem *aql.ElementID) (*aql.Timestamp, error) {
-	o := server.engine.GetTimestamp(elem.Graph)
-	return o, nil
+	o := aql.Timestamp{
+		Timestamp: server.db.Graph(elem.Graph).GetTimestamp(),
+	}
+	return &o, nil
 }
 
 // DeleteGraph deletes a graph
 func (server *ArachneServer) DeleteGraph(ctx context.Context, elem *aql.ElementID) (*aql.EditResult, error) {
-	server.engine.DeleteGraph(elem.Graph)
+	server.db.DeleteGraph(elem.Graph)
 	return &aql.EditResult{Result: &aql.EditResult_Id{Id: elem.Graph}}, nil
 }
 
 // AddGraph creates a new graph on the server
 func (server *ArachneServer) AddGraph(ctx context.Context, elem *aql.ElementID) (*aql.EditResult, error) {
-	server.engine.AddGraph(elem.Graph)
+	server.db.AddGraph(elem.Graph)
 	return &aql.EditResult{Result: &aql.EditResult_Id{Id: elem.Graph}}, nil
 }
 
 // AddVertex adds a vertex to the graph
 func (server *ArachneServer) AddVertex(ctx context.Context, elem *aql.GraphElement) (*aql.EditResult, error) {
 	var id string
-	server.engine.AddVertex(elem.Graph, []*aql.Vertex{elem.Vertex})
+	server.db.Graph(elem.Graph).AddVertex([]*aql.Vertex{elem.Vertex})
 	id = elem.Vertex.Gid
 	return &aql.EditResult{Result: &aql.EditResult_Id{Id: id}}, nil
 }
@@ -153,7 +157,7 @@ func (server *ArachneServer) AddVertex(ctx context.Context, elem *aql.GraphEleme
 // AddEdge adds an edge to the graph
 func (server *ArachneServer) AddEdge(ctx context.Context, elem *aql.GraphElement) (*aql.EditResult, error) {
 	var id string
-	server.engine.AddEdge(elem.Graph, []*aql.Edge{elem.Edge})
+	server.db.Graph(elem.Graph).AddEdge([]*aql.Edge{elem.Edge})
 	id = elem.Edge.Gid
 	return &aql.EditResult{Result: &aql.EditResult_Id{Id: id}}, nil
 }
@@ -161,17 +165,17 @@ func (server *ArachneServer) AddEdge(ctx context.Context, elem *aql.GraphElement
 // AddBundle adds a bundle of edges to the graph
 func (server *ArachneServer) AddBundle(ctx context.Context, elem *aql.GraphElement) (*aql.EditResult, error) {
 	var id string
-	server.engine.AddBundle(elem.Graph, *elem.Bundle)
+	server.db.Graph(elem.Graph).AddBundle(elem.Bundle)
 	id = elem.Bundle.Gid
 	return &aql.EditResult{Result: &aql.EditResult_Id{Id: id}}, nil
 }
 
 // AddSubGraph adds a full subgraph to the graph in one post
 func (server *ArachneServer) AddSubGraph(ctx context.Context, subgraph *aql.Graph) (*aql.EditResult, error) {
-	if err := server.engine.AddVertex(subgraph.Graph, subgraph.Vertices); err != nil {
+	if err := server.db.Graph(subgraph.Graph).AddVertex(subgraph.Vertices); err != nil {
 		return nil, err
 	}
-	if err := server.engine.AddEdge(subgraph.Graph, subgraph.Edges); err != nil {
+	if err := server.db.Graph(subgraph.Graph).AddEdge(subgraph.Edges); err != nil {
 		return nil, err
 	}
 	log.Printf("%d vertices and %d edges added to graph %s", len(subgraph.Vertices), len(subgraph.Edges), subgraph.Graph)
@@ -210,7 +214,7 @@ func (server *ArachneServer) StreamElements(stream aql.Edit_StreamElementsServer
 
 	go func() {
 		for vBatch := range vertexBatchChan {
-			err := server.engine.AddVertex(vBatch.graph, vBatch.vertices)
+			err := server.db.Graph(vBatch.graph).AddVertex(vBatch.vertices)
 			if err != nil {
 				log.Printf("Insert Error: %s", err)
 			}
@@ -219,7 +223,7 @@ func (server *ArachneServer) StreamElements(stream aql.Edit_StreamElementsServer
 	}()
 	go func() {
 		for eBatch := range edgeBatchChan {
-			err := server.engine.AddEdge(eBatch.graph, eBatch.edges)
+			err := server.db.Graph(eBatch.graph).AddEdge(eBatch.edges)
 			if err != nil {
 				log.Printf("Insert Error: %s", err)
 			}
@@ -284,7 +288,7 @@ func (server *ArachneServer) StreamElements(stream aql.Edit_StreamElementsServer
 
 // DeleteVertex deletes a vertex from the server
 func (server *ArachneServer) DeleteVertex(ctx context.Context, elem *aql.ElementID) (*aql.EditResult, error) {
-	err := server.engine.Arachne.Graph(elem.Graph).DelVertex(elem.Id)
+	err := server.db.Graph(elem.Graph).DelVertex(elem.Id)
 	if err != nil {
 		return &aql.EditResult{Result: &aql.EditResult_Error{Error: fmt.Sprintf("%s", err)}}, nil
 	}
@@ -293,7 +297,7 @@ func (server *ArachneServer) DeleteVertex(ctx context.Context, elem *aql.Element
 
 // DeleteEdge deletes an edge from the graph server
 func (server *ArachneServer) DeleteEdge(ctx context.Context, elem *aql.ElementID) (*aql.EditResult, error) {
-	err := server.engine.Arachne.Graph(elem.Graph).DelEdge(elem.Id)
+	err := server.db.Graph(elem.Graph).DelEdge(elem.Id)
 	if err != nil {
 		return &aql.EditResult{Result: &aql.EditResult_Error{Error: fmt.Sprintf("%s", err)}}, nil
 	}

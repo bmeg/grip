@@ -56,6 +56,13 @@ func WrapValue(value interface{}) *structpb.Value {
 			o.Fields[k] = wv
 		}
 		return &structpb.Value{Kind: &structpb.Value_StructValue{StructValue: o}}
+	case map[string]int64:
+		o := &structpb.Struct{Fields: map[string]*structpb.Value{}}
+		for k, v := range v {
+			wv := WrapValue(v)
+			o.Fields[k] = wv
+		}
+		return &structpb.Value{Kind: &structpb.Value_StructValue{StructValue: o}}
 	case *structpb.Struct:
 		return &structpb.Value{Kind: &structpb.Value_StructValue{StructValue: v}}
 	case nil:

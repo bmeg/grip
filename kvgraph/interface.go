@@ -67,7 +67,7 @@ func AddKVDriver(name string, builder KVBuilder) error {
 
 // NewKVArachne intitalize a new key value driver give the name of the
 // driver and a path/url
-func NewKVArachne(name string, path string) (gdbi.ArachneInterface, error) {
+func NewKVArachne(name string, path string) (gdbi.GraphDB, error) {
 	if x, ok := kvMap[name]; ok {
 		kv, err := x(path)
 		return NewKVGraph(kv), err
@@ -76,7 +76,7 @@ func NewKVArachne(name string, path string) (gdbi.ArachneInterface, error) {
 }
 
 // NewKVGraph creats a new instance of KVGraph given a KVInterface
-func NewKVGraph(kv KVInterface) gdbi.ArachneInterface {
+func NewKVGraph(kv KVInterface) gdbi.GraphDB {
 	ts := timestamp.NewTimestamp()
 	o := &KVGraph{kv: kv, ts: &ts}
 	for _, i := range o.GetGraphs() {

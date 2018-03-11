@@ -140,68 +140,72 @@ var swEdges = []aql.Edge{
 	{Label: "appearsIn", From: "1003", To: "4000"},
 }
 
-var swGQLVertices = []aql.Vertex{
-	{Gid: "HumanObject", Label: "Object", Data: protoutil.AsStruct(
-		map[string]interface{}{
-			"label": "Human",
-			"name":  "Human",
-			"fields": map[string]interface{}{
-				"name":       "String",
-				"height":     "Float",
-				"mass":       "Float",
-				"homePlanet": "String",
-			},
+var swGQLGraph = `{
+	"vertices": [
+		{ "gid" : "root", "label" : "Query"},
+		{
+			"gid": "HumanObject",
+			"label": "Object",
+			"data": {
+				"label": "Human",
+				"name": "Human",
+				"fields": {
+					"name": "String",
+					"height": "Float",
+					"mass": "Float",
+					"homePlanet": "String"
+				}
+			}
 		},
-	)},
-	{Gid: "DroidObject", Label: "Object", Data: protoutil.AsStruct(
-		map[string]interface{}{
-			"label": "Droid",
-			"name":  "Droid",
-			"fields": map[string]interface{}{
-				"name":            "String",
-				"primaryFunction": "String",
-			},
+		{
+			"gid": "DroidObject",
+			"label": "Object",
+			"data": {
+				"label": "Droid",
+				"name": "Droid",
+				"fields": {
+					"name": "String",
+					"primaryFunction": "String"
+				}
+			}
 		},
-	)},
-	{Gid: "StarshipObject", Label: "Object", Data: protoutil.AsStruct(
-		map[string]interface{}{
-			"label": "Starship",
-			"name":  "Starship",
-			"fields": map[string]interface{}{
-				"name":   "String",
-				"length": "Float",
-			},
+		{
+			"gid": "StarshipObject",
+			"label": "Object",
+			"data": {
+				"label": "Starship",
+				"name": "Starship",
+				"fields": {
+					"name": "String",
+					"length": "Float"
+				}
+			}
+		}
+	],
+	"edges": [{
+			"label": "field",
+			"from": "root",
+			"to": "HumanObject",
+			"data": {
+				"name": "Human"
+			}
 		},
-	)},
-	{Gid: "HumanQuery", Label: "Query", Data: protoutil.AsStruct(
-		map[string]interface{}{
-			"name": "Human",
+		{
+			"label": "field",
+			"from": "root",
+			"to": "DroidObject",
+			"data": {
+				"name": "Droid"
+			}
 		},
-	)},
-	{Gid: "DroidQuery", Label: "Query", Data: protoutil.AsStruct(
-		map[string]interface{}{
-			"name": "Droid",
-		},
-	)},
+		{
+			"label": "field",
+			"from": "HumanObject",
+			"to": "HumanObject",
+			"data": {
+				"name": "friend"
+			}
+		}
+	]
 }
-
-var swGQLEdges = []aql.Edge{
-	{Label: "field", From: "HumanQuery", To: "HumanObject", Data: protoutil.AsStruct(
-		map[string]interface{}{
-			"name": "Human",
-		},
-	),
-	},
-	{Label: "field", From: "DroidQuery", To: "DroidObject", Data: protoutil.AsStruct(
-		map[string]interface{}{
-			"name": "Droid",
-		},
-	),
-	},
-	{Label: "field", From: "HumanObject", To: "HumanObject", Data: protoutil.AsStruct(
-		map[string]interface{}{
-			"name": "friend",
-		},
-	),
-	},
-}
+`

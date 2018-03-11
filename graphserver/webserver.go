@@ -13,7 +13,6 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"path/filepath"
 	"runtime/debug"
 )
 
@@ -108,18 +107,14 @@ func NewHTTPProxy(rpcPort string, httpPort string, contentDir string) Proxy {
 	r := mux.NewRouter()
 
 	runtime.OtherErrorHandler = HandleError
-	// Routes consist of a path and a handler function
-	r.HandleFunc("/",
-		func(w http.ResponseWriter, r *http.Request) {
-			http.ServeFile(w, r, filepath.Join(contentDir, "index.html"))
-		})
-	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir(contentDir))))
+
 	r.PathPrefix("/falcor.json").Handler(falcor.NewHTTPHandler())
 	r.PathPrefix("/graphql").Handler(graphql.NewHTTPHandler("localhost:" + rpcPort))
 
 	r.PathPrefix("/v1/").Handler(grpcMux)
-
-	//http.ListenAndServe(":"+httpPort, r)
+	if contentDir != "" {
+		r.PathPrefix("/").Handler(http.StripPrefix("/", http.FileServer(http.Dir(contentDir))))
+	}
 
 	return Proxy{
 		cancel,

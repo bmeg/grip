@@ -6,34 +6,32 @@ import (
 	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/gdbi"
 	"github.com/bmeg/arachne/timestamp"
-	"io"
-	"strings"
-	//"github.com/bmeg/golib/timing"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
+	"io"
 	"log"
+	"strings"
 )
 
-// NewArachne creates a new ArachneInterface using the given
-// mongo server url and database name
-func NewArachne(url string, database string) gdbi.ArachneInterface {
-	ts := timestamp.NewTimestamp()
-	a := &Arachne{url: url, database: database, ts: &ts}
-	for _, i := range a.GetGraphs() {
-		a.ts.Touch(i)
-	}
-	return a
-}
-
-// Arachne is the base driver that manages multiple graphs in mongo
-type Arachne struct {
+// Mongo is the base driver that manages multiple graphs in mongo
+type Mongo struct {
 	url      string
 	database string
 	session  *mgo.Session
 	ts       *timestamp.Timestamp
 }
 
-func (ma *Arachne) newSession() *mgo.Session {
+// NewMongo creates a new mongo graph database interface
+func NewMongo(url string, database string) gdbi.GraphDB {
+	ts := timestamp.NewTimestamp()
+	a := &Mongo{url: url, database: database, ts: &ts}
+	for _, i := range a.GetGraphs() {
+		a.ts.Touch(i)
+	}
+	return a
+}
+
+func (ma *Mongo) newSession() *mgo.Session {
 	session, err := mgo.Dial(ma.url)
 	if err != nil {
 		log.Printf("%s", err)
@@ -47,7 +45,7 @@ func (ma *Arachne) newSession() *mgo.Session {
 	return session
 }
 
-func (ma *Arachne) refresh() {
+func (ma *Mongo) refresh() {
 	if ma.session == nil {
 		ma.session = ma.newSession()
 	} else {
@@ -55,14 +53,14 @@ func (ma *Arachne) refresh() {
 	}
 }
 
-func (ma *Arachne) getVertexCollection(graph string) *mgo.Collection {
+func (ma *Mongo) getVertexCollection(graph string) *mgo.Collection {
 	if ma.session == nil {
 		ma.refresh()
 	}
 	return ma.session.DB(ma.database).C(fmt.Sprintf("%s_vertices", graph))
 }
 
-func (ma *Arachne) getEdgeCollection(graph string) *mgo.Collection {
+func (ma *Mongo) getEdgeCollection(graph string) *mgo.Collection {
 	if ma.session == nil {
 		ma.refresh()
 	}
@@ -71,18 +69,19 @@ func (ma *Arachne) getEdgeCollection(graph string) *mgo.Collection {
 
 // Graph is the tnterface to a single graph
 type Graph struct {
-	ar    *Arachne
+	ar    *Mongo
 	ts    *timestamp.Timestamp //BUG: This timestamp implementation doesn't work againt multiple mongo clients
 	graph string
 }
 
 // AddGraph creates a new graph named `graph`
-func (ma *Arachne) AddGraph(graph string) error {
+func (ma *Mongo) AddGraph(graph string) error {
 	if ma.session == nil {
 		ma.refresh()
 	}
 
 	graphs := ma.session.DB(ma.database).C(fmt.Sprintf("graphs"))
+
 	graphs.Insert(map[string]string{"_id": graph})
 
 	//v := ma.db.C(fmt.Sprintf("%s_vertices", graph))
@@ -99,13 +98,13 @@ func (ma *Arachne) AddGraph(graph string) error {
 }
 
 // Close the connection
-func (ma *Arachne) Close() {
+func (ma *Mongo) Close() {
 	ma.session.Close()
 	ma.session = nil
 }
 
 // DeleteGraph deletes `graph`
-func (ma *Arachne) DeleteGraph(graph string) error {
+func (ma *Mongo) DeleteGraph(graph string) error {
 	if ma.session == nil {
 		ma.refresh()
 	}
@@ -121,7 +120,7 @@ func (ma *Arachne) DeleteGraph(graph string) error {
 }
 
 // GetGraphs lists the graphs managed by this driver
-func (ma *Arachne) GetGraphs() []string {
+func (ma *Mongo) GetGraphs() []string {
 	if ma.session == nil {
 		ma.refresh()
 	}
@@ -146,7 +145,7 @@ func (ma *Arachne) GetGraphs() []string {
 }
 
 // Graph obtains the gdbi.DBI for a particular graph
-func (ma *Arachne) Graph(graph string) gdbi.DBI {
+func (ma *Mongo) Graph(graph string) gdbi.GraphInterface {
 	return &Graph{
 		ar:    ma,
 		ts:    ma.ts,
@@ -154,15 +153,12 @@ func (ma *Arachne) Graph(graph string) gdbi.DBI {
 	}
 }
 
-// Query creates a QueryInterface for Graph graph
-func (ma *Arachne) Query(graph string) gdbi.QueryInterface {
-	return ma.Graph(graph).Query()
-}
-
+/*
 // Query creates a QueryInterface for a particular Graph
 func (mg *Graph) Query() gdbi.QueryInterface {
 	return gdbi.NewPipeEngine(mg)
 }
+*/
 
 // GetEdge loads an edge given an id. It returns nil if not found
 func (mg *Graph) GetEdge(id string, loadProp bool) *aql.Edge {
@@ -171,7 +167,7 @@ func (mg *Graph) GetEdge(id string, loadProp bool) *aql.Edge {
 	q := mg.ar.getEdgeCollection(mg.graph).FindId(id)
 	q.One(d)
 	v := UnpackEdge(d)
-	return &v
+	return v
 }
 
 //GetTimestamp gets the timestamp of last update
@@ -193,7 +189,7 @@ func (mg *Graph) GetVertex(key string, load bool) *aql.Vertex {
 		return nil
 	}
 	v := UnpackVertex(d)
-	return &v
+	return v
 }
 
 // MaxRetries is the number of times driver will reconnect on connection failure
@@ -217,15 +213,15 @@ func isNetError(e error) bool {
 	return false
 }
 
-// SetVertex adds an edge to the graph, if it already exists
+// AddVertex adds an edge to the graph, if it already exists
 // in the graph, it is replaced
-func (mg *Graph) SetVertex(vertexArray []*aql.Vertex) error {
+func (mg *Graph) AddVertex(vertexArray []*aql.Vertex) error {
 	vCol := mg.ar.getVertexCollection(mg.graph)
 	var err error
 	for i := 0; i < MaxRetries; i++ {
 		bulk := vCol.Bulk()
 		for _, vertex := range vertexArray {
-			bulk.Upsert(bson.M{"_id": vertex.Gid}, PackVertex(*vertex))
+			bulk.Upsert(bson.M{"_id": vertex.Gid}, PackVertex(vertex))
 		}
 		_, err = bulk.Run()
 		if err == nil || !isNetError(err) {
@@ -238,19 +234,19 @@ func (mg *Graph) SetVertex(vertexArray []*aql.Vertex) error {
 	return err
 }
 
-// SetEdge adds an edge to the graph, if the id is not "" and in already exists
+// AddEdge adds an edge to the graph, if the id is not "" and in already exists
 // in the graph, it is replaced
-func (mg *Graph) SetEdge(edgeArray []*aql.Edge) error {
+func (mg *Graph) AddEdge(edgeArray []*aql.Edge) error {
 	eCol := mg.ar.getEdgeCollection(mg.graph)
 	var err error
 	for i := 0; i < MaxRetries; i++ {
 		bulk := eCol.Bulk()
 		for _, edge := range edgeArray {
 			if edge.Gid != "" {
-				bulk.Upsert(bson.M{"_id": edge.Gid}, PackEdge(*edge))
+				bulk.Upsert(bson.M{"_id": edge.Gid}, PackEdge(edge))
 			} else {
 				edge.Gid = bson.NewObjectId().Hex()
-				bulk.Insert(PackEdge(*edge))
+				bulk.Insert(PackEdge(edge))
 			}
 		}
 		_, err := bulk.Run()
@@ -279,9 +275,9 @@ func (mg *Graph) DelEdge(key string) error {
 }
 
 // GetVertexList produces a channel of all edges in the graph
-func (mg *Graph) GetVertexList(ctx context.Context, load bool) chan aql.Vertex {
+func (mg *Graph) GetVertexList(ctx context.Context, load bool) <-chan *aql.Vertex {
 	vCol := mg.ar.getVertexCollection(mg.graph)
-	o := make(chan aql.Vertex, 100)
+	o := make(chan *aql.Vertex, 100)
 	go func() {
 		defer close(o)
 		iter := vCol.Find(nil).Iter()
@@ -301,8 +297,8 @@ func (mg *Graph) GetVertexList(ctx context.Context, load bool) chan aql.Vertex {
 }
 
 // GetEdgeList produces a channel of all edges in the graph
-func (mg *Graph) GetEdgeList(ctx context.Context, loadProp bool) chan aql.Edge {
-	o := make(chan aql.Edge, 100)
+func (mg *Graph) GetEdgeList(ctx context.Context, loadProp bool) <-chan *aql.Edge {
+	o := make(chan *aql.Edge, 100)
 	eCol := mg.ar.getEdgeCollection(mg.graph)
 	go func() {
 		defer close(o)
@@ -321,7 +317,7 @@ func (mg *Graph) GetEdgeList(ctx context.Context, loadProp bool) chan aql.Edge {
 			} else if _, ok := result[fieldBundle]; ok {
 				bundle := UnpackBundle(result)
 				for k, v := range bundle.Bundle {
-					e := aql.Edge{Gid: bundle.Gid, Label: bundle.Label, From: bundle.From, To: k, Data: v}
+					e := &aql.Edge{Gid: bundle.Gid, Label: bundle.Label, From: bundle.From, To: k, Data: v}
 					o <- e
 				}
 			}
@@ -376,7 +372,7 @@ func (mg *Graph) GetVertexChannel(ids chan gdbi.ElementLookup, load bool) chan g
 			result := map[string]interface{}{}
 			for iter.Next(&result) {
 				v := UnpackVertex(result)
-				chunk[v.Gid] = &v
+				chunk[v.Gid] = v
 			}
 			//if iter.Err() != nil {
 			//	log.Printf("batch err: %s", iter.Err())
@@ -446,7 +442,7 @@ func (mg *Graph) GetOutChannel(reqChan chan gdbi.ElementLookup, load bool, edgeL
 					for vIter.Next(&vResult) {
 						v := UnpackVertex(vResult)
 						for _, ri := range r {
-							ri.Vertex = &v
+							ri.Vertex = v
 							o <- ri
 						}
 					}
@@ -456,7 +452,7 @@ func (mg *Graph) GetOutChannel(reqChan chan gdbi.ElementLookup, load bool, edgeL
 						v := UnpackVertex(d.(map[string]interface{}))
 						r := batchMap[result["from"].(string)]
 						for _, ri := range r {
-							ri.Vertex = &v
+							ri.Vertex = v
 							o <- ri
 						}
 					}
@@ -511,7 +507,7 @@ func (mg *Graph) GetInChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLa
 					v := UnpackVertex(d.(map[string]interface{}))
 					r := batchMap[result["to"].(string)]
 					for _, ri := range r {
-						ri.Vertex = &v
+						ri.Vertex = v
 						o <- ri
 					}
 				}
@@ -574,7 +570,7 @@ func (mg *Graph) GetOutEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, e
 					e := UnpackEdge(result)
 					r := batchMap[result["from"].(string)]
 					for _, ri := range r {
-						ri.Edge = &e
+						ri.Edge = e
 						o <- ri
 					}
 				}
@@ -622,7 +618,7 @@ func (mg *Graph) GetInEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, ed
 				e := UnpackEdge(result)
 				r := batchMap[result["to"].(string)]
 				for _, ri := range r {
-					ri.Edge = &e
+					ri.Edge = e
 					o <- ri
 				}
 			}
@@ -633,9 +629,9 @@ func (mg *Graph) GetInEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, ed
 
 // GetOutList given vertex/edge `key` find vertices on outgoing edges,
 // if len(edgeLabels) > 0 the edge labels must match a string in the array
-func (mg *Graph) GetOutList(ctx context.Context, key string, load bool, edgeLabels []string) chan aql.Vertex {
+func (mg *Graph) GetOutList(ctx context.Context, key string, load bool, edgeLabels []string) <-chan *aql.Vertex {
 	//BUG: This should respond to edge ids as well
-	o := make(chan aql.Vertex, 100)
+	o := make(chan *aql.Vertex, 100)
 	vertexChan := make(chan string, 100)
 	go func() {
 		defer close(vertexChan)
@@ -687,9 +683,9 @@ func (mg *Graph) GetOutList(ctx context.Context, key string, load bool, edgeLabe
 
 // GetInList given vertex/edge `key` find vertices on incoming edges,
 // if len(edgeLabels) > 0 the edge labels must match a string in the array
-func (mg *Graph) GetInList(ctx context.Context, key string, load bool, edgeLabels []string) chan aql.Vertex {
+func (mg *Graph) GetInList(ctx context.Context, key string, load bool, edgeLabels []string) <-chan *aql.Vertex {
 	//BUG: this should respond to both vertex and edge ids
-	o := make(chan aql.Vertex, 100)
+	o := make(chan *aql.Vertex, 100)
 	go func() {
 		defer close(o)
 		eCol := mg.ar.getEdgeCollection(mg.graph)
@@ -725,8 +721,8 @@ func (mg *Graph) GetInList(ctx context.Context, key string, load bool, edgeLabel
 
 // GetOutEdgeList given vertex `key` find all outgoing edges,
 // if len(edgeLabels) > 0 the edge labels must match a string in the array
-func (mg *Graph) GetOutEdgeList(ctx context.Context, key string, load bool, edgeLabels []string) chan aql.Edge {
-	o := make(chan aql.Edge, 1000)
+func (mg *Graph) GetOutEdgeList(ctx context.Context, key string, load bool, edgeLabels []string) <-chan *aql.Edge {
+	o := make(chan *aql.Edge, 1000)
 	go func() {
 		defer close(o)
 		eCol := mg.ar.getEdgeCollection(mg.graph)
@@ -745,7 +741,7 @@ func (mg *Graph) GetOutEdgeList(ctx context.Context, key string, load bool, edge
 			} else if _, ok := result[fieldBundle]; ok {
 				bundle := UnpackBundle(result)
 				for k, v := range bundle.Bundle {
-					e := aql.Edge{Gid: bundle.Gid, Label: bundle.Label, From: bundle.From, To: k, Data: v}
+					e := &aql.Edge{Gid: bundle.Gid, Label: bundle.Label, From: bundle.From, To: k, Data: v}
 					o <- e
 				}
 			}
@@ -754,26 +750,29 @@ func (mg *Graph) GetOutEdgeList(ctx context.Context, key string, load bool, edge
 	return o
 }
 
-// GetOutBundleList given vertex `key` find all outgoing bundles,
+// GetOutBundleChannel given vertex `key` find all outgoing bundles,
 // if len(edgeLabels) > 0 the edge labels must match a string in the array
 // load is ignored
-func (mg *Graph) GetOutBundleList(ctx context.Context, key string, load bool, edgeLabels []string) chan aql.Bundle {
-	o := make(chan aql.Bundle, 1000)
+func (mg *Graph) GetOutBundleChannel(req chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
+	o := make(chan gdbi.ElementLookup, 1000)
 	go func() {
 		defer close(o)
 		eCol := mg.ar.getEdgeCollection(mg.graph)
-		selection := map[string]interface{}{
-			fieldSrc: key,
-		}
-		if len(edgeLabels) > 0 {
-			selection[fieldLabel] = bson.M{"$in": edgeLabels}
-		}
-		iter := eCol.Find(selection).Iter()
-		result := map[string]interface{}{}
-		for iter.Next(&result) {
-			if _, ok := result[fieldBundle]; ok {
-				bundle := UnpackBundle(result)
-				o <- bundle
+		for r := range req {
+			selection := map[string]interface{}{
+				fieldSrc: r.ID,
+			}
+			if len(edgeLabels) > 0 {
+				selection[fieldLabel] = bson.M{"$in": edgeLabels}
+			}
+			iter := eCol.Find(selection).Iter()
+			result := map[string]interface{}{}
+			for iter.Next(&result) {
+				if _, ok := result[fieldBundle]; ok {
+					bundle := UnpackBundle(result)
+					r.Bundle = bundle
+					o <- r
+				}
 			}
 		}
 	}()
@@ -782,9 +781,9 @@ func (mg *Graph) GetOutBundleList(ctx context.Context, key string, load bool, ed
 
 // GetInEdgeList given vertex `key` find all incoming edges,
 // if len(edgeLabels) > 0 the edge labels must match a string in the array
-func (mg *Graph) GetInEdgeList(ctx context.Context, key string, load bool, edgeLabels []string) chan aql.Edge {
+func (mg *Graph) GetInEdgeList(ctx context.Context, key string, load bool, edgeLabels []string) <-chan *aql.Edge {
 	//TODO: use the load variable to filter data field from scan if possible
-	o := make(chan aql.Edge, 100)
+	o := make(chan *aql.Edge, 100)
 	go func() {
 		defer close(o)
 		eCol := mg.ar.getEdgeCollection(mg.graph)
@@ -805,8 +804,8 @@ func (mg *Graph) GetInEdgeList(ctx context.Context, key string, load bool, edgeL
 	return o
 }
 
-// SetBundle adds a bundle to the graph
-func (mg *Graph) SetBundle(bundle aql.Bundle) error {
+// AddBundle adds a bundle to the graph
+func (mg *Graph) AddBundle(bundle *aql.Bundle) error {
 	eCol := mg.ar.getEdgeCollection(mg.graph)
 	if bundle.Gid != "" {
 		_, err := eCol.UpsertId(bundle.Gid, PackBundle(bundle))
@@ -825,7 +824,7 @@ func (mg *Graph) GetBundle(id string, loadProp bool) *aql.Bundle {
 	q := eCol.FindId(id)
 	q.One(d)
 	v := UnpackBundle(d)
-	return &v
+	return v
 }
 
 // DelBundle removes a bundle of edges given an id

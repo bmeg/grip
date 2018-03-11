@@ -128,3 +128,27 @@ Print out expression data of all Stage IIA samples
 for row in O.query().V().hasLabel("Sample").has("pathologic_stage", "Stage IIA").outgoing("has").hasLabel("Data:expression").outgoingBundle("value"):
   print row
 ```
+
+
+
+GraphQL Example
+---------------
+
+```
+./bin/arachne example
+```
+
+
+Get Types:
+```
+{__schema{types{name}}}
+```
+
+
+```
+{__type(name:"Human"){fields{name}}}
+```
+
+```
+query {Human(id:"1000"){name,friend{name}}}
+```
