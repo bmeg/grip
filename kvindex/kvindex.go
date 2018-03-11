@@ -2,8 +2,8 @@ package kvindex
 
 import (
 	//"context"
-	"github.com/bmeg/arachne/kvgraph"
 	"bytes"
+	"github.com/bmeg/arachne/kvgraph"
 )
 
 //key: f | field
@@ -47,16 +47,15 @@ func FieldTermKeyParse(key []byte) (string, []byte) {
 
 var idxFieldTermDocPrefix = []byte("i")
 
-
 func FieldTermDocKey(field string, term []byte, docid string) []byte {
-  return bytes.Join([][]byte{idxFieldTermDocPrefix, []byte(field), term, []byte(docid)}, []byte{0})
+	return bytes.Join([][]byte{idxFieldTermDocPrefix, []byte(field), term, []byte(docid)}, []byte{0})
 }
 
 func FieldTermDocKeyParse(key []byte) (string, []byte, string) {
-  tmp := bytes.Split(key, []byte{0}) //BUG: term may have 0x00 in it
+	tmp := bytes.Split(key, []byte{0}) //BUG: term may have 0x00 in it
 	field := string(tmp[1])
-  term := tmp[2]
-  docid := tmp[3]
+	term := tmp[2]
+	docid := tmp[3]
 	return field, term, string(docid)
 }
 
@@ -66,9 +65,8 @@ func FieldTermDocKeyParse(key []byte) (string, []byte, string) {
 var idxDocPrefix = []byte("b")
 
 type KVIndex struct {
-  kv kvgraph.KVInterface
+	kv kvgraph.KVInterface
 }
-
 
 func NewIndex(kv kvgraph.KVInterface) *KVIndex {
 	return &KVIndex{kv}

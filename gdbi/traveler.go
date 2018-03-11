@@ -6,7 +6,6 @@ import (
 	"github.com/bmeg/arachne/protoutil"
 )
 
-
 // These consts mark the type of a Pipeline traveler chan
 const (
 	// StateCustom The Pipeline will be emitting custom data structures
@@ -32,7 +31,6 @@ type Pipeline interface {
 	GetCurrentState() int
 	GetValueStates() map[string]int
 }
-
 
 // AddCurrent creates a new copy of the travel with new 'current' value
 func (t Traveler) AddCurrent(r *DataElement) *Traveler {

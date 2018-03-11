@@ -154,5 +154,4 @@ type GraphInterface interface {
 	GetInEdgeChannel(req chan ElementLookup, load bool, edgeLabels []string) chan ElementLookup
 
 	GetOutBundleChannel(req chan ElementLookup, load bool, edgeLabels []string) chan ElementLookup
-
 }

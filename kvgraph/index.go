@@ -60,7 +60,6 @@ func (kgdb *KVInterfaceGDB) GetEdgeTermCount(ctx context.Context, label string, 
 	return nil
 }
 
-
 func (kgdb *KVInterfaceGDB) DeleteVertexIndex(label string, field string) error {
 
 	return nil
@@ -70,8 +69,6 @@ func (kgdb *KVInterfaceGDB) DeleteEdgeIndex(label string, field string) error {
 
 	return nil
 }
-
-
 
 // VertexLabelScan produces a channel of all vertex ids in a graph
 // that match a given label

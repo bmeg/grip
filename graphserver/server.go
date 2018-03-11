@@ -304,7 +304,6 @@ func (server *ArachneServer) DeleteEdge(ctx context.Context, elem *aql.ElementID
 	return &aql.EditResult{Result: &aql.EditResult_Id{Id: elem.Id}}, nil
 }
 
-
 func (server *ArachneServer) AddVertexIndex(ctx context.Context, idx *aql.IndexID) (*aql.EditResult, error) {
 	err := server.db.Graph(idx.Graph).AddVertexIndex(idx.Label, idx.Field)
 	if err != nil {
@@ -357,15 +356,15 @@ func (server *ArachneServer) GetEdgeIndex(idx *aql.IndexID, stream aql.Query_Get
 
 func (server *ArachneServer) VertexIndexTraversal(idx *aql.IndexQuery, stream aql.Query_VertexIndexTraversalServer) error {
 	/*
-	res := server.engine.Arachne.Graph(idx.Graph).GetVertexTermCount(stream.Context(), idx.Label, idx.Field)
-	res, err := server.engine.RunTraversal(stream.Context(), query)
-	if err != nil {
-		return err
-	}
-	for i := range res {
-		l := i
-		queryServer.Send(&l)
-	}
+		res := server.engine.Arachne.Graph(idx.Graph).GetVertexTermCount(stream.Context(), idx.Label, idx.Field)
+		res, err := server.engine.RunTraversal(stream.Context(), query)
+		if err != nil {
+			return err
+		}
+		for i := range res {
+			l := i
+			queryServer.Send(&l)
+		}
 	*/
 	return nil
 }

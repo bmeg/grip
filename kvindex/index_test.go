@@ -1,14 +1,12 @@
-
 package kvindex
 
 import (
-  "os"
-  "log"
-  "testing"
-  "encoding/json"
-  "github.com/bmeg/arachne/badgerdb"
+	"encoding/json"
+	"github.com/bmeg/arachne/badgerdb"
+	"log"
+	"os"
+	"testing"
 )
-
 
 var doc1 = `
 {
@@ -23,59 +21,59 @@ var doc1 = `
 `
 
 func setupIndex() *KVIndex {
-  kv, _ := badgerdb.BadgerBuilder("test.db")
-  idx := NewIndex(kv)
-  return idx
+	kv, _ := badgerdb.BadgerBuilder("test.db")
+	idx := NewIndex(kv)
+	return idx
 }
 
 func closeIndex() {
-  os.RemoveAll("test.db")
+	os.RemoveAll("test.db")
 }
 
 func contains(c string, s []string) bool {
-  for _, i := range s {
-    if c == i { return true }
-  }
-  return false
+	for _, i := range s {
+		if c == i {
+			return true
+		}
+	}
+	return false
 }
 
 func TestFieldListing(b *testing.T) {
-  idx := setupIndex()
+	idx := setupIndex()
 
-  newFields := []string{"label", "data.firstName", "data.lastName"}
-  for _, s := range newFields {
-    idx.AddField(s)
-  }
+	newFields := []string{"label", "data.firstName", "data.lastName"}
+	for _, s := range newFields {
+		idx.AddField(s)
+	}
 
-  count := 0
-  for field := range idx.ListFields() {
-    if !contains(field, newFields) {
-      b.Errorf("Bad field return: %s", field)
-    }
-    count++
-  }
-  if count != len(newFields) {
-    b.Errorf("Wrong return count %d != %d", count, len(newFields))
-  }
+	count := 0
+	for field := range idx.ListFields() {
+		if !contains(field, newFields) {
+			b.Errorf("Bad field return: %s", field)
+		}
+		count++
+	}
+	if count != len(newFields) {
+		b.Errorf("Wrong return count %d != %d", count, len(newFields))
+	}
 
-  closeIndex()
+	closeIndex()
 }
 
-
 func TestLoadDoc(b *testing.T) {
-  data := map[string]interface{}{}
-  json.Unmarshal([]byte(doc1), &data)
-  log.Printf("%s", data)
+	data := map[string]interface{}{}
+	json.Unmarshal([]byte(doc1), &data)
+	log.Printf("%s", data)
 
-  idx := setupIndex()
-  newFields := []string{"v.label", "v.data.firstName", "v.data.lastName"}
-  for _, s := range newFields {
-    idx.AddField(s)
-  }
+	idx := setupIndex()
+	newFields := []string{"v.label", "v.data.firstName", "v.data.lastName"}
+	for _, s := range newFields {
+		idx.AddField(s)
+	}
 
-  idx.AddDocPrefix(doc["gid"], doc, "v.")
+	idx.AddDocPrefix(doc["gid"], doc, "v.")
 
-  closeIndex()
-
+	closeIndex()
 
 }
