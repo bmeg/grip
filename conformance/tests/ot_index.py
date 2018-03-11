@@ -85,6 +85,8 @@ def test_count_index(O):
 
     count = 0
     for row in O.index().query("Person", "name", "marko").outgoing():
-        print row
+        count += 1
+    if count != 2:
+        errors.append("Wrong index query return count: %s != %s" % (count, 2))
 
     return errors
