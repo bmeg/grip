@@ -16,9 +16,8 @@ import (
 
 // LookupVerts starts query by looking on vertices
 type LookupVerts struct {
-	db     gdbi.GraphInterface
-	ids    []string
-	labels []string
+	db  gdbi.GraphInterface
+	ids []string
 }
 
 // Process LookupVerts
@@ -43,6 +42,40 @@ func (l *LookupVerts) Process(in gdbi.InPipe, out gdbi.OutPipe) {
 					})
 				}
 			}
+		}
+	}
+}
+
+// LookupVertsIndex look up vertices by indexed based feature
+type LookupVertsIndex struct {
+	db     gdbi.GraphInterface
+	labels []string
+}
+
+// Process LookupVerts
+func (l *LookupVertsIndex) Process(in gdbi.InPipe, out gdbi.OutPipe) {
+	for t := range in {
+
+		queryChan := make(chan gdbi.ElementLookup, 100)
+		go func() {
+			defer close(queryChan)
+			for _, label := range l.labels {
+				for id := range l.db.VertexLabelScan(context.Background(), label) {
+					queryChan <- gdbi.ElementLookup{
+						ID:  id,
+						Ref: t,
+					}
+				}
+			}
+		}()
+
+		for v := range l.db.GetVertexChannel(queryChan, true) {
+			i := v.Ref.(*gdbi.Traveler)
+			out <- i.AddCurrent(&gdbi.DataElement{
+				ID:    v.Vertex.Gid,
+				Label: v.Vertex.Label,
+				Data:  protoutil.AsMap(v.Vertex.Data),
+			})
 		}
 	}
 }

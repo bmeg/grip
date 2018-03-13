@@ -68,6 +68,7 @@ var Cmd = &cobra.Command{
 			log.Printf("Loading %s", vertexFile)
 			reader, err := golib.ReadFileLines(vertexFile)
 			if err != nil {
+				log.Printf("Error: %s", err)
 				return err
 			}
 			count := 0
@@ -97,6 +98,7 @@ var Cmd = &cobra.Command{
 			log.Printf("Loading %s", edgeFile)
 			reader, err := golib.ReadFileLines(edgeFile)
 			if err != nil {
+				log.Printf("Error: %s", err)
 				return err
 			}
 			count := 0
