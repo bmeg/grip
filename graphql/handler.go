@@ -260,9 +260,12 @@ func buildObjectMap(client aql.Client, gqlDB string, dataGraph string) map[strin
 
 	//create instance of ever object type, and add constant fields
 	for gid, obj := range getObjects(client, gqlDB) {
-		schema := obj["fields"].(map[string]interface{})
-		gobj := buildObject(gid, schema)
-		objects[gid] = gobj
+		if x, ok := obj["fields"]; ok {
+			if schema, ok := x.(map[string]interface{}); ok {
+				gobj := buildObject(gid, schema)
+				objects[gid] = gobj
+			}
+		}
 	}
 
 	//list all objects, but this time find edges to other objects that create
