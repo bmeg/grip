@@ -3,12 +3,12 @@ package kvindex
 import (
 	"encoding/json"
 	"github.com/bmeg/arachne/badgerdb"
-	"log"
+	//	"log"
 	"os"
 	"testing"
 )
 
-var doc1 = `
+var docs = `[
 {
   "gid" : "vertex1",
   "label" : "Person",
@@ -17,8 +17,27 @@ var doc1 = `
     "lastName" : "Smith",
     "age" : 35
   }
-}
+},{
+  "gid" : "vertex2",
+  "label" : "Person",
+  "data" : {
+    "firstName" : "Jack",
+    "lastName" : "Smith",
+    "age" : 50
+  }
+},{
+	"gid" : "vertex3",
+  "label" : "Dog",
+  "data" : {
+    "firstName" : "Fido",
+    "lastName" : "Ruff",
+    "age" : 3
+  }
+}]
 `
+
+var personDocs = []string{"vertex1", "vertex2"}
+var bobDocs = []string{"vertex1"}
 
 func setupIndex() *KVIndex {
 	kv, _ := badgerdb.BadgerBuilder("test.db")
@@ -30,15 +49,6 @@ func closeIndex() {
 	os.RemoveAll("test.db")
 }
 
-func contains(c string, s []string) bool {
-	for _, i := range s {
-		if c == i {
-			return true
-		}
-	}
-	return false
-}
-
 func TestFieldListing(b *testing.T) {
 	idx := setupIndex()
 
@@ -48,7 +58,7 @@ func TestFieldListing(b *testing.T) {
 	}
 
 	count := 0
-	for field := range idx.ListFields() {
+	for _, field := range idx.ListFields() {
 		if !contains(field, newFields) {
 			b.Errorf("Bad field return: %s", field)
 		}
@@ -62,9 +72,8 @@ func TestFieldListing(b *testing.T) {
 }
 
 func TestLoadDoc(b *testing.T) {
-	data := map[string]interface{}{}
-	json.Unmarshal([]byte(doc1), &data)
-	log.Printf("%s", data)
+	data := []map[string]interface{}{}
+	json.Unmarshal([]byte(docs), &data)
 
 	idx := setupIndex()
 	newFields := []string{"v.label", "v.data.firstName", "v.data.lastName"}
@@ -72,8 +81,46 @@ func TestLoadDoc(b *testing.T) {
 		idx.AddField(s)
 	}
 
-	idx.AddDocPrefix(doc["gid"], doc, "v.")
+	for _, d := range data {
+		idx.AddDocPrefix(d["gid"].(string), d, "v")
+	}
+
+	count := 0
+	for d := range idx.GetTermMatch("v.label", "Person") {
+		if !contains(d, personDocs) {
+			b.Errorf("Bad doc return: %s", d)
+		}
+		count++
+	}
+	if count != 2 {
+		b.Errorf("Wrong return count %d != %d", count, 2)
+	}
+
+	count = 0
+	for d := range idx.GetTermMatch("v.data.firstName", "Bob") {
+		if !contains(d, bobDocs) {
+			b.Errorf("Bad doc return: %s", d)
+		}
+		count++
+	}
+	if count != 1 {
+		b.Errorf("Wrong return count %d != %d", count, 1)
+	}
+	closeIndex()
+}
+
+func TestTermCount(b *testing.T) {
+	data := []map[string]interface{}{}
+	json.Unmarshal([]byte(docs), &data)
+
+	idx := setupIndex()
+	newFields := []string{"v.label", "v.data.firstName", "v.data.lastName"}
+	for _, s := range newFields {
+		idx.AddField(s)
+	}
+	for _, d := range data {
+		idx.AddDocPrefix(d["gid"].(string), d, "v")
+	}
 
 	closeIndex()
-
 }
