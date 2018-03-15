@@ -3,7 +3,7 @@ package kvindex
 import (
 	"encoding/json"
 	"github.com/bmeg/arachne/badgerdb"
-	//	"log"
+	"log"
 	"os"
 	"testing"
 )
@@ -38,6 +38,8 @@ var docs = `[
 
 var personDocs = []string{"vertex1", "vertex2"}
 var bobDocs = []string{"vertex1"}
+var lastNames = []string{"Smith", "Ruff"}
+var firstNames = []string{"Bob", "Jack", "Fido"}
 
 func setupIndex() *KVIndex {
 	kv, _ := badgerdb.BadgerBuilder("test.db")
@@ -109,6 +111,43 @@ func TestLoadDoc(b *testing.T) {
 	closeIndex()
 }
 
+func TestTermEnum(b *testing.T) {
+	data := []map[string]interface{}{}
+	json.Unmarshal([]byte(docs), &data)
+
+	idx := setupIndex()
+	newFields := []string{"v.label", "v.data.firstName", "v.data.lastName"}
+	for _, s := range newFields {
+		idx.AddField(s)
+	}
+	for _, d := range data {
+		idx.AddDocPrefix(d["gid"].(string), d, "v")
+	}
+
+	count := 0
+	for d := range idx.FieldTerms("v.data.lastName") {
+		count++
+		if !contains(d.(string), lastNames) {
+			b.Errorf("Bad term return: %s", d)
+		}
+	}
+	if count != 2 {
+		b.Errorf("Wrong return count %d != %d", count, 2)
+	}
+
+	count = 0
+	for d := range idx.FieldTerms("v.data.firstName") {
+		count++
+		if !contains(d.(string), firstNames) {
+			b.Errorf("Bad term return: %s", d)
+		}
+	}
+	if count != 3 {
+		b.Errorf("Wrong return count %d != %d", count, 3)
+	}
+	closeIndex()
+}
+
 func TestTermCount(b *testing.T) {
 	data := []map[string]interface{}{}
 	json.Unmarshal([]byte(docs), &data)
@@ -122,5 +161,31 @@ func TestTermCount(b *testing.T) {
 		idx.AddDocPrefix(d["gid"].(string), d, "v")
 	}
 
+	count := 0
+	for d := range idx.FieldTermCounts("v.data.lastName") {
+		count++
+		if !contains(string(d.Value), lastNames) {
+			b.Errorf("Bad term return: %s", d.Value)
+		}
+		if string(d.Value) == "Smith" {
+			if d.Count != 2 {
+				b.Errorf("Bad term count return: %d", d.Count)
+			}
+		}
+	}
+	if count != 2 {
+		b.Errorf("Wrong return count %d != %d", count, 2)
+	}
+	log.Printf("Counting: %d", count)
+	count = 0
+	for d := range idx.FieldTermCounts("v.data.firstName") {
+		count++
+		if !contains(string(d.Value), firstNames) {
+			b.Errorf("Bad term return: %s", d.Value)
+		}
+	}
+	if count != 3 {
+		b.Errorf("Wrong return count %d != %d", count, 3)
+	}
 	closeIndex()
 }

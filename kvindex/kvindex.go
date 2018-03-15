@@ -6,9 +6,11 @@ import (
 	"fmt"
 	"github.com/bmeg/arachne/kvgraph"
 	proto "github.com/golang/protobuf/proto"
-	"log"
+	//"log"
 	"strings"
 )
+
+const BufferSize = 1000
 
 //key: f | field
 //val:
@@ -105,6 +107,11 @@ type KVIndex struct {
 	kv kvgraph.KVInterface
 }
 
+type KVTermCount struct {
+	Value []byte
+	Count int64
+}
+
 func NewIndex(kv kvgraph.KVInterface) *KVIndex {
 	return &KVIndex{kv}
 }
@@ -171,7 +178,7 @@ func fieldScan(docId string, doc map[string]interface{}, fieldPrefix string, fie
 
 func (idx *KVIndex) AddDocPrefix(docId string, doc map[string]interface{}, fieldPrefix string) error {
 	fields := idx.ListFields()
-	values := make(chan entryValue)
+	values := make(chan entryValue, BufferSize)
 	go func() {
 		fieldScan(docId, doc, fieldPrefix, fields, values)
 		close(values)
@@ -180,7 +187,7 @@ func (idx *KVIndex) AddDocPrefix(docId string, doc map[string]interface{}, field
 	idx.kv.Update(func(tx kvgraph.KVTransaction) error {
 		sdoc := Doc{Terms: [][]byte{}}
 		for v := range values {
-			log.Printf("Index %#v", v)
+			//log.Printf("Index %#v", v)
 			tx.Set(v.entryKey, []byte{})
 			tx.Set(v.termKey, []byte{})
 			sdoc.Terms = append(sdoc.Terms, v.term)
@@ -205,7 +212,7 @@ func term2Bytes(term interface{}) []byte {
 }
 
 func (idx *KVIndex) GetTermMatch(field string, value interface{}) chan string {
-	out := make(chan string)
+	out := make(chan string, BufferSize)
 	go func() {
 		term := term2Bytes(value)
 		entryPrefix := EntryValuePrefix(field, term)
@@ -217,6 +224,53 @@ func (idx *KVIndex) GetTermMatch(field string, value interface{}) chan string {
 			}
 			return nil
 		})
+	}()
+	return out
+}
+
+func (idx *KVIndex) FieldTerms(field string) chan interface{} {
+	out := make(chan interface{}, BufferSize)
+	go func() {
+		termPrefix := TermPrefix(field)
+		defer close(out)
+		idx.kv.View(func(it kvgraph.KVIterator) error {
+			for it.Seek(termPrefix); it.Valid() && bytes.HasPrefix(it.Key(), termPrefix); it.Next() {
+				_, entry := TermKeyParse(it.Key())
+				out <- string(entry)
+			}
+			return nil
+		})
+	}()
+	return out
+}
+
+func (idx *KVIndex) FieldTermCounts(field string) chan KVTermCount {
+	terms := make(chan []byte, BufferSize)
+	go func() {
+		defer close(terms)
+		termPrefix := TermPrefix(field)
+		idx.kv.View(func(it kvgraph.KVIterator) error {
+			for it.Seek(termPrefix); it.Valid() && bytes.HasPrefix(it.Key(), termPrefix); it.Next() {
+				_, term := TermKeyParse(it.Key())
+				terms <- term
+			}
+			return nil
+		})
+	}()
+	out := make(chan KVTermCount, BufferSize)
+	go func() {
+		defer close(out)
+		for term := range terms {
+			entryPrefix := EntryValuePrefix(field, term)
+			var count int64
+			idx.kv.View(func(it kvgraph.KVIterator) error {
+				for it.Seek(entryPrefix); it.Valid() && bytes.HasPrefix(it.Key(), entryPrefix); it.Next() {
+					count++
+				}
+				return nil
+			})
+			out <- KVTermCount{Value: term, Count: count}
+		}
 	}()
 	return out
 }
