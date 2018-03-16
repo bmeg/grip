@@ -44,59 +44,6 @@ const (
 	RowData
 )
 
-// QueryInterface defines the query engine interface. The primary implementation
-// is PipeEngine
-/*
-type QueryInterface interface {
-	V(ids []string) QueryInterface
-	E() QueryInterface
-	Count() QueryInterface
-
-	Has(prop string, value ...string) QueryInterface
-	HasLabel(labels ...string) QueryInterface
-	HasID(ids ...string) QueryInterface
-	HasValue(key1, key2 string, condition aql.Condition) QueryInterface
-
-	Out(key ...string) QueryInterface
-	In(key ...string) QueryInterface
-	Both(key ...string) QueryInterface
-	Limit(count int64) QueryInterface
-
-	OutE(key ...string) QueryInterface
-	InE(key ...string) QueryInterface
-	BothE(key ...string) QueryInterface
-
-	OutBundle(key ...string) QueryInterface
-
-	As(label string) QueryInterface
-	Select(labels []string) QueryInterface
-	Values(labels []string) QueryInterface
-
-	GroupCount(label string) QueryInterface
-
-	//Subqueries
-	Match(matches []*QueryInterface) QueryInterface
-
-	//code based functions
-	Import(source string) QueryInterface
-	Map(function string) QueryInterface
-	Fold(function string, init interface{}) QueryInterface
-	Filter(function string) QueryInterface
-	FilterValues(source string) QueryInterface
-	VertexFromValues(source string) QueryInterface
-
-<<<<<<< HEAD
-	Execute(context.Context) chan aql.ResultRow
-	First(context.Context) (aql.ResultRow, error) //Only get one result
-
-	PipeIn(context.Context, func() Pipeline) QueryInterface
-	PipeOut() Pipeline
-=======
-	Process(in InPipe, out OutPipe)
->>>>>>> graphql-test
-}
-*/
-
 // ElementLookup request to look up data
 type ElementLookup struct {
 	ID     string
@@ -134,6 +81,9 @@ type GraphInterface interface {
 	DelVertex(key string) error
 	DelEdge(key string) error
 	DelBundle(id string) error
+
+	VertexLabelScan(ctx context.Context, label string) chan string
+	EdgeLabelScan(ctx context.Context, label string) chan string
 
 	AddVertexIndex(label string, field string) error
 	AddEdgeIndex(label string, field string) error

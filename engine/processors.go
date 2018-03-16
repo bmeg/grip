@@ -55,7 +55,7 @@ type LookupVertsIndex struct {
 }
 
 // Process LookupVerts
-func (l *LookupVertsIndex) Process(in gdbi.InPipe, out gdbi.OutPipe) {
+func (l *LookupVertsIndex) Process(man Manager, in gdbi.InPipe, out gdbi.OutPipe) {
 	for t := range in {
 
 		queryChan := make(chan gdbi.ElementLookup, 100)

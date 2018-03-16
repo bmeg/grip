@@ -71,6 +71,32 @@ func (mg *MemGraph) GetOutBundleList(ctx context.Context, key string, load bool,
 	return nil
 }
 
+func (mg *MemGraph) AddVertexIndex(label string, field string) error {
+	return fmt.Errorf("unimplemented: memgraph does not implement bundles")
+}
+
+func (mg *MemGraph) AddEdgeIndex(label string, field string) error {
+	return fmt.Errorf("unimplemented: memgraph does not implement bundles")
+}
+
+func (mg *MemGraph) DeleteVertexIndex(label string, field string) error {
+	return fmt.Errorf("unimplemented: memgraph does not implement bundles")
+}
+
+func (mg *MemGraph) DeleteEdgeIndex(label string, field string) error {
+	return fmt.Errorf("unimplemented: memgraph does not implement bundles")
+}
+
+func (mg *MemGraph) GetVertexTermCount(ctx context.Context, label string, field string) chan aql.IndexTermCount {
+	return nil
+}
+
+func (mg *MemGraph) GetEdgeTermCount(ctx context.Context, label string, field string) chan aql.IndexTermCount {
+	return nil
+}
+
+
+
 // GetVertexList produces a channel of all edges in the graph
 func (mg *MemGraph) GetVertexList(ctx context.Context, load bool) <-chan *aql.Vertex {
 	out := make(chan *aql.Vertex)
@@ -195,37 +221,41 @@ func (mg *MemGraph) DelEdge(key string) error {
 
 // AddVertex adds an edge to the graph, if it already exists
 // in the graph, it is replaced
-func (mg *MemGraph) AddVertex(vertex *aql.Vertex) error {
-	mg.vertices[vertex.Gid] = vertex
+func (mg *MemGraph) AddVertex(vertices []*aql.Vertex) error {
+	for _, vertex := range vertices {
+		mg.vertices[vertex.Gid] = vertex
+	}
 	return nil
 }
 
 // AddEdge adds an edge to the graph, if the id is not "" and in already exists
 // in the graph, it is replaced
-func (mg *MemGraph) AddEdge(edge *aql.Edge) error {
-	if edge.Gid == "" {
-		//BUG: this should check if the edge exists
-		edge.Gid = fmt.Sprintf("%d", mg.edgeSequence)
-		mg.edgeSequence++
-	}
-	mg.edges[edge.Gid] = edge
+func (mg *MemGraph) AddEdge(edges []*aql.Edge) error {
+	for _, edge := range edges {
+		if edge.Gid == "" {
+			//BUG: this should check if the edge exists
+			edge.Gid = fmt.Sprintf("%d", mg.edgeSequence)
+			mg.edgeSequence++
+		}
+		mg.edges[edge.Gid] = edge
 
-	if _, ok := mg.outEdges[edge.From]; !ok {
-		mg.outEdges[edge.From] = map[string][]string{}
-	}
-	if _, ok := mg.outEdges[edge.From][edge.To]; ok {
-		mg.outEdges[edge.From][edge.To] = append(mg.outEdges[edge.From][edge.To], edge.Gid)
-	} else {
-		mg.outEdges[edge.From][edge.To] = []string{edge.Gid}
-	}
+		if _, ok := mg.outEdges[edge.From]; !ok {
+			mg.outEdges[edge.From] = map[string][]string{}
+		}
+		if _, ok := mg.outEdges[edge.From][edge.To]; ok {
+			mg.outEdges[edge.From][edge.To] = append(mg.outEdges[edge.From][edge.To], edge.Gid)
+		} else {
+			mg.outEdges[edge.From][edge.To] = []string{edge.Gid}
+		}
 
-	if _, ok := mg.inEdges[edge.From]; !ok {
-		mg.inEdges[edge.From] = map[string][]string{}
-	}
-	if _, ok := mg.inEdges[edge.From][edge.To]; ok {
-		mg.inEdges[edge.From][edge.To] = append(mg.inEdges[edge.From][edge.To], edge.Gid)
-	} else {
-		mg.inEdges[edge.From][edge.To] = []string{edge.Gid}
+		if _, ok := mg.inEdges[edge.From]; !ok {
+			mg.inEdges[edge.From] = map[string][]string{}
+		}
+		if _, ok := mg.inEdges[edge.From][edge.To]; ok {
+			mg.inEdges[edge.From][edge.To] = append(mg.inEdges[edge.From][edge.To], edge.Gid)
+		} else {
+			mg.inEdges[edge.From][edge.To] = []string{edge.Gid}
+		}
 	}
 	return nil
 }

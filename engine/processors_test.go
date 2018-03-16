@@ -10,7 +10,6 @@ import (
 	"github.com/bmeg/arachne/memgraph"
 	"github.com/bmeg/arachne/protoutil"
 	"github.com/golang/protobuf/jsonpb"
-	"github.com/rs/xid"
 	"os"
 	"reflect"
 	"regexp"
@@ -184,7 +183,7 @@ func TestEngine(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	dbs := map[string]gdbi.GraphDB{
+	dbs := map[string]gdbi.GraphInterface{
 		"mem":    memgraph.NewMemGraph(),
 		"bolt":   bolt.Graph("test-graph"),
 		"badger": badgerdb.NewBadgerArachne("test-badger.db").Graph("test-graph"),
@@ -193,10 +192,10 @@ func TestEngine(t *testing.T) {
 	for dbname, db := range dbs {
 
 		for _, v := range verts {
-			db.AddVertex(v)
+			db.AddVertex([]*aql.Vertex{v})
 		}
 		for _, e := range edges {
-			db.AddEdge(e)
+			db.AddEdge([]*aql.Edge{e})
 		}
 
 		for _, desc := range table {
@@ -213,7 +212,12 @@ func TestEngine(t *testing.T) {
 					defer close(done)
 
 					ctx := context.Background()
-					res, err := Run(ctx, desc.query.Statements, db)
+					p, err := Compile(desc.query.Statements, db, "./workdir")
+					if err != nil {
+						t.Fatal(err)
+					}
+
+					res, err := p.Run()
 					if err != nil {
 						t.Fatal(err)
 					}
