@@ -4,7 +4,7 @@ import (
 	//"context"
 	"bytes"
 	"fmt"
-	"github.com/bmeg/arachne/kvgraph"
+	"github.com/bmeg/arachne/kvi"
 	proto "github.com/golang/protobuf/proto"
 	//"log"
 	"strings"
@@ -104,7 +104,7 @@ func containsPrefix(c string, s []string) bool {
 }
 
 type KVIndex struct {
-	kv kvgraph.KVInterface
+	kv kvi.KVInterface
 }
 
 type KVTermCount struct {
@@ -112,7 +112,7 @@ type KVTermCount struct {
 	Count int64
 }
 
-func NewIndex(kv kvgraph.KVInterface) *KVIndex {
+func NewIndex(kv kvi.KVInterface) *KVIndex {
 	return &KVIndex{kv}
 }
 
@@ -133,7 +133,7 @@ func (idx *KVIndex) RemoveField(path string) error {
 func (idx *KVIndex) ListFields() []string {
 	out := make([]string, 0, 10)
 	fPrefix := FieldPrefix()
-	idx.kv.View(func(it kvgraph.KVIterator) error {
+	idx.kv.View(func(it kvi.KVIterator) error {
 		for it.Seek(fPrefix); it.Valid() && bytes.HasPrefix(it.Key(), fPrefix); it.Next() {
 			field := FieldKeyParse(it.Key())
 			out = append(out, field)
@@ -184,7 +184,7 @@ func (idx *KVIndex) AddDocPrefix(docId string, doc map[string]interface{}, field
 		close(values)
 	}()
 	docKey := DocKey(docId)
-	idx.kv.Update(func(tx kvgraph.KVTransaction) error {
+	idx.kv.Update(func(tx kvi.KVTransaction) error {
 		sdoc := Doc{Terms: [][]byte{}}
 		for v := range values {
 			//log.Printf("Index %#v", v)
@@ -217,7 +217,7 @@ func (idx *KVIndex) GetTermMatch(field string, value interface{}) chan string {
 		term := term2Bytes(value)
 		entryPrefix := EntryValuePrefix(field, term)
 		defer close(out)
-		idx.kv.View(func(it kvgraph.KVIterator) error {
+		idx.kv.View(func(it kvi.KVIterator) error {
 			for it.Seek(entryPrefix); it.Valid() && bytes.HasPrefix(it.Key(), entryPrefix); it.Next() {
 				_, _, doc := EntryKeyParse(it.Key())
 				out <- doc
@@ -233,7 +233,7 @@ func (idx *KVIndex) FieldTerms(field string) chan interface{} {
 	go func() {
 		termPrefix := TermPrefix(field)
 		defer close(out)
-		idx.kv.View(func(it kvgraph.KVIterator) error {
+		idx.kv.View(func(it kvi.KVIterator) error {
 			for it.Seek(termPrefix); it.Valid() && bytes.HasPrefix(it.Key(), termPrefix); it.Next() {
 				_, entry := TermKeyParse(it.Key())
 				out <- string(entry)
@@ -249,7 +249,7 @@ func (idx *KVIndex) FieldTermCounts(field string) chan KVTermCount {
 	go func() {
 		defer close(terms)
 		termPrefix := TermPrefix(field)
-		idx.kv.View(func(it kvgraph.KVIterator) error {
+		idx.kv.View(func(it kvi.KVIterator) error {
 			for it.Seek(termPrefix); it.Valid() && bytes.HasPrefix(it.Key(), termPrefix); it.Next() {
 				_, term := TermKeyParse(it.Key())
 				terms <- term
@@ -263,7 +263,7 @@ func (idx *KVIndex) FieldTermCounts(field string) chan KVTermCount {
 		for term := range terms {
 			entryPrefix := EntryValuePrefix(field, term)
 			var count int64
-			idx.kv.View(func(it kvgraph.KVIterator) error {
+			idx.kv.View(func(it kvi.KVIterator) error {
 				for it.Seek(entryPrefix); it.Valid() && bytes.HasPrefix(it.Key(), entryPrefix); it.Next() {
 					count++
 				}

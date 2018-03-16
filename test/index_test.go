@@ -3,6 +3,7 @@ package kvindex
 import (
 	"encoding/json"
 	"github.com/bmeg/arachne/badgerdb"
+	"github.com/bmeg/arachne/kvindex"
 	"log"
 	"os"
 	"testing"
@@ -41,9 +42,19 @@ var bobDocs = []string{"vertex1"}
 var lastNames = []string{"Smith", "Ruff"}
 var firstNames = []string{"Bob", "Jack", "Fido"}
 
-func setupIndex() *KVIndex {
+func contains(c string, s []string) bool {
+	for _, i := range s {
+		if c == i {
+			return true
+		}
+	}
+	return false
+}
+
+
+func setupIndex() *kvindex.KVIndex {
 	kv, _ := badgerdb.BadgerBuilder("test.db")
-	idx := NewIndex(kv)
+	idx := kvindex.NewIndex(kv)
 	return idx
 }
 

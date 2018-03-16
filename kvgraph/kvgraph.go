@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/gdbi"
+	"github.com/bmeg/arachne/kvi"
 	proto "github.com/golang/protobuf/proto"
 	"math/rand"
 )
@@ -46,7 +47,7 @@ func (kgraph *KVGraph) DeleteGraph(graph string) error {
 
 // Graph obtains the gdbi.DBI for a particular graph
 func (kgraph *KVGraph) Graph(graph string) gdbi.GraphInterface {
-	return &KVInterfaceGDB{kv: kgraph.kv, graph: graph, ts: kgraph.ts}
+	return &KVInterfaceGDB{kvg: kgraph, graph: graph}
 }
 
 // Close the connection
@@ -58,7 +59,7 @@ func (kgraph *KVGraph) Close() {
 func (kgraph *KVGraph) GetGraphs() []string {
 	out := make([]string, 0, 100)
 	gPrefix := GraphPrefix()
-	kgraph.kv.View(func(it KVIterator) error {
+	kgraph.kv.View(func(it kvi.KVIterator) error {
 		for it.Seek(gPrefix); it.Valid() && bytes.HasPrefix(it.Key(), gPrefix); it.Next() {
 			out = append(out, GraphKeyParse(it.Key()))
 		}
@@ -76,13 +77,13 @@ func (kgdb *KVInterfaceGDB) Query() gdbi.QueryInterface {
 
 // GetTimestamp returns the update timestamp
 func (kgdb *KVInterfaceGDB) GetTimestamp() string {
-	return kgdb.ts.Get(kgdb.graph)
+	return kgdb.kvg.ts.Get(kgdb.graph)
 }
 
 // AddVertex adds an edge to the graph, if it already exists
 // in the graph, it is replaced
 func (kgdb *KVInterfaceGDB) AddVertex(vertexArray []*aql.Vertex) error {
-	kgdb.kv.Update(func(tx KVTransaction) error {
+	kgdb.kvg.kv.Update(func(tx kvi.KVTransaction) error {
 		for _, vertex := range vertexArray {
 			d, _ := proto.Marshal(vertex)
 			k := VertexKey(kgdb.graph, vertex.Gid)
@@ -91,13 +92,13 @@ func (kgdb *KVInterfaceGDB) AddVertex(vertexArray []*aql.Vertex) error {
 				return err
 			}
 		}
-		kgdb.ts.Touch(kgdb.graph)
+		kgdb.kvg.ts.Touch(kgdb.graph)
 		return nil
 	})
 	return nil
 }
 
-func randomEdgeKeyAssignment(graph string, tx KVTransaction) string {
+func randomEdgeKeyAssignment(graph string, tx kvi.KVTransaction) string {
 	eid := fmt.Sprintf("%d", rand.Uint64())
 	for ; tx.HasKey(EdgeKeyPrefix(graph, eid)); eid = fmt.Sprintf("%d", rand.Uint64()) {
 	}
@@ -107,7 +108,7 @@ func randomEdgeKeyAssignment(graph string, tx KVTransaction) string {
 // AddEdge adds an edge to the graph, if the id is not "" and in already exists
 // in the graph, it is replaced
 func (kgdb *KVInterfaceGDB) AddEdge(edgeArray []*aql.Edge) error {
-	kgdb.kv.Update(func(tx KVTransaction) error {
+	kgdb.kvg.kv.Update(func(tx kvi.KVTransaction) error {
 		for _, edge := range edgeArray {
 			if edge.Gid == "" {
 				edge.Gid = randomEdgeKeyAssignment(kgdb.graph, tx)
@@ -139,7 +140,7 @@ func (kgdb *KVInterfaceGDB) AddEdge(edgeArray []*aql.Edge) error {
 			if err != nil {
 				return err
 			}
-			kgdb.ts.Touch(kgdb.graph)
+			kgdb.kvg.ts.Touch(kgdb.graph)
 		}
 		return nil
 	})
@@ -150,7 +151,7 @@ func (kgdb *KVInterfaceGDB) AddEdge(edgeArray []*aql.Edge) error {
 func (kgdb *KVInterfaceGDB) AddBundle(bundle *aql.Bundle) error {
 	if bundle.Gid == "" {
 		eid := fmt.Sprintf("%d", rand.Uint64())
-		for ; kgdb.kv.HasKey(EdgeKeyPrefix(kgdb.graph, eid)); eid = fmt.Sprintf("%d", rand.Uint64()) {
+		for ; kgdb.kvg.kv.HasKey(EdgeKeyPrefix(kgdb.graph, eid)); eid = fmt.Sprintf("%d", rand.Uint64()) {
 		}
 		bundle.Gid = eid
 	}
@@ -162,13 +163,13 @@ func (kgdb *KVInterfaceGDB) AddBundle(bundle *aql.Bundle) error {
 	ekey := EdgeKey(kgdb.graph, eid, src, dst, bundle.Label, edgeBundle)
 	skey := SrcEdgeKey(kgdb.graph, src, dst, eid, bundle.Label, edgeBundle)
 
-	if err := kgdb.kv.Set(ekey, data); err != nil {
+	if err := kgdb.kvg.kv.Set(ekey, data); err != nil {
 		return err
 	}
-	if err := kgdb.kv.Set(skey, []byte{}); err != nil {
+	if err := kgdb.kvg.kv.Set(skey, []byte{}); err != nil {
 		return err
 	}
-	kgdb.ts.Touch(kgdb.graph)
+	kgdb.kvg.ts.Touch(kgdb.graph)
 	return nil
 }
 
@@ -176,7 +177,7 @@ func (kgdb *KVInterfaceGDB) AddBundle(bundle *aql.Bundle) error {
 func (kgdb *KVInterfaceGDB) DelEdge(eid string) error {
 	ekeyPrefix := EdgeKeyPrefix(kgdb.graph, eid)
 	var ekey []byte
-	kgdb.kv.View(func(it KVIterator) error {
+	kgdb.kvg.kv.View(func(it kvi.KVIterator) error {
 		for it.Seek(ekeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), ekeyPrefix); it.Next() {
 			ekey = it.Key()
 		}
@@ -192,16 +193,16 @@ func (kgdb *KVInterfaceGDB) DelEdge(eid string) error {
 	skey := SrcEdgeKeyPrefix(kgdb.graph, sid, did, eid)
 	dkey := DstEdgeKeyPrefix(kgdb.graph, sid, did, eid)
 
-	if err := kgdb.kv.Delete(ekey); err != nil {
+	if err := kgdb.kvg.kv.Delete(ekey); err != nil {
 		return err
 	}
-	if err := kgdb.kv.Delete(skey); err != nil {
+	if err := kgdb.kvg.kv.Delete(skey); err != nil {
 		return err
 	}
-	if err := kgdb.kv.Delete(dkey); err != nil {
+	if err := kgdb.kvg.kv.Delete(dkey); err != nil {
 		return err
 	}
-	kgdb.ts.Touch(kgdb.graph)
+	kgdb.kvg.ts.Touch(kgdb.graph)
 	return nil
 }
 
@@ -209,7 +210,7 @@ func (kgdb *KVInterfaceGDB) DelEdge(eid string) error {
 func (kgdb *KVInterfaceGDB) DelBundle(eid string) error {
 	ekeyPrefix := EdgeKeyPrefix(kgdb.graph, eid)
 	var ekey []byte
-	kgdb.kv.View(func(it KVIterator) error {
+	kgdb.kvg.kv.View(func(it kvi.KVIterator) error {
 		for it.Seek(ekeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), ekeyPrefix); it.Next() {
 			ekey = it.Key()
 		}
@@ -221,13 +222,13 @@ func (kgdb *KVInterfaceGDB) DelBundle(eid string) error {
 
 	_, _, sid, _, _, _ := EdgeKeyParse(ekey)
 	skey := SrcEdgeKeyPrefix(kgdb.graph, sid, "", eid)
-	if err := kgdb.kv.Delete(ekey); err != nil {
+	if err := kgdb.kvg.kv.Delete(ekey); err != nil {
 		return err
 	}
-	if err := kgdb.kv.Delete(skey); err != nil {
+	if err := kgdb.kvg.kv.Delete(skey); err != nil {
 		return err
 	}
-	kgdb.ts.Touch(kgdb.graph)
+	kgdb.kvg.ts.Touch(kgdb.graph)
 	return nil
 }
 
@@ -239,7 +240,7 @@ func (kgdb *KVInterfaceGDB) DelVertex(id string) error {
 
 	delKeys := make([][]byte, 0, 1000)
 
-	kgdb.kv.View(func(it KVIterator) error {
+	kgdb.kvg.kv.View(func(it kvi.KVIterator) error {
 		for it.Seek(skeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), skeyPrefix); it.Next() {
 			skey := it.Key()
 			// get edge ID from key
@@ -257,7 +258,7 @@ func (kgdb *KVInterfaceGDB) DelVertex(id string) error {
 		return nil
 	})
 
-	return kgdb.kv.Update(func(tx KVTransaction) error {
+	return kgdb.kvg.kv.Update(func(tx kvi.KVTransaction) error {
 		if err := tx.Delete(vid); err != nil {
 			return err
 		}
@@ -266,7 +267,7 @@ func (kgdb *KVInterfaceGDB) DelVertex(id string) error {
 				return err
 			}
 		}
-		kgdb.ts.Touch(kgdb.graph)
+		kgdb.kvg.ts.Touch(kgdb.graph)
 		return nil
 	})
 }
@@ -276,7 +277,7 @@ func (kgdb *KVInterfaceGDB) GetEdgeList(ctx context.Context, loadProp bool) <-ch
 	o := make(chan *aql.Edge, 100)
 	go func() {
 		defer close(o)
-		kgdb.kv.View(func(it KVIterator) error {
+		kgdb.kvg.kv.View(func(it kvi.KVIterator) error {
 			ePrefix := EdgeListPrefix(kgdb.graph)
 			for it.Seek(ePrefix); it.Valid() && bytes.HasPrefix(it.Key(), ePrefix); it.Next() {
 				select {
@@ -319,7 +320,7 @@ func (kgdb *KVInterfaceGDB) GetInEdgeList(ctx context.Context, id string, loadPr
 	go func() {
 		defer close(o)
 		dkeyPrefix := DstEdgePrefix(kgdb.graph, id)
-		kgdb.kv.View(func(it KVIterator) error {
+		kgdb.kvg.kv.View(func(it kvi.KVIterator) error {
 			for it.Seek(dkeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), dkeyPrefix); it.Next() {
 				select {
 				case <-ctx.Done():
@@ -359,7 +360,7 @@ func (kgdb *KVInterfaceGDB) GetOutEdgeList(ctx context.Context, id string, loadP
 		defer close(o)
 		//log.Printf("GetOutList")
 		skeyPrefix := SrcEdgePrefix(kgdb.graph, id)
-		kgdb.kv.View(func(it KVIterator) error {
+		kgdb.kvg.kv.View(func(it kvi.KVIterator) error {
 			for it.Seek(skeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), skeyPrefix); it.Next() {
 				select {
 				case <-ctx.Done():
@@ -412,7 +413,7 @@ func (kgdb *KVInterfaceGDB) GetOutBundleChannel(ids chan gdbi.ElementLookup, loa
 	o := make(chan gdbi.ElementLookup, 100)
 	go func() {
 		defer close(o)
-		kgdb.kv.View(func(it KVIterator) error {
+		kgdb.kvg.kv.View(func(it kvi.KVIterator) error {
 			for id := range ids {
 				skeyPrefix := SrcEdgePrefix(kgdb.graph, id.ID)
 				for it.Seek(skeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), skeyPrefix); it.Next() {
@@ -445,7 +446,7 @@ func (kgdb *KVInterfaceGDB) GetInList(ctx context.Context, id string, loadProp b
 	go func() {
 		defer close(o)
 
-		kgdb.kv.View(func(it KVIterator) error {
+		kgdb.kvg.kv.View(func(it kvi.KVIterator) error {
 			dkeyPrefix := DstEdgePrefix(kgdb.graph, id)
 			for it.Seek(dkeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), dkeyPrefix); it.Next() {
 				select {
@@ -478,7 +479,7 @@ func (kgdb *KVInterfaceGDB) GetOutList(ctx context.Context, id string, loadProp 
 	vertexChan := make(chan []byte, 100)
 	go func() {
 		defer close(vertexChan)
-		kgdb.kv.View(func(it KVIterator) error {
+		kgdb.kvg.kv.View(func(it kvi.KVIterator) error {
 			skeyPrefix := SrcEdgePrefix(kgdb.graph, id)
 			for it.Seek(skeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), skeyPrefix); it.Next() {
 				select {
@@ -511,7 +512,7 @@ func (kgdb *KVInterfaceGDB) GetOutList(ctx context.Context, id string, loadProp 
 
 	go func() {
 		defer close(o)
-		kgdb.kv.View(func(it KVIterator) error {
+		kgdb.kvg.kv.View(func(it kvi.KVIterator) error {
 			for vkey := range vertexChan {
 				dataValue, err := it.Get(vkey)
 				if err == nil {
@@ -530,7 +531,7 @@ func (kgdb *KVInterfaceGDB) GetOutList(ctx context.Context, id string, loadProp 
 func (kgdb *KVInterfaceGDB) GetVertex(id string, loadProp bool) *aql.Vertex {
 	vkey := VertexKey(kgdb.graph, id)
 	v := &aql.Vertex{}
-	kgdb.kv.View(func(it KVIterator) error {
+	kgdb.kvg.kv.View(func(it kvi.KVIterator) error {
 		dataValue, err := it.Get(vkey)
 		if err != nil {
 			return nil
@@ -556,7 +557,7 @@ func (kgdb *KVInterfaceGDB) GetVertexChannel(ids chan gdbi.ElementLookup, load b
 	data := make(chan elementData, 100)
 	go func() {
 		defer close(data)
-		kgdb.kv.View(func(it KVIterator) error {
+		kgdb.kvg.kv.View(func(it kvi.KVIterator) error {
 			for id := range ids {
 				vkey := VertexKey(kgdb.graph, id.ID)
 				dataValue, err := it.Get(vkey)
@@ -590,7 +591,7 @@ func (kgdb *KVInterfaceGDB) GetOutChannel(reqChan chan gdbi.ElementLookup, load 
 	vertexChan := make(chan elementData, 100)
 	go func() {
 		defer close(vertexChan)
-		kgdb.kv.View(func(it KVIterator) error {
+		kgdb.kvg.kv.View(func(it kvi.KVIterator) error {
 			for req := range reqChan {
 				skeyPrefix := SrcEdgePrefix(kgdb.graph, req.ID)
 				for it.Seek(skeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), skeyPrefix); it.Next() {
@@ -627,7 +628,7 @@ func (kgdb *KVInterfaceGDB) GetOutChannel(reqChan chan gdbi.ElementLookup, load 
 	o := make(chan gdbi.ElementLookup, 100)
 	go func() {
 		defer close(o)
-		kgdb.kv.View(func(it KVIterator) error {
+		kgdb.kvg.kv.View(func(it kvi.KVIterator) error {
 			for req := range vertexChan {
 				dataValue, err := it.Get(req.data)
 				if err == nil {
@@ -648,7 +649,7 @@ func (kgdb *KVInterfaceGDB) GetInChannel(reqChan chan gdbi.ElementLookup, load b
 	o := make(chan gdbi.ElementLookup, 100)
 	go func() {
 		defer close(o)
-		kgdb.kv.View(func(it KVIterator) error {
+		kgdb.kvg.kv.View(func(it kvi.KVIterator) error {
 			for req := range reqChan {
 				dkeyPrefix := DstEdgePrefix(kgdb.graph, req.ID)
 				for it.Seek(dkeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), dkeyPrefix); it.Next() {
@@ -678,7 +679,7 @@ func (kgdb *KVInterfaceGDB) GetOutEdgeChannel(reqChan chan gdbi.ElementLookup, l
 	go func() {
 		defer close(o)
 		//log.Printf("GetOutList")
-		kgdb.kv.View(func(it KVIterator) error {
+		kgdb.kvg.kv.View(func(it kvi.KVIterator) error {
 			for req := range reqChan {
 				skeyPrefix := SrcEdgePrefix(kgdb.graph, req.ID)
 				for it.Seek(skeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), skeyPrefix); it.Next() {
@@ -729,7 +730,7 @@ func (kgdb *KVInterfaceGDB) GetInEdgeChannel(reqChan chan gdbi.ElementLookup, lo
 	o := make(chan gdbi.ElementLookup, 100)
 	go func() {
 		defer close(o)
-		kgdb.kv.View(func(it KVIterator) error {
+		kgdb.kvg.kv.View(func(it kvi.KVIterator) error {
 			for req := range reqChan {
 				dkeyPrefix := DstEdgePrefix(kgdb.graph, req.ID)
 				for it.Seek(dkeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), dkeyPrefix); it.Next() {
@@ -780,7 +781,7 @@ func (kgdb *KVInterfaceGDB) GetEdge(id string, loadProp bool) *aql.Edge {
 	ekeyPrefix := EdgeKeyPrefix(kgdb.graph, id)
 
 	e := &aql.Edge{}
-	kgdb.kv.View(func(it KVIterator) error {
+	kgdb.kvg.kv.View(func(it kvi.KVIterator) error {
 		for it.Seek(ekeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), ekeyPrefix); it.Next() {
 			_, eid, src, dst, label, _ := EdgeKeyParse(it.Key())
 			if loadProp {
@@ -805,7 +806,7 @@ func (kgdb *KVInterfaceGDB) GetEdge(id string, loadProp bool) *aql.Edge {
 func (kgdb *KVInterfaceGDB) GetBundle(id string, load bool) *aql.Bundle {
 	ekeyPrefix := EdgeKeyPrefix(kgdb.graph, id)
 	e := &aql.Bundle{}
-	kgdb.kv.View(func(it KVIterator) error {
+	kgdb.kvg.kv.View(func(it kvi.KVIterator) error {
 		for it.Seek(ekeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), ekeyPrefix); it.Next() {
 			d, _ := it.Value()
 			proto.Unmarshal(d, e)
@@ -820,7 +821,7 @@ func (kgdb *KVInterfaceGDB) GetVertexList(ctx context.Context, loadProp bool) <-
 	o := make(chan *aql.Vertex, 100)
 	go func() {
 		defer close(o)
-		kgdb.kv.View(func(it KVIterator) error {
+		kgdb.kvg.kv.View(func(it kvi.KVIterator) error {
 			vPrefix := VertexListPrefix(kgdb.graph)
 
 			for it.Seek(vPrefix); it.Valid() && bytes.HasPrefix(it.Key(), vPrefix); it.Next() {

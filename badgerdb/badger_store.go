@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/bmeg/arachne/kvgraph"
+	"github.com/bmeg/arachne/kvi"
 	"github.com/dgraph-io/badger"
 	"github.com/dgraph-io/badger/options"
 	"log"
@@ -12,7 +13,7 @@ import (
 
 // BadgerBuilder creates new badger interface at `path`
 // driver at `path`
-func BadgerBuilder(path string) (kvgraph.KVInterface, error) {
+func BadgerBuilder(path string) (kvi.KVInterface, error) {
 	log.Printf("Starting BadgerDB")
 	_, err := os.Stat(path)
 	if os.IsNotExist(err) {
@@ -129,7 +130,7 @@ func (badgerTrans badgerTransaction) HasKey(id []byte) bool {
 }
 
 // Update runs an alteration transition of the bolt kv store
-func (badgerkv *BadgerKV) Update(u func(tx kvgraph.KVTransaction) error) error {
+func (badgerkv *BadgerKV) Update(u func(tx kvi.KVTransaction) error) error {
 	err := badgerkv.db.Update(func(tx *badger.Txn) error {
 		ktx := badgerTransaction{tx}
 		return u(ktx)
@@ -211,7 +212,7 @@ func (badgerIt *badgerIterator) Valid() bool {
 }
 
 // View run iterator on bolt keyvalue store
-func (badgerkv *BadgerKV) View(u func(it kvgraph.KVIterator) error) error {
+func (badgerkv *BadgerKV) View(u func(it kvi.KVIterator) error) error {
 	err := badgerkv.db.View(func(tx *badger.Txn) error {
 		opts := badger.DefaultIteratorOptions
 		it := tx.NewIterator(opts)

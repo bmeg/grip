@@ -2,22 +2,22 @@ package engine
 
 import (
 	"github.com/bmeg/arachne/badgerdb"
-	"github.com/bmeg/arachne/kvgraph"
+	"github.com/bmeg/arachne/kvi"
 	"io/ioutil"
 	"os"
 )
 
 func (pipe Pipeline) NewManager() Manager {
-	return &badgerManager{[]kvgraph.KVInterface{}, []string{}, pipe.workDir}
+	return &badgerManager{[]kvi.KVInterface{}, []string{}, pipe.workDir}
 }
 
 type badgerManager struct {
-	kvs     []kvgraph.KVInterface
+	kvs     []kvi.KVInterface
 	paths   []string
 	workDir string
 }
 
-func (bm *badgerManager) GetTempKV() kvgraph.KVInterface {
+func (bm *badgerManager) GetTempKV() kvi.KVInterface {
 	td, _ := ioutil.TempDir(bm.workDir, "kvTmp")
 	kv, _ := badgerdb.BadgerBuilder(td)
 

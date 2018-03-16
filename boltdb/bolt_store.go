@@ -7,13 +7,14 @@ import (
 	//"github.com/bmeg/arachne/aql"
 	//"github.com/bmeg/arachne/gdbi"
 	"github.com/bmeg/arachne/kvgraph"
+	"github.com/bmeg/arachne/kvi"
 	"github.com/boltdb/bolt"
 )
 
 var graphBucket = []byte("graph")
 
 // BoltBuilder creates a new bolt interface at `path`
-func BoltBuilder(path string) (kvgraph.KVInterface, error) {
+func BoltBuilder(path string) (kvi.KVInterface, error) {
 	log.Printf("Starting BOLTDB")
 	db, _ := bolt.Open(path, 0600, nil)
 	db.Update(func(tx *bolt.Tx) error {
@@ -114,7 +115,7 @@ func (boltTrans boltTransaction) HasKey(id []byte) bool {
 }
 
 // Update runs an alteration transition of the bolt kv store
-func (boltkv *BoltKV) Update(u func(tx kvgraph.KVTransaction) error) error {
+func (boltkv *BoltKV) Update(u func(tx kvi.KVTransaction) error) error {
 	err := boltkv.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket(graphBucket)
 		ktx := boltTransaction{tx, b}
@@ -191,7 +192,7 @@ func (boltIt *boltIterator) Valid() bool {
 }
 
 // View run iterator on bolt keyvalue store
-func (boltkv *BoltKV) View(u func(it kvgraph.KVIterator) error) error {
+func (boltkv *BoltKV) View(u func(it kvi.KVIterator) error) error {
 	err := boltkv.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(graphBucket)
 		ktx := &boltIterator{tx, b, b.Cursor(), nil, nil}

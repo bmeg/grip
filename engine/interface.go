@@ -2,12 +2,12 @@ package engine
 
 import (
 	"github.com/bmeg/arachne/gdbi"
-	"github.com/bmeg/arachne/kvgraph"
+	"github.com/bmeg/arachne/kvi"
 )
 
 type Manager interface {
 	//Get handle to temporary KeyValue store driver
-	GetTempKV() kvgraph.KVInterface
+	GetTempKV() kvi.KVInterface
 
 	Cleanup()
 }

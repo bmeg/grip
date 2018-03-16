@@ -1,13 +1,11 @@
 package engine
 
 import (
-	"context"
 	"github.com/bmeg/arachne/aql"
-	"github.com/bmeg/arachne/badgerdb"
+	_ "github.com/bmeg/arachne/badgerdb"
 	_ "github.com/bmeg/arachne/boltdb"
 	"github.com/bmeg/arachne/gdbi"
 	"github.com/bmeg/arachne/kvgraph"
-	"github.com/bmeg/arachne/memgraph"
 	"github.com/bmeg/arachne/protoutil"
 	"github.com/golang/protobuf/jsonpb"
 	"os"
@@ -17,7 +15,18 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"math/rand"
 )
+
+var idRunes = []rune("abcdefghijklmnopqrstuvwxyz")
+
+func randId() string {
+    b := make([]rune, 10)
+    for i := range b {
+        b[i] = idRunes[rand.Intn(len(idRunes))]
+    }
+    return string(b)
+}
 
 var Q = aql.Query{}
 
@@ -79,7 +88,7 @@ var table = []struct {
 	},
 	{
 		Q.V().Limit(2),
-		func(t *testing.T, res []*aql.ResultRow) {
+		func(t *testing.T, res <-chan *aql.ResultRow) {
 			if len(res) != 2 {
 				t.Error("expected 2 results")
 			}
@@ -178,15 +187,19 @@ func TestEngine(t *testing.T) {
 	defer os.RemoveAll("test-badger.db")
 	defer os.Remove("test-bolt.db")
 
-	bolt, err := kvgraph.NewKVArachne("bolt", "test-bolt.db")
+	bolt, err := kvgraph.NewKVGraphDB("bolt", "test-bolt.db")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	badger, err := kvgraph.NewKVGraphDB("badger", "test-badger.db")
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	dbs := map[string]gdbi.GraphInterface{
-		"mem":    memgraph.NewMemGraph(),
 		"bolt":   bolt.Graph("test-graph"),
-		"badger": badgerdb.NewBadgerArachne("test-badger.db").Graph("test-graph"),
+		"badger": badger.Graph("test-graph"),
 	}
 
 	for dbname, db := range dbs {
@@ -211,13 +224,12 @@ func TestEngine(t *testing.T) {
 				go func() {
 					defer close(done)
 
-					ctx := context.Background()
 					p, err := Compile(desc.query.Statements, db, "./workdir")
 					if err != nil {
 						t.Fatal(err)
 					}
 
-					res, err := p.Run()
+					res := p.Run()
 					if err != nil {
 						t.Fatal(err)
 					}
@@ -241,17 +253,17 @@ func TestEngine(t *testing.T) {
 }
 
 // checker is the interface of a function that validates the results of a test query.
-type checker func(t *testing.T, actual []*aql.ResultRow)
+type checker func(t *testing.T, actual <-chan *aql.ResultRow)
 
 // this sorts the results to account for non-determinstic ordering from the db.
 // TODO this will break sort tests
 func compare(expect []*aql.ResultRow) checker {
-	return func(t *testing.T, actual []*aql.ResultRow) {
+	return func(t *testing.T, actual <-chan *aql.ResultRow) {
 		mar := jsonpb.Marshaler{}
 		actualS := []string{}
 		expectS := []string{}
 
-		for _, r := range actual {
+		for r := range actual {
 			s, _ := mar.MarshalToString(r)
 			actualS = append(actualS, s)
 		}
@@ -345,7 +357,7 @@ func values(vals ...interface{}) checker {
 
 func vert(label string, d dat) *aql.Vertex {
 	return &aql.Vertex{
-		Gid:   xid.New().String(),
+		Gid:   randId(),
 		Label: label,
 		Data:  protoutil.AsStruct(d),
 	}
@@ -353,7 +365,7 @@ func vert(label string, d dat) *aql.Vertex {
 
 func edge(from, to *aql.Vertex, label string, d dat) *aql.Edge {
 	return &aql.Edge{
-		Gid:   xid.New().String(),
+		Gid:   randId(),
 		From:  from.Gid,
 		To:    to.Gid,
 		Label: label,

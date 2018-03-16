@@ -1,17 +1,17 @@
 package engine
 
 import (
-	"context"
 	"fmt"
 	"github.com/bmeg/arachne/aql"
-	"github.com/bmeg/arachne/memgraph"
+	"github.com/bmeg/arachne/badgerdb"
+	"github.com/bmeg/arachne/kvgraph"
 	"testing"
 )
 
 // Dead simple baseline tests: get all vertices from a memory-backed graph.
 func BenchmarkBaselineV(b *testing.B) {
-	ctx := context.Background()
-	db := memgraph.NewMemGraph()
+	kv, _ := badgerdb.BadgerBuilder("test-badger.db")
+	db := kvgraph.NewKVGraph(kv).Graph("test-graph")
 
 	for i := 0; i < 1000; i++ {
 		gid := fmt.Sprintf("v-%d", i)
@@ -23,7 +23,12 @@ func BenchmarkBaselineV(b *testing.B) {
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		_, err := Run(ctx, q.Statements, db)
+		p, err := Compile(q.Statements, db, "workDir")
+		if err != nil {
+			b.Fatal(err)
+		}
+		o := p.Run()
+		for range o {}
 		if err != nil {
 			b.Fatal(err)
 		}

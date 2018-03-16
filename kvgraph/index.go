@@ -1,44 +1,30 @@
 package kvgraph
 
 import (
+	"fmt"
 	"context"
 	"github.com/bmeg/arachne/aql"
+	//"github.com/bmeg/arachne/kvindex"
 )
 
-// Field
-// Key: 'f' | field_id
-// Val: graph, type
 
-// Term
-// Key: 't' | field_id | term
-// Val: term_id
-
-// TermDoc
-// Key: 'd' | field_id | term_id | doc_id
-
-// FieldKeyParse : returns field int
-/*
-func FieldKeyParse(k []byte) (int) {
-
+func vertexIdxStruct(graph string, v *aql.Vertex) map[string]interface{} {
+	k := map[string]interface{} {
+		fmt.Sprintf("%s.label", graph) : v.Label,
+	}
+	return k
 }
 
-func TermKeyParse(k []byte) ()
-
-
-const (
-	FieldString = iota
-	FieldInt
-	FieldFloat
-)
-
-func (kgdb *KVInterfaceGDB) AddIndex(graph, field string) {
-
+func edgeIdxStruct(graph string, v *aql.Vertex) map[string]interface{} {
+	k := map[string]interface{} {
+		fmt.Sprintf("%s.label", graph) : v.Label,
+	}
+	return k
 }
 
-func (kgdb *KVInterfaceGDB) DeleteIndex(graph, field string) {
-
+func (kgdb *KVInterfaceGDB) indexVertex(v *aql.Vertex) {
+	//v := vertexIdxStruct(v)
 }
-*/
 
 func (kgdb *KVInterfaceGDB) AddVertexIndex(label string, field string) error {
 

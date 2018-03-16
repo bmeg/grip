@@ -33,7 +33,7 @@ func NewArachneMongoServer(url string, database string, workDir string) *Arachne
 // NewArachneBadgerServer initializes a GRPC server that uses the badger driver
 // to run the graph store
 func NewArachneBadgerServer(baseDir string, workDir string) *ArachneServer {
-	a, err := kvgraph.NewKVArachne("badger", baseDir)
+	a, err := kvgraph.NewKVGraphDB("badger", baseDir)
 	if err != nil {
 		log.Printf("Error Starting Badger")
 		return nil
@@ -47,7 +47,7 @@ func NewArachneBadgerServer(baseDir string, workDir string) *ArachneServer {
 // NewArachneBoltServer initializes a GRPC server that uses the bolt driver
 // to run the graph store
 func NewArachneBoltServer(baseDir string, workDir string) *ArachneServer {
-	db, err := kvgraph.NewKVArachne("bolt", baseDir)
+	db, err := kvgraph.NewKVGraphDB("bolt", baseDir)
 	if err != nil {
 		return nil
 	}
@@ -58,7 +58,7 @@ func NewArachneBoltServer(baseDir string, workDir string) *ArachneServer {
 // to run the graph store. This may fail if the rocks driver was not compiled
 // (using the --tags rocks flag)
 func NewArachneRocksServer(baseDir string, workDir string) *ArachneServer {
-	db, err := kvgraph.NewKVArachne("rocks", baseDir)
+	db, err := kvgraph.NewKVGraphDB("rocks", baseDir)
 	if err != nil {
 		return nil
 	}
