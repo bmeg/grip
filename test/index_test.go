@@ -1,4 +1,4 @@
-package kvindex
+package test
 
 import (
 	"encoding/json"
