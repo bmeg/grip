@@ -280,7 +280,11 @@ func (mg *Graph) GetVertexList(ctx context.Context, load bool) <-chan *aql.Verte
 	o := make(chan *aql.Vertex, 100)
 	go func() {
 		defer close(o)
-		iter := vCol.Find(nil).Iter()
+		query := vCol.Find(nil)
+		if !load {
+			query = query.Select(bson.M{"_id":1, "label": 1})
+		}
+		iter := query.Iter()
 		defer iter.Close()
 		result := map[string]interface{}{}
 		for iter.Next(&result) {
@@ -302,7 +306,11 @@ func (mg *Graph) GetEdgeList(ctx context.Context, loadProp bool) <-chan *aql.Edg
 	eCol := mg.ar.getEdgeCollection(mg.graph)
 	go func() {
 		defer close(o)
-		iter := eCol.Find(nil).Iter()
+		query := eCol.Find(nil)
+		if !loadProp {
+			query = query.Select(bson.M{"_id":1, "to": 1, "from": 1, "label": 1})
+		}
+		iter := query.Iter()
 		defer iter.Close()
 		result := map[string]interface{}{}
 		for iter.Next(&result) {
