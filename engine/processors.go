@@ -29,7 +29,7 @@ func (l *LookupVerts) Process(ctx context.Context, man Manager, in gdbi.InPipe, 
 		defer close(out)
 		for t := range in {
 			if len(l.ids) == 0 {
-				for v := range l.db.GetVertexList(context.Background(), true) {
+				for v := range l.db.GetVertexList(ctx, getPropLoad(ctx)) {
 					out <- t.AddCurrent(&gdbi.DataElement{
 						ID:    v.Gid,
 						Label: v.Label,
@@ -38,7 +38,7 @@ func (l *LookupVerts) Process(ctx context.Context, man Manager, in gdbi.InPipe, 
 				}
 			} else {
 				for _, i := range l.ids {
-					v := l.db.GetVertex(i, true)
+					v := l.db.GetVertex(i, getPropLoad(ctx))
 					if v != nil {
 						out <- t.AddCurrent(&gdbi.DataElement{
 							ID:    v.Gid,
@@ -79,7 +79,7 @@ func (l *LookupVertsIndex) Process(ctx context.Context, man Manager, in gdbi.InP
 
 	go func() {
 		defer close(out)
-		for v := range l.db.GetVertexChannel(queryChan, true) {
+		for v := range l.db.GetVertexChannel(queryChan, getPropLoad(ctx)) {
 			i := v.Ref.(*gdbi.Traveler)
 			out <- i.AddCurrent(&gdbi.DataElement{
 				ID:    v.Vertex.Gid,
@@ -104,7 +104,7 @@ func (l *LookupEdges) Process(ctx context.Context, man Manager, in gdbi.InPipe, 
 	go func() {
 		defer close(out)
 		for t := range in {
-			for v := range l.db.GetEdgeList(context.Background(), true) {
+			for v := range l.db.GetEdgeList(context.Background(), getPropLoad(ctx)) {
 				out <- t.AddCurrent(&gdbi.DataElement{
 					ID:    v.Gid,
 					Label: v.Label,
@@ -139,7 +139,7 @@ func (l *LookupVertexAdjOut) Process(ctx context.Context, man Manager, in gdbi.I
 	}()
 	go func() {
 		defer close(out)
-		for ov := range l.db.GetOutChannel(queryChan, true, l.labels) {
+		for ov := range l.db.GetOutChannel(queryChan, getPropLoad(ctx), l.labels) {
 			i := ov.Ref.(*gdbi.Traveler)
 			out <- i.AddCurrent(&gdbi.DataElement{
 				ID:    ov.Vertex.Gid,
@@ -148,7 +148,7 @@ func (l *LookupVertexAdjOut) Process(ctx context.Context, man Manager, in gdbi.I
 			})
 		}
 	}()
-	return ctx
+	return context.WithValue(ctx, propLoad, false)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -172,7 +172,7 @@ func (l *LookupEdgeAdjOut) Process(ctx context.Context, man Manager, in gdbi.InP
 	}()
 	go func() {
 		defer close(out)
-		for v := range l.db.GetVertexChannel(queryChan, true) {
+		for v := range l.db.GetVertexChannel(queryChan, getPropLoad(ctx)) {
 			i := v.Ref.(*gdbi.Traveler)
 			out <- i.AddCurrent(&gdbi.DataElement{
 				ID:    v.Vertex.Gid,
@@ -181,7 +181,7 @@ func (l *LookupEdgeAdjOut) Process(ctx context.Context, man Manager, in gdbi.InP
 			})
 		}
 	}()
-	return ctx
+	return context.WithValue(ctx, propLoad, false)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -205,7 +205,7 @@ func (l *LookupVertexAdjIn) Process(ctx context.Context, man Manager, in gdbi.In
 	}()
 	go func() {
 		defer close(out)
-		for v := range l.db.GetInChannel(queryChan, true, l.labels) {
+		for v := range l.db.GetInChannel(queryChan, getPropLoad(ctx), l.labels) {
 			i := v.Ref.(*gdbi.Traveler)
 			out <- i.AddCurrent(&gdbi.DataElement{
 				ID:    v.Vertex.Gid,
@@ -214,7 +214,7 @@ func (l *LookupVertexAdjIn) Process(ctx context.Context, man Manager, in gdbi.In
 			})
 		}
 	}()
-	return ctx
+	return context.WithValue(ctx, propLoad, false)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -238,7 +238,7 @@ func (l *LookupEdgeAdjIn) Process(ctx context.Context, man Manager, in gdbi.InPi
 	}()
 	go func() {
 		defer close(out)
-		for v := range l.db.GetVertexChannel(queryChan, true) {
+		for v := range l.db.GetVertexChannel(queryChan, getPropLoad(ctx)) {
 			i := v.Ref.(*gdbi.Traveler)
 			out <- i.AddCurrent(&gdbi.DataElement{
 				ID:    v.Vertex.Gid,
@@ -247,7 +247,7 @@ func (l *LookupEdgeAdjIn) Process(ctx context.Context, man Manager, in gdbi.InPi
 			})
 		}
 	}()
-	return ctx
+	return context.WithValue(ctx, propLoad, false)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -271,7 +271,7 @@ func (l *InEdge) Process(ctx context.Context, man Manager, in gdbi.InPipe, out g
 	}()
 	go func() {
 		defer close(out)
-		for v := range l.db.GetInEdgeChannel(queryChan, true, l.labels) {
+		for v := range l.db.GetInEdgeChannel(queryChan, getPropLoad(ctx), l.labels) {
 			i := v.Ref.(*gdbi.Traveler)
 			out <- i.AddCurrent(&gdbi.DataElement{
 				ID:    v.Edge.Gid,
@@ -282,7 +282,7 @@ func (l *InEdge) Process(ctx context.Context, man Manager, in gdbi.InPipe, out g
 			})
 		}
 	}()
-	return ctx
+	return context.WithValue(ctx, propLoad, false)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -306,7 +306,7 @@ func (l *OutEdge) Process(ctx context.Context, man Manager, in gdbi.InPipe, out 
 	}()
 	go func() {
 		defer close(out)
-		for v := range l.db.GetOutEdgeChannel(queryChan, true, l.labels) {
+		for v := range l.db.GetOutEdgeChannel(queryChan, getPropLoad(ctx), l.labels) {
 			i := v.Ref.(*gdbi.Traveler)
 			out <- i.AddCurrent(&gdbi.DataElement{
 				ID:    v.Edge.Gid,
@@ -317,7 +317,7 @@ func (l *OutEdge) Process(ctx context.Context, man Manager, in gdbi.InPipe, out 
 			})
 		}
 	}()
-	return ctx
+	return context.WithValue(ctx, propLoad, false)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -348,7 +348,7 @@ func (v *Values) Process(ctx context.Context, man Manager, in gdbi.InPipe, out g
 			}
 		}
 	}()
-	return ctx
+	return context.WithValue(ctx, propLoad, true)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -372,7 +372,7 @@ func (h *HasData) Process(ctx context.Context, man Manager, in gdbi.InPipe, out 
 			}
 		}
 	}()
-	return ctx
+	return context.WithValue(ctx, propLoad, true)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -425,10 +425,9 @@ func (c *Count) Process(ctx context.Context, man Manager, in gdbi.InPipe, out gd
 		for range in {
 			i++
 		}
-		log.Printf("Done counting")
 		out <- &gdbi.Traveler{Count: i}
 	}()
-	return ctx
+	return context.WithValue(ctx, propLoad, false)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -483,7 +482,7 @@ func (f *Fold) Process(ctx context.Context, man Manager, in gdbi.InPipe, out gdb
 			out <- a
 		}
 	}()
-	return ctx
+	return context.WithValue(ctx, propLoad, true)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -532,7 +531,7 @@ func (g *GroupCount) Process(ctx context.Context, man Manager, in gdbi.InPipe, o
 		}
 		out <- eo
 	}()
-	return ctx
+	return context.WithValue(ctx, propLoad, true)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -558,7 +557,7 @@ func (g *Distinct) Process(ctx context.Context, man Manager, in gdbi.InPipe, out
 			}
 		}
 	}()
-	return ctx
+	return context.WithValue(ctx, propLoad, true)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -590,7 +589,7 @@ func (s *selectOne) Process(ctx context.Context, man Manager, in gdbi.InPipe, ou
 			out <- t.AddCurrent(c)
 		}
 	}()
-	return ctx
+	return context.WithValue(ctx, propLoad, true)
 }
 
 type selectMany struct {
@@ -609,7 +608,7 @@ func (s *selectMany) Process(ctx context.Context, man Manager, in gdbi.InPipe, o
 			out <- t.AddCurrent(&gdbi.DataElement{Row: row})
 		}
 	}()
-	return ctx
+	return context.WithValue(ctx, propLoad, true)
 }
 
 type concat []Processor

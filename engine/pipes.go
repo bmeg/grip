@@ -18,6 +18,14 @@ type Pipeline struct {
 	workDir   string
 }
 
+type propKey string
+
+var propLoad propKey = "load"
+
+func getPropLoad(ctx context.Context) bool {
+	return ctx.Value(propLoad).(bool)
+}
+
 // Start begins processing a query pipeline
 func (pipe Pipeline) Start(ctx context.Context, bufsize int) gdbi.InPipe {
 	if len(pipe.procs) == 0 {
@@ -25,6 +33,8 @@ func (pipe Pipeline) Start(ctx context.Context, bufsize int) gdbi.InPipe {
 		close(ch)
 		return ch
 	}
+
+	ctx = context.WithValue(ctx, propLoad, true)
 
 	in := make(chan *gdbi.Traveler, bufsize)
 	final := make(chan *gdbi.Traveler, bufsize)
