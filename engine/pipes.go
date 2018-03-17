@@ -1,6 +1,8 @@
 package engine
 
 import (
+	//"log"
+	"context"
 	"fmt"
 	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/gdbi"
@@ -17,30 +19,48 @@ type Pipeline struct {
 }
 
 // Start begins processing a query pipeline
-func (pipe Pipeline) Start(bufsize int) gdbi.InPipe {
+func (pipe Pipeline) Start(ctx context.Context, bufsize int) gdbi.InPipe {
 	if len(pipe.procs) == 0 {
 		ch := make(chan *gdbi.Traveler)
 		close(ch)
 		return ch
 	}
 
-	in := make(chan *gdbi.Traveler)
+	in := make(chan *gdbi.Traveler, bufsize)
 	final := make(chan *gdbi.Traveler, bufsize)
+	out := final
+	for i := len(pipe.procs) - 1; i >= 0; i-- {
+		man := pipe.NewManager()
+		ctx = pipe.procs[i].Process(ctx, man, in, out)
+		out = in
+		in = make(chan *gdbi.Traveler, bufsize)
+	}
 
 	// Write an empty traveler to input
 	// to trigger the computation.
-	go initPipe(in)
-
-	for i := 0; i < len(pipe.procs)-1; i++ {
-		glue := make(chan *gdbi.Traveler, bufsize)
-		go pipe.startOne(pipe.procs[i], in, glue)
-		in = glue
-	}
-
-	last := pipe.procs[len(pipe.procs)-1]
-	go pipe.startOne(last, in, final)
-
+	// Sends an empty traveler to the pipe to kick off pipelines of processors.
+	go func() {
+		out <- &gdbi.Traveler{}
+		close(in)
+		close(out)
+	}()
 	return final
+}
+
+// Run starts a pipeline and converts the output to server output structures
+func (pipe Pipeline) Run(ctx context.Context) <-chan *aql.ResultRow {
+
+	bufsize := 100
+	resch := make(chan *aql.ResultRow, bufsize)
+
+	go func() {
+		defer close(resch)
+		for t := range pipe.Start(ctx, bufsize) {
+			resch <- pipe.Convert(t)
+		}
+	}()
+
+	return resch
 }
 
 // Convert takes a traveler and converts it to query output
@@ -115,33 +135,4 @@ func (pipe Pipeline) Convert(t *gdbi.Traveler) *aql.ResultRow {
 	default:
 		panic(fmt.Errorf("unhandled data type %d", pipe.dataType))
 	}
-}
-
-// Run starts a pipeline and converts the output to server output structures
-func (pipe Pipeline) Run() <-chan *aql.ResultRow {
-
-	bufsize := 100
-	resch := make(chan *aql.ResultRow, bufsize)
-
-	go func() {
-		defer close(resch)
-		for t := range pipe.Start(bufsize) {
-			resch <- pipe.Convert(t)
-		}
-	}()
-
-	return resch
-}
-
-// Sends an empty traveler to the pipe to kick off pipelines of processors.
-func initPipe(out gdbi.OutPipe) {
-	out <- &gdbi.Traveler{}
-	close(out)
-}
-
-func (pipe Pipeline) startOne(proc Processor, in gdbi.InPipe, out gdbi.OutPipe) {
-	man := pipe.NewManager()
-	proc.Process(man, in, out)
-	man.Cleanup()
-	close(out)
 }

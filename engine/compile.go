@@ -216,14 +216,14 @@ func Compile(stmts []*aql.GraphStatement, db gdbi.GraphInterface, workDir string
 }
 
 //For V().HasLabel() queries, streamline into a single index lookup
-func indexStartOptimize(pipe []gdbi.Processor) []gdbi.Processor {
+func indexStartOptimize(pipe []Processor) []Processor {
 	if len(pipe) >= 2 {
 		if x, ok := pipe[0].(*LookupVerts); ok {
 			if len(x.ids) == 0 {
 				if y, ok := pipe[1].(*HasLabel); ok {
 					//log.Printf("Found has label opt: %s", y.labels)
 					hIdx := LookupVertsIndex{labels: y.labels, db: x.db}
-					return append([]gdbi.Processor{&hIdx}, pipe[2:]...)
+					return append([]Processor{&hIdx}, pipe[2:]...)
 				}
 			}
 		}
