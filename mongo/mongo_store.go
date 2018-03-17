@@ -282,7 +282,7 @@ func (mg *Graph) GetVertexList(ctx context.Context, load bool) <-chan *aql.Verte
 		defer close(o)
 		query := vCol.Find(nil)
 		if !load {
-			query = query.Select(bson.M{"_id":1, "label": 1})
+			query = query.Select(bson.M{"_id": 1, "label": 1})
 		}
 		iter := query.Iter()
 		defer iter.Close()
@@ -308,7 +308,7 @@ func (mg *Graph) GetEdgeList(ctx context.Context, loadProp bool) <-chan *aql.Edg
 		defer close(o)
 		query := eCol.Find(nil)
 		if !loadProp {
-			query = query.Select(bson.M{"_id":1, "to": 1, "from": 1, "label": 1})
+			query = query.Select(bson.M{"_id": 1, "to": 1, "from": 1, "label": 1})
 		}
 		iter := query.Iter()
 		defer iter.Close()
@@ -320,6 +320,7 @@ func (mg *Graph) GetEdgeList(ctx context.Context, loadProp bool) <-chan *aql.Edg
 			default:
 			}
 			if _, ok := result[fieldDst]; ok {
+				log.Printf("Edge %s", result)
 				e := UnpackEdge(result)
 				o <- e
 			} else if _, ok := result[fieldBundle]; ok {
@@ -429,6 +430,12 @@ func (mg *Graph) GetOutChannel(reqChan chan gdbi.ElementLookup, load bool, edgeL
 			}
 			vertCol := fmt.Sprintf("%s_vertices", mg.graph)
 			query = append(query, bson.M{"$lookup": bson.M{"from": vertCol, "localField": "to", "foreignField": "_id", "as": "dst"}})
+			query = append(query, bson.M{"$unwind": "$dst"})
+			if load {
+				query = append(query, bson.M{"$project": bson.M{"from": true, fieldBundle: true, "dst._id": true, "dst.label": true, "dst.data": true}})
+			} else {
+				query = append(query, bson.M{"$project": bson.M{"from": true, fieldBundle: true, "dst._id": true, "dst.label": true}})
+			}
 
 			eCol := mg.ar.getEdgeCollection(mg.graph)
 			iter := eCol.Pipe(query).Iter()
@@ -455,17 +462,16 @@ func (mg *Graph) GetOutChannel(reqChan chan gdbi.ElementLookup, load bool, edgeL
 						}
 					}
 					vIter.Close()
-				} else if dst, ok := result["dst"].([]interface{}); ok {
-					for _, d := range dst {
-						v := UnpackVertex(d.(map[string]interface{}))
-						r := batchMap[result["from"].(string)]
-						for _, ri := range r {
-							ri.Vertex = v
-							o <- ri
-						}
+				} else if dst, ok := result["dst"].(map[string]interface{}); ok {
+					v := UnpackVertex(dst)
+					r := batchMap[result["from"].(string)]
+					for _, ri := range r {
+						ri.Vertex = v
+						o <- ri
 					}
+				} else {
+					log.Printf("Out Error: %s", result["dst"])
 				}
-
 			}
 		}
 	}()
@@ -504,20 +510,24 @@ func (mg *Graph) GetInChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLa
 			}
 			vertCol := fmt.Sprintf("%s_vertices", mg.graph)
 			query = append(query, bson.M{"$lookup": bson.M{"from": vertCol, "localField": "from", "foreignField": "_id", "as": "src"}})
-			//log.Printf("Doing Query %s", query)
+			query = append(query, bson.M{"$unwind": "$src"})
+			if load {
+				query = append(query, bson.M{"$project": bson.M{"to": true, fieldBundle: true, "src._id": true, "src.label": true, "src.data": true}})
+			} else {
+				query = append(query, bson.M{"$project": bson.M{"to": true, fieldBundle: true, "src._id": true, "src.label": true}})
+			}
+
 			eCol := mg.ar.getEdgeCollection(mg.graph)
 			iter := eCol.Pipe(query).Iter()
 			defer iter.Close()
 			result := map[string]interface{}{}
 			for iter.Next(&result) {
-				src := result["src"].([]interface{})
-				for _, d := range src {
-					v := UnpackVertex(d.(map[string]interface{}))
-					r := batchMap[result["to"].(string)]
-					for _, ri := range r {
-						ri.Vertex = v
-						o <- ri
-					}
+				src := result["src"].(map[string]interface{})
+				v := UnpackVertex(src)
+				r := batchMap[result["to"].(string)]
+				for _, ri := range r {
+					ri.Vertex = v
+					o <- ri
 				}
 			}
 			if err := iter.Err(); err != nil {
