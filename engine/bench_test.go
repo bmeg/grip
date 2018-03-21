@@ -15,7 +15,7 @@ func BenchmarkBaselineV(b *testing.B) {
 
 	for i := 0; i < 1000; i++ {
 		gid := fmt.Sprintf("v-%d", i)
-		db.AddVertex([]*aql.Vertex{&aql.Vertex{Gid: gid, Label: "Vert"}})
+		db.AddVertex([]*aql.Vertex{{Gid: gid, Label: "Vert"}})
 	}
 
 	q := aql.V()
@@ -28,7 +28,8 @@ func BenchmarkBaselineV(b *testing.B) {
 			b.Fatal(err)
 		}
 		o := p.Run()
-		for range o {}
+		for range o {
+		}
 		if err != nil {
 			b.Fatal(err)
 		}

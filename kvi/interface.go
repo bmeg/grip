@@ -1,4 +1,3 @@
-
 package kvi
 
 // KVBuilder is function implemented by the various key/value storage drivers

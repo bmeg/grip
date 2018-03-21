@@ -51,7 +51,6 @@ func contains(c string, s []string) bool {
 	return false
 }
 
-
 func setupIndex() *kvindex.KVIndex {
 	kv, _ := badgerdb.BadgerBuilder("test.db")
 	idx := kvindex.NewIndex(kv)

@@ -62,6 +62,7 @@ func CompareFields(aMap, bMap map[string]interface{}, aPath, bPath string, op Op
 	return false, nil
 }
 
+//GetString gets a string value of a field
 func GetString(a map[string]interface{}, path string) string {
 	res, err := jsonpath.JsonPathLookup(a, path)
 	if err != nil {

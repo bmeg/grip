@@ -8,6 +8,7 @@ import (
 	"github.com/bmeg/arachne/kvgraph"
 	"github.com/bmeg/arachne/protoutil"
 	"github.com/golang/protobuf/jsonpb"
+	"math/rand"
 	"os"
 	"reflect"
 	"regexp"
@@ -15,17 +16,16 @@ import (
 	"strings"
 	"testing"
 	"time"
-	"math/rand"
 )
 
 var idRunes = []rune("abcdefghijklmnopqrstuvwxyz")
 
 func randId() string {
-    b := make([]rune, 10)
-    for i := range b {
-        b[i] = idRunes[rand.Intn(len(idRunes))]
-    }
-    return string(b)
+	b := make([]rune, 10)
+	for i := range b {
+		b[i] = idRunes[rand.Intn(len(idRunes))]
+	}
+	return string(b)
 }
 
 var Q = aql.Query{}

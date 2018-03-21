@@ -1,15 +1,14 @@
-
 package test
 
 import (
-  "os"
-  "log"
-  "testing"
-  "strings"
-  "github.com/bmeg/arachne/kvgraph"
-  "github.com/bmeg/arachne/badgerdb"
-  "github.com/bmeg/arachne/aql"
-  "github.com/golang/protobuf/jsonpb"
+	"github.com/bmeg/arachne/aql"
+	"github.com/bmeg/arachne/badgerdb"
+	"github.com/bmeg/arachne/kvgraph"
+	"github.com/golang/protobuf/jsonpb"
+	"log"
+	"os"
+	"strings"
+	"testing"
 )
 
 var testGraph = `{
@@ -60,27 +59,25 @@ var testGraph = `{
 }
 `
 
-
 func setupGraph() kvgraph.KVGraph {
 	kv, _ := badgerdb.BadgerBuilder("test.db")
 	return kv
 }
 
 func closeGraph(kv kvgraph.KVGraph) {
-  kv.Close()
+	kv.Close()
 	os.RemoveAll("test.db")
 }
 
-
 func TestVertexLabel(b *testing.T) {
-		e := aql.Graph{}
-		if err := jsonpb.Unmarshal(strings.NewReader(testGraph), &e); err != nil {
-			log.Printf("Error: %s", err)
-		}
+	e := aql.Graph{}
+	if err := jsonpb.Unmarshal(strings.NewReader(testGraph), &e); err != nil {
+		log.Printf("Error: %s", err)
+	}
 
-    kv := setupGraph()
-		kv.AddSubGraph("testGraph", e)
+	kv := setupGraph()
+	kv.AddSubGraph("testGraph", e)
 
-    closeGraph(kv)
+	closeGraph(kv)
 
 }

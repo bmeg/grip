@@ -3,16 +3,16 @@ package kvgraph
 import (
 	"fmt"
 	"github.com/bmeg/arachne/gdbi"
-	"github.com/bmeg/arachne/timestamp"
 	"github.com/bmeg/arachne/kvi"
 	"github.com/bmeg/arachne/kvindex"
+	"github.com/bmeg/arachne/timestamp"
 )
 
 // KVGraph implements the ArachneInterface using a generic key/value storage driver
 type KVGraph struct {
-	kv kvi.KVInterface
+	kv  kvi.KVInterface
 	idx kvindex.KVIndex
-	ts *timestamp.Timestamp
+	ts  *timestamp.Timestamp
 }
 
 // KVInterfaceGDB implements the GDB interface using a genertic key/value storage driver
@@ -31,7 +31,7 @@ func AddKVDriver(name string, builder kvi.KVBuilder) error {
 	return nil
 }
 
-// NewKVArachne intitalize a new key value driver give the name of the
+// NewKVGraphDB intitalize a new key value driver give the name of the
 // driver and a path/url
 func NewKVGraphDB(name string, path string) (gdbi.GraphDB, error) {
 	if x, ok := kvMap[name]; ok {

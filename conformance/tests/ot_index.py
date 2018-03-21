@@ -63,7 +63,7 @@ def test_count_index(O):
     return errors
 
 
-def test_count_index(O):
+def test_count_index_query(O):
     errors = []
 
     O.addVertexIndex("Person", "name")

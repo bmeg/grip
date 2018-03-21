@@ -366,5 +366,6 @@ func (server *ArachneServer) VertexIndexTraversal(idx *aql.IndexQuery, stream aq
 			queryServer.Send(&l)
 		}
 	*/
+	log.Printf("This should probably be written")
 	return nil
 }

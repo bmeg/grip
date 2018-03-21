@@ -9,6 +9,7 @@ import (
 	"log"
 )
 
+//AddVertexIndex add index to vertices
 func (mg *Graph) AddVertexIndex(label string, field string) error {
 	log.Printf("Adding Index: %s", field)
 	session := mg.ar.pool.Get()
@@ -18,6 +19,7 @@ func (mg *Graph) AddVertexIndex(label string, field string) error {
 	return err
 }
 
+//AddEdgeIndex add index to edges
 func (mg *Graph) AddEdgeIndex(label string, field string) error {
 	session := mg.ar.pool.Get()
 	c := mg.ar.getEdgeCollection(session, mg.graph)
@@ -26,8 +28,8 @@ func (mg *Graph) AddEdgeIndex(label string, field string) error {
 	return err
 }
 
+//GetVertexTermCount get count of every term across vertices
 func (mg *Graph) GetVertexTermCount(ctx context.Context, label string, field string) chan aql.IndexTermCount {
-	log.Printf("Listing Index: %s %s", label, field)
 	out := make(chan aql.IndexTermCount, 100)
 	go func() {
 		defer close(out)
@@ -56,6 +58,7 @@ func (mg *Graph) GetVertexTermCount(ctx context.Context, label string, field str
 	return out
 }
 
+//GetEdgeTermCount get count of every term across edges
 func (mg *Graph) GetEdgeTermCount(ctx context.Context, label string, field string) chan aql.IndexTermCount {
 	out := make(chan aql.IndexTermCount, 100)
 	go func() {
@@ -85,6 +88,7 @@ func (mg *Graph) GetEdgeTermCount(ctx context.Context, label string, field strin
 	return out
 }
 
+//DeleteVertexIndex delete index from vertices
 func (mg *Graph) DeleteVertexIndex(label string, field string) error {
 	session := mg.ar.pool.Get()
 	defer mg.ar.pool.Put(session)
@@ -92,6 +96,7 @@ func (mg *Graph) DeleteVertexIndex(label string, field string) error {
 	return vcol.DropIndex("label", "data."+field)
 }
 
+//DeleteEdgeIndex delete index from edges
 func (mg *Graph) DeleteEdgeIndex(label string, field string) error {
 	session := mg.ar.pool.Get()
 	defer mg.ar.pool.Put(session)

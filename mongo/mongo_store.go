@@ -316,7 +316,6 @@ func (mg *Graph) GetEdgeList(ctx context.Context, loadProp bool) <-chan *aql.Edg
 			default:
 			}
 			if _, ok := result[fieldDst]; ok {
-				log.Printf("Edge %s", result)
 				e := UnpackEdge(result)
 				o <- e
 			} else if _, ok := result[fieldBundle]; ok {
