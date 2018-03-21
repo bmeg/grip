@@ -91,7 +91,7 @@ func (server *ArachneServer) Traversal(query *aql.GraphQuery, queryServer aql.Qu
 		return err
 	}
 	//log.Printf("Running: %s", pipeline)
-	res := pipeline.Run()
+	res := pipeline.Run(queryServer.Context())
 	for row := range res {
 		queryServer.Send(row)
 	}

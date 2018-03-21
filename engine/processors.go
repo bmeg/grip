@@ -16,6 +16,7 @@ import (
 	"sync"
 )
 
+////////////////////////////////////////////////////////////////////////////////
 // LookupVerts starts query by looking on vertices
 type LookupVerts struct {
 	db  gdbi.GraphInterface
@@ -23,31 +24,36 @@ type LookupVerts struct {
 }
 
 // Process LookupVerts
-func (l *LookupVerts) Process(man Manager, in gdbi.InPipe, out gdbi.OutPipe) {
-	for t := range in {
-		if len(l.ids) == 0 {
-			for v := range l.db.GetVertexList(context.Background(), true) {
-				out <- t.AddCurrent(&gdbi.DataElement{
-					ID:    v.Gid,
-					Label: v.Label,
-					Data:  protoutil.AsMap(v.Data),
-				})
-			}
-		} else {
-			for _, i := range l.ids {
-				v := l.db.GetVertex(i, true)
-				if v != nil {
+func (l *LookupVerts) Process(ctx context.Context, man Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
+	go func() {
+		defer close(out)
+		for t := range in {
+			if len(l.ids) == 0 {
+				for v := range l.db.GetVertexList(ctx, getPropLoad(ctx)) {
 					out <- t.AddCurrent(&gdbi.DataElement{
 						ID:    v.Gid,
 						Label: v.Label,
 						Data:  protoutil.AsMap(v.Data),
 					})
 				}
+			} else {
+				for _, i := range l.ids {
+					v := l.db.GetVertex(i, getPropLoad(ctx))
+					if v != nil {
+						out <- t.AddCurrent(&gdbi.DataElement{
+							ID:    v.Gid,
+							Label: v.Label,
+							Data:  protoutil.AsMap(v.Data),
+						})
+					}
+				}
 			}
 		}
-	}
+	}()
+	return ctx
 }
 
+////////////////////////////////////////////////////////////////////////////////
 // LookupVertsIndex look up vertices by indexed based feature
 type LookupVertsIndex struct {
 	db     gdbi.GraphInterface
@@ -55,12 +61,11 @@ type LookupVertsIndex struct {
 }
 
 // Process LookupVerts
-func (l *LookupVertsIndex) Process(man Manager, in gdbi.InPipe, out gdbi.OutPipe) {
-	for t := range in {
-
-		queryChan := make(chan gdbi.ElementLookup, 100)
-		go func() {
-			defer close(queryChan)
+func (l *LookupVertsIndex) Process(ctx context.Context, man Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
+	queryChan := make(chan gdbi.ElementLookup, 100)
+	go func() {
+		defer close(queryChan)
+		for t := range in {
 			for _, label := range l.labels {
 				for id := range l.db.VertexLabelScan(context.Background(), label) {
 					queryChan <- gdbi.ElementLookup{
@@ -69,9 +74,12 @@ func (l *LookupVertsIndex) Process(man Manager, in gdbi.InPipe, out gdbi.OutPipe
 					}
 				}
 			}
-		}()
+		}
+	}()
 
-		for v := range l.db.GetVertexChannel(queryChan, true) {
+	go func() {
+		defer close(out)
+		for v := range l.db.GetVertexChannel(queryChan, getPropLoad(ctx)) {
 			i := v.Ref.(*gdbi.Traveler)
 			out <- i.AddCurrent(&gdbi.DataElement{
 				ID:    v.Vertex.Gid,
@@ -79,9 +87,11 @@ func (l *LookupVertsIndex) Process(man Manager, in gdbi.InPipe, out gdbi.OutPipe
 				Data:  protoutil.AsMap(v.Vertex.Data),
 			})
 		}
-	}
+	}()
+	return ctx
 }
 
+////////////////////////////////////////////////////////////////////////////////
 // LookupEdges starts query by looking up edges
 type LookupEdges struct {
 	db     gdbi.GraphInterface
@@ -90,20 +100,25 @@ type LookupEdges struct {
 }
 
 // Process runs LookupEdges
-func (l *LookupEdges) Process(man Manager, in gdbi.InPipe, out gdbi.OutPipe) {
-	for t := range in {
-		for v := range l.db.GetEdgeList(context.Background(), true) {
-			out <- t.AddCurrent(&gdbi.DataElement{
-				ID:    v.Gid,
-				Label: v.Label,
-				From:  v.From,
-				To:    v.To,
-				Data:  protoutil.AsMap(v.Data),
-			})
+func (l *LookupEdges) Process(ctx context.Context, man Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
+	go func() {
+		defer close(out)
+		for t := range in {
+			for v := range l.db.GetEdgeList(context.Background(), getPropLoad(ctx)) {
+				out <- t.AddCurrent(&gdbi.DataElement{
+					ID:    v.Gid,
+					Label: v.Label,
+					From:  v.From,
+					To:    v.To,
+					Data:  protoutil.AsMap(v.Data),
+				})
+			}
 		}
-	}
+	}()
+	return ctx
 }
 
+////////////////////////////////////////////////////////////////////////////////
 // LookupVertexAdjOut finds out vertex
 type LookupVertexAdjOut struct {
 	db     gdbi.GraphInterface
@@ -111,7 +126,7 @@ type LookupVertexAdjOut struct {
 }
 
 // Process runs out vertex
-func (l *LookupVertexAdjOut) Process(man Manager, in gdbi.InPipe, out gdbi.OutPipe) {
+func (l *LookupVertexAdjOut) Process(ctx context.Context, man Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
 	queryChan := make(chan gdbi.ElementLookup, 100)
 	go func() {
 		defer close(queryChan)
@@ -122,16 +137,21 @@ func (l *LookupVertexAdjOut) Process(man Manager, in gdbi.InPipe, out gdbi.OutPi
 			}
 		}
 	}()
-	for ov := range l.db.GetOutChannel(queryChan, true, l.labels) {
-		i := ov.Ref.(*gdbi.Traveler)
-		out <- i.AddCurrent(&gdbi.DataElement{
-			ID:    ov.Vertex.Gid,
-			Label: ov.Vertex.Label,
-			Data:  protoutil.AsMap(ov.Vertex.Data),
-		})
-	}
+	go func() {
+		defer close(out)
+		for ov := range l.db.GetOutChannel(queryChan, getPropLoad(ctx), l.labels) {
+			i := ov.Ref.(*gdbi.Traveler)
+			out <- i.AddCurrent(&gdbi.DataElement{
+				ID:    ov.Vertex.Gid,
+				Label: ov.Vertex.Label,
+				Data:  protoutil.AsMap(ov.Vertex.Data),
+			})
+		}
+	}()
+	return context.WithValue(ctx, propLoad, false)
 }
 
+////////////////////////////////////////////////////////////////////////////////
 // LookupEdgeAdjOut finds out edge
 type LookupEdgeAdjOut struct {
 	db     gdbi.GraphInterface
@@ -139,7 +159,7 @@ type LookupEdgeAdjOut struct {
 }
 
 // Process runs LookupEdgeAdjOut
-func (l *LookupEdgeAdjOut) Process(man Manager, in gdbi.InPipe, out gdbi.OutPipe) {
+func (l *LookupEdgeAdjOut) Process(ctx context.Context, man Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
 	queryChan := make(chan gdbi.ElementLookup, 100)
 	go func() {
 		defer close(queryChan)
@@ -150,16 +170,21 @@ func (l *LookupEdgeAdjOut) Process(man Manager, in gdbi.InPipe, out gdbi.OutPipe
 			}
 		}
 	}()
-	for v := range l.db.GetVertexChannel(queryChan, true) {
-		i := v.Ref.(*gdbi.Traveler)
-		out <- i.AddCurrent(&gdbi.DataElement{
-			ID:    v.Vertex.Gid,
-			Label: v.Vertex.Label,
-			Data:  protoutil.AsMap(v.Vertex.Data),
-		})
-	}
+	go func() {
+		defer close(out)
+		for v := range l.db.GetVertexChannel(queryChan, getPropLoad(ctx)) {
+			i := v.Ref.(*gdbi.Traveler)
+			out <- i.AddCurrent(&gdbi.DataElement{
+				ID:    v.Vertex.Gid,
+				Label: v.Vertex.Label,
+				Data:  protoutil.AsMap(v.Vertex.Data),
+			})
+		}
+	}()
+	return context.WithValue(ctx, propLoad, false)
 }
 
+////////////////////////////////////////////////////////////////////////////////
 // LookupVertexAdjIn finds incoming vertex
 type LookupVertexAdjIn struct {
 	db     gdbi.GraphInterface
@@ -167,7 +192,7 @@ type LookupVertexAdjIn struct {
 }
 
 // Process runs LookupVertexAdjIn
-func (l *LookupVertexAdjIn) Process(man Manager, in gdbi.InPipe, out gdbi.OutPipe) {
+func (l *LookupVertexAdjIn) Process(ctx context.Context, man Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
 	queryChan := make(chan gdbi.ElementLookup, 100)
 	go func() {
 		defer close(queryChan)
@@ -178,16 +203,21 @@ func (l *LookupVertexAdjIn) Process(man Manager, in gdbi.InPipe, out gdbi.OutPip
 			}
 		}
 	}()
-	for v := range l.db.GetInChannel(queryChan, true, l.labels) {
-		i := v.Ref.(*gdbi.Traveler)
-		out <- i.AddCurrent(&gdbi.DataElement{
-			ID:    v.Vertex.Gid,
-			Label: v.Vertex.Label,
-			Data:  protoutil.AsMap(v.Vertex.Data),
-		})
-	}
+	go func() {
+		defer close(out)
+		for v := range l.db.GetInChannel(queryChan, getPropLoad(ctx), l.labels) {
+			i := v.Ref.(*gdbi.Traveler)
+			out <- i.AddCurrent(&gdbi.DataElement{
+				ID:    v.Vertex.Gid,
+				Label: v.Vertex.Label,
+				Data:  protoutil.AsMap(v.Vertex.Data),
+			})
+		}
+	}()
+	return context.WithValue(ctx, propLoad, false)
 }
 
+////////////////////////////////////////////////////////////////////////////////
 // LookupEdgeAdjIn finds incoming edge
 type LookupEdgeAdjIn struct {
 	db     gdbi.GraphInterface
@@ -195,7 +225,7 @@ type LookupEdgeAdjIn struct {
 }
 
 // Process runs LookupEdgeAdjIn
-func (l *LookupEdgeAdjIn) Process(man Manager, in gdbi.InPipe, out gdbi.OutPipe) {
+func (l *LookupEdgeAdjIn) Process(ctx context.Context, man Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
 	queryChan := make(chan gdbi.ElementLookup, 100)
 	go func() {
 		defer close(queryChan)
@@ -206,16 +236,21 @@ func (l *LookupEdgeAdjIn) Process(man Manager, in gdbi.InPipe, out gdbi.OutPipe)
 			}
 		}
 	}()
-	for v := range l.db.GetVertexChannel(queryChan, true) {
-		i := v.Ref.(*gdbi.Traveler)
-		out <- i.AddCurrent(&gdbi.DataElement{
-			ID:    v.Vertex.Gid,
-			Label: v.Vertex.Label,
-			Data:  protoutil.AsMap(v.Vertex.Data),
-		})
-	}
+	go func() {
+		defer close(out)
+		for v := range l.db.GetVertexChannel(queryChan, getPropLoad(ctx)) {
+			i := v.Ref.(*gdbi.Traveler)
+			out <- i.AddCurrent(&gdbi.DataElement{
+				ID:    v.Vertex.Gid,
+				Label: v.Vertex.Label,
+				Data:  protoutil.AsMap(v.Vertex.Data),
+			})
+		}
+	}()
+	return context.WithValue(ctx, propLoad, false)
 }
 
+////////////////////////////////////////////////////////////////////////////////
 // InEdge finds the incoming edges
 type InEdge struct {
 	db     gdbi.GraphInterface
@@ -223,7 +258,7 @@ type InEdge struct {
 }
 
 // Process runs InEdge
-func (l *InEdge) Process(man Manager, in gdbi.InPipe, out gdbi.OutPipe) {
+func (l *InEdge) Process(ctx context.Context, man Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
 	queryChan := make(chan gdbi.ElementLookup, 100)
 	go func() {
 		defer close(queryChan)
@@ -234,19 +269,23 @@ func (l *InEdge) Process(man Manager, in gdbi.InPipe, out gdbi.OutPipe) {
 			}
 		}
 	}()
-
-	for v := range l.db.GetInEdgeChannel(queryChan, true, l.labels) {
-		i := v.Ref.(*gdbi.Traveler)
-		out <- i.AddCurrent(&gdbi.DataElement{
-			ID:    v.Edge.Gid,
-			To:    v.Edge.To,
-			From:  v.Edge.From,
-			Label: v.Edge.Label,
-			Data:  protoutil.AsMap(v.Edge.Data),
-		})
-	}
+	go func() {
+		defer close(out)
+		for v := range l.db.GetInEdgeChannel(queryChan, getPropLoad(ctx), l.labels) {
+			i := v.Ref.(*gdbi.Traveler)
+			out <- i.AddCurrent(&gdbi.DataElement{
+				ID:    v.Edge.Gid,
+				To:    v.Edge.To,
+				From:  v.Edge.From,
+				Label: v.Edge.Label,
+				Data:  protoutil.AsMap(v.Edge.Data),
+			})
+		}
+	}()
+	return context.WithValue(ctx, propLoad, false)
 }
 
+////////////////////////////////////////////////////////////////////////////////
 // OutEdge finds the outgoing edges
 type OutEdge struct {
 	db     gdbi.GraphInterface
@@ -254,7 +293,7 @@ type OutEdge struct {
 }
 
 // Process runs OutEdge
-func (l *OutEdge) Process(man Manager, in gdbi.InPipe, out gdbi.OutPipe) {
+func (l *OutEdge) Process(ctx context.Context, man Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
 	queryChan := make(chan gdbi.ElementLookup, 100)
 	go func() {
 		defer close(queryChan)
@@ -265,122 +304,155 @@ func (l *OutEdge) Process(man Manager, in gdbi.InPipe, out gdbi.OutPipe) {
 			}
 		}
 	}()
-
-	for v := range l.db.GetOutEdgeChannel(queryChan, true, l.labels) {
-		i := v.Ref.(*gdbi.Traveler)
-		out <- i.AddCurrent(&gdbi.DataElement{
-			ID:    v.Edge.Gid,
-			To:    v.Edge.To,
-			From:  v.Edge.From,
-			Label: v.Edge.Label,
-			Data:  protoutil.AsMap(v.Edge.Data),
-		})
-	}
-
+	go func() {
+		defer close(out)
+		for v := range l.db.GetOutEdgeChannel(queryChan, getPropLoad(ctx), l.labels) {
+			i := v.Ref.(*gdbi.Traveler)
+			out <- i.AddCurrent(&gdbi.DataElement{
+				ID:    v.Edge.Gid,
+				To:    v.Edge.To,
+				From:  v.Edge.From,
+				Label: v.Edge.Label,
+				Data:  protoutil.AsMap(v.Edge.Data),
+			})
+		}
+	}()
+	return context.WithValue(ctx, propLoad, false)
 }
 
+////////////////////////////////////////////////////////////////////////////////
 // Values selects fields from current element
 type Values struct {
 	keys []string
 }
 
 // Process runs Values step
-func (v *Values) Process(man Manager, in gdbi.InPipe, out gdbi.OutPipe) {
-	for t := range in {
-		if t.GetCurrent().Data == nil {
-			continue
-		}
-		if len(v.keys) == 0 {
-			d := t.GetCurrent().Data
-
-			data := map[string]interface{}{}
-			for _, i := range v.keys {
-				data[i] = d[i]
+func (v *Values) Process(ctx context.Context, man Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
+	go func() {
+		defer close(out)
+		for t := range in {
+			if t.GetCurrent().Data == nil {
+				continue
 			}
-			o := t.AddCurrent(&gdbi.DataElement{
-				Data: data,
-			})
-			out <- o
+			if len(v.keys) == 0 {
+				d := t.GetCurrent().Data
+
+				data := map[string]interface{}{}
+				for _, i := range v.keys {
+					data[i] = d[i]
+				}
+				o := t.AddCurrent(&gdbi.DataElement{
+					Data: data,
+				})
+				out <- o
+			}
 		}
-	}
+	}()
+	return context.WithValue(ctx, propLoad, true)
 }
 
+////////////////////////////////////////////////////////////////////////////////
 // HasData filters based on data
 type HasData struct {
 	stmt *aql.HasStatement
 }
 
 // Process runs HasData
-func (h *HasData) Process(man Manager, in gdbi.InPipe, out gdbi.OutPipe) {
-	for t := range in {
-		if t.GetCurrent().Data == nil {
-			continue
-		}
-		if z, ok := t.GetCurrent().Data[h.stmt.Key]; ok {
-			if s, ok := z.(string); ok && contains(h.stmt.Within, s) {
-				out <- t
+func (h *HasData) Process(ctx context.Context, man Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
+	go func() {
+		defer close(out)
+		for t := range in {
+			if t.GetCurrent().Data == nil {
+				continue
+			}
+			if z, ok := t.GetCurrent().Data[h.stmt.Key]; ok {
+				if s, ok := z.(string); ok && contains(h.stmt.Within, s) {
+					out <- t
+				}
 			}
 		}
-	}
+	}()
+	return context.WithValue(ctx, propLoad, true)
 }
 
+////////////////////////////////////////////////////////////////////////////////
 // HasLabel filters based on label match
 type HasLabel struct {
 	labels []string
 }
 
 // Process runs HasLabel
-func (h *HasLabel) Process(man Manager, in gdbi.InPipe, out gdbi.OutPipe) {
-	for t := range in {
-		if contains(h.labels, t.GetCurrent().Label) {
-			out <- t
+func (h *HasLabel) Process(ctx context.Context, man Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
+	go func() {
+		defer close(out)
+		for t := range in {
+			if contains(h.labels, t.GetCurrent().Label) {
+				out <- t
+			}
 		}
-	}
+	}()
+	return ctx
 }
 
+////////////////////////////////////////////////////////////////////////////////
 // HasID filters based on ID
 type HasID struct {
 	ids []string
 }
 
 // Process runs HasID
-func (h *HasID) Process(man Manager, in gdbi.InPipe, out gdbi.OutPipe) {
-	for t := range in {
-		if contains(h.ids, t.GetCurrent().ID) {
-			out <- t
+func (h *HasID) Process(ctx context.Context, man Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
+	go func() {
+		defer close(out)
+		for t := range in {
+			if contains(h.ids, t.GetCurrent().ID) {
+				out <- t
+			}
 		}
-	}
+	}()
+	return ctx
 }
 
+////////////////////////////////////////////////////////////////////////////////
 // Count incoming elements
 type Count struct{}
 
 // Process runs Count
-func (c *Count) Process(man Manager, in gdbi.InPipe, out gdbi.OutPipe) {
-	var i int64
-	for range in {
-		i++
-	}
-	out <- &gdbi.Traveler{Count: i}
+func (c *Count) Process(ctx context.Context, man Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
+	go func() {
+		defer close(out)
+		var i int64
+		for range in {
+			i++
+		}
+		out <- &gdbi.Traveler{Count: i}
+	}()
+	return context.WithValue(ctx, propLoad, false)
 }
 
+////////////////////////////////////////////////////////////////////////////////
 // Limit limits incoming values to count
 type Limit struct {
 	count int64
 }
 
 // Process runs Limit
-func (l *Limit) Process(man Manager, in gdbi.InPipe, out gdbi.OutPipe) {
-	var i int64
-	for t := range in {
-		if i == l.count {
-			return
+func (l *Limit) Process(ctx context.Context, man Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
+	go func() {
+		defer close(out)
+		var i int64
+		for t := range in {
+			if i == l.count {
+				return
+			}
+			out <- t
+			i++
 		}
-		out <- t
-		i++
-	}
+	}()
+	return ctx
 }
 
+////////////////////////////////////////////////////////////////////////////////
 // Fold runs Javascript fold function
 type Fold struct {
 	fold    *aql.FoldStatement
@@ -388,27 +460,32 @@ type Fold struct {
 }
 
 // Process runs fold
-func (f *Fold) Process(man Manager, in gdbi.InPipe, out gdbi.OutPipe) {
-	mfunc, err := jsengine.NewJSEngine(f.fold.Source, f.imports)
-	if err != nil || mfunc == nil {
-		log.Printf("Script Error: %s", err)
-		return
-	}
-	s := f.fold.Init.Kind.(*structpb.Value_StructValue)
-	foldValue := protoutil.AsMap(s.StructValue)
-	for i := range in {
-		foldValue, err = mfunc.CallDict(foldValue, i.GetCurrent().Data)
-		if err != nil {
-			log.Printf("Call error: %s", err)
+func (f *Fold) Process(ctx context.Context, man Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
+	go func() {
+		defer close(out)
+		mfunc, err := jsengine.NewJSEngine(f.fold.Source, f.imports)
+		if err != nil || mfunc == nil {
+			log.Printf("Script Error: %s", err)
+			return
 		}
-	}
-	if foldValue != nil {
-		i := gdbi.Traveler{}
-		a := i.AddCurrent(&gdbi.DataElement{Data: foldValue})
-		out <- a
-	}
+		s := f.fold.Init.Kind.(*structpb.Value_StructValue)
+		foldValue := protoutil.AsMap(s.StructValue)
+		for i := range in {
+			foldValue, err = mfunc.CallDict(foldValue, i.GetCurrent().Data)
+			if err != nil {
+				log.Printf("Call error: %s", err)
+			}
+		}
+		if foldValue != nil {
+			i := gdbi.Traveler{}
+			a := i.AddCurrent(&gdbi.DataElement{Data: foldValue})
+			out <- a
+		}
+	}()
+	return context.WithValue(ctx, propLoad, true)
 }
 
+////////////////////////////////////////////////////////////////////////////////
 // GroupCount does a groupcount
 type GroupCount struct {
 	key string
@@ -439,107 +516,139 @@ func (g *GroupCount) countValues(in gdbi.InPipe, counts map[string]int64) {
 }
 
 // Process runs GroupCount
-func (g *GroupCount) Process(man Manager, in gdbi.InPipe, out gdbi.OutPipe) {
-	counts := map[string]int64{}
+func (g *GroupCount) Process(ctx context.Context, man Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
+	go func() {
+		defer close(out)
+		counts := map[string]int64{}
+		if g.key != "" {
+			g.countValues(in, counts)
+		} else {
+			g.countIDs(in, counts)
+		}
 
-	if g.key != "" {
-		g.countValues(in, counts)
-	} else {
-		g.countIDs(in, counts)
-	}
-
-	eo := &gdbi.Traveler{
-		GroupCounts: counts,
-	}
-	out <- eo
+		eo := &gdbi.Traveler{
+			GroupCounts: counts,
+		}
+		out <- eo
+	}()
+	return context.WithValue(ctx, propLoad, true)
 }
 
+////////////////////////////////////////////////////////////////////////////////
+// Distinct only returns district objects as defined by the set of select features
 type Distinct struct {
 	vals []string
 }
 
-func (g *Distinct) Process(man Manager, in gdbi.InPipe, out gdbi.OutPipe) {
-
-	kv := man.GetTempKV()
-	for t := range in {
-		cur := t.GetCurrent().ToDict()
-		s := make([][]byte, len(g.vals))
-		for i := range g.vals {
-			s[i] = []byte(jsonpath.GetString(cur, g.vals[i]))
+func (g *Distinct) Process(ctx context.Context, man Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
+	go func() {
+		defer close(out)
+		kv := man.GetTempKV()
+		for t := range in {
+			cur := t.GetCurrent().ToDict()
+			s := make([][]byte, len(g.vals))
+			for i := range g.vals {
+				s[i] = []byte(jsonpath.GetString(cur, g.vals[i]))
+			}
+			k := bytes.Join(s, []byte{0x00})
+			if !kv.HasKey(k) {
+				kv.Set(k, []byte{0x01})
+				out <- t
+			}
 		}
-		k := bytes.Join(s, []byte{0x00})
-		if !kv.HasKey(k) {
-			kv.Set(k, []byte{0x01})
-			out <- t
-		}
-	}
+	}()
+	return context.WithValue(ctx, propLoad, true)
 }
 
+////////////////////////////////////////////////////////////////////////////////
 // Marker marks the current element
 type Marker struct {
 	mark string
 }
 
 // Process runs Marker
-func (m *Marker) Process(man Manager, in gdbi.InPipe, out gdbi.OutPipe) {
-	for t := range in {
-		out <- t.AddMark(m.mark, t.GetCurrent())
-	}
+func (m *Marker) Process(ctx context.Context, man Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
+	go func() {
+		defer close(out)
+		for t := range in {
+			out <- t.AddMark(m.mark, t.GetCurrent())
+		}
+	}()
+	return ctx
 }
 
 type selectOne struct {
 	mark string
 }
 
-func (s *selectOne) Process(man Manager, in gdbi.InPipe, out gdbi.OutPipe) {
-	for t := range in {
-		c := t.GetMark(s.mark)
-		out <- t.AddCurrent(c)
-	}
+func (s *selectOne) Process(ctx context.Context, man Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
+	go func() {
+		defer close(out)
+		for t := range in {
+			c := t.GetMark(s.mark)
+			out <- t.AddCurrent(c)
+		}
+	}()
+	return context.WithValue(ctx, propLoad, true)
 }
 
 type selectMany struct {
 	marks []string
 }
 
-func (s *selectMany) Process(man Manager, in gdbi.InPipe, out gdbi.OutPipe) {
-	for t := range in {
-		row := make([]gdbi.DataElement, 0, len(s.marks))
-		for _, mark := range s.marks {
-			// TODO handle missing mark? rely on compiler to check this?
-			row = append(row, *t.GetMark(mark))
+func (s *selectMany) Process(ctx context.Context, man Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
+	go func() {
+		defer close(out)
+		for t := range in {
+			row := make([]gdbi.DataElement, 0, len(s.marks))
+			for _, mark := range s.marks {
+				// TODO handle missing mark? rely on compiler to check this?
+				row = append(row, *t.GetMark(mark))
+			}
+			out <- t.AddCurrent(&gdbi.DataElement{Row: row})
 		}
-		out <- t.AddCurrent(&gdbi.DataElement{Row: row})
-	}
+	}()
+	return context.WithValue(ctx, propLoad, true)
 }
 
 type concat []Processor
 
-func (c concat) Process(man Manager, in gdbi.InPipe, out gdbi.OutPipe) {
-	chans := make([]chan *gdbi.Traveler, len(c))
-	for i := range c {
-		chans[i] = make(chan *gdbi.Traveler)
-	}
-
-	wg := sync.WaitGroup{}
-	wg.Add(len(c))
-
-	for i, p := range c {
-		go func(i int, p Processor) {
-			p.Process(man, chans[i], out)
-			wg.Done()
-		}(i, p)
-	}
-
-	for t := range in {
-		for _, ch := range chans {
-			ch <- t
+func (c concat) Process(ctx context.Context, man Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
+	go func() {
+		defer close(out)
+		chan_in := make([]chan *gdbi.Traveler, len(c))
+		chan_out := make([]chan *gdbi.Traveler, len(c))
+		for i := range c {
+			chan_in[i] = make(chan *gdbi.Traveler, 1000)
+			chan_out[i] = make(chan *gdbi.Traveler, 1000)
 		}
-	}
-	for _, ch := range chans {
-		close(ch)
-	}
-	wg.Wait()
+
+		for i, p := range c {
+			ctx = p.Process(ctx, man, chan_in[i], chan_out[i])
+		}
+
+		wg := sync.WaitGroup{}
+		wg.Add(len(c))
+		for i := range c {
+			go func(i int) {
+				for c := range chan_out[i] {
+					out <- c
+				}
+				wg.Done()
+			}(i)
+		}
+
+		for t := range in {
+			for _, ch := range chan_in {
+				ch <- t
+			}
+		}
+		for _, ch := range chan_in {
+			close(ch)
+		}
+		wg.Wait()
+	}()
+	return ctx
 }
 
 /*

@@ -119,7 +119,11 @@ func UnpackEdge(i map[string]interface{}) *aql.Edge {
 	o.Label = i["label"].(string)
 	o.From = i[fieldSrc].(string)
 	o.To = i[fieldDst].(string)
-	o.Data = protoutil.AsStruct(i["data"].(map[string]interface{}))
+	if d, ok := i["data"]; ok {
+		o.Data = protoutil.AsStruct(d.(map[string]interface{}))
+	} else {
+		o.Data = protoutil.AsStruct(map[string]interface{}{})
+	}
 	return o
 }
 
