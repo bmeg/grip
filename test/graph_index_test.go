@@ -79,6 +79,7 @@ func TestVertexLabel(t *testing.T) {
 	}
 
 	kv := setupGraphDB()
+	kv.AddGraph("test")
 	graph := kv.Graph("test")
 	graph.AddVertex(e.Vertices)
 	graph.AddEdge(e.Edges)

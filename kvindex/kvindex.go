@@ -194,6 +194,7 @@ func fieldScan(docID string, doc map[string]interface{}, fieldPrefix string, fie
 // AddDocPrefix add new document and prefix all the fields with `fieldPrefix` path
 func (idx *KVIndex) AddDocPrefix(docID string, doc map[string]interface{}, fieldPrefix string) error {
 	fields := idx.ListFields()
+	//log.Printf("Fields: %s", fields)
 	values := make(chan entryValue, bufferSize)
 	go func() {
 		fieldScan(docID, doc, fieldPrefix, fields, values)
@@ -203,7 +204,7 @@ func (idx *KVIndex) AddDocPrefix(docID string, doc map[string]interface{}, field
 	idx.kv.Update(func(tx kvi.KVTransaction) error {
 		sdoc := Doc{Entries: [][]byte{}}
 		for v := range values {
-			//log.Printf("Index %#v", v)
+			//log.Printf("Index %s", string(v.term))
 			tx.Set(v.entryKey, []byte{})
 			tx.Set(v.termKey, []byte{})
 			sdoc.Entries = append(sdoc.Entries, v.entryKey)

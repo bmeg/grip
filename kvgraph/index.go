@@ -3,13 +3,18 @@ package kvgraph
 import (
 	"context"
 	"fmt"
+	//"log"
 	"github.com/bmeg/arachne/aql"
 	//"github.com/bmeg/arachne/kvindex"
 )
 
-func vertexIdxStruct(graph string, v *aql.Vertex) map[string]interface{} {
+func (kgraph *KVGraph) setupGraphIndex(graph string) {
+	kgraph.idx.AddField(fmt.Sprintf("%s.label", graph))
+}
+
+func vertexIdxStruct(v *aql.Vertex) map[string]interface{} {
 	k := map[string]interface{}{
-		fmt.Sprintf("%s.label", graph): v.Label,
+		"label": v.Label,
 	}
 	return k
 }
@@ -67,10 +72,10 @@ func (kgdb *KVInterfaceGDB) VertexLabelScan(ctx context.Context, label string) c
 	out := make(chan string, 100)
 	go func() {
 		defer close(out)
-		for i := range kgdb.GetVertexList(ctx, true) {
-			if i.Label == label {
-				out <- i.Gid
-			}
+		//log.Printf("Searching %s %s", fmt.Sprintf("%s.label", kgdb.graph), label)
+		for i := range kgdb.kvg.idx.GetTermMatch(fmt.Sprintf("%s.label", kgdb.graph), label) {
+			//log.Printf("Found: %s", i)
+			out <- i
 		}
 	}()
 	return out

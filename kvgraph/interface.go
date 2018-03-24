@@ -11,7 +11,7 @@ import (
 // KVGraph implements the ArachneInterface using a generic key/value storage driver
 type KVGraph struct {
 	kv  kvi.KVInterface
-	idx kvindex.KVIndex
+	idx *kvindex.KVIndex
 	ts  *timestamp.Timestamp
 }
 
@@ -44,7 +44,7 @@ func NewKVGraphDB(name string, path string) (gdbi.GraphDB, error) {
 // NewKVGraph creats a new instance of KVGraph given a KVInterface
 func NewKVGraph(kv kvi.KVInterface) gdbi.GraphDB {
 	ts := timestamp.NewTimestamp()
-	o := &KVGraph{kv: kv, ts: &ts}
+	o := &KVGraph{kv: kv, ts: &ts, idx: kvindex.NewIndex(kv)}
 	for _, i := range o.GetGraphs() {
 		o.ts.Touch(i)
 	}

@@ -1,6 +1,7 @@
 package kvgraph
 
 import (
+	//"log"
 	"bytes"
 	"context"
 	"fmt"
@@ -23,6 +24,7 @@ func contains(a []string, v string) bool {
 // AddGraph creates a new graph named `graph`
 func (kgraph *KVGraph) AddGraph(graph string) error {
 	kgraph.ts.Touch(graph)
+	kgraph.setupGraphIndex(graph)
 	return kgraph.kv.Set(GraphKey(graph), []byte{})
 }
 
@@ -95,6 +97,11 @@ func (kgdb *KVInterfaceGDB) AddVertex(vertexArray []*aql.Vertex) error {
 		kgdb.kvg.ts.Touch(kgdb.graph)
 		return nil
 	})
+	for _, vertex := range vertexArray {
+		doc := vertexIdxStruct(vertex)
+		//log.Printf("Indexing: %s", doc)
+		kgdb.kvg.idx.AddDocPrefix(vertex.Gid, doc, kgdb.graph)
+	}
 	return nil
 }
 
