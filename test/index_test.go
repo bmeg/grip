@@ -199,3 +199,37 @@ func TestTermCount(b *testing.T) {
 	}
 	closeIndex()
 }
+
+func TestDocDelete(b *testing.T) {
+	data := []map[string]interface{}{}
+	json.Unmarshal([]byte(docs), &data)
+
+	idx := setupIndex()
+	newFields := []string{"v.label", "v.data.firstName", "v.data.lastName"}
+	for _, s := range newFields {
+		idx.AddField(s)
+	}
+	for _, d := range data {
+		idx.AddDocPrefix(d["gid"].(string), d, "v")
+	}
+
+	idx.RemoveDoc("vertex1")
+
+	for d := range idx.FieldTermCounts("v.data.firstName") {
+		if string(d.Value) == "Bob" {
+			if d.Count != 0 {
+				b.Errorf("Bad term count return: %d", d.Count)
+			}
+		}
+	}
+
+	count := 0
+	for range idx.GetTermMatch("v.data.firstName", "Bob") {
+		count++
+	}
+	if count != 0 {
+		b.Errorf("Wrong return count %d != %d", count, 0)
+	}
+
+	closeIndex()
+}

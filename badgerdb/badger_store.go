@@ -115,10 +115,7 @@ func (badgerTrans badgerTransaction) Set(key, val []byte) error {
 
 // Delete removes key `id` from the kv store
 func (badgerTrans badgerTransaction) Delete(id []byte) error {
-	if err := badgerTrans.tx.Delete(id); err != nil {
-		return err
-	}
-	return nil
+	return badgerTrans.tx.Delete(id)
 }
 
 func (badgerTrans badgerTransaction) HasKey(id []byte) bool {
@@ -127,6 +124,19 @@ func (badgerTrans badgerTransaction) HasKey(id []byte) bool {
 		return true
 	}
 	return false
+}
+
+func (badgerTrans badgerTransaction) Get(id []byte) ([]byte, error) {
+	o, err := badgerTrans.tx.Get(id)
+	if o == nil || err != nil {
+		return nil, fmt.Errorf("Not Found")
+	}
+	dataValue, err := badgerTrans.tx.Get(id)
+	if err != nil {
+		return nil, err
+	}
+	d, _ := dataValue.Value()
+	return copyBytes(d), nil
 }
 
 // Update runs an alteration transition of the bolt kv store

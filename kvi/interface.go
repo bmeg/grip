@@ -31,6 +31,7 @@ type KVIterator interface {
 // KVTransaction is a generic interface used by KVInterface.Update to allow the
 // KVGraph to alter the values stored in the key value driver
 type KVTransaction interface {
+	Get(key []byte) ([]byte, error)
 	HasKey(key []byte) bool
 	Set(key, value []byte) error
 	Delete(key []byte) error

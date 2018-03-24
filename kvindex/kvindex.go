@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"github.com/bmeg/arachne/kvi"
 	proto "github.com/golang/protobuf/proto"
-	//"log"
+	"log"
 	"strings"
 )
 
@@ -201,12 +201,12 @@ func (idx *KVIndex) AddDocPrefix(docID string, doc map[string]interface{}, field
 	}()
 	docKey := DocKey(docID)
 	idx.kv.Update(func(tx kvi.KVTransaction) error {
-		sdoc := Doc{Terms: [][]byte{}}
+		sdoc := Doc{Entries: [][]byte{}}
 		for v := range values {
 			//log.Printf("Index %#v", v)
 			tx.Set(v.entryKey, []byte{})
 			tx.Set(v.termKey, []byte{})
-			sdoc.Terms = append(sdoc.Terms, v.term)
+			sdoc.Entries = append(sdoc.Entries, v.entryKey)
 		}
 		data, _ := proto.Marshal(&sdoc)
 		tx.Set(docKey, data)
@@ -218,6 +218,21 @@ func (idx *KVIndex) AddDocPrefix(docID string, doc map[string]interface{}, field
 
 // RemoveDoc removes a document from the index: TODO
 func (idx *KVIndex) RemoveDoc(docID string) error {
+	idx.kv.Update(func(tx kvi.KVTransaction) error {
+		log.Printf("Deleteing: %s", docID)
+		docKey := DocKey(docID)
+		data, err := tx.Get(docKey)
+		if err != nil {
+			return nil
+		}
+		doc := Doc{}
+		proto.Unmarshal(data, &doc)
+		for _, entryKey := range doc.Entries {
+			tx.Delete(entryKey)
+		}
+		tx.Delete(docKey)
+		return nil
+	})
 	return nil
 }
 

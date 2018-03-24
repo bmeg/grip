@@ -1,8 +1,11 @@
 package test
 
 import (
+	"context"
 	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/badgerdb"
+	"github.com/bmeg/arachne/engine"
+	"github.com/bmeg/arachne/gdbi"
 	"github.com/bmeg/arachne/kvgraph"
 	"github.com/golang/protobuf/jsonpb"
 	"log"
@@ -12,7 +15,7 @@ import (
 )
 
 var testGraph = `{
-  "vertices" : [
+  "vertices" : [{
     "gid" : "vertex1",
     "label" : "Person",
     "data" : {
@@ -59,25 +62,42 @@ var testGraph = `{
 }
 `
 
-func setupGraph() kvgraph.KVGraph {
+func setupGraphDB() gdbi.GraphDB {
 	kv, _ := badgerdb.BadgerBuilder("test.db")
-	return kv
+	return kvgraph.NewKVGraph(kv)
 }
 
-func closeGraph(kv kvgraph.KVGraph) {
-	kv.Close()
+func closeGraph(gd gdbi.GraphDB) {
+	gd.Close()
 	os.RemoveAll("test.db")
 }
 
-func TestVertexLabel(b *testing.T) {
+func TestVertexLabel(t *testing.T) {
 	e := aql.Graph{}
 	if err := jsonpb.Unmarshal(strings.NewReader(testGraph), &e); err != nil {
 		log.Printf("Error: %s", err)
 	}
 
-	kv := setupGraph()
-	kv.AddSubGraph("testGraph", e)
+	kv := setupGraphDB()
+	graph := kv.Graph("test")
+	graph.AddVertex(e.Vertices)
+	graph.AddEdge(e.Edges)
 
+	var Q = aql.Query{}
+
+	query := Q.V().HasLabel("Cat")
+
+	p, err := engine.Compile(query.Statements, graph, "./workdir")
+	if err != nil {
+		t.Fatal(err)
+	}
+	res := p.Run(context.Background())
+	count := 0
+	for range res {
+		count++
+	}
+	if count != 1 {
+		t.Errorf("Incorrect return count %d != %d", count, 1)
+	}
 	closeGraph(kv)
-
 }
