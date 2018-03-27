@@ -2,6 +2,7 @@ package gdbi
 
 import (
 	"github.com/bmeg/arachne/aql"
+	"github.com/bmeg/arachne/protoutil"
 )
 
 const (
@@ -44,4 +45,17 @@ func (t Traveler) GetLabeled(label string) *aql.QueryResult {
 func (t Traveler) GetCurrent() *aql.QueryResult {
 	lt := t.State[stateCurrent]
 	return &lt
+}
+
+// ElementToMap takes value from traveler state and turns it into a generic map
+func (t Traveler) ElementToMap(label string) map[string]interface{} {
+	a := t.State[label]
+	if e := a.GetEdge(); e != nil {
+		return map[string]interface{}{
+			"gid":   e.Gid,
+			"label": e.Label,
+			"data":  protoutil.AsMap(e.GetData()),
+		}
+	}
+	return nil
 }
