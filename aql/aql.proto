@@ -16,22 +16,22 @@ message GraphQuerySet {
 
 message GraphStatement {
     oneof statement {
-        google.protobuf.ListValue V = 1;
-        string E = 2;
+        google.protobuf.ListValue v = 1;
+        string e = 2;
 
         HasStatement has = 5;
-        google.protobuf.ListValue hasLabel = 6;
-        google.protobuf.ListValue hasId = 7;
-        HasValueStatement hasValue = 8;
+        google.protobuf.ListValue has_label = 6;
+        google.protobuf.ListValue has_id = 7;
+        HasValueStatement has_value = 8;
 
         google.protobuf.ListValue in = 10;
         google.protobuf.ListValue out = 11;
-        google.protobuf.ListValue inEdge = 12;
-        google.protobuf.ListValue outEdge = 13;
+        google.protobuf.ListValue in_edge = 12;
+        google.protobuf.ListValue out_edge = 13;
         google.protobuf.ListValue both = 14;
-        google.protobuf.ListValue bothEdge = 15;
+        google.protobuf.ListValue both_edge = 15;
 
-        google.protobuf.ListValue outBundle = 16;
+        google.protobuf.ListValue out_bundle = 16;
 
         string as = 20;
         SelectStatement select = 21;
@@ -40,7 +40,7 @@ message GraphStatement {
         int64 limit = 25;
         string count = 26;
 
-        string groupCount = 30;
+        string group_count = 30;
         google.protobuf.ListValue distinct = 31;
 
         GraphQuerySet match = 40;
@@ -49,11 +49,11 @@ message GraphStatement {
         string import = 50;
         string map = 51;
         FoldStatement fold = 52;
-        FoldStatement vertexFold = 53;
+        FoldStatement vertex_fold = 53;
         string filter = 54;
-        string filterValues = 55;
+        string filter_values = 55;
 
-        string vertexFromValues = 56;
+        string vertex_from_values = 56;
     }
 }
 

@@ -19,9 +19,12 @@ depends:
 	@git submodule update --init --recursive
 	@go get -d github.com/bmeg/arachne
 
+
 proto:
+	@go get github.com/ckaznocha/protoc-gen-lint
 	cd aql && protoc \
 	-I ./ -I ../googleapis \
+	--lint_out=. \
 	--go_out=\
 	Mgoogle/protobuf/struct.proto=github.com/golang/protobuf/ptypes/struct,\
 	plugins=grpc:./ \
