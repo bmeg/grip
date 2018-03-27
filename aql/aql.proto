@@ -17,7 +17,7 @@ message GraphQuerySet {
 message GraphStatement {
     oneof statement {
         google.protobuf.ListValue v = 1;
-        string e = 2;
+        google.protobuf.ListValue e = 2;
 
         HasStatement has = 5;
         google.protobuf.ListValue has_label = 6;
