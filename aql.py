@@ -211,16 +211,18 @@ class Query:
         """
         if not isinstance(id, list):
             id = [id]
-        self.query.append({"V":id})
+        self.query.append({"v":id})
         return self
 
-    def E(self, id=None):
+    def E(self, id=[]):
         """
         Start the query at an edge.
 
         "id" is an ID to start from. Optional.
         """
-        self.query.append({"E":id})
+        if not isinstance(id, list):
+            id = [id]
+        self.query.append({"e":id})
         return self
 
     def hasLabel(self, label):
@@ -231,7 +233,7 @@ class Query:
         """
         if not isinstance(label, list):
             label = [label]
-        self.query.append({'hasLabel': label})
+        self.query.append({'has_label': label})
         return self
 
     def hasId(self, id):
@@ -242,7 +244,7 @@ class Query:
         """
         if not isinstance(id, list):
             id = [id]
-        self.query.append({'hasId': id})
+        self.query.append({'has_id': id})
         return self
 
     def has(self, key, value):
@@ -312,7 +314,7 @@ class Query:
         """
         if not isinstance(label, list):
             label = [label]
-        self.query.append({'inEdge': label})
+        self.query.append({'in_edge': label})
         return self
 
     def outgoingEdge(self, label=[]):
@@ -326,7 +328,7 @@ class Query:
         """
         if not isinstance(label, list):
             label = [label]
-        self.query.append({'outEdge': label})
+        self.query.append({'out_edge': label})
         return self
 
     def bothEdge(self, label=[]):
@@ -340,13 +342,13 @@ class Query:
         """
         if not isinstance(label, list):
             label = [label]
-        self.query.append({'bothEdge': label})
+        self.query.append({'both_edge': label})
         return self
 
     def outgoingBundle(self, label=[]):
         if not isinstance(label, list):
             label = [label]
-        self.query.append({'outBundle': label})
+        self.query.append({'out_bundle': label})
         return self
 
     def mark(self, name):
@@ -398,7 +400,7 @@ class Query:
         """
         Group results by the given property name and count each group.
         """
-        self.query.append({'groupCount': label})
+        self.query.append({'group_count': label})
         return self
 
     def distinct(self, val):
@@ -433,7 +435,7 @@ class Query:
     def vertexFromValues(self, func):
         """
         """
-        self.query.append({"vertexFromValues" : func})
+        self.query.append({"vertex_from_values" : func})
         return self
 
     def match(self, queries):
