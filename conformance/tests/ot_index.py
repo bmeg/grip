@@ -1,5 +1,12 @@
 
 
+def test_label_list(O):
+    errors = []
+    O.addVertexIndex("Person", "name")
+
+    return errors
+
+
 def test_label_index(O):
     errors = []
 

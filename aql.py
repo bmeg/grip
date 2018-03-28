@@ -118,7 +118,7 @@ class Graph:
 
     def addVertexIndex(self, label, field):
         headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
-        url = self.url + "/" + self.name + "/vertex-index/" + label
+        url = self.url + "/" + self.name + "/index/" + label
         request = urllib2.Request(url, json.dumps({"field":field}), headers=headers)
         response = urllib2.urlopen(request)
         result = response.read()
@@ -180,7 +180,7 @@ class Index:
         self.parent = parent
 
     def getVertexIndex(self, label, field):
-        url = self.parent.url + "/" + self.parent.name + "/vertex-index/" + label + "/" + field
+        url = self.parent.url + "/" + self.parent.name + "/index/" + label + "/" + field
         request = urllib2.Request(url)
         response = urllib2.urlopen(request)
         for result in response:
@@ -188,7 +188,7 @@ class Index:
             yield d
 
     def query(self, label, field, value):
-        url = self.parent.url + "/" + self.parent.name + "/vertex-index/" + label + "/" + field
+        url = self.parent.url + "/" + self.parent.name + "/index/" + label + "/" + field
         return Query(url)
 
 class Query:

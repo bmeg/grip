@@ -50,6 +50,7 @@ if __name__ == "__main__":
                     func = getattr(mod,f)
                     if callable(func):
                         try:
+                            print "Running: %s %s " % (name, f[5:])
                             e = func(conn.graph(GRAPH))
                             if len(e) == 0:
                                 correct += 1

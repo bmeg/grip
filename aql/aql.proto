@@ -63,7 +63,7 @@ message HasStatement {
 }
 
 enum Condition {
-  UNKNOWN = 0;
+  UNKNOWN_CONDITION = 0;
   EQ  = 1;
   NEQ = 2;
   GT  = 3;
@@ -148,22 +148,35 @@ message Graph {
   repeated Vertex vertices = 3;
 }
 
+
+message GraphID {
+  string graph = 1;
+}
+
 message ElementID {
   string graph = 1;
   string id = 2;
+}
+
+enum ElementType {
+  UNKNOWN_TYPE = 0;
+  VERTEX = 1;
+  EDGE = 2;
 }
 
 message IndexID {
   string graph = 1;
   string label = 2;
   string field = 3;
+  ElementType type = 4;
 }
 
 message IndexQuery {
   string graph = 1;
   string label = 2;
   string field = 3;
-  repeated GraphStatement query = 4;
+  ElementType type = 4;
+  repeated GraphStatement query = 5;
 }
 
 message IndexTermCount {
@@ -211,22 +224,21 @@ service Query {
     };
   }
 
-
-  rpc GetVertexIndex(IndexID) returns (stream IndexTermCount) {
+  rpc GetIndexList(GraphID) returns (stream IndexID) {
     option (google.api.http) = {
-      get: "/v1/graph/{graph}/vertex-index/{label}/{field}"
+      get: "/v1/graph/{graph}/index"
     };
   }
 
-  rpc GetEdgeIndex(IndexID) returns (stream IndexTermCount) {
+  rpc GetIndex(IndexID) returns (stream IndexTermCount) {
     option (google.api.http) = {
-      get: "/v1/graph/{graph}/edge-index/{label}/{field}"
+      get: "/v1/graph/{graph}/index/{label}/{field}"
     };
   }
 
-  rpc VertexIndexTraversal(IndexQuery) returns (stream ResultRow) {
+  rpc IndexTraversal(IndexQuery) returns (stream ResultRow) {
     option (google.api.http) = {
-      post: "/v1/graph/{graph}/vertex-index/{label}/{field}"
+      post: "/v1/graph/{graph}/index/{label}/{field}"
       body: "*"
     };
   }
@@ -298,28 +310,16 @@ service Edit {
     };
   }
 
-  rpc AddVertexIndex(IndexID) returns (EditResult) {
+  rpc AddIndex(IndexID) returns (EditResult) {
     option (google.api.http) = {
-      post: "/v1/graph/{graph}/vertex-index/{label}"
+      post: "/v1/graph/{graph}/index/{label}"
       body: "*"
     };
   }
 
-  rpc AddEdgeIndex(IndexID) returns (EditResult) {
+  rpc DeleteIndex(IndexID) returns (EditResult) {
     option (google.api.http) = {
-      post: "/v1/graph/{graph}/edge-index/{label}"
-    };
-  }
-
-  rpc DeleteVertexIndex(IndexID) returns (EditResult) {
-    option (google.api.http) = {
-      delete: "/v1/graph/{graph}/vertex-index/{label}/{field}"
-    };
-  }
-
-  rpc DeleteEdgeIndex(IndexID) returns (EditResult) {
-    option (google.api.http) = {
-      delete: "/v1/graph/{graph}/edge-index/{label}/{field}"
+      delete: "/v1/graph/{graph}/index/{label}/{field}"
     };
   }
 

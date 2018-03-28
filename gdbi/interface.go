@@ -83,16 +83,18 @@ type GraphInterface interface {
 	DelBundle(id string) error
 
 	VertexLabelScan(ctx context.Context, label string) chan string
-	EdgeLabelScan(ctx context.Context, label string) chan string
+	//EdgeLabelScan(ctx context.Context, label string) chan string
 
 	AddVertexIndex(label string, field string) error
-	AddEdgeIndex(label string, field string) error
+	//AddEdgeIndex(label string, field string) error
+
+	GetVertexIndexList() chan aql.IndexID
 
 	DeleteVertexIndex(label string, field string) error
-	DeleteEdgeIndex(label string, field string) error
+	//DeleteEdgeIndex(label string, field string) error
 
 	GetVertexTermCount(ctx context.Context, label string, field string) chan aql.IndexTermCount
-	GetEdgeTermCount(ctx context.Context, label string, field string) chan aql.IndexTermCount
+	//GetEdgeTermCount(ctx context.Context, label string, field string) chan aql.IndexTermCount
 
 	GetVertexList(ctx context.Context, load bool) <-chan *aql.Vertex
 	GetEdgeList(ctx context.Context, load bool) <-chan *aql.Edge

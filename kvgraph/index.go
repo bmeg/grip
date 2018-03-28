@@ -26,12 +26,18 @@ func edgeIdxStruct(graph string, v *aql.Vertex) map[string]interface{} {
 	return k
 }
 
+/*
 func (kgdb *KVInterfaceGDB) indexVertex(v *aql.Vertex) {
 	//v := vertexIdxStruct(v)
 }
+*/
 
 //AddVertexIndex add index to vertices
 func (kgdb *KVInterfaceGDB) AddVertexIndex(label string, field string) error {
+	return nil
+}
+
+func (kgdb *KVInterfaceGDB) GetVertexIndexList() chan aql.IndexID {
 	return nil
 }
 

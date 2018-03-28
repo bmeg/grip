@@ -28,6 +28,26 @@ func (mg *Graph) AddEdgeIndex(label string, field string) error {
 	return err
 }
 
+func (mg *Graph) GetVertexIndexList() chan aql.IndexID {
+	out := make(chan aql.IndexID)
+	go func() {
+		session := mg.ar.pool.Get()
+		defer mg.ar.pool.Put(session)
+		defer close(out)
+		c := mg.ar.getEdgeCollection(session, mg.graph)
+		idx_list, err := c.Indexes()
+		if err != nil {
+			return
+		}
+		for _, idx := range idx_list {
+			if len(idx.Key) > 1 && idx.Key[0] == "label" {
+				out <- aql.IndexID{Graph: mg.graph, Field: idx.Key[1]}
+			}
+		}
+	}()
+	return out
+}
+
 //GetVertexTermCount get count of every term across vertices
 func (mg *Graph) GetVertexTermCount(ctx context.Context, label string, field string) chan aql.IndexTermCount {
 	out := make(chan aql.IndexTermCount, 100)
