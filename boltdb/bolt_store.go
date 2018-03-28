@@ -105,6 +105,16 @@ func (boltTrans boltTransaction) Set(key, val []byte) error {
 	return b.Put(key, val)
 }
 
+
+// Get retrieves the value of key `id`
+func (boltTrans boltTransaction) Get(id []byte) ([]byte, error) {
+	o := boltTrans.b.Get(id)
+	if o == nil {
+		return nil, fmt.Errorf("Not Found")
+	}
+	return copyBytes(o), nil
+}
+
 func (boltTrans boltTransaction) HasKey(id []byte) bool {
 	b := boltTrans.tx.Bucket(graphBucket)
 	d := b.Get([]byte(id))

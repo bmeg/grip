@@ -38,10 +38,7 @@ func Compile(stmts []*aql.GraphStatement, db gdbi.GraphInterface, workDir string
 			lastType = gdbi.VertexData
 
 		case *aql.GraphStatement_E:
-			var ids []string
-			if stmt.E != "" {
-				ids = append(ids, stmt.E)
-			}
+			ids := protoutil.AsStringList(stmt.E)
 			add(&LookupEdges{db: db, ids: ids})
 			lastType = gdbi.EdgeData
 

@@ -42,11 +42,9 @@ func (q *Query) V(id ...string) *Query {
 }
 
 // E adds a edge selection step to the query
-func (q *Query) E(ids ...string) *Query {
-	if len(ids) > 0 {
-		return q.with(&GraphStatement{&GraphStatement_E{ids[0]}})
-	}
-	return q.with(&GraphStatement{&GraphStatement_E{}})
+func (q *Query) E(id ...string) *Query {
+	elist := protoutil.AsListValue(id)
+	return q.with(&GraphStatement{&GraphStatement_E{elist}})
 }
 
 // In follows incoming edges to adjacent vertex
@@ -150,7 +148,8 @@ func (q *Query) String() string {
 			add("V", ids...)
 
 		case *GraphStatement_E:
-			add("E", stmt.E)
+			ids := protoutil.AsStringList(stmt.E)
+			add("E", ids...)
 
 		case *GraphStatement_Has:
 			args := []string{stmt.Has.Key}
