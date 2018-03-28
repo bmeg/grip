@@ -105,7 +105,6 @@ func (boltTrans boltTransaction) Set(key, val []byte) error {
 	return b.Put(key, val)
 }
 
-
 // Get retrieves the value of key `id`
 func (boltTrans boltTransaction) Get(id []byte) ([]byte, error) {
 	o := boltTrans.b.Get(id)
