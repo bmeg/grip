@@ -124,6 +124,16 @@ class Graph:
         result = response.read()
         return json.loads(result)
 
+    def listVertexList(self):
+        headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
+        url = self.url + "/" + self.name + "/index"
+        request = urllib2.Request(url, headers=headers)
+        response = urllib2.urlopen(request)
+        result = response.read()
+        print "found", url, result
+        return json.loads(result)
+
+
     def index(self):
         """
         Create a index handle.

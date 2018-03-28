@@ -4,6 +4,12 @@ def test_label_list(O):
     errors = []
     O.addVertexIndex("Person", "name")
 
+    O.addVertex("1", "Person", {"name":"marko", "age":"29"})
+    O.addVertex("2", "Person", {"name":"vadas", "age":"27"})
+
+    for i in O.listVertexList():
+        print i
+
     return errors
 
 

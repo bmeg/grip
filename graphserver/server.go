@@ -332,6 +332,7 @@ func (server *ArachneServer) GetIndex(idx *aql.IndexID, stream aql.Query_GetInde
 func (server *ArachneServer) GetIndexList(idx *aql.GraphID, stream aql.Query_GetIndexListServer) error {
 	res := server.db.Graph(idx.Graph).GetVertexIndexList()
 	for i := range res {
+		log.Printf("Sending: %s", i)
 		stream.Send(&i)
 	}
 	return nil
