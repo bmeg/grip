@@ -129,10 +129,9 @@ class Graph:
         url = self.url + "/" + self.name + "/index"
         request = urllib2.Request(url, headers=headers)
         response = urllib2.urlopen(request)
-        result = response.read()
-        print "found", url, result
-        return json.loads(result)
-
+        for result in response:
+            d = json.loads(result)
+            yield d
 
     def index(self):
         """

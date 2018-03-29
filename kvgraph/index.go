@@ -3,8 +3,10 @@ package kvgraph
 import (
 	"context"
 	"fmt"
-	//"log"
 	"github.com/bmeg/arachne/aql"
+	"github.com/bmeg/arachne/protoutil"
+	"log"
+	"strings"
 	//"github.com/bmeg/arachne/kvindex"
 )
 
@@ -13,44 +15,51 @@ func (kgraph *KVGraph) setupGraphIndex(graph string) {
 }
 
 func vertexIdxStruct(v *aql.Vertex) map[string]interface{} {
+	//vertexField := fmt.Sprintf("v.%s", v.Label)
 	k := map[string]interface{}{
 		"label": v.Label,
+		"v":     map[string]interface{}{v.Label: protoutil.AsMap(v.Data)},
 	}
+	//log.Printf("Vertex: %s", k)
 	return k
 }
-
-func edgeIdxStruct(graph string, v *aql.Vertex) map[string]interface{} {
-	k := map[string]interface{}{
-		fmt.Sprintf("%s.label", graph): v.Label,
-	}
-	return k
-}
-
-/*
-func (kgdb *KVInterfaceGDB) indexVertex(v *aql.Vertex) {
-	//v := vertexIdxStruct(v)
-}
-*/
 
 //AddVertexIndex add index to vertices
 func (kgdb *KVInterfaceGDB) AddVertexIndex(label string, field string) error {
-	return nil
+	log.Printf("Adding Index: %s:%s", label, field)
+	return kgdb.kvg.idx.AddField(fmt.Sprintf("%s.v.%s.%s", kgdb.graph, label, field))
 }
 
 func (kgdb *KVInterfaceGDB) GetVertexIndexList() chan aql.IndexID {
-	return nil
-}
-
-//AddEdgeIndex add index to edges
-func (kgdb *KVInterfaceGDB) AddEdgeIndex(label string, field string) error {
-
-	return nil
+	out := make(chan aql.IndexID)
+	go func() {
+		defer close(out)
+		fields := kgdb.kvg.idx.ListFields()
+		for _, f := range fields {
+			t := strings.Split(f, ".")
+			if len(t) > 3 {
+				a := aql.IndexID{Graph: kgdb.graph, Label: t[2], Field: t[3]}
+				out <- a
+			}
+		}
+	}()
+	return out
 }
 
 //GetVertexTermCount get count of every term across vertices
 func (kgdb *KVInterfaceGDB) GetVertexTermCount(ctx context.Context, label string, field string) chan aql.IndexTermCount {
-
-	return nil
+	log.Printf("Running GetVertexTermCount")
+	out := make(chan aql.IndexTermCount, 100)
+	go func() {
+		defer close(out)
+		for tcount := range kgdb.kvg.idx.FieldTermCounts(fmt.Sprintf("%s.v.%s.%s", kgdb.graph, label, field)) {
+			s := string(tcount.Value)
+			t := protoutil.WrapValue(s)
+			a := aql.IndexTermCount{Term: t, Count: int32(tcount.Count)}
+			out <- a
+		}
+	}()
+	return out
 }
 
 //GetEdgeTermCount get count of every term across edges

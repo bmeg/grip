@@ -181,6 +181,7 @@ func newEntry(docID string, field string, value interface{}) entryValue {
 func fieldScan(docID string, doc map[string]interface{}, fieldPrefix string, fields []string, out chan entryValue) {
 	for k, v := range doc {
 		f := fmt.Sprintf("%s.%s", fieldPrefix, k)
+		//log.Printf("Checking %s in %s", f, fields)
 		if containsPrefix(f, fields) {
 			if x, ok := v.(map[string]interface{}); ok {
 				fieldScan(docID, x, fmt.Sprintf("%s.%s", fieldPrefix, k), fields, out)
@@ -204,7 +205,7 @@ func (idx *KVIndex) AddDocPrefix(docID string, doc map[string]interface{}, field
 	idx.kv.Update(func(tx kvi.KVTransaction) error {
 		sdoc := Doc{Entries: [][]byte{}}
 		for v := range values {
-			//log.Printf("Index %s", string(v.term))
+			//log.Printf("Index %s %s", string(v.entryKey), string(v.term))
 			tx.Set(v.entryKey, []byte{})
 			tx.Set(v.termKey, []byte{})
 			sdoc.Entries = append(sdoc.Entries, v.entryKey)
