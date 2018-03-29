@@ -44,6 +44,9 @@ func (kgraph *KVGraph) DeleteGraph(graph string) error {
 	kgraph.kv.DeletePrefix(dprefix)
 
 	graphKey := GraphKey(graph)
+
+	kgraph.deleteGraphIndex(graph)
+
 	return kgraph.kv.Delete(graphKey)
 }
 

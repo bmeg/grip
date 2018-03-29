@@ -14,6 +14,16 @@ func (kgraph *KVGraph) setupGraphIndex(graph string) {
 	kgraph.idx.AddField(fmt.Sprintf("%s.label", graph))
 }
 
+func (kgraph *KVGraph) deleteGraphIndex(graph string) {
+	fields := kgraph.idx.ListFields()
+	for _, f := range fields {
+		t := strings.Split(f, ".")
+		if t[0] == graph {
+			kgraph.idx.RemoveField(f)
+		}
+	}
+}
+
 func vertexIdxStruct(v *aql.Vertex) map[string]interface{} {
 	//vertexField := fmt.Sprintf("v.%s", v.Label)
 	k := map[string]interface{}{

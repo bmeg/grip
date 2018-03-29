@@ -1,19 +1,37 @@
 
 
-def test_label_list(O):
+def test_label_a_list(O):
     errors = []
     O.addVertexIndex("Person", "name")
     O.addVertex("1", "Person", {"name":"marko", "age":"29"})
     O.addVertex("2", "Person", {"name":"vadas", "age":"27"})
     count = 0
     for i in O.listVertexList():
-        print i
         count += 1
         if i['field'] != 'name' or i['label'] != 'Person':
             errors.append("Incorrect index field reported")
     if count != 1:
         errors.append("Incorrect number of indices returned")
     return errors
+
+"""
+Run label_a_test again, but with different index field to make sure
+original index was deleted
+"""
+def test_label_b_list(O):
+    errors = []
+    O.addVertexIndex("Person", "age")
+    O.addVertex("1", "Person", {"name":"marko", "age":"29"})
+    O.addVertex("2", "Person", {"name":"vadas", "age":"27"})
+    count = 0
+    for i in O.listVertexList():
+        count += 1
+        if i['field'] != 'age' or i['label'] != 'Person':
+            errors.append("Incorrect index field reported")
+    if count != 1:
+        errors.append("Incorrect number of indices returned")
+    return errors
+
 
 def test_label_index(O):
     errors = []
@@ -77,7 +95,7 @@ def test_count_index(O):
 
     return errors
 
-
+"""
 def test_count_index_query(O):
     errors = []
 
@@ -105,3 +123,4 @@ def test_count_index_query(O):
         errors.append("Wrong index query return count: %s != %s" % (count, 2))
 
     return errors
+"""
