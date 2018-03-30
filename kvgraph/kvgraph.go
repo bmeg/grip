@@ -73,13 +73,6 @@ func (kgraph *KVGraph) GetGraphs() []string {
 	return out
 }
 
-/*
-// Query creates a QueryInterface for a particular Graph
-func (kgdb *KVInterfaceGDB) Query() gdbi.QueryInterface {
-	return gdbi.NewPipeEngine(kgdb)
-}
-*/
-
 // GetTimestamp returns the update timestamp
 func (kgdb *KVInterfaceGDB) GetTimestamp() string {
 	return kgdb.kvg.ts.Get(kgdb.graph)
@@ -128,6 +121,7 @@ func (kgdb *KVInterfaceGDB) AddEdge(edgeArray []*aql.Edge) error {
 			if edge.Gid == "" {
 				edge.Gid = randomEdgeKeyAssignment(kgdb.graph, tx)
 			}
+
 			eid := edge.Gid
 			var err error
 			var data []byte
@@ -155,8 +149,8 @@ func (kgdb *KVInterfaceGDB) AddEdge(edgeArray []*aql.Edge) error {
 			if err != nil {
 				return err
 			}
-			kgdb.kvg.ts.Touch(kgdb.graph)
 		}
+		kgdb.kvg.ts.Touch(kgdb.graph)
 		return nil
 	})
 	return nil
