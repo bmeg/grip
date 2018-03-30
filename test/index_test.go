@@ -94,7 +94,7 @@ func TestLoadDoc(b *testing.T) {
 	}
 
 	for _, d := range data {
-		idx.AddDocPrefix(d["gid"].(string), d, "v")
+		idx.AddDoc(d["gid"].(string), map[string]interface{}{"v": d})
 	}
 
 	count := 0
@@ -131,7 +131,7 @@ func TestTermEnum(b *testing.T) {
 		idx.AddField(s)
 	}
 	for _, d := range data {
-		idx.AddDocPrefix(d["gid"].(string), d, "v")
+		idx.AddDoc(d["gid"].(string), map[string]interface{}{"v": d})
 	}
 
 	count := 0
@@ -168,7 +168,7 @@ func TestTermCount(b *testing.T) {
 		idx.AddField(s)
 	}
 	for _, d := range data {
-		idx.AddDocPrefix(d["gid"].(string), d, "v")
+		idx.AddDoc(d["gid"].(string), map[string]interface{}{"v": d})
 	}
 
 	count := 0
@@ -210,7 +210,7 @@ func TestDocDelete(b *testing.T) {
 		idx.AddField(s)
 	}
 	for _, d := range data {
-		idx.AddDocPrefix(d["gid"].(string), d, "v")
+		idx.AddDoc(d["gid"].(string), map[string]interface{}{"v": d})
 	}
 
 	idx.RemoveDoc("vertex1")

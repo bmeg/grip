@@ -113,7 +113,8 @@ func containsPrefix(c string, s []string) bool {
 
 // KVIndex is a index implementation using the generic key value store
 type KVIndex struct {
-	kv kvi.KVInterface
+	kv     kvi.KVInterface
+	fields map[string][]string
 }
 
 // KVTermCount Get all terms and their counts
@@ -124,12 +125,19 @@ type KVTermCount struct {
 
 // NewIndex create new key value index
 func NewIndex(kv kvi.KVInterface) *KVIndex {
-	return &KVIndex{kv}
+	out := KVIndex{kv: kv}
+	fields := out.ListFields()
+	out.fields = make(map[string][]string, len(fields))
+	for i := range fields {
+		out.fields[fields[i]] = strings.Split(fields[i], ".")
+	}
+	return &out
 }
 
 // AddField add new field to be indexed
 func (idx *KVIndex) AddField(path string) error {
 	fk := FieldKey(path)
+	idx.fields[path] = strings.Split(path, ".")
 	return idx.kv.Set(fk, []byte{})
 }
 
@@ -140,6 +148,7 @@ func (idx *KVIndex) RemoveField(path string) error {
 	ed := EntryPrefix(path)
 	idx.kv.DeletePrefix(fkt)
 	idx.kv.DeletePrefix(ed)
+	delete(idx.fields, path)
 	return idx.kv.Delete(fk)
 }
 
@@ -159,7 +168,9 @@ func (idx *KVIndex) ListFields() []string {
 
 // AddDoc adds new document to the index
 func (idx *KVIndex) AddDoc(docID string, value map[string]interface{}) error {
-	return idx.AddDocPrefix(docID, value, "")
+	return idx.kv.Update(func(tx kvi.KVTransaction) error {
+		return idx.AddDocTx(tx, docID, value)
+	})
 }
 
 type entryValue struct {
@@ -192,29 +203,38 @@ func fieldScan(docID string, doc map[string]interface{}, fieldPrefix string, fie
 	}
 }
 
-// AddDocPrefix add new document and prefix all the fields with `fieldPrefix` path
-func (idx *KVIndex) AddDocPrefix(docID string, doc map[string]interface{}, fieldPrefix string) error {
-	fields := idx.ListFields()
-	//log.Printf("Fields: %s", fields)
-	values := make(chan entryValue, bufferSize)
-	go func() {
-		fieldScan(docID, doc, fieldPrefix, fields, values)
-		close(values)
-	}()
-	docKey := DocKey(docID)
-	idx.kv.Update(func(tx kvi.KVTransaction) error {
-		sdoc := Doc{Entries: [][]byte{}}
-		for v := range values {
-			//log.Printf("Index %s %s", string(v.entryKey), string(v.term))
-			tx.Set(v.entryKey, []byte{})
-			tx.Set(v.termKey, []byte{})
-			sdoc.Entries = append(sdoc.Entries, v.entryKey)
+func mapDig(i map[string]interface{}, path []string) interface{} {
+	//log.Printf("Digging %s", path)
+	if x, ok := i[path[0]]; ok {
+		if len(path) > 1 {
+			if y, ok := x.(map[string]interface{}); ok {
+				return mapDig(y, path[1:])
+			}
+		} else {
+			return x
 		}
-		data, _ := proto.Marshal(&sdoc)
-		tx.Set(docKey, data)
-		return nil
-	})
+	}
+	return nil
+}
 
+// AddDocPrefix add new document and prefix all the fields with `fieldPrefix` path
+func (idx *KVIndex) AddDocTx(tx kvi.KVTransaction, docID string, doc map[string]interface{}) error {
+	sdoc := Doc{Entries: [][]byte{}}
+	docKey := DocKey(docID)
+
+	for field, p := range idx.fields {
+		x := mapDig(doc, p)
+		if x != nil {
+			term := []byte(x.(string))
+			entryKey := EntryKey(field, term, docID)
+			termKey := TermKey(field, term)
+			tx.Set(entryKey, []byte{})
+			tx.Set(termKey, []byte{})
+			sdoc.Entries = append(sdoc.Entries, entryKey)
+		}
+	}
+	data, _ := proto.Marshal(&sdoc)
+	tx.Set(docKey, data)
 	return nil
 }
 

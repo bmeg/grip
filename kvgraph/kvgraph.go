@@ -96,15 +96,20 @@ func (kgdb *KVInterfaceGDB) AddVertex(vertexArray []*aql.Vertex) error {
 			if err != nil {
 				return err
 			}
+			//vertexIdxStruct(vertex)
+			doc := vertexIdxStruct(vertex)
+			kgdb.kvg.idx.AddDocTx(tx, vertex.Gid, map[string]interface{}{kgdb.graph: doc})
 		}
 		kgdb.kvg.ts.Touch(kgdb.graph)
 		return nil
 	})
-	for _, vertex := range vertexArray {
-		doc := vertexIdxStruct(vertex)
-		//log.Printf("Indexing: %s", doc)
-		kgdb.kvg.idx.AddDocPrefix(vertex.Gid, doc, kgdb.graph)
-	}
+	/*
+		for _, vertex := range vertexArray {
+			doc := vertexIdxStruct(vertex)
+			//log.Printf("Indexing: %s", doc)
+			kgdb.kvg.idx.AddDocPrefix(vertex.Gid, doc, kgdb.graph)
+		}
+	*/
 	return nil
 }
 
