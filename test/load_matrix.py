@@ -14,7 +14,7 @@ def load_matrix(args):
     matrix = pandas.read_csv(args.input, sep="\t", index_col=0).transpose()
 
     for c in matrix.columns:
-        if O.query().V(c).count().first()['int_value'] == 0:
+        if O.query().V(c).count().first()['data'] == 0:
             if args.debug:
                 print "AddVertex", c
             else:
