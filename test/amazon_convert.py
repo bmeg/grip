@@ -21,14 +21,14 @@ class Writer:
         self.record_count = 0
 
     def add_record(self, rec):
-        q = {"gid" : rec['ASIN'], "properties" : {}}
+        q = {"gid" : rec['ASIN'], "data" : {}}
         for i in ["Id", "group", "title", "salesrank"]:
             if i in rec:
-                q["properties"][i] = rec[i]
+                q["data"][i] = rec[i]
         self.vert_handle.write(json.dumps(q) + "\n")
 
         for i in rec.get('similar', []):
-            e = { "src" : rec['ASIN'], "dst" : i, "label" : "similar" }
+            e = { "from" : rec['ASIN'], "to" : i, "label" : "similar" }
             self.edge_handle.write(json.dumps(e) + "\n")
 
         self.record_count += 1
