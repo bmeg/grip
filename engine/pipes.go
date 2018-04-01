@@ -9,39 +9,23 @@ import (
 	"github.com/bmeg/arachne/protoutil"
 )
 
-// Pipeline a set of runnable query operations
-type Pipeline struct {
-	procs     []Processor
-	dataType  gdbi.DataType
-	markTypes map[string]gdbi.DataType
-	rowTypes  []gdbi.DataType
-	workDir   string
-}
-
-type propKey string
-
-var propLoad propKey = "load"
-
-func getPropLoad(ctx context.Context) bool {
-	return ctx.Value(propLoad).(bool)
-}
-
 // Start begins processing a query pipeline
-func (pipe Pipeline) Start(ctx context.Context, bufsize int) gdbi.InPipe {
-	if len(pipe.procs) == 0 {
+func Start(ctx context.Context, pipe gdbi.Pipeline, workdir string, bufsize int) gdbi.InPipe {
+	procs := pipe.Processors()
+	if len(procs) == 0 {
 		ch := make(chan *gdbi.Traveler)
 		close(ch)
 		return ch
 	}
 
-	ctx = context.WithValue(ctx, propLoad, true)
+	//ctx = context.WithValue(ctx, propLoad, true)
 
 	in := make(chan *gdbi.Traveler, bufsize)
 	final := make(chan *gdbi.Traveler, bufsize)
 	out := final
-	for i := len(pipe.procs) - 1; i >= 0; i-- {
-		man := pipe.NewManager()
-		ctx = pipe.procs[i].Process(ctx, man, in, out)
+	for i := len(procs) - 1; i >= 0; i-- {
+		man := NewManager(workdir)
+		ctx = procs[i].Process(ctx, man, in, out)
 		out = in
 		in = make(chan *gdbi.Traveler, bufsize)
 	}
@@ -58,15 +42,16 @@ func (pipe Pipeline) Start(ctx context.Context, bufsize int) gdbi.InPipe {
 }
 
 // Run starts a pipeline and converts the output to server output structures
-func (pipe Pipeline) Run(ctx context.Context) <-chan *aql.ResultRow {
-
+func Run(ctx context.Context, pipe gdbi.Pipeline, workdir string) <-chan *aql.ResultRow {
 	bufsize := 100
 	resch := make(chan *aql.ResultRow, bufsize)
 
 	go func() {
 		defer close(resch)
-		for t := range pipe.Start(ctx, bufsize) {
-			resch <- pipe.Convert(t)
+		dataType := pipe.DataType()
+		rowTypes := pipe.RowTypes()
+		for t := range Start(ctx, pipe, workdir, bufsize) {
+			resch <- Convert(dataType, rowTypes, t)
 		}
 	}()
 
@@ -74,8 +59,8 @@ func (pipe Pipeline) Run(ctx context.Context) <-chan *aql.ResultRow {
 }
 
 // Convert takes a traveler and converts it to query output
-func (pipe Pipeline) Convert(t *gdbi.Traveler) *aql.ResultRow {
-	switch pipe.dataType {
+func Convert(dataType gdbi.DataType, rowTypes []gdbi.DataType, t *gdbi.Traveler) *aql.ResultRow {
+	switch dataType {
 	case gdbi.VertexData:
 		return &aql.ResultRow{
 			Value: &aql.QueryResult{
@@ -115,14 +100,14 @@ func (pipe Pipeline) Convert(t *gdbi.Traveler) *aql.ResultRow {
 	case gdbi.RowData:
 		res := &aql.ResultRow{}
 		for i, r := range t.GetCurrent().Row {
-			if pipe.rowTypes[i] == gdbi.VertexData {
+			if rowTypes[i] == gdbi.VertexData {
 				elem := &aql.QueryResult{
 					Result: &aql.QueryResult_Vertex{
 						Vertex: r.ToVertex(),
 					},
 				}
 				res.Row = append(res.Row, elem)
-			} else if pipe.rowTypes[i] == gdbi.EdgeData {
+			} else if rowTypes[i] == gdbi.EdgeData {
 				elem := &aql.QueryResult{
 					Result: &aql.QueryResult_Edge{
 						Edge: r.ToEdge(),
@@ -143,6 +128,6 @@ func (pipe Pipeline) Convert(t *gdbi.Traveler) *aql.ResultRow {
 		}
 
 	default:
-		panic(fmt.Errorf("unhandled data type %d", pipe.dataType))
+		panic(fmt.Errorf("unhandled data type %d", dataType))
 	}
 }

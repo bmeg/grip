@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/bmeg/arachne/aql"
+	"github.com/bmeg/arachne/engine/core"
 	"github.com/bmeg/arachne/gdbi"
 	"github.com/bmeg/arachne/kvi"
 	proto "github.com/golang/protobuf/proto"
@@ -76,6 +77,10 @@ func (kgraph *KVGraph) GetGraphs() []string {
 // GetTimestamp returns the update timestamp
 func (kgdb *KVInterfaceGDB) GetTimestamp() string {
 	return kgdb.kvg.ts.Get(kgdb.graph)
+}
+
+func (kgdb *KVInterfaceGDB) Compiler() gdbi.Compiler {
+	return core.NewCompiler(kgdb)
 }
 
 // AddVertex adds an edge to the graph, if it already exists

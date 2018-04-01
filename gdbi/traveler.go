@@ -1,7 +1,6 @@
 package gdbi
 
 import (
-	"context"
 	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/protoutil"
 )
@@ -23,14 +22,6 @@ const (
 	// StateBundleList the Pipeline will be emittign a list of bundles
 	StateBundleList = 5
 )
-
-// Pipeline represents the output of a single pipeline chain
-type Pipeline interface {
-	//StartInput(chan Traveler) error
-	Start(ctx context.Context) chan Traveler
-	GetCurrentState() int
-	GetValueStates() map[string]int
-}
 
 // AddCurrent creates a new copy of the travel with new 'current' value
 func (t Traveler) AddCurrent(r *DataElement) *Traveler {

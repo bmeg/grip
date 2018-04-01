@@ -2,13 +2,14 @@ package engine
 
 import (
 	"github.com/bmeg/arachne/badgerdb"
+	"github.com/bmeg/arachne/gdbi"
 	"github.com/bmeg/arachne/kvi"
 	"io/ioutil"
 	"os"
 )
 
-func (pipe Pipeline) NewManager() Manager {
-	return &badgerManager{[]kvi.KVInterface{}, []string{}, pipe.workDir}
+func NewManager(workDir string) gdbi.Manager {
+	return &badgerManager{[]kvi.KVInterface{}, []string{}, workDir}
 }
 
 type badgerManager struct {

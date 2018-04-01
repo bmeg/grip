@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/bmeg/arachne/aql"
+	"github.com/bmeg/arachne/engine/core"
 	"github.com/bmeg/arachne/gdbi"
 	"github.com/bmeg/arachne/timestamp"
 	"github.com/vsco/mgopool"
@@ -134,6 +135,10 @@ func (ma *Mongo) Graph(graph string) gdbi.GraphInterface {
 		ts:    ma.ts,
 		graph: graph,
 	}
+}
+
+func (mg *Graph) Compiler() gdbi.Compiler {
+	return core.NewCompiler(mg)
 }
 
 // GetEdge loads an edge given an id. It returns nil if not found

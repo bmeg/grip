@@ -1,4 +1,4 @@
-package engine
+package core
 
 import (
 	"bytes"
@@ -23,8 +23,20 @@ type LookupVerts struct {
 	ids []string
 }
 
+type propKey string
+
+var propLoad propKey = "load"
+
+func getPropLoad(ctx context.Context) bool {
+	v := ctx.Value(propLoad)
+	if v == nil {
+		return true
+	}
+	return v.(bool)
+}
+
 // Process LookupVerts
-func (l *LookupVerts) Process(ctx context.Context, man Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
+func (l *LookupVerts) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
 	go func() {
 		defer close(out)
 		for t := range in {
@@ -61,7 +73,7 @@ type LookupVertsIndex struct {
 }
 
 // Process LookupVerts
-func (l *LookupVertsIndex) Process(ctx context.Context, man Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
+func (l *LookupVertsIndex) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
 	queryChan := make(chan gdbi.ElementLookup, 100)
 	go func() {
 		defer close(queryChan)
@@ -100,7 +112,7 @@ type LookupEdges struct {
 }
 
 // Process runs LookupEdges
-func (l *LookupEdges) Process(ctx context.Context, man Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
+func (l *LookupEdges) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
 	go func() {
 		defer close(out)
 		for t := range in {
@@ -126,7 +138,7 @@ type LookupVertexAdjOut struct {
 }
 
 // Process runs out vertex
-func (l *LookupVertexAdjOut) Process(ctx context.Context, man Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
+func (l *LookupVertexAdjOut) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
 	queryChan := make(chan gdbi.ElementLookup, 100)
 	go func() {
 		defer close(queryChan)
@@ -159,7 +171,7 @@ type LookupEdgeAdjOut struct {
 }
 
 // Process runs LookupEdgeAdjOut
-func (l *LookupEdgeAdjOut) Process(ctx context.Context, man Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
+func (l *LookupEdgeAdjOut) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
 	queryChan := make(chan gdbi.ElementLookup, 100)
 	go func() {
 		defer close(queryChan)
@@ -192,7 +204,7 @@ type LookupVertexAdjIn struct {
 }
 
 // Process runs LookupVertexAdjIn
-func (l *LookupVertexAdjIn) Process(ctx context.Context, man Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
+func (l *LookupVertexAdjIn) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
 	queryChan := make(chan gdbi.ElementLookup, 100)
 	go func() {
 		defer close(queryChan)
@@ -225,7 +237,7 @@ type LookupEdgeAdjIn struct {
 }
 
 // Process runs LookupEdgeAdjIn
-func (l *LookupEdgeAdjIn) Process(ctx context.Context, man Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
+func (l *LookupEdgeAdjIn) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
 	queryChan := make(chan gdbi.ElementLookup, 100)
 	go func() {
 		defer close(queryChan)
@@ -258,7 +270,7 @@ type InEdge struct {
 }
 
 // Process runs InEdge
-func (l *InEdge) Process(ctx context.Context, man Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
+func (l *InEdge) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
 	queryChan := make(chan gdbi.ElementLookup, 100)
 	go func() {
 		defer close(queryChan)
@@ -293,7 +305,7 @@ type OutEdge struct {
 }
 
 // Process runs OutEdge
-func (l *OutEdge) Process(ctx context.Context, man Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
+func (l *OutEdge) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
 	queryChan := make(chan gdbi.ElementLookup, 100)
 	go func() {
 		defer close(queryChan)
@@ -327,7 +339,7 @@ type Values struct {
 }
 
 // Process runs Values step
-func (v *Values) Process(ctx context.Context, man Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
+func (v *Values) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
 	go func() {
 		defer close(out)
 		for t := range in {
@@ -358,7 +370,7 @@ type HasData struct {
 }
 
 // Process runs HasData
-func (h *HasData) Process(ctx context.Context, man Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
+func (h *HasData) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
 	go func() {
 		defer close(out)
 		for t := range in {
@@ -382,7 +394,7 @@ type HasLabel struct {
 }
 
 // Process runs HasLabel
-func (h *HasLabel) Process(ctx context.Context, man Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
+func (h *HasLabel) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
 	go func() {
 		defer close(out)
 		for t := range in {
@@ -401,7 +413,7 @@ type HasID struct {
 }
 
 // Process runs HasID
-func (h *HasID) Process(ctx context.Context, man Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
+func (h *HasID) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
 	go func() {
 		defer close(out)
 		for t := range in {
@@ -418,7 +430,7 @@ func (h *HasID) Process(ctx context.Context, man Manager, in gdbi.InPipe, out gd
 type Count struct{}
 
 // Process runs Count
-func (c *Count) Process(ctx context.Context, man Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
+func (c *Count) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
 	go func() {
 		defer close(out)
 		var i int64
@@ -437,7 +449,7 @@ type Limit struct {
 }
 
 // Process runs Limit
-func (l *Limit) Process(ctx context.Context, man Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
+func (l *Limit) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
 	go func() {
 		defer close(out)
 		var i int64
@@ -460,7 +472,7 @@ type Fold struct {
 }
 
 // Process runs fold
-func (f *Fold) Process(ctx context.Context, man Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
+func (f *Fold) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
 	go func() {
 		defer close(out)
 		mfunc, err := jsengine.NewJSEngine(f.fold.Source, f.imports)
@@ -516,7 +528,7 @@ func (g *GroupCount) countValues(in gdbi.InPipe, counts map[string]int64) {
 }
 
 // Process runs GroupCount
-func (g *GroupCount) Process(ctx context.Context, man Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
+func (g *GroupCount) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
 	go func() {
 		defer close(out)
 		counts := map[string]int64{}
@@ -540,7 +552,7 @@ type Distinct struct {
 	vals []string
 }
 
-func (g *Distinct) Process(ctx context.Context, man Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
+func (g *Distinct) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
 	go func() {
 		defer close(out)
 		kv := man.GetTempKV()
@@ -567,7 +579,7 @@ type Marker struct {
 }
 
 // Process runs Marker
-func (m *Marker) Process(ctx context.Context, man Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
+func (m *Marker) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
 	go func() {
 		defer close(out)
 		for t := range in {
@@ -581,7 +593,7 @@ type selectOne struct {
 	mark string
 }
 
-func (s *selectOne) Process(ctx context.Context, man Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
+func (s *selectOne) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
 	go func() {
 		defer close(out)
 		for t := range in {
@@ -596,7 +608,7 @@ type selectMany struct {
 	marks []string
 }
 
-func (s *selectMany) Process(ctx context.Context, man Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
+func (s *selectMany) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
 	go func() {
 		defer close(out)
 		for t := range in {
@@ -611,9 +623,9 @@ func (s *selectMany) Process(ctx context.Context, man Manager, in gdbi.InPipe, o
 	return context.WithValue(ctx, propLoad, true)
 }
 
-type concat []Processor
+type concat []gdbi.Processor
 
-func (c concat) Process(ctx context.Context, man Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
+func (c concat) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
 	go func() {
 		defer close(out)
 		chan_in := make([]chan *gdbi.Traveler, len(c))

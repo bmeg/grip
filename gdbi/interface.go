@@ -3,6 +3,7 @@ package gdbi
 import (
 	"context"
 	"github.com/bmeg/arachne/aql"
+	"github.com/bmeg/arachne/kvi"
 )
 
 // InPipe incoming traveler messages
@@ -66,6 +67,8 @@ type GraphDB interface {
 // GraphInterface is the base Graph data storage interface, the PipeEngine will be able
 // to run queries on a data system backend that implements this interface
 type GraphInterface interface {
+	Compiler() Compiler
+
 	GetTimestamp() string
 
 	//Query() QueryInterface
@@ -107,3 +110,34 @@ type GraphInterface interface {
 
 	GetOutBundleChannel(req chan ElementLookup, load bool, edgeLabels []string) chan ElementLookup
 }
+
+type Manager interface {
+	//Get handle to temporary KeyValue store driver
+	GetTempKV() kvi.KVInterface
+	Cleanup()
+}
+
+type Compiler interface {
+	Compile(stmts []*aql.GraphStatement, workDir string) (Pipeline, error)
+}
+
+// Processor is the interface for a step in the pipe engine
+type Processor interface {
+	Process(ctx context.Context, man Manager, in InPipe, out OutPipe) context.Context
+}
+
+type Pipeline interface {
+	Processors() []Processor
+	DataType() DataType
+	RowTypes() []DataType
+}
+
+/*
+// Pipeline represents the output of a single pipeline chain
+type Pipeline interface {
+	//StartInput(chan Traveler) error
+	Start(ctx context.Context) chan Traveler
+	GetCurrentState() int
+	GetValueStates() map[string]int
+}
+*/

@@ -1,4 +1,4 @@
-package engine
+package core
 
 import (
 	"github.com/bmeg/arachne/aql"
