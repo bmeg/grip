@@ -1,3 +1,7 @@
+/*
+The KeyValue interface wrapper for BoltDB
+*/
+
 package boltdb
 
 import (

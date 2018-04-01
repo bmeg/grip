@@ -1,3 +1,7 @@
+/*
+Core Javascript implementation library
+*/
+
 package jsengine
 
 import (

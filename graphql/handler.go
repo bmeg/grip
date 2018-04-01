@@ -1,3 +1,7 @@
+/*
+GraphQL Web endpoint
+*/
+
 package graphql
 
 import (

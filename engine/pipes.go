@@ -1,3 +1,7 @@
+/*
+The engine package pulls togeather pipelines and runs processing
+*/
+
 package engine
 
 import (

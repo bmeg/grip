@@ -1,3 +1,7 @@
+/*
+Prototype Falcor support. Not yet working
+*/
+
 package falcor
 
 import (

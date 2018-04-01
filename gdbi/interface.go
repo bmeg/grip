@@ -1,3 +1,7 @@
+/*
+Core Graph Database interfaces
+*/
+
 package gdbi
 
 import (
