@@ -5,6 +5,7 @@ import (
 	"github.com/bmeg/arachne/aql"
 	_ "github.com/bmeg/arachne/badgerdb" // import so badger will register itself
 	_ "github.com/bmeg/arachne/boltdb"   // import so bolt will register itself
+	"github.com/bmeg/arachne/elastic"
 	"github.com/bmeg/arachne/engine"
 	"github.com/bmeg/arachne/gdbi"
 	"github.com/bmeg/arachne/kvgraph"
@@ -28,6 +29,13 @@ type ArachneServer struct {
 // to connect to the graph store
 func NewArachneMongoServer(url string, database string, workDir string) *ArachneServer {
 	db := mongo.NewMongo(url, database)
+	return &ArachneServer{db: db, workDir: workDir}
+}
+
+// NewArachneMongoServer initializes a GRPC server that uses the mongo driver
+// to connect to the graph store
+func NewArachneElasticServer(url string, database string, workDir string) *ArachneServer {
+	db := elastic.NewElastic(url, database)
 	return &ArachneServer{db: db, workDir: workDir}
 }
 
