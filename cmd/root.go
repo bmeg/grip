@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"os"
+
 	"github.com/bmeg/arachne/cmd/create"
 	"github.com/bmeg/arachne/cmd/drop"
 	"github.com/bmeg/arachne/cmd/dump"
@@ -14,7 +16,6 @@ import (
 	"github.com/bmeg/arachne/cmd/server"
 	"github.com/bmeg/arachne/cmd/stream"
 	"github.com/spf13/cobra"
-	"os"
 )
 
 // RootCmd represents the root command

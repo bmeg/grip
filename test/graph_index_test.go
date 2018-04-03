@@ -2,16 +2,17 @@ package test
 
 import (
 	"context"
+	"log"
+	"os"
+	"strings"
+	"testing"
+
 	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/badgerdb"
 	"github.com/bmeg/arachne/engine"
 	"github.com/bmeg/arachne/gdbi"
 	"github.com/bmeg/arachne/kvgraph"
 	"github.com/golang/protobuf/jsonpb"
-	"log"
-	"os"
-	"strings"
-	"testing"
 )
 
 var testGraph = `{

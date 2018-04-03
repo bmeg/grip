@@ -1,8 +1,9 @@
 package main
 
 import (
-	"github.com/bmeg/arachne/cmd"
 	"os"
+
+	"github.com/bmeg/arachne/cmd"
 )
 
 func main() {

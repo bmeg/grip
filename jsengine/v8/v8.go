@@ -5,12 +5,13 @@ package v8
 import (
 	"encoding/json"
 	"fmt"
+	"log"
+
 	"github.com/augustoroman/v8"
 	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/jsengine"
 	"github.com/bmeg/arachne/jsengine/underscore"
 	"github.com/bmeg/arachne/protoutil"
-	"log"
 )
 
 type V8Runtime struct {

@@ -6,11 +6,12 @@ package graphql
 
 import (
 	"fmt"
-	"github.com/graphql-go/graphql"
-	"github.com/graphql-go/handler"
 	"log"
 	"net/http"
 	"regexp"
+
+	"github.com/graphql-go/graphql"
+	"github.com/graphql-go/handler"
 	//"github.com/graphql-go/graphql/testutil"
 	"github.com/bmeg/arachne/aql"
 )

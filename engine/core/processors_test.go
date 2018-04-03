@@ -1,13 +1,6 @@
 package core
 
 import (
-	"github.com/bmeg/arachne/aql"
-	_ "github.com/bmeg/arachne/badgerdb"
-	_ "github.com/bmeg/arachne/boltdb"
-	"github.com/bmeg/arachne/gdbi"
-	"github.com/bmeg/arachne/kvgraph"
-	"github.com/bmeg/arachne/protoutil"
-	"github.com/golang/protobuf/jsonpb"
 	"math/rand"
 	"os"
 	"reflect"
@@ -16,6 +9,14 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/bmeg/arachne/aql"
+	_ "github.com/bmeg/arachne/badgerdb"
+	_ "github.com/bmeg/arachne/boltdb"
+	"github.com/bmeg/arachne/gdbi"
+	"github.com/bmeg/arachne/kvgraph"
+	"github.com/bmeg/arachne/protoutil"
+	"github.com/golang/protobuf/jsonpb"
 )
 
 var idRunes = []rune("abcdefghijklmnopqrstuvwxyz")

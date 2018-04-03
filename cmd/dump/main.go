@@ -2,10 +2,11 @@ package dump
 
 import (
 	"fmt"
+	"log"
+
 	"github.com/bmeg/arachne/aql"
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/spf13/cobra"
-	"log"
 )
 
 var host = "localhost:8202"

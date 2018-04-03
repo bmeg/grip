@@ -1,11 +1,12 @@
 package engine
 
 import (
+	"io/ioutil"
+	"os"
+
 	"github.com/bmeg/arachne/badgerdb"
 	"github.com/bmeg/arachne/gdbi"
 	"github.com/bmeg/arachne/kvi"
-	"io/ioutil"
-	"os"
 )
 
 // NewManager creates a resource manager

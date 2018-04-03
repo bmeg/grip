@@ -3,10 +3,11 @@ package kvgraph
 import (
 	"context"
 	"fmt"
-	"github.com/bmeg/arachne/aql"
-	"github.com/bmeg/arachne/protoutil"
 	"log"
 	"strings"
+
+	"github.com/bmeg/arachne/aql"
+	"github.com/bmeg/arachne/protoutil"
 	//"github.com/bmeg/arachne/kvindex"
 )
 

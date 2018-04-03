@@ -10,6 +10,9 @@ export SHELL=/bin/bash
 PATH := ${PATH}:${GOPATH}/bin
 export PATH
 
+# ---------------------
+# Compile and Install
+# ---------------------
 # Build the code
 install: depends
 	@go install github.com/bmeg/arachne
@@ -19,7 +22,9 @@ depends:
 	@git submodule update --init --recursive
 	@go get -d github.com/bmeg/arachne
 
-
+# --------------------------
+# Complile Protobuf Schemas
+# --------------------------
 proto:
 	@go get github.com/ckaznocha/protoc-gen-lint
 	cd aql && protoc \
@@ -40,10 +45,14 @@ proto-depends:
 	go install github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway
 	go install github.com/golang/protobuf/protoc-gen-go
 
+# ---------------------
+# Code Style
+# ---------------------
 # Automatially update code formatting
 tidy:
 	@for f in $$(find . -name "*.go" -print | egrep -v "\.pb\.go|\.gw\.go|underscore\.go"); do \
 		gofmt -w -s $$f ;\
+		goimports -w $$f ;\
 	done;
 
 # Run code style and other checks
@@ -55,7 +64,9 @@ lint:
 		-e '.*bundle.go' -e ".*pb.go" -e ".*pb.gw.go"  -e "underscore.go" \
 		./...
 
-# Run all tests
+# ---------------------
+# Tests
+# ---------------------
 test:
 	@go test $(TESTS)
 
@@ -63,70 +74,21 @@ start-test-server:
 	arachne server --rpc 18202 --port 18201 &
 
 start-test-mongo-server:
-	arachne server --rpc 18202 --port 18201 --mongo localhost &
+	arachne server --rpc 18202 --port 18201 --mongo localhost:2700 &
+
+start-test-elastic-server:
+	arachne server --rpc 18202 --port 18201 --elastic localhost:9200 &
 
 test-conformance:
 	python conformance/run_conformance.py http://localhost:18201
 
-# Build binaries for all OS/Architectures
-cross-compile: depends
-	@echo '=== Cross compiling... ==='
-	@for GOOS in darwin linux; do \
-		for GOARCH in amd64; do \
-			GOOS=$$GOOS GOARCH=$$GOARCH go build -a \
-				-ldflags '$(VERSION_LDFLAGS)' \
-				-o build/bin/arachne-$$GOOS-$$GOARCH .; \
-		done; \
-	done
+# ---------------------
+# Database development
+# ---------------------
+start-mongodb:
+	@docker rm -f arachne-mongodb-test > /dev/null 2>&1 || echo
+	@docker run -d --name arachne-mongodb-test -p 27000:27017 docker.io/mongo:3.5.13 > /dev/null
 
-clean-release:
-	rm -rf ./build/release
-
-# Upload a release to GitHub
-upload-release: clean-release cross-compile
-	#
-	# NOTE! Making a release requires manual steps.
-	# See: website/content/docs/development.md
-	@go get github.com/aktau/github-release
-	@if [ $$(git rev-parse --abbrev-ref HEAD) != 'master' ]; then \
-		echo 'This command should only be run from the master branch'; \
-		exit 1; \
-	fi
-	@if [ -z "$$GITHUB_TOKEN" ]; then \
-		echo 'GITHUB_TOKEN is required but not set. Generate one in your GitHub settings at https://github.com/settings/tokens and set it to an environment variable with `export GITHUB_TOKEN=123456...`'; \
-		exit 1; \
-	fi
-	-github-release release \
-		-u bmeg \
-		-r arachne \
-		--tag $(VERSION) \
-		--name $(VERSION)
-	for f in $$(ls -1 build/bin); do \
-		mkdir -p build/release/$$f-$(VERSION); \
-		cp build/bin/$$f build/release/$$f-$(VERSION)/arachne; \
-		tar -C build/release/$$f-$(VERSION) -czf build/release/$$f-$(VERSION).tar.gz .; \
-		github-release upload \
-		-u bmeg \
-		-r arachne \
-		--name $$f-$(VERSION).tar.gz \
-		--tag $(VERSION) \
-		--replace \
-		--file ./build/release/$$f-$(VERSION).tar.gz; \
-	done
-
-# Bundle example task messages into Go code.
-bundle-examples:
-	@go-bindata -pkg examples -o examples/bundle.go $(shell find examples/ -name '*.json')
-	@go-bindata -pkg config -o config/bundle.go $(shell find config/ -name '*.txt' -o -name '*.yaml')
-	@gofmt -w -s examples/bundle.go config/bundle.go
-
-# Build docker image.
-docker: cross-compile
-	mkdir -p build/docker
-	cp build/bin/arachne-linux-amd64 build/docker/arachne
-	cp docker/* build/docker/
-	cd build/docker/ && docker build -t arachne .
-
-# Remove build/development files.
-clean:
-	@rm -rf ./bin ./pkg ./test_tmp ./build ./buildtools
+start-elasticsearch:
+	@docker rm -f arachne-es-test > /dev/null 2>&1 || echo
+	@docker run -d --name arachne-es-test -p 9200:9200 -p 9300:9300 -e "discovery.type=single-node" -e "xpack.security.enabled=false" docker.elastic.co/elasticsearch/elasticsearch:5.6.3 > /dev/null

@@ -3,6 +3,9 @@ package core
 import (
 	"bytes"
 	"context"
+	"log"
+	"sync"
+
 	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/gdbi"
 	"github.com/bmeg/arachne/jsengine"
@@ -12,8 +15,6 @@ import (
 	"github.com/bmeg/arachne/jsonpath"
 	"github.com/bmeg/arachne/protoutil"
 	structpb "github.com/golang/protobuf/ptypes/struct"
-	"log"
-	"sync"
 )
 
 ////////////////////////////////////////////////////////////////////////////////

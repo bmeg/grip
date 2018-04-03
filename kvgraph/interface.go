@@ -2,6 +2,7 @@ package kvgraph
 
 import (
 	"fmt"
+
 	"github.com/bmeg/arachne/gdbi"
 	"github.com/bmeg/arachne/kvi"
 	"github.com/bmeg/arachne/kvindex"

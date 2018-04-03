@@ -6,6 +6,7 @@ import (
 	"os"
 	//"fmt"
 	"compress/gzip"
+
 	"github.com/bmeg/arachne/aql"
 	"github.com/knakk/rdf"
 	"github.com/spf13/cobra"

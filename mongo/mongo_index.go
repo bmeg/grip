@@ -2,11 +2,12 @@ package mongo
 
 import (
 	"context"
+	"log"
+
 	"github.com/bmeg/arachne/aql"
 	structpb "github.com/golang/protobuf/ptypes/struct"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
-	"log"
 )
 
 //AddVertexIndex add index to vertices

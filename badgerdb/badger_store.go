@@ -7,12 +7,13 @@ package badgerdb
 import (
 	"bytes"
 	"fmt"
+	"log"
+	"os"
+
 	"github.com/bmeg/arachne/kvgraph"
 	"github.com/bmeg/arachne/kvi"
 	"github.com/dgraph-io/badger"
 	"github.com/dgraph-io/badger/options"
-	"log"
-	"os"
 )
 
 // BadgerBuilder creates new badger interface at `path`

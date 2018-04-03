@@ -3,13 +3,14 @@ package elastic
 import (
 	"context"
 	"fmt"
+	"log"
 	"strings"
+
 	"github.com/bmeg/arachne/aql"
+	"github.com/bmeg/arachne/engine/core"
 	"github.com/bmeg/arachne/gdbi"
 	"github.com/bmeg/arachne/timestamp"
 	"github.com/olivere/elastic"
-  "github.com/bmeg/arachne/engine/core"
-	"log"
 )
 
 type Elastic struct {
@@ -83,50 +84,50 @@ func (es *ElasticGraph) AddBundle(bundle *aql.Bundle) error {
 }
 
 func (es *ElasticGraph) DelBundle(eid string) error {
-  return nil
+	return nil
 }
 
 // AddEdge adds an edge to the graph, if the id is not "" and in already exists
 // in the graph, it is replaced
 func (es *ElasticGraph) AddEdge(edgeArray []*aql.Edge) error {
-  bulkRequest := es.client.Bulk()
-  graphName := fmt.Sprintf("%s_%s", es.database, es.graph)
-  for _, e := range edgeArray {
-    edoc := PackEdge(e)
-    req := elastic.NewBulkIndexRequest().Index(graphName).Type("edge").Id(e.Gid).Doc(edoc)
+	bulkRequest := es.client.Bulk()
+	graphName := fmt.Sprintf("%s_%s", es.database, es.graph)
+	for _, e := range edgeArray {
+		edoc := PackEdge(e)
+		req := elastic.NewBulkIndexRequest().Index(graphName).Type("edge").Id(e.Gid).Doc(edoc)
 		bulkRequest = bulkRequest.Add(req)
-  }
-  _, err := bulkRequest.Do(context.Background())
-  return err
+	}
+	_, err := bulkRequest.Do(context.Background())
+	return err
 }
 
 // AddVertex adds an edge to the graph, if the id is not "" and in already exists
 // in the graph, it is replaced
 func (es *ElasticGraph) AddVertex(vertexArray []*aql.Vertex) error {
-  bulkRequest := es.client.Bulk()
-  graphName := fmt.Sprintf("%s_%s", es.database, es.graph)
-  for _, e := range vertexArray {
-    edoc := PackVertex(e)
-    req := elastic.NewBulkIndexRequest().Index(graphName).Type("vertex").Id(e.Gid).Doc(edoc)
+	bulkRequest := es.client.Bulk()
+	graphName := fmt.Sprintf("%s_%s", es.database, es.graph)
+	for _, e := range vertexArray {
+		edoc := PackVertex(e)
+		req := elastic.NewBulkIndexRequest().Index(graphName).Type("vertex").Id(e.Gid).Doc(edoc)
 		bulkRequest = bulkRequest.Add(req)
-  }
-  _, err := bulkRequest.Do(context.Background())
-  return err
+	}
+	_, err := bulkRequest.Do(context.Background())
+	return err
 }
 
 // DelEdge
 func (es *ElasticGraph) DelEdge(eid string) error {
-  graphName := fmt.Sprintf("%s_%s", es.database, es.graph)
-  _, err := es.client.Delete().Index(graphName).Type("edge").Id(eid).Do(context.Background())
-  return err
+	graphName := fmt.Sprintf("%s_%s", es.database, es.graph)
+	_, err := es.client.Delete().Index(graphName).Type("edge").Id(eid).Do(context.Background())
+	return err
 }
 
 // DelEdge
 func (es *ElasticGraph) DelVertex(vid string) error {
-  //TODO: remove connected edges
-  graphName := fmt.Sprintf("%s_%s", es.database, es.graph)
-  _, err := es.client.Delete().Index(graphName).Type("vertex").Id(vid).Do(context.Background())
-  return err
+	//TODO: remove connected edges
+	graphName := fmt.Sprintf("%s_%s", es.database, es.graph)
+	_, err := es.client.Delete().Index(graphName).Type("vertex").Id(vid).Do(context.Background())
+	return err
 }
 
 // Compiler
@@ -135,27 +136,27 @@ func (es *ElasticGraph) Compiler() gdbi.Compiler {
 }
 
 func (es *ElasticGraph) GetBundle(id string, loadProp bool) *aql.Bundle {
-  return nil
+	return nil
 }
 
 func (es *ElasticGraph) GetEdge(id string, loadProp bool) *aql.Edge {
-  graphName := fmt.Sprintf("%s_%s", es.database, es.graph)
-  get1, err := es.Client.Get().Index(graphName).Type("vertex").Id(id).Do(context.Background())
-  edge := UnpackEdge(get1.Field)
-  return edge
+	graphName := fmt.Sprintf("%s_%s", es.database, es.graph)
+	get1, err := es.Client.Get().Index(graphName).Type("vertex").Id(id).Do(context.Background())
+	edge := UnpackEdge(get1.Field)
+	return edge
 }
 
 // GetEdgeList produces a channel of all edges in the graph
 func (es *ElasticGraph) GetEdgeList(ctx context.Context, loadProp bool) <-chan *aql.Edge {
-  /*
-  graphName := fmt.Sprintf("%s_%s", es.database, es.graph)
-	searchResult, err := client.Search().
-  		Index(graphName).
-      Type("edge").
-  		Do(context.Background())
-  for _, item := range searchResult.Each() {
-    doc := item.(map[string]interface{})
-  }
-  */
-  return nil
+	/*
+		  graphName := fmt.Sprintf("%s_%s", es.database, es.graph)
+			searchResult, err := client.Search().
+		  		Index(graphName).
+		      Type("edge").
+		  		Do(context.Background())
+		  for _, item := range searchResult.Each() {
+		    doc := item.(map[string]interface{})
+		  }
+	*/
+	return nil
 }

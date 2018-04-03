@@ -4,11 +4,12 @@ import (
 	//"fmt"
 	"github.com/bmeg/arachne/aql"
 	//"github.com/bmeg/golib"
+	"log"
+	"strings"
+
 	"github.com/Shopify/sarama"
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/spf13/cobra"
-	"log"
-	"strings"
 )
 
 var kafka = "localhost:9092"

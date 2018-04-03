@@ -1,8 +1,9 @@
 package jsonpath
 
 import (
-	"github.com/bmeg/arachne/protoutil"
 	"testing"
+
+	"github.com/bmeg/arachne/protoutil"
 )
 
 func TestCompare(t *testing.T) {

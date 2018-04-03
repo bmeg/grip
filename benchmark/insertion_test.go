@@ -1,10 +1,11 @@
 package test
 
 import (
-	"github.com/bmeg/arachne/aql"
 	"math/rand"
 	"os"
 	"testing"
+
+	"github.com/bmeg/arachne/aql"
 	//"github.com/bmeg/arachne/gdbi"
 	"github.com/bmeg/arachne/badgerdb"
 	"github.com/bmeg/arachne/kvgraph"

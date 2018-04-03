@@ -1,23 +1,27 @@
 package server
 
 import (
-	"github.com/bmeg/arachne/graphserver"
-	"github.com/spf13/cobra"
 	"log"
 	"os"
 	"os/signal"
+
+	"github.com/bmeg/arachne/graphserver"
+	"github.com/spf13/cobra"
 )
 
-var httpPort = "8201"
-var rpcPort = "8202"
-var dbPath = "graph.db"
-var dbName = "arachne"
-var workDir = "arachne.work"
-var mongoURL string
-var boltPath string
-var rocksPath string
-var levelPath string
-var contentDir string
+var (
+	httpPort   = "8201"
+	rpcPort    = "8202"
+	dbName     = "arachne"
+	workDir    = "arachne.work"
+	badgerPath = "arachne.db"
+	mongoURL   string
+	elasticURL string
+	boltPath   string
+	rocksPath  string
+  levelPath  string
+	contentDir string
+)
 
 // Cmd the main command called by the cobra library
 var Cmd = &cobra.Command{
@@ -40,6 +44,8 @@ var Cmd = &cobra.Command{
 			server = graphserver.NewArachneRocksServer(rocksPath, workDir)
 		} else if levelPath != "" {
 			server = graphserver.NewArachneLevelServer(levelPath, workDir)
+		} else if elasticURL != "" {
+			server = graphserver.NewArachneElasticServer(elasticURL, dbName, workDir)
 		} else {
 			server = graphserver.NewArachneBadgerServer(dbPath, workDir)
 		}
@@ -63,12 +69,13 @@ func init() {
 	flags := Cmd.Flags()
 	flags.StringVar(&httpPort, "port", httpPort, "HTTP Port")
 	flags.StringVar(&rpcPort, "rpc", rpcPort, "TCP+RPC Port")
-	flags.StringVar(&dbPath, "db", "arachne.db", "DB Path")
-	flags.StringVar(&mongoURL, "mongo", "", "Mongo URL")
-	flags.StringVar(&dbName, "name", "arachne", "DB Name")
-	flags.StringVar(&boltPath, "bolt", "", "Bolt DB Path")
-	flags.StringVar(&rocksPath, "rocks", "", "RocksDB Path")
+	flags.StringVar(&badgerPath, "badger", badgerPath, "BadgerDB Path")
+	flags.StringVar(&mongoURL, "mongo", mongoURL, "Mongo URL")
+	flags.StringVar(&elasticURL, "elastic", elasticURL, "Elasticsearch URL")
+	flags.StringVar(&boltPath, "bolt", boltPath, "BoltDB Path")
+	flags.StringVar(&rocksPath, "rocks", rocksPath, "RocksDB Path")
 	flags.StringVar(&levelPath, "level", "", "LevelDB Path")
-	flags.StringVar(&contentDir, "content", "", "Content Path")
-	flags.StringVar(&workDir, "workdir", "arachne.work", "WorkDir")
+	flags.StringVar(&dbName, "name", dbName, "Database Name")
+	flags.StringVar(&contentDir, "content", contentDir, "Content Path")
+	flags.StringVar(&workDir, "workdir", workDir, "WorkDir")
 }

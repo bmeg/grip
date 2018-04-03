@@ -1,4 +1,3 @@
-
 package elastic
 
 import (
@@ -9,7 +8,6 @@ import (
 var fieldLabel = "label"
 var fieldSrc = "from"
 var fieldDst = "to"
-
 
 // PackVertex take a AQL vertex and convert it to a mongo doc
 func PackVertex(v *aql.Vertex) map[string]interface{} {
@@ -42,7 +40,6 @@ func PackEdge(e *aql.Edge) map[string]interface{} {
 	}
 	return o
 }
-
 
 // UnpackVertex takes a mongo doc and converts it into an aql.Vertex
 func UnpackVertex(i map[string]interface{}) *aql.Vertex {

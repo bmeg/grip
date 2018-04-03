@@ -2,14 +2,15 @@ package load
 
 import (
 	"encoding/json"
+	"io/ioutil"
+	"log"
+	"strings"
+
 	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/golib"
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
-	"io/ioutil"
-	"log"
-	"strings"
 )
 
 var host = "localhost:8202"

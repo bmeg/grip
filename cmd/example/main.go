@@ -2,11 +2,12 @@ package example
 
 import (
 	"fmt"
+	"log"
+	"strings"
+
 	"github.com/bmeg/arachne/aql"
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/spf13/cobra"
-	"log"
-	"strings"
 )
 
 var host = "localhost:8202"
