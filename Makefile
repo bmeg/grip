@@ -70,25 +70,25 @@ lint:
 test:
 	@go test $(TESTS)
 
+test-conformance:
+	python conformance/run_conformance.py http://localhost:18201
+
 start-test-server:
 	arachne server --rpc 18202 --port 18201 &
 
 start-test-mongo-server:
-	arachne server --rpc 18202 --port 18201 --mongo localhost:2700 &
+	arachne server --rpc 18202 --port 18201 --mongo localhost:27000 &
 
 start-test-elastic-server:
-	arachne server --rpc 18202 --port 18201 --elastic localhost:9200 &
-
-test-conformance:
-	python conformance/run_conformance.py http://localhost:18201
+	arachne server --rpc 18202 --port 18201 --elastic http://localhost:9200 &
 
 # ---------------------
 # Database development
 # ---------------------
-start-mongodb:
+start-test-mongo-database:
 	@docker rm -f arachne-mongodb-test > /dev/null 2>&1 || echo
 	@docker run -d --name arachne-mongodb-test -p 27000:27017 docker.io/mongo:3.5.13 > /dev/null
 
-start-elasticsearch:
+start-test-elastic-database:
 	@docker rm -f arachne-es-test > /dev/null 2>&1 || echo
 	@docker run -d --name arachne-es-test -p 9200:9200 -p 9300:9300 -e "discovery.type=single-node" -e "xpack.security.enabled=false" docker.elastic.co/elasticsearch/elasticsearch:5.6.3 > /dev/null
