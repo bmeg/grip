@@ -125,11 +125,14 @@ func (client Client) GetVertex(graph string, id string) (*Vertex, error) {
 
 // Execute executes the given query.
 func (client Client) Execute(graph string, q *Query) (chan *ResultRow, error) {
-	tclient, err := client.QueryC.Traversal(context.TODO(), &GraphQuery{
+	return client.Traversal(&GraphQuery{
 		Graph: graph,
 		Query: q.Statements,
 	})
+}
 
+func (client Client) Traversal(query *GraphQuery) (chan *ResultRow, error) {
+	tclient, err := client.QueryC.Traversal(context.TODO(), query)
 	if err != nil {
 		return nil, err
 	}
@@ -141,6 +144,7 @@ func (client Client) Execute(graph string, q *Query) (chan *ResultRow, error) {
 		}
 	}()
 	return out, nil
+
 }
 
 // GetDataMap obtains data attached to vertex in the form of a map
