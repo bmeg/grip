@@ -39,12 +39,6 @@ func BadgerBuilder(path string) (kvi.KVInterface, error) {
 
 var loaded = kvgraph.AddKVDriver("badger", BadgerBuilder)
 
-func bytesCopy(in []byte) []byte {
-	out := make([]byte, len(in))
-	copy(out, in)
-	return out
-}
-
 // BadgerKV is an implementation of the KVStore for badger
 type BadgerKV struct {
 	db *badger.DB
@@ -75,7 +69,7 @@ func (badgerkv *BadgerKV) DeletePrefix(prefix []byte) error {
 		badgerkv.db.Update(func(tx *badger.Txn) error {
 			it := tx.NewIterator(opts)
 			for it.Seek(prefix); it.Valid() && bytes.HasPrefix(it.Item().Key(), prefix) && len(wb) < deleteBlockSize-1; it.Next() {
-				wb = append(wb, bytesCopy(it.Item().Key()))
+				wb = append(wb, copyBytes(it.Item().Key()))
 			}
 			it.Close()
 			for _, i := range wb {
