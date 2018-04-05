@@ -47,37 +47,73 @@ func (es *Elastic) Close() {}
 func (es *Elastic) GetGraphs() []string {
 	graphPrefix := fmt.Sprintf("%s_", es.database)
 	out := []string{}
-	idxs, err := es.client.IndexNames()
+	idxNames, err := es.client.IndexNames()
 	if err != nil {
 		log.Printf("failed to get index names: %s", err)
 	}
-	for _, c := range idxs {
-		if strings.HasPrefix(c, graphPrefix) {
-			out = append(out, c[len(graphPrefix):])
+	for _, idx := range idxNames {
+		if strings.HasPrefix(idx, graphPrefix) {
+			gName := strings.TrimPrefix(idx, graphPrefix)
+			gName = strings.TrimSuffix(gName, "_vertex")
+			gName = strings.TrimSuffix(gName, "_edge")
+			out = append(out, gName)
 		}
 	}
 	return out
 }
 
+func (es *Elastic) initIndex(ctx context.Context, name, body string) error {
+	exists, err := es.client.
+		IndexExists(name).
+		Do(ctx)
+
+	if err != nil {
+		return err
+	} else if !exists {
+		if _, err := es.client.CreateIndex(name).Body(body).Do(ctx); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (es *Elastic) AddGraph(graph string) error {
-	graphName := fmt.Sprintf("%s_%s", es.database, graph)
-	_, err := es.client.CreateIndex(graphName).Do(context.Background())
-	return err
+	ctx := context.Background()
+	vertexIndex := fmt.Sprintf("%s_%s_vertex", es.database, graph)
+	if err := es.initIndex(ctx, vertexIndex, ""); err != nil {
+		return err
+	}
+
+	edgeIndex := fmt.Sprintf("%s_%s_edge", es.database, graph)
+	if err := es.initIndex(ctx, edgeIndex, ""); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (es *Elastic) DeleteGraph(graph string) error {
-	graphName := fmt.Sprintf("%s_%s", es.database, graph)
-	_, err := es.client.DeleteIndex(graphName).Do(context.Background())
-	return err
+	ctx := context.Background()
+	vertexIndex := fmt.Sprintf("%s_%s_vertex", es.database, graph)
+	if _, err := es.client.DeleteIndex(vertexIndex).Do(ctx); err != nil {
+		return err
+	}
+
+	edgeIndex := fmt.Sprintf("%s_%s_edge", es.database, graph)
+	if _, err := es.client.DeleteIndex(edgeIndex).Do(ctx); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (es *Elastic) Graph(graph string) gdbi.GraphInterface {
 	return &ElasticGraph{
-		url:       es.url,
-		database:  es.database,
-		ts:        es.ts,
-		client:    es.client,
-		graph:     graph,
-		graphName: fmt.Sprintf("%s_%s", es.database, graph),
+		url:         es.url,
+		database:    es.database,
+		ts:          es.ts,
+		client:      es.client,
+		graph:       graph,
+		vertexIndex: fmt.Sprintf("%s_%s_vertex", es.database, graph),
+		edgeIndex:   fmt.Sprintf("%s_%s_edge", es.database, graph),
+		batchSize:   1000,
 	}
 }

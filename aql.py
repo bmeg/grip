@@ -1,6 +1,7 @@
 import json
 import urllib2
 
+
 class Connection:
     def __init__(self, host):
         self.host = host
@@ -147,6 +148,7 @@ class Graph:
         q.mark(name)
         return q
 
+
 class BulkAdd:
     def __init__(self, url, graph):
         self.url = url
@@ -184,6 +186,7 @@ class BulkAdd:
         result = response.read()
         return json.loads(result)
 
+
 class Index:
     def __init__(self, parent=None):
         self.parent = parent
@@ -199,6 +202,7 @@ class Index:
     def query(self, label, field, value):
         url = self.parent.url + "/" + self.parent.name + "/index/" + label + "/" + field
         return Query(url)
+
 
 class Query:
     def __init__(self, url):
