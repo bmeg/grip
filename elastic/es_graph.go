@@ -15,6 +15,7 @@ import (
 	"github.com/golang/protobuf/jsonpb"
 	structpb "github.com/golang/protobuf/ptypes/struct"
 	"golang.org/x/sync/errgroup"
+	"gopkg.in/mgo.v2/bson"
 	elastic "gopkg.in/olivere/elastic.v5"
 )
 
@@ -47,13 +48,22 @@ func (es *ElasticGraph) GetTimestamp() string {
 // in the graph, it is replaced
 func (es *ElasticGraph) AddEdge(edgeArray []*aql.Edge) error {
 	log.Printf("ElasticGraph.AddEdge called")
+	ctx := context.Background()
+
 	bulkRequest := es.client.Bulk()
 	for _, e := range edgeArray {
-		req := elastic.NewBulkIndexRequest().Index(es.edgeIndex).Type(e.Label).Id(e.Gid).Doc(e)
+		if e.Gid == "" {
+			e.Gid = bson.NewObjectId().Hex()
+		}
+		req := elastic.NewBulkUpdateRequest().Index(es.edgeIndex).Type("edge").Id(e.Gid).Doc(e).DocAsUpsert(true)
 		bulkRequest = bulkRequest.Add(req)
 	}
-	_, err := bulkRequest.Do(context.Background())
-	return err
+	_, err := bulkRequest.Do(ctx)
+	if err != nil {
+		return err
+	}
+	es.ts.Touch(es.graph)
+	return nil
 }
 
 // AddVertex adds an edge to the graph, if the id is not "" and in already exists
@@ -64,11 +74,18 @@ func (es *ElasticGraph) AddVertex(vertexArray []*aql.Vertex) error {
 
 	bulkRequest := es.client.Bulk()
 	for _, e := range vertexArray {
-		req := elastic.NewBulkIndexRequest().Index(es.vertexIndex).Type(e.Label).Id(e.Gid).Doc(e)
+		if e.Gid == "" {
+			return fmt.Errorf("Vertex Gid cannot be an empty string")
+		}
+		req := elastic.NewBulkUpdateRequest().Index(es.vertexIndex).Type("vertex").Id(e.Gid).Doc(e).DocAsUpsert(true)
 		bulkRequest = bulkRequest.Add(req)
 	}
 	_, err := bulkRequest.Do(ctx)
-	return err
+	if err != nil {
+		return err
+	}
+	es.ts.Touch(es.graph)
+	return nil
 }
 
 // AddBundle
@@ -86,8 +103,13 @@ func (es *ElasticGraph) AddVertexIndex(label string, field string) error {
 // DelEdge
 func (es *ElasticGraph) DelEdge(eid string) error {
 	log.Printf("ElasticGraph.DelEdge called")
-	_, err := es.client.Delete().Index(es.edgeIndex).Id(eid).Do(context.Background())
-	return err
+	ctx := context.Background()
+	_, err := es.client.Delete().Index(es.edgeIndex).Id(eid).Do(ctx)
+	if err != nil {
+		return err
+	}
+	es.ts.Touch(es.graph)
+	return nil
 }
 
 // DelVertex
@@ -96,7 +118,11 @@ func (es *ElasticGraph) DelVertex(vid string) error {
 	ctx := context.Background()
 	// TODO: remove connected edges
 	_, err := es.client.Delete().Index(es.vertexIndex).Id(vid).Do(ctx)
-	return err
+	if err != nil {
+		return err
+	}
+	es.ts.Touch(es.graph)
+	return nil
 }
 
 // DelBundle
@@ -419,10 +445,15 @@ func (es *ElasticGraph) GetOutChannel(req chan gdbi.ElementLookup, load bool, ed
 			}
 
 			q := es.client.Search().Index(es.edgeIndex)
+			qParts := []elastic.Query{elastic.NewTermsQuery("from", idBatch...)}
 			if len(edgeLabels) > 0 {
-				q = q.Type(edgeLabels...)
+				labels := make([]interface{}, len(edgeLabels))
+				for i, v := range edgeLabels {
+					labels[i] = v
+				}
+				qParts = append(qParts, elastic.NewTermsQuery("label", labels...))
 			}
-			q = q.Query(elastic.NewBoolQuery().Filter(elastic.NewTermsQuery("from", idBatch...)))
+			q = q.Query(elastic.NewBoolQuery().Filter(qParts...))
 			q = q.FetchSource(true).FetchSourceContext(elastic.NewFetchSourceContext(true).Include("from", "to"))
 			res, err := q.Do(ctx)
 			if err != nil {
@@ -535,15 +566,21 @@ func (es *ElasticGraph) GetInChannel(req chan gdbi.ElementLookup, load bool, edg
 			}
 
 			q := es.client.Search().Index(es.edgeIndex)
+			qParts := []elastic.Query{elastic.NewTermsQuery("to", idBatch...)}
 			if len(edgeLabels) > 0 {
-				q = q.Type(edgeLabels...)
+				labels := make([]interface{}, len(edgeLabels))
+				for i, v := range edgeLabels {
+					labels[i] = v
+				}
+				qParts = append(qParts, elastic.NewTermsQuery("label", labels...))
 			}
-			q = q.Query(elastic.NewBoolQuery().Filter(elastic.NewTermsQuery("to", idBatch...)))
+			q = q.Query(elastic.NewBoolQuery().Filter(qParts...))
 			q = q.FetchSource(true).FetchSourceContext(elastic.NewFetchSourceContext(true).Include("from", "to"))
 			res, err := q.Do(ctx)
 			if err != nil {
 				return fmt.Errorf("Edge query failed: %s", err)
 			}
+
 			if res.TotalHits() > 0 {
 				b := []gdbi.ElementLookup{}
 				for _, hit := range res.Hits.Hits {
@@ -649,10 +686,15 @@ func (es *ElasticGraph) GetOutEdgeChannel(req chan gdbi.ElementLookup, load bool
 			}
 
 			q := es.client.Search().Index(es.edgeIndex)
+			qParts := []elastic.Query{elastic.NewTermsQuery("from", idBatch...)}
 			if len(edgeLabels) > 0 {
-				q = q.Type(edgeLabels...)
+				labels := make([]interface{}, len(edgeLabels))
+				for i, v := range edgeLabels {
+					labels[i] = v
+				}
+				qParts = append(qParts, elastic.NewTermsQuery("label", labels...))
 			}
-			q = q.Query(elastic.NewBoolQuery().Filter(elastic.NewTermsQuery("from", idBatch...)))
+			q = q.Query(elastic.NewBoolQuery().Filter(qParts...))
 			if !load {
 				q = q.FetchSource(true).FetchSourceContext(elastic.NewFetchSourceContext(true).Exclude("data"))
 			}
@@ -725,10 +767,15 @@ func (es *ElasticGraph) GetInEdgeChannel(req chan gdbi.ElementLookup, load bool,
 			}
 
 			q := es.client.Search().Index(es.edgeIndex)
+			qParts := []elastic.Query{elastic.NewTermsQuery("to", idBatch...)}
 			if len(edgeLabels) > 0 {
-				q = q.Type(edgeLabels...)
+				labels := make([]interface{}, len(edgeLabels))
+				for i, v := range edgeLabels {
+					labels[i] = v
+				}
+				qParts = append(qParts, elastic.NewTermsQuery("label", labels...))
 			}
-			q = q.Query(elastic.NewBoolQuery().Filter(elastic.NewTermsQuery("to", idBatch...)))
+			q = q.Query(elastic.NewBoolQuery().Filter(qParts...))
 			if !load {
 				q = q.FetchSource(true).FetchSourceContext(elastic.NewFetchSourceContext(true).Exclude("data"))
 			}
@@ -785,21 +832,21 @@ func (es *ElasticGraph) GetVertexTermCount(ctx context.Context, label string, fi
 
 	o := make(chan aql.IndexTermCount, 100)
 	go func() {
-		defer close(o)	
+		defer close(o)
 		if field == "" {
 			return
 		}
 		q := es.client.Count().Index(es.vertexIndex)
 		if label != "" {
-			q = q.Type(label)
+			q = q.Query(elastic.NewBoolQuery().Filter(elastic.NewTermQuery("label", label)))
 		}
-		q = q.Df("data."+field)
+		q = q.Df("data." + field)
 		res, err := q.Do(ctx)
 		if err != nil {
 			log.Printf("Vertex term count failed: %s", err)
 			return
 		}
-		
+
 		term := structpb.Value{Kind: &structpb.Value_StringValue{StringValue: field}}
 		idxit := aql.IndexTermCount{Term: &term, Count: int32(res)}
 		o <- idxit
@@ -818,7 +865,10 @@ func (es *ElasticGraph) VertexLabelScan(ctx context.Context, label string) chan 
 		if label == "" {
 			return
 		}
-		scroll := es.client.Scroll().Index(es.vertexIndex).Type(label).Size(100)
+		scroll := es.client.Scroll().
+			Index(es.vertexIndex).
+			Query(elastic.NewBoolQuery().Filter(elastic.NewTermQuery("label", label))).
+			Size(100)
 		for {
 			results, err := scroll.Do(ctx)
 			if err == io.EOF {
@@ -826,7 +876,7 @@ func (es *ElasticGraph) VertexLabelScan(ctx context.Context, label string) chan 
 			}
 			if err != nil {
 				log.Printf("Scroll call failed: %v", err)
-				return 
+				return
 			}
 
 			// Send the hits to the hits channel
