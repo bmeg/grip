@@ -134,7 +134,7 @@ func (mg *Graph) DeleteEdgeIndex(label string, field string) error {
 	return ecol.DropIndex("label", "data."+field)
 }
 
-// VertexLabelScan produces a channel of all edge ids where the edge label matches `label`
+// VertexLabelScan produces a channel of all vertex ids where the vertex label matches `label`
 func (mg *Graph) VertexLabelScan(ctx context.Context, label string) chan string {
 	out := make(chan string, 100)
 	go func() {

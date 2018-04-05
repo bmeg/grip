@@ -5,7 +5,7 @@ import urllib2
 class Connection:
     def __init__(self, host):
         self.host = host
-        self.url =  "%s/v1/graph" % (host)
+        self.url = "%s/v1/graph" % (host)
 
     def list(self):
         """
@@ -26,8 +26,10 @@ class Connection:
         """
         New graph.
         """
-        headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
-        request = urllib2.Request("%s/%s" % (self.url, name), "{}", headers=headers)
+        headers = {'Content-Type': 'application/json',
+                   'Accept': 'application/json'}
+        request = urllib2.Request(
+            "%s/%s" % (self.url, name), "{}", headers=headers)
         response = urllib2.urlopen(request)
         result = response.read()
         return json.loads(result)
@@ -36,7 +38,8 @@ class Connection:
         """
         Delete graph.
         """
-        headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
+        headers = {'Content-Type': 'application/json',
+                   'Accept': 'application/json'}
         request = urllib2.Request("%s/%s" % (self.url, name), headers=headers)
         request.get_method = lambda: "DELETE"
         response = urllib2.urlopen(request)
@@ -66,12 +69,14 @@ class Graph:
         Add vertex to a graph.
         """
         payload = json.dumps({
-            "gid" : id,
-            "label" : label,
-            "data" : data
+            "gid": id,
+            "label": label,
+            "data": data
         })
-        headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
-        request = urllib2.Request(self.url + "/" + self.name + "/vertex", payload, headers=headers)
+        headers = {'Content-Type': 'application/json',
+                   'Accept': 'application/json'}
+        request = urllib2.Request(
+            self.url + "/" + self.name + "/vertex", payload, headers=headers)
         response = urllib2.urlopen(request)
         result = response.read()
         return json.loads(result)
@@ -81,35 +86,41 @@ class Graph:
         Add edge to the graph.
         """
         payload = {
-            "from" : src,
-            "to" : dst,
-            "label" : label,
-            "data" : data
+            "from": src,
+            "to": dst,
+            "label": label,
+            "data": data
         }
         if id is not None:
             payload['gid'] = id
-        headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
-        request = urllib2.Request(self.url + "/" + self.name + "/edge", json.dumps(payload), headers=headers)
+        headers = {'Content-Type': 'application/json',
+                   'Accept': 'application/json'}
+        request = urllib2.Request(
+            self.url + "/" + self.name + "/edge", json.dumps(payload), headers=headers)
         response = urllib2.urlopen(request)
         result = response.read()
         return json.loads(result)
 
     def addSubGraph(self, graph):
         payload = json.dumps(graph)
-        headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
-        request = urllib2.Request(self.url + "/" + self.name + "/subgraph", payload, headers=headers)
+        headers = {'Content-Type': 'application/json',
+                   'Accept': 'application/json'}
+        request = urllib2.Request(
+            self.url + "/" + self.name + "/subgraph", payload, headers=headers)
         response = urllib2.urlopen(request)
         result = response.read()
         return json.loads(result)
 
     def addBundle(self, src, bundle, label):
         payload = json.dumps({
-            "from" : src,
-            "bundle" : bundle,
-            "label" : label,
+            "from": src,
+            "bundle": bundle,
+            "label": label,
         })
-        headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
-        request = urllib2.Request(self.url + "/" + self.name + "/bundle", payload, headers=headers)
+        headers = {'Content-Type': 'application/json',
+                   'Accept': 'application/json'}
+        request = urllib2.Request(
+            self.url + "/" + self.name + "/bundle", payload, headers=headers)
         response = urllib2.urlopen(request)
         result = response.read()
         return json.loads(result)
@@ -118,15 +129,18 @@ class Graph:
         return BulkAdd(self.url, self.name)
 
     def addVertexIndex(self, label, field):
-        headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
+        headers = {'Content-Type': 'application/json',
+                   'Accept': 'application/json'}
         url = self.url + "/" + self.name + "/index/" + label
-        request = urllib2.Request(url, json.dumps({"field":field}), headers=headers)
+        request = urllib2.Request(url, json.dumps(
+            {"field": field}), headers=headers)
         response = urllib2.urlopen(request)
         result = response.read()
         return json.loads(result)
 
     def listVertexList(self):
-        headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
+        headers = {'Content-Type': 'application/json',
+                   'Accept': 'application/json'}
         url = self.url + "/" + self.name + "/index"
         request = urllib2.Request(url, headers=headers)
         response = urllib2.urlopen(request)
@@ -157,30 +171,31 @@ class BulkAdd:
 
     def addVertex(self, id, label, data={}):
         payload = json.dumps({
-            "graph" : self.graph,
-            "vertex" : {
-                "gid" : id,
-                "label" : label,
-                "data" : data
+            "graph": self.graph,
+            "vertex": {
+                "gid": id,
+                "label": label,
+                "data": data
             }
         })
         self.elements.append(payload)
 
     def addEdge(self, src, dst, label, data={}):
         payload = json.dumps({
-            "graph" : self.graph,
-            "edge" : {
-                "from" : src,
-                "to" : dst,
-                "label" : label,
-                "data" : data
+            "graph": self.graph,
+            "edge": {
+                "from": src,
+                "to": dst,
+                "label": label,
+                "data": data
             }
         })
         self.elements.append(payload)
 
     def commit(self):
         payload = "\n".join(self.elements)
-        headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
+        headers = {'Content-Type': 'application/json',
+                   'Accept': 'application/json'}
         request = urllib2.Request(self.url, payload, headers=headers)
         response = urllib2.urlopen(request)
         result = response.read()
@@ -213,7 +228,7 @@ class Query:
         """
         Initialize javascript engine with functions and global variables.
         """
-        self.query.append({"import":src})
+        self.query.append({"import": src})
         return self
 
     def V(self, id=[]):
@@ -224,7 +239,7 @@ class Query:
         """
         if not isinstance(id, list):
             id = [id]
-        self.query.append({"v":id})
+        self.query.append({"v": id})
         return self
 
     def E(self, id=[]):
@@ -235,7 +250,7 @@ class Query:
         """
         if not isinstance(id, list):
             id = [id]
-        self.query.append({"e":id})
+        self.query.append({"e": id})
         return self
 
     def hasLabel(self, label):
@@ -268,7 +283,7 @@ class Query:
         """
         if not isinstance(value, list):
             value = [value]
-        self.query.append({'has': { "key" : key, 'within': value}})
+        self.query.append({'has': {"key": key, 'within': value}})
         return self
 
     def values(self, v):
@@ -277,7 +292,7 @@ class Query:
         """
         if not isinstance(v, list):
             v = [v]
-        self.query.append({'values': {"labels" : v}})
+        self.query.append({'values': {"labels": v}})
         return self
 
     def incoming(self, label=[]):
@@ -386,7 +401,7 @@ class Query:
             [A2, B2],
         ]
         """
-        self.query.append({'select': {"labels" : marks}})
+        self.query.append({'select': {"labels": marks}})
         return self
 
     def limit(self, l):
@@ -422,7 +437,7 @@ class Query:
         """
         if not isinstance(val, list):
             val = [val]
-        self.query.append({"distinct" : val})
+        self.query.append({"distinct": val})
         return self
 
     def map(self, func):
@@ -430,7 +445,7 @@ class Query:
         Transform results by the given javascript function.
         function(el) el
         """
-        self.query.append({"map" : func})
+        self.query.append({"map": func})
         return self
 
     def filter(self, func):
@@ -438,17 +453,17 @@ class Query:
         Filter results by the given javascript function.
         function(el) bool
         """
-        self.query.append({"filter" : func})
+        self.query.append({"filter": func})
         return self
 
     def fold(self, init, func):
-        self.query.append({"fold": {"init" : init, "source" : func}})
+        self.query.append({"fold": {"init": init, "source": func}})
         return self
 
     def vertexFromValues(self, func):
         """
         """
-        self.query.append({"vertex_from_values" : func})
+        self.query.append({"vertex_from_values": func})
         return self
 
     def match(self, queries):
@@ -457,8 +472,8 @@ class Query:
         """
         mq = []
         for i in queries:
-            mq.append( {'query': i.query} )
-        self.query.append({'match': {'queries': mq }})
+            mq.append({'query': i.query})
+        self.query.append({'match': {'queries': mq}})
         return self
 
     def render(self):
@@ -476,25 +491,25 @@ class Query:
         Execute the query and return an iterator.
         """
         payload = self.render()
-        #print payload
-        headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
+        # print payload
+        headers = {'Content-Type': 'application/json',
+                   'Accept': 'application/json'}
         request = urllib2.Request(self.url, payload, headers=headers)
         response = urllib2.urlopen(request)
-        #out = []
+        # out = []
         for result in response:
             try:
                 d = json.loads(result)
                 if 'value' in d:
-                    #out.append(d['value'])
+                    # out.append(d['value'])
                     yield d['value']
                 elif 'row' in d:
-                    #out.append(d['row'])
+                    # out.append(d['row'])
                     yield d['row']
-            except ValueError, e:
+            except ValueError as e:
                 print "Can't decode: %s" % result
                 raise e
-        #return out
-
+        # return out
 
     def first(self):
         """

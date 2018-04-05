@@ -13,6 +13,7 @@ import (
 	"github.com/bmeg/arachne/gdbi"
 	"github.com/bmeg/arachne/timestamp"
 	"github.com/golang/protobuf/jsonpb"
+	structpb "github.com/golang/protobuf/ptypes/struct"
 	"golang.org/x/sync/errgroup"
 	elastic "gopkg.in/olivere/elastic.v5"
 )
@@ -174,7 +175,7 @@ func (es *ElasticGraph) GetEdgeList(ctx context.Context, load bool) <-chan *aql.
 	o := make(chan *aql.Edge, 100)
 
 	// 1st goroutine sends individual hits to channel.
-	hits := make(chan json.RawMessage)
+	hits := make(chan json.RawMessage, 100)
 	g, ctx := errgroup.WithContext(ctx)
 	g.Go(func() error {
 		defer close(hits)
@@ -245,7 +246,7 @@ func (es *ElasticGraph) GetVertexList(ctx context.Context, load bool) <-chan *aq
 	o := make(chan *aql.Vertex, 100)
 
 	// 1st goroutine sends individual hits to channel.
-	hits := make(chan json.RawMessage)
+	hits := make(chan json.RawMessage, 100)
 	g, ctx := errgroup.WithContext(ctx)
 	g.Go(func() error {
 		defer close(hits)
@@ -313,7 +314,74 @@ func (es *ElasticGraph) GetVertexList(ctx context.Context, load bool) <-chan *aq
 // GetVertexChannel
 func (es *ElasticGraph) GetVertexChannel(req chan gdbi.ElementLookup, load bool) chan gdbi.ElementLookup {
 	log.Printf("ElasticGraph.GetVertexChannel called")
-	return nil
+	ctx := context.Background()
+	g, ctx := errgroup.WithContext(ctx)
+
+	// Create query batches
+	batches := make(chan []gdbi.ElementLookup, 100)
+	g.Go(func() error {
+		defer close(batches)
+		o := make([]gdbi.ElementLookup, 0, es.batchSize)
+		for req := range req {
+			o = append(o, req)
+			if len(o) >= es.batchSize {
+				batches <- o
+				o = make([]gdbi.ElementLookup, 0, es.batchSize)
+			}
+		}
+		batches <- o
+		return nil
+	})
+
+	// Find all vertices
+	o := make(chan gdbi.ElementLookup, 100)
+	g.Go(func() error {
+		for batch := range batches {
+			idBatch := make([]string, len(batch))
+			batchMap := make(map[string][]gdbi.ElementLookup, len(batch))
+			for i := range batch {
+				idBatch[i] = batch[i].ID
+				batchMap[batch[i].ID] = append(batchMap[batch[i].ID], batch[i])
+			}
+
+			q := es.client.Search().Index(es.vertexIndex)
+			q = q.Query(elastic.NewBoolQuery().Filter(elastic.NewIdsQuery().Ids(idBatch...)))
+			if !load {
+				q = q.FetchSource(true).FetchSourceContext(elastic.NewFetchSourceContext(true).Exclude("data"))
+			}
+			res, err := q.Do(ctx)
+			if err != nil {
+				return fmt.Errorf("Vertex query failed: %s", err)
+			}
+			if res.TotalHits() > 0 {
+				for _, hit := range res.Hits.Hits {
+					// Deserialize
+					vertex := &aql.Vertex{}
+					err := jsonpb.Unmarshal(bytes.NewReader(*hit.Source), vertex)
+					if err != nil {
+						return fmt.Errorf("Failed to unmarshal vertex: %s", err)
+					}
+					r := batchMap[vertex.Gid]
+					for _, ri := range r {
+						ri.Vertex = vertex
+						o <- ri
+					}
+				}
+			}
+		}
+		return nil
+	})
+
+	// Check whether any goroutines failed.
+	go func() {
+		defer close(o)
+		if err := g.Wait(); err != nil {
+			log.Printf("Error: %v", err)
+		}
+		return
+	}()
+
+	return o
 }
 
 // GetOutChannel
@@ -358,7 +426,7 @@ func (es *ElasticGraph) GetOutChannel(req chan gdbi.ElementLookup, load bool, ed
 			q = q.FetchSource(true).FetchSourceContext(elastic.NewFetchSourceContext(true).Include("from", "to"))
 			res, err := q.Do(ctx)
 			if err != nil {
-				return fmt.Errorf("Failed edge query: %s", err)
+				return fmt.Errorf("Edge query failed: %s", err)
 			}
 			if res.TotalHits() > 0 {
 				b := []gdbi.ElementLookup{}
@@ -399,7 +467,7 @@ func (es *ElasticGraph) GetOutChannel(req chan gdbi.ElementLookup, load bool, ed
 			}
 			res, err := q.Do(ctx)
 			if err != nil {
-				return fmt.Errorf("Failed vertex query: %s", err)
+				return fmt.Errorf("Vertex query failed: %s", err)
 			}
 			if res.TotalHits() > 0 {
 				for _, hit := range res.Hits.Hits {
@@ -474,7 +542,7 @@ func (es *ElasticGraph) GetInChannel(req chan gdbi.ElementLookup, load bool, edg
 			q = q.FetchSource(true).FetchSourceContext(elastic.NewFetchSourceContext(true).Include("from", "to"))
 			res, err := q.Do(ctx)
 			if err != nil {
-				return fmt.Errorf("Failed edge query: %s", err)
+				return fmt.Errorf("Edge query failed: %s", err)
 			}
 			if res.TotalHits() > 0 {
 				b := []gdbi.ElementLookup{}
@@ -514,7 +582,7 @@ func (es *ElasticGraph) GetInChannel(req chan gdbi.ElementLookup, load bool, edg
 			}
 			res, err := q.Do(ctx)
 			if err != nil {
-				return fmt.Errorf("Failed vertex query: %s", err)
+				return fmt.Errorf("Vertex query failed: %s", err)
 			}
 			if res.TotalHits() > 0 {
 				for _, hit := range res.Hits.Hits {
@@ -590,7 +658,7 @@ func (es *ElasticGraph) GetOutEdgeChannel(req chan gdbi.ElementLookup, load bool
 			}
 			res, err := q.Do(ctx)
 			if err != nil {
-				return fmt.Errorf("Failed edge query: %s", err)
+				return fmt.Errorf("Edge query failed: %s", err)
 			}
 			if res.TotalHits() > 0 {
 				for _, hit := range res.Hits.Hits {
@@ -666,7 +734,7 @@ func (es *ElasticGraph) GetInEdgeChannel(req chan gdbi.ElementLookup, load bool,
 			}
 			res, err := q.Do(ctx)
 			if err != nil {
-				return fmt.Errorf("Failed edge query: %s", err)
+				return fmt.Errorf("Edge query failed: %s", err)
 			}
 			if res.TotalHits() > 0 {
 				for _, hit := range res.Hits.Hits {
@@ -711,14 +779,68 @@ func (es *ElasticGraph) GetVertexIndexList() chan aql.IndexID {
 	return nil
 }
 
-// GetVertexTermCount
+// GetVertexTermCount returns the count of every term across vertices
 func (es *ElasticGraph) GetVertexTermCount(ctx context.Context, label string, field string) chan aql.IndexTermCount {
 	log.Printf("ElasticGraph.GetVertexTermCount called")
-	return nil
+
+	o := make(chan aql.IndexTermCount, 100)
+	go func() {
+		defer close(o)	
+		if field == "" {
+			return
+		}
+		q := es.client.Count().Index(es.vertexIndex)
+		if label != "" {
+			q = q.Type(label)
+		}
+		q = q.Df("data."+field)
+		res, err := q.Do(ctx)
+		if err != nil {
+			log.Printf("Vertex term count failed: %s", err)
+			return
+		}
+		
+		term := structpb.Value{Kind: &structpb.Value_StringValue{StringValue: field}}
+		idxit := aql.IndexTermCount{Term: &term, Count: int32(res)}
+		o <- idxit
+	}()
+
+	return o
 }
 
-// VertexLabelScan
+// VertexLabelScan produces a channel of all vertex ids where the vertex label matches `label`
 func (es *ElasticGraph) VertexLabelScan(ctx context.Context, label string) chan string {
 	log.Printf("ElasticGraph.VertexLabelScan called")
-	return nil
+
+	o := make(chan string, 100)
+	go func() {
+		defer close(o)
+		if label == "" {
+			return
+		}
+		scroll := es.client.Scroll().Index(es.vertexIndex).Type(label).Size(100)
+		for {
+			results, err := scroll.Do(ctx)
+			if err == io.EOF {
+				return // all results retrieved
+			}
+			if err != nil {
+				log.Printf("Scroll call failed: %v", err)
+				return 
+			}
+
+			// Send the hits to the hits channel
+			for _, hit := range results.Hits.Hits {
+				select {
+				case <-ctx.Done():
+					return
+				default:
+					o <- hit.Id
+				}
+			}
+		}
+		return
+	}()
+
+	return o
 }
