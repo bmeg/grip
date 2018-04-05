@@ -16,6 +16,7 @@ var workDir = "arachne.work"
 var mongoURL string
 var boltPath string
 var rocksPath string
+var levelPath string
 var contentDir string
 
 // Cmd the main command called by the cobra library
@@ -37,6 +38,8 @@ var Cmd = &cobra.Command{
 			server = graphserver.NewArachneBoltServer(boltPath, workDir)
 		} else if rocksPath != "" {
 			server = graphserver.NewArachneRocksServer(rocksPath, workDir)
+		} else if levelPath != "" {
+			server = graphserver.NewArachneLevelServer(levelPath, workDir)
 		} else {
 			server = graphserver.NewArachneBadgerServer(dbPath, workDir)
 		}
@@ -65,6 +68,7 @@ func init() {
 	flags.StringVar(&dbName, "name", "arachne", "DB Name")
 	flags.StringVar(&boltPath, "bolt", "", "Bolt DB Path")
 	flags.StringVar(&rocksPath, "rocks", "", "RocksDB Path")
+	flags.StringVar(&levelPath, "level", "", "LevelDB Path")
 	flags.StringVar(&contentDir, "content", "", "Content Path")
 	flags.StringVar(&workDir, "workdir", "arachne.work", "WorkDir")
 }

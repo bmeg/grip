@@ -8,6 +8,7 @@ import (
 	"github.com/bmeg/arachne/engine"
 	"github.com/bmeg/arachne/gdbi"
 	"github.com/bmeg/arachne/kvgraph"
+	_ "github.com/bmeg/arachne/leveldb" // import so level will register itself
 	"github.com/bmeg/arachne/mongo"
 	_ "github.com/bmeg/arachne/rocksdb" // import so rocks will register itself
 	"golang.org/x/net/context"
@@ -59,6 +60,16 @@ func NewArachneBoltServer(baseDir string, workDir string) *ArachneServer {
 // (using the --tags rocks flag)
 func NewArachneRocksServer(baseDir string, workDir string) *ArachneServer {
 	db, err := kvgraph.NewKVGraphDB("rocks", baseDir)
+	if err != nil {
+		return nil
+	}
+	return &ArachneServer{db: db, workDir: workDir}
+}
+
+// NewArachneLevelServer initializes a GRPC server that uses the level driver
+// to run the graph store.
+func NewArachneLevelServer(baseDir string, workDir string) *ArachneServer {
+	db, err := kvgraph.NewKVGraphDB("level", baseDir)
 	if err != nil {
 		return nil
 	}
