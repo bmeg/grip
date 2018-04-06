@@ -32,11 +32,13 @@ def test_count(O):
             "Fail: O.query().V(\"vertex1\").outgoing() %s != %d" % (count, 1))
 
     count = 0
-    for i in O.query().V("vertex1").outgoing().outgoing().has("field2", "value4").incoming().execute():
+    for i in O.query().V("vertex1").outgoing().outgoing().has(
+            "field2", "value4").incoming().execute():
         count += 1
     if count != 1:
         errors.append(
-            """O.query().V("vertex1").outgoing().outgoing().has("field1", "value4") : %s != %s""" % (count, 1))
+            """O.query().V("vertex1").outgoing().outgoing().has("field1", "value4") : %s != %s""" %
+            (count, 1))
 
     return errors
 
@@ -119,7 +121,8 @@ def test_outgoing_edge(O):
         if i['edge']['gid'] not in ["edge1", "edge2"]:
             errors.append("Wrong outgoing vertex %s" % (i['edge']['gid']))
 
-    if O.query().V("vertex2").outgoingEdge("friend").count().first()["data"] != 1:
+    if O.query().V("vertex2").outgoingEdge(
+            "friend").count().first()["data"] != 1:
         errors.append("labeled outgoing doesn't work")
 
     if O.query().V("vertex2").incomingEdge().count().first()["data"] != 1:
@@ -147,7 +150,8 @@ def test_incoming_edge(O):
         if i['edge']['gid'] not in ["edge2"]:
             errors.append("Wrong incoming vertex %s" % (i['edge']['gid']))
 
-    if O.query().V("vertex3").incomingEdge("friend").count().first()["data"] != 1:
+    if O.query().V("vertex3").incomingEdge(
+            "friend").count().first()["data"] != 1:
         errors.append("labeled incoming doesn't work")
 
     return errors
