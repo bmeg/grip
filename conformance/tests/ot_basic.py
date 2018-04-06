@@ -3,9 +3,9 @@
 def test_count(O):
     errors = []
 
-    O.addVertex("vertex1", "person", {"field1" : "value1", "field2" : "value2"})
+    O.addVertex("vertex1", "person", {"field1": "value1", "field2": "value2"})
     O.addVertex("vertex2", "person")
-    O.addVertex("vertex3", "person", {"field1" : "value3", "field2" : "value4"})
+    O.addVertex("vertex3", "person", {"field1": "value3", "field2": "value4"})
     O.addVertex("vertex4", "person")
 
     O.addEdge("vertex1", "vertex2", "friend")
@@ -28,22 +28,25 @@ def test_count(O):
     for i in O.query().V("vertex1").outgoing().execute():
         count += 1
     if count != 1:
-        errors.append("Fail: O.query().V(\"vertex1\").outgoing() %s != %d" % (count, 1))
+        errors.append(
+            "Fail: O.query().V(\"vertex1\").outgoing() %s != %d" % (count, 1))
 
     count = 0
     for i in O.query().V("vertex1").outgoing().outgoing().has("field2", "value4").incoming().execute():
         count += 1
     if count != 1:
-        errors.append("""O.query().V("vertex1").outgoing().outgoing().has("field1", "value4") : %s != %s""" % (count, 1) )
+        errors.append(
+            """O.query().V("vertex1").outgoing().outgoing().has("field1", "value4") : %s != %s""" % (count, 1))
 
     return errors
+
 
 def test_outgoing(O):
     errors = []
 
-    O.addVertex("vertex1", "person", {"field1" : "value1", "field2" : "value2"})
+    O.addVertex("vertex1", "person", {"field1": "value1", "field2": "value2"})
     O.addVertex("vertex2", "person")
-    O.addVertex("vertex3", "person", {"field1" : "value3", "field2" : "value4"})
+    O.addVertex("vertex3", "person", {"field1": "value3", "field2": "value4"})
     O.addVertex("vertex4", "person")
 
     O.addEdge("vertex1", "vertex2", "friend")
@@ -75,9 +78,9 @@ def test_outgoing(O):
 def test_incoming(O):
     errors = []
 
-    O.addVertex("vertex1", "person", {"field1" : "value1", "field2" : "value2"})
+    O.addVertex("vertex1", "person", {"field1": "value1", "field2": "value2"})
     O.addVertex("vertex2", "person")
-    O.addVertex("vertex3", "person", {"field1" : "value3", "field2" : "value4"})
+    O.addVertex("vertex3", "person", {"field1": "value3", "field2": "value4"})
     O.addVertex("vertex4", "person")
 
     O.addEdge("vertex1", "vertex2", "friend")
@@ -96,12 +99,13 @@ def test_incoming(O):
 
     return errors
 
+
 def test_outgoing_edge(O):
     errors = []
 
-    O.addVertex("vertex1", "person", {"field1" : "value1", "field2" : "value2"})
+    O.addVertex("vertex1", "person", {"field1": "value1", "field2": "value2"})
     O.addVertex("vertex2", "person")
-    O.addVertex("vertex3", "person", {"field1" : "value3", "field2" : "value4"})
+    O.addVertex("vertex3", "person", {"field1": "value3", "field2": "value4"})
     O.addVertex("vertex4", "person")
 
     O.addEdge("vertex1", "vertex2", "friend")
@@ -123,12 +127,13 @@ def test_outgoing_edge(O):
 
     return errors
 
+
 def test_incoming_edge(O):
     errors = []
 
-    O.addVertex("vertex1", "person", {"field1" : "value1", "field2" : "value2"})
+    O.addVertex("vertex1", "person", {"field1": "value1", "field2": "value2"})
     O.addVertex("vertex2", "person")
-    O.addVertex("vertex3", "person", {"field1" : "value3", "field2" : "value4"})
+    O.addVertex("vertex3", "person", {"field1": "value3", "field2": "value4"})
     O.addVertex("vertex4", "person")
 
     O.addEdge("vertex1", "vertex2", "friend")
@@ -159,6 +164,8 @@ def test_both(O):
     O.addEdge("vertex1", "vertex2", "friend")
     O.addEdge("vertex1", "vertex3", "friend")
     O.addEdge("vertex4", "vertex1", "parent")
+
+    # time.sleep(1)
 
     count = 0
     for row in O.query().V("vertex1").both().both().execute():

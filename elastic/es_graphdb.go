@@ -106,6 +106,7 @@ func (es *Elastic) DeleteGraph(graph string) error {
 }
 
 func (es *Elastic) Graph(graph string) gdbi.GraphInterface {
+	// TODO pass config to down to the ElasticGraph instance
 	return &ElasticGraph{
 		url:         es.url,
 		database:    es.database,
@@ -115,5 +116,6 @@ func (es *Elastic) Graph(graph string) gdbi.GraphInterface {
 		vertexIndex: fmt.Sprintf("%s_%s_vertex", es.database, graph),
 		edgeIndex:   fmt.Sprintf("%s_%s_edge", es.database, graph),
 		batchSize:   1000,
+		syncronous:  true,
 	}
 }

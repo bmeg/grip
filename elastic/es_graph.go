@@ -29,7 +29,12 @@ type ElasticGraph struct {
 	graph       string
 	vertexIndex string
 	edgeIndex   string
-	batchSize   int
+	// Used to batch queries from incoming channels
+	batchSize int
+	// Not recommended for production. Refresh the relevant primary and replica shards (not the
+	// whole index) immediately after the operation occurs, so that the updated
+	// document appears in search results immediately.
+	syncronous bool
 }
 
 // Compiler
@@ -51,11 +56,19 @@ func (es *ElasticGraph) AddEdge(edgeArray []*aql.Edge) error {
 	ctx := context.Background()
 
 	bulkRequest := es.client.Bulk()
+	if es.syncronous {
+		bulkRequest = bulkRequest.Refresh("true")
+	}
 	for _, e := range edgeArray {
 		if e.Gid == "" {
 			e.Gid = bson.NewObjectId().Hex()
 		}
-		req := elastic.NewBulkUpdateRequest().Index(es.edgeIndex).Type("edge").Id(e.Gid).Doc(e).DocAsUpsert(true)
+		req := elastic.NewBulkUpdateRequest().
+			Index(es.edgeIndex).
+			Type("edge").
+			Id(e.Gid).
+			Doc(PackEdge(e)).
+			DocAsUpsert(true)
 		bulkRequest = bulkRequest.Add(req)
 	}
 	_, err := bulkRequest.Do(ctx)
@@ -73,11 +86,19 @@ func (es *ElasticGraph) AddVertex(vertexArray []*aql.Vertex) error {
 	ctx := context.Background()
 
 	bulkRequest := es.client.Bulk()
-	for _, e := range vertexArray {
-		if e.Gid == "" {
+	if es.syncronous {
+		bulkRequest = bulkRequest.Refresh("true")
+	}
+	for _, v := range vertexArray {
+		if v.Gid == "" {
 			return fmt.Errorf("Vertex Gid cannot be an empty string")
 		}
-		req := elastic.NewBulkUpdateRequest().Index(es.vertexIndex).Type("vertex").Id(e.Gid).Doc(e).DocAsUpsert(true)
+		req := elastic.NewBulkUpdateRequest().
+			Index(es.vertexIndex).
+			Type("vertex").
+			Id(v.Gid).
+			Doc(PackVertex(v)).
+			DocAsUpsert(true)
 		bulkRequest = bulkRequest.Add(req)
 	}
 	_, err := bulkRequest.Do(ctx)
