@@ -619,7 +619,7 @@ func (s *selectMany) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPi
 				if t != nil {
 					row = append(row, *t)
 				} else {
-					row = append(row, nil)
+					row = append(row, gdbi.DataElement{})
 				}
 			}
 			out <- t.AddCurrent(&gdbi.DataElement{Row: row})
