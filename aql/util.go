@@ -89,12 +89,6 @@ func (client Client) AddEdge(graph string, e Edge) error {
 	return nil
 }
 
-// AddBundle adds a edge bundle to the graph
-func (client Client) AddBundle(graph string, e Bundle) error {
-	client.EditC.AddBundle(context.Background(), &GraphElement{Graph: graph, Bundle: &e})
-	return nil
-}
-
 // AddSubGraph adds a complete subgraph to an existing graph
 func (client Client) AddSubGraph(graph string, g Graph) error {
 	client.EditC.AddSubGraph(context.Background(), &Graph{Graph: graph, Edges: g.Edges, Vertices: g.Vertices})

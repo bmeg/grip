@@ -31,8 +31,6 @@ message GraphStatement {
         google.protobuf.ListValue both = 14;
         google.protobuf.ListValue both_edge = 15;
 
-        google.protobuf.ListValue out_bundle = 16;
-
         string as = 20;
         SelectStatement select = 21;
         SelectStatement values = 22;
@@ -106,19 +104,10 @@ message Edge {
   google.protobuf.Struct data = 5;
 }
 
-message Bundle {
-  string gid = 1;
-  string label = 2;
-  string from = 3;
-  map<string, google.protobuf.Struct>    bundle = 4;
-}
-
-
 message QueryResult {
     oneof result {
       Vertex vertex = 1;
       Edge edge = 2;
-      Bundle bundle = 3;
       google.protobuf.Value data = 4;
     }
 }
@@ -139,7 +128,6 @@ message GraphElement {
   string graph = 1;
   Vertex vertex = 2;
   Edge edge = 3;
-  Bundle bundle = 4;
 }
 
 message Graph {
@@ -212,12 +200,6 @@ service Query {
     };
   }
 
-  rpc GetBundle(ElementID) returns (Bundle) {
-    option (google.api.http) = {
-      get: "/v1/graph/{graph}/bundle/{id}"
-    };
-  }
-
   rpc GetGraphs(Empty) returns (stream ElementID) {
     option (google.api.http) = {
       get: "/v1/graph"
@@ -263,13 +245,6 @@ service Edit {
     option (google.api.http) = {
       post: "/v1/graph/{graph}/edge"
       body: "edge"
-    };
-  }
-
-  rpc AddBundle(GraphElement) returns (EditResult) {
-    option (google.api.http) = {
-      post: "/v1/graph/{graph}/bundle"
-      body: "bundle"
     };
   }
 

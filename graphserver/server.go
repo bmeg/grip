@@ -131,12 +131,6 @@ func (server *ArachneServer) GetEdge(ctx context.Context, elem *aql.ElementID) (
 	return o, nil
 }
 
-// GetBundle returns a bundle given a aql.Element
-func (server *ArachneServer) GetBundle(ctx context.Context, elem *aql.ElementID) (*aql.Bundle, error) {
-	o := server.db.Graph(elem.Graph).GetBundle(elem.Id, true)
-	return o, nil
-}
-
 // GetTimestamp returns the update timestamp of a graph
 func (server *ArachneServer) GetTimestamp(ctx context.Context, elem *aql.ElementID) (*aql.Timestamp, error) {
 	o := aql.Timestamp{
@@ -170,14 +164,6 @@ func (server *ArachneServer) AddEdge(ctx context.Context, elem *aql.GraphElement
 	var id string
 	server.db.Graph(elem.Graph).AddEdge([]*aql.Edge{elem.Edge})
 	id = elem.Edge.Gid
-	return &aql.EditResult{Result: &aql.EditResult_Id{Id: id}}, nil
-}
-
-// AddBundle adds a bundle of edges to the graph
-func (server *ArachneServer) AddBundle(ctx context.Context, elem *aql.GraphElement) (*aql.EditResult, error) {
-	var id string
-	server.db.Graph(elem.Graph).AddBundle(elem.Bundle)
-	id = elem.Bundle.Gid
 	return &aql.EditResult{Result: &aql.EditResult_Id{Id: id}}, nil
 }
 
@@ -217,7 +203,6 @@ func (server *ArachneServer) StreamElements(stream aql.Edit_StreamElementsServer
 
 	vertCount := 0
 	edgeCount := 0
-	bundleCount := 0
 
 	vertexBatchChan := make(chan *graphElementArray)
 	edgeBatchChan := make(chan *graphElementArray)
@@ -254,9 +239,6 @@ func (server *ArachneServer) StreamElements(stream aql.Edit_StreamElementsServer
 			if edgeCount != 0 {
 				log.Printf("%d edges streamed", edgeCount)
 			}
-			if bundleCount != 0 {
-				log.Printf("%d bundles streamed", bundleCount)
-			}
 			vertexBatchChan <- vertexBatch
 			edgeBatchChan <- edgeBatch
 			loopErr = err
@@ -279,9 +261,6 @@ func (server *ArachneServer) StreamElements(stream aql.Edit_StreamElementsServer
 				}
 				edgeBatch.edges = append(edgeBatch.edges, element.Edge)
 				edgeCount++
-			} else if element.Bundle != nil {
-				server.AddBundle(context.Background(), element)
-				bundleCount++
 			}
 		}
 	}
