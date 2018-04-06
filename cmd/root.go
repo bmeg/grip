@@ -8,6 +8,7 @@ import (
 	"github.com/bmeg/arachne/cmd/info"
 	"github.com/bmeg/arachne/cmd/list"
 	"github.com/bmeg/arachne/cmd/load"
+	"github.com/bmeg/arachne/cmd/mongoload"
 	"github.com/bmeg/arachne/cmd/query"
 	"github.com/bmeg/arachne/cmd/rdf"
 	"github.com/bmeg/arachne/cmd/server"
@@ -27,6 +28,7 @@ func init() {
 	RootCmd.AddCommand(server.Cmd)
 	RootCmd.AddCommand(rdf.Cmd)
 	RootCmd.AddCommand(load.Cmd)
+	RootCmd.AddCommand(mongoload.Cmd)
 	RootCmd.AddCommand(query.Cmd)
 	RootCmd.AddCommand(dump.Cmd)
 	RootCmd.AddCommand(stream.Cmd)

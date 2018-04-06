@@ -53,7 +53,7 @@ arachne load --edge test.data.edge --vertex test.data.vertex --graph amazon
 
 ###Command line query
 ```
-arachne query amazon 'O().query().V().groupCount("group")'
+arachne query amazon 'O.query().V().groupCount("group")'
 ```
 
 ###Python Query
