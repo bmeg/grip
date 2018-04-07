@@ -16,7 +16,8 @@ func LevelBuilder(path string) (kvi.KVInterface, error) {
 	log.Printf("Starting LevelDB")
 	db, err := leveldb.OpenFile(path, nil)
 	if err != nil {
-		log.Printf("Error: %s")
+		log.Printf("Error: %s", err)
+		return &LevelKV{}, err
 	}
 	o := &LevelKV{db: db}
 	return o, err
@@ -30,10 +31,12 @@ func copyBytes(in []byte) []byte {
 	return out
 }
 
+// LevelKV implements the generic key value interface using the leveldb library
 type LevelKV struct {
 	db *leveldb.DB
 }
 
+// Close database
 func (l *LevelKV) Close() error {
 	return l.db.Close()
 }

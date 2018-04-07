@@ -79,6 +79,7 @@ func (kgdb *KVInterfaceGDB) GetTimestamp() string {
 	return kgdb.kvg.ts.Get(kgdb.graph)
 }
 
+// Compiler gets a compiler that will use the graph the execute the compiled query
 func (kgdb *KVInterfaceGDB) Compiler() gdbi.Compiler {
 	return core.NewCompiler(kgdb)
 }

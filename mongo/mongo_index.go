@@ -33,6 +33,7 @@ func (mg *Graph) AddEdgeIndex(label string, field string) error {
 }
 */
 
+// GetVertexIndexList lists indices
 func (mg *Graph) GetVertexIndexList() chan aql.IndexID {
 	log.Printf("IndexList")
 	out := make(chan aql.IndexID)
@@ -41,12 +42,12 @@ func (mg *Graph) GetVertexIndexList() chan aql.IndexID {
 		defer mg.ar.pool.Put(session)
 		defer close(out)
 		c := mg.ar.getVertexCollection(session, mg.graph)
-		idx_list, err := c.Indexes()
+		idxList, err := c.Indexes()
 		if err != nil {
 			log.Printf("Errors: %s", err)
 			return
 		}
-		for _, idx := range idx_list {
+		for _, idx := range idxList {
 			log.Printf("Found index: %s", idx.Key)
 			if len(idx.Key) > 1 && idx.Key[0] == "label" {
 				out <- aql.IndexID{Graph: mg.graph, Field: idx.Key[1]}

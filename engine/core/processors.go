@@ -17,6 +17,7 @@ import (
 )
 
 ////////////////////////////////////////////////////////////////////////////////
+
 // LookupVerts starts query by looking on vertices
 type LookupVerts struct {
 	db  gdbi.GraphInterface
@@ -66,6 +67,7 @@ func (l *LookupVerts) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+
 // LookupVertsIndex look up vertices by indexed based feature
 type LookupVertsIndex struct {
 	db     gdbi.GraphInterface
@@ -104,6 +106,7 @@ func (l *LookupVertsIndex) Process(ctx context.Context, man gdbi.Manager, in gdb
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+
 // LookupEdges starts query by looking up edges
 type LookupEdges struct {
 	db     gdbi.GraphInterface
@@ -131,6 +134,7 @@ func (l *LookupEdges) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+
 // LookupVertexAdjOut finds out vertex
 type LookupVertexAdjOut struct {
 	db     gdbi.GraphInterface
@@ -164,6 +168,7 @@ func (l *LookupVertexAdjOut) Process(ctx context.Context, man gdbi.Manager, in g
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+
 // LookupEdgeAdjOut finds out edge
 type LookupEdgeAdjOut struct {
 	db     gdbi.GraphInterface
@@ -197,6 +202,7 @@ func (l *LookupEdgeAdjOut) Process(ctx context.Context, man gdbi.Manager, in gdb
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+
 // LookupVertexAdjIn finds incoming vertex
 type LookupVertexAdjIn struct {
 	db     gdbi.GraphInterface
@@ -230,6 +236,7 @@ func (l *LookupVertexAdjIn) Process(ctx context.Context, man gdbi.Manager, in gd
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+
 // LookupEdgeAdjIn finds incoming edge
 type LookupEdgeAdjIn struct {
 	db     gdbi.GraphInterface
@@ -263,6 +270,7 @@ func (l *LookupEdgeAdjIn) Process(ctx context.Context, man gdbi.Manager, in gdbi
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+
 // InEdge finds the incoming edges
 type InEdge struct {
 	db     gdbi.GraphInterface
@@ -298,6 +306,7 @@ func (l *InEdge) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, 
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+
 // OutEdge finds the outgoing edges
 type OutEdge struct {
 	db     gdbi.GraphInterface
@@ -333,6 +342,7 @@ func (l *OutEdge) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe,
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+
 // Values selects fields from current element
 type Values struct {
 	keys []string
@@ -364,6 +374,7 @@ func (v *Values) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, 
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+
 // HasData filters based on data
 type HasData struct {
 	stmt *aql.HasStatement
@@ -388,6 +399,7 @@ func (h *HasData) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe,
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+
 // HasLabel filters based on label match
 type HasLabel struct {
 	labels []string
@@ -407,6 +419,7 @@ func (h *HasLabel) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+
 // HasID filters based on ID
 type HasID struct {
 	ids []string
@@ -426,6 +439,7 @@ func (h *HasID) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, o
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+
 // Count incoming elements
 type Count struct{}
 
@@ -443,6 +457,7 @@ func (c *Count) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, o
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+
 // Limit limits incoming values to count
 type Limit struct {
 	count int64
@@ -465,6 +480,7 @@ func (l *Limit) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, o
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+
 // Fold runs Javascript fold function
 type Fold struct {
 	fold    *aql.FoldStatement
@@ -498,6 +514,7 @@ func (f *Fold) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, ou
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+
 // GroupCount does a groupcount
 type GroupCount struct {
 	key string
@@ -547,11 +564,13 @@ func (g *GroupCount) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPi
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+
 // Distinct only returns district objects as defined by the set of select features
 type Distinct struct {
 	vals []string
 }
 
+// Process runs distinct
 func (g *Distinct) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
 	go func() {
 		defer close(out)
@@ -573,6 +592,7 @@ func (g *Distinct) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+
 // Marker marks the current element
 type Marker struct {
 	mark string
@@ -628,22 +648,22 @@ type concat []gdbi.Processor
 func (c concat) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
 	go func() {
 		defer close(out)
-		chan_in := make([]chan *gdbi.Traveler, len(c))
-		chan_out := make([]chan *gdbi.Traveler, len(c))
+		chanIn := make([]chan *gdbi.Traveler, len(c))
+		chanOut := make([]chan *gdbi.Traveler, len(c))
 		for i := range c {
-			chan_in[i] = make(chan *gdbi.Traveler, 1000)
-			chan_out[i] = make(chan *gdbi.Traveler, 1000)
+			chanIn[i] = make(chan *gdbi.Traveler, 1000)
+			chanOut[i] = make(chan *gdbi.Traveler, 1000)
 		}
 
 		for i, p := range c {
-			ctx = p.Process(ctx, man, chan_in[i], chan_out[i])
+			ctx = p.Process(ctx, man, chanIn[i], chanOut[i])
 		}
 
 		wg := sync.WaitGroup{}
 		wg.Add(len(c))
 		for i := range c {
 			go func(i int) {
-				for c := range chan_out[i] {
+				for c := range chanOut[i] {
 					out <- c
 				}
 				wg.Done()
@@ -651,11 +671,11 @@ func (c concat) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, o
 		}
 
 		for t := range in {
-			for _, ch := range chan_in {
+			for _, ch := range chanIn {
 				ch <- t
 			}
 		}
-		for _, ch := range chan_in {
+		for _, ch := range chanIn {
 			close(ch)
 		}
 		wg.Wait()

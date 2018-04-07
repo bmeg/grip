@@ -8,6 +8,7 @@ import (
 	"os"
 )
 
+// NewManager creates a resource manager
 func NewManager(workDir string) gdbi.Manager {
 	return &badgerManager{[]kvi.KVInterface{}, []string{}, workDir}
 }

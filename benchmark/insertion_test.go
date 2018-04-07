@@ -12,7 +12,7 @@ import (
 
 var idRunes = []rune("abcdefghijklmnopqrstuvwxyz")
 
-func randId() string {
+func randID() string {
 	b := make([]rune, 10)
 	for i := range b {
 		b[i] = idRunes[rand.Intn(len(idRunes))]
@@ -30,7 +30,7 @@ func BenchmarkVertexInsert(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		v := make([]*aql.Vertex, 1000)
 		for j := 0; j < 1000; j++ {
-			v[j] = &aql.Vertex{Gid: randId(), Label: "Person"}
+			v[j] = &aql.Vertex{Gid: randID(), Label: "Person"}
 		}
 		graph.AddVertex(v)
 	}
@@ -49,7 +49,7 @@ func BenchmarkEdgeInsert(b *testing.B) {
 	gids := make([]string, 1000)
 	v := make([]*aql.Vertex, 1000)
 	for j := 0; j < 1000; j++ {
-		gids[j] = randId()
+		gids[j] = randID()
 		v[j] = &aql.Vertex{Gid: gids[j], Label: "Person"}
 	}
 	graph.AddVertex(v)

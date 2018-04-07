@@ -20,7 +20,7 @@ import (
 
 var idRunes = []rune("abcdefghijklmnopqrstuvwxyz")
 
-func randId() string {
+func randID() string {
 	b := make([]rune, 10)
 	for i := range b {
 		b[i] = idRunes[rand.Intn(len(idRunes))]
@@ -357,7 +357,7 @@ func values(vals ...interface{}) checker {
 
 func vert(label string, d dat) *aql.Vertex {
 	return &aql.Vertex{
-		Gid:   randId(),
+		Gid:   randID(),
 		Label: label,
 		Data:  protoutil.AsStruct(d),
 	}
@@ -365,7 +365,7 @@ func vert(label string, d dat) *aql.Vertex {
 
 func edge(from, to *aql.Vertex, label string, d dat) *aql.Edge {
 	return &aql.Edge{
-		Gid:   randId(),
+		Gid:   randID(),
 		From:  from.Gid,
 		To:    to.Gid,
 		Label: label,

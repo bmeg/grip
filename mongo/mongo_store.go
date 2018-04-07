@@ -137,6 +137,7 @@ func (ma *Mongo) Graph(graph string) gdbi.GraphInterface {
 	}
 }
 
+// Compiler returns a query compiler that uses the graph
 func (mg *Graph) Compiler() gdbi.Compiler {
 	return NewCompiler(mg)
 }

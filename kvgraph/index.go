@@ -40,6 +40,7 @@ func (kgdb *KVInterfaceGDB) AddVertexIndex(label string, field string) error {
 	return kgdb.kvg.idx.AddField(fmt.Sprintf("%s.v.%s.%s", kgdb.graph, label, field))
 }
 
+// GetVertexIndexList lists out all the vertex indices for a graph
 func (kgdb *KVInterfaceGDB) GetVertexIndexList() chan aql.IndexID {
 	out := make(chan aql.IndexID)
 	go func() {

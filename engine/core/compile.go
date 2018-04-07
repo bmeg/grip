@@ -8,7 +8,7 @@ import (
 	//"log"
 )
 
-// Pipeline a set of runnable query operations
+// DefaultPipeline a set of runnable query operations
 type DefaultPipeline struct {
 	procs     []gdbi.Processor
 	dataType  gdbi.DataType
@@ -17,22 +17,27 @@ type DefaultPipeline struct {
 	workDir   string
 }
 
+// DataType return the datatype
 func (pipe *DefaultPipeline) DataType() gdbi.DataType {
 	return pipe.dataType
 }
 
+// RowTypes get the row types
 func (pipe *DefaultPipeline) RowTypes() []gdbi.DataType {
 	return pipe.rowTypes
 }
 
+// Processors gets the list of processors
 func (pipe *DefaultPipeline) Processors() []gdbi.Processor {
 	return pipe.procs
 }
 
+// DefaultCompiler is the core compiler that works with default graph interface
 type DefaultCompiler struct {
 	db gdbi.GraphInterface
 }
 
+// NewCompiler creates a new compiler that runs using the provided GraphInterface
 func NewCompiler(db gdbi.GraphInterface) gdbi.Compiler {
 	return DefaultCompiler{db: db}
 }

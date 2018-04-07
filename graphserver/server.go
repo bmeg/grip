@@ -324,6 +324,7 @@ func (server *ArachneServer) AddIndex(ctx context.Context, idx *aql.IndexID) (*a
 	return &aql.EditResult{Result: &aql.EditResult_Id{Id: idx.Field}}, nil
 }
 
+// DeleteIndex removes an index from the server
 func (server *ArachneServer) DeleteIndex(ctx context.Context, idx *aql.IndexID) (*aql.EditResult, error) {
 	err := server.db.Graph(idx.Graph).DeleteVertexIndex(idx.Label, idx.Field)
 	if err != nil {
@@ -332,6 +333,7 @@ func (server *ArachneServer) DeleteIndex(ctx context.Context, idx *aql.IndexID) 
 	return &aql.EditResult{Result: &aql.EditResult_Id{Id: idx.Field}}, nil
 }
 
+// GetIndex returns the terms and their counts from an index
 func (server *ArachneServer) GetIndex(idx *aql.IndexID, stream aql.Query_GetIndexServer) error {
 	res := server.db.Graph(idx.Graph).GetVertexTermCount(stream.Context(), idx.Label, idx.Field)
 	for i := range res {
@@ -341,6 +343,7 @@ func (server *ArachneServer) GetIndex(idx *aql.IndexID, stream aql.Query_GetInde
 	return nil
 }
 
+// GetIndexList lists avalible indices from a graph
 func (server *ArachneServer) GetIndexList(idx *aql.GraphID, stream aql.Query_GetIndexListServer) error {
 	res := server.db.Graph(idx.Graph).GetVertexIndexList()
 	for i := range res {
@@ -349,6 +352,7 @@ func (server *ArachneServer) GetIndexList(idx *aql.GraphID, stream aql.Query_Get
 	return nil
 }
 
+// IndexTraversal is not implemented
 func (server *ArachneServer) IndexTraversal(idx *aql.IndexQuery, stream aql.Query_IndexTraversalServer) error {
 	/*
 		res := server.engine.Arachne.Graph(idx.Graph).GetVertexTermCount(stream.Context(), idx.Label, idx.Field)

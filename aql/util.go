@@ -131,6 +131,7 @@ func (client Client) Execute(graph string, q *Query) (chan *ResultRow, error) {
 	})
 }
 
+// Traversal runs a graph traversal query
 func (client Client) Traversal(query *GraphQuery) (chan *ResultRow, error) {
 	tclient, err := client.QueryC.Traversal(context.TODO(), query)
 	if err != nil {

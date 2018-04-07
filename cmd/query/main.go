@@ -93,9 +93,9 @@ var Cmd = &cobra.Command{
 			log.Printf("Error: %s", err)
 			return err
 		}
-		queryJson, _ := json.Marshal(val)
+		queryJSON, _ := json.Marshal(val)
 		query := aql.GraphQuery{}
-		jsonpb.Unmarshal(strings.NewReader(string(queryJson)), &query)
+		jsonpb.Unmarshal(strings.NewReader(string(queryJSON)), &query)
 
 		conn, err := aql.Connect(host, true)
 		if err != nil {

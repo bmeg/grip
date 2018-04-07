@@ -217,7 +217,7 @@ func mapDig(i map[string]interface{}, path []string) interface{} {
 	return nil
 }
 
-// AddDocPrefix add new document and prefix all the fields with `fieldPrefix` path
+// AddDocTx add new document using a transaction provided by user
 func (idx *KVIndex) AddDocTx(tx kvi.KVTransaction, docID string, doc map[string]interface{}) error {
 	sdoc := Doc{Entries: [][]byte{}}
 	docKey := DocKey(docID)
