@@ -61,6 +61,10 @@ function query() {
 			this.query.push({'group_count': field})
 			return this
 		},
+		count: function() {
+			this.query.push({'count': ''})
+			return this
+	  },
 		hasLabel: function(l) {
 			this.query.push({'has_label': labels(l)})
 			return this
