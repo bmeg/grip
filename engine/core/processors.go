@@ -635,7 +635,12 @@ func (s *selectMany) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPi
 			row := make([]gdbi.DataElement, 0, len(s.marks))
 			for _, mark := range s.marks {
 				// TODO handle missing mark? rely on compiler to check this?
-				row = append(row, *t.GetMark(mark))
+				t := t.GetMark(mark)
+				if t != nil {
+					row = append(row, *t)
+				} else {
+					row = append(row, gdbi.DataElement{})
+				}
 			}
 			out <- t.AddCurrent(&gdbi.DataElement{Row: row})
 		}

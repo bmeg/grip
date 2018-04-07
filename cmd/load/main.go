@@ -18,7 +18,6 @@ var vertexFile string
 var edgeFile string
 var jsonFile string
 var yamlFile string
-var bundleFile string
 
 func found(set []string, val string) bool {
 	for _, i := range set {
@@ -132,24 +131,6 @@ var Cmd = &cobra.Command{
 			<-wait
 		}
 
-		if bundleFile != "" {
-			log.Printf("Loading %s", bundleFile)
-			reader, err := golib.ReadFileLines(bundleFile)
-			if err != nil {
-				return err
-			}
-			count := 0
-			for line := range reader {
-				e := aql.Bundle{}
-				jsonpb.Unmarshal(strings.NewReader(string(line)), &e)
-				conn.AddBundle(graph, e)
-				count++
-				if count%1000 == 0 {
-					log.Printf("Loaded %d bundles", count)
-				}
-			}
-		}
-
 		if jsonFile != "" {
 			log.Printf("Loading %s", jsonFile)
 			graphs := conn.GetGraphList()
@@ -213,5 +194,4 @@ func init() {
 	flags.StringVar(&edgeFile, "edge", "", "Edge File")
 	flags.StringVar(&jsonFile, "json", "", "JSON Graph File")
 	flags.StringVar(&yamlFile, "yaml", "", "YAML Graph File")
-	flags.StringVar(&bundleFile, "bundle", "", "Edge Bundle File")
 }

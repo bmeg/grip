@@ -21,7 +21,7 @@ class Writer:
         self.record_count = 0
 
     def add_record(self, rec):
-        q = {"gid" : rec['ASIN'], "data" : {}}
+        q = {"gid" : rec['ASIN'], "label" : rec.get("group", "Unknown"), "data" : {}}
         for i in ["Id", "group", "title", "salesrank"]:
             if i in rec:
                 q["data"][i] = rec[i]

@@ -56,7 +56,15 @@ function query() {
     limit: function(l) {
       this.query.push({'limit': l})
       return this
-    }
+    },
+		groupCount: function(field) {
+			this.query.push({'group_count': field})
+			return this
+		},
+		hasLabel: function(l) {
+			this.query.push({'has_label': labels(l)})
+			return this
+		}
   }
 }
 
@@ -66,14 +74,13 @@ O = {
 `
 
 var host = "localhost:8202"
-var graph = "data"
 
 // Cmd is the declaration of the command line
 var Cmd = &cobra.Command{
 	Use:   "query",
 	Short: "Run query on Arachne Server",
 	Long:  ``,
-	Args:  cobra.MinimumNArgs(1),
+	Args:  cobra.MinimumNArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		vm := goja.New()
 
@@ -86,7 +93,7 @@ var Cmd = &cobra.Command{
 			log.Printf("Error: %s", err)
 			return err
 		}
-		queryString := args[0]
+		queryString := args[1]
 		//log.Printf("%s\n", queryString)
 		val, err := vm.RunString(queryString)
 		if err != nil {
@@ -96,13 +103,18 @@ var Cmd = &cobra.Command{
 		queryJSON, _ := json.Marshal(val)
 		query := aql.GraphQuery{}
 		jsonpb.Unmarshal(strings.NewReader(string(queryJSON)), &query)
+		err = jsonpb.Unmarshal(strings.NewReader(string(queryJSON)), &query)
+		if err != nil {
+			log.Printf("Error: %s", err)
+			return err
+		}
 
 		conn, err := aql.Connect(host, true)
 		if err != nil {
 			log.Printf("Error: %s", err)
 			return err
 		}
-		query.Graph = graph
+		query.Graph = args[0]
 		res, err := conn.Traversal(&query)
 		if err != nil {
 			log.Printf("Error: %s", err)
@@ -121,5 +133,4 @@ var Cmd = &cobra.Command{
 func init() {
 	flags := Cmd.Flags()
 	flags.StringVar(&host, "host", host, "Host Server")
-	flags.StringVar(&graph, "graph", "data", "Graph")
 }

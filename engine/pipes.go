@@ -47,7 +47,7 @@ func Start(ctx context.Context, pipe gdbi.Pipeline, workdir string, bufsize int)
 
 // Run starts a pipeline and converts the output to server output structures
 func Run(ctx context.Context, pipe gdbi.Pipeline, workdir string) <-chan *aql.ResultRow {
-	bufsize := 100
+	bufsize := 5000
 	resch := make(chan *aql.ResultRow, bufsize)
 
 	go func() {

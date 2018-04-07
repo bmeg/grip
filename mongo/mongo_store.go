@@ -324,12 +324,6 @@ func (mg *Graph) GetEdgeList(ctx context.Context, loadProp bool) <-chan *aql.Edg
 			if _, ok := result[fieldDst]; ok {
 				e := UnpackEdge(result)
 				o <- e
-			} else if _, ok := result[fieldBundle]; ok {
-				bundle := UnpackBundle(result)
-				for k, v := range bundle.Bundle {
-					e := &aql.Edge{Gid: bundle.Gid, Label: bundle.Label, From: bundle.From, To: k, Data: v}
-					o <- e
-				}
 			}
 		}
 		mg.ar.pool.Put(session)
@@ -438,9 +432,9 @@ func (mg *Graph) GetOutChannel(reqChan chan gdbi.ElementLookup, load bool, edgeL
 			query = append(query, bson.M{"$lookup": bson.M{"from": vertCol, "localField": "to", "foreignField": "_id", "as": "dst"}})
 			query = append(query, bson.M{"$unwind": "$dst"})
 			if load {
-				query = append(query, bson.M{"$project": bson.M{"from": true, fieldBundle: true, "dst._id": true, "dst.label": true, "dst.data": true}})
+				query = append(query, bson.M{"$project": bson.M{"from": true, "dst._id": true, "dst.label": true, "dst.data": true}})
 			} else {
-				query = append(query, bson.M{"$project": bson.M{"from": true, fieldBundle: true, "dst._id": true, "dst.label": true}})
+				query = append(query, bson.M{"$project": bson.M{"from": true, "dst._id": true, "dst.label": true}})
 			}
 
 			eCol := mg.ar.getEdgeCollection(session, mg.graph)
@@ -584,25 +578,13 @@ func (mg *Graph) GetOutEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, e
 			defer iter.Close()
 			result := map[string]interface{}{}
 			for iter.Next(&result) {
-				if _, ok := result["bundle"]; ok {
-					log.Printf("Bundle: %s", result)
-					bundle := UnpackBundle(result)
-					for k, v := range bundle.Bundle {
-						e := aql.Edge{Gid: bundle.Gid, Label: bundle.Label, From: bundle.From, To: k, Data: v}
-						r := batchMap[result["from"].(string)]
-						for _, ri := range r {
-							ri.Edge = &e
-							o <- ri
-						}
-					}
-				} else {
-					e := UnpackEdge(result)
-					r := batchMap[result["from"].(string)]
-					for _, ri := range r {
-						ri.Edge = e
-						o <- ri
-					}
+				e := UnpackEdge(result)
+				r := batchMap[result["from"].(string)]
+				for _, ri := range r {
+					ri.Edge = e
+					o <- ri
 				}
+
 			}
 		}
 		mg.ar.pool.Put(session)
@@ -657,231 +639,4 @@ func (mg *Graph) GetInEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, ed
 		mg.ar.pool.Put(session)
 	}()
 	return o
-}
-
-/*
-// GetOutList given vertex/edge `key` find vertices on outgoing edges,
-// if len(edgeLabels) > 0 the edge labels must match a string in the array
-func (mg *Graph) GetOutList(ctx context.Context, key string, load bool, edgeLabels []string) <-chan *aql.Vertex {
-	o := make(chan *aql.Vertex, 100)
-	vertexChan := make(chan string, 100)
-	go func() {
-		defer close(vertexChan)
-		session := mg.ar.pool.Get()
-
-		eCol := mg.ar.getEdgeCollection(session, mg.graph)
-
-		selection := map[string]interface{}{
-			fieldSrc: key,
-		}
-		if len(edgeLabels) > 0 {
-			selection[fieldLabel] = bson.M{"$in": edgeLabels}
-		}
-		iter := eCol.Find(selection).Iter()
-		defer iter.Close()
-		result := map[string]interface{}{}
-		for iter.Next(&result) {
-			select {
-			case <-ctx.Done():
-				return
-			default:
-			}
-			if _, ok := result[fieldDst]; ok {
-				vertexChan <- result[fieldDst].(string)
-			} else if val, ok := result[fieldBundle]; ok {
-				for k := range val.(map[string]interface{}) {
-					vertexChan <- k
-				}
-			}
-		}
-		mg.ar.pool.Put(session)
-	}()
-
-	go func() {
-		defer close(o)
-		vCol := mg.ar.getVertexCollection(mg.graph)
-		for dst := range vertexChan {
-			q := vCol.FindId(dst)
-			if !load {
-				q = q.Select(map[string]interface{}{"_id": 1, "label": 1})
-			}
-			d := map[string]interface{}{}
-			err := q.One(d)
-			if err == nil {
-				v := UnpackVertex(d)
-				o <- v
-			}
-		}
-	}()
-	return o
-}
-*/
-
-/*
-// GetInList given vertex/edge `key` find vertices on incoming edges,
-// if len(edgeLabels) > 0 the edge labels must match a string in the array
-func (mg *Graph) GetInList(ctx context.Context, key string, load bool, edgeLabels []string) <-chan *aql.Vertex {
-	//BUG: this should respond to both vertex and edge ids
-	o := make(chan *aql.Vertex, 100)
-	go func() {
-		defer close(o)
-		eCol := mg.ar.getEdgeCollection(mg.graph)
-		vCol := mg.ar.getVertexCollection(mg.graph)
-		selection := map[string]interface{}{
-			fieldDst: key,
-		}
-		if len(edgeLabels) > 0 {
-			selection[fieldLabel] = bson.M{"$in": edgeLabels}
-		}
-		iter := eCol.Find(selection).Iter()
-		defer iter.Close()
-		result := map[string]interface{}{}
-		for iter.Next(&result) {
-			select {
-			case <-ctx.Done():
-				return
-			default:
-			}
-			q := vCol.FindId(result[fieldSrc])
-			if !load {
-				q = q.Select(map[string]interface{}{"_id": 1, "label": 1})
-			}
-			d := map[string]interface{}{}
-			if err := q.One(d); err == nil {
-				v := UnpackVertex(d)
-				o <- v
-			}
-		}
-	}()
-	return o
-}
-*/
-
-/*
-// GetOutEdgeList given vertex `key` find all outgoing edges,
-// if len(edgeLabels) > 0 the edge labels must match a string in the array
-func (mg *Graph) GetOutEdgeList(ctx context.Context, key string, load bool, edgeLabels []string) <-chan *aql.Edge {
-	o := make(chan *aql.Edge, 1000)
-	go func() {
-		defer close(o)
-		eCol := mg.ar.getEdgeCollection(mg.graph)
-		selection := map[string]interface{}{
-			fieldSrc: key,
-		}
-		if len(edgeLabels) > 0 {
-			selection[fieldLabel] = bson.M{"$in": edgeLabels}
-		}
-		iter := eCol.Find(selection).Iter()
-		result := map[string]interface{}{}
-		for iter.Next(&result) {
-			if _, ok := result[fieldDst]; ok {
-				e := UnpackEdge(result)
-				o <- e
-			} else if _, ok := result[fieldBundle]; ok {
-				bundle := UnpackBundle(result)
-				for k, v := range bundle.Bundle {
-					e := &aql.Edge{Gid: bundle.Gid, Label: bundle.Label, From: bundle.From, To: k, Data: v}
-					o <- e
-				}
-			}
-		}
-	}()
-	return o
-}
-*/
-
-// GetOutBundleChannel given vertex `key` find all outgoing bundles,
-// if len(edgeLabels) > 0 the edge labels must match a string in the array
-// load is ignored
-func (mg *Graph) GetOutBundleChannel(req chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
-	o := make(chan gdbi.ElementLookup, 1000)
-	go func() {
-		defer close(o)
-		session := mg.ar.pool.Get()
-		eCol := mg.ar.getEdgeCollection(session, mg.graph)
-		for r := range req {
-			selection := map[string]interface{}{
-				fieldSrc: r.ID,
-			}
-			if len(edgeLabels) > 0 {
-				selection[fieldLabel] = bson.M{"$in": edgeLabels}
-			}
-			iter := eCol.Find(selection).Iter()
-			result := map[string]interface{}{}
-			for iter.Next(&result) {
-				if _, ok := result[fieldBundle]; ok {
-					bundle := UnpackBundle(result)
-					r.Bundle = bundle
-					o <- r
-				}
-			}
-		}
-		mg.ar.pool.Put(session)
-	}()
-	return o
-}
-
-/*
-// GetInEdgeList given vertex `key` find all incoming edges,
-// if len(edgeLabels) > 0 the edge labels must match a string in the array
-func (mg *Graph) GetInEdgeList(ctx context.Context, key string, load bool, edgeLabels []string) <-chan *aql.Edge {
-	//TODO: use the load variable to filter data field from scan if possible
-	o := make(chan *aql.Edge, 100)
-	go func() {
-		defer close(o)
-		eCol := mg.ar.getEdgeCollection(mg.graph)
-
-		selection := map[string]interface{}{
-			fieldDst: key,
-		}
-		if len(edgeLabels) > 0 {
-			selection[fieldLabel] = bson.M{"$in": edgeLabels}
-		}
-		iter := eCol.Find(selection).Iter()
-		result := map[string]interface{}{}
-		for iter.Next(&result) {
-			e := UnpackEdge(result)
-			o <- e
-		}
-	}()
-	return o
-}
-*/
-
-// AddBundle adds a bundle to the graph
-func (mg *Graph) AddBundle(bundle *aql.Bundle) error {
-	session := mg.ar.pool.Get()
-	eCol := mg.ar.getEdgeCollection(session, mg.graph)
-	if bundle.Gid != "" {
-		_, err := eCol.UpsertId(bundle.Gid, PackBundle(bundle))
-		mg.ar.pool.Put(session)
-		return err
-	}
-	err := eCol.Insert(PackBundle(bundle))
-	mg.ts.Touch(mg.graph)
-	mg.ar.pool.Put(session)
-	return err
-}
-
-// GetBundle loads bundle of edges, given an id
-// loadProp is ignored
-func (mg *Graph) GetBundle(id string, loadProp bool) *aql.Bundle {
-	d := map[string]interface{}{}
-	session := mg.ar.pool.Get()
-	eCol := mg.ar.getEdgeCollection(session, mg.graph)
-	q := eCol.FindId(id)
-	q.One(d)
-	v := UnpackBundle(d)
-	mg.ar.pool.Put(session)
-	return v
-}
-
-// DelBundle removes a bundle of edges given an id
-func (mg *Graph) DelBundle(id string) error {
-	session := mg.ar.pool.Get()
-	eCol := mg.ar.getEdgeCollection(session, mg.graph)
-	err := eCol.RemoveId(id)
-	mg.ts.Touch(mg.graph)
-	mg.ar.pool.Put(session)
-	return err
 }

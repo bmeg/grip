@@ -162,32 +162,6 @@ func (kgdb *KVInterfaceGDB) AddEdge(edgeArray []*aql.Edge) error {
 	return nil
 }
 
-// AddBundle adds a bundle to the graph
-func (kgdb *KVInterfaceGDB) AddBundle(bundle *aql.Bundle) error {
-	if bundle.Gid == "" {
-		eid := fmt.Sprintf("%d", rand.Uint64())
-		for ; kgdb.kvg.kv.HasKey(EdgeKeyPrefix(kgdb.graph, eid)); eid = fmt.Sprintf("%d", rand.Uint64()) {
-		}
-		bundle.Gid = eid
-	}
-	eid := bundle.Gid
-	data, _ := proto.Marshal(bundle)
-
-	src := bundle.From
-	dst := ""
-	ekey := EdgeKey(kgdb.graph, eid, src, dst, bundle.Label, edgeBundle)
-	skey := SrcEdgeKey(kgdb.graph, src, dst, eid, bundle.Label, edgeBundle)
-
-	if err := kgdb.kvg.kv.Set(ekey, data); err != nil {
-		return err
-	}
-	if err := kgdb.kvg.kv.Set(skey, []byte{}); err != nil {
-		return err
-	}
-	kgdb.kvg.ts.Touch(kgdb.graph)
-	return nil
-}
-
 // DelEdge deletes edge with id `key`
 func (kgdb *KVInterfaceGDB) DelEdge(eid string) error {
 	ekeyPrefix := EdgeKeyPrefix(kgdb.graph, eid)
@@ -215,32 +189,6 @@ func (kgdb *KVInterfaceGDB) DelEdge(eid string) error {
 		return err
 	}
 	if err := kgdb.kvg.kv.Delete(dkey); err != nil {
-		return err
-	}
-	kgdb.kvg.ts.Touch(kgdb.graph)
-	return nil
-}
-
-// DelBundle removes a bundle of edges given an id
-func (kgdb *KVInterfaceGDB) DelBundle(eid string) error {
-	ekeyPrefix := EdgeKeyPrefix(kgdb.graph, eid)
-	var ekey []byte
-	kgdb.kvg.kv.View(func(it kvi.KVIterator) error {
-		for it.Seek(ekeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), ekeyPrefix); it.Next() {
-			ekey = it.Key()
-		}
-		return nil
-	})
-	if ekey == nil {
-		return fmt.Errorf("Edge Not Found")
-	}
-
-	_, _, sid, _, _, _ := EdgeKeyParse(ekey)
-	skey := SrcEdgeKeyPrefix(kgdb.graph, sid, "", eid)
-	if err := kgdb.kvg.kv.Delete(ekey); err != nil {
-		return err
-	}
-	if err := kgdb.kvg.kv.Delete(skey); err != nil {
 		return err
 	}
 	kgdb.kvg.ts.Touch(kgdb.graph)
@@ -310,14 +258,6 @@ func (kgdb *KVInterfaceGDB) GetEdgeList(ctx context.Context, loadProp bool) <-ch
 						o <- e
 					} else {
 						e := &aql.Edge{Gid: string(eid), Label: label, From: sid, To: did}
-						o <- e
-					}
-				} else {
-					bundle := &aql.Bundle{}
-					edgeData, _ := it.Value()
-					proto.Unmarshal(edgeData, bundle)
-					for k, v := range bundle.Bundle {
-						e := &aql.Edge{Gid: bundle.Gid, Label: bundle.Label, From: bundle.From, To: k, Data: v}
 						o <- e
 					}
 				}
@@ -400,56 +340,12 @@ func (kgdb *KVInterfaceGDB) GetOutEdgeList(ctx context.Context, id string, loadP
 							e.Label = label
 						}
 						o <- e
-					} else if edgeType == edgeBundle {
-						bundle := &aql.Bundle{}
-						ekey := EdgeKey(kgdb.graph, eid, src, "", label, edgeType)
-						dataValue, err := it.Get(ekey)
-						if err == nil {
-							proto.Unmarshal(dataValue, bundle)
-							for k, v := range bundle.Bundle {
-								e := &aql.Edge{Gid: bundle.Gid, Label: bundle.Label, From: bundle.From, To: k, Data: v}
-								o <- e
-							}
-						}
 					}
 				}
 			}
 			return nil
 		})
 
-	}()
-	return o
-}
-
-// GetOutBundleChannel given vertex `key` find all outgoing bundles,
-// if len(edgeLabels) > 0 the edge labels must match a string in the array
-// load is ignored
-func (kgdb *KVInterfaceGDB) GetOutBundleChannel(ids chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
-	o := make(chan gdbi.ElementLookup, 100)
-	go func() {
-		defer close(o)
-		kgdb.kvg.kv.View(func(it kvi.KVIterator) error {
-			for id := range ids {
-				skeyPrefix := SrcEdgePrefix(kgdb.graph, id.ID)
-				for it.Seek(skeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), skeyPrefix); it.Next() {
-					keyValue := it.Key()
-					_, src, _, eid, label, etype := SrcEdgeKeyParse(keyValue)
-					if len(edgeLabels) == 0 || contains(edgeLabels, label) {
-						if etype == edgeBundle {
-							bundle := &aql.Bundle{}
-							ekey := EdgeKey(kgdb.graph, eid, src, "", label, etype)
-							dataValue, err := it.Get(ekey)
-							if err == nil {
-								proto.Unmarshal(dataValue, bundle)
-								id.Bundle = bundle
-								o <- id
-							}
-						}
-					}
-				}
-			}
-			return nil
-		})
 	}()
 	return o
 }
@@ -503,21 +399,11 @@ func (kgdb *KVInterfaceGDB) GetOutList(ctx context.Context, id string, loadProp 
 				default:
 				}
 				keyValue := it.Key()
-				_, src, dst, eid, label, etype := SrcEdgeKeyParse(keyValue)
+				_, _, dst, _, label, etype := SrcEdgeKeyParse(keyValue)
 				if len(edgeLabels) == 0 || contains(edgeLabels, label) {
 					vkey := VertexKey(kgdb.graph, dst)
 					if etype == edgeSingle {
 						vertexChan <- vkey
-					} else if etype == edgeBundle {
-						bkey := EdgeKey(kgdb.graph, eid, src, "", label, etype)
-						bundleValue, err := it.Get(bkey)
-						if err == nil {
-							bundle := &aql.Bundle{}
-							proto.Unmarshal(bundleValue, bundle)
-							for k := range bundle.Bundle {
-								vertexChan <- VertexKey(kgdb.graph, k)
-							}
-						}
 					}
 				}
 			}
@@ -611,26 +497,13 @@ func (kgdb *KVInterfaceGDB) GetOutChannel(reqChan chan gdbi.ElementLookup, load 
 				skeyPrefix := SrcEdgePrefix(kgdb.graph, req.ID)
 				for it.Seek(skeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), skeyPrefix); it.Next() {
 					keyValue := it.Key()
-					_, src, dst, eid, label, etype := SrcEdgeKeyParse(keyValue)
+					_, _, dst, _, label, etype := SrcEdgeKeyParse(keyValue)
 					if len(edgeLabels) == 0 || contains(edgeLabels, label) {
 						vkey := VertexKey(kgdb.graph, dst)
 						if etype == edgeSingle {
 							vertexChan <- elementData{
 								data: vkey,
 								req:  req,
-							}
-						} else if etype == edgeBundle {
-							bkey := EdgeKey(kgdb.graph, eid, src, "", label, etype)
-							bundleValue, err := it.Get(bkey)
-							if err == nil {
-								bundle := aql.Bundle{}
-								proto.Unmarshal(bundleValue, &bundle)
-								for k := range bundle.Bundle {
-									vertexChan <- elementData{
-										data: VertexKey(kgdb.graph, k),
-										req:  req,
-									}
-								}
 							}
 						}
 					}
@@ -717,18 +590,6 @@ func (kgdb *KVInterfaceGDB) GetOutEdgeChannel(reqChan chan gdbi.ElementLookup, l
 							}
 							req.Edge = &e
 							o <- req
-						} else if edgeType == edgeBundle {
-							bundle := aql.Bundle{}
-							ekey := EdgeKey(kgdb.graph, eid, src, "", label, edgeType)
-							dataValue, err := it.Get(ekey)
-							if err == nil {
-								proto.Unmarshal(dataValue, &bundle)
-								for k, v := range bundle.Bundle {
-									e := aql.Edge{Gid: bundle.Gid, Label: bundle.Label, From: bundle.From, To: k, Data: v}
-									req.Edge = &e
-									o <- req
-								}
-							}
 						}
 					}
 				}
@@ -768,18 +629,6 @@ func (kgdb *KVInterfaceGDB) GetInEdgeChannel(reqChan chan gdbi.ElementLookup, lo
 							}
 							req.Edge = &e
 							o <- req
-						} else if edgeType == edgeBundle {
-							bundle := aql.Bundle{}
-							ekey := EdgeKey(kgdb.graph, eid, src, "", label, edgeType)
-							dataValue, err := it.Get(ekey)
-							if err == nil {
-								proto.Unmarshal(dataValue, &bundle)
-								for k, v := range bundle.Bundle {
-									e := aql.Edge{Gid: bundle.Gid, Label: bundle.Label, From: bundle.From, To: k, Data: v}
-									req.Edge = &e
-									o <- req
-								}
-							}
 						}
 					}
 				}
@@ -810,21 +659,6 @@ func (kgdb *KVInterfaceGDB) GetEdge(id string, loadProp bool) *aql.Edge {
 				e.To = dst
 				e.Label = label
 			}
-		}
-		return nil
-	})
-	return e
-}
-
-// GetBundle loads bundle of edges, given an id
-// loadProp is ignored
-func (kgdb *KVInterfaceGDB) GetBundle(id string, load bool) *aql.Bundle {
-	ekeyPrefix := EdgeKeyPrefix(kgdb.graph, id)
-	e := &aql.Bundle{}
-	kgdb.kvg.kv.View(func(it kvi.KVIterator) error {
-		for it.Seek(ekeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), ekeyPrefix); it.Next() {
-			d, _ := it.Value()
-			proto.Unmarshal(d, e)
 		}
 		return nil
 	})

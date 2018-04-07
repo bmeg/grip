@@ -22,7 +22,6 @@ type DataElement struct {
 	Label    string
 	From, To string
 	Data     map[string]interface{}
-	Bundle   map[string]DataElement
 	Row      []DataElement
 }
 
@@ -55,7 +54,6 @@ type ElementLookup struct {
 	Ref    interface{}
 	Vertex *aql.Vertex
 	Edge   *aql.Edge
-	Bundle *aql.Bundle
 }
 
 // GraphDB is the base interface for graph databases
@@ -79,15 +77,12 @@ type GraphInterface interface {
 
 	GetVertex(key string, load bool) *aql.Vertex
 	GetEdge(key string, load bool) *aql.Edge
-	GetBundle(key string, load bool) *aql.Bundle
 
 	AddVertex(vertex []*aql.Vertex) error
 	AddEdge(edge []*aql.Edge) error
-	AddBundle(bundle *aql.Bundle) error
 
 	DelVertex(key string) error
 	DelEdge(key string) error
-	DelBundle(id string) error
 
 	VertexLabelScan(ctx context.Context, label string) chan string
 	//EdgeLabelScan(ctx context.Context, label string) chan string
@@ -111,8 +106,6 @@ type GraphInterface interface {
 	GetInChannel(req chan ElementLookup, load bool, edgeLabels []string) chan ElementLookup
 	GetOutEdgeChannel(req chan ElementLookup, load bool, edgeLabels []string) chan ElementLookup
 	GetInEdgeChannel(req chan ElementLookup, load bool, edgeLabels []string) chan ElementLookup
-
-	GetOutBundleChannel(req chan ElementLookup, load bool, edgeLabels []string) chan ElementLookup
 }
 
 // Manager is a resource manager that is passed to processors to allow them ]

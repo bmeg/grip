@@ -23,6 +23,11 @@ def load_matrix(args):
     for name, row in matrix.iterrows():
         src = "%s:%s" % (args.data_type, name)
         print "Loading: %s" % (src)
+        data = {}
+        for c in matrix.columns:
+            v = row[c]
+            if not math.isnan(v):
+                data[c] = v
         if args.debug:
             print "Add Vertex", name
         else:
@@ -30,20 +35,11 @@ def load_matrix(args):
         if args.debug:
             print "AddVertex", "Data:%s" % (args.data_type)
         else:
-            O.addVertex(src, "Data:%s" % (args.data_type))
+            O.addVertex(src, "Data:%s" % (args.data_type), data)
         if args.debug:
             print "AddEdge", name
         else:
             O.addEdge(name, src, "has")
-        data = {}
-        for c in matrix.columns:
-            v = row[c]
-            if not math.isnan(v):
-                data[c] = {"v" : v}
-        if args.debug:
-            print "AddBundle", data
-        else:
-            O.addBundle(src, data, "value")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
