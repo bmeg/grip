@@ -42,9 +42,10 @@ func (client Client) GetGraphs() chan string {
 		}
 		for {
 			elem, err := cl.Recv()
-			if err == io.EOF {
+			if err == io.EOF || err != nil {
 				break
 			}
+
 			out <- elem.Graph
 		}
 	}()
