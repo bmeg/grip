@@ -2,6 +2,7 @@ package info
 
 import (
 	"fmt"
+
 	"github.com/bmeg/arachne/aql"
 	"github.com/spf13/cobra"
 )

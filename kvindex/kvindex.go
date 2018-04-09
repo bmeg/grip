@@ -4,10 +4,11 @@ import (
 	//"context"
 	"bytes"
 	"fmt"
-	"github.com/bmeg/arachne/kvi"
-	proto "github.com/golang/protobuf/proto"
 	"log"
 	"strings"
+
+	"github.com/bmeg/arachne/kvi"
+	proto "github.com/golang/protobuf/proto"
 )
 
 const bufferSize = 1000

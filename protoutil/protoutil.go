@@ -1,8 +1,9 @@
 package protoutil
 
 import (
-	structpb "github.com/golang/protobuf/ptypes/struct"
 	"log"
+
+	structpb "github.com/golang/protobuf/ptypes/struct"
 )
 
 //StructSet take value and add it to Struct s using key

@@ -5,12 +5,13 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"math/rand"
+
 	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/engine/core"
 	"github.com/bmeg/arachne/gdbi"
 	"github.com/bmeg/arachne/kvi"
 	proto "github.com/golang/protobuf/proto"
-	"math/rand"
 )
 
 func contains(a []string, v string) bool {

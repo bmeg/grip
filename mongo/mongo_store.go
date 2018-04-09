@@ -3,15 +3,16 @@ package mongo
 import (
 	"context"
 	"fmt"
+	"io"
+	"log"
+	"strings"
+
 	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/gdbi"
 	"github.com/bmeg/arachne/timestamp"
 	"github.com/vsco/mgopool"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
-	"io"
-	"log"
-	"strings"
 )
 
 // Mongo is the base driver that manages multiple graphs in mongo

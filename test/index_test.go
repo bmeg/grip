@@ -2,11 +2,12 @@ package test
 
 import (
 	"encoding/json"
-	"github.com/bmeg/arachne/badgerdb"
-	"github.com/bmeg/arachne/kvindex"
 	"log"
 	"os"
 	"testing"
+
+	"github.com/bmeg/arachne/badgerdb"
+	"github.com/bmeg/arachne/kvindex"
 )
 
 var docs = `[

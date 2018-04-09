@@ -6,6 +6,7 @@ package gdbi
 
 import (
 	"context"
+
 	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/kvi"
 )

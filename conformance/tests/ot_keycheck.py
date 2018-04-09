@@ -1,6 +1,5 @@
 
 
-
 def test_subkey(O):
     """
     Bug in KVGraph scanned edge index prefixes, if key was a prefix subkey of another,

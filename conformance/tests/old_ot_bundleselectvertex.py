@@ -9,12 +9,12 @@ def test_select_from_bundle(O):
 
     edges = {}
     for i in range(100):
-        edges["dstVertex%d" % i] = {"val" : i}
+        edges["dstVertex%d" % i] = {"val": i}
     O.addBundle("srcVertex", edges, "bundle1")
 
     edges = {}
     for i in range(100):
-        edges["dstVertex%d" % i] = {"val" : i}
+        edges["dstVertex%d" % i] = {"val": i}
     O.addBundle("srcVertex", edges, "bundle2")
 
     count = 0
@@ -30,7 +30,9 @@ function(x){
         count += 1
         val = int(i[0]['vertex']['gid'].replace("dstVertex", ""))
         if val % 2 != 0 or val % 3 != 0:
-            errors.append("Fail: Incorrect vertex: %s" % (i[0]['vertex']['gid']))
+            errors.append(
+                "Fail: Incorrect vertex: %s" %
+                (i[0]['vertex']['gid']))
 
     if count != 17:
         errors.append("Fail: Bundle Filter %s != %s" % (count, 17))

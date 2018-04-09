@@ -2,8 +2,9 @@ package aql
 
 import (
 	"fmt"
-	"github.com/bmeg/arachne/protoutil"
 	"strings"
+
+	"github.com/bmeg/arachne/protoutil"
 )
 
 // V starts a new vertex query, short for `NewQuery().V()`.

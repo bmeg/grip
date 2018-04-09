@@ -2,10 +2,11 @@ package jsonpath
 
 import (
 	"fmt"
+	"reflect"
+
 	"github.com/bmeg/arachne/protoutil"
 	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/oliveagle/jsonpath"
-	"reflect"
 )
 
 // Operator the type of comparison operation to run

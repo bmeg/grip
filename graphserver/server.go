@@ -2,9 +2,14 @@ package graphserver
 
 import (
 	"fmt"
+	"io"
+	"log"
+	"net"
+
 	"github.com/bmeg/arachne/aql"
 	_ "github.com/bmeg/arachne/badgerdb" // import so badger will register itself
 	_ "github.com/bmeg/arachne/boltdb"   // import so bolt will register itself
+	"github.com/bmeg/arachne/elastic"
 	"github.com/bmeg/arachne/engine"
 	"github.com/bmeg/arachne/gdbi"
 	"github.com/bmeg/arachne/kvgraph"
@@ -13,9 +18,6 @@ import (
 	_ "github.com/bmeg/arachne/rocksdb" // import so rocks will register itself
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
-	"io"
-	"log"
-	"net"
 )
 
 // ArachneServer is a GRPC based arachne server
@@ -28,6 +30,13 @@ type ArachneServer struct {
 // to connect to the graph store
 func NewArachneMongoServer(url string, database string, workDir string) *ArachneServer {
 	db := mongo.NewMongo(url, database)
+	return &ArachneServer{db: db, workDir: workDir}
+}
+
+// NewArachneElasticServer initializes a GRPC server that uses the elasticsearch driver
+// to connect to the graph store
+func NewArachneElasticServer(url string, database string, workDir string) *ArachneServer {
+	db := elastic.NewElastic(url, database)
 	return &ArachneServer{db: db, workDir: workDir}
 }
 

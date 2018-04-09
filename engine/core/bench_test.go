@@ -2,10 +2,11 @@ package core
 
 import (
 	"fmt"
+	"testing"
+
 	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/badgerdb"
 	"github.com/bmeg/arachne/kvgraph"
-	"testing"
 )
 
 // Dead simple baseline tests: get all vertices from a memory-backed graph.

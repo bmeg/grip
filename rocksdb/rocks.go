@@ -4,9 +4,10 @@ package rocksdb
 
 import (
 	"fmt"
+	"log"
+
 	"github.com/bmeg/arachne/kvgraph"
 	"github.com/tecbot/gorocksdb"
-	"log"
 )
 
 type RocksKV struct {

@@ -2,6 +2,11 @@ package graphserver
 
 import (
 	"fmt"
+	"io"
+	"log"
+	"net/http"
+	"runtime/debug"
+
 	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/falcor"
 	"github.com/bmeg/arachne/graphql"
@@ -10,10 +15,6 @@ import (
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
-	"io"
-	"log"
-	"net/http"
-	"runtime/debug"
 )
 
 // HandleError logs errors and returns http respose codes
