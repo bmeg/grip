@@ -111,20 +111,6 @@ class Graph:
         result = response.read()
         return json.loads(result)
 
-    def addBundle(self, src, bundle, label):
-        payload = json.dumps({
-            "from": src,
-            "bundle": bundle,
-            "label": label,
-        })
-        headers = {'Content-Type': 'application/json',
-                   'Accept': 'application/json'}
-        request = urllib2.Request(
-            self.url + "/" + self.name + "/bundle", payload, headers=headers)
-        response = urllib2.urlopen(request)
-        result = response.read()
-        return json.loads(result)
-
     def bulkAdd(self):
         return BulkAdd(self.url, self.name)
 
@@ -153,14 +139,6 @@ class Graph:
         Create a index handle.
         """
         return Index(self)
-
-    def mark(self, name):
-        """
-        Create mark step for match query
-        """
-        q = self.query()
-        q.mark(name)
-        return q
 
 
 class BulkAdd:
@@ -373,12 +351,6 @@ class Query:
         self.query.append({'both_edge': label})
         return self
 
-    def outgoingBundle(self, label=[]):
-        if not isinstance(label, list):
-            label = [label]
-        self.query.append({'out_bundle': label})
-        return self
-
     def mark(self, name):
         """
         Mark the current vertex/edge with the given name.
@@ -483,7 +455,7 @@ class Query:
         self.query.append({"render": template})
         return self
 
-    def _text(self):
+    def string(self):
         """
         Return the query as a JSON string.
         """
@@ -497,29 +469,18 @@ class Query:
         """
         Execute the query and return an iterator.
         """
-        payload = self._text()
-        # print payload
+        payload = self.string()
         headers = {'Content-Type': 'application/json',
                    'Accept': 'application/json'}
         request = urllib2.Request(self.url, payload, headers=headers)
         response = urllib2.urlopen(request)
-        # out = []
         for result in response:
             try:
                 d = json.loads(result)
                 if 'value' in d:
-                    # out.append(d['value'])
                     yield d['value']
                 elif 'row' in d:
-                    # out.append(d['row'])
                     yield d['row']
             except ValueError as e:
                 print "Can't decode: %s" % result
                 raise e
-        # return out
-
-    def first(self):
-        """
-        Return only the first result.
-        """
-        return list(self.execute())[0]

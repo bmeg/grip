@@ -1,17 +1,11 @@
 package mongo
 
 import (
-	//"fmt"
 	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/protoutil"
 	structpb "github.com/golang/protobuf/ptypes/struct"
 	"gopkg.in/mgo.v2/bson"
 )
-
-var fieldLabel = "label"
-var fieldSrc = "from"
-var fieldDst = "to"
-var fieldBundle = "bundle"
 
 // PackVertex take a AQL vertex and convert it to a mongo doc
 func PackVertex(v *aql.Vertex) map[string]interface{} {
@@ -34,10 +28,10 @@ func PackEdge(e *aql.Edge) map[string]interface{} {
 		p = protoutil.AsMap(e.Data)
 	}
 	o := map[string]interface{}{
-		fieldSrc: e.From,
-		fieldDst: e.To,
-		"label":  e.Label,
-		"data":   p,
+		"from":  e.From,
+		"to":    e.To,
+		"label": e.Label,
+		"data":  p,
 	}
 	if e.Gid != "" {
 		o["_id"] = e.Gid
@@ -72,8 +66,8 @@ func UnpackEdge(i map[string]interface{}) *aql.Edge {
 		o.Gid = id.(string)
 	}
 	o.Label = i["label"].(string)
-	o.From = i[fieldSrc].(string)
-	o.To = i[fieldDst].(string)
+	o.From = i["from"].(string)
+	o.To = i["to"].(string)
 	if d, ok := i["data"]; ok {
 		o.Data = protoutil.AsStruct(d.(map[string]interface{}))
 	} else {

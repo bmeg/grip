@@ -150,19 +150,10 @@ func (self *V8Runtime) CallValueToVertex(input map[string]aql.QueryResult) []str
 			l["gid"] = x.Vertex.Gid
 			l["label"] = x.Vertex.Label
 			l["data"] = protoutil.AsMap(x.Vertex.Data)
-		} else if x, ok := v.GetResult().(*aql.QueryResult_Bundle); ok {
-			l["gid"] = x.Bundle.Gid
-			l["from"] = x.Bundle.From
-			l["label"] = x.Bundle.Label
-			b := map[string]interface{}{}
-			for k, v := range x.Bundle.Bundle {
-				b[k] = protoutil.AsMap(v)
-			}
-			l["bundle"] = b
 		}
 		c[k] = l
 	}
-	//log.Printf("Eval: %s", c)
+
 	v, _ := self.ctx.Create(c)
 	value, err := self.user.Call(nil, v)
 	if err != nil {
