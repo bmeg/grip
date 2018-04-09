@@ -3,7 +3,16 @@ import urllib2
 
 
 class Connection:
-    def __init__(self, host):
+    def __init__(self, url):
+        scheme, netloc, path, query, frag = urllib2.urlparse.urlsplit(url)
+        query = ""
+        frag = ""
+        if scheme == "":
+            scheme = "http"
+        if netloc == "" and path != "":
+            netloc = path
+            path = ""
+        host = urllib2.urlparse.urlunsplit((scheme, netloc, path, query, frag))
         self.host = host
         self.url = "%s/v1/graph" % (host)
 
@@ -28,8 +37,7 @@ class Connection:
         """
         headers = {'Content-Type': 'application/json',
                    'Accept': 'application/json'}
-        request = urllib2.Request(
-            "%s/%s" % (self.url, name), "{}", headers=headers)
+        request = urllib2.Request(self.url + "/" + name, "{}", headers=headers)
         response = urllib2.urlopen(request)
         result = response.read()
         return json.loads(result)
@@ -40,7 +48,7 @@ class Connection:
         """
         headers = {'Content-Type': 'application/json',
                    'Accept': 'application/json'}
-        request = urllib2.Request("%s/%s" % (self.url, name), headers=headers)
+        request = urllib2.Request(self.url + "/" + name, headers=headers)
         request.get_method = lambda: "DELETE"
         response = urllib2.urlopen(request)
         result = response.read()
@@ -75,8 +83,9 @@ class Graph:
         })
         headers = {'Content-Type': 'application/json',
                    'Accept': 'application/json'}
-        request = urllib2.Request(
-            self.url + "/" + self.name + "/vertex", payload, headers=headers)
+        request = urllib2.Request(self.url + "/" + self.name + "/vertex",
+                                  payload,
+                                  headers=headers)
         response = urllib2.urlopen(request)
         result = response.read()
         return json.loads(result)
@@ -95,8 +104,9 @@ class Graph:
             payload['gid'] = id
         headers = {'Content-Type': 'application/json',
                    'Accept': 'application/json'}
-        request = urllib2.Request(
-            self.url + "/" + self.name + "/edge", json.dumps(payload), headers=headers)
+        request = urllib2.Request(self.url + "/" + self.name + "/edge",
+                                  json.dumps(payload),
+                                  headers=headers)
         response = urllib2.urlopen(request)
         result = response.read()
         return json.loads(result)
@@ -105,8 +115,9 @@ class Graph:
         payload = json.dumps(graph)
         headers = {'Content-Type': 'application/json',
                    'Accept': 'application/json'}
-        request = urllib2.Request(
-            self.url + "/" + self.name + "/subgraph", payload, headers=headers)
+        request = urllib2.Request(self.url + "/" + self.name + "/subgraph",
+                                  payload,
+                                  headers=headers)
         response = urllib2.urlopen(request)
         result = response.read()
         return json.loads(result)
@@ -118,13 +129,14 @@ class Graph:
         headers = {'Content-Type': 'application/json',
                    'Accept': 'application/json'}
         url = self.url + "/" + self.name + "/index/" + label
-        request = urllib2.Request(url, json.dumps(
-            {"field": field}), headers=headers)
+        request = urllib2.Request(url,
+                                  json.dumps({"field": field}),
+                                  headers=headers)
         response = urllib2.urlopen(request)
         result = response.read()
         return json.loads(result)
 
-    def listVertexList(self):
+    def getVertexIndexList(self):
         headers = {'Content-Type': 'application/json',
                    'Accept': 'application/json'}
         url = self.url + "/" + self.name + "/index"
@@ -185,7 +197,8 @@ class Index:
         self.parent = parent
 
     def getVertexIndex(self, label, field):
-        url = self.parent.url + "/" + self.parent.name + "/index/" + label + "/" + field
+        url = self.parent.url + "/" + self.parent.name + "/index/" + label + \
+              "/" + field
         request = urllib2.Request(url)
         response = urllib2.urlopen(request)
         for result in response:
@@ -193,7 +206,8 @@ class Index:
             yield d
 
     def query(self, label, field, value):
-        url = self.parent.url + "/" + self.parent.name + "/index/" + label + "/" + field
+        url = self.parent.url + "/" + self.parent.name + "/index/" + label + \
+              "/" + field
         return Query(url)
 
 
@@ -463,5 +477,5 @@ class Query:
                 elif 'row' in d:
                     yield d['row']
             except ValueError as e:
-                print "Can't decode: %s" % result
+                print("Can't decode: %s" % (result))
                 raise e
