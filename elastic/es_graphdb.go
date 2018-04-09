@@ -12,6 +12,7 @@ import (
 	elastic "gopkg.in/olivere/elastic.v5"
 )
 
+// Elastic implements the GraphDB interface with elastic search as a backend
 type Elastic struct {
 	url      string
 	database string
@@ -42,8 +43,10 @@ func NewElastic(url string, database string) gdbi.GraphDB {
 	return gdb
 }
 
+// Close closes connection to elastic search
 func (es *Elastic) Close() {}
 
+// GetGraphs returns list of graphs on elastic search instance
 func (es *Elastic) GetGraphs() []string {
 	graphPrefix := fmt.Sprintf("%s_", es.database)
 	out := []string{}
@@ -77,6 +80,7 @@ func (es *Elastic) initIndex(ctx context.Context, name, body string) error {
 	return nil
 }
 
+// AddGraph adds a new graph to the graphdb
 func (es *Elastic) AddGraph(graph string) error {
 	ctx := context.Background()
 	vertexIndex := fmt.Sprintf("%s_%s_vertex", es.database, graph)
@@ -91,6 +95,7 @@ func (es *Elastic) AddGraph(graph string) error {
 	return nil
 }
 
+// DeleteGraph deletes a graph from the graphdb
 func (es *Elastic) DeleteGraph(graph string) error {
 	ctx := context.Background()
 	vertexIndex := fmt.Sprintf("%s_%s_vertex", es.database, graph)
@@ -105,9 +110,10 @@ func (es *Elastic) DeleteGraph(graph string) error {
 	return nil
 }
 
+// Graph returns interface to a specific graph in the graphdb
 func (es *Elastic) Graph(graph string) gdbi.GraphInterface {
-	// TODO pass config to down to the ElasticGraph instance
-	return &ElasticGraph{
+	// TODO pass config to down to the Graph instance
+	return &Graph{
 		url:         es.url,
 		database:    es.database,
 		ts:          es.ts,
@@ -116,6 +122,6 @@ func (es *Elastic) Graph(graph string) gdbi.GraphInterface {
 		vertexIndex: fmt.Sprintf("%s_%s_vertex", es.database, graph),
 		edgeIndex:   fmt.Sprintf("%s_%s_edge", es.database, graph),
 		batchSize:   1000,
-		syncronous:  true,
+		synchronous: true,
 	}
 }
