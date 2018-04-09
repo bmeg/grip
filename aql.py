@@ -381,11 +381,11 @@ class Query:
         """
         return self.__append({'select': {"labels": marks}})
 
-    def limit(self, l):
+    def limit(self, n):
         """
         Limits the number of results returned.
         """
-        return self.__append({'limit': l})
+        return self.__append({'limit': n})
 
     def range(self, begin, end):
         """
@@ -427,6 +427,8 @@ class Query:
         return self.__append({"filter": func})
 
     def fold(self, init, func):
+        """
+        """
         return self.__append({"fold": {"init": init, "source": func}})
 
     def vertexFromValues(self, func):
