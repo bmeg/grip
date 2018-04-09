@@ -3,13 +3,14 @@ package mongoload
 import (
 	"encoding/json"
 	"fmt"
+	"io"
+	"log"
+	"strings"
+
 	"github.com/bmeg/golib"
 	"github.com/spf13/cobra"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
-	"io"
-	"log"
-	"strings"
 )
 
 var host = "localhost"

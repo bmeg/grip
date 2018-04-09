@@ -19,7 +19,7 @@ var (
 	elasticURL string
 	boltPath   string
 	rocksPath  string
-  levelPath  string
+	levelPath  string
 	contentDir string
 )
 
@@ -47,7 +47,7 @@ var Cmd = &cobra.Command{
 		} else if elasticURL != "" {
 			server = graphserver.NewArachneElasticServer(elasticURL, dbName, workDir)
 		} else {
-			server = graphserver.NewArachneBadgerServer(dbPath, workDir)
+			server = graphserver.NewArachneBadgerServer(badgerPath, workDir)
 		}
 		server.Start(rpcPort)
 		proxy := graphserver.NewHTTPProxy(rpcPort, httpPort, contentDir)

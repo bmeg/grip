@@ -109,12 +109,6 @@ func (es *ElasticGraph) AddVertex(vertexArray []*aql.Vertex) error {
 	return nil
 }
 
-// AddBundle
-func (es *ElasticGraph) AddBundle(bundle *aql.Bundle) error {
-	log.Printf("ElasticGraph.AddBundle called")
-	return nil
-}
-
 // AddVertexIndex
 func (es *ElasticGraph) AddVertexIndex(label string, field string) error {
 	log.Printf("ElasticGraph.AddVertexIndex called")
@@ -143,12 +137,6 @@ func (es *ElasticGraph) DelVertex(vid string) error {
 		return err
 	}
 	es.ts.Touch(es.graph)
-	return nil
-}
-
-// DelBundle
-func (es *ElasticGraph) DelBundle(eid string) error {
-	log.Printf("ElasticGraph.DelBundle called")
 	return nil
 }
 
@@ -208,12 +196,6 @@ func (es *ElasticGraph) GetVertex(id string, load bool) *aql.Vertex {
 	}
 
 	return vertex
-}
-
-// GetBundle
-func (es *ElasticGraph) GetBundle(id string, load bool) *aql.Bundle {
-	log.Printf("ElasticGraph.GetBundle called")
-	return nil
 }
 
 // GetEdgeList produces a channel of all edges in the graph
@@ -833,12 +815,6 @@ func (es *ElasticGraph) GetInEdgeChannel(req chan gdbi.ElementLookup, load bool,
 	}()
 
 	return o
-}
-
-// GetOutBundleChannel
-func (es *ElasticGraph) GetOutBundleChannel(req chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
-	log.Printf("ElasticGraph.GetOutBundleChannel called")
-	return nil
 }
 
 // GetVertexIndexList
