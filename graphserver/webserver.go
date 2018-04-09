@@ -44,7 +44,9 @@ func (mclean *MarshalClean) ContentType() string {
 // streaming output
 func (mclean *MarshalClean) Marshal(v interface{}) ([]byte, error) {
 	if x, ok := v.(map[string]proto.Message); ok {
-		return mclean.m.Marshal(x["result"])
+		if val, ok := x["result"]; ok {
+			return mclean.m.Marshal(val)
+		}
 	}
 	return mclean.m.Marshal(v)
 }
