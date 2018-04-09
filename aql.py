@@ -202,12 +202,17 @@ class Query:
         self.query = []
         self.url = url
 
+    def __append(self, part):
+        q = Query(self.url)
+        q.query = self.query[:]
+        q.query.append(part)
+        return q
+
     def js_import(self, src):
         """
         Initialize javascript engine with functions and global variables.
         """
-        self.query.append({"import": src})
-        return self
+        return self.__append({"import": src})
 
     def V(self, id=[]):
         """
@@ -217,8 +222,7 @@ class Query:
         """
         if not isinstance(id, list):
             id = [id]
-        self.query.append({"v": id})
-        return self
+        return self.__append({"v": id})
 
     def E(self, id=[]):
         """
@@ -228,8 +232,7 @@ class Query:
         """
         if not isinstance(id, list):
             id = [id]
-        self.query.append({"e": id})
-        return self
+        return self.__append({"e": id})
 
     def hasLabel(self, label):
         """
@@ -239,8 +242,7 @@ class Query:
         """
         if not isinstance(label, list):
             label = [label]
-        self.query.append({'has_label': label})
-        return self
+        return self.__append({'has_label': label})
 
     def hasId(self, id):
         """
@@ -250,8 +252,7 @@ class Query:
         """
         if not isinstance(id, list):
             id = [id]
-        self.query.append({'has_id': id})
-        return self
+        return self.__append({'has_id': id})
 
     def has(self, key, value):
         """
@@ -261,8 +262,7 @@ class Query:
         """
         if not isinstance(value, list):
             value = [value]
-        self.query.append({'has': {"key": key, 'within': value}})
-        return self
+        return self.__append({'has': {"key": key, 'within': value}})
 
     def values(self, v):
         """
@@ -270,8 +270,7 @@ class Query:
         """
         if not isinstance(v, list):
             v = [v]
-        self.query.append({'values': {"labels": v}})
-        return self
+        return self.__append({'values': {"labels": v}})
 
     def incoming(self, label=[]):
         """
@@ -282,8 +281,7 @@ class Query:
         """
         if not isinstance(label, list):
             label = [label]
-        self.query.append({'in': label})
-        return self
+        return self.__append({'in': label})
 
     def outgoing(self, label=[]):
         """
@@ -294,8 +292,7 @@ class Query:
         """
         if not isinstance(label, list):
             label = [label]
-        self.query.append({'out': label})
-        return self
+        return self.__append({'out': label})
 
     def both(self, label=[]):
         """
@@ -306,8 +303,7 @@ class Query:
         """
         if not isinstance(label, list):
             label = [label]
-        self.query.append({'both': label})
-        return self
+        return self.__append({'both': label})
 
     def incomingEdge(self, label=[]):
         """
@@ -320,8 +316,7 @@ class Query:
         """
         if not isinstance(label, list):
             label = [label]
-        self.query.append({'in_edge': label})
-        return self
+        return self.__append({'in_edge': label})
 
     def outgoingEdge(self, label=[]):
         """
@@ -334,8 +329,7 @@ class Query:
         """
         if not isinstance(label, list):
             label = [label]
-        self.query.append({'out_edge': label})
-        return self
+        return self.__append({'out_edge': label})
 
     def bothEdge(self, label=[]):
         """
@@ -348,8 +342,7 @@ class Query:
         """
         if not isinstance(label, list):
             label = [label]
-        self.query.append({'both_edge': label})
-        return self
+        return self.__append({'both_edge': label})
 
     def mark(self, name):
         """
@@ -357,8 +350,7 @@ class Query:
 
         Used to return elements from select().
         """
-        self.query.append({'as': name})
-        return self
+        return self.__append({'as': name})
 
     def select(self, marks):
         """
@@ -373,35 +365,30 @@ class Query:
             [A2, B2],
         ]
         """
-        self.query.append({'select': {"labels": marks}})
-        return self
+        return self.__append({'select': {"labels": marks}})
 
     def limit(self, l):
         """
         Limits the number of results returned.
         """
-        self.query.append({'limit': l})
-        return self
+        return self.__append({'limit': l})
 
     def range(self, begin, end):
         """
         """
-        self.query.append({'begin': begin, 'end': end})
-        return self
+        return self.__append({'begin': begin, 'end': end})
 
     def count(self):
         """
         Return the number of results, instead of the elements.
         """
-        self.query.append({'count': ''})
-        return self
+        return self.__append({'count': ''})
 
     def groupCount(self, label):
         """
         Group results by the given property name and count each group.
         """
-        self.query.append({'group_count': label})
-        return self
+        return self.__append({'group_count': label})
 
     def distinct(self, val):
         """
@@ -409,34 +396,29 @@ class Query:
         """
         if not isinstance(val, list):
             val = [val]
-        self.query.append({"distinct": val})
-        return self
+        return self.__append({"distinct": val})
 
     def map(self, func):
         """
         Transform results by the given javascript function.
         function(el) el
         """
-        self.query.append({"map": func})
-        return self
+        return self.__append({"map": func})
 
     def filter(self, func):
         """
         Filter results by the given javascript function.
         function(el) bool
         """
-        self.query.append({"filter": func})
-        return self
+        return self.__append({"filter": func})
 
     def fold(self, init, func):
-        self.query.append({"fold": {"init": init, "source": func}})
-        return self
+        return self.__append({"fold": {"init": init, "source": func}})
 
     def vertexFromValues(self, func):
         """
         """
-        self.query.append({"vertex_from_values": func})
-        return self
+        return self.__append({"vertex_from_values": func})
 
     def match(self, queries):
         """
@@ -445,8 +427,7 @@ class Query:
         mq = []
         for i in queries:
             mq.append({'query': i.query})
-        self.query.append({'match': {'queries': mq}})
-        return self
+        return self.__append({'match': {'queries': mq}})
 
     def render(self, template):
         """
