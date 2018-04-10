@@ -481,3 +481,9 @@ class Query:
             except ValueError as e:
                 print("Can't decode: %s" % (result))
                 raise e
+
+    def first(self):
+        """
+        Return only the first result.
+        """
+        return list(self.execute())[0]
