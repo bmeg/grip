@@ -69,6 +69,10 @@ function query() {
 		hasLabel: function(l) {
 			this.query.push({'has_label': labels(l)})
 			return this
+		},
+		render: function(r) {
+			this.query.push({'render': r})
+			return this
 		}
   }
 }

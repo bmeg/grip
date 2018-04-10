@@ -207,6 +207,11 @@ func (comp DefaultCompiler) Compile(stmts []*aql.GraphStatement, workDir string)
 				}
 			}
 
+		case *aql.GraphStatement_Render:
+			r := Render{protoutil.UnWrapValue(stmt.Render)}
+			add(&r)
+			lastType = gdbi.ValueData
+
 		case *aql.GraphStatement_Values:
 			add(&Values{stmt.Values.Labels})
 			lastType = gdbi.ValueData

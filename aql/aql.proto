@@ -34,6 +34,7 @@ message GraphStatement {
         string as = 20;
         SelectStatement select = 21;
         SelectStatement values = 22;
+        google.protobuf.Value render = 23;
 
         int64 limit = 25;
         string count = 26;

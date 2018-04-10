@@ -476,7 +476,14 @@ class Query:
         self.query.append({'match': {'queries': mq}})
         return self
 
-    def render(self):
+    def render(self, template):
+        """
+        Render output of query
+        """
+        self.query.append({"render": template})
+        return self
+
+    def _text(self):
         """
         Return the query as a JSON string.
         """
@@ -490,7 +497,7 @@ class Query:
         """
         Execute the query and return an iterator.
         """
-        payload = self.render()
+        payload = self._text()
         # print payload
         headers = {'Content-Type': 'application/json',
                    'Accept': 'application/json'}

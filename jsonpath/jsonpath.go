@@ -74,3 +74,25 @@ func GetString(a map[string]interface{}, path string) string {
 	}
 	return fmt.Sprintf("%#v", res)
 }
+
+// Render takes a template and fills in the values using the data structure
+func Render(template interface{}, data map[string]interface{}) interface{} {
+	switch elem := template.(type) {
+	case string:
+		return GetString(data, elem)
+	case map[string]interface{}:
+		o := make(map[string]interface{}, len(elem))
+		for k, v := range elem {
+			o[k] = Render(v, data)
+		}
+		return o
+	case []interface{}:
+		o := make([]interface{}, len(elem))
+		for i := range elem {
+			o[i] = Render(elem[i], data)
+		}
+		return o
+	default:
+		return nil
+	}
+}

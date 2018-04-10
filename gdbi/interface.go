@@ -24,6 +24,7 @@ type DataElement struct {
 	From, To string
 	Data     map[string]interface{}
 	Row      []DataElement
+	Value    interface{}
 }
 
 // Traveler is a query element that traverse the graph

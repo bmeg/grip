@@ -376,6 +376,29 @@ func (v *Values) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, 
 
 ////////////////////////////////////////////////////////////////////////////////
 
+// Render takes current state and renders into requested structure
+type Render struct {
+	template interface{}
+}
+
+// Process runs the render processor
+func (r *Render) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
+	go func() {
+		defer close(out)
+		log.Printf("Rendering")
+		for t := range in {
+			v := jsonpath.Render(r.template, t.GetCurrent().Data)
+			o := t.AddCurrent(&gdbi.DataElement{
+				Value: v,
+			})
+			out <- o
+		}
+	}()
+	return context.WithValue(ctx, propLoad, true)
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
 // HasData filters based on data
 type HasData struct {
 	stmt *aql.HasStatement
