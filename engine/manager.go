@@ -11,16 +11,16 @@ import (
 
 // NewManager creates a resource manager
 func NewManager(workDir string) gdbi.Manager {
-	return &badgerManager{[]kvi.KVInterface{}, []string{}, workDir}
+	return &manager{[]kvi.KVInterface{}, []string{}, workDir}
 }
 
-type badgerManager struct {
+type manager struct {
 	kvs     []kvi.KVInterface
 	paths   []string
 	workDir string
 }
 
-func (bm *badgerManager) GetTempKV() kvi.KVInterface {
+func (bm *manager) GetTempKV() kvi.KVInterface {
 	td, _ := ioutil.TempDir(bm.workDir, "kvTmp")
 	kv, _ := badgerdb.BadgerBuilder(td)
 
@@ -29,7 +29,7 @@ func (bm *badgerManager) GetTempKV() kvi.KVInterface {
 	return kv
 }
 
-func (bm *badgerManager) Cleanup() {
+func (bm *manager) Cleanup() {
 	for _, c := range bm.kvs {
 		c.Close()
 	}

@@ -6,11 +6,15 @@ import (
 	"os"
 	"os/signal"
 
+	_ "github.com/bmeg/arachne/badgerdb" // import so badger will register itself
+	_ "github.com/bmeg/arachne/boltdb"   // import so bolt will register itself
 	"github.com/bmeg/arachne/elastic"
 	"github.com/bmeg/arachne/gdbi"
 	"github.com/bmeg/arachne/graphserver"
 	"github.com/bmeg/arachne/kvgraph"
+	_ "github.com/bmeg/arachne/leveldb" // import so level will register itself
 	"github.com/bmeg/arachne/mongo"
+	_ "github.com/bmeg/arachne/rocksdb" // import so rocks will register itself
 	"github.com/spf13/cobra"
 )
 
@@ -47,13 +51,13 @@ var Cmd = &cobra.Command{
 		} else if elasticURL != "" {
 			db, err = elastic.NewElastic(elasticURL, dbName)
 		} else if boltPath != "" {
-			db, err = kvgraph.NewKVGraphDB("bolt", workDir)
+			db, err = kvgraph.NewKVGraphDB("bolt", boltPath)
 		} else if rocksPath != "" {
-			db, err = kvgraph.NewKVGraphDB("rocks", workDir)
+			db, err = kvgraph.NewKVGraphDB("rocks", rocksPath)
 		} else if levelPath != "" {
-			db, err = kvgraph.NewKVGraphDB("level", workDir)
+			db, err = kvgraph.NewKVGraphDB("level", levelPath)
 		} else {
-			db, err = kvgraph.NewKVGraphDB("badger", workDir)
+			db, err = kvgraph.NewKVGraphDB("badger", badgerPath)
 		}
 		if err != nil {
 			return fmt.Errorf("Database connection failed: %v", err)

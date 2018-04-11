@@ -8,8 +8,7 @@ import (
 	"bytes"
 	"fmt"
 	"log"
-	//"github.com/bmeg/arachne/aql"
-	//"github.com/bmeg/arachne/gdbi"
+
 	"github.com/bmeg/arachne/kvgraph"
 	"github.com/bmeg/arachne/kvi"
 	"github.com/boltdb/bolt"
@@ -19,8 +18,11 @@ var graphBucket = []byte("graph")
 
 // BoltBuilder creates a new bolt interface at `path`
 func BoltBuilder(path string) (kvi.KVInterface, error) {
-	log.Printf("Starting BOLTDB")
-	db, _ := bolt.Open(path, 0600, nil)
+	log.Printf("Starting BoltDB")
+	db, err := bolt.Open(path, 0600, nil)
+	if err != nil {
+		return nil, err
+	}
 	db.Update(func(tx *bolt.Tx) error {
 		if tx.Bucket(graphBucket) == nil {
 			tx.CreateBucket(graphBucket)

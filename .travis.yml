@@ -33,33 +33,41 @@ jobs:
         - n=tests
     - script:
       - arachne server --rpc 18202 --port 18201 &
+      - sleep 5
       - make test-conformance
       env:
         - n=badger
     - script:
       - arachne server --rpc 18202 --port 18201 --bolt arachne.db &
+      - sleep 5
       - make test-conformance
       env:
         - n=boltdb
     - script:
       - arachne server --rpc 18202 --port 18201 --rocks arachne.db &
+      - sleep 5
       - make test-conformance
       env:
         - n=rocksdb
     - script:
       - arachne server --rpc 18202 --port 18201 --level arachne.db &
+      - sleep 5
       - make test-conformance
       env:
         - n=leveldb
     - script:
       - make start-test-mongo-database
+      - sleep 5
       - arachne server --rpc 18202 --port 18201 --mongo localhost:27000 &
+      - sleep 5
       - make test-conformance
       env:
         - n=mongodb
     - script:
       - make start-test-elastic-database
+      - sleep 5
       - arachne server --rpc 18202 --port 18201 --elastic http://localhost:9200 &
+      - sleep 5
       - make test-conformance
       env:
         - n=elasticsearch

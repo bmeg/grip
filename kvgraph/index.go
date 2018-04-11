@@ -8,7 +8,6 @@ import (
 
 	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/protoutil"
-	//"github.com/bmeg/arachne/kvindex"
 )
 
 func (kgraph *KVGraph) setupGraphIndex(graph string) {
