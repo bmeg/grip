@@ -46,7 +46,7 @@ var Cmd = &cobra.Command{
 			for msg := range vertexConsumer.Messages() {
 				v := aql.Vertex{}
 				jsonpb.Unmarshal(strings.NewReader(string(msg.Value)), &v)
-				conn.AddVertex(graph, v)
+				conn.AddVertex(graph, &v)
 				count++
 				if count%1000 == 0 {
 					log.Printf("Loaded %d vertices", count)
@@ -60,7 +60,7 @@ var Cmd = &cobra.Command{
 			for msg := range edgeConsumer.Messages() {
 				e := aql.Edge{}
 				jsonpb.Unmarshal(strings.NewReader(string(msg.Value)), &e)
-				conn.AddEdge(graph, e)
+				conn.AddEdge(graph, &e)
 				count++
 				if count%1000 == 0 {
 					log.Printf("Loaded %d edges", count)

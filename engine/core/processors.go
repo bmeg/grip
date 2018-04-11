@@ -603,7 +603,7 @@ func (g *GroupCount) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPi
 
 ////////////////////////////////////////////////////////////////////////////////
 
-// Distinct only returns district objects as defined by the set of select features
+// Distinct only returns unique objects as defined by the set of select features
 type Distinct struct {
 	vals []string
 }

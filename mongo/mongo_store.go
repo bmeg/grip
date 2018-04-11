@@ -154,7 +154,7 @@ func (mg *Graph) GetEdge(id string, loadProp bool) *aql.Edge {
 	return v
 }
 
-//GetTimestamp gets the timestamp of last update
+// GetTimestamp gets the timestamp of last update
 func (mg *Graph) GetTimestamp() string {
 	return mg.ts.Get(mg.graph)
 }
