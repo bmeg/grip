@@ -110,7 +110,7 @@ def test_simple_terms(O):
                 "terms": {"label": "Person", "field": "name", "size": 10}
             },
             "languages": {
-                "terms": {"label": "Person", "lang": "name", "size": 10}
+                "terms": {"label": "Person", "field": "lang", "size": 10}
             }
 
         }
