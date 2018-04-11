@@ -21,11 +21,14 @@ def test_count(O):
         O.mark('b').has('name', 'lop'),
         O.mark('b').incoming('created').mark('c'),
         O.mark('c').has('age', "29")
-    ]).select(['a', 'c'])  # .by('name')
+    ]).select(['a', 'c'])
 
     count = 0
     for row in query.execute():
         count += 1
+        if len(row) != 2:
+            errors.append("Incorrect number of marks returned in row")
+            continue
         if row[1]['vertex']['data']['name'] != "marko":
             errors.append("Incorrect return")
 

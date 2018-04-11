@@ -1,4 +1,4 @@
-The Arachne Graph Database server
+# The Arachne Graph Database server
 
 To Install
 ----------
@@ -48,15 +48,13 @@ Load data
 arachne load --edge test.data.edge --vertex test.data.vertex --graph amazon
 ```
 
-
-##Some example queries
-
-###Command line query
+Example queries:
+Command line
 ```
 arachne query amazon 'O.query().V().groupCount("group")'
 ```
 
-###Python Query
+Python
 ```
 import aql
 import json
@@ -82,7 +80,7 @@ for a in O.query().V().has("group", "Book").mark("a").outgoing("similar").has("g
     print a
 ```
 
-Matrix Data loading Example
+Matrix Data Loading Example
 ---------------------------
 
 Create the graph
@@ -120,8 +118,6 @@ curl -O https://tcga.xenahubs.net/download/TCGA.BRCA.sampleMap/BRCA_clinicalMatr
 gunzip BRCA_clinicalMatrix.gz
 python $GOPATH/src/github.com/bmeg/arachne/example/load_property_matrix.py BRCA_clinicalMatrix
 ```
-
-
 
 Python Query: Open Connection
 ```

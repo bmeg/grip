@@ -6,7 +6,7 @@ def test_label_a_list(O):
     O.addVertex("1", "Person", {"name": "marko", "age": "29"})
     O.addVertex("2", "Person", {"name": "vadas", "age": "27"})
     count = 0
-    for i in O.listVertexList():
+    for i in O.getVertexIndexList():
         count += 1
         if i['field'] != 'name' or i['label'] != 'Person':
             errors.append("Incorrect index field reported")
@@ -27,7 +27,7 @@ def test_label_b_list(O):
     O.addVertex("1", "Person", {"name": "marko", "age": "29"})
     O.addVertex("2", "Person", {"name": "vadas", "age": "27"})
     count = 0
-    for i in O.listVertexList():
+    for i in O.getVertexIndexList():
         count += 1
         if i['field'] != 'age' or i['label'] != 'Person':
             errors.append("Incorrect index field reported")
@@ -89,7 +89,7 @@ def test_count_index(O):
     O.addEdge("4", "5", "created", {"weight": 1.0})
 
     count = 0
-    for row in O.index().getVertexIndex("Person", "name"):
+    for row in O.getVertexIndex("Person", "name"):
         count += 1
         if row['term'] == 'marko':
             if row['count'] != 2:

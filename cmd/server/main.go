@@ -1,11 +1,20 @@
 package server
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
 
+	_ "github.com/bmeg/arachne/badgerdb" // import so badger will register itself
+	_ "github.com/bmeg/arachne/boltdb"   // import so bolt will register itself
+	"github.com/bmeg/arachne/elastic"
+	"github.com/bmeg/arachne/gdbi"
 	"github.com/bmeg/arachne/graphserver"
+	"github.com/bmeg/arachne/kvgraph"
+	_ "github.com/bmeg/arachne/leveldb" // import so level will register itself
+	"github.com/bmeg/arachne/mongo"
+	_ "github.com/bmeg/arachne/rocksdb" // import so rocks will register itself
 	"github.com/spf13/cobra"
 )
 
@@ -21,6 +30,7 @@ var (
 	rocksPath  string
 	levelPath  string
 	contentDir string
+	readOnly   bool
 )
 
 // Cmd the main command called by the cobra library
@@ -35,22 +45,34 @@ var Cmd = &cobra.Command{
 			os.Mkdir(workDir, 0700)
 		}
 
-		var server *graphserver.ArachneServer = nil
+		var db gdbi.GraphDB
 		if mongoURL != "" {
-			server = graphserver.NewArachneMongoServer(mongoURL, dbName, workDir)
-		} else if boltPath != "" {
-			server = graphserver.NewArachneBoltServer(boltPath, workDir)
-		} else if rocksPath != "" {
-			server = graphserver.NewArachneRocksServer(rocksPath, workDir)
-		} else if levelPath != "" {
-			server = graphserver.NewArachneLevelServer(levelPath, workDir)
+			db, err = mongo.NewMongo(mongoURL, dbName)
 		} else if elasticURL != "" {
-			server = graphserver.NewArachneElasticServer(elasticURL, dbName, workDir)
+			db, err = elastic.NewElastic(elasticURL, dbName)
+		} else if boltPath != "" {
+			db, err = kvgraph.NewKVGraphDB("bolt", boltPath)
+		} else if rocksPath != "" {
+			db, err = kvgraph.NewKVGraphDB("rocks", rocksPath)
+		} else if levelPath != "" {
+			db, err = kvgraph.NewKVGraphDB("level", levelPath)
 		} else {
-			server = graphserver.NewArachneBadgerServer(badgerPath, workDir)
+			db, err = kvgraph.NewKVGraphDB("badger", badgerPath)
 		}
-		server.Start(rpcPort)
-		proxy := graphserver.NewHTTPProxy(rpcPort, httpPort, contentDir)
+		if err != nil {
+			return fmt.Errorf("Database connection failed: %v", err)
+		}
+
+		server := graphserver.NewArachneServer(db, workDir, readOnly)
+		err = server.Start(rpcPort)
+		if err != nil {
+			return fmt.Errorf("Failed to start grpc server: %v", err)
+		}
+
+		proxy, err := graphserver.NewHTTPProxy(rpcPort, httpPort, contentDir)
+		if err != nil {
+			return fmt.Errorf("Failed to setup http proxy: %v", err)
+		}
 
 		c := make(chan os.Signal, 1)
 		signal.Notify(c, os.Interrupt)
@@ -58,6 +80,7 @@ var Cmd = &cobra.Command{
 			<-c
 			proxy.Stop()
 		}()
+
 		proxy.Run()
 		log.Printf("Server Stopped, closing database")
 		server.CloseDB()
@@ -78,4 +101,5 @@ func init() {
 	flags.StringVar(&dbName, "name", dbName, "Database Name")
 	flags.StringVar(&contentDir, "content", contentDir, "Content Path")
 	flags.StringVar(&workDir, "workdir", workDir, "WorkDir")
+	flags.BoolVar(&readOnly, "read-only", readOnly, "Start server in read-only mode")
 }

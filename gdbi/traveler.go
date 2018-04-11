@@ -19,8 +19,6 @@ const (
 	// StateRawEdgeList The Pipeline will be emitting a list of all edges, if there is an index
 	// based filter, you can use skip listening and use that
 	StateRawEdgeList = 4
-	// StateBundleList the Pipeline will be emittign a list of bundles
-	StateBundleList = 5
 )
 
 // AddCurrent creates a new copy of the travel with new 'current' value

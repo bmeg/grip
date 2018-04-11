@@ -11,7 +11,6 @@ var srcEdgePrefix = []byte("s")
 var dstEdgePrefix = []byte("d")
 
 var edgeSingle byte = 0x01
-var edgeBundle byte = 0x02
 
 // GraphPrefix returns the byte array prefix for all graph entry keys
 func GraphPrefix() []byte {

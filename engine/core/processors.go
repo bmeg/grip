@@ -17,14 +17,6 @@ import (
 	structpb "github.com/golang/protobuf/ptypes/struct"
 )
 
-////////////////////////////////////////////////////////////////////////////////
-
-// LookupVerts starts query by looking on vertices
-type LookupVerts struct {
-	db  gdbi.GraphInterface
-	ids []string
-}
-
 type propKey string
 
 var propLoad propKey = "load"
@@ -35,6 +27,14 @@ func getPropLoad(ctx context.Context) bool {
 		return true
 	}
 	return v.(bool)
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+// LookupVerts starts query by looking on vertices
+type LookupVerts struct {
+	db  gdbi.GraphInterface
+	ids []string
 }
 
 // Process LookupVerts
@@ -110,9 +110,8 @@ func (l *LookupVertsIndex) Process(ctx context.Context, man gdbi.Manager, in gdb
 
 // LookupEdges starts query by looking up edges
 type LookupEdges struct {
-	db     gdbi.GraphInterface
-	ids    []string
-	labels []string
+	db  gdbi.GraphInterface
+	ids []string
 }
 
 // Process runs LookupEdges
@@ -120,14 +119,29 @@ func (l *LookupEdges) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 	go func() {
 		defer close(out)
 		for t := range in {
-			for v := range l.db.GetEdgeList(context.Background(), getPropLoad(ctx)) {
-				out <- t.AddCurrent(&gdbi.DataElement{
-					ID:    v.Gid,
-					Label: v.Label,
-					From:  v.From,
-					To:    v.To,
-					Data:  protoutil.AsMap(v.Data),
-				})
+			if len(l.ids) == 0 {
+				for v := range l.db.GetEdgeList(context.Background(), getPropLoad(ctx)) {
+					out <- t.AddCurrent(&gdbi.DataElement{
+						ID:    v.Gid,
+						Label: v.Label,
+						From:  v.From,
+						To:    v.To,
+						Data:  protoutil.AsMap(v.Data),
+					})
+				}
+			} else {
+				for _, i := range l.ids {
+					v := l.db.GetEdge(i, getPropLoad(ctx))
+					if v != nil {
+						out <- t.AddCurrent(&gdbi.DataElement{
+							ID:    v.Gid,
+							Label: v.Label,
+							From:  v.From,
+							To:    v.To,
+							Data:  protoutil.AsMap(v.Data),
+						})
+					}
+				}
 			}
 		}
 	}()
@@ -589,7 +603,7 @@ func (g *GroupCount) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPi
 
 ////////////////////////////////////////////////////////////////////////////////
 
-// Distinct only returns district objects as defined by the set of select features
+// Distinct only returns unique objects as defined by the set of select features
 type Distinct struct {
 	vals []string
 }

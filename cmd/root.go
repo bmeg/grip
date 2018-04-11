@@ -42,7 +42,8 @@ func init() {
 }
 
 var genBashCompletionCmd = &cobra.Command{
-	Use: "bash",
+	Use:   "bash",
+	Short: "Generate bash completions file",
 	Run: func(cmd *cobra.Command, args []string) {
 		RootCmd.GenBashCompletion(os.Stdout)
 	},

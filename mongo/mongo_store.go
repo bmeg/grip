@@ -25,25 +25,24 @@ type Mongo struct {
 }
 
 // NewMongo creates a new mongo graph database interface
-func NewMongo(url string, database string) gdbi.GraphDB {
+func NewMongo(url string, database string) (gdbi.GraphDB, error) {
 	log.Printf("Starting Mongo Driver")
 	ts := timestamp.NewTimestamp()
 	session, err := mgo.Dial(url)
 	if err != nil {
-		log.Printf("%s", err)
+		return nil, err
 	}
 	b, _ := session.BuildInfo()
 	if !b.VersionAtLeast(3, 2) {
-		log.Printf("Requires mongo 3.2 or later")
 		session.Close()
-		return nil
+		return nil, fmt.Errorf("Requires mongo 3.2 or later")
 	}
 	pool := mgopool.NewLeaky(session, 3)
-	a := &Mongo{url: url, database: database, pool: pool, initialSession: session, ts: &ts}
-	for _, i := range a.GetGraphs() {
-		a.ts.Touch(i)
+	db := &Mongo{url: url, database: database, pool: pool, initialSession: session, ts: &ts}
+	for _, i := range db.GetGraphs() {
+		db.ts.Touch(i)
 	}
-	return a
+	return db, nil
 }
 
 // Close the connection
@@ -154,7 +153,7 @@ func (mg *Graph) GetEdge(id string, loadProp bool) *aql.Edge {
 	return v
 }
 
-//GetTimestamp gets the timestamp of last update
+// GetTimestamp gets the timestamp of last update
 func (mg *Graph) GetTimestamp() string {
 	return mg.ts.Get(mg.graph)
 }
@@ -322,7 +321,7 @@ func (mg *Graph) GetEdgeList(ctx context.Context, loadProp bool) <-chan *aql.Edg
 				return
 			default:
 			}
-			if _, ok := result[fieldDst]; ok {
+			if _, ok := result["to"]; ok {
 				e := UnpackEdge(result)
 				o <- e
 			}
@@ -427,7 +426,7 @@ func (mg *Graph) GetOutChannel(reqChan chan gdbi.ElementLookup, load bool, edgeL
 			}
 			query := []bson.M{{"$match": bson.M{"from": bson.M{"$in": idBatch}}}}
 			if len(edgeLabels) > 0 {
-				query = append(query, bson.M{"$match": bson.M{fieldLabel: bson.M{"$in": edgeLabels}}})
+				query = append(query, bson.M{"$match": bson.M{"label": bson.M{"$in": edgeLabels}}})
 			}
 			vertCol := fmt.Sprintf("%s_vertices", mg.graph)
 			query = append(query, bson.M{"$lookup": bson.M{"from": vertCol, "localField": "to", "foreignField": "_id", "as": "dst"}})
@@ -443,27 +442,7 @@ func (mg *Graph) GetOutChannel(reqChan chan gdbi.ElementLookup, load bool, edgeL
 			defer iter.Close()
 			result := map[string]interface{}{}
 			for iter.Next(&result) {
-				if val, ok := result[fieldBundle]; ok {
-					vMap := val.(map[string]interface{})
-					bkeys := make([]string, 0, len(vMap))
-					for k := range vMap {
-						bkeys = append(bkeys, k)
-					}
-					vCol := mg.ar.getVertexCollection(session, mg.graph)
-					query := bson.M{"_id": bson.M{"$in": bkeys}}
-					q := vCol.Find(query)
-					vIter := q.Iter()
-					r := batchMap[result["from"].(string)]
-					vResult := map[string]interface{}{}
-					for vIter.Next(&vResult) {
-						v := UnpackVertex(vResult)
-						for _, ri := range r {
-							ri.Vertex = v
-							o <- ri
-						}
-					}
-					vIter.Close()
-				} else if dst, ok := result["dst"].(map[string]interface{}); ok {
+				if dst, ok := result["dst"].(map[string]interface{}); ok {
 					v := UnpackVertex(dst)
 					r := batchMap[result["from"].(string)]
 					for _, ri := range r {
@@ -510,15 +489,15 @@ func (mg *Graph) GetInChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLa
 			}
 			query := []bson.M{{"$match": bson.M{"to": bson.M{"$in": idBatch}}}}
 			if len(edgeLabels) > 0 {
-				query = append(query, bson.M{"$match": bson.M{fieldLabel: bson.M{"$in": edgeLabels}}})
+				query = append(query, bson.M{"$match": bson.M{"label": bson.M{"$in": edgeLabels}}})
 			}
 			vertCol := fmt.Sprintf("%s_vertices", mg.graph)
 			query = append(query, bson.M{"$lookup": bson.M{"from": vertCol, "localField": "from", "foreignField": "_id", "as": "src"}})
 			query = append(query, bson.M{"$unwind": "$src"})
 			if load {
-				query = append(query, bson.M{"$project": bson.M{"to": true, fieldBundle: true, "src._id": true, "src.label": true, "src.data": true}})
+				query = append(query, bson.M{"$project": bson.M{"to": true, "src._id": true, "src.label": true, "src.data": true}})
 			} else {
-				query = append(query, bson.M{"$project": bson.M{"to": true, fieldBundle: true, "src._id": true, "src.label": true}})
+				query = append(query, bson.M{"$project": bson.M{"to": true, "src._id": true, "src.label": true}})
 			}
 
 			eCol := mg.ar.getEdgeCollection(session, mg.graph)
@@ -572,7 +551,7 @@ func (mg *Graph) GetOutEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, e
 			}
 			query := []bson.M{{"$match": bson.M{"from": bson.M{"$in": idBatch}}}}
 			if len(edgeLabels) > 0 {
-				query = append(query, bson.M{"$match": bson.M{fieldLabel: bson.M{"$in": edgeLabels}}})
+				query = append(query, bson.M{"$match": bson.M{"label": bson.M{"$in": edgeLabels}}})
 			}
 			eCol := mg.ar.getEdgeCollection(session, mg.graph)
 			iter := eCol.Pipe(query).Iter()
@@ -622,7 +601,7 @@ func (mg *Graph) GetInEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, ed
 			}
 			query := []bson.M{{"$match": bson.M{"to": bson.M{"$in": idBatch}}}}
 			if len(edgeLabels) > 0 {
-				query = append(query, bson.M{"$match": bson.M{fieldLabel: bson.M{"$in": edgeLabels}}})
+				query = append(query, bson.M{"$match": bson.M{"label": bson.M{"$in": edgeLabels}}})
 			}
 			eCol := mg.ar.getEdgeCollection(session, mg.graph)
 			iter := eCol.Pipe(query).Iter()

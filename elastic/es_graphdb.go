@@ -21,7 +21,7 @@ type Elastic struct {
 }
 
 // NewElastic creates a new elastic search graph database interface
-func NewElastic(url string, database string) gdbi.GraphDB {
+func NewElastic(url string, database string) (gdbi.GraphDB, error) {
 	log.Printf("Starting Elastic Driver")
 	ts := timestamp.NewTimestamp()
 	client, err := elastic.NewClient(
@@ -34,17 +34,19 @@ func NewElastic(url string, database string) gdbi.GraphDB {
 		),
 	)
 	if err != nil {
-		log.Printf("failed to create elastic client: %s", err)
+		return nil, fmt.Errorf("failed to create elasticsearch client: %v", err)
 	}
-	gdb := &Elastic{url: url, database: database, ts: &ts, client: client}
-	for _, i := range gdb.GetGraphs() {
-		gdb.ts.Touch(i)
+	db := &Elastic{url: url, database: database, ts: &ts, client: client}
+	for _, i := range db.GetGraphs() {
+		db.ts.Touch(i)
 	}
-	return gdb
+	return db, nil
 }
 
 // Close closes connection to elastic search
-func (es *Elastic) Close() {}
+func (es *Elastic) Close() {
+	es.client.Stop()
+}
 
 // GetGraphs returns list of graphs on elastic search instance
 func (es *Elastic) GetGraphs() []string {

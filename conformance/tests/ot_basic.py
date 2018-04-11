@@ -8,9 +8,9 @@ def test_count(O):
     O.addVertex("vertex3", "person", {"field1": "value3", "field2": "value4"})
     O.addVertex("vertex4", "person")
 
-    O.addEdge("vertex1", "vertex2", "friend")
-    O.addEdge("vertex2", "vertex3", "friend")
-    O.addEdge("vertex2", "vertex4", "parent")
+    O.addEdge("vertex1", "vertex2", "friend", id="edge1")
+    O.addEdge("vertex2", "vertex3", "friend", id="edge2")
+    O.addEdge("vertex2", "vertex4", "parent", id="edge3")
 
     count = 0
     for i in O.query().V().execute():
@@ -39,6 +39,27 @@ def test_count(O):
         errors.append(
             """O.query().V("vertex1").outgoing().outgoing().has("field1", "value4") : %s != %s""" %
             (count, 1))
+
+    count = 0
+    for i in O.query().E("edge1").execute():
+        count += 1
+    if count != 1:
+        errors.append(
+            "Fail: O.query().E(\"edge1\") %s != %d" % (count, 1))
+
+    count = 0
+    for i in O.query().E("edge1").outgoing().execute():
+        count += 1
+    if count != 1:
+        errors.append(
+            "Fail: O.query().E(\"edge1\").outgoing() %s != %d" % (count, 1))
+
+    count = 0
+    for i in O.query().E("edge1").incoming().execute():
+        count += 1
+    if count != 1:
+        errors.append(
+            "Fail: O.query().E(\"edge1\").incoming() %s != %d" % (count, 1))
 
     return errors
 
