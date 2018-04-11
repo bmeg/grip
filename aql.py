@@ -222,12 +222,6 @@ class Query:
         q.query.append(part)
         return q
 
-    def js_import(self, src):
-        """
-        Initialize javascript engine with functions and global variables.
-        """
-        return self.__append({"import": src})
-
     def V(self, id=[]):
         """
         Start the query at a vertex.
@@ -387,11 +381,6 @@ class Query:
         """
         return self.__append({'limit': n})
 
-    def range(self, begin, end):
-        """
-        """
-        return self.__append({'begin': begin, 'end': end})
-
     def count(self):
         """
         Return the number of results, instead of the elements.
@@ -412,29 +401,35 @@ class Query:
             val = [val]
         return self.__append({"distinct": val})
 
-    def map(self, func):
-        """
-        Transform results by the given javascript function.
-        function(el) el
-        """
-        return self.__append({"map": func})
+    # def jsImport(self, src):
+    #     """
+    #     Initialize javascript engine with functions and global variables.
+    #     """
+    #     return self.__append({"import": src})
 
-    def filter(self, func):
-        """
-        Filter results by the given javascript function.
-        function(el) bool
-        """
-        return self.__append({"filter": func})
+    # def map(self, func):
+    #     """
+    #     Transform results by the given javascript function.
+    #     function(el) el
+    #     """
+    #     return self.__append({"map": func})
 
-    def fold(self, init, func):
-        """
-        """
-        return self.__append({"fold": {"init": init, "source": func}})
+    # def filter(self, func):
+    #     """
+    #     Filter results by the given javascript function.
+    #     function(el) bool
+    #     """
+    #     return self.__append({"filter": func})
 
-    def vertexFromValues(self, func):
-        """
-        """
-        return self.__append({"vertex_from_values": func})
+    # def fold(self, init, func):
+    #     """
+    #     """
+    #     return self.__append({"fold": {"init": init, "source": func}})
+
+    # def vertexFromValues(self, func):
+    #     """
+    #     """
+    #     return self.__append({"vertex_from_values": func})
 
     def match(self, queries):
         """
