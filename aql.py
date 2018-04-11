@@ -162,9 +162,7 @@ class Graph:
         """
         Create mark step for match query
         """
-        q = self.query()
-        q.mark(name)
-        return q
+        return self.query().mark(name)
 
 
 class BulkAdd:
