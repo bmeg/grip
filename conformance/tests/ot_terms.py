@@ -103,4 +103,30 @@ def test_simple_terms(O):
     except Exception as e:
         pass
 
+    # multiple aggregations
+    aggregations = O.index().aggregate(
+        {
+            "names": {
+                "terms": {"label": "Person", "field": "name", "size": 10}
+            },
+            "languages": {
+                "terms": {"label": "Person", "lang": "name", "size": 10}
+            }
+
+        }
+    )
+    if "names" not in aggregations:
+        errors.append("'names' should be in the response")
+    if "languages" not in aggregations:
+        errors.append("'languages' should be in the response")
+    aggregation = aggregations['languages']
+    if len(aggregation['rows']) != 1:
+        errors.append("There should be 1 language returned from terms")
+    if aggregation['rows'][0]['term'] != 'java':
+        errors.append("java should be the only term")
+    if aggregation['rows'][0]['count'] != 2:
+        errors.append("java count should be 2")
+    if aggregation['sum_other_doc_count'] != 0:
+        errors.append("No other terms")
+
     return errors
