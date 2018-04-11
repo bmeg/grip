@@ -32,10 +32,9 @@ func BadgerBuilder(path string) (kvi.KVInterface, error) {
 	opts.ValueDir = path
 	db, err := badger.Open(opts)
 	if err != nil {
-		log.Printf("Error: %s", err)
+		return nil, err
 	}
-	o := &BadgerKV{db: db}
-	return o, nil
+	return &BadgerKV{db: db}, nil
 }
 
 var loaded = kvgraph.AddKVDriver("badger", BadgerBuilder)

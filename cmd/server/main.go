@@ -44,14 +44,14 @@ var Cmd = &cobra.Command{
 		var db gdbi.GraphDB
 		if mongoURL != "" {
 			db, err = mongo.NewMongo(mongoURL, dbName)
+		} else if elasticURL != "" {
+			db, err = elastic.NewElastic(elasticURL, dbName)
 		} else if boltPath != "" {
 			db, err = kvgraph.NewKVGraphDB("bolt", workDir)
 		} else if rocksPath != "" {
 			db, err = kvgraph.NewKVGraphDB("rocks", workDir)
 		} else if levelPath != "" {
 			db, err = kvgraph.NewKVGraphDB("level", workDir)
-		} else if elasticURL != "" {
-			db, err = elastic.NewElastic(elasticURL, dbName)
 		} else {
 			db, err = kvgraph.NewKVGraphDB("badger", workDir)
 		}

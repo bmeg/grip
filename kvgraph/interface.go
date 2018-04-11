@@ -37,7 +37,10 @@ func AddKVDriver(name string, builder kvi.KVBuilder) error {
 func NewKVGraphDB(name string, path string) (gdbi.GraphDB, error) {
 	if x, ok := kvMap[name]; ok {
 		kv, err := x(path)
-		return NewKVGraph(kv), err
+		if err != nil {
+			return nil, err
+		}
+		return NewKVGraph(kv), nil
 	}
 	return nil, fmt.Errorf("Driver %s Not Found", name)
 }
