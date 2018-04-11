@@ -530,7 +530,7 @@ func (f *Fold) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, ou
 		}
 		if foldValue != nil {
 			i := gdbi.Traveler{}
-			a := i.AddCurrent(&gdbi.DataElement{Data: foldValue})
+			a := i.AddCurrent(&gdbi.DataElement{Value: foldValue})
 			out <- a
 		}
 	}()
