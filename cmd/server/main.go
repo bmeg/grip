@@ -6,7 +6,11 @@ import (
 	"os"
 	"os/signal"
 
+	"github.com/bmeg/arachne/elastic"
+	"github.com/bmeg/arachne/gdbi"
 	"github.com/bmeg/arachne/graphserver"
+	"github.com/bmeg/arachne/kvgraph"
+	"github.com/bmeg/arachne/mongo"
 	"github.com/spf13/cobra"
 )
 
@@ -22,6 +26,7 @@ var (
 	rocksPath  string
 	levelPath  string
 	contentDir string
+	readOnly   bool
 )
 
 // Cmd the main command called by the cobra library
@@ -36,27 +41,28 @@ var Cmd = &cobra.Command{
 			os.Mkdir(workDir, 0700)
 		}
 
-		var server *graphserver.ArachneServer
+		var db gdbi.GraphDB
 		if mongoURL != "" {
-			server, err = graphserver.NewArachneMongoServer(mongoURL, dbName, workDir)
+			db, err = mongo.NewMongo(mongoURL, dbName)
 		} else if boltPath != "" {
-			server, err = graphserver.NewArachneBoltServer(boltPath, workDir)
+			db, err = kvgraph.NewKVGraphDB("bolt", workDir)
 		} else if rocksPath != "" {
-			server, err = graphserver.NewArachneRocksServer(rocksPath, workDir)
+			db, err = kvgraph.NewKVGraphDB("rocks", workDir)
 		} else if levelPath != "" {
-			server, err = graphserver.NewArachneLevelServer(levelPath, workDir)
+			db, err = kvgraph.NewKVGraphDB("level", workDir)
 		} else if elasticURL != "" {
-			server, err = graphserver.NewArachneElasticServer(elasticURL, dbName, workDir)
+			db, err = elastic.NewElastic(elasticURL, dbName)
 		} else {
-			server, err = graphserver.NewArachneBadgerServer(badgerPath, workDir)
+			db, err = kvgraph.NewKVGraphDB("badger", workDir)
 		}
 		if err != nil {
 			return fmt.Errorf("Database connection failed: %v", err)
 		}
 
+		server := graphserver.NewArachneServer(db, workDir, readOnly)
 		err = server.Start(rpcPort)
 		if err != nil {
-			return fmt.Errorf("Failed to start server: %v", err)
+			return fmt.Errorf("Failed to start grpc server: %v", err)
 		}
 
 		proxy, err := graphserver.NewHTTPProxy(rpcPort, httpPort, contentDir)
@@ -71,10 +77,10 @@ var Cmd = &cobra.Command{
 			proxy.Stop()
 		}()
 
-		err = proxy.Run()
+		proxy.Run()
 		log.Printf("Server Stopped, closing database")
 		server.CloseDB()
-		return err
+		return nil
 	},
 }
 
@@ -91,4 +97,5 @@ func init() {
 	flags.StringVar(&dbName, "name", dbName, "Database Name")
 	flags.StringVar(&contentDir, "content", contentDir, "Content Path")
 	flags.StringVar(&workDir, "workdir", workDir, "WorkDir")
+	flags.BoolVar(&readOnly, "read-only", readOnly, "Start server in read-only mode")
 }
