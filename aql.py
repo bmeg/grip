@@ -66,12 +66,6 @@ class Graph:
         self.url = url
         self.name = name
 
-    def query(self):
-        """
-        Create a query handle.
-        """
-        return Query(self.url + "/" + self.name + "/query")
-
     def addVertex(self, id, label, data={}):
         """
         Add vertex to a graph.
@@ -136,6 +130,18 @@ class Graph:
         result = response.read()
         return json.loads(result)
 
+    def getVertexIndex(self, label, field):
+        headers = {'Content-Type': 'application/json',
+                   'Accept': 'application/json'}
+        url = self.url + "/" + self.name + "/index"
+        url = self.url + "/" + self.name + "/index/" + label + \
+              "/" + field
+        request = urllib2.Request(url, headers=headers)
+        response = urllib2.urlopen(request)
+        for result in response:
+            d = json.loads(result)
+            yield d
+
     def getVertexIndexList(self):
         headers = {'Content-Type': 'application/json',
                    'Accept': 'application/json'}
@@ -146,11 +152,19 @@ class Graph:
             d = json.loads(result)
             yield d
 
-    def index(self):
+    def query(self):
         """
-        Create a index handle.
+        Create a query handle.
         """
-        return Index(self)
+        return Query(self.url + "/" + self.name + "/query")
+
+    def mark(self, name):
+        """
+        Create mark step for match query
+        """
+        q = self.query()
+        q.mark(name)
+        return q
 
 
 class BulkAdd:
@@ -190,25 +204,6 @@ class BulkAdd:
         response = urllib2.urlopen(request)
         result = response.read()
         return json.loads(result)
-
-
-class Index:
-    def __init__(self, parent=None):
-        self.parent = parent
-
-    def getVertexIndex(self, label, field):
-        url = self.parent.url + "/" + self.parent.name + "/index/" + label + \
-              "/" + field
-        request = urllib2.Request(url)
-        response = urllib2.urlopen(request)
-        for result in response:
-            d = json.loads(result)
-            yield d
-
-    def query(self, label, field, value):
-        url = self.parent.url + "/" + self.parent.name + "/index/" + label + \
-              "/" + field
-        return Query(url)
 
 
 class Query:
@@ -393,13 +388,13 @@ class Query:
         """
         return self.__append({'group_count': label})
 
-    def distinct(self, val):
+    def distinct(self, props):
         """
-        So distinct elements
+        Select distinct elements based on the provided property list.
         """
-        if not isinstance(val, list):
-            val = [val]
-        return self.__append({"distinct": val})
+        if not isinstance(props, list):
+            props = [props]
+        return self.__append({"distinct": props})
 
     # def jsImport(self, src):
     #     """
@@ -421,10 +416,10 @@ class Query:
     #     """
     #     return self.__append({"filter": func})
 
-    # def fold(self, init, func):
-    #     """
-    #     """
-    #     return self.__append({"fold": {"init": init, "source": func}})
+    def fold(self, init, func):
+        """
+        """
+        return self.__append({"fold": {"init": init, "source": func}})
 
     # def vertexFromValues(self, func):
     #     """
