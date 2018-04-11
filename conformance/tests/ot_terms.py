@@ -12,7 +12,7 @@ def test_simple_terms(O):
     O.addVertexIndex("Person", "name")
 
     O.addVertex("1", "Person", {"name": "marko", "age": "29"})
-    O.addVertex("2", "Person", {"name": "vadas", "age": "27"})
+    O.addVertex("2", "Person", {"name": "vadas", "age": "29"})
     O.addVertex("3", "Software", {"name": "lop", "lang": "java"})
     O.addVertex("4", "Person", {"name": "josh", "age": "32"})
     O.addVertex("5", "Software", {"name": "ripple", "lang": "java"})
@@ -128,5 +128,43 @@ def test_simple_terms(O):
         errors.append("java count should be 2")
     if aggregation['sum_other_doc_count'] != 0:
         errors.append("No other terms")
+
+    # histogram aggregations
+    aggregations = O.index().aggregate(
+        {
+            "ages": {
+                "histogram": {"label": "Person", "field": "age", "interval": 1}
+            }
+        }
+    )
+    if "ages" not in aggregations:
+        errors.append("'ages' should be in the response")
+    aggregation = aggregations['ages']
+    if len(aggregation['rows']) != 4:
+        errors.append("There should be 4 ages returned")
+    if aggregation['rows'][0]['term'] != 29:
+        errors.append("29 should be the only term")
+    if aggregation['rows'][0]['count'] != 2:
+        errors.append("29 count should be 2")
+    if 'sum_other_doc_count' in aggregation:
+        errors.append("'sum_other_doc_count' not valid in histogram agg")
+
+    # percentile aggregations
+    # https://www.elastic.co/guide/en/elasticsearch/reference/current/search-aggregations-metrics-percentile-aggregation.html
+    aggregations = O.index().aggregate(
+        {
+            "ages": {
+                "histogram": {"label": "Person", "field": "age",
+                              "percents": [1, 5, 25, 50, 75, 95, 99]}
+            }
+        }
+    )
+    if "ages" not in aggregations:
+        errors.append("'ages' should be in the response")
+    aggregation = aggregations['ages']
+    if len(aggregation['rows']) != 7:
+        errors.append("There should be 7 percentiles")
+    if 'sum_other_doc_count' in aggregation:
+        errors.append("'sum_other_doc_count' not valid in histogram agg")
 
     return errors
