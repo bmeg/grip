@@ -28,74 +28,77 @@ type ArachneServer struct {
 
 // NewArachneMongoServer initializes a GRPC server that uses the mongo driver
 // to connect to the graph store
-func NewArachneMongoServer(url string, database string, workDir string) *ArachneServer {
-	db := mongo.NewMongo(url, database)
-	return &ArachneServer{db: db, workDir: workDir}
+func NewArachneMongoServer(url string, database string, workDir string) (*ArachneServer, error) {
+	db, err := mongo.NewMongo(url, database)
+	if err != nil {
+		return nil, err
+	}
+	return &ArachneServer{db: db, workDir: workDir}, nil
 }
 
 // NewArachneElasticServer initializes a GRPC server that uses the elasticsearch driver
 // to connect to the graph store
-func NewArachneElasticServer(url string, database string, workDir string) *ArachneServer {
-	db := elastic.NewElastic(url, database)
-	return &ArachneServer{db: db, workDir: workDir}
+func NewArachneElasticServer(url string, database string, workDir string) (*ArachneServer, error) {
+	db, err := elastic.NewElastic(url, database)
+	if err != nil {
+		return nil, err
+	}
+	return &ArachneServer{db: db, workDir: workDir}, nil
 }
 
 // NewArachneBadgerServer initializes a GRPC server that uses the badger driver
 // to run the graph store
-func NewArachneBadgerServer(baseDir string, workDir string) *ArachneServer {
-	a, err := kvgraph.NewKVGraphDB("badger", baseDir)
+func NewArachneBadgerServer(baseDir string, workDir string) (*ArachneServer, error) {
+	db, err := kvgraph.NewKVGraphDB("badger", baseDir)
 	if err != nil {
-		log.Printf("Error Starting Badger")
-		return nil
+		return nil, err
 	}
-	return &ArachneServer{
-		db:      a,
-		workDir: workDir,
-	}
+	return &ArachneServer{db: db, workDir: workDir}, nil
 }
 
 // NewArachneBoltServer initializes a GRPC server that uses the bolt driver
 // to run the graph store
-func NewArachneBoltServer(baseDir string, workDir string) *ArachneServer {
+func NewArachneBoltServer(baseDir string, workDir string) (*ArachneServer, error) {
 	db, err := kvgraph.NewKVGraphDB("bolt", baseDir)
 	if err != nil {
-		return nil
+		return nil, err
 	}
-	return &ArachneServer{db: db, workDir: workDir}
+	return &ArachneServer{db: db, workDir: workDir}, nil
 }
 
 // NewArachneRocksServer initializes a GRPC server that uses the rocks driver
 // to run the graph store. This may fail if the rocks driver was not compiled
 // (using the --tags rocks flag)
-func NewArachneRocksServer(baseDir string, workDir string) *ArachneServer {
+func NewArachneRocksServer(baseDir string, workDir string) (*ArachneServer, error) {
 	db, err := kvgraph.NewKVGraphDB("rocks", baseDir)
 	if err != nil {
-		return nil
+		return nil, err
 	}
-	return &ArachneServer{db: db, workDir: workDir}
+	return &ArachneServer{db: db, workDir: workDir}, nil
 }
 
 // NewArachneLevelServer initializes a GRPC server that uses the level driver
 // to run the graph store.
-func NewArachneLevelServer(baseDir string, workDir string) *ArachneServer {
+func NewArachneLevelServer(baseDir string, workDir string) (*ArachneServer, error) {
 	db, err := kvgraph.NewKVGraphDB("level", baseDir)
 	if err != nil {
-		return nil
+		return nil, err
 	}
-	return &ArachneServer{db: db, workDir: workDir}
+	return &ArachneServer{db: db, workDir: workDir}, nil
 }
 
 // Start starts an asynchronous GRPC server
-func (server *ArachneServer) Start(hostPort string) {
+func (server *ArachneServer) Start(hostPort string) error {
 	lis, err := net.Listen("tcp", ":"+hostPort)
 	if err != nil {
-		panic("Cannot open port")
+		return fmt.Errorf("Cannot open port: %v", err)
 	}
 	grpcServer := grpc.NewServer()
 	aql.RegisterQueryServer(grpcServer, server)
 	aql.RegisterEditServer(grpcServer, server) //TODO config for read only
 	log.Println("TCP+RPC server listening on " + hostPort)
 	go grpcServer.Serve(lis)
+	return nil
 }
 
 // CloseDB tells the driver to close connection or file

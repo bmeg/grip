@@ -1,6 +1,7 @@
 package server
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -35,22 +36,33 @@ var Cmd = &cobra.Command{
 			os.Mkdir(workDir, 0700)
 		}
 
-		var server *graphserver.ArachneServer = nil
+		var server *graphserver.ArachneServer
 		if mongoURL != "" {
-			server = graphserver.NewArachneMongoServer(mongoURL, dbName, workDir)
+			server, err = graphserver.NewArachneMongoServer(mongoURL, dbName, workDir)
 		} else if boltPath != "" {
-			server = graphserver.NewArachneBoltServer(boltPath, workDir)
+			server, err = graphserver.NewArachneBoltServer(boltPath, workDir)
 		} else if rocksPath != "" {
-			server = graphserver.NewArachneRocksServer(rocksPath, workDir)
+			server, err = graphserver.NewArachneRocksServer(rocksPath, workDir)
 		} else if levelPath != "" {
-			server = graphserver.NewArachneLevelServer(levelPath, workDir)
+			server, err = graphserver.NewArachneLevelServer(levelPath, workDir)
 		} else if elasticURL != "" {
-			server = graphserver.NewArachneElasticServer(elasticURL, dbName, workDir)
+			server, err = graphserver.NewArachneElasticServer(elasticURL, dbName, workDir)
 		} else {
-			server = graphserver.NewArachneBadgerServer(badgerPath, workDir)
+			server, err = graphserver.NewArachneBadgerServer(badgerPath, workDir)
 		}
-		server.Start(rpcPort)
-		proxy := graphserver.NewHTTPProxy(rpcPort, httpPort, contentDir)
+		if err != nil {
+			return fmt.Errorf("Database connection failed: %v", err)
+		}
+
+		err = server.Start(rpcPort)
+		if err != nil {
+			return fmt.Errorf("Failed to start server: %v", err)
+		}
+
+		proxy, err := graphserver.NewHTTPProxy(rpcPort, httpPort, contentDir)
+		if err != nil {
+			return fmt.Errorf("Failed to setup http proxy: %v", err)
+		}
 
 		c := make(chan os.Signal, 1)
 		signal.Notify(c, os.Interrupt)
@@ -58,10 +70,11 @@ var Cmd = &cobra.Command{
 			<-c
 			proxy.Stop()
 		}()
-		proxy.Run()
+
+		err = proxy.Run()
 		log.Printf("Server Stopped, closing database")
 		server.CloseDB()
-		return nil
+		return err
 	},
 }
 

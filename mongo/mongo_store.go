@@ -25,25 +25,24 @@ type Mongo struct {
 }
 
 // NewMongo creates a new mongo graph database interface
-func NewMongo(url string, database string) gdbi.GraphDB {
+func NewMongo(url string, database string) (gdbi.GraphDB, error) {
 	log.Printf("Starting Mongo Driver")
 	ts := timestamp.NewTimestamp()
 	session, err := mgo.Dial(url)
 	if err != nil {
-		log.Printf("%s", err)
+		return nil, err
 	}
 	b, _ := session.BuildInfo()
 	if !b.VersionAtLeast(3, 2) {
-		log.Printf("Requires mongo 3.2 or later")
 		session.Close()
-		return nil
+		return nil, fmt.Errorf("Requires mongo 3.2 or later")
 	}
 	pool := mgopool.NewLeaky(session, 3)
-	a := &Mongo{url: url, database: database, pool: pool, initialSession: session, ts: &ts}
-	for _, i := range a.GetGraphs() {
-		a.ts.Touch(i)
+	db := &Mongo{url: url, database: database, pool: pool, initialSession: session, ts: &ts}
+	for _, i := range db.GetGraphs() {
+		db.ts.Touch(i)
 	}
-	return a
+	return db, nil
 }
 
 // Close the connection
