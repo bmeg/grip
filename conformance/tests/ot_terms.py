@@ -154,8 +154,8 @@ def test_simple_terms(O):
     aggregations = O.index().aggregate(
         {
             "ages": {
-                "histogram": {"label": "Person", "field": "age",
-                              "percents": [1, 5, 25, 50, 75, 95, 99]}
+                "percentiles": {"label": "Person", "field": "age",
+                                "percents": [1, 5, 25, 50, 75, 95, 99]}
             }
         }
     )
