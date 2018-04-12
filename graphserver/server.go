@@ -64,7 +64,6 @@ func (server *ArachneServer) Traversal(query *aql.GraphQuery, queryServer aql.Qu
 
 // GetGraphs returns a list of graphs managed by the driver
 func (server *ArachneServer) GetGraphs(empty *aql.Empty, queryServer aql.Query_GetGraphsServer) error {
-	log.Printf("Graph List")
 	for _, name := range server.db.GetGraphs() {
 		queryServer.Send(&aql.ElementID{Graph: name})
 	}
@@ -164,7 +163,7 @@ func (server *ArachneServer) StreamElements(stream aql.Edit_StreamElementsServer
 		for vBatch := range vertexBatchChan {
 			err := server.db.Graph(vBatch.graph).AddVertex(vBatch.vertices)
 			if err != nil {
-				log.Printf("Insert Error: %s", err)
+				log.Printf("Insert error: %s", err)
 			}
 		}
 		closeChan <- true
@@ -173,7 +172,7 @@ func (server *ArachneServer) StreamElements(stream aql.Edit_StreamElementsServer
 		for eBatch := range edgeBatchChan {
 			err := server.db.Graph(eBatch.graph).AddEdge(eBatch.edges)
 			if err != nil {
-				log.Printf("Insert Error: %s", err)
+				log.Printf("Insert error: %s", err)
 			}
 		}
 		closeChan <- true
@@ -195,7 +194,7 @@ func (server *ArachneServer) StreamElements(stream aql.Edit_StreamElementsServer
 			edgeBatchChan <- edgeBatch
 			loopErr = err
 		} else if err != nil {
-			log.Printf("Streaming Error: %s", err)
+			log.Printf("Streaming error: %s", err)
 			loopErr = err
 		} else {
 			if element.Vertex != nil {

@@ -75,7 +75,7 @@ type LookupVertsIndex struct {
 	labels []string
 }
 
-// Process LookupVerts
+// Process LookupVertsIndex
 func (l *LookupVertsIndex) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
 	queryChan := make(chan gdbi.ElementLookup, 100)
 	go func() {

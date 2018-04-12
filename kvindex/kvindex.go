@@ -18,7 +18,7 @@ const bufferSize = 1000
 var idxFieldPrefix = []byte("f")
 
 //key: t | field | term
-//val: count
+//val:
 var idxTermPrefix = []byte("t")
 
 //key: i | field | term | docid

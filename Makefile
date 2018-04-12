@@ -4,7 +4,6 @@ endif
 
 VERSION = 0.1.0
 TESTS=$(shell go list ./... | grep -v /vendor/)
-CONFIGDIR=$(shell pwd)/tests
 
 export SHELL=/bin/bash
 PATH := ${PATH}:${GOPATH}/bin
@@ -27,23 +26,23 @@ depends:
 # --------------------------
 proto:
 	@go get github.com/ckaznocha/protoc-gen-lint
-	cd aql && protoc \
-	-I ./ -I ../googleapis \
-	--lint_out=. \
-	--go_out=\
-	Mgoogle/protobuf/struct.proto=github.com/golang/protobuf/ptypes/struct,\
-	plugins=grpc:./ \
-	--grpc-gateway_out=logtostderr=true:. \
-	aql.proto
-
-kvproto:
-	cd kvindex && protoc \
-	-I ./ --go_out=. \
-	index.proto
+	@cd aql && protoc \
+	  -I ./ \
+    -I ../googleapis \
+	  --lint_out=. \
+	  --go_out=\
+	  Mgoogle/protobuf/struct.proto=github.com/golang/protobuf/ptypes/struct,\
+	  plugins=grpc:./ \
+	  --grpc-gateway_out=logtostderr=true:. \
+	  aql.proto
+	@cd kvindex && protoc \
+	  -I ./ \
+    --go_out=. \
+	  index.proto
 
 proto-depends:
-	go install github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway
-	go install github.com/golang/protobuf/protoc-gen-go
+	@go install github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway
+	@go install github.com/golang/protobuf/protoc-gen-go
 
 # ---------------------
 # Code Style
@@ -71,7 +70,7 @@ test:
 	@go test $(TESTS)
 
 test-conformance:
-	python conformance/run_conformance.py http://localhost:18201
+	@python conformance/run_conformance.py http://localhost:18201
 
 start-test-server:
 	arachne server --rpc 18202 --port 18201 &
@@ -87,8 +86,13 @@ start-test-elastic-server:
 # ---------------------
 start-test-mongo-database:
 	@docker rm -f arachne-mongodb-test > /dev/null 2>&1 || echo
-	@docker run -d --name arachne-mongodb-test -p 27000:27017 docker.io/mongo:3.5.13 > /dev/null
+	docker run -d --name arachne-mongodb-test -p 27000:27017 docker.io/mongo:3.5.13 > /dev/null
 
 start-test-elastic-database:
 	@docker rm -f arachne-es-test > /dev/null 2>&1 || echo
-	@docker run -d --name arachne-es-test -p 9200:9200 -p 9300:9300 -e "discovery.type=single-node" -e "xpack.security.enabled=false" docker.elastic.co/elasticsearch/elasticsearch:5.6.3 > /dev/null
+	docker run -d --name arachne-es-test -p 9200:9200 -p 9300:9300 -e "discovery.type=single-node" -e "xpack.security.enabled=false" docker.elastic.co/elasticsearch/elasticsearch:5.6.3 > /dev/null
+
+# ---------------------
+# Other
+# ---------------------
+.PHONY: test

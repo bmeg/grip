@@ -33,6 +33,7 @@ func (kgraph *KVGraph) AddGraph(graph string) error {
 // DeleteGraph deletes `graph`
 func (kgraph *KVGraph) DeleteGraph(graph string) error {
 	kgraph.ts.Touch(graph)
+
 	eprefix := EdgeListPrefix(graph)
 	kgraph.kv.DeletePrefix(eprefix)
 
@@ -46,10 +47,11 @@ func (kgraph *KVGraph) DeleteGraph(graph string) error {
 	kgraph.kv.DeletePrefix(dprefix)
 
 	graphKey := GraphKey(graph)
+	kgraph.kv.Delete(graphKey)
 
 	kgraph.deleteGraphIndex(graph)
 
-	return kgraph.kv.Delete(graphKey)
+	return nil
 }
 
 // Graph obtains the gdbi.DBI for a particular graph
@@ -88,17 +90,22 @@ func (kgdb *KVInterfaceGDB) Compiler() gdbi.Compiler {
 // AddVertex adds an edge to the graph, if it already exists
 // in the graph, it is replaced
 func (kgdb *KVInterfaceGDB) AddVertex(vertexArray []*aql.Vertex) error {
-	kgdb.kvg.kv.Update(func(tx kvi.KVTransaction) error {
+	err := kgdb.kvg.kv.Update(func(tx kvi.KVTransaction) error {
 		for _, vertex := range vertexArray {
-			d, _ := proto.Marshal(vertex)
-			k := VertexKey(kgdb.graph, vertex.Gid)
-			err := tx.Set(k, d)
+			d, err := proto.Marshal(vertex)
 			if err != nil {
 				return err
 			}
-			//vertexIdxStruct(vertex)
+			k := VertexKey(kgdb.graph, vertex.Gid)
+			err = tx.Set(k, d)
+			if err != nil {
+				return err
+			}
 			doc := vertexIdxStruct(vertex)
-			kgdb.kvg.idx.AddDocTx(tx, vertex.Gid, map[string]interface{}{kgdb.graph: doc})
+			err = kgdb.kvg.idx.AddDocTx(tx, vertex.Gid, map[string]interface{}{kgdb.graph: doc})
+			if err != nil {
+				return err
+			}
 		}
 		kgdb.kvg.ts.Touch(kgdb.graph)
 		return nil
@@ -110,7 +117,7 @@ func (kgdb *KVInterfaceGDB) AddVertex(vertexArray []*aql.Vertex) error {
 			kgdb.kvg.idx.AddDocPrefix(vertex.Gid, doc, kgdb.graph)
 		}
 	*/
-	return nil
+	return err
 }
 
 func randomEdgeKeyAssignment(graph string, tx kvi.KVTransaction) string {
@@ -123,7 +130,7 @@ func randomEdgeKeyAssignment(graph string, tx kvi.KVTransaction) string {
 // AddEdge adds an edge to the graph, if the id is not "" and in already exists
 // in the graph, it is replaced
 func (kgdb *KVInterfaceGDB) AddEdge(edgeArray []*aql.Edge) error {
-	kgdb.kvg.kv.Update(func(tx kvi.KVTransaction) error {
+	err := kgdb.kvg.kv.Update(func(tx kvi.KVTransaction) error {
 		for _, edge := range edgeArray {
 			if edge.Gid == "" {
 				edge.Gid = randomEdgeKeyAssignment(kgdb.graph, tx)
@@ -160,7 +167,7 @@ func (kgdb *KVInterfaceGDB) AddEdge(edgeArray []*aql.Edge) error {
 		kgdb.kvg.ts.Touch(kgdb.graph)
 		return nil
 	})
-	return nil
+	return err
 }
 
 // DelEdge deletes edge with id `key`

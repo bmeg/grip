@@ -1,4 +1,4 @@
-package labeldb
+package leveldb
 
 import (
 	"bytes"
@@ -143,15 +143,15 @@ func (lit *levelIterator) Next() error {
 		lit.value = nil
 		return fmt.Errorf("Invalid")
 	}
-	lit.key = lit.it.Key()
-	lit.value = lit.it.Value()
+	lit.key = copyBytes(lit.it.Key())
+	lit.value = copyBytes(lit.it.Value())
 	return nil
 }
 
 func (lit *levelIterator) Seek(id []byte) error {
 	if lit.it.Seek(id) {
-		lit.key = lit.it.Key()
-		lit.value = lit.it.Value()
+		lit.key = copyBytes(lit.it.Key())
+		lit.value = copyBytes(lit.it.Value())
 		return nil
 	}
 	return fmt.Errorf("Invalid")

@@ -9,19 +9,17 @@ def test_label_a_list(O):
     for i in O.getVertexIndexList():
         count += 1
         if i['field'] != 'name' or i['label'] != 'Person':
-            errors.append("Incorrect index field reported")
+            errors.append("Incorrect index field reported: %s" % i)
     if count != 1:
         errors.append("Incorrect number of indices returned")
     return errors
 
 
-"""
-Run label_a_test again, but with different index field to make sure
-original index was deleted
-"""
-
-
 def test_label_b_list(O):
+    """
+    Run label_a_test again, but with different index field to make sure
+    original index was deleted
+    """
     errors = []
     O.addVertexIndex("Person", "age")
     O.addVertex("1", "Person", {"name": "marko", "age": "29"})
@@ -30,7 +28,7 @@ def test_label_b_list(O):
     for i in O.getVertexIndexList():
         count += 1
         if i['field'] != 'age' or i['label'] != 'Person':
-            errors.append("Incorrect index field reported")
+            errors.append("Incorrect index field reported: %s" % i)
     if count != 1:
         errors.append("Incorrect number of indices returned")
     return errors
