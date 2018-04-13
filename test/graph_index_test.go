@@ -88,12 +88,12 @@ func TestVertexLabel(t *testing.T) {
 	var Q = aql.Query{}
 
 	query := Q.V().HasLabel("Cat")
-
-	p, err := engine.Compile(query.Statements, graph, "./workdir")
+	comp := graph.Compiler()
+	p, err := comp.Compile(query.Statements, "./workdir")
 	if err != nil {
 		t.Fatal(err)
 	}
-	res := p.Run(context.Background())
+	res := engine.Run(context.Background(), p, "./workdir")
 	count := 0
 	for range res {
 		count++

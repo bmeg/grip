@@ -3,12 +3,23 @@ package kvindex
 import (
 	//"context"
 	"bytes"
+	"encoding/binary"
 	"fmt"
 	"log"
+	"math"
 	"strings"
 
 	"github.com/bmeg/arachne/kvi"
 	proto "github.com/golang/protobuf/proto"
+)
+
+type TermType byte
+
+const (
+	TermUnknown   TermType = 0x00
+	TermString    TermType = 0x01
+	TermNumber    TermType = 0x02
+	termMaxNumber TermType = 0x03
 )
 
 const bufferSize = 1000
@@ -17,11 +28,11 @@ const bufferSize = 1000
 //val:
 var idxFieldPrefix = []byte("f")
 
-//key: t | field | term
+//key: t | field | TermType | term
 //val: count
 var idxTermPrefix = []byte("t")
 
-//key: i | field | term | docid
+//key: i | field | TermType | term | docid
 //val:
 var idxEntryPrefix = []byte("i")
 
@@ -47,8 +58,8 @@ func FieldKeyParse(key []byte) string {
 }
 
 // TermKey create a key for a term index
-func TermKey(field string, term []byte) []byte {
-	return bytes.Join([][]byte{idxTermPrefix, []byte(field), term}, []byte{0})
+func TermKey(field string, ttype TermType, term []byte) []byte {
+	return bytes.Join([][]byte{idxTermPrefix, []byte(field), {byte(ttype)}, term}, []byte{0})
 }
 
 // TermPrefix get a prefix for all the terms for a single field
@@ -56,17 +67,23 @@ func TermPrefix(field string) []byte {
 	return bytes.Join([][]byte{idxTermPrefix, []byte(field), {}}, []byte{0})
 }
 
+// TermTypePrefix get a prefix for all the terms for a single field
+func TermTypePrefix(field string, ttype TermType) []byte {
+	return bytes.Join([][]byte{idxTermPrefix, []byte(field), {byte(ttype)}, {}}, []byte{0})
+}
+
 // TermKeyParse parse a term key into a field and a value
-func TermKeyParse(key []byte) (string, []byte) {
-	tmp := bytes.Split(key, []byte{0}) //BUG: term may have 0x00 in it
+func TermKeyParse(key []byte) (string, TermType, []byte) {
+	tmp := bytes.SplitN(key, []byte{0}, 4)
 	field := string(tmp[1])
-	term := tmp[2]
-	return field, term
+	ttype := tmp[2][0]
+	term := tmp[3]
+	return field, TermType(ttype), term
 }
 
 // EntryKey create a key for an entry
-func EntryKey(field string, term []byte, docid string) []byte {
-	return bytes.Join([][]byte{idxEntryPrefix, []byte(field), term, []byte(docid)}, []byte{0})
+func EntryKey(field string, ttype TermType, term []byte, docid string) []byte {
+	return bytes.Join([][]byte{idxEntryPrefix, []byte(field), {byte(ttype)}, term, []byte(docid)}, []byte{0})
 }
 
 // EntryPrefix get prefix for all entries for a single field
@@ -74,18 +91,28 @@ func EntryPrefix(field string) []byte {
 	return bytes.Join([][]byte{idxEntryPrefix, []byte(field), {}}, []byte{0})
 }
 
+// EntryTypePrefix get prefix for all entries for a single field
+func EntryTypePrefix(field string, ttype TermType) []byte {
+	return bytes.Join([][]byte{idxEntryPrefix, []byte(field), {byte(ttype)}, {}}, []byte{0})
+}
+
 // EntryValuePrefix get prefix for all terms for a field
-func EntryValuePrefix(field string, term []byte) []byte {
-	return bytes.Join([][]byte{idxEntryPrefix, []byte(field), term, {}}, []byte{0})
+func EntryValuePrefix(field string, ttype TermType, term []byte) []byte {
+	return bytes.Join([][]byte{idxEntryPrefix, []byte(field), {byte(ttype)}, term, {}}, []byte{0})
 }
 
 // EntryKeyParse take entry key and parse out field term and document id
-func EntryKeyParse(key []byte) (string, []byte, string) {
-	tmp := bytes.Split(key, []byte{0}) //BUG: term may have 0x00 in it
+func EntryKeyParse(key []byte) (string, TermType, []byte, string) {
+	tmp := bytes.SplitN(key, []byte{0}, 4)
 	field := string(tmp[1])
-	term := tmp[2]
-	docid := tmp[3]
-	return field, term, string(docid)
+	ttype := TermType(tmp[2][0])
+	suffix := tmp[3]
+	if ttype == TermNumber {
+		return field, ttype, suffix[0:8], string(suffix[8:])
+	} else {
+		stmp := bytes.Split(suffix, []byte{0})
+		return field, ttype, stmp[0], string(stmp[1])
+	}
 }
 
 // DocKey create a document entry key
@@ -120,8 +147,9 @@ type KVIndex struct {
 
 // KVTermCount Get all terms and their counts
 type KVTermCount struct {
-	Value []byte
-	Count int64
+	String string
+	Number float64
+	Count  int64
 }
 
 // NewIndex create new key value index
@@ -181,12 +209,9 @@ type entryValue struct {
 }
 
 func newEntry(docID string, field string, value interface{}) entryValue {
-	var term []byte
-	if x, ok := value.(string); ok {
-		term = []byte(x)
-	}
-	t := TermKey(field, term)
-	ent := EntryKey(field, term, docID)
+	term, ttype := getTermBytes(value)
+	t := TermKey(field, ttype, term)
+	ent := EntryKey(field, ttype, term, docID)
 	return entryValue{term: term, termKey: t, entryKey: ent}
 }
 
@@ -218,6 +243,29 @@ func mapDig(i map[string]interface{}, path []string) interface{} {
 	return nil
 }
 
+func getTermBytes(term interface{}) ([]byte, TermType) {
+	switch val := term.(type) {
+	case string:
+		return []byte(val), TermString
+	case float64:
+		out := make([]byte, 8)
+		binary.LittleEndian.PutUint64(out, math.Float64bits(val))
+		return out, TermNumber
+	}
+	return nil, TermUnknown
+}
+
+func getBytesTerm(val []byte, ttype TermType) interface{} {
+	if ttype == TermString {
+		return string(val)
+	}
+	if ttype == TermNumber {
+		u := binary.LittleEndian.Uint64(val)
+		return math.Float64frombits(u)
+	}
+	return nil
+}
+
 // AddDocTx add new document using a transaction provided by user
 func (idx *KVIndex) AddDocTx(tx kvi.KVTransaction, docID string, doc map[string]interface{}) error {
 	sdoc := Doc{Entries: [][]byte{}}
@@ -226,12 +274,14 @@ func (idx *KVIndex) AddDocTx(tx kvi.KVTransaction, docID string, doc map[string]
 	for field, p := range idx.fields {
 		x := mapDig(doc, p)
 		if x != nil {
-			term := []byte(x.(string))
-			entryKey := EntryKey(field, term, docID)
-			termKey := TermKey(field, term)
-			tx.Set(entryKey, []byte{})
-			tx.Set(termKey, []byte{})
-			sdoc.Entries = append(sdoc.Entries, entryKey)
+			term, t := getTermBytes(x)
+			if t != TermUnknown {
+				entryKey := EntryKey(field, t, term, docID)
+				termKey := TermKey(field, t, term)
+				tx.Set(entryKey, []byte{})
+				tx.Set(termKey, []byte{})
+				sdoc.Entries = append(sdoc.Entries, entryKey)
+			}
 		}
 	}
 	data, _ := proto.Marshal(&sdoc)
@@ -259,23 +309,16 @@ func (idx *KVIndex) RemoveDoc(docID string) error {
 	return nil
 }
 
-func term2Bytes(term interface{}) []byte {
-	if x, ok := term.(string); ok {
-		return []byte(x)
-	}
-	return nil
-}
-
 // GetTermMatch find all documents where field has the value
 func (idx *KVIndex) GetTermMatch(field string, value interface{}) chan string {
 	out := make(chan string, bufferSize)
 	go func() {
-		term := term2Bytes(value)
-		entryPrefix := EntryValuePrefix(field, term)
+		term, ttype := getTermBytes(value)
+		entryPrefix := EntryValuePrefix(field, ttype, term)
 		defer close(out)
 		idx.kv.View(func(it kvi.KVIterator) error {
 			for it.Seek(entryPrefix); it.Valid() && bytes.HasPrefix(it.Key(), entryPrefix); it.Next() {
-				_, _, doc := EntryKeyParse(it.Key())
+				_, _, _, doc := EntryKeyParse(it.Key())
 				out <- doc
 			}
 			return nil
@@ -284,7 +327,7 @@ func (idx *KVIndex) GetTermMatch(field string, value interface{}) chan string {
 	return out
 }
 
-// FieldTerms list all unique terms held by a term
+// FieldTerms list all unique terms held by a field
 func (idx *KVIndex) FieldTerms(field string) chan interface{} {
 	out := make(chan interface{}, bufferSize)
 	go func() {
@@ -292,8 +335,8 @@ func (idx *KVIndex) FieldTerms(field string) chan interface{} {
 		defer close(out)
 		idx.kv.View(func(it kvi.KVIterator) error {
 			for it.Seek(termPrefix); it.Valid() && bytes.HasPrefix(it.Key(), termPrefix); it.Next() {
-				_, entry := TermKeyParse(it.Key())
-				out <- string(entry)
+				_, ttype, term := TermKeyParse(it.Key())
+				out <- getBytesTerm(term, ttype)
 			}
 			return nil
 		})
@@ -301,16 +344,24 @@ func (idx *KVIndex) FieldTerms(field string) chan interface{} {
 	return out
 }
 
+type typedTerm struct {
+	t    TermType
+	term []byte
+}
+
 // FieldTermCounts get all terms, and their counts for a particular field
-func (idx *KVIndex) FieldTermCounts(field string) chan KVTermCount {
-	terms := make(chan []byte, bufferSize)
+func (idx *KVIndex) fieldTermCounts(field string, ftype TermType) chan KVTermCount {
+	terms := make(chan typedTerm, bufferSize)
 	go func() {
 		defer close(terms)
-		termPrefix := TermPrefix(field)
+		termPrefix := TermTypePrefix(field, ftype)
+		if ftype == TermUnknown {
+			termPrefix = TermPrefix(field)
+		}
 		idx.kv.View(func(it kvi.KVIterator) error {
 			for it.Seek(termPrefix); it.Valid() && bytes.HasPrefix(it.Key(), termPrefix); it.Next() {
-				_, term := TermKeyParse(it.Key())
-				terms <- term
+				_, ttype, term := TermKeyParse(it.Key())
+				terms <- typedTerm{ttype, term}
 			}
 			return nil
 		})
@@ -319,7 +370,7 @@ func (idx *KVIndex) FieldTermCounts(field string) chan KVTermCount {
 	go func() {
 		defer close(out)
 		for term := range terms {
-			entryPrefix := EntryValuePrefix(field, term)
+			entryPrefix := EntryValuePrefix(field, term.t, term.term)
 			var count int64
 			idx.kv.View(func(it kvi.KVIterator) error {
 				for it.Seek(entryPrefix); it.Valid() && bytes.HasPrefix(it.Key(), entryPrefix); it.Next() {
@@ -327,8 +378,21 @@ func (idx *KVIndex) FieldTermCounts(field string) chan KVTermCount {
 				}
 				return nil
 			})
-			out <- KVTermCount{Value: term, Count: count}
+			if term.t == TermNumber {
+				out <- KVTermCount{Number: getBytesTerm(term.term, term.t).(float64), Count: count}
+			} else {
+				out <- KVTermCount{String: getBytesTerm(term.term, term.t).(string), Count: count}
+			}
 		}
 	}()
 	return out
+}
+
+// FieldTermCounts get all terms, and their counts for a particular field
+func (idx *KVIndex) FieldTermCounts(field string) chan KVTermCount {
+	return idx.fieldTermCounts(field, TermUnknown)
+}
+
+func (idx *KVIndex) FieldStringTermCounts(field string) chan KVTermCount {
+	return idx.fieldTermCounts(field, TermString)
 }

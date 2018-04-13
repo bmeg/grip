@@ -64,7 +64,7 @@ func (kgdb *KVInterfaceGDB) GetVertexTermCount(ctx context.Context, label string
 	go func() {
 		defer close(out)
 		for tcount := range kgdb.kvg.idx.FieldTermCounts(fmt.Sprintf("%s.v.%s.%s", kgdb.graph, label, field)) {
-			s := string(tcount.Value)
+			s := tcount.String
 			t := protoutil.WrapValue(s)
 			a := aql.IndexTermCount{Term: t, Count: int32(tcount.Count)}
 			out <- a
