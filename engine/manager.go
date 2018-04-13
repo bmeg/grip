@@ -22,7 +22,7 @@ type manager struct {
 
 func (bm *manager) GetTempKV() kvi.KVInterface {
 	td, _ := ioutil.TempDir(bm.workDir, "kvTmp")
-	kv, _ := badgerdb.BadgerBuilder(td)
+	kv, _ := badgerdb.NewKVInterface(td)
 
 	bm.kvs = append(bm.kvs, kv)
 	bm.paths = append(bm.paths, td)

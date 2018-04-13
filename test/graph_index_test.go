@@ -8,10 +8,10 @@ import (
 	"testing"
 
 	"github.com/bmeg/arachne/aql"
-	"github.com/bmeg/arachne/badgerdb"
 	"github.com/bmeg/arachne/engine"
 	"github.com/bmeg/arachne/gdbi"
 	"github.com/bmeg/arachne/kvgraph"
+	"github.com/bmeg/arachne/kvi"
 	"github.com/golang/protobuf/jsonpb"
 )
 
@@ -63,43 +63,46 @@ var testGraph = `{
 }
 `
 
-func setupGraphDB() gdbi.GraphDB {
-	kv, _ := badgerdb.BadgerBuilder("test.db")
-	return kvgraph.NewKVGraph(kv)
-}
-
-func closeGraph(gd gdbi.GraphDB) {
-	gd.Close()
-	os.RemoveAll("test.db")
-}
-
 func TestVertexLabel(t *testing.T) {
-	e := aql.Graph{}
-	if err := jsonpb.Unmarshal(strings.NewReader(testGraph), &e); err != nil {
-		log.Printf("Error: %s", err)
-	}
+	var kvi kvi.KVInterface
+	var gdb gdbi.GraphDB
+	var err error
+	for _, gName := range []string{"badger", "bolt", "level", "rocks"} {
+		dbPath := "test.db." + randomString(6)
+		kvi, err = kvgraph.NewKVInterface(gName, dbPath)
+		if err != nil {
+			t.Fatal(err)
+		}
+		gdb = kvgraph.NewKVGraph(kvi)
 
-	kv := setupGraphDB()
-	kv.AddGraph("test")
-	graph := kv.Graph("test")
-	graph.AddVertex(e.Vertices)
-	graph.AddEdge(e.Edges)
+		e := aql.Graph{}
+		if err := jsonpb.Unmarshal(strings.NewReader(testGraph), &e); err != nil {
+			log.Printf("Error: %s", err)
+		}
 
-	var Q = aql.Query{}
+		gdb.AddGraph("test")
+		graph := gdb.Graph("test")
+		graph.AddVertex(e.Vertices)
+		graph.AddEdge(e.Edges)
 
-	query := Q.V().HasLabel("Cat")
+		Q := aql.Query{}
+		query := Q.V().HasLabel("Cat")
 
-	p, err := engine.Compile(query.Statements, graph, "./workdir")
-	if err != nil {
-		t.Fatal(err)
+		compiler := graph.Compiler()
+		pipeline, err := compiler.Compile(query.Statements)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		res := engine.Run(context.Background(), pipeline, "./workdir")
+		count := 0
+		for range res {
+			count++
+		}
+		if count != 1 {
+			t.Errorf("Incorrect return count %d != %d", count, 1)
+		}
+		gdb.Close()
+		os.RemoveAll("test.db")
 	}
-	res := p.Run(context.Background())
-	count := 0
-	for range res {
-		count++
-	}
-	if count != 1 {
-		t.Errorf("Incorrect return count %d != %d", count, 1)
-	}
-	closeGraph(kv)
 }

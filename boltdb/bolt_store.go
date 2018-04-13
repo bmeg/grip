@@ -9,16 +9,14 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/bmeg/arachne/kvgraph"
 	"github.com/bmeg/arachne/kvi"
 	"github.com/boltdb/bolt"
 )
 
-var loaded = kvgraph.AddKVDriver("bolt", BoltBuilder)
 var graphBucket = []byte("graph")
 
-// BoltBuilder creates a new bolt interface at `path`
-func BoltBuilder(path string) (kvi.KVInterface, error) {
+// NewKVInterface creates new BoltDB backed KVInterface at `path`
+func NewKVInterface(path string) (kvi.KVInterface, error) {
 	log.Printf("Starting BoltDB")
 	db, err := bolt.Open(path, 0600, nil)
 	if err != nil {

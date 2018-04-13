@@ -1,6 +1,7 @@
-package core
+package test
 
 import (
+	"context"
 	"math/rand"
 	"os"
 	"reflect"
@@ -8,11 +9,9 @@ import (
 	"sort"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/bmeg/arachne/aql"
-	_ "github.com/bmeg/arachne/badgerdb"
-	_ "github.com/bmeg/arachne/boltdb"
+	"github.com/bmeg/arachne/engine"
 	"github.com/bmeg/arachne/gdbi"
 	"github.com/bmeg/arachne/kvgraph"
 	"github.com/bmeg/arachne/protoutil"
@@ -29,7 +28,7 @@ func randID() string {
 	return string(b)
 }
 
-var Q = aql.Query{}
+var Q = &aql.Query{}
 
 var verts = []*aql.Vertex{
 	vert("Human", dat{"name": "Alex"}),
@@ -51,10 +50,15 @@ var edges = []*aql.Edge{
 	edge(verts[2], verts[11], "WorksOn", nil),
 }
 
-var table = []struct {
+// checker is the interface of a function that validates the results of a test query.
+type checker func(t *testing.T, actual <-chan *aql.ResultRow)
+
+type queryTest struct {
 	query    *aql.Query
 	expected checker
-}{
+}
+
+var table = []queryTest{
 	{
 		Q.V().Has("name", "Kyle", "Alex"),
 		pick(verts[0], verts[1], verts[6], verts[7]),
@@ -187,74 +191,67 @@ var table = []struct {
 func TestEngine(t *testing.T) {
 	defer os.RemoveAll("test-badger.db")
 	defer os.Remove("test-bolt.db")
-
-	bolt, err := kvgraph.NewKVGraphDB("bolt", "test-bolt.db")
-	if err != nil {
-		t.Fatal(err)
-	}
+	defer os.Remove("test-level.db")
+	defer os.Remove("test-rocks.db")
 
 	badger, err := kvgraph.NewKVGraphDB("badger", "test-badger.db")
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// bolt, err := kvgraph.NewKVGraphDB("bolt", "test-bolt.db")
+	// if err != nil {
+	// 	t.Fatal(err)
+	// }
+
+	// level, err := kvgraph.NewKVGraphDB("level", "test-level.db")
+	// if err != nil {
+	// 	t.Fatal(err)
+	// }
+
+	// rocks, err := kvgraph.NewKVGraphDB("rocks", "test-rocks.db")
+	// if err != nil {
+	// 	t.Fatal(err)
+	// }
+
 	dbs := map[string]gdbi.GraphInterface{
-		"bolt":   bolt.Graph("test-graph"),
 		"badger": badger.Graph("test-graph"),
+		// "bolt":   bolt.Graph("test-graph"),
+		// "level":  level.Graph("test-graph"),
+		// "rocks":  rocks.Graph("test-graph"),
 	}
 
 	for dbname, db := range dbs {
 
 		for _, v := range verts {
-			db.AddVertex([]*aql.Vertex{v})
+			err := db.AddVertex([]*aql.Vertex{v})
+			if err != nil {
+				t.Fatal(err)
+			}
 		}
 		for _, e := range edges {
-			db.AddEdge([]*aql.Edge{e})
+			err := db.AddEdge([]*aql.Edge{e})
+			if err != nil {
+				t.Fatal(err)
+			}
 		}
 
 		for _, desc := range table {
+			desc := desc
+			db := db
 			name := cleanName(dbname + "_" + desc.query.String())
 
 			t.Run(name, func(t *testing.T) {
-				// Catch pipes which forget to close their out channel
-				// by requiring they process quickly.
-				timer := time.NewTimer(time.Millisecond * 100)
-				// "done" is closed when the pipe finishes.
-				done := make(chan struct{})
-
-				go func() {
-					defer close(done)
-
-					p, err := Compile(desc.query.Statements, db, "./workdir")
-					if err != nil {
-						t.Fatal(err)
-					}
-
-					res := p.Run()
-					if err != nil {
-						t.Fatal(err)
-					}
-
-					if !timer.Stop() {
-						<-timer.C
-					}
-
-					desc.expected(t, res)
-				}()
-
-				select {
-				case <-done:
-				case <-timer.C:
-					t.Log("did you forget to close the out channel?")
-					t.Fatal("pipe failed to process in time")
+				p, err := db.Compiler().Compile(desc.query.Statements)
+				if err != nil {
+					t.Fatal(err)
 				}
+				res := engine.Run(context.Background(), p, "./workdir")
+				desc.expected(t, res)
 			})
 		}
 	}
 }
-
-// checker is the interface of a function that validates the results of a test query.
-type checker func(t *testing.T, actual <-chan *aql.ResultRow)
 
 // this sorts the results to account for non-determinstic ordering from the db.
 // TODO this will break sort tests
@@ -263,7 +260,6 @@ func compare(expect []*aql.ResultRow) checker {
 		mar := jsonpb.Marshaler{}
 		actualS := []string{}
 		expectS := []string{}
-
 		for r := range actual {
 			s, _ := mar.MarshalToString(r)
 			actualS = append(actualS, s)

@@ -9,17 +9,13 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/bmeg/arachne/kvgraph"
 	"github.com/bmeg/arachne/kvi"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/iterator"
 )
 
-var loaded = kvgraph.AddKVDriver("level", LevelBuilder)
-
-// LevelBuilder creates new badger interface at `path`
-// driver at `path`
-func LevelBuilder(path string) (kvi.KVInterface, error) {
+// NewKVInterface creates new LevelDB backed KVInterface at `path`
+func NewKVInterface(path string) (kvi.KVInterface, error) {
 	log.Printf("Starting LevelDB")
 	db, err := leveldb.OpenFile(path, nil)
 	if err != nil {

@@ -3,9 +3,13 @@ package kvgraph
 import (
 	"fmt"
 
+	"github.com/bmeg/arachne/badgerdb"
+	"github.com/bmeg/arachne/boltdb"
 	"github.com/bmeg/arachne/gdbi"
 	"github.com/bmeg/arachne/kvi"
 	"github.com/bmeg/arachne/kvindex"
+	"github.com/bmeg/arachne/leveldb"
+	"github.com/bmeg/arachne/rocksdb"
 	"github.com/bmeg/arachne/timestamp"
 )
 
@@ -22,27 +26,31 @@ type KVInterfaceGDB struct {
 	graph string
 }
 
-var kvMap = make(map[string]kvi.KVBuilder)
-
-// AddKVDriver registers a KeyValue storage driver to the list of avalible drivers.
-// Driver list the RocksDB are only included with some build tags and aren't
-// always avalible
-func AddKVDriver(name string, builder kvi.KVBuilder) error {
-	kvMap[name] = builder
-	return nil
+// NewKVInterface intitalize a new key value interface given the name of the
+// driver and path/url to create the database at
+func NewKVInterface(name string, dbPath string) (kvi.KVInterface, error) {
+	switch name {
+	case "badger":
+		return badgerdb.NewKVInterface(dbPath)
+	case "bolt":
+		return boltdb.NewKVInterface(dbPath)
+	case "level":
+		return leveldb.NewKVInterface(dbPath)
+	case "rocks":
+		return rocksdb.NewKVInterface(dbPath)
+	default:
+		return nil, fmt.Errorf("Driver %s Not Found", name)
+	}
 }
 
-// NewKVGraphDB intitalize a new key value driver give the name of the
-// driver and a path/url
-func NewKVGraphDB(name string, path string) (gdbi.GraphDB, error) {
-	if x, ok := kvMap[name]; ok {
-		kv, err := x(path)
-		if err != nil {
-			return nil, err
-		}
-		return NewKVGraph(kv), nil
+// NewKVGraphDB intitalize a new key value graph driver given the name of the
+// driver and path/url to create the database at
+func NewKVGraphDB(name string, dbPath string) (gdbi.GraphDB, error) {
+	kv, err := NewKVInterface(name, dbPath)
+	if err != nil {
+		return nil, err
 	}
-	return nil, fmt.Errorf("Driver %s Not Found", name)
+	return NewKVGraph(kv), nil
 }
 
 // NewKVGraph creats a new instance of KVGraph given a KVInterface

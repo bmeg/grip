@@ -8,16 +8,12 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/bmeg/arachne/kvgraph"
 	"github.com/bmeg/arachne/kvi"
 	"github.com/tecbot/gorocksdb"
 )
 
-var loaded = kvgraph.AddKVDriver("rocks", RocksBuilder)
-
-// RocksBuilder creates new rocksdb interface at `path`
-// driver at `path`
-func RocksBuilder(path string) (kvi.KVInterface, error) {
+// NewKVInterface creates new BoltDB backed KVInterface at `path`
+func NewKVInterface(path string) (kvi.KVInterface, error) {
 	bbto := gorocksdb.NewDefaultBlockBasedTableOptions()
 	filter := gorocksdb.NewBloomFilter(10)
 	bbto.SetFilterPolicy(filter)
@@ -26,7 +22,10 @@ func RocksBuilder(path string) (kvi.KVInterface, error) {
 	opts.SetBlockBasedTableFactory(bbto)
 	opts.SetCreateIfMissing(true)
 	log.Printf("Starting RocksDB")
-	db, _ := gorocksdb.OpenDb(opts, path)
+	db, err := gorocksdb.OpenDb(opts, path)
+	if err != nil {
+		return nil, err
+	}
 
 	ro := gorocksdb.NewDefaultReadOptions()
 	wo := gorocksdb.NewDefaultWriteOptions()
@@ -76,7 +75,7 @@ func (rockskv *RocksKV) DeletePrefix(prefix []byte) error {
 	}
 	err := rockskv.db.Write(rockskv.wo, wb)
 	if err != nil {
-		log.Printf("Del Error: %s", err)
+		log.Printf("Del error: %s", err)
 	}
 	wb.Destroy()
 	return nil

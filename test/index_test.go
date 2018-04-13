@@ -3,10 +3,10 @@ package test
 import (
 	"encoding/json"
 	"log"
-	"os"
+	"math/rand"
 	"testing"
 
-	"github.com/bmeg/arachne/badgerdb"
+	"github.com/bmeg/arachne/kvgraph"
 	"github.com/bmeg/arachne/kvindex"
 )
 
@@ -52,185 +52,215 @@ func contains(c string, s []string) bool {
 	return false
 }
 
-func setupIndex() *kvindex.KVIndex {
-	kv, _ := badgerdb.BadgerBuilder("test.db")
-	idx := kvindex.NewIndex(kv)
-	return idx
-}
-
-func closeIndex() {
-	os.RemoveAll("test.db")
-}
-
-func TestFieldListing(b *testing.T) {
-	idx := setupIndex()
-
-	newFields := []string{"label", "data.firstName", "data.lastName"}
-	for _, s := range newFields {
-		idx.AddField(s)
+func randomString(n int) string {
+	var letter = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
+	b := make([]rune, n)
+	for i := range b {
+		b[i] = letter[rand.Intn(len(letter))]
 	}
+	return string(b)
+}
 
-	count := 0
-	for _, field := range idx.ListFields() {
-		if !contains(field, newFields) {
-			b.Errorf("Bad field return: %s", field)
+func setupIndex(name string) (*kvindex.KVIndex, error) {
+	dbPath := "test.db." + randomString(6)
+	kvi, err := kvgraph.NewKVInterface(name, dbPath)
+	if err != nil {
+		return nil, err
+	}
+	return kvindex.NewIndex(kvi), nil
+}
+
+func TestFieldListing(t *testing.T) {
+	for _, gName := range []string{"badger", "bolt", "level", "rocks"} {
+		idx, err := setupIndex(gName)
+		if err != nil {
+			t.Fatal(err)
 		}
-		count++
-	}
-	if count != len(newFields) {
-		b.Errorf("Wrong return count %d != %d", count, len(newFields))
-	}
 
-	closeIndex()
+		newFields := []string{"label", "data.firstName", "data.lastName"}
+		for _, s := range newFields {
+			idx.AddField(s)
+		}
+
+		count := 0
+		for _, field := range idx.ListFields() {
+			if !contains(field, newFields) {
+				t.Errorf("Bad field return: %s", field)
+			}
+			count++
+		}
+		if count != len(newFields) {
+			t.Errorf("Wrong return count %d != %d", count, len(newFields))
+		}
+	}
 }
 
-func TestLoadDoc(b *testing.T) {
+func TestLoadDoc(t *testing.T) {
 	data := []map[string]interface{}{}
 	json.Unmarshal([]byte(docs), &data)
 
-	idx := setupIndex()
-	newFields := []string{"v.label", "v.data.firstName", "v.data.lastName"}
-	for _, s := range newFields {
-		idx.AddField(s)
-	}
-
-	for _, d := range data {
-		idx.AddDoc(d["gid"].(string), map[string]interface{}{"v": d})
-	}
-
-	count := 0
-	for d := range idx.GetTermMatch("v.label", "Person") {
-		if !contains(d, personDocs) {
-			b.Errorf("Bad doc return: %s", d)
+	for _, gName := range []string{"badger", "bolt", "level", "rocks"} {
+		idx, err := setupIndex(gName)
+		if err != nil {
+			t.Fatal(err)
 		}
-		count++
-	}
-	if count != 2 {
-		b.Errorf("Wrong return count %d != %d", count, 2)
-	}
 
-	count = 0
-	for d := range idx.GetTermMatch("v.data.firstName", "Bob") {
-		if !contains(d, bobDocs) {
-			b.Errorf("Bad doc return: %s", d)
+		newFields := []string{"v.label", "v.data.firstName", "v.data.lastName"}
+		for _, s := range newFields {
+			idx.AddField(s)
 		}
-		count++
+
+		for _, d := range data {
+			idx.AddDoc(d["gid"].(string), map[string]interface{}{"v": d})
+		}
+
+		count := 0
+		for d := range idx.GetTermMatch("v.label", "Person") {
+			if !contains(d, personDocs) {
+				t.Errorf("Bad doc return: %s", d)
+			}
+			count++
+		}
+		if count != 2 {
+			t.Errorf("Wrong return count %d != %d", count, 2)
+		}
+
+		count = 0
+		for d := range idx.GetTermMatch("v.data.firstName", "Bob") {
+			if !contains(d, bobDocs) {
+				t.Errorf("Bad doc return: %s", d)
+			}
+			count++
+		}
+		if count != 1 {
+			t.Errorf("Wrong return count %d != %d", count, 1)
+		}
 	}
-	if count != 1 {
-		b.Errorf("Wrong return count %d != %d", count, 1)
-	}
-	closeIndex()
 }
 
-func TestTermEnum(b *testing.T) {
+func TestTermEnum(t *testing.T) {
 	data := []map[string]interface{}{}
 	json.Unmarshal([]byte(docs), &data)
 
-	idx := setupIndex()
-	newFields := []string{"v.label", "v.data.firstName", "v.data.lastName"}
-	for _, s := range newFields {
-		idx.AddField(s)
-	}
-	for _, d := range data {
-		idx.AddDoc(d["gid"].(string), map[string]interface{}{"v": d})
-	}
-
-	count := 0
-	for d := range idx.FieldTerms("v.data.lastName") {
-		count++
-		if !contains(d.(string), lastNames) {
-			b.Errorf("Bad term return: %s", d)
+	for _, gName := range []string{"badger", "bolt", "level", "rocks"} {
+		idx, err := setupIndex(gName)
+		if err != nil {
+			t.Fatal(err)
 		}
-	}
-	if count != 2 {
-		b.Errorf("Wrong return count %d != %d", count, 2)
-	}
 
-	count = 0
-	for d := range idx.FieldTerms("v.data.firstName") {
-		count++
-		if !contains(d.(string), firstNames) {
-			b.Errorf("Bad term return: %s", d)
+		newFields := []string{"v.label", "v.data.firstName", "v.data.lastName"}
+		for _, s := range newFields {
+			idx.AddField(s)
 		}
-	}
-	if count != 3 {
-		b.Errorf("Wrong return count %d != %d", count, 3)
-	}
-	closeIndex()
-}
-
-func TestTermCount(b *testing.T) {
-	data := []map[string]interface{}{}
-	json.Unmarshal([]byte(docs), &data)
-
-	idx := setupIndex()
-	newFields := []string{"v.label", "v.data.firstName", "v.data.lastName"}
-	for _, s := range newFields {
-		idx.AddField(s)
-	}
-	for _, d := range data {
-		idx.AddDoc(d["gid"].(string), map[string]interface{}{"v": d})
-	}
-
-	count := 0
-	for d := range idx.FieldTermCounts("v.data.lastName") {
-		count++
-		if !contains(string(d.Value), lastNames) {
-			b.Errorf("Bad term return: %s", d.Value)
+		for _, d := range data {
+			idx.AddDoc(d["gid"].(string), map[string]interface{}{"v": d})
 		}
-		if string(d.Value) == "Smith" {
-			if d.Count != 2 {
-				b.Errorf("Bad term count return: %d", d.Count)
+
+		count := 0
+		for d := range idx.FieldTerms("v.data.lastName") {
+			count++
+			if !contains(d.(string), lastNames) {
+				t.Errorf("Bad term return: %s", d)
 			}
 		}
-	}
-	if count != 2 {
-		b.Errorf("Wrong return count %d != %d", count, 2)
-	}
-	log.Printf("Counting: %d", count)
-	count = 0
-	for d := range idx.FieldTermCounts("v.data.firstName") {
-		count++
-		if !contains(string(d.Value), firstNames) {
-			b.Errorf("Bad term return: %s", d.Value)
+		if count != 2 {
+			t.Errorf("Wrong return count %d != %d", count, 2)
+		}
+
+		count = 0
+		for d := range idx.FieldTerms("v.data.firstName") {
+			count++
+			if !contains(d.(string), firstNames) {
+				t.Errorf("Bad term return: %s", d)
+			}
+		}
+		if count != 3 {
+			t.Errorf("Wrong return count %d != %d", count, 3)
 		}
 	}
-	if count != 3 {
-		b.Errorf("Wrong return count %d != %d", count, 3)
-	}
-	closeIndex()
 }
 
-func TestDocDelete(b *testing.T) {
+func TestTermCount(t *testing.T) {
 	data := []map[string]interface{}{}
 	json.Unmarshal([]byte(docs), &data)
 
-	idx := setupIndex()
-	newFields := []string{"v.label", "v.data.firstName", "v.data.lastName"}
-	for _, s := range newFields {
-		idx.AddField(s)
-	}
-	for _, d := range data {
-		idx.AddDoc(d["gid"].(string), map[string]interface{}{"v": d})
-	}
+	for _, gName := range []string{"badger", "bolt", "level", "rocks"} {
+		idx, err := setupIndex(gName)
+		if err != nil {
+			t.Fatal(err)
+		}
 
-	idx.RemoveDoc("vertex1")
+		newFields := []string{"v.label", "v.data.firstName", "v.data.lastName"}
+		for _, s := range newFields {
+			idx.AddField(s)
+		}
+		for _, d := range data {
+			idx.AddDoc(d["gid"].(string), map[string]interface{}{"v": d})
+		}
 
-	for d := range idx.FieldTermCounts("v.data.firstName") {
-		if string(d.Value) == "Bob" {
-			if d.Count != 0 {
-				b.Errorf("Bad term count return: %d", d.Count)
+		count := 0
+		for d := range idx.FieldTermCounts("v.data.lastName") {
+			count++
+			if !contains(string(d.Value), lastNames) {
+				t.Errorf("Bad term return: %s", d.Value)
+			}
+			if string(d.Value) == "Smith" {
+				if d.Count != 2 {
+					t.Errorf("Bad term count return: %d", d.Count)
+				}
 			}
 		}
+		if count != 2 {
+			t.Errorf("Wrong return count %d != %d", count, 2)
+		}
+		log.Printf("Counting: %d", count)
+		count = 0
+		for d := range idx.FieldTermCounts("v.data.firstName") {
+			count++
+			if !contains(string(d.Value), firstNames) {
+				t.Errorf("Bad term return: %s", d.Value)
+			}
+		}
+		if count != 3 {
+			t.Errorf("Wrong return count %d != %d", count, 3)
+		}
 	}
+}
 
-	count := 0
-	for range idx.GetTermMatch("v.data.firstName", "Bob") {
-		count++
-	}
-	if count != 0 {
-		b.Errorf("Wrong return count %d != %d", count, 0)
-	}
+func TestDocDelete(t *testing.T) {
+	data := []map[string]interface{}{}
+	json.Unmarshal([]byte(docs), &data)
 
-	closeIndex()
+	for _, gName := range []string{"badger", "bolt", "level", "rocks"} {
+		idx, err := setupIndex(gName)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		newFields := []string{"v.label", "v.data.firstName", "v.data.lastName"}
+		for _, s := range newFields {
+			idx.AddField(s)
+		}
+		for _, d := range data {
+			idx.AddDoc(d["gid"].(string), map[string]interface{}{"v": d})
+		}
+
+		idx.RemoveDoc("vertex1")
+
+		for d := range idx.FieldTermCounts("v.data.firstName") {
+			if string(d.Value) == "Bob" {
+				if d.Count != 0 {
+					t.Errorf("Bad term count return: %d", d.Count)
+				}
+			}
+		}
+
+		count := 0
+		for range idx.GetTermMatch("v.data.firstName", "Bob") {
+			count++
+		}
+		if count != 0 {
+			t.Errorf("Wrong return count %d != %d", count, 0)
+		}
+	}
 }

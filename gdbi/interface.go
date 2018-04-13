@@ -120,7 +120,7 @@ type Manager interface {
 
 // Compiler takes a aql query and turns it into an executable pipeline
 type Compiler interface {
-	Compile(stmts []*aql.GraphStatement, workDir string) (Pipeline, error)
+	Compile(stmts []*aql.GraphStatement) (Pipeline, error)
 }
 
 // Processor is the interface for a step in the pipe engine

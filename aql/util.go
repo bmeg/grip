@@ -81,20 +81,20 @@ func (client Client) AddGraph(graph string) error {
 
 // AddVertex adds a single vertex to the graph
 func (client Client) AddVertex(graph string, v *Vertex) error {
-	client.EditC.AddVertex(context.Background(), &GraphElement{Graph: graph, Vertex: v})
-	return nil
+	_, err := client.EditC.AddVertex(context.Background(), &GraphElement{Graph: graph, Vertex: v})
+	return err
 }
 
 // AddEdge adds a single edge to the graph
 func (client Client) AddEdge(graph string, e *Edge) error {
-	client.EditC.AddEdge(context.Background(), &GraphElement{Graph: graph, Edge: e})
-	return nil
+	_, err := client.EditC.AddEdge(context.Background(), &GraphElement{Graph: graph, Edge: e})
+	return err
 }
 
 // AddSubGraph adds a complete subgraph to an existing graph
 func (client Client) AddSubGraph(graph string, g *Graph) error {
-	client.EditC.AddSubGraph(context.Background(), &Graph{Graph: graph, Edges: g.Edges, Vertices: g.Vertices})
-	return nil
+	_, err := client.EditC.AddSubGraph(context.Background(), &Graph{Graph: graph, Edges: g.Edges, Vertices: g.Vertices})
+	return err
 }
 
 // StreamElements allows for bulk continuous loading of graph elements into the datastore
