@@ -1,5 +1,3 @@
-// +build rocks
-
 package rocksdb
 
 import (
@@ -7,6 +5,7 @@ import (
 	"log"
 
 	"github.com/bmeg/arachne/kvgraph"
+	"github.com/bmeg/arachne/kvi"
 	"github.com/tecbot/gorocksdb"
 )
 
@@ -16,7 +15,7 @@ type RocksKV struct {
 	wo *gorocksdb.WriteOptions
 }
 
-func RocksBuilder(path string) (kvgraph.KVInterface, error) {
+func RocksBuilder(path string) (kvi.KVInterface, error) {
 	bbto := gorocksdb.NewDefaultBlockBasedTableOptions()
 	filter := gorocksdb.NewBloomFilter(10)
 	bbto.SetFilterPolicy(filter)
@@ -54,10 +53,7 @@ func (self *RocksKV) Close() error {
 }
 
 func (self *RocksKV) Delete(key []byte) error {
-	if err := self.db.Delete(self.wo, key); err != nil {
-		return err
-	}
-	return nil
+	return self.db.Delete(self.wo, key)
 }
 
 func (self *RocksKV) DeletePrefix(prefix []byte) error {
@@ -96,31 +92,47 @@ func (self *RocksKV) HasKey(key []byte) bool {
 	return true
 }
 
-func (self *RocksKV) Set(key []byte, value []byte) error {
-	err := self.db.Put(self.wo, key, value)
+func (self *RocksKV) Set(key, value []byte) error {
+	return self.db.Put(self.wo, key, value)
+}
+
+func (self *RocksKV) Update(u func(tx kvi.KVTransaction) error) error {
+	ktx := rocksTransaction{db: self.db, ro: self.ro, wo: self.wo}
+	err := u(ktx)
 	return err
 }
 
-type RocksTransaction struct {
+type rocksTransaction struct {
 	db *gorocksdb.DB
 	ro *gorocksdb.ReadOptions
 	wo *gorocksdb.WriteOptions
 }
 
-func (self RocksTransaction) Delete(key []byte) error {
-	if err := self.db.Delete(self.wo, key); err != nil {
-		return err
+func (self rocksTransaction) Set(key, value []byte) error {
+	return self.db.Put(self.wo, key, value)
+}
+
+func (self rocksTransaction) Delete(key []byte) error {
+	return self.db.Delete(self.wo, key)
+}
+
+func (self rocksTransaction) HasKey(key []byte) bool {
+	data_value, err := self.db.Get(self.ro, key)
+	if err != nil {
+		return false
 	}
-	return nil
+	if data_value.Data() == nil {
+		return false
+	}
+	data_value.Free()
+	return true
 }
 
-func (self *RocksKV) Update(u func(tx kvgraph.KVTransaction) error) error {
-	ktx := RocksTransaction{db: self.db, ro: self.ro, wo: self.wo}
-	err := u(ktx)
-	return err
+func (self rocksTransaction) Get(key []byte) ([]byte, error) {
+	return self.db.GetBytes(self.ro, key)
 }
 
-type RocksCursor struct {
+type rocksIterator struct {
 	db    *gorocksdb.DB
 	ro    *gorocksdb.ReadOptions
 	wo    *gorocksdb.WriteOptions
@@ -129,7 +141,7 @@ type RocksCursor struct {
 	value []byte
 }
 
-func (self *RocksCursor) Get(key []byte) ([]byte, error) {
+func (self *rocksIterator) Get(key []byte) ([]byte, error) {
 	value, err := self.db.Get(self.ro, key)
 	if err != nil {
 		return nil, err
@@ -139,15 +151,15 @@ func (self *RocksCursor) Get(key []byte) ([]byte, error) {
 	return out, nil
 }
 
-func (self *RocksCursor) Key() []byte {
+func (self *rocksIterator) Key() []byte {
 	return self.key
 }
 
-func (self *RocksCursor) Value() ([]byte, error) {
+func (self *rocksIterator) Value() ([]byte, error) {
 	return self.value, nil
 }
 
-func (self *RocksCursor) Seek(k []byte) error {
+func (self *rocksIterator) Seek(k []byte) error {
 	self.it.Seek(k)
 	if !self.it.Valid() {
 		self.key = nil
@@ -163,14 +175,14 @@ func (self *RocksCursor) Seek(k []byte) error {
 	return self.it.Err()
 }
 
-func (self *RocksCursor) Valid() bool {
+func (self *rocksIterator) Valid() bool {
 	if self.key == nil || self.value == nil {
 		return false
 	}
 	return true
 }
 
-func (self *RocksCursor) Next() error {
+func (self *rocksIterator) Next() error {
 	self.it.Next()
 	if !self.it.Valid() {
 		self.key = nil
@@ -186,9 +198,9 @@ func (self *RocksCursor) Next() error {
 	return nil
 }
 
-func (self *RocksKV) View(u func(tx kvgraph.KVIterator) error) error {
-	ktx := RocksCursor{db: self.db, ro: self.ro, wo: self.wo, it: self.db.NewIterator(self.ro)}
-	err := u(&ktx)
+func (self *RocksKV) View(u func(tx kvi.KVIterator) error) error {
+	ktx := &rocksIterator{db: self.db, ro: self.ro, wo: self.wo, it: self.db.NewIterator(self.ro)}
+	err := u(ktx)
 	ktx.it.Close()
 	return err
 }
