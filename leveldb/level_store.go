@@ -114,10 +114,11 @@ func (l *LevelKV) Update(u func(tx kvi.KVTransaction) error) error {
 }
 
 type levelIterator struct {
-	db    *leveldb.DB
-	it    iterator.Iterator
-	key   []byte
-	value []byte
+	db      *leveldb.DB
+	it      iterator.Iterator
+	forward bool
+	key     []byte
+	value   []byte
 }
 
 // Get retrieves the value of key `id`
@@ -137,18 +138,34 @@ func (lit *levelIterator) Value() ([]byte, error) {
 
 // Next move the iterator to the next key
 func (lit *levelIterator) Next() error {
-	more := lit.it.Next()
+	var more bool
+	if lit.forward {
+		more = lit.it.Next()
+	} else {
+		more = lit.it.Prev()
+	}
 	if !more {
 		lit.key = nil
 		lit.value = nil
 		return fmt.Errorf("Invalid")
 	}
-	lit.key = lit.it.Key()
-	lit.value = lit.it.Value()
+	lit.key = copyBytes(lit.it.Key())
+	lit.value = copyBytes(lit.it.Value())
 	return nil
 }
 
 func (lit *levelIterator) Seek(id []byte) error {
+	lit.forward = true
+	if lit.it.Seek(id) {
+		lit.key = lit.it.Key()
+		lit.value = lit.it.Value()
+		return nil
+	}
+	return fmt.Errorf("Invalid")
+}
+
+func (lit *levelIterator) SeekReverse(id []byte) error {
+	lit.forward = false
 	if lit.it.Seek(id) {
 		lit.key = lit.it.Key()
 		lit.value = lit.it.Value()
@@ -169,6 +186,6 @@ func (lit *levelIterator) Valid() bool {
 func (l *LevelKV) View(u func(it kvi.KVIterator) error) error {
 	it := l.db.NewIterator(nil, nil)
 	defer it.Release()
-	lit := levelIterator{l.db, it, nil, nil}
+	lit := levelIterator{l.db, it, true, nil, nil}
 	return u(&lit)
 }

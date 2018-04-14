@@ -140,11 +140,12 @@ func (boltkv *BoltKV) Update(u func(tx kvi.KVTransaction) error) error {
 }
 
 type boltIterator struct {
-	tx    *bolt.Tx
-	b     *bolt.Bucket
-	c     *bolt.Cursor
-	key   []byte
-	value []byte
+	tx      *bolt.Tx
+	b       *bolt.Bucket
+	c       *bolt.Cursor
+	forward bool
+	key     []byte
+	value   []byte
 }
 
 func copyBytes(in []byte) []byte {
@@ -174,7 +175,12 @@ func (boltIt *boltIterator) Value() ([]byte, error) {
 
 // Next move the iterator to the next key
 func (boltIt *boltIterator) Next() error {
-	k, v := boltIt.c.Next()
+	var k, v []byte
+	if boltIt.forward {
+		k, v = boltIt.c.Next()
+	} else {
+		k, v = boltIt.c.Prev()
+	}
 	if k == nil || v == nil {
 		boltIt.key = nil
 		boltIt.value = nil
@@ -187,6 +193,21 @@ func (boltIt *boltIterator) Next() error {
 
 // Seek moves the iterator to a new location
 func (boltIt *boltIterator) Seek(id []byte) error {
+	boltIt.forward = true
+	k, v := boltIt.c.Seek(id)
+	if k == nil || v == nil {
+		boltIt.key = nil
+		boltIt.value = nil
+		return fmt.Errorf("Seek error")
+	}
+	boltIt.key = copyBytes(k)
+	boltIt.value = copyBytes(v)
+	return nil
+}
+
+// Seek moves the iterator to a new location
+func (boltIt *boltIterator) SeekReverse(id []byte) error {
+	boltIt.forward = false
 	k, v := boltIt.c.Seek(id)
 	if k == nil || v == nil {
 		boltIt.key = nil
@@ -210,7 +231,7 @@ func (boltIt *boltIterator) Valid() bool {
 func (boltkv *BoltKV) View(u func(it kvi.KVIterator) error) error {
 	err := boltkv.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(graphBucket)
-		ktx := &boltIterator{tx, b, b.Cursor(), nil, nil}
+		ktx := &boltIterator{tx, b, b.Cursor(), true, nil, nil}
 		return u(ktx)
 	})
 	return err

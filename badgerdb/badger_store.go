@@ -200,6 +200,30 @@ func (badgerIt *badgerIterator) Next() error {
 
 // Seek moves the iterator to a new location
 func (badgerIt *badgerIterator) Seek(id []byte) error {
+	if badgerIt.c != nil {
+		badgerIt.c.Close()
+	}
+	opts := badger.DefaultIteratorOptions
+	badgerIt.c = badgerIt.tx.NewIterator(opts)
+	badgerIt.c.Seek(id)
+	if !badgerIt.c.Valid() {
+		return fmt.Errorf("Invalid")
+	}
+	k := badgerIt.c.Item().Key()
+	badgerIt.key = copyBytes(k)
+	v, _ := badgerIt.c.Item().Value()
+	badgerIt.value = copyBytes(v)
+	return nil
+}
+
+// Seek moves the iterator to a new location
+func (badgerIt *badgerIterator) SeekReverse(id []byte) error {
+	if badgerIt.c != nil {
+		badgerIt.c.Close()
+	}
+	opts := badger.DefaultIteratorOptions
+	opts.Reverse = true
+	badgerIt.c = badgerIt.tx.NewIterator(opts)
 	badgerIt.c.Seek(id)
 	if !badgerIt.c.Valid() {
 		return fmt.Errorf("Invalid")
@@ -222,11 +246,11 @@ func (badgerIt *badgerIterator) Valid() bool {
 // View run iterator on bolt keyvalue store
 func (badgerkv *BadgerKV) View(u func(it kvi.KVIterator) error) error {
 	err := badgerkv.db.View(func(tx *badger.Txn) error {
-		opts := badger.DefaultIteratorOptions
-		it := tx.NewIterator(opts)
-		ktx := &badgerIterator{tx, it, nil, nil}
+		ktx := &badgerIterator{tx, nil, nil, nil}
 		o := u(ktx)
-		it.Close()
+		if ktx.c != nil {
+			ktx.c.Close()
+		}
 		return o
 	})
 	return err

@@ -20,6 +20,7 @@ type KVInterface interface {
 // KVGraph to scan the values stored in the key value driver
 type KVIterator interface {
 	Seek(k []byte) error
+	SeekReverse(k []byte) error
 	Valid() bool
 	Key() []byte
 	Value() ([]byte, error)
