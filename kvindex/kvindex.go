@@ -249,7 +249,7 @@ func getTermBytes(term interface{}) ([]byte, TermType) {
 		return []byte(val), TermString
 	case float64:
 		out := make([]byte, 8)
-		binary.LittleEndian.PutUint64(out, math.Float64bits(val))
+		binary.BigEndian.PutUint64(out, math.Float64bits(val))
 		return out, TermNumber
 	}
 	return nil, TermUnknown
@@ -260,7 +260,7 @@ func getBytesTerm(val []byte, ttype TermType) interface{} {
 		return string(val)
 	}
 	if ttype == TermNumber {
-		u := binary.LittleEndian.Uint64(val)
+		u := binary.BigEndian.Uint64(val)
 		return math.Float64frombits(u)
 	}
 	return nil
@@ -395,4 +395,69 @@ func (idx *KVIndex) FieldTermCounts(field string) chan KVTermCount {
 
 func (idx *KVIndex) FieldStringTermCounts(field string) chan KVTermCount {
 	return idx.fieldTermCounts(field, TermString)
+}
+
+var floatNegInfBytes, _ = getTermBytes(math.Inf(-1))
+var floatPosInfBytes, _ = getTermBytes(math.Inf(1))
+var floatZeroBytes, _ = getTermBytes(0.0)
+
+func (idx *KVIndex) FieldTermNumberMin(field string) float64 {
+	var min float64
+	idx.kv.View(func(it kvi.KVIterator) error {
+		prefix := EntryTypePrefix(field, TermNumber)
+		//check negative
+		ninf := EntryValuePrefix(field, TermNumber, floatNegInfBytes)
+		it.SeekReverse(ninf)
+		if it.Valid() && bytes.HasPrefix(it.Key(), prefix) {
+			_, _, term := TermKeyParse(it.Key())
+			val := getBytesTerm(term, TermNumber).(float64)
+			if val < 0 {
+				min = val
+				return nil
+			}
+		}
+		//check positive
+		zero := EntryValuePrefix(field, TermNumber, floatZeroBytes)
+		it.Seek(zero)
+		if it.Valid() && bytes.HasPrefix(it.Key(), prefix) {
+			_, _, term := TermKeyParse(it.Key())
+			val := getBytesTerm(term, TermNumber).(float64)
+			if val >= 0 {
+				min = val
+				return nil
+			}
+		}
+		return nil
+	})
+	return min
+}
+
+func (idx *KVIndex) FieldTermNumberMax(field string) float64 {
+	var min float64
+	idx.kv.View(func(it kvi.KVIterator) error {
+		prefix := EntryTypePrefix(field, TermNumber)
+		//check positive
+		inf := EntryValuePrefix(field, TermNumber, floatPosInfBytes)
+		it.SeekReverse(inf)
+		if it.Valid() && bytes.HasPrefix(it.Key(), prefix) {
+			_, _, term := TermKeyParse(it.Key())
+			val := getBytesTerm(term, TermNumber).(float64)
+			if val > 0 {
+				min = val
+				return nil
+			}
+		}
+		//check negative
+		it.Seek(inf)
+		if it.Valid() && bytes.HasPrefix(it.Key(), prefix) {
+			_, _, term := TermKeyParse(it.Key())
+			val := getBytesTerm(term, TermNumber).(float64)
+			if val < 0 {
+				min = val
+				return nil
+			}
+		}
+		return nil
+	})
+	return min
 }
