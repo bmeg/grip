@@ -36,9 +36,12 @@ if __name__ == "__main__":
         tests = []
 
     conn = aql.Connection(server)
-    if int(conn.graph(GRAPH).query().V().count().first()['data']) != 0:
-        print "Need to start with empty DB: %s" % (GRAPH)
-        sys.exit()
+    if GRAPH in conn.list():
+        if int(conn.graph(GRAPH).query().V().count().first()['data']) != 0:
+            print "Need to start with empty DB: %s" % (GRAPH)
+            sys.exit()
+    else:
+        conn.new(GRAPH)
 
     correct = 0
     total = 0
