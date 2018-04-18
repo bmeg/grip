@@ -1,10 +1,10 @@
 package kvgraph
 
 import (
-	//"log"
 	"bytes"
 	"context"
 	"fmt"
+	"log"
 	"math/rand"
 
 	"github.com/bmeg/arachne/aql"
@@ -25,6 +25,7 @@ func contains(a []string, v string) bool {
 
 // AddGraph creates a new graph named `graph`
 func (kgraph *KVGraph) AddGraph(graph string) error {
+	log.Printf("Adding graph: %s", graph)
 	kgraph.ts.Touch(graph)
 	err := kgraph.setupGraphIndex(graph)
 	if err != nil {
@@ -35,6 +36,7 @@ func (kgraph *KVGraph) AddGraph(graph string) error {
 
 // DeleteGraph deletes `graph`
 func (kgraph *KVGraph) DeleteGraph(graph string) error {
+	log.Printf("Deleting graph: %s", graph)
 	kgraph.ts.Touch(graph)
 
 	eprefix := EdgeListPrefix(graph)

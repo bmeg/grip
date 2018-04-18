@@ -371,18 +371,19 @@ func (v *Values) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, 
 			if t.GetCurrent().Data == nil {
 				continue
 			}
+			data := map[string]interface{}{}
+			cdata := t.GetCurrent().Data
 			if len(v.keys) == 0 {
-				d := t.GetCurrent().Data
-
-				data := map[string]interface{}{}
+				data = cdata
+			} else {
 				for _, i := range v.keys {
-					data[i] = d[i]
+					data[i] = cdata[i]
 				}
-				o := t.AddCurrent(&gdbi.DataElement{
-					Data: data,
-				})
-				out <- o
 			}
+			o := t.AddCurrent(&gdbi.DataElement{
+				Data: data,
+			})
+			out <- o
 		}
 	}()
 	return context.WithValue(ctx, propLoad, true)

@@ -19,9 +19,9 @@ import (
 var Q = &aql.Query{}
 
 var verts = []*aql.Vertex{
-	vert("Human", dat{"name": "Alex"}),
-	vert("Human", dat{"name": "Kyle"}),
-	vert("Human", dat{"name": "Ryan"}),
+	vert("Human", dat{"name": "Alex", "age": 12}),
+	vert("Human", dat{"name": "Kyle", "age": 34}),
+	vert("Human", dat{"name": "Ryan", "age": 56}),
 	vert("Robot", dat{"name": "C-3PO"}),
 	vert("Robot", dat{"name": "R2-D2"}),
 	vert("Robot", dat{"name": "Bender"}),
@@ -82,8 +82,12 @@ var table = []queryTest{
 	{
 		Q.V().Limit(2),
 		func(t *testing.T, res <-chan *aql.ResultRow) {
-			if len(res) != 2 {
-				t.Error("expected 2 results")
+			count := 0
+			for range res {
+				count++
+			}
+			if count != 2 {
+				t.Errorf("expected 2 results got %v", count)
 			}
 		},
 	},
@@ -134,7 +138,7 @@ var table = []queryTest{
 	},
 	{
 		Q.V().HasLabel("Human").Values("name"),
-		values("Alex", "Kyle", "Ryan"),
+		values(verts[6].Data, verts[7].Data, verts[8].Data),
 	},
 	{
 		Q.V().HasLabel("Human").Values(),
