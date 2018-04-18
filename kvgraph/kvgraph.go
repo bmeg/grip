@@ -26,7 +26,10 @@ func contains(a []string, v string) bool {
 // AddGraph creates a new graph named `graph`
 func (kgraph *KVGraph) AddGraph(graph string) error {
 	kgraph.ts.Touch(graph)
-	kgraph.setupGraphIndex(graph)
+	err := kgraph.setupGraphIndex(graph)
+	if err != nil {
+		return err
+	}
 	return kgraph.kv.Set(GraphKey(graph), []byte{})
 }
 
@@ -56,6 +59,15 @@ func (kgraph *KVGraph) DeleteGraph(graph string) error {
 
 // Graph obtains the gdbi.DBI for a particular graph
 func (kgraph *KVGraph) Graph(graph string) gdbi.GraphInterface {
+	found := false
+	for _, gname := range kgraph.GetGraphs() {
+		if graph == gname {
+			found = true
+		}
+	}
+	if !found {
+		panic(fmt.Errorf("graph '%s' was not found", graph))
+	}
 	return &KVInterfaceGDB{kvg: kgraph, graph: graph}
 }
 

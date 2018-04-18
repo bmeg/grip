@@ -10,8 +10,8 @@ import (
 	"github.com/bmeg/arachne/protoutil"
 )
 
-func (kgraph *KVGraph) setupGraphIndex(graph string) {
-	kgraph.idx.AddField(fmt.Sprintf("%s.label", graph))
+func (kgraph *KVGraph) setupGraphIndex(graph string) error {
+	return kgraph.idx.AddField(fmt.Sprintf("%s.label", graph))
 }
 
 func (kgraph *KVGraph) deleteGraphIndex(graph string) {

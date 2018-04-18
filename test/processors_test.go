@@ -2,7 +2,6 @@ package test
 
 import (
 	"context"
-	"math/rand"
 	"os"
 	"reflect"
 	"regexp"
@@ -12,21 +11,10 @@ import (
 
 	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/engine"
-	"github.com/bmeg/arachne/gdbi"
 	"github.com/bmeg/arachne/kvgraph"
 	"github.com/bmeg/arachne/protoutil"
 	"github.com/golang/protobuf/jsonpb"
 )
-
-var idRunes = []rune("abcdefghijklmnopqrstuvwxyz")
-
-func randID() string {
-	b := make([]rune, 10)
-	for i := range b {
-		b[i] = idRunes[rand.Intn(len(idRunes))]
-	}
-	return string(b)
-}
 
 var Q = &aql.Query{}
 
@@ -189,39 +177,21 @@ var table = []queryTest{
 }
 
 func TestEngine(t *testing.T) {
-	defer os.RemoveAll("test-badger.db")
-	defer os.Remove("test-bolt.db")
-	defer os.Remove("test-level.db")
-	defer os.Remove("test-rocks.db")
+	for _, dbname := range []string{"badger", "bolt", "level", "rocks"} {
+		dbpath := "test.db." + randomString(6)
+		defer os.RemoveAll(dbpath)
 
-	badger, err := kvgraph.NewKVGraphDB("badger", "test-badger.db")
-	if err != nil {
-		t.Fatal(err)
-	}
+		kvg, err := kvgraph.NewKVGraphDB(dbname, dbpath)
+		if err != nil {
+			t.Fatal(err)
+		}
 
-	// bolt, err := kvgraph.NewKVGraphDB("bolt", "test-bolt.db")
-	// if err != nil {
-	// 	t.Fatal(err)
-	// }
+		err = kvg.AddGraph("test-graph")
+		if err != nil {
+			t.Fatal(err)
+		}
 
-	// level, err := kvgraph.NewKVGraphDB("level", "test-level.db")
-	// if err != nil {
-	// 	t.Fatal(err)
-	// }
-
-	// rocks, err := kvgraph.NewKVGraphDB("rocks", "test-rocks.db")
-	// if err != nil {
-	// 	t.Fatal(err)
-	// }
-
-	dbs := map[string]gdbi.GraphInterface{
-		"badger": badger.Graph("test-graph"),
-		// "bolt":   bolt.Graph("test-graph"),
-		// "level":  level.Graph("test-graph"),
-		// "rocks":  rocks.Graph("test-graph"),
-	}
-
-	for dbname, db := range dbs {
+		db := kvg.Graph("test-graph")
 
 		for _, v := range verts {
 			err := db.AddVertex([]*aql.Vertex{v})
@@ -354,7 +324,7 @@ func values(vals ...interface{}) checker {
 
 func vert(label string, d dat) *aql.Vertex {
 	return &aql.Vertex{
-		Gid:   randID(),
+		Gid:   randomString(10),
 		Label: label,
 		Data:  protoutil.AsStruct(d),
 	}
@@ -362,7 +332,7 @@ func vert(label string, d dat) *aql.Vertex {
 
 func edge(from, to *aql.Vertex, label string, d dat) *aql.Edge {
 	return &aql.Edge{
-		Gid:   randID(),
+		Gid:   randomString(10),
 		From:  from.Gid,
 		To:    to.Gid,
 		Label: label,
