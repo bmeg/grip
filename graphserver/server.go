@@ -161,18 +161,22 @@ func (server *ArachneServer) StreamElements(stream aql.Edit_StreamElementsServer
 
 	go func() {
 		for vBatch := range vertexBatchChan {
-			err := server.db.Graph(vBatch.graph).AddVertex(vBatch.vertices)
-			if err != nil {
-				log.Printf("Insert error: %s", err)
+			if len(vBatch.vertices) > 0 && vBatch.graph != "" {
+				err := server.db.Graph(vBatch.graph).AddVertex(vBatch.vertices)
+				if err != nil {
+					log.Printf("Insert error: %s", err)
+				}
 			}
 		}
 		closeChan <- true
 	}()
 	go func() {
 		for eBatch := range edgeBatchChan {
-			err := server.db.Graph(eBatch.graph).AddEdge(eBatch.edges)
-			if err != nil {
-				log.Printf("Insert error: %s", err)
+			if len(eBatch.edges) > 0 && eBatch.graph != "" {
+				err := server.db.Graph(eBatch.graph).AddEdge(eBatch.edges)
+				if err != nil {
+					log.Printf("Insert error: %s", err)
+				}
 			}
 		}
 		closeChan <- true
