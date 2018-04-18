@@ -7,6 +7,7 @@ sudo: required
 
 services:
   - docker
+  - elasticsearch
 
 cache:
   directories:
@@ -16,6 +17,24 @@ cache:
 
 git:
   submodules: false
+
+# install RocksDB
+before_install:
+  - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+  - sudo apt-get update -qq
+  - sudo apt-get install libsnappy-dev zlib1g-dev libbz2-dev -qq
+
+  - wget https://launchpad.net/ubuntu/+archive/primary/+files/libgflags2_2.0-1.1ubuntu1_amd64.deb
+  - sudo dpkg -i libgflags2_2.0-1.1ubuntu1_amd64.deb
+  - wget https://launchpad.net/ubuntu/+archive/primary/+files/libgflags-dev_2.0-1.1ubuntu1_amd64.deb
+  - sudo dpkg -i libgflags-dev_2.0-1.1ubuntu1_amd64.deb
+
+  - git clone https://github.com/facebook/rocksdb.git /tmp/rocksdb
+  - pushd /tmp/rocksdb
+  - sudo make static_lib
+  - sudo cp --preserve=links ./librocksdb.* /usr/lib/
+  - sudo cp -r ./include/rocksdb/ /usr/include/
+  - popd
 
 install:
   - make depends
@@ -44,10 +63,6 @@ jobs:
       env:
         - n=boltdb
     - script:
-      - apt-get install -y libgflags-dev libsnappy-dev zlib1g-dev libbz2-dev libzstd-dev
-      - git clone https://github.com/facebook/rocksdb.git
-      - cd rocksdb
-      - make all
       - arachne server --rpc 18202 --port 18201 --rocks arachne.db &
       - sleep 5
       - make test-conformance
@@ -68,8 +83,6 @@ jobs:
       env:
         - n=mongodb
     - script:
-      - make start-test-elastic-database
-      - sleep 5
       - arachne server --rpc 18202 --port 18201 --elastic http://localhost:9200 &
       - sleep 5
       - make test-conformance
