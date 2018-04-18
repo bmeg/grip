@@ -122,13 +122,6 @@ func (kgdb *KVInterfaceGDB) AddVertex(vertexArray []*aql.Vertex) error {
 		kgdb.kvg.ts.Touch(kgdb.graph)
 		return nil
 	})
-	/*
-		for _, vertex := range vertexArray {
-			doc := vertexIdxStruct(vertex)
-			//log.Printf("Indexing: %s", doc)
-			kgdb.kvg.idx.AddDocPrefix(vertex.Gid, doc, kgdb.graph)
-		}
-	*/
 	return err
 }
 

@@ -178,6 +178,15 @@ func (ma *Mongo) GetGraphs() []string {
 
 // Graph obtains the gdbi.DBI for a particular graph
 func (ma *Mongo) Graph(graph string) gdbi.GraphInterface {
+	found := false
+	for _, gname := range ma.GetGraphs() {
+		if graph == gname {
+			found = true
+		}
+	}
+	if !found {
+		panic(fmt.Errorf("graph '%s' was not found", graph))
+	}
 	return &Graph{
 		ar:    ma,
 		ts:    ma.ts,

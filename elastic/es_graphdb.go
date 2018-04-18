@@ -114,6 +114,15 @@ func (es *Elastic) DeleteGraph(graph string) error {
 
 // Graph returns interface to a specific graph in the graphdb
 func (es *Elastic) Graph(graph string) gdbi.GraphInterface {
+	found := false
+	for _, gname := range es.GetGraphs() {
+		if graph == gname {
+			found = true
+		}
+	}
+	if !found {
+		panic(fmt.Errorf("graph '%s' was not found", graph))
+	}
 	// TODO pass config to down to the Graph instance
 	return &Graph{
 		url:         es.url,
