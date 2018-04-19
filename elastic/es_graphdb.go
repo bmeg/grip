@@ -86,12 +86,46 @@ func (es *Elastic) initIndex(ctx context.Context, name, body string) error {
 func (es *Elastic) AddGraph(graph string) error {
 	ctx := context.Background()
 	vertexIndex := fmt.Sprintf("%s_%s_vertex", es.database, graph)
-	if err := es.initIndex(ctx, vertexIndex, ""); err != nil {
+	vMapping := `{
+    "mappings": {
+      "vertex":{
+        "properties":{
+          "gid": {
+            "type": "keyword"
+          },
+          "label": {
+            "type": "keyword"
+          }
+        }
+      }
+    }
+  }`
+	if err := es.initIndex(ctx, vertexIndex, vMapping); err != nil {
 		return err
 	}
 
 	edgeIndex := fmt.Sprintf("%s_%s_edge", es.database, graph)
-	if err := es.initIndex(ctx, edgeIndex, ""); err != nil {
+	eMapping := `{
+    "mappings": {
+      "edge":{
+        "properties":{
+          "gid": {
+            "type": "keyword"
+          },
+          "from": {
+            "type": "keyword"
+          }
+          "to": {
+            "type": "keyword"
+          }
+          "label": {
+            "type": "keyword"
+          }
+        }
+      }
+    }
+  }`
+	if err := es.initIndex(ctx, edgeIndex, eMapping); err != nil {
 		return err
 	}
 	return nil

@@ -832,20 +832,25 @@ func (es *Graph) GetVertexTermCount(ctx context.Context, label string, field str
 		if field == "" {
 			return
 		}
-		q := es.client.Count().Index(es.vertexIndex)
+		q := es.client.Search().Index(es.vertexIndex).Type("vertex")
 		if label != "" {
 			q = q.Query(elastic.NewBoolQuery().Filter(elastic.NewTermQuery("label", label)))
 		}
-		q = q.Df("data." + field)
+		aggName := "term.aggregation." + field
+		q = q.Aggregation(aggName,
+			elastic.NewTermsAggregation().Field("data."+field))
 		res, err := q.Do(ctx)
 		if err != nil {
 			log.Printf("Vertex term count failed: %s", err)
 			return
 		}
-
-		term := structpb.Value{Kind: &structpb.Value_StringValue{StringValue: field}}
-		idxit := aql.IndexTermCount{Term: &term, Count: int32(res)}
-		o <- idxit
+		if agg, found := res.Aggregations.Terms(aggName); found {
+			for _, bucket := range agg.Buckets {
+				term := structpb.Value{Kind: &structpb.Value_StringValue{StringValue: bucket.Key.(string)}}
+				idxit := aql.IndexTermCount{Term: &term, Count: int32(bucket.DocCount)}
+				o <- idxit
+			}
+		}
 	}()
 
 	return o
@@ -874,7 +879,6 @@ func (es *Graph) VertexLabelScan(ctx context.Context, label string) chan string 
 				log.Printf("Scroll call failed: %v", err)
 				return
 			}
-
 			// Send the hits to the hits channel
 			for _, hit := range results.Hits.Hits {
 				select {
