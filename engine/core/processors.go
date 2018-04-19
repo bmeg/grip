@@ -365,25 +365,30 @@ type Values struct {
 
 // Process runs Values step
 func (v *Values) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
+	log.Println("Process Values", v.keys)
 	go func() {
 		defer close(out)
 		for t := range in {
 			if t.GetCurrent().Data == nil {
 				continue
 			}
-			data := map[string]interface{}{}
 			cdata := t.GetCurrent().Data
+			log.Println("Process Values - cdata", cdata)
 			if len(v.keys) == 0 {
-				data = cdata
+				for _, v := range cdata {
+					o := t.AddCurrent(&gdbi.DataElement{
+						Value: v,
+					})
+					out <- o
+				}
 			} else {
 				for _, i := range v.keys {
-					data[i] = cdata[i]
+					o := t.AddCurrent(&gdbi.DataElement{
+						Value: cdata[i],
+					})
+					out <- o
 				}
 			}
-			o := t.AddCurrent(&gdbi.DataElement{
-				Value: data,
-			})
-			out <- o
 		}
 	}()
 	return context.WithValue(ctx, propLoad, true)

@@ -83,7 +83,7 @@ message HasValueStatement {
 }
 
 message SelectStatement {
-    repeated string labels = 1;
+	repeated string labels = 1;
 }
 
 message FoldStatement {

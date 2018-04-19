@@ -137,11 +137,11 @@ var table = []queryTest{
 	},
 	{
 		Q.V().HasLabel("Human").Values("name"),
-		values(verts[6].Data, verts[7].Data, verts[8].Data),
+		values("Alex", "Kyle", "Ryan"),
 	},
 	{
 		Q.V().HasLabel("Human").Values(),
-		values(verts[0].Data, verts[1].Data, verts[2].Data),
+		values(12, 34, 56, "Alex", "Kyle", "Ryan"),
 	},
 	{
 		Q.V().Match(
