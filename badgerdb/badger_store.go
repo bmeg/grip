@@ -10,10 +10,13 @@ import (
 	"log"
 	"os"
 
+	"github.com/bmeg/arachne/kvgraph"
 	"github.com/bmeg/arachne/kvi"
 	"github.com/dgraph-io/badger"
 	"github.com/dgraph-io/badger/options"
 )
+
+var loaded = kvgraph.AddKVDriver("badger", NewKVInterface)
 
 // NewKVInterface creates new BoltDB backed KVInterface at `path`
 func NewKVInterface(path string) (kvi.KVInterface, error) {

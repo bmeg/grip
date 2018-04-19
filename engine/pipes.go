@@ -127,7 +127,7 @@ func Convert(dataType gdbi.DataType, rowTypes []gdbi.DataType, t *gdbi.Traveler)
 		return &aql.ResultRow{
 			Value: &aql.QueryResult{
 				Result: &aql.QueryResult_Data{
-					Data: protoutil.WrapValue(t.GetCurrent().Data),
+					Data: protoutil.WrapValue(t.GetCurrent().Value),
 				},
 			},
 		}

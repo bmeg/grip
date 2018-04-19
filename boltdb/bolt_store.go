@@ -9,9 +9,12 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/bmeg/arachne/kvgraph"
 	"github.com/bmeg/arachne/kvi"
 	"github.com/boltdb/bolt"
 )
+
+var loaded = kvgraph.AddKVDriver("bolt", NewKVInterface)
 
 var graphBucket = []byte("graph")
 

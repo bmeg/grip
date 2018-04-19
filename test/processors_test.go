@@ -2,7 +2,6 @@ package test
 
 import (
 	"context"
-	"os"
 	"reflect"
 	"regexp"
 	"sort"
@@ -181,49 +180,40 @@ var table = []queryTest{
 }
 
 func TestEngine(t *testing.T) {
-	for _, dbname := range []string{"badger", "bolt", "level", "rocks"} {
-		dbpath := "test.db." + randomString(6)
-		defer os.RemoveAll(dbpath)
+	kvg := kvgraph.NewKVGraph(kvdriver)
+	err := kvg.AddGraph("test-graph")
+	if err != nil {
+		t.Fatal(err)
+	}
 
-		kvg, err := kvgraph.NewKVGraphDB(dbname, dbpath)
+	db := kvg.Graph("test-graph")
+
+	for _, v := range verts {
+		err := db.AddVertex([]*aql.Vertex{v})
 		if err != nil {
 			t.Fatal(err)
 		}
-
-		err = kvg.AddGraph("test-graph")
+	}
+	for _, e := range edges {
+		err := db.AddEdge([]*aql.Edge{e})
 		if err != nil {
 			t.Fatal(err)
 		}
+	}
 
-		db := kvg.Graph("test-graph")
+	for _, desc := range table {
+		desc := desc
+		db := db
+		name := cleanName(dbname + "_" + desc.query.String())
 
-		for _, v := range verts {
-			err := db.AddVertex([]*aql.Vertex{v})
+		t.Run(name, func(t *testing.T) {
+			p, err := db.Compiler().Compile(desc.query.Statements)
 			if err != nil {
 				t.Fatal(err)
 			}
-		}
-		for _, e := range edges {
-			err := db.AddEdge([]*aql.Edge{e})
-			if err != nil {
-				t.Fatal(err)
-			}
-		}
-
-		for _, desc := range table {
-			desc := desc
-			db := db
-			name := cleanName(dbname + "_" + desc.query.String())
-
-			t.Run(name, func(t *testing.T) {
-				p, err := db.Compiler().Compile(desc.query.Statements)
-				if err != nil {
-					t.Fatal(err)
-				}
-				res := engine.Run(context.Background(), p, "./workdir")
-				desc.expected(t, res)
-			})
-		}
+			res := engine.Run(context.Background(), p, "./workdir")
+			desc.expected(t, res)
+		})
 	}
 }
 

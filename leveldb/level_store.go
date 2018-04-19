@@ -9,10 +9,13 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/bmeg/arachne/kvgraph"
 	"github.com/bmeg/arachne/kvi"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/iterator"
 )
+
+var loaded = kvgraph.AddKVDriver("level", NewKVInterface)
 
 // NewKVInterface creates new LevelDB backed KVInterface at `path`
 func NewKVInterface(path string) (kvi.KVInterface, error) {

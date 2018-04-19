@@ -126,13 +126,13 @@ type KVTermCount struct {
 
 // NewIndex create new key value index
 func NewIndex(kv kvi.KVInterface) *KVIndex {
-	out := KVIndex{kv: kv}
+	out := &KVIndex{kv: kv}
 	fields := out.ListFields()
 	out.fields = make(map[string][]string, len(fields))
 	for i := range fields {
 		out.fields[fields[i]] = strings.Split(fields[i], ".")
 	}
-	return &out
+	return out
 }
 
 // AddField add new field to be indexed

@@ -381,7 +381,7 @@ func (v *Values) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, 
 				}
 			}
 			o := t.AddCurrent(&gdbi.DataElement{
-				Data: data,
+				Value: data,
 			})
 			out <- o
 		}

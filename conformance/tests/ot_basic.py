@@ -190,8 +190,6 @@ def test_both(O):
     O.addEdge("vertex1", "vertex3", "friend")
     O.addEdge("vertex4", "vertex1", "parent")
 
-    # time.sleep(1)
-
     count = 0
     for row in O.query().V("vertex1").both().both().execute():
         count += 1

@@ -1,3 +1,5 @@
+// +build rocksdb
+
 /*
 The KeyValue interface wrapper for RocksDB
 */
@@ -8,12 +10,17 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/bmeg/arachne/kvgraph"
 	"github.com/bmeg/arachne/kvi"
 	"github.com/tecbot/gorocksdb"
 )
 
-// NewKVInterface creates new BoltDB backed KVInterface at `path`
+var loaded = kvgraph.AddKVDriver("rocks", NewKVInterface)
+
+// NewKVInterface creates new RocksDB backed KVInterface at `path`
 func NewKVInterface(path string) (kvi.KVInterface, error) {
+	log.Printf("Starting RocksDB")
+
 	bbto := gorocksdb.NewDefaultBlockBasedTableOptions()
 	filter := gorocksdb.NewBloomFilter(10)
 	bbto.SetFilterPolicy(filter)
@@ -21,7 +28,7 @@ func NewKVInterface(path string) (kvi.KVInterface, error) {
 	opts := gorocksdb.NewDefaultOptions()
 	opts.SetBlockBasedTableFactory(bbto)
 	opts.SetCreateIfMissing(true)
-	log.Printf("Starting RocksDB")
+
 	db, err := gorocksdb.OpenDb(opts, path)
 	if err != nil {
 		return nil, err
