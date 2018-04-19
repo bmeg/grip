@@ -18,9 +18,6 @@ cache:
 git:
   submodules: false
 
-# install RocksDB
-before_install:
-
 install:
   - make depends
   - make
@@ -81,14 +78,15 @@ jobs:
       env:
         - n=leveldb
     - script:
-      - make start-test-mongo-database
-      - sleep 5
+      - make start-mongo
+      - sleep 10
       - arachne server --rpc 18202 --port 18201 --mongo localhost:27000 &
       - sleep 5
       - make test-conformance
       env:
         - n=mongodb
     - script:
+      - sleep 10
       - arachne server --rpc 18202 --port 18201 --elastic http://localhost:9200 &
       - sleep 5
       - make test-conformance
