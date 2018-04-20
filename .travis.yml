@@ -68,7 +68,7 @@ jobs:
         - arachne server --rpc 18202 --port 18201 --rocks arachne.db &
         - sleep 5
         - make test-conformance
-        - go test ./test -db rocks
+        - go test ./test -tags rocksdb -db rocks
       env:
         - n=rocksdb
     - script:
