@@ -13,13 +13,16 @@ import (
 	proto "github.com/golang/protobuf/proto"
 )
 
+// TermType defines in a term is a Number or a String
 type TermType byte
 
 const (
-	TermUnknown   TermType = 0x00
-	TermString    TermType = 0x01
-	TermNumber    TermType = 0x02
-	termMaxNumber TermType = 0x03
+	//TermUnknown is an undefined term type
+	TermUnknown TermType = 0x00
+	//TermString means the term is a string
+	TermString TermType = 0x01
+	//TermNumber means the term is a number
+	TermNumber TermType = 0x02
 )
 
 const bufferSize = 1000
@@ -109,10 +112,9 @@ func EntryKeyParse(key []byte) (string, TermType, []byte, string) {
 	suffix := tmp[3]
 	if ttype == TermNumber {
 		return field, ttype, suffix[0:8], string(suffix[8:])
-	} else {
-		stmp := bytes.Split(suffix, []byte{0})
-		return field, ttype, stmp[0], string(stmp[1])
 	}
+	stmp := bytes.Split(suffix, []byte{0})
+	return field, ttype, stmp[0], string(stmp[1])
 }
 
 // DocKey create a document entry key
@@ -393,6 +395,7 @@ func (idx *KVIndex) FieldTermCounts(field string) chan KVTermCount {
 	return idx.fieldTermCounts(field, TermUnknown)
 }
 
+// FieldStringTermCounts get all terms, that are strings, and their counts for a particular field
 func (idx *KVIndex) FieldStringTermCounts(field string) chan KVTermCount {
 	return idx.fieldTermCounts(field, TermString)
 }
@@ -401,6 +404,7 @@ var floatNegInfBytes, _ = getTermBytes(math.Inf(-1))
 var floatPosInfBytes, _ = getTermBytes(math.Inf(1))
 var floatZeroBytes, _ = getTermBytes(0.0)
 
+// FieldTermNumberMin for a field, get the min number term value
 func (idx *KVIndex) FieldTermNumberMin(field string) float64 {
 	var min float64
 	idx.kv.View(func(it kvi.KVIterator) error {
@@ -432,6 +436,7 @@ func (idx *KVIndex) FieldTermNumberMin(field string) float64 {
 	return min
 }
 
+// FieldTermNumberMax for a field, get the max number term value
 func (idx *KVIndex) FieldTermNumberMax(field string) float64 {
 	var min float64
 	idx.kv.View(func(it kvi.KVIterator) error {
@@ -460,4 +465,73 @@ func (idx *KVIndex) FieldTermNumberMax(field string) float64 {
 		return nil
 	})
 	return min
+}
+
+//FieldTermNumberRange gets all number term counts between min and max
+func (idx *KVIndex) FieldTermNumberRange(field string, min, max float64) chan KVTermCount {
+
+	minBytes, _ := getTermBytes(min)
+	maxBytes, _ := getTermBytes(max)
+	out := make(chan KVTermCount, 100)
+	defer close(out)
+	if min > max {
+		return out
+	}
+
+	if min < 0 {
+		minPrefix := EntryValuePrefix(field, TermNumber, minBytes)
+		maxPrefix := EntryValuePrefix(field, TermNumber, maxBytes)
+		if max > 0 {
+			maxPrefix = EntryValuePrefix(field, TermNumber, floatPosInfBytes)
+		}
+		idx.kv.View(func(it kvi.KVIterator) error {
+			var count int64
+			last := math.Inf(1)
+			for it.SeekReverse(minPrefix); it.Valid() && bytes.Compare(maxPrefix, it.Key()) < 0; it.Next() {
+				_, _, term, _ := EntryKeyParse(it.Key())
+				val := getBytesTerm(term, TermNumber).(float64)
+				if val != last {
+					if count > 0 {
+						out <- KVTermCount{Number: last, Count: count}
+					}
+					last = val
+					count = 0
+				}
+				count++
+			}
+			if count > 0 {
+				out <- KVTermCount{Number: last, Count: count}
+			}
+			return nil
+		})
+	}
+	if max >= 0 {
+		minPrefix := EntryValuePrefix(field, TermNumber, minBytes)
+		if min < 0 {
+			minPrefix = EntryValuePrefix(field, TermNumber, floatZeroBytes)
+		}
+		maxPrefix := EntryValuePrefix(field, TermNumber, maxBytes)
+		idx.kv.View(func(it kvi.KVIterator) error {
+			var count int64
+			last := math.Inf(1)
+			for it.Seek(minPrefix); it.Valid() && bytes.Compare(it.Key(), maxPrefix) < 0; it.Next() {
+				_, _, term, _ := EntryKeyParse(it.Key())
+				val := getBytesTerm(term, TermNumber).(float64)
+				if val != last {
+					if count > 0 {
+						out <- KVTermCount{Number: last, Count: count}
+					}
+					last = val
+					count = 0
+				}
+				count++
+			}
+			if count > 0 {
+				out <- KVTermCount{Number: last, Count: count}
+			}
+			return nil
+		})
+	}
+
+	return out
 }
