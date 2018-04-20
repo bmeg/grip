@@ -2,11 +2,11 @@ package core
 
 import (
 	"fmt"
+	//"log"
 
 	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/gdbi"
 	"github.com/bmeg/arachne/protoutil"
-	//"log"
 )
 
 // DefaultPipeline a set of runnable query operations

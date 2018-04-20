@@ -19,13 +19,6 @@ import aql
 def clear_db(conn):
     conn.delete(GRAPH)
     conn.new(GRAPH)
-    O = conn.graph(GRAPH)
-    if int(O.query().V().count().first()['data']) != 0:
-        print "Unable to clear database"
-        sys.exit()
-    if int(O.query().E().count().first()['data']) != 0:
-        print "Unable to clear database"
-        sys.exit()
 
 
 if __name__ == "__main__":

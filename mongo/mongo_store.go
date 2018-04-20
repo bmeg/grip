@@ -171,7 +171,6 @@ func (ma *Mongo) GetGraphs() []string {
 	if err := iter.Err(); err != nil {
 		log.Printf("Error: %s", err)
 	}
-	log.Printf("Graphs: %s %s", ma.database, out)
 	ma.pool.Put(session)
 	return out
 }
@@ -272,7 +271,7 @@ func (mg *Graph) AddVertex(vertexArray []*aql.Vertex) error {
 			mg.ar.pool.Put(session)
 			return err
 		}
-		log.Printf("Refreshing Connection")
+		log.Printf("Refreshing mongo connection")
 		session.Refresh()
 	}
 	mg.ar.pool.Put(session)
@@ -301,7 +300,7 @@ func (mg *Graph) AddEdge(edgeArray []*aql.Edge) error {
 			mg.ar.pool.Put(session)
 			return err
 		}
-		log.Printf("Refreshing Connection")
+		log.Printf("Refreshing mongo connection")
 		session.Refresh()
 	}
 	mg.ar.pool.Put(session)

@@ -13,7 +13,6 @@ import (
 	"github.com/bmeg/arachne/gdbi"
 	"github.com/bmeg/arachne/timestamp"
 	"github.com/golang/protobuf/jsonpb"
-	structpb "github.com/golang/protobuf/ptypes/struct"
 	"golang.org/x/sync/errgroup"
 	"gopkg.in/mgo.v2/bson"
 	elastic "gopkg.in/olivere/elastic.v5"
@@ -110,12 +109,6 @@ func (es *Graph) AddVertex(vertexArray []*aql.Vertex) error {
 	return nil
 }
 
-// AddVertexIndex adds a new field to be indexed
-func (es *Graph) AddVertexIndex(label string, field string) error {
-	log.Printf("Graph.AddVertexIndex called")
-	return nil
-}
-
 // DelEdge deletes edge `eid`
 func (es *Graph) DelEdge(eid string) error {
 	log.Printf("Graph.DelEdge called")
@@ -138,12 +131,6 @@ func (es *Graph) DelVertex(vid string) error {
 		return err
 	}
 	es.ts.Touch(es.graph)
-	return nil
-}
-
-// DeleteVertexIndex removes a vertex field index
-func (es *Graph) DeleteVertexIndex(label string, field string) error {
-	log.Printf("Graph.DeleteVertexIndex called")
 	return nil
 }
 
@@ -811,84 +798,6 @@ func (es *Graph) GetInEdgeChannel(req chan gdbi.ElementLookup, load bool, edgeLa
 			log.Printf("Error: %v", err)
 		}
 		return
-	}()
-
-	return o
-}
-
-// GetVertexIndexList gets list if vertex indices
-func (es *Graph) GetVertexIndexList() chan aql.IndexID {
-	log.Printf("Graph.GetVertexIndexList called")
-	return nil
-}
-
-// GetVertexTermCount returns the count of every term across vertices
-func (es *Graph) GetVertexTermCount(ctx context.Context, label string, field string) chan aql.IndexTermCount {
-	log.Printf("Graph.GetVertexTermCount called")
-
-	o := make(chan aql.IndexTermCount, 100)
-	go func() {
-		defer close(o)
-		if field == "" {
-			return
-		}
-		q := es.client.Search().Index(es.vertexIndex).Type("vertex")
-		if label != "" {
-			q = q.Query(elastic.NewBoolQuery().Filter(elastic.NewTermQuery("label", label)))
-		}
-		aggName := "term.aggregation." + field
-		q = q.Aggregation(aggName,
-			elastic.NewTermsAggregation().Field("data."+field))
-		res, err := q.Do(ctx)
-		if err != nil {
-			log.Printf("Vertex term count failed: %s", err)
-			return
-		}
-		if agg, found := res.Aggregations.Terms(aggName); found {
-			for _, bucket := range agg.Buckets {
-				term := structpb.Value{Kind: &structpb.Value_StringValue{StringValue: bucket.Key.(string)}}
-				idxit := aql.IndexTermCount{Term: &term, Count: int32(bucket.DocCount)}
-				o <- idxit
-			}
-		}
-	}()
-
-	return o
-}
-
-// VertexLabelScan produces a channel of all vertex ids where the vertex label matches `label`
-func (es *Graph) VertexLabelScan(ctx context.Context, label string) chan string {
-	log.Printf("Graph.VertexLabelScan called")
-
-	o := make(chan string, 100)
-	go func() {
-		defer close(o)
-		if label == "" {
-			return
-		}
-		scroll := es.client.Scroll().
-			Index(es.vertexIndex).
-			Query(elastic.NewBoolQuery().Filter(elastic.NewTermQuery("label", label))).
-			Size(100)
-		for {
-			results, err := scroll.Do(ctx)
-			if err == io.EOF {
-				return // all results retrieved
-			}
-			if err != nil {
-				log.Printf("Scroll call failed: %v", err)
-				return
-			}
-			// Send the hits to the hits channel
-			for _, hit := range results.Hits.Hits {
-				select {
-				case <-ctx.Done():
-					return
-				default:
-					o <- hit.Id
-				}
-			}
-		}
 	}()
 
 	return o
