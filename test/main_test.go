@@ -35,8 +35,19 @@ func randomString(n int) string {
 }
 
 func resetKVInterface() {
-	_ = os.RemoveAll(dbpath)
-	kvdriver, _ = kvgraph.NewKVInterface(dbname, dbpath)
+	var err error
+	err = kvdriver.Close()
+	if err != nil {
+		panic(err)
+	}
+	err = os.RemoveAll(dbpath)
+	if err != nil {
+		panic(err)
+	}
+	kvdriver, err = kvgraph.NewKVInterface(dbname, dbpath)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func TestMain(m *testing.M) {
@@ -62,6 +73,9 @@ func TestMain(m *testing.M) {
 		fmt.Println("Error: failed to initialize database driver:", err)
 		return
 	}
+	defer func() {
+		kvdriver.Close()
+	}()
 
 	// run tests
 	exit = m.Run()
