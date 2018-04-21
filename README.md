@@ -8,14 +8,11 @@ go get github.com/bmeg/arachne
 If you have defined `$GOPATH` the application will be installed at
 `$GOPATH`/bin/arachne otherwise it will be `$HOME/go/bin/arachne`
 
-
-
 To Turn on server
 -----------------
 ```
 arachne server
 ```
-
 
 To Run Larger 'Amazon Data Test'
 --------------------------------
@@ -132,15 +129,71 @@ for row in O.query().V().hasLabel("Sample").has("pathologic_stage", "Stage IIA")
   print row
 ```
 
-
-
-GraphQL Example
+GraphQL Endpoint
 ---------------
+Arachne supports GraphQL access of the property graphs. GraphQL graphs have a
+defined schema with typed fields and connections. This schema must be defined
+before the graphql endpoint can access the graph.
 
+All of the different label types in the graph are represented with a vertex of
+label 'Object'. The vertex `gid` in the schema graph represents the label type
+in the actual graph. Attached to each `Object` vertex is a `fields` parameter
+that describes the fields and their data types.
+
+Example Object Vertex:
+```
+gid: Human
+label: Object
+data:
+  fields:
+    name: String
+    height: Float
+    mass: Float
+    homePlanet: String
+```
+
+A valid vertex this schema would map to would be:
+```
+gid: Luke Skywalker
+label: Human
+data:
+  name: Luke Skywalker
+  height: 1.72
+  mass: 77
+  homePlanet: Tatooine
+```
+
+Complex Types are described using data the schema data structers with the final
+value element being a string on the data type. So an array of strings would be
+coded in JSON as `["String"]`. A map of values would be
+`["name" : "String", "values" : [float]]`
+
+There is one vertex, of label `Query` that defines the root query element.
+There should be one and only one declared in the schema graph. It's `gid` doesn't
+matter.
+
+Fields in objects that connect to other nodes can be defined on Object to another
+with edge label `field`. The `data` for the edge needs a `name` field to declare
+the field name. An optional `label` field can also be added to specify which
+edge labels are followed for the field. The field will be projected as an array
+of the destination object type.
+
+To connect the `Human` object to its friends:
+```
+label: field
+from: Human
+to: Human
+data:
+  name: friends
+  label: friend
+```
+
+## Loading the Schema
+
+Loading the example data and the example schema:
 ```
 ./bin/arachne example
 ```
-
 
 Get Types:
 ```
