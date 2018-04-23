@@ -39,20 +39,17 @@ type Graph struct {
 
 // Compiler returns a query compiler that will use elastic search as a backend
 func (es *Graph) Compiler() gdbi.Compiler {
-	log.Printf("Graph.Compiler called")
 	return core.NewCompiler(es)
 }
 
 // GetTimestamp returns the change timestamp of the current graph
 func (es *Graph) GetTimestamp() string {
-	log.Printf("Graph.GetTimestamp called")
 	return es.ts.Get(es.graph)
 }
 
 // AddEdge adds an edge to the graph, if the id is not "" and in already exists
 // in the graph, it is replaced
 func (es *Graph) AddEdge(edgeArray []*aql.Edge) error {
-	log.Printf("Graph.AddEdge called")
 	ctx := context.Background()
 
 	bulkRequest := es.client.Bulk()
@@ -82,7 +79,6 @@ func (es *Graph) AddEdge(edgeArray []*aql.Edge) error {
 // AddVertex adds an edge to the graph, if the id is not "" and in already exists
 // in the graph, it is replaced
 func (es *Graph) AddVertex(vertexArray []*aql.Vertex) error {
-	log.Printf("Graph.AddVertex called")
 	ctx := context.Background()
 
 	bulkRequest := es.client.Bulk()
@@ -111,7 +107,6 @@ func (es *Graph) AddVertex(vertexArray []*aql.Vertex) error {
 
 // DelEdge deletes edge `eid`
 func (es *Graph) DelEdge(eid string) error {
-	log.Printf("Graph.DelEdge called")
 	ctx := context.Background()
 	_, err := es.client.Delete().Index(es.edgeIndex).Id(eid).Do(ctx)
 	if err != nil {
@@ -123,7 +118,6 @@ func (es *Graph) DelEdge(eid string) error {
 
 // DelVertex deletes vertex `vid` and all adjacent edges
 func (es *Graph) DelVertex(vid string) error {
-	log.Printf("Graph.DelVertex called")
 	ctx := context.Background()
 	// TODO: remove connected edges
 	_, err := es.client.Delete().Index(es.vertexIndex).Id(vid).Do(ctx)
@@ -136,7 +130,6 @@ func (es *Graph) DelVertex(vid string) error {
 
 // GetEdge gets a specific edge
 func (es *Graph) GetEdge(id string, load bool) *aql.Edge {
-	log.Printf("Graph.GetEdge called")
 	ctx := context.Background()
 
 	g := es.client.Get().Index(es.edgeIndex).Id(id)
@@ -162,7 +155,6 @@ func (es *Graph) GetEdge(id string, load bool) *aql.Edge {
 
 // GetVertex gets vertex `id`
 func (es *Graph) GetVertex(id string, load bool) *aql.Vertex {
-	log.Printf("Graph.GetVertex called")
 	ctx := context.Background()
 
 	g := es.client.Get().Index(es.vertexIndex).Id(id)
@@ -188,7 +180,6 @@ func (es *Graph) GetVertex(id string, load bool) *aql.Vertex {
 
 // GetEdgeList produces a channel of all edges in the graph
 func (es *Graph) GetEdgeList(ctx context.Context, load bool) <-chan *aql.Edge {
-	log.Printf("Graph.GetEdgeList called")
 	o := make(chan *aql.Edge, 100)
 
 	// 1st goroutine sends individual hits to channel.
@@ -258,7 +249,6 @@ func (es *Graph) GetEdgeList(ctx context.Context, load bool) <-chan *aql.Edge {
 
 // GetVertexList produces a channel of all vertices in the graph
 func (es *Graph) GetVertexList(ctx context.Context, load bool) <-chan *aql.Vertex {
-	log.Printf("Graph.GetVertexList called")
 	o := make(chan *aql.Vertex, 100)
 
 	// 1st goroutine sends individual hits to channel.
@@ -328,7 +318,6 @@ func (es *Graph) GetVertexList(ctx context.Context, load bool) <-chan *aql.Verte
 
 // GetVertexChannel get a channel that returns all vertices in a graph
 func (es *Graph) GetVertexChannel(req chan gdbi.ElementLookup, load bool) chan gdbi.ElementLookup {
-	log.Printf("Graph.GetVertexChannel called")
 	ctx := context.Background()
 	g, ctx := errgroup.WithContext(ctx)
 
@@ -401,7 +390,6 @@ func (es *Graph) GetVertexChannel(req chan gdbi.ElementLookup, load bool) chan g
 
 // GetOutChannel gets channel of all vertices connected to element via outgoing edge
 func (es *Graph) GetOutChannel(req chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
-	log.Printf("Graph.GetOutChannel called")
 	ctx := context.Background()
 	g, ctx := errgroup.WithContext(ctx)
 
@@ -522,7 +510,6 @@ func (es *Graph) GetOutChannel(req chan gdbi.ElementLookup, load bool, edgeLabel
 
 // GetInChannel gets all vertices connected to lookup elements by incoming edges
 func (es *Graph) GetInChannel(req chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
-	log.Printf("Graph.GetInChannel called")
 	ctx := context.Background()
 	g, ctx := errgroup.WithContext(ctx)
 
@@ -643,7 +630,6 @@ func (es *Graph) GetInChannel(req chan gdbi.ElementLookup, load bool, edgeLabels
 
 // GetOutEdgeChannel gets all outgoing edges connected to lookup element
 func (es *Graph) GetOutEdgeChannel(req chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
-	log.Printf("Graph.GetOutEdgeChannel called")
 	ctx := context.Background()
 	g, ctx := errgroup.WithContext(ctx)
 
@@ -724,7 +710,6 @@ func (es *Graph) GetOutEdgeChannel(req chan gdbi.ElementLookup, load bool, edgeL
 
 // GetInEdgeChannel gets incoming edges connected to lookup element
 func (es *Graph) GetInEdgeChannel(req chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
-	log.Printf("Graph.GetInEdgeChannel called")
 	ctx := context.Background()
 	g, ctx := errgroup.WithContext(ctx)
 

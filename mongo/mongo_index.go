@@ -13,7 +13,7 @@ import (
 
 //AddVertexIndex add index to vertices
 func (mg *Graph) AddVertexIndex(label string, field string) error {
-	log.Printf("Adding index: %s %s", label, field)
+	log.Printf("Adding index: %s.%s", label, field)
 	session := mg.ar.pool.Get()
 	session.ResetIndexCache()
 
@@ -34,7 +34,7 @@ func (mg *Graph) AddVertexIndex(label string, field string) error {
 
 //DeleteVertexIndex delete index from vertices
 func (mg *Graph) DeleteVertexIndex(label string, field string) error {
-	log.Printf("Droping index: %s %s", label, field)
+	log.Printf("Deleting index: %s.%s", label, field)
 	session := mg.ar.pool.Get()
 	defer mg.ar.pool.Put(session)
 	vcol := mg.ar.getVertexCollection(session, mg.graph)
@@ -43,26 +43,44 @@ func (mg *Graph) DeleteVertexIndex(label string, field string) error {
 
 //GetVertexIndexList lists indices
 func (mg *Graph) GetVertexIndexList() chan aql.IndexID {
-	log.Printf("Running GetVertexIndexList")
 	out := make(chan aql.IndexID)
+
 	go func() {
 		session := mg.ar.pool.Get()
 		defer mg.ar.pool.Put(session)
 		defer close(out)
+
 		c := mg.ar.getVertexCollection(session, mg.graph)
+
+		// get all unique labels
+		labels := []string{}
+		pipe := c.Pipe([]bson.M{
+			{"$group": bson.M{"_id": "$label", "count": bson.M{"$sum": 1}}},
+		})
+		iter := pipe.Iter()
+		defer iter.Close()
+		res := map[string]interface{}{}
+		for iter.Next(&res) {
+			labels = append(labels, res["_id"].(string))
+		}
+
+		// list indexed fields
 		idxList, err := c.Indexes()
 		if err != nil {
-			log.Printf("Errors: %s", err)
+			log.Printf("Failed to list indices: %s", err)
 			return
 		}
+
 		for _, idx := range idxList {
-			// log.Printf("Found index: %+v", idx)
 			if len(idx.Key) > 1 && idx.Key[0] == "label" {
 				f := strings.TrimPrefix(idx.Key[1], "data.")
-				out <- aql.IndexID{Graph: mg.graph, Label: idx.Key[0], Field: f}
+				for _, l := range labels {
+					out <- aql.IndexID{Graph: mg.graph, Label: l, Field: f}
+				}
 			}
 		}
 	}()
+
 	return out
 }
 

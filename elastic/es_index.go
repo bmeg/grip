@@ -2,6 +2,7 @@ package elastic
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"log"
 
@@ -12,31 +13,68 @@ import (
 
 // AddVertexIndex adds a new field to be indexed
 func (es *Graph) AddVertexIndex(label string, field string) error {
-	log.Printf("Graph.AddVertexIndex called")
+	log.Printf("Adding index: %s.%s", label, field)
 	return nil
 }
 
 // DeleteVertexIndex removes a vertex field index
 func (es *Graph) DeleteVertexIndex(label string, field string) error {
-	log.Printf("Graph.DeleteVertexIndex called")
+	log.Printf("Deleting index: %s.%s", label, field)
 	return nil
 }
 
 // GetVertexIndexList gets list if vertex indices
 func (es *Graph) GetVertexIndexList() chan aql.IndexID {
-	log.Printf("Running GetVertexIndexList")
 	ctx := context.Background()
 
 	o := make(chan aql.IndexID, 100)
 	go func() {
 		defer close(o)
-		q := es.client.GetFieldMapping().Index(es.vertexIndex).Type("vertex")
+
+		// get all unique labels
+		q := es.client.Search().Index(es.vertexIndex).Type("vertex")
+		aggName := "labels.aggregation"
+		q = q.Aggregation(aggName, elastic.NewTermsAggregation().Field("label").Size(1000000).OrderByCountDesc())
 		res, err := q.Do(ctx)
+		if err != nil {
+			log.Printf("GetVertexIndexList - label term count failed: %s", err)
+			return
+		}
+
+		labels := []string{}
+		if agg, found := res.Aggregations.Terms(aggName); found {
+			for _, bucket := range agg.Buckets {
+				labels = append(labels, bucket.Key.(string))
+			}
+		}
+
+		// list indexed fields
+		mapping, err := es.client.GetMapping().Index(es.vertexIndex).Type("vertex").Do(ctx)
 		if err != nil {
 			log.Printf("GetFieldMapping call failed: %s", err)
 			return
 		}
-		log.Printf("GetFieldMapping res: %+v", res)
+
+		var data map[string]interface{}
+		if props, ok := mapping[es.vertexIndex].(map[string]interface{}); ok {
+			if props, ok = props["mappings"].(map[string]interface{}); ok {
+				if props, ok = props["vertex"].(map[string]interface{}); ok {
+					if props, ok = props["properties"].(map[string]interface{}); ok {
+						if props, ok = props["data"].(map[string]interface{}); ok {
+							if props, ok = props["properties"].(map[string]interface{}); ok {
+								data = props
+							}
+						}
+					}
+				}
+			}
+		}
+
+		for k := range data {
+			for _, l := range labels {
+				o <- aql.IndexID{Graph: es.graph, Label: l, Field: k}
+			}
+		}
 	}()
 
 	return o
@@ -49,14 +87,12 @@ func (es *Graph) GetVertexTermCount(ctx context.Context, label string, field str
 	o := make(chan aql.IndexTermCount, 100)
 	go func() {
 		defer close(o)
-		if field == "" {
+		if field == "" || label == "" {
 			return
 		}
 		q := es.client.Search().Index(es.vertexIndex).Type("vertex")
-		if label != "" {
-			q = q.Query(elastic.NewBoolQuery().Filter(elastic.NewTermQuery("label", label)))
-		}
-		aggName := "term.aggregation." + field
+		q = q.Query(elastic.NewBoolQuery().Filter(elastic.NewTermQuery("label", label)))
+		aggName := fmt.Sprintf("term.aggregation.%s.%s", label, field)
 		// TODO make size an argument
 		q = q.Aggregation(aggName,
 			elastic.NewTermsAggregation().Field("data."+field+".keyword").Size(1000).OrderByCountDesc())

@@ -25,30 +25,31 @@ func (kgraph *KVGraph) deleteGraphIndex(graph string) {
 }
 
 func vertexIdxStruct(v *aql.Vertex) map[string]interface{} {
-	// vertexField := fmt.Sprintf("v.%s", v.Label)
+	//vertexField := fmt.Sprintf("v.%s", v.Label)
 	k := map[string]interface{}{
 		"label": v.Label,
 		"v":     map[string]interface{}{v.Label: protoutil.AsMap(v.Data)},
 	}
-	// log.Printf("Vertex: %s", k)
+	//log.Printf("Vertex: %s", k)
 	return k
 }
 
 //AddVertexIndex add index to vertices
 func (kgdb *KVInterfaceGDB) AddVertexIndex(label string, field string) error {
-	log.Printf("Adding Index: %s:%s", label, field)
+	log.Printf("Adding index: %s.%s", label, field)
+	//TODO kick off background process to reindex existing data
 	return kgdb.kvg.idx.AddField(fmt.Sprintf("%s.v.%s.%s", kgdb.graph, label, field))
 }
 
 //DeleteVertexIndex delete index from vertices
 func (kgdb *KVInterfaceGDB) DeleteVertexIndex(label string, field string) error {
-	log.Printf("Adding Index: %s:%s", label, field)
+	log.Printf("Deleting index: %s.%s", label, field)
 	return kgdb.kvg.idx.RemoveField(fmt.Sprintf("%s.v.%s.%s", kgdb.graph, label, field))
 }
 
 //GetVertexIndexList lists out all the vertex indices for a graph
 func (kgdb *KVInterfaceGDB) GetVertexIndexList() chan aql.IndexID {
-	log.Printf("Running GetVertexIndexList")
+	log.Printf("Getting index list")
 	out := make(chan aql.IndexID)
 	go func() {
 		defer close(out)
