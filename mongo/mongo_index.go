@@ -55,7 +55,7 @@ func (mg *Graph) GetVertexIndexList() chan aql.IndexID {
 		// get all unique labels
 		labels := []string{}
 		pipe := c.Pipe([]bson.M{
-			{"$group": bson.M{"_id": "$label", "count": bson.M{"$sum": 1}}},
+			{"$sortByCount": "$label"},
 		})
 		iter := pipe.Iter()
 		defer iter.Close()
@@ -94,7 +94,7 @@ func (mg *Graph) GetVertexTermCount(ctx context.Context, label string, field str
 		defer mg.ar.pool.Put(session)
 		ag := []bson.M{
 			{"$match": bson.M{"label": label}},
-			{"$group": bson.M{"_id": "$data." + field, "count": bson.M{"$sum": 1}}},
+			{"$sortByCount": "$data." + field},
 		}
 		vcol := mg.ar.getVertexCollection(session, mg.graph)
 		pipe := vcol.Pipe(ag)
