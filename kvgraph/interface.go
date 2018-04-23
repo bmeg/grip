@@ -32,17 +32,36 @@ func AddKVDriver(name string, builder kvi.KVBuilder) error {
 	return nil
 }
 
-// NewKVGraphDB intitalize a new key value driver give the name of the
-// driver and a path/url
-func NewKVGraphDB(name string, path string) (gdbi.GraphDB, error) {
-	if x, ok := kvMap[name]; ok {
-		kv, err := x(path)
-		if err != nil {
-			return nil, err
-		}
-		return NewKVGraph(kv), nil
+// NewKVInterface intitalize a new key value interface given the name of the
+// driver and path to create the database
+func NewKVInterface(name string, dbPath string) (kvi.KVInterface, error) {
+	if builder, ok := kvMap[name]; ok {
+		return builder(dbPath)
 	}
 	return nil, fmt.Errorf("Driver %s Not Found", name)
+
+	// switch name {
+	// case "badger":
+	// 	return badgerdb.NewKVInterface(dbPath)
+	// case "bolt":
+	// 	return boltdb.NewKVInterface(dbPath)
+	// case "level":
+	// 	return leveldb.NewKVInterface(dbPath)
+	// case "rocks":
+	// 	return rocksdb.NewKVInterface(dbPath)
+	// default:
+	// 	return nil, fmt.Errorf("Driver %s Not Found", name)
+	// }
+}
+
+// NewKVGraphDB intitalize a new key value graph driver given the name of the
+// driver and path/url to create the database at
+func NewKVGraphDB(name string, dbPath string) (gdbi.GraphDB, error) {
+	kv, err := NewKVInterface(name, dbPath)
+	if err != nil {
+		return nil, err
+	}
+	return NewKVGraph(kv), nil
 }
 
 // NewKVGraph creats a new instance of KVGraph given a KVInterface

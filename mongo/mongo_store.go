@@ -69,21 +69,59 @@ type Graph struct {
 
 // AddGraph creates a new graph named `graph`
 func (ma *Mongo) AddGraph(graph string) error {
-
+	log.Printf("Adding graph: %s", graph)
 	session := ma.pool.Get()
+	session.ResetIndexCache()
 
 	graphs := session.DB(ma.database).C(fmt.Sprintf("graphs"))
+	err := graphs.Insert(map[string]string{"_id": graph})
+	if err != nil {
+		log.Printf("Insert failed: %v", err)
+	}
 
-	graphs.Insert(map[string]string{"_id": graph})
-
-	//v := ma.db.C(fmt.Sprintf("%s_vertices", graph))
 	e := ma.getEdgeCollection(session, graph)
-	e.EnsureIndex(mgo.Index{Key: []string{"$hashed:from"}})
-	e.EnsureIndex(mgo.Index{Key: []string{"$hashed:to"}})
-	e.EnsureIndex(mgo.Index{Key: []string{"$hashed:label"}})
+	err = e.EnsureIndex(mgo.Index{
+		Key:        []string{"$hashed:from"},
+		Unique:     false,
+		DropDups:   false,
+		Sparse:     false,
+		Background: true,
+	})
+	if err != nil {
+		log.Printf("Ensure index failed: %v", err)
+	}
+	err = e.EnsureIndex(mgo.Index{
+		Key:        []string{"$hashed:to"},
+		Unique:     false,
+		DropDups:   false,
+		Sparse:     false,
+		Background: true,
+	})
+	if err != nil {
+		log.Printf("Ensure index failed: %v", err)
+	}
+	err = e.EnsureIndex(mgo.Index{
+		Key:        []string{"$hashed:label"},
+		Unique:     false,
+		DropDups:   false,
+		Sparse:     false,
+		Background: true,
+	})
+	if err != nil {
+		log.Printf("Ensure index failed: %v", err)
+	}
 
 	v := ma.getVertexCollection(session, graph)
-	v.EnsureIndex(mgo.Index{Key: []string{"$hashed:label"}})
+	err = v.EnsureIndex(mgo.Index{
+		Key:        []string{"$hashed:label"},
+		Unique:     false,
+		DropDups:   false,
+		Sparse:     false,
+		Background: true,
+	})
+	if err != nil {
+		log.Printf("Ensure index failed: %v", err)
+	}
 
 	ma.ts.Touch(graph)
 	ma.pool.Put(session)
@@ -92,13 +130,23 @@ func (ma *Mongo) AddGraph(graph string) error {
 
 // DeleteGraph deletes `graph`
 func (ma *Mongo) DeleteGraph(graph string) error {
+	log.Printf("Deleting graph: %s", graph)
 	session := ma.pool.Get()
 	g := session.DB(ma.database).C("graphs")
 	v := ma.getVertexCollection(session, graph)
 	e := ma.getEdgeCollection(session, graph)
-	v.DropCollection()
-	e.DropCollection()
-	g.RemoveId(graph)
+	err := v.DropCollection()
+	if err != nil {
+		log.Printf("Drop vertex collection failed: %v", err)
+	}
+	err = e.DropCollection()
+	if err != nil {
+		log.Printf("Drop edge collection failed: %v", err)
+	}
+	err = g.RemoveId(graph)
+	if err != nil {
+		log.Printf("Remove graph id failed: %v", err)
+	}
 	ma.ts.Touch(graph)
 	ma.pool.Put(session)
 	return nil
@@ -123,13 +171,21 @@ func (ma *Mongo) GetGraphs() []string {
 	if err := iter.Err(); err != nil {
 		log.Printf("Error: %s", err)
 	}
-	log.Printf("Graphs: %s %s", ma.database, out)
 	ma.pool.Put(session)
 	return out
 }
 
 // Graph obtains the gdbi.DBI for a particular graph
 func (ma *Mongo) Graph(graph string) gdbi.GraphInterface {
+	found := false
+	for _, gname := range ma.GetGraphs() {
+		if graph == gname {
+			found = true
+		}
+	}
+	if !found {
+		panic(fmt.Errorf("graph '%s' was not found", graph))
+	}
 	return &Graph{
 		ar:    ma,
 		ts:    ma.ts,
@@ -215,7 +271,7 @@ func (mg *Graph) AddVertex(vertexArray []*aql.Vertex) error {
 			mg.ar.pool.Put(session)
 			return err
 		}
-		log.Printf("Refreshing Connection")
+		log.Printf("Refreshing mongo connection")
 		session.Refresh()
 	}
 	mg.ar.pool.Put(session)
@@ -244,7 +300,7 @@ func (mg *Graph) AddEdge(edgeArray []*aql.Edge) error {
 			mg.ar.pool.Put(session)
 			return err
 		}
-		log.Printf("Refreshing Connection")
+		log.Printf("Refreshing mongo connection")
 		session.Refresh()
 	}
 	mg.ar.pool.Put(session)
@@ -332,7 +388,7 @@ func (mg *Graph) GetEdgeList(ctx context.Context, loadProp bool) <-chan *aql.Edg
 }
 
 // BatchSize controls size of batched mongo queries
-//TODO: move this into driver config parameter
+// TODO: move this into driver config parameter
 var BatchSize = 1000
 
 // GetVertexChannel is passed a channel of vertex ids and it produces a channel

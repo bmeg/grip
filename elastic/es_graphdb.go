@@ -84,14 +84,50 @@ func (es *Elastic) initIndex(ctx context.Context, name, body string) error {
 
 // AddGraph adds a new graph to the graphdb
 func (es *Elastic) AddGraph(graph string) error {
+	log.Printf("Adding graph: %s", graph)
 	ctx := context.Background()
+
 	vertexIndex := fmt.Sprintf("%s_%s_vertex", es.database, graph)
-	if err := es.initIndex(ctx, vertexIndex, ""); err != nil {
+	vMapping := `{
+    "mappings": {
+      "vertex":{
+        "properties":{
+          "gid": {
+            "type": "keyword"
+          },
+          "label": {
+            "type": "keyword"
+          }
+        }
+      }
+    }
+  }`
+	if err := es.initIndex(ctx, vertexIndex, vMapping); err != nil {
 		return err
 	}
 
 	edgeIndex := fmt.Sprintf("%s_%s_edge", es.database, graph)
-	if err := es.initIndex(ctx, edgeIndex, ""); err != nil {
+	eMapping := `{
+    "mappings": {
+      "edge":{
+        "properties":{
+          "gid": {
+            "type": "keyword"
+          },
+          "from": {
+            "type": "keyword"
+          }
+          "to": {
+            "type": "keyword"
+          }
+          "label": {
+            "type": "keyword"
+          }
+        }
+      }
+    }
+  }`
+	if err := es.initIndex(ctx, edgeIndex, eMapping); err != nil {
 		return err
 	}
 	return nil
@@ -99,7 +135,9 @@ func (es *Elastic) AddGraph(graph string) error {
 
 // DeleteGraph deletes a graph from the graphdb
 func (es *Elastic) DeleteGraph(graph string) error {
+	log.Printf("Deleting graph: %s", graph)
 	ctx := context.Background()
+
 	vertexIndex := fmt.Sprintf("%s_%s_vertex", es.database, graph)
 	if _, err := es.client.DeleteIndex(vertexIndex).Do(ctx); err != nil {
 		return err
@@ -114,6 +152,15 @@ func (es *Elastic) DeleteGraph(graph string) error {
 
 // Graph returns interface to a specific graph in the graphdb
 func (es *Elastic) Graph(graph string) gdbi.GraphInterface {
+	found := false
+	for _, gname := range es.GetGraphs() {
+		if graph == gname {
+			found = true
+		}
+	}
+	if !found {
+		panic(fmt.Errorf("graph '%s' was not found", graph))
+	}
 	// TODO pass config to down to the Graph instance
 	return &Graph{
 		url:         es.url,

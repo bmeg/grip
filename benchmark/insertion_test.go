@@ -1,4 +1,4 @@
-package test
+package benchmark
 
 import (
 	"math/rand"
@@ -22,7 +22,7 @@ func randID() string {
 }
 
 func BenchmarkVertexInsert(b *testing.B) {
-	kv, _ := badgerdb.BadgerBuilder("test_1.db")
+	kv, _ := badgerdb.NewKVInterface("test_1.db")
 	graphDB := kvgraph.NewKVGraph(kv)
 	graphDB.AddGraph("test")
 	graph := graphDB.Graph("test")
@@ -42,7 +42,7 @@ func BenchmarkVertexInsert(b *testing.B) {
 }
 
 func BenchmarkEdgeInsert(b *testing.B) {
-	kv, _ := badgerdb.BadgerBuilder("test_1.db")
+	kv, _ := badgerdb.NewKVInterface("test_1.db")
 	graphDB := kvgraph.NewKVGraph(kv)
 	graphDB.AddGraph("test")
 	graph := graphDB.Graph("test")

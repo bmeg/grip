@@ -16,18 +16,6 @@ sys.path.append(os.path.dirname(BASE))
 import aql
 
 
-def clear_db(conn):
-    conn.delete(GRAPH)
-    conn.new(GRAPH)
-    O = conn.graph(GRAPH)
-    if int(O.query().V().count().first()['data']) != 0:
-        print "Unable to clear database"
-        sys.exit()
-    if int(O.query().E().count().first()['data']) != 0:
-        print "Unable to clear database"
-        sys.exit()
-
-
 if __name__ == "__main__":
     server = sys.argv[1]
     if len(sys.argv) > 2:
@@ -36,9 +24,10 @@ if __name__ == "__main__":
         tests = []
 
     conn = aql.Connection(server)
-    if int(conn.graph(GRAPH).query().V().count().first()['data']) != 0:
-        print "Need to start with empty DB: %s" % (GRAPH)
-        sys.exit()
+    if GRAPH in conn.list():
+        if int(conn.graph(GRAPH).query().V().count().first()['data']) != 0:
+            print "Need to start with empty DB: %s" % (GRAPH)
+            sys.exit()
 
     correct = 0
     total = 0
@@ -52,6 +41,7 @@ if __name__ == "__main__":
                     if callable(func):
                         try:
                             print "Running: %s %s " % (name, f[5:])
+                            conn.new(GRAPH)
                             e = func(conn.graph(GRAPH))
                             if len(e) == 0:
                                 correct += 1
@@ -64,7 +54,7 @@ if __name__ == "__main__":
                             print "Crashed: %s %s %s" % (name, f[5:], e)
                             traceback.print_exc()
                         total += 1
-                        clear_db(conn)
+                        conn.delete(GRAPH)
 
     print "Passed %s out of %s" % (correct, total)
     if correct != total:
