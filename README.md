@@ -131,9 +131,10 @@ for row in O.query().V().hasLabel("Sample").has("pathologic_stage", "Stage IIA")
 
 GraphQL Endpoint
 ---------------
-Arachne supports GraphQL access of the property graphs. GraphQL graphs have a
-defined schema with typed fields and connections. This schema must be defined
-before the graphql endpoint can access the graph.
+Arachne supports GraphQL access of the property graphs. Currently this is read-only
+access to the graph.
+GraphQL graphs have a defined schema with typed fields and connections. This
+schema must be defined before the graphql endpoint can access the graph.
 
 All of the different label types in the graph are represented with a vertex of
 label 'Object'. The vertex `gid` in the schema graph represents the label type
@@ -163,7 +164,7 @@ data:
   homePlanet: Tatooine
 ```
 
-Complex Types are described using data the schema data structers with the final
+Complex Types are described using data the schema data structures with the final
 value element being a string on the data type. So an array of strings would be
 coded in JSON as `["String"]`. A map of values would be
 `["name" : "String", "values" : [float]]`
@@ -190,10 +191,24 @@ data:
 
 ## Loading the Schema
 
+
+## Using Built in example
+
 Loading the example data and the example schema:
 ```
 ./bin/arachne example
 ```
+
+See the example graph
+```
+./bin/arachne dump --vertex --edge --graph example
+```
+See the example graph schema
+```
+./bin/arachne dump --vertex --edge --graph example:schema
+```
+
+## Example GraphQL queries
 
 Get Types:
 ```
