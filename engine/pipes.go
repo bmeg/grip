@@ -6,8 +6,8 @@ package engine
 
 import (
 	"context"
-	"fmt"
-	//"log"
+	//"fmt"
+	"log"
 
 	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/gdbi"
@@ -75,6 +75,7 @@ func Convert(dataType gdbi.DataType, rowTypes []gdbi.DataType, t *gdbi.Traveler)
 		}
 
 	case gdbi.EdgeData:
+		log.Printf("ToEdge: %#v = %#v", t.GetCurrent(), t.GetCurrent().ToEdge())
 		return &aql.ResultRow{
 			Value: &aql.QueryResult{
 				Result: &aql.QueryResult_Edge{
@@ -132,6 +133,7 @@ func Convert(dataType gdbi.DataType, rowTypes []gdbi.DataType, t *gdbi.Traveler)
 		}
 
 	default:
-		panic(fmt.Errorf("unhandled data type %d", dataType))
+		log.Printf("unhandled data type %d", dataType)
 	}
+	return nil
 }

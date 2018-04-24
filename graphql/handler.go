@@ -195,24 +195,29 @@ func getObjectFields(client aql.Client, gqlDB string, queryGID string) map[strin
 	results, _ := client.Execute(gqlDB, q)
 	for elem := range results {
 		log.Printf("objectField: %s %s %s", queryGID, elem.GetRow()[0], elem.GetRow()[1].GetVertex().Gid)
-		fieldName := elem.GetRow()[0].GetEdge().GetProperty("name").(string)
-		fieldObj := elem.GetRow()[1].GetVertex().Gid
-		label := fieldName
-		if elem.GetRow()[0].GetEdge().HasProperty("label") {
-			label = elem.GetRow()[0].GetEdge().GetProperty("label").(string)
-		}
-		t := objectList
-		if elem.GetRow()[0].GetEdge().HasProperty("type") {
-			tf := elem.GetRow()[0].GetEdge().GetProperty("type").(string)
-			if tf == "idList" {
-				t = idList
-			} else if tf == "idQuery" {
-				t = idQuery
-			} else {
-				log.Printf("Unknown Field type: %s %s", fieldName, tf)
+		fieldName := elem.GetRow()[0].GetEdge().GetProperty("name")
+		if fieldName != nil {
+			fieldNameStr := fieldName.(string)
+			fieldObj := elem.GetRow()[1].GetVertex().Gid
+			label := fieldNameStr
+			if elem.GetRow()[0].GetEdge().HasProperty("label") {
+				label = elem.GetRow()[0].GetEdge().GetProperty("label").(string)
 			}
+			t := objectList
+			if elem.GetRow()[0].GetEdge().HasProperty("type") {
+				tf := elem.GetRow()[0].GetEdge().GetProperty("type").(string)
+				if tf == "idList" {
+					t = idList
+				} else if tf == "idQuery" {
+					t = idQuery
+				} else {
+					log.Printf("Unknown Field type: %s %s", fieldName, tf)
+				}
+			}
+			out[fieldNameStr] = objectField{fieldNameStr, label, fieldObj, t}
+		} else {
+			log.Printf("Edge missing name parameter: %#v", elem.GetRow()[0].GetEdge())
 		}
-		out[fieldName] = objectField{fieldName, label, fieldObj, t}
 	}
 	return out
 }
