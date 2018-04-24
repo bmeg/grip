@@ -1,4 +1,8 @@
-package labeldb
+/*
+The KeyValue interface wrapper for LevelDB
+*/
+
+package leveldb
 
 import (
 	"bytes"
@@ -11,9 +15,10 @@ import (
 	"github.com/syndtr/goleveldb/leveldb/iterator"
 )
 
-// LevelBuilder creates new badger interface at `path`
-// driver at `path`
-func LevelBuilder(path string) (kvi.KVInterface, error) {
+var loaded = kvgraph.AddKVDriver("level", NewKVInterface)
+
+// NewKVInterface creates new LevelDB backed KVInterface at `path`
+func NewKVInterface(path string) (kvi.KVInterface, error) {
 	log.Printf("Starting LevelDB")
 	db, err := leveldb.OpenFile(path, nil)
 	if err != nil {
@@ -22,14 +27,6 @@ func LevelBuilder(path string) (kvi.KVInterface, error) {
 	}
 	o := &LevelKV{db: db}
 	return o, err
-}
-
-var loaded = kvgraph.AddKVDriver("level", LevelBuilder)
-
-func copyBytes(in []byte) []byte {
-	out := make([]byte, len(in))
-	copy(out, in)
-	return out
 }
 
 // LevelKV implements the generic key value interface using the leveldb library
@@ -68,15 +65,31 @@ func (l *LevelKV) DeletePrefix(prefix []byte) error {
 	return nil
 }
 
-// HasKey returns true if the key is exists in kv store
+// HasKey returns true if the key is exists in kvstore
 func (l *LevelKV) HasKey(id []byte) bool {
 	out, _ := l.db.Has(id, nil)
 	return out
 }
 
-// Set value in kv store
+// Set value in kvstore
 func (l *LevelKV) Set(id []byte, val []byte) error {
 	return l.db.Put(id, val, nil)
+}
+
+// Update runs an alteration transaction of the kvstore
+func (l *LevelKV) Update(u func(tx kvi.KVTransaction) error) error {
+	tx, _ := l.db.OpenTransaction()
+	ktx := levelTransaction{tx}
+	defer tx.Commit()
+	return u(ktx)
+}
+
+// View returns an iterator for the kvstore
+func (l *LevelKV) View(u func(it kvi.KVIterator) error) error {
+	it := l.db.NewIterator(nil, nil)
+	defer it.Release()
+	lit := levelIterator{l.db, it, nil, nil}
+	return u(&lit)
 }
 
 type levelTransaction struct {
@@ -103,14 +116,6 @@ func (ltx levelTransaction) Get(id []byte) ([]byte, error) {
 		return nil, err
 	}
 	return copyBytes(o), nil
-}
-
-// Update runs an alteration transition of the level kv store
-func (l *LevelKV) Update(u func(tx kvi.KVTransaction) error) error {
-	tx, _ := l.db.OpenTransaction()
-	ktx := levelTransaction{tx}
-	defer tx.Commit()
-	return u(ktx)
 }
 
 type levelIterator struct {
@@ -143,15 +148,15 @@ func (lit *levelIterator) Next() error {
 		lit.value = nil
 		return fmt.Errorf("Invalid")
 	}
-	lit.key = lit.it.Key()
-	lit.value = lit.it.Value()
+	lit.key = copyBytes(lit.it.Key())
+	lit.value = copyBytes(lit.it.Value())
 	return nil
 }
 
 func (lit *levelIterator) Seek(id []byte) error {
 	if lit.it.Seek(id) {
-		lit.key = lit.it.Key()
-		lit.value = lit.it.Value()
+		lit.key = copyBytes(lit.it.Key())
+		lit.value = copyBytes(lit.it.Value())
 		return nil
 	}
 	return fmt.Errorf("Invalid")
@@ -165,10 +170,8 @@ func (lit *levelIterator) Valid() bool {
 	return true
 }
 
-// View run iterator on bolt keyvalue store
-func (l *LevelKV) View(u func(it kvi.KVIterator) error) error {
-	it := l.db.NewIterator(nil, nil)
-	defer it.Release()
-	lit := levelIterator{l.db, it, nil, nil}
-	return u(&lit)
+func copyBytes(in []byte) []byte {
+	out := make([]byte, len(in))
+	copy(out, in)
+	return out
 }

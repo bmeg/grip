@@ -2,9 +2,8 @@ ifndef GOPATH
 $(error GOPATH is not set)
 endif
 
-VERSION = 0.1.0
+VERSION = 0.2.0
 TESTS=$(shell go list ./... | grep -v /vendor/)
-CONFIGDIR=$(shell pwd)/tests
 
 export SHELL=/bin/bash
 PATH := ${PATH}:${GOPATH}/bin
@@ -15,35 +14,37 @@ export PATH
 # ---------------------
 # Build the code
 install: depends
-	@go install github.com/bmeg/arachne
+	@go install .
 
 # Update submodules and build code
 depends:
 	@git submodule update --init --recursive
-	@go get -d github.com/bmeg/arachne
+	@go get -d .
+
+# Build the code including the rocksdb package
+with-rocksdb:
+	@go install -tags 'rocksdb' .
 
 # --------------------------
 # Complile Protobuf Schemas
 # --------------------------
 proto:
 	@go get github.com/ckaznocha/protoc-gen-lint
-	cd aql && protoc \
-	-I ./ -I ../googleapis \
-	--lint_out=. \
-	--go_out=\
-	Mgoogle/protobuf/struct.proto=github.com/golang/protobuf/ptypes/struct,\
-	plugins=grpc:./ \
-	--grpc-gateway_out=logtostderr=true:. \
-	aql.proto
-
-kvproto:
-	cd kvindex && protoc \
-	-I ./ --go_out=. \
-	index.proto
+	@cd aql && protoc \
+		-I ./ \
+		-I ../googleapis \
+		--lint_out=. \
+		--go_out=Mgoogle/protobuf/struct.proto=github.com/golang/protobuf/ptypes/struct,plugins=grpc:. \
+		--grpc-gateway_out=logtostderr=true:. \
+		aql.proto
+	@cd kvindex && protoc \
+		-I ./ \
+		--go_out=. \
+		index.proto
 
 proto-depends:
-	go install github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway
-	go install github.com/golang/protobuf/protoc-gen-go
+	@go install github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway
+	@go install github.com/golang/protobuf/protoc-gen-go
 
 # ---------------------
 # Code Style
@@ -61,7 +62,7 @@ lint:
 	@gometalinter --install > /dev/null
 	@gometalinter --disable-all --enable=vet --enable=golint --enable=gofmt --enable=misspell \
 		--vendor \
-		-e '.*bundle.go' -e ".*pb.go" -e ".*pb.gw.go"  -e "underscore.go" \
+		-e '.*bundle.go' -e ".*pb.go" -e ".*pb.gw.go" -e "underscore.go" \
 		./...
 
 # ---------------------
@@ -73,22 +74,27 @@ test:
 test-conformance:
 	python conformance/run_conformance.py http://localhost:18201
 
-start-test-server:
-	arachne server --rpc 18202 --port 18201 &
+start-test-badger-server:
+	arachne server --rpc 18202 --port 18201
 
 start-test-mongo-server:
-	arachne server --rpc 18202 --port 18201 --mongo localhost:27000 &
+	arachne server --rpc 18202 --port 18201 --mongo localhost:27000
 
 start-test-elastic-server:
-	arachne server --rpc 18202 --port 18201 --elastic http://localhost:9200 &
+	arachne server --rpc 18202 --port 18201 --elastic http://localhost:9200
 
 # ---------------------
 # Database development
 # ---------------------
-start-test-mongo-database:
+start-mongo:
 	@docker rm -f arachne-mongodb-test > /dev/null 2>&1 || echo
-	@docker run -d --name arachne-mongodb-test -p 27000:27017 docker.io/mongo:3.5.13 > /dev/null
+	docker run -d --name arachne-mongodb-test -p 27000:27017 docker.io/mongo:3.5.13 > /dev/null
 
-start-test-elastic-database:
+start-elastic:
 	@docker rm -f arachne-es-test > /dev/null 2>&1 || echo
-	@docker run -d --name arachne-es-test -p 9200:9200 -p 9300:9300 -e "discovery.type=single-node" -e "xpack.security.enabled=false" docker.elastic.co/elasticsearch/elasticsearch:5.6.3 > /dev/null
+	docker run -d --name arachne-es-test -p 9200:9200 -p 9300:9300 -e "discovery.type=single-node" -e "xpack.security.enabled=false" docker.elastic.co/elasticsearch/elasticsearch:5.6.3 > /dev/null
+
+# ---------------------
+# Other
+# ---------------------
+.PHONY: test rocksdb

@@ -265,7 +265,7 @@ class Query:
             value = [value]
         return self.__append({"has": {"key": key, "within": value}})
 
-    def values(self, v):
+    def values(self, v=[]):
         """
         Extract document properties into returned document.
         """
