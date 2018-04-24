@@ -126,13 +126,13 @@ func (q *Query) Values(keys ...string) *Query {
 
 // Match is used to concatenate multiple queries.
 func (q *Query) Match(qs ...*Query) *Query {
-	queries := []*GraphQuery{}
+	queries := []*QuerySet{}
 	for _, q := range qs {
-		queries = append(queries, &GraphQuery{
+		queries = append(queries, &QuerySet{
 			Query: q.Statements,
 		})
 	}
-	set := &GraphQuerySet{queries}
+	set := &MatchQuerySet{queries}
 	return q.with(&GraphStatement{&GraphStatement_Match{set}})
 }
 
