@@ -272,9 +272,10 @@ edges:
         type: idList
 ```
 
-To load the file:
+To load the test data:
 ```
-arachne load --graph test:schema --yaml test.schema
+arachne load --graph test --yaml data.yaml
+arachne load --graph test:schema --yaml schema.yaml
 ```
 
 
