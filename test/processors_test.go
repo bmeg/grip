@@ -2,6 +2,7 @@ package test
 
 import (
 	"context"
+	"os"
 	"reflect"
 	"regexp"
 	"sort"
@@ -12,6 +13,7 @@ import (
 	"github.com/bmeg/arachne/engine"
 	"github.com/bmeg/arachne/kvgraph"
 	"github.com/bmeg/arachne/protoutil"
+	"github.com/bmeg/arachne/util"
 	"github.com/golang/protobuf/jsonpb"
 )
 
@@ -203,15 +205,16 @@ func TestEngine(t *testing.T) {
 
 	for _, desc := range table {
 		desc := desc
-		db := db
 		name := cleanName(dbname + "_" + desc.query.String())
 
 		t.Run(name, func(t *testing.T) {
-			p, err := db.Compiler().Compile(desc.query.Statements)
+			pipeline, err := db.Compiler().Compile(desc.query.Statements)
 			if err != nil {
 				t.Fatal(err)
 			}
-			res := engine.Run(context.Background(), p, "./workdir")
+			workdir := "./test.workdir." + util.RandomString(6)
+			defer os.RemoveAll(workdir)
+			res := engine.Run(context.Background(), pipeline, workdir)
 			desc.expected(t, res)
 		})
 	}
@@ -318,7 +321,7 @@ func values(vals ...interface{}) checker {
 
 func vert(label string, d dat) *aql.Vertex {
 	return &aql.Vertex{
-		Gid:   randomString(10),
+		Gid:   util.UUID(),
 		Label: label,
 		Data:  protoutil.AsStruct(d),
 	}
@@ -326,7 +329,7 @@ func vert(label string, d dat) *aql.Vertex {
 
 func edge(from, to *aql.Vertex, label string, d dat) *aql.Edge {
 	return &aql.Edge{
-		Gid:   randomString(10),
+		Gid:   util.UUID(),
 		From:  from.Gid,
 		To:    to.Gid,
 		Label: label,

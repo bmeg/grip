@@ -12,9 +12,9 @@ import (
 	"github.com/bmeg/arachne/engine/core"
 	"github.com/bmeg/arachne/gdbi"
 	"github.com/bmeg/arachne/timestamp"
+	"github.com/bmeg/arachne/util"
 	"github.com/golang/protobuf/jsonpb"
 	"golang.org/x/sync/errgroup"
-	"gopkg.in/mgo.v2/bson"
 	elastic "gopkg.in/olivere/elastic.v5"
 )
 
@@ -58,7 +58,7 @@ func (es *Graph) AddEdge(edgeArray []*aql.Edge) error {
 	}
 	for _, e := range edgeArray {
 		if e.Gid == "" {
-			e.Gid = bson.NewObjectId().Hex()
+			e.Gid = util.UUID()
 		}
 		req := elastic.NewBulkUpdateRequest().
 			Index(es.edgeIndex).

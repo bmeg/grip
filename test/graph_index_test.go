@@ -2,7 +2,7 @@ package test
 
 import (
 	"context"
-	"log"
+	"os"
 	"strings"
 	"testing"
 
@@ -10,6 +10,7 @@ import (
 	"github.com/bmeg/arachne/engine"
 	"github.com/bmeg/arachne/gdbi"
 	"github.com/bmeg/arachne/kvgraph"
+	"github.com/bmeg/arachne/util"
 	"github.com/golang/protobuf/jsonpb"
 )
 
@@ -67,10 +68,13 @@ func TestVertexLabel(t *testing.T) {
 
 	e := aql.Graph{}
 	if err := jsonpb.Unmarshal(strings.NewReader(testGraph), &e); err != nil {
-		log.Printf("Error: %s", err)
+		t.Fatal("Failed to unmarshal test graph", err)
 	}
 
-	gdb.AddGraph("test")
+	err := gdb.AddGraph("test")
+	if err != nil {
+		t.Fatal("Failed to add graph", err)
+	}
 	graph := gdb.Graph("test")
 	graph.AddVertex(e.Vertices)
 	graph.AddEdge(e.Edges)
@@ -84,7 +88,10 @@ func TestVertexLabel(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	res := engine.Run(context.Background(), pipeline, "./test.workdir."+randomString(6))
+	workdir := "./test.workdir." + util.RandomString(6)
+	defer os.RemoveAll(workdir)
+	res := engine.Run(context.Background(), pipeline, workdir)
+
 	count := 0
 	for range res {
 		count++
