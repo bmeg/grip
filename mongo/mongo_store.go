@@ -46,10 +46,11 @@ func NewMongo(url string, database string) (gdbi.GraphDB, error) {
 }
 
 // Close the connection
-func (ma *Mongo) Close() {
+func (ma *Mongo) Close() error {
 	ma.pool.Close()
 	ma.initialSession.Close()
 	ma.initialSession = nil
+	return nil
 }
 
 func (ma *Mongo) getVertexCollection(session *mgo.Session, graph string) *mgo.Collection {
@@ -176,7 +177,7 @@ func (ma *Mongo) GetGraphs() []string {
 }
 
 // Graph obtains the gdbi.DBI for a particular graph
-func (ma *Mongo) Graph(graph string) gdbi.GraphInterface {
+func (ma *Mongo) Graph(graph string) (gdbi.GraphInterface, error) {
 	found := false
 	for _, gname := range ma.GetGraphs() {
 		if graph == gname {
@@ -184,13 +185,13 @@ func (ma *Mongo) Graph(graph string) gdbi.GraphInterface {
 		}
 	}
 	if !found {
-		panic(fmt.Errorf("graph '%s' was not found", graph))
+		return nil, fmt.Errorf("graph '%s' was not found", graph)
 	}
 	return &Graph{
 		ar:    ma,
 		ts:    ma.ts,
 		graph: graph,
-	}
+	}, nil
 }
 
 // Compiler returns a query compiler that uses the graph

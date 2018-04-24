@@ -11,6 +11,7 @@ import (
 	"github.com/bmeg/arachne/gdbi"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 )
 
 // ArachneServer is a GRPC based arachne server
@@ -48,10 +49,13 @@ func (server *ArachneServer) CloseDB() {
 
 // Traversal parses a traversal request and streams the results back
 func (server *ArachneServer) Traversal(query *aql.GraphQuery, queryServer aql.Query_TraversalServer) error {
-	compiler := server.db.Graph(query.Graph).Compiler()
+	graph, err := server.db.Graph(query.Graph)
+	if err != nil {
+		return err
+	}
+	compiler := graph.Compiler()
 	pipeline, err := compiler.Compile(query.Query)
 	if err != nil {
-		log.Printf("Error: %s", err)
 		return err
 	}
 	res := engine.Run(queryServer.Context(), pipeline, server.workDir)
@@ -72,63 +76,97 @@ func (server *ArachneServer) GetGraphs(empty *aql.Empty, queryServer aql.Query_G
 
 // GetVertex returns a vertex given a aql.Element
 func (server *ArachneServer) GetVertex(ctx context.Context, elem *aql.ElementID) (*aql.Vertex, error) {
-	o := server.db.Graph(elem.Graph).GetVertex(elem.Id, true)
+	graph, err := server.db.Graph(elem.Graph)
+	if err != nil {
+		return nil, err
+	}
+	o := graph.GetVertex(elem.Id, true)
+	if o == nil {
+		return nil, grpc.Errorf(codes.NotFound, fmt.Sprintf("vertex %s not found", elem.Id))
+	}
 	return o, nil
 }
 
 // GetEdge returns an edge given a aql.Element
 func (server *ArachneServer) GetEdge(ctx context.Context, elem *aql.ElementID) (*aql.Edge, error) {
-	o := server.db.Graph(elem.Graph).GetEdge(elem.Id, true)
+	graph, err := server.db.Graph(elem.Graph)
+	if err != nil {
+		return nil, err
+	}
+	o := graph.GetEdge(elem.Id, true)
+	if o == nil {
+		return nil, grpc.Errorf(codes.NotFound, fmt.Sprintf("edge %s not found", elem.Id))
+	}
 	return o, nil
 }
 
 // GetTimestamp returns the update timestamp of a graph
 func (server *ArachneServer) GetTimestamp(ctx context.Context, elem *aql.ElementID) (*aql.Timestamp, error) {
-	o := aql.Timestamp{
-		Timestamp: server.db.Graph(elem.Graph).GetTimestamp(),
+	graph, err := server.db.Graph(elem.Graph)
+	if err != nil {
+		return nil, err
 	}
-	return &o, nil
+	return &aql.Timestamp{Timestamp: graph.GetTimestamp()}, nil
 }
 
 // DeleteGraph deletes a graph
 func (server *ArachneServer) DeleteGraph(ctx context.Context, elem *aql.ElementID) (*aql.EditResult, error) {
-	server.db.DeleteGraph(elem.Graph)
+	err := server.db.DeleteGraph(elem.Graph)
+	if err != nil {
+		return nil, err
+	}
 	return &aql.EditResult{Result: &aql.EditResult_Id{Id: elem.Graph}}, nil
 }
 
 // AddGraph creates a new graph on the server
 func (server *ArachneServer) AddGraph(ctx context.Context, elem *aql.ElementID) (*aql.EditResult, error) {
-	server.db.AddGraph(elem.Graph)
-	return &aql.EditResult{Result: &aql.EditResult_Id{Id: elem.Graph}}, nil
+	err := server.db.AddGraph(elem.Graph)
+	if err != nil {
+		return nil, err
+	}
+	return &aql.EditResult{Result: &aql.EditResult_Id{Id: elem.Graph}}, err
 }
 
 // AddVertex adds a vertex to the graph
 func (server *ArachneServer) AddVertex(ctx context.Context, elem *aql.GraphElement) (*aql.EditResult, error) {
-	var id string
-	server.db.Graph(elem.Graph).AddVertex([]*aql.Vertex{elem.Vertex})
-	id = elem.Vertex.Gid
-	return &aql.EditResult{Result: &aql.EditResult_Id{Id: id}}, nil
+	graph, err := server.db.Graph(elem.Graph)
+	if err != nil {
+		return nil, err
+	}
+	err = graph.AddVertex([]*aql.Vertex{elem.Vertex})
+	if err != nil {
+		return nil, err
+	}
+	return &aql.EditResult{Result: &aql.EditResult_Id{Id: elem.Vertex.Gid}}, nil
 }
 
 // AddEdge adds an edge to the graph
 func (server *ArachneServer) AddEdge(ctx context.Context, elem *aql.GraphElement) (*aql.EditResult, error) {
-	var id string
-	server.db.Graph(elem.Graph).AddEdge([]*aql.Edge{elem.Edge})
-	id = elem.Edge.Gid
-	return &aql.EditResult{Result: &aql.EditResult_Id{Id: id}}, nil
+	graph, err := server.db.Graph(elem.Graph)
+	if err != nil {
+		return nil, err
+	}
+	err = graph.AddEdge([]*aql.Edge{elem.Edge})
+	if err != nil {
+		return nil, err
+	}
+	return &aql.EditResult{Result: &aql.EditResult_Id{Id: elem.Edge.Gid}}, nil
 }
 
 // AddSubGraph adds a full subgraph to the graph in one post
 func (server *ArachneServer) AddSubGraph(ctx context.Context, subgraph *aql.Graph) (*aql.EditResult, error) {
-	if err := server.db.Graph(subgraph.Graph).AddVertex(subgraph.Vertices); err != nil {
+	graph, err := server.db.Graph(subgraph.Graph)
+	if err != nil {
 		return nil, err
 	}
-	if err := server.db.Graph(subgraph.Graph).AddEdge(subgraph.Edges); err != nil {
+	if err := graph.AddVertex(subgraph.Vertices); err != nil {
+		return nil, err
+	}
+	if err := graph.AddEdge(subgraph.Edges); err != nil {
 		return nil, err
 	}
 	log.Printf("%d vertices and %d edges added to graph %s", len(subgraph.Vertices), len(subgraph.Edges), subgraph.Graph)
-	id := subgraph.Graph
-	return &aql.EditResult{Result: &aql.EditResult_Id{Id: id}}, nil
+	return &aql.EditResult{Result: &aql.EditResult_Id{Id: subgraph.Graph}}, nil
 }
 
 type graphElementArray struct {
@@ -162,7 +200,11 @@ func (server *ArachneServer) StreamElements(stream aql.Edit_StreamElementsServer
 	go func() {
 		for vBatch := range vertexBatchChan {
 			if len(vBatch.vertices) > 0 && vBatch.graph != "" {
-				err := server.db.Graph(vBatch.graph).AddVertex(vBatch.vertices)
+				graph, err := server.db.Graph(vBatch.graph)
+				if err != nil {
+					log.Printf("Insert error: %s", err)
+				}
+				err = graph.AddVertex(vBatch.vertices)
 				if err != nil {
 					log.Printf("Insert error: %s", err)
 				}
@@ -170,10 +212,15 @@ func (server *ArachneServer) StreamElements(stream aql.Edit_StreamElementsServer
 		}
 		closeChan <- true
 	}()
+
 	go func() {
 		for eBatch := range edgeBatchChan {
 			if len(eBatch.edges) > 0 && eBatch.graph != "" {
-				err := server.db.Graph(eBatch.graph).AddEdge(eBatch.edges)
+				graph, err := server.db.Graph(eBatch.graph)
+				if err != nil {
+					log.Printf("Insert error: %s", err)
+				}
+				err = graph.AddEdge(eBatch.edges)
 				if err != nil {
 					log.Printf("Insert error: %s", err)
 				}
@@ -233,43 +280,63 @@ func (server *ArachneServer) StreamElements(stream aql.Edit_StreamElementsServer
 
 // DeleteVertex deletes a vertex from the server
 func (server *ArachneServer) DeleteVertex(ctx context.Context, elem *aql.ElementID) (*aql.EditResult, error) {
-	err := server.db.Graph(elem.Graph).DelVertex(elem.Id)
+	graph, err := server.db.Graph(elem.Graph)
 	if err != nil {
-		return &aql.EditResult{Result: &aql.EditResult_Error{Error: fmt.Sprintf("%s", err)}}, nil
+		return nil, err
+	}
+	err = graph.DelVertex(elem.Id)
+	if err != nil {
+		return nil, err
 	}
 	return &aql.EditResult{Result: &aql.EditResult_Id{Id: elem.Id}}, nil
 }
 
 // DeleteEdge deletes an edge from the graph server
 func (server *ArachneServer) DeleteEdge(ctx context.Context, elem *aql.ElementID) (*aql.EditResult, error) {
-	err := server.db.Graph(elem.Graph).DelEdge(elem.Id)
+	graph, err := server.db.Graph(elem.Graph)
 	if err != nil {
-		return &aql.EditResult{Result: &aql.EditResult_Error{Error: fmt.Sprintf("%s", err)}}, nil
+		return nil, err
+	}
+	err = graph.DelEdge(elem.Id)
+	if err != nil {
+		return nil, err
 	}
 	return &aql.EditResult{Result: &aql.EditResult_Id{Id: elem.Id}}, nil
 }
 
 // AddIndex adds a new index
 func (server *ArachneServer) AddIndex(ctx context.Context, idx *aql.IndexID) (*aql.EditResult, error) {
-	err := server.db.Graph(idx.Graph).AddVertexIndex(idx.Label, idx.Field)
+	graph, err := server.db.Graph(idx.Graph)
 	if err != nil {
-		return &aql.EditResult{Result: &aql.EditResult_Error{Error: fmt.Sprintf("%s", err)}}, nil
+		return nil, err
+	}
+	err = graph.AddVertexIndex(idx.Label, idx.Field)
+	if err != nil {
+		return nil, err
 	}
 	return &aql.EditResult{Result: &aql.EditResult_Id{Id: idx.Field}}, nil
 }
 
 // DeleteIndex removes an index from the server
 func (server *ArachneServer) DeleteIndex(ctx context.Context, idx *aql.IndexID) (*aql.EditResult, error) {
-	err := server.db.Graph(idx.Graph).DeleteVertexIndex(idx.Label, idx.Field)
+	graph, err := server.db.Graph(idx.Graph)
 	if err != nil {
-		return &aql.EditResult{Result: &aql.EditResult_Error{Error: fmt.Sprintf("%s", err)}}, nil
+		return nil, err
+	}
+	err = graph.DeleteVertexIndex(idx.Label, idx.Field)
+	if err != nil {
+		return nil, err
 	}
 	return &aql.EditResult{Result: &aql.EditResult_Id{Id: idx.Field}}, nil
 }
 
 // GetIndex returns the terms and their counts from an index
 func (server *ArachneServer) GetIndex(idx *aql.IndexID, stream aql.Query_GetIndexServer) error {
-	res := server.db.Graph(idx.Graph).GetVertexTermCount(stream.Context(), idx.Label, idx.Field)
+	graph, err := server.db.Graph(idx.Graph)
+	if err != nil {
+		return err
+	}
+	res := graph.GetVertexTermCount(stream.Context(), idx.Label, idx.Field)
 	for i := range res {
 		l := i
 		stream.Send(&l)
@@ -279,7 +346,11 @@ func (server *ArachneServer) GetIndex(idx *aql.IndexID, stream aql.Query_GetInde
 
 // GetIndexList lists avalible indices from a graph
 func (server *ArachneServer) GetIndexList(idx *aql.GraphID, stream aql.Query_GetIndexListServer) error {
-	res := server.db.Graph(idx.Graph).GetVertexIndexList()
+	graph, err := server.db.Graph(idx.Graph)
+	if err != nil {
+		return err
+	}
+	res := graph.GetVertexIndexList()
 	for i := range res {
 		stream.Send(&i)
 	}
@@ -299,6 +370,5 @@ func (server *ArachneServer) IndexTraversal(idx *aql.IndexQuery, stream aql.Quer
 			queryServer.Send(&l)
 		}
 	*/
-	log.Printf("This should probably be written")
-	return nil
+	return fmt.Errorf("Not implemented")
 }

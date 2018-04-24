@@ -25,7 +25,10 @@ func BenchmarkVertexInsert(b *testing.B) {
 	kv, _ := badgerdb.NewKVInterface("test_1.db")
 	graphDB := kvgraph.NewKVGraph(kv)
 	graphDB.AddGraph("test")
-	graph := graphDB.Graph("test")
+	graph, err := graphDB.Graph("test")
+	if err != nil {
+		b.Fatal(err)
+	}
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -45,7 +48,10 @@ func BenchmarkEdgeInsert(b *testing.B) {
 	kv, _ := badgerdb.NewKVInterface("test_1.db")
 	graphDB := kvgraph.NewKVGraph(kv)
 	graphDB.AddGraph("test")
-	graph := graphDB.Graph("test")
+	graph, err := graphDB.Graph("test")
+	if err != nil {
+		b.Fatal(err)
+	}
 
 	gids := make([]string, 1000)
 	v := make([]*aql.Vertex, 1000)

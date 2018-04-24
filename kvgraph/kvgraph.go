@@ -60,7 +60,7 @@ func (kgraph *KVGraph) DeleteGraph(graph string) error {
 }
 
 // Graph obtains the gdbi.DBI for a particular graph
-func (kgraph *KVGraph) Graph(graph string) gdbi.GraphInterface {
+func (kgraph *KVGraph) Graph(graph string) (gdbi.GraphInterface, error) {
 	found := false
 	for _, gname := range kgraph.GetGraphs() {
 		if graph == gname {
@@ -68,14 +68,14 @@ func (kgraph *KVGraph) Graph(graph string) gdbi.GraphInterface {
 		}
 	}
 	if !found {
-		panic(fmt.Errorf("graph '%s' was not found", graph))
+		return nil, fmt.Errorf("graph '%s' was not found", graph)
 	}
-	return &KVInterfaceGDB{kvg: kgraph, graph: graph}
+	return &KVInterfaceGDB{kvg: kgraph, graph: graph}, nil
 }
 
 // Close the connection
-func (kgraph *KVGraph) Close() {
-	kgraph.kv.Close()
+func (kgraph *KVGraph) Close() error {
+	return kgraph.kv.Close()
 }
 
 // GetGraphs lists the graphs managed by this driver
@@ -446,19 +446,25 @@ func (kgdb *KVInterfaceGDB) GetOutList(ctx context.Context, id string, loadProp 
 // GetVertex loads a vertex given an id. It returns a nil if not found
 func (kgdb *KVInterfaceGDB) GetVertex(id string, loadProp bool) *aql.Vertex {
 	vkey := VertexKey(kgdb.graph, id)
-	v := &aql.Vertex{}
-	kgdb.kvg.kv.View(func(it kvi.KVIterator) error {
+
+	var v *aql.Vertex
+	err := kgdb.kvg.kv.View(func(it kvi.KVIterator) error {
 		dataValue, err := it.Get(vkey)
 		if err != nil {
-			return nil
+			return err
+		}
+		v = &aql.Vertex{
+			Gid: id,
 		}
 		if loadProp {
 			proto.Unmarshal(dataValue, v)
-		} else {
-			v.Gid = id
 		}
 		return nil
 	})
+	if err != nil {
+		return nil
+	}
+
 	return v
 }
 
@@ -659,8 +665,8 @@ func (kgdb *KVInterfaceGDB) GetInEdgeChannel(reqChan chan gdbi.ElementLookup, lo
 func (kgdb *KVInterfaceGDB) GetEdge(id string, loadProp bool) *aql.Edge {
 	ekeyPrefix := EdgeKeyPrefix(kgdb.graph, id)
 
-	e := &aql.Edge{}
-	kgdb.kvg.kv.View(func(it kvi.KVIterator) error {
+	var e *aql.Edge
+	err := kgdb.kvg.kv.View(func(it kvi.KVIterator) error {
 		for it.Seek(ekeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), ekeyPrefix); it.Next() {
 			_, eid, src, dst, label, _ := EdgeKeyParse(it.Key())
 			if loadProp {
@@ -668,15 +674,20 @@ func (kgdb *KVInterfaceGDB) GetEdge(id string, loadProp bool) *aql.Edge {
 				d, _ := it.Value()
 				proto.Unmarshal(d, e)
 			} else {
-				e = &aql.Edge{}
-				e.Gid = eid
-				e.From = src
-				e.To = dst
-				e.Label = label
+				e = &aql.Edge{
+					Gid:   eid,
+					From:  src,
+					To:    dst,
+					Label: label,
+				}
 			}
 		}
 		return nil
 	})
+	if err != nil {
+		return nil
+	}
+
 	return e
 }
 
