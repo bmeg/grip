@@ -31,18 +31,16 @@ with-rocksdb:
 proto:
 	@go get github.com/ckaznocha/protoc-gen-lint
 	@cd aql && protoc \
-	  -I ./ \
-    -I ../googleapis \
-	  --lint_out=. \
-	  --go_out=\
-	  Mgoogle/protobuf/struct.proto=github.com/golang/protobuf/ptypes/struct,\
-	  plugins=grpc:./ \
-	  --grpc-gateway_out=logtostderr=true:. \
-	  aql.proto
+		-I ./ \
+		-I ../googleapis \
+		--lint_out=. \
+		--go_out=Mgoogle/protobuf/struct.proto=github.com/golang/protobuf/ptypes/struct,plugins=grpc:. \
+		--grpc-gateway_out=logtostderr=true:. \
+		aql.proto
 	@cd kvindex && protoc \
-	  -I ./ \
-    --go_out=. \
-	  index.proto
+		-I ./ \
+		--go_out=. \
+		index.proto
 
 proto-depends:
 	@go install github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway
@@ -64,7 +62,7 @@ lint:
 	@gometalinter --install > /dev/null
 	@gometalinter --disable-all --enable=vet --enable=golint --enable=gofmt --enable=misspell \
 		--vendor \
-		-e '.*bundle.go' -e ".*pb.go" -e ".*pb.gw.go"  -e "underscore.go" \
+		-e '.*bundle.go' -e ".*pb.go" -e ".*pb.gw.go" -e "underscore.go" \
 		./...
 
 # ---------------------
