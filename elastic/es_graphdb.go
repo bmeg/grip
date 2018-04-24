@@ -44,8 +44,9 @@ func NewElastic(url string, database string) (gdbi.GraphDB, error) {
 }
 
 // Close closes connection to elastic search
-func (es *Elastic) Close() {
+func (es *Elastic) Close() error {
 	es.client.Stop()
+	return nil
 }
 
 // GetGraphs returns list of graphs on elastic search instance
@@ -116,10 +117,10 @@ func (es *Elastic) AddGraph(graph string) error {
           },
           "from": {
             "type": "keyword"
-          }
+          },
           "to": {
             "type": "keyword"
-          }
+          },
           "label": {
             "type": "keyword"
           }
@@ -151,7 +152,7 @@ func (es *Elastic) DeleteGraph(graph string) error {
 }
 
 // Graph returns interface to a specific graph in the graphdb
-func (es *Elastic) Graph(graph string) gdbi.GraphInterface {
+func (es *Elastic) Graph(graph string) (gdbi.GraphInterface, error) {
 	found := false
 	for _, gname := range es.GetGraphs() {
 		if graph == gname {
@@ -159,7 +160,7 @@ func (es *Elastic) Graph(graph string) gdbi.GraphInterface {
 		}
 	}
 	if !found {
-		panic(fmt.Errorf("graph '%s' was not found", graph))
+		return nil, fmt.Errorf("graph '%s' was not found", graph)
 	}
 	// TODO pass config to down to the Graph instance
 	return &Graph{
@@ -172,5 +173,5 @@ func (es *Elastic) Graph(graph string) gdbi.GraphInterface {
 		edgeIndex:   fmt.Sprintf("%s_%s_edge", es.database, graph),
 		batchSize:   1000,
 		synchronous: true,
-	}
+	}, nil
 }

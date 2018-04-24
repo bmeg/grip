@@ -63,9 +63,9 @@ type GraphDB interface {
 	AddGraph(string) error
 	DeleteGraph(string) error
 	GetGraphs() []string
-	Graph(id string) GraphInterface
+	Graph(id string) (GraphInterface, error)
 
-	Close()
+	Close() error
 }
 
 // GraphInterface is the base Graph data storage interface, the PipeEngine will be able

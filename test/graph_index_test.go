@@ -75,7 +75,10 @@ func TestVertexLabel(t *testing.T) {
 	if err != nil {
 		t.Fatal("Failed to add graph", err)
 	}
-	graph := gdb.Graph("test")
+	graph, err := gdb.Graph("test")
+	if err != nil {
+		t.Fatal(err)
+	}
 	graph.AddVertex(e.Vertices)
 	graph.AddEdge(e.Edges)
 

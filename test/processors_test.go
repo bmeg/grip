@@ -188,7 +188,10 @@ func TestEngine(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	db := kvg.Graph("test-graph")
+	db, err := kvg.Graph("test-graph")
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	for _, v := range verts {
 		err := db.AddVertex([]*aql.Vertex{v})

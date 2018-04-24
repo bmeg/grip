@@ -422,7 +422,7 @@ func (es *Graph) GetOutChannel(req chan gdbi.ElementLookup, load bool, edgeLabel
 			}
 
 			q := es.client.Search().Index(es.edgeIndex)
-			qParts := []elastic.Query{elastic.NewTermsQuery("from.keyword", idBatch...)}
+			qParts := []elastic.Query{elastic.NewTermsQuery("from", idBatch...)}
 			if len(edgeLabels) > 0 {
 				labels := make([]interface{}, len(edgeLabels))
 				for i, v := range edgeLabels {
@@ -542,7 +542,7 @@ func (es *Graph) GetInChannel(req chan gdbi.ElementLookup, load bool, edgeLabels
 			}
 
 			q := es.client.Search().Index(es.edgeIndex)
-			qParts := []elastic.Query{elastic.NewTermsQuery("to.keyword", idBatch...)}
+			qParts := []elastic.Query{elastic.NewTermsQuery("to", idBatch...)}
 			if len(edgeLabels) > 0 {
 				labels := make([]interface{}, len(edgeLabels))
 				for i, v := range edgeLabels {
@@ -661,7 +661,7 @@ func (es *Graph) GetOutEdgeChannel(req chan gdbi.ElementLookup, load bool, edgeL
 			}
 
 			q := es.client.Search().Index(es.edgeIndex)
-			qParts := []elastic.Query{elastic.NewTermsQuery("from.keyword", idBatch...)}
+			qParts := []elastic.Query{elastic.NewTermsQuery("from", idBatch...)}
 			if len(edgeLabels) > 0 {
 				labels := make([]interface{}, len(edgeLabels))
 				for i, v := range edgeLabels {
@@ -741,7 +741,7 @@ func (es *Graph) GetInEdgeChannel(req chan gdbi.ElementLookup, load bool, edgeLa
 			}
 
 			q := es.client.Search().Index(es.edgeIndex)
-			qParts := []elastic.Query{elastic.NewTermsQuery("to.keyword", idBatch...)}
+			qParts := []elastic.Query{elastic.NewTermsQuery("to", idBatch...)}
 			if len(edgeLabels) > 0 {
 				labels := make([]interface{}, len(edgeLabels))
 				for i, v := range edgeLabels {
