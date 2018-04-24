@@ -191,6 +191,92 @@ data:
 
 ## Loading the Schema
 
+The example data would be in a file called `data.yaml`:
+```
+vertices:
+  - gid: 1000
+    label: Human
+    data:
+      name: Luke Skywalker
+      height: 1.72
+      mass: 77
+      homePlanet: Tatooine
+  - gid: 1001
+    label: Human
+    data:
+      name: Darth Vader
+      height: 2.02
+      mass: 136
+      homePlanet: Tatooine
+  - gid: 1002
+    label: Human
+    data
+      name: Han Solo
+      height: 1.8
+      mass: 80
+  - gid: 1003
+    label: Human
+    data:
+      name: Leia Organa
+      height: 1.5
+      mass: 49
+      homePlanet: Alderaan
+  - gid: 1004
+    label: Human
+    data
+      name: Wilhuff Tarkin
+      height: 1.8
+      mass:   nil
+edges:
+  - {label: "friend", from: "1000", to: "1002"}
+  - {label: "friend", from: "1000", to: "1003"}
+  - {label: "friend", from: "1001", to: "1004"}
+  - {label: "friend", from: "1002", to: "1000"}
+  - {label: "friend", from: "1002", to: "1003"}
+  - {label: "friend", from: "1003", to: "1000"}
+  - {label: "friend", from: "1003", to: "1002"}
+  - {label: "friend", from: "1004", to: "1001"}
+```
+
+For the friend network, the schema would be a file named `schema.yaml` with:
+```
+vertices:
+  - gid: root
+    label: Query
+  - gid: Human
+    label: Object
+    data:
+      fields:
+        name: String
+        height: Float
+        mass: Float
+        homePlanet: String
+edges:
+    - label: field
+      from: root
+      to: Human
+      data:
+        type: idQuery
+        name: Human
+    - label: field
+      from: Human
+      to: Human
+      data:
+        name: friends
+        label : "friend
+    - label: field
+      from: root
+      to: Human
+      data:
+        name: HumanIds
+        type: idList
+```
+
+To load the file:
+```
+arachne load --graph test:schema --yaml test.schema
+```
+
 
 ## Using Built in example
 
