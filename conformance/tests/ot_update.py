@@ -6,6 +6,7 @@ def test_duplicate(O):
     O.addVertex("vertex2", "person")
     O.addVertex("vertex2", "clone")
 
+    O.addEdge("vertex1", "vertex2", "friend", data={"field": 1}, id="edge1")
     O.addEdge("vertex1", "vertex2", "friend", id="edge1")
     O.addEdge("vertex1", "vertex2", "friend", data={"weight": 5}, id="edge1")
 
@@ -26,6 +27,7 @@ def test_replace(O):
     O.addVertex("vertex2", "person")
     O.addVertex("vertex2", "clone")
 
+    O.addEdge("vertex1", "vertex2", "friend", data={"field": 1}, id="edge1")
     O.addEdge("vertex1", "vertex2", "friend", id="edge1")
     O.addEdge("vertex1", "vertex2", "friend", data={"weight": 5}, id="edge1")
 
