@@ -13,7 +13,6 @@ func PackVertex(v *aql.Vertex) map[string]interface{} {
 	if v.Data != nil {
 		p = protoutil.AsMap(v.Data)
 	}
-	//fmt.Printf("proto:%s\nmap:%s\n", v.Data, p)
 	return map[string]interface{}{
 		"_id":   v.Gid,
 		"label": v.Label,
@@ -27,16 +26,13 @@ func PackEdge(e *aql.Edge) map[string]interface{} {
 	if e.Data != nil {
 		p = protoutil.AsMap(e.Data)
 	}
-	o := map[string]interface{}{
+	return map[string]interface{}{
+		"_id":   e.Gid,
 		"from":  e.From,
 		"to":    e.To,
 		"label": e.Label,
 		"data":  p,
 	}
-	if e.Gid != "" {
-		o["_id"] = e.Gid
-	}
-	return o
 }
 
 type pair struct {
