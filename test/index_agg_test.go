@@ -6,6 +6,8 @@ import (
 	"log"
 	//"math"
 	"testing"
+
+	"github.com/bmeg/arachne/kvindex"
 )
 
 var numDocs = `[
@@ -28,7 +30,8 @@ var numDocs = `[
 ]`
 
 func TestFloatSorting(t *testing.T) {
-	idx := setupIndex()
+	resetKVInterface()
+	idx := kvindex.NewIndex(kvdriver)
 
 	newFields := []string{"value"}
 	for _, s := range newFields {
@@ -60,11 +63,11 @@ func TestFloatSorting(t *testing.T) {
 		t.Errorf("Incorrect Max")
 	}
 
-	closeIndex()
 }
 
 func TestFloatRange(t *testing.T) {
-	idx := setupIndex()
+	resetKVInterface()
+	idx := kvindex.NewIndex(kvdriver)
 
 	newFields := []string{"value"}
 	for _, s := range newFields {
@@ -97,5 +100,4 @@ func TestFloatRange(t *testing.T) {
 		//log.Printf("%#v", d)
 	}
 
-	closeIndex()
 }

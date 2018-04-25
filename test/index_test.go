@@ -103,7 +103,7 @@ func TestLoadDoc(t *testing.T) {
 		count++
 	}
 	if count != 3 {
-		b.Errorf("Wrong return count %d != %d", count, 3)
+		t.Errorf("Wrong return count %d != %d", count, 3)
 	}
 
 	count = 0
@@ -141,7 +141,7 @@ func TestTermEnum(t *testing.T) {
 		}
 	}
 	if count != 3 {
-		b.Errorf("Wrong return count %d != %d", count, 3)
+		t.Errorf("Wrong return count %d != %d", count, 3)
 	}
 
 	count = 0
@@ -152,7 +152,7 @@ func TestTermEnum(t *testing.T) {
 		}
 	}
 	if count != 4 {
-		b.Errorf("Wrong return count %d != %d", count, 4)
+		t.Errorf("Wrong return count %d != %d", count, 4)
 	}
 }
 
@@ -175,7 +175,7 @@ func TestTermCount(t *testing.T) {
 	for d := range idx.FieldStringTermCounts("v.data.lastName") {
 		count++
 		if !contains(d.String, lastNames) {
-			b.Errorf("Bad term return: %s", d.String)
+			t.Errorf("Bad term return: %s", d.String)
 		}
 		if d.String == "Smith" {
 			if d.Count != 2 {
@@ -184,18 +184,18 @@ func TestTermCount(t *testing.T) {
 		}
 	}
 	if count != 3 {
-		b.Errorf("Wrong return count %d != %d", count, 3)
+		t.Errorf("Wrong return count %d != %d", count, 3)
 	}
 	log.Printf("Counting: %d", count)
 	count = 0
 	for d := range idx.FieldTermCounts("v.data.firstName") {
 		count++
 		if !contains(d.String, firstNames) {
-			b.Errorf("Bad term return: %s", d.String)
+			t.Errorf("Bad term return: %s", d.String)
 		}
 	}
 	if count != 4 {
-		b.Errorf("Wrong return count %d != %d", count, 4)
+		t.Errorf("Wrong return count %d != %d", count, 4)
 	}
 }
 
@@ -237,7 +237,8 @@ func TestNumField(b *testing.T) {
 	data := []map[string]interface{}{}
 	json.Unmarshal([]byte(docs), &data)
 
-	idx := setupIndex()
+	resetKVInterface()
+	idx := kvindex.NewIndex(kvdriver)
 	newFields := []string{"v.label", "v.data.age"}
 	for _, s := range newFields {
 		idx.AddField(s)
