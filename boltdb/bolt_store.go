@@ -206,7 +206,13 @@ func (boltIt *boltIterator) SeekReverse(id []byte) error {
 	if k == nil || v == nil {
 		boltIt.key = nil
 		boltIt.value = nil
+		log.Printf("Nil rev seek")
 		return fmt.Errorf("Seek error")
+	}
+	//seek lands at value equal or above id. Move once to make sure
+	//key is less then id
+	if bytes.Compare(id, k) < 0 {
+		k, v = boltIt.c.Prev()
 	}
 	boltIt.key = copyBytes(k)
 	boltIt.value = copyBytes(v)
