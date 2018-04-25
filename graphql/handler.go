@@ -45,14 +45,19 @@ func NewHTTPHandler(address string) http.Handler {
 func (gh *Handler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 	pathRE, _ := regexp.Compile("/graphql/(.*)$")
 	graphName := pathRE.FindStringSubmatch(request.URL.Path)[1]
-	if v, ok := gh.handlers[graphName]; ok {
+	var v *graphHandler
+	var ok bool
+	if v, ok = gh.handlers[graphName]; ok {
 		v.setup()
-		v.gqlHandler.ServeHTTP(writer, request)
 	} else {
 		v := newGraphHandler(graphName, gh.client)
 		v.setup()
 		gh.handlers[graphName] = v
+	}
+	if v != nil && v.gqlHandler != nil {
 		v.gqlHandler.ServeHTTP(writer, request)
+	} else {
+		http.Error(writer, "GraphQL Schema error", http.StatusInternalServerError)
 	}
 }
 
@@ -73,11 +78,17 @@ func (gh *graphHandler) setup() {
 	ts, _ := gh.client.GetTimestamp(gh.schema)
 	if ts.Timestamp != gh.timestamp {
 		log.Printf("Reloading GraphQL")
-		schema := buildGraphQLSchema(gh.client, gh.schema, gh.graph)
-		gh.gqlHandler = handler.New(&handler.Config{
-			Schema: schema,
-		})
-		gh.timestamp = ts.Timestamp
+		schema, err := buildGraphQLSchema(gh.client, gh.schema, gh.graph)
+		if err != nil {
+			log.Printf("Graph Schema build Failed")
+			gh.gqlHandler = nil
+			gh.timestamp = ""
+		} else {
+			gh.gqlHandler = handler.New(&handler.Config{
+				Schema: schema,
+			})
+			gh.timestamp = ts.Timestamp
+		}
 	}
 }
 
@@ -318,13 +329,13 @@ func buildQueryObject(client aql.Client, gqlDB string, dataGraph string, objects
 	return queryType
 }
 
-func buildGraphQLSchema(client aql.Client, gqlDB string, dataGraph string) *graphql.Schema {
+func buildGraphQLSchema(client aql.Client, gqlDB string, dataGraph string) (*graphql.Schema, error) {
 	objects := buildObjectMap(client, gqlDB, dataGraph)
 	queryType := buildQueryObject(client, gqlDB, dataGraph, objects)
 	schemaConfig := graphql.SchemaConfig{
 		Query: queryType,
 	}
 	//log.Printf("GraphQL Schema: %s", schemaConfig)
-	schema, _ := graphql.NewSchema(schemaConfig)
-	return &schema
+	schema, err := graphql.NewSchema(schemaConfig)
+	return &schema, err
 }
