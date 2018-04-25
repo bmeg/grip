@@ -199,17 +199,6 @@ func (mg *Graph) Compiler() gdbi.Compiler {
 	return NewCompiler(mg)
 }
 
-// GetEdge loads an edge given an id. It returns nil if not found
-func (mg *Graph) GetEdge(id string, loadProp bool) *aql.Edge {
-	session := mg.ar.pool.Get()
-	d := map[string]interface{}{}
-	q := mg.ar.getEdgeCollection(session, mg.graph).FindId(id)
-	q.One(d)
-	v := UnpackEdge(d)
-	mg.ar.pool.Put(session)
-	return v
-}
-
 // GetTimestamp gets the timestamp of last update
 func (mg *Graph) GetTimestamp() string {
 	return mg.ts.Get(mg.graph)
@@ -218,19 +207,38 @@ func (mg *Graph) GetTimestamp() string {
 // GetVertex loads a vertex given an id. It returns a nil if not found
 func (mg *Graph) GetVertex(key string, load bool) *aql.Vertex {
 	session := mg.ar.pool.Get()
+	defer mg.ar.pool.Put(session)
+
 	d := map[string]interface{}{}
-	vCol := mg.ar.getVertexCollection(session, mg.graph)
-	q := vCol.Find(map[string]interface{}{"_id": key}).Limit(1)
+	q := mg.ar.getVertexCollection(session, mg.graph).FindId(key)
 	if !load {
 		q = q.Select(map[string]interface{}{"_id": 1, "label": 1})
 	}
 	err := q.One(d)
-	mg.ar.pool.Put(session)
-
 	if err != nil {
 		return nil
 	}
+
 	v := UnpackVertex(d)
+	return v
+}
+
+// GetEdge loads an edge given an id. It returns nil if not found
+func (mg *Graph) GetEdge(id string, load bool) *aql.Edge {
+	session := mg.ar.pool.Get()
+	defer mg.ar.pool.Put(session)
+
+	d := map[string]interface{}{}
+	q := mg.ar.getEdgeCollection(session, mg.graph).FindId(id)
+	if !load {
+		q = q.Select(map[string]interface{}{"_id": 1, "label": 1, "from": 1, "to": 1})
+	}
+	err := q.One(d)
+	if err != nil {
+		return nil
+	}
+
+	v := UnpackEdge(d)
 	return v
 }
 
