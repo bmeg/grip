@@ -348,6 +348,32 @@ func (idx *KVIndex) FieldTerms(field string) chan interface{} {
 	return out
 }
 
+// FieldNumbers returns all entries values, in numeric order
+func (idx *KVIndex) FieldNumbers(field string) chan float64 {
+	out := make(chan float64, bufferSize)
+	go func() {
+		defer close(out)
+		idx.kv.View(func(it kvi.KVIterator) error {
+			//check negative
+			ninf := EntryValuePrefix(field, TermNumber, floatNegInfBytes)
+			inf := EntryValuePrefix(field, TermNumber, floatPosInfBytes)
+			zero := EntryValuePrefix(field, TermNumber, floatZeroBytes)
+			for it.SeekReverse(ninf); it.Valid() && bytes.Compare(inf, it.Key()) < 0; it.Next() {
+				_, _, term := TermKeyParse(it.Key())
+				val := getBytesTerm(term, TermNumber).(float64)
+				out <- val
+			}
+			for it.Seek(zero); it.Valid() && bytes.Compare(inf, it.Key()) > 0; it.Next() {
+				_, _, term := TermKeyParse(it.Key())
+				val := getBytesTerm(term, TermNumber).(float64)
+				out <- val
+			}
+			return nil
+		})
+	}()
+	return out
+}
+
 type typedTerm struct {
 	t    TermType
 	term []byte
@@ -449,6 +475,7 @@ func (idx *KVIndex) FieldTermNumberMax(field string) float64 {
 		if it.Valid() && bytes.HasPrefix(it.Key(), prefix) {
 			_, _, term := TermKeyParse(it.Key())
 			val := getBytesTerm(term, TermNumber).(float64)
+			log.Printf("MaxScan: %f", val)
 			if val > 0 {
 				min = val
 				return nil

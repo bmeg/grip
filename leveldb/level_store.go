@@ -164,6 +164,11 @@ func (lit *levelIterator) Seek(id []byte) error {
 func (lit *levelIterator) SeekReverse(id []byte) error {
 	lit.forward = false
 	if lit.it.Seek(id) {
+		//Level iterator will land on the first value above the request
+		//if we're there, move once to get below start request
+		if bytes.Compare(id, lit.it.Key()) < 0 {
+			lit.it.Prev()
+		}
 		lit.key = copyBytes(lit.it.Key())
 		lit.value = copyBytes(lit.it.Value())
 		return nil

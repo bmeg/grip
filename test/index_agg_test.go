@@ -48,19 +48,24 @@ func TestFloatSorting(t *testing.T) {
 	//idx.AddDoc("a", map[string]interface{}{"value": math.Inf(1)})
 	//idx.AddDoc("b", map[string]interface{}{"value": math.Inf(-1)})
 
+	last := -10000.0
 	log.Printf("Scanning")
-	for d := range idx.FieldTerms("value") {
-		log.Printf("%s", d)
+	for d := range idx.FieldNumbers("value") {
+		if d < last {
+			t.Errorf("Incorrect field return order: %f < %f", d, last)
+		}
+		last = d
+		log.Printf("Scan, %f", d)
 	}
 
 	log.Printf("Min %f", idx.FieldTermNumberMin("value"))
 	log.Printf("Max %f", idx.FieldTermNumberMax("value"))
 
-	if idx.FieldTermNumberMin("value") != -200.0 {
-		t.Errorf("Incorrect Min")
+	if v := idx.FieldTermNumberMin("value"); v != -200.0 {
+		t.Errorf("Incorrect Min %f != %f", v, -200.0)
 	}
-	if idx.FieldTermNumberMax("value") != 400.7 {
-		t.Errorf("Incorrect Max")
+	if v := idx.FieldTermNumberMax("value"); v != 400.7 {
+		t.Errorf("Incorrect Max: %f != %f", v, 400.7)
 	}
 
 }
