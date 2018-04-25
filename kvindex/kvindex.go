@@ -13,13 +13,16 @@ import (
 	proto "github.com/golang/protobuf/proto"
 )
 
+// TermType represents the datatype of a term
 type TermType byte
 
 const (
-	TermUnknown   TermType = 0x00
-	TermString    TermType = 0x01
-	TermNumber    TermType = 0x02
-	termMaxNumber TermType = 0x03
+	//TermUnknown wildcard for term searching
+	TermUnknown TermType = 0x00
+	//TermString term is type string
+	TermString TermType = 0x01
+	//TermNumber term is a number
+	TermNumber TermType = 0x02
 )
 
 const bufferSize = 1000
@@ -111,10 +114,9 @@ func EntryKeyParse(key []byte) (string, TermType, []byte, string) {
 	suffix := tmp[3]
 	if ttype == TermNumber {
 		return field, ttype, suffix[0:8], string(suffix[8:])
-	} else {
-		stmp := bytes.Split(suffix, []byte{0})
-		return field, ttype, stmp[0], string(stmp[1])
 	}
+	stmp := bytes.Split(suffix, []byte{0})
+	return field, ttype, stmp[0], string(stmp[1])
 }
 
 // DocKey create a document entry key
@@ -395,6 +397,7 @@ func (idx *KVIndex) FieldTermCounts(field string) chan KVTermCount {
 	return idx.fieldTermCounts(field, TermUnknown)
 }
 
+// FieldStringTermCounts get all terms of type string, and their counts for a particular field
 func (idx *KVIndex) FieldStringTermCounts(field string) chan KVTermCount {
 	return idx.fieldTermCounts(field, TermString)
 }
@@ -403,6 +406,7 @@ var floatNegInfBytes, _ = getTermBytes(math.Inf(-1))
 var floatPosInfBytes, _ = getTermBytes(math.Inf(1))
 var floatZeroBytes, _ = getTermBytes(0.0)
 
+// FieldTermNumberMin finds the min number term for a field
 func (idx *KVIndex) FieldTermNumberMin(field string) float64 {
 	var min float64
 	idx.kv.View(func(it kvi.KVIterator) error {
@@ -434,6 +438,7 @@ func (idx *KVIndex) FieldTermNumberMin(field string) float64 {
 	return min
 }
 
+// FieldTermNumberMax finds the max number term for a field
 func (idx *KVIndex) FieldTermNumberMax(field string) float64 {
 	var min float64
 	idx.kv.View(func(it kvi.KVIterator) error {
