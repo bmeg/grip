@@ -1,3 +1,69 @@
+from __future__ import absolute_import
+
+import urllib2
+
+
+def test_get_vertex(O):
+    errors = []
+
+    O.addVertex("vertex1", "person", {"name": "han", "occupation": "smuggler"})
+
+    expected = {
+        u"gid": u"vertex1",
+        u"label": u"person",
+        u"data": {u"name": u"han", u"occupation": u"smuggler"}
+    }
+    try:
+        resp = O.getVertex("vertex1")
+        if resp != expected:
+            errors.append("Wrong vertex %s != %s" % (resp, expected))
+    except Exception as e:
+        errors.append("Unexpected error %s: %s" % (type(e).__name__, e))
+
+    try:
+        O.getVertex("i-dont-exist")
+        errors.append("Expected 404")
+    except urllib2.HTTPError as e:
+        if e.code != 404:
+            errors.append("Expected 404 not %s: %s" % (type(e).__name__, e))
+    except Exception as e:
+        errors.append("Expected 404 not %s: %s" % (type(e).__name__, e))
+
+    return errors
+
+
+def test_get_edge(O):
+    errors = []
+
+    O.addVertex("vertex1", "person", {"name": "han", "occupation": "smuggler"})
+    O.addVertex("vertex2", "person", {"name": "luke", "occupation": "jedi"})
+
+    O.addEdge("vertex1", "vertex2", "friend", id="edge1")
+
+    expected = {
+        u"gid": u"edge1",
+        u"label": u"friend",
+        u"from": u"vertex1",
+        u"to": u"vertex2",
+        u"data": {}
+    }
+    try:
+        resp = O.getEdge("edge1")
+        if resp != expected:
+            errors.append("Wrong edge %s != %s" % (resp, expected))
+    except Exception as e:
+        errors.append("Unexpected error %s: %s" % (type(e).__name__, e))
+
+    try:
+        O.getEdge("i-dont-exist")
+        errors.append("Expected 404")
+    except urllib2.HTTPError as e:
+        if e.code != 404:
+            errors.append("Expected 404 not %s: %s" % (type(e).__name__, e))
+    except Exception as e:
+        errors.append("Expected 404 not %s: %s" % (type(e).__name__, e))
+
+    return errors
 
 
 def test_has(O):
