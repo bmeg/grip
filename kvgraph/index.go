@@ -10,8 +10,8 @@ import (
 	"github.com/bmeg/arachne/protoutil"
 )
 
-func (kgraph *KVGraph) setupGraphIndex(graph string) {
-	kgraph.idx.AddField(fmt.Sprintf("%s.label", graph))
+func (kgraph *KVGraph) setupGraphIndex(graph string) error {
+	return kgraph.idx.AddField(fmt.Sprintf("%s.label", graph))
 }
 
 func (kgraph *KVGraph) deleteGraphIndex(graph string) {
@@ -36,12 +36,20 @@ func vertexIdxStruct(v *aql.Vertex) map[string]interface{} {
 
 //AddVertexIndex add index to vertices
 func (kgdb *KVInterfaceGDB) AddVertexIndex(label string, field string) error {
-	log.Printf("Adding Index: %s:%s", label, field)
+	log.Printf("Adding index: %s.%s", label, field)
+	//TODO kick off background process to reindex existing data
 	return kgdb.kvg.idx.AddField(fmt.Sprintf("%s.v.%s.%s", kgdb.graph, label, field))
 }
 
-// GetVertexIndexList lists out all the vertex indices for a graph
+//DeleteVertexIndex delete index from vertices
+func (kgdb *KVInterfaceGDB) DeleteVertexIndex(label string, field string) error {
+	log.Printf("Deleting index: %s.%s", label, field)
+	return kgdb.kvg.idx.RemoveField(fmt.Sprintf("%s.v.%s.%s", kgdb.graph, label, field))
+}
+
+//GetVertexIndexList lists out all the vertex indices for a graph
 func (kgdb *KVInterfaceGDB) GetVertexIndexList() chan aql.IndexID {
+	log.Printf("Getting index list")
 	out := make(chan aql.IndexID)
 	go func() {
 		defer close(out)
@@ -59,12 +67,12 @@ func (kgdb *KVInterfaceGDB) GetVertexIndexList() chan aql.IndexID {
 
 //GetVertexTermCount get count of every term across vertices
 func (kgdb *KVInterfaceGDB) GetVertexTermCount(ctx context.Context, label string, field string) chan aql.IndexTermCount {
-	log.Printf("Running GetVertexTermCount")
+	log.Printf("Running GetVertexTermCount: { label: %s, field: %s }", label, field)
 	out := make(chan aql.IndexTermCount, 100)
 	go func() {
 		defer close(out)
 		for tcount := range kgdb.kvg.idx.FieldTermCounts(fmt.Sprintf("%s.v.%s.%s", kgdb.graph, label, field)) {
-			s := tcount.String
+			s := tcount.String //BUG: This is ignoring number terms
 			t := protoutil.WrapValue(s)
 			a := aql.IndexTermCount{Term: t, Count: int32(tcount.Count)}
 			out <- a
@@ -73,27 +81,10 @@ func (kgdb *KVInterfaceGDB) GetVertexTermCount(ctx context.Context, label string
 	return out
 }
 
-//GetEdgeTermCount get count of every term across edges
-func (kgdb *KVInterfaceGDB) GetEdgeTermCount(ctx context.Context, label string, field string) chan aql.IndexTermCount {
-
-	return nil
-}
-
-//DeleteVertexIndex delete index from vertices
-func (kgdb *KVInterfaceGDB) DeleteVertexIndex(label string, field string) error {
-
-	return nil
-}
-
-//DeleteEdgeIndex delete index from edges
-func (kgdb *KVInterfaceGDB) DeleteEdgeIndex(label string, field string) error {
-
-	return nil
-}
-
-// VertexLabelScan produces a channel of all vertex ids in a graph
-// that match a given label
+//VertexLabelScan produces a channel of all vertex ids in a graph
+//that match a given label
 func (kgdb *KVInterfaceGDB) VertexLabelScan(ctx context.Context, label string) chan string {
+	log.Printf("Running VertexLabelScan for label: %s", label)
 	//TODO: Make this work better
 	out := make(chan string, 100)
 	go func() {
@@ -102,22 +93,6 @@ func (kgdb *KVInterfaceGDB) VertexLabelScan(ctx context.Context, label string) c
 		for i := range kgdb.kvg.idx.GetTermMatch(fmt.Sprintf("%s.label", kgdb.graph), label) {
 			//log.Printf("Found: %s", i)
 			out <- i
-		}
-	}()
-	return out
-}
-
-// EdgeLabelScan produces a channel of all edge ids in a graph
-// that match a given label
-func (kgdb *KVInterfaceGDB) EdgeLabelScan(ctx context.Context, label string) chan string {
-	//TODO: Make this work better
-	out := make(chan string, 100)
-	go func() {
-		defer close(out)
-		for i := range kgdb.GetEdgeList(ctx, true) {
-			if i.Label == label {
-				out <- i.Gid
-			}
 		}
 	}()
 	return out

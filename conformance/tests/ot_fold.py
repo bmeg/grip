@@ -25,9 +25,7 @@ def test_fold(O):
 
     O.addSubGraph(graph)
 
-    foldFunc = """function(x,y){
-       if (_.has(x,y["name"])) { x[y["name"]]++; } else {x[y["name"]]=1;}return x
-}"""
+    foldFunc = 'function(x,y) { if (_.has(x,y["name"])) { x[y["name"]]++; } else { x[y["name"]]=1; } return x }'
     query = O.query().V().fold({}, foldFunc)
 
     for row in query:

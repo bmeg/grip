@@ -3,10 +3,8 @@ package test
 import (
 	"encoding/json"
 	"log"
-	"os"
 	"testing"
 
-	"github.com/bmeg/arachne/badgerdb"
 	"github.com/bmeg/arachne/kvindex"
 )
 
@@ -60,18 +58,9 @@ func contains(c string, s []string) bool {
 	return false
 }
 
-func setupIndex() *kvindex.KVIndex {
-	kv, _ := badgerdb.BadgerBuilder("test.db")
-	idx := kvindex.NewIndex(kv)
-	return idx
-}
-
-func closeIndex() {
-	os.RemoveAll("test.db")
-}
-
-func TestFieldListing(b *testing.T) {
-	idx := setupIndex()
+func TestFieldListing(t *testing.T) {
+	resetKVInterface()
+	idx := kvindex.NewIndex(kvdriver)
 
 	newFields := []string{"label", "data.firstName", "data.lastName"}
 	for _, s := range newFields {
@@ -81,22 +70,22 @@ func TestFieldListing(b *testing.T) {
 	count := 0
 	for _, field := range idx.ListFields() {
 		if !contains(field, newFields) {
-			b.Errorf("Bad field return: %s", field)
+			t.Errorf("Bad field return: %s", field)
 		}
 		count++
 	}
 	if count != len(newFields) {
-		b.Errorf("Wrong return count %d != %d", count, len(newFields))
+		t.Errorf("Wrong return count %d != %d", count, len(newFields))
 	}
-
-	closeIndex()
 }
 
-func TestLoadDoc(b *testing.T) {
+func TestLoadDoc(t *testing.T) {
 	data := []map[string]interface{}{}
 	json.Unmarshal([]byte(docs), &data)
 
-	idx := setupIndex()
+	resetKVInterface()
+	idx := kvindex.NewIndex(kvdriver)
+
 	newFields := []string{"v.label", "v.data.firstName", "v.data.lastName"}
 	for _, s := range newFields {
 		idx.AddField(s)
@@ -109,7 +98,7 @@ func TestLoadDoc(b *testing.T) {
 	count := 0
 	for d := range idx.GetTermMatch("v.label", "Person") {
 		if !contains(d, personDocs) {
-			b.Errorf("Bad doc return: %s", d)
+			t.Errorf("Bad doc return: %s", d)
 		}
 		count++
 	}
@@ -120,21 +109,22 @@ func TestLoadDoc(b *testing.T) {
 	count = 0
 	for d := range idx.GetTermMatch("v.data.firstName", "Bob") {
 		if !contains(d, bobDocs) {
-			b.Errorf("Bad doc return: %s", d)
+			t.Errorf("Bad doc return: %s", d)
 		}
 		count++
 	}
 	if count != 1 {
-		b.Errorf("Wrong return count %d != %d", count, 1)
+		t.Errorf("Wrong return count %d != %d", count, 1)
 	}
-	closeIndex()
 }
 
-func TestTermEnum(b *testing.T) {
+func TestTermEnum(t *testing.T) {
 	data := []map[string]interface{}{}
 	json.Unmarshal([]byte(docs), &data)
 
-	idx := setupIndex()
+	resetKVInterface()
+	idx := kvindex.NewIndex(kvdriver)
+
 	newFields := []string{"v.label", "v.data.firstName", "v.data.lastName"}
 	for _, s := range newFields {
 		idx.AddField(s)
@@ -147,7 +137,7 @@ func TestTermEnum(b *testing.T) {
 	for d := range idx.FieldTerms("v.data.lastName") {
 		count++
 		if !contains(d.(string), lastNames) {
-			b.Errorf("Bad term return: %s", d)
+			t.Errorf("Bad term return: %s", d)
 		}
 	}
 	if count != 3 {
@@ -158,20 +148,21 @@ func TestTermEnum(b *testing.T) {
 	for d := range idx.FieldTerms("v.data.firstName") {
 		count++
 		if !contains(d.(string), firstNames) {
-			b.Errorf("Bad term return: %s", d)
+			t.Errorf("Bad term return: %s", d)
 		}
 	}
 	if count != 4 {
 		b.Errorf("Wrong return count %d != %d", count, 4)
 	}
-	closeIndex()
 }
 
-func TestTermCount(b *testing.T) {
+func TestTermCount(t *testing.T) {
 	data := []map[string]interface{}{}
 	json.Unmarshal([]byte(docs), &data)
 
-	idx := setupIndex()
+	resetKVInterface()
+	idx := kvindex.NewIndex(kvdriver)
+
 	newFields := []string{"v.label", "v.data.firstName", "v.data.lastName"}
 	for _, s := range newFields {
 		idx.AddField(s)
@@ -188,7 +179,7 @@ func TestTermCount(b *testing.T) {
 		}
 		if d.String == "Smith" {
 			if d.Count != 2 {
-				b.Errorf("Bad term count return: %d", d.Count)
+				t.Errorf("Bad term count return: %d", d.Count)
 			}
 		}
 	}
@@ -206,14 +197,15 @@ func TestTermCount(b *testing.T) {
 	if count != 4 {
 		b.Errorf("Wrong return count %d != %d", count, 4)
 	}
-	closeIndex()
 }
 
-func TestDocDelete(b *testing.T) {
+func TestDocDelete(t *testing.T) {
 	data := []map[string]interface{}{}
 	json.Unmarshal([]byte(docs), &data)
 
-	idx := setupIndex()
+	resetKVInterface()
+	idx := kvindex.NewIndex(kvdriver)
+
 	newFields := []string{"v.label", "v.data.firstName", "v.data.lastName"}
 	for _, s := range newFields {
 		idx.AddField(s)
@@ -227,7 +219,7 @@ func TestDocDelete(b *testing.T) {
 	for d := range idx.FieldTermCounts("v.data.firstName") {
 		if d.String == "Bob" {
 			if d.Count != 0 {
-				b.Errorf("Bad term count return: %d", d.Count)
+				t.Errorf("Bad term count return: %d", d.Count)
 			}
 		}
 	}
@@ -237,10 +229,8 @@ func TestDocDelete(b *testing.T) {
 		count++
 	}
 	if count != 0 {
-		b.Errorf("Wrong return count %d != %d", count, 0)
+		t.Errorf("Wrong return count %d != %d", count, 0)
 	}
-
-	closeIndex()
 }
 
 func TestNumField(b *testing.T) {

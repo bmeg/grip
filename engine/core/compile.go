@@ -2,11 +2,11 @@ package core
 
 import (
 	"fmt"
+	//"log"
 
 	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/gdbi"
 	"github.com/bmeg/arachne/protoutil"
-	//"log"
 )
 
 // DefaultPipeline a set of runnable query operations
@@ -15,7 +15,6 @@ type DefaultPipeline struct {
 	dataType  gdbi.DataType
 	markTypes map[string]gdbi.DataType
 	rowTypes  []gdbi.DataType
-	workDir   string
 }
 
 // DataType return the datatype
@@ -44,7 +43,7 @@ func NewCompiler(db gdbi.GraphInterface) gdbi.Compiler {
 }
 
 // Compile take set of statments and turns them into a runnable pipeline
-func (comp DefaultCompiler) Compile(stmts []*aql.GraphStatement, workDir string) (gdbi.Pipeline, error) {
+func (comp DefaultCompiler) Compile(stmts []*aql.GraphStatement) (gdbi.Pipeline, error) {
 	if len(stmts) == 0 {
 		return &DefaultPipeline{}, nil
 	}
@@ -249,7 +248,7 @@ func (comp DefaultCompiler) Compile(stmts []*aql.GraphStatement, workDir string)
 	  }
 	*/
 
-	return &DefaultPipeline{procs, lastType, markTypes, rowTypes, workDir}, nil
+	return &DefaultPipeline{procs, lastType, markTypes, rowTypes}, nil
 }
 
 //For V().HasLabel() queries, streamline into a single index lookup

@@ -63,9 +63,9 @@ type GraphDB interface {
 	AddGraph(string) error
 	DeleteGraph(string) error
 	GetGraphs() []string
-	Graph(id string) GraphInterface
+	Graph(id string) (GraphInterface, error)
 
-	Close()
+	Close() error
 }
 
 // GraphInterface is the base Graph data storage interface, the PipeEngine will be able
@@ -120,7 +120,7 @@ type Manager interface {
 
 // Compiler takes a aql query and turns it into an executable pipeline
 type Compiler interface {
-	Compile(stmts []*aql.GraphStatement, workDir string) (Pipeline, error)
+	Compile(stmts []*aql.GraphStatement) (Pipeline, error)
 }
 
 // Processor is the interface for a step in the pipe engine

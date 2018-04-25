@@ -14,10 +14,12 @@ import (
 	"github.com/boltdb/bolt"
 )
 
+var loaded = kvgraph.AddKVDriver("bolt", NewKVInterface)
+
 var graphBucket = []byte("graph")
 
-// BoltBuilder creates a new bolt interface at `path`
-func BoltBuilder(path string) (kvi.KVInterface, error) {
+// NewKVInterface creates new BoltDB backed KVInterface at `path`
+func NewKVInterface(path string) (kvi.KVInterface, error) {
 	log.Printf("Starting BoltDB")
 	db, err := bolt.Open(path, 0600, nil)
 	if err != nil {
@@ -34,14 +36,12 @@ func BoltBuilder(path string) (kvi.KVInterface, error) {
 	}, nil
 }
 
-var loaded = kvgraph.AddKVDriver("bolt", BoltBuilder)
-
 // BoltKV is an implementation of the KVStore for bolt
 type BoltKV struct {
 	db *bolt.DB
 }
 
-// Close closes the boltdb
+// Close closes the boltdb connection
 func (boltkv *BoltKV) Close() error {
 	return boltkv.db.Close()
 }
@@ -72,7 +72,7 @@ func (boltkv *BoltKV) DeletePrefix(id []byte) error {
 	return err
 }
 
-// HasKey returns true if the key is exists in kv store
+// HasKey returns true if the key is exists in kvstore
 func (boltkv *BoltKV) HasKey(id []byte) bool {
 	out := false
 	boltkv.db.View(func(tx *bolt.Tx) error {
@@ -86,12 +86,22 @@ func (boltkv *BoltKV) HasKey(id []byte) bool {
 	return out
 }
 
-// Set value in kv store
+// Set value in kvstore
 func (boltkv *BoltKV) Set(id []byte, val []byte) error {
 	err := boltkv.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket(graphBucket)
 		b.Put(id, val)
 		return nil
+	})
+	return err
+}
+
+// Update runs an alteration transaction of the kvstore
+func (boltkv *BoltKV) Update(u func(tx kvi.KVTransaction) error) error {
+	err := boltkv.db.Update(func(tx *bolt.Tx) error {
+		b := tx.Bucket(graphBucket)
+		ktx := boltTransaction{tx, b}
+		return u(ktx)
 	})
 	return err
 }
@@ -129,16 +139,6 @@ func (boltTrans boltTransaction) HasKey(id []byte) bool {
 	return false
 }
 
-// Update runs an alteration transition of the bolt kv store
-func (boltkv *BoltKV) Update(u func(tx kvi.KVTransaction) error) error {
-	err := boltkv.db.Update(func(tx *bolt.Tx) error {
-		b := tx.Bucket(graphBucket)
-		ktx := boltTransaction{tx, b}
-		return u(ktx)
-	})
-	return err
-}
-
 type boltIterator struct {
 	tx      *bolt.Tx
 	b       *bolt.Bucket
@@ -146,12 +146,6 @@ type boltIterator struct {
 	forward bool
 	key     []byte
 	value   []byte
-}
-
-func copyBytes(in []byte) []byte {
-	out := make([]byte, len(in))
-	copy(out, in)
-	return out
 }
 
 // Get retrieves the value of key `id`
@@ -235,4 +229,10 @@ func (boltkv *BoltKV) View(u func(it kvi.KVIterator) error) error {
 		return u(ktx)
 	})
 	return err
+}
+
+func copyBytes(in []byte) []byte {
+	out := make([]byte, len(in))
+	copy(out, in)
+	return out
 }

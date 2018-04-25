@@ -18,6 +18,6 @@ func NewCompiler(db *Graph) gdbi.Compiler {
 }
 
 // Compile turns an aql query into an executable graph query
-func (comp *Compiler) Compile(stmts []*aql.GraphStatement, workDir string) (gdbi.Pipeline, error) {
-	return comp.compiler.Compile(stmts, workDir)
+func (comp *Compiler) Compile(stmts []*aql.GraphStatement) (gdbi.Pipeline, error) {
+	return comp.compiler.Compile(stmts)
 }
