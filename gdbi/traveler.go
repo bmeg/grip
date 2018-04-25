@@ -81,7 +81,13 @@ func (elem *DataElement) ToEdge() *aql.Edge {
 
 // ToDict converts data element to generic map
 func (elem *DataElement) ToDict() map[string]interface{} {
-	out := map[string]interface{}{}
+	out := map[string]interface{}{
+		"gid":   "",
+		"label": "",
+		"to":    "",
+		"from":  "",
+		"data":  nil,
+	}
 	if elem.ID != "" {
 		out["gid"] = elem.ID
 	}
