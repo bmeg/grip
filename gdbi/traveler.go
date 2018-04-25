@@ -22,7 +22,7 @@ const (
 )
 
 // AddCurrent creates a new copy of the travel with new 'current' value
-func (t Traveler) AddCurrent(r *DataElement) *Traveler {
+func (t *Traveler) AddCurrent(r *DataElement) *Traveler {
 	o := Traveler{marks: map[string]*DataElement{}}
 	for k, v := range t.marks {
 		o.marks[k] = v
@@ -32,13 +32,13 @@ func (t Traveler) AddCurrent(r *DataElement) *Traveler {
 }
 
 // HasMark checks to see if a results is stored in a travelers statemap
-func (t Traveler) HasMark(label string) bool {
+func (t *Traveler) HasMark(label string) bool {
 	_, ok := t.marks[label]
 	return ok
 }
 
 // AddMark adds a result to travels state map using `label` as the name
-func (t Traveler) AddMark(label string, r *DataElement) *Traveler {
+func (t *Traveler) AddMark(label string, r *DataElement) *Traveler {
 	o := Traveler{marks: map[string]*DataElement{}}
 	for k, v := range t.marks {
 		o.marks[k] = v
@@ -49,18 +49,18 @@ func (t Traveler) AddMark(label string, r *DataElement) *Traveler {
 }
 
 // GetMark gets stored result in travels state using its label
-func (t Traveler) GetMark(label string) *DataElement {
+func (t *Traveler) GetMark(label string) *DataElement {
 	lt := t.marks[label]
 	return lt
 }
 
 // GetCurrent get current result value attached to the traveler
-func (t Traveler) GetCurrent() *DataElement {
+func (t *Traveler) GetCurrent() *DataElement {
 	return t.current
 }
 
 // ToVertex converts data element to vertex
-func (elem DataElement) ToVertex() *aql.Vertex {
+func (elem *DataElement) ToVertex() *aql.Vertex {
 	return &aql.Vertex{
 		Gid:   elem.ID,
 		Label: elem.Label,
@@ -69,7 +69,7 @@ func (elem DataElement) ToVertex() *aql.Vertex {
 }
 
 // ToEdge converts data element to edge
-func (elem DataElement) ToEdge() *aql.Edge {
+func (elem *DataElement) ToEdge() *aql.Edge {
 	return &aql.Edge{
 		Gid:   elem.ID,
 		From:  elem.From,
@@ -80,7 +80,7 @@ func (elem DataElement) ToEdge() *aql.Edge {
 }
 
 // ToDict converts data element to generic map
-func (elem DataElement) ToDict() map[string]interface{} {
+func (elem *DataElement) ToDict() map[string]interface{} {
 	out := map[string]interface{}{}
 	if elem.ID != "" {
 		out["gid"] = elem.ID

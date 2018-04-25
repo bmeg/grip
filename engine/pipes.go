@@ -5,9 +5,9 @@ The engine package pulls togeather pipelines and runs processing
 package engine
 
 import (
-	//"log"
 	"context"
 	"fmt"
+	//"log"
 
 	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/gdbi"
@@ -50,7 +50,6 @@ func Start(ctx context.Context, pipe gdbi.Pipeline, workdir string, bufsize int)
 func Run(ctx context.Context, pipe gdbi.Pipeline, workdir string) <-chan *aql.ResultRow {
 	bufsize := 5000
 	resch := make(chan *aql.ResultRow, bufsize)
-
 	go func() {
 		defer close(resch)
 		dataType := pipe.DataType()

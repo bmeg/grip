@@ -1,40 +1,28 @@
-package core
+package test
 
 import (
-	"math/rand"
+	"context"
 	"os"
 	"reflect"
 	"regexp"
 	"sort"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/bmeg/arachne/aql"
-	_ "github.com/bmeg/arachne/badgerdb"
-	_ "github.com/bmeg/arachne/boltdb"
-	"github.com/bmeg/arachne/gdbi"
+	"github.com/bmeg/arachne/engine"
 	"github.com/bmeg/arachne/kvgraph"
 	"github.com/bmeg/arachne/protoutil"
+	"github.com/bmeg/arachne/util"
 	"github.com/golang/protobuf/jsonpb"
 )
 
-var idRunes = []rune("abcdefghijklmnopqrstuvwxyz")
-
-func randID() string {
-	b := make([]rune, 10)
-	for i := range b {
-		b[i] = idRunes[rand.Intn(len(idRunes))]
-	}
-	return string(b)
-}
-
-var Q = aql.Query{}
+var Q = &aql.Query{}
 
 var verts = []*aql.Vertex{
-	vert("Human", dat{"name": "Alex"}),
-	vert("Human", dat{"name": "Kyle"}),
-	vert("Human", dat{"name": "Ryan"}),
+	vert("Human", dat{"name": "Alex", "age": 12}),
+	vert("Human", dat{"name": "Kyle", "age": 34}),
+	vert("Human", dat{"name": "Ryan", "age": 56}),
 	vert("Robot", dat{"name": "C-3PO"}),
 	vert("Robot", dat{"name": "R2-D2"}),
 	vert("Robot", dat{"name": "Bender"}),
@@ -51,10 +39,15 @@ var edges = []*aql.Edge{
 	edge(verts[2], verts[11], "WorksOn", nil),
 }
 
-var table = []struct {
+// checker is the interface of a function that validates the results of a test query.
+type checker func(t *testing.T, actual <-chan *aql.ResultRow)
+
+type queryTest struct {
 	query    *aql.Query
 	expected checker
-}{
+}
+
+var table = []queryTest{
 	{
 		Q.V().Has("name", "Kyle", "Alex"),
 		pick(verts[0], verts[1], verts[6], verts[7]),
@@ -90,8 +83,12 @@ var table = []struct {
 	{
 		Q.V().Limit(2),
 		func(t *testing.T, res <-chan *aql.ResultRow) {
-			if len(res) != 2 {
-				t.Error("expected 2 results")
+			count := 0
+			for range res {
+				count++
+			}
+			if count != 2 {
+				t.Errorf("expected 2 results got %v", count)
 			}
 		},
 	},
@@ -146,7 +143,7 @@ var table = []struct {
 	},
 	{
 		Q.V().HasLabel("Human").Values(),
-		values(verts[0].Data, verts[1].Data, verts[2].Data),
+		values(12, 34, 56, "Alex", "Kyle", "Ryan"),
 	},
 	{
 		Q.V().Match(
@@ -185,76 +182,46 @@ var table = []struct {
 }
 
 func TestEngine(t *testing.T) {
-	defer os.RemoveAll("test-badger.db")
-	defer os.Remove("test-bolt.db")
-
-	bolt, err := kvgraph.NewKVGraphDB("bolt", "test-bolt.db")
+	kvg := kvgraph.NewKVGraph(kvdriver)
+	err := kvg.AddGraph("test-graph")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	badger, err := kvgraph.NewKVGraphDB("badger", "test-badger.db")
+	db, err := kvg.Graph("test-graph")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	dbs := map[string]gdbi.GraphInterface{
-		"bolt":   bolt.Graph("test-graph"),
-		"badger": badger.Graph("test-graph"),
+	for _, v := range verts {
+		err := db.AddVertex([]*aql.Vertex{v})
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, e := range edges {
+		err := db.AddEdge([]*aql.Edge{e})
+		if err != nil {
+			t.Fatal(err)
+		}
 	}
 
-	for dbname, db := range dbs {
+	for _, desc := range table {
+		desc := desc
+		name := cleanName(dbname + "_" + desc.query.String())
 
-		for _, v := range verts {
-			db.AddVertex([]*aql.Vertex{v})
-		}
-		for _, e := range edges {
-			db.AddEdge([]*aql.Edge{e})
-		}
-
-		for _, desc := range table {
-			name := cleanName(dbname + "_" + desc.query.String())
-
-			t.Run(name, func(t *testing.T) {
-				// Catch pipes which forget to close their out channel
-				// by requiring they process quickly.
-				timer := time.NewTimer(time.Millisecond * 100)
-				// "done" is closed when the pipe finishes.
-				done := make(chan struct{})
-
-				go func() {
-					defer close(done)
-
-					p, err := Compile(desc.query.Statements, db, "./workdir")
-					if err != nil {
-						t.Fatal(err)
-					}
-
-					res := p.Run()
-					if err != nil {
-						t.Fatal(err)
-					}
-
-					if !timer.Stop() {
-						<-timer.C
-					}
-
-					desc.expected(t, res)
-				}()
-
-				select {
-				case <-done:
-				case <-timer.C:
-					t.Log("did you forget to close the out channel?")
-					t.Fatal("pipe failed to process in time")
-				}
-			})
-		}
+		t.Run(name, func(t *testing.T) {
+			pipeline, err := db.Compiler().Compile(desc.query.Statements)
+			if err != nil {
+				t.Fatal(err)
+			}
+			workdir := "./test.workdir." + util.RandomString(6)
+			defer os.RemoveAll(workdir)
+			res := engine.Run(context.Background(), pipeline, workdir)
+			desc.expected(t, res)
+		})
 	}
 }
-
-// checker is the interface of a function that validates the results of a test query.
-type checker func(t *testing.T, actual <-chan *aql.ResultRow)
 
 // this sorts the results to account for non-determinstic ordering from the db.
 // TODO this will break sort tests
@@ -263,7 +230,6 @@ func compare(expect []*aql.ResultRow) checker {
 		mar := jsonpb.Marshaler{}
 		actualS := []string{}
 		expectS := []string{}
-
 		for r := range actual {
 			s, _ := mar.MarshalToString(r)
 			actualS = append(actualS, s)
@@ -358,7 +324,7 @@ func values(vals ...interface{}) checker {
 
 func vert(label string, d dat) *aql.Vertex {
 	return &aql.Vertex{
-		Gid:   randID(),
+		Gid:   util.UUID(),
 		Label: label,
 		Data:  protoutil.AsStruct(d),
 	}
@@ -366,7 +332,7 @@ func vert(label string, d dat) *aql.Vertex {
 
 func edge(from, to *aql.Vertex, label string, d dat) *aql.Edge {
 	return &aql.Edge{
-		Gid:   randID(),
+		Gid:   util.UUID(),
 		From:  from.Gid,
 		To:    to.Gid,
 		Label: label,

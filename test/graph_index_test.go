@@ -2,16 +2,15 @@ package test
 
 import (
 	"context"
-	"log"
 	"os"
 	"strings"
 	"testing"
 
 	"github.com/bmeg/arachne/aql"
-	"github.com/bmeg/arachne/badgerdb"
 	"github.com/bmeg/arachne/engine"
 	"github.com/bmeg/arachne/gdbi"
 	"github.com/bmeg/arachne/kvgraph"
+	"github.com/bmeg/arachne/util"
 	"github.com/golang/protobuf/jsonpb"
 )
 
@@ -63,37 +62,39 @@ var testGraph = `{
 }
 `
 
-func setupGraphDB() gdbi.GraphDB {
-	kv, _ := badgerdb.BadgerBuilder("test.db")
-	return kvgraph.NewKVGraph(kv)
-}
-
-func closeGraph(gd gdbi.GraphDB) {
-	gd.Close()
-	os.RemoveAll("test.db")
-}
-
 func TestVertexLabel(t *testing.T) {
+	var gdb gdbi.GraphDB
+	gdb = kvgraph.NewKVGraph(kvdriver)
+
 	e := aql.Graph{}
 	if err := jsonpb.Unmarshal(strings.NewReader(testGraph), &e); err != nil {
-		log.Printf("Error: %s", err)
+		t.Fatal("Failed to unmarshal test graph", err)
 	}
 
-	kv := setupGraphDB()
-	kv.AddGraph("test")
-	graph := kv.Graph("test")
-	graph.AddVertex(e.Vertices)
-	graph.AddEdge(e.Edges)
-
-	var Q = aql.Query{}
-
-	query := Q.V().HasLabel("Cat")
-	comp := graph.Compiler()
-	p, err := comp.Compile(query.Statements, "./workdir")
+	err := gdb.AddGraph("test")
+	if err != nil {
+		t.Fatal("Failed to add graph", err)
+	}
+	graph, err := gdb.Graph("test")
 	if err != nil {
 		t.Fatal(err)
 	}
-	res := engine.Run(context.Background(), p, "./workdir")
+	graph.AddVertex(e.Vertices)
+	graph.AddEdge(e.Edges)
+
+	Q := aql.Query{}
+	query := Q.V().HasLabel("Cat")
+
+	compiler := graph.Compiler()
+	pipeline, err := compiler.Compile(query.Statements)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	workdir := "./test.workdir." + util.RandomString(6)
+	defer os.RemoveAll(workdir)
+	res := engine.Run(context.Background(), pipeline, workdir)
+
 	count := 0
 	for range res {
 		count++
@@ -101,5 +102,5 @@ func TestVertexLabel(t *testing.T) {
 	if count != 1 {
 		t.Errorf("Incorrect return count %d != %d", count, 1)
 	}
-	closeGraph(kv)
+	gdb.Close()
 }

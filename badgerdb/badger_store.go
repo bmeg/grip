@@ -16,9 +16,10 @@ import (
 	"github.com/dgraph-io/badger/options"
 )
 
-// BadgerBuilder creates new badger interface at `path`
-// driver at `path`
-func BadgerBuilder(path string) (kvi.KVInterface, error) {
+var loaded = kvgraph.AddKVDriver("badger", NewKVInterface)
+
+// NewKVInterface creates new BoltDB backed KVInterface at `path`
+func NewKVInterface(path string) (kvi.KVInterface, error) {
 	log.Printf("Starting BadgerDB")
 	_, err := os.Stat(path)
 	if os.IsNotExist(err) {
@@ -37,14 +38,12 @@ func BadgerBuilder(path string) (kvi.KVInterface, error) {
 	return &BadgerKV{db: db}, nil
 }
 
-var loaded = kvgraph.AddKVDriver("badger", BadgerBuilder)
-
 // BadgerKV is an implementation of the KVStore for badger
 type BadgerKV struct {
 	db *badger.DB
 }
 
-// Close closes the boltdb
+// Close closes the badger connection
 func (badgerkv *BadgerKV) Close() error {
 	return badgerkv.db.Close()
 }
@@ -82,7 +81,7 @@ func (badgerkv *BadgerKV) DeletePrefix(prefix []byte) error {
 	return nil
 }
 
-// HasKey returns true if the key is exists in kv store
+// HasKey returns true if the key is exists in kvstore
 func (badgerkv *BadgerKV) HasKey(id []byte) bool {
 	out := false
 	badgerkv.db.View(func(tx *badger.Txn) error {
@@ -95,10 +94,19 @@ func (badgerkv *BadgerKV) HasKey(id []byte) bool {
 	return out
 }
 
-// Set value in kv store
+// Set value in kvstore
 func (badgerkv *BadgerKV) Set(id []byte, val []byte) error {
 	err := badgerkv.db.Update(func(tx *badger.Txn) error {
 		return tx.Set(id, val)
+	})
+	return err
+}
+
+// Update runs an alteration transaction of the kvstore
+func (badgerkv *BadgerKV) Update(u func(tx kvi.KVTransaction) error) error {
+	err := badgerkv.db.Update(func(tx *badger.Txn) error {
+		ktx := badgerTransaction{tx}
+		return u(ktx)
 	})
 	return err
 }
@@ -137,26 +145,11 @@ func (badgerTrans badgerTransaction) Get(id []byte) ([]byte, error) {
 	return copyBytes(d), nil
 }
 
-// Update runs an alteration transition of the bolt kv store
-func (badgerkv *BadgerKV) Update(u func(tx kvi.KVTransaction) error) error {
-	err := badgerkv.db.Update(func(tx *badger.Txn) error {
-		ktx := badgerTransaction{tx}
-		return u(ktx)
-	})
-	return err
-}
-
 type badgerIterator struct {
 	tx    *badger.Txn
 	c     *badger.Iterator
 	key   []byte
 	value []byte
-}
-
-func copyBytes(in []byte) []byte {
-	out := make([]byte, len(in))
-	copy(out, in)
-	return out
 }
 
 // Get retrieves the value of key `id`
@@ -254,4 +247,10 @@ func (badgerkv *BadgerKV) View(u func(it kvi.KVIterator) error) error {
 		return o
 	})
 	return err
+}
+
+func copyBytes(in []byte) []byte {
+	out := make([]byte, len(in))
+	copy(out, in)
+	return out
 }

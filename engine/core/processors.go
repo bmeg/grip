@@ -75,7 +75,7 @@ type LookupVertsIndex struct {
 	labels []string
 }
 
-// Process LookupVerts
+// Process LookupVertsIndex
 func (l *LookupVertsIndex) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
 	queryChan := make(chan gdbi.ElementLookup, 100)
 	go func() {
@@ -371,17 +371,21 @@ func (v *Values) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, 
 			if t.GetCurrent().Data == nil {
 				continue
 			}
+			cdata := t.GetCurrent().Data
 			if len(v.keys) == 0 {
-				d := t.GetCurrent().Data
-
-				data := map[string]interface{}{}
-				for _, i := range v.keys {
-					data[i] = d[i]
+				for _, v := range cdata {
+					o := t.AddCurrent(&gdbi.DataElement{
+						Value: v,
+					})
+					out <- o
 				}
-				o := t.AddCurrent(&gdbi.DataElement{
-					Data: data,
-				})
-				out <- o
+			} else {
+				for _, i := range v.keys {
+					o := t.AddCurrent(&gdbi.DataElement{
+						Value: cdata[i],
+					})
+					out <- o
+				}
 			}
 		}
 	}()
@@ -399,7 +403,6 @@ type Render struct {
 func (r *Render) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
 	go func() {
 		defer close(out)
-		log.Printf("Rendering")
 		for t := range in {
 			v := jsonpath.Render(r.template, t.GetCurrent().Data)
 			o := t.AddCurrent(&gdbi.DataElement{
@@ -644,7 +647,7 @@ func (m *Marker) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, 
 			out <- t.AddMark(m.mark, t.GetCurrent())
 		}
 	}()
-	return ctx
+	return context.WithValue(ctx, propLoad, true)
 }
 
 type selectOne struct {

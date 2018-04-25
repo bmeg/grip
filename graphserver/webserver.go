@@ -8,7 +8,6 @@ import (
 	"runtime/debug"
 
 	"github.com/bmeg/arachne/aql"
-	"github.com/bmeg/arachne/falcor"
 	"github.com/bmeg/arachne/graphql"
 	"github.com/golang/protobuf/proto"
 	"github.com/gorilla/mux"
@@ -111,7 +110,6 @@ func NewHTTPProxy(rpcPort string, httpPort string, contentDir string) (*Proxy, e
 
 	runtime.OtherErrorHandler = HandleError
 
-	r.PathPrefix("/falcor.json").Handler(falcor.NewHTTPHandler())
 	r.PathPrefix("/graphql").Handler(graphql.NewHTTPHandler("localhost:" + rpcPort))
 	r.PathPrefix("/v1/").Handler(grpcMux)
 	if contentDir != "" {
