@@ -48,46 +48,51 @@ message GraphStatement {
     FoldStatement fold = 52;
     string filter = 54;
 
-		WhereExpressionList where = 57;
-		google.protobuf.ListValue fields = 58;
-		Aggregations aggregate = 59;
+    WhereExpression where = 57;
+    google.protobuf.ListValue fields = 58;
+    Aggregations aggregate = 59;
   }
 }
 
 message AggregationsRequest {
-	string graph = 1;
-	repeated Aggregate aggregations = 2; 
+  string graph = 1;
+  repeated Aggregate aggregations = 2; 
 }
 
 message Aggregations {
-	repeated Aggregate aggregations = 1; 
+  repeated Aggregate aggregations = 1; 
 }
 
 message Aggregate {
   string name = 1;
-	oneof aggregation {
-		TermAggregation term = 2;
-		PercentileAggregation percentile = 3;
-		HistogramAggregation histogram = 4;
-	}
+  oneof aggregation {
+    TermAggregation term = 2;
+    PercentileAggregation percentile = 3;
+    HistogramAggregation histogram = 4;
+  }
 }
 
 message TermAggregation {
   string label = 1;
-	string field = 2;
+  string field = 2;
   uint32 size = 3;
 }
 
 message PercentileAggregation {
   string label = 1;
-	string field = 2;
+  string field = 2;
   repeated uint32 percents = 3;
 }
 
 message HistogramAggregation {
   string label = 1;
-	string field = 2;
+  string field = 2;
   uint32 interval = 3;
+}
+
+message NamedAggregationResult {
+	string name = 1;
+	repeated AggregationResult buckets = 2;
 }
 
 message AggregationResult {
@@ -96,22 +101,22 @@ message AggregationResult {
 }
 
 message WhereExpressionList {
-  repeated WhereExpression expressions = 1;
+	repeated WhereExpression expressions = 1;
 }
 
 message WhereExpression {
-	oneof expression {
-		WhereExpressionList and = 1;
-		WhereExpressionList or = 2;
-		WhereExpression not = 3;
-		WhereCondition condition = 4;
-	}
+  oneof expression {
+    WhereExpressionList and = 1;
+    WhereExpressionList or = 2;
+    WhereExpression not = 3;
+    WhereCondition condition = 4;
+  }
 }
 
 message WhereCondition {
   string key = 1;
   google.protobuf.Value value = 2;
-	Condition condition = 3;
+  Condition condition = 3;
 }
 
 enum Condition {
@@ -219,10 +224,10 @@ service Query {
     };
   }
 
-  rpc Aggregate(AggregationsRequest) returns (stream AggregationResult) {
+  rpc Aggregate(AggregationsRequest) returns (stream NamedAggregationResult) {
     option (google.api.http) = {
       post: "/v1/graph/{graph}/aggregate"
-			body: "*"
+      body: "*"
     };
   }
 

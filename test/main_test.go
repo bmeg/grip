@@ -8,8 +8,8 @@ import (
 
 	_ "github.com/bmeg/arachne/badgerdb" // import so badger will register itself
 	_ "github.com/bmeg/arachne/boltdb"   // import so bolt will register itself
+	"github.com/bmeg/arachne/gdbi"
 	"github.com/bmeg/arachne/kvgraph"
-	"github.com/bmeg/arachne/kvi"
 	_ "github.com/bmeg/arachne/leveldb" // import so level will register itself
 	_ "github.com/bmeg/arachne/rocksdb" // import so rocks will register itself
 	"github.com/bmeg/arachne/util"
@@ -17,24 +17,12 @@ import (
 
 var dbname = "badger"
 var dbpath string
-var kvdriver kvi.KVInterface
+var gdb gdbi.GraphDB
+var db gdbi.GraphInterface
 
 func init() {
 	flag.StringVar(&dbname, "db", dbname, "database to use for tests")
 	flag.Parse()
-}
-
-func resetKVInterface() {
-	var err error
-	err = os.RemoveAll(dbpath)
-	if err != nil {
-		panic(err)
-	}
-	dbpath = "test.db." + util.RandomString(6)
-	kvdriver, err = kvgraph.NewKVInterface(dbname, dbpath)
-	if err != nil {
-		panic(err)
-	}
 }
 
 func TestMain(m *testing.M) {
@@ -55,9 +43,21 @@ func TestMain(m *testing.M) {
 		os.RemoveAll(dbpath)
 	}()
 
-	kvdriver, err = kvgraph.NewKVInterface(dbname, dbpath)
+	gdb, err = kvgraph.NewKVGraphDB(dbname, dbpath)
 	if err != nil {
 		fmt.Println("Error: failed to initialize database driver:", err)
+		return
+	}
+
+	err = gdb.AddGraph("test-graph")
+	if err != nil {
+		fmt.Println("Error: failed to add graph:", err)
+		return
+	}
+
+	db, err = gdb.Graph("test-graph")
+	if err != nil {
+		fmt.Println("Error: failed to connect to graph:", err)
 		return
 	}
 

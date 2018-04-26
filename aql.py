@@ -2,6 +2,75 @@ import json
 import urllib2
 
 
+def and_(*expressions):
+    return {"and": expressions}
+
+
+def or_(*expressions):
+    return {"or": expressions}
+
+
+def not_(expression):
+    return {"not": expression}
+
+
+def eq(key, value):
+    return {"key": key, "value": value, "condition": "EQ"}
+
+
+def neq(key, value):
+    return {"key": key, "value": value, "condition": "NEQ"}
+
+
+def gt(key, value):
+    return {"key": key, "value": value, "condition": "GT"}
+
+
+def gte(key, value):
+    return {"key": key, "value": value, "condition": "GTE"}
+
+
+def lt(key, value):
+    return {"key": key, "value": value, "condition": "LT"}
+
+
+def lte(key, value):
+    return {"key": key, "value": value, "condition": "LTE"}
+
+
+def in_(key, values):
+    if not isinstance(values, list):
+        values = [values]
+    return {"key": key, "value": values, "condition": "IN"}
+
+
+def term(name, label, field, size=None):
+    agg = {name: {"term": {"label": label, "field": field}}}
+    if size:
+        agg[name]["term"]["size"] = size
+    return agg
+
+
+def percentile(name, label, field, percents=[1, 5, 25, 50, 75, 95, 99]):
+    return {
+        name: {
+            "percentile": {
+                "label": label, "field": field, "percents": percents
+            }
+        }
+    }
+
+
+def histogram(name, label, field, interval):
+    return {
+        name: {
+            "percentile": {
+                "label": label, "field": field, "interval": interval
+            }
+        }
+    }
+
+
 class Connection:
     def __init__(self, url):
         scheme, netloc, path, query, frag = urllib2.urlparse.urlsplit(url)
@@ -119,7 +188,7 @@ class Graph:
     def bulkAdd(self):
         return BulkAdd(self.url, self.name)
 
-    def addVertexIndex(self, label, field):
+    def addIndex(self, label, field):
         headers = {"Content-Type": "application/json",
                    "Accept": "application/json"}
         url = self.url + "/" + self.name + "/index/" + label
@@ -130,23 +199,26 @@ class Graph:
         result = response.read()
         return json.loads(result)
 
-    def getVertexIndex(self, label, field):
+    def listIndices(self):
         headers = {"Content-Type": "application/json",
                    "Accept": "application/json"}
         url = self.url + "/" + self.name + "/index"
-        url = self.url + "/" + self.name + "/index/" + label + \
-            "/" + field
         request = urllib2.Request(url, headers=headers)
         response = urllib2.urlopen(request)
         for result in response:
             d = json.loads(result)
             yield d
 
-    def getVertexIndexList(self):
+    def aggregate(self, aggregations):
         headers = {"Content-Type": "application/json",
                    "Accept": "application/json"}
-        url = self.url + "/" + self.name + "/index"
-        request = urllib2.Request(url, headers=headers)
+        if not isinstance(aggregations, list):
+            aggregations = [aggregations]
+        payload = {
+            "aggregations": aggregations,
+        }
+        url = self.url + "/" + self.name + "/aggregate"
+        request = urllib2.Request(url, json.dumps(payload), headers=headers)
         response = urllib2.urlopen(request)
         for result in response:
             d = json.loads(result)
@@ -257,43 +329,21 @@ class Query:
             id = [id]
         return self.__append({"e": id})
 
-    def hasLabel(self, label):
+    def where(self, expressions):
         """
-        Match vertex/edge label.
+        Filter vertex/edge based on properties.
+        """
+        if not isinstance(expressions, list):
+            expressions = [expressions]
+        return self.__append({"where": {"expressions": expressions}})
 
-        "label" can be a list.
+    def fields(self, fields=[]):
         """
-        if not isinstance(label, list):
-            label = [label]
-        return self.__append({"has_label": label})
-
-    def hasId(self, id):
+        Select document properties to be returned in document.
         """
-        Match vertex/edge ID.
-
-        "id" can be a list.
-        """
-        if not isinstance(id, list):
-            id = [id]
-        return self.__append({"has_id": id})
-
-    def has(self, key, value):
-        """
-        Match vertex/edge property.
-
-        If "value" is a list, then data must match at least one item.
-        """
-        if not isinstance(value, list):
-            value = [value]
-        return self.__append({"has": {"key": key, "within": value}})
-
-    def values(self, v=[]):
-        """
-        Extract document properties into returned document.
-        """
-        if not isinstance(v, list):
-            v = [v]
-        return self.__append({"values": {"labels": v}})
+        if not isinstance(fields, list):
+            fields = [fields]
+        return self.__append({"fields": fields})
 
     def incoming(self, label=[]):
         """
@@ -410,7 +460,7 @@ class Query:
         """
         return self.__append({"group_count": label})
 
-    def distinct(self, props):
+    def distinct(self, props=[]):
         """
         Select distinct elements based on the provided property list.
         """
@@ -418,35 +468,32 @@ class Query:
             props = [props]
         return self.__append({"distinct": props})
 
-    # def jsImport(self, src):
-    #     """
-    #     Initialize javascript engine with functions and global variables.
-    #     """
-    #     return self.__append({"import": src})
+    def jsImport(self, src):
+        """
+        Initialize javascript engine with functions and global variables.
+        """
+        return self.__append({"import": src})
 
-    # def map(self, func):
-    #     """
-    #     Transform results by the given javascript function.
-    #     function(el) el
-    #     """
-    #     return self.__append({"map": func})
+    def map(self, func):
+        """
+        Transform results by the given javascript function.
+        function(el) el
+        """
+        return self.__append({"map": func})
 
-    # def filter(self, func):
-    #     """
-    #     Filter results by the given javascript function.
-    #     function(el) bool
-    #     """
-    #     return self.__append({"filter": func})
+    def filter(self, func):
+        """
+        Filter results by the given javascript function.
+        function(el) bool
+        """
+        return self.__append({"filter": func})
 
     def fold(self, init, func):
         """
+        Fold results by the given javascript function.
+        function(el) el
         """
         return self.__append({"fold": {"init": init, "source": func}})
-
-    # def vertexFromValues(self, func):
-    #     """
-    #     """
-    #     return self.__append({"vertex_from_values": func})
 
     def match(self, queries):
         """

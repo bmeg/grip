@@ -92,10 +92,10 @@ func (gh *graphHandler) setup() {
 	}
 }
 
-// getObjects finds all V.HasLabel('Object') as map[gid]data
+// getObjects finds all vertexes with label ('Object') as map[gid]data
 func getObjects(client aql.Client, gqlDB string) map[string]map[string]interface{} {
 	out := map[string]map[string]interface{}{}
-	q := aql.V().HasLabel("Object")
+	q := aql.V().Where(aql.Eq("label", "Object"))
 	results, _ := client.Execute(gqlDB, q)
 	for elem := range results {
 		d := elem.GetValue().GetVertex().GetDataMap()
@@ -170,8 +170,8 @@ func (f objectField) toGQL(client aql.Client, dataGraph string, objects map[stri
 		o := &graphql.Field{
 			Type: graphql.NewList(graphql.String),
 			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-				//log.Printf("Looking up ids: %s", f.dstType)
-				q := aql.V().HasLabel(f.dstType)
+				log.Printf("Looking up ids: %s", f.dstType)
+				q := aql.V().Where(aql.Eq("label", f.dstType))
 				result, _ := client.Execute(dataGraph, q)
 				out := []interface{}{}
 				for r := range result {
@@ -189,7 +189,7 @@ func (f objectField) toGQL(client aql.Client, dataGraph string, objects map[stri
 
 func getQueries(client aql.Client, gqlDB string) map[string]objectField {
 	out := map[string]objectField{}
-	q := aql.V().HasLabel("Query")
+	q := aql.V().Where(aql.Eq("label", "Query"))
 	results, _ := client.Execute(gqlDB, q)
 	for elem := range results {
 		d := elem.GetValue().GetVertex().Gid

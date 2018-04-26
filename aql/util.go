@@ -141,7 +141,6 @@ func (client Client) Traversal(query *GraphQuery) (chan *ResultRow, error) {
 		}
 	}()
 	return out, nil
-
 }
 
 // GetDataMap obtains data attached to vertex in the form of a map
@@ -188,4 +187,112 @@ func (edge *Edge) HasProperty(key string) bool {
 	m := protoutil.AsMap(edge.Data)
 	_, ok := m[key]
 	return ok
+}
+
+func Eq(key string, value interface{}) *WhereExpression {
+	return &WhereExpression{
+		Expression: &WhereExpression_Condition{
+			Condition: &WhereCondition{
+				Key:       key,
+				Value:     protoutil.WrapValue(value),
+				Condition: Condition_EQ,
+			},
+		},
+	}
+}
+
+func Neq(key string, value interface{}) *WhereExpression {
+	return &WhereExpression{
+		Expression: &WhereExpression_Condition{
+			Condition: &WhereCondition{
+				Key:       key,
+				Value:     protoutil.WrapValue(value),
+				Condition: Condition_NEQ,
+			},
+		},
+	}
+}
+
+func Gt(key string, value interface{}) *WhereExpression {
+	return &WhereExpression{
+		Expression: &WhereExpression_Condition{
+			Condition: &WhereCondition{
+				Key:       key,
+				Value:     protoutil.WrapValue(value),
+				Condition: Condition_GT,
+			},
+		},
+	}
+}
+
+func Gte(key string, value interface{}) *WhereExpression {
+	return &WhereExpression{
+		Expression: &WhereExpression_Condition{
+			Condition: &WhereCondition{
+				Key:       key,
+				Value:     protoutil.WrapValue(value),
+				Condition: Condition_GTE,
+			},
+		},
+	}
+}
+
+func Lt(key string, value interface{}) *WhereExpression {
+	return &WhereExpression{
+		Expression: &WhereExpression_Condition{
+			Condition: &WhereCondition{
+				Key:       key,
+				Value:     protoutil.WrapValue(value),
+				Condition: Condition_LT,
+			},
+		},
+	}
+}
+
+func Lte(key string, value interface{}) *WhereExpression {
+	return &WhereExpression{
+		Expression: &WhereExpression_Condition{
+			Condition: &WhereCondition{
+				Key:       key,
+				Value:     protoutil.WrapValue(value),
+				Condition: Condition_LTE,
+			},
+		},
+	}
+}
+
+func In(key string, values ...interface{}) *WhereExpression {
+	return &WhereExpression{
+		Expression: &WhereExpression_Condition{
+			Condition: &WhereCondition{
+				Key:       key,
+				Value:     protoutil.WrapValue(values),
+				Condition: Condition_IN,
+			},
+		},
+	}
+}
+
+func And(expressions ...*WhereExpression) *WhereExpression {
+	return &WhereExpression{
+		Expression: &WhereExpression_And{
+			And: &WhereExpressionList{expressions},
+		},
+	}
+}
+
+func Or(expressions ...*WhereExpression) *WhereExpression {
+	return &WhereExpression{
+		Expression: &WhereExpression_Or{
+			Or: &WhereExpressionList{expressions},
+		},
+	}
+}
+
+func Not(expression *WhereExpression) *WhereExpression {
+	return &WhereExpression{
+		Expression: &WhereExpression_Not{
+			Not: expression,
+		},
+	}
 }

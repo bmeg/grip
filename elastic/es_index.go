@@ -7,7 +7,7 @@ import (
 	"log"
 
 	"github.com/bmeg/arachne/aql"
-	structpb "github.com/golang/protobuf/ptypes/struct"
+	"github.com/bmeg/arachne/protoutil"
 	elastic "gopkg.in/olivere/elastic.v5"
 )
 
@@ -81,36 +81,41 @@ func (es *Graph) GetVertexIndexList() chan aql.IndexID {
 }
 
 // GetVertexTermCount returns the count of every term across vertices
-func (es *Graph) GetVertexTermCount(ctx context.Context, label string, field string) chan aql.IndexTermCount {
+func (es *Graph) GetVertexTermAggregation(ctx context.Context, name string, label string, field string, size uint32) (*aql.NamedAggregationResult, error) {
 	log.Printf("Running GetVertexTermCount: { label: %s, field: %s }", label, field)
 
-	o := make(chan aql.IndexTermCount, 100)
-	go func() {
-		defer close(o)
-		if field == "" || label == "" {
-			return
-		}
-		q := es.client.Search().Index(es.vertexIndex).Type("vertex")
-		q = q.Query(elastic.NewBoolQuery().Filter(elastic.NewTermQuery("label", label)))
-		aggName := fmt.Sprintf("term.aggregation.%s.%s", label, field)
-		// TODO make size an argument
-		q = q.Aggregation(aggName,
-			elastic.NewTermsAggregation().Field("data."+field+".keyword").Size(1000).OrderByCountDesc())
-		res, err := q.Do(ctx)
-		if err != nil {
-			log.Printf("Vertex term count failed: %s", err)
-			return
-		}
-		if agg, found := res.Aggregations.Terms(aggName); found {
-			for _, bucket := range agg.Buckets {
-				term := structpb.Value{Kind: &structpb.Value_StringValue{StringValue: bucket.Key.(string)}}
-				idxit := aql.IndexTermCount{Term: &term, Count: int32(bucket.DocCount)}
-				o <- idxit
-			}
-		}
-	}()
+	out := &aql.NamedAggregationResult{
+		Name:    name,
+		Buckets: []*aql.AggregationResult{},
+	}
 
-	return o
+	q := es.client.Search().Index(es.vertexIndex).Type("vertex")
+	q = q.Query(elastic.NewBoolQuery().Filter(elastic.NewTermQuery("label", label)))
+	aggName := fmt.Sprintf("term.aggregation.%s.%s", label, field)
+	q = q.Aggregation(aggName,
+		elastic.NewTermsAggregation().Field("data."+field+".keyword").Size(int(size)).OrderByCountDesc())
+	res, err := q.Do(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("term count failed: %s", err)
+	}
+	if agg, found := res.Aggregations.Terms(aggName); found {
+		for _, bucket := range agg.Buckets {
+			term := protoutil.WrapValue(bucket.Key.(string))
+			out.Buckets = append(out.Buckets, &aql.AggregationResult{Key: term, Value: float32(bucket.DocCount)})
+		}
+	}
+
+	return out, nil
+}
+
+//GetVertexHistogramAggregation get binned counts of a term across vertices
+func (es *Graph) GetVertexHistogramAggregation(ctx context.Context, name string, label string, field string, interval uint32) (*aql.NamedAggregationResult, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
+//GetVertexPercentileAggregation get percentiles of a term across vertices
+func (es *Graph) GetVertexPercentileAggregation(ctx context.Context, name string, label string, field string, percents []uint32) (*aql.NamedAggregationResult, error) {
+	return nil, fmt.Errorf("not implemented")
 }
 
 // VertexLabelScan produces a channel of all vertex ids where the vertex label matches `label`

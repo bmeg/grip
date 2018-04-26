@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"reflect"
 	"sync"
 
 	"github.com/bmeg/arachne/aql"
@@ -359,34 +360,25 @@ func (l *OutEdge) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe,
 
 ////////////////////////////////////////////////////////////////////////////////
 
-// Values selects fields from current element
-type Values struct {
+// Fields selects fields from current element
+type Fields struct {
 	keys []string
 }
 
 // Process runs Values step
-func (v *Values) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
+func (f *Fields) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
 	go func() {
 		defer close(out)
 		for t := range in {
-			if t.GetCurrent().Data == nil {
-				continue
-			}
-			cdata := t.GetCurrent().Data
-			if len(v.keys) == 0 {
-				for _, v := range cdata {
-					o := t.AddCurrent(&gdbi.DataElement{
-						Value: v,
-					})
-					out <- o
-				}
+			if len(f.keys) == 0 {
+				out <- t
 			} else {
-				for _, i := range v.keys {
-					o := t.AddCurrent(&gdbi.DataElement{
-						Value: cdata[i],
-					})
-					out <- o
+				o, err := t.SelectFields(f.keys...)
+				if err != nil {
+					log.Printf("error selecting fields: %v for traveler %+v", f.keys, t)
+					continue
 				}
+				out <- o
 			}
 		}
 	}()
@@ -417,67 +409,139 @@ func (r *Render) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, 
 
 ////////////////////////////////////////////////////////////////////////////////
 
-// HasData filters based on data
-type HasData struct {
-	stmt *aql.HasStatement
+// Where filters based on data
+type Where struct {
+	stmt *aql.WhereExpression
 }
 
-// Process runs HasData
-func (h *HasData) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
+func matchesCondition(trav *gdbi.Traveler, cond *aql.WhereCondition) bool {
+	var val interface{}
+	var condVal interface{}
+	val = jsonpath.Render(cond.Key, trav)
+	condVal = protoutil.UnWrapValue(cond.Value)
+
+	switch cond.Condition {
+	case aql.Condition_EQ:
+		return reflect.DeepEqual(val, condVal)
+
+	case aql.Condition_NEQ:
+		return !reflect.DeepEqual(val, condVal)
+
+	case aql.Condition_GT:
+		valN, ok := condVal.(float64)
+		if !ok {
+			return false
+		}
+		condN, ok := condVal.(float64)
+		if !ok {
+			return false
+		}
+		return valN > condN
+
+	case aql.Condition_GTE:
+		valN, ok := condVal.(float64)
+		if !ok {
+			return false
+		}
+		condN, ok := condVal.(float64)
+		if !ok {
+			return false
+		}
+		return valN >= condN
+
+	case aql.Condition_LT:
+		valN, ok := condVal.(float64)
+		if !ok {
+			return false
+		}
+		condN, ok := condVal.(float64)
+		if !ok {
+			return false
+		}
+		return valN < condN
+
+	case aql.Condition_LTE:
+		valN, ok := condVal.(float64)
+		if !ok {
+			return false
+		}
+		condN, ok := condVal.(float64)
+		if !ok {
+			return false
+		}
+		return valN <= condN
+
+	case aql.Condition_IN:
+		found := false
+		condL, ok := condVal.([]interface{})
+		if !ok {
+			return false
+		}
+		for _, v := range condL {
+			if reflect.DeepEqual(val, v) {
+				found = true
+			}
+		}
+		return found
+
+	default:
+		return false
+	}
+}
+
+func matchesWhereExpression(trav *gdbi.Traveler, stmt *aql.WhereExpression) bool {
+	switch stmt.Expression.(type) {
+	case *aql.WhereExpression_Condition:
+		cond := stmt.GetCondition()
+		return matchesCondition(trav, cond)
+
+	case *aql.WhereExpression_And:
+		and := stmt.GetAnd()
+		andRes := []bool{}
+		for _, e := range and.Expressions {
+			andRes = append(andRes, matchesWhereExpression(trav, e))
+		}
+		for _, r := range andRes {
+			if !r {
+				return false
+			}
+		}
+		return true
+
+	case *aql.WhereExpression_Or:
+		or := stmt.GetOr()
+		orRes := []bool{}
+		for _, e := range or.Expressions {
+			orRes = append(orRes, matchesWhereExpression(trav, e))
+		}
+		for _, r := range orRes {
+			if r {
+				return true
+			}
+		}
+		return false
+
+	case *aql.WhereExpression_Not:
+		e := stmt.GetNot()
+		return matchesWhereExpression(trav, e)
+
+	default:
+		log.Println("unknown where expression type")
+		return false
+	}
+}
+
+// Process runs Where
+func (w *Where) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
 	go func() {
 		defer close(out)
 		for t := range in {
-			if t.GetCurrent().Data == nil {
-				continue
-			}
-			if z, ok := t.GetCurrent().Data[h.stmt.Key]; ok {
-				if s, ok := z.(string); ok && contains(h.stmt.Within, s) {
-					out <- t
-				}
+			if matchesWhereExpression(t, w.stmt) {
+				out <- t
 			}
 		}
 	}()
 	return context.WithValue(ctx, propLoad, true)
-}
-
-////////////////////////////////////////////////////////////////////////////////
-
-// HasLabel filters based on label match
-type HasLabel struct {
-	labels []string
-}
-
-// Process runs HasLabel
-func (h *HasLabel) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
-	go func() {
-		defer close(out)
-		for t := range in {
-			if contains(h.labels, t.GetCurrent().Label) {
-				out <- t
-			}
-		}
-	}()
-	return ctx
-}
-
-////////////////////////////////////////////////////////////////////////////////
-
-// HasID filters based on ID
-type HasID struct {
-	ids []string
-}
-
-// Process runs HasID
-func (h *HasID) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
-	go func() {
-		defer close(out)
-		for t := range in {
-			if contains(h.ids, t.GetCurrent().ID) {
-				out <- t
-			}
-		}
-	}()
-	return ctx
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -562,7 +626,6 @@ type GroupCount struct {
 	key string
 }
 
-// TODO except, if you select.by("name") this is counting by value, not ID
 func (g *GroupCount) countIDs(in gdbi.InPipe, counts map[string]int64) {
 	for t := range in {
 		counts[t.GetCurrent().ID]++
@@ -575,13 +638,8 @@ func (g *GroupCount) countValues(in gdbi.InPipe, counts map[string]int64) {
 			continue
 		}
 		if vi, ok := t.GetCurrent().Data[g.key]; ok {
-			// TODO only counting string values.
-			//      how to handle other simple types? (int, etc)
-			//      what to do for objects? gremlin returns an error.
-			//      how to return errors? Add Error travelerType?
-			if s, ok := vi.(string); ok {
-				counts[s]++
-			}
+			s := fmt.Sprintf("%v", vi)
+			counts[s]++
 		}
 	}
 }
@@ -655,6 +713,7 @@ type selectOne struct {
 }
 
 func (s *selectOne) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
+	log.Println("select one")
 	go func() {
 		defer close(out)
 		for t := range in {
@@ -670,6 +729,7 @@ type selectMany struct {
 }
 
 func (s *selectMany) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
+	log.Println("select many")
 	go func() {
 		defer close(out)
 		for t := range in {

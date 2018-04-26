@@ -68,6 +68,7 @@ jobs:
         - sleep 5
         - make test-conformance
         - go test ./test -tags rocksdb -db rocks
+        - go test ./kvgraph/test -tags rocksdb
       env:
         - n=rocksdb
     - script:

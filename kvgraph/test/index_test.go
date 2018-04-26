@@ -49,15 +49,6 @@ var bobDocs = []string{"vertex1"}
 var lastNames = []string{"Smith", "Ruff", "Jones"}
 var firstNames = []string{"Bob", "Jack", "Jill", "Fido"}
 
-func contains(c string, s []string) bool {
-	for _, i := range s {
-		if c == i {
-			return true
-		}
-	}
-	return false
-}
-
 func TestFieldListing(t *testing.T) {
 	resetKVInterface()
 	idx := kvindex.NewIndex(kvdriver)
@@ -69,7 +60,7 @@ func TestFieldListing(t *testing.T) {
 
 	count := 0
 	for _, field := range idx.ListFields() {
-		if !contains(field, newFields) {
+		if !contains(newFields, field) {
 			t.Errorf("Bad field return: %s", field)
 		}
 		count++
@@ -97,7 +88,7 @@ func TestLoadDoc(t *testing.T) {
 
 	count := 0
 	for d := range idx.GetTermMatch("v.label", "Person") {
-		if !contains(d, personDocs) {
+		if !contains(personDocs, d) {
 			t.Errorf("Bad doc return: %s", d)
 		}
 		count++
@@ -108,7 +99,7 @@ func TestLoadDoc(t *testing.T) {
 
 	count = 0
 	for d := range idx.GetTermMatch("v.data.firstName", "Bob") {
-		if !contains(d, bobDocs) {
+		if !contains(bobDocs, d) {
 			t.Errorf("Bad doc return: %s", d)
 		}
 		count++
@@ -136,7 +127,7 @@ func TestTermEnum(t *testing.T) {
 	count := 0
 	for d := range idx.FieldTerms("v.data.lastName") {
 		count++
-		if !contains(d.(string), lastNames) {
+		if !contains(lastNames, d.(string)) {
 			t.Errorf("Bad term return: %s", d)
 		}
 	}
@@ -147,7 +138,7 @@ func TestTermEnum(t *testing.T) {
 	count = 0
 	for d := range idx.FieldTerms("v.data.firstName") {
 		count++
-		if !contains(d.(string), firstNames) {
+		if !contains(firstNames, d.(string)) {
 			t.Errorf("Bad term return: %s", d)
 		}
 	}
@@ -174,8 +165,8 @@ func TestTermCount(t *testing.T) {
 	count := 0
 	for d := range idx.FieldStringTermCounts("v.data.lastName") {
 		count++
-		if !contains(d.String, lastNames) {
-			t.Errorf("Bad term return: %s", d.String)
+		if !contains(lastNames, string(d.Value)) {
+			t.Errorf("Bad term return: %s", d.Value)
 		}
 		if d.String == "Smith" {
 			if d.Count != 2 {
@@ -190,8 +181,8 @@ func TestTermCount(t *testing.T) {
 	count = 0
 	for d := range idx.FieldTermCounts("v.data.firstName") {
 		count++
-		if !contains(d.String, firstNames) {
-			t.Errorf("Bad term return: %s", d.String)
+		if !contains(firstNames, string(d.Value)) {
+			t.Errorf("Bad term return: %s", d.Value)
 		}
 	}
 	if count != 4 {

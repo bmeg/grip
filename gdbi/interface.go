@@ -64,7 +64,6 @@ type GraphDB interface {
 	DeleteGraph(string) error
 	GetGraphs() []string
 	Graph(id string) (GraphInterface, error)
-
 	Close() error
 }
 
@@ -74,8 +73,6 @@ type GraphInterface interface {
 	Compiler() Compiler
 
 	GetTimestamp() string
-
-	//Query() QueryInterface
 
 	GetVertex(key string, load bool) *aql.Vertex
 	GetEdge(key string, load bool) *aql.Edge
@@ -90,15 +87,12 @@ type GraphInterface interface {
 	//EdgeLabelScan(ctx context.Context, label string) chan string
 
 	AddVertexIndex(label string, field string) error
-	//AddEdgeIndex(label string, field string) error
-
+	DeleteVertexIndex(label string, field string) error
 	GetVertexIndexList() chan aql.IndexID
 
-	DeleteVertexIndex(label string, field string) error
-	//DeleteEdgeIndex(label string, field string) error
-
-	GetVertexTermCount(ctx context.Context, label string, field string) chan aql.IndexTermCount
-	//GetEdgeTermCount(ctx context.Context, label string, field string) chan aql.IndexTermCount
+	GetVertexTermAggregation(ctx context.Context, name string, label string, field string, size uint32) (*aql.NamedAggregationResult, error)
+	GetVertexPercentileAggregation(ctx context.Context, name string, label string, field string, percents []uint32) (*aql.NamedAggregationResult, error)
+	GetVertexHistogramAggregation(ctx context.Context, name string, label string, field string, interval uint32) (*aql.NamedAggregationResult, error)
 
 	GetVertexList(ctx context.Context, load bool) <-chan *aql.Vertex
 	GetEdgeList(ctx context.Context, load bool) <-chan *aql.Edge

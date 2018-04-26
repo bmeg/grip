@@ -11,7 +11,6 @@ import (
 
 	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/engine"
-	"github.com/bmeg/arachne/kvgraph"
 	"github.com/bmeg/arachne/protoutil"
 	"github.com/bmeg/arachne/util"
 	"github.com/golang/protobuf/jsonpb"
@@ -49,35 +48,35 @@ type queryTest struct {
 
 var table = []queryTest{
 	{
-		Q.V().Has("name", "Kyle", "Alex"),
+		Q.V().Where(aql.In("$.name", "Kyle", "Alex")),
 		pick(verts[0], verts[1], verts[6], verts[7]),
 	},
 	{
-		Q.V().Has("non-existent", "Kyle", "Alex"),
+		Q.V().Where(aql.Eq("$.non-existent-field", "Kyle")),
 		pick(),
 	},
 	{
-		Q.V().HasLabel("Human"),
+		Q.V().Where(aql.Eq("$.label", "Human")),
 		pick(verts[0], verts[1], verts[2]),
 	},
 	{
-		Q.V().HasLabel("Robot"),
+		Q.V().Where(aql.Eq("$.label", "Robot")),
 		pick(verts[3], verts[4], verts[5]),
 	},
 	{
-		Q.V().HasLabel("Robot", "Human"),
+		Q.V().Where(aql.In("$.label", "Robot", "Human")),
 		pick(verts[0], verts[1], verts[2], verts[3], verts[4], verts[5]),
 	},
 	{
-		Q.V().HasLabel("non-existent"),
+		Q.V().Where(aql.Eq("$.label", "non-existent")),
 		pick(),
 	},
 	{
-		Q.V().HasID(verts[0].Gid, verts[2].Gid),
+		Q.V().Where(aql.In("$.gid", verts[0].Gid, verts[2].Gid)),
 		pick(verts[0], verts[2]),
 	},
 	{
-		Q.V().HasID("non-existent"),
+		Q.V().Where(aql.Eq("$.gid", "non-existent")),
 		pick(),
 	},
 	{
@@ -98,11 +97,11 @@ var table = []queryTest{
 		values(float64(len(verts))),
 	},
 	{
-		Q.V().HasLabel("Human").Has("name", "Ryan"),
+		Q.V().Where(aql.And(aql.Eq("$.label", "Human"), aql.Eq("$.name", "Ryan"))),
 		pick(verts[2]),
 	},
 	{
-		Q.V().HasLabel("Human").As("x").Has("name", "Alex").Select("x"),
+		Q.V().Where(aql.Eq("$.label", "Human")).As("x").Where(aql.Eq("$.name", "Alex")).Select("x"),
 		pick(verts[0]),
 	},
 	{
@@ -114,55 +113,67 @@ var table = []queryTest{
 		pickAllEdges(),
 	},
 	{
-		Q.V().HasLabel("Human").Out(),
+		Q.V().Where(aql.Eq("$.label", "Human")).Out(),
 		pick(verts[10], verts[11]),
 	},
 	{
-		Q.V().HasLabel("Human").Out().Has("name", "Funnel"),
+		Q.V().Where(aql.Eq("$.label", "Human")).Out().Where(aql.Eq("$.name", "Funnel")),
 		pick(verts[10]),
 	},
 	{
-		Q.V().HasLabel("Human").As("x").Out().Has("name", "Funnel").Select("x"),
+		Q.V().Where(aql.Eq("$.label", "Human")).As("x").Out().Where(aql.Eq("$.name", "Funnel")).Select("x"),
 		pick(verts[0]),
 	},
 	{
-		Q.V().HasLabel("Human").OutEdge(),
+		Q.V().Where(aql.Eq("$.label", "Human")).OutEdge(),
 		pickAllEdges(),
 	},
 	{
-		Q.V().HasLabel("Human").Has("name", "Alex").OutEdge(),
+		Q.V().Where(aql.Eq("$.label", "Human")).Where(aql.Eq("$.name", "Alex")).OutEdge(),
 		pick(edges[0]),
 	},
 	{
-		Q.V().HasLabel("Human").Has("name", "Alex").OutEdge().As("x"),
+		Q.V().Where(aql.Eq("$.label", "Human")).Where(aql.Eq("$.name", "Alex")).OutEdge().As("x"),
 		pick(edges[0]),
 	},
 	{
-		Q.V().HasLabel("Human").Values("name"),
-		values("Alex", "Kyle", "Ryan"),
+		Q.V().Where(aql.Eq("$.label", "Human")).Fields("$.name"),
+		pick(
+			&aql.Vertex{Data: protoutil.AsStruct(map[string]interface{}{"name": "Alex"})},
+			&aql.Vertex{Data: protoutil.AsStruct(map[string]interface{}{"name": "Kyle"})},
+			&aql.Vertex{Data: protoutil.AsStruct(map[string]interface{}{"name": "Ryan"})},
+		),
 	},
 	{
-		Q.V().HasLabel("Human").Values(),
-		values(12, 34, 56, "Alex", "Kyle", "Ryan"),
+		Q.V().
+			Where(aql.Eq("$.label", "Human")).As("x").
+			Out().
+			Where(aql.Eq("$.name", "Funnel")).As("y").
+			Fields("y.gid", "y.label", "y.name", "x.gid", "x.label", "x.name").
+			Select("x", "y"),
+		pickrow(
+			&aql.Vertex{Gid: verts[0].Gid, Label: verts[0].Label, Data: protoutil.AsStruct(map[string]interface{}{"name": "Alex"})},
+			&aql.Vertex{Gid: verts[10].Gid, Label: verts[10].Label, Data: protoutil.AsStruct(map[string]interface{}{"name": "Funnel"})},
+		),
 	},
 	{
 		Q.V().Match(
-			Q.HasLabel("Human"),
-			Q.Has("name", "Alex"),
+			Q.Where(aql.Eq("$.label", "Human")),
+			Q.Where(aql.Eq("$.name", "Alex")),
 		),
 		pick(verts[0]),
 	},
 	{
 		Q.V().Match(
-			Q.As("a").HasLabel("Human").As("b"),
-			Q.As("b").Has("name", "Alex").As("c"),
+			Q.As("a").Where(aql.Eq("$.label", "Human")).As("b"),
+			Q.As("b").Where(aql.Eq("$.name", "Alex")).As("c"),
 		).Select("c"),
 		pick(verts[0]),
 	},
 	{
 		Q.V().Match(
-			Q.As("a").HasLabel("Human").As("b"),
-			Q.As("b").Has("name", "Alex").As("c"),
+			Q.As("a").Where(aql.Eq("$.label", "Human")).As("b"),
+			Q.As("b").Where(aql.Eq("$.name", "Alex")).As("c"),
 		).Select("b", "c"),
 		pickrow(verts[0], verts[0]),
 	},
@@ -182,17 +193,6 @@ var table = []queryTest{
 }
 
 func TestEngine(t *testing.T) {
-	kvg := kvgraph.NewKVGraph(kvdriver)
-	err := kvg.AddGraph("test-graph")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	db, err := kvg.Graph("test-graph")
-	if err != nil {
-		t.Fatal(err)
-	}
-
 	for _, v := range verts {
 		err := db.AddVertex([]*aql.Vertex{v})
 		if err != nil {

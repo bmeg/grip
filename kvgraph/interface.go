@@ -39,19 +39,6 @@ func NewKVInterface(name string, dbPath string) (kvi.KVInterface, error) {
 		return builder(dbPath)
 	}
 	return nil, fmt.Errorf("Driver %s Not Found", name)
-
-	// switch name {
-	// case "badger":
-	// 	return badgerdb.NewKVInterface(dbPath)
-	// case "bolt":
-	// 	return boltdb.NewKVInterface(dbPath)
-	// case "level":
-	// 	return leveldb.NewKVInterface(dbPath)
-	// case "rocks":
-	// 	return rocksdb.NewKVInterface(dbPath)
-	// default:
-	// 	return nil, fmt.Errorf("Driver %s Not Found", name)
-	// }
 }
 
 // NewKVGraphDB intitalize a new key value graph driver given the name of the

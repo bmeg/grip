@@ -2,11 +2,12 @@ package mongo
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"strings"
 
 	"github.com/bmeg/arachne/aql"
-	structpb "github.com/golang/protobuf/ptypes/struct"
+	"github.com/bmeg/arachne/protoutil"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 )
@@ -84,35 +85,46 @@ func (mg *Graph) GetVertexIndexList() chan aql.IndexID {
 	return out
 }
 
-//GetVertexTermCount get count of every term across vertices
-func (mg *Graph) GetVertexTermCount(ctx context.Context, label string, field string) chan aql.IndexTermCount {
-	log.Printf("Running GetVertexTermCount: { label: %s, field: %s }", label, field)
-	out := make(chan aql.IndexTermCount, 100)
-	go func() {
-		defer close(out)
-		session := mg.ar.pool.Get()
-		defer mg.ar.pool.Put(session)
-		ag := []bson.M{
-			{"$match": bson.M{"label": label}},
-			{"$sortByCount": "$data." + field},
+//GetVertexTermAggregation get count of every term across vertices
+func (mg *Graph) GetVertexTermAggregation(ctx context.Context, name string, label string, field string, size uint32) (*aql.NamedAggregationResult, error) {
+	log.Printf("Running GetVertexTermAggregation: { label: %s, field: %s }", label, field)
+	session := mg.ar.pool.Get()
+	defer mg.ar.pool.Put(session)
+	out := &aql.NamedAggregationResult{
+		Name:    name,
+		Buckets: []*aql.AggregationResult{},
+	}
+
+	ag := []bson.M{
+		{"$match": bson.M{"label": label}},
+		{"$sortByCount": "$data." + field},
+	}
+	vcol := mg.ar.getVertexCollection(session, mg.graph)
+	pipe := vcol.Pipe(ag)
+	iter := pipe.Iter()
+	defer iter.Close()
+	result := map[string]interface{}{}
+	for iter.Next(&result) {
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		default:
 		}
-		vcol := mg.ar.getVertexCollection(session, mg.graph)
-		pipe := vcol.Pipe(ag)
-		iter := pipe.Iter()
-		defer iter.Close()
-		result := map[string]interface{}{}
-		for iter.Next(&result) {
-			select {
-			case <-ctx.Done():
-				return
-			default:
-			}
-			term := structpb.Value{Kind: &structpb.Value_StringValue{StringValue: result["_id"].(string)}}
-			idxit := aql.IndexTermCount{Term: &term, Count: int32(result["count"].(int))}
-			out <- idxit
-		}
-	}()
-	return out
+		term := protoutil.WrapValue(result["_id"])
+		out.Buckets = append(out.Buckets, &aql.AggregationResult{Key: term, Value: float32(result["count"].(float32))})
+	}
+
+	return out, nil
+}
+
+//GetVertexHistogramAggregation get binned counts of a term across vertices
+func (mg *Graph) GetVertexHistogramAggregation(ctx context.Context, name string, label string, field string, interval uint32) (*aql.NamedAggregationResult, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
+//GetVertexPercentileAggregation get percentiles of a term across vertices
+func (mg *Graph) GetVertexPercentileAggregation(ctx context.Context, name string, label string, field string, percents []uint32) (*aql.NamedAggregationResult, error) {
+	return nil, fmt.Errorf("not implemented")
 }
 
 // VertexLabelScan produces a channel of all vertex ids where the vertex label matches `label`

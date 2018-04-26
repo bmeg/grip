@@ -12,7 +12,7 @@ func TravelerPathLookup(traveler *gdbi.Traveler, path string) interface{} {
 	parts := strings.Split(path, ".")
 	namespace := strings.TrimPrefix(parts[0], "$")
 	if namespace == "" {
-		namespace = "current"
+		namespace = "__current__"
 	}
 	parts = parts[1:]
 
@@ -25,7 +25,7 @@ func TravelerPathLookup(traveler *gdbi.Traveler, path string) interface{} {
 	field := strings.Join(parts, ".")
 
 	var tmap map[string]interface{}
-	if namespace == "current" {
+	if namespace == "__current__" {
 		tmap = traveler.GetCurrent().ToDict()
 	} else {
 		tmap = traveler.GetMark(namespace).ToDict()

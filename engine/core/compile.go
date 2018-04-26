@@ -67,25 +67,20 @@ func (comp DefaultCompiler) Compile(stmts []*aql.GraphStatement) (gdbi.Pipeline,
 		switch stmt := gs.GetStatement().(type) {
 
 		case *aql.GraphStatement_V:
+			if lastType != gdbi.NoData {
+				return &DefaultPipeline{}, fmt.Errorf(`"V" statement is only valid at the beginning of the traversal`)
+			}
 			ids := protoutil.AsStringList(stmt.V)
 			add(&LookupVerts{db: comp.db, ids: ids})
 			lastType = gdbi.VertexData
 
 		case *aql.GraphStatement_E:
+			if lastType != gdbi.NoData {
+				return &DefaultPipeline{}, fmt.Errorf(`"E" statement is only valid at the beginning of the traversal`)
+			}
 			ids := protoutil.AsStringList(stmt.E)
 			add(&LookupEdges{db: comp.db, ids: ids})
 			lastType = gdbi.EdgeData
-
-		case *aql.GraphStatement_Has:
-			add(&HasData{stmt.Has})
-
-		case *aql.GraphStatement_HasLabel:
-			labels := protoutil.AsStringList(stmt.HasLabel)
-			add(&HasLabel{labels: labels})
-
-		case *aql.GraphStatement_HasId:
-			ids := protoutil.AsStringList(stmt.HasId)
-			add(&HasID{ids: ids})
 
 		case *aql.GraphStatement_In:
 			labels := protoutil.AsStringList(stmt.In)
@@ -94,24 +89,22 @@ func (comp DefaultCompiler) Compile(stmts []*aql.GraphStatement) (gdbi.Pipeline,
 			} else if lastType == gdbi.EdgeData {
 				add(&LookupEdgeAdjIn{comp.db, labels})
 			} else {
-				return &DefaultPipeline{}, fmt.Errorf(`"in" reached weird state`)
+				return &DefaultPipeline{}, fmt.Errorf(`"in" statement is only valid for edge or vertex types not: %s`, lastType.String())
 			}
 			lastType = gdbi.VertexData
 
 		case *aql.GraphStatement_Out:
-
 			labels := protoutil.AsStringList(stmt.Out)
 			if lastType == gdbi.VertexData {
 				add(&LookupVertexAdjOut{comp.db, labels})
 			} else if lastType == gdbi.EdgeData {
 				add(&LookupEdgeAdjOut{comp.db, labels})
 			} else {
-				return &DefaultPipeline{}, fmt.Errorf(`"out" reached weird state`)
+				return &DefaultPipeline{}, fmt.Errorf(`"out" statement is only valid for edge or vertex types not: %s`, lastType.String())
 			}
 			lastType = gdbi.VertexData
 
 		case *aql.GraphStatement_Both:
-
 			labels := protoutil.AsStringList(stmt.Both)
 			if lastType == gdbi.VertexData {
 				add(&concat{
@@ -124,32 +117,29 @@ func (comp DefaultCompiler) Compile(stmts []*aql.GraphStatement) (gdbi.Pipeline,
 					&LookupEdgeAdjOut{comp.db, labels},
 				})
 			} else {
-				return &DefaultPipeline{}, fmt.Errorf(`"both" reached weird state`)
+				return &DefaultPipeline{}, fmt.Errorf(`"both" statement is only valid for edge or vertex types not: %s`, lastType.String())
 			}
 			lastType = gdbi.VertexData
 
 		case *aql.GraphStatement_InEdge:
-
 			if lastType != gdbi.VertexData {
-				return &DefaultPipeline{}, fmt.Errorf(`"inEdge" statement is only valid for the vertex type`)
+				return &DefaultPipeline{}, fmt.Errorf(`"inEdge" statement is only valid for the vertex type not: %s`, lastType.String())
 			}
 			labels := protoutil.AsStringList(stmt.InEdge)
 			add(&InEdge{comp.db, labels})
 			lastType = gdbi.EdgeData
 
 		case *aql.GraphStatement_OutEdge:
-
 			if lastType != gdbi.VertexData {
-				return &DefaultPipeline{}, fmt.Errorf(`"outEdge" statement is only valid for the vertex type`)
+				return &DefaultPipeline{}, fmt.Errorf(`"outEdge" statement is only valid for the vertex type not: %s`, lastType.String())
 			}
 			labels := protoutil.AsStringList(stmt.OutEdge)
 			add(&OutEdge{comp.db, labels})
 			lastType = gdbi.EdgeData
 
 		case *aql.GraphStatement_BothEdge:
-
 			if lastType != gdbi.VertexData {
-				return &DefaultPipeline{}, fmt.Errorf(`"bothEdge" statement is only valid for the vertex type`)
+				return &DefaultPipeline{}, fmt.Errorf(`"bothEdge" statement is only valid for the vertex type not: %s`, lastType.String())
 			}
 			labels := protoutil.AsStringList(stmt.BothEdge)
 			add(&concat{
@@ -157,6 +147,12 @@ func (comp DefaultCompiler) Compile(stmts []*aql.GraphStatement) (gdbi.Pipeline,
 				&OutEdge{comp.db, labels},
 			})
 			lastType = gdbi.EdgeData
+
+		case *aql.GraphStatement_Where:
+			if lastType != gdbi.VertexData && lastType != gdbi.EdgeData {
+				return &DefaultPipeline{}, fmt.Errorf(`"distinct" statement is only valid for edge or vertex types not: %s`, lastType.String())
+			}
+			add(&Where{stmt.Where})
 
 		case *aql.GraphStatement_Limit:
 			add(&Limit{stmt.Limit})
@@ -166,16 +162,15 @@ func (comp DefaultCompiler) Compile(stmts []*aql.GraphStatement) (gdbi.Pipeline,
 			add(&Count{})
 			lastType = gdbi.CountData
 
-		case *aql.GraphStatement_Fold:
-			add(&Fold{stmt.Fold, []string{}})
-			lastType = gdbi.ValueData
-
 		case *aql.GraphStatement_GroupCount:
 			// TODO validate the types following a counter
 			add(&GroupCount{stmt.GroupCount})
 			lastType = gdbi.GroupCountData
 
 		case *aql.GraphStatement_Distinct:
+			if lastType != gdbi.VertexData && lastType != gdbi.EdgeData {
+				return &DefaultPipeline{}, fmt.Errorf(`"distinct" statement is only valid for edge or vertex types not: %s`, lastType.String())
+			}
 			add(&Distinct{protoutil.AsStringList(stmt.Distinct)})
 
 		case *aql.GraphStatement_As:
@@ -190,82 +185,84 @@ func (comp DefaultCompiler) Compile(stmts []*aql.GraphStatement) (gdbi.Pipeline,
 			add(&Marker{stmt.As})
 
 		case *aql.GraphStatement_Select:
+			if lastType != gdbi.VertexData && lastType != gdbi.EdgeData {
+				return &DefaultPipeline{}, fmt.Errorf(`"select" statement is only valid for edge or vertex types not: %s`, lastType.String())
+			}
 			// TODO should track mark types so "lastType" can be set after select
 			// TODO track mark names and fail when a name is missing.
 			switch len(stmt.Select.Labels) {
 			case 0:
 				return &DefaultPipeline{}, fmt.Errorf(`"select" statement has an empty list of mark names`)
 			case 1:
-				add(&selectOne{stmt.Select.Labels[0]})
 				lastType = markTypes[stmt.Select.Labels[0]]
+				add(&selectOne{stmt.Select.Labels[0]})
 			default:
-				add(&selectMany{stmt.Select.Labels})
 				lastType = gdbi.RowData
+				add(&selectMany{stmt.Select.Labels})
 				for _, i := range stmt.Select.Labels {
 					rowTypes = append(rowTypes, markTypes[i])
 				}
 			}
 
 		case *aql.GraphStatement_Render:
+			if lastType != gdbi.VertexData && lastType != gdbi.EdgeData {
+				return &DefaultPipeline{}, fmt.Errorf(`"render" statement is only valid for edge or vertex types not: %s`, lastType.String())
+			}
 			r := Render{protoutil.UnWrapValue(stmt.Render)}
 			add(&r)
 			lastType = gdbi.ValueData
 
-		case *aql.GraphStatement_Values:
-			add(&Values{stmt.Values.Labels})
+		case *aql.GraphStatement_Fields:
+			if lastType != gdbi.VertexData && lastType != gdbi.EdgeData {
+				return &DefaultPipeline{}, fmt.Errorf(`"fields" statement is only valid for edge or vertex types not: %s`, lastType.String())
+			}
+			fields := protoutil.AsStringList(stmt.Fields)
+			add(&Fields{fields})
+
+		case *aql.GraphStatement_Import:
+			return &DefaultPipeline{}, fmt.Errorf(`"import" statement is not implemented`)
+
+		case *aql.GraphStatement_Map:
+			return &DefaultPipeline{}, fmt.Errorf(`"map" statement is not implemented`)
+
+		case *aql.GraphStatement_Fold:
+			if lastType != gdbi.VertexData && lastType != gdbi.EdgeData {
+				return &DefaultPipeline{}, fmt.Errorf(`"fold" statement is only valid for edge or vertex types not: %s`, lastType.String())
+			}
+			add(&Fold{stmt.Fold, []string{}})
 			lastType = gdbi.ValueData
 
-		/*
-		   case *aql.GraphStatement_Import:
-		   case *aql.GraphStatement_Map:
-		   case *aql.GraphStatement_Fold:
-		   case *aql.GraphStatement_Filter:
-		   case *aql.GraphStatement_FilterValues:
-		   case *aql.GraphStatement_VertexFromValues:
-		*/
+		case *aql.GraphStatement_Filter:
+			return &DefaultPipeline{}, fmt.Errorf(`"filter" statement is not implemented`)
+
+		case *aql.GraphStatement_Aggregate:
+			return &DefaultPipeline{}, fmt.Errorf(`"aggregate" statement is not implemented`)
 
 		default:
 			return &DefaultPipeline{}, fmt.Errorf("unknown statement type")
 		}
 	}
 
-	procs = indexStartOptimize(procs)
-
-	/*
-	  dontLoad := true
-	  for i := len(pipes) - 1; i >= 0; i-- {
-	    switch p := pipes[i].(type) {
-	    case *lookup, *lookupAdj, lookupEnd:
-	      p.dontLoad = dontLoad
-	      dontLoad = true
-	    case *hasData:
-	      dontLoad = false
-	    case *count:
-	      dontLoad = false
-	    case *groupCount:
-	      dontLoad = p.key == ""
-	    }
-	  }
-	*/
+	// procs = indexStartOptimize(procs)
 
 	return &DefaultPipeline{procs, lastType, markTypes, rowTypes}, nil
 }
 
 //For V().HasLabel() queries, streamline into a single index lookup
-func indexStartOptimize(pipe []gdbi.Processor) []gdbi.Processor {
-	if len(pipe) >= 2 {
-		if x, ok := pipe[0].(*LookupVerts); ok {
-			if len(x.ids) == 0 {
-				if y, ok := pipe[1].(*HasLabel); ok {
-					//log.Printf("Found has label opt: %s", y.labels)
-					hIdx := LookupVertsIndex{labels: y.labels, db: x.db}
-					return append([]gdbi.Processor{&hIdx}, pipe[2:]...)
-				}
-			}
-		}
-	}
-	return pipe
-}
+// func indexStartOptimize(pipe []gdbi.Processor) []gdbi.Processor {
+// 	if len(pipe) >= 2 {
+// 		if x, ok := pipe[0].(*LookupVerts); ok {
+// 			if len(x.ids) == 0 {
+// 				if y, ok := pipe[1].(*HasLabel); ok {
+// 					//log.Printf("Found has label opt: %s", y.labels)
+// 					hIdx := LookupVertsIndex{labels: y.labels, db: x.db}
+// 					return append([]gdbi.Processor{&hIdx}, pipe[2:]...)
+// 				}
+// 			}
+// 		}
+// 	}
+// 	return pipe
+// }
 
 func validate(stmts []*aql.GraphStatement) error {
 	for i, gs := range stmts {
