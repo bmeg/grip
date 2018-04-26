@@ -148,7 +148,16 @@ func (rocksTxn rocksTransaction) HasKey(key []byte) bool {
 }
 
 func (rocksTxn rocksTransaction) Get(key []byte) ([]byte, error) {
-	return rocksTxn.db.GetBytes(rocksTxn.ro, key)
+	value, err := rocksTxn.db.Get(rocksTxn.ro, key)
+	if err != nil {
+		return nil, err
+	}
+	if value.Data() == nil {
+		return nil, fmt.Errorf("Not found")
+	}
+	out := copyBytes(value.Data())
+	value.Free()
+	return out, nil
 }
 
 type rocksIterator struct {
@@ -164,6 +173,9 @@ func (rocksIter *rocksIterator) Get(key []byte) ([]byte, error) {
 	value, err := rocksIter.db.Get(rocksIter.ro, key)
 	if err != nil {
 		return nil, err
+	}
+	if value.Data() == nil {
+		return nil, fmt.Errorf("Not found")
 	}
 	out := copyBytes(value.Data())
 	value.Free()

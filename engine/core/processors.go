@@ -3,6 +3,7 @@ package core
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"log"
 	"sync"
 
@@ -404,7 +405,7 @@ func (r *Render) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, 
 	go func() {
 		defer close(out)
 		for t := range in {
-			v := jsonpath.Render(r.template, t.GetCurrent().Data)
+			v := jsonpath.Render(r.template, t)
 			o := t.AddCurrent(&gdbi.DataElement{
 				Value: v,
 			})
@@ -617,10 +618,9 @@ func (g *Distinct) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe
 		defer close(out)
 		kv := man.GetTempKV()
 		for t := range in {
-			cur := t.GetCurrent().ToDict()
 			s := make([][]byte, len(g.vals))
-			for i := range g.vals {
-				s[i] = []byte(jsonpath.GetString(cur, g.vals[i]))
+			for i, v := range g.vals {
+				s[i] = []byte(fmt.Sprintf("%#v", jsonpath.TravelerPathLookup(t, v)))
 			}
 			k := bytes.Join(s, []byte{0x00})
 			if !kv.HasKey(k) {

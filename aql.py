@@ -135,7 +135,7 @@ class Graph:
                    "Accept": "application/json"}
         url = self.url + "/" + self.name + "/index"
         url = self.url + "/" + self.name + "/index/" + label + \
-              "/" + field
+            "/" + field
         request = urllib2.Request(url, headers=headers)
         response = urllib2.urlopen(request)
         for result in response:
@@ -151,6 +151,28 @@ class Graph:
         for result in response:
             d = json.loads(result)
             yield d
+
+    def getVertex(self, gid):
+        """
+        Get a vertex by id.
+        """
+        headers = {"Content-Type": "application/json",
+                   "Accept": "application/json"}
+        url = self.url + "/" + self.name + "/vertex/" + gid
+        request = urllib2.Request(url, headers=headers)
+        response = urllib2.urlopen(request)
+        return json.loads(response.read())
+
+    def getEdge(self, gid):
+        """
+        Get an edge by id.
+        """
+        headers = {"Content-Type": "application/json",
+                   "Accept": "application/json"}
+        url = self.url + "/" + self.name + "/edge/" + gid
+        request = urllib2.Request(url, headers=headers)
+        response = urllib2.urlopen(request)
+        return json.loads(response.read())
 
     def query(self):
         """

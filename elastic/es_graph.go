@@ -60,12 +60,18 @@ func (es *Graph) AddEdge(edgeArray []*aql.Edge) error {
 		if e.Gid == "" {
 			e.Gid = util.UUID()
 		}
+		pe := PackEdge(e)
+		script := elastic.NewScript(`ctx._source.gid = params.gid;
+                                 ctx._source.label = params.label; 
+                                 ctx._source.from = params.from; 
+                                 ctx._source.to = params.to; 
+                                 ctx._source.data = params.data;`).Params(pe)
 		req := elastic.NewBulkUpdateRequest().
 			Index(es.edgeIndex).
 			Type("edge").
 			Id(e.Gid).
-			Doc(PackEdge(e)).
-			DocAsUpsert(true)
+			Script(script).
+			Upsert(pe)
 		bulkRequest = bulkRequest.Add(req)
 	}
 	_, err := bulkRequest.Do(ctx)
@@ -89,16 +95,21 @@ func (es *Graph) AddVertex(vertexArray []*aql.Vertex) error {
 		if v.Gid == "" {
 			return fmt.Errorf("Vertex Gid cannot be an empty string")
 		}
+		pv := PackVertex(v)
+		script := elastic.NewScript(`ctx._source.gid = params.gid;
+                                 ctx._source.label = params.label; 
+                                 ctx._source.data = params.data;`).Params(pv)
 		req := elastic.NewBulkUpdateRequest().
 			Index(es.vertexIndex).
 			Type("vertex").
 			Id(v.Gid).
-			Doc(PackVertex(v)).
-			DocAsUpsert(true)
+			Script(script).
+			Upsert(pv)
 		bulkRequest = bulkRequest.Add(req)
 	}
 	_, err := bulkRequest.Do(ctx)
 	if err != nil {
+		log.Println("err", err)
 		return err
 	}
 	es.ts.Touch(es.graph)
