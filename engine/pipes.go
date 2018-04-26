@@ -75,7 +75,6 @@ func Convert(dataType gdbi.DataType, rowTypes []gdbi.DataType, t *gdbi.Traveler)
 		}
 
 	case gdbi.EdgeData:
-		log.Printf("ToEdge: %#v = %#v", t.GetCurrent(), t.GetCurrent().ToEdge())
 		return &aql.ResultRow{
 			Value: &aql.QueryResult{
 				Result: &aql.QueryResult_Edge{
