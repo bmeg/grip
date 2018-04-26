@@ -220,7 +220,7 @@ func (rocksIter *rocksIterator) SeekReverse(k []byte) error {
 	keyValue := rocksIter.it.Key()
 	//seek lands at value equal or above id. Move once to make sure
 	//key is less then id
-	if bytes.Compare(id, keyValue) < 0 {
+	if bytes.Compare(k, keyValue.Data()) < 0 {
 		keyValue.Free()
 		rocksIter.it.Prev()
 		keyValue = rocksIter.it.Key()
