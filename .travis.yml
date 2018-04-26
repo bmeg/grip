@@ -63,7 +63,6 @@ jobs:
         - sudo cp -r ./include/rocksdb/ /usr/include/
         - popd
 
-        - go get github.com/tecbot/gorocksdb
         - make with-rocksdb
         - arachne server --rpc 18202 --port 18201 --rocks arachne.db &
         - sleep 5

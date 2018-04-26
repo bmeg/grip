@@ -22,7 +22,8 @@ depends:
 	@go get -d .
 
 # Build the code including the rocksdb package
-with-rocksdb:
+with-rocksdb: depends
+	@go get github.com/tecbot/gorocksdb
 	@go install -tags 'rocksdb' .
 
 # --------------------------
@@ -69,6 +70,7 @@ lint:
 # Tests
 # ---------------------
 test:
+	@go get github.com/stretchr/testify/assert
 	@go test $(TESTS)
 
 test-conformance:
