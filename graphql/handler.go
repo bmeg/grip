@@ -45,14 +45,19 @@ func NewHTTPHandler(address string) http.Handler {
 func (gh *Handler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 	pathRE, _ := regexp.Compile("/graphql/(.*)$")
 	graphName := pathRE.FindStringSubmatch(request.URL.Path)[1]
-	if v, ok := gh.handlers[graphName]; ok {
+	var v *graphHandler
+	var ok bool
+	if v, ok = gh.handlers[graphName]; ok {
 		v.setup()
-		v.gqlHandler.ServeHTTP(writer, request)
 	} else {
 		v := newGraphHandler(graphName, gh.client)
 		v.setup()
 		gh.handlers[graphName] = v
+	}
+	if v != nil && v.gqlHandler != nil {
 		v.gqlHandler.ServeHTTP(writer, request)
+	} else {
+		http.Error(writer, "GraphQL Schema error", http.StatusInternalServerError)
 	}
 }
 
@@ -73,11 +78,17 @@ func (gh *graphHandler) setup() {
 	ts, _ := gh.client.GetTimestamp(gh.schema)
 	if ts.Timestamp != gh.timestamp {
 		log.Printf("Reloading GraphQL")
-		schema := buildGraphQLSchema(gh.client, gh.schema, gh.graph)
-		gh.gqlHandler = handler.New(&handler.Config{
-			Schema: schema,
-		})
-		gh.timestamp = ts.Timestamp
+		schema, err := buildGraphQLSchema(gh.client, gh.schema, gh.graph)
+		if err != nil {
+			log.Printf("Graph Schema build Failed")
+			gh.gqlHandler = nil
+			gh.timestamp = ""
+		} else {
+			gh.gqlHandler = handler.New(&handler.Config{
+				Schema: schema,
+			})
+			gh.timestamp = ts.Timestamp
+		}
 	}
 }
 
@@ -131,10 +142,10 @@ func (f objectField) toGQL(client aql.Client, dataGraph string, objects map[stri
 				return out, nil
 			},
 		}
-		log.Printf("Add object field %s to %s = %#v", f.name, f.dstType, o)
+		//log.Printf("Add object field %s to %s = %#v", f.name, f.dstType, o)
 		return o
 	} else if f.fieldType == idQuery {
-		log.Printf("query id field %s %s", f.name, objects[f.dstType])
+		//log.Printf("query id field %s %s", f.name, objects[f.dstType])
 		o := &graphql.Field{
 			Type: objects[f.dstType],
 			Args: graphql.FieldConfigArgument{
@@ -143,7 +154,7 @@ func (f objectField) toGQL(client aql.Client, dataGraph string, objects map[stri
 				},
 			},
 			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-				log.Printf("Scanning %s", p.Args)
+				//log.Printf("Scanning %s", p.Args)
 				v, err := client.GetVertex(dataGraph, p.Args["id"].(string))
 				if v == nil || err != nil {
 					return nil, fmt.Errorf("Not found")
@@ -155,11 +166,11 @@ func (f objectField) toGQL(client aql.Client, dataGraph string, objects map[stri
 		}
 		return o
 	} else if f.fieldType == idList {
-		log.Printf("query id field %s %s", f.name, objects[f.dstType])
+		//log.Printf("query id field %s %s", f.name, objects[f.dstType])
 		o := &graphql.Field{
 			Type: graphql.NewList(graphql.String),
 			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-				log.Printf("Looking up ids: %s", f.dstType)
+				//log.Printf("Looking up ids: %s", f.dstType)
 				q := aql.V().HasLabel(f.dstType)
 				result, _ := client.Execute(dataGraph, q)
 				out := []interface{}{}
@@ -194,39 +205,54 @@ func getObjectFields(client aql.Client, gqlDB string, queryGID string) map[strin
 	q := aql.V(queryGID).OutEdge("field").As("a").Out().As("b").Select("a", "b")
 	results, _ := client.Execute(gqlDB, q)
 	for elem := range results {
-		log.Printf("objectField: %s %s %s", queryGID, elem.GetRow()[0], elem.GetRow()[1].GetVertex().Gid)
-		fieldName := elem.GetRow()[0].GetEdge().GetProperty("name").(string)
-		fieldObj := elem.GetRow()[1].GetVertex().Gid
-		label := fieldName
-		if elem.GetRow()[0].GetEdge().HasProperty("label") {
-			label = elem.GetRow()[0].GetEdge().GetProperty("label").(string)
-		}
-		t := objectList
-		if elem.GetRow()[0].GetEdge().HasProperty("type") {
-			tf := elem.GetRow()[0].GetEdge().GetProperty("type").(string)
-			if tf == "idList" {
-				t = idList
-			} else if tf == "idQuery" {
-				t = idQuery
+		//log.Printf("objectField: %s %s %s", queryGID, elem.GetRow()[0], elem.GetRow()[1].GetVertex().Gid)
+		fieldName := elem.GetRow()[0].GetEdge().GetProperty("name")
+		if fieldName != nil {
+			if fieldNameStr, ok := fieldName.(string); ok {
+				fieldObj := elem.GetRow()[1].GetVertex().Gid
+				label := fieldNameStr
+				if elem.GetRow()[0].GetEdge().HasProperty("label") {
+					l := elem.GetRow()[0].GetEdge().GetProperty("label")
+					if lStr, ok := l.(string); ok {
+						label = lStr
+					}
+				}
+				t := objectList
+				if elem.GetRow()[0].GetEdge().HasProperty("type") {
+					tp := elem.GetRow()[0].GetEdge().GetProperty("type")
+					if tf, ok := tp.(string); ok {
+						if tf == "idList" {
+							t = idList
+						} else if tf == "idQuery" {
+							t = idQuery
+						} else {
+							log.Printf("Unknown Field type: %s %s", fieldName, tf)
+						}
+					} else {
+						log.Printf("Object field link type not a string")
+					}
+				}
+				out[fieldNameStr] = objectField{fieldNameStr, label, fieldObj, t}
 			} else {
-				log.Printf("Unknown Field type: %s %s", fieldName, tf)
+				log.Printf("Field name is not string")
 			}
+		} else {
+			log.Printf("Edge missing name parameter: %#v", elem.GetRow()[0].GetEdge())
 		}
-		out[fieldName] = objectField{fieldName, label, fieldObj, t}
 	}
 	return out
 }
 
 func buildObject(name string, schema map[string]interface{}) *graphql.Object {
 	fields := graphql.Fields{}
-	log.Printf("BUILDING: %s", name)
+	//log.Printf("BUILDING: %s", name)
 	for fname, ftype := range schema {
 		if x, ok := ftype.(map[string]interface{}); ok {
 			if m := buildObject(fname, x); m != nil {
 				fields[fname] = &graphql.Field{Type: m}
 			}
 		} else if x, ok := ftype.([]interface{}); ok {
-			log.Printf("array: %s", x)
+			//log.Printf("array: %s", x)
 			//we only look at the first element to determine the schema of array elements
 			if len(x) > 0 {
 				y := x[0]
@@ -239,7 +265,7 @@ func buildObject(name string, schema map[string]interface{}) *graphql.Object {
 				}
 			}
 		} else if x, ok := ftype.(string); ok {
-			log.Printf("%s %s", fname, ftype)
+			//log.Printf("%s %s", fname, ftype)
 			if x == "Int" {
 				fields[fname] = &graphql.Field{Type: graphql.Int}
 			} else if x == "String" || x == "string" {
@@ -277,7 +303,7 @@ func buildObjectMap(client aql.Client, gqlDB string, dataGraph string) map[strin
 	//fields that expand into other objects
 	for srcObj := range getObjects(client, gqlDB) {
 		for fieldName, field := range getObjectFields(client, gqlDB, srcObj) {
-			log.Printf("Object Field %s %s %s", srcObj, fieldName, field.dstType)
+			//log.Printf("Object Field %s %s %s", srcObj, fieldName, field.dstType)
 			f := field.toGQL(client, dataGraph, objects)
 			objects[srcObj].AddFieldConfig(fieldName, f)
 		}
@@ -303,13 +329,13 @@ func buildQueryObject(client aql.Client, gqlDB string, dataGraph string, objects
 	return queryType
 }
 
-func buildGraphQLSchema(client aql.Client, gqlDB string, dataGraph string) *graphql.Schema {
+func buildGraphQLSchema(client aql.Client, gqlDB string, dataGraph string) (*graphql.Schema, error) {
 	objects := buildObjectMap(client, gqlDB, dataGraph)
 	queryType := buildQueryObject(client, gqlDB, dataGraph, objects)
 	schemaConfig := graphql.SchemaConfig{
 		Query: queryType,
 	}
 	//log.Printf("GraphQL Schema: %s", schemaConfig)
-	schema, _ := graphql.NewSchema(schemaConfig)
-	return &schema
+	schema, err := graphql.NewSchema(schemaConfig)
+	return &schema, err
 }

@@ -6,8 +6,8 @@ package engine
 
 import (
 	"context"
-	"fmt"
-	//"log"
+	//"fmt"
+	"log"
 
 	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/gdbi"
@@ -132,6 +132,7 @@ func Convert(dataType gdbi.DataType, rowTypes []gdbi.DataType, t *gdbi.Traveler)
 		}
 
 	default:
-		panic(fmt.Errorf("unhandled data type %d", dataType))
+		log.Printf("unhandled data type %d", dataType)
 	}
+	return nil
 }

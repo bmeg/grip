@@ -144,11 +144,9 @@ var swGQLGraph = `{
 	"vertices": [
 		{ "gid" : "root", "label" : "Query"},
 		{
-			"gid": "HumanObject",
+			"gid": "Human",
 			"label": "Object",
 			"data": {
-				"label": "Human",
-				"name": "Human",
 				"fields": {
 					"name": "String",
 					"height": "Float",
@@ -158,11 +156,9 @@ var swGQLGraph = `{
 			}
 		},
 		{
-			"gid": "DroidObject",
+			"gid": "Droid",
 			"label": "Object",
 			"data": {
-				"label": "Droid",
-				"name": "Droid",
 				"fields": {
 					"name": "String",
 					"primaryFunction": "String"
@@ -170,11 +166,9 @@ var swGQLGraph = `{
 			}
 		},
 		{
-			"gid": "StarshipObject",
+			"gid": "Starship",
 			"label": "Object",
 			"data": {
-				"label": "Starship",
-				"name": "Starship",
 				"fields": {
 					"name": "String",
 					"length": "Float"
@@ -185,25 +179,34 @@ var swGQLGraph = `{
 	"edges": [{
 			"label": "field",
 			"from": "root",
-			"to": "HumanObject",
+			"to": "Human",
 			"data": {
+				"type": "idQuery",
 				"name": "Human"
 			}
-		},
-		{
+		},{
 			"label": "field",
 			"from": "root",
-			"to": "DroidObject",
+			"to": "Droid",
 			"data": {
+				"type": "idQuery",
 				"name": "Droid"
 			}
-		},
-		{
+		},{
 			"label": "field",
-			"from": "HumanObject",
-			"to": "HumanObject",
+			"from": "Human",
+			"to": "Human",
 			"data": {
-				"name": "friend"
+				"name": "friends",
+				"label" : "friend"
+			}
+		},{
+			"label": "field",
+  		"from": "root",
+  		"to": "Human",
+  		"data" : {
+    		"name": "HumanIds",
+    		"type": "idList"
 			}
 		}
 	]
