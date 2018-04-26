@@ -154,8 +154,8 @@ func (lit *levelIterator) Next() error {
 func (lit *levelIterator) Seek(id []byte) error {
 	lit.forward = true
 	if lit.it.Seek(id) {
-		lit.key = lit.it.Key()
-		lit.value = lit.it.Value()
+		lit.key = copyBytes(lit.it.Key())
+		lit.value = copyBytes(lit.it.Value())
 		return nil
 	}
 	return fmt.Errorf("Invalid")
