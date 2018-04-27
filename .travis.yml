@@ -36,14 +36,14 @@ jobs:
       - arachne server --rpc 18202 --port 18201 &
       - sleep 5
       - make test-conformance
-      - go test ./test -db badger
+      - go test ./test
       env:
         - n=badger
     - script:
       - arachne server --rpc 18202 --port 18201 --bolt arachne.db &
       - sleep 5
       - make test-conformance
-      - go test ./test -db bolt
+      - go test ./test -config bolt.yml
       env:
         - n=boltdb
     - script:
@@ -67,7 +67,7 @@ jobs:
         - arachne server --rpc 18202 --port 18201 --rocks arachne.db &
         - sleep 5
         - make test-conformance
-        - go test ./test -tags rocksdb -db rocks
+        - go test ./test -tags rocksdb -config rocks.yml
         - go test ./kvgraph/test -tags rocksdb
       env:
         - n=rocksdb
@@ -75,7 +75,7 @@ jobs:
       - arachne server --rpc 18202 --port 18201 --level arachne.db &
       - sleep 5
       - make test-conformance
-      - go test ./test -db level
+      - go test ./test -config level.yml
       env:
         - n=leveldb
     - script:
@@ -84,6 +84,7 @@ jobs:
       - arachne server --rpc 18202 --port 18201 --mongo localhost:27000 &
       - sleep 5
       - make test-conformance
+      - go test ./test -config mongo.yml
       env:
         - n=mongodb
     - script:
@@ -91,6 +92,7 @@ jobs:
       - arachne server --rpc 18202 --port 18201 --elastic http://localhost:9200 &
       - sleep 5
       - make test-conformance
+      - go test ./test -config elastic.yml
       env:
         - n=elasticsearch
 

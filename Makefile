@@ -77,13 +77,13 @@ test-conformance:
 	python conformance/run_conformance.py http://localhost:18201
 
 start-test-badger-server:
-	arachne server --rpc 18202 --port 18201
+	arachne server --rpc-port 18202 --http-port 18201 --database badger
 
 start-test-mongo-server:
-	arachne server --rpc 18202 --port 18201 --mongo localhost:27000
+	arachne server --rpc 18202 --port 18201 --database mongo --mongo-url localhost:27000
 
 start-test-elastic-server:
-	arachne server --rpc 18202 --port 18201 --elastic http://localhost:9200
+	arachne server --rpc 18202 --port 18201 --database elastic --elastic-url http://localhost:9200
 
 # ---------------------
 # Database development

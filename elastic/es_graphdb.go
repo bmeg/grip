@@ -23,6 +23,14 @@ type Elastic struct {
 // NewElastic creates a new elastic search graph database interface
 func NewElastic(url string, database string) (gdbi.GraphDB, error) {
 	log.Printf("Starting Elastic Driver")
+
+	if strings.ContainsAny(database, `/\. "'$*<>:|?`) {
+		return nil, fmt.Errorf(`invalid database name; cannot contain /\. "'$*<>:|?`)
+	}
+	if strings.HasPrefix(database, "_") || strings.HasPrefix(database, "+") || strings.HasPrefix(database, "-") {
+		return nil, fmt.Errorf(`invalid database name; cannot start with _-+`)
+	}
+
 	ts := timestamp.NewTimestamp()
 	client, err := elastic.NewClient(
 		elastic.SetURL(url),
@@ -36,7 +44,7 @@ func NewElastic(url string, database string) (gdbi.GraphDB, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to create elasticsearch client: %v", err)
 	}
-	db := &Elastic{url: url, database: database, ts: &ts, client: client}
+	db := &Elastic{url: url, database: strings.ToLower(database), ts: &ts, client: client}
 	for _, i := range db.GetGraphs() {
 		db.ts.Touch(i)
 	}
@@ -87,6 +95,13 @@ func (es *Elastic) initIndex(ctx context.Context, name, body string) error {
 func (es *Elastic) AddGraph(graph string) error {
 	log.Printf("Adding graph: %s", graph)
 	ctx := context.Background()
+
+	if strings.ContainsAny(graph, `/\. "'$*<>:|?`) {
+		return fmt.Errorf(`invalid graph name; cannot contain /\. "'$*<>:|?`)
+	}
+	if strings.HasPrefix(graph, "_") || strings.HasPrefix(graph, "+") || strings.HasPrefix(graph, "-") {
+		return fmt.Errorf(`invalid graph name; cannot start with _-+`)
+	}
 
 	vertexIndex := fmt.Sprintf("%s_%s_vertex", es.database, graph)
 	vMapping := `{

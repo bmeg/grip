@@ -28,6 +28,14 @@ type Mongo struct {
 // NewMongo creates a new mongo graph database interface
 func NewMongo(url string, database string) (gdbi.GraphDB, error) {
 	log.Printf("Starting Mongo Driver")
+
+	if strings.ContainsAny(database, `/\. "'$*<>:|?`) {
+		return nil, fmt.Errorf(`invalid database name; cannot contain /\. "'$*<>:|?`)
+	}
+	if strings.HasPrefix(database, "_") || strings.HasPrefix(database, "+") || strings.HasPrefix(database, "-") {
+		return nil, fmt.Errorf(`invalid database name; cannot start with _-+`)
+	}
+
 	ts := timestamp.NewTimestamp()
 	session, err := mgo.Dial(url)
 	if err != nil {
@@ -36,10 +44,10 @@ func NewMongo(url string, database string) (gdbi.GraphDB, error) {
 	b, _ := session.BuildInfo()
 	if !b.VersionAtLeast(3, 2) {
 		session.Close()
-		return nil, fmt.Errorf("Requires mongo 3.2 or later")
+		return nil, fmt.Errorf("requires mongo 3.2 or later")
 	}
 	pool := mgopool.NewLeaky(session, 3)
-	db := &Mongo{url: url, database: database, pool: pool, initialSession: session, ts: &ts}
+	db := &Mongo{url: url, database: strings.ToLower(database), pool: pool, initialSession: session, ts: &ts}
 	for _, i := range db.GetGraphs() {
 		db.ts.Touch(i)
 	}
@@ -72,15 +80,23 @@ type Graph struct {
 // AddGraph creates a new graph named `graph`
 func (ma *Mongo) AddGraph(graph string) error {
 	log.Printf("Adding graph: %s", graph)
+
+	if strings.ContainsAny(graph, `/\. "'$*<>:|?`) {
+		return fmt.Errorf(`invalid graph name; cannot contain /\. "'$*<>:|?`)
+	}
+	if strings.HasPrefix(graph, "_") || strings.HasPrefix(graph, "+") || strings.HasPrefix(graph, "-") {
+		return fmt.Errorf(`invalid graph name; cannot start with _-+`)
+	}
+
 	session := ma.pool.Get()
 	session.ResetIndexCache()
 	defer ma.pool.Put(session)
 	defer ma.ts.Touch(graph)
 
-	graphs := session.DB(ma.database).C(fmt.Sprintf("graphs"))
-	err := graphs.Insert(map[string]string{"_id": graph})
+	graphs := session.DB(ma.database).C("graphs")
+	err := graphs.Insert(bson.M{"_id": graph})
 	if err != nil {
-		log.Printf("Insert failed: %v", err)
+		return fmt.Errorf("failed to insert graph %s: %v", graph, err)
 	}
 
 	e := ma.getEdgeCollection(session, graph)
@@ -92,7 +108,7 @@ func (ma *Mongo) AddGraph(graph string) error {
 		Background: true,
 	})
 	if err != nil {
-		log.Printf("Ensure index failed: %v", err)
+		return fmt.Errorf("failed create index for graph %s: %v", graph, err)
 	}
 	err = e.EnsureIndex(mgo.Index{
 		Key:        []string{"$hashed:to"},
@@ -102,7 +118,7 @@ func (ma *Mongo) AddGraph(graph string) error {
 		Background: true,
 	})
 	if err != nil {
-		log.Printf("Ensure index failed: %v", err)
+		return fmt.Errorf("failed create index for graph %s: %v", graph, err)
 	}
 	err = e.EnsureIndex(mgo.Index{
 		Key:        []string{"$hashed:label"},
@@ -112,7 +128,7 @@ func (ma *Mongo) AddGraph(graph string) error {
 		Background: true,
 	})
 	if err != nil {
-		log.Printf("Ensure index failed: %v", err)
+		return fmt.Errorf("failed create index for graph %s: %v", graph, err)
 	}
 
 	v := ma.getVertexCollection(session, graph)
@@ -124,7 +140,7 @@ func (ma *Mongo) AddGraph(graph string) error {
 		Background: true,
 	})
 	if err != nil {
-		log.Printf("Ensure index failed: %v", err)
+		return fmt.Errorf("failed create index for graph %s: %v", graph, err)
 	}
 
 	return nil
