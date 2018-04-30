@@ -19,15 +19,15 @@ def test_bulkload(O):
     bulk.addEdge("6", "3", "created", {"weight": 0.2})
     bulk.addEdge("4", "5", "created", {"weight": 1.0})
 
-    bulk.commit()
+    bulk.execute()
 
-    res = list(O.query().V().count())[0]
+    res = list(O.query().V().count().execute())[0]
     if res["data"] != 6:
         errors.append(
             "Bulk Add wrong number of vertices: %s != %s" %
             (res["data"], 6))
 
-    res = list(O.query().E().count())[0]
+    res = list(O.query().E().count().execute())[0]
     if res["data"] != 6:
         errors.append(
             "Bulk Add wrong number of edges: %s != %s" %

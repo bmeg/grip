@@ -12,8 +12,8 @@ def test_as_select(O):
     O.addEdge("vertex2", "vertex3", "friend")
     O.addEdge("vertex2", "vertex4", "parent")
 
-    for row in O.query().V("vertex1").mark("a").outgoing().mark(
-            "b").outgoing().mark("c").select(["a", "b", "c"]).execute():
+    for row in O.query().V("vertex1").as_("a").out().as_(
+            "b").out().as_("c").select(["a", "b", "c"]).execute():
         res = dict(zip(["a", "b", "c"], row))
         if res["a"]["vertex"]["gid"] != "vertex1":
             errors.append("Incorrect as selection")
@@ -42,8 +42,8 @@ def test_as_edge_select(O):
     O.addEdge("vertex2", "vertex3", "friend")
     O.addEdge("vertex2", "vertex4", "parent")
 
-    for row in O.query().V("vertex1").mark("a").outgoingEdge().mark(
-            "b").outgoing().mark("c").select(["a", "b", "c"]).execute():
+    for row in O.query().V("vertex1").as_("a").outE().as_(
+            "b").out().as_("c").select(["a", "b", "c"]).execute():
         res = dict(zip(["a", "b", "c"], row))
         if res["a"]["vertex"]["gid"] != "vertex1":
             errors.append("Incorrect as selection")

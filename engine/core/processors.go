@@ -523,10 +523,10 @@ func matchesWhereExpression(trav *gdbi.Traveler, stmt *aql.WhereExpression) bool
 
 	case *aql.WhereExpression_Not:
 		e := stmt.GetNot()
-		return matchesWhereExpression(trav, e)
+		return !matchesWhereExpression(trav, e)
 
 	default:
-		log.Println("unknown where expression type")
+		log.Printf("unknown where expression type")
 		return false
 	}
 }
@@ -713,7 +713,6 @@ type selectOne struct {
 }
 
 func (s *selectOne) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
-	log.Println("select one")
 	go func() {
 		defer close(out)
 		for t := range in {
@@ -729,7 +728,6 @@ type selectMany struct {
 }
 
 func (s *selectMany) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
-	log.Println("select many")
 	go func() {
 		defer close(out)
 		for t := range in {

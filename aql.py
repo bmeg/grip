@@ -3,11 +3,11 @@ import urllib2
 
 
 def and_(*expressions):
-    return {"and": expressions}
+    return {"and": {"expressions": expressions}}
 
 
 def or_(*expressions):
-    return {"or": expressions}
+    return {"or": {"expressions": expressions}}
 
 
 def not_(expression):
@@ -15,58 +15,59 @@ def not_(expression):
 
 
 def eq(key, value):
-    return {"key": key, "value": value, "condition": "EQ"}
+    return {"condition": {"key": key, "value": value, "condition": "EQ"}}
 
 
 def neq(key, value):
-    return {"key": key, "value": value, "condition": "NEQ"}
+    return {"condition": {"key": key, "value": value, "condition": "NEQ"}}
 
 
 def gt(key, value):
-    return {"key": key, "value": value, "condition": "GT"}
+    return {"condition": {"key": key, "value": value, "condition": "GT"}}
 
 
 def gte(key, value):
-    return {"key": key, "value": value, "condition": "GTE"}
+    return {"condition": {"key": key, "value": value, "condition": "GTE"}}
 
 
 def lt(key, value):
-    return {"key": key, "value": value, "condition": "LT"}
+    return {"condition": {"key": key, "value": value, "condition": "LT"}}
 
 
 def lte(key, value):
-    return {"key": key, "value": value, "condition": "LTE"}
+    return {"condition": {"key": key, "value": value, "condition": "LTE"}}
 
 
 def in_(key, values):
     if not isinstance(values, list):
         values = [values]
-    return {"key": key, "value": values, "condition": "IN"}
+    return {"condition": {"key": key, "value": values, "condition": "IN"}}
 
 
 def term(name, label, field, size=None):
-    agg = {name: {"term": {"label": label, "field": field}}}
+    agg = {
+        "name": name,
+        "term": {"label": label, "field": field}
+    }
     if size:
-        agg[name]["term"]["size"] = size
+        agg["term"]["size"] = size
     return agg
 
 
 def percentile(name, label, field, percents=[1, 5, 25, 50, 75, 95, 99]):
     return {
-        name: {
-            "percentile": {
-                "label": label, "field": field, "percents": percents
-            }
+        "name": name,
+        "percentile": {
+            "label": label, "field": field, "percents": percents
         }
     }
 
 
 def histogram(name, label, field, interval):
     return {
-        name: {
-            "percentile": {
-                "label": label, "field": field, "interval": interval
-            }
+        "name": name,
+        "histogram": {
+            "label": label, "field": field, "interval": interval
         }
     }
 
@@ -218,6 +219,8 @@ class Graph:
             "aggregations": aggregations,
         }
         url = self.url + "/" + self.name + "/aggregate"
+        print(json.dumps(payload))
+        print(url)
         request = urllib2.Request(url, json.dumps(payload), headers=headers)
         response = urllib2.urlopen(request)
         for result in response:
@@ -252,11 +255,11 @@ class Graph:
         """
         return Query(self.url + "/" + self.name + "/query")
 
-    def mark(self, name):
+    def as_(self, name):
         """
         Create mark step for match query
         """
-        return self.query().mark(name)
+        return self.query().as_(name)
 
 
 class BulkAdd:
@@ -288,7 +291,7 @@ class BulkAdd:
         })
         self.elements.append(payload)
 
-    def commit(self):
+    def execute(self):
         payload = "\n".join(self.elements)
         headers = {"Content-Type": "application/json",
                    "Accept": "application/json"}
@@ -329,13 +332,11 @@ class Query:
             id = [id]
         return self.__append({"e": id})
 
-    def where(self, expressions):
+    def where(self, expression):
         """
         Filter vertex/edge based on properties.
         """
-        if not isinstance(expressions, list):
-            expressions = [expressions]
-        return self.__append({"where": {"expressions": expressions}})
+        return self.__append({"where": expression})
 
     def fields(self, fields=[]):
         """
@@ -345,7 +346,7 @@ class Query:
             fields = [fields]
         return self.__append({"fields": fields})
 
-    def incoming(self, label=[]):
+    def in_(self, label=[]):
         """
         Follow an incoming edge to the source vertex.
 
@@ -356,7 +357,7 @@ class Query:
             label = [label]
         return self.__append({"in": label})
 
-    def outgoing(self, label=[]):
+    def out(self, label=[]):
         """
         Follow an outgoing edge to the destination vertex.
 
@@ -378,7 +379,7 @@ class Query:
             label = [label]
         return self.__append({"both": label})
 
-    def incomingEdge(self, label=[]):
+    def inE(self, label=[]):
         """
         Move from a vertex to an incoming edge.
 
@@ -391,7 +392,7 @@ class Query:
             label = [label]
         return self.__append({"in_edge": label})
 
-    def outgoingEdge(self, label=[]):
+    def outE(self, label=[]):
         """
         Move from a vertex to an outgoing edge.
 
@@ -404,7 +405,7 @@ class Query:
             label = [label]
         return self.__append({"out_edge": label})
 
-    def bothEdge(self, label=[]):
+    def bothE(self, label=[]):
         """
         Move from a vertex to incoming/outgoing edges.
 
@@ -417,7 +418,7 @@ class Query:
             label = [label]
         return self.__append({"both_edge": label})
 
-    def mark(self, name):
+    def as_(self, name):
         """
         Mark the current vertex/edge with the given name.
 
@@ -511,7 +512,7 @@ class Query:
         self.query.append({"render": template})
         return self
 
-    def string(self):
+    def toJson(self):
         """
         Return the query as a JSON string.
         """
@@ -525,7 +526,7 @@ class Query:
         """
         Execute the query and return an iterator.
         """
-        payload = self.string()
+        payload = self.toJson()
         headers = {"Content-Type": "application/json",
                    "Accept": "application/json"}
         request = urllib2.Request(self.url, payload, headers=headers)
@@ -540,9 +541,3 @@ class Query:
             except ValueError as e:
                 print("Can't decode: %s" % (result))
                 raise e
-
-    def first(self):
-        """
-        Return only the first result.
-        """
-        return list(self.execute())[0]
