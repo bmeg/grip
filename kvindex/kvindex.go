@@ -396,13 +396,14 @@ func (idx *KVIndex) fieldTermCounts(field string, ftype TermType) chan KVTermCou
 			return nil
 		})
 	}()
+
 	out := make(chan KVTermCount, bufferSize)
 	go func() {
 		defer close(out)
 		for term := range terms {
 			entryPrefix := EntryValuePrefix(field, term.t, term.term)
 			var count int64
-			idx.kv.View(func(it kvi.KVIterator) error {
+			err := idx.kv.View(func(it kvi.KVIterator) error {
 				for it.Seek(entryPrefix); it.Valid() && bytes.HasPrefix(it.Key(), entryPrefix); it.Next() {
 					count++
 				}

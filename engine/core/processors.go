@@ -428,7 +428,7 @@ func matchesCondition(trav *gdbi.Traveler, cond *aql.WhereCondition) bool {
 		return !reflect.DeepEqual(val, condVal)
 
 	case aql.Condition_GT:
-		valN, ok := condVal.(float64)
+		valN, ok := val.(float64)
 		if !ok {
 			return false
 		}
@@ -439,7 +439,7 @@ func matchesCondition(trav *gdbi.Traveler, cond *aql.WhereCondition) bool {
 		return valN > condN
 
 	case aql.Condition_GTE:
-		valN, ok := condVal.(float64)
+		valN, ok := val.(float64)
 		if !ok {
 			return false
 		}
@@ -450,7 +450,7 @@ func matchesCondition(trav *gdbi.Traveler, cond *aql.WhereCondition) bool {
 		return valN >= condN
 
 	case aql.Condition_LT:
-		valN, ok := condVal.(float64)
+		valN, ok := val.(float64)
 		if !ok {
 			return false
 		}
@@ -461,7 +461,7 @@ func matchesCondition(trav *gdbi.Traveler, cond *aql.WhereCondition) bool {
 		return valN < condN
 
 	case aql.Condition_LTE:
-		valN, ok := condVal.(float64)
+		valN, ok := val.(float64)
 		if !ok {
 			return false
 		}
