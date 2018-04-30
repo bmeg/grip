@@ -23,10 +23,18 @@ var docs = `[
   "data" : {
     "firstName" : "Jack",
     "lastName" : "Smith",
-    "age" : 50
+    "age" : 50.2
   }
 },{
-	"gid" : "vertex3",
+  "gid" : "vertex3",
+  "label" : "Person",
+  "data" : {
+    "firstName" : "Jill",
+    "lastName" : "Jones",
+    "age" : 35.1
+  }
+},{
+	"gid" : "vertex4",
   "label" : "Dog",
   "data" : {
     "firstName" : "Fido",
@@ -36,10 +44,10 @@ var docs = `[
 }]
 `
 
-var personDocs = []string{"vertex1", "vertex2"}
+var personDocs = []string{"vertex1", "vertex2", "vertex3"}
 var bobDocs = []string{"vertex1"}
-var lastNames = []string{"Smith", "Ruff"}
-var firstNames = []string{"Bob", "Jack", "Fido"}
+var lastNames = []string{"Smith", "Ruff", "Jones"}
+var firstNames = []string{"Bob", "Jack", "Jill", "Fido"}
 
 func contains(c string, s []string) bool {
 	for _, i := range s {
@@ -94,8 +102,8 @@ func TestLoadDoc(t *testing.T) {
 		}
 		count++
 	}
-	if count != 2 {
-		t.Errorf("Wrong return count %d != %d", count, 2)
+	if count != 3 {
+		t.Errorf("Wrong return count %d != %d", count, 3)
 	}
 
 	count = 0
@@ -132,8 +140,8 @@ func TestTermEnum(t *testing.T) {
 			t.Errorf("Bad term return: %s", d)
 		}
 	}
-	if count != 2 {
-		t.Errorf("Wrong return count %d != %d", count, 2)
+	if count != 3 {
+		t.Errorf("Wrong return count %d != %d", count, 3)
 	}
 
 	count = 0
@@ -143,8 +151,8 @@ func TestTermEnum(t *testing.T) {
 			t.Errorf("Bad term return: %s", d)
 		}
 	}
-	if count != 3 {
-		t.Errorf("Wrong return count %d != %d", count, 3)
+	if count != 4 {
+		t.Errorf("Wrong return count %d != %d", count, 4)
 	}
 }
 
@@ -164,30 +172,30 @@ func TestTermCount(t *testing.T) {
 	}
 
 	count := 0
-	for d := range idx.FieldTermCounts("v.data.lastName") {
+	for d := range idx.FieldStringTermCounts("v.data.lastName") {
 		count++
-		if !contains(string(d.Value), lastNames) {
-			t.Errorf("Bad term return: %s", d.Value)
+		if !contains(d.String, lastNames) {
+			t.Errorf("Bad term return: %s", d.String)
 		}
-		if string(d.Value) == "Smith" {
+		if d.String == "Smith" {
 			if d.Count != 2 {
 				t.Errorf("Bad term count return: %d", d.Count)
 			}
 		}
 	}
-	if count != 2 {
-		t.Errorf("Wrong return count %d != %d", count, 2)
+	if count != 3 {
+		t.Errorf("Wrong return count %d != %d", count, 3)
 	}
 	log.Printf("Counting: %d", count)
 	count = 0
 	for d := range idx.FieldTermCounts("v.data.firstName") {
 		count++
-		if !contains(string(d.Value), firstNames) {
-			t.Errorf("Bad term return: %s", d.Value)
+		if !contains(d.String, firstNames) {
+			t.Errorf("Bad term return: %s", d.String)
 		}
 	}
-	if count != 3 {
-		t.Errorf("Wrong return count %d != %d", count, 3)
+	if count != 4 {
+		t.Errorf("Wrong return count %d != %d", count, 4)
 	}
 }
 
@@ -209,7 +217,7 @@ func TestDocDelete(t *testing.T) {
 	idx.RemoveDoc("vertex1")
 
 	for d := range idx.FieldTermCounts("v.data.firstName") {
-		if string(d.Value) == "Bob" {
+		if d.String == "Bob" {
 			if d.Count != 0 {
 				t.Errorf("Bad term count return: %d", d.Count)
 			}
@@ -223,4 +231,25 @@ func TestDocDelete(t *testing.T) {
 	if count != 0 {
 		t.Errorf("Wrong return count %d != %d", count, 0)
 	}
+}
+
+func TestNumField(b *testing.T) {
+	data := []map[string]interface{}{}
+	json.Unmarshal([]byte(docs), &data)
+
+	resetKVInterface()
+	idx := kvindex.NewIndex(kvdriver)
+	newFields := []string{"v.label", "v.data.age"}
+	for _, s := range newFields {
+		idx.AddField(s)
+	}
+	for _, d := range data {
+		idx.AddDoc(d["gid"].(string), map[string]interface{}{"v": d})
+	}
+	count := 0
+	for d := range idx.FieldTerms("v.data.age") {
+		count++
+		log.Printf("Age: %s", d)
+	}
+
 }

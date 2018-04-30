@@ -7,6 +7,7 @@ The KeyValue interface wrapper for RocksDB
 package rocksdb
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 
@@ -161,12 +162,13 @@ func (rocksTxn rocksTransaction) Get(key []byte) ([]byte, error) {
 }
 
 type rocksIterator struct {
-	db    *gorocksdb.DB
-	ro    *gorocksdb.ReadOptions
-	wo    *gorocksdb.WriteOptions
-	it    *gorocksdb.Iterator
-	key   []byte
-	value []byte
+	db      *gorocksdb.DB
+	ro      *gorocksdb.ReadOptions
+	wo      *gorocksdb.WriteOptions
+	it      *gorocksdb.Iterator
+	forward bool
+	key     []byte
+	value   []byte
 }
 
 func (rocksIter *rocksIterator) Get(key []byte) ([]byte, error) {
@@ -192,12 +194,37 @@ func (rocksIter *rocksIterator) Value() ([]byte, error) {
 
 func (rocksIter *rocksIterator) Seek(k []byte) error {
 	rocksIter.it.Seek(k)
+	rocksIter.forward = true
 	if !rocksIter.it.Valid() {
 		rocksIter.key = nil
 		rocksIter.value = nil
 		return fmt.Errorf("Done")
 	}
 	keyValue := rocksIter.it.Key()
+	dataValue := rocksIter.it.Value()
+	rocksIter.key = copyBytes(keyValue.Data())
+	rocksIter.value = copyBytes(dataValue.Data())
+	keyValue.Free()
+	dataValue.Free()
+	return rocksIter.it.Err()
+}
+
+func (rocksIter *rocksIterator) SeekReverse(k []byte) error {
+	rocksIter.it.Seek(k)
+	rocksIter.forward = false
+	if !rocksIter.it.Valid() {
+		rocksIter.key = nil
+		rocksIter.value = nil
+		return fmt.Errorf("Done")
+	}
+	keyValue := rocksIter.it.Key()
+	//seek lands at value equal or above id. Move once to make sure
+	//key is less then id
+	if bytes.Compare(k, keyValue.Data()) < 0 {
+		keyValue.Free()
+		rocksIter.it.Prev()
+		keyValue = rocksIter.it.Key()
+	}
 	dataValue := rocksIter.it.Value()
 	rocksIter.key = copyBytes(keyValue.Data())
 	rocksIter.value = copyBytes(dataValue.Data())
@@ -214,7 +241,11 @@ func (rocksIter *rocksIterator) Valid() bool {
 }
 
 func (rocksIter *rocksIterator) Next() error {
-	rocksIter.it.Next()
+	if rocksIter.forward {
+		rocksIter.it.Next()
+	} else {
+		rocksIter.it.Prev()
+	}
 	if !rocksIter.it.Valid() {
 		rocksIter.key = nil
 		rocksIter.value = nil

@@ -65,6 +65,22 @@ func (kgdb *KVInterfaceGDB) GetVertexIndexList() chan aql.IndexID {
 	return out
 }
 
+//GetVertexTermCount get count of every term across vertices
+func (kgdb *KVInterfaceGDB) GetVertexTermCount(ctx context.Context, label string, field string) chan aql.IndexTermCount {
+	log.Printf("Running GetVertexTermCount: { label: %s, field: %s }", label, field)
+	out := make(chan aql.IndexTermCount, 100)
+	go func() {
+		defer close(out)
+		for tcount := range kgdb.kvg.idx.FieldTermCounts(fmt.Sprintf("%s.v.%s.%s", kgdb.graph, label, field)) {
+			s := tcount.String //BUG: This is ignoring number terms
+			t := protoutil.WrapValue(s)
+			a := aql.IndexTermCount{Term: t, Count: int32(tcount.Count)}
+			out <- a
+		}
+	}()
+	return out
+}
+
 //VertexLabelScan produces a channel of all vertex ids in a graph
 //that match a given label
 func (kgdb *KVInterfaceGDB) VertexLabelScan(ctx context.Context, label string) chan string {
@@ -77,22 +93,6 @@ func (kgdb *KVInterfaceGDB) VertexLabelScan(ctx context.Context, label string) c
 		for i := range kgdb.kvg.idx.GetTermMatch(fmt.Sprintf("%s.label", kgdb.graph), label) {
 			//log.Printf("Found: %s", i)
 			out <- i
-		}
-	}()
-	return out
-}
-
-//GetVertexTermCount get count of every term across vertices
-func (kgdb *KVInterfaceGDB) GetVertexTermCount(ctx context.Context, label string, field string) chan aql.IndexTermCount {
-	log.Printf("Running GetVertexTermCount: { label: %s, field: %s }", label, field)
-	out := make(chan aql.IndexTermCount, 100)
-	go func() {
-		defer close(out)
-		for tcount := range kgdb.kvg.idx.FieldTermCounts(fmt.Sprintf("%s.v.%s.%s", kgdb.graph, label, field)) {
-			s := string(tcount.Value)
-			t := protoutil.WrapValue(s)
-			a := aql.IndexTermCount{Term: t, Count: int32(tcount.Count)}
-			out <- a
 		}
 	}()
 	return out

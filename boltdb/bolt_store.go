@@ -106,16 +106,6 @@ func (boltkv *BoltKV) Update(u func(tx kvi.KVTransaction) error) error {
 	return err
 }
 
-// View returns an iterator for the kvstore
-func (boltkv *BoltKV) View(u func(it kvi.KVIterator) error) error {
-	err := boltkv.db.View(func(tx *bolt.Tx) error {
-		b := tx.Bucket(graphBucket)
-		ktx := &boltIterator{tx, b, b.Cursor(), nil, nil}
-		return u(ktx)
-	})
-	return err
-}
-
 type boltTransaction struct {
 	tx *bolt.Tx
 	b  *bolt.Bucket
@@ -150,11 +140,12 @@ func (boltTrans boltTransaction) HasKey(id []byte) bool {
 }
 
 type boltIterator struct {
-	tx    *bolt.Tx
-	b     *bolt.Bucket
-	c     *bolt.Cursor
-	key   []byte
-	value []byte
+	tx      *bolt.Tx
+	b       *bolt.Bucket
+	c       *bolt.Cursor
+	forward bool
+	key     []byte
+	value   []byte
 }
 
 // Get retrieves the value of key `id`
@@ -178,7 +169,12 @@ func (boltIt *boltIterator) Value() ([]byte, error) {
 
 // Next move the iterator to the next key
 func (boltIt *boltIterator) Next() error {
-	k, v := boltIt.c.Next()
+	var k, v []byte
+	if boltIt.forward {
+		k, v = boltIt.c.Next()
+	} else {
+		k, v = boltIt.c.Prev()
+	}
 	if k == nil || v == nil {
 		boltIt.key = nil
 		boltIt.value = nil
@@ -191,11 +187,32 @@ func (boltIt *boltIterator) Next() error {
 
 // Seek moves the iterator to a new location
 func (boltIt *boltIterator) Seek(id []byte) error {
+	boltIt.forward = true
 	k, v := boltIt.c.Seek(id)
 	if k == nil || v == nil {
 		boltIt.key = nil
 		boltIt.value = nil
 		return fmt.Errorf("Seek error")
+	}
+	boltIt.key = copyBytes(k)
+	boltIt.value = copyBytes(v)
+	return nil
+}
+
+// Seek moves the iterator to a new location
+func (boltIt *boltIterator) SeekReverse(id []byte) error {
+	boltIt.forward = false
+	k, v := boltIt.c.Seek(id)
+	if k == nil || v == nil {
+		boltIt.key = nil
+		boltIt.value = nil
+		log.Printf("Nil rev seek")
+		return fmt.Errorf("Seek error")
+	}
+	//seek lands at value equal or above id. Move once to make sure
+	//key is less then id
+	if bytes.Compare(id, k) < 0 {
+		k, v = boltIt.c.Prev()
 	}
 	boltIt.key = copyBytes(k)
 	boltIt.value = copyBytes(v)
@@ -208,6 +225,16 @@ func (boltIt *boltIterator) Valid() bool {
 		return false
 	}
 	return true
+}
+
+// View run iterator on bolt keyvalue store
+func (boltkv *BoltKV) View(u func(it kvi.KVIterator) error) error {
+	err := boltkv.db.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket(graphBucket)
+		ktx := &boltIterator{tx, b, b.Cursor(), true, nil, nil}
+		return u(ktx)
+	})
+	return err
 }
 
 func copyBytes(in []byte) []byte {

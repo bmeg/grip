@@ -84,14 +84,6 @@ func (l *LevelKV) Update(u func(tx kvi.KVTransaction) error) error {
 	return u(ktx)
 }
 
-// View returns an iterator for the kvstore
-func (l *LevelKV) View(u func(it kvi.KVIterator) error) error {
-	it := l.db.NewIterator(nil, nil)
-	defer it.Release()
-	lit := levelIterator{l.db, it, nil, nil}
-	return u(&lit)
-}
-
 type levelTransaction struct {
 	tx *leveldb.Transaction
 }
@@ -119,10 +111,11 @@ func (ltx levelTransaction) Get(id []byte) ([]byte, error) {
 }
 
 type levelIterator struct {
-	db    *leveldb.DB
-	it    iterator.Iterator
-	key   []byte
-	value []byte
+	db      *leveldb.DB
+	it      iterator.Iterator
+	forward bool
+	key     []byte
+	value   []byte
 }
 
 // Get retrieves the value of key `id`
@@ -142,7 +135,12 @@ func (lit *levelIterator) Value() ([]byte, error) {
 
 // Next move the iterator to the next key
 func (lit *levelIterator) Next() error {
-	more := lit.it.Next()
+	var more bool
+	if lit.forward {
+		more = lit.it.Next()
+	} else {
+		more = lit.it.Prev()
+	}
 	if !more {
 		lit.key = nil
 		lit.value = nil
@@ -154,7 +152,23 @@ func (lit *levelIterator) Next() error {
 }
 
 func (lit *levelIterator) Seek(id []byte) error {
+	lit.forward = true
 	if lit.it.Seek(id) {
+		lit.key = copyBytes(lit.it.Key())
+		lit.value = copyBytes(lit.it.Value())
+		return nil
+	}
+	return fmt.Errorf("Invalid")
+}
+
+func (lit *levelIterator) SeekReverse(id []byte) error {
+	lit.forward = false
+	if lit.it.Seek(id) {
+		//Level iterator will land on the first value above the request
+		//if we're there, move once to get below start request
+		if bytes.Compare(id, lit.it.Key()) < 0 {
+			lit.it.Prev()
+		}
 		lit.key = copyBytes(lit.it.Key())
 		lit.value = copyBytes(lit.it.Value())
 		return nil
@@ -168,6 +182,14 @@ func (lit *levelIterator) Valid() bool {
 		return false
 	}
 	return true
+}
+
+// View run iterator on bolt keyvalue store
+func (l *LevelKV) View(u func(it kvi.KVIterator) error) error {
+	it := l.db.NewIterator(nil, nil)
+	defer it.Release()
+	lit := levelIterator{l.db, it, true, nil, nil}
+	return u(&lit)
 }
 
 func copyBytes(in []byte) []byte {
