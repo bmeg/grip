@@ -451,13 +451,16 @@ func (kgdb *KVInterfaceGDB) GetVertex(id string, loadProp bool) *aql.Vertex {
 	err := kgdb.kvg.kv.View(func(it kvi.KVIterator) error {
 		dataValue, err := it.Get(vkey)
 		if err != nil {
-			return err
+			return fmt.Errorf("get call failed: %v", err)
 		}
 		v = &aql.Vertex{
 			Gid: id,
 		}
 		if loadProp {
-			proto.Unmarshal(dataValue, v)
+			err := proto.Unmarshal(dataValue, v)
+			if err != nil {
+				return fmt.Errorf("unmarshal error: %v", err)
+			}
 		}
 		return nil
 	})
@@ -672,7 +675,10 @@ func (kgdb *KVInterfaceGDB) GetEdge(id string, loadProp bool) *aql.Edge {
 			if loadProp {
 				e = &aql.Edge{}
 				d, _ := it.Value()
-				proto.Unmarshal(d, e)
+				err := proto.Unmarshal(d, e)
+				if err != nil {
+					return fmt.Errorf("unmarshal error: %v", err)
+				}
 			} else {
 				e = &aql.Edge{
 					Gid:   eid,

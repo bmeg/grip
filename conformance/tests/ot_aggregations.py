@@ -25,6 +25,7 @@ def test_term_aggregation(O):
 
     count = 0
     for row in O.aggregate(aql.term("test-agg", "Person", "name", 2)):
+        print(row)
         count += 1
         if len(row["buckets"]) != 2:
                 errors.append(
@@ -45,7 +46,7 @@ def test_term_aggregation(O):
                 if res["value"] != 1:
                     errors.append(
                         "Incorrect term count: %d != %d" %
-                        (row['count'], 1))
+                        (res["value"], 1))
 
     if count != 1:
         errors.append(
@@ -54,6 +55,7 @@ def test_term_aggregation(O):
 
     count = 0
     for row in O.aggregate(aql.term("test-agg-no-limit", "Person", "name", size=None)):
+        print(row)
         count += 1
         if len(row["buckets"]) != 4:
                 errors.append(
@@ -74,7 +76,7 @@ def test_term_aggregation(O):
                 if res["value"] != 1:
                     errors.append(
                         "Incorrect term count: %d != %d" %
-                        (row['count'], 1))
+                        (res["value"], 1))
 
     if count != 1:
         errors.append(

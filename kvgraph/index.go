@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"sort"
 	"strings"
 
 	"github.com/bmeg/arachne/aql"
@@ -90,11 +91,22 @@ func (kgdb *KVInterfaceGDB) GetVertexTermAggregation(ctx context.Context, name s
 		Buckets: []*aql.AggregationResult{},
 	}
 
+	buckets := []*aql.AggregationResult{}
 	for tcount := range kgdb.kvg.idx.FieldTermCounts(fmt.Sprintf("%s.v.%s.%s", kgdb.graph, label, field)) {
 		s := tcount.String //BUG: This is ignoring number terms
 		t := protoutil.WrapValue(s)
-		out.Buckets = append(out.Buckets, &aql.AggregationResult{Key: t, Value: float64(tcount.Count)})
+		buckets = append(buckets, &aql.AggregationResult{Key: t, Value: float64(tcount.Count)})
 	}
+
+	sort.Slice(buckets, func(i, j int) bool {
+		return buckets[i].Value < buckets[j].Value
+	})
+
+	if size > 0 {
+		buckets = buckets[:size]
+	}
+
+	out.Buckets = buckets
 	return out, nil
 }
 
