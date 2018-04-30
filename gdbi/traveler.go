@@ -24,6 +24,7 @@ const (
 	StateRawEdgeList = 4
 )
 
+// SelectFields returns a new copy of the travel with only the selected fields
 func (t *Traveler) SelectFields(keys ...string) (*Traveler, error) {
 	out := &Traveler{
 		current: &DataElement{

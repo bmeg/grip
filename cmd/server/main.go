@@ -23,6 +23,7 @@ import (
 var conf = &Config{}
 var configFile string
 
+// Start starts an Arachne server
 func Start(conf *Config) error {
 	log.Printf("Starting Server")
 	log.Printf("Config: %+v", conf)

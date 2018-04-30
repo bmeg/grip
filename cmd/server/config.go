@@ -18,6 +18,7 @@ func init() {
 	rand.Seed(time.Now().UTC().UnixNano())
 }
 
+// Config describes the configuration for Arachne.
 type Config struct {
 	Database string
 
@@ -42,6 +43,7 @@ type Config struct {
 	}
 }
 
+// DefaultConfig returns an instance of the default configuration for Arachne.
 func DefaultConfig() *Config {
 	c := &Config{}
 	c.Database = "badger"
