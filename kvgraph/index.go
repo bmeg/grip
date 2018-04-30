@@ -93,7 +93,7 @@ func (kgdb *KVInterfaceGDB) GetVertexTermAggregation(ctx context.Context, name s
 	for tcount := range kgdb.kvg.idx.FieldTermCounts(fmt.Sprintf("%s.v.%s.%s", kgdb.graph, label, field)) {
 		s := tcount.String //BUG: This is ignoring number terms
 		t := protoutil.WrapValue(s)
-		out.Buckets = append(out.Buckets, &aql.AggregationResult{Key: t, Value: float32(tcount.Count)})
+		out.Buckets = append(out.Buckets, &aql.AggregationResult{Key: t, Value: float64(tcount.Count)})
 	}
 	return out, nil
 }

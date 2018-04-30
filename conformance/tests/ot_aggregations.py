@@ -52,6 +52,35 @@ def test_term_aggregation(O):
             "Incorrect number of aggregations returned: %d != %d" %
             (count, 1))
 
+    count = 0
+    for row in O.aggregate(aql.term("test-agg-no-limit", "Person", "name", size=None)):
+        count += 1
+        if len(row["buckets"]) != 4:
+                errors.append(
+                    "Number of terms differs from requested size: %d != %d" %
+                    (len(row["buckets"]), 4)
+                )
+
+        if row['name'] != 'test-agg-no-limit':
+                errors.append("Result had Incorrect aggregation name")
+
+        for res in row["buckets"]:
+            if res["key"] == "marko":
+                if res["value"] != 2:
+                    errors.append(
+                        "Incorrect term count: %d != %d" %
+                        (res["value"], 2))
+            else:
+                if res["value"] != 1:
+                    errors.append(
+                        "Incorrect term count: %d != %d" %
+                        (row['count'], 1))
+
+    if count != 1:
+        errors.append(
+            "Incorrect number of aggregations returned: %d != %d" %
+            (count, 1))
+
     return errors
 
 

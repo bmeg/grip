@@ -92,6 +92,9 @@ func (es *Graph) GetVertexTermAggregation(ctx context.Context, name string, labe
 	q := es.client.Search().Index(es.vertexIndex).Type("vertex")
 	q = q.Query(elastic.NewBoolQuery().Filter(elastic.NewTermQuery("label", label)))
 	aggName := fmt.Sprintf("term.aggregation.%s.%s", label, field)
+	if size == 0 {
+		size = 1000000
+	}
 	q = q.Aggregation(aggName,
 		elastic.NewTermsAggregation().Field("data."+field+".keyword").Size(int(size)).OrderByCountDesc())
 	res, err := q.Do(ctx)
@@ -101,7 +104,7 @@ func (es *Graph) GetVertexTermAggregation(ctx context.Context, name string, labe
 	if agg, found := res.Aggregations.Terms(aggName); found {
 		for _, bucket := range agg.Buckets {
 			term := protoutil.WrapValue(bucket.Key.(string))
-			out.Buckets = append(out.Buckets, &aql.AggregationResult{Key: term, Value: float32(bucket.DocCount)})
+			out.Buckets = append(out.Buckets, &aql.AggregationResult{Key: term, Value: float64(bucket.DocCount)})
 		}
 	}
 

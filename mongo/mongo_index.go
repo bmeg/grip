@@ -99,6 +99,9 @@ func (mg *Graph) GetVertexTermAggregation(ctx context.Context, name string, labe
 		{"$match": bson.M{"label": label}},
 		{"$sortByCount": "$data." + field},
 	}
+	if size > 0 {
+		ag = append(ag, bson.M{"$limit": size})
+	}
 	vcol := mg.ar.getVertexCollection(session, mg.graph)
 	pipe := vcol.Pipe(ag)
 	iter := pipe.Iter()
@@ -111,7 +114,11 @@ func (mg *Graph) GetVertexTermAggregation(ctx context.Context, name string, labe
 		default:
 		}
 		term := protoutil.WrapValue(result["_id"])
-		out.Buckets = append(out.Buckets, &aql.AggregationResult{Key: term, Value: float32(result["count"].(float32))})
+		count, ok := result["count"].(int)
+		if !ok {
+			return nil, fmt.Errorf("failed to case count result to integer")
+		}
+		out.Buckets = append(out.Buckets, &aql.AggregationResult{Key: term, Value: float64(count)})
 	}
 
 	return out, nil

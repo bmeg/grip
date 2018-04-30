@@ -97,7 +97,7 @@ message NamedAggregationResult {
 
 message AggregationResult {
   google.protobuf.Value key = 1;
-  float value = 2;
+  double value = 2;
 }
 
 message WhereExpressionList {

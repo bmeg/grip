@@ -219,8 +219,6 @@ class Graph:
             "aggregations": aggregations,
         }
         url = self.url + "/" + self.name + "/aggregate"
-        print(json.dumps(payload))
-        print(url)
         request = urllib2.Request(url, json.dumps(payload), headers=headers)
         response = urllib2.urlopen(request)
         for result in response:
