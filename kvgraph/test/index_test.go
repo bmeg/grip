@@ -165,8 +165,8 @@ func TestTermCount(t *testing.T) {
 	count := 0
 	for d := range idx.FieldStringTermCounts("v.data.lastName") {
 		count++
-		if !contains(lastNames, string(d.Value)) {
-			t.Errorf("Bad term return: %s", d.Value)
+		if !contains(lastNames, d.String) {
+			t.Errorf("Bad term return: %s", d.String)
 		}
 		if d.String == "Smith" {
 			if d.Count != 2 {
@@ -181,8 +181,8 @@ func TestTermCount(t *testing.T) {
 	count = 0
 	for d := range idx.FieldTermCounts("v.data.firstName") {
 		count++
-		if !contains(firstNames, string(d.Value)) {
-			t.Errorf("Bad term return: %s", d.Value)
+		if !contains(firstNames, d.String) {
+			t.Errorf("Bad term return: %s", d.String)
 		}
 	}
 	if count != 4 {
