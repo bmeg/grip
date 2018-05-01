@@ -5,6 +5,7 @@ import aql
 
 def setupGraph(O):
     O.addIndex("Person", "name")
+    O.addIndex("Person", "age")
 
     O.addVertex("1", "Person", {"name": "marko", "age": 29})
     O.addVertex("7", "Person", {"name": "marko", "age": 41})
@@ -36,7 +37,6 @@ def test_term_aggregation(O):
 
     count = 0
     for row in O.aggregate(aql.term("test-agg", "Person", "name", 2)):
-        print(row)
         count += 1
         if len(row["buckets"]) != 2:
                 errors.append(
@@ -64,7 +64,6 @@ def test_term_aggregation(O):
 
     count = 0
     for row in O.aggregate(aql.term("test-agg-no-limit", "Person", "name", size=None)):
-        print(row)
         count += 1
         if len(row["buckets"]) != 8:
                 errors.append(
@@ -101,7 +100,6 @@ def test_traversal_term_aggregation(O):
 
     count = 0
     for row in O.query().V("1").out().aggregate(aql.term("traversal-agg", "Person", "name")):
-        print(row)
         row = row["data"]
         count += 1
         if len(row["buckets"]) != 3:

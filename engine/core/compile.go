@@ -231,8 +231,8 @@ func (comp DefaultCompiler) Compile(stmts []*aql.GraphStatement) (gdbi.Pipeline,
 			return &DefaultPipeline{}, fmt.Errorf(`"filter" statement is not implemented`)
 
 		case *aql.GraphStatement_Aggregate:
-			if lastType != gdbi.VertexData && lastType != gdbi.EdgeData {
-				return &DefaultPipeline{}, fmt.Errorf(`"aggregate" statement is only valid for edge or vertex types not: %s`, lastType.String())
+			if lastType != gdbi.VertexData {
+				return &DefaultPipeline{}, fmt.Errorf(`"aggregate" statement is only valid for vertex types not: %s`, lastType.String())
 			}
 			aggs := make(map[string]interface{})
 			for _, a := range stmt.Aggregate.Aggregations {
