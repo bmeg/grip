@@ -82,7 +82,7 @@ func (es *Graph) GetVertexIndexList() chan aql.IndexID {
 
 // GetVertexTermAggregation returns the count of every term across vertices
 func (es *Graph) GetVertexTermAggregation(ctx context.Context, name string, label string, field string, size uint32) (*aql.NamedAggregationResult, error) {
-	log.Printf("Running GetVertexTermCount: { label: %s, field: %s }", label, field)
+	log.Printf("Running GetVertexTermAggregation: { label: %s, field: %s }", label, field)
 
 	out := &aql.NamedAggregationResult{
 		Name:    name,

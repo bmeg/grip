@@ -89,9 +89,18 @@ func (rockskv *RocksKV) DeletePrefix(prefix []byte) error {
 	return nil
 }
 
-// Get retrieves the value of key `id`
-func (rockskv *RocksKV) Get(id []byte) ([]byte, error) {
-	return rockskv.db.Get(rockskv.ro, key)
+// Get retrieves the value of key
+func (rockskv *RocksKV) Get(key []byte) ([]byte, error) {
+	value, err := rockskv.db.Get(rockskv.ro, key)
+	if err != nil {
+		return nil, err
+	}
+	if value.Data() == nil {
+		return nil, fmt.Errorf("Not found")
+	}
+	out := copyBytes(value.Data())
+	value.Free()
+	return out, nil
 }
 
 // HasKey returns true if the key is exists in kvstore

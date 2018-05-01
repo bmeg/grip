@@ -85,13 +85,13 @@ func (kgdb *KVInterfaceGDB) VertexLabelScan(ctx context.Context, label string) c
 
 //GetVertexTermAggregation get count of every term across vertices
 func (kgdb *KVInterfaceGDB) GetVertexTermAggregation(ctx context.Context, name string, label string, field string, size uint32) (*aql.NamedAggregationResult, error) {
-	log.Printf("Running GetVertexTermCount: { label: %s, field: %s }", label, field)
+	log.Printf("Running GetVertexTermAggregation: { label: %s, field: %s }", label, field)
 	out := &aql.NamedAggregationResult{
 		Name:    name,
 		Buckets: []*aql.AggregationResult{},
 	}
-
 	buckets := []*aql.AggregationResult{}
+
 	parts := strings.Split(field, ".")
 	if len(parts) > 1 {
 		if parts[0] != "$" {
@@ -99,8 +99,9 @@ func (kgdb *KVInterfaceGDB) GetVertexTermAggregation(ctx context.Context, name s
 		}
 	}
 	field = strings.TrimPrefix(field, "$.")
+
 	for tcount := range kgdb.kvg.idx.FieldTermCounts(fmt.Sprintf("%s.v.%s.%s", kgdb.graph, label, field)) {
-		s := tcount.String //BUG: This is ignoring number terms
+		s := tcount.String // BUG: This is ignoring number terms
 		t := protoutil.WrapValue(s)
 		buckets = append(buckets, &aql.AggregationResult{Key: t, Value: float64(tcount.Count)})
 	}
