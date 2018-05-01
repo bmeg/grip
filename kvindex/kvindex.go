@@ -21,7 +21,7 @@ const (
 	TermUnknown TermType = 0x00
 	//TermString means the term is a string
 	TermString TermType = 0x01
-	//TermNumber means the term is a number
+	//TermNumber means the term is an unsigned integer
 	TermNumber TermType = 0x02
 )
 
@@ -211,7 +211,7 @@ type entryValue struct {
 }
 
 func newEntry(docID string, field string, value interface{}) entryValue {
-	term, ttype := getTermBytes(value)
+	term, ttype := GetTermBytes(value)
 	t := TermKey(field, ttype, term)
 	ent := EntryKey(field, ttype, term, docID)
 	return entryValue{term: term, termKey: t, entryKey: ent}
@@ -245,44 +245,35 @@ func mapDig(i map[string]interface{}, path []string) interface{} {
 	return nil
 }
 
-func getTermBytes(term interface{}) ([]byte, TermType) {
+// GetTermBytes converts a value into bytes and returns its type
+func GetTermBytes(term interface{}) ([]byte, TermType) {
 	switch val := term.(type) {
 	case string:
 		return []byte(val), TermString
 
-	// case uint, uint8, uint16, uint32, uint64:
-	// 	out := make([]byte, binary.MaxVarintLen64)
-	// 	binary.PutUvarint(out, uint64(val))
-	// 	return out, TermNumber
-
-	// case int, int8, int16, int32, int64:
-	// 	out := make([]byte, binary.MaxVarintLen64)
-	// 	binary.PutVarint(out, int64(val))
-	// 	return out, TermNumber
-
-	// case float32:
-	// 	out := make([]byte, binary.MaxVarintLen32)
-	// 	binary.BigEndian.PutUint32(out, math.Float32bits(val))
-	// 	return out, TermNumber
-	// }
-
 	case float64:
-		out := make([]byte, binary.MaxVarintLen64)
+		out := make([]byte, 8)
 		binary.BigEndian.PutUint64(out, math.Float64bits(val))
 		return out, TermNumber
+
+	default:
+		return nil, TermUnknown
 	}
-	return nil, TermUnknown
 }
 
-func getBytesTerm(val []byte, ttype TermType) interface{} {
-	if ttype == TermString {
+// GetBytesTerm converts []bytes back to its original value
+func GetBytesTerm(val []byte, ttype TermType) interface{} {
+	switch ttype {
+	case TermString:
 		return string(val)
-	}
-	if ttype == TermNumber {
+
+	case TermNumber:
 		u := binary.BigEndian.Uint64(val)
 		return math.Float64frombits(u)
+
+	default:
+		return nil
 	}
-	return nil
 }
 
 // AddDocTx add new document using a transaction provided by user
@@ -293,7 +284,7 @@ func (idx *KVIndex) AddDocTx(tx kvi.KVTransaction, docID string, doc map[string]
 	for field, p := range idx.fields {
 		x := mapDig(doc, p)
 		if x != nil {
-			term, t := getTermBytes(x)
+			term, t := GetTermBytes(x)
 			if t != TermUnknown {
 				entryKey := EntryKey(field, t, term, docID)
 				termKey := TermKey(field, t, term)
@@ -386,7 +377,7 @@ func (idx *KVIndex) RemoveDoc(docID string) error {
 func (idx *KVIndex) GetTermMatch(field string, value interface{}) chan string {
 	out := make(chan string, bufferSize)
 	go func() {
-		term, ttype := getTermBytes(value)
+		term, ttype := GetTermBytes(value)
 		entryPrefix := EntryValuePrefix(field, ttype, term)
 		defer close(out)
 		idx.kv.View(func(it kvi.KVIterator) error {
@@ -409,7 +400,7 @@ func (idx *KVIndex) FieldTerms(field string) chan interface{} {
 		idx.kv.View(func(it kvi.KVIterator) error {
 			for it.Seek(termPrefix); it.Valid() && bytes.HasPrefix(it.Key(), termPrefix); it.Next() {
 				_, ttype, term := TermKeyParse(it.Key())
-				out <- getBytesTerm(term, ttype)
+				out <- GetBytesTerm(term, ttype)
 			}
 			return nil
 		})
@@ -429,12 +420,12 @@ func (idx *KVIndex) FieldNumbers(field string) chan float64 {
 			zero := EntryValuePrefix(field, TermNumber, floatZeroBytes)
 			for it.SeekReverse(ninf); it.Valid() && bytes.Compare(inf, it.Key()) < 0; it.Next() {
 				_, _, term := TermKeyParse(it.Key())
-				val := getBytesTerm(term, TermNumber).(float64)
+				val := GetBytesTerm(term, TermNumber).(float64)
 				out <- val
 			}
 			for it.Seek(zero); it.Valid() && bytes.Compare(inf, it.Key()) > 0; it.Next() {
 				_, _, term := TermKeyParse(it.Key())
-				val := getBytesTerm(term, TermNumber).(float64)
+				val := GetBytesTerm(term, TermNumber).(float64)
 				out <- val
 			}
 			return nil
@@ -463,9 +454,9 @@ func (idx *KVIndex) fieldTermCounts(field string, ftype TermType) chan KVTermCou
 				count, _ := binary.Uvarint(countBytes)
 				_, ttype, term := TermKeyParse(it.Key())
 				if ttype == TermNumber {
-					out <- KVTermCount{Number: getBytesTerm(term, ttype).(float64), Count: count}
+					out <- KVTermCount{Number: GetBytesTerm(term, ttype).(float64), Count: count}
 				} else {
-					out <- KVTermCount{String: getBytesTerm(term, ttype).(string), Count: count}
+					out <- KVTermCount{String: GetBytesTerm(term, ttype).(string), Count: count}
 				}
 			}
 			return nil
@@ -485,9 +476,9 @@ func (idx *KVIndex) FieldStringTermCounts(field string) chan KVTermCount {
 	return idx.fieldTermCounts(field, TermString)
 }
 
-var floatNegInfBytes, _ = getTermBytes(math.Inf(-1))
-var floatPosInfBytes, _ = getTermBytes(math.Inf(1))
-var floatZeroBytes, _ = getTermBytes(0.0)
+var floatNegInfBytes, _ = GetTermBytes(math.Inf(-1))
+var floatPosInfBytes, _ = GetTermBytes(math.Inf(1))
+var floatZeroBytes, _ = GetTermBytes(0.0)
 
 // FieldTermNumberMin for a field, get the min number term value
 func (idx *KVIndex) FieldTermNumberMin(field string) float64 {
@@ -499,7 +490,7 @@ func (idx *KVIndex) FieldTermNumberMin(field string) float64 {
 		it.SeekReverse(ninf)
 		if it.Valid() && bytes.HasPrefix(it.Key(), prefix) {
 			_, _, term := TermKeyParse(it.Key())
-			val := getBytesTerm(term, TermNumber).(float64)
+			val := GetBytesTerm(term, TermNumber).(float64)
 			if val < 0 {
 				min = val
 				return nil
@@ -510,7 +501,7 @@ func (idx *KVIndex) FieldTermNumberMin(field string) float64 {
 		it.Seek(zero)
 		if it.Valid() && bytes.HasPrefix(it.Key(), prefix) {
 			_, _, term := TermKeyParse(it.Key())
-			val := getBytesTerm(term, TermNumber).(float64)
+			val := GetBytesTerm(term, TermNumber).(float64)
 			if val >= 0 {
 				min = val
 				return nil
@@ -531,7 +522,7 @@ func (idx *KVIndex) FieldTermNumberMax(field string) float64 {
 		it.SeekReverse(inf)
 		if it.Valid() && bytes.HasPrefix(it.Key(), prefix) {
 			_, _, term := TermKeyParse(it.Key())
-			val := getBytesTerm(term, TermNumber).(float64)
+			val := GetBytesTerm(term, TermNumber).(float64)
 			log.Printf("MaxScan: %f", val)
 			if val > 0 {
 				min = val
@@ -542,7 +533,7 @@ func (idx *KVIndex) FieldTermNumberMax(field string) float64 {
 		it.Seek(inf)
 		if it.Valid() && bytes.HasPrefix(it.Key(), prefix) {
 			_, _, term := TermKeyParse(it.Key())
-			val := getBytesTerm(term, TermNumber).(float64)
+			val := GetBytesTerm(term, TermNumber).(float64)
 			if val < 0 {
 				min = val
 				return nil
@@ -556,8 +547,8 @@ func (idx *KVIndex) FieldTermNumberMax(field string) float64 {
 //FieldTermNumberRange gets all number term counts between min and max
 func (idx *KVIndex) FieldTermNumberRange(field string, min, max float64) chan KVTermCount {
 
-	minBytes, _ := getTermBytes(min)
-	maxBytes, _ := getTermBytes(max)
+	minBytes, _ := GetTermBytes(min)
+	maxBytes, _ := GetTermBytes(max)
 	out := make(chan KVTermCount, 100)
 	defer close(out)
 	if min > max {
@@ -575,7 +566,7 @@ func (idx *KVIndex) FieldTermNumberRange(field string, min, max float64) chan KV
 			last := math.Inf(1)
 			for it.SeekReverse(minPrefix); it.Valid() && bytes.Compare(maxPrefix, it.Key()) < 0; it.Next() {
 				_, _, term, _ := EntryKeyParse(it.Key())
-				val := getBytesTerm(term, TermNumber).(float64)
+				val := GetBytesTerm(term, TermNumber).(float64)
 				if val != last {
 					if count > 0 {
 						out <- KVTermCount{Number: last, Count: count}
@@ -602,7 +593,7 @@ func (idx *KVIndex) FieldTermNumberRange(field string, min, max float64) chan KV
 			last := math.Inf(1)
 			for it.Seek(minPrefix); it.Valid() && bytes.Compare(it.Key(), maxPrefix) < 0; it.Next() {
 				_, _, term, _ := EntryKeyParse(it.Key())
-				val := getBytesTerm(term, TermNumber).(float64)
+				val := GetBytesTerm(term, TermNumber).(float64)
 				if val != last {
 					if count > 0 {
 						out <- KVTermCount{Number: last, Count: count}

@@ -178,9 +178,6 @@ func (q *Query) String() string {
 		case *GraphStatement_Count:
 			add("Count")
 
-		case *GraphStatement_GroupCount:
-			add("GroupCount", stmt.GroupCount)
-
 		case *GraphStatement_As:
 			add("As", stmt.As)
 

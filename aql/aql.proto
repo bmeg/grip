@@ -37,7 +37,6 @@ message GraphStatement {
     int64 limit = 25;
     string count = 26;
 
-    string group_count = 30;
     google.protobuf.ListValue distinct = 31;
 
     MatchQuerySet match = 40;

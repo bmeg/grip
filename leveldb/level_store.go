@@ -39,6 +39,11 @@ func (l *LevelKV) Close() error {
 	return l.db.Close()
 }
 
+// Get retrieves the value of key `id`
+func (l *LevelKV) Get(id []byte) ([]byte, error) {
+	return l.db.Get(id, nil)
+}
+
 // Delete removes a key/value from a kvstore
 func (l *LevelKV) Delete(id []byte) error {
 	return l.db.Delete(id, nil)

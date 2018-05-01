@@ -162,11 +162,6 @@ func (comp DefaultCompiler) Compile(stmts []*aql.GraphStatement) (gdbi.Pipeline,
 			add(&Count{})
 			lastType = gdbi.CountData
 
-		case *aql.GraphStatement_GroupCount:
-			// TODO validate the types following a counter
-			add(&GroupCount{stmt.GroupCount})
-			lastType = gdbi.GroupCountData
-
 		case *aql.GraphStatement_Distinct:
 			if lastType != gdbi.VertexData && lastType != gdbi.EdgeData {
 				return &DefaultPipeline{}, fmt.Errorf(`"distinct" statement is only valid for edge or vertex types not: %s`, lastType.String())
@@ -236,7 +231,17 @@ func (comp DefaultCompiler) Compile(stmts []*aql.GraphStatement) (gdbi.Pipeline,
 			return &DefaultPipeline{}, fmt.Errorf(`"filter" statement is not implemented`)
 
 		case *aql.GraphStatement_Aggregate:
-			return &DefaultPipeline{}, fmt.Errorf(`"aggregate" statement is not implemented`)
+			if lastType != gdbi.VertexData && lastType != gdbi.EdgeData {
+				return &DefaultPipeline{}, fmt.Errorf(`"aggregate" statement is only valid for edge or vertex types not: %s`, lastType.String())
+			}
+			aggs := make(map[string]interface{})
+			for _, a := range stmt.Aggregate.Aggregations {
+				if _, ok := aggs[a.Name]; ok {
+					return &DefaultPipeline{}, fmt.Errorf("duplicate aggregation name '%s' found; all aggregations must have a unique name", a.Name)
+				}
+			}
+			add(&aggregate{stmt.Aggregate.Aggregations})
+			lastType = gdbi.ValueData
 
 		default:
 			return &DefaultPipeline{}, fmt.Errorf("unknown statement type")

@@ -10,11 +10,14 @@ import (
 //TravelerPathLookup gets the value of a field in a Travler
 func TravelerPathLookup(traveler *gdbi.Traveler, path string) interface{} {
 	parts := strings.Split(path, ".")
-	namespace := strings.TrimPrefix(parts[0], "$")
+	namespace := ""
+	if len(parts) > 1 {
+		namespace = strings.TrimPrefix(parts[0], "$")
+		parts = parts[1:]
+	}
 	if namespace == "" {
 		namespace = "__current__"
 	}
-	parts = parts[1:]
 
 	de := &gdbi.DataElement{}
 	dmap := de.ToDict()

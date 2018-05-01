@@ -345,7 +345,6 @@ func (server *ArachneServer) GetIndexList(idx *aql.GraphID, stream aql.Query_Get
 
 // Aggregate is partially implemented
 func (server *ArachneServer) Aggregate(req *aql.AggregationsRequest, stream aql.Query_AggregateServer) error {
-	log.Printf("Aggreagte: %+v", req)
 	graph, err := server.db.Graph(req.Graph)
 	if err != nil {
 		return err

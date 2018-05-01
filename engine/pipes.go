@@ -92,18 +92,9 @@ func Convert(dataType gdbi.DataType, rowTypes []gdbi.DataType, t *gdbi.Traveler)
 			},
 		}
 
-	case gdbi.GroupCountData:
-		return &aql.ResultRow{
-			Value: &aql.QueryResult{
-				Result: &aql.QueryResult_Data{
-					Data: protoutil.WrapValue(t.GroupCounts),
-				},
-			},
-		}
-
 	case gdbi.RowData:
 		res := &aql.ResultRow{}
-		for i, r := range t.GetCurrent().Row {
+		for i, r := range t.Row {
 			if rowTypes[i] == gdbi.VertexData {
 				elem := &aql.QueryResult{
 					Result: &aql.QueryResult_Vertex{
@@ -126,7 +117,7 @@ func Convert(dataType gdbi.DataType, rowTypes []gdbi.DataType, t *gdbi.Traveler)
 		return &aql.ResultRow{
 			Value: &aql.QueryResult{
 				Result: &aql.QueryResult_Data{
-					Data: protoutil.WrapValue(t.GetCurrent().Value),
+					Data: protoutil.WrapValue(t.Value),
 				},
 			},
 		}

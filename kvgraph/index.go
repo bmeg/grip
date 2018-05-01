@@ -92,6 +92,13 @@ func (kgdb *KVInterfaceGDB) GetVertexTermAggregation(ctx context.Context, name s
 	}
 
 	buckets := []*aql.AggregationResult{}
+	parts := strings.Split(field, ".")
+	if len(parts) > 1 {
+		if parts[0] != "$" {
+			return nil, fmt.Errorf("invalid field name")
+		}
+	}
+	field = strings.TrimPrefix(field, "$.")
 	for tcount := range kgdb.kvg.idx.FieldTermCounts(fmt.Sprintf("%s.v.%s.%s", kgdb.graph, label, field)) {
 		s := tcount.String //BUG: This is ignoring number terms
 		t := protoutil.WrapValue(s)
@@ -99,7 +106,7 @@ func (kgdb *KVInterfaceGDB) GetVertexTermAggregation(ctx context.Context, name s
 	}
 
 	sort.Slice(buckets, func(i, j int) bool {
-		return buckets[i].Value < buckets[j].Value
+		return buckets[i].Value > buckets[j].Value
 	})
 
 	if size > 0 {

@@ -188,3 +188,22 @@ func (edge *Edge) HasProperty(key string) bool {
 	_, ok := m[key]
 	return ok
 }
+
+func (namedAggRes *NamedAggregationResult) AsMap() map[string]interface{} {
+	buckets := make([]map[string]interface{}, len(namedAggRes.Buckets))
+	for i, b := range namedAggRes.Buckets {
+		buckets[i] = b.AsMap()
+	}
+
+	return map[string]interface{}{
+		"name":    namedAggRes.Name,
+		"buckets": buckets,
+	}
+}
+
+func (aggRes *AggregationResult) AsMap() map[string]interface{} {
+	return map[string]interface{}{
+		"key":   aggRes.Key,
+		"value": aggRes.Value,
+	}
+}

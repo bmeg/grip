@@ -23,17 +23,15 @@ type DataElement struct {
 	Label    string
 	From, To string
 	Data     map[string]interface{}
-	Row      []DataElement
-	Value    interface{}
 }
 
 // Traveler is a query element that traverse the graph
 type Traveler struct {
-	current     *DataElement
-	marks       map[string]*DataElement
-	Count       int64
-	GroupCounts map[string]int64
-	value       interface{}
+	current *DataElement
+	marks   map[string]*DataElement
+	Row     []DataElement
+	Value   interface{}
+	Count   uint64
 }
 
 // DataType is a possible output data type
@@ -45,7 +43,6 @@ const (
 	VertexData
 	EdgeData
 	CountData
-	GroupCountData
 	ValueData
 	RowData
 )

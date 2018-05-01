@@ -507,8 +507,15 @@ class Query:
         """
         Render output of query
         """
-        self.query.append({"render": template})
-        return self
+        return self.__append({"render": template})
+
+    def aggregate(self, aggregations):
+        """
+        Aggregate results of query output
+        """
+        if not isinstance(aggregations, list):
+            aggregations = [aggregations]
+        return self.__append({"aggregate": {"aggregations": aggregations}})
 
     def toJson(self):
         """

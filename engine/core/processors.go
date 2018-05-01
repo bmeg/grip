@@ -3,9 +3,11 @@ package core
 import (
 	"bytes"
 	"context"
+	"encoding/binary"
 	"fmt"
 	"log"
 	"reflect"
+	"sort"
 	"sync"
 
 	"github.com/bmeg/arachne/aql"
@@ -15,8 +17,11 @@ import (
 	_ "github.com/bmeg/arachne/jsengine/otto" // import otto so it registers with the driver map
 	_ "github.com/bmeg/arachne/jsengine/v8"   // import v8 so it registers with the driver map
 	"github.com/bmeg/arachne/jsonpath"
+	"github.com/bmeg/arachne/kvi"
+	"github.com/bmeg/arachne/kvindex"
 	"github.com/bmeg/arachne/protoutil"
 	structpb "github.com/golang/protobuf/ptypes/struct"
+	"golang.org/x/sync/errgroup"
 )
 
 type propKey string
@@ -398,10 +403,7 @@ func (r *Render) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, 
 		defer close(out)
 		for t := range in {
 			v := jsonpath.Render(r.template, t)
-			o := t.AddCurrent(&gdbi.DataElement{
-				Value: v,
-			})
-			out <- o
+			out <- &gdbi.Traveler{Value: v}
 		}
 	}()
 	return context.WithValue(ctx, propLoad, true)
@@ -553,7 +555,7 @@ type Count struct{}
 func (c *Count) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
 	go func() {
 		defer close(out)
-		var i int64
+		var i uint64
 		for range in {
 			i++
 		}
@@ -611,54 +613,8 @@ func (f *Fold) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, ou
 			}
 		}
 		if foldValue != nil {
-			i := gdbi.Traveler{}
-			a := i.AddCurrent(&gdbi.DataElement{Value: foldValue})
-			out <- a
+			out <- &gdbi.Traveler{Value: foldValue}
 		}
-	}()
-	return context.WithValue(ctx, propLoad, true)
-}
-
-////////////////////////////////////////////////////////////////////////////////
-
-// GroupCount does a groupcount
-type GroupCount struct {
-	key string
-}
-
-func (g *GroupCount) countIDs(in gdbi.InPipe, counts map[string]int64) {
-	for t := range in {
-		counts[t.GetCurrent().ID]++
-	}
-}
-
-func (g *GroupCount) countValues(in gdbi.InPipe, counts map[string]int64) {
-	for t := range in {
-		if t.GetCurrent().Data == nil {
-			continue
-		}
-		if vi, ok := t.GetCurrent().Data[g.key]; ok {
-			s := fmt.Sprintf("%v", vi)
-			counts[s]++
-		}
-	}
-}
-
-// Process runs GroupCount
-func (g *GroupCount) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
-	go func() {
-		defer close(out)
-		counts := map[string]int64{}
-		if g.key != "" {
-			g.countValues(in, counts)
-		} else {
-			g.countIDs(in, counts)
-		}
-
-		eo := &gdbi.Traveler{
-			GroupCounts: counts,
-		}
-		out <- eo
 	}()
 	return context.WithValue(ctx, propLoad, true)
 }
@@ -708,6 +664,8 @@ func (m *Marker) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, 
 	return context.WithValue(ctx, propLoad, true)
 }
 
+////////////////////////////////////////////////////////////////////////////////
+
 type selectOne struct {
 	mark string
 }
@@ -741,11 +699,13 @@ func (s *selectMany) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPi
 					row = append(row, gdbi.DataElement{})
 				}
 			}
-			out <- t.AddCurrent(&gdbi.DataElement{Row: row})
+			out <- &gdbi.Traveler{Row: row}
 		}
 	}()
 	return context.WithValue(ctx, propLoad, true)
 }
+
+////////////////////////////////////////////////////////////////////////////////
 
 type concat []gdbi.Processor
 
@@ -786,6 +746,116 @@ func (c concat) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, o
 	}()
 	return ctx
 }
+
+////////////////////////////////////////////////////////////////////////////////
+
+type aggregate struct {
+	aggregations []*aql.Aggregate
+}
+
+func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
+	aChans := make(map[string](chan *gdbi.Traveler))
+	g, ctx := errgroup.WithContext(ctx)
+
+	go func() {
+		for _, a := range agg.aggregations {
+			aChans[a.Name] = make(chan *gdbi.Traveler, 100)
+			defer close(aChans[a.Name])
+		}
+
+		for t := range in {
+			for _, a := range agg.aggregations {
+				aChans[a.Name] <- t
+			}
+		}
+		return
+	}()
+
+	for _, a := range agg.aggregations {
+		switch a.Aggregation.(type) {
+		case *aql.Aggregate_Term:
+			g.Go(func() error {
+				kv := man.GetTempKV()
+				tagg := a.GetTerm()
+				for t := range aChans[a.Name] {
+					if t.GetCurrent().Label == tagg.Label {
+						term := jsonpath.TravelerPathLookup(t, tagg.Field)
+						termBytes, ttype := kvindex.GetTermBytes(term)
+						termKey := kvindex.TermKey(tagg.Field, ttype, termBytes)
+						var count uint64
+						i, err := kv.Get(termKey)
+						if err == nil {
+							count, _ = binary.Uvarint(i)
+						}
+						count = count + 1
+						buf := make([]byte, binary.MaxVarintLen64)
+						binary.PutUvarint(buf, count)
+						err = kv.Set(termKey, buf)
+						if err != nil {
+							return fmt.Errorf("Error: failed to aggregate field: %s: %v", tagg.Field, err)
+						}
+					}
+				}
+
+				aggOut := &aql.NamedAggregationResult{
+					Name:    a.Name,
+					Buckets: []*aql.AggregationResult{},
+				}
+
+				buckets := []*aql.AggregationResult{}
+				prefix := kvindex.TermPrefix(tagg.Field)
+				kv.View(func(it kvi.KVIterator) error {
+					for it.Seek(prefix); it.Valid() && bytes.HasPrefix(it.Key(), prefix); it.Next() {
+						_, ttype, termb := kvindex.TermKeyParse(it.Key())
+						term := kvindex.GetBytesTerm(termb, ttype)
+						termVal := protoutil.WrapValue(term)
+						countBytes, _ := it.Value()
+						count, _ := binary.Uvarint(countBytes)
+						buckets = append(buckets, &aql.AggregationResult{Key: termVal, Value: float64(count)})
+					}
+					return nil
+				})
+
+				sort.Slice(buckets, func(i, j int) bool {
+					return buckets[i].Value > buckets[j].Value
+				})
+
+				if tagg.Size > 0 {
+					buckets = buckets[:tagg.Size]
+				}
+
+				aggOut.Buckets = buckets
+				aggOutMap := aggOut.AsMap()
+				out <- &gdbi.Traveler{Value: aggOutMap}
+
+				return nil
+			})
+
+		case *aql.Aggregate_Percentile:
+			// pagg := a.GetPercentile()
+
+		case *aql.Aggregate_Histogram:
+			// hagg := a.GetHistogram()
+
+		default:
+			log.Println("Error: unknown aggregation type")
+			continue
+		}
+	}
+
+	// Check whether any goroutines failed.
+	go func() {
+		defer close(out)
+		if err := g.Wait(); err != nil {
+			log.Printf("Error: %v", err)
+		}
+		return
+	}()
+
+	return context.WithValue(ctx, propLoad, true)
+}
+
+////////////////////////////////////////////////////////////////////////////////
 
 /*
 
