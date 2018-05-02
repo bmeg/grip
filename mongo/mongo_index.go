@@ -86,7 +86,7 @@ func (mg *Graph) GetVertexIndexList() chan aql.IndexID {
 }
 
 //GetVertexTermAggregation get count of every term across vertices
-func (mg *Graph) GetVertexTermAggregation(ctx context.Context, name string, label string, field string, size uint32) (*aql.NamedAggregationResult, error) {
+func (mg *Graph) GetVertexTermAggregation(ctx context.Context, name string, label string, field string, size uint64) (*aql.NamedAggregationResult, error) {
 	log.Printf("Running GetVertexTermAggregation: { label: %s, field: %s size: %v}", label, field, size)
 
 	out := &aql.NamedAggregationResult{
@@ -129,7 +129,7 @@ func (mg *Graph) GetVertexTermAggregation(ctx context.Context, name string, labe
 }
 
 //GetVertexHistogramAggregation get binned counts of a term across vertices
-func (mg *Graph) GetVertexHistogramAggregation(ctx context.Context, name string, label string, field string, interval uint32) (*aql.NamedAggregationResult, error) {
+func (mg *Graph) GetVertexHistogramAggregation(ctx context.Context, name string, label string, field string, interval uint64) (*aql.NamedAggregationResult, error) {
 	log.Printf("Running GetVertexHistogramAggregation: { label: %s, field: %s interval: %v }", label, field, interval)
 
 	out := &aql.NamedAggregationResult{
@@ -176,7 +176,7 @@ func (mg *Graph) GetVertexHistogramAggregation(ctx context.Context, name string,
 }
 
 //GetVertexPercentileAggregation get percentiles of a term across vertices
-func (mg *Graph) GetVertexPercentileAggregation(ctx context.Context, name string, label string, field string, percents []uint32) (*aql.NamedAggregationResult, error) {
+func (mg *Graph) GetVertexPercentileAggregation(ctx context.Context, name string, label string, field string, percents []float64) (*aql.NamedAggregationResult, error) {
 	log.Printf("Running GetVertexPercentileAggregation: { label: %s, field: %s percents: %v }", label, field, percents)
 	out := &aql.NamedAggregationResult{
 		Name:    name,
@@ -202,7 +202,7 @@ func (mg *Graph) GetVertexPercentileAggregation(ctx context.Context, name string
 	iter := pipe.Iter()
 	defer iter.Close()
 	result := map[string]interface{}{}
-	var i uint32
+	var i float64
 	for iter.Next(&result) {
 		log.Printf("Percentile result: %+v", result)
 		i++

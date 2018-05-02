@@ -87,9 +87,9 @@ type GraphInterface interface {
 	DeleteVertexIndex(label string, field string) error
 	GetVertexIndexList() chan aql.IndexID
 
-	GetVertexTermAggregation(ctx context.Context, name string, label string, field string, size uint32) (*aql.NamedAggregationResult, error)
-	GetVertexPercentileAggregation(ctx context.Context, name string, label string, field string, percents []uint32) (*aql.NamedAggregationResult, error)
-	GetVertexHistogramAggregation(ctx context.Context, name string, label string, field string, interval uint32) (*aql.NamedAggregationResult, error)
+	GetVertexTermAggregation(ctx context.Context, name string, label string, field string, size uint64) (*aql.NamedAggregationResult, error)
+	GetVertexPercentileAggregation(ctx context.Context, name string, label string, field string, percents []float64) (*aql.NamedAggregationResult, error)
+	GetVertexHistogramAggregation(ctx context.Context, name string, label string, field string, interval uint64) (*aql.NamedAggregationResult, error)
 
 	GetVertexList(ctx context.Context, load bool) <-chan *aql.Vertex
 	GetEdgeList(ctx context.Context, load bool) <-chan *aql.Edge

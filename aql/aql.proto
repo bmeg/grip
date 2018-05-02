@@ -74,19 +74,19 @@ message Aggregate {
 message TermAggregation {
   string label = 1;
   string field = 2;
-  uint32 size = 3;
+  uint64 size = 3;
 }
 
 message PercentileAggregation {
   string label = 1;
   string field = 2;
-  repeated uint32 percents = 3;
+  repeated double percents = 3;
 }
 
 message HistogramAggregation {
   string label = 1;
   string field = 2;
-  uint32 interval = 3;
+  uint64 interval = 3;
 }
 
 message NamedAggregationResult {

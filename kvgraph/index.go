@@ -84,7 +84,7 @@ func (kgdb *KVInterfaceGDB) VertexLabelScan(ctx context.Context, label string) c
 }
 
 //GetVertexTermAggregation get count of every term across vertices
-func (kgdb *KVInterfaceGDB) GetVertexTermAggregation(ctx context.Context, name string, label string, field string, size uint32) (*aql.NamedAggregationResult, error) {
+func (kgdb *KVInterfaceGDB) GetVertexTermAggregation(ctx context.Context, name string, label string, field string, size uint64) (*aql.NamedAggregationResult, error) {
 	log.Printf("Running GetVertexTermAggregation: { label: %s, field: %s size: %v}", label, field, size)
 	out := &aql.NamedAggregationResult{
 		Name:    name,
@@ -114,7 +114,7 @@ func (kgdb *KVInterfaceGDB) GetVertexTermAggregation(ctx context.Context, name s
 }
 
 //GetVertexHistogramAggregation get binned counts of a term across vertices
-func (kgdb *KVInterfaceGDB) GetVertexHistogramAggregation(ctx context.Context, name string, label string, field string, interval uint32) (*aql.NamedAggregationResult, error) {
+func (kgdb *KVInterfaceGDB) GetVertexHistogramAggregation(ctx context.Context, name string, label string, field string, interval uint64) (*aql.NamedAggregationResult, error) {
 	log.Printf("Running GetVertexHistogramAggregation: { label: %s, field: %s interval: %v }", label, field, interval)
 	out := &aql.NamedAggregationResult{
 		Name:    name,
@@ -136,7 +136,7 @@ func (kgdb *KVInterfaceGDB) GetVertexHistogramAggregation(ctx context.Context, n
 }
 
 //GetVertexPercentileAggregation get percentiles of a term across vertices
-func (kgdb *KVInterfaceGDB) GetVertexPercentileAggregation(ctx context.Context, name string, label string, field string, percents []uint32) (*aql.NamedAggregationResult, error) {
+func (kgdb *KVInterfaceGDB) GetVertexPercentileAggregation(ctx context.Context, name string, label string, field string, percents []float64) (*aql.NamedAggregationResult, error) {
 	log.Printf("Running GetVertexPercentileAggregation: { label: %s, field: %s percents: %v }", label, field, percents)
 	// out := &aql.NamedAggregationResult{
 	// 	Name:    name,

@@ -183,7 +183,7 @@ def test_histogram_aggregation(O):
 #     setupGraph(O)
 
 #     count = 0
-#     percents = [1, 5, 25, 50, 75, 95, 99]
+#     percents = [1, 5, 25, 50, 75, 95, 99, 99.9]
 #     for row in O.aggregate(aql.percentile("test-agg", "Person", "age", percents)):
 #         print(row)
 #         count += 1

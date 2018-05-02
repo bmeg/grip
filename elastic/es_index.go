@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"strconv"
 
 	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/protoutil"
@@ -81,7 +82,7 @@ func (es *Graph) GetVertexIndexList() chan aql.IndexID {
 }
 
 // GetVertexTermAggregation returns the count of every term across vertices
-func (es *Graph) GetVertexTermAggregation(ctx context.Context, name string, label string, field string, size uint32) (*aql.NamedAggregationResult, error) {
+func (es *Graph) GetVertexTermAggregation(ctx context.Context, name string, label string, field string, size uint64) (*aql.NamedAggregationResult, error) {
 	log.Printf("Running GetVertexTermAggregation: { label: %s, field: %s size: %v}", label, field, size)
 	out := &aql.NamedAggregationResult{
 		Name:    name,
@@ -116,7 +117,7 @@ func (es *Graph) GetVertexTermAggregation(ctx context.Context, name string, labe
 }
 
 //GetVertexHistogramAggregation get binned counts of a term across vertices
-func (es *Graph) GetVertexHistogramAggregation(ctx context.Context, name string, label string, field string, interval uint32) (*aql.NamedAggregationResult, error) {
+func (es *Graph) GetVertexHistogramAggregation(ctx context.Context, name string, label string, field string, interval uint64) (*aql.NamedAggregationResult, error) {
 	log.Printf("Running GetVertexHistogramAggregation: { label: %s, field: %s interval: %v }", label, field, interval)
 	out := &aql.NamedAggregationResult{
 		Name:    name,
@@ -132,9 +133,9 @@ func (es *Graph) GetVertexHistogramAggregation(ctx context.Context, name string,
 	if err != nil {
 		return nil, fmt.Errorf("histogram aggregation failed: %s", err)
 	}
-	if agg, found := res.Aggregations.Terms(aggName); found {
+	if agg, found := res.Aggregations.Histogram(aggName); found {
 		for _, bucket := range agg.Buckets {
-			term := protoutil.WrapValue(bucket.Key.(float64))
+			term := protoutil.WrapValue(bucket.Key)
 			out.Buckets = append(out.Buckets, &aql.AggregationResult{Key: term, Value: float64(bucket.DocCount)})
 		}
 	}
@@ -143,9 +144,34 @@ func (es *Graph) GetVertexHistogramAggregation(ctx context.Context, name string,
 }
 
 //GetVertexPercentileAggregation get percentiles of a term across vertices
-func (es *Graph) GetVertexPercentileAggregation(ctx context.Context, name string, label string, field string, percents []uint32) (*aql.NamedAggregationResult, error) {
+func (es *Graph) GetVertexPercentileAggregation(ctx context.Context, name string, label string, field string, percents []float64) (*aql.NamedAggregationResult, error) {
 	log.Printf("Running GetVertexPercentileAggregation: { label: %s, field: %s percents: %v }", label, field, percents)
-	return nil, fmt.Errorf("not implemented")
+	out := &aql.NamedAggregationResult{
+		Name:    name,
+		Buckets: []*aql.AggregationResult{},
+	}
+
+	q := es.client.Search().Index(es.vertexIndex).Type("vertex")
+	q = q.Query(elastic.NewBoolQuery().Filter(elastic.NewTermQuery("label", label)))
+	aggName := fmt.Sprintf("percentile.aggregation.%s.%s", label, field)
+	q = q.Aggregation(aggName,
+		elastic.NewPercentilesAggregation().Field("data."+field).Percentiles(percents...))
+	res, err := q.Do(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("percentile aggregation failed: %s", err)
+	}
+	if agg, found := res.Aggregations.Percentiles(aggName); found {
+		for key, val := range agg.Values {
+			keyf, err := strconv.ParseFloat(key, 64)
+			if err != nil {
+				return nil, fmt.Errorf("percentile key conversion failed: %s", err)
+			}
+			term := protoutil.WrapValue(keyf)
+			out.Buckets = append(out.Buckets, &aql.AggregationResult{Key: term, Value: float64(val)})
+		}
+	}
+
+	return out, nil
 }
 
 // VertexLabelScan produces a channel of all vertex ids where the vertex label matches `label`
