@@ -166,8 +166,8 @@ func (es *Graph) GetVertexPercentileAggregation(ctx context.Context, name string
 			if err != nil {
 				return nil, fmt.Errorf("percentile key conversion failed: %s", err)
 			}
-			term := protoutil.WrapValue(keyf)
-			out.Buckets = append(out.Buckets, &aql.AggregationResult{Key: term, Value: float64(val)})
+			key := protoutil.WrapValue(keyf)
+			out.Buckets = append(out.Buckets, &aql.AggregationResult{Key: key, Value: float64(val)})
 		}
 	}
 

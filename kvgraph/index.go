@@ -9,6 +9,9 @@ import (
 
 	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/protoutil"
+	"github.com/spenczar/tdigest"
+	// "github.com/bmizerany/perks/quantile"
+	// "github.com/dgryski/go-gk"
 )
 
 func (kgraph *KVGraph) setupGraphIndex(graph string) error {
@@ -132,17 +135,25 @@ func (kgdb *KVInterfaceGDB) GetVertexHistogramAggregation(ctx context.Context, n
 		}
 		out.Buckets = append(out.Buckets, &aql.AggregationResult{Key: protoutil.WrapValue(bucket), Value: float64(count)})
 	}
+
 	return out, nil
 }
 
 //GetVertexPercentileAggregation get percentiles of a term across vertices
 func (kgdb *KVInterfaceGDB) GetVertexPercentileAggregation(ctx context.Context, name string, label string, field string, percents []float64) (*aql.NamedAggregationResult, error) {
 	log.Printf("Running GetVertexPercentileAggregation: { label: %s, field: %s percents: %v }", label, field, percents)
-	// out := &aql.NamedAggregationResult{
-	// 	Name:    name,
-	// 	Buckets: []*aql.AggregationResult{},
-	// }
-	// buckets := []*aql.AggregationResult{}
+	out := &aql.NamedAggregationResult{
+		Name:    name,
+		Buckets: []*aql.AggregationResult{},
+	}
 
-	return nil, fmt.Errorf("not implemented")
+	td := tdigest.New()
+	for val := range kgdb.kvg.idx.FieldNumbers(fmt.Sprintf("%s.v.%s.%s", kgdb.graph, label, field)) {
+		td.Add(val, 1)
+	}
+	for _, p := range percents {
+		out.Buckets = append(out.Buckets, &aql.AggregationResult{Key: protoutil.WrapValue(p), Value: td.Quantile(p / 100)})
+	}
+
+	return out, nil
 }

@@ -137,7 +137,6 @@ def test_histogram_aggregation(O):
 
     count = 0
     for row in O.aggregate(aql.histogram("test-agg", "Person", "age", 5)):
-        print(row)
         count += 1
         if len(row["buckets"]) != 6:
                 errors.append(
