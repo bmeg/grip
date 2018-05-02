@@ -361,7 +361,12 @@ func (server *ArachneServer) Aggregate(req *aql.AggregationsRequest, stream aql.
 			stream.Send(res)
 
 		case *aql.Aggregate_Percentile:
-			return fmt.Errorf("percentile aggregation not implemented")
+			pagg := agg.GetPercentile()
+			res, err := graph.GetVertexPercentileAggregation(stream.Context(), agg.Name, pagg.Label, pagg.Field, pagg.Percents)
+			if err != nil {
+				return fmt.Errorf("percentile  aggregation failed: %s", err)
+			}
+			stream.Send(res)
 
 		case *aql.Aggregate_Histogram:
 			histagg := agg.GetHistogram()

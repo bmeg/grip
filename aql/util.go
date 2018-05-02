@@ -2,9 +2,9 @@ package aql
 
 import (
 	"io"
-	//"log"
-	//"fmt"
+	// "log"
 	"context"
+	"fmt"
 	"sort"
 
 	"github.com/bmeg/arachne/protoutil"
@@ -211,25 +211,33 @@ func (aggRes *AggregationResult) AsMap() map[string]interface{} {
 	}
 }
 
-// SortedInsert inserts an AggregationResult into a slice of AggregationResults
+// SortedInsert inserts an AggregationResult into the Buckets field
 // and returns the index of the insertion
-func (namedAggRes *NamedAggregationResult) SortedInsert(el *AggregationResult) int {
+func (namedAggRes *NamedAggregationResult) SortedInsert(el *AggregationResult) (int, error) {
+	if !namedAggRes.IsValueSorted() {
+		return 0, fmt.Errorf("buckets are not value sorted")
+	}
+
 	if len(namedAggRes.Buckets) == 0 {
 		namedAggRes.Buckets = []*AggregationResult{el}
-		return 0
+		return 0, nil
 	}
+
 	index := sort.Search(len(namedAggRes.Buckets), func(i int) bool {
 		if namedAggRes.Buckets[i] == nil {
 			return true
 		}
-		return namedAggRes.Buckets[i].Value < el.Value
+		return el.Value > namedAggRes.Buckets[i].Value
 	})
+
+	namedAggRes.Buckets = append(namedAggRes.Buckets, &AggregationResult{})
 	copy(namedAggRes.Buckets[index+1:], namedAggRes.Buckets[index:])
 	namedAggRes.Buckets[index] = el
-	return index
+
+	return index, nil
 }
 
-// SortOnValue sorts a slice of AggregationResults by Value
+// SortOnValue sorts Buckets by Value in descending order
 func (namedAggRes *NamedAggregationResult) SortOnValue() {
 	sort.Slice(namedAggRes.Buckets, func(i, j int) bool {
 		if namedAggRes.Buckets[i] == nil && namedAggRes.Buckets[j] != nil {
@@ -243,4 +251,26 @@ func (namedAggRes *NamedAggregationResult) SortOnValue() {
 		}
 		return namedAggRes.Buckets[i].Value > namedAggRes.Buckets[j].Value
 	})
+}
+
+// IsValueSorted returns true if the Buckets are sorted by Value
+func (namedAggRes *NamedAggregationResult) IsValueSorted() bool {
+	for i := range namedAggRes.Buckets {
+		j := i + 1
+		if i < len(namedAggRes.Buckets)-2 {
+			if namedAggRes.Buckets[i] != nil && namedAggRes.Buckets[j] == nil {
+				return true
+			}
+			if namedAggRes.Buckets[i] == nil && namedAggRes.Buckets[j] != nil {
+				return false
+			}
+			if namedAggRes.Buckets[i] == nil && namedAggRes.Buckets[j] == nil {
+				return true
+			}
+			if namedAggRes.Buckets[i].Value < namedAggRes.Buckets[j].Value {
+				return false
+			}
+		}
+	}
+	return true
 }

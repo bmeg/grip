@@ -87,9 +87,8 @@ func (mg *Graph) GetVertexIndexList() chan aql.IndexID {
 
 //GetVertexTermAggregation get count of every term across vertices
 func (mg *Graph) GetVertexTermAggregation(ctx context.Context, name string, label string, field string, size uint32) (*aql.NamedAggregationResult, error) {
-	log.Printf("Running GetVertexTermAggregation: { label: %s, field: %s }", label, field)
-	session := mg.ar.pool.Get()
-	defer mg.ar.pool.Put(session)
+	log.Printf("Running GetVertexTermAggregation: { label: %s, field: %s size: %v}", label, field, size)
+
 	out := &aql.NamedAggregationResult{
 		Name:    name,
 		Buckets: []*aql.AggregationResult{},
@@ -102,36 +101,131 @@ func (mg *Graph) GetVertexTermAggregation(ctx context.Context, name string, labe
 	if size > 0 {
 		ag = append(ag, bson.M{"$limit": size})
 	}
+
+	session := mg.ar.pool.Get()
+	defer mg.ar.pool.Put(session)
 	vcol := mg.ar.getVertexCollection(session, mg.graph)
 	pipe := vcol.Pipe(ag)
 	iter := pipe.Iter()
 	defer iter.Close()
 	result := map[string]interface{}{}
 	for iter.Next(&result) {
-		select {
-		case <-ctx.Done():
-			return nil, ctx.Err()
-		default:
-		}
 		term := protoutil.WrapValue(result["_id"])
 		count, ok := result["count"].(int)
 		if !ok {
-			return nil, fmt.Errorf("failed to case count result to integer")
+			return nil, fmt.Errorf("failed to cast count result to integer")
 		}
-		out.Buckets = append(out.Buckets, &aql.AggregationResult{Key: term, Value: float64(count)})
+		out.SortedInsert(&aql.AggregationResult{Key: term, Value: float64(count)})
+		if size > 0 {
+			if len(out.Buckets) > int(size) {
+				out.Buckets = out.Buckets[:size]
+			}
+		}
 	}
-
+	if err := iter.Err(); err != nil {
+		return nil, fmt.Errorf("error occurred while iterating: %v", err)
+	}
 	return out, nil
 }
 
 //GetVertexHistogramAggregation get binned counts of a term across vertices
 func (mg *Graph) GetVertexHistogramAggregation(ctx context.Context, name string, label string, field string, interval uint32) (*aql.NamedAggregationResult, error) {
-	return nil, fmt.Errorf("not implemented")
+	log.Printf("Running GetVertexHistogramAggregation: { label: %s, field: %s interval: %v }", label, field, interval)
+
+	out := &aql.NamedAggregationResult{
+		Name:    name,
+		Buckets: []*aql.AggregationResult{},
+	}
+
+	ag := []bson.M{
+		{
+			"$match": bson.M{"label": label},
+		},
+		{
+			"$group": bson.M{
+				"_id": bson.M{
+					"$multiply": []interface{}{interval, bson.M{"$floor": bson.M{"$divide": []interface{}{"$data." + field, interval}}}},
+				},
+				"count": bson.M{"$sum": 1},
+			},
+		},
+		{
+			"$sort": bson.M{"_id": 1},
+		},
+	}
+
+	session := mg.ar.pool.Get()
+	defer mg.ar.pool.Put(session)
+	vcol := mg.ar.getVertexCollection(session, mg.graph)
+	pipe := vcol.Pipe(ag)
+	iter := pipe.Iter()
+	defer iter.Close()
+	result := map[string]interface{}{}
+	for iter.Next(&result) {
+		term := protoutil.WrapValue(result["_id"])
+		count, ok := result["count"].(int)
+		if !ok {
+			return nil, fmt.Errorf("failed to cast count result to integer")
+		}
+		out.Buckets = append(out.Buckets, &aql.AggregationResult{Key: term, Value: float64(count)})
+	}
+	if err := iter.Err(); err != nil {
+		return nil, fmt.Errorf("error occurred while iterating: %v", err)
+	}
+	return out, nil
 }
 
 //GetVertexPercentileAggregation get percentiles of a term across vertices
 func (mg *Graph) GetVertexPercentileAggregation(ctx context.Context, name string, label string, field string, percents []uint32) (*aql.NamedAggregationResult, error) {
-	return nil, fmt.Errorf("not implemented")
+	log.Printf("Running GetVertexPercentileAggregation: { label: %s, field: %s percents: %v }", label, field, percents)
+	out := &aql.NamedAggregationResult{
+		Name:    name,
+		Buckets: []*aql.AggregationResult{},
+	}
+
+	ag := []bson.M{
+		{
+			"$match": bson.M{"label": label},
+		},
+		{
+			"$bucketAuto": bson.M{
+				"groupBy": "$data." + field,
+				"buckets": 100,
+			},
+		},
+	}
+
+	session := mg.ar.pool.Get()
+	defer mg.ar.pool.Put(session)
+	vcol := mg.ar.getVertexCollection(session, mg.graph)
+	pipe := vcol.Pipe(ag)
+	iter := pipe.Iter()
+	defer iter.Close()
+	result := map[string]interface{}{}
+	var i uint32
+	for iter.Next(&result) {
+		log.Printf("Percentile result: %+v", result)
+		i++
+		found := false
+		for _, p := range percents {
+			if i == p {
+				found = true
+			}
+		}
+		if !found {
+			continue
+		}
+		term := protoutil.WrapValue(i)
+		percentile, ok := result["_id"].(map[string]interface{})["max"].(float64)
+		if !ok {
+			return nil, fmt.Errorf("failed to cast count result to float64")
+		}
+		out.Buckets = append(out.Buckets, &aql.AggregationResult{Key: term, Value: percentile})
+	}
+	if err := iter.Err(); err != nil {
+		return nil, fmt.Errorf("error occurred while iterating: %v", err)
+	}
+	return out, nil
 }
 
 // VertexLabelScan produces a channel of all vertex ids where the vertex label matches `label`

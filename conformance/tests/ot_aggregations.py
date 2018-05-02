@@ -137,11 +137,12 @@ def test_histogram_aggregation(O):
 
     count = 0
     for row in O.aggregate(aql.histogram("test-agg", "Person", "age", 5)):
+        print(row)
         count += 1
-        if len(row["buckets"]) != 5:
+        if len(row["buckets"]) != 6:
                 errors.append(
                     "Unexpected number of terms: %d != %d" %
-                    (len(row["buckets"]), 5)
+                    (len(row["buckets"]), 6)
                 )
 
         if row['name'] != 'test-agg':
@@ -179,4 +180,17 @@ def test_histogram_aggregation(O):
 
 # def test_percentile_aggregation(O):
 #     errors = []
+#     setupGraph(O)
+
+#     count = 0
+#     percents = [1, 5, 25, 50, 75, 95, 99]
+#     for row in O.aggregate(aql.percentile("test-agg", "Person", "age", percents)):
+#         print(row)
+#         count += 1
+#         if len(row["buckets"]) != len(percents):
+#             errors.append(
+#                 "Unexpected number of terms: %d != %d" %
+#                 (len(row["buckets"]), len(percents))
+#             )
+
 #     return errors

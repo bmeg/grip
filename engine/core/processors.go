@@ -798,7 +798,7 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 
 				aggOut := &aql.NamedAggregationResult{
 					Name:    a.Name,
-					Buckets: make([]*aql.AggregationResult, tagg.Size),
+					Buckets: []*aql.AggregationResult{},
 				}
 
 				prefix := kvindex.TermPrefix(tagg.Field)
@@ -810,6 +810,11 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 						countBytes, _ := it.Value()
 						count, _ := binary.Uvarint(countBytes)
 						aggOut.SortedInsert(&aql.AggregationResult{Key: termVal, Value: float64(count)})
+						if tagg.Size > 0 {
+							if len(aggOut.Buckets) > int(tagg.Size) {
+								aggOut.Buckets = aggOut.Buckets[:tagg.Size]
+							}
+						}
 					}
 					return nil
 				})

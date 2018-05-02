@@ -8,24 +8,31 @@ func TestNamedAggregationResultInsert(t *testing.T) {
 	size := 5
 	aggRes := NamedAggregationResult{
 		Name:    "test",
-		Buckets: make([]*AggregationResult, size),
+		Buckets: []*AggregationResult{},
 	}
 
-	for i := 0; i < 5; i++ {
-		aggRes.SortedInsert(&AggregationResult{Value: float64((i + 1) * 2)})
+	for i := 0; i < size; i++ {
+		aggRes.Buckets = append(aggRes.Buckets, &AggregationResult{Value: float64((i + 1) * 2)})
 	}
 
-	for i := range aggRes.Buckets {
-		if i < len(aggRes.Buckets)-2 {
-			if aggRes.Buckets[i].Value < aggRes.Buckets[i+1].Value {
-				t.Errorf("unexpected bucket order %+v", aggRes.Buckets)
-			}
-		}
+	t.Logf("initial list: %v", aggRes.Buckets)
+
+	index, err := aggRes.SortedInsert(&AggregationResult{Value: float64(5)})
+	if err == nil {
+		t.Error("expected error for SortedInsert")
 	}
 
-	index := aggRes.SortedInsert(&AggregationResult{Value: float64(5)})
-	if len(aggRes.Buckets) != size {
-		t.Errorf("unexpected list size %d != %d", size, len(aggRes.Buckets))
+	aggRes.SortOnValue()
+	t.Logf("sorted initial list: %v", aggRes.Buckets)
+
+	index, err = aggRes.SortedInsert(&AggregationResult{Value: float64(5)})
+	if err != nil {
+		t.Error("unexpected error for SortedInsert", err)
+	}
+	t.Logf("list after insert: %v", aggRes.Buckets)
+
+	if len(aggRes.Buckets) != size+1 {
+		t.Errorf("unexpected list size %d != %d", size+1, len(aggRes.Buckets))
 	}
 	if index != 3 {
 		t.Errorf("incorrect index returned %d != %d", 3, index)
@@ -49,6 +56,11 @@ func TestNamedAggregationResultSort(t *testing.T) {
 	t.Logf("initial list: %+v", aggRes.Buckets)
 	aggRes.SortOnValue()
 	t.Logf("sorted list: %+v", aggRes.Buckets)
+
+	if !aggRes.IsValueSorted() {
+		t.Errorf("unexpected bucket order %+v", aggRes.Buckets)
+	}
+
 	for i := range aggRes.Buckets {
 		if i < len(aggRes.Buckets)-2 {
 			if aggRes.Buckets[i].Value < aggRes.Buckets[i+1].Value {
