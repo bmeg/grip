@@ -278,7 +278,6 @@ func TestNumField(b *testing.T) {
 	count := 0
 	for d := range idx.FieldTerms("v.data.age") {
 		count++
-		log.Printf("Age: %s", d)
+		log.Printf("Age: %v", d)
 	}
-
 }

@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"log"
 	"reflect"
-	"sort"
 	"sync"
 
 	"github.com/bmeg/arachne/aql"
@@ -799,10 +798,9 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 
 				aggOut := &aql.NamedAggregationResult{
 					Name:    a.Name,
-					Buckets: []*aql.AggregationResult{},
+					Buckets: make([]*aql.AggregationResult, tagg.Size),
 				}
 
-				buckets := []*aql.AggregationResult{}
 				prefix := kvindex.TermPrefix(tagg.Field)
 				kv.View(func(it kvi.KVIterator) error {
 					for it.Seek(prefix); it.Valid() && bytes.HasPrefix(it.Key(), prefix); it.Next() {
@@ -811,20 +809,11 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 						termVal := protoutil.WrapValue(term)
 						countBytes, _ := it.Value()
 						count, _ := binary.Uvarint(countBytes)
-						buckets = append(buckets, &aql.AggregationResult{Key: termVal, Value: float64(count)})
+						aggOut.SortedInsert(&aql.AggregationResult{Key: termVal, Value: float64(count)})
 					}
 					return nil
 				})
 
-				sort.Slice(buckets, func(i, j int) bool {
-					return buckets[i].Value > buckets[j].Value
-				})
-
-				if tagg.Size > 0 {
-					buckets = buckets[:tagg.Size]
-				}
-
-				aggOut.Buckets = buckets
 				aggOutMap := aggOut.AsMap()
 				out <- &gdbi.Traveler{Value: aggOutMap}
 

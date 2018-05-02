@@ -5,6 +5,7 @@ import (
 	//"log"
 	//"fmt"
 	"context"
+	"sort"
 
 	"github.com/bmeg/arachne/protoutil"
 	structpb "github.com/golang/protobuf/ptypes/struct"
@@ -189,6 +190,7 @@ func (edge *Edge) HasProperty(key string) bool {
 	return ok
 }
 
+// AsMap converts a NamedAggregationResult to a map[string]interface{}
 func (namedAggRes *NamedAggregationResult) AsMap() map[string]interface{} {
 	buckets := make([]map[string]interface{}, len(namedAggRes.Buckets))
 	for i, b := range namedAggRes.Buckets {
@@ -201,9 +203,44 @@ func (namedAggRes *NamedAggregationResult) AsMap() map[string]interface{} {
 	}
 }
 
+// AsMap converts an AggregationResult to a map[string]interface{}
 func (aggRes *AggregationResult) AsMap() map[string]interface{} {
 	return map[string]interface{}{
 		"key":   aggRes.Key,
 		"value": aggRes.Value,
 	}
+}
+
+// SortedInsert inserts an AggregationResult into a slice of AggregationResults
+// and returns the index of the insertion
+func (namedAggRes *NamedAggregationResult) SortedInsert(el *AggregationResult) int {
+	if len(namedAggRes.Buckets) == 0 {
+		namedAggRes.Buckets = []*AggregationResult{el}
+		return 0
+	}
+	index := sort.Search(len(namedAggRes.Buckets), func(i int) bool {
+		if namedAggRes.Buckets[i] == nil {
+			return true
+		}
+		return namedAggRes.Buckets[i].Value < el.Value
+	})
+	copy(namedAggRes.Buckets[index+1:], namedAggRes.Buckets[index:])
+	namedAggRes.Buckets[index] = el
+	return index
+}
+
+// SortOnValue sorts a slice of AggregationResults by Value
+func (namedAggRes *NamedAggregationResult) SortOnValue() {
+	sort.Slice(namedAggRes.Buckets, func(i, j int) bool {
+		if namedAggRes.Buckets[i] == nil && namedAggRes.Buckets[j] != nil {
+			return true
+		}
+		if namedAggRes.Buckets[i] != nil && namedAggRes.Buckets[j] == nil {
+			return false
+		}
+		if namedAggRes.Buckets[i] == nil && namedAggRes.Buckets[j] == nil {
+			return false
+		}
+		return namedAggRes.Buckets[i].Value > namedAggRes.Buckets[j].Value
+	})
 }

@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"sort"
+	"math"
 	"strings"
 
 	"github.com/bmeg/arachne/aql"
@@ -85,12 +85,11 @@ func (kgdb *KVInterfaceGDB) VertexLabelScan(ctx context.Context, label string) c
 
 //GetVertexTermAggregation get count of every term across vertices
 func (kgdb *KVInterfaceGDB) GetVertexTermAggregation(ctx context.Context, name string, label string, field string, size uint32) (*aql.NamedAggregationResult, error) {
-	log.Printf("Running GetVertexTermAggregation: { label: %s, field: %s }", label, field)
+	log.Printf("Running GetVertexTermAggregation: { label: %s, field: %s size: %v}", label, field, size)
 	out := &aql.NamedAggregationResult{
 		Name:    name,
-		Buckets: []*aql.AggregationResult{},
+		Buckets: make([]*aql.AggregationResult, size),
 	}
-	buckets := []*aql.AggregationResult{}
 
 	parts := strings.Split(field, ".")
 	if len(parts) > 1 {
@@ -103,27 +102,46 @@ func (kgdb *KVInterfaceGDB) GetVertexTermAggregation(ctx context.Context, name s
 	for tcount := range kgdb.kvg.idx.FieldTermCounts(fmt.Sprintf("%s.v.%s.%s", kgdb.graph, label, field)) {
 		s := tcount.String // BUG: This is ignoring number terms
 		t := protoutil.WrapValue(s)
-		buckets = append(buckets, &aql.AggregationResult{Key: t, Value: float64(tcount.Count)})
+		out.SortedInsert(&aql.AggregationResult{Key: t, Value: float64(tcount.Count)})
 	}
 
-	sort.Slice(buckets, func(i, j int) bool {
-		return buckets[i].Value > buckets[j].Value
-	})
+	return out, nil
+}
 
-	if size > 0 {
-		buckets = buckets[:size]
+//GetVertexHistogramAggregation get binned counts of a term across vertices
+func (kgdb *KVInterfaceGDB) GetVertexHistogramAggregation(ctx context.Context, name string, label string, field string, interval uint32) (*aql.NamedAggregationResult, error) {
+	log.Printf("Running GetVertexHistogramAggregation: { label: %s, field: %s interval: %v }", label, field, interval)
+	out := &aql.NamedAggregationResult{
+		Name:    name,
+		Buckets: []*aql.AggregationResult{},
+	}
+	buckets := []*aql.AggregationResult{}
+
+	min := kgdb.kvg.idx.FieldTermNumberMin(fmt.Sprintf("%s.v.%s.%s", kgdb.graph, label, field))
+	max := kgdb.kvg.idx.FieldTermNumberMax(fmt.Sprintf("%s.v.%s.%s", kgdb.graph, label, field))
+
+	i := float64(interval)
+	for bucket := math.Floor(min/i) * i; bucket < max; bucket += i {
+		var count uint64
+		for tcount := range kgdb.kvg.idx.FieldTermNumberRange(fmt.Sprintf("%s.v.%s.%s", kgdb.graph, label, field), bucket, bucket+i) {
+			count += tcount.Count
+		}
+
+		buckets = append(buckets, &aql.AggregationResult{Key: protoutil.WrapValue(bucket), Value: float64(count)})
 	}
 
 	out.Buckets = buckets
 	return out, nil
 }
 
-//GetVertexHistogramAggregation get binned counts of a term across vertices
-func (kgdb *KVInterfaceGDB) GetVertexHistogramAggregation(ctx context.Context, name string, label string, field string, interval uint32) (*aql.NamedAggregationResult, error) {
-	return nil, fmt.Errorf("not implemented")
-}
-
 //GetVertexPercentileAggregation get percentiles of a term across vertices
 func (kgdb *KVInterfaceGDB) GetVertexPercentileAggregation(ctx context.Context, name string, label string, field string, percents []uint32) (*aql.NamedAggregationResult, error) {
+	log.Printf("Running GetVertexPercentileAggregation: { label: %s, field: %s percents: %v }", label, field, percents)
+	// out := &aql.NamedAggregationResult{
+	// 	Name:    name,
+	// 	Buckets: []*aql.AggregationResult{},
+	// }
+	// buckets := []*aql.AggregationResult{}
+
 	return nil, fmt.Errorf("not implemented")
 }

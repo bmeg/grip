@@ -364,7 +364,12 @@ func (server *ArachneServer) Aggregate(req *aql.AggregationsRequest, stream aql.
 			return fmt.Errorf("percentile aggregation not implemented")
 
 		case *aql.Aggregate_Histogram:
-			return fmt.Errorf("histogram aggregation not implemented")
+			histagg := agg.GetHistogram()
+			res, err := graph.GetVertexHistogramAggregation(stream.Context(), agg.Name, histagg.Label, histagg.Field, histagg.Interval)
+			if err != nil {
+				return fmt.Errorf("histogram aggregation failed: %s", err)
+			}
+			stream.Send(res)
 
 		default:
 			return fmt.Errorf("unknown aggregation type")

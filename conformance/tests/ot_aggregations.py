@@ -13,7 +13,7 @@ def setupGraph(O):
     O.addVertex("4", "Person", {"name": "josh", "age": 32})
     O.addVertex("6", "Person", {"name": "peter", "age": 35})
     O.addVertex("9", "Person", {"name": "alex", "age": 30})
-    O.addVertex("10", "Person", {"name": "alex", "age": 43})
+    O.addVertex("10", "Person", {"name": "alex", "age": 45})
     O.addVertex("11", "Person", {"name": "steve", "age": 26})
     O.addVertex("12", "Person", {"name": "alice", "age": 22})
     O.addVertex("13", "Person", {"name": "wanda", "age": 36})
@@ -130,11 +130,53 @@ def test_traversal_term_aggregation(O):
 
     return errors
 
+
+def test_histogram_aggregation(O):
+    errors = []
+    setupGraph(O)
+
+    count = 0
+    for row in O.aggregate(aql.histogram("test-agg", "Person", "age", 5)):
+        count += 1
+        if len(row["buckets"]) != 5:
+                errors.append(
+                    "Unexpected number of terms: %d != %d" %
+                    (len(row["buckets"]), 5)
+                )
+
+        if row['name'] != 'test-agg':
+                errors.append("Result had Incorrect aggregation name")
+
+        for res in row["buckets"]:
+            if res["key"] == 20:
+                if res["value"] != 1:
+                    errors.append("Incorrect bucket count returned: %s" % res)
+            elif res["key"] == 25:
+                if res["value"] != 3:
+                    errors.append("Incorrect bucket count returned: %s" % res)
+            elif res["key"] == 30:
+                if res["value"] != 2:
+                    errors.append("Incorrect bucket count returned: %s" % res)
+            elif res["key"] == 35:
+                if res["value"] != 2:
+                    errors.append("Incorrect bucket count returned: %s" % res)
+            elif res["key"] == 40:
+                if res["value"] != 1:
+                    errors.append("Incorrect bucket count returned: %s" % res)
+            elif res["key"] == 45:
+                if res["value"] != 1:
+                    errors.append("Incorrect bucket count returned: %s" % res)
+            else:
+                errors.append("Incorrect bucket key returned: %s" % res)
+
+    if count != 1:
+        errors.append(
+            "Incorrect number of aggregations returned: %d != %d" %
+            (count, 1))
+
+    return errors
+
+
 # def test_percentile_aggregation(O):
-#     errors = []
-#     return errors
-
-
-# def test_histogram_aggregation(O):
 #     errors = []
 #     return errors

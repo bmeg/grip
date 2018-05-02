@@ -21,7 +21,7 @@ const (
 	TermUnknown TermType = 0x00
 	//TermString means the term is a string
 	TermString TermType = 0x01
-	//TermNumber means the term is an unsigned integer
+	//TermNumber means the term is a number
 	TermNumber TermType = 0x02
 )
 
@@ -32,7 +32,9 @@ const bufferSize = 1000
 var idxFieldPrefix = []byte("f")
 
 //key: t | field | TermType | term
-//val: count
+//val:
+//key: t | field | term
+//val:
 var idxTermPrefix = []byte("t")
 
 //key: i | field | TermType | term | docid
@@ -245,35 +247,29 @@ func mapDig(i map[string]interface{}, path []string) interface{} {
 	return nil
 }
 
-// GetTermBytes converts a value into bytes and returns its type
+// GetTermBytes converts a term into its byte representation
 func GetTermBytes(term interface{}) ([]byte, TermType) {
 	switch val := term.(type) {
 	case string:
 		return []byte(val), TermString
-
 	case float64:
 		out := make([]byte, 8)
 		binary.BigEndian.PutUint64(out, math.Float64bits(val))
 		return out, TermNumber
-
-	default:
-		return nil, TermUnknown
 	}
+	return nil, TermUnknown
 }
 
-// GetBytesTerm converts []bytes back to its original value
+// GetBytesTerm converts the byte representation of a term back to its original value
 func GetBytesTerm(val []byte, ttype TermType) interface{} {
-	switch ttype {
-	case TermString:
+	if ttype == TermString {
 		return string(val)
-
-	case TermNumber:
+	}
+	if ttype == TermNumber {
 		u := binary.BigEndian.Uint64(val)
 		return math.Float64frombits(u)
-
-	default:
-		return nil
 	}
+	return nil
 }
 
 // AddDocTx add new document using a transaction provided by user
@@ -288,89 +284,35 @@ func (idx *KVIndex) AddDocTx(tx kvi.KVTransaction, docID string, doc map[string]
 			if t != TermUnknown {
 				entryKey := EntryKey(field, t, term, docID)
 				termKey := TermKey(field, t, term)
-				err := tx.Set(entryKey, []byte{})
-				if err != nil {
-					return fmt.Errorf("failed to set entry key %s: %v", entryKey, err)
-				}
+				tx.Set(entryKey, []byte{})
+				tx.Set(termKey, []byte{})
 				sdoc.Entries = append(sdoc.Entries, entryKey)
-
-				var count uint64
-				i, err := tx.Get(termKey)
-				if err == nil {
-					count, _ = binary.Uvarint(i)
-				}
-				count = count + 1
-				buf := make([]byte, binary.MaxVarintLen64)
-				binary.PutUvarint(buf, count)
-				err = tx.Set(termKey, buf)
-				if err != nil {
-					return fmt.Errorf("failed to set term key %s: %v", termKey, err)
-				}
 			}
 		}
 	}
-
-	data, err := proto.Marshal(&sdoc)
-	if err != nil {
-		return fmt.Errorf("failed to marshal doc %s: %v", docKey, err)
-	}
-	err = tx.Set(docKey, data)
-	if err != nil {
-		return fmt.Errorf("failed to set doc key %s: %v", docKey, err)
-	}
+	data, _ := proto.Marshal(&sdoc)
+	tx.Set(docKey, data)
 	return nil
 }
 
-// RemoveDoc removes a document from the index
+// RemoveDoc removes a document from the index: TODO
 func (idx *KVIndex) RemoveDoc(docID string) error {
-	return idx.kv.Update(func(tx kvi.KVTransaction) error {
+	idx.kv.Update(func(tx kvi.KVTransaction) error {
 		log.Printf("Deleteing: %s", docID)
 		docKey := DocKey(docID)
 		data, err := tx.Get(docKey)
 		if err != nil {
-			return fmt.Errorf("failed to get doc %s: %v", docID, err)
+			return nil
 		}
 		doc := Doc{}
-		err = proto.Unmarshal(data, &doc)
-		if err != nil {
-			return fmt.Errorf("failed to unmarshal doc %s: %v", docID, err)
-		}
-
+		proto.Unmarshal(data, &doc)
 		for _, entryKey := range doc.Entries {
-			err = tx.Delete(entryKey)
-			if err != nil {
-				return fmt.Errorf("failed to delete entry %s: %v", entryKey, err)
-			}
-
-			field, ttype, term, _ := EntryKeyParse(entryKey)
-			termKey := TermKey(field, ttype, term)
-			var count uint64
-			i, err := tx.Get(termKey)
-			if err == nil {
-				count, _ = binary.Uvarint(i)
-			}
-			count = count - 1
-			if count == 0 {
-				err = tx.Delete(termKey)
-				if err != nil {
-					return fmt.Errorf("failed to delete term key %s: %v", termKey, err)
-				}
-			} else {
-				buf := make([]byte, binary.MaxVarintLen64)
-				binary.PutUvarint(buf, count)
-				err = tx.Set(termKey, buf)
-				if err != nil {
-					return fmt.Errorf("failed to set term key %s: %v", termKey, err)
-				}
-			}
+			tx.Delete(entryKey)
 		}
-
-		err = tx.Delete(docKey)
-		if err != nil {
-			return fmt.Errorf("failed to delete doc %s: %v", docKey, err)
-		}
+		tx.Delete(docKey)
 		return nil
 	})
+	return nil
 }
 
 // GetTermMatch find all documents where field has the value
@@ -441,28 +383,40 @@ type typedTerm struct {
 
 // FieldTermCounts get all terms, and their counts for a particular field
 func (idx *KVIndex) fieldTermCounts(field string, ftype TermType) chan KVTermCount {
-	out := make(chan KVTermCount, bufferSize)
+	terms := make(chan typedTerm, bufferSize)
 	go func() {
-		defer close(out)
+		defer close(terms)
 		termPrefix := TermTypePrefix(field, ftype)
 		if ftype == TermUnknown {
 			termPrefix = TermPrefix(field)
 		}
 		idx.kv.View(func(it kvi.KVIterator) error {
 			for it.Seek(termPrefix); it.Valid() && bytes.HasPrefix(it.Key(), termPrefix); it.Next() {
-				countBytes, _ := it.Value()
-				count, _ := binary.Uvarint(countBytes)
 				_, ttype, term := TermKeyParse(it.Key())
-				if ttype == TermNumber {
-					out <- KVTermCount{Number: GetBytesTerm(term, ttype).(float64), Count: count}
-				} else {
-					out <- KVTermCount{String: GetBytesTerm(term, ttype).(string), Count: count}
-				}
+				terms <- typedTerm{ttype, term}
 			}
 			return nil
 		})
 	}()
-
+	out := make(chan KVTermCount, bufferSize)
+	go func() {
+		defer close(out)
+		for term := range terms {
+			entryPrefix := EntryValuePrefix(field, term.t, term.term)
+			var count uint64
+			idx.kv.View(func(it kvi.KVIterator) error {
+				for it.Seek(entryPrefix); it.Valid() && bytes.HasPrefix(it.Key(), entryPrefix); it.Next() {
+					count++
+				}
+				return nil
+			})
+			if term.t == TermNumber {
+				out <- KVTermCount{Number: GetBytesTerm(term.term, term.t).(float64), Count: count}
+			} else {
+				out <- KVTermCount{String: GetBytesTerm(term.term, term.t).(string), Count: count}
+			}
+		}
+	}()
 	return out
 }
 
