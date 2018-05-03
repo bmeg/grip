@@ -475,28 +475,68 @@ func matchesCondition(trav *gdbi.Traveler, cond *aql.WhereCondition) bool {
 
 	case aql.Condition_IN:
 		found := false
-		condL, ok := condVal.([]interface{})
-		if !ok {
-			return false
-		}
-		for _, v := range condL {
-			if reflect.DeepEqual(val, v) {
+		switch condVal.(type) {
+		case []interface{}:
+			condL, ok := condVal.([]interface{})
+			if !ok {
+				return false
+			}
+			for _, v := range condL {
+				if reflect.DeepEqual(val, v) {
+					found = true
+				}
+			}
+
+		case map[string]interface{}:
+			condM, ok := condVal.(map[string]interface{})
+			if !ok {
+				return false
+			}
+			valS, ok := val.(string)
+			if !ok {
+				return false
+			}
+			if _, ok := condM[valS]; ok {
 				found = true
 			}
+
+		default:
+			log.Println("Error: unknown condition value type for IN condition")
 		}
+
 		return found
 
 	case aql.Condition_CONTAINS:
 		found := false
-		valL, ok := val.([]interface{})
-		if !ok {
-			return false
-		}
-		for _, v := range valL {
-			if reflect.DeepEqual(v, condVal) {
+		switch val.(type) {
+		case []interface{}:
+			valL, ok := val.([]interface{})
+			if !ok {
+				return false
+			}
+			for _, v := range valL {
+				if reflect.DeepEqual(v, condVal) {
+					found = true
+				}
+			}
+
+		case map[string]interface{}:
+			valM, ok := val.(map[string]interface{})
+			if !ok {
+				return false
+			}
+			condValS, ok := condVal.(string)
+			if !ok {
+				return false
+			}
+			if _, ok := valM[condValS]; ok {
 				found = true
 			}
+
+		default:
+			log.Println("Error: unknown condition value type for IN condition")
 		}
+
 		return found
 
 	default:
@@ -794,7 +834,7 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 				idx := kvindex.NewIndex(kv)
 
 				namespace := jsonpath.GetNamespace(tagg.Field)
-				field := jsonpath.GetJsonPath(tagg.Field)
+				field := jsonpath.GetJSONPath(tagg.Field)
 				field = strings.TrimPrefix(field, "$.")
 				idx.AddField(field)
 
@@ -842,7 +882,7 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 				idx := kvindex.NewIndex(kv)
 
 				namespace := jsonpath.GetNamespace(hagg.Field)
-				field := jsonpath.GetJsonPath(hagg.Field)
+				field := jsonpath.GetJSONPath(hagg.Field)
 				field = strings.TrimPrefix(field, "$.")
 				idx.AddField(field)
 
@@ -888,7 +928,7 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 				idx := kvindex.NewIndex(kv)
 
 				namespace := jsonpath.GetNamespace(pagg.Field)
-				field := jsonpath.GetJsonPath(pagg.Field)
+				field := jsonpath.GetJSONPath(pagg.Field)
 				field = strings.TrimPrefix(field, "$.")
 				idx.AddField(field)
 

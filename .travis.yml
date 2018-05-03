@@ -21,6 +21,7 @@ git:
 install:
   - make depends
   - make
+  - sudo pip install numpy 
 
 jobs:
   include:

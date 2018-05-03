@@ -23,12 +23,12 @@ func GetNamespace(path string) string {
 	return namespace
 }
 
-// GetJsonPath strips the namespace from the path and returns the valid
+// GetJSONPath strips the namespace from the path and returns the valid
 // Json path within the document referenced by the namespace
 //
 // Example:
-// GetJsonPath("$gene.symbol.ensembl") returns "$.data.symbol.ensembl"
-func GetJsonPath(path string) string {
+// GetJSONPath("$gene.symbol.ensembl") returns "$.data.symbol.ensembl"
+func GetJSONPath(path string) string {
 	parts := strings.Split(path, ".")
 	if strings.HasPrefix(parts[0], "$") {
 		parts = parts[1:]
@@ -112,7 +112,7 @@ func GetDoc(traveler *gdbi.Traveler, namespace string) map[string]interface{} {
 // TravelerPathLookup(travler, "$gene.symbol.ensembl") returns "ENSG00000012048"
 func TravelerPathLookup(traveler *gdbi.Traveler, path string) interface{} {
 	namespace := GetNamespace(path)
-	field := GetJsonPath(path)
+	field := GetJSONPath(path)
 	doc := GetDoc(traveler, namespace)
 
 	res, err := jsonpath.JsonPathLookup(doc, field)

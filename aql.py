@@ -40,7 +40,8 @@ def lte(key, value):
 
 def in_(key, values):
     if not isinstance(values, list):
-        values = [values]
+        if not isinstance(values, dict):
+            values = [values]
     return {"condition": {"key": key, "value": values, "condition": "IN"}}
 
 
