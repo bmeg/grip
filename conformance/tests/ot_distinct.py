@@ -24,7 +24,7 @@ def test_distinct(O):
     O.addSubGraph(graph)
 
     count = 0
-    for i in O.query().V().outgoing().distinct("$.gid"):
+    for i in O.query().V().out().distinct("$.gid"):
         if i['vertex']['gid'] == "3":
             count += 1
     if count != 1:

@@ -46,6 +46,20 @@ func (boltkv *BoltKV) Close() error {
 	return boltkv.db.Close()
 }
 
+// Get retrieves the value of key `id`
+func (boltkv *BoltKV) Get(id []byte) ([]byte, error) {
+	var out []byte
+	err := boltkv.db.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket(graphBucket)
+		out = b.Get(id)
+		if out == nil {
+			return fmt.Errorf("Not Found")
+		}
+		return nil
+	})
+	return out, err
+}
+
 // Delete removes a key/value from a kvstore
 func (boltkv *BoltKV) Delete(id []byte) error {
 	err := boltkv.db.Update(func(tx *bolt.Tx) error {
@@ -77,7 +91,7 @@ func (boltkv *BoltKV) HasKey(id []byte) bool {
 	out := false
 	boltkv.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(graphBucket)
-		d := b.Get([]byte(id))
+		d := b.Get(id)
 		if d != nil {
 			out = true
 		}

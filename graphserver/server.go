@@ -330,20 +330,6 @@ func (server *ArachneServer) DeleteIndex(ctx context.Context, idx *aql.IndexID) 
 	return &aql.EditResult{Result: &aql.EditResult_Id{Id: idx.Field}}, nil
 }
 
-// GetIndex returns the terms and their counts from an index
-func (server *ArachneServer) GetIndex(idx *aql.IndexID, stream aql.Query_GetIndexServer) error {
-	graph, err := server.db.Graph(idx.Graph)
-	if err != nil {
-		return err
-	}
-	res := graph.GetVertexTermCount(stream.Context(), idx.Label, idx.Field)
-	for i := range res {
-		l := i
-		stream.Send(&l)
-	}
-	return nil
-}
-
 // GetIndexList lists avalible indices from a graph
 func (server *ArachneServer) GetIndexList(idx *aql.GraphID, stream aql.Query_GetIndexListServer) error {
 	graph, err := server.db.Graph(idx.Graph)
@@ -357,18 +343,43 @@ func (server *ArachneServer) GetIndexList(idx *aql.GraphID, stream aql.Query_Get
 	return nil
 }
 
-// IndexTraversal is not implemented
-func (server *ArachneServer) IndexTraversal(idx *aql.IndexQuery, stream aql.Query_IndexTraversalServer) error {
-	/*
-		res := server.engine.Arachne.Graph(idx.Graph).GetVertexTermCount(stream.Context(), idx.Label, idx.Field)
-		res, err := server.engine.RunTraversal(stream.Context(), query)
-		if err != nil {
-			return err
+// Aggregate is partially implemented
+func (server *ArachneServer) Aggregate(req *aql.AggregationsRequest, stream aql.Query_AggregateServer) error {
+	graph, err := server.db.Graph(req.Graph)
+	if err != nil {
+		return err
+	}
+
+	for _, agg := range req.Aggregations {
+		switch agg.Aggregation.(type) {
+		case *aql.Aggregate_Term:
+			termagg := agg.GetTerm()
+			res, err := graph.GetVertexTermAggregation(stream.Context(), agg.Name, termagg.Label, termagg.Field, termagg.Size)
+			if err != nil {
+				return fmt.Errorf("term aggregation failed: %s", err)
+			}
+			stream.Send(res)
+
+		case *aql.Aggregate_Percentile:
+			pagg := agg.GetPercentile()
+			res, err := graph.GetVertexPercentileAggregation(stream.Context(), agg.Name, pagg.Label, pagg.Field, pagg.Percents)
+			if err != nil {
+				return fmt.Errorf("percentile  aggregation failed: %s", err)
+			}
+			stream.Send(res)
+
+		case *aql.Aggregate_Histogram:
+			histagg := agg.GetHistogram()
+			res, err := graph.GetVertexHistogramAggregation(stream.Context(), agg.Name, histagg.Label, histagg.Field, histagg.Interval)
+			if err != nil {
+				return fmt.Errorf("histogram aggregation failed: %s", err)
+			}
+			stream.Send(res)
+
+		default:
+			return fmt.Errorf("unknown aggregation type")
 		}
-		for i := range res {
-			l := i
-			queryServer.Send(&l)
-		}
-	*/
-	return fmt.Errorf("Not implemented")
+	}
+
+	return nil
 }

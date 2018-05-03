@@ -41,12 +41,9 @@ func TestFloatSorting(t *testing.T) {
 	data := []map[string]interface{}{}
 	json.Unmarshal([]byte(numDocs), &data)
 	for i, d := range data {
-		log.Printf("Adding: %s", d)
+		log.Printf("Adding: %v", d)
 		idx.AddDoc(fmt.Sprintf("%d", i), d)
 	}
-
-	//idx.AddDoc("a", map[string]interface{}{"value": math.Inf(1)})
-	//idx.AddDoc("b", map[string]interface{}{"value": math.Inf(-1)})
 
 	last := -10000.0
 	log.Printf("Scanning")
@@ -58,16 +55,13 @@ func TestFloatSorting(t *testing.T) {
 		log.Printf("Scan, %f", d)
 	}
 
-	log.Printf("Min %f", idx.FieldTermNumberMin("value"))
-	log.Printf("Max %f", idx.FieldTermNumberMax("value"))
-
 	if v := idx.FieldTermNumberMin("value"); v != -200.0 {
 		t.Errorf("Incorrect Min %f != %f", v, -200.0)
 	}
+
 	if v := idx.FieldTermNumberMax("value"); v != 400.7 {
 		t.Errorf("Incorrect Max: %f != %f", v, 400.7)
 	}
-
 }
 
 func TestFloatRange(t *testing.T) {
@@ -97,12 +91,11 @@ func TestFloatRange(t *testing.T) {
 			t.Errorf("Out of Range Value: %f", d.Number)
 		}
 		if d.Number == -42 && d.Count != 3 {
-			t.Errorf("Incorrect term count")
+			t.Errorf("Incorrect term count: %+v", d)
 		}
 		if d.Number == 3.14 && d.Count != 3 {
-			t.Errorf("Incorrect term count")
+			t.Errorf("Incorrect term count: %+v", d)
 		}
-		//log.Printf("%#v", d)
 	}
 
 }

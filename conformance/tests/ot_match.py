@@ -1,5 +1,9 @@
+from __future__ import absolute_import
 
-def test_count(O):
+import aql
+
+
+def test_match_count(O):
     errors = []
 
     O.addVertex("1", "Person", {"name": "marko", "age": "29"})
@@ -17,10 +21,10 @@ def test_count(O):
     O.addEdge("4", "5", "created", {"weight": 1.0})
 
     query = O.query().V().match([
-        O.mark('a').outgoing('created').mark('b'),
-        O.mark('b').has('name', 'lop'),
-        O.mark('b').incoming('created').mark('c'),
-        O.mark('c').has('age', "29")
+        O.as_('a').out('created').as_('b'),
+        O.as_('b').where(aql.eq('$.name', 'lop')),
+        O.as_('b').in_('created').as_('c'),
+        O.as_('c').where(aql.eq('$.age', "29"))
     ]).select(['a', 'c'])
 
     count = 0

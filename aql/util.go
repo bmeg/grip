@@ -2,9 +2,10 @@ package aql
 
 import (
 	"io"
-	//"log"
-	//"fmt"
+	// "log"
 	"context"
+	"fmt"
+	"sort"
 
 	"github.com/bmeg/arachne/protoutil"
 	structpb "github.com/golang/protobuf/ptypes/struct"
@@ -141,7 +142,6 @@ func (client Client) Traversal(query *GraphQuery) (chan *ResultRow, error) {
 		}
 	}()
 	return out, nil
-
 }
 
 // GetDataMap obtains data attached to vertex in the form of a map
@@ -188,4 +188,89 @@ func (edge *Edge) HasProperty(key string) bool {
 	m := protoutil.AsMap(edge.Data)
 	_, ok := m[key]
 	return ok
+}
+
+// AsMap converts a NamedAggregationResult to a map[string]interface{}
+func (namedAggRes *NamedAggregationResult) AsMap() map[string]interface{} {
+	buckets := make([]map[string]interface{}, len(namedAggRes.Buckets))
+	for i, b := range namedAggRes.Buckets {
+		buckets[i] = b.AsMap()
+	}
+
+	return map[string]interface{}{
+		"name":    namedAggRes.Name,
+		"buckets": buckets,
+	}
+}
+
+// AsMap converts an AggregationResult to a map[string]interface{}
+func (aggRes *AggregationResult) AsMap() map[string]interface{} {
+	return map[string]interface{}{
+		"key":   aggRes.Key,
+		"value": aggRes.Value,
+	}
+}
+
+// SortedInsert inserts an AggregationResult into the Buckets field
+// and returns the index of the insertion
+func (namedAggRes *NamedAggregationResult) SortedInsert(el *AggregationResult) (int, error) {
+	if !namedAggRes.IsValueSorted() {
+		return 0, fmt.Errorf("buckets are not value sorted")
+	}
+
+	if len(namedAggRes.Buckets) == 0 {
+		namedAggRes.Buckets = []*AggregationResult{el}
+		return 0, nil
+	}
+
+	index := sort.Search(len(namedAggRes.Buckets), func(i int) bool {
+		if namedAggRes.Buckets[i] == nil {
+			return true
+		}
+		return el.Value > namedAggRes.Buckets[i].Value
+	})
+
+	namedAggRes.Buckets = append(namedAggRes.Buckets, &AggregationResult{})
+	copy(namedAggRes.Buckets[index+1:], namedAggRes.Buckets[index:])
+	namedAggRes.Buckets[index] = el
+
+	return index, nil
+}
+
+// SortOnValue sorts Buckets by Value in descending order
+func (namedAggRes *NamedAggregationResult) SortOnValue() {
+	sort.Slice(namedAggRes.Buckets, func(i, j int) bool {
+		if namedAggRes.Buckets[i] == nil && namedAggRes.Buckets[j] != nil {
+			return true
+		}
+		if namedAggRes.Buckets[i] != nil && namedAggRes.Buckets[j] == nil {
+			return false
+		}
+		if namedAggRes.Buckets[i] == nil && namedAggRes.Buckets[j] == nil {
+			return false
+		}
+		return namedAggRes.Buckets[i].Value > namedAggRes.Buckets[j].Value
+	})
+}
+
+// IsValueSorted returns true if the Buckets are sorted by Value
+func (namedAggRes *NamedAggregationResult) IsValueSorted() bool {
+	for i := range namedAggRes.Buckets {
+		j := i + 1
+		if i < len(namedAggRes.Buckets)-2 {
+			if namedAggRes.Buckets[i] != nil && namedAggRes.Buckets[j] == nil {
+				return true
+			}
+			if namedAggRes.Buckets[i] == nil && namedAggRes.Buckets[j] != nil {
+				return false
+			}
+			if namedAggRes.Buckets[i] == nil && namedAggRes.Buckets[j] == nil {
+				return true
+			}
+			if namedAggRes.Buckets[i].Value < namedAggRes.Buckets[j].Value {
+				return false
+			}
+		}
+	}
+	return true
 }

@@ -48,6 +48,21 @@ func (badgerkv *BadgerKV) Close() error {
 	return badgerkv.db.Close()
 }
 
+// Get retrieves the value of key `id`
+func (badgerkv *BadgerKV) Get(id []byte) ([]byte, error) {
+	var out []byte
+	err := badgerkv.db.View(func(tx *badger.Txn) error {
+		dataValue, err := tx.Get(id)
+		if err != nil {
+			return err
+		}
+		d, _ := dataValue.Value()
+		out = copyBytes(d)
+		return nil
+	})
+	return out, err
+}
+
 // Delete removes a key/value from a kvstore
 func (badgerkv *BadgerKV) Delete(id []byte) error {
 	err := badgerkv.db.Update(func(tx *badger.Txn) error {
@@ -133,10 +148,6 @@ func (badgerTrans badgerTransaction) HasKey(id []byte) bool {
 }
 
 func (badgerTrans badgerTransaction) Get(id []byte) ([]byte, error) {
-	o, err := badgerTrans.tx.Get(id)
-	if o == nil || err != nil {
-		return nil, fmt.Errorf("Not Found")
-	}
 	dataValue, err := badgerTrans.tx.Get(id)
 	if err != nil {
 		return nil, err
@@ -154,10 +165,6 @@ type badgerIterator struct {
 
 // Get retrieves the value of key `id`
 func (badgerIt *badgerIterator) Get(id []byte) ([]byte, error) {
-	o, err := badgerIt.tx.Get(id)
-	if o == nil || err != nil {
-		return nil, fmt.Errorf("Not Found")
-	}
 	dataValue, err := badgerIt.tx.Get(id)
 	if err != nil {
 		return nil, err

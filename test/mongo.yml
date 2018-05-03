@@ -1,0 +1,4 @@
+Database: mongo
+
+MongoDB:
+  URL: localhost:27000

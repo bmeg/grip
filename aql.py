@@ -2,6 +2,81 @@ import json
 import urllib2
 
 
+def and_(*expressions):
+    return {"and": {"expressions": expressions}}
+
+
+def or_(*expressions):
+    return {"or": {"expressions": expressions}}
+
+
+def not_(expression):
+    return {"not": expression}
+
+
+def eq(key, value):
+    return {"condition": {"key": key, "value": value, "condition": "EQ"}}
+
+
+def neq(key, value):
+    return {"condition": {"key": key, "value": value, "condition": "NEQ"}}
+
+
+def gt(key, value):
+    return {"condition": {"key": key, "value": value, "condition": "GT"}}
+
+
+def gte(key, value):
+    return {"condition": {"key": key, "value": value, "condition": "GTE"}}
+
+
+def lt(key, value):
+    return {"condition": {"key": key, "value": value, "condition": "LT"}}
+
+
+def lte(key, value):
+    return {"condition": {"key": key, "value": value, "condition": "LTE"}}
+
+
+def in_(key, values):
+    if not isinstance(values, list):
+        if not isinstance(values, dict):
+            values = [values]
+    return {"condition": {"key": key, "value": values, "condition": "IN"}}
+
+
+def contains(key, value):
+    return {"condition": {"key": key, "value": value, "condition": "CONTAINS"}}
+
+
+def term(name, label, field, size=None):
+    agg = {
+        "name": name,
+        "term": {"label": label, "field": field}
+    }
+    if size:
+        agg["term"]["size"] = size
+    return agg
+
+
+def percentile(name, label, field, percents=[1, 5, 25, 50, 75, 95, 99]):
+    return {
+        "name": name,
+        "percentile": {
+            "label": label, "field": field, "percents": percents
+        }
+    }
+
+
+def histogram(name, label, field, interval):
+    return {
+        "name": name,
+        "histogram": {
+            "label": label, "field": field, "interval": interval
+        }
+    }
+
+
 class Connection:
     def __init__(self, url):
         scheme, netloc, path, query, frag = urllib2.urlparse.urlsplit(url)
@@ -119,7 +194,7 @@ class Graph:
     def bulkAdd(self):
         return BulkAdd(self.url, self.name)
 
-    def addVertexIndex(self, label, field):
+    def addIndex(self, label, field):
         headers = {"Content-Type": "application/json",
                    "Accept": "application/json"}
         url = self.url + "/" + self.name + "/index/" + label
@@ -130,23 +205,26 @@ class Graph:
         result = response.read()
         return json.loads(result)
 
-    def getVertexIndex(self, label, field):
+    def listIndices(self):
         headers = {"Content-Type": "application/json",
                    "Accept": "application/json"}
         url = self.url + "/" + self.name + "/index"
-        url = self.url + "/" + self.name + "/index/" + label + \
-            "/" + field
         request = urllib2.Request(url, headers=headers)
         response = urllib2.urlopen(request)
         for result in response:
             d = json.loads(result)
             yield d
 
-    def getVertexIndexList(self):
+    def aggregate(self, aggregations):
         headers = {"Content-Type": "application/json",
                    "Accept": "application/json"}
-        url = self.url + "/" + self.name + "/index"
-        request = urllib2.Request(url, headers=headers)
+        if not isinstance(aggregations, list):
+            aggregations = [aggregations]
+        payload = {
+            "aggregations": aggregations,
+        }
+        url = self.url + "/" + self.name + "/aggregate"
+        request = urllib2.Request(url, json.dumps(payload), headers=headers)
         response = urllib2.urlopen(request)
         for result in response:
             d = json.loads(result)
@@ -180,11 +258,11 @@ class Graph:
         """
         return Query(self.url + "/" + self.name + "/query")
 
-    def mark(self, name):
+    def as_(self, name):
         """
         Create mark step for match query
         """
-        return self.query().mark(name)
+        return self.query().as_(name)
 
 
 class BulkAdd:
@@ -216,7 +294,7 @@ class BulkAdd:
         })
         self.elements.append(payload)
 
-    def commit(self):
+    def execute(self):
         payload = "\n".join(self.elements)
         headers = {"Content-Type": "application/json",
                    "Accept": "application/json"}
@@ -257,45 +335,21 @@ class Query:
             id = [id]
         return self.__append({"e": id})
 
-    def hasLabel(self, label):
+    def where(self, expression):
         """
-        Match vertex/edge label.
+        Filter vertex/edge based on properties.
+        """
+        return self.__append({"where": expression})
 
-        "label" can be a list.
+    def fields(self, fields=[]):
         """
-        if not isinstance(label, list):
-            label = [label]
-        return self.__append({"has_label": label})
+        Select document properties to be returned in document.
+        """
+        if not isinstance(fields, list):
+            fields = [fields]
+        return self.__append({"fields": fields})
 
-    def hasId(self, id):
-        """
-        Match vertex/edge ID.
-
-        "id" can be a list.
-        """
-        if not isinstance(id, list):
-            id = [id]
-        return self.__append({"has_id": id})
-
-    def has(self, key, value):
-        """
-        Match vertex/edge property.
-
-        If "value" is a list, then data must match at least one item.
-        """
-        if not isinstance(value, list):
-            value = [value]
-        return self.__append({"has": {"key": key, "within": value}})
-
-    def values(self, v=[]):
-        """
-        Extract document properties into returned document.
-        """
-        if not isinstance(v, list):
-            v = [v]
-        return self.__append({"values": {"labels": v}})
-
-    def incoming(self, label=[]):
+    def in_(self, label=[]):
         """
         Follow an incoming edge to the source vertex.
 
@@ -306,7 +360,7 @@ class Query:
             label = [label]
         return self.__append({"in": label})
 
-    def outgoing(self, label=[]):
+    def out(self, label=[]):
         """
         Follow an outgoing edge to the destination vertex.
 
@@ -328,7 +382,7 @@ class Query:
             label = [label]
         return self.__append({"both": label})
 
-    def incomingEdge(self, label=[]):
+    def inE(self, label=[]):
         """
         Move from a vertex to an incoming edge.
 
@@ -341,7 +395,7 @@ class Query:
             label = [label]
         return self.__append({"in_edge": label})
 
-    def outgoingEdge(self, label=[]):
+    def outE(self, label=[]):
         """
         Move from a vertex to an outgoing edge.
 
@@ -354,7 +408,7 @@ class Query:
             label = [label]
         return self.__append({"out_edge": label})
 
-    def bothEdge(self, label=[]):
+    def bothE(self, label=[]):
         """
         Move from a vertex to incoming/outgoing edges.
 
@@ -367,7 +421,7 @@ class Query:
             label = [label]
         return self.__append({"both_edge": label})
 
-    def mark(self, name):
+    def as_(self, name):
         """
         Mark the current vertex/edge with the given name.
 
@@ -410,7 +464,7 @@ class Query:
         """
         return self.__append({"group_count": label})
 
-    def distinct(self, props):
+    def distinct(self, props=[]):
         """
         Select distinct elements based on the provided property list.
         """
@@ -418,35 +472,32 @@ class Query:
             props = [props]
         return self.__append({"distinct": props})
 
-    # def jsImport(self, src):
-    #     """
-    #     Initialize javascript engine with functions and global variables.
-    #     """
-    #     return self.__append({"import": src})
+    def jsImport(self, src):
+        """
+        Initialize javascript engine with functions and global variables.
+        """
+        return self.__append({"import": src})
 
-    # def map(self, func):
-    #     """
-    #     Transform results by the given javascript function.
-    #     function(el) el
-    #     """
-    #     return self.__append({"map": func})
+    def map(self, func):
+        """
+        Transform results by the given javascript function.
+        function(el) el
+        """
+        return self.__append({"map": func})
 
-    # def filter(self, func):
-    #     """
-    #     Filter results by the given javascript function.
-    #     function(el) bool
-    #     """
-    #     return self.__append({"filter": func})
+    def filter(self, func):
+        """
+        Filter results by the given javascript function.
+        function(el) bool
+        """
+        return self.__append({"filter": func})
 
     def fold(self, init, func):
         """
+        Fold results by the given javascript function.
+        function(el) el
         """
         return self.__append({"fold": {"init": init, "source": func}})
-
-    # def vertexFromValues(self, func):
-    #     """
-    #     """
-    #     return self.__append({"vertex_from_values": func})
 
     def match(self, queries):
         """
@@ -461,10 +512,17 @@ class Query:
         """
         Render output of query
         """
-        self.query.append({"render": template})
-        return self
+        return self.__append({"render": template})
 
-    def string(self):
+    def aggregate(self, aggregations):
+        """
+        Aggregate results of query output
+        """
+        if not isinstance(aggregations, list):
+            aggregations = [aggregations]
+        return self.__append({"aggregate": {"aggregations": aggregations}})
+
+    def toJson(self):
         """
         Return the query as a JSON string.
         """
@@ -478,7 +536,7 @@ class Query:
         """
         Execute the query and return an iterator.
         """
-        payload = self.string()
+        payload = self.toJson()
         headers = {"Content-Type": "application/json",
                    "Accept": "application/json"}
         request = urllib2.Request(self.url, payload, headers=headers)
@@ -493,9 +551,3 @@ class Query:
             except ValueError as e:
                 print("Can't decode: %s" % (result))
                 raise e
-
-    def first(self):
-        """
-        Return only the first result.
-        """
-        return list(self.execute())[0]

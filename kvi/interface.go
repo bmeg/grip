@@ -8,6 +8,7 @@ type KVBuilder func(path string) (KVInterface, error)
 type KVInterface interface {
 	HasKey(key []byte) bool
 	Set(key, value []byte) error
+	Get(key []byte) ([]byte, error)
 	DeletePrefix(prefix []byte) error
 	Delete(key []byte) error
 

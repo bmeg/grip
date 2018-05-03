@@ -1,3 +1,6 @@
+from __future__ import absolute_import
+
+import aql
 
 
 def test_render(O):
@@ -17,8 +20,12 @@ def test_render(O):
     O.addEdge("6", "3", "created", {"weight": 0.2})
     O.addEdge("4", "5", "created", {"weight": 1.0})
 
-    query = O.query().V().hasLabel("Person").render({"Name": "$.name",
-                                                     "Age": "$.age"})
+    query = O.query().V().where(aql.eq("$.label", "Person")).render(
+        {
+            "Name": "$.name",
+            "Age": "$.age"
+        }
+    )
 
     for row in query:
         if 'Age' not in row["data"] or "Name" not in row["data"]:

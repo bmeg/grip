@@ -1,6 +1,9 @@
 package gdbi
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/protoutil"
 )
@@ -20,6 +23,76 @@ const (
 	// based filter, you can use skip listening and use that
 	StateRawEdgeList = 4
 )
+
+// SelectFields returns a new copy of the travel with only the selected fields
+func (t *Traveler) SelectFields(keys ...string) (*Traveler, error) {
+	out := &Traveler{
+		current: &DataElement{
+			Data: map[string]interface{}{},
+		},
+	}
+
+	for _, key := range keys {
+		parts := strings.SplitN(key, ".", 2)
+		if len(parts) != 2 {
+			return nil, fmt.Errorf("invalid key %s", key)
+		}
+
+		namespace := strings.TrimPrefix(parts[0], "$")
+		if namespace == "" {
+			namespace = "__current__"
+		}
+
+		var cde *DataElement
+		var ode *DataElement
+		switch namespace {
+		case "__current__":
+			cde = t.GetCurrent()
+			ode = out.GetCurrent()
+		default:
+			cde = t.GetMark(namespace)
+			ode = out.GetMark(namespace)
+			if ode == nil {
+				out = out.AddMark(namespace, &DataElement{
+					Data: map[string]interface{}{},
+				})
+				ode = out.GetMark(namespace)
+			}
+		}
+
+		k := parts[1]
+		switch k {
+		case "gid":
+			ode.ID = cde.ID
+		case "label":
+			ode.Label = cde.Label
+		case "from":
+			ode.From = cde.From
+		case "to":
+			ode.To = cde.To
+		case "data":
+			ode.Data = cde.Data
+		default:
+			parts := strings.Split(k, ".")
+			var data map[string]interface{}
+			var ok bool
+			data = cde.Data
+			for i := 0; i < len(parts); i++ {
+				if i == len(parts)-1 {
+					ode.Data[parts[i]] = data[parts[i]]
+				} else {
+					ode.Data[parts[i]] = map[string]interface{}{}
+					data, ok = data[parts[i]].(map[string]interface{})
+					if !ok {
+						return nil, fmt.Errorf("something went wrong when selecting fields on the traveler to return")
+					}
+				}
+			}
+		}
+	}
+
+	return out, nil
+}
 
 // AddCurrent creates a new copy of the travel with new 'current' value
 func (t *Traveler) AddCurrent(r *DataElement) *Traveler {
@@ -50,8 +123,7 @@ func (t *Traveler) AddMark(label string, r *DataElement) *Traveler {
 
 // GetMark gets stored result in travels state using its label
 func (t *Traveler) GetMark(label string) *DataElement {
-	lt := t.marks[label]
-	return lt
+	return t.marks[label]
 }
 
 // GetCurrent get current result value attached to the traveler

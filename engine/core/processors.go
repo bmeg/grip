@@ -5,6 +5,9 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"math"
+	"reflect"
+	"strings"
 	"sync"
 
 	"github.com/bmeg/arachne/aql"
@@ -14,8 +17,11 @@ import (
 	_ "github.com/bmeg/arachne/jsengine/otto" // import otto so it registers with the driver map
 	_ "github.com/bmeg/arachne/jsengine/v8"   // import v8 so it registers with the driver map
 	"github.com/bmeg/arachne/jsonpath"
+	"github.com/bmeg/arachne/kvindex"
 	"github.com/bmeg/arachne/protoutil"
 	structpb "github.com/golang/protobuf/ptypes/struct"
+	"github.com/spenczar/tdigest"
+	"golang.org/x/sync/errgroup"
 )
 
 type propKey string
@@ -359,34 +365,25 @@ func (l *OutEdge) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe,
 
 ////////////////////////////////////////////////////////////////////////////////
 
-// Values selects fields from current element
-type Values struct {
+// Fields selects fields from current element
+type Fields struct {
 	keys []string
 }
 
 // Process runs Values step
-func (v *Values) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
+func (f *Fields) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
 	go func() {
 		defer close(out)
 		for t := range in {
-			if t.GetCurrent().Data == nil {
-				continue
-			}
-			cdata := t.GetCurrent().Data
-			if len(v.keys) == 0 {
-				for _, v := range cdata {
-					o := t.AddCurrent(&gdbi.DataElement{
-						Value: v,
-					})
-					out <- o
-				}
+			if len(f.keys) == 0 {
+				out <- t
 			} else {
-				for _, i := range v.keys {
-					o := t.AddCurrent(&gdbi.DataElement{
-						Value: cdata[i],
-					})
-					out <- o
+				o, err := t.SelectFields(f.keys...)
+				if err != nil {
+					log.Printf("error selecting fields: %v for traveler %+v", f.keys, t)
+					continue
 				}
+				out <- o
 			}
 		}
 	}()
@@ -406,10 +403,7 @@ func (r *Render) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, 
 		defer close(out)
 		for t := range in {
 			v := jsonpath.Render(r.template, t)
-			o := t.AddCurrent(&gdbi.DataElement{
-				Value: v,
-			})
-			out <- o
+			out <- &gdbi.Traveler{Value: v}
 		}
 	}()
 	return context.WithValue(ctx, propLoad, true)
@@ -417,67 +411,192 @@ func (r *Render) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, 
 
 ////////////////////////////////////////////////////////////////////////////////
 
-// HasData filters based on data
-type HasData struct {
-	stmt *aql.HasStatement
+// Where filters based on data
+type Where struct {
+	stmt *aql.WhereExpression
 }
 
-// Process runs HasData
-func (h *HasData) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
-	go func() {
-		defer close(out)
-		for t := range in {
-			if t.GetCurrent().Data == nil {
-				continue
+func matchesCondition(trav *gdbi.Traveler, cond *aql.WhereCondition) bool {
+	var val interface{}
+	var condVal interface{}
+	val = jsonpath.Render(cond.Key, trav)
+	condVal = protoutil.UnWrapValue(cond.Value)
+
+	switch cond.Condition {
+	case aql.Condition_EQ:
+		return reflect.DeepEqual(val, condVal)
+
+	case aql.Condition_NEQ:
+		return !reflect.DeepEqual(val, condVal)
+
+	case aql.Condition_GT:
+		valN, ok := val.(float64)
+		if !ok {
+			return false
+		}
+		condN, ok := condVal.(float64)
+		if !ok {
+			return false
+		}
+		return valN > condN
+
+	case aql.Condition_GTE:
+		valN, ok := val.(float64)
+		if !ok {
+			return false
+		}
+		condN, ok := condVal.(float64)
+		if !ok {
+			return false
+		}
+		return valN >= condN
+
+	case aql.Condition_LT:
+		valN, ok := val.(float64)
+		if !ok {
+			return false
+		}
+		condN, ok := condVal.(float64)
+		if !ok {
+			return false
+		}
+		return valN < condN
+
+	case aql.Condition_LTE:
+		valN, ok := val.(float64)
+		if !ok {
+			return false
+		}
+		condN, ok := condVal.(float64)
+		if !ok {
+			return false
+		}
+		return valN <= condN
+
+	case aql.Condition_IN:
+		found := false
+		switch condVal.(type) {
+		case []interface{}:
+			condL, ok := condVal.([]interface{})
+			if !ok {
+				return false
 			}
-			if z, ok := t.GetCurrent().Data[h.stmt.Key]; ok {
-				if s, ok := z.(string); ok && contains(h.stmt.Within, s) {
-					out <- t
+			for _, v := range condL {
+				if reflect.DeepEqual(val, v) {
+					found = true
 				}
 			}
+
+		case map[string]interface{}:
+			condM, ok := condVal.(map[string]interface{})
+			if !ok {
+				return false
+			}
+			valS, ok := val.(string)
+			if !ok {
+				return false
+			}
+			if _, ok := condM[valS]; ok {
+				found = true
+			}
+
+		default:
+			log.Println("Error: unknown condition value type for IN condition")
+		}
+
+		return found
+
+	case aql.Condition_CONTAINS:
+		found := false
+		switch val.(type) {
+		case []interface{}:
+			valL, ok := val.([]interface{})
+			if !ok {
+				return false
+			}
+			for _, v := range valL {
+				if reflect.DeepEqual(v, condVal) {
+					found = true
+				}
+			}
+
+		case map[string]interface{}:
+			valM, ok := val.(map[string]interface{})
+			if !ok {
+				return false
+			}
+			condValS, ok := condVal.(string)
+			if !ok {
+				return false
+			}
+			if _, ok := valM[condValS]; ok {
+				found = true
+			}
+
+		default:
+			log.Println("Error: unknown condition value type for IN condition")
+		}
+
+		return found
+
+	default:
+		return false
+	}
+}
+
+func matchesWhereExpression(trav *gdbi.Traveler, stmt *aql.WhereExpression) bool {
+	switch stmt.Expression.(type) {
+	case *aql.WhereExpression_Condition:
+		cond := stmt.GetCondition()
+		return matchesCondition(trav, cond)
+
+	case *aql.WhereExpression_And:
+		and := stmt.GetAnd()
+		andRes := []bool{}
+		for _, e := range and.Expressions {
+			andRes = append(andRes, matchesWhereExpression(trav, e))
+		}
+		for _, r := range andRes {
+			if !r {
+				return false
+			}
+		}
+		return true
+
+	case *aql.WhereExpression_Or:
+		or := stmt.GetOr()
+		orRes := []bool{}
+		for _, e := range or.Expressions {
+			orRes = append(orRes, matchesWhereExpression(trav, e))
+		}
+		for _, r := range orRes {
+			if r {
+				return true
+			}
+		}
+		return false
+
+	case *aql.WhereExpression_Not:
+		e := stmt.GetNot()
+		return !matchesWhereExpression(trav, e)
+
+	default:
+		log.Printf("unknown where expression type")
+		return false
+	}
+}
+
+// Process runs Where
+func (w *Where) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
+	go func() {
+		defer close(out)
+		for t := range in {
+			if matchesWhereExpression(t, w.stmt) {
+				out <- t
+			}
 		}
 	}()
 	return context.WithValue(ctx, propLoad, true)
-}
-
-////////////////////////////////////////////////////////////////////////////////
-
-// HasLabel filters based on label match
-type HasLabel struct {
-	labels []string
-}
-
-// Process runs HasLabel
-func (h *HasLabel) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
-	go func() {
-		defer close(out)
-		for t := range in {
-			if contains(h.labels, t.GetCurrent().Label) {
-				out <- t
-			}
-		}
-	}()
-	return ctx
-}
-
-////////////////////////////////////////////////////////////////////////////////
-
-// HasID filters based on ID
-type HasID struct {
-	ids []string
-}
-
-// Process runs HasID
-func (h *HasID) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
-	go func() {
-		defer close(out)
-		for t := range in {
-			if contains(h.ids, t.GetCurrent().ID) {
-				out <- t
-			}
-		}
-	}()
-	return ctx
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -489,7 +608,7 @@ type Count struct{}
 func (c *Count) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
 	go func() {
 		defer close(out)
-		var i int64
+		var i uint64
 		for range in {
 			i++
 		}
@@ -547,60 +666,8 @@ func (f *Fold) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, ou
 			}
 		}
 		if foldValue != nil {
-			i := gdbi.Traveler{}
-			a := i.AddCurrent(&gdbi.DataElement{Value: foldValue})
-			out <- a
+			out <- &gdbi.Traveler{Value: foldValue}
 		}
-	}()
-	return context.WithValue(ctx, propLoad, true)
-}
-
-////////////////////////////////////////////////////////////////////////////////
-
-// GroupCount does a groupcount
-type GroupCount struct {
-	key string
-}
-
-// TODO except, if you select.by("name") this is counting by value, not ID
-func (g *GroupCount) countIDs(in gdbi.InPipe, counts map[string]int64) {
-	for t := range in {
-		counts[t.GetCurrent().ID]++
-	}
-}
-
-func (g *GroupCount) countValues(in gdbi.InPipe, counts map[string]int64) {
-	for t := range in {
-		if t.GetCurrent().Data == nil {
-			continue
-		}
-		if vi, ok := t.GetCurrent().Data[g.key]; ok {
-			// TODO only counting string values.
-			//      how to handle other simple types? (int, etc)
-			//      what to do for objects? gremlin returns an error.
-			//      how to return errors? Add Error travelerType?
-			if s, ok := vi.(string); ok {
-				counts[s]++
-			}
-		}
-	}
-}
-
-// Process runs GroupCount
-func (g *GroupCount) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
-	go func() {
-		defer close(out)
-		counts := map[string]int64{}
-		if g.key != "" {
-			g.countValues(in, counts)
-		} else {
-			g.countIDs(in, counts)
-		}
-
-		eo := &gdbi.Traveler{
-			GroupCounts: counts,
-		}
-		out <- eo
 	}()
 	return context.WithValue(ctx, propLoad, true)
 }
@@ -650,6 +717,8 @@ func (m *Marker) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, 
 	return context.WithValue(ctx, propLoad, true)
 }
 
+////////////////////////////////////////////////////////////////////////////////
+
 type selectOne struct {
 	mark string
 }
@@ -683,11 +752,13 @@ func (s *selectMany) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPi
 					row = append(row, gdbi.DataElement{})
 				}
 			}
-			out <- t.AddCurrent(&gdbi.DataElement{Row: row})
+			out <- &gdbi.Traveler{Row: row}
 		}
 	}()
 	return context.WithValue(ctx, propLoad, true)
 }
+
+////////////////////////////////////////////////////////////////////////////////
 
 type concat []gdbi.Processor
 
@@ -728,6 +799,189 @@ func (c concat) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, o
 	}()
 	return ctx
 }
+
+////////////////////////////////////////////////////////////////////////////////
+
+type aggregate struct {
+	aggregations []*aql.Aggregate
+}
+
+func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
+	aChans := make(map[string](chan *gdbi.Traveler))
+	g, ctx := errgroup.WithContext(ctx)
+
+	go func() {
+		for _, a := range agg.aggregations {
+			aChans[a.Name] = make(chan *gdbi.Traveler, 100)
+			defer close(aChans[a.Name])
+		}
+
+		for t := range in {
+			for _, a := range agg.aggregations {
+				aChans[a.Name] <- t
+			}
+		}
+		return
+	}()
+
+	for _, a := range agg.aggregations {
+		switch a.Aggregation.(type) {
+		case *aql.Aggregate_Term:
+			g.Go(func() error {
+				tagg := a.GetTerm()
+				size := tagg.Size
+				kv := man.GetTempKV()
+				idx := kvindex.NewIndex(kv)
+
+				namespace := jsonpath.GetNamespace(tagg.Field)
+				field := jsonpath.GetJSONPath(tagg.Field)
+				field = strings.TrimPrefix(field, "$.")
+				idx.AddField(field)
+
+				for t := range aChans[a.Name] {
+					doc := jsonpath.GetDoc(t, namespace)
+					if doc["label"] == tagg.Label {
+						err := idx.AddDoc(doc["gid"].(string), doc)
+						if err != nil {
+							return err
+						}
+					}
+				}
+
+				aggOut := &aql.NamedAggregationResult{
+					Name:    a.Name,
+					Buckets: []*aql.AggregationResult{},
+				}
+
+				for tcount := range idx.FieldTermCounts(field) {
+					var t *structpb.Value
+					if tcount.String != "" {
+						t = protoutil.WrapValue(tcount.String)
+					} else {
+						t = protoutil.WrapValue(tcount.Number)
+					}
+					aggOut.SortedInsert(&aql.AggregationResult{Key: t, Value: float64(tcount.Count)})
+					if size > 0 {
+						if len(aggOut.Buckets) > int(size) {
+							aggOut.Buckets = aggOut.Buckets[:size]
+						}
+					}
+				}
+
+				aggOutMap := aggOut.AsMap()
+				out <- &gdbi.Traveler{Value: aggOutMap}
+
+				return nil
+			})
+
+		case *aql.Aggregate_Histogram:
+			g.Go(func() error {
+				hagg := a.GetHistogram()
+				interval := hagg.Interval
+				kv := man.GetTempKV()
+				idx := kvindex.NewIndex(kv)
+
+				namespace := jsonpath.GetNamespace(hagg.Field)
+				field := jsonpath.GetJSONPath(hagg.Field)
+				field = strings.TrimPrefix(field, "$.")
+				idx.AddField(field)
+
+				for t := range aChans[a.Name] {
+					doc := jsonpath.GetDoc(t, namespace)
+					if doc["label"] == hagg.Label {
+						err := idx.AddDoc(doc["gid"].(string), doc)
+						if err != nil {
+							return err
+						}
+					}
+				}
+
+				aggOut := &aql.NamedAggregationResult{
+					Name:    a.Name,
+					Buckets: []*aql.AggregationResult{},
+				}
+
+				min := idx.FieldTermNumberMin(field)
+				max := idx.FieldTermNumberMax(field)
+
+				i := float64(interval)
+				for bucket := math.Floor(min/i) * i; bucket <= max; bucket += i {
+					var count uint64
+					for tcount := range idx.FieldTermNumberRange(field, bucket, bucket+i) {
+						count += tcount.Count
+					}
+					aggOut.Buckets = append(aggOut.Buckets, &aql.AggregationResult{Key: protoutil.WrapValue(bucket), Value: float64(count)})
+				}
+
+				aggOutMap := aggOut.AsMap()
+				out <- &gdbi.Traveler{Value: aggOutMap}
+
+				return nil
+			})
+
+		case *aql.Aggregate_Percentile:
+
+			g.Go(func() error {
+				pagg := a.GetPercentile()
+				percents := pagg.Percents
+				kv := man.GetTempKV()
+				idx := kvindex.NewIndex(kv)
+
+				namespace := jsonpath.GetNamespace(pagg.Field)
+				field := jsonpath.GetJSONPath(pagg.Field)
+				field = strings.TrimPrefix(field, "$.")
+				idx.AddField(field)
+
+				for t := range aChans[a.Name] {
+					doc := jsonpath.GetDoc(t, namespace)
+					if doc["label"] == pagg.Label {
+						err := idx.AddDoc(doc["gid"].(string), doc)
+						if err != nil {
+							return err
+						}
+					}
+				}
+
+				aggOut := &aql.NamedAggregationResult{
+					Name:    a.Name,
+					Buckets: []*aql.AggregationResult{},
+				}
+
+				td := tdigest.New()
+				for val := range idx.FieldNumbers(field) {
+					td.Add(val, 1)
+				}
+
+				for _, p := range percents {
+					q := td.Quantile(p / 100)
+					aggOut.Buckets = append(aggOut.Buckets, &aql.AggregationResult{Key: protoutil.WrapValue(p), Value: q})
+				}
+
+				aggOutMap := aggOut.AsMap()
+				out <- &gdbi.Traveler{Value: aggOutMap}
+
+				return nil
+			})
+
+		default:
+			log.Println("Error: unknown aggregation type")
+			continue
+		}
+	}
+
+	// Check whether any goroutines failed.
+	go func() {
+		defer close(out)
+		if err := g.Wait(); err != nil {
+			log.Printf("Error: %v", err)
+		}
+		return
+	}()
+
+	return context.WithValue(ctx, propLoad, true)
+}
+
+////////////////////////////////////////////////////////////////////////////////
 
 /*
 
