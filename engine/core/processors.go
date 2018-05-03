@@ -3,10 +3,11 @@ package core
 import (
 	"bytes"
 	"context"
-	"encoding/binary"
 	"fmt"
 	"log"
+	"math"
 	"reflect"
+	"strings"
 	"sync"
 
 	"github.com/bmeg/arachne/aql"
@@ -16,10 +17,10 @@ import (
 	_ "github.com/bmeg/arachne/jsengine/otto" // import otto so it registers with the driver map
 	_ "github.com/bmeg/arachne/jsengine/v8"   // import v8 so it registers with the driver map
 	"github.com/bmeg/arachne/jsonpath"
-	"github.com/bmeg/arachne/kvi"
 	"github.com/bmeg/arachne/kvindex"
 	"github.com/bmeg/arachne/protoutil"
 	structpb "github.com/golang/protobuf/ptypes/struct"
+	"github.com/spenczar/tdigest"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -774,24 +775,22 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 		switch a.Aggregation.(type) {
 		case *aql.Aggregate_Term:
 			g.Go(func() error {
-				kv := man.GetTempKV()
 				tagg := a.GetTerm()
+				size := tagg.Size
+				kv := man.GetTempKV()
+				idx := kvindex.NewIndex(kv)
+
+				namespace := jsonpath.GetNamespace(tagg.Field)
+				field := jsonpath.GetJsonPath(tagg.Field)
+				field = strings.TrimPrefix(field, "$.")
+				idx.AddField(field)
+
 				for t := range aChans[a.Name] {
-					if t.GetCurrent().Label == tagg.Label {
-						term := jsonpath.TravelerPathLookup(t, tagg.Field)
-						termBytes, ttype := kvindex.GetTermBytes(term)
-						termKey := kvindex.TermKey(tagg.Field, ttype, termBytes)
-						var count uint64
-						i, err := kv.Get(termKey)
-						if err == nil {
-							count, _ = binary.Uvarint(i)
-						}
-						count = count + 1
-						buf := make([]byte, binary.MaxVarintLen64)
-						binary.PutUvarint(buf, count)
-						err = kv.Set(termKey, buf)
+					doc := jsonpath.GetDoc(t, namespace)
+					if doc["label"] == tagg.Label {
+						err := idx.AddDoc(doc["gid"].(string), doc)
 						if err != nil {
-							return fmt.Errorf("Error: failed to aggregate field: %s: %v", tagg.Field, err)
+							return err
 						}
 					}
 				}
@@ -801,23 +800,65 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 					Buckets: []*aql.AggregationResult{},
 				}
 
-				prefix := kvindex.TermPrefix(tagg.Field)
-				kv.View(func(it kvi.KVIterator) error {
-					for it.Seek(prefix); it.Valid() && bytes.HasPrefix(it.Key(), prefix); it.Next() {
-						_, ttype, termb := kvindex.TermKeyParse(it.Key())
-						term := kvindex.GetBytesTerm(termb, ttype)
-						termVal := protoutil.WrapValue(term)
-						countBytes, _ := it.Value()
-						count, _ := binary.Uvarint(countBytes)
-						aggOut.SortedInsert(&aql.AggregationResult{Key: termVal, Value: float64(count)})
-						if tagg.Size > 0 {
-							if len(aggOut.Buckets) > int(tagg.Size) {
-								aggOut.Buckets = aggOut.Buckets[:tagg.Size]
-							}
+				for tcount := range idx.FieldTermCounts(field) {
+					var t *structpb.Value
+					if tcount.String != "" {
+						t = protoutil.WrapValue(tcount.String)
+					} else {
+						t = protoutil.WrapValue(tcount.Number)
+					}
+					aggOut.SortedInsert(&aql.AggregationResult{Key: t, Value: float64(tcount.Count)})
+					if size > 0 {
+						if len(aggOut.Buckets) > int(size) {
+							aggOut.Buckets = aggOut.Buckets[:size]
 						}
 					}
-					return nil
-				})
+				}
+
+				aggOutMap := aggOut.AsMap()
+				out <- &gdbi.Traveler{Value: aggOutMap}
+
+				return nil
+			})
+
+		case *aql.Aggregate_Histogram:
+			g.Go(func() error {
+				hagg := a.GetHistogram()
+				interval := hagg.Interval
+				kv := man.GetTempKV()
+				idx := kvindex.NewIndex(kv)
+
+				namespace := jsonpath.GetNamespace(hagg.Field)
+				field := jsonpath.GetJsonPath(hagg.Field)
+				field = strings.TrimPrefix(field, "$.")
+				idx.AddField(field)
+
+				for t := range aChans[a.Name] {
+					doc := jsonpath.GetDoc(t, namespace)
+					if doc["label"] == hagg.Label {
+						err := idx.AddDoc(doc["gid"].(string), doc)
+						if err != nil {
+							return err
+						}
+					}
+				}
+
+				aggOut := &aql.NamedAggregationResult{
+					Name:    a.Name,
+					Buckets: []*aql.AggregationResult{},
+				}
+
+				min := idx.FieldTermNumberMin(field)
+				max := idx.FieldTermNumberMax(field)
+
+				i := float64(interval)
+				for bucket := math.Floor(min/i) * i; bucket <= max; bucket += i {
+					var count uint64
+					for tcount := range idx.FieldTermNumberRange(field, bucket, bucket+i) {
+						count += tcount.Count
+					}
+					aggOut.Buckets = append(aggOut.Buckets, &aql.AggregationResult{Key: protoutil.WrapValue(bucket), Value: float64(count)})
+				}
 
 				aggOutMap := aggOut.AsMap()
 				out <- &gdbi.Traveler{Value: aggOutMap}
@@ -826,10 +867,48 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 			})
 
 		case *aql.Aggregate_Percentile:
-			// pagg := a.GetPercentile()
 
-		case *aql.Aggregate_Histogram:
-			// hagg := a.GetHistogram()
+			g.Go(func() error {
+				pagg := a.GetPercentile()
+				percents := pagg.Percents
+				kv := man.GetTempKV()
+				idx := kvindex.NewIndex(kv)
+
+				namespace := jsonpath.GetNamespace(pagg.Field)
+				field := jsonpath.GetJsonPath(pagg.Field)
+				field = strings.TrimPrefix(field, "$.")
+				idx.AddField(field)
+
+				for t := range aChans[a.Name] {
+					doc := jsonpath.GetDoc(t, namespace)
+					if doc["label"] == pagg.Label {
+						err := idx.AddDoc(doc["gid"].(string), doc)
+						if err != nil {
+							return err
+						}
+					}
+				}
+
+				aggOut := &aql.NamedAggregationResult{
+					Name:    a.Name,
+					Buckets: []*aql.AggregationResult{},
+				}
+
+				td := tdigest.New()
+				for val := range idx.FieldNumbers(field) {
+					td.Add(val, 1)
+				}
+
+				for _, p := range percents {
+					q := td.Quantile(p / 100)
+					aggOut.Buckets = append(aggOut.Buckets, &aql.AggregationResult{Key: protoutil.WrapValue(p), Value: q})
+				}
+
+				aggOutMap := aggOut.AsMap()
+				out <- &gdbi.Traveler{Value: aggOutMap}
+
+				return nil
+			})
 
 		default:
 			log.Println("Error: unknown aggregation type")

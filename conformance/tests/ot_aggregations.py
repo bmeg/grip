@@ -9,10 +9,10 @@ def setupGraph(O):
     O.addIndex("Person", "age")
 
     O.addVertex("1", "Person", {"name": "marko", "age": 29})
-    O.addVertex("7", "Person", {"name": "marko", "age": 41})
     O.addVertex("2", "Person", {"name": "vadas", "age": 25})
     O.addVertex("4", "Person", {"name": "josh", "age": 32})
     O.addVertex("6", "Person", {"name": "peter", "age": 35})
+    O.addVertex("7", "Person", {"name": "marko", "age": 41})
     O.addVertex("9", "Person", {"name": "alex", "age": 30})
     O.addVertex("10", "Person", {"name": "alex", "age": 45})
     O.addVertex("11", "Person", {"name": "steve", "age": 26})
@@ -38,6 +38,7 @@ def test_term_aggregation(O):
 
     count = 0
     for row in O.aggregate(aql.term("test-agg", "Person", "name", 2)):
+        print(row)
         count += 1
         if len(row["buckets"]) != 2:
                 errors.append(
@@ -65,6 +66,7 @@ def test_term_aggregation(O):
 
     count = 0
     for row in O.aggregate(aql.term("test-agg-no-limit", "Person", "name", size=None)):
+        print(row)
         count += 1
         if len(row["buckets"]) != 8:
                 errors.append(
@@ -101,6 +103,7 @@ def test_traversal_term_aggregation(O):
 
     count = 0
     for row in O.query().V("1").out().aggregate(aql.term("traversal-agg", "Person", "name")):
+        print(row)
         row = row["data"]
         count += 1
         if len(row["buckets"]) != 3:
@@ -138,6 +141,7 @@ def test_histogram_aggregation(O):
 
     count = 0
     for row in O.aggregate(aql.histogram("test-agg", "Person", "age", 5)):
+        print(row)
         count += 1
         if len(row["buckets"]) != 6:
                 errors.append(
@@ -163,6 +167,51 @@ def test_histogram_aggregation(O):
                     errors.append("Incorrect bucket count returned: %s" % res)
             elif res["key"] == 40:
                 if res["value"] != 1:
+                    errors.append("Incorrect bucket count returned: %s" % res)
+            elif res["key"] == 45:
+                if res["value"] != 1:
+                    errors.append("Incorrect bucket count returned: %s" % res)
+            else:
+                errors.append("Incorrect bucket key returned: %s" % res)
+
+    if count != 1:
+        errors.append(
+            "Incorrect number of aggregations returned: %d != %d" %
+            (count, 1))
+
+    return errors
+
+
+def test_traversal_histogram_aggregation(O):
+    errors = []
+    setupGraph(O)
+
+    count = 0
+    for row in O.query().V("1").out().aggregate(aql.histogram("traversal-agg", "Person", "age", 5)):
+        print(row)
+        count += 1
+        row = row["data"]
+        if len(row["buckets"]) != 5:
+                errors.append(
+                    "Unexpected number of terms: %d != %d" %
+                    (len(row["buckets"]), 5)
+                )
+
+        if row['name'] != 'traversal-agg':
+                errors.append("Result had Incorrect aggregation name")
+
+        for res in row["buckets"]:
+            if res["key"] == 25:
+                if res["value"] != 1:
+                    errors.append("Incorrect bucket count returned: %s" % res)
+            elif res["key"] == 30:
+                if res["value"] != 2:
+                    errors.append("Incorrect bucket count returned: %s" % res)
+            elif res["key"] == 35:
+                if res["value"] != 0:
+                    errors.append("Incorrect bucket count returned: %s" % res)
+            elif res["key"] == 40:
+                if res["value"] != 0:
                     errors.append("Incorrect bucket count returned: %s" % res)
             elif res["key"] == 45:
                 if res["value"] != 1:
@@ -205,35 +254,103 @@ def test_percentile_aggregation(O):
             if res["key"] == 1:
                 minpv, maxpv = getMinMax(ages, res["key"])
                 if res["value"] <= minpv or res["value"] >= maxpv:
-                    errors.append("Incorrect quantile value returned for %.2f:\n\tmin: %.2f\n\tmax: %.2f\n\tactual: %.2f" % (res["key"], minpv, res["value"], maxpv))
+                    errors.append("Incorrect quantile value returned for %.2f:\n\tmin: %.2f\n\tmax: %.2f\n\tactual: %.2f" % (res["key"], minpv, maxpv, res["value"]))
             elif res["key"] == 5:
                 minpv, maxpv = getMinMax(ages, res["key"])
                 if res["value"] <= minpv or res["value"] >= maxpv:
-                    errors.append("Incorrect quantile value returned for %.2f:\n\tmin: %.2f\n\tmax: %.2f\n\tactual: %.2f" % (res["key"], minpv, res["value"], maxpv))
+                    errors.append("Incorrect quantile value returned for %.2f:\n\tmin: %.2f\n\tmax: %.2f\n\tactual: %.2f" % (res["key"], minpv, maxpv, res["value"]))
             elif res["key"] == 25:
                 minpv, maxpv = getMinMax(ages, res["key"])
                 if res["value"] <= minpv or res["value"] >= maxpv:
-                    errors.append("Incorrect quantile value returned for %.2f:\n\tmin: %.2f\n\tmax: %.2f\n\tactual: %.2f" % (res["key"], minpv, res["value"], maxpv))
+                    errors.append("Incorrect quantile value returned for %.2f:\n\tmin: %.2f\n\tmax: %.2f\n\tactual: %.2f" % (res["key"], minpv, maxpv, res["value"]))
             elif res["key"] == 50:
                 minpv, maxpv = getMinMax(ages, res["key"])
                 if res["value"] <= minpv or res["value"] >= maxpv:
-                    errors.append("Incorrect quantile value returned for %.2f:\n\tmin: %.2f\n\tmax: %.2f\n\tactual: %.2f" % (res["key"], minpv, res["value"], maxpv))
+                    errors.append("Incorrect quantile value returned for %.2f:\n\tmin: %.2f\n\tmax: %.2f\n\tactual: %.2f" % (res["key"], minpv, maxpv, res["value"]))
             elif res["key"] == 75:
                 minpv, maxpv = getMinMax(ages, res["key"])
                 if res["value"] <= minpv or res["value"] >= maxpv:
-                    errors.append("Incorrect quantile value returned for %.2f:\n\tmin: %.2f\n\tmax: %.2f\n\tactual: %.2f" % (res["key"], minpv, res["value"], maxpv))
+                    errors.append("Incorrect quantile value returned for %.2f:\n\tmin: %.2f\n\tmax: %.2f\n\tactual: %.2f" % (res["key"], minpv, maxpv, res["value"]))
             elif res["key"] == 95:
                 minpv, maxpv = getMinMax(ages, res["key"])
                 if res["value"] <= minpv or res["value"] >= maxpv:
-                    errors.append("Incorrect quantile value returned for %.2f:\n\tmin: %.2f\n\tmax: %.2f\n\tactual: %.2f" % (res["key"], minpv, res["value"], maxpv))
+                    errors.append("Incorrect quantile value returned for %.2f:\n\tmin: %.2f\n\tmax: %.2f\n\tactual: %.2f" % (res["key"], minpv, maxpv, res["value"]))
             elif res["key"] == 99:
                 minpv, maxpv = getMinMax(ages, res["key"])
                 if res["value"] <= minpv or res["value"] >= maxpv:
-                    errors.append("Incorrect quantile value returned for %.2f:\n\tmin: %.2f\n\tmax: %.2f\n\tactual: %.2f" % (res["key"], minpv, res["value"], maxpv))
+                    errors.append("Incorrect quantile value returned for %.2f:\n\tmin: %.2f\n\tmax: %.2f\n\tactual: %.2f" % (res["key"], minpv, maxpv, res["value"]))
             elif res["key"] == 99.9:
                 minpv, maxpv = getMinMax(ages, res["key"])
                 if res["value"] <= minpv or res["value"] >= maxpv:
-                    errors.append("Incorrect quantile value returned for %.2f:\n\tmin: %.2f\n\tmax: %.2f\n\tactual: %.2f" % (res["key"], minpv, res["value"], maxpv))
+                    errors.append("Incorrect quantile value returned for %.2f:\n\tmin: %.2f\n\tmax: %.2f\n\tactual: %.2f" % (res["key"], minpv, maxpv, res["value"]))
+            else:
+                errors.append("Incorrect bucket key returned: %s" % res)
+
+    if count != 1:
+        errors.append(
+            "Incorrect number of aggregations returned: %d != %d" %
+            (count, 1))
+
+    return errors
+
+
+def test_traversal_percentile_aggregation(O):
+    errors = []
+    setupGraph(O)
+
+    count = 0
+    percents = [1, 5, 25, 50, 75, 95, 99, 99.9]
+    for row in O.query().V("1").out().aggregate(aql.percentile("traversal-agg", "Person", "age", percents)):
+        print(row)
+        row = row["data"]
+        count += 1
+        if len(row["buckets"]) != len(percents):
+            errors.append(
+                "Unexpected number of terms: %d != %d" %
+                (len(row["buckets"]), len(percents))
+            )
+        if row['name'] != 'traversal-agg':
+                errors.append("Result had Incorrect aggregation name")
+
+        ages = np.array([25, 32, 30, 45])
+
+        # for tests quantiles need to be withing 15% of the actual value
+        def getMinMax(input_data, percent, accuracy=0.15):
+            return np.percentile(input_data, percent) * (1 - accuracy), np.percentile(input_data, percent) * (1 + accuracy)
+
+        for res in row["buckets"]:
+            if res["key"] == 1:
+                minpv, maxpv = getMinMax(ages, res["key"])
+                if res["value"] <= minpv or res["value"] >= maxpv:
+                    errors.append("Incorrect quantile value returned for %.2f:\n\tmin: %.2f\n\tmax: %.2f\n\tactual: %.2f" % (res["key"], minpv, maxpv, res["value"]))
+            elif res["key"] == 5:
+                minpv, maxpv = getMinMax(ages, res["key"])
+                if res["value"] <= minpv or res["value"] >= maxpv:
+                    errors.append("Incorrect quantile value returned for %.2f:\n\tmin: %.2f\n\tmax: %.2f\n\tactual: %.2f" % (res["key"], minpv, maxpv, res["value"]))
+            elif res["key"] == 25:
+                minpv, maxpv = getMinMax(ages, res["key"])
+                if res["value"] <= minpv or res["value"] >= maxpv:
+                    errors.append("Incorrect quantile value returned for %.2f:\n\tmin: %.2f\n\tmax: %.2f\n\tactual: %.2f" % (res["key"], minpv, maxpv, res["value"]))
+            elif res["key"] == 50:
+                minpv, maxpv = getMinMax(ages, res["key"])
+                if res["value"] <= minpv or res["value"] >= maxpv:
+                    errors.append("Incorrect quantile value returned for %.2f:\n\tmin: %.2f\n\tmax: %.2f\n\tactual: %.2f" % (res["key"], minpv, maxpv, res["value"]))
+            elif res["key"] == 75:
+                minpv, maxpv = getMinMax(ages, res["key"])
+                if res["value"] <= minpv or res["value"] >= maxpv:
+                    errors.append("Incorrect quantile value returned for %.2f:\n\tmin: %.2f\n\tmax: %.2f\n\tactual: %.2f" % (res["key"], minpv, maxpv, res["value"]))
+            elif res["key"] == 95:
+                minpv, maxpv = getMinMax(ages, res["key"])
+                if res["value"] <= minpv or res["value"] >= maxpv:
+                    errors.append("Incorrect quantile value returned for %.2f:\n\tmin: %.2f\n\tmax: %.2f\n\tactual: %.2f" % (res["key"], minpv, maxpv, res["value"]))
+            elif res["key"] == 99:
+                minpv, maxpv = getMinMax(ages, res["key"])
+                if res["value"] <= minpv or res["value"] >= maxpv:
+                    errors.append("Incorrect quantile value returned for %.2f:\n\tmin: %.2f\n\tmax: %.2f\n\tactual: %.2f" % (res["key"], minpv, maxpv, res["value"]))
+            elif res["key"] == 99.9:
+                minpv, maxpv = getMinMax(ages, res["key"])
+                if res["value"] <= minpv or res["value"] >= maxpv:
+                    errors.append("Incorrect quantile value returned for %.2f:\n\tmin: %.2f\n\tmax: %.2f\n\tactual: %.2f" % (res["key"], minpv, maxpv, res["value"]))
             else:
                 errors.append("Incorrect bucket key returned: %s" % res)
 

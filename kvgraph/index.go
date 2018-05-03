@@ -8,7 +8,9 @@ import (
 	"strings"
 
 	"github.com/bmeg/arachne/aql"
+	"github.com/bmeg/arachne/jsonpath"
 	"github.com/bmeg/arachne/protoutil"
+	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/spenczar/tdigest"
 )
 
@@ -26,6 +28,13 @@ func (kgraph *KVGraph) deleteGraphIndex(graph string) {
 	}
 }
 
+func normalizePath(path string) string {
+	path = jsonpath.GetJsonPath(path)
+	path = strings.TrimPrefix(path, "$.")
+	path = strings.TrimPrefix(path, "data.")
+	return path
+}
+
 func vertexIdxStruct(v *aql.Vertex) map[string]interface{} {
 	//vertexField := fmt.Sprintf("v.%s", v.Label)
 	k := map[string]interface{}{
@@ -39,6 +48,7 @@ func vertexIdxStruct(v *aql.Vertex) map[string]interface{} {
 //AddVertexIndex add index to vertices
 func (kgdb *KVInterfaceGDB) AddVertexIndex(label string, field string) error {
 	log.Printf("Adding index: %s.%s", label, field)
+	field = normalizePath(field)
 	//TODO kick off background process to reindex existing data
 	return kgdb.kvg.idx.AddField(fmt.Sprintf("%s.v.%s.%s", kgdb.graph, label, field))
 }
@@ -46,6 +56,7 @@ func (kgdb *KVInterfaceGDB) AddVertexIndex(label string, field string) error {
 //DeleteVertexIndex delete index from vertices
 func (kgdb *KVInterfaceGDB) DeleteVertexIndex(label string, field string) error {
 	log.Printf("Deleting index: %s.%s", label, field)
+	field = normalizePath(field)
 	return kgdb.kvg.idx.RemoveField(fmt.Sprintf("%s.v.%s.%s", kgdb.graph, label, field))
 }
 
@@ -92,17 +103,19 @@ func (kgdb *KVInterfaceGDB) GetVertexTermAggregation(ctx context.Context, name s
 		Buckets: []*aql.AggregationResult{},
 	}
 
-	parts := strings.Split(field, ".")
-	if len(parts) > 1 {
-		if parts[0] != "$" {
-			return nil, fmt.Errorf("invalid field name")
-		}
+	namespace := jsonpath.GetNamespace(field)
+	if namespace != "__current__" {
+		return nil, fmt.Errorf("invalid field path")
 	}
-	field = strings.TrimPrefix(field, "$.")
+	field = normalizePath(field)
 
 	for tcount := range kgdb.kvg.idx.FieldTermCounts(fmt.Sprintf("%s.v.%s.%s", kgdb.graph, label, field)) {
-		s := tcount.String // BUG: This is ignoring number terms
-		t := protoutil.WrapValue(s)
+		var t *structpb.Value
+		if tcount.String != "" {
+			t = protoutil.WrapValue(tcount.String)
+		} else {
+			t = protoutil.WrapValue(tcount.Number)
+		}
 		out.SortedInsert(&aql.AggregationResult{Key: t, Value: float64(tcount.Count)})
 		if size > 0 {
 			if len(out.Buckets) > int(size) {
@@ -121,6 +134,12 @@ func (kgdb *KVInterfaceGDB) GetVertexHistogramAggregation(ctx context.Context, n
 		Name:    name,
 		Buckets: []*aql.AggregationResult{},
 	}
+
+	namespace := jsonpath.GetNamespace(field)
+	if namespace != "__current__" {
+		return nil, fmt.Errorf("invalid field path")
+	}
+	field = normalizePath(field)
 
 	min := kgdb.kvg.idx.FieldTermNumberMin(fmt.Sprintf("%s.v.%s.%s", kgdb.graph, label, field))
 	max := kgdb.kvg.idx.FieldTermNumberMax(fmt.Sprintf("%s.v.%s.%s", kgdb.graph, label, field))
@@ -144,6 +163,12 @@ func (kgdb *KVInterfaceGDB) GetVertexPercentileAggregation(ctx context.Context, 
 		Name:    name,
 		Buckets: []*aql.AggregationResult{},
 	}
+
+	namespace := jsonpath.GetNamespace(field)
+	if namespace != "__current__" {
+		return nil, fmt.Errorf("invalid field path")
+	}
+	field = normalizePath(field)
 
 	td := tdigest.New()
 	for val := range kgdb.kvg.idx.FieldNumbers(fmt.Sprintf("%s.v.%s.%s", kgdb.graph, label, field)) {
