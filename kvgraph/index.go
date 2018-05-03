@@ -10,8 +10,6 @@ import (
 	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/protoutil"
 	"github.com/spenczar/tdigest"
-	// "github.com/bmizerany/perks/quantile"
-	// "github.com/dgryski/go-gk"
 )
 
 func (kgraph *KVGraph) setupGraphIndex(graph string) error {
@@ -152,7 +150,8 @@ func (kgdb *KVInterfaceGDB) GetVertexPercentileAggregation(ctx context.Context, 
 		td.Add(val, 1)
 	}
 	for _, p := range percents {
-		out.Buckets = append(out.Buckets, &aql.AggregationResult{Key: protoutil.WrapValue(p), Value: td.Quantile(p / 100)})
+		q := td.Quantile(p / 100)
+		out.Buckets = append(out.Buckets, &aql.AggregationResult{Key: protoutil.WrapValue(p), Value: q})
 	}
 
 	return out, nil

@@ -8,6 +8,7 @@ import (
 
 	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/protoutil"
+	"github.com/spenczar/tdigest"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 )
@@ -95,8 +96,15 @@ func (mg *Graph) GetVertexTermAggregation(ctx context.Context, name string, labe
 	}
 
 	ag := []bson.M{
-		{"$match": bson.M{"label": label}},
-		{"$sortByCount": "$data." + field},
+		{
+			"$match": bson.M{
+				"label":         label,
+				"data." + field: bson.M{"$exists": true},
+			},
+		},
+		{
+			"$sortByCount": "$data." + field,
+		},
 	}
 	if size > 0 {
 		ag = append(ag, bson.M{"$limit": size})
@@ -139,7 +147,10 @@ func (mg *Graph) GetVertexHistogramAggregation(ctx context.Context, name string,
 
 	ag := []bson.M{
 		{
-			"$match": bson.M{"label": label},
+			"$match": bson.M{
+				"label":         label,
+				"data." + field: bson.M{"$exists": true},
+			},
 		},
 		{
 			"$group": bson.M{
@@ -183,14 +194,19 @@ func (mg *Graph) GetVertexPercentileAggregation(ctx context.Context, name string
 		Buckets: []*aql.AggregationResult{},
 	}
 
+	// TODO figure out how to express a percentile calculation in either an aggregation pipeline
+	// or map reduce expression
 	ag := []bson.M{
 		{
-			"$match": bson.M{"label": label},
+			"$match": bson.M{
+				"label":         label,
+				"data." + field: bson.M{"$exists": true},
+			},
 		},
 		{
-			"$bucketAuto": bson.M{
-				"groupBy": "$data." + field,
-				"buckets": 100,
+			"$project": bson.M{
+				"_id": 0,
+				field: "$data." + field,
 			},
 		},
 	}
@@ -201,30 +217,24 @@ func (mg *Graph) GetVertexPercentileAggregation(ctx context.Context, name string
 	pipe := vcol.Pipe(ag)
 	iter := pipe.Iter()
 	defer iter.Close()
+	td := tdigest.New()
 	result := map[string]interface{}{}
-	var i float64
 	for iter.Next(&result) {
-		log.Printf("Percentile result: %+v", result)
-		i++
-		found := false
-		for _, p := range percents {
-			if i == p {
-				found = true
-			}
-		}
-		if !found {
-			continue
-		}
-		term := protoutil.WrapValue(i)
-		percentile, ok := result["_id"].(map[string]interface{})["max"].(float64)
+		val, ok := result[field].(float64)
 		if !ok {
-			return nil, fmt.Errorf("failed to cast count result to float64")
+			return nil, fmt.Errorf("error occurred parsing mongo output: %v", result)
 		}
-		out.Buckets = append(out.Buckets, &aql.AggregationResult{Key: term, Value: percentile})
+		td.Add(val, 1)
 	}
 	if err := iter.Err(); err != nil {
 		return nil, fmt.Errorf("error occurred while iterating: %v", err)
 	}
+
+	for _, p := range percents {
+		q := td.Quantile(p / 100)
+		out.Buckets = append(out.Buckets, &aql.AggregationResult{Key: protoutil.WrapValue(p), Value: q})
+	}
+
 	return out, nil
 }
 
