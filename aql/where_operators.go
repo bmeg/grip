@@ -93,6 +93,19 @@ func In(key string, values ...interface{}) *WhereExpression {
 	}
 }
 
+// Contains asserts that the array the provided key resolves to contains the provided value.
+func Contains(key string, value interface{}) *WhereExpression {
+	return &WhereExpression{
+		Expression: &WhereExpression_Condition{
+			Condition: &WhereCondition{
+				Key:       key,
+				Value:     protoutil.WrapValue(value),
+				Condition: Condition_CONTAINS,
+			},
+		},
+	}
+}
+
 // And repreesents a logical "and" of two or more WhereExpressions
 func And(expressions ...*WhereExpression) *WhereExpression {
 	return &WhereExpression{

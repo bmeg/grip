@@ -4,12 +4,12 @@ import aql
 
 
 def setupGraph(O):
-    O.addVertex("vertex1", "person", {"name": "han", "age": 35, "occupation": "smuggler"})
-    O.addVertex("vertex2", "person", {"name": "luke", "age": 26, "occupation": "jedi"})
+    O.addVertex("vertex1", "person", {"name": "han", "age": 35, "occupation": "smuggler", "starships": ["millennium falcon"]})
+    O.addVertex("vertex2", "person", {"name": "luke", "age": 26, "occupation": "jedi", "starships": ["x-wing", "millennium falcon"]})
     O.addVertex("vertex3", "robot", {"name": "r2-d2"})
     O.addVertex("vertex4", "robot", {"name": "c-3po"})
     O.addVertex("vertex5", "person", {"name": "obi-wan", "age": 63, "occupation": "jedi"})
-    O.addVertex("vertex6", "person", {"name": "vader", "age": 55, "occupation": "sith"})
+    O.addVertex("vertex6", "person", {"name": "vader", "age": 55, "occupation": "sith", "starships": ["death star", "tie fighter"]})
 
     O.addEdge("vertex1", "vertex2", "friend", id="edge1")
     O.addEdge("vertex2", "vertex3", "owner", id="edge2")
@@ -103,6 +103,23 @@ def test_where_in(O):
         errors.append(
             "Fail: O.query().V().where((aql.in_(\"$.occupation\", [\"jedi\", \"sith\"]))) %s != %s" %
             (count, 3))
+
+    return errors
+
+
+def test_where_contains(O):
+    errors = []
+    setupGraph(O)
+
+    count = 0
+    for i in O.query().V().where((aql.contains("$.starships", "x-wing"))).execute():
+        count += 1
+        if i['vertex']['gid'] not in  ["vertex2"]:
+            errors.append("Wrong vertex returned %s" % (i['vertex']))
+    if count != 1:
+        errors.append(
+            "Fail: O.query().V().where((aql.in_(\"$.occupation\", [\"jedi\", \"sith\"]))) %s != %s" %
+            (count, 1))
 
     return errors
 

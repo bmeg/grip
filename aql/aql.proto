@@ -127,6 +127,7 @@ enum Condition {
   LT  = 5;
   LTE = 6;
   IN = 7;
+	CONTAINS = 8;
 }
 
 message SelectStatement {

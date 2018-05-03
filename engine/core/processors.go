@@ -486,6 +486,19 @@ func matchesCondition(trav *gdbi.Traveler, cond *aql.WhereCondition) bool {
 		}
 		return found
 
+	case aql.Condition_CONTAINS:
+		found := false
+		valL, ok := val.([]interface{})
+		if !ok {
+			return false
+		}
+		for _, v := range valL {
+			if reflect.DeepEqual(v, condVal) {
+				found = true
+			}
+		}
+		return found
+
 	default:
 		return false
 	}

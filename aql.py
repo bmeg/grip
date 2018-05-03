@@ -44,6 +44,10 @@ def in_(key, values):
     return {"condition": {"key": key, "value": values, "condition": "IN"}}
 
 
+def contains(key, value):
+    return {"condition": {"key": key, "value": value, "condition": "CONTAINS"}}
+
+
 def term(name, label, field, size=None):
     agg = {
         "name": name,
