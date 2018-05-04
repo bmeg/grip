@@ -1,4 +1,4 @@
-package server
+package config
 
 import (
 	"encoding/json"
@@ -10,6 +10,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/bmeg/arachne/elastic"
+	"github.com/bmeg/arachne/mongo"
 	"github.com/bmeg/arachne/util"
 	"github.com/ghodss/yaml"
 )
@@ -21,26 +23,16 @@ func init() {
 // Config describes the configuration for Arachne.
 type Config struct {
 	Database string
-
-	Server struct {
+	Server   struct {
 		HTTPPort   string
 		RPCPort    string
 		WorkDir    string
 		ContentDir string
 		ReadOnly   bool
 	}
-
-	KVStorePath string
-
-	ElasticSearch struct {
-		URL    string
-		DBName string
-	}
-
-	MongoDB struct {
-		URL    string
-		DBName string
-	}
+	KVStorePath   string
+	ElasticSearch elastic.Config
+	MongoDB       mongo.Config
 }
 
 // DefaultConfig returns an instance of the default configuration for Arachne.
@@ -52,10 +44,10 @@ func DefaultConfig() *Config {
 	c.Server.WorkDir = "arachne.work"
 	c.Server.ReadOnly = false
 	c.KVStorePath = "arachne.db"
-	c.MongoDB.URL = ""
 	c.MongoDB.DBName = "arachnedb"
-	c.ElasticSearch.URL = ""
+	c.MongoDB.BatchSize = 1000
 	c.ElasticSearch.DBName = "arachnedb"
+	c.ElasticSearch.BatchSize = 1000
 	return c
 }
 
@@ -76,6 +68,7 @@ func TestifyConfig(c *Config) {
 	c.KVStorePath = "arachne.db." + rand
 	c.MongoDB.DBName = "arachnedb-" + rand
 	c.ElasticSearch.DBName = "arachnedb-" + rand
+	c.ElasticSearch.Synchronous = true
 }
 
 // ParseConfig parses a YAML doc into the given Config instance.

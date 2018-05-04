@@ -16,19 +16,26 @@ import (
 	"gopkg.in/mgo.v2/bson"
 )
 
+// Config describes the configuration for the mongodb driver.
+type Config struct {
+	URL       string
+	DBName    string
+	BatchSize int
+}
+
 // Mongo is the base driver that manages multiple graphs in mongo
 type Mongo struct {
-	url            string
 	database       string
+	conf           Config
 	initialSession *mgo.Session
 	pool           mgopool.Pool
 	ts             *timestamp.Timestamp
 }
 
 // NewMongo creates a new mongo graph database interface
-func NewMongo(url string, database string) (gdbi.GraphDB, error) {
+func NewMongo(conf Config) (gdbi.GraphDB, error) {
 	log.Printf("Starting Mongo Driver")
-
+	database := strings.ToLower(conf.DBName)
 	if strings.ContainsAny(database, `/\. "'$*<>:|?`) {
 		return nil, fmt.Errorf(`invalid database name; cannot contain /\. "'$*<>:|?`)
 	}
@@ -37,7 +44,7 @@ func NewMongo(url string, database string) (gdbi.GraphDB, error) {
 	}
 
 	ts := timestamp.NewTimestamp()
-	session, err := mgo.Dial(url)
+	session, err := mgo.Dial(conf.URL)
 	if err != nil {
 		return nil, err
 	}
@@ -47,7 +54,10 @@ func NewMongo(url string, database string) (gdbi.GraphDB, error) {
 		return nil, fmt.Errorf("requires mongo 3.2 or later")
 	}
 	pool := mgopool.NewLeaky(session, 3)
-	db := &Mongo{url: url, database: strings.ToLower(database), pool: pool, initialSession: session, ts: &ts}
+	if conf.BatchSize == 0 {
+		conf.BatchSize = 1000
+	}
+	db := &Mongo{database: database, conf: conf, pool: pool, initialSession: session, ts: &ts}
 	for _, i := range db.GetGraphs() {
 		db.ts.Touch(i)
 	}
@@ -72,9 +82,10 @@ func (ma *Mongo) getEdgeCollection(session *mgo.Session, graph string) *mgo.Coll
 
 // Graph is the tnterface to a single graph
 type Graph struct {
-	ar    *Mongo
-	ts    *timestamp.Timestamp //BUG: This timestamp implementation doesn't work againt multiple mongo clients
-	graph string
+	ar        *Mongo
+	ts        *timestamp.Timestamp //BUG: This timestamp implementation doesn't work againt multiple mongo clients
+	graph     string
+	batchSize int
 }
 
 // AddGraph creates a new graph named `graph`
@@ -213,9 +224,10 @@ func (ma *Mongo) Graph(graph string) (gdbi.GraphInterface, error) {
 		return nil, fmt.Errorf("graph '%s' was not found", graph)
 	}
 	return &Graph{
-		ar:    ma,
-		ts:    ma.ts,
-		graph: graph,
+		ar:        ma,
+		ts:        ma.ts,
+		graph:     graph,
+		batchSize: ma.conf.BatchSize,
 	}, nil
 }
 
@@ -419,22 +431,18 @@ func (mg *Graph) GetEdgeList(ctx context.Context, loadProp bool) <-chan *aql.Edg
 	return o
 }
 
-// BatchSize controls size of batched mongo queries
-// TODO: move this into driver config parameter
-var BatchSize = 1000
-
 // GetVertexChannel is passed a channel of vertex ids and it produces a channel
 // of vertices
 func (mg *Graph) GetVertexChannel(ids chan gdbi.ElementLookup, load bool) chan gdbi.ElementLookup {
 	batches := make(chan []gdbi.ElementLookup, 100)
 	go func() {
 		defer close(batches)
-		o := make([]gdbi.ElementLookup, 0, BatchSize)
+		o := make([]gdbi.ElementLookup, 0, mg.batchSize)
 		for id := range ids {
 			o = append(o, id)
-			if len(o) >= BatchSize {
+			if len(o) >= mg.batchSize {
 				batches <- o
-				o = make([]gdbi.ElementLookup, 0, BatchSize)
+				o = make([]gdbi.ElementLookup, 0, mg.batchSize)
 			}
 		}
 		batches <- o
@@ -484,12 +492,12 @@ func (mg *Graph) GetOutChannel(reqChan chan gdbi.ElementLookup, load bool, edgeL
 	batches := make(chan []gdbi.ElementLookup, 100)
 	go func() {
 		defer close(batches)
-		o := make([]gdbi.ElementLookup, 0, BatchSize)
+		o := make([]gdbi.ElementLookup, 0, mg.batchSize)
 		for req := range reqChan {
 			o = append(o, req)
-			if len(o) >= BatchSize {
+			if len(o) >= mg.batchSize {
 				batches <- o
-				o = make([]gdbi.ElementLookup, 0, BatchSize)
+				o = make([]gdbi.ElementLookup, 0, mg.batchSize)
 			}
 		}
 		batches <- o
@@ -546,12 +554,12 @@ func (mg *Graph) GetInChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLa
 	batches := make(chan []gdbi.ElementLookup, 100)
 	go func() {
 		defer close(batches)
-		o := make([]gdbi.ElementLookup, 0, BatchSize)
+		o := make([]gdbi.ElementLookup, 0, mg.batchSize)
 		for req := range reqChan {
 			o = append(o, req)
-			if len(o) >= BatchSize {
+			if len(o) >= mg.batchSize {
 				batches <- o
-				o = make([]gdbi.ElementLookup, 0, BatchSize)
+				o = make([]gdbi.ElementLookup, 0, mg.batchSize)
 			}
 		}
 		batches <- o
@@ -608,12 +616,12 @@ func (mg *Graph) GetOutEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, e
 	batches := make(chan []gdbi.ElementLookup, 100)
 	go func() {
 		defer close(batches)
-		o := make([]gdbi.ElementLookup, 0, BatchSize)
+		o := make([]gdbi.ElementLookup, 0, mg.batchSize)
 		for req := range reqChan {
 			o = append(o, req)
-			if len(o) >= BatchSize {
+			if len(o) >= mg.batchSize {
 				batches <- o
-				o = make([]gdbi.ElementLookup, 0, BatchSize)
+				o = make([]gdbi.ElementLookup, 0, mg.batchSize)
 			}
 		}
 		batches <- o
@@ -660,12 +668,12 @@ func (mg *Graph) GetInEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, ed
 	batches := make(chan []gdbi.ElementLookup, 100)
 	go func() {
 		defer close(batches)
-		o := make([]gdbi.ElementLookup, 0, BatchSize)
+		o := make([]gdbi.ElementLookup, 0, mg.batchSize)
 		for req := range reqChan {
 			o = append(o, req)
-			if len(o) >= BatchSize {
+			if len(o) >= mg.batchSize {
 				batches <- o
-				o = make([]gdbi.ElementLookup, 0, BatchSize)
+				o = make([]gdbi.ElementLookup, 0, mg.batchSize)
 			}
 		}
 		batches <- o

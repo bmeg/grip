@@ -22,8 +22,6 @@ var excludeData = elastic.NewFetchSourceContext(true).Exclude("data")
 
 // Graph is a graph database backended by elastic search
 type Graph struct {
-	url         string
-	database    string
 	ts          *timestamp.Timestamp
 	client      *elastic.Client
 	graph       string

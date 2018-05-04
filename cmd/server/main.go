@@ -9,6 +9,7 @@ import (
 
 	_ "github.com/bmeg/arachne/badgerdb" // import so badger will register itself
 	_ "github.com/bmeg/arachne/boltdb"   // import so bolt will register itself
+	"github.com/bmeg/arachne/config"
 	"github.com/bmeg/arachne/elastic"
 	"github.com/bmeg/arachne/gdbi"
 	"github.com/bmeg/arachne/graphserver"
@@ -20,11 +21,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var conf = &Config{}
+var conf = &config.Config{}
 var configFile string
 
 // Start starts an Arachne server
-func Start(conf *Config) error {
+func Start(conf *config.Config) error {
 	log.Printf("Starting Server")
 	log.Printf("Config: %+v", conf)
 
@@ -35,10 +36,10 @@ func Start(conf *Config) error {
 		db, err = kvgraph.NewKVGraphDB(dbname, conf.KVStorePath)
 
 	case "elastic":
-		db, err = elastic.NewElastic(conf.ElasticSearch.URL, conf.ElasticSearch.DBName)
+		db, err = elastic.NewElastic(conf.ElasticSearch)
 
 	case "mongo":
-		db, err = mongo.NewMongo(conf.MongoDB.URL, conf.MongoDB.DBName)
+		db, err = mongo.NewMongo(conf.MongoDB)
 
 	default:
 		err = fmt.Errorf("unknown database: %s", dbname)
@@ -81,9 +82,9 @@ var Cmd = &cobra.Command{
 	Use:   "server",
 	Short: "Start an arachne server",
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-		dconf := DefaultConfig()
+		dconf := config.DefaultConfig()
 		if configFile != "" {
-			err := ParseConfigFile(configFile, dconf)
+			err := config.ParseConfigFile(configFile, dconf)
 			if err != nil {
 				return fmt.Errorf("error processing config file: %v", err)
 			}

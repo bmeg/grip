@@ -12,18 +12,26 @@ import (
 	elastic "gopkg.in/olivere/elastic.v5"
 )
 
-// Elastic implements the GraphDB interface with elastic search as a backend
+// Config describes the configuration for the elasticsearch driver.
+type Config struct {
+	URL         string
+	DBName      string
+	Synchronous bool
+	BatchSize   int
+}
+
+// Elastic implements the GraphDB interface with elasticsearch as a backend
 type Elastic struct {
-	url      string
 	database string
+	conf     Config
 	ts       *timestamp.Timestamp
 	client   *elastic.Client
 }
 
-// NewElastic creates a new elastic search graph database interface
-func NewElastic(url string, database string) (gdbi.GraphDB, error) {
+// NewElastic creates a new elasticsearch graph database interface
+func NewElastic(conf Config) (gdbi.GraphDB, error) {
 	log.Printf("Starting Elastic Driver")
-
+	database := strings.ToLower(conf.DBName)
 	if strings.ContainsAny(database, `/\. "'$*<>:|?`) {
 		return nil, fmt.Errorf(`invalid database name; cannot contain /\. "'$*<>:|?`)
 	}
@@ -33,7 +41,7 @@ func NewElastic(url string, database string) (gdbi.GraphDB, error) {
 
 	ts := timestamp.NewTimestamp()
 	client, err := elastic.NewClient(
-		elastic.SetURL(url),
+		elastic.SetURL(conf.URL),
 		elastic.SetSniff(false),
 		elastic.SetRetrier(
 			elastic.NewBackoffRetrier(
@@ -44,7 +52,10 @@ func NewElastic(url string, database string) (gdbi.GraphDB, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to create elasticsearch client: %v", err)
 	}
-	db := &Elastic{url: url, database: strings.ToLower(database), ts: &ts, client: client}
+	if conf.BatchSize == 0 {
+		conf.BatchSize = 1000
+	}
+	db := &Elastic{database: database, conf: conf, ts: &ts, client: client}
 	for _, i := range db.GetGraphs() {
 		db.ts.Touch(i)
 	}
@@ -177,16 +188,14 @@ func (es *Elastic) Graph(graph string) (gdbi.GraphInterface, error) {
 	if !found {
 		return nil, fmt.Errorf("graph '%s' was not found", graph)
 	}
-	// TODO pass config to down to the Graph instance
+
 	return &Graph{
-		url:         es.url,
-		database:    es.database,
 		ts:          es.ts,
 		client:      es.client,
 		graph:       graph,
 		vertexIndex: fmt.Sprintf("%s_%s_vertex", es.database, graph),
 		edgeIndex:   fmt.Sprintf("%s_%s_edge", es.database, graph),
-		batchSize:   1000,
-		synchronous: true,
+		batchSize:   es.conf.BatchSize,
+		synchronous: es.conf.Synchronous,
 	}, nil
 }

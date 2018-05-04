@@ -9,7 +9,7 @@ import (
 
 	_ "github.com/bmeg/arachne/badgerdb" // import so badger will register itself
 	_ "github.com/bmeg/arachne/boltdb"   // import so bolt will register itself
-	"github.com/bmeg/arachne/cmd/server"
+	"github.com/bmeg/arachne/config"
 	"github.com/bmeg/arachne/elastic"
 	"github.com/bmeg/arachne/gdbi"
 	"github.com/bmeg/arachne/kvgraph"
@@ -33,18 +33,20 @@ func TestMain(m *testing.M) {
 	var exit = 1
 
 	defer func() {
+		fmt.Println("exiting")
 		os.Exit(exit)
 	}()
 
-	conf := server.DefaultConfig()
+	conf := config.DefaultConfig()
 	if configFile != "" {
-		err := server.ParseConfigFile(configFile, conf)
+		err := config.ParseConfigFile(configFile, conf)
 		if err != nil {
 			fmt.Printf("error processing config file: %v", err)
 			return
 		}
 	}
-	server.TestifyConfig(conf)
+
+	config.TestifyConfig(conf)
 	fmt.Printf("Test config: %+v\n", conf)
 
 	switch dbname = strings.ToLower(conf.Database); dbname {
@@ -55,10 +57,10 @@ func TestMain(m *testing.M) {
 		}()
 
 	case "elastic":
-		gdb, err = elastic.NewElastic(conf.ElasticSearch.URL, conf.ElasticSearch.DBName)
+		gdb, err = elastic.NewElastic(conf.ElasticSearch)
 
 	case "mongo":
-		gdb, err = mongo.NewMongo(conf.MongoDB.URL, conf.MongoDB.DBName)
+		gdb, err = mongo.NewMongo(conf.MongoDB)
 
 	default:
 		err = fmt.Errorf("unknown database: %s", dbname)
@@ -87,5 +89,4 @@ func TestMain(m *testing.M) {
 
 	// run tests
 	exit = m.Run()
-
 }
