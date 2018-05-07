@@ -42,7 +42,7 @@ def test_as_edge_select(O):
     O.addEdge("vertex2", "vertex3", "friend")
     O.addEdge("vertex2", "vertex4", "parent")
 
-    for row in O.query().V("vertex1").as_("a").outE().as_(
+    for row in O.query().V("vertex1").as_("a").outEdge().as_(
             "b").out().as_("c").select(["a", "b", "c"]).execute():
         res = dict(zip(["a", "b", "c"], row))
         if res["a"]["vertex"]["gid"] != "vertex1":

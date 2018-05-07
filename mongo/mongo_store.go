@@ -90,8 +90,6 @@ type Graph struct {
 
 // AddGraph creates a new graph named `graph`
 func (ma *Mongo) AddGraph(graph string) error {
-	log.Printf("Adding graph: %s", graph)
-
 	if strings.ContainsAny(graph, `/\. "'$*<>:|?`) {
 		return fmt.Errorf(`invalid graph name; cannot contain /\. "'$*<>:|?`)
 	}
@@ -159,7 +157,6 @@ func (ma *Mongo) AddGraph(graph string) error {
 
 // DeleteGraph deletes `graph`
 func (ma *Mongo) DeleteGraph(graph string) error {
-	log.Printf("Deleting graph: %s", graph)
 	session := ma.pool.Get()
 	defer ma.pool.Put(session)
 	defer ma.ts.Touch(graph)

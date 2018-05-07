@@ -38,7 +38,7 @@ func NewKVInterface(name string, dbPath string) (kvi.KVInterface, error) {
 	if builder, ok := kvMap[name]; ok {
 		return builder(dbPath)
 	}
-	return nil, fmt.Errorf("Driver %s Not Found", name)
+	return nil, fmt.Errorf("driver %s Not Found", name)
 }
 
 // NewKVGraphDB intitalize a new key value graph driver given the name of the

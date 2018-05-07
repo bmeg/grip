@@ -32,11 +32,11 @@ def test_edge_struct(O):
 
     O.addEdge("vertex1", "vertex2", "friend", {"edgevals": {"weight": 3.14, "count": 15}})
 
-    for i in O.query().V("vertex1").outE().execute():
+    for i in O.query().V("vertex1").outEdge().execute():
         if 'weight' not in i['edge']['data']['edgevals'] or i['edge']['data']['edgevals']['weight'] != 3.14:
             errors.append("out edge data not found")
 
-    for i in O.query().V("vertex2").inE().execute():
+    for i in O.query().V("vertex2").inEdge().execute():
         if 'weight' not in i['edge']['data']['edgevals'] or i['edge']['data']['edgevals']['weight'] != 3.14:
             errors.append("in edge data not found")
 

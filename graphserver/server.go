@@ -285,6 +285,7 @@ func (server *ArachneServer) DeleteVertex(ctx context.Context, elem *aql.Element
 		return nil, err
 	}
 	err = graph.DelVertex(elem.Id)
+	log.Println("Delete vertex err - ", err)
 	if err != nil {
 		return nil, err
 	}

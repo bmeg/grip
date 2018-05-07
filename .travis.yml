@@ -34,14 +34,14 @@ jobs:
       env:
         - n=tests
     - script:
-      - arachne server --rpc-port 18202 --http-port 18201 &
+      - arachne server --rpc-port 18202 --http-port 18201 --config ./test/badger.yml &
       - sleep 5
       - make test-conformance
       - go test ./test
       env:
         - n=badger
     - script:
-      - arachne server --rpc-port 18202 --http-port 18201 --database bolt &
+      - arachne server --rpc-port 18202 --http-port 18201 --config ./test/bolt.yml &
       - sleep 5
       - make test-conformance
       - go test ./test -config bolt.yml
@@ -65,7 +65,7 @@ jobs:
         - popd
 
         - make with-rocksdb
-        - arachne server --rpc-port 18202 --http-port 18201 --database rocks &
+        - arachne server --rpc-port 18202 --http-port 18201 --config ./test/rocks.yml &
         - sleep 5
         - make test-conformance
         - go test ./test -tags rocksdb -config rocks.yml
@@ -73,7 +73,7 @@ jobs:
       env:
         - n=rocksdb
     - script:
-      - arachne server --rpc-port 18202 --http-port 18201 --database level &
+      - arachne server --rpc-port 18202 --http-port 18201 --config ./test/level.yml &
       - sleep 5
       - make test-conformance
       - go test ./test -config level.yml
@@ -82,7 +82,7 @@ jobs:
     - script:
       - make start-mongo
       - sleep 10
-      - arachne server --rpc-port 18202 --http-port 18201 --database mongo --mongo-url localhost:27000 &
+      - arachne server --rpc-port 18202 --http-port 18201 --config ./test/mongo.yml &
       - sleep 5
       - make test-conformance
       - go test ./test -config mongo.yml
@@ -90,7 +90,7 @@ jobs:
         - n=mongodb
     - script:
       - sleep 10
-      - arachne server --rpc-port 18202 --http-port 18201 --database elastic --elastic-url http://localhost:9200 &
+      - arachne server --rpc-port 18202 --http-port 18201 --config ./test/elastic.yml &
       - sleep 5
       - make test-conformance
       - go test ./test -config elastic.yml

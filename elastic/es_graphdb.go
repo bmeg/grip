@@ -104,7 +104,6 @@ func (es *Elastic) initIndex(ctx context.Context, name, body string) error {
 
 // AddGraph adds a new graph to the graphdb
 func (es *Elastic) AddGraph(graph string) error {
-	log.Printf("Adding graph: %s", graph)
 	ctx := context.Background()
 
 	if strings.ContainsAny(graph, `/\. "'$*<>:|?`) {
@@ -162,7 +161,6 @@ func (es *Elastic) AddGraph(graph string) error {
 
 // DeleteGraph deletes a graph from the graphdb
 func (es *Elastic) DeleteGraph(graph string) error {
-	log.Printf("Deleting graph: %s", graph)
 	ctx := context.Background()
 
 	vertexIndex := fmt.Sprintf("%s_%s_vertex", es.database, graph)

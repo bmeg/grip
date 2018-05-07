@@ -48,15 +48,15 @@ function query() {
 			this.query.push({'both': process(label)})
 			return this
 		},
-		outE: function(label) {
+		outEdge: function(label) {
 			this.query.push({'out_edge': process(label)})
 			return this
 		},
-		inE: function(label) {
+		inEdge: function(label) {
 			this.query.push({'in_edge': process(label)})
 			return this
 		},
-		bothE: function(label) {
+		bothEdge: function(label) {
 			this.query.push({'both_edge': process(label)})
 			return this
 		},

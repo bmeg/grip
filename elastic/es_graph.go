@@ -74,7 +74,7 @@ func (es *Graph) AddEdge(edgeArray []*aql.Edge) error {
 	}
 	_, err := bulkRequest.Do(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to add edge: %s", err)
 	}
 	es.ts.Touch(es.graph)
 	return nil
@@ -107,8 +107,7 @@ func (es *Graph) AddVertex(vertexArray []*aql.Vertex) error {
 	}
 	_, err := bulkRequest.Do(ctx)
 	if err != nil {
-		log.Println("err", err)
-		return err
+		return fmt.Errorf("failed to add vertex: %s", err)
 	}
 	es.ts.Touch(es.graph)
 	return nil
@@ -117,9 +116,32 @@ func (es *Graph) AddVertex(vertexArray []*aql.Vertex) error {
 // DelEdge deletes edge `eid`
 func (es *Graph) DelEdge(eid string) error {
 	ctx := context.Background()
-	_, err := es.client.Delete().Index(es.edgeIndex).Id(eid).Do(ctx)
+	op := es.client.Delete()
+	if es.synchronous {
+		op = op.Refresh("true")
+	}
+	_, err := op.Index(es.edgeIndex).Type("edge").Id(eid).Do(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to delete edge %s: %s", eid, err)
+	}
+	es.ts.Touch(es.graph)
+	return nil
+}
+
+// deleteConnectedEdges deletes edges where `from` or `to` equal `vid`
+func (es *Graph) deleteConnectedEdges(vid string) error {
+	ctx := context.Background()
+
+	op := es.client.DeleteByQuery()
+	if es.synchronous {
+		op = op.Refresh("true")
+	}
+	op = op.Index(es.edgeIndex).Type("edge").Query(
+		elastic.NewBoolQuery().Should(elastic.NewTermQuery("from", vid), elastic.NewTermQuery("to", vid)),
+	)
+	_, err := op.Do(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to delete edge(s): %s", err)
 	}
 	es.ts.Touch(es.graph)
 	return nil
@@ -128,12 +150,19 @@ func (es *Graph) DelEdge(eid string) error {
 // DelVertex deletes vertex `vid` and all adjacent edges
 func (es *Graph) DelVertex(vid string) error {
 	ctx := context.Background()
-	// TODO: remove connected edges
-	_, err := es.client.Delete().Index(es.vertexIndex).Id(vid).Do(ctx)
+	op := es.client.Delete()
+	if es.synchronous {
+		op = op.Refresh("true")
+	}
+	_, err := op.Index(es.vertexIndex).Type("vertex").Id(vid).Do(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to delete vertex %s: %s", vid, err)
+	}
+	es.ts.Touch(es.graph)
+	err = es.deleteConnectedEdges(vid)
 	if err != nil {
 		return err
 	}
-	es.ts.Touch(es.graph)
 	return nil
 }
 
@@ -155,7 +184,7 @@ func (es *Graph) GetEdge(id string, load bool) *aql.Edge {
 	edge := &aql.Edge{}
 	err = jsonpb.Unmarshal(bytes.NewReader(*res.Source), edge)
 	if err != nil {
-		log.Printf("Failed to get unmarshal edge: %s", err)
+		log.Printf("Failed to unmarshal edge: %s", err)
 		return nil
 	}
 
@@ -358,7 +387,7 @@ func (es *Graph) GetVertexChannel(req chan gdbi.ElementLookup, load bool) chan g
 			}
 
 			q := es.client.Search().Index(es.vertexIndex)
-			q = q.Query(elastic.NewBoolQuery().Filter(elastic.NewIdsQuery().Ids(idBatch...)))
+			q = q.Query(elastic.NewBoolQuery().Must(elastic.NewIdsQuery().Ids(idBatch...)))
 			if !load {
 				q = q.FetchSource(true).FetchSourceContext(elastic.NewFetchSourceContext(true).Exclude("data"))
 			}
@@ -439,7 +468,7 @@ func (es *Graph) GetOutChannel(req chan gdbi.ElementLookup, load bool, edgeLabel
 				}
 				qParts = append(qParts, elastic.NewTermsQuery("label", labels...))
 			}
-			q = q.Query(elastic.NewBoolQuery().Filter(qParts...))
+			q = q.Query(elastic.NewBoolQuery().Must(qParts...))
 			q = q.FetchSource(true).FetchSourceContext(elastic.NewFetchSourceContext(true).Include("from", "to"))
 			res, err := q.Do(ctx)
 			if err != nil {
@@ -478,7 +507,7 @@ func (es *Graph) GetOutChannel(req chan gdbi.ElementLookup, load bool, edgeLabel
 			}
 
 			q := es.client.Search().Index(es.vertexIndex)
-			q = q.Query(elastic.NewBoolQuery().Filter(elastic.NewIdsQuery().Ids(idBatch...)))
+			q = q.Query(elastic.NewBoolQuery().Must(elastic.NewIdsQuery().Ids(idBatch...)))
 			if !load {
 				q = q.FetchSource(true).FetchSourceContext(elastic.NewFetchSourceContext(true).Exclude("data"))
 			}
@@ -559,7 +588,7 @@ func (es *Graph) GetInChannel(req chan gdbi.ElementLookup, load bool, edgeLabels
 				}
 				qParts = append(qParts, elastic.NewTermsQuery("label", labels...))
 			}
-			q = q.Query(elastic.NewBoolQuery().Filter(qParts...))
+			q = q.Query(elastic.NewBoolQuery().Must(qParts...))
 			q = q.FetchSource(true).FetchSourceContext(elastic.NewFetchSourceContext(true).Include("from", "to"))
 			res, err := q.Do(ctx)
 			if err != nil {
@@ -598,7 +627,7 @@ func (es *Graph) GetInChannel(req chan gdbi.ElementLookup, load bool, edgeLabels
 				batchMap[batch[i].Vertex.Gid] = append(batchMap[batch[i].Vertex.Gid], batch[i])
 			}
 			q := es.client.Search().Index(es.vertexIndex)
-			q = q.Query(elastic.NewBoolQuery().Filter(elastic.NewIdsQuery().Ids(idBatch...)))
+			q = q.Query(elastic.NewBoolQuery().Must(elastic.NewIdsQuery().Ids(idBatch...)))
 			if !load {
 				q = q.FetchSource(true).FetchSourceContext(elastic.NewFetchSourceContext(true).Exclude("data"))
 			}
@@ -678,7 +707,7 @@ func (es *Graph) GetOutEdgeChannel(req chan gdbi.ElementLookup, load bool, edgeL
 				}
 				qParts = append(qParts, elastic.NewTermsQuery("label", labels...))
 			}
-			q = q.Query(elastic.NewBoolQuery().Filter(qParts...))
+			q = q.Query(elastic.NewBoolQuery().Must(qParts...))
 			if !load {
 				q = q.FetchSource(true).FetchSourceContext(elastic.NewFetchSourceContext(true).Exclude("data"))
 			}
@@ -758,7 +787,7 @@ func (es *Graph) GetInEdgeChannel(req chan gdbi.ElementLookup, load bool, edgeLa
 				}
 				qParts = append(qParts, elastic.NewTermsQuery("label", labels...))
 			}
-			q = q.Query(elastic.NewBoolQuery().Filter(qParts...))
+			q = q.Query(elastic.NewBoolQuery().Must(qParts...))
 			if !load {
 				q = q.FetchSource(true).FetchSourceContext(elastic.NewFetchSourceContext(true).Exclude("data"))
 			}

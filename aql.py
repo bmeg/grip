@@ -159,6 +159,30 @@ class Graph:
         result = response.read()
         return json.loads(result)
 
+    def deleteVertex(self, gid):
+        """
+        Delete a vertex from the graph.
+        """
+        headers = {"Content-Type": "application/json",
+                   "Accept": "application/json"}
+        request = urllib2.Request(self.url + "/" + self.name + "/vertex/" + gid,
+                                  headers=headers)
+        request.get_method = lambda: "DELETE"
+        response = urllib2.urlopen(request)
+        result = response.read()
+        return json.loads(result)
+
+    def getVertex(self, gid):
+        """
+        Get a vertex by id.
+        """
+        headers = {"Content-Type": "application/json",
+                   "Accept": "application/json"}
+        url = self.url + "/" + self.name + "/vertex/" + gid
+        request = urllib2.Request(url, headers=headers)
+        response = urllib2.urlopen(request)
+        return json.loads(response.read())
+
     def addEdge(self, src, dst, label, data={}, id=None):
         """
         Add edge to the graph.
@@ -179,6 +203,30 @@ class Graph:
         response = urllib2.urlopen(request)
         result = response.read()
         return json.loads(result)
+
+    def deleteEdge(self, gid):
+        """
+        Delete an edge from the graph.
+        """
+        headers = {"Content-Type": "application/json",
+                   "Accept": "application/json"}
+        request = urllib2.Request(self.url + "/" + self.name + "/edge/" + gid,
+                                  headers=headers)
+        request.get_method = lambda: "DELETE"
+        response = urllib2.urlopen(request)
+        result = response.read()
+        return json.loads(result)
+
+    def getEdge(self, gid):
+        """
+        Get an edge by id.
+        """
+        headers = {"Content-Type": "application/json",
+                   "Accept": "application/json"}
+        url = self.url + "/" + self.name + "/edge/" + gid
+        request = urllib2.Request(url, headers=headers)
+        response = urllib2.urlopen(request)
+        return json.loads(response.read())
 
     def addSubGraph(self, graph):
         payload = json.dumps(graph)
@@ -229,28 +277,6 @@ class Graph:
         for result in response:
             d = json.loads(result)
             yield d
-
-    def getVertex(self, gid):
-        """
-        Get a vertex by id.
-        """
-        headers = {"Content-Type": "application/json",
-                   "Accept": "application/json"}
-        url = self.url + "/" + self.name + "/vertex/" + gid
-        request = urllib2.Request(url, headers=headers)
-        response = urllib2.urlopen(request)
-        return json.loads(response.read())
-
-    def getEdge(self, gid):
-        """
-        Get an edge by id.
-        """
-        headers = {"Content-Type": "application/json",
-                   "Accept": "application/json"}
-        url = self.url + "/" + self.name + "/edge/" + gid
-        request = urllib2.Request(url, headers=headers)
-        response = urllib2.urlopen(request)
-        return json.loads(response.read())
 
     def query(self):
         """
@@ -382,7 +408,7 @@ class Query:
             label = [label]
         return self.__append({"both": label})
 
-    def inE(self, label=[]):
+    def inEdge(self, label=[]):
         """
         Move from a vertex to an incoming edge.
 
@@ -395,7 +421,7 @@ class Query:
             label = [label]
         return self.__append({"in_edge": label})
 
-    def outE(self, label=[]):
+    def outEdge(self, label=[]):
         """
         Move from a vertex to an outgoing edge.
 
@@ -408,7 +434,7 @@ class Query:
             label = [label]
         return self.__append({"out_edge": label})
 
-    def bothE(self, label=[]):
+    def bothEdge(self, label=[]):
         """
         Move from a vertex to incoming/outgoing edges.
 
@@ -457,12 +483,6 @@ class Query:
         Return the number of results, instead of the elements.
         """
         return self.__append({"count": ""})
-
-    def groupCount(self, label):
-        """
-        Group results by the given property name and count each group.
-        """
-        return self.__append({"group_count": label})
 
     def distinct(self, props=[]):
         """
