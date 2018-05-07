@@ -346,24 +346,49 @@ func (mg *Graph) AddEdge(edgeArray []*aql.Edge) error {
 	return err
 }
 
+// deleteConnectedEdges deletes edges where `from` or `to` equal `key`
+func (mg *Graph) deleteConnectedEdges(key string) error {
+	session := mg.ar.pool.Get()
+	defer mg.ar.pool.Put(session)
+	eCol := mg.ar.getEdgeCollection(session, mg.graph)
+	_, err := eCol.RemoveAll(bson.M{"$or": []bson.M{{"from": key}, {"to": key}}})
+	if err != nil {
+		return fmt.Errorf("failed to delete edge(s): %s", err)
+	}
+	mg.ts.Touch(mg.graph)
+	return nil
+}
+
 // DelVertex deletes vertex with id `key`
 func (mg *Graph) DelVertex(key string) error {
 	session := mg.ar.pool.Get()
 	defer mg.ar.pool.Put(session)
-	defer mg.ts.Touch(mg.graph)
 
 	vCol := mg.ar.getVertexCollection(session, mg.graph)
-	return vCol.RemoveId(key)
+	err := vCol.RemoveId(key)
+	if err != nil {
+		return fmt.Errorf("failed to delete vertex %s: %s", key, err)
+	}
+	mg.ts.Touch(mg.graph)
+	err = mg.deleteConnectedEdges(key)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // DelEdge deletes edge with id `key`
 func (mg *Graph) DelEdge(key string) error {
 	session := mg.ar.pool.Get()
 	defer mg.ar.pool.Put(session)
-	defer mg.ts.Touch(mg.graph)
 
 	eCol := mg.ar.getEdgeCollection(session, mg.graph)
-	return eCol.RemoveId(key)
+	err := eCol.RemoveId(key)
+	if err != nil {
+		return fmt.Errorf("failed to delete edge %s: %s", key, err)
+	}
+	mg.ts.Touch(mg.graph)
+	return nil
 }
 
 // GetVertexList produces a channel of all edges in the graph
