@@ -1,57 +1,64 @@
-# The Arachne Graph Database server
+# The Arachne Graph Database Server
 
-To Install
-----------
+## Installation
+
 ```
 go get github.com/bmeg/arachne
 ```
+
 If you have defined `$GOPATH` the application will be installed at
 `$GOPATH`/bin/arachne otherwise it will be `$HOME/go/bin/arachne`
 
-To Turn on server
------------------
+## Turning on the Server
+
 ```
-arachne server
+arachne server --database badger
 ```
 
-To Run Larger 'Amazon Data Test'
---------------------------------
+## Importing Data
 
-Turn on local arachne server
-
+### Amazon data
 
 Download test data
+
 ```
 curl -O http://snap.stanford.edu/data/bigdata/amazon/amazon-meta.txt.gz
 ```
 
 Convert the data
+
 ```
 python $GOPATH/src/github.com/bmeg/arachne/example/amazon_convert.py amazon-meta.txt.gz test.data
 ```
 
-Create Amazon Graph
+Create a graph called 'amazon'
+
 ```
 arachne create amazon
 ```
 
-List the Graphs
+List the graphs
+
 ```
 arachne list
 ```
 
 Load data
+
 ```
 arachne load --edge test.data.edge --vertex test.data.vertex --graph amazon
 ```
 
-Example queries:
-Command line
+__Example queries:__
+
+_Command line_
+
 ```
-arachne query amazon 'O.query().V().groupCount("group")'
+arachne query amazon 'O.query().V().out()'
 ```
 
-Python
+_Python_
+
 ```
 import aql
 import json
@@ -60,49 +67,49 @@ conn = aql.Connection("http://localhost:8201")
 
 O = conn.graph("amazon")
 
-#Count the Vertices
+# Count the Vertices
 print list(O.query().V().count())
-#Count the Edges
+# Count the Edges
 print list(O.query().E().count())
 
-#Try simple traveral
+# Try simple travesral
 print list(O.query().V("B00000I06U").outEdge())
 
-
-#Do a group count of the different 'group's in the graph
-print list(O.query().V().groupCount("group"))
-
-#use graph to find every Book that is similar to a DVD
-for a in O.query().V().has("group", "Book").mark("a").outgoing("similar").has("group", "DVD").mark("b").select(["a", "b"]):
+# Find every Book that is similar to a DVD
+for a in O.query().V().where(aql.eq("$.group", "Book")).as_("a").out("similar").where(aql.eq("$.group", "DVD")).as_("b").select(["a", "b"]):
     print a
 ```
 
-Matrix Data Loading Example
----------------------------
+### TCGA RNA Expression
 
 Create the graph
+
 ```
 arachne create test-data
 ```
 
 Add aql.py Python Library to PYTHONPATH
+
 ```
 export PYTHONPATH=`pwd`
 ```
 
 Install Pandas if you don't already have it
+
 ```
 pip install pandas
 ```
 
-Load Pathway information
+Load pathway information
+
 ```
 curl -O http://www.pathwaycommons.org/archives/PC2/v9/PathwayCommons9.All.hgnc.sif.gz
 gunzip PathwayCommons9.All.hgnc.sif.gz
 python $GOPATH/src/github.com/bmeg/arachne/example/load_sif.py PathwayCommons9.All.hgnc.sif
 ```
 
-Load Matrix data
+Load expression data
+
 ```
 curl -O https://tcga.xenahubs.net/download/TCGA.BRCA.sampleMap/HiSeqV2.gz
 gunzip HiSeqV2.gz
@@ -110,27 +117,62 @@ python $GOPATH/src/github.com/bmeg/arachne/example/load_matrix.py HiSeqV2
 ```
 
 Load clinical information
+
 ```
 curl -O https://tcga.xenahubs.net/download/TCGA.BRCA.sampleMap/BRCA_clinicalMatrix.gz
 gunzip BRCA_clinicalMatrix.gz
 python $GOPATH/src/github.com/bmeg/arachne/example/load_property_matrix.py BRCA_clinicalMatrix
 ```
 
-Python Query: Open Connection
+Query: 
+
 ```
 import aql
 conn = aql.Connection("http://localhost:8201")
 O = conn.graph("test-data")
-```
 
-Print out expression data of all Stage IIA samples
-```
-for row in O.query().V().hasLabel("Sample").has("pathologic_stage", "Stage IIA").outgoing("has").hasLabel("Data:expression").outgoingBundle("value"):
+# Print out expression data of all Stage IIA samples
+for row in O.query().\
+    V().\
+    where(aql.and_(aql.eq("$.label", "Sample"), aql.eq("pathologic_stage", "Stage IIA"))).\
+    out("has").\
+    where(aql.eq("$.label", "Data:expression"):
   print row
 ```
 
-GraphQL Endpoint
----------------
+## Traversing a Graph
+
+Traversal operations help you navigate the graph:
+
+* in
+* out
+* both
+* inEdge
+* outEdge
+* bothEdge
+
+As and select work together to keep track of state during traversals:
+
+* as
+* select
+
+Filter operations help you cull or craft the results:
+
+* distinct
+* fields
+* limit
+* match
+* render
+* where
+
+Aggregate operations assemble metrics from the traversal results:
+
+* count
+* aggregate
+
+
+## GraphQL
+
 Arachne supports GraphQL access of the property graphs. Currently this is read-only
 access to the graph.
 GraphQL graphs have a defined schema with typed fields and connections. This
@@ -142,6 +184,7 @@ in the actual graph. Attached to each `Object` vertex is a `fields` parameter
 that describes the fields and their data types.
 
 Example Object Vertex:
+
 ```
 gid: Human
 label: Object
@@ -154,6 +197,7 @@ data:
 ```
 
 A valid vertex this schema would map to would be:
+
 ```
 gid: Luke Skywalker
 label: Human
@@ -180,6 +224,7 @@ edge labels are followed for the field. The field will be projected as an array
 of the destination object type.
 
 To connect the `Human` object to its friends:
+
 ```
 label: field
 from: Human
@@ -189,9 +234,10 @@ data:
   label: friend
 ```
 
-## Loading the Schema
+### Loading the Schema
 
 The example data would be in a file called `data.yaml`:
+
 ```
 vertices:
   - gid: 1000
@@ -239,6 +285,7 @@ edges:
 ```
 
 For the friend network, the schema would be a file named `schema.yaml` with:
+
 ```
 vertices:
   - gid: root
@@ -263,7 +310,7 @@ edges:
       to: Human
       data:
         name: friends
-        label : "friend
+        label: friend
     - label: field
       from: root
       to: Human
@@ -273,46 +320,54 @@ edges:
 ```
 
 To load the test data:
+
 ```
 arachne load --graph test --yaml data.yaml
 arachne load --graph test:schema --yaml schema.yaml
 ```
 
-
-## Using Built in example
+### Using built-in example
 
 Loading the example data and the example schema:
+
 ```
-./bin/arachne example
+arachne example
 ```
 
 See the example graph
+
 ```
-./bin/arachne dump --vertex --edge --graph example
-```
-See the example graph schema
-```
-./bin/arachne dump --vertex --edge --graph example:schema
+arachne dump --vertex --edge --graph example
 ```
 
-## Example GraphQL queries
+See the example graph schema
+
+```
+arachne dump --vertex --edge --graph example:schema
+```
+
+### Example queries
 
 Get Types:
+
 ```
-curl -XPOST -H "Content-Type:application/graphql" -d '{__schema{types{name}}}' http://localhost:8201/graphql/example
+curl -X POST -H "Content-Type:application/graphql" -d '{__schema{types{name}}}' http://localhost:8201/graphql/example
 ```
 
 Get Info about Human object
+
 ```
-curl -XPOST -H "Content-Type:application/graphql" -d '{__type(name:"Human"){fields{name}}}' http://localhost:8201/graphql/example
+curl -X POST -H "Content-Type:application/graphql" -d '{__type(name:"Human"){fields{name}}}' http://localhost:8201/graphql/example
 ```
 
 Get List of all Human ids
+
 ```
-curl -XPOST -H "Content-Type:application/graphql" -d 'query { HumanIds }' http://localhost:8201/graphql/example
+curl -X POST -H "Content-Type:application/graphql" -d 'query { HumanIds }' http://localhost:8201/graphql/example
 ```
 
 Get Human 1000 and list their friends
+
 ```
-curl -XPOST -H "Content-Type:application/graphql" -d 'query {Human(id:"1000"){name,friends{name}}}' http://localhost:8201/graphql/example
+curl -X POST -H "Content-Type:application/graphql" -d 'query {Human(id:"1000"){name,friends{name}}}' http://localhost:8201/graphql/example
 ```

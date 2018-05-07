@@ -26,10 +26,10 @@ func Connect(address string, write bool) (Client, error) {
 	}
 	queryOut := NewQueryClient(conn)
 	if !write {
-		return Client{queryOut, nil}, err
+		return Client{queryOut, nil}, nil
 	}
 	editOut := NewEditClient(conn)
-	return Client{queryOut, editOut}, err
+	return Client{queryOut, editOut}, nil
 }
 
 // GetGraphs lists the graphs
