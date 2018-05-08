@@ -12,7 +12,38 @@ If you have defined `$GOPATH` the application will be installed at
 ## Turning on the Server
 
 ```
-arachne server --database badger
+arachne server
+```
+
+### Configuration
+
+Below is the default configuration for Arachne.
+
+```
+# The name of the active server database backend
+# Available backends: badger, bolt, level, rocks, elastic, mongo
+Database: badger
+Server:
+  HTTPPort: 8201
+  RPCPort: 8202
+  WorkDir: ./arachne.work
+  ContentDir: ""
+  ReadOnly: false
+
+# The location where the key-value store should store its data.
+# This is used by badger, bolt, level and rocks. 
+KVStorePath: ./arachne.db
+
+ElasticSearch:
+  URL: ""
+  DBName: arachnedb
+  Synchronous: false
+  BatchSize: 1000
+
+MongoDB:
+  URL: ""
+  DBName: arachnedb
+  BatchSize: 1000
 ```
 
 ## Importing Data
@@ -140,7 +171,7 @@ for row in O.query().\
   print row
 ```
 
-## Traversing a Graph
+## Traversal Operations
 
 Traversal operations help you navigate the graph:
 
@@ -169,6 +200,63 @@ Aggregate operations assemble metrics from the traversal results:
 
 * count
 * aggregate
+
+Several of the above methods (where, fields, render, etc.) reference properties of the vertices/edges during the traversal. 
+We opted to use a variation on JsonPath syntax as described in http://goessner.net/articles/
+
+__Syntax Example:__
+
+Given the following example data:
+
+```
+{
+  "current": {
+    "gid": 111,
+    "label": "variant",
+    "data": {
+      "vid": "NM_007294.3:c.4963_4981delTGGCCTGACCCCAGAAG",
+      "type": "deletion"
+      "publications": [
+        {
+          "pmid": 29480828,
+          "doi": "10.1097/MD.0000000000009380"
+        },
+        {
+          "pmid": 23666017,
+          "doi": "10.1097/IGC.0b013e31829527bd"
+        }
+      ]
+    }
+  }
+  "marks": {
+    "gene": {
+      "gid": 1,
+      "label": "gene",
+      "data": {
+        "symbol": {
+          "ensembl": "ENSG00000012048",
+          "hgnc": 1100,
+          "entrez": 672,
+          "hugo": "BRCA1"
+        }
+        "transcipts": ["ENST00000471181.7", "ENST00000357654.8", "ENST00000493795.5"]
+      }
+    }
+  }
+}
+```
+
+| jsonpath                   | result              |
+| :------------------------- | :------------------ |
+| $.gid                      | 111                 |
+| $.label                    | "variant"           |
+| $.type                     | "deletion"          |
+| $.publications[0].pmid     | 29480828            |
+| $.publications.pmid        | [29480828, 23666017] |
+| $gene.data.symbol.ensembl  | "ENSG00000012048"   |
+| $gene.symbol.ensembl       | "ENSG00000012048"   |
+| $gene.transcripts[0]       | "ENST00000471181.7" |
+| $gene.transcripts[0:1]     | ["ENST00000471181.7", "ENST00000357654.8"] |
 
 
 ## GraphQL

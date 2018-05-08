@@ -2,6 +2,7 @@ package jsonpath
 
 import (
 	"fmt"
+	"log"
 	"strings"
 
 	"github.com/bmeg/arachne/gdbi"
@@ -118,12 +119,11 @@ func TravelerPathLookup(traveler *gdbi.Traveler, path string) interface{} {
 	namespace := GetNamespace(path)
 	field := GetJSONPath(path)
 	doc := GetDoc(traveler, namespace)
-
 	res, err := jsonpath.JsonPathLookup(doc, field)
 	if err != nil {
+		log.Println("err", err, "field", field)
 		return nil
 	}
-
 	return res
 }
 
