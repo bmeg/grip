@@ -77,6 +77,25 @@ def histogram(name, label, field, interval):
     }
 
 
+def do_request(request, raise_exceptions=True):
+    try:
+        response = urllib2.urlopen(request)
+    except urllib2.HTTPError as e:
+        e = urllib2.HTTPError(
+            request.get_full_url(),
+            e.code,
+            e.msg + ": " + e.read(),
+            e.hdrs,
+            e.fp
+        )
+        if raise_exceptions:
+            raise e
+        else:
+            print(e)
+
+    return response
+
+
 class Connection:
     def __init__(self, url):
         scheme, netloc, path, query, frag = urllib2.urlparse.urlsplit(url)
@@ -113,7 +132,7 @@ class Connection:
         headers = {"Content-Type": "application/json",
                    "Accept": "application/json"}
         request = urllib2.Request(self.url + "/" + name, "{}", headers=headers)
-        response = urllib2.urlopen(request)
+        response = do_request(request)
         result = response.read()
         return json.loads(result)
 
@@ -125,7 +144,7 @@ class Connection:
                    "Accept": "application/json"}
         request = urllib2.Request(self.url + "/" + name, headers=headers)
         request.get_method = lambda: "DELETE"
-        response = urllib2.urlopen(request)
+        response = do_request(request)
         result = response.read()
         return json.loads(result)
 
@@ -155,7 +174,7 @@ class Graph:
         request = urllib2.Request(self.url + "/" + self.name + "/vertex",
                                   payload,
                                   headers=headers)
-        response = urllib2.urlopen(request)
+        response = do_request(request)
         result = response.read()
         return json.loads(result)
 
@@ -168,7 +187,7 @@ class Graph:
         request = urllib2.Request(self.url + "/" + self.name + "/vertex/" + gid,
                                   headers=headers)
         request.get_method = lambda: "DELETE"
-        response = urllib2.urlopen(request)
+        response = do_request(request)
         result = response.read()
         return json.loads(result)
 
@@ -180,7 +199,7 @@ class Graph:
                    "Accept": "application/json"}
         url = self.url + "/" + self.name + "/vertex/" + gid
         request = urllib2.Request(url, headers=headers)
-        response = urllib2.urlopen(request)
+        response = do_request(request)
         return json.loads(response.read())
 
     def addEdge(self, src, dst, label, data={}, id=None):
@@ -200,7 +219,7 @@ class Graph:
         request = urllib2.Request(self.url + "/" + self.name + "/edge",
                                   json.dumps(payload),
                                   headers=headers)
-        response = urllib2.urlopen(request)
+        response = do_request(request)
         result = response.read()
         return json.loads(result)
 
@@ -213,7 +232,7 @@ class Graph:
         request = urllib2.Request(self.url + "/" + self.name + "/edge/" + gid,
                                   headers=headers)
         request.get_method = lambda: "DELETE"
-        response = urllib2.urlopen(request)
+        response = do_request(request)
         result = response.read()
         return json.loads(result)
 
@@ -225,7 +244,7 @@ class Graph:
                    "Accept": "application/json"}
         url = self.url + "/" + self.name + "/edge/" + gid
         request = urllib2.Request(url, headers=headers)
-        response = urllib2.urlopen(request)
+        response = do_request(request)
         return json.loads(response.read())
 
     def addSubGraph(self, graph):
@@ -235,7 +254,7 @@ class Graph:
         request = urllib2.Request(self.url + "/" + self.name + "/subgraph",
                                   payload,
                                   headers=headers)
-        response = urllib2.urlopen(request)
+        response = do_request(request)
         result = response.read()
         return json.loads(result)
 
@@ -249,7 +268,7 @@ class Graph:
         request = urllib2.Request(url,
                                   json.dumps({"field": field}),
                                   headers=headers)
-        response = urllib2.urlopen(request)
+        response = do_request(request)
         result = response.read()
         return json.loads(result)
 
@@ -258,7 +277,7 @@ class Graph:
                    "Accept": "application/json"}
         url = self.url + "/" + self.name + "/index"
         request = urllib2.Request(url, headers=headers)
-        response = urllib2.urlopen(request)
+        response = do_request(request)
         for result in response:
             d = json.loads(result)
             yield d
@@ -273,7 +292,7 @@ class Graph:
         }
         url = self.url + "/" + self.name + "/aggregate"
         request = urllib2.Request(url, json.dumps(payload), headers=headers)
-        response = urllib2.urlopen(request)
+        response = do_request(request)
         for result in response:
             d = json.loads(result)
             yield d
@@ -325,7 +344,7 @@ class BulkAdd:
         headers = {"Content-Type": "application/json",
                    "Accept": "application/json"}
         request = urllib2.Request(self.url, payload, headers=headers)
-        response = urllib2.urlopen(request)
+        response = do_request(request)
         result = response.read()
         return json.loads(result)
 
@@ -560,7 +579,7 @@ class Query:
         headers = {"Content-Type": "application/json",
                    "Accept": "application/json"}
         request = urllib2.Request(self.url, payload, headers=headers)
-        response = urllib2.urlopen(request)
+        response = do_request(request)
         for result in response:
             try:
                 d = json.loads(result)

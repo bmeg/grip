@@ -38,7 +38,6 @@ def test_term_aggregation(O):
 
     count = 0
     for row in O.aggregate(aql.term("test-agg", "Person", "name", 2)):
-        print(row)
         count += 1
         if len(row["buckets"]) != 2:
                 errors.append(
@@ -66,7 +65,6 @@ def test_term_aggregation(O):
 
     count = 0
     for row in O.aggregate(aql.term("test-agg-no-limit", "Person", "name", size=None)):
-        print(row)
         count += 1
         if len(row["buckets"]) != 8:
                 errors.append(
@@ -103,7 +101,6 @@ def test_traversal_term_aggregation(O):
 
     count = 0
     for row in O.query().V("1").out().aggregate(aql.term("traversal-agg", "Person", "name")):
-        print(row)
         row = row["data"]
         count += 1
         if len(row["buckets"]) != 3:
@@ -141,7 +138,6 @@ def test_histogram_aggregation(O):
 
     count = 0
     for row in O.aggregate(aql.histogram("test-agg", "Person", "age", 5)):
-        print(row)
         count += 1
         if len(row["buckets"]) != 6:
                 errors.append(
@@ -188,7 +184,6 @@ def test_traversal_histogram_aggregation(O):
 
     count = 0
     for row in O.query().V("1").out().aggregate(aql.histogram("traversal-agg", "Person", "age", 5)):
-        print(row)
         count += 1
         row = row["data"]
         if len(row["buckets"]) != 5:
@@ -234,7 +229,6 @@ def test_percentile_aggregation(O):
     count = 0
     percents = [1, 5, 25, 50, 75, 95, 99, 99.9]
     for row in O.aggregate(aql.percentile("test-agg", "Person", "age", percents)):
-        print(row)
         count += 1
         if len(row["buckets"]) != len(percents):
             errors.append(
@@ -301,7 +295,6 @@ def test_traversal_percentile_aggregation(O):
     count = 0
     percents = [1, 5, 25, 50, 75, 95, 99, 99.9]
     for row in O.query().V("1").out().aggregate(aql.percentile("traversal-agg", "Person", "age", percents)):
-        print(row)
         row = row["data"]
         count += 1
         if len(row["buckets"]) != len(percents):
