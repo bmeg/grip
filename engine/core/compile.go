@@ -2,10 +2,10 @@ package core
 
 import (
 	"fmt"
-	//"log"
 
 	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/gdbi"
+	"github.com/bmeg/arachne/jsonpath"
 	"github.com/bmeg/arachne/protoutil"
 )
 
@@ -248,26 +248,51 @@ func (comp DefaultCompiler) Compile(stmts []*aql.GraphStatement) (gdbi.Pipeline,
 		}
 	}
 
-	// procs = indexStartOptimize(procs)
+	procs = indexStartOptimize(procs)
 
 	return &DefaultPipeline{procs, lastType, markTypes, rowTypes}, nil
 }
 
-//For V().HasLabel() queries, streamline into a single index lookup
-// func indexStartOptimize(pipe []gdbi.Processor) []gdbi.Processor {
-// 	if len(pipe) >= 2 {
-// 		if x, ok := pipe[0].(*LookupVerts); ok {
-// 			if len(x.ids) == 0 {
-// 				if y, ok := pipe[1].(*HasLabel); ok {
-// 					//log.Printf("Found has label opt: %s", y.labels)
-// 					hIdx := LookupVertsIndex{labels: y.labels, db: x.db}
-// 					return append([]gdbi.Processor{&hIdx}, pipe[2:]...)
-// 				}
-// 			}
-// 		}
-// 	}
-// 	return pipe
-// }
+// For V().Where(Eq("$.label", "Person")) and V().Where(Eq("$.gid", "1")) queries, streamline into a single index lookup
+func indexStartOptimize(pipe []gdbi.Processor) []gdbi.Processor {
+	if len(pipe) >= 2 {
+		if lookupV, ok := pipe[0].(*LookupVerts); ok {
+			if len(lookupV.ids) == 0 {
+				if where, ok := pipe[1].(*Where); ok {
+					if cond := where.stmt.GetCondition(); cond != nil {
+						vals := []string{}
+						path := jsonpath.GetJSONPath(cond.Key)
+						if path == "$.label" || path == "$.gid" {
+							val := protoutil.UnWrapValue(cond.Value)
+							switch cond.Condition {
+							case aql.Condition_EQ:
+								if l, ok := val.(string); ok {
+									vals = []string{l}
+								}
+							case aql.Condition_IN:
+								if l, ok := val.([]string); ok {
+									vals = l
+								}
+							default:
+								// do nothing
+							}
+						}
+						if len(vals) > 0 {
+							if path == "$.label" {
+								hIdx := LookupVertsIndex{labels: vals, db: lookupV.db}
+								return append([]gdbi.Processor{&hIdx}, pipe[2:]...)
+							} else if path == "$.gid" {
+								hIdx := LookupVerts{ids: vals, db: lookupV.db}
+								return append([]gdbi.Processor{&hIdx}, pipe[2:]...)
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	return pipe
+}
 
 func validate(stmts []*aql.GraphStatement) error {
 	for i, gs := range stmts {

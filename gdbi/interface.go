@@ -29,7 +29,7 @@ type DataElement struct {
 type Traveler struct {
 	current *DataElement
 	marks   map[string]*DataElement
-	Row     []DataElement
+	Row     []*DataElement
 	Value   interface{}
 	Count   uint64
 }

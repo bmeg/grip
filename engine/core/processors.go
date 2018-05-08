@@ -742,14 +742,14 @@ func (s *selectMany) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPi
 	go func() {
 		defer close(out)
 		for t := range in {
-			row := make([]gdbi.DataElement, 0, len(s.marks))
+			row := make([]*gdbi.DataElement, 0, len(s.marks))
 			for _, mark := range s.marks {
 				// TODO handle missing mark? rely on compiler to check this?
 				t := t.GetMark(mark)
 				if t != nil {
-					row = append(row, *t)
+					row = append(row, t)
 				} else {
-					row = append(row, gdbi.DataElement{})
+					row = append(row, &gdbi.DataElement{})
 				}
 			}
 			out <- &gdbi.Traveler{Row: row}
