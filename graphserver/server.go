@@ -176,10 +176,19 @@ func (server *ArachneServer) AddEdge(ctx context.Context, elem *aql.GraphElement
 
 // AddSubGraph adds a full subgraph to the graph in one post
 func (server *ArachneServer) AddSubGraph(ctx context.Context, subgraph *aql.Graph) (*aql.EditResult, error) {
-	err := server.db.AddGraph(subgraph.Graph)
-	if err != nil {
-		return nil, err
+	found := false
+	for _, g := range server.db.GetGraphs() {
+		if g == subgraph.Graph {
+			found = true
+		}
 	}
+	if !found {
+		err := server.db.AddGraph(subgraph.Graph)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	graph, err := server.db.Graph(subgraph.Graph)
 	if err != nil {
 		return nil, err
