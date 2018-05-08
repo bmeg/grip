@@ -48,6 +48,16 @@ func (es *Graph) GetTimestamp() string {
 // AddEdge adds an edge to the graph, if the id is not "" and in already exists
 // in the graph, it is replaced
 func (es *Graph) AddEdge(edgeArray []*aql.Edge) error {
+	for _, edge := range edgeArray {
+		if edge.Gid == "" {
+			edge.Gid = util.UUID()
+		}
+		err := edge.Validate()
+		if err != nil {
+			return fmt.Errorf("edge validation failed: %v", err)
+		}
+	}
+
 	ctx := context.Background()
 
 	bulkRequest := es.client.Bulk()
@@ -55,9 +65,6 @@ func (es *Graph) AddEdge(edgeArray []*aql.Edge) error {
 		bulkRequest = bulkRequest.Refresh("true")
 	}
 	for _, e := range edgeArray {
-		if e.Gid == "" {
-			e.Gid = util.UUID()
-		}
 		pe := PackEdge(e)
 		script := elastic.NewScript(`ctx._source.gid = params.gid;
                                  ctx._source.label = params.label; 
@@ -83,6 +90,12 @@ func (es *Graph) AddEdge(edgeArray []*aql.Edge) error {
 // AddVertex adds an edge to the graph, if the id is not "" and in already exists
 // in the graph, it is replaced
 func (es *Graph) AddVertex(vertexArray []*aql.Vertex) error {
+	for _, vertex := range vertexArray {
+		err := vertex.Validate()
+		if err != nil {
+			return fmt.Errorf("vertex validation failed: %v", err)
+		}
+	}
 	ctx := context.Background()
 
 	bulkRequest := es.client.Bulk()

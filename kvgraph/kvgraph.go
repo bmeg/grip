@@ -5,12 +5,12 @@ import (
 	"context"
 	"fmt"
 	// "log"
-	"math/rand"
 
 	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/engine/core"
 	"github.com/bmeg/arachne/gdbi"
 	"github.com/bmeg/arachne/kvi"
+	"github.com/bmeg/arachne/util"
 	proto "github.com/golang/protobuf/proto"
 )
 
@@ -25,8 +25,13 @@ func contains(a []string, v string) bool {
 
 // AddGraph creates a new graph named `graph`
 func (kgraph *KVGraph) AddGraph(graph string) error {
+	err := aql.ValidateGraphName(graph)
+	if err != nil {
+		return err
+	}
+
 	kgraph.ts.Touch(graph)
-	err := kgraph.setupGraphIndex(graph)
+	err = kgraph.setupGraphIndex(graph)
 	if err != nil {
 		return err
 	}
@@ -102,6 +107,13 @@ func (kgdb *KVInterfaceGDB) Compiler() gdbi.Compiler {
 // AddVertex adds an edge to the graph, if it already exists
 // in the graph, it is replaced
 func (kgdb *KVInterfaceGDB) AddVertex(vertexArray []*aql.Vertex) error {
+	for _, vertex := range vertexArray {
+		err := vertex.Validate()
+		if err != nil {
+			return fmt.Errorf("vertex validation failed: %v", err)
+		}
+	}
+
 	err := kgdb.kvg.kv.Update(func(tx kvi.KVTransaction) error {
 		for _, vertex := range vertexArray {
 			d, err := proto.Marshal(vertex)
@@ -125,22 +137,21 @@ func (kgdb *KVInterfaceGDB) AddVertex(vertexArray []*aql.Vertex) error {
 	return err
 }
 
-func randomEdgeKeyAssignment(graph string, tx kvi.KVTransaction) string {
-	eid := fmt.Sprintf("%d", rand.Uint64())
-	for ; tx.HasKey(EdgeKeyPrefix(graph, eid)); eid = fmt.Sprintf("%d", rand.Uint64()) {
-	}
-	return eid
-}
-
 // AddEdge adds an edge to the graph, if the id is not "" and in already exists
 // in the graph, it is replaced
 func (kgdb *KVInterfaceGDB) AddEdge(edgeArray []*aql.Edge) error {
+	for _, edge := range edgeArray {
+		if edge.Gid == "" {
+			edge.Gid = util.UUID()
+		}
+		err := edge.Validate()
+		if err != nil {
+			return fmt.Errorf("edge validation failed: %v", err)
+		}
+	}
+
 	err := kgdb.kvg.kv.Update(func(tx kvi.KVTransaction) error {
 		for _, edge := range edgeArray {
-			if edge.Gid == "" {
-				edge.Gid = randomEdgeKeyAssignment(kgdb.graph, tx)
-			}
-
 			eid := edge.Gid
 			var err error
 			var data []byte

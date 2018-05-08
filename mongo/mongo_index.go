@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/bmeg/arachne/aql"
+	"github.com/bmeg/arachne/jsonpath"
 	"github.com/bmeg/arachne/protoutil"
 	"github.com/spenczar/tdigest"
 	"gopkg.in/mgo.v2"
@@ -16,31 +17,32 @@ import (
 //AddVertexIndex add index to vertices
 func (mg *Graph) AddVertexIndex(label string, field string) error {
 	log.Printf("Adding index: %s.%s", label, field)
+	field = jsonpath.GetJSONPath(field)
+	field = strings.TrimPrefix(field, "$.")
+
 	session := mg.ar.pool.Get()
 	session.ResetIndexCache()
-
+	defer mg.ar.pool.Put(session)
 	c := mg.ar.getVertexCollection(session, mg.graph)
-	err := c.EnsureIndex(mgo.Index{
-		Key:        []string{"label", "data." + field},
+	return c.EnsureIndex(mgo.Index{
+		Key:        []string{"label", field},
 		Unique:     false,
 		DropDups:   false,
 		Sparse:     true,
 		Background: true,
 	})
-	if err != nil {
-		log.Printf("Ensure index failed: %v", err)
-	}
-	mg.ar.pool.Put(session)
-	return err
 }
 
 //DeleteVertexIndex delete index from vertices
 func (mg *Graph) DeleteVertexIndex(label string, field string) error {
 	log.Printf("Deleting index: %s.%s", label, field)
+	field = jsonpath.GetJSONPath(field)
+	field = strings.TrimPrefix(field, "$.")
+
 	session := mg.ar.pool.Get()
 	defer mg.ar.pool.Put(session)
-	vcol := mg.ar.getVertexCollection(session, mg.graph)
-	return vcol.DropIndex("label", "data."+field)
+	c := mg.ar.getVertexCollection(session, mg.graph)
+	return c.DropIndex("label", field)
 }
 
 //GetVertexIndexList lists indices
@@ -89,6 +91,12 @@ func (mg *Graph) GetVertexIndexList() chan aql.IndexID {
 //GetVertexTermAggregation get count of every term across vertices
 func (mg *Graph) GetVertexTermAggregation(ctx context.Context, name string, label string, field string, size uint64) (*aql.NamedAggregationResult, error) {
 	log.Printf("Running GetVertexTermAggregation: { label: %s, field: %s size: %v}", label, field, size)
+	namespace := jsonpath.GetNamespace(field)
+	if namespace != jsonpath.Current {
+		return nil, fmt.Errorf("invalid field path")
+	}
+	field = jsonpath.GetJSONPath(field)
+	field = strings.TrimPrefix(field, "$.")
 
 	out := &aql.NamedAggregationResult{
 		Name:    name,
@@ -98,12 +106,12 @@ func (mg *Graph) GetVertexTermAggregation(ctx context.Context, name string, labe
 	ag := []bson.M{
 		{
 			"$match": bson.M{
-				"label":         label,
-				"data." + field: bson.M{"$exists": true},
+				"label": label,
+				field:   bson.M{"$exists": true},
 			},
 		},
 		{
-			"$sortByCount": "$data." + field,
+			"$sortByCount": "$" + field,
 		},
 	}
 	if size > 0 {
@@ -139,6 +147,12 @@ func (mg *Graph) GetVertexTermAggregation(ctx context.Context, name string, labe
 //GetVertexHistogramAggregation get binned counts of a term across vertices
 func (mg *Graph) GetVertexHistogramAggregation(ctx context.Context, name string, label string, field string, interval uint64) (*aql.NamedAggregationResult, error) {
 	log.Printf("Running GetVertexHistogramAggregation: { label: %s, field: %s interval: %v }", label, field, interval)
+	namespace := jsonpath.GetNamespace(field)
+	if namespace != jsonpath.Current {
+		return nil, fmt.Errorf("invalid field path")
+	}
+	field = jsonpath.GetJSONPath(field)
+	field = strings.TrimPrefix(field, "$.")
 
 	out := &aql.NamedAggregationResult{
 		Name:    name,
@@ -148,14 +162,14 @@ func (mg *Graph) GetVertexHistogramAggregation(ctx context.Context, name string,
 	ag := []bson.M{
 		{
 			"$match": bson.M{
-				"label":         label,
-				"data." + field: bson.M{"$exists": true},
+				"label": label,
+				field:   bson.M{"$exists": true},
 			},
 		},
 		{
 			"$group": bson.M{
 				"_id": bson.M{
-					"$multiply": []interface{}{interval, bson.M{"$floor": bson.M{"$divide": []interface{}{"$data." + field, interval}}}},
+					"$multiply": []interface{}{interval, bson.M{"$floor": bson.M{"$divide": []interface{}{"$" + field, interval}}}},
 				},
 				"count": bson.M{"$sum": 1},
 			},
@@ -189,6 +203,13 @@ func (mg *Graph) GetVertexHistogramAggregation(ctx context.Context, name string,
 //GetVertexPercentileAggregation get percentiles of a term across vertices
 func (mg *Graph) GetVertexPercentileAggregation(ctx context.Context, name string, label string, field string, percents []float64) (*aql.NamedAggregationResult, error) {
 	log.Printf("Running GetVertexPercentileAggregation: { label: %s, field: %s percents: %v }", label, field, percents)
+	namespace := jsonpath.GetNamespace(field)
+	if namespace != jsonpath.Current {
+		return nil, fmt.Errorf("invalid field path")
+	}
+	field = jsonpath.GetJSONPath(field)
+	field = strings.TrimPrefix(field, "$.")
+
 	out := &aql.NamedAggregationResult{
 		Name:    name,
 		Buckets: []*aql.AggregationResult{},
@@ -199,14 +220,14 @@ func (mg *Graph) GetVertexPercentileAggregation(ctx context.Context, name string
 	ag := []bson.M{
 		{
 			"$match": bson.M{
-				"label":         label,
-				"data." + field: bson.M{"$exists": true},
+				"label": label,
+				field:   bson.M{"$exists": true},
 			},
 		},
 		{
 			"$project": bson.M{
-				"_id": 0,
-				field: "$data." + field,
+				"_id":     0,
+				"__field": "$" + field,
 			},
 		},
 	}
@@ -220,7 +241,7 @@ func (mg *Graph) GetVertexPercentileAggregation(ctx context.Context, name string
 	td := tdigest.New()
 	result := map[string]interface{}{}
 	for iter.Next(&result) {
-		val, ok := result[field].(float64)
+		val, ok := result["__field"].(float64)
 		if !ok {
 			return nil, fmt.Errorf("error occurred parsing mongo output: %v", result)
 		}

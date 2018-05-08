@@ -1,6 +1,6 @@
 def test_duplicate(O):
     errors = []
-    O.addVertex("vertex1", "person", {"data": 1})
+    O.addVertex("vertex1", "person", {"somedata": 1})
     O.addVertex("vertex1", "person")
     O.addVertex("vertex1", "clone", {"otherdata": "foo"})
     O.addVertex("vertex2", "person")
@@ -21,7 +21,7 @@ def test_duplicate(O):
 
 def test_replace(O):
     errors = []
-    O.addVertex("vertex1", "person", {"data": 1})
+    O.addVertex("vertex1", "person", {"somedata": 1})
     O.addVertex("vertex1", "person")
     O.addVertex("vertex1", "clone", {"otherdata": "foo"})
     O.addVertex("vertex2", "person")

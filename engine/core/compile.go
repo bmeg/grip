@@ -2,6 +2,7 @@ package core
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/gdbi"
@@ -175,6 +176,12 @@ func (comp DefaultCompiler) Compile(stmts []*aql.GraphStatement) (gdbi.Pipeline,
 			}
 			if stmt.As == "" {
 				return &DefaultPipeline{}, fmt.Errorf(`"as" statement cannot have an empty name`)
+			}
+			if strings.Contains(stmt.As, ".") {
+				return &DefaultPipeline{}, fmt.Errorf(`"as" statement cannot contain periods`)
+			}
+			if stmt.As == jsonpath.Current {
+				return &DefaultPipeline{}, fmt.Errorf(`"as" statement uses reserved name %s`, jsonpath.Current)
 			}
 			markTypes[stmt.As] = lastType
 			add(&Marker{stmt.As})

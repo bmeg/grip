@@ -378,7 +378,7 @@ func (f *Fields) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, 
 			if len(f.keys) == 0 {
 				out <- t
 			} else {
-				o, err := t.SelectFields(f.keys...)
+				o, err := jsonpath.SelectTravelerFields(t, f.keys...)
 				if err != nil {
 					log.Printf("error selecting fields: %v for traveler %+v", f.keys, t)
 					continue
@@ -402,7 +402,7 @@ func (r *Render) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, 
 	go func() {
 		defer close(out)
 		for t := range in {
-			v := jsonpath.Render(r.template, t)
+			v := jsonpath.RenderTraveler(t, r.template)
 			out <- &gdbi.Traveler{Value: v}
 		}
 	}()
@@ -419,7 +419,7 @@ type Where struct {
 func matchesCondition(trav *gdbi.Traveler, cond *aql.WhereCondition) bool {
 	var val interface{}
 	var condVal interface{}
-	val = jsonpath.Render(cond.Key, trav)
+	val = jsonpath.TravelerPathLookup(trav, cond.Key)
 	condVal = protoutil.UnWrapValue(cond.Value)
 
 	switch cond.Condition {
@@ -534,7 +534,7 @@ func matchesCondition(trav *gdbi.Traveler, cond *aql.WhereCondition) bool {
 			}
 
 		default:
-			log.Println("Error: unknown condition value type for IN condition")
+			log.Println("Error: unknown condition value type for CONTAINS condition")
 		}
 
 		return found

@@ -6,8 +6,10 @@ import (
 	"io"
 	"log"
 	"strconv"
+	"strings"
 
 	"github.com/bmeg/arachne/aql"
+	"github.com/bmeg/arachne/jsonpath"
 	"github.com/bmeg/arachne/protoutil"
 	elastic "gopkg.in/olivere/elastic.v5"
 )
@@ -84,6 +86,13 @@ func (es *Graph) GetVertexIndexList() chan aql.IndexID {
 // GetVertexTermAggregation returns the count of every term across vertices
 func (es *Graph) GetVertexTermAggregation(ctx context.Context, name string, label string, field string, size uint64) (*aql.NamedAggregationResult, error) {
 	log.Printf("Running GetVertexTermAggregation: { label: %s, field: %s size: %v}", label, field, size)
+	namespace := jsonpath.GetNamespace(field)
+	if namespace != jsonpath.Current {
+		return nil, fmt.Errorf("invalid field path")
+	}
+	field = jsonpath.GetJSONPath(field)
+	field = strings.TrimPrefix(field, "$.")
+
 	out := &aql.NamedAggregationResult{
 		Name:    name,
 		Buckets: []*aql.AggregationResult{},
@@ -96,7 +105,7 @@ func (es *Graph) GetVertexTermAggregation(ctx context.Context, name string, labe
 		size = 1000000
 	}
 	q = q.Aggregation(aggName,
-		elastic.NewTermsAggregation().Field("data."+field+".keyword").Size(int(size)).OrderByCountDesc())
+		elastic.NewTermsAggregation().Field(field+".keyword").Size(int(size)).OrderByCountDesc())
 	res, err := q.Do(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("term count failed: %s", err)
@@ -119,6 +128,13 @@ func (es *Graph) GetVertexTermAggregation(ctx context.Context, name string, labe
 //GetVertexHistogramAggregation get binned counts of a term across vertices
 func (es *Graph) GetVertexHistogramAggregation(ctx context.Context, name string, label string, field string, interval uint64) (*aql.NamedAggregationResult, error) {
 	log.Printf("Running GetVertexHistogramAggregation: { label: %s, field: %s interval: %v }", label, field, interval)
+	namespace := jsonpath.GetNamespace(field)
+	if namespace != jsonpath.Current {
+		return nil, fmt.Errorf("invalid field path")
+	}
+	field = jsonpath.GetJSONPath(field)
+	field = strings.TrimPrefix(field, "$.")
+
 	out := &aql.NamedAggregationResult{
 		Name:    name,
 		Buckets: []*aql.AggregationResult{},
@@ -128,7 +144,7 @@ func (es *Graph) GetVertexHistogramAggregation(ctx context.Context, name string,
 	q = q.Query(elastic.NewBoolQuery().Filter(elastic.NewTermQuery("label", label)))
 	aggName := fmt.Sprintf("histogram.aggregation.%s.%s", label, field)
 	q = q.Aggregation(aggName,
-		elastic.NewHistogramAggregation().Field("data."+field).Interval(float64(interval)).OrderByKeyAsc())
+		elastic.NewHistogramAggregation().Field(field).Interval(float64(interval)).OrderByKeyAsc())
 	res, err := q.Do(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("histogram aggregation failed: %s", err)
@@ -146,6 +162,13 @@ func (es *Graph) GetVertexHistogramAggregation(ctx context.Context, name string,
 //GetVertexPercentileAggregation get percentiles of a term across vertices
 func (es *Graph) GetVertexPercentileAggregation(ctx context.Context, name string, label string, field string, percents []float64) (*aql.NamedAggregationResult, error) {
 	log.Printf("Running GetVertexPercentileAggregation: { label: %s, field: %s percents: %v }", label, field, percents)
+	namespace := jsonpath.GetNamespace(field)
+	if namespace != jsonpath.Current {
+		return nil, fmt.Errorf("invalid field path")
+	}
+	field = jsonpath.GetJSONPath(field)
+	field = strings.TrimPrefix(field, "$.")
+
 	out := &aql.NamedAggregationResult{
 		Name:    name,
 		Buckets: []*aql.AggregationResult{},
@@ -155,7 +178,7 @@ func (es *Graph) GetVertexPercentileAggregation(ctx context.Context, name string
 	q = q.Query(elastic.NewBoolQuery().Filter(elastic.NewTermQuery("label", label)))
 	aggName := fmt.Sprintf("percentile.aggregation.%s.%s", label, field)
 	q = q.Aggregation(aggName,
-		elastic.NewPercentilesAggregation().Field("data."+field).Percentiles(percents...))
+		elastic.NewPercentilesAggregation().Field(field).Percentiles(percents...))
 	res, err := q.Do(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("percentile aggregation failed: %s", err)
@@ -186,7 +209,7 @@ func (es *Graph) VertexLabelScan(ctx context.Context, label string) chan string 
 		}
 		scroll := es.client.Scroll().
 			Index(es.vertexIndex).
-			Query(elastic.NewBoolQuery().Filter(elastic.NewTermQuery("label", label))).
+			Query(elastic.NewBoolQuery().Must(elastic.NewTermQuery("label", label))).
 			Size(100)
 		for {
 			results, err := scroll.Do(ctx)

@@ -26,13 +26,30 @@ func NewArachneServer(db gdbi.GraphDB, workDir string, readonly bool) *ArachneSe
 	return &ArachneServer{db: db, workDir: workDir, readOnly: readonly}
 }
 
+// errorInterceptor is an interceptor function that logs all errors
+func errorInterceptor() grpc.UnaryServerInterceptor {
+	// Return a function that is the interceptor.
+	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo,
+		handler grpc.UnaryHandler) (interface{}, error) {
+		resp, err := handler(ctx, req)
+		if err != nil {
+			log.Println(info.FullMethod, "failed;", "error:", err)
+		}
+		return resp, err
+	}
+}
+
 // Start starts an asynchronous GRPC server
 func (server *ArachneServer) Start(hostPort string) error {
 	lis, err := net.Listen("tcp", ":"+hostPort)
 	if err != nil {
 		return fmt.Errorf("Cannot open port: %v", err)
 	}
-	grpcServer := grpc.NewServer()
+	grpcServer := grpc.NewServer(
+		grpc.UnaryInterceptor(
+			errorInterceptor(),
+		),
+	)
 	aql.RegisterQueryServer(grpcServer, server)
 	if !server.readOnly {
 		aql.RegisterEditServer(grpcServer, server)
@@ -120,7 +137,11 @@ func (server *ArachneServer) DeleteGraph(ctx context.Context, elem *aql.ElementI
 
 // AddGraph creates a new graph on the server
 func (server *ArachneServer) AddGraph(ctx context.Context, elem *aql.ElementID) (*aql.EditResult, error) {
-	err := server.db.AddGraph(elem.Graph)
+	err := aql.ValidateGraphName(elem.Graph)
+	if err != nil {
+		return nil, err
+	}
+	err = server.db.AddGraph(elem.Graph)
 	if err != nil {
 		return nil, err
 	}
@@ -155,6 +176,10 @@ func (server *ArachneServer) AddEdge(ctx context.Context, elem *aql.GraphElement
 
 // AddSubGraph adds a full subgraph to the graph in one post
 func (server *ArachneServer) AddSubGraph(ctx context.Context, subgraph *aql.Graph) (*aql.EditResult, error) {
+	err := server.db.AddGraph(subgraph.Graph)
+	if err != nil {
+		return nil, err
+	}
 	graph, err := server.db.Graph(subgraph.Graph)
 	if err != nil {
 		return nil, err
@@ -364,7 +389,7 @@ func (server *ArachneServer) Aggregate(req *aql.AggregationsRequest, stream aql.
 			pagg := agg.GetPercentile()
 			res, err := graph.GetVertexPercentileAggregation(stream.Context(), agg.Name, pagg.Label, pagg.Field, pagg.Percents)
 			if err != nil {
-				return fmt.Errorf("percentile  aggregation failed: %s", err)
+				return fmt.Errorf("percentile aggregation failed: %s", err)
 			}
 			stream.Send(res)
 

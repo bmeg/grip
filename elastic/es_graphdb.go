@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/gdbi"
 	"github.com/bmeg/arachne/timestamp"
 	elastic "gopkg.in/olivere/elastic.v5"
@@ -32,11 +33,9 @@ type Elastic struct {
 func NewElastic(conf Config) (gdbi.GraphDB, error) {
 	log.Printf("Starting Elastic Driver")
 	database := strings.ToLower(conf.DBName)
-	if strings.ContainsAny(database, `/\. "'$*<>:|?`) {
-		return nil, fmt.Errorf(`invalid database name; cannot contain /\. "'$*<>:|?`)
-	}
-	if strings.HasPrefix(database, "_") || strings.HasPrefix(database, "+") || strings.HasPrefix(database, "-") {
-		return nil, fmt.Errorf(`invalid database name; cannot start with _-+`)
+	err := aql.ValidateGraphName(database)
+	if err != nil {
+		return nil, fmt.Errorf("invalid database name: %v", err)
 	}
 
 	ts := timestamp.NewTimestamp()
@@ -104,14 +103,11 @@ func (es *Elastic) initIndex(ctx context.Context, name, body string) error {
 
 // AddGraph adds a new graph to the graphdb
 func (es *Elastic) AddGraph(graph string) error {
+	err := aql.ValidateGraphName(graph)
+	if err != nil {
+		return err
+	}
 	ctx := context.Background()
-
-	if strings.ContainsAny(graph, `/\. "'$*<>:|?`) {
-		return fmt.Errorf(`invalid graph name; cannot contain /\. "'$*<>:|?`)
-	}
-	if strings.HasPrefix(graph, "_") || strings.HasPrefix(graph, "+") || strings.HasPrefix(graph, "-") {
-		return fmt.Errorf(`invalid graph name; cannot start with _-+`)
-	}
 
 	vertexIndex := fmt.Sprintf("%s_%s_vertex", es.database, graph)
 	vMapping := `{

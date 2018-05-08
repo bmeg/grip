@@ -1,11 +1,15 @@
 package jsonpath
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/bmeg/arachne/gdbi"
 	"github.com/oliveagle/jsonpath"
 )
+
+// Current represents the 'current' traveler namespace
+var Current = "__current__"
 
 // GetNamespace returns the namespace of the provided path
 //
@@ -18,7 +22,7 @@ func GetNamespace(path string) string {
 		namespace = strings.TrimPrefix(parts[0], "$")
 	}
 	if namespace == "" {
-		namespace = "__current__"
+		namespace = Current
 	}
 	return namespace
 }
@@ -80,7 +84,7 @@ func GetJSONPath(path string) string {
 // }
 func GetDoc(traveler *gdbi.Traveler, namespace string) map[string]interface{} {
 	var tmap map[string]interface{}
-	if namespace == "__current__" {
+	if namespace == Current {
 		tmap = traveler.GetCurrent().ToDict()
 	} else {
 		tmap = traveler.GetMark(namespace).ToDict()
@@ -123,24 +127,88 @@ func TravelerPathLookup(traveler *gdbi.Traveler, path string) interface{} {
 	return res
 }
 
-// Render takes a template and fills in the values using the data structure
-func Render(template interface{}, traveler *gdbi.Traveler) interface{} {
+// RenderTraveler takes a template and fills in the values using the data structure
+func RenderTraveler(traveler *gdbi.Traveler, template interface{}) interface{} {
 	switch elem := template.(type) {
 	case string:
 		return TravelerPathLookup(traveler, elem)
 	case map[string]interface{}:
 		o := make(map[string]interface{}, len(elem))
 		for k, v := range elem {
-			o[k] = Render(v, traveler)
+			o[k] = RenderTraveler(traveler, v)
 		}
 		return o
 	case []interface{}:
 		o := make([]interface{}, len(elem))
 		for i := range elem {
-			o[i] = Render(elem[i], traveler)
+			o[i] = RenderTraveler(traveler, elem[i])
 		}
 		return o
 	default:
 		return nil
 	}
+}
+
+// SelectTravelerFields returns a new copy of the traveler with only the selected fields
+func SelectTravelerFields(t *gdbi.Traveler, keys ...string) (*gdbi.Traveler, error) {
+	out := &gdbi.Traveler{}
+	out = out.AddCurrent(&gdbi.DataElement{
+		Data: map[string]interface{}{},
+	})
+
+	for _, key := range keys {
+		namespace := GetNamespace(key)
+		path := GetJSONPath(key)
+		path = strings.TrimPrefix(path, "$.")
+
+		var cde *gdbi.DataElement
+		var ode *gdbi.DataElement
+		switch namespace {
+		case Current:
+			cde = t.GetCurrent()
+			ode = out.GetCurrent()
+		default:
+			cde = t.GetMark(namespace)
+			ode = out.GetMark(namespace)
+			if ode == nil {
+				out = out.AddMark(namespace, &gdbi.DataElement{
+					Data: map[string]interface{}{},
+				})
+				ode = out.GetMark(namespace)
+			}
+		}
+
+		switch path {
+		case "gid":
+			ode.ID = cde.ID
+		case "label":
+			ode.Label = cde.Label
+		case "from":
+			ode.From = cde.From
+		case "to":
+			ode.To = cde.To
+		case "data":
+			ode.Data = cde.Data
+		default:
+			parts := strings.Split(path, ".")
+			var data map[string]interface{}
+			var ok bool
+			data = cde.Data
+			for i := 0; i < len(parts); i++ {
+				if parts[i] == "data" {
+					continue
+				}
+				if i == len(parts)-1 {
+					ode.Data[parts[i]] = data[parts[i]]
+				} else {
+					ode.Data[parts[i]] = map[string]interface{}{}
+					data, ok = data[parts[i]].(map[string]interface{})
+					if !ok {
+						return nil, fmt.Errorf("something went wrong when selecting fields on the traveler to return")
+					}
+				}
+			}
+		}
+	}
+	return out, nil
 }

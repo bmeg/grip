@@ -36,11 +36,9 @@ type Mongo struct {
 func NewMongo(conf Config) (gdbi.GraphDB, error) {
 	log.Printf("Starting Mongo Driver")
 	database := strings.ToLower(conf.DBName)
-	if strings.ContainsAny(database, `/\. "'$*<>:|?`) {
-		return nil, fmt.Errorf(`invalid database name; cannot contain /\. "'$*<>:|?`)
-	}
-	if strings.HasPrefix(database, "_") || strings.HasPrefix(database, "+") || strings.HasPrefix(database, "-") {
-		return nil, fmt.Errorf(`invalid database name; cannot start with _-+`)
+	err := aql.ValidateGraphName(database)
+	if err != nil {
+		return nil, fmt.Errorf("invalid database name: %v", err)
 	}
 
 	ts := timestamp.NewTimestamp()
@@ -90,11 +88,9 @@ type Graph struct {
 
 // AddGraph creates a new graph named `graph`
 func (ma *Mongo) AddGraph(graph string) error {
-	if strings.ContainsAny(graph, `/\. "'$*<>:|?`) {
-		return fmt.Errorf(`invalid graph name; cannot contain /\. "'$*<>:|?`)
-	}
-	if strings.HasPrefix(graph, "_") || strings.HasPrefix(graph, "+") || strings.HasPrefix(graph, "-") {
-		return fmt.Errorf(`invalid graph name; cannot start with _-+`)
+	err := aql.ValidateGraphName(graph)
+	if err != nil {
+		return err
 	}
 
 	session := ma.pool.Get()
@@ -103,7 +99,7 @@ func (ma *Mongo) AddGraph(graph string) error {
 	defer ma.ts.Touch(graph)
 
 	graphs := session.DB(ma.database).C("graphs")
-	err := graphs.Insert(bson.M{"_id": graph})
+	err = graphs.Insert(bson.M{"_id": graph})
 	if err != nil {
 		return fmt.Errorf("failed to insert graph %s: %v", graph, err)
 	}
@@ -300,6 +296,13 @@ func isNetError(e error) bool {
 // AddVertex adds an edge to the graph, if it already exists
 // in the graph, it is replaced
 func (mg *Graph) AddVertex(vertexArray []*aql.Vertex) error {
+	for _, vertex := range vertexArray {
+		err := vertex.Validate()
+		if err != nil {
+			return fmt.Errorf("vertex validation failed: %v", err)
+		}
+	}
+
 	session := mg.ar.pool.Get()
 	defer mg.ar.pool.Put(session)
 	vCol := mg.ar.getVertexCollection(session, mg.graph)
@@ -323,6 +326,16 @@ func (mg *Graph) AddVertex(vertexArray []*aql.Vertex) error {
 // AddEdge adds an edge to the graph, if the id is not "" and in already exists
 // in the graph, it is replaced
 func (mg *Graph) AddEdge(edgeArray []*aql.Edge) error {
+	for _, edge := range edgeArray {
+		if edge.Gid == "" {
+			edge.Gid = util.UUID()
+		}
+		err := edge.Validate()
+		if err != nil {
+			return fmt.Errorf("edge validation failed: %v", err)
+		}
+	}
+
 	session := mg.ar.pool.Get()
 	defer mg.ar.pool.Put(session)
 	eCol := mg.ar.getEdgeCollection(session, mg.graph)
@@ -330,9 +343,6 @@ func (mg *Graph) AddEdge(edgeArray []*aql.Edge) error {
 	for i := 0; i < MaxRetries; i++ {
 		bulk := eCol.Bulk()
 		for _, edge := range edgeArray {
-			if edge.Gid == "" {
-				edge.Gid = util.UUID()
-			}
 			bulk.Upsert(bson.M{"_id": edge.Gid}, PackEdge(edge))
 		}
 		_, err = bulk.Run()

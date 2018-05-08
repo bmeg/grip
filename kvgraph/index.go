@@ -104,7 +104,7 @@ func (kgdb *KVInterfaceGDB) GetVertexTermAggregation(ctx context.Context, name s
 	}
 
 	namespace := jsonpath.GetNamespace(field)
-	if namespace != "__current__" {
+	if namespace != jsonpath.Current {
 		return nil, fmt.Errorf("invalid field path")
 	}
 	field = normalizePath(field)
@@ -136,7 +136,7 @@ func (kgdb *KVInterfaceGDB) GetVertexHistogramAggregation(ctx context.Context, n
 	}
 
 	namespace := jsonpath.GetNamespace(field)
-	if namespace != "__current__" {
+	if namespace != jsonpath.Current {
 		return nil, fmt.Errorf("invalid field path")
 	}
 	field = normalizePath(field)
@@ -165,7 +165,7 @@ func (kgdb *KVInterfaceGDB) GetVertexPercentileAggregation(ctx context.Context, 
 	}
 
 	namespace := jsonpath.GetNamespace(field)
-	if namespace != "__current__" {
+	if namespace != jsonpath.Current {
 		return nil, fmt.Errorf("invalid field path")
 	}
 	field = normalizePath(field)

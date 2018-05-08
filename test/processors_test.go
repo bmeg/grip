@@ -149,7 +149,7 @@ var table = []queryTest{
 			Where(aql.Eq("$.label", "Human")).As("x").
 			Out().
 			Where(aql.Eq("$.name", "Funnel")).As("y").
-			Fields("y.gid", "y.label", "y.name", "x.gid", "x.label", "x.name").
+			Fields("$y.gid", "$y.label", "$y.name", "$x.gid", "$x.label", "$x.name").
 			Select("x", "y"),
 		pickrow(
 			&aql.Vertex{Gid: verts[0].Gid, Label: verts[0].Label, Data: protoutil.AsStruct(map[string]interface{}{"name": "Alex"})},

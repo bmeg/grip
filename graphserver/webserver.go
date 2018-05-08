@@ -5,7 +5,6 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"runtime/debug"
 
 	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/graphql"
@@ -16,12 +15,9 @@ import (
 	"google.golang.org/grpc"
 )
 
-// HandleError logs errors and returns http respose codes
-func HandleError(w http.ResponseWriter, req *http.Request, error string, code int) {
-	fmt.Println(error)
-	fmt.Println(req.URL)
-	debug.PrintStack()
-	http.Error(w, error, code)
+func handleError(w http.ResponseWriter, req *http.Request, err string, code int) {
+	log.Println("HTTP handler error:", req.URL, ";", "error", err)
+	http.Error(w, err, code)
 }
 
 //MarshalClean is a shim class to 'fix' outgoing streamed messages
@@ -107,8 +103,7 @@ func NewHTTPProxy(rpcPort string, httpPort string, contentDir string) (*Proxy, e
 	}
 
 	r := mux.NewRouter()
-
-	runtime.OtherErrorHandler = HandleError
+	runtime.OtherErrorHandler = handleError
 
 	r.PathPrefix("/graphql").Handler(graphql.NewHTTPHandler("localhost:" + rpcPort))
 	r.PathPrefix("/v1/").Handler(grpcMux)
