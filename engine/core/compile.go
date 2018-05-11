@@ -2,7 +2,6 @@ package core
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/gdbi"
@@ -175,11 +174,11 @@ func (comp DefaultCompiler) Compile(stmts []*aql.GraphStatement) (gdbi.Pipeline,
 			if stmt.Mark == "" {
 				return &DefaultPipeline{}, fmt.Errorf(`"mark" statement cannot have an empty name`)
 			}
-			if strings.Contains(stmt.Mark, ".") {
-				return &DefaultPipeline{}, fmt.Errorf(`"mark" statement cannot contain periods`)
+			if err := aql.ValidateFieldName(stmt.Mark); err != nil {
+				return &DefaultPipeline{}, fmt.Errorf(`"mark" statement invalid; %v`, err)
 			}
 			if stmt.Mark == jsonpath.Current {
-				return &DefaultPipeline{}, fmt.Errorf(`"mark" statement uses reserved name %s`, jsonpath.Current)
+				return &DefaultPipeline{}, fmt.Errorf(`"mark" statement invalid; uses reserved name %s`, jsonpath.Current)
 			}
 			markTypes[stmt.Mark] = lastType
 			add(&Marker{stmt.Mark})
