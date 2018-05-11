@@ -48,35 +48,35 @@ type queryTest struct {
 
 var table = []queryTest{
 	{
-		Q.V().Where(aql.In("$.name", "Kyle", "Alex")),
+		Q.V().Where(aql.In("name", "Kyle", "Alex")),
 		pick(verts[0], verts[1], verts[6], verts[7]),
 	},
 	{
-		Q.V().Where(aql.Eq("$.non-existent-field", "Kyle")),
+		Q.V().Where(aql.Eq("non-existent-field", "Kyle")),
 		pick(),
 	},
 	{
-		Q.V().Where(aql.Eq("$.label", "Human")),
+		Q.V().Where(aql.Eq("_label", "Human")),
 		pick(verts[0], verts[1], verts[2]),
 	},
 	{
-		Q.V().Where(aql.Eq("$.label", "Robot")),
+		Q.V().Where(aql.Eq("_label", "Robot")),
 		pick(verts[3], verts[4], verts[5]),
 	},
 	{
-		Q.V().Where(aql.In("$.label", "Robot", "Human")),
+		Q.V().Where(aql.In("_label", "Robot", "Human")),
 		pick(verts[0], verts[1], verts[2], verts[3], verts[4], verts[5]),
 	},
 	{
-		Q.V().Where(aql.Eq("$.label", "non-existent")),
+		Q.V().Where(aql.Eq("_label", "non-existent")),
 		pick(),
 	},
 	{
-		Q.V().Where(aql.In("$.gid", verts[0].Gid, verts[2].Gid)),
+		Q.V().Where(aql.In("_gid", verts[0].Gid, verts[2].Gid)),
 		pick(verts[0], verts[2]),
 	},
 	{
-		Q.V().Where(aql.Eq("$.gid", "non-existent")),
+		Q.V().Where(aql.Eq("_gid", "non-existent")),
 		pick(),
 	},
 	{
@@ -96,11 +96,11 @@ var table = []queryTest{
 		count(uint32(len(verts))),
 	},
 	{
-		Q.V().Where(aql.And(aql.Eq("$.label", "Human"), aql.Eq("$.name", "Ryan"))),
+		Q.V().Where(aql.And(aql.Eq("_label", "Human"), aql.Eq("name", "Ryan"))),
 		pick(verts[2]),
 	},
 	{
-		Q.V().Where(aql.Eq("$.label", "Human")).Mark("x").Where(aql.Eq("$.name", "Alex")).Select("x"),
+		Q.V().Where(aql.Eq("_label", "Human")).Mark("x").Where(aql.Eq("name", "Alex")).Select("x"),
 		pickselection(map[string]interface{}{"x": verts[0]}),
 	},
 	{
@@ -112,27 +112,27 @@ var table = []queryTest{
 		pickAllEdges(),
 	},
 	{
-		Q.V().Where(aql.Eq("$.label", "Human")).Out(),
+		Q.V().Where(aql.Eq("_label", "Human")).Out(),
 		pick(verts[10], verts[11]),
 	},
 	{
-		Q.V().Where(aql.Eq("$.label", "Human")).Out().Where(aql.Eq("$.name", "Funnel")),
+		Q.V().Where(aql.Eq("_label", "Human")).Out().Where(aql.Eq("name", "Funnel")),
 		pick(verts[10]),
 	},
 	{
-		Q.V().Where(aql.Eq("$.label", "Human")).Mark("x").Out().Where(aql.Eq("$.name", "Funnel")).Select("x"),
+		Q.V().Where(aql.Eq("_label", "Human")).Mark("x").Out().Where(aql.Eq("name", "Funnel")).Select("x"),
 		pickselection(map[string]interface{}{"x": verts[0]}),
 	},
 	{
-		Q.V().Where(aql.Eq("$.label", "Human")).OutEdge(),
+		Q.V().Where(aql.Eq("_label", "Human")).OutEdge(),
 		pickAllEdges(),
 	},
 	{
-		Q.V().Where(aql.Eq("$.label", "Human")).Where(aql.Eq("$.name", "Alex")).OutEdge(),
+		Q.V().Where(aql.Eq("_label", "Human")).Where(aql.Eq("name", "Alex")).OutEdge(),
 		pick(edges[0]),
 	},
 	{
-		Q.V().Where(aql.Eq("$.label", "Human")).Fields("$.name"),
+		Q.V().Where(aql.Eq("_label", "Human")).Fields("name"),
 		pick(
 			&aql.Vertex{Data: protoutil.AsStruct(map[string]interface{}{"name": "Alex"})},
 			&aql.Vertex{Data: protoutil.AsStruct(map[string]interface{}{"name": "Kyle"})},
@@ -141,10 +141,10 @@ var table = []queryTest{
 	},
 	{
 		Q.V().
-			Where(aql.Eq("$.label", "Human")).Mark("x").
+			Where(aql.Eq("_label", "Human")).Mark("x").
 			Out().
-			Where(aql.Eq("$.name", "Funnel")).Mark("y").
-			Fields("$y.gid", "$y.label", "$y.name", "$x.gid", "$x.label", "$x.name").
+			Where(aql.Eq("name", "Funnel")).Mark("y").
+			Fields("$y._gid", "$y._label", "$y.name", "$x._gid", "$x._label", "$x.name").
 			Select("x", "y"),
 		pickselection(map[string]interface{}{
 			"x": &aql.Vertex{Gid: verts[0].Gid, Label: verts[0].Label, Data: protoutil.AsStruct(map[string]interface{}{"name": "Alex"})},
@@ -153,22 +153,22 @@ var table = []queryTest{
 	},
 	{
 		Q.V().Match(
-			Q.Where(aql.Eq("$.label", "Human")),
-			Q.Where(aql.Eq("$.name", "Alex")),
+			Q.Where(aql.Eq("_label", "Human")),
+			Q.Where(aql.Eq("name", "Alex")),
 		),
 		pick(verts[0]),
 	},
 	{
 		Q.V().Match(
-			Q.Mark("a").Where(aql.Eq("$.label", "Human")).Mark("b"),
-			Q.Mark("b").Where(aql.Eq("$.name", "Alex")).Mark("c"),
+			Q.Mark("a").Where(aql.Eq("_label", "Human")).Mark("b"),
+			Q.Mark("b").Where(aql.Eq("name", "Alex")).Mark("c"),
 		).Select("c"),
 		pickselection(map[string]interface{}{"c": verts[0]}),
 	},
 	{
 		Q.V().Match(
-			Q.Mark("a").Where(aql.Eq("$.label", "Human")).Mark("b"),
-			Q.Mark("b").Where(aql.Eq("$.name", "Alex")).Mark("c"),
+			Q.Mark("a").Where(aql.Eq("_label", "Human")).Mark("b"),
+			Q.Mark("b").Where(aql.Eq("name", "Alex")).Mark("c"),
 		).Select("b", "c"),
 		pickselection(map[string]interface{}{"b": verts[0], "c": verts[0]}),
 	},
