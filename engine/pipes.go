@@ -92,13 +92,13 @@ func Convert(dataType gdbi.DataType, markTypes map[string]gdbi.DataType, t *gdbi
 			switch markTypes[k] {
 			case gdbi.VertexData:
 				selections[k] = &aql.Selection{
-					&aql.Selection_Vertex{
+					Result: &aql.Selection_Vertex{
 						Vertex: v.ToVertex(),
 					},
 				}
 			case gdbi.EdgeData:
 				selections[k] = &aql.Selection{
-					&aql.Selection_Edge{
+					Result: &aql.Selection_Edge{
 						Edge: v.ToEdge(),
 					},
 				}

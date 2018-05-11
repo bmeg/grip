@@ -297,13 +297,13 @@ func pickselection(selection map[string]interface{}) checker {
 		switch val := ival.(type) {
 		case *aql.Vertex:
 			s[mark] = &aql.Selection{
-				&aql.Selection_Vertex{
+				Result: &aql.Selection_Vertex{
 					Vertex: val,
 				},
 			}
 		case *aql.Edge:
 			s[mark] = &aql.Selection{
-				&aql.Selection_Edge{
+				Result: &aql.Selection_Edge{
 					Edge: val,
 				},
 			}
