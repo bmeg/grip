@@ -98,7 +98,7 @@ func (client Client) BulkAdd(elemChan chan *GraphElement) error {
 	for elem := range elemChan {
 		err := sc.Send(elem)
 		if err != nil {
-			log.Printf("Failed to send graph element: %v", err)
+			return err
 		}
 	}
 
@@ -114,7 +114,7 @@ func (client Client) GetVertex(graph string, id string) (*Vertex, error) {
 
 // Traversal runs a graph traversal query
 func (client Client) Traversal(query *GraphQuery) (chan *QueryResult, error) {
-	tclient, err := client.QueryC.Traversal(context.TODO(), query)
+	tclient, err := client.QueryC.Traversal(context.Background(), query)
 	if err != nil {
 		return nil, err
 	}
@@ -128,7 +128,7 @@ func (client Client) Traversal(query *GraphQuery) (chan *QueryResult, error) {
 				break
 			}
 			if err != nil {
-				log.Printf("Failed to receive edit result: %v", err)
+				log.Printf("Failed to receive traversal result: %v", err)
 			}
 			out <- t
 		}
