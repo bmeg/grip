@@ -1,6 +1,6 @@
 
 
-def test_as_select(O):
+def test_mark_select(O):
     errors = []
 
     O.addVertex("vertex1", "person", {"field1": "value1", "field2": "value2"})
@@ -12,25 +12,24 @@ def test_as_select(O):
     O.addEdge("vertex2", "vertex3", "friend")
     O.addEdge("vertex2", "vertex4", "parent")
 
-    for row in O.query().V("vertex1").as_("a").out().as_(
-            "b").out().as_("c").select(["a", "b", "c"]):
-        res = dict(zip(["a", "b", "c"], row))
-        if res["a"]["vertex"]["gid"] != "vertex1":
+    for row in O.query().V("vertex1").mark("a").out().mark(
+            "b").out().mark("c").select(["a", "b", "c"]):
+        if row["a"]["vertex"]["gid"] != "vertex1":
             errors.append("Incorrect as selection")
-        if res["a"]["vertex"]["data"] != {"field1": "value1", "field2": "value2"}:
+        if row["a"]["vertex"]["data"] != {"field1": "value1", "field2": "value2"}:
             errors.append("Missing data for selection")
-        if res["b"]["vertex"]["gid"] != "vertex2":
+        if row["b"]["vertex"]["gid"] != "vertex2":
             errors.append("Incorrect as selection")
-        if res["c"]["vertex"]["gid"] not in ["vertex3", "vertex4"]:
+        if row["c"]["vertex"]["gid"] not in ["vertex3", "vertex4"]:
             errors.append("Incorrect as selection")
-        if res["c"]["vertex"]["gid"] == "vertex3":
-            if res["c"]["vertex"]["data"] != {"field1": "value3", "field2": "value4"}:
+        if row["c"]["vertex"]["gid"] == "vertex3":
+            if row["c"]["vertex"]["data"] != {"field1": "value3", "field2": "value4"}:
                 errors.append("Missing data for selection")
 
     return errors
 
 
-def test_as_edge_select(O):
+def test_mark_edge_select(O):
     errors = []
 
     O.addVertex("vertex1", "person", {"field1": "value1", "field2": "value2"})
@@ -42,14 +41,13 @@ def test_as_edge_select(O):
     O.addEdge("vertex2", "vertex3", "friend")
     O.addEdge("vertex2", "vertex4", "parent")
 
-    for row in O.query().V("vertex1").as_("a").outEdge().as_(
-            "b").out().as_("c").select(["a", "b", "c"]):
-        res = dict(zip(["a", "b", "c"], row))
-        if res["a"]["vertex"]["gid"] != "vertex1":
+    for row in O.query().V("vertex1").mark("a").outEdge().mark(
+            "b").out().mark("c").select(["a", "b", "c"]):
+        if row["a"]["vertex"]["gid"] != "vertex1":
             errors.append("Incorrect as selection")
-        if "gid" not in res["b"]["edge"]:
+        if "gid" not in row["b"]["edge"]:
             errors.append("Incorrect as edge selection")
-        if res["c"]["vertex"]["gid"] not in ["vertex2"]:
+        if row["c"]["vertex"]["gid"] not in ["vertex2"]:
             errors.append("Incorrect as selection")
 
     return errors

@@ -22,15 +22,15 @@ def test_bulkload(O):
     bulk.execute()
 
     res = list(O.query().V().count().execute())[0]
-    if res["data"] != 6:
+    if res["count"] != 6:
         errors.append(
             "Bulk Add wrong number of vertices: %s != %s" %
-            (res["data"], 6))
+            (res["count"], 6))
 
     res = list(O.query().E().count().execute())[0]
-    if res["data"] != 6:
+    if res["count"] != 6:
         errors.append(
             "Bulk Add wrong number of edges: %s != %s" %
-            (res["data"], 6))
+            (res["count"], 6))
 
     return errors

@@ -80,27 +80,27 @@ def test_count(O):
     O.addEdge("vertex2", "vertex4", "parent", id="edge3")
 
     count = 0
-    for i in O.query().V().execute():
+    for i in O.query().V():
         count += 1
     if count != 4:
         errors.append("Fail: O.query().V() %s != %s" % (count, 4))
 
     count = 0
-    for i in O.query().V("vertex1").out().execute():
+    for i in O.query().V("vertex1").out():
         count += 1
     if count != 1:
         errors.append(
             "Fail: O.query().V(\"vertex1\").out() %s != %d" % (count, 1))
 
     count = 0
-    for i in O.query().V("vertex1").in_().execute():
+    for i in O.query().V("vertex1").in_():
         count += 1
     if count != 0:
         errors.append(
             "Fail: O.query().V(\"vertex1\").in_() %s != %d" % (count, 0))
 
     count = 0
-    for i in O.query().V("vertex1").out().out().where(aql.eq("$.field2", "value4")).in_().execute():
+    for i in O.query().V("vertex1").out().out().where(aql.eq("$.field2", "value4")).in_():
         count += 1
     if count != 1:
         errors.append(
@@ -108,27 +108,27 @@ def test_count(O):
             (count, 1))
 
     count = 0
-    for i in O.query().E().execute():
+    for i in O.query().E():
         count += 1
     if count != 3:
         errors.append("Fail: O.query().E()")
 
     count = 0
-    for i in O.query().E("edge1").execute():
+    for i in O.query().E("edge1"):
         count += 1
     if count != 1:
         errors.append(
             "Fail: O.query().E(\"edge1\") %s != %d" % (count, 1))
 
     count = 0
-    for i in O.query().E("edge1").out().execute():
+    for i in O.query().E("edge1").out():
         count += 1
     if count != 1:
         errors.append(
             "Fail: O.query().E(\"edge1\").out() %s != %d" % (count, 1))
 
     count = 0
-    for i in O.query().E("edge1").in_().execute():
+    for i in O.query().E("edge1").in_():
         count += 1
     if count != 1:
         errors.append(
@@ -137,14 +137,14 @@ def test_count(O):
     # test delete vertex/edge
     O.deleteVertex("vertex1")
     count = 0
-    for i in O.query().V().execute():
+    for i in O.query().V():
         count += 1
     if count != 3:
         errors.append(
             "Fail: O.query().V() %s != %d" % (count, 3))
 
     count = 0
-    for i in O.query().E().execute():
+    for i in O.query().E():
         count += 1
     if count != 2:
         errors.append(
@@ -152,7 +152,7 @@ def test_count(O):
 
     O.deleteEdge("edge2")
     count = 0
-    for i in O.query().E().execute():
+    for i in O.query().E():
         count += 1
     if count != 1:
         errors.append(
@@ -173,17 +173,17 @@ def test_outgoing(O):
     O.addEdge("vertex2", "vertex3", "friend")
     O.addEdge("vertex2", "vertex4", "parent")
 
-    if list(O.query().V("vertex2").out().count().execute())[0]["data"] != 2:
+    if list(O.query().V("vertex2").out().count())[0]["count"] != 2:
         errors.append("blank outgoing doesn't work")
 
-    if list(O.query().V("vertex2").out("friend").count().execute())[0]["data"] != 1:
+    if list(O.query().V("vertex2").out("friend").count())[0]["count"] != 1:
         errors.append("labeled outgoing doesn't work")
 
     for i in O.query().V("vertex2").out():
-        if i['vertex']['gid'] not in ["vertex3", "vertex4"]:
-            errors.append("Wrong outgoing vertex %s" % (i['vertex']['gid']))
+        if i['gid'] not in ["vertex3", "vertex4"]:
+            errors.append("Wrong outgoing vertex %s" % (i['gid']))
 
-    if list(O.query().V("vertex2").out("friend").count().execute())[0]["data"] != 1:
+    if list(O.query().V("vertex2").out("friend").count())[0]["count"] != 1:
         errors.append("labeled outgoing doesn't work")
 
     return errors
@@ -201,14 +201,14 @@ def test_incoming(O):
     O.addEdge("vertex2", "vertex3", "friend")
     O.addEdge("vertex2", "vertex4", "parent")
 
-    if list(O.query().V("vertex2").in_().count().execute())[0]["data"] != 1:
+    if list(O.query().V("vertex2").in_().count())[0]["count"] != 1:
         errors.append("blank incoming doesn't work")
 
     for i in O.query().V("vertex4").in_():
-        if i['vertex']['gid'] not in ["vertex2"]:
-            errors.append("Wrong incoming vertex %s" % (i['vertex']['gid']))
+        if i['gid'] not in ["vertex2"]:
+            errors.append("Wrong incoming vertex %s" % (i['gid']))
 
-    if list(O.query().V("vertex3").in_("friend").count().execute())[0]["data"] != 1:
+    if list(O.query().V("vertex3").in_("friend").count())[0]["count"] != 1:
         errors.append("labeled incoming doesn't work")
 
     return errors
@@ -226,14 +226,14 @@ def test_outgoing_edge(O):
     O.addEdge("vertex2", "vertex3", "friend", id="edge1")
     O.addEdge("vertex2", "vertex4", "parent", id="edge2")
 
-    if list(O.query().V("vertex2").outEdge().count().execute())[0]["data"] != 2:
+    if list(O.query().V("vertex2").outEdge().count())[0]["count"] != 2:
         errors.append("blank outgoing doesn't work")
 
     for i in O.query().V("vertex2").outEdge():
-        if i['edge']['gid'] not in ["edge1", "edge2"]:
-            errors.append("Wrong outgoing vertex %s" % (i['edge']['gid']))
+        if i['gid'] not in ["edge1", "edge2"]:
+            errors.append("Wrong outgoing vertex %s" % (i['gid']))
 
-    if list(O.query().V("vertex2").outEdge("friend").count().execute())[0]["data"] != 1:
+    if list(O.query().V("vertex2").outEdge("friend").count())[0]["count"] != 1:
         errors.append("labeled outgoing doesn't work")
 
     return errors
@@ -251,14 +251,14 @@ def test_incoming_edge(O):
     O.addEdge("vertex2", "vertex3", "friend", id="edge1")
     O.addEdge("vertex2", "vertex4", "parent", id="edge2")
 
-    if list(O.query().V("vertex2").inEdge().count().execute())[0]["data"] != 1:
+    if list(O.query().V("vertex2").inEdge().count())[0]["count"] != 1:
         errors.append("blank incoming doesn't work")
 
-    for i in O.query().V("vertex4").inEdge().execute():
-        if i['edge']['gid'] not in ["edge2"]:
-            errors.append("Wrong incoming vertex %s" % (i['edge']['gid']))
+    for i in O.query().V("vertex4").inEdge():
+        if i['gid'] not in ["edge2"]:
+            errors.append("Wrong incoming vertex %s" % (i['gid']))
 
-    if list(O.query().V("vertex3").inEdge("friend").count().execute())[0]["data"] != 1:
+    if list(O.query().V("vertex3").inEdge("friend").count())[0]["count"] != 1:
         errors.append("labeled incoming doesn't work")
 
     return errors
@@ -277,10 +277,10 @@ def test_both(O):
     O.addEdge("vertex4", "vertex1", "parent")
 
     count = 0
-    for row in O.query().V("vertex1").both().both().execute():
+    for row in O.query().V("vertex1").both().both():
         count += 1
-        if row['vertex']['gid'] != "vertex1":
-            errors.append("Wrong vertex found: %s" % (row['vertex']['gid']))
+        if row['gid'] != "vertex1":
+            errors.append("Wrong vertex found: %s" % (row['gid']))
     if count != 3:
         errors.append("Wrong vertex count found %s != %s" % (count, 3))
 
@@ -302,10 +302,10 @@ def test_both_edge(O):
     O.addEdge("vertex2", "vertex4", "friend", id="edge5")
 
     count = 0
-    for row in O.query().V("vertex1").bothEdge().execute():
+    for row in O.query().V("vertex1").bothEdge():
         count += 1
-        if row['edge']['gid'] not in ["edge1", "edge2", "edge3"]:
-            errors.append("Wrong edge found: %s" % (row['edge']['gid']))
+        if row['gid'] not in ["edge1", "edge2", "edge3"]:
+            errors.append("Wrong edge found: %s" % (row['gid']))
     if count != 3:
         errors.append("Wrong edge count found %s != %s" % (count, 3))
 

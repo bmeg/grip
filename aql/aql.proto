@@ -30,26 +30,17 @@ message GraphStatement {
     google.protobuf.ListValue both = 14;
     google.protobuf.ListValue both_edge = 15;
 
-    string as = 20;
+    string mark = 20;
     SelectStatement select = 21;
-    google.protobuf.Value render = 23;
-
-    int64 limit = 25;
-    string count = 26;
-
-    google.protobuf.ListValue distinct = 31;
-
-    MatchQuerySet match = 40;
-
-    //Function Methods
-    string import = 50;
-    string map = 51;
-    FoldStatement fold = 52;
-    string filter = 54;
-
-    WhereExpression where = 57;
-    google.protobuf.ListValue fields = 58;
-    Aggregations aggregate = 59;
+    uint32 limit = 24;
+    uint32 offset = 25;
+    google.protobuf.ListValue fields = 26;
+    google.protobuf.ListValue distinct = 27;
+    MatchQuerySet match = 28;
+    WhereExpression where = 29;
+    string count = 30;
+    Aggregations aggregate = 31;
+    google.protobuf.Value render = 32;
   }
 }
 
@@ -74,7 +65,7 @@ message Aggregate {
 message TermAggregation {
   string label = 1;
   string field = 2;
-  uint64 size = 3;
+  uint32 size = 3;
 }
 
 message PercentileAggregation {
@@ -86,21 +77,24 @@ message PercentileAggregation {
 message HistogramAggregation {
   string label = 1;
   string field = 2;
-  uint64 interval = 3;
+  uint32 interval = 3;
 }
 
 message NamedAggregationResult {
-	string name = 1;
-	repeated AggregationResult buckets = 2;
+	map<string, AggregationResult> aggregations = 3;
 }
 
 message AggregationResult {
+  repeated AggregationResultBucket buckets = 2;
+}
+
+message AggregationResultBucket {
   google.protobuf.Value key = 1;
   double value = 2;
 }
 
 message WhereExpressionList {
-	repeated WhereExpression expressions = 1;
+  repeated WhereExpression expressions = 1;
 }
 
 message WhereExpression {
@@ -127,16 +121,22 @@ enum Condition {
   LT  = 5;
   LTE = 6;
   IN = 7;
-	CONTAINS = 8;
+  CONTAINS = 8;
 }
 
 message SelectStatement {
-  repeated string labels = 1;
+  repeated string marks = 1;
 }
 
-message FoldStatement {
-  string source = 1;
-  google.protobuf.Value init = 2;
+message Selection {
+	oneof result {
+		Vertex vertex = 1;
+		Edge edge = 2;
+	}
+}
+
+message Selections {
+	map<string, Selection> selections = 1;
 }
 
 message Vertex {
@@ -154,23 +154,18 @@ message Edge {
 }
 
 message QueryResult {
-  oneof result {
-    Vertex vertex = 1;
-    Edge edge = 2;
-    google.protobuf.Value data = 4;
-  }
-}
-
-message ResultRow {
-  QueryResult value = 1;
-  repeated QueryResult row = 2;
+	oneof result {
+		Vertex vertex = 1;
+		Edge edge = 2;
+		NamedAggregationResult aggregations = 3;
+		Selections selections = 4;
+		google.protobuf.Value render = 5;
+		uint32 count = 6;
+	}
 }
 
 message EditResult {
-  oneof result {
-    string error = 1;
-    string id = 2;
-  }
+  string id = 1;
 }
 
 message GraphElement {
@@ -178,13 +173,6 @@ message GraphElement {
   Vertex vertex = 2;
   Edge edge = 3;
 }
-
-message Graph {
-  string graph = 1;
-  repeated Edge edges = 2;
-  repeated Vertex vertices = 3;
-}
-
 
 message GraphID {
   string graph = 1;
@@ -195,36 +183,27 @@ message ElementID {
   string id = 2;
 }
 
-enum ElementType {
-  UNKNOWN_TYPE = 0;
-  VERTEX = 1;
-  EDGE = 2;
-}
-
 message IndexID {
   string graph = 1;
   string label = 2;
   string field = 3;
-  ElementType type = 4;
 }
 
 message Timestamp {
   string timestamp = 1;
 }
 
-message Empty {
-
-}
+message Empty {}
 
 service Query {
-  rpc Traversal(GraphQuery) returns (stream ResultRow) {
+  rpc Traversal(GraphQuery) returns (stream QueryResult) {
     option (google.api.http) = {
       post: "/v1/graph/{graph}/query"
       body: "*"
     };
   }
 
-  rpc Aggregate(AggregationsRequest) returns (stream NamedAggregationResult) {
+  rpc Aggregate(AggregationsRequest) returns (NamedAggregationResult) {
     option (google.api.http) = {
       post: "/v1/graph/{graph}/aggregate"
       body: "*"
@@ -243,7 +222,7 @@ service Query {
     };
   }
 
-  rpc GetGraphs(Empty) returns (stream ElementID) {
+  rpc GetGraphs(Empty) returns (stream GraphID) {
     option (google.api.http) = {
       get: "/v1/graph"
     };
@@ -255,7 +234,7 @@ service Query {
     };
   }
 
-  rpc GetTimestamp(ElementID) returns (Timestamp) {
+  rpc GetTimestamp(GraphID) returns (Timestamp) {
     option (google.api.http) = {
       get: "/v1/graph/{graph}/timestamp"
     };
@@ -278,26 +257,19 @@ service Edit {
     };
   }
 
-  rpc StreamElements(stream GraphElement) returns (EditResult) {
+  rpc BulkAdd(stream GraphElement) returns (EditResult) {
     option (google.api.http) = {
       post: "/v1/graph"
     };
   }
 
-  rpc AddGraph(ElementID) returns (EditResult) {
+  rpc AddGraph(GraphID) returns (EditResult) {
     option (google.api.http) = {
       post: "/v1/graph/{graph}"
     };
   }
 
-  rpc AddSubGraph(Graph) returns (EditResult) {
-    option (google.api.http) = {
-      post: "/v1/graph/{graph}/subgraph"
-      body: "*"
-    };
-  }
-
-  rpc DeleteGraph(ElementID) returns (EditResult) {
+  rpc DeleteGraph(GraphID) returns (EditResult) {
     option (google.api.http) = {
       delete: "/v1/graph/{graph}"
     };

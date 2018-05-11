@@ -142,7 +142,7 @@ var swEdges = []aql.Edge{
 
 var swGQLGraph = `{
 	"vertices": [
-		{ "gid" : "root", "label" : "Query"},
+		{ "gid": "root", "label": "Query"},
 		{
 			"gid": "Human",
 			"label": "Object",
@@ -198,7 +198,7 @@ var swGQLGraph = `{
 			"to": "Human",
 			"data": {
 				"name": "friends",
-				"label" : "friend"
+				"label": "friend"
 			}
 		},{
 			"label": "field",

@@ -1,12 +1,11 @@
 package example
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
-	"strings"
 
 	"github.com/bmeg/arachne/aql"
-	"github.com/golang/protobuf/jsonpb"
 	"github.com/spf13/cobra"
 )
 
@@ -34,7 +33,7 @@ var Cmd = &cobra.Command{
 			return err
 		}
 
-		graphql := fmt.Sprintf("%s:schema", graph)
+		graphql := fmt.Sprintf("%s-schema", graph)
 
 		graphs := conn.GetGraphList()
 		if !found(graphs, graphql) {
@@ -44,29 +43,30 @@ var Cmd = &cobra.Command{
 			conn.AddGraph(graph)
 		}
 
+		log.Printf("Loading example graph data into %s", graph)
 		elemChan := make(chan *aql.GraphElement)
 		wait := make(chan bool)
-		log.Printf("Loading %s into %s", exampleSet, graph)
 		go func() {
-			conn.StreamElements(elemChan)
+			if err := conn.BulkAdd(elemChan); err != nil {
+				log.Printf("bulk add error: %s", err)
+			}
 			wait <- false
 		}()
-		for _, vertex := range swVertices {
-			v := vertex
-			elemChan <- &aql.GraphElement{Graph: graph, Vertex: &v}
+
+		log.Printf("Loading example graphql schema into %s", graphql)
+		schema := &aql.Graph{}
+		if err := json.Unmarshal([]byte(swGQLGraph), schema); err != nil {
+			return fmt.Errorf("failed to unmarshal graph schema: %v", err)
 		}
-		for _, edge := range swEdges {
-			e := edge
-			elemChan <- &aql.GraphElement{Graph: graph, Edge: &e}
+		for _, v := range schema.Vertices {
+			elemChan <- &aql.GraphElement{Graph: graphql, Vertex: v}
 		}
+		for _, e := range schema.Edges {
+			elemChan <- &aql.GraphElement{Graph: graphql, Edge: e}
+		}
+
 		close(elemChan)
 		<-wait
-
-		e := aql.Graph{}
-		if err := jsonpb.Unmarshal(strings.NewReader(swGQLGraph), &e); err != nil {
-			log.Printf("Error: %s", err)
-		}
-		conn.AddSubGraph(graphql, &e)
 
 		return nil
 	},
@@ -76,5 +76,4 @@ func init() {
 	flags := Cmd.Flags()
 	flags.StringVar(&host, "host", host, "Host Server")
 	flags.StringVar(&graph, "graph", "example", "Graph")
-	flags.StringVar(&exampleSet, "exampleSet", "starwars", "Example Data Set")
 }

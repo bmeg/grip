@@ -96,11 +96,10 @@ func (kgdb *KVInterfaceGDB) VertexLabelScan(ctx context.Context, label string) c
 }
 
 //GetVertexTermAggregation get count of every term across vertices
-func (kgdb *KVInterfaceGDB) GetVertexTermAggregation(ctx context.Context, name string, label string, field string, size uint64) (*aql.NamedAggregationResult, error) {
+func (kgdb *KVInterfaceGDB) GetVertexTermAggregation(ctx context.Context, label string, field string, size uint32) (*aql.AggregationResult, error) {
 	log.Printf("Running GetVertexTermAggregation: { label: %s, field: %s size: %v}", label, field, size)
-	out := &aql.NamedAggregationResult{
-		Name:    name,
-		Buckets: []*aql.AggregationResult{},
+	out := &aql.AggregationResult{
+		Buckets: []*aql.AggregationResultBucket{},
 	}
 
 	namespace := jsonpath.GetNamespace(field)
@@ -116,7 +115,7 @@ func (kgdb *KVInterfaceGDB) GetVertexTermAggregation(ctx context.Context, name s
 		} else {
 			t = protoutil.WrapValue(tcount.Number)
 		}
-		out.SortedInsert(&aql.AggregationResult{Key: t, Value: float64(tcount.Count)})
+		out.SortedInsert(&aql.AggregationResultBucket{Key: t, Value: float64(tcount.Count)})
 		if size > 0 {
 			if len(out.Buckets) > int(size) {
 				out.Buckets = out.Buckets[:size]
@@ -128,11 +127,10 @@ func (kgdb *KVInterfaceGDB) GetVertexTermAggregation(ctx context.Context, name s
 }
 
 //GetVertexHistogramAggregation get binned counts of a term across vertices
-func (kgdb *KVInterfaceGDB) GetVertexHistogramAggregation(ctx context.Context, name string, label string, field string, interval uint64) (*aql.NamedAggregationResult, error) {
+func (kgdb *KVInterfaceGDB) GetVertexHistogramAggregation(ctx context.Context, label string, field string, interval uint32) (*aql.AggregationResult, error) {
 	log.Printf("Running GetVertexHistogramAggregation: { label: %s, field: %s interval: %v }", label, field, interval)
-	out := &aql.NamedAggregationResult{
-		Name:    name,
-		Buckets: []*aql.AggregationResult{},
+	out := &aql.AggregationResult{
+		Buckets: []*aql.AggregationResultBucket{},
 	}
 
 	namespace := jsonpath.GetNamespace(field)
@@ -150,18 +148,17 @@ func (kgdb *KVInterfaceGDB) GetVertexHistogramAggregation(ctx context.Context, n
 		for tcount := range kgdb.kvg.idx.FieldTermNumberRange(fmt.Sprintf("%s.v.%s.%s", kgdb.graph, label, field), bucket, bucket+i) {
 			count += tcount.Count
 		}
-		out.Buckets = append(out.Buckets, &aql.AggregationResult{Key: protoutil.WrapValue(bucket), Value: float64(count)})
+		out.Buckets = append(out.Buckets, &aql.AggregationResultBucket{Key: protoutil.WrapValue(bucket), Value: float64(count)})
 	}
 
 	return out, nil
 }
 
 //GetVertexPercentileAggregation get percentiles of a term across vertices
-func (kgdb *KVInterfaceGDB) GetVertexPercentileAggregation(ctx context.Context, name string, label string, field string, percents []float64) (*aql.NamedAggregationResult, error) {
+func (kgdb *KVInterfaceGDB) GetVertexPercentileAggregation(ctx context.Context, label string, field string, percents []float64) (*aql.AggregationResult, error) {
 	log.Printf("Running GetVertexPercentileAggregation: { label: %s, field: %s percents: %v }", label, field, percents)
-	out := &aql.NamedAggregationResult{
-		Name:    name,
-		Buckets: []*aql.AggregationResult{},
+	out := &aql.AggregationResult{
+		Buckets: []*aql.AggregationResultBucket{},
 	}
 
 	namespace := jsonpath.GetNamespace(field)
@@ -176,7 +173,7 @@ func (kgdb *KVInterfaceGDB) GetVertexPercentileAggregation(ctx context.Context, 
 	}
 	for _, p := range percents {
 		q := td.Quantile(p / 100)
-		out.Buckets = append(out.Buckets, &aql.AggregationResult{Key: protoutil.WrapValue(p), Value: q})
+		out.Buckets = append(out.Buckets, &aql.AggregationResultBucket{Key: protoutil.WrapValue(p), Value: q})
 	}
 
 	return out, nil

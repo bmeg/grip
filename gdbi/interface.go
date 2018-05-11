@@ -27,11 +27,12 @@ type DataElement struct {
 
 // Traveler is a query element that traverse the graph
 type Traveler struct {
-	current *DataElement
-	marks   map[string]*DataElement
-	Row     []*DataElement
-	Value   interface{}
-	Count   uint64
+	current      *DataElement
+	marks        map[string]*DataElement
+	Selections   map[string]*DataElement
+	Aggregations map[string]*aql.AggregationResult
+	Count        uint32
+	Render       interface{}
 }
 
 // DataType is a possible output data type
@@ -43,8 +44,9 @@ const (
 	VertexData
 	EdgeData
 	CountData
-	ValueData
-	RowData
+	AggregationData
+	SelectionData
+	RenderData
 )
 
 // ElementLookup request to look up data
@@ -87,9 +89,9 @@ type GraphInterface interface {
 	DeleteVertexIndex(label string, field string) error
 	GetVertexIndexList() chan aql.IndexID
 
-	GetVertexTermAggregation(ctx context.Context, name string, label string, field string, size uint64) (*aql.NamedAggregationResult, error)
-	GetVertexPercentileAggregation(ctx context.Context, name string, label string, field string, percents []float64) (*aql.NamedAggregationResult, error)
-	GetVertexHistogramAggregation(ctx context.Context, name string, label string, field string, interval uint64) (*aql.NamedAggregationResult, error)
+	GetVertexTermAggregation(ctx context.Context, label string, field string, size uint32) (*aql.AggregationResult, error)
+	GetVertexPercentileAggregation(ctx context.Context, label string, field string, percents []float64) (*aql.AggregationResult, error)
+	GetVertexHistogramAggregation(ctx context.Context, label string, field string, interval uint32) (*aql.AggregationResult, error)
 
 	GetVertexList(ctx context.Context, load bool) <-chan *aql.Vertex
 	GetEdgeList(ctx context.Context, load bool) <-chan *aql.Edge
@@ -123,5 +125,5 @@ type Processor interface {
 type Pipeline interface {
 	Processors() []Processor
 	DataType() DataType
-	RowTypes() []DataType
+	MarkTypes() map[string]DataType
 }

@@ -2,7 +2,6 @@ package dump
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/bmeg/arachne/aql"
 	"github.com/golang/protobuf/jsonpb"
@@ -27,13 +26,15 @@ var Cmd = &cobra.Command{
 		if vertexDump {
 			jm := jsonpb.Marshaler{}
 			q := aql.V()
-			elems, err := conn.Execute(graph, q)
+			elems, err := conn.Traversal(&aql.GraphQuery{Graph: graph, Query: q.Statements})
 			if err != nil {
-				log.Printf("ERROR: %s", err)
 				return err
 			}
 			for v := range elems {
-				txt, _ := jm.MarshalToString(v.Value.GetVertex())
+				txt, err := jm.MarshalToString(v.GetVertex())
+				if err != nil {
+					return err
+				}
 				fmt.Printf("%s\n", txt)
 			}
 		}
@@ -41,13 +42,15 @@ var Cmd = &cobra.Command{
 		if edgeDump {
 			jm := jsonpb.Marshaler{}
 			q := aql.E()
-			elems, err := conn.Execute(graph, q)
+			elems, err := conn.Traversal(&aql.GraphQuery{Graph: graph, Query: q.Statements})
 			if err != nil {
-				log.Printf("ERROR: %s", err)
 				return err
 			}
 			for v := range elems {
-				txt, _ := jm.MarshalToString(v.Value.GetEdge())
+				txt, err := jm.MarshalToString(v.GetEdge())
+				if err != nil {
+					return err
+				}
 				fmt.Printf("%s\n", txt)
 			}
 		}

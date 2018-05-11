@@ -132,83 +132,82 @@ func (edge *Edge) Validate() error {
 }
 
 // AsMap converts a NamedAggregationResult to a map[string]interface{}
-func (namedAggRes *NamedAggregationResult) AsMap() map[string]interface{} {
-	buckets := make([]map[string]interface{}, len(namedAggRes.Buckets))
-	for i, b := range namedAggRes.Buckets {
+func (aggRes *AggregationResult) AsMap() map[string]interface{} {
+	buckets := make([]map[string]interface{}, len(aggRes.Buckets))
+	for i, b := range aggRes.Buckets {
 		buckets[i] = b.AsMap()
 	}
 
 	return map[string]interface{}{
-		"name":    namedAggRes.Name,
 		"buckets": buckets,
 	}
 }
 
-// AsMap converts an AggregationResult to a map[string]interface{}
-func (aggRes *AggregationResult) AsMap() map[string]interface{} {
+// AsMap converts an AggregationResultBucket to a map[string]interface{}
+func (aggRes *AggregationResultBucket) AsMap() map[string]interface{} {
 	return map[string]interface{}{
 		"key":   aggRes.Key,
 		"value": aggRes.Value,
 	}
 }
 
-// SortedInsert inserts an AggregationResult into the Buckets field
+// SortedInsert inserts an AggregationResultBucket into the Buckets field
 // and returns the index of the insertion
-func (namedAggRes *NamedAggregationResult) SortedInsert(el *AggregationResult) (int, error) {
-	if !namedAggRes.IsValueSorted() {
+func (aggRes *AggregationResult) SortedInsert(el *AggregationResultBucket) (int, error) {
+	if !aggRes.IsValueSorted() {
 		return 0, fmt.Errorf("buckets are not value sorted")
 	}
 
-	if len(namedAggRes.Buckets) == 0 {
-		namedAggRes.Buckets = []*AggregationResult{el}
+	if len(aggRes.Buckets) == 0 {
+		aggRes.Buckets = []*AggregationResultBucket{el}
 		return 0, nil
 	}
 
-	index := sort.Search(len(namedAggRes.Buckets), func(i int) bool {
-		if namedAggRes.Buckets[i] == nil {
+	index := sort.Search(len(aggRes.Buckets), func(i int) bool {
+		if aggRes.Buckets[i] == nil {
 			return true
 		}
-		return el.Value > namedAggRes.Buckets[i].Value
+		return el.Value > aggRes.Buckets[i].Value
 	})
 
-	namedAggRes.Buckets = append(namedAggRes.Buckets, &AggregationResult{})
-	copy(namedAggRes.Buckets[index+1:], namedAggRes.Buckets[index:])
-	namedAggRes.Buckets[index] = el
+	aggRes.Buckets = append(aggRes.Buckets, &AggregationResultBucket{})
+	copy(aggRes.Buckets[index+1:], aggRes.Buckets[index:])
+	aggRes.Buckets[index] = el
 
 	return index, nil
 }
 
 // SortOnValue sorts Buckets by Value in descending order
-func (namedAggRes *NamedAggregationResult) SortOnValue() {
-	sort.Slice(namedAggRes.Buckets, func(i, j int) bool {
-		if namedAggRes.Buckets[i] == nil && namedAggRes.Buckets[j] != nil {
+func (aggRes *AggregationResult) SortOnValue() {
+	sort.Slice(aggRes.Buckets, func(i, j int) bool {
+		if aggRes.Buckets[i] == nil && aggRes.Buckets[j] != nil {
 			return true
 		}
-		if namedAggRes.Buckets[i] != nil && namedAggRes.Buckets[j] == nil {
+		if aggRes.Buckets[i] != nil && aggRes.Buckets[j] == nil {
 			return false
 		}
-		if namedAggRes.Buckets[i] == nil && namedAggRes.Buckets[j] == nil {
+		if aggRes.Buckets[i] == nil && aggRes.Buckets[j] == nil {
 			return false
 		}
-		return namedAggRes.Buckets[i].Value > namedAggRes.Buckets[j].Value
+		return aggRes.Buckets[i].Value > aggRes.Buckets[j].Value
 	})
 }
 
 // IsValueSorted returns true if the Buckets are sorted by Value
-func (namedAggRes *NamedAggregationResult) IsValueSorted() bool {
-	for i := range namedAggRes.Buckets {
+func (aggRes *AggregationResult) IsValueSorted() bool {
+	for i := range aggRes.Buckets {
 		j := i + 1
-		if i < len(namedAggRes.Buckets)-2 {
-			if namedAggRes.Buckets[i] != nil && namedAggRes.Buckets[j] == nil {
+		if i < len(aggRes.Buckets)-2 {
+			if aggRes.Buckets[i] != nil && aggRes.Buckets[j] == nil {
 				return true
 			}
-			if namedAggRes.Buckets[i] == nil && namedAggRes.Buckets[j] != nil {
+			if aggRes.Buckets[i] == nil && aggRes.Buckets[j] != nil {
 				return false
 			}
-			if namedAggRes.Buckets[i] == nil && namedAggRes.Buckets[j] == nil {
+			if aggRes.Buckets[i] == nil && aggRes.Buckets[j] == nil {
 				return true
 			}
-			if namedAggRes.Buckets[i].Value < namedAggRes.Buckets[j].Value {
+			if aggRes.Buckets[i].Value < aggRes.Buckets[j].Value {
 				return false
 			}
 		}
@@ -225,4 +224,11 @@ func ValidateGraphName(graph string) error {
 		return fmt.Errorf(`invalid name; cannot start with _-+`)
 	}
 	return nil
+}
+
+// Graph represents a graph. This structure is used by client side graph loader utilities.
+type Graph struct {
+	Graph    string
+	Vertices []*Vertex
+	Edges    []*Edge
 }

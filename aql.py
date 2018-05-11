@@ -247,17 +247,6 @@ class Graph:
         response = do_request(request)
         return json.loads(response.read())
 
-    def addSubGraph(self, graph):
-        payload = json.dumps(graph)
-        headers = {"Content-Type": "application/json",
-                   "Accept": "application/json"}
-        request = urllib2.Request(self.url + "/" + self.name + "/subgraph",
-                                  payload,
-                                  headers=headers)
-        response = do_request(request)
-        result = response.read()
-        return json.loads(result)
-
     def bulkAdd(self):
         return BulkAdd(self.url, self.name)
 
@@ -295,7 +284,7 @@ class Graph:
         response = do_request(request)
         for result in response:
             d = json.loads(result)
-            yield d
+            yield d["aggregations"]
 
     def query(self):
         """
@@ -303,11 +292,11 @@ class Graph:
         """
         return Query(self.url + "/" + self.name + "/query")
 
-    def as_(self, name):
+    def mark(self, name):
         """
         Create mark step for match query
         """
-        return self.query().as_(name)
+        return self.query().mark(name)
 
 
 class BulkAdd:
@@ -466,13 +455,13 @@ class Query:
             label = [label]
         return self.__append({"both_edge": label})
 
-    def as_(self, name):
+    def mark(self, name):
         """
         Mark the current vertex/edge with the given name.
 
         Used to return elements from select().
         """
-        return self.__append({"as": name})
+        return self.__append({"mark": name})
 
     def select(self, marks):
         """
@@ -489,7 +478,7 @@ class Query:
         """
         if not isinstance(marks, list):
             marks = [marks]
-        return self.__append({"select": {"labels": marks}})
+        return self.__append({"select": {"marks": marks}})
 
     def limit(self, n):
         """
@@ -582,11 +571,22 @@ class Query:
         response = do_request(request)
         for result in response:
             try:
+                # print(result)
                 d = json.loads(result)
-                if "value" in d:
-                    yield d["value"]
-                elif "row" in d:
-                    yield d["row"]
+                if "vertex" in d:
+                    yield d["vertex"]
+                elif "edge" in d:
+                    yield d["edge"]
+                elif "aggregations" in d:
+                    yield d["aggregations"]["aggregations"]
+                elif "selections" in d:
+                    yield d["selections"]["selections"]
+                elif "render" in d:
+                        yield d["render"]
+                elif "count" in d:
+                        yield d
+                else:
+                    yield d
             except ValueError as e:
                 print("Can't decode: %s" % (result))
                 raise e

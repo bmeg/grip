@@ -96,10 +96,10 @@ func (gh *graphHandler) setup() {
 func getObjects(client aql.Client, gqlDB string) map[string]map[string]interface{} {
 	out := map[string]map[string]interface{}{}
 	q := aql.V().Where(aql.Eq("label", "Object"))
-	results, _ := client.Execute(gqlDB, q)
+	results, _ := client.Traversal(&aql.GraphQuery{Graph: gqlDB, Query: q.Statements})
 	for elem := range results {
-		d := elem.GetValue().GetVertex().GetDataMap()
-		out[elem.GetValue().GetVertex().Gid] = d
+		d := elem.GetVertex().GetDataMap()
+		out[elem.GetVertex().Gid] = d
 	}
 	return out
 }
@@ -131,12 +131,12 @@ func (f objectField) toGQL(client aql.Client, dataGraph string, objects map[stri
 				srcGid := srcMap["__gid"].(string)
 				//log.Printf("Scanning edge from %s out '%s'", srcGid, lField.label)
 				q := aql.V(srcGid).Both(f.edgeLabel)
-				result, _ := client.Execute(dataGraph, q)
+				result, _ := client.Traversal(&aql.GraphQuery{Graph: dataGraph, Query: q.Statements})
 				out := []interface{}{}
 				for r := range result {
 					//log.Printf("Results: %s", r)
-					i := r.GetValue().GetVertex().GetDataMap()
-					i["__gid"] = r.GetValue().GetVertex().Gid
+					i := r.GetVertex().GetDataMap()
+					i["__gid"] = r.GetVertex().Gid
 					out = append(out, i)
 				}
 				return out, nil
@@ -172,10 +172,10 @@ func (f objectField) toGQL(client aql.Client, dataGraph string, objects map[stri
 			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 				log.Printf("Looking up ids: %s", f.dstType)
 				q := aql.V().Where(aql.Eq("label", f.dstType))
-				result, _ := client.Execute(dataGraph, q)
+				result, _ := client.Traversal(&aql.GraphQuery{Graph: dataGraph, Query: q.Statements})
 				out := []interface{}{}
 				for r := range result {
-					i := r.GetValue().GetVertex().Gid
+					i := r.GetVertex().Gid
 					out = append(out, i)
 				}
 				return out, nil
@@ -190,9 +190,9 @@ func (f objectField) toGQL(client aql.Client, dataGraph string, objects map[stri
 func getQueries(client aql.Client, gqlDB string) map[string]objectField {
 	out := map[string]objectField{}
 	q := aql.V().Where(aql.Eq("label", "Query"))
-	results, _ := client.Execute(gqlDB, q)
+	results, _ := client.Traversal(&aql.GraphQuery{Graph: gqlDB, Query: q.Statements})
 	for elem := range results {
-		d := elem.GetValue().GetVertex().Gid
+		d := elem.GetVertex().Gid
 		for k, v := range getObjectFields(client, gqlDB, d) {
 			out[k] = v
 		}
@@ -202,24 +202,23 @@ func getQueries(client aql.Client, gqlDB string) map[string]objectField {
 
 func getObjectFields(client aql.Client, gqlDB string, queryGID string) map[string]objectField {
 	out := map[string]objectField{}
-	q := aql.V(queryGID).OutEdge("field").As("a").Out().As("b").Select("a", "b")
-	results, _ := client.Execute(gqlDB, q)
+	q := aql.V(queryGID).OutEdge("field").Mark("a").Out().Mark("b").Select("a", "b")
+	results, _ := client.Traversal(&aql.GraphQuery{Graph: gqlDB, Query: q.Statements})
 	for elem := range results {
-		//log.Printf("objectField: %s %s %s", queryGID, elem.GetRow()[0], elem.GetRow()[1].GetVertex().Gid)
-		fieldName := elem.GetRow()[0].GetEdge().GetProperty("name")
+		fieldName := elem.GetSelections().Selections["a"].GetEdge().GetProperty("name")
 		if fieldName != nil {
 			if fieldNameStr, ok := fieldName.(string); ok {
-				fieldObj := elem.GetRow()[1].GetVertex().Gid
+				fieldObj := elem.GetSelections().Selections["b"].GetVertex().Gid
 				label := fieldNameStr
-				if elem.GetRow()[0].GetEdge().HasProperty("label") {
-					l := elem.GetRow()[0].GetEdge().GetProperty("label")
+				if elem.GetSelections().Selections["a"].GetEdge().HasProperty("label") {
+					l := elem.GetSelections().Selections["a"].GetEdge().GetProperty("label")
 					if lStr, ok := l.(string); ok {
 						label = lStr
 					}
 				}
 				t := objectList
-				if elem.GetRow()[0].GetEdge().HasProperty("type") {
-					tp := elem.GetRow()[0].GetEdge().GetProperty("type")
+				if elem.GetSelections().Selections["a"].GetEdge().HasProperty("type") {
+					tp := elem.GetSelections().Selections["a"].GetEdge().GetProperty("type")
 					if tf, ok := tp.(string); ok {
 						if tf == "idList" {
 							t = idList
@@ -237,7 +236,7 @@ func getObjectFields(client aql.Client, gqlDB string, queryGID string) map[strin
 				log.Printf("Field name is not string")
 			}
 		} else {
-			log.Printf("Edge missing name parameter: %#v", elem.GetRow()[0].GetEdge())
+			log.Printf("Edge missing name parameter: %#v", elem.GetSelections().Selections["a"].GetEdge())
 		}
 	}
 	return out

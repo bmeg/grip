@@ -21,10 +21,10 @@ def test_match_count(O):
     O.addEdge("4", "5", "created", {"weight": 1.0})
 
     query = O.query().V().match([
-        O.as_('a').out('created').as_('b'),
-        O.as_('b').where(aql.eq('$.name', 'lop')),
-        O.as_('b').in_('created').as_('c'),
-        O.as_('c').where(aql.eq('$.age', "29"))
+        O.mark('a').out('created').mark('b'),
+        O.mark('b').where(aql.eq('$.name', 'lop')),
+        O.mark('b').in_('created').mark('c'),
+        O.mark('c').where(aql.eq('$.age', "29"))
     ]).select(['a', 'c'])
 
     count = 0
@@ -33,7 +33,7 @@ def test_match_count(O):
         if len(row) != 2:
             errors.append("Incorrect number of marks returned in row")
             continue
-        if row[1]['vertex']['data']['name'] != "marko":
+        if row["c"]['vertex']['data']['name'] != "marko":
             errors.append("Incorrect return")
 
     if count != 3:
