@@ -7,7 +7,10 @@ import (
 	"strings"
 
 	"github.com/bmeg/arachne/aql"
+	_ "github.com/bmeg/arachne/jsengine/goja" // import goja so it registers with the driver map
+	_ "github.com/bmeg/arachne/jsengine/otto" // import otto so it registers with the driver map
 	"github.com/bmeg/arachne/jsengine/underscore"
+	_ "github.com/bmeg/arachne/jsengine/v8" // import v8 so it registers with the driver map
 	"github.com/dop251/goja"
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/spf13/cobra"

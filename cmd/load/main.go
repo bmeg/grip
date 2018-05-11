@@ -3,6 +3,7 @@ package load
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"strings"
@@ -95,6 +96,9 @@ var Cmd = &cobra.Command{
 			for line := range reader {
 				v := aql.Vertex{}
 				err := m.Unmarshal(strings.NewReader(string(line)), &v)
+				if err == io.EOF {
+					break
+				}
 				if err != nil {
 					return fmt.Errorf("failed to unmarshal vertex: %v", err)
 				}
@@ -118,6 +122,9 @@ var Cmd = &cobra.Command{
 			for line := range reader {
 				e := aql.Edge{}
 				err := m.Unmarshal(strings.NewReader(string(line)), &e)
+				if err == io.EOF {
+					break
+				}
 				if err != nil {
 					return fmt.Errorf("failed to unmarshal vertex: %v", err)
 				}
