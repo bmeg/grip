@@ -107,7 +107,7 @@ print list(O.query().E().count())
 print list(O.query().V("B00000I06U").outEdge())
 
 # Find every Book that is similar to a DVD
-for a in O.query().V().where(aql.eq("$.group", "Book")).as_("a").out("similar").where(aql.eq("$.group", "DVD")).as_("b").select(["a", "b"]):
+for a in O.query().V().where(aql.eq("group", "Book")).mark("a").out("similar").where(aql.eq("group", "DVD")).mark("b").select(["a", "b"]):
     print a
 ```
 
@@ -165,9 +165,9 @@ O = conn.graph("test-data")
 # Print out expression data of all Stage IIA samples
 for row in O.query().\
     V().\
-    where(aql.and_(aql.eq("$.label", "Sample"), aql.eq("pathologic_stage", "Stage IIA"))).\
+    where(aql.and_(aql.eq("_label", "Sample"), aql.eq("pathologic_stage", "Stage IIA"))).\
     out("has").\
-    where(aql.eq("$.label", "Data:expression"):
+    where(aql.eq("_label", "Data:expression"):
   print row
 ```
 
