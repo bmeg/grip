@@ -50,7 +50,10 @@ func Start(conf *config.Config) error {
 
 	_, err = os.Stat(conf.Server.WorkDir)
 	if os.IsNotExist(err) {
-		os.Mkdir(conf.Server.WorkDir, 0700)
+		err = os.Mkdir(conf.Server.WorkDir, 0700)
+		if err != nil {
+			return err
+		}
 	}
 
 	server := graphserver.NewArachneServer(db, conf.Server.WorkDir, conf.Server.ReadOnly)
@@ -71,9 +74,15 @@ func Start(conf *config.Config) error {
 		proxy.Stop()
 	}()
 
-	proxy.Run()
-	log.Printf("Server Stopped, closing database")
-	server.CloseDB()
+	err = proxy.Run()
+	if err != nil {
+		log.Printf("Server error: %v", err)
+	}
+	log.Printf("Server stopped; closing database")
+	err = server.CloseDB()
+	if err != nil {
+		log.Printf("Failed to close database: %v", err)
+	}
 	return nil
 }
 

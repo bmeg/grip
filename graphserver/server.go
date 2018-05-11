@@ -60,8 +60,8 @@ func (server *ArachneServer) Start(hostPort string) error {
 }
 
 // CloseDB tells the driver to close connection or file
-func (server *ArachneServer) CloseDB() {
-	server.db.Close()
+func (server *ArachneServer) CloseDB() error {
+	return server.db.Close()
 }
 
 // Traversal parses a traversal request and streams the results back
