@@ -248,12 +248,13 @@ Given the following example data:
 
 | jsonpath                   | result              |
 | :------------------------- | :------------------ |
-| $.gid                      | 111                 |
-| $.label                    | "variant"           |
-| $.type                     | "deletion"          |
-| $.publications[0].pmid     | 29480828            |
-| $.publications.pmid        | [29480828, 23666017] |
-| $gene.data.symbol.ensembl  | "ENSG00000012048"   |
+| _gid                      | 111                 |
+| _label                    | "variant"           |
+| type                     | "deletion"          |
+| publications[0].pmid     | 29480828            |
+| publications.pmid        | [29480828, 23666017] |
+| $gene._gid               | 1   |
+| $gene._data.symbol.ensembl  | "ENSG00000012048"   |
 | $gene.symbol.ensembl       | "ENSG00000012048"   |
 | $gene.transcripts[0]       | "ENST00000471181.7" |
 | $gene.transcripts[0:1]     | ["ENST00000471181.7", "ENST00000357654.8"] |

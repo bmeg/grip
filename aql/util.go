@@ -1,6 +1,7 @@
 package aql
 
 import (
+	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -49,19 +50,15 @@ func (vertex *Vertex) HasProperty(key string) bool {
 // Validate returns an error if the vertex is invalid
 func (vertex *Vertex) Validate() error {
 	if vertex.Gid == "" {
-		return fmt.Errorf("'gid' cannot be blank")
+		return errors.New("'gid' cannot be blank")
 	}
 	if vertex.Label == "" {
-		return fmt.Errorf("'label' cannot be blank")
+		return errors.New("'label' cannot be blank")
 	}
 	for k := range vertex.GetDataMap() {
-		for _, v := range []string{"gid", "label", "to", "from", "data"} {
-			if k == v {
-				return fmt.Errorf("data field '%s' uses a reserved name", k)
-			}
-		}
-		if strings.Contains(k, ".") {
-			return fmt.Errorf("data field '%s' invalid; fields cannot contain periods", k)
+		err := ValidateFieldName(k)
+		if err != nil {
+			return err
 		}
 	}
 	return nil
@@ -107,25 +104,21 @@ func (edge *Edge) HasProperty(key string) bool {
 // Validate returns an error if the edge is invalid
 func (edge *Edge) Validate() error {
 	if edge.Gid == "" {
-		return fmt.Errorf("'gid' cannot be blank")
+		return errors.New("'gid' cannot be blank")
 	}
 	if edge.Label == "" {
-		return fmt.Errorf("'label' cannot be blank")
+		return errors.New("'label' cannot be blank")
 	}
 	if edge.From == "" {
-		return fmt.Errorf("'from' cannot be blank")
+		return errors.New("'from' cannot be blank")
 	}
 	if edge.To == "" {
-		return fmt.Errorf("'to' cannot be blank")
+		return errors.New("'to' cannot be blank")
 	}
 	for k := range edge.GetDataMap() {
-		for _, v := range []string{"gid", "label", "to", "from", "data"} {
-			if k == v {
-				return fmt.Errorf("data field '%s' uses a reserved name", k)
-			}
-		}
-		if strings.Contains(k, ".") {
-			return fmt.Errorf("data field '%s' invalid; fields cannot contain periods", k)
+		err := ValidateFieldName(k)
+		if err != nil {
+			return err
 		}
 	}
 	return nil
@@ -155,7 +148,7 @@ func (aggRes *AggregationResultBucket) AsMap() map[string]interface{} {
 // and returns the index of the insertion
 func (aggRes *AggregationResult) SortedInsert(el *AggregationResultBucket) (int, error) {
 	if !aggRes.IsValueSorted() {
-		return 0, fmt.Errorf("buckets are not value sorted")
+		return 0, errors.New("buckets are not value sorted")
 	}
 
 	if len(aggRes.Buckets) == 0 {
@@ -217,11 +210,36 @@ func (aggRes *AggregationResult) IsValueSorted() bool {
 
 // ValidateGraphName returns an error if the graph name is invalid
 func ValidateGraphName(graph string) error {
-	if strings.ContainsAny(graph, `/\. "'$*<>:|?`) {
-		return fmt.Errorf(`invalid name; cannot contain /\. "'$*<>:|?`)
+	err := validate(graph)
+	if err != nil {
+		return fmt.Errorf(`invalid graph name %s; %v`, graph, err)
 	}
-	if strings.HasPrefix(graph, "_") || strings.HasPrefix(graph, "+") || strings.HasPrefix(graph, "-") {
-		return fmt.Errorf(`invalid name; cannot start with _-+`)
+	return nil
+}
+
+// ReservedFields are the fields that cannot be used as keys within the data of a vertex or edge
+var ReservedFields = []string{"_gid", "_label", "_to", "_from", "_data"}
+
+// ValidateFieldName returns an error if the data field name is invalid
+func ValidateFieldName(k string) error {
+	for _, v := range ReservedFields {
+		if k == v {
+			return fmt.Errorf("data field '%s' uses a reserved name", k)
+		}
+	}
+	err := validate(k)
+	if err != nil {
+		return fmt.Errorf(`invalid data field '%s'; %v`, k, err)
+	}
+	return nil
+}
+
+func validate(k string) error {
+	if strings.ContainsAny(k, `!@#$%^&*()+={}[] :;"',.<>?/\|~`) {
+		return errors.New(`cannot contain: !@#$%^&*()+={}[] :;"',.<>?/\|~`)
+	}
+	if strings.HasPrefix(k, "_") || strings.HasPrefix(k, "-") {
+		return errors.New(`cannot start with _-`)
 	}
 	return nil
 }

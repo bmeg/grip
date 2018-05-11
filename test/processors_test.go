@@ -291,7 +291,7 @@ func pickAllEdges() checker {
 	return compare(expect)
 }
 
-func pickselection(selection map[string]interface{}) checker {	
+func pickselection(selection map[string]interface{}) checker {
 	s := map[string]*aql.Selection{}
 	for mark, ival := range selection {
 		switch val := ival.(type) {
@@ -325,7 +325,7 @@ func count(i uint32) checker {
 	expect := []*aql.QueryResult{
 		{
 			Result: &aql.QueryResult_Count{
-				Count: i, 
+				Count: i,
 			},
 		},
 	}
