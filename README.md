@@ -246,18 +246,18 @@ Given the following example data:
 }
 ```
 
-| jsonpath                   | result              |
-| :------------------------- | :------------------ |
-| _gid                      | 111                 |
-| _label                    | "variant"           |
+| jsonpath                 | result              |
+| :----------------------- | :------------------ |
+| _gid                     | 111                 |
+| _label                   | "variant"           |
 | type                     | "deletion"          |
+| _data.type               | "deletion"          |
 | publications[0].pmid     | 29480828            |
-| publications.pmid        | [29480828, 23666017] |
-| $gene._gid               | 1   |
-| $gene._data.symbol.ensembl  | "ENSG00000012048"   |
-| $gene.symbol.ensembl       | "ENSG00000012048"   |
-| $gene.transcripts[0]       | "ENST00000471181.7" |
-| $gene.transcripts[0:1]     | ["ENST00000471181.7", "ENST00000357654.8"] |
+| publications[:].pmid     | [29480828, 23666017]|
+| $gene._gid               | 1                   |
+| $gene.symbol.ensembl     | "ENSG00000012048"   |
+| $gene.transcripts[0]     | "ENST00000471181.7" |
+| $gene.transcripts[0:1]   | ["ENST00000471181.7", "ENST00000357654.8"] |
 
 
 ## GraphQL

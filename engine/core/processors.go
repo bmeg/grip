@@ -13,6 +13,7 @@ import (
 	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/gdbi"
 	"github.com/bmeg/arachne/jsonpath"
+	"github.com/bmeg/arachne/kvi"
 	"github.com/bmeg/arachne/kvindex"
 	"github.com/bmeg/arachne/protoutil"
 	structpb "github.com/golang/protobuf/ptypes/struct"
@@ -811,14 +812,20 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 				field = strings.TrimPrefix(field, "$.")
 				idx.AddField(field)
 
-				for t := range aChans[a.Name] {
-					doc := jsonpath.GetDoc(t, namespace)
-					if doc["label"] == tagg.Label {
-						err := idx.AddDoc(doc["gid"].(string), doc)
-						if err != nil {
-							return err
+				err := kv.Update(func(tx kvi.KVTransaction) error {
+					for t := range aChans[a.Name] {
+						doc := jsonpath.GetDoc(t, namespace)
+						if doc["label"] == tagg.Label {
+							err := idx.AddDocTx(tx, doc["gid"].(string), doc)
+							if err != nil {
+								return err
+							}
 						}
 					}
+					return nil
+				})
+				if err != nil {
+					return err
 				}
 
 				aggOut := &aql.AggregationResult{
@@ -856,14 +863,20 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 				field = strings.TrimPrefix(field, "$.")
 				idx.AddField(field)
 
-				for t := range aChans[a.Name] {
-					doc := jsonpath.GetDoc(t, namespace)
-					if doc["label"] == hagg.Label {
-						err := idx.AddDoc(doc["gid"].(string), doc)
-						if err != nil {
-							return err
+				err := kv.Update(func(tx kvi.KVTransaction) error {
+					for t := range aChans[a.Name] {
+						doc := jsonpath.GetDoc(t, namespace)
+						if doc["label"] == hagg.Label {
+							err := idx.AddDocTx(tx, doc["gid"].(string), doc)
+							if err != nil {
+								return err
+							}
 						}
 					}
+					return nil
+				})
+				if err != nil {
+					return err
 				}
 
 				aggOut := &aql.AggregationResult{
@@ -899,14 +912,20 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 				field = strings.TrimPrefix(field, "$.")
 				idx.AddField(field)
 
-				for t := range aChans[a.Name] {
-					doc := jsonpath.GetDoc(t, namespace)
-					if doc["label"] == pagg.Label {
-						err := idx.AddDoc(doc["gid"].(string), doc)
-						if err != nil {
-							return err
+				err := kv.Update(func(tx kvi.KVTransaction) error {
+					for t := range aChans[a.Name] {
+						doc := jsonpath.GetDoc(t, namespace)
+						if doc["label"] == pagg.Label {
+							err := idx.AddDocTx(tx, doc["gid"].(string), doc)
+							if err != nil {
+								return err
+							}
 						}
 					}
+					return nil
+				})
+				if err != nil {
+					return err
 				}
 
 				aggOut := &aql.AggregationResult{

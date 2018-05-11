@@ -78,7 +78,6 @@ func (server *ArachneServer) Traversal(query *aql.GraphQuery, queryServer aql.Qu
 	}
 	res := engine.Run(queryServer.Context(), pipeline, server.workDir)
 	for row := range res {
-		log.Printf("%+v", row)
 		queryServer.Send(row)
 	}
 
