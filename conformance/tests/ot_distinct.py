@@ -24,13 +24,13 @@ def test_distinct(O):
         errors.append("Distinct %s != %s" % (count, 13))
 
     count = 0
-    for i in O.query().V().distinct("$.gid"):
+    for i in O.query().V().distinct("_gid"):
         count += 1
     if count != 13:
         errors.append("Distinct %s != %s" % (count, 13))
 
     count = 0
-    for i in O.query().V().distinct("$.name"):
+    for i in O.query().V().distinct("name"):
         count += 1
     if count != 11:
         errors.append("Distinct %s != %s" % (count, 11))

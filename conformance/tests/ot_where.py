@@ -21,33 +21,33 @@ def test_where_eq(O):
     setupGraph(O)
 
     count = 0
-    for i in O.query().V().where(aql.eq("$.gid", "vertex3")):
+    for i in O.query().V().where(aql.eq("_gid", "vertex3")):
         count += 1
         if i['gid'] != "vertex3":
             errors.append("Wrong vertex returned %s" % (i))
     if count != 1:
         errors.append(
-            "Fail: O.query().V().where(aql.eq(\"$.gid\", \"vertex3\")) %s != %s" %
+            "Fail: O.query().V().where(aql.eq(\"_gid\", \"vertex3\")) %s != %s" %
             (count, 1))
 
     count = 0
-    for i in O.query().V().where(aql.eq("$.label", "person")):
+    for i in O.query().V().where(aql.eq("_label", "person")):
         count += 1
         if i['label'] != "person":
             errors.append("Wrong vertex label %s" % (i['label']))
     if count != 4:
         errors.append(
-            "Fail: O.query().V().where(aql.eq(\"$.label\", \"person\")) %s != %s" %
+            "Fail: O.query().V().where(aql.eq(\"_label\", \"person\")) %s != %s" %
             (count, 4))
 
     count = 0
-    for i in O.query().V().where(aql.eq("$.occupation", "jedi")):
+    for i in O.query().V().where(aql.eq("occupation", "jedi")):
         count += 1
         if i['gid'] not in ["vertex2", "vertex5"]:
             errors.append("Wrong vertex returned %s" % (i))
     if count != 2:
         errors.append(
-            "Fail: O.query().V().where(aql.eq(\"$.occupation\", \"jedi\")) %s != %s" %
+            "Fail: O.query().V().where(aql.eq(\"occupation\", \"jedi\")) %s != %s" %
             (count, 2))
 
     return errors
@@ -58,33 +58,33 @@ def test_where_neq(O):
     setupGraph(O)
 
     count = 0
-    for i in O.query().V().where(aql.not_(aql.eq("$.gid", "vertex3"))):
+    for i in O.query().V().where(aql.not_(aql.eq("_gid", "vertex3"))):
         count += 1
         if i['gid'] == "vertex3":
             errors.append("Wrong vertex returned %s" % (i))
     if count != 5:
         errors.append(
-            "Fail: O.query().V().where(aql.not_(aql.eq(\"$.gid\", \"vertex3\"))) %s != %s" %
+            "Fail: O.query().V().where(aql.not_(aql.eq(\"_gid\", \"vertex3\"))) %s != %s" %
             (count, 5))
 
     count = 0
-    for i in O.query().V().where(aql.not_(aql.eq("$.label", "person"))):
+    for i in O.query().V().where(aql.not_(aql.eq("_label", "person"))):
         count += 1
         if i['label'] == "person":
             errors.append("Wrong vertex label %s" % (i['label']))
     if count != 2:
         errors.append(
-            "Fail: O.query().V().where(aql.not_(aql.eq(\"$.label\", \"person\"))) %s != %s" %
+            "Fail: O.query().V().where(aql.not_(aql.eq(\"_label\", \"person\"))) %s != %s" %
             (count, 2))
 
     count = 0
-    for i in O.query().V().where(aql.not_(aql.eq("$.occupation", "jedi"))):
+    for i in O.query().V().where(aql.not_(aql.eq("occupation", "jedi"))):
         count += 1
         if i['gid'] in ["vertex2", "vertex5"]:
             errors.append("Wrong vertex returned %s" % (i))
     if count != 4:
         errors.append(
-            "Fail: O.query().V().where(aql.not_(aql.eq(\"$.occupation\", \"jedi\"))) %s != %s" %
+            "Fail: O.query().V().where(aql.not_(aql.eq(\"occupation\", \"jedi\"))) %s != %s" %
             (count, 4))
 
     return errors
@@ -95,31 +95,31 @@ def test_where_in(O):
     setupGraph(O)
 
     count = 0
-    for i in O.query().V().where((aql.in_("$.occupation", ["jedi", "sith"]))):
+    for i in O.query().V().where((aql.in_("occupation", ["jedi", "sith"]))):
         count += 1
         if i['gid'] not in  ["vertex2", "vertex5", "vertex6"]:
             errors.append("Wrong vertex returned %s" % (i))
     if count != 3:
         errors.append(
-            "Fail: O.query().V().where((aql.in_(\"$.occupation\", [\"jedi\", \"sith\"]))) %s != %s" %
+            "Fail: O.query().V().where((aql.in_(\"occupation\", [\"jedi\", \"sith\"]))) %s != %s" %
             (count, 3))
 
     count = 0
-    for i in O.query().V().where((aql.in_("$.occupation", {"jedi": 0, "sith": 0}))):
+    for i in O.query().V().where((aql.in_("occupation", {"jedi": 0, "sith": 0}))):
         count += 1
         if i['gid'] not in  ["vertex2", "vertex5", "vertex6"]:
             errors.append("Wrong vertex returned %s" % (i))
     if count != 3:
         errors.append(
-            "Fail: O.query().V().where((aql.in_(\"$.occupation\", [\"jedi\", \"sith\"]))) %s != %s" %
+            "Fail: O.query().V().where((aql.in_(\"occupation\", [\"jedi\", \"sith\"]))) %s != %s" %
             (count, 3))
 
     count = 0
-    for i in O.query().V().where((aql.in_("$.occupation", 0))):
+    for i in O.query().V().where((aql.in_("occupation", 0))):
         count += 1
     if count != 0:
         errors.append(
-            "Fail: O.query().V().where((aql.in_(\"$.occupation\", [\"jedi\", \"sith\"]))) %s != %s" %
+            "Fail: O.query().V().where((aql.in_(\"occupation\", [\"jedi\", \"sith\"]))) %s != %s" %
             (count, 0))
 
     return errors
@@ -130,23 +130,23 @@ def test_where_contains(O):
     setupGraph(O)
 
     count = 0
-    for i in O.query().V().where((aql.contains("$.starships", "x-wing"))):
+    for i in O.query().V().where((aql.contains("starships", "x-wing"))):
         count += 1
-        if i['gid'] not in  ["vertex2"]:
+        if i['gid'] not in ["vertex2"]:
             errors.append("Wrong vertex returned %s" % (i))
     if count != 1:
         errors.append(
-            "Fail: O.query().V().where((aql.in_(\"$.occupation\", [\"jedi\", \"sith\"]))) %s != %s" %
+            "Fail: O.query().V().where((aql.contains(\"starships\", \"x-wing\"))) %s != %s" %
             (count, 1))
 
     count = 0
-    for i in O.query().V().where((aql.contains("$.data", "starships"))):
+    for i in O.query().V().where((aql.contains("_data", "starships"))):
         count += 1
         if i['gid'] not in ["vertex1", "vertex2", "vertex6"]:
             errors.append("Wrong vertex returned %s" % (i))
     if count != 3:
         errors.append(
-            "Fail: O.query().V().where((aql.in_(\"$.occupation\", [\"jedi\", \"sith\"]))) %s != %s" %
+            "Fail: O.query().V().where((aql.contains(\"starships\", \"x-wing\"))) %s != %s" %
             (count, 3))
 
     return errors
@@ -157,23 +157,23 @@ def test_where_gt(O):
     setupGraph(O)
 
     count = 0
-    for i in O.query().V().where(aql.gt("$.age", 35)):
+    for i in O.query().V().where(aql.gt("age", 35)):
         count += 1
         if i['gid'] not in ["vertex5", "vertex6"]:
             errors.append("Wrong vertex returned %s" % (i))
     if count != 2:
         errors.append(
-            "Fail: O.query().V().where(aql.gt(\"$.age\", 35)) %s != %s" %
+            "Fail: O.query().V().where(aql.gt(\"age\", 35)) %s != %s" %
             (count, 2))
 
     count = 0
-    for i in O.query().V().where(aql.gte("$.age", 35)):
+    for i in O.query().V().where(aql.gte("age", 35)):
         count += 1
         if i['gid'] not in ["vertex1", "vertex5", "vertex6"]:
             errors.append("Wrong vertex returned %s" % (i))
     if count != 3:
         errors.append(
-            "Fail: O.query().V().where(aql.gte(\"$.age\", 35)) %s != %s" %
+            "Fail: O.query().V().where(aql.gte(\"age\", 35)) %s != %s" %
             (count, 3))
 
     return errors
@@ -184,23 +184,23 @@ def test_where_lt(O):
     setupGraph(O)
 
     count = 0
-    for i in O.query().V().where(aql.lt("$.age", 35)):
+    for i in O.query().V().where(aql.lt("age", 35)):
         count += 1
         if i['gid'] not in ["vertex2"]:
             errors.append("Wrong vertex returned %s" % (i))
     if count != 1:
         errors.append(
-            "Fail: O.query().V().where(aql.gt(\"$.age\", 35)) %s != %s" %
+            "Fail: O.query().V().where(aql.gt(\"age\", 35)) %s != %s" %
             (count, 1))
 
     count = 0
-    for i in O.query().V().where(aql.lte("$.age", 35)):
+    for i in O.query().V().where(aql.lte("age", 35)):
         count += 1
         if i['gid'] not in ["vertex1", "vertex2",]:
             errors.append("Wrong vertex returned %s" % (i))
     if count != 2:
         errors.append(
-            "Fail: O.query().V().where(aql.gte(\"$.age\", 35)) %s != %s" %
+            "Fail: O.query().V().where(aql.gte(\"age\", 35)) %s != %s" %
             (count, 2))
 
     return errors
@@ -212,16 +212,16 @@ def test_where_complex(O):
 
     count = 0
     for i in O.query().V().where(aql.and_(
-            aql.eq("$.label", "person"),
-            aql.not_(aql.or_(aql.eq("$.occupation", "jedi"),
-                             aql.eq("$.occupation", "sith")))
+            aql.eq("_label", "person"),
+            aql.not_(aql.or_(aql.eq("occupation", "jedi"),
+                             aql.eq("occupation", "sith")))
     )):
         count += 1
         if i['gid'] != "vertex1":
             errors.append("Wrong vertex returned %s" % (i))
     if count != 1:
         errors.append(
-            "Fail: O.query().V().where(aql.and_(aql.eq(\"$.label\", \"person\"), aql.not_(aql.eq(\"$.occupation\", \"jedi\")))) %s != %s" %
+            "Fail: O.query().V().where(aql.and_(aql.eq(\"_label\", \"person\"), aql.not_(aql.eq(\"occupation\", \"jedi\")))) %s != %s" %
             (count, 1)
         )
 
