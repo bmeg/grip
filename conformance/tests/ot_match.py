@@ -33,7 +33,7 @@ def test_match_count(O):
         if len(row) != 2:
             errors.append("Incorrect number of marks returned in row")
             continue
-        if row["c"]['vertex']['data']['name'] != "marko":
+        if row["c"]['data']['name'] != "marko":
             errors.append("Incorrect return")
 
     if count != 3:

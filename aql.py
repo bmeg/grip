@@ -586,7 +586,13 @@ class Query:
                 elif "aggregations" in d:
                     yield d["aggregations"]["aggregations"]
                 elif "selections" in d:
-                    yield d["selections"]["selections"]
+                    d = d["selections"]["selections"]
+                    for k in d:
+                        if "vertex" in d[k]:
+                            d[k] = d[k]["vertex"]
+                        elif "edge" in d[k]:
+                            d[k] = d[k]["edge"]
+                    yield d
                 elif "render" in d:
                         yield d["render"]
                 elif "count" in d:
