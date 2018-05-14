@@ -47,12 +47,17 @@ func TestFloatSorting(t *testing.T) {
 
 	last := -10000.0
 	log.Printf("Scanning")
+	count := 0
 	for d := range idx.FieldNumbers("value") {
 		if d < last {
 			t.Errorf("Incorrect field return order: %f < %f", d, last)
 		}
 		last = d
+		count++
 		log.Printf("Scan, %f", d)
+	}
+	if count != len(data) {
+		t.Errorf("Incorrect number of values returned: %v != %v", count, len(data))
 	}
 
 	if v := idx.FieldTermNumberMin("value"); v != -200.0 {

@@ -194,7 +194,6 @@ def test_traversal_histogram_aggregation(O):
     count = 0
     for row in O.query().V("1").out().aggregate(aql.histogram("traversal-agg", "Person", "age", 5)):
         count += 1
-        
         if 'traversal-agg' not in row:
             errors.append("Result had Incorrect aggregation name")
             return errors

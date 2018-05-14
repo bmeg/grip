@@ -419,15 +419,16 @@ func (idx *KVIndex) FieldNumbers(field string) chan float64 {
 		defer close(out)
 		idx.kv.View(func(it kvi.KVIterator) error {
 			//check negative
+			prefix := EntryPrefix(field)
 			ninf := EntryValuePrefix(field, TermNumber, floatNegInfBytes)
 			inf := EntryValuePrefix(field, TermNumber, floatPosInfBytes)
 			zero := EntryValuePrefix(field, TermNumber, floatZeroBytes)
-			for it.SeekReverse(ninf); it.Valid() && bytes.Compare(inf, it.Key()) < 0; it.Next() {
+			for it.SeekReverse(ninf); it.Valid() && bytes.HasPrefix(it.Key(), prefix) && bytes.Compare(inf, it.Key()) < 0; it.Next() {
 				_, _, term := TermKeyParse(it.Key())
 				val := GetBytesTerm(term, TermNumber).(float64)
 				out <- val
 			}
-			for it.Seek(zero); it.Valid() && bytes.Compare(inf, it.Key()) > 0; it.Next() {
+			for it.Seek(zero); it.Valid() && bytes.HasPrefix(it.Key(), prefix) && bytes.Compare(inf, it.Key()) > 0; it.Next() {
 				_, _, term := TermKeyParse(it.Key())
 				val := GetBytesTerm(term, TermNumber).(float64)
 				out <- val

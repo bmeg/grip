@@ -779,19 +779,31 @@ type aggregate struct {
 }
 
 func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
-	aChans := make(map[string](chan *gdbi.Traveler))
+	aChans := make(map[string](chan []*gdbi.Traveler))
 	g, ctx := errgroup.WithContext(ctx)
 
 	go func() {
 		for _, a := range agg.aggregations {
-			aChans[a.Name] = make(chan *gdbi.Traveler, 100)
+			aChans[a.Name] = make(chan []*gdbi.Traveler, 100)
 			defer close(aChans[a.Name])
 		}
 
+		batchSize := 100
+		i := 0
+		batch := []*gdbi.Traveler{}
 		for t := range in {
-			for _, a := range agg.aggregations {
-				aChans[a.Name] <- t
+			if i == batchSize {
+				for _, a := range agg.aggregations {
+					aChans[a.Name] <- batch
+				}
+				i = 0
+				batch = []*gdbi.Traveler{}
 			}
+			batch = append(batch, t)
+			i++
+		}
+		for _, a := range agg.aggregations {
+			aChans[a.Name] <- batch
 		}
 		return
 	}()
@@ -812,20 +824,22 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 				field = strings.TrimPrefix(field, "$.")
 				idx.AddField(field)
 
-				err := kv.Update(func(tx kvi.KVTransaction) error {
-					for t := range aChans[a.Name] {
-						doc := jsonpath.GetDoc(t, namespace)
-						if doc["label"] == tagg.Label {
-							err := idx.AddDocTx(tx, doc["gid"].(string), doc)
-							if err != nil {
-								return err
+				for batch := range aChans[a.Name] {
+					err := kv.Update(func(tx kvi.KVTransaction) error {
+						for _, t := range batch {
+							doc := jsonpath.GetDoc(t, namespace)
+							if doc["label"] == tagg.Label {
+								err := idx.AddDocTx(tx, doc["gid"].(string), doc)
+								if err != nil {
+									return err
+								}
 							}
 						}
+						return nil
+					})
+					if err != nil {
+						return err
 					}
-					return nil
-				})
-				if err != nil {
-					return err
 				}
 
 				aggOut := &aql.AggregationResult{
@@ -863,20 +877,22 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 				field = strings.TrimPrefix(field, "$.")
 				idx.AddField(field)
 
-				err := kv.Update(func(tx kvi.KVTransaction) error {
-					for t := range aChans[a.Name] {
-						doc := jsonpath.GetDoc(t, namespace)
-						if doc["label"] == hagg.Label {
-							err := idx.AddDocTx(tx, doc["gid"].(string), doc)
-							if err != nil {
-								return err
+				for batch := range aChans[a.Name] {
+					err := kv.Update(func(tx kvi.KVTransaction) error {
+						for _, t := range batch {
+							doc := jsonpath.GetDoc(t, namespace)
+							if doc["label"] == hagg.Label {
+								err := idx.AddDocTx(tx, doc["gid"].(string), doc)
+								if err != nil {
+									return err
+								}
 							}
 						}
+						return nil
+					})
+					if err != nil {
+						return err
 					}
-					return nil
-				})
-				if err != nil {
-					return err
 				}
 
 				aggOut := &aql.AggregationResult{
@@ -912,20 +928,22 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 				field = strings.TrimPrefix(field, "$.")
 				idx.AddField(field)
 
-				err := kv.Update(func(tx kvi.KVTransaction) error {
-					for t := range aChans[a.Name] {
-						doc := jsonpath.GetDoc(t, namespace)
-						if doc["label"] == pagg.Label {
-							err := idx.AddDocTx(tx, doc["gid"].(string), doc)
-							if err != nil {
-								return err
+				for batch := range aChans[a.Name] {
+					err := kv.Update(func(tx kvi.KVTransaction) error {
+						for _, t := range batch {
+							doc := jsonpath.GetDoc(t, namespace)
+							if doc["label"] == pagg.Label {
+								err := idx.AddDocTx(tx, doc["gid"].(string), doc)
+								if err != nil {
+									return err
+								}
 							}
 						}
+						return nil
+					})
+					if err != nil {
+						return err
 					}
-					return nil
-				})
-				if err != nil {
-					return err
 				}
 
 				aggOut := &aql.AggregationResult{
