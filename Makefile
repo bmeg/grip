@@ -20,6 +20,7 @@ install: depends
 depends:
 	@git submodule update --init --recursive
 	@go get -d .
+	@go get github.com/stretchr/testify/assert
 
 # Build the code including the rocksdb package
 with-rocksdb: depends
@@ -71,7 +72,6 @@ lint:
 # Tests
 # ---------------------
 test:
-	@go get github.com/stretchr/testify/assert
 	@go test $(TESTS)
 
 test-conformance:
