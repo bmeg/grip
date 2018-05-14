@@ -19,12 +19,11 @@ install: depends
 # Update submodules and build code
 depends:
 	@git submodule update --init --recursive
-	@go get -d .
-	@go get github.com/stretchr/testify/assert
+	@go get github.com/golang/dep/cmd/dep
+	@dep ensure
 
 # Build the code including the rocksdb package
 with-rocksdb: depends
-	@go get github.com/tecbot/gorocksdb
 	@go install -tags 'rocksdb' .
 
 # --------------------------
