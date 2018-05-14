@@ -199,7 +199,7 @@ func (ma *Mongo) GetGraphs() []string {
 		out = append(out, result["_id"].(string))
 	}
 	if err := iter.Err(); err != nil {
-		log.Printf("Error: %s", err)
+		log.Println("GetGraphs error:", err)
 	}
 
 	return out
@@ -427,6 +427,9 @@ func (mg *Graph) GetVertexList(ctx context.Context, load bool) <-chan *aql.Verte
 			v := UnpackVertex(result)
 			o <- v
 		}
+		if err := iter.Err(); err != nil {
+			log.Println("GetVertexList error:", err)
+		}
 	}()
 
 	return o
@@ -458,6 +461,9 @@ func (mg *Graph) GetEdgeList(ctx context.Context, loadProp bool) <-chan *aql.Edg
 				e := UnpackEdge(result)
 				o <- e
 			}
+		}
+		if err := iter.Err(); err != nil {
+			log.Println("GetEdgeList error:", err)
 		}
 	}()
 	return o
@@ -497,9 +503,6 @@ func (mg *Graph) GetVertexChannel(ids chan gdbi.ElementLookup, load bool) chan g
 				q = q.Select(map[string]interface{}{"_id": 1, "label": 1})
 			}
 			iter := q.Iter()
-			if iter.Err() != nil {
-				log.Printf("batch err: %s", iter.Err())
-			}
 			defer iter.Close()
 			chunk := map[string]*aql.Vertex{}
 			result := map[string]interface{}{}
@@ -507,7 +510,9 @@ func (mg *Graph) GetVertexChannel(ids chan gdbi.ElementLookup, load bool) chan g
 				v := UnpackVertex(result)
 				chunk[v.Gid] = v
 			}
-
+			if err := iter.Err(); err != nil {
+				log.Println("GetVertexChannel error:", err)
+			}
 			for _, id := range batch {
 				if x, ok := chunk[id.ID]; ok {
 					id.Vertex = x
@@ -576,6 +581,9 @@ func (mg *Graph) GetOutChannel(reqChan chan gdbi.ElementLookup, load bool, edgeL
 					log.Printf("Out error: %s", result["dst"])
 				}
 			}
+			if err := iter.Err(); err != nil {
+				log.Println("GetOutChannel error:", err)
+			}
 		}
 	}()
 	return o
@@ -636,7 +644,7 @@ func (mg *Graph) GetInChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLa
 				}
 			}
 			if err := iter.Err(); err != nil {
-				log.Printf("Iteration error %s", err)
+				log.Println("GetInChannel error:", err)
 			}
 		}
 	}()
@@ -687,7 +695,9 @@ func (mg *Graph) GetOutEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, e
 					ri.Edge = e
 					o <- ri
 				}
-
+			}
+			if err := iter.Err(); err != nil {
+				log.Println("GetOutEdgeChannel error:", err)
 			}
 		}
 	}()
@@ -739,6 +749,9 @@ func (mg *Graph) GetInEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, ed
 					ri.Edge = e
 					o <- ri
 				}
+			}
+			if err := iter.Err(); err != nil {
+				log.Println("GetInEdgeChannel error:", err)
 			}
 		}
 	}()

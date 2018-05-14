@@ -67,6 +67,9 @@ func (mg *Graph) GetVertexIndexList() chan aql.IndexID {
 		for iter.Next(&res) {
 			labels = append(labels, res["_id"].(string))
 		}
+		if err := iter.Err(); err != nil {
+			log.Println("GetVertexIndexList error:", err)
+		}
 
 		// list indexed fields
 		idxList, err := c.Indexes()
@@ -284,6 +287,10 @@ func (mg *Graph) VertexLabelScan(ctx context.Context, label string) chan string 
 				out <- id.(string)
 			}
 		}
+		if err := iter.Err(); err != nil {
+			log.Println("VertexLabelScan error:", err)
+		}
+
 	}()
 	return out
 }
