@@ -2,9 +2,10 @@ package jsonpath
 
 import (
 	"fmt"
-	"log"
+	//"log"
 	"strings"
 
+	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/gdbi"
 	"github.com/oliveagle/jsonpath"
 )
@@ -39,9 +40,15 @@ func GetJSONPath(path string) string {
 		parts = parts[1:]
 	}
 
-	de := &gdbi.DataElement{}
-	dmap := de.ToDict()
-	if _, ok := dmap[parts[0]]; !ok {
+	found := false
+	for _, v := range aql.ReservedFields {
+		if parts[0] == v {
+			found = true
+			parts[0] = strings.TrimPrefix(parts[0], "_")
+		}
+	}
+
+	if !found {
 		parts = append([]string{"data"}, parts...)
 	}
 
@@ -121,7 +128,7 @@ func TravelerPathLookup(traveler *gdbi.Traveler, path string) interface{} {
 	doc := GetDoc(traveler, namespace)
 	res, err := jsonpath.JsonPathLookup(doc, field)
 	if err != nil {
-		log.Println("err", err, "field", field)
+		// log.Println("err", err, "field", field)
 		return nil
 	}
 	return res

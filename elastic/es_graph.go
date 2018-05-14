@@ -238,7 +238,7 @@ func (es *Graph) GetEdgeList(ctx context.Context, load bool) <-chan *aql.Edge {
 	g, ctx := errgroup.WithContext(ctx)
 	g.Go(func() error {
 		defer close(hits)
-		scroll := es.client.Scroll(es.edgeIndex).Size(100)
+		scroll := es.client.Scroll(es.edgeIndex).Sort("gid", true).Size(100)
 		if !load {
 			scroll = scroll.FetchSource(true).FetchSourceContext(excludeData)
 		}
@@ -264,27 +264,25 @@ func (es *Graph) GetEdgeList(ctx context.Context, load bool) <-chan *aql.Edge {
 	})
 
 	// 2nd goroutine receives hits and deserializes them.
-	for i := 0; i < 10; i++ {
-		g.Go(func() error {
-			for hit := range hits {
-				select {
-				default:
-					// Deserialize
-					edge := &aql.Edge{}
-					err := jsonpb.Unmarshal(bytes.NewReader(hit), edge)
-					if err != nil {
-						return err
-					}
-					o <- edge
-
-				case <-ctx.Done():
-					return ctx.Err()
+	g.Go(func() error {
+		for hit := range hits {
+			select {
+			default:
+				// Deserialize
+				edge := &aql.Edge{}
+				err := jsonpb.Unmarshal(bytes.NewReader(hit), edge)
+				if err != nil {
+					return err
 				}
-			}
+				o <- edge
 
-			return nil
-		})
-	}
+			case <-ctx.Done():
+				return ctx.Err()
+			}
+		}
+
+		return nil
+	})
 
 	// Check whether any goroutines failed.
 	go func() {
@@ -307,7 +305,7 @@ func (es *Graph) GetVertexList(ctx context.Context, load bool) <-chan *aql.Verte
 	g, ctx := errgroup.WithContext(ctx)
 	g.Go(func() error {
 		defer close(hits)
-		scroll := es.client.Scroll(es.vertexIndex).Size(100)
+		scroll := es.client.Scroll(es.vertexIndex).Sort("gid", true).Size(100)
 		if !load {
 			scroll = scroll.FetchSource(true).FetchSourceContext(excludeData)
 		}
@@ -333,27 +331,25 @@ func (es *Graph) GetVertexList(ctx context.Context, load bool) <-chan *aql.Verte
 	})
 
 	// 2nd goroutine receives hits and deserializes them.
-	for i := 0; i < 10; i++ {
-		g.Go(func() error {
-			for hit := range hits {
-				select {
-				default:
-					// Deserialize
-					vertex := &aql.Vertex{}
-					err := jsonpb.Unmarshal(bytes.NewReader(hit), vertex)
-					if err != nil {
-						return fmt.Errorf("Failed to unmarshal vertex: %v", err)
-					}
-					o <- vertex
-
-				case <-ctx.Done():
-					return ctx.Err()
+	g.Go(func() error {
+		for hit := range hits {
+			select {
+			default:
+				// Deserialize
+				vertex := &aql.Vertex{}
+				err := jsonpb.Unmarshal(bytes.NewReader(hit), vertex)
+				if err != nil {
+					return fmt.Errorf("Failed to unmarshal vertex: %v", err)
 				}
-			}
+				o <- vertex
 
-			return nil
-		})
-	}
+			case <-ctx.Done():
+				return ctx.Err()
+			}
+		}
+
+		return nil
+	})
 
 	// Check whether any goroutines failed.
 	go func() {

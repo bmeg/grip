@@ -2,6 +2,8 @@ package load
 
 import (
 	"encoding/json"
+	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"strings"
@@ -14,7 +16,7 @@ import (
 )
 
 var host = "localhost:8202"
-var graph = "data"
+var graph string
 var vertexFile string
 var edgeFile string
 var jsonFile string
@@ -59,30 +61,47 @@ var Cmd = &cobra.Command{
 	Long:  ``,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		log.Printf("Loading Data")
+
+		if graph == "" {
+			return fmt.Errorf("must specify which graph to load data into")
+		}
+
 		conn, err := aql.Connect(host, true)
 		if err != nil {
 			return err
 		}
 
+		graphs := conn.GetGraphList()
+		if !found(graphs, graph) {
+			conn.AddGraph(graph)
+		}
+
+		m := jsonpb.Unmarshaler{AllowUnknownFields: true}
+		elemChan := make(chan *aql.GraphElement)
+		wait := make(chan bool)
+		go func() {
+			if err := conn.BulkAdd(elemChan); err != nil {
+				log.Printf("bulk add error: %s", err)
+			}
+			wait <- false
+		}()
+
 		if vertexFile != "" {
 			log.Printf("Loading %s", vertexFile)
 			reader, err := golib.ReadFileLines(vertexFile)
 			if err != nil {
-				log.Printf("Error: %s", err)
 				return err
 			}
 			count := 0
-			elemChan := make(chan *aql.GraphElement)
-			wait := make(chan bool)
-			go func() {
-				if err := conn.StreamElements(elemChan); err != nil {
-					log.Printf("Load Error: %s", err)
-				}
-				wait <- false
-			}()
 			for line := range reader {
 				v := aql.Vertex{}
-				jsonpb.Unmarshal(strings.NewReader(string(line)), &v)
+				err := m.Unmarshal(strings.NewReader(string(line)), &v)
+				if err == io.EOF {
+					break
+				}
+				if err != nil {
+					return fmt.Errorf("failed to unmarshal vertex: %v", err)
+				}
 				elemChan <- &aql.GraphElement{Graph: graph, Vertex: &v}
 				count++
 				if count%1000 == 0 {
@@ -90,9 +109,8 @@ var Cmd = &cobra.Command{
 				}
 			}
 			log.Printf("Loaded %d vertices", count)
-			close(elemChan)
-			<-wait
 		}
+
 		if edgeFile != "" {
 			log.Printf("Loading %s", edgeFile)
 			reader, err := golib.ReadFileLines(edgeFile)
@@ -101,84 +119,75 @@ var Cmd = &cobra.Command{
 				return err
 			}
 			count := 0
-			elemChan := make(chan *aql.GraphElement)
-			wait := make(chan bool)
-			go func() {
-				if err := conn.StreamElements(elemChan); err != nil {
-					log.Printf("StreamError: %s", err)
-				}
-				wait <- false
-			}()
-			umarsh := jsonpb.Unmarshaler{AllowUnknownFields: true}
 			for line := range reader {
-				if len(line) > 0 {
-					e := aql.Edge{}
-					err := umarsh.Unmarshal(strings.NewReader(string(line)), &e)
-					if err != nil {
-						log.Printf("Error: %s : '%s'", err, line)
-					} else {
-						elemChan <- &aql.GraphElement{Graph: graph, Edge: &e}
-						count++
-					}
-					if count%1000 == 0 {
-						log.Printf("Loaded %d edges", count)
-					}
+				e := aql.Edge{}
+				err := m.Unmarshal(strings.NewReader(string(line)), &e)
+				if err == io.EOF {
+					break
+				}
+				if err != nil {
+					return fmt.Errorf("failed to unmarshal vertex: %v", err)
+				}
+				elemChan <- &aql.GraphElement{Graph: graph, Edge: &e}
+				count++
+				if count%1000 == 0 {
+					log.Printf("Loaded %d edges", count)
 				}
 			}
 			log.Printf("Loaded %d edges", count)
-			close(elemChan)
-			<-wait
 		}
 
 		if jsonFile != "" {
 			log.Printf("Loading %s", jsonFile)
-			graphs := conn.GetGraphList()
-			if !found(graphs, graph) {
-				conn.AddGraph(graph)
-			}
 			content, err := ioutil.ReadFile(jsonFile)
 			if err != nil {
-				log.Printf("Error reading file: %s", err)
 				return err
 			}
-			e := aql.Graph{}
-			if err := jsonpb.Unmarshal(strings.NewReader(string(content)), &e); err != nil {
-				log.Printf("Error: %s", err)
+			g := &aql.Graph{}
+			if err := json.Unmarshal(content, g); err != nil {
 				return err
 			}
-			conn.AddSubGraph(graph, &e)
-			log.Printf("Subgraph Loaded")
+			for _, v := range g.Vertices {
+				elemChan <- &aql.GraphElement{Graph: graph, Vertex: v}
+			}
+			log.Printf("Loaded %d vertices", len(g.Vertices))
+			for _, e := range g.Edges {
+				elemChan <- &aql.GraphElement{Graph: graph, Edge: e}
+			}
+			log.Printf("Loaded %d edges", len(g.Edges))
 		}
 
 		if yamlFile != "" {
 			log.Printf("Loading %s", yamlFile)
-			graphs := conn.GetGraphList()
-			if !found(graphs, graph) {
-				conn.AddGraph(graph)
-			}
 			yamlContent, err := ioutil.ReadFile(yamlFile)
 			if err != nil {
-				log.Printf("Error reading file: %s", err)
 				return err
 			}
-
 			t := map[string]interface{}{}
 			err = yaml.Unmarshal([]byte(yamlContent), &t)
 			if err != nil {
-				log.Fatalf("error: %v", err)
+				return err
 			}
 			content, err := json.Marshal(mapNormalize(t))
 			if err != nil {
-				log.Fatalf("error: %v", err)
-			}
-			e := aql.Graph{}
-			if err := jsonpb.Unmarshal(strings.NewReader(string(content)), &e); err != nil {
-				log.Printf("Error: %s", err)
 				return err
 			}
-			conn.AddSubGraph(graph, &e)
-			log.Printf("Subgraph Loaded")
+			g := &aql.Graph{}
+			if err := json.Unmarshal(content, g); err != nil {
+				return err
+			}
+			for _, v := range g.Vertices {
+				elemChan <- &aql.GraphElement{Graph: graph, Vertex: v}
+			}
+			log.Printf("Loaded %d vertices", len(g.Vertices))
+			for _, e := range g.Edges {
+				elemChan <- &aql.GraphElement{Graph: graph, Edge: e}
+			}
+			log.Printf("Loaded %d edges", len(g.Edges))
 		}
+
+		close(elemChan)
+		<-wait
 
 		return nil
 	},
@@ -187,7 +196,7 @@ var Cmd = &cobra.Command{
 func init() {
 	flags := Cmd.Flags()
 	flags.StringVar(&host, "host", host, "Host Server")
-	flags.StringVar(&graph, "graph", "data", "Graph")
+	flags.StringVar(&graph, "graph", "", "Graph")
 	flags.StringVar(&vertexFile, "vertex", "", "Vertex File")
 	flags.StringVar(&edgeFile, "edge", "", "Edge File")
 	flags.StringVar(&jsonFile, "json", "", "JSON Graph File")

@@ -84,7 +84,7 @@ func (es *Graph) GetVertexIndexList() chan aql.IndexID {
 }
 
 // GetVertexTermAggregation returns the count of every term across vertices
-func (es *Graph) GetVertexTermAggregation(ctx context.Context, name string, label string, field string, size uint64) (*aql.NamedAggregationResult, error) {
+func (es *Graph) GetVertexTermAggregation(ctx context.Context, label string, field string, size uint32) (*aql.AggregationResult, error) {
 	log.Printf("Running GetVertexTermAggregation: { label: %s, field: %s size: %v}", label, field, size)
 	namespace := jsonpath.GetNamespace(field)
 	if namespace != jsonpath.Current {
@@ -93,9 +93,8 @@ func (es *Graph) GetVertexTermAggregation(ctx context.Context, name string, labe
 	field = jsonpath.GetJSONPath(field)
 	field = strings.TrimPrefix(field, "$.")
 
-	out := &aql.NamedAggregationResult{
-		Name:    name,
-		Buckets: []*aql.AggregationResult{},
+	out := &aql.AggregationResult{
+		Buckets: []*aql.AggregationResultBucket{},
 	}
 
 	q := es.client.Search().Index(es.vertexIndex).Type("vertex")
@@ -113,7 +112,7 @@ func (es *Graph) GetVertexTermAggregation(ctx context.Context, name string, labe
 	if agg, found := res.Aggregations.Terms(aggName); found {
 		for _, bucket := range agg.Buckets {
 			term := protoutil.WrapValue(bucket.Key.(string))
-			out.SortedInsert(&aql.AggregationResult{Key: term, Value: float64(bucket.DocCount)})
+			out.SortedInsert(&aql.AggregationResultBucket{Key: term, Value: float64(bucket.DocCount)})
 			if size > 0 {
 				if len(out.Buckets) > int(size) {
 					out.Buckets = out.Buckets[:size]
@@ -126,7 +125,7 @@ func (es *Graph) GetVertexTermAggregation(ctx context.Context, name string, labe
 }
 
 //GetVertexHistogramAggregation get binned counts of a term across vertices
-func (es *Graph) GetVertexHistogramAggregation(ctx context.Context, name string, label string, field string, interval uint64) (*aql.NamedAggregationResult, error) {
+func (es *Graph) GetVertexHistogramAggregation(ctx context.Context, label string, field string, interval uint32) (*aql.AggregationResult, error) {
 	log.Printf("Running GetVertexHistogramAggregation: { label: %s, field: %s interval: %v }", label, field, interval)
 	namespace := jsonpath.GetNamespace(field)
 	if namespace != jsonpath.Current {
@@ -135,9 +134,8 @@ func (es *Graph) GetVertexHistogramAggregation(ctx context.Context, name string,
 	field = jsonpath.GetJSONPath(field)
 	field = strings.TrimPrefix(field, "$.")
 
-	out := &aql.NamedAggregationResult{
-		Name:    name,
-		Buckets: []*aql.AggregationResult{},
+	out := &aql.AggregationResult{
+		Buckets: []*aql.AggregationResultBucket{},
 	}
 
 	q := es.client.Search().Index(es.vertexIndex).Type("vertex")
@@ -152,7 +150,7 @@ func (es *Graph) GetVertexHistogramAggregation(ctx context.Context, name string,
 	if agg, found := res.Aggregations.Histogram(aggName); found {
 		for _, bucket := range agg.Buckets {
 			term := protoutil.WrapValue(bucket.Key)
-			out.Buckets = append(out.Buckets, &aql.AggregationResult{Key: term, Value: float64(bucket.DocCount)})
+			out.Buckets = append(out.Buckets, &aql.AggregationResultBucket{Key: term, Value: float64(bucket.DocCount)})
 		}
 	}
 
@@ -160,7 +158,7 @@ func (es *Graph) GetVertexHistogramAggregation(ctx context.Context, name string,
 }
 
 //GetVertexPercentileAggregation get percentiles of a term across vertices
-func (es *Graph) GetVertexPercentileAggregation(ctx context.Context, name string, label string, field string, percents []float64) (*aql.NamedAggregationResult, error) {
+func (es *Graph) GetVertexPercentileAggregation(ctx context.Context, label string, field string, percents []float64) (*aql.AggregationResult, error) {
 	log.Printf("Running GetVertexPercentileAggregation: { label: %s, field: %s percents: %v }", label, field, percents)
 	namespace := jsonpath.GetNamespace(field)
 	if namespace != jsonpath.Current {
@@ -169,9 +167,8 @@ func (es *Graph) GetVertexPercentileAggregation(ctx context.Context, name string
 	field = jsonpath.GetJSONPath(field)
 	field = strings.TrimPrefix(field, "$.")
 
-	out := &aql.NamedAggregationResult{
-		Name:    name,
-		Buckets: []*aql.AggregationResult{},
+	out := &aql.AggregationResult{
+		Buckets: []*aql.AggregationResultBucket{},
 	}
 
 	q := es.client.Search().Index(es.vertexIndex).Type("vertex")
@@ -190,7 +187,7 @@ func (es *Graph) GetVertexPercentileAggregation(ctx context.Context, name string
 				return nil, fmt.Errorf("percentile key conversion failed: %s", err)
 			}
 			key := protoutil.WrapValue(keyf)
-			out.Buckets = append(out.Buckets, &aql.AggregationResult{Key: key, Value: float64(val)})
+			out.Buckets = append(out.Buckets, &aql.AggregationResultBucket{Key: key, Value: float64(val)})
 		}
 	}
 
@@ -210,6 +207,7 @@ func (es *Graph) VertexLabelScan(ctx context.Context, label string) chan string 
 		scroll := es.client.Scroll().
 			Index(es.vertexIndex).
 			Query(elastic.NewBoolQuery().Must(elastic.NewTermQuery("label", label))).
+			Sort("gid", true).
 			Size(100)
 		for {
 			results, err := scroll.Do(ctx)

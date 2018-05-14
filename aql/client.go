@@ -3,6 +3,7 @@ package aql
 import (
 	"context"
 	"io"
+	"log"
 
 	"google.golang.org/grpc"
 )
@@ -59,19 +60,19 @@ func (client Client) GetGraphList() []string {
 
 // GetTimestamp get update timestamp for graph
 func (client Client) GetTimestamp(graph string) (*Timestamp, error) {
-	ts, err := client.QueryC.GetTimestamp(context.Background(), &ElementID{Graph: graph})
+	ts, err := client.QueryC.GetTimestamp(context.Background(), &GraphID{Graph: graph})
 	return ts, err
 }
 
 // DeleteGraph deletes a graph and all of its contents
 func (client Client) DeleteGraph(graph string) error {
-	_, err := client.EditC.DeleteGraph(context.Background(), &ElementID{Graph: graph})
+	_, err := client.EditC.DeleteGraph(context.Background(), &GraphID{Graph: graph})
 	return err
 }
 
 // AddGraph creates a new graph
 func (client Client) AddGraph(graph string) error {
-	_, err := client.EditC.AddGraph(context.Background(), &ElementID{Graph: graph})
+	_, err := client.EditC.AddGraph(context.Background(), &GraphID{Graph: graph})
 	return err
 }
 
@@ -87,24 +88,20 @@ func (client Client) AddEdge(graph string, e *Edge) error {
 	return err
 }
 
-// AddSubGraph adds a complete subgraph to an existing graph
-func (client Client) AddSubGraph(graph string, g *Graph) error {
-	_, err := client.EditC.AddSubGraph(context.Background(), &Graph{Graph: graph, Edges: g.Edges, Vertices: g.Vertices})
-	return err
-}
-
-// StreamElements allows for bulk continuous loading of graph elements into the datastore
-func (client Client) StreamElements(elemChan chan *GraphElement) error {
-	sc, err := client.EditC.StreamElements(context.Background())
+// BulkAdd allows for bulk continuous loading of graph elements into the datastore
+func (client Client) BulkAdd(elemChan chan *GraphElement) error {
+	sc, err := client.EditC.BulkAdd(context.Background())
 	if err != nil {
 		return err
 	}
+
 	for elem := range elemChan {
 		err := sc.Send(elem)
 		if err != nil {
 			return err
 		}
 	}
+
 	_, err = sc.CloseAndRecv()
 	return err
 }
@@ -115,26 +112,27 @@ func (client Client) GetVertex(graph string, id string) (*Vertex, error) {
 	return v, err
 }
 
-// Execute executes the given query.
-func (client Client) Execute(graph string, q *Query) (chan *ResultRow, error) {
-	return client.Traversal(&GraphQuery{
-		Graph: graph,
-		Query: q.Statements,
-	})
-}
-
 // Traversal runs a graph traversal query
-func (client Client) Traversal(query *GraphQuery) (chan *ResultRow, error) {
-	tclient, err := client.QueryC.Traversal(context.TODO(), query)
+func (client Client) Traversal(query *GraphQuery) (chan *QueryResult, error) {
+	tclient, err := client.QueryC.Traversal(context.Background(), query)
 	if err != nil {
 		return nil, err
 	}
-	out := make(chan *ResultRow, 100)
+
+	out := make(chan *QueryResult, 100)
 	go func() {
 		defer close(out)
-		for t, err := tclient.Recv(); err == nil; t, err = tclient.Recv() {
+		for {
+			t, err := tclient.Recv()
+			if err == io.EOF {
+				break
+			}
+			if err != nil {
+				log.Printf("Failed to receive traversal result: %v", err)
+			}
 			out <- t
 		}
 	}()
+
 	return out, nil
 }

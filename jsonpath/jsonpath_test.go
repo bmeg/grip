@@ -37,7 +37,7 @@ func TestRender(t *testing.T) {
 	})
 
 	expected := traveler.GetCurrent().Data["a"]
-	result := RenderTraveler(traveler, "$.a")
+	result := RenderTraveler(traveler, "a")
 	assert.Equal(t, expected, result)
 
 	expected = []interface{}{
@@ -46,7 +46,7 @@ func TestRender(t *testing.T) {
 		traveler.GetCurrent().Data["c"],
 		traveler.GetCurrent().Data["d"],
 	}
-	result = RenderTraveler(traveler, []interface{}{"$.a", "$.b", "$.c", "$.d"})
+	result = RenderTraveler(traveler, []interface{}{"a", "b", "c", "d"})
 	assert.Equal(t, expected, result)
 
 	expected = map[string]interface{}{
@@ -67,21 +67,21 @@ func TestRender(t *testing.T) {
 		"current.e.nested":    []interface{}{"field1", "field2"},
 	}
 	result = RenderTraveler(traveler, map[string]interface{}{
-		"current.gid":         "$.gid",
-		"current.label":       "label",
-		"current.a":           "$.a",
-		"current.b":           "$.b",
-		"current.c":           "$.c",
-		"current.d":           "$.data.d",
-		"mark.gid":            "$testMark.gid",
-		"mark.label":          "$testMark.label",
+		"current.gid":         "_gid",
+		"current.label":       "_label",
+		"current.a":           "a",
+		"current.b":           "b",
+		"current.c":           "c",
+		"current.d":           "_data.d",
+		"mark.gid":            "$testMark._gid",
+		"mark.label":          "$testMark._label",
 		"mark.a":              "$testMark.a",
 		"mark.b":              "$testMark.b",
-		"mark.c":              "$testMark.data.c",
+		"mark.c":              "$testMark._data.c",
 		"mark.d":              "$testMark.d",
 		"mark.d[0]":           "$testMark.d[0]",
-		"current.e[0].nested": "$.data.e[0].nested",
-		"current.e.nested":    "$.data.e.nested",
+		"current.e[0].nested": "_data.e[0].nested",
+		"current.e.nested":    "e.nested",
 	})
 	assert.Equal(t, expected, result)
 }
@@ -125,7 +125,18 @@ func TestSelectFields(t *testing.T) {
 		},
 	})
 
-	result, err := SelectTravelerFields(traveler, "$.gid", "label", "$.a", "$.data.b", "$testMark.b", "$testMark.data.d")
+	result, err := SelectTravelerFields(traveler, "_gid", "_label", "a", "_data.b", "$testMark.b", "$testMark._data.d")
+	if err != nil {
+		t.Fatal(err)
+	}
+	assert.Equal(t, expected, result)
+
+	expected = &gdbi.Traveler{}
+	expected = expected.AddCurrent(&gdbi.DataElement{
+		Data: traveler.GetCurrent().Data,
+	})
+
+	result, err = SelectTravelerFields(traveler, "_data")
 	if err != nil {
 		t.Fatal(err)
 	}

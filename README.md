@@ -431,7 +431,7 @@ arachne dump --vertex --edge --graph example
 See the example graph schema
 
 ```
-arachne dump --vertex --edge --graph example:schema
+arachne dump --vertex --edge --graph example-schema
 ```
 
 ### Example queries

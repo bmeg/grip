@@ -6,9 +6,9 @@ import (
 	"fmt"
 )
 
-const _DataTypeName = "NoDataVertexDataEdgeDataCountDataGroupCountDataValueDataRowData"
+const _DataTypeName = "NoDataVertexDataEdgeDataCountDataAggregationDataSelectionDataRenderData"
 
-var _DataTypeIndex = [...]uint8{0, 6, 16, 24, 33, 47, 56, 63}
+var _DataTypeIndex = [...]uint8{0, 6, 16, 24, 33, 48, 61, 71}
 
 func (i DataType) String() string {
 	if i >= DataType(len(_DataTypeIndex)-1) {
@@ -24,9 +24,9 @@ var _DataTypeNameToValueMap = map[string]DataType{
 	_DataTypeName[6:16]:  1,
 	_DataTypeName[16:24]: 2,
 	_DataTypeName[24:33]: 3,
-	_DataTypeName[33:47]: 4,
-	_DataTypeName[47:56]: 5,
-	_DataTypeName[56:63]: 6,
+	_DataTypeName[33:48]: 4,
+	_DataTypeName[48:61]: 5,
+	_DataTypeName[61:71]: 6,
 }
 
 // DataTypeString retrieves an enum value from the enum constants string name.

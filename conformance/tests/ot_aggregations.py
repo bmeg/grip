@@ -39,14 +39,16 @@ def test_term_aggregation(O):
     count = 0
     for row in O.aggregate(aql.term("test-agg", "Person", "name", 2)):
         count += 1
+        if 'test-agg' not in row:
+                errors.append("Result had Incorrect aggregation name")
+                return errors
+        row = row['test-agg']
+
         if len(row["buckets"]) != 2:
                 errors.append(
                     "Unexpected number of terms: %d != %d" %
                     (len(row["buckets"]), 2)
                 )
-
-        if row['name'] != 'test-agg':
-                errors.append("Result had Incorrect aggregation name")
 
         for res in row["buckets"]:
             if res["key"] not in ["marko", "alex"]:
@@ -66,14 +68,17 @@ def test_term_aggregation(O):
     count = 0
     for row in O.aggregate(aql.term("test-agg-no-limit", "Person", "name", size=None)):
         count += 1
+
+        if 'test-agg-no-limit' not in row:
+                errors.append("Result had Incorrect aggregation name")
+                return errors
+        row = row['test-agg-no-limit']
+
         if len(row["buckets"]) != 8:
                 errors.append(
                     "Unexpected number of terms: %d != %d" %
                     (len(row["buckets"]), 8)
                 )
-
-        if row['name'] != 'test-agg-no-limit':
-                errors.append("Result had Incorrect aggregation name")
 
         for res in row["buckets"]:
             if res["key"] in ["marko", "alex"]:
@@ -101,16 +106,17 @@ def test_traversal_term_aggregation(O):
 
     count = 0
     for row in O.query().V("1").out().aggregate(aql.term("traversal-agg", "Person", "name")):
-        row = row["data"]
+        if 'traversal-agg' not in row:
+            errors.append("Result had Incorrect aggregation name")
+            return errors
+        row = row['traversal-agg']
+
         count += 1
         if len(row["buckets"]) != 3:
                 errors.append(
                     "Unexpected number of terms: %d != %d" %
                     (len(row["buckets"]), 3)
                 )
-
-        if row['name'] != 'traversal-agg':
-                errors.append("Result had Incorrect aggregation name")
 
         for res in row["buckets"]:
             if res["key"] == "alex":
@@ -139,14 +145,17 @@ def test_histogram_aggregation(O):
     count = 0
     for row in O.aggregate(aql.histogram("test-agg", "Person", "age", 5)):
         count += 1
+
+        if 'test-agg' not in row:
+            errors.append("Result had Incorrect aggregation name")
+            return errors
+        row = row['test-agg']
+
         if len(row["buckets"]) != 6:
                 errors.append(
                     "Unexpected number of terms: %d != %d" %
                     (len(row["buckets"]), 6)
                 )
-
-        if row['name'] != 'test-agg':
-                errors.append("Result had Incorrect aggregation name")
 
         for res in row["buckets"]:
             if res["key"] == 20:
@@ -185,15 +194,16 @@ def test_traversal_histogram_aggregation(O):
     count = 0
     for row in O.query().V("1").out().aggregate(aql.histogram("traversal-agg", "Person", "age", 5)):
         count += 1
-        row = row["data"]
+        if 'traversal-agg' not in row:
+            errors.append("Result had Incorrect aggregation name")
+            return errors
+        row = row['traversal-agg']
+
         if len(row["buckets"]) != 5:
                 errors.append(
                     "Unexpected number of terms: %d != %d" %
                     (len(row["buckets"]), 5)
                 )
-
-        if row['name'] != 'traversal-agg':
-                errors.append("Result had Incorrect aggregation name")
 
         for res in row["buckets"]:
             if res["key"] == 25:
@@ -230,13 +240,17 @@ def test_percentile_aggregation(O):
     percents = [1, 5, 25, 50, 75, 95, 99, 99.9]
     for row in O.aggregate(aql.percentile("test-agg", "Person", "age", percents)):
         count += 1
+
+        if 'test-agg' not in row:
+            errors.append("Result had Incorrect aggregation name")
+            return errors
+        row = row['test-agg']
+
         if len(row["buckets"]) != len(percents):
             errors.append(
                 "Unexpected number of terms: %d != %d" %
                 (len(row["buckets"]), len(percents))
             )
-        if row['name'] != 'test-agg':
-                errors.append("Result had Incorrect aggregation name")
 
         ages = np.array([29, 41, 25, 32, 35, 30, 45, 26, 22, 36])
 
@@ -295,15 +309,18 @@ def test_traversal_percentile_aggregation(O):
     count = 0
     percents = [1, 5, 25, 50, 75, 95, 99, 99.9]
     for row in O.query().V("1").out().aggregate(aql.percentile("traversal-agg", "Person", "age", percents)):
-        row = row["data"]
         count += 1
+
+        if 'traversal-agg' not in row:
+            errors.append("Result had Incorrect aggregation name")
+            return errors
+        row = row['traversal-agg']
+
         if len(row["buckets"]) != len(percents):
             errors.append(
                 "Unexpected number of terms: %d != %d" %
                 (len(row["buckets"]), len(percents))
             )
-        if row['name'] != 'traversal-agg':
-                errors.append("Result had Incorrect aggregation name")
 
         ages = np.array([25, 32, 30, 45])
 

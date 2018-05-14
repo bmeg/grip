@@ -67,6 +67,9 @@ func (mg *Graph) GetVertexIndexList() chan aql.IndexID {
 		for iter.Next(&res) {
 			labels = append(labels, res["_id"].(string))
 		}
+		if err := iter.Err(); err != nil {
+			log.Println("GetVertexIndexList error:", err)
+		}
 
 		// list indexed fields
 		idxList, err := c.Indexes()
@@ -89,7 +92,7 @@ func (mg *Graph) GetVertexIndexList() chan aql.IndexID {
 }
 
 //GetVertexTermAggregation get count of every term across vertices
-func (mg *Graph) GetVertexTermAggregation(ctx context.Context, name string, label string, field string, size uint64) (*aql.NamedAggregationResult, error) {
+func (mg *Graph) GetVertexTermAggregation(ctx context.Context, label string, field string, size uint32) (*aql.AggregationResult, error) {
 	log.Printf("Running GetVertexTermAggregation: { label: %s, field: %s size: %v}", label, field, size)
 	namespace := jsonpath.GetNamespace(field)
 	if namespace != jsonpath.Current {
@@ -98,9 +101,8 @@ func (mg *Graph) GetVertexTermAggregation(ctx context.Context, name string, labe
 	field = jsonpath.GetJSONPath(field)
 	field = strings.TrimPrefix(field, "$.")
 
-	out := &aql.NamedAggregationResult{
-		Name:    name,
-		Buckets: []*aql.AggregationResult{},
+	out := &aql.AggregationResult{
+		Buckets: []*aql.AggregationResultBucket{},
 	}
 
 	ag := []bson.M{
@@ -131,7 +133,7 @@ func (mg *Graph) GetVertexTermAggregation(ctx context.Context, name string, labe
 		if !ok {
 			return nil, fmt.Errorf("failed to cast count result to integer")
 		}
-		out.SortedInsert(&aql.AggregationResult{Key: term, Value: float64(count)})
+		out.SortedInsert(&aql.AggregationResultBucket{Key: term, Value: float64(count)})
 		if size > 0 {
 			if len(out.Buckets) > int(size) {
 				out.Buckets = out.Buckets[:size]
@@ -145,7 +147,7 @@ func (mg *Graph) GetVertexTermAggregation(ctx context.Context, name string, labe
 }
 
 //GetVertexHistogramAggregation get binned counts of a term across vertices
-func (mg *Graph) GetVertexHistogramAggregation(ctx context.Context, name string, label string, field string, interval uint64) (*aql.NamedAggregationResult, error) {
+func (mg *Graph) GetVertexHistogramAggregation(ctx context.Context, label string, field string, interval uint32) (*aql.AggregationResult, error) {
 	log.Printf("Running GetVertexHistogramAggregation: { label: %s, field: %s interval: %v }", label, field, interval)
 	namespace := jsonpath.GetNamespace(field)
 	if namespace != jsonpath.Current {
@@ -154,9 +156,8 @@ func (mg *Graph) GetVertexHistogramAggregation(ctx context.Context, name string,
 	field = jsonpath.GetJSONPath(field)
 	field = strings.TrimPrefix(field, "$.")
 
-	out := &aql.NamedAggregationResult{
-		Name:    name,
-		Buckets: []*aql.AggregationResult{},
+	out := &aql.AggregationResult{
+		Buckets: []*aql.AggregationResultBucket{},
 	}
 
 	ag := []bson.M{
@@ -192,7 +193,7 @@ func (mg *Graph) GetVertexHistogramAggregation(ctx context.Context, name string,
 		if !ok {
 			return nil, fmt.Errorf("failed to cast count result to integer")
 		}
-		out.Buckets = append(out.Buckets, &aql.AggregationResult{Key: term, Value: float64(count)})
+		out.Buckets = append(out.Buckets, &aql.AggregationResultBucket{Key: term, Value: float64(count)})
 	}
 	if err := iter.Err(); err != nil {
 		return nil, fmt.Errorf("error occurred while iterating: %v", err)
@@ -201,7 +202,7 @@ func (mg *Graph) GetVertexHistogramAggregation(ctx context.Context, name string,
 }
 
 //GetVertexPercentileAggregation get percentiles of a term across vertices
-func (mg *Graph) GetVertexPercentileAggregation(ctx context.Context, name string, label string, field string, percents []float64) (*aql.NamedAggregationResult, error) {
+func (mg *Graph) GetVertexPercentileAggregation(ctx context.Context, label string, field string, percents []float64) (*aql.AggregationResult, error) {
 	log.Printf("Running GetVertexPercentileAggregation: { label: %s, field: %s percents: %v }", label, field, percents)
 	namespace := jsonpath.GetNamespace(field)
 	if namespace != jsonpath.Current {
@@ -210,9 +211,8 @@ func (mg *Graph) GetVertexPercentileAggregation(ctx context.Context, name string
 	field = jsonpath.GetJSONPath(field)
 	field = strings.TrimPrefix(field, "$.")
 
-	out := &aql.NamedAggregationResult{
-		Name:    name,
-		Buckets: []*aql.AggregationResult{},
+	out := &aql.AggregationResult{
+		Buckets: []*aql.AggregationResultBucket{},
 	}
 
 	// TODO figure out how to express a percentile calculation in either an aggregation pipeline
@@ -253,7 +253,7 @@ func (mg *Graph) GetVertexPercentileAggregation(ctx context.Context, name string
 
 	for _, p := range percents {
 		q := td.Quantile(p / 100)
-		out.Buckets = append(out.Buckets, &aql.AggregationResult{Key: protoutil.WrapValue(p), Value: q})
+		out.Buckets = append(out.Buckets, &aql.AggregationResultBucket{Key: protoutil.WrapValue(p), Value: q})
 	}
 
 	return out, nil
@@ -287,6 +287,10 @@ func (mg *Graph) VertexLabelScan(ctx context.Context, label string) chan string 
 				out <- id.(string)
 			}
 		}
+		if err := iter.Err(); err != nil {
+			log.Println("VertexLabelScan error:", err)
+		}
+
 	}()
 	return out
 }

@@ -88,7 +88,13 @@ func NewHTTPProxy(rpcPort string, httpPort string, contentDir string) (*Proxy, e
 	ctx, cancel := context.WithCancel(ctx)
 
 	//setup RESTful proxy
-	marsh := MarshalClean{m: &runtime.JSONPb{OrigName: true}}
+	marsh := MarshalClean{
+		m: &runtime.JSONPb{
+			EnumsAsInts:  false,
+			EmitDefaults: true,
+			OrigName:     true,
+		},
+	}
 	grpcMux := runtime.NewServeMux(runtime.WithMarshalerOption("*", &marsh))
 	opts := []grpc.DialOption{grpc.WithInsecure()}
 

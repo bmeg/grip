@@ -2,7 +2,6 @@ package core
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/gdbi"
@@ -15,7 +14,6 @@ type DefaultPipeline struct {
 	procs     []gdbi.Processor
 	dataType  gdbi.DataType
 	markTypes map[string]gdbi.DataType
-	rowTypes  []gdbi.DataType
 }
 
 // DataType return the datatype
@@ -23,9 +21,9 @@ func (pipe *DefaultPipeline) DataType() gdbi.DataType {
 	return pipe.dataType
 }
 
-// RowTypes get the row types
-func (pipe *DefaultPipeline) RowTypes() []gdbi.DataType {
-	return pipe.rowTypes
+// MarkTypes get the mark types
+func (pipe *DefaultPipeline) MarkTypes() map[string]gdbi.DataType {
+	return pipe.markTypes
 }
 
 // Processors gets the list of processors
@@ -57,7 +55,6 @@ func (comp DefaultCompiler) Compile(stmts []*aql.GraphStatement) (gdbi.Pipeline,
 
 	lastType := gdbi.NoData
 	markTypes := map[string]gdbi.DataType{}
-	rowTypes := []gdbi.DataType{}
 
 	procs := make([]gdbi.Processor, 0, len(stmts))
 	add := func(p gdbi.Processor) {
@@ -158,6 +155,9 @@ func (comp DefaultCompiler) Compile(stmts []*aql.GraphStatement) (gdbi.Pipeline,
 		case *aql.GraphStatement_Limit:
 			add(&Limit{stmt.Limit})
 
+		case *aql.GraphStatement_Offset:
+			add(&Offset{stmt.Offset})
+
 		case *aql.GraphStatement_Count:
 			// TODO validate the types following a counter
 			add(&Count{})
@@ -169,22 +169,22 @@ func (comp DefaultCompiler) Compile(stmts []*aql.GraphStatement) (gdbi.Pipeline,
 			}
 			add(&Distinct{protoutil.AsStringList(stmt.Distinct)})
 
-		case *aql.GraphStatement_As:
+		case *aql.GraphStatement_Mark:
 			// TODO probably needs to be checked for a lot of statements.
 			if lastType == gdbi.NoData {
-				return &DefaultPipeline{}, fmt.Errorf(`"as" statement is not valid at the beginning of a traversal`)
+				return &DefaultPipeline{}, fmt.Errorf(`"mark" statement is not valid at the beginning of a traversal`)
 			}
-			if stmt.As == "" {
-				return &DefaultPipeline{}, fmt.Errorf(`"as" statement cannot have an empty name`)
+			if stmt.Mark == "" {
+				return &DefaultPipeline{}, fmt.Errorf(`"mark" statement cannot have an empty name`)
 			}
-			if strings.Contains(stmt.As, ".") {
-				return &DefaultPipeline{}, fmt.Errorf(`"as" statement cannot contain periods`)
+			if err := aql.ValidateFieldName(stmt.Mark); err != nil {
+				return &DefaultPipeline{}, fmt.Errorf(`"mark" statement invalid; %v`, err)
 			}
-			if stmt.As == jsonpath.Current {
-				return &DefaultPipeline{}, fmt.Errorf(`"as" statement uses reserved name %s`, jsonpath.Current)
+			if stmt.Mark == jsonpath.Current {
+				return &DefaultPipeline{}, fmt.Errorf(`"mark" statement invalid; uses reserved name %s`, jsonpath.Current)
 			}
-			markTypes[stmt.As] = lastType
-			add(&Marker{stmt.As})
+			markTypes[stmt.Mark] = lastType
+			add(&Marker{stmt.Mark})
 
 		case *aql.GraphStatement_Select:
 			if lastType != gdbi.VertexData && lastType != gdbi.EdgeData {
@@ -192,19 +192,11 @@ func (comp DefaultCompiler) Compile(stmts []*aql.GraphStatement) (gdbi.Pipeline,
 			}
 			// TODO should track mark types so "lastType" can be set after select
 			// TODO track mark names and fail when a name is missing.
-			switch len(stmt.Select.Labels) {
-			case 0:
+			if len(stmt.Select.Marks) == 0 {
 				return &DefaultPipeline{}, fmt.Errorf(`"select" statement has an empty list of mark names`)
-			case 1:
-				lastType = markTypes[stmt.Select.Labels[0]]
-				add(&selectOne{stmt.Select.Labels[0]})
-			default:
-				lastType = gdbi.RowData
-				add(&selectMany{stmt.Select.Labels})
-				for _, i := range stmt.Select.Labels {
-					rowTypes = append(rowTypes, markTypes[i])
-				}
 			}
+			lastType = gdbi.SelectionData
+			add(&Selector{stmt.Select.Marks})
 
 		case *aql.GraphStatement_Render:
 			if lastType != gdbi.VertexData && lastType != gdbi.EdgeData {
@@ -212,7 +204,7 @@ func (comp DefaultCompiler) Compile(stmts []*aql.GraphStatement) (gdbi.Pipeline,
 			}
 			r := Render{protoutil.UnWrapValue(stmt.Render)}
 			add(&r)
-			lastType = gdbi.ValueData
+			lastType = gdbi.RenderData
 
 		case *aql.GraphStatement_Fields:
 			if lastType != gdbi.VertexData && lastType != gdbi.EdgeData {
@@ -220,22 +212,6 @@ func (comp DefaultCompiler) Compile(stmts []*aql.GraphStatement) (gdbi.Pipeline,
 			}
 			fields := protoutil.AsStringList(stmt.Fields)
 			add(&Fields{fields})
-
-		case *aql.GraphStatement_Import:
-			return &DefaultPipeline{}, fmt.Errorf(`"import" statement is not implemented`)
-
-		case *aql.GraphStatement_Map:
-			return &DefaultPipeline{}, fmt.Errorf(`"map" statement is not implemented`)
-
-		case *aql.GraphStatement_Fold:
-			if lastType != gdbi.VertexData && lastType != gdbi.EdgeData {
-				return &DefaultPipeline{}, fmt.Errorf(`"fold" statement is only valid for edge or vertex types not: %s`, lastType.String())
-			}
-			add(&Fold{stmt.Fold, []string{}})
-			lastType = gdbi.ValueData
-
-		case *aql.GraphStatement_Filter:
-			return &DefaultPipeline{}, fmt.Errorf(`"filter" statement is not implemented`)
 
 		case *aql.GraphStatement_Aggregate:
 			if lastType != gdbi.VertexData {
@@ -248,7 +224,7 @@ func (comp DefaultCompiler) Compile(stmts []*aql.GraphStatement) (gdbi.Pipeline,
 				}
 			}
 			add(&aggregate{stmt.Aggregate.Aggregations})
-			lastType = gdbi.ValueData
+			lastType = gdbi.AggregationData
 
 		default:
 			return &DefaultPipeline{}, fmt.Errorf("unknown statement type")
@@ -257,7 +233,7 @@ func (comp DefaultCompiler) Compile(stmts []*aql.GraphStatement) (gdbi.Pipeline,
 
 	procs = indexStartOptimize(procs)
 
-	return &DefaultPipeline{procs, lastType, markTypes, rowTypes}, nil
+	return &DefaultPipeline{procs, lastType, markTypes}, nil
 }
 
 // For V().Where(Eq("$.label", "Person")) and V().Where(Eq("$.gid", "1")) queries, streamline into a single index lookup

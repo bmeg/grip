@@ -90,13 +90,18 @@ func (q *Query) Where(expression *WhereExpression) *Query {
 }
 
 // Limit limits the number of results returned.
-func (q *Query) Limit(c int64) *Query {
-	return q.with(&GraphStatement{&GraphStatement_Limit{c}})
+func (q *Query) Limit(n uint32) *Query {
+	return q.with(&GraphStatement{&GraphStatement_Limit{n}})
 }
 
-// As marks current elements with tag
-func (q *Query) As(id string) *Query {
-	return q.with(&GraphStatement{&GraphStatement_As{id}})
+// Offset will drop the first n number of records and return the rest.
+func (q *Query) Offset(n uint32) *Query {
+	return q.with(&GraphStatement{&GraphStatement_Offset{n}})
+}
+
+// Mark marks current elements with tag
+func (q *Query) Mark(id string) *Query {
+	return q.with(&GraphStatement{&GraphStatement_Mark{id}})
 }
 
 // Select retreieves previously marked elemets
@@ -178,11 +183,11 @@ func (q *Query) String() string {
 		case *GraphStatement_Count:
 			add("Count")
 
-		case *GraphStatement_As:
-			add("As", stmt.As)
+		case *GraphStatement_Mark:
+			add("Mark", stmt.Mark)
 
 		case *GraphStatement_Select:
-			add("Select", stmt.Select.Labels...)
+			add("Select", stmt.Select.Marks...)
 
 		case *GraphStatement_Match:
 			add("Match")
@@ -193,18 +198,6 @@ func (q *Query) String() string {
 
 		case *GraphStatement_Aggregate:
 			add("Aggregate")
-
-		case *GraphStatement_Import:
-			add("Import")
-
-		case *GraphStatement_Map:
-			add("Map")
-
-		case *GraphStatement_Fold:
-			add("Fold")
-
-		case *GraphStatement_Filter:
-			add("Filter")
 		}
 	}
 

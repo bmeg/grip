@@ -39,7 +39,7 @@ var edges = []*aql.Edge{
 }
 
 // checker is the interface of a function that validates the results of a test query.
-type checker func(t *testing.T, actual <-chan *aql.ResultRow)
+type checker func(t *testing.T, actual <-chan *aql.QueryResult)
 
 type queryTest struct {
 	query    *aql.Query
@@ -48,40 +48,40 @@ type queryTest struct {
 
 var table = []queryTest{
 	{
-		Q.V().Where(aql.In("$.name", "Kyle", "Alex")),
+		Q.V().Where(aql.In("name", "Kyle", "Alex")),
 		pick(verts[0], verts[1], verts[6], verts[7]),
 	},
 	{
-		Q.V().Where(aql.Eq("$.non-existent-field", "Kyle")),
+		Q.V().Where(aql.Eq("non-existent-field", "Kyle")),
 		pick(),
 	},
 	{
-		Q.V().Where(aql.Eq("$.label", "Human")),
+		Q.V().Where(aql.Eq("_label", "Human")),
 		pick(verts[0], verts[1], verts[2]),
 	},
 	{
-		Q.V().Where(aql.Eq("$.label", "Robot")),
+		Q.V().Where(aql.Eq("_label", "Robot")),
 		pick(verts[3], verts[4], verts[5]),
 	},
 	{
-		Q.V().Where(aql.In("$.label", "Robot", "Human")),
+		Q.V().Where(aql.In("_label", "Robot", "Human")),
 		pick(verts[0], verts[1], verts[2], verts[3], verts[4], verts[5]),
 	},
 	{
-		Q.V().Where(aql.Eq("$.label", "non-existent")),
+		Q.V().Where(aql.Eq("_label", "non-existent")),
 		pick(),
 	},
 	{
-		Q.V().Where(aql.In("$.gid", verts[0].Gid, verts[2].Gid)),
+		Q.V().Where(aql.In("_gid", verts[0].Gid, verts[2].Gid)),
 		pick(verts[0], verts[2]),
 	},
 	{
-		Q.V().Where(aql.Eq("$.gid", "non-existent")),
+		Q.V().Where(aql.Eq("_gid", "non-existent")),
 		pick(),
 	},
 	{
 		Q.V().Limit(2),
-		func(t *testing.T, res <-chan *aql.ResultRow) {
+		func(t *testing.T, res <-chan *aql.QueryResult) {
 			count := 0
 			for range res {
 				count++
@@ -93,16 +93,15 @@ var table = []queryTest{
 	},
 	{
 		Q.V().Count(),
-		// TODO wrong. should be int.
-		values(float64(len(verts))),
+		count(uint32(len(verts))),
 	},
 	{
-		Q.V().Where(aql.And(aql.Eq("$.label", "Human"), aql.Eq("$.name", "Ryan"))),
+		Q.V().Where(aql.And(aql.Eq("_label", "Human"), aql.Eq("name", "Ryan"))),
 		pick(verts[2]),
 	},
 	{
-		Q.V().Where(aql.Eq("$.label", "Human")).As("x").Where(aql.Eq("$.name", "Alex")).Select("x"),
-		pick(verts[0]),
+		Q.V().Where(aql.Eq("_label", "Human")).Mark("x").Where(aql.Eq("name", "Alex")).Select("x"),
+		pickselection(map[string]interface{}{"x": verts[0]}),
 	},
 	{
 		Q.V(),
@@ -113,31 +112,27 @@ var table = []queryTest{
 		pickAllEdges(),
 	},
 	{
-		Q.V().Where(aql.Eq("$.label", "Human")).Out(),
+		Q.V().Where(aql.Eq("_label", "Human")).Out(),
 		pick(verts[10], verts[11]),
 	},
 	{
-		Q.V().Where(aql.Eq("$.label", "Human")).Out().Where(aql.Eq("$.name", "Funnel")),
+		Q.V().Where(aql.Eq("_label", "Human")).Out().Where(aql.Eq("name", "Funnel")),
 		pick(verts[10]),
 	},
 	{
-		Q.V().Where(aql.Eq("$.label", "Human")).As("x").Out().Where(aql.Eq("$.name", "Funnel")).Select("x"),
-		pick(verts[0]),
+		Q.V().Where(aql.Eq("_label", "Human")).Mark("x").Out().Where(aql.Eq("name", "Funnel")).Select("x"),
+		pickselection(map[string]interface{}{"x": verts[0]}),
 	},
 	{
-		Q.V().Where(aql.Eq("$.label", "Human")).OutEdge(),
+		Q.V().Where(aql.Eq("_label", "Human")).OutEdge(),
 		pickAllEdges(),
 	},
 	{
-		Q.V().Where(aql.Eq("$.label", "Human")).Where(aql.Eq("$.name", "Alex")).OutEdge(),
+		Q.V().Where(aql.Eq("_label", "Human")).Where(aql.Eq("name", "Alex")).OutEdge(),
 		pick(edges[0]),
 	},
 	{
-		Q.V().Where(aql.Eq("$.label", "Human")).Where(aql.Eq("$.name", "Alex")).OutEdge().As("x"),
-		pick(edges[0]),
-	},
-	{
-		Q.V().Where(aql.Eq("$.label", "Human")).Fields("$.name"),
+		Q.V().Where(aql.Eq("_label", "Human")).Fields("name"),
 		pick(
 			&aql.Vertex{Data: protoutil.AsStruct(map[string]interface{}{"name": "Alex"})},
 			&aql.Vertex{Data: protoutil.AsStruct(map[string]interface{}{"name": "Kyle"})},
@@ -146,36 +141,36 @@ var table = []queryTest{
 	},
 	{
 		Q.V().
-			Where(aql.Eq("$.label", "Human")).As("x").
+			Where(aql.Eq("_label", "Human")).Mark("x").
 			Out().
-			Where(aql.Eq("$.name", "Funnel")).As("y").
-			Fields("$y.gid", "$y.label", "$y.name", "$x.gid", "$x.label", "$x.name").
+			Where(aql.Eq("name", "Funnel")).Mark("y").
+			Fields("$y._gid", "$y._label", "$y.name", "$x._gid", "$x._label", "$x.name").
 			Select("x", "y"),
-		pickrow(
-			&aql.Vertex{Gid: verts[0].Gid, Label: verts[0].Label, Data: protoutil.AsStruct(map[string]interface{}{"name": "Alex"})},
-			&aql.Vertex{Gid: verts[10].Gid, Label: verts[10].Label, Data: protoutil.AsStruct(map[string]interface{}{"name": "Funnel"})},
-		),
+		pickselection(map[string]interface{}{
+			"x": &aql.Vertex{Gid: verts[0].Gid, Label: verts[0].Label, Data: protoutil.AsStruct(map[string]interface{}{"name": "Alex"})},
+			"y": &aql.Vertex{Gid: verts[10].Gid, Label: verts[10].Label, Data: protoutil.AsStruct(map[string]interface{}{"name": "Funnel"})},
+		}),
 	},
 	{
 		Q.V().Match(
-			Q.Where(aql.Eq("$.label", "Human")),
-			Q.Where(aql.Eq("$.name", "Alex")),
+			Q.Where(aql.Eq("_label", "Human")),
+			Q.Where(aql.Eq("name", "Alex")),
 		),
 		pick(verts[0]),
 	},
 	{
 		Q.V().Match(
-			Q.As("a").Where(aql.Eq("$.label", "Human")).As("b"),
-			Q.As("b").Where(aql.Eq("$.name", "Alex")).As("c"),
+			Q.Mark("a").Where(aql.Eq("_label", "Human")).Mark("b"),
+			Q.Mark("b").Where(aql.Eq("name", "Alex")).Mark("c"),
 		).Select("c"),
-		pick(verts[0]),
+		pickselection(map[string]interface{}{"c": verts[0]}),
 	},
 	{
 		Q.V().Match(
-			Q.As("a").Where(aql.Eq("$.label", "Human")).As("b"),
-			Q.As("b").Where(aql.Eq("$.name", "Alex")).As("c"),
+			Q.Mark("a").Where(aql.Eq("_label", "Human")).Mark("b"),
+			Q.Mark("b").Where(aql.Eq("name", "Alex")).Mark("c"),
 		).Select("b", "c"),
-		pickrow(verts[0], verts[0]),
+		pickselection(map[string]interface{}{"b": verts[0], "c": verts[0]}),
 	},
 	/*
 	  TODO fairly certain match does not support this query from the gremlin docs
@@ -225,8 +220,8 @@ func TestEngine(t *testing.T) {
 
 // this sorts the results to account for non-determinstic ordering from the db.
 // TODO this will break sort tests
-func compare(expect []*aql.ResultRow) checker {
-	return func(t *testing.T, actual <-chan *aql.ResultRow) {
+func compare(expect []*aql.QueryResult) checker {
+	return func(t *testing.T, actual <-chan *aql.QueryResult) {
 		mar := jsonpb.Marshaler{}
 		actualS := []string{}
 		expectS := []string{}
@@ -255,22 +250,12 @@ func compare(expect []*aql.ResultRow) checker {
 }
 
 func pick(vals ...interface{}) checker {
-	expect := []*aql.ResultRow{}
-	for _, ival := range vals {
-		res := pickres(ival)
-		expect = append(expect, &aql.ResultRow{Value: res})
-	}
-	return compare(expect)
-}
-
-func pickrow(vals ...interface{}) checker {
 	expect := []*aql.QueryResult{}
 	for _, ival := range vals {
-		expect = append(expect, pickres(ival))
+		res := pickres(ival)
+		expect = append(expect, res)
 	}
-	return compare([]*aql.ResultRow{
-		{Row: expect},
-	})
+	return compare(expect)
 }
 
 func pickres(ival interface{}) *aql.QueryResult {
@@ -289,35 +274,60 @@ func pickres(ival interface{}) *aql.QueryResult {
 }
 
 func pickAllVerts() checker {
-	expect := []*aql.ResultRow{}
+	expect := []*aql.QueryResult{}
 	for _, ival := range verts {
 		res := pickres(ival)
-		expect = append(expect, &aql.ResultRow{Value: res})
+		expect = append(expect, res)
 	}
 	return compare(expect)
 }
 
 func pickAllEdges() checker {
-	expect := []*aql.ResultRow{}
+	expect := []*aql.QueryResult{}
 	for _, ival := range edges {
 		res := pickres(ival)
-		expect = append(expect, &aql.ResultRow{Value: res})
+		expect = append(expect, res)
 	}
 	return compare(expect)
 }
 
-func values(vals ...interface{}) checker {
-	expect := []*aql.ResultRow{}
-	for _, val := range vals {
-		expect = append(expect, &aql.ResultRow{
-			Value: &aql.QueryResult{
-				Result: &aql.QueryResult_Data{
-					// TODO would be better if this didn't depend on protoutil,
-					//      since that is a major part of what is being tested.
-					Data: protoutil.WrapValue(val),
+func pickselection(selection map[string]interface{}) checker {
+	s := map[string]*aql.Selection{}
+	for mark, ival := range selection {
+		switch val := ival.(type) {
+		case *aql.Vertex:
+			s[mark] = &aql.Selection{
+				Result: &aql.Selection_Vertex{
+					Vertex: val,
 				},
+			}
+		case *aql.Edge:
+			s[mark] = &aql.Selection{
+				Result: &aql.Selection_Edge{
+					Edge: val,
+				},
+			}
+		default:
+			panic("unknown")
+		}
+	}
+	expect := []*aql.QueryResult{
+		{
+			Result: &aql.QueryResult_Selections{
+				Selections: &aql.Selections{Selections: s},
 			},
-		})
+		},
+	}
+	return compare(expect)
+}
+
+func count(i uint32) checker {
+	expect := []*aql.QueryResult{
+		{
+			Result: &aql.QueryResult_Count{
+				Count: i,
+			},
+		},
 	}
 	return compare(expect)
 }

@@ -19,11 +19,11 @@ install: depends
 # Update submodules and build code
 depends:
 	@git submodule update --init --recursive
-	@go get -d .
+	@go get github.com/golang/dep/cmd/dep
+	@dep ensure
 
 # Build the code including the rocksdb package
 with-rocksdb: depends
-	@go get github.com/tecbot/gorocksdb
 	@go install -tags 'rocksdb' .
 
 # --------------------------
@@ -44,15 +44,16 @@ proto:
 		index.proto
 
 proto-depends:
-	@go install github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway
-	@go install github.com/golang/protobuf/protoc-gen-go
+	@go get github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway
+	@go get github.com/golang/protobuf/protoc-gen-go
+	@go get github.com/ckaznocha/protoc-gen-lint
 
 # ---------------------
 # Code Style
 # ---------------------
 # Automatially update code formatting
 tidy:
-	@for f in $$(find . -name "*.go" -print | egrep -v "\.pb\.go|\.gw\.go|underscore\.go"); do \
+	@for f in $$(find . -path ./vendor -prune -o -name "*.go" -print | egrep -v "\.pb\.go|\.gw\.go|underscore\.go"); do \
 		gofmt -w -s $$f ;\
 		goimports -w $$f ;\
 	done;
@@ -70,7 +71,6 @@ lint:
 # Tests
 # ---------------------
 test:
-	@go get github.com/stretchr/testify/assert
 	@go test $(TESTS)
 
 test-conformance:

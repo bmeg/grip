@@ -12,11 +12,8 @@ import (
 
 	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/gdbi"
-	"github.com/bmeg/arachne/jsengine"
-	_ "github.com/bmeg/arachne/jsengine/goja" // import goja so it registers with the driver map
-	_ "github.com/bmeg/arachne/jsengine/otto" // import otto so it registers with the driver map
-	_ "github.com/bmeg/arachne/jsengine/v8"   // import v8 so it registers with the driver map
 	"github.com/bmeg/arachne/jsonpath"
+	"github.com/bmeg/arachne/kvi"
 	"github.com/bmeg/arachne/kvindex"
 	"github.com/bmeg/arachne/protoutil"
 	structpb "github.com/golang/protobuf/ptypes/struct"
@@ -403,7 +400,7 @@ func (r *Render) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, 
 		defer close(out)
 		for t := range in {
 			v := jsonpath.RenderTraveler(t, r.template)
-			out <- &gdbi.Traveler{Value: v}
+			out <- &gdbi.Traveler{Render: v}
 		}
 	}()
 	return context.WithValue(ctx, propLoad, true)
@@ -608,7 +605,7 @@ type Count struct{}
 func (c *Count) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
 	go func() {
 		defer close(out)
-		var i uint64
+		var i uint32
 		for range in {
 			i++
 		}
@@ -621,14 +618,14 @@ func (c *Count) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, o
 
 // Limit limits incoming values to count
 type Limit struct {
-	count int64
+	count uint32
 }
 
-// Process runs Limit
+// Process runs limit
 func (l *Limit) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
 	go func() {
 		defer close(out)
-		var i int64
+		var i uint32
 		for t := range in {
 			if i == l.count {
 				return
@@ -642,34 +639,24 @@ func (l *Limit) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, o
 
 ////////////////////////////////////////////////////////////////////////////////
 
-// Fold runs Javascript fold function
-type Fold struct {
-	fold    *aql.FoldStatement
-	imports []string
+// Offset limits incoming values to count
+type Offset struct {
+	count uint32
 }
 
-// Process runs fold
-func (f *Fold) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
+// Process runs offset
+func (o *Offset) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
 	go func() {
 		defer close(out)
-		mfunc, err := jsengine.NewJSEngine(f.fold.Source, f.imports)
-		if err != nil || mfunc == nil {
-			log.Printf("Script Error: %s", err)
-			return
-		}
-		s := f.fold.Init.Kind.(*structpb.Value_StructValue)
-		foldValue := protoutil.AsMap(s.StructValue)
-		for i := range in {
-			foldValue, err = mfunc.CallDict(foldValue, i.GetCurrent().Data)
-			if err != nil {
-				log.Printf("Call error: %s", err)
+		var i uint32
+		for t := range in {
+			if i >= o.count {
+				out <- t
 			}
-		}
-		if foldValue != nil {
-			out <- &gdbi.Traveler{Value: foldValue}
+			i++
 		}
 	}()
-	return context.WithValue(ctx, propLoad, true)
+	return ctx
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -719,40 +706,25 @@ func (m *Marker) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, 
 
 ////////////////////////////////////////////////////////////////////////////////
 
-type selectOne struct {
-	mark string
-}
-
-func (s *selectOne) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
-	go func() {
-		defer close(out)
-		for t := range in {
-			c := t.GetMark(s.mark)
-			out <- t.AddCurrent(c)
-		}
-	}()
-	return context.WithValue(ctx, propLoad, true)
-}
-
-type selectMany struct {
+// Selector selects marks to return
+type Selector struct {
 	marks []string
 }
 
-func (s *selectMany) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
+// Process runs Selector
+func (s *Selector) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
 	go func() {
 		defer close(out)
 		for t := range in {
-			row := make([]*gdbi.DataElement, 0, len(s.marks))
+			res := map[string]*gdbi.DataElement{}
 			for _, mark := range s.marks {
-				// TODO handle missing mark? rely on compiler to check this?
-				t := t.GetMark(mark)
-				if t != nil {
-					row = append(row, t)
-				} else {
-					row = append(row, &gdbi.DataElement{})
+				val := t.GetMark(mark)
+				if val == nil {
+					val = &gdbi.DataElement{}
 				}
+				res[mark] = val
 			}
-			out <- &gdbi.Traveler{Row: row}
+			out <- &gdbi.Traveler{Selections: res}
 		}
 	}()
 	return context.WithValue(ctx, propLoad, true)
@@ -807,24 +779,38 @@ type aggregate struct {
 }
 
 func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
-	aChans := make(map[string](chan *gdbi.Traveler))
+	aChans := make(map[string](chan []*gdbi.Traveler))
 	g, ctx := errgroup.WithContext(ctx)
 
 	go func() {
 		for _, a := range agg.aggregations {
-			aChans[a.Name] = make(chan *gdbi.Traveler, 100)
+			aChans[a.Name] = make(chan []*gdbi.Traveler, 100)
 			defer close(aChans[a.Name])
 		}
 
+		batchSize := 100
+		i := 0
+		batch := []*gdbi.Traveler{}
 		for t := range in {
-			for _, a := range agg.aggregations {
-				aChans[a.Name] <- t
+			if i == batchSize {
+				for _, a := range agg.aggregations {
+					aChans[a.Name] <- batch
+				}
+				i = 0
+				batch = []*gdbi.Traveler{}
 			}
+			batch = append(batch, t)
+			i++
+		}
+		for _, a := range agg.aggregations {
+			aChans[a.Name] <- batch
 		}
 		return
 	}()
 
+	aggChan := make(chan map[string]*aql.AggregationResult, len(agg.aggregations))
 	for _, a := range agg.aggregations {
+		a := a
 		switch a.Aggregation.(type) {
 		case *aql.Aggregate_Term:
 			g.Go(func() error {
@@ -838,19 +824,26 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 				field = strings.TrimPrefix(field, "$.")
 				idx.AddField(field)
 
-				for t := range aChans[a.Name] {
-					doc := jsonpath.GetDoc(t, namespace)
-					if doc["label"] == tagg.Label {
-						err := idx.AddDoc(doc["gid"].(string), doc)
-						if err != nil {
-							return err
+				for batch := range aChans[a.Name] {
+					err := kv.Update(func(tx kvi.KVTransaction) error {
+						for _, t := range batch {
+							doc := jsonpath.GetDoc(t, namespace)
+							if doc["label"] == tagg.Label {
+								err := idx.AddDocTx(tx, doc["gid"].(string), doc)
+								if err != nil {
+									return err
+								}
+							}
 						}
+						return nil
+					})
+					if err != nil {
+						return err
 					}
 				}
 
-				aggOut := &aql.NamedAggregationResult{
-					Name:    a.Name,
-					Buckets: []*aql.AggregationResult{},
+				aggOut := &aql.AggregationResult{
+					Buckets: []*aql.AggregationResultBucket{},
 				}
 
 				for tcount := range idx.FieldTermCounts(field) {
@@ -860,7 +853,7 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 					} else {
 						t = protoutil.WrapValue(tcount.Number)
 					}
-					aggOut.SortedInsert(&aql.AggregationResult{Key: t, Value: float64(tcount.Count)})
+					aggOut.SortedInsert(&aql.AggregationResultBucket{Key: t, Value: float64(tcount.Count)})
 					if size > 0 {
 						if len(aggOut.Buckets) > int(size) {
 							aggOut.Buckets = aggOut.Buckets[:size]
@@ -868,9 +861,7 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 					}
 				}
 
-				aggOutMap := aggOut.AsMap()
-				out <- &gdbi.Traveler{Value: aggOutMap}
-
+				aggChan <- map[string]*aql.AggregationResult{a.Name: aggOut}
 				return nil
 			})
 
@@ -886,19 +877,26 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 				field = strings.TrimPrefix(field, "$.")
 				idx.AddField(field)
 
-				for t := range aChans[a.Name] {
-					doc := jsonpath.GetDoc(t, namespace)
-					if doc["label"] == hagg.Label {
-						err := idx.AddDoc(doc["gid"].(string), doc)
-						if err != nil {
-							return err
+				for batch := range aChans[a.Name] {
+					err := kv.Update(func(tx kvi.KVTransaction) error {
+						for _, t := range batch {
+							doc := jsonpath.GetDoc(t, namespace)
+							if doc["label"] == hagg.Label {
+								err := idx.AddDocTx(tx, doc["gid"].(string), doc)
+								if err != nil {
+									return err
+								}
+							}
 						}
+						return nil
+					})
+					if err != nil {
+						return err
 					}
 				}
 
-				aggOut := &aql.NamedAggregationResult{
-					Name:    a.Name,
-					Buckets: []*aql.AggregationResult{},
+				aggOut := &aql.AggregationResult{
+					Buckets: []*aql.AggregationResultBucket{},
 				}
 
 				min := idx.FieldTermNumberMin(field)
@@ -910,12 +908,10 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 					for tcount := range idx.FieldTermNumberRange(field, bucket, bucket+i) {
 						count += tcount.Count
 					}
-					aggOut.Buckets = append(aggOut.Buckets, &aql.AggregationResult{Key: protoutil.WrapValue(bucket), Value: float64(count)})
+					aggOut.Buckets = append(aggOut.Buckets, &aql.AggregationResultBucket{Key: protoutil.WrapValue(bucket), Value: float64(count)})
 				}
 
-				aggOutMap := aggOut.AsMap()
-				out <- &gdbi.Traveler{Value: aggOutMap}
-
+				aggChan <- map[string]*aql.AggregationResult{a.Name: aggOut}
 				return nil
 			})
 
@@ -932,19 +928,26 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 				field = strings.TrimPrefix(field, "$.")
 				idx.AddField(field)
 
-				for t := range aChans[a.Name] {
-					doc := jsonpath.GetDoc(t, namespace)
-					if doc["label"] == pagg.Label {
-						err := idx.AddDoc(doc["gid"].(string), doc)
-						if err != nil {
-							return err
+				for batch := range aChans[a.Name] {
+					err := kv.Update(func(tx kvi.KVTransaction) error {
+						for _, t := range batch {
+							doc := jsonpath.GetDoc(t, namespace)
+							if doc["label"] == pagg.Label {
+								err := idx.AddDocTx(tx, doc["gid"].(string), doc)
+								if err != nil {
+									return err
+								}
+							}
 						}
+						return nil
+					})
+					if err != nil {
+						return err
 					}
 				}
 
-				aggOut := &aql.NamedAggregationResult{
-					Name:    a.Name,
-					Buckets: []*aql.AggregationResult{},
+				aggOut := &aql.AggregationResult{
+					Buckets: []*aql.AggregationResultBucket{},
 				}
 
 				td := tdigest.New()
@@ -954,12 +957,10 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 
 				for _, p := range percents {
 					q := td.Quantile(p / 100)
-					aggOut.Buckets = append(aggOut.Buckets, &aql.AggregationResult{Key: protoutil.WrapValue(p), Value: q})
+					aggOut.Buckets = append(aggOut.Buckets, &aql.AggregationResultBucket{Key: protoutil.WrapValue(p), Value: q})
 				}
 
-				aggOutMap := aggOut.AsMap()
-				out <- &gdbi.Traveler{Value: aggOutMap}
-
+				aggChan <- map[string]*aql.AggregationResult{a.Name: aggOut}
 				return nil
 			})
 
@@ -973,101 +974,18 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 	go func() {
 		defer close(out)
 		if err := g.Wait(); err != nil {
-			log.Printf("Error: %v", err)
+			log.Printf("Error: one or more aggregation failed: %v", err)
 		}
+		close(aggChan)
+		aggs := map[string]*aql.AggregationResult{}
+		for a := range aggChan {
+			for k, v := range a {
+				aggs[k] = v
+			}
+		}
+		out <- &gdbi.Traveler{Aggregations: aggs}
 		return
 	}()
 
 	return context.WithValue(ctx, propLoad, true)
 }
-
-////////////////////////////////////////////////////////////////////////////////
-
-/*
-
-func mapPipe() {
-	mfunc, err := jsengine.NewJSEngine(source, pengine.imports)
-	if err != nil {
-		log.Printf("Script Error: %s", err)
-	}
-
-	for i := range pipe.Travelers {
-		out := mfunc.Call(i.GetCurrent())
-		if out != nil {
-			a := i.AddCurrent(*out)
-			o <- a
-		}
-	}
-}
-
-func foldPipe() {
-	mfunc, err := jsengine.NewJSEngine(source, pengine.imports)
-	if err != nil {
-		log.Printf("Script Error: %s", err)
-	}
-
-	var last *aql.QueryResult
-	first := true
-	for i := range pipe.Travelers {
-		if first {
-			last = i.GetCurrent()
-			first = false
-		} else {
-			last = mfunc.Call(last, i.GetCurrent())
-		}
-	}
-	if last != nil {
-		i := Traveler{}
-		a := i.AddCurrent(*last)
-		o <- a
-	}
-}
-
-func filterPipe() {
-	mfunc, err := jsengine.NewJSEngine(source, pengine.imports)
-	if err != nil {
-		log.Printf("Script Error: %s", err)
-	}
-	for i := range pipe.Travelers {
-		out := mfunc.CallBool(i.GetCurrent())
-		if out {
-			o <- i
-		}
-	}
-}
-
-func filterValuesPipe() {
-  // TODO only create JS engine once?
-	mfunc, err := jsengine.NewJSEngine(source, pengine.imports)
-	if err != nil {
-		log.Printf("Script Error: %s", err)
-	}
-	for i := range pipe.Travelers {
-		out := mfunc.CallValueMapBool(i.State)
-		if out {
-			o <- i
-		}
-	}
-}
-
-func vertexFromValuesPipe() {
-	mfunc, err := jsengine.NewJSEngine(source, pengine.imports)
-	if err != nil {
-		log.Printf("Script Error: %s", err)
-	}
-	for i := range pipe.Travelers {
-
-		t.startTimer("javascript")
-		out := mfunc.CallValueToVertex(i.State)
-		t.endTimer("javascript")
-
-		for _, j := range out {
-			v := db.GetVertex(j, load)
-			if v != nil {
-				o <- i.AddCurrent(aql.QueryResult{Result: &aql.QueryResult_Vertex{Vertex: v}})
-			}
-		}
-	}
-}
-
-*/

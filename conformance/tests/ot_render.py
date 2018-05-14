@@ -28,6 +28,6 @@ def test_render(O):
     )
 
     for row in query:
-        if 'Age' not in row["data"] or "Name" not in row["data"]:
+        if 'Age' not in row or "Name" not in row:
             errors.append("Missing fields")
     return errors

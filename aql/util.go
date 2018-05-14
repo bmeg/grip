@@ -1,6 +1,7 @@
 package aql
 
 import (
+	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -49,19 +50,15 @@ func (vertex *Vertex) HasProperty(key string) bool {
 // Validate returns an error if the vertex is invalid
 func (vertex *Vertex) Validate() error {
 	if vertex.Gid == "" {
-		return fmt.Errorf("'gid' cannot be blank")
+		return errors.New("'gid' cannot be blank")
 	}
 	if vertex.Label == "" {
-		return fmt.Errorf("'label' cannot be blank")
+		return errors.New("'label' cannot be blank")
 	}
 	for k := range vertex.GetDataMap() {
-		for _, v := range []string{"gid", "label", "to", "from", "data"} {
-			if k == v {
-				return fmt.Errorf("data field '%s' uses a reserved name", k)
-			}
-		}
-		if strings.Contains(k, ".") {
-			return fmt.Errorf("data field '%s' invalid; fields cannot contain periods", k)
+		err := ValidateFieldName(k)
+		if err != nil {
+			return err
 		}
 	}
 	return nil
@@ -107,108 +104,103 @@ func (edge *Edge) HasProperty(key string) bool {
 // Validate returns an error if the edge is invalid
 func (edge *Edge) Validate() error {
 	if edge.Gid == "" {
-		return fmt.Errorf("'gid' cannot be blank")
+		return errors.New("'gid' cannot be blank")
 	}
 	if edge.Label == "" {
-		return fmt.Errorf("'label' cannot be blank")
+		return errors.New("'label' cannot be blank")
 	}
 	if edge.From == "" {
-		return fmt.Errorf("'from' cannot be blank")
+		return errors.New("'from' cannot be blank")
 	}
 	if edge.To == "" {
-		return fmt.Errorf("'to' cannot be blank")
+		return errors.New("'to' cannot be blank")
 	}
 	for k := range edge.GetDataMap() {
-		for _, v := range []string{"gid", "label", "to", "from", "data"} {
-			if k == v {
-				return fmt.Errorf("data field '%s' uses a reserved name", k)
-			}
-		}
-		if strings.Contains(k, ".") {
-			return fmt.Errorf("data field '%s' invalid; fields cannot contain periods", k)
+		err := ValidateFieldName(k)
+		if err != nil {
+			return err
 		}
 	}
 	return nil
 }
 
 // AsMap converts a NamedAggregationResult to a map[string]interface{}
-func (namedAggRes *NamedAggregationResult) AsMap() map[string]interface{} {
-	buckets := make([]map[string]interface{}, len(namedAggRes.Buckets))
-	for i, b := range namedAggRes.Buckets {
+func (aggRes *AggregationResult) AsMap() map[string]interface{} {
+	buckets := make([]map[string]interface{}, len(aggRes.Buckets))
+	for i, b := range aggRes.Buckets {
 		buckets[i] = b.AsMap()
 	}
 
 	return map[string]interface{}{
-		"name":    namedAggRes.Name,
 		"buckets": buckets,
 	}
 }
 
-// AsMap converts an AggregationResult to a map[string]interface{}
-func (aggRes *AggregationResult) AsMap() map[string]interface{} {
+// AsMap converts an AggregationResultBucket to a map[string]interface{}
+func (aggRes *AggregationResultBucket) AsMap() map[string]interface{} {
 	return map[string]interface{}{
 		"key":   aggRes.Key,
 		"value": aggRes.Value,
 	}
 }
 
-// SortedInsert inserts an AggregationResult into the Buckets field
+// SortedInsert inserts an AggregationResultBucket into the Buckets field
 // and returns the index of the insertion
-func (namedAggRes *NamedAggregationResult) SortedInsert(el *AggregationResult) (int, error) {
-	if !namedAggRes.IsValueSorted() {
-		return 0, fmt.Errorf("buckets are not value sorted")
+func (aggRes *AggregationResult) SortedInsert(el *AggregationResultBucket) (int, error) {
+	if !aggRes.IsValueSorted() {
+		return 0, errors.New("buckets are not value sorted")
 	}
 
-	if len(namedAggRes.Buckets) == 0 {
-		namedAggRes.Buckets = []*AggregationResult{el}
+	if len(aggRes.Buckets) == 0 {
+		aggRes.Buckets = []*AggregationResultBucket{el}
 		return 0, nil
 	}
 
-	index := sort.Search(len(namedAggRes.Buckets), func(i int) bool {
-		if namedAggRes.Buckets[i] == nil {
+	index := sort.Search(len(aggRes.Buckets), func(i int) bool {
+		if aggRes.Buckets[i] == nil {
 			return true
 		}
-		return el.Value > namedAggRes.Buckets[i].Value
+		return el.Value > aggRes.Buckets[i].Value
 	})
 
-	namedAggRes.Buckets = append(namedAggRes.Buckets, &AggregationResult{})
-	copy(namedAggRes.Buckets[index+1:], namedAggRes.Buckets[index:])
-	namedAggRes.Buckets[index] = el
+	aggRes.Buckets = append(aggRes.Buckets, &AggregationResultBucket{})
+	copy(aggRes.Buckets[index+1:], aggRes.Buckets[index:])
+	aggRes.Buckets[index] = el
 
 	return index, nil
 }
 
 // SortOnValue sorts Buckets by Value in descending order
-func (namedAggRes *NamedAggregationResult) SortOnValue() {
-	sort.Slice(namedAggRes.Buckets, func(i, j int) bool {
-		if namedAggRes.Buckets[i] == nil && namedAggRes.Buckets[j] != nil {
+func (aggRes *AggregationResult) SortOnValue() {
+	sort.Slice(aggRes.Buckets, func(i, j int) bool {
+		if aggRes.Buckets[i] == nil && aggRes.Buckets[j] != nil {
 			return true
 		}
-		if namedAggRes.Buckets[i] != nil && namedAggRes.Buckets[j] == nil {
+		if aggRes.Buckets[i] != nil && aggRes.Buckets[j] == nil {
 			return false
 		}
-		if namedAggRes.Buckets[i] == nil && namedAggRes.Buckets[j] == nil {
+		if aggRes.Buckets[i] == nil && aggRes.Buckets[j] == nil {
 			return false
 		}
-		return namedAggRes.Buckets[i].Value > namedAggRes.Buckets[j].Value
+		return aggRes.Buckets[i].Value > aggRes.Buckets[j].Value
 	})
 }
 
 // IsValueSorted returns true if the Buckets are sorted by Value
-func (namedAggRes *NamedAggregationResult) IsValueSorted() bool {
-	for i := range namedAggRes.Buckets {
+func (aggRes *AggregationResult) IsValueSorted() bool {
+	for i := range aggRes.Buckets {
 		j := i + 1
-		if i < len(namedAggRes.Buckets)-2 {
-			if namedAggRes.Buckets[i] != nil && namedAggRes.Buckets[j] == nil {
+		if i < len(aggRes.Buckets)-2 {
+			if aggRes.Buckets[i] != nil && aggRes.Buckets[j] == nil {
 				return true
 			}
-			if namedAggRes.Buckets[i] == nil && namedAggRes.Buckets[j] != nil {
+			if aggRes.Buckets[i] == nil && aggRes.Buckets[j] != nil {
 				return false
 			}
-			if namedAggRes.Buckets[i] == nil && namedAggRes.Buckets[j] == nil {
+			if aggRes.Buckets[i] == nil && aggRes.Buckets[j] == nil {
 				return true
 			}
-			if namedAggRes.Buckets[i].Value < namedAggRes.Buckets[j].Value {
+			if aggRes.Buckets[i].Value < aggRes.Buckets[j].Value {
 				return false
 			}
 		}
@@ -218,11 +210,43 @@ func (namedAggRes *NamedAggregationResult) IsValueSorted() bool {
 
 // ValidateGraphName returns an error if the graph name is invalid
 func ValidateGraphName(graph string) error {
-	if strings.ContainsAny(graph, `/\. "'$*<>:|?`) {
-		return fmt.Errorf(`invalid name; cannot contain /\. "'$*<>:|?`)
-	}
-	if strings.HasPrefix(graph, "_") || strings.HasPrefix(graph, "+") || strings.HasPrefix(graph, "-") {
-		return fmt.Errorf(`invalid name; cannot start with _-+`)
+	err := validate(graph)
+	if err != nil {
+		return fmt.Errorf(`invalid graph name %s; %v`, graph, err)
 	}
 	return nil
+}
+
+// ReservedFields are the fields that cannot be used as keys within the data of a vertex or edge
+var ReservedFields = []string{"_gid", "_label", "_to", "_from", "_data"}
+
+// ValidateFieldName returns an error if the data field name is invalid
+func ValidateFieldName(k string) error {
+	for _, v := range ReservedFields {
+		if k == v {
+			return fmt.Errorf("data field '%s' uses a reserved name", k)
+		}
+	}
+	err := validate(k)
+	if err != nil {
+		return fmt.Errorf(`invalid data field '%s'; %v`, k, err)
+	}
+	return nil
+}
+
+func validate(k string) error {
+	if strings.ContainsAny(k, `!@#$%^&*()+={}[] :;"',.<>?/\|~`) {
+		return errors.New(`cannot contain: !@#$%^&*()+={}[] :;"',.<>?/\|~`)
+	}
+	if strings.HasPrefix(k, "_") || strings.HasPrefix(k, "-") {
+		return errors.New(`cannot start with _-`)
+	}
+	return nil
+}
+
+// Graph represents a graph. This structure is used by client side graph loader utilities.
+type Graph struct {
+	Graph    string
+	Vertices []*Vertex
+	Edges    []*Edge
 }
