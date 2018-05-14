@@ -53,7 +53,7 @@ proto-depends:
 # ---------------------
 # Automatially update code formatting
 tidy:
-	@for f in $$(find . -name "*.go" -print | egrep -v "\.pb\.go|\.gw\.go|underscore\.go"); do \
+	@for f in $$(find . -path ./vendor -prune -o -name "*.go" -print | egrep -v "\.pb\.go|\.gw\.go|underscore\.go"); do \
 		gofmt -w -s $$f ;\
 		goimports -w $$f ;\
 	done;

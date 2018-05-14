@@ -207,6 +207,7 @@ func (es *Graph) VertexLabelScan(ctx context.Context, label string) chan string 
 		scroll := es.client.Scroll().
 			Index(es.vertexIndex).
 			Query(elastic.NewBoolQuery().Must(elastic.NewTermQuery("label", label))).
+			Sort("gid", true).
 			Size(100)
 		for {
 			results, err := scroll.Do(ctx)
