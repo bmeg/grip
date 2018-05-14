@@ -155,6 +155,9 @@ func (comp DefaultCompiler) Compile(stmts []*aql.GraphStatement) (gdbi.Pipeline,
 		case *aql.GraphStatement_Limit:
 			add(&Limit{stmt.Limit})
 
+		case *aql.GraphStatement_Offset:
+			add(&Offset{stmt.Offset})
+
 		case *aql.GraphStatement_Count:
 			// TODO validate the types following a counter
 			add(&Count{})

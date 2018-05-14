@@ -650,7 +650,7 @@ func (o *Offset) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, 
 		defer close(out)
 		var i uint32
 		for t := range in {
-			if i > o.count {
+			if i >= o.count {
 				out <- t
 			}
 			i++

@@ -486,6 +486,12 @@ class Query:
         """
         return self.__append({"limit": n})
 
+    def offset(self, n):
+        """
+        Offset the results returned.
+        """
+        return self.__append({"offset": n})
+
     def count(self):
         """
         Return the number of results, instead of the elements.
