@@ -1,6 +1,7 @@
 from __future__ import absolute_import, print_function, unicode_literals
 
 import json
+import sys
 import urllib2
 
 from aql.util import do_request
@@ -12,7 +13,7 @@ class Query:
         self.url = url
 
     def __append(self, part):
-        q = Query(self.url)
+        q = self.__class__(self.url)
         q.query = self.query[:]
         q.query.append(part)
         return q
@@ -174,37 +175,15 @@ class Query:
             props = [props]
         return self.__append({"distinct": props})
 
-    def jsImport(self, src):
-        """
-        Initialize javascript engine with functions and global variables.
-        """
-        return self.__append({"import": src})
-
-    def map(self, func):
-        """
-        Transform results by the given javascript function.
-        function(el) el
-        """
-        return self.__append({"map": func})
-
-    def filter(self, func):
-        """
-        Filter results by the given javascript function.
-        function(el) bool
-        """
-        return self.__append({"filter": func})
-
-    def fold(self, init, func):
-        """
-        Fold results by the given javascript function.
-        function(el) el
-        """
-        return self.__append({"fold": {"init": init, "source": func}})
-
     def match(self, queries):
         """
         Intersect multiple queries.
         """
+        if not isinstance(queries, list):
+            raise TypeError("match expects an array")
+        if not all(isinstance(i, Query) for i in queries):
+            raise TypeError("expected all aruments to match to be a \
+            Query instance")
         mq = []
         for i in queries:
             mq.append({"query": i.query})
@@ -267,5 +246,47 @@ class Query:
                 else:
                     yield d
             except ValueError as e:
-                print("Can't decode: %s" % (result))
+                print("Can't decode: %s" % (result), file=sys.stderr)
                 raise e
+
+
+class QueryResult(object):
+
+    def __init__(self, data):
+        for k in data:
+            v = data[k]
+            if isinstance(v, dict):
+                self.__dict__[k] = self.__class__(v)
+            else:
+                self.__dict__[k] = v
+
+    def __setattr__(self, k, v):
+        if isinstance(v, dict):
+            self.__dict__[k] = self.__class__(v)
+        else:
+            self.__dict__[k] = v
+
+    def __repr__(self):
+        attrs = self.as_dict()
+        return '<%s %s>' % (self.__class__.__name__, attrs)
+
+    def __str__(self):
+        return self.__repr__()
+
+    def as_dict(self):
+        attrs = {}
+        for a in self.__dict__:
+            if not a.startswith('__') and not callable(getattr(self, a)):
+                val = getattr(self, a)
+                if isinstance(val, dict):
+                    for k in val:
+                        if isinstance(val[k], QueryResult):
+                            attrs[a][k] = val[k].__dict__
+                        else:
+                            attrs[a] = val
+                            break
+                elif isinstance(val, QueryResult):
+                    attrs[a] = val.__dict__
+                else:
+                    attrs[a] = val
+        return attrs

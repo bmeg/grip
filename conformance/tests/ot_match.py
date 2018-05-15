@@ -21,10 +21,10 @@ def test_match_count(O):
     O.addEdge("4", "5", "created", {"weight": 1.0})
 
     query = O.query().V().match([
-        O.mark('a').out('created').mark('b'),
-        O.mark('b').where(aql.eq('$.name', 'lop')),
-        O.mark('b').in_('created').mark('c'),
-        O.mark('c').where(aql.eq('$.age', "29"))
+        O.query().mark('a').out('created').mark('b'),
+        O.query().mark('b').where(aql.eq('$.name', 'lop')),
+        O.query().mark('b').in_('created').mark('c'),
+        O.query().mark('c').where(aql.eq('$.age', "29"))
     ]).select(['a', 'c'])
 
     count = 0

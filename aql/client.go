@@ -39,10 +39,13 @@ func (client Client) GetGraphs() chan string {
 		}
 		for {
 			elem, err := cl.Recv()
-			if err == io.EOF || err != nil {
-				break
+			if err == io.EOF {
+				return
 			}
-
+			if err != nil {
+				log.Println("Failed to list graphs:", err)
+				return
+			}
 			out <- elem.Graph
 		}
 	}()
@@ -125,10 +128,11 @@ func (client Client) Traversal(query *GraphQuery) (chan *QueryResult, error) {
 		for {
 			t, err := tclient.Recv()
 			if err == io.EOF {
-				break
+				return
 			}
 			if err != nil {
-				log.Printf("Failed to receive traversal result: %v", err)
+				log.Println("Failed to receive traversal result:", err)
+				return
 			}
 			out <- t
 		}

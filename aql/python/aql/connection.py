@@ -21,7 +21,7 @@ class Connection:
         self.host = host
         self.url = "%s/v1/graph" % (host)
 
-    def list(self):
+    def listGraphs(self):
         """
         List graphs.
         """
@@ -36,9 +36,9 @@ class Connection:
             out.append(json.loads(i))
         return out
 
-    def new(self, name):
+    def addGraph(self, name):
         """
-        New graph.
+        Create a new graph.
         """
         headers = {"Content-Type": "application/json",
                    "Accept": "application/json"}
@@ -47,7 +47,7 @@ class Connection:
         result = response.read()
         return json.loads(result)
 
-    def delete(self, name):
+    def deleteGraph(self, name):
         """
         Delete graph.
         """

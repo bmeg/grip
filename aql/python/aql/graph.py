@@ -144,12 +144,6 @@ class Graph:
         """
         return Query(self.url + "/" + self.name + "/query")
 
-    def mark(self, name):
-        """
-        Create mark step for match query
-        """
-        return self.query().mark(name)
-
 
 class BulkAdd:
     def __init__(self, url, graph):
