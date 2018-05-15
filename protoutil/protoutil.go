@@ -1,8 +1,9 @@
 package protoutil
 
 import (
-	structpb "github.com/golang/protobuf/ptypes/struct"
 	"log"
+
+	structpb "github.com/golang/protobuf/ptypes/struct"
 )
 
 //StructSet take value and add it to Struct s using key
@@ -16,11 +17,27 @@ func WrapValue(value interface{}) *structpb.Value {
 	switch v := value.(type) {
 	case string:
 		return &structpb.Value{Kind: &structpb.Value_StringValue{StringValue: v}}
+	case uint:
+		return &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: float64(v)}}
+	case uint8:
+		return &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: float64(v)}}
+	case uint16:
+		return &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: float64(v)}}
+	case uint32:
+		return &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: float64(v)}}
+	case uint64:
+		return &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: float64(v)}}
 	case int:
+		return &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: float64(v)}}
+	case int8:
+		return &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: float64(v)}}
+	case int16:
+		return &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: float64(v)}}
+	case int32:
 		return &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: float64(v)}}
 	case int64:
 		return &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: float64(v)}}
-	case int32:
+	case float32:
 		return &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: float64(v)}}
 	case float64:
 		return &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: float64(v)}}
@@ -38,7 +55,28 @@ func WrapValue(value interface{}) *structpb.Value {
 	case []string:
 		o := make([]*structpb.Value, len(v))
 		for i, k := range v {
-			wv := &structpb.Value{Kind: &structpb.Value_StringValue{StringValue: k}}
+			wv := WrapValue(k)
+			o[i] = wv
+		}
+		return &structpb.Value{Kind: &structpb.Value_ListValue{ListValue: &structpb.ListValue{Values: o}}}
+	case []int64:
+		o := make([]*structpb.Value, len(v))
+		for i, k := range v {
+			wv := WrapValue(k)
+			o[i] = wv
+		}
+		return &structpb.Value{Kind: &structpb.Value_ListValue{ListValue: &structpb.ListValue{Values: o}}}
+	case []float64:
+		o := make([]*structpb.Value, len(v))
+		for i, k := range v {
+			wv := WrapValue(k)
+			o[i] = wv
+		}
+		return &structpb.Value{Kind: &structpb.Value_ListValue{ListValue: &structpb.ListValue{Values: o}}}
+	case []map[string]interface{}:
+		o := make([]*structpb.Value, len(v))
+		for i, k := range v {
+			wv := WrapValue(k)
 			o[i] = wv
 		}
 		return &structpb.Value{Kind: &structpb.Value_ListValue{ListValue: &structpb.ListValue{Values: o}}}
@@ -49,7 +87,21 @@ func WrapValue(value interface{}) *structpb.Value {
 			o.Fields[k] = wv
 		}
 		return &structpb.Value{Kind: &structpb.Value_StructValue{StructValue: o}}
+	case map[string]string:
+		o := &structpb.Struct{Fields: map[string]*structpb.Value{}}
+		for k, v := range v {
+			wv := WrapValue(v)
+			o.Fields[k] = wv
+		}
+		return &structpb.Value{Kind: &structpb.Value_StructValue{StructValue: o}}
 	case map[string]float64:
+		o := &structpb.Struct{Fields: map[string]*structpb.Value{}}
+		for k, v := range v {
+			wv := WrapValue(v)
+			o.Fields[k] = wv
+		}
+		return &structpb.Value{Kind: &structpb.Value_StructValue{StructValue: o}}
+	case map[string]int64:
 		o := &structpb.Struct{Fields: map[string]*structpb.Value{}}
 		for k, v := range v {
 			wv := WrapValue(v)

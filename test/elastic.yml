@@ -1,0 +1,5 @@
+Database: elastic
+
+ElasticSearch:
+  URL: http://localhost:9200
+  Synchronous: true

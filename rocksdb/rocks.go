@@ -1,21 +1,27 @@
-// +build rocks
+// +build rocksdb
+
+/*
+The KeyValue interface wrapper for RocksDB
+*/
 
 package rocksdb
 
 import (
+	"bytes"
 	"fmt"
-	"github.com/bmeg/arachne/kvgraph"
-	"github.com/tecbot/gorocksdb"
 	"log"
+
+	"github.com/bmeg/arachne/kvgraph"
+	"github.com/bmeg/arachne/kvi"
+	"github.com/tecbot/gorocksdb"
 )
 
-type RocksKV struct {
-	db *gorocksdb.DB
-	ro *gorocksdb.ReadOptions
-	wo *gorocksdb.WriteOptions
-}
+var loaded = kvgraph.AddKVDriver("rocks", NewKVInterface)
 
-func RocksBuilder(path string) (kvgraph.KVInterface, error) {
+// NewKVInterface creates new RocksDB backed KVInterface at `path`
+func NewKVInterface(path string) (kvi.KVInterface, error) {
+	log.Printf("Starting RocksDB")
+
 	bbto := gorocksdb.NewDefaultBlockBasedTableOptions()
 	filter := gorocksdb.NewBloomFilter(10)
 	bbto.SetFilterPolicy(filter)
@@ -23,8 +29,11 @@ func RocksBuilder(path string) (kvgraph.KVInterface, error) {
 	opts := gorocksdb.NewDefaultOptions()
 	opts.SetBlockBasedTableFactory(bbto)
 	opts.SetCreateIfMissing(true)
-	log.Printf("Starting RocksDB")
-	db, _ := gorocksdb.OpenDb(opts, path)
+
+	db, err := gorocksdb.OpenDb(opts, path)
+	if err != nil {
+		return nil, err
+	}
 
 	ro := gorocksdb.NewDefaultReadOptions()
 	wo := gorocksdb.NewDefaultWriteOptions()
@@ -37,157 +46,236 @@ func RocksBuilder(path string) (kvgraph.KVInterface, error) {
 	}, nil
 }
 
-var Loaded error = kvgraph.AddKVDriver("rocks", RocksBuilder)
-
-//helper function to replicate bytes held in arrays created
-//from C pointers in rocks
-func bytes_copy(in []byte) []byte {
-	out := make([]byte, len(in))
-	copy(out, in)
-	return out
-}
-
-func (self *RocksKV) Close() error {
-	self.db.Close()
-	return nil
-}
-
-func (self *RocksKV) Delete(key []byte) error {
-	if err := self.db.Delete(self.wo, key); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (self *RocksKV) DeletePrefix(prefix []byte) error {
-	del_keys := make([][]byte, 0, 1000)
-
-	it := self.db.NewIterator(self.ro)
-	defer it.Close()
-	it.Seek(prefix)
-	for it = it; it.ValidForPrefix(prefix); it.Next() {
-		key := it.Key()
-		okey := bytes_copy(key.Data())
-		key.Free()
-		del_keys = append(del_keys, okey)
-	}
-	wb := gorocksdb.NewWriteBatch()
-	for _, k := range del_keys {
-		wb.Delete(k)
-	}
-	err := self.db.Write(self.wo, wb)
-	if err != nil {
-		log.Printf("Del Error: %s", err)
-	}
-	wb.Destroy()
-	return nil
-}
-
-func (self *RocksKV) HasKey(key []byte) bool {
-	data_value, err := self.db.Get(self.ro, key)
-	if err != nil {
-		return false
-	}
-	if data_value.Data() == nil {
-		return false
-	}
-	data_value.Free()
-	return true
-}
-
-func (self *RocksKV) Set(key []byte, value []byte) error {
-	err := self.db.Put(self.wo, key, value)
-	return err
-}
-
-type RocksTransaction struct {
+// RocksKV is an implementation of the KVStore for rocksdb
+type RocksKV struct {
 	db *gorocksdb.DB
 	ro *gorocksdb.ReadOptions
 	wo *gorocksdb.WriteOptions
 }
 
-func (self RocksTransaction) Delete(key []byte) error {
-	if err := self.db.Delete(self.wo, key); err != nil {
-		return err
-	}
+// Close closes the rocksdb connection
+func (rockskv *RocksKV) Close() error {
+	rockskv.db.Close()
 	return nil
 }
 
-func (self *RocksKV) Update(u func(tx kvgraph.KVTransaction) error) error {
-	ktx := RocksTransaction{db: self.db, ro: self.ro, wo: self.wo}
-	err := u(ktx)
-	return err
+// Delete removes a key/value from a kvstore
+func (rockskv *RocksKV) Delete(key []byte) error {
+	return rockskv.db.Delete(rockskv.wo, key)
 }
 
-type RocksCursor struct {
-	db    *gorocksdb.DB
-	ro    *gorocksdb.ReadOptions
-	wo    *gorocksdb.WriteOptions
-	it    *gorocksdb.Iterator
-	key   []byte
-	value []byte
+// DeletePrefix deletes all elements in kvstore that begin with prefix `id`
+func (rockskv *RocksKV) DeletePrefix(prefix []byte) error {
+	delKeys := make([][]byte, 0, 1000)
+
+	it := rockskv.db.NewIterator(rockskv.ro)
+	defer it.Close()
+	it.Seek(prefix)
+	for it := it; it.ValidForPrefix(prefix); it.Next() {
+		key := it.Key()
+		okey := copyBytes(key.Data())
+		key.Free()
+		delKeys = append(delKeys, okey)
+	}
+	wb := gorocksdb.NewWriteBatch()
+	for _, k := range delKeys {
+		wb.Delete(k)
+	}
+	err := rockskv.db.Write(rockskv.wo, wb)
+	if err != nil {
+		log.Printf("Del error: %s", err)
+	}
+	wb.Destroy()
+	return nil
 }
 
-func (self *RocksCursor) Get(key []byte) ([]byte, error) {
-	value, err := self.db.Get(self.ro, key)
+// Get retrieves the value of key
+func (rockskv *RocksKV) Get(key []byte) ([]byte, error) {
+	value, err := rockskv.db.Get(rockskv.ro, key)
 	if err != nil {
 		return nil, err
 	}
-	out := bytes_copy(value.Data())
+	if value.Data() == nil {
+		return nil, fmt.Errorf("Not found")
+	}
+	out := copyBytes(value.Data())
 	value.Free()
 	return out, nil
 }
 
-func (self *RocksCursor) Key() []byte {
-	return self.key
+// HasKey returns true if the key is exists in kvstore
+func (rockskv *RocksKV) HasKey(key []byte) bool {
+	dataValue, err := rockskv.db.Get(rockskv.ro, key)
+	if err != nil {
+		return false
+	}
+	if dataValue.Data() == nil {
+		return false
+	}
+	dataValue.Free()
+	return true
 }
 
-func (self *RocksCursor) Value() ([]byte, error) {
-	return self.value, nil
+// Set value in kvstore
+func (rockskv *RocksKV) Set(key, value []byte) error {
+	return rockskv.db.Put(rockskv.wo, key, value)
 }
 
-func (self *RocksCursor) Seek(k []byte) error {
-	self.it.Seek(k)
-	if !self.it.Valid() {
-		self.key = nil
-		self.value = nil
+// Update runs an alteration transaction of the kvstore
+func (rockskv *RocksKV) Update(u func(tx kvi.KVTransaction) error) error {
+	ktx := rocksTransaction{db: rockskv.db, ro: rockskv.ro, wo: rockskv.wo}
+	err := u(ktx)
+	return err
+}
+
+// View returns an iterator for the kvstore
+func (rockskv *RocksKV) View(u func(tx kvi.KVIterator) error) error {
+	ktx := &rocksIterator{db: rockskv.db, ro: rockskv.ro, wo: rockskv.wo, it: rockskv.db.NewIterator(rockskv.ro)}
+	err := u(ktx)
+	ktx.it.Close()
+	return err
+}
+
+type rocksTransaction struct {
+	db *gorocksdb.DB
+	ro *gorocksdb.ReadOptions
+	wo *gorocksdb.WriteOptions
+}
+
+func (rocksTxn rocksTransaction) Set(key, value []byte) error {
+	return rocksTxn.db.Put(rocksTxn.wo, key, value)
+}
+
+func (rocksTxn rocksTransaction) Delete(key []byte) error {
+	return rocksTxn.db.Delete(rocksTxn.wo, key)
+}
+
+func (rocksTxn rocksTransaction) HasKey(key []byte) bool {
+	dataValue, err := rocksTxn.db.Get(rocksTxn.ro, key)
+	if err != nil {
+		return false
+	}
+	if dataValue.Data() == nil {
+		return false
+	}
+	dataValue.Free()
+	return true
+}
+
+func (rocksTxn rocksTransaction) Get(key []byte) ([]byte, error) {
+	value, err := rocksTxn.db.Get(rocksTxn.ro, key)
+	if err != nil {
+		return nil, err
+	}
+	if value.Data() == nil {
+		return nil, fmt.Errorf("Not found")
+	}
+	out := copyBytes(value.Data())
+	value.Free()
+	return out, nil
+}
+
+type rocksIterator struct {
+	db      *gorocksdb.DB
+	ro      *gorocksdb.ReadOptions
+	wo      *gorocksdb.WriteOptions
+	it      *gorocksdb.Iterator
+	forward bool
+	key     []byte
+	value   []byte
+}
+
+func (rocksIter *rocksIterator) Get(key []byte) ([]byte, error) {
+	value, err := rocksIter.db.Get(rocksIter.ro, key)
+	if err != nil {
+		return nil, err
+	}
+	if value.Data() == nil {
+		return nil, fmt.Errorf("Not found")
+	}
+	out := copyBytes(value.Data())
+	value.Free()
+	return out, nil
+}
+
+func (rocksIter *rocksIterator) Key() []byte {
+	return rocksIter.key
+}
+
+func (rocksIter *rocksIterator) Value() ([]byte, error) {
+	return rocksIter.value, nil
+}
+
+func (rocksIter *rocksIterator) Seek(k []byte) error {
+	rocksIter.it.Seek(k)
+	rocksIter.forward = true
+	if !rocksIter.it.Valid() {
+		rocksIter.key = nil
+		rocksIter.value = nil
 		return fmt.Errorf("Done")
 	}
-	key_value := self.it.Key()
-	data_value := self.it.Value()
-	self.key = bytes_copy(key_value.Data())
-	self.value = bytes_copy(data_value.Data())
-	key_value.Free()
-	data_value.Free()
-	return self.it.Err()
+	keyValue := rocksIter.it.Key()
+	dataValue := rocksIter.it.Value()
+	rocksIter.key = copyBytes(keyValue.Data())
+	rocksIter.value = copyBytes(dataValue.Data())
+	keyValue.Free()
+	dataValue.Free()
+	return rocksIter.it.Err()
 }
 
-func (self *RocksCursor) Valid() bool {
-	if self.key == nil || self.value == nil {
+func (rocksIter *rocksIterator) SeekReverse(k []byte) error {
+	rocksIter.it.Seek(k)
+	rocksIter.forward = false
+	if !rocksIter.it.Valid() {
+		rocksIter.key = nil
+		rocksIter.value = nil
+		return fmt.Errorf("Done")
+	}
+	keyValue := rocksIter.it.Key()
+	//seek lands at value equal or above id. Move once to make sure
+	//key is less then id
+	if bytes.Compare(k, keyValue.Data()) < 0 {
+		keyValue.Free()
+		rocksIter.it.Prev()
+		keyValue = rocksIter.it.Key()
+	}
+	dataValue := rocksIter.it.Value()
+	rocksIter.key = copyBytes(keyValue.Data())
+	rocksIter.value = copyBytes(dataValue.Data())
+	keyValue.Free()
+	dataValue.Free()
+	return rocksIter.it.Err()
+}
+
+func (rocksIter *rocksIterator) Valid() bool {
+	if rocksIter.key == nil || rocksIter.value == nil {
 		return false
 	}
 	return true
 }
 
-func (self *RocksCursor) Next() error {
-	self.it.Next()
-	if !self.it.Valid() {
-		self.key = nil
-		self.value = nil
+func (rocksIter *rocksIterator) Next() error {
+	if rocksIter.forward {
+		rocksIter.it.Next()
+	} else {
+		rocksIter.it.Prev()
+	}
+	if !rocksIter.it.Valid() {
+		rocksIter.key = nil
+		rocksIter.value = nil
 		return fmt.Errorf("Done")
 	}
-	key_value := self.it.Key()
-	data_value := self.it.Value()
-	self.key = bytes_copy(key_value.Data())
-	self.value = bytes_copy(data_value.Data())
-	key_value.Free()
-	data_value.Free()
+	keyValue := rocksIter.it.Key()
+	dataValue := rocksIter.it.Value()
+	rocksIter.key = copyBytes(keyValue.Data())
+	rocksIter.value = copyBytes(dataValue.Data())
+	keyValue.Free()
+	dataValue.Free()
 	return nil
 }
 
-func (self *RocksKV) View(u func(tx kvgraph.KVIterator) error) error {
-	ktx := RocksCursor{db: self.db, ro: self.ro, wo: self.wo, it: self.db.NewIterator(self.ro)}
-	err := u(&ktx)
-	ktx.it.Close()
-	return err
+func copyBytes(in []byte) []byte {
+	out := make([]byte, len(in))
+	copy(out, in)
+	return out
 }

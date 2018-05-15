@@ -9,20 +9,32 @@ It is generated from these files:
 
 It has these top-level messages:
 	GraphQuery
-	GraphQuerySet
+	QuerySet
+	MatchQuerySet
 	GraphStatement
-	HasStatement
+	AggregationsRequest
+	Aggregations
+	Aggregate
+	TermAggregation
+	PercentileAggregation
+	HistogramAggregation
+	NamedAggregationResult
+	AggregationResult
+	AggregationResultBucket
+	WhereExpressionList
+	WhereExpression
+	WhereCondition
 	SelectStatement
-	FoldStatement
+	Selection
+	Selections
 	Vertex
 	Edge
-	Bundle
 	QueryResult
-	ResultRow
 	EditResult
 	GraphElement
-	Graph
+	GraphID
 	ElementID
+	IndexID
 	Timestamp
 	Empty
 */
@@ -50,6 +62,48 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
+type Condition int32
+
+const (
+	Condition_UNKNOWN_CONDITION Condition = 0
+	Condition_EQ                Condition = 1
+	Condition_NEQ               Condition = 2
+	Condition_GT                Condition = 3
+	Condition_GTE               Condition = 4
+	Condition_LT                Condition = 5
+	Condition_LTE               Condition = 6
+	Condition_IN                Condition = 7
+	Condition_CONTAINS          Condition = 8
+)
+
+var Condition_name = map[int32]string{
+	0: "UNKNOWN_CONDITION",
+	1: "EQ",
+	2: "NEQ",
+	3: "GT",
+	4: "GTE",
+	5: "LT",
+	6: "LTE",
+	7: "IN",
+	8: "CONTAINS",
+}
+var Condition_value = map[string]int32{
+	"UNKNOWN_CONDITION": 0,
+	"EQ":                1,
+	"NEQ":               2,
+	"GT":                3,
+	"GTE":               4,
+	"LT":                5,
+	"LTE":               6,
+	"IN":                7,
+	"CONTAINS":          8,
+}
+
+func (x Condition) String() string {
+	return proto.EnumName(Condition_name, int32(x))
+}
+func (Condition) EnumDescriptor() ([]byte, []int) { return fileDescriptor0, []int{0} }
+
 type GraphQuery struct {
 	Graph string            `protobuf:"bytes,1,opt,name=graph" json:"graph,omitempty"`
 	Query []*GraphStatement `protobuf:"bytes,2,rep,name=query" json:"query,omitempty"`
@@ -74,16 +128,32 @@ func (m *GraphQuery) GetQuery() []*GraphStatement {
 	return nil
 }
 
-type GraphQuerySet struct {
-	Queries []*GraphQuery `protobuf:"bytes,1,rep,name=queries" json:"queries,omitempty"`
+type QuerySet struct {
+	Query []*GraphStatement `protobuf:"bytes,1,rep,name=query" json:"query,omitempty"`
 }
 
-func (m *GraphQuerySet) Reset()                    { *m = GraphQuerySet{} }
-func (m *GraphQuerySet) String() string            { return proto.CompactTextString(m) }
-func (*GraphQuerySet) ProtoMessage()               {}
-func (*GraphQuerySet) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{1} }
+func (m *QuerySet) Reset()                    { *m = QuerySet{} }
+func (m *QuerySet) String() string            { return proto.CompactTextString(m) }
+func (*QuerySet) ProtoMessage()               {}
+func (*QuerySet) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{1} }
 
-func (m *GraphQuerySet) GetQueries() []*GraphQuery {
+func (m *QuerySet) GetQuery() []*GraphStatement {
+	if m != nil {
+		return m.Query
+	}
+	return nil
+}
+
+type MatchQuerySet struct {
+	Queries []*QuerySet `protobuf:"bytes,1,rep,name=queries" json:"queries,omitempty"`
+}
+
+func (m *MatchQuerySet) Reset()                    { *m = MatchQuerySet{} }
+func (m *MatchQuerySet) String() string            { return proto.CompactTextString(m) }
+func (*MatchQuerySet) ProtoMessage()               {}
+func (*MatchQuerySet) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{2} }
+
+func (m *MatchQuerySet) GetQueries() []*QuerySet {
 	if m != nil {
 		return m.Queries
 	}
@@ -94,56 +164,38 @@ type GraphStatement struct {
 	// Types that are valid to be assigned to Statement:
 	//	*GraphStatement_V
 	//	*GraphStatement_E
-	//	*GraphStatement_Has
-	//	*GraphStatement_HasLabel
-	//	*GraphStatement_HasId
 	//	*GraphStatement_In
 	//	*GraphStatement_Out
 	//	*GraphStatement_InEdge
 	//	*GraphStatement_OutEdge
 	//	*GraphStatement_Both
 	//	*GraphStatement_BothEdge
-	//	*GraphStatement_OutBundle
-	//	*GraphStatement_As
+	//	*GraphStatement_Mark
 	//	*GraphStatement_Select
-	//	*GraphStatement_Values
 	//	*GraphStatement_Limit
-	//	*GraphStatement_Count
-	//	*GraphStatement_GroupCount
+	//	*GraphStatement_Offset
+	//	*GraphStatement_Fields
+	//	*GraphStatement_Distinct
 	//	*GraphStatement_Match
-	//	*GraphStatement_Import
-	//	*GraphStatement_Map
-	//	*GraphStatement_Fold
-	//	*GraphStatement_VertexFold
-	//	*GraphStatement_Filter
-	//	*GraphStatement_FilterValues
-	//	*GraphStatement_VertexFromValues
+	//	*GraphStatement_Where
+	//	*GraphStatement_Count
+	//	*GraphStatement_Aggregate
+	//	*GraphStatement_Render
 	Statement isGraphStatement_Statement `protobuf_oneof:"statement"`
 }
 
 func (m *GraphStatement) Reset()                    { *m = GraphStatement{} }
 func (m *GraphStatement) String() string            { return proto.CompactTextString(m) }
 func (*GraphStatement) ProtoMessage()               {}
-func (*GraphStatement) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{2} }
+func (*GraphStatement) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{3} }
 
-type isGraphStatement_Statement interface {
-	isGraphStatement_Statement()
-}
+type isGraphStatement_Statement interface{ isGraphStatement_Statement() }
 
 type GraphStatement_V struct {
-	V *google_protobuf1.ListValue `protobuf:"bytes,1,opt,name=V,oneof"`
+	V *google_protobuf1.ListValue `protobuf:"bytes,1,opt,name=v,oneof"`
 }
 type GraphStatement_E struct {
-	E string `protobuf:"bytes,2,opt,name=E,oneof"`
-}
-type GraphStatement_Has struct {
-	Has *HasStatement `protobuf:"bytes,5,opt,name=has,oneof"`
-}
-type GraphStatement_HasLabel struct {
-	HasLabel *google_protobuf1.ListValue `protobuf:"bytes,6,opt,name=hasLabel,oneof"`
-}
-type GraphStatement_HasId struct {
-	HasId *google_protobuf1.ListValue `protobuf:"bytes,7,opt,name=hasId,oneof"`
+	E *google_protobuf1.ListValue `protobuf:"bytes,2,opt,name=e,oneof"`
 }
 type GraphStatement_In struct {
 	In *google_protobuf1.ListValue `protobuf:"bytes,10,opt,name=in,oneof"`
@@ -152,89 +204,70 @@ type GraphStatement_Out struct {
 	Out *google_protobuf1.ListValue `protobuf:"bytes,11,opt,name=out,oneof"`
 }
 type GraphStatement_InEdge struct {
-	InEdge *google_protobuf1.ListValue `protobuf:"bytes,12,opt,name=inEdge,oneof"`
+	InEdge *google_protobuf1.ListValue `protobuf:"bytes,12,opt,name=in_edge,json=inEdge,oneof"`
 }
 type GraphStatement_OutEdge struct {
-	OutEdge *google_protobuf1.ListValue `protobuf:"bytes,13,opt,name=outEdge,oneof"`
+	OutEdge *google_protobuf1.ListValue `protobuf:"bytes,13,opt,name=out_edge,json=outEdge,oneof"`
 }
 type GraphStatement_Both struct {
 	Both *google_protobuf1.ListValue `protobuf:"bytes,14,opt,name=both,oneof"`
 }
 type GraphStatement_BothEdge struct {
-	BothEdge *google_protobuf1.ListValue `protobuf:"bytes,15,opt,name=bothEdge,oneof"`
+	BothEdge *google_protobuf1.ListValue `protobuf:"bytes,15,opt,name=both_edge,json=bothEdge,oneof"`
 }
-type GraphStatement_OutBundle struct {
-	OutBundle *google_protobuf1.ListValue `protobuf:"bytes,16,opt,name=outBundle,oneof"`
-}
-type GraphStatement_As struct {
-	As string `protobuf:"bytes,20,opt,name=as,oneof"`
+type GraphStatement_Mark struct {
+	Mark string `protobuf:"bytes,20,opt,name=mark,oneof"`
 }
 type GraphStatement_Select struct {
 	Select *SelectStatement `protobuf:"bytes,21,opt,name=select,oneof"`
 }
-type GraphStatement_Values struct {
-	Values *SelectStatement `protobuf:"bytes,22,opt,name=values,oneof"`
-}
 type GraphStatement_Limit struct {
-	Limit int64 `protobuf:"varint,25,opt,name=limit,oneof"`
+	Limit uint32 `protobuf:"varint,24,opt,name=limit,oneof"`
 }
-type GraphStatement_Count struct {
-	Count string `protobuf:"bytes,26,opt,name=count,oneof"`
+type GraphStatement_Offset struct {
+	Offset uint32 `protobuf:"varint,25,opt,name=offset,oneof"`
 }
-type GraphStatement_GroupCount struct {
-	GroupCount string `protobuf:"bytes,30,opt,name=groupCount,oneof"`
+type GraphStatement_Fields struct {
+	Fields *google_protobuf1.ListValue `protobuf:"bytes,26,opt,name=fields,oneof"`
+}
+type GraphStatement_Distinct struct {
+	Distinct *google_protobuf1.ListValue `protobuf:"bytes,27,opt,name=distinct,oneof"`
 }
 type GraphStatement_Match struct {
-	Match *GraphQuerySet `protobuf:"bytes,40,opt,name=match,oneof"`
+	Match *MatchQuerySet `protobuf:"bytes,28,opt,name=match,oneof"`
 }
-type GraphStatement_Import struct {
-	Import string `protobuf:"bytes,50,opt,name=import,oneof"`
+type GraphStatement_Where struct {
+	Where *WhereExpression `protobuf:"bytes,29,opt,name=where,oneof"`
 }
-type GraphStatement_Map struct {
-	Map string `protobuf:"bytes,51,opt,name=map,oneof"`
+type GraphStatement_Count struct {
+	Count string `protobuf:"bytes,30,opt,name=count,oneof"`
 }
-type GraphStatement_Fold struct {
-	Fold *FoldStatement `protobuf:"bytes,52,opt,name=fold,oneof"`
+type GraphStatement_Aggregate struct {
+	Aggregate *Aggregations `protobuf:"bytes,31,opt,name=aggregate,oneof"`
 }
-type GraphStatement_VertexFold struct {
-	VertexFold *FoldStatement `protobuf:"bytes,53,opt,name=vertexFold,oneof"`
-}
-type GraphStatement_Filter struct {
-	Filter string `protobuf:"bytes,54,opt,name=filter,oneof"`
-}
-type GraphStatement_FilterValues struct {
-	FilterValues string `protobuf:"bytes,55,opt,name=filterValues,oneof"`
-}
-type GraphStatement_VertexFromValues struct {
-	VertexFromValues string `protobuf:"bytes,56,opt,name=vertexFromValues,oneof"`
+type GraphStatement_Render struct {
+	Render *google_protobuf1.Value `protobuf:"bytes,32,opt,name=render,oneof"`
 }
 
-func (*GraphStatement_V) isGraphStatement_Statement()                {}
-func (*GraphStatement_E) isGraphStatement_Statement()                {}
-func (*GraphStatement_Has) isGraphStatement_Statement()              {}
-func (*GraphStatement_HasLabel) isGraphStatement_Statement()         {}
-func (*GraphStatement_HasId) isGraphStatement_Statement()            {}
-func (*GraphStatement_In) isGraphStatement_Statement()               {}
-func (*GraphStatement_Out) isGraphStatement_Statement()              {}
-func (*GraphStatement_InEdge) isGraphStatement_Statement()           {}
-func (*GraphStatement_OutEdge) isGraphStatement_Statement()          {}
-func (*GraphStatement_Both) isGraphStatement_Statement()             {}
-func (*GraphStatement_BothEdge) isGraphStatement_Statement()         {}
-func (*GraphStatement_OutBundle) isGraphStatement_Statement()        {}
-func (*GraphStatement_As) isGraphStatement_Statement()               {}
-func (*GraphStatement_Select) isGraphStatement_Statement()           {}
-func (*GraphStatement_Values) isGraphStatement_Statement()           {}
-func (*GraphStatement_Limit) isGraphStatement_Statement()            {}
-func (*GraphStatement_Count) isGraphStatement_Statement()            {}
-func (*GraphStatement_GroupCount) isGraphStatement_Statement()       {}
-func (*GraphStatement_Match) isGraphStatement_Statement()            {}
-func (*GraphStatement_Import) isGraphStatement_Statement()           {}
-func (*GraphStatement_Map) isGraphStatement_Statement()              {}
-func (*GraphStatement_Fold) isGraphStatement_Statement()             {}
-func (*GraphStatement_VertexFold) isGraphStatement_Statement()       {}
-func (*GraphStatement_Filter) isGraphStatement_Statement()           {}
-func (*GraphStatement_FilterValues) isGraphStatement_Statement()     {}
-func (*GraphStatement_VertexFromValues) isGraphStatement_Statement() {}
+func (*GraphStatement_V) isGraphStatement_Statement()         {}
+func (*GraphStatement_E) isGraphStatement_Statement()         {}
+func (*GraphStatement_In) isGraphStatement_Statement()        {}
+func (*GraphStatement_Out) isGraphStatement_Statement()       {}
+func (*GraphStatement_InEdge) isGraphStatement_Statement()    {}
+func (*GraphStatement_OutEdge) isGraphStatement_Statement()   {}
+func (*GraphStatement_Both) isGraphStatement_Statement()      {}
+func (*GraphStatement_BothEdge) isGraphStatement_Statement()  {}
+func (*GraphStatement_Mark) isGraphStatement_Statement()      {}
+func (*GraphStatement_Select) isGraphStatement_Statement()    {}
+func (*GraphStatement_Limit) isGraphStatement_Statement()     {}
+func (*GraphStatement_Offset) isGraphStatement_Statement()    {}
+func (*GraphStatement_Fields) isGraphStatement_Statement()    {}
+func (*GraphStatement_Distinct) isGraphStatement_Statement()  {}
+func (*GraphStatement_Match) isGraphStatement_Statement()     {}
+func (*GraphStatement_Where) isGraphStatement_Statement()     {}
+func (*GraphStatement_Count) isGraphStatement_Statement()     {}
+func (*GraphStatement_Aggregate) isGraphStatement_Statement() {}
+func (*GraphStatement_Render) isGraphStatement_Statement()    {}
 
 func (m *GraphStatement) GetStatement() isGraphStatement_Statement {
 	if m != nil {
@@ -250,30 +283,9 @@ func (m *GraphStatement) GetV() *google_protobuf1.ListValue {
 	return nil
 }
 
-func (m *GraphStatement) GetE() string {
+func (m *GraphStatement) GetE() *google_protobuf1.ListValue {
 	if x, ok := m.GetStatement().(*GraphStatement_E); ok {
 		return x.E
-	}
-	return ""
-}
-
-func (m *GraphStatement) GetHas() *HasStatement {
-	if x, ok := m.GetStatement().(*GraphStatement_Has); ok {
-		return x.Has
-	}
-	return nil
-}
-
-func (m *GraphStatement) GetHasLabel() *google_protobuf1.ListValue {
-	if x, ok := m.GetStatement().(*GraphStatement_HasLabel); ok {
-		return x.HasLabel
-	}
-	return nil
-}
-
-func (m *GraphStatement) GetHasId() *google_protobuf1.ListValue {
-	if x, ok := m.GetStatement().(*GraphStatement_HasId); ok {
-		return x.HasId
 	}
 	return nil
 }
@@ -320,16 +332,9 @@ func (m *GraphStatement) GetBothEdge() *google_protobuf1.ListValue {
 	return nil
 }
 
-func (m *GraphStatement) GetOutBundle() *google_protobuf1.ListValue {
-	if x, ok := m.GetStatement().(*GraphStatement_OutBundle); ok {
-		return x.OutBundle
-	}
-	return nil
-}
-
-func (m *GraphStatement) GetAs() string {
-	if x, ok := m.GetStatement().(*GraphStatement_As); ok {
-		return x.As
+func (m *GraphStatement) GetMark() string {
+	if x, ok := m.GetStatement().(*GraphStatement_Mark); ok {
+		return x.Mark
 	}
 	return ""
 }
@@ -341,18 +346,46 @@ func (m *GraphStatement) GetSelect() *SelectStatement {
 	return nil
 }
 
-func (m *GraphStatement) GetValues() *SelectStatement {
-	if x, ok := m.GetStatement().(*GraphStatement_Values); ok {
-		return x.Values
-	}
-	return nil
-}
-
-func (m *GraphStatement) GetLimit() int64 {
+func (m *GraphStatement) GetLimit() uint32 {
 	if x, ok := m.GetStatement().(*GraphStatement_Limit); ok {
 		return x.Limit
 	}
 	return 0
+}
+
+func (m *GraphStatement) GetOffset() uint32 {
+	if x, ok := m.GetStatement().(*GraphStatement_Offset); ok {
+		return x.Offset
+	}
+	return 0
+}
+
+func (m *GraphStatement) GetFields() *google_protobuf1.ListValue {
+	if x, ok := m.GetStatement().(*GraphStatement_Fields); ok {
+		return x.Fields
+	}
+	return nil
+}
+
+func (m *GraphStatement) GetDistinct() *google_protobuf1.ListValue {
+	if x, ok := m.GetStatement().(*GraphStatement_Distinct); ok {
+		return x.Distinct
+	}
+	return nil
+}
+
+func (m *GraphStatement) GetMatch() *MatchQuerySet {
+	if x, ok := m.GetStatement().(*GraphStatement_Match); ok {
+		return x.Match
+	}
+	return nil
+}
+
+func (m *GraphStatement) GetWhere() *WhereExpression {
+	if x, ok := m.GetStatement().(*GraphStatement_Where); ok {
+		return x.Where
+	}
+	return nil
 }
 
 func (m *GraphStatement) GetCount() string {
@@ -362,67 +395,18 @@ func (m *GraphStatement) GetCount() string {
 	return ""
 }
 
-func (m *GraphStatement) GetGroupCount() string {
-	if x, ok := m.GetStatement().(*GraphStatement_GroupCount); ok {
-		return x.GroupCount
-	}
-	return ""
-}
-
-func (m *GraphStatement) GetMatch() *GraphQuerySet {
-	if x, ok := m.GetStatement().(*GraphStatement_Match); ok {
-		return x.Match
+func (m *GraphStatement) GetAggregate() *Aggregations {
+	if x, ok := m.GetStatement().(*GraphStatement_Aggregate); ok {
+		return x.Aggregate
 	}
 	return nil
 }
 
-func (m *GraphStatement) GetImport() string {
-	if x, ok := m.GetStatement().(*GraphStatement_Import); ok {
-		return x.Import
-	}
-	return ""
-}
-
-func (m *GraphStatement) GetMap() string {
-	if x, ok := m.GetStatement().(*GraphStatement_Map); ok {
-		return x.Map
-	}
-	return ""
-}
-
-func (m *GraphStatement) GetFold() *FoldStatement {
-	if x, ok := m.GetStatement().(*GraphStatement_Fold); ok {
-		return x.Fold
+func (m *GraphStatement) GetRender() *google_protobuf1.Value {
+	if x, ok := m.GetStatement().(*GraphStatement_Render); ok {
+		return x.Render
 	}
 	return nil
-}
-
-func (m *GraphStatement) GetVertexFold() *FoldStatement {
-	if x, ok := m.GetStatement().(*GraphStatement_VertexFold); ok {
-		return x.VertexFold
-	}
-	return nil
-}
-
-func (m *GraphStatement) GetFilter() string {
-	if x, ok := m.GetStatement().(*GraphStatement_Filter); ok {
-		return x.Filter
-	}
-	return ""
-}
-
-func (m *GraphStatement) GetFilterValues() string {
-	if x, ok := m.GetStatement().(*GraphStatement_FilterValues); ok {
-		return x.FilterValues
-	}
-	return ""
-}
-
-func (m *GraphStatement) GetVertexFromValues() string {
-	if x, ok := m.GetStatement().(*GraphStatement_VertexFromValues); ok {
-		return x.VertexFromValues
-	}
-	return ""
 }
 
 // XXX_OneofFuncs is for the internal use of the proto package.
@@ -430,30 +414,23 @@ func (*GraphStatement) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer
 	return _GraphStatement_OneofMarshaler, _GraphStatement_OneofUnmarshaler, _GraphStatement_OneofSizer, []interface{}{
 		(*GraphStatement_V)(nil),
 		(*GraphStatement_E)(nil),
-		(*GraphStatement_Has)(nil),
-		(*GraphStatement_HasLabel)(nil),
-		(*GraphStatement_HasId)(nil),
 		(*GraphStatement_In)(nil),
 		(*GraphStatement_Out)(nil),
 		(*GraphStatement_InEdge)(nil),
 		(*GraphStatement_OutEdge)(nil),
 		(*GraphStatement_Both)(nil),
 		(*GraphStatement_BothEdge)(nil),
-		(*GraphStatement_OutBundle)(nil),
-		(*GraphStatement_As)(nil),
+		(*GraphStatement_Mark)(nil),
 		(*GraphStatement_Select)(nil),
-		(*GraphStatement_Values)(nil),
 		(*GraphStatement_Limit)(nil),
-		(*GraphStatement_Count)(nil),
-		(*GraphStatement_GroupCount)(nil),
+		(*GraphStatement_Offset)(nil),
+		(*GraphStatement_Fields)(nil),
+		(*GraphStatement_Distinct)(nil),
 		(*GraphStatement_Match)(nil),
-		(*GraphStatement_Import)(nil),
-		(*GraphStatement_Map)(nil),
-		(*GraphStatement_Fold)(nil),
-		(*GraphStatement_VertexFold)(nil),
-		(*GraphStatement_Filter)(nil),
-		(*GraphStatement_FilterValues)(nil),
-		(*GraphStatement_VertexFromValues)(nil),
+		(*GraphStatement_Where)(nil),
+		(*GraphStatement_Count)(nil),
+		(*GraphStatement_Aggregate)(nil),
+		(*GraphStatement_Render)(nil),
 	}
 }
 
@@ -468,20 +445,7 @@ func _GraphStatement_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
 		}
 	case *GraphStatement_E:
 		b.EncodeVarint(2<<3 | proto.WireBytes)
-		b.EncodeStringBytes(x.E)
-	case *GraphStatement_Has:
-		b.EncodeVarint(5<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.Has); err != nil {
-			return err
-		}
-	case *GraphStatement_HasLabel:
-		b.EncodeVarint(6<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.HasLabel); err != nil {
-			return err
-		}
-	case *GraphStatement_HasId:
-		b.EncodeVarint(7<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.HasId); err != nil {
+		if err := b.EncodeMessage(x.E); err != nil {
 			return err
 		}
 	case *GraphStatement_In:
@@ -514,63 +478,53 @@ func _GraphStatement_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
 		if err := b.EncodeMessage(x.BothEdge); err != nil {
 			return err
 		}
-	case *GraphStatement_OutBundle:
-		b.EncodeVarint(16<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.OutBundle); err != nil {
-			return err
-		}
-	case *GraphStatement_As:
+	case *GraphStatement_Mark:
 		b.EncodeVarint(20<<3 | proto.WireBytes)
-		b.EncodeStringBytes(x.As)
+		b.EncodeStringBytes(x.Mark)
 	case *GraphStatement_Select:
 		b.EncodeVarint(21<<3 | proto.WireBytes)
 		if err := b.EncodeMessage(x.Select); err != nil {
 			return err
 		}
-	case *GraphStatement_Values:
-		b.EncodeVarint(22<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.Values); err != nil {
+	case *GraphStatement_Limit:
+		b.EncodeVarint(24<<3 | proto.WireVarint)
+		b.EncodeVarint(uint64(x.Limit))
+	case *GraphStatement_Offset:
+		b.EncodeVarint(25<<3 | proto.WireVarint)
+		b.EncodeVarint(uint64(x.Offset))
+	case *GraphStatement_Fields:
+		b.EncodeVarint(26<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.Fields); err != nil {
 			return err
 		}
-	case *GraphStatement_Limit:
-		b.EncodeVarint(25<<3 | proto.WireVarint)
-		b.EncodeVarint(uint64(x.Limit))
-	case *GraphStatement_Count:
-		b.EncodeVarint(26<<3 | proto.WireBytes)
-		b.EncodeStringBytes(x.Count)
-	case *GraphStatement_GroupCount:
-		b.EncodeVarint(30<<3 | proto.WireBytes)
-		b.EncodeStringBytes(x.GroupCount)
+	case *GraphStatement_Distinct:
+		b.EncodeVarint(27<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.Distinct); err != nil {
+			return err
+		}
 	case *GraphStatement_Match:
-		b.EncodeVarint(40<<3 | proto.WireBytes)
+		b.EncodeVarint(28<<3 | proto.WireBytes)
 		if err := b.EncodeMessage(x.Match); err != nil {
 			return err
 		}
-	case *GraphStatement_Import:
-		b.EncodeVarint(50<<3 | proto.WireBytes)
-		b.EncodeStringBytes(x.Import)
-	case *GraphStatement_Map:
-		b.EncodeVarint(51<<3 | proto.WireBytes)
-		b.EncodeStringBytes(x.Map)
-	case *GraphStatement_Fold:
-		b.EncodeVarint(52<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.Fold); err != nil {
+	case *GraphStatement_Where:
+		b.EncodeVarint(29<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.Where); err != nil {
 			return err
 		}
-	case *GraphStatement_VertexFold:
-		b.EncodeVarint(53<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.VertexFold); err != nil {
+	case *GraphStatement_Count:
+		b.EncodeVarint(30<<3 | proto.WireBytes)
+		b.EncodeStringBytes(x.Count)
+	case *GraphStatement_Aggregate:
+		b.EncodeVarint(31<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.Aggregate); err != nil {
 			return err
 		}
-	case *GraphStatement_Filter:
-		b.EncodeVarint(54<<3 | proto.WireBytes)
-		b.EncodeStringBytes(x.Filter)
-	case *GraphStatement_FilterValues:
-		b.EncodeVarint(55<<3 | proto.WireBytes)
-		b.EncodeStringBytes(x.FilterValues)
-	case *GraphStatement_VertexFromValues:
-		b.EncodeVarint(56<<3 | proto.WireBytes)
-		b.EncodeStringBytes(x.VertexFromValues)
+	case *GraphStatement_Render:
+		b.EncodeVarint(32<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.Render); err != nil {
+			return err
+		}
 	case nil:
 	default:
 		return fmt.Errorf("GraphStatement.Statement has unexpected type %T", x)
@@ -581,7 +535,7 @@ func _GraphStatement_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
 func _GraphStatement_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error) {
 	m := msg.(*GraphStatement)
 	switch tag {
-	case 1: // statement.V
+	case 1: // statement.v
 		if wire != proto.WireBytes {
 			return true, proto.ErrInternalBadWireType
 		}
@@ -589,36 +543,13 @@ func _GraphStatement_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto
 		err := b.DecodeMessage(msg)
 		m.Statement = &GraphStatement_V{msg}
 		return true, err
-	case 2: // statement.E
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		x, err := b.DecodeStringBytes()
-		m.Statement = &GraphStatement_E{x}
-		return true, err
-	case 5: // statement.has
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		msg := new(HasStatement)
-		err := b.DecodeMessage(msg)
-		m.Statement = &GraphStatement_Has{msg}
-		return true, err
-	case 6: // statement.hasLabel
+	case 2: // statement.e
 		if wire != proto.WireBytes {
 			return true, proto.ErrInternalBadWireType
 		}
 		msg := new(google_protobuf1.ListValue)
 		err := b.DecodeMessage(msg)
-		m.Statement = &GraphStatement_HasLabel{msg}
-		return true, err
-	case 7: // statement.hasId
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		msg := new(google_protobuf1.ListValue)
-		err := b.DecodeMessage(msg)
-		m.Statement = &GraphStatement_HasId{msg}
+		m.Statement = &GraphStatement_E{msg}
 		return true, err
 	case 10: // statement.in
 		if wire != proto.WireBytes {
@@ -636,7 +567,7 @@ func _GraphStatement_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto
 		err := b.DecodeMessage(msg)
 		m.Statement = &GraphStatement_Out{msg}
 		return true, err
-	case 12: // statement.inEdge
+	case 12: // statement.in_edge
 		if wire != proto.WireBytes {
 			return true, proto.ErrInternalBadWireType
 		}
@@ -644,7 +575,7 @@ func _GraphStatement_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto
 		err := b.DecodeMessage(msg)
 		m.Statement = &GraphStatement_InEdge{msg}
 		return true, err
-	case 13: // statement.outEdge
+	case 13: // statement.out_edge
 		if wire != proto.WireBytes {
 			return true, proto.ErrInternalBadWireType
 		}
@@ -660,7 +591,7 @@ func _GraphStatement_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto
 		err := b.DecodeMessage(msg)
 		m.Statement = &GraphStatement_Both{msg}
 		return true, err
-	case 15: // statement.bothEdge
+	case 15: // statement.both_edge
 		if wire != proto.WireBytes {
 			return true, proto.ErrInternalBadWireType
 		}
@@ -668,20 +599,12 @@ func _GraphStatement_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto
 		err := b.DecodeMessage(msg)
 		m.Statement = &GraphStatement_BothEdge{msg}
 		return true, err
-	case 16: // statement.outBundle
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		msg := new(google_protobuf1.ListValue)
-		err := b.DecodeMessage(msg)
-		m.Statement = &GraphStatement_OutBundle{msg}
-		return true, err
-	case 20: // statement.as
+	case 20: // statement.mark
 		if wire != proto.WireBytes {
 			return true, proto.ErrInternalBadWireType
 		}
 		x, err := b.DecodeStringBytes()
-		m.Statement = &GraphStatement_As{x}
+		m.Statement = &GraphStatement_Mark{x}
 		return true, err
 	case 21: // statement.select
 		if wire != proto.WireBytes {
@@ -691,93 +614,74 @@ func _GraphStatement_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto
 		err := b.DecodeMessage(msg)
 		m.Statement = &GraphStatement_Select{msg}
 		return true, err
-	case 22: // statement.values
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		msg := new(SelectStatement)
-		err := b.DecodeMessage(msg)
-		m.Statement = &GraphStatement_Values{msg}
-		return true, err
-	case 25: // statement.limit
+	case 24: // statement.limit
 		if wire != proto.WireVarint {
 			return true, proto.ErrInternalBadWireType
 		}
 		x, err := b.DecodeVarint()
-		m.Statement = &GraphStatement_Limit{int64(x)}
+		m.Statement = &GraphStatement_Limit{uint32(x)}
 		return true, err
-	case 26: // statement.count
+	case 25: // statement.offset
+		if wire != proto.WireVarint {
+			return true, proto.ErrInternalBadWireType
+		}
+		x, err := b.DecodeVarint()
+		m.Statement = &GraphStatement_Offset{uint32(x)}
+		return true, err
+	case 26: // statement.fields
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(google_protobuf1.ListValue)
+		err := b.DecodeMessage(msg)
+		m.Statement = &GraphStatement_Fields{msg}
+		return true, err
+	case 27: // statement.distinct
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(google_protobuf1.ListValue)
+		err := b.DecodeMessage(msg)
+		m.Statement = &GraphStatement_Distinct{msg}
+		return true, err
+	case 28: // statement.match
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(MatchQuerySet)
+		err := b.DecodeMessage(msg)
+		m.Statement = &GraphStatement_Match{msg}
+		return true, err
+	case 29: // statement.where
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(WhereExpression)
+		err := b.DecodeMessage(msg)
+		m.Statement = &GraphStatement_Where{msg}
+		return true, err
+	case 30: // statement.count
 		if wire != proto.WireBytes {
 			return true, proto.ErrInternalBadWireType
 		}
 		x, err := b.DecodeStringBytes()
 		m.Statement = &GraphStatement_Count{x}
 		return true, err
-	case 30: // statement.groupCount
+	case 31: // statement.aggregate
 		if wire != proto.WireBytes {
 			return true, proto.ErrInternalBadWireType
 		}
-		x, err := b.DecodeStringBytes()
-		m.Statement = &GraphStatement_GroupCount{x}
-		return true, err
-	case 40: // statement.match
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		msg := new(GraphQuerySet)
+		msg := new(Aggregations)
 		err := b.DecodeMessage(msg)
-		m.Statement = &GraphStatement_Match{msg}
+		m.Statement = &GraphStatement_Aggregate{msg}
 		return true, err
-	case 50: // statement.import
+	case 32: // statement.render
 		if wire != proto.WireBytes {
 			return true, proto.ErrInternalBadWireType
 		}
-		x, err := b.DecodeStringBytes()
-		m.Statement = &GraphStatement_Import{x}
-		return true, err
-	case 51: // statement.map
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		x, err := b.DecodeStringBytes()
-		m.Statement = &GraphStatement_Map{x}
-		return true, err
-	case 52: // statement.fold
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		msg := new(FoldStatement)
+		msg := new(google_protobuf1.Value)
 		err := b.DecodeMessage(msg)
-		m.Statement = &GraphStatement_Fold{msg}
-		return true, err
-	case 53: // statement.vertexFold
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		msg := new(FoldStatement)
-		err := b.DecodeMessage(msg)
-		m.Statement = &GraphStatement_VertexFold{msg}
-		return true, err
-	case 54: // statement.filter
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		x, err := b.DecodeStringBytes()
-		m.Statement = &GraphStatement_Filter{x}
-		return true, err
-	case 55: // statement.filterValues
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		x, err := b.DecodeStringBytes()
-		m.Statement = &GraphStatement_FilterValues{x}
-		return true, err
-	case 56: // statement.vertexFromValues
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		x, err := b.DecodeStringBytes()
-		m.Statement = &GraphStatement_VertexFromValues{x}
+		m.Statement = &GraphStatement_Render{msg}
 		return true, err
 	default:
 		return false, nil
@@ -794,22 +698,8 @@ func _GraphStatement_OneofSizer(msg proto.Message) (n int) {
 		n += proto.SizeVarint(uint64(s))
 		n += s
 	case *GraphStatement_E:
+		s := proto.Size(x.E)
 		n += proto.SizeVarint(2<<3 | proto.WireBytes)
-		n += proto.SizeVarint(uint64(len(x.E)))
-		n += len(x.E)
-	case *GraphStatement_Has:
-		s := proto.Size(x.Has)
-		n += proto.SizeVarint(5<<3 | proto.WireBytes)
-		n += proto.SizeVarint(uint64(s))
-		n += s
-	case *GraphStatement_HasLabel:
-		s := proto.Size(x.HasLabel)
-		n += proto.SizeVarint(6<<3 | proto.WireBytes)
-		n += proto.SizeVarint(uint64(s))
-		n += s
-	case *GraphStatement_HasId:
-		s := proto.Size(x.HasId)
-		n += proto.SizeVarint(7<<3 | proto.WireBytes)
 		n += proto.SizeVarint(uint64(s))
 		n += s
 	case *GraphStatement_In:
@@ -842,71 +732,55 @@ func _GraphStatement_OneofSizer(msg proto.Message) (n int) {
 		n += proto.SizeVarint(15<<3 | proto.WireBytes)
 		n += proto.SizeVarint(uint64(s))
 		n += s
-	case *GraphStatement_OutBundle:
-		s := proto.Size(x.OutBundle)
-		n += proto.SizeVarint(16<<3 | proto.WireBytes)
-		n += proto.SizeVarint(uint64(s))
-		n += s
-	case *GraphStatement_As:
+	case *GraphStatement_Mark:
 		n += proto.SizeVarint(20<<3 | proto.WireBytes)
-		n += proto.SizeVarint(uint64(len(x.As)))
-		n += len(x.As)
+		n += proto.SizeVarint(uint64(len(x.Mark)))
+		n += len(x.Mark)
 	case *GraphStatement_Select:
 		s := proto.Size(x.Select)
 		n += proto.SizeVarint(21<<3 | proto.WireBytes)
 		n += proto.SizeVarint(uint64(s))
 		n += s
-	case *GraphStatement_Values:
-		s := proto.Size(x.Values)
-		n += proto.SizeVarint(22<<3 | proto.WireBytes)
+	case *GraphStatement_Limit:
+		n += proto.SizeVarint(24<<3 | proto.WireVarint)
+		n += proto.SizeVarint(uint64(x.Limit))
+	case *GraphStatement_Offset:
+		n += proto.SizeVarint(25<<3 | proto.WireVarint)
+		n += proto.SizeVarint(uint64(x.Offset))
+	case *GraphStatement_Fields:
+		s := proto.Size(x.Fields)
+		n += proto.SizeVarint(26<<3 | proto.WireBytes)
 		n += proto.SizeVarint(uint64(s))
 		n += s
-	case *GraphStatement_Limit:
-		n += proto.SizeVarint(25<<3 | proto.WireVarint)
-		n += proto.SizeVarint(uint64(x.Limit))
-	case *GraphStatement_Count:
-		n += proto.SizeVarint(26<<3 | proto.WireBytes)
-		n += proto.SizeVarint(uint64(len(x.Count)))
-		n += len(x.Count)
-	case *GraphStatement_GroupCount:
-		n += proto.SizeVarint(30<<3 | proto.WireBytes)
-		n += proto.SizeVarint(uint64(len(x.GroupCount)))
-		n += len(x.GroupCount)
+	case *GraphStatement_Distinct:
+		s := proto.Size(x.Distinct)
+		n += proto.SizeVarint(27<<3 | proto.WireBytes)
+		n += proto.SizeVarint(uint64(s))
+		n += s
 	case *GraphStatement_Match:
 		s := proto.Size(x.Match)
-		n += proto.SizeVarint(40<<3 | proto.WireBytes)
+		n += proto.SizeVarint(28<<3 | proto.WireBytes)
 		n += proto.SizeVarint(uint64(s))
 		n += s
-	case *GraphStatement_Import:
-		n += proto.SizeVarint(50<<3 | proto.WireBytes)
-		n += proto.SizeVarint(uint64(len(x.Import)))
-		n += len(x.Import)
-	case *GraphStatement_Map:
-		n += proto.SizeVarint(51<<3 | proto.WireBytes)
-		n += proto.SizeVarint(uint64(len(x.Map)))
-		n += len(x.Map)
-	case *GraphStatement_Fold:
-		s := proto.Size(x.Fold)
-		n += proto.SizeVarint(52<<3 | proto.WireBytes)
+	case *GraphStatement_Where:
+		s := proto.Size(x.Where)
+		n += proto.SizeVarint(29<<3 | proto.WireBytes)
 		n += proto.SizeVarint(uint64(s))
 		n += s
-	case *GraphStatement_VertexFold:
-		s := proto.Size(x.VertexFold)
-		n += proto.SizeVarint(53<<3 | proto.WireBytes)
+	case *GraphStatement_Count:
+		n += proto.SizeVarint(30<<3 | proto.WireBytes)
+		n += proto.SizeVarint(uint64(len(x.Count)))
+		n += len(x.Count)
+	case *GraphStatement_Aggregate:
+		s := proto.Size(x.Aggregate)
+		n += proto.SizeVarint(31<<3 | proto.WireBytes)
 		n += proto.SizeVarint(uint64(s))
 		n += s
-	case *GraphStatement_Filter:
-		n += proto.SizeVarint(54<<3 | proto.WireBytes)
-		n += proto.SizeVarint(uint64(len(x.Filter)))
-		n += len(x.Filter)
-	case *GraphStatement_FilterValues:
-		n += proto.SizeVarint(55<<3 | proto.WireBytes)
-		n += proto.SizeVarint(uint64(len(x.FilterValues)))
-		n += len(x.FilterValues)
-	case *GraphStatement_VertexFromValues:
-		n += proto.SizeVarint(56<<3 | proto.WireBytes)
-		n += proto.SizeVarint(uint64(len(x.VertexFromValues)))
-		n += len(x.VertexFromValues)
+	case *GraphStatement_Render:
+		s := proto.Size(x.Render)
+		n += proto.SizeVarint(32<<3 | proto.WireBytes)
+		n += proto.SizeVarint(uint64(s))
+		n += s
 	case nil:
 	default:
 		panic(fmt.Sprintf("proto: unexpected type %T in oneof", x))
@@ -914,66 +788,732 @@ func _GraphStatement_OneofSizer(msg proto.Message) (n int) {
 	return n
 }
 
-type HasStatement struct {
-	Key    string   `protobuf:"bytes,1,opt,name=key" json:"key,omitempty"`
-	Within []string `protobuf:"bytes,2,rep,name=within" json:"within,omitempty"`
+type AggregationsRequest struct {
+	Graph        string       `protobuf:"bytes,1,opt,name=graph" json:"graph,omitempty"`
+	Aggregations []*Aggregate `protobuf:"bytes,2,rep,name=aggregations" json:"aggregations,omitempty"`
 }
 
-func (m *HasStatement) Reset()                    { *m = HasStatement{} }
-func (m *HasStatement) String() string            { return proto.CompactTextString(m) }
-func (*HasStatement) ProtoMessage()               {}
-func (*HasStatement) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{3} }
+func (m *AggregationsRequest) Reset()                    { *m = AggregationsRequest{} }
+func (m *AggregationsRequest) String() string            { return proto.CompactTextString(m) }
+func (*AggregationsRequest) ProtoMessage()               {}
+func (*AggregationsRequest) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{4} }
 
-func (m *HasStatement) GetKey() string {
+func (m *AggregationsRequest) GetGraph() string {
+	if m != nil {
+		return m.Graph
+	}
+	return ""
+}
+
+func (m *AggregationsRequest) GetAggregations() []*Aggregate {
+	if m != nil {
+		return m.Aggregations
+	}
+	return nil
+}
+
+type Aggregations struct {
+	Aggregations []*Aggregate `protobuf:"bytes,1,rep,name=aggregations" json:"aggregations,omitempty"`
+}
+
+func (m *Aggregations) Reset()                    { *m = Aggregations{} }
+func (m *Aggregations) String() string            { return proto.CompactTextString(m) }
+func (*Aggregations) ProtoMessage()               {}
+func (*Aggregations) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{5} }
+
+func (m *Aggregations) GetAggregations() []*Aggregate {
+	if m != nil {
+		return m.Aggregations
+	}
+	return nil
+}
+
+type Aggregate struct {
+	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	// Types that are valid to be assigned to Aggregation:
+	//	*Aggregate_Term
+	//	*Aggregate_Percentile
+	//	*Aggregate_Histogram
+	Aggregation isAggregate_Aggregation `protobuf_oneof:"aggregation"`
+}
+
+func (m *Aggregate) Reset()                    { *m = Aggregate{} }
+func (m *Aggregate) String() string            { return proto.CompactTextString(m) }
+func (*Aggregate) ProtoMessage()               {}
+func (*Aggregate) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{6} }
+
+type isAggregate_Aggregation interface{ isAggregate_Aggregation() }
+
+type Aggregate_Term struct {
+	Term *TermAggregation `protobuf:"bytes,2,opt,name=term,oneof"`
+}
+type Aggregate_Percentile struct {
+	Percentile *PercentileAggregation `protobuf:"bytes,3,opt,name=percentile,oneof"`
+}
+type Aggregate_Histogram struct {
+	Histogram *HistogramAggregation `protobuf:"bytes,4,opt,name=histogram,oneof"`
+}
+
+func (*Aggregate_Term) isAggregate_Aggregation()       {}
+func (*Aggregate_Percentile) isAggregate_Aggregation() {}
+func (*Aggregate_Histogram) isAggregate_Aggregation()  {}
+
+func (m *Aggregate) GetAggregation() isAggregate_Aggregation {
+	if m != nil {
+		return m.Aggregation
+	}
+	return nil
+}
+
+func (m *Aggregate) GetName() string {
+	if m != nil {
+		return m.Name
+	}
+	return ""
+}
+
+func (m *Aggregate) GetTerm() *TermAggregation {
+	if x, ok := m.GetAggregation().(*Aggregate_Term); ok {
+		return x.Term
+	}
+	return nil
+}
+
+func (m *Aggregate) GetPercentile() *PercentileAggregation {
+	if x, ok := m.GetAggregation().(*Aggregate_Percentile); ok {
+		return x.Percentile
+	}
+	return nil
+}
+
+func (m *Aggregate) GetHistogram() *HistogramAggregation {
+	if x, ok := m.GetAggregation().(*Aggregate_Histogram); ok {
+		return x.Histogram
+	}
+	return nil
+}
+
+// XXX_OneofFuncs is for the internal use of the proto package.
+func (*Aggregate) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) error, func(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error), func(msg proto.Message) (n int), []interface{}) {
+	return _Aggregate_OneofMarshaler, _Aggregate_OneofUnmarshaler, _Aggregate_OneofSizer, []interface{}{
+		(*Aggregate_Term)(nil),
+		(*Aggregate_Percentile)(nil),
+		(*Aggregate_Histogram)(nil),
+	}
+}
+
+func _Aggregate_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
+	m := msg.(*Aggregate)
+	// aggregation
+	switch x := m.Aggregation.(type) {
+	case *Aggregate_Term:
+		b.EncodeVarint(2<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.Term); err != nil {
+			return err
+		}
+	case *Aggregate_Percentile:
+		b.EncodeVarint(3<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.Percentile); err != nil {
+			return err
+		}
+	case *Aggregate_Histogram:
+		b.EncodeVarint(4<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.Histogram); err != nil {
+			return err
+		}
+	case nil:
+	default:
+		return fmt.Errorf("Aggregate.Aggregation has unexpected type %T", x)
+	}
+	return nil
+}
+
+func _Aggregate_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error) {
+	m := msg.(*Aggregate)
+	switch tag {
+	case 2: // aggregation.term
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(TermAggregation)
+		err := b.DecodeMessage(msg)
+		m.Aggregation = &Aggregate_Term{msg}
+		return true, err
+	case 3: // aggregation.percentile
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(PercentileAggregation)
+		err := b.DecodeMessage(msg)
+		m.Aggregation = &Aggregate_Percentile{msg}
+		return true, err
+	case 4: // aggregation.histogram
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(HistogramAggregation)
+		err := b.DecodeMessage(msg)
+		m.Aggregation = &Aggregate_Histogram{msg}
+		return true, err
+	default:
+		return false, nil
+	}
+}
+
+func _Aggregate_OneofSizer(msg proto.Message) (n int) {
+	m := msg.(*Aggregate)
+	// aggregation
+	switch x := m.Aggregation.(type) {
+	case *Aggregate_Term:
+		s := proto.Size(x.Term)
+		n += proto.SizeVarint(2<<3 | proto.WireBytes)
+		n += proto.SizeVarint(uint64(s))
+		n += s
+	case *Aggregate_Percentile:
+		s := proto.Size(x.Percentile)
+		n += proto.SizeVarint(3<<3 | proto.WireBytes)
+		n += proto.SizeVarint(uint64(s))
+		n += s
+	case *Aggregate_Histogram:
+		s := proto.Size(x.Histogram)
+		n += proto.SizeVarint(4<<3 | proto.WireBytes)
+		n += proto.SizeVarint(uint64(s))
+		n += s
+	case nil:
+	default:
+		panic(fmt.Sprintf("proto: unexpected type %T in oneof", x))
+	}
+	return n
+}
+
+type TermAggregation struct {
+	Label string `protobuf:"bytes,1,opt,name=label" json:"label,omitempty"`
+	Field string `protobuf:"bytes,2,opt,name=field" json:"field,omitempty"`
+	Size  uint32 `protobuf:"varint,3,opt,name=size" json:"size,omitempty"`
+}
+
+func (m *TermAggregation) Reset()                    { *m = TermAggregation{} }
+func (m *TermAggregation) String() string            { return proto.CompactTextString(m) }
+func (*TermAggregation) ProtoMessage()               {}
+func (*TermAggregation) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{7} }
+
+func (m *TermAggregation) GetLabel() string {
+	if m != nil {
+		return m.Label
+	}
+	return ""
+}
+
+func (m *TermAggregation) GetField() string {
+	if m != nil {
+		return m.Field
+	}
+	return ""
+}
+
+func (m *TermAggregation) GetSize() uint32 {
+	if m != nil {
+		return m.Size
+	}
+	return 0
+}
+
+type PercentileAggregation struct {
+	Label    string    `protobuf:"bytes,1,opt,name=label" json:"label,omitempty"`
+	Field    string    `protobuf:"bytes,2,opt,name=field" json:"field,omitempty"`
+	Percents []float64 `protobuf:"fixed64,3,rep,packed,name=percents" json:"percents,omitempty"`
+}
+
+func (m *PercentileAggregation) Reset()                    { *m = PercentileAggregation{} }
+func (m *PercentileAggregation) String() string            { return proto.CompactTextString(m) }
+func (*PercentileAggregation) ProtoMessage()               {}
+func (*PercentileAggregation) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{8} }
+
+func (m *PercentileAggregation) GetLabel() string {
+	if m != nil {
+		return m.Label
+	}
+	return ""
+}
+
+func (m *PercentileAggregation) GetField() string {
+	if m != nil {
+		return m.Field
+	}
+	return ""
+}
+
+func (m *PercentileAggregation) GetPercents() []float64 {
+	if m != nil {
+		return m.Percents
+	}
+	return nil
+}
+
+type HistogramAggregation struct {
+	Label    string `protobuf:"bytes,1,opt,name=label" json:"label,omitempty"`
+	Field    string `protobuf:"bytes,2,opt,name=field" json:"field,omitempty"`
+	Interval uint32 `protobuf:"varint,3,opt,name=interval" json:"interval,omitempty"`
+}
+
+func (m *HistogramAggregation) Reset()                    { *m = HistogramAggregation{} }
+func (m *HistogramAggregation) String() string            { return proto.CompactTextString(m) }
+func (*HistogramAggregation) ProtoMessage()               {}
+func (*HistogramAggregation) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{9} }
+
+func (m *HistogramAggregation) GetLabel() string {
+	if m != nil {
+		return m.Label
+	}
+	return ""
+}
+
+func (m *HistogramAggregation) GetField() string {
+	if m != nil {
+		return m.Field
+	}
+	return ""
+}
+
+func (m *HistogramAggregation) GetInterval() uint32 {
+	if m != nil {
+		return m.Interval
+	}
+	return 0
+}
+
+type NamedAggregationResult struct {
+	Aggregations map[string]*AggregationResult `protobuf:"bytes,3,rep,name=aggregations" json:"aggregations,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+}
+
+func (m *NamedAggregationResult) Reset()                    { *m = NamedAggregationResult{} }
+func (m *NamedAggregationResult) String() string            { return proto.CompactTextString(m) }
+func (*NamedAggregationResult) ProtoMessage()               {}
+func (*NamedAggregationResult) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{10} }
+
+func (m *NamedAggregationResult) GetAggregations() map[string]*AggregationResult {
+	if m != nil {
+		return m.Aggregations
+	}
+	return nil
+}
+
+type AggregationResult struct {
+	Buckets []*AggregationResultBucket `protobuf:"bytes,2,rep,name=buckets" json:"buckets,omitempty"`
+}
+
+func (m *AggregationResult) Reset()                    { *m = AggregationResult{} }
+func (m *AggregationResult) String() string            { return proto.CompactTextString(m) }
+func (*AggregationResult) ProtoMessage()               {}
+func (*AggregationResult) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{11} }
+
+func (m *AggregationResult) GetBuckets() []*AggregationResultBucket {
+	if m != nil {
+		return m.Buckets
+	}
+	return nil
+}
+
+type AggregationResultBucket struct {
+	Key   *google_protobuf1.Value `protobuf:"bytes,1,opt,name=key" json:"key,omitempty"`
+	Value float64                 `protobuf:"fixed64,2,opt,name=value" json:"value,omitempty"`
+}
+
+func (m *AggregationResultBucket) Reset()                    { *m = AggregationResultBucket{} }
+func (m *AggregationResultBucket) String() string            { return proto.CompactTextString(m) }
+func (*AggregationResultBucket) ProtoMessage()               {}
+func (*AggregationResultBucket) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{12} }
+
+func (m *AggregationResultBucket) GetKey() *google_protobuf1.Value {
+	if m != nil {
+		return m.Key
+	}
+	return nil
+}
+
+func (m *AggregationResultBucket) GetValue() float64 {
+	if m != nil {
+		return m.Value
+	}
+	return 0
+}
+
+type WhereExpressionList struct {
+	Expressions []*WhereExpression `protobuf:"bytes,1,rep,name=expressions" json:"expressions,omitempty"`
+}
+
+func (m *WhereExpressionList) Reset()                    { *m = WhereExpressionList{} }
+func (m *WhereExpressionList) String() string            { return proto.CompactTextString(m) }
+func (*WhereExpressionList) ProtoMessage()               {}
+func (*WhereExpressionList) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{13} }
+
+func (m *WhereExpressionList) GetExpressions() []*WhereExpression {
+	if m != nil {
+		return m.Expressions
+	}
+	return nil
+}
+
+type WhereExpression struct {
+	// Types that are valid to be assigned to Expression:
+	//	*WhereExpression_And
+	//	*WhereExpression_Or
+	//	*WhereExpression_Not
+	//	*WhereExpression_Condition
+	Expression isWhereExpression_Expression `protobuf_oneof:"expression"`
+}
+
+func (m *WhereExpression) Reset()                    { *m = WhereExpression{} }
+func (m *WhereExpression) String() string            { return proto.CompactTextString(m) }
+func (*WhereExpression) ProtoMessage()               {}
+func (*WhereExpression) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{14} }
+
+type isWhereExpression_Expression interface{ isWhereExpression_Expression() }
+
+type WhereExpression_And struct {
+	And *WhereExpressionList `protobuf:"bytes,1,opt,name=and,oneof"`
+}
+type WhereExpression_Or struct {
+	Or *WhereExpressionList `protobuf:"bytes,2,opt,name=or,oneof"`
+}
+type WhereExpression_Not struct {
+	Not *WhereExpression `protobuf:"bytes,3,opt,name=not,oneof"`
+}
+type WhereExpression_Condition struct {
+	Condition *WhereCondition `protobuf:"bytes,4,opt,name=condition,oneof"`
+}
+
+func (*WhereExpression_And) isWhereExpression_Expression()       {}
+func (*WhereExpression_Or) isWhereExpression_Expression()        {}
+func (*WhereExpression_Not) isWhereExpression_Expression()       {}
+func (*WhereExpression_Condition) isWhereExpression_Expression() {}
+
+func (m *WhereExpression) GetExpression() isWhereExpression_Expression {
+	if m != nil {
+		return m.Expression
+	}
+	return nil
+}
+
+func (m *WhereExpression) GetAnd() *WhereExpressionList {
+	if x, ok := m.GetExpression().(*WhereExpression_And); ok {
+		return x.And
+	}
+	return nil
+}
+
+func (m *WhereExpression) GetOr() *WhereExpressionList {
+	if x, ok := m.GetExpression().(*WhereExpression_Or); ok {
+		return x.Or
+	}
+	return nil
+}
+
+func (m *WhereExpression) GetNot() *WhereExpression {
+	if x, ok := m.GetExpression().(*WhereExpression_Not); ok {
+		return x.Not
+	}
+	return nil
+}
+
+func (m *WhereExpression) GetCondition() *WhereCondition {
+	if x, ok := m.GetExpression().(*WhereExpression_Condition); ok {
+		return x.Condition
+	}
+	return nil
+}
+
+// XXX_OneofFuncs is for the internal use of the proto package.
+func (*WhereExpression) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) error, func(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error), func(msg proto.Message) (n int), []interface{}) {
+	return _WhereExpression_OneofMarshaler, _WhereExpression_OneofUnmarshaler, _WhereExpression_OneofSizer, []interface{}{
+		(*WhereExpression_And)(nil),
+		(*WhereExpression_Or)(nil),
+		(*WhereExpression_Not)(nil),
+		(*WhereExpression_Condition)(nil),
+	}
+}
+
+func _WhereExpression_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
+	m := msg.(*WhereExpression)
+	// expression
+	switch x := m.Expression.(type) {
+	case *WhereExpression_And:
+		b.EncodeVarint(1<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.And); err != nil {
+			return err
+		}
+	case *WhereExpression_Or:
+		b.EncodeVarint(2<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.Or); err != nil {
+			return err
+		}
+	case *WhereExpression_Not:
+		b.EncodeVarint(3<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.Not); err != nil {
+			return err
+		}
+	case *WhereExpression_Condition:
+		b.EncodeVarint(4<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.Condition); err != nil {
+			return err
+		}
+	case nil:
+	default:
+		return fmt.Errorf("WhereExpression.Expression has unexpected type %T", x)
+	}
+	return nil
+}
+
+func _WhereExpression_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error) {
+	m := msg.(*WhereExpression)
+	switch tag {
+	case 1: // expression.and
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(WhereExpressionList)
+		err := b.DecodeMessage(msg)
+		m.Expression = &WhereExpression_And{msg}
+		return true, err
+	case 2: // expression.or
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(WhereExpressionList)
+		err := b.DecodeMessage(msg)
+		m.Expression = &WhereExpression_Or{msg}
+		return true, err
+	case 3: // expression.not
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(WhereExpression)
+		err := b.DecodeMessage(msg)
+		m.Expression = &WhereExpression_Not{msg}
+		return true, err
+	case 4: // expression.condition
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(WhereCondition)
+		err := b.DecodeMessage(msg)
+		m.Expression = &WhereExpression_Condition{msg}
+		return true, err
+	default:
+		return false, nil
+	}
+}
+
+func _WhereExpression_OneofSizer(msg proto.Message) (n int) {
+	m := msg.(*WhereExpression)
+	// expression
+	switch x := m.Expression.(type) {
+	case *WhereExpression_And:
+		s := proto.Size(x.And)
+		n += proto.SizeVarint(1<<3 | proto.WireBytes)
+		n += proto.SizeVarint(uint64(s))
+		n += s
+	case *WhereExpression_Or:
+		s := proto.Size(x.Or)
+		n += proto.SizeVarint(2<<3 | proto.WireBytes)
+		n += proto.SizeVarint(uint64(s))
+		n += s
+	case *WhereExpression_Not:
+		s := proto.Size(x.Not)
+		n += proto.SizeVarint(3<<3 | proto.WireBytes)
+		n += proto.SizeVarint(uint64(s))
+		n += s
+	case *WhereExpression_Condition:
+		s := proto.Size(x.Condition)
+		n += proto.SizeVarint(4<<3 | proto.WireBytes)
+		n += proto.SizeVarint(uint64(s))
+		n += s
+	case nil:
+	default:
+		panic(fmt.Sprintf("proto: unexpected type %T in oneof", x))
+	}
+	return n
+}
+
+type WhereCondition struct {
+	Key       string                  `protobuf:"bytes,1,opt,name=key" json:"key,omitempty"`
+	Value     *google_protobuf1.Value `protobuf:"bytes,2,opt,name=value" json:"value,omitempty"`
+	Condition Condition               `protobuf:"varint,3,opt,name=condition,enum=aql.Condition" json:"condition,omitempty"`
+}
+
+func (m *WhereCondition) Reset()                    { *m = WhereCondition{} }
+func (m *WhereCondition) String() string            { return proto.CompactTextString(m) }
+func (*WhereCondition) ProtoMessage()               {}
+func (*WhereCondition) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{15} }
+
+func (m *WhereCondition) GetKey() string {
 	if m != nil {
 		return m.Key
 	}
 	return ""
 }
 
-func (m *HasStatement) GetWithin() []string {
+func (m *WhereCondition) GetValue() *google_protobuf1.Value {
 	if m != nil {
-		return m.Within
+		return m.Value
 	}
 	return nil
 }
 
+func (m *WhereCondition) GetCondition() Condition {
+	if m != nil {
+		return m.Condition
+	}
+	return Condition_UNKNOWN_CONDITION
+}
+
 type SelectStatement struct {
-	Labels []string `protobuf:"bytes,1,rep,name=labels" json:"labels,omitempty"`
+	Marks []string `protobuf:"bytes,1,rep,name=marks" json:"marks,omitempty"`
 }
 
 func (m *SelectStatement) Reset()                    { *m = SelectStatement{} }
 func (m *SelectStatement) String() string            { return proto.CompactTextString(m) }
 func (*SelectStatement) ProtoMessage()               {}
-func (*SelectStatement) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{4} }
+func (*SelectStatement) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{16} }
 
-func (m *SelectStatement) GetLabels() []string {
+func (m *SelectStatement) GetMarks() []string {
 	if m != nil {
-		return m.Labels
+		return m.Marks
 	}
 	return nil
 }
 
-type FoldStatement struct {
-	Source string                  `protobuf:"bytes,1,opt,name=source" json:"source,omitempty"`
-	Init   *google_protobuf1.Value `protobuf:"bytes,2,opt,name=init" json:"init,omitempty"`
+type Selection struct {
+	// Types that are valid to be assigned to Result:
+	//	*Selection_Vertex
+	//	*Selection_Edge
+	Result isSelection_Result `protobuf_oneof:"result"`
 }
 
-func (m *FoldStatement) Reset()                    { *m = FoldStatement{} }
-func (m *FoldStatement) String() string            { return proto.CompactTextString(m) }
-func (*FoldStatement) ProtoMessage()               {}
-func (*FoldStatement) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{5} }
+func (m *Selection) Reset()                    { *m = Selection{} }
+func (m *Selection) String() string            { return proto.CompactTextString(m) }
+func (*Selection) ProtoMessage()               {}
+func (*Selection) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{17} }
 
-func (m *FoldStatement) GetSource() string {
+type isSelection_Result interface{ isSelection_Result() }
+
+type Selection_Vertex struct {
+	Vertex *Vertex `protobuf:"bytes,1,opt,name=vertex,oneof"`
+}
+type Selection_Edge struct {
+	Edge *Edge `protobuf:"bytes,2,opt,name=edge,oneof"`
+}
+
+func (*Selection_Vertex) isSelection_Result() {}
+func (*Selection_Edge) isSelection_Result()   {}
+
+func (m *Selection) GetResult() isSelection_Result {
 	if m != nil {
-		return m.Source
+		return m.Result
 	}
-	return ""
+	return nil
 }
 
-func (m *FoldStatement) GetInit() *google_protobuf1.Value {
+func (m *Selection) GetVertex() *Vertex {
+	if x, ok := m.GetResult().(*Selection_Vertex); ok {
+		return x.Vertex
+	}
+	return nil
+}
+
+func (m *Selection) GetEdge() *Edge {
+	if x, ok := m.GetResult().(*Selection_Edge); ok {
+		return x.Edge
+	}
+	return nil
+}
+
+// XXX_OneofFuncs is for the internal use of the proto package.
+func (*Selection) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) error, func(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error), func(msg proto.Message) (n int), []interface{}) {
+	return _Selection_OneofMarshaler, _Selection_OneofUnmarshaler, _Selection_OneofSizer, []interface{}{
+		(*Selection_Vertex)(nil),
+		(*Selection_Edge)(nil),
+	}
+}
+
+func _Selection_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
+	m := msg.(*Selection)
+	// result
+	switch x := m.Result.(type) {
+	case *Selection_Vertex:
+		b.EncodeVarint(1<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.Vertex); err != nil {
+			return err
+		}
+	case *Selection_Edge:
+		b.EncodeVarint(2<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.Edge); err != nil {
+			return err
+		}
+	case nil:
+	default:
+		return fmt.Errorf("Selection.Result has unexpected type %T", x)
+	}
+	return nil
+}
+
+func _Selection_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error) {
+	m := msg.(*Selection)
+	switch tag {
+	case 1: // result.vertex
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(Vertex)
+		err := b.DecodeMessage(msg)
+		m.Result = &Selection_Vertex{msg}
+		return true, err
+	case 2: // result.edge
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(Edge)
+		err := b.DecodeMessage(msg)
+		m.Result = &Selection_Edge{msg}
+		return true, err
+	default:
+		return false, nil
+	}
+}
+
+func _Selection_OneofSizer(msg proto.Message) (n int) {
+	m := msg.(*Selection)
+	// result
+	switch x := m.Result.(type) {
+	case *Selection_Vertex:
+		s := proto.Size(x.Vertex)
+		n += proto.SizeVarint(1<<3 | proto.WireBytes)
+		n += proto.SizeVarint(uint64(s))
+		n += s
+	case *Selection_Edge:
+		s := proto.Size(x.Edge)
+		n += proto.SizeVarint(2<<3 | proto.WireBytes)
+		n += proto.SizeVarint(uint64(s))
+		n += s
+	case nil:
+	default:
+		panic(fmt.Sprintf("proto: unexpected type %T in oneof", x))
+	}
+	return n
+}
+
+type Selections struct {
+	Selections map[string]*Selection `protobuf:"bytes,1,rep,name=selections" json:"selections,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+}
+
+func (m *Selections) Reset()                    { *m = Selections{} }
+func (m *Selections) String() string            { return proto.CompactTextString(m) }
+func (*Selections) ProtoMessage()               {}
+func (*Selections) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{18} }
+
+func (m *Selections) GetSelections() map[string]*Selection {
 	if m != nil {
-		return m.Init
+		return m.Selections
 	}
 	return nil
 }
@@ -987,7 +1527,7 @@ type Vertex struct {
 func (m *Vertex) Reset()                    { *m = Vertex{} }
 func (m *Vertex) String() string            { return proto.CompactTextString(m) }
 func (*Vertex) ProtoMessage()               {}
-func (*Vertex) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{6} }
+func (*Vertex) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{19} }
 
 func (m *Vertex) GetGid() string {
 	if m != nil {
@@ -1021,7 +1561,7 @@ type Edge struct {
 func (m *Edge) Reset()                    { *m = Edge{} }
 func (m *Edge) String() string            { return proto.CompactTextString(m) }
 func (*Edge) ProtoMessage()               {}
-func (*Edge) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{7} }
+func (*Edge) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{20} }
 
 func (m *Edge) GetGid() string {
 	if m != nil {
@@ -1058,63 +1598,23 @@ func (m *Edge) GetData() *google_protobuf1.Struct {
 	return nil
 }
 
-type Bundle struct {
-	Gid    string                              `protobuf:"bytes,1,opt,name=gid" json:"gid,omitempty"`
-	Label  string                              `protobuf:"bytes,2,opt,name=label" json:"label,omitempty"`
-	From   string                              `protobuf:"bytes,3,opt,name=from" json:"from,omitempty"`
-	Bundle map[string]*google_protobuf1.Struct `protobuf:"bytes,4,rep,name=bundle" json:"bundle,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-}
-
-func (m *Bundle) Reset()                    { *m = Bundle{} }
-func (m *Bundle) String() string            { return proto.CompactTextString(m) }
-func (*Bundle) ProtoMessage()               {}
-func (*Bundle) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{8} }
-
-func (m *Bundle) GetGid() string {
-	if m != nil {
-		return m.Gid
-	}
-	return ""
-}
-
-func (m *Bundle) GetLabel() string {
-	if m != nil {
-		return m.Label
-	}
-	return ""
-}
-
-func (m *Bundle) GetFrom() string {
-	if m != nil {
-		return m.From
-	}
-	return ""
-}
-
-func (m *Bundle) GetBundle() map[string]*google_protobuf1.Struct {
-	if m != nil {
-		return m.Bundle
-	}
-	return nil
-}
-
 type QueryResult struct {
 	// Types that are valid to be assigned to Result:
 	//	*QueryResult_Vertex
 	//	*QueryResult_Edge
-	//	*QueryResult_Bundle
-	//	*QueryResult_Data
+	//	*QueryResult_Aggregations
+	//	*QueryResult_Selections
+	//	*QueryResult_Render
+	//	*QueryResult_Count
 	Result isQueryResult_Result `protobuf_oneof:"result"`
 }
 
 func (m *QueryResult) Reset()                    { *m = QueryResult{} }
 func (m *QueryResult) String() string            { return proto.CompactTextString(m) }
 func (*QueryResult) ProtoMessage()               {}
-func (*QueryResult) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{9} }
+func (*QueryResult) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{21} }
 
-type isQueryResult_Result interface {
-	isQueryResult_Result()
-}
+type isQueryResult_Result interface{ isQueryResult_Result() }
 
 type QueryResult_Vertex struct {
 	Vertex *Vertex `protobuf:"bytes,1,opt,name=vertex,oneof"`
@@ -1122,17 +1622,25 @@ type QueryResult_Vertex struct {
 type QueryResult_Edge struct {
 	Edge *Edge `protobuf:"bytes,2,opt,name=edge,oneof"`
 }
-type QueryResult_Bundle struct {
-	Bundle *Bundle `protobuf:"bytes,3,opt,name=bundle,oneof"`
+type QueryResult_Aggregations struct {
+	Aggregations *NamedAggregationResult `protobuf:"bytes,3,opt,name=aggregations,oneof"`
 }
-type QueryResult_Data struct {
-	Data *google_protobuf1.Value `protobuf:"bytes,4,opt,name=data,oneof"`
+type QueryResult_Selections struct {
+	Selections *Selections `protobuf:"bytes,4,opt,name=selections,oneof"`
+}
+type QueryResult_Render struct {
+	Render *google_protobuf1.Value `protobuf:"bytes,5,opt,name=render,oneof"`
+}
+type QueryResult_Count struct {
+	Count uint32 `protobuf:"varint,6,opt,name=count,oneof"`
 }
 
-func (*QueryResult_Vertex) isQueryResult_Result() {}
-func (*QueryResult_Edge) isQueryResult_Result()   {}
-func (*QueryResult_Bundle) isQueryResult_Result() {}
-func (*QueryResult_Data) isQueryResult_Result()   {}
+func (*QueryResult_Vertex) isQueryResult_Result()       {}
+func (*QueryResult_Edge) isQueryResult_Result()         {}
+func (*QueryResult_Aggregations) isQueryResult_Result() {}
+func (*QueryResult_Selections) isQueryResult_Result()   {}
+func (*QueryResult_Render) isQueryResult_Result()       {}
+func (*QueryResult_Count) isQueryResult_Result()        {}
 
 func (m *QueryResult) GetResult() isQueryResult_Result {
 	if m != nil {
@@ -1155,18 +1663,32 @@ func (m *QueryResult) GetEdge() *Edge {
 	return nil
 }
 
-func (m *QueryResult) GetBundle() *Bundle {
-	if x, ok := m.GetResult().(*QueryResult_Bundle); ok {
-		return x.Bundle
+func (m *QueryResult) GetAggregations() *NamedAggregationResult {
+	if x, ok := m.GetResult().(*QueryResult_Aggregations); ok {
+		return x.Aggregations
 	}
 	return nil
 }
 
-func (m *QueryResult) GetData() *google_protobuf1.Value {
-	if x, ok := m.GetResult().(*QueryResult_Data); ok {
-		return x.Data
+func (m *QueryResult) GetSelections() *Selections {
+	if x, ok := m.GetResult().(*QueryResult_Selections); ok {
+		return x.Selections
 	}
 	return nil
+}
+
+func (m *QueryResult) GetRender() *google_protobuf1.Value {
+	if x, ok := m.GetResult().(*QueryResult_Render); ok {
+		return x.Render
+	}
+	return nil
+}
+
+func (m *QueryResult) GetCount() uint32 {
+	if x, ok := m.GetResult().(*QueryResult_Count); ok {
+		return x.Count
+	}
+	return 0
 }
 
 // XXX_OneofFuncs is for the internal use of the proto package.
@@ -1174,8 +1696,10 @@ func (*QueryResult) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) e
 	return _QueryResult_OneofMarshaler, _QueryResult_OneofUnmarshaler, _QueryResult_OneofSizer, []interface{}{
 		(*QueryResult_Vertex)(nil),
 		(*QueryResult_Edge)(nil),
-		(*QueryResult_Bundle)(nil),
-		(*QueryResult_Data)(nil),
+		(*QueryResult_Aggregations)(nil),
+		(*QueryResult_Selections)(nil),
+		(*QueryResult_Render)(nil),
+		(*QueryResult_Count)(nil),
 	}
 }
 
@@ -1193,16 +1717,24 @@ func _QueryResult_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
 		if err := b.EncodeMessage(x.Edge); err != nil {
 			return err
 		}
-	case *QueryResult_Bundle:
+	case *QueryResult_Aggregations:
 		b.EncodeVarint(3<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.Bundle); err != nil {
+		if err := b.EncodeMessage(x.Aggregations); err != nil {
 			return err
 		}
-	case *QueryResult_Data:
+	case *QueryResult_Selections:
 		b.EncodeVarint(4<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.Data); err != nil {
+		if err := b.EncodeMessage(x.Selections); err != nil {
 			return err
 		}
+	case *QueryResult_Render:
+		b.EncodeVarint(5<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.Render); err != nil {
+			return err
+		}
+	case *QueryResult_Count:
+		b.EncodeVarint(6<<3 | proto.WireVarint)
+		b.EncodeVarint(uint64(x.Count))
 	case nil:
 	default:
 		return fmt.Errorf("QueryResult.Result has unexpected type %T", x)
@@ -1229,21 +1761,36 @@ func _QueryResult_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.Bu
 		err := b.DecodeMessage(msg)
 		m.Result = &QueryResult_Edge{msg}
 		return true, err
-	case 3: // result.bundle
+	case 3: // result.aggregations
 		if wire != proto.WireBytes {
 			return true, proto.ErrInternalBadWireType
 		}
-		msg := new(Bundle)
+		msg := new(NamedAggregationResult)
 		err := b.DecodeMessage(msg)
-		m.Result = &QueryResult_Bundle{msg}
+		m.Result = &QueryResult_Aggregations{msg}
 		return true, err
-	case 4: // result.data
+	case 4: // result.selections
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(Selections)
+		err := b.DecodeMessage(msg)
+		m.Result = &QueryResult_Selections{msg}
+		return true, err
+	case 5: // result.render
 		if wire != proto.WireBytes {
 			return true, proto.ErrInternalBadWireType
 		}
 		msg := new(google_protobuf1.Value)
 		err := b.DecodeMessage(msg)
-		m.Result = &QueryResult_Data{msg}
+		m.Result = &QueryResult_Render{msg}
+		return true, err
+	case 6: // result.count
+		if wire != proto.WireVarint {
+			return true, proto.ErrInternalBadWireType
+		}
+		x, err := b.DecodeVarint()
+		m.Result = &QueryResult_Count{uint32(x)}
 		return true, err
 	default:
 		return false, nil
@@ -1264,16 +1811,24 @@ func _QueryResult_OneofSizer(msg proto.Message) (n int) {
 		n += proto.SizeVarint(2<<3 | proto.WireBytes)
 		n += proto.SizeVarint(uint64(s))
 		n += s
-	case *QueryResult_Bundle:
-		s := proto.Size(x.Bundle)
+	case *QueryResult_Aggregations:
+		s := proto.Size(x.Aggregations)
 		n += proto.SizeVarint(3<<3 | proto.WireBytes)
 		n += proto.SizeVarint(uint64(s))
 		n += s
-	case *QueryResult_Data:
-		s := proto.Size(x.Data)
+	case *QueryResult_Selections:
+		s := proto.Size(x.Selections)
 		n += proto.SizeVarint(4<<3 | proto.WireBytes)
 		n += proto.SizeVarint(uint64(s))
 		n += s
+	case *QueryResult_Render:
+		s := proto.Size(x.Render)
+		n += proto.SizeVarint(5<<3 | proto.WireBytes)
+		n += proto.SizeVarint(uint64(s))
+		n += s
+	case *QueryResult_Count:
+		n += proto.SizeVarint(6<<3 | proto.WireVarint)
+		n += proto.SizeVarint(uint64(x.Count))
 	case nil:
 	default:
 		panic(fmt.Sprintf("proto: unexpected type %T in oneof", x))
@@ -1281,154 +1836,32 @@ func _QueryResult_OneofSizer(msg proto.Message) (n int) {
 	return n
 }
 
-type ResultRow struct {
-	Value *QueryResult   `protobuf:"bytes,1,opt,name=value" json:"value,omitempty"`
-	Row   []*QueryResult `protobuf:"bytes,2,rep,name=row" json:"row,omitempty"`
-}
-
-func (m *ResultRow) Reset()                    { *m = ResultRow{} }
-func (m *ResultRow) String() string            { return proto.CompactTextString(m) }
-func (*ResultRow) ProtoMessage()               {}
-func (*ResultRow) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{10} }
-
-func (m *ResultRow) GetValue() *QueryResult {
-	if m != nil {
-		return m.Value
-	}
-	return nil
-}
-
-func (m *ResultRow) GetRow() []*QueryResult {
-	if m != nil {
-		return m.Row
-	}
-	return nil
-}
-
 type EditResult struct {
-	// Types that are valid to be assigned to Result:
-	//	*EditResult_Error
-	//	*EditResult_Id
-	Result isEditResult_Result `protobuf_oneof:"result"`
+	Id string `protobuf:"bytes,1,opt,name=id" json:"id,omitempty"`
 }
 
 func (m *EditResult) Reset()                    { *m = EditResult{} }
 func (m *EditResult) String() string            { return proto.CompactTextString(m) }
 func (*EditResult) ProtoMessage()               {}
-func (*EditResult) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{11} }
-
-type isEditResult_Result interface {
-	isEditResult_Result()
-}
-
-type EditResult_Error struct {
-	Error string `protobuf:"bytes,1,opt,name=error,oneof"`
-}
-type EditResult_Id struct {
-	Id string `protobuf:"bytes,2,opt,name=id,oneof"`
-}
-
-func (*EditResult_Error) isEditResult_Result() {}
-func (*EditResult_Id) isEditResult_Result()    {}
-
-func (m *EditResult) GetResult() isEditResult_Result {
-	if m != nil {
-		return m.Result
-	}
-	return nil
-}
-
-func (m *EditResult) GetError() string {
-	if x, ok := m.GetResult().(*EditResult_Error); ok {
-		return x.Error
-	}
-	return ""
-}
+func (*EditResult) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{22} }
 
 func (m *EditResult) GetId() string {
-	if x, ok := m.GetResult().(*EditResult_Id); ok {
-		return x.Id
+	if m != nil {
+		return m.Id
 	}
 	return ""
-}
-
-// XXX_OneofFuncs is for the internal use of the proto package.
-func (*EditResult) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) error, func(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error), func(msg proto.Message) (n int), []interface{}) {
-	return _EditResult_OneofMarshaler, _EditResult_OneofUnmarshaler, _EditResult_OneofSizer, []interface{}{
-		(*EditResult_Error)(nil),
-		(*EditResult_Id)(nil),
-	}
-}
-
-func _EditResult_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
-	m := msg.(*EditResult)
-	// result
-	switch x := m.Result.(type) {
-	case *EditResult_Error:
-		b.EncodeVarint(1<<3 | proto.WireBytes)
-		b.EncodeStringBytes(x.Error)
-	case *EditResult_Id:
-		b.EncodeVarint(2<<3 | proto.WireBytes)
-		b.EncodeStringBytes(x.Id)
-	case nil:
-	default:
-		return fmt.Errorf("EditResult.Result has unexpected type %T", x)
-	}
-	return nil
-}
-
-func _EditResult_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error) {
-	m := msg.(*EditResult)
-	switch tag {
-	case 1: // result.error
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		x, err := b.DecodeStringBytes()
-		m.Result = &EditResult_Error{x}
-		return true, err
-	case 2: // result.id
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		x, err := b.DecodeStringBytes()
-		m.Result = &EditResult_Id{x}
-		return true, err
-	default:
-		return false, nil
-	}
-}
-
-func _EditResult_OneofSizer(msg proto.Message) (n int) {
-	m := msg.(*EditResult)
-	// result
-	switch x := m.Result.(type) {
-	case *EditResult_Error:
-		n += proto.SizeVarint(1<<3 | proto.WireBytes)
-		n += proto.SizeVarint(uint64(len(x.Error)))
-		n += len(x.Error)
-	case *EditResult_Id:
-		n += proto.SizeVarint(2<<3 | proto.WireBytes)
-		n += proto.SizeVarint(uint64(len(x.Id)))
-		n += len(x.Id)
-	case nil:
-	default:
-		panic(fmt.Sprintf("proto: unexpected type %T in oneof", x))
-	}
-	return n
 }
 
 type GraphElement struct {
 	Graph  string  `protobuf:"bytes,1,opt,name=graph" json:"graph,omitempty"`
 	Vertex *Vertex `protobuf:"bytes,2,opt,name=vertex" json:"vertex,omitempty"`
 	Edge   *Edge   `protobuf:"bytes,3,opt,name=edge" json:"edge,omitempty"`
-	Bundle *Bundle `protobuf:"bytes,4,opt,name=bundle" json:"bundle,omitempty"`
 }
 
 func (m *GraphElement) Reset()                    { *m = GraphElement{} }
 func (m *GraphElement) String() string            { return proto.CompactTextString(m) }
 func (*GraphElement) ProtoMessage()               {}
-func (*GraphElement) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{12} }
+func (*GraphElement) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{23} }
 
 func (m *GraphElement) GetGraph() string {
 	if m != nil {
@@ -1451,43 +1884,20 @@ func (m *GraphElement) GetEdge() *Edge {
 	return nil
 }
 
-func (m *GraphElement) GetBundle() *Bundle {
-	if m != nil {
-		return m.Bundle
-	}
-	return nil
+type GraphID struct {
+	Graph string `protobuf:"bytes,1,opt,name=graph" json:"graph,omitempty"`
 }
 
-type Graph struct {
-	Graph    string    `protobuf:"bytes,1,opt,name=graph" json:"graph,omitempty"`
-	Edges    []*Edge   `protobuf:"bytes,2,rep,name=edges" json:"edges,omitempty"`
-	Vertices []*Vertex `protobuf:"bytes,3,rep,name=vertices" json:"vertices,omitempty"`
-}
+func (m *GraphID) Reset()                    { *m = GraphID{} }
+func (m *GraphID) String() string            { return proto.CompactTextString(m) }
+func (*GraphID) ProtoMessage()               {}
+func (*GraphID) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{24} }
 
-func (m *Graph) Reset()                    { *m = Graph{} }
-func (m *Graph) String() string            { return proto.CompactTextString(m) }
-func (*Graph) ProtoMessage()               {}
-func (*Graph) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{13} }
-
-func (m *Graph) GetGraph() string {
+func (m *GraphID) GetGraph() string {
 	if m != nil {
 		return m.Graph
 	}
 	return ""
-}
-
-func (m *Graph) GetEdges() []*Edge {
-	if m != nil {
-		return m.Edges
-	}
-	return nil
-}
-
-func (m *Graph) GetVertices() []*Vertex {
-	if m != nil {
-		return m.Vertices
-	}
-	return nil
 }
 
 type ElementID struct {
@@ -1498,7 +1908,7 @@ type ElementID struct {
 func (m *ElementID) Reset()                    { *m = ElementID{} }
 func (m *ElementID) String() string            { return proto.CompactTextString(m) }
 func (*ElementID) ProtoMessage()               {}
-func (*ElementID) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{14} }
+func (*ElementID) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{25} }
 
 func (m *ElementID) GetGraph() string {
 	if m != nil {
@@ -1514,6 +1924,38 @@ func (m *ElementID) GetId() string {
 	return ""
 }
 
+type IndexID struct {
+	Graph string `protobuf:"bytes,1,opt,name=graph" json:"graph,omitempty"`
+	Label string `protobuf:"bytes,2,opt,name=label" json:"label,omitempty"`
+	Field string `protobuf:"bytes,3,opt,name=field" json:"field,omitempty"`
+}
+
+func (m *IndexID) Reset()                    { *m = IndexID{} }
+func (m *IndexID) String() string            { return proto.CompactTextString(m) }
+func (*IndexID) ProtoMessage()               {}
+func (*IndexID) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{26} }
+
+func (m *IndexID) GetGraph() string {
+	if m != nil {
+		return m.Graph
+	}
+	return ""
+}
+
+func (m *IndexID) GetLabel() string {
+	if m != nil {
+		return m.Label
+	}
+	return ""
+}
+
+func (m *IndexID) GetField() string {
+	if m != nil {
+		return m.Field
+	}
+	return ""
+}
+
 type Timestamp struct {
 	Timestamp string `protobuf:"bytes,1,opt,name=timestamp" json:"timestamp,omitempty"`
 }
@@ -1521,7 +1963,7 @@ type Timestamp struct {
 func (m *Timestamp) Reset()                    { *m = Timestamp{} }
 func (m *Timestamp) String() string            { return proto.CompactTextString(m) }
 func (*Timestamp) ProtoMessage()               {}
-func (*Timestamp) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{15} }
+func (*Timestamp) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{27} }
 
 func (m *Timestamp) GetTimestamp() string {
 	if m != nil {
@@ -1536,26 +1978,39 @@ type Empty struct {
 func (m *Empty) Reset()                    { *m = Empty{} }
 func (m *Empty) String() string            { return proto.CompactTextString(m) }
 func (*Empty) ProtoMessage()               {}
-func (*Empty) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{16} }
+func (*Empty) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{28} }
 
 func init() {
 	proto.RegisterType((*GraphQuery)(nil), "aql.GraphQuery")
-	proto.RegisterType((*GraphQuerySet)(nil), "aql.GraphQuerySet")
+	proto.RegisterType((*QuerySet)(nil), "aql.QuerySet")
+	proto.RegisterType((*MatchQuerySet)(nil), "aql.MatchQuerySet")
 	proto.RegisterType((*GraphStatement)(nil), "aql.GraphStatement")
-	proto.RegisterType((*HasStatement)(nil), "aql.HasStatement")
+	proto.RegisterType((*AggregationsRequest)(nil), "aql.AggregationsRequest")
+	proto.RegisterType((*Aggregations)(nil), "aql.Aggregations")
+	proto.RegisterType((*Aggregate)(nil), "aql.Aggregate")
+	proto.RegisterType((*TermAggregation)(nil), "aql.TermAggregation")
+	proto.RegisterType((*PercentileAggregation)(nil), "aql.PercentileAggregation")
+	proto.RegisterType((*HistogramAggregation)(nil), "aql.HistogramAggregation")
+	proto.RegisterType((*NamedAggregationResult)(nil), "aql.NamedAggregationResult")
+	proto.RegisterType((*AggregationResult)(nil), "aql.AggregationResult")
+	proto.RegisterType((*AggregationResultBucket)(nil), "aql.AggregationResultBucket")
+	proto.RegisterType((*WhereExpressionList)(nil), "aql.WhereExpressionList")
+	proto.RegisterType((*WhereExpression)(nil), "aql.WhereExpression")
+	proto.RegisterType((*WhereCondition)(nil), "aql.WhereCondition")
 	proto.RegisterType((*SelectStatement)(nil), "aql.SelectStatement")
-	proto.RegisterType((*FoldStatement)(nil), "aql.FoldStatement")
+	proto.RegisterType((*Selection)(nil), "aql.Selection")
+	proto.RegisterType((*Selections)(nil), "aql.Selections")
 	proto.RegisterType((*Vertex)(nil), "aql.Vertex")
 	proto.RegisterType((*Edge)(nil), "aql.Edge")
-	proto.RegisterType((*Bundle)(nil), "aql.Bundle")
 	proto.RegisterType((*QueryResult)(nil), "aql.QueryResult")
-	proto.RegisterType((*ResultRow)(nil), "aql.ResultRow")
 	proto.RegisterType((*EditResult)(nil), "aql.EditResult")
 	proto.RegisterType((*GraphElement)(nil), "aql.GraphElement")
-	proto.RegisterType((*Graph)(nil), "aql.Graph")
+	proto.RegisterType((*GraphID)(nil), "aql.GraphID")
 	proto.RegisterType((*ElementID)(nil), "aql.ElementID")
+	proto.RegisterType((*IndexID)(nil), "aql.IndexID")
 	proto.RegisterType((*Timestamp)(nil), "aql.Timestamp")
 	proto.RegisterType((*Empty)(nil), "aql.Empty")
+	proto.RegisterEnum("aql.Condition", Condition_name, Condition_value)
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -1570,11 +2025,12 @@ const _ = grpc.SupportPackageIsVersion4
 
 type QueryClient interface {
 	Traversal(ctx context.Context, in *GraphQuery, opts ...grpc.CallOption) (Query_TraversalClient, error)
+	Aggregate(ctx context.Context, in *AggregationsRequest, opts ...grpc.CallOption) (*NamedAggregationResult, error)
 	GetVertex(ctx context.Context, in *ElementID, opts ...grpc.CallOption) (*Vertex, error)
 	GetEdge(ctx context.Context, in *ElementID, opts ...grpc.CallOption) (*Edge, error)
-	GetBundle(ctx context.Context, in *ElementID, opts ...grpc.CallOption) (*Bundle, error)
 	GetGraphs(ctx context.Context, in *Empty, opts ...grpc.CallOption) (Query_GetGraphsClient, error)
-	GetTimestamp(ctx context.Context, in *ElementID, opts ...grpc.CallOption) (*Timestamp, error)
+	GetIndexList(ctx context.Context, in *GraphID, opts ...grpc.CallOption) (Query_GetIndexListClient, error)
+	GetTimestamp(ctx context.Context, in *GraphID, opts ...grpc.CallOption) (*Timestamp, error)
 }
 
 type queryClient struct {
@@ -1601,7 +2057,7 @@ func (c *queryClient) Traversal(ctx context.Context, in *GraphQuery, opts ...grp
 }
 
 type Query_TraversalClient interface {
-	Recv() (*ResultRow, error)
+	Recv() (*QueryResult, error)
 	grpc.ClientStream
 }
 
@@ -1609,12 +2065,21 @@ type queryTraversalClient struct {
 	grpc.ClientStream
 }
 
-func (x *queryTraversalClient) Recv() (*ResultRow, error) {
-	m := new(ResultRow)
+func (x *queryTraversalClient) Recv() (*QueryResult, error) {
+	m := new(QueryResult)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
 	return m, nil
+}
+
+func (c *queryClient) Aggregate(ctx context.Context, in *AggregationsRequest, opts ...grpc.CallOption) (*NamedAggregationResult, error) {
+	out := new(NamedAggregationResult)
+	err := grpc.Invoke(ctx, "/aql.Query/Aggregate", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *queryClient) GetVertex(ctx context.Context, in *ElementID, opts ...grpc.CallOption) (*Vertex, error) {
@@ -1629,15 +2094,6 @@ func (c *queryClient) GetVertex(ctx context.Context, in *ElementID, opts ...grpc
 func (c *queryClient) GetEdge(ctx context.Context, in *ElementID, opts ...grpc.CallOption) (*Edge, error) {
 	out := new(Edge)
 	err := grpc.Invoke(ctx, "/aql.Query/GetEdge", in, out, c.cc, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *queryClient) GetBundle(ctx context.Context, in *ElementID, opts ...grpc.CallOption) (*Bundle, error) {
-	out := new(Bundle)
-	err := grpc.Invoke(ctx, "/aql.Query/GetBundle", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1660,7 +2116,7 @@ func (c *queryClient) GetGraphs(ctx context.Context, in *Empty, opts ...grpc.Cal
 }
 
 type Query_GetGraphsClient interface {
-	Recv() (*ElementID, error)
+	Recv() (*GraphID, error)
 	grpc.ClientStream
 }
 
@@ -1668,15 +2124,47 @@ type queryGetGraphsClient struct {
 	grpc.ClientStream
 }
 
-func (x *queryGetGraphsClient) Recv() (*ElementID, error) {
-	m := new(ElementID)
+func (x *queryGetGraphsClient) Recv() (*GraphID, error) {
+	m := new(GraphID)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
 	return m, nil
 }
 
-func (c *queryClient) GetTimestamp(ctx context.Context, in *ElementID, opts ...grpc.CallOption) (*Timestamp, error) {
+func (c *queryClient) GetIndexList(ctx context.Context, in *GraphID, opts ...grpc.CallOption) (Query_GetIndexListClient, error) {
+	stream, err := grpc.NewClientStream(ctx, &_Query_serviceDesc.Streams[2], c.cc, "/aql.Query/GetIndexList", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &queryGetIndexListClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type Query_GetIndexListClient interface {
+	Recv() (*IndexID, error)
+	grpc.ClientStream
+}
+
+type queryGetIndexListClient struct {
+	grpc.ClientStream
+}
+
+func (x *queryGetIndexListClient) Recv() (*IndexID, error) {
+	m := new(IndexID)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (c *queryClient) GetTimestamp(ctx context.Context, in *GraphID, opts ...grpc.CallOption) (*Timestamp, error) {
 	out := new(Timestamp)
 	err := grpc.Invoke(ctx, "/aql.Query/GetTimestamp", in, out, c.cc, opts...)
 	if err != nil {
@@ -1689,11 +2177,12 @@ func (c *queryClient) GetTimestamp(ctx context.Context, in *ElementID, opts ...g
 
 type QueryServer interface {
 	Traversal(*GraphQuery, Query_TraversalServer) error
+	Aggregate(context.Context, *AggregationsRequest) (*NamedAggregationResult, error)
 	GetVertex(context.Context, *ElementID) (*Vertex, error)
 	GetEdge(context.Context, *ElementID) (*Edge, error)
-	GetBundle(context.Context, *ElementID) (*Bundle, error)
 	GetGraphs(*Empty, Query_GetGraphsServer) error
-	GetTimestamp(context.Context, *ElementID) (*Timestamp, error)
+	GetIndexList(*GraphID, Query_GetIndexListServer) error
+	GetTimestamp(context.Context, *GraphID) (*Timestamp, error)
 }
 
 func RegisterQueryServer(s *grpc.Server, srv QueryServer) {
@@ -1709,7 +2198,7 @@ func _Query_Traversal_Handler(srv interface{}, stream grpc.ServerStream) error {
 }
 
 type Query_TraversalServer interface {
-	Send(*ResultRow) error
+	Send(*QueryResult) error
 	grpc.ServerStream
 }
 
@@ -1717,8 +2206,26 @@ type queryTraversalServer struct {
 	grpc.ServerStream
 }
 
-func (x *queryTraversalServer) Send(m *ResultRow) error {
+func (x *queryTraversalServer) Send(m *QueryResult) error {
 	return x.ServerStream.SendMsg(m)
+}
+
+func _Query_Aggregate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AggregationsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(QueryServer).Aggregate(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/aql.Query/Aggregate",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(QueryServer).Aggregate(ctx, req.(*AggregationsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _Query_GetVertex_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -1757,24 +2264,6 @@ func _Query_GetEdge_Handler(srv interface{}, ctx context.Context, dec func(inter
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Query_GetBundle_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ElementID)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(QueryServer).GetBundle(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/aql.Query/GetBundle",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(QueryServer).GetBundle(ctx, req.(*ElementID))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _Query_GetGraphs_Handler(srv interface{}, stream grpc.ServerStream) error {
 	m := new(Empty)
 	if err := stream.RecvMsg(m); err != nil {
@@ -1784,7 +2273,7 @@ func _Query_GetGraphs_Handler(srv interface{}, stream grpc.ServerStream) error {
 }
 
 type Query_GetGraphsServer interface {
-	Send(*ElementID) error
+	Send(*GraphID) error
 	grpc.ServerStream
 }
 
@@ -1792,12 +2281,33 @@ type queryGetGraphsServer struct {
 	grpc.ServerStream
 }
 
-func (x *queryGetGraphsServer) Send(m *ElementID) error {
+func (x *queryGetGraphsServer) Send(m *GraphID) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func _Query_GetIndexList_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(GraphID)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(QueryServer).GetIndexList(m, &queryGetIndexListServer{stream})
+}
+
+type Query_GetIndexListServer interface {
+	Send(*IndexID) error
+	grpc.ServerStream
+}
+
+type queryGetIndexListServer struct {
+	grpc.ServerStream
+}
+
+func (x *queryGetIndexListServer) Send(m *IndexID) error {
 	return x.ServerStream.SendMsg(m)
 }
 
 func _Query_GetTimestamp_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ElementID)
+	in := new(GraphID)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -1809,7 +2319,7 @@ func _Query_GetTimestamp_Handler(srv interface{}, ctx context.Context, dec func(
 		FullMethod: "/aql.Query/GetTimestamp",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(QueryServer).GetTimestamp(ctx, req.(*ElementID))
+		return srv.(QueryServer).GetTimestamp(ctx, req.(*GraphID))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1819,16 +2329,16 @@ var _Query_serviceDesc = grpc.ServiceDesc{
 	HandlerType: (*QueryServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
+			MethodName: "Aggregate",
+			Handler:    _Query_Aggregate_Handler,
+		},
+		{
 			MethodName: "GetVertex",
 			Handler:    _Query_GetVertex_Handler,
 		},
 		{
 			MethodName: "GetEdge",
 			Handler:    _Query_GetEdge_Handler,
-		},
-		{
-			MethodName: "GetBundle",
-			Handler:    _Query_GetBundle_Handler,
 		},
 		{
 			MethodName: "GetTimestamp",
@@ -1846,6 +2356,11 @@ var _Query_serviceDesc = grpc.ServiceDesc{
 			Handler:       _Query_GetGraphs_Handler,
 			ServerStreams: true,
 		},
+		{
+			StreamName:    "GetIndexList",
+			Handler:       _Query_GetIndexList_Handler,
+			ServerStreams: true,
+		},
 	},
 	Metadata: "aql.proto",
 }
@@ -1855,13 +2370,13 @@ var _Query_serviceDesc = grpc.ServiceDesc{
 type EditClient interface {
 	AddVertex(ctx context.Context, in *GraphElement, opts ...grpc.CallOption) (*EditResult, error)
 	AddEdge(ctx context.Context, in *GraphElement, opts ...grpc.CallOption) (*EditResult, error)
-	AddBundle(ctx context.Context, in *GraphElement, opts ...grpc.CallOption) (*EditResult, error)
-	StreamElements(ctx context.Context, opts ...grpc.CallOption) (Edit_StreamElementsClient, error)
-	AddGraph(ctx context.Context, in *ElementID, opts ...grpc.CallOption) (*EditResult, error)
-	AddSubGraph(ctx context.Context, in *Graph, opts ...grpc.CallOption) (*EditResult, error)
-	DeleteGraph(ctx context.Context, in *ElementID, opts ...grpc.CallOption) (*EditResult, error)
+	BulkAdd(ctx context.Context, opts ...grpc.CallOption) (Edit_BulkAddClient, error)
+	AddGraph(ctx context.Context, in *GraphID, opts ...grpc.CallOption) (*EditResult, error)
+	DeleteGraph(ctx context.Context, in *GraphID, opts ...grpc.CallOption) (*EditResult, error)
 	DeleteVertex(ctx context.Context, in *ElementID, opts ...grpc.CallOption) (*EditResult, error)
 	DeleteEdge(ctx context.Context, in *ElementID, opts ...grpc.CallOption) (*EditResult, error)
+	AddIndex(ctx context.Context, in *IndexID, opts ...grpc.CallOption) (*EditResult, error)
+	DeleteIndex(ctx context.Context, in *IndexID, opts ...grpc.CallOption) (*EditResult, error)
 }
 
 type editClient struct {
@@ -1890,39 +2405,30 @@ func (c *editClient) AddEdge(ctx context.Context, in *GraphElement, opts ...grpc
 	return out, nil
 }
 
-func (c *editClient) AddBundle(ctx context.Context, in *GraphElement, opts ...grpc.CallOption) (*EditResult, error) {
-	out := new(EditResult)
-	err := grpc.Invoke(ctx, "/aql.Edit/AddBundle", in, out, c.cc, opts...)
+func (c *editClient) BulkAdd(ctx context.Context, opts ...grpc.CallOption) (Edit_BulkAddClient, error) {
+	stream, err := grpc.NewClientStream(ctx, &_Edit_serviceDesc.Streams[0], c.cc, "/aql.Edit/BulkAdd", opts...)
 	if err != nil {
 		return nil, err
 	}
-	return out, nil
-}
-
-func (c *editClient) StreamElements(ctx context.Context, opts ...grpc.CallOption) (Edit_StreamElementsClient, error) {
-	stream, err := grpc.NewClientStream(ctx, &_Edit_serviceDesc.Streams[0], c.cc, "/aql.Edit/StreamElements", opts...)
-	if err != nil {
-		return nil, err
-	}
-	x := &editStreamElementsClient{stream}
+	x := &editBulkAddClient{stream}
 	return x, nil
 }
 
-type Edit_StreamElementsClient interface {
+type Edit_BulkAddClient interface {
 	Send(*GraphElement) error
 	CloseAndRecv() (*EditResult, error)
 	grpc.ClientStream
 }
 
-type editStreamElementsClient struct {
+type editBulkAddClient struct {
 	grpc.ClientStream
 }
 
-func (x *editStreamElementsClient) Send(m *GraphElement) error {
+func (x *editBulkAddClient) Send(m *GraphElement) error {
 	return x.ClientStream.SendMsg(m)
 }
 
-func (x *editStreamElementsClient) CloseAndRecv() (*EditResult, error) {
+func (x *editBulkAddClient) CloseAndRecv() (*EditResult, error) {
 	if err := x.ClientStream.CloseSend(); err != nil {
 		return nil, err
 	}
@@ -1933,7 +2439,7 @@ func (x *editStreamElementsClient) CloseAndRecv() (*EditResult, error) {
 	return m, nil
 }
 
-func (c *editClient) AddGraph(ctx context.Context, in *ElementID, opts ...grpc.CallOption) (*EditResult, error) {
+func (c *editClient) AddGraph(ctx context.Context, in *GraphID, opts ...grpc.CallOption) (*EditResult, error) {
 	out := new(EditResult)
 	err := grpc.Invoke(ctx, "/aql.Edit/AddGraph", in, out, c.cc, opts...)
 	if err != nil {
@@ -1942,16 +2448,7 @@ func (c *editClient) AddGraph(ctx context.Context, in *ElementID, opts ...grpc.C
 	return out, nil
 }
 
-func (c *editClient) AddSubGraph(ctx context.Context, in *Graph, opts ...grpc.CallOption) (*EditResult, error) {
-	out := new(EditResult)
-	err := grpc.Invoke(ctx, "/aql.Edit/AddSubGraph", in, out, c.cc, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *editClient) DeleteGraph(ctx context.Context, in *ElementID, opts ...grpc.CallOption) (*EditResult, error) {
+func (c *editClient) DeleteGraph(ctx context.Context, in *GraphID, opts ...grpc.CallOption) (*EditResult, error) {
 	out := new(EditResult)
 	err := grpc.Invoke(ctx, "/aql.Edit/DeleteGraph", in, out, c.cc, opts...)
 	if err != nil {
@@ -1978,18 +2475,36 @@ func (c *editClient) DeleteEdge(ctx context.Context, in *ElementID, opts ...grpc
 	return out, nil
 }
 
+func (c *editClient) AddIndex(ctx context.Context, in *IndexID, opts ...grpc.CallOption) (*EditResult, error) {
+	out := new(EditResult)
+	err := grpc.Invoke(ctx, "/aql.Edit/AddIndex", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *editClient) DeleteIndex(ctx context.Context, in *IndexID, opts ...grpc.CallOption) (*EditResult, error) {
+	out := new(EditResult)
+	err := grpc.Invoke(ctx, "/aql.Edit/DeleteIndex", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // Server API for Edit service
 
 type EditServer interface {
 	AddVertex(context.Context, *GraphElement) (*EditResult, error)
 	AddEdge(context.Context, *GraphElement) (*EditResult, error)
-	AddBundle(context.Context, *GraphElement) (*EditResult, error)
-	StreamElements(Edit_StreamElementsServer) error
-	AddGraph(context.Context, *ElementID) (*EditResult, error)
-	AddSubGraph(context.Context, *Graph) (*EditResult, error)
-	DeleteGraph(context.Context, *ElementID) (*EditResult, error)
+	BulkAdd(Edit_BulkAddServer) error
+	AddGraph(context.Context, *GraphID) (*EditResult, error)
+	DeleteGraph(context.Context, *GraphID) (*EditResult, error)
 	DeleteVertex(context.Context, *ElementID) (*EditResult, error)
 	DeleteEdge(context.Context, *ElementID) (*EditResult, error)
+	AddIndex(context.Context, *IndexID) (*EditResult, error)
+	DeleteIndex(context.Context, *IndexID) (*EditResult, error)
 }
 
 func RegisterEditServer(s *grpc.Server, srv EditServer) {
@@ -2032,43 +2547,25 @@ func _Edit_AddEdge_Handler(srv interface{}, ctx context.Context, dec func(interf
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Edit_AddBundle_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GraphElement)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(EditServer).AddBundle(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/aql.Edit/AddBundle",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(EditServer).AddBundle(ctx, req.(*GraphElement))
-	}
-	return interceptor(ctx, in, info, handler)
+func _Edit_BulkAdd_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(EditServer).BulkAdd(&editBulkAddServer{stream})
 }
 
-func _Edit_StreamElements_Handler(srv interface{}, stream grpc.ServerStream) error {
-	return srv.(EditServer).StreamElements(&editStreamElementsServer{stream})
-}
-
-type Edit_StreamElementsServer interface {
+type Edit_BulkAddServer interface {
 	SendAndClose(*EditResult) error
 	Recv() (*GraphElement, error)
 	grpc.ServerStream
 }
 
-type editStreamElementsServer struct {
+type editBulkAddServer struct {
 	grpc.ServerStream
 }
 
-func (x *editStreamElementsServer) SendAndClose(m *EditResult) error {
+func (x *editBulkAddServer) SendAndClose(m *EditResult) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-func (x *editStreamElementsServer) Recv() (*GraphElement, error) {
+func (x *editBulkAddServer) Recv() (*GraphElement, error) {
 	m := new(GraphElement)
 	if err := x.ServerStream.RecvMsg(m); err != nil {
 		return nil, err
@@ -2077,7 +2574,7 @@ func (x *editStreamElementsServer) Recv() (*GraphElement, error) {
 }
 
 func _Edit_AddGraph_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ElementID)
+	in := new(GraphID)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -2089,31 +2586,13 @@ func _Edit_AddGraph_Handler(srv interface{}, ctx context.Context, dec func(inter
 		FullMethod: "/aql.Edit/AddGraph",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(EditServer).AddGraph(ctx, req.(*ElementID))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _Edit_AddSubGraph_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Graph)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(EditServer).AddSubGraph(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/aql.Edit/AddSubGraph",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(EditServer).AddSubGraph(ctx, req.(*Graph))
+		return srv.(EditServer).AddGraph(ctx, req.(*GraphID))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _Edit_DeleteGraph_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ElementID)
+	in := new(GraphID)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -2125,7 +2604,7 @@ func _Edit_DeleteGraph_Handler(srv interface{}, ctx context.Context, dec func(in
 		FullMethod: "/aql.Edit/DeleteGraph",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(EditServer).DeleteGraph(ctx, req.(*ElementID))
+		return srv.(EditServer).DeleteGraph(ctx, req.(*GraphID))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -2166,6 +2645,42 @@ func _Edit_DeleteEdge_Handler(srv interface{}, ctx context.Context, dec func(int
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Edit_AddIndex_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(IndexID)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(EditServer).AddIndex(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/aql.Edit/AddIndex",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(EditServer).AddIndex(ctx, req.(*IndexID))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Edit_DeleteIndex_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(IndexID)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(EditServer).DeleteIndex(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/aql.Edit/DeleteIndex",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(EditServer).DeleteIndex(ctx, req.(*IndexID))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 var _Edit_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "aql.Edit",
 	HandlerType: (*EditServer)(nil),
@@ -2179,16 +2694,8 @@ var _Edit_serviceDesc = grpc.ServiceDesc{
 			Handler:    _Edit_AddEdge_Handler,
 		},
 		{
-			MethodName: "AddBundle",
-			Handler:    _Edit_AddBundle_Handler,
-		},
-		{
 			MethodName: "AddGraph",
 			Handler:    _Edit_AddGraph_Handler,
-		},
-		{
-			MethodName: "AddSubGraph",
-			Handler:    _Edit_AddSubGraph_Handler,
 		},
 		{
 			MethodName: "DeleteGraph",
@@ -2202,11 +2709,19 @@ var _Edit_serviceDesc = grpc.ServiceDesc{
 			MethodName: "DeleteEdge",
 			Handler:    _Edit_DeleteEdge_Handler,
 		},
+		{
+			MethodName: "AddIndex",
+			Handler:    _Edit_AddIndex_Handler,
+		},
+		{
+			MethodName: "DeleteIndex",
+			Handler:    _Edit_DeleteIndex_Handler,
+		},
 	},
 	Streams: []grpc.StreamDesc{
 		{
-			StreamName:    "StreamElements",
-			Handler:       _Edit_StreamElements_Handler,
+			StreamName:    "BulkAdd",
+			Handler:       _Edit_BulkAdd_Handler,
 			ClientStreams: true,
 		},
 	},
@@ -2216,91 +2731,117 @@ var _Edit_serviceDesc = grpc.ServiceDesc{
 func init() { proto.RegisterFile("aql.proto", fileDescriptor0) }
 
 var fileDescriptor0 = []byte{
-	// 1372 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xa4, 0x56, 0x4f, 0x73, 0xdb, 0x44,
-	0x14, 0xaf, 0x6c, 0xcb, 0x89, 0x9e, 0x53, 0x27, 0x79, 0x2d, 0xe9, 0xd6, 0xf4, 0x4f, 0x66, 0xdb,
-	0x82, 0x63, 0x8a, 0xdd, 0xba, 0xa5, 0x64, 0x3c, 0x1c, 0x48, 0xa9, 0x9b, 0x66, 0xa6, 0x0c, 0x53,
-	0xb9, 0x13, 0x86, 0x03, 0x07, 0x39, 0xda, 0xd8, 0x1a, 0x64, 0xcb, 0x95, 0x56, 0x09, 0x99, 0x4e,
-	0x87, 0x19, 0xee, 0x9c, 0xf8, 0x2a, 0x7c, 0x09, 0x2e, 0x5c, 0x38, 0x72, 0xe5, 0xcc, 0x67, 0x60,
-	0xf6, 0xed, 0x5a, 0x76, 0xec, 0x24, 0x18, 0x38, 0x49, 0x6f, 0xdf, 0x6f, 0x7f, 0xfb, 0x7b, 0xef,
-	0xed, 0x7b, 0x12, 0x38, 0xde, 0x9b, 0xb0, 0x3e, 0x8a, 0x23, 0x19, 0x61, 0xde, 0x7b, 0x13, 0x56,
-	0x6e, 0xf4, 0xa2, 0xa8, 0x17, 0x8a, 0x86, 0x37, 0x0a, 0x1a, 0xde, 0x70, 0x18, 0x49, 0x4f, 0x06,
-	0xd1, 0x30, 0xd1, 0x90, 0xcc, 0x4b, 0x56, 0x37, 0x3d, 0x6c, 0x24, 0x32, 0x4e, 0x0f, 0xa4, 0xf6,
-	0xf2, 0x2f, 0x01, 0x76, 0x63, 0x6f, 0xd4, 0x7f, 0x95, 0x8a, 0xf8, 0x04, 0xaf, 0x82, 0xdd, 0x53,
-	0x16, 0xb3, 0x36, 0xad, 0xaa, 0xe3, 0x6a, 0x03, 0xb7, 0xc0, 0x7e, 0xa3, 0xdc, 0x2c, 0xb7, 0x99,
-	0xaf, 0x96, 0x9a, 0x57, 0xea, 0xea, 0x7c, 0xda, 0xd5, 0x91, 0x9e, 0x14, 0x03, 0x31, 0x94, 0xae,
-	0x46, 0xf0, 0x16, 0x5c, 0x9e, 0xd0, 0x75, 0x84, 0xc4, 0x2d, 0x58, 0x52, 0x9e, 0x40, 0x24, 0xcc,
-	0xa2, 0xdd, 0xab, 0x93, 0xdd, 0x04, 0x72, 0xc7, 0x7e, 0xfe, 0xdb, 0x32, 0x94, 0x4f, 0xb3, 0x62,
-	0x0d, 0xac, 0x7d, 0xd2, 0x52, 0x6a, 0x56, 0xea, 0x3a, 0x8e, 0xfa, 0x38, 0x8e, 0xfa, 0xcb, 0x20,
-	0x91, 0xfb, 0x5e, 0x98, 0x8a, 0x17, 0x97, 0x5c, 0x6b, 0x1f, 0xcb, 0x60, 0xb5, 0x59, 0x4e, 0xe9,
-	0x56, 0x76, 0x1b, 0xef, 0x41, 0xbe, 0xef, 0x25, 0xcc, 0xa6, 0xdd, 0xeb, 0x74, 0xea, 0x0b, 0x2f,
-	0xc9, 0xb8, 0x5f, 0x5c, 0x72, 0x95, 0x1f, 0xb7, 0x61, 0xb9, 0xef, 0x25, 0x2f, 0xbd, 0xae, 0x08,
-	0x59, 0x71, 0x81, 0x93, 0x32, 0x34, 0x36, 0xc1, 0xee, 0x7b, 0xc9, 0x9e, 0xcf, 0x96, 0x16, 0xd8,
-	0xa6, 0xa1, 0x78, 0x1f, 0x72, 0xc1, 0x90, 0xc1, 0x02, 0x1b, 0x72, 0xc1, 0x10, 0xeb, 0x90, 0x8f,
-	0x52, 0xc9, 0x4a, 0x0b, 0xc0, 0x15, 0x10, 0x1f, 0x43, 0x31, 0x18, 0xb6, 0xfd, 0x9e, 0x60, 0x2b,
-	0x0b, 0x6c, 0x31, 0x58, 0x7c, 0x02, 0x4b, 0x51, 0x2a, 0x69, 0xdb, 0xe5, 0x05, 0xb6, 0x8d, 0xc1,
-	0xf8, 0x00, 0x0a, 0xdd, 0x48, 0xf6, 0x59, 0x79, 0x81, 0x4d, 0x84, 0x54, 0xb9, 0x56, 0x4f, 0x3a,
-	0x6a, 0x75, 0x91, 0x5c, 0x8f, 0xd1, 0xd8, 0x02, 0x27, 0x4a, 0xe5, 0xd3, 0x74, 0xe8, 0x87, 0x82,
-	0xad, 0x2d, 0xb0, 0x75, 0x02, 0xc7, 0x35, 0xc8, 0x79, 0x09, 0xbb, 0x6a, 0x6e, 0x46, 0xce, 0x4b,
-	0xb0, 0x0e, 0xc5, 0x44, 0x84, 0xe2, 0x40, 0xb2, 0xf7, 0x88, 0xea, 0x2a, 0xdd, 0x8e, 0x0e, 0x2d,
-	0x4d, 0x5f, 0x10, 0x83, 0x52, 0xf8, 0x23, 0xc5, 0x9b, 0xb0, 0x8d, 0x8b, 0xf1, 0x1a, 0x85, 0x1b,
-	0x60, 0x87, 0xc1, 0x20, 0x90, 0xec, 0xfa, 0xa6, 0x55, 0xcd, 0xab, 0xea, 0x93, 0xa9, 0xd6, 0x0f,
-	0xa2, 0x74, 0x28, 0x59, 0xc5, 0x88, 0xd1, 0x26, 0x6e, 0x02, 0xf4, 0xe2, 0x28, 0x1d, 0x7d, 0x41,
-	0xce, 0x5b, 0xc6, 0x39, 0xb5, 0x86, 0x35, 0xb0, 0x07, 0x9e, 0x3c, 0xe8, 0xb3, 0x2a, 0x09, 0xc0,
-	0x99, 0x26, 0xea, 0x08, 0x75, 0xbc, 0x86, 0x20, 0x83, 0x62, 0x30, 0x18, 0x45, 0xb1, 0x64, 0x4d,
-	0xc3, 0x64, 0x6c, 0x44, 0xc8, 0x0f, 0xbc, 0x11, 0x7b, 0x64, 0x96, 0x95, 0x81, 0x55, 0x28, 0x1c,
-	0x46, 0xa1, 0xcf, 0x1e, 0x4f, 0x11, 0x3f, 0x8f, 0x42, 0x7f, 0x3a, 0x2e, 0x42, 0xe0, 0x63, 0x80,
-	0x23, 0x11, 0x4b, 0xf1, 0xbd, 0x72, 0xb3, 0x4f, 0x2e, 0xc0, 0x4f, 0xe1, 0x94, 0x9a, 0xc3, 0x20,
-	0x94, 0x22, 0x66, 0x4f, 0xc6, 0x6a, 0xb4, 0x8d, 0x77, 0x61, 0x45, 0xbf, 0xed, 0xeb, 0xdc, 0x7e,
-	0x6a, 0xfc, 0xa7, 0x56, 0xf1, 0x3e, 0xac, 0x19, 0xb6, 0x38, 0x1a, 0x18, 0xe4, 0xb6, 0x41, 0xce,
-	0x79, 0x9e, 0x96, 0xc0, 0x49, 0xc6, 0x42, 0xf8, 0x36, 0xac, 0x4c, 0x77, 0x3c, 0xae, 0x41, 0xfe,
-	0x3b, 0x71, 0x62, 0x66, 0x9b, 0x7a, 0xc5, 0x0d, 0x28, 0x1e, 0x07, 0xb2, 0x1f, 0x0c, 0x69, 0xb4,
-	0x39, 0xae, 0xb1, 0xf8, 0x16, 0xac, 0xce, 0x54, 0x57, 0x41, 0x43, 0xd5, 0xf6, 0x7a, 0x8e, 0x39,
-	0xae, 0xb1, 0x78, 0x07, 0x2e, 0x9f, 0x0a, 0x5f, 0x01, 0x93, 0x28, 0x8d, 0x0f, 0x84, 0x39, 0xc8,
-	0x58, 0x58, 0x83, 0x42, 0x30, 0x0c, 0x24, 0x8d, 0xa8, 0x52, 0x73, 0x63, 0xee, 0xf6, 0x52, 0x04,
-	0x2e, 0x61, 0xf8, 0xb7, 0x50, 0xdc, 0xa7, 0xd0, 0x94, 0xe6, 0x5e, 0xe0, 0x8f, 0x35, 0xf7, 0x02,
-	0x5f, 0xcd, 0x68, 0x3a, 0x5a, 0xcf, 0x3a, 0x57, 0x1b, 0xf8, 0x11, 0x14, 0x7c, 0x4f, 0x7a, 0x2c,
-	0x4f, 0xec, 0xd7, 0xe6, 0xd8, 0x3b, 0x34, 0xf4, 0x5d, 0x02, 0xf1, 0x1f, 0xa0, 0x40, 0x5d, 0xb5,
-	0x28, 0x39, 0x42, 0xe1, 0x30, 0x8e, 0x06, 0x44, 0xee, 0xb8, 0xf4, 0x8e, 0x65, 0xc8, 0xc9, 0x88,
-	0x15, 0x68, 0x25, 0x27, 0xa3, 0x4c, 0x80, 0xbd, 0x88, 0x80, 0x5f, 0x2d, 0x28, 0x66, 0xdd, 0xf9,
-	0xdf, 0x35, 0x34, 0xa0, 0xd8, 0xd5, 0x23, 0xa1, 0x40, 0xdf, 0x96, 0x6b, 0x74, 0x1b, 0x35, 0xb1,
-	0x79, 0xb4, 0x87, 0x32, 0x3e, 0x71, 0x0d, 0xac, 0xe2, 0x42, 0x69, 0x6a, 0xf9, 0x8c, 0x0b, 0xf1,
-	0x31, 0xd8, 0xd4, 0xc3, 0xa6, 0x4a, 0xe7, 0x86, 0xa1, 0x51, 0xad, 0xdc, 0xb6, 0xc5, 0x7f, 0xb1,
-	0xa0, 0xa4, 0xbf, 0x64, 0x22, 0x49, 0x43, 0x89, 0xf7, 0xa0, 0xa8, 0xaf, 0xa5, 0xf9, 0x70, 0x95,
-	0x48, 0x94, 0x2e, 0x27, 0xcd, 0x08, 0x5d, 0xd8, 0xdb, 0x50, 0x10, 0x6a, 0x0e, 0xea, 0x83, 0x1c,
-	0x02, 0xa9, 0xa2, 0xa8, 0x76, 0x53, 0x0e, 0xc5, 0x63, 0x82, 0xcb, 0x4f, 0xf1, 0x68, 0xf9, 0x8a,
-	0x47, 0x3b, 0xf1, 0xbe, 0xc9, 0x7b, 0xe1, 0xa2, 0x6b, 0xa5, 0x48, 0x15, 0xea, 0xe9, 0x32, 0x14,
-	0x63, 0x92, 0xc9, 0xbf, 0x06, 0x47, 0x0b, 0x76, 0xa3, 0x63, 0xfc, 0x60, 0x1c, 0xb6, 0x96, 0xbc,
-	0x46, 0x47, 0x4d, 0x05, 0x65, 0xe2, 0x45, 0x0e, 0xf9, 0x38, 0x3a, 0x36, 0xff, 0x01, 0xf3, 0x28,
-	0xe5, 0xe4, 0x9f, 0x03, 0xb4, 0xfd, 0x40, 0x9a, 0x6c, 0x6c, 0x80, 0x2d, 0xe2, 0x38, 0x8a, 0x75,
-	0x92, 0xd5, 0x90, 0x22, 0x53, 0x0d, 0xe5, 0xc0, 0xcf, 0x3e, 0xd7, 0xb9, 0xc0, 0x9f, 0x92, 0xf6,
-	0x93, 0x05, 0x2b, 0x34, 0xdb, 0xda, 0xa1, 0x6e, 0xa9, 0xb3, 0x7f, 0x4b, 0xee, 0x64, 0x89, 0xce,
-	0xcd, 0x25, 0x3a, 0x4b, 0xf3, 0x4d, 0x93, 0xe6, 0xfc, 0x4c, 0x9a, 0x4d, 0x92, 0xef, 0x4c, 0xdd,
-	0xa0, 0xd9, 0x24, 0x8f, 0x53, 0xcc, 0x7b, 0x60, 0x93, 0x9c, 0x73, 0x74, 0xdc, 0x06, 0x5b, 0x71,
-	0x25, 0x26, 0x2d, 0x53, 0x67, 0xe8, 0x75, 0xfc, 0x10, 0x96, 0x95, 0x9a, 0xe0, 0x40, 0x24, 0x2c,
-	0x4f, 0x98, 0x53, 0x52, 0x33, 0x27, 0x7f, 0x08, 0x8e, 0x09, 0x79, 0xef, 0xd9, 0x39, 0x87, 0x95,
-	0x27, 0x79, 0x53, 0x59, 0xe3, 0x5b, 0xe0, 0xbc, 0x0e, 0x06, 0x22, 0x91, 0xde, 0x60, 0x84, 0x37,
-	0xc0, 0x91, 0x63, 0xc3, 0x6c, 0x9b, 0x2c, 0xf0, 0x25, 0xb0, 0xdb, 0x83, 0x91, 0x3c, 0x69, 0xfe,
-	0x91, 0x07, 0x5b, 0xff, 0xef, 0xb9, 0xe0, 0xbc, 0x8e, 0xbd, 0x23, 0x11, 0x27, 0x5e, 0x88, 0xb3,
-	0x7f, 0x66, 0x95, 0x32, 0x2d, 0x64, 0xb7, 0x84, 0xf3, 0x1f, 0x7f, 0xff, 0xf3, 0xe7, 0xdc, 0x0d,
-	0x7e, 0xad, 0x71, 0xf4, 0xb0, 0x41, 0x72, 0x1a, 0x6f, 0xe9, 0xf1, 0xae, 0x41, 0x7f, 0x7f, 0x2d,
-	0xab, 0xf6, 0xc0, 0xc2, 0xaf, 0xc0, 0xd9, 0x15, 0xd2, 0x8c, 0x2f, 0x4d, 0x91, 0x05, 0x55, 0x99,
-	0x0e, 0x9c, 0xdf, 0x23, 0xbe, 0xdb, 0x78, 0x73, 0x9e, 0x4f, 0x57, 0xaf, 0xf1, 0x36, 0xf0, 0xdf,
-	0xe1, 0x1e, 0x2c, 0xed, 0x0a, 0xfd, 0xcb, 0x31, 0x4b, 0x37, 0xc9, 0x35, 0xbf, 0x43, 0x64, 0x37,
-	0xf1, 0xfd, 0x79, 0x32, 0x55, 0x05, 0x4d, 0xa5, 0xb5, 0x99, 0xc9, 0x73, 0xb6, 0x36, 0xed, 0xbc,
-	0x48, 0x9b, 0xbe, 0x15, 0x9a, 0xf0, 0x33, 0x22, 0xa4, 0x9c, 0x25, 0x08, 0x9a, 0x50, 0xe5, 0xb8,
-	0x32, 0x43, 0xce, 0xd7, 0x89, 0xaf, 0x84, 0x4e, 0xc6, 0xf7, 0xc0, 0xc2, 0x0e, 0xac, 0xec, 0x0a,
-	0x39, 0xa9, 0xdf, 0xac, 0x22, 0x6d, 0x67, 0xfe, 0x8b, 0x62, 0xcc, 0xca, 0xdc, 0xfc, 0xcb, 0x56,
-	0xd3, 0x3d, 0x90, 0xf8, 0x0d, 0x38, 0x3b, 0xbe, 0x6f, 0x0a, 0xb1, 0x3e, 0x29, 0xae, 0xe1, 0xaf,
-	0xac, 0x9a, 0xe4, 0x8d, 0x7b, 0x95, 0x57, 0x89, 0x9e, 0x73, 0x76, 0x5e, 0x3d, 0x5a, 0xe3, 0xae,
-	0xea, 0xc0, 0xd2, 0x8e, 0xef, 0x53, 0x49, 0x16, 0x21, 0xbe, 0x4b, 0xc4, 0xb7, 0xf8, 0xc6, 0xd9,
-	0xb5, 0x69, 0xe9, 0x5e, 0xd4, 0x7a, 0x4d, 0x71, 0xfe, 0xa7, 0x5e, 0x5d, 0xa3, 0xd6, 0x78, 0x48,
-	0xee, 0x41, 0xb9, 0x23, 0x63, 0xe1, 0x0d, 0x0c, 0x57, 0xb2, 0x10, 0xbf, 0xa9, 0x19, 0x9f, 0xd4,
-	0xac, 0x6a, 0xe1, 0x73, 0x58, 0xde, 0xf1, 0x7d, 0x3d, 0x0f, 0x66, 0xeb, 0x35, 0xc7, 0x70, 0x9d,
-	0x18, 0xae, 0xf0, 0xf5, 0x39, 0x85, 0xf8, 0x0a, 0x4a, 0x3b, 0xbe, 0xdf, 0x49, 0xbb, 0x9a, 0x0a,
-	0x26, 0x7a, 0xe6, 0x69, 0xcc, 0x65, 0xe4, 0x95, 0xf9, 0x40, 0x93, 0xb4, 0x4b, 0x6f, 0x2d, 0xab,
-	0x86, 0x7b, 0x50, 0x7a, 0x26, 0x42, 0x21, 0xc5, 0xbf, 0x53, 0x57, 0x3b, 0x43, 0xdd, 0x3e, 0xac,
-	0x68, 0xaa, 0x73, 0xfa, 0xf8, 0x3c, 0x89, 0xb5, 0x7f, 0xe8, 0x65, 0x17, 0x40, 0xf3, 0x9e, 0xd9,
-	0xce, 0x73, 0xac, 0xe6, 0xc2, 0xd7, 0x2e, 0x6a, 0xea, 0x6e, 0x91, 0xbe, 0x75, 0x8f, 0xfe, 0x0e,
-	0x00, 0x00, 0xff, 0xff, 0x82, 0x66, 0xe6, 0x6e, 0x17, 0x0f, 0x00, 0x00,
+	// 1784 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xac, 0x57, 0xdd, 0x52, 0x1b, 0xc9,
+	0xf5, 0x67, 0x46, 0x9f, 0x73, 0x24, 0x40, 0x34, 0x18, 0x8f, 0x65, 0xbc, 0x50, 0xbd, 0xde, 0xbf,
+	0xb1, 0xfe, 0x0e, 0xc2, 0x6c, 0x76, 0xe3, 0x50, 0xa9, 0x4a, 0x81, 0x51, 0x01, 0x65, 0x23, 0xc2,
+	0xa0, 0xb5, 0x6b, 0x2f, 0x1c, 0xd7, 0xc0, 0x34, 0x62, 0x82, 0x34, 0x83, 0x67, 0x5a, 0xc4, 0x8e,
+	0xcb, 0x49, 0x55, 0x5e, 0x21, 0xb7, 0xa9, 0xca, 0xc3, 0x24, 0x6f, 0xb0, 0x37, 0x79, 0x80, 0xdc,
+	0xe5, 0x22, 0xaf, 0x90, 0xea, 0xd3, 0x3d, 0x1f, 0xfa, 0xc2, 0xe3, 0xaa, 0x5c, 0x49, 0xdd, 0xfd,
+	0x3b, 0xbf, 0x3e, 0xdf, 0x7d, 0x06, 0x0c, 0xfb, 0x5d, 0x6f, 0xe3, 0x3a, 0xf0, 0xb9, 0x4f, 0x72,
+	0xf6, 0xbb, 0x5e, 0x7d, 0xa5, 0xeb, 0xfb, 0xdd, 0x1e, 0x6b, 0xda, 0xd7, 0x6e, 0xd3, 0xf6, 0x3c,
+	0x9f, 0xdb, 0xdc, 0xf5, 0xbd, 0x50, 0x42, 0xe2, 0x53, 0x5c, 0x9d, 0x0d, 0x2e, 0x9a, 0x21, 0x0f,
+	0x06, 0xe7, 0x5c, 0x9e, 0xd2, 0x23, 0x80, 0xfd, 0xc0, 0xbe, 0xbe, 0x3c, 0x19, 0xb0, 0xe0, 0x03,
+	0x59, 0x82, 0x42, 0x57, 0xac, 0x4c, 0x6d, 0x4d, 0x5b, 0x37, 0x2c, 0xb9, 0x20, 0x8f, 0xa1, 0xf0,
+	0x4e, 0x1c, 0x9b, 0xfa, 0x5a, 0x6e, 0xbd, 0xb2, 0xb5, 0xb8, 0x21, 0xee, 0x47, 0xa9, 0x53, 0x6e,
+	0x73, 0xd6, 0x67, 0x1e, 0xb7, 0x24, 0x82, 0x7e, 0x07, 0x65, 0x64, 0x3a, 0x65, 0x3c, 0x11, 0xd3,
+	0x3e, 0x2b, 0xf6, 0x0c, 0x66, 0x8f, 0x6c, 0x7e, 0x7e, 0x19, 0xcb, 0x3e, 0x82, 0x92, 0x38, 0x71,
+	0x59, 0xa8, 0xa4, 0x67, 0x51, 0x3a, 0x3a, 0xb7, 0xa2, 0x53, 0xfa, 0x9f, 0x22, 0xcc, 0x0d, 0x73,
+	0x92, 0x06, 0x68, 0x37, 0x68, 0x40, 0x65, 0xab, 0xbe, 0x21, 0x8d, 0xdf, 0x88, 0x8c, 0xdf, 0x78,
+	0xe9, 0x86, 0xfc, 0x95, 0xdd, 0x1b, 0xb0, 0x83, 0x19, 0x4b, 0xbb, 0x11, 0x58, 0x66, 0xea, 0x59,
+	0xb0, 0x8c, 0x3c, 0x01, 0xdd, 0xf5, 0x4c, 0xc8, 0x00, 0xd6, 0x5d, 0x8f, 0x6c, 0x40, 0xce, 0x1f,
+	0x70, 0xb3, 0x92, 0x01, 0x2e, 0x80, 0xe4, 0x3b, 0x28, 0xb9, 0xde, 0x5b, 0xe6, 0x74, 0x99, 0x59,
+	0xcd, 0x20, 0x53, 0x74, 0xbd, 0x96, 0xd3, 0x65, 0xe4, 0x17, 0x50, 0xf6, 0x07, 0x5c, 0xca, 0xcd,
+	0x66, 0x90, 0x2b, 0xf9, 0x03, 0x8e, 0x82, 0x9b, 0x90, 0x3f, 0xf3, 0xf9, 0xa5, 0x39, 0x97, 0x41,
+	0x08, 0x91, 0xe4, 0x97, 0x60, 0x88, 0x5f, 0x79, 0xd7, 0x7c, 0x06, 0xb1, 0xb2, 0x80, 0xe3, 0x65,
+	0x4b, 0x90, 0xef, 0xdb, 0xc1, 0x95, 0xb9, 0x24, 0xd2, 0x4a, 0x10, 0x8a, 0x15, 0xd9, 0x80, 0x62,
+	0xc8, 0x7a, 0xec, 0x9c, 0x9b, 0x77, 0x90, 0x6d, 0x09, 0x63, 0x7c, 0x8a, 0x5b, 0x71, 0x38, 0x85,
+	0xad, 0x12, 0x45, 0x96, 0xa1, 0xd0, 0x73, 0xfb, 0x2e, 0x37, 0xcd, 0x35, 0x6d, 0x7d, 0xf6, 0x60,
+	0xc6, 0x92, 0x4b, 0x62, 0x42, 0xd1, 0xbf, 0xb8, 0x08, 0x19, 0x37, 0xef, 0xa9, 0x03, 0xb5, 0x26,
+	0x3f, 0x87, 0xe2, 0x85, 0xcb, 0x7a, 0x4e, 0x68, 0xd6, 0xb3, 0xf8, 0x54, 0x62, 0xc9, 0x33, 0x28,
+	0x3b, 0x6e, 0xc8, 0x5d, 0xef, 0x9c, 0x9b, 0xf7, 0xb3, 0xd8, 0x19, 0xa1, 0x49, 0x03, 0x0a, 0x7d,
+	0x91, 0xc7, 0xe6, 0x0a, 0x8a, 0x11, 0x34, 0x68, 0x28, 0xb3, 0x85, 0xd6, 0x08, 0x21, 0x4f, 0xa0,
+	0xf0, 0xfb, 0x4b, 0x16, 0x30, 0xf3, 0x41, 0xca, 0xf8, 0xd7, 0x62, 0xa7, 0xf5, 0xfe, 0x3a, 0x60,
+	0x61, 0xe8, 0xfa, 0x9e, 0x40, 0x23, 0x48, 0xd8, 0x7e, 0xee, 0x0f, 0x3c, 0x6e, 0x7e, 0xa5, 0x5c,
+	0x28, 0x97, 0xe4, 0x29, 0x18, 0x76, 0xb7, 0x1b, 0xb0, 0xae, 0xcd, 0x99, 0xb9, 0x8a, 0x4c, 0x0b,
+	0xc8, 0xb4, 0xa3, 0x76, 0x45, 0x27, 0x38, 0x98, 0xb1, 0x12, 0x14, 0xd9, 0x84, 0x62, 0xc0, 0x3c,
+	0x87, 0x05, 0xe6, 0x1a, 0xe2, 0x97, 0xc7, 0x8c, 0x8b, 0x1d, 0x22, 0x71, 0xbb, 0x15, 0x30, 0xc2,
+	0x28, 0x1e, 0xf4, 0x2d, 0x2c, 0xa6, 0xb9, 0x2d, 0xf6, 0x6e, 0xc0, 0x42, 0x3e, 0xa5, 0x75, 0x6c,
+	0x41, 0xd5, 0x4e, 0x81, 0x55, 0x07, 0x99, 0x1b, 0xd2, 0x90, 0x59, 0x43, 0x18, 0xba, 0x0b, 0xd5,
+	0xf4, 0x05, 0x63, 0x1c, 0x5a, 0x06, 0x8e, 0x9f, 0x34, 0x30, 0xe2, 0x33, 0x42, 0x20, 0xef, 0xd9,
+	0x7d, 0xa6, 0x54, 0xc3, 0xff, 0xa4, 0x01, 0x79, 0xce, 0x82, 0xbe, 0x2a, 0x7e, 0xe9, 0xfd, 0x0e,
+	0x0b, 0xfa, 0xa9, 0xab, 0x45, 0xa2, 0x0a, 0x0c, 0xf9, 0x15, 0xc0, 0x35, 0x0b, 0xce, 0x99, 0xc7,
+	0xdd, 0x1e, 0x33, 0x73, 0x2a, 0x25, 0x84, 0xc4, 0x6f, 0xe2, 0xed, 0x61, 0xb9, 0x14, 0x5e, 0xd4,
+	0xcd, 0xa5, 0x1b, 0x72, 0xbf, 0x1b, 0xd8, 0x7d, 0x33, 0x8f, 0xc2, 0xf7, 0x50, 0xf8, 0x20, 0xda,
+	0x1d, 0x96, 0x4d, 0xd0, 0xbb, 0xb3, 0x50, 0x49, 0x99, 0x45, 0x4f, 0x60, 0x7e, 0x44, 0x45, 0xe1,
+	0xf6, 0x9e, 0x7d, 0xc6, 0x7a, 0x91, 0xdb, 0x71, 0x21, 0x76, 0x31, 0x97, 0xd1, 0x3a, 0xc3, 0x92,
+	0x0b, 0xe1, 0x86, 0xd0, 0xfd, 0x83, 0x34, 0x60, 0xd6, 0xc2, 0xff, 0xf4, 0x2d, 0xdc, 0x99, 0x68,
+	0xc3, 0x17, 0x11, 0xd7, 0xa1, 0xac, 0xec, 0x0d, 0xcd, 0xdc, 0x5a, 0x6e, 0x5d, 0xb3, 0xe2, 0x35,
+	0xfd, 0x2d, 0x2c, 0x4d, 0xb2, 0xf3, 0x4b, 0xf9, 0x5d, 0x8f, 0xb3, 0xe0, 0xc6, 0xee, 0x29, 0xe5,
+	0xe3, 0x35, 0xfd, 0x87, 0x06, 0xcb, 0x6d, 0xbb, 0xcf, 0x9c, 0x14, 0xb9, 0xc5, 0xc2, 0x41, 0x8f,
+	0x93, 0x93, 0x91, 0xc4, 0xc9, 0x61, 0xe2, 0xfc, 0x0c, 0x7d, 0x3f, 0x59, 0x64, 0xa8, 0x6a, 0x5a,
+	0x1e, 0x0f, 0x3e, 0x0c, 0xe7, 0x55, 0xfd, 0x35, 0x2c, 0x8c, 0x41, 0x48, 0x0d, 0x72, 0x57, 0xec,
+	0x83, 0x32, 0x44, 0xfc, 0x15, 0xb5, 0x7d, 0x23, 0x6a, 0x48, 0x65, 0xd7, 0xf2, 0x68, 0x45, 0xca,
+	0xdb, 0x2c, 0x09, 0xda, 0xd6, 0x9f, 0x69, 0xf4, 0xc5, 0x10, 0xb1, 0x32, 0xe0, 0x7b, 0x28, 0x9d,
+	0x0d, 0xce, 0xaf, 0x18, 0x8f, 0x0a, 0x67, 0x65, 0x32, 0xd1, 0x2e, 0x82, 0xac, 0x08, 0x4c, 0x7f,
+	0x84, 0xbb, 0x53, 0x30, 0x64, 0x3d, 0xd1, 0x75, 0x6a, 0xe5, 0x4b, 0x1b, 0x96, 0xd2, 0x36, 0x68,
+	0x4a, 0x57, 0x7a, 0x04, 0x8b, 0x23, 0x3d, 0x4a, 0x74, 0x42, 0xf2, 0x3d, 0x54, 0x58, 0xbc, 0x13,
+	0x95, 0xe8, 0xc4, 0x96, 0x66, 0xa5, 0x81, 0xf4, 0x9f, 0x1a, 0xcc, 0x8f, 0x00, 0xc8, 0x13, 0xc8,
+	0xd9, 0x9e, 0xa3, 0x54, 0x34, 0x27, 0x71, 0x88, 0x2b, 0xc5, 0xbb, 0x69, 0x7b, 0x0e, 0x69, 0x80,
+	0xee, 0x07, 0xca, 0xcf, 0xb7, 0x81, 0x75, 0x3f, 0x10, 0xc6, 0x7b, 0x3e, 0x57, 0x05, 0x3c, 0xad,
+	0xe1, 0x0a, 0x08, 0xf9, 0x16, 0x8c, 0x73, 0xdf, 0x73, 0x5c, 0xe1, 0x3f, 0x55, 0xb3, 0x8b, 0x09,
+	0xfe, 0x79, 0x74, 0x24, 0xaa, 0x35, 0xc6, 0xed, 0x56, 0x01, 0x12, 0xdb, 0xe8, 0x1f, 0x61, 0x6e,
+	0x18, 0x9c, 0x25, 0x4f, 0x26, 0xc7, 0x43, 0x82, 0xc8, 0x93, 0xb4, 0x52, 0xc2, 0x88, 0x39, 0xd5,
+	0x05, 0xe3, 0x2b, 0x52, 0xda, 0xd0, 0x47, 0x30, 0x3f, 0xf2, 0x94, 0x8a, 0x90, 0x8a, 0x87, 0x57,
+	0xc6, 0xc7, 0xb0, 0xe4, 0x82, 0xbe, 0x01, 0x43, 0x02, 0x85, 0x8e, 0xdf, 0x40, 0xf1, 0x86, 0x05,
+	0x9c, 0xbd, 0x57, 0xfe, 0xaf, 0xe0, 0x05, 0xaf, 0x70, 0x4b, 0xbc, 0x08, 0xf2, 0x90, 0xac, 0x42,
+	0x1e, 0xc7, 0x00, 0xa9, 0xb7, 0x81, 0x20, 0xf1, 0xd2, 0x8b, 0x96, 0x29, 0x0e, 0x76, 0xcb, 0xe2,
+	0x91, 0x11, 0x79, 0x47, 0xff, 0xaa, 0x01, 0xc4, 0xfc, 0x21, 0xf9, 0x35, 0x40, 0x18, 0xaf, 0x54,
+	0xa2, 0xac, 0xa6, 0x1e, 0x7e, 0x9c, 0x5c, 0x93, 0xbf, 0xb2, 0x08, 0x53, 0x22, 0xf5, 0xa3, 0xc8,
+	0xae, 0xdb, 0x0a, 0xf0, 0xe1, 0xb0, 0x63, 0xe7, 0x86, 0x2f, 0x48, 0x17, 0xde, 0x1b, 0x28, 0x4a,
+	0xeb, 0x04, 0x4b, 0xd7, 0x75, 0x22, 0x96, 0xae, 0xeb, 0x24, 0x3d, 0x4a, 0x4f, 0xf7, 0xa8, 0xff,
+	0x87, 0xbc, 0x63, 0x73, 0x5b, 0xa5, 0xd1, 0xdd, 0xb1, 0x98, 0x9d, 0xe2, 0x7c, 0x6d, 0x21, 0x88,
+	0xfe, 0x09, 0xf2, 0x38, 0x01, 0x65, 0x25, 0x27, 0x90, 0xbf, 0x08, 0xfc, 0x3e, 0x92, 0x1b, 0x16,
+	0xfe, 0x27, 0x73, 0xa0, 0x73, 0x1f, 0xb3, 0xd0, 0xb0, 0x74, 0xee, 0xc7, 0x0a, 0x14, 0xb2, 0x28,
+	0xf0, 0x37, 0x1d, 0x2a, 0x38, 0x7c, 0xa8, 0x9e, 0xf2, 0x3f, 0x0a, 0x30, 0xd9, 0x19, 0x6b, 0xae,
+	0x02, 0x78, 0xff, 0x96, 0xe6, 0x7a, 0x30, 0x33, 0xdc, 0x4c, 0xc9, 0xd3, 0xa1, 0x54, 0x90, 0x55,
+	0x36, 0x3f, 0x92, 0x0a, 0xe2, 0x2d, 0x4d, 0x40, 0xa9, 0xd9, 0xa5, 0x90, 0x6d, 0x76, 0x49, 0x06,
+	0xa7, 0x62, 0x34, 0x34, 0xe2, 0x32, 0x95, 0xa0, 0x2b, 0x00, 0x2d, 0xc7, 0xe5, 0xca, 0x3f, 0x73,
+	0xa0, 0xc7, 0x71, 0xd2, 0x5d, 0x87, 0x5e, 0x42, 0x15, 0xbf, 0x2f, 0x5a, 0xbd, 0xb8, 0x86, 0x26,
+	0xcc, 0x39, 0x5f, 0xc7, 0x5e, 0xd5, 0xc7, 0xbc, 0x1a, 0xfb, 0xf4, 0x81, 0xf2, 0x69, 0x6e, 0xc4,
+	0xa7, 0xd2, 0xa3, 0x74, 0x15, 0x4a, 0x78, 0xd3, 0xe1, 0xde, 0xe4, 0x4b, 0xe8, 0x53, 0x30, 0x94,
+	0x16, 0xd3, 0x20, 0x4a, 0x7b, 0x3d, 0xd6, 0xfe, 0x05, 0x94, 0x0e, 0x3d, 0x87, 0xbd, 0x9f, 0x2a,
+	0x30, 0x39, 0x0b, 0xe3, 0x67, 0x38, 0x97, 0x7a, 0x86, 0xe9, 0x63, 0x30, 0x3a, 0x6e, 0x9f, 0x85,
+	0xdc, 0xee, 0x5f, 0x93, 0x15, 0x30, 0x78, 0xb4, 0x50, 0x94, 0xc9, 0x06, 0x2d, 0x41, 0xa1, 0xd5,
+	0xbf, 0xe6, 0x1f, 0x1a, 0x57, 0x60, 0x24, 0x0d, 0xf0, 0x0e, 0x2c, 0xfc, 0xd0, 0x7e, 0xd1, 0x3e,
+	0x7e, 0xdd, 0x7e, 0xfb, 0xfc, 0xb8, 0xbd, 0x77, 0xd8, 0x39, 0x3c, 0x6e, 0xd7, 0x66, 0x48, 0x11,
+	0xf4, 0xd6, 0x49, 0x4d, 0x23, 0x25, 0xc8, 0xb5, 0x5b, 0x27, 0x35, 0x5d, 0x6c, 0xec, 0x77, 0x6a,
+	0x39, 0xb1, 0xb1, 0xdf, 0x69, 0xd5, 0xf2, 0x62, 0xe3, 0x65, 0xa7, 0x56, 0x10, 0x1b, 0x2f, 0x3b,
+	0xad, 0x5a, 0x51, 0x6c, 0x1c, 0xb6, 0x6b, 0x25, 0x52, 0x85, 0xf2, 0xf3, 0xe3, 0x76, 0x67, 0xe7,
+	0xb0, 0x7d, 0x5a, 0x2b, 0x6f, 0xfd, 0x3d, 0x0f, 0x05, 0xf9, 0x21, 0xdb, 0x01, 0xa3, 0x13, 0xd8,
+	0x37, 0x2c, 0x08, 0xed, 0x1e, 0x99, 0x4f, 0xbe, 0x3c, 0xf1, 0xb4, 0x5e, 0x4b, 0x3e, 0x26, 0x65,
+	0xd4, 0x29, 0xfd, 0xf3, 0x4f, 0xff, 0xfa, 0x8b, 0xbe, 0x42, 0xef, 0x36, 0x6f, 0x9e, 0x36, 0xd1,
+	0x33, 0xcd, 0x8f, 0xf8, 0xf3, 0xa9, 0x89, 0x5f, 0xa8, 0xdb, 0x5a, 0x63, 0x53, 0x23, 0xbf, 0x4b,
+	0x0f, 0x95, 0xe6, 0xd8, 0x98, 0xad, 0x46, 0xe1, 0xfa, 0x6d, 0x45, 0x40, 0xff, 0x0f, 0x6f, 0x5a,
+	0xa3, 0xf7, 0xc7, 0x6f, 0x8a, 0x47, 0xf4, 0x6d, 0xad, 0x41, 0x8e, 0xc1, 0xd8, 0x67, 0x5c, 0xb5,
+	0x26, 0xd9, 0xbf, 0xe2, 0xe0, 0xd7, 0xd3, 0xe9, 0x45, 0xbf, 0x41, 0xc6, 0x55, 0xf2, 0x60, 0x9c,
+	0x51, 0x26, 0x5e, 0xf3, 0xa3, 0xeb, 0x7c, 0x22, 0x87, 0x50, 0xda, 0x67, 0xf2, 0xdb, 0x6f, 0x94,
+	0x2e, 0x49, 0x45, 0xfa, 0x35, 0x92, 0x3d, 0x20, 0x13, 0xd4, 0x13, 0x49, 0x2a, 0xa9, 0xb6, 0x51,
+	0x37, 0x74, 0x68, 0x48, 0x40, 0x0a, 0x8b, 0x68, 0xd7, 0xab, 0x89, 0xa7, 0x0f, 0xf7, 0xe8, 0x02,
+	0x72, 0x55, 0x88, 0x11, 0x73, 0x6d, 0x6a, 0xe4, 0x08, 0xaa, 0xfb, 0x8c, 0x63, 0x52, 0xe2, 0xe4,
+	0x30, 0x24, 0xa2, 0x08, 0x54, 0xca, 0xd2, 0x55, 0x24, 0xb8, 0x47, 0x26, 0x44, 0xc5, 0x15, 0x90,
+	0x4d, 0x4d, 0xcc, 0x78, 0xfb, 0x8c, 0x27, 0x69, 0x39, 0x4c, 0x27, 0x0d, 0x8d, 0x4f, 0x6f, 0xb3,
+	0x2e, 0xce, 0xdd, 0xad, 0x7f, 0x17, 0x44, 0xcf, 0x76, 0x39, 0xf9, 0x11, 0x8c, 0x1d, 0xc7, 0x51,
+	0x21, 0x58, 0x48, 0x88, 0x95, 0xe3, 0xea, 0xf3, 0xca, 0x6d, 0x51, 0xef, 0xa0, 0xeb, 0x48, 0x4f,
+	0xa9, 0x39, 0x2d, 0x12, 0xdb, 0x51, 0x2b, 0x38, 0x85, 0xd2, 0x8e, 0xe3, 0x60, 0x30, 0xb2, 0x10,
+	0x3f, 0x44, 0xe2, 0xaf, 0xe8, 0xf2, 0xe4, 0xa8, 0x6c, 0xcb, 0x96, 0xbc, 0x0b, 0xa5, 0xdd, 0x41,
+	0xef, 0x6a, 0xc7, 0x71, 0x32, 0x91, 0xaa, 0xf0, 0xd0, 0x24, 0x3c, 0xeb, 0x1a, 0xd9, 0x83, 0xf2,
+	0x8e, 0xe3, 0xa0, 0xe0, 0x88, 0x2f, 0xc7, 0xe4, 0xef, 0xa1, 0xfc, 0x22, 0x5d, 0x18, 0x53, 0x8a,
+	0xec, 0x43, 0x65, 0x8f, 0xf5, 0x18, 0x67, 0x5f, 0x42, 0xd4, 0x98, 0x40, 0xf4, 0x0a, 0xaa, 0x92,
+	0x68, 0x4a, 0x21, 0x8c, 0x71, 0xa9, 0x62, 0x68, 0x7c, 0xa6, 0x18, 0x2c, 0x00, 0xc9, 0x3b, 0xb1,
+	0x1e, 0xc6, 0x58, 0x55, 0xde, 0x34, 0x6e, 0xad, 0x8a, 0x1f, 0xd0, 0x75, 0x98, 0xbb, 0x64, 0x28,
+	0x8f, 0xc7, 0xf9, 0x1a, 0xc8, 0xf7, 0x90, 0xae, 0x4e, 0x49, 0xec, 0xe6, 0x47, 0xec, 0xc3, 0x9f,
+	0x44, 0x23, 0x78, 0x13, 0xf9, 0x32, 0x13, 0x73, 0x13, 0x99, 0x1f, 0x37, 0x1e, 0x7d, 0x86, 0xb9,
+	0xf9, 0x11, 0x7b, 0xfa, 0xa7, 0xb3, 0x22, 0xbe, 0x9c, 0xdf, 0xfe, 0x37, 0x00, 0x00, 0xff, 0xff,
+	0xeb, 0x17, 0xa4, 0x20, 0x55, 0x14, 0x00, 0x00,
 }

@@ -1,12 +1,15 @@
 package main
 
 import (
-	"github.com/bmeg/arachne/cmd"
+	"fmt"
 	"os"
+
+	"github.com/bmeg/arachne/cmd"
 )
 
 func main() {
 	if err := cmd.RootCmd.Execute(); err != nil {
-		os.Exit(-1)
+		fmt.Println("Error:", err.Error())
+		os.Exit(1)
 	}
 }

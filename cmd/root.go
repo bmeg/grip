@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"os"
+
 	"github.com/bmeg/arachne/cmd/create"
 	"github.com/bmeg/arachne/cmd/drop"
 	"github.com/bmeg/arachne/cmd/dump"
@@ -8,11 +10,12 @@ import (
 	"github.com/bmeg/arachne/cmd/info"
 	"github.com/bmeg/arachne/cmd/list"
 	"github.com/bmeg/arachne/cmd/load"
+	"github.com/bmeg/arachne/cmd/mongoload"
+	"github.com/bmeg/arachne/cmd/query"
 	"github.com/bmeg/arachne/cmd/rdf"
 	"github.com/bmeg/arachne/cmd/server"
 	"github.com/bmeg/arachne/cmd/stream"
 	"github.com/spf13/cobra"
-	"os"
 )
 
 // RootCmd represents the root command
@@ -26,6 +29,8 @@ func init() {
 	RootCmd.AddCommand(server.Cmd)
 	RootCmd.AddCommand(rdf.Cmd)
 	RootCmd.AddCommand(load.Cmd)
+	RootCmd.AddCommand(mongoload.Cmd)
+	RootCmd.AddCommand(query.Cmd)
 	RootCmd.AddCommand(dump.Cmd)
 	RootCmd.AddCommand(stream.Cmd)
 	RootCmd.AddCommand(create.Cmd)
@@ -37,7 +42,8 @@ func init() {
 }
 
 var genBashCompletionCmd = &cobra.Command{
-	Use: "bash",
+	Use:   "bash",
+	Short: "Generate bash completions file",
 	Run: func(cmd *cobra.Command, args []string) {
 		RootCmd.GenBashCompletion(os.Stdout)
 	},

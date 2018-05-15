@@ -2,8 +2,9 @@ package aql
 
 import (
 	"fmt"
-	"github.com/bmeg/arachne/protoutil"
 	"strings"
+
+	"github.com/bmeg/arachne/protoutil"
 )
 
 // V starts a new vertex query, short for `NewQuery().V()`.
@@ -42,11 +43,9 @@ func (q *Query) V(id ...string) *Query {
 }
 
 // E adds a edge selection step to the query
-func (q *Query) E(ids ...string) *Query {
-	if len(ids) > 0 {
-		return q.with(&GraphStatement{&GraphStatement_E{ids[0]}})
-	}
-	return q.with(&GraphStatement{&GraphStatement_E{}})
+func (q *Query) E(id ...string) *Query {
+	elist := protoutil.AsListValue(id)
+	return q.with(&GraphStatement{&GraphStatement_E{elist}})
 }
 
 // In follows incoming edges to adjacent vertex
@@ -73,32 +72,36 @@ func (q *Query) OutEdge(label ...string) *Query {
 	return q.with(&GraphStatement{&GraphStatement_OutEdge{vlist}})
 }
 
-// HasLabel filters elements based on label
-func (q *Query) HasLabel(id ...string) *Query {
-	idList := protoutil.AsListValue(id)
-	return q.with(&GraphStatement{&GraphStatement_HasLabel{idList}})
+// Both follows both incoming and outgoing edges to adjacent vertex
+func (q *Query) Both(label ...string) *Query {
+	vlist := protoutil.AsListValue(label)
+	return q.with(&GraphStatement{&GraphStatement_Both{vlist}})
 }
 
-// Has filters elements based on data properties.
-func (q *Query) Has(key string, value ...string) *Query {
-	return q.with(&GraphStatement{&GraphStatement_Has{
-		&HasStatement{key, value}}})
+// BothEdge moves to both incoming and outgoing edges
+func (q *Query) BothEdge(label ...string) *Query {
+	vlist := protoutil.AsListValue(label)
+	return q.with(&GraphStatement{&GraphStatement_BothEdge{vlist}})
 }
 
-// HasID filters elements based on element ID.
-func (q *Query) HasID(id ...string) *Query {
-	idList := protoutil.AsListValue(id)
-	return q.with(&GraphStatement{&GraphStatement_HasId{idList}})
+// Where filters elements based on data properties.
+func (q *Query) Where(expression *WhereExpression) *Query {
+	return q.with(&GraphStatement{&GraphStatement_Where{expression}})
 }
 
 // Limit limits the number of results returned.
-func (q *Query) Limit(c int64) *Query {
-	return q.with(&GraphStatement{&GraphStatement_Limit{c}})
+func (q *Query) Limit(n uint32) *Query {
+	return q.with(&GraphStatement{&GraphStatement_Limit{n}})
 }
 
-// As marks current elements with tag
-func (q *Query) As(id string) *Query {
-	return q.with(&GraphStatement{&GraphStatement_As{id}})
+// Offset will drop the first n number of records and return the rest.
+func (q *Query) Offset(n uint32) *Query {
+	return q.with(&GraphStatement{&GraphStatement_Offset{n}})
+}
+
+// Mark marks current elements with tag
+func (q *Query) Mark(id string) *Query {
+	return q.with(&GraphStatement{&GraphStatement_Mark{id}})
 }
 
 // Select retreieves previously marked elemets
@@ -107,21 +110,21 @@ func (q *Query) Select(id ...string) *Query {
 	return q.with(&GraphStatement{&GraphStatement_Select{&idList}})
 }
 
-// Values changes the result to be values from the element data at the given key.
-func (q *Query) Values(keys ...string) *Query {
-	idList := SelectStatement{keys}
-	return q.with(&GraphStatement{&GraphStatement_Values{&idList}})
+// Fields selects which properties are returned in the result.
+func (q *Query) Fields(keys ...string) *Query {
+	klist := protoutil.AsListValue(keys)
+	return q.with(&GraphStatement{&GraphStatement_Fields{klist}})
 }
 
 // Match is used to concatenate multiple queries.
 func (q *Query) Match(qs ...*Query) *Query {
-	queries := []*GraphQuery{}
+	queries := []*QuerySet{}
 	for _, q := range qs {
-		queries = append(queries, &GraphQuery{
+		queries = append(queries, &QuerySet{
 			Query: q.Statements,
 		})
 	}
-	set := &GraphQuerySet{queries}
+	set := &MatchQuerySet{queries}
 	return q.with(&GraphStatement{&GraphStatement_Match{set}})
 }
 
@@ -144,20 +147,8 @@ func (q *Query) String() string {
 			add("V", ids...)
 
 		case *GraphStatement_E:
-			add("E", stmt.E)
-
-		case *GraphStatement_Has:
-			args := []string{stmt.Has.Key}
-			args = append(args, stmt.Has.Within...)
-			add("Has", args...)
-
-		case *GraphStatement_HasLabel:
-			ids := protoutil.AsStringList(stmt.HasLabel)
-			add("HasLabel", ids...)
-
-		case *GraphStatement_HasId:
-			ids := protoutil.AsStringList(stmt.HasId)
-			add("HasId", ids...)
+			ids := protoutil.AsStringList(stmt.E)
+			add("E", ids...)
 
 		case *GraphStatement_In:
 			ids := protoutil.AsStringList(stmt.In)
@@ -183,38 +174,32 @@ func (q *Query) String() string {
 			ids := protoutil.AsStringList(stmt.BothEdge)
 			add("BothEdge", ids...)
 
+		case *GraphStatement_Where:
+			add("Where")
+
 		case *GraphStatement_Limit:
 			add("Limit", fmt.Sprintf("%d", stmt.Limit))
 
 		case *GraphStatement_Count:
 			add("Count")
 
-		case *GraphStatement_GroupCount:
-			add("GroupCount", stmt.GroupCount)
-
-		case *GraphStatement_As:
-			add("As", stmt.As)
+		case *GraphStatement_Mark:
+			add("Mark", stmt.Mark)
 
 		case *GraphStatement_Select:
-			add("Select", stmt.Select.Labels...)
+			add("Select", stmt.Select.Marks...)
+
 		case *GraphStatement_Match:
 			add("Match")
-		case *GraphStatement_Values:
-			add("Values")
 
-		case *GraphStatement_Import:
-			add("Import")
-		case *GraphStatement_Map:
-			add("Map")
-		case *GraphStatement_Fold:
-			add("Fold")
-		case *GraphStatement_Filter:
-			add("Filter")
-		case *GraphStatement_FilterValues:
-			add("FilterValues")
-		case *GraphStatement_VertexFromValues:
-			add("VertexFromValues")
+		case *GraphStatement_Fields:
+			fields := protoutil.AsStringList(stmt.Fields)
+			add("Fields", fields...)
+
+		case *GraphStatement_Aggregate:
+			add("Aggregate")
 		}
 	}
+
 	return strings.Join(parts, ".")
 }

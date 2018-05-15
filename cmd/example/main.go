@@ -1,10 +1,12 @@
 package example
 
 import (
-	//"fmt"
+	"encoding/json"
+	"fmt"
+	"log"
+
 	"github.com/bmeg/arachne/aql"
 	"github.com/spf13/cobra"
-	"log"
 )
 
 var host = "localhost:8202"
@@ -31,42 +33,41 @@ var Cmd = &cobra.Command{
 			return err
 		}
 
-		graphs := conn.GetGraphList()
+		graphql := fmt.Sprintf("%s-schema", graph)
 
-		if !found(graphs, "graphql") {
-			conn.AddGraph("graphql")
+		graphs := conn.GetGraphList()
+		if !found(graphs, graphql) {
+			conn.AddGraph(graphql)
 		}
 		if !found(graphs, graph) {
 			conn.AddGraph(graph)
 		}
 
-		elemChan := make(chan aql.GraphElement)
+		log.Printf("Loading example graph data into %s", graph)
+		elemChan := make(chan *aql.GraphElement)
 		wait := make(chan bool)
-		log.Printf("Loading %s into %s", exampleSet, graph)
 		go func() {
-			conn.StreamElements(elemChan)
+			if err := conn.BulkAdd(elemChan); err != nil {
+				log.Printf("bulk add error: %s", err)
+			}
 			wait <- false
 		}()
-		for _, vertex := range swVertices {
-			v := vertex
-			elemChan <- aql.GraphElement{Graph: graph, Vertex: &v}
-		}
-		for _, edge := range swEdges {
-			e := edge
-			elemChan <- aql.GraphElement{Graph: graph, Edge: &e}
-		}
 
-		for _, vertex := range swGQLVertices {
-			v := vertex
-			elemChan <- aql.GraphElement{Graph: "graphql", Vertex: &v}
+		log.Printf("Loading example graphql schema into %s", graphql)
+		schema := &aql.Graph{}
+		if err := json.Unmarshal([]byte(swGQLGraph), schema); err != nil {
+			return fmt.Errorf("failed to unmarshal graph schema: %v", err)
 		}
-		for _, edge := range swGQLEdges {
-			e := edge
-			elemChan <- aql.GraphElement{Graph: "graphql", Edge: &e}
+		for _, v := range schema.Vertices {
+			elemChan <- &aql.GraphElement{Graph: graphql, Vertex: v}
+		}
+		for _, e := range schema.Edges {
+			elemChan <- &aql.GraphElement{Graph: graphql, Edge: e}
 		}
 
 		close(elemChan)
 		<-wait
+
 		return nil
 	},
 }
@@ -75,5 +76,4 @@ func init() {
 	flags := Cmd.Flags()
 	flags.StringVar(&host, "host", host, "Host Server")
 	flags.StringVar(&graph, "graph", "example", "Graph")
-	flags.StringVar(&exampleSet, "exampleSet", "starwars", "Example Data Set")
 }

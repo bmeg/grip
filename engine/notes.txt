@@ -1,0 +1,62 @@
+
+
+// TODO with a query planner, "load" could instead be a list of property keys
+
+// TODO pre-process query? or process processors?
+// - need internal processors to exist because they hold the fields
+//   needed to collapse two steps.
+
+- V().HasID("id1") from allV + idFilter -> lookupByID
+- V().Has("foo", "1").Has("foo", "2")
+- V().HasLabel("foo").HasID("1").Has("foo", "1").Has("bar", "2")
+- V().HasLabel("foo").out("bar").Has("afoo", 1).Has("bar", 2).HasLabel("baz")
+- V().E()
+- V().HasID().HasID()
+- V().out("foo").V()
+- V().out("foo").E()
+- V().HasLabel("foo").in()
+
+- V().HasLabel("foo").outE("some-edge").has("foo", "bar").outV()
+   - should optimize edge scan to look for matching data properties, if possible? or is that too much trouble?
+
+- crew.V().hasLabel("person").as("x").out("develops").as("y").select("x", "y").select("x").by("name")
+   - should handle double select correctly by dropping the first
+
+- crew.V().hasLabel("person").as("x").out("develops").as("y").select("x", "y").select("x").out("develops").as("x").in("develops").select("x").by("name")
+    - should handle duplicate marks with different targets
+    
+- crew.V().select("x")
+    - should handle select without mark
+
+
+crew.V().hasLabel("person").as("x").out("develops").as("y").select("x", "z").select("y").in("develops").as("z").select("x").by("name")
+    - select by non-existent name
+
+
+crew.V().hasLabel("person").out("develops").as("x", "y").in("develops").select("y").by("name")
+    - same step with two mark names
+
+gremlin> crew.V().hasLabel("person").as("x", "y").select("x", "y").as("z").select("z").by("name")
+java.util.LinkedHashMap cannot be cast to org.apache.tinkerpop.gremlin.structure.Element
+
+gremlin> crew.V().hasLabel("person").as("x", "y").select("x", "y").as("z").select("z")
+==>[x:v[1],y:v[1]]
+==>[x:v[7],y:v[7]]
+==>[x:v[8],y:v[8]]
+==>[x:v[9],y:v[9]]
+
+
+interesting: gremlin drops marks after a count/groupCount
+gremlin> crew.V().hasLabel("person").as("x", "y").select("x", "y").count()
+==>4
+gremlin> crew.V().hasLabel("person").as("x", "y").select("x", "y").count().select("x")
+gremlin> crew.V().hasLabel("person").as("x", "y").select("x", "y").groupCount().select("x")
+gremlin> crew.V().hasLabel("person").as("x", "y").select("x", "y").groupCount()
+==>[[x:v[1],y:v[1]]:1,[x:v[8],y:v[8]]:1,[x:v[9],y:v[9]]:1,[x:v[7],y:v[7]]:1]
+
+
+gremlin> crew.V().E()
+No signature of method: org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.DefaultGraphTraversal.E() is applicable for argument types: () values: []
+Possible solutions: by(groovy.lang.Closure), is(java.lang.Object), use([Ljava.lang.Object;), use(java.util.List, groovy.lang.Closure), use(java.lang.Class, groovy.lang.Closure), max()
+    
+    In this case, I disagree. if q.V().V() is valid and explainable, then q.V().E() should be too.

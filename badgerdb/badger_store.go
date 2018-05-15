@@ -1,18 +1,25 @@
+/*
+The KeyValue interface wrapper for BadgerDB
+*/
+
 package badgerdb
 
 import (
 	"bytes"
 	"fmt"
-	"github.com/bmeg/arachne/kvgraph"
-	"github.com/dgraph-io/badger"
-	"github.com/dgraph-io/badger/options"
 	"log"
 	"os"
+
+	"github.com/bmeg/arachne/kvgraph"
+	"github.com/bmeg/arachne/kvi"
+	"github.com/dgraph-io/badger"
+	"github.com/dgraph-io/badger/options"
 )
 
-// BadgerBuilder creates new badger interface at `path`
-// driver at `path`
-func BadgerBuilder(path string) (kvgraph.KVInterface, error) {
+var loaded = kvgraph.AddKVDriver("badger", NewKVInterface)
+
+// NewKVInterface creates new BoltDB backed KVInterface at `path`
+func NewKVInterface(path string) (kvi.KVInterface, error) {
 	log.Printf("Starting BadgerDB")
 	_, err := os.Stat(path)
 	if os.IsNotExist(err) {
@@ -26,18 +33,9 @@ func BadgerBuilder(path string) (kvgraph.KVInterface, error) {
 	opts.ValueDir = path
 	db, err := badger.Open(opts)
 	if err != nil {
-		log.Printf("Error: %s", err)
+		return nil, err
 	}
-	o := &BadgerKV{db: db}
-	return o, nil
-}
-
-var loaded = kvgraph.AddKVDriver("badger", BadgerBuilder)
-
-func bytesCopy(in []byte) []byte {
-	out := make([]byte, len(in))
-	copy(out, in)
-	return out
+	return &BadgerKV{db: db}, nil
 }
 
 // BadgerKV is an implementation of the KVStore for badger
@@ -45,9 +43,24 @@ type BadgerKV struct {
 	db *badger.DB
 }
 
-// Close closes the boltdb
+// Close closes the badger connection
 func (badgerkv *BadgerKV) Close() error {
 	return badgerkv.db.Close()
+}
+
+// Get retrieves the value of key `id`
+func (badgerkv *BadgerKV) Get(id []byte) ([]byte, error) {
+	var out []byte
+	err := badgerkv.db.View(func(tx *badger.Txn) error {
+		dataValue, err := tx.Get(id)
+		if err != nil {
+			return err
+		}
+		d, _ := dataValue.Value()
+		out = copyBytes(d)
+		return nil
+	})
+	return out, err
 }
 
 // Delete removes a key/value from a kvstore
@@ -70,7 +83,7 @@ func (badgerkv *BadgerKV) DeletePrefix(prefix []byte) error {
 		badgerkv.db.Update(func(tx *badger.Txn) error {
 			it := tx.NewIterator(opts)
 			for it.Seek(prefix); it.Valid() && bytes.HasPrefix(it.Item().Key(), prefix) && len(wb) < deleteBlockSize-1; it.Next() {
-				wb = append(wb, bytesCopy(it.Item().Key()))
+				wb = append(wb, copyBytes(it.Item().Key()))
 			}
 			it.Close()
 			for _, i := range wb {
@@ -83,7 +96,7 @@ func (badgerkv *BadgerKV) DeletePrefix(prefix []byte) error {
 	return nil
 }
 
-// HasKey returns true if the key is exists in kv store
+// HasKey returns true if the key is exists in kvstore
 func (badgerkv *BadgerKV) HasKey(id []byte) bool {
 	out := false
 	badgerkv.db.View(func(tx *badger.Txn) error {
@@ -96,10 +109,19 @@ func (badgerkv *BadgerKV) HasKey(id []byte) bool {
 	return out
 }
 
-// Set value in kv store
+// Set value in kvstore
 func (badgerkv *BadgerKV) Set(id []byte, val []byte) error {
 	err := badgerkv.db.Update(func(tx *badger.Txn) error {
 		return tx.Set(id, val)
+	})
+	return err
+}
+
+// Update runs an alteration transaction of the kvstore
+func (badgerkv *BadgerKV) Update(u func(tx kvi.KVTransaction) error) error {
+	err := badgerkv.db.Update(func(tx *badger.Txn) error {
+		ktx := badgerTransaction{tx}
+		return u(ktx)
 	})
 	return err
 }
@@ -114,10 +136,7 @@ func (badgerTrans badgerTransaction) Set(key, val []byte) error {
 
 // Delete removes key `id` from the kv store
 func (badgerTrans badgerTransaction) Delete(id []byte) error {
-	if err := badgerTrans.tx.Delete(id); err != nil {
-		return err
-	}
-	return nil
+	return badgerTrans.tx.Delete(id)
 }
 
 func (badgerTrans badgerTransaction) HasKey(id []byte) bool {
@@ -128,13 +147,13 @@ func (badgerTrans badgerTransaction) HasKey(id []byte) bool {
 	return false
 }
 
-// Update runs an alteration transition of the bolt kv store
-func (badgerkv *BadgerKV) Update(u func(tx kvgraph.KVTransaction) error) error {
-	err := badgerkv.db.Update(func(tx *badger.Txn) error {
-		ktx := badgerTransaction{tx}
-		return u(ktx)
-	})
-	return err
+func (badgerTrans badgerTransaction) Get(id []byte) ([]byte, error) {
+	dataValue, err := badgerTrans.tx.Get(id)
+	if err != nil {
+		return nil, err
+	}
+	d, _ := dataValue.Value()
+	return copyBytes(d), nil
 }
 
 type badgerIterator struct {
@@ -144,18 +163,8 @@ type badgerIterator struct {
 	value []byte
 }
 
-func copyBytes(in []byte) []byte {
-	out := make([]byte, len(in))
-	copy(out, in)
-	return out
-}
-
 // Get retrieves the value of key `id`
 func (badgerIt *badgerIterator) Get(id []byte) ([]byte, error) {
-	o, err := badgerIt.tx.Get(id)
-	if o == nil || err != nil {
-		return nil, fmt.Errorf("Not Found")
-	}
 	dataValue, err := badgerIt.tx.Get(id)
 	if err != nil {
 		return nil, err
@@ -191,6 +200,30 @@ func (badgerIt *badgerIterator) Next() error {
 
 // Seek moves the iterator to a new location
 func (badgerIt *badgerIterator) Seek(id []byte) error {
+	if badgerIt.c != nil {
+		badgerIt.c.Close()
+	}
+	opts := badger.DefaultIteratorOptions
+	badgerIt.c = badgerIt.tx.NewIterator(opts)
+	badgerIt.c.Seek(id)
+	if !badgerIt.c.Valid() {
+		return fmt.Errorf("Invalid")
+	}
+	k := badgerIt.c.Item().Key()
+	badgerIt.key = copyBytes(k)
+	v, _ := badgerIt.c.Item().Value()
+	badgerIt.value = copyBytes(v)
+	return nil
+}
+
+// Seek moves the iterator to a new location
+func (badgerIt *badgerIterator) SeekReverse(id []byte) error {
+	if badgerIt.c != nil {
+		badgerIt.c.Close()
+	}
+	opts := badger.DefaultIteratorOptions
+	opts.Reverse = true
+	badgerIt.c = badgerIt.tx.NewIterator(opts)
 	badgerIt.c.Seek(id)
 	if !badgerIt.c.Valid() {
 		return fmt.Errorf("Invalid")
@@ -211,14 +244,20 @@ func (badgerIt *badgerIterator) Valid() bool {
 }
 
 // View run iterator on bolt keyvalue store
-func (badgerkv *BadgerKV) View(u func(it kvgraph.KVIterator) error) error {
+func (badgerkv *BadgerKV) View(u func(it kvi.KVIterator) error) error {
 	err := badgerkv.db.View(func(tx *badger.Txn) error {
-		opts := badger.DefaultIteratorOptions
-		it := tx.NewIterator(opts)
-		ktx := &badgerIterator{tx, it, nil, nil}
+		ktx := &badgerIterator{tx, nil, nil, nil}
 		o := u(ktx)
-		it.Close()
+		if ktx.c != nil {
+			ktx.c.Close()
+		}
 		return o
 	})
 	return err
+}
+
+func copyBytes(in []byte) []byte {
+	out := make([]byte, len(in))
+	copy(out, in)
+	return out
 }

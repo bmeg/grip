@@ -6,6 +6,7 @@ import (
 	"os"
 	//"fmt"
 	"compress/gzip"
+
 	"github.com/bmeg/arachne/aql"
 	"github.com/knakk/rdf"
 	"github.com/spf13/cobra"
@@ -37,12 +38,12 @@ func LoadRDFCmd(cmd *cobra.Command, args []string) error {
 	for triple, err := dec.Decode(); err != io.EOF; triple, err = dec.Decode() {
 		subj := triple.Subj.String()
 		if subj != curSubj && curVertex != nil {
-			conn.AddVertex(graph, *curVertex)
+			conn.AddVertex(graph, curVertex)
 			curVertex = nil
 		}
 		curSubj = subj
 		if _, ok := vertMap[subj]; !ok {
-			conn.AddVertex(graph, aql.Vertex{Gid: subj})
+			conn.AddVertex(graph, &aql.Vertex{Gid: subj})
 			vertMap[subj] = 1
 		}
 		if triple.Obj.Type() == rdf.TermLiteral {
@@ -53,10 +54,10 @@ func LoadRDFCmd(cmd *cobra.Command, args []string) error {
 		} else {
 			obj := triple.Obj.String()
 			if _, ok := vertMap[obj]; !ok {
-				conn.AddVertex(graph, aql.Vertex{Gid: obj})
+				conn.AddVertex(graph, &aql.Vertex{Gid: obj})
 				vertMap[obj] = 1
 			}
-			conn.AddEdge(graph, aql.Edge{From: subj, To: obj, Label: triple.Pred.String()})
+			conn.AddEdge(graph, &aql.Edge{From: subj, To: obj, Label: triple.Pred.String()})
 		}
 		if count%1000 == 0 {
 			log.Printf("Processed %d triples", count)
@@ -64,7 +65,7 @@ func LoadRDFCmd(cmd *cobra.Command, args []string) error {
 		count++
 	}
 	if curVertex != nil {
-		conn.AddVertex(graph, *curVertex)
+		conn.AddVertex(graph, curVertex)
 	}
 	return nil
 }

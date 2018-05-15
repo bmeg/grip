@@ -1,64 +1,53 @@
+/*
+Core Graph Database interfaces
+*/
+
 package gdbi
 
 import (
 	"context"
+
 	"github.com/bmeg/arachne/aql"
+	"github.com/bmeg/arachne/kvi"
 )
 
-// QueryInterface defines the query engine interface. The primary implementation
-// is PipeEngine
-type QueryInterface interface {
-	V(ids []string) QueryInterface
-	E() QueryInterface
-	Count() QueryInterface
+// InPipe incoming traveler messages
+type InPipe <-chan *Traveler
 
-	Has(prop string, value ...string) QueryInterface
-	HasLabel(labels ...string) QueryInterface
-	HasID(ids ...string) QueryInterface
+// OutPipe collects output traveler messages
+type OutPipe chan<- *Traveler
 
-	Out(key ...string) QueryInterface
-	In(key ...string) QueryInterface
-	Both(key ...string) QueryInterface
-	Limit(count int64) QueryInterface
-
-	OutE(key ...string) QueryInterface
-	InE(key ...string) QueryInterface
-	BothE(key ...string) QueryInterface
-
-	OutBundle(key ...string) QueryInterface
-
-	As(label string) QueryInterface
-	Select(labels []string) QueryInterface
-	Values(labels []string) QueryInterface
-
-	GroupCount(label string) QueryInterface
-
-	//Subqueries
-	Match(matches []*QueryInterface) QueryInterface
-
-	//code based functions
-	Import(source string) QueryInterface
-	Map(function string) QueryInterface
-	Fold(function string, init interface{}) QueryInterface
-	Filter(function string) QueryInterface
-	FilterValues(source string) QueryInterface
-	VertexFromValues(source string) QueryInterface
-
-	Execute(context.Context) chan aql.ResultRow
-	First(context.Context) (aql.ResultRow, error) //Only get one result
-	Run(context.Context) error                    //Do execute, but throw away the results
-	Chain(context.Context, PipeOut) PipeOut
+// DataElement is a single data element
+type DataElement struct {
+	ID       string
+	Label    string
+	From, To string
+	Data     map[string]interface{}
 }
 
-// ArachneInterface the base graph data storage interface
-type ArachneInterface interface {
-	Close()
-	AddGraph(string) error
-	DeleteGraph(string) error
-	GetGraphs() []string
-	Query(string) QueryInterface
-	Graph(string) DBI
+// Traveler is a query element that traverse the graph
+type Traveler struct {
+	current      *DataElement
+	marks        map[string]*DataElement
+	Selections   map[string]*DataElement
+	Aggregations map[string]*aql.AggregationResult
+	Count        uint32
+	Render       interface{}
 }
+
+// DataType is a possible output data type
+type DataType uint8
+
+// DataTypes
+const (
+	NoData DataType = iota
+	VertexData
+	EdgeData
+	CountData
+	AggregationData
+	SelectionData
+	RenderData
+)
 
 // ElementLookup request to look up data
 type ElementLookup struct {
@@ -68,88 +57,73 @@ type ElementLookup struct {
 	Edge   *aql.Edge
 }
 
-// GraphDB is the base Graph data storage interface, the PipeEngine will be able
-// to run queries on a data system backend that implements this interface
+// GraphDB is the base interface for graph databases
 type GraphDB interface {
-	GetTimestamp() string
+	AddGraph(string) error
+	DeleteGraph(string) error
+	GetGraphs() []string
+	Graph(id string) (GraphInterface, error)
+	Close() error
+}
 
-	Query() QueryInterface
+// GraphInterface is the base Graph data storage interface, the PipeEngine will be able
+// to run queries on a data system backend that implements this interface
+type GraphInterface interface {
+	Compiler() Compiler
+
+	GetTimestamp() string
 
 	GetVertex(key string, load bool) *aql.Vertex
 	GetEdge(key string, load bool) *aql.Edge
-	GetBundle(key string, load bool) *aql.Bundle
 
-	GetVertexList(ctx context.Context, load bool) chan aql.Vertex
-	GetEdgeList(ctx context.Context, load bool) chan aql.Edge
+	AddVertex(vertex []*aql.Vertex) error
+	AddEdge(edge []*aql.Edge) error
+
+	DelVertex(key string) error
+	DelEdge(key string) error
+
+	VertexLabelScan(ctx context.Context, label string) chan string
+	//EdgeLabelScan(ctx context.Context, label string) chan string
+
+	AddVertexIndex(label string, field string) error
+	DeleteVertexIndex(label string, field string) error
+	GetVertexIndexList() chan aql.IndexID
+
+	GetVertexTermAggregation(ctx context.Context, label string, field string, size uint32) (*aql.AggregationResult, error)
+	GetVertexPercentileAggregation(ctx context.Context, label string, field string, percents []float64) (*aql.AggregationResult, error)
+	GetVertexHistogramAggregation(ctx context.Context, label string, field string, interval uint32) (*aql.AggregationResult, error)
+
+	GetVertexList(ctx context.Context, load bool) <-chan *aql.Vertex
+	GetEdgeList(ctx context.Context, load bool) <-chan *aql.Edge
 
 	GetVertexChannel(req chan ElementLookup, load bool) chan ElementLookup
 	GetOutChannel(req chan ElementLookup, load bool, edgeLabels []string) chan ElementLookup
 	GetInChannel(req chan ElementLookup, load bool, edgeLabels []string) chan ElementLookup
 	GetOutEdgeChannel(req chan ElementLookup, load bool, edgeLabels []string) chan ElementLookup
 	GetInEdgeChannel(req chan ElementLookup, load bool, edgeLabels []string) chan ElementLookup
-
-	//These are redundant and can the depricated
-	//GetOutList(ctx context.Context, key string, load bool, edgeLabels []string) chan aql.Vertex
-	//GetInList(ctx context.Context, key string, load bool, edgeLabels []string) chan aql.Vertex
-	//GetOutEdgeList(ctx context.Context, key string, load bool, edgeLabels []string) chan aql.Edge
-	//GetInEdgeList(ctx context.Context, key string, load bool, edgeLabels []string) chan aql.Edge
-
-	GetOutBundleList(ctx context.Context, key string, load bool, edgeLabels []string) chan aql.Bundle
-
-	SetVertex(vertex []*aql.Vertex) error
-	SetEdge(edge []*aql.Edge) error
-	SetBundle(edge aql.Bundle) error
-
-	DelVertex(key string) error
-	DelEdge(key string) error
-	DelBundle(id string) error
 }
 
-// Indexer implements features related to field and value indexing for faster
-// subselection of elements before doing traversal
-type Indexer interface {
-	VertexLabelScan(ctx context.Context, label string) chan string
-	EdgeLabelScan(ctx context.Context, label string) chan string
+// Manager is a resource manager that is passed to processors to allow them ]
+// to make resource requests
+type Manager interface {
+	//Get handle to temporary KeyValue store driver
+	GetTempKV() kvi.KVInterface
+	Cleanup()
 }
 
-// DBI implements the full GraphDB and Indexer interfaces
-type DBI interface {
-	GraphDB
-	Indexer
+// Compiler takes a aql query and turns it into an executable pipeline
+type Compiler interface {
+	Compile(stmts []*aql.GraphStatement) (Pipeline, error)
 }
 
-// These consts mark the type of a PipeOut traveler chan
-const (
-	// StateCustom The PipeOut will be emitting custom data structures
-	StateCustom = 0
-	// StateVertexList The PipeOut will be emitting a list of vertices
-	StateVertexList = 1
-	// StateEdgeList The PipeOut will be emitting a list of edges
-	StateEdgeList = 2
-	// StateRawVertexList The PipeOut will be emitting a list of all vertices, if there is an index
-	// based filter, you can use skip listening and use that
-	StateRawVertexList = 3
-	// StateRawEdgeList The PipeOut will be emitting a list of all edges, if there is an index
-	// based filter, you can use skip listening and use that
-	StateRawEdgeList = 4
-	// StateBundleList the PipeOut will be emittign a list of bundles
-	StateBundleList = 5
-)
-
-// PipeOut represents the output of a single pipeline chain
-type PipeOut struct {
-	Travelers   chan Traveler
-	State       int
-	ValueStates map[string]int
+// Processor is the interface for a step in the pipe engine
+type Processor interface {
+	Process(ctx context.Context, man Manager, in InPipe, out OutPipe) context.Context
 }
 
-// Traveler represents one query element, tracking progress across the graph
-type Traveler struct {
-	State map[string]aql.QueryResult
+// Pipeline represents a set of processors
+type Pipeline interface {
+	Processors() []Processor
+	DataType() DataType
+	MarkTypes() map[string]DataType
 }
-
-/*
-type PipeRequest struct {
-	LoadProperties bool
-}
-*/

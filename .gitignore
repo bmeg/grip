@@ -1,1 +1,5 @@
 *.pyc
+*venv*
+*arachne.work*
+*arachne.db*
+vendor

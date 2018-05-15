@@ -1,0 +1,154 @@
+# Gopkg.toml example
+#
+# Refer to https://github.com/golang/dep/blob/master/docs/Gopkg.toml.md
+# for detailed Gopkg.toml documentation.
+#
+# required = ["github.com/user/thing/cmd/thing"]
+# ignored = ["github.com/user/project/pkgX", "bitbucket.org/user/project/pkgA/pkgY"]
+#
+# [[constraint]]
+#   name = "github.com/user/project"
+#   version = "1.0.0"
+#
+# [[constraint]]
+#   name = "github.com/user/project2"
+#   branch = "dev"
+#   source = "github.com/myfork/project2"
+#
+# [[override]]
+#   name = "github.com/x/y"
+#   version = "2.4.0"
+#
+# [prune]
+#   non-go = false
+#   go-tests = true
+#   unused-packages = true
+
+
+[[constraint]]
+  name = "github.com/Shopify/sarama"
+  version = "1.16.0"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/augustoroman/v8"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/bmeg/golib"
+
+[[constraint]]
+  name = "github.com/boltdb/bolt"
+  version = "1.3.1"
+
+[[constraint]]
+  name = "github.com/dgraph-io/badger"
+  version = "1.5.0"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/dop251/goja"
+
+[[constraint]]
+  name = "github.com/ghodss/yaml"
+  version = "1.0.0"
+
+[[constraint]]
+  name = "github.com/golang/protobuf"
+  version = "1.1.0"
+
+[[constraint]]
+  name = "github.com/gorilla/mux"
+  version = "1.6.2"
+
+[[constraint]]
+  name = "github.com/graphql-go/graphql"
+  version = "0.7.5"
+
+[[constraint]]
+  name = "github.com/graphql-go/handler"
+  version = "0.2.1"
+
+[[constraint]]
+  name = "github.com/grpc-ecosystem/grpc-gateway"
+  version = "1.3.1"
+
+[[constraint]]
+  name = "github.com/imdario/mergo"
+  version = "0.3.4"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/knakk/rdf"
+
+[[constraint]]
+  name = "github.com/kr/pretty"
+  version = "0.1.0"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/oliveagle/jsonpath"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/robertkrimen/otto"
+
+[[constraint]]
+  name = "github.com/segmentio/ksuid"
+  version = "1.0.1"
+
+[[constraint]]
+  name = "github.com/spenczar/tdigest"
+  version = "2.1.0"
+
+[[constraint]]
+  name = "github.com/spf13/cobra"
+  version = "0.0.2"
+
+[[constraint]]
+  name = "github.com/stretchr/testify"
+  version = "1.2.1"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/syndtr/goleveldb"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/tecbot/gorocksdb"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/vsco/mgopool"
+
+[[constraint]]
+  branch = "master"
+  name = "golang.org/x/net"
+
+[[constraint]]
+  branch = "master"
+  name = "golang.org/x/sync"
+
+[[constraint]]
+  branch = "master"
+  name = "google.golang.org/genproto"
+
+[[constraint]]
+  name = "google.golang.org/grpc"
+  version = "1.12.0"
+
+[[constraint]]
+  branch = "v2"
+  name = "gopkg.in/mgo.v2"
+
+[[constraint]]
+  name = "gopkg.in/olivere/elastic.v5"
+  version = "5.0.68"
+
+[[constraint]]
+  name = "gopkg.in/yaml.v2"
+  version = "2.2.1"
+
+[prune]
+  go-tests = true
+  unused-packages = true

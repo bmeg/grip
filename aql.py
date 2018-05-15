@@ -1,10 +1,114 @@
 import json
 import urllib2
 
+
+def and_(*expressions):
+    return {"and": {"expressions": expressions}}
+
+
+def or_(*expressions):
+    return {"or": {"expressions": expressions}}
+
+
+def not_(expression):
+    return {"not": expression}
+
+
+def eq(key, value):
+    return {"condition": {"key": key, "value": value, "condition": "EQ"}}
+
+
+def neq(key, value):
+    return {"condition": {"key": key, "value": value, "condition": "NEQ"}}
+
+
+def gt(key, value):
+    return {"condition": {"key": key, "value": value, "condition": "GT"}}
+
+
+def gte(key, value):
+    return {"condition": {"key": key, "value": value, "condition": "GTE"}}
+
+
+def lt(key, value):
+    return {"condition": {"key": key, "value": value, "condition": "LT"}}
+
+
+def lte(key, value):
+    return {"condition": {"key": key, "value": value, "condition": "LTE"}}
+
+
+def in_(key, values):
+    if not isinstance(values, list):
+        if not isinstance(values, dict):
+            values = [values]
+    return {"condition": {"key": key, "value": values, "condition": "IN"}}
+
+
+def contains(key, value):
+    return {"condition": {"key": key, "value": value, "condition": "CONTAINS"}}
+
+
+def term(name, label, field, size=None):
+    agg = {
+        "name": name,
+        "term": {"label": label, "field": field}
+    }
+    if size:
+        agg["term"]["size"] = size
+    return agg
+
+
+def percentile(name, label, field, percents=[1, 5, 25, 50, 75, 95, 99]):
+    return {
+        "name": name,
+        "percentile": {
+            "label": label, "field": field, "percents": percents
+        }
+    }
+
+
+def histogram(name, label, field, interval):
+    return {
+        "name": name,
+        "histogram": {
+            "label": label, "field": field, "interval": interval
+        }
+    }
+
+
+def do_request(request, raise_exceptions=True):
+    try:
+        response = urllib2.urlopen(request)
+    except urllib2.HTTPError as e:
+        e = urllib2.HTTPError(
+            request.get_full_url(),
+            e.code,
+            e.msg + ": " + e.read(),
+            e.hdrs,
+            e.fp
+        )
+        if raise_exceptions:
+            raise e
+        else:
+            print(e)
+
+    return response
+
+
 class Connection:
-    def __init__(self, host):
+    def __init__(self, url):
+        scheme, netloc, path, query, frag = urllib2.urlparse.urlsplit(url)
+        query = ""
+        frag = ""
+        if scheme == "":
+            scheme = "http"
+        if netloc == "" and path != "":
+            netloc = path
+            path = ""
+        host = urllib2.urlparse.urlunsplit((scheme, netloc, path, query, frag))
         self.host = host
-        self.url =  "%s/v1/graph" % (host)
+        self.url = "%s/v1/graph" % (host)
 
     def list(self):
         """
@@ -25,9 +129,10 @@ class Connection:
         """
         New graph.
         """
-        headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
-        request = urllib2.Request("%s/%s" % (self.url, name), "{}", headers=headers)
-        response = urllib2.urlopen(request)
+        headers = {"Content-Type": "application/json",
+                   "Accept": "application/json"}
+        request = urllib2.Request(self.url + "/" + name, "{}", headers=headers)
+        response = do_request(request)
         result = response.read()
         return json.loads(result)
 
@@ -35,10 +140,11 @@ class Connection:
         """
         Delete graph.
         """
-        headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
-        request = urllib2.Request("%s/%s" % (self.url, name), headers=headers)
+        headers = {"Content-Type": "application/json",
+                   "Accept": "application/json"}
+        request = urllib2.Request(self.url + "/" + name, headers=headers)
         request.get_method = lambda: "DELETE"
-        response = urllib2.urlopen(request)
+        response = do_request(request)
         result = response.read()
         return json.loads(result)
 
@@ -54,72 +160,144 @@ class Graph:
         self.url = url
         self.name = name
 
-    def query(self):
-        """
-        Create a query handle.
-        """
-        return Query(self)
-
     def addVertex(self, id, label, data={}):
         """
         Add vertex to a graph.
         """
         payload = json.dumps({
-            "gid" : id,
-            "label" : label,
-            "data" : data
+            "gid": id,
+            "label": label,
+            "data": data
         })
-        headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
-        request = urllib2.Request(self.url + "/" + self.name + "/vertex", payload, headers=headers)
-        response = urllib2.urlopen(request)
+        headers = {"Content-Type": "application/json",
+                   "Accept": "application/json"}
+        request = urllib2.Request(self.url + "/" + self.name + "/vertex",
+                                  payload,
+                                  headers=headers)
+        response = do_request(request)
         result = response.read()
         return json.loads(result)
+
+    def deleteVertex(self, gid):
+        """
+        Delete a vertex from the graph.
+        """
+        headers = {"Content-Type": "application/json",
+                   "Accept": "application/json"}
+        request = urllib2.Request(self.url + "/" + self.name + "/vertex/" + gid,
+                                  headers=headers)
+        request.get_method = lambda: "DELETE"
+        response = do_request(request)
+        result = response.read()
+        return json.loads(result)
+
+    def getVertex(self, gid):
+        """
+        Get a vertex by id.
+        """
+        headers = {"Content-Type": "application/json",
+                   "Accept": "application/json"}
+        url = self.url + "/" + self.name + "/vertex/" + gid
+        request = urllib2.Request(url, headers=headers)
+        response = do_request(request)
+        return json.loads(response.read())
 
     def addEdge(self, src, dst, label, data={}, id=None):
         """
         Add edge to the graph.
         """
         payload = {
-            "from" : src,
-            "to" : dst,
-            "label" : label,
-            "data" : data
+            "from": src,
+            "to": dst,
+            "label": label,
+            "data": data
         }
         if id is not None:
-            payload['gid'] = id
-        headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
-        request = urllib2.Request(self.url + "/" + self.name + "/edge", json.dumps(payload), headers=headers)
-        response = urllib2.urlopen(request)
+            payload["gid"] = id
+        headers = {"Content-Type": "application/json",
+                   "Accept": "application/json"}
+        request = urllib2.Request(self.url + "/" + self.name + "/edge",
+                                  json.dumps(payload),
+                                  headers=headers)
+        response = do_request(request)
         result = response.read()
         return json.loads(result)
 
-    def addSubGraph(self, graph):
-        payload = json.dumps(graph)
-        headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
-        request = urllib2.Request(self.url + "/" + self.name + "/subgraph", payload, headers=headers)
-        response = urllib2.urlopen(request)
+    def deleteEdge(self, gid):
+        """
+        Delete an edge from the graph.
+        """
+        headers = {"Content-Type": "application/json",
+                   "Accept": "application/json"}
+        request = urllib2.Request(self.url + "/" + self.name + "/edge/" + gid,
+                                  headers=headers)
+        request.get_method = lambda: "DELETE"
+        response = do_request(request)
         result = response.read()
         return json.loads(result)
 
-    def addBundle(self, src, bundle, label):
-        payload = json.dumps({
-            "from" : src,
-            "bundle" : bundle,
-            "label" : label,
-        })
-        headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
-        request = urllib2.Request(self.url + "/" + self.name + "/bundle", payload, headers=headers)
-        response = urllib2.urlopen(request)
-        result = response.read()
-        return json.loads(result)
+    def getEdge(self, gid):
+        """
+        Get an edge by id.
+        """
+        headers = {"Content-Type": "application/json",
+                   "Accept": "application/json"}
+        url = self.url + "/" + self.name + "/edge/" + gid
+        request = urllib2.Request(url, headers=headers)
+        response = do_request(request)
+        return json.loads(response.read())
 
     def bulkAdd(self):
         return BulkAdd(self.url, self.name)
 
+    def addIndex(self, label, field):
+        headers = {"Content-Type": "application/json",
+                   "Accept": "application/json"}
+        url = self.url + "/" + self.name + "/index/" + label
+        request = urllib2.Request(url,
+                                  json.dumps({"field": field}),
+                                  headers=headers)
+        response = do_request(request)
+        result = response.read()
+        return json.loads(result)
+
+    def listIndices(self):
+        headers = {"Content-Type": "application/json",
+                   "Accept": "application/json"}
+        url = self.url + "/" + self.name + "/index"
+        request = urllib2.Request(url, headers=headers)
+        response = do_request(request)
+        for result in response:
+            d = json.loads(result)
+            yield d
+
+    def aggregate(self, aggregations):
+        headers = {"Content-Type": "application/json",
+                   "Accept": "application/json"}
+        if not isinstance(aggregations, list):
+            aggregations = [aggregations]
+        payload = {
+            "aggregations": aggregations,
+        }
+        url = self.url + "/" + self.name + "/aggregate"
+        request = urllib2.Request(url, json.dumps(payload), headers=headers)
+        response = do_request(request)
+        for result in response:
+            d = json.loads(result)
+            yield d["aggregations"]
+
+    def query(self):
+        """
+        Create a query handle.
+        """
+        return Query(self.url + "/" + self.name + "/query")
+
     def mark(self, name):
-        q = self.query()
-        q.mark(name)
-        return q
+        """
+        Create mark step for match query
+        """
+        return self.query().mark(name)
+
 
 class BulkAdd:
     def __init__(self, url, graph):
@@ -129,46 +307,47 @@ class BulkAdd:
 
     def addVertex(self, id, label, data={}):
         payload = json.dumps({
-            "graph" : self.graph,
-            "vertex" : {
-                "gid" : id,
-                "label" : label,
-                "data" : data
+            "graph": self.graph,
+            "vertex": {
+                "gid": id,
+                "label": label,
+                "data": data
             }
         })
         self.elements.append(payload)
 
     def addEdge(self, src, dst, label, data={}):
         payload = json.dumps({
-            "graph" : self.graph,
-            "edge" : {
-                "from" : src,
-                "to" : dst,
-                "label" : label,
-                "data" : data
+            "graph": self.graph,
+            "edge": {
+                "from": src,
+                "to": dst,
+                "label": label,
+                "data": data
             }
         })
         self.elements.append(payload)
 
-    def commit(self):
+    def execute(self):
         payload = "\n".join(self.elements)
-        headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
+        headers = {"Content-Type": "application/json",
+                   "Accept": "application/json"}
         request = urllib2.Request(self.url, payload, headers=headers)
-        response = urllib2.urlopen(request)
+        response = do_request(request)
         result = response.read()
         return json.loads(result)
 
-class Query:
-    def __init__(self, parent=None):
-        self.query = []
-        self.parent = parent
 
-    def js_import(self, src):
-        """
-        Initialize javascript engine with functions and global variables.
-        """
-        self.query.append({"import":src})
-        return self
+class Query:
+    def __init__(self, url):
+        self.query = []
+        self.url = url
+
+    def __append(self, part):
+        q = Query(self.url)
+        q.query = self.query[:]
+        q.query.append(part)
+        return q
 
     def V(self, id=[]):
         """
@@ -178,61 +357,33 @@ class Query:
         """
         if not isinstance(id, list):
             id = [id]
-        self.query.append({"V":id})
-        return self
+        return self.__append({"v": id})
 
-    def E(self, id=None):
+    def E(self, id=[]):
         """
         Start the query at an edge.
 
         "id" is an ID to start from. Optional.
         """
-        self.query.append({"E":id})
-        return self
-
-    def hasLabel(self, label):
-        """
-        Match vertex/edge label.
-
-        "label" can be a list.
-        """
-        if not isinstance(label, list):
-            label = [label]
-        self.query.append({'hasLabel': label})
-        return self
-
-    def hasId(self, id):
-        """
-        Match vertex/edge ID.
-
-        "id" can be a list.
-        """
         if not isinstance(id, list):
             id = [id]
-        self.query.append({'hasId': id})
-        return self
+        return self.__append({"e": id})
 
-    def has(self, key, value):
+    def where(self, expression):
         """
-        Match vertex/edge property.
+        Filter vertex/edge based on properties.
+        """
+        return self.__append({"where": expression})
 
-        If "value" is a list, then data must match at least one item.
+    def fields(self, fields=[]):
         """
-        if not isinstance(value, list):
-            value = [value]
-        self.query.append({'has': { "key" : key, 'within': value}})
-        return self
+        Select document properties to be returned in document.
+        """
+        if not isinstance(fields, list):
+            fields = [fields]
+        return self.__append({"fields": fields})
 
-    def values(self, v):
-        """
-        Extract document properties into returned document.
-        """
-        if not isinstance(v, list):
-            v = [v]
-        self.query.append({'values': {"labels" : v}})
-        return self
-
-    def incoming(self, label=[]):
+    def in_(self, label=[]):
         """
         Follow an incoming edge to the source vertex.
 
@@ -241,10 +392,9 @@ class Query:
         """
         if not isinstance(label, list):
             label = [label]
-        self.query.append({'in': label})
-        return self
+        return self.__append({"in": label})
 
-    def outgoing(self, label=[]):
+    def out(self, label=[]):
         """
         Follow an outgoing edge to the destination vertex.
 
@@ -253,8 +403,7 @@ class Query:
         """
         if not isinstance(label, list):
             label = [label]
-        self.query.append({'out': label})
-        return self
+        return self.__append({"out": label})
 
     def both(self, label=[]):
         """
@@ -265,10 +414,9 @@ class Query:
         """
         if not isinstance(label, list):
             label = [label]
-        self.query.append({'both': label})
-        return self
+        return self.__append({"both": label})
 
-    def incomingEdge(self, label=[]):
+    def inEdge(self, label=[]):
         """
         Move from a vertex to an incoming edge.
 
@@ -279,10 +427,9 @@ class Query:
         """
         if not isinstance(label, list):
             label = [label]
-        self.query.append({'inEdge': label})
-        return self
+        return self.__append({"in_edge": label})
 
-    def outgoingEdge(self, label=[]):
+    def outEdge(self, label=[]):
         """
         Move from a vertex to an outgoing edge.
 
@@ -293,8 +440,7 @@ class Query:
         """
         if not isinstance(label, list):
             label = [label]
-        self.query.append({'outEdge': label})
-        return self
+        return self.__append({"out_edge": label})
 
     def bothEdge(self, label=[]):
         """
@@ -307,14 +453,7 @@ class Query:
         """
         if not isinstance(label, list):
             label = [label]
-        self.query.append({'bothEdge': label})
-        return self
-
-    def outgoingBundle(self, label=[]):
-        if not isinstance(label, list):
-            label = [label]
-        self.query.append({'outBundle': label})
-        return self
+        return self.__append({"both_edge": label})
 
     def mark(self, name):
         """
@@ -322,8 +461,7 @@ class Query:
 
         Used to return elements from select().
         """
-        self.query.append({'as': name})
-        return self
+        return self.__append({"mark": name})
 
     def select(self, marks):
         """
@@ -338,61 +476,62 @@ class Query:
             [A2, B2],
         ]
         """
-        self.query.append({'select': {"labels" : marks}})
-        return self
+        if not isinstance(marks, list):
+            marks = [marks]
+        return self.__append({"select": {"marks": marks}})
 
-    def limit(self, l):
+    def limit(self, n):
         """
         Limits the number of results returned.
         """
-        self.query.append({'limit': l})
-        return self
+        return self.__append({"limit": n})
 
-    def range(self, begin, end):
+    def offset(self, n):
         """
+        Offset the results returned.
         """
-        self.query.append({'begin': begin, 'end': end})
-        return self
+        return self.__append({"offset": n})
 
     def count(self):
         """
         Return the number of results, instead of the elements.
         """
-        self.query.append({'count': ''})
-        return self
+        return self.__append({"count": ""})
 
-    def groupCount(self, label):
+    def distinct(self, props=[]):
         """
-        Group results by the given property name and count each group.
+        Select distinct elements based on the provided property list.
         """
-        self.query.append({'groupCount': label})
-        return self
+        if not isinstance(props, list):
+            props = [props]
+        return self.__append({"distinct": props})
+
+    def jsImport(self, src):
+        """
+        Initialize javascript engine with functions and global variables.
+        """
+        return self.__append({"import": src})
 
     def map(self, func):
         """
         Transform results by the given javascript function.
         function(el) el
         """
-        self.query.append({"map" : func})
-        return self
+        return self.__append({"map": func})
 
     def filter(self, func):
         """
         Filter results by the given javascript function.
         function(el) bool
         """
-        self.query.append({"filter" : func})
-        return self
+        return self.__append({"filter": func})
 
     def fold(self, init, func):
-        self.query.append({"fold": {"init" : init, "source" : func}})
-        return self
-
-    def vertexFromValues(self, func):
         """
+        Fold results by the given javascript function.
+        function(el) el
         """
-        self.query.append({"vertexFromValues" : func})
-        return self
+        return self.__append({"fold": {"init": init, "source": func}})
 
     def match(self, queries):
         """
@@ -400,15 +539,28 @@ class Query:
         """
         mq = []
         for i in queries:
-            mq.append( {'query': i.query} )
-        self.query.append({'match': {'queries': mq }})
-        return self
+            mq.append({"query": i.query})
+        return self.__append({"match": {"queries": mq}})
 
-    def render(self):
+    def render(self, template):
+        """
+        Render output of query
+        """
+        return self.__append({"render": template})
+
+    def aggregate(self, aggregations):
+        """
+        Aggregate results of query output
+        """
+        if not isinstance(aggregations, list):
+            aggregations = [aggregations]
+        return self.__append({"aggregate": {"aggregations": aggregations}})
+
+    def toJson(self):
         """
         Return the query as a JSON string.
         """
-        output = {'query': self.query}
+        output = {"query": self.query}
         return json.dumps(output)
 
     def __iter__(self):
@@ -418,30 +570,35 @@ class Query:
         """
         Execute the query and return an iterator.
         """
-        payload = self.render()
-        #print payload
-        headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
-        url = self.parent.url + "/" + self.parent.name + "/query"
-        request = urllib2.Request(url, payload, headers=headers)
-        response = urllib2.urlopen(request)
-        #out = []
+        payload = self.toJson()
+        headers = {"Content-Type": "application/json",
+                   "Accept": "application/json"}
+        request = urllib2.Request(self.url, payload, headers=headers)
+        response = do_request(request)
         for result in response:
             try:
+                # print(result)
                 d = json.loads(result)
-                if 'value' in d:
-                    #out.append(d['value'])
-                    yield d['value']
-                elif 'row' in d:
-                    #out.append(d['row'])
-                    yield d['row']
-            except ValueError, e:
-                print "Can't decode: %s" % result
+                if "vertex" in d:
+                    yield d["vertex"]
+                elif "edge" in d:
+                    yield d["edge"]
+                elif "aggregations" in d:
+                    yield d["aggregations"]["aggregations"]
+                elif "selections" in d:
+                    d = d["selections"]["selections"]
+                    for k in d:
+                        if "vertex" in d[k]:
+                            d[k] = d[k]["vertex"]
+                        elif "edge" in d[k]:
+                            d[k] = d[k]["edge"]
+                    yield d
+                elif "render" in d:
+                        yield d["render"]
+                elif "count" in d:
+                        yield d
+                else:
+                    yield d
+            except ValueError as e:
+                print("Can't decode: %s" % (result))
                 raise e
-        #return out
-
-
-    def first(self):
-        """
-        Return only the first result.
-        """
-        return list(self.execute())[0]
