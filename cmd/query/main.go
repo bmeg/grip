@@ -3,7 +3,6 @@ package query
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"strings"
 
 	"github.com/bmeg/arachne/aql"
@@ -53,7 +52,6 @@ var Cmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		log.Printf("Query: %s\n", string(queryJSON))
 
 		query := aql.GraphQuery{}
 		err = jsonpb.Unmarshal(strings.NewReader(string(queryJSON)), &query)
@@ -77,9 +75,9 @@ var Cmd = &cobra.Command{
 			rowString, _ := marsh.MarshalToString(row)
 			fmt.Printf("%s\n", rowString)
 		}
-
 		return nil
-	}}
+	},
+}
 
 func init() {
 	flags := Cmd.Flags()
