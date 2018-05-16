@@ -226,25 +226,25 @@ class Query:
             try:
                 d = json.loads(result)
                 if "vertex" in d:
-                    yield d["vertex"]
+                    yield QueryResult(d["vertex"])
                 elif "edge" in d:
-                    yield d["edge"]
+                    yield QueryResult(d["edge"])
                 elif "aggregations" in d:
-                    yield d["aggregations"]["aggregations"]
+                    yield QueryResult(d["aggregations"]["aggregations"])
                 elif "selections" in d:
-                    d = d["selections"]["selections"]
+                    d = QueryResult(d["selections"]["selections"])
                     for k in d:
                         if "vertex" in d[k]:
                             d[k] = d[k]["vertex"]
                         elif "edge" in d[k]:
                             d[k] = d[k]["edge"]
-                    yield d
+                    yield QueryResult(d)
                 elif "render" in d:
-                        yield d["render"]
+                        yield QueryResult(d["render"])
                 elif "count" in d:
-                        yield d
+                        yield QueryResult(d)
                 else:
-                    yield d
+                    yield QueryResult(d)
             except ValueError as e:
                 print("Can't decode: %s" % (result), file=sys.stderr)
                 raise e
@@ -260,6 +260,17 @@ class QueryResult(object):
             else:
                 self.__dict__[k] = v
 
+    def __getattr__(self, k):
+        try:
+            return self.__dict__[k]
+        except KeyError:
+            raise AttributeError(
+                "%s has no attribute %s" % (self.__class__.__name__, k)
+            )
+
+    def __getitem__(self, k):
+        return self.as_dict()[k]
+
     def __setattr__(self, k, v):
         if isinstance(v, dict):
             self.__dict__[k] = self.__class__(v)
@@ -272,6 +283,18 @@ class QueryResult(object):
 
     def __str__(self):
         return self.__repr__()
+
+    def __iter__(self):
+        for k in self.as_dict():
+            yield k
+
+    def items(self):
+        for k, v in self.as_dict().items():
+            yield k, v
+
+    def keys(self):
+        for k in self.as_dict().keys():
+            yield k
 
     def as_dict(self):
         attrs = {}
