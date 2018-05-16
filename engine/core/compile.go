@@ -159,7 +159,6 @@ func (comp DefaultCompiler) Compile(stmts []*aql.GraphStatement) (gdbi.Pipeline,
 			add(&Offset{stmt.Offset})
 
 		case *aql.GraphStatement_Count:
-			// TODO validate the types following a counter
 			add(&Count{})
 			lastType = gdbi.CountData
 
@@ -170,7 +169,6 @@ func (comp DefaultCompiler) Compile(stmts []*aql.GraphStatement) (gdbi.Pipeline,
 			add(&Distinct{protoutil.AsStringList(stmt.Distinct)})
 
 		case *aql.GraphStatement_Mark:
-			// TODO probably needs to be checked for a lot of statements.
 			if lastType == gdbi.NoData {
 				return &DefaultPipeline{}, fmt.Errorf(`"mark" statement is not valid at the beginning of a traversal`)
 			}
@@ -190,8 +188,6 @@ func (comp DefaultCompiler) Compile(stmts []*aql.GraphStatement) (gdbi.Pipeline,
 			if lastType != gdbi.VertexData && lastType != gdbi.EdgeData {
 				return &DefaultPipeline{}, fmt.Errorf(`"select" statement is only valid for edge or vertex types not: %s`, lastType.String())
 			}
-			// TODO should track mark types so "lastType" can be set after select
-			// TODO track mark names and fail when a name is missing.
 			if len(stmt.Select.Marks) == 0 {
 				return &DefaultPipeline{}, fmt.Errorf(`"select" statement has an empty list of mark names`)
 			}
