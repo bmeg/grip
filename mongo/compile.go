@@ -65,137 +65,178 @@ func (comp *MongoCompiler) Compile(stmts []*aql.GraphStatement) (gdbi.Pipeline, 
 
 		case *aql.GraphStatement_In:
 			labels := protoutil.AsStringList(stmt.In)
-			switch lastType {
-			case gdbi.VertexData:
-				query = append(query,
-					bson.M{"$lookup": bson.M{"from": edgeCol, "localField": "_id", "foreignField": "to", "as": "dst"}})
-				query = append(query, bson.M{"$unwind": "$dst"})
-				if len(labels) > 0 {
-					query = append(query, bson.M{"$match": bson.M{"dst.label": bson.M{"$in": labels}}})
-				}
-				query = append(query,
-					bson.M{"$lookup": bson.M{"from": vertCol, "localField": "dst.from", "foreignField": "_id", "as": "dst"}})
-
-			case gdbi.EdgeData:
-				if len(labels) > 0 {
-					query = append(query, bson.M{"$match": bson.M{"label": bson.M{"$in": labels}}})
-				}
-				query = append(query,
-					bson.M{"$lookup": bson.M{"from": vertCol, "localField": "from", "foreignField": "_id", "as": "dst"}})
-			}
-			query = append(query, bson.M{"$unwind": "$dst"})
-			query = append(query, bson.M{"$project": bson.M{"_id": "$dst._id", "label": "$dst.label", "data": "$dst.data"}})
-			lastType = gdbi.VertexData
-
-		case *aql.GraphStatement_Out:
-			labels := protoutil.AsStringList(stmt.Out)
-			switch lastType {
-			case gdbi.VertexData:
-				query = append(query,
-					bson.M{"$lookup": bson.M{"from": edgeCol, "localField": "_id", "foreignField": "from", "as": "dst"}})
-				query = append(query, bson.M{"$unwind": "$dst"})
-				if len(labels) > 0 {
-					query = append(query, bson.M{"$match": bson.M{"dst.label": bson.M{"$in": labels}}})
-				}
-				query = append(query,
-					bson.M{"$lookup": bson.M{"from": vertCol, "localField": "dst.to", "foreignField": "_id", "as": "dst"}})
-
-			case gdbi.EdgeData:
-				if len(labels) > 0 {
-					query = append(query, bson.M{"$match": bson.M{"label": bson.M{"$in": labels}}})
-				}
-				query = append(query,
-					bson.M{"$lookup": bson.M{"from": vertCol, "localField": "to", "foreignField": "_id", "as": "dst"}})
-			}
-			query = append(query, bson.M{"$unwind": "$dst"})
-			query = append(query, bson.M{"$project": bson.M{"_id": "$dst._id", "label": "$dst.label", "data": "$dst.data"}})
-			lastType = gdbi.VertexData
-
-		case *aql.GraphStatement_Both:
-			labels := protoutil.AsStringList(stmt.Both)
-			switch lastType {
-			case gdbi.VertexData:
+			if lastType == gdbi.VertexData {
 				query = append(query,
 					bson.M{
 						"$lookup": bson.M{
 							"from": edgeCol,
-							"let":  bson.M{"vertex_gid": "$_id"},
+							"let":  bson.M{"vid": "$_id", "marks": "$marks"},
 							"pipeline": []bson.M{
 								{
 									"$match": bson.M{
 										"$expr": bson.M{
-											"$or": []bson.M{
-												{"$eq": []string{"$to", "$$vertex_gid"}},
-												{"$eq": []string{"$from", "$$vertex_gid"}},
-											},
+											"$eq": []string{"$to", "$$vid"},
 										},
 									},
 								},
-								{"$addFields": bson.M{"vid": "$$vertex_gid"}},
+								{
+									"$addFields": bson.M{"marks": "$$marks"},
+								},
 							},
 							"as": "dst",
 						},
 					},
 				)
 				query = append(query, bson.M{"$unwind": "$dst"})
-				if len(labels) > 0 {
-					query = append(query, bson.M{"$match": bson.M{"dst.label": bson.M{"$in": labels}}})
-				}
+				query = append(query, bson.M{"$project": bson.M{"_id": "$dst._id", "label": "$dst.label", "data": "$dst.data", "to": "$dst.to", "from": "$dst.from", "marks": "$dst.marks"}})
+			}
+			if len(labels) > 0 {
+				query = append(query, bson.M{"$match": bson.M{"label": bson.M{"$in": labels}}})
+			}
+			query = append(query,
+				bson.M{
+					"$lookup": bson.M{
+						"from": vertCol,
+						"let":  bson.M{"from": "$from", "marks": "$marks"},
+						"pipeline": []bson.M{
+							{
+								"$match": bson.M{
+									"$expr": bson.M{
+										"$eq": []string{"$_id", "$$from"},
+									},
+								},
+							},
+							{
+								"$addFields": bson.M{"marks": "$$marks"},
+							},
+						},
+						"as": "dst",
+					},
+				},
+			)
+			query = append(query, bson.M{"$unwind": "$dst"})
+			query = append(query, bson.M{"$project": bson.M{"_id": "$dst._id", "label": "$dst.label", "data": "$dst.data", "marks": "$dst.marks"}})
+			lastType = gdbi.VertexData
+
+		case *aql.GraphStatement_Out:
+			labels := protoutil.AsStringList(stmt.Out)
+			if lastType == gdbi.VertexData {
 				query = append(query,
 					bson.M{
 						"$lookup": bson.M{
-							"from": vertCol,
-							"let":  bson.M{"edge_to": "$dst.to", "edge_from": "$dst.from", "vid": "$dst.vid"},
+							"from": edgeCol,
+							"let":  bson.M{"vid": "$_id", "marks": "$marks"},
 							"pipeline": []bson.M{
 								{
 									"$match": bson.M{
 										"$expr": bson.M{
-											"$and": []bson.M{
-												{
-													"$or": []bson.M{
-														{"$eq": []string{"$_id", "$$edge_from"}},
-														{"$eq": []string{"$_id", "$$edge_to"}},
-													},
-												},
-												{"$ne": []string{"$_id", "$$vid"}},
-											},
+											"$eq": []string{"$from", "$$vid"},
 										},
 									},
+								},
+								{
+									"$addFields": bson.M{"marks": "$$marks"},
 								},
 							},
 							"as": "dst",
 						},
 					},
 				)
+				query = append(query, bson.M{"$unwind": "$dst"})
+				query = append(query, bson.M{"$project": bson.M{"_id": "$dst._id", "label": "$dst.label", "data": "$dst.data", "to": "$dst.to", "from": "$dst.from", "marks": "$dst.marks"}})
+			}
+			if len(labels) > 0 {
+				query = append(query, bson.M{"$match": bson.M{"label": bson.M{"$in": labels}}})
+			}
+			query = append(query,
+				bson.M{
+					"$lookup": bson.M{
+						"from": vertCol,
+						"let":  bson.M{"to": "$to", "marks": "$marks"},
+						"pipeline": []bson.M{
+							{
+								"$match": bson.M{
+									"$expr": bson.M{
+										"$eq": []string{"$_id", "$$to"},
+									},
+								},
+							},
+							{
+								"$addFields": bson.M{"marks": "$$marks"},
+							},
+						},
+						"as": "dst",
+					},
+				},
+			)
+			query = append(query, bson.M{"$unwind": "$dst"})
+			query = append(query, bson.M{"$project": bson.M{"_id": "$dst._id", "label": "$dst.label", "data": "$dst.data", "marks": "$dst.marks"}})
+			lastType = gdbi.VertexData
 
-			case gdbi.EdgeData:
-				if len(labels) > 0 {
-					query = append(query, bson.M{"$match": bson.M{"label": bson.M{"$in": labels}}})
-				}
+		case *aql.GraphStatement_Both:
+			labels := protoutil.AsStringList(stmt.Both)
+			if lastType == gdbi.VertexData {
 				query = append(query,
 					bson.M{
 						"$lookup": bson.M{
-							"from": vertCol,
-							"let":  bson.M{"edge_to": "$to", "edge_from": "$from"},
+							"from": edgeCol,
+							"let":  bson.M{"vid": "$_id", "marks": "$marks"},
 							"pipeline": []bson.M{
 								{
 									"$match": bson.M{
 										"$expr": bson.M{
 											"$or": []bson.M{
-												{"$eq": []string{"$_id", "$$edge_from"}},
-												{"$eq": []string{"$_id", "$$edge_to"}},
+												{"$eq": []string{"$to", "$$vid"}},
+												{"$eq": []string{"$from", "$$vid"}},
 											},
 										},
 									},
 								},
+								{"$addFields": bson.M{"vid": "$$vid", "marks": "$$marks"}},
 							},
 							"as": "dst",
 						},
 					},
 				)
+				query = append(query, bson.M{"$unwind": "$dst"})
+				query = append(query, bson.M{"$project": bson.M{"_id": "$dst._id", "label": "$dst.label", "data": "$dst.data", "to": "$dst.to", "from": "$dst.from", "marks": "$dst.marks", "vid": "$dst.vid"}})
 			}
+			if len(labels) > 0 {
+				query = append(query, bson.M{"$match": bson.M{"label": bson.M{"$in": labels}}})
+			}
+			query = append(query,
+				bson.M{
+					"$lookup": bson.M{
+						"from": vertCol,
+						"let":  bson.M{"to": "$to", "from": "$from", "marks": "$marks", "vid": "$vid"},
+						"pipeline": []bson.M{
+							{
+								"$match": bson.M{
+									"$expr": bson.M{
+										"$and": []bson.M{
+											{
+												"$or": []bson.M{
+													{"$eq": []string{"$_id", "$$from"}},
+													{"$eq": []string{"$_id", "$$to"}},
+												},
+											},
+											{
+												"$ne": []string{"$_id", "$$vid"},
+											},
+										},
+									},
+								},
+							},
+							{
+								"$addFields": bson.M{"marks": "$$marks"},
+							},
+						},
+						"as": "dst",
+					},
+				},
+			)
 			query = append(query, bson.M{"$unwind": "$dst"})
-			query = append(query, bson.M{"$project": bson.M{"_id": "$dst._id", "label": "$dst.label", "data": "$dst.data"}})
+			query = append(query, bson.M{"$project": bson.M{"_id": "$dst._id", "label": "$dst.label", "data": "$dst.data", "marks": "$dst.marks"}})
 			lastType = gdbi.VertexData
 
 		case *aql.GraphStatement_InEdge:
@@ -203,13 +244,32 @@ func (comp *MongoCompiler) Compile(stmts []*aql.GraphStatement) (gdbi.Pipeline, 
 				return &MongoPipeline{}, fmt.Errorf(`"inEdge" statement is only valid for the vertex type not: %s`, lastType.String())
 			}
 			query = append(query,
-				bson.M{"$lookup": bson.M{"from": edgeCol, "localField": "_id", "foreignField": "to", "as": "dst"}})
+				bson.M{
+					"$lookup": bson.M{
+						"from": edgeCol,
+						"let":  bson.M{"vid": "$_id", "marks": "$marks"},
+						"pipeline": []bson.M{
+							{
+								"$match": bson.M{
+									"$expr": bson.M{
+										"$eq": []string{"$to", "$$vid"},
+									},
+								},
+							},
+							{
+								"$addFields": bson.M{"marks": "$$marks"},
+							},
+						},
+						"as": "dst",
+					},
+				},
+			)
 			query = append(query, bson.M{"$unwind": "$dst"})
+			query = append(query, bson.M{"$project": bson.M{"_id": "$dst._id", "label": "$dst.label", "data": "$dst.data", "to": "$dst.to", "from": "$dst.from", "marks": "$dst.marks"}})
 			labels := protoutil.AsStringList(stmt.InEdge)
 			if len(labels) > 0 {
-				query = append(query, bson.M{"$match": bson.M{"dst.label": bson.M{"$in": labels}}})
+				query = append(query, bson.M{"$match": bson.M{"label": bson.M{"$in": labels}}})
 			}
-			query = append(query, bson.M{"$project": bson.M{"_id": "$dst._id", "label": "$dst.label", "data": "$dst.data", "to": "$dst.to", "from": "$dst.from"}})
 			lastType = gdbi.EdgeData
 
 		case *aql.GraphStatement_OutEdge:
@@ -217,13 +277,32 @@ func (comp *MongoCompiler) Compile(stmts []*aql.GraphStatement) (gdbi.Pipeline, 
 				return &MongoPipeline{}, fmt.Errorf(`"outEdge" statement is only valid for the vertex type not: %s`, lastType.String())
 			}
 			query = append(query,
-				bson.M{"$lookup": bson.M{"from": edgeCol, "localField": "_id", "foreignField": "from", "as": "dst"}})
+				bson.M{
+					"$lookup": bson.M{
+						"from": edgeCol,
+						"let":  bson.M{"vid": "$_id", "marks": "$marks"},
+						"pipeline": []bson.M{
+							{
+								"$match": bson.M{
+									"$expr": bson.M{
+										"$eq": []string{"$from", "$$vid"},
+									},
+								},
+							},
+							{
+								"$addFields": bson.M{"marks": "$$marks"},
+							},
+						},
+						"as": "dst",
+					},
+				},
+			)
 			query = append(query, bson.M{"$unwind": "$dst"})
+			query = append(query, bson.M{"$project": bson.M{"_id": "$dst._id", "label": "$dst.label", "data": "$dst.data", "to": "$dst.to", "from": "$dst.from", "marks": "$dst.marks"}})
 			labels := protoutil.AsStringList(stmt.OutEdge)
 			if len(labels) > 0 {
-				query = append(query, bson.M{"$match": bson.M{"dst.label": bson.M{"$in": labels}}})
+				query = append(query, bson.M{"$match": bson.M{"label": bson.M{"$in": labels}}})
 			}
-			query = append(query, bson.M{"$project": bson.M{"_id": "$dst._id", "label": "$dst.label", "data": "$dst.data", "to": "$dst.to", "from": "$dst.from"}})
 			lastType = gdbi.EdgeData
 
 		case *aql.GraphStatement_BothEdge:
@@ -234,30 +313,32 @@ func (comp *MongoCompiler) Compile(stmts []*aql.GraphStatement) (gdbi.Pipeline, 
 				bson.M{
 					"$lookup": bson.M{
 						"from": edgeCol,
-						"let":  bson.M{"vertex_gid": "$_id"},
+						"let":  bson.M{"vid": "$_id", "marks": "$marks"},
 						"pipeline": []bson.M{
 							{
 								"$match": bson.M{
 									"$expr": bson.M{
 										"$or": []bson.M{
-											{"$eq": []string{"$to", "$$vertex_gid"}},
-											{"$eq": []string{"$from", "$$vertex_gid"}},
+											{"$eq": []string{"$to", "$$vid"}},
+											{"$eq": []string{"$from", "$$vid"}},
 										},
 									},
 								},
 							},
-							{"$addFields": bson.M{"vid": "$$vertex_gid"}},
+							{
+								"$addFields": bson.M{"marks": "$$marks"},
+							},
 						},
 						"as": "dst",
 					},
 				},
 			)
 			query = append(query, bson.M{"$unwind": "$dst"})
+			query = append(query, bson.M{"$project": bson.M{"_id": "$dst._id", "label": "$dst.label", "data": "$dst.data", "to": "$dst.to", "from": "$dst.from", "marks": "$dst.marks"}})
 			labels := protoutil.AsStringList(stmt.BothEdge)
 			if len(labels) > 0 {
-				query = append(query, bson.M{"$match": bson.M{"dst.label": bson.M{"$in": labels}}})
+				query = append(query, bson.M{"$match": bson.M{"label": bson.M{"$in": labels}}})
 			}
-			query = append(query, bson.M{"$project": bson.M{"_id": "$dst._id", "label": "$dst.label", "data": "$dst.data", "to": "$dst.to", "from": "$dst.from"}})
 			lastType = gdbi.EdgeData
 
 		case *aql.GraphStatement_Where:
@@ -299,7 +380,7 @@ func (comp *MongoCompiler) Compile(stmts []*aql.GraphStatement) (gdbi.Pipeline, 
 				return &MongoPipeline{}, fmt.Errorf(`"mark" statement invalid; uses reserved name %s`, jsonpath.Current)
 			}
 			markTypes[stmt.Mark] = lastType
-			//TODO
+			query = append(query, bson.M{"$addFields": bson.M{"marks": bson.M{stmt.Mark: "$_id"}}})
 
 		case *aql.GraphStatement_Select:
 			if lastType != gdbi.VertexData && lastType != gdbi.EdgeData {
@@ -308,7 +389,11 @@ func (comp *MongoCompiler) Compile(stmts []*aql.GraphStatement) (gdbi.Pipeline, 
 			if len(stmt.Select.Marks) == 0 {
 				return &MongoPipeline{}, fmt.Errorf(`"select" statement has an empty list of mark names`)
 			}
-			//TODO
+			selection := bson.M{}
+			for _, mark := range stmt.Select.Marks {
+				selection["marks."+mark] = 1
+			}
+			query = append(query, bson.M{"$project": selection})
 			lastType = gdbi.SelectionData
 
 		case *aql.GraphStatement_Render:
@@ -358,8 +443,8 @@ type MongoProcessor struct {
 	markTypes       map[string]gdbi.DataType
 }
 
-func getDataElement(data map[string]interface{}) gdbi.DataElement {
-	d := gdbi.DataElement{}
+func getDataElement(data map[string]interface{}) *gdbi.DataElement {
+	d := &gdbi.DataElement{}
 	if x, ok := data["_id"]; ok {
 		d.ID = x.(string)
 	}
@@ -411,31 +496,49 @@ func (proc *MongoProcessor) Process(ctx context.Context, man gdbi.Manager, in gd
 					//TODO
 
 				case gdbi.SelectionData:
-					log.Println("MongoProcessor for gdbi.SelectionData not implemented")
-					//TODO
+					selections := map[string]*gdbi.DataElement{}
+					if marks, ok := result["marks"]; ok {
+						if marks, ok := marks.(map[string]interface{}); ok {
+							for k, v := range marks {
+								gid, ok := v.(string)
+								if !ok {
+									log.Println("Failed to process selection data: %+v", v)
+								}
+								de := &gdbi.DataElement{}
+								switch proc.markTypes[k] {
+								case gdbi.VertexData:
+									v := proc.db.GetVertex(gid, true)
+									if v != nil {
+										de = &gdbi.DataElement{
+											ID:    v.Gid,
+											Label: v.Label,
+											Data:  v.GetDataMap(),
+										}
+									}
+								case gdbi.EdgeData:
+									e := proc.db.GetEdge(gid, true)
+									if e != nil {
+										de = &gdbi.DataElement{
+											ID:    e.Gid,
+											Label: e.Label,
+											From:  e.From,
+											To:    e.To,
+											Data:  e.GetDataMap(),
+										}
+									}
+								}
+								selections[k] = de
+							}
+						}
+					}
+					out <- &gdbi.Traveler{Selections: selections}
 
 				case gdbi.AggregationData:
 					log.Println("MongoProcessor for gdbi.AggregationData not implemented")
 					//TODO
 
 				default:
-					d := gdbi.DataElement{}
-					if x, ok := result["_id"]; ok {
-						d.ID = x.(string)
-					}
-					if x, ok := result["label"]; ok {
-						d.Label = x.(string)
-					}
-					if x, ok := result["data"]; ok {
-						d.Data = x.(map[string]interface{})
-					}
-					if x, ok := result["to"]; ok {
-						d.To = x.(string)
-					}
-					if x, ok := result["from"]; ok {
-						d.From = x.(string)
-					}
-					out <- t.AddCurrent(&d)
+					out <- t.AddCurrent(getDataElement(result))
 				}
 			}
 			if err := iter.Err(); err != nil {
