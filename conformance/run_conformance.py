@@ -23,7 +23,8 @@ if __name__ == "__main__":
 
     conn = aql.Connection(server)
     if GRAPH in conn.listGraphs():
-        if int(conn.graph(GRAPH).query().V().count().first()['data']) != 0:
+        print(list(conn.graph(GRAPH).query().V().count())[0])
+        if int(list(conn.graph(GRAPH).query().V().count())[0]['count']) != 0:
             print("Need to start with empty DB: %s" % (GRAPH))
             sys.exit()
 

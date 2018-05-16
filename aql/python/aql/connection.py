@@ -1,66 +1,48 @@
 from __future__ import absolute_import, print_function, unicode_literals
 
 import json
-import urllib2
+import requests
 
-from aql.util import do_request
+
+from aql.util import process_url
 from aql.graph import Graph
 
 
 class Connection:
     def __init__(self, url):
-        scheme, netloc, path, query, frag = urllib2.urlparse.urlsplit(url)
-        query = ""
-        frag = ""
-        if scheme == "":
-            scheme = "http"
-        if netloc == "" and path != "":
-            netloc = path
-            path = ""
-        host = urllib2.urlparse.urlunsplit((scheme, netloc, path, query, frag))
-        self.host = host
-        self.url = "%s/v1/graph" % (host)
+        url = process_url(url)
+        self.base_url = url
+        self.url = url + "/v1/graph"
 
     def listGraphs(self):
         """
         List graphs.
         """
-        request = urllib2.Request(self.url)
-        response = urllib2.urlopen(request)
-        txt = response.read()
-        if len(txt) == 0:
-            return []
-        lines = txt.rstrip().split("\n")
-        out = []
-        for i in lines:
-            out.append(json.loads(i))
-        return out
+        response = requests.get(self.url, stream=True)
+        response.raise_for_status()
+        output = []
+        for line in response.iter_lines():
+            output.append(json.loads(line)['graph'])
+        return output
 
     def addGraph(self, name):
         """
         Create a new graph.
         """
-        headers = {"Content-Type": "application/json",
-                   "Accept": "application/json"}
-        request = urllib2.Request(self.url + "/" + name, "{}", headers=headers)
-        response = do_request(request)
-        result = response.read()
-        return json.loads(result)
+        response = requests.post(self.url + "/" + name, {})
+        response.raise_for_status()
+        return response.json()
 
     def deleteGraph(self, name):
         """
         Delete graph.
         """
-        headers = {"Content-Type": "application/json",
-                   "Accept": "application/json"}
-        request = urllib2.Request(self.url + "/" + name, headers=headers)
-        request.get_method = lambda: "DELETE"
-        response = do_request(request)
-        result = response.read()
-        return json.loads(result)
+        response = requests.delete(self.url + "/" + name)
+        response.raise_for_status()
+        return response.json()
 
     def graph(self, name):
         """
         Get a graph handle.
         """
-        return Graph(self.url, name)
+        return Graph(self.base_url, name)

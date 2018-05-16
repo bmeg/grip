@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
-import aql
-import urllib2
+import requests
 
 
 def setupGraph(O):
@@ -10,9 +9,9 @@ def setupGraph(O):
     O.addVertex("vertex3", "person", {"field1": "value3", "field2": "value4"})
     O.addVertex("vertex4", "person")
 
-    O.addEdge("vertex1", "vertex2", "friend", id="edge1")
-    O.addEdge("vertex2", "vertex3", "friend", id="edge2")
-    O.addEdge("vertex2", "vertex4", "parent", id="edge3")
+    O.addEdge("vertex1", "vertex2", "friend", gid="edge1")
+    O.addEdge("vertex2", "vertex3", "friend", gid="edge2")
+    O.addEdge("vertex2", "vertex4", "parent", gid="edge3")
 
 
 def test_get_vertex(O):
@@ -34,13 +33,12 @@ def test_get_vertex(O):
 
     try:
         O.getVertex("i-dont-exist")
-        errors.append("Expected 404")
-    except urllib2.HTTPError as e:
-        if e.code != 404:
-            errors.append("Expected 404 not %s: %s" % (type(e).__name__, e))
-    except Exception as e:
-        errors.append("Expected 404 not %s: %s" % (type(e).__name__, e))
-
+        errors.append("Expected HTTPError")
+    except requests.HTTPError as e:
+        if e.response.status_code != 404:
+            errors.append(
+                "Expected 404 not %s: %s" % (e.response.status_code, e)
+            )
     return errors
 
 
@@ -66,11 +64,11 @@ def test_get_edge(O):
     try:
         O.getEdge("i-dont-exist")
         errors.append("Expected 404")
-    except urllib2.HTTPError as e:
-        if e.code != 404:
-            errors.append("Expected 404 not %s: %s" % (type(e).__name__, e))
-    except Exception as e:
-        errors.append("Expected 404 not %s: %s" % (type(e).__name__, e))
+    except requests.HTTPError as e:
+        if e.response.status_code != 404:
+            errors.append(
+                "Expected 404 not %s: %s" % (e.response.status_code, e)
+            )
 
     return errors
 

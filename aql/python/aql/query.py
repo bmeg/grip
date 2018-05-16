@@ -1,19 +1,22 @@
 from __future__ import absolute_import, print_function, unicode_literals
 
 import json
+import requests
 import sys
-import urllib2
 
-from aql.util import do_request
+from aql.util import process_url
 
 
 class Query:
-    def __init__(self, url):
+    def __init__(self, url, graph):
         self.query = []
-        self.url = url
+        url = process_url(url)
+        self.base_url = url
+        self.url = url + "/v1/graph/" + graph + "/query"
+        self.graph = graph
 
     def __append(self, part):
-        q = self.__class__(self.url)
+        q = self.__class__(self.base_url, self.graph)
         q.query = self.query[:]
         q.query.append(part)
         return q
@@ -217,12 +220,11 @@ class Query:
         """
         Execute the query and return an iterator.
         """
-        payload = self.toJson()
-        headers = {"Content-Type": "application/json",
-                   "Accept": "application/json"}
-        request = urllib2.Request(self.url, payload, headers=headers)
-        response = do_request(request)
-        for result in response:
+        response = requests.post(self.url,
+                                 json={"query": self.query},
+                                 stream=True)
+        response.raise_for_status()
+        for result in response.iter_lines():
             try:
                 d = json.loads(result)
                 if "vertex" in d:
@@ -268,14 +270,17 @@ class QueryResult(object):
                 "%s has no attribute %s" % (self.__class__.__name__, k)
             )
 
-    def __getitem__(self, k):
-        return self.as_dict()[k]
-
     def __setattr__(self, k, v):
         if isinstance(v, dict):
             self.__dict__[k] = self.__class__(v)
         else:
             self.__dict__[k] = v
+
+    def __getitem__(self, k):
+        return self.__getattr__(k)
+
+    def __setitem__(self, k, v):
+        return self.__setattr__(k, v)
 
     def __repr__(self):
         attrs = self.as_dict()
@@ -287,6 +292,9 @@ class QueryResult(object):
     def __iter__(self):
         for k in self.as_dict():
             yield k
+
+    def __len__(self):
+        return len(self.as_dict())
 
     def items(self):
         for k, v in self.as_dict().items():
@@ -304,12 +312,12 @@ class QueryResult(object):
                 if isinstance(val, dict):
                     for k in val:
                         if isinstance(val[k], QueryResult):
-                            attrs[a][k] = val[k].__dict__
+                            attrs[a][k] = val[k].as_dict()
                         else:
                             attrs[a] = val
                             break
                 elif isinstance(val, QueryResult):
-                    attrs[a] = val.__dict__
+                    attrs[a] = val.as_dict()
                 else:
                     attrs[a] = val
         return attrs

@@ -8,6 +8,7 @@ def test_vertex_struct(O):
     count = 0
     for i in O.query().V().execute():
         count += 1
+        i = i.as_dict()
         p = i['data']['field1']
         if not isinstance(p, dict):
             errors.append("Dictionary data failed")

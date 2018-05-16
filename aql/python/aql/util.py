@@ -1,22 +1,16 @@
 from __future__ import absolute_import, print_function, unicode_literals
 
-import urllib2
+from requests.compat import urlparse, urlunparse
 
 
-def do_request(request, raise_exceptions=True):
-    try:
-        response = urllib2.urlopen(request)
-    except urllib2.HTTPError as e:
-        e = urllib2.HTTPError(
-            request.get_full_url(),
-            e.code,
-            e.msg + ": " + e.read(),
-            e.hdrs,
-            e.fp
-        )
-        if raise_exceptions:
-            raise e
-        else:
-            print(e)
-
-    return response
+def process_url(url):
+    scheme, netloc, path, params, query, frag = urlparse(url)
+    query = ""
+    frag = ""
+    params = ""
+    if scheme == "":
+        scheme = "http"
+    if netloc == "" and path != "":
+        netloc = path.split("/")[0]
+        path = ""
+    return urlunparse((scheme, netloc, path, params, query, frag))

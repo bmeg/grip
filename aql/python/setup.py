@@ -4,7 +4,7 @@ import io
 import os
 import re
 
-from setuptools import setup
+from setuptools import setup, find_packages
 
 
 def read(*names, **kwargs):
@@ -28,13 +28,15 @@ setup(
     name='aql',
     version=find_version("aql", "__init__.py"),
     description='Arachne Graph Database Client',
+    long_description=read('README.md'),
+    long_description_content_type='text/markdown',
     author='OHSU Computational Biology',
     author_email='CompBio@ohsu.edu',
     maintainer='Adam Struck',
     maintainer_email='strucka@ohsu.edu',
     url="https://github.com/bmeg/arachne/aql/python",
     license='MIT',
-    packages=["aql"],
+    packages=find_packages(),
     python_requires='>=2.6, <4',
     install_requires=[
         "requests>=2.18.1"
