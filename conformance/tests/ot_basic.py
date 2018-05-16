@@ -98,6 +98,13 @@ def test_count(O):
             "Fail: O.query().V(\"vertex1\").in_() %s != %d" % (count, 0))
 
     count = 0
+    for i in O.query().V("vertex1").both():
+        count += 1
+    if count != 1:
+        errors.append(
+            "Fail: O.query().V(\"vertex1\").both() %s != %d" % (count, 1))
+
+    count = 0
     for i in O.query().E():
         count += 1
     if count != 3:
@@ -123,6 +130,13 @@ def test_count(O):
     if count != 1:
         errors.append(
             "Fail: O.query().E(\"edge1\").in_() %s != %d" % (count, 1))
+
+    count = 0
+    for i in O.query().E("edge1").both():
+        count += 1
+    if count != 2:
+        errors.append(
+            "Fail: O.query().E(\"edge1\").both() %s != %d" % (count, 2))
 
     return errors
 

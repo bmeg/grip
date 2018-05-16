@@ -90,7 +90,7 @@ start-test-elastic-server:
 # ---------------------
 start-mongo:
 	@docker rm -f arachne-mongodb-test > /dev/null 2>&1 || echo
-	docker run -d --name arachne-mongodb-test -p 27000:27017 docker.io/mongo:3.5.13 > /dev/null
+	docker run -d --name arachne-mongodb-test -p 27000:27017 docker.io/mongo:3.6.4 > /dev/null
 
 start-elastic:
 	@docker rm -f arachne-es-test > /dev/null 2>&1 || echo

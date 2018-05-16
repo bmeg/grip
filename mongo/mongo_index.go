@@ -23,7 +23,7 @@ func (mg *Graph) AddVertexIndex(label string, field string) error {
 	session := mg.ar.pool.Get()
 	session.ResetIndexCache()
 	defer mg.ar.pool.Put(session)
-	c := mg.ar.getVertexCollection(session, mg.graph)
+	c := mg.ar.VertexCollection(session, mg.graph)
 	return c.EnsureIndex(mgo.Index{
 		Key:        []string{"label", field},
 		Unique:     false,
@@ -41,7 +41,7 @@ func (mg *Graph) DeleteVertexIndex(label string, field string) error {
 
 	session := mg.ar.pool.Get()
 	defer mg.ar.pool.Put(session)
-	c := mg.ar.getVertexCollection(session, mg.graph)
+	c := mg.ar.VertexCollection(session, mg.graph)
 	return c.DropIndex("label", field)
 }
 
@@ -54,7 +54,7 @@ func (mg *Graph) GetVertexIndexList() chan aql.IndexID {
 		defer mg.ar.pool.Put(session)
 		defer close(out)
 
-		c := mg.ar.getVertexCollection(session, mg.graph)
+		c := mg.ar.VertexCollection(session, mg.graph)
 
 		// get all unique labels
 		labels := []string{}
@@ -122,7 +122,7 @@ func (mg *Graph) GetVertexTermAggregation(ctx context.Context, label string, fie
 
 	session := mg.ar.pool.Get()
 	defer mg.ar.pool.Put(session)
-	vcol := mg.ar.getVertexCollection(session, mg.graph)
+	vcol := mg.ar.VertexCollection(session, mg.graph)
 	pipe := vcol.Pipe(ag)
 	iter := pipe.Iter()
 	defer iter.Close()
@@ -182,7 +182,7 @@ func (mg *Graph) GetVertexHistogramAggregation(ctx context.Context, label string
 
 	session := mg.ar.pool.Get()
 	defer mg.ar.pool.Put(session)
-	vcol := mg.ar.getVertexCollection(session, mg.graph)
+	vcol := mg.ar.VertexCollection(session, mg.graph)
 	pipe := vcol.Pipe(ag)
 	iter := pipe.Iter()
 	defer iter.Close()
@@ -234,7 +234,7 @@ func (mg *Graph) GetVertexPercentileAggregation(ctx context.Context, label strin
 
 	session := mg.ar.pool.Get()
 	defer mg.ar.pool.Put(session)
-	vcol := mg.ar.getVertexCollection(session, mg.graph)
+	vcol := mg.ar.VertexCollection(session, mg.graph)
 	pipe := vcol.Pipe(ag)
 	iter := pipe.Iter()
 	defer iter.Close()
@@ -270,7 +270,7 @@ func (mg *Graph) VertexLabelScan(ctx context.Context, label string) chan string 
 		selection := map[string]interface{}{
 			"label": label,
 		}
-		vcol := mg.ar.getVertexCollection(session, mg.graph)
+		vcol := mg.ar.VertexCollection(session, mg.graph)
 		iter := vcol.Find(selection).Select(map[string]interface{}{"_id": 1}).Iter()
 		defer iter.Close()
 		result := map[string]interface{}{}
