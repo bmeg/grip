@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/engine/core"
@@ -407,13 +408,86 @@ func (comp *MongoCompiler) Compile(stmts []*aql.GraphStatement) (gdbi.Pipeline, 
 			if lastType != gdbi.VertexData && lastType != gdbi.EdgeData {
 				return &MongoPipeline{}, fmt.Errorf(`"fields" statement is only valid for edge or vertex types not: %s`, lastType.String())
 			}
-			//TODO
+			fields := protoutil.AsStringList(stmt.Fields)
+			fieldSelect := bson.M{}
+			for _, f := range fields {
+				f = jsonpath.GetJSONPath(f)
+				f = strings.TrimPrefix(f, "$.")
+				switch f {
+				case "gid":
+					fieldSelect["_id"] = 1
+				default:
+					fieldSelect[f] = 1
+				}
+			}
+			query = append(query, bson.M{"$project": fieldSelect})
 
 		case *aql.GraphStatement_Aggregate:
 			if lastType != gdbi.VertexData {
 				return &MongoPipeline{}, fmt.Errorf(`"aggregate" statement is only valid for vertex types not: %s`, lastType.String())
 			}
-			//TODO
+			aggNames := make(map[string]interface{})
+			for _, a := range stmt.Aggregate.Aggregations {
+				if _, ok := aggNames[a.Name]; ok {
+					return &MongoPipeline{}, fmt.Errorf("duplicate aggregation name '%s' found; all aggregations must have a unique name", a.Name)
+				}
+			}
+			aggs := bson.M{}
+			for _, a := range stmt.Aggregate.Aggregations {
+				switch a.Aggregation.(type) {
+				case *aql.Aggregate_Term:
+					agg := a.GetTerm()
+					field := jsonpath.GetJSONPath(agg.Field)
+					field = strings.TrimPrefix(field, "$.")
+					stmt := []bson.M{
+						{
+							"$match": bson.M{
+								"label": agg.Label,
+								field:   bson.M{"$exists": true},
+							},
+						},
+						{
+							"$sortByCount": "$" + field,
+						},
+					}
+					if agg.Size > 0 {
+						stmt = append(stmt, bson.M{"$limit": agg.Size})
+					}
+					aggs[a.Name] = stmt
+
+				case *aql.Aggregate_Histogram:
+					agg := a.GetHistogram()
+					field := jsonpath.GetJSONPath(agg.Field)
+					field = strings.TrimPrefix(field, "$.")
+					stmt := []bson.M{
+						{
+							"$match": bson.M{
+								"label": agg.Label,
+								field:   bson.M{"$exists": true},
+							},
+						},
+						{
+							"$group": bson.M{
+								"_id": bson.M{
+									"$multiply": []interface{}{agg.Interval, bson.M{"$floor": bson.M{"$divide": []interface{}{"$" + field, agg.Interval}}}},
+								},
+								"count": bson.M{"$sum": 1},
+							},
+						},
+						{
+							"$sort": bson.M{"_id": 1},
+						},
+					}
+					aggs[a.Name] = stmt
+
+				case *aql.Aggregate_Percentile:
+					return &MongoPipeline{}, fmt.Errorf("%s uses an unknown aggregation type", a.Name)
+
+				default:
+					return &MongoPipeline{}, fmt.Errorf("%s uses an unknown aggregation type", a.Name)
+				}
+			}
+			query = append(query, bson.M{"$facet": aggs})
 			lastType = gdbi.AggregationData
 
 		default:
@@ -441,26 +515,6 @@ type MongoProcessor struct {
 	query           []bson.M
 	dataType        gdbi.DataType
 	markTypes       map[string]gdbi.DataType
-}
-
-func getDataElement(data map[string]interface{}) *gdbi.DataElement {
-	d := &gdbi.DataElement{}
-	if x, ok := data["_id"]; ok {
-		d.ID = x.(string)
-	}
-	if x, ok := data["label"]; ok {
-		d.Label = x.(string)
-	}
-	if x, ok := data["data"]; ok {
-		d.Data = x.(map[string]interface{})
-	}
-	if x, ok := data["to"]; ok {
-		d.To = x.(string)
-	}
-	if x, ok := data["from"]; ok {
-		d.From = x.(string)
-	}
-	return d
 }
 
 func (proc *MongoProcessor) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
@@ -534,11 +588,54 @@ func (proc *MongoProcessor) Process(ctx context.Context, man gdbi.Manager, in gd
 					out <- &gdbi.Traveler{Selections: selections}
 
 				case gdbi.AggregationData:
-					log.Println("MongoProcessor for gdbi.AggregationData not implemented")
-					//TODO
+					aggs := map[string]*aql.AggregationResult{}
+
+					for k, v := range result {
+						out := &aql.AggregationResult{
+							Buckets: []*aql.AggregationResultBucket{},
+						}
+
+						buckets, ok := v.([]interface{})
+						if !ok {
+							log.Printf("Failed to convert Mongo aggregation result: %+v", v)
+							continue
+						}
+						for _, bucket := range buckets {
+							bucket, ok := bucket.(map[string]interface{})
+							if !ok {
+								log.Printf("Failed to convert Mongo aggregation result: %+v", bucket)
+								continue
+							}
+							term := protoutil.WrapValue(bucket["_id"])
+							count, ok := bucket["count"].(int)
+							if !ok {
+								log.Printf("failed to cast count result to integer: %v", bucket)
+								continue
+							}
+							out.Buckets = append(out.Buckets, &aql.AggregationResultBucket{Key: term, Value: float64(count)})
+						}
+						aggs[k] = out
+					}
+					out <- &gdbi.Traveler{Aggregations: aggs}
 
 				default:
-					out <- t.AddCurrent(getDataElement(result))
+					de := &gdbi.DataElement{}
+					if x, ok := result["_id"]; ok {
+						de.ID = x.(string)
+					}
+					if x, ok := result["label"]; ok {
+						de.Label = x.(string)
+					}
+					if x, ok := result["data"]; ok {
+						de.Data = x.(map[string]interface{})
+					}
+					if x, ok := result["to"]; ok {
+						de.To = x.(string)
+					}
+					if x, ok := result["from"]; ok {
+						de.From = x.(string)
+					}
+					out <- t.AddCurrent(de)
 				}
 			}
 			if err := iter.Err(); err != nil {
