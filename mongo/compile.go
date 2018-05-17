@@ -14,29 +14,30 @@ import (
 	"gopkg.in/mgo.v2/bson"
 )
 
-type MongoCompiler struct {
-	db       *Graph
-	compiler gdbi.Compiler
+// Compiler is a mongo specific compiler that works with default graph interface
+type Compiler struct {
+	db *Graph
 }
 
+// NewCompiler creates a new compiler that runs using the provided GraphInterface
 func NewCompiler(db *Graph) gdbi.Compiler {
-	return &MongoCompiler{db: db, compiler: core.NewCompiler(db)}
+	return &Compiler{db: db}
 }
 
-type MongoPipeline struct {
-	db              *Graph
-	startCollection string
-	query           []bson.M
-	dataType        gdbi.DataType
-	markTypes       map[string]gdbi.DataType
+// Pipeline a set of runnable query operations
+type Pipeline struct {
+	procs     []gdbi.Processor
+	dataType  gdbi.DataType
+	markTypes map[string]gdbi.DataType
 }
 
-func (comp *MongoCompiler) Compile(stmts []*aql.GraphStatement) (gdbi.Pipeline, error) {
+// Compile compiles a set of graph traversal statements into a mongo aggregation pipeline
+func (comp *Compiler) Compile(stmts []*aql.GraphStatement) (gdbi.Pipeline, error) {
+	procs := []gdbi.Processor{}
 	query := []bson.M{}
 	startCollection := ""
 	lastType := gdbi.NoData
 	markTypes := map[string]gdbi.DataType{}
-
 	vertCol := fmt.Sprintf("%s_vertices", comp.db.graph)
 	edgeCol := fmt.Sprintf("%s_edges", comp.db.graph)
 
@@ -44,7 +45,7 @@ func (comp *MongoCompiler) Compile(stmts []*aql.GraphStatement) (gdbi.Pipeline, 
 		switch stmt := gs.GetStatement().(type) {
 		case *aql.GraphStatement_V:
 			if lastType != gdbi.NoData {
-				return &MongoPipeline{}, fmt.Errorf(`"V" statement is only valid at the beginning of the traversal`)
+				return &Pipeline{}, fmt.Errorf(`"V" statement is only valid at the beginning of the traversal`)
 			}
 			startCollection = vertCol
 			ids := protoutil.AsStringList(stmt.V)
@@ -55,7 +56,7 @@ func (comp *MongoCompiler) Compile(stmts []*aql.GraphStatement) (gdbi.Pipeline, 
 
 		case *aql.GraphStatement_E:
 			if lastType != gdbi.NoData {
-				return &MongoPipeline{}, fmt.Errorf(`"E" statement is only valid at the beginning of the traversal`)
+				return &Pipeline{}, fmt.Errorf(`"E" statement is only valid at the beginning of the traversal`)
 			}
 			startCollection = edgeCol
 			ids := protoutil.AsStringList(stmt.E)
@@ -65,6 +66,9 @@ func (comp *MongoCompiler) Compile(stmts []*aql.GraphStatement) (gdbi.Pipeline, 
 			lastType = gdbi.EdgeData
 
 		case *aql.GraphStatement_In:
+			if lastType != gdbi.VertexData && lastType != gdbi.EdgeData {
+				return &Pipeline{}, fmt.Errorf(`"in" statement is only valid for edge or vertex types not: %s`, lastType.String())
+			}
 			labels := protoutil.AsStringList(stmt.In)
 			if lastType == gdbi.VertexData {
 				query = append(query,
@@ -120,6 +124,9 @@ func (comp *MongoCompiler) Compile(stmts []*aql.GraphStatement) (gdbi.Pipeline, 
 			lastType = gdbi.VertexData
 
 		case *aql.GraphStatement_Out:
+			if lastType != gdbi.VertexData && lastType != gdbi.EdgeData {
+				return &Pipeline{}, fmt.Errorf(`"out" statement is only valid for edge or vertex types not: %s`, lastType.String())
+			}
 			labels := protoutil.AsStringList(stmt.Out)
 			if lastType == gdbi.VertexData {
 				query = append(query,
@@ -175,6 +182,9 @@ func (comp *MongoCompiler) Compile(stmts []*aql.GraphStatement) (gdbi.Pipeline, 
 			lastType = gdbi.VertexData
 
 		case *aql.GraphStatement_Both:
+			if lastType != gdbi.VertexData && lastType != gdbi.EdgeData {
+				return &Pipeline{}, fmt.Errorf(`"both" statement is only valid for edge or vertex types not: %s`, lastType.String())
+			}
 			labels := protoutil.AsStringList(stmt.Both)
 			if lastType == gdbi.VertexData {
 				query = append(query,
@@ -242,7 +252,7 @@ func (comp *MongoCompiler) Compile(stmts []*aql.GraphStatement) (gdbi.Pipeline, 
 
 		case *aql.GraphStatement_InEdge:
 			if lastType != gdbi.VertexData {
-				return &MongoPipeline{}, fmt.Errorf(`"inEdge" statement is only valid for the vertex type not: %s`, lastType.String())
+				return &Pipeline{}, fmt.Errorf(`"inEdge" statement is only valid for the vertex type not: %s`, lastType.String())
 			}
 			query = append(query,
 				bson.M{
@@ -275,7 +285,7 @@ func (comp *MongoCompiler) Compile(stmts []*aql.GraphStatement) (gdbi.Pipeline, 
 
 		case *aql.GraphStatement_OutEdge:
 			if lastType != gdbi.VertexData {
-				return &MongoPipeline{}, fmt.Errorf(`"outEdge" statement is only valid for the vertex type not: %s`, lastType.String())
+				return &Pipeline{}, fmt.Errorf(`"outEdge" statement is only valid for the vertex type not: %s`, lastType.String())
 			}
 			query = append(query,
 				bson.M{
@@ -308,7 +318,7 @@ func (comp *MongoCompiler) Compile(stmts []*aql.GraphStatement) (gdbi.Pipeline, 
 
 		case *aql.GraphStatement_BothEdge:
 			if lastType != gdbi.VertexData {
-				return &MongoPipeline{}, fmt.Errorf(`"bothEdge" statement is only valid for the vertex type not: %s`, lastType.String())
+				return &Pipeline{}, fmt.Errorf(`"bothEdge" statement is only valid for the vertex type not: %s`, lastType.String())
 			}
 			query = append(query,
 				bson.M{
@@ -344,7 +354,7 @@ func (comp *MongoCompiler) Compile(stmts []*aql.GraphStatement) (gdbi.Pipeline, 
 
 		case *aql.GraphStatement_Where:
 			if lastType != gdbi.VertexData && lastType != gdbi.EdgeData {
-				return &MongoPipeline{}, fmt.Errorf(`"distinct" statement is only valid for edge or vertex types not: %s`, lastType.String())
+				return &Pipeline{}, fmt.Errorf(`"where" statement is only valid for edge or vertex types not: %s`, lastType.String())
 			}
 			// TODO
 
@@ -363,32 +373,73 @@ func (comp *MongoCompiler) Compile(stmts []*aql.GraphStatement) (gdbi.Pipeline, 
 
 		case *aql.GraphStatement_Distinct:
 			if lastType != gdbi.VertexData && lastType != gdbi.EdgeData {
-				return &MongoPipeline{}, fmt.Errorf(`"distinct" statement is only valid for edge or vertex types not: %s`, lastType.String())
+				return &Pipeline{}, fmt.Errorf(`"distinct" statement is only valid for edge or vertex types not: %s`, lastType.String())
 			}
-			//TODO
+			fields := protoutil.AsStringList(stmt.Distinct)
+			if len(fields) == 0 {
+				fields = append(fields, "_gid")
+			}
+			keys := bson.M{}
+			for _, f := range fields {
+				f = jsonpath.GetJSONPath(f)
+				f = strings.TrimPrefix(f, "$.")
+				if f == "gid" {
+					f = "_id"
+				}
+				k := strings.Replace(f, ".", "_", -1)
+				keys[k] = "$" + f
+			}
+			distinct := []bson.M{}
+			switch lastType {
+			case gdbi.VertexData:
+				distinct = []bson.M{
+					{
+						"$group": bson.M{
+							"_id": keys,
+							"dst": bson.M{"$first": "$$ROOT"},
+						},
+					},
+					{
+						"$project": bson.M{"_id": "$dst._id", "label": "$dst.label", "data": "$dst.data", "marks": "$dst.marks"},
+					},
+				}
+			case gdbi.EdgeData:
+				distinct = []bson.M{
+					{
+						"$group": bson.M{
+							"_id": keys,
+							"dst": bson.M{"$first": "$$ROOT"},
+						},
+					},
+					{
+						"$project": bson.M{"_id": "$dst._id", "label": "$dst.label", "data": "$dst.data", "to": "$dst.to", "from": "$dst.from", "marks": "$dst.marks"},
+					},
+				}
+			}
+			query = append(query, distinct...)
 
 		case *aql.GraphStatement_Mark:
 			if lastType == gdbi.NoData {
-				return &MongoPipeline{}, fmt.Errorf(`"mark" statement is not valid at the beginning of a traversal`)
+				return &Pipeline{}, fmt.Errorf(`"mark" statement is not valid at the beginning of a traversal`)
 			}
 			if stmt.Mark == "" {
-				return &MongoPipeline{}, fmt.Errorf(`"mark" statement cannot have an empty name`)
+				return &Pipeline{}, fmt.Errorf(`"mark" statement cannot have an empty name`)
 			}
 			if err := aql.ValidateFieldName(stmt.Mark); err != nil {
-				return &MongoPipeline{}, fmt.Errorf(`"mark" statement invalid; %v`, err)
+				return &Pipeline{}, fmt.Errorf(`"mark" statement invalid; %v`, err)
 			}
 			if stmt.Mark == jsonpath.Current {
-				return &MongoPipeline{}, fmt.Errorf(`"mark" statement invalid; uses reserved name %s`, jsonpath.Current)
+				return &Pipeline{}, fmt.Errorf(`"mark" statement invalid; uses reserved name %s`, jsonpath.Current)
 			}
 			markTypes[stmt.Mark] = lastType
 			query = append(query, bson.M{"$addFields": bson.M{"marks": bson.M{stmt.Mark: "$_id"}}})
 
 		case *aql.GraphStatement_Select:
 			if lastType != gdbi.VertexData && lastType != gdbi.EdgeData {
-				return &MongoPipeline{}, fmt.Errorf(`"select" statement is only valid for edge or vertex types not: %s`, lastType.String())
+				return &Pipeline{}, fmt.Errorf(`"select" statement is only valid for edge or vertex types not: %s`, lastType.String())
 			}
 			if len(stmt.Select.Marks) == 0 {
-				return &MongoPipeline{}, fmt.Errorf(`"select" statement has an empty list of mark names`)
+				return &Pipeline{}, fmt.Errorf(`"select" statement has an empty list of mark names`)
 			}
 			selection := bson.M{}
 			for _, mark := range stmt.Select.Marks {
@@ -399,14 +450,14 @@ func (comp *MongoCompiler) Compile(stmts []*aql.GraphStatement) (gdbi.Pipeline, 
 
 		case *aql.GraphStatement_Render:
 			if lastType != gdbi.VertexData && lastType != gdbi.EdgeData {
-				return &MongoPipeline{}, fmt.Errorf(`"render" statement is only valid for edge or vertex types not: %s`, lastType.String())
+				return &Pipeline{}, fmt.Errorf(`"render" statement is only valid for edge or vertex types not: %s`, lastType.String())
 			}
-			//TODO
+			procs = append(procs, &core.Render{Template: protoutil.UnWrapValue(stmt.Render)})
 			lastType = gdbi.RenderData
 
 		case *aql.GraphStatement_Fields:
 			if lastType != gdbi.VertexData && lastType != gdbi.EdgeData {
-				return &MongoPipeline{}, fmt.Errorf(`"fields" statement is only valid for edge or vertex types not: %s`, lastType.String())
+				return &Pipeline{}, fmt.Errorf(`"fields" statement is only valid for edge or vertex types not: %s`, lastType.String())
 			}
 			fields := protoutil.AsStringList(stmt.Fields)
 			fieldSelect := bson.M{}
@@ -424,12 +475,12 @@ func (comp *MongoCompiler) Compile(stmts []*aql.GraphStatement) (gdbi.Pipeline, 
 
 		case *aql.GraphStatement_Aggregate:
 			if lastType != gdbi.VertexData {
-				return &MongoPipeline{}, fmt.Errorf(`"aggregate" statement is only valid for vertex types not: %s`, lastType.String())
+				return &Pipeline{}, fmt.Errorf(`"aggregate" statement is only valid for vertex types not: %s`, lastType.String())
 			}
 			aggNames := make(map[string]interface{})
 			for _, a := range stmt.Aggregate.Aggregations {
 				if _, ok := aggNames[a.Name]; ok {
-					return &MongoPipeline{}, fmt.Errorf("duplicate aggregation name '%s' found; all aggregations must have a unique name", a.Name)
+					return &Pipeline{}, fmt.Errorf("duplicate aggregation name '%s' found; all aggregations must have a unique name", a.Name)
 				}
 			}
 			aggs := bson.M{}
@@ -481,35 +532,41 @@ func (comp *MongoCompiler) Compile(stmts []*aql.GraphStatement) (gdbi.Pipeline, 
 					aggs[a.Name] = stmt
 
 				case *aql.Aggregate_Percentile:
-					return &MongoPipeline{}, fmt.Errorf("%s uses an unknown aggregation type", a.Name)
+					return &Pipeline{}, fmt.Errorf("percentile aggregations are not supported")
 
 				default:
-					return &MongoPipeline{}, fmt.Errorf("%s uses an unknown aggregation type", a.Name)
+					return &Pipeline{}, fmt.Errorf("%s uses an unknown aggregation type", a.Name)
 				}
 			}
 			query = append(query, bson.M{"$facet": aggs})
 			lastType = gdbi.AggregationData
 
 		default:
-			return &MongoPipeline{}, fmt.Errorf("unknown statement type")
+			return &Pipeline{}, fmt.Errorf("unknown statement type")
 		}
 	}
-	return &MongoPipeline{comp.db, startCollection, query, lastType, markTypes}, nil
+
+	procs = append([]gdbi.Processor{&Processor{comp.db, startCollection, query, lastType, markTypes}}, procs...)
+	return &Pipeline{procs, lastType, markTypes}, nil
 }
 
-func (pipe *MongoPipeline) DataType() gdbi.DataType {
+// DataType return the datatype
+func (pipe *Pipeline) DataType() gdbi.DataType {
 	return pipe.dataType
 }
 
-func (pipe *MongoPipeline) MarkTypes() map[string]gdbi.DataType {
+// MarkTypes get the mark types
+func (pipe *Pipeline) MarkTypes() map[string]gdbi.DataType {
 	return pipe.markTypes
 }
 
-func (pipe *MongoPipeline) Processors() []gdbi.Processor {
-	return []gdbi.Processor{&MongoProcessor{pipe.db, pipe.startCollection, pipe.query, pipe.dataType, pipe.markTypes}}
+// Processors gets the list of processors
+func (pipe *Pipeline) Processors() []gdbi.Processor {
+	return pipe.procs
 }
 
-type MongoProcessor struct {
+// Processor stores the information for a mongo aggregation pipeline
+type Processor struct {
 	db              *Graph
 	startCollection string
 	query           []bson.M
@@ -517,7 +574,8 @@ type MongoProcessor struct {
 	markTypes       map[string]gdbi.DataType
 }
 
-func (proc *MongoProcessor) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
+// Process runs the mongo aggregation pipeline
+func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
 	log.Printf("Running Mongo Processor: %+v", proc.query)
 
 	go func() {
@@ -530,7 +588,7 @@ func (proc *MongoProcessor) Process(ctx context.Context, man gdbi.Manager, in gd
 			iter := initCol.Pipe(proc.query).Iter()
 			result := map[string]interface{}{}
 			for iter.Next(&result) {
-				log.Printf("MongoPipeline result: %+v", result)
+				log.Printf("Mongo Pipeline result: %+v", result)
 				select {
 				case <-ctx.Done():
 					return
@@ -545,10 +603,6 @@ func (proc *MongoProcessor) Process(ctx context.Context, man gdbi.Manager, in gd
 					}
 					out <- eo
 
-				case gdbi.RenderData:
-					log.Println("MongoProcessor for gdbi.RenderData not implemented")
-					//TODO
-
 				case gdbi.SelectionData:
 					selections := map[string]*gdbi.DataElement{}
 					if marks, ok := result["marks"]; ok {
@@ -556,7 +610,7 @@ func (proc *MongoProcessor) Process(ctx context.Context, man gdbi.Manager, in gd
 							for k, v := range marks {
 								gid, ok := v.(string)
 								if !ok {
-									log.Println("Failed to process selection data: %+v", v)
+									log.Printf("Failed to process selection data: %+v", v)
 								}
 								de := &gdbi.DataElement{}
 								switch proc.markTypes[k] {

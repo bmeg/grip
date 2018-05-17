@@ -391,7 +391,7 @@ func (f *Fields) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, 
 
 // Render takes current state and renders into requested structure
 type Render struct {
-	template interface{}
+	Template interface{}
 }
 
 // Process runs the render processor
@@ -399,7 +399,7 @@ func (r *Render) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, 
 	go func() {
 		defer close(out)
 		for t := range in {
-			v := jsonpath.RenderTraveler(t, r.template)
+			v := jsonpath.RenderTraveler(t, r.Template)
 			out <- &gdbi.Traveler{Render: v}
 		}
 	}()

@@ -166,7 +166,11 @@ func (comp DefaultCompiler) Compile(stmts []*aql.GraphStatement) (gdbi.Pipeline,
 			if lastType != gdbi.VertexData && lastType != gdbi.EdgeData {
 				return &DefaultPipeline{}, fmt.Errorf(`"distinct" statement is only valid for edge or vertex types not: %s`, lastType.String())
 			}
-			add(&Distinct{protoutil.AsStringList(stmt.Distinct)})
+			fields := protoutil.AsStringList(stmt.Distinct)
+			if len(fields) == 0 {
+				fields = append(fields, "_gid")
+			}
+			add(&Distinct{fields})
 
 		case *aql.GraphStatement_Mark:
 			if lastType == gdbi.NoData {
@@ -198,8 +202,7 @@ func (comp DefaultCompiler) Compile(stmts []*aql.GraphStatement) (gdbi.Pipeline,
 			if lastType != gdbi.VertexData && lastType != gdbi.EdgeData {
 				return &DefaultPipeline{}, fmt.Errorf(`"render" statement is only valid for edge or vertex types not: %s`, lastType.String())
 			}
-			r := Render{protoutil.UnWrapValue(stmt.Render)}
-			add(&r)
+			add(&Render{protoutil.UnWrapValue(stmt.Render)})
 			lastType = gdbi.RenderData
 
 		case *aql.GraphStatement_Fields:
