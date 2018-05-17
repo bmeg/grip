@@ -214,9 +214,9 @@ class Query:
         return json.dumps(output)
 
     def __iter__(self):
-        return self.execute()
+        return self.__stream()
 
-    def execute(self):
+    def __stream(self):
         """
         Execute the query and return an iterator.
         """
@@ -250,6 +250,18 @@ class Query:
             except ValueError as e:
                 print("Can't decode: %s" % (result), file=sys.stderr)
                 raise e
+
+    def execute(self, stream=False):
+        """
+        Execute the query and return a list.
+        """
+        if stream:
+            return self.__stream()
+        else:
+            output = []
+            for r in self.__stream():
+                output.append(r)
+            return output
 
 
 class QueryResult(object):

@@ -10,7 +10,7 @@ def test_fields(O):
         u"data": {u"name": u"han"}
     }
 
-    resp = list(O.query().V().fields(["_gid", "name"]))
+    resp = O.query().V().fields(["_gid", "name"]).execute()
     if resp[0].as_dict() != expected:
         errors.append("vertex contains unexpected fields: %s" % resp)
 

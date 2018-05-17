@@ -28,7 +28,7 @@ def test_match_count(O):
     ]).select(['a', 'c'])
 
     count = 0
-    for row in query.execute():
+    for row in query.execute(stream=True):
         count += 1
         if len(row) != 2:
             errors.append("Incorrect number of marks returned in row")

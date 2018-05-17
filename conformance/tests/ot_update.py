@@ -10,10 +10,10 @@ def test_duplicate(O):
     O.addEdge("vertex1", "vertex2", "friend", gid="edge1")
     O.addEdge("vertex1", "vertex2", "friend", data={"weight": 5}, gid="edge1")
 
-    if list(O.query().V().count().execute())[0]["count"] != 2:
+    if O.query().V().count().execute()[0]["count"] != 2:
         errors.append("duplicate vertex add error")
 
-    if list(O.query().E().count().execute())[0]["count"] != 1:
+    if O.query().E().count().execute()[0]["count"] != 1:
         errors.append("duplicate edge add error")
 
     return errors

@@ -95,9 +95,11 @@ class Graph:
         url = self.url + "/index"
         response = requests.get(url, stream=True)
         response.raise_for_status()
+        output = []
         for result in response.iter_lines():
             d = json.loads(result)
-            yield d
+            output.append(d)
+        return output
 
     def aggregate(self, aggregations):
         if not isinstance(aggregations, list):
@@ -108,9 +110,7 @@ class Graph:
         url = self.url + "/aggregate"
         response = requests.post(url, json=payload)
         response.raise_for_status()
-        for result in response.iter_lines():
-            d = json.loads(result)
-            yield d["aggregations"]
+        return response.json()["aggregations"]
 
     def query(self):
         """

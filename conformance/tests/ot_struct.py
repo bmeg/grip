@@ -6,7 +6,7 @@ def test_vertex_struct(O):
     O.addVertex("vertex1", "person", {"field1": {"test": 1, "value": False}})
 
     count = 0
-    for i in O.query().V().execute():
+    for i in O.query().V():
         count += 1
         i = i.as_dict()
         p = i['data']['field1']
@@ -33,11 +33,11 @@ def test_edge_struct(O):
 
     O.addEdge("vertex1", "vertex2", "friend", {"edgevals": {"weight": 3.14, "count": 15}})
 
-    for i in O.query().V("vertex1").outEdge().execute():
+    for i in O.query().V("vertex1").outEdge():
         if 'weight' not in i['data']['edgevals'] or i['data']['edgevals']['weight'] != 3.14:
             errors.append("out edge data not found")
 
-    for i in O.query().V("vertex2").inEdge().execute():
+    for i in O.query().V("vertex2").inEdge():
         if 'weight' not in i['data']['edgevals'] or i['data']['edgevals']['weight'] != 3.14:
             errors.append("in edge data not found")
 
@@ -52,7 +52,7 @@ def test_nested_struct(O):
     O.addVertex("vertex1", "person", data)
 
     count = 0
-    for i in O.query().V().execute():
+    for i in O.query().V():
         count += 1
         try:
             p = i['data']["field1"]['nested']["array"][0]["value"]["entry"]
