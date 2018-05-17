@@ -228,25 +228,25 @@ class Query:
             try:
                 d = json.loads(result)
                 if "vertex" in d:
-                    yield QueryResult(d["vertex"])
+                    yield AttrDict(d["vertex"])
                 elif "edge" in d:
-                    yield QueryResult(d["edge"])
+                    yield AttrDict(d["edge"])
                 elif "aggregations" in d:
-                    yield QueryResult(d["aggregations"]["aggregations"])
+                    yield AttrDict(d["aggregations"]["aggregations"])
                 elif "selections" in d:
-                    d = QueryResult(d["selections"]["selections"])
+                    d = AttrDict(d["selections"]["selections"])
                     for k in d:
                         if "vertex" in d[k]:
                             d[k] = d[k]["vertex"]
                         elif "edge" in d[k]:
                             d[k] = d[k]["edge"]
-                    yield QueryResult(d)
+                    yield AttrDict(d)
                 elif "render" in d:
-                        yield QueryResult(d["render"])
+                        yield AttrDict(d["render"])
                 elif "count" in d:
-                        yield QueryResult(d)
+                        yield AttrDict(d)
                 else:
-                    yield QueryResult(d)
+                    yield AttrDict(d)
             except ValueError as e:
                 print("Can't decode: %s" % (result), file=sys.stderr)
                 raise e
@@ -264,7 +264,7 @@ class Query:
             return output
 
 
-class QueryResult(object):
+class AttrDict(object):
 
     def __init__(self, data):
         for k in data:
@@ -288,48 +288,66 @@ class QueryResult(object):
         else:
             self.__dict__[k] = v
 
+    def __delattr__(self, k):
+        try:
+            del self.__dict__[k]
+        except KeyError:
+            raise AttributeError(
+                "%s has no attribute %s" % (self.__class__.__name__, k)
+            )
+
     def __getitem__(self, k):
         return self.__getattr__(k)
 
     def __setitem__(self, k, v):
         return self.__setattr__(k, v)
 
+    def __delitem__(self, k):
+        return self.__delattr__(k)
+
+    def __eq__(self, other):
+        if isinstance(other, AttrDict):
+            return other.to_dict() == self.to_dict()
+        return other == self.to_dict()
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
     def __repr__(self):
-        attrs = self.as_dict()
-        return '<%s %s>' % (self.__class__.__name__, attrs)
+        attrs = self.to_dict()
+        return '<%s(%s)>' % (self.__class__.__name__, attrs)
 
     def __str__(self):
         return self.__repr__()
 
     def __iter__(self):
-        for k in self.as_dict():
-            yield k
+        return iter(self.to_dict())
 
     def __len__(self):
-        return len(self.as_dict())
+        return len(self.to_dict())
 
     def items(self):
-        for k, v in self.as_dict().items():
+        for k, v in self.to_dict().items():
             yield k, v
 
     def keys(self):
-        for k in self.as_dict().keys():
+        for k in self.to_dict().keys():
             yield k
 
-    def as_dict(self):
+    def to_dict(self):
         attrs = {}
         for a in self.__dict__:
             if not a.startswith('__') and not callable(getattr(self, a)):
                 val = getattr(self, a)
                 if isinstance(val, dict):
                     for k in val:
-                        if isinstance(val[k], QueryResult):
-                            attrs[a][k] = val[k].as_dict()
+                        if isinstance(val[k], AttrDict):
+                            attrs[a][k] = val[k].to_dict()
                         else:
                             attrs[a] = val
                             break
-                elif isinstance(val, QueryResult):
-                    attrs[a] = val.as_dict()
+                elif isinstance(val, AttrDict):
+                    attrs[a] = val.to_dict()
                 else:
                     attrs[a] = val
         return attrs

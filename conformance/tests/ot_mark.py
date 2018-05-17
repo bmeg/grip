@@ -16,7 +16,6 @@ def test_mark_select(O):
 
     for row in O.query().V("vertex1").mark("a").out().mark(
             "b").out().mark("c").select(["a", "b", "c"]):
-        row = row.as_dict()
         if row["a"]["gid"] != "vertex1":
             errors.append("Incorrect as selection")
         if row["a"]["data"] != {"field1": "value1", "field2": "value2"}:
