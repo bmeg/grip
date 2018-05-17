@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/bmeg/arachne/aql"
+	"github.com/bmeg/arachne/engine/core"
 	"github.com/bmeg/arachne/gdbi"
 	"github.com/bmeg/arachne/timestamp"
 	"github.com/bmeg/arachne/util"
@@ -18,9 +19,10 @@ import (
 
 // Config describes the configuration for the mongodb driver.
 type Config struct {
-	URL       string
-	DBName    string
-	BatchSize int
+	URL                    string
+	DBName                 string
+	BatchSize              int
+	UseAggregationPipeline bool
 }
 
 // Mongo is the base driver that manages multiple graphs in mongo
@@ -228,6 +230,9 @@ func (ma *Mongo) Graph(graph string) (gdbi.GraphInterface, error) {
 
 // Compiler returns a query compiler that uses the graph
 func (mg *Graph) Compiler() gdbi.Compiler {
+	if !mg.ar.conf.UseAggregationPipeline {
+		return core.NewCompiler(mg)
+	}
 	return NewCompiler(mg)
 }
 

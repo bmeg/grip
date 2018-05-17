@@ -484,21 +484,8 @@ func matchesCondition(trav *gdbi.Traveler, cond *aql.WhereCondition) bool {
 				}
 			}
 
-		case map[string]interface{}:
-			condM, ok := condVal.(map[string]interface{})
-			if !ok {
-				return false
-			}
-			valS, ok := val.(string)
-			if !ok {
-				return false
-			}
-			if _, ok := condM[valS]; ok {
-				found = true
-			}
-
 		default:
-			log.Println("Error: unknown condition value type for IN condition")
+			log.Println("Error: unknown condition value type %T for IN condition", val)
 		}
 
 		return found
@@ -517,21 +504,8 @@ func matchesCondition(trav *gdbi.Traveler, cond *aql.WhereCondition) bool {
 				}
 			}
 
-		case map[string]interface{}:
-			valM, ok := val.(map[string]interface{})
-			if !ok {
-				return false
-			}
-			condValS, ok := condVal.(string)
-			if !ok {
-				return false
-			}
-			if _, ok := valM[condValS]; ok {
-				found = true
-			}
-
 		default:
-			log.Println("Error: unknown condition value type for CONTAINS condition")
+			log.Println("Error: unknown condition value type %T for CONTAINS condition", val)
 		}
 
 		return found
