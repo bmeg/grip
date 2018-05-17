@@ -60,6 +60,12 @@ Download test data
 curl -O http://snap.stanford.edu/data/bigdata/amazon/amazon-meta.txt.gz
 ```
 
+Install aql Python Library
+
+```
+pip install "git+https://github.com/bmeg/arachne.git#egg=aql&subdirectory=aql/python/"
+```
+
 Convert the data
 
 ```
@@ -111,7 +117,7 @@ print list(O.query().E().count())
 print list(O.query().V("B00000I06U").outEdge())
 
 # Find every Book that is similar to a DVD
-for a in O.query().V().where(aql.eq("$.group", "Book")).as_("a").out("similar").where(aql.eq("$.group", "DVD")).as_("b").select(["a", "b"]):
+for a in O.query().V().where(aql.eq("group", "Book")).mark("a").out("similar").where(aql.eq("group", "DVD")).mark("b").select(["a", "b"]):
     print a
 ```
 
@@ -123,10 +129,10 @@ Create the graph
 arachne create test-data
 ```
 
-Add aql.py Python Library to PYTHONPATH
+Install aql Python Library
 
 ```
-export PYTHONPATH=`pwd`
+pip install "git+https://github.com/bmeg/arachne.git#egg=aql&subdirectory=aql/python/"
 ```
 
 Install Pandas if you don't already have it
@@ -169,9 +175,9 @@ O = conn.graph("test-data")
 # Print out expression data of all Stage IIA samples
 for row in O.query().\
     V().\
-    where(aql.and_(aql.eq("$.label", "Sample"), aql.eq("pathologic_stage", "Stage IIA"))).\
+    where(aql.and_(aql.eq("_label", "Sample"), aql.eq("pathologic_stage", "Stage IIA"))).\
     out("has").\
-    where(aql.eq("$.label", "Data:expression"):
+    where(aql.eq("_label", "Data:expression"):
   print row
 ```
 
@@ -188,7 +194,7 @@ Traversal operations help you navigate the graph:
 
 As and select work together to keep track of state during traversals:
 
-* as
+* mark
 * select
 
 Filter operations help you cull or craft the results:
@@ -196,6 +202,7 @@ Filter operations help you cull or craft the results:
 * distinct
 * fields
 * limit
+* offset
 * match
 * render
 * where
@@ -252,12 +259,12 @@ Given the following example data:
 
 | jsonpath                   | result              |
 | :------------------------- | :------------------ |
-| $.gid                      | 111                 |
-| $.label                    | "variant"           |
-| $.type                     | "deletion"          |
-| $.publications[0].pmid     | 29480828            |
-| $.publications.pmid        | [29480828, 23666017] |
-| $gene.data.symbol.ensembl  | "ENSG00000012048"   |
+| _gid                       | 111                 |
+| _label                     | "variant"           |
+| type                       | "deletion"          |
+| publications[0].pmid       | 29480828            |
+| publications.pmid          | [29480828, 23666017] |
+| $gene._data.symbol.ensembl | "ENSG00000012048"   |
 | $gene.symbol.ensembl       | "ENSG00000012048"   |
 | $gene.transcripts[0]       | "ENST00000471181.7" |
 | $gene.transcripts[0:1]     | ["ENST00000471181.7", "ENST00000357654.8"] |

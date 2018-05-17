@@ -85,7 +85,10 @@ func (elem *DataElement) ToDict() map[string]interface{} {
 		"label": "",
 		"to":    "",
 		"from":  "",
-		"data":  nil,
+		"data":  map[string]interface{}{},
+	}
+	if elem == nil {
+		return out
 	}
 	if elem.ID != "" {
 		out["gid"] = elem.ID

@@ -11,9 +11,9 @@ def setupGraph(O):
     O.addVertex("vertex5", "person", {"name": "obi-wan", "age": 63, "occupation": "jedi"})
     O.addVertex("vertex6", "person", {"name": "vader", "age": 55, "occupation": "sith", "starships": ["death star", "tie fighter"]})
 
-    O.addEdge("vertex1", "vertex2", "friend", id="edge1")
-    O.addEdge("vertex2", "vertex3", "owner", id="edge2")
-    O.addEdge("vertex2", "vertex4", "friend", id="edge3")
+    O.addEdge("vertex1", "vertex2", "friend", gid="edge1")
+    O.addEdge("vertex2", "vertex3", "owner", gid="edge2")
+    O.addEdge("vertex2", "vertex4", "friend", gid="edge3")
 
 
 def test_where_eq(O):

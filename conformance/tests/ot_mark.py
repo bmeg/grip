@@ -4,9 +4,9 @@ def setupGraph(O):
     O.addVertex("vertex3", "person", {"field1": "value3", "field2": "value4"})
     O.addVertex("vertex4", "person")
 
-    O.addEdge("vertex1", "vertex2", "friend", id="edge1")
-    O.addEdge("vertex2", "vertex3", "friend", id="edge2")
-    O.addEdge("vertex2", "vertex4", "parent", id="edge3")
+    O.addEdge("vertex1", "vertex2", "friend", gid="edge1")
+    O.addEdge("vertex2", "vertex3", "friend", gid="edge2")
+    O.addEdge("vertex2", "vertex4", "parent", gid="edge3")
 
 
 def test_mark_select(O):

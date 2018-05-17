@@ -39,7 +39,9 @@ func GetJSONPath(path string) string {
 	if strings.HasPrefix(parts[0], "$") {
 		parts = parts[1:]
 	}
-
+	if len(parts) == 0 {
+		return ""
+	}
 	found := false
 	for _, v := range aql.ReservedFields {
 		if parts[0] == v {
@@ -125,10 +127,12 @@ func GetDoc(traveler *gdbi.Traveler, namespace string) map[string]interface{} {
 func TravelerPathLookup(traveler *gdbi.Traveler, path string) interface{} {
 	namespace := GetNamespace(path)
 	field := GetJSONPath(path)
+	if field == "" {
+		return nil
+	}
 	doc := GetDoc(traveler, namespace)
 	res, err := jsonpath.JsonPathLookup(doc, field)
 	if err != nil {
-		// log.Println("err", err, "field", field)
 		return nil
 	}
 	return res

@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
-import aql
-import urllib2
+import requests
 
 
 def setupGraph(O):
@@ -10,9 +9,9 @@ def setupGraph(O):
     O.addVertex("vertex3", "person", {"field1": "value3", "field2": "value4"})
     O.addVertex("vertex4", "person")
 
-    O.addEdge("vertex1", "vertex2", "friend", id="edge1")
-    O.addEdge("vertex2", "vertex3", "friend", id="edge2")
-    O.addEdge("vertex2", "vertex4", "parent", id="edge3")
+    O.addEdge("vertex1", "vertex2", "friend", gid="edge1")
+    O.addEdge("vertex2", "vertex3", "friend", gid="edge2")
+    O.addEdge("vertex2", "vertex4", "parent", gid="edge3")
 
 
 def test_get_vertex(O):
@@ -34,13 +33,12 @@ def test_get_vertex(O):
 
     try:
         O.getVertex("i-dont-exist")
-        errors.append("Expected 404")
-    except urllib2.HTTPError as e:
-        if e.code != 404:
-            errors.append("Expected 404 not %s: %s" % (type(e).__name__, e))
-    except Exception as e:
-        errors.append("Expected 404 not %s: %s" % (type(e).__name__, e))
-
+        errors.append("Expected HTTPError")
+    except requests.HTTPError as e:
+        if e.response.status_code != 404:
+            errors.append(
+                "Expected 404 not %s: %s" % (e.response.status_code, e)
+            )
     return errors
 
 
@@ -66,11 +64,11 @@ def test_get_edge(O):
     try:
         O.getEdge("i-dont-exist")
         errors.append("Expected 404")
-    except urllib2.HTTPError as e:
-        if e.code != 404:
-            errors.append("Expected 404 not %s: %s" % (type(e).__name__, e))
-    except Exception as e:
-        errors.append("Expected 404 not %s: %s" % (type(e).__name__, e))
+    except requests.HTTPError as e:
+        if e.response.status_code != 404:
+            errors.append(
+                "Expected 404 not %s: %s" % (e.response.status_code, e)
+            )
 
     return errors
 
@@ -133,10 +131,10 @@ def test_outgoing(O):
     errors = []
     setupGraph(O)
 
-    if list(O.query().V("vertex2").out().count())[0]["count"] != 2:
+    if O.query().V("vertex2").out().count().execute()[0]["count"] != 2:
         errors.append("blank outgoing doesn't work")
 
-    if list(O.query().V("vertex2").out("friend").count())[0]["count"] != 1:
+    if O.query().V("vertex2").out("friend").count().execute()[0]["count"] != 1:
         errors.append("labeled outgoing doesn't work")
 
     for i in O.query().V("vertex2").out():
@@ -153,14 +151,14 @@ def test_incoming(O):
     errors = []
     setupGraph(O)
 
-    if list(O.query().V("vertex2").in_().count())[0]["count"] != 1:
+    if O.query().V("vertex2").in_().count().execute()[0]["count"] != 1:
         errors.append("blank incoming doesn't work")
 
     for i in O.query().V("vertex4").in_():
         if i['gid'] not in ["vertex2"]:
             errors.append("Wrong incoming vertex %s" % (i['gid']))
 
-    if list(O.query().V("vertex3").in_("friend").count())[0]["count"] != 1:
+    if O.query().V("vertex3").in_("friend").count().execute()[0]["count"] != 1:
         errors.append("labeled incoming doesn't work")
 
     return errors
@@ -170,14 +168,14 @@ def test_outgoing_edge(O):
     errors = []
     setupGraph(O)
 
-    if list(O.query().V("vertex2").outEdge().count())[0]["count"] != 2:
+    if O.query().V("vertex2").outEdge().count().execute()[0]["count"] != 2:
         errors.append("blank outgoing doesn't work")
 
     for i in O.query().V("vertex2").outEdge():
         if i['gid'] not in ["edge2", "edge3"]:
             errors.append("Wrong outgoing vertex %s" % (i['gid']))
 
-    if list(O.query().V("vertex2").outEdge("friend").count())[0]["count"] != 1:
+    if O.query().V("vertex2").outEdge("friend").count().execute()[0]["count"] != 1:
         errors.append("labeled outgoing doesn't work")
 
     return errors
@@ -187,7 +185,7 @@ def test_incoming_edge(O):
     errors = []
     setupGraph(O)
 
-    if list(O.query().V("vertex2").inEdge().count())[0]["count"] != 1:
+    if O.query().V("vertex2").inEdge().count().execute()[0]["count"] != 1:
         errors.append("blank incoming doesn't work")
 
     for i in O.query().V("vertex4").inEdge():

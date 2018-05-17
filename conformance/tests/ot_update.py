@@ -6,14 +6,14 @@ def test_duplicate(O):
     O.addVertex("vertex2", "person")
     O.addVertex("vertex2", "clone")
 
-    O.addEdge("vertex1", "vertex2", "friend", data={"field": 1}, id="edge1")
-    O.addEdge("vertex1", "vertex2", "friend", id="edge1")
-    O.addEdge("vertex1", "vertex2", "friend", data={"weight": 5}, id="edge1")
+    O.addEdge("vertex1", "vertex2", "friend", data={"field": 1}, gid="edge1")
+    O.addEdge("vertex1", "vertex2", "friend", gid="edge1")
+    O.addEdge("vertex1", "vertex2", "friend", data={"weight": 5}, gid="edge1")
 
-    if list(O.query().V().count().execute())[0]["count"] != 2:
+    if O.query().V().count().execute()[0]["count"] != 2:
         errors.append("duplicate vertex add error")
 
-    if list(O.query().E().count().execute())[0]["count"] != 1:
+    if O.query().E().count().execute()[0]["count"] != 1:
         errors.append("duplicate edge add error")
 
     return errors
@@ -27,9 +27,9 @@ def test_replace(O):
     O.addVertex("vertex2", "person")
     O.addVertex("vertex2", "clone")
 
-    O.addEdge("vertex1", "vertex2", "friend", data={"field": 1}, id="edge1")
-    O.addEdge("vertex1", "vertex2", "friend", id="edge1")
-    O.addEdge("vertex1", "vertex2", "friend", data={"weight": 5}, id="edge1")
+    O.addEdge("vertex1", "vertex2", "friend", data={"field": 1}, gid="edge1")
+    O.addEdge("vertex1", "vertex2", "friend", gid="edge1")
+    O.addEdge("vertex1", "vertex2", "friend", data={"weight": 5}, gid="edge1")
 
     if O.getVertex("vertex1")["label"] != "clone":
         errors.append("vertex has unexpected label")
@@ -51,9 +51,9 @@ def test_delete(O):
     O.addVertex("vertex3", "person", {"field1": "value3", "field2": "value4"})
     O.addVertex("vertex4", "person")
 
-    O.addEdge("vertex1", "vertex2", "friend", id="edge1")
-    O.addEdge("vertex2", "vertex3", "friend", id="edge2")
-    O.addEdge("vertex2", "vertex4", "parent", id="edge3")
+    O.addEdge("vertex1", "vertex2", "friend", gid="edge1")
+    O.addEdge("vertex2", "vertex3", "friend", gid="edge2")
+    O.addEdge("vertex2", "vertex4", "parent", gid="edge3")
 
     count = 0
     for i in O.query().V():

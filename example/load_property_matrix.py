@@ -1,7 +1,7 @@
 #!/usr/bin/env python
+from __future__ import print_function
 
 import aql
-import json
 import argparse
 import pandas
 import math
@@ -20,13 +20,14 @@ def load_matrix(args):
                 data[k] = v
         O.addVertex(name, "Sample", data)
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("input")
     parser.add_argument("--server", default="http://localhost:8201")
     parser.add_argument("--db", default="test-data")
     parser.add_argument("-p", "--prefix", default="")
-    parser.add_argument("-d", dest="debug", action="store_true", default=False )
+    parser.add_argument("-d", dest="debug", action="store_true", default=False)
 
     args = parser.parse_args()
     load_matrix(args)
