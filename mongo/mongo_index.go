@@ -134,11 +134,6 @@ func (mg *Graph) GetVertexTermAggregation(ctx context.Context, label string, fie
 			return nil, fmt.Errorf("failed to cast count result to integer")
 		}
 		out.SortedInsert(&aql.AggregationResultBucket{Key: term, Value: float64(count)})
-		if size > 0 {
-			if len(out.Buckets) > int(size) {
-				out.Buckets = out.Buckets[:size]
-			}
-		}
 	}
 	if err := iter.Err(); err != nil {
 		return nil, fmt.Errorf("error occurred while iterating: %v", err)
