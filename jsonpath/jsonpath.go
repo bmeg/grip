@@ -144,15 +144,17 @@ func RenderTraveler(traveler *gdbi.Traveler, template interface{}) interface{} {
 	case string:
 		return TravelerPathLookup(traveler, elem)
 	case map[string]interface{}:
-		o := make(map[string]interface{}, len(elem))
+		o := make(map[string]interface{})
 		for k, v := range elem {
-			o[k] = RenderTraveler(traveler, v)
+			val := RenderTraveler(traveler, v)
+			o[k] = val
 		}
 		return o
 	case []interface{}:
 		o := make([]interface{}, len(elem))
 		for i := range elem {
-			o[i] = RenderTraveler(traveler, elem[i])
+			val := RenderTraveler(traveler, elem[i])
+			o[i] = val
 		}
 		return o
 	default:

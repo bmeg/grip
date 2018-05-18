@@ -111,7 +111,7 @@ func WrapValue(value interface{}) *structpb.Value {
 	case *structpb.Struct:
 		return &structpb.Value{Kind: &structpb.Value_StructValue{StructValue: v}}
 	case nil:
-		return nil
+		return &structpb.Value{Kind: &structpb.Value_NullValue{}}
 	default:
 		log.Printf("wrap unknown data type: %T", value)
 	}

@@ -9,8 +9,16 @@ def test_fields(O):
         u"label": u"",
         u"data": {u"name": u"han"}
     }
-
     resp = O.query().V().fields(["_gid", "name"]).execute()
+    if resp[0] != expected:
+        errors.append("vertex contains unexpected fields: %s" % resp)
+
+    expected = {
+        u"gid": u"vertex1",
+        u"label": u"",
+        u"data": {u"non-existent": None}
+    }
+    resp = O.query().V().fields(["_gid", "non-existent"]).execute()
     if resp[0] != expected:
         errors.append("vertex contains unexpected fields: %s" % resp)
 
