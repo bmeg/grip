@@ -24,16 +24,19 @@ func convertWhereExpression(stmt *aql.WhereExpression, not bool) bson.M {
 			andRes = append(andRes, convertWhereExpression(e, not))
 		}
 		output = bson.M{"$and": andRes}
+		if not {
+			output = bson.M{"$or": andRes}
+		}
 
 	case *aql.WhereExpression_Or:
 		or := stmt.GetOr()
 		orRes := []bson.M{}
 		for _, e := range or.Expressions {
-			orRes = append(orRes, convertWhereExpression(e, false))
+			orRes = append(orRes, convertWhereExpression(e, not))
 		}
 		output = bson.M{"$or": orRes}
 		if not {
-			output = bson.M{"$nor": orRes}
+			output = bson.M{"$and": orRes}
 		}
 
 	case *aql.WhereExpression_Not:
@@ -78,10 +81,12 @@ func convertCondition(cond *aql.WhereCondition, not bool) bson.M {
 	case aql.Condition_IN:
 		expr = bson.M{"$in": val}
 	case aql.Condition_CONTAINS:
-		if not {
-			return bson.M{key: bson.M{"$not": val}}
-		}
-		return bson.M{key: val}
+		expr = bson.M{"$in": []interface{}{val}}
+		// if not {
+		// 	return bson.M{key: bson.M{"$not": bson.M{"$in": []interface{}{val}}}}
+		// 	//return bson.M{key: bson.M{"$not": val}}
+		// }
+		// return bson.M{key: val}
 	default:
 		log.Printf("unknown where condition type")
 	}

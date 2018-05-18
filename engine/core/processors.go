@@ -484,8 +484,11 @@ func matchesCondition(trav *gdbi.Traveler, cond *aql.WhereCondition) bool {
 				}
 			}
 
+		case nil:
+			found = false
+
 		default:
-			log.Println("Error: unknown condition value type %T for IN condition", val)
+			log.Printf("Error: unknown condition value type %T for IN condition", val)
 		}
 
 		return found
@@ -504,8 +507,11 @@ func matchesCondition(trav *gdbi.Traveler, cond *aql.WhereCondition) bool {
 				}
 			}
 
+		case nil:
+			found = false
+
 		default:
-			log.Println("Error: unknown condition value type %T for CONTAINS condition", val)
+			log.Printf("Error: unknown condition value type %T for CONTAINS condition", val)
 		}
 
 		return found

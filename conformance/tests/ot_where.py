@@ -234,6 +234,16 @@ def test_where_not(O):
             "Fail: O.query().V().where(aql.not_(aql.eq(\"_label\", \"person\"))) %s != %s" %
             (count, 2))
 
+    count = 0
+    for i in O.query().V().where(aql.not_(aql.neq("_label", "person"))):
+        count += 1
+        if i['gid'] not in ["vertex1", "vertex2", "vertex5", "vertex6"]:
+            errors.append("Wrong vertex returned %s" % (i))
+    if count != 4:
+        errors.append(
+            "Fail: O.query().V().where(aql.not_(aql.neq(\"_label\", \"person\"))) %s != %s" %
+            (count, 4))
+
     return errors
 
 
@@ -242,11 +252,17 @@ def test_where_complex(O):
     setupGraph(O)
 
     count = 0
-    for i in O.query().V().where(aql.and_(
-            aql.eq("_label", "person"),
-            aql.not_(aql.or_(aql.eq("occupation", "jedi"),
-                             aql.eq("occupation", "sith")))
-    )):
+    for i in O.query().V().where(
+            aql.and_(
+                aql.eq("_label", "person"),
+                aql.not_(
+                    aql.or_(
+                        aql.eq("occupation", "jedi"),
+                        aql.eq("occupation", "sith")
+                    )
+                )
+            )
+    ):
         count += 1
         if i['gid'] != "vertex1":
             errors.append("Wrong vertex returned %s" % (i))
@@ -257,19 +273,61 @@ def test_where_complex(O):
         )
 
     count = 0
-    for i in O.query().V().where(aql.not_(
-            aql.and_(
-                aql.eq("_label", "robot"),
-                aql.or_(aql.eq("occupation", "jedi"),
-                        aql.contains("starships", "millennium falcon")))
-            )):
+    for i in O.query().V().where(
+            aql.not_(
+                aql.or_(
+                    aql.eq("_label", "robot"),
+                    aql.eq("occupation", "jedi"),
+                )
+            )
+    ):
+        count += 1
+        if i['gid'] not in ["vertex1", "vertex6"]:
+            errors.append("Wrong vertex returned %s" % (i))
+    if count != 2:
+        errors.append(
+            "Fail: O.query().V().where(aql.not_(aql.and_(aql.eq(\"_label\", \"robot\"), aql.eq(\"occupation\", \"jedi\")))) %s != %s" %
+            (count, 2)
+        )
+
+    count = 0
+    for i in O.query().V().where(
+            aql.not_(
+                aql.or_(
+                    aql.eq("_label", "robot"),
+                    aql.or_(
+                        aql.eq("occupation", "jedi"),
+                        aql.contains("starships", "millennium falcon")
+                    )
+                )
+            )
+    ):
         count += 1
         if i['gid'] != "vertex6":
             errors.append("Wrong vertex returned %s" % (i))
     if count != 1:
         errors.append(
-            "Fail: O.query().V().where(aql.not_(aql.and_(aql.eq(\"_label\", \"robot\"), aql.or_(aql.eq(\"occupation\", \"jedi\"),  aql.contains(\"starships\", \"millennium falcon\"))))) %s != %s" %
+            "Fail: O.query().V().where(aql.not_(aql.or_(aql.eq(\"_label\", \"robot\"), aql.or_(aql.eq(\"occupation\", \"jedi\"),  aql.contains(\"starships\", \"millennium falcon\"))))) %s != %s" %
             (count, 1)
+        )
+
+    count = 0
+    for i in O.query().V().where(
+            aql.not_(
+                aql.and_(
+                    aql.eq("_label", "robot"),
+                    aql.or_(
+                        aql.eq("occupation", "jedi"),
+                        aql.contains("starships", "millennium falcon")
+                    )
+                )
+            )
+    ):
+        count += 1
+    if count != 6:
+        errors.append(
+            "Fail: O.query().V().where(aql.not_(aql.and_(aql.eq(\"_label\", \"robot\"), aql.or_(aql.eq(\"occupation\", \"jedi\"),  aql.contains(\"starships\", \"millennium falcon\"))))) %s != %s" %
+            (count, 6)
         )
 
     return errors
