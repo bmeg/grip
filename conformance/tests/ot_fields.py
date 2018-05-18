@@ -11,7 +11,7 @@ def test_fields(O):
     }
     resp = O.query().V().fields(["_gid", "name"]).execute()
     if resp[0] != expected:
-        errors.append("vertex contains unexpected fields: %s" % resp)
+        errors.append("vertex contains incorrect fields: %s" % resp)
 
     expected = {
         u"gid": u"vertex1",
@@ -20,6 +20,6 @@ def test_fields(O):
     }
     resp = O.query().V().fields(["_gid", "non-existent"]).execute()
     if resp[0] != expected:
-        errors.append("vertex contains unexpected fields: %s" % resp)
+        errors.append("vertex contains incorrect fields: %s" % resp)
 
     return errors

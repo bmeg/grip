@@ -486,7 +486,7 @@ func (comp *Compiler) Compile(stmts []*aql.GraphStatement) (gdbi.Pipeline, error
 				case "gid":
 					fieldSelect["_id"] = 1
 				default:
-					fieldSelect[f] = 1
+					fieldSelect[f] = bson.M{"$ifNull": []interface{}{"$" + f, nil}}
 				}
 			}
 			query = append(query, bson.M{"$project": fieldSelect})
