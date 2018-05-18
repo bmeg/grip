@@ -78,7 +78,10 @@ func (server *ArachneServer) Traversal(query *aql.GraphQuery, queryServer aql.Qu
 	}
 	res := engine.Run(queryServer.Context(), pipeline, server.workDir)
 	for row := range res {
-		queryServer.Send(row)
+		err := queryServer.Send(row)
+		if err != nil {
+			return fmt.Errorf("error sending Traversal result: %v", err)
+		}
 	}
 
 	return nil
@@ -87,7 +90,10 @@ func (server *ArachneServer) Traversal(query *aql.GraphQuery, queryServer aql.Qu
 // GetGraphs returns a list of graphs managed by the driver
 func (server *ArachneServer) GetGraphs(empty *aql.Empty, queryServer aql.Query_GetGraphsServer) error {
 	for _, name := range server.db.GetGraphs() {
-		queryServer.Send(&aql.GraphID{Graph: name})
+		err := queryServer.Send(&aql.GraphID{Graph: name})
+		if err != nil {
+			return fmt.Errorf("error sending GetGraphs result: %v", err)
+		}
 	}
 	return nil
 }
@@ -346,7 +352,10 @@ func (server *ArachneServer) GetIndexList(idx *aql.GraphID, stream aql.Query_Get
 	}
 	res := graph.GetVertexIndexList()
 	for i := range res {
-		stream.Send(&i)
+		err := stream.Send(&i)
+		if err != nil {
+			return fmt.Errorf("error sending GetIndexList result: %v", err)
+		}
 	}
 	return nil
 }

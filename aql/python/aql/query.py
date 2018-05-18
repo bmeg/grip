@@ -234,7 +234,7 @@ class Query:
                 elif "aggregations" in d:
                     yield AttrDict(d["aggregations"]["aggregations"])
                 elif "selections" in d:
-                    d = AttrDict(d["selections"]["selections"])
+                    d = d["selections"]["selections"]
                     for k in d:
                         if "vertex" in d[k]:
                             d[k] = d[k]["vertex"]
@@ -242,11 +242,14 @@ class Query:
                             d[k] = d[k]["edge"]
                     yield AttrDict(d)
                 elif "render" in d:
+                    if isinstance(d["render"], dict):
                         yield AttrDict(d["render"])
+                    else:
+                        yield d["render"]
                 elif "count" in d:
-                        yield AttrDict(d)
-                else:
                     yield AttrDict(d)
+                else:
+                    yield d
             except ValueError as e:
                 print("Can't decode: %s" % (result), file=sys.stderr)
                 raise e
@@ -267,12 +270,15 @@ class Query:
 class AttrDict(object):
 
     def __init__(self, data):
-        for k in data:
-            v = data[k]
-            if isinstance(v, dict):
-                self.__dict__[k] = self.__class__(v)
-            else:
-                self.__dict__[k] = v
+        if isinstance(data, dict):
+            for k in data:
+                v = data[k]
+                if isinstance(v, dict):
+                    self.__dict__[k] = self.__class__(v)
+                else:
+                    self.__dict__[k] = v
+        else:
+            raise TypeError("AttrDict expects a dict in __init__")
 
     def __getattr__(self, k):
         try:
