@@ -36,7 +36,7 @@ type Processor struct {
 
 // Process runs the mongo aggregation pipeline
 func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
-	log.Printf("Running Mongo Processor: %+v", proc.query)
+	//log.Printf("Running Mongo Processor: %+v", proc.query)
 
 	go func() {
 		session := proc.db.ar.pool.Get()
@@ -48,7 +48,7 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 			iter := initCol.Pipe(proc.query).Iter()
 			result := map[string]interface{}{}
 			for iter.Next(&result) {
-				log.Printf("Mongo Pipeline result: %+v", result)
+				//log.Printf("Mongo Pipeline result: %+v", result)
 				select {
 				case <-ctx.Done():
 					return

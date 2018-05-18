@@ -47,7 +47,7 @@ func (comp DefaultCompiler) Compile(stmts []*aql.GraphStatement) (gdbi.Pipeline,
 		return &DefaultPipeline{}, nil
 	}
 
-	stmts = flatten(stmts)
+	stmts = Flatten(stmts)
 
 	if err := validate(stmts); err != nil {
 		return &DefaultPipeline{}, fmt.Errorf("invalid statments: %s", err)
@@ -290,13 +290,14 @@ func validate(stmts []*aql.GraphStatement) error {
 	return nil
 }
 
-func flatten(stmts []*aql.GraphStatement) []*aql.GraphStatement {
+// Flatten flattens Match statements
+func Flatten(stmts []*aql.GraphStatement) []*aql.GraphStatement {
 	out := make([]*aql.GraphStatement, 0, len(stmts))
 	for _, gs := range stmts {
 		switch stmt := gs.GetStatement().(type) {
 		case *aql.GraphStatement_Match:
 			for _, q := range stmt.Match.Queries {
-				out = append(out, flatten(q.Query)...)
+				out = append(out, Flatten(q.Query)...)
 			}
 		default:
 			out = append(out, gs)

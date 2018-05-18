@@ -2,7 +2,6 @@ package mongo
 
 import (
 	"fmt"
-	"log"
 	"strings"
 
 	"github.com/bmeg/arachne/aql"
@@ -55,6 +54,8 @@ func (comp *Compiler) Compile(stmts []*aql.GraphStatement) (gdbi.Pipeline, error
 	aggTypes := map[string]aggType{}
 	vertCol := fmt.Sprintf("%s_vertices", comp.db.graph)
 	edgeCol := fmt.Sprintf("%s_edges", comp.db.graph)
+
+	stmts = core.Flatten(stmts)
 
 	for _, gs := range stmts {
 		switch stmt := gs.GetStatement().(type) {
@@ -504,7 +505,6 @@ func (comp *Compiler) Compile(stmts []*aql.GraphStatement) (gdbi.Pipeline, error
 			for _, a := range stmt.Aggregate.Aggregations {
 				switch a.Aggregation.(type) {
 				case *aql.Aggregate_Term:
-					log.Println("TERM AGG")
 					agg := a.GetTerm()
 					field := jsonpath.GetJSONPath(agg.Field)
 					field = strings.TrimPrefix(field, "$.")
@@ -526,7 +526,6 @@ func (comp *Compiler) Compile(stmts []*aql.GraphStatement) (gdbi.Pipeline, error
 					aggs[a.Name] = stmt
 
 				case *aql.Aggregate_Histogram:
-					log.Println("HIST AGG")
 					agg := a.GetHistogram()
 					field := jsonpath.GetJSONPath(agg.Field)
 					field = strings.TrimPrefix(field, "$.")
@@ -553,7 +552,6 @@ func (comp *Compiler) Compile(stmts []*aql.GraphStatement) (gdbi.Pipeline, error
 					aggs[a.Name] = stmt
 
 				case *aql.Aggregate_Percentile:
-					log.Println("PERCENTILE AGG")
 					agg := a.GetPercentile()
 					field := jsonpath.GetJSONPath(agg.Field)
 					field = strings.TrimPrefix(field, "$.")
