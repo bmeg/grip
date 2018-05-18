@@ -3,11 +3,25 @@ package mongo
 import (
 	"context"
 	"log"
+	"strconv"
+	"strings"
 
 	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/gdbi"
 	"github.com/bmeg/arachne/protoutil"
+	structpb "github.com/golang/protobuf/ptypes/struct"
 	"gopkg.in/mgo.v2/bson"
+)
+
+// aggType is a possible aggregation type
+type aggType uint8
+
+// aggTypes
+const (
+	unknownAgg aggType = iota
+	termAgg
+	histogramAgg
+	percentileAgg
 )
 
 // Processor stores the information for a mongo aggregation pipeline
@@ -17,6 +31,7 @@ type Processor struct {
 	query           []bson.M
 	dataType        gdbi.DataType
 	markTypes       map[string]gdbi.DataType
+	aggTypes        map[string]aggType
 }
 
 // Process runs the mongo aggregation pipeline
@@ -105,13 +120,36 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 								log.Printf("Failed to convert Mongo aggregation result: %+v", bucket)
 								continue
 							}
-							term := protoutil.WrapValue(bucket["_id"])
-							count, ok := bucket["count"].(int)
-							if !ok {
-								log.Printf("failed to cast count result to integer: %v", bucket)
+
+							var term *structpb.Value
+							switch proc.aggTypes[k] {
+							case termAgg:
+								term = protoutil.WrapValue(bucket["_id"])
+							case histogramAgg:
+								term = protoutil.WrapValue(bucket["_id"])
+							case percentileAgg:
+								bid := strings.Replace(bucket["_id"].(string), "_", ".", -1)
+								f, err := strconv.ParseFloat(bid, 64)
+								if err != nil {
+									log.Printf("failed to parse percentile aggregation result key: %v", err)
+									continue
+								}
+								term = protoutil.WrapValue(f)
+							default:
+								log.Println("unknown aggregation result type")
+							}
+
+							switch bucket["count"].(type) {
+							case int:
+								count := bucket["count"].(int)
+								out.Buckets = append(out.Buckets, &aql.AggregationResultBucket{Key: term, Value: float64(count)})
+							case float64:
+								count := bucket["count"].(float64)
+								out.Buckets = append(out.Buckets, &aql.AggregationResultBucket{Key: term, Value: count})
+							default:
+								log.Println("unexpected aggregation result type")
 								continue
 							}
-							out.Buckets = append(out.Buckets, &aql.AggregationResultBucket{Key: term, Value: float64(count)})
 						}
 						aggs[k] = out
 					}

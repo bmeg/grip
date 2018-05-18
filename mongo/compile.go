@@ -2,6 +2,7 @@ package mongo
 
 import (
 	"fmt"
+	"log"
 	"strings"
 
 	"github.com/bmeg/arachne/aql"
@@ -51,6 +52,7 @@ func (comp *Compiler) Compile(stmts []*aql.GraphStatement) (gdbi.Pipeline, error
 	startCollection := ""
 	lastType := gdbi.NoData
 	markTypes := map[string]gdbi.DataType{}
+	aggTypes := map[string]aggType{}
 	vertCol := fmt.Sprintf("%s_vertices", comp.db.graph)
 	edgeCol := fmt.Sprintf("%s_edges", comp.db.graph)
 
@@ -502,6 +504,7 @@ func (comp *Compiler) Compile(stmts []*aql.GraphStatement) (gdbi.Pipeline, error
 			for _, a := range stmt.Aggregate.Aggregations {
 				switch a.Aggregation.(type) {
 				case *aql.Aggregate_Term:
+					log.Println("TERM AGG")
 					agg := a.GetTerm()
 					field := jsonpath.GetJSONPath(agg.Field)
 					field = strings.TrimPrefix(field, "$.")
@@ -519,9 +522,11 @@ func (comp *Compiler) Compile(stmts []*aql.GraphStatement) (gdbi.Pipeline, error
 					if agg.Size > 0 {
 						stmt = append(stmt, bson.M{"$limit": agg.Size})
 					}
+					aggTypes[a.Name] = termAgg
 					aggs[a.Name] = stmt
 
 				case *aql.Aggregate_Histogram:
+					log.Println("HIST AGG")
 					agg := a.GetHistogram()
 					field := jsonpath.GetJSONPath(agg.Field)
 					field = strings.TrimPrefix(field, "$.")
@@ -544,10 +549,44 @@ func (comp *Compiler) Compile(stmts []*aql.GraphStatement) (gdbi.Pipeline, error
 							"$sort": bson.M{"_id": 1},
 						},
 					}
+					aggTypes[a.Name] = histogramAgg
 					aggs[a.Name] = stmt
 
 				case *aql.Aggregate_Percentile:
-					return &Pipeline{}, fmt.Errorf("percentile aggregations are not supported")
+					log.Println("PERCENTILE AGG")
+					agg := a.GetPercentile()
+					field := jsonpath.GetJSONPath(agg.Field)
+					field = strings.TrimPrefix(field, "$.")
+					stmt := []bson.M{
+						{
+							"$match": bson.M{
+								"label": agg.Label,
+								field:   bson.M{"$exists": true},
+							},
+						},
+						{
+							"$sort": bson.M{field: 1},
+						},
+						{
+							"$group": bson.M{
+								"_id":    "null",
+								"values": bson.M{"$push": "$" + field},
+							},
+						},
+					}
+					percentiles := []interface{}{}
+					for _, p := range agg.Percents {
+						pName := strings.Replace(fmt.Sprintf("%v", p), ".", "_", -1)
+						percentile := bson.M{}
+						percentile["_id"] = pName
+						percentile["count"] = percentileCalc(p)
+						percentiles = append(percentiles, percentile)
+					}
+					stmt = append(stmt, bson.M{"$project": bson.M{"results": percentiles}})
+					stmt = append(stmt, bson.M{"$unwind": "$results"})
+					stmt = append(stmt, bson.M{"$project": bson.M{"_id": "$results._id", "count": "$results.count"}})
+					aggTypes[a.Name] = percentileAgg
+					aggs[a.Name] = stmt
 
 				default:
 					return &Pipeline{}, fmt.Errorf("%s uses an unknown aggregation type", a.Name)
@@ -561,6 +600,6 @@ func (comp *Compiler) Compile(stmts []*aql.GraphStatement) (gdbi.Pipeline, error
 		}
 	}
 
-	procs = append([]gdbi.Processor{&Processor{comp.db, startCollection, query, lastType, markTypes}}, procs...)
+	procs = append([]gdbi.Processor{&Processor{comp.db, startCollection, query, lastType, markTypes, aggTypes}}, procs...)
 	return &Pipeline{procs, lastType, markTypes}, nil
 }
