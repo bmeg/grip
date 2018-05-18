@@ -49,9 +49,9 @@ func NewMongo(conf Config) (gdbi.GraphDB, error) {
 		return nil, err
 	}
 	b, _ := session.BuildInfo()
-	if !b.VersionAtLeast(3, 2) {
+	if !b.VersionAtLeast(3, 6) {
 		session.Close()
-		return nil, fmt.Errorf("requires mongo 3.2 or later")
+		return nil, fmt.Errorf("requires mongo 3.6 or later")
 	}
 	pool := mgopool.NewLeaky(session, 3)
 	if conf.BatchSize == 0 {

@@ -82,11 +82,6 @@ func convertCondition(cond *aql.WhereCondition, not bool) bson.M {
 		expr = bson.M{"$in": val}
 	case aql.Condition_CONTAINS:
 		expr = bson.M{"$in": []interface{}{val}}
-		// if not {
-		// 	return bson.M{key: bson.M{"$not": bson.M{"$in": []interface{}{val}}}}
-		// 	//return bson.M{key: bson.M{"$not": val}}
-		// }
-		// return bson.M{key: val}
 	default:
 		log.Printf("unknown where condition type")
 	}
