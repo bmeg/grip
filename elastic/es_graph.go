@@ -479,7 +479,7 @@ func (es *Graph) GetOutChannel(req chan gdbi.ElementLookup, load bool, edgeLabel
 			}
 			q = q.Query(elastic.NewBoolQuery().Must(qParts...))
 			q = q.FetchSource(true).FetchSourceContext(elastic.NewFetchSourceContext(true).Include("from", "to"))
-			res, err := q.Do(ctx)
+			res, err := q.Sort("gid", true).Do(ctx)
 			if err != nil {
 				return fmt.Errorf("Edge query failed: %s", err)
 			}
@@ -520,7 +520,7 @@ func (es *Graph) GetOutChannel(req chan gdbi.ElementLookup, load bool, edgeLabel
 			if !load {
 				q = q.FetchSource(true).FetchSourceContext(elastic.NewFetchSourceContext(true).Exclude("data"))
 			}
-			res, err := q.Do(ctx)
+			res, err := q.Sort("gid", true).Do(ctx)
 			if err != nil {
 				return fmt.Errorf("Vertex query failed: %s", err)
 			}
@@ -599,7 +599,7 @@ func (es *Graph) GetInChannel(req chan gdbi.ElementLookup, load bool, edgeLabels
 			}
 			q = q.Query(elastic.NewBoolQuery().Must(qParts...))
 			q = q.FetchSource(true).FetchSourceContext(elastic.NewFetchSourceContext(true).Include("from", "to"))
-			res, err := q.Do(ctx)
+			res, err := q.Sort("gid", true).Do(ctx)
 			if err != nil {
 				return fmt.Errorf("Edge query failed: %s", err)
 			}
@@ -640,7 +640,7 @@ func (es *Graph) GetInChannel(req chan gdbi.ElementLookup, load bool, edgeLabels
 			if !load {
 				q = q.FetchSource(true).FetchSourceContext(elastic.NewFetchSourceContext(true).Exclude("data"))
 			}
-			res, err := q.Do(ctx)
+			res, err := q.Sort("gid", true).Do(ctx)
 			if err != nil {
 				return fmt.Errorf("Vertex query failed: %s", err)
 			}
@@ -720,7 +720,7 @@ func (es *Graph) GetOutEdgeChannel(req chan gdbi.ElementLookup, load bool, edgeL
 			if !load {
 				q = q.FetchSource(true).FetchSourceContext(elastic.NewFetchSourceContext(true).Exclude("data"))
 			}
-			res, err := q.Do(ctx)
+			res, err := q.Sort("gid", true).Do(ctx)
 			if err != nil {
 				return fmt.Errorf("Edge query failed: %s", err)
 			}
@@ -800,7 +800,7 @@ func (es *Graph) GetInEdgeChannel(req chan gdbi.ElementLookup, load bool, edgeLa
 			if !load {
 				q = q.FetchSource(true).FetchSourceContext(elastic.NewFetchSourceContext(true).Exclude("data"))
 			}
-			res, err := q.Do(ctx)
+			res, err := q.Sort("gid", true).Do(ctx)
 			if err != nil {
 				return fmt.Errorf("Edge query failed: %s", err)
 			}

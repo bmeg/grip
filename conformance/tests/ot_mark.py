@@ -15,8 +15,10 @@ def test_mark_select_label_filter(O):
     setupGraph(O)
 
     count = 0
-    for row in O.query().V("vertex2").mark("a").both("friend").mark(
-            "b").select(["a", "b"]):
+    for row in O.query().V("vertex2").mark("a").\
+            both("friend").\
+            mark("b").\
+            select(["a", "b"]):
         count += 1
         if len(row) != 2:
             errors.append("Incorrect number of marks returned")

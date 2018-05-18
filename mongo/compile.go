@@ -219,7 +219,12 @@ func (comp *Compiler) Compile(stmts []*aql.GraphStatement) (gdbi.Pipeline, error
 										},
 									},
 								},
-								{"$addFields": bson.M{"vid": "$$vid", "marks": "$$marks"}},
+								{
+									"$addFields": bson.M{"vid": "$$vid", "marks": "$$marks"},
+								},
+								{
+									"$sort": bson.M{"to": 1},
+								},
 							},
 							"as": "dst",
 						},
@@ -354,6 +359,9 @@ func (comp *Compiler) Compile(stmts []*aql.GraphStatement) (gdbi.Pipeline, error
 							},
 							{
 								"$addFields": bson.M{"marks": "$$marks"},
+							},
+							{
+								"$sort": bson.M{"to": 1},
 							},
 						},
 						"as": "dst",

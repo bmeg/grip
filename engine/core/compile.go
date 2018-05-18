@@ -105,15 +105,9 @@ func (comp DefaultCompiler) Compile(stmts []*aql.GraphStatement) (gdbi.Pipeline,
 		case *aql.GraphStatement_Both:
 			labels := protoutil.AsStringList(stmt.Both)
 			if lastType == gdbi.VertexData {
-				add(&concat{
-					&LookupVertexAdjIn{comp.db, labels},
-					&LookupVertexAdjOut{comp.db, labels},
-				})
+				add(&both{comp.db, labels, gdbi.VertexData, gdbi.VertexData})
 			} else if lastType == gdbi.EdgeData {
-				add(&concat{
-					&LookupEdgeAdjIn{comp.db, labels},
-					&LookupEdgeAdjOut{comp.db, labels},
-				})
+				add(&both{comp.db, labels, gdbi.EdgeData, gdbi.VertexData})
 			} else {
 				return &DefaultPipeline{}, fmt.Errorf(`"both" statement is only valid for edge or vertex types not: %s`, lastType.String())
 			}
@@ -140,10 +134,7 @@ func (comp DefaultCompiler) Compile(stmts []*aql.GraphStatement) (gdbi.Pipeline,
 				return &DefaultPipeline{}, fmt.Errorf(`"bothEdge" statement is only valid for the vertex type not: %s`, lastType.String())
 			}
 			labels := protoutil.AsStringList(stmt.BothEdge)
-			add(&concat{
-				&InEdge{comp.db, labels},
-				&OutEdge{comp.db, labels},
-			})
+			add(&both{comp.db, labels, gdbi.VertexData, gdbi.EdgeData})
 			lastType = gdbi.EdgeData
 
 		case *aql.GraphStatement_Where:

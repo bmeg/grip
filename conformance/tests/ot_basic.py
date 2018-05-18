@@ -224,6 +224,14 @@ def test_both(O):
     if count != 1:
         errors.append("Wrong vertex count found %s != %s" % (count, 1))
 
+    count = 0
+    for row in O.query().V("vertex2").both("parent"):
+        count += 1
+        if row['gid'] not in ["vertex4"]:
+            errors.append("Wrong vertex found: %s" % (row['gid']))
+    if count != 1:
+        errors.append("Wrong vertex count found %s != %s" % (count, 1))
+
     return errors
 
 
@@ -239,17 +247,35 @@ def test_both_edge(O):
     if count != 1:
         errors.append("Wrong edge count found %s != %s" % (count, 1))
 
+    count = 0
+    for row in O.query().V("vertex2").bothEdge("parent"):
+        count += 1
+        if row['gid'] not in ["edge3"]:
+            errors.append("Wrong edge found: %s" % (row['gid']))
+    if count != 1:
+        errors.append("Wrong edge count found %s != %s" % (count, 1))
+
     return errors
 
 
 def test_limit(O):
     errors = []
-    setupGraph(O)
+    O.addVertex("vertex1", "person")
+    O.addVertex("vertex2", "person")
+    O.addVertex("vertex3", "person")
+    O.addVertex("vertex4", "person")
     O.addVertex("vertex5", "person")
     O.addVertex("vertex6", "person")
     O.addVertex("vertex7", "person")
     O.addVertex("vertex8", "person")
     O.addVertex("vertex9", "person")
+
+    O.addEdge("vertex1", "vertex2", "friend", gid="edge1")
+    O.addEdge("vertex1", "vertex3", "friend", gid="edge2")
+    O.addEdge("vertex1", "vertex7", "parent", gid="edge3")
+    O.addEdge("vertex1", "vertex9", "parent", gid="edge4")
+    O.addEdge("vertex2", "vertex1", "enemy", gid="edge5")
+    O.addEdge("vertex8", "vertex1", "enemy", gid="edge6")
 
     count = 0
     for row in O.query().V().limit(3):
@@ -259,17 +285,44 @@ def test_limit(O):
     if count != 3:
         errors.append("Wrong vertex count found %s != %s" % (count, 3))
 
+    count = 0
+    for row in O.query().V("vertex1").both().limit(3):
+        count += 1
+        if row['gid'] not in ["vertex2", "vertex8", "vertex2"]:
+            errors.append("Wrong vertex found: %s" % (row['gid']))
+    if count != 3:
+        errors.append("Wrong vertex count found %s != %s" % (count, 3))
+
+    count = 0
+    for row in O.query().V("vertex1").bothEdge().limit(3):
+        count += 1
+        if row['gid'] not in ["edge5", "edge6", "edge1"]:
+            errors.append("Wrong edge found: %s" % (row['gid']))
+    if count != 3:
+        errors.append("Wrong edge count found %s != %s" % (count, 3))
+
     return errors
 
 
 def test_offset(O):
     errors = []
-    setupGraph(O)
+
+    O.addVertex("vertex1", "person")
+    O.addVertex("vertex2", "person")
+    O.addVertex("vertex3", "person")
+    O.addVertex("vertex4", "person")
     O.addVertex("vertex5", "person")
     O.addVertex("vertex6", "person")
     O.addVertex("vertex7", "person")
     O.addVertex("vertex8", "person")
     O.addVertex("vertex9", "person")
+
+    O.addEdge("vertex1", "vertex2", "friend", gid="edge1")
+    O.addEdge("vertex1", "vertex3", "friend", gid="edge2")
+    O.addEdge("vertex1", "vertex7", "parent", gid="edge3")
+    O.addEdge("vertex1", "vertex9", "parent", gid="edge4")
+    O.addEdge("vertex2", "vertex1", "enemy", gid="edge5")
+    O.addEdge("vertex8", "vertex1", "enemy", gid="edge6")
 
     count = 0
     for row in O.query().V().offset(4).limit(2):
@@ -278,5 +331,21 @@ def test_offset(O):
             errors.append("Wrong vertex found: %s" % (row['gid']))
     if count != 2:
         errors.append("Wrong vertex count found %s != %s" % (count, 2))
+
+    count = 0
+    for row in O.query().V("vertex1").both().offset(4).limit(2):
+        count += 1
+        if row['gid'] not in ["vertex7", "vertex9"]:
+            errors.append("Wrong vertex found: %s" % (row['gid']))
+    if count != 2:
+        errors.append("Wrong vertex count found %s != %s" % (count, 2))
+
+    count = 0
+    for row in O.query().V("vertex1").bothEdge().offset(4).limit(2):
+        count += 1
+        if row['gid'] not in ["edge3", "edge4"]:
+            errors.append("Wrong edge found: %s" % (row['gid']))
+    if count != 2:
+        errors.append("Wrong edge count found %s != %s" % (count, 2))
 
     return errors
