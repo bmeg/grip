@@ -34,9 +34,29 @@ type Processor struct {
 	aggTypes        map[string]aggType
 }
 
+func getDataElement(result map[string]interface{}) *gdbi.DataElement {
+	de := &gdbi.DataElement{}
+	if x, ok := result["_id"]; ok {
+		de.ID = x.(string)
+	}
+	if x, ok := result["label"]; ok {
+		de.Label = x.(string)
+	}
+	if x, ok := result["data"]; ok {
+		de.Data = x.(map[string]interface{})
+	}
+	if x, ok := result["to"]; ok {
+		de.To = x.(string)
+	}
+	if x, ok := result["from"]; ok {
+		de.From = x.(string)
+	}
+	return de
+}
+
 // Process runs the mongo aggregation pipeline
 func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
-	log.Printf("Running Mongo Processor: %+v", proc.query)
+	// log.Printf("Running Mongo Processor: %+v", proc.query)
 
 	go func() {
 		session := proc.db.ar.pool.Get()
@@ -48,7 +68,7 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 			iter := initCol.Pipe(proc.query).Iter()
 			result := map[string]interface{}{}
 			for iter.Next(&result) {
-				log.Printf("Mongo Pipeline result: %+v", result)
+				// log.Printf("Mongo Pipeline result: %+v", result)
 				select {
 				case <-ctx.Done():
 					return
@@ -68,34 +88,10 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 					if marks, ok := result["marks"]; ok {
 						if marks, ok := marks.(map[string]interface{}); ok {
 							for k, v := range marks {
-								gid, ok := v.(string)
-								if !ok {
-									log.Printf("Failed to process selection data: %+v", v)
+								if v, ok := v.(map[string]interface{}); ok {
+									de := getDataElement(v)
+									selections[k] = de
 								}
-								de := &gdbi.DataElement{}
-								switch proc.markTypes[k] {
-								case gdbi.VertexData:
-									v := proc.db.GetVertex(gid, true)
-									if v != nil {
-										de = &gdbi.DataElement{
-											ID:    v.Gid,
-											Label: v.Label,
-											Data:  v.GetDataMap(),
-										}
-									}
-								case gdbi.EdgeData:
-									e := proc.db.GetEdge(gid, true)
-									if e != nil {
-										de = &gdbi.DataElement{
-											ID:    e.Gid,
-											Label: e.Label,
-											From:  e.From,
-											To:    e.To,
-											Data:  e.GetDataMap(),
-										}
-									}
-								}
-								selections[k] = de
 							}
 						}
 					}

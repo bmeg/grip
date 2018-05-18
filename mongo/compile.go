@@ -450,7 +450,7 @@ func (comp *Compiler) Compile(stmts []*aql.GraphStatement) (gdbi.Pipeline, error
 				return &Pipeline{}, fmt.Errorf(`"mark" statement invalid; uses reserved name %s`, jsonpath.Current)
 			}
 			markTypes[stmt.Mark] = lastType
-			query = append(query, bson.M{"$addFields": bson.M{"marks": bson.M{stmt.Mark: "$_id"}}})
+			query = append(query, bson.M{"$addFields": bson.M{"marks": bson.M{stmt.Mark: "$$ROOT"}}})
 
 		case *aql.GraphStatement_Select:
 			if lastType != gdbi.VertexData && lastType != gdbi.EdgeData {
@@ -478,14 +478,22 @@ func (comp *Compiler) Compile(stmts []*aql.GraphStatement) (gdbi.Pipeline, error
 				return &Pipeline{}, fmt.Errorf(`"fields" statement is only valid for edge or vertex types not: %s`, lastType.String())
 			}
 			fields := protoutil.AsStringList(stmt.Fields)
-			fieldSelect := bson.M{}
+			fieldSelect := bson.M{"_id": 0}
 			for _, f := range fields {
+				namespace := jsonpath.GetNamespace(f)
 				f = jsonpath.GetJSONPath(f)
 				f = strings.TrimPrefix(f, "$.")
 				switch f {
 				case "gid":
-					fieldSelect["_id"] = 1
+					f = "_id"
+					if namespace != jsonpath.Current {
+						f = "marks." + namespace + "." + f
+					}
+					fieldSelect[f] = 1
 				default:
+					if namespace != jsonpath.Current {
+						f = "marks." + namespace + "." + f
+					}
 					fieldSelect[f] = bson.M{"$ifNull": []interface{}{"$" + f, nil}}
 				}
 			}

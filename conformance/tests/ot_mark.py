@@ -91,3 +91,35 @@ def test_mark_edge_select(O):
                       (count, 1))
 
     return errors
+
+
+def test_mark_select_fields(O):
+    errors = []
+
+    setupGraph(O)
+
+    count = 0
+    for row in O.query().V("vertex1").mark("a").out().\
+            mark("b").out().mark("c").\
+            fields(["$a._gid", "$b._gid", "$c._gid", "$c.field1"]).\
+            select(["a", "b", "c"]):
+        count += 1
+        if len(row) != 3:
+            errors.append("Incorrect number of marks returned")
+        if row["a"]["gid"] != "vertex1":
+            errors.append("Incorrect vertex returned for 'a': %s" % row["a"])
+        if row["a"]["data"] != {}:
+            errors.append("Incorrect data for 'a'")
+        if row["b"]["gid"] != "vertex2":
+            errors.append("Incorrect vertex returned for 'b': %s" % row["b"])
+        if row["c"]["gid"] not in ["vertex3", "vertex4"]:
+            errors.append("Incorrect vertex returned for 'c': %s" % row["c"])
+        if row["c"]["gid"] == "vertex3":
+            if row["c"]["data"] != {"field1": "value3"}:
+                errors.append("Incorrect data for 'c'")
+
+    if count != 2:
+        errors.append("unexpected number of rows returned. %d != %d" %
+                      (count, 2))
+
+    return errors

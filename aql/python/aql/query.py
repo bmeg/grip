@@ -226,7 +226,6 @@ class Query:
         response.raise_for_status()
         for result in response.iter_lines():
             try:
-                print(result)
                 d = json.loads(result)
                 if "vertex" in d:
                     yield AttrDict(d["vertex"])
