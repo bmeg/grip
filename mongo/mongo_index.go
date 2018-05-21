@@ -20,9 +20,9 @@ func (mg *Graph) AddVertexIndex(label string, field string) error {
 	field = jsonpath.GetJSONPath(field)
 	field = strings.TrimPrefix(field, "$.")
 
-	session := mg.ar.pool.Get()
+	session := mg.ar.session.Copy()
+	defer session.Close()
 	session.ResetIndexCache()
-	defer mg.ar.pool.Put(session)
 	c := mg.ar.VertexCollection(session, mg.graph)
 	return c.EnsureIndex(mgo.Index{
 		Key:        []string{"label", field},
@@ -39,8 +39,8 @@ func (mg *Graph) DeleteVertexIndex(label string, field string) error {
 	field = jsonpath.GetJSONPath(field)
 	field = strings.TrimPrefix(field, "$.")
 
-	session := mg.ar.pool.Get()
-	defer mg.ar.pool.Put(session)
+	session := mg.ar.session.Copy()
+	defer session.Close()
 	c := mg.ar.VertexCollection(session, mg.graph)
 	return c.DropIndex("label", field)
 }
@@ -50,8 +50,8 @@ func (mg *Graph) GetVertexIndexList() chan aql.IndexID {
 	out := make(chan aql.IndexID)
 
 	go func() {
-		session := mg.ar.pool.Get()
-		defer mg.ar.pool.Put(session)
+		session := mg.ar.session.Copy()
+		defer session.Close()
 		defer close(out)
 
 		c := mg.ar.VertexCollection(session, mg.graph)
@@ -120,8 +120,8 @@ func (mg *Graph) GetVertexTermAggregation(ctx context.Context, label string, fie
 		ag = append(ag, bson.M{"$limit": size})
 	}
 
-	session := mg.ar.pool.Get()
-	defer mg.ar.pool.Put(session)
+	session := mg.ar.session.Copy()
+	defer session.Close()
 	vcol := mg.ar.VertexCollection(session, mg.graph)
 	pipe := vcol.Pipe(ag)
 	iter := pipe.Iter()
@@ -175,8 +175,8 @@ func (mg *Graph) GetVertexHistogramAggregation(ctx context.Context, label string
 		},
 	}
 
-	session := mg.ar.pool.Get()
-	defer mg.ar.pool.Put(session)
+	session := mg.ar.session.Copy()
+	defer session.Close()
 	vcol := mg.ar.VertexCollection(session, mg.graph)
 	pipe := vcol.Pipe(ag)
 	iter := pipe.Iter()
@@ -239,8 +239,8 @@ func (mg *Graph) GetVertexPercentileAggregation(ctx context.Context, label strin
 	stmt = append(stmt, bson.M{"$unwind": "$results"})
 	stmt = append(stmt, bson.M{"$project": bson.M{"_id": "$results._id", "count": "$results.count"}})
 
-	session := mg.ar.pool.Get()
-	defer mg.ar.pool.Put(session)
+	session := mg.ar.session.Copy()
+	defer session.Close()
 	vcol := mg.ar.VertexCollection(session, mg.graph)
 	pipe := vcol.Pipe(stmt)
 	iter := pipe.Iter()
@@ -272,8 +272,8 @@ func (mg *Graph) VertexLabelScan(ctx context.Context, label string) chan string 
 	out := make(chan string, 100)
 	go func() {
 		defer close(out)
-		session := mg.ar.pool.Get()
-		defer mg.ar.pool.Put(session)
+		session := mg.ar.session.Copy()
+		defer session.Close()
 		selection := map[string]interface{}{
 			"label": label,
 		}
@@ -301,81 +301,3 @@ func (mg *Graph) VertexLabelScan(ctx context.Context, label string) chan string 
 	}()
 	return out
 }
-
-// //AddEdgeIndex add index to edges
-// func (mg *Graph) AddEdgeIndex(label string, field string) error {
-// 	session := mg.ar.pool.Get()
-// 	c := mg.ar.getEdgeCollection(session, mg.graph)
-// 	err := c.EnsureIndex(mgo.Index{Key: []string{"label", "data." + field}})
-// 	mg.ar.pool.Put(session)
-// 	return err
-// }
-
-// //DeleteEdgeIndex delete index from edges
-// func (mg *Graph) DeleteEdgeIndex(label string, field string) error {
-// 	session := mg.ar.pool.Get()
-// 	defer mg.ar.pool.Put(session)
-// 	ecol := mg.ar.getEdgeCollection(session, mg.graph)
-// 	return ecol.DropIndex("label", "data."+field)
-// }
-
-// //GetEdgeTermCount get count of every term across edges
-// func (mg *Graph) GetEdgeTermCount(ctx context.Context, label string, field string) chan aql.IndexTermCount {
-// 	out := make(chan aql.IndexTermCount, 100)
-// 	go func() {
-// 		defer close(out)
-// 		session := mg.ar.pool.Get()
-// 		defer mg.ar.pool.Put(session)
-// 		ag := []bson.M{
-// 			{"$match": bson.M{"label": label}},
-// 			{"$group": bson.M{"_id": "$data." + field, "count": bson.M{"$sum": 1}}},
-// 		}
-// 		ecol := mg.ar.getEdgeCollection(session, mg.graph)
-// 		pipe := ecol.Pipe(ag)
-// 		iter := pipe.Iter()
-// 		defer iter.Close()
-// 		result := map[string]interface{}{}
-// 		for iter.Next(&result) {
-// 			select {
-// 			case <-ctx.Done():
-// 				return
-// 			default:
-// 			}
-// 			term := structpb.Value{Kind: &structpb.Value_StringValue{StringValue: result["_id"].(string)}}
-// 			idxit := aql.IndexTermCount{Term: &term, Count: int32(result["count"].(int))}
-// 			out <- idxit
-// 		}
-// 	}()
-// 	return out
-// }
-
-// //EdgeLabelScan produces a channel of all edge ids where the edge label matches `label`
-// func (mg *Graph) EdgeLabelScan(ctx context.Context, label string) chan string {
-// 	out := make(chan string, 100)
-// 	go func() {
-// 		defer close(out)
-// 		session := mg.ar.pool.Get()
-// 		defer mg.ar.pool.Put(session)
-// 		selection := map[string]interface{}{
-// 			"label": label,
-// 		}
-// 		ecol := mg.ar.getEdgeCollection(session, mg.graph)
-// 		iter := ecol.Find(selection).Select(map[string]interface{}{"_id": 1}).Iter()
-// 		defer iter.Close()
-// 		result := map[string]interface{}{}
-// 		for iter.Next(&result) {
-// 			select {
-// 			case <-ctx.Done():
-// 				return
-// 			default:
-// 			}
-// 			id := result["_id"]
-// 			if idb, ok := id.(bson.ObjectId); ok {
-// 				out <- idb.String()
-// 			} else {
-// 				out <- id.(string)
-// 			}
-// 		}
-// 	}()
-// 	return out
-// }

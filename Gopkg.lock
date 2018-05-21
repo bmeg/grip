@@ -337,12 +337,6 @@
 
 [[projects]]
   branch = "master"
-  name = "github.com/vsco/mgopool"
-  packages = ["."]
-  revision = "1bc10bf00f6c1803c4eae5c166aba69bd395f64d"
-
-[[projects]]
-  branch = "master"
   name = "golang.org/x/net"
   packages = [
     "context",
@@ -431,18 +425,6 @@
   version = "v1.12.0"
 
 [[projects]]
-  branch = "v2"
-  name = "gopkg.in/mgo.v2"
-  packages = [
-    ".",
-    "bson",
-    "internal/json",
-    "internal/sasl",
-    "internal/scram"
-  ]
-  revision = "3f83fa5005286a7fe593b055f0d7771a7dce4655"
-
-[[projects]]
   name = "gopkg.in/olivere/elastic.v5"
   packages = [
     ".",
@@ -470,6 +452,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "15ad568e670e676352d0240da9834a6ba24fe8a3f363d79b49d38535f4d1ab15"
+  inputs-digest = "1cc56e572aab7d1e209adc6caec853950374fe7e916075fef2e647106191489a"
   solver-name = "gps-cdcl"
   solver-version = 1
