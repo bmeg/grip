@@ -8,9 +8,9 @@ import (
 	"strings"
 
 	"github.com/bmeg/golib"
+	"github.com/globalsign/mgo"
+	"github.com/globalsign/mgo/bson"
 	"github.com/spf13/cobra"
-	"gopkg.in/mgo.v2"
-	"gopkg.in/mgo.v2/bson"
 )
 
 var host = "localhost"

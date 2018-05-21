@@ -6,16 +6,15 @@ import (
 	"io"
 	"log"
 	"strings"
-	"time"
 
 	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/engine/core"
 	"github.com/bmeg/arachne/gdbi"
 	"github.com/bmeg/arachne/timestamp"
 	"github.com/bmeg/arachne/util"
+	"github.com/globalsign/mgo"
+	"github.com/globalsign/mgo/bson"
 	"github.com/vsco/mgopool"
-	"gopkg.in/mgo.v2"
-	"gopkg.in/mgo.v2/bson"
 )
 
 // Config describes the configuration for the mongodb driver.
@@ -49,8 +48,8 @@ func NewMongo(conf Config) (gdbi.GraphDB, error) {
 	if err != nil {
 		return nil, err
 	}
-	session.SetSocketTimeout(1 * time.Minute)
-	session.SetSyncTimeout(1 * time.Minute)
+	// session.SetSocketTimeout(1 * time.Minute)
+	// session.SetSyncTimeout(1 * time.Minute)
 
 	b, _ := session.BuildInfo()
 	if !b.VersionAtLeast(3, 6) {

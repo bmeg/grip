@@ -9,7 +9,7 @@ import (
 	"github.com/bmeg/arachne/gdbi"
 	"github.com/bmeg/arachne/jsonpath"
 	"github.com/bmeg/arachne/protoutil"
-	"gopkg.in/mgo.v2/bson"
+	"github.com/globalsign/mgo/bson"
 )
 
 // Pipeline a set of runnable query operations

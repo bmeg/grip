@@ -10,8 +10,8 @@ import (
 	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/jsonpath"
 	"github.com/bmeg/arachne/protoutil"
-	"gopkg.in/mgo.v2"
-	"gopkg.in/mgo.v2/bson"
+	"github.com/globalsign/mgo"
+	"github.com/globalsign/mgo/bson"
 )
 
 //AddVertexIndex add index to vertices
