@@ -119,10 +119,6 @@
 
 [[constraint]]
   branch = "master"
-  name = "github.com/vsco/mgopool"
-
-[[constraint]]
-  branch = "master"
   name = "golang.org/x/net"
 
 [[constraint]]

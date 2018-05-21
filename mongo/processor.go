@@ -59,8 +59,8 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 	// log.Printf("Running Mongo Processor: %+v", proc.query)
 
 	go func() {
-		session := proc.db.ar.pool.Get()
-		defer proc.db.ar.pool.Put(session)
+		session := proc.db.ar.session.Copy()
+		defer session.Close()
 		defer close(out)
 
 		initCol := session.DB(proc.db.ar.database).C(proc.startCollection)
