@@ -243,10 +243,3 @@ func validate(k string) error {
 	}
 	return nil
 }
-
-// Graph represents a graph. This structure is used by client side graph loader utilities.
-type Graph struct {
-	Graph    string
-	Vertices []*Vertex
-	Edges    []*Edge
-}

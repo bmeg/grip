@@ -5,6 +5,12 @@ package aql;
 import "google/api/annotations.proto";
 import "google/protobuf/struct.proto";
 
+message Graph {
+	string graph = 1;
+	repeated Vertex vertices = 2;
+	repeated Edge edges = 3;
+}
+
 message GraphQuery {
   string graph = 1;
   repeated GraphStatement query = 2;

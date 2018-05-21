@@ -1,6 +1,0 @@
-{ "gid" : "1", "label" : "Person", "data" : {"name":"marko", "age":29} }
-{ "gid" : "2", "label" : "Person", "data" : {"name":"vadas", "age":27}}
-{ "gid" : "3", "label" : "Software", "data" : {"name":"lop", "lang":"java"}}
-{ "gid" : "4", "label" : "Person", "data" : {"name":"josh", "age":32}}
-{ "gid" : "5", "label" : "Software", "data" : {"name":"ripple", "lang":"java"}}
-{ "gid" : "6", "label" : "Person", "data" : {"name":"peter", "age":35}}
