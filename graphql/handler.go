@@ -65,7 +65,7 @@ func (gh *Handler) ServeHTTP(writer http.ResponseWriter, request *http.Request) 
 func newGraphHandler(graph string, client aql.Client) *graphHandler {
 	o := &graphHandler{
 		graph:  graph,
-		schema: fmt.Sprintf("%s:schema", graph),
+		schema: fmt.Sprintf("%s-schema", graph),
 		client: client,
 	}
 	o.setup()

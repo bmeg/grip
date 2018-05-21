@@ -111,7 +111,7 @@ func NewHTTPProxy(rpcPort string, httpPort string, contentDir string) (*Proxy, e
 	r := mux.NewRouter()
 	runtime.OtherErrorHandler = handleError
 
-	r.PathPrefix("/graphql").Handler(graphql.NewHTTPHandler("localhost:" + rpcPort))
+	r.PathPrefix("/graphql/").Handler(graphql.NewHTTPHandler("localhost:" + rpcPort))
 	r.PathPrefix("/v1/").Handler(grpcMux)
 	if contentDir != "" {
 		r.PathPrefix("/").Handler(http.StripPrefix("/", http.FileServer(http.Dir(contentDir))))
