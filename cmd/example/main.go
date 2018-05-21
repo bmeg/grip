@@ -26,8 +26,8 @@ func found(set []string, val string) bool {
 // Cmd is the example loader command line definition
 var Cmd = &cobra.Command{
 	Use:   "example",
-	Short: "Load example on Arachne Server",
-	Long:  ``,
+	Short: "Load example graph into Arachne",
+	Args:  cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		conn, err := aql.Connect(host, true)
 		if err != nil {
@@ -37,17 +37,20 @@ var Cmd = &cobra.Command{
 		graphql := fmt.Sprintf("%s-schema", graph)
 
 		graphs := conn.GetGraphList()
-		if !found(graphs, graphql) {
-			err := conn.AddGraph(graphql)
-			if err != nil {
-				return err
-			}
+		if found(graphs, graphql) {
+			return fmt.Errorf("arachne already contains a graph called 'example-schema'")
 		}
-		if !found(graphs, graph) {
-			err := conn.AddGraph(graph)
-			if err != nil {
-				return err
-			}
+		if found(graphs, graph) {
+			return fmt.Errorf("arachne already contains a graph called 'example'")
+		}
+
+		err = conn.AddGraph(graphql)
+		if err != nil {
+			return err
+		}
+		err = conn.AddGraph(graph)
+		if err != nil {
+			return err
 		}
 
 		log.Printf("Loading example graph data into %s", graph)
@@ -81,6 +84,5 @@ var Cmd = &cobra.Command{
 
 func init() {
 	flags := Cmd.Flags()
-	flags.StringVar(&host, "host", host, "Host Server")
-	flags.StringVar(&graph, "graph", "example", "Graph")
+	flags.StringVar(&host, "host", host, "Arachne host server")
 }

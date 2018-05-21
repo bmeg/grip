@@ -14,10 +14,8 @@ var Cmd = &cobra.Command{
 	Use:   "info <graph>",
 	Short: "Info on Arachne Graph",
 	Long:  ``,
+	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if len(args) != 1 {
-			return cmd.Usage()
-		}
 		graph := args[0]
 
 		conn, err := aql.Connect(host, true)
@@ -43,12 +41,11 @@ var Cmd = &cobra.Command{
 		for row := range res {
 			fmt.Printf("Edge Count: %s\n", row)
 		}
-
 		return nil
 	},
 }
 
 func init() {
 	flags := Cmd.Flags()
-	flags.StringVar(&host, "host", host, "Host Server")
+	flags.StringVar(&host, "host", host, "Arachne host server")
 }

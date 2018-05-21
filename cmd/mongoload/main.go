@@ -15,7 +15,7 @@ import (
 
 var host = "localhost"
 var database = "arachne"
-var graph = "data"
+var graph string
 var vertexFile string
 var edgeFile string
 
@@ -54,11 +54,13 @@ func isNetError(e error) bool {
 
 // Cmd is the declaration of the command line
 var Cmd = &cobra.Command{
-	Use:   "mongoload",
+	Use:   "mongoload <graph>",
 	Short: "Direct Load Data into mongo Server",
 	Long:  ``,
+	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		log.Printf("Loading Data")
+		graph = args[0]
+		log.Println("Loading data into graph:", graph)
 
 		session, err := mgo.Dial(host)
 		if err != nil {
@@ -180,9 +182,8 @@ var Cmd = &cobra.Command{
 
 func init() {
 	flags := Cmd.Flags()
-	flags.StringVar(&host, "host", host, "Host Server")
-	flags.StringVar(&database, "database", database, "Host Server")
-	flags.StringVar(&graph, "graph", graph, "Graph")
+	flags.StringVar(&host, "host", host, "Mongo host url")
+	flags.StringVar(&database, "database", database, "Database name in Mongo to store graph")
 	flags.StringVar(&vertexFile, "vertex", "", "Vertex File")
 	flags.StringVar(&edgeFile, "edge", "", "Edge File")
 }

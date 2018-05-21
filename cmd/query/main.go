@@ -22,7 +22,7 @@ var host = "localhost:8202"
 var Cmd = &cobra.Command{
 	Use:   "query <graph> <query expression>",
 	Short: "Query an Arachne Server",
-	Args:  cobra.MinimumNArgs(2),
+	Args:  cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		vm := goja.New()
 
