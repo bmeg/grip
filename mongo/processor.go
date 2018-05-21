@@ -9,8 +9,8 @@ import (
 	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/gdbi"
 	"github.com/bmeg/arachne/protoutil"
+	"github.com/globalsign/mgo/bson"
 	structpb "github.com/golang/protobuf/ptypes/struct"
-	"gopkg.in/mgo.v2/bson"
 )
 
 // aggType is a possible aggregation type

@@ -102,6 +102,18 @@
   version = "v1.0.0"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/globalsign/mgo"
+  packages = [
+    ".",
+    "bson",
+    "internal/json",
+    "internal/sasl",
+    "internal/scram"
+  ]
+  revision = "efe0945164a7e582241f37ae8983c075f8f2e870"
+
+[[projects]]
   name = "github.com/go-sourcemap/sourcemap"
   packages = [
     ".",
@@ -458,6 +470,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "40590ab434cdaed5daab5d4ac9e60a2b07e79d9052abb6ecccb843d41a0c34ed"
+  inputs-digest = "15ad568e670e676352d0240da9834a6ba24fe8a3f363d79b49d38535f4d1ab15"
   solver-name = "gps-cdcl"
   solver-version = 1
