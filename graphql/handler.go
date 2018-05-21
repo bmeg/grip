@@ -95,7 +95,7 @@ func (gh *graphHandler) setup() {
 // getObjects finds all vertexes with label ('Object') as map[gid]data
 func getObjects(client aql.Client, gqlDB string) map[string]map[string]interface{} {
 	out := map[string]map[string]interface{}{}
-	q := aql.V().Where(aql.Eq("label", "Object"))
+	q := aql.V().Where(aql.Eq("_label", "Object"))
 	results, _ := client.Traversal(&aql.GraphQuery{Graph: gqlDB, Query: q.Statements})
 	for elem := range results {
 		d := elem.GetVertex().GetDataMap()
@@ -189,13 +189,18 @@ func (f objectField) toGQL(client aql.Client, dataGraph string, objects map[stri
 
 func getQueries(client aql.Client, gqlDB string) map[string]objectField {
 	out := map[string]objectField{}
-	q := aql.V().Where(aql.Eq("label", "Query"))
+	q := aql.V().Where(aql.Eq("_label", "Query"))
 	results, _ := client.Traversal(&aql.GraphQuery{Graph: gqlDB, Query: q.Statements})
+	found := false
 	for elem := range results {
+		found = true
 		d := elem.GetVertex().Gid
 		for k, v := range getObjectFields(client, gqlDB, d) {
 			out[k] = v
 		}
+	}
+	if !found {
+		log.Printf("No Root query node found")
 	}
 	return out
 }
@@ -319,6 +324,9 @@ func buildQueryObject(client aql.Client, gqlDB string, dataGraph string, objects
 		f := field.toGQL(client, dataGraph, objects)
 		queryFields[fieldName] = f
 	}
+	if len(queryFields) == 0 {
+		log.Printf("No GraphQL query fields found")
+	}
 	//log.Printf("QueryFields: %#v", queryFields)
 	queryType := graphql.NewObject(
 		graphql.ObjectConfig{
@@ -336,5 +344,8 @@ func buildGraphQLSchema(client aql.Client, gqlDB string, dataGraph string) (*gra
 	}
 	//log.Printf("GraphQL Schema: %s", schemaConfig)
 	schema, err := graphql.NewSchema(schemaConfig)
+	if err != nil {
+		log.Printf("graphql.NewSchema error: %s", err)
+	}
 	return &schema, err
 }
