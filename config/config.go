@@ -46,6 +46,7 @@ func DefaultConfig() *Config {
 	c.KVStorePath = "arachne.db"
 	c.MongoDB.DBName = "arachnedb"
 	c.MongoDB.BatchSize = 1000
+	c.MongoDB.UseAggregationPipeline = true
 	c.ElasticSearch.DBName = "arachnedb"
 	c.ElasticSearch.BatchSize = 1000
 	return c

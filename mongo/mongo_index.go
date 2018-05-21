@@ -4,12 +4,12 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strconv"
 	"strings"
 
 	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/jsonpath"
 	"github.com/bmeg/arachne/protoutil"
-	"github.com/spenczar/tdigest"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 )
@@ -23,7 +23,7 @@ func (mg *Graph) AddVertexIndex(label string, field string) error {
 	session := mg.ar.pool.Get()
 	session.ResetIndexCache()
 	defer mg.ar.pool.Put(session)
-	c := mg.ar.getVertexCollection(session, mg.graph)
+	c := mg.ar.VertexCollection(session, mg.graph)
 	return c.EnsureIndex(mgo.Index{
 		Key:        []string{"label", field},
 		Unique:     false,
@@ -41,7 +41,7 @@ func (mg *Graph) DeleteVertexIndex(label string, field string) error {
 
 	session := mg.ar.pool.Get()
 	defer mg.ar.pool.Put(session)
-	c := mg.ar.getVertexCollection(session, mg.graph)
+	c := mg.ar.VertexCollection(session, mg.graph)
 	return c.DropIndex("label", field)
 }
 
@@ -54,7 +54,7 @@ func (mg *Graph) GetVertexIndexList() chan aql.IndexID {
 		defer mg.ar.pool.Put(session)
 		defer close(out)
 
-		c := mg.ar.getVertexCollection(session, mg.graph)
+		c := mg.ar.VertexCollection(session, mg.graph)
 
 		// get all unique labels
 		labels := []string{}
@@ -122,7 +122,7 @@ func (mg *Graph) GetVertexTermAggregation(ctx context.Context, label string, fie
 
 	session := mg.ar.pool.Get()
 	defer mg.ar.pool.Put(session)
-	vcol := mg.ar.getVertexCollection(session, mg.graph)
+	vcol := mg.ar.VertexCollection(session, mg.graph)
 	pipe := vcol.Pipe(ag)
 	iter := pipe.Iter()
 	defer iter.Close()
@@ -134,11 +134,6 @@ func (mg *Graph) GetVertexTermAggregation(ctx context.Context, label string, fie
 			return nil, fmt.Errorf("failed to cast count result to integer")
 		}
 		out.SortedInsert(&aql.AggregationResultBucket{Key: term, Value: float64(count)})
-		if size > 0 {
-			if len(out.Buckets) > int(size) {
-				out.Buckets = out.Buckets[:size]
-			}
-		}
 	}
 	if err := iter.Err(); err != nil {
 		return nil, fmt.Errorf("error occurred while iterating: %v", err)
@@ -182,7 +177,7 @@ func (mg *Graph) GetVertexHistogramAggregation(ctx context.Context, label string
 
 	session := mg.ar.pool.Get()
 	defer mg.ar.pool.Put(session)
-	vcol := mg.ar.getVertexCollection(session, mg.graph)
+	vcol := mg.ar.VertexCollection(session, mg.graph)
 	pipe := vcol.Pipe(ag)
 	iter := pipe.Iter()
 	defer iter.Close()
@@ -215,9 +210,7 @@ func (mg *Graph) GetVertexPercentileAggregation(ctx context.Context, label strin
 		Buckets: []*aql.AggregationResultBucket{},
 	}
 
-	// TODO figure out how to express a percentile calculation in either an aggregation pipeline
-	// or map reduce expression
-	ag := []bson.M{
+	stmt := []bson.M{
 		{
 			"$match": bson.M{
 				"label": label,
@@ -225,35 +218,49 @@ func (mg *Graph) GetVertexPercentileAggregation(ctx context.Context, label strin
 			},
 		},
 		{
-			"$project": bson.M{
-				"_id":     0,
-				"__field": "$" + field,
+			"$sort": bson.M{field: 1},
+		},
+		{
+			"$group": bson.M{
+				"_id":    "null",
+				"values": bson.M{"$push": "$" + field},
 			},
 		},
 	}
+	percentiles := []interface{}{}
+	for _, p := range percents {
+		pName := strings.Replace(fmt.Sprintf("%v", p), ".", "_", -1)
+		percentile := bson.M{}
+		percentile["_id"] = pName
+		percentile["count"] = percentileCalc(p)
+		percentiles = append(percentiles, percentile)
+	}
+	stmt = append(stmt, bson.M{"$project": bson.M{"results": percentiles}})
+	stmt = append(stmt, bson.M{"$unwind": "$results"})
+	stmt = append(stmt, bson.M{"$project": bson.M{"_id": "$results._id", "count": "$results.count"}})
 
 	session := mg.ar.pool.Get()
 	defer mg.ar.pool.Put(session)
-	vcol := mg.ar.getVertexCollection(session, mg.graph)
-	pipe := vcol.Pipe(ag)
+	vcol := mg.ar.VertexCollection(session, mg.graph)
+	pipe := vcol.Pipe(stmt)
 	iter := pipe.Iter()
 	defer iter.Close()
-	td := tdigest.New()
 	result := map[string]interface{}{}
 	for iter.Next(&result) {
-		val, ok := result["__field"].(float64)
+		bid := strings.Replace(result["_id"].(string), "_", ".", -1)
+		f, err := strconv.ParseFloat(bid, 64)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse percentile aggregation result key: %v", err)
+		}
+		term := protoutil.WrapValue(f)
+		val, ok := result["count"].(float64)
 		if !ok {
 			return nil, fmt.Errorf("error occurred parsing mongo output: %v", result)
 		}
-		td.Add(val, 1)
+		out.Buckets = append(out.Buckets, &aql.AggregationResultBucket{Key: term, Value: val})
 	}
 	if err := iter.Err(); err != nil {
 		return nil, fmt.Errorf("error occurred while iterating: %v", err)
-	}
-
-	for _, p := range percents {
-		q := td.Quantile(p / 100)
-		out.Buckets = append(out.Buckets, &aql.AggregationResultBucket{Key: protoutil.WrapValue(p), Value: q})
 	}
 
 	return out, nil
@@ -270,7 +277,7 @@ func (mg *Graph) VertexLabelScan(ctx context.Context, label string) chan string 
 		selection := map[string]interface{}{
 			"label": label,
 		}
-		vcol := mg.ar.getVertexCollection(session, mg.graph)
+		vcol := mg.ar.VertexCollection(session, mg.graph)
 		iter := vcol.Find(selection).Select(map[string]interface{}{"_id": 1}).Iter()
 		defer iter.Close()
 		result := map[string]interface{}{}

@@ -23,7 +23,7 @@ func Start(ctx context.Context, pipe gdbi.Pipeline, workdir string, bufsize int)
 		return ch
 	}
 
-	//ctx = context.WithValue(ctx, propLoad, true)
+	// ctx = context.WithValue(ctx, propLoad, false)
 
 	in := make(chan *gdbi.Traveler, bufsize)
 	final := make(chan *gdbi.Traveler, bufsize)

@@ -8,7 +8,6 @@ import (
 	"math"
 	"reflect"
 	"strings"
-	"sync"
 
 	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/gdbi"
@@ -391,7 +390,7 @@ func (f *Fields) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, 
 
 // Render takes current state and renders into requested structure
 type Render struct {
-	template interface{}
+	Template interface{}
 }
 
 // Process runs the render processor
@@ -399,11 +398,11 @@ func (r *Render) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, 
 	go func() {
 		defer close(out)
 		for t := range in {
-			v := jsonpath.RenderTraveler(t, r.template)
+			v := jsonpath.RenderTraveler(t, r.Template)
 			out <- &gdbi.Traveler{Render: v}
 		}
 	}()
-	return context.WithValue(ctx, propLoad, true)
+	return ctx
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -484,21 +483,11 @@ func matchesCondition(trav *gdbi.Traveler, cond *aql.WhereCondition) bool {
 				}
 			}
 
-		case map[string]interface{}:
-			condM, ok := condVal.(map[string]interface{})
-			if !ok {
-				return false
-			}
-			valS, ok := val.(string)
-			if !ok {
-				return false
-			}
-			if _, ok := condM[valS]; ok {
-				found = true
-			}
+		case nil:
+			found = false
 
 		default:
-			log.Println("Error: unknown condition value type for IN condition")
+			log.Printf("Error: unknown condition value type %T for IN condition", val)
 		}
 
 		return found
@@ -517,21 +506,11 @@ func matchesCondition(trav *gdbi.Traveler, cond *aql.WhereCondition) bool {
 				}
 			}
 
-		case map[string]interface{}:
-			valM, ok := val.(map[string]interface{})
-			if !ok {
-				return false
-			}
-			condValS, ok := condVal.(string)
-			if !ok {
-				return false
-			}
-			if _, ok := valM[condValS]; ok {
-				found = true
-			}
+		case nil:
+			found = false
 
 		default:
-			log.Println("Error: unknown condition value type for CONTAINS condition")
+			log.Printf("Error: unknown condition value type %T for CONTAINS condition", val)
 		}
 
 		return found
@@ -611,7 +590,7 @@ func (c *Count) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, o
 		}
 		out <- &gdbi.Traveler{Count: i}
 	}()
-	return context.WithValue(ctx, propLoad, false)
+	return ctx
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -727,38 +706,51 @@ func (s *Selector) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe
 			out <- &gdbi.Traveler{Selections: res}
 		}
 	}()
-	return context.WithValue(ctx, propLoad, true)
+	return ctx
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 
-type concat []gdbi.Processor
+type both struct {
+	db       gdbi.GraphInterface
+	labels   []string
+	lastType gdbi.DataType
+	toType   gdbi.DataType
+}
 
-func (c concat) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
+func (b both) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
 	go func() {
 		defer close(out)
-		chanIn := make([]chan *gdbi.Traveler, len(c))
-		chanOut := make([]chan *gdbi.Traveler, len(c))
-		for i := range c {
+		var procs []gdbi.Processor
+		switch b.lastType {
+		case gdbi.VertexData:
+			switch b.toType {
+			case gdbi.EdgeData:
+				procs = []gdbi.Processor{
+					&InEdge{b.db, b.labels},
+					&OutEdge{b.db, b.labels},
+				}
+			default:
+				procs = []gdbi.Processor{
+					&LookupVertexAdjIn{b.db, b.labels},
+					&LookupVertexAdjOut{b.db, b.labels},
+				}
+			}
+		case gdbi.EdgeData:
+			procs = []gdbi.Processor{
+				&LookupEdgeAdjIn{b.db, b.labels},
+				&LookupEdgeAdjOut{b.db, b.labels},
+			}
+		}
+		chanIn := make([]chan *gdbi.Traveler, len(procs))
+		chanOut := make([]chan *gdbi.Traveler, len(procs))
+		for i := range procs {
 			chanIn[i] = make(chan *gdbi.Traveler, 1000)
 			chanOut[i] = make(chan *gdbi.Traveler, 1000)
 		}
-
-		for i, p := range c {
-			ctx = p.Process(ctx, man, chanIn[i], chanOut[i])
+		for i, p := range procs {
+			p.Process(ctx, man, chanIn[i], chanOut[i])
 		}
-
-		wg := sync.WaitGroup{}
-		wg.Add(len(c))
-		for i := range c {
-			go func(i int) {
-				for c := range chanOut[i] {
-					out <- c
-				}
-				wg.Done()
-			}(i)
-		}
-
 		for t := range in {
 			for _, ch := range chanIn {
 				ch <- t
@@ -767,9 +759,13 @@ func (c concat) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, o
 		for _, ch := range chanIn {
 			close(ch)
 		}
-		wg.Wait()
+		for i := range procs {
+			for c := range chanOut[i] {
+				out <- c
+			}
+		}
 	}()
-	return ctx
+	return context.WithValue(ctx, propLoad, false)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -987,5 +983,5 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 		return
 	}()
 
-	return context.WithValue(ctx, propLoad, true)
+	return ctx
 }

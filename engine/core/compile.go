@@ -47,7 +47,7 @@ func (comp DefaultCompiler) Compile(stmts []*aql.GraphStatement) (gdbi.Pipeline,
 		return &DefaultPipeline{}, nil
 	}
 
-	stmts = flatten(stmts)
+	stmts = Flatten(stmts)
 
 	if err := validate(stmts); err != nil {
 		return &DefaultPipeline{}, fmt.Errorf("invalid statments: %s", err)
@@ -105,15 +105,9 @@ func (comp DefaultCompiler) Compile(stmts []*aql.GraphStatement) (gdbi.Pipeline,
 		case *aql.GraphStatement_Both:
 			labels := protoutil.AsStringList(stmt.Both)
 			if lastType == gdbi.VertexData {
-				add(&concat{
-					&LookupVertexAdjIn{comp.db, labels},
-					&LookupVertexAdjOut{comp.db, labels},
-				})
+				add(&both{comp.db, labels, gdbi.VertexData, gdbi.VertexData})
 			} else if lastType == gdbi.EdgeData {
-				add(&concat{
-					&LookupEdgeAdjIn{comp.db, labels},
-					&LookupEdgeAdjOut{comp.db, labels},
-				})
+				add(&both{comp.db, labels, gdbi.EdgeData, gdbi.VertexData})
 			} else {
 				return &DefaultPipeline{}, fmt.Errorf(`"both" statement is only valid for edge or vertex types not: %s`, lastType.String())
 			}
@@ -140,10 +134,7 @@ func (comp DefaultCompiler) Compile(stmts []*aql.GraphStatement) (gdbi.Pipeline,
 				return &DefaultPipeline{}, fmt.Errorf(`"bothEdge" statement is only valid for the vertex type not: %s`, lastType.String())
 			}
 			labels := protoutil.AsStringList(stmt.BothEdge)
-			add(&concat{
-				&InEdge{comp.db, labels},
-				&OutEdge{comp.db, labels},
-			})
+			add(&both{comp.db, labels, gdbi.VertexData, gdbi.EdgeData})
 			lastType = gdbi.EdgeData
 
 		case *aql.GraphStatement_Where:
@@ -159,7 +150,6 @@ func (comp DefaultCompiler) Compile(stmts []*aql.GraphStatement) (gdbi.Pipeline,
 			add(&Offset{stmt.Offset})
 
 		case *aql.GraphStatement_Count:
-			// TODO validate the types following a counter
 			add(&Count{})
 			lastType = gdbi.CountData
 
@@ -167,10 +157,13 @@ func (comp DefaultCompiler) Compile(stmts []*aql.GraphStatement) (gdbi.Pipeline,
 			if lastType != gdbi.VertexData && lastType != gdbi.EdgeData {
 				return &DefaultPipeline{}, fmt.Errorf(`"distinct" statement is only valid for edge or vertex types not: %s`, lastType.String())
 			}
-			add(&Distinct{protoutil.AsStringList(stmt.Distinct)})
+			fields := protoutil.AsStringList(stmt.Distinct)
+			if len(fields) == 0 {
+				fields = append(fields, "_gid")
+			}
+			add(&Distinct{fields})
 
 		case *aql.GraphStatement_Mark:
-			// TODO probably needs to be checked for a lot of statements.
 			if lastType == gdbi.NoData {
 				return &DefaultPipeline{}, fmt.Errorf(`"mark" statement is not valid at the beginning of a traversal`)
 			}
@@ -190,8 +183,6 @@ func (comp DefaultCompiler) Compile(stmts []*aql.GraphStatement) (gdbi.Pipeline,
 			if lastType != gdbi.VertexData && lastType != gdbi.EdgeData {
 				return &DefaultPipeline{}, fmt.Errorf(`"select" statement is only valid for edge or vertex types not: %s`, lastType.String())
 			}
-			// TODO should track mark types so "lastType" can be set after select
-			// TODO track mark names and fail when a name is missing.
 			if len(stmt.Select.Marks) == 0 {
 				return &DefaultPipeline{}, fmt.Errorf(`"select" statement has an empty list of mark names`)
 			}
@@ -202,8 +193,7 @@ func (comp DefaultCompiler) Compile(stmts []*aql.GraphStatement) (gdbi.Pipeline,
 			if lastType != gdbi.VertexData && lastType != gdbi.EdgeData {
 				return &DefaultPipeline{}, fmt.Errorf(`"render" statement is only valid for edge or vertex types not: %s`, lastType.String())
 			}
-			r := Render{protoutil.UnWrapValue(stmt.Render)}
-			add(&r)
+			add(&Render{protoutil.UnWrapValue(stmt.Render)})
 			lastType = gdbi.RenderData
 
 		case *aql.GraphStatement_Fields:
@@ -291,13 +281,14 @@ func validate(stmts []*aql.GraphStatement) error {
 	return nil
 }
 
-func flatten(stmts []*aql.GraphStatement) []*aql.GraphStatement {
+// Flatten flattens Match statements
+func Flatten(stmts []*aql.GraphStatement) []*aql.GraphStatement {
 	out := make([]*aql.GraphStatement, 0, len(stmts))
 	for _, gs := range stmts {
 		switch stmt := gs.GetStatement().(type) {
 		case *aql.GraphStatement_Match:
 			for _, q := range stmt.Match.Queries {
-				out = append(out, flatten(q.Query)...)
+				out = append(out, Flatten(q.Query)...)
 			}
 		default:
 			out = append(out, gs)
