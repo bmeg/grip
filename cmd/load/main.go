@@ -1,6 +1,7 @@
 package load
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -73,7 +74,10 @@ var Cmd = &cobra.Command{
 
 		graphs := conn.GetGraphList()
 		if !found(graphs, graph) {
-			conn.AddGraph(graph)
+			err := conn.AddGraph(graph)
+			if err != nil {
+				return err
+			}
 		}
 
 		m := jsonpb.Unmarshaler{AllowUnknownFields: true}
@@ -144,7 +148,7 @@ var Cmd = &cobra.Command{
 				return err
 			}
 			g := &aql.Graph{}
-			if err := json.Unmarshal(content, g); err != nil {
+			if err := jsonpb.Unmarshal(bytes.NewReader(content), g); err != nil {
 				return err
 			}
 			for _, v := range g.Vertices {
@@ -173,7 +177,7 @@ var Cmd = &cobra.Command{
 				return err
 			}
 			g := &aql.Graph{}
-			if err := json.Unmarshal(content, g); err != nil {
+			if err := jsonpb.Unmarshal(bytes.NewReader(content), g); err != nil {
 				return err
 			}
 			for _, v := range g.Vertices {

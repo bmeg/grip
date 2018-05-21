@@ -142,7 +142,10 @@ var swEdges = []aql.Edge{
 
 var swGQLGraph = `{
 	"vertices": [
-		{ "gid": "root", "label": "Query"},
+		{
+      "gid": "root",
+      "label": "Query"
+    },
 		{
 			"gid": "Human",
 			"label": "Object",
@@ -176,7 +179,8 @@ var swGQLGraph = `{
 			}
 		}
 	],
-	"edges": [{
+	"edges": [
+     {
 			"label": "field",
 			"from": "root",
 			"to": "Human",
@@ -184,7 +188,8 @@ var swGQLGraph = `{
 				"type": "idQuery",
 				"name": "Human"
 			}
-		},{
+		},
+    {
 			"label": "field",
 			"from": "root",
 			"to": "Droid",
@@ -192,7 +197,8 @@ var swGQLGraph = `{
 				"type": "idQuery",
 				"name": "Droid"
 			}
-		},{
+		},
+    {
 			"label": "field",
 			"from": "Human",
 			"to": "Human",
@@ -200,7 +206,8 @@ var swGQLGraph = `{
 				"name": "friends",
 				"label": "friend"
 			}
-		},{
+		},
+    {
 			"label": "field",
   		"from": "root",
   		"to": "Human",
@@ -210,5 +217,4 @@ var swGQLGraph = `{
 			}
 		}
 	]
-}
-`
+}`

@@ -1,11 +1,12 @@
 package example
 
 import (
-	"encoding/json"
+	// "encoding/json"
 	"fmt"
 	"log"
 
 	"github.com/bmeg/arachne/aql"
+	"github.com/golang/protobuf/jsonpb"
 	"github.com/spf13/cobra"
 )
 
@@ -37,10 +38,16 @@ var Cmd = &cobra.Command{
 
 		graphs := conn.GetGraphList()
 		if !found(graphs, graphql) {
-			conn.AddGraph(graphql)
+			err := conn.AddGraph(graphql)
+			if err != nil {
+				return err
+			}
 		}
 		if !found(graphs, graph) {
-			conn.AddGraph(graph)
+			err := conn.AddGraph(graph)
+			if err != nil {
+				return err
+			}
 		}
 
 		log.Printf("Loading example graph data into %s", graph)
@@ -55,7 +62,7 @@ var Cmd = &cobra.Command{
 
 		log.Printf("Loading example graphql schema into %s", graphql)
 		schema := &aql.Graph{}
-		if err := json.Unmarshal([]byte(swGQLGraph), schema); err != nil {
+		if err := jsonpb.UnmarshalString(swGQLGraph, schema); err != nil {
 			return fmt.Errorf("failed to unmarshal graph schema: %v", err)
 		}
 		for _, v := range schema.Vertices {

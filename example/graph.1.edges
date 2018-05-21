@@ -1,6 +1,0 @@
-{ "from" : "1", "to" : "3", "label" : "created", "data" : {"weight":0.4}}
-{ "from" : "1", "to" : "2", "label" : "knows", "data" : {"weight":0.5}}
-{ "from" : "1", "to" : "4", "label" : "knows", "data" : {"weight":1.0}}
-{ "from" : "4", "to" : "3", "label" : "created", "data" : {"weight":0.4}}
-{ "from" : "6", "to" : "3", "label" : "created", "data" : {"weight":0.2}}
-{ "from" : "4", "to" : "5", "label" : "created", "data" : {"weight":1.0}}
