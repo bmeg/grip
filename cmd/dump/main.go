@@ -11,18 +11,21 @@ import (
 var host = "localhost:8202"
 var vertexDump = false
 var edgeDump = false
-var graph = "data"
+var graph string
 
 // Cmd command line declaration
 var Cmd = &cobra.Command{
-	Use:   "dump",
+	Use:   "dump <graph>",
 	Short: "Dump Data on Arachne Server",
 	Long:  ``,
+	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		graph = args[0]
 		conn, err := aql.Connect(host, true)
 		if err != nil {
 			return err
 		}
+
 		if vertexDump {
 			jm := jsonpb.Marshaler{}
 			q := aql.V()
@@ -61,8 +64,7 @@ var Cmd = &cobra.Command{
 
 func init() {
 	flags := Cmd.Flags()
-	flags.StringVar(&host, "host", host, "Host Server")
-	flags.StringVar(&graph, "graph", "data", "Graph")
-	flags.BoolVar(&vertexDump, "vertex", false, "Dump Vertices")
-	flags.BoolVar(&edgeDump, "edge", false, "Dump Edges")
+	flags.StringVar(&host, "host", host, "Arachne host server")
+	flags.BoolVar(&vertexDump, "vertex", false, "Dump vertices")
+	flags.BoolVar(&edgeDump, "edge", false, "Dump edges")
 }

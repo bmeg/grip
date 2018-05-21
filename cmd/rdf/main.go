@@ -13,11 +13,14 @@ import (
 )
 
 var host = "localhost:8202"
-var graph = "default"
+var graph string
 
 //LoadRDFCmd is the main command line for loading RDF data
 func LoadRDFCmd(cmd *cobra.Command, args []string) error {
-	f, err := os.Open(args[0])
+	graph = args[0]
+	log.Println("Loading data into graph:", graph)
+
+	f, err := os.Open(args[1])
 	if err != nil {
 		log.Printf("Error: %s", err)
 		os.Exit(1)
@@ -38,12 +41,18 @@ func LoadRDFCmd(cmd *cobra.Command, args []string) error {
 	for triple, err := dec.Decode(); err != io.EOF; triple, err = dec.Decode() {
 		subj := triple.Subj.String()
 		if subj != curSubj && curVertex != nil {
-			conn.AddVertex(graph, curVertex)
+			err := conn.AddVertex(graph, curVertex)
+			if err != nil {
+				return err
+			}
 			curVertex = nil
 		}
 		curSubj = subj
 		if _, ok := vertMap[subj]; !ok {
-			conn.AddVertex(graph, &aql.Vertex{Gid: subj})
+			err := conn.AddVertex(graph, &aql.Vertex{Gid: subj})
+			if err != nil {
+				return err
+			}
 			vertMap[subj] = 1
 		}
 		if triple.Obj.Type() == rdf.TermLiteral {
@@ -54,10 +63,16 @@ func LoadRDFCmd(cmd *cobra.Command, args []string) error {
 		} else {
 			obj := triple.Obj.String()
 			if _, ok := vertMap[obj]; !ok {
-				conn.AddVertex(graph, &aql.Vertex{Gid: obj})
+				err := conn.AddVertex(graph, &aql.Vertex{Gid: obj})
+				if err != nil {
+					return err
+				}
 				vertMap[obj] = 1
 			}
-			conn.AddEdge(graph, &aql.Edge{From: subj, To: obj, Label: triple.Pred.String()})
+			err := conn.AddEdge(graph, &aql.Edge{From: subj, To: obj, Label: triple.Pred.String()})
+			if err != nil {
+				return err
+			}
 		}
 		if count%1000 == 0 {
 			log.Printf("Processed %d triples", count)
@@ -65,21 +80,24 @@ func LoadRDFCmd(cmd *cobra.Command, args []string) error {
 		count++
 	}
 	if curVertex != nil {
-		conn.AddVertex(graph, curVertex)
+		err := conn.AddVertex(graph, curVertex)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
 
 // Cmd is the declaration for cobra of the command line
 var Cmd = &cobra.Command{
-	Use:   "rdf",
+	Use:   "rdf <graph> <RDF file>",
 	Short: "Loads RDF data",
 	Long:  ``,
+	Args:  cobra.ExactArgs(2),
 	RunE:  LoadRDFCmd,
 }
 
 func init() {
 	flags := Cmd.Flags()
-	flags.StringVar(&host, "host", host, "Host Server")
-	flags.StringVar(&graph, "graph", "default", "Graph")
+	flags.StringVar(&host, "host", host, "Arachne host server")
 }

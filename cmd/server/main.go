@@ -90,6 +90,7 @@ func Start(conf *config.Config) error {
 var Cmd = &cobra.Command{
 	Use:   "server",
 	Short: "Start an arachne server",
+	Args:  cobra.NoArgs,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		dconf := config.DefaultConfig()
 		if configFile != "" {
