@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"strings"
+	"time"
 
 	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/engine/core"
@@ -46,8 +47,8 @@ func NewMongo(conf Config) (gdbi.GraphDB, error) {
 	if err != nil {
 		return nil, err
 	}
-	// session.SetSocketTimeout(1 * time.Minute)
-	// session.SetSyncTimeout(1 * time.Minute)
+	session.SetSocketTimeout(1 * time.Hour)
+	session.SetSyncTimeout(1 * time.Minute)
 
 	b, _ := session.BuildInfo()
 	if !b.VersionAtLeast(3, 6) {
