@@ -406,41 +406,37 @@ func (comp *Compiler) Compile(stmts []*aql.GraphStatement) (gdbi.Pipeline, error
 				fields = append(fields, "_gid")
 			}
 			keys := bson.M{}
+			match := bson.M{}
 			for _, f := range fields {
 				f = jsonpath.GetJSONPath(f)
 				f = strings.TrimPrefix(f, "$.")
 				if f == "gid" {
 					f = "_id"
 				}
+				namespace := jsonpath.GetNamespace(f)
+				if namespace != jsonpath.Current {
+					f = fmt.Sprintf("marks.%s.%s", namespace, f)
+				}
+				match[f] = bson.M{"$exists": true}
 				k := strings.Replace(f, ".", "_", -1)
 				keys[k] = "$" + f
 			}
-			distinct := []bson.M{}
+			distinct := []bson.M{
+				{
+					"$match": match,
+				},
+				{
+					"$group": bson.M{
+						"_id": keys,
+						"dst": bson.M{"$first": "$$ROOT"},
+					},
+				},
+			}
 			switch lastType {
 			case gdbi.VertexData:
-				distinct = []bson.M{
-					{
-						"$group": bson.M{
-							"_id": keys,
-							"dst": bson.M{"$first": "$$ROOT"},
-						},
-					},
-					{
-						"$project": bson.M{"_id": "$dst._id", "label": "$dst.label", "data": "$dst.data", "marks": "$dst.marks"},
-					},
-				}
+				distinct = append(distinct, bson.M{"$project": bson.M{"_id": "$dst._id", "label": "$dst.label", "data": "$dst.data", "marks": "$dst.marks"}})
 			case gdbi.EdgeData:
-				distinct = []bson.M{
-					{
-						"$group": bson.M{
-							"_id": keys,
-							"dst": bson.M{"$first": "$$ROOT"},
-						},
-					},
-					{
-						"$project": bson.M{"_id": "$dst._id", "label": "$dst.label", "data": "$dst.data", "to": "$dst.to", "from": "$dst.from", "marks": "$dst.marks"},
-					},
-				}
+				distinct = append(distinct, bson.M{"$project": bson.M{"_id": "$dst._id", "label": "$dst.label", "data": "$dst.data", "to": "$dst.to", "from": "$dst.from", "marks": "$dst.marks"}})
 			}
 			query = append(query, distinct...)
 

@@ -33,7 +33,7 @@ func GetNamespace(path string) string {
 // Json path within the document referenced by the namespace
 //
 // Example:
-// GetJSONPath("$gene.symbol.ensembl") returns "$.data.symbol.ensembl"
+// GetJSONPath("gene.symbol.ensembl") returns "$.data.symbol.ensembl"
 func GetJSONPath(path string) string {
 	parts := strings.Split(path, ".")
 	if strings.HasPrefix(parts[0], "$") {
@@ -102,7 +102,7 @@ func GetDoc(traveler *gdbi.Traveler, namespace string) map[string]interface{} {
 	return tmap
 }
 
-// TravelerPathLookup gets the value of a field in a Travler
+// TravelerPathLookup gets the value of a field in the given Traveler
 //
 // Example for a traveler containing:
 // {
@@ -136,6 +136,21 @@ func TravelerPathLookup(traveler *gdbi.Traveler, path string) interface{} {
 		return nil
 	}
 	return res
+}
+
+// TravelerPathExists returns true if the field exists in the given Traveler
+func TravelerPathExists(traveler *gdbi.Traveler, path string) bool {
+	namespace := GetNamespace(path)
+	field := GetJSONPath(path)
+	if field == "" {
+		return false
+	}
+	doc := GetDoc(traveler, namespace)
+	_, err := jsonpath.JsonPathLookup(doc, field)
+	if err != nil {
+		return false
+	}
+	return true
 }
 
 // RenderTraveler takes a template and fills in the values using the data structure
