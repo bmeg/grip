@@ -1,3 +1,4 @@
+import aql
 
 
 def test_distinct(O):
@@ -16,23 +17,46 @@ def test_distinct(O):
     O.addVertex("5", "Software", {"name": "ripple", "lang": "java"})
     O.addVertex("3", "Software", {"name": "lop", "lang": "java"})
     O.addVertex("8", "Software", {"name": "funnel", "lang": "go"})
+    O.addVertex("14", "Software", {"name": "arachne", "lang": None})
+
+    O.addEdge("1", "5", "developer", gid="edge1")
+    O.addEdge("7", "5", "developer", gid="edge2")
+    O.addEdge("3", "8", "dependency", gid="edge3")
 
     count = 0
     for i in O.query().V().distinct():
         count += 1
-    if count != 13:
-        errors.append("Distinct %s != %s" % (count, 13))
+    if count != 14:
+        errors.append("Distinct %s != %s" % (count, 14))
 
     count = 0
     for i in O.query().V().distinct("_gid"):
         count += 1
-    if count != 13:
-        errors.append("Distinct %s != %s" % (count, 13))
+    if count != 14:
+        errors.append("Distinct %s != %s" % (count, 14))
 
     count = 0
     for i in O.query().V().distinct("name"):
         count += 1
-    if count != 11:
-        errors.append("Distinct %s != %s" % (count, 11))
+    if count != 12:
+        errors.append("Distinct %s != %s" % (count, 12))
+
+    count = 0
+    for i in O.query().V().distinct("lang"):
+        count += 1
+    if count != 3:
+        errors.append("Distinct %s != %s" % (count, 3))
+
+    count = 0
+    for i in O.query().V().distinct("non-existent-field"):
+        count += 1
+    if count != 0:
+        errors.append("Distinct %s != %s" % (count, 0))
+
+    count = 0
+    for i in O.query().V().where(aql.eq("_label", "Person")).mark("person").out().distinct("$person.name"):
+        count += 1
+    if count != 1:
+        errors.append("Distinct %s != %s" % (count, 1))
 
     return errors

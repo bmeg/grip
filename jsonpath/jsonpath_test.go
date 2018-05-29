@@ -1,16 +1,18 @@
 package jsonpath
 
 import (
+	"os"
 	"testing"
 
 	"github.com/bmeg/arachne/gdbi"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestRender(t *testing.T) {
+var traveler *gdbi.Traveler
 
-	// test structures
-	traveler := &gdbi.Traveler{}
+func TestMain(m *testing.M) {
+	// test traveler
+	traveler = &gdbi.Traveler{}
 	traveler = traveler.AddCurrent(&gdbi.DataElement{
 		ID:    "vertex1",
 		Label: "foo",
@@ -23,6 +25,7 @@ func TestRender(t *testing.T) {
 				{"nested": "field1"},
 				{"nested": "field2"},
 			},
+			"f": nil,
 		},
 	})
 	traveler = traveler.AddMark("testMark", &gdbi.DataElement{
@@ -35,7 +38,72 @@ func TestRender(t *testing.T) {
 			"d": []interface{}{4, 5, 6},
 		},
 	})
+	e := m.Run()
+	os.Exit(e)
+}
 
+func TestGetNamespace(t *testing.T) {
+	expected := "foo"
+	result := GetNamespace("$foo.bar[1:3].baz")
+	assert.Equal(t, expected, result)
+
+	result = GetNamespace("foo.bar[1:3].baz")
+	assert.NotEqual(t, expected, result)
+}
+
+func TestGetJSONPath(t *testing.T) {
+	expected := "$.data.a"
+	result := GetJSONPath("a")
+	assert.Equal(t, expected, result)
+
+	expected = "$.data.a"
+	result = GetJSONPath("_data.a")
+	assert.Equal(t, expected, result)
+
+	expected = "$.data.e[1].nested"
+	result = GetJSONPath("e[1].nested")
+	assert.Equal(t, expected, result)
+
+	expected = "$.data.a"
+	result = GetJSONPath("$testMark.a")
+	assert.Equal(t, expected, result)
+
+	expected = "$.data.a"
+	result = GetJSONPath("testMark.a")
+	assert.NotEqual(t, expected, result)
+}
+
+func TestGetDoc(t *testing.T) {
+	expected := traveler.GetMark("testMark").ToDict()
+	result := GetDoc(traveler, "testMark")
+	assert.Equal(t, expected, result)
+
+	expected = traveler.GetMark("i-dont-exist").ToDict()
+	result = GetDoc(traveler, "i-dont-exist")
+	assert.Equal(t, expected, result)
+
+	expected = traveler.GetCurrent().ToDict()
+	result = GetDoc(traveler, Current)
+	assert.Equal(t, expected, result)
+}
+
+func TestTravelerPathExists(t *testing.T) {
+	assert.True(t, TravelerPathExists(traveler, "_gid"))
+	assert.True(t, TravelerPathExists(traveler, "_label"))
+	assert.True(t, TravelerPathExists(traveler, "a"))
+	assert.True(t, TravelerPathExists(traveler, "_data.a"))
+	assert.False(t, TravelerPathExists(traveler, "non-existent"))
+	assert.False(t, TravelerPathExists(traveler, "_data.non-existent"))
+
+	assert.True(t, TravelerPathExists(traveler, "$testMark._gid"))
+	assert.True(t, TravelerPathExists(traveler, "$testMark._label"))
+	assert.True(t, TravelerPathExists(traveler, "$testMark.a"))
+	assert.True(t, TravelerPathExists(traveler, "$testMark._data.a"))
+	assert.False(t, TravelerPathExists(traveler, "$testMark.non-existent"))
+	assert.False(t, TravelerPathExists(traveler, "$testMark._data.non-existent"))
+}
+
+func TestRender(t *testing.T) {
 	expected := traveler.GetCurrent().Data["a"]
 	result := RenderTraveler(traveler, "a")
 	assert.Equal(t, expected, result)
@@ -65,6 +133,7 @@ func TestRender(t *testing.T) {
 		"mark.d[0]":           4,
 		"current.e[0].nested": "field1",
 		"current.e.nested":    []interface{}{"field1", "field2"},
+		"current.f":           traveler.GetCurrent().Data["f"],
 	}
 	result = RenderTraveler(traveler, map[string]interface{}{
 		"current.gid":         "_gid",
@@ -82,33 +151,12 @@ func TestRender(t *testing.T) {
 		"mark.d[0]":           "$testMark.d[0]",
 		"current.e[0].nested": "_data.e[0].nested",
 		"current.e.nested":    "e.nested",
+		"current.f":           "f",
 	})
 	assert.Equal(t, expected, result)
 }
 
 func TestSelectFields(t *testing.T) {
-	traveler := &gdbi.Traveler{}
-	traveler = traveler.AddCurrent(&gdbi.DataElement{
-		ID:    "vertex1",
-		Label: "foo",
-		Data: map[string]interface{}{
-			"a": "hello",
-			"b": 1,
-			"c": true,
-			"d": []interface{}{1, 2, 3},
-		},
-	})
-	traveler = traveler.AddMark("testMark", &gdbi.DataElement{
-		ID:    "vertex2",
-		Label: "bar",
-		Data: map[string]interface{}{
-			"a": "world",
-			"b": 2,
-			"c": false,
-			"d": []interface{}{4, 5, 6},
-		},
-	})
-
 	expected := &gdbi.Traveler{}
 	expected = expected.AddCurrent(&gdbi.DataElement{
 		ID:    "vertex1",

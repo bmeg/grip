@@ -653,12 +653,16 @@ func (g *Distinct) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe
 		for t := range in {
 			s := make([][]byte, len(g.vals))
 			for i, v := range g.vals {
-				s[i] = []byte(fmt.Sprintf("%#v", jsonpath.TravelerPathLookup(t, v)))
+				if jsonpath.TravelerPathExists(t, v) {
+					s[i] = []byte(fmt.Sprintf("%#v", jsonpath.TravelerPathLookup(t, v)))
+				}
 			}
 			k := bytes.Join(s, []byte{0x00})
-			if !kv.HasKey(k) {
-				kv.Set(k, []byte{0x01})
-				out <- t
+			if len(k) > 0 {
+				if !kv.HasKey(k) {
+					kv.Set(k, []byte{0x01})
+					out <- t
+				}
 			}
 		}
 	}()
