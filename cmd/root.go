@@ -15,6 +15,7 @@ import (
 	"github.com/bmeg/arachne/cmd/rdf"
 	"github.com/bmeg/arachne/cmd/server"
 	"github.com/bmeg/arachne/cmd/stream"
+	"github.com/bmeg/arachne/cmd/version"
 	"github.com/spf13/cobra"
 )
 
@@ -39,6 +40,7 @@ func init() {
 	RootCmd.AddCommand(info.Cmd)
 	RootCmd.AddCommand(example.Cmd)
 	RootCmd.AddCommand(genBashCompletionCmd)
+	RootCmd.AddCommand(version.Cmd)
 }
 
 var genBashCompletionCmd = &cobra.Command{
