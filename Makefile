@@ -1,20 +1,23 @@
-ifndef GOPATH
-$(error GOPATH is not set)
-endif
-
 VERSION = 0.2.0
 TESTS=$(shell go list ./... | grep -v /vendor/)
 
-export SHELL=/bin/bash
-PATH := ${PATH}:${GOPATH}/bin
-export PATH
+git_commit := $(shell git rev-parse --short HEAD)
+git_branch := $(shell git symbolic-ref -q --short HEAD)
+git_upstream := $(shell git remote get-url $(shell git config branch.$(shell git symbolic-ref -q --short HEAD).remote) 2> /dev/null)
+
+VERSION_LDFLAGS=\
+ -X "github.com/bmeg/arachne/version.BuildDate=$(shell date)" \
+ -X "github.com/bmeg/arachne/version.GitCommit= $(git_commit)" \
+ -X "github.com/bmeg/arachne/version.GitBranch=$(git_branch)" \
+ -X "github.com/bmeg/arachne/version.GitUpstream=$(git_upstream)"
 
 # ---------------------
 # Compile and Install
 # ---------------------
 # Build the code
 install: depends
-	@go install .
+	@touch version/version.go
+	@go install -ldflags '$(VERSION_LDFLAGS)' .
 
 # Update submodules and build code
 depends:
