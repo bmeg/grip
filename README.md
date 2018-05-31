@@ -7,11 +7,12 @@
 ## Installation
 
 ```
-go get github.com/bmeg/arachne
+mkdir -p $GOPATH/github.com/bmeg
+cd $GOPATH/github.com/bmeg
+git clone https://github.com/bmeg/arachne.git
+cd arachne
+make
 ```
-
-If you have defined `$GOPATH` the application will be installed at
-`$GOPATH`/bin/arachne otherwise it will be `$HOME/go/bin/arachne`
 
 ## Turning on the Server
 
