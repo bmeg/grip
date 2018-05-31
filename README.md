@@ -7,8 +7,8 @@
 ## Installation
 
 ```
-mkdir -p $GOPATH/github.com/bmeg
-cd $GOPATH/github.com/bmeg
+mkdir -p $GOPATH/src/github.com/bmeg
+cd $GOPATH/src/github.com/bmeg
 git clone https://github.com/bmeg/arachne.git
 cd arachne
 make
