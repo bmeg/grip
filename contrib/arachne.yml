@@ -1,0 +1,8 @@
+Database: mongo
+
+Server:
+  HTTPPort: 80
+  ContentDir: /usr/share/arachne
+MongoDB:
+  URL: localhost
+  DBName: arachne

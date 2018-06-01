@@ -1,0 +1,8 @@
+[Unit]
+Description=arachne
+
+[Service]
+WorkingDirectory=/var/run/arachne
+ExecStart=/usr/local/bin/arachne server -c /etc/arachne.yml
+SyslogIdentifier=arachne
+Restart=always
