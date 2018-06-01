@@ -151,7 +151,7 @@ var Cmd = &cobra.Command{
 					}
 					count++
 					if count%1000 == 0 {
-						log.Printf("Loaded %d vertices", count)
+						log.Printf("Loaded %d edges", count)
 					}
 				}
 				if len(docBatch) > 0 {
