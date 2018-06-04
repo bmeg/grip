@@ -3,9 +3,8 @@ from __future__ import absolute_import, print_function, unicode_literals
 import json
 import requests
 
-
-from aql.util import process_url
 from aql.graph import Graph
+from aql.util import process_url, raise_for_status
 
 
 class Connection:
@@ -19,7 +18,7 @@ class Connection:
         List graphs.
         """
         response = requests.get(self.url, stream=True)
-        response.raise_for_status()
+        raise_for_status(response)
         output = []
         for line in response.iter_lines():
             output.append(json.loads(line)['graph'])
@@ -30,7 +29,7 @@ class Connection:
         Create a new graph.
         """
         response = requests.post(self.url + "/" + name, {})
-        response.raise_for_status()
+        raise_for_status(response)
         return response.json()
 
     def deleteGraph(self, name):
@@ -38,7 +37,7 @@ class Connection:
         Delete graph.
         """
         response = requests.delete(self.url + "/" + name)
-        response.raise_for_status()
+        raise_for_status(response)
         return response.json()
 
     def graph(self, name):

@@ -3,7 +3,7 @@ from __future__ import absolute_import, print_function, unicode_literals
 import json
 import requests
 
-from aql.util import process_url
+from aql.util import process_url, raise_for_status
 from aql.query import Query
 
 
@@ -25,7 +25,7 @@ class Graph:
         }
         response = requests.post(self.url + "/vertex",
                                  json=payload)
-        response.raise_for_status()
+        raise_for_status(response)
         return response.json()
 
     def deleteVertex(self, gid):
@@ -34,7 +34,7 @@ class Graph:
         """
         url = self.url + "/vertex/" + gid
         response = requests.delete(url)
-        response.raise_for_status()
+        raise_for_status(response)
         return response.json()
 
     def getVertex(self, gid):
@@ -43,7 +43,7 @@ class Graph:
         """
         url = self.url + "/vertex/" + gid
         response = requests.get(url)
-        response.raise_for_status()
+        raise_for_status(response)
         return response.json()
 
     def addEdge(self, src, dst, label, data={}, gid=None):
@@ -60,7 +60,7 @@ class Graph:
             payload["gid"] = gid
         response = requests.post(self.url + "/edge",
                                  json=payload)
-        response.raise_for_status()
+        raise_for_status(response)
         return response.json()
 
     def deleteEdge(self, gid):
@@ -69,7 +69,7 @@ class Graph:
         """
         url = self.url + "/edge/" + gid
         response = requests.delete(url)
-        response.raise_for_status()
+        raise_for_status(response)
         return response.json()
 
     def getEdge(self, gid):
@@ -78,7 +78,7 @@ class Graph:
         """
         url = self.url + "/edge/" + gid
         response = requests.get(url)
-        response.raise_for_status()
+        raise_for_status(response)
         return response.json()
 
     def bulkAdd(self):
@@ -88,13 +88,13 @@ class Graph:
         url = self.url + "/index/" + label
         response = requests.post(url,
                                  json={"field": field})
-        response.raise_for_status()
+        raise_for_status(response)
         return response.json()
 
     def listIndices(self):
         url = self.url + "/index"
         response = requests.get(url, stream=True)
-        response.raise_for_status()
+        raise_for_status(response)
         output = []
         for result in response.iter_lines():
             d = json.loads(result)
@@ -109,7 +109,7 @@ class Graph:
         }
         url = self.url + "/aggregate"
         response = requests.post(url, json=payload)
-        response.raise_for_status()
+        raise_for_status(response)
         return response.json()["aggregations"]
 
     def query(self):
@@ -155,5 +155,5 @@ class BulkAdd:
     def execute(self):
         payload = "\n".join(self.elements)
         response = requests.post(self.url, data=payload)
-        response.raise_for_status()
+        raise_for_status(response)
         return response.json()

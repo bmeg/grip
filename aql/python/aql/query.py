@@ -4,7 +4,7 @@ import json
 import requests
 import sys
 
-from aql.util import process_url
+from aql.util import process_url, raise_for_status
 
 
 class Query:
@@ -223,7 +223,8 @@ class Query:
         response = requests.post(self.url,
                                  json={"query": self.query},
                                  stream=True)
-        response.raise_for_status()
+        # response.raise_for_status()
+        raise_for_status(response)
         for result in response.iter_lines():
             try:
                 d = json.loads(result)
