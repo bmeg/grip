@@ -12,6 +12,7 @@ import (
 
 	"github.com/bmeg/arachne/elastic"
 	"github.com/bmeg/arachne/mongo"
+	"github.com/bmeg/arachne/sql"
 	"github.com/bmeg/arachne/util"
 	"github.com/ghodss/yaml"
 )
@@ -33,6 +34,7 @@ type Config struct {
 	KVStorePath   string
 	ElasticSearch elastic.Config
 	MongoDB       mongo.Config
+	SQL           sql.Config
 }
 
 // DefaultConfig returns an instance of the default configuration for Arachne.

@@ -17,6 +17,7 @@ import (
 	_ "github.com/bmeg/arachne/leveldb" // import so level will register itself
 	"github.com/bmeg/arachne/mongo"
 	_ "github.com/bmeg/arachne/rocksdb" // import so rocks will register itself
+	"github.com/bmeg/arachne/sql"
 	"github.com/imdario/mergo"
 	"github.com/spf13/cobra"
 )
@@ -40,6 +41,9 @@ func Start(conf *config.Config) error {
 
 	case "mongo":
 		db, err = mongo.NewMongo(conf.MongoDB)
+
+	case "sql":
+		db, err = sql.NewSQL(conf.SQL)
 
 	default:
 		err = fmt.Errorf("unknown database: %s", dbname)

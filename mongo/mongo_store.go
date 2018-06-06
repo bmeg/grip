@@ -220,7 +220,7 @@ func (ma *Mongo) Graph(graph string) (gdbi.GraphInterface, error) {
 	}, nil
 }
 
-// Graph is the tnterface to a single graph
+// Graph is the interface to a single graph
 type Graph struct {
 	ar        *Mongo
 	ts        *timestamp.Timestamp //BUG: This timestamp implementation doesn't work againt multiple mongo clients
@@ -411,7 +411,7 @@ func (mg *Graph) DelEdge(key string) error {
 	return nil
 }
 
-// GetVertexList produces a channel of all edges in the graph
+// GetVertexList produces a channel of all vertices in the graph
 func (mg *Graph) GetVertexList(ctx context.Context, load bool) <-chan *aql.Vertex {
 	o := make(chan *aql.Vertex, 100)
 
@@ -447,6 +447,7 @@ func (mg *Graph) GetVertexList(ctx context.Context, load bool) <-chan *aql.Verte
 // GetEdgeList produces a channel of all edges in the graph
 func (mg *Graph) GetEdgeList(ctx context.Context, loadProp bool) <-chan *aql.Edge {
 	o := make(chan *aql.Edge, 100)
+
 	go func() {
 		defer close(o)
 		session := mg.ar.session.Copy()
@@ -474,6 +475,7 @@ func (mg *Graph) GetEdgeList(ctx context.Context, loadProp bool) <-chan *aql.Edg
 			log.Println("GetEdgeList error:", err)
 		}
 	}()
+
 	return o
 }
 
@@ -532,7 +534,7 @@ func (mg *Graph) GetVertexChannel(ids chan gdbi.ElementLookup, load bool) chan g
 	return o
 }
 
-//GetOutChannel process requests of vertex ids and find the connected vertices on outgoing edges
+// GetOutChannel process requests of vertex ids and find the connected vertices on outgoing edges
 func (mg *Graph) GetOutChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
 	batches := make(chan []gdbi.ElementLookup, 100)
 	go func() {
@@ -597,7 +599,7 @@ func (mg *Graph) GetOutChannel(reqChan chan gdbi.ElementLookup, load bool, edgeL
 	return o
 }
 
-//GetInChannel process requests of vertex ids and find the connected vertices on incoming edges
+// GetInChannel process requests of vertex ids and find the connected vertices on incoming edges
 func (mg *Graph) GetInChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
 	batches := make(chan []gdbi.ElementLookup, 100)
 	go func() {
@@ -659,7 +661,7 @@ func (mg *Graph) GetInChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLa
 	return o
 }
 
-//GetOutEdgeChannel process requests of vertex ids and find the connected outgoing edges
+// GetOutEdgeChannel process requests of vertex ids and find the connected outgoing edges
 func (mg *Graph) GetOutEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
 	batches := make(chan []gdbi.ElementLookup, 100)
 	go func() {
@@ -712,7 +714,7 @@ func (mg *Graph) GetOutEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, e
 	return o
 }
 
-//GetInEdgeChannel process requests of vertex ids and find the connected incoming edges
+// GetInEdgeChannel process requests of vertex ids and find the connected incoming edges
 func (mg *Graph) GetInEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
 	batches := make(chan []gdbi.ElementLookup, 100)
 	go func() {

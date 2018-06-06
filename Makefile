@@ -99,6 +99,10 @@ start-elastic:
 	@docker rm -f arachne-es-test > /dev/null 2>&1 || echo
 	docker run -d --name arachne-es-test -p 9200:9200 -p 9300:9300 -e "discovery.type=single-node" -e "xpack.security.enabled=false" docker.elastic.co/elasticsearch/elasticsearch:5.6.3 > /dev/null
 
+start-postgres:
+	@docker rm -f arachne-postgres-test > /dev/null 2>&1 || echo
+	docker run -d --name arachne-postgres-test -p 5432:5432 -e POSTGRES_PASSWORD=mysecretpassword -e POSTGRES_USER=postgres postgres:10.4 > /dev/null
+
 # ---------------------
 # Other
 # ---------------------
