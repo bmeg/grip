@@ -190,6 +190,18 @@
   version = "v1.3.1"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/hashicorp/errwrap"
+  packages = ["."]
+  revision = "7554cd9344cec97297fa6649b055a8c98c2a1e55"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/hashicorp/go-multierror"
+  packages = ["."]
+  revision = "b7773ae218740a7be65057fc60b366a49b538a44"
+
+[[projects]]
   name = "github.com/imdario/mergo"
   packages = ["."]
   revision = "9d5f1277e9a8ed20c3684bda8fde67c05628518c"
@@ -200,6 +212,15 @@
   packages = ["."]
   revision = "76626ae9c91c4f2a10f34cad8ce83ea42c93bb75"
   version = "v1.0"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/jmoiron/sqlx"
+  packages = [
+    ".",
+    "reflectx"
+  ]
+  revision = "2aeb6a910c2b94f2d5eb53d9895d80e27264ec41"
 
 [[projects]]
   branch = "master"
@@ -218,6 +239,15 @@
   packages = ["."]
   revision = "e2ffdb16a802fe2bb95e2e35ff34f0e53aeef34f"
   version = "v0.1.0"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/lib/pq"
+  packages = [
+    ".",
+    "oid"
+  ]
+  revision = "90697d60dd844d5ef6ff15135d0203f65d2f53b8"
 
 [[projects]]
   branch = "master"
@@ -452,6 +482,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "1cc56e572aab7d1e209adc6caec853950374fe7e916075fef2e647106191489a"
+  inputs-digest = "677a91988547f1aa6d7988cdeb9b8a6eb34761fcfd713a992e2e39e57717ac18"
   solver-name = "gps-cdcl"
   solver-version = 1

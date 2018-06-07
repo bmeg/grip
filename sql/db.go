@@ -1,12 +1,12 @@
 package sql
 
 import (
-	"database/sql"
 	"errors"
 	"fmt"
 
 	"github.com/bmeg/arachne/gdbi"
 	"github.com/bmeg/arachne/timestamp"
+	"github.com/jmoiron/sqlx"
 )
 
 // Vertex describes the mapping of a table to the graph
@@ -22,8 +22,16 @@ type Edge struct {
 	Table string
 	Gid   string
 	Label string
-	From  Vertex
-	To    Vertex
+	From  *ForeignKey
+	To    *ForeignKey
+}
+
+// ForeignKey describes a relation to another table
+type ForeignKey struct {
+	SourceField string
+	DestTable   string
+	DestField   string
+	DestGid     string
 }
 
 // Schema describes the mapping of tables to the graph.
@@ -34,49 +42,59 @@ type Schema struct {
 
 // Config describes the configuration for the sql driver.
 type Config struct {
-	URL    string
+	// the driver-specific data source name, usually consisting of at least
+	// a database name and connection information
+	DataSourceName string
+	// The driver name ("mysql", "postgres", etc)
 	Driver string
+	// The keys in the Graphs map are graph names
 	Graphs map[string]*Schema
 }
 
-// SQL is the base driver that manages multiple graphs in a sql databases
-type SQL struct {
-	db     *sql.DB
+// GraphDB manages graphs in the database
+type GraphDB struct {
+	db     *sqlx.DB
 	graphs map[string]*Schema
 	ts     *timestamp.Timestamp
 }
 
-// NewSQL creates a new SQL graph database interface
-func NewSQL(conf Config) (gdbi.GraphDB, error) {
-	db, err := sql.Open(conf.Driver, conf.URL)
-	if err != nil {
-		return nil, err
+// NewGraphDB creates a new GraphDB graph database interface
+func NewGraphDB(conf Config) (gdbi.GraphDB, error) {
+	for g, s := range conf.Graphs {
+		err := ValidateSchema(s)
+		if err != nil {
+			return nil, fmt.Errorf("schema validation failed for graph %s: %v", g, err)
+		}
 	}
-	err = db.Ping()
+	db, err := sqlx.Connect(conf.Driver, conf.DataSourceName)
 	if err != nil {
 		return nil, err
 	}
 	ts := timestamp.NewTimestamp()
-	return &SQL{db, conf.Graphs, &ts}, nil
+	gdb := &GraphDB{db, conf.Graphs, &ts}
+	for _, i := range gdb.GetGraphs() {
+		gdb.ts.Touch(i)
+	}
+	return gdb, nil
 }
 
 // Close the connection
-func (db *SQL) Close() error {
+func (db *GraphDB) Close() error {
 	return db.db.Close()
 }
 
 // AddGraph creates a new graph named `graph`
-func (db *SQL) AddGraph(graph string) error {
+func (db *GraphDB) AddGraph(graph string) error {
 	return errors.New("not implemented")
 }
 
 // DeleteGraph deletes an existing graph named `graph`
-func (db *SQL) DeleteGraph(graph string) error {
+func (db *GraphDB) DeleteGraph(graph string) error {
 	return errors.New("not implemented")
 }
 
 // GetGraphs lists the graphs managed by this driver
-func (db *SQL) GetGraphs() []string {
+func (db *GraphDB) GetGraphs() []string {
 	out := []string{}
 	for k := range db.graphs {
 		out = append(out, k)
@@ -85,7 +103,7 @@ func (db *SQL) GetGraphs() []string {
 }
 
 // Graph obtains the gdbi.DBI for a particular graph
-func (db *SQL) Graph(graph string) (gdbi.GraphInterface, error) {
+func (db *GraphDB) Graph(graph string) (gdbi.GraphInterface, error) {
 	found := false
 	for _, gname := range db.GetGraphs() {
 		if graph == gname {
@@ -96,7 +114,7 @@ func (db *SQL) Graph(graph string) (gdbi.GraphInterface, error) {
 		return nil, fmt.Errorf("graph '%s' was not found", graph)
 	}
 	return &Graph{
-		db:     db,
+		db:     db.db,
 		ts:     db.ts,
 		graph:  graph,
 		schema: db.graphs[graph],

@@ -19,6 +19,7 @@ import (
 	_ "github.com/bmeg/arachne/rocksdb" // import so rocks will register itself
 	"github.com/bmeg/arachne/sql"
 	"github.com/imdario/mergo"
+	_ "github.com/lib/pq" // import so postgres will register as a sql driver
 	"github.com/spf13/cobra"
 )
 
@@ -43,7 +44,7 @@ func Start(conf *config.Config) error {
 		db, err = mongo.NewMongo(conf.MongoDB)
 
 	case "sql":
-		db, err = sql.NewSQL(conf.SQL)
+		db, err = sql.NewGraphDB(conf.SQL)
 
 	default:
 		err = fmt.Errorf("unknown database: %s", dbname)
