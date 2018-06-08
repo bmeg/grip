@@ -65,9 +65,11 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 
 		initCol := session.DB(proc.db.ar.database).C(proc.startCollection)
 		for t := range in {
+			nResults := 0
 			iter := initCol.Pipe(proc.query).Iter()
 			result := map[string]interface{}{}
 			for iter.Next(&result) {
+				nResults++
 				// log.Printf("Mongo Pipeline result: %+v", result)
 				select {
 				case <-ctx.Done():
@@ -175,8 +177,10 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 				log.Println("Mongo traversal error:", err)
 				continue
 			}
+			if nResults == 0 && proc.dataType == gdbi.CountData {
+				out <- &gdbi.Traveler{Count: 0}
+			}
 		}
 	}()
-
 	return ctx
 }
