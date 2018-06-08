@@ -73,7 +73,7 @@ def test_get_edge(O):
     return errors
 
 
-def test_count(O):
+def test_result_count(O):
     errors = []
     setupGraph(O)
 
