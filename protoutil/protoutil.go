@@ -1,7 +1,10 @@
 package protoutil
 
 import (
+	"fmt"
 	"log"
+	"reflect"
+	"time"
 
 	structpb "github.com/golang/protobuf/ptypes/struct"
 )
@@ -14,104 +17,60 @@ func StructSet(s *structpb.Struct, key string, value interface{}) {
 
 // WrapValue takes a value and turns it into a protobuf structpb Value
 func WrapValue(value interface{}) *structpb.Value {
-	switch v := value.(type) {
-	case string:
-		return &structpb.Value{Kind: &structpb.Value_StringValue{StringValue: v}}
-	case uint:
-		return &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: float64(v)}}
-	case uint8:
-		return &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: float64(v)}}
-	case uint16:
-		return &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: float64(v)}}
-	case uint32:
-		return &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: float64(v)}}
-	case uint64:
-		return &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: float64(v)}}
-	case int:
-		return &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: float64(v)}}
-	case int8:
-		return &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: float64(v)}}
-	case int16:
-		return &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: float64(v)}}
-	case int32:
-		return &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: float64(v)}}
-	case int64:
-		return &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: float64(v)}}
-	case float32:
-		return &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: float64(v)}}
-	case float64:
-		return &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: float64(v)}}
-	case bool:
-		return &structpb.Value{Kind: &structpb.Value_BoolValue{BoolValue: v}}
-	case *structpb.Value:
-		return v
-	case []interface{}:
-		o := make([]*structpb.Value, len(v))
-		for i, k := range v {
-			wv := WrapValue(k)
-			o[i] = wv
-		}
-		return &structpb.Value{Kind: &structpb.Value_ListValue{ListValue: &structpb.ListValue{Values: o}}}
-	case []string:
-		o := make([]*structpb.Value, len(v))
-		for i, k := range v {
-			wv := WrapValue(k)
-			o[i] = wv
-		}
-		return &structpb.Value{Kind: &structpb.Value_ListValue{ListValue: &structpb.ListValue{Values: o}}}
-	case []int64:
-		o := make([]*structpb.Value, len(v))
-		for i, k := range v {
-			wv := WrapValue(k)
-			o[i] = wv
-		}
-		return &structpb.Value{Kind: &structpb.Value_ListValue{ListValue: &structpb.ListValue{Values: o}}}
-	case []float64:
-		o := make([]*structpb.Value, len(v))
-		for i, k := range v {
-			wv := WrapValue(k)
-			o[i] = wv
-		}
-		return &structpb.Value{Kind: &structpb.Value_ListValue{ListValue: &structpb.ListValue{Values: o}}}
-	case []map[string]interface{}:
-		o := make([]*structpb.Value, len(v))
-		for i, k := range v {
-			wv := WrapValue(k)
-			o[i] = wv
-		}
-		return &structpb.Value{Kind: &structpb.Value_ListValue{ListValue: &structpb.ListValue{Values: o}}}
-	case map[string]interface{}:
-		o := &structpb.Struct{Fields: map[string]*structpb.Value{}}
-		for k, v := range v {
-			wv := WrapValue(v)
-			o.Fields[k] = wv
-		}
-		return &structpb.Value{Kind: &structpb.Value_StructValue{StructValue: o}}
-	case map[string]string:
-		o := &structpb.Struct{Fields: map[string]*structpb.Value{}}
-		for k, v := range v {
-			wv := WrapValue(v)
-			o.Fields[k] = wv
-		}
-		return &structpb.Value{Kind: &structpb.Value_StructValue{StructValue: o}}
-	case map[string]float64:
-		o := &structpb.Struct{Fields: map[string]*structpb.Value{}}
-		for k, v := range v {
-			wv := WrapValue(v)
-			o.Fields[k] = wv
-		}
-		return &structpb.Value{Kind: &structpb.Value_StructValue{StructValue: o}}
-	case map[string]int64:
-		o := &structpb.Struct{Fields: map[string]*structpb.Value{}}
-		for k, v := range v {
-			wv := WrapValue(v)
-			o.Fields[k] = wv
-		}
-		return &structpb.Value{Kind: &structpb.Value_StructValue{StructValue: o}}
-	case *structpb.Struct:
-		return &structpb.Value{Kind: &structpb.Value_StructValue{StructValue: v}}
-	case nil:
+	if value == nil {
 		return &structpb.Value{Kind: &structpb.Value_NullValue{}}
+	}
+	v := reflect.ValueOf(value)
+	switch v.Kind() {
+
+	case reflect.String:
+		return &structpb.Value{Kind: &structpb.Value_StringValue{StringValue: v.String()}}
+
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: float64(v.Int())}}
+
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		return &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: float64(v.Uint())}}
+
+	case reflect.Float32, reflect.Float64:
+		return &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: v.Float()}}
+
+	case reflect.Bool:
+		return &structpb.Value{Kind: &structpb.Value_BoolValue{BoolValue: v.Bool()}}
+
+	case reflect.Array, reflect.Slice:
+		o := make([]*structpb.Value, v.Len())
+		for i := 0; i < v.Len(); i++ {
+			wv := WrapValue(v.Index(i).Interface())
+			o[i] = wv
+		}
+		return &structpb.Value{Kind: &structpb.Value_ListValue{ListValue: &structpb.ListValue{Values: o}}}
+
+	case reflect.Map:
+		keys := v.MapKeys()
+		o := &structpb.Struct{Fields: map[string]*structpb.Value{}}
+		for _, key := range keys {
+			k := fmt.Sprintf("%v", key.Interface())
+			wv := WrapValue(v.MapIndex(key).Interface())
+			o.Fields[k] = wv
+		}
+		return &structpb.Value{Kind: &structpb.Value_StructValue{StructValue: o}}
+
+	case reflect.Ptr, reflect.Struct:
+		switch val := value.(type) {
+		case *structpb.Value:
+			return val
+
+		case *structpb.Struct:
+			return &structpb.Value{Kind: &structpb.Value_StructValue{StructValue: val}}
+
+		case time.Time:
+			return &structpb.Value{Kind: &structpb.Value_StringValue{StringValue: val.String()}}
+
+		default:
+			log.Printf("wrap unknown pointer data type: %T", value)
+		}
+
 	default:
 		log.Printf("wrap unknown data type: %T", value)
 	}
@@ -120,27 +79,32 @@ func WrapValue(value interface{}) *structpb.Value {
 
 // UnWrapValue takes protobuf structpb Value and return a native go value
 func UnWrapValue(value *structpb.Value) interface{} {
-	if value == nil {
-		return nil
-	}
-	if v, ok := value.Kind.(*structpb.Value_StringValue); ok {
-		return v.StringValue
-	} else if v, ok := value.Kind.(*structpb.Value_NumberValue); ok {
-		return v.NumberValue
-	} else if v, ok := value.Kind.(*structpb.Value_StructValue); ok {
-		return AsMap(v.StructValue)
-	} else if v, ok := value.Kind.(*structpb.Value_ListValue); ok {
-		out := make([]interface{}, len(v.ListValue.Values))
-		for i := range v.ListValue.Values {
-			out[i] = UnWrapValue(v.ListValue.Values[i])
+	switch value.GetKind().(type) {
+	case *structpb.Value_StringValue:
+		return value.GetStringValue()
+
+	case *structpb.Value_NumberValue:
+		return value.GetNumberValue()
+
+	case *structpb.Value_StructValue:
+		return AsMap(value.GetStructValue())
+
+	case *structpb.Value_ListValue:
+		out := make([]interface{}, len(value.GetListValue().Values))
+		for i := range value.GetListValue().Values {
+			out[i] = UnWrapValue(value.GetListValue().Values[i])
 		}
 		return out
-	} else if v, ok := value.Kind.(*structpb.Value_BoolValue); ok {
-		return v.BoolValue
-	} else if _, ok := value.Kind.(*structpb.Value_NullValue); ok {
+
+	case *structpb.Value_BoolValue:
+		return value.GetBoolValue()
+
+	case *structpb.Value_NullValue:
 		return nil
+
+	default:
+		log.Printf("unwrap unknown data type: %T", value.GetKind())
 	}
-	log.Printf("unwrap unknown data type: %T", value.Kind)
 	return nil
 }
 

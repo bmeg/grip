@@ -80,16 +80,15 @@ func (g *Graph) GetVertex(key string, load bool) *aql.Vertex {
 }
 
 func (g *Graph) getGeneratedEdge(key string, load bool) *aql.Edge {
-	_, fromGid, _, toGid, err := parseGeneratedEdgeID(key)
+	geid, err := parseGeneratedEdgeID(key)
 	if err != nil {
 		return nil
 	}
-	// TODO figure out how to get label
 	return &aql.Edge{
 		Gid:   key,
-		Label: "",
-		From:  fromGid,
-		To:    toGid,
+		Label: geid.Label,
+		From:  geid.FromID,
+		To:    geid.ToID,
 		Data:  nil,
 	}
 }
@@ -197,7 +196,7 @@ func (g *Graph) GetEdgeList(ctx context.Context, load bool) <-chan *aql.Edge {
 			q := ""
 			switch v.Table {
 			case "":
-				q = fmt.Sprintf("SELECT %s.%s FROM %s INNER JOIN %s ON %s.%s=%s.%s",
+				q = fmt.Sprintf("SELECT %s.%s, %s.%s FROM %s INNER JOIN %s ON %s.%s=%s.%s",
 					// SELECT
 					v.From.DestTable, v.From.DestGid,
 					v.To.DestTable, v.To.DestGid,
@@ -220,10 +219,11 @@ func (g *Graph) GetEdgeList(ctx context.Context, load bool) <-chan *aql.Edge {
 						log.Println("GetEdgeList failed:", err)
 						return
 					}
+					geid := &generatedEdgeID{v.Label, v.From.DestTable, fromGid, v.To.DestTable, toGid}
 					// TODO figure out how to get label
 					o <- &aql.Edge{
-						Gid:   generatedEdgeID(v.From.DestTable, fromGid, v.To.DestTable, toGid),
-						Label: "",
+						Gid:   geid.String(),
+						Label: v.Label,
 						From:  fromGid,
 						To:    toGid,
 						Data:  nil,

@@ -12,9 +12,8 @@ import (
 )
 
 func RowDataToVertex(table string, schema *Schema, data map[string]interface{}, load bool) *aql.Vertex {
-	key := fmt.Sprintf("%v:%v", table, data[schema.GetVertexGid(table)])
 	v := &aql.Vertex{
-		Gid:   key,
+		Gid:   fmt.Sprintf("%v:%v", table, data[schema.GetVertexGid(table)]),
 		Label: schema.GetVertexLabel(table),
 	}
 	if load {
@@ -23,129 +22,128 @@ func RowDataToVertex(table string, schema *Schema, data map[string]interface{}, 
 	return v
 }
 
-func generatedEdgeID(from, fromGid, to, toGid string) string {
-	return fmt.Sprintf("generated:%s:%s:%s:%s",
-		url.QueryEscape(from),
-		url.QueryEscape(fromGid),
-		url.QueryEscape(to),
-		url.QueryEscape(toGid),
+func RowDataToEdge(table string, schema *Schema, data map[string]interface{}, load bool) *aql.Edge {
+	e := &aql.Edge{
+		Gid:   fmt.Sprintf("%v:%v", table, data[schema.GetEdgeGid(table)]),
+		Label: schema.GetEdgeLabel(table),
+		From:  fmt.Sprintf("%v", data[schema.GetEdgeFrom(table).SourceField]),
+		To:    fmt.Sprintf("%v", data[schema.GetEdgeTo(table).SourceField]),
+	}
+	if load {
+		e.Data = protoutil.AsStruct(data)
+	}
+	return e
+}
+
+type generatedEdgeID struct {
+	Label     string
+	FromTable string
+	FromID    string
+	ToTable   string
+	ToID      string
+}
+
+func (geid generatedEdgeID) String() string {
+	return fmt.Sprintf("generated:%s:%s:%s:%s:%s",
+		url.QueryEscape(geid.Label),
+		url.QueryEscape(geid.FromTable),
+		url.QueryEscape(geid.FromID),
+		url.QueryEscape(geid.ToTable),
+		url.QueryEscape(geid.ToID),
 	)
 }
 
-func parseGeneratedEdgeID(eid string) (from, fromGid, to, toGid string, err error) {
+func parseGeneratedEdgeID(eid string) (*generatedEdgeID, error) {
 	eid = strings.TrimPrefix(eid, "generated:")
 	parts := strings.Split(eid, ":")
-	if len(parts) != 4 {
-		return "", "", "", "", fmt.Errorf("failed to parse edge id: unexpected content")
+	if len(parts) != 5 {
+		return nil, fmt.Errorf("failed to parse edge id: unexpected content")
 	}
-	from, err = url.QueryUnescape(parts[0])
+	label, err := url.QueryUnescape(parts[0])
 	if err != nil {
-		return "", "", "", "", fmt.Errorf("failed to parse edge id: %v", err)
+		return nil, fmt.Errorf("failed to parse edge id: %v", err)
 	}
-	fromGid, err = url.QueryUnescape(parts[1])
+	fromTable, err := url.QueryUnescape(parts[1])
 	if err != nil {
-		return "", "", "", "", fmt.Errorf("failed to parse edge id: %v", err)
+		return nil, fmt.Errorf("failed to parse edge id: %v", err)
 	}
-	to, err = url.QueryUnescape(parts[2])
+	fromID, err := url.QueryUnescape(parts[2])
 	if err != nil {
-		return "", "", "", "", fmt.Errorf("failed to parse edge id: %v", err)
+		return nil, fmt.Errorf("failed to parse edge id: %v", err)
 	}
-	toGid, err = url.QueryUnescape(parts[3])
+	toTable, err := url.QueryUnescape(parts[3])
 	if err != nil {
-		return "", "", "", "", fmt.Errorf("failed to parse edge id: %v", err)
+		return nil, fmt.Errorf("failed to parse edge id: %v", err)
 	}
-	return from, fromGid, to, toGid, nil
-}
-
-func RowDataToEdge(table string, schema *Schema, data map[string]interface{}, load bool) *aql.Edge {
-	var gid, label, from, to string
-
-	gidField := schema.GetEdgeGid(table)
-	id := data[gidField]
-	gid = fmt.Sprintf("%v:%v", table, id)
-
-	label = schema.GetEdgeLabel(table)
-
-	fromField := schema.GetEdgeFrom(table).SourceField
-	from = fmt.Sprintf("%v", data[fromField])
-
-	toField := schema.GetEdgeTo(table).SourceField
-	to = fmt.Sprintf("%v", data[toField])
-
-	edge := &aql.Edge{
-		Gid:   gid,
-		Label: label,
-		From:  from,
-		To:    to,
+	toID, err := url.QueryUnescape(parts[4])
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse edge id: %v", err)
 	}
-	if load {
-		edge.Data = protoutil.AsStruct(data)
-	}
-	return edge
+	return &generatedEdgeID{label, fromTable, fromID, toTable, toID}, nil
 }
 
 func ValidateSchema(schema *Schema) error {
 	var errs *multierror.Error
-	for k, v := range schema.Vertices {
+	for _, v := range schema.Vertices {
 		if v.Table == "" {
-			errs = multierror.Append(errs, fmt.Errorf("table: %s: 'Table' field in cannot be empty", k))
+			errs = multierror.Append(errs, fmt.Errorf("table: %s: 'Table' field in cannot be empty", v.Table))
 		}
 		if v.Gid == "" {
-			errs = multierror.Append(errs, fmt.Errorf("table: %s: 'Gid' field in cannot be empty", k))
+			errs = multierror.Append(errs, fmt.Errorf("table: %s: 'Gid' field in cannot be empty", v.Table))
 		}
 		if v.Label == "" {
-			errs = multierror.Append(errs, fmt.Errorf("table: %s: 'Label' field in cannot be empty", k))
+			errs = multierror.Append(errs, fmt.Errorf("table: %s: 'Label' field in cannot be empty", v.Table))
 		}
 	}
 	vertexErrs := multierror.Prefix(errs, "vertex:")
 	errs = nil
-	for k, e := range schema.Edges {
+	for _, e := range schema.Edges {
 		if e.Table == "" {
 			if e.Gid != "" {
-				errs = multierror.Append(errs, fmt.Errorf("table: %s: 'Gid' field must be empty if 'Table' is empty", k))
+				errs = multierror.Append(errs, fmt.Errorf("'Gid' field must be empty if 'Table' is empty"))
 			}
 			if e.From == nil {
-				errs = multierror.Append(errs, fmt.Errorf("table: %s: 'From' field cannot be nil if 'Table' is empty", k))
+				errs = multierror.Append(errs, fmt.Errorf("'From' field cannot be nil if 'Table' is empty"))
 			} else if e.From.SourceField != "" {
-				errs = multierror.Append(errs, fmt.Errorf("table: %s: 'From.SourceField' field must be empty if 'Table' is empty", k))
+				errs = multierror.Append(errs, fmt.Errorf("'From.SourceField' field must be empty if 'Table' is empty"))
 			}
 			if e.To == nil {
-				errs = multierror.Append(errs, fmt.Errorf("table: %s: 'To' field cannot be nil if 'Table' is empty", k))
+				errs = multierror.Append(errs, fmt.Errorf("'To' field cannot be nil if 'Table' is empty"))
 			} else if e.To.SourceField != "" {
-				errs = multierror.Append(errs, fmt.Errorf("table: %s: 'To.SourceField' field must be empty if 'Table' is empty", k))
+				errs = multierror.Append(errs, fmt.Errorf("'To.SourceField' field must be empty if 'Table' is empty"))
 			}
 		}
 		if e.Table != "" && e.Gid == "" {
-			errs = multierror.Append(errs, fmt.Errorf("table: %s: 'Gid' field in cannot be empty", k))
+			errs = multierror.Append(errs, fmt.Errorf("table: %s: 'Gid' field in cannot be empty", e.Table))
 		}
 		if e.Label == "" {
-			errs = multierror.Append(errs, fmt.Errorf("table: %s: 'Label' field in cannot be empty", k))
+			errs = multierror.Append(errs, fmt.Errorf("table: %s: 'Label' field in cannot be empty", e.Table))
 		}
 		if e.From == nil {
-			errs = multierror.Append(errs, fmt.Errorf("table: %s: 'From' field in cannot be nil", k))
+			errs = multierror.Append(errs, fmt.Errorf("table: %s: 'From' field in cannot be nil", e.Table))
 		} else if e.Table != "" && e.From.SourceField == "" {
-			errs = multierror.Append(errs, fmt.Errorf("table: %s: 'From.SourceField' field in cannot be empty", k))
+			errs = multierror.Append(errs, fmt.Errorf("table: %s: 'From.SourceField' field in cannot be empty", e.Table))
 		} else if e.From.DestTable == "" {
-			errs = multierror.Append(errs, fmt.Errorf("table: %s: 'From.DestTable' field in cannot be empty", k))
+			errs = multierror.Append(errs, fmt.Errorf("table: %s: 'From.DestTable' field in cannot be empty", e.Table))
 		} else if e.From.DestField == "" {
-			errs = multierror.Append(errs, fmt.Errorf("table: %s: 'From.DestField' field in cannot be empty", k))
+			errs = multierror.Append(errs, fmt.Errorf("table: %s: 'From.DestField' field in cannot be empty", e.Table))
 		} else if e.From.DestGid == "" {
-			errs = multierror.Append(errs, fmt.Errorf("table: %s: 'From.DestGid' field in cannot be empty", k))
+			errs = multierror.Append(errs, fmt.Errorf("table: %s: 'From.DestGid' field in cannot be empty", e.Table))
 		}
 		if e.To == nil {
-			errs = multierror.Append(errs, fmt.Errorf("table: %s: 'To' field in cannot be nil", k))
+			errs = multierror.Append(errs, fmt.Errorf("table: %s: 'To' field in cannot be nil", e.Table))
 		} else if e.Table != "" && e.To.SourceField == "" {
-			errs = multierror.Append(errs, fmt.Errorf("table: %s: 'To.SourceField' field in cannot be empty", k))
+			errs = multierror.Append(errs, fmt.Errorf("table: %s: 'To.SourceField' field in cannot be empty", e.Table))
 		} else if e.To.DestTable == "" {
-			errs = multierror.Append(errs, fmt.Errorf("table: %s: 'To.DestTable' field in cannot be empty", k))
+			errs = multierror.Append(errs, fmt.Errorf("table: %s: 'To.DestTable' field in cannot be empty", e.Table))
 		} else if e.To.DestField == "" {
-			errs = multierror.Append(errs, fmt.Errorf("table: %s: 'To.DestField' field in cannot be empty", k))
+			errs = multierror.Append(errs, fmt.Errorf("table: %s: 'To.DestField' field in cannot be empty", e.Table))
 		} else if e.To.DestGid == "" {
-			errs = multierror.Append(errs, fmt.Errorf("table: %s: 'To.DestGid' field in cannot be empty", k))
+			errs = multierror.Append(errs, fmt.Errorf("table: %s: 'To.DestGid' field in cannot be empty", e.Table))
 		}
 	}
 	edgeErrs := multierror.Prefix(errs, "edge:")
-	return multierror.Append(vertexErrs, edgeErrs)
+	return multierror.Append(vertexErrs, edgeErrs).ErrorOrNil()
 }
 
 func (s *Schema) GetVertexTables(label string) []string {

@@ -144,19 +144,18 @@ func getKeys(obj interface{}) []string {
 			}
 			keys = append(keys, vk...)
 		}
-	case reflect.Map:
-		for _, key := range v.MapKeys() {
-			name := key.String()
-			keys = append(keys, key.String())
+		case reflect.Map:
+			for _, key := range v.MapKeys() {
+				name := key.String()
+				keys = append(keys, key.String())
 
-			valKeys := getKeys(v.MapIndex(key).Interface())
-			for i, v := range valKeys {
-				valKeys[i] = name + "." + v
+				valKeys := getKeys(v.MapIndex(key).Interface())
+				for i, v := range valKeys {
+					valKeys[i] = name + "." + v
+				}
+				keys = append(keys, valKeys...)
 			}
-			keys = append(keys, valKeys...)
-		}
 	}
-
 	return keys
 }
 
@@ -176,6 +175,9 @@ func checkForUnknownKeys(jsonStr []byte, obj interface{}) error {
 	unknown := []string{}
 	all := getKeys(anon)
 	for _, k := range all {
+    if strings.HasPrefix(k, "SQL.Graphs.") {
+      continue
+    }
 		if _, found := knownMap[k]; !found {
 			unknown = append(unknown, k)
 		}
