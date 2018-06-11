@@ -11,19 +11,19 @@ import (
 
 // Vertex describes the mapping of a table to the graph
 type Vertex struct {
-	Table string
-	Gid   string
-	Label string
+	Table    string
+	GidField string
+	Label    string
 }
 
 // Edge describes the mapping between two tables.
 // It may also describe a relational table containing edge properties.
 type Edge struct {
-	Table string
-	Gid   string
-	Label string
-	From  *ForeignKey
-	To    *ForeignKey
+	Table    string
+	GidField string
+	Label    string
+	From     *ForeignKey
+	To       *ForeignKey
 }
 
 // ForeignKey describes a relation to another table
@@ -31,11 +31,11 @@ type ForeignKey struct {
 	SourceField string
 	DestTable   string
 	DestField   string
-	DestGid     string
 }
 
 // Schema describes the mapping of tables to the graph.
 type Schema struct {
+	Graph    string
 	Vertices []*Vertex
 	Edges    []*Edge
 }
@@ -47,14 +47,14 @@ type Config struct {
 	DataSourceName string
 	// The driver name ("mysql", "postgres", etc)
 	Driver string
-	// The keys in the Graphs map are graph names
-	Graphs map[string]*Schema
+	// The graph definitions
+	Graphs []*Schema
 }
 
 // GraphDB manages graphs in the database
 type GraphDB struct {
 	db     *sqlx.DB
-	graphs map[string]*Schema
+	graphs []*Schema
 	ts     *timestamp.Timestamp
 }
 
@@ -70,6 +70,7 @@ func NewGraphDB(conf Config) (gdbi.GraphDB, error) {
 	if err != nil {
 		return nil, err
 	}
+	db.SetMaxIdleConns(5)
 	ts := timestamp.NewTimestamp()
 	gdb := &GraphDB{db, conf.Graphs, &ts}
 	for _, i := range gdb.GetGraphs() {
@@ -96,27 +97,31 @@ func (db *GraphDB) DeleteGraph(graph string) error {
 // GetGraphs lists the graphs managed by this driver
 func (db *GraphDB) GetGraphs() []string {
 	out := []string{}
-	for k := range db.graphs {
-		out = append(out, k)
+	for _, schema := range db.graphs {
+		out = append(out, schema.Graph)
 	}
 	return out
 }
 
-// Graph obtains the gdbi.DBI for a particular graph
-func (db *GraphDB) Graph(graph string) (gdbi.GraphInterface, error) {
-	found := false
-	for _, gname := range db.GetGraphs() {
-		if graph == gname {
-			found = true
+func (db *GraphDB) getGraphSchema(graph string) *Schema {
+	for _, schema := range db.graphs {
+		if schema.Graph == graph {
+			return schema
 		}
 	}
-	if !found {
+	return nil
+}
+
+// Graph obtains the gdbi.DBI for a particular graph
+func (db *GraphDB) Graph(graph string) (gdbi.GraphInterface, error) {
+	schema := db.getGraphSchema(graph)
+	if schema == nil {
 		return nil, fmt.Errorf("graph '%s' was not found", graph)
 	}
 	return &Graph{
 		db:     db.db,
 		ts:     db.ts,
 		graph:  graph,
-		schema: db.graphs[graph],
+		schema: schema,
 	}, nil
 }

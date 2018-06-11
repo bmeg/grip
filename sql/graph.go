@@ -76,7 +76,7 @@ func (g *Graph) GetVertex(key string, load bool) *aql.Vertex {
 	if err != nil {
 		return nil
 	}
-	return RowDataToVertex(table, g.schema, data, load)
+	return rowDataToVertex(table, g.schema, data, load)
 }
 
 func (g *Graph) getGeneratedEdge(key string, load bool) *aql.Edge {
@@ -107,7 +107,7 @@ func (g *Graph) getTableBackedEdge(key string, load bool) *aql.Edge {
 	if err != nil {
 		return nil
 	}
-	return RowDataToEdge(table, g.schema, data, load)
+	return rowDataToEdge(table, g.schema, data, load)
 }
 
 // GetEdge loads an edge given an id. It returns nil if not found
@@ -131,7 +131,7 @@ func (g *Graph) GetVertexList(ctx context.Context, load bool) <-chan *aql.Vertex
 		defer close(o)
 		for _, v := range g.schema.Vertices {
 			q := fmt.Sprintf("SELECT * FROM %s", v.Table)
-			rows, err := g.db.Queryx(q)
+			rows, err := g.db.QueryxContext(ctx, q)
 			if err != nil {
 				log.Println("GetVertexList failed:", err)
 				return
@@ -143,7 +143,7 @@ func (g *Graph) GetVertexList(ctx context.Context, load bool) <-chan *aql.Vertex
 					log.Println("GetVertexList failed:", err)
 					return
 				}
-				o <- RowDataToVertex(v.Table, g.schema, data, load)
+				o <- rowDataToVertex(v.Table, g.schema, data, load)
 			}
 			if err := rows.Err(); err != nil {
 				log.Println("GetVertexList failed:", err)
@@ -162,7 +162,7 @@ func (g *Graph) VertexLabelScan(ctx context.Context, label string) chan string {
 		for _, v := range g.schema.Vertices {
 			if v.Label == label {
 				q := fmt.Sprintf("SELECT * FROM %s", v.Table)
-				rows, err := g.db.Queryx(q)
+				rows, err := g.db.QueryxContext(ctx, q)
 				if err != nil {
 					log.Println("VertexLabelScan failed:", err)
 					return
@@ -174,7 +174,7 @@ func (g *Graph) VertexLabelScan(ctx context.Context, label string) chan string {
 						log.Println("VertexLabelScan failed:", err)
 						return
 					}
-					v := RowDataToVertex(v.Table, g.schema, data, false)
+					v := rowDataToVertex(v.Table, g.schema, data, false)
 					o <- v.Gid
 				}
 				if err := rows.Err(); err != nil {
@@ -192,22 +192,23 @@ func (g *Graph) GetEdgeList(ctx context.Context, load bool) <-chan *aql.Edge {
 	o := make(chan *aql.Edge, 100)
 	go func() {
 		defer close(o)
-		for _, v := range g.schema.Edges {
+		for _, edgeSchema := range g.schema.Edges {
 			q := ""
-			switch v.Table {
+			switch edgeSchema.Table {
 			case "":
 				q = fmt.Sprintf("SELECT %s.%s, %s.%s FROM %s INNER JOIN %s ON %s.%s=%s.%s",
 					// SELECT
-					v.From.DestTable, v.From.DestGid,
-					v.To.DestTable, v.To.DestGid,
+					edgeSchema.From.DestTable, g.schema.GetVertexGid(edgeSchema.From.DestTable),
+					edgeSchema.To.DestTable, g.schema.GetVertexGid(edgeSchema.To.DestTable),
 					// FROM
-					v.From.DestTable,
+					edgeSchema.From.DestTable,
 					// INNER JOIN
-					v.To.DestTable,
+					edgeSchema.To.DestTable,
 					// ON
-					v.From.DestTable, v.From.DestField,
-					v.To.DestTable, v.To.DestField)
-				rows, err := g.db.Queryx(q)
+					edgeSchema.From.DestTable, edgeSchema.From.DestField,
+					edgeSchema.To.DestTable, edgeSchema.To.DestField,
+				)
+				rows, err := g.db.QueryxContext(ctx, q)
 				if err != nil {
 					log.Println("GetEdgeList failed:", err)
 					return
@@ -219,15 +220,15 @@ func (g *Graph) GetEdgeList(ctx context.Context, load bool) <-chan *aql.Edge {
 						log.Println("GetEdgeList failed:", err)
 						return
 					}
-					geid := &generatedEdgeID{v.Label, v.From.DestTable, fromGid, v.To.DestTable, toGid}
-					// TODO figure out how to get label
-					o <- &aql.Edge{
+					geid := &generatedEdgeID{edgeSchema.Label, edgeSchema.From.DestTable, fromGid, edgeSchema.To.DestTable, toGid}
+					edge := &aql.Edge{
 						Gid:   geid.String(),
-						Label: v.Label,
+						Label: edgeSchema.Label,
 						From:  fromGid,
 						To:    toGid,
 						Data:  nil,
 					}
+					o <- edge
 				}
 				if err := rows.Err(); err != nil {
 					log.Println("GetEdgeList failed:", err)
@@ -235,8 +236,8 @@ func (g *Graph) GetEdgeList(ctx context.Context, load bool) <-chan *aql.Edge {
 				}
 
 			default:
-				q = fmt.Sprintf("SELECT * FROM %s", v.Table)
-				rows, err := g.db.Queryx(q)
+				q = fmt.Sprintf("SELECT * FROM %s", edgeSchema.Table)
+				rows, err := g.db.QueryxContext(ctx, q)
 				if err != nil {
 					log.Println("GetEdgeList failed:", err)
 					return
@@ -248,7 +249,7 @@ func (g *Graph) GetEdgeList(ctx context.Context, load bool) <-chan *aql.Edge {
 						log.Println("GetEdgeList failed:", err)
 						return
 					}
-					o <- RowDataToEdge(v.Table, g.schema, data, load)
+					o <- rowDataToEdge(edgeSchema.Table, g.schema, data, load)
 				}
 				if err := rows.Err(); err != nil {
 					log.Println("GetEdgeList failed:", err)
@@ -262,46 +263,467 @@ func (g *Graph) GetEdgeList(ctx context.Context, load bool) <-chan *aql.Edge {
 
 // GetVertexChannel is passed a channel of vertex ids and it produces a channel
 // of vertices
-func (g *Graph) GetVertexChannel(ids chan gdbi.ElementLookup, load bool) chan gdbi.ElementLookup {
+func (g *Graph) GetVertexChannel(reqChan chan gdbi.ElementLookup, load bool) chan gdbi.ElementLookup {
+	batches := make(map[string][]gdbi.ElementLookup)
+	for elem := range reqChan {
+		parts := strings.SplitN(elem.ID, ":", 2)
+		if len(parts) != 2 {
+			log.Println("GetVertexChannel encountered a strange ID:", elem.ID)
+			continue
+		}
+		table := parts[0]
+		batches[table] = append(batches[table], elem)
+	}
+
 	o := make(chan gdbi.ElementLookup, 100)
 	go func() {
 		defer close(o)
+		for table, batch := range batches {
+			idBatch := make([]string, len(batch))
+			batchMap := make(map[string][]gdbi.ElementLookup, len(batch))
+			for i := range batch {
+				parts := strings.SplitN(batch[i].ID, ":", 2)
+				if len(parts) != 2 {
+					log.Println("GetVertexChannel encountered a strange ID:", batch[i].ID)
+					continue
+				}
+				idBatch[i] = parts[1]
+				batchMap[batch[i].ID] = append(batchMap[batch[i].ID], batch[i])
+			}
+			ids := strings.Join(idBatch, ", ")
+			gidField := g.schema.GetVertexGid(table)
+			q := fmt.Sprintf("SELECT * FROM %s WHERE %s IN (%s)", table, gidField, ids)
+			rows, err := g.db.Queryx(q)
+			if err != nil {
+				log.Println("GetVertexChannel failed:", err)
+				return
+			}
+			defer rows.Close()
+			for rows.Next() {
+				data := make(map[string]interface{})
+				if err := rows.MapScan(data); err != nil {
+					log.Println("GetVertexChannel failed:", err)
+					return
+				}
+				v := rowDataToVertex(table, g.schema, data, load)
+				r := batchMap[v.Gid]
+				for _, ri := range r {
+					ri.Vertex = v
+					o <- ri
+				}
+			}
+			if err := rows.Err(); err != nil {
+				log.Println("GetVertexChannel failed:", err)
+				return
+			}
+		}
 	}()
+
 	return o
 }
 
 // GetOutChannel process requests of vertex ids and find the connected vertices on outgoing edges
 func (g *Graph) GetOutChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
+	batches := make(map[string][]gdbi.ElementLookup)
+	for elem := range reqChan {
+		parts := strings.SplitN(elem.ID, ":", 2)
+		if len(parts) != 2 {
+			log.Println("GetOutChannel encountered a strange ID:", elem.ID)
+			continue
+		}
+		table := parts[0]
+		batches[table] = append(batches[table], elem)
+	}
+
 	o := make(chan gdbi.ElementLookup, 100)
 	go func() {
 		defer close(o)
+		for table, batch := range batches {
+			idBatch := []string{}
+			batchMap := make(map[string][]gdbi.ElementLookup)
+			for i := range batch {
+				parts := strings.SplitN(batch[i].ID, ":", 2)
+				if len(parts) != 2 {
+					log.Println("GetOutChannel encountered a strange ID:", batch[i].ID)
+					continue
+				}
+				idBatch = append(idBatch, parts[1])
+				batchMap[batch[i].ID] = append(batchMap[batch[i].ID], batch[i])
+			}
+			ids := strings.Join(idBatch, ", ")
+			outgoingEdges := g.schema.GetOutgoingEdges(table, edgeLabels)
+			for _, edgeSchema := range outgoingEdges {
+				q := ""
+				dataKey := ""
+				switch edgeSchema.Table {
+				case "":
+					q = fmt.Sprintf("SELECT * FROM %s WHERE %s IN (%s)",
+						// FROM
+						edgeSchema.To.DestTable,
+						// WHERE
+						edgeSchema.To.DestField,
+						ids,
+					)
+					dataKey = edgeSchema.From.DestField
+				default:
+					q = fmt.Sprintf("SELECT %s.%s, %s.%s FROM %s INNER JOIN %s ON %s.%s=%s.%s WHERE %s.%s IN (%s)",
+						// SELECT
+						edgeSchema.To.DestTable, "*",
+						edgeSchema.Table, edgeSchema.From.SourceField,
+						// FROM
+						edgeSchema.To.DestTable,
+						// INNER JOIN
+						edgeSchema.Table,
+						// ON
+						edgeSchema.To.DestTable, edgeSchema.To.DestField,
+						edgeSchema.Table, edgeSchema.To.SourceField,
+						// WHERE
+						edgeSchema.Table, edgeSchema.From.SourceField,
+						ids,
+					)
+					dataKey = edgeSchema.From.SourceField
+				}
+				rows, err := g.db.Queryx(q)
+				if err != nil {
+					log.Println("GetOutChannel failed:", err)
+					return
+				}
+				defer rows.Close()
+				for rows.Next() {
+					data := make(map[string]interface{})
+					if err := rows.MapScan(data); err != nil {
+						log.Println("GetOutChannel failed:", err)
+						return
+					}
+					v := rowDataToVertex(edgeSchema.To.DestTable, g.schema, data, load)
+					r := batchMap[fmt.Sprintf("%v:%v", edgeSchema.From.DestTable, data[dataKey])]
+					for _, ri := range r {
+						ri.Vertex = v
+						o <- ri
+					}
+				}
+				if err := rows.Err(); err != nil {
+					log.Println("GetOutChannel failed:", err)
+					return
+				}
+			}
+		}
 	}()
+
 	return o
 }
 
 // GetInChannel process requests of vertex ids and find the connected vertices on incoming edges
 func (g *Graph) GetInChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
+	batches := make(map[string][]gdbi.ElementLookup)
+	for elem := range reqChan {
+		parts := strings.SplitN(elem.ID, ":", 2)
+		if len(parts) != 2 {
+			log.Println("GetInChannel encountered a strange ID:", elem.ID)
+			continue
+		}
+		table := parts[0]
+		batches[table] = append(batches[table], elem)
+	}
+
 	o := make(chan gdbi.ElementLookup, 100)
 	go func() {
 		defer close(o)
+		for table, batch := range batches {
+			idBatch := []string{}
+			batchMap := make(map[string][]gdbi.ElementLookup)
+			for i := range batch {
+				parts := strings.SplitN(batch[i].ID, ":", 2)
+				if len(parts) != 2 {
+					log.Println("GetInChannel encountered a strange ID:", batch[i].ID)
+					continue
+				}
+				idBatch = append(idBatch, parts[1])
+				batchMap[batch[i].ID] = append(batchMap[batch[i].ID], batch[i])
+			}
+			ids := strings.Join(idBatch, ", ")
+			incomingEdges := g.schema.GetIncomingEdges(table, edgeLabels)
+			for _, edgeSchema := range incomingEdges {
+				q := ""
+				dataKey := ""
+				switch edgeSchema.Table {
+				case "":
+					q = fmt.Sprintf("SELECT * FROM %s WHERE %s IN (%s)",
+						// FROM
+						edgeSchema.From.DestTable,
+						// WHERE
+						edgeSchema.From.DestField,
+						ids,
+					)
+					dataKey = edgeSchema.From.DestField
+				default:
+					q = fmt.Sprintf("SELECT %s.%s, %s.%s FROM %s INNER JOIN %s ON %s.%s=%s.%s WHERE %s.%s IN (%s)",
+						// SELECT
+						edgeSchema.From.DestTable, "*",
+						edgeSchema.Table, edgeSchema.To.SourceField,
+						// FROM
+						edgeSchema.From.DestTable,
+						// INNER JOIN
+						edgeSchema.Table,
+						// ON
+						edgeSchema.From.DestTable, edgeSchema.From.DestField,
+						edgeSchema.Table, edgeSchema.From.SourceField,
+						// WHERE
+						edgeSchema.Table, edgeSchema.To.SourceField,
+						ids,
+					)
+					dataKey = edgeSchema.To.SourceField
+				}
+				rows, err := g.db.Queryx(q)
+				if err != nil {
+					log.Println("GetInChannel failed:", err)
+					return
+				}
+				defer rows.Close()
+				for rows.Next() {
+					data := make(map[string]interface{})
+					if err := rows.MapScan(data); err != nil {
+						log.Println("GetInChannel failed:", err)
+						return
+					}
+					v := rowDataToVertex(edgeSchema.From.DestTable, g.schema, data, load)
+					r := batchMap[fmt.Sprintf("%v:%v", edgeSchema.To.DestTable, data[dataKey])]
+					for _, ri := range r {
+						ri.Vertex = v
+						o <- ri
+					}
+				}
+				if err := rows.Err(); err != nil {
+					log.Println("GetInChannel failed:", err)
+					return
+				}
+			}
+		}
 	}()
+
 	return o
 }
 
 // GetOutEdgeChannel process requests of vertex ids and find the connected outgoing edges
 func (g *Graph) GetOutEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
+	batches := make(map[string][]gdbi.ElementLookup)
+	for elem := range reqChan {
+		parts := strings.SplitN(elem.ID, ":", 2)
+		if len(parts) != 2 {
+			log.Println("GetOutEdgeChannel encountered a strange ID:", elem.ID)
+			continue
+		}
+		table := parts[0]
+		batches[table] = append(batches[table], elem)
+	}
+
 	o := make(chan gdbi.ElementLookup, 100)
 	go func() {
 		defer close(o)
+		for table, batch := range batches {
+			idBatch := make([]string, len(batch))
+			batchMap := make(map[string][]gdbi.ElementLookup, len(batch))
+			for i := range batch {
+				parts := strings.SplitN(batch[i].ID, ":", 2)
+				if len(parts) != 2 {
+					log.Println("GetOutEdgeChannel encountered a strange ID:", batch[i].ID)
+					continue
+				}
+				idBatch[i] = parts[1]
+				batchMap[batch[i].ID] = append(batchMap[batch[i].ID], batch[i])
+			}
+			ids := strings.Join(idBatch, ", ")
+			outgoingEdges := g.schema.GetOutgoingEdges(table, edgeLabels)
+			for _, edgeSchema := range outgoingEdges {
+				q := ""
+				switch edgeSchema.Table {
+				case "":
+					q = fmt.Sprintf("SELECT %s.%s, %s.%s FROM %s INNER JOIN %s ON %s.%s=%s.%s WHERE %s.%s IN (%s)",
+						// SELECT
+						edgeSchema.From.DestTable, g.schema.GetVertexGid(edgeSchema.From.DestTable),
+						edgeSchema.To.DestTable, g.schema.GetVertexGid(edgeSchema.To.DestTable),
+						// FROM
+						edgeSchema.From.DestTable,
+						// INNER JOIN
+						edgeSchema.To.DestTable,
+						// ON
+						edgeSchema.From.DestTable, edgeSchema.From.DestField,
+						edgeSchema.To.DestTable, edgeSchema.To.DestField,
+						// WHERE
+						edgeSchema.From.DestTable, g.schema.GetVertexGid(edgeSchema.From.DestTable),
+						ids,
+					)
+					rows, err := g.db.Queryx(q)
+					if err != nil {
+						log.Println("GetOutEdgeChannel failed:", err)
+						return
+					}
+					defer rows.Close()
+					for rows.Next() {
+						var fromGid, toGid string
+						if err := rows.Scan(&fromGid, &toGid); err != nil {
+							log.Println("GetOutEdgeChannel failed:", err)
+							return
+						}
+						geid := &generatedEdgeID{edgeSchema.Label, edgeSchema.From.DestTable, fromGid, edgeSchema.To.DestTable, toGid}
+						edge := &aql.Edge{
+							Gid:   geid.String(),
+							Label: edgeSchema.Label,
+							From:  fromGid,
+							To:    toGid,
+							Data:  nil,
+						}
+						r := batchMap[fmt.Sprintf("%v:%v", edgeSchema.From.DestTable, fromGid)]
+						for _, ri := range r {
+							ri.Edge = edge
+							o <- ri
+						}
+					}
+					if err := rows.Err(); err != nil {
+						log.Println("GetOutEdgeChannel failed:", err)
+						return
+					}
+
+				default:
+					q = fmt.Sprintf("SELECT * FROM %s WHERE %s IN (%s)", edgeSchema.Table, edgeSchema.From.SourceField, ids)
+					rows, err := g.db.Queryx(q)
+					if err != nil {
+						log.Println("GetOutEdgeChannel failed:", err)
+						return
+					}
+					defer rows.Close()
+					for rows.Next() {
+						data := make(map[string]interface{})
+						if err := rows.MapScan(data); err != nil {
+							log.Println("GetOutEdgeChannel failed:", err)
+							return
+						}
+						edge := rowDataToEdge(edgeSchema.Table, g.schema, data, load)
+						r := batchMap[fmt.Sprintf("%v:%v", edgeSchema.From.DestTable, data[edgeSchema.From.SourceField])]
+						for _, ri := range r {
+							ri.Edge = edge
+							o <- ri
+						}
+					}
+					if err := rows.Err(); err != nil {
+						log.Println("GetOutEdgeChannel failed:", err)
+						return
+					}
+				}
+			}
+		}
 	}()
 	return o
 }
 
 // GetInEdgeChannel process requests of vertex ids and find the connected incoming edges
 func (g *Graph) GetInEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
+	batches := make(map[string][]gdbi.ElementLookup)
+	for elem := range reqChan {
+		parts := strings.SplitN(elem.ID, ":", 2)
+		if len(parts) != 2 {
+			log.Println("GetInEdgeChannel encountered a strange ID:", elem.ID)
+			continue
+		}
+		table := parts[0]
+		batches[table] = append(batches[table], elem)
+	}
+
 	o := make(chan gdbi.ElementLookup, 100)
 	go func() {
 		defer close(o)
+		for table, batch := range batches {
+			idBatch := make([]string, len(batch))
+			batchMap := make(map[string][]gdbi.ElementLookup, len(batch))
+			for i := range batch {
+				parts := strings.SplitN(batch[i].ID, ":", 2)
+				if len(parts) != 2 {
+					log.Println("GetInEdgeChannel encountered a strange ID:", batch[i].ID)
+					continue
+				}
+				idBatch[i] = parts[1]
+				batchMap[batch[i].ID] = append(batchMap[batch[i].ID], batch[i])
+			}
+			ids := strings.Join(idBatch, ", ")
+			incomingEdges := g.schema.GetIncomingEdges(table, edgeLabels)
+			for _, edgeSchema := range incomingEdges {
+				q := ""
+				switch edgeSchema.Table {
+				case "":
+					q = fmt.Sprintf("SELECT %s.%s, %s.%s FROM %s INNER JOIN %s ON %s.%s=%s.%s WHERE %s.%s IN (%s)",
+						// SELECT
+						edgeSchema.From.DestTable, g.schema.GetVertexGid(edgeSchema.From.DestTable),
+						edgeSchema.To.DestTable, g.schema.GetVertexGid(edgeSchema.To.DestTable),
+						// FROM
+						edgeSchema.From.DestTable,
+						// INNER JOIN
+						edgeSchema.To.DestTable,
+						// ON
+						edgeSchema.From.DestTable, edgeSchema.From.DestField,
+						edgeSchema.To.DestTable, edgeSchema.To.DestField,
+						// WHERE
+						edgeSchema.To.DestTable, g.schema.GetVertexGid(edgeSchema.To.DestTable),
+						ids,
+					)
+					rows, err := g.db.Queryx(q)
+					if err != nil {
+						log.Println("GetInEdgeChannel failed:", err)
+						return
+					}
+					defer rows.Close()
+					for rows.Next() {
+						var fromGid, toGid string
+						if err := rows.Scan(&fromGid, &toGid); err != nil {
+							log.Println("GetInEdgeChannel failed:", err)
+							return
+						}
+						geid := &generatedEdgeID{edgeSchema.Label, edgeSchema.From.DestTable, fromGid, edgeSchema.To.DestTable, toGid}
+						edge := &aql.Edge{
+							Gid:   geid.String(),
+							Label: edgeSchema.Label,
+							From:  fromGid,
+							To:    toGid,
+							Data:  nil,
+						}
+						r := batchMap[fmt.Sprintf("%v:%v", edgeSchema.To.DestTable, toGid)]
+						for _, ri := range r {
+							ri.Edge = edge
+							o <- ri
+						}
+					}
+					if err := rows.Err(); err != nil {
+						log.Println("GetInEdgeChannel failed:", err)
+						return
+					}
+
+				default:
+					q = fmt.Sprintf("SELECT * FROM %s WHERE %s IN (%s)", edgeSchema.Table, edgeSchema.To.SourceField, ids)
+					rows, err := g.db.Queryx(q)
+					if err != nil {
+						log.Println("GetInEdgeChannel failed:", err)
+						return
+					}
+					defer rows.Close()
+					for rows.Next() {
+						data := make(map[string]interface{})
+						if err := rows.MapScan(data); err != nil {
+							log.Println("GetInEdgeChannel failed:", err)
+							return
+						}
+						edge := rowDataToEdge(edgeSchema.Table, g.schema, data, load)
+						r := batchMap[fmt.Sprintf("%v:%v", edgeSchema.To.DestTable, data[edgeSchema.To.SourceField])]
+						for _, ri := range r {
+							ri.Edge = edge
+							o <- ri
+						}
+					}
+					if err := rows.Err(); err != nil {
+						log.Println("GetInEdgeChannel failed:", err)
+						return
+					}
+				}
+			}
+		}
 	}()
 	return o
 }
