@@ -14,7 +14,10 @@ def load_matrix(args):
         conn.addGraph(args.db)
     O = conn.graph(args.db)
 
-    matrix = pandas.read_csv(args.input, sep=args.sep, index_col=0)
+    if args.columns is not None:
+        matrix = pandas.read_csv(args.input, sep=args.sep, index_col=0, header=None, names=args.columns)
+    else:
+        matrix = pandas.read_csv(args.input, sep=args.sep, index_col=0)
     if args.transpose:
         matrix = matrix.transpose()
 
@@ -55,12 +58,18 @@ def load_matrix(args):
             data = {}
             for c in matrix.columns:
                 v = row[c]
-                if not math.isnan(v):
+                if not isinstance(v,float) or not math.isnan(v):
                     data[c] = v
             if args.debug:
-                print("Add Vertex %s %s" % (rname, args.row_label))
+                print("Add Vertex %s %s %s" % (rname, args.row_label, data))
             else:
                 O.addVertex(rname, args.row_label, data)
+            for dst, edge in args.edge:
+                if args.debug:
+                    print("Add Edge %s %s" % (dst.format(**data), edge))
+                else:
+                    O.addEdge(rname, dst.format(**data), edge)
+
 
 
 if __name__ == "__main__":
@@ -75,9 +84,13 @@ if __name__ == "__main__":
     parser.add_argument("--connect", action="store_true", default=False)
     parser.add_argument("--col-label", dest="col_label", default="Col")
     parser.add_argument("--col-prefix", default="")
+    parser.add_argument("--columns", default=None, nargs="*")
+
     parser.add_argument("--edge-label", dest="edge_label", default="weight")
     parser.add_argument("--edge-prop", dest="edge_prop", default="w")
     parser.add_argument("-d", dest="debug", action="store_true", default=False)
+
+    parser.add_argument("-e", "--edge", action="append", default=[], nargs=2)
 
     args = parser.parse_args()
     load_matrix(args)
