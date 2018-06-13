@@ -1,0 +1,89 @@
+Database: sql
+
+SQL:
+  DataSourceName: "user=postgres dbname=test password=mysecretpassword sslmode=disable"
+  Driver: postgres
+
+  Graphs:
+    - Graph: test-graph
+      Vertices:
+        - Table: Person
+          Label: Person
+          GidField: id
+
+        - Table: Droid
+          Label: Droid
+          GidField: id
+
+        - Table: Starship
+          Label: Starship
+          GidField: id
+
+        - Table: Planet
+          Label: Planet
+          GidField: id
+
+        - Table: Film
+          Label: Film
+          GidField: id
+
+      Edges:
+        - Table: LivedOn
+          Label: LivedOn
+          GidField: id
+          From:
+            SourceField: from
+            DestTable: Person
+            DestField: id
+          To:
+            SourceField: to
+            DestTable: Planet
+            DestField: id
+
+        - Table: ""
+          Label: AppearedIn
+          GidField: ""
+          From:
+            SourceField: ""
+            DestTable: Person
+            DestField: id
+          To:
+            SourceField: ""
+            DestTable: Film
+            DestField: person_id
+
+        - Table: ""
+          Label: AppearedIn
+          GidField: ""
+          From:
+            SourceField: ""
+            DestTable: Droid
+            DestField: id
+          To:
+            SourceField: ""
+            DestTable: Film
+            DestField: droid_id
+
+        - Table: ""
+          Label: AppearedIn
+          GidField: ""
+          From:
+            SourceField: ""
+            DestTable: Starship
+            DestField: id
+          To:
+            SourceField: ""
+            DestTable: Film
+            DestField: starship_id
+
+        - Table: ""
+          Label: AppearedIn
+          GidField: ""
+          From:
+            SourceField: ""
+            DestTable: Planet
+            DestField: id
+          To:
+            SourceField: ""
+            DestTable: Film
+            DestField: planet_id

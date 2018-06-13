@@ -60,10 +60,10 @@ type GraphDB struct {
 
 // NewGraphDB creates a new GraphDB graph database interface
 func NewGraphDB(conf Config) (gdbi.GraphDB, error) {
-	for g, s := range conf.Graphs {
+	for _, s := range conf.Graphs {
 		err := ValidateSchema(s)
 		if err != nil {
-			return nil, fmt.Errorf("schema validation failed for graph %s: %v", g, err)
+			return nil, fmt.Errorf("schema validation failed for graph %s: %v", s.Graph, err)
 		}
 	}
 	db, err := sqlx.Connect(conf.Driver, conf.DataSourceName)

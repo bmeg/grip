@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/bmeg/arachne/aql"
 	_ "github.com/bmeg/arachne/badgerdb" // import so badger will register itself
 	_ "github.com/bmeg/arachne/boltdb"   // import so bolt will register itself
 	"github.com/bmeg/arachne/config"
@@ -16,6 +17,8 @@ import (
 	_ "github.com/bmeg/arachne/leveldb" // import so level will register itself
 	"github.com/bmeg/arachne/mongo"
 	_ "github.com/bmeg/arachne/rocksdb" // import so rocks will register itself
+	"github.com/bmeg/arachne/sql"
+	_ "github.com/lib/pq" // import so postgres will register as a sql driver
 )
 
 var configFile string
@@ -26,6 +29,36 @@ var dbname string
 func init() {
 	flag.StringVar(&configFile, "config", configFile, "config file to use for tests")
 	flag.Parse()
+}
+
+func setupGraph() error {
+	for _, v := range vertices {
+		err := db.AddVertex([]*aql.Vertex{v})
+		if err != nil {
+			return err
+		}
+	}
+	for _, e := range edges {
+		err := db.AddEdge([]*aql.Edge{e})
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func setupSQLGraph(conf sql.Config) error {
+	_, err := verticesToCSV(vertices, edges, conf.Graphs[0])
+	if err != nil {
+		return err
+	}
+
+	_, err = edgesToCSV(edges, conf.Graphs[0])
+	if err != nil {
+		return err
+	}
+
+	return fmt.Errorf("not implemented")
 }
 
 func TestMain(m *testing.M) {
@@ -62,6 +95,9 @@ func TestMain(m *testing.M) {
 	case "mongo":
 		gdb, err = mongo.NewMongo(conf.MongoDB)
 
+	case "sql":
+		gdb, err = sql.NewGraphDB(conf.SQL)
+
 	default:
 		err = fmt.Errorf("unknown database: %s", dbname)
 	}
@@ -78,12 +114,21 @@ func TestMain(m *testing.M) {
 	err = gdb.AddGraph("test-graph")
 	if err != nil {
 		fmt.Println("Error: failed to add graph:", err)
-		return
 	}
 
 	db, err = gdb.Graph("test-graph")
 	if err != nil {
 		fmt.Println("Error: failed to connect to graph:", err)
+		return
+	}
+
+	if dbname == "sql" {
+		err = setupSQLGraph(conf.SQL)
+	} else {
+		err = setupGraph()
+	}
+	if err != nil {
+		fmt.Println("Error: setting up graph:", err)
 		return
 	}
 

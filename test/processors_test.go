@@ -18,26 +18,6 @@ import (
 
 var Q = &aql.Query{}
 
-var verts = []*aql.Vertex{
-	vert("Human", dat{"name": "Alex", "age": 12}),
-	vert("Human", dat{"name": "Kyle", "age": 34}),
-	vert("Human", dat{"name": "Ryan", "age": 56}),
-	vert("Robot", dat{"name": "C-3PO"}),
-	vert("Robot", dat{"name": "R2-D2"}),
-	vert("Robot", dat{"name": "Bender"}),
-	vert("Clone", dat{"name": "Alex"}),
-	vert("Clone", dat{"name": "Kyle"}),
-	vert("Clone", dat{"name": "Ryan"}),
-	vert("Clone", nil),
-	vert("Project", dat{"name": "Funnel"}),
-	vert("Project", dat{"name": "Gaia"}),
-}
-
-var edges = []*aql.Edge{
-	edge(verts[0], verts[10], "WorksOn", nil),
-	edge(verts[2], verts[11], "WorksOn", nil),
-}
-
 // checker is the interface of a function that validates the results of a test query.
 type checker func(t *testing.T, actual <-chan *aql.QueryResult)
 
@@ -49,7 +29,7 @@ type queryTest struct {
 var table = []queryTest{
 	{
 		Q.V().Where(aql.In("name", "Kyle", "Alex")),
-		pick(verts[0], verts[1], verts[6], verts[7]),
+		pick(vertices[0], vertices[1], vertices[6], vertices[7]),
 	},
 	{
 		Q.V().Where(aql.Eq("non-existent-field", "Kyle")),
@@ -57,23 +37,23 @@ var table = []queryTest{
 	},
 	{
 		Q.V().Where(aql.Eq("_label", "Human")),
-		pick(verts[0], verts[1], verts[2]),
+		pick(vertices[0], vertices[1], vertices[2]),
 	},
 	{
 		Q.V().Where(aql.Eq("_label", "Robot")),
-		pick(verts[3], verts[4], verts[5]),
+		pick(vertices[3], vertices[4], vertices[5]),
 	},
 	{
 		Q.V().Where(aql.In("_label", "Robot", "Human")),
-		pick(verts[0], verts[1], verts[2], verts[3], verts[4], verts[5]),
+		pick(vertices[0], vertices[1], vertices[2], vertices[3], vertices[4], vertices[5]),
 	},
 	{
 		Q.V().Where(aql.Eq("_label", "non-existent")),
 		pick(),
 	},
 	{
-		Q.V().Where(aql.In("_gid", verts[0].Gid, verts[2].Gid)),
-		pick(verts[0], verts[2]),
+		Q.V().Where(aql.In("_gid", vertices[0].Gid, vertices[2].Gid)),
+		pick(vertices[0], vertices[2]),
 	},
 	{
 		Q.V().Where(aql.Eq("_gid", "non-existent")),
@@ -93,19 +73,19 @@ var table = []queryTest{
 	},
 	{
 		Q.V().Count(),
-		count(uint32(len(verts))),
+		count(uint32(len(vertices))),
 	},
 	{
 		Q.V().Where(aql.And(aql.Eq("_label", "Human"), aql.Eq("name", "Ryan"))),
-		pick(verts[2]),
+		pick(vertices[2]),
 	},
 	{
 		Q.V().Where(aql.Eq("_label", "Human")).Mark("x").Where(aql.Eq("name", "Alex")).Select("x"),
-		pickselection(map[string]interface{}{"x": verts[0]}),
+		pickselection(map[string]interface{}{"x": vertices[0]}),
 	},
 	{
 		Q.V(),
-		pickAllVerts(),
+		pickAllVertices(),
 	},
 	{
 		Q.E(),
@@ -113,15 +93,15 @@ var table = []queryTest{
 	},
 	{
 		Q.V().Where(aql.Eq("_label", "Human")).Out(),
-		pick(verts[10], verts[11]),
+		pick(vertices[10], vertices[11]),
 	},
 	{
 		Q.V().Where(aql.Eq("_label", "Human")).Out().Where(aql.Eq("name", "Funnel")),
-		pick(verts[10]),
+		pick(vertices[10]),
 	},
 	{
 		Q.V().Where(aql.Eq("_label", "Human")).Mark("x").Out().Where(aql.Eq("name", "Funnel")).Select("x"),
-		pickselection(map[string]interface{}{"x": verts[0]}),
+		pickselection(map[string]interface{}{"x": vertices[0]}),
 	},
 	{
 		Q.V().Where(aql.Eq("_label", "Human")).OutEdge(),
@@ -147,8 +127,8 @@ var table = []queryTest{
 			Fields("$y._gid", "$y._label", "$y.name", "$x._gid", "$x._label", "$x.name").
 			Select("x", "y"),
 		pickselection(map[string]interface{}{
-			"x": &aql.Vertex{Gid: verts[0].Gid, Label: verts[0].Label, Data: protoutil.AsStruct(map[string]interface{}{"name": "Alex"})},
-			"y": &aql.Vertex{Gid: verts[10].Gid, Label: verts[10].Label, Data: protoutil.AsStruct(map[string]interface{}{"name": "Funnel"})},
+			"x": &aql.Vertex{Gid: vertices[0].Gid, Label: vertices[0].Label, Data: protoutil.AsStruct(map[string]interface{}{"name": "Alex"})},
+			"y": &aql.Vertex{Gid: vertices[10].Gid, Label: vertices[10].Label, Data: protoutil.AsStruct(map[string]interface{}{"name": "Funnel"})},
 		}),
 	},
 	{
@@ -156,51 +136,25 @@ var table = []queryTest{
 			Q.Where(aql.Eq("_label", "Human")),
 			Q.Where(aql.Eq("name", "Alex")),
 		),
-		pick(verts[0]),
+		pick(vertices[0]),
 	},
 	{
 		Q.V().Match(
 			Q.Mark("a").Where(aql.Eq("_label", "Human")).Mark("b"),
 			Q.Mark("b").Where(aql.Eq("name", "Alex")).Mark("c"),
 		).Select("c"),
-		pickselection(map[string]interface{}{"c": verts[0]}),
+		pickselection(map[string]interface{}{"c": vertices[0]}),
 	},
 	{
 		Q.V().Match(
 			Q.Mark("a").Where(aql.Eq("_label", "Human")).Mark("b"),
 			Q.Mark("b").Where(aql.Eq("name", "Alex")).Mark("c"),
 		).Select("b", "c"),
-		pickselection(map[string]interface{}{"b": verts[0], "c": verts[0]}),
+		pickselection(map[string]interface{}{"b": vertices[0], "c": vertices[0]}),
 	},
-	/*
-	  TODO fairly certain match does not support this query from the gremlin docs
-	  gremlin> graph.io(graphml()).readGraph('data/grateful-dead.xml')
-	  gremlin> g = graph.traversal()
-	  ==>graphtraversalsource[tinkergraph[vertices:808 edges:8049], standard]
-	  gremlin> g.V().match(
-	                   __.as('a').has('name', 'Garcia'),
-	                   __.as('a').in('writtenBy').as('b'),
-	                   __.as('a').in('sungBy').as('b')).
-	                 select('b').values('name')
-	  ==>CREAM PUFF WAR
-	  ==>CRYPTICAL ENVELOPMENT
-	*/
 }
 
 func TestEngine(t *testing.T) {
-	for _, v := range verts {
-		err := db.AddVertex([]*aql.Vertex{v})
-		if err != nil {
-			t.Fatal(err)
-		}
-	}
-	for _, e := range edges {
-		err := db.AddEdge([]*aql.Edge{e})
-		if err != nil {
-			t.Fatal(err)
-		}
-	}
-
 	for _, desc := range table {
 		desc := desc
 		name := cleanName(dbname + "_" + desc.query.String())
@@ -218,7 +172,7 @@ func TestEngine(t *testing.T) {
 	}
 }
 
-// this sorts the results to account for non-determinstic ordering from the db.
+// This sorts the results to account for non-determinstic ordering from the db.
 // TODO this will break sort tests
 func compare(expect []*aql.QueryResult) checker {
 	return func(t *testing.T, actual <-chan *aql.QueryResult) {
@@ -273,9 +227,9 @@ func pickres(ival interface{}) *aql.QueryResult {
 	}
 }
 
-func pickAllVerts() checker {
+func pickAllVertices() checker {
 	expect := []*aql.QueryResult{}
-	for _, ival := range verts {
+	for _, ival := range vertices {
 		res := pickres(ival)
 		expect = append(expect, res)
 	}
@@ -332,32 +286,11 @@ func count(i uint32) checker {
 	return compare(expect)
 }
 
-func vert(label string, d dat) *aql.Vertex {
-	return &aql.Vertex{
-		Gid:   util.UUID(),
-		Label: label,
-		Data:  protoutil.AsStruct(d),
-	}
-}
-
-func edge(from, to *aql.Vertex, label string, d dat) *aql.Edge {
-	return &aql.Edge{
-		Gid:   util.UUID(),
-		From:  from.Gid,
-		To:    to.Gid,
-		Label: label,
-		Data:  protoutil.AsStruct(d),
-	}
-}
-
-var rx = regexp.MustCompile(`[\(\),\. ]`)
-var rx2 = regexp.MustCompile(`__*`)
-
 func cleanName(name string) string {
+	rx := regexp.MustCompile(`[\(\),\. ]`)
+	rx2 := regexp.MustCompile(`__*`)
 	name = rx.ReplaceAllString(name, "_")
 	name = rx2.ReplaceAllString(name, "_")
 	name = strings.TrimSuffix(name, "_")
 	return name
 }
-
-type dat map[string]interface{}
