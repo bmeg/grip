@@ -1,101 +1,45 @@
 Database: sql
 
 SQL:
-  DataSourceName: "user=postgres dbname=test password=mysecretpassword sslmode=disable"
+  DataSourceName: "user=postgres dbname=smtest password=mysecretpassword sslmode=disable"
   Driver: postgres
 
   Graphs:
-    - Graph: test-graph
+    - Graph: TestGraph
       Vertices:
-        - Table: Character
-          Label: Character
+        - Table: users
+          Label: users
           GidField: id
 
-        - Table: Droid
-          Label: Droid
+        - Table: products
+          Label: products
           GidField: id
 
-        - Table: Starship
-          Label: Starship
-          GidField: id
-
-        - Table: Planet
-          Label: Planet
-          GidField: id
-
-        - Table: Film
-          Label: Film
+        - Table: purchases
+          Label: purchases
           GidField: id
 
       Edges:
-        - Table: LivedOn
-          Label: LivedOn
+        - Table: purchase_items
+          Label: purchasedProducts
           GidField: id
           From:
-            SourceField: from
-            DestTable: Character
+            SourceField: purchase_id
+            DestTable: purchases
             DestField: id
           To:
-            SourceField: to
-            DestTable: Planet
+            SourceField: product_id
+            DestTable: products
             DestField: id
 
         - Table: ""
-          Label: Piloted
+          Label: userPurchases          
           GidField: ""
           From:
             SourceField: ""
-            DestTable: Character
+            DestTable: users
             DestField: id
           To:
             SourceField: ""
-            DestTable: Starship
-            DestField: person_id
-
-        - Table: ""
-          Label: AppearedIn
-          GidField: ""
-          From:
-            SourceField: ""
-            DestTable: Character
-            DestField: id
-          To:
-            SourceField: ""
-            DestTable: Film
-            DestField: person_id
-
-        - Table: ""
-          Label: AppearedIn
-          GidField: ""
-          From:
-            SourceField: ""
-            DestTable: Droid
-            DestField: id
-          To:
-            SourceField: ""
-            DestTable: Film
-            DestField: droid_id
-
-        - Table: ""
-          Label: AppearedIn
-          GidField: ""
-          From:
-            SourceField: ""
-            DestTable: Starship
-            DestField: id
-          To:
-            SourceField: ""
-            DestTable: Film
-            DestField: starship_id
-
-        - Table: ""
-          Label: AppearedIn
-          GidField: ""
-          From:
-            SourceField: ""
-            DestTable: Planet
-            DestField: id
-          To:
-            SourceField: ""
-            DestTable: Film
-            DestField: planet_id
+            DestTable: purchases
+            DestField: user_id
