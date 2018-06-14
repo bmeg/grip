@@ -11,106 +11,104 @@ import (
 	"github.com/bmeg/arachne/config"
 	"github.com/bmeg/arachne/protoutil"
 	"github.com/bmeg/arachne/sql"
-	"github.com/bmeg/arachne/util"
 )
 
-var vertices = []*aql.Vertex{
-	vertex("Person", data{"name": "Obi-Wan Kenobi", "height": 182, "occupation": "jedi", "species": "human"}),    // 0
-	vertex("Person", data{"name": "Luke Skywalker", "height": 172, "occupation": "jedi", "species": "human"}),    // 1
-	vertex("Person", data{"name": "Han Solo", "height": 180, "occupation": "smuggler", "species": "human"}),      // 2
-	vertex("Person", data{"name": "Leia Organa", "height": 150, "occupation": "politician", "species": "human"}), // 3
-	vertex("Person", data{"name": "Darth Vader", "height": 202, "occupation": "sith", "species": "human"}),       // 4
-	vertex("Person", data{"name": "Chewbacca", "height": 228, "occupation": "smuggler", "species": "wookie"}),    // 5
-	vertex("Person", data{"name": "Yoda", "height": 66, "occupation": "jedi", "species": nil}),                   // 6
+var people_verts = []*aql.Vertex{
+	vertex(0, "Character", data{"name": "Obi-Wan Kenobi", "height": 182, "occupation": "jedi", "species": "human", "starship_id": [], "film_id": [18, 19, 20], "planet_id": [13]}),
+	vertex(1, "Character", data{"name": "Luke Skywalker", "height": 172, "occupation": "jedi", "species": "human", "starship_id": [11], "film_id": [18, 19, 20], "planet_id": [13]}),
+	vertex(2, "Character", data{"name": "Han Solo", "height": 180, "occupation": "smuggler", "species": "human", "starship_id": [9], "film_id": [18, 19, 20], "planet_id": [17]}),
+	vertex(3, "Character", data{"name": "Leia Organa", "height": 150, "occupation": "politician", "species": "human", "starship_id": [], "film_id": [18, 19, 20], "planet_id": [14]}),
+	vertex(4, "Character", data{"name": "Darth Vader", "height": 202, "occupation": "sith", "species": "human", "starship_id": [12], "film_id": [18, 19, 20], "planet_id": [13]}),
+	vertex(5, "Character", data{"name": "Chewbacca", "height": 228, "occupation": "smuggler", "species": "wookie", "starship_id": [9], "film_id": [18, 19, 20], "planet_id": [16]}),
+	vertex(6, "Character", data{"name": "Yoda", "height": 66, "occupation": "jedi", "species": nil, "starship_id": [], "film_id": [19, 20], "planet_id": [15]}),
+	vertex(7, "Character", data{"name": "C-3PO", "height": 167, "occupation": "translator", "species": "droid", "starship_id": [], "film_id": [18, 19, 20], "planet_id": []}),
+	vertex(8, "Character", data{"name": "R2-D2", "height": 96, "occupation": "starship mechanic", "species": "droid", "starship_id": [], "film_id": [18, 19, 20], "planet_id": []}),
 
-	vertex("Droid", data{"name": "C-3PO", "height": 167}), // 7
-	vertex("Droid", data{"name": "R2-D2", "height": 96}),  // 8
+	vertex(9, "Starship", data{"name": "Millennium Falcon", "model": "YT-1300 light freighter", "film_id": [18, 19, 20]}),
+	vertex(10, "Starship", data{"name": "Death Star", "model": "DS-1 Orbital Battle Station", "film_id": [18]}),
+	vertex(11, "Starship", data{"name": "X-wing", "model": "T-65 X-wing", "film_id": [18, 19, 20]}),
+	vertex(12, "Starship", data{"name": "TIE Advanced x1", "model": "Twin Ion Engine Advanced x1", "film_id": [18]}),
 
-	vertex("Starship", data{"name": "Millennium Falcon", "model": "YT-1300 light freighter"}), // 9
-	vertex("Starship", data{"name": "Death Star", "model": "DS-1 Orbital Battle Station"}),    // 10
-	vertex("Starship", data{"name": "X-wing", "model": "T-65 X-wing"}),                        // 11
-	vertex("Starship", data{"name": "TIE Fighter", "model": "Twin Ion Engine Fighter"}),       // 12
+	vertex(13, "Planet", data{"name": "Tatooine", "diameter": 10465, "population": 200000, "film_id": [18, 20]}),
+	vertex(14, "Planet", data{"name": "Alderan", "diameter": 12500, "population": 2000000000, "film_id": [18]}),
+	vertex(15, "Planet", data{"name": "Dagobah", "diameter": 8900, "population": nil, "film_id": [19, 20]}),
+	vertex(16, "Planet", data{"name": "Kashyyyk", "diameter": 12765, "population": 45000000, "film_id": []}),
+	vertex(17, "Planet", data{"name": "Corellia", "diameter": 11000, "population": 3000000000, "film_id": []}),
 
-	vertex("Planet", data{"name": "Tatooine", "diameter": 10465, "population": 200000}),     // 13
-	vertex("Planet", data{"name": "Alderan", "diameter": 12500, "population": 2000000000}),  // 14
-	vertex("Planet", data{"name": "Dagobah", "diameter": 8900, "population": nil}),          // 15
-	vertex("Planet", data{"name": "Kashyyyk", "diameter": 12765, "population": 45000000}),   // 16
-	vertex("Planet", data{"name": "Corellia", "diameter": 11000, "population": 3000000000}), // 17
-
-	vertex("Film", data{"title": "A New Hope", "episode": "IV"}),         // 18
-	vertex("Film", data{"title": "Empire Strikes Back", "episode": "V"}), // 19
-	vertex("Film", data{"title": "Return of the Jedi", "episode": "VI"}), // 20
+	vertex(18, "Film", data{"title": "A New Hope", "episode": "IV", "starship_id": [9, 10, 11, 12], "character_id": [0, 1, 2, 3, 4, 5,  7, 8], "planet_id": [13, 13]}),
+	vertex(19, "Film", data{"title": "Empire Strikes Back", "episode": "V", "starship_id": [9, 11], "character_id": [0, 1, 2, 3, 4, 5, 6, 7, 8], "planet_id": [15]}),
+	vertex(20, "Film", data{"title": "Return of the Jedi", "episode": "VI", "starship_id": [9, 11], "character_id": [0, 1, 2, 3, 4, 5, 6, 7, 8], "planet_id": [13, 15]}),
 }
 
 var edges = []*aql.Edge{
-	edge(vertices[0], vertices[13], "LivedOn", data{"homeworld": false}), // 0
-	edge(vertices[1], vertices[13], "LivedOn", data{"homeworld": true}),  // 1
-	edge(vertices[2], vertices[17], "LivedOn", data{"homeworld": true}),  // 2
-	edge(vertices[3], vertices[14], "LivedOn", data{"homeworld": true}),  // 3
-	edge(vertices[4], vertices[13], "LivedOn", data{"homeworld": true}),  // 4
-	edge(vertices[5], vertices[16], "LivedOn", data{"homeworld": true}),  // 5
-	edge(vertices[6], vertices[15], "LivedOn", data{"homeworld": false}), // 6
+	edge(0, vertices[0], vertices[13], "LivedOn", data{"homeworld": false}),
+	edge(1, vertices[1], vertices[13], "LivedOn", data{"homeworld": true}),
+	edge(2, vertices[2], vertices[17], "LivedOn", data{"homeworld": true}),
+	edge(3, vertices[3], vertices[14], "LivedOn", data{"homeworld": true}),
+	edge(4, vertices[4], vertices[13], "LivedOn", data{"homeworld": true}),
+	edge(5, vertices[5], vertices[16], "LivedOn", data{"homeworld": true}),
+	edge(6, vertices[6], vertices[15], "LivedOn", data{"homeworld": false}),
 
-	edge(vertices[1], vertices[11], "Piloted", nil), // 7
-	edge(vertices[2], vertices[9], "Piloted", nil),  // 8
-	edge(vertices[4], vertices[12], "Piloted", nil), // 9
-	edge(vertices[5], vertices[9], "Piloted", nil),  // 10
-	edge(vertices[8], vertices[11], "Piloted", nil), // 11
+	edge(7, vertices[1], vertices[11], "Piloted", nil),
+	edge(8, vertices[2], vertices[9], "Piloted", nil),
+	edge(9, vertices[4], vertices[12], "Piloted", nil),
+	edge(10, vertices[5], vertices[9], "Piloted", nil),
+	edge(11, vertices[8], vertices[11], "Piloted", nil),
 
-	edge(vertices[0], vertices[18], "AppearedIn", nil), // 12
-	edge(vertices[0], vertices[19], "AppearedIn", nil), // 13
-	edge(vertices[0], vertices[20], "AppearedIn", nil), // 14
-	edge(vertices[1], vertices[18], "AppearedIn", nil), // 15
-	edge(vertices[1], vertices[19], "AppearedIn", nil), // 16
-	edge(vertices[1], vertices[20], "AppearedIn", nil), // 17
-	edge(vertices[2], vertices[18], "AppearedIn", nil), // 18
-	edge(vertices[2], vertices[19], "AppearedIn", nil), // 19
-	edge(vertices[2], vertices[20], "AppearedIn", nil), // 20
-	edge(vertices[3], vertices[18], "AppearedIn", nil), // 21
-	edge(vertices[3], vertices[19], "AppearedIn", nil), // 22
-	edge(vertices[3], vertices[20], "AppearedIn", nil), // 23
-	edge(vertices[4], vertices[18], "AppearedIn", nil), // 24
-	edge(vertices[4], vertices[19], "AppearedIn", nil), // 25
-	edge(vertices[4], vertices[20], "AppearedIn", nil), // 26
-	edge(vertices[5], vertices[18], "AppearedIn", nil), // 27
-	edge(vertices[5], vertices[19], "AppearedIn", nil), // 28
-	edge(vertices[5], vertices[20], "AppearedIn", nil), // 29
-	edge(vertices[6], vertices[19], "AppearedIn", nil), // 30
-	edge(vertices[6], vertices[20], "AppearedIn", nil), // 31
-	edge(vertices[7], vertices[18], "AppearedIn", nil), // 32
-	edge(vertices[7], vertices[19], "AppearedIn", nil), // 33
-	edge(vertices[7], vertices[20], "AppearedIn", nil), // 34
-	edge(vertices[8], vertices[18], "AppearedIn", nil), // 35
-	edge(vertices[8], vertices[19], "AppearedIn", nil), // 36
-	edge(vertices[8], vertices[20], "AppearedIn", nil), // 37
+	edge(12, vertices[0], vertices[18], "AppearedIn", nil),
+	edge(13, vertices[0], vertices[19], "AppearedIn", nil),
+	edge(14, vertices[0], vertices[20], "AppearedIn", nil),
+	edge(15, vertices[1], vertices[18], "AppearedIn", nil),
+	edge(16, vertices[1], vertices[19], "AppearedIn", nil),
+	edge(17, vertices[1], vertices[20], "AppearedIn", nil),
+	edge(18, vertices[2], vertices[18], "AppearedIn", nil),
+	edge(19, vertices[2], vertices[19], "AppearedIn", nil),
+	edge(20, vertices[2], vertices[20], "AppearedIn", nil),
+	edge(21, vertices[3], vertices[18], "AppearedIn", nil),
+	edge(22, vertices[3], vertices[19], "AppearedIn", nil),
+	edge(23, vertices[3], vertices[20], "AppearedIn", nil),
+	edge(24, vertices[4], vertices[18], "AppearedIn", nil),
+	edge(25, vertices[4], vertices[19], "AppearedIn", nil),
+	edge(26, vertices[4], vertices[20], "AppearedIn", nil),
+	edge(27, vertices[5], vertices[18], "AppearedIn", nil),
+	edge(28, vertices[5], vertices[19], "AppearedIn", nil),
+	edge(29, vertices[5], vertices[20], "AppearedIn", nil),
+	edge(30, vertices[6], vertices[19], "AppearedIn", nil),
+	edge(31, vertices[6], vertices[20], "AppearedIn", nil),
+	edge(32, vertices[7], vertices[18], "AppearedIn", nil),
+	edge(33, vertices[7], vertices[19], "AppearedIn", nil),
+	edge(34, vertices[7], vertices[20], "AppearedIn", nil),
+	edge(35, vertices[8], vertices[18], "AppearedIn", nil),
+	edge(36, vertices[8], vertices[19], "AppearedIn", nil),
+	edge(37, vertices[8], vertices[20], "AppearedIn", nil),
 
-	edge(vertices[9], vertices[18], "AppearedIn", nil),  // 38
-	edge(vertices[9], vertices[19], "AppearedIn", nil),  // 39
-	edge(vertices[9], vertices[20], "AppearedIn", nil),  // 40
-	edge(vertices[10], vertices[18], "AppearedIn", nil), // 41
-	edge(vertices[11], vertices[18], "AppearedIn", nil), // 42
-	edge(vertices[11], vertices[19], "AppearedIn", nil), // 43
-	edge(vertices[11], vertices[20], "AppearedIn", nil), // 44
-	edge(vertices[12], vertices[18], "AppearedIn", nil), // 45
+	edge(38, vertices[9], vertices[18], "AppearedIn", nil),
+	edge(39, vertices[9], vertices[19], "AppearedIn", nil),
+	edge(40, vertices[9], vertices[20], "AppearedIn", nil),
+	edge(41, vertices[10], vertices[18], "AppearedIn", nil),
+	edge(42, vertices[11], vertices[18], "AppearedIn", nil),
+	edge(43, vertices[11], vertices[19], "AppearedIn", nil),
+	edge(44, vertices[11], vertices[20], "AppearedIn", nil),
+	edge(45, vertices[12], vertices[18], "AppearedIn", nil),
 
-	edge(vertices[13], vertices[18], "AppearedIn", nil), // 46
-	edge(vertices[13], vertices[20], "AppearedIn", nil), // 47
-	edge(vertices[14], vertices[18], "AppearedIn", nil), // 48
-	edge(vertices[17], vertices[19], "AppearedIn", nil), // 49
-	edge(vertices[17], vertices[20], "AppearedIn", nil), // 50
+	edge(46, vertices[13], vertices[18], "AppearedIn", nil),
+	edge(47, vertices[13], vertices[20], "AppearedIn", nil),
+	edge(48, vertices[14], vertices[18], "AppearedIn", nil),
+	edge(49, vertices[15], vertices[19], "AppearedIn", nil),
+	edge(50, vertices[15], vertices[20], "AppearedIn", nil),
 }
 
-func vertex(label string, d data) *aql.Vertex {
+func vertex(gid interface{}, label string, d data) *aql.Vertex {
 	return &aql.Vertex{
-		Gid:   label + "-" + util.UUID(),
+		Gid:   fmt.Sprintf("%v", gid),
 		Label: label,
 		Data:  protoutil.AsStruct(d),
 	}
 }
 
-func edge(from, to *aql.Vertex, label string, d data) *aql.Edge {
+func edge(gid interface{}, from, to *aql.Vertex, label string, d data) *aql.Edge {
 	return &aql.Edge{
-		Gid:   label + "-" + util.UUID(),
+		Gid:   fmt.Sprintf("%v", gid),
 		From:  from.Gid,
 		To:    to.Gid,
 		Label: label,
@@ -153,7 +151,6 @@ func split(in interface{}) interface{} {
 		}
 		out = append(out, batch)
 		o = out
-
 	case []*aql.Edge:
 		out := [][]*aql.Edge{}
 		batch := []*aql.Edge{}
@@ -168,11 +165,9 @@ func split(in interface{}) interface{} {
 		}
 		out = append(out, batch)
 		o = out
-
 	default:
 		panic(fmt.Errorf("unknown type: %T", in))
 	}
-
 	return o
 }
 
@@ -182,22 +177,24 @@ func getHeader(in interface{}, schema *sql.Schema) []string {
 	switch v := in.(type) {
 	case []*aql.Vertex:
 		for _, i := range v {
-			data := addForeignKeysToVertex(i, schema)
+			data := protoutil.AsMap(i.Data)
+      data["id"] = ""
 			keys := config.GetKeys(data)
 			for _, k := range keys {
 				set[k] = nil
 			}
 		}
-
 	case []*aql.Edge:
 		for _, e := range v {
-			data := addForeignKeysToEdge(e, schema)
+      data := protoutil.AsMap(i.Data)
+      if len(data) > 0 {
+        data["id"] = ""
+      }
 			keys := config.GetKeys(data)
 			for _, k := range keys {
 				set[k] = nil
 			}
 		}
-
 	default:
 		panic(fmt.Errorf("unknown type: %T", in))
 	}
@@ -207,96 +204,7 @@ func getHeader(in interface{}, schema *sql.Schema) []string {
 	return out
 }
 
-func addForeignKeysToVertex(vert *aql.Vertex, schema *sql.Schema) map[string]interface{} {
-	data := protoutil.AsMap(vert.Data)
-	data["id"] = vert.Gid
-	for _, es := range schema.Edges {
-		if es.Table != "" {
-			continue
-		}
-		if es.To.DestTable == vert.Label {
-			if _, ok := data[es.To.DestField]; !ok {
-				data[es.To.DestField] = ""
-			}
-		}
-		if es.From.DestTable == vert.Label {
-			if _, ok := data[es.From.DestField]; !ok {
-				data[es.From.DestField] = ""
-			}
-		}
-	}
-	return data
-}
-
-func addForeignKeyValuesToVertex(vert *aql.Vertex, edges []*aql.Edge, schema *sql.Schema) map[string]interface{} {
-	data := protoutil.AsMap(vert.Data)
-	data["id"] = vert.Gid
-	for _, es := range schema.Edges {
-		if es.Table != "" {
-			continue
-		}
-		for _, e := range edges {
-			fromLabel := strings.Split(e.From, "-")[0]
-			if es.Label == e.Label && es.From.DestTable == fromLabel {
-				if e.To == data["id"] {
-					if _, ok := data[es.To.DestField]; !ok {
-						data[es.To.DestField] = e.From
-					}
-				}
-			}
-			toLabel := strings.Split(e.To, "-")[0]
-			if es.Label == e.Label && es.To.DestTable == toLabel {
-				if e.From == data["id"] {
-					if _, ok := data[es.From.DestField]; !ok {
-						data[es.From.DestField] = e.To
-					}
-				}
-			}
-		}
-	}
-	return data
-}
-
-func addForeignKeysToEdge(edge *aql.Edge, schema *sql.Schema) map[string]interface{} {
-	data := protoutil.AsMap(edge.Data)
-	for _, es := range schema.Edges {
-		if es.Table == "" || es.Label != edge.Label {
-			continue
-		}
-
-		if _, ok := data[es.From.SourceField]; !ok {
-			data[es.From.SourceField] = ""
-		}
-		if _, ok := data[es.To.SourceField]; !ok {
-			data[es.To.SourceField] = ""
-		}
-	}
-	if len(data) > 0 {
-		data["id"] = edge.Gid
-	}
-	return data
-}
-
-func addForeignKeyValuesToEdge(edge *aql.Edge, schema *sql.Schema) map[string]interface{} {
-	data := protoutil.AsMap(edge.Data)
-	for _, es := range schema.Edges {
-		if es.Table == "" || es.Label != edge.Label {
-			continue
-		}
-		if _, ok := data[es.From.SourceField]; !ok {
-			data[es.From.SourceField] = edge.From
-		}
-		if _, ok := data[es.To.SourceField]; !ok {
-			data[es.To.SourceField] = edge.To
-		}
-	}
-	if len(data) > 0 {
-		data["id"] = edge.Gid
-	}
-	return data
-}
-
-func verticesToCSV(verts []*aql.Vertex, edges []*aql.Edge, schema *sql.Schema) ([]string, error) {
+func verticesToCSV(verts []*aql.Vertex) ([]string, error) {
 	fnames := []string{}
 
 	sorted := make([]*aql.Vertex, len(verts))
@@ -311,9 +219,10 @@ func verticesToCSV(verts []*aql.Vertex, edges []*aql.Edge, schema *sql.Schema) (
 		label := batch[0].Label
 		values := [][]string{}
 		for _, vert := range batch {
-			data := addForeignKeyValuesToVertex(vert, edges, schema)
+			data := protoutil.AsMap(vert.Data)
+      data["id"] = vert.Gid
 			vals := []string{}
-			for _, key := range header {
+			for key, _ := range data {
 				vals = append(vals, fmt.Sprintf("%v", data[key]))
 			}
 			if len(vals) != len(header) {
@@ -331,7 +240,7 @@ func verticesToCSV(verts []*aql.Vertex, edges []*aql.Edge, schema *sql.Schema) (
 	return fnames, nil
 }
 
-func edgesToCSV(edges []*aql.Edge, schema *sql.Schema) ([]string, error) {
+func edgesToCSV(edges []*aql.Edge) ([]string, error) {
 	fnames := []string{}
 
 	sorted := make([]*aql.Edge, len(edges))
@@ -349,9 +258,10 @@ func edgesToCSV(edges []*aql.Edge, schema *sql.Schema) ([]string, error) {
 		label := batch[0].Label
 		values := [][]string{}
 		for _, e := range batch {
-			data := addForeignKeyValuesToEdge(e, schema)
+			data := protoutil.AsMap(e.Data)      
+      data["id"] = vert.Gid
 			vals := []string{}
-			for _, key := range header {
+			for key, _ := range data {
 				vals = append(vals, fmt.Sprintf("%v", data[key]))
 			}
 			if len(vals) != len(header) {
