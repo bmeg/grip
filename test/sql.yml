@@ -7,8 +7,8 @@ SQL:
   Graphs:
     - Graph: test-graph
       Vertices:
-        - Table: Person
-          Label: Person
+        - Table: Character
+          Label: Character
           GidField: id
 
         - Table: Droid
@@ -33,7 +33,7 @@ SQL:
           GidField: id
           From:
             SourceField: from
-            DestTable: Person
+            DestTable: Character
             DestField: id
           To:
             SourceField: to
@@ -41,11 +41,23 @@ SQL:
             DestField: id
 
         - Table: ""
+          Label: Piloted
+          GidField: ""
+          From:
+            SourceField: ""
+            DestTable: Character
+            DestField: id
+          To:
+            SourceField: ""
+            DestTable: Starship
+            DestField: person_id
+
+        - Table: ""
           Label: AppearedIn
           GidField: ""
           From:
             SourceField: ""
-            DestTable: Person
+            DestTable: Character
             DestField: id
           To:
             SourceField: ""

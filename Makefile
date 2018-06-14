@@ -103,6 +103,10 @@ start-postgres:
 	@docker rm -f arachne-postgres-test > /dev/null 2>&1 || echo
 	docker run -d --name arachne-postgres-test -p 5432:5432 -e POSTGRES_PASSWORD=mysecretpassword -e POSTGRES_USER=postgres postgres:10.4 > /dev/null
 
+start-mysql:
+	@docker rm -f arachne-mysql-test > /dev/null 2>&1 || echo
+	docker run -d --name arachne-mysql-test -p 3306:3306 -e MYSQL_ALLOW_EMPTY_PASSWORD=yes mysql:8.0.11 --default-authentication-plugin=mysql_native_password > /dev/null
+
 # ---------------------
 # Other
 # ---------------------

@@ -72,11 +72,16 @@ func (g *Graph) GetVertex(key string, load bool) *aql.Vertex {
 	gidField := g.schema.GetVertexGid(table)
 	q := fmt.Sprintf("SELECT * FROM %s WHERE %s=%s", table, gidField, id)
 	data := make(map[string]interface{})
-	err := g.db.QueryRowx(q).MapScan(data)
+	row := g.db.QueryRowx(q)
+	types, err := rowColumnTypeMap(row)
 	if err != nil {
 		return nil
 	}
-	return rowDataToVertex(table, g.schema, data, load)
+	err = row.MapScan(data)
+	if err != nil {
+		return nil
+	}
+	return rowDataToVertex(g.schema.GetVertex(table), data, types, load)
 }
 
 func (g *Graph) getGeneratedEdge(key string, load bool) *aql.Edge {
@@ -84,13 +89,7 @@ func (g *Graph) getGeneratedEdge(key string, load bool) *aql.Edge {
 	if err != nil {
 		return nil
 	}
-	return &aql.Edge{
-		Gid:   key,
-		Label: geid.Label,
-		From:  geid.FromID,
-		To:    geid.ToID,
-		Data:  nil,
-	}
+	return geid.Edge()
 }
 
 func (g *Graph) getTableBackedEdge(key string, load bool) *aql.Edge {
@@ -103,11 +102,16 @@ func (g *Graph) getTableBackedEdge(key string, load bool) *aql.Edge {
 	gidField := g.schema.GetEdgeGid(table)
 	q := fmt.Sprintf("SELECT * FROM %s WHERE %s=%s", table, gidField, id)
 	data := make(map[string]interface{})
-	err := g.db.QueryRowx(q).MapScan(data)
+	row := g.db.QueryRowx(q)
+	types, err := rowColumnTypeMap(row)
 	if err != nil {
 		return nil
 	}
-	return rowDataToEdge(table, g.schema, data, load)
+	err = row.MapScan(data)
+	if err != nil {
+		return nil
+	}
+	return rowDataToEdge(g.schema.GetEdge(table), data, types, load)
 }
 
 // GetEdge loads an edge given an id. It returns nil if not found
@@ -136,6 +140,10 @@ func (g *Graph) GetVertexList(ctx context.Context, load bool) <-chan *aql.Vertex
 				log.Println("GetVertexList failed:", err)
 				return
 			}
+			types, err := columnTypeMap(rows)
+			if err != nil {
+				return
+			}
 			defer rows.Close()
 			for rows.Next() {
 				data := make(map[string]interface{})
@@ -143,7 +151,7 @@ func (g *Graph) GetVertexList(ctx context.Context, load bool) <-chan *aql.Vertex
 					log.Println("GetVertexList failed:", err)
 					return
 				}
-				o <- rowDataToVertex(v.Table, g.schema, data, load)
+				o <- rowDataToVertex(v, data, types, load)
 			}
 			if err := rows.Err(); err != nil {
 				log.Println("GetVertexList failed:", err)
@@ -167,6 +175,10 @@ func (g *Graph) VertexLabelScan(ctx context.Context, label string) chan string {
 					log.Println("VertexLabelScan failed:", err)
 					return
 				}
+				types, err := columnTypeMap(rows)
+				if err != nil {
+					return
+				}
 				defer rows.Close()
 				for rows.Next() {
 					data := make(map[string]interface{})
@@ -174,7 +186,7 @@ func (g *Graph) VertexLabelScan(ctx context.Context, label string) chan string {
 						log.Println("VertexLabelScan failed:", err)
 						return
 					}
-					v := rowDataToVertex(v.Table, g.schema, data, false)
+					v := rowDataToVertex(v, data, types, false)
 					o <- v.Gid
 				}
 				if err := rows.Err(); err != nil {
@@ -221,13 +233,7 @@ func (g *Graph) GetEdgeList(ctx context.Context, load bool) <-chan *aql.Edge {
 						return
 					}
 					geid := &generatedEdgeID{edgeSchema.Label, edgeSchema.From.DestTable, fromGid, edgeSchema.To.DestTable, toGid}
-					edge := &aql.Edge{
-						Gid:   geid.String(),
-						Label: edgeSchema.Label,
-						From:  fromGid,
-						To:    toGid,
-						Data:  nil,
-					}
+					edge := geid.Edge()
 					o <- edge
 				}
 				if err := rows.Err(); err != nil {
@@ -238,6 +244,10 @@ func (g *Graph) GetEdgeList(ctx context.Context, load bool) <-chan *aql.Edge {
 			default:
 				q = fmt.Sprintf("SELECT * FROM %s", edgeSchema.Table)
 				rows, err := g.db.QueryxContext(ctx, q)
+				types, err := columnTypeMap(rows)
+				if err != nil {
+					return
+				}
 				if err != nil {
 					log.Println("GetEdgeList failed:", err)
 					return
@@ -249,7 +259,7 @@ func (g *Graph) GetEdgeList(ctx context.Context, load bool) <-chan *aql.Edge {
 						log.Println("GetEdgeList failed:", err)
 						return
 					}
-					o <- rowDataToEdge(edgeSchema.Table, g.schema, data, load)
+					o <- rowDataToEdge(edgeSchema, data, types, load)
 				}
 				if err := rows.Err(); err != nil {
 					log.Println("GetEdgeList failed:", err)
@@ -298,6 +308,10 @@ func (g *Graph) GetVertexChannel(reqChan chan gdbi.ElementLookup, load bool) cha
 				log.Println("GetVertexChannel failed:", err)
 				return
 			}
+			types, err := columnTypeMap(rows)
+			if err != nil {
+				return
+			}
 			defer rows.Close()
 			for rows.Next() {
 				data := make(map[string]interface{})
@@ -305,7 +319,7 @@ func (g *Graph) GetVertexChannel(reqChan chan gdbi.ElementLookup, load bool) cha
 					log.Println("GetVertexChannel failed:", err)
 					return
 				}
-				v := rowDataToVertex(table, g.schema, data, load)
+				v := rowDataToVertex(g.schema.GetVertex(table), data, types, load)
 				r := batchMap[v.Gid]
 				for _, ri := range r {
 					ri.Vertex = v
@@ -388,6 +402,10 @@ func (g *Graph) GetOutChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLa
 					log.Println("GetOutChannel failed:", err)
 					return
 				}
+				types, err := columnTypeMap(rows)
+				if err != nil {
+					return
+				}
 				defer rows.Close()
 				for rows.Next() {
 					data := make(map[string]interface{})
@@ -395,7 +413,7 @@ func (g *Graph) GetOutChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLa
 						log.Println("GetOutChannel failed:", err)
 						return
 					}
-					v := rowDataToVertex(edgeSchema.To.DestTable, g.schema, data, load)
+					v := rowDataToVertex(g.schema.GetVertex(edgeSchema.To.DestTable), data, types, load)
 					r := batchMap[fmt.Sprintf("%v:%v", edgeSchema.From.DestTable, data[dataKey])]
 					for _, ri := range r {
 						ri.Vertex = v
@@ -479,6 +497,10 @@ func (g *Graph) GetInChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLab
 					log.Println("GetInChannel failed:", err)
 					return
 				}
+				types, err := columnTypeMap(rows)
+				if err != nil {
+					return
+				}
 				defer rows.Close()
 				for rows.Next() {
 					data := make(map[string]interface{})
@@ -486,7 +508,7 @@ func (g *Graph) GetInChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLab
 						log.Println("GetInChannel failed:", err)
 						return
 					}
-					v := rowDataToVertex(edgeSchema.From.DestTable, g.schema, data, load)
+					v := rowDataToVertex(g.schema.GetVertex(edgeSchema.From.DestTable), data, types, load)
 					r := batchMap[fmt.Sprintf("%v:%v", edgeSchema.To.DestTable, data[dataKey])]
 					for _, ri := range r {
 						ri.Vertex = v
@@ -566,14 +588,8 @@ func (g *Graph) GetOutEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, ed
 							return
 						}
 						geid := &generatedEdgeID{edgeSchema.Label, edgeSchema.From.DestTable, fromGid, edgeSchema.To.DestTable, toGid}
-						edge := &aql.Edge{
-							Gid:   geid.String(),
-							Label: edgeSchema.Label,
-							From:  fromGid,
-							To:    toGid,
-							Data:  nil,
-						}
-						r := batchMap[fmt.Sprintf("%v:%v", edgeSchema.From.DestTable, fromGid)]
+						edge := geid.Edge()
+						r := batchMap[edge.From]
 						for _, ri := range r {
 							ri.Edge = edge
 							o <- ri
@@ -591,6 +607,10 @@ func (g *Graph) GetOutEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, ed
 						log.Println("GetOutEdgeChannel failed:", err)
 						return
 					}
+					types, err := columnTypeMap(rows)
+					if err != nil {
+						return
+					}
 					defer rows.Close()
 					for rows.Next() {
 						data := make(map[string]interface{})
@@ -598,7 +618,7 @@ func (g *Graph) GetOutEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, ed
 							log.Println("GetOutEdgeChannel failed:", err)
 							return
 						}
-						edge := rowDataToEdge(edgeSchema.Table, g.schema, data, load)
+						edge := rowDataToEdge(edgeSchema, data, types, load)
 						r := batchMap[fmt.Sprintf("%v:%v", edgeSchema.From.DestTable, data[edgeSchema.From.SourceField])]
 						for _, ri := range r {
 							ri.Edge = edge
@@ -678,14 +698,8 @@ func (g *Graph) GetInEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, edg
 							return
 						}
 						geid := &generatedEdgeID{edgeSchema.Label, edgeSchema.From.DestTable, fromGid, edgeSchema.To.DestTable, toGid}
-						edge := &aql.Edge{
-							Gid:   geid.String(),
-							Label: edgeSchema.Label,
-							From:  fromGid,
-							To:    toGid,
-							Data:  nil,
-						}
-						r := batchMap[fmt.Sprintf("%v:%v", edgeSchema.To.DestTable, toGid)]
+						edge := geid.Edge()
+						r := batchMap[edge.To]
 						for _, ri := range r {
 							ri.Edge = edge
 							o <- ri
@@ -703,6 +717,10 @@ func (g *Graph) GetInEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, edg
 						log.Println("GetInEdgeChannel failed:", err)
 						return
 					}
+					types, err := columnTypeMap(rows)
+					if err != nil {
+						return
+					}
 					defer rows.Close()
 					for rows.Next() {
 						data := make(map[string]interface{})
@@ -710,7 +728,7 @@ func (g *Graph) GetInEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, edg
 							log.Println("GetInEdgeChannel failed:", err)
 							return
 						}
-						edge := rowDataToEdge(edgeSchema.Table, g.schema, data, load)
+						edge := rowDataToEdge(edgeSchema, data, types, load)
 						r := batchMap[fmt.Sprintf("%v:%v", edgeSchema.To.DestTable, data[edgeSchema.To.SourceField])]
 						for _, ri := range r {
 							ri.Edge = edge

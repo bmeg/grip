@@ -1,34 +1,113 @@
 package sql
 
 import (
+	"database/sql"
 	"fmt"
 	"net/url"
+	"strconv"
 	"strings"
 
 	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/protoutil"
 	"github.com/hashicorp/go-multierror"
+	"github.com/jmoiron/sqlx"
 )
 
-func rowDataToVertex(table string, schema *Schema, data map[string]interface{}, load bool) *aql.Vertex {
+func rowColumnTypeMap(r *sqlx.Row) (map[string]*sql.ColumnType, error) {
+	out := make(map[string]*sql.ColumnType)
+	types, err := r.ColumnTypes()
+	if err != nil {
+		return nil, err
+	}
+	for _, t := range types {
+		out[t.Name()] = t
+	}
+	return out, nil
+}
+
+func columnTypeMap(rs *sqlx.Rows) (map[string]*sql.ColumnType, error) {
+	out := make(map[string]*sql.ColumnType)
+	types, err := rs.ColumnTypes()
+	if err != nil {
+		return nil, err
+	}
+	for _, t := range types {
+		out[t.Name()] = t
+	}
+	return out, nil
+}
+
+// TODO think about whether column type logic should come before the Scan call
+// Advantage: use lib/pq.Array methods
+// Disadvantage: Scan becomes more driver specific?
+func convertData(data map[string]interface{}, types map[string]*sql.ColumnType) map[string]interface{} {
+	out := make(map[string]interface{})
+	for k, v := range data {
+		t := types[k]
+		// log.Println("Name:", k, "Type:", t.DatabaseTypeName())
+		switch {
+		case t.DatabaseTypeName() == "NUMERIC" || t.DatabaseTypeName() == "DECIMAL":
+			// We could be losing some precision here... Maybe we should use:
+			// golang.org/pkg/math/big/#Float
+			var f interface{}
+			var err error
+			f, err = strconv.ParseFloat(fmt.Sprintf("%s", v), 64)
+			// TODO handle error more robustly
+			if err != nil {
+				f = fmt.Sprintf("%s", v)
+			}
+			out[k] = f
+
+		case strings.HasPrefix(t.DatabaseTypeName(), "_") || t.DatabaseTypeName() == "ARRAY":
+			// TODO this always returns []string
+			// We should handle more types
+			switch val := v.(type) {
+			case []byte:
+				s := fmt.Sprintf("%s", val)
+				s = strings.Trim(s, "{}")
+				a := strings.Split(s, ",")
+				out[k] = a
+			default:
+				out[k] = val
+			}
+
+		case t.DatabaseTypeName() == "":
+			switch val := v.(type) {
+			case []byte:
+				out[k] = string(val)
+			default:
+				out[k] = val
+			}
+
+		default:
+			out[k] = v
+		}
+	}
+
+	return out
+}
+
+func rowDataToVertex(schema *Vertex, data map[string]interface{}, types map[string]*sql.ColumnType, load bool) *aql.Vertex {
 	v := &aql.Vertex{
-		Gid:   fmt.Sprintf("%v:%v", table, data[schema.GetVertexGid(table)]),
-		Label: schema.GetVertexLabel(table),
+		Gid:   fmt.Sprintf("%v:%v", schema.Table, data[schema.GidField]),
+		Label: schema.Label,
 	}
 	if load {
+		data = convertData(data, types)
 		v.Data = protoutil.AsStruct(data)
 	}
 	return v
 }
 
-func rowDataToEdge(table string, schema *Schema, data map[string]interface{}, load bool) *aql.Edge {
+func rowDataToEdge(schema *Edge, data map[string]interface{}, types map[string]*sql.ColumnType, load bool) *aql.Edge {
 	e := &aql.Edge{
-		Gid:   fmt.Sprintf("%v:%v", table, data[schema.GetEdgeGid(table)]),
-		Label: schema.GetEdgeLabel(table),
-		From:  fmt.Sprintf("%v", data[schema.GetEdgeFrom(table).SourceField]),
-		To:    fmt.Sprintf("%v", data[schema.GetEdgeTo(table).SourceField]),
+		Gid:   fmt.Sprintf("%v:%v", schema.Table, data[schema.GidField]),
+		Label: schema.Label,
+		From:  fmt.Sprintf("%v:%v", schema.From.DestTable, data[schema.From.SourceField]),
+		To:    fmt.Sprintf("%v:%v", schema.To.DestTable, data[schema.To.SourceField]),
 	}
 	if load {
+		data = convertData(data, types)
 		e.Data = protoutil.AsStruct(data)
 	}
 	return e
@@ -43,7 +122,7 @@ type generatedEdgeID struct {
 }
 
 func (geid generatedEdgeID) String() string {
-	return fmt.Sprintf("generated:%s:%s:%s:%s:%s",
+	return fmt.Sprintf("%s:%s:%s:%s:%s",
 		url.QueryEscape(geid.Label),
 		url.QueryEscape(geid.FromTable),
 		url.QueryEscape(geid.FromID),
@@ -52,8 +131,17 @@ func (geid generatedEdgeID) String() string {
 	)
 }
 
+func (geid generatedEdgeID) Edge() *aql.Edge {
+	return &aql.Edge{
+		Gid:   geid.String(),
+		Label: geid.Label,
+		From:  fmt.Sprintf("%v:%v", geid.FromTable, geid.FromID),
+		To:    fmt.Sprintf("%v:%v", geid.ToTable, geid.ToID),
+		Data:  nil,
+	}
+}
+
 func parseGeneratedEdgeID(eid string) (*generatedEdgeID, error) {
-	eid = strings.TrimPrefix(eid, "generated:")
 	parts := strings.Split(eid, ":")
 	if len(parts) != 5 {
 		return nil, fmt.Errorf("failed to parse edge id: unexpected content")
@@ -158,6 +246,15 @@ func ValidateSchema(schema *Schema) error {
 	return multierror.Append(vertexErrs, edgeErrs).ErrorOrNil()
 }
 
+func (s *Schema) GetVertex(table string) *Vertex {
+	for _, v := range s.Vertices {
+		if v.Table == table {
+			return v
+		}
+	}
+	return nil
+}
+
 func (s *Schema) GetVertexTables(label string) []string {
 	tables := []string{}
 	for _, v := range s.Vertices {
@@ -184,6 +281,15 @@ func (s *Schema) GetVertexLabel(table string) string {
 		}
 	}
 	return ""
+}
+
+func (s *Schema) GetEdge(table string) *Edge {
+	for _, e := range s.Edges {
+		if e.Table == table {
+			return e
+		}
+	}
+	return nil
 }
 
 func (s *Schema) GetEdgeTables(label string) []string {
