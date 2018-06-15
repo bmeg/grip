@@ -169,6 +169,7 @@ func parseGeneratedEdgeID(eid string) (*generatedEdgeID, error) {
 	return &generatedEdgeID{label, fromTable, fromID, toTable, toID}, nil
 }
 
+// ValidateSchema validates a Schema
 func ValidateSchema(schema *Schema) error {
 	var errs *multierror.Error
 	vertices := make(map[string]interface{})
@@ -246,6 +247,7 @@ func ValidateSchema(schema *Schema) error {
 	return multierror.Append(vertexErrs, edgeErrs).ErrorOrNil()
 }
 
+// GetVertex searches for a Vertex schema entry by table name
 func (s *Schema) GetVertex(table string) *Vertex {
 	for _, v := range s.Vertices {
 		if v.Table == table {
@@ -255,6 +257,8 @@ func (s *Schema) GetVertex(table string) *Vertex {
 	return nil
 }
 
+// GetVertexTables searches for Vertex schema with the provided label and returns
+// an array of table names for those vertices
 func (s *Schema) GetVertexTables(label string) []string {
 	tables := []string{}
 	for _, v := range s.Vertices {
@@ -265,6 +269,8 @@ func (s *Schema) GetVertexTables(label string) []string {
 	return tables
 }
 
+// GetVertexGid finds the Vertex schema for the given table and returns the
+// GidField
 func (s *Schema) GetVertexGid(table string) string {
 	for _, v := range s.Vertices {
 		if v.Table == table {
@@ -274,6 +280,8 @@ func (s *Schema) GetVertexGid(table string) string {
 	return ""
 }
 
+// GetVertexLabel finds the Vertex schema for the given table and returns the
+// Label
 func (s *Schema) GetVertexLabel(table string) string {
 	for _, v := range s.Vertices {
 		if v.Table == table {
@@ -283,6 +291,7 @@ func (s *Schema) GetVertexLabel(table string) string {
 	return ""
 }
 
+// GetEdge searches for an Edge schema entry by table name
 func (s *Schema) GetEdge(table string) *Edge {
 	for _, e := range s.Edges {
 		if e.Table == table {
@@ -292,6 +301,8 @@ func (s *Schema) GetEdge(table string) *Edge {
 	return nil
 }
 
+// GetEdgeTables searches for Edge schema with the provided label and returns
+// an array of table names for those edges
 func (s *Schema) GetEdgeTables(label string) []string {
 	tables := []string{}
 	for _, v := range s.Edges {
@@ -302,6 +313,8 @@ func (s *Schema) GetEdgeTables(label string) []string {
 	return tables
 }
 
+// GetEdgeGid finds the Edge schema for the given table and returns the
+// GidField
 func (s *Schema) GetEdgeGid(table string) string {
 	for _, v := range s.Edges {
 		if v.Table == table {
@@ -311,6 +324,8 @@ func (s *Schema) GetEdgeGid(table string) string {
 	return ""
 }
 
+// GetEdgeLabel finds the Edge schema for the given table and returns the
+// Label
 func (s *Schema) GetEdgeLabel(table string) string {
 	for _, v := range s.Edges {
 		if v.Table == table {
@@ -320,6 +335,8 @@ func (s *Schema) GetEdgeLabel(table string) string {
 	return ""
 }
 
+// GetEdgeFrom finds the Edge schema for the given table and returns the
+// ForeignKey instance in From
 func (s *Schema) GetEdgeFrom(table string) *ForeignKey {
 	for _, v := range s.Edges {
 		if v.Table == table {
@@ -329,6 +346,8 @@ func (s *Schema) GetEdgeFrom(table string) *ForeignKey {
 	return nil
 }
 
+// GetEdgeTo finds the Edge schema for the given table and returns the
+// ForeignKey instance in To
 func (s *Schema) GetEdgeTo(table string) *ForeignKey {
 	for _, v := range s.Edges {
 		if v.Table == table {
@@ -338,6 +357,9 @@ func (s *Schema) GetEdgeTo(table string) *ForeignKey {
 	return nil
 }
 
+// GetOutgoingEdges returns all Edge schema with From.DestTable matching 'table'
+// If one or more labels are provided only those Edges with those labels will be
+// returned.
 func (s *Schema) GetOutgoingEdges(table string, labels []string) []*Edge {
 	out := []*Edge{}
 	for _, v := range s.Edges {
@@ -356,6 +378,9 @@ func (s *Schema) GetOutgoingEdges(table string, labels []string) []*Edge {
 	return out
 }
 
+// GetIncomingEdges returns all Edge schema with To.DestTable matching 'table'.
+// If one or more labels are provided only those Edges with those labels will be
+// returned.
 func (s *Schema) GetIncomingEdges(table string, labels []string) []*Edge {
 	out := []*Edge{}
 	for _, v := range s.Edges {

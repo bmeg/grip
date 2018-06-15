@@ -10,6 +10,8 @@ import (
 	"github.com/golang/protobuf/jsonpb"
 )
 
+// StreamVerticesFromFile reads a file containing a vertex per line and
+// streams *aql.Vertex objects and errors out on channels
 func StreamVerticesFromFile(file string) (chan *aql.Vertex, chan error) {
 	vertChan := make(chan *aql.Vertex)
 	errChan := make(chan error)
@@ -41,6 +43,8 @@ func StreamVerticesFromFile(file string) (chan *aql.Vertex, chan error) {
 	return vertChan, errChan
 }
 
+// StreamEdgesFromFile reads a file containing an edge per line and
+// streams aql.Edge objects and errors out on channels
 func StreamEdgesFromFile(file string) (chan *aql.Edge, chan error) {
 	edgeChan := make(chan *aql.Edge)
 	errChan := make(chan error)
