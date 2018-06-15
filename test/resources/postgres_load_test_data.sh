@@ -3,16 +3,24 @@
 set -e
 set -x
 
-export PGPASSWORD=mysecretpassword
+export PGPASSWORD=
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+function createDB {
+    if psql --host localhost -U postgres -lqt | cut -d \| -f 1 | grep -qw $1; then
+        dropdb --host localhost -U postgres $1
+        createdb --host localhost -U postgres $1
+    else
+        createdb --host localhost -U postgres $1
+    fi
+}
 
 # ==========================================
 # Restore sampled example data if it exists
 # ==========================================
 if [ -f $DIR/postgres_smtest_data.dump ]; then
-    dropdb --host localhost -U postgres smtest
-    createdb --host localhost -U postgres smtest
+    createDB smtest
     psql --host localhost -U postgres smtest < $DIR/postgres_smtest_data.dump
     exit 0
 fi
@@ -25,16 +33,14 @@ if [ ! -f $DIR/postgres_test_data.dump ]; then
     curl -L -o $DIR/postgres_test_data.dump http://cl.ly/173L141n3402/download/example.dump
 fi
 
-dropdb --host localhost -U postgres test
-createdb --host localhost -U postgres test
+createDB test
 pg_restore --host localhost -U postgres --no-owner --dbname test $DIR/postgres_test_data.dump
 
 # ========================
 # Sample example data
 # ========================
 # https://github.com/mla/pg_sampl
-dropdb --host localhost -U postgres smtest
-createdb --host localhost -U postgres smtest
+createDB smtest
 pg_sample --host localhost -U postgres test > $DIR/postgres_smtest_data.sql
 psql --host localhost -U postgres smtest < $DIR/postgres_smtest_data.sql
 

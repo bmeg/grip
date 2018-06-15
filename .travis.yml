@@ -9,6 +9,7 @@ services:
   - docker
   - elasticsearch
   - postgressql
+  - mongo
 
 cache:
   directories:
@@ -82,8 +83,7 @@ jobs:
       env:
         - n=leveldb
     - script:
-      - make start-mongo
-      - sleep 10
+      - sleep 15
       - arachne server --rpc-port 18202 --http-port 18201 --config ./test/mongo.yml &
       - sleep 5
       - make test-conformance
@@ -92,7 +92,7 @@ jobs:
       env:
         - n=mongodb
     - script:
-      - sleep 10
+      - sleep 15
       - arachne server --rpc-port 18202 --http-port 18201 --config ./test/elastic.yml &
       - sleep 5
       - make test-conformance
@@ -100,6 +100,7 @@ jobs:
       env:
         - n=elasticsearch
     - script:
+      - sleep 15
       - go test ./test -config sql.yml
       env:
         - n=sql

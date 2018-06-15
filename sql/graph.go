@@ -81,7 +81,8 @@ func (g *Graph) GetVertex(key string, load bool) *aql.Vertex {
 	if err != nil {
 		return nil
 	}
-	return rowDataToVertex(g.schema.GetVertex(table), data, types, load)
+	res := rowDataToVertex(g.schema.GetVertex(table), data, types, load)
+	return res
 }
 
 func (g *Graph) getGeneratedEdge(key string, load bool) *aql.Edge {
@@ -99,7 +100,8 @@ func (g *Graph) getTableBackedEdge(key string, load bool) *aql.Edge {
 	}
 	table := parts[0]
 	id := parts[1]
-	gidField := g.schema.GetEdgeGid(table)
+	edgeSchema := g.schema.GetEdge(table)
+	gidField := edgeSchema.GidField
 	q := fmt.Sprintf("SELECT * FROM %s WHERE %s=%s", table, gidField, id)
 	data := make(map[string]interface{})
 	row := g.db.QueryRowx(q)
@@ -369,16 +371,29 @@ func (g *Graph) GetOutChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLa
 			for _, edgeSchema := range outgoingEdges {
 				q := ""
 				dataKey := ""
+				dropKeys := []string{}
 				switch edgeSchema.Table {
 				case "":
-					q = fmt.Sprintf("SELECT * FROM %s WHERE %s IN (%s)",
+					q = fmt.Sprintf("SELECT %s.%s, %s.%s AS %s_%s FROM %s INNER JOIN %s ON %s.%s=%s.%s WHERE %s.%s IN (%s)",
+						// SELECT
+						edgeSchema.To.DestTable, "*",
+						edgeSchema.From.DestTable, g.schema.GetVertexGid(edgeSchema.From.DestTable),
+						// AS
+						edgeSchema.From.DestTable, g.schema.GetVertexGid(edgeSchema.From.DestTable),
 						// FROM
 						edgeSchema.To.DestTable,
+						// INNER JOIN
+						edgeSchema.From.DestTable,
+						// ON
+						edgeSchema.From.DestTable, edgeSchema.From.DestField,
+						edgeSchema.To.DestTable, edgeSchema.To.DestField,
 						// WHERE
-						edgeSchema.To.DestField,
+						edgeSchema.From.DestTable, g.schema.GetVertexGid(edgeSchema.From.DestTable),
 						ids,
 					)
-					dataKey = edgeSchema.From.DestField
+					dataKey = fmt.Sprintf("%v_%v", edgeSchema.From.DestTable, g.schema.GetVertexGid(edgeSchema.From.DestTable))
+					dropKeys = append(dropKeys, dataKey)
+
 				default:
 					q = fmt.Sprintf("SELECT %s.%s, %s.%s FROM %s INNER JOIN %s ON %s.%s=%s.%s WHERE %s.%s IN (%s)",
 						// SELECT
@@ -396,6 +411,7 @@ func (g *Graph) GetOutChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLa
 						ids,
 					)
 					dataKey = edgeSchema.From.SourceField
+					dropKeys = append(dropKeys, edgeSchema.From.SourceField)
 				}
 				rows, err := g.db.Queryx(q)
 				if err != nil {
@@ -413,8 +429,11 @@ func (g *Graph) GetOutChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLa
 						log.Println("GetOutChannel failed:", err)
 						return
 					}
-					v := rowDataToVertex(g.schema.GetVertex(edgeSchema.To.DestTable), data, types, load)
 					r := batchMap[fmt.Sprintf("%v:%v", edgeSchema.From.DestTable, data[dataKey])]
+					for _, k := range dropKeys {
+						delete(data, k)
+					}
+					v := rowDataToVertex(g.schema.GetVertex(edgeSchema.To.DestTable), data, types, load)
 					for _, ri := range r {
 						ri.Vertex = v
 						o <- ri
@@ -464,16 +483,29 @@ func (g *Graph) GetInChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLab
 			for _, edgeSchema := range incomingEdges {
 				q := ""
 				dataKey := ""
+				dropKeys := []string{}
 				switch edgeSchema.Table {
 				case "":
-					q = fmt.Sprintf("SELECT * FROM %s WHERE %s IN (%s)",
+					q = fmt.Sprintf("SELECT %s.%s, %s.%s AS %s_%s FROM %s INNER JOIN %s ON %s.%s=%s.%s WHERE %s.%s IN (%s)",
+						// SELECT
+						edgeSchema.From.DestTable, "*",
+						edgeSchema.To.DestTable, g.schema.GetVertexGid(edgeSchema.To.DestTable),
+						// AS
+						edgeSchema.To.DestTable, g.schema.GetVertexGid(edgeSchema.To.DestTable),
 						// FROM
 						edgeSchema.From.DestTable,
+						// INNER JOIN
+						edgeSchema.To.DestTable,
+						// ON
+						edgeSchema.From.DestTable, edgeSchema.From.DestField,
+						edgeSchema.To.DestTable, edgeSchema.To.DestField,
 						// WHERE
-						edgeSchema.From.DestField,
+						edgeSchema.To.DestTable, g.schema.GetVertexGid(edgeSchema.To.DestTable),
 						ids,
 					)
-					dataKey = edgeSchema.From.DestField
+					dataKey = fmt.Sprintf("%v_%v", edgeSchema.To.DestTable, g.schema.GetVertexGid(edgeSchema.To.DestTable))
+					dropKeys = append(dropKeys, dataKey)
+
 				default:
 					q = fmt.Sprintf("SELECT %s.%s, %s.%s FROM %s INNER JOIN %s ON %s.%s=%s.%s WHERE %s.%s IN (%s)",
 						// SELECT
@@ -491,7 +523,9 @@ func (g *Graph) GetInChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLab
 						ids,
 					)
 					dataKey = edgeSchema.To.SourceField
+					dropKeys = append(dropKeys, edgeSchema.To.SourceField)
 				}
+				log.Println("Debug GetInChannel q:", q)
 				rows, err := g.db.Queryx(q)
 				if err != nil {
 					log.Println("GetInChannel failed:", err)
@@ -508,8 +542,11 @@ func (g *Graph) GetInChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLab
 						log.Println("GetInChannel failed:", err)
 						return
 					}
-					v := rowDataToVertex(g.schema.GetVertex(edgeSchema.From.DestTable), data, types, load)
 					r := batchMap[fmt.Sprintf("%v:%v", edgeSchema.To.DestTable, data[dataKey])]
+					for _, k := range dropKeys {
+						delete(data, k)
+					}
+					v := rowDataToVertex(g.schema.GetVertex(edgeSchema.From.DestTable), data, types, load)
 					for _, ri := range r {
 						ri.Vertex = v
 						o <- ri
