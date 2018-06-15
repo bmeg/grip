@@ -143,7 +143,7 @@ func TestMain(m *testing.M) {
 	}
 
 	if dbname == "elastic" {
-		time.Sleep(15 * time.Second)
+		time.Sleep(20 * time.Second)
 	}
 
 	// run tests
