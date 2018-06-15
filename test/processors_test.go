@@ -12,7 +12,7 @@ import (
 
 	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/engine"
-	// "github.com/bmeg/arachne/protoutil"
+	"github.com/bmeg/arachne/protoutil"
 	"github.com/bmeg/arachne/util"
 	"github.com/golang/protobuf/jsonpb"
 )
@@ -265,6 +265,48 @@ func TestEngine(t *testing.T) {
 			Q.V().Where(aql.Eq("_label", "products")).Where(aql.In("title", "Action", "Drama")),
 			pick("products:19", "products:20"),
 		},
+		{
+			Q.V().Limit(10).Count(),
+			count(10),
+		},
+		{
+			Q.V().Offset(100).Count(),
+			count(70),
+		},
+		{
+			Q.V("users:1").Fields("_label", "email"),
+			pickRes(vertex("", "users", data{"email": "Earlean.Bonacci@yahoo.com"})),
+		},
+		{
+			Q.V("users:1").Mark("a").Out().Mark("b").Select("a", "b"),
+			pickSelection(map[string]interface{}{
+				"a": getVertex("users:1"),
+				"b": getVertex("purchases:57"),
+			}),
+		},
+		{
+			Q.V("users:1").Mark("a").Out().Mark("b").Fields("$a._gid", "$a._label", "$b._gid", "$b._label").Select("a", "b"),
+			pickSelection(map[string]interface{}{
+				"a": vertex("users:1", "users", nil),
+				"b": vertex("purchases:57", "purchases", nil),
+			}),
+		},
+		{
+			Q.V().Match(
+				Q.Where(aql.Eq("_label", "products")),
+				Q.Where(aql.Eq("price", 499.99)),
+			),
+			pick("products:6"),
+		},
+		{
+			Q.V().Match(
+				Q.Mark("a").Where(aql.Eq("_label", "products")).Mark("b"),
+				Q.Mark("b").Where(aql.Eq("price", 499.99)).Mark("c"),
+			).Select("c"),
+			pickSelection(map[string]interface{}{
+				"c": getVertex("products:6"),
+			}),
+		},
 	}
 
 	for _, desc := range tests {
@@ -283,6 +325,26 @@ func TestEngine(t *testing.T) {
 		})
 	}
 }
+
+func vertex(gid, label string, d data) *aql.Vertex {
+	return &aql.Vertex{
+		Gid:   gid,
+		Label: label,
+		Data:  protoutil.AsStruct(d),
+	}
+}
+
+func edge(gid interface{}, from, to string, label string, d data) *aql.Edge {
+	return &aql.Edge{
+		Gid:   fmt.Sprintf("%v", gid),
+		From:  from,
+		To:    to,
+		Label: label,
+		Data:  protoutil.AsStruct(d),
+	}
+}
+
+type data map[string]interface{}
 
 // This sorts the results to account for non-determinstic ordering from the db.
 // TODO this will break sort tests
@@ -327,37 +389,59 @@ func pick(gids ...string) checker {
 	return compare(expect)
 }
 
-func pickgid(gid string) *aql.QueryResult {
+func getVertex(gid string) *aql.Vertex {
 	for _, v := range vertices {
 		if v.Gid == gid {
-			return &aql.QueryResult{
-				Result: &aql.QueryResult_Vertex{Vertex: v},
-			}
+			return v
 		}
 	}
+	return nil
+}
+
+func getEdge(gid string) *aql.Edge {
 	for _, e := range edges {
 		if e.Gid == gid {
-			return &aql.QueryResult{
-				Result: &aql.QueryResult_Edge{Edge: e},
-			}
+			return e
+		}
+	}
+	return nil
+}
+
+func pickgid(gid string) *aql.QueryResult {
+	v := getVertex(gid)
+	if v != nil {
+		return &aql.QueryResult{
+			Result: &aql.QueryResult_Vertex{Vertex: v},
+		}
+	}
+	e := getEdge(gid)
+	if e != nil {
+		return &aql.QueryResult{
+			Result: &aql.QueryResult_Edge{Edge: e},
 		}
 	}
 	panic("no vertex or edge found for gid")
 }
 
-func pickres(ival interface{}) *aql.QueryResult {
-	switch val := ival.(type) {
-	case *aql.Vertex:
-		return &aql.QueryResult{
-			Result: &aql.QueryResult_Vertex{Vertex: val},
+func pickRes(ival ...interface{}) checker {
+	expect := []*aql.QueryResult{}
+	for _, val := range ival {
+		switch v := val.(type) {
+		case *aql.Vertex:
+			res := &aql.QueryResult{
+				Result: &aql.QueryResult_Vertex{Vertex: v},
+			}
+			expect = append(expect, res)
+		case *aql.Edge:
+			res := &aql.QueryResult{
+				Result: &aql.QueryResult_Edge{Edge: v},
+			}
+			expect = append(expect, res)
+		default:
+			panic(fmt.Sprintf("unhandled type %T", val))
 		}
-	case *aql.Edge:
-		return &aql.QueryResult{
-			Result: &aql.QueryResult_Edge{Edge: val},
-		}
-	default:
-		panic(fmt.Sprintf("unhandled type %T", ival))
 	}
+	return compare(expect)
 }
 
 func pickAllVertices() checker {
@@ -382,7 +466,7 @@ func pickAllEdges() checker {
 	return compare(expect)
 }
 
-func pickselection(selection map[string]interface{}) checker {
+func pickSelection(selection map[string]interface{}) checker {
 	s := map[string]*aql.Selection{}
 	for mark, ival := range selection {
 		switch val := ival.(type) {
@@ -399,7 +483,7 @@ func pickselection(selection map[string]interface{}) checker {
 				},
 			}
 		default:
-			panic("unknown")
+			panic(fmt.Sprintf("unhandled type %T", ival))
 		}
 	}
 	expect := []*aql.QueryResult{
