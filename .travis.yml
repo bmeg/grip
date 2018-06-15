@@ -8,6 +8,7 @@ sudo: required
 services:
   - docker
   - elasticsearch
+  - postgressql
 
 cache:
   directories:
@@ -99,8 +100,6 @@ jobs:
       env:
         - n=elasticsearch
     - script:
-      - make start-postgres
-      - sleep 10
       - go test ./test -config sql.yml
       env:
         - n=sql
