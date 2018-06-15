@@ -307,6 +307,11 @@ func TestEngine(t *testing.T) {
 				"c": getVertex("products:6"),
 			}),
 		},
+		{
+			Q.V("users:1").Mark("a").Out().Mark("b").
+				Render(map[string]interface{}{"user_id": "$a._gid", "purchase_id": "$b._gid", "purchaser": "$b.name"}),
+			render(map[string]interface{}{"user_id": "users:1", "purchase_id": "purchases:57", "purchaser": "Letitia Sprau"}),
+		},
 	}
 
 	for _, desc := range tests {
@@ -501,6 +506,17 @@ func count(i int) checker {
 		{
 			Result: &aql.QueryResult_Count{
 				Count: uint32(i),
+			},
+		},
+	}
+	return compare(expect)
+}
+
+func render(v interface{}) checker {
+	expect := []*aql.QueryResult{
+		{
+			Result: &aql.QueryResult_Render{
+				Render: protoutil.WrapValue(v),
 			},
 		},
 	}

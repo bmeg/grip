@@ -402,7 +402,7 @@ func (r *Render) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, 
 			out <- &gdbi.Traveler{Render: v}
 		}
 	}()
-	return ctx
+	return context.WithValue(ctx, propLoad, true)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -987,5 +987,5 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 		return
 	}()
 
-	return ctx
+	return context.WithValue(ctx, propLoad, true)
 }

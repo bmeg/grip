@@ -6,7 +6,6 @@ package engine
 
 import (
 	"context"
-	//"fmt"
 	"log"
 
 	"github.com/bmeg/arachne/aql"
@@ -22,8 +21,6 @@ func Start(ctx context.Context, pipe gdbi.Pipeline, workdir string, bufsize int)
 		close(ch)
 		return ch
 	}
-
-	// ctx = context.WithValue(ctx, propLoad, false)
 
 	in := make(chan *gdbi.Traveler, bufsize)
 	final := make(chan *gdbi.Traveler, bufsize)

@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	// "log"
+	"log"
 
 	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/engine/core"
@@ -476,7 +476,6 @@ func (kgdb *KVInterfaceGDB) GetVertex(id string, loadProp bool) *aql.Vertex {
 	if err != nil {
 		return nil
 	}
-
 	return v
 }
 
@@ -553,9 +552,16 @@ func (kgdb *KVInterfaceGDB) GetOutChannel(reqChan chan gdbi.ElementLookup, load 
 			for req := range vertexChan {
 				dataValue, err := it.Get(req.data)
 				if err == nil {
-					v := aql.Vertex{}
-					proto.Unmarshal(dataValue, &v)
-					req.req.Vertex = &v
+					_, gid := VertexKeyParse(req.data)
+					v := &aql.Vertex{Gid: gid}
+					if load {
+						err = proto.Unmarshal(dataValue, v)
+						if err != nil {
+							log.Printf("GetOutChannel: unmarshal error: %v", err)
+							continue
+						}
+					}
+					req.req.Vertex = v
 					o <- req.req
 				}
 			}
@@ -580,9 +586,15 @@ func (kgdb *KVInterfaceGDB) GetInChannel(reqChan chan gdbi.ElementLookup, load b
 						vkey := VertexKey(kgdb.graph, src)
 						dataValue, err := it.Get(vkey)
 						if err == nil {
-							v := aql.Vertex{}
-							proto.Unmarshal(dataValue, &v)
-							req.Vertex = &v
+							v := &aql.Vertex{Gid: src}
+							if load {
+								err = proto.Unmarshal(dataValue, v)
+								if err != nil {
+									log.Printf("GetInChannel: unmarshal error: %v", err)
+									continue
+								}
+							}
+							req.Vertex = v
 							o <- req
 						}
 					}
@@ -599,7 +611,6 @@ func (kgdb *KVInterfaceGDB) GetOutEdgeChannel(reqChan chan gdbi.ElementLookup, l
 	o := make(chan gdbi.ElementLookup, 100)
 	go func() {
 		defer close(o)
-		//log.Printf("GetOutList")
 		kgdb.kvg.kv.View(func(it kvi.KVIterator) error {
 			for req := range reqChan {
 				skeyPrefix := SrcEdgePrefix(kgdb.graph, req.ID)
