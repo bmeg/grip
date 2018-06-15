@@ -87,6 +87,7 @@ jobs:
       - sleep 5
       - make test-conformance
       - go test ./test -config mongo.yml
+      - go test ./test -config mongo-core-processor.yml
       env:
         - n=mongodb
     - script:
