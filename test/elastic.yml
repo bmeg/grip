@@ -1,5 +1,5 @@
 Database: elastic
 
 ElasticSearch:
-  URL: http://localhost:9200
+  URL: http://localhost:19200
   Synchronous: true

@@ -1,4 +1,5 @@
 Database: mongo
 
 MongoDB:
-  URL: localhost:27017
+  URL: localhost:27000
+  UseAggregationPipeline: true

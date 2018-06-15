@@ -8,11 +8,11 @@ export PGPASSWORD=
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 function createDB {
-    if psql --host localhost -U postgres -lqt | cut -d \| -f 1 | grep -qw $1; then
-        dropdb --host localhost -U postgres $1
-        createdb --host localhost -U postgres $1
+    if psql --host localhost --port 15432 -U postgres -lqt | cut -d \| -f 1 | grep -qw $1; then
+        dropdb --host localhost --port 15432 -U postgres $1
+        createdb --host localhost --port 15432 -U postgres $1
     else
-        createdb --host localhost -U postgres $1
+        createdb --host localhost --port 15432 -U postgres $1
     fi
 }
 
@@ -21,7 +21,7 @@ function createDB {
 # ==========================================
 if [ -f $DIR/postgres_smtest_data.dump ]; then
     createDB smtest
-    psql --host localhost -U postgres smtest < $DIR/postgres_smtest_data.dump
+    psql --host localhost --port 15432 -U postgres smtest < $DIR/postgres_smtest_data.dump
     exit 0
 fi
 
@@ -34,17 +34,17 @@ if [ ! -f $DIR/postgres_test_data.dump ]; then
 fi
 
 createDB test
-pg_restore --host localhost -U postgres --no-owner --dbname test $DIR/postgres_test_data.dump
+pg_restore --host localhost --port 15432 -U postgres --no-owner --dbname test $DIR/postgres_test_data.dump
 
 # ========================
 # Sample example data
 # ========================
 # https://github.com/mla/pg_sampl
 createDB smtest
-pg_sample --host localhost -U postgres test > $DIR/postgres_smtest_data.sql
-psql --host localhost -U postgres smtest < $DIR/postgres_smtest_data.sql
+pg_sample --host localhost --port 15432 -U postgres test > $DIR/postgres_smtest_data.sql
+psql --host localhost --port 15432 -U postgres smtest < $DIR/postgres_smtest_data.sql
 
 # ==============================
 # Dump sampled example data
 # ==============================
-pg_dump --host localhost -U postgres smtest > $DIR/postgres_smtest_data.dump
+pg_dump --host localhost --port 15432 -U postgres smtest > $DIR/postgres_smtest_data.dump

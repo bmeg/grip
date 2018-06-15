@@ -1,7 +1,7 @@
 Database: sql
 
 SQL:
-  DataSourceName: "user=postgres dbname=smtest sslmode=disable"
+  DataSourceName: "host=localhost port=15432 user=postgres dbname=smtest sslmode=disable"
   Driver: postgres
 
   Graphs:
