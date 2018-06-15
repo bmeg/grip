@@ -68,7 +68,7 @@ func TestMain(m *testing.M) {
 	var exit = 1
 
 	defer func() {
-		fmt.Println("exiting")
+		fmt.Println("tests exiting with code", exit)
 		os.Exit(exit)
 	}()
 

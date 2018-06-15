@@ -487,7 +487,7 @@ func matchesCondition(trav *gdbi.Traveler, cond *aql.WhereCondition) bool {
 			found = false
 
 		default:
-			log.Printf("Error: unknown condition value type %T for IN condition", val)
+			log.Printf("Error: expected slice not %T for IN condition value", condVal)
 		}
 
 		return found
