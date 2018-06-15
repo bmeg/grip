@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"os/exec"
 	"strings"
 	"testing"
 
@@ -18,6 +19,7 @@ import (
 	"github.com/bmeg/arachne/mongo"
 	_ "github.com/bmeg/arachne/rocksdb" // import so rocks will register itself
 	"github.com/bmeg/arachne/sql"
+	"github.com/bmeg/arachne/util"
 	_ "github.com/lib/pq" // import so postgres will register as a sql driver
 )
 
@@ -25,40 +27,40 @@ var configFile string
 var gdb gdbi.GraphDB
 var db gdbi.GraphInterface
 var dbname string
+var vertices = []*aql.Vertex{}
+var edges = []*aql.Edge{}
 
 func init() {
 	flag.StringVar(&configFile, "config", configFile, "config file to use for tests")
 	flag.Parse()
+	vertChan, _ := util.StreamVerticesFromFile("./resources/smtest_vertices.txt")
+	for v := range vertChan {
+		vertices = append(vertices, v)
+	}
+	edgeChan, _ := util.StreamEdgesFromFile("./resources/smtest_edges.txt")
+	for e := range edgeChan {
+		edges = append(edges, e)
+	}
 }
 
 func setupGraph() error {
-	for _, v := range vertices {
-		err := db.AddVertex([]*aql.Vertex{v})
-		if err != nil {
-			return err
-		}
+	err := db.AddVertex(vertices)
+	if err != nil {
+		return err
 	}
-	for _, e := range edges {
-		err := db.AddEdge([]*aql.Edge{e})
-		if err != nil {
-			return err
-		}
+
+	err = db.AddEdge(edges)
+	if err != nil {
+		return err
 	}
+
 	return nil
 }
 
-func setupSQLGraph(conf sql.Config) error {
-	_, err := verticesToCSV(vertices, edges, conf.Graphs[0])
-	if err != nil {
-		return err
-	}
-
-	_, err = edgesToCSV(edges, conf.Graphs[0])
-	if err != nil {
-		return err
-	}
-
-	return fmt.Errorf("not implemented")
+func setupSQLGraph() error {
+	cmd := exec.Command("bash", "./resources/postgres_load_test_data.sh")
+	return cmd.Run()
+	// return nil
 }
 
 func TestMain(m *testing.M) {
@@ -81,8 +83,17 @@ func TestMain(m *testing.M) {
 
 	config.TestifyConfig(conf)
 	fmt.Printf("Test config: %+v\n", conf)
+	dbname = strings.ToLower(conf.Database)
 
-	switch dbname = strings.ToLower(conf.Database); dbname {
+	if dbname == "sql" {
+		err = setupSQLGraph()
+		if err != nil {
+			fmt.Println("Error: setting up graph:", err)
+			return
+		}
+	}
+
+	switch dbname {
 	case "bolt", "badger", "level", "rocks":
 		gdb, err = kvgraph.NewKVGraphDB(dbname, conf.KVStorePath)
 		defer func() {
@@ -122,14 +133,12 @@ func TestMain(m *testing.M) {
 		return
 	}
 
-	if dbname == "sql" {
-		err = setupSQLGraph(conf.SQL)
-	} else {
+	if dbname != "sql" {
 		err = setupGraph()
-	}
-	if err != nil {
-		fmt.Println("Error: setting up graph:", err)
-		return
+		if err != nil {
+			fmt.Println("Error: setting up graph:", err)
+			return
+		}
 	}
 
 	// run tests

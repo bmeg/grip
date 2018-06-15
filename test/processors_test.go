@@ -11,7 +11,7 @@ import (
 
 	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/engine"
-	"github.com/bmeg/arachne/protoutil"
+	// "github.com/bmeg/arachne/protoutil"
 	"github.com/bmeg/arachne/util"
 	"github.com/golang/protobuf/jsonpb"
 )
@@ -26,136 +26,47 @@ type queryTest struct {
 	expected checker
 }
 
-var table = []queryTest{
-	{
-		Q.V().Where(aql.In("name", "Kyle", "Alex")),
-		pick(vertices[0], vertices[1], vertices[6], vertices[7]),
-	},
-	{
-		Q.V().Where(aql.Eq("non-existent-field", "Kyle")),
-		pick(),
-	},
-	{
-		Q.V().Where(aql.Eq("_label", "Human")),
-		pick(vertices[0], vertices[1], vertices[2]),
-	},
-	{
-		Q.V().Where(aql.Eq("_label", "Robot")),
-		pick(vertices[3], vertices[4], vertices[5]),
-	},
-	{
-		Q.V().Where(aql.In("_label", "Robot", "Human")),
-		pick(vertices[0], vertices[1], vertices[2], vertices[3], vertices[4], vertices[5]),
-	},
-	{
-		Q.V().Where(aql.Eq("_label", "non-existent")),
-		pick(),
-	},
-	{
-		Q.V().Where(aql.In("_gid", vertices[0].Gid, vertices[2].Gid)),
-		pick(vertices[0], vertices[2]),
-	},
-	{
-		Q.V().Where(aql.Eq("_gid", "non-existent")),
-		pick(),
-	},
-	{
-		Q.V().Limit(2),
-		func(t *testing.T, res <-chan *aql.QueryResult) {
-			count := 0
-			for range res {
-				count++
-			}
-			if count != 2 {
-				t.Errorf("expected 2 results got %v", count)
-			}
-		},
-	},
-	{
-		Q.V().Count(),
-		count(uint32(len(vertices))),
-	},
-	{
-		Q.V().Where(aql.And(aql.Eq("_label", "Human"), aql.Eq("name", "Ryan"))),
-		pick(vertices[2]),
-	},
-	{
-		Q.V().Where(aql.Eq("_label", "Human")).Mark("x").Where(aql.Eq("name", "Alex")).Select("x"),
-		pickselection(map[string]interface{}{"x": vertices[0]}),
-	},
-	{
-		Q.V(),
-		pickAllVertices(),
-	},
-	{
-		Q.E(),
-		pickAllEdges(),
-	},
-	{
-		Q.V().Where(aql.Eq("_label", "Human")).Out(),
-		pick(vertices[10], vertices[11]),
-	},
-	{
-		Q.V().Where(aql.Eq("_label", "Human")).Out().Where(aql.Eq("name", "Funnel")),
-		pick(vertices[10]),
-	},
-	{
-		Q.V().Where(aql.Eq("_label", "Human")).Mark("x").Out().Where(aql.Eq("name", "Funnel")).Select("x"),
-		pickselection(map[string]interface{}{"x": vertices[0]}),
-	},
-	{
-		Q.V().Where(aql.Eq("_label", "Human")).OutEdge(),
-		pickAllEdges(),
-	},
-	{
-		Q.V().Where(aql.Eq("_label", "Human")).Where(aql.Eq("name", "Alex")).OutEdge(),
-		pick(edges[0]),
-	},
-	{
-		Q.V().Where(aql.Eq("_label", "Human")).Fields("name"),
-		pick(
-			&aql.Vertex{Data: protoutil.AsStruct(map[string]interface{}{"name": "Alex"})},
-			&aql.Vertex{Data: protoutil.AsStruct(map[string]interface{}{"name": "Kyle"})},
-			&aql.Vertex{Data: protoutil.AsStruct(map[string]interface{}{"name": "Ryan"})},
-		),
-	},
-	{
-		Q.V().
-			Where(aql.Eq("_label", "Human")).Mark("x").
-			Out().
-			Where(aql.Eq("name", "Funnel")).Mark("y").
-			Fields("$y._gid", "$y._label", "$y.name", "$x._gid", "$x._label", "$x.name").
-			Select("x", "y"),
-		pickselection(map[string]interface{}{
-			"x": &aql.Vertex{Gid: vertices[0].Gid, Label: vertices[0].Label, Data: protoutil.AsStruct(map[string]interface{}{"name": "Alex"})},
-			"y": &aql.Vertex{Gid: vertices[10].Gid, Label: vertices[10].Label, Data: protoutil.AsStruct(map[string]interface{}{"name": "Funnel"})},
-		}),
-	},
-	{
-		Q.V().Match(
-			Q.Where(aql.Eq("_label", "Human")),
-			Q.Where(aql.Eq("name", "Alex")),
-		),
-		pick(vertices[0]),
-	},
-	{
-		Q.V().Match(
-			Q.Mark("a").Where(aql.Eq("_label", "Human")).Mark("b"),
-			Q.Mark("b").Where(aql.Eq("name", "Alex")).Mark("c"),
-		).Select("c"),
-		pickselection(map[string]interface{}{"c": vertices[0]}),
-	},
-	{
-		Q.V().Match(
-			Q.Mark("a").Where(aql.Eq("_label", "Human")).Mark("b"),
-			Q.Mark("b").Where(aql.Eq("name", "Alex")).Mark("c"),
-		).Select("b", "c"),
-		pickselection(map[string]interface{}{"b": vertices[0], "c": vertices[0]}),
-	},
-}
-
 func TestEngine(t *testing.T) {
-	for _, desc := range table {
+	tests := []queryTest{
+		{
+			Q.V().Count(),
+			count(uint32(len(vertices))),
+		},
+		{
+			Q.E().Count(),
+			count(uint32(len(edges))),
+		},
+		{
+			Q.V().Where(aql.Eq("non-existent-field", "foobar")).Count(),
+			count(uint32(0)),
+		},
+		{
+			Q.E().Where(aql.Eq("non-existent-field", "foobar")).Count(),
+			count(uint32(0)),
+		},
+		{
+			Q.V().Where(aql.Eq("_label", "users")).Count(),
+			count(uint32(50)),
+		},
+		{
+			Q.V().Where(aql.Eq("_label", "products")).Count(),
+			count(uint32(20)),
+		},
+		{
+			Q.V().Where(aql.Eq("_label", "purchases")).Count(),
+			count(uint32(100)),
+		},
+		{
+			Q.V(),
+			pickAllVertices(),
+		},
+		{
+			Q.E(),
+			pickAllEdges(),
+		},
+	}
+
+	for _, desc := range tests {
 		desc := desc
 		name := cleanName(dbname + "_" + desc.query.String())
 
@@ -198,7 +109,10 @@ func compare(expect []*aql.QueryResult) checker {
 			for _, s := range expectS {
 				t.Log("expect", s)
 			}
-			t.Error("not equal")
+			if len(expectS) != len(actualS) {
+				t.Logf("expected # results: %d actual # results: %d", len(expectS), len(actualS))
+			}
+			t.Errorf("not equal")
 		}
 	}
 }

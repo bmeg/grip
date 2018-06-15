@@ -4,13 +4,11 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"log"
-	"strings"
 
 	"github.com/bmeg/arachne/aql"
-	"github.com/bmeg/golib"
+	"github.com/bmeg/arachne/util"
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
@@ -62,6 +60,10 @@ var Cmd = &cobra.Command{
 	Long:  ``,
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if vertexFile == "" && edgeFile == "" && jsonFile == "" && yamlFile == "" {
+			return fmt.Errorf("no inputs files were provided")
+		}
+
 		graph = args[0]
 		log.Println("Loading data into graph:", graph)
 
@@ -78,67 +80,58 @@ var Cmd = &cobra.Command{
 			}
 		}
 
-		m := jsonpb.Unmarshaler{AllowUnknownFields: true}
 		elemChan := make(chan *aql.GraphElement)
 		wait := make(chan bool)
 		go func() {
 			if err := conn.BulkAdd(elemChan); err != nil {
-				log.Printf("bulk add error: %s", err)
+				log.Printf("bulk add error: %v", err)
 			}
 			wait <- false
 		}()
 
 		if vertexFile != "" {
 			log.Printf("Loading %s", vertexFile)
-			reader, err := golib.ReadFileLines(vertexFile)
-			if err != nil {
-				return err
-			}
-			count := 0
-			for line := range reader {
-				v := aql.Vertex{}
-				err := m.Unmarshal(strings.NewReader(string(line)), &v)
-				if err == io.EOF {
-					break
+			verts, errs := util.StreamVerticesFromFile(vertexFile)
+			go func(verts chan *aql.Vertex) {
+				count := 0
+				for v := range verts {
+					count++
+					if count%1000 == 0 {
+						log.Printf("Loaded %d vertices", count)
+					}
+					elemChan <- &aql.GraphElement{Graph: graph, Vertex: v}
 				}
-				if err != nil {
-					return fmt.Errorf("failed to unmarshal vertex: %v", err)
+				log.Printf("Loaded %d vertices", count)
+			}(verts)
+			go func(errs chan error) {
+				for e := range errs {
+					log.Printf("Error loading vertices: %v", e)
 				}
-				elemChan <- &aql.GraphElement{Graph: graph, Vertex: &v}
-				count++
-				if count%1000 == 0 {
-					log.Printf("Loaded %d vertices", count)
-				}
-			}
-			log.Printf("Loaded %d vertices", count)
+			}(errs)
 		}
 
 		if edgeFile != "" {
 			log.Printf("Loading %s", edgeFile)
-			reader, err := golib.ReadFileLines(edgeFile)
-			if err != nil {
-				log.Printf("Error: %s", err)
-				return err
-			}
-			count := 0
-			for line := range reader {
-				e := aql.Edge{}
-				err := m.Unmarshal(strings.NewReader(string(line)), &e)
-				if err == io.EOF {
-					break
+			edges, errs := util.StreamEdgesFromFile(edgeFile)
+			go func(edges chan *aql.Edge) {
+				count := 0
+				for e := range edges {
+					count++
+					if count%1000 == 0 {
+						log.Printf("Loaded %d edges", count)
+					}
+					elemChan <- &aql.GraphElement{Graph: graph, Edge: e}
 				}
-				if err != nil {
-					return fmt.Errorf("failed to unmarshal vertex: %v", err)
+				log.Printf("Loaded %d edges", count)
+			}(edges)
+			go func(errs chan error) {
+				for e := range errs {
+					log.Printf("Error loading vertices: %v", e)
 				}
-				elemChan <- &aql.GraphElement{Graph: graph, Edge: &e}
-				count++
-				if count%1000 == 0 {
-					log.Printf("Loaded %d edges", count)
-				}
-			}
-			log.Printf("Loaded %d edges", count)
+			}(errs)
 		}
 
+		m := jsonpb.Unmarshaler{AllowUnknownFields: true}
 		if jsonFile != "" {
 			log.Printf("Loading %s", jsonFile)
 			content, err := ioutil.ReadFile(jsonFile)
@@ -146,7 +139,7 @@ var Cmd = &cobra.Command{
 				return err
 			}
 			g := &aql.Graph{}
-			if err := jsonpb.Unmarshal(bytes.NewReader(content), g); err != nil {
+			if err := m.Unmarshal(bytes.NewReader(content), g); err != nil {
 				return err
 			}
 			for _, v := range g.Vertices {
@@ -175,7 +168,7 @@ var Cmd = &cobra.Command{
 				return err
 			}
 			g := &aql.Graph{}
-			if err := jsonpb.Unmarshal(bytes.NewReader(content), g); err != nil {
+			if err := m.Unmarshal(bytes.NewReader(content), g); err != nil {
 				return err
 			}
 			for _, v := range g.Vertices {

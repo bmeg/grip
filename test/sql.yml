@@ -5,7 +5,7 @@ SQL:
   Driver: postgres
 
   Graphs:
-    - Graph: TestGraph
+    - Graph: test-graph
       Vertices:
         - Table: users
           Label: users
