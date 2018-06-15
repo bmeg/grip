@@ -97,6 +97,12 @@ jobs:
       - go test ./test -config elastic.yml
       env:
         - n=elasticsearch
+    - script:
+      - make start-postgres
+      - sleep 10
+      - go test ./test -config sql.yml
+      env:
+        - n=sql
 
 notifications:
   email: false
