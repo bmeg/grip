@@ -46,6 +46,34 @@ func TestEngine(t *testing.T) {
 			pickAllEdges(),
 		},
 		{
+			Q.V().Where(aql.Eq("_label", "users")).Count(),
+			count(50),
+		},
+		{
+			Q.V().Where(aql.Eq("_label", "products")).Count(),
+			count(20),
+		},
+		{
+			Q.V().Where(aql.Eq("_label", "purchases")).Count(),
+			count(100),
+		},
+		{
+			Q.E().Where(aql.Eq("_label", "purchasedProducts")).Count(),
+			count(100),
+		},
+		{
+			Q.E().Where(aql.Eq("_label", "userPurchases")).Count(),
+			count(100),
+		},
+		{
+			Q.V().Where(aql.Eq("_label", "does-not-exist")).Count(),
+			count(0),
+		},
+		{
+			Q.E().Where(aql.Eq("_label", "does-not-exist")).Count(),
+			count(0),
+		},
+		{
 			Q.V().Where(aql.Eq("_label", "users")).Out().Count(),
 			count(100),
 		},
@@ -188,34 +216,6 @@ func TestEngine(t *testing.T) {
 		{
 			Q.V("products:1").BothEdge(),
 			pick("purchase_items:4", "purchase_items:30", "purchase_items:56", "purchase_items:88", "purchase_items:89"),
-		},
-		{
-			Q.V().Where(aql.Eq("_label", "users")).Count(),
-			count(50),
-		},
-		{
-			Q.V().Where(aql.Eq("_label", "products")).Count(),
-			count(20),
-		},
-		{
-			Q.V().Where(aql.Eq("_label", "purchases")).Count(),
-			count(100),
-		},
-		{
-			Q.E().Where(aql.Eq("_label", "purchasedProducts")).Count(),
-			count(100),
-		},
-		{
-			Q.E().Where(aql.Eq("_label", "userPurchases")).Count(),
-			count(100),
-		},
-		{
-			Q.V().Where(aql.Eq("_label", "does-not-exist")).Count(),
-			count(0),
-		},
-		{
-			Q.E().Where(aql.Eq("_label", "does-not-exist")).Count(),
-			count(0),
 		},
 		{
 			Q.V().Where(aql.Eq("_label", "users")).Where(aql.Eq("details", "\"sex\"=>\"M\"")).Count(),

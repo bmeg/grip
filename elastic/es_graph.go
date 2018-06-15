@@ -33,6 +33,7 @@ type Graph struct {
 	// whole index) immediately after the operation occurs, so that the updated
 	// document appears in search results immediately.
 	synchronous bool
+	pageSize    int
 }
 
 // Compiler returns a query compiler that will use elastic search as a backend
@@ -234,11 +235,11 @@ func (es *Graph) GetEdgeList(ctx context.Context, load bool) <-chan *aql.Edge {
 	o := make(chan *aql.Edge, 100)
 
 	// 1st goroutine sends individual hits to channel.
-	hits := make(chan json.RawMessage, 100)
+	hits := make(chan json.RawMessage, es.pageSize)
 	g, ctx := errgroup.WithContext(ctx)
 	g.Go(func() error {
 		defer close(hits)
-		scroll := es.client.Scroll(es.edgeIndex).Sort("gid", true).Size(100)
+		scroll := es.client.Scroll(es.edgeIndex).Sort("gid", true).Size(es.pageSize)
 		if !load {
 			scroll = scroll.FetchSource(true).FetchSourceContext(excludeData)
 		}
@@ -253,12 +254,7 @@ func (es *Graph) GetEdgeList(ctx context.Context, load bool) <-chan *aql.Edge {
 
 			// Send the hits to the hits channel
 			for _, hit := range results.Hits.Hits {
-				select {
-				case <-ctx.Done():
-					return ctx.Err()
-				default:
-					hits <- *hit.Source
-				}
+				hits <- *hit.Source
 			}
 		}
 	})
@@ -266,21 +262,13 @@ func (es *Graph) GetEdgeList(ctx context.Context, load bool) <-chan *aql.Edge {
 	// 2nd goroutine receives hits and deserializes them.
 	g.Go(func() error {
 		for hit := range hits {
-			select {
-			default:
-				// Deserialize
-				edge := &aql.Edge{}
-				err := jsonpb.Unmarshal(bytes.NewReader(hit), edge)
-				if err != nil {
-					return err
-				}
-				o <- edge
-
-			case <-ctx.Done():
-				return ctx.Err()
+			edge := &aql.Edge{}
+			err := jsonpb.Unmarshal(bytes.NewReader(hit), edge)
+			if err != nil {
+				return err
 			}
+			o <- edge
 		}
-
 		return nil
 	})
 
@@ -298,14 +286,14 @@ func (es *Graph) GetEdgeList(ctx context.Context, load bool) <-chan *aql.Edge {
 
 // GetVertexList produces a channel of all vertices in the graph
 func (es *Graph) GetVertexList(ctx context.Context, load bool) <-chan *aql.Vertex {
-	o := make(chan *aql.Vertex, 100)
+	o := make(chan *aql.Vertex, es.pageSize)
 
 	// 1st goroutine sends individual hits to channel.
-	hits := make(chan json.RawMessage, 100)
+	hits := make(chan json.RawMessage, es.pageSize)
 	g, ctx := errgroup.WithContext(ctx)
 	g.Go(func() error {
 		defer close(hits)
-		scroll := es.client.Scroll(es.vertexIndex).Sort("gid", true).Size(100)
+		scroll := es.client.Scroll(es.vertexIndex).Sort("gid", true).Size(es.pageSize)
 		if !load {
 			scroll = scroll.FetchSource(true).FetchSourceContext(excludeData)
 		}
@@ -320,12 +308,7 @@ func (es *Graph) GetVertexList(ctx context.Context, load bool) <-chan *aql.Verte
 
 			// Send the hits to the hits channel
 			for _, hit := range results.Hits.Hits {
-				select {
-				case <-ctx.Done():
-					return ctx.Err()
-				default:
-					hits <- *hit.Source
-				}
+				hits <- *hit.Source
 			}
 		}
 	})
@@ -333,21 +316,13 @@ func (es *Graph) GetVertexList(ctx context.Context, load bool) <-chan *aql.Verte
 	// 2nd goroutine receives hits and deserializes them.
 	g.Go(func() error {
 		for hit := range hits {
-			select {
-			default:
-				// Deserialize
-				vertex := &aql.Vertex{}
-				err := jsonpb.Unmarshal(bytes.NewReader(hit), vertex)
-				if err != nil {
-					return fmt.Errorf("Failed to unmarshal vertex: %v", err)
-				}
-				o <- vertex
-
-			case <-ctx.Done():
-				return ctx.Err()
+			vertex := &aql.Vertex{}
+			err := jsonpb.Unmarshal(bytes.NewReader(hit), vertex)
+			if err != nil {
+				return fmt.Errorf("Failed to unmarshal vertex: %v", err)
 			}
+			o <- vertex
 		}
-
 		return nil
 	})
 
@@ -369,11 +344,13 @@ func (es *Graph) GetVertexChannel(req chan gdbi.ElementLookup, load bool) chan g
 	g, ctx := errgroup.WithContext(ctx)
 
 	// Create query batches
-	batches := make(chan []gdbi.ElementLookup, 100)
+	batches := make(chan []gdbi.ElementLookup, es.pageSize)
 	g.Go(func() error {
 		defer close(batches)
 		o := make([]gdbi.ElementLookup, 0, es.batchSize)
+		count := 0
 		for req := range req {
+			count++
 			o = append(o, req)
 			if len(o) >= es.batchSize {
 				batches <- o
@@ -385,7 +362,7 @@ func (es *Graph) GetVertexChannel(req chan gdbi.ElementLookup, load bool) chan g
 	})
 
 	// Find all vertices
-	o := make(chan gdbi.ElementLookup, 100)
+	o := make(chan gdbi.ElementLookup, es.pageSize)
 	g.Go(func() error {
 		for batch := range batches {
 			idBatch := make([]string, len(batch))
@@ -394,32 +371,27 @@ func (es *Graph) GetVertexChannel(req chan gdbi.ElementLookup, load bool) chan g
 				idBatch[i] = batch[i].ID
 				batchMap[batch[i].ID] = append(batchMap[batch[i].ID], batch[i])
 			}
-
-			q := es.client.Search().Index(es.vertexIndex)
+			q := es.client.Search().Index(es.vertexIndex).Size(es.pageSize)
 			q = q.Query(elastic.NewBoolQuery().Must(elastic.NewIdsQuery().Ids(idBatch...)))
 			if !load {
 				q = q.FetchSource(true).FetchSourceContext(elastic.NewFetchSourceContext(true).Exclude("data"))
 			}
-			res, err := q.Do(ctx)
-			if err != nil {
-				return fmt.Errorf("Vertex query failed: %s", err)
-			}
-			if res.TotalHits() > 0 {
-				for _, hit := range res.Hits.Hits {
-					// Deserialize
-					vertex := &aql.Vertex{}
-					err := jsonpb.Unmarshal(bytes.NewReader(*hit.Source), vertex)
-					if err != nil {
-						return fmt.Errorf("Failed to unmarshal vertex: %s", err)
-					}
-					r := batchMap[vertex.Gid]
-					for _, ri := range r {
-						ri.Vertex = vertex
-						o <- ri
-					}
+
+			for hit := range paginateQuery(ctx, q, es.pageSize) {
+				// Deserialize
+				vertex := &aql.Vertex{}
+				err := jsonpb.Unmarshal(bytes.NewReader(*hit.Source), vertex)
+				if err != nil {
+					return fmt.Errorf("Failed to unmarshal vertex: %s", err)
+				}
+				r := batchMap[vertex.Gid]
+				for _, ri := range r {
+					ri.Vertex = vertex
+					o <- ri
 				}
 			}
 		}
+
 		return nil
 	})
 
@@ -441,7 +413,7 @@ func (es *Graph) GetOutChannel(req chan gdbi.ElementLookup, load bool, edgeLabel
 	g, ctx := errgroup.WithContext(ctx)
 
 	// Create query batches
-	batches := make(chan []gdbi.ElementLookup, 100)
+	batches := make(chan []gdbi.ElementLookup, es.pageSize)
 	g.Go(func() error {
 		defer close(batches)
 		o := make([]gdbi.ElementLookup, 0, es.batchSize)
@@ -457,7 +429,7 @@ func (es *Graph) GetOutChannel(req chan gdbi.ElementLookup, load bool, edgeLabel
 	})
 
 	// Find all outgoing edges
-	edgeBatches := make(chan []gdbi.ElementLookup, 100)
+	edgeBatches := make(chan []gdbi.ElementLookup, es.pageSize)
 	g.Go(func() error {
 		defer close(edgeBatches)
 		for batch := range batches {
@@ -479,33 +451,30 @@ func (es *Graph) GetOutChannel(req chan gdbi.ElementLookup, load bool, edgeLabel
 			}
 			q = q.Query(elastic.NewBoolQuery().Must(qParts...))
 			q = q.FetchSource(true).FetchSourceContext(elastic.NewFetchSourceContext(true).Include("from", "to"))
-			res, err := q.Sort("gid", true).Do(ctx)
-			if err != nil {
-				return fmt.Errorf("Edge query failed: %s", err)
-			}
-			if res.TotalHits() > 0 {
-				b := []gdbi.ElementLookup{}
-				for _, hit := range res.Hits.Hits {
-					// Deserialize
-					edge := &aql.Edge{}
-					err := jsonpb.Unmarshal(bytes.NewReader(*hit.Source), edge)
-					if err != nil {
-						return fmt.Errorf("Failed to unmarshal edge: %s", err)
-					}
-					r := batchMap[edge.From]
-					for _, ri := range r {
-						ri.Vertex = &aql.Vertex{Gid: edge.To}
-						b = append(b, ri)
-					}
+			q = q.Sort("gid", true).Size(es.pageSize)
+
+			b := []gdbi.ElementLookup{}
+			for hit := range paginateQuery(ctx, q, es.pageSize) {
+				// Deserialize
+				edge := &aql.Edge{}
+				err := jsonpb.Unmarshal(bytes.NewReader(*hit.Source), edge)
+				if err != nil {
+					return fmt.Errorf("Failed to unmarshal edge: %s", err)
 				}
-				edgeBatches <- b
+				r := batchMap[edge.From]
+				for _, ri := range r {
+					ri.Vertex = &aql.Vertex{Gid: edge.To}
+					b = append(b, ri)
+				}
 			}
+			edgeBatches <- b
 		}
+
 		return nil
 	})
 
 	// Collect all identified vertices
-	o := make(chan gdbi.ElementLookup, 100)
+	o := make(chan gdbi.ElementLookup, es.pageSize)
 	g.Go(func() error {
 		for batch := range edgeBatches {
 			idBatch := make([]string, len(batch))
@@ -520,26 +489,23 @@ func (es *Graph) GetOutChannel(req chan gdbi.ElementLookup, load bool, edgeLabel
 			if !load {
 				q = q.FetchSource(true).FetchSourceContext(elastic.NewFetchSourceContext(true).Exclude("data"))
 			}
-			res, err := q.Sort("gid", true).Do(ctx)
-			if err != nil {
-				return fmt.Errorf("Vertex query failed: %s", err)
-			}
-			if res.TotalHits() > 0 {
-				for _, hit := range res.Hits.Hits {
-					// Deserialize
-					vertex := &aql.Vertex{}
-					err := jsonpb.Unmarshal(bytes.NewReader(*hit.Source), vertex)
-					if err != nil {
-						return fmt.Errorf("Failed to unmarshal vertex: %s", err)
-					}
-					r := batchMap[vertex.Gid]
-					for _, ri := range r {
-						ri.Vertex = vertex
-						o <- ri
-					}
+			q = q.Sort("gid", true).Size(es.pageSize)
+
+			for hit := range paginateQuery(ctx, q, es.pageSize) {
+				// Deserialize
+				vertex := &aql.Vertex{}
+				err := jsonpb.Unmarshal(bytes.NewReader(*hit.Source), vertex)
+				if err != nil {
+					return fmt.Errorf("Failed to unmarshal vertex: %s", err)
+				}
+				r := batchMap[vertex.Gid]
+				for _, ri := range r {
+					ri.Vertex = vertex
+					o <- ri
 				}
 			}
 		}
+
 		return nil
 	})
 
@@ -561,7 +527,7 @@ func (es *Graph) GetInChannel(req chan gdbi.ElementLookup, load bool, edgeLabels
 	g, ctx := errgroup.WithContext(ctx)
 
 	// Create query batches
-	batches := make(chan []gdbi.ElementLookup, 100)
+	batches := make(chan []gdbi.ElementLookup, es.pageSize)
 	g.Go(func() error {
 		defer close(batches)
 		o := make([]gdbi.ElementLookup, 0, es.batchSize)
@@ -577,7 +543,7 @@ func (es *Graph) GetInChannel(req chan gdbi.ElementLookup, load bool, edgeLabels
 	})
 
 	// Find all incoming edges
-	edgeBatches := make(chan []gdbi.ElementLookup, 100)
+	edgeBatches := make(chan []gdbi.ElementLookup, es.pageSize)
 	g.Go(func() error {
 		defer close(edgeBatches)
 		for batch := range batches {
@@ -599,34 +565,30 @@ func (es *Graph) GetInChannel(req chan gdbi.ElementLookup, load bool, edgeLabels
 			}
 			q = q.Query(elastic.NewBoolQuery().Must(qParts...))
 			q = q.FetchSource(true).FetchSourceContext(elastic.NewFetchSourceContext(true).Include("from", "to"))
-			res, err := q.Sort("gid", true).Do(ctx)
-			if err != nil {
-				return fmt.Errorf("Edge query failed: %s", err)
-			}
+			q = q.Sort("gid", true).Size(es.pageSize)
 
-			if res.TotalHits() > 0 {
-				b := []gdbi.ElementLookup{}
-				for _, hit := range res.Hits.Hits {
-					// Deserialize
-					edge := &aql.Edge{}
-					err := jsonpb.Unmarshal(bytes.NewReader(*hit.Source), edge)
-					if err != nil {
-						return fmt.Errorf("Failed to unmarshal edge: %s", err)
-					}
-					r := batchMap[edge.To]
-					for _, ri := range r {
-						ri.Vertex = &aql.Vertex{Gid: edge.From}
-						b = append(b, ri)
-					}
+			b := []gdbi.ElementLookup{}
+			for hit := range paginateQuery(ctx, q, es.pageSize) {
+				// Deserialize
+				edge := &aql.Edge{}
+				err := jsonpb.Unmarshal(bytes.NewReader(*hit.Source), edge)
+				if err != nil {
+					return fmt.Errorf("Failed to unmarshal edge: %s", err)
 				}
-				edgeBatches <- b
+				r := batchMap[edge.To]
+				for _, ri := range r {
+					ri.Vertex = &aql.Vertex{Gid: edge.From}
+					b = append(b, ri)
+				}
 			}
+			edgeBatches <- b
 		}
+
 		return nil
 	})
 
 	// Collect all identified vertices
-	o := make(chan gdbi.ElementLookup, 100)
+	o := make(chan gdbi.ElementLookup, es.pageSize)
 	g.Go(func() error {
 		for batch := range edgeBatches {
 			idBatch := make([]string, len(batch))
@@ -640,26 +602,23 @@ func (es *Graph) GetInChannel(req chan gdbi.ElementLookup, load bool, edgeLabels
 			if !load {
 				q = q.FetchSource(true).FetchSourceContext(elastic.NewFetchSourceContext(true).Exclude("data"))
 			}
-			res, err := q.Sort("gid", true).Do(ctx)
-			if err != nil {
-				return fmt.Errorf("Vertex query failed: %s", err)
-			}
-			if res.TotalHits() > 0 {
-				for _, hit := range res.Hits.Hits {
-					// Deserialize
-					vertex := &aql.Vertex{}
-					err := jsonpb.Unmarshal(bytes.NewReader(*hit.Source), vertex)
-					if err != nil {
-						return fmt.Errorf("Failed to unmarshal vertex: %s", err)
-					}
-					r := batchMap[vertex.Gid]
-					for _, ri := range r {
-						ri.Vertex = vertex
-						o <- ri
-					}
+			q = q.Sort("gid", true).Size(es.pageSize)
+
+			for hit := range paginateQuery(ctx, q, es.pageSize) {
+				// Deserialize
+				vertex := &aql.Vertex{}
+				err := jsonpb.Unmarshal(bytes.NewReader(*hit.Source), vertex)
+				if err != nil {
+					return fmt.Errorf("Failed to unmarshal vertex: %s", err)
+				}
+				r := batchMap[vertex.Gid]
+				for _, ri := range r {
+					ri.Vertex = vertex
+					o <- ri
 				}
 			}
 		}
+
 		return nil
 	})
 
@@ -681,7 +640,7 @@ func (es *Graph) GetOutEdgeChannel(req chan gdbi.ElementLookup, load bool, edgeL
 	g, ctx := errgroup.WithContext(ctx)
 
 	// Create query batches
-	batches := make(chan []gdbi.ElementLookup, 100)
+	batches := make(chan []gdbi.ElementLookup, es.pageSize)
 	g.Go(func() error {
 		defer close(batches)
 		o := make([]gdbi.ElementLookup, 0, es.batchSize)
@@ -697,7 +656,7 @@ func (es *Graph) GetOutEdgeChannel(req chan gdbi.ElementLookup, load bool, edgeL
 	})
 
 	// Find all outgoing edges
-	o := make(chan gdbi.ElementLookup, 100)
+	o := make(chan gdbi.ElementLookup, es.pageSize)
 	g.Go(func() error {
 		for batch := range batches {
 			idBatch := make([]interface{}, len(batch))
@@ -720,26 +679,23 @@ func (es *Graph) GetOutEdgeChannel(req chan gdbi.ElementLookup, load bool, edgeL
 			if !load {
 				q = q.FetchSource(true).FetchSourceContext(elastic.NewFetchSourceContext(true).Exclude("data"))
 			}
-			res, err := q.Sort("gid", true).Do(ctx)
-			if err != nil {
-				return fmt.Errorf("Edge query failed: %s", err)
-			}
-			if res.TotalHits() > 0 {
-				for _, hit := range res.Hits.Hits {
-					// Deserialize
-					edge := &aql.Edge{}
-					err := jsonpb.Unmarshal(bytes.NewReader(*hit.Source), edge)
-					if err != nil {
-						return fmt.Errorf("Failed to unmarshal edge: %s", err)
-					}
-					r := batchMap[edge.From]
-					for _, ri := range r {
-						ri.Edge = edge
-						o <- ri
-					}
+			q = q.Sort("gid", true).Size(es.pageSize)
+
+			for hit := range paginateQuery(ctx, q, es.pageSize) {
+				// Deserialize
+				edge := &aql.Edge{}
+				err := jsonpb.Unmarshal(bytes.NewReader(*hit.Source), edge)
+				if err != nil {
+					return fmt.Errorf("Failed to unmarshal edge: %s", err)
+				}
+				r := batchMap[edge.From]
+				for _, ri := range r {
+					ri.Edge = edge
+					o <- ri
 				}
 			}
 		}
+
 		return nil
 	})
 
@@ -761,7 +717,7 @@ func (es *Graph) GetInEdgeChannel(req chan gdbi.ElementLookup, load bool, edgeLa
 	g, ctx := errgroup.WithContext(ctx)
 
 	// Create query batches
-	batches := make(chan []gdbi.ElementLookup, 100)
+	batches := make(chan []gdbi.ElementLookup, es.pageSize)
 	g.Go(func() error {
 		defer close(batches)
 		o := make([]gdbi.ElementLookup, 0, es.batchSize)
@@ -777,7 +733,7 @@ func (es *Graph) GetInEdgeChannel(req chan gdbi.ElementLookup, load bool, edgeLa
 	})
 
 	// Find all incoming edges
-	o := make(chan gdbi.ElementLookup, 100)
+	o := make(chan gdbi.ElementLookup, es.pageSize)
 	g.Go(func() error {
 		for batch := range batches {
 			idBatch := make([]interface{}, len(batch))
@@ -800,26 +756,23 @@ func (es *Graph) GetInEdgeChannel(req chan gdbi.ElementLookup, load bool, edgeLa
 			if !load {
 				q = q.FetchSource(true).FetchSourceContext(elastic.NewFetchSourceContext(true).Exclude("data"))
 			}
-			res, err := q.Sort("gid", true).Do(ctx)
-			if err != nil {
-				return fmt.Errorf("Edge query failed: %s", err)
-			}
-			if res.TotalHits() > 0 {
-				for _, hit := range res.Hits.Hits {
-					// Deserialize
-					edge := &aql.Edge{}
-					err := jsonpb.Unmarshal(bytes.NewReader(*hit.Source), edge)
-					if err != nil {
-						return fmt.Errorf("Failed to unmarshal edge: %s", err)
-					}
-					r := batchMap[edge.To]
-					for _, ri := range r {
-						ri.Edge = edge
-						o <- ri
-					}
+			q = q.Sort("gid", true).Size(es.pageSize)
+
+			for hit := range paginateQuery(ctx, q, es.pageSize) {
+				// Deserialize
+				edge := &aql.Edge{}
+				err := jsonpb.Unmarshal(bytes.NewReader(*hit.Source), edge)
+				if err != nil {
+					return fmt.Errorf("Failed to unmarshal edge: %s", err)
+				}
+				r := batchMap[edge.To]
+				for _, ri := range r {
+					ri.Edge = edge
+					o <- ri
 				}
 			}
 		}
+
 		return nil
 	})
 
