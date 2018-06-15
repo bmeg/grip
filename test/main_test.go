@@ -7,7 +7,6 @@ import (
 	"os/exec"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/bmeg/arachne/aql"
 	_ "github.com/bmeg/arachne/badgerdb" // import so badger will register itself
@@ -140,11 +139,6 @@ func TestMain(m *testing.M) {
 			fmt.Println("Error: setting up graph:", err)
 			return
 		}
-	}
-
-	if dbname == "elastic" {
-		// give elastic some time to index the data
-		time.Sleep(30 * time.Second)
 	}
 
 	// run tests
