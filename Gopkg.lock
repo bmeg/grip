@@ -10,14 +10,14 @@
 [[projects]]
   name = "github.com/Shopify/sarama"
   packages = ["."]
-  revision = "f7be6aa2bc7b2e38edf816b08b582782194a1c02"
-  version = "v1.16.0"
+  revision = "35324cf48e33d8260e1c7c18854465a904ade249"
+  version = "v1.17.0"
 
 [[projects]]
   branch = "master"
   name = "github.com/augustoroman/v8"
   packages = ["."]
-  revision = "13162a9353a2171eb720332006af4aaf1ddf626a"
+  revision = "b371c0b05b97917d55880f2deaa0bc1262d04c0d"
 
 [[projects]]
   branch = "master"
@@ -47,8 +47,8 @@
     "table",
     "y"
   ]
-  revision = "3ff1bfbb11c02c78c11269096669396c2d2cbbd3"
-  version = "v1.5.0"
+  revision = "690400e629977977ecddfa8ab3a7f9285e1041a8"
+  version = "v1.5.1"
 
 [[projects]]
   branch = "master"
@@ -111,7 +111,7 @@
     "internal/sasl",
     "internal/scram"
   ]
-  revision = "efe0945164a7e582241f37ae8983c075f8f2e870"
+  revision = "113d3961e7311526535a1ef7042196563d442761"
 
 [[projects]]
   name = "github.com/go-sourcemap/sourcemap"
@@ -141,13 +141,13 @@
   branch = "master"
   name = "github.com/golang/snappy"
   packages = ["."]
-  revision = "553a641470496b2327abcac10b36396bd98e45c9"
+  revision = "2e65f85255dbc3072edf28d6b5b8efc472979f5a"
 
 [[projects]]
   name = "github.com/gorilla/context"
   packages = ["."]
-  revision = "1ea25387ff6f684839d82767c1733ff4d4d15d0a"
-  version = "v1.1"
+  revision = "08b5f424b9271eedf6f9f0ce86cb9396ed337a42"
+  version = "v1.1.1"
 
 [[projects]]
   name = "github.com/gorilla/mux"
@@ -186,8 +186,8 @@
     "runtime/internal",
     "utilities"
   ]
-  revision = "07f5e79768022f9a3265235f0db4ac8c3f675fec"
-  version = "v1.3.1"
+  revision = "92583770e3f01b09a0d3e9bdf64321d8bebd48f2"
+  version = "v1.4.1"
 
 [[projects]]
   branch = "master"
@@ -204,8 +204,8 @@
 [[projects]]
   name = "github.com/imdario/mergo"
   packages = ["."]
-  revision = "9d5f1277e9a8ed20c3684bda8fde67c05628518c"
-  version = "v0.3.4"
+  revision = "9316a62528ac99aaecb4e47eadd6dc8aa6533d58"
+  version = "v0.3.5"
 
 [[projects]]
   name = "github.com/inconshreveable/mousetrap"
@@ -220,7 +220,7 @@
     ".",
     "reflectx"
   ]
-  revision = "2aeb6a910c2b94f2d5eb53d9895d80e27264ec41"
+  revision = "0dae4fefe7c0e190f7b5a78dac28a1c82cc8d849"
 
 [[projects]]
   branch = "master"
@@ -258,25 +258,22 @@
     "jlexer",
     "jwriter"
   ]
-  revision = "8b799c424f57fa123fc63a99d6383bc6e4c02578"
+  revision = "3fdea8d05856a0c8df22ed4bc71b3219245e4485"
 
 [[projects]]
   branch = "master"
   name = "github.com/oliveagle/jsonpath"
   packages = ["."]
-  revision = "46faf33da13527c9ef82205c0ee188f6fc98b13e"
+  revision = "2e52cf6e685269ed8aefec6390f3cac3ef74e730"
 
 [[projects]]
   name = "github.com/pierrec/lz4"
-  packages = ["."]
-  revision = "2fcda4cb7018ce05a25959d2fe08c83e3329f169"
-  version = "v1.1"
-
-[[projects]]
-  name = "github.com/pierrec/xxHash"
-  packages = ["xxHash32"]
-  revision = "f051bb7f1d1aaf1b5a665d74fb6b0217712c69f7"
-  version = "v0.1.1"
+  packages = [
+    ".",
+    "internal/xxh32"
+  ]
+  revision = "6b9367c9ff401dbc54fabce3fb8d972e799b702d"
+  version = "v2.0.2"
 
 [[projects]]
   name = "github.com/pkg/errors"
@@ -325,8 +322,8 @@
 [[projects]]
   name = "github.com/spf13/cobra"
   packages = ["."]
-  revision = "a1f051bc3eba734da4772d60e2d677f47cf93ef4"
-  version = "v0.0.2"
+  revision = "ef82de70bb3f60c65fb8eebacbb2d122ef517385"
+  version = "v0.0.3"
 
 [[projects]]
   name = "github.com/spf13/pflag"
@@ -337,8 +334,8 @@
 [[projects]]
   name = "github.com/stretchr/testify"
   packages = ["assert"]
-  revision = "12b6f73e6084dad08a7c6e575284b177ecafbc71"
-  version = "v1.2.1"
+  revision = "f35b8ab0b5a2cef36673838d662e249dd9c94686"
+  version = "v1.2.2"
 
 [[projects]]
   branch = "master"
@@ -357,7 +354,7 @@
     "leveldb/table",
     "leveldb/util"
   ]
-  revision = "9637fa0b2f0db13c99d899b91007edb7df4610b7"
+  revision = "e2150783cd35f5b607daca48afd8c57ec54cc995"
 
 [[projects]]
   branch = "master"
@@ -377,7 +374,7 @@
     "internal/timeseries",
     "trace"
   ]
-  revision = "2491c5de3490fced2f6cff376127c667efeed857"
+  revision = "db08ff08e8622530d9ed3a0e8ac279f6d4c02196"
 
 [[projects]]
   branch = "master"
@@ -389,7 +386,7 @@
   branch = "master"
   name = "golang.org/x/sys"
   packages = ["unix"]
-  revision = "7c87d13f8e835d2fb3a70a2912c811ed0c1d241b"
+  revision = "8014b7b116a67fea23fbb82cd834c9ad656ea44b"
 
 [[projects]]
   name = "golang.org/x/text"
@@ -421,7 +418,7 @@
     "googleapis/api/annotations",
     "googleapis/rpc/status"
   ]
-  revision = "86e600f69ee4704c6efbf6a2a40a5c10700e76c2"
+  revision = "32ee49c4dd805befd833990acba36cb75042378c"
 
 [[projects]]
   name = "google.golang.org/grpc"
@@ -451,8 +448,8 @@
     "tap",
     "transport"
   ]
-  revision = "41344da2231b913fa3d983840a57a6b1b7b631a1"
-  version = "v1.12.0"
+  revision = "7a6a684ca69eb4cae85ad0a484f2e531598c047b"
+  version = "v1.12.2"
 
 [[projects]]
   name = "gopkg.in/olivere/elastic.v5"
@@ -461,8 +458,8 @@
     "config",
     "uritemplates"
   ]
-  revision = "2562d7254d4655c3bcf34810cdb4ca45e944d53f"
-  version = "v5.0.68"
+  revision = "b708306d715bea9b983685e94ab4602cdc9f988b"
+  version = "v5.0.69"
 
 [[projects]]
   name = "gopkg.in/sourcemap.v1"
