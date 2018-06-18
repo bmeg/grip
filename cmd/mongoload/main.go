@@ -55,7 +55,7 @@ func isNetError(e error) bool {
 // Cmd is the declaration of the command line
 var Cmd = &cobra.Command{
 	Use:   "mongoload <graph>",
-	Short: "Direct Load Data into mongo Server",
+	Short: "Directly load data into mongodb",
 	Long:  ``,
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -182,8 +182,8 @@ var Cmd = &cobra.Command{
 
 func init() {
 	flags := Cmd.Flags()
-	flags.StringVar(&host, "host", host, "Mongo host url")
-	flags.StringVar(&database, "database", database, "Database name in Mongo to store graph")
-	flags.StringVar(&vertexFile, "vertex", "", "Vertex File")
-	flags.StringVar(&edgeFile, "edge", "", "Edge File")
+	flags.StringVar(&host, "host", host, "mongo server url")
+	flags.StringVar(&database, "database", database, "database name in mongo to store graph")
+	flags.StringVar(&vertexFile, "vertex", "", "vertex file")
+	flags.StringVar(&edgeFile, "edge", "", "edge file")
 }

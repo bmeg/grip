@@ -91,7 +91,7 @@ func LoadRDFCmd(cmd *cobra.Command, args []string) error {
 // Cmd is the declaration for cobra of the command line
 var Cmd = &cobra.Command{
 	Use:   "rdf <graph> <RDF file>",
-	Short: "Loads RDF data",
+	Short: "Loads RDF data into a graph",
 	Long:  ``,
 	Args:  cobra.ExactArgs(2),
 	RunE:  LoadRDFCmd,
@@ -99,5 +99,5 @@ var Cmd = &cobra.Command{
 
 func init() {
 	flags := Cmd.Flags()
-	flags.StringVar(&host, "host", host, "Arachne host server")
+	flags.StringVar(&host, "host", host, "arachne server url")
 }

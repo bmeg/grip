@@ -20,7 +20,7 @@ var edgeTopic = "arachne_edge"
 // Cmd is the base command called by the cobra command line system
 var Cmd = &cobra.Command{
 	Use:   "stream <graph>",
-	Short: "Stream Data into Arachne Server",
+	Short: "Stream data into a graph from Kafka",
 	Long:  ``,
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -93,8 +93,8 @@ var Cmd = &cobra.Command{
 
 func init() {
 	flags := Cmd.Flags()
-	flags.StringVar(&kafka, "kafka", "localhost:9092", "Kafka host server")
-	flags.StringVar(&host, "host", "localhost:8202", "Arachne host server")
-	flags.StringVar(&vertexTopic, "vertex", "arachne_vertex", "Vertex topic name")
-	flags.StringVar(&edgeTopic, "edge", "arachne_vertex", "Edge topic name")
+	flags.StringVar(&kafka, "kafka", "localhost:9092", "Kafka server url")
+	flags.StringVar(&host, "host", "localhost:8202", "arachne server url")
+	flags.StringVar(&vertexTopic, "vertex", "arachne_vertex", "vertex topic name")
+	flags.StringVar(&edgeTopic, "edge", "arachne_vertex", "edge topic name")
 }

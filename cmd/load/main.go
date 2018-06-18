@@ -56,7 +56,7 @@ func mapNormalize(v interface{}) interface{} {
 // Cmd is the declaration of the command line
 var Cmd = &cobra.Command{
 	Use:   "load <graph>",
-	Short: "Load Data into Arachne Server",
+	Short: "Load data into a graph",
 	Long:  ``,
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -175,9 +175,9 @@ var Cmd = &cobra.Command{
 
 func init() {
 	flags := Cmd.Flags()
-	flags.StringVar(&host, "host", host, "Arachne host server")
-	flags.StringVar(&vertexFile, "vertex", "", "Vertex File")
-	flags.StringVar(&edgeFile, "edge", "", "Edge File")
-	flags.StringVar(&jsonFile, "json", "", "JSON Graph File")
-	flags.StringVar(&yamlFile, "yaml", "", "YAML Graph File")
+	flags.StringVar(&host, "host", host, "arachne server url")
+	flags.StringVar(&vertexFile, "vertex", "", "vertex file")
+	flags.StringVar(&edgeFile, "edge", "", "edge file")
+	flags.StringVar(&jsonFile, "json", "", "JSON graph file")
+	flags.StringVar(&yamlFile, "yaml", "", "YAML graph file")
 }

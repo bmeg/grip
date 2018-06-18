@@ -12,7 +12,7 @@ var host = "localhost:8202"
 // Cmd line declaration
 var Cmd = &cobra.Command{
 	Use:   "info <graph>",
-	Short: "Info on Arachne Graph",
+	Short: "Print vertex/edge counts for a graph",
 	Long:  ``,
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -47,5 +47,5 @@ var Cmd = &cobra.Command{
 
 func init() {
 	flags := Cmd.Flags()
-	flags.StringVar(&host, "host", host, "Arachne host server")
+	flags.StringVar(&host, "host", host, "arachne server url")
 }

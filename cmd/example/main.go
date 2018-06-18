@@ -26,7 +26,7 @@ func found(set []string, val string) bool {
 // Cmd is the example loader command line definition
 var Cmd = &cobra.Command{
 	Use:   "example",
-	Short: "Load example graph into Arachne",
+	Short: "Load an example graph",
 	Args:  cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		conn, err := aql.Connect(host, true)
@@ -84,5 +84,5 @@ var Cmd = &cobra.Command{
 
 func init() {
 	flags := Cmd.Flags()
-	flags.StringVar(&host, "host", host, "Arachne host server")
+	flags.StringVar(&host, "host", host, "arachne server url")
 }
