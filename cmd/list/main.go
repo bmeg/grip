@@ -12,7 +12,7 @@ var host = "localhost:8202"
 // Cmd is the declaration of the command line
 var Cmd = &cobra.Command{
 	Use:   "list",
-	Short: "List graphs in Arachne",
+	Short: "List graphs",
 	Long:  ``,
 	Args:  cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -29,5 +29,5 @@ var Cmd = &cobra.Command{
 
 func init() {
 	flags := Cmd.Flags()
-	flags.StringVar(&host, "host", host, "Arachne host server")
+	flags.StringVar(&host, "host", host, "arachne server url")
 }

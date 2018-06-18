@@ -94,7 +94,7 @@ func Start(conf *config.Config) error {
 // Cmd the main command called by the cobra library
 var Cmd = &cobra.Command{
 	Use:   "server",
-	Short: "Start an arachne server",
+	Short: "Run the server",
 	Args:  cobra.NoArgs,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		dconf := config.DefaultConfig()

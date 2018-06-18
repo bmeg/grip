@@ -16,7 +16,7 @@ var graph string
 // Cmd command line declaration
 var Cmd = &cobra.Command{
 	Use:   "dump <graph>",
-	Short: "Dump Data on Arachne Server",
+	Short: "Dump vertices/edges from a graph",
 	Long:  ``,
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -64,7 +64,7 @@ var Cmd = &cobra.Command{
 
 func init() {
 	flags := Cmd.Flags()
-	flags.StringVar(&host, "host", host, "Arachne host server")
-	flags.BoolVar(&vertexDump, "vertex", false, "Dump vertices")
-	flags.BoolVar(&edgeDump, "edge", false, "Dump edges")
+	flags.StringVar(&host, "host", host, "arachne server url")
+	flags.BoolVar(&vertexDump, "vertex", false, "dump all vertices")
+	flags.BoolVar(&edgeDump, "edge", false, "dump all edges")
 }
