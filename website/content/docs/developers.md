@@ -2,7 +2,5 @@
 title: Developers
 menu:
   main:
-    weight: 0
+    weight: 1000
 ---
-
-# Developers

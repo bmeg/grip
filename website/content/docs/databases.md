@@ -1,8 +1,7 @@
 ---
-title: Databases
+title: Setup your Database
 menu:
   main:
+    identifier: Databases
     weight: -100
 ---
-
-# Databases
