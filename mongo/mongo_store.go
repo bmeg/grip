@@ -21,6 +21,8 @@ import (
 type Config struct {
 	URL                    string
 	DBName                 string
+	Username               string
+	Password               string
 	BatchSize              int
 	UseAggregationPipeline bool
 }
@@ -43,7 +45,14 @@ func NewMongo(conf Config) (gdbi.GraphDB, error) {
 	}
 
 	ts := timestamp.NewTimestamp()
-	session, err := mgo.Dial(conf.URL)
+	dialinfo := &mgo.DialInfo{
+		Addrs:    []string{conf.URL},
+		Database: conf.DBName,
+		Username: conf.Username,
+		Password: conf.Password,
+		AppName:  "arachne",
+	}
+	session, err := mgo.DialWithInfo(dialinfo)
 	if err != nil {
 		return nil, err
 	}

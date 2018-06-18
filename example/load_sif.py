@@ -1,8 +1,8 @@
 #!/usr/bin/env python
+
 from __future__ import print_function
 
 import aql
-import sys
 import argparse
 
 
@@ -42,7 +42,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("input")
     parser.add_argument("--server", default="http://localhost:8201")
-    parser.add_argument("--db", default="test-data")
+    parser.add_argument("--db", required=True)
 
     args = parser.parse_args()
     load_sif(args)

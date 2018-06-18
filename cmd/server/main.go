@@ -37,10 +37,10 @@ func Start(conf *config.Config) error {
 	case "bolt", "badger", "level", "rocks":
 		db, err = kvgraph.NewKVGraphDB(dbname, conf.KVStorePath)
 
-	case "elastic":
-		db, err = elastic.NewElastic(conf.ElasticSearch)
+	case "elastic", "elasticsearch":
+		db, err = elastic.NewElastic(conf.Elasticsearch)
 
-	case "mongo":
+	case "mongo", "mongodb":
 		db, err = mongo.NewMongo(conf.MongoDB)
 
 	case "sql":
@@ -128,5 +128,5 @@ func init() {
 	flags.BoolVar(&conf.Server.ReadOnly, "read-only", conf.Server.ReadOnly, "Start server in read-only mode")
 	flags.StringVar(&conf.KVStorePath, "kvstore-path", conf.KVStorePath, "Path to use for key-value store database (Badger, BoltDB, LevelDB, RocksDB)")
 	flags.StringVar(&conf.MongoDB.URL, "mongo-url", conf.MongoDB.URL, "MongoDB URL")
-	flags.StringVar(&conf.ElasticSearch.URL, "elastic-url", conf.ElasticSearch.URL, "Elasticsearch URL")
+	flags.StringVar(&conf.Elasticsearch.URL, "elastic-url", conf.Elasticsearch.URL, "Elasticsearch URL")
 }

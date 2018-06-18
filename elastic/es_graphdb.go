@@ -17,6 +17,8 @@ import (
 type Config struct {
 	URL         string
 	DBName      string
+	Username    string
+	Password    string
 	Synchronous bool
 	BatchSize   int
 }
@@ -39,7 +41,7 @@ func NewElastic(conf Config) (gdbi.GraphDB, error) {
 	}
 
 	ts := timestamp.NewTimestamp()
-	client, err := elastic.NewClient(
+	opts := []elastic.ClientOptionFunc{
 		elastic.SetURL(conf.URL),
 		elastic.SetSniff(false),
 		elastic.SetRetrier(
@@ -47,7 +49,13 @@ func NewElastic(conf Config) (gdbi.GraphDB, error) {
 				elastic.NewExponentialBackoff(time.Millisecond*50, time.Minute),
 			),
 		),
-	)
+	}
+
+	if conf.Username != "" && conf.Password != "" {
+		opts = append(opts, elastic.SetBasicAuth(conf.Username, conf.Password))
+	}
+
+	client, err := elastic.NewClient(opts...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create elasticsearch client: %v", err)
 	}

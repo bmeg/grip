@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+
 from __future__ import print_function
 
 import aql
@@ -15,10 +16,7 @@ def load_matrix(args):
 
     for c in matrix.columns:
         if list(O.query().V(c).count())[0]['count'] == 0:
-            if args.debug:
-                print("AddVertex", c)
-            else:
-                O.addVertex(c, "Protein")
+            O.addVertex(c, "Protein")
 
     for name, row in matrix.iterrows():
         src = "%s:%s" % (args.data_type, name)
@@ -28,28 +26,17 @@ def load_matrix(args):
             v = row[c]
             if not math.isnan(v):
                 data[c] = v
-        if args.debug:
-            print("Add Vertex", name)
-        else:
-            O.addVertex(name, "Sample")
-        if args.debug:
-            print("AddVertex", "Data:%s" % (args.data_type))
-        else:
-            O.addVertex(src, "Data:%s" % (args.data_type), data)
-        if args.debug:
-            print("AddEdge", name)
-        else:
-            O.addEdge(name, src, "has")
+        O.addVertex(name, "Sample")
+        O.addVertex(src, "Data:%s" % (args.data_type), data)
+        O.addEdge(name, src, "has")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("input")
     parser.add_argument("--server", default="http://localhost:8201")
-    parser.add_argument("--data-type", dest="data_type", default="expression")
-    parser.add_argument("--db", default="test-data")
-    parser.add_argument("-p", "--prefix", default="")
-    parser.add_argument("-d", dest="debug", action="store_true", default=False)
+    parser.add_argument("--data-type", dest="data_type", default="Expression")
+    parser.add_argument("--db", required=True)
 
     args = parser.parse_args()
-    edges = load_matrix(args)
+    load_matrix(args)

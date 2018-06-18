@@ -1,0 +1,11 @@
+baseURL: https://bmeg.github.io/arachne
+canonifyURLs: true
+languageCode: en-us
+title: Arachne
+publishDir: ../docs
+menu:
+  main:
+    - name: GoDoc
+      parent: Developers
+      url: https://godoc.org/github.com/bmeg/arachne
+      weight: 100
