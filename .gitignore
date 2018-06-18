@@ -1,5 +1,25 @@
-*.pyc
-*venv*
 *arachne.work*
 *arachne.db*
 vendor
+build
+.github_token
+
+# Python temps
+__pycache__/
+*.py[cod]
+*$py.class
+build/
+dist/
+eggs/
+.eggs/
+*.egg-info/
+*.egg
+.tox/
+*venv*
+
+# Editor Temps
+.*.sw?
+*~
+\#*\#
+.desktop
+

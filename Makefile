@@ -1,4 +1,3 @@
-VERSION = 0.2.0
 TESTS=$(shell go list ./... | grep -v /vendor/)
 
 git_commit := $(shell git rev-parse --short HEAD)
@@ -10,6 +9,11 @@ VERSION_LDFLAGS=\
  -X "github.com/bmeg/arachne/version.GitCommit= $(git_commit)" \
  -X "github.com/bmeg/arachne/version.GitBranch=$(git_branch)" \
  -X "github.com/bmeg/arachne/version.GitUpstream=$(git_upstream)"
+
+export ARACHNE_VERSION = 0.2.0
+# LAST_PR_NUMBER is used by the release notes builder to generate notes
+# based on pull requests (PR) up until the last release.
+export LAST_PR_NUMBER = 120
 
 # ---------------------
 # Compile and Install
@@ -69,6 +73,20 @@ lint:
 		--vendor \
 		-e '.*bundle.go' -e ".*pb.go" -e ".*pb.gw.go" -e "underscore.go" \
 		./...
+
+# ---------------------
+# Release / Snapshot
+# ---------------------
+snapshot: depends
+	@goreleaser release \
+		--rm-dist \
+		--snapshot
+
+release: depends
+	@go get github.com/buchanae/github-release-notes
+	@goreleaser release \
+		--rm-dist \
+		--release-notes <(github-release-notes -org bmeg -repo arachne -stop-at ${LAST_PR_NUMBER})
 
 # ---------------------
 # Tests
