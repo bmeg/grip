@@ -1,0 +1,35 @@
+builds:
+  - binary: arachne
+    goos:
+      - darwin
+      - linux
+    goarch:
+      - amd64
+    env:
+      - CGO_ENABLED=0
+    flags:
+      - -tags "rocksdb"
+    ldflags: >
+      -X "github.com/bmeg/arachne/version.BuildDate=$(shell date)"
+      -X "github.com/bmeg/arachne/version.GitCommit= $(git_commit)"
+      -X "github.com/bmeg/arachne/version.GitBranch=$(git_branch)"
+      -X "github.com/bmeg/arachne/version.GitUpstream=$(git_upstream)"
+      -X "github.com/bmeg/arachne/version.Version={{.Version}}"
+
+dist: build/release
+
+git:
+  short_hash: true
+
+release:
+  draft: true
+
+env_files:
+  github_token: .github_token
+
+archive:
+  format: tar.gz
+  name_template: {{.ProjectName}}-{{.Os}}-{{.Arch}}-{{.Version}}
+
+snapshot:
+  name_template: SNAPSHOT-{{.Commit}}
