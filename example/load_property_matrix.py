@@ -25,9 +25,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("input")
     parser.add_argument("--server", default="http://localhost:8201")
-    parser.add_argument("--db", default="test-data")
-    parser.add_argument("-p", "--prefix", default="")
-    parser.add_argument("-d", dest="debug", action="store_true", default=False)
+    parser.add_argument("--db", required=True)
 
     args = parser.parse_args()
     load_matrix(args)

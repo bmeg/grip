@@ -97,15 +97,6 @@ test:
 test-conformance:
 	python conformance/run_conformance.py http://localhost:18201
 
-start-test-badger-server:
-	arachne server --rpc-port 18202 --http-port 18201 --database badger
-
-start-test-mongo-server:
-	arachne server --rpc 18202 --port 18201 --database mongo --mongo-url localhost:27000
-
-start-test-elastic-server:
-	arachne server --rpc 18202 --port 18201 --database elastic --elastic-url http://localhost:9200
-
 # ---------------------
 # Database development
 # ---------------------
@@ -126,6 +117,16 @@ start-mysql:
 	docker run -d --name arachne-mysql-test -p 13306:3306 -e MYSQL_ALLOW_EMPTY_PASSWORD=yes mysql:8.0.11 --default-authentication-plugin=mysql_native_password > /dev/null
 
 # ---------------------
+# Website
+# ---------------------
+website:
+	hugo --source ./website
+
+# Serve the website on localhost:1313
+website-dev:
+	hugo --source ./website -w server
+
+# ---------------------
 # Other
 # ---------------------
-.PHONY: test rocksdb
+.PHONY: test rocksdb website

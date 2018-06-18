@@ -32,7 +32,7 @@ type Config struct {
 		ReadOnly   bool
 	}
 	KVStorePath   string
-	ElasticSearch elastic.Config
+	Elasticsearch elastic.Config
 	MongoDB       mongo.Config
 	SQL           sql.Config
 }
@@ -49,8 +49,8 @@ func DefaultConfig() *Config {
 	c.MongoDB.DBName = "arachnedb"
 	c.MongoDB.BatchSize = 1000
 	c.MongoDB.UseAggregationPipeline = true
-	c.ElasticSearch.DBName = "arachnedb"
-	c.ElasticSearch.BatchSize = 1000
+	c.Elasticsearch.DBName = "arachnedb"
+	c.Elasticsearch.BatchSize = 1000
 	return c
 }
 
@@ -70,8 +70,8 @@ func TestifyConfig(c *Config) {
 	c.Server.WorkDir = "arachne.work." + rand
 	c.KVStorePath = "arachne.db." + rand
 	c.MongoDB.DBName = "arachnedb-" + rand
-	c.ElasticSearch.DBName = "arachnedb-" + rand
-	c.ElasticSearch.Synchronous = true
+	c.Elasticsearch.DBName = "arachnedb-" + rand
+	c.Elasticsearch.Synchronous = true
 }
 
 // ParseConfig parses a YAML doc into the given Config instance.

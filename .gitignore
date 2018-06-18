@@ -2,6 +2,7 @@
 *arachne.db*
 vendor
 build
+website/public
 .github_token
 
 # Python temps
@@ -22,4 +23,3 @@ eggs/
 *~
 \#*\#
 .desktop
-
