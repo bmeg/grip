@@ -1,0 +1,608 @@
+--
+-- PostgreSQL database dump
+--
+
+-- Dumped from database version 10.4 (Debian 10.4-2.pgdg90+1)
+-- Dumped by pg_dump version 10.4
+
+SET statement_timeout = 0;
+SET lock_timeout = 0;
+SET idle_in_transaction_session_timeout = 0;
+SET client_encoding = 'UTF8';
+SET standard_conforming_strings = on;
+SELECT pg_catalog.set_config('search_path', '', false);
+SET check_function_bodies = false;
+SET client_min_messages = warning;
+SET row_security = off;
+
+--
+-- Name: plpgsql; Type: EXTENSION; Schema: -; Owner: 
+--
+
+CREATE EXTENSION IF NOT EXISTS plpgsql WITH SCHEMA pg_catalog;
+
+
+--
+-- Name: EXTENSION plpgsql; Type: COMMENT; Schema: -; Owner: 
+--
+
+COMMENT ON EXTENSION plpgsql IS 'PL/pgSQL procedural language';
+
+
+--
+-- Name: hstore; Type: EXTENSION; Schema: -; Owner: 
+--
+
+CREATE EXTENSION IF NOT EXISTS hstore WITH SCHEMA public;
+
+
+--
+-- Name: EXTENSION hstore; Type: COMMENT; Schema: -; Owner: 
+--
+
+COMMENT ON EXTENSION hstore IS 'data type for storing sets of (key, value) pairs';
+
+
+SET default_tablespace = '';
+
+SET default_with_oids = false;
+
+--
+-- Name: products; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.products (
+    id integer NOT NULL,
+    title character varying(255),
+    price numeric,
+    created_at timestamp with time zone,
+    deleted_at timestamp with time zone,
+    tags character varying(255)[]
+);
+
+
+ALTER TABLE public.products OWNER TO postgres;
+
+--
+-- Name: products_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.products_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.products_id_seq OWNER TO postgres;
+
+--
+-- Name: products_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.products_id_seq OWNED BY public.products.id;
+
+
+--
+-- Name: purchase_items; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.purchase_items (
+    id integer NOT NULL,
+    purchase_id integer,
+    product_id integer,
+    price numeric,
+    quantity integer,
+    state character varying(255)
+);
+
+
+ALTER TABLE public.purchase_items OWNER TO postgres;
+
+--
+-- Name: purchase_items_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.purchase_items_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.purchase_items_id_seq OWNER TO postgres;
+
+--
+-- Name: purchase_items_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.purchase_items_id_seq OWNED BY public.purchase_items.id;
+
+
+--
+-- Name: purchases; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.purchases (
+    id integer NOT NULL,
+    created_at timestamp with time zone,
+    name character varying(255),
+    address character varying(255),
+    state character varying(2),
+    zipcode integer,
+    user_id integer
+);
+
+
+ALTER TABLE public.purchases OWNER TO postgres;
+
+--
+-- Name: purchases_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.purchases_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.purchases_id_seq OWNER TO postgres;
+
+--
+-- Name: purchases_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.purchases_id_seq OWNED BY public.purchases.id;
+
+
+--
+-- Name: users; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.users (
+    id integer NOT NULL,
+    email character varying(255),
+    password character varying(255),
+    details public.hstore,
+    created_at timestamp with time zone,
+    deleted_at timestamp with time zone
+);
+
+
+ALTER TABLE public.users OWNER TO postgres;
+
+--
+-- Name: users_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.users_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.users_id_seq OWNER TO postgres;
+
+--
+-- Name: users_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.users_id_seq OWNED BY public.users.id;
+
+
+--
+-- Name: products id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.products ALTER COLUMN id SET DEFAULT nextval('public.products_id_seq'::regclass);
+
+
+--
+-- Name: purchase_items id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.purchase_items ALTER COLUMN id SET DEFAULT nextval('public.purchase_items_id_seq'::regclass);
+
+
+--
+-- Name: purchases id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.purchases ALTER COLUMN id SET DEFAULT nextval('public.purchases_id_seq'::regclass);
+
+
+--
+-- Name: users id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.users ALTER COLUMN id SET DEFAULT nextval('public.users_id_seq'::regclass);
+
+
+--
+-- Data for Name: products; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.products (id, title, price, created_at, deleted_at, tags) FROM stdin;
+1	Dictionary	9.99	2011-01-01 20:00:00+00	\N	{Book}
+2	Python Book	29.99	2011-01-01 20:00:00+00	\N	{Book,Programming,Python}
+3	Ruby Book	27.99	2011-01-01 20:00:00+00	\N	{Book,Programming,Ruby}
+4	Baby Book	7.99	2011-01-01 20:00:00+00	\N	{Book,Children,Baby}
+5	Coloring Book	5.99	2011-01-01 20:00:00+00	\N	{Book,Children}
+6	Desktop Computer	499.99	2011-01-01 20:00:00+00	\N	{Technology}
+7	Laptop Computer	899.99	2011-01-01 20:00:00+00	\N	{Technology}
+8	MP3 Player	108.00	2011-01-01 20:00:00+00	\N	{Technology,Music}
+9	42" LCD TV	499.00	2011-01-01 20:00:00+00	\N	{Technology,TV}
+10	42" Plasma TV	529.00	2011-01-01 20:00:00+00	\N	{Technology,TV}
+11	Classical CD	9.99	2011-01-01 20:00:00+00	\N	{Music}
+12	Holiday CD	9.99	2011-01-01 20:00:00+00	\N	{Music}
+13	Country CD	9.99	2011-01-01 20:00:00+00	\N	{Music}
+14	Pop CD	9.99	2011-01-01 20:00:00+00	\N	{Music}
+15	Electronic CD	9.99	2011-01-01 20:00:00+00	\N	{Music}
+16	Comedy Movie	14.99	2011-01-01 20:00:00+00	\N	{Movie,Comedy}
+17	Documentary	14.99	2011-01-01 20:00:00+00	\N	{Movie}
+18	Romantic	14.99	2011-01-01 20:00:00+00	\N	{Movie}
+19	Drama	14.99	2011-01-01 20:00:00+00	\N	{Movie}
+20	Action	14.99	2011-01-01 20:00:00+00	\N	{Movie}
+\.
+
+
+--
+-- Data for Name: purchase_items; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.purchase_items (id, purchase_id, product_id, price, quantity, state) FROM stdin;
+2	1	3	27.99	1	Delivered
+3	1	8	108.00	1	Delivered
+4	2	1	9.99	2	Delivered
+5	3	12	9.99	1	Delivered
+6	3	17	14.99	4	Delivered
+7	3	11	9.99	1	Delivered
+8	4	4	7.99	3	Delivered
+9	5	18	14.99	1	Delivered
+10	5	2	29.99	4	Delivered
+11	6	5	5.99	1	Delivered
+12	7	6	499.99	3	Returned
+13	8	10	529.00	1	Delivered
+14	8	7	899.99	1	Delivered
+15	9	15	9.99	2	Delivered
+16	10	2	29.99	1	Delivered
+17	11	9	499.00	2	Delivered
+18	12	14	9.99	5	Delivered
+19	12	10	529.00	1	Delivered
+20	13	8	108.00	1	Delivered
+21	14	20	14.99	1	Delivered
+22	14	7	899.99	1	Delivered
+23	14	9	499.00	1	Delivered
+24	15	10	529.00	2	Delivered
+25	16	2	29.99	1	Delivered
+26	16	11	9.99	1	Delivered
+27	16	5	5.99	1	Delivered
+28	17	15	9.99	2	Delivered
+29	18	4	7.99	2	Delivered
+30	19	1	9.99	1	Returned
+31	19	7	899.99	1	Returned
+32	19	9	499.00	1	Returned
+33	20	20	14.99	5	Delivered
+34	21	13	9.99	3	Delivered
+35	21	20	14.99	1	Delivered
+36	22	7	899.99	1	Delivered
+37	22	4	7.99	1	Delivered
+38	22	15	9.99	1	Delivered
+39	23	4	7.99	1	Delivered
+40	24	4	7.99	2	Delivered
+41	25	14	9.99	4	Delivered
+42	25	12	9.99	1	Delivered
+43	26	12	9.99	2	Delivered
+44	26	6	499.99	1	Delivered
+45	26	4	7.99	1	Delivered
+46	27	11	9.99	1	Delivered
+47	28	9	499.00	1	Delivered
+48	29	8	108.00	1	Delivered
+49	29	10	529.00	1	Delivered
+50	30	13	9.99	1	Delivered
+51	31	2	29.99	2	Delivered
+52	32	16	14.99	1	Delivered
+53	32	19	14.99	2	Delivered
+54	33	9	499.00	1	Delivered
+55	34	16	14.99	1	Delivered
+56	34	1	9.99	1	Delivered
+57	35	6	499.99	1	Returned
+58	36	3	27.99	1	Delivered
+59	36	20	14.99	4	Delivered
+60	37	14	9.99	1	Delivered
+61	38	10	529.00	1	Returned
+62	39	2	29.99	2	Delivered
+63	40	17	14.99	1	Delivered
+64	41	12	9.99	1	Delivered
+65	42	14	9.99	2	Delivered
+66	43	6	499.99	2	Delivered
+67	43	3	27.99	1	Delivered
+68	44	10	529.00	4	Delivered
+69	44	3	27.99	4	Delivered
+70	45	12	9.99	1	Delivered
+71	46	7	899.99	1	Delivered
+72	47	12	9.99	2	Delivered
+73	48	3	27.99	4	Delivered
+74	49	6	499.99	1	Delivered
+75	49	20	14.99	1	Delivered
+76	50	8	108.00	1	Delivered
+77	51	7	899.99	1	Pending
+78	52	9	499.00	1	Delivered
+79	53	16	14.99	1	Delivered
+80	54	16	14.99	2	Delivered
+81	55	4	7.99	1	Delivered
+82	55	15	9.99	1	Delivered
+83	55	19	14.99	5	Delivered
+84	56	14	9.99	1	Delivered
+85	57	3	27.99	3	Delivered
+86	58	9	499.00	4	Delivered
+87	58	16	14.99	1	Delivered
+88	59	1	9.99	2	Delivered
+89	60	1	9.99	2	Delivered
+90	61	2	29.99	2	Delivered
+91	61	15	9.99	3	Delivered
+92	62	14	9.99	5	Delivered
+93	63	6	499.99	1	Delivered
+94	64	20	14.99	1	Delivered
+95	65	15	9.99	1	Returned
+96	66	12	9.99	1	Delivered
+97	67	11	9.99	2	Returned
+98	68	11	9.99	3	Pending
+99	69	12	9.99	2	Delivered
+100	70	4	7.99	1	Delivered
+101	71	12	9.99	2	Delivered
+\.
+
+
+--
+-- Data for Name: purchases; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.purchases (id, created_at, name, address, state, zipcode, user_id) FROM stdin;
+1	2011-03-16 15:03:00+00	Harrison Jonson	6425 43rd St.	FL	50382	7
+2	2011-09-14 05:00:00+00	Cortney Fontanilla	321 MLK Ave.	WA	43895	30
+3	2011-09-11 05:54:00+00	Ruthie Vashon	2307 45th St.	GA	98937	18
+4	2011-02-27 20:53:00+00	Isabel Wynn	7046 10th Ave.	NY	57243	11
+5	2011-12-20 12:45:00+00	Shari Dutra	4046 8th Ave.	FL	61539	34
+6	2011-12-10 13:29:00+00	Kristofer Galvez	2545 8th Ave.	WA	83868	39
+7	2011-06-19 03:42:00+00	Maudie Medlen	2049 44th Ave.	FL	52107	8
+8	2011-05-28 01:19:00+00	Isabel Crissman	1992 50th Ave.	VA	91062	50
+9	2011-03-31 10:33:00+00	Nydia Moe	5847 50th Ave.	WY	86738	32
+10	2011-01-27 04:58:00+00	Dee Heavner	8021 8th Ave.	TX	11065	23
+11	2011-12-15 01:12:00+00	Kristofer Larimer	5574 43rd St.	NY	78804	45
+12	2011-01-22 02:06:00+00	Rosemary Letellier	9888 California St.	CO	59199	25
+13	2011-08-14 19:27:00+00	Becky Stukes	7470 Washington Ave.	CO	49527	33
+14	2011-07-12 19:29:00+00	Berta Fruchter	3528 31st St.	GA	64386	5
+15	2011-08-02 14:37:00+00	Adell Doyel	1549 50th Ave.	VA	73935	9
+16	2011-03-24 10:04:00+00	Bradly Vasko	4388 45th St.	NY	84583	22
+17	2011-09-18 08:55:00+00	Clemencia Durio	478 44th Ave.	TX	27038	27
+18	2011-02-24 19:42:00+00	Kristle Pung	8394 8th Ave.	IL	67659	36
+19	2011-04-19 17:51:00+00	Adell Mayon	1482 31st St.	TX	72775	28
+20	2011-01-20 17:52:00+00	Carolann Yoshimura	9520 Washington Ave.	GA	20503	37
+21	2011-07-07 14:41:00+00	Andres Schippers	9600 44th Ave.	CO	62899	8
+22	2011-03-05 22:53:00+00	Divina Hamill	2103 50th Ave.	CO	73210	45
+23	2011-12-22 13:39:00+00	Romaine Coderre	6990 Washington Ave.	VA	31853	39
+24	2011-12-20 23:44:00+00	Kourtney Julian	8277 44th Ave.	VA	67133	37
+25	2011-05-30 17:49:00+00	Danyel Styers	8464 8th Ave.	WA	56917	9
+26	2011-12-24 02:29:00+00	Jame Petrin	410 44th Ave.	SC	94048	11
+27	2011-02-28 15:00:00+00	Kimi Birdsell	2438 50th Ave.	CO	58337	17
+28	2011-10-14 16:27:00+00	Jame Heavner	5307 43rd St.	TX	81439	34
+29	2011-07-08 22:20:00+00	Cammy Mayon	8612 Washington Ave.	NY	79807	8
+30	2011-05-24 08:03:00+00	Tommie Lanser	3673 10th Ave.	WY	50519	27
+31	2011-03-30 21:44:00+00	Brandon Fruchter	8354 Washington Ave.	NY	50274	43
+32	2011-01-12 16:26:00+00	Ricarda Pressey	6479 31st St.	TX	95407	48
+33	2011-11-01 21:34:00+00	Shalon Fontanilla	7271 50th Ave.	IL	71634	25
+34	2011-09-11 02:23:00+00	Edmund Pressnell	1644 31st St.	TX	63152	5
+35	2011-01-14 11:25:00+00	Homer Gasper	6472 46th Ave.	IL	86204	18
+36	2011-10-23 18:14:00+00	Brady Harshberger	1510 45th St.	VA	94138	37
+37	2011-06-20 21:37:00+00	Clemencia Matheson	204 California St.	CO	59664	47
+38	2011-04-07 06:52:00+00	Danyel Sisemore	5944 43rd St.	CO	62994	20
+39	2011-01-31 15:27:00+00	Laurence Kump	3057 43rd St.	IL	95353	15
+40	2011-11-01 22:01:00+00	Mitchell Pellegrin	7896 MLK Ave.	CO	55259	40
+41	2011-02-18 06:06:00+00	Emely Kimball	9162 MLK Ave.	GA	10585	24
+42	2011-10-29 19:36:00+00	Russ Petrin	6719 Washington Ave.	IL	75651	48
+43	2011-07-04 02:28:00+00	Miyoko Allbright	6824 35th St.42nd Ave.	WA	77819	44
+44	2011-03-15 08:42:00+00	Becky Wassink	4144 10th Ave.	WY	89509	49
+45	2011-11-11 01:22:00+00	Harley Dement	3438 44th Ave.	GA	34758	42
+46	2011-05-16 20:41:00+00	Mirta Alba	5171 10th Ave.	VA	67003	16
+47	2011-09-01 01:01:00+00	Buford Yoshimura	7387 35th St.42nd Ave.	IL	84086	18
+48	2011-05-29 18:37:00+00	Ruthie Tartaglia	2370 8th Ave.	TX	13848	50
+49	2011-05-22 00:02:00+00	Colleen Mcqueeney	8125 50th Ave.	NY	51760	9
+50	2011-10-11 22:53:00+00	Minerva Iriarte	9165 44th Ave.	IL	83449	27
+51	2011-10-20 00:28:00+00	Beverlee Mcdougle	5912 44th Ave.	WY	72995	23
+52	2011-10-08 05:19:00+00	Danyel Kipp	3085 31st St.	GA	44471	35
+53	2011-06-09 02:58:00+00	Miyoko Emmerich	6214 MLK Ave.	SC	92365	15
+54	2011-08-23 19:51:00+00	Colleen Connors	8948 46th Ave.	CO	16281	23
+55	2011-01-02 21:54:00+00	Milda Rabb	2727 43rd St.	VA	12546	24
+56	2011-08-25 23:55:00+00	Rivka Pressnell	2623 8th Ave.	WA	58091	10
+57	2011-01-03 01:49:00+00	Letitia Sprau	2106 Washington Ave.	IL	76898	1
+58	2011-08-31 07:41:00+00	Wendie Dilks	463 46th Ave.	NY	30838	41
+59	2011-01-24 22:11:00+00	Williams Alber	9289 Washington Ave.	NY	20505	31
+60	2011-12-17 12:59:00+00	Ricarda Nowakowski	3434 Washington Ave.	CO	53662	43
+61	2011-08-23 14:28:00+00	Irma Currier	6494 Washington Ave.	NY	98527	2
+62	2011-02-16 03:00:00+00	Salvatore Lightcap	7496 10th Ave.	SC	75435	6
+63	2011-04-28 20:22:00+00	Sol Fruchter	7295 10th Ave.	VA	50135	13
+64	2011-10-06 03:50:00+00	Nana Arends	6812 43rd St.	SC	48227	16
+65	2011-07-06 17:51:00+00	Brandon Roth	7583 35th St.42nd Ave.	TX	17570	29
+66	2011-09-04 10:32:00+00	Graig Sturgill	8547 45th St.	CO	67015	29
+67	2011-12-29 12:45:00+00	Lawerence Roff	8555 31st St.	NY	60022	35
+68	2011-04-29 20:05:00+00	Jenee Haefner	2232 43rd St.	FL	51498	20
+69	2011-03-29 21:35:00+00	Karole Calico	6659 Washington Ave.	VA	58202	14
+70	2011-04-07 10:43:00+00	Buddy Doyel	656 35th St.42nd Ave.	FL	89794	29
+71	2011-07-26 14:06:00+00	Ozella Selden	4063 8th Ave.	GA	28335	37
+72	2011-06-10 09:18:00+00	Mauro Allbright	9344 44th Ave.	IL	47037	7
+73	2011-03-01 16:56:00+00	Salvatore Kimball	8181 10th Ave.	CO	11819	10
+74	2011-10-31 10:51:00+00	Nana Suits	6844 45th St.	WY	45801	23
+75	2011-12-25 03:13:00+00	Minerva Li	5546 31st St.	FL	37071	12
+76	2011-01-24 14:13:00+00	Georgina Crissman	2534 35th St.42nd Ave.	SC	92320	26
+77	2011-12-22 21:08:00+00	Tommie Ange	4651 31st St.	NY	43609	44
+78	2011-04-21 07:52:00+00	Kymberly Ange	7780 44th Ave.	VA	17138	3
+79	2011-05-18 04:38:00+00	Reed Larimer	4937 Washington Ave.	NY	53172	16
+80	2011-08-27 20:03:00+00	Carmel Letellier	8915 Washington Ave.	FL	76107	16
+81	2011-11-04 11:56:00+00	Colleen Seabaugh	6198 California St.	TX	25936	20
+82	2011-11-26 16:47:00+00	Granville Blumer	7705 MLK Ave.	WY	21361	23
+83	2011-01-28 23:07:00+00	Brady Durio	7813 45th St.	WA	15632	8
+84	2011-11-22 20:47:00+00	Graciela Kiser	3266 California St.	NY	40432	13
+85	2011-05-01 22:45:00+00	Angel Lesane	2318 MLK Ave.	FL	93225	15
+86	2011-03-18 09:04:00+00	Shawanda Ange	5504 8th Ave.	WA	28528	26
+87	2011-03-31 20:54:00+00	Samatha Dougal	7052 35th St.42nd Ave.	NY	36717	15
+88	2011-08-18 00:43:00+00	Dee Luman	7214 10th Ave.	WY	35245	37
+89	2011-08-04 04:14:00+00	Rolf Crenshaw	5857 43rd St.	TX	21037	7
+90	2011-11-24 19:35:00+00	Irma Disney	2848 MLK Ave.	VA	73667	44
+91	2011-11-13 21:18:00+00	Letitia Strayer	4441 35th St.42nd Ave.	SC	14491	8
+92	2011-04-14 21:12:00+00	Angel Benedetto	4875 35th St.42nd Ave.	WA	30254	18
+93	2011-06-12 18:43:00+00	Claud Vasko	7661 8th Ave.	WY	10935	32
+94	2011-05-12 20:46:00+00	Berta Fretz	272 45th St.	FL	36777	48
+95	2011-07-16 22:41:00+00	Johnathan Pressey	1162 44th Ave.	SC	46110	38
+96	2011-02-12 19:30:00+00	Brady Mcclain	3235 Washington Ave.	IL	31913	23
+97	2011-03-23 14:11:00+00	Theresia Lesane	2797 44th Ave.	GA	67585	23
+98	2011-07-23 13:01:00+00	Lawerence Senko	1528 31st St.	NY	49526	49
+99	2011-11-20 05:41:00+00	Rivka Scharf	7255 10th Ave.	TX	59794	36
+100	2011-09-12 04:07:00+00	Rubie Wassink	4864 10th Ave.	CO	35894	12
+\.
+
+
+--
+-- Data for Name: users; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.users (id, email, password, details, created_at, deleted_at) FROM stdin;
+1	Earlean.Bonacci@yahoo.com	029761dd44fec0b14825843ad0dfface	\N	2009-12-20 20:36:00+00	\N
+2	Evelyn.Patnode@gmail.com	d678656644a3f44023f90e4f1cace1f4	"sex"=>"M"	2010-11-12 21:27:00+00	\N
+3	Derek.Crenshaw@gmail.com	5ab7bc159c6371c65b41059097ff0efe	"sex"=>"F"	2009-03-08 03:06:00+00	\N
+4	Shari.Julian@yahoo.com	9d38df22b71c8896137d363e29814e5f	"sex"=>"M"	2010-11-20 10:58:00+00	\N
+5	Zita.Breeding@gmail.com	7a1c8d1d180d75da38efbd03f388472d	\N	2009-08-11 22:33:00+00	\N
+6	Samatha.Hedgpeth@yahoo.com	e129316bf01b0440247414b715726956	"sex"=>"F"	2010-07-18 10:40:00+00	\N
+7	Quinton.Gilpatrick@yahoo.com	7c63f3c25ee52041c2b9aec3c21a96b6	"sex"=>"M"	2010-09-02 21:56:00+00	\N
+8	Vivian.Westmoreland@yahoo.com	100945c1684d6926dcafcacd967aedd9	"sex"=>"F", "state"=>"South Carolina"	2009-10-01 11:34:00+00	\N
+9	Danny.Crays@gmail.com	511e3229996147ae68f83bab75b9733e	"sex"=>"M"	2009-04-22 07:30:00+00	\N
+10	Edmund.Roles@yahoo.com	aeac2309a2b01e19177564126a6f8393	"sex"=>"F", "state"=>"New York"	2009-07-07 21:01:00+00	\N
+11	Shanell.Lichtenstein@aol.com	98ac14b2c6b7bef8a55b5654aee5f28b	"sex"=>"M"	2009-05-22 00:18:00+00	\N
+12	Romaine.Birdsell@aol.com	4571853f5ee73e305ac152c765ad2915	"sex"=>"F"	2009-01-14 05:07:00+00	\N
+13	Zita.Luman@yahoo.com	7467fa8332bc45a15ad2c7003c963ea2	\N	2009-02-04 14:49:00+00	\N
+14	Claud.Cousineau@gmail.com	82bcc0c4c3fc1a9bbae75dc7b8fabccc	"sex"=>"F"	2009-08-17 18:48:00+00	\N
+15	Kali.Damore@yahoo.com	66327b7500c1b4a115910260418fd582	"sex"=>"F"	2010-07-07 10:28:00+00	\N
+16	Graciela.Kubala@yahoo.com	85dbdc9fff08c157d7d10555009ef8ff	"sex"=>"F"	2010-08-19 05:42:00+00	\N
+17	Theresia.Edwin@yahoo.com	87b2ae03da521142fd37676e6a3c376a	"sex"=>"M"	2010-08-11 08:21:00+00	\N
+18	Ozella.Yoshimura@gmail.com	df68a6070ac1f18ce7a16baa96922948	"sex"=>"M"	2010-07-23 16:03:00+00	\N
+19	Wynona.Greening@aol.com	176c818bc66324925ff6c274667e3e8f	"sex"=>"M"	2009-05-24 14:25:00+00	\N
+20	Kimi.Mcqueeney@gmail.com	588169a56191c0f99b08e7a392e03ada	\N	2010-06-22 15:16:00+00	\N
+21	Cherryl.Tarnowski@gmail.com	35981f660fedede469fce21cc146aa86	\N	2009-01-26 09:56:00+00	\N
+22	Isabel.Breeding@gmail.com	a32fbb3e28f4cea747d0eef30aaf9ae5	\N	2010-07-11 13:28:00+00	\N
+23	Ivana.Kurth@yahoo.com	ca72fafea92a1ef152006b53e2532571	\N	2010-06-25 08:36:00+00	\N
+24	Humberto.Jonson@yahoo.com	642a91737480d3bbbf621689633ee9c3	\N	2009-09-23 13:09:00+00	\N
+25	Ivana.Sosnowski@aol.com	f12980358430ee7ae192b041aa6ac05d	"sex"=>"M"	2009-01-16 11:55:00+00	\N
+26	Cortney.Strayer@gmail.com	d80da950209cffdb96c76648d4f5b8f7	"sex"=>"M", "state"=>"Virginia"	2009-07-19 06:08:00+00	\N
+27	Williams.Upson@gmail.com	de9a71ad16e0443955d38e4f6864d3c4	"sex"=>"F"	2010-08-10 05:48:00+00	\N
+28	Jeremiah.Buonocore@yahoo.com	1994c6611461fc9d11683b50e540d701	\N	2009-03-19 07:49:00+00	\N
+29	Ozella.Roles@gmail.com	8bee01c9b64ed4ca3e68f3c3502e1d85	\N	2009-10-09 09:44:00+00	\N
+30	Salvatore.Arends@aol.com	8c64e4bf1574238287f230fde0314664	"sex"=>"F", "state"=>"Virginia"	2009-09-05 01:55:00+00	\N
+31	Layne.Sarver@aol.com	296ca911a6fc78b4b3e75f927c16fcfd	"sex"=>"M"	2010-09-26 08:00:00+00	\N
+32	Takako.Gilpatrick@aol.com	3abe3e825f6e749dca1b8193d5f15215	"sex"=>"M"	2009-02-22 15:46:00+00	\N
+33	Russ.Mcclain@yahoo.com	cf17dc7c023e4a9f3fe6be05352aa57f	"sex"=>"F"	2010-01-12 17:27:00+00	\N
+34	Claud.Westmoreland@aol.com	631f77eeef3e513c8aad646fdd73c03a	\N	2010-06-11 17:21:00+00	\N
+35	Derek.Knittel@gmail.com	ce3ce9650891124de7f449c84a33ff71	"sex"=>"F"	2010-08-16 21:09:00+00	\N
+36	Eleanor.Patnode@yahoo.com	c20912ab068921f869ee26724bdfc081	"sex"=>"F", "state"=>"Florida"	2010-06-06 01:27:00+00	\N
+37	Carmel.Bulfer@aol.com	15267e65daa06c6fcde10c80f8a744d3	"sex"=>"F", "state"=>"Florida"	2009-06-06 20:13:00+00	\N
+38	Mauro.Pung@yahoo.com	4e625168e5ea9bd548c303d20ecc95b5	"sex"=>"F", "state"=>"Illinois"	2009-08-20 02:34:00+00	\N
+39	Sherilyn.Hamill@gmail.com	2f313c4006182796faf17d83e7f3312b	"sex"=>"M"	2010-04-01 23:39:00+00	\N
+40	Glen.Lanphear@yahoo.com	66565168a637a3c5f43bdf5bf2e9313a	\N	2010-08-06 15:14:00+00	\N
+41	Stacia.Schrack@aol.com	8a918b3f99c9d9aefbbd5de4fbc2ba07	"sex"=>"M"	2010-06-14 19:28:00+00	\N
+42	Tonette.Alba@gmail.com	9e742176f6d41b88a4c77334267a8ac0	\N	2009-12-28 10:21:00+00	\N
+43	Eve.Kump@yahoo.com	300b9c56bfe5d45417961ef08f28498a	"sex"=>"M"	2009-08-20 09:45:00+00	\N
+44	Shanell.Maxson@gmail.com	e47a8b0056427f189f146889d457f5c2	"sex"=>"M"	2009-11-21 06:28:00+00	\N
+45	Gudrun.Arends@gmail.com	735dba8760996aafd1b08b443c6fa4f9	\N	2010-06-30 12:30:00+00	\N
+46	Angel.Lessley@yahoo.com	970efafe901fff211538e536ad797443	"sex"=>"F"	2009-08-21 17:06:00+00	\N
+47	Harrison.Puett@yahoo.com	ff9e460aaca39a2c3bbd68043047826a	"sex"=>"M"	2009-07-21 15:20:00+00	\N
+48	Granville.Hedgpeth@gmail.com	87f0bfd98e2a9b8d30bc1309936744cb	\N	2009-08-03 14:54:00+00	\N
+49	Samatha.Pellegrin@yahoo.com	4e2a5f4b462636dbc7519bc49f841822	\N	2009-03-25 20:17:00+00	\N
+50	Wan.Dilks@gmail.com	0650f5923e2abce41721d3d9ab37cc54	"sex"=>"M"	2009-10-08 22:43:00+00	\N
+\.
+
+
+--
+-- Name: products_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.products_id_seq', 20, true);
+
+
+--
+-- Name: purchase_items_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.purchase_items_id_seq', 1458, true);
+
+
+--
+-- Name: purchases_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.purchases_id_seq', 1000, true);
+
+
+--
+-- Name: users_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.users_id_seq', 50, true);
+
+
+--
+-- Name: products products_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.products
+    ADD CONSTRAINT products_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: purchases purchases_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.purchases
+    ADD CONSTRAINT purchases_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: users users_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.users
+    ADD CONSTRAINT users_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: purchase_items purchase_items_product_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.purchase_items
+    ADD CONSTRAINT purchase_items_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(id);
+
+
+--
+-- Name: purchase_items purchase_items_purchase_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.purchase_items
+    ADD CONSTRAINT purchase_items_purchase_id_fkey FOREIGN KEY (purchase_id) REFERENCES public.purchases(id);
+
+
+--
+-- Name: purchases purchases_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.purchases
+    ADD CONSTRAINT purchases_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id);
+
+
+--
+-- PostgreSQL database dump complete
+--
+

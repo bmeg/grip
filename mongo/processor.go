@@ -154,6 +154,17 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 					out <- &gdbi.Traveler{Aggregations: aggs}
 
 				default:
+					if marks, ok := result["marks"]; ok {
+						if marks, ok := marks.(map[string]interface{}); ok {
+							for k, v := range marks {
+								if v, ok := v.(map[string]interface{}); ok {
+									de := getDataElement(v)
+									t = t.AddMark(k, de)
+								}
+							}
+						}
+					}
+
 					de := &gdbi.DataElement{}
 					if x, ok := result["_id"]; ok {
 						de.ID = x.(string)

@@ -2,6 +2,7 @@ package test
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"reflect"
 	"regexp"
@@ -18,26 +19,6 @@ import (
 
 var Q = &aql.Query{}
 
-var verts = []*aql.Vertex{
-	vert("Human", dat{"name": "Alex", "age": 12}),
-	vert("Human", dat{"name": "Kyle", "age": 34}),
-	vert("Human", dat{"name": "Ryan", "age": 56}),
-	vert("Robot", dat{"name": "C-3PO"}),
-	vert("Robot", dat{"name": "R2-D2"}),
-	vert("Robot", dat{"name": "Bender"}),
-	vert("Clone", dat{"name": "Alex"}),
-	vert("Clone", dat{"name": "Kyle"}),
-	vert("Clone", dat{"name": "Ryan"}),
-	vert("Clone", nil),
-	vert("Project", dat{"name": "Funnel"}),
-	vert("Project", dat{"name": "Gaia"}),
-}
-
-var edges = []*aql.Edge{
-	edge(verts[0], verts[10], "WorksOn", nil),
-	edge(verts[2], verts[11], "WorksOn", nil),
-}
-
 // checker is the interface of a function that validates the results of a test query.
 type checker func(t *testing.T, actual <-chan *aql.QueryResult)
 
@@ -46,162 +27,294 @@ type queryTest struct {
 	expected checker
 }
 
-var table = []queryTest{
-	{
-		Q.V().Where(aql.In("name", "Kyle", "Alex")),
-		pick(verts[0], verts[1], verts[6], verts[7]),
-	},
-	{
-		Q.V().Where(aql.Eq("non-existent-field", "Kyle")),
-		pick(),
-	},
-	{
-		Q.V().Where(aql.Eq("_label", "Human")),
-		pick(verts[0], verts[1], verts[2]),
-	},
-	{
-		Q.V().Where(aql.Eq("_label", "Robot")),
-		pick(verts[3], verts[4], verts[5]),
-	},
-	{
-		Q.V().Where(aql.In("_label", "Robot", "Human")),
-		pick(verts[0], verts[1], verts[2], verts[3], verts[4], verts[5]),
-	},
-	{
-		Q.V().Where(aql.Eq("_label", "non-existent")),
-		pick(),
-	},
-	{
-		Q.V().Where(aql.In("_gid", verts[0].Gid, verts[2].Gid)),
-		pick(verts[0], verts[2]),
-	},
-	{
-		Q.V().Where(aql.Eq("_gid", "non-existent")),
-		pick(),
-	},
-	{
-		Q.V().Limit(2),
-		func(t *testing.T, res <-chan *aql.QueryResult) {
-			count := 0
-			for range res {
-				count++
-			}
-			if count != 2 {
-				t.Errorf("expected 2 results got %v", count)
-			}
-		},
-	},
-	{
-		Q.V().Count(),
-		count(uint32(len(verts))),
-	},
-	{
-		Q.V().Where(aql.And(aql.Eq("_label", "Human"), aql.Eq("name", "Ryan"))),
-		pick(verts[2]),
-	},
-	{
-		Q.V().Where(aql.Eq("_label", "Human")).Mark("x").Where(aql.Eq("name", "Alex")).Select("x"),
-		pickselection(map[string]interface{}{"x": verts[0]}),
-	},
-	{
-		Q.V(),
-		pickAllVerts(),
-	},
-	{
-		Q.E(),
-		pickAllEdges(),
-	},
-	{
-		Q.V().Where(aql.Eq("_label", "Human")).Out(),
-		pick(verts[10], verts[11]),
-	},
-	{
-		Q.V().Where(aql.Eq("_label", "Human")).Out().Where(aql.Eq("name", "Funnel")),
-		pick(verts[10]),
-	},
-	{
-		Q.V().Where(aql.Eq("_label", "Human")).Mark("x").Out().Where(aql.Eq("name", "Funnel")).Select("x"),
-		pickselection(map[string]interface{}{"x": verts[0]}),
-	},
-	{
-		Q.V().Where(aql.Eq("_label", "Human")).OutEdge(),
-		pickAllEdges(),
-	},
-	{
-		Q.V().Where(aql.Eq("_label", "Human")).Where(aql.Eq("name", "Alex")).OutEdge(),
-		pick(edges[0]),
-	},
-	{
-		Q.V().Where(aql.Eq("_label", "Human")).Fields("name"),
-		pick(
-			&aql.Vertex{Data: protoutil.AsStruct(map[string]interface{}{"name": "Alex"})},
-			&aql.Vertex{Data: protoutil.AsStruct(map[string]interface{}{"name": "Kyle"})},
-			&aql.Vertex{Data: protoutil.AsStruct(map[string]interface{}{"name": "Ryan"})},
-		),
-	},
-	{
-		Q.V().
-			Where(aql.Eq("_label", "Human")).Mark("x").
-			Out().
-			Where(aql.Eq("name", "Funnel")).Mark("y").
-			Fields("$y._gid", "$y._label", "$y.name", "$x._gid", "$x._label", "$x.name").
-			Select("x", "y"),
-		pickselection(map[string]interface{}{
-			"x": &aql.Vertex{Gid: verts[0].Gid, Label: verts[0].Label, Data: protoutil.AsStruct(map[string]interface{}{"name": "Alex"})},
-			"y": &aql.Vertex{Gid: verts[10].Gid, Label: verts[10].Label, Data: protoutil.AsStruct(map[string]interface{}{"name": "Funnel"})},
-		}),
-	},
-	{
-		Q.V().Match(
-			Q.Where(aql.Eq("_label", "Human")),
-			Q.Where(aql.Eq("name", "Alex")),
-		),
-		pick(verts[0]),
-	},
-	{
-		Q.V().Match(
-			Q.Mark("a").Where(aql.Eq("_label", "Human")).Mark("b"),
-			Q.Mark("b").Where(aql.Eq("name", "Alex")).Mark("c"),
-		).Select("c"),
-		pickselection(map[string]interface{}{"c": verts[0]}),
-	},
-	{
-		Q.V().Match(
-			Q.Mark("a").Where(aql.Eq("_label", "Human")).Mark("b"),
-			Q.Mark("b").Where(aql.Eq("name", "Alex")).Mark("c"),
-		).Select("b", "c"),
-		pickselection(map[string]interface{}{"b": verts[0], "c": verts[0]}),
-	},
-	/*
-	  TODO fairly certain match does not support this query from the gremlin docs
-	  gremlin> graph.io(graphml()).readGraph('data/grateful-dead.xml')
-	  gremlin> g = graph.traversal()
-	  ==>graphtraversalsource[tinkergraph[vertices:808 edges:8049], standard]
-	  gremlin> g.V().match(
-	                   __.as('a').has('name', 'Garcia'),
-	                   __.as('a').in('writtenBy').as('b'),
-	                   __.as('a').in('sungBy').as('b')).
-	                 select('b').values('name')
-	  ==>CREAM PUFF WAR
-	  ==>CRYPTICAL ENVELOPMENT
-	*/
-}
-
 func TestEngine(t *testing.T) {
-	for _, v := range verts {
-		err := db.AddVertex([]*aql.Vertex{v})
-		if err != nil {
-			t.Fatal(err)
-		}
-	}
-	for _, e := range edges {
-		err := db.AddEdge([]*aql.Edge{e})
-		if err != nil {
-			t.Fatal(err)
-		}
+	tests := []queryTest{
+		{
+			Q.V().Count(),
+			count(len(vertices)),
+		},
+		{
+			Q.E().Count(),
+			count(len(edges)),
+		},
+		{
+			Q.V(),
+			pickAllVertices(),
+		},
+		{
+			Q.E(),
+			pickAllEdges(),
+		},
+		{
+			Q.V().Where(aql.Eq("_label", "users")).Count(),
+			count(50),
+		},
+		{
+			Q.V().Where(aql.Eq("_label", "products")).Count(),
+			count(20),
+		},
+		{
+			Q.V().Where(aql.Eq("_label", "purchases")).Count(),
+			count(100),
+		},
+		{
+			Q.E().Where(aql.Eq("_label", "purchasedProducts")).Count(),
+			count(100),
+		},
+		{
+			Q.E().Where(aql.Eq("_label", "userPurchases")).Count(),
+			count(100),
+		},
+		{
+			Q.V().Where(aql.Eq("_label", "does-not-exist")).Count(),
+			count(0),
+		},
+		{
+			Q.E().Where(aql.Eq("_label", "does-not-exist")).Count(),
+			count(0),
+		},
+		{
+			Q.V().Where(aql.Eq("_label", "users")).Out().Count(),
+			count(100),
+		},
+		{
+			Q.V("users:1").Out(),
+			pick("purchases:57"),
+		},
+		{
+			Q.V().Where(aql.Eq("_label", "purchases")).Out().Count(),
+			count(100),
+		},
+		{
+			Q.V("purchases:1").Out(),
+			pick("products:3", "products:8"),
+		},
+		{
+			Q.V().Where(aql.Eq("_label", "products")).Out().Count(),
+			count(0),
+		},
+		{
+			Q.V("products:1").Out(),
+			pick(),
+		},
+		{
+			Q.V().Where(aql.Eq("_label", "users")).In().Count(),
+			count(0),
+		},
+		{
+			Q.V("users:1").In(),
+			pick(),
+		},
+		{
+			Q.V().Where(aql.Eq("_label", "purchases")).In().Count(),
+			count(100),
+		},
+		{
+			Q.V("purchases:1").In(),
+			pick("users:7"),
+		},
+		{
+			Q.V().Where(aql.Eq("_label", "products")).In().Count(),
+			count(100),
+		},
+		{
+			Q.V("products:1").In(),
+			pick("purchases:2", "purchases:19", "purchases:34", "purchases:59", "purchases:60"),
+		},
+		{
+			Q.V().Where(aql.Eq("_label", "users")).Both().Count(),
+			count(100),
+		},
+		{
+			Q.V("users:1").Both(),
+			pick("purchases:57"),
+		},
+		{
+			Q.V().Where(aql.Eq("_label", "purchases")).Both().Count(),
+			count(200),
+		},
+		{
+			Q.V("purchases:1").Both(),
+			pick("users:7", "products:3", "products:8"),
+		},
+		{
+			Q.V().Where(aql.Eq("_label", "products")).Both().Count(),
+			count(100),
+		},
+		{
+			Q.V("products:1").Both(),
+			pick("purchases:2", "purchases:19", "purchases:34", "purchases:59", "purchases:60"),
+		},
+		{
+			Q.V().Where(aql.Eq("_label", "users")).OutEdge().Count(),
+			count(100),
+		},
+		{
+			Q.V("users:1").OutEdge(),
+			pick("userPurchases:users:1:purchases:57"),
+		},
+		{
+			Q.V().Where(aql.Eq("_label", "purchases")).OutEdge().Count(),
+			count(100),
+		},
+		{
+			Q.V("purchases:1").OutEdge(),
+			pick("purchase_items:2", "purchase_items:3"),
+		},
+		{
+			Q.V().Where(aql.Eq("_label", "products")).OutEdge().Count(),
+			count(0),
+		},
+		{
+			Q.V("products:1").OutEdge(),
+			pick(),
+		},
+		{
+			Q.V().Where(aql.Eq("_label", "users")).InEdge().Count(),
+			count(0),
+		},
+		{
+			Q.V("users:1").InEdge(),
+			pick(),
+		},
+		{
+			Q.V().Where(aql.Eq("_label", "purchases")).InEdge().Count(),
+			count(100),
+		},
+		{
+			Q.V("purchases:1").InEdge(),
+			pick("userPurchases:users:7:purchases:1"),
+		},
+		{
+			Q.V().Where(aql.Eq("_label", "products")).InEdge().Count(),
+			count(100),
+		},
+		{
+			Q.V("products:1").InEdge(),
+			pick("purchase_items:4", "purchase_items:30", "purchase_items:56", "purchase_items:88", "purchase_items:89"),
+		},
+		{
+			Q.V().Where(aql.Eq("_label", "users")).BothEdge().Count(),
+			count(100),
+		},
+		{
+			Q.V("users:1").BothEdge(),
+			pick("userPurchases:users:1:purchases:57"),
+		},
+		{
+			Q.V().Where(aql.Eq("_label", "purchases")).BothEdge().Count(),
+			count(200),
+		},
+		{
+			Q.V("purchases:1").BothEdge(),
+			pick("userPurchases:users:7:purchases:1", "purchase_items:2", "purchase_items:3"),
+		},
+		{
+			Q.V().Where(aql.Eq("_label", "products")).BothEdge().Count(),
+			count(100),
+		},
+		{
+			Q.V("products:1").BothEdge(),
+			pick("purchase_items:4", "purchase_items:30", "purchase_items:56", "purchase_items:88", "purchase_items:89"),
+		},
+		{
+			Q.V().Where(aql.Eq("_label", "users")).Where(aql.Eq("details", "\"sex\"=>\"M\"")).Count(),
+			count(17),
+		},
+		{
+			Q.V().Where(aql.Eq("_label", "users")).Where(aql.Not(aql.Eq("details", "\"sex\"=>\"M\""))).Count(),
+			count(33),
+		},
+		{
+			Q.V().Where(aql.Eq("_label", "users")).Where(aql.Neq("details", "\"sex\"=>\"M\"")).Count(),
+			count(33),
+		},
+		{
+			Q.V().Where(aql.Eq("_label", "purchases")).Where(aql.Or(aql.Eq("state", "TX"), aql.Eq("state", "WY"))).Count(),
+			count(19),
+		},
+		{
+			Q.V().Where(aql.Eq("_label", "products")).Where(aql.Eq("price", 29.99)),
+			pick("products:2"),
+		},
+		{
+			Q.V().Where(aql.Eq("_label", "products")).Where(aql.Gt("price", 29.99)).Count(),
+			count(5),
+		},
+		{
+			Q.V().Where(aql.Eq("_label", "products")).Where(aql.Gte("price", 29.99)).Count(),
+			count(6),
+		},
+		{
+			Q.V().Where(aql.Eq("_label", "products")).Where(aql.Lt("price", 29.99)).Count(),
+			count(14),
+		},
+		{
+			Q.V().Where(aql.Eq("_label", "products")).Where(aql.Lte("price", 29.99)).Count(),
+			count(15),
+		},
+		{
+			Q.V().Where(aql.Eq("_label", "products")).Where(aql.And(aql.Lt("price", 29.99), aql.Gt("price", 9.99))).Count(),
+			count(6),
+		},
+		{
+			Q.V().Where(aql.Eq("_label", "products")).Where(aql.Contains("tags", "Movie")).Count(),
+			count(5),
+		},
+		{
+			Q.V().Where(aql.Eq("_label", "products")).Where(aql.In("title", "Action", "Drama")),
+			pick("products:19", "products:20"),
+		},
+		{
+			Q.V().Limit(10).Count(),
+			count(10),
+		},
+		{
+			Q.V().Offset(100).Count(),
+			count(70),
+		},
+		{
+			Q.V("users:1").Fields("_label", "email"),
+			pickRes(vertex("", "users", data{"email": "Earlean.Bonacci@yahoo.com"})),
+		},
+		{
+			Q.V("users:1").Mark("a").Out().Mark("b").Select("a", "b"),
+			pickSelection(map[string]interface{}{
+				"a": getVertex("users:1"),
+				"b": getVertex("purchases:57"),
+			}),
+		},
+		{
+			Q.V("users:1").Mark("a").Out().Mark("b").Fields("$a._gid", "$a._label", "$b._gid", "$b._label").Select("a", "b"),
+			pickSelection(map[string]interface{}{
+				"a": vertex("users:1", "users", nil),
+				"b": vertex("purchases:57", "purchases", nil),
+			}),
+		},
+		{
+			Q.V().Match(
+				Q.Where(aql.Eq("_label", "products")),
+				Q.Where(aql.Eq("price", 499.99)),
+			),
+			pick("products:6"),
+		},
+		{
+			Q.V().Match(
+				Q.Mark("a").Where(aql.Eq("_label", "products")).Mark("b"),
+				Q.Mark("b").Where(aql.Eq("price", 499.99)).Mark("c"),
+			).Select("c"),
+			pickSelection(map[string]interface{}{
+				"c": getVertex("products:6"),
+			}),
+		},
+		{
+			Q.V("users:1").Mark("a").Out().Mark("b").
+				Render(map[string]interface{}{"user_id": "$a._gid", "purchase_id": "$b._gid", "purchaser": "$b.name"}),
+			render(map[string]interface{}{"user_id": "users:1", "purchase_id": "purchases:57", "purchaser": "Letitia Sprau"}),
+		},
 	}
 
-	for _, desc := range table {
+	for _, desc := range tests {
 		desc := desc
 		name := cleanName(dbname + "_" + desc.query.String())
 
@@ -218,7 +331,27 @@ func TestEngine(t *testing.T) {
 	}
 }
 
-// this sorts the results to account for non-determinstic ordering from the db.
+func vertex(gid, label string, d data) *aql.Vertex {
+	return &aql.Vertex{
+		Gid:   gid,
+		Label: label,
+		Data:  protoutil.AsStruct(d),
+	}
+}
+
+func edge(gid interface{}, from, to string, label string, d data) *aql.Edge {
+	return &aql.Edge{
+		Gid:   fmt.Sprintf("%v", gid),
+		From:  from,
+		To:    to,
+		Label: label,
+		Data:  protoutil.AsStruct(d),
+	}
+}
+
+type data map[string]interface{}
+
+// This sorts the results to account for non-determinstic ordering from the db.
 // TODO this will break sort tests
 func compare(expect []*aql.QueryResult) checker {
 	return func(t *testing.T, actual <-chan *aql.QueryResult) {
@@ -244,39 +377,84 @@ func compare(expect []*aql.QueryResult) checker {
 			for _, s := range expectS {
 				t.Log("expect", s)
 			}
-			t.Error("not equal")
+			if len(expectS) != len(actualS) {
+				t.Logf("expected # results: %d actual # results: %d", len(expectS), len(actualS))
+			}
+			t.Errorf("not equal")
 		}
 	}
 }
 
-func pick(vals ...interface{}) checker {
+func pick(gids ...string) checker {
 	expect := []*aql.QueryResult{}
-	for _, ival := range vals {
-		res := pickres(ival)
+	for _, id := range gids {
+		res := pickgid(id)
 		expect = append(expect, res)
 	}
 	return compare(expect)
 }
 
-func pickres(ival interface{}) *aql.QueryResult {
-	switch val := ival.(type) {
-	case *aql.Vertex:
-		return &aql.QueryResult{
-			Result: &aql.QueryResult_Vertex{Vertex: val},
+func getVertex(gid string) *aql.Vertex {
+	for _, v := range vertices {
+		if v.Gid == gid {
+			return v
 		}
-	case *aql.Edge:
-		return &aql.QueryResult{
-			Result: &aql.QueryResult_Edge{Edge: val},
-		}
-	default:
-		panic("unknown")
 	}
+	return nil
 }
 
-func pickAllVerts() checker {
+func getEdge(gid string) *aql.Edge {
+	for _, e := range edges {
+		if e.Gid == gid {
+			return e
+		}
+	}
+	return nil
+}
+
+func pickgid(gid string) *aql.QueryResult {
+	v := getVertex(gid)
+	if v != nil {
+		return &aql.QueryResult{
+			Result: &aql.QueryResult_Vertex{Vertex: v},
+		}
+	}
+	e := getEdge(gid)
+	if e != nil {
+		return &aql.QueryResult{
+			Result: &aql.QueryResult_Edge{Edge: e},
+		}
+	}
+	panic("no vertex or edge found for gid")
+}
+
+func pickRes(ival ...interface{}) checker {
 	expect := []*aql.QueryResult{}
-	for _, ival := range verts {
-		res := pickres(ival)
+	for _, val := range ival {
+		switch v := val.(type) {
+		case *aql.Vertex:
+			res := &aql.QueryResult{
+				Result: &aql.QueryResult_Vertex{Vertex: v},
+			}
+			expect = append(expect, res)
+		case *aql.Edge:
+			res := &aql.QueryResult{
+				Result: &aql.QueryResult_Edge{Edge: v},
+			}
+			expect = append(expect, res)
+		default:
+			panic(fmt.Sprintf("unhandled type %T", val))
+		}
+	}
+	return compare(expect)
+}
+
+func pickAllVertices() checker {
+	expect := []*aql.QueryResult{}
+	for _, v := range vertices {
+		res := &aql.QueryResult{
+			Result: &aql.QueryResult_Vertex{Vertex: v},
+		}
 		expect = append(expect, res)
 	}
 	return compare(expect)
@@ -284,14 +462,16 @@ func pickAllVerts() checker {
 
 func pickAllEdges() checker {
 	expect := []*aql.QueryResult{}
-	for _, ival := range edges {
-		res := pickres(ival)
+	for _, e := range edges {
+		res := &aql.QueryResult{
+			Result: &aql.QueryResult_Edge{Edge: e},
+		}
 		expect = append(expect, res)
 	}
 	return compare(expect)
 }
 
-func pickselection(selection map[string]interface{}) checker {
+func pickSelection(selection map[string]interface{}) checker {
 	s := map[string]*aql.Selection{}
 	for mark, ival := range selection {
 		switch val := ival.(type) {
@@ -308,7 +488,7 @@ func pickselection(selection map[string]interface{}) checker {
 				},
 			}
 		default:
-			panic("unknown")
+			panic(fmt.Sprintf("unhandled type %T", ival))
 		}
 	}
 	expect := []*aql.QueryResult{
@@ -321,43 +501,33 @@ func pickselection(selection map[string]interface{}) checker {
 	return compare(expect)
 }
 
-func count(i uint32) checker {
+func count(i int) checker {
 	expect := []*aql.QueryResult{
 		{
 			Result: &aql.QueryResult_Count{
-				Count: i,
+				Count: uint32(i),
 			},
 		},
 	}
 	return compare(expect)
 }
 
-func vert(label string, d dat) *aql.Vertex {
-	return &aql.Vertex{
-		Gid:   util.UUID(),
-		Label: label,
-		Data:  protoutil.AsStruct(d),
+func render(v interface{}) checker {
+	expect := []*aql.QueryResult{
+		{
+			Result: &aql.QueryResult_Render{
+				Render: protoutil.WrapValue(v),
+			},
+		},
 	}
+	return compare(expect)
 }
-
-func edge(from, to *aql.Vertex, label string, d dat) *aql.Edge {
-	return &aql.Edge{
-		Gid:   util.UUID(),
-		From:  from.Gid,
-		To:    to.Gid,
-		Label: label,
-		Data:  protoutil.AsStruct(d),
-	}
-}
-
-var rx = regexp.MustCompile(`[\(\),\. ]`)
-var rx2 = regexp.MustCompile(`__*`)
 
 func cleanName(name string) string {
+	rx := regexp.MustCompile(`[\(\),\. ]`)
+	rx2 := regexp.MustCompile(`__*`)
 	name = rx.ReplaceAllString(name, "_")
 	name = rx2.ReplaceAllString(name, "_")
 	name = strings.TrimSuffix(name, "_")
 	return name
 }
-
-type dat map[string]interface{}

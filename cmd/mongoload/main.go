@@ -14,7 +14,7 @@ import (
 )
 
 var host = "localhost"
-var database = "arachne"
+var database = "arachnedb"
 var graph string
 var vertexFile string
 var edgeFile string

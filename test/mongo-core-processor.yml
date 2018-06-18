@@ -2,4 +2,4 @@ Database: mongo
 
 MongoDB:
   URL: localhost:27000
-  UseAggregationPipeline: true
+  UseAggregationPipeline: false

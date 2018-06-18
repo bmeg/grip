@@ -14,7 +14,7 @@ import (
 	"github.com/globalsign/mgo/bson"
 )
 
-//AddVertexIndex add index to vertices
+// AddVertexIndex add index to vertices
 func (mg *Graph) AddVertexIndex(label string, field string) error {
 	log.Printf("Adding index: %s.%s", label, field)
 	field = jsonpath.GetJSONPath(field)
@@ -33,7 +33,7 @@ func (mg *Graph) AddVertexIndex(label string, field string) error {
 	})
 }
 
-//DeleteVertexIndex delete index from vertices
+// DeleteVertexIndex delete index from vertices
 func (mg *Graph) DeleteVertexIndex(label string, field string) error {
 	log.Printf("Deleting index: %s.%s", label, field)
 	field = jsonpath.GetJSONPath(field)
@@ -45,7 +45,7 @@ func (mg *Graph) DeleteVertexIndex(label string, field string) error {
 	return c.DropIndex("label", field)
 }
 
-//GetVertexIndexList lists indices
+// GetVertexIndexList lists indices
 func (mg *Graph) GetVertexIndexList() chan aql.IndexID {
 	out := make(chan aql.IndexID)
 
@@ -91,7 +91,7 @@ func (mg *Graph) GetVertexIndexList() chan aql.IndexID {
 	return out
 }
 
-//GetVertexTermAggregation get count of every term across vertices
+// GetVertexTermAggregation get count of every term across vertices
 func (mg *Graph) GetVertexTermAggregation(ctx context.Context, label string, field string, size uint32) (*aql.AggregationResult, error) {
 	log.Printf("Running GetVertexTermAggregation: { label: %s, field: %s size: %v}", label, field, size)
 	namespace := jsonpath.GetNamespace(field)
@@ -141,7 +141,7 @@ func (mg *Graph) GetVertexTermAggregation(ctx context.Context, label string, fie
 	return out, nil
 }
 
-//GetVertexHistogramAggregation get binned counts of a term across vertices
+// GetVertexHistogramAggregation get binned counts of a term across vertices
 func (mg *Graph) GetVertexHistogramAggregation(ctx context.Context, label string, field string, interval uint32) (*aql.AggregationResult, error) {
 	log.Printf("Running GetVertexHistogramAggregation: { label: %s, field: %s interval: %v }", label, field, interval)
 	namespace := jsonpath.GetNamespace(field)
@@ -196,7 +196,7 @@ func (mg *Graph) GetVertexHistogramAggregation(ctx context.Context, label string
 	return out, nil
 }
 
-//GetVertexPercentileAggregation get percentiles of a term across vertices
+// GetVertexPercentileAggregation get percentiles of a term across vertices
 func (mg *Graph) GetVertexPercentileAggregation(ctx context.Context, label string, field string, percents []float64) (*aql.AggregationResult, error) {
 	log.Printf("Running GetVertexPercentileAggregation: { label: %s, field: %s percents: %v }", label, field, percents)
 	namespace := jsonpath.GetNamespace(field)

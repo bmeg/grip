@@ -191,5 +191,6 @@ func (es *Elastic) Graph(graph string) (gdbi.GraphInterface, error) {
 		edgeIndex:   fmt.Sprintf("%s_%s_edge", es.database, graph),
 		batchSize:   es.conf.BatchSize,
 		synchronous: es.conf.Synchronous,
+		pageSize:    500,
 	}, nil
 }

@@ -12,6 +12,7 @@ import (
 
 	"github.com/bmeg/arachne/elastic"
 	"github.com/bmeg/arachne/mongo"
+	"github.com/bmeg/arachne/sql"
 	"github.com/bmeg/arachne/util"
 	"github.com/ghodss/yaml"
 )
@@ -33,6 +34,7 @@ type Config struct {
 	KVStorePath   string
 	ElasticSearch elastic.Config
 	MongoDB       mongo.Config
+	SQL           sql.Config
 }
 
 // DefaultConfig returns an instance of the default configuration for Arachne.
@@ -78,7 +80,7 @@ func ParseConfig(raw []byte, conf *Config) error {
 	if err != nil {
 		return err
 	}
-	err = checkForUnknownKeys(j, conf)
+	err = CheckForUnknownKeys(j, conf)
 	if err != nil {
 		return err
 	}
@@ -116,7 +118,10 @@ func ParseConfigFile(relpath string, conf *Config) error {
 	return nil
 }
 
-func getKeys(obj interface{}) []string {
+// GetKeys takes a struct or map and returns all keys that are present.
+// Example:
+// {"data": {"foo": "bar"}} => ["data", "data.foo"]
+func GetKeys(obj interface{}) []string {
 	keys := []string{}
 
 	v := reflect.ValueOf(obj)
@@ -132,7 +137,7 @@ func getKeys(obj interface{}) []string {
 			name := v.Type().Field(i).Name
 			keys = append(keys, name)
 
-			valKeys := getKeys(field.Interface())
+			valKeys := GetKeys(field.Interface())
 			vk := []string{}
 			for _, v := range valKeys {
 				if embedded {
@@ -147,20 +152,21 @@ func getKeys(obj interface{}) []string {
 			name := key.String()
 			keys = append(keys, key.String())
 
-			valKeys := getKeys(v.MapIndex(key).Interface())
+			valKeys := GetKeys(v.MapIndex(key).Interface())
 			for i, v := range valKeys {
 				valKeys[i] = name + "." + v
 			}
 			keys = append(keys, valKeys...)
 		}
 	}
-
 	return keys
 }
 
-func checkForUnknownKeys(jsonStr []byte, obj interface{}) error {
+// CheckForUnknownKeys takes a json byte array and checks that all keys are fields
+// in the reference object
+func CheckForUnknownKeys(jsonStr []byte, obj interface{}) error {
 	knownMap := make(map[string]interface{})
-	known := getKeys(obj)
+	known := GetKeys(obj)
 	for _, k := range known {
 		knownMap[k] = nil
 	}
@@ -172,7 +178,7 @@ func checkForUnknownKeys(jsonStr []byte, obj interface{}) error {
 	}
 
 	unknown := []string{}
-	all := getKeys(anon)
+	all := GetKeys(anon)
 	for _, k := range all {
 		if _, found := knownMap[k]; !found {
 			unknown = append(unknown, k)

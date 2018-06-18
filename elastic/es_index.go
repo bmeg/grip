@@ -198,7 +198,7 @@ func (es *Graph) GetVertexPercentileAggregation(ctx context.Context, label strin
 func (es *Graph) VertexLabelScan(ctx context.Context, label string) chan string {
 	log.Printf("Running VertexLabelScan for label: %s", label)
 
-	o := make(chan string, 100)
+	o := make(chan string, es.pageSize)
 	go func() {
 		defer close(o)
 		if label == "" {
@@ -208,7 +208,7 @@ func (es *Graph) VertexLabelScan(ctx context.Context, label string) chan string 
 			Index(es.vertexIndex).
 			Query(elastic.NewBoolQuery().Must(elastic.NewTermQuery("label", label))).
 			Sort("gid", true).
-			Size(100)
+			Size(es.pageSize)
 		for {
 			results, err := scroll.Do(ctx)
 			if err == io.EOF {
@@ -220,12 +220,7 @@ func (es *Graph) VertexLabelScan(ctx context.Context, label string) chan string 
 			}
 			// Send the hits to the hits channel
 			for _, hit := range results.Hits.Hits {
-				select {
-				case <-ctx.Done():
-					return
-				default:
-					o <- hit.Id
-				}
+				o <- hit.Id
 			}
 		}
 	}()

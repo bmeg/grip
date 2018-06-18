@@ -2,7 +2,6 @@ package jsonpath
 
 import (
 	"fmt"
-	//"log"
 	"strings"
 
 	"github.com/bmeg/arachne/aql"

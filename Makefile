@@ -97,7 +97,15 @@ start-mongo:
 
 start-elastic:
 	@docker rm -f arachne-es-test > /dev/null 2>&1 || echo
-	docker run -d --name arachne-es-test -p 9200:9200 -p 9300:9300 -e "discovery.type=single-node" -e "xpack.security.enabled=false" docker.elastic.co/elasticsearch/elasticsearch:5.6.3 > /dev/null
+	docker run -d --name arachne-es-test -p 19200:9200 -p 9300:9300 -e "discovery.type=single-node" -e "xpack.security.enabled=false" docker.elastic.co/elasticsearch/elasticsearch:5.6.3 > /dev/null
+
+start-postgres:
+	@docker rm -f arachne-postgres-test > /dev/null 2>&1 || echo
+	docker run -d --name arachne-postgres-test -p 15432:5432 -e POSTGRES_PASSWORD= -e POSTGRES_USER=postgres postgres:10.4 > /dev/null
+
+start-mysql:
+	@docker rm -f arachne-mysql-test > /dev/null 2>&1 || echo
+	docker run -d --name arachne-mysql-test -p 13306:3306 -e MYSQL_ALLOW_EMPTY_PASSWORD=yes mysql:8.0.11 --default-authentication-plugin=mysql_native_password > /dev/null
 
 # ---------------------
 # Other

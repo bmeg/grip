@@ -402,7 +402,7 @@ func (r *Render) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, 
 			out <- &gdbi.Traveler{Render: v}
 		}
 	}()
-	return ctx
+	return context.WithValue(ctx, propLoad, true)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -487,7 +487,7 @@ func matchesCondition(trav *gdbi.Traveler, cond *aql.WhereCondition) bool {
 			found = false
 
 		default:
-			log.Printf("Error: unknown condition value type %T for IN condition", val)
+			log.Printf("Error: expected slice not %T for IN condition value", condVal)
 		}
 
 		return found
@@ -987,5 +987,5 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 		return
 	}()
 
-	return ctx
+	return context.WithValue(ctx, propLoad, true)
 }

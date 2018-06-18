@@ -133,6 +133,11 @@ func (q *Query) Count() *Query {
 	return q.with(&GraphStatement{&GraphStatement_Count{}})
 }
 
+// Render adds a render step to the query
+func (q *Query) Render(template interface{}) *Query {
+	return q.with(&GraphStatement{&GraphStatement_Render{protoutil.WrapValue(template)}})
+}
+
 func (q *Query) String() string {
 	parts := []string{}
 	add := func(name string, x ...string) {
@@ -198,6 +203,9 @@ func (q *Query) String() string {
 
 		case *GraphStatement_Aggregate:
 			add("Aggregate")
+
+		case *GraphStatement_Render:
+			add("Render")
 		}
 	}
 

@@ -7,7 +7,6 @@ sudo: required
 
 services:
   - docker
-  - elasticsearch
 
 cache:
   directories:
@@ -27,25 +26,26 @@ install:
 jobs:
   include:
     - stage: all
-      script: make lint
+      script:
+        - make lint
       env:
         - n=lint
     - script:
-      - make test
+        - make test
       env:
         - n=tests
     - script:
-      - arachne server --rpc-port 18202 --http-port 18201 --config ./test/badger.yml &
-      - sleep 5
-      - make test-conformance
-      - go test ./test
+        - arachne server --rpc-port 18202 --http-port 18201 --config ./test/badger.yml &
+        - sleep 5
+        - make test-conformance
+        - go test ./test
       env:
         - n=badger
     - script:
-      - arachne server --rpc-port 18202 --http-port 18201 --config ./test/bolt.yml &
-      - sleep 5
-      - make test-conformance
-      - go test ./test -config bolt.yml
+        - arachne server --rpc-port 18202 --http-port 18201 --config ./test/bolt.yml &
+        - sleep 5
+        - make test-conformance
+        - go test ./test -config bolt.yml
       env:
         - n=boltdb
     - script:
@@ -74,29 +74,37 @@ jobs:
       env:
         - n=rocksdb
     - script:
-      - arachne server --rpc-port 18202 --http-port 18201 --config ./test/level.yml &
-      - sleep 5
-      - make test-conformance
-      - go test ./test -config level.yml
+        - arachne server --rpc-port 18202 --http-port 18201 --config ./test/level.yml &
+        - sleep 5
+        - make test-conformance
+        - go test ./test -config level.yml
       env:
         - n=leveldb
     - script:
-      - make start-mongo
-      - sleep 10
-      - arachne server --rpc-port 18202 --http-port 18201 --config ./test/mongo.yml &
-      - sleep 5
-      - make test-conformance
-      - go test ./test -config mongo.yml
+        - make start-mongo
+        - sleep 15
+        - arachne server --rpc-port 18202 --http-port 18201 --config ./test/mongo.yml &
+        - sleep 5
+        - make test-conformance
+        - go test ./test -config mongo.yml
+        - go test ./test -config mongo-core-processor.yml
       env:
         - n=mongodb
     - script:
-      - sleep 10
-      - arachne server --rpc-port 18202 --http-port 18201 --config ./test/elastic.yml &
-      - sleep 5
-      - make test-conformance
-      - go test ./test -config elastic.yml
+        - make start-elastic
+        - sleep 15
+        - arachne server --rpc-port 18202 --http-port 18201 --config ./test/elastic.yml &
+        - sleep 5
+        - make test-conformance
+        - go test ./test -config elastic.yml
       env:
         - n=elasticsearch
+    - script:
+        - make start-postgres
+        - sleep 15
+        - go test ./test -config sql.yml
+      env:
+        - n=sql
 
 notifications:
   email: false
