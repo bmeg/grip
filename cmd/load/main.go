@@ -91,44 +91,29 @@ var Cmd = &cobra.Command{
 
 		if vertexFile != "" {
 			log.Printf("Loading %s", vertexFile)
-			verts, errs := util.StreamVerticesFromFile(vertexFile)
-			go func(verts chan *aql.Vertex) {
-				count := 0
-				for v := range verts {
-					count++
-					if count%1000 == 0 {
-						log.Printf("Loaded %d vertices", count)
-					}
-					elemChan <- &aql.GraphElement{Graph: graph, Vertex: v}
+			count := 0
+			for v := range util.StreamVerticesFromFile(vertexFile) {
+				count++
+				if count%1000 == 0 {
+					log.Printf("Loaded %d vertices", count)
 				}
-				log.Printf("Loaded %d vertices", count)
-			}(verts)
-			go func(errs chan error) {
-				for e := range errs {
-					log.Printf("Error loading vertices: %v", e)
-				}
-			}(errs)
+				elemChan <- &aql.GraphElement{Graph: graph, Vertex: v}
+			}
+			log.Printf("Loaded %d vertices", count)
+
 		}
 
 		if edgeFile != "" {
 			log.Printf("Loading %s", edgeFile)
-			edges, errs := util.StreamEdgesFromFile(edgeFile)
-			go func(edges chan *aql.Edge) {
-				count := 0
-				for e := range edges {
-					count++
-					if count%1000 == 0 {
-						log.Printf("Loaded %d edges", count)
-					}
-					elemChan <- &aql.GraphElement{Graph: graph, Edge: e}
+			count := 0
+			for e := range util.StreamEdgesFromFile(edgeFile) {
+				count++
+				if count%1000 == 0 {
+					log.Printf("Loaded %d edges", count)
 				}
-				log.Printf("Loaded %d edges", count)
-			}(edges)
-			go func(errs chan error) {
-				for e := range errs {
-					log.Printf("Error loading vertices: %v", e)
-				}
-			}(errs)
+				elemChan <- &aql.GraphElement{Graph: graph, Edge: e}
+			}
+			log.Printf("Loaded %d edges", count)
 		}
 
 		m := jsonpb.Unmarshaler{AllowUnknownFields: true}

@@ -30,7 +30,7 @@ var Cmd = &cobra.Command{
 			return err
 		}
 		for row := range res {
-			fmt.Printf("Vertex Count: %s\n", row)
+			fmt.Printf("Vertex Count: %v\n", row.GetCount())
 		}
 
 		q = aql.E().Count()
@@ -39,7 +39,7 @@ var Cmd = &cobra.Command{
 			return err
 		}
 		for row := range res {
-			fmt.Printf("Edge Count: %s\n", row)
+			fmt.Printf("Edge Count: %v\n", row.GetCount())
 		}
 		return nil
 	},

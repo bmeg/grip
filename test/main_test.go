@@ -33,11 +33,11 @@ var edges = []*aql.Edge{}
 func init() {
 	flag.StringVar(&configFile, "config", configFile, "config file to use for tests")
 	flag.Parse()
-	vertChan, _ := util.StreamVerticesFromFile("./resources/smtest_vertices.txt")
+	vertChan := util.StreamVerticesFromFile("./resources/smtest_vertices.txt")
 	for v := range vertChan {
 		vertices = append(vertices, v)
 	}
-	edgeChan, _ := util.StreamEdgesFromFile("./resources/smtest_edges.txt")
+	edgeChan := util.StreamEdgesFromFile("./resources/smtest_edges.txt")
 	for e := range edgeChan {
 		edges = append(edges, e)
 	}

@@ -2,8 +2,8 @@ package util
 
 import (
 	"bytes"
-	"fmt"
 	"io"
+	"log"
 
 	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/golib"
@@ -11,18 +11,17 @@ import (
 )
 
 // StreamVerticesFromFile reads a file containing a vertex per line and
-// streams *aql.Vertex objects and errors out on channels
-func StreamVerticesFromFile(file string) (chan *aql.Vertex, chan error) {
-	vertChan := make(chan *aql.Vertex)
-	errChan := make(chan error)
+// streams *aql.Vertex objects out on a channel
+func StreamVerticesFromFile(file string) chan *aql.Vertex {
+	vertChan := make(chan *aql.Vertex, 100)
 
 	go func() {
 		defer close(vertChan)
-		defer close(errChan)
 
 		reader, err := golib.ReadFileLines(file)
 		if err != nil {
-			errChan <- fmt.Errorf("reading file: %v", err)
+			log.Printf("Error: reading file: %v", err)
+			return
 		}
 
 		m := jsonpb.Unmarshaler{AllowUnknownFields: true}
@@ -33,29 +32,28 @@ func StreamVerticesFromFile(file string) (chan *aql.Vertex, chan error) {
 				break
 			}
 			if err != nil {
-				errChan <- fmt.Errorf("unmarshaling vertex: %v", err)
-				continue
+				log.Printf("Error: unmarshaling vertex: %v", err)
+				return
 			}
 			vertChan <- v
 		}
 	}()
 
-	return vertChan, errChan
+	return vertChan
 }
 
 // StreamEdgesFromFile reads a file containing an edge per line and
-// streams aql.Edge objects and errors out on channels
-func StreamEdgesFromFile(file string) (chan *aql.Edge, chan error) {
-	edgeChan := make(chan *aql.Edge)
-	errChan := make(chan error)
+// streams aql.Edge objects on a channel
+func StreamEdgesFromFile(file string) chan *aql.Edge {
+	edgeChan := make(chan *aql.Edge, 100)
 
 	go func() {
 		defer close(edgeChan)
-		defer close(errChan)
 
 		reader, err := golib.ReadFileLines(file)
 		if err != nil {
-			errChan <- fmt.Errorf("reading file: %v", err)
+			log.Printf("Error: reading file: %v", err)
+			return
 		}
 
 		m := jsonpb.Unmarshaler{AllowUnknownFields: true}
@@ -66,12 +64,12 @@ func StreamEdgesFromFile(file string) (chan *aql.Edge, chan error) {
 				break
 			}
 			if err != nil {
-				errChan <- fmt.Errorf("unmarshaling edge: %v", err)
-				continue
+				log.Printf("Error: unmarshaling edge: %v", err)
+				return
 			}
 			edgeChan <- e
 		}
 	}()
 
-	return edgeChan, errChan
+	return edgeChan
 }
