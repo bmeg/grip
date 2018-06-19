@@ -17,6 +17,91 @@
      
   </div>
 
+  <div class="homepage-demo">
+    <h1 class="demo-header" id="intro">A quick introduction</h1>
+
+      <div class="section group">
+        <div class="col span_3_of_12">
+          <h1>Start an Arachne server</h1>
+        </div>
+
+        <div class="col span_9_of_12">
+          <pre><code class="language-shell">$ arachne server --config arachne.yml</code></pre>
+        </div>
+      </div>
+
+      <div class="section group">
+        <div class="col span_3_of_12">
+          <h1>List all graphs</h1>
+        </div>
+
+        <div class="col span_9_of_12">
+          <pre><code class="language-shell">$ arachne list</code></pre>
+        </div>
+      </div>
+
+      <div class="section group">
+        <div class="col span_3_of_12">
+          <h1>Create a graph</h1>
+        </div>
+
+        <div class="col span_9_of_12">
+          <pre><code class="language-shell">$ arachne create example</code></pre>
+        </div>
+      </div>
+
+      <div class="section group">
+        <div class="col span_3_of_12">
+          <h1>Drop a graph</h1>
+        </div>
+
+        <div class="col span_9_of_12">
+          <pre><code class="language-shell">$ arachne drop example</code></pre>
+        </div>
+      </div>
+
+      <div class="section group">
+        <div class="col span_3_of_12">
+          <h1>Load data into a  graph</h1>
+        </div>
+
+        <div class="col span_9_of_12">
+          <pre><code class="language-shell">$ arachne load example --edge edges.txt --vertex vertices.txt</code></pre>
+        </div>
+      </div>
+
+      <div class="section group">
+        <div class="col span_3_of_12">
+          <h1>Query a graph</h1>
+        </div>
+
+        <div class="col span_9_of_12">
+          <pre><code class="language-shell">$ arachne query example 'O.query().V().where(eq("_label", "users"))'</code></pre>
+        </div>
+      </div>
+
+      <div class="section group">
+        <div class="col span_3_of_12">
+          <h1>Get vertex/edge counts for a graph</h1>
+        </div>
+
+        <div class="col span_9_of_12">
+          <pre><code class="language-shell">$ arachne info example</code></pre>
+        </div>
+      </div>
+
+      <div class="section group">
+        <div class="col span_3_of_12">
+          <h1>Dump vertices/edges from a graph</h1>
+        </div>
+
+        <div class="col span_9_of_12">
+          <pre><code class="language-shell">$ arachne dump example --vertex</code></pre>
+        </div>
+      </div>
+
+  </div>
+
   <div class="homepage-more">
 
     <div class="section group">
