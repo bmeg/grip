@@ -123,6 +123,12 @@
   version = "v2.1.2"
 
 [[projects]]
+  name = "github.com/go-sql-driver/mysql"
+  packages = ["."]
+  revision = "d523deb1b23d913de5bdada721a6071e71283618"
+  version = "v1.4.0"
+
+[[projects]]
   name = "github.com/golang/protobuf"
   packages = [
     "jsonpb",
@@ -412,6 +418,12 @@
   version = "v0.3.0"
 
 [[projects]]
+  name = "google.golang.org/appengine"
+  packages = ["cloudsql"]
+  revision = "b1f26356af11148e710935ed1ac8a7f5702c7612"
+  version = "v1.1.0"
+
+[[projects]]
   branch = "master"
   name = "google.golang.org/genproto"
   packages = [
@@ -479,6 +491,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "677a91988547f1aa6d7988cdeb9b8a6eb34761fcfd713a992e2e39e57717ac18"
+  inputs-digest = "fc24785e1c2d4c4ef395e9e66e2e7548fa6f015fa739d46e44ae2567e205b6ca"
   solver-name = "gps-cdcl"
   solver-version = 1

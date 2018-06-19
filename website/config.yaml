@@ -5,7 +5,13 @@ title: Arachne
 publishDir: ../docs
 menu:
   main:
+    - name: API
+      parent: Developers
+      url: https://github.com/bmeg/arachne/blob/master/aql/aql.proto
+      weight: -100
+
     - name: GoDoc
       parent: Developers
       url: https://godoc.org/github.com/bmeg/arachne
       weight: 100
+
