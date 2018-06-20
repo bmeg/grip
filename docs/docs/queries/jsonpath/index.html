@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head>
+  <link href="http://gmpg.org/xfn/11" rel="profile">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta name="generator" content="Hugo 0.31-DEV" />
+
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+
+  
+  <title>Referencing Fields &middot; Arachne</title>
+  
+
+  
+  <link rel="stylesheet" href="https://bmeg.github.io/arachnecss/poole.css">
+  <link rel="stylesheet" href="https://bmeg.github.io/arachnecss/darcula.css">
+  <link rel="stylesheet" href="https://bmeg.github.io/arachnecss/syntax.css">
+  <link rel="stylesheet" href="https://bmeg.github.io/arachnecss/theme.css">
+  <link rel="stylesheet" href="https://bmeg.github.io/arachnecss/funnel.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=PT+Sans:400,400italic,700">
+
+  
+  <link rel="apple-touch-icon-precomposed" sizes="144x144" href="https://bmeg.github.io/arachne/apple-touch-icon-144-precomposed.png">
+  <link rel="shortcut icon" href="https://bmeg.github.io/arachne/favicon.png">
+
+  <script src="https://bmeg.github.io/arachnejs/highlight.pack.js"></script>
+  <script>hljs.initHighlightingOnLoad();</script>
+
+</head>
+<body>
+
+  <div class="global-header">
+    <div class="global-header-container">
+      <div class="global-header-home">
+        <a href="https://bmeg.github.io/arachne"><h1>Arachne</h1></a>
+      </div>
+      <ul class="global-header-nav">
+          <li><a href="https://bmeg.github.io/arachnedownload//">Download</a></li>
+          <li><a href="https://bmeg.github.io/arachnedocs/">Docs</a></li>
+          <li><a href="https://github.com/bmeg/arachne">GitHub</a></li>
+          <li><a href="https://gitter.im/bmeg/arachne">Chat</a></li>
+        </ul>
+      <div class="global-header-ohsucb">
+        <a href="https://www.ohsu.edu/compbio/"><h2>OHSU Comp Bio</h2></a>
+      </div>
+    </div>
+  </div>
+
+
+<div class="content section group">
+
+  <div class="sidebar col span_3_of_12">
+    <ul class="sidebar-nav">
+      
+      
+        
+        <li>
+          
+          <a href="https://bmeg.github.io/arachne/download/"
+             class="sidebar-nav-item "
+          >Download</a></li>
+          
+        
+        <li>
+          
+          <a href="https://bmeg.github.io/arachne/docs/"
+             class="sidebar-nav-item "
+          >Overview</a></li>
+          
+        
+        <li>
+          
+          <span class="intermediate">Setup your Database</span></li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/arachne/docs/databases/elastic/"
+                   class="sidebar-nav-item "
+                >Elasticsearch</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/arachne/docs/databases/kvstore/"
+                   class="sidebar-nav-item "
+                >Embedded KV Store</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/arachne/docs/databases/mongo/"
+                   class="sidebar-nav-item "
+                >MongoDB</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/arachne/docs/databases/sql/"
+                   class="sidebar-nav-item "
+                >SQL</a></li>
+            </ul>
+          </li>
+          
+          
+        
+        <li>
+          
+          <span class="intermediate">Query a Graph</span></li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/arachne/docs/queries/getting_started/"
+                   class="sidebar-nav-item "
+                >Getting Started</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/arachne/docs/queries/operations/"
+                   class="sidebar-nav-item "
+                >Operations</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/arachne/docs/queries/jsonpath/"
+                   class="sidebar-nav-item  active"
+                >Referencing Fields</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/arachne/docs/queries/graphql/"
+                   class="sidebar-nav-item "
+                >GraphQL</a></li>
+            </ul>
+          </li>
+          
+          
+        
+        <li>
+          
+          <span class="intermediate">Tutorials</span></li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/arachne/docs/tutorials/amazon/"
+                   class="sidebar-nav-item "
+                >Amazon Purchase Network</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/arachne/docs/tutorials/tcga-rna/"
+                   class="sidebar-nav-item "
+                >TCGA RNA Expression</a></li>
+            </ul>
+          </li>
+          
+          
+        
+        <li>
+          
+          <span class="intermediate">Security</span></li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/arachne/docs/security/basic/"
+                   class="sidebar-nav-item "
+                >Basic Auth</a></li>
+            </ul>
+          </li>
+          
+          
+        
+        <li>
+          
+          <span class="intermediate">Developers</span></li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://github.com/bmeg/arachne/blob/master/aql/aql.proto"
+                   class="sidebar-nav-item "
+                >API</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://godoc.org/github.com/bmeg/arachne"
+                   class="sidebar-nav-item "
+                >GoDoc</a></li>
+            </ul>
+          </li>
+          
+          
+        
+      
+    </ul>
+  </div>
+
+  <div class="main col span_8_of_12">
+    
+
+<p>Several operations (where, fields, render, etc.) reference properties of the vertices/edges during the traversal.
+Arachne uses a variation on JSONPath syntax as described in <a href="http://goessner.net/articles/">http://goessner.net/articles/</a> to reference fields during traversals.</p>
+
+<p>The following query:</p>
+
+<pre><code>O.query().V([&quot;ENSG00000012048&quot;]).mark(&quot;gene&quot;).out(&quot;variant&quot;)
+</code></pre>
+
+<p>Starts at vertex <code>ENSG00000012048</code> and marks as <code>gene</code>:</p>
+
+<pre><code>{
+  &quot;gid&quot;: &quot;ENSG00000012048&quot;,
+  &quot;label&quot;: &quot;gene&quot;,
+  &quot;data&quot;: {
+    &quot;symbol&quot;: {
+      &quot;ensembl&quot;: &quot;ENSG00000012048&quot;,
+      &quot;hgnc&quot;: 1100,
+      &quot;entrez&quot;: 672,
+      &quot;hugo&quot;: &quot;BRCA1&quot;
+    }
+    &quot;transcipts&quot;: [&quot;ENST00000471181.7&quot;, &quot;ENST00000357654.8&quot;, &quot;ENST00000493795.5&quot;]
+  }
+}
+</code></pre>
+
+<p>as &ldquo;gene&rdquo; and traverses the graph to:</p>
+
+<pre><code>{
+  &quot;gid&quot;: &quot;NM_007294.3:c.4963_4981delTGGCCTGACCCCAGAAG&quot;,
+  &quot;label&quot;: &quot;variant&quot;,
+  &quot;data&quot;: {
+    &quot;type&quot;: &quot;deletion&quot;
+    &quot;publications&quot;: [
+      {
+        &quot;pmid&quot;: 29480828,
+        &quot;doi&quot;: &quot;10.1097/MD.0000000000009380&quot;
+      },
+      {
+        &quot;pmid&quot;: 23666017,
+        &quot;doi&quot;: &quot;10.1097/IGC.0b013e31829527bd&quot;
+      }
+    ]
+  }
+}
+</code></pre>
+
+<p>Below is a table of field and the values they would reference in subsequent traversal operations.</p>
+
+<table>
+<thead>
+<tr>
+<th align="left">jsonpath</th>
+<th align="left">result</th>
+</tr>
+</thead>
+
+<tbody>
+<tr>
+<td align="left">_gid</td>
+<td align="left">&ldquo;NM_007294.3:c.4963_4981delTGGCCTGACCCCAGAAG&rdquo;</td>
+</tr>
+
+<tr>
+<td align="left">_label</td>
+<td align="left">&ldquo;variant&rdquo;</td>
+</tr>
+
+<tr>
+<td align="left">_data.type</td>
+<td align="left">&ldquo;deletion&rdquo;</td>
+</tr>
+
+<tr>
+<td align="left">type</td>
+<td align="left">&ldquo;deletion&rdquo;</td>
+</tr>
+
+<tr>
+<td align="left">publications[0].pmid</td>
+<td align="left">29480828</td>
+</tr>
+
+<tr>
+<td align="left">publications[:].pmid</td>
+<td align="left">[29480828, 23666017]</td>
+</tr>
+
+<tr>
+<td align="left">publications.pmid</td>
+<td align="left">[29480828, 23666017]</td>
+</tr>
+
+<tr>
+<td align="left">$gene.symbol.hugo</td>
+<td align="left">&ldquo;BRCA1&rdquo;</td>
+</tr>
+
+<tr>
+<td align="left">$gene.transcripts[0]</td>
+<td align="left">&ldquo;ENST00000471181.7&rdquo;</td>
+</tr>
+</tbody>
+</table>
+
+<h2 id="usage-example">Usage Example:</h2>
+
+<pre><code>O.query().V([&quot;ENSG00000012048&quot;]).mark(&quot;gene&quot;).out(&quot;variant&quot;).render({&quot;variant_id&quot;: &quot;_gid&quot;, &quot;variant_type&quot;: &quot;type&quot;, &quot;gene_id&quot;: &quot;$gene._gid&quot;})
+</code></pre>
+
+<p>returns</p>
+
+<pre><code>{
+  &quot;variant_id&quot;: &quot;NM_007294.3:c.4963_4981delTGGCCTGACCCCAGAAG&quot;,
+  &quot;variant_type&quot;: &quot;deletion&quot;,
+  &quot;gene_id&quot;: &quot;ENSG00000012048&quot;
+}
+</code></pre>
+
+  </div>
+
+</div>
+</body>
+</html>

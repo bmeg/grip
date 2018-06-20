@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head>
+  <link href="http://gmpg.org/xfn/11" rel="profile">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta name="generator" content="Hugo 0.31-DEV" />
+
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+
+  
+  <title>GraphQL &middot; Arachne</title>
+  
+
+  
+  <link rel="stylesheet" href="https://bmeg.github.io/arachnecss/poole.css">
+  <link rel="stylesheet" href="https://bmeg.github.io/arachnecss/darcula.css">
+  <link rel="stylesheet" href="https://bmeg.github.io/arachnecss/syntax.css">
+  <link rel="stylesheet" href="https://bmeg.github.io/arachnecss/theme.css">
+  <link rel="stylesheet" href="https://bmeg.github.io/arachnecss/funnel.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=PT+Sans:400,400italic,700">
+
+  
+  <link rel="apple-touch-icon-precomposed" sizes="144x144" href="https://bmeg.github.io/arachne/apple-touch-icon-144-precomposed.png">
+  <link rel="shortcut icon" href="https://bmeg.github.io/arachne/favicon.png">
+
+  <script src="https://bmeg.github.io/arachnejs/highlight.pack.js"></script>
+  <script>hljs.initHighlightingOnLoad();</script>
+
+</head>
+<body>
+
+  <div class="global-header">
+    <div class="global-header-container">
+      <div class="global-header-home">
+        <a href="https://bmeg.github.io/arachne"><h1>Arachne</h1></a>
+      </div>
+      <ul class="global-header-nav">
+          <li><a href="https://bmeg.github.io/arachnedownload//">Download</a></li>
+          <li><a href="https://bmeg.github.io/arachnedocs/">Docs</a></li>
+          <li><a href="https://github.com/bmeg/arachne">GitHub</a></li>
+          <li><a href="https://gitter.im/bmeg/arachne">Chat</a></li>
+        </ul>
+      <div class="global-header-ohsucb">
+        <a href="https://www.ohsu.edu/compbio/"><h2>OHSU Comp Bio</h2></a>
+      </div>
+    </div>
+  </div>
+
+
+<div class="content section group">
+
+  <div class="sidebar col span_3_of_12">
+    <ul class="sidebar-nav">
+      
+      
+        
+        <li>
+          
+          <a href="https://bmeg.github.io/arachne/download/"
+             class="sidebar-nav-item "
+          >Download</a></li>
+          
+        
+        <li>
+          
+          <a href="https://bmeg.github.io/arachne/docs/"
+             class="sidebar-nav-item "
+          >Overview</a></li>
+          
+        
+        <li>
+          
+          <span class="intermediate">Setup your Database</span></li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/arachne/docs/databases/elastic/"
+                   class="sidebar-nav-item "
+                >Elasticsearch</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/arachne/docs/databases/kvstore/"
+                   class="sidebar-nav-item "
+                >Embedded KV Store</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/arachne/docs/databases/mongo/"
+                   class="sidebar-nav-item "
+                >MongoDB</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/arachne/docs/databases/sql/"
+                   class="sidebar-nav-item "
+                >SQL</a></li>
+            </ul>
+          </li>
+          
+          
+        
+        <li>
+          
+          <span class="intermediate">Query a Graph</span></li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/arachne/docs/queries/getting_started/"
+                   class="sidebar-nav-item "
+                >Getting Started</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/arachne/docs/queries/operations/"
+                   class="sidebar-nav-item "
+                >Operations</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/arachne/docs/queries/jsonpath/"
+                   class="sidebar-nav-item "
+                >Referencing Fields</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/arachne/docs/queries/graphql/"
+                   class="sidebar-nav-item  active"
+                >GraphQL</a></li>
+            </ul>
+          </li>
+          
+          
+        
+        <li>
+          
+          <span class="intermediate">Tutorials</span></li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/arachne/docs/tutorials/amazon/"
+                   class="sidebar-nav-item "
+                >Amazon Purchase Network</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/arachne/docs/tutorials/tcga-rna/"
+                   class="sidebar-nav-item "
+                >TCGA RNA Expression</a></li>
+            </ul>
+          </li>
+          
+          
+        
+        <li>
+          
+          <span class="intermediate">Security</span></li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/arachne/docs/security/basic/"
+                   class="sidebar-nav-item "
+                >Basic Auth</a></li>
+            </ul>
+          </li>
+          
+          
+        
+        <li>
+          
+          <span class="intermediate">Developers</span></li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://github.com/bmeg/arachne/blob/master/aql/aql.proto"
+                   class="sidebar-nav-item "
+                >API</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://godoc.org/github.com/bmeg/arachne"
+                   class="sidebar-nav-item "
+                >GoDoc</a></li>
+            </ul>
+          </li>
+          
+          
+        
+      
+    </ul>
+  </div>
+
+  <div class="main col span_8_of_12">
+    
+
+<h1 id="graphql">GraphQL</h1>
+
+<p>Arachne supports GraphQL access of the property graphs. Currently this is read-only
+access to the graph.
+GraphQL graphs have a defined schema with typed fields and connections. This
+schema must be defined before the graphql endpoint can access the graph.</p>
+
+<p>All of the different label types in the graph are represented with a vertex of
+label &lsquo;Object&rsquo;. The vertex <code>gid</code> in the schema graph represents the label type
+in the actual graph. Attached to each <code>Object</code> vertex is a <code>fields</code> parameter
+that describes the fields and their data types.</p>
+
+<p>Example Object Vertex:</p>
+
+<pre><code>gid: Human
+label: Object
+data:
+  fields:
+    name: String
+    height: Float
+    mass: Float
+    homePlanet: String
+</code></pre>
+
+<p>A valid vertex this schema would map to would be:</p>
+
+<pre><code>gid: Luke Skywalker
+label: Human
+data:
+  name: Luke Skywalker
+  height: 1.72
+  mass: 77
+  homePlanet: Tatooine
+</code></pre>
+
+<p>Complex Types are described using data the schema data structures with the final
+value element being a string on the data type. So an array of strings would be
+coded in JSON as <code>[&quot;String&quot;]</code>. A map of values would be
+<code>[&quot;name&quot; : &quot;String&quot;, &quot;values&quot; : [float]]</code></p>
+
+<p>There is one vertex, of label <code>Query</code> that defines the root query element.
+There should be one and only one declared in the schema graph. It&rsquo;s <code>gid</code> doesn&rsquo;t
+matter.</p>
+
+<p>Fields in objects that connect to other nodes can be defined on Object to another
+with edge label <code>field</code>. The <code>data</code> for the edge needs a <code>name</code> field to declare
+the field name. An optional <code>label</code> field can also be added to specify which
+edge labels are followed for the field. The field will be projected as an array
+of the destination object type.</p>
+
+<p>To connect the <code>Human</code> object to its friends:</p>
+
+<pre><code>label: field
+from: Human
+to: Human
+data:
+  name: friends
+  label: friend
+</code></pre>
+
+<h3 id="loading-the-schema">Loading the Schema</h3>
+
+<p>The example data would be in a file called <code>data.yaml</code>:</p>
+
+<pre><code>vertices:
+  - gid: 1000
+    label: Human
+    data:
+      name: Luke Skywalker
+      height: 1.72
+      mass: 77
+      homePlanet: Tatooine
+  - gid: 1001
+    label: Human
+    data:
+      name: Darth Vader
+      height: 2.02
+      mass: 136
+      homePlanet: Tatooine
+  - gid: 1002
+    label: Human
+    data
+      name: Han Solo
+      height: 1.8
+      mass: 80
+  - gid: 1003
+    label: Human
+    data:
+      name: Leia Organa
+      height: 1.5
+      mass: 49
+      homePlanet: Alderaan
+  - gid: 1004
+    label: Human
+    data
+      name: Wilhuff Tarkin
+      height: 1.8
+      mass:   nil
+edges:
+  - {label: &quot;friend&quot;, from: &quot;1000&quot;, to: &quot;1002&quot;}
+  - {label: &quot;friend&quot;, from: &quot;1000&quot;, to: &quot;1003&quot;}
+  - {label: &quot;friend&quot;, from: &quot;1001&quot;, to: &quot;1004&quot;}
+  - {label: &quot;friend&quot;, from: &quot;1002&quot;, to: &quot;1000&quot;}
+  - {label: &quot;friend&quot;, from: &quot;1002&quot;, to: &quot;1003&quot;}
+  - {label: &quot;friend&quot;, from: &quot;1003&quot;, to: &quot;1000&quot;}
+  - {label: &quot;friend&quot;, from: &quot;1003&quot;, to: &quot;1002&quot;}
+  - {label: &quot;friend&quot;, from: &quot;1004&quot;, to: &quot;1001&quot;}
+</code></pre>
+
+<p>For the friend network, the schema would be a file named <code>schema.yaml</code> with:</p>
+
+<pre><code>vertices:
+  - gid: root
+    label: Query
+  - gid: Human
+    label: Object
+    data:
+      fields:
+        name: String
+        height: Float
+        mass: Float
+        homePlanet: String
+edges:
+    - label: field
+      from: root
+      to: Human
+      data:
+        type: idQuery
+        name: Human
+    - label: field
+      from: Human
+      to: Human
+      data:
+        name: friends
+        label: friend
+    - label: field
+      from: root
+      to: Human
+      data:
+        name: HumanIds
+        type: idList
+</code></pre>
+
+<p>To load the test data:</p>
+
+<pre><code>arachne load --graph test --yaml data.yaml
+arachne load --graph test:schema --yaml schema.yaml
+</code></pre>
+
+<h3 id="using-built-in-example">Using built-in example</h3>
+
+<p>Loading the example data and the example schema:</p>
+
+<pre><code>arachne example
+</code></pre>
+
+<p>See the example graph</p>
+
+<pre><code>arachne dump --vertex --edge --graph example
+</code></pre>
+
+<p>See the example graph schema</p>
+
+<pre><code>arachne dump --vertex --edge --graph example-schema
+</code></pre>
+
+<h3 id="example-queries">Example queries</h3>
+
+<p>Get Types:</p>
+
+<pre><code>curl -X POST -H &quot;Content-Type:application/graphql&quot; -d '{__schema{types{name}}}' http://localhost:8201/graphql/example
+</code></pre>
+
+<p>Get Info about Human object</p>
+
+<pre><code>curl -X POST -H &quot;Content-Type:application/graphql&quot; -d '{__type(name:&quot;Human&quot;){fields{name}}}' http://localhost:8201/graphql/example
+</code></pre>
+
+<p>Get List of all Human ids</p>
+
+<pre><code>curl -X POST -H &quot;Content-Type:application/graphql&quot; -d 'query { HumanIds }' http://localhost:8201/graphql/example
+</code></pre>
+
+<p>Get Human 1000 and list their friends</p>
+
+<pre><code>curl -X POST -H &quot;Content-Type:application/graphql&quot; -d 'query {Human(id:&quot;1000&quot;){name,friends{name}}}' http://localhost:8201/graphql/example
+</code></pre>
+
+  </div>
+
+</div>
+</body>
+</html>
