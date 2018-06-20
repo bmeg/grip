@@ -12,6 +12,7 @@ import (
 
 	"github.com/bmeg/arachne/elastic"
 	"github.com/bmeg/arachne/mongo"
+	"github.com/bmeg/arachne/server"
 	"github.com/bmeg/arachne/sql"
 	"github.com/bmeg/arachne/util"
 	"github.com/ghodss/yaml"
@@ -23,14 +24,8 @@ func init() {
 
 // Config describes the configuration for Arachne.
 type Config struct {
-	Database string
-	Server   struct {
-		HTTPPort   string
-		RPCPort    string
-		WorkDir    string
-		ContentDir string
-		ReadOnly   bool
-	}
+	Database      string
+	Server        server.Config
 	KVStorePath   string
 	Elasticsearch elastic.Config
 	MongoDB       mongo.Config
@@ -41,16 +36,23 @@ type Config struct {
 func DefaultConfig() *Config {
 	c := &Config{}
 	c.Database = "badger"
+
+	c.Server.HostName = "localhost"
 	c.Server.HTTPPort = "8201"
 	c.Server.RPCPort = "8202"
 	c.Server.WorkDir = "arachne.work"
 	c.Server.ReadOnly = false
+	c.Server.DisableHTTPCache = true
+
 	c.KVStorePath = "arachne.db"
+
 	c.MongoDB.DBName = "arachnedb"
 	c.MongoDB.BatchSize = 1000
 	c.MongoDB.UseAggregationPipeline = true
+
 	c.Elasticsearch.DBName = "arachnedb"
 	c.Elasticsearch.BatchSize = 1000
+
 	return c
 }
 
@@ -65,11 +67,15 @@ func randomPort() string {
 // TestifyConfig randomizes ports and database paths/names
 func TestifyConfig(c *Config) {
 	rand := strings.ToLower(util.RandomString(6))
+
 	c.Server.HTTPPort = randomPort()
 	c.Server.RPCPort = randomPort()
 	c.Server.WorkDir = "arachne.work." + rand
+
 	c.KVStorePath = "arachne.db." + rand
+
 	c.MongoDB.DBName = "arachnedb-" + rand
+
 	c.Elasticsearch.DBName = "arachnedb-" + rand
 	c.Elasticsearch.Synchronous = true
 }

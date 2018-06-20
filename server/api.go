@@ -1,69 +1,17 @@
-package graphserver
+package server
 
 import (
 	"fmt"
 	"io"
 	"log"
-	"net"
 
 	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/engine"
-	"github.com/bmeg/arachne/gdbi"
 	"golang.org/x/net/context"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 )
-
-// ArachneServer is a GRPC based arachne server
-type ArachneServer struct {
-	db       gdbi.GraphDB
-	workDir  string
-	readOnly bool
-}
-
-// NewArachneServer initializes a GRPC server to connect to the graph store
-func NewArachneServer(db gdbi.GraphDB, workDir string, readonly bool) *ArachneServer {
-	return &ArachneServer{db: db, workDir: workDir, readOnly: readonly}
-}
-
-// errorInterceptor is an interceptor function that logs all errors
-func errorInterceptor() grpc.UnaryServerInterceptor {
-	// Return a function that is the interceptor.
-	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo,
-		handler grpc.UnaryHandler) (interface{}, error) {
-		resp, err := handler(ctx, req)
-		if err != nil {
-			log.Println(info.FullMethod, "failed;", "error:", err)
-		}
-		return resp, err
-	}
-}
-
-// Start starts an asynchronous GRPC server
-func (server *ArachneServer) Start(hostPort string) error {
-	lis, err := net.Listen("tcp", ":"+hostPort)
-	if err != nil {
-		return fmt.Errorf("Cannot open port: %v", err)
-	}
-	grpcServer := grpc.NewServer(
-		grpc.UnaryInterceptor(
-			errorInterceptor(),
-		),
-	)
-	aql.RegisterQueryServer(grpcServer, server)
-	if !server.readOnly {
-		aql.RegisterEditServer(grpcServer, server)
-	}
-	log.Println("TCP+RPC server listening on " + hostPort)
-	go grpcServer.Serve(lis)
-	return nil
-}
-
-// CloseDB tells the driver to close connection or file
-func (server *ArachneServer) CloseDB() error {
-	return server.db.Close()
-}
 
 // Traversal parses a traversal request and streams the results back
 func (server *ArachneServer) Traversal(query *aql.GraphQuery, queryServer aql.Query_TraversalServer) error {
@@ -76,7 +24,7 @@ func (server *ArachneServer) Traversal(query *aql.GraphQuery, queryServer aql.Qu
 	if err != nil {
 		return err
 	}
-	res := engine.Run(queryServer.Context(), pipeline, server.workDir)
+	res := engine.Run(queryServer.Context(), pipeline, server.conf.WorkDir)
 	for row := range res {
 		err := queryServer.Send(row)
 		if err != nil {

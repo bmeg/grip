@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
@@ -12,13 +13,13 @@ import (
 	"github.com/bmeg/arachne/config"
 	"github.com/bmeg/arachne/elastic"
 	"github.com/bmeg/arachne/gdbi"
-	"github.com/bmeg/arachne/graphserver"
 	"github.com/bmeg/arachne/kvgraph"
 	_ "github.com/bmeg/arachne/leveldb" // import so level will register itself
 	"github.com/bmeg/arachne/mongo"
 	_ "github.com/bmeg/arachne/rocksdb" // import so rocks will register itself
+	"github.com/bmeg/arachne/server"
 	"github.com/bmeg/arachne/sql"
-  _ "github.com/go-sql-driver/mysql" //import so mysql will register as a sql driver
+	_ "github.com/go-sql-driver/mysql" //import so mysql will register as a sql driver
 	"github.com/imdario/mergo"
 	_ "github.com/lib/pq" // import so postgres will register as a sql driver
 	"github.com/spf13/cobra"
@@ -27,8 +28,10 @@ import (
 var conf = &config.Config{}
 var configFile string
 
-// Start starts an Arachne server
-func Start(conf *config.Config) error {
+// Run runs an Arachne server.
+// This opens a database and starts an API server.
+// This blocks indefinitely.
+func Run(conf *config.Config) error {
 	log.Printf("Starting Server")
 	log.Printf("Config: %+v", conf)
 
@@ -54,42 +57,29 @@ func Start(conf *config.Config) error {
 		return fmt.Errorf("database connection failed: %v", err)
 	}
 
-	_, err = os.Stat(conf.Server.WorkDir)
-	if os.IsNotExist(err) {
-		err = os.Mkdir(conf.Server.WorkDir, 0700)
-		if err != nil {
-			return err
-		}
-	}
-
-	server := graphserver.NewArachneServer(db, conf.Server.WorkDir, conf.Server.ReadOnly)
-	err = server.Start(conf.Server.RPCPort)
-	if err != nil {
-		return fmt.Errorf("Failed to start grpc server: %v", err)
-	}
-
-	proxy, err := graphserver.NewHTTPProxy(conf.Server.RPCPort, conf.Server.HTTPPort, conf.Server.ContentDir)
-	if err != nil {
-		return fmt.Errorf("Failed to setup http proxy: %v", err)
-	}
-
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt)
 	go func() {
 		<-c
-		proxy.Stop()
+		cancel()
 	}()
 
-	err = proxy.Run()
+	srv, err := server.NewArachneServer(db, conf.Server)
 	if err != nil {
-		log.Printf("Server error: %v", err)
+		return err
 	}
-	log.Printf("Server stopped; closing database")
-	err = server.CloseDB()
-	if err != nil {
-		log.Printf("Failed to close database: %v", err)
-	}
-	return nil
+
+	// Start server
+	errch := make(chan error)
+	go func() {
+		errch <- srv.Serve(ctx)
+	}()
+
+	// Block until done.
+	// Server must be stopped via the context.
+	return <-errch
 }
 
 // Cmd the main command called by the cobra library
@@ -114,7 +104,7 @@ var Cmd = &cobra.Command{
 		return nil
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return Start(conf)
+		return Run(conf)
 	},
 }
 
