@@ -3,6 +3,7 @@ package server
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"net"
 	"net/http"
@@ -11,6 +12,7 @@ import (
 	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/gdbi"
 	"github.com/bmeg/arachne/graphql"
+	"github.com/golang/gddo/httputil"
 	"github.com/grpc-ecosystem/go-grpc-middleware"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"golang.org/x/net/context"
@@ -38,7 +40,7 @@ func NewArachneServer(db gdbi.GraphDB, conf Config) (*ArachneServer, error) {
 
 // handleError is the grpc gateway error handler
 func handleError(w http.ResponseWriter, req *http.Request, err string, code int) {
-	log.Println("HTTP handler error:", req.URL, ";", "error", err)
+	log.Println("HTTP handler error:", req.URL, err)
 	http.Error(w, err, code)
 }
 
@@ -119,17 +121,33 @@ func (server *ArachneServer) Serve(pctx context.Context) error {
 		return fmt.Errorf("setting up GraphQL handler: %v", err)
 	}
 	mux.Handle("/graphql/", gqlHandler)
-	if server.conf.ContentDir != "" {
-		mux.Handle("/", http.StripPrefix("/", http.FileServer(http.Dir(server.conf.ContentDir))))
-	}
+
+	d := http.Dir(server.conf.ContentDir)
+	dashfs := http.FileServer(d)
+	dashmux := http.NewServeMux()
+	dashmux.HandleFunc("/", func(resp http.ResponseWriter, req *http.Request) {
+		file, err := d.Open("index.html")
+		if err != nil {
+			panic(err)
+		}
+		io.Copy(resp, file)
+	})
+	mux.Handle("/static/", dashfs)
+
 	mux.HandleFunc("/", func(resp http.ResponseWriter, req *http.Request) {
 		if len(server.conf.BasicAuth) > 0 {
 			resp.Header().Set("WWW-Authenticate", "Basic")
 		}
-		if server.conf.DisableHTTPCache {
-			resp.Header().Set("Cache-Control", "no-store")
+		switch httputil.NegotiateContentType(req, []string{"text/*", "text/html"}, "text/*") {
+		case "text/html":
+			dashmux.ServeHTTP(resp, req)
+
+		default:
+			if server.conf.DisableHTTPCache {
+				resp.Header().Set("Cache-Control", "no-store")
+			}
+			grpcMux.ServeHTTP(resp, req)
 		}
-		grpcMux.ServeHTTP(resp, req)
 	})
 
 	// Regsiter Query Service
