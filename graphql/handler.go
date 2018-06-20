@@ -10,10 +10,9 @@ import (
 	"net/http"
 	"regexp"
 
+	"github.com/bmeg/arachne/aql"
 	"github.com/graphql-go/graphql"
 	"github.com/graphql-go/handler"
-	//"github.com/graphql-go/graphql/testutil"
-	"github.com/bmeg/arachne/aql"
 )
 
 //handle the graphql queries for a single endpoint
@@ -32,8 +31,8 @@ type Handler struct {
 }
 
 // NewHTTPHandler initilizes a new GraphQLHandler
-func NewHTTPHandler(address string) http.Handler {
-	client, _ := aql.Connect(address, false)
+func NewHTTPHandler(rpcAddress string) http.Handler {
+	client, _ := aql.Connect(rpcAddress, false)
 	h := &Handler{
 		client:   client,
 		handlers: map[string]*graphHandler{},
