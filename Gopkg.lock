@@ -150,18 +150,6 @@
   revision = "2e65f85255dbc3072edf28d6b5b8efc472979f5a"
 
 [[projects]]
-  name = "github.com/gorilla/context"
-  packages = ["."]
-  revision = "08b5f424b9271eedf6f9f0ce86cb9396ed337a42"
-  version = "v1.1.1"
-
-[[projects]]
-  name = "github.com/gorilla/mux"
-  packages = ["."]
-  revision = "e3702bed27f0d39777b0b37b664b6280e8ef8fbf"
-  version = "v1.6.2"
-
-[[projects]]
   name = "github.com/graphql-go/graphql"
   packages = [
     ".",
@@ -187,7 +175,12 @@
 
 [[projects]]
   name = "github.com/grpc-ecosystem/go-grpc-middleware"
-  packages = ["."]
+  packages = [
+    ".",
+    "retry",
+    "util/backoffutils",
+    "util/metautils"
+  ]
   revision = "c250d6563d4d4c20252cd865923440e829844f4e"
   version = "v1.0.0"
 
@@ -497,6 +490,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "ec0ed52708740d6dffc51e2931ab303dab90b931bdce3a3a40da45cdb611598e"
+  inputs-digest = "fb2a161d1582fb3fcb7c55be13d65488b869a3c91eb8954eae4d719349aebefc"
   solver-name = "gps-cdcl"
   solver-version = 1

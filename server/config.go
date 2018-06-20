@@ -1,6 +1,8 @@
 package server
 
-import "time"
+import (
+	"github.com/bmeg/arachne/util"
+)
 
 // Config describes configuration for the server.
 type Config struct {
@@ -41,16 +43,12 @@ type BasicCredential struct {
 	Password string
 }
 
-// RPCClient describes configuration for gRPC clients
-type RPCClient struct {
-	BasicCredential
-	ServerAddress string
-	// The timeout to use for making RPC client connections in nanoseconds
-	// This timeout is Only enforced when used in conjunction with the
-	// grpc.WithBlock dial option.
-	Timeout time.Duration
-	// The maximum number of times that a request will be retried for failures.
-	// Time between retries follows an exponential backoff starting at 5 seconds
-	// up to 1 minute
-	MaxRetries uint
+func testConfig() Config {
+	c := Config{}
+	c.HostName = "localhost"
+	c.HTTPPort = util.RandomPort()
+	c.RPCPort = util.RandomPort()
+	c.WorkDir = "arachne.work." + util.RandomString(6)
+	c.DisableHTTPCache = true
+	return c
 }

@@ -11,7 +11,6 @@ import (
 	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/gdbi"
 	"github.com/bmeg/arachne/graphql"
-	"github.com/gorilla/mux"
 	"github.com/grpc-ecosystem/go-grpc-middleware"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"golang.org/x/net/context"
@@ -30,7 +29,7 @@ func NewArachneServer(db gdbi.GraphDB, conf Config) (*ArachneServer, error) {
 	if os.IsNotExist(err) {
 		err = os.Mkdir(conf.WorkDir, 0700)
 		if err != nil {
-			return nil, fmt.Errorf("creating work dir:", err)
+			return nil, fmt.Errorf("creating work dir: %v", err)
 		}
 	}
 
@@ -43,8 +42,8 @@ func handleError(w http.ResponseWriter, req *http.Request, err string, code int)
 	http.Error(w, err, code)
 }
 
-// errorInterceptor is an interceptor function that logs all errors
-func errorInterceptor() grpc.UnaryServerInterceptor {
+// unaryErrorInterceptor is an interceptor function that logs all errors
+func unaryErrorInterceptor() grpc.UnaryServerInterceptor {
 	// Return a function that is the interceptor.
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo,
 		handler grpc.UnaryHandler) (interface{}, error) {
@@ -53,6 +52,19 @@ func errorInterceptor() grpc.UnaryServerInterceptor {
 			log.Println(info.FullMethod, "failed;", "error:", err)
 		}
 		return resp, err
+	}
+}
+
+// streamErrorInterceptor is an interceptor function that logs all errors
+func streamErrorInterceptor() grpc.StreamServerInterceptor {
+	// Return a function that is the interceptor.
+	return func(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo,
+		handler grpc.StreamHandler) error {
+		err := handler(srv, ss)
+		if err != nil {
+			log.Println(info.FullMethod, "failed;", "error:", err)
+		}
+		return err
 	}
 }
 
@@ -66,12 +78,17 @@ func (server *ArachneServer) Serve(pctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("Cannot open port: %v", err)
 	}
-
 	grpcServer := grpc.NewServer(
 		grpc.UnaryInterceptor(
 			grpc_middleware.ChainUnaryServer(
-				newAuthInterceptor(server.conf.BasicAuth),
-				errorInterceptor(),
+				unaryAuthInterceptor(server.conf.BasicAuth),
+				unaryErrorInterceptor(),
+			),
+		),
+		grpc.StreamInterceptor(
+			grpc_middleware.ChainStreamServer(
+				streamAuthInterceptor(server.conf.BasicAuth),
+				streamErrorInterceptor(),
 			),
 		),
 	)
@@ -87,16 +104,25 @@ func (server *ArachneServer) Serve(pctx context.Context) error {
 			OrigName:     true,
 		},
 	}
-	grpcMux := runtime.NewServeMux(runtime.WithMarshalerOption("*", &marsh))
+	mux := http.NewServeMux()
+	grpcMux := runtime.NewServeMux(runtime.WithMarshalerOption("*/*", &marsh))
 	runtime.OtherErrorHandler = handleError
 
-	r := mux.NewRouter()
-	r.PathPrefix("/graphql/").Handler(graphql.NewHTTPHandler(":" + server.conf.RPCPort))
-	r.PathPrefix("/v1/").Handler(grpcMux)
-	if server.conf.ContentDir != "" {
-		r.PathPrefix("/").Handler(http.StripPrefix("/", http.FileServer(http.Dir(server.conf.ContentDir))))
+	user := ""
+	password := ""
+	if len(server.conf.BasicAuth) > 0 {
+		user = server.conf.BasicAuth[0].User
+		password = server.conf.BasicAuth[0].Password
 	}
-	r.HandleFunc("/", func(resp http.ResponseWriter, req *http.Request) {
+	gqlHandler, err := graphql.NewHTTPHandler(server.conf.RPCAddress(), user, password)
+	if err != nil {
+		return fmt.Errorf("setting up GraphQL handler: %v", err)
+	}
+	mux.Handle("/graphql/", gqlHandler)
+	if server.conf.ContentDir != "" {
+		mux.Handle("/", http.StripPrefix("/", http.FileServer(http.Dir(server.conf.ContentDir))))
+	}
+	mux.HandleFunc("/", func(resp http.ResponseWriter, req *http.Request) {
 		if len(server.conf.BasicAuth) > 0 {
 			resp.Header().Set("WWW-Authenticate", "Basic")
 		}
@@ -124,7 +150,7 @@ func (server *ArachneServer) Serve(pctx context.Context) error {
 
 	httpServer := &http.Server{
 		Addr:    ":" + server.conf.HTTPPort,
-		Handler: r,
+		Handler: mux,
 	}
 
 	var srverr error
@@ -143,9 +169,11 @@ func (server *ArachneServer) Serve(pctx context.Context) error {
 
 	<-ctx.Done()
 	log.Println("closing database...")
-	err = server.db.Close()
-	if err != nil {
-		log.Println("error:", err)
+	if server.db != nil {
+		err = server.db.Close()
+		if err != nil {
+			log.Println("error:", err)
+		}
 	}
 	log.Println("shutting down RPC server...")
 	grpcServer.GracefulStop()

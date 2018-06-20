@@ -12,13 +12,8 @@ import (
 
 // Return a new interceptor function that authorizes RPCs
 // using a password stored in the config.
-func newAuthInterceptor(creds []BasicCredential) grpc.UnaryServerInterceptor {
-
-	// Return a function that is the interceptor.
-	return func(
-		ctx context.Context,
-		req interface{},
-		info *grpc.UnaryServerInfo,
+func unaryAuthInterceptor(creds []BasicCredential) grpc.UnaryServerInterceptor {
+	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo,
 		handler grpc.UnaryHandler) (interface{}, error) {
 		var authorized bool
 		var err error
@@ -35,6 +30,29 @@ func newAuthInterceptor(creds []BasicCredential) grpc.UnaryServerInterceptor {
 			return nil, err
 		}
 		return handler(ctx, req)
+	}
+}
+
+// Return a new interceptor function that authorizes RPCs
+// using a password stored in the config.
+func streamAuthInterceptor(creds []BasicCredential) grpc.StreamServerInterceptor {
+	return func(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo,
+		handler grpc.StreamHandler) error {
+		var authorized bool
+		var err error
+		for _, cred := range creds {
+			err = authorize(ss.Context(), cred.User, cred.Password)
+			if err == nil {
+				authorized = true
+			}
+		}
+		if len(creds) == 0 {
+			authorized = true
+		}
+		if !authorized {
+			return err
+		}
+		return handler(srv, ss)
 	}
 }
 
@@ -68,14 +86,12 @@ func parseBasicAuth(auth string) (username, password string, ok bool) {
 	}
 
 	c, err := base64.StdEncoding.DecodeString(auth[len(prefix):])
-
 	if err != nil {
 		return
 	}
 
 	cs := string(c)
 	s := strings.IndexByte(cs, ':')
-
 	if s < 0 {
 		return
 	}

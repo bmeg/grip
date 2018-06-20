@@ -35,12 +35,12 @@ func (server *ArachneServer) Traversal(query *aql.GraphQuery, queryServer aql.Qu
 	return nil
 }
 
-// GetGraphs returns a list of graphs managed by the driver
-func (server *ArachneServer) GetGraphs(empty *aql.Empty, queryServer aql.Query_GetGraphsServer) error {
+// ListGraphs returns a list of graphs managed by the driver
+func (server *ArachneServer) ListGraphs(empty *aql.Empty, queryServer aql.Query_ListGraphsServer) error {
 	for _, name := range server.db.GetGraphs() {
 		err := queryServer.Send(&aql.GraphID{Graph: name})
 		if err != nil {
-			return fmt.Errorf("error sending GetGraphs result: %v", err)
+			return fmt.Errorf("error sending ListGraphs result: %v", err)
 		}
 	}
 	return nil
@@ -292,8 +292,8 @@ func (server *ArachneServer) DeleteIndex(ctx context.Context, idx *aql.IndexID) 
 	return &aql.EditResult{Id: idx.Field}, nil
 }
 
-// GetIndexList lists avalible indices from a graph
-func (server *ArachneServer) GetIndexList(idx *aql.GraphID, stream aql.Query_GetIndexListServer) error {
+// ListIndices lists avalible indices from a graph
+func (server *ArachneServer) ListIndices(idx *aql.GraphID, stream aql.Query_ListIndicesServer) error {
 	graph, err := server.db.Graph(idx.Graph)
 	if err != nil {
 		return err
@@ -302,7 +302,7 @@ func (server *ArachneServer) GetIndexList(idx *aql.GraphID, stream aql.Query_Get
 	for i := range res {
 		err := stream.Send(&i)
 		if err != nil {
-			return fmt.Errorf("error sending GetIndexList result: %v", err)
+			return fmt.Errorf("error sending ListIndices result: %v", err)
 		}
 	}
 	return nil

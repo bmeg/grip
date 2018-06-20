@@ -1,11 +1,11 @@
 package example
 
 import (
-	// "encoding/json"
 	"fmt"
 	"log"
 
 	"github.com/bmeg/arachne/aql"
+	"github.com/bmeg/arachne/util/rpc"
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/spf13/cobra"
 )
@@ -29,14 +29,21 @@ var Cmd = &cobra.Command{
 	Short: "Load an example graph",
 	Args:  cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		conn, err := aql.Connect(host, true)
+		conn, err := aql.Connect(rpc.ConfigWithDefaults(host), true)
 		if err != nil {
 			return err
 		}
 
 		graphql := fmt.Sprintf("%s-schema", graph)
 
-		graphs := conn.GetGraphList()
+		graphCh, err := conn.ListGraphs()
+		if err != nil {
+			return err
+		}
+		graphs := []string{}
+		for g := range graphCh {
+			graphs = append(graphs, g)
+		}
 		if found(graphs, graphql) {
 			return fmt.Errorf("arachne already contains a graph called 'example-schema'")
 		}

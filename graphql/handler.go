@@ -11,6 +11,7 @@ import (
 	"regexp"
 
 	"github.com/bmeg/arachne/aql"
+	"github.com/bmeg/arachne/util/rpc"
 	"github.com/graphql-go/graphql"
 	"github.com/graphql-go/handler"
 )
@@ -31,13 +32,19 @@ type Handler struct {
 }
 
 // NewHTTPHandler initilizes a new GraphQLHandler
-func NewHTTPHandler(rpcAddress string) http.Handler {
-	client, _ := aql.Connect(rpcAddress, false)
+func NewHTTPHandler(rpcAddress, user, password string) (http.Handler, error) {
+	rpcConf := rpc.ConfigWithDefaults(rpcAddress)
+	rpcConf.User = user
+	rpcConf.Password = password
+	client, err := aql.Connect(rpcConf, false)
+	if err != nil {
+		return nil, err
+	}
 	h := &Handler{
 		client:   client,
 		handlers: map[string]*graphHandler{},
 	}
-	return h
+	return h, nil
 }
 
 // ServeHTTP responds to HTTP graphql requests

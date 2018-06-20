@@ -1,5 +1,6 @@
 from __future__ import absolute_import, print_function, unicode_literals
 
+import os
 import json
 import requests
 import sys
@@ -8,12 +9,18 @@ from aql.util import process_url, raise_for_status
 
 
 class Query:
-    def __init__(self, url, graph):
+    def __init__(self, url, graph, user=None, password=None):
         self.query = []
         url = process_url(url)
         self.base_url = url
         self.url = url + "/v1/graph/" + graph + "/query"
         self.graph = graph
+        if user is None:
+            user = os.getenv("ARACHNE_USER", None)
+        self.user = user
+        if password is None:
+            password = os.getenv("ARACHNE_PASSWORD", None)
+        self.password = password
 
     def __append(self, part):
         q = self.__class__(self.base_url, self.graph)
@@ -220,10 +227,12 @@ class Query:
         """
         Execute the query and return an iterator.
         """
-        response = requests.post(self.url,
-                                 json={"query": self.query},
-                                 stream=True)
-        # response.raise_for_status()
+        response = requests.post(
+            self.url,
+            json={"query": self.query},
+            stream=True,
+            auth=(self.user, self.password)
+        )
         raise_for_status(response)
         for result in response.iter_lines():
             try:

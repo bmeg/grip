@@ -15,6 +15,7 @@ import (
 	"github.com/bmeg/arachne/server"
 	"github.com/bmeg/arachne/sql"
 	"github.com/bmeg/arachne/util"
+	"github.com/bmeg/arachne/util/rpc"
 	"github.com/ghodss/yaml"
 )
 
@@ -26,6 +27,7 @@ func init() {
 type Config struct {
 	Database      string
 	Server        server.Config
+	RPCClient     rpc.Config
 	KVStorePath   string
 	Elasticsearch elastic.Config
 	MongoDB       mongo.Config
@@ -44,6 +46,10 @@ func DefaultConfig() *Config {
 	c.Server.ReadOnly = false
 	c.Server.DisableHTTPCache = true
 
+	c.RPCClient.ServerAddress = c.Server.RPCAddress()
+	c.RPCClient.Timeout = 30 * time.Second
+	c.RPCClient.MaxRetries = 10
+
 	c.KVStorePath = "arachne.db"
 
 	c.MongoDB.DBName = "arachnedb"
@@ -56,21 +62,15 @@ func DefaultConfig() *Config {
 	return c
 }
 
-// randomPort returns a random port string between 10000 and 20000.
-func randomPort() string {
-	min := 10000
-	max := 40000
-	n := rand.Intn(max-min) + min
-	return fmt.Sprintf("%d", n)
-}
-
 // TestifyConfig randomizes ports and database paths/names
 func TestifyConfig(c *Config) {
 	rand := strings.ToLower(util.RandomString(6))
 
-	c.Server.HTTPPort = randomPort()
-	c.Server.RPCPort = randomPort()
+	c.Server.HTTPPort = util.RandomPort()
+	c.Server.RPCPort = util.RandomPort()
 	c.Server.WorkDir = "arachne.work." + rand
+
+	c.RPCClient.ServerAddress = c.Server.RPCAddress()
 
 	c.KVStorePath = "arachne.db." + rand
 

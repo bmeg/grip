@@ -1,13 +1,13 @@
 package rdf
 
 import (
+	"compress/gzip"
 	"io"
 	"log"
 	"os"
-	//"fmt"
-	"compress/gzip"
 
 	"github.com/bmeg/arachne/aql"
+	"github.com/bmeg/arachne/util/rpc"
 	"github.com/knakk/rdf"
 	"github.com/spf13/cobra"
 )
@@ -25,7 +25,7 @@ func LoadRDFCmd(cmd *cobra.Command, args []string) error {
 		log.Printf("Error: %s", err)
 		os.Exit(1)
 	}
-	conn, err := aql.Connect(host, true)
+	conn, err := aql.Connect(rpc.ConfigWithDefaults(host), true)
 	if err != nil {
 		log.Printf("%s", err)
 		os.Exit(1)

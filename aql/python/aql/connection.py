@@ -1,5 +1,6 @@
 from __future__ import absolute_import, print_function, unicode_literals
 
+import os
 import json
 import requests
 
@@ -8,16 +9,26 @@ from aql.util import process_url, raise_for_status
 
 
 class Connection:
-    def __init__(self, url):
+    def __init__(self, url, user=None, password=None):
         url = process_url(url)
         self.base_url = url
         self.url = url + "/v1/graph"
+        if user is None:
+            user = os.getenv("ARACHNE_USER", None)
+        self.user = user
+        if password is None:
+            password = os.getenv("ARACHNE_PASSWORD", None)
+        self.password = password
 
     def listGraphs(self):
         """
         List graphs.
         """
-        response = requests.get(self.url, stream=True)
+        response = requests.get(
+            self.url,
+            stream=True,
+            auth=(self.user, self.password)
+        )
         raise_for_status(response)
         output = []
         for line in response.iter_lines():
@@ -28,7 +39,11 @@ class Connection:
         """
         Create a new graph.
         """
-        response = requests.post(self.url + "/" + name, {})
+        response = requests.post(
+            self.url + "/" + name,
+            {},
+            auth=(self.user, self.password)
+        )
         raise_for_status(response)
         return response.json()
 
@@ -36,7 +51,10 @@ class Connection:
         """
         Delete graph.
         """
-        response = requests.delete(self.url + "/" + name)
+        response = requests.delete(
+            self.url + "/" + name,
+            auth=(self.user, self.password)
+        )
         raise_for_status(response)
         return response.json()
 
@@ -44,4 +62,4 @@ class Connection:
         """
         Get a graph handle.
         """
-        return Graph(self.base_url, name)
+        return Graph(self.base_url, name, self.user, self.password)

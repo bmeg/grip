@@ -1,5 +1,6 @@
 from __future__ import absolute_import, print_function, unicode_literals
 
+import os
 import json
 import requests
 
@@ -8,11 +9,17 @@ from aql.query import Query
 
 
 class Graph:
-    def __init__(self, url, name):
+    def __init__(self, url, name, user=None, password=None):
         url = process_url(url)
         self.base_url = url
         self.url = url + "/v1/graph/" + name
         self.name = name
+        if user is None:
+            user = os.getenv("ARACHNE_USER", None)
+        self.user = user
+        if password is None:
+            password = os.getenv("ARACHNE_PASSWORD", None)
+        self.password = password
 
     def addVertex(self, gid, label, data={}):
         """
@@ -23,8 +30,11 @@ class Graph:
             "label": label,
             "data": data
         }
-        response = requests.post(self.url + "/vertex",
-                                 json=payload)
+        response = requests.post(
+            self.url + "/vertex",
+            json=payload,
+            auth=(self.user, self.password)
+        )
         raise_for_status(response)
         return response.json()
 
@@ -33,7 +43,10 @@ class Graph:
         Delete a vertex from the graph.
         """
         url = self.url + "/vertex/" + gid
-        response = requests.delete(url)
+        response = requests.delete(
+            url,
+            auth=(self.user, self.password)
+        )
         raise_for_status(response)
         return response.json()
 
@@ -42,7 +55,10 @@ class Graph:
         Get a vertex by id.
         """
         url = self.url + "/vertex/" + gid
-        response = requests.get(url)
+        response = requests.get(
+            url,
+            auth=(self.user, self.password)
+        )
         raise_for_status(response)
         return response.json()
 
@@ -58,8 +74,11 @@ class Graph:
         }
         if gid is not None:
             payload["gid"] = gid
-        response = requests.post(self.url + "/edge",
-                                 json=payload)
+        response = requests.post(
+            self.url + "/edge",
+            json=payload,
+            auth=(self.user, self.password)
+        )
         raise_for_status(response)
         return response.json()
 
@@ -68,7 +87,10 @@ class Graph:
         Delete an edge from the graph.
         """
         url = self.url + "/edge/" + gid
-        response = requests.delete(url)
+        response = requests.delete(
+            url,
+            auth=(self.user, self.password)
+        )
         raise_for_status(response)
         return response.json()
 
@@ -77,23 +99,33 @@ class Graph:
         Get an edge by id.
         """
         url = self.url + "/edge/" + gid
-        response = requests.get(url)
+        response = requests.get(
+            url,
+            auth=(self.user, self.password)
+        )
         raise_for_status(response)
         return response.json()
 
     def bulkAdd(self):
-        return BulkAdd(self.base_url, self.name)
+        return BulkAdd(self.base_url, self.name, self.user, self.password)
 
     def addIndex(self, label, field):
         url = self.url + "/index/" + label
-        response = requests.post(url,
-                                 json={"field": field})
+        response = requests.post(
+            url,
+            json={"field": field},
+            auth=(self.user, self.password)
+        )
         raise_for_status(response)
         return response.json()
 
     def listIndices(self):
         url = self.url + "/index"
-        response = requests.get(url, stream=True)
+        response = requests.get(
+            url,
+            stream=True,
+            auth=(self.user, self.password)
+        )
         raise_for_status(response)
         output = []
         for result in response.iter_lines():
@@ -108,7 +140,11 @@ class Graph:
             "aggregations": aggregations,
         }
         url = self.url + "/aggregate"
-        response = requests.post(url, json=payload)
+        response = requests.post(
+            url,
+            json=payload,
+            auth=(self.user, self.password)
+        )
         raise_for_status(response)
         return response.json()["aggregations"]
 
@@ -120,12 +156,18 @@ class Graph:
 
 
 class BulkAdd:
-    def __init__(self, url, graph):
+    def __init__(self, url, graph, user=None, password=None):
         url = process_url(url)
         self.base_url = url
         self.url = url + "/v1/graph"
         self.graph = graph
         self.elements = []
+        if user is None:
+            user = os.getenv("ARACHNE_USER", None)
+        self.user = user
+        if password is None:
+            password = os.getenv("ARACHNE_PASSWORD", None)
+        self.password = password
 
     def addVertex(self, gid, label, data={}):
         payload = {
@@ -154,6 +196,10 @@ class BulkAdd:
 
     def execute(self):
         payload = "\n".join(self.elements)
-        response = requests.post(self.url, data=payload)
+        response = requests.post(
+            self.url,
+            data=payload,
+            auth=(self.user, self.password)
+        )
         raise_for_status(response)
         return response.json()

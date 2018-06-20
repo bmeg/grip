@@ -2,6 +2,7 @@ package create
 
 import (
 	"github.com/bmeg/arachne/aql"
+	"github.com/bmeg/arachne/util/rpc"
 	"github.com/spf13/cobra"
 )
 
@@ -14,7 +15,7 @@ var Cmd = &cobra.Command{
 	Long:  ``,
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		conn, err := aql.Connect(host, true)
+		conn, err := aql.Connect(rpc.ConfigWithDefaults(host), true)
 		if err != nil {
 			return err
 		}

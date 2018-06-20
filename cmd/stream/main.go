@@ -4,9 +4,9 @@ import (
 	"log"
 	"strings"
 
-	"github.com/bmeg/arachne/aql"
-
 	"github.com/Shopify/sarama"
+	"github.com/bmeg/arachne/aql"
+	"github.com/bmeg/arachne/util/rpc"
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/spf13/cobra"
 )
@@ -27,7 +27,7 @@ var Cmd = &cobra.Command{
 		graph = args[0]
 		log.Printf("Streaming data from Kafka instance %s into graph %s", kafka, graph)
 
-		conn, err := aql.Connect(host, true)
+		conn, err := aql.Connect(rpc.ConfigWithDefaults(host), true)
 		if err != nil {
 			return err
 		}

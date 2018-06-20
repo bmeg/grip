@@ -9,6 +9,7 @@ import (
 
 	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/util"
+	"github.com/bmeg/arachne/util/rpc"
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
@@ -20,15 +21,6 @@ var vertexFile string
 var edgeFile string
 var jsonFile string
 var yamlFile string
-
-func found(set []string, val string) bool {
-	for _, i := range set {
-		if i == val {
-			return true
-		}
-	}
-	return false
-}
 
 func mapNormalize(v interface{}) interface{} {
 	if base, ok := v.(map[interface{}]interface{}); ok {
@@ -67,13 +59,23 @@ var Cmd = &cobra.Command{
 		graph = args[0]
 		log.Println("Loading data into graph:", graph)
 
-		conn, err := aql.Connect(host, true)
+		conn, err := aql.Connect(rpc.ConfigWithDefaults(host), true)
 		if err != nil {
 			return err
 		}
 
-		graphs := conn.GetGraphList()
-		if !found(graphs, graph) {
+		graphs, err := conn.ListGraphs()
+		if err != nil {
+			return err
+		}
+
+		found := false
+		for g := range graphs {
+			if graph == g {
+				found = true
+			}
+		}
+		if !found {
 			err := conn.AddGraph(graph)
 			if err != nil {
 				return err
