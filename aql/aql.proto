@@ -228,21 +228,21 @@ service Query {
     };
   }
 
-  rpc GetGraphs(Empty) returns (stream GraphID) {
+  rpc GetTimestamp(GraphID) returns (Timestamp) {
+    option (google.api.http) = {
+      get: "/v1/graph/{graph}/timestamp"
+    };
+  }
+
+  rpc ListGraphs(Empty) returns (stream GraphID) {
     option (google.api.http) = {
       get: "/v1/graph"
     };
   }
 
-  rpc GetIndexList(GraphID) returns (stream IndexID) {
+  rpc ListIndices(GraphID) returns (stream IndexID) {
     option (google.api.http) = {
       get: "/v1/graph/{graph}/index"
-    };
-  }
-
-  rpc GetTimestamp(GraphID) returns (Timestamp) {
-    option (google.api.http) = {
-      get: "/v1/graph/{graph}/timestamp"
     };
   }
 

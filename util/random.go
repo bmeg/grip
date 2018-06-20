@@ -1,6 +1,7 @@
 package util
 
 import (
+	"fmt"
 	"math/rand"
 	"time"
 
@@ -24,4 +25,12 @@ func RandomString(n int) string {
 // UUID generates a k-sortable globally unique ID.
 func UUID() string {
 	return ksuid.New().String()
+}
+
+// RandomPort returns a random port string between 10000 and 20000.
+func RandomPort() string {
+	min := 10000
+	max := 40000
+	n := rand.Intn(max-min) + min
+	return fmt.Sprintf("%d", n)
 }

@@ -5,7 +5,7 @@ import (
 	"io"
 	"log"
 
-	"google.golang.org/grpc"
+	"github.com/bmeg/arachne/util/rpc"
 )
 
 // Client is a GRPC arachne client with some helper functions
@@ -15,8 +15,8 @@ type Client struct {
 }
 
 // Connect opens a GRPC connection to an Arachne server
-func Connect(address string, write bool) (Client, error) {
-	conn, err := grpc.Dial(address, grpc.WithInsecure())
+func Connect(conf rpc.Config, write bool) (Client, error) {
+	conn, err := rpc.Dial(context.Background(), conf)
 	if err != nil {
 		return Client{}, err
 	}
@@ -28,37 +28,41 @@ func Connect(address string, write bool) (Client, error) {
 	return Client{queryOut, editOut}, nil
 }
 
-// GetGraphs lists the graphs
-func (client Client) GetGraphs() chan string {
-	out := make(chan string)
+// ListGraphs lists the graphs in the database
+func (client Client) ListGraphs() (chan string, error) {
+	out := make(chan string, 100)
+	cl, err := client.QueryC.ListGraphs(context.Background(), &Empty{})
+	if err != nil {
+		return nil, err
+	}
+
+	elem, err := cl.Recv()
+	if err == io.EOF {
+		close(out)
+		return out, nil
+	}
+	if err != nil {
+		close(out)
+		return out, err
+	}
+	out <- elem.Graph
+
 	go func() {
 		defer close(out)
-		cl, err := client.QueryC.GetGraphs(context.Background(), &Empty{})
-		if err != nil {
-			return
-		}
 		for {
 			elem, err := cl.Recv()
 			if err == io.EOF {
 				return
 			}
 			if err != nil {
-				log.Println("Failed to list graphs:", err)
+				log.Println("Error: listing graphs:", err)
 				return
 			}
 			out <- elem.Graph
 		}
 	}()
-	return out
-}
 
-// GetGraphList gets graphs from the server, as a list (rather then a channel)
-func (client Client) GetGraphList() []string {
-	out := []string{}
-	for i := range client.GetGraphs() {
-		out = append(out, i)
-	}
-	return out
+	return out, nil
 }
 
 // GetTimestamp get update timestamp for graph
@@ -117,12 +121,23 @@ func (client Client) GetVertex(graph string, id string) (*Vertex, error) {
 
 // Traversal runs a graph traversal query
 func (client Client) Traversal(query *GraphQuery) (chan *QueryResult, error) {
+	out := make(chan *QueryResult, 100)
 	tclient, err := client.QueryC.Traversal(context.Background(), query)
 	if err != nil {
 		return nil, err
 	}
 
-	out := make(chan *QueryResult, 100)
+	t, err := tclient.Recv()
+	if err == io.EOF {
+		close(out)
+		return out, nil
+	}
+	if err != nil {
+		close(out)
+		return out, err
+	}
+	out <- t
+
 	go func() {
 		defer close(out)
 		for {
@@ -131,7 +146,7 @@ func (client Client) Traversal(query *GraphQuery) (chan *QueryResult, error) {
 				return
 			}
 			if err != nil {
-				log.Println("Failed to receive traversal result:", err)
+				log.Println("Error: receiving traversal result:", err)
 				return
 			}
 			out <- t

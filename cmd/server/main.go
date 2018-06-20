@@ -101,6 +101,13 @@ var Cmd = &cobra.Command{
 			return fmt.Errorf("error processing config file: %v", err)
 		}
 		conf = dconf
+
+		defaults := config.DefaultConfig()
+		if conf.Server.RPCAddress() != defaults.Server.RPCAddress() {
+			if conf.Server.RPCAddress() != conf.RPCClient.ServerAddress {
+				conf.RPCClient.ServerAddress = conf.Server.RPCAddress()
+			}
+		}
 		return nil
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {

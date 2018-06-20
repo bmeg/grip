@@ -101,7 +101,7 @@ func TestMain(m *testing.M) {
 		}()
 
 	case "elastic":
-		gdb, err = elastic.NewElastic(conf.ElasticSearch)
+		gdb, err = elastic.NewElastic(conf.Elasticsearch)
 
 	case "mongo":
 		gdb, err = mongo.NewMongo(conf.MongoDB)

@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/bmeg/arachne/aql"
+	"github.com/bmeg/arachne/util/rpc"
 	"github.com/spf13/cobra"
 )
 
@@ -16,11 +17,15 @@ var Cmd = &cobra.Command{
 	Long:  ``,
 	Args:  cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		conn, err := aql.Connect(host, true)
+		conn, err := aql.Connect(rpc.ConfigWithDefaults(host), true)
 		if err != nil {
 			return err
 		}
-		for g := range conn.GetGraphs() {
+		graphs, err := conn.ListGraphs()
+		if err != nil {
+			return err
+		}
+		for g := range graphs {
 			fmt.Printf("%s\n", g)
 		}
 		return nil
