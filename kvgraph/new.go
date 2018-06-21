@@ -55,7 +55,7 @@ func NewKVGraphDB(name string, dbPath string) (gdbi.GraphDB, error) {
 func NewKVGraph(kv kvi.KVInterface) gdbi.GraphDB {
 	ts := timestamp.NewTimestamp()
 	o := &KVGraph{kv: kv, ts: &ts, idx: kvindex.NewIndex(kv)}
-	for _, i := range o.GetGraphs() {
+	for _, i := range o.ListGraphs() {
 		o.ts.Touch(i)
 	}
 	return o
