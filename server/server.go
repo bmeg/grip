@@ -137,7 +137,24 @@ func (server *ArachneServer) Serve(pctx context.Context) error {
 	mux.HandleFunc("/", func(resp http.ResponseWriter, req *http.Request) {
 		if len(server.conf.BasicAuth) > 0 {
 			resp.Header().Set("WWW-Authenticate", "Basic")
+
+			u, p, ok := req.BasicAuth()
+			if !ok {
+				http.Error(resp, "authorization failed", http.StatusUnauthorized)
+				return
+			}
+			authorized := false
+			for _, cred := range server.conf.BasicAuth {
+				if cred.User == u && cred.Password == p {
+					authorized = true
+				}
+			}
+			if !authorized {
+				http.Error(resp, "permission denied", http.StatusForbidden)
+				return
+			}
 		}
+
 		switch httputil.NegotiateContentType(req, []string{"text/*", "text/html"}, "text/*") {
 		case "text/html":
 			dashmux.ServeHTTP(resp, req)

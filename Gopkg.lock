@@ -129,6 +129,15 @@
   version = "v1.4.0"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/golang/gddo"
+  packages = [
+    "httputil",
+    "httputil/header"
+  ]
+  revision = "574849d519ec3acb591fc5620ee0aa3ea48081e0"
+
+[[projects]]
   name = "github.com/golang/protobuf"
   packages = [
     "jsonpb",
@@ -490,6 +499,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "fb2a161d1582fb3fcb7c55be13d65488b869a3c91eb8954eae4d719349aebefc"
+  inputs-digest = "f1057afda078a4403f4940b3d1e95bb4eb980b4e97a224f24dcf5f22a5e218cb"
   solver-name = "gps-cdcl"
   solver-version = 1
