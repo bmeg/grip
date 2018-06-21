@@ -281,37 +281,12 @@ func (ma *GraphDB) getVertexSchema(graph string, n int) ([]*aql.Vertex, error) {
 	return out, nil
 }
 
-func resolveLabel(col *mgo.Collection, ids []string) (string, error) {
-	pipe := []bson.M{
-		{
-			"$match": bson.M{
-				"_id": bson.M{"$in": ids},
-			},
-		},
-		{
-			"$project": bson.M{
-				"_id":   -1,
-				"label": 1,
-			},
-		},
-	}
-	iter := col.Pipe(pipe).Iter()
-	var last string
-	result := map[string]string{}
-	for iter.Next(&result) {
-		if last != "" && last != result["label"] {
-			return "", fmt.Errorf("resolved to multiple labels: %s %s", last, result)
-		}
-		last = result["label"]
-	}
-	return last, nil
-}
-
 func (ma *GraphDB) getEdgeSchema(graph string, n int) ([]*aql.Edge, error) {
 	out := []*aql.Edge{}
 
 	session := ma.session.Copy()
 	defer session.Close()
+
 	pipe := []bson.M{
 		{
 			"$group": bson.M{
@@ -342,21 +317,24 @@ func (ma *GraphDB) getEdgeSchema(graph string, n int) ([]*aql.Edge, error) {
 	result := &schema{}
 	for iter.Next(result) {
 		schema := make(map[string]interface{})
-		for i, v := range result.Data {
+		for _, v := range result.Data {
 			out := GetDataFieldTypes(v)
 			MergeMaps(schema, out)
-			result.Data[i] = out
 		}
-		from, err := resolveLabel(ma.VertexCollection(session, graph), result.From)
+		var err error
+		result.From, err = resolveLabels(ma.VertexCollection(session, graph), result.From)
 		if err != nil {
 			return nil, err
 		}
-		to, err := resolveLabel(ma.VertexCollection(session, graph), result.To)
+		result.To, err = resolveLabels(ma.VertexCollection(session, graph), result.To)
 		if err != nil {
 			return nil, err
 		}
-		es := &aql.Edge{Label: result.Label, From: from, To: to, Data: protoutil.AsStruct(schema)}
-		out = append(out, es)
+		result.squashFromTo()
+		for i := range result.From {
+			es := &aql.Edge{Label: result.Label, From: result.From[i], To: result.To[i], Data: protoutil.AsStruct(schema)}
+			out = append(out, es)
+		}
 	}
 	if err := iter.Err(); err != nil {
 		return nil, err
@@ -369,6 +347,55 @@ type schema struct {
 	From  []string                 `bson:"from"`
 	To    []string                 `bson:"to"`
 	Data  []map[string]interface{} `bson:"data"`
+}
+
+func (s *schema) squashFromTo() {
+	type pair struct {
+		from, to string
+	}
+	pairs := make(map[pair]interface{})
+	for i := 0; i < len(s.From); i++ {
+		pairs[pair{s.From[i], s.To[i]}] = nil
+	}
+	from := []string{}
+	to := []string{}
+	for k := range pairs {
+		from = append(from, k.from)
+		to = append(to, k.to)
+	}
+	s.From = from
+	s.To = to
+}
+
+func resolveLabels(col *mgo.Collection, ids []string) ([]string, error) {
+	out := []string{}
+	// Pipe := []bson.M{
+	// 	{
+	// 		"$match": bson.M{
+	// 			"_id": bson.M{"$in": ids},
+	// 		},
+	// 	},
+	// 	{
+	// 		"$project": bson.M{
+	// 			"_id":   -1,
+	// 			"label": 1,
+	// 		},
+	// 	},
+	// }
+	// iter := col.Pipe(pipe).Iter()
+	// result := map[string]string{}
+	// for iter.Next(&result) {
+	// 	out = append(out, result["label"])
+	// }
+	for _, id := range ids {
+		result := map[string]string{}
+		err := col.FindId(id).Select(bson.M{"_id": -1, "label": 1}).One(&result)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, result["label"])
+	}
+	return out, nil
 }
 
 // MergeMaps deeply merges two maps
