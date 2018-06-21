@@ -199,6 +199,56 @@ message Timestamp {
   string timestamp = 1;
 }
 
+enum FieldType {
+  UNKNOWN = 0;
+  STRING  = 1;
+  INT = 2;
+  FLOAT = 3;
+  BOOL  = 4;
+}
+
+// Each data field in the vertices/edges will be mapped to a FieldType. 
+// The `Gid` field is not used in the schema.
+// The `Label` field identifies the vertex/edge type.
+//
+// Example:
+//
+// {
+//   "vertices": [
+//     {
+//       "label": "Human",
+//       "data": {
+// 	      "name": "STRING",
+// 	      "height": "FLOAT",
+// 	      "mass": "FLOAT",
+// 	      "age": "INT",
+// 	      "homePlanet": "STRING"
+//       }
+//     },
+//     {
+//       "label": "Droid",
+//       "data": {
+// 	      "name": "STRING",
+// 	      "primaryFunction": "STRING"
+//       }
+//     },
+//   ],
+//   "edges": [
+//     {
+//       "label": "Owner",
+//       "from": "Human",
+//       "to": "Droid",
+//       "data" : {
+// 	      "years": "INT"
+//       }
+//     }
+//   ]
+// }
+message GraphSchema {
+  repeated Vertex vertices = 1;
+  repeated Edge edges = 2;
+}
+
 message Empty {}
 
 service Query {
@@ -243,6 +293,12 @@ service Query {
   rpc ListIndices(GraphID) returns (stream IndexID) {
     option (google.api.http) = {
       get: "/v1/graph/{graph}/index"
+    };
+  }
+
+  rpc GetSchema(GraphID) returns (GraphSchema) {
+    option (google.api.http) = {
+      get: "/v1/graph/{graph}/schema"
     };
   }
 

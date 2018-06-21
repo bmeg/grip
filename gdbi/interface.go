@@ -61,8 +61,9 @@ type ElementLookup struct {
 type GraphDB interface {
 	AddGraph(string) error
 	DeleteGraph(string) error
-	GetGraphs() []string
-	Graph(id string) (GraphInterface, error)
+	ListGraphs() []string
+	Graph(graphID string) (GraphInterface, error)
+	GetSchema(graphID string) (*aql.GraphSchema, error)
 	Close() error
 }
 

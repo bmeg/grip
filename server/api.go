@@ -37,13 +37,18 @@ func (server *ArachneServer) Traversal(query *aql.GraphQuery, queryServer aql.Qu
 
 // ListGraphs returns a list of graphs managed by the driver
 func (server *ArachneServer) ListGraphs(empty *aql.Empty, queryServer aql.Query_ListGraphsServer) error {
-	for _, name := range server.db.GetGraphs() {
+	for _, name := range server.db.ListGraphs() {
 		err := queryServer.Send(&aql.GraphID{Graph: name})
 		if err != nil {
 			return fmt.Errorf("error sending ListGraphs result: %v", err)
 		}
 	}
 	return nil
+}
+
+// GetSchema returns the schema of a specific graph in the database
+func (server *ArachneServer) GetSchema(ctx context.Context, elem *aql.GraphID) (*aql.GraphSchema, error) {
+	return server.db.GetSchema(elem.Graph)
 }
 
 // GetVertex returns a vertex given a aql.Element

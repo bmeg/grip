@@ -23,16 +23,16 @@ type Config struct {
 	BatchSize   int
 }
 
-// Elastic implements the GraphDB interface with elasticsearch as a backend
-type Elastic struct {
+// GraphDB implements the GraphDB interface with elasticsearch as a backend
+type GraphDB struct {
 	database string
 	conf     Config
 	ts       *timestamp.Timestamp
 	client   *elastic.Client
 }
 
-// NewElastic creates a new elasticsearch graph database interface
-func NewElastic(conf Config) (gdbi.GraphDB, error) {
+// NewGraphDB creates a new elasticsearch graph database interface
+func NewGraphDB(conf Config) (gdbi.GraphDB, error) {
 	log.Printf("Starting Elastic Driver")
 	database := strings.ToLower(conf.DBName)
 	err := aql.ValidateGraphName(database)
@@ -62,21 +62,21 @@ func NewElastic(conf Config) (gdbi.GraphDB, error) {
 	if conf.BatchSize == 0 {
 		conf.BatchSize = 1000
 	}
-	db := &Elastic{database: database, conf: conf, ts: &ts, client: client}
-	for _, i := range db.GetGraphs() {
+	db := &GraphDB{database: database, conf: conf, ts: &ts, client: client}
+	for _, i := range db.ListGraphs() {
 		db.ts.Touch(i)
 	}
 	return db, nil
 }
 
 // Close closes connection to elastic search
-func (es *Elastic) Close() error {
+func (es *GraphDB) Close() error {
 	es.client.Stop()
 	return nil
 }
 
-// GetGraphs returns list of graphs on elastic search instance
-func (es *Elastic) GetGraphs() []string {
+// ListGraphs returns list of graphs on elastic search instance
+func (es *GraphDB) ListGraphs() []string {
 	graphPrefix := fmt.Sprintf("%s_", es.database)
 	out := []string{}
 	idxNames, err := es.client.IndexNames()
@@ -94,7 +94,7 @@ func (es *Elastic) GetGraphs() []string {
 	return out
 }
 
-func (es *Elastic) initIndex(ctx context.Context, name, body string) error {
+func (es *GraphDB) initIndex(ctx context.Context, name, body string) error {
 	exists, err := es.client.
 		IndexExists(name).
 		Do(ctx)
@@ -110,7 +110,7 @@ func (es *Elastic) initIndex(ctx context.Context, name, body string) error {
 }
 
 // AddGraph adds a new graph to the graphdb
-func (es *Elastic) AddGraph(graph string) error {
+func (es *GraphDB) AddGraph(graph string) error {
 	err := aql.ValidateGraphName(graph)
 	if err != nil {
 		return err
@@ -164,7 +164,7 @@ func (es *Elastic) AddGraph(graph string) error {
 }
 
 // DeleteGraph deletes a graph from the graphdb
-func (es *Elastic) DeleteGraph(graph string) error {
+func (es *GraphDB) DeleteGraph(graph string) error {
 	ctx := context.Background()
 
 	vertexIndex := fmt.Sprintf("%s_%s_vertex", es.database, graph)
@@ -180,9 +180,9 @@ func (es *Elastic) DeleteGraph(graph string) error {
 }
 
 // Graph returns interface to a specific graph in the graphdb
-func (es *Elastic) Graph(graph string) (gdbi.GraphInterface, error) {
+func (es *GraphDB) Graph(graph string) (gdbi.GraphInterface, error) {
 	found := false
-	for _, gname := range es.GetGraphs() {
+	for _, gname := range es.ListGraphs() {
 		if graph == gname {
 			found = true
 		}
@@ -201,4 +201,9 @@ func (es *Elastic) Graph(graph string) (gdbi.GraphInterface, error) {
 		synchronous: es.conf.Synchronous,
 		pageSize:    500,
 	}, nil
+}
+
+// GetSchema returns the schema of a specific graph in the database
+func (es *GraphDB) GetSchema(graph string) (*aql.GraphSchema, error) {
+	return nil, fmt.Errorf("not implemented")
 }

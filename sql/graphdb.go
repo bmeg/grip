@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/gdbi"
 	"github.com/bmeg/arachne/timestamp"
 	"github.com/jmoiron/sqlx"
@@ -73,7 +74,7 @@ func NewGraphDB(conf Config) (gdbi.GraphDB, error) {
 	db.SetMaxIdleConns(5)
 	ts := timestamp.NewTimestamp()
 	gdb := &GraphDB{db, conf.Graphs, &ts}
-	for _, i := range gdb.GetGraphs() {
+	for _, i := range gdb.ListGraphs() {
 		gdb.ts.Touch(i)
 	}
 	return gdb, nil
@@ -94,8 +95,8 @@ func (db *GraphDB) DeleteGraph(graph string) error {
 	return errors.New("not implemented")
 }
 
-// GetGraphs lists the graphs managed by this driver
-func (db *GraphDB) GetGraphs() []string {
+// ListGraphs lists the graphs managed by this driver
+func (db *GraphDB) ListGraphs() []string {
 	out := []string{}
 	for _, schema := range db.graphs {
 		out = append(out, schema.Graph)
@@ -124,4 +125,9 @@ func (db *GraphDB) Graph(graph string) (gdbi.GraphInterface, error) {
 		graph:  graph,
 		schema: schema,
 	}, nil
+}
+
+// GetSchema returns the schema of a specific graph in the database
+func (db *GraphDB) GetSchema(graph string) (*aql.GraphSchema, error) {
+	return nil, fmt.Errorf("not implemented")
 }

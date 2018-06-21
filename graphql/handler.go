@@ -49,21 +49,20 @@ func NewHTTPHandler(rpcAddress, user, password string) (http.Handler, error) {
 
 // ServeHTTP responds to HTTP graphql requests
 func (gh *Handler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
-	pathRE, _ := regexp.Compile("/graphql/(.*)$")
+	pathRE := regexp.MustCompile("/graphql/(.*)$")
 	graphName := pathRE.FindStringSubmatch(request.URL.Path)[1]
 	var v *graphHandler
 	var ok bool
 	if v, ok = gh.handlers[graphName]; ok {
 		v.setup()
 	} else {
-		v := newGraphHandler(graphName, gh.client)
-		v.setup()
+		v = newGraphHandler(graphName, gh.client)
 		gh.handlers[graphName] = v
 	}
 	if v != nil && v.gqlHandler != nil {
 		v.gqlHandler.ServeHTTP(writer, request)
 	} else {
-		http.Error(writer, "GraphQL Schema error", http.StatusInternalServerError)
+		http.Error(writer, fmt.Sprintf("No GraphQL handler found for graph: %s", graphName), http.StatusInternalServerError)
 	}
 }
 
@@ -82,14 +81,15 @@ func newGraphHandler(graph string, client aql.Client) *graphHandler {
 // rebuild graphql schema
 func (gh *graphHandler) setup() {
 	ts, _ := gh.client.GetTimestamp(gh.schema)
-	if ts.Timestamp != gh.timestamp {
-		log.Printf("Reloading GraphQL")
+	if ts == nil || ts.Timestamp != gh.timestamp {
+		log.Printf("Reloading GraphQL schema for graph: %s", gh.graph)
 		schema, err := buildGraphQLSchema(gh.client, gh.schema, gh.graph)
 		if err != nil {
-			log.Printf("Graph Schema build Failed")
+			log.Printf("GraphQL schema build failed: %v", err)
 			gh.gqlHandler = nil
 			gh.timestamp = ""
 		} else {
+			log.Printf("Built GraphQL schema for graph: %s: %+v", gh.graph, schema)
 			gh.gqlHandler = handler.New(&handler.Config{
 				Schema: schema,
 			})
@@ -111,7 +111,6 @@ func getObjects(client aql.Client, gqlDB string) map[string]map[string]interface
 }
 
 // a field that represent a link to another object
-
 type fieldType int
 
 const (
@@ -176,7 +175,7 @@ func (f objectField) toGQL(client aql.Client, dataGraph string, objects map[stri
 		o := &graphql.Field{
 			Type: graphql.NewList(graphql.String),
 			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-				log.Printf("Looking up ids: %s", f.dstType)
+				// log.Printf("Looking up ids: %s", f.dstType)
 				q := aql.V().Where(aql.Eq("label", f.dstType))
 				result, _ := client.Traversal(&aql.GraphQuery{Graph: dataGraph, Query: q.Statements})
 				out := []interface{}{}
@@ -236,7 +235,7 @@ func getObjectFields(client aql.Client, gqlDB string, queryGID string) map[strin
 						} else if tf == "idQuery" {
 							t = idQuery
 						} else {
-							log.Printf("Unknown Field type: %s %s", fieldName, tf)
+							log.Printf("Unknown field type: %s %s", fieldName, tf)
 						}
 					} else {
 						log.Printf("Object field link type not a string")
@@ -348,10 +347,9 @@ func buildGraphQLSchema(client aql.Client, gqlDB string, dataGraph string) (*gra
 	schemaConfig := graphql.SchemaConfig{
 		Query: queryType,
 	}
-	//log.Printf("GraphQL Schema: %s", schemaConfig)
 	schema, err := graphql.NewSchema(schemaConfig)
 	if err != nil {
-		log.Printf("graphql.NewSchema error: %s", err)
+		return nil, fmt.Errorf("graphql.NewSchema error: %v", err)
 	}
-	return &schema, err
+	return &schema, nil
 }

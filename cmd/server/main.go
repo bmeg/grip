@@ -42,10 +42,10 @@ func Run(conf *config.Config) error {
 		db, err = kvgraph.NewKVGraphDB(dbname, conf.KVStorePath)
 
 	case "elastic", "elasticsearch":
-		db, err = elastic.NewElastic(conf.Elasticsearch)
+		db, err = elastic.NewGraphDB(conf.Elasticsearch)
 
 	case "mongo", "mongodb":
-		db, err = mongo.NewMongo(conf.MongoDB)
+		db, err = mongo.NewGraphDB(conf.MongoDB)
 
 	case "sql":
 		db, err = sql.NewGraphDB(conf.SQL)
