@@ -202,9 +202,8 @@ message Timestamp {
 enum FieldType {
   UNKNOWN = 0;
   STRING  = 1;
-  INT = 2;
-  FLOAT = 3;
-  BOOL  = 4;
+  NUMERIC = 2;
+  BOOL  = 3;
 }
 
 // Each data field in the vertices/edges will be mapped to a FieldType. 

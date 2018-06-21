@@ -5,7 +5,7 @@ import (
 	"github.com/bmeg/arachne/protoutil"
 )
 
-var swVertices = []aql.Vertex{
+var swVertices = []*aql.Vertex{
 	{Gid: "1000", Label: "Human", Data: protoutil.AsStruct(
 		map[string]interface{}{
 			"name":       "Luke Skywalker",
@@ -97,7 +97,7 @@ var swVertices = []aql.Vertex{
 	)},
 }
 
-var swEdges = []aql.Edge{
+var swEdges = []*aql.Edge{
 	//Luke Edges
 	{Label: "friend", From: "1000", To: "1002"},
 	{Label: "friend", From: "1000", To: "1003"},

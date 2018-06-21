@@ -60,7 +60,6 @@ var Cmd = &cobra.Command{
 			return err
 		}
 
-		log.Printf("Loading example graph data into %s", graph)
 		elemChan := make(chan *aql.GraphElement)
 		wait := make(chan bool)
 		go func() {
@@ -69,6 +68,14 @@ var Cmd = &cobra.Command{
 			}
 			wait <- false
 		}()
+
+		log.Printf("Loading example graph data into %s", graph)
+		for _, v := range swVertices {
+			elemChan <- &aql.GraphElement{Graph: graph, Vertex: v}
+		}
+		for _, e := range swEdges {
+			elemChan <- &aql.GraphElement{Graph: graph, Edge: e}
+		}
 
 		log.Printf("Loading example graphql schema into %s", graphql)
 		schema := &aql.Graph{}
