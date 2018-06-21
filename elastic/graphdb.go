@@ -204,6 +204,6 @@ func (es *GraphDB) Graph(graph string) (gdbi.GraphInterface, error) {
 }
 
 // GetSchema returns the schema of a specific graph in the database
-func (es *GraphDB) GetSchema(graph string) (*aql.GraphSchema, error) {
+func (es *GraphDB) GetSchema(graph string, sampleN int) (*aql.GraphSchema, error) {
 	return nil, fmt.Errorf("not implemented")
 }

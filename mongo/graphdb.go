@@ -8,6 +8,7 @@ import (
 
 	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/gdbi"
+	"github.com/bmeg/arachne/protoutil"
 	"github.com/bmeg/arachne/timestamp"
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
@@ -226,6 +227,213 @@ func (ma *GraphDB) Graph(graph string) (gdbi.GraphInterface, error) {
 }
 
 // GetSchema returns the schema of a specific graph in the database
-func (ma *GraphDB) GetSchema(graph string) (*aql.GraphSchema, error) {
-	return nil, fmt.Errorf("not implemented")
+func (ma *GraphDB) GetSchema(graph string, sampleN int) (*aql.GraphSchema, error) {
+	vSchema, err := ma.getVertexSchema(graph, sampleN)
+	if err != nil {
+		return nil, fmt.Errorf("getting vertex schema: %v", err)
+	}
+	eSchema, err := ma.getEdgeSchema(graph, sampleN)
+	if err != nil {
+		return nil, fmt.Errorf("getting edge schema: %v", err)
+	}
+	schema := &aql.GraphSchema{Vertices: vSchema, Edges: eSchema}
+	log.Printf("Graph schema: %+v", schema)
+	return schema, nil
+}
+
+func (ma *GraphDB) getVertexSchema(graph string, n int) ([]*aql.Vertex, error) {
+	out := []*aql.Vertex{}
+
+	session := ma.session.Copy()
+	defer session.Close()
+	pipe := []bson.M{
+		{
+			"$group": bson.M{
+				"_id":  "$label",
+				"data": bson.M{"$push": "$data"},
+			},
+		},
+		{
+			"$project": bson.M{
+				"data": bson.M{
+					"$slice": []interface{}{"$data", n},
+				},
+			},
+		},
+	}
+
+	v := ma.VertexCollection(session, graph)
+	iter := v.Pipe(pipe).Iter()
+	result := &schema{}
+	for iter.Next(result) {
+		schema := make(map[string]interface{})
+		for i, v := range result.Data {
+			out := GetDataFieldTypes(v)
+			MergeMaps(schema, out)
+			result.Data[i] = out
+		}
+		vs := &aql.Vertex{Label: result.Label, Data: protoutil.AsStruct(schema)}
+		out = append(out, vs)
+	}
+	if err := iter.Err(); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func resolveLabel(col *mgo.Collection, ids []string) (string, error) {
+	pipe := []bson.M{
+		{
+			"$match": bson.M{
+				"_id": bson.M{"$in": ids},
+			},
+		},
+		{
+			"$project": bson.M{
+				"_id":   -1,
+				"label": 1,
+			},
+		},
+	}
+	iter := col.Pipe(pipe).Iter()
+	var last string
+	result := map[string]string{}
+	for iter.Next(&result) {
+		if last != "" && last != result["label"] {
+			return "", fmt.Errorf("resolved to multiple labels: %s %s", last, result)
+		}
+		last = result["label"]
+	}
+	return last, nil
+}
+
+func (ma *GraphDB) getEdgeSchema(graph string, n int) ([]*aql.Edge, error) {
+	out := []*aql.Edge{}
+
+	session := ma.session.Copy()
+	defer session.Close()
+	pipe := []bson.M{
+		{
+			"$group": bson.M{
+				"_id":  "$label",
+				"from": bson.M{"$push": "$from"},
+				"to":   bson.M{"$push": "$to"},
+				"data": bson.M{"$push": "$data"},
+			},
+		},
+		{
+			"$project": bson.M{
+				"_id": 1,
+				"to": bson.M{
+					"$slice": []interface{}{"$to", n},
+				},
+				"from": bson.M{
+					"$slice": []interface{}{"$from", n},
+				},
+				"data": bson.M{
+					"$slice": []interface{}{"$data", n},
+				},
+			},
+		},
+	}
+
+	e := ma.EdgeCollection(session, graph)
+	iter := e.Pipe(pipe).Iter()
+	result := &schema{}
+	for iter.Next(result) {
+		schema := make(map[string]interface{})
+		for i, v := range result.Data {
+			out := GetDataFieldTypes(v)
+			MergeMaps(schema, out)
+			result.Data[i] = out
+		}
+		from, err := resolveLabel(ma.VertexCollection(session, graph), result.From)
+		if err != nil {
+			return nil, err
+		}
+		to, err := resolveLabel(ma.VertexCollection(session, graph), result.To)
+		if err != nil {
+			return nil, err
+		}
+		es := &aql.Edge{Label: result.Label, From: from, To: to, Data: protoutil.AsStruct(schema)}
+		out = append(out, es)
+	}
+	if err := iter.Err(); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+type schema struct {
+	Label string                   `bson:"_id"`
+	From  []string                 `bson:"from"`
+	To    []string                 `bson:"to"`
+	Data  []map[string]interface{} `bson:"data"`
+}
+
+// MergeMaps deeply merges two maps
+func MergeMaps(x1, x2 interface{}) interface{} {
+	switch x1 := x1.(type) {
+	case map[string]interface{}:
+		x2, ok := x2.(map[string]interface{})
+		if !ok {
+			return x1
+		}
+		for k, v2 := range x2 {
+			if v1, ok := x1[k]; ok {
+				x1[k] = MergeMaps(v1, v2)
+			} else {
+				x1[k] = v2
+			}
+		}
+	case nil:
+		x2, ok := x2.(map[string]interface{})
+		if ok {
+			return x2
+		}
+	}
+	return x1
+}
+
+// GetDataFieldTypes iterates over the data map and determines the type of each field
+func GetDataFieldTypes(data map[string]interface{}) map[string]interface{} {
+	out := make(map[string]interface{})
+	for key, val := range data {
+		if vMap, ok := val.(map[string]interface{}); ok {
+			out[key] = GetDataFieldTypes(vMap)
+			continue
+		}
+		if vSlice, ok := val.([]interface{}); ok {
+			var vType interface{}
+			vType = []interface{}{aql.FieldType_UNKNOWN.String()}
+			if len(vSlice) > 0 {
+				vSliceVal := vSlice[0]
+				if vSliceValMap, ok := vSliceVal.(map[string]interface{}); ok {
+					vType = []map[string]interface{}{GetDataFieldTypes(vSliceValMap)}
+				} else {
+					vType = []interface{}{GetFieldType(vSliceVal)}
+				}
+			}
+			out[key] = vType
+			continue
+		}
+		out[key] = GetFieldType(val)
+	}
+	return out
+}
+
+// GetFieldType returns the aql.FieldType for a value
+func GetFieldType(field interface{}) string {
+	switch field.(type) {
+	case string:
+		return aql.FieldType_STRING.String()
+	case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64:
+		return aql.FieldType_NUMERIC.String()
+	case float32, float64:
+		return aql.FieldType_NUMERIC.String()
+	case bool:
+		return aql.FieldType_BOOL.String()
+	default:
+		return aql.FieldType_UNKNOWN.String()
+	}
 }
