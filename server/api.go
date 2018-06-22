@@ -48,7 +48,7 @@ func (server *ArachneServer) ListGraphs(empty *aql.Empty, queryServer aql.Query_
 
 // GetSchema returns the schema of a specific graph in the database
 func (server *ArachneServer) GetSchema(ctx context.Context, elem *aql.GraphID) (*aql.GraphSchema, error) {
-	return server.db.GetSchema(elem.Graph, 50)
+	return server.db.GetSchema(elem.Graph, 500)
 }
 
 // GetVertex returns a vertex given a aql.Element
