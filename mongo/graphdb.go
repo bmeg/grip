@@ -246,37 +246,44 @@ func (ma *GraphDB) getVertexSchema(graph string, n int) ([]*aql.Vertex, error) {
 
 	session := ma.session.Copy()
 	defer session.Close()
-	pipe := []bson.M{
-		{
-			"$group": bson.M{
-				"_id":  "$label",
-				"data": bson.M{"$push": "$data"},
-			},
-		},
-		{
-			"$project": bson.M{
-				"data": bson.M{
-					"$slice": []interface{}{"$data", n},
-				},
-			},
-		},
+	v := ma.VertexCollection(session, graph)
+
+	var labels []string
+	err := v.Find(nil).Distinct("label", &labels)
+	if err != nil {
+		return nil, err
 	}
 
-	v := ma.VertexCollection(session, graph)
-	iter := v.Pipe(pipe).Iter()
-	result := &schema{}
-	for iter.Next(result) {
-		schema := make(map[string]interface{})
-		for i, v := range result.Data {
-			out := GetDataFieldTypes(v)
-			MergeMaps(schema, out)
-			result.Data[i] = out
+	for _, label := range labels {
+		pipe := []bson.M{
+			{
+				"$match": bson.M{
+					"label": bson.M{"$eq": label},
+				},
+			},
+			{"$sample": bson.M{"size": n}},
+			{
+				"$group": bson.M{
+					"_id":  "$label",
+					"data": bson.M{"$push": "$data"},
+				},
+			},
 		}
-		vs := &aql.Vertex{Label: result.Label, Data: protoutil.AsStruct(schema)}
-		out = append(out, vs)
-	}
-	if err := iter.Err(); err != nil {
-		return nil, err
+
+		iter := v.Pipe(pipe).Iter()
+		result := &schema{}
+		for iter.Next(result) {
+			schema := make(map[string]interface{})
+			for _, v := range result.Data {
+				out := GetDataFieldTypes(v)
+				MergeMaps(schema, out)
+			}
+			vs := &aql.Vertex{Label: result.Label, Data: protoutil.AsStruct(schema)}
+			out = append(out, vs)
+		}
+		if err := iter.Err(); err != nil {
+			return nil, err
+		}
 	}
 	return out, nil
 }
@@ -286,58 +293,58 @@ func (ma *GraphDB) getEdgeSchema(graph string, n int) ([]*aql.Edge, error) {
 
 	session := ma.session.Copy()
 	defer session.Close()
-
-	pipe := []bson.M{
-		{
-			"$group": bson.M{
-				"_id":  "$label",
-				"from": bson.M{"$push": "$from"},
-				"to":   bson.M{"$push": "$to"},
-				"data": bson.M{"$push": "$data"},
-			},
-		},
-		{
-			"$project": bson.M{
-				"_id": 1,
-				"to": bson.M{
-					"$slice": []interface{}{"$to", n},
-				},
-				"from": bson.M{
-					"$slice": []interface{}{"$from", n},
-				},
-				"data": bson.M{
-					"$slice": []interface{}{"$data", n},
-				},
-			},
-		},
-	}
-
 	e := ma.EdgeCollection(session, graph)
-	iter := e.Pipe(pipe).Iter()
-	result := &schema{}
-	for iter.Next(result) {
-		schema := make(map[string]interface{})
-		for _, v := range result.Data {
-			out := GetDataFieldTypes(v)
-			MergeMaps(schema, out)
-		}
-		var err error
-		result.From, err = resolveLabels(ma.VertexCollection(session, graph), result.From)
-		if err != nil {
-			return nil, err
-		}
-		result.To, err = resolveLabels(ma.VertexCollection(session, graph), result.To)
-		if err != nil {
-			return nil, err
-		}
-		result.squashFromTo()
-		for i := range result.From {
-			es := &aql.Edge{Label: result.Label, From: result.From[i], To: result.To[i], Data: protoutil.AsStruct(schema)}
-			out = append(out, es)
-		}
-	}
-	if err := iter.Err(); err != nil {
+
+	var labels []string
+	err := e.Find(nil).Distinct("label", &labels)
+	if err != nil {
 		return nil, err
+	}
+
+	for _, label := range labels {
+		pipe := []bson.M{
+			{
+				"$match": bson.M{
+					"label": bson.M{"$eq": label},
+				},
+			},
+			{"$sample": bson.M{"size": n}},
+			{
+				"$group": bson.M{
+					"_id":  "$label",
+					"from": bson.M{"$push": "$from"},
+					"to":   bson.M{"$push": "$to"},
+					"data": bson.M{"$push": "$data"},
+				},
+			},
+		}
+
+		iter := e.Pipe(pipe).Iter()
+		result := &schema{}
+		for iter.Next(result) {
+			schema := make(map[string]interface{})
+			for _, v := range result.Data {
+				out := GetDataFieldTypes(v)
+				MergeMaps(schema, out)
+			}
+			var err error
+			result.From, err = resolveLabels(ma.VertexCollection(session, graph), result.From)
+			if err != nil {
+				return nil, err
+			}
+			result.To, err = resolveLabels(ma.VertexCollection(session, graph), result.To)
+			if err != nil {
+				return nil, err
+			}
+			result.squashFromTo()
+			for i := range result.From {
+				es := &aql.Edge{Label: result.Label, From: result.From[i], To: result.To[i], Data: protoutil.AsStruct(schema)}
+				out = append(out, es)
+			}
+		}
+		if err := iter.Err(); err != nil {
+			return nil, err
+		}
 	}
 	return out, nil
 }
