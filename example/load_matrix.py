@@ -22,21 +22,22 @@ def load_matrix(args):
         matrix = matrix.transpose()
 
     if args.connect:
-        #every row x col creates an edge with the weight value
-        for c in matrix.columns:
-            cname = "%s%s" % (args.col_prefix, c)
-            if list(O.query().V(c).count())[0]['count'] == 0:
-                if args.debug:
-                    print("AddVertex %s %s" % (c, args.col_label))
-                else:
-                    O.addVertex(c, args.col_label)
-        for r in matrix.index:
-            rname = "%s%s" % (args.row_prefix, r)
-            if list(O.query().V(r).count())[0]['count'] == 0:
-                if args.debug:
-                    print("AddVertex %s %s" % (r, args.row_label))
-                else:
-                    O.addVertex(r, args.row_label)
+        if not args.no_vertex:
+            #every row x col creates an edge with the weight value
+            for c in matrix.columns:
+                cname = "%s%s" % (args.col_prefix, c)
+                if list(O.query().V(c).count())[0]['count'] == 0:
+                    if args.debug:
+                        print("AddVertex %s %s" % (c, args.col_label))
+                    else:
+                        O.addVertex(c, args.col_label)
+            for r in matrix.index:
+                rname = "%s%s" % (args.row_prefix, r)
+                if list(O.query().V(r).count())[0]['count'] == 0:
+                    if args.debug:
+                        print("AddVertex %s %s" % (r, args.row_label))
+                    else:
+                        O.addVertex(r, args.row_label)
 
         for name, row in matrix.iterrows():
             rname = "%s%s" % (args.row_prefix, name)
@@ -60,15 +61,21 @@ def load_matrix(args):
                 v = row[c]
                 if not isinstance(v,float) or not math.isnan(v):
                     data[c] = v
-            if args.debug:
-                print("Add Vertex %s %s %s" % (rname, args.row_label, data))
-            else:
-                O.addVertex(rname, args.row_label, data)
-            for dst, edge in args.edge:
+            if not args.no_vertex:
                 if args.debug:
-                    print("Add Edge %s %s" % (dst.format(**data), edge))
+                    print("Add Vertex %s %s %s" % (rname, args.row_label, data))
                 else:
-                    O.addEdge(rname, dst.format(**data), edge)
+                    O.addVertex(rname, args.row_label, data)
+            for dst, edge in args.edge:
+                try:
+                    dstFmt = dst.format(**data)
+                except KeyError:
+                    dstFmt = None
+                if dstFmt is not None:
+                    if args.debug:
+                        print("Add Edge %s %s" % (dstFmt, edge))
+                    else:
+                        O.addEdge(rname, dstFmt, edge)
 
 
 
@@ -90,6 +97,7 @@ if __name__ == "__main__":
     parser.add_argument("--edge-prop", dest="edge_prop", default="w")
     parser.add_argument("-d", dest="debug", action="store_true", default=False)
 
+    parser.add_argument("--no-vertex", action="store_true", default=False)
     parser.add_argument("-e", "--edge", action="append", default=[], nargs=2)
 
     args = parser.parse_args()
