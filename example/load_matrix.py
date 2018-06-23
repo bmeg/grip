@@ -3,6 +3,7 @@
 from __future__ import print_function
 
 import aql
+import re
 import argparse
 import pandas
 import math
@@ -15,9 +16,9 @@ def load_matrix(args):
     O = conn.graph(args.db)
 
     if args.columns is not None:
-        matrix = pandas.read_csv(args.input, sep=args.sep, index_col=0, header=None, names=args.columns)
+        matrix = pandas.read_csv(args.input, sep=args.sep, index_col=args.index_col, header=None, names=args.columns)
     else:
-        matrix = pandas.read_csv(args.input, sep=args.sep, index_col=0)
+        matrix = pandas.read_csv(args.input, sep=args.sep, index_col=args.index_col)
     if args.transpose:
         matrix = matrix.transpose()
 
@@ -61,11 +62,12 @@ def load_matrix(args):
                 v = row[c]
                 if not isinstance(v,float) or not math.isnan(v):
                     data[c] = v
-            if not args.no_vertex:
+            if not args.no_vertex and rname not in args.exclude:
                 if args.debug:
                     print("Add Vertex %s %s %s" % (rname, args.row_label, data))
                 else:
                     O.addVertex(rname, args.row_label, data)
+            data["_gid"] = rname
             for dst, edge in args.edge:
                 try:
                     dstFmt = dst.format(**data)
@@ -88,6 +90,7 @@ if __name__ == "__main__":
     parser.add_argument("--row-label", dest="row_label", default="Row")
     parser.add_argument("--row-prefix", default="")
     parser.add_argument("-t", "--transpose", action="store_true", default=False)
+    parser.add_argument("--index-col", default=0, type=int)
     parser.add_argument("--connect", action="store_true", default=False)
     parser.add_argument("--col-label", dest="col_label", default="Col")
     parser.add_argument("--col-prefix", default="")
@@ -99,6 +102,7 @@ if __name__ == "__main__":
 
     parser.add_argument("--no-vertex", action="store_true", default=False)
     parser.add_argument("-e", "--edge", action="append", default=[], nargs=2)
+    parser.add_argument("-x", "--exclude", action="append", default=[])
 
     args = parser.parse_args()
     load_matrix(args)
