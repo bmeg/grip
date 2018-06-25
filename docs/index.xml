@@ -2,20 +2,20 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
     <title>Arachne</title>
-    <link>https://bmeg.github.io/arachne/</link>
+    <link>https://docs.bmeg.io/arachne/</link>
     <description>Recent content on Arachne</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
     
-	<atom:link href="https://bmeg.github.io/arachne/index.xml" rel="self" type="application/rss+xml" />
+	<atom:link href="https://docs.bmeg.io/arachne/index.xml" rel="self" type="application/rss+xml" />
     
     
     <item>
       <title>Amazon Purchase Network</title>
-      <link>https://bmeg.github.io/arachne/docs/tutorials/amazon/</link>
+      <link>https://docs.bmeg.io/arachne/docs/tutorials/amazon/</link>
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
       
-      <guid>https://bmeg.github.io/arachne/docs/tutorials/amazon/</guid>
+      <guid>https://docs.bmeg.io/arachne/docs/tutorials/amazon/</guid>
       <description>Explore Amazon Product Co-Purchasing Network Metadata Download the data
 curl -O http://snap.stanford.edu/data/bigdata/amazon/amazon-meta.txt.gz  Convert the data into vertices and edges
 python $GOPATH/src/github.com/bmeg/arachne/example/amazon_convert.py amazon-meta.txt.gz amazon.data  Create a graph called &amp;lsquo;amazon&amp;rsquo;
@@ -28,10 +28,10 @@ pip install &amp;quot;git+https://github.com/bmeg/arachne.git#egg=aql&amp;amp;su
     
     <item>
       <title>Basic Auth</title>
-      <link>https://bmeg.github.io/arachne/docs/security/basic/</link>
+      <link>https://docs.bmeg.io/arachne/docs/security/basic/</link>
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
       
-      <guid>https://bmeg.github.io/arachne/docs/security/basic/</guid>
+      <guid>https://docs.bmeg.io/arachne/docs/security/basic/</guid>
       <description>Basic Auth By default, an Arachne server allows open access to its API endpoints, but it can be configured to require basic password authentication. To enable this, include users and passwords in your config file:
 Server: BasicAuth: - User: testuser Password: abc123  Make sure to properly protect the configuration file so that it&amp;rsquo;s not readable by everyone:
 $ chmod 600 arachne.config.yml  To use the password, set the ARACHNE_USER and ARACHNE_PASSWORD environment variables:</description>
@@ -39,29 +39,29 @@ $ chmod 600 arachne.config.yml  To use the password, set the ARACHNE_USER and AR
     
     <item>
       <title>Developers</title>
-      <link>https://bmeg.github.io/arachne/docs/developers/</link>
+      <link>https://docs.bmeg.io/arachne/docs/developers/</link>
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
       
-      <guid>https://bmeg.github.io/arachne/docs/developers/</guid>
+      <guid>https://docs.bmeg.io/arachne/docs/developers/</guid>
       <description></description>
     </item>
     
     <item>
       <title>Download</title>
-      <link>https://bmeg.github.io/arachne/download/</link>
+      <link>https://docs.bmeg.io/arachne/download/</link>
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
       
-      <guid>https://bmeg.github.io/arachne/download/</guid>
+      <guid>https://docs.bmeg.io/arachne/download/</guid>
       <description> Download 0.2.0  Linux MacOS Windows is not supported sorry!  Release History See the Releases page for release history.
 Build From Source $ mkdir -p $GOPATH/src/github.com/bmeg $ cd $GOPATH/src/github.com/bmeg $ git clone https://github.com/bmeg/arachne.git $ cd arachne $ make  </description>
     </item>
     
     <item>
       <title>Elasticsearch</title>
-      <link>https://bmeg.github.io/arachne/docs/databases/elastic/</link>
+      <link>https://docs.bmeg.io/arachne/docs/databases/elastic/</link>
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
       
-      <guid>https://bmeg.github.io/arachne/docs/databases/elastic/</guid>
+      <guid>https://docs.bmeg.io/arachne/docs/databases/elastic/</guid>
       <description> Elasticsearch Arachne supports storing vertices and edges in Elasticsearch.
 Config:
 Database: elasticsearch Elasticsearch: URL: &amp;quot;http://localhost:9200&amp;quot; DBName: &amp;quot;arachnedb&amp;quot; Username: &amp;quot;&amp;quot; Password: &amp;quot;&amp;quot;  </description>
@@ -69,10 +69,10 @@ Database: elasticsearch Elasticsearch: URL: &amp;quot;http://localhost:9200&amp;
     
     <item>
       <title>Embedded KV Store</title>
-      <link>https://bmeg.github.io/arachne/docs/databases/kvstore/</link>
+      <link>https://docs.bmeg.io/arachne/docs/databases/kvstore/</link>
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
       
-      <guid>https://bmeg.github.io/arachne/docs/databases/kvstore/</guid>
+      <guid>https://docs.bmeg.io/arachne/docs/databases/kvstore/</guid>
       <description> Embedded Key Value Stores Arachne supports storing vertices and edges in a variety of key-value stores including:
  Badger BoltDB LevelDB RocksDB  Config:
 # pick one of: badger, bolt, level, rocks Database: badger KVStorePath: arachne.db  </description>
@@ -80,10 +80,10 @@ Database: elasticsearch Elasticsearch: URL: &amp;quot;http://localhost:9200&amp;
     
     <item>
       <title>Getting Started</title>
-      <link>https://bmeg.github.io/arachne/docs/queries/getting_started/</link>
+      <link>https://docs.bmeg.io/arachne/docs/queries/getting_started/</link>
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
       
-      <guid>https://bmeg.github.io/arachne/docs/queries/getting_started/</guid>
+      <guid>https://docs.bmeg.io/arachne/docs/queries/getting_started/</guid>
       <description>Getting Started Arachne has an API for making graph queries using structured data. Queries are defined using a series of step operations).
 Install the Python Client pip install &amp;quot;git+https://github.com/bmeg/arachne.git#subdirectory=aql/python&amp;quot;  Let&amp;rsquo;s go through the features currently supported in the python client.
 First, import the client and create a connection to an Arachne server:
@@ -92,20 +92,20 @@ import aql conn = aql.Connection(&#39;http://bmeg.io&#39;) O = conn.graph(&amp;q
     
     <item>
       <title>GraphQL</title>
-      <link>https://bmeg.github.io/arachne/docs/queries/graphql/</link>
+      <link>https://docs.bmeg.io/arachne/docs/queries/graphql/</link>
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
       
-      <guid>https://bmeg.github.io/arachne/docs/queries/graphql/</guid>
+      <guid>https://docs.bmeg.io/arachne/docs/queries/graphql/</guid>
       <description>GraphQL Arachne supports GraphQL access of the property graphs. Currently this is read-only access to the graph. GraphQL graphs have a defined schema with typed fields and connections. This schema must be defined before the graphql endpoint can access the graph.
 All of the different label types in the graph are represented with a vertex of label &amp;lsquo;Object&amp;rsquo;. The vertex gid in the schema graph represents the label type in the actual graph.</description>
     </item>
     
     <item>
       <title>MongoDB</title>
-      <link>https://bmeg.github.io/arachne/docs/databases/mongo/</link>
+      <link>https://docs.bmeg.io/arachne/docs/databases/mongo/</link>
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
       
-      <guid>https://bmeg.github.io/arachne/docs/databases/mongo/</guid>
+      <guid>https://docs.bmeg.io/arachne/docs/databases/mongo/</guid>
       <description> MongoDB Arachne supports storing vertices and edges in MongoDB.
 Config:
 Database: mongodb MongoDb: URL: &amp;quot;localhost:9200&amp;quot; DBName: &amp;quot;arachnedb&amp;quot; Username: &amp;quot;&amp;quot; Password: &amp;quot;&amp;quot;  </description>
@@ -113,10 +113,10 @@ Database: mongodb MongoDb: URL: &amp;quot;localhost:9200&amp;quot; DBName: &amp;
     
     <item>
       <title>Operations</title>
-      <link>https://bmeg.github.io/arachne/docs/queries/operations/</link>
+      <link>https://docs.bmeg.io/arachne/docs/queries/operations/</link>
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
       
-      <guid>https://bmeg.github.io/arachne/docs/queries/operations/</guid>
+      <guid>https://docs.bmeg.io/arachne/docs/queries/operations/</guid>
       <description>Start a Traversal .V([ids]) Start query from Vertex
 O.query().V()  Returns all vertices in graph
 O.query().V([&amp;quot;vertex1]&amp;quot;)  Returns:
@@ -128,10 +128,10 @@ O.query().E([&amp;quot;edge1&amp;quot;])  Returns:
     
     <item>
       <title>Overview</title>
-      <link>https://bmeg.github.io/arachne/docs/</link>
+      <link>https://docs.bmeg.io/arachne/docs/</link>
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
       
-      <guid>https://bmeg.github.io/arachne/docs/</guid>
+      <guid>https://docs.bmeg.io/arachne/docs/</guid>
       <description>Overview Arachne is a graph database engine. It provides a graph interface on top of a variety of existing database technologies including: MongoDB, Elasticsearch, PostgreSQL, MySQL, MariaDB, Badger, and LevelDB.
 Properties of an Arachne graph:
  Both vertices and edges in a graph can have any number of properties associated with them. There are many types of vertices and edges in a graph. Thus two vertices may have myriad types of edges connecting them reflecting myriad types of relationships.</description>
@@ -139,19 +139,19 @@ Properties of an Arachne graph:
     
     <item>
       <title>Query a Graph</title>
-      <link>https://bmeg.github.io/arachne/docs/queries/</link>
+      <link>https://docs.bmeg.io/arachne/docs/queries/</link>
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
       
-      <guid>https://bmeg.github.io/arachne/docs/queries/</guid>
+      <guid>https://docs.bmeg.io/arachne/docs/queries/</guid>
       <description></description>
     </item>
     
     <item>
       <title>Referencing Fields</title>
-      <link>https://bmeg.github.io/arachne/docs/queries/jsonpath/</link>
+      <link>https://docs.bmeg.io/arachne/docs/queries/jsonpath/</link>
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
       
-      <guid>https://bmeg.github.io/arachne/docs/queries/jsonpath/</guid>
+      <guid>https://docs.bmeg.io/arachne/docs/queries/jsonpath/</guid>
       <description>Several operations (where, fields, render, etc.) reference properties of the vertices/edges during the traversal. Arachne uses a variation on JSONPath syntax as described in http://goessner.net/articles/ to reference fields during traversals.
 The following query:
 O.query().V([&amp;quot;ENSG00000012048&amp;quot;]).mark(&amp;quot;gene&amp;quot;).out(&amp;quot;variant&amp;quot;)  Starts at vertex ENSG00000012048 and marks as gene:
@@ -160,10 +160,10 @@ O.query().V([&amp;quot;ENSG00000012048&amp;quot;]).mark(&amp;quot;gene&amp;quot;
     
     <item>
       <title>SQL</title>
-      <link>https://bmeg.github.io/arachne/docs/databases/sql/</link>
+      <link>https://docs.bmeg.io/arachne/docs/databases/sql/</link>
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
       
-      <guid>https://bmeg.github.io/arachne/docs/databases/sql/</guid>
+      <guid>https://docs.bmeg.io/arachne/docs/databases/sql/</guid>
       <description>SQL Arachne supports modeling an existing SQL database as a graph. Arachne has been tested against PostgreSQL, but should work with MySQL (4.1+) and MariaDB.
 Since Arachne uses Go&amp;rsquo;s database/sql package, we could (in thoery) support any SQL databases listed on: https://github.com/golang/go/wiki/SQLDrivers. Open an issue if you would like to request support for your favorite SQL database.
 Configuration Notes  DataSourceName is a driver-specific data source name, usually consisting of at least a database name and connection information.</description>
@@ -171,28 +171,28 @@ Configuration Notes  DataSourceName is a driver-specific data source name, usual
     
     <item>
       <title>Security</title>
-      <link>https://bmeg.github.io/arachne/docs/security/</link>
+      <link>https://docs.bmeg.io/arachne/docs/security/</link>
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
       
-      <guid>https://bmeg.github.io/arachne/docs/security/</guid>
+      <guid>https://docs.bmeg.io/arachne/docs/security/</guid>
       <description></description>
     </item>
     
     <item>
       <title>Setup your Database</title>
-      <link>https://bmeg.github.io/arachne/docs/databases/</link>
+      <link>https://docs.bmeg.io/arachne/docs/databases/</link>
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
       
-      <guid>https://bmeg.github.io/arachne/docs/databases/</guid>
+      <guid>https://docs.bmeg.io/arachne/docs/databases/</guid>
       <description></description>
     </item>
     
     <item>
       <title>TCGA RNA Expression</title>
-      <link>https://bmeg.github.io/arachne/docs/tutorials/tcga-rna/</link>
+      <link>https://docs.bmeg.io/arachne/docs/tutorials/tcga-rna/</link>
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
       
-      <guid>https://bmeg.github.io/arachne/docs/tutorials/tcga-rna/</guid>
+      <guid>https://docs.bmeg.io/arachne/docs/tutorials/tcga-rna/</guid>
       <description>Explore TCGA RNA Expression Data Create the graph
 arachne create tcga-rna  Load pathway information
 curl -O http://www.pathwaycommons.org/archives/PC2/v9/PathwayCommons9.All.hgnc.sif.gz gunzip PathwayCommons9.All.hgnc.sif.gz python $GOPATH/src/github.com/bmeg/arachne/example/load_sif.py --db tcga-rna PathwayCommons9.All.hgnc.sif  Load expression data
@@ -203,10 +203,10 @@ pip install &amp;quot;git+https://github.com/bmeg/arachne.git#egg=aql&amp;amp;su
     
     <item>
       <title>Tutorials</title>
-      <link>https://bmeg.github.io/arachne/docs/tutorials/</link>
+      <link>https://docs.bmeg.io/arachne/docs/tutorials/</link>
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
       
-      <guid>https://bmeg.github.io/arachne/docs/tutorials/</guid>
+      <guid>https://docs.bmeg.io/arachne/docs/tutorials/</guid>
       <description></description>
     </item>
     
