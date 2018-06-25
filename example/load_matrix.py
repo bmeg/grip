@@ -60,8 +60,9 @@ def load_matrix(args):
             data = {}
             for c in matrix.columns:
                 v = row[c]
-                if not isinstance(v,float) or not math.isnan(v):
-                    data[c] = v
+                if args.column_include is None or c in args.column_include:
+                    if not isinstance(v,float) or not math.isnan(v):
+                        data[c] = v
             if not args.no_vertex and rname not in args.exclude:
                 if args.debug:
                     print("Add Vertex %s %s %s" % (rname, args.row_label, data))
@@ -106,6 +107,7 @@ if __name__ == "__main__":
     parser.add_argument("--col-label", dest="col_label", default="Col")
     parser.add_argument("--col-prefix", default="")
     parser.add_argument("--columns", default=None, nargs="*")
+    parser.add_argument("--column-include", default=None, action="append")
 
     parser.add_argument("--edge-label", dest="edge_label", default="weight")
     parser.add_argument("--edge-prop", dest="edge_prop", default="w")
