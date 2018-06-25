@@ -5,9 +5,9 @@
 
 # Arachne
 
-https://bmeg.github.io/arachne/
+https://docs.bmeg.io/arachne
 
-Arachne is a graph database server. It provides a graph interface on top of a variety of existing database technologies including: 
+Arachne is a graph database engine. It provides a graph interface on top of a variety of existing database technologies including: 
 MongoDB, Elasticsearch, PostgreSQL, MySQL, MariaDB, Badger, and LevelDB.
 
 Properties of an Arachne graph:
