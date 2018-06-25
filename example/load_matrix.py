@@ -78,6 +78,17 @@ def load_matrix(args):
                         print("Add Edge %s %s" % (dstFmt, edge))
                     else:
                         O.addEdge(rname, dstFmt, edge)
+            for dst, label in args.dst_vertex:
+                try:
+                    dstFmt = dst.format(**data)
+                except KeyError:
+                    dstFmt = None
+                if dstFmt is not None:
+                    if list(O.query().V(dstFmt).count())[0]['count'] == 0:
+                        if args.debug:
+                            print("Add Vertex %s %s" % (dstFmt, label))
+                        else:
+                            O.addVertex(dstFmt, label, {})
 
 
 
@@ -103,6 +114,7 @@ if __name__ == "__main__":
     parser.add_argument("--no-vertex", action="store_true", default=False)
     parser.add_argument("-e", "--edge", action="append", default=[], nargs=2)
     parser.add_argument("-x", "--exclude", action="append", default=[])
+    parser.add_argument("--dst-vertex", action="append", default=[], nargs=2)
 
     args = parser.parse_args()
     load_matrix(args)
