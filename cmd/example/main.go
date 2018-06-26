@@ -6,7 +6,6 @@ import (
 
 	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/util/rpc"
-	"github.com/golang/protobuf/jsonpb"
 	"github.com/spf13/cobra"
 )
 
@@ -34,8 +33,6 @@ var Cmd = &cobra.Command{
 			return err
 		}
 
-		graphql := fmt.Sprintf("%s-schema", graph)
-
 		graphCh, err := conn.ListGraphs()
 		if err != nil {
 			return err
@@ -44,17 +41,10 @@ var Cmd = &cobra.Command{
 		for g := range graphCh {
 			graphs = append(graphs, g)
 		}
-		if found(graphs, graphql) {
-			return fmt.Errorf("arachne already contains a graph called 'example-schema'")
-		}
 		if found(graphs, graph) {
 			return fmt.Errorf("arachne already contains a graph called 'example'")
 		}
 
-		err = conn.AddGraph(graphql)
-		if err != nil {
-			return err
-		}
 		err = conn.AddGraph(graph)
 		if err != nil {
 			return err
@@ -75,18 +65,6 @@ var Cmd = &cobra.Command{
 		}
 		for _, e := range swEdges {
 			elemChan <- &aql.GraphElement{Graph: graph, Edge: e}
-		}
-
-		log.Printf("Loading example graphql schema into %s", graphql)
-		schema := &aql.Graph{}
-		if err := jsonpb.UnmarshalString(swGQLGraph, schema); err != nil {
-			return fmt.Errorf("failed to unmarshal graph schema: %v", err)
-		}
-		for _, v := range schema.Vertices {
-			elemChan <- &aql.GraphElement{Graph: graphql, Vertex: v}
-		}
-		for _, e := range schema.Edges {
-			elemChan <- &aql.GraphElement{Graph: graphql, Edge: e}
 		}
 
 		close(elemChan)
