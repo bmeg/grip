@@ -51,16 +51,16 @@ func NewHTTPHandler(rpcAddress, user, password string) (http.Handler, error) {
 func (gh *Handler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 	pathRE := regexp.MustCompile("/graphql/(.*)$")
 	graphName := pathRE.FindStringSubmatch(request.URL.Path)[1]
-	var v *graphHandler
+	var handler *graphHandler
 	var ok bool
-	if v, ok = gh.handlers[graphName]; ok {
-		v.setup()
+	if handler, ok = gh.handlers[graphName]; ok {
+		handler.setup()
 	} else {
-		v = newGraphHandler(graphName, gh.client)
-		gh.handlers[graphName] = v
+		handler = newGraphHandler(graphName, gh.client)
+		gh.handlers[graphName] = handler
 	}
-	if v != nil && v.gqlHandler != nil {
-		v.gqlHandler.ServeHTTP(writer, request)
+	if handler != nil && handler.gqlHandler != nil {
+		handler.gqlHandler.ServeHTTP(writer, request)
 	} else {
 		http.Error(writer, fmt.Sprintf("No GraphQL handler found for graph: %s", graphName), http.StatusInternalServerError)
 	}
@@ -97,43 +97,7 @@ func (gh *graphHandler) setup() {
 	}
 }
 
-type edgeField struct {
-	edgeLabel string
-	srcType   string
-	dstType   string
-}
-
-func (f *edgeField) toGQL(client aql.Client, graph string, objects map[string]*graphql.Object) *graphql.Field {
-	o := &graphql.Field{
-		Name: f.edgeLabel + "_" + f.dstType,
-		Type: graphql.NewList(objects[f.dstType]),
-		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-			srcMap, ok := p.Source.(map[string]interface{})
-			if !ok {
-				return nil, fmt.Errorf("source conversion failed: %v", p.Source)
-			}
-			srcGid, ok := srcMap["__gid"].(string)
-			if !ok {
-				return nil, fmt.Errorf("source gid conversion failed: %+v", srcMap)
-			}
-			q := aql.V(srcGid).Where(aql.Eq("_label", f.srcType)).Out(f.edgeLabel).Where(aql.Eq("_label", f.dstType))
-			result, err := client.Traversal(&aql.GraphQuery{Graph: graph, Query: q.Statements})
-			if err != nil {
-				return nil, err
-			}
-			out := []interface{}{}
-			for r := range result {
-				d := r.GetVertex().GetDataMap()
-				d["__gid"] = r.GetVertex().Gid
-				out = append(out, d)
-			}
-			return out, nil
-		},
-	}
-	return o
-}
-
-func fieldType(x string) *graphql.Field {
+func buildField(x string) (*graphql.Field, error) {
 	var o *graphql.Field
 	switch x {
 	case "NUMERIC":
@@ -143,73 +107,133 @@ func fieldType(x string) *graphql.Field {
 	case "BOOL":
 		o = &graphql.Field{Type: graphql.Boolean}
 	default:
-		log.Printf("Unknown GQL type: %v", x)
+		return nil, fmt.Errorf("%s does not map to a GQL type", x)
 	}
-	return o
+	return o, nil
 }
 
-func buildObject(objName string, objSchema map[string]interface{}) *graphql.Object {
-	fields := graphql.Fields{}
+func buildSliceField(name string, s []interface{}) (*graphql.Field, error) {
+	var f *graphql.Field
+	var err error
 
-	for fname, ftype := range objSchema {
+	if len(s) > 0 {
+		val := s[0]
+
+		if x, ok := val.(map[string]interface{}); ok {
+			f, err = buildObjectField(name, x)
+
+		} else if x, ok := val.([]interface{}); ok {
+			f, err = buildSliceField(name, x)
+
+		} else if x, ok := val.(string); ok {
+			f, err = buildField(x)
+
+		} else {
+			err = fmt.Errorf("unhandled type: %T %v", val, val)
+		}
+
+	} else {
+		err = fmt.Errorf("slice is empty")
+	}
+
+	if err != nil {
+		return nil, fmt.Errorf("buildSliceField error: %v", err)
+	}
+
+	return &graphql.Field{Type: graphql.NewList(f.Type)}, nil
+}
+
+func buildObjectField(name string, obj map[string]interface{}) (*graphql.Field, error) {
+	o, err := buildObject(name, obj)
+	if err != nil {
+		return nil, err
+	}
+
+	return &graphql.Field{Type: o}, nil
+}
+
+func buildObject(name string, obj map[string]interface{}) (*graphql.Object, error) {
+	objFields := graphql.Fields{}
+
+	for key, val := range obj {
+		var err error
 
 		// handle map
-		if x, ok := ftype.(map[string]interface{}); ok {
-			if m := buildObject(fname, x); m != nil {
-				fields[fname] = &graphql.Field{Type: m}
-			}
+		if x, ok := val.(map[string]interface{}); ok {
+			objFields[key], err = buildObjectField(key, x)
 
 			// handle slice
-		} else if x, ok := ftype.([]interface{}); ok {
-			// we only look at the first element to determine the schema of array elements
-			if len(x) > 0 {
-				y := x[0]
-				if z, ok := y.(map[string]interface{}); ok {
-					if m := buildObject(fname, z); m != nil {
-						fields[fname] = &graphql.Field{Type: graphql.NewList(m)}
-					}
-				} else if z, ok := y.(string); ok {
-					fields[fname] = fieldType(z)
-				} else {
-					log.Printf("Unknown GQL type for %s: %v", fname, ftype)
-				}
-			} else {
-				log.Printf("Encountered empty list for field: %s", fname)
-			}
+		} else if x, ok := val.([]interface{}); ok {
+			objFields[key], err = buildSliceField(key, x)
 
 			// handle string
-		} else if x, ok := ftype.(string); ok {
-			fields[fname] = fieldType(x)
+		} else if x, ok := val.(string); ok {
+			objFields[key], err = buildField(x)
 
 			// handle other cases
 		} else {
-			log.Printf("Unknown GQL type for %s: %v", fname, ftype)
+			err = fmt.Errorf("unhandled type: %T %v", val, val)
+		}
+
+		if err != nil {
+			return nil, fmt.Errorf("object: %s: field: %s: error: %v", name, key, err)
 		}
 	}
 
 	return graphql.NewObject(
 		graphql.ObjectConfig{
-			Name:   objName,
-			Fields: fields,
+			Name:   name,
+			Fields: objFields,
 		},
-	)
+	), nil
 }
 
-func buildObjectMap(client aql.Client, graph string, schema *aql.GraphSchema) map[string]*graphql.Object {
+func buildObjectMap(client aql.Client, graph string, schema *aql.GraphSchema) (map[string]*graphql.Object, error) {
 	objects := map[string]*graphql.Object{}
 
 	for _, obj := range schema.Vertices {
-		gqlObj := buildObject(obj.Label, obj.GetDataMap())
+		gqlObj, err := buildObject(obj.Label, obj.GetDataMap())
+		if err != nil {
+			return nil, err
+		}
 		objects[obj.Label] = gqlObj
 	}
 
+	// Setup outgoing edge fields
+	// Note: edge properties are not accessible in this model
 	for _, obj := range schema.Edges {
-		field := &edgeField{obj.Label, obj.From, obj.To}
-		f := field.toGQL(client, graph, objects)
-		objects[obj.From].AddFieldConfig(obj.Label+"_"+obj.To, f)
+		obj := obj
+		fname := obj.Label + "_to_" + obj.To
+		f := &graphql.Field{
+			Name: fname,
+			Type: graphql.NewList(objects[obj.To]),
+			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+				srcMap, ok := p.Source.(map[string]interface{})
+				if !ok {
+					return nil, fmt.Errorf("source conversion failed: %v", p.Source)
+				}
+				srcGid, ok := srcMap["__gid"].(string)
+				if !ok {
+					return nil, fmt.Errorf("source gid conversion failed: %+v", srcMap)
+				}
+				q := aql.V(srcGid).Where(aql.Eq("_label", obj.From)).Out(obj.Label).Where(aql.Eq("_label", obj.To))
+				result, err := client.Traversal(&aql.GraphQuery{Graph: graph, Query: q.Statements})
+				if err != nil {
+					return nil, err
+				}
+				out := []interface{}{}
+				for r := range result {
+					d := r.GetVertex().GetDataMap()
+					d["__gid"] = r.GetVertex().Gid
+					out = append(out, d)
+				}
+				return out, nil
+			},
+		}
+		objects[obj.From].AddFieldConfig(fname, f)
 	}
 
-	return objects
+	return objects, nil
 }
 
 func buildQueryObject(client aql.Client, graph string, objects map[string]*graphql.Object) *graphql.Object {
@@ -217,7 +241,6 @@ func buildQueryObject(client aql.Client, graph string, objects map[string]*graph
 
 	for objName, obj := range objects {
 		label := obj.Name()
-		log.Printf("objName: %+v", objName)
 		f := &graphql.Field{
 			Name: objName,
 			Type: graphql.NewList(obj),
@@ -245,16 +268,19 @@ func buildQueryObject(client aql.Client, graph string, objects map[string]*graph
 			Fields: queryFields,
 		},
 	)
+
 	return query
 }
 
 func buildGraphQLSchema(client aql.Client, graph string) (*graphql.Schema, error) {
 	schema, err := client.GetSchema(graph)
 	if err != nil {
-		return nil, fmt.Errorf("getting schema: %v", err)
+		return nil, fmt.Errorf("GetSchema error: %v", err)
 	}
-
-	objectMap := buildObjectMap(client, graph, schema)
+	objectMap, err := buildObjectMap(client, graph, schema)
+	if err != nil {
+		return nil, err
+	}
 	queryObj := buildQueryObject(client, graph, objectMap)
 	schemaConfig := graphql.SchemaConfig{
 		Query: queryObj,
