@@ -122,17 +122,18 @@ func (server *ArachneServer) Serve(pctx context.Context) error {
 	}
 	mux.Handle("/graphql/", gqlHandler)
 
-	d := http.Dir(server.conf.ContentDir)
-	dashfs := http.FileServer(d)
 	dashmux := http.NewServeMux()
+	httpDir := http.Dir(server.conf.ContentDir)
+	dashfs := http.FileServer(httpDir)
 	dashmux.HandleFunc("/", func(resp http.ResponseWriter, req *http.Request) {
-		file, err := d.Open("index.html")
+		file, err := httpDir.Open("index.html")
 		if err != nil {
 			panic(err)
 		}
 		io.Copy(resp, file)
 	})
 	mux.Handle("/static/", dashfs)
+	mux.Handle("/favicon.ico", dashfs)
 
 	mux.HandleFunc("/", func(resp http.ResponseWriter, req *http.Request) {
 		if len(server.conf.BasicAuth) > 0 {
