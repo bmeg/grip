@@ -57,8 +57,8 @@ O = conn.graph("tcga-rna")
 genes = {}
 for k, v in O.query().V().where(aql.eq("_label", "Gene")).render(["_gid", "Hugo_Symbol"]):
     genes[k] = v
-    data = {}
-    for row in O.query().V("Proneural").in_().out("rna").render(["_gid", "_data"]):
-        data[row[0]] = row[1]
-    samples = pandas.DataFrame(data).rename(genes).transpose().fillna(0.0)
+data = {}
+for row in O.query().V("Proneural").in_().out("rna").render(["_gid", "_data"]):
+    data[row[0]] = row[1]
+samples = pandas.DataFrame(data).rename(genes).transpose().fillna(0.0)
 ```
