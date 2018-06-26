@@ -28,6 +28,11 @@ func Connect(conf rpc.Config, write bool) (Client, error) {
 	return Client{queryOut, editOut}, nil
 }
 
+// GetSchema returns the schema for the given graph.
+func (client Client) GetSchema(graph string) (*GraphSchema, error) {
+	return client.QueryC.GetSchema(context.Background(), &GraphID{Graph: graph})
+}
+
 // ListGraphs lists the graphs in the database
 func (client Client) ListGraphs() (chan string, error) {
 	out := make(chan string, 100)
