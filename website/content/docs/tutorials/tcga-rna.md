@@ -15,47 +15,50 @@ Create the graph
 arachne create tcga-rna
 ```
 
-Load pathway information
-
+Get the data
 ```
-curl -O http://www.pathwaycommons.org/archives/PC2/v9/PathwayCommons9.All.hgnc.sif.gz
-gunzip PathwayCommons9.All.hgnc.sif.gz
-python $GOPATH/src/github.com/bmeg/arachne/example/load_sif.py --db tcga-rna PathwayCommons9.All.hgnc.sif
+curl -O http://download.cbioportal.org/gbm_tcga_pub2013.tar.gz
+tar xvzf gbm_tcga_pub2013.tar.gz
 ```
 
-Load expression data
-
+Load clinical data
 ```
-curl -O https://tcga.xenahubs.net/download/TCGA.BRCA.sampleMap/HiSeqV2.gz
-gunzip HiSeqV2.gz
-python $GOPATH/src/github.com/bmeg/arachne/example/load_matrix.py --db tcga-rna HiSeqV2
+./example/load_matrix.py tcga-rna gbm_tcga_pub2013/data_clinical.txt --row-label 'Donor'
 ```
 
-Load clinical information
-
+Load RNASeq data
 ```
-curl -O https://tcga.xenahubs.net/download/TCGA.BRCA.sampleMap/BRCA_clinicalMatrix.gz
-gunzip BRCA_clinicalMatrix.gz
-python $GOPATH/src/github.com/bmeg/arachne/example/load_property_matrix.py --db tcga-rna BRCA_clinicalMatrix
+./example/load_matrix.py tcga-rna gbm_tcga_pub2013/data_RNA_Seq_v2_expression_median.txt -t  --index-col 1 --row-label RNASeq --row-prefix "RNA:" --exclude RNA:Hugo_Symbol
 ```
 
-Query the graph
-
+Connect RNASeq data to Clinical data
 ```
-pip install "git+https://github.com/bmeg/arachne.git#egg=aql&subdirectory=aql/python/"
+./example/load_matrix.py tcga-rna gbm_tcga_pub2013/data_RNA_Seq_v2_expression_median.txt -t  --index-col 1 --no-vertex --edge 'RNA:{_gid}' rna
 ```
 
+Connect Clinical data to subtypes
+```
+./example/load_matrix.py tcga-rna gbm_tcga_pub2013/data_clinical.txt --no-vertex -e "{EXPRESSION_SUBTYPE}" subtype --dst-vertex "{EXPRESSION_SUBTYPE}" Subtype -d
+```
+
+Load EntrezID to Hugo Symbol mapping
+```
+./example/load_matrix.py tcga-rna gbm_tcga_pub2013/data_RNA_Seq_v2_expression_median.txt --index-col 1 --column-include Hugo_Symbol --row-label Gene
+```
+
+
+Load Proneural samples into a matrix
 ```python
+import pandas
 import aql
 
 conn = aql.Connection("http://localhost:8201")
 O = conn.graph("tcga-rna")
-
-# Print out expression data of all Stage IIA samples
-for row in O.query().\
-    V().\
-    where(aql.and_(aql.eq("_label", "Sample"), aql.eq("pathologic_stage", "Stage IIA"))).\
-    out("has").\
-    where(aql.eq("_label", "Data:Expression"):
-  print row
+genes = {}
+for k, v in O.query().V().where(aql.eq("_label", "Gene")).render(["_gid", "Hugo_Symbol"]):
+    genes[k] = v
+    data = {}
+    for row in O.query().V("Proneural").in_().out("rna").render(["_gid", "_data"]):
+        data[row[0]] = row[1]
+    samples = pandas.DataFrame(data).rename(genes).transpose().fillna(0.0)
 ```
