@@ -38,7 +38,7 @@ Connect RNASeq data to Clinical data
 
 Connect Clinical data to subtypes
 ```
-./example/load_matrix.py tcga-rna gbm_tcga_pub2013/data_clinical.txt --no-vertex -e "{EXPRESSION_SUBTYPE}" subtype --dst-vertex "{EXPRESSION_SUBTYPE}" Subtype -d
+./example/load_matrix.py tcga-rna gbm_tcga_pub2013/data_clinical.txt --no-vertex -e "{EXPRESSION_SUBTYPE}" subtype --dst-vertex "{EXPRESSION_SUBTYPE}" Subtype 
 ```
 
 Load EntrezID to Hugo Symbol mapping
