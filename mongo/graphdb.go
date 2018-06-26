@@ -237,7 +237,7 @@ func (ma *GraphDB) GetSchema(graph string, sampleN int) (*aql.GraphSchema, error
 		return nil, fmt.Errorf("getting edge schema: %v", err)
 	}
 	schema := &aql.GraphSchema{Vertices: vSchema, Edges: eSchema}
-	log.Printf("Graph schema: %+v", schema)
+	// log.Printf("Graph schema: %+v", schema)
 	return schema, nil
 }
 

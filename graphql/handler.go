@@ -88,7 +88,8 @@ func (gh *graphHandler) setup() {
 			gh.gqlHandler = nil
 			gh.timestamp = ""
 		} else {
-			log.Printf("Built GraphQL schema for graph: %s: %+v", gh.graph, schema)
+			log.Printf("Built GraphQL schema for graph: %s", gh.graph)
+			// log.Printf("Built GraphQL schema for graph: %s: %+v", gh.graph, schema)
 			gh.gqlHandler = handler.New(&handler.Config{
 				Schema: schema,
 			})
