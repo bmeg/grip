@@ -229,14 +229,32 @@ func (ma *GraphDB) Graph(graph string) (gdbi.GraphInterface, error) {
 
 // GetSchema returns the schema of a specific graph in the database
 func (ma *GraphDB) GetSchema(graph string, sampleN int) (*aql.GraphSchema, error) {
-	vSchema, err := ma.getVertexSchema(graph, sampleN)
-	if err != nil {
-		return nil, fmt.Errorf("getting vertex schema: %v", err)
+	var vSchema []*aql.Vertex
+	var eSchema []*aql.Edge
+	var g errgroup.Group
+
+	g.Go(func() error {
+		var err error
+		vSchema, err = ma.getVertexSchema(graph, sampleN)
+		if err != nil {
+			return fmt.Errorf("getting vertex schema: %v", err)
+		}
+		return nil
+	})
+
+	g.Go(func() error {
+		var err error
+		eSchema, err = ma.getEdgeSchema(graph, sampleN)
+		if err != nil {
+			return fmt.Errorf("getting edge schema: %v", err)
+		}
+		return nil
+	})
+
+	if err := g.Wait(); err != nil {
+		return nil, err
 	}
-	eSchema, err := ma.getEdgeSchema(graph, sampleN)
-	if err != nil {
-		return nil, fmt.Errorf("getting edge schema: %v", err)
-	}
+
 	schema := &aql.GraphSchema{Vertices: vSchema, Edges: eSchema}
 	// log.Printf("Graph schema: %+v", schema)
 	return schema, nil
