@@ -8,13 +8,14 @@ builds:
     env:
       - CGO_ENABLED=0
     flags:
-      - -tags "rocksdb"
+      - -tags
+      - rocksdb
     ldflags: >
-      -X "github.com/bmeg/arachne/version.BuildDate=$(shell date)"
-      -X "github.com/bmeg/arachne/version.GitCommit= $(git_commit)"
-      -X "github.com/bmeg/arachne/version.GitBranch=$(git_branch)"
-      -X "github.com/bmeg/arachne/version.GitUpstream=$(git_upstream)"
-      -X "github.com/bmeg/arachne/version.Version={{.Version}}"
+      -X github.com/bmeg/arachne/version.BuildDate={{.Date}}
+      -X github.com/bmeg/arachne/version.GitCommit={{.Commit}}
+      -X github.com/bmeg/arachne/version.GitBranch={{.Env.GIT_BRANCH}}
+      -X github.com/bmeg/arachne/version.GitUpstream={{.Env.GIT_UPSTREAM}}
+      -X github.com/bmeg/arachne/version.Version={{.Version}}
 
 dist: build/release
 
@@ -29,7 +30,7 @@ env_files:
 
 archive:
   format: tar.gz
-  name_template: {{.ProjectName}}-{{.Os}}-{{.Arch}}-{{.Version}}
+  name_template: "{{.ProjectName}}-{{.Os}}-{{.Arch}}-{{.Version}}"
 
 snapshot:
-  name_template: SNAPSHOT-{{.Commit}}
+  name_template: "SNAPSHOT-{{.Commit}}"

@@ -1,19 +1,24 @@
+SHELL=/bin/bash
+
 TESTS=$(shell go list ./... | grep -v /vendor/)
 
 git_commit := $(shell git rev-parse --short HEAD)
 git_branch := $(shell git symbolic-ref -q --short HEAD)
 git_upstream := $(shell git remote get-url $(shell git config branch.$(shell git symbolic-ref -q --short HEAD).remote) 2> /dev/null)
 
+export GIT_BRANCH = $(git_branch)
+export GIT_UPSTREAM = $(git_upstream)
+
 VERSION_LDFLAGS=\
  -X "github.com/bmeg/arachne/version.BuildDate=$(shell date)" \
- -X "github.com/bmeg/arachne/version.GitCommit= $(git_commit)" \
+ -X "github.com/bmeg/arachne/version.GitCommit=$(git_commit)" \
  -X "github.com/bmeg/arachne/version.GitBranch=$(git_branch)" \
  -X "github.com/bmeg/arachne/version.GitUpstream=$(git_upstream)"
 
 export ARACHNE_VERSION = 0.2.0
 # LAST_PR_NUMBER is used by the release notes builder to generate notes
 # based on pull requests (PR) up until the last release.
-export LAST_PR_NUMBER = 120
+export LAST_PR_NUMBER = 125
 
 # ---------------------
 # Compile and Install
@@ -31,7 +36,7 @@ depends:
 
 # Build the code including the rocksdb package
 with-rocksdb: depends
-	@go install -tags 'rocksdb' .
+	@go install -tags 'rocksdb' -ldflags '$(VERSION_LDFLAGS)' .
 
 # --------------------------
 # Complile Protobuf Schemas
