@@ -12,6 +12,7 @@ import (
 	"github.com/bmeg/arachne/timestamp"
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
+	"golang.org/x/sync/errgroup"
 )
 
 // Config describes the configuration for the mongodb driver.
@@ -242,8 +243,6 @@ func (ma *GraphDB) GetSchema(graph string, sampleN int) (*aql.GraphSchema, error
 }
 
 func (ma *GraphDB) getVertexSchema(graph string, n int) ([]*aql.Vertex, error) {
-	out := []*aql.Vertex{}
-
 	session := ma.session.Copy()
 	defer session.Close()
 	v := ma.VertexCollection(session, graph)
@@ -254,43 +253,54 @@ func (ma *GraphDB) getVertexSchema(graph string, n int) ([]*aql.Vertex, error) {
 		return nil, err
 	}
 
-	for _, label := range labels {
-		pipe := []bson.M{
-			{
-				"$match": bson.M{
-					"label": bson.M{"$eq": label},
-				},
-			},
-			{"$sample": bson.M{"size": n}},
-			{
-				"$group": bson.M{
-					"_id":  "$label",
-					"data": bson.M{"$push": "$data"},
-				},
-			},
-		}
+	out := make([]*aql.Vertex, len(labels))
+	var g errgroup.Group
 
-		iter := v.Pipe(pipe).Iter()
-		result := &schema{}
-		for iter.Next(result) {
-			schema := make(map[string]interface{})
-			for _, v := range result.Data {
-				out := GetDataFieldTypes(v)
-				MergeMaps(schema, out)
+	for i, label := range labels {
+		i, label := i, label
+		g.Go(func() error {
+			pipe := []bson.M{
+				{
+					"$match": bson.M{
+						"label": bson.M{"$eq": label},
+					},
+				},
+				{"$sample": bson.M{"size": n}},
+				{
+					"$group": bson.M{
+						"_id":  "$label",
+						"data": bson.M{"$push": "$data"},
+					},
+				},
 			}
-			vs := &aql.Vertex{Label: result.Label, Data: protoutil.AsStruct(schema)}
-			out = append(out, vs)
-		}
-		if err := iter.Err(); err != nil {
-			return nil, err
-		}
+
+			iter := v.Pipe(pipe).AllowDiskUse().Iter()
+			result := &schema{}
+			for iter.Next(result) {
+				schema := make(map[string]interface{})
+				for _, v := range result.Data {
+					ds := GetDataFieldTypes(v)
+					MergeMaps(schema, ds)
+				}
+				vs := &aql.Vertex{Label: result.Label, Data: protoutil.AsStruct(schema)}
+				log.Printf("Vertex schema: %+v", vs)
+				out[i] = vs
+			}
+			if err := iter.Err(); err != nil {
+				return err
+			}
+			return nil
+		})
 	}
+
+	if err := g.Wait(); err != nil {
+		return nil, err
+	}
+
 	return out, nil
 }
 
 func (ma *GraphDB) getEdgeSchema(graph string, n int) ([]*aql.Edge, error) {
-	out := []*aql.Edge{}
-
 	session := ma.session.Copy()
 	defer session.Close()
 	e := ma.EdgeCollection(session, graph)
@@ -301,51 +311,63 @@ func (ma *GraphDB) getEdgeSchema(graph string, n int) ([]*aql.Edge, error) {
 		return nil, err
 	}
 
-	for _, label := range labels {
-		pipe := []bson.M{
-			{
-				"$match": bson.M{
-					"label": bson.M{"$eq": label},
-				},
-			},
-			{"$sample": bson.M{"size": n}},
-			{
-				"$group": bson.M{
-					"_id":  "$label",
-					"from": bson.M{"$push": "$from"},
-					"to":   bson.M{"$push": "$to"},
-					"data": bson.M{"$push": "$data"},
-				},
-			},
-		}
+	out := make([]*aql.Edge, len(labels))
+	var g errgroup.Group
 
-		iter := e.Pipe(pipe).Iter()
-		result := &schema{}
-		for iter.Next(result) {
-			schema := make(map[string]interface{})
-			for _, v := range result.Data {
-				out := GetDataFieldTypes(v)
-				MergeMaps(schema, out)
+	for i, label := range labels {
+		i, label := i, label
+		g.Go(func() error {
+			pipe := []bson.M{
+				{
+					"$match": bson.M{
+						"label": bson.M{"$eq": label},
+					},
+				},
+				{"$sample": bson.M{"size": n}},
+				{
+					"$group": bson.M{
+						"_id":  "$label",
+						"from": bson.M{"$push": "$from"},
+						"to":   bson.M{"$push": "$to"},
+						"data": bson.M{"$push": "$data"},
+					},
+				},
 			}
-			var err error
-			result.From, err = resolveLabels(ma.VertexCollection(session, graph), result.From)
-			if err != nil {
-				return nil, err
+
+			iter := e.Pipe(pipe).AllowDiskUse().Iter()
+			result := &schema{}
+			for iter.Next(result) {
+				schema := make(map[string]interface{})
+				for _, v := range result.Data {
+					ds := GetDataFieldTypes(v)
+					MergeMaps(schema, ds)
+				}
+
+				result.From = resolveLabels(ma.VertexCollection(session, graph), result.From)
+				result.To = resolveLabels(ma.VertexCollection(session, graph), result.To)
+				result.squashFromTo()
+				if len(result.From) != len(result.To) {
+					return fmt.Errorf("error resolving from and to labels for edge label: %s", result.Label)
+				}
+
+				for j := range result.From {
+					es := &aql.Edge{Label: result.Label, From: result.From[j], To: result.To[j], Data: protoutil.AsStruct(schema)}
+					log.Printf("Edge schema: %+v", es)
+					out[i] = es
+				}
+
 			}
-			result.To, err = resolveLabels(ma.VertexCollection(session, graph), result.To)
-			if err != nil {
-				return nil, err
+			if err := iter.Err(); err != nil {
+				return err
 			}
-			result.squashFromTo()
-			for i := range result.From {
-				es := &aql.Edge{Label: result.Label, From: result.From[i], To: result.To[i], Data: protoutil.AsStruct(schema)}
-				out = append(out, es)
-			}
-		}
-		if err := iter.Err(); err != nil {
-			return nil, err
-		}
+			return nil
+		})
 	}
+
+	if err := g.Wait(); err != nil {
+		return nil, err
+	}
+
 	return out, nil
 }
 
@@ -374,35 +396,18 @@ func (s *schema) squashFromTo() {
 	s.To = to
 }
 
-func resolveLabels(col *mgo.Collection, ids []string) ([]string, error) {
-	out := []string{}
-	// Pipe := []bson.M{
-	// 	{
-	// 		"$match": bson.M{
-	// 			"_id": bson.M{"$in": ids},
-	// 		},
-	// 	},
-	// 	{
-	// 		"$project": bson.M{
-	// 			"_id":   -1,
-	// 			"label": 1,
-	// 		},
-	// 	},
-	// }
-	// iter := col.Pipe(pipe).Iter()
-	// result := map[string]string{}
-	// for iter.Next(&result) {
-	// 	out = append(out, result["label"])
-	// }
-	for _, id := range ids {
+func resolveLabels(col *mgo.Collection, ids []string) []string {
+	out := make([]string, len(ids))
+	for i, id := range ids {
 		result := map[string]string{}
 		err := col.FindId(id).Select(bson.M{"_id": -1, "label": 1}).One(&result)
 		if err != nil {
-			return nil, err
+			out[i] = ""
+			continue
 		}
-		out = append(out, result["label"])
+		out[i] = result["label"]
 	}
-	return out, nil
+	return out
 }
 
 // MergeMaps deeply merges two maps

@@ -66,7 +66,7 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 		initCol := session.DB(proc.db.ar.database).C(proc.startCollection)
 		for t := range in {
 			nResults := 0
-			iter := initCol.Pipe(proc.query).Iter()
+			iter := initCol.Pipe(proc.query).AllowDiskUse().Iter()
 			result := map[string]interface{}{}
 			for iter.Next(&result) {
 				nResults++
