@@ -283,7 +283,7 @@ func (ma *GraphDB) getVertexSchema(graph string, n int) ([]*aql.Vertex, error) {
 					MergeMaps(schema, ds)
 				}
 				vs := &aql.Vertex{Label: result.Label, Data: protoutil.AsStruct(schema)}
-				log.Printf("Vertex schema: %+v", vs)
+				// log.Printf("Vertex schema: %+v", vs)
 				out[i] = vs
 			}
 			if err := iter.Err(); err != nil {
@@ -346,13 +346,15 @@ func (ma *GraphDB) getEdgeSchema(graph string, n int) ([]*aql.Edge, error) {
 				result.From = resolveLabels(ma.VertexCollection(session, graph), result.From)
 				result.To = resolveLabels(ma.VertexCollection(session, graph), result.To)
 				result.squashFromTo()
+
 				if len(result.From) != len(result.To) {
 					return fmt.Errorf("error resolving from and to labels for edge label: %s", result.Label)
 				}
 
+				// TODO figure out how to add all combinations of From / To for a given label
 				for j := range result.From {
 					es := &aql.Edge{Label: result.Label, From: result.From[j], To: result.To[j], Data: protoutil.AsStruct(schema)}
-					log.Printf("Edge schema: %+v", es)
+					// log.Printf("Edge schema: %+v", es)
 					out[i] = es
 				}
 
@@ -389,8 +391,11 @@ func (s *schema) squashFromTo() {
 	from := []string{}
 	to := []string{}
 	for k := range pairs {
-		from = append(from, k.from)
-		to = append(to, k.to)
+		// only keep if both from and to labels are valid
+		if k.from != "" && k.to != "" {
+			from = append(from, k.from)
+			to = append(to, k.to)
+		}
 	}
 	s.From = from
 	s.To = to
@@ -398,15 +403,26 @@ func (s *schema) squashFromTo() {
 
 func resolveLabels(col *mgo.Collection, ids []string) []string {
 	out := make([]string, len(ids))
+	var g errgroup.Group
+
 	for i, id := range ids {
-		result := map[string]string{}
-		err := col.FindId(id).Select(bson.M{"_id": -1, "label": 1}).One(&result)
-		if err != nil {
-			out[i] = ""
-			continue
-		}
-		out[i] = result["label"]
+		i, id := i, id
+		g.Go(func() error {
+			result := map[string]string{}
+			err := col.FindId(id).Select(bson.M{"_id": -1, "label": 1}).One(&result)
+			if err != nil {
+				out[i] = ""
+			} else {
+				out[i] = result["label"]
+			}
+			return nil
+		})
 	}
+
+	if err := g.Wait(); err != nil {
+		return nil
+	}
+
 	return out
 }
 
