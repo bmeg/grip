@@ -16,9 +16,9 @@ def load_matrix(args):
     O = conn.graph(args.db)
 
     if args.columns is not None:
-        matrix = pandas.read_csv(args.input, sep=args.sep, index_col=args.index_col, header=None, names=args.columns)
+        matrix = pandas.read_csv(args.input, sep=args.sep, index_col=args.index_col, header=None, names=args.columns, skiprows=args.skiprows)
     else:
-        matrix = pandas.read_csv(args.input, sep=args.sep, index_col=args.index_col)
+        matrix = pandas.read_csv(args.input, sep=args.sep, index_col=args.index_col, skiprows=args.skiprows)
     if args.transpose:
         matrix = matrix.transpose()
 
@@ -103,7 +103,7 @@ if __name__ == "__main__":
     parser.add_argument("--row-prefix", default="", help="Prefix added to row vertex gid")
     parser.add_argument("-t", "--transpose", action="store_true", default=False, help="Transpose matrix")
     parser.add_argument("--index-col", default=0, type=int, help="Column number to use as index (and gid for vertex load)")
-
+    parser.add_argument("--skiprows", default=None, type=int, help="Skip rows at top of file")
     parser.add_argument("--connect", action="store_true", default=False, help="Switch to 'fully connected mode' and load matrix cell values on edges between row and column names")
     parser.add_argument("--col-label", dest="col_label", default="Col", help="Column vertex label in 'connect' mode")
     parser.add_argument("--col-prefix", default="", help="Prefix added to col vertex gid in 'connect' mode")
@@ -121,4 +121,6 @@ if __name__ == "__main__":
     parser.add_argument("-d", dest="debug", action="store_true", default=False, help="Run in debug mode. Print actions and make no changes")
 
     args = parser.parse_args()
+    if args.index_col < 0:
+        args.index_col = None
     load_matrix(args)

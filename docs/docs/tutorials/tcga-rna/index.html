@@ -3,7 +3,7 @@
 <head>
   <link href="http://gmpg.org/xfn/11" rel="profile">
   <meta http-equiv="content-type" content="text/html; charset=utf-8">
-  <meta name="generator" content="Hugo 0.31-DEV" />
+  <meta name="generator" content="Hugo 0.40.3" />
 
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
@@ -230,44 +230,107 @@
 <pre><code>arachne create tcga-rna
 </code></pre>
 
-<p>Load pathway information</p>
+<p>Get the data</p>
 
-<pre><code>curl -O http://www.pathwaycommons.org/archives/PC2/v9/PathwayCommons9.All.hgnc.sif.gz
-gunzip PathwayCommons9.All.hgnc.sif.gz
-python $GOPATH/src/github.com/bmeg/arachne/example/load_sif.py --db tcga-rna PathwayCommons9.All.hgnc.sif
+<pre><code>curl -O http://download.cbioportal.org/gbm_tcga_pub2013.tar.gz
+tar xvzf gbm_tcga_pub2013.tar.gz
 </code></pre>
 
-<p>Load expression data</p>
+<p>Load clinical data</p>
 
-<pre><code>curl -O https://tcga.xenahubs.net/download/TCGA.BRCA.sampleMap/HiSeqV2.gz
-gunzip HiSeqV2.gz
-python $GOPATH/src/github.com/bmeg/arachne/example/load_matrix.py --db tcga-rna HiSeqV2
+<pre><code>./example/load_matrix.py tcga-rna gbm_tcga_pub2013/data_clinical.txt --row-label 'Donor'
 </code></pre>
 
-<p>Load clinical information</p>
+<p>Load RNASeq data</p>
 
-<pre><code>curl -O https://tcga.xenahubs.net/download/TCGA.BRCA.sampleMap/BRCA_clinicalMatrix.gz
-gunzip BRCA_clinicalMatrix.gz
-python $GOPATH/src/github.com/bmeg/arachne/example/load_property_matrix.py --db tcga-rna BRCA_clinicalMatrix
+<pre><code>./example/load_matrix.py tcga-rna gbm_tcga_pub2013/data_RNA_Seq_v2_expression_median.txt -t  --index-col 1 --row-label RNASeq --row-prefix &quot;RNA:&quot; --exclude RNA:Hugo_Symbol
 </code></pre>
 
-<p>Query the graph</p>
+<p>Connect RNASeq data to Clinical data</p>
 
-<pre><code>pip install &quot;git+https://github.com/bmeg/arachne.git#egg=aql&amp;subdirectory=aql/python/&quot;
+<pre><code>./example/load_matrix.py tcga-rna gbm_tcga_pub2013/data_RNA_Seq_v2_expression_median.txt -t  --index-col 1 --no-vertex --edge 'RNA:{_gid}' rna
 </code></pre>
 
-<pre><code class="language-python">import aql
+<p>Connect Clinical data to subtypes</p>
+
+<pre><code>./example/load_matrix.py tcga-rna gbm_tcga_pub2013/data_clinical.txt --no-vertex -e &quot;{EXPRESSION_SUBTYPE}&quot; subtype --dst-vertex &quot;{EXPRESSION_SUBTYPE}&quot; Subtype
+</code></pre>
+
+<p>Load EntrezID to Hugo Symbol mapping</p>
+
+<pre><code>./example/load_matrix.py tcga-rna gbm_tcga_pub2013/data_RNA_Seq_v2_expression_median.txt --index-col 1 --column-include Hugo_Symbol --row-label Gene
+</code></pre>
+
+<p>Load Proneural samples into a matrix</p>
+
+<pre><code class="language-python">import pandas
+import aql
 
 conn = aql.Connection(&quot;http://localhost:8201&quot;)
 O = conn.graph(&quot;tcga-rna&quot;)
+genes = {}
+for k, v in O.query().V().where(aql.eq(&quot;_label&quot;, &quot;Gene&quot;)).render([&quot;_gid&quot;, &quot;Hugo_Symbol&quot;]):
+    genes[k] = v
+data = {}
+for row in O.query().V(&quot;Proneural&quot;).in_().out(&quot;rna&quot;).render([&quot;_gid&quot;, &quot;_data&quot;]):
+    data[row[0]] = row[1]
+samples = pandas.DataFrame(data).rename(genes).transpose().fillna(0.0)
+</code></pre>
 
-# Print out expression data of all Stage IIA samples
-for row in O.query().\
-    V().\
-    where(aql.and_(aql.eq(&quot;_label&quot;, &quot;Sample&quot;), aql.eq(&quot;pathologic_stage&quot;, &quot;Stage IIA&quot;))).\
-    out(&quot;has&quot;).\
-    where(aql.eq(&quot;_label&quot;, &quot;Data:Expression&quot;):
-  print row
+<h1 id="matrix-load-project">Matrix Load project</h1>
+
+<pre><code>usage: load_matrix.py [-h] [--sep SEP] [--server SERVER]
+                      [--row-label ROW_LABEL] [--row-prefix ROW_PREFIX] [-t]
+                      [--index-col INDEX_COL] [--connect]
+                      [--col-label COL_LABEL] [--col-prefix COL_PREFIX]
+                      [--edge-label EDGE_LABEL] [--edge-prop EDGE_PROP]
+                      [--columns [COLUMNS [COLUMNS ...]]]
+                      [--column-include COLUMN_INCLUDE] [--no-vertex]
+                      [-e EDGE EDGE] [--dst-vertex DST_VERTEX DST_VERTEX]
+                      [-x EXCLUDE] [-d]
+                      db input
+
+positional arguments:
+  db                    Destination Graph
+  input                 Input File
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --sep SEP             TSV delimiter
+  --server SERVER       Server Address
+  --row-label ROW_LABEL
+                        Vertex Label used when loading rows
+  --row-prefix ROW_PREFIX
+                        Prefix added to row vertex gid
+  -t, --transpose       Transpose matrix
+  --index-col INDEX_COL
+                        Column number to use as index (and gid for vertex
+                        load)
+  --connect             Switch to 'fully connected mode' and load matrix cell
+                        values on edges between row and column names
+  --col-label COL_LABEL
+                        Column vertex label in 'connect' mode
+  --col-prefix COL_PREFIX
+                        Prefix added to col vertex gid in 'connect' mode
+  --edge-label EDGE_LABEL
+                        Edge label for edges in 'connect' mode
+  --edge-prop EDGE_PROP
+                        Property name for storing value when in 'connect' mode
+  --columns [COLUMNS [COLUMNS ...]]
+                        Rename columns in TSV
+  --column-include COLUMN_INCLUDE
+                        List subset of columns to use from TSV
+  --no-vertex           Do not load row as vertex
+  -e EDGE EDGE, --edge EDGE EDGE
+                        Create an edge the connected the current row vertex
+                        args: &lt;dst&gt; &lt;edgeType&gt;
+  --dst-vertex DST_VERTEX DST_VERTEX
+                        Create a destination vertex, args: &lt;dstVertex&gt;
+                        &lt;vertexLabel&gt;
+  -x EXCLUDE, --exclude EXCLUDE
+                        Exclude row id
+  -d                    Run in debug mode. Print actions and make no changes
+
 </code></pre>
 
   </div>

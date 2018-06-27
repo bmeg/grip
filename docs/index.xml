@@ -194,11 +194,11 @@ Configuration Notes  DataSourceName is a driver-specific data source name, usual
       
       <guid>https://docs.bmeg.io/arachne/docs/tutorials/tcga-rna/</guid>
       <description>Explore TCGA RNA Expression Data Create the graph
-arachne create tcga-rna  Load pathway information
-curl -O http://www.pathwaycommons.org/archives/PC2/v9/PathwayCommons9.All.hgnc.sif.gz gunzip PathwayCommons9.All.hgnc.sif.gz python $GOPATH/src/github.com/bmeg/arachne/example/load_sif.py --db tcga-rna PathwayCommons9.All.hgnc.sif  Load expression data
-curl -O https://tcga.xenahubs.net/download/TCGA.BRCA.sampleMap/HiSeqV2.gz gunzip HiSeqV2.gz python $GOPATH/src/github.com/bmeg/arachne/example/load_matrix.py --db tcga-rna HiSeqV2  Load clinical information
-curl -O https://tcga.xenahubs.net/download/TCGA.BRCA.sampleMap/BRCA_clinicalMatrix.gz gunzip BRCA_clinicalMatrix.gz python $GOPATH/src/github.com/bmeg/arachne/example/load_property_matrix.py --db tcga-rna BRCA_clinicalMatrix  Query the graph
-pip install &amp;quot;git+https://github.com/bmeg/arachne.git#egg=aql&amp;amp;subdirectory=aql/python/&amp;quot;  import aql conn = aql.Connection(&amp;quot;http://localhost:8201&amp;quot;) O = conn.graph(&amp;quot;tcga-rna&amp;quot;) # Print out expression data of all Stage IIA samples for row in O.</description>
+arachne create tcga-rna  Get the data
+curl -O http://download.cbioportal.org/gbm_tcga_pub2013.tar.gz tar xvzf gbm_tcga_pub2013.tar.gz  Load clinical data
+./example/load_matrix.py tcga-rna gbm_tcga_pub2013/data_clinical.txt --row-label &#39;Donor&#39;  Load RNASeq data
+./example/load_matrix.py tcga-rna gbm_tcga_pub2013/data_RNA_Seq_v2_expression_median.txt -t --index-col 1 --row-label RNASeq --row-prefix &amp;quot;RNA:&amp;quot; --exclude RNA:Hugo_Symbol  Connect RNASeq data to Clinical data
+./example/load_matrix.py tcga-rna gbm_tcga_pub2013/data_RNA_Seq_v2_expression_median.txt -t --index-col 1 --no-vertex --edge &#39;RNA:{_gid}&#39; rna  Connect Clinical data to subtypes</description>
     </item>
     
     <item>
