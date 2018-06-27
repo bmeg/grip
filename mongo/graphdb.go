@@ -271,11 +271,11 @@ func (ma *GraphDB) getVertexSchema(graph string, n int) ([]*aql.Vertex, error) {
 		return nil, err
 	}
 
-	out := make([]*aql.Vertex, len(labels))
+	schemaChan := make(chan *aql.Vertex)
 	var g errgroup.Group
 
-	for i, label := range labels {
-		i, label := i, label
+	for _, label := range labels {
+		label := label
 		g.Go(func() error {
 			pipe := []bson.M{
 				{
@@ -284,38 +284,39 @@ func (ma *GraphDB) getVertexSchema(graph string, n int) ([]*aql.Vertex, error) {
 					},
 				},
 				{"$sample": bson.M{"size": n}},
-				{
-					"$group": bson.M{
-						"_id":  "$label",
-						"data": bson.M{"$push": "$data"},
-					},
-				},
 			}
 
 			iter := v.Pipe(pipe).AllowDiskUse().Iter()
-			result := &schema{}
-			for iter.Next(result) {
-				schema := make(map[string]interface{})
-				for _, v := range result.Data {
-					ds := GetDataFieldTypes(v)
-					MergeMaps(schema, ds)
-				}
-				vs := &aql.Vertex{Label: result.Label, Data: protoutil.AsStruct(schema)}
-				// log.Printf("Vertex schema: %+v", vs)
-				out[i] = vs
+			result := make(map[string]interface{})
+			schema := make(map[string]interface{})
+			for iter.Next(&result) {
+				ds := GetDataFieldTypes(result["data"].(map[string]interface{}))
+				MergeMaps(schema, ds)
 			}
 			if err := iter.Err(); err != nil {
 				return err
 			}
+
+			vSchema := &aql.Vertex{Label: label, Data: protoutil.AsStruct(schema)}
+			schemaChan <- vSchema
 			return nil
 		})
 	}
 
-	if err := g.Wait(); err != nil {
-		return nil, err
-	}
+	output := []*aql.Vertex{}
+	done := make(chan interface{})
+	go func() {
+		for s := range schemaChan {
+			// log.Printf("Vertex schema: %+v", s)
+			output = append(output, s)
+		}
+		close(done)
+	}()
 
-	return out, nil
+	err = g.Wait()
+	close(schemaChan)
+	<-done
+	return output, err
 }
 
 func (ma *GraphDB) getEdgeSchema(graph string, n int) ([]*aql.Edge, error) {
@@ -329,11 +330,11 @@ func (ma *GraphDB) getEdgeSchema(graph string, n int) ([]*aql.Edge, error) {
 		return nil, err
 	}
 
-	out := make([]*aql.Edge, len(labels))
+	schemaChan := make(chan *aql.Edge)
 	var g errgroup.Group
 
-	for i, label := range labels {
-		i, label := i, label
+	for _, label := range labels {
+		label := label
 		g.Go(func() error {
 			pipe := []bson.M{
 				{
@@ -342,97 +343,106 @@ func (ma *GraphDB) getEdgeSchema(graph string, n int) ([]*aql.Edge, error) {
 					},
 				},
 				{"$sample": bson.M{"size": n}},
-				{
-					"$group": bson.M{
-						"_id":  "$label",
-						"from": bson.M{"$push": "$from"},
-						"to":   bson.M{"$push": "$to"},
-						"data": bson.M{"$push": "$data"},
-					},
-				},
 			}
 
 			iter := e.Pipe(pipe).AllowDiskUse().Iter()
-			result := &schema{}
-			for iter.Next(result) {
-				schema := make(map[string]interface{})
-				for _, v := range result.Data {
-					ds := GetDataFieldTypes(v)
-					MergeMaps(schema, ds)
-				}
+			result := make(map[string]interface{})
+			schema := make(map[string]interface{})
+			fromToPairs := make(fromto)
 
-				result.From = resolveLabels(ma.VertexCollection(session, graph), result.From)
-				result.To = resolveLabels(ma.VertexCollection(session, graph), result.To)
-				result.squashFromTo()
-
-				if len(result.From) != len(result.To) {
-					return fmt.Errorf("error resolving from and to labels for edge label: %s", result.Label)
-				}
-
-				// TODO figure out how to add all combinations of From / To for a given label
-				for j := range result.From {
-					es := &aql.Edge{Label: result.Label, From: result.From[j], To: result.To[j], Data: protoutil.AsStruct(schema)}
-					// log.Printf("Edge schema: %+v", es)
-					out[i] = es
-				}
-
+			for iter.Next(&result) {
+				fromToPairs.Add(fromtokey{result["from"].(string), result["to"].(string)})
+				ds := GetDataFieldTypes(result["data"].(map[string]interface{}))
+				MergeMaps(schema, ds)
 			}
 			if err := iter.Err(); err != nil {
 				return err
+			}
+
+			fromToPairs = resolveLabels(ma.VertexCollection(session, graph), fromToPairs)
+			from := fromToPairs.GetFrom()
+			to := fromToPairs.GetTo()
+
+			for j := 0; j < len(from); j++ {
+				eSchema := &aql.Edge{Label: label, From: from[j], To: to[j], Data: protoutil.AsStruct(schema)}
+				schemaChan <- eSchema
 			}
 			return nil
 		})
 	}
 
-	if err := g.Wait(); err != nil {
-		return nil, err
-	}
-
-	return out, nil
-}
-
-type schema struct {
-	Label string                   `bson:"_id"`
-	From  []string                 `bson:"from"`
-	To    []string                 `bson:"to"`
-	Data  []map[string]interface{} `bson:"data"`
-}
-
-func (s *schema) squashFromTo() {
-	type pair struct {
-		from, to string
-	}
-	pairs := make(map[pair]interface{})
-	for i := 0; i < len(s.From); i++ {
-		pairs[pair{s.From[i], s.To[i]}] = nil
-	}
-	from := []string{}
-	to := []string{}
-	for k := range pairs {
-		// only keep if both from and to labels are valid
-		if k.from != "" && k.to != "" {
-			from = append(from, k.from)
-			to = append(to, k.to)
+	output := []*aql.Edge{}
+	done := make(chan interface{})
+	go func() {
+		for s := range schemaChan {
+			// log.Printf("Edge schema: %+v", s)
+			output = append(output, s)
 		}
-	}
-	s.From = from
-	s.To = to
+		close(done)
+	}()
+
+	err = g.Wait()
+	close(schemaChan)
+	<-done
+	return output, err
 }
 
-func resolveLabels(col *mgo.Collection, ids []string) []string {
-	out := make([]string, len(ids))
+type fromtokey struct {
+	from, to string
+}
+
+type fromto map[fromtokey]interface{}
+
+func (ft fromto) Add(k fromtokey) bool {
+	if k.from != "" && k.to != "" {
+		// only keep if both from and to labels are valid
+		ft[k] = nil
+		return true
+	}
+	return false
+}
+
+func (ft fromto) GetFrom() []string {
+	out := []string{}
+	for k := range ft {
+		out = append(out, k.from)
+	}
+	return out
+}
+
+func (ft fromto) GetTo() []string {
+	out := []string{}
+	for k := range ft {
+		out = append(out, k.to)
+	}
+	return out
+}
+
+func resolveLabels(col *mgo.Collection, ft fromto) fromto {
+	out := make([]fromtokey, len(ft))
 	var g errgroup.Group
 
-	for i, id := range ids {
-		i, id := i, id
+	fromIDs := ft.GetFrom()
+	toIDs := ft.GetTo()
+
+	for i := 0; i < len(fromIDs); i++ {
+		i := i
+		toID := fromIDs[i]
+		fromID := toIDs[i]
 		g.Go(func() error {
+			from := ""
+			to := ""
 			result := map[string]string{}
-			err := col.FindId(id).Select(bson.M{"_id": -1, "label": 1}).One(&result)
-			if err != nil {
-				out[i] = ""
-			} else {
-				out[i] = result["label"]
+			err := col.FindId(fromID).Select(bson.M{"_id": -1, "label": 1}).One(&result)
+			if err == nil {
+				from = result["label"]
 			}
+			result = map[string]string{}
+			err = col.FindId(toID).Select(bson.M{"_id": -1, "label": 1}).One(&result)
+			if err == nil {
+				to = result["label"]
+			}
+			out[i] = fromtokey{from, to}
 			return nil
 		})
 	}
@@ -441,7 +451,12 @@ func resolveLabels(col *mgo.Collection, ids []string) []string {
 		return nil
 	}
 
-	return out
+	outMap := make(fromto)
+	for _, k := range out {
+		outMap.Add(k)
+	}
+
+	return outMap
 }
 
 // MergeMaps deeply merges two maps
