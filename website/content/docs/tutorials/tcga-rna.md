@@ -41,11 +41,15 @@ Connect Clinical data to subtypes
 ./example/load_matrix.py tcga-rna gbm_tcga_pub2013/data_clinical.txt --no-vertex -e "{EXPRESSION_SUBTYPE}" subtype --dst-vertex "{EXPRESSION_SUBTYPE}" Subtype
 ```
 
-Load EntrezID to Hugo Symbol mapping
+Load Hugo Symbol to EntrezID translation table from RNA matrix annotations
 ```
-./example/load_matrix.py tcga-rna gbm_tcga_pub2013/data_RNA_Seq_v2_expression_median.txt --index-col 1 --column-include Hugo_Symbol --row-label Gene
+./example/load_matrix.py tcga-rna gbm_tcga_pub2013/data_RNA_Seq_v2_expression_median.txt --column-include Entrez_Gene_Id --row-label Gene
 ```
 
+Load Mutation Information
+```
+./example/load_matrix.py tcga-rna gbm_tcga_pub2013/data_mutations_extended.txt --skiprows 1 --index-col -1  --regex Matched_Norm_Sample_Barcode '\-\d\d$' '' --edge '{Matched_Norm_Sample_Barcode}' variantIn --edge '{Hugo_Symbol}' effectsGene --column-exclude ma_func.impact ma_fi.score MA_FI.score MA_Func.Impact MA:link.MSA MA:FImpact MA:protein.change MA:link.var MA:FIS MA:link.PDB --row-label Variant
+```
 
 Load Proneural samples into a matrix
 ```python
