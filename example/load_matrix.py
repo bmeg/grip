@@ -61,8 +61,12 @@ def load_matrix(args):
             for c in matrix.columns:
                 v = row[c]
                 if args.column_include is None or c in args.column_include:
-                    if not isinstance(v,float) or not math.isnan(v):
-                        data[c] = v
+                    if c not in args.column_exclude:
+                        if not isinstance(v,float) or not math.isnan(v):
+                            data[c] = v
+            for col, reg, rep in args.regex:
+                data[col] = re.sub(reg, rep, data[col])
+                print(reg, rep, data[col])
             if not args.no_vertex and rname not in args.exclude:
                 if args.debug:
                     print("Add Vertex %s %s %s" % (rname, args.row_label, data))
@@ -112,11 +116,14 @@ if __name__ == "__main__":
 
     parser.add_argument("--columns", default=None, nargs="*", help="Rename columns in TSV")
     parser.add_argument("--column-include", default=None, action="append", help="List subset of columns to use from TSV")
+    parser.add_argument("--column-exclude", default=[], nargs="*", help="List of columns to remove from TSV")
 
     parser.add_argument("--no-vertex", action="store_true", default=False, help="Do not load row as vertex")
     parser.add_argument("-e", "--edge", action="append", default=[], nargs=2, help="Create an edge the connected the current row vertex args: <dst> <edgeType>")
     parser.add_argument("--dst-vertex", action="append", default=[], nargs=2, help="Create a destination vertex, args: <dstVertex> <vertexLabel>")
     parser.add_argument("-x", "--exclude", action="append", default=[], help="Exclude row id")
+
+    parser.add_argument("--regex", action="append", default=[], nargs=3)
 
     parser.add_argument("-d", dest="debug", action="store_true", default=False, help="Run in debug mode. Print actions and make no changes")
 
