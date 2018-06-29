@@ -54,6 +54,12 @@ def load_matrix(args):
                         b.addEdge(rname, cname, args.edge_label, {args.edge_prop:v})
             b.execute()
     else:
+        if args.col_regex is not None:
+            col_map = {}
+            for col in matrix.columns:
+                new_col = re.sub(args.col_regex[0], args.col_regex[1], col)
+                col_map[col] = new_col
+            matrix = matrix.rename(columns=col_map)
         for name, row in matrix.iterrows():
             rname = "%s%s" % (args.row_prefix, name)
             print("Loading: %s" % (rname))
@@ -66,17 +72,18 @@ def load_matrix(args):
                             data[c] = v
             for col, reg, rep in args.regex:
                 data[col] = re.sub(reg, rep, data[col])
-                print(reg, rep, data[col])
             if not args.no_vertex and rname not in args.exclude:
                 if args.debug:
                     print("Add Vertex %s %s %s" % (rname, args.row_label, data))
                 else:
                     O.addVertex(rname, args.row_label, data)
+            data["_rowname"] = name
             data["_gid"] = rname
             for dst, edge in args.edge:
                 try:
                     dstFmt = dst.format(**data)
                 except KeyError:
+                    print("Formatting Error")
                     dstFmt = None
                 if dstFmt is not None:
                     if args.debug:
@@ -123,7 +130,8 @@ if __name__ == "__main__":
     parser.add_argument("--dst-vertex", action="append", default=[], nargs=2, help="Create a destination vertex, args: <dstVertex> <vertexLabel>")
     parser.add_argument("-x", "--exclude", action="append", default=[], help="Exclude row id")
 
-    parser.add_argument("--regex", action="append", default=[], nargs=3)
+    parser.add_argument("--regex", action="append", default=[], nargs=3, help="Run regex replace command on a specific column: <column_name> <regex> <replace>")
+    parser.add_argument("--col-regex", default=None, nargs=2, help="Run regex replace command on column names: <regex> <replace>")
 
     parser.add_argument("-d", dest="debug", action="store_true", default=False, help="Run in debug mode. Print actions and make no changes")
 
