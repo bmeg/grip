@@ -7,7 +7,7 @@ import re
 import argparse
 import pandas
 import math
-
+import json
 
 def load_matrix(args):
     conn = aql.Connection(args.server)
@@ -22,21 +22,31 @@ def load_matrix(args):
     if args.transpose:
         matrix = matrix.transpose()
 
+    if args.dump is not None:
+        dump_vertex_file = open(args.dump + ".vertex", "w")
+        dump_edge_file = open(args.dump + ".edge", "w")
+        def dump_vertex(gid, label, data):
+            print("Add Vertex: %s" % (gid))
+            dump_vertex_file.write(json.dumps({"gid":gid, "label":label, "data":data}) + "\n")
+        def dump_edge(src, dst, label, data):
+            print("Add Edge: %s %s" % (src, dst))
+            dump_edge_file.write(json.dumps({"from":src, "to":dst, "label": label, "data":data})+"\n")
+
     if args.connect:
         if not args.no_vertex:
             #every row x col creates an edge with the weight value
             for c in matrix.columns:
                 cname = "%s%s" % (args.col_prefix, c)
                 if list(O.query().V(c).count())[0]['count'] == 0:
-                    if args.debug:
-                        print("AddVertex %s %s" % (c, args.col_label))
+                    if args.dump is not None:
+                        dump_vertex(c, args.col_label, {})
                     else:
                         O.addVertex(c, args.col_label)
             for r in matrix.index:
                 rname = "%s%s" % (args.row_prefix, r)
                 if list(O.query().V(r).count())[0]['count'] == 0:
-                    if args.debug:
-                        print("AddVertex %s %s" % (r, args.row_label))
+                    if args.dump:
+                        dump_vertex(r, args.row_label, {})
                     else:
                         O.addVertex(r, args.row_label)
 
@@ -48,8 +58,8 @@ def load_matrix(args):
                 cname = "%s%s" % (args.col_prefix, c)
                 v = row[c]
                 if not math.isnan(v):
-                    if args.debug:
-                        print("AddEdge: %s %s %s %s" % (rname,cname,args.edge_label,{args.edge_prop:v}) )
+                    if args.dump:
+                        dump_edge(rname, cname, args.edge_label, {args.edge_prop:v})
                     else:
                         b.addEdge(rname, cname, args.edge_label, {args.edge_prop:v})
             b.execute()
@@ -73,8 +83,8 @@ def load_matrix(args):
             for col, reg, rep in args.regex:
                 data[col] = re.sub(reg, rep, data[col])
             if not args.no_vertex and rname not in args.exclude:
-                if args.debug:
-                    print("Add Vertex %s %s %s" % (rname, args.row_label, data))
+                if args.dump:
+                    dump_vertex(rname, args.row_label, data)
                 else:
                     O.addVertex(rname, args.row_label, data)
             data["_rowname"] = name
@@ -86,8 +96,8 @@ def load_matrix(args):
                     print("Formatting Error")
                     dstFmt = None
                 if dstFmt is not None:
-                    if args.debug:
-                        print("Add Edge %s %s" % (dstFmt, edge))
+                    if args.dump:
+                        dump_edge(rname, dstFmt, edge, {})
                     else:
                         O.addEdge(rname, dstFmt, edge)
             for dst, label in args.dst_vertex:
@@ -97,10 +107,13 @@ def load_matrix(args):
                     dstFmt = None
                 if dstFmt is not None:
                     if list(O.query().V(dstFmt).count())[0]['count'] == 0:
-                        if args.debug:
-                            print("Add Vertex %s %s" % (dstFmt, label))
+                        if args.dump:
+                            dump_vertex(dstFmt, label, {})
                         else:
                             O.addVertex(dstFmt, label, {})
+    if args.dump is not None:
+        dump_vertex_file.close()
+        dump_edge_file.close()
 
 
 
@@ -133,7 +146,7 @@ if __name__ == "__main__":
     parser.add_argument("--regex", action="append", default=[], nargs=3, help="Run regex replace command on a specific column: <column_name> <regex> <replace>")
     parser.add_argument("--col-regex", default=None, nargs=2, help="Run regex replace command on column names: <regex> <replace>")
 
-    parser.add_argument("-d", dest="debug", action="store_true", default=False, help="Run in debug mode. Print actions and make no changes")
+    parser.add_argument("-d", dest="dump", default=None, help="Dump to file and Print actions")
 
     args = parser.parse_args()
     if args.index_col < 0:
