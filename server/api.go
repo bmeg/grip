@@ -49,12 +49,13 @@ func (server *ArachneServer) ListGraphs(empty *aql.Empty, queryServer aql.Query_
 
 func (server *ArachneServer) getSchemas() {
 	for _, name := range server.db.ListGraphs() {
+		log.Printf("getting schema for graph %s", name)
 		schema, err := server.db.GetSchema(name, server.conf.SchemaSampleSize)
 		if err == nil {
 			log.Printf("cached schema for graph %s", name)
 			server.schemas[name] = schema
 		} else {
-			log.Printf("graph %s: GetSchema failed: %v", name, err)
+			log.Printf("failed to get schema for graph %s: %v", name, err)
 		}
 	}
 }

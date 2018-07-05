@@ -109,7 +109,7 @@ func (ma *GraphDB) AddGraph(graph string) error {
 
 	e := ma.EdgeCollection(session, graph)
 	err = e.EnsureIndex(mgo.Index{
-		Key:        []string{"$hashed:from"},
+		Key:        []string{"from"},
 		Unique:     false,
 		DropDups:   false,
 		Sparse:     false,
@@ -119,7 +119,7 @@ func (ma *GraphDB) AddGraph(graph string) error {
 		return fmt.Errorf("failed create index for graph %s: %v", graph, err)
 	}
 	err = e.EnsureIndex(mgo.Index{
-		Key:        []string{"$hashed:to"},
+		Key:        []string{"to"},
 		Unique:     false,
 		DropDups:   false,
 		Sparse:     false,
@@ -129,7 +129,7 @@ func (ma *GraphDB) AddGraph(graph string) error {
 		return fmt.Errorf("failed create index for graph %s: %v", graph, err)
 	}
 	err = e.EnsureIndex(mgo.Index{
-		Key:        []string{"$hashed:label"},
+		Key:        []string{"label"},
 		Unique:     false,
 		DropDups:   false,
 		Sparse:     false,
@@ -141,7 +141,7 @@ func (ma *GraphDB) AddGraph(graph string) error {
 
 	v := ma.VertexCollection(session, graph)
 	err = v.EnsureIndex(mgo.Index{
-		Key:        []string{"$hashed:label"},
+		Key:        []string{"label"},
 		Unique:     false,
 		DropDups:   false,
 		Sparse:     false,
@@ -277,6 +277,7 @@ func (ma *GraphDB) getVertexSchema(graph string, n uint32) ([]*aql.Vertex, error
 	for _, label := range labels {
 		label := label
 		g.Go(func() error {
+			log.Printf("getting schema for vertex label: %s", label)
 			pipe := []bson.M{
 				{
 					"$match": bson.M{
@@ -307,7 +308,7 @@ func (ma *GraphDB) getVertexSchema(graph string, n uint32) ([]*aql.Vertex, error
 	done := make(chan interface{})
 	go func() {
 		for s := range schemaChan {
-			// log.Printf("Vertex schema: %+v", s)
+			log.Printf("Vertex schema: %+v", s)
 			output = append(output, s)
 		}
 		close(done)
@@ -336,6 +337,7 @@ func (ma *GraphDB) getEdgeSchema(graph string, n uint32) ([]*aql.Edge, error) {
 	for _, label := range labels {
 		label := label
 		g.Go(func() error {
+			log.Printf("getting schema for edge label: %s", label)
 			pipe := []bson.M{
 				{
 					"$match": bson.M{
@@ -375,7 +377,7 @@ func (ma *GraphDB) getEdgeSchema(graph string, n uint32) ([]*aql.Edge, error) {
 	done := make(chan interface{})
 	go func() {
 		for s := range schemaChan {
-			// log.Printf("Edge schema: %+v", s)
+			log.Printf("Edge schema: %+v", s)
 			output = append(output, s)
 		}
 		close(done)
