@@ -279,6 +279,11 @@ func (ma *GraphDB) getVertexSchema(graph string, n uint32) ([]*aql.Vertex, error
 		label := label
 		g.Go(func() error {
 			log.Printf("getting schema for vertex label: %s", label)
+
+			session := ma.session.Copy()
+			defer session.Close()
+			v := ma.VertexCollection(session, graph)
+
 			pipe := []bson.M{
 				{
 					"$match": bson.M{
@@ -339,6 +344,11 @@ func (ma *GraphDB) getEdgeSchema(graph string, n uint32) ([]*aql.Edge, error) {
 		label := label
 		g.Go(func() error {
 			log.Printf("getting schema for edge label: %s", label)
+
+			session := ma.session.Copy()
+			defer session.Close()
+			e := ma.EdgeCollection(session, graph)
+
 			pipe := []bson.M{
 				{
 					"$match": bson.M{
@@ -362,7 +372,7 @@ func (ma *GraphDB) getEdgeSchema(graph string, n uint32) ([]*aql.Edge, error) {
 				return err
 			}
 
-			fromToPairs = resolveLabels(ma.VertexCollection(session, graph), fromToPairs)
+			fromToPairs = ma.resolveLabels(graph, fromToPairs)
 			from := fromToPairs.GetFrom()
 			to := fromToPairs.GetTo()
 
@@ -421,7 +431,7 @@ func (ft fromto) GetTo() []string {
 	return out
 }
 
-func resolveLabels(col *mgo.Collection, ft fromto) fromto {
+func (ma *GraphDB) resolveLabels(graph string, ft fromto) fromto {
 	out := make([]fromtokey, len(ft))
 	var g errgroup.Group
 
@@ -432,7 +442,12 @@ func resolveLabels(col *mgo.Collection, ft fromto) fromto {
 		i := i
 		toID := fromIDs[i]
 		fromID := toIDs[i]
+
 		g.Go(func() error {
+			session := ma.session.Copy()
+			defer session.Close()
+			col := ma.VertexCollection(session, graph)
+
 			from := ""
 			to := ""
 			result := map[string]string{}
