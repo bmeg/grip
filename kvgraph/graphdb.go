@@ -81,6 +81,6 @@ func (kgraph *KVGraph) ListGraphs() []string {
 }
 
 // GetSchema returns the schema of a specific graph in the database
-func (kgraph *KVGraph) GetSchema(graph string, sampleN int) (*aql.GraphSchema, error) {
+func (kgraph *KVGraph) GetSchema(graph string, sampleN uint32) (*aql.GraphSchema, error) {
 	return nil, fmt.Errorf("not implemented")
 }
