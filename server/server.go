@@ -21,8 +21,9 @@ import (
 
 // ArachneServer is a GRPC based arachne server
 type ArachneServer struct {
-	db   gdbi.GraphDB
-	conf Config
+	db      gdbi.GraphDB
+	conf    Config
+	schemas map[string]*aql.GraphSchema
 }
 
 // NewArachneServer initializes a GRPC server to connect to the graph store
@@ -34,8 +35,8 @@ func NewArachneServer(db gdbi.GraphDB, conf Config) (*ArachneServer, error) {
 			return nil, fmt.Errorf("creating work dir: %v", err)
 		}
 	}
-
-	return &ArachneServer{db: db, conf: conf}, nil
+	schemas := make(map[string]*aql.GraphSchema)
+	return &ArachneServer{db: db, conf: conf, schemas: schemas}, nil
 }
 
 // handleError is the grpc gateway error handler
@@ -198,6 +199,10 @@ func (server *ArachneServer) Serve(pctx context.Context) error {
 	go func() {
 		srverr = httpServer.ListenAndServe()
 		cancel()
+	}()
+
+	go func() {
+		server.cacheSchemas(ctx)
 	}()
 
 	log.Println("TCP+RPC server listening on " + server.conf.RPCPort)

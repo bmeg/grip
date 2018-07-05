@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"time"
 
 	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/engine"
@@ -46,9 +47,53 @@ func (server *ArachneServer) ListGraphs(empty *aql.Empty, queryServer aql.Query_
 	return nil
 }
 
+func (server *ArachneServer) getSchemas() {
+	for _, name := range server.db.ListGraphs() {
+		schema, err := server.db.GetSchema(name, server.conf.SchemaSampleSize)
+		if err == nil {
+			server.schemas[name] = schema
+		} else {
+			log.Printf("graph %s: GetSchema failed: %v", name, err)
+		}
+	}
+}
+
+// cacheSchemas calls GetSchema on each graph and caches the schemas in memory
+func (server *ArachneServer) cacheSchemas(ctx context.Context) {
+	ticker := time.NewTicker(server.conf.SchemaRefreshInterval)
+	go func() {
+		server.getSchemas()
+		for {
+			select {
+			case <-ctx.Done():
+				ticker.Stop()
+				return
+			case <-ticker.C:
+				server.getSchemas()
+			}
+		}
+	}()
+	return
+}
+
 // GetSchema returns the schema of a specific graph in the database
 func (server *ArachneServer) GetSchema(ctx context.Context, elem *aql.GraphID) (*aql.GraphSchema, error) {
-	return server.db.GetSchema(elem.Graph, 10)
+	found := false
+	for _, name := range server.db.ListGraphs() {
+		if name == elem.Graph {
+			found = true
+		}
+	}
+	if !found {
+		return nil, grpc.Errorf(codes.NotFound, fmt.Sprintf("graph %s: not found", elem.Graph))
+	}
+
+	schema, ok := server.schemas[elem.Graph]
+	if !ok {
+		return nil, grpc.Errorf(codes.Unavailable, fmt.Sprintf("graph %s: schema not available; try again later", elem.Graph))
+	}
+
+	return schema, nil
 }
 
 // GetVertex returns a vertex given a aql.Element

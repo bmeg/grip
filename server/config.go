@@ -1,6 +1,8 @@
 package server
 
 import (
+	"time"
+
 	"github.com/bmeg/arachne/util"
 )
 
@@ -14,6 +16,10 @@ type Config struct {
 	ReadOnly         bool
 	BasicAuth        []BasicCredential
 	DisableHTTPCache bool
+	// How often the server should rebuild the graph schemas
+	SchemaRefreshInterval time.Duration
+	// How many vertices/edges to sample to infer the schema
+	SchemaSampleSize uint32
 }
 
 // HTTPAddress returns the HTTP address based on HostName and HTTPPort
