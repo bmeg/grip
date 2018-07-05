@@ -46,7 +46,7 @@ func DefaultConfig() *Config {
 	c.Server.ReadOnly = false
 	c.Server.DisableHTTPCache = true
 	c.Server.SchemaRefreshInterval = 1 * time.Hour
-	c.Server.SchemaSampleSize = 100
+	c.Server.SchemaSampleSize = 500
 
 	c.RPCClient.ServerAddress = c.Server.RPCAddress()
 	c.RPCClient.Timeout = 30 * time.Second
