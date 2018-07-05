@@ -45,7 +45,7 @@ func DefaultConfig() *Config {
 	c.Server.WorkDir = "arachne.work"
 	c.Server.ReadOnly = false
 	c.Server.DisableHTTPCache = true
-	c.Server.SchemaRefreshInterval = 1 * time.Hour
+	c.Server.SchemaRefreshInterval = 3 * time.Hour
 	c.Server.SchemaSampleSize = 500
 
 	c.RPCClient.ServerAddress = c.Server.RPCAddress()
