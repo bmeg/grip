@@ -308,7 +308,7 @@ func (ma *GraphDB) getVertexSchema(graph string, n uint32) ([]*aql.Vertex, error
 	done := make(chan interface{})
 	go func() {
 		for s := range schemaChan {
-			log.Printf("Vertex schema: %+v", s)
+			// log.Printf("Vertex schema: %+v", s)
 			output = append(output, s)
 		}
 		close(done)
@@ -377,7 +377,7 @@ func (ma *GraphDB) getEdgeSchema(graph string, n uint32) ([]*aql.Edge, error) {
 	done := make(chan interface{})
 	go func() {
 		for s := range schemaChan {
-			log.Printf("Edge schema: %+v", s)
+			// log.Printf("Edge schema: %+v", s)
 			output = append(output, s)
 		}
 		close(done)
