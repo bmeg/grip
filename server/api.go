@@ -51,6 +51,7 @@ func (server *ArachneServer) getSchemas() {
 	for _, name := range server.db.ListGraphs() {
 		schema, err := server.db.GetSchema(name, server.conf.SchemaSampleSize)
 		if err == nil {
+			log.Printf("cached schema for graph %s", name)
 			server.schemas[name] = schema
 		} else {
 			log.Printf("graph %s: GetSchema failed: %v", name, err)
