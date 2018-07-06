@@ -218,9 +218,9 @@ enum FieldType {
 //       "label": "Human",
 //       "data": {
 // 	      "name": "STRING",
-// 	      "height": "FLOAT",
-// 	      "mass": "FLOAT",
-// 	      "age": "INT",
+// 	      "height": "NUMERIC",
+// 	      "mass": "NUMERIC",
+// 	      "age": "NUMERIC",
 // 	      "homePlanet": "STRING"
 //       }
 //     },
@@ -238,7 +238,7 @@ enum FieldType {
 //       "from": "Human",
 //       "to": "Droid",
 //       "data" : {
-// 	      "years": "INT"
+// 	      "years": "NUMERIC"
 //       }
 //     }
 //   ]
