@@ -62,6 +62,9 @@ func (server *ArachneServer) getSchemas() {
 
 // cacheSchemas calls GetSchema on each graph and caches the schemas in memory
 func (server *ArachneServer) cacheSchemas(ctx context.Context) {
+	if server.db == nil {
+		return
+	}
 	ticker := time.NewTicker(server.conf.SchemaRefreshInterval)
 	go func() {
 		server.getSchemas()

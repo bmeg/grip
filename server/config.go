@@ -56,5 +56,7 @@ func testConfig() Config {
 	c.RPCPort = util.RandomPort()
 	c.WorkDir = "arachne.work." + util.RandomString(6)
 	c.DisableHTTPCache = true
+	c.SchemaRefreshInterval = 1 * time.Minute
+	c.SchemaSampleSize = 100
 	return c
 }
