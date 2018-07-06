@@ -277,6 +277,9 @@ func (ma *GraphDB) getVertexSchema(graph string, n uint32) ([]*aql.Vertex, error
 
 	for _, label := range labels {
 		label := label
+		if label == "" {
+			continue
+		}
 		g.Go(func() error {
 			log.Printf("vertex label: %s: starting schema build", label)
 
@@ -344,6 +347,9 @@ func (ma *GraphDB) getEdgeSchema(graph string, n uint32) ([]*aql.Edge, error) {
 
 	for _, label := range labels {
 		label := label
+		if label == "" {
+			continue
+		}
 		g.Go(func() error {
 			log.Printf("edge label: %s: starting schema build", label)
 
