@@ -278,7 +278,7 @@ func (ma *GraphDB) getVertexSchema(graph string, n uint32) ([]*aql.Vertex, error
 	for _, label := range labels {
 		label := label
 		g.Go(func() error {
-			log.Printf("getting schema for vertex label: %s", label)
+			log.Printf("vertex label: %s: starting schema build", label)
 
 			session := ma.session.Copy()
 			defer session.Close()
@@ -306,6 +306,8 @@ func (ma *GraphDB) getVertexSchema(graph string, n uint32) ([]*aql.Vertex, error
 
 			vSchema := &aql.Vertex{Label: label, Data: protoutil.AsStruct(schema)}
 			schemaChan <- vSchema
+			log.Printf("vertex label: %s: finished schema build", label)
+
 			return nil
 		})
 	}
@@ -343,7 +345,7 @@ func (ma *GraphDB) getEdgeSchema(graph string, n uint32) ([]*aql.Edge, error) {
 	for _, label := range labels {
 		label := label
 		g.Go(func() error {
-			log.Printf("getting schema for edge label: %s", label)
+			log.Printf("edge label: %s: starting schema build", label)
 
 			session := ma.session.Copy()
 			defer session.Close()
@@ -380,6 +382,8 @@ func (ma *GraphDB) getEdgeSchema(graph string, n uint32) ([]*aql.Edge, error) {
 				eSchema := &aql.Edge{Label: label, From: from[j], To: to[j], Data: protoutil.AsStruct(schema)}
 				schemaChan <- eSchema
 			}
+			log.Printf("edge label: %s: finished schema build", label)
+
 			return nil
 		})
 	}
