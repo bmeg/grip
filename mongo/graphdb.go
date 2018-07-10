@@ -450,8 +450,8 @@ func (ma *GraphDB) resolveLabels(graph string, ft fromto) fromto {
 
 	for i := 0; i < len(fromIDs); i++ {
 		i := i
-		toID := fromIDs[i]
-		fromID := toIDs[i]
+		toID := toIDs[i]
+		fromID := fromIDs[i]
 
 		g.Go(func() error {
 			session := ma.session.Copy()
