@@ -57,17 +57,9 @@ func (mg *Graph) GetVertexIndexList() chan aql.IndexID {
 		c := mg.ar.VertexCollection(session, mg.graph)
 
 		// get all unique labels
-		labels := []string{}
-		pipe := c.Pipe([]bson.M{
-			{"$sortByCount": "$label"},
-		})
-		iter := pipe.Iter()
-		defer iter.Close()
-		res := map[string]interface{}{}
-		for iter.Next(&res) {
-			labels = append(labels, res["_id"].(string))
-		}
-		if err := iter.Err(); err != nil {
+		var labels []string
+		err := c.Find(nil).Distinct("label", &labels)
+		if err != nil {
 			log.Println("GetVertexIndexList error:", err)
 		}
 
@@ -135,7 +127,7 @@ func (mg *Graph) GetVertexTermAggregation(ctx context.Context, label string, fie
 		}
 		out.SortedInsert(&aql.AggregationResultBucket{Key: term, Value: float64(count)})
 	}
-	if err := iter.Err(); err != nil {
+	if err := iter.Close(); err != nil {
 		return nil, fmt.Errorf("error occurred while iterating: %v", err)
 	}
 	return out, nil
@@ -190,7 +182,7 @@ func (mg *Graph) GetVertexHistogramAggregation(ctx context.Context, label string
 		}
 		out.Buckets = append(out.Buckets, &aql.AggregationResultBucket{Key: term, Value: float64(count)})
 	}
-	if err := iter.Err(); err != nil {
+	if err := iter.Close(); err != nil {
 		return nil, fmt.Errorf("error occurred while iterating: %v", err)
 	}
 	return out, nil
@@ -259,7 +251,7 @@ func (mg *Graph) GetVertexPercentileAggregation(ctx context.Context, label strin
 		}
 		out.Buckets = append(out.Buckets, &aql.AggregationResultBucket{Key: term, Value: val})
 	}
-	if err := iter.Err(); err != nil {
+	if err := iter.Close(); err != nil {
 		return nil, fmt.Errorf("error occurred while iterating: %v", err)
 	}
 
@@ -294,7 +286,7 @@ func (mg *Graph) VertexLabelScan(ctx context.Context, label string) chan string 
 				out <- id.(string)
 			}
 		}
-		if err := iter.Err(); err != nil {
+		if err := iter.Close(); err != nil {
 			log.Println("VertexLabelScan error:", err)
 		}
 

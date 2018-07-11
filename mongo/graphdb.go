@@ -55,8 +55,8 @@ func NewGraphDB(conf Config) (gdbi.GraphDB, error) {
 	if err != nil {
 		return nil, err
 	}
-	session.SetCursorTimeout(0 * time.Minute)
-	session.SetSocketTimeout(100 * time.Minute)
+	session.SetCursorTimeout(180 * time.Minute)
+	session.SetSocketTimeout(120 * time.Minute)
 	session.SetSyncTimeout(10 * time.Minute)
 
 	b, _ := session.BuildInfo()
@@ -196,14 +196,11 @@ func (ma *GraphDB) ListGraphs() []string {
 
 	iter := g.Find(nil).Iter()
 	defer iter.Close()
-	if err := iter.Err(); err != nil {
-		log.Println("ListGraphs error:", err)
-	}
 	result := map[string]interface{}{}
 	for iter.Next(&result) {
 		out = append(out, result["_id"].(string))
 	}
-	if err := iter.Err(); err != nil {
+	if err := iter.Close(); err != nil {
 		log.Println("ListGraphs error:", err)
 	}
 
@@ -298,13 +295,14 @@ func (ma *GraphDB) getVertexSchema(graph string, n uint32) ([]*aql.Vertex, error
 			}
 
 			iter := v.Pipe(pipe).AllowDiskUse().Iter()
+			defer iter.Close()
 			result := make(map[string]interface{})
 			schema := make(map[string]interface{})
 			for iter.Next(&result) {
 				ds := GetDataFieldTypes(result["data"].(map[string]interface{}))
 				MergeMaps(schema, ds)
 			}
-			if err := iter.Err(); err != nil {
+			if err := iter.Close(); err != nil {
 				return fmt.Errorf("iter error building schema for label %s: %v", label, err)
 			}
 
@@ -368,6 +366,7 @@ func (ma *GraphDB) getEdgeSchema(graph string, n uint32) ([]*aql.Edge, error) {
 			}
 
 			iter := e.Pipe(pipe).AllowDiskUse().Iter()
+			defer iter.Close()
 			result := make(map[string]interface{})
 			schema := make(map[string]interface{})
 			fromToPairs := make(fromto)
@@ -377,7 +376,7 @@ func (ma *GraphDB) getEdgeSchema(graph string, n uint32) ([]*aql.Edge, error) {
 				ds := GetDataFieldTypes(result["data"].(map[string]interface{}))
 				MergeMaps(schema, ds)
 			}
-			if err := iter.Err(); err != nil {
+			if err := iter.Close(); err != nil {
 				return fmt.Errorf("iter error building schema for label %s: %v", label, err)
 			}
 
