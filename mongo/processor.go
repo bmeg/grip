@@ -67,6 +67,7 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 		for t := range in {
 			nResults := 0
 			iter := initCol.Pipe(proc.query).AllowDiskUse().Iter()
+			defer iter.Close()
 			result := map[string]interface{}{}
 			for iter.Next(&result) {
 				nResults++
@@ -184,7 +185,7 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 					out <- t.AddCurrent(de)
 				}
 			}
-			if err := iter.Err(); err != nil {
+			if err := iter.Close(); err != nil {
 				log.Println("Mongo traversal error:", err)
 				continue
 			}
