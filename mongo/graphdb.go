@@ -55,8 +55,9 @@ func NewGraphDB(conf Config) (gdbi.GraphDB, error) {
 	if err != nil {
 		return nil, err
 	}
-	session.SetSocketTimeout(1 * time.Hour)
-	session.SetSyncTimeout(1 * time.Minute)
+	session.SetCursorTimeout(0 * time.Minute)
+	session.SetSocketTimeout(100 * time.Minute)
+	session.SetSyncTimeout(10 * time.Minute)
 
 	b, _ := session.BuildInfo()
 	if !b.VersionAtLeast(3, 6) {
@@ -283,9 +284,9 @@ func (ma *GraphDB) getVertexSchema(graph string, n uint32) ([]*aql.Vertex, error
 		g.Go(func() error {
 			log.Printf("vertex label: %s: starting schema build", label)
 
-			session := ma.session.Copy()
-			defer session.Close()
-			v := ma.VertexCollection(session, graph)
+			sess := ma.session.Copy()
+			defer sess.Close()
+			v := ma.VertexCollection(sess, graph)
 
 			pipe := []bson.M{
 				{
@@ -304,7 +305,7 @@ func (ma *GraphDB) getVertexSchema(graph string, n uint32) ([]*aql.Vertex, error
 				MergeMaps(schema, ds)
 			}
 			if err := iter.Err(); err != nil {
-				return err
+				return fmt.Errorf("iter error building schema for label %s: %v", label, err)
 			}
 
 			vSchema := &aql.Vertex{Label: label, Data: protoutil.AsStruct(schema)}
@@ -353,9 +354,9 @@ func (ma *GraphDB) getEdgeSchema(graph string, n uint32) ([]*aql.Edge, error) {
 		g.Go(func() error {
 			log.Printf("edge label: %s: starting schema build", label)
 
-			session := ma.session.Copy()
-			defer session.Close()
-			e := ma.EdgeCollection(session, graph)
+			sess := ma.session.Copy()
+			defer sess.Close()
+			e := ma.EdgeCollection(sess, graph)
 
 			pipe := []bson.M{
 				{
@@ -377,7 +378,7 @@ func (ma *GraphDB) getEdgeSchema(graph string, n uint32) ([]*aql.Edge, error) {
 				MergeMaps(schema, ds)
 			}
 			if err := iter.Err(); err != nil {
-				return err
+				return fmt.Errorf("iter error building schema for label %s: %v", label, err)
 			}
 
 			fromToPairs = ma.resolveLabels(graph, fromToPairs)
