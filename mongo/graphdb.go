@@ -55,7 +55,7 @@ func NewGraphDB(conf Config) (gdbi.GraphDB, error) {
 	if err != nil {
 		return nil, err
 	}
-	session.SetCursorTimeout(180 * time.Minute)
+	session.SetCursorTimeout(0 * time.Minute)
 	session.SetSocketTimeout(120 * time.Minute)
 	session.SetSyncTimeout(10 * time.Minute)
 
