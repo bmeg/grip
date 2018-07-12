@@ -44,20 +44,23 @@ func NewGraphDB(conf Config) (gdbi.GraphDB, error) {
 
 	ts := timestamp.NewTimestamp()
 	dialinfo := &mgo.DialInfo{
-		Addrs:       []string{conf.URL},
-		Database:    conf.DBName,
-		Username:    conf.Username,
-		Password:    conf.Password,
-		AppName:     "arachne",
-		MinPoolSize: 5,
+		Addrs:        []string{conf.URL},
+		Database:     conf.DBName,
+		Username:     conf.Username,
+		Password:     conf.Password,
+		AppName:      "arachne",
+		ReadTimeout:  0,
+		WriteTimeout: 0,
+		PoolLimit:    4096,
+		PoolTimeout:  0,
+		MinPoolSize:  10,
 	}
 	session, err := mgo.DialWithInfo(dialinfo)
 	if err != nil {
 		return nil, err
 	}
-	session.SetCursorTimeout(0 * time.Minute)
-	session.SetSocketTimeout(120 * time.Minute)
-	session.SetSyncTimeout(10 * time.Minute)
+	session.SetSyncTimeout(1 * time.Minute)
+	session.SetCursorTimeout(0)
 
 	b, _ := session.BuildInfo()
 	if !b.VersionAtLeast(3, 6) {
