@@ -215,6 +215,7 @@ func (mg *Graph) GetVertexList(ctx context.Context, load bool) <-chan *aql.Verte
 	go func() {
 		defer close(o)
 		session := mg.ar.session.Copy()
+		session.SetCursorTimeout(0)
 		defer session.Close()
 		vCol := mg.ar.VertexCollection(session, mg.graph)
 		query := vCol.Find(nil)
@@ -248,6 +249,7 @@ func (mg *Graph) GetEdgeList(ctx context.Context, loadProp bool) <-chan *aql.Edg
 	go func() {
 		defer close(o)
 		session := mg.ar.session.Copy()
+		session.SetCursorTimeout(0)
 		defer session.Close()
 		eCol := mg.ar.EdgeCollection(session, mg.graph)
 		query := eCol.Find(nil)
@@ -297,6 +299,7 @@ func (mg *Graph) GetVertexChannel(ids chan gdbi.ElementLookup, load bool) chan g
 	go func() {
 		defer close(o)
 		session := mg.ar.session.Copy()
+		session.SetCursorTimeout(0)
 		defer session.Close()
 		vCol := mg.ar.VertexCollection(session, mg.graph)
 		for batch := range batches {
@@ -351,6 +354,7 @@ func (mg *Graph) GetOutChannel(reqChan chan gdbi.ElementLookup, load bool, edgeL
 	go func() {
 		defer close(o)
 		session := mg.ar.session.Copy()
+		session.SetCursorTimeout(0)
 		defer session.Close()
 		for batch := range batches {
 			idBatch := make([]string, len(batch))
@@ -416,6 +420,7 @@ func (mg *Graph) GetInChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLa
 	go func() {
 		defer close(o)
 		session := mg.ar.session.Copy()
+		session.SetCursorTimeout(0)
 		defer session.Close()
 		for batch := range batches {
 			idBatch := make([]string, len(batch))
@@ -478,6 +483,7 @@ func (mg *Graph) GetOutEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, e
 	go func() {
 		defer close(o)
 		session := mg.ar.session.Copy()
+		session.SetCursorTimeout(0)
 		defer session.Close()
 		for batch := range batches {
 			idBatch := make([]string, len(batch))
@@ -531,6 +537,7 @@ func (mg *Graph) GetInEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, ed
 	go func() {
 		defer close(o)
 		session := mg.ar.session.Copy()
+		session.SetCursorTimeout(0)
 		defer session.Close()
 		for batch := range batches {
 			idBatch := make([]string, len(batch))

@@ -113,6 +113,7 @@ func (mg *Graph) GetVertexTermAggregation(ctx context.Context, label string, fie
 	}
 
 	session := mg.ar.session.Copy()
+	session.SetCursorTimeout(0)
 	defer session.Close()
 	vcol := mg.ar.VertexCollection(session, mg.graph)
 	pipe := vcol.Pipe(ag)
@@ -168,6 +169,7 @@ func (mg *Graph) GetVertexHistogramAggregation(ctx context.Context, label string
 	}
 
 	session := mg.ar.session.Copy()
+	session.SetCursorTimeout(0)
 	defer session.Close()
 	vcol := mg.ar.VertexCollection(session, mg.graph)
 	pipe := vcol.Pipe(ag)
@@ -232,6 +234,7 @@ func (mg *Graph) GetVertexPercentileAggregation(ctx context.Context, label strin
 	stmt = append(stmt, bson.M{"$project": bson.M{"_id": "$results._id", "count": "$results.count"}})
 
 	session := mg.ar.session.Copy()
+	session.SetCursorTimeout(0)
 	defer session.Close()
 	vcol := mg.ar.VertexCollection(session, mg.graph)
 	pipe := vcol.Pipe(stmt)
@@ -265,6 +268,7 @@ func (mg *Graph) VertexLabelScan(ctx context.Context, label string) chan string 
 	go func() {
 		defer close(out)
 		session := mg.ar.session.Copy()
+		session.SetCursorTimeout(0)
 		defer session.Close()
 		selection := map[string]interface{}{
 			"label": label,

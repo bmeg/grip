@@ -60,7 +60,6 @@ func NewGraphDB(conf Config) (gdbi.GraphDB, error) {
 		return nil, err
 	}
 	session.SetSyncTimeout(1 * time.Minute)
-	session.SetCursorTimeout(0)
 
 	b, _ := session.BuildInfo()
 	if !b.VersionAtLeast(3, 6) {
@@ -192,6 +191,7 @@ func (ma *GraphDB) DeleteGraph(graph string) error {
 // ListGraphs lists the graphs managed by this driver
 func (ma *GraphDB) ListGraphs() []string {
 	session := ma.session.Copy()
+	session.SetCursorTimeout(0)
 	defer session.Close()
 
 	out := make([]string, 0, 100)
@@ -284,9 +284,10 @@ func (ma *GraphDB) getVertexSchema(graph string, n uint32) ([]*aql.Vertex, error
 		g.Go(func() error {
 			log.Printf("vertex label: %s: starting schema build", label)
 
-			sess := ma.session.Copy()
-			defer sess.Close()
-			v := ma.VertexCollection(sess, graph)
+			session := ma.session.Copy()
+			session.SetCursorTimeout(0)
+			defer session.Close()
+			v := ma.VertexCollection(session, graph)
 
 			pipe := []bson.M{
 				{
@@ -306,7 +307,9 @@ func (ma *GraphDB) getVertexSchema(graph string, n uint32) ([]*aql.Vertex, error
 				MergeMaps(schema, ds)
 			}
 			if err := iter.Close(); err != nil {
-				return fmt.Errorf("iter error building schema for label %s: %v", label, err)
+				err = fmt.Errorf("iter error building schema for label %s: %v", label, err)
+				log.Printf(err.Error())
+				return err
 			}
 
 			vSchema := &aql.Vertex{Label: label, Data: protoutil.AsStruct(schema)}
@@ -355,9 +358,10 @@ func (ma *GraphDB) getEdgeSchema(graph string, n uint32) ([]*aql.Edge, error) {
 		g.Go(func() error {
 			log.Printf("edge label: %s: starting schema build", label)
 
-			sess := ma.session.Copy()
-			defer sess.Close()
-			e := ma.EdgeCollection(sess, graph)
+			session := ma.session.Copy()
+			session.SetCursorTimeout(0)
+			defer session.Close()
+			e := ma.EdgeCollection(session, graph)
 
 			pipe := []bson.M{
 				{
@@ -380,7 +384,9 @@ func (ma *GraphDB) getEdgeSchema(graph string, n uint32) ([]*aql.Edge, error) {
 				MergeMaps(schema, ds)
 			}
 			if err := iter.Close(); err != nil {
-				return fmt.Errorf("iter error building schema for label %s: %v", label, err)
+				err = fmt.Errorf("iter error building schema for label %s: %v", label, err)
+				log.Printf(err.Error())
+				return err
 			}
 
 			fromToPairs = ma.resolveLabels(graph, fromToPairs)
