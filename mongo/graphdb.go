@@ -287,7 +287,7 @@ func (ma *GraphDB) getVertexSchema(graph string, n uint32) ([]*aql.Vertex, error
 			session := ma.session.Copy()
 			err := session.Ping()
 			if err != nil {
-				log.Println("session ping error: %v", err)
+				log.Printf("session ping error: %v", err)
 				session.Refresh()
 			}
 			defer session.Close()
@@ -365,7 +365,7 @@ func (ma *GraphDB) getEdgeSchema(graph string, n uint32) ([]*aql.Edge, error) {
 			session := ma.session.Copy()
 			err := session.Ping()
 			if err != nil {
-				log.Println("session ping error: %v", err)
+				log.Printf("session ping error: %v", err)
 				session.Refresh()
 			}
 			defer session.Close()
