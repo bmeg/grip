@@ -53,13 +53,14 @@ func NewGraphDB(conf Config) (gdbi.GraphDB, error) {
 		WriteTimeout: 0,
 		PoolLimit:    4096,
 		PoolTimeout:  0,
-		MinPoolSize:  10,
+		MinPoolSize:  100,
 	}
 	session, err := mgo.DialWithInfo(dialinfo)
 	if err != nil {
 		return nil, err
 	}
 	session.SetSyncTimeout(1 * time.Minute)
+	session.SetCursorTimeout(0)
 
 	b, _ := session.BuildInfo()
 	if !b.VersionAtLeast(3, 6) {
@@ -191,7 +192,6 @@ func (ma *GraphDB) DeleteGraph(graph string) error {
 // ListGraphs lists the graphs managed by this driver
 func (ma *GraphDB) ListGraphs() []string {
 	session := ma.session.Copy()
-	session.SetCursorTimeout(0)
 	defer session.Close()
 
 	out := make([]string, 0, 100)
@@ -285,7 +285,11 @@ func (ma *GraphDB) getVertexSchema(graph string, n uint32) ([]*aql.Vertex, error
 			log.Printf("vertex label: %s: starting schema build", label)
 
 			session := ma.session.Copy()
-			session.SetCursorTimeout(0)
+			err := session.Ping()
+			if err != nil {
+				log.Println("session ping error: %v", err)
+				session.Refresh()
+			}
 			defer session.Close()
 			v := ma.VertexCollection(session, graph)
 
@@ -359,7 +363,11 @@ func (ma *GraphDB) getEdgeSchema(graph string, n uint32) ([]*aql.Edge, error) {
 			log.Printf("edge label: %s: starting schema build", label)
 
 			session := ma.session.Copy()
-			session.SetCursorTimeout(0)
+			err := session.Ping()
+			if err != nil {
+				log.Println("session ping error: %v", err)
+				session.Refresh()
+			}
 			defer session.Close()
 			e := ma.EdgeCollection(session, graph)
 

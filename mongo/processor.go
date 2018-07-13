@@ -60,7 +60,6 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 
 	go func() {
 		session := proc.db.ar.session.Copy()
-		session.SetCursorTimeout(0)
 		defer session.Close()
 		defer close(out)
 
