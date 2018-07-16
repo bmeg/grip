@@ -47,17 +47,23 @@ func (server *ArachneServer) ListGraphs(empty *aql.Empty, queryServer aql.Query_
 	return nil
 }
 
-func (server *ArachneServer) getSchemas() {
+func (server *ArachneServer) getSchemas(ctx context.Context) {
 	for _, name := range server.db.ListGraphs() {
-		log.Printf("getting schema for graph %s", name)
-		schema, err := server.db.GetSchema(name, server.conf.SchemaSampleSize)
-		if err == nil {
-			log.Printf("cached schema for graph %s", name)
-			server.schemas[name] = schema
-		} else {
-			log.Printf("failed to get schema for graph %s: %v", name, err)
-		}
-	}
+    select {
+    case <-ctx.Done():
+      return
+
+    default:
+      log.Printf("getting schema for graph %s", name)
+      schema, err := server.db.GetSchema(ctx, name, server.conf.SchemaSampleSize)
+      if err == nil {
+        log.Printf("cached schema for graph %s", name)
+        server.schemas[name] = schema
+      } else {
+        log.Printf("failed to get schema for graph %s: %v", name, err)
+      }
+    }
+  }
 }
 
 // cacheSchemas calls GetSchema on each graph and caches the schemas in memory
@@ -67,14 +73,14 @@ func (server *ArachneServer) cacheSchemas(ctx context.Context) {
 	}
 	ticker := time.NewTicker(server.conf.SchemaRefreshInterval)
 	go func() {
-		server.getSchemas()
+		server.getSchemas(ctx)
 		for {
 			select {
 			case <-ctx.Done():
 				ticker.Stop()
 				return
 			case <-ticker.C:
-				server.getSchemas()
+				server.getSchemas(ctx)
 			}
 		}
 	}()

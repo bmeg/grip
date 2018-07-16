@@ -63,7 +63,7 @@ type GraphDB interface {
 	DeleteGraph(string) error
 	ListGraphs() []string
 	Graph(graphID string) (GraphInterface, error)
-	GetSchema(graphID string, sampleN uint32) (*aql.GraphSchema, error)
+	GetSchema(ctx context.Context, graphID string, sampleN uint32) (*aql.GraphSchema, error)
 	Close() error
 }
 
