@@ -307,8 +307,10 @@ func (ma *GraphDB) getVertexSchema(graph string, n uint32) ([]*aql.Vertex, error
 			result := make(map[string]interface{})
 			schema := make(map[string]interface{})
 			for iter.Next(&result) {
-				ds := GetDataFieldTypes(result["data"].(map[string]interface{}))
-				MergeMaps(schema, ds)
+				if result["data"] != nil {
+					ds := GetDataFieldTypes(result["data"].(map[string]interface{}))
+					MergeMaps(schema, ds)
+				}
 			}
 			if err := iter.Close(); err != nil {
 				err = fmt.Errorf("iter error building schema for label %s: %v", label, err)
@@ -388,8 +390,10 @@ func (ma *GraphDB) getEdgeSchema(graph string, n uint32) ([]*aql.Edge, error) {
 
 			for iter.Next(&result) {
 				fromToPairs.Add(fromtokey{result["from"].(string), result["to"].(string)})
-				ds := GetDataFieldTypes(result["data"].(map[string]interface{}))
-				MergeMaps(schema, ds)
+				if result["data"] != nil {
+					ds := GetDataFieldTypes(result["data"].(map[string]interface{}))
+					MergeMaps(schema, ds)
+				}
 			}
 			if err := iter.Close(); err != nil {
 				err = fmt.Errorf("iter error building schema for label %s: %v", label, err)
