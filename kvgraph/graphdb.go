@@ -2,7 +2,7 @@ package kvgraph
 
 import (
 	"bytes"
-  "context"
+	"context"
 	"fmt"
 
 	"github.com/bmeg/arachne/aql"
