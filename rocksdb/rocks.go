@@ -1,5 +1,4 @@
 // +build rocksdb
-// +build linux,darwin,!cgo
 
 /*
 The KeyValue interface wrapper for RocksDB

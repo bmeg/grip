@@ -7,9 +7,6 @@ builds:
       - amd64
     env:
       - CGO_ENABLED=0
-    flags:
-      - -tags
-      - rocksdb
     ldflags: >
       -X github.com/bmeg/arachne/version.BuildDate={{.Date}}
       -X github.com/bmeg/arachne/version.GitCommit={{.Commit}}
