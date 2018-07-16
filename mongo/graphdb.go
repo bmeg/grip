@@ -1,7 +1,7 @@
 package mongo
 
 import (
-  "context"
+	"context"
 	"fmt"
 	"log"
 	"strings"
@@ -308,17 +308,17 @@ func (ma *GraphDB) getVertexSchema(ctx context.Context, graph string, n uint32) 
 			result := make(map[string]interface{})
 			schema := make(map[string]interface{})
 			for iter.Next(&result) {
-        select {
-        case <-ctx.Done():
-          return ctx.Err()
+				select {
+				case <-ctx.Done():
+					return ctx.Err()
 
-        default:
-          if result["data"] != nil {
-            ds := GetDataFieldTypes(result["data"].(map[string]interface{}))
-            MergeMaps(schema, ds)
-          }
-        }
-      }
+				default:
+					if result["data"] != nil {
+						ds := GetDataFieldTypes(result["data"].(map[string]interface{}))
+						MergeMaps(schema, ds)
+					}
+				}
+			}
 			if err := iter.Close(); err != nil {
 				err = fmt.Errorf("iter error building schema for label %s: %v", label, err)
 				log.Printf(err.Error())
@@ -396,18 +396,18 @@ func (ma *GraphDB) getEdgeSchema(ctx context.Context, graph string, n uint32) ([
 			fromToPairs := make(fromto)
 
 			for iter.Next(&result) {
-        select {
-        case <-ctx.Done():
-          return ctx.Err()
-          
-        default:
-          fromToPairs.Add(fromtokey{result["from"].(string), result["to"].(string)})
-          if result["data"] != nil {
-            ds := GetDataFieldTypes(result["data"].(map[string]interface{}))
-            MergeMaps(schema, ds)
-          }
-        }
-      }
+				select {
+				case <-ctx.Done():
+					return ctx.Err()
+
+				default:
+					fromToPairs.Add(fromtokey{result["from"].(string), result["to"].(string)})
+					if result["data"] != nil {
+						ds := GetDataFieldTypes(result["data"].(map[string]interface{}))
+						MergeMaps(schema, ds)
+					}
+				}
+			}
 			if err := iter.Close(); err != nil {
 				err = fmt.Errorf("iter error building schema for label %s: %v", label, err)
 				log.Printf(err.Error())
