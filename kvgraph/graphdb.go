@@ -2,6 +2,7 @@ package kvgraph
 
 import (
 	"bytes"
+  "context"
 	"fmt"
 
 	"github.com/bmeg/arachne/aql"
@@ -81,6 +82,6 @@ func (kgraph *KVGraph) ListGraphs() []string {
 }
 
 // GetSchema returns the schema of a specific graph in the database
-func (kgraph *KVGraph) GetSchema(graph string, sampleN uint32) (*aql.GraphSchema, error) {
+func (kgraph *KVGraph) GetSchema(ctx context.Context, graph string, sampleN uint32) (*aql.GraphSchema, error) {
 	return nil, fmt.Errorf("not implemented")
 }

@@ -1,6 +1,7 @@
 package mongo
 
 import (
+  "context"
 	"fmt"
 	"log"
 	"strings"
@@ -230,14 +231,14 @@ func (ma *GraphDB) Graph(graph string) (gdbi.GraphInterface, error) {
 }
 
 // GetSchema returns the schema of a specific graph in the database
-func (ma *GraphDB) GetSchema(graph string, sampleN uint32) (*aql.GraphSchema, error) {
+func (ma *GraphDB) GetSchema(ctx context.Context, graph string, sampleN uint32) (*aql.GraphSchema, error) {
 	var vSchema []*aql.Vertex
 	var eSchema []*aql.Edge
 	var g errgroup.Group
 
 	g.Go(func() error {
 		var err error
-		vSchema, err = ma.getVertexSchema(graph, sampleN)
+		vSchema, err = ma.getVertexSchema(ctx, graph, sampleN)
 		if err != nil {
 			return fmt.Errorf("getting vertex schema: %v", err)
 		}
@@ -246,7 +247,7 @@ func (ma *GraphDB) GetSchema(graph string, sampleN uint32) (*aql.GraphSchema, er
 
 	g.Go(func() error {
 		var err error
-		eSchema, err = ma.getEdgeSchema(graph, sampleN)
+		eSchema, err = ma.getEdgeSchema(ctx, graph, sampleN)
 		if err != nil {
 			return fmt.Errorf("getting edge schema: %v", err)
 		}
@@ -262,7 +263,7 @@ func (ma *GraphDB) GetSchema(graph string, sampleN uint32) (*aql.GraphSchema, er
 	return schema, nil
 }
 
-func (ma *GraphDB) getVertexSchema(graph string, n uint32) ([]*aql.Vertex, error) {
+func (ma *GraphDB) getVertexSchema(ctx context.Context, graph string, n uint32) ([]*aql.Vertex, error) {
 	session := ma.session.Copy()
 	defer session.Close()
 	v := ma.VertexCollection(session, graph)
@@ -307,11 +308,17 @@ func (ma *GraphDB) getVertexSchema(graph string, n uint32) ([]*aql.Vertex, error
 			result := make(map[string]interface{})
 			schema := make(map[string]interface{})
 			for iter.Next(&result) {
-				if result["data"] != nil {
-					ds := GetDataFieldTypes(result["data"].(map[string]interface{}))
-					MergeMaps(schema, ds)
-				}
-			}
+        select {
+        case <-ctx.Done():
+          return ctx.Err()
+
+        default:
+          if result["data"] != nil {
+            ds := GetDataFieldTypes(result["data"].(map[string]interface{}))
+            MergeMaps(schema, ds)
+          }
+        }
+      }
 			if err := iter.Close(); err != nil {
 				err = fmt.Errorf("iter error building schema for label %s: %v", label, err)
 				log.Printf(err.Error())
@@ -342,7 +349,7 @@ func (ma *GraphDB) getVertexSchema(graph string, n uint32) ([]*aql.Vertex, error
 	return output, err
 }
 
-func (ma *GraphDB) getEdgeSchema(graph string, n uint32) ([]*aql.Edge, error) {
+func (ma *GraphDB) getEdgeSchema(ctx context.Context, graph string, n uint32) ([]*aql.Edge, error) {
 	session := ma.session.Copy()
 	defer session.Close()
 	e := ma.EdgeCollection(session, graph)
@@ -389,12 +396,18 @@ func (ma *GraphDB) getEdgeSchema(graph string, n uint32) ([]*aql.Edge, error) {
 			fromToPairs := make(fromto)
 
 			for iter.Next(&result) {
-				fromToPairs.Add(fromtokey{result["from"].(string), result["to"].(string)})
-				if result["data"] != nil {
-					ds := GetDataFieldTypes(result["data"].(map[string]interface{}))
-					MergeMaps(schema, ds)
-				}
-			}
+        select {
+        case <-ctx.Done():
+          return ctx.Err()
+          
+        default:
+          fromToPairs.Add(fromtokey{result["from"].(string), result["to"].(string)})
+          if result["data"] != nil {
+            ds := GetDataFieldTypes(result["data"].(map[string]interface{}))
+            MergeMaps(schema, ds)
+          }
+        }
+      }
 			if err := iter.Close(); err != nil {
 				err = fmt.Errorf("iter error building schema for label %s: %v", label, err)
 				log.Printf(err.Error())
