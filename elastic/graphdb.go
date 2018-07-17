@@ -63,8 +63,15 @@ func NewGraphDB(conf Config) (gdbi.GraphDB, error) {
 		conf.BatchSize = 1000
 	}
 	db := &GraphDB{database: database, conf: conf, ts: &ts, client: client}
-	for _, i := range db.ListGraphs() {
-		db.ts.Touch(i)
+	for _, g := range db.ListGraphs() {
+		g := g
+		db.ts.Touch(g)
+		go func() {
+			err := db.setupIndices(context.Background(), g)
+			if err != nil {
+				log.Printf("error setting up indices for graph %s: %v", g, err)
+			}
+		}()
 	}
 	return db, nil
 }
@@ -94,7 +101,7 @@ func (es *GraphDB) ListGraphs() []string {
 	return out
 }
 
-func (es *GraphDB) initIndex(ctx context.Context, name, body string) error {
+func (es *GraphDB) createIndex(ctx context.Context, name, body string) error {
 	exists, err := es.client.
 		IndexExists(name).
 		Do(ctx)
@@ -109,14 +116,7 @@ func (es *GraphDB) initIndex(ctx context.Context, name, body string) error {
 	return nil
 }
 
-// AddGraph adds a new graph to the graphdb
-func (es *GraphDB) AddGraph(graph string) error {
-	err := aql.ValidateGraphName(graph)
-	if err != nil {
-		return err
-	}
-	ctx := context.Background()
-
+func (es *GraphDB) setupIndices(ctx context.Context, graph string) error {
 	vertexIndex := fmt.Sprintf("%s_%s_vertex", es.database, graph)
 	vMapping := `{
     "mappings": {
@@ -132,7 +132,7 @@ func (es *GraphDB) AddGraph(graph string) error {
       }
     }
   }`
-	if err := es.initIndex(ctx, vertexIndex, vMapping); err != nil {
+	if err := es.createIndex(ctx, vertexIndex, vMapping); err != nil {
 		return err
 	}
 
@@ -157,10 +157,19 @@ func (es *GraphDB) AddGraph(graph string) error {
       }
     }
   }`
-	if err := es.initIndex(ctx, edgeIndex, eMapping); err != nil {
+	if err := es.createIndex(ctx, edgeIndex, eMapping); err != nil {
 		return err
 	}
 	return nil
+}
+
+// AddGraph adds a new graph to the graphdb
+func (es *GraphDB) AddGraph(graph string) error {
+	err := aql.ValidateGraphName(graph)
+	if err != nil {
+		return err
+	}
+	return es.setupIndices(context.Background(), graph)
 }
 
 // DeleteGraph deletes a graph from the graphdb
