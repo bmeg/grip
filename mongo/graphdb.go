@@ -72,8 +72,15 @@ func NewGraphDB(conf Config) (gdbi.GraphDB, error) {
 		conf.BatchSize = 1000
 	}
 	db := &GraphDB{database: database, conf: conf, session: session, ts: &ts}
-	for _, i := range db.ListGraphs() {
-		db.ts.Touch(i)
+	for _, g := range db.ListGraphs() {
+		g := g
+		db.ts.Touch(g)
+		go func() {
+			err := db.setupIndices(g)
+			if err != nil {
+				log.Printf("error setting up indices for graph %s: %v", g, err)
+			}
+		}()
 	}
 	return db, nil
 }
@@ -103,7 +110,6 @@ func (ma *GraphDB) AddGraph(graph string) error {
 	}
 
 	session := ma.session.Copy()
-	session.ResetIndexCache()
 	defer session.Close()
 	defer ma.ts.Touch(graph)
 
@@ -113,8 +119,16 @@ func (ma *GraphDB) AddGraph(graph string) error {
 		return fmt.Errorf("failed to insert graph %s: %v", graph, err)
 	}
 
+	return ma.setupIndices(graph)
+}
+
+func (ma *GraphDB) setupIndices(graph string) error {
+	session := ma.session.Copy()
+	session.ResetIndexCache()
+	defer session.Close()
+
 	e := ma.EdgeCollection(session, graph)
-	err = e.EnsureIndex(mgo.Index{
+	err := e.EnsureIndex(mgo.Index{
 		Key:        []string{"from"},
 		Unique:     false,
 		DropDups:   false,
