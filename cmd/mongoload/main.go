@@ -1,15 +1,15 @@
 package mongoload
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"log"
 	"strings"
 
 	"github.com/bmeg/arachne/aql"
+	"github.com/bmeg/arachne/mongo"
+	"github.com/bmeg/arachne/util"
 	"github.com/bmeg/arachne/util/rpc"
-	"github.com/bmeg/golib"
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
 	"github.com/spf13/cobra"
@@ -103,30 +103,22 @@ var Cmd = &cobra.Command{
 
 		if vertexFile != "" {
 			log.Printf("Loading %s", vertexFile)
-			reader, err := golib.ReadFileLines(vertexFile)
-			if err != nil {
-				return err
-			}
 			count := 0
 
 			docChan := make(chan []map[string]interface{}, 100)
 			docBatch := make([]map[string]interface{}, 0, batchSize)
 			go func() {
 				defer close(docChan)
-				for line := range reader {
-					data := map[string]interface{}{}
-					if err := json.Unmarshal(line, &data); err == nil {
-						data["_id"] = data["gid"]
-						delete(data, "gid")
-						docBatch = append(docBatch, data)
-						if len(docBatch) > batchSize {
-							docChan <- docBatch
-							docBatch = make([]map[string]interface{}, 0, batchSize)
-						}
-						count++
-						if count%1000 == 0 {
-							log.Printf("Loaded %d vertices", count)
-						}
+				for v := range util.StreamVerticesFromFile(vertexFile) {
+					data := mongo.PackVertex(v)
+					docBatch = append(docBatch, data)
+					if len(docBatch) > batchSize {
+						docChan <- docBatch
+						docBatch = make([]map[string]interface{}, 0, batchSize)
+					}
+					count++
+					if count%1000 == 0 {
+						log.Printf("Loaded %d vertices", count)
 					}
 				}
 				if len(docBatch) > 0 {
@@ -151,25 +143,18 @@ var Cmd = &cobra.Command{
 			}
 			log.Printf("Loaded %d vertices", count)
 		}
+
 		if edgeFile != "" {
 			log.Printf("Loading %s", edgeFile)
-			reader, err := golib.ReadFileLines(edgeFile)
-			if err != nil {
-				return err
-			}
 			count := 0
 
 			docChan := make(chan []map[string]interface{}, 100)
 			docBatch := make([]map[string]interface{}, 0, batchSize)
 			go func() {
 				defer close(docChan)
-				for line := range reader {
-					data := map[string]interface{}{}
-					json.Unmarshal(line, &data)
-					if x, ok := data["gid"]; ok {
-						data["_id"] = x
-						delete(data, "gid")
-					} else {
+				for e := range util.StreamEdgesFromFile(edgeFile) {
+					data := mongo.PackEdge(e)
+					if data["_id"] == "" {
 						data["_id"] = bson.NewObjectId().Hex()
 					}
 					docBatch = append(docBatch, data)
