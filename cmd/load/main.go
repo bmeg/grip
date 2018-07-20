@@ -8,6 +8,7 @@ import (
 	"log"
 
 	"github.com/bmeg/arachne/aql"
+	"github.com/bmeg/arachne/cmd/load/example"
 	"github.com/bmeg/arachne/util"
 	"github.com/bmeg/arachne/util/rpc"
 	"github.com/golang/protobuf/jsonpb"
@@ -178,6 +179,7 @@ var Cmd = &cobra.Command{
 }
 
 func init() {
+	Cmd.AddCommand(example.Cmd)
 	flags := Cmd.Flags()
 	flags.StringVar(&host, "host", host, "arachne server url")
 	flags.StringVar(&vertexFile, "vertex", "", "vertex file")

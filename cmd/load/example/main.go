@@ -10,7 +10,7 @@ import (
 )
 
 var host = "localhost:8202"
-var graph = "example"
+var graph = "example-graph"
 var exampleSet = "starwars"
 
 func found(set []string, val string) bool {
@@ -24,7 +24,7 @@ func found(set []string, val string) bool {
 
 // Cmd is the example loader command line definition
 var Cmd = &cobra.Command{
-	Use:   "example",
+	Use:   "example-graph",
 	Short: "Load an example graph",
 	Args:  cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -42,7 +42,7 @@ var Cmd = &cobra.Command{
 			graphs = append(graphs, g)
 		}
 		if found(graphs, graph) {
-			return fmt.Errorf("arachne already contains a graph called 'example'")
+			return fmt.Errorf("arachne already contains a graph called %s", graph)
 		}
 
 		err = conn.AddGraph(graph)
