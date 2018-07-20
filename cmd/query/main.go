@@ -23,7 +23,10 @@ var host = "localhost:8202"
 var Cmd = &cobra.Command{
 	Use:   "query <graph> <query expression>",
 	Short: "Query a graph",
-	Args:  cobra.ExactArgs(2),
+	Long: `Query a graph. 
+Example:
+    arachne query example-graph 'V().where(eq("_label", "Variant")).out().limit(5)'`,
+	Args: cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		vm := goja.New()
 
