@@ -53,11 +53,10 @@ var Cmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if vertexFile == "" && edgeFile == "" && jsonFile == "" && yamlFile == "" {
-			return fmt.Errorf("no inputs files were provided")
+			return fmt.Errorf("no input files were provided")
 		}
 
 		graph = args[0]
-		log.Println("Loading data into graph:", graph)
 
 		conn, err := aql.Connect(rpc.ConfigWithDefaults(host), true)
 		if err != nil {
@@ -76,11 +75,14 @@ var Cmd = &cobra.Command{
 			}
 		}
 		if !found {
+			log.Println("Creating  graph:", graph)
 			err := conn.AddGraph(graph)
 			if err != nil {
 				return err
 			}
 		}
+
+		log.Println("Loading data into graph:", graph)
 
 		elemChan := make(chan *aql.GraphElement)
 		wait := make(chan bool)
