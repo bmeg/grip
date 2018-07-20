@@ -8,10 +8,9 @@ menu:
 
 # GraphQL
 
-Arachne supports GraphQL access of the property graphs. Currently this is read-only
-access to the graph. 
+Arachne supports GraphQL access of the property graphs. Currently this is read-only access to the graph. 
 
-_GraphQL access is only supported when using the MongoDB driver_**
+**_GraphQL access is only supported when using the MongoDB driver_**
 
 ### Load built-in example graph
 
