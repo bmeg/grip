@@ -1,10 +1,11 @@
-package info
+package schema
 
 import (
 	"fmt"
 
 	"github.com/bmeg/arachne/aql"
 	"github.com/bmeg/arachne/util/rpc"
+	"github.com/golang/protobuf/jsonpb"
 	"github.com/spf13/cobra"
 )
 
@@ -12,8 +13,8 @@ var host = "localhost:8202"
 
 // Cmd line declaration
 var Cmd = &cobra.Command{
-	Use:   "info <graph>",
-	Short: "Print vertex/edge counts for a graph",
+	Use:   "schema <graph>",
+	Short: "Print the schema for a graph",
 	Long:  ``,
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -24,26 +25,22 @@ var Cmd = &cobra.Command{
 			return err
 		}
 
-		fmt.Printf("Graph: %s\n", graph)
+		jm := jsonpb.Marshaler{
+			EnumsAsInts:  false,
+			EmitDefaults: true,
+			Indent:       "",
+			OrigName:     false,
+		}
 
-		q := aql.V().Count()
-		res, err := conn.Traversal(&aql.GraphQuery{Graph: graph, Query: q.Statements})
+		schema, err := conn.GetSchema(graph)
 		if err != nil {
 			return err
 		}
-		for row := range res {
-			fmt.Printf("Vertex Count: %v\n", row.GetCount())
-		}
-
-		q = aql.E().Count()
-		res, err = conn.Traversal(&aql.GraphQuery{Graph: graph, Query: q.Statements})
+		txt, err := jm.MarshalToString(schema)
 		if err != nil {
 			return err
 		}
-		for row := range res {
-			fmt.Printf("Edge Count: %v\n", row.GetCount())
-		}
-
+		fmt.Printf("%s\n", txt)
 		return nil
 	},
 }
