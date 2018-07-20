@@ -7,6 +7,8 @@ import (
 	"log"
 	"strings"
 
+	"github.com/bmeg/arachne/aql"
+	"github.com/bmeg/arachne/util/rpc"
 	"github.com/bmeg/golib"
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
@@ -59,12 +61,40 @@ var Cmd = &cobra.Command{
 	Long:  ``,
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if vertexFile == "" && edgeFile == "" {
+			return fmt.Errorf("no edge or vertex files were provided")
+		}
+
 		graph = args[0]
+
+		conn, err := aql.Connect(rpc.ConfigWithDefaults(host), true)
+		if err != nil {
+			return err
+		}
+
+		graphs, err := conn.ListGraphs()
+		if err != nil {
+			return err
+		}
+
+		found := false
+		for g := range graphs {
+			if graph == g {
+				found = true
+			}
+		}
+		if !found {
+			log.Println("Creating  graph:", graph)
+			err := conn.AddGraph(graph)
+			if err != nil {
+				return err
+			}
+		}
+
 		log.Println("Loading data into graph:", graph)
 
 		session, err := mgo.Dial(host)
 		if err != nil {
-			fmt.Printf("Error %s", err)
 			return err
 		}
 
@@ -75,7 +105,6 @@ var Cmd = &cobra.Command{
 			log.Printf("Loading %s", vertexFile)
 			reader, err := golib.ReadFileLines(vertexFile)
 			if err != nil {
-				log.Printf("Error: %s", err)
 				return err
 			}
 			count := 0
@@ -126,7 +155,6 @@ var Cmd = &cobra.Command{
 			log.Printf("Loading %s", edgeFile)
 			reader, err := golib.ReadFileLines(edgeFile)
 			if err != nil {
-				log.Printf("Error: %s", err)
 				return err
 			}
 			count := 0
