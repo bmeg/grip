@@ -1,15 +1,15 @@
-function query() {
-	function process(l) {
-		if (!l) {
-			l = []
-		} else if (_.isString(l)) {
-			l = [l]
-		} else if (!_.isArray(l)) {
-			throw "not something we know how to make labels out of"
-		}
-		return l
+function process(val) {
+	if (!val) {
+		val = []
+  } else if (typeof val == "string" || typeof val == "number") {
+	  val = [val]
+  } else if (!Array.isArray(vall)) {
+		throw "not something we know how to process into an array"
 	}
+	return val
+}
 
+function query() {
 	return {
 		query: [],
 		V: function(id) {
@@ -121,12 +121,7 @@ function lte(key, value) {
 }
 
 function in_(key, values) {
-	if (!values) {
-		values = []
-	} else if (!_.isObject(l) && !_.isArray(l)) {
-		values = [values]
-	}
-	return {'condition': {'key': key, 'value': values, 'condition': 'IN'}}
+	return {'condition': {'key': key, 'value': process(values), 'condition': 'IN'}}
 }
 
 function contains(key, value) {
@@ -140,8 +135,8 @@ function term(name, label, field, size) {
 		"term": {"label": label, "field": field}
 	}
 	if (size) {
-		if (!_.isNumber(percents)) {
-			throw "size expected to be a number"
+		if (typeof size != "number") {
+			throw "expected size to be a number"
 		}
 		agg["term"]["size"] = size
 	}
@@ -151,9 +146,11 @@ function term(name, label, field, size) {
 function percentile(name, label, field, percents) {
 	if (!percents) {
 		percents = [1, 5, 25, 50, 75, 95, 99]
-	} else if (_.isNumber(percents)) {
-			percents = [percents]
-	} else if (!_.isArray(percents)) {
+	} else {
+		percents = process(percents)
+	} 
+
+  if (!percents.every(function(x){ return typeof x == "number" })) {
 		throw "percents expected to be an array of numbers"
 	}
 
@@ -167,8 +164,8 @@ function percentile(name, label, field, percents) {
 
 function histogram(name, label, field, interval) {
 	if (interval) {
-		if (!_.isNumber(interval)) {
-			throw "size expected to be a number"
+		if (typeof interval != "number") {
+			throw "expected interval to be a number"
 		}
 	}
 	return {
@@ -179,7 +176,30 @@ function histogram(name, label, field, interval) {
 	}
 }
 
-// base query object
-O = {
-	query : query
+function V(id) {
+  return query().V(id)
+}
+
+function E(id) {
+  return query().V(id)
+}
+
+module.exports = {
+  query,
+  V,
+  E,
+  and_,
+  or_,
+  not_,
+  eq,
+  neq,
+  lt,
+  lte,
+  gt,
+  gte,
+  in_,
+  contains,
+  term,
+  percentile,
+  histogram
 }
