@@ -15,7 +15,7 @@ VERSION_LDFLAGS=\
  -X "github.com/bmeg/arachne/version.GitBranch=$(git_branch)" \
  -X "github.com/bmeg/arachne/version.GitUpstream=$(git_upstream)"
 
-export ARACHNE_VERSION = 0.2.0
+export ARACHNE_VERSION = 0.3.0
 # LAST_PR_NUMBER is used by the release notes builder to generate notes
 # based on pull requests (PR) up until the last release.
 export LAST_PR_NUMBER = 125
