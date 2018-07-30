@@ -52,7 +52,7 @@ $ chmod 600 arachne.config.yml  To use the password, set the ARACHNE_USER and AR
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
       
       <guid>https://docs.bmeg.io/arachne/download/</guid>
-      <description> Download 0.2.0  Linux MacOS Windows is not supported sorry!  Release History See the Releases page for release history.
+      <description> Download 0.3.0  Linux MacOS Windows is not supported sorry!  Release History See the Releases page for release history.
 Build From Source $ mkdir -p $GOPATH/src/github.com/bmeg $ cd $GOPATH/src/github.com/bmeg $ git clone https://github.com/bmeg/arachne.git $ cd arachne $ make  </description>
     </item>
     
