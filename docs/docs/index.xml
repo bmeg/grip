@@ -86,8 +86,13 @@ import aql conn = aql.Connection(&#39;http://bmeg.io&#39;) O = conn.graph(&amp;q
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
       
       <guid>https://docs.bmeg.io/arachne/docs/queries/graphql/</guid>
-      <description>GraphQL Arachne supports GraphQL access of the property graphs. Currently this is read-only access to the graph. GraphQL graphs have a defined schema with typed fields and connections. This schema must be defined before the graphql endpoint can access the graph.
-All of the different label types in the graph are represented with a vertex of label &amp;lsquo;Object&amp;rsquo;. The vertex gid in the schema graph represents the label type in the actual graph.</description>
+      <description>GraphQL Arachne supports GraphQL access of the property graphs. Currently this is read-only access to the graph.
+GraphQL access is only supported when using the MongoDB driver
+Load built-in example graph Loading the example data and the example schema:
+arachne load example-graph  See the example graph
+arachne dump example-graph --vertex --edge  See the example graph schema
+arachne schema example-graph  Example queries Get Types:
+curl -X POST -H &amp;quot;Content-Type:application/graphql&amp;quot; -d &#39;{__schema{types{name}}}&#39; http://localhost:8201/graphql/example  Get Info about Human object</description>
     </item>
     
     <item>
