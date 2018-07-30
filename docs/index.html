@@ -2,9 +2,9 @@
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
 <head>
+	<meta name="generator" content="Hugo 0.45" />
   <link href="http://gmpg.org/xfn/11" rel="profile">
   <meta http-equiv="content-type" content="text/html; charset=utf-8">
-  <meta name="generator" content="Hugo 0.43" />
 
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
@@ -124,7 +124,7 @@
         </div>
 
         <div class="col span_9_of_12">
-          <pre><code class="language-shell">$ arachne query example 'O.query().V().where(eq("_label", "users"))'</code></pre>
+          <pre><code class="language-shell">$ arachne query example 'V().where(eq("_label", "users"))'</code></pre>
         </div>
       </div>
 
@@ -135,6 +135,16 @@
 
         <div class="col span_9_of_12">
           <pre><code class="language-shell">$ arachne info example</code></pre>
+        </div>
+      </div>
+
+      <div class="section group">
+        <div class="col span_3_of_12">
+          <h1>Get the schema for a graph</h1>
+        </div>
+
+        <div class="col span_9_of_12">
+          <pre><code class="language-shell">$ arachne schema example</code></pre>
         </div>
       </div>
 

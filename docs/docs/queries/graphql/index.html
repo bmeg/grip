@@ -3,7 +3,6 @@
 <head>
   <link href="http://gmpg.org/xfn/11" rel="profile">
   <meta http-equiv="content-type" content="text/html; charset=utf-8">
-  <meta name="generator" content="Hugo 0.43" />
 
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
@@ -225,168 +224,25 @@
 
 <h1 id="graphql">GraphQL</h1>
 
-<p>Arachne supports GraphQL access of the property graphs. Currently this is read-only
-access to the graph.
-GraphQL graphs have a defined schema with typed fields and connections. This
-schema must be defined before the graphql endpoint can access the graph.</p>
+<p>Arachne supports GraphQL access of the property graphs. Currently this is read-only access to the graph.</p>
 
-<p>All of the different label types in the graph are represented with a vertex of
-label &lsquo;Object&rsquo;. The vertex <code>gid</code> in the schema graph represents the label type
-in the actual graph. Attached to each <code>Object</code> vertex is a <code>fields</code> parameter
-that describes the fields and their data types.</p>
+<p><strong><em>GraphQL access is only supported when using the MongoDB driver</em></strong></p>
 
-<p>Example Object Vertex:</p>
-
-<pre><code>gid: Human
-label: Object
-data:
-  fields:
-    name: String
-    height: Float
-    mass: Float
-    homePlanet: String
-</code></pre>
-
-<p>A valid vertex this schema would map to would be:</p>
-
-<pre><code>gid: Luke Skywalker
-label: Human
-data:
-  name: Luke Skywalker
-  height: 1.72
-  mass: 77
-  homePlanet: Tatooine
-</code></pre>
-
-<p>Complex Types are described using data the schema data structures with the final
-value element being a string on the data type. So an array of strings would be
-coded in JSON as <code>[&quot;String&quot;]</code>. A map of values would be
-<code>[&quot;name&quot; : &quot;String&quot;, &quot;values&quot; : [float]]</code></p>
-
-<p>There is one vertex, of label <code>Query</code> that defines the root query element.
-There should be one and only one declared in the schema graph. It&rsquo;s <code>gid</code> doesn&rsquo;t
-matter.</p>
-
-<p>Fields in objects that connect to other nodes can be defined on Object to another
-with edge label <code>field</code>. The <code>data</code> for the edge needs a <code>name</code> field to declare
-the field name. An optional <code>label</code> field can also be added to specify which
-edge labels are followed for the field. The field will be projected as an array
-of the destination object type.</p>
-
-<p>To connect the <code>Human</code> object to its friends:</p>
-
-<pre><code>label: field
-from: Human
-to: Human
-data:
-  name: friends
-  label: friend
-</code></pre>
-
-<h3 id="loading-the-schema">Loading the Schema</h3>
-
-<p>The example data would be in a file called <code>data.yaml</code>:</p>
-
-<pre><code>vertices:
-  - gid: 1000
-    label: Human
-    data:
-      name: Luke Skywalker
-      height: 1.72
-      mass: 77
-      homePlanet: Tatooine
-  - gid: 1001
-    label: Human
-    data:
-      name: Darth Vader
-      height: 2.02
-      mass: 136
-      homePlanet: Tatooine
-  - gid: 1002
-    label: Human
-    data
-      name: Han Solo
-      height: 1.8
-      mass: 80
-  - gid: 1003
-    label: Human
-    data:
-      name: Leia Organa
-      height: 1.5
-      mass: 49
-      homePlanet: Alderaan
-  - gid: 1004
-    label: Human
-    data
-      name: Wilhuff Tarkin
-      height: 1.8
-      mass:   nil
-edges:
-  - {label: &quot;friend&quot;, from: &quot;1000&quot;, to: &quot;1002&quot;}
-  - {label: &quot;friend&quot;, from: &quot;1000&quot;, to: &quot;1003&quot;}
-  - {label: &quot;friend&quot;, from: &quot;1001&quot;, to: &quot;1004&quot;}
-  - {label: &quot;friend&quot;, from: &quot;1002&quot;, to: &quot;1000&quot;}
-  - {label: &quot;friend&quot;, from: &quot;1002&quot;, to: &quot;1003&quot;}
-  - {label: &quot;friend&quot;, from: &quot;1003&quot;, to: &quot;1000&quot;}
-  - {label: &quot;friend&quot;, from: &quot;1003&quot;, to: &quot;1002&quot;}
-  - {label: &quot;friend&quot;, from: &quot;1004&quot;, to: &quot;1001&quot;}
-</code></pre>
-
-<p>For the friend network, the schema would be a file named <code>schema.yaml</code> with:</p>
-
-<pre><code>vertices:
-  - gid: root
-    label: Query
-  - gid: Human
-    label: Object
-    data:
-      fields:
-        name: String
-        height: Float
-        mass: Float
-        homePlanet: String
-edges:
-    - label: field
-      from: root
-      to: Human
-      data:
-        type: idQuery
-        name: Human
-    - label: field
-      from: Human
-      to: Human
-      data:
-        name: friends
-        label: friend
-    - label: field
-      from: root
-      to: Human
-      data:
-        name: HumanIds
-        type: idList
-</code></pre>
-
-<p>To load the test data:</p>
-
-<pre><code>arachne load --graph test --yaml data.yaml
-arachne load --graph test:schema --yaml schema.yaml
-</code></pre>
-
-<h3 id="using-built-in-example">Using built-in example</h3>
+<h3 id="load-built-in-example-graph">Load built-in example graph</h3>
 
 <p>Loading the example data and the example schema:</p>
 
-<pre><code>arachne example
+<pre><code>arachne load example-graph
 </code></pre>
 
 <p>See the example graph</p>
 
-<pre><code>arachne dump --vertex --edge --graph example
+<pre><code>arachne dump example-graph --vertex --edge
 </code></pre>
 
 <p>See the example graph schema</p>
 
-<pre><code>arachne dump --vertex --edge --graph example-schema
+<pre><code>arachne schema example-graph
 </code></pre>
 
 <h3 id="example-queries">Example queries</h3>
