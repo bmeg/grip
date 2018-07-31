@@ -1,11 +1,11 @@
 from __future__ import absolute_import, print_function, unicode_literals
 
-import os
 import json
+import logging
+import os
 import requests
-import sys
 
-from aql.util import process_url, raise_for_status
+from aql.util import AttrDict, Rate, process_url
 
 
 class Query:
@@ -223,147 +223,81 @@ class Query:
     def __iter__(self):
         return self.__stream()
 
-    def __stream(self):
+    def __stream(self, debug=False):
         """
         Execute the query and return an iterator.
         """
+        log_level = logging.INFO
+        if debug:
+            log_level = logging.DEBUG
+        logger = logging.getLogger(__name__)
+        logger.handlers = []
+        stream_handler = logging.StreamHandler()
+        stream_handler.setFormatter(
+            logging.Formatter('[%(levelname)s]\t%(asctime)s\t%(message)s')
+        )
+        stream_handler.setLevel(log_level)
+        logger.setLevel(log_level)
+        logger.addHandler(stream_handler)
+
+        rate = Rate(logger)
         response = requests.post(
             self.url,
             json={"query": self.query},
             stream=True,
             auth=(self.user, self.password)
         )
-        raise_for_status(response)
-        for result in response.iter_lines():
+        logger.debug('POST %s', self.url)
+        logger.debug("BODY %s", self.toJson())
+        logger.debug('STATUS CODE %s', response.status_code)
+        response.raise_for_status()
+
+        for result in response.iter_lines(chunk_size=None):
             try:
-                d = json.loads(result)
-                if "vertex" in d:
-                    yield AttrDict(d["vertex"])
-                elif "edge" in d:
-                    yield AttrDict(d["edge"])
-                elif "aggregations" in d:
-                    yield AttrDict(d["aggregations"]["aggregations"])
-                elif "selections" in d:
-                    d = d["selections"]["selections"]
-                    for k in d:
-                        if "vertex" in d[k]:
-                            d[k] = d[k]["vertex"]
-                        elif "edge" in d[k]:
-                            d[k] = d[k]["edge"]
-                    yield AttrDict(d)
-                elif "render" in d:
-                    if isinstance(d["render"], dict):
-                        yield AttrDict(d["render"])
-                    else:
-                        yield d["render"]
-                elif "count" in d:
-                    yield AttrDict(d)
-                else:
-                    yield d
-            except ValueError as e:
-                print("Can't decode: %s" % (result), file=sys.stderr)
+                result_dict = json.loads(result)
+            except Exception as e:
+                logger.error("Failed to decode: %s", result)
                 raise e
 
-    def execute(self, stream=False):
+            if "vertex" in result_dict:
+                extracted = result_dict["vertex"]
+            elif "edge" in result_dict:
+                extracted = result_dict["edge"]
+            elif "aggregations" in result_dict:
+                extracted = result_dict["aggregations"]["aggregations"]
+            elif "selections" in result_dict:
+                extracted = result_dict["selections"]["selections"]
+                for k in extracted:
+                    if "vertex" in extracted[k]:
+                        extracted[k] = extracted[k]["vertex"]
+                    elif "edge" in extracted[k]:
+                        extracted[k] = extracted[k]["edge"]
+            elif "render" in result_dict:
+                extracted = result_dict["render"]
+            elif "count" in result_dict:
+                extracted = result_dict
+            else:
+                extracted = result_dict
+
+            if isinstance(extracted, dict):
+                yield AttrDict(extracted)
+            else:
+                yield extracted
+
+            rate.tick()
+        rate.close()
+
+    def execute(self, stream=False, debug=False):
         """
-        Execute the query and return a list.
+        Execute the query.
+
+        If stream is True an iterator will be returned. Otherwise, a list
+        is returned.
         """
         if stream:
-            return self.__stream()
+            return self.__stream(debug)
         else:
             output = []
-            for r in self.__stream():
+            for r in self.__stream(debug):
                 output.append(r)
             return output
-
-
-class AttrDict(object):
-
-    def __init__(self, data):
-        if isinstance(data, dict):
-            for k in data:
-                v = data[k]
-                if isinstance(v, dict):
-                    self.__dict__[k] = self.__class__(v)
-                else:
-                    self.__dict__[k] = v
-        else:
-            raise TypeError("AttrDict expects a dict in __init__")
-
-    def __getattr__(self, k):
-        try:
-            return self.__dict__[k]
-        except KeyError:
-            raise AttributeError(
-                "%s has no attribute %s" % (self.__class__.__name__, k)
-            )
-
-    def __setattr__(self, k, v):
-        if isinstance(v, dict):
-            self.__dict__[k] = self.__class__(v)
-        else:
-            self.__dict__[k] = v
-
-    def __delattr__(self, k):
-        try:
-            del self.__dict__[k]
-        except KeyError:
-            raise AttributeError(
-                "%s has no attribute %s" % (self.__class__.__name__, k)
-            )
-
-    def __getitem__(self, k):
-        return self.__getattr__(k)
-
-    def __setitem__(self, k, v):
-        return self.__setattr__(k, v)
-
-    def __delitem__(self, k):
-        return self.__delattr__(k)
-
-    def __eq__(self, other):
-        if isinstance(other, AttrDict):
-            return other.to_dict() == self.to_dict()
-        return other == self.to_dict()
-
-    def __ne__(self, other):
-        return not self.__eq__(other)
-
-    def __repr__(self):
-        attrs = self.to_dict()
-        return '<%s(%s)>' % (self.__class__.__name__, attrs)
-
-    def __str__(self):
-        return self.__repr__()
-
-    def __iter__(self):
-        return iter(self.to_dict())
-
-    def __len__(self):
-        return len(self.to_dict())
-
-    def items(self):
-        for k, v in self.to_dict().items():
-            yield k, v
-
-    def keys(self):
-        for k in self.to_dict().keys():
-            yield k
-
-    def to_dict(self):
-        attrs = {}
-        for a in self.__dict__:
-            if not a.startswith('__') and not callable(getattr(self, a)):
-                val = getattr(self, a)
-                if isinstance(val, dict):
-                    for k in val:
-                        if isinstance(val[k], AttrDict):
-                            attrs[a][k] = val[k].to_dict()
-                        else:
-                            attrs[a] = val
-                            break
-                elif isinstance(val, AttrDict):
-                    attrs[a] = val.to_dict()
-                else:
-                    attrs[a] = val
-        return attrs
