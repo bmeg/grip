@@ -100,7 +100,7 @@ class AttrDict(object):
 
 
 class Rate:
-    def __init__(self, logger: logging.Logger, report_every: int = 100):
+    def __init__(self, logger, report_every=100):
         self.i = 0
         self.start = None
         self.first = None
