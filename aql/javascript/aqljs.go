@@ -13,7 +13,6 @@ import (
 	"strings"
 	"time"
 )
-
 type asset struct {
 	bytes []byte
 	info  os.FileInfo
@@ -230,26 +229,6 @@ function V(id) {
 function E(id) {
   return query().V(id)
 }
-
-module.exports = {
-  query,
-  V,
-  E,
-  and_,
-  or_,
-  not_,
-  eq,
-  neq,
-  lt,
-  lte,
-  gt,
-  gte,
-  in_,
-  contains,
-  term,
-  percentile,
-  histogram
-}
 `)
 
 func aqlJsBytes() ([]byte, error) {
@@ -262,7 +241,7 @@ func aqlJs() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "aql.js", size: 4096, mode: os.FileMode(420), modTime: time.Unix(1532121076, 0)}
+	info := bindataFileInfo{name: "aql.js", size: 3940, mode: os.FileMode(420), modTime: time.Unix(1533238635, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -361,9 +340,8 @@ type bintree struct {
 	Func     func() (*asset, error)
 	Children map[string]*bintree
 }
-
 var _bintree = &bintree{nil, map[string]*bintree{
-	"aql.js": {aqlJs, map[string]*bintree{}},
+	"aql.js": &bintree{aqlJs, map[string]*bintree{}},
 }}
 
 // RestoreAsset restores an asset under the given directory
@@ -412,3 +390,4 @@ func _filePath(dir, name string) string {
 	cannonicalName := strings.Replace(name, "\\", "/", -1)
 	return filepath.Join(append([]string{dir}, strings.Split(cannonicalName, "/")...)...)
 }
+

@@ -183,23 +183,3 @@ function V(id) {
 function E(id) {
   return query().V(id)
 }
-
-module.exports = {
-  query,
-  V,
-  E,
-  and_,
-  or_,
-  not_,
-  eq,
-  neq,
-  lt,
-  lte,
-  gt,
-  gte,
-  in_,
-  contains,
-  term,
-  percentile,
-  histogram
-}
