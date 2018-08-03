@@ -171,7 +171,9 @@ func (server *ArachneServer) Serve(pctx context.Context) error {
 
 	// Regsiter Query Service
 	aql.RegisterQueryServer(grpcServer, server)
-	err = aql.RegisterQueryHandlerFromEndpoint(ctx, grpcMux, ":"+server.conf.RPCPort, opts)
+	//TODO: Put in some sort of logic that will allow web server to be configured to use GRPC client
+	err = aql.RegisterQueryHandlerClient(ctx, grpcMux, NewQueryDirectClient(server))
+	//err = aql.RegisterQueryHandlerFromEndpoint(ctx, grpcMux, ":"+server.conf.RPCPort, opts)
 	if err != nil {
 		return fmt.Errorf("registering query endpoint: %v", err)
 	}
