@@ -103,7 +103,7 @@ curl -X POST -H &amp;quot;Content-Type:application/graphql&amp;quot; -d &#39;{__
       <guid>https://docs.bmeg.io/arachne/docs/databases/mongo/</guid>
       <description> MongoDB Arachne supports storing vertices and edges in MongoDB.
 Config:
-Database: mongodb MongoDb: URL: &amp;quot;localhost:9200&amp;quot; DBName: &amp;quot;arachnedb&amp;quot; Username: &amp;quot;&amp;quot; Password: &amp;quot;&amp;quot;  </description>
+Database: mongodb MongoDB: URL: &amp;quot;localhost:27017&amp;quot; DBName: &amp;quot;arachnedb&amp;quot; Username: &amp;quot;&amp;quot; Password: &amp;quot;&amp;quot;  </description>
     </item>
     
     <item>

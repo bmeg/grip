@@ -16,8 +16,8 @@ Config:
 ```yaml
 Database: mongodb
 
-MongoDb:
-  URL: "localhost:9200"
+MongoDB:
+  URL: "localhost:27017"
   DBName: "arachnedb"
   Username: ""
   Password: ""
