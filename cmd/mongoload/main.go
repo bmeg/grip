@@ -15,13 +15,15 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var host = "localhost"
+var mongoHost = "localhost"
+var host = "localhost:8202"
 var database = "gripdb"
+
 var graph string
 var vertexFile string
 var edgeFile string
 
-var batchSize = 15
+var batchSize = 1000
 var maxRetries = 3
 
 func found(set []string, val string) bool {
@@ -67,16 +69,17 @@ var Cmd = &cobra.Command{
 
 		graph = args[0]
 
+		// Create the graph  if it doesn't already exist.
+		// Creating the graph also results in the creation of indices
+		// for the edge/vertex collections.
 		conn, err := gripql.Connect(rpc.ConfigWithDefaults(host), true)
 		if err != nil {
 			return err
 		}
-
 		graphs, err := conn.ListGraphs()
 		if err != nil {
 			return err
 		}
-
 		found := false
 		for g := range graphs {
 			if graph == g {
@@ -91,9 +94,9 @@ var Cmd = &cobra.Command{
 			}
 		}
 
+		// Connect to mongo and start the bulk load process
 		log.Println("Loading data into graph:", graph)
-
-		session, err := mgo.Dial(host)
+		session, err := mgo.Dial(mongoHost)
 		if err != nil {
 			return err
 		}
@@ -129,6 +132,7 @@ var Cmd = &cobra.Command{
 			for batch := range docChan {
 				for i := 0; i < maxRetries; i++ {
 					bulk := vertexCo.Bulk()
+					bulk.Unordered()
 					for _, data := range batch {
 						bulk.Upsert(bson.M{"_id": data["_id"]}, data)
 					}
@@ -175,6 +179,7 @@ var Cmd = &cobra.Command{
 			for batch := range docChan {
 				for i := 0; i < maxRetries; i++ {
 					bulk := edgeCo.Bulk()
+					bulk.Unordered()
 					for _, data := range batch {
 						bulk.Upsert(bson.M{"_id": data["_id"]}, data)
 					}
@@ -195,8 +200,10 @@ var Cmd = &cobra.Command{
 
 func init() {
 	flags := Cmd.Flags()
-	flags.StringVar(&host, "host", host, "mongo server url")
+	flags.StringVar(&mongoHost, "mongo-host", mongoHost, "mongo server url")
+	flags.StringVar(&host, "grip-host", host, "grip rpc server address")
 	flags.StringVar(&database, "database", database, "database name in mongo to store graph")
 	flags.StringVar(&vertexFile, "vertex", "", "vertex file")
 	flags.StringVar(&edgeFile, "edge", "", "edge file")
+	flags.IntVar(&batchSize, "batch-size", batchSize, "mongo bulk load batch size")
 }
