@@ -7,10 +7,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bmeg/arachne/aql"
-	"github.com/bmeg/arachne/gdbi"
-	"github.com/bmeg/arachne/protoutil"
-	"github.com/bmeg/arachne/timestamp"
+	"github.com/bmeg/grip/aql"
+	"github.com/bmeg/grip/gdbi"
+	"github.com/bmeg/grip/protoutil"
+	"github.com/bmeg/grip/timestamp"
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
 	"golang.org/x/sync/errgroup"
@@ -49,7 +49,7 @@ func NewGraphDB(conf Config) (gdbi.GraphDB, error) {
 		Database:     conf.DBName,
 		Username:     conf.Username,
 		Password:     conf.Password,
-		AppName:      "arachne",
+		AppName:      "grip",
 		ReadTimeout:  0,
 		WriteTimeout: 0,
 		PoolLimit:    4096,

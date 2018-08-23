@@ -11,8 +11,8 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/bmeg/arachne/kvgraph"
-	"github.com/bmeg/arachne/kvi"
+	"github.com/bmeg/grip/kvgraph"
+	"github.com/bmeg/grip/kvi"
 	"github.com/tecbot/gorocksdb"
 )
 

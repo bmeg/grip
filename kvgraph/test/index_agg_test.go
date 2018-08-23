@@ -7,7 +7,7 @@ import (
 	//"math"
 	"testing"
 
-	"github.com/bmeg/arachne/kvindex"
+	"github.com/bmeg/grip/kvindex"
 )
 
 var numDocs = `[

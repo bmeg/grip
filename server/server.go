@@ -1,4 +1,4 @@
-// Package server contains code for serving the Arachne API.
+// Package server contains code for serving the Grip API.
 package server
 
 import (
@@ -9,9 +9,9 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/bmeg/arachne/aql"
-	"github.com/bmeg/arachne/gdbi"
-	"github.com/bmeg/arachne/graphql"
+	"github.com/bmeg/grip/aql"
+	"github.com/bmeg/grip/gdbi"
+	"github.com/bmeg/grip/graphql"
 	"github.com/golang/gddo/httputil"
 	"github.com/grpc-ecosystem/go-grpc-middleware"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
@@ -19,15 +19,15 @@ import (
 	"google.golang.org/grpc"
 )
 
-// ArachneServer is a GRPC based arachne server
-type ArachneServer struct {
+// GripServer is a GRPC based grip server
+type GripServer struct {
 	db      gdbi.GraphDB
 	conf    Config
 	schemas map[string]*aql.GraphSchema
 }
 
-// NewArachneServer initializes a GRPC server to connect to the graph store
-func NewArachneServer(db gdbi.GraphDB, conf Config) (*ArachneServer, error) {
+// NewGripServer initializes a GRPC server to connect to the graph store
+func NewGripServer(db gdbi.GraphDB, conf Config) (*GripServer, error) {
 	_, err := os.Stat(conf.WorkDir)
 	if os.IsNotExist(err) {
 		err = os.Mkdir(conf.WorkDir, 0700)
@@ -36,7 +36,7 @@ func NewArachneServer(db gdbi.GraphDB, conf Config) (*ArachneServer, error) {
 		}
 	}
 	schemas := make(map[string]*aql.GraphSchema)
-	return &ArachneServer{db: db, conf: conf, schemas: schemas}, nil
+	return &GripServer{db: db, conf: conf, schemas: schemas}, nil
 }
 
 // handleError is the grpc gateway error handler
@@ -73,7 +73,7 @@ func streamErrorInterceptor() grpc.StreamServerInterceptor {
 
 // Serve starts the server and does not block. This will open TCP ports
 // for both RPC and HTTP.
-func (server *ArachneServer) Serve(pctx context.Context) error {
+func (server *GripServer) Serve(pctx context.Context) error {
 	ctx, cancel := context.WithCancel(pctx)
 	defer cancel()
 

@@ -5,16 +5,16 @@ import (
 	"io"
 	"log"
 
-	"github.com/bmeg/arachne/util/rpc"
+	"github.com/bmeg/grip/util/rpc"
 )
 
-// Client is a GRPC arachne client with some helper functions
+// Client is a GRPC grip client with some helper functions
 type Client struct {
 	QueryC QueryClient
 	EditC  EditClient
 }
 
-// Connect opens a GRPC connection to an Arachne server
+// Connect opens a GRPC connection to an Grip server
 func Connect(conf rpc.Config, write bool) (Client, error) {
 	conn, err := rpc.Dial(context.Background(), conf)
 	if err != nil {

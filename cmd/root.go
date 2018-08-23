@@ -3,25 +3,25 @@ package cmd
 import (
 	"os"
 
-	"github.com/bmeg/arachne/cmd/create"
-	"github.com/bmeg/arachne/cmd/drop"
-	"github.com/bmeg/arachne/cmd/dump"
-	"github.com/bmeg/arachne/cmd/info"
-	"github.com/bmeg/arachne/cmd/list"
-	"github.com/bmeg/arachne/cmd/load"
-	"github.com/bmeg/arachne/cmd/mongoload"
-	"github.com/bmeg/arachne/cmd/query"
-	"github.com/bmeg/arachne/cmd/rdf"
-	"github.com/bmeg/arachne/cmd/schema"
-	"github.com/bmeg/arachne/cmd/server"
-	"github.com/bmeg/arachne/cmd/stream"
-	"github.com/bmeg/arachne/cmd/version"
+	"github.com/bmeg/grip/cmd/create"
+	"github.com/bmeg/grip/cmd/drop"
+	"github.com/bmeg/grip/cmd/dump"
+	"github.com/bmeg/grip/cmd/info"
+	"github.com/bmeg/grip/cmd/list"
+	"github.com/bmeg/grip/cmd/load"
+	"github.com/bmeg/grip/cmd/mongoload"
+	"github.com/bmeg/grip/cmd/query"
+	"github.com/bmeg/grip/cmd/rdf"
+	"github.com/bmeg/grip/cmd/schema"
+	"github.com/bmeg/grip/cmd/server"
+	"github.com/bmeg/grip/cmd/stream"
+	"github.com/bmeg/grip/cmd/version"
 	"github.com/spf13/cobra"
 )
 
 // RootCmd represents the root command
 var RootCmd = &cobra.Command{
-	Use:           "arachne",
+	Use:           "grip",
 	SilenceErrors: true,
 	SilenceUsage:  true,
 }

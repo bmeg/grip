@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/bmeg/arachne/gdbi"
+	"github.com/bmeg/grip/gdbi"
 	"github.com/stretchr/testify/assert"
 )
 

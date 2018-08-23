@@ -4,9 +4,9 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/bmeg/arachne/badgerdb"
-	"github.com/bmeg/arachne/gdbi"
-	"github.com/bmeg/arachne/kvi"
+	"github.com/bmeg/grip/badgerdb"
+	"github.com/bmeg/grip/gdbi"
+	"github.com/bmeg/grip/kvi"
 )
 
 // NewManager creates a resource manager

@@ -8,9 +8,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/bmeg/arachne/aql"
-	"github.com/bmeg/arachne/jsonpath"
-	"github.com/bmeg/arachne/protoutil"
+	"github.com/bmeg/grip/aql"
+	"github.com/bmeg/grip/jsonpath"
+	"github.com/bmeg/grip/protoutil"
 	elastic "gopkg.in/olivere/elastic.v5"
 )
 

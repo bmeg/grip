@@ -10,12 +10,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bmeg/arachne/elastic"
-	"github.com/bmeg/arachne/mongo"
-	"github.com/bmeg/arachne/server"
-	"github.com/bmeg/arachne/sql"
-	"github.com/bmeg/arachne/util"
-	"github.com/bmeg/arachne/util/rpc"
+	"github.com/bmeg/grip/elastic"
+	"github.com/bmeg/grip/mongo"
+	"github.com/bmeg/grip/server"
+	"github.com/bmeg/grip/sql"
+	"github.com/bmeg/grip/util"
+	"github.com/bmeg/grip/util/rpc"
 	"github.com/ghodss/yaml"
 )
 
@@ -23,7 +23,7 @@ func init() {
 	rand.Seed(time.Now().UTC().UnixNano())
 }
 
-// Config describes the configuration for Arachne.
+// Config describes the configuration for Grip.
 type Config struct {
 	Database      string
 	Server        server.Config
@@ -34,7 +34,7 @@ type Config struct {
 	SQL           sql.Config
 }
 
-// DefaultConfig returns an instance of the default configuration for Arachne.
+// DefaultConfig returns an instance of the default configuration for Grip.
 func DefaultConfig() *Config {
 	c := &Config{}
 	c.Database = "badger"
@@ -42,7 +42,7 @@ func DefaultConfig() *Config {
 	c.Server.HostName = "localhost"
 	c.Server.HTTPPort = "8201"
 	c.Server.RPCPort = "8202"
-	c.Server.WorkDir = "arachne.work"
+	c.Server.WorkDir = "grip.work"
 	c.Server.ReadOnly = false
 	c.Server.DisableHTTPCache = true
 	c.Server.SchemaRefreshInterval = 3 * time.Hour
@@ -52,13 +52,13 @@ func DefaultConfig() *Config {
 	c.RPCClient.Timeout = 30 * time.Second
 	c.RPCClient.MaxRetries = 10
 
-	c.KVStorePath = "arachne.db"
+	c.KVStorePath = "grip.db"
 
-	c.MongoDB.DBName = "arachnedb"
+	c.MongoDB.DBName = "gripdb"
 	c.MongoDB.BatchSize = 1000
 	c.MongoDB.UseAggregationPipeline = true
 
-	c.Elasticsearch.DBName = "arachnedb"
+	c.Elasticsearch.DBName = "gripdb"
 	c.Elasticsearch.BatchSize = 1000
 
 	return c
@@ -70,15 +70,15 @@ func TestifyConfig(c *Config) {
 
 	c.Server.HTTPPort = util.RandomPort()
 	c.Server.RPCPort = util.RandomPort()
-	c.Server.WorkDir = "arachne.work." + rand
+	c.Server.WorkDir = "grip.work." + rand
 
 	c.RPCClient.ServerAddress = c.Server.RPCAddress()
 
-	c.KVStorePath = "arachne.db." + rand
+	c.KVStorePath = "grip.db." + rand
 
-	c.MongoDB.DBName = "arachnedb-" + rand
+	c.MongoDB.DBName = "gripdb-" + rand
 
-	c.Elasticsearch.DBName = "arachnedb-" + rand
+	c.Elasticsearch.DBName = "gripdb-" + rand
 	c.Elasticsearch.Synchronous = true
 }
 

@@ -6,8 +6,8 @@ import (
 	"log"
 	"time"
 
-	"github.com/bmeg/arachne/aql"
-	"github.com/bmeg/arachne/engine"
+	"github.com/bmeg/grip/aql"
+	"github.com/bmeg/grip/engine"
 	"golang.org/x/net/context"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
@@ -15,7 +15,7 @@ import (
 )
 
 // Traversal parses a traversal request and streams the results back
-func (server *ArachneServer) Traversal(query *aql.GraphQuery, queryServer aql.Query_TraversalServer) error {
+func (server *GripServer) Traversal(query *aql.GraphQuery, queryServer aql.Query_TraversalServer) error {
 	graph, err := server.db.Graph(query.Graph)
 	if err != nil {
 		return err
@@ -37,7 +37,7 @@ func (server *ArachneServer) Traversal(query *aql.GraphQuery, queryServer aql.Qu
 }
 
 // ListGraphs returns a list of graphs managed by the driver
-func (server *ArachneServer) ListGraphs(empty *aql.Empty, queryServer aql.Query_ListGraphsServer) error {
+func (server *GripServer) ListGraphs(empty *aql.Empty, queryServer aql.Query_ListGraphsServer) error {
 	for _, name := range server.db.ListGraphs() {
 		err := queryServer.Send(&aql.GraphID{Graph: name})
 		if err != nil {
@@ -47,7 +47,7 @@ func (server *ArachneServer) ListGraphs(empty *aql.Empty, queryServer aql.Query_
 	return nil
 }
 
-func (server *ArachneServer) getSchemas(ctx context.Context) {
+func (server *GripServer) getSchemas(ctx context.Context) {
 	for _, name := range server.db.ListGraphs() {
 		select {
 		case <-ctx.Done():
@@ -67,7 +67,7 @@ func (server *ArachneServer) getSchemas(ctx context.Context) {
 }
 
 // cacheSchemas calls GetSchema on each graph and caches the schemas in memory
-func (server *ArachneServer) cacheSchemas(ctx context.Context) {
+func (server *GripServer) cacheSchemas(ctx context.Context) {
 	if server.db == nil {
 		return
 	}
@@ -88,7 +88,7 @@ func (server *ArachneServer) cacheSchemas(ctx context.Context) {
 }
 
 // GetSchema returns the schema of a specific graph in the database
-func (server *ArachneServer) GetSchema(ctx context.Context, elem *aql.GraphID) (*aql.GraphSchema, error) {
+func (server *GripServer) GetSchema(ctx context.Context, elem *aql.GraphID) (*aql.GraphSchema, error) {
 	found := false
 	for _, name := range server.db.ListGraphs() {
 		if name == elem.Graph {
@@ -108,7 +108,7 @@ func (server *ArachneServer) GetSchema(ctx context.Context, elem *aql.GraphID) (
 }
 
 // GetVertex returns a vertex given a aql.Element
-func (server *ArachneServer) GetVertex(ctx context.Context, elem *aql.ElementID) (*aql.Vertex, error) {
+func (server *GripServer) GetVertex(ctx context.Context, elem *aql.ElementID) (*aql.Vertex, error) {
 	graph, err := server.db.Graph(elem.Graph)
 	if err != nil {
 		return nil, err
@@ -121,7 +121,7 @@ func (server *ArachneServer) GetVertex(ctx context.Context, elem *aql.ElementID)
 }
 
 // GetEdge returns an edge given a aql.Element
-func (server *ArachneServer) GetEdge(ctx context.Context, elem *aql.ElementID) (*aql.Edge, error) {
+func (server *GripServer) GetEdge(ctx context.Context, elem *aql.ElementID) (*aql.Edge, error) {
 	graph, err := server.db.Graph(elem.Graph)
 	if err != nil {
 		return nil, err
@@ -134,7 +134,7 @@ func (server *ArachneServer) GetEdge(ctx context.Context, elem *aql.ElementID) (
 }
 
 // GetTimestamp returns the update timestamp of a graph
-func (server *ArachneServer) GetTimestamp(ctx context.Context, elem *aql.GraphID) (*aql.Timestamp, error) {
+func (server *GripServer) GetTimestamp(ctx context.Context, elem *aql.GraphID) (*aql.Timestamp, error) {
 	graph, err := server.db.Graph(elem.Graph)
 	if err != nil {
 		return nil, err
@@ -143,7 +143,7 @@ func (server *ArachneServer) GetTimestamp(ctx context.Context, elem *aql.GraphID
 }
 
 // DeleteGraph deletes a graph
-func (server *ArachneServer) DeleteGraph(ctx context.Context, elem *aql.GraphID) (*aql.EditResult, error) {
+func (server *GripServer) DeleteGraph(ctx context.Context, elem *aql.GraphID) (*aql.EditResult, error) {
 	err := server.db.DeleteGraph(elem.Graph)
 	if err != nil {
 		return nil, err
@@ -152,7 +152,7 @@ func (server *ArachneServer) DeleteGraph(ctx context.Context, elem *aql.GraphID)
 }
 
 // AddGraph creates a new graph on the server
-func (server *ArachneServer) AddGraph(ctx context.Context, elem *aql.GraphID) (*aql.EditResult, error) {
+func (server *GripServer) AddGraph(ctx context.Context, elem *aql.GraphID) (*aql.EditResult, error) {
 	err := aql.ValidateGraphName(elem.Graph)
 	if err != nil {
 		return nil, err
@@ -165,7 +165,7 @@ func (server *ArachneServer) AddGraph(ctx context.Context, elem *aql.GraphID) (*
 }
 
 // AddVertex adds a vertex to the graph
-func (server *ArachneServer) AddVertex(ctx context.Context, elem *aql.GraphElement) (*aql.EditResult, error) {
+func (server *GripServer) AddVertex(ctx context.Context, elem *aql.GraphElement) (*aql.EditResult, error) {
 	graph, err := server.db.Graph(elem.Graph)
 	if err != nil {
 		return nil, err
@@ -178,7 +178,7 @@ func (server *ArachneServer) AddVertex(ctx context.Context, elem *aql.GraphEleme
 }
 
 // AddEdge adds an edge to the graph
-func (server *ArachneServer) AddEdge(ctx context.Context, elem *aql.GraphElement) (*aql.EditResult, error) {
+func (server *GripServer) AddEdge(ctx context.Context, elem *aql.GraphElement) (*aql.EditResult, error) {
 	graph, err := server.db.Graph(elem.Graph)
 	if err != nil {
 		return nil, err
@@ -207,7 +207,7 @@ func newGraphElementArray(name string, vertexBufSize, edgeBufSize int) *graphEle
 }
 
 // BulkAdd a stream of inputs and loads them into the graph
-func (server *ArachneServer) BulkAdd(stream aql.Edit_BulkAddServer) error {
+func (server *GripServer) BulkAdd(stream aql.Edit_BulkAddServer) error {
 	vertexBatchSize := 50
 	edgeBatchSize := 50
 
@@ -302,7 +302,7 @@ func (server *ArachneServer) BulkAdd(stream aql.Edit_BulkAddServer) error {
 }
 
 // DeleteVertex deletes a vertex from the server
-func (server *ArachneServer) DeleteVertex(ctx context.Context, elem *aql.ElementID) (*aql.EditResult, error) {
+func (server *GripServer) DeleteVertex(ctx context.Context, elem *aql.ElementID) (*aql.EditResult, error) {
 	graph, err := server.db.Graph(elem.Graph)
 	if err != nil {
 		return nil, err
@@ -315,7 +315,7 @@ func (server *ArachneServer) DeleteVertex(ctx context.Context, elem *aql.Element
 }
 
 // DeleteEdge deletes an edge from the graph server
-func (server *ArachneServer) DeleteEdge(ctx context.Context, elem *aql.ElementID) (*aql.EditResult, error) {
+func (server *GripServer) DeleteEdge(ctx context.Context, elem *aql.ElementID) (*aql.EditResult, error) {
 	graph, err := server.db.Graph(elem.Graph)
 	if err != nil {
 		return nil, err
@@ -328,7 +328,7 @@ func (server *ArachneServer) DeleteEdge(ctx context.Context, elem *aql.ElementID
 }
 
 // AddIndex adds a new index
-func (server *ArachneServer) AddIndex(ctx context.Context, idx *aql.IndexID) (*aql.EditResult, error) {
+func (server *GripServer) AddIndex(ctx context.Context, idx *aql.IndexID) (*aql.EditResult, error) {
 	graph, err := server.db.Graph(idx.Graph)
 	if err != nil {
 		return nil, err
@@ -341,7 +341,7 @@ func (server *ArachneServer) AddIndex(ctx context.Context, idx *aql.IndexID) (*a
 }
 
 // DeleteIndex removes an index from the server
-func (server *ArachneServer) DeleteIndex(ctx context.Context, idx *aql.IndexID) (*aql.EditResult, error) {
+func (server *GripServer) DeleteIndex(ctx context.Context, idx *aql.IndexID) (*aql.EditResult, error) {
 	graph, err := server.db.Graph(idx.Graph)
 	if err != nil {
 		return nil, err
@@ -354,7 +354,7 @@ func (server *ArachneServer) DeleteIndex(ctx context.Context, idx *aql.IndexID) 
 }
 
 // ListIndices lists avalible indices from a graph
-func (server *ArachneServer) ListIndices(idx *aql.GraphID, stream aql.Query_ListIndicesServer) error {
+func (server *GripServer) ListIndices(idx *aql.GraphID, stream aql.Query_ListIndicesServer) error {
 	graph, err := server.db.Graph(idx.Graph)
 	if err != nil {
 		return err
@@ -370,7 +370,7 @@ func (server *ArachneServer) ListIndices(idx *aql.GraphID, stream aql.Query_List
 }
 
 // Aggregate is partially implemented
-func (server *ArachneServer) Aggregate(ctx context.Context, req *aql.AggregationsRequest) (*aql.NamedAggregationResult, error) {
+func (server *GripServer) Aggregate(ctx context.Context, req *aql.AggregationsRequest) (*aql.NamedAggregationResult, error) {
 	graph, err := server.db.Graph(req.Graph)
 	if err != nil {
 		return nil, err

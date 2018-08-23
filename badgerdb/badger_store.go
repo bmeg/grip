@@ -10,8 +10,8 @@ import (
 	"log"
 	"os"
 
-	"github.com/bmeg/arachne/kvgraph"
-	"github.com/bmeg/arachne/kvi"
+	"github.com/bmeg/grip/kvgraph"
+	"github.com/bmeg/grip/kvi"
 	"github.com/dgraph-io/badger"
 	"github.com/dgraph-io/badger/options"
 )

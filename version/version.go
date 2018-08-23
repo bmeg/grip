@@ -1,4 +1,4 @@
-// Package version reports the Arachne version.
+// Package version reports the Grip version.
 package version
 
 import "fmt"

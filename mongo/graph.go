@@ -7,11 +7,11 @@ import (
 	"log"
 	"strings"
 
-	"github.com/bmeg/arachne/aql"
-	"github.com/bmeg/arachne/engine/core"
-	"github.com/bmeg/arachne/gdbi"
-	"github.com/bmeg/arachne/timestamp"
-	"github.com/bmeg/arachne/util"
+	"github.com/bmeg/grip/aql"
+	"github.com/bmeg/grip/engine/core"
+	"github.com/bmeg/grip/gdbi"
+	"github.com/bmeg/grip/timestamp"
+	"github.com/bmeg/grip/util"
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
 )

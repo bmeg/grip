@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/bmeg/arachne/aql"
-	aqljs "github.com/bmeg/arachne/aql/javascript"
-	_ "github.com/bmeg/arachne/jsengine/goja" // import goja so it registers with the driver map
-	_ "github.com/bmeg/arachne/jsengine/otto" // import otto so it registers with the driver map
-	"github.com/bmeg/arachne/jsengine/underscore"
-	_ "github.com/bmeg/arachne/jsengine/v8" // import v8 so it registers with the driver map
-	"github.com/bmeg/arachne/util/rpc"
+	"github.com/bmeg/grip/aql"
+	aqljs "github.com/bmeg/grip/aql/javascript"
+	_ "github.com/bmeg/grip/jsengine/goja" // import goja so it registers with the driver map
+	_ "github.com/bmeg/grip/jsengine/otto" // import otto so it registers with the driver map
+	"github.com/bmeg/grip/jsengine/underscore"
+	_ "github.com/bmeg/grip/jsengine/v8" // import v8 so it registers with the driver map
+	"github.com/bmeg/grip/util/rpc"
 	"github.com/dop251/goja"
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/spf13/cobra"
@@ -25,7 +25,7 @@ var Cmd = &cobra.Command{
 	Short: "Query a graph",
 	Long: `Query a graph. 
 Example:
-    arachne query example-graph 'V().where(eq("_label", "Variant")).out().limit(5)'`,
+    grip query example-graph 'V().where(eq("_label", "Variant")).out().limit(5)'`,
 	Args: cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		vm := goja.New()
@@ -85,5 +85,5 @@ Example:
 
 func init() {
 	flags := Cmd.Flags()
-	flags.StringVar(&host, "host", host, "arachne server url")
+	flags.StringVar(&host, "host", host, "grip server url")
 }

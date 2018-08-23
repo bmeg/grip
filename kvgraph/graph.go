@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/bmeg/arachne/aql"
-	"github.com/bmeg/arachne/engine/core"
-	"github.com/bmeg/arachne/gdbi"
-	"github.com/bmeg/arachne/kvi"
-	"github.com/bmeg/arachne/util"
+	"github.com/bmeg/grip/aql"
+	"github.com/bmeg/grip/engine/core"
+	"github.com/bmeg/grip/gdbi"
+	"github.com/bmeg/grip/kvi"
+	"github.com/bmeg/grip/util"
 	proto "github.com/golang/protobuf/proto"
 )
 

@@ -7,8 +7,8 @@ package gdbi
 import (
 	"context"
 
-	"github.com/bmeg/arachne/aql"
-	"github.com/bmeg/arachne/kvi"
+	"github.com/bmeg/grip/aql"
+	"github.com/bmeg/grip/kvi"
 )
 
 // InPipe incoming traveler messages

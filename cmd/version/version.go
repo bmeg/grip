@@ -3,7 +3,7 @@ package version
 import (
 	"fmt"
 
-	"github.com/bmeg/arachne/version"
+	"github.com/bmeg/grip/version"
 	"github.com/spf13/cobra"
 )
 

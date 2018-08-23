@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/bmeg/arachne/aql"
-	"github.com/bmeg/arachne/util/rpc"
+	"github.com/bmeg/grip/aql"
+	"github.com/bmeg/grip/util/rpc"
 	"github.com/spf13/cobra"
 )
 
@@ -42,7 +42,7 @@ var Cmd = &cobra.Command{
 			graphs = append(graphs, g)
 		}
 		if found(graphs, graph) {
-			return fmt.Errorf("arachne already contains a graph called %s", graph)
+			return fmt.Errorf("grip already contains a graph called %s", graph)
 		}
 
 		err = conn.AddGraph(graph)
@@ -76,5 +76,5 @@ var Cmd = &cobra.Command{
 
 func init() {
 	flags := Cmd.Flags()
-	flags.StringVar(&host, "host", host, "arachne server url")
+	flags.StringVar(&host, "host", host, "grip server url")
 }

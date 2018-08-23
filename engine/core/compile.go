@@ -3,10 +3,10 @@ package core
 import (
 	"fmt"
 
-	"github.com/bmeg/arachne/aql"
-	"github.com/bmeg/arachne/gdbi"
-	"github.com/bmeg/arachne/jsonpath"
-	"github.com/bmeg/arachne/protoutil"
+	"github.com/bmeg/grip/aql"
+	"github.com/bmeg/grip/gdbi"
+	"github.com/bmeg/grip/jsonpath"
+	"github.com/bmeg/grip/protoutil"
 )
 
 // DefaultPipeline a set of runnable query operations

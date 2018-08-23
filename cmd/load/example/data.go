@@ -1,8 +1,8 @@
 package example
 
 import (
-	"github.com/bmeg/arachne/aql"
-	"github.com/bmeg/arachne/protoutil"
+	"github.com/bmeg/grip/aql"
+	"github.com/bmeg/grip/protoutil"
 )
 
 var swVertices = []*aql.Vertex{

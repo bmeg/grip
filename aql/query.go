@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/bmeg/arachne/protoutil"
+	"github.com/bmeg/grip/protoutil"
 )
 
 // V starts a new vertex query, short for `NewQuery().V()`.

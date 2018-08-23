@@ -5,9 +5,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/bmeg/arachne/aql"
-	"github.com/bmeg/arachne/gdbi"
-	"github.com/bmeg/arachne/kvi"
+	"github.com/bmeg/grip/aql"
+	"github.com/bmeg/grip/gdbi"
+	"github.com/bmeg/grip/kvi"
 )
 
 // AddGraph creates a new graph named `graph`

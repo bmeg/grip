@@ -3,13 +3,13 @@ package kvgraph
 import (
 	"fmt"
 
-	"github.com/bmeg/arachne/gdbi"
-	"github.com/bmeg/arachne/kvi"
-	"github.com/bmeg/arachne/kvindex"
-	"github.com/bmeg/arachne/timestamp"
+	"github.com/bmeg/grip/gdbi"
+	"github.com/bmeg/grip/kvi"
+	"github.com/bmeg/grip/kvindex"
+	"github.com/bmeg/grip/timestamp"
 )
 
-// KVGraph implements the ArachneInterface using a generic key/value storage driver
+// KVGraph implements the GripInterface using a generic key/value storage driver
 type KVGraph struct {
 	kv  kvi.KVInterface
 	idx *kvindex.KVIndex
