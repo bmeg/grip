@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/bmeg/arachne/aql"
-	"github.com/bmeg/arachne/gdbi"
+	"github.com/bmeg/grip/aql"
+	"github.com/bmeg/grip/gdbi"
 	"github.com/oliveagle/jsonpath"
 )
 

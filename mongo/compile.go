@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/bmeg/arachne/aql"
-	"github.com/bmeg/arachne/engine/core"
-	"github.com/bmeg/arachne/gdbi"
-	"github.com/bmeg/arachne/jsonpath"
-	"github.com/bmeg/arachne/protoutil"
+	"github.com/bmeg/grip/aql"
+	"github.com/bmeg/grip/engine/core"
+	"github.com/bmeg/grip/gdbi"
+	"github.com/bmeg/grip/jsonpath"
+	"github.com/bmeg/grip/protoutil"
 	"github.com/globalsign/mgo/bson"
 )
 

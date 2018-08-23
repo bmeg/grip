@@ -7,9 +7,9 @@ import (
 	"math"
 	"strings"
 
-	"github.com/bmeg/arachne/aql"
-	"github.com/bmeg/arachne/jsonpath"
-	"github.com/bmeg/arachne/protoutil"
+	"github.com/bmeg/grip/aql"
+	"github.com/bmeg/grip/jsonpath"
+	"github.com/bmeg/grip/protoutil"
 	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/spenczar/tdigest"
 )

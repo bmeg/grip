@@ -8,17 +8,17 @@ import (
 	"os/signal"
 	"strings"
 
-	_ "github.com/bmeg/arachne/badgerdb" // import so badger will register itself
-	_ "github.com/bmeg/arachne/boltdb"   // import so bolt will register itself
-	"github.com/bmeg/arachne/config"
-	"github.com/bmeg/arachne/elastic"
-	"github.com/bmeg/arachne/gdbi"
-	"github.com/bmeg/arachne/kvgraph"
-	_ "github.com/bmeg/arachne/leveldb" // import so level will register itself
-	"github.com/bmeg/arachne/mongo"
-	_ "github.com/bmeg/arachne/rocksdb" // import so rocks will register itself
-	"github.com/bmeg/arachne/server"
-	"github.com/bmeg/arachne/sql"
+	_ "github.com/bmeg/grip/badgerdb" // import so badger will register itself
+	_ "github.com/bmeg/grip/boltdb"   // import so bolt will register itself
+	"github.com/bmeg/grip/config"
+	"github.com/bmeg/grip/elastic"
+	"github.com/bmeg/grip/gdbi"
+	"github.com/bmeg/grip/kvgraph"
+	_ "github.com/bmeg/grip/leveldb" // import so level will register itself
+	"github.com/bmeg/grip/mongo"
+	_ "github.com/bmeg/grip/rocksdb" // import so rocks will register itself
+	"github.com/bmeg/grip/server"
+	"github.com/bmeg/grip/sql"
 	_ "github.com/go-sql-driver/mysql" //import so mysql will register as a sql driver
 	"github.com/imdario/mergo"
 	_ "github.com/lib/pq" // import so postgres will register as a sql driver
@@ -28,7 +28,7 @@ import (
 var conf = &config.Config{}
 var configFile string
 
-// Run runs an Arachne server.
+// Run runs an Grip server.
 // This opens a database and starts an API server.
 // This blocks indefinitely.
 func Run(conf *config.Config) error {
@@ -66,7 +66,7 @@ func Run(conf *config.Config) error {
 		cancel()
 	}()
 
-	srv, err := server.NewArachneServer(db, conf.Server)
+	srv, err := server.NewGripServer(db, conf.Server)
 	if err != nil {
 		return err
 	}

@@ -1,6 +1,6 @@
 package aql
 
-import "github.com/bmeg/arachne/protoutil"
+import "github.com/bmeg/grip/protoutil"
 
 // Eq asserts that the value the provided key resolves to is equal to the provided value.
 func Eq(key string, value interface{}) *WhereExpression {

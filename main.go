@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/bmeg/arachne/cmd"
+	"github.com/bmeg/grip/cmd"
 )
 
 func main() {

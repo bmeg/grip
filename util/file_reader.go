@@ -5,7 +5,7 @@ import (
 	"io"
 	"log"
 
-	"github.com/bmeg/arachne/aql"
+	"github.com/bmeg/grip/aql"
 	"github.com/bmeg/golib"
 	"github.com/golang/protobuf/jsonpb"
 )

@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/bmeg/arachne/aql"
+	"github.com/bmeg/grip/aql"
 )
 
 // AddVertexIndex add index to vertices

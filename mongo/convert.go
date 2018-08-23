@@ -1,8 +1,8 @@
 package mongo
 
 import (
-	"github.com/bmeg/arachne/aql"
-	"github.com/bmeg/arachne/protoutil"
+	"github.com/bmeg/grip/aql"
+	"github.com/bmeg/grip/protoutil"
 	"github.com/globalsign/mgo/bson"
 	structpb "github.com/golang/protobuf/ptypes/struct"
 )

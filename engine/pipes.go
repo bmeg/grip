@@ -8,9 +8,9 @@ import (
 	"context"
 	"log"
 
-	"github.com/bmeg/arachne/aql"
-	"github.com/bmeg/arachne/gdbi"
-	"github.com/bmeg/arachne/protoutil"
+	"github.com/bmeg/grip/aql"
+	"github.com/bmeg/grip/gdbi"
+	"github.com/bmeg/grip/protoutil"
 )
 
 // Start begins processing a query pipeline

@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bmeg/arachne/aql"
-	"github.com/bmeg/arachne/gdbi"
-	"github.com/bmeg/arachne/timestamp"
+	"github.com/bmeg/grip/aql"
+	"github.com/bmeg/grip/gdbi"
+	"github.com/bmeg/grip/timestamp"
 	elastic "gopkg.in/olivere/elastic.v5"
 )
 

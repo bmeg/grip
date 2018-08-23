@@ -1,8 +1,8 @@
 package gdbi
 
 import (
-	"github.com/bmeg/arachne/aql"
-	"github.com/bmeg/arachne/protoutil"
+	"github.com/bmeg/grip/aql"
+	"github.com/bmeg/grip/protoutil"
 )
 
 // These consts mark the type of a Pipeline traveler chan

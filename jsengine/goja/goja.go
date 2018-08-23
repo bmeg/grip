@@ -3,8 +3,8 @@ package goja
 import (
 	"fmt"
 
-	"github.com/bmeg/arachne/jsengine"
-	"github.com/bmeg/arachne/jsengine/underscore"
+	"github.com/bmeg/grip/jsengine"
+	"github.com/bmeg/grip/jsengine/underscore"
 	"github.com/dop251/goja"
 )
 

@@ -10,8 +10,8 @@ import (
 	"net/http"
 	"regexp"
 
-	"github.com/bmeg/arachne/aql"
-	"github.com/bmeg/arachne/util/rpc"
+	"github.com/bmeg/grip/aql"
+	"github.com/bmeg/grip/util/rpc"
 	"github.com/graphql-go/graphql"
 	"github.com/graphql-go/handler"
 )
@@ -25,7 +25,7 @@ type graphHandler struct {
 	schema     *aql.GraphSchema
 }
 
-// Handler is a GraphQL endpoint to query the Arachne database
+// Handler is a GraphQL endpoint to query the Grip database
 type Handler struct {
 	handlers map[string]*graphHandler
 	client   aql.Client

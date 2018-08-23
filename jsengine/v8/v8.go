@@ -8,10 +8,10 @@ import (
 	"log"
 
 	"github.com/augustoroman/v8"
-	"github.com/bmeg/arachne/aql"
-	"github.com/bmeg/arachne/jsengine"
-	"github.com/bmeg/arachne/jsengine/underscore"
-	"github.com/bmeg/arachne/protoutil"
+	"github.com/bmeg/grip/aql"
+	"github.com/bmeg/grip/jsengine"
+	"github.com/bmeg/grip/jsengine/underscore"
+	"github.com/bmeg/grip/protoutil"
 )
 
 type V8Runtime struct {

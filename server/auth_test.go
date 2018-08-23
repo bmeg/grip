@@ -7,11 +7,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/bmeg/arachne/aql"
-	_ "github.com/bmeg/arachne/badgerdb" // import so badger will register itself
-	"github.com/bmeg/arachne/kvgraph"
-	"github.com/bmeg/arachne/util"
-	"github.com/bmeg/arachne/util/rpc"
+	"github.com/bmeg/grip/aql"
+	_ "github.com/bmeg/grip/badgerdb" // import so badger will register itself
+	"github.com/bmeg/grip/kvgraph"
+	"github.com/bmeg/grip/util"
+	"github.com/bmeg/grip/util/rpc"
 )
 
 func TestBasicAuthFail(t *testing.T) {
@@ -22,7 +22,7 @@ func TestBasicAuthFail(t *testing.T) {
 	conf.BasicAuth = []BasicCredential{{User: "testuser", Password: "abc123"}}
 	defer os.RemoveAll(conf.WorkDir)
 
-	srv, err := NewArachneServer(nil, conf)
+	srv, err := NewGripServer(nil, conf)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -63,14 +63,14 @@ func TestBasicAuth(t *testing.T) {
 	defer os.Unsetenv("ARACHNE_USER")
 	defer os.Unsetenv("ARACHNE_PASSWORD")
 
-	tmpDB := "arachne.db." + util.RandomString(6)
+	tmpDB := "grip.db." + util.RandomString(6)
 	db, err := kvgraph.NewKVGraphDB("badger", tmpDB)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer os.RemoveAll(tmpDB)
 
-	srv, err := NewArachneServer(db, conf)
+	srv, err := NewGripServer(db, conf)
 	if err != nil {
 		t.Fatal(err)
 	}

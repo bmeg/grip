@@ -7,10 +7,10 @@ import (
 	"io/ioutil"
 	"log"
 
-	"github.com/bmeg/arachne/aql"
-	"github.com/bmeg/arachne/cmd/load/example"
-	"github.com/bmeg/arachne/util"
-	"github.com/bmeg/arachne/util/rpc"
+	"github.com/bmeg/grip/aql"
+	"github.com/bmeg/grip/cmd/load/example"
+	"github.com/bmeg/grip/util"
+	"github.com/bmeg/grip/util/rpc"
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
@@ -181,7 +181,7 @@ var Cmd = &cobra.Command{
 func init() {
 	Cmd.AddCommand(example.Cmd)
 	flags := Cmd.Flags()
-	flags.StringVar(&host, "host", host, "arachne server url")
+	flags.StringVar(&host, "host", host, "grip server url")
 	flags.StringVar(&vertexFile, "vertex", "", "vertex file")
 	flags.StringVar(&edgeFile, "edge", "", "edge file")
 	flags.StringVar(&jsonFile, "json", "", "JSON graph file")

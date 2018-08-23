@@ -6,17 +6,17 @@ import (
 	"log"
 	"strings"
 
-	"github.com/bmeg/arachne/aql"
-	"github.com/bmeg/arachne/mongo"
-	"github.com/bmeg/arachne/util"
-	"github.com/bmeg/arachne/util/rpc"
+	"github.com/bmeg/grip/aql"
+	"github.com/bmeg/grip/mongo"
+	"github.com/bmeg/grip/util"
+	"github.com/bmeg/grip/util/rpc"
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
 	"github.com/spf13/cobra"
 )
 
 var host = "localhost"
-var database = "arachnedb"
+var database = "gripdb"
 var graph string
 var vertexFile string
 var edgeFile string

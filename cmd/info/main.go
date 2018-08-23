@@ -3,8 +3,8 @@ package info
 import (
 	"fmt"
 
-	"github.com/bmeg/arachne/aql"
-	"github.com/bmeg/arachne/util/rpc"
+	"github.com/bmeg/grip/aql"
+	"github.com/bmeg/grip/util/rpc"
 	"github.com/spf13/cobra"
 )
 
@@ -50,5 +50,5 @@ var Cmd = &cobra.Command{
 
 func init() {
 	flags := Cmd.Flags()
-	flags.StringVar(&host, "host", host, "arachne server url")
+	flags.StringVar(&host, "host", host, "grip server url")
 }

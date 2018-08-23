@@ -5,10 +5,10 @@ import (
 	"os"
 	"testing"
 
-	"github.com/bmeg/arachne/aql"
-	//"github.com/bmeg/arachne/gdbi"
-	"github.com/bmeg/arachne/badgerdb"
-	"github.com/bmeg/arachne/kvgraph"
+	"github.com/bmeg/grip/aql"
+	//"github.com/bmeg/grip/gdbi"
+	"github.com/bmeg/grip/badgerdb"
+	"github.com/bmeg/grip/kvgraph"
 )
 
 var idRunes = []rune("abcdefghijklmnopqrstuvwxyz")

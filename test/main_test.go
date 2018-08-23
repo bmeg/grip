@@ -8,18 +8,18 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/bmeg/arachne/aql"
-	_ "github.com/bmeg/arachne/badgerdb" // import so badger will register itself
-	_ "github.com/bmeg/arachne/boltdb"   // import so bolt will register itself
-	"github.com/bmeg/arachne/config"
-	"github.com/bmeg/arachne/elastic"
-	"github.com/bmeg/arachne/gdbi"
-	"github.com/bmeg/arachne/kvgraph"
-	_ "github.com/bmeg/arachne/leveldb" // import so level will register itself
-	"github.com/bmeg/arachne/mongo"
-	_ "github.com/bmeg/arachne/rocksdb" // import so rocks will register itself
-	"github.com/bmeg/arachne/sql"
-	"github.com/bmeg/arachne/util"
+	"github.com/bmeg/grip/aql"
+	_ "github.com/bmeg/grip/badgerdb" // import so badger will register itself
+	_ "github.com/bmeg/grip/boltdb"   // import so bolt will register itself
+	"github.com/bmeg/grip/config"
+	"github.com/bmeg/grip/elastic"
+	"github.com/bmeg/grip/gdbi"
+	"github.com/bmeg/grip/kvgraph"
+	_ "github.com/bmeg/grip/leveldb" // import so level will register itself
+	"github.com/bmeg/grip/mongo"
+	_ "github.com/bmeg/grip/rocksdb" // import so rocks will register itself
+	"github.com/bmeg/grip/sql"
+	"github.com/bmeg/grip/util"
 	_ "github.com/lib/pq" // import so postgres will register as a sql driver
 )
 

@@ -3,7 +3,7 @@ package server
 import (
 	"time"
 
-	"github.com/bmeg/arachne/util"
+	"github.com/bmeg/grip/util"
 )
 
 // Config describes configuration for the server.
@@ -54,7 +54,7 @@ func testConfig() Config {
 	c.HostName = "localhost"
 	c.HTTPPort = util.RandomPort()
 	c.RPCPort = util.RandomPort()
-	c.WorkDir = "arachne.work." + util.RandomString(6)
+	c.WorkDir = "grip.work." + util.RandomString(6)
 	c.DisableHTTPCache = true
 	c.SchemaRefreshInterval = 1 * time.Minute
 	c.SchemaSampleSize = 100

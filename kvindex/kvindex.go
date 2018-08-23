@@ -9,7 +9,7 @@ import (
 	"math"
 	"strings"
 
-	"github.com/bmeg/arachne/kvi"
+	"github.com/bmeg/grip/kvi"
 	proto "github.com/golang/protobuf/proto"
 )
 

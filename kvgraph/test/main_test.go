@@ -5,13 +5,13 @@ import (
 	"os"
 	"testing"
 
-	_ "github.com/bmeg/arachne/badgerdb" // import so badger will register itself
-	_ "github.com/bmeg/arachne/boltdb"   // import so bolt will register itself
-	"github.com/bmeg/arachne/kvgraph"
-	"github.com/bmeg/arachne/kvi"
-	_ "github.com/bmeg/arachne/leveldb" // import so level will register itself
-	_ "github.com/bmeg/arachne/rocksdb" // import so rocks will register itself
-	"github.com/bmeg/arachne/util"
+	_ "github.com/bmeg/grip/badgerdb" // import so badger will register itself
+	_ "github.com/bmeg/grip/boltdb"   // import so bolt will register itself
+	"github.com/bmeg/grip/kvgraph"
+	"github.com/bmeg/grip/kvi"
+	_ "github.com/bmeg/grip/leveldb" // import so level will register itself
+	_ "github.com/bmeg/grip/rocksdb" // import so rocks will register itself
+	"github.com/bmeg/grip/util"
 )
 
 var dbname string

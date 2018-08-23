@@ -6,7 +6,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/bmeg/arachne/protoutil"
+	"github.com/bmeg/grip/protoutil"
 	structpb "github.com/golang/protobuf/ptypes/struct"
 )
 

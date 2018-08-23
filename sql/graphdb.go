@@ -5,9 +5,9 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/bmeg/arachne/aql"
-	"github.com/bmeg/arachne/gdbi"
-	"github.com/bmeg/arachne/timestamp"
+	"github.com/bmeg/grip/aql"
+	"github.com/bmeg/grip/gdbi"
+	"github.com/bmeg/grip/timestamp"
 	"github.com/jmoiron/sqlx"
 )
 

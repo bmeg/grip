@@ -5,8 +5,8 @@ import (
 	"strings"
 
 	"github.com/Shopify/sarama"
-	"github.com/bmeg/arachne/aql"
-	"github.com/bmeg/arachne/util/rpc"
+	"github.com/bmeg/grip/aql"
+	"github.com/bmeg/grip/util/rpc"
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/spf13/cobra"
 )
@@ -14,8 +14,8 @@ import (
 var kafka = "localhost:9092"
 var host = "localhost:8202"
 var graph string
-var vertexTopic = "arachne_vertex"
-var edgeTopic = "arachne_edge"
+var vertexTopic = "grip_vertex"
+var edgeTopic = "grip_edge"
 
 // Cmd is the base command called by the cobra command line system
 var Cmd = &cobra.Command{
@@ -94,7 +94,7 @@ var Cmd = &cobra.Command{
 func init() {
 	flags := Cmd.Flags()
 	flags.StringVar(&kafka, "kafka", "localhost:9092", "Kafka server url")
-	flags.StringVar(&host, "host", "localhost:8202", "arachne server url")
-	flags.StringVar(&vertexTopic, "vertex", "arachne_vertex", "vertex topic name")
-	flags.StringVar(&edgeTopic, "edge", "arachne_vertex", "edge topic name")
+	flags.StringVar(&host, "host", "localhost:8202", "grip server url")
+	flags.StringVar(&vertexTopic, "vertex", "grip_vertex", "vertex topic name")
+	flags.StringVar(&edgeTopic, "edge", "grip_vertex", "edge topic name")
 }

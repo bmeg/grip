@@ -3,7 +3,7 @@ package ottoengine
 import (
 	"fmt"
 
-	"github.com/bmeg/arachne/jsengine"
+	"github.com/bmeg/grip/jsengine"
 	"github.com/robertkrimen/otto"
 	//"github.com/robertkrimen/otto/underscore"
 )

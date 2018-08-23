@@ -5,7 +5,7 @@ import (
 	"log"
 	"testing"
 
-	"github.com/bmeg/arachne/kvindex"
+	"github.com/bmeg/grip/kvindex"
 )
 
 var docs = `[
