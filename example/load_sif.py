@@ -2,12 +2,12 @@
 
 from __future__ import print_function
 
-import aql
+import gripql
 import argparse
 
 
 def load_sif(args):
-    conn = aql.Connection(args.server)
+    conn = gripql.Connection(args.server)
     O = conn.graph(args.db)
     proteins = set()
     with open(args.input) as handle:

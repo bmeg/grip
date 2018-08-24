@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package aql;
+package gripql;
 
 import "google/api/annotations.proto";
 import "google/protobuf/struct.proto";
@@ -52,11 +52,11 @@ message GraphStatement {
 
 message AggregationsRequest {
   string graph = 1;
-  repeated Aggregate aggregations = 2; 
+  repeated Aggregate aggregations = 2;
 }
 
 message Aggregations {
-  repeated Aggregate aggregations = 1; 
+  repeated Aggregate aggregations = 1;
 }
 
 message Aggregate {
@@ -206,7 +206,7 @@ enum FieldType {
   BOOL  = 3;
 }
 
-// Each data field in the vertices/edges will be mapped to a FieldType. 
+// Each data field in the vertices/edges will be mapped to a FieldType.
 // The `Gid` field is not used in the schema.
 // The `Label` field identifies the vertex/edge type.
 //

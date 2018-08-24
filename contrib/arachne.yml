@@ -5,4 +5,4 @@ Server:
   ContentDir: /usr/share/grip
 MongoDB:
   URL: localhost
-  DBName: arachne
+  DBName: grip

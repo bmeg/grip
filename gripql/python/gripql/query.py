@@ -5,7 +5,7 @@ import logging
 import os
 import requests
 
-from aql.util import AttrDict, Rate, process_url
+from gripql.util import AttrDict, Rate, process_url
 
 
 class Query:
@@ -16,10 +16,10 @@ class Query:
         self.url = url + "/v1/graph/" + graph + "/query"
         self.graph = graph
         if user is None:
-            user = os.getenv("ARACHNE_USER", None)
+            user = os.getenv("GRIP_USER", None)
         self.user = user
         if password is None:
-            password = os.getenv("ARACHNE_PASSWORD", None)
+            password = os.getenv("GRIP_PASSWORD", None)
         self.password = password
 
     def __append(self, part):

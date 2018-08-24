@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-import aql
+import gripql
 import numpy as np
 
 
@@ -36,7 +36,7 @@ def test_term_aggregation(O):
     errors = []
     setupGraph(O)
 
-    response =  O.aggregate(aql.term("test-agg", "Person", "name", 2))
+    response =  O.aggregate(gripql.term("test-agg", "Person", "name", 2))
     if 'test-agg' not in response:
             errors.append("Result had Incorrect aggregation name")
             return errors
@@ -58,7 +58,7 @@ def test_term_aggregation(O):
                 "Incorrect term count: %d != %d" %
                 (res["value"], 2))
 
-    response = O.aggregate(aql.term("test-agg-no-limit", "Person", "name", size=None))
+    response = O.aggregate(gripql.term("test-agg-no-limit", "Person", "name", size=None))
     if 'test-agg-no-limit' not in response:
             errors.append("Result had Incorrect aggregation name")
             return errors
@@ -90,7 +90,7 @@ def test_traversal_term_aggregation(O):
     setupGraph(O)
 
     count = 0
-    for row in O.query().V("1").out().aggregate(aql.term("traversal-agg", "Person", "name")):
+    for row in O.query().V("1").out().aggregate(gripql.term("traversal-agg", "Person", "name")):
         if 'traversal-agg' not in row:
             errors.append("Result had Incorrect aggregation name")
             return errors
@@ -127,7 +127,7 @@ def test_histogram_aggregation(O):
     errors = []
     setupGraph(O)
 
-    response = O.aggregate(aql.histogram("test-agg", "Person", "age", 5))
+    response = O.aggregate(gripql.histogram("test-agg", "Person", "age", 5))
     if 'test-agg' not in response:
         errors.append("Result had Incorrect aggregation name")
         return errors
@@ -169,7 +169,7 @@ def test_traversal_histogram_aggregation(O):
     setupGraph(O)
 
     count = 0
-    for row in O.query().V("1").out().aggregate(aql.histogram("traversal-agg", "Person", "age", 5)):
+    for row in O.query().V("1").out().aggregate(gripql.histogram("traversal-agg", "Person", "age", 5)):
         count += 1
         if 'traversal-agg' not in row:
             errors.append("Result had Incorrect aggregation name")
@@ -214,7 +214,7 @@ def test_percentile_aggregation(O):
     setupGraph(O)
 
     percents = [1, 5, 25, 50, 75, 95, 99, 99.9]
-    response = O.aggregate(aql.percentile("test-agg", "Person", "age", percents))
+    response = O.aggregate(gripql.percentile("test-agg", "Person", "age", percents))
     if 'test-agg' not in response:
         errors.append("Result had Incorrect aggregation name")
         return errors
@@ -277,7 +277,7 @@ def test_traversal_percentile_aggregation(O):
 
     count = 0
     percents = [1, 5, 25, 50, 75, 95, 99, 99.9]
-    for row in O.query().V("1").out().aggregate(aql.percentile("traversal-agg", "Person", "age", percents)):
+    for row in O.query().V("1").out().aggregate(gripql.percentile("traversal-agg", "Person", "age", percents)):
         count += 1
 
         if 'traversal-agg' not in row:

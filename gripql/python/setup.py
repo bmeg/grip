@@ -25,16 +25,16 @@ def find_version(*file_paths):
 
 
 setup(
-    name='aql',
-    version=find_version("aql", "__init__.py"),
-    description='Arachne Graph Database Client',
+    name='gripql',
+    version=find_version("gripql", "__init__.py"),
+    description='GRaph Integration Platform Client',
     long_description=read('README.md'),
     long_description_content_type='text/markdown',
     author='OHSU Computational Biology',
     author_email='CompBio@ohsu.edu',
     maintainer='Adam Struck',
     maintainer_email='strucka@ohsu.edu',
-    url="https://github.com/bmeg/arachne/aql/python",
+    url="https://github.com/bmeg/grip/gripql/python",
     license='MIT',
     packages=find_packages(),
     python_requires='>=2.6, <4',
