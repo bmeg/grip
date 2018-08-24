@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/ohsu-comp-bio/funnel.svg?branch=master)](https://travis-ci.org/bmeg/grip)
+[![Build Status](https://travis-ci.org/bmeg/grip.svg?branch=master)](https://travis-ci.org/bmeg/grip)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Godoc](https://img.shields.io/badge/godoc-ref-blue.svg)](http://godoc.org/github.com/bmeg/grip)
 [![Gitter](https://badges.gitter.im/bmeg/grip.svg)](https://gitter.im/bmeg/grip)
