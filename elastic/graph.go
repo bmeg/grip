@@ -8,9 +8,9 @@ import (
 	"io"
 	"log"
 
-	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/engine/core"
 	"github.com/bmeg/grip/gdbi"
+	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/timestamp"
 	"github.com/bmeg/grip/util"
 	"github.com/golang/protobuf/jsonpb"

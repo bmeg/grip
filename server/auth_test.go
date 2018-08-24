@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/bmeg/grip/gripql"
 	_ "github.com/bmeg/grip/badgerdb" // import so badger will register itself
+	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/kvgraph"
 	"github.com/bmeg/grip/util"
 	"github.com/bmeg/grip/util/rpc"

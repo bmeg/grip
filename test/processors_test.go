@@ -10,8 +10,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/engine"
+	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/protoutil"
 	"github.com/bmeg/grip/util"
 	"github.com/golang/protobuf/jsonpb"

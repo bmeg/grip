@@ -9,9 +9,9 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/graphql"
+	"github.com/bmeg/grip/gripql"
 	"github.com/golang/gddo/httputil"
 	"github.com/grpc-ecosystem/go-grpc-middleware"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"

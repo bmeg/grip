@@ -9,8 +9,8 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/gdbi"
+	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/jsonpath"
 	"github.com/bmeg/grip/kvi"
 	"github.com/bmeg/grip/kvindex"

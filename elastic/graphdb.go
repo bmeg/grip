@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/gdbi"
+	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/timestamp"
 	elastic "gopkg.in/olivere/elastic.v5"
 )

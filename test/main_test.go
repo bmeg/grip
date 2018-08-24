@@ -8,12 +8,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/bmeg/grip/gripql"
 	_ "github.com/bmeg/grip/badgerdb" // import so badger will register itself
 	_ "github.com/bmeg/grip/boltdb"   // import so bolt will register itself
 	"github.com/bmeg/grip/config"
 	"github.com/bmeg/grip/elastic"
 	"github.com/bmeg/grip/gdbi"
+	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/kvgraph"
 	_ "github.com/bmeg/grip/leveldb" // import so level will register itself
 	"github.com/bmeg/grip/mongo"

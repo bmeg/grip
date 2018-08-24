@@ -7,8 +7,8 @@ import (
 	"io/ioutil"
 	"log"
 
-	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/cmd/load/example"
+	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/util"
 	"github.com/bmeg/grip/util/rpc"
 	"github.com/golang/protobuf/jsonpb"
