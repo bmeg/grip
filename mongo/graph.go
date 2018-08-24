@@ -7,7 +7,7 @@ import (
 	"log"
 	"strings"
 
-	"github.com/bmeg/grip/aql"
+	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/engine/core"
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/timestamp"
@@ -39,7 +39,7 @@ func (mg *Graph) GetTimestamp() string {
 }
 
 // GetVertex loads a vertex given an id. It returns a nil if not found
-func (mg *Graph) GetVertex(key string, load bool) *aql.Vertex {
+func (mg *Graph) GetVertex(key string, load bool) *gripql.Vertex {
 	session := mg.ar.session.Copy()
 	defer session.Close()
 
@@ -58,7 +58,7 @@ func (mg *Graph) GetVertex(key string, load bool) *aql.Vertex {
 }
 
 // GetEdge loads an edge given an id. It returns nil if not found
-func (mg *Graph) GetEdge(id string, load bool) *aql.Edge {
+func (mg *Graph) GetEdge(id string, load bool) *gripql.Edge {
 	session := mg.ar.session.Copy()
 	defer session.Close()
 
@@ -99,7 +99,7 @@ func isNetError(e error) bool {
 
 // AddVertex adds an edge to the graph, if it already exists
 // in the graph, it is replaced
-func (mg *Graph) AddVertex(vertexArray []*aql.Vertex) error {
+func (mg *Graph) AddVertex(vertexArray []*gripql.Vertex) error {
 	for _, vertex := range vertexArray {
 		err := vertex.Validate()
 		if err != nil {
@@ -130,7 +130,7 @@ func (mg *Graph) AddVertex(vertexArray []*aql.Vertex) error {
 
 // AddEdge adds an edge to the graph, if the id is not "" and in already exists
 // in the graph, it is replaced
-func (mg *Graph) AddEdge(edgeArray []*aql.Edge) error {
+func (mg *Graph) AddEdge(edgeArray []*gripql.Edge) error {
 	for _, edge := range edgeArray {
 		if edge.Gid == "" {
 			edge.Gid = util.UUID()
@@ -209,8 +209,8 @@ func (mg *Graph) DelEdge(key string) error {
 }
 
 // GetVertexList produces a channel of all vertices in the graph
-func (mg *Graph) GetVertexList(ctx context.Context, load bool) <-chan *aql.Vertex {
-	o := make(chan *aql.Vertex, 100)
+func (mg *Graph) GetVertexList(ctx context.Context, load bool) <-chan *gripql.Vertex {
+	o := make(chan *gripql.Vertex, 100)
 
 	go func() {
 		defer close(o)
@@ -242,8 +242,8 @@ func (mg *Graph) GetVertexList(ctx context.Context, load bool) <-chan *aql.Verte
 }
 
 // GetEdgeList produces a channel of all edges in the graph
-func (mg *Graph) GetEdgeList(ctx context.Context, loadProp bool) <-chan *aql.Edge {
-	o := make(chan *aql.Edge, 100)
+func (mg *Graph) GetEdgeList(ctx context.Context, loadProp bool) <-chan *gripql.Edge {
+	o := make(chan *gripql.Edge, 100)
 
 	go func() {
 		defer close(o)
@@ -311,7 +311,7 @@ func (mg *Graph) GetVertexChannel(ids chan gdbi.ElementLookup, load bool) chan g
 			}
 			iter := q.Iter()
 			defer iter.Close()
-			chunk := map[string]*aql.Vertex{}
+			chunk := map[string]*gripql.Vertex{}
 			result := map[string]interface{}{}
 			for iter.Next(&result) {
 				v := UnpackVertex(result)

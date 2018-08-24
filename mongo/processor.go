@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/bmeg/grip/aql"
+	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/protoutil"
 	"github.com/globalsign/mgo/bson"
@@ -101,11 +101,11 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 					out <- &gdbi.Traveler{Selections: selections}
 
 				case gdbi.AggregationData:
-					aggs := map[string]*aql.AggregationResult{}
+					aggs := map[string]*gripql.AggregationResult{}
 
 					for k, v := range result {
-						out := &aql.AggregationResult{
-							Buckets: []*aql.AggregationResultBucket{},
+						out := &gripql.AggregationResult{
+							Buckets: []*gripql.AggregationResultBucket{},
 						}
 
 						buckets, ok := v.([]interface{})
@@ -141,10 +141,10 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 							switch bucket["count"].(type) {
 							case int:
 								count := bucket["count"].(int)
-								out.Buckets = append(out.Buckets, &aql.AggregationResultBucket{Key: term, Value: float64(count)})
+								out.Buckets = append(out.Buckets, &gripql.AggregationResultBucket{Key: term, Value: float64(count)})
 							case float64:
 								count := bucket["count"].(float64)
-								out.Buckets = append(out.Buckets, &aql.AggregationResultBucket{Key: term, Value: count})
+								out.Buckets = append(out.Buckets, &gripql.AggregationResultBucket{Key: term, Value: count})
 							default:
 								log.Println("unexpected aggregation result type")
 								continue

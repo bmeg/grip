@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/bmeg/grip/aql"
+	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/util/rpc"
 	"github.com/spf13/cobra"
 )
@@ -28,7 +28,7 @@ var Cmd = &cobra.Command{
 	Short: "Load an example graph",
 	Args:  cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		conn, err := aql.Connect(rpc.ConfigWithDefaults(host), true)
+		conn, err := gripql.Connect(rpc.ConfigWithDefaults(host), true)
 		if err != nil {
 			return err
 		}
@@ -50,7 +50,7 @@ var Cmd = &cobra.Command{
 			return err
 		}
 
-		elemChan := make(chan *aql.GraphElement)
+		elemChan := make(chan *gripql.GraphElement)
 		wait := make(chan bool)
 		go func() {
 			if err := conn.BulkAdd(elemChan); err != nil {
@@ -61,10 +61,10 @@ var Cmd = &cobra.Command{
 
 		log.Printf("Loading example graph data into %s", graph)
 		for _, v := range swVertices {
-			elemChan <- &aql.GraphElement{Graph: graph, Vertex: v}
+			elemChan <- &gripql.GraphElement{Graph: graph, Vertex: v}
 		}
 		for _, e := range swEdges {
-			elemChan <- &aql.GraphElement{Graph: graph, Edge: e}
+			elemChan <- &gripql.GraphElement{Graph: graph, Edge: e}
 		}
 
 		close(elemChan)

@@ -1,11 +1,11 @@
 package example
 
 import (
-	"github.com/bmeg/grip/aql"
+	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/protoutil"
 )
 
-var swVertices = []*aql.Vertex{
+var swVertices = []*gripql.Vertex{
 	{Gid: "1000", Label: "Human", Data: protoutil.AsStruct(
 		map[string]interface{}{
 			"name":       "Luke Skywalker",
@@ -97,7 +97,7 @@ var swVertices = []*aql.Vertex{
 	)},
 }
 
-var swEdges = []*aql.Edge{
+var swEdges = []*gripql.Edge{
 	//Luke Edges
 	{Label: "friend", From: "1000", To: "1002"},
 	{Label: "friend", From: "1000", To: "1003"},

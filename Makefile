@@ -10,12 +10,12 @@ export GIT_BRANCH = $(git_branch)
 export GIT_UPSTREAM = $(git_upstream)
 
 VERSION_LDFLAGS=\
- -X "github.com/bmeg/arachne/version.BuildDate=$(shell date)" \
- -X "github.com/bmeg/arachne/version.GitCommit=$(git_commit)" \
- -X "github.com/bmeg/arachne/version.GitBranch=$(git_branch)" \
- -X "github.com/bmeg/arachne/version.GitUpstream=$(git_upstream)"
+ -X "github.com/bmeg/grip/version.BuildDate=$(shell date)" \
+ -X "github.com/bmeg/grip/version.GitCommit=$(git_commit)" \
+ -X "github.com/bmeg/grip/version.GitBranch=$(git_branch)" \
+ -X "github.com/bmeg/grip/version.GitUpstream=$(git_upstream)"
 
-export ARACHNE_VERSION = 0.3.1
+export GRIP_VERSION = 0.3.1
 # LAST_PR_NUMBER is used by the release notes builder to generate notes
 # based on pull requests (PR) up until the last release.
 export LAST_PR_NUMBER = 127
@@ -43,13 +43,13 @@ with-rocksdb: depends
 # --------------------------
 proto:
 	@go get github.com/ckaznocha/protoc-gen-lint
-	@cd aql && protoc \
+	@cd gripql && protoc \
 		-I ./ \
 		-I ../googleapis \
 		--lint_out=. \
 		--go_out=Mgoogle/protobuf/struct.proto=github.com/golang/protobuf/ptypes/struct,plugins=grpc:. \
 		--grpc-gateway_out=logtostderr=true:. \
-		aql.proto
+		gripql.proto
 	@cd kvindex && protoc \
 		-I ./ \
 		--go_out=. \
@@ -91,7 +91,7 @@ release: depends
 	@go get github.com/buchanae/github-release-notes
 	@goreleaser release \
 		--rm-dist \
-		--release-notes <(github-release-notes -org bmeg -repo arachne -stop-at ${LAST_PR_NUMBER})
+		--release-notes <(github-release-notes -org bmeg -repo grip -stop-at ${LAST_PR_NUMBER})
 
 # ---------------------
 # Tests
@@ -106,20 +106,20 @@ test-conformance:
 # Database development
 # ---------------------
 start-mongo:
-	@docker rm -f arachne-mongodb-test > /dev/null 2>&1 || echo
-	docker run -d --name arachne-mongodb-test -p 27000:27017 docker.io/mongo:3.6.4 > /dev/null
+	@docker rm -f grip-mongodb-test > /dev/null 2>&1 || echo
+	docker run -d --name grip-mongodb-test -p 27000:27017 docker.io/mongo:3.6.4 > /dev/null
 
 start-elastic:
-	@docker rm -f arachne-es-test > /dev/null 2>&1 || echo
-	docker run -d --name arachne-es-test -p 19200:9200 -p 9300:9300 -e "discovery.type=single-node" -e "xpack.security.enabled=false" docker.elastic.co/elasticsearch/elasticsearch:5.6.3 > /dev/null
+	@docker rm -f grip-es-test > /dev/null 2>&1 || echo
+	docker run -d --name grip-es-test -p 19200:9200 -p 9300:9300 -e "discovery.type=single-node" -e "xpack.security.enabled=false" docker.elastic.co/elasticsearch/elasticsearch:5.6.3 > /dev/null
 
 start-postgres:
-	@docker rm -f arachne-postgres-test > /dev/null 2>&1 || echo
-	docker run -d --name arachne-postgres-test -p 15432:5432 -e POSTGRES_PASSWORD= -e POSTGRES_USER=postgres postgres:10.4 > /dev/null
+	@docker rm -f grip-postgres-test > /dev/null 2>&1 || echo
+	docker run -d --name grip-postgres-test -p 15432:5432 -e POSTGRES_PASSWORD= -e POSTGRES_USER=postgres postgres:10.4 > /dev/null
 
 start-mysql:
-	@docker rm -f arachne-mysql-test > /dev/null 2>&1 || echo
-	docker run -d --name arachne-mysql-test -p 13306:3306 -e MYSQL_ALLOW_EMPTY_PASSWORD=yes mysql:8.0.11 --default-authentication-plugin=mysql_native_password > /dev/null
+	@docker rm -f grip-mysql-test > /dev/null 2>&1 || echo
+	docker run -d --name grip-mysql-test -p 13306:3306 -e MYSQL_ALLOW_EMPTY_PASSWORD=yes mysql:8.0.11 --default-authentication-plugin=mysql_native_password > /dev/null
 
 # ---------------------
 # Website

@@ -9,7 +9,7 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/bmeg/grip/aql"
+	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/jsonpath"
 	"github.com/bmeg/grip/kvi"
@@ -409,23 +409,23 @@ func (r *Render) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, 
 
 // Where filters based on data
 type Where struct {
-	stmt *aql.WhereExpression
+	stmt *gripql.WhereExpression
 }
 
-func matchesCondition(trav *gdbi.Traveler, cond *aql.WhereCondition) bool {
+func matchesCondition(trav *gdbi.Traveler, cond *gripql.WhereCondition) bool {
 	var val interface{}
 	var condVal interface{}
 	val = jsonpath.TravelerPathLookup(trav, cond.Key)
 	condVal = protoutil.UnWrapValue(cond.Value)
 
 	switch cond.Condition {
-	case aql.Condition_EQ:
+	case gripql.Condition_EQ:
 		return reflect.DeepEqual(val, condVal)
 
-	case aql.Condition_NEQ:
+	case gripql.Condition_NEQ:
 		return !reflect.DeepEqual(val, condVal)
 
-	case aql.Condition_GT:
+	case gripql.Condition_GT:
 		valN, ok := val.(float64)
 		if !ok {
 			return false
@@ -436,7 +436,7 @@ func matchesCondition(trav *gdbi.Traveler, cond *aql.WhereCondition) bool {
 		}
 		return valN > condN
 
-	case aql.Condition_GTE:
+	case gripql.Condition_GTE:
 		valN, ok := val.(float64)
 		if !ok {
 			return false
@@ -447,7 +447,7 @@ func matchesCondition(trav *gdbi.Traveler, cond *aql.WhereCondition) bool {
 		}
 		return valN >= condN
 
-	case aql.Condition_LT:
+	case gripql.Condition_LT:
 		valN, ok := val.(float64)
 		if !ok {
 			return false
@@ -458,7 +458,7 @@ func matchesCondition(trav *gdbi.Traveler, cond *aql.WhereCondition) bool {
 		}
 		return valN < condN
 
-	case aql.Condition_LTE:
+	case gripql.Condition_LTE:
 		valN, ok := val.(float64)
 		if !ok {
 			return false
@@ -469,7 +469,7 @@ func matchesCondition(trav *gdbi.Traveler, cond *aql.WhereCondition) bool {
 		}
 		return valN <= condN
 
-	case aql.Condition_IN:
+	case gripql.Condition_IN:
 		found := false
 		switch condVal.(type) {
 		case []interface{}:
@@ -492,7 +492,7 @@ func matchesCondition(trav *gdbi.Traveler, cond *aql.WhereCondition) bool {
 
 		return found
 
-	case aql.Condition_CONTAINS:
+	case gripql.Condition_CONTAINS:
 		found := false
 		switch val.(type) {
 		case []interface{}:
@@ -520,13 +520,13 @@ func matchesCondition(trav *gdbi.Traveler, cond *aql.WhereCondition) bool {
 	}
 }
 
-func matchesWhereExpression(trav *gdbi.Traveler, stmt *aql.WhereExpression) bool {
+func matchesWhereExpression(trav *gdbi.Traveler, stmt *gripql.WhereExpression) bool {
 	switch stmt.Expression.(type) {
-	case *aql.WhereExpression_Condition:
+	case *gripql.WhereExpression_Condition:
 		cond := stmt.GetCondition()
 		return matchesCondition(trav, cond)
 
-	case *aql.WhereExpression_And:
+	case *gripql.WhereExpression_And:
 		and := stmt.GetAnd()
 		andRes := []bool{}
 		for _, e := range and.Expressions {
@@ -539,7 +539,7 @@ func matchesWhereExpression(trav *gdbi.Traveler, stmt *aql.WhereExpression) bool
 		}
 		return true
 
-	case *aql.WhereExpression_Or:
+	case *gripql.WhereExpression_Or:
 		or := stmt.GetOr()
 		orRes := []bool{}
 		for _, e := range or.Expressions {
@@ -552,7 +552,7 @@ func matchesWhereExpression(trav *gdbi.Traveler, stmt *aql.WhereExpression) bool
 		}
 		return false
 
-	case *aql.WhereExpression_Not:
+	case *gripql.WhereExpression_Not:
 		e := stmt.GetNot()
 		return !matchesWhereExpression(trav, e)
 
@@ -775,7 +775,7 @@ func (b both) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out
 ////////////////////////////////////////////////////////////////////////////////
 
 type aggregate struct {
-	aggregations []*aql.Aggregate
+	aggregations []*gripql.Aggregate
 }
 
 func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
@@ -808,11 +808,11 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 		return
 	}()
 
-	aggChan := make(chan map[string]*aql.AggregationResult, len(agg.aggregations))
+	aggChan := make(chan map[string]*gripql.AggregationResult, len(agg.aggregations))
 	for _, a := range agg.aggregations {
 		a := a
 		switch a.Aggregation.(type) {
-		case *aql.Aggregate_Term:
+		case *gripql.Aggregate_Term:
 			g.Go(func() error {
 				tagg := a.GetTerm()
 				size := tagg.Size
@@ -842,8 +842,8 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 					}
 				}
 
-				aggOut := &aql.AggregationResult{
-					Buckets: []*aql.AggregationResultBucket{},
+				aggOut := &gripql.AggregationResult{
+					Buckets: []*gripql.AggregationResultBucket{},
 				}
 
 				for tcount := range idx.FieldTermCounts(field) {
@@ -853,7 +853,7 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 					} else {
 						t = protoutil.WrapValue(tcount.Number)
 					}
-					aggOut.SortedInsert(&aql.AggregationResultBucket{Key: t, Value: float64(tcount.Count)})
+					aggOut.SortedInsert(&gripql.AggregationResultBucket{Key: t, Value: float64(tcount.Count)})
 					if size > 0 {
 						if len(aggOut.Buckets) > int(size) {
 							aggOut.Buckets = aggOut.Buckets[:size]
@@ -861,11 +861,11 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 					}
 				}
 
-				aggChan <- map[string]*aql.AggregationResult{a.Name: aggOut}
+				aggChan <- map[string]*gripql.AggregationResult{a.Name: aggOut}
 				return nil
 			})
 
-		case *aql.Aggregate_Histogram:
+		case *gripql.Aggregate_Histogram:
 			g.Go(func() error {
 				hagg := a.GetHistogram()
 				interval := hagg.Interval
@@ -895,8 +895,8 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 					}
 				}
 
-				aggOut := &aql.AggregationResult{
-					Buckets: []*aql.AggregationResultBucket{},
+				aggOut := &gripql.AggregationResult{
+					Buckets: []*gripql.AggregationResultBucket{},
 				}
 
 				min := idx.FieldTermNumberMin(field)
@@ -908,14 +908,14 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 					for tcount := range idx.FieldTermNumberRange(field, bucket, bucket+i) {
 						count += tcount.Count
 					}
-					aggOut.Buckets = append(aggOut.Buckets, &aql.AggregationResultBucket{Key: protoutil.WrapValue(bucket), Value: float64(count)})
+					aggOut.Buckets = append(aggOut.Buckets, &gripql.AggregationResultBucket{Key: protoutil.WrapValue(bucket), Value: float64(count)})
 				}
 
-				aggChan <- map[string]*aql.AggregationResult{a.Name: aggOut}
+				aggChan <- map[string]*gripql.AggregationResult{a.Name: aggOut}
 				return nil
 			})
 
-		case *aql.Aggregate_Percentile:
+		case *gripql.Aggregate_Percentile:
 
 			g.Go(func() error {
 				pagg := a.GetPercentile()
@@ -946,8 +946,8 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 					}
 				}
 
-				aggOut := &aql.AggregationResult{
-					Buckets: []*aql.AggregationResultBucket{},
+				aggOut := &gripql.AggregationResult{
+					Buckets: []*gripql.AggregationResultBucket{},
 				}
 
 				td := tdigest.New()
@@ -957,10 +957,10 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 
 				for _, p := range percents {
 					q := td.Quantile(p / 100)
-					aggOut.Buckets = append(aggOut.Buckets, &aql.AggregationResultBucket{Key: protoutil.WrapValue(p), Value: q})
+					aggOut.Buckets = append(aggOut.Buckets, &gripql.AggregationResultBucket{Key: protoutil.WrapValue(p), Value: q})
 				}
 
-				aggChan <- map[string]*aql.AggregationResult{a.Name: aggOut}
+				aggChan <- map[string]*gripql.AggregationResult{a.Name: aggOut}
 				return nil
 			})
 
@@ -977,7 +977,7 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 			log.Printf("Error: one or more aggregation failed: %v", err)
 		}
 		close(aggChan)
-		aggs := map[string]*aql.AggregationResult{}
+		aggs := map[string]*gripql.AggregationResult{}
 		for a := range aggChan {
 			for k, v := range a {
 				aggs[k] = v

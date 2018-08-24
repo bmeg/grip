@@ -148,7 +148,7 @@ function percentile(name, label, field, percents) {
 		percents = [1, 5, 25, 50, 75, 95, 99]
 	} else {
 		percents = process(percents)
-	} 
+	}
 
   if (!percents.every(function(x){ return typeof x == "number" })) {
 		throw "percents expected to be an array of numbers"

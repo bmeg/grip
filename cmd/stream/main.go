@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/Shopify/sarama"
-	"github.com/bmeg/grip/aql"
+	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/util/rpc"
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/spf13/cobra"
@@ -27,7 +27,7 @@ var Cmd = &cobra.Command{
 		graph = args[0]
 		log.Printf("Streaming data from Kafka instance %s into graph %s", kafka, graph)
 
-		conn, err := aql.Connect(rpc.ConfigWithDefaults(host), true)
+		conn, err := gripql.Connect(rpc.ConfigWithDefaults(host), true)
 		if err != nil {
 			return err
 		}
@@ -45,7 +45,7 @@ var Cmd = &cobra.Command{
 		go func() {
 			count := 0
 			for msg := range vertexConsumer.Messages() {
-				v := aql.Vertex{}
+				v := gripql.Vertex{}
 				err := jsonpb.Unmarshal(strings.NewReader(string(msg.Value)), &v)
 				if err != nil {
 					log.Println("vertex consumer: unmarshal error", err)
@@ -67,7 +67,7 @@ var Cmd = &cobra.Command{
 		go func() {
 			count := 0
 			for msg := range edgeConsumer.Messages() {
-				e := aql.Edge{}
+				e := gripql.Edge{}
 				err := jsonpb.Unmarshal(strings.NewReader(string(msg.Value)), &e)
 				if err != nil {
 					log.Println("edge consumer: unmarshal error", err)

@@ -1,8 +1,8 @@
 {
-  "name": "aql",
+  "name": "gripql",
   "version": "0.2.0",
   "description": "schema and api for graph queries and operations",
-  "main": "aql.js",
+  "main": "gripql.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -11,7 +11,7 @@
 		"Ryan Spangler",
     "Kyle Ellrott"
   ],
-  "repository": "git@github.com:bmeg/arachne.git",
+  "repository": "git@github.com:bmeg/grip.git",
   "license": "MIT",
   "dependencies": {
     "underscore": "1.8.3"

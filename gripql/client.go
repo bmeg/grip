@@ -1,4 +1,4 @@
-package aql
+package gripql
 
 import (
 	"context"

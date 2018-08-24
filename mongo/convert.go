@@ -1,14 +1,14 @@
 package mongo
 
 import (
-	"github.com/bmeg/grip/aql"
+	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/protoutil"
 	"github.com/globalsign/mgo/bson"
 	structpb "github.com/golang/protobuf/ptypes/struct"
 )
 
 // PackVertex take a AQL vertex and convert it to a mongo doc
-func PackVertex(v *aql.Vertex) map[string]interface{} {
+func PackVertex(v *gripql.Vertex) map[string]interface{} {
 	p := map[string]interface{}{}
 	if v.Data != nil {
 		p = protoutil.AsMap(v.Data)
@@ -21,7 +21,7 @@ func PackVertex(v *aql.Vertex) map[string]interface{} {
 }
 
 // PackEdge takes a AQL edge and converts it to a mongo doc
-func PackEdge(e *aql.Edge) map[string]interface{} {
+func PackEdge(e *gripql.Edge) map[string]interface{} {
 	p := map[string]interface{}{}
 	if e.Data != nil {
 		p = protoutil.AsMap(e.Data)
@@ -41,9 +41,9 @@ type pair struct {
 	valueStruct *structpb.Struct
 }
 
-// UnpackVertex takes a mongo doc and converts it into an aql.Vertex
-func UnpackVertex(i map[string]interface{}) *aql.Vertex {
-	o := &aql.Vertex{}
+// UnpackVertex takes a mongo doc and converts it into an gripql.Vertex
+func UnpackVertex(i map[string]interface{}) *gripql.Vertex {
+	o := &gripql.Vertex{}
 	o.Gid = i["_id"].(string)
 	o.Label = i["label"].(string)
 	if p, ok := i["data"]; ok {
@@ -52,9 +52,9 @@ func UnpackVertex(i map[string]interface{}) *aql.Vertex {
 	return o
 }
 
-// UnpackEdge takes a mongo doc and convertes it into an aql.Edge
-func UnpackEdge(i map[string]interface{}) *aql.Edge {
-	o := &aql.Edge{}
+// UnpackEdge takes a mongo doc and convertes it into an gripql.Edge
+func UnpackEdge(i map[string]interface{}) *gripql.Edge {
+	o := &gripql.Edge{}
 	id := i["_id"]
 	if idb, ok := id.(bson.ObjectId); ok {
 		o.Gid = idb.Hex()

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/bmeg/grip/aql"
+	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/gdbi"
 	"github.com/oliveagle/jsonpath"
 )
@@ -42,7 +42,7 @@ func GetJSONPath(path string) string {
 		return ""
 	}
 	found := false
-	for _, v := range aql.ReservedFields {
+	for _, v := range gripql.ReservedFields {
 		if parts[0] == v {
 			found = true
 			parts[0] = strings.TrimPrefix(parts[0], "_")

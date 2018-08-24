@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/bmeg/grip/aql"
+	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/jsonpath"
 	"github.com/bmeg/grip/protoutil"
 	elastic "gopkg.in/olivere/elastic.v5"
@@ -27,10 +27,10 @@ func (es *Graph) DeleteVertexIndex(label string, field string) error {
 }
 
 // GetVertexIndexList gets list if vertex indices
-func (es *Graph) GetVertexIndexList() chan aql.IndexID {
+func (es *Graph) GetVertexIndexList() chan gripql.IndexID {
 	ctx := context.Background()
 
-	o := make(chan aql.IndexID, 100)
+	o := make(chan gripql.IndexID, 100)
 	go func() {
 		defer close(o)
 
@@ -75,7 +75,7 @@ func (es *Graph) GetVertexIndexList() chan aql.IndexID {
 
 		for k := range data {
 			for _, l := range labels {
-				o <- aql.IndexID{Graph: es.graph, Label: l, Field: k}
+				o <- gripql.IndexID{Graph: es.graph, Label: l, Field: k}
 			}
 		}
 	}()
@@ -84,7 +84,7 @@ func (es *Graph) GetVertexIndexList() chan aql.IndexID {
 }
 
 // GetVertexTermAggregation returns the count of every term across vertices
-func (es *Graph) GetVertexTermAggregation(ctx context.Context, label string, field string, size uint32) (*aql.AggregationResult, error) {
+func (es *Graph) GetVertexTermAggregation(ctx context.Context, label string, field string, size uint32) (*gripql.AggregationResult, error) {
 	log.Printf("Running GetVertexTermAggregation: { label: %s, field: %s size: %v}", label, field, size)
 	namespace := jsonpath.GetNamespace(field)
 	if namespace != jsonpath.Current {
@@ -93,8 +93,8 @@ func (es *Graph) GetVertexTermAggregation(ctx context.Context, label string, fie
 	field = jsonpath.GetJSONPath(field)
 	field = strings.TrimPrefix(field, "$.")
 
-	out := &aql.AggregationResult{
-		Buckets: []*aql.AggregationResultBucket{},
+	out := &gripql.AggregationResult{
+		Buckets: []*gripql.AggregationResultBucket{},
 	}
 
 	q := es.client.Search().Index(es.vertexIndex).Type("vertex")
@@ -112,7 +112,7 @@ func (es *Graph) GetVertexTermAggregation(ctx context.Context, label string, fie
 	if agg, found := res.Aggregations.Terms(aggName); found {
 		for _, bucket := range agg.Buckets {
 			term := protoutil.WrapValue(bucket.Key.(string))
-			out.SortedInsert(&aql.AggregationResultBucket{Key: term, Value: float64(bucket.DocCount)})
+			out.SortedInsert(&gripql.AggregationResultBucket{Key: term, Value: float64(bucket.DocCount)})
 			if size > 0 {
 				if len(out.Buckets) > int(size) {
 					out.Buckets = out.Buckets[:size]
@@ -125,7 +125,7 @@ func (es *Graph) GetVertexTermAggregation(ctx context.Context, label string, fie
 }
 
 //GetVertexHistogramAggregation get binned counts of a term across vertices
-func (es *Graph) GetVertexHistogramAggregation(ctx context.Context, label string, field string, interval uint32) (*aql.AggregationResult, error) {
+func (es *Graph) GetVertexHistogramAggregation(ctx context.Context, label string, field string, interval uint32) (*gripql.AggregationResult, error) {
 	log.Printf("Running GetVertexHistogramAggregation: { label: %s, field: %s interval: %v }", label, field, interval)
 	namespace := jsonpath.GetNamespace(field)
 	if namespace != jsonpath.Current {
@@ -134,8 +134,8 @@ func (es *Graph) GetVertexHistogramAggregation(ctx context.Context, label string
 	field = jsonpath.GetJSONPath(field)
 	field = strings.TrimPrefix(field, "$.")
 
-	out := &aql.AggregationResult{
-		Buckets: []*aql.AggregationResultBucket{},
+	out := &gripql.AggregationResult{
+		Buckets: []*gripql.AggregationResultBucket{},
 	}
 
 	q := es.client.Search().Index(es.vertexIndex).Type("vertex")
@@ -150,7 +150,7 @@ func (es *Graph) GetVertexHistogramAggregation(ctx context.Context, label string
 	if agg, found := res.Aggregations.Histogram(aggName); found {
 		for _, bucket := range agg.Buckets {
 			term := protoutil.WrapValue(bucket.Key)
-			out.Buckets = append(out.Buckets, &aql.AggregationResultBucket{Key: term, Value: float64(bucket.DocCount)})
+			out.Buckets = append(out.Buckets, &gripql.AggregationResultBucket{Key: term, Value: float64(bucket.DocCount)})
 		}
 	}
 
@@ -158,7 +158,7 @@ func (es *Graph) GetVertexHistogramAggregation(ctx context.Context, label string
 }
 
 //GetVertexPercentileAggregation get percentiles of a term across vertices
-func (es *Graph) GetVertexPercentileAggregation(ctx context.Context, label string, field string, percents []float64) (*aql.AggregationResult, error) {
+func (es *Graph) GetVertexPercentileAggregation(ctx context.Context, label string, field string, percents []float64) (*gripql.AggregationResult, error) {
 	log.Printf("Running GetVertexPercentileAggregation: { label: %s, field: %s percents: %v }", label, field, percents)
 	namespace := jsonpath.GetNamespace(field)
 	if namespace != jsonpath.Current {
@@ -167,8 +167,8 @@ func (es *Graph) GetVertexPercentileAggregation(ctx context.Context, label strin
 	field = jsonpath.GetJSONPath(field)
 	field = strings.TrimPrefix(field, "$.")
 
-	out := &aql.AggregationResult{
-		Buckets: []*aql.AggregationResultBucket{},
+	out := &gripql.AggregationResult{
+		Buckets: []*gripql.AggregationResultBucket{},
 	}
 
 	q := es.client.Search().Index(es.vertexIndex).Type("vertex")
@@ -187,7 +187,7 @@ func (es *Graph) GetVertexPercentileAggregation(ctx context.Context, label strin
 				return nil, fmt.Errorf("percentile key conversion failed: %s", err)
 			}
 			key := protoutil.WrapValue(keyf)
-			out.Buckets = append(out.Buckets, &aql.AggregationResultBucket{Key: key, Value: float64(val)})
+			out.Buckets = append(out.Buckets, &gripql.AggregationResultBucket{Key: key, Value: float64(val)})
 		}
 	}
 

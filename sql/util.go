@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/bmeg/grip/aql"
+	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/protoutil"
 	"github.com/hashicorp/go-multierror"
 	"github.com/jmoiron/sqlx"
@@ -87,8 +87,8 @@ func convertData(data map[string]interface{}, types map[string]*sql.ColumnType) 
 	return out
 }
 
-func rowDataToVertex(schema *Vertex, data map[string]interface{}, types map[string]*sql.ColumnType, load bool) *aql.Vertex {
-	v := &aql.Vertex{
+func rowDataToVertex(schema *Vertex, data map[string]interface{}, types map[string]*sql.ColumnType, load bool) *gripql.Vertex {
+	v := &gripql.Vertex{
 		Gid:   fmt.Sprintf("%v:%v", schema.Table, data[schema.GidField]),
 		Label: schema.Label,
 	}
@@ -99,8 +99,8 @@ func rowDataToVertex(schema *Vertex, data map[string]interface{}, types map[stri
 	return v
 }
 
-func rowDataToEdge(schema *Edge, data map[string]interface{}, types map[string]*sql.ColumnType, load bool) *aql.Edge {
-	e := &aql.Edge{
+func rowDataToEdge(schema *Edge, data map[string]interface{}, types map[string]*sql.ColumnType, load bool) *gripql.Edge {
+	e := &gripql.Edge{
 		Gid:   fmt.Sprintf("%v:%v", schema.Table, data[schema.GidField]),
 		Label: schema.Label,
 		From:  fmt.Sprintf("%v:%v", schema.From.DestTable, data[schema.From.SourceField]),
@@ -131,8 +131,8 @@ func (geid generatedEdgeID) String() string {
 	)
 }
 
-func (geid generatedEdgeID) Edge() *aql.Edge {
-	return &aql.Edge{
+func (geid generatedEdgeID) Edge() *gripql.Edge {
+	return &gripql.Edge{
 		Gid:   geid.String(),
 		Label: geid.Label,
 		From:  fmt.Sprintf("%v:%v", geid.FromTable, geid.FromID),

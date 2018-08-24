@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/bmeg/grip/aql"
+	"github.com/bmeg/grip/gripql"
 	_ "github.com/bmeg/grip/badgerdb" // import so badger will register itself
 	"github.com/bmeg/grip/kvgraph"
 	"github.com/bmeg/grip/util"
@@ -29,12 +29,12 @@ func TestBasicAuthFail(t *testing.T) {
 
 	go srv.Serve(ctx)
 
-	cli, err := aql.Connect(rpc.Config{ServerAddress: conf.RPCAddress(), Timeout: 5 * time.Second}, true)
+	cli, err := gripql.Connect(rpc.Config{ServerAddress: conf.RPCAddress(), Timeout: 5 * time.Second}, true)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	_, err = cli.Traversal(&aql.GraphQuery{Graph: "test", Query: aql.NewQuery().V().Statements})
+	_, err = cli.Traversal(&gripql.GraphQuery{Graph: "test", Query: aql.NewQuery().V().Statements})
 	if err == nil || !strings.Contains(err.Error(), "PermissionDenied") {
 		t.Error("expected error")
 	}
@@ -77,7 +77,7 @@ func TestBasicAuth(t *testing.T) {
 
 	go srv.Serve(ctx)
 
-	cli, err := aql.Connect(rpc.ConfigWithDefaults(conf.RPCAddress()), true)
+	cli, err := gripql.Connect(rpc.ConfigWithDefaults(conf.RPCAddress()), true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -87,12 +87,12 @@ func TestBasicAuth(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = cli.AddVertex("test", &aql.Vertex{Gid: "1", Label: "test"})
+	err = cli.AddVertex("test", &gripql.Vertex{Gid: "1", Label: "test"})
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	_, err = cli.Traversal(&aql.GraphQuery{Graph: "test", Query: aql.NewQuery().V().Statements})
+	_, err = cli.Traversal(&gripql.GraphQuery{Graph: "test", Query: aql.NewQuery().V().Statements})
 	if err != nil {
 		t.Error("unexpected error", err)
 	}

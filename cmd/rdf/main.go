@@ -6,7 +6,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/bmeg/grip/aql"
+	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/util/rpc"
 	"github.com/knakk/rdf"
 	"github.com/spf13/cobra"
@@ -25,7 +25,7 @@ func LoadRDFCmd(cmd *cobra.Command, args []string) error {
 		log.Printf("Error: %s", err)
 		os.Exit(1)
 	}
-	conn, err := aql.Connect(rpc.ConfigWithDefaults(host), true)
+	conn, err := gripql.Connect(rpc.ConfigWithDefaults(host), true)
 	if err != nil {
 		log.Printf("%s", err)
 		os.Exit(1)
@@ -36,7 +36,7 @@ func LoadRDFCmd(cmd *cobra.Command, args []string) error {
 	count := 0
 	fz, _ := gzip.NewReader(f)
 	dec := rdf.NewTripleDecoder(fz, rdf.RDFXML)
-	var curVertex *aql.Vertex
+	var curVertex *gripql.Vertex
 	curSubj := ""
 	for triple, err := dec.Decode(); err != io.EOF; triple, err = dec.Decode() {
 		subj := triple.Subj.String()
@@ -49,7 +49,7 @@ func LoadRDFCmd(cmd *cobra.Command, args []string) error {
 		}
 		curSubj = subj
 		if _, ok := vertMap[subj]; !ok {
-			err := conn.AddVertex(graph, &aql.Vertex{Gid: subj})
+			err := conn.AddVertex(graph, &gripql.Vertex{Gid: subj})
 			if err != nil {
 				return err
 			}
@@ -57,19 +57,19 @@ func LoadRDFCmd(cmd *cobra.Command, args []string) error {
 		}
 		if triple.Obj.Type() == rdf.TermLiteral {
 			if curVertex == nil {
-				curVertex = &aql.Vertex{Gid: subj}
+				curVertex = &gripql.Vertex{Gid: subj}
 			}
 			curVertex.SetProperty(triple.Pred.String(), triple.Obj.String())
 		} else {
 			obj := triple.Obj.String()
 			if _, ok := vertMap[obj]; !ok {
-				err := conn.AddVertex(graph, &aql.Vertex{Gid: obj})
+				err := conn.AddVertex(graph, &gripql.Vertex{Gid: obj})
 				if err != nil {
 					return err
 				}
 				vertMap[obj] = 1
 			}
-			err := conn.AddEdge(graph, &aql.Edge{From: subj, To: obj, Label: triple.Pred.String()})
+			err := conn.AddEdge(graph, &gripql.Edge{From: subj, To: obj, Label: triple.Pred.String()})
 			if err != nil {
 				return err
 			}

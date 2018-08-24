@@ -7,7 +7,7 @@ package gdbi
 import (
 	"context"
 
-	"github.com/bmeg/grip/aql"
+	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/kvi"
 )
 
@@ -30,7 +30,7 @@ type Traveler struct {
 	current      *DataElement
 	marks        map[string]*DataElement
 	Selections   map[string]*DataElement
-	Aggregations map[string]*aql.AggregationResult
+	Aggregations map[string]*gripql.AggregationResult
 	Count        uint32
 	Render       interface{}
 }
@@ -53,8 +53,8 @@ const (
 type ElementLookup struct {
 	ID     string
 	Ref    interface{}
-	Vertex *aql.Vertex
-	Edge   *aql.Edge
+	Vertex *gripql.Vertex
+	Edge   *gripql.Edge
 }
 
 // GraphDB is the base interface for graph databases
@@ -63,7 +63,7 @@ type GraphDB interface {
 	DeleteGraph(string) error
 	ListGraphs() []string
 	Graph(graphID string) (GraphInterface, error)
-	GetSchema(ctx context.Context, graphID string, sampleN uint32) (*aql.GraphSchema, error)
+	GetSchema(ctx context.Context, graphID string, sampleN uint32) (*gripql.GraphSchema, error)
 	Close() error
 }
 
@@ -74,11 +74,11 @@ type GraphInterface interface {
 
 	GetTimestamp() string
 
-	GetVertex(key string, load bool) *aql.Vertex
-	GetEdge(key string, load bool) *aql.Edge
+	GetVertex(key string, load bool) *gripql.Vertex
+	GetEdge(key string, load bool) *gripql.Edge
 
-	AddVertex(vertex []*aql.Vertex) error
-	AddEdge(edge []*aql.Edge) error
+	AddVertex(vertex []*gripql.Vertex) error
+	AddEdge(edge []*gripql.Edge) error
 
 	DelVertex(key string) error
 	DelEdge(key string) error
@@ -88,14 +88,14 @@ type GraphInterface interface {
 
 	AddVertexIndex(label string, field string) error
 	DeleteVertexIndex(label string, field string) error
-	GetVertexIndexList() chan aql.IndexID
+	GetVertexIndexList() chan gripql.IndexID
 
-	GetVertexTermAggregation(ctx context.Context, label string, field string, size uint32) (*aql.AggregationResult, error)
-	GetVertexPercentileAggregation(ctx context.Context, label string, field string, percents []float64) (*aql.AggregationResult, error)
-	GetVertexHistogramAggregation(ctx context.Context, label string, field string, interval uint32) (*aql.AggregationResult, error)
+	GetVertexTermAggregation(ctx context.Context, label string, field string, size uint32) (*gripql.AggregationResult, error)
+	GetVertexPercentileAggregation(ctx context.Context, label string, field string, percents []float64) (*gripql.AggregationResult, error)
+	GetVertexHistogramAggregation(ctx context.Context, label string, field string, interval uint32) (*gripql.AggregationResult, error)
 
-	GetVertexList(ctx context.Context, load bool) <-chan *aql.Vertex
-	GetEdgeList(ctx context.Context, load bool) <-chan *aql.Edge
+	GetVertexList(ctx context.Context, load bool) <-chan *gripql.Vertex
+	GetEdgeList(ctx context.Context, load bool) <-chan *gripql.Edge
 
 	GetVertexChannel(req chan ElementLookup, load bool) chan ElementLookup
 	GetOutChannel(req chan ElementLookup, load bool, edgeLabels []string) chan ElementLookup
@@ -112,9 +112,9 @@ type Manager interface {
 	Cleanup()
 }
 
-// Compiler takes a aql query and turns it into an executable pipeline
+// Compiler takes a gripql query and turns it into an executable pipeline
 type Compiler interface {
-	Compile(stmts []*aql.GraphStatement) (Pipeline, error)
+	Compile(stmts []*gripql.GraphStatement) (Pipeline, error)
 }
 
 // Processor is the interface for a step in the pipe engine

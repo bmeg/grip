@@ -6,7 +6,7 @@ import (
 	"log"
 	"strings"
 
-	"github.com/bmeg/grip/aql"
+	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/mongo"
 	"github.com/bmeg/grip/util"
 	"github.com/bmeg/grip/util/rpc"
@@ -67,7 +67,7 @@ var Cmd = &cobra.Command{
 
 		graph = args[0]
 
-		conn, err := aql.Connect(rpc.ConfigWithDefaults(host), true)
+		conn, err := gripql.Connect(rpc.ConfigWithDefaults(host), true)
 		if err != nil {
 			return err
 		}

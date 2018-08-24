@@ -7,7 +7,7 @@ import (
 	"log"
 	"strings"
 
-	"github.com/bmeg/grip/aql"
+	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/engine/core"
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/timestamp"
@@ -32,12 +32,12 @@ func (g *Graph) Compiler() gdbi.Compiler {
 ////////////////////////////////////////////////////////////////////////////////
 
 // AddVertex is not implemented in the SQL driver
-func (g *Graph) AddVertex(vertexArray []*aql.Vertex) error {
+func (g *Graph) AddVertex(vertexArray []*gripql.Vertex) error {
 	return errors.New("not implemented")
 }
 
 // AddEdge is not implemented in the SQL driver
-func (g *Graph) AddEdge(edgeArray []*aql.Edge) error {
+func (g *Graph) AddEdge(edgeArray []*gripql.Edge) error {
 	return errors.New("not implemented")
 }
 
@@ -62,7 +62,7 @@ func (g *Graph) GetTimestamp() string {
 
 // GetVertex loads a vertex given an id. It returns a nil if not found.
 // Keys are expected to be of the form: <table>:<primary_key>
-func (g *Graph) GetVertex(key string, load bool) *aql.Vertex {
+func (g *Graph) GetVertex(key string, load bool) *gripql.Vertex {
 	parts := strings.SplitN(key, ":", 2)
 	if len(parts) != 2 {
 		return nil
@@ -85,7 +85,7 @@ func (g *Graph) GetVertex(key string, load bool) *aql.Vertex {
 	return res
 }
 
-func (g *Graph) getGeneratedEdge(key string, load bool) *aql.Edge {
+func (g *Graph) getGeneratedEdge(key string, load bool) *gripql.Edge {
 	geid, err := parseGeneratedEdgeID(key)
 	if err != nil {
 		return nil
@@ -93,7 +93,7 @@ func (g *Graph) getGeneratedEdge(key string, load bool) *aql.Edge {
 	return geid.Edge()
 }
 
-func (g *Graph) getTableBackedEdge(key string, load bool) *aql.Edge {
+func (g *Graph) getTableBackedEdge(key string, load bool) *gripql.Edge {
 	parts := strings.SplitN(key, ":", 2)
 	if len(parts) != 2 {
 		return nil
@@ -118,7 +118,7 @@ func (g *Graph) getTableBackedEdge(key string, load bool) *aql.Edge {
 
 // GetEdge loads an edge given an id. It returns nil if not found
 // Keys are expected to be of the form: <table>:<primary_key>
-func (g *Graph) GetEdge(key string, load bool) *aql.Edge {
+func (g *Graph) GetEdge(key string, load bool) *gripql.Edge {
 	parts := strings.SplitN(key, ":", 2)
 	if len(parts) != 2 {
 		return nil
@@ -131,8 +131,8 @@ func (g *Graph) GetEdge(key string, load bool) *aql.Edge {
 }
 
 // GetVertexList produces a channel of all vertices in the graph
-func (g *Graph) GetVertexList(ctx context.Context, load bool) <-chan *aql.Vertex {
-	o := make(chan *aql.Vertex, 100)
+func (g *Graph) GetVertexList(ctx context.Context, load bool) <-chan *gripql.Vertex {
+	o := make(chan *gripql.Vertex, 100)
 	go func() {
 		defer close(o)
 		for _, v := range g.schema.Vertices {
@@ -202,8 +202,8 @@ func (g *Graph) VertexLabelScan(ctx context.Context, label string) chan string {
 }
 
 // GetEdgeList produces a channel of all edges in the graph
-func (g *Graph) GetEdgeList(ctx context.Context, load bool) <-chan *aql.Edge {
-	o := make(chan *aql.Edge, 100)
+func (g *Graph) GetEdgeList(ctx context.Context, load bool) <-chan *gripql.Edge {
+	o := make(chan *gripql.Edge, 100)
 	go func() {
 		defer close(o)
 		for _, edgeSchema := range g.schema.Edges {

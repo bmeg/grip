@@ -6,7 +6,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/bmeg/grip/aql"
+	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/engine"
 	"golang.org/x/net/context"
 	"golang.org/x/sync/errgroup"
@@ -15,7 +15,7 @@ import (
 )
 
 // Traversal parses a traversal request and streams the results back
-func (server *GripServer) Traversal(query *aql.GraphQuery, queryServer aql.Query_TraversalServer) error {
+func (server *GripServer) Traversal(query *gripql.GraphQuery, queryServer gripql.Query_TraversalServer) error {
 	graph, err := server.db.Graph(query.Graph)
 	if err != nil {
 		return err
@@ -37,9 +37,9 @@ func (server *GripServer) Traversal(query *aql.GraphQuery, queryServer aql.Query
 }
 
 // ListGraphs returns a list of graphs managed by the driver
-func (server *GripServer) ListGraphs(empty *aql.Empty, queryServer aql.Query_ListGraphsServer) error {
+func (server *GripServer) ListGraphs(empty *gripql.Empty, queryServer gripql.Query_ListGraphsServer) error {
 	for _, name := range server.db.ListGraphs() {
-		err := queryServer.Send(&aql.GraphID{Graph: name})
+		err := queryServer.Send(&gripql.GraphID{Graph: name})
 		if err != nil {
 			return fmt.Errorf("error sending ListGraphs result: %v", err)
 		}
@@ -88,7 +88,7 @@ func (server *GripServer) cacheSchemas(ctx context.Context) {
 }
 
 // GetSchema returns the schema of a specific graph in the database
-func (server *GripServer) GetSchema(ctx context.Context, elem *aql.GraphID) (*aql.GraphSchema, error) {
+func (server *GripServer) GetSchema(ctx context.Context, elem *gripql.GraphID) (*gripql.GraphSchema, error) {
 	found := false
 	for _, name := range server.db.ListGraphs() {
 		if name == elem.Graph {
@@ -107,8 +107,8 @@ func (server *GripServer) GetSchema(ctx context.Context, elem *aql.GraphID) (*aq
 	return schema, nil
 }
 
-// GetVertex returns a vertex given a aql.Element
-func (server *GripServer) GetVertex(ctx context.Context, elem *aql.ElementID) (*aql.Vertex, error) {
+// GetVertex returns a vertex given a gripql.Element
+func (server *GripServer) GetVertex(ctx context.Context, elem *gripql.ElementID) (*gripql.Vertex, error) {
 	graph, err := server.db.Graph(elem.Graph)
 	if err != nil {
 		return nil, err
@@ -120,8 +120,8 @@ func (server *GripServer) GetVertex(ctx context.Context, elem *aql.ElementID) (*
 	return o, nil
 }
 
-// GetEdge returns an edge given a aql.Element
-func (server *GripServer) GetEdge(ctx context.Context, elem *aql.ElementID) (*aql.Edge, error) {
+// GetEdge returns an edge given a gripql.Element
+func (server *GripServer) GetEdge(ctx context.Context, elem *gripql.ElementID) (*gripql.Edge, error) {
 	graph, err := server.db.Graph(elem.Graph)
 	if err != nil {
 		return nil, err
@@ -134,26 +134,26 @@ func (server *GripServer) GetEdge(ctx context.Context, elem *aql.ElementID) (*aq
 }
 
 // GetTimestamp returns the update timestamp of a graph
-func (server *GripServer) GetTimestamp(ctx context.Context, elem *aql.GraphID) (*aql.Timestamp, error) {
+func (server *GripServer) GetTimestamp(ctx context.Context, elem *gripql.GraphID) (*gripql.Timestamp, error) {
 	graph, err := server.db.Graph(elem.Graph)
 	if err != nil {
 		return nil, err
 	}
-	return &aql.Timestamp{Timestamp: graph.GetTimestamp()}, nil
+	return &gripql.Timestamp{Timestamp: graph.GetTimestamp()}, nil
 }
 
 // DeleteGraph deletes a graph
-func (server *GripServer) DeleteGraph(ctx context.Context, elem *aql.GraphID) (*aql.EditResult, error) {
+func (server *GripServer) DeleteGraph(ctx context.Context, elem *gripql.GraphID) (*gripql.EditResult, error) {
 	err := server.db.DeleteGraph(elem.Graph)
 	if err != nil {
 		return nil, err
 	}
-	return &aql.EditResult{Id: elem.Graph}, nil
+	return &gripql.EditResult{Id: elem.Graph}, nil
 }
 
 // AddGraph creates a new graph on the server
-func (server *GripServer) AddGraph(ctx context.Context, elem *aql.GraphID) (*aql.EditResult, error) {
-	err := aql.ValidateGraphName(elem.Graph)
+func (server *GripServer) AddGraph(ctx context.Context, elem *gripql.GraphID) (*gripql.EditResult, error) {
+	err := gripql.ValidateGraphName(elem.Graph)
 	if err != nil {
 		return nil, err
 	}
@@ -161,53 +161,53 @@ func (server *GripServer) AddGraph(ctx context.Context, elem *aql.GraphID) (*aql
 	if err != nil {
 		return nil, err
 	}
-	return &aql.EditResult{Id: elem.Graph}, err
+	return &gripql.EditResult{Id: elem.Graph}, err
 }
 
 // AddVertex adds a vertex to the graph
-func (server *GripServer) AddVertex(ctx context.Context, elem *aql.GraphElement) (*aql.EditResult, error) {
+func (server *GripServer) AddVertex(ctx context.Context, elem *gripql.GraphElement) (*gripql.EditResult, error) {
 	graph, err := server.db.Graph(elem.Graph)
 	if err != nil {
 		return nil, err
 	}
-	err = graph.AddVertex([]*aql.Vertex{elem.Vertex})
+	err = graph.AddVertex([]*gripql.Vertex{elem.Vertex})
 	if err != nil {
 		return nil, err
 	}
-	return &aql.EditResult{Id: elem.Vertex.Gid}, nil
+	return &gripql.EditResult{Id: elem.Vertex.Gid}, nil
 }
 
 // AddEdge adds an edge to the graph
-func (server *GripServer) AddEdge(ctx context.Context, elem *aql.GraphElement) (*aql.EditResult, error) {
+func (server *GripServer) AddEdge(ctx context.Context, elem *gripql.GraphElement) (*gripql.EditResult, error) {
 	graph, err := server.db.Graph(elem.Graph)
 	if err != nil {
 		return nil, err
 	}
-	err = graph.AddEdge([]*aql.Edge{elem.Edge})
+	err = graph.AddEdge([]*gripql.Edge{elem.Edge})
 	if err != nil {
 		return nil, err
 	}
-	return &aql.EditResult{Id: elem.Edge.Gid}, nil
+	return &gripql.EditResult{Id: elem.Edge.Gid}, nil
 }
 
 type graphElementArray struct {
 	graph    string
-	vertices []*aql.Vertex
-	edges    []*aql.Edge
+	vertices []*gripql.Vertex
+	edges    []*gripql.Edge
 }
 
 func newGraphElementArray(name string, vertexBufSize, edgeBufSize int) *graphElementArray {
 	if vertexBufSize != 0 {
-		return &graphElementArray{graph: name, vertices: make([]*aql.Vertex, 0, vertexBufSize)}
+		return &graphElementArray{graph: name, vertices: make([]*gripql.Vertex, 0, vertexBufSize)}
 	}
 	if edgeBufSize != 0 {
-		return &graphElementArray{graph: name, edges: make([]*aql.Edge, 0, edgeBufSize)}
+		return &graphElementArray{graph: name, edges: make([]*gripql.Edge, 0, edgeBufSize)}
 	}
 	return nil
 }
 
 // BulkAdd a stream of inputs and loads them into the graph
-func (server *GripServer) BulkAdd(stream aql.Edit_BulkAddServer) error {
+func (server *GripServer) BulkAdd(stream gripql.Edit_BulkAddServer) error {
 	vertexBatchSize := 50
 	edgeBatchSize := 50
 
@@ -298,11 +298,11 @@ func (server *GripServer) BulkAdd(stream aql.Edit_BulkAddServer) error {
 	if loopErr != io.EOF {
 		return loopErr
 	}
-	return stream.SendAndClose(&aql.EditResult{})
+	return stream.SendAndClose(&gripql.EditResult{})
 }
 
 // DeleteVertex deletes a vertex from the server
-func (server *GripServer) DeleteVertex(ctx context.Context, elem *aql.ElementID) (*aql.EditResult, error) {
+func (server *GripServer) DeleteVertex(ctx context.Context, elem *gripql.ElementID) (*gripql.EditResult, error) {
 	graph, err := server.db.Graph(elem.Graph)
 	if err != nil {
 		return nil, err
@@ -311,11 +311,11 @@ func (server *GripServer) DeleteVertex(ctx context.Context, elem *aql.ElementID)
 	if err != nil {
 		return nil, err
 	}
-	return &aql.EditResult{Id: elem.Id}, nil
+	return &gripql.EditResult{Id: elem.Id}, nil
 }
 
 // DeleteEdge deletes an edge from the graph server
-func (server *GripServer) DeleteEdge(ctx context.Context, elem *aql.ElementID) (*aql.EditResult, error) {
+func (server *GripServer) DeleteEdge(ctx context.Context, elem *gripql.ElementID) (*gripql.EditResult, error) {
 	graph, err := server.db.Graph(elem.Graph)
 	if err != nil {
 		return nil, err
@@ -324,11 +324,11 @@ func (server *GripServer) DeleteEdge(ctx context.Context, elem *aql.ElementID) (
 	if err != nil {
 		return nil, err
 	}
-	return &aql.EditResult{Id: elem.Id}, nil
+	return &gripql.EditResult{Id: elem.Id}, nil
 }
 
 // AddIndex adds a new index
-func (server *GripServer) AddIndex(ctx context.Context, idx *aql.IndexID) (*aql.EditResult, error) {
+func (server *GripServer) AddIndex(ctx context.Context, idx *gripql.IndexID) (*gripql.EditResult, error) {
 	graph, err := server.db.Graph(idx.Graph)
 	if err != nil {
 		return nil, err
@@ -337,11 +337,11 @@ func (server *GripServer) AddIndex(ctx context.Context, idx *aql.IndexID) (*aql.
 	if err != nil {
 		return nil, err
 	}
-	return &aql.EditResult{Id: idx.Field}, nil
+	return &gripql.EditResult{Id: idx.Field}, nil
 }
 
 // DeleteIndex removes an index from the server
-func (server *GripServer) DeleteIndex(ctx context.Context, idx *aql.IndexID) (*aql.EditResult, error) {
+func (server *GripServer) DeleteIndex(ctx context.Context, idx *gripql.IndexID) (*gripql.EditResult, error) {
 	graph, err := server.db.Graph(idx.Graph)
 	if err != nil {
 		return nil, err
@@ -350,11 +350,11 @@ func (server *GripServer) DeleteIndex(ctx context.Context, idx *aql.IndexID) (*a
 	if err != nil {
 		return nil, err
 	}
-	return &aql.EditResult{Id: idx.Field}, nil
+	return &gripql.EditResult{Id: idx.Field}, nil
 }
 
 // ListIndices lists avalible indices from a graph
-func (server *GripServer) ListIndices(idx *aql.GraphID, stream aql.Query_ListIndicesServer) error {
+func (server *GripServer) ListIndices(idx *gripql.GraphID, stream gripql.Query_ListIndicesServer) error {
 	graph, err := server.db.Graph(idx.Graph)
 	if err != nil {
 		return err
@@ -370,7 +370,7 @@ func (server *GripServer) ListIndices(idx *aql.GraphID, stream aql.Query_ListInd
 }
 
 // Aggregate is partially implemented
-func (server *GripServer) Aggregate(ctx context.Context, req *aql.AggregationsRequest) (*aql.NamedAggregationResult, error) {
+func (server *GripServer) Aggregate(ctx context.Context, req *gripql.AggregationsRequest) (*gripql.NamedAggregationResult, error) {
 	graph, err := server.db.Graph(req.Graph)
 	if err != nil {
 		return nil, err
@@ -378,40 +378,40 @@ func (server *GripServer) Aggregate(ctx context.Context, req *aql.AggregationsRe
 
 	g, ctx := errgroup.WithContext(ctx)
 
-	aggChan := make(chan map[string]*aql.AggregationResult, len(req.Aggregations))
+	aggChan := make(chan map[string]*gripql.AggregationResult, len(req.Aggregations))
 	for _, agg := range req.Aggregations {
 		agg := agg
 		switch agg.Aggregation.(type) {
-		case *aql.Aggregate_Term:
+		case *gripql.Aggregate_Term:
 			g.Go(func() error {
 				termagg := agg.GetTerm()
 				res, err := graph.GetVertexTermAggregation(ctx, termagg.Label, termagg.Field, termagg.Size)
 				if err != nil {
 					return fmt.Errorf("term aggregation failed: %s", err)
 				}
-				aggChan <- map[string]*aql.AggregationResult{agg.Name: res}
+				aggChan <- map[string]*gripql.AggregationResult{agg.Name: res}
 				return nil
 			})
 
-		case *aql.Aggregate_Percentile:
+		case *gripql.Aggregate_Percentile:
 			g.Go(func() error {
 				pagg := agg.GetPercentile()
 				res, err := graph.GetVertexPercentileAggregation(ctx, pagg.Label, pagg.Field, pagg.Percents)
 				if err != nil {
 					return fmt.Errorf("percentile aggregation failed: %s", err)
 				}
-				aggChan <- map[string]*aql.AggregationResult{agg.Name: res}
+				aggChan <- map[string]*gripql.AggregationResult{agg.Name: res}
 				return nil
 			})
 
-		case *aql.Aggregate_Histogram:
+		case *gripql.Aggregate_Histogram:
 			g.Go(func() error {
 				histagg := agg.GetHistogram()
 				res, err := graph.GetVertexHistogramAggregation(ctx, histagg.Label, histagg.Field, histagg.Interval)
 				if err != nil {
 					return fmt.Errorf("histogram aggregation failed: %s", err)
 				}
-				aggChan <- map[string]*aql.AggregationResult{agg.Name: res}
+				aggChan <- map[string]*gripql.AggregationResult{agg.Name: res}
 				return nil
 			})
 
@@ -425,12 +425,12 @@ func (server *GripServer) Aggregate(ctx context.Context, req *aql.AggregationsRe
 	}
 	close(aggChan)
 
-	aggs := map[string]*aql.AggregationResult{}
+	aggs := map[string]*gripql.AggregationResult{}
 	for a := range aggChan {
 		for k, v := range a {
 			aggs[k] = v
 		}
 	}
 
-	return &aql.NamedAggregationResult{Aggregations: aggs}, nil
+	return &gripql.NamedAggregationResult{Aggregations: aggs}, nil
 }

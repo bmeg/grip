@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bmeg/grip/aql"
+	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/protoutil"
 	"github.com/bmeg/grip/timestamp"
@@ -38,7 +38,7 @@ type GraphDB struct {
 func NewGraphDB(conf Config) (gdbi.GraphDB, error) {
 	log.Printf("Starting Mongo Driver")
 	database := strings.ToLower(conf.DBName)
-	err := aql.ValidateGraphName(database)
+	err := gripql.ValidateGraphName(database)
 	if err != nil {
 		return nil, fmt.Errorf("invalid database name: %v", err)
 	}
@@ -104,7 +104,7 @@ func (ma *GraphDB) EdgeCollection(session *mgo.Session, graph string) *mgo.Colle
 
 // AddGraph creates a new graph named `graph`
 func (ma *GraphDB) AddGraph(graph string) error {
-	err := aql.ValidateGraphName(graph)
+	err := gripql.ValidateGraphName(graph)
 	if err != nil {
 		return err
 	}
@@ -245,9 +245,9 @@ func (ma *GraphDB) Graph(graph string) (gdbi.GraphInterface, error) {
 }
 
 // GetSchema returns the schema of a specific graph in the database
-func (ma *GraphDB) GetSchema(ctx context.Context, graph string, sampleN uint32) (*aql.GraphSchema, error) {
-	var vSchema []*aql.Vertex
-	var eSchema []*aql.Edge
+func (ma *GraphDB) GetSchema(ctx context.Context, graph string, sampleN uint32) (*gripql.GraphSchema, error) {
+	var vSchema []*gripql.Vertex
+	var eSchema []*gripql.Edge
 	var g errgroup.Group
 
 	g.Go(func() error {
@@ -272,12 +272,12 @@ func (ma *GraphDB) GetSchema(ctx context.Context, graph string, sampleN uint32) 
 		return nil, err
 	}
 
-	schema := &aql.GraphSchema{Vertices: vSchema, Edges: eSchema}
+	schema := &gripql.GraphSchema{Vertices: vSchema, Edges: eSchema}
 	// log.Printf("Graph schema: %+v", schema)
 	return schema, nil
 }
 
-func (ma *GraphDB) getVertexSchema(ctx context.Context, graph string, n uint32) ([]*aql.Vertex, error) {
+func (ma *GraphDB) getVertexSchema(ctx context.Context, graph string, n uint32) ([]*gripql.Vertex, error) {
 	session := ma.session.Copy()
 	defer session.Close()
 	v := ma.VertexCollection(session, graph)
@@ -288,7 +288,7 @@ func (ma *GraphDB) getVertexSchema(ctx context.Context, graph string, n uint32) 
 		return nil, err
 	}
 
-	schemaChan := make(chan *aql.Vertex)
+	schemaChan := make(chan *gripql.Vertex)
 	var g errgroup.Group
 
 	for _, label := range labels {
@@ -339,7 +339,7 @@ func (ma *GraphDB) getVertexSchema(ctx context.Context, graph string, n uint32) 
 				return err
 			}
 
-			vSchema := &aql.Vertex{Label: label, Data: protoutil.AsStruct(schema)}
+			vSchema := &gripql.Vertex{Label: label, Data: protoutil.AsStruct(schema)}
 			schemaChan <- vSchema
 			log.Printf("vertex label: %s: finished schema build", label)
 
@@ -347,7 +347,7 @@ func (ma *GraphDB) getVertexSchema(ctx context.Context, graph string, n uint32) 
 		})
 	}
 
-	output := []*aql.Vertex{}
+	output := []*gripql.Vertex{}
 	done := make(chan interface{})
 	go func() {
 		for s := range schemaChan {
@@ -363,7 +363,7 @@ func (ma *GraphDB) getVertexSchema(ctx context.Context, graph string, n uint32) 
 	return output, err
 }
 
-func (ma *GraphDB) getEdgeSchema(ctx context.Context, graph string, n uint32) ([]*aql.Edge, error) {
+func (ma *GraphDB) getEdgeSchema(ctx context.Context, graph string, n uint32) ([]*gripql.Edge, error) {
 	session := ma.session.Copy()
 	defer session.Close()
 	e := ma.EdgeCollection(session, graph)
@@ -374,7 +374,7 @@ func (ma *GraphDB) getEdgeSchema(ctx context.Context, graph string, n uint32) ([
 		return nil, err
 	}
 
-	schemaChan := make(chan *aql.Edge)
+	schemaChan := make(chan *gripql.Edge)
 	var g errgroup.Group
 
 	for _, label := range labels {
@@ -433,7 +433,7 @@ func (ma *GraphDB) getEdgeSchema(ctx context.Context, graph string, n uint32) ([
 			to := fromToPairs.GetTo()
 
 			for j := 0; j < len(from); j++ {
-				eSchema := &aql.Edge{Label: label, From: from[j], To: to[j], Data: protoutil.AsStruct(schema)}
+				eSchema := &gripql.Edge{Label: label, From: from[j], To: to[j], Data: protoutil.AsStruct(schema)}
 				schemaChan <- eSchema
 			}
 			log.Printf("edge label: %s: finished schema build", label)
@@ -442,7 +442,7 @@ func (ma *GraphDB) getEdgeSchema(ctx context.Context, graph string, n uint32) ([
 		})
 	}
 
-	output := []*aql.Edge{}
+	output := []*gripql.Edge{}
 	done := make(chan interface{})
 	go func() {
 		for s := range schemaChan {
@@ -569,7 +569,7 @@ func GetDataFieldTypes(data map[string]interface{}) map[string]interface{} {
 		}
 		if vSlice, ok := val.([]interface{}); ok {
 			var vType interface{}
-			vType = []interface{}{aql.FieldType_UNKNOWN.String()}
+			vType = []interface{}{gripql.FieldType_UNKNOWN.String()}
 			if len(vSlice) > 0 {
 				vSliceVal := vSlice[0]
 				if vSliceValMap, ok := vSliceVal.(map[string]interface{}); ok {
@@ -586,18 +586,18 @@ func GetDataFieldTypes(data map[string]interface{}) map[string]interface{} {
 	return out
 }
 
-// GetFieldType returns the aql.FieldType for a value
+// GetFieldType returns the gripql.FieldType for a value
 func GetFieldType(field interface{}) string {
 	switch field.(type) {
 	case string:
-		return aql.FieldType_STRING.String()
+		return gripql.FieldType_STRING.String()
 	case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64:
-		return aql.FieldType_NUMERIC.String()
+		return gripql.FieldType_NUMERIC.String()
 	case float32, float64:
-		return aql.FieldType_NUMERIC.String()
+		return gripql.FieldType_NUMERIC.String()
 	case bool:
-		return aql.FieldType_BOOL.String()
+		return gripql.FieldType_BOOL.String()
 	default:
-		return aql.FieldType_UNKNOWN.String()
+		return gripql.FieldType_UNKNOWN.String()
 	}
 }

@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/bmeg/grip/aql"
+	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/graphql"
 	"github.com/golang/gddo/httputil"
@@ -23,7 +23,7 @@ import (
 type GripServer struct {
 	db      gdbi.GraphDB
 	conf    Config
-	schemas map[string]*aql.GraphSchema
+	schemas map[string]*gripql.GraphSchema
 }
 
 // NewGripServer initializes a GRPC server to connect to the graph store
@@ -35,7 +35,7 @@ func NewGripServer(db gdbi.GraphDB, conf Config) (*GripServer, error) {
 			return nil, fmt.Errorf("creating work dir: %v", err)
 		}
 	}
-	schemas := make(map[string]*aql.GraphSchema)
+	schemas := make(map[string]*gripql.GraphSchema)
 	return &GripServer{db: db, conf: conf, schemas: schemas}, nil
 }
 
@@ -170,16 +170,16 @@ func (server *GripServer) Serve(pctx context.Context) error {
 	})
 
 	// Regsiter Query Service
-	aql.RegisterQueryServer(grpcServer, server)
-	err = aql.RegisterQueryHandlerFromEndpoint(ctx, grpcMux, ":"+server.conf.RPCPort, opts)
+	gripql.RegisterQueryServer(grpcServer, server)
+	err = gripql.RegisterQueryHandlerFromEndpoint(ctx, grpcMux, ":"+server.conf.RPCPort, opts)
 	if err != nil {
 		return fmt.Errorf("registering query endpoint: %v", err)
 	}
 
 	// Regsiter Edit Service
 	if !server.conf.ReadOnly {
-		aql.RegisterEditServer(grpcServer, server)
-		err = aql.RegisterEditHandlerFromEndpoint(ctx, grpcMux, ":"+server.conf.RPCPort, opts)
+		gripql.RegisterEditServer(grpcServer, server)
+		err = gripql.RegisterEditHandlerFromEndpoint(ctx, grpcMux, ":"+server.conf.RPCPort, opts)
 		if err != nil {
 			return fmt.Errorf("registering edit endpoint: %v", err)
 		}

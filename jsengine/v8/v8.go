@@ -8,7 +8,7 @@ import (
 	"log"
 
 	"github.com/augustoroman/v8"
-	"github.com/bmeg/grip/aql"
+	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/jsengine"
 	"github.com/bmeg/grip/jsengine/underscore"
 	"github.com/bmeg/grip/protoutil"
@@ -48,18 +48,18 @@ func NewFunction(source string, imports []string) (jsengine.JSEngine, error) {
 	return &V8Runtime{ctx, f}, nil
 }
 
-func (self *V8Runtime) Call(input ...*aql.QueryResult) *aql.QueryResult {
+func (self *V8Runtime) Call(input ...*gripql.QueryResult) *aql.QueryResult {
 	m := []*v8.Value{}
 	for _, i := range input {
-		if x, ok := i.GetResult().(*aql.QueryResult_Edge); ok {
+		if x, ok := i.GetResult().(*gripql.QueryResult_Edge); ok {
 			mI := protoutil.AsMap(x.Edge.Data)
 			v, _ := self.ctx.Create(mI)
 			m = append(m, v)
-		} else if x, ok := i.GetResult().(*aql.QueryResult_Vertex); ok {
+		} else if x, ok := i.GetResult().(*gripql.QueryResult_Vertex); ok {
 			mI := protoutil.AsMap(x.Vertex.Data)
 			v, _ := self.ctx.Create(mI)
 			m = append(m, v)
-		} else if x, ok := i.GetResult().(*aql.QueryResult_Data); ok {
+		} else if x, ok := i.GetResult().(*gripql.QueryResult_Data); ok {
 			mI := protoutil.UnWrapValue(x.Data)
 			v, _ := self.ctx.Create(mI)
 			m = append(m, v)
@@ -77,21 +77,21 @@ func (self *V8Runtime) Call(input ...*aql.QueryResult) *aql.QueryResult {
 
 	//log.Printf("function return: %#v", val)
 	o := protoutil.WrapValue(val)
-	return &aql.QueryResult{&aql.QueryResult_Data{o}}
+	return &gripql.QueryResult{&aql.QueryResult_Data{o}}
 }
 
-func (self *V8Runtime) CallBool(input ...*aql.QueryResult) bool {
+func (self *V8Runtime) CallBool(input ...*gripql.QueryResult) bool {
 	m := []*v8.Value{}
 	for _, i := range input {
-		if x, ok := i.GetResult().(*aql.QueryResult_Edge); ok {
+		if x, ok := i.GetResult().(*gripql.QueryResult_Edge); ok {
 			m_i := protoutil.AsMap(x.Edge.Data)
 			v, _ := self.ctx.Create(m_i)
 			m = append(m, v)
-		} else if x, ok := i.GetResult().(*aql.QueryResult_Vertex); ok {
+		} else if x, ok := i.GetResult().(*gripql.QueryResult_Vertex); ok {
 			m_i := protoutil.AsMap(x.Vertex.Data)
 			v, _ := self.ctx.Create(m_i)
 			m = append(m, v)
-		} else if x, ok := i.GetResult().(*aql.QueryResult_Data); ok {
+		} else if x, ok := i.GetResult().(*gripql.QueryResult_Data); ok {
 			m_i := protoutil.UnWrapValue(x.Data)
 			v, _ := self.ctx.Create(m_i)
 			m = append(m, v)
@@ -107,18 +107,18 @@ func (self *V8Runtime) CallBool(input ...*aql.QueryResult) bool {
 	return val
 }
 
-func (self *V8Runtime) CallValueMapBool(input map[string]aql.QueryResult) bool {
+func (self *V8Runtime) CallValueMapBool(input map[string]gripql.QueryResult) bool {
 
 	c := map[string]interface{}{}
 	for k, v := range input {
 		l := map[string]interface{}{}
-		if x, ok := v.GetResult().(*aql.QueryResult_Edge); ok {
+		if x, ok := v.GetResult().(*gripql.QueryResult_Edge); ok {
 			l["gid"] = x.Edge.Gid
 			l["from"] = x.Edge.From
 			l["to"] = x.Edge.To
 			l["label"] = x.Edge.Label
 			l["data"] = protoutil.AsMap(x.Edge.Data)
-		} else if x, ok := v.GetResult().(*aql.QueryResult_Vertex); ok {
+		} else if x, ok := v.GetResult().(*gripql.QueryResult_Vertex); ok {
 			l["gid"] = x.Vertex.Gid
 			l["label"] = x.Vertex.Label
 			l["data"] = protoutil.AsMap(x.Vertex.Data)
@@ -136,17 +136,17 @@ func (self *V8Runtime) CallValueMapBool(input map[string]aql.QueryResult) bool {
 	return val
 }
 
-func (self *V8Runtime) CallValueToVertex(input map[string]aql.QueryResult) []string {
+func (self *V8Runtime) CallValueToVertex(input map[string]gripql.QueryResult) []string {
 	c := map[string]interface{}{}
 	for k, v := range input {
 		l := map[string]interface{}{}
-		if x, ok := v.GetResult().(*aql.QueryResult_Edge); ok {
+		if x, ok := v.GetResult().(*gripql.QueryResult_Edge); ok {
 			l["gid"] = x.Edge.Gid
 			l["from"] = x.Edge.From
 			l["to"] = x.Edge.To
 			l["label"] = x.Edge.Label
 			l["data"] = protoutil.AsMap(x.Edge.Data)
-		} else if x, ok := v.GetResult().(*aql.QueryResult_Vertex); ok {
+		} else if x, ok := v.GetResult().(*gripql.QueryResult_Vertex); ok {
 			l["gid"] = x.Vertex.Gid
 			l["label"] = x.Vertex.Label
 			l["data"] = protoutil.AsMap(x.Vertex.Data)

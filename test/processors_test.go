@@ -10,20 +10,20 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/bmeg/grip/aql"
+	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/engine"
 	"github.com/bmeg/grip/protoutil"
 	"github.com/bmeg/grip/util"
 	"github.com/golang/protobuf/jsonpb"
 )
 
-var Q = &aql.Query{}
+var Q = &gripql.Query{}
 
 // checker is the interface of a function that validates the results of a test query.
-type checker func(t *testing.T, actual <-chan *aql.QueryResult)
+type checker func(t *testing.T, actual <-chan *gripql.QueryResult)
 
 type queryTest struct {
-	query    *aql.Query
+	query    *gripql.Query
 	expected checker
 }
 
@@ -46,35 +46,35 @@ func TestEngine(t *testing.T) {
 			pickAllEdges(),
 		},
 		{
-			Q.V().Where(aql.Eq("_label", "users")).Count(),
+			Q.V().Where(gripql.Eq("_label", "users")).Count(),
 			count(50),
 		},
 		{
-			Q.V().Where(aql.Eq("_label", "products")).Count(),
+			Q.V().Where(gripql.Eq("_label", "products")).Count(),
 			count(20),
 		},
 		{
-			Q.V().Where(aql.Eq("_label", "purchases")).Count(),
+			Q.V().Where(gripql.Eq("_label", "purchases")).Count(),
 			count(100),
 		},
 		{
-			Q.E().Where(aql.Eq("_label", "purchasedProducts")).Count(),
+			Q.E().Where(gripql.Eq("_label", "purchasedProducts")).Count(),
 			count(100),
 		},
 		{
-			Q.E().Where(aql.Eq("_label", "userPurchases")).Count(),
+			Q.E().Where(gripql.Eq("_label", "userPurchases")).Count(),
 			count(100),
 		},
 		{
-			Q.V().Where(aql.Eq("_label", "does-not-exist")).Count(),
+			Q.V().Where(gripql.Eq("_label", "does-not-exist")).Count(),
 			count(0),
 		},
 		{
-			Q.E().Where(aql.Eq("_label", "does-not-exist")).Count(),
+			Q.E().Where(gripql.Eq("_label", "does-not-exist")).Count(),
 			count(0),
 		},
 		{
-			Q.V().Where(aql.Eq("_label", "users")).Out().Count(),
+			Q.V().Where(gripql.Eq("_label", "users")).Out().Count(),
 			count(100),
 		},
 		{
@@ -82,7 +82,7 @@ func TestEngine(t *testing.T) {
 			pick("purchases:57"),
 		},
 		{
-			Q.V().Where(aql.Eq("_label", "purchases")).Out().Count(),
+			Q.V().Where(gripql.Eq("_label", "purchases")).Out().Count(),
 			count(100),
 		},
 		{
@@ -90,7 +90,7 @@ func TestEngine(t *testing.T) {
 			pick("products:3", "products:8"),
 		},
 		{
-			Q.V().Where(aql.Eq("_label", "products")).Out().Count(),
+			Q.V().Where(gripql.Eq("_label", "products")).Out().Count(),
 			count(0),
 		},
 		{
@@ -98,7 +98,7 @@ func TestEngine(t *testing.T) {
 			pick(),
 		},
 		{
-			Q.V().Where(aql.Eq("_label", "users")).In().Count(),
+			Q.V().Where(gripql.Eq("_label", "users")).In().Count(),
 			count(0),
 		},
 		{
@@ -106,7 +106,7 @@ func TestEngine(t *testing.T) {
 			pick(),
 		},
 		{
-			Q.V().Where(aql.Eq("_label", "purchases")).In().Count(),
+			Q.V().Where(gripql.Eq("_label", "purchases")).In().Count(),
 			count(100),
 		},
 		{
@@ -114,7 +114,7 @@ func TestEngine(t *testing.T) {
 			pick("users:7"),
 		},
 		{
-			Q.V().Where(aql.Eq("_label", "products")).In().Count(),
+			Q.V().Where(gripql.Eq("_label", "products")).In().Count(),
 			count(100),
 		},
 		{
@@ -122,7 +122,7 @@ func TestEngine(t *testing.T) {
 			pick("purchases:2", "purchases:19", "purchases:34", "purchases:59", "purchases:60"),
 		},
 		{
-			Q.V().Where(aql.Eq("_label", "users")).Both().Count(),
+			Q.V().Where(gripql.Eq("_label", "users")).Both().Count(),
 			count(100),
 		},
 		{
@@ -130,7 +130,7 @@ func TestEngine(t *testing.T) {
 			pick("purchases:57"),
 		},
 		{
-			Q.V().Where(aql.Eq("_label", "purchases")).Both().Count(),
+			Q.V().Where(gripql.Eq("_label", "purchases")).Both().Count(),
 			count(200),
 		},
 		{
@@ -138,7 +138,7 @@ func TestEngine(t *testing.T) {
 			pick("users:7", "products:3", "products:8"),
 		},
 		{
-			Q.V().Where(aql.Eq("_label", "products")).Both().Count(),
+			Q.V().Where(gripql.Eq("_label", "products")).Both().Count(),
 			count(100),
 		},
 		{
@@ -146,7 +146,7 @@ func TestEngine(t *testing.T) {
 			pick("purchases:2", "purchases:19", "purchases:34", "purchases:59", "purchases:60"),
 		},
 		{
-			Q.V().Where(aql.Eq("_label", "users")).OutEdge().Count(),
+			Q.V().Where(gripql.Eq("_label", "users")).OutEdge().Count(),
 			count(100),
 		},
 		{
@@ -154,7 +154,7 @@ func TestEngine(t *testing.T) {
 			pick("userPurchases:users:1:purchases:57"),
 		},
 		{
-			Q.V().Where(aql.Eq("_label", "purchases")).OutEdge().Count(),
+			Q.V().Where(gripql.Eq("_label", "purchases")).OutEdge().Count(),
 			count(100),
 		},
 		{
@@ -162,7 +162,7 @@ func TestEngine(t *testing.T) {
 			pick("purchase_items:2", "purchase_items:3"),
 		},
 		{
-			Q.V().Where(aql.Eq("_label", "products")).OutEdge().Count(),
+			Q.V().Where(gripql.Eq("_label", "products")).OutEdge().Count(),
 			count(0),
 		},
 		{
@@ -170,7 +170,7 @@ func TestEngine(t *testing.T) {
 			pick(),
 		},
 		{
-			Q.V().Where(aql.Eq("_label", "users")).InEdge().Count(),
+			Q.V().Where(gripql.Eq("_label", "users")).InEdge().Count(),
 			count(0),
 		},
 		{
@@ -178,7 +178,7 @@ func TestEngine(t *testing.T) {
 			pick(),
 		},
 		{
-			Q.V().Where(aql.Eq("_label", "purchases")).InEdge().Count(),
+			Q.V().Where(gripql.Eq("_label", "purchases")).InEdge().Count(),
 			count(100),
 		},
 		{
@@ -186,7 +186,7 @@ func TestEngine(t *testing.T) {
 			pick("userPurchases:users:7:purchases:1"),
 		},
 		{
-			Q.V().Where(aql.Eq("_label", "products")).InEdge().Count(),
+			Q.V().Where(gripql.Eq("_label", "products")).InEdge().Count(),
 			count(100),
 		},
 		{
@@ -194,7 +194,7 @@ func TestEngine(t *testing.T) {
 			pick("purchase_items:4", "purchase_items:30", "purchase_items:56", "purchase_items:88", "purchase_items:89"),
 		},
 		{
-			Q.V().Where(aql.Eq("_label", "users")).BothEdge().Count(),
+			Q.V().Where(gripql.Eq("_label", "users")).BothEdge().Count(),
 			count(100),
 		},
 		{
@@ -202,7 +202,7 @@ func TestEngine(t *testing.T) {
 			pick("userPurchases:users:1:purchases:57"),
 		},
 		{
-			Q.V().Where(aql.Eq("_label", "purchases")).BothEdge().Count(),
+			Q.V().Where(gripql.Eq("_label", "purchases")).BothEdge().Count(),
 			count(200),
 		},
 		{
@@ -210,7 +210,7 @@ func TestEngine(t *testing.T) {
 			pick("userPurchases:users:7:purchases:1", "purchase_items:2", "purchase_items:3"),
 		},
 		{
-			Q.V().Where(aql.Eq("_label", "products")).BothEdge().Count(),
+			Q.V().Where(gripql.Eq("_label", "products")).BothEdge().Count(),
 			count(100),
 		},
 		{
@@ -218,51 +218,51 @@ func TestEngine(t *testing.T) {
 			pick("purchase_items:4", "purchase_items:30", "purchase_items:56", "purchase_items:88", "purchase_items:89"),
 		},
 		{
-			Q.V().Where(aql.Eq("_label", "users")).Where(aql.Eq("details", "\"sex\"=>\"M\"")).Count(),
+			Q.V().Where(gripql.Eq("_label", "users")).Where(aql.Eq("details", "\"sex\"=>\"M\"")).Count(),
 			count(17),
 		},
 		{
-			Q.V().Where(aql.Eq("_label", "users")).Where(aql.Not(aql.Eq("details", "\"sex\"=>\"M\""))).Count(),
+			Q.V().Where(gripql.Eq("_label", "users")).Where(aql.Not(aql.Eq("details", "\"sex\"=>\"M\""))).Count(),
 			count(33),
 		},
 		{
-			Q.V().Where(aql.Eq("_label", "users")).Where(aql.Neq("details", "\"sex\"=>\"M\"")).Count(),
+			Q.V().Where(gripql.Eq("_label", "users")).Where(aql.Neq("details", "\"sex\"=>\"M\"")).Count(),
 			count(33),
 		},
 		{
-			Q.V().Where(aql.Eq("_label", "purchases")).Where(aql.Or(aql.Eq("state", "TX"), aql.Eq("state", "WY"))).Count(),
+			Q.V().Where(gripql.Eq("_label", "purchases")).Where(aql.Or(aql.Eq("state", "TX"), aql.Eq("state", "WY"))).Count(),
 			count(19),
 		},
 		{
-			Q.V().Where(aql.Eq("_label", "products")).Where(aql.Eq("price", 29.99)),
+			Q.V().Where(gripql.Eq("_label", "products")).Where(aql.Eq("price", 29.99)),
 			pick("products:2"),
 		},
 		{
-			Q.V().Where(aql.Eq("_label", "products")).Where(aql.Gt("price", 29.99)).Count(),
+			Q.V().Where(gripql.Eq("_label", "products")).Where(aql.Gt("price", 29.99)).Count(),
 			count(5),
 		},
 		{
-			Q.V().Where(aql.Eq("_label", "products")).Where(aql.Gte("price", 29.99)).Count(),
+			Q.V().Where(gripql.Eq("_label", "products")).Where(aql.Gte("price", 29.99)).Count(),
 			count(6),
 		},
 		{
-			Q.V().Where(aql.Eq("_label", "products")).Where(aql.Lt("price", 29.99)).Count(),
+			Q.V().Where(gripql.Eq("_label", "products")).Where(aql.Lt("price", 29.99)).Count(),
 			count(14),
 		},
 		{
-			Q.V().Where(aql.Eq("_label", "products")).Where(aql.Lte("price", 29.99)).Count(),
+			Q.V().Where(gripql.Eq("_label", "products")).Where(aql.Lte("price", 29.99)).Count(),
 			count(15),
 		},
 		{
-			Q.V().Where(aql.Eq("_label", "products")).Where(aql.And(aql.Lt("price", 29.99), aql.Gt("price", 9.99))).Count(),
+			Q.V().Where(gripql.Eq("_label", "products")).Where(aql.And(aql.Lt("price", 29.99), aql.Gt("price", 9.99))).Count(),
 			count(6),
 		},
 		{
-			Q.V().Where(aql.Eq("_label", "products")).Where(aql.Contains("tags", "Movie")).Count(),
+			Q.V().Where(gripql.Eq("_label", "products")).Where(aql.Contains("tags", "Movie")).Count(),
 			count(5),
 		},
 		{
-			Q.V().Where(aql.Eq("_label", "products")).Where(aql.In("title", "Action", "Drama")),
+			Q.V().Where(gripql.Eq("_label", "products")).Where(aql.In("title", "Action", "Drama")),
 			pick("products:19", "products:20"),
 		},
 		{
@@ -293,15 +293,15 @@ func TestEngine(t *testing.T) {
 		},
 		{
 			Q.V().Match(
-				Q.Where(aql.Eq("_label", "products")),
-				Q.Where(aql.Eq("price", 499.99)),
+				Q.Where(gripql.Eq("_label", "products")),
+				Q.Where(gripql.Eq("price", 499.99)),
 			),
 			pick("products:6"),
 		},
 		{
 			Q.V().Match(
-				Q.Mark("a").Where(aql.Eq("_label", "products")).Mark("b"),
-				Q.Mark("b").Where(aql.Eq("price", 499.99)).Mark("c"),
+				Q.Mark("a").Where(gripql.Eq("_label", "products")).Mark("b"),
+				Q.Mark("b").Where(gripql.Eq("price", 499.99)).Mark("c"),
 			).Select("c"),
 			pickSelection(map[string]interface{}{
 				"c": getVertex("products:6"),
@@ -331,16 +331,16 @@ func TestEngine(t *testing.T) {
 	}
 }
 
-func vertex(gid, label string, d data) *aql.Vertex {
-	return &aql.Vertex{
+func vertex(gid, label string, d data) *gripql.Vertex {
+	return &gripql.Vertex{
 		Gid:   gid,
 		Label: label,
 		Data:  protoutil.AsStruct(d),
 	}
 }
 
-func edge(gid interface{}, from, to string, label string, d data) *aql.Edge {
-	return &aql.Edge{
+func edge(gid interface{}, from, to string, label string, d data) *gripql.Edge {
+	return &gripql.Edge{
 		Gid:   fmt.Sprintf("%v", gid),
 		From:  from,
 		To:    to,
@@ -353,8 +353,8 @@ type data map[string]interface{}
 
 // This sorts the results to account for non-determinstic ordering from the db.
 // TODO this will break sort tests
-func compare(expect []*aql.QueryResult) checker {
-	return func(t *testing.T, actual <-chan *aql.QueryResult) {
+func compare(expect []*gripql.QueryResult) checker {
+	return func(t *testing.T, actual <-chan *gripql.QueryResult) {
 		mar := jsonpb.Marshaler{}
 		actualS := []string{}
 		expectS := []string{}
@@ -386,7 +386,7 @@ func compare(expect []*aql.QueryResult) checker {
 }
 
 func pick(gids ...string) checker {
-	expect := []*aql.QueryResult{}
+	expect := []*gripql.QueryResult{}
 	for _, id := range gids {
 		res := pickgid(id)
 		expect = append(expect, res)
@@ -394,7 +394,7 @@ func pick(gids ...string) checker {
 	return compare(expect)
 }
 
-func getVertex(gid string) *aql.Vertex {
+func getVertex(gid string) *gripql.Vertex {
 	for _, v := range vertices {
 		if v.Gid == gid {
 			return v
@@ -403,7 +403,7 @@ func getVertex(gid string) *aql.Vertex {
 	return nil
 }
 
-func getEdge(gid string) *aql.Edge {
+func getEdge(gid string) *gripql.Edge {
 	for _, e := range edges {
 		if e.Gid == gid {
 			return e
@@ -412,34 +412,34 @@ func getEdge(gid string) *aql.Edge {
 	return nil
 }
 
-func pickgid(gid string) *aql.QueryResult {
+func pickgid(gid string) *gripql.QueryResult {
 	v := getVertex(gid)
 	if v != nil {
-		return &aql.QueryResult{
-			Result: &aql.QueryResult_Vertex{Vertex: v},
+		return &gripql.QueryResult{
+			Result: &gripql.QueryResult_Vertex{Vertex: v},
 		}
 	}
 	e := getEdge(gid)
 	if e != nil {
-		return &aql.QueryResult{
-			Result: &aql.QueryResult_Edge{Edge: e},
+		return &gripql.QueryResult{
+			Result: &gripql.QueryResult_Edge{Edge: e},
 		}
 	}
 	panic("no vertex or edge found for gid")
 }
 
 func pickRes(ival ...interface{}) checker {
-	expect := []*aql.QueryResult{}
+	expect := []*gripql.QueryResult{}
 	for _, val := range ival {
 		switch v := val.(type) {
-		case *aql.Vertex:
-			res := &aql.QueryResult{
-				Result: &aql.QueryResult_Vertex{Vertex: v},
+		case *gripql.Vertex:
+			res := &gripql.QueryResult{
+				Result: &gripql.QueryResult_Vertex{Vertex: v},
 			}
 			expect = append(expect, res)
-		case *aql.Edge:
-			res := &aql.QueryResult{
-				Result: &aql.QueryResult_Edge{Edge: v},
+		case *gripql.Edge:
+			res := &gripql.QueryResult{
+				Result: &gripql.QueryResult_Edge{Edge: v},
 			}
 			expect = append(expect, res)
 		default:
@@ -450,10 +450,10 @@ func pickRes(ival ...interface{}) checker {
 }
 
 func pickAllVertices() checker {
-	expect := []*aql.QueryResult{}
+	expect := []*gripql.QueryResult{}
 	for _, v := range vertices {
-		res := &aql.QueryResult{
-			Result: &aql.QueryResult_Vertex{Vertex: v},
+		res := &gripql.QueryResult{
+			Result: &gripql.QueryResult_Vertex{Vertex: v},
 		}
 		expect = append(expect, res)
 	}
@@ -461,10 +461,10 @@ func pickAllVertices() checker {
 }
 
 func pickAllEdges() checker {
-	expect := []*aql.QueryResult{}
+	expect := []*gripql.QueryResult{}
 	for _, e := range edges {
-		res := &aql.QueryResult{
-			Result: &aql.QueryResult_Edge{Edge: e},
+		res := &gripql.QueryResult{
+			Result: &gripql.QueryResult_Edge{Edge: e},
 		}
 		expect = append(expect, res)
 	}
@@ -472,18 +472,18 @@ func pickAllEdges() checker {
 }
 
 func pickSelection(selection map[string]interface{}) checker {
-	s := map[string]*aql.Selection{}
+	s := map[string]*gripql.Selection{}
 	for mark, ival := range selection {
 		switch val := ival.(type) {
-		case *aql.Vertex:
-			s[mark] = &aql.Selection{
-				Result: &aql.Selection_Vertex{
+		case *gripql.Vertex:
+			s[mark] = &gripql.Selection{
+				Result: &gripql.Selection_Vertex{
 					Vertex: val,
 				},
 			}
-		case *aql.Edge:
-			s[mark] = &aql.Selection{
-				Result: &aql.Selection_Edge{
+		case *gripql.Edge:
+			s[mark] = &gripql.Selection{
+				Result: &gripql.Selection_Edge{
 					Edge: val,
 				},
 			}
@@ -491,10 +491,10 @@ func pickSelection(selection map[string]interface{}) checker {
 			panic(fmt.Sprintf("unhandled type %T", ival))
 		}
 	}
-	expect := []*aql.QueryResult{
+	expect := []*gripql.QueryResult{
 		{
-			Result: &aql.QueryResult_Selections{
-				Selections: &aql.Selections{Selections: s},
+			Result: &gripql.QueryResult_Selections{
+				Selections: &gripql.Selections{Selections: s},
 			},
 		},
 	}
@@ -502,9 +502,9 @@ func pickSelection(selection map[string]interface{}) checker {
 }
 
 func count(i int) checker {
-	expect := []*aql.QueryResult{
+	expect := []*gripql.QueryResult{
 		{
-			Result: &aql.QueryResult_Count{
+			Result: &gripql.QueryResult_Count{
 				Count: uint32(i),
 			},
 		},
@@ -513,9 +513,9 @@ func count(i int) checker {
 }
 
 func render(v interface{}) checker {
-	expect := []*aql.QueryResult{
+	expect := []*gripql.QueryResult{
 		{
-			Result: &aql.QueryResult_Render{
+			Result: &gripql.QueryResult_Render{
 				Render: protoutil.WrapValue(v),
 			},
 		},
