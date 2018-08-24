@@ -48,7 +48,7 @@ func NewFunction(source string, imports []string) (jsengine.JSEngine, error) {
 	return &V8Runtime{ctx, f}, nil
 }
 
-func (self *V8Runtime) Call(input ...*gripql.QueryResult) *aql.QueryResult {
+func (self *V8Runtime) Call(input ...*gripql.QueryResult) *gripql.QueryResult {
 	m := []*v8.Value{}
 	for _, i := range input {
 		if x, ok := i.GetResult().(*gripql.QueryResult_Edge); ok {
@@ -77,7 +77,7 @@ func (self *V8Runtime) Call(input ...*gripql.QueryResult) *aql.QueryResult {
 
 	//log.Printf("function return: %#v", val)
 	o := protoutil.WrapValue(val)
-	return &gripql.QueryResult{&aql.QueryResult_Data{o}}
+	return &gripql.QueryResult{&gripql.QueryResult_Data{o}}
 }
 
 func (self *V8Runtime) CallBool(input ...*gripql.QueryResult) bool {

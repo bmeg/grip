@@ -8,10 +8,10 @@ import traceback
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 TESTS = os.path.join(BASE, "tests")
-AQL = os.path.join(os.path.dirname(BASE), "aql", "python")
+GRIPQL = os.path.join(os.path.dirname(BASE), "gripql", "python")
 GRAPH = "test_graph"
-sys.path.append(AQL)
-import aql
+sys.path.append(GRIPQL)
+import gripql
 
 
 if __name__ == "__main__":
@@ -21,7 +21,7 @@ if __name__ == "__main__":
     else:
         tests = []
 
-    conn = aql.Connection(server)
+    conn = gripql.Connection(server)
     if GRAPH in conn.listGraphs():
         print(list(conn.graph(GRAPH).query().V().count())[0])
         if int(list(conn.graph(GRAPH).query().V().count())[0]['count']) != 0:

@@ -1,14 +1,14 @@
 #!/usr/bin/env python
 from __future__ import print_function
 
-import aql
+import gripql
 import argparse
 import pandas
 import math
 
 
 def load_matrix(args):
-    conn = aql.Connection(args.server)
+    conn = gripql.Connection(args.server)
     O = conn.graph(args.db)
 
     matrix = pandas.read_csv(args.input, sep="\t", index_col=0)

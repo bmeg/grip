@@ -1,4 +1,4 @@
-import aql
+import gripql
 
 
 def test_distinct(O):
@@ -17,7 +17,7 @@ def test_distinct(O):
     O.addVertex("5", "Software", {"name": "ripple", "lang": "java"})
     O.addVertex("3", "Software", {"name": "lop", "lang": "java"})
     O.addVertex("8", "Software", {"name": "funnel", "lang": "go"})
-    O.addVertex("14", "Software", {"name": "arachne", "lang": None})
+    O.addVertex("14", "Software", {"name": "grip", "lang": None})
 
     O.addEdge("1", "5", "developer", gid="edge1")
     O.addEdge("7", "5", "developer", gid="edge2")
@@ -54,7 +54,7 @@ def test_distinct(O):
         errors.append("Distinct %s != %s" % (count, 0))
 
     count = 0
-    for i in O.query().V().where(aql.eq("_label", "Person")).mark("person").out().distinct("$person.name"):
+    for i in O.query().V().where(gripql.eq("_label", "Person")).mark("person").out().distinct("$person.name"):
         count += 1
     if count != 1:
         errors.append("Distinct %s != %s" % (count, 1))

@@ -2,7 +2,7 @@
 
 from __future__ import print_function
 
-import aql
+import gripql
 import re
 import argparse
 import pandas
@@ -10,7 +10,7 @@ import math
 import json
 
 def load_matrix(args):
-    conn = aql.Connection(args.server)
+    conn = gripql.Connection(args.server)
     if args.db not in list(conn.listGraphs()):
         conn.addGraph(args.db)
     O = conn.graph(args.db)

@@ -1,11 +1,11 @@
 from __future__ import absolute_import, print_function, unicode_literals
 
-from aql.aggregations import term, histogram, percentile
-from aql.connection import Connection
-from aql.graph import Graph, BulkAdd
-from aql.operators import (and_, or_, not_, eq, neq, gt, gte, lt, lte, in_,
+from gripql.aggregations import term, histogram, percentile
+from gripql.connection import Connection
+from gripql.graph import Graph, BulkAdd
+from gripql.operators import (and_, or_, not_, eq, neq, gt, gte, lt, lte, in_,
                            contains)
-from aql.query import Query
+from gripql.query import Query
 
 
 __all__ = [

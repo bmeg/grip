@@ -7,7 +7,7 @@ import (
 	structpb "github.com/golang/protobuf/ptypes/struct"
 )
 
-// PackVertex take a AQL vertex and convert it to a mongo doc
+// PackVertex take a GRIP vertex and convert it to a mongo doc
 func PackVertex(v *gripql.Vertex) map[string]interface{} {
 	p := map[string]interface{}{}
 	if v.Data != nil {
@@ -20,7 +20,7 @@ func PackVertex(v *gripql.Vertex) map[string]interface{} {
 	}
 }
 
-// PackEdge takes a AQL edge and converts it to a mongo doc
+// PackEdge takes a GRIP edge and converts it to a mongo doc
 func PackEdge(e *gripql.Edge) map[string]interface{} {
 	p := map[string]interface{}{}
 	if e.Data != nil {

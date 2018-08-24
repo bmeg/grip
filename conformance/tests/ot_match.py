@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-import aql
+import gripql
 
 
 def test_match_count(O):
@@ -22,9 +22,9 @@ def test_match_count(O):
 
     query = O.query().V().match([
         O.query().mark('a').out('created').mark('b'),
-        O.query().mark('b').where(aql.eq('$.name', 'lop')),
+        O.query().mark('b').where(gripql.eq('$.name', 'lop')),
         O.query().mark('b').in_('created').mark('c'),
-        O.query().mark('c').where(aql.eq('$.age', "29"))
+        O.query().mark('c').where(gripql.eq('$.age', "29"))
     ]).select(['a', 'c'])
 
     count = 0

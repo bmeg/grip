@@ -218,51 +218,51 @@ func TestEngine(t *testing.T) {
 			pick("purchase_items:4", "purchase_items:30", "purchase_items:56", "purchase_items:88", "purchase_items:89"),
 		},
 		{
-			Q.V().Where(gripql.Eq("_label", "users")).Where(aql.Eq("details", "\"sex\"=>\"M\"")).Count(),
+			Q.V().Where(gripql.Eq("_label", "users")).Where(gripql.Eq("details", "\"sex\"=>\"M\"")).Count(),
 			count(17),
 		},
 		{
-			Q.V().Where(gripql.Eq("_label", "users")).Where(aql.Not(aql.Eq("details", "\"sex\"=>\"M\""))).Count(),
+			Q.V().Where(gripql.Eq("_label", "users")).Where(gripql.Not(gripql.Eq("details", "\"sex\"=>\"M\""))).Count(),
 			count(33),
 		},
 		{
-			Q.V().Where(gripql.Eq("_label", "users")).Where(aql.Neq("details", "\"sex\"=>\"M\"")).Count(),
+			Q.V().Where(gripql.Eq("_label", "users")).Where(gripql.Neq("details", "\"sex\"=>\"M\"")).Count(),
 			count(33),
 		},
 		{
-			Q.V().Where(gripql.Eq("_label", "purchases")).Where(aql.Or(aql.Eq("state", "TX"), aql.Eq("state", "WY"))).Count(),
+			Q.V().Where(gripql.Eq("_label", "purchases")).Where(gripql.Or(gripql.Eq("state", "TX"), gripql.Eq("state", "WY"))).Count(),
 			count(19),
 		},
 		{
-			Q.V().Where(gripql.Eq("_label", "products")).Where(aql.Eq("price", 29.99)),
+			Q.V().Where(gripql.Eq("_label", "products")).Where(gripql.Eq("price", 29.99)),
 			pick("products:2"),
 		},
 		{
-			Q.V().Where(gripql.Eq("_label", "products")).Where(aql.Gt("price", 29.99)).Count(),
+			Q.V().Where(gripql.Eq("_label", "products")).Where(gripql.Gt("price", 29.99)).Count(),
 			count(5),
 		},
 		{
-			Q.V().Where(gripql.Eq("_label", "products")).Where(aql.Gte("price", 29.99)).Count(),
+			Q.V().Where(gripql.Eq("_label", "products")).Where(gripql.Gte("price", 29.99)).Count(),
 			count(6),
 		},
 		{
-			Q.V().Where(gripql.Eq("_label", "products")).Where(aql.Lt("price", 29.99)).Count(),
+			Q.V().Where(gripql.Eq("_label", "products")).Where(gripql.Lt("price", 29.99)).Count(),
 			count(14),
 		},
 		{
-			Q.V().Where(gripql.Eq("_label", "products")).Where(aql.Lte("price", 29.99)).Count(),
+			Q.V().Where(gripql.Eq("_label", "products")).Where(gripql.Lte("price", 29.99)).Count(),
 			count(15),
 		},
 		{
-			Q.V().Where(gripql.Eq("_label", "products")).Where(aql.And(aql.Lt("price", 29.99), aql.Gt("price", 9.99))).Count(),
+			Q.V().Where(gripql.Eq("_label", "products")).Where(gripql.And(gripql.Lt("price", 29.99), gripql.Gt("price", 9.99))).Count(),
 			count(6),
 		},
 		{
-			Q.V().Where(gripql.Eq("_label", "products")).Where(aql.Contains("tags", "Movie")).Count(),
+			Q.V().Where(gripql.Eq("_label", "products")).Where(gripql.Contains("tags", "Movie")).Count(),
 			count(5),
 		},
 		{
-			Q.V().Where(gripql.Eq("_label", "products")).Where(aql.In("title", "Action", "Drama")),
+			Q.V().Where(gripql.Eq("_label", "products")).Where(gripql.In("title", "Action", "Drama")),
 			pick("products:19", "products:20"),
 		},
 		{

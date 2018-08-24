@@ -4,8 +4,8 @@ import os
 import json
 import requests
 
-from aql.util import process_url, raise_for_status
-from aql.query import Query
+from gripql.util import process_url, raise_for_status
+from gripql.query import Query
 
 
 class Graph:
@@ -15,10 +15,10 @@ class Graph:
         self.url = url + "/v1/graph/" + name
         self.name = name
         if user is None:
-            user = os.getenv("ARACHNE_USER", None)
+            user = os.getenv("GRIP_USER", None)
         self.user = user
         if password is None:
-            password = os.getenv("ARACHNE_PASSWORD", None)
+            password = os.getenv("GRIP_PASSWORD", None)
         self.password = password
 
     def addVertex(self, gid, label, data={}):
@@ -163,10 +163,10 @@ class BulkAdd:
         self.graph = graph
         self.elements = []
         if user is None:
-            user = os.getenv("ARACHNE_USER", None)
+            user = os.getenv("GRIP_USER", None)
         self.user = user
         if password is None:
-            password = os.getenv("ARACHNE_PASSWORD", None)
+            password = os.getenv("GRIP_PASSWORD", None)
         self.password = password
 
     def addVertex(self, gid, label, data={}):
