@@ -58,10 +58,10 @@ func TestBasicAuth(t *testing.T) {
 	conf.BasicAuth = []BasicCredential{{User: "testuser", Password: "abc123"}}
 	defer os.RemoveAll(conf.WorkDir)
 
-	os.Setenv("ARACHNE_USER", "testuser")
-	os.Setenv("ARACHNE_PASSWORD", "abc123")
-	defer os.Unsetenv("ARACHNE_USER")
-	defer os.Unsetenv("ARACHNE_PASSWORD")
+	os.Setenv("GRIP_USER", "testuser")
+	os.Setenv("GRIP_PASSWORD", "abc123")
+	defer os.Unsetenv("GRIP_USER")
+	defer os.Unsetenv("GRIP_PASSWORD")
 
 	tmpDB := "grip.db." + util.RandomString(6)
 	db, err := kvgraph.NewKVGraphDB("badger", tmpDB)
