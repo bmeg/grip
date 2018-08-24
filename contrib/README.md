@@ -1,21 +1,21 @@
 
-# Adding Arachne as a service
+# Adding GRIP as a service
 
 ## Ubuntu
 
 Add to service control
 ```
-sudo systemctl enable /full/path/to/arachne.service
+sudo systemctl enable /full/path/to/grip.service
 sudo systemctl daemon-reload
 ```
 
 Restart service
 ```
-sudo systemctl restart arachne
+sudo systemctl restart grip
 ```
 
 View logs
 
 ```
-journalctl -u arachne
+journalctl -u grip
 ```

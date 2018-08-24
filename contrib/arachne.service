@@ -1,8 +1,8 @@
 [Unit]
-Description=arachne
+Description=grip
 
 [Service]
-WorkingDirectory=/var/run/arachne
-ExecStart=/usr/local/bin/arachne server -c /etc/arachne.yml
-SyslogIdentifier=arachne
+WorkingDirectory=/var/run/grip
+ExecStart=/usr/local/bin/grip server -c /etc/grip.yml
+SyslogIdentifier=grip
 Restart=always
