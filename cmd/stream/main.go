@@ -96,5 +96,5 @@ func init() {
 	flags.StringVar(&kafka, "kafka", "localhost:9092", "Kafka server url")
 	flags.StringVar(&host, "host", "localhost:8202", "grip server url")
 	flags.StringVar(&vertexTopic, "vertex", "grip_vertex", "vertex topic name")
-	flags.StringVar(&edgeTopic, "edge", "grip_vertex", "edge topic name")
+	flags.StringVar(&edgeTopic, "edge", "grip_edge", "edge topic name")
 }
