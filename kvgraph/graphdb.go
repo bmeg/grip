@@ -5,14 +5,14 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/bmeg/grip/aql"
+	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/kvi"
 )
 
 // AddGraph creates a new graph named `graph`
 func (kgraph *KVGraph) AddGraph(graph string) error {
-	err := aql.ValidateGraphName(graph)
+	err := gripql.ValidateGraphName(graph)
 	if err != nil {
 		return err
 	}
@@ -82,6 +82,6 @@ func (kgraph *KVGraph) ListGraphs() []string {
 }
 
 // GetSchema returns the schema of a specific graph in the database
-func (kgraph *KVGraph) GetSchema(ctx context.Context, graph string, sampleN uint32) (*aql.GraphSchema, error) {
+func (kgraph *KVGraph) GetSchema(ctx context.Context, graph string, sampleN uint32) (*gripql.GraphSchema, error) {
 	return nil, fmt.Errorf("not implemented")
 }

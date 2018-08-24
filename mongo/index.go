@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/bmeg/grip/aql"
+	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/jsonpath"
 	"github.com/bmeg/grip/protoutil"
 	"github.com/globalsign/mgo"
@@ -46,8 +46,8 @@ func (mg *Graph) DeleteVertexIndex(label string, field string) error {
 }
 
 // GetVertexIndexList lists indices
-func (mg *Graph) GetVertexIndexList() chan aql.IndexID {
-	out := make(chan aql.IndexID)
+func (mg *Graph) GetVertexIndexList() chan gripql.IndexID {
+	out := make(chan gripql.IndexID)
 
 	go func() {
 		session := mg.ar.session.Copy()
@@ -74,7 +74,7 @@ func (mg *Graph) GetVertexIndexList() chan aql.IndexID {
 			if len(idx.Key) > 1 && idx.Key[0] == "label" {
 				f := strings.TrimPrefix(idx.Key[1], "data.")
 				for _, l := range labels {
-					out <- aql.IndexID{Graph: mg.graph, Label: l, Field: f}
+					out <- gripql.IndexID{Graph: mg.graph, Label: l, Field: f}
 				}
 			}
 		}
@@ -84,7 +84,7 @@ func (mg *Graph) GetVertexIndexList() chan aql.IndexID {
 }
 
 // GetVertexTermAggregation get count of every term across vertices
-func (mg *Graph) GetVertexTermAggregation(ctx context.Context, label string, field string, size uint32) (*aql.AggregationResult, error) {
+func (mg *Graph) GetVertexTermAggregation(ctx context.Context, label string, field string, size uint32) (*gripql.AggregationResult, error) {
 	log.Printf("Running GetVertexTermAggregation: { label: %s, field: %s size: %v}", label, field, size)
 	namespace := jsonpath.GetNamespace(field)
 	if namespace != jsonpath.Current {
@@ -93,8 +93,8 @@ func (mg *Graph) GetVertexTermAggregation(ctx context.Context, label string, fie
 	field = jsonpath.GetJSONPath(field)
 	field = strings.TrimPrefix(field, "$.")
 
-	out := &aql.AggregationResult{
-		Buckets: []*aql.AggregationResultBucket{},
+	out := &gripql.AggregationResult{
+		Buckets: []*gripql.AggregationResultBucket{},
 	}
 
 	ag := []bson.M{
@@ -125,7 +125,7 @@ func (mg *Graph) GetVertexTermAggregation(ctx context.Context, label string, fie
 		if !ok {
 			return nil, fmt.Errorf("failed to cast count result to integer")
 		}
-		out.SortedInsert(&aql.AggregationResultBucket{Key: term, Value: float64(count)})
+		out.SortedInsert(&gripql.AggregationResultBucket{Key: term, Value: float64(count)})
 	}
 	if err := iter.Close(); err != nil {
 		return nil, fmt.Errorf("error occurred while iterating: %v", err)
@@ -134,7 +134,7 @@ func (mg *Graph) GetVertexTermAggregation(ctx context.Context, label string, fie
 }
 
 // GetVertexHistogramAggregation get binned counts of a term across vertices
-func (mg *Graph) GetVertexHistogramAggregation(ctx context.Context, label string, field string, interval uint32) (*aql.AggregationResult, error) {
+func (mg *Graph) GetVertexHistogramAggregation(ctx context.Context, label string, field string, interval uint32) (*gripql.AggregationResult, error) {
 	log.Printf("Running GetVertexHistogramAggregation: { label: %s, field: %s interval: %v }", label, field, interval)
 	namespace := jsonpath.GetNamespace(field)
 	if namespace != jsonpath.Current {
@@ -143,8 +143,8 @@ func (mg *Graph) GetVertexHistogramAggregation(ctx context.Context, label string
 	field = jsonpath.GetJSONPath(field)
 	field = strings.TrimPrefix(field, "$.")
 
-	out := &aql.AggregationResult{
-		Buckets: []*aql.AggregationResultBucket{},
+	out := &gripql.AggregationResult{
+		Buckets: []*gripql.AggregationResultBucket{},
 	}
 
 	ag := []bson.M{
@@ -180,7 +180,7 @@ func (mg *Graph) GetVertexHistogramAggregation(ctx context.Context, label string
 		if !ok {
 			return nil, fmt.Errorf("failed to cast count result to integer")
 		}
-		out.Buckets = append(out.Buckets, &aql.AggregationResultBucket{Key: term, Value: float64(count)})
+		out.Buckets = append(out.Buckets, &gripql.AggregationResultBucket{Key: term, Value: float64(count)})
 	}
 	if err := iter.Close(); err != nil {
 		return nil, fmt.Errorf("error occurred while iterating: %v", err)
@@ -189,7 +189,7 @@ func (mg *Graph) GetVertexHistogramAggregation(ctx context.Context, label string
 }
 
 // GetVertexPercentileAggregation get percentiles of a term across vertices
-func (mg *Graph) GetVertexPercentileAggregation(ctx context.Context, label string, field string, percents []float64) (*aql.AggregationResult, error) {
+func (mg *Graph) GetVertexPercentileAggregation(ctx context.Context, label string, field string, percents []float64) (*gripql.AggregationResult, error) {
 	log.Printf("Running GetVertexPercentileAggregation: { label: %s, field: %s percents: %v }", label, field, percents)
 	namespace := jsonpath.GetNamespace(field)
 	if namespace != jsonpath.Current {
@@ -198,8 +198,8 @@ func (mg *Graph) GetVertexPercentileAggregation(ctx context.Context, label strin
 	field = jsonpath.GetJSONPath(field)
 	field = strings.TrimPrefix(field, "$.")
 
-	out := &aql.AggregationResult{
-		Buckets: []*aql.AggregationResultBucket{},
+	out := &gripql.AggregationResult{
+		Buckets: []*gripql.AggregationResultBucket{},
 	}
 
 	stmt := []bson.M{
@@ -249,7 +249,7 @@ func (mg *Graph) GetVertexPercentileAggregation(ctx context.Context, label strin
 		if !ok {
 			return nil, fmt.Errorf("error occurred parsing mongo output: %v", result)
 		}
-		out.Buckets = append(out.Buckets, &aql.AggregationResultBucket{Key: term, Value: val})
+		out.Buckets = append(out.Buckets, &gripql.AggregationResultBucket{Key: term, Value: val})
 	}
 	if err := iter.Close(); err != nil {
 		return nil, fmt.Errorf("error occurred while iterating: %v", err)

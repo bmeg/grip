@@ -8,7 +8,7 @@ import (
 	"io"
 	"log"
 
-	"github.com/bmeg/grip/aql"
+	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/engine/core"
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/timestamp"
@@ -48,7 +48,7 @@ func (es *Graph) GetTimestamp() string {
 
 // AddEdge adds an edge to the graph, if the id is not "" and in already exists
 // in the graph, it is replaced
-func (es *Graph) AddEdge(edgeArray []*aql.Edge) error {
+func (es *Graph) AddEdge(edgeArray []*gripql.Edge) error {
 	for _, edge := range edgeArray {
 		if edge.Gid == "" {
 			edge.Gid = util.UUID()
@@ -90,7 +90,7 @@ func (es *Graph) AddEdge(edgeArray []*aql.Edge) error {
 
 // AddVertex adds an edge to the graph, if the id is not "" and in already exists
 // in the graph, it is replaced
-func (es *Graph) AddVertex(vertexArray []*aql.Vertex) error {
+func (es *Graph) AddVertex(vertexArray []*gripql.Vertex) error {
 	for _, vertex := range vertexArray {
 		err := vertex.Validate()
 		if err != nil {
@@ -181,7 +181,7 @@ func (es *Graph) DelVertex(vid string) error {
 }
 
 // GetEdge gets a specific edge
-func (es *Graph) GetEdge(id string, load bool) *aql.Edge {
+func (es *Graph) GetEdge(id string, load bool) *gripql.Edge {
 	ctx := context.Background()
 
 	g := es.client.Get().Index(es.edgeIndex).Id(id)
@@ -195,7 +195,7 @@ func (es *Graph) GetEdge(id string, load bool) *aql.Edge {
 		return nil
 	}
 
-	edge := &aql.Edge{}
+	edge := &gripql.Edge{}
 	err = jsonpb.Unmarshal(bytes.NewReader(*res.Source), edge)
 	if err != nil {
 		log.Printf("Failed to unmarshal edge: %s", err)
@@ -206,7 +206,7 @@ func (es *Graph) GetEdge(id string, load bool) *aql.Edge {
 }
 
 // GetVertex gets vertex `id`
-func (es *Graph) GetVertex(id string, load bool) *aql.Vertex {
+func (es *Graph) GetVertex(id string, load bool) *gripql.Vertex {
 	ctx := context.Background()
 
 	g := es.client.Get().Index(es.vertexIndex).Id(id)
@@ -220,7 +220,7 @@ func (es *Graph) GetVertex(id string, load bool) *aql.Vertex {
 		return nil
 	}
 
-	vertex := &aql.Vertex{}
+	vertex := &gripql.Vertex{}
 	err = jsonpb.Unmarshal(bytes.NewReader(*res.Source), vertex)
 	if err != nil {
 		log.Printf("Failed to get unmarshal vertex: %s", err)
@@ -231,8 +231,8 @@ func (es *Graph) GetVertex(id string, load bool) *aql.Vertex {
 }
 
 // GetEdgeList produces a channel of all edges in the graph
-func (es *Graph) GetEdgeList(ctx context.Context, load bool) <-chan *aql.Edge {
-	o := make(chan *aql.Edge, 100)
+func (es *Graph) GetEdgeList(ctx context.Context, load bool) <-chan *gripql.Edge {
+	o := make(chan *gripql.Edge, 100)
 
 	// 1st goroutine sends individual hits to channel.
 	hits := make(chan json.RawMessage, es.pageSize)
@@ -262,7 +262,7 @@ func (es *Graph) GetEdgeList(ctx context.Context, load bool) <-chan *aql.Edge {
 	// 2nd goroutine receives hits and deserializes them.
 	g.Go(func() error {
 		for hit := range hits {
-			edge := &aql.Edge{}
+			edge := &gripql.Edge{}
 			err := jsonpb.Unmarshal(bytes.NewReader(hit), edge)
 			if err != nil {
 				return err
@@ -285,8 +285,8 @@ func (es *Graph) GetEdgeList(ctx context.Context, load bool) <-chan *aql.Edge {
 }
 
 // GetVertexList produces a channel of all vertices in the graph
-func (es *Graph) GetVertexList(ctx context.Context, load bool) <-chan *aql.Vertex {
-	o := make(chan *aql.Vertex, es.pageSize)
+func (es *Graph) GetVertexList(ctx context.Context, load bool) <-chan *gripql.Vertex {
+	o := make(chan *gripql.Vertex, es.pageSize)
 
 	// 1st goroutine sends individual hits to channel.
 	hits := make(chan json.RawMessage, es.pageSize)
@@ -316,7 +316,7 @@ func (es *Graph) GetVertexList(ctx context.Context, load bool) <-chan *aql.Verte
 	// 2nd goroutine receives hits and deserializes them.
 	g.Go(func() error {
 		for hit := range hits {
-			vertex := &aql.Vertex{}
+			vertex := &gripql.Vertex{}
 			err := jsonpb.Unmarshal(bytes.NewReader(hit), vertex)
 			if err != nil {
 				return fmt.Errorf("Failed to unmarshal vertex: %v", err)
@@ -379,7 +379,7 @@ func (es *Graph) GetVertexChannel(req chan gdbi.ElementLookup, load bool) chan g
 
 			for hit := range paginateQuery(ctx, q, es.pageSize) {
 				// Deserialize
-				vertex := &aql.Vertex{}
+				vertex := &gripql.Vertex{}
 				err := jsonpb.Unmarshal(bytes.NewReader(*hit.Source), vertex)
 				if err != nil {
 					return fmt.Errorf("Failed to unmarshal vertex: %s", err)
@@ -456,14 +456,14 @@ func (es *Graph) GetOutChannel(req chan gdbi.ElementLookup, load bool, edgeLabel
 			b := []gdbi.ElementLookup{}
 			for hit := range paginateQuery(ctx, q, es.pageSize) {
 				// Deserialize
-				edge := &aql.Edge{}
+				edge := &gripql.Edge{}
 				err := jsonpb.Unmarshal(bytes.NewReader(*hit.Source), edge)
 				if err != nil {
 					return fmt.Errorf("Failed to unmarshal edge: %s", err)
 				}
 				r := batchMap[edge.From]
 				for _, ri := range r {
-					ri.Vertex = &aql.Vertex{Gid: edge.To}
+					ri.Vertex = &gripql.Vertex{Gid: edge.To}
 					b = append(b, ri)
 				}
 			}
@@ -493,7 +493,7 @@ func (es *Graph) GetOutChannel(req chan gdbi.ElementLookup, load bool, edgeLabel
 
 			for hit := range paginateQuery(ctx, q, es.pageSize) {
 				// Deserialize
-				vertex := &aql.Vertex{}
+				vertex := &gripql.Vertex{}
 				err := jsonpb.Unmarshal(bytes.NewReader(*hit.Source), vertex)
 				if err != nil {
 					return fmt.Errorf("Failed to unmarshal vertex: %s", err)
@@ -570,14 +570,14 @@ func (es *Graph) GetInChannel(req chan gdbi.ElementLookup, load bool, edgeLabels
 			b := []gdbi.ElementLookup{}
 			for hit := range paginateQuery(ctx, q, es.pageSize) {
 				// Deserialize
-				edge := &aql.Edge{}
+				edge := &gripql.Edge{}
 				err := jsonpb.Unmarshal(bytes.NewReader(*hit.Source), edge)
 				if err != nil {
 					return fmt.Errorf("Failed to unmarshal edge: %s", err)
 				}
 				r := batchMap[edge.To]
 				for _, ri := range r {
-					ri.Vertex = &aql.Vertex{Gid: edge.From}
+					ri.Vertex = &gripql.Vertex{Gid: edge.From}
 					b = append(b, ri)
 				}
 			}
@@ -606,7 +606,7 @@ func (es *Graph) GetInChannel(req chan gdbi.ElementLookup, load bool, edgeLabels
 
 			for hit := range paginateQuery(ctx, q, es.pageSize) {
 				// Deserialize
-				vertex := &aql.Vertex{}
+				vertex := &gripql.Vertex{}
 				err := jsonpb.Unmarshal(bytes.NewReader(*hit.Source), vertex)
 				if err != nil {
 					return fmt.Errorf("Failed to unmarshal vertex: %s", err)
@@ -683,7 +683,7 @@ func (es *Graph) GetOutEdgeChannel(req chan gdbi.ElementLookup, load bool, edgeL
 
 			for hit := range paginateQuery(ctx, q, es.pageSize) {
 				// Deserialize
-				edge := &aql.Edge{}
+				edge := &gripql.Edge{}
 				err := jsonpb.Unmarshal(bytes.NewReader(*hit.Source), edge)
 				if err != nil {
 					return fmt.Errorf("Failed to unmarshal edge: %s", err)
@@ -760,7 +760,7 @@ func (es *Graph) GetInEdgeChannel(req chan gdbi.ElementLookup, load bool, edgeLa
 
 			for hit := range paginateQuery(ctx, q, es.pageSize) {
 				// Deserialize
-				edge := &aql.Edge{}
+				edge := &gripql.Edge{}
 				err := jsonpb.Unmarshal(bytes.NewReader(*hit.Source), edge)
 				if err != nil {
 					return fmt.Errorf("Failed to unmarshal edge: %s", err)

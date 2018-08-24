@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/bmeg/grip/aql"
+	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/badgerdb"
 	"github.com/bmeg/grip/engine"
 	"github.com/bmeg/grip/kvgraph"
@@ -21,10 +21,10 @@ func BenchmarkBaselineV(b *testing.B) {
 
 	for i := 0; i < 1000; i++ {
 		gid := fmt.Sprintf("v-%d", i)
-		db.AddVertex([]*aql.Vertex{{Gid: gid, Label: "Vert"}})
+		db.AddVertex([]*gripql.Vertex{{Gid: gid, Label: "Vert"}})
 	}
 
-	q := aql.V()
+	q := gripql.V()
 
 	b.ResetTimer()
 

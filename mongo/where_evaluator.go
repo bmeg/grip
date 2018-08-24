@@ -4,20 +4,20 @@ import (
 	"log"
 	"strings"
 
-	"github.com/bmeg/grip/aql"
+	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/jsonpath"
 	"github.com/bmeg/grip/protoutil"
 	"github.com/globalsign/mgo/bson"
 )
 
-func convertWhereExpression(stmt *aql.WhereExpression, not bool) bson.M {
+func convertWhereExpression(stmt *gripql.WhereExpression, not bool) bson.M {
 	output := bson.M{}
 	switch stmt.Expression.(type) {
-	case *aql.WhereExpression_Condition:
+	case *gripql.WhereExpression_Condition:
 		cond := stmt.GetCondition()
 		output = convertCondition(cond, not)
 
-	case *aql.WhereExpression_And:
+	case *gripql.WhereExpression_And:
 		and := stmt.GetAnd()
 		andRes := []bson.M{}
 		for _, e := range and.Expressions {
@@ -28,7 +28,7 @@ func convertWhereExpression(stmt *aql.WhereExpression, not bool) bson.M {
 			output = bson.M{"$or": andRes}
 		}
 
-	case *aql.WhereExpression_Or:
+	case *gripql.WhereExpression_Or:
 		or := stmt.GetOr()
 		orRes := []bson.M{}
 		for _, e := range or.Expressions {
@@ -39,7 +39,7 @@ func convertWhereExpression(stmt *aql.WhereExpression, not bool) bson.M {
 			output = bson.M{"$and": orRes}
 		}
 
-	case *aql.WhereExpression_Not:
+	case *gripql.WhereExpression_Not:
 		notRes := convertWhereExpression(stmt.GetNot(), true)
 		output = notRes
 
@@ -59,28 +59,28 @@ func convertPath(key string) string {
 	return key
 }
 
-func convertCondition(cond *aql.WhereCondition, not bool) bson.M {
+func convertCondition(cond *gripql.WhereCondition, not bool) bson.M {
 	var key string
 	var val interface{}
 	key = convertPath(cond.Key)
 	val = protoutil.UnWrapValue(cond.Value)
 	expr := bson.M{}
 	switch cond.Condition {
-	case aql.Condition_EQ:
+	case gripql.Condition_EQ:
 		expr = bson.M{"$eq": val}
-	case aql.Condition_NEQ:
+	case gripql.Condition_NEQ:
 		expr = bson.M{"$ne": val}
-	case aql.Condition_GT:
+	case gripql.Condition_GT:
 		expr = bson.M{"$gt": val}
-	case aql.Condition_GTE:
+	case gripql.Condition_GTE:
 		expr = bson.M{"$gte": val}
-	case aql.Condition_LT:
+	case gripql.Condition_LT:
 		expr = bson.M{"$lt": val}
-	case aql.Condition_LTE:
+	case gripql.Condition_LTE:
 		expr = bson.M{"$lte": val}
-	case aql.Condition_IN:
+	case gripql.Condition_IN:
 		expr = bson.M{"$in": val}
-	case aql.Condition_CONTAINS:
+	case gripql.Condition_CONTAINS:
 		expr = bson.M{"$in": []interface{}{val}}
 	default:
 		log.Printf("unknown where condition type")

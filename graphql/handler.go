@@ -10,7 +10,7 @@ import (
 	"net/http"
 	"regexp"
 
-	"github.com/bmeg/grip/aql"
+	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/util/rpc"
 	"github.com/graphql-go/graphql"
 	"github.com/graphql-go/handler"
@@ -21,14 +21,14 @@ type graphHandler struct {
 	graph      string
 	gqlHandler *handler.Handler
 	timestamp  string
-	client     aql.Client
-	schema     *aql.GraphSchema
+	client     gripql.Client
+	schema     *gripql.GraphSchema
 }
 
 // Handler is a GraphQL endpoint to query the Grip database
 type Handler struct {
 	handlers map[string]*graphHandler
-	client   aql.Client
+	client   gripql.Client
 }
 
 // NewHTTPHandler initilizes a new GraphQLHandler
@@ -36,7 +36,7 @@ func NewHTTPHandler(rpcAddress, user, password string) (http.Handler, error) {
 	rpcConf := rpc.ConfigWithDefaults(rpcAddress)
 	rpcConf.User = user
 	rpcConf.Password = password
-	client, err := aql.Connect(rpcConf, false)
+	client, err := gripql.Connect(rpcConf, false)
 	if err != nil {
 		return nil, err
 	}
@@ -67,7 +67,7 @@ func (gh *Handler) ServeHTTP(writer http.ResponseWriter, request *http.Request) 
 }
 
 // newGraphHandler creates a new graphql handler from schema
-func newGraphHandler(graph string, client aql.Client) *graphHandler {
+func newGraphHandler(graph string, client gripql.Client) *graphHandler {
 	o := &graphHandler{
 		graph:  graph,
 		client: client,
@@ -189,7 +189,7 @@ func buildObject(name string, obj map[string]interface{}) (*graphql.Object, erro
 	), nil
 }
 
-func buildObjectMap(client aql.Client, graph string, schema *aql.GraphSchema) (map[string]*graphql.Object, error) {
+func buildObjectMap(client gripql.Client, graph string, schema *gripql.GraphSchema) (map[string]*graphql.Object, error) {
 	objects := map[string]*graphql.Object{}
 
 	for _, obj := range schema.Vertices {
@@ -217,8 +217,8 @@ func buildObjectMap(client aql.Client, graph string, schema *aql.GraphSchema) (m
 				if !ok {
 					return nil, fmt.Errorf("source gid conversion failed: %+v", srcMap)
 				}
-				q := aql.V(srcGid).Where(aql.Eq("_label", obj.From)).Out(obj.Label).Where(aql.Eq("_label", obj.To))
-				result, err := client.Traversal(&aql.GraphQuery{Graph: graph, Query: q.Statements})
+				q := gripql.V(srcGid).Where(gripql.Eq("_label", obj.From)).Out(obj.Label).Where(gripql.Eq("_label", obj.To))
+				result, err := client.Traversal(&gripql.GraphQuery{Graph: graph, Query: q.Statements})
 				if err != nil {
 					return nil, err
 				}
@@ -237,7 +237,7 @@ func buildObjectMap(client aql.Client, graph string, schema *aql.GraphSchema) (m
 	return objects, nil
 }
 
-func buildQueryObject(client aql.Client, graph string, objects map[string]*graphql.Object) *graphql.Object {
+func buildQueryObject(client gripql.Client, graph string, objects map[string]*graphql.Object) *graphql.Object {
 	queryFields := graphql.Fields{}
 
 	for objName, obj := range objects {
@@ -246,8 +246,8 @@ func buildQueryObject(client aql.Client, graph string, objects map[string]*graph
 			Name: objName,
 			Type: graphql.NewList(obj),
 			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-				q := aql.V().Where(aql.Eq("_label", label))
-				result, err := client.Traversal(&aql.GraphQuery{Graph: graph, Query: q.Statements})
+				q := gripql.V().Where(gripql.Eq("_label", label))
+				result, err := client.Traversal(&gripql.GraphQuery{Graph: graph, Query: q.Statements})
 				if err != nil {
 					return nil, err
 				}
@@ -273,7 +273,7 @@ func buildQueryObject(client aql.Client, graph string, objects map[string]*graph
 	return query
 }
 
-func buildGraphQLSchema(client aql.Client, graph string) (*graphql.Schema, error) {
+func buildGraphQLSchema(client gripql.Client, graph string) (*graphql.Schema, error) {
 	schema, err := client.GetSchema(graph)
 	if err != nil {
 		return nil, fmt.Errorf("GetSchema error: %v", err)

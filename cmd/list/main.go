@@ -3,7 +3,7 @@ package list
 import (
 	"fmt"
 
-	"github.com/bmeg/grip/aql"
+	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/util/rpc"
 	"github.com/spf13/cobra"
 )
@@ -17,7 +17,7 @@ var Cmd = &cobra.Command{
 	Long:  ``,
 	Args:  cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		conn, err := aql.Connect(rpc.ConfigWithDefaults(host), true)
+		conn, err := gripql.Connect(rpc.ConfigWithDefaults(host), true)
 		if err != nil {
 			return err
 		}

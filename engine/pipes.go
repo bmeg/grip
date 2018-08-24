@@ -8,7 +8,7 @@ import (
 	"context"
 	"log"
 
-	"github.com/bmeg/grip/aql"
+	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/protoutil"
 )
@@ -44,9 +44,9 @@ func Start(ctx context.Context, pipe gdbi.Pipeline, workdir string, bufsize int)
 }
 
 // Run starts a pipeline and converts the output to server output structures
-func Run(ctx context.Context, pipe gdbi.Pipeline, workdir string) <-chan *aql.QueryResult {
+func Run(ctx context.Context, pipe gdbi.Pipeline, workdir string) <-chan *gripql.QueryResult {
 	bufsize := 5000
-	resch := make(chan *aql.QueryResult, bufsize)
+	resch := make(chan *gripql.QueryResult, bufsize)
 	go func() {
 		defer close(resch)
 		dataType := pipe.DataType()
@@ -60,66 +60,66 @@ func Run(ctx context.Context, pipe gdbi.Pipeline, workdir string) <-chan *aql.Qu
 }
 
 // Convert takes a traveler and converts it to query output
-func Convert(dataType gdbi.DataType, markTypes map[string]gdbi.DataType, t *gdbi.Traveler) *aql.QueryResult {
+func Convert(dataType gdbi.DataType, markTypes map[string]gdbi.DataType, t *gdbi.Traveler) *gripql.QueryResult {
 	switch dataType {
 	case gdbi.VertexData:
-		return &aql.QueryResult{
-			Result: &aql.QueryResult_Vertex{
+		return &gripql.QueryResult{
+			Result: &gripql.QueryResult_Vertex{
 				Vertex: t.GetCurrent().ToVertex(),
 			},
 		}
 
 	case gdbi.EdgeData:
-		return &aql.QueryResult{
-			Result: &aql.QueryResult_Edge{
+		return &gripql.QueryResult{
+			Result: &gripql.QueryResult_Edge{
 				Edge: t.GetCurrent().ToEdge(),
 			},
 		}
 
 	case gdbi.CountData:
-		return &aql.QueryResult{
-			Result: &aql.QueryResult_Count{
+		return &gripql.QueryResult{
+			Result: &gripql.QueryResult_Count{
 				Count: t.Count,
 			},
 		}
 
 	case gdbi.SelectionData:
-		selections := map[string]*aql.Selection{}
+		selections := map[string]*gripql.Selection{}
 		for k, v := range t.Selections {
 			switch markTypes[k] {
 			case gdbi.VertexData:
-				selections[k] = &aql.Selection{
-					Result: &aql.Selection_Vertex{
+				selections[k] = &gripql.Selection{
+					Result: &gripql.Selection_Vertex{
 						Vertex: v.ToVertex(),
 					},
 				}
 			case gdbi.EdgeData:
-				selections[k] = &aql.Selection{
-					Result: &aql.Selection_Edge{
+				selections[k] = &gripql.Selection{
+					Result: &gripql.Selection_Edge{
 						Edge: v.ToEdge(),
 					},
 				}
 			}
 		}
-		return &aql.QueryResult{
-			Result: &aql.QueryResult_Selections{
-				Selections: &aql.Selections{
+		return &gripql.QueryResult{
+			Result: &gripql.QueryResult_Selections{
+				Selections: &gripql.Selections{
 					Selections: selections,
 				},
 			},
 		}
 
 	case gdbi.RenderData:
-		return &aql.QueryResult{
-			Result: &aql.QueryResult_Render{
+		return &gripql.QueryResult{
+			Result: &gripql.QueryResult_Render{
 				Render: protoutil.WrapValue(t.Render),
 			},
 		}
 
 	case gdbi.AggregationData:
-		return &aql.QueryResult{
-			Result: &aql.QueryResult_Aggregations{
-				Aggregations: &aql.NamedAggregationResult{
+		return &gripql.QueryResult{
+			Result: &gripql.QueryResult_Aggregations{
+				Aggregations: &gripql.NamedAggregationResult{
 					Aggregations: t.Aggregations,
 				},
 			},

@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/bmeg/grip/aql"
-	aqljs "github.com/bmeg/grip/aql/javascript"
+	"github.com/bmeg/grip/gripql"
+	gripqljs "github.com/bmeg/grip/gripql/javascript"
 	_ "github.com/bmeg/grip/jsengine/goja" // import goja so it registers with the driver map
 	_ "github.com/bmeg/grip/jsengine/otto" // import otto so it registers with the driver map
 	"github.com/bmeg/grip/jsengine/underscore"
@@ -23,7 +23,7 @@ var host = "localhost:8202"
 var Cmd = &cobra.Command{
 	Use:   "query <graph> <query expression>",
 	Short: "Query a graph",
-	Long: `Query a graph. 
+	Long: `Query a graph.
 Example:
     grip query example-graph 'V().where(eq("_label", "Variant")).out().limit(5)'`,
 	Args: cobra.ExactArgs(2),
@@ -38,11 +38,11 @@ Example:
 			return err
 		}
 
-		aqlString, err := aqljs.Asset("aql.js")
+		gripqlString, err := gripqljs.Asset("gripql.js")
 		if err != nil {
-			return fmt.Errorf("failed to load underscore.js")
+			return fmt.Errorf("failed to load gripql.js")
 		}
-		if _, err := vm.RunString(string(aqlString)); err != nil {
+		if _, err := vm.RunString(string(gripqlString)); err != nil {
 			return err
 		}
 
@@ -57,14 +57,14 @@ Example:
 			return err
 		}
 
-		query := aql.GraphQuery{}
+		query := gripql.GraphQuery{}
 		err = jsonpb.Unmarshal(strings.NewReader(string(queryJSON)), &query)
 		if err != nil {
 			return err
 		}
 		query.Graph = args[0]
 
-		conn, err := aql.Connect(rpc.ConfigWithDefaults(host), true)
+		conn, err := gripql.Connect(rpc.ConfigWithDefaults(host), true)
 		if err != nil {
 			return err
 		}

@@ -7,7 +7,7 @@ import (
 	"io/ioutil"
 	"log"
 
-	"github.com/bmeg/grip/aql"
+	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/cmd/load/example"
 	"github.com/bmeg/grip/util"
 	"github.com/bmeg/grip/util/rpc"
@@ -59,7 +59,7 @@ var Cmd = &cobra.Command{
 
 		graph = args[0]
 
-		conn, err := aql.Connect(rpc.ConfigWithDefaults(host), true)
+		conn, err := gripql.Connect(rpc.ConfigWithDefaults(host), true)
 		if err != nil {
 			return err
 		}
@@ -85,7 +85,7 @@ var Cmd = &cobra.Command{
 
 		log.Println("Loading data into graph:", graph)
 
-		elemChan := make(chan *aql.GraphElement)
+		elemChan := make(chan *gripql.GraphElement)
 		wait := make(chan bool)
 		go func() {
 			if err := conn.BulkAdd(elemChan); err != nil {
@@ -102,7 +102,7 @@ var Cmd = &cobra.Command{
 				if count%1000 == 0 {
 					log.Printf("Loaded %d vertices", count)
 				}
-				elemChan <- &aql.GraphElement{Graph: graph, Vertex: v}
+				elemChan <- &gripql.GraphElement{Graph: graph, Vertex: v}
 			}
 			log.Printf("Loaded %d vertices", count)
 
@@ -116,7 +116,7 @@ var Cmd = &cobra.Command{
 				if count%1000 == 0 {
 					log.Printf("Loaded %d edges", count)
 				}
-				elemChan <- &aql.GraphElement{Graph: graph, Edge: e}
+				elemChan <- &gripql.GraphElement{Graph: graph, Edge: e}
 			}
 			log.Printf("Loaded %d edges", count)
 		}
@@ -128,16 +128,16 @@ var Cmd = &cobra.Command{
 			if err != nil {
 				return err
 			}
-			g := &aql.Graph{}
+			g := &gripql.Graph{}
 			if err := m.Unmarshal(bytes.NewReader(content), g); err != nil {
 				return err
 			}
 			for _, v := range g.Vertices {
-				elemChan <- &aql.GraphElement{Graph: graph, Vertex: v}
+				elemChan <- &gripql.GraphElement{Graph: graph, Vertex: v}
 			}
 			log.Printf("Loaded %d vertices", len(g.Vertices))
 			for _, e := range g.Edges {
-				elemChan <- &aql.GraphElement{Graph: graph, Edge: e}
+				elemChan <- &gripql.GraphElement{Graph: graph, Edge: e}
 			}
 			log.Printf("Loaded %d edges", len(g.Edges))
 		}
@@ -157,16 +157,16 @@ var Cmd = &cobra.Command{
 			if err != nil {
 				return err
 			}
-			g := &aql.Graph{}
+			g := &gripql.Graph{}
 			if err := m.Unmarshal(bytes.NewReader(content), g); err != nil {
 				return err
 			}
 			for _, v := range g.Vertices {
-				elemChan <- &aql.GraphElement{Graph: graph, Vertex: v}
+				elemChan <- &gripql.GraphElement{Graph: graph, Vertex: v}
 			}
 			log.Printf("Loaded %d vertices", len(g.Vertices))
 			for _, e := range g.Edges {
-				elemChan <- &aql.GraphElement{Graph: graph, Edge: e}
+				elemChan <- &gripql.GraphElement{Graph: graph, Edge: e}
 			}
 			log.Printf("Loaded %d edges", len(g.Edges))
 		}

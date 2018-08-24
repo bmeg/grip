@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/bmeg/grip/aql"
+	"github.com/bmeg/grip/gripql"
 	_ "github.com/bmeg/grip/badgerdb" // import so badger will register itself
 	_ "github.com/bmeg/grip/boltdb"   // import so bolt will register itself
 	"github.com/bmeg/grip/config"
@@ -27,8 +27,8 @@ var configFile string
 var gdb gdbi.GraphDB
 var db gdbi.GraphInterface
 var dbname string
-var vertices = []*aql.Vertex{}
-var edges = []*aql.Edge{}
+var vertices = []*gripql.Vertex{}
+var edges = []*gripql.Edge{}
 
 func init() {
 	flag.StringVar(&configFile, "config", configFile, "config file to use for tests")

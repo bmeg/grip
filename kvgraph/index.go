@@ -7,7 +7,7 @@ import (
 	"math"
 	"strings"
 
-	"github.com/bmeg/grip/aql"
+	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/jsonpath"
 	"github.com/bmeg/grip/protoutil"
 	structpb "github.com/golang/protobuf/ptypes/struct"
@@ -35,7 +35,7 @@ func normalizePath(path string) string {
 	return path
 }
 
-func vertexIdxStruct(v *aql.Vertex) map[string]interface{} {
+func vertexIdxStruct(v *gripql.Vertex) map[string]interface{} {
 	//vertexField := fmt.Sprintf("v.%s", v.Label)
 	k := map[string]interface{}{
 		"label": v.Label,
@@ -61,16 +61,16 @@ func (kgdb *KVInterfaceGDB) DeleteVertexIndex(label string, field string) error 
 }
 
 //GetVertexIndexList lists out all the vertex indices for a graph
-func (kgdb *KVInterfaceGDB) GetVertexIndexList() chan aql.IndexID {
+func (kgdb *KVInterfaceGDB) GetVertexIndexList() chan gripql.IndexID {
 	log.Printf("Getting index list")
-	out := make(chan aql.IndexID)
+	out := make(chan gripql.IndexID)
 	go func() {
 		defer close(out)
 		fields := kgdb.kvg.idx.ListFields()
 		for _, f := range fields {
 			t := strings.Split(f, ".")
 			if len(t) > 3 {
-				a := aql.IndexID{Graph: kgdb.graph, Label: t[2], Field: t[3]}
+				a := gripql.IndexID{Graph: kgdb.graph, Label: t[2], Field: t[3]}
 				out <- a
 			}
 		}
@@ -96,10 +96,10 @@ func (kgdb *KVInterfaceGDB) VertexLabelScan(ctx context.Context, label string) c
 }
 
 //GetVertexTermAggregation get count of every term across vertices
-func (kgdb *KVInterfaceGDB) GetVertexTermAggregation(ctx context.Context, label string, field string, size uint32) (*aql.AggregationResult, error) {
+func (kgdb *KVInterfaceGDB) GetVertexTermAggregation(ctx context.Context, label string, field string, size uint32) (*gripql.AggregationResult, error) {
 	log.Printf("Running GetVertexTermAggregation: { label: %s, field: %s size: %v}", label, field, size)
-	out := &aql.AggregationResult{
-		Buckets: []*aql.AggregationResultBucket{},
+	out := &gripql.AggregationResult{
+		Buckets: []*gripql.AggregationResultBucket{},
 	}
 
 	namespace := jsonpath.GetNamespace(field)
@@ -115,7 +115,7 @@ func (kgdb *KVInterfaceGDB) GetVertexTermAggregation(ctx context.Context, label 
 		} else {
 			t = protoutil.WrapValue(tcount.Number)
 		}
-		out.SortedInsert(&aql.AggregationResultBucket{Key: t, Value: float64(tcount.Count)})
+		out.SortedInsert(&gripql.AggregationResultBucket{Key: t, Value: float64(tcount.Count)})
 		if size > 0 {
 			if len(out.Buckets) > int(size) {
 				out.Buckets = out.Buckets[:size]
@@ -127,10 +127,10 @@ func (kgdb *KVInterfaceGDB) GetVertexTermAggregation(ctx context.Context, label 
 }
 
 //GetVertexHistogramAggregation get binned counts of a term across vertices
-func (kgdb *KVInterfaceGDB) GetVertexHistogramAggregation(ctx context.Context, label string, field string, interval uint32) (*aql.AggregationResult, error) {
+func (kgdb *KVInterfaceGDB) GetVertexHistogramAggregation(ctx context.Context, label string, field string, interval uint32) (*gripql.AggregationResult, error) {
 	log.Printf("Running GetVertexHistogramAggregation: { label: %s, field: %s interval: %v }", label, field, interval)
-	out := &aql.AggregationResult{
-		Buckets: []*aql.AggregationResultBucket{},
+	out := &gripql.AggregationResult{
+		Buckets: []*gripql.AggregationResultBucket{},
 	}
 
 	namespace := jsonpath.GetNamespace(field)
@@ -148,17 +148,17 @@ func (kgdb *KVInterfaceGDB) GetVertexHistogramAggregation(ctx context.Context, l
 		for tcount := range kgdb.kvg.idx.FieldTermNumberRange(fmt.Sprintf("%s.v.%s.%s", kgdb.graph, label, field), bucket, bucket+i) {
 			count += tcount.Count
 		}
-		out.Buckets = append(out.Buckets, &aql.AggregationResultBucket{Key: protoutil.WrapValue(bucket), Value: float64(count)})
+		out.Buckets = append(out.Buckets, &gripql.AggregationResultBucket{Key: protoutil.WrapValue(bucket), Value: float64(count)})
 	}
 
 	return out, nil
 }
 
 //GetVertexPercentileAggregation get percentiles of a term across vertices
-func (kgdb *KVInterfaceGDB) GetVertexPercentileAggregation(ctx context.Context, label string, field string, percents []float64) (*aql.AggregationResult, error) {
+func (kgdb *KVInterfaceGDB) GetVertexPercentileAggregation(ctx context.Context, label string, field string, percents []float64) (*gripql.AggregationResult, error) {
 	log.Printf("Running GetVertexPercentileAggregation: { label: %s, field: %s percents: %v }", label, field, percents)
-	out := &aql.AggregationResult{
-		Buckets: []*aql.AggregationResultBucket{},
+	out := &gripql.AggregationResult{
+		Buckets: []*gripql.AggregationResultBucket{},
 	}
 
 	namespace := jsonpath.GetNamespace(field)
@@ -173,7 +173,7 @@ func (kgdb *KVInterfaceGDB) GetVertexPercentileAggregation(ctx context.Context, 
 	}
 	for _, p := range percents {
 		q := td.Quantile(p / 100)
-		out.Buckets = append(out.Buckets, &aql.AggregationResultBucket{Key: protoutil.WrapValue(p), Value: q})
+		out.Buckets = append(out.Buckets, &gripql.AggregationResultBucket{Key: protoutil.WrapValue(p), Value: q})
 	}
 
 	return out, nil

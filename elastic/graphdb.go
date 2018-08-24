@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bmeg/grip/aql"
+	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/timestamp"
 	elastic "gopkg.in/olivere/elastic.v5"
@@ -35,7 +35,7 @@ type GraphDB struct {
 func NewGraphDB(conf Config) (gdbi.GraphDB, error) {
 	log.Printf("Starting Elastic Driver")
 	database := strings.ToLower(conf.DBName)
-	err := aql.ValidateGraphName(database)
+	err := gripql.ValidateGraphName(database)
 	if err != nil {
 		return nil, fmt.Errorf("invalid database name: %v", err)
 	}
@@ -165,7 +165,7 @@ func (es *GraphDB) setupIndices(ctx context.Context, graph string) error {
 
 // AddGraph adds a new graph to the graphdb
 func (es *GraphDB) AddGraph(graph string) error {
-	err := aql.ValidateGraphName(graph)
+	err := gripql.ValidateGraphName(graph)
 	if err != nil {
 		return err
 	}
@@ -213,6 +213,6 @@ func (es *GraphDB) Graph(graph string) (gdbi.GraphInterface, error) {
 }
 
 // GetSchema returns the schema of a specific graph in the database
-func (es *GraphDB) GetSchema(ctx context.Context, graph string, sampleN uint32) (*aql.GraphSchema, error) {
+func (es *GraphDB) GetSchema(ctx context.Context, graph string, sampleN uint32) (*gripql.GraphSchema, error) {
 	return nil, fmt.Errorf("not implemented")
 }

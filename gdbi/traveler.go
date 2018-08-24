@@ -1,7 +1,7 @@
 package gdbi
 
 import (
-	"github.com/bmeg/grip/aql"
+	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/protoutil"
 )
 
@@ -59,8 +59,8 @@ func (t *Traveler) GetCurrent() *DataElement {
 }
 
 // ToVertex converts data element to vertex
-func (elem *DataElement) ToVertex() *aql.Vertex {
-	return &aql.Vertex{
+func (elem *DataElement) ToVertex() *gripql.Vertex {
+	return &gripql.Vertex{
 		Gid:   elem.ID,
 		Label: elem.Label,
 		Data:  protoutil.AsStruct(elem.Data),
@@ -68,8 +68,8 @@ func (elem *DataElement) ToVertex() *aql.Vertex {
 }
 
 // ToEdge converts data element to edge
-func (elem *DataElement) ToEdge() *aql.Edge {
-	return &aql.Edge{
+func (elem *DataElement) ToEdge() *gripql.Edge {
+	return &gripql.Edge{
 		Gid:   elem.ID,
 		From:  elem.From,
 		To:    elem.To,

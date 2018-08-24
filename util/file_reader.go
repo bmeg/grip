@@ -5,15 +5,15 @@ import (
 	"io"
 	"log"
 
-	"github.com/bmeg/grip/aql"
+	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/golib"
 	"github.com/golang/protobuf/jsonpb"
 )
 
 // StreamVerticesFromFile reads a file containing a vertex per line and
-// streams *aql.Vertex objects out on a channel
-func StreamVerticesFromFile(file string) chan *aql.Vertex {
-	vertChan := make(chan *aql.Vertex, 100)
+// streams *gripql.Vertex objects out on a channel
+func StreamVerticesFromFile(file string) chan *gripql.Vertex {
+	vertChan := make(chan *gripql.Vertex, 100)
 
 	go func() {
 		defer close(vertChan)
@@ -26,7 +26,7 @@ func StreamVerticesFromFile(file string) chan *aql.Vertex {
 
 		m := jsonpb.Unmarshaler{AllowUnknownFields: true}
 		for line := range reader {
-			v := &aql.Vertex{}
+			v := &gripql.Vertex{}
 			err := m.Unmarshal(bytes.NewReader(line), v)
 			if err == io.EOF {
 				break
@@ -43,9 +43,9 @@ func StreamVerticesFromFile(file string) chan *aql.Vertex {
 }
 
 // StreamEdgesFromFile reads a file containing an edge per line and
-// streams aql.Edge objects on a channel
-func StreamEdgesFromFile(file string) chan *aql.Edge {
-	edgeChan := make(chan *aql.Edge, 100)
+// streams gripql.Edge objects on a channel
+func StreamEdgesFromFile(file string) chan *gripql.Edge {
+	edgeChan := make(chan *gripql.Edge, 100)
 
 	go func() {
 		defer close(edgeChan)
@@ -58,7 +58,7 @@ func StreamEdgesFromFile(file string) chan *aql.Edge {
 
 		m := jsonpb.Unmarshaler{AllowUnknownFields: true}
 		for line := range reader {
-			e := &aql.Edge{}
+			e := &gripql.Edge{}
 			err := m.Unmarshal(bytes.NewReader(line), e)
 			if err == io.EOF {
 				break
