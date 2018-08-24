@@ -2,7 +2,7 @@ Database: mongo
 
 Server:
   HTTPPort: 80
-  ContentDir: /usr/share/arachne
+  ContentDir: /usr/share/grip
 MongoDB:
   URL: localhost
   DBName: arachne
