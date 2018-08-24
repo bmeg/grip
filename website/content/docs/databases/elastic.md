@@ -9,7 +9,7 @@ menu:
 
 # Elasticsearch
 
-Arachne supports storing vertices and edges in [Elasticsearch][elastic].
+GRIP supports storing vertices and edges in [Elasticsearch][elastic].
 
 Config:
 
@@ -18,7 +18,7 @@ Database: elasticsearch
 
 Elasticsearch:
   URL: "http://localhost:9200"
-  DBName: "arachnedb"
+  DBName: "gripdb"
   Username: ""
   Password: ""
 ```

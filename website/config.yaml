@@ -1,17 +1,16 @@
-baseURL: https://docs.bmeg.io/arachne
+baseURL: https://docs.bmeg.io/grip
 canonifyURLs: true
 languageCode: en-us
-title: Arachne
+title: GRIP
 publishDir: ../docs
 menu:
   main:
     - name: API
       parent: Developers
-      url: https://github.com/bmeg/arachne/blob/master/aql/aql.proto
+      url: https://github.com/bmeg/grip/blob/master/gripql/gripql.proto
       weight: -100
 
     - name: GoDoc
       parent: Developers
-      url: https://godoc.org/github.com/bmeg/arachne
+      url: https://godoc.org/github.com/bmeg/grip
       weight: 100
-

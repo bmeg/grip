@@ -6,8 +6,8 @@ menu:
     weight: 5
 ---
 
-Several operations (where, fields, render, etc.) reference properties of the vertices/edges during the traversal. 
-Arachne uses a variation on JSONPath syntax as described in http://goessner.net/articles/ to reference fields during traversals.
+Several operations (where, fields, render, etc.) reference properties of the vertices/edges during the traversal.
+GRIP uses a variation on JSONPath syntax as described in http://goessner.net/articles/ to reference fields during traversals.
 
 The following query:
 
@@ -55,7 +55,7 @@ as "gene" and traverses the graph to:
 }
 ```
 
-Below is a table of field and the values they would reference in subsequent traversal operations. 
+Below is a table of field and the values they would reference in subsequent traversal operations.
 
 | jsonpath                   | result               |
 | :------------------------- | :------------------- |

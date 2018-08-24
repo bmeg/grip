@@ -9,11 +9,11 @@ menu:
 
 # SQL
 
-Arachne supports modeling an existing SQL database as a graph. Arachne has been tested against [PostgreSQL][psql], but should  work with
+GRIP supports modeling an existing SQL database as a graph. GRIP has been tested against [PostgreSQL][psql], but should  work with
 [MySQL][sql] (4.1+) and [MariaDB][maria].
 
-Since Arachne uses Go's `database/sql` package, we could (in thoery) support any SQL databases listed on: 
-https://github.com/golang/go/wiki/SQLDrivers. Open an [issue](https://github.com/bmeg/arachne/issues/new) if you 
+Since GRIP uses Go's `database/sql` package, we could (in thoery) support any SQL databases listed on:
+https://github.com/golang/go/wiki/SQLDrivers. Open an [issue](https://github.com/bmeg/grip/issues/new) if you
 would like to request support for your favorite SQL database.
 
 ## Configuration Notes
@@ -24,19 +24,19 @@ to documentation for this field for each supported driver:
   * PostgreSQL - https://godoc.org/github.com/lib/pq#hdr-Connection_String_Parameters
   * MySQL, Mariadb - https://github.com/go-sql-driver/mysql/#dsn-data-source-name
 
-* `Driver` should be one of: `postgres` or `mysql` (for MySQL or MariaDB). 
+* `Driver` should be one of: `postgres` or `mysql` (for MySQL or MariaDB).
 
 * `Graphs` is a list of graphs you want to define using the existing tables in the database. For each entry:
 
   * `Graph` is the name of the graph you want to define
-  * `Vertices` is a list of entries, each of which binds a table to a vertex `label` and defines which field in the table to use as the `gid`. 
+  * `Vertices` is a list of entries, each of which binds a table to a vertex `label` and defines which field in the table to use as the `gid`.
   The remaining columns in the table are treated as the `data` associated with the vertex.
-  * `Edges` is a list of entries. Edge entries may be associate an edge `label` with a table, but they are not required to. 
-  See below for examples of both types of edge definitions. 
+  * `Edges` is a list of entries. Edge entries may be associate an edge `label` with a table, but they are not required to.
+  See below for examples of both types of edge definitions.
 
 ## Example
 
-Given the following example database: https://github.com/bmeg/arachne/blob/master/test/resources/postgres_smtest_data.dump
+Given the following example database: https://github.com/bmeg/grip/blob/master/test/resources/postgres_smtest_data.dump
 
 Load this dump file into your own postgres instance by running:
 
@@ -45,7 +45,7 @@ createdb --host localhost --port 15432 -U postgres smtest
 psql --host localhost --port 15432 -U postgres smtest < postgres_smtest_data.dump
 ```
 
-Arachne Configuration:
+GRIP Configuration:
 
 ```yaml
 Database: sql
