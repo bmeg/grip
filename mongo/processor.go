@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/gdbi"
+	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/protoutil"
 	"github.com/globalsign/mgo/bson"
 	structpb "github.com/golang/protobuf/ptypes/struct"

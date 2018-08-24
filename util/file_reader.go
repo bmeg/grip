@@ -5,8 +5,8 @@ import (
 	"io"
 	"log"
 
-	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/golib"
+	"github.com/bmeg/grip/gripql"
 	"github.com/golang/protobuf/jsonpb"
 )
 

@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/engine/core"
 	"github.com/bmeg/grip/gdbi"
+	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/kvi"
 	"github.com/bmeg/grip/util"
 	proto "github.com/golang/protobuf/proto"

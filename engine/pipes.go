@@ -8,8 +8,8 @@ import (
 	"context"
 	"log"
 
-	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/gdbi"
+	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/protoutil"
 )
 

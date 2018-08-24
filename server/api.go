@@ -6,8 +6,8 @@ import (
 	"log"
 	"time"
 
-	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/engine"
+	"github.com/bmeg/grip/gripql"
 	"golang.org/x/net/context"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"

@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/badgerdb"
 	"github.com/bmeg/grip/engine"
+	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/kvgraph"
 )
 
