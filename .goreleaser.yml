@@ -1,5 +1,5 @@
 builds:
-  - binary: arachne
+  - binary: grip
     goos:
       - darwin
       - linux
@@ -8,11 +8,11 @@ builds:
     env:
       - CGO_ENABLED=0
     ldflags: >
-      -X github.com/bmeg/arachne/version.BuildDate={{.Date}}
-      -X github.com/bmeg/arachne/version.GitCommit={{.Commit}}
-      -X github.com/bmeg/arachne/version.GitBranch={{.Env.GIT_BRANCH}}
-      -X github.com/bmeg/arachne/version.GitUpstream={{.Env.GIT_UPSTREAM}}
-      -X github.com/bmeg/arachne/version.Version={{.Version}}
+      -X github.com/bmeg/grip/version.BuildDate={{.Date}}
+      -X github.com/bmeg/grip/version.GitCommit={{.Commit}}
+      -X github.com/bmeg/grip/version.GitBranch={{.Env.GIT_BRANCH}}
+      -X github.com/bmeg/grip/version.GitUpstream={{.Env.GIT_UPSTREAM}}
+      -X github.com/bmeg/grip/version.Version={{.Version}}
 
 dist: build/release
 
