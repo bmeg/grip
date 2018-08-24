@@ -11,8 +11,8 @@ services:
 cache:
   directories:
     - $GOPATH/pkg
-    - $GOPATH/src/github.com/bmeg/arachne/.git/modules
-    - $GOPATH/src/github.com/bmeg/arachne/vendor
+    - $GOPATH/src/github.com/bmeg/grip/.git/modules
+    - $GOPATH/src/github.com/bmeg/grip/vendor
 
 git:
   submodules: false
@@ -20,7 +20,7 @@ git:
 install:
   - make depends
   - make
-  - sudo pip install -U numpy 
+  - sudo pip install -U numpy
   - sudo pip install -U requests
 
 jobs:
@@ -35,14 +35,14 @@ jobs:
       env:
         - n=tests
     - script:
-        - arachne server --rpc-port 18202 --http-port 18201 --config ./test/badger.yml &
+        - grip server --rpc-port 18202 --http-port 18201 --config ./test/badger.yml &
         - sleep 5
         - make test-conformance
         - go test ./test
       env:
         - n=badger
     - script:
-        - arachne server --rpc-port 18202 --http-port 18201 --config ./test/bolt.yml &
+        - grip server --rpc-port 18202 --http-port 18201 --config ./test/bolt.yml &
         - sleep 5
         - make test-conformance
         - go test ./test -config bolt.yml
@@ -66,7 +66,7 @@ jobs:
         - popd
 
         - make with-rocksdb
-        - arachne server --rpc-port 18202 --http-port 18201 --config ./test/rocks.yml &
+        - grip server --rpc-port 18202 --http-port 18201 --config ./test/rocks.yml &
         - sleep 5
         - make test-conformance
         - go test ./test -tags rocksdb -config rocks.yml
@@ -74,7 +74,7 @@ jobs:
       env:
         - n=rocksdb
     - script:
-        - arachne server --rpc-port 18202 --http-port 18201 --config ./test/level.yml &
+        - grip server --rpc-port 18202 --http-port 18201 --config ./test/level.yml &
         - sleep 5
         - make test-conformance
         - go test ./test -config level.yml
@@ -83,7 +83,7 @@ jobs:
     - script:
         - make start-mongo
         - sleep 15
-        - arachne server --rpc-port 18202 --http-port 18201 --config ./test/mongo.yml &
+        - grip server --rpc-port 18202 --http-port 18201 --config ./test/mongo.yml &
         - sleep 5
         - make test-conformance
         - go test ./test -config mongo.yml
@@ -93,7 +93,7 @@ jobs:
     - script:
         - make start-elastic
         - sleep 15
-        - arachne server --rpc-port 18202 --http-port 18201 --config ./test/elastic.yml &
+        - grip server --rpc-port 18202 --http-port 18201 --config ./test/elastic.yml &
         - sleep 5
         - make test-conformance
         - go test ./test -config elastic.yml
