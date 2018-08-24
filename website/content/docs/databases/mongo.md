@@ -9,7 +9,7 @@ menu:
 
 # MongoDB
 
-Arachne supports storing vertices and edges in [MongoDB][mongo].
+GRIP supports storing vertices and edges in [MongoDB][mongo].
 
 Config:
 
@@ -18,7 +18,7 @@ Database: mongodb
 
 MongoDB:
   URL: "localhost:27017"
-  DBName: "arachnedb"
+  DBName: "gripdb"
   Username: ""
   Password: ""
 ```

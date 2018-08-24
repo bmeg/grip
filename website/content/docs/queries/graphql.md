@@ -8,7 +8,7 @@ menu:
 
 # GraphQL
 
-Arachne supports GraphQL access of the property graphs. Currently this is read-only access to the graph. 
+GRIP supports GraphQL access of the property graphs. Currently this is read-only access to the graph.
 
 **_GraphQL access is only supported when using the MongoDB driver_**
 
@@ -17,19 +17,19 @@ Arachne supports GraphQL access of the property graphs. Currently this is read-o
 Loading the example data and the example schema:
 
 ```
-arachne load example-graph
+grip load example-graph
 ```
 
 See the example graph
 
 ```
-arachne dump example-graph --vertex --edge
+grip dump example-graph --vertex --edge
 ```
 
 See the example graph schema
 
 ```
-arachne schema example-graph
+grip schema example-graph
 ```
 
 ### Example queries

@@ -2,7 +2,7 @@
 {{ partial "head.html" . }}
 
 <div class="homepage-lead"><div class="homepage-lead-container">
-  <p>Arachne is a graph database engine.</p>
+  <p>GRaph Integration Platform (GRIP)</p>
   <a href="{{ .Site.BaseURL }}/download" class="download-button">Download</a>
   <a href="{{ .Site.BaseURL }}/docs" class="docs-button">Documentation</a>
 </div></div>
@@ -14,7 +14,7 @@
     <div class="section group">
 
     </div>
-     
+
   </div>
 
   <div class="homepage-demo">
@@ -22,11 +22,11 @@
 
       <div class="section group">
         <div class="col span_3_of_12">
-          <h1>Start an Arachne server</h1>
+          <h1>Start an GRIP server</h1>
         </div>
 
         <div class="col span_9_of_12">
-          <pre><code class="language-shell">$ arachne server --config arachne.yml</code></pre>
+          <pre><code class="language-shell">$ grip server --config grip.yml</code></pre>
         </div>
       </div>
 
@@ -36,7 +36,7 @@
         </div>
 
         <div class="col span_9_of_12">
-          <pre><code class="language-shell">$ arachne list</code></pre>
+          <pre><code class="language-shell">$ grip list</code></pre>
         </div>
       </div>
 
@@ -46,7 +46,7 @@
         </div>
 
         <div class="col span_9_of_12">
-          <pre><code class="language-shell">$ arachne create example</code></pre>
+          <pre><code class="language-shell">$ grip create example</code></pre>
         </div>
       </div>
 
@@ -56,7 +56,7 @@
         </div>
 
         <div class="col span_9_of_12">
-          <pre><code class="language-shell">$ arachne drop example</code></pre>
+          <pre><code class="language-shell">$ grip drop example</code></pre>
         </div>
       </div>
 
@@ -66,7 +66,7 @@
         </div>
 
         <div class="col span_9_of_12">
-          <pre><code class="language-shell">$ arachne load example --edge edges.txt --vertex vertices.txt</code></pre>
+          <pre><code class="language-shell">$ grip load example --edge edges.txt --vertex vertices.txt</code></pre>
         </div>
       </div>
 
@@ -76,7 +76,7 @@
         </div>
 
         <div class="col span_9_of_12">
-          <pre><code class="language-shell">$ arachne query example 'V().where(eq("_label", "users"))'</code></pre>
+          <pre><code class="language-shell">$ grip query example 'V().where(eq("_label", "users"))'</code></pre>
         </div>
       </div>
 
@@ -86,7 +86,7 @@
         </div>
 
         <div class="col span_9_of_12">
-          <pre><code class="language-shell">$ arachne info example</code></pre>
+          <pre><code class="language-shell">$ grip info example</code></pre>
         </div>
       </div>
 
@@ -96,7 +96,7 @@
         </div>
 
         <div class="col span_9_of_12">
-          <pre><code class="language-shell">$ arachne schema example</code></pre>
+          <pre><code class="language-shell">$ grip schema example</code></pre>
         </div>
       </div>
 
@@ -106,7 +106,7 @@
         </div>
 
         <div class="col span_9_of_12">
-          <pre><code class="language-shell">$ arachne dump example --vertex</code></pre>
+          <pre><code class="language-shell">$ grip dump example --vertex</code></pre>
         </div>
       </div>
 
@@ -115,21 +115,21 @@
   <div class="homepage-more">
 
     <div class="section group">
-      
+
       <div class="col span_4_of_12">
         <h3>Drop in for a chat.</h3>
-        <p>Join the <a href="https://gitter.im/bmeg/arachne">Gitter channel</a>.</p>
+        <p>Join the <a href="https://gitter.im/bmeg/grip">Gitter channel</a>.</p>
       </div>
-      
+
       <div class="col span_4_of_12">
         <h3>Get the code.</h3>
-        <p>Head over to <a href="https://github.com/bmeg/arachne">GitHub</a> and dig in.</p>
+        <p>Head over to <a href="https://github.com/bmeg/grip">GitHub</a> and dig in.</p>
       </div>
 
       <div class="col span_4_of_12">
         <h3>Give feedback.</h3>
         <p>
-          <a href="https://github.com/bmeg/arachne/issues">Let us know</a> what you think.</p>
+          <a href="https://github.com/bmeg/grip/issues">Let us know</a> what you think.</p>
       </div>
 
     </div>

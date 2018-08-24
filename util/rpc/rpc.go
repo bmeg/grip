@@ -30,8 +30,8 @@ type Config struct {
 // ConfigWithDefaults returns a gRPC client config with default values set
 func ConfigWithDefaults(serverAddress string) Config {
 	return Config{
-		User:          os.Getenv("ARACHNE_USER"),
-		Password:      os.Getenv("ARACHNE_PASSWORD"),
+		User:          os.Getenv("GRIP_USER"),
+		Password:      os.Getenv("GRIP_PASSWORD"),
 		ServerAddress: serverAddress,
 		Timeout:       30 * time.Second,
 		MaxRetries:    10,

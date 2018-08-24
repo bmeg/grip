@@ -8,21 +8,21 @@ menu:
 
 # Getting Started
 
-Arachne has an API for making graph queries using structured data. Queries are defined using a series of step [operations](/docs/queries/operations)).
+GRIP has an API for making graph queries using structured data. Queries are defined using a series of step [operations](/docs/queries/operations)).
 
 ## Install the Python Client
 
 ```python
-pip install "git+https://github.com/bmeg/arachne.git#subdirectory=aql/python"
+pip install "git+https://github.com/bmeg/grip.git#subdirectory=gripql/python"
 ```
 
 Let's go through the features currently supported in the python client.
 
-First, import the client and create a connection to an Arachne server:
+First, import the client and create a connection to an GRIP server:
 
 ```python
-import aql
-conn = aql.Connection('http://bmeg.io')
+import gripql
+conn = gripql.Connection('http://bmeg.io')
 O = conn.graph("bmeg")
 ```
 
@@ -31,10 +31,10 @@ Now that we have a connection to a graph instance, we can use this to make all o
 One of the first things you probably want to do is find some vertex out of all of the vertexes available in the system. In order to do this, we need to know something about the vertex we are looking for. To start, let's see if we can find a specific gene:
 
 ```python
-print list(O.query().V().where(aql.eq("_label", "Gene")).where(aql.eq("symbol", "TP53")))
+print list(O.query().V().where(gripql.eq("_label", "Gene")).where(gripql.eq("symbol", "TP53")))
 ```
 
-A couple things about this first and simplest query. We start with `O`, our arachne client instance connected to the "bmeg" graph, and create a new query with `.query()`. This query is now being constructed. You can chain along as many operations as you want, and nothing will actually get sent to the server until you print the results.
+A couple things about this first and simplest query. We start with `O`, our grip client instance connected to the "bmeg" graph, and create a new query with `.query()`. This query is now being constructed. You can chain along as many operations as you want, and nothing will actually get sent to the server until you print the results.
 
 Once we make this query, we get a result:
 
@@ -61,10 +61,10 @@ This represents the vertex we queried for above. All vertexes in the system will
 * _label_: The label represents the type of the vertex. All vertexes with a given label will share many property keys and edge labels, and form a logical group within the system.
 * _data_: This is where all the data goes. `data` can be an arbitrary map, and these properties can be referenced during traversals.
 
-You can also do a `where` query with a list of items using `aql.in_([...])` (other conditions exist, see the `Conditions` section below):
+You can also do a `where` query with a list of items using `gripql.in_([...])` (other conditions exist, see the `Conditions` section below):
 
 ```python
-print list(O.query().V().where(aql.eq("_label", "Gene")).where(aql.in_("symbol", ["TP53", "BRCA1"])).render({"gid": "_gid", "symbol":"symbol"}))
+print list(O.query().V().where(gripql.eq("_label", "Gene")).where(gripql.in_("symbol", ["TP53", "BRCA1"])).render({"gid": "_gid", "symbol":"symbol"}))
 ```
 
 This returns both Gene vertexes:
@@ -83,7 +83,7 @@ Edges in the graph are directional, so there are both incoming and outgoing edge
 Starting with gene TP53, and see what kind of other vertexes it is connected to.
 
 ```python
-O.query().V().where(aql.eq("_label", "Gene")).where(aql.eq("symbol", "TP53"))
+O.query().V().where(gripql.eq("_label", "Gene")).where(gripql.eq("symbol", "TP53"))
 ```
 
 Here we have introduced a couple of new steps. The first is `.out()`. This starts from wherever you are in the graph at the moment and travels out along all the outgoing edges.

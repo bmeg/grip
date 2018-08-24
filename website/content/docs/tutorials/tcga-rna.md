@@ -12,7 +12,7 @@ menu:
 Create the graph
 
 ```
-arachne create tcga-rna
+grip create tcga-rna
 ```
 
 Get the data
@@ -54,12 +54,12 @@ Load Mutation Information
 Load Proneural samples into a matrix
 ```python
 import pandas
-import aql
+import gripql
 
-conn = aql.Connection("http://localhost:8201")
+conn = gripql.Connection("http://localhost:8201")
 O = conn.graph("tcga-rna")
 genes = {}
-for k, v in O.query().V().where(aql.eq("_label", "Gene")).render(["_gid", "Hugo_Symbol"]):
+for k, v in O.query().V().where(gripql.eq("_label", "Gene")).render(["_gid", "Hugo_Symbol"]):
     genes[k] = v
 data = {}
 for row in O.query().V("Proneural").in_().out("rna").render(["_gid", "_data"]):
