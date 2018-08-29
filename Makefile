@@ -42,13 +42,13 @@ with-rocksdb: depends
 # Complile Protobuf Schemas
 # --------------------------
 proto:
-	@go get github.com/ckaznocha/protoc-gen-lint
 	@cd gripql && protoc \
 		-I ./ \
 		-I ../googleapis \
 		--lint_out=. \
 		--go_out=Mgoogle/protobuf/struct.proto=github.com/golang/protobuf/ptypes/struct,plugins=grpc:. \
 		--grpc-gateway_out=logtostderr=true:. \
+		--grcp-rest-direct_out=. \
 		gripql.proto
 	@cd kvindex && protoc \
 		-I ./ \
@@ -59,6 +59,8 @@ proto-depends:
 	@go get github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway
 	@go get github.com/golang/protobuf/protoc-gen-go
 	@go get github.com/ckaznocha/protoc-gen-lint
+	@go get github.com/bmeg/protoc-gen-grcp-rest-direct
+
 
 # ---------------------
 # Code Style
