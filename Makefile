@@ -67,7 +67,7 @@ proto-depends:
 # ---------------------
 # Automatially update code formatting
 tidy:
-	@for f in $$(find . -path ./vendor -prune -o -name "*.go" -print | egrep -v "\.pb\.go|\.gw\.go|underscore\.go"); do \
+	@for f in $$(find . -path ./vendor -prune -o -name "*.go" -print | egrep -v "\.pb\.go|\.gw\.go|\.dgw\.go|underscore\.go"); do \
 		gofmt -w -s $$f ;\
 		goimports -w $$f ;\
 	done;
@@ -78,7 +78,7 @@ lint:
 	@gometalinter --install > /dev/null
 	@gometalinter --disable-all --enable=vet --enable=golint --enable=gofmt --enable=misspell \
 		--vendor \
-		-e '.*bundle.go' -e ".*pb.go" -e ".*pb.gw.go" -e "underscore.go" \
+		-e '.*bundle.go' -e ".*pb.go" -e ".*pb.gw.go" -e ".*pb.dgw.go" -e "underscore.go" \
 		./...
 
 # ---------------------
