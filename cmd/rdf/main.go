@@ -8,12 +8,57 @@ import (
 
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/util/rpc"
+	"github.com/golang/protobuf/jsonpb"
 	"github.com/knakk/rdf"
 	"github.com/spf13/cobra"
 )
 
 var host = "localhost:8202"
+var dump = ""
 var graph string
+var gzipInput bool
+
+type emitter interface {
+	AddVertex(string, *gripql.Vertex) error
+	AddEdge(string, *gripql.Edge) error
+	Close()
+}
+
+type fileEmitter struct {
+	vertexHandle io.WriteCloser
+	edgeHandle   io.WriteCloser
+	jm           jsonpb.Marshaler
+}
+
+func (fe fileEmitter) AddVertex(graph string, v *gripql.Vertex) error {
+	err := fe.jm.Marshal(fe.vertexHandle, v)
+	if err != nil {
+		return err
+	}
+	fe.vertexHandle.Write([]byte("\n"))
+	return nil
+}
+
+func (fe fileEmitter) AddEdge(graph string, e *gripql.Edge) error {
+	err := fe.jm.Marshal(fe.edgeHandle, e)
+	if err != nil {
+		return err
+	}
+	fe.edgeHandle.Write([]byte("\n"))
+	return nil
+}
+
+func (fe fileEmitter) Close() {
+	fe.vertexHandle.Close()
+	fe.edgeHandle.Close()
+}
+
+func newFileEmitter(path string) emitter {
+	vertexFile, _ := os.Create(path + ".vertex.json")
+	edgeFile, _ := os.Create(path + ".edge.json")
+	jm := jsonpb.Marshaler{}
+	return fileEmitter{vertexFile, edgeFile, jm}
+}
 
 //LoadRDFCmd is the main command line for loading RDF data
 func LoadRDFCmd(cmd *cobra.Command, args []string) error {
@@ -25,23 +70,35 @@ func LoadRDFCmd(cmd *cobra.Command, args []string) error {
 		log.Printf("Error: %s", err)
 		os.Exit(1)
 	}
-	conn, err := gripql.Connect(rpc.ConfigWithDefaults(host), true)
-	if err != nil {
-		log.Printf("%s", err)
-		os.Exit(1)
+	var reader io.Reader
+	if gzipInput {
+		fz, _ := gzip.NewReader(f)
+		reader = fz
+	} else {
+		reader = f
+	}
+
+	var emit emitter
+	if dump == "" {
+		conn, err := gripql.Connect(rpc.ConfigWithDefaults(host), true)
+		if err != nil {
+			log.Printf("%s", err)
+			os.Exit(1)
+		}
+		emit = conn
+	} else {
+		emit = newFileEmitter(dump)
 	}
 
 	vertMap := map[string]int{}
-
 	count := 0
-	fz, _ := gzip.NewReader(f)
-	dec := rdf.NewTripleDecoder(fz, rdf.RDFXML)
+	dec := rdf.NewTripleDecoder(reader, rdf.RDFXML)
 	var curVertex *gripql.Vertex
 	curSubj := ""
 	for triple, err := dec.Decode(); err != io.EOF; triple, err = dec.Decode() {
 		subj := triple.Subj.String()
 		if subj != curSubj && curVertex != nil {
-			err := conn.AddVertex(graph, curVertex)
+			err := emit.AddVertex(graph, curVertex)
 			if err != nil {
 				return err
 			}
@@ -49,7 +106,7 @@ func LoadRDFCmd(cmd *cobra.Command, args []string) error {
 		}
 		curSubj = subj
 		if _, ok := vertMap[subj]; !ok {
-			err := conn.AddVertex(graph, &gripql.Vertex{Gid: subj})
+			err := emit.AddVertex(graph, &gripql.Vertex{Gid: subj})
 			if err != nil {
 				return err
 			}
@@ -63,13 +120,13 @@ func LoadRDFCmd(cmd *cobra.Command, args []string) error {
 		} else {
 			obj := triple.Obj.String()
 			if _, ok := vertMap[obj]; !ok {
-				err := conn.AddVertex(graph, &gripql.Vertex{Gid: obj})
+				err := emit.AddVertex(graph, &gripql.Vertex{Gid: obj})
 				if err != nil {
 					return err
 				}
 				vertMap[obj] = 1
 			}
-			err := conn.AddEdge(graph, &gripql.Edge{From: subj, To: obj, Label: triple.Pred.String()})
+			err := emit.AddEdge(graph, &gripql.Edge{From: subj, To: obj, Label: triple.Pred.String()})
 			if err != nil {
 				return err
 			}
@@ -80,11 +137,12 @@ func LoadRDFCmd(cmd *cobra.Command, args []string) error {
 		count++
 	}
 	if curVertex != nil {
-		err := conn.AddVertex(graph, curVertex)
+		err := emit.AddVertex(graph, curVertex)
 		if err != nil {
 			return err
 		}
 	}
+	emit.Close()
 	return nil
 }
 
@@ -99,5 +157,7 @@ var Cmd = &cobra.Command{
 
 func init() {
 	flags := Cmd.Flags()
+	flags.StringVar(&dump, "dump", "", "dump to files")
+	flags.BoolVar(&gzipInput, "gzip", false, "gziped input file")
 	flags.StringVar(&host, "host", host, "grip server url")
 }
