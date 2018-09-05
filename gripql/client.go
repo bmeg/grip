@@ -6,12 +6,14 @@ import (
 	"log"
 
 	"github.com/bmeg/grip/util/rpc"
+	"google.golang.org/grpc"
 )
 
 // Client is a GRPC grip client with some helper functions
 type Client struct {
 	QueryC QueryClient
 	EditC  EditClient
+	conn   *grpc.ClientConn
 }
 
 // Connect opens a GRPC connection to an Grip server
@@ -22,10 +24,15 @@ func Connect(conf rpc.Config, write bool) (Client, error) {
 	}
 	queryOut := NewQueryClient(conn)
 	if !write {
-		return Client{queryOut, nil}, nil
+		return Client{queryOut, nil, conn}, nil
 	}
 	editOut := NewEditClient(conn)
-	return Client{queryOut, editOut}, nil
+	return Client{queryOut, editOut, conn}, nil
+}
+
+// Close the connection
+func (client Client) Close() {
+	client.conn.Close()
 }
 
 // GetSchema returns the schema for the given graph.
