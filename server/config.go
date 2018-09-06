@@ -6,13 +6,6 @@ import (
 	"github.com/bmeg/grip/util"
 )
 
-type SamplingStrategy int
-
-const (
-	RandomN SamplingStrategy = iota
-	FirstN
-)
-
 // Config describes configuration for the server.
 type Config struct {
 	HostName         string
