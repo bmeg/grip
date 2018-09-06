@@ -55,7 +55,7 @@ func (server *GripServer) getSchemas(ctx context.Context) {
 
 		default:
 			log.Printf("getting schema for graph %s", name)
-			schema, err := server.db.GetSchema(ctx, name, server.conf.SchemaSampleSize)
+			schema, err := server.db.GetSchema(ctx, name, server.conf.SchemaInspectN, server.conf.SchemaRandomSample)
 			if err == nil {
 				log.Printf("cached schema for graph %s", name)
 				server.schemas[name] = schema

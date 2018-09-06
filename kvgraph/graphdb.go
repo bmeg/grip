@@ -82,6 +82,6 @@ func (kgraph *KVGraph) ListGraphs() []string {
 }
 
 // GetSchema returns the schema of a specific graph in the database
-func (kgraph *KVGraph) GetSchema(ctx context.Context, graph string, sampleN uint32) (*gripql.GraphSchema, error) {
+func (kgraph *KVGraph) GetSchema(ctx context.Context, graph string, sampleN uint32, random bool) (*gripql.GraphSchema, error) {
 	return nil, fmt.Errorf("not implemented")
 }
