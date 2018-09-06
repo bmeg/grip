@@ -18,6 +18,9 @@ var dump = ""
 var graph string
 var gzipInput bool
 
+
+var RdfType string =  "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
+
 type emitter interface {
 	AddVertex(string, *gripql.Vertex) error
 	AddEdge(string, *gripql.Edge) error
@@ -90,7 +93,6 @@ func LoadRDFCmd(cmd *cobra.Command, args []string) error {
 		emit = newFileEmitter(dump)
 	}
 
-	vertMap := map[string]int{}
 	count := 0
 	dec := rdf.NewTripleDecoder(reader, rdf.RDFXML)
 	var curVertex *gripql.Vertex
@@ -105,27 +107,19 @@ func LoadRDFCmd(cmd *cobra.Command, args []string) error {
 			curVertex = nil
 		}
 		curSubj = subj
-		if _, ok := vertMap[subj]; !ok {
-			err := emit.AddVertex(graph, &gripql.Vertex{Gid: subj})
-			if err != nil {
-				return err
-			}
-			vertMap[subj] = 1
-		}
+
 		if triple.Obj.Type() == rdf.TermLiteral {
 			if curVertex == nil {
 				curVertex = &gripql.Vertex{Gid: subj}
 			}
 			curVertex.SetProperty(triple.Pred.String(), triple.Obj.String())
+		} else if triple.Pred.String() == RdfType {
+			if curVertex == nil {
+				curVertex = &gripql.Vertex{Gid: subj}
+			}
+			curVertex.Label = triple.Obj.String()
 		} else {
 			obj := triple.Obj.String()
-			if _, ok := vertMap[obj]; !ok {
-				err := emit.AddVertex(graph, &gripql.Vertex{Gid: obj})
-				if err != nil {
-					return err
-				}
-				vertMap[obj] = 1
-			}
 			err := emit.AddEdge(graph, &gripql.Edge{From: subj, To: obj, Label: triple.Pred.String()})
 			if err != nil {
 				return err
