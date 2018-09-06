@@ -21,7 +21,7 @@ var graph string
 var vertexFile string
 var edgeFile string
 
-var batchSize = 15
+var batchSize = 100
 var maxRetries = 3
 
 func found(set []string, val string) bool {
@@ -197,6 +197,7 @@ func init() {
 	flags := Cmd.Flags()
 	flags.StringVar(&host, "host", host, "mongo server url")
 	flags.StringVar(&database, "database", database, "database name in mongo to store graph")
+	flags.IntVar(&batchSize, "batch", batchSize, "Size of batch to be loaded")
 	flags.StringVar(&vertexFile, "vertex", "", "vertex file")
 	flags.StringVar(&edgeFile, "edge", "", "edge file")
 }
