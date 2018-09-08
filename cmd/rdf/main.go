@@ -146,7 +146,7 @@ func LoadRDFCmd(cmd *cobra.Command, args []string) error {
 				curVertex.Label = stringClean(uMap, triple.Obj.String())
 			} else {
 				obj := stringClean(uMap, triple.Obj.String())
-				elementChan <- gElement{edge: &gripql.Edge{From: subj, To: obj, Label: triple.Pred.String()}}
+				elementChan <- gElement{edge: &gripql.Edge{From: subj, To: obj, Label: stringClean(uMap, triple.Pred.String())}}
 			}
 			if count%10000 == 0 {
 				log.Printf("Processed %d triples", count)
