@@ -18,8 +18,8 @@ var dump = ""
 var graph string
 var gzipInput bool
 
-
-var RdfType string =  "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
+// RdfType is used to define the label of a vertex
+var RdfType = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
 
 type emitter interface {
 	AddVertex(string, *gripql.Vertex) error
