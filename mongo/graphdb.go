@@ -245,14 +245,14 @@ func (ma *GraphDB) Graph(graph string) (gdbi.GraphInterface, error) {
 }
 
 // GetSchema returns the schema of a specific graph in the database
-func (ma *GraphDB) GetSchema(ctx context.Context, graph string, sampleN uint32) (*gripql.GraphSchema, error) {
+func (ma *GraphDB) GetSchema(ctx context.Context, graph string, sampleN uint32, random bool) (*gripql.GraphSchema, error) {
 	var vSchema []*gripql.Vertex
 	var eSchema []*gripql.Edge
 	var g errgroup.Group
 
 	g.Go(func() error {
 		var err error
-		vSchema, err = ma.getVertexSchema(ctx, graph, sampleN)
+		vSchema, err = ma.getVertexSchema(ctx, graph, sampleN, random)
 		if err != nil {
 			return fmt.Errorf("getting vertex schema: %v", err)
 		}
@@ -261,7 +261,7 @@ func (ma *GraphDB) GetSchema(ctx context.Context, graph string, sampleN uint32) 
 
 	g.Go(func() error {
 		var err error
-		eSchema, err = ma.getEdgeSchema(ctx, graph, sampleN)
+		eSchema, err = ma.getEdgeSchema(ctx, graph, sampleN, random)
 		if err != nil {
 			return fmt.Errorf("getting edge schema: %v", err)
 		}
@@ -277,7 +277,7 @@ func (ma *GraphDB) GetSchema(ctx context.Context, graph string, sampleN uint32) 
 	return schema, nil
 }
 
-func (ma *GraphDB) getVertexSchema(ctx context.Context, graph string, n uint32) ([]*gripql.Vertex, error) {
+func (ma *GraphDB) getVertexSchema(ctx context.Context, graph string, n uint32, random bool) ([]*gripql.Vertex, error) {
 	session := ma.session.Copy()
 	defer session.Close()
 	v := ma.VertexCollection(session, graph)
@@ -314,7 +314,12 @@ func (ma *GraphDB) getVertexSchema(ctx context.Context, graph string, n uint32) 
 						"label": bson.M{"$eq": label},
 					},
 				},
-				{"$sample": bson.M{"size": n}},
+			}
+
+			if random {
+				pipe = append(pipe, bson.M{"$sample": bson.M{"size": n}})
+			} else {
+				pipe = append(pipe, bson.M{"$limit": n})
 			}
 
 			iter := v.Pipe(pipe).AllowDiskUse().Iter()
@@ -363,7 +368,7 @@ func (ma *GraphDB) getVertexSchema(ctx context.Context, graph string, n uint32) 
 	return output, err
 }
 
-func (ma *GraphDB) getEdgeSchema(ctx context.Context, graph string, n uint32) ([]*gripql.Edge, error) {
+func (ma *GraphDB) getEdgeSchema(ctx context.Context, graph string, n uint32, random bool) ([]*gripql.Edge, error) {
 	session := ma.session.Copy()
 	defer session.Close()
 	e := ma.EdgeCollection(session, graph)
@@ -400,7 +405,12 @@ func (ma *GraphDB) getEdgeSchema(ctx context.Context, graph string, n uint32) ([
 						"label": bson.M{"$eq": label},
 					},
 				},
-				{"$sample": bson.M{"size": n}},
+			}
+
+			if random {
+				pipe = append(pipe, bson.M{"$sample": bson.M{"size": n}})
+			} else {
+				pipe = append(pipe, bson.M{"$limit": n})
 			}
 
 			iter := e.Pipe(pipe).AllowDiskUse().Iter()

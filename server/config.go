@@ -18,8 +18,11 @@ type Config struct {
 	DisableHTTPCache bool
 	// How often the server should rebuild the graph schemas
 	SchemaRefreshInterval time.Duration
-	// How many vertices/edges to sample to infer the schema
-	SchemaSampleSize uint32
+	// How many vertices/edges to inspect to infer the schema
+	SchemaInspectN uint32
+	// Strategy to use for selecting the vertices/edges to inspect.
+	// Random if True; first N otherwise
+	SchemaRandomSample bool
 }
 
 // HTTPAddress returns the HTTP address based on HostName and HTTPPort
@@ -57,6 +60,6 @@ func testConfig() Config {
 	c.WorkDir = "grip.work." + util.RandomString(6)
 	c.DisableHTTPCache = true
 	c.SchemaRefreshInterval = 1 * time.Minute
-	c.SchemaSampleSize = 100
+	c.SchemaInspectN = 100
 	return c
 }

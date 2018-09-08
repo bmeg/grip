@@ -93,6 +93,7 @@ func LoadRDFCmd(cmd *cobra.Command, args []string) error {
 		emit = newFileEmitter(dump)
 	}
 
+	vertMap := map[string]int{}
 	count := 0
 	dec := rdf.NewTripleDecoder(reader, rdf.RDFXML)
 	var curVertex *gripql.Vertex
