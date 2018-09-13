@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"strings"
 
 	"github.com/bmeg/grip/engine/core"
@@ -12,6 +11,7 @@ import (
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/timestamp"
 	"github.com/jmoiron/sqlx"
+	log "github.com/sirupsen/logrus"
 )
 
 // Graph is the interface to a single graph
@@ -139,7 +139,7 @@ func (g *Graph) GetVertexList(ctx context.Context, load bool) <-chan *gripql.Ver
 			q := fmt.Sprintf("SELECT * FROM %s", v.Table)
 			rows, err := g.db.QueryxContext(ctx, q)
 			if err != nil {
-				log.Println("GetVertexList failed:", err)
+				log.WithFields(log.Fields{"error": err}).Error("GetVertexList: QueryxContext")
 				return
 			}
 			types, err := columnTypeMap(rows)
@@ -150,13 +150,13 @@ func (g *Graph) GetVertexList(ctx context.Context, load bool) <-chan *gripql.Ver
 			for rows.Next() {
 				data := make(map[string]interface{})
 				if err := rows.MapScan(data); err != nil {
-					log.Println("GetVertexList failed:", err)
+					log.WithFields(log.Fields{"error": err}).Error("GetVertexList: MapScan")
 					return
 				}
 				o <- rowDataToVertex(v, data, types, load)
 			}
 			if err := rows.Err(); err != nil {
-				log.Println("GetVertexList failed:", err)
+				log.WithFields(log.Fields{"error": err}).Error("GetVertexList: iterating")
 				return
 			}
 		}
@@ -174,7 +174,7 @@ func (g *Graph) VertexLabelScan(ctx context.Context, label string) chan string {
 				q := fmt.Sprintf("SELECT * FROM %s", v.Table)
 				rows, err := g.db.QueryxContext(ctx, q)
 				if err != nil {
-					log.Println("VertexLabelScan failed:", err)
+					log.WithFields(log.Fields{"error": err}).Error("VertexLabelScan: QueryxContext")
 					return
 				}
 				types, err := columnTypeMap(rows)
@@ -185,6 +185,7 @@ func (g *Graph) VertexLabelScan(ctx context.Context, label string) chan string {
 				for rows.Next() {
 					data := make(map[string]interface{})
 					if err := rows.MapScan(data); err != nil {
+						log.WithFields(log.Fields{"error": err}).Error("VertexLabelScan: MapScan")
 						log.Println("VertexLabelScan failed:", err)
 						return
 					}
@@ -192,7 +193,7 @@ func (g *Graph) VertexLabelScan(ctx context.Context, label string) chan string {
 					o <- v.Gid
 				}
 				if err := rows.Err(); err != nil {
-					log.Println("VertexLabelScan failed:", err)
+					log.WithFields(log.Fields{"error": err}).Error("VertexLabelScan: iterating")
 					return
 				}
 			}
@@ -224,14 +225,14 @@ func (g *Graph) GetEdgeList(ctx context.Context, load bool) <-chan *gripql.Edge 
 				)
 				rows, err := g.db.QueryxContext(ctx, q)
 				if err != nil {
-					log.Println("GetEdgeList failed:", err)
+					log.WithFields(log.Fields{"error": err}).Error("GetEdgeList: QueryxContext")
 					return
 				}
 				defer rows.Close()
 				for rows.Next() {
 					var fromGid, toGid string
 					if err := rows.Scan(&fromGid, &toGid); err != nil {
-						log.Println("GetEdgeList failed:", err)
+						log.WithFields(log.Fields{"error": err}).Error("GetEdgeList: Scan")
 						return
 					}
 					geid := &generatedEdgeID{edgeSchema.Label, edgeSchema.From.DestTable, fromGid, edgeSchema.To.DestTable, toGid}
@@ -239,32 +240,34 @@ func (g *Graph) GetEdgeList(ctx context.Context, load bool) <-chan *gripql.Edge 
 					o <- edge
 				}
 				if err := rows.Err(); err != nil {
-					log.Println("GetEdgeList failed:", err)
+					log.WithFields(log.Fields{"error": err}).Error("GetEdgeList: iterating")
 					return
 				}
 
 			default:
 				q = fmt.Sprintf("SELECT * FROM %s", edgeSchema.Table)
 				rows, err := g.db.QueryxContext(ctx, q)
+				if err != nil {
+					log.WithFields(log.Fields{"error": err}).Error("GetEdgeList: QueryxContext")
+					return
+				}
 				types, err := columnTypeMap(rows)
 				if err != nil {
+					log.WithFields(log.Fields{"error": err}).Error("GetEdgeList: columnTypeMap")
 					return
 				}
-				if err != nil {
-					log.Println("GetEdgeList failed:", err)
-					return
-				}
+
 				defer rows.Close()
 				for rows.Next() {
 					data := make(map[string]interface{})
 					if err := rows.MapScan(data); err != nil {
-						log.Println("GetEdgeList failed:", err)
+						log.WithFields(log.Fields{"error": err}).Error("GetEdgeList: MapScan")
 						return
 					}
 					o <- rowDataToEdge(edgeSchema, data, types, load)
 				}
 				if err := rows.Err(); err != nil {
-					log.Println("GetEdgeList failed:", err)
+					log.WithFields(log.Fields{"error": err}).Error("GetEdgeList: iterating")
 					return
 				}
 			}
@@ -280,7 +283,7 @@ func (g *Graph) GetVertexChannel(reqChan chan gdbi.ElementLookup, load bool) cha
 	for elem := range reqChan {
 		parts := strings.SplitN(elem.ID, ":", 2)
 		if len(parts) != 2 {
-			log.Println("GetVertexChannel encountered a strange ID:", elem.ID)
+			log.Errorln("GetVertexChannel: encountered a strange ID:", elem.ID)
 			continue
 		}
 		table := parts[0]
@@ -296,7 +299,7 @@ func (g *Graph) GetVertexChannel(reqChan chan gdbi.ElementLookup, load bool) cha
 			for i := range batch {
 				parts := strings.SplitN(batch[i].ID, ":", 2)
 				if len(parts) != 2 {
-					log.Println("GetVertexChannel encountered a strange ID:", batch[i].ID)
+					log.Errorln("GetVertexChannel: encountered a strange ID:", batch[i].ID)
 					continue
 				}
 				idBatch[i] = parts[1]
@@ -307,7 +310,7 @@ func (g *Graph) GetVertexChannel(reqChan chan gdbi.ElementLookup, load bool) cha
 			q := fmt.Sprintf("SELECT * FROM %s WHERE %s IN (%s)", table, gidField, ids)
 			rows, err := g.db.Queryx(q)
 			if err != nil {
-				log.Println("GetVertexChannel failed:", err)
+				log.WithFields(log.Fields{"error": err}).Error("GetVertexChannel: Queryx")
 				return
 			}
 			types, err := columnTypeMap(rows)
@@ -318,7 +321,7 @@ func (g *Graph) GetVertexChannel(reqChan chan gdbi.ElementLookup, load bool) cha
 			for rows.Next() {
 				data := make(map[string]interface{})
 				if err := rows.MapScan(data); err != nil {
-					log.Println("GetVertexChannel failed:", err)
+					log.WithFields(log.Fields{"error": err}).Error("GetVertexChannel: MapScan")
 					return
 				}
 				v := rowDataToVertex(g.schema.GetVertex(table), data, types, load)
@@ -329,7 +332,7 @@ func (g *Graph) GetVertexChannel(reqChan chan gdbi.ElementLookup, load bool) cha
 				}
 			}
 			if err := rows.Err(); err != nil {
-				log.Println("GetVertexChannel failed:", err)
+				log.WithFields(log.Fields{"error": err}).Error("GetVertexChannel: iterating")
 				return
 			}
 		}
@@ -344,7 +347,7 @@ func (g *Graph) GetOutChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLa
 	for elem := range reqChan {
 		parts := strings.SplitN(elem.ID, ":", 2)
 		if len(parts) != 2 {
-			log.Println("GetOutChannel encountered a strange ID:", elem.ID)
+			log.Errorln("GetOutChannel encountered a strange ID:", elem.ID)
 			continue
 		}
 		table := parts[0]
@@ -360,7 +363,7 @@ func (g *Graph) GetOutChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLa
 			for i := range batch {
 				parts := strings.SplitN(batch[i].ID, ":", 2)
 				if len(parts) != 2 {
-					log.Println("GetOutChannel encountered a strange ID:", batch[i].ID)
+					log.Errorln("GetOutChannel encountered a strange ID:", batch[i].ID)
 					continue
 				}
 				idBatch = append(idBatch, parts[1])
@@ -415,7 +418,7 @@ func (g *Graph) GetOutChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLa
 				}
 				rows, err := g.db.Queryx(q)
 				if err != nil {
-					log.Println("GetOutChannel failed:", err)
+					log.WithFields(log.Fields{"error": err}).Error("GetOutChannel: Queryx")
 					return
 				}
 				types, err := columnTypeMap(rows)
@@ -426,7 +429,7 @@ func (g *Graph) GetOutChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLa
 				for rows.Next() {
 					data := make(map[string]interface{})
 					if err := rows.MapScan(data); err != nil {
-						log.Println("GetOutChannel failed:", err)
+						log.WithFields(log.Fields{"error": err}).Error("GetOutChannel: MapScan")
 						return
 					}
 					r := batchMap[fmt.Sprintf("%v:%v", edgeSchema.From.DestTable, data[dataKey])]
@@ -440,7 +443,7 @@ func (g *Graph) GetOutChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLa
 					}
 				}
 				if err := rows.Err(); err != nil {
-					log.Println("GetOutChannel failed:", err)
+					log.WithFields(log.Fields{"error": err}).Error("GetOutChannel: iterating")
 					return
 				}
 			}
@@ -456,7 +459,7 @@ func (g *Graph) GetInChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLab
 	for elem := range reqChan {
 		parts := strings.SplitN(elem.ID, ":", 2)
 		if len(parts) != 2 {
-			log.Println("GetInChannel encountered a strange ID:", elem.ID)
+			log.Errorln("GetInChannel encountered a strange ID:", elem.ID)
 			continue
 		}
 		table := parts[0]
@@ -472,7 +475,7 @@ func (g *Graph) GetInChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLab
 			for i := range batch {
 				parts := strings.SplitN(batch[i].ID, ":", 2)
 				if len(parts) != 2 {
-					log.Println("GetInChannel encountered a strange ID:", batch[i].ID)
+					log.Errorln("GetInChannel encountered a strange ID:", batch[i].ID)
 					continue
 				}
 				idBatch = append(idBatch, parts[1])
@@ -525,10 +528,9 @@ func (g *Graph) GetInChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLab
 					dataKey = edgeSchema.To.SourceField
 					dropKeys = append(dropKeys, edgeSchema.To.SourceField)
 				}
-				log.Println("Debug GetInChannel q:", q)
 				rows, err := g.db.Queryx(q)
 				if err != nil {
-					log.Println("GetInChannel failed:", err)
+					log.WithFields(log.Fields{"error": err}).Error("GetInChannel: Queryx")
 					return
 				}
 				types, err := columnTypeMap(rows)
@@ -539,7 +541,7 @@ func (g *Graph) GetInChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLab
 				for rows.Next() {
 					data := make(map[string]interface{})
 					if err := rows.MapScan(data); err != nil {
-						log.Println("GetInChannel failed:", err)
+						log.WithFields(log.Fields{"error": err}).Error("GetInChannel: MapScan")
 						return
 					}
 					r := batchMap[fmt.Sprintf("%v:%v", edgeSchema.To.DestTable, data[dataKey])]
@@ -553,7 +555,7 @@ func (g *Graph) GetInChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLab
 					}
 				}
 				if err := rows.Err(); err != nil {
-					log.Println("GetInChannel failed:", err)
+					log.WithFields(log.Fields{"error": err}).Error("GetInChannel: iterating")
 					return
 				}
 			}
@@ -569,7 +571,7 @@ func (g *Graph) GetOutEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, ed
 	for elem := range reqChan {
 		parts := strings.SplitN(elem.ID, ":", 2)
 		if len(parts) != 2 {
-			log.Println("GetOutEdgeChannel encountered a strange ID:", elem.ID)
+			log.Errorln("GetOutEdgeChannel encountered a strange ID:", elem.ID)
 			continue
 		}
 		table := parts[0]
@@ -585,7 +587,7 @@ func (g *Graph) GetOutEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, ed
 			for i := range batch {
 				parts := strings.SplitN(batch[i].ID, ":", 2)
 				if len(parts) != 2 {
-					log.Println("GetOutEdgeChannel encountered a strange ID:", batch[i].ID)
+					log.Errorln("GetOutEdgeChannel encountered a strange ID:", batch[i].ID)
 					continue
 				}
 				idBatch[i] = parts[1]
@@ -614,14 +616,14 @@ func (g *Graph) GetOutEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, ed
 					)
 					rows, err := g.db.Queryx(q)
 					if err != nil {
-						log.Println("GetOutEdgeChannel failed:", err)
+						log.WithFields(log.Fields{"error": err}).Error("GetOutEdgeChannel: Queryx")
 						return
 					}
 					defer rows.Close()
 					for rows.Next() {
 						var fromGid, toGid string
 						if err := rows.Scan(&fromGid, &toGid); err != nil {
-							log.Println("GetOutEdgeChannel failed:", err)
+							log.WithFields(log.Fields{"error": err}).Error("GetOutEdgeChannel: Scan")
 							return
 						}
 						geid := &generatedEdgeID{edgeSchema.Label, edgeSchema.From.DestTable, fromGid, edgeSchema.To.DestTable, toGid}
@@ -633,7 +635,7 @@ func (g *Graph) GetOutEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, ed
 						}
 					}
 					if err := rows.Err(); err != nil {
-						log.Println("GetOutEdgeChannel failed:", err)
+						log.WithFields(log.Fields{"error": err}).Error("GetOutEdgeChannel: iterating")
 						return
 					}
 
@@ -641,7 +643,7 @@ func (g *Graph) GetOutEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, ed
 					q = fmt.Sprintf("SELECT * FROM %s WHERE %s IN (%s)", edgeSchema.Table, edgeSchema.From.SourceField, ids)
 					rows, err := g.db.Queryx(q)
 					if err != nil {
-						log.Println("GetOutEdgeChannel failed:", err)
+						log.WithFields(log.Fields{"error": err}).Error("GetOutEdgeChannel: Queryx")
 						return
 					}
 					types, err := columnTypeMap(rows)
@@ -652,7 +654,7 @@ func (g *Graph) GetOutEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, ed
 					for rows.Next() {
 						data := make(map[string]interface{})
 						if err := rows.MapScan(data); err != nil {
-							log.Println("GetOutEdgeChannel failed:", err)
+							log.WithFields(log.Fields{"error": err}).Error("GetOutEdgeChannel: MapScan")
 							return
 						}
 						edge := rowDataToEdge(edgeSchema, data, types, load)
@@ -663,7 +665,7 @@ func (g *Graph) GetOutEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, ed
 						}
 					}
 					if err := rows.Err(); err != nil {
-						log.Println("GetOutEdgeChannel failed:", err)
+						log.WithFields(log.Fields{"error": err}).Error("GetOutEdgeChannel: iterating")
 						return
 					}
 				}
@@ -679,7 +681,7 @@ func (g *Graph) GetInEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, edg
 	for elem := range reqChan {
 		parts := strings.SplitN(elem.ID, ":", 2)
 		if len(parts) != 2 {
-			log.Println("GetInEdgeChannel encountered a strange ID:", elem.ID)
+			log.Errorln("GetInEdgeChannel encountered a strange ID:", elem.ID)
 			continue
 		}
 		table := parts[0]
@@ -695,7 +697,7 @@ func (g *Graph) GetInEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, edg
 			for i := range batch {
 				parts := strings.SplitN(batch[i].ID, ":", 2)
 				if len(parts) != 2 {
-					log.Println("GetInEdgeChannel encountered a strange ID:", batch[i].ID)
+					log.Errorln("GetInEdgeChannel encountered a strange ID:", batch[i].ID)
 					continue
 				}
 				idBatch[i] = parts[1]
@@ -724,14 +726,14 @@ func (g *Graph) GetInEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, edg
 					)
 					rows, err := g.db.Queryx(q)
 					if err != nil {
-						log.Println("GetInEdgeChannel failed:", err)
+						log.WithFields(log.Fields{"error": err}).Error("GetInEdgeChannel: Queryx")
 						return
 					}
 					defer rows.Close()
 					for rows.Next() {
 						var fromGid, toGid string
 						if err := rows.Scan(&fromGid, &toGid); err != nil {
-							log.Println("GetInEdgeChannel failed:", err)
+							log.WithFields(log.Fields{"error": err}).Error("GetInEdgeChannel: Scan")
 							return
 						}
 						geid := &generatedEdgeID{edgeSchema.Label, edgeSchema.From.DestTable, fromGid, edgeSchema.To.DestTable, toGid}
@@ -743,7 +745,7 @@ func (g *Graph) GetInEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, edg
 						}
 					}
 					if err := rows.Err(); err != nil {
-						log.Println("GetInEdgeChannel failed:", err)
+						log.WithFields(log.Fields{"error": err}).Error("GetInEdgeChannel: iterating")
 						return
 					}
 
@@ -751,7 +753,7 @@ func (g *Graph) GetInEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, edg
 					q = fmt.Sprintf("SELECT * FROM %s WHERE %s IN (%s)", edgeSchema.Table, edgeSchema.To.SourceField, ids)
 					rows, err := g.db.Queryx(q)
 					if err != nil {
-						log.Println("GetInEdgeChannel failed:", err)
+						log.WithFields(log.Fields{"error": err}).Error("GetInEdgeChannel: Queryx")
 						return
 					}
 					types, err := columnTypeMap(rows)
@@ -762,7 +764,7 @@ func (g *Graph) GetInEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, edg
 					for rows.Next() {
 						data := make(map[string]interface{})
 						if err := rows.MapScan(data); err != nil {
-							log.Println("GetInEdgeChannel failed:", err)
+							log.WithFields(log.Fields{"error": err}).Error("GetInEdgeChannel: MapScan")
 							return
 						}
 						edge := rowDataToEdge(edgeSchema, data, types, load)
@@ -773,7 +775,7 @@ func (g *Graph) GetInEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, edg
 						}
 					}
 					if err := rows.Err(); err != nil {
-						log.Println("GetInEdgeChannel failed:", err)
+						log.WithFields(log.Fields{"error": err}).Error("GetInEdgeChannel: iterating")
 						return
 					}
 				}

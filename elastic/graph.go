@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 
 	"github.com/bmeg/grip/engine/core"
 	"github.com/bmeg/grip/gdbi"
@@ -14,6 +13,7 @@ import (
 	"github.com/bmeg/grip/timestamp"
 	"github.com/bmeg/grip/util"
 	"github.com/golang/protobuf/jsonpb"
+	log "github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
 	elastic "gopkg.in/olivere/elastic.v5"
 )
@@ -191,14 +191,14 @@ func (es *Graph) GetEdge(id string, load bool) *gripql.Edge {
 
 	res, err := g.Do(ctx)
 	if err != nil {
-		log.Printf("Failed to get edge: %s", err)
+		log.WithFields(log.Fields{"error": err}).Error("GetEdge")
 		return nil
 	}
 
 	edge := &gripql.Edge{}
 	err = jsonpb.Unmarshal(bytes.NewReader(*res.Source), edge)
 	if err != nil {
-		log.Printf("Failed to unmarshal edge: %s", err)
+		log.WithFields(log.Fields{"error": err}).Error("GetEdge: unmarshal")
 		return nil
 	}
 
@@ -216,14 +216,14 @@ func (es *Graph) GetVertex(id string, load bool) *gripql.Vertex {
 
 	res, err := g.Do(ctx)
 	if err != nil {
-		log.Printf("Failed to get vertex: %s", err)
+		log.WithFields(log.Fields{"error": err}).Error("GetVertex")
 		return nil
 	}
 
 	vertex := &gripql.Vertex{}
 	err = jsonpb.Unmarshal(bytes.NewReader(*res.Source), vertex)
 	if err != nil {
-		log.Printf("Failed to get unmarshal vertex: %s", err)
+		log.WithFields(log.Fields{"error": err}).Error("GetVertex: unmarshal")
 		return nil
 	}
 
@@ -276,7 +276,7 @@ func (es *Graph) GetEdgeList(ctx context.Context, load bool) <-chan *gripql.Edge
 	go func() {
 		defer close(o)
 		if err := g.Wait(); err != nil {
-			log.Printf("Failed to get edge list: %v", err)
+			log.WithFields(log.Fields{"error": err}).Error("GetEdgeList")
 		}
 		return
 	}()
@@ -330,7 +330,7 @@ func (es *Graph) GetVertexList(ctx context.Context, load bool) <-chan *gripql.Ve
 	go func() {
 		defer close(o)
 		if err := g.Wait(); err != nil {
-			log.Printf("Failed to get vertex list: %v", err)
+			log.WithFields(log.Fields{"error": err}).Error("GetVertexList")
 		}
 		return
 	}()
@@ -399,7 +399,7 @@ func (es *Graph) GetVertexChannel(req chan gdbi.ElementLookup, load bool) chan g
 	go func() {
 		defer close(o)
 		if err := g.Wait(); err != nil {
-			log.Printf("Error: %v", err)
+			log.WithFields(log.Fields{"error": err}).Error("GetVertexChannel")
 		}
 		return
 	}()
@@ -513,7 +513,7 @@ func (es *Graph) GetOutChannel(req chan gdbi.ElementLookup, load bool, edgeLabel
 	go func() {
 		defer close(o)
 		if err := g.Wait(); err != nil {
-			log.Printf("Error: %v", err)
+			log.WithFields(log.Fields{"error": err}).Error("GetOutChannel")
 		}
 		return
 	}()
@@ -626,7 +626,7 @@ func (es *Graph) GetInChannel(req chan gdbi.ElementLookup, load bool, edgeLabels
 	go func() {
 		defer close(o)
 		if err := g.Wait(); err != nil {
-			log.Printf("Error: %v", err)
+			log.WithFields(log.Fields{"error": err}).Error("GetInChannel")
 		}
 		return
 	}()
@@ -703,7 +703,7 @@ func (es *Graph) GetOutEdgeChannel(req chan gdbi.ElementLookup, load bool, edgeL
 	go func() {
 		defer close(o)
 		if err := g.Wait(); err != nil {
-			log.Printf("Error: %v", err)
+			log.WithFields(log.Fields{"error": err}).Error("GetOutEdgeChannel")
 		}
 		return
 	}()
@@ -780,7 +780,7 @@ func (es *Graph) GetInEdgeChannel(req chan gdbi.ElementLookup, load bool, edgeLa
 	go func() {
 		defer close(o)
 		if err := g.Wait(); err != nil {
-			log.Printf("Error: %v", err)
+			log.WithFields(log.Fields{"error": err}).Error("GetInEdgeChannel")
 		}
 		return
 	}()

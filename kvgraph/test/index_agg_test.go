@@ -3,8 +3,6 @@ package test
 import (
 	"encoding/json"
 	"fmt"
-	"log"
-	//"math"
 	"testing"
 
 	"github.com/bmeg/grip/kvindex"
@@ -41,12 +39,12 @@ func TestFloatSorting(t *testing.T) {
 	data := []map[string]interface{}{}
 	json.Unmarshal([]byte(numDocs), &data)
 	for i, d := range data {
-		log.Printf("Adding: %v", d)
+		t.Logf("Adding: %v", d)
 		idx.AddDoc(fmt.Sprintf("%d", i), d)
 	}
 
 	last := -10000.0
-	log.Printf("Scanning")
+	t.Logf("Scanning")
 	count := 0
 	for d := range idx.FieldNumbers("value") {
 		if d < last {
@@ -54,7 +52,7 @@ func TestFloatSorting(t *testing.T) {
 		}
 		last = d
 		count++
-		log.Printf("Scan, %f", d)
+		t.Logf("Scan, %f", d)
 	}
 	if count != len(data) {
 		t.Errorf("Incorrect number of values returned: %v != %v", count, len(data))
@@ -81,7 +79,7 @@ func TestFloatRange(t *testing.T) {
 	data := []map[string]interface{}{}
 	json.Unmarshal([]byte(numDocs), &data)
 	for i, d := range data {
-		//log.Printf("Adding: %s", d)
+		t.Logf("Adding: %s", d)
 		idx.AddDoc(fmt.Sprintf("%d", i), d)
 	}
 

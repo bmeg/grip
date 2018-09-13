@@ -1,16 +1,15 @@
 package kvindex
 
 import (
-	//"context"
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"log"
 	"math"
 	"strings"
 
 	"github.com/bmeg/grip/kvi"
 	proto "github.com/golang/protobuf/proto"
+	log "github.com/sirupsen/logrus"
 )
 
 // TermType defines in a term is a Number or a String
@@ -207,7 +206,6 @@ func newEntry(docID string, field string, value interface{}) entryValue {
 func fieldScan(docID string, doc map[string]interface{}, fieldPrefix string, fields []string, out chan entryValue) {
 	for k, v := range doc {
 		f := fmt.Sprintf("%s.%s", fieldPrefix, k)
-		//log.Printf("Checking %s in %s", f, fields)
 		if containsPrefix(f, fields) {
 			if x, ok := v.(map[string]interface{}); ok {
 				fieldScan(docID, x, fmt.Sprintf("%s.%s", fieldPrefix, k), fields, out)
@@ -325,7 +323,7 @@ func (idx *KVIndex) AddDocTx(tx kvi.KVTransaction, docID string, doc map[string]
 // RemoveDoc removes a document from the index: TODO
 func (idx *KVIndex) RemoveDoc(docID string) error {
 	err := idx.kv.Update(func(tx kvi.KVTransaction) error {
-		log.Printf("Deleteing: %s", docID)
+		log.WithFields(log.Fields{"document_id": docID}).Debug("KVIndex: deleteing document")
 		docKey := DocKey(docID)
 		data, err := tx.Get(docKey)
 		if err != nil {
@@ -530,7 +528,7 @@ func (idx *KVIndex) FieldTermNumberMax(field string) float64 {
 		if it.Valid() && bytes.HasPrefix(it.Key(), prefix) {
 			_, _, term := TermKeyParse(it.Key())
 			val := GetBytesTerm(term, TermNumber).(float64)
-			log.Printf("MaxScan: %f", val)
+			log.WithFields(log.Fields{"field": field}).Debugf("KVIndex: FieldTermNumberMax: MaxScan: %f", val)
 			if val > 0 {
 				min = val
 				return nil

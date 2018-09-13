@@ -2,10 +2,10 @@ package example
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/util/rpc"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -54,12 +54,12 @@ var Cmd = &cobra.Command{
 		wait := make(chan bool)
 		go func() {
 			if err := conn.BulkAdd(elemChan); err != nil {
-				log.Printf("bulk add error: %s", err)
+				log.WithFields(log.Fields{"error": err}).Error("bulk add error")
 			}
 			wait <- false
 		}()
 
-		log.Printf("Loading example graph data into %s", graph)
+		log.WithFields(log.Fields{"graph": graph}).Info("Loading example data into graph")
 		for _, v := range swVertices {
 			elemChan <- &gripql.GraphElement{Graph: graph, Vertex: v}
 		}

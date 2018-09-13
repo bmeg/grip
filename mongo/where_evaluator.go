@@ -1,13 +1,13 @@
 package mongo
 
 import (
-	"log"
 	"strings"
 
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/jsonpath"
 	"github.com/bmeg/grip/protoutil"
 	"github.com/globalsign/mgo/bson"
+	log "github.com/sirupsen/logrus"
 )
 
 func convertWhereExpression(stmt *gripql.WhereExpression, not bool) bson.M {
@@ -44,7 +44,7 @@ func convertWhereExpression(stmt *gripql.WhereExpression, not bool) bson.M {
 		output = notRes
 
 	default:
-		log.Printf("unknown where expression type")
+		log.Error("unknown where expression type")
 	}
 
 	return output
@@ -83,7 +83,7 @@ func convertCondition(cond *gripql.WhereCondition, not bool) bson.M {
 	case gripql.Condition_CONTAINS:
 		expr = bson.M{"$in": []interface{}{val}}
 	default:
-		log.Printf("unknown where condition type")
+		log.Error("unknown where condition type")
 	}
 	if not {
 		return bson.M{key: bson.M{"$not": expr}}

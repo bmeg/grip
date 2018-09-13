@@ -3,9 +3,9 @@ package gripql
 import (
 	"context"
 	"io"
-	"log"
 
 	"github.com/bmeg/grip/util/rpc"
+	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 )
 
@@ -67,7 +67,7 @@ func (client Client) ListGraphs() (chan string, error) {
 				return
 			}
 			if err != nil {
-				log.Println("Error: listing graphs:", err)
+				log.WithFields(log.Fields{"error": err}).Error("Listing graphs")
 				return
 			}
 			out <- elem.Graph
@@ -158,7 +158,7 @@ func (client Client) Traversal(query *GraphQuery) (chan *QueryResult, error) {
 				return
 			}
 			if err != nil {
-				log.Println("Error: receiving traversal result:", err)
+				log.WithFields(log.Fields{"error": err}).Error("Receiving traversal result")
 				return
 			}
 			out <- t

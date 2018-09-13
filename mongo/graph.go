@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log"
 	"strings"
 
 	"github.com/bmeg/grip/engine/core"
@@ -14,6 +13,7 @@ import (
 	"github.com/bmeg/grip/util"
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
+	log "github.com/sirupsen/logrus"
 )
 
 // Graph is the interface to a single graph
@@ -122,7 +122,7 @@ func (mg *Graph) AddVertex(vertexArray []*gripql.Vertex) error {
 			mg.ts.Touch(mg.graph)
 			return err
 		}
-		log.Printf("Refreshing mongo connection")
+		log.Info("Refreshing mongo connection")
 		session.Refresh()
 	}
 	return err
@@ -156,7 +156,7 @@ func (mg *Graph) AddEdge(edgeArray []*gripql.Edge) error {
 			mg.ts.Touch(mg.graph)
 			return err
 		}
-		log.Printf("Refreshing mongo connection")
+		log.Info("Refreshing mongo connection")
 		session.Refresh()
 	}
 	return err
@@ -234,7 +234,7 @@ func (mg *Graph) GetVertexList(ctx context.Context, load bool) <-chan *gripql.Ve
 			o <- v
 		}
 		if err := iter.Close(); err != nil {
-			log.Println("GetVertexList error:", err)
+			log.WithFields(log.Fields{"error": err}).Error("GetVertexList")
 		}
 	}()
 
@@ -269,7 +269,7 @@ func (mg *Graph) GetEdgeList(ctx context.Context, loadProp bool) <-chan *gripql.
 			}
 		}
 		if err := iter.Close(); err != nil {
-			log.Println("GetEdgeList error:", err)
+			log.WithFields(log.Fields{"error": err}).Error("GetEdgeList")
 		}
 	}()
 
@@ -318,7 +318,7 @@ func (mg *Graph) GetVertexChannel(ids chan gdbi.ElementLookup, load bool) chan g
 				chunk[v.Gid] = v
 			}
 			if err := iter.Close(); err != nil {
-				log.Println("GetVertexChannel error:", err)
+				log.WithFields(log.Fields{"error": err}).Error("GetVertexChannel")
 			}
 			for _, id := range batch {
 				if x, ok := chunk[id.ID]; ok {
@@ -385,11 +385,11 @@ func (mg *Graph) GetOutChannel(reqChan chan gdbi.ElementLookup, load bool, edgeL
 						o <- ri
 					}
 				} else {
-					log.Printf("Out error: %s", result["dst"])
+					log.WithFields(log.Fields{"result": result["dst"]}).Error("GetOutChannel: unable to cast result to map[string]interface{}")
 				}
 			}
 			if err := iter.Close(); err != nil {
-				log.Println("GetOutChannel error:", err)
+				log.WithFields(log.Fields{"error": err}).Error("GetOutChannel: iter error")
 			}
 		}
 	}()
@@ -442,16 +442,19 @@ func (mg *Graph) GetInChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLa
 			defer iter.Close()
 			result := map[string]interface{}{}
 			for iter.Next(&result) {
-				src := result["src"].(map[string]interface{})
-				v := UnpackVertex(src)
-				r := batchMap[result["to"].(string)]
-				for _, ri := range r {
-					ri.Vertex = v
-					o <- ri
+				if src, ok := result["src"].(map[string]interface{}); ok {
+					v := UnpackVertex(src)
+					r := batchMap[result["to"].(string)]
+					for _, ri := range r {
+						ri.Vertex = v
+						o <- ri
+					}
+				} else {
+					log.WithFields(log.Fields{"result": result["src"]}).Error("GetInChannel: unable to cast result to map[string]interface{}")
 				}
 			}
 			if err := iter.Close(); err != nil {
-				log.Println("GetInChannel error:", err)
+				log.WithFields(log.Fields{"error": err}).Error("GetInChannel: iter error")
 			}
 		}
 	}()
@@ -503,7 +506,7 @@ func (mg *Graph) GetOutEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, e
 				}
 			}
 			if err := iter.Close(); err != nil {
-				log.Println("GetOutEdgeChannel error:", err)
+				log.WithFields(log.Fields{"error": err}).Error("GetOutEdgeChannel: iter error")
 			}
 		}
 	}()
@@ -556,7 +559,7 @@ func (mg *Graph) GetInEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, ed
 				}
 			}
 			if err := iter.Close(); err != nil {
-				log.Println("GetInEdgeChannel error:", err)
+				log.WithFields(log.Fields{"error": err}).Error("GetInEdgeChannel: iter error")
 			}
 		}
 	}()

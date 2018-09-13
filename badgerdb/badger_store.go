@@ -7,20 +7,20 @@ package badgerdb
 import (
 	"bytes"
 	"fmt"
-	"log"
 	"os"
 
 	"github.com/bmeg/grip/kvgraph"
 	"github.com/bmeg/grip/kvi"
 	"github.com/dgraph-io/badger"
 	"github.com/dgraph-io/badger/options"
+	log "github.com/sirupsen/logrus"
 )
 
 var loaded = kvgraph.AddKVDriver("badger", NewKVInterface)
 
 // NewKVInterface creates new BoltDB backed KVInterface at `path`
 func NewKVInterface(path string) (kvi.KVInterface, error) {
-	log.Printf("Starting BadgerDB")
+	log.Info("Starting BadgerDB")
 	_, err := os.Stat(path)
 	if os.IsNotExist(err) {
 		os.Mkdir(path, 0700)
@@ -80,18 +80,24 @@ func (badgerkv *BadgerKV) DeletePrefix(prefix []byte) error {
 		wb := make([][]byte, 0, deleteBlockSize)
 		opts := badger.DefaultIteratorOptions
 		opts.PrefetchValues = false
-		badgerkv.db.Update(func(tx *badger.Txn) error {
+		err := badgerkv.db.Update(func(tx *badger.Txn) error {
 			it := tx.NewIterator(opts)
 			for it.Seek(prefix); it.Valid() && bytes.HasPrefix(it.Item().Key(), prefix) && len(wb) < deleteBlockSize-1; it.Next() {
 				wb = append(wb, copyBytes(it.Item().Key()))
 			}
 			it.Close()
 			for _, i := range wb {
-				tx.Delete(i)
+				err := tx.Delete(i)
+				if err != nil {
+					return err
+				}
 				found = true
 			}
 			return nil
 		})
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }

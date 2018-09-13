@@ -1,13 +1,13 @@
 package stream
 
 import (
-	"log"
 	"strings"
 
 	"github.com/Shopify/sarama"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/util/rpc"
 	"github.com/golang/protobuf/jsonpb"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -25,7 +25,7 @@ var Cmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		graph = args[0]
-		log.Printf("Streaming data from Kafka instance %s into graph %s", kafka, graph)
+		log.WithFields(log.Fields{"kafka": kafka, "graph": graph}).Errorf("Streaming data from Kafka into graph")
 
 		conn, err := gripql.Connect(rpc.ConfigWithDefaults(host), true)
 		if err != nil {
@@ -48,17 +48,17 @@ var Cmd = &cobra.Command{
 				v := gripql.Vertex{}
 				err := jsonpb.Unmarshal(strings.NewReader(string(msg.Value)), &v)
 				if err != nil {
-					log.Println("vertex consumer: unmarshal error", err)
+					log.WithFields(log.Fields{"error": err}).Error("vertex consumer: unmarshal error")
 					continue
 				}
 				err = conn.AddVertex(graph, &v)
 				if err != nil {
-					log.Println("vertex consumer: add error", err)
+					log.WithFields(log.Fields{"error": err}).Error("vertex consumer: add error")
 					continue
 				}
 				count++
 				if count%1000 == 0 {
-					log.Printf("Loaded %d vertices", count)
+					log.Infof("Loaded %d vertices", count)
 				}
 			}
 			done <- true
@@ -70,17 +70,17 @@ var Cmd = &cobra.Command{
 				e := gripql.Edge{}
 				err := jsonpb.Unmarshal(strings.NewReader(string(msg.Value)), &e)
 				if err != nil {
-					log.Println("edge consumer: unmarshal error", err)
+					log.WithFields(log.Fields{"error": err}).Error("edge consumer: unmarshal error")
 					continue
 				}
 				err = conn.AddEdge(graph, &e)
 				if err != nil {
-					log.Println("edge consumer: add error", err)
+					log.WithFields(log.Fields{"error": err}).Error("edge consumer: add error")
 					continue
 				}
 				count++
 				if count%1000 == 0 {
-					log.Printf("Loaded %d edges", count)
+					log.Infof("Loaded %d edges", count)
 				}
 			}
 			done <- true

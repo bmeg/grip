@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"log"
 
 	"github.com/bmeg/grip/engine/core"
 	"github.com/bmeg/grip/gdbi"
@@ -12,6 +11,7 @@ import (
 	"github.com/bmeg/grip/kvi"
 	"github.com/bmeg/grip/util"
 	proto "github.com/golang/protobuf/proto"
+	log "github.com/sirupsen/logrus"
 )
 
 func contains(a []string, v string) bool {
@@ -266,7 +266,6 @@ func (kgdb *KVInterfaceGDB) GetOutEdgeList(ctx context.Context, id string, loadP
 	o := make(chan *gripql.Edge, 100)
 	go func() {
 		defer close(o)
-		//log.Printf("GetOutList")
 		skeyPrefix := SrcEdgePrefix(kgdb.graph, id)
 		kgdb.kvg.kv.View(func(it kvi.KVIterator) error {
 			for it.Seek(skeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), skeyPrefix); it.Next() {
@@ -486,7 +485,7 @@ func (kgdb *KVInterfaceGDB) GetOutChannel(reqChan chan gdbi.ElementLookup, load 
 					if load {
 						err = proto.Unmarshal(dataValue, v)
 						if err != nil {
-							log.Printf("GetOutChannel: unmarshal error: %v", err)
+							log.Errorf("GetOutChannel: unmarshal error: %v", err)
 							continue
 						}
 					}
@@ -519,7 +518,7 @@ func (kgdb *KVInterfaceGDB) GetInChannel(reqChan chan gdbi.ElementLookup, load b
 							if load {
 								err = proto.Unmarshal(dataValue, v)
 								if err != nil {
-									log.Printf("GetInChannel: unmarshal error: %v", err)
+									log.Errorf("GetInChannel: unmarshal error: %v", err)
 									continue
 								}
 							}
