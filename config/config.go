@@ -32,6 +32,7 @@ type Config struct {
 	Elasticsearch elastic.Config
 	MongoDB       mongo.Config
 	SQL           sql.Config
+	Logger        Logger
 }
 
 // DefaultConfig returns an instance of the default configuration for Grip.
@@ -62,6 +63,7 @@ func DefaultConfig() *Config {
 	c.Elasticsearch.DBName = "gripdb"
 	c.Elasticsearch.BatchSize = 1000
 
+	c.Logger = DefaultLoggerConfig()
 	return c
 }
 

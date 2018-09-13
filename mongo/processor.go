@@ -2,15 +2,16 @@ package mongo
 
 import (
 	"context"
-	"log"
 	"strconv"
 	"strings"
 
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/protoutil"
+	"github.com/bmeg/grip/util"
 	"github.com/globalsign/mgo/bson"
 	structpb "github.com/golang/protobuf/ptypes/struct"
+	log "github.com/sirupsen/logrus"
 )
 
 // aggType is a possible aggregation type
@@ -56,7 +57,8 @@ func getDataElement(result map[string]interface{}) *gdbi.DataElement {
 
 // Process runs the mongo aggregation pipeline
 func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
-	// log.Printf("Running Mongo Processor: %+v", proc.query)
+	plog := log.WithFields(log.Fields{"query_id": util.UUID()})
+	plog.WithFields(log.Fields{"query": proc.query, "query_collection": proc.startCollection}).Debug("Running Mongo Processor")
 
 	go func() {
 		session := proc.db.ar.session.Copy()
@@ -71,7 +73,6 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 			result := map[string]interface{}{}
 			for iter.Next(&result) {
 				nResults++
-				// log.Printf("Mongo Pipeline result: %+v", result)
 				select {
 				case <-ctx.Done():
 					return
@@ -110,13 +111,13 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 
 						buckets, ok := v.([]interface{})
 						if !ok {
-							log.Printf("Failed to convert Mongo aggregation result: %+v", v)
+							plog.Errorf("Failed to convert Mongo aggregation result: %+v", v)
 							continue
 						}
 						for _, bucket := range buckets {
 							bucket, ok := bucket.(map[string]interface{})
 							if !ok {
-								log.Printf("Failed to convert Mongo aggregation result: %+v", bucket)
+								plog.Errorf("Failed to convert Mongo aggregation result: %+v", bucket)
 								continue
 							}
 
@@ -130,12 +131,12 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 								bid := strings.Replace(bucket["_id"].(string), "_", ".", -1)
 								f, err := strconv.ParseFloat(bid, 64)
 								if err != nil {
-									log.Printf("failed to parse percentile aggregation result key: %v", err)
+									plog.Errorf("failed to parse percentile aggregation result key: %v", err)
 									continue
 								}
 								term = protoutil.WrapValue(f)
 							default:
-								log.Println("unknown aggregation result type")
+								plog.Errorf("unknown aggregation result type")
 							}
 
 							switch bucket["count"].(type) {
@@ -146,7 +147,7 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 								count := bucket["count"].(float64)
 								out.Buckets = append(out.Buckets, &gripql.AggregationResultBucket{Key: term, Value: count})
 							default:
-								log.Println("unexpected aggregation result type")
+								plog.Errorf("unexpected aggregation result type: %T", bucket["count"])
 								continue
 							}
 						}
@@ -186,13 +187,14 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 				}
 			}
 			if err := iter.Close(); err != nil {
-				log.Println("Mongo traversal error:", err)
+				plog.WithFields(log.Fields{"error": err}).Error("MongoDb: iterating results")
 				continue
 			}
 			if nResults == 0 && proc.dataType == gdbi.CountData {
 				out <- &gdbi.Traveler{Count: 0}
 			}
 		}
+		plog.Debug("Mongo Processor Finished")
 	}()
 	return ctx
 }

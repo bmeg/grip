@@ -2,7 +2,6 @@ package test
 
 import (
 	"encoding/json"
-	"log"
 	"testing"
 
 	"github.com/bmeg/grip/kvindex"
@@ -262,7 +261,7 @@ func TestDocDelete(t *testing.T) {
 	}
 }
 
-func TestNumField(b *testing.T) {
+func TestNumField(t *testing.T) {
 	data := []map[string]interface{}{}
 	json.Unmarshal([]byte(docs), &data)
 
@@ -278,6 +277,6 @@ func TestNumField(b *testing.T) {
 	count := 0
 	for d := range idx.FieldTerms("v.data.age") {
 		count++
-		log.Printf("Age: %v", d)
+		t.Logf("Age: %v", d)
 	}
 }

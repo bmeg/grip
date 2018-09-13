@@ -3,7 +3,6 @@ package rdf
 import (
 	"compress/gzip"
 	"io"
-	"log"
 	"os"
 	"strings"
 
@@ -11,6 +10,7 @@ import (
 	"github.com/bmeg/grip/util/rpc"
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/knakk/rdf"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -82,14 +82,14 @@ func stringClean(cMap map[string]string, s string) string {
 //LoadRDFCmd is the main command line for loading RDF data
 func LoadRDFCmd(cmd *cobra.Command, args []string) error {
 	graph = args[0]
-	log.Println("Loading data into graph:", graph)
+	log.Infof("Loading data into graph: %s", graph)
 
 	// log.Printf("%s", uMap)
 	// return nil
 
 	f, err := os.Open(args[1])
 	if err != nil {
-		log.Printf("Error: %s", err)
+		log.Errorf("Error: %v", err)
 		os.Exit(1)
 	}
 	var reader io.Reader
@@ -104,7 +104,7 @@ func LoadRDFCmd(cmd *cobra.Command, args []string) error {
 	if !dump {
 		conn, err := gripql.Connect(rpc.ConfigWithDefaults(host), true)
 		if err != nil {
-			log.Printf("%s", err)
+			log.Errorf("Error: %v", err)
 			os.Exit(1)
 		}
 		emit = conn
@@ -149,7 +149,7 @@ func LoadRDFCmd(cmd *cobra.Command, args []string) error {
 				elementChan <- gElement{edge: &gripql.Edge{From: subj, To: obj, Label: stringClean(uMap, triple.Pred.String())}}
 			}
 			if count%10000 == 0 {
-				log.Printf("Processed %d triples", count)
+				log.Infof("Processed %d triples", count)
 			}
 			count++
 		}
@@ -162,12 +162,12 @@ func LoadRDFCmd(cmd *cobra.Command, args []string) error {
 		if element.vertex != nil {
 			err := emit.AddVertex(graph, element.vertex)
 			if err != nil {
-				log.Printf("%s", err)
+				log.Infof("%s", err)
 			}
 		} else if element.edge != nil {
 			err := emit.AddEdge(graph, element.edge)
 			if err != nil {
-				log.Printf("%s", err)
+				log.Infof("%s", err)
 			}
 		}
 	}

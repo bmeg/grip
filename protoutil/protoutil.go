@@ -2,11 +2,11 @@ package protoutil
 
 import (
 	"fmt"
-	"log"
 	"reflect"
 	"time"
 
 	structpb "github.com/golang/protobuf/ptypes/struct"
+	log "github.com/sirupsen/logrus"
 )
 
 //StructSet take value and add it to Struct s using key
@@ -68,11 +68,11 @@ func WrapValue(value interface{}) *structpb.Value {
 			return &structpb.Value{Kind: &structpb.Value_StringValue{StringValue: val.String()}}
 
 		default:
-			log.Printf("wrap unknown pointer data type: %T", value)
+			log.Errorf("wrap unknown pointer data type: %T", value)
 		}
 
 	default:
-		log.Printf("wrap unknown data type: %T", value)
+		log.Errorf("wrap unknown data type: %T", value)
 	}
 	return nil
 }
@@ -103,7 +103,7 @@ func UnWrapValue(value *structpb.Value) interface{} {
 		return nil
 
 	default:
-		log.Printf("unwrap unknown data type: %T", value.GetKind())
+		log.Errorf("unwrap unknown data type: %T", value.GetKind())
 	}
 	return nil
 }

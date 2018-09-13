@@ -3,7 +3,6 @@ package mongoload
 import (
 	"fmt"
 	"io"
-	"log"
 	"strings"
 
 	"github.com/bmeg/grip/gripql"
@@ -12,6 +11,7 @@ import (
 	"github.com/bmeg/grip/util/rpc"
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -87,7 +87,7 @@ var Cmd = &cobra.Command{
 			}
 		}
 		if !found {
-			log.Println("Creating  graph:", graph)
+			log.Infof("Creating graph: %s", graph)
 			err := conn.AddGraph(graph)
 			if err != nil {
 				return err
@@ -95,7 +95,7 @@ var Cmd = &cobra.Command{
 		}
 
 		// Connect to mongo and start the bulk load process
-		log.Println("Loading data into graph:", graph)
+		log.Infof("Loading data into graph: %s", graph)
 		session, err := mgo.Dial(mongoHost)
 		if err != nil {
 			return err
@@ -105,7 +105,7 @@ var Cmd = &cobra.Command{
 		edgeCo := session.DB(database).C(fmt.Sprintf("%s_edges", graph))
 
 		if vertexFile != "" {
-			log.Printf("Loading %s", vertexFile)
+			log.Infof("Loading vertex file: %s", vertexFile)
 			count := 0
 
 			docChan := make(chan []map[string]interface{}, 100)
@@ -121,7 +121,7 @@ var Cmd = &cobra.Command{
 					}
 					count++
 					if count%1000 == 0 {
-						log.Printf("Loaded %d vertices", count)
+						log.Infof("Loaded %d vertices", count)
 					}
 				}
 				if len(docBatch) > 0 {
@@ -140,16 +140,16 @@ var Cmd = &cobra.Command{
 					if err == nil || !isNetError(err) {
 						i = maxRetries
 					} else {
-						log.Printf("Refreshing Connection")
+						log.Infof("Refreshing Connection")
 						session.Refresh()
 					}
 				}
 			}
-			log.Printf("Loaded %d vertices", count)
+			log.Infof("Loaded %d vertices", count)
 		}
 
 		if edgeFile != "" {
-			log.Printf("Loading %s", edgeFile)
+			log.Infof("Loading edge file: %s", edgeFile)
 			count := 0
 
 			docChan := make(chan []map[string]interface{}, 100)
@@ -168,7 +168,7 @@ var Cmd = &cobra.Command{
 					}
 					count++
 					if count%1000 == 0 {
-						log.Printf("Loaded %d edges", count)
+						log.Infof("Loaded %d edges", count)
 					}
 				}
 				if len(docBatch) > 0 {
@@ -187,12 +187,12 @@ var Cmd = &cobra.Command{
 					if err == nil || !isNetError(err) {
 						i = maxRetries
 					} else {
-						log.Printf("Refreshing Connection")
+						log.Infof("Refreshing Connection")
 						session.Refresh()
 					}
 				}
 			}
-			log.Printf("Loaded %d edges", count)
+			log.Infof("Loaded %d edges", count)
 		}
 		return nil
 	},

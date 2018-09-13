@@ -3,11 +3,11 @@ package util
 import (
 	"bytes"
 	"io"
-	"log"
 
 	"github.com/bmeg/golib"
 	"github.com/bmeg/grip/gripql"
 	"github.com/golang/protobuf/jsonpb"
+	log "github.com/sirupsen/logrus"
 )
 
 // StreamVerticesFromFile reads a file containing a vertex per line and
@@ -20,7 +20,7 @@ func StreamVerticesFromFile(file string) chan *gripql.Vertex {
 
 		reader, err := golib.ReadFileLines(file)
 		if err != nil {
-			log.Printf("Error: reading file: %v", err)
+			log.WithFields(log.Fields{"error": err}).Errorf("Reading file: %s", file)
 			return
 		}
 
@@ -32,7 +32,7 @@ func StreamVerticesFromFile(file string) chan *gripql.Vertex {
 				break
 			}
 			if err != nil {
-				log.Printf("Error: unmarshaling vertex: %v", err)
+				log.WithFields(log.Fields{"error": err}).Errorf("Unmarshaling vertex: %v", line)
 				return
 			}
 			vertChan <- v
@@ -52,7 +52,7 @@ func StreamEdgesFromFile(file string) chan *gripql.Edge {
 
 		reader, err := golib.ReadFileLines(file)
 		if err != nil {
-			log.Printf("Error: reading file: %v", err)
+			log.WithFields(log.Fields{"error": err}).Errorf("Reading file: %s", file)
 			return
 		}
 
@@ -64,7 +64,7 @@ func StreamEdgesFromFile(file string) chan *gripql.Edge {
 				break
 			}
 			if err != nil {
-				log.Printf("Error: unmarshaling edge: %v", err)
+				log.WithFields(log.Fields{"error": err}).Errorf("Unmarshaling edge: %v", line)
 				return
 			}
 			edgeChan <- e

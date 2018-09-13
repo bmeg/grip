@@ -7,11 +7,11 @@ package boltdb
 import (
 	"bytes"
 	"fmt"
-	"log"
 
 	"github.com/bmeg/grip/kvgraph"
 	"github.com/bmeg/grip/kvi"
 	"github.com/boltdb/bolt"
+	log "github.com/sirupsen/logrus"
 )
 
 var loaded = kvgraph.AddKVDriver("bolt", NewKVInterface)
@@ -20,17 +20,21 @@ var graphBucket = []byte("graph")
 
 // NewKVInterface creates new BoltDB backed KVInterface at `path`
 func NewKVInterface(path string) (kvi.KVInterface, error) {
-	log.Printf("Starting BoltDB")
+	log.Info("Starting BoltDB")
 	db, err := bolt.Open(path, 0600, nil)
 	if err != nil {
 		return nil, err
 	}
-	db.Update(func(tx *bolt.Tx) error {
+	err = db.Update(func(tx *bolt.Tx) error {
 		if tx.Bucket(graphBucket) == nil {
-			tx.CreateBucket(graphBucket)
+			_, err := tx.CreateBucket(graphBucket)
+			return err
 		}
 		return nil
 	})
+	if err != nil {
+		return nil, err
+	}
 	return &BoltKV{
 		db: db,
 	}, nil
@@ -79,7 +83,10 @@ func (boltkv *BoltKV) DeletePrefix(id []byte) error {
 			odel = append(odel, k)
 		}
 		for _, okey := range odel {
-			b.Delete(okey)
+			err := b.Delete(okey)
+			if err != nil {
+				return err
+			}
 		}
 		return nil
 	})
@@ -104,8 +111,7 @@ func (boltkv *BoltKV) HasKey(id []byte) bool {
 func (boltkv *BoltKV) Set(id []byte, val []byte) error {
 	err := boltkv.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket(graphBucket)
-		b.Put(id, val)
-		return nil
+		return b.Put(id, val)
 	})
 	return err
 }
@@ -220,7 +226,6 @@ func (boltIt *boltIterator) SeekReverse(id []byte) error {
 	if k == nil || v == nil {
 		boltIt.key = nil
 		boltIt.value = nil
-		log.Printf("Nil rev seek")
 		return fmt.Errorf("Seek error")
 	}
 	//seek lands at value equal or above id. Move once to make sure
