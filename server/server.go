@@ -94,6 +94,7 @@ func (server *GripServer) Serve(pctx context.Context) error {
 				streamErrorInterceptor(),
 			),
 		),
+		grpc.MaxMsgSize(1024*1028*16),
 	)
 	opts := []grpc.DialOption{
 		grpc.WithInsecure(),
