@@ -7,6 +7,7 @@ import (
 	"github.com/bmeg/grip/cmd/drop"
 	"github.com/bmeg/grip/cmd/dump"
 	"github.com/bmeg/grip/cmd/info"
+	"github.com/bmeg/grip/cmd/kvload"
 	"github.com/bmeg/grip/cmd/list"
 	"github.com/bmeg/grip/cmd/load"
 	"github.com/bmeg/grip/cmd/mongoload"
@@ -41,6 +42,7 @@ func init() {
 	RootCmd.AddCommand(server.Cmd)
 	RootCmd.AddCommand(stream.Cmd)
 	RootCmd.AddCommand(version.Cmd)
+	RootCmd.AddCommand(kvload.Cmd)
 }
 
 var genBashCompletionCmd = &cobra.Command{
