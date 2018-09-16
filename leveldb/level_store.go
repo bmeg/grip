@@ -13,6 +13,7 @@ import (
 	"github.com/bmeg/grip/kvi"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/iterator"
+	//"github.com/syndtr/goleveldb/leveldb/opt"
 )
 
 var loaded = kvgraph.AddKVDriver("level", NewKVInterface)
@@ -84,17 +85,18 @@ func (l *LevelKV) Set(id []byte, val []byte) error {
 // Update runs an alteration transaction of the kvstore
 func (l *LevelKV) Update(u func(tx kvi.KVTransaction) error) error {
 	tx, _ := l.db.OpenTransaction()
-	ktx := levelTransaction{tx}
+	ktx := levelTransaction{tx, l.db}
 	defer tx.Commit()
 	return u(ktx)
 }
 
 type levelTransaction struct {
 	tx *leveldb.Transaction
+	db *leveldb.DB
 }
 
 func (ltx levelTransaction) Set(key, val []byte) error {
-	return ltx.tx.Put(key, val, nil)
+	return ltx.tx.Put(key, val, nil) //&opt.WriteOptions{NoWriteMerge: true})
 }
 
 // Delete removes key `id` from the kv store
