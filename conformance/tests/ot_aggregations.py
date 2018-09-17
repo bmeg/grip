@@ -36,7 +36,7 @@ def test_term_aggregation(O):
     errors = []
     setupGraph(O)
 
-    response =  O.aggregate(gripql.term("test-agg", "Person", "name", 2))
+    response = O.aggregate(gripql.term("test-agg", "Person", "name", 2))
     if 'test-agg' not in response:
             errors.append("Result had Incorrect aggregation name")
             return errors

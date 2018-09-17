@@ -22,6 +22,7 @@ install:
   - make
   - sudo pip install -U numpy
   - sudo pip install -U requests
+  - sudo pip install -U flake8
 
 jobs:
   include:
