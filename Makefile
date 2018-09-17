@@ -78,6 +78,7 @@ lint:
 		--vendor \
 		-e '.*bundle.go' -e ".*pb.go" -e ".*pb.gw.go" -e "underscore.go" \
 		./...
+	@flake8 gripql/python/ conformance/
 
 # ---------------------
 # Release / Snapshot

@@ -241,6 +241,7 @@ class Query:
         logger.addHandler(stream_handler)
 
         rate = Rate(logger)
+        rate.init()
         response = requests.post(
             self.url,
             json={"query": self.query},
