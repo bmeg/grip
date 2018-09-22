@@ -7,10 +7,10 @@ package leveldb
 import (
 	"bytes"
 	"fmt"
-	"log"
 
 	"github.com/bmeg/grip/kvgraph"
 	"github.com/bmeg/grip/kvi"
+	log "github.com/sirupsen/logrus"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/iterator"
 	//"github.com/syndtr/goleveldb/leveldb/opt"
@@ -20,14 +20,12 @@ var loaded = kvgraph.AddKVDriver("level", NewKVInterface)
 
 // NewKVInterface creates new LevelDB backed KVInterface at `path`
 func NewKVInterface(path string) (kvi.KVInterface, error) {
-	log.Printf("Starting LevelDB")
+	log.Info("Starting LevelDB")
 	db, err := leveldb.OpenFile(path, nil)
 	if err != nil {
-		log.Printf("Error: %s", err)
 		return &LevelKV{}, err
 	}
-	o := &LevelKV{db: db}
-	return o, err
+	return &LevelKV{db: db}, nil
 }
 
 // LevelKV implements the generic key value interface using the leveldb library

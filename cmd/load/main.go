@@ -5,13 +5,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 
 	"github.com/bmeg/grip/cmd/load/example"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/util"
 	"github.com/bmeg/grip/util/rpc"
 	"github.com/golang/protobuf/jsonpb"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
 )
@@ -76,14 +76,14 @@ var Cmd = &cobra.Command{
 			}
 		}
 		if !found {
-			log.Println("Creating  graph:", graph)
+			log.WithFields(log.Fields{"graph": graph}).Info("creating graph")
 			err := conn.AddGraph(graph)
 			if err != nil {
 				return err
 			}
 		}
 
-		log.Println("Loading data into graph:", graph)
+		log.WithFields(log.Fields{"graph": graph}).Info("loading data")
 
 		elemChan := make(chan *gripql.GraphElement)
 		wait := make(chan bool)
@@ -95,35 +95,34 @@ var Cmd = &cobra.Command{
 		}()
 
 		if vertexFile != "" {
-			log.Printf("Loading %s", vertexFile)
+			log.Infof("Loading vertex file: %s", vertexFile)
 			count := 0
 			for v := range util.StreamVerticesFromFile(vertexFile) {
 				count++
 				if count%1000 == 0 {
-					log.Printf("Loaded %d vertices", count)
+					log.Infof("Loaded %d vertices", count)
 				}
 				elemChan <- &gripql.GraphElement{Graph: graph, Vertex: v}
 			}
-			log.Printf("Loaded %d vertices", count)
-
+			log.Infof("Loaded %d vertices", count)
 		}
 
 		if edgeFile != "" {
-			log.Printf("Loading %s", edgeFile)
+			log.Infof("Loading edge file: %s", edgeFile)
 			count := 0
 			for e := range util.StreamEdgesFromFile(edgeFile) {
 				count++
 				if count%1000 == 0 {
-					log.Printf("Loaded %d edges", count)
+					log.Infof("Loaded %d edges", count)
 				}
 				elemChan <- &gripql.GraphElement{Graph: graph, Edge: e}
 			}
-			log.Printf("Loaded %d edges", count)
+			log.Infof("Loaded %d edges", count)
 		}
 
 		m := jsonpb.Unmarshaler{AllowUnknownFields: true}
 		if jsonFile != "" {
-			log.Printf("Loading %s", jsonFile)
+			log.Infof("Loading json file: %s", jsonFile)
 			content, err := ioutil.ReadFile(jsonFile)
 			if err != nil {
 				return err
@@ -135,15 +134,15 @@ var Cmd = &cobra.Command{
 			for _, v := range g.Vertices {
 				elemChan <- &gripql.GraphElement{Graph: graph, Vertex: v}
 			}
-			log.Printf("Loaded %d vertices", len(g.Vertices))
+			log.Infof("Loaded %d vertices", len(g.Vertices))
 			for _, e := range g.Edges {
 				elemChan <- &gripql.GraphElement{Graph: graph, Edge: e}
 			}
-			log.Printf("Loaded %d edges", len(g.Edges))
+			log.Infof("Loaded %d edges", len(g.Edges))
 		}
 
 		if yamlFile != "" {
-			log.Printf("Loading %s", yamlFile)
+			log.Infof("Loading YAML file: %s", yamlFile)
 			yamlContent, err := ioutil.ReadFile(yamlFile)
 			if err != nil {
 				return err
@@ -164,11 +163,11 @@ var Cmd = &cobra.Command{
 			for _, v := range g.Vertices {
 				elemChan <- &gripql.GraphElement{Graph: graph, Vertex: v}
 			}
-			log.Printf("Loaded %d vertices", len(g.Vertices))
+			log.Infof("Loaded %d vertices", len(g.Vertices))
 			for _, e := range g.Edges {
 				elemChan <- &gripql.GraphElement{Graph: graph, Edge: e}
 			}
-			log.Printf("Loaded %d edges", len(g.Edges))
+			log.Infof("Loaded %d edges", len(g.Edges))
 		}
 
 		close(elemChan)

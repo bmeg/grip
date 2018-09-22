@@ -3,11 +3,11 @@ package server
 import (
 	"fmt"
 	"io"
-	"log"
 	"time"
 
 	"github.com/bmeg/grip/engine"
 	"github.com/bmeg/grip/gripql"
+	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
@@ -54,13 +54,13 @@ func (server *GripServer) getSchemas(ctx context.Context) {
 			return
 
 		default:
-			log.Printf("getting schema for graph %s", name)
+			log.WithFields(log.Fields{"graph": name}).Debug("get graph schema")
 			schema, err := server.db.GetSchema(ctx, name, server.conf.SchemaInspectN, server.conf.SchemaRandomSample)
 			if err == nil {
-				log.Printf("cached schema for graph %s", name)
+				log.WithFields(log.Fields{"graph": name}).Debug("cached graph schema")
 				server.schemas[name] = schema
 			} else {
-				log.Printf("failed to get schema for graph %s: %v", name, err)
+				log.WithFields(log.Fields{"graph": name, "error": err}).Error("failed to get graph schema")
 			}
 		}
 	}
@@ -223,12 +223,13 @@ func (server *GripServer) BulkAdd(stream gripql.Edit_BulkAddServer) error {
 			if len(vBatch.vertices) > 0 && vBatch.graph != "" {
 				graph, err := server.db.Graph(vBatch.graph)
 				if err != nil {
+					log.WithFields(log.Fields{"error": err}).Error("BulkAdd: graph connection error")
 					log.Printf("Insert error: %s", err)
 					return
 				}
 				err = graph.AddVertex(vBatch.vertices)
 				if err != nil {
-					log.Printf("Insert error: %s", err)
+					log.WithFields(log.Fields{"error": err}).Error("BulkAdd: add vertex error")
 				}
 			}
 		}
@@ -240,12 +241,12 @@ func (server *GripServer) BulkAdd(stream gripql.Edit_BulkAddServer) error {
 			if len(eBatch.edges) > 0 && eBatch.graph != "" {
 				graph, err := server.db.Graph(eBatch.graph)
 				if err != nil {
-					log.Printf("Insert error: %s", err)
+					log.WithFields(log.Fields{"error": err}).Error("BulkAdd: graph connection error")
 					return
 				}
 				err = graph.AddEdge(eBatch.edges)
 				if err != nil {
-					log.Printf("Insert error: %s", err)
+					log.WithFields(log.Fields{"error": err}).Error("BulkAdd: add edge error")
 				}
 			}
 		}
@@ -259,16 +260,16 @@ func (server *GripServer) BulkAdd(stream gripql.Edit_BulkAddServer) error {
 		element, err := stream.Recv()
 		if err == io.EOF {
 			if vertCount != 0 {
-				log.Printf("%d vertices streamed", vertCount)
+				log.Debugf("%d vertices streamed", vertCount)
 			}
 			if edgeCount != 0 {
-				log.Printf("%d edges streamed", edgeCount)
+				log.Debugf("%d edges streamed", edgeCount)
 			}
 			vertexBatchChan <- vertexBatch
 			edgeBatchChan <- edgeBatch
 			loopErr = err
 		} else if err != nil {
-			log.Printf("Streaming error: %s", err)
+			log.WithFields(log.Fields{"error": err}).Error("BulkAdd: streaming error")
 			loopErr = err
 		} else {
 			if element.Vertex != nil {

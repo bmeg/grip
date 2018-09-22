@@ -3,7 +3,6 @@ package mongo
 import (
 	"context"
 	"fmt"
-	"log"
 	"strconv"
 	"strings"
 
@@ -12,11 +11,12 @@ import (
 	"github.com/bmeg/grip/protoutil"
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
+	log "github.com/sirupsen/logrus"
 )
 
 // AddVertexIndex add index to vertices
 func (mg *Graph) AddVertexIndex(label string, field string) error {
-	log.Printf("Adding index: %s.%s", label, field)
+	log.WithFields(log.Fields{"label": label, "field": field}).Info("Adding vertex index")
 	field = jsonpath.GetJSONPath(field)
 	field = strings.TrimPrefix(field, "$.")
 
@@ -35,7 +35,7 @@ func (mg *Graph) AddVertexIndex(label string, field string) error {
 
 // DeleteVertexIndex delete index from vertices
 func (mg *Graph) DeleteVertexIndex(label string, field string) error {
-	log.Printf("Deleting index: %s.%s", label, field)
+	log.WithFields(log.Fields{"label": label, "field": field}).Info("Deleting vertex index")
 	field = jsonpath.GetJSONPath(field)
 	field = strings.TrimPrefix(field, "$.")
 
@@ -47,6 +47,7 @@ func (mg *Graph) DeleteVertexIndex(label string, field string) error {
 
 // GetVertexIndexList lists indices
 func (mg *Graph) GetVertexIndexList() chan gripql.IndexID {
+	log.Debug("Running GetVertexIndexList")
 	out := make(chan gripql.IndexID)
 
 	go func() {
@@ -60,13 +61,13 @@ func (mg *Graph) GetVertexIndexList() chan gripql.IndexID {
 		var labels []string
 		err := c.Find(nil).Distinct("label", &labels)
 		if err != nil {
-			log.Println("GetVertexIndexList error:", err)
+			log.WithFields(log.Fields{"error": err}).Error("GetVertexIndexList: finding distinct labels")
 		}
 
 		// list indexed fields
 		idxList, err := c.Indexes()
 		if err != nil {
-			log.Printf("Failed to list indices: %s", err)
+			log.WithFields(log.Fields{"error": err}).Error("GetVertexIndexList: listing indices")
 			return
 		}
 
@@ -85,7 +86,7 @@ func (mg *Graph) GetVertexIndexList() chan gripql.IndexID {
 
 // GetVertexTermAggregation get count of every term across vertices
 func (mg *Graph) GetVertexTermAggregation(ctx context.Context, label string, field string, size uint32) (*gripql.AggregationResult, error) {
-	log.Printf("Running GetVertexTermAggregation: { label: %s, field: %s size: %v}", label, field, size)
+	log.WithFields(log.Fields{"label": label, "field": field, "size": size}).Debug("Running GetVertexTermAggregation")
 	namespace := jsonpath.GetNamespace(field)
 	if namespace != jsonpath.Current {
 		return nil, fmt.Errorf("invalid field path")
@@ -135,7 +136,7 @@ func (mg *Graph) GetVertexTermAggregation(ctx context.Context, label string, fie
 
 // GetVertexHistogramAggregation get binned counts of a term across vertices
 func (mg *Graph) GetVertexHistogramAggregation(ctx context.Context, label string, field string, interval uint32) (*gripql.AggregationResult, error) {
-	log.Printf("Running GetVertexHistogramAggregation: { label: %s, field: %s interval: %v }", label, field, interval)
+	log.WithFields(log.Fields{"label": label, "field": field, "interval": interval}).Debug("Running GetVertexHistogramAggregation")
 	namespace := jsonpath.GetNamespace(field)
 	if namespace != jsonpath.Current {
 		return nil, fmt.Errorf("invalid field path")
@@ -190,7 +191,7 @@ func (mg *Graph) GetVertexHistogramAggregation(ctx context.Context, label string
 
 // GetVertexPercentileAggregation get percentiles of a term across vertices
 func (mg *Graph) GetVertexPercentileAggregation(ctx context.Context, label string, field string, percents []float64) (*gripql.AggregationResult, error) {
-	log.Printf("Running GetVertexPercentileAggregation: { label: %s, field: %s percents: %v }", label, field, percents)
+	log.WithFields(log.Fields{"label": label, "field": field, "percents": percents}).Debug("Running GetVertexPercentileAggregation")
 	namespace := jsonpath.GetNamespace(field)
 	if namespace != jsonpath.Current {
 		return nil, fmt.Errorf("invalid field path")
@@ -260,7 +261,7 @@ func (mg *Graph) GetVertexPercentileAggregation(ctx context.Context, label strin
 
 // VertexLabelScan produces a channel of all vertex ids where the vertex label matches `label`
 func (mg *Graph) VertexLabelScan(ctx context.Context, label string) chan string {
-	log.Printf("Running VertexLabelScan for label: %s", label)
+	log.WithFields(log.Fields{"label": label}).Debug("Running VertexLabelScan")
 	out := make(chan string, 100)
 	go func() {
 		defer close(out)

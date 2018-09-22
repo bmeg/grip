@@ -11,7 +11,7 @@ TESTS = os.path.join(BASE, "tests")
 GRIPQL = os.path.join(os.path.dirname(BASE), "gripql", "python")
 GRAPH = "test_graph"
 sys.path.append(GRIPQL)
-import gripql
+import gripql  # noqa: E402
 
 
 if __name__ == "__main__":

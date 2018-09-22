@@ -5,13 +5,13 @@ package v8
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 
 	"github.com/augustoroman/v8"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/jsengine"
 	"github.com/bmeg/grip/jsengine/underscore"
 	"github.com/bmeg/grip/protoutil"
+	log "github.com/sirupsen/logrus"
 )
 
 type V8Runtime struct {
@@ -67,7 +67,7 @@ func (self *V8Runtime) Call(input ...*gripql.QueryResult) *gripql.QueryResult {
 	}
 	value, err := self.user.Call(nil, m...)
 	if err != nil {
-		log.Printf("Exec Error: %s", err)
+		log.WithFields(log.Fields{"error": error}).Error("V8: call error")
 	}
 
 	//there has to be a better way
@@ -99,7 +99,7 @@ func (self *V8Runtime) CallBool(input ...*gripql.QueryResult) bool {
 	}
 	value, err := self.user.Call(nil, m...)
 	if err != nil {
-		log.Printf("Exec Error: %s", err)
+		log.WithFields(log.Fields{"error": error}).Error("V8: call error")
 	}
 	val := false
 	jv, _ := value.MarshalJSON()
@@ -128,7 +128,7 @@ func (self *V8Runtime) CallValueMapBool(input map[string]gripql.QueryResult) boo
 	v, _ := self.ctx.Create(c)
 	value, err := self.user.Call(nil, v)
 	if err != nil {
-		log.Printf("Exec Error: %s", err)
+		log.WithFields(log.Fields{"error": error}).Error("V8: call error")
 	}
 	val := false
 	jv, _ := value.MarshalJSON()
@@ -157,7 +157,7 @@ func (self *V8Runtime) CallValueToVertex(input map[string]gripql.QueryResult) []
 	v, _ := self.ctx.Create(c)
 	value, err := self.user.Call(nil, v)
 	if err != nil {
-		log.Printf("Exec Error: %s", err)
+		log.WithFields(log.Fields{"error": error}).Error("V8: call error")
 	}
 	val := []string{}
 	jv, _ := value.MarshalJSON()

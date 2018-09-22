@@ -6,7 +6,6 @@ package graphql
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"regexp"
 
@@ -14,6 +13,7 @@ import (
 	"github.com/bmeg/grip/util/rpc"
 	"github.com/graphql-go/graphql"
 	"github.com/graphql-go/handler"
+	log "github.com/sirupsen/logrus"
 )
 
 //handle the graphql queries for a single endpoint
@@ -81,15 +81,14 @@ func newGraphHandler(graph string, client gripql.Client) *graphHandler {
 func (gh *graphHandler) setup() {
 	ts, _ := gh.client.GetTimestamp(gh.graph)
 	if ts == nil || ts.Timestamp != gh.timestamp {
-		log.Printf("Reloading GraphQL schema for graph: %s", gh.graph)
+		log.WithFields(log.Fields{"graph": gh.graph}).Info("Reloading GraphQL schema")
 		schema, err := buildGraphQLSchema(gh.client, gh.graph)
 		if err != nil {
-			log.Printf("GraphQL schema build failed: %v", err)
+			log.WithFields(log.Fields{"graph": gh.graph, "error": err}).Error("GraphQL schema build failed")
 			gh.gqlHandler = nil
 			gh.timestamp = ""
 		} else {
-			log.Printf("Built GraphQL schema for graph: %s", gh.graph)
-			// log.Printf("Built GraphQL schema for graph: %s: %+v", gh.graph, schema)
+			log.WithFields(log.Fields{"graph": gh.graph}).Info("Built GraphQL schema")
 			gh.gqlHandler = handler.New(&handler.Config{
 				Schema: schema,
 			})

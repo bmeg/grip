@@ -3,20 +3,25 @@ package rdf
 import (
 	"compress/gzip"
 	"io"
-	"log"
 	"os"
+	"strings"
 
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/util/rpc"
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/knakk/rdf"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
 var host = "localhost:8202"
-var dump = ""
+var dump bool
 var graph string
 var gzipInput bool
+var uMap = map[string]string{}
+
+// RdfType is used to define the label of a vertex
+var RdfType = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
 
 type emitter interface {
 	AddVertex(string, *gripql.Vertex) error
@@ -60,14 +65,31 @@ func newFileEmitter(path string) emitter {
 	return fileEmitter{vertexFile, edgeFile, jm}
 }
 
+type gElement struct {
+	vertex *gripql.Vertex
+	edge   *gripql.Edge
+}
+
+func stringClean(cMap map[string]string, s string) string {
+	for k, v := range cMap {
+		if strings.HasPrefix(s, k) {
+			return v + s[len(k):]
+		}
+	}
+	return s
+}
+
 //LoadRDFCmd is the main command line for loading RDF data
 func LoadRDFCmd(cmd *cobra.Command, args []string) error {
 	graph = args[0]
-	log.Println("Loading data into graph:", graph)
+	log.Infof("Loading data into graph: %s", graph)
+
+	// log.Printf("%s", uMap)
+	// return nil
 
 	f, err := os.Open(args[1])
 	if err != nil {
-		log.Printf("Error: %s", err)
+		log.Errorf("Error: %v", err)
 		os.Exit(1)
 	}
 	var reader io.Reader
@@ -79,67 +101,74 @@ func LoadRDFCmd(cmd *cobra.Command, args []string) error {
 	}
 
 	var emit emitter
-	if dump == "" {
+	if !dump {
 		conn, err := gripql.Connect(rpc.ConfigWithDefaults(host), true)
 		if err != nil {
-			log.Printf("%s", err)
+			log.Errorf("Error: %v", err)
 			os.Exit(1)
 		}
 		emit = conn
 	} else {
-		emit = newFileEmitter(dump)
+		emit = newFileEmitter(graph)
 	}
 
-	vertMap := map[string]int{}
 	count := 0
 	dec := rdf.NewTripleDecoder(reader, rdf.RDFXML)
 	var curVertex *gripql.Vertex
 	curSubj := ""
-	for triple, err := dec.Decode(); err != io.EOF; triple, err = dec.Decode() {
-		subj := triple.Subj.String()
-		if subj != curSubj && curVertex != nil {
-			err := emit.AddVertex(graph, curVertex)
-			if err != nil {
-				return err
+	tripleChan := make(chan rdf.Triple, 1000)
+	go func() {
+		for triple, err := dec.Decode(); err != io.EOF; triple, err = dec.Decode() {
+			if err == nil {
+				tripleChan <- triple
 			}
-			curVertex = nil
 		}
-		curSubj = subj
-		if _, ok := vertMap[subj]; !ok {
-			err := emit.AddVertex(graph, &gripql.Vertex{Gid: subj})
-			if err != nil {
-				return err
+		close(tripleChan)
+	}()
+	elementChan := make(chan gElement, 1000)
+	go func() {
+		for triple := range tripleChan {
+			subj := stringClean(uMap, triple.Subj.String())
+			if subj != curSubj && curVertex != nil {
+				elementChan <- gElement{vertex: curVertex}
+				curVertex = nil
 			}
-			vertMap[subj] = 1
-		}
-		if triple.Obj.Type() == rdf.TermLiteral {
-			if curVertex == nil {
-				curVertex = &gripql.Vertex{Gid: subj}
-			}
-			curVertex.SetProperty(triple.Pred.String(), triple.Obj.String())
-		} else {
-			obj := triple.Obj.String()
-			if _, ok := vertMap[obj]; !ok {
-				err := emit.AddVertex(graph, &gripql.Vertex{Gid: obj})
-				if err != nil {
-					return err
+			curSubj = subj
+			if triple.Obj.Type() == rdf.TermLiteral {
+				if curVertex == nil {
+					curVertex = &gripql.Vertex{Gid: subj}
 				}
-				vertMap[obj] = 1
+				curVertex.SetProperty(stringClean(uMap, triple.Pred.String()), triple.Obj.String())
+			} else if triple.Pred.String() == RdfType {
+				if curVertex == nil {
+					curVertex = &gripql.Vertex{Gid: subj}
+				}
+				curVertex.Label = stringClean(uMap, triple.Obj.String())
+			} else {
+				obj := stringClean(uMap, triple.Obj.String())
+				elementChan <- gElement{edge: &gripql.Edge{From: subj, To: obj, Label: stringClean(uMap, triple.Pred.String())}}
 			}
-			err := emit.AddEdge(graph, &gripql.Edge{From: subj, To: obj, Label: triple.Pred.String()})
+			if count%10000 == 0 {
+				log.Infof("Processed %d triples", count)
+			}
+			count++
+		}
+		if curVertex != nil {
+			elementChan <- gElement{vertex: curVertex}
+		}
+		close(elementChan)
+	}()
+	for element := range elementChan {
+		if element.vertex != nil {
+			err := emit.AddVertex(graph, element.vertex)
 			if err != nil {
-				return err
+				log.Infof("%s", err)
 			}
-		}
-		if count%1000 == 0 {
-			log.Printf("Processed %d triples", count)
-		}
-		count++
-	}
-	if curVertex != nil {
-		err := emit.AddVertex(graph, curVertex)
-		if err != nil {
-			return err
+		} else if element.edge != nil {
+			err := emit.AddEdge(graph, element.edge)
+			if err != nil {
+				log.Infof("%s", err)
+			}
 		}
 	}
 	emit.Close()
@@ -157,7 +186,8 @@ var Cmd = &cobra.Command{
 
 func init() {
 	flags := Cmd.Flags()
-	flags.StringVar(&dump, "dump", "", "dump to files")
+	flags.BoolVar(&dump, "dump", false, "dump to file")
 	flags.BoolVar(&gzipInput, "gzip", false, "gziped input file")
 	flags.StringVar(&host, "host", host, "grip server url")
+	flags.StringToStringVarP(&uMap, "map", "m", map[string]string{}, "URLMap: -m src=dst")
 }

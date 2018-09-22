@@ -3,7 +3,6 @@ package mongo
 import (
 	"context"
 	"fmt"
-	"log"
 	"strings"
 	"time"
 
@@ -13,6 +12,7 @@ import (
 	"github.com/bmeg/grip/timestamp"
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
+	log "github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -36,7 +36,7 @@ type GraphDB struct {
 
 // NewGraphDB creates a new mongo graph database interface
 func NewGraphDB(conf Config) (gdbi.GraphDB, error) {
-	log.Printf("Starting Mongo Driver")
+	log.Info("Starting Mongo Driver")
 	database := strings.ToLower(conf.DBName)
 	err := gripql.ValidateGraphName(database)
 	if err != nil {
@@ -78,7 +78,7 @@ func NewGraphDB(conf Config) (gdbi.GraphDB, error) {
 		go func() {
 			err := db.setupIndices(g)
 			if err != nil {
-				log.Printf("error setting up indices for graph %s: %v", g, err)
+				log.WithFields(log.Fields{"error": err, "graph": g}).Error("Setting up indices")
 			}
 		}()
 	}
@@ -186,15 +186,15 @@ func (ma *GraphDB) DeleteGraph(graph string) error {
 
 	verr := v.DropCollection()
 	if verr != nil {
-		log.Printf("Drop vertex collection failed: %v", verr)
+		log.WithFields(log.Fields{"error": verr, "graph": graph}).Error("DeleteGraph: MongoDB: dropping vertex collection")
 	}
 	eerr := e.DropCollection()
 	if eerr != nil {
-		log.Printf("Drop edge collection failed: %v", eerr)
+		log.WithFields(log.Fields{"error": eerr, "graph": graph}).Error("DeleteGraph: MongoDB: dropping edge collection")
 	}
 	gerr := g.RemoveId(graph)
 	if gerr != nil {
-		log.Printf("Remove graph id failed: %v", gerr)
+		log.WithFields(log.Fields{"error": gerr, "graph": graph}).Error("DeleteGraph: MongoDB: removing graph id")
 	}
 
 	if verr != nil || eerr != nil || gerr != nil {
@@ -219,7 +219,7 @@ func (ma *GraphDB) ListGraphs() []string {
 		out = append(out, result["_id"].(string))
 	}
 	if err := iter.Close(); err != nil {
-		log.Println("ListGraphs error:", err)
+		log.WithFields(log.Fields{"error": err}).Error("ListGraphs: MongoDB: iterating over graphs collection")
 	}
 
 	return out
@@ -273,7 +273,7 @@ func (ma *GraphDB) GetSchema(ctx context.Context, graph string, sampleN uint32, 
 	}
 
 	schema := &gripql.GraphSchema{Vertices: vSchema, Edges: eSchema}
-	// log.Printf("Graph schema: %+v", schema)
+	log.WithFields(log.Fields{"graph": graph, "schema": schema}).Debug("Finished GetSchema call")
 	return schema, nil
 }
 
@@ -297,12 +297,12 @@ func (ma *GraphDB) getVertexSchema(ctx context.Context, graph string, n uint32, 
 			continue
 		}
 		g.Go(func() error {
-			log.Printf("vertex label: %s: starting schema build", label)
+			log.WithFields(log.Fields{"graph": graph, "label": label}).Debug("getVertexSchema: Started schema build")
 
 			session := ma.session.Copy()
 			err := session.Ping()
 			if err != nil {
-				log.Printf("session ping error: %v", err)
+				log.WithFields(log.Fields{"graph": graph, "label": label, "error": err}).Warning("getVertexSchema: Session ping error")
 				session.Refresh()
 			}
 			defer session.Close()
@@ -339,14 +339,13 @@ func (ma *GraphDB) getVertexSchema(ctx context.Context, graph string, n uint32, 
 				}
 			}
 			if err := iter.Close(); err != nil {
-				err = fmt.Errorf("iter error building schema for label %s: %v", label, err)
-				log.Printf(err.Error())
+				log.WithFields(log.Fields{"graph": graph, "label": label, "error": err}).Error("getVertexSchema: MongoDB: iter error")
 				return err
 			}
 
 			vSchema := &gripql.Vertex{Label: label, Data: protoutil.AsStruct(schema)}
 			schemaChan <- vSchema
-			log.Printf("vertex label: %s: finished schema build", label)
+			log.WithFields(log.Fields{"graph": graph, "label": label}).Debug("getVertexSchema: Finished schema build")
 
 			return nil
 		})
@@ -356,7 +355,6 @@ func (ma *GraphDB) getVertexSchema(ctx context.Context, graph string, n uint32, 
 	done := make(chan interface{})
 	go func() {
 		for s := range schemaChan {
-			// log.Printf("Vertex schema: %+v", s)
 			output = append(output, s)
 		}
 		close(done)
@@ -388,12 +386,12 @@ func (ma *GraphDB) getEdgeSchema(ctx context.Context, graph string, n uint32, ra
 			continue
 		}
 		g.Go(func() error {
-			log.Printf("edge label: %s: starting schema build", label)
+			log.WithFields(log.Fields{"graph": graph, "label": label}).Debug("getEdgeSchema: Started schema build")
 
 			session := ma.session.Copy()
 			err := session.Ping()
 			if err != nil {
-				log.Printf("session ping error: %v", err)
+				log.WithFields(log.Fields{"graph": graph, "label": label, "error": err}).Warning("getEdgeSchema: Session ping error")
 				session.Refresh()
 			}
 			defer session.Close()
@@ -433,8 +431,7 @@ func (ma *GraphDB) getEdgeSchema(ctx context.Context, graph string, n uint32, ra
 				}
 			}
 			if err := iter.Close(); err != nil {
-				err = fmt.Errorf("iter error building schema for label %s: %v", label, err)
-				log.Printf(err.Error())
+				log.WithFields(log.Fields{"graph": graph, "label": label, "error": err}).Error("getEdgeSchema: MongoDB: iter error")
 				return err
 			}
 
@@ -446,7 +443,7 @@ func (ma *GraphDB) getEdgeSchema(ctx context.Context, graph string, n uint32, ra
 				eSchema := &gripql.Edge{Label: label, From: from[j], To: to[j], Data: protoutil.AsStruct(schema)}
 				schemaChan <- eSchema
 			}
-			log.Printf("edge label: %s: finished schema build", label)
+			log.WithFields(log.Fields{"graph": graph, "label": label}).Debug("getEdgeSchema: Finished schema build")
 
 			return nil
 		})
@@ -456,7 +453,6 @@ func (ma *GraphDB) getEdgeSchema(ctx context.Context, graph string, n uint32, ra
 	done := make(chan interface{})
 	go func() {
 		for s := range schemaChan {
-			// log.Printf("Edge schema: %+v", s)
 			output = append(output, s)
 		}
 		close(done)

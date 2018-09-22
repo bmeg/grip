@@ -4,7 +4,6 @@ package server
 import (
 	"fmt"
 	"io"
-	"log"
 	"net"
 	"net/http"
 	"os"
@@ -15,6 +14,7 @@ import (
 	"github.com/golang/gddo/httputil"
 	"github.com/grpc-ecosystem/go-grpc-middleware"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
+	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 )
@@ -41,7 +41,7 @@ func NewGripServer(db gdbi.GraphDB, conf Config) (*GripServer, error) {
 
 // handleError is the grpc gateway error handler
 func handleError(w http.ResponseWriter, req *http.Request, err string, code int) {
-	log.Println("HTTP handler error:", req.URL, err)
+	log.WithFields(log.Fields{"url": req.URL, "error": err}).Error("HTTP handler error")
 	http.Error(w, err, code)
 }
 
@@ -52,7 +52,7 @@ func unaryErrorInterceptor() grpc.UnaryServerInterceptor {
 		handler grpc.UnaryHandler) (interface{}, error) {
 		resp, err := handler(ctx, req)
 		if err != nil {
-			log.Println(info.FullMethod, "failed;", "error:", err)
+			log.WithFields(log.Fields{"endpoint": info.FullMethod, "error": err}).Error("Request failed")
 		}
 		return resp, err
 	}
@@ -65,7 +65,7 @@ func streamErrorInterceptor() grpc.StreamServerInterceptor {
 		handler grpc.StreamHandler) error {
 		err := handler(srv, ss)
 		if err != nil {
-			log.Println(info.FullMethod, "failed;", "error:", err)
+			log.WithFields(log.Fields{"endpoint": info.FullMethod, "error": err}).Error("Request failed")
 		}
 		return err
 	}
@@ -94,6 +94,7 @@ func (server *GripServer) Serve(pctx context.Context) error {
 				streamErrorInterceptor(),
 			),
 		),
+		grpc.MaxSendMsgSize(1024*1028*16),
 	)
 	opts := []grpc.DialOption{
 		grpc.WithInsecure(),
@@ -205,23 +206,23 @@ func (server *GripServer) Serve(pctx context.Context) error {
 		server.cacheSchemas(ctx)
 	}()
 
-	log.Println("TCP+RPC server listening on " + server.conf.RPCPort)
-	log.Println("HTTP proxy connecting to localhost:" + server.conf.HTTPPort)
+	log.Infoln("TCP+RPC server listening on " + server.conf.RPCPort)
+	log.Infoln("HTTP proxy connecting to localhost:" + server.conf.HTTPPort)
 
 	<-ctx.Done()
-	log.Println("closing database...")
+	log.Infoln("closing database...")
 	if server.db != nil {
 		err = server.db.Close()
 		if err != nil {
 			log.Println("error:", err)
 		}
 	}
-	log.Println("shutting down RPC server...")
+	log.Infoln("shutting down RPC server...")
 	grpcServer.GracefulStop()
-	log.Println("shutting down HTTP proxy...")
+	log.Infoln("shutting down HTTP proxy...")
 	err = httpServer.Shutdown(context.TODO())
 	if err != nil {
-		log.Println("error:", err)
+		log.Errorf("shutdown error: %v", err)
 	}
 
 	return srverr
