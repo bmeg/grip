@@ -3,6 +3,7 @@ package util
 import (
 	"bytes"
 	"io"
+	"strings"
 
 	"github.com/bmeg/golib"
 	"github.com/bmeg/grip/gripql"
@@ -18,10 +19,20 @@ func StreamVerticesFromFile(file string) chan *gripql.Vertex {
 	go func() {
 		defer close(vertChan)
 
-		reader, err := golib.ReadFileLines(file)
-		if err != nil {
-			log.WithFields(log.Fields{"error": err}).Errorf("Reading file: %s", file)
-			return
+		var reader chan []byte
+		var err error
+		if strings.HasSuffix(file, ".gz") {
+			reader, err = golib.ReadGzipLines(file)
+			if err != nil {
+				log.WithFields(log.Fields{"error": err}).Errorf("Reading file: %s", file)
+				return
+			}
+		} else {
+			reader, err = golib.ReadFileLines(file)
+			if err != nil {
+				log.WithFields(log.Fields{"error": err}).Errorf("Reading file: %s", file)
+				return
+			}
 		}
 
 		m := jsonpb.Unmarshaler{AllowUnknownFields: true}
@@ -50,10 +61,20 @@ func StreamEdgesFromFile(file string) chan *gripql.Edge {
 	go func() {
 		defer close(edgeChan)
 
-		reader, err := golib.ReadFileLines(file)
-		if err != nil {
-			log.WithFields(log.Fields{"error": err}).Errorf("Reading file: %s", file)
-			return
+		var reader chan []byte
+		var err error
+		if strings.HasSuffix(file, ".gz") {
+			reader, err = golib.ReadGzipLines(file)
+			if err != nil {
+				log.WithFields(log.Fields{"error": err}).Errorf("Reading file: %s", file)
+				return
+			}
+		} else {
+			reader, err = golib.ReadFileLines(file)
+			if err != nil {
+				log.WithFields(log.Fields{"error": err}).Errorf("Reading file: %s", file)
+				return
+			}
 		}
 
 		m := jsonpb.Unmarshaler{AllowUnknownFields: true}
