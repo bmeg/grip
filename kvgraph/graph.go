@@ -36,12 +36,12 @@ func (kgdb *KVInterfaceGDB) Compiler() gdbi.Compiler {
 // AddVertex adds an edge to the graph, if it already exists
 // in the graph, it is replaced
 func (kgdb *KVInterfaceGDB) AddVertex(vertexArray []*gripql.Vertex) error {
-		for _, vertex := range vertexArray {
-			err := vertex.Validate()
-			if err != nil {
-				return fmt.Errorf("vertex validation failed: %v", err)
-			}
+	for _, vertex := range vertexArray {
+		err := vertex.Validate()
+		if err != nil {
+			return fmt.Errorf("vertex validation failed: %v", err)
 		}
+	}
 
 	err := kgdb.kvg.kv.Update(func(tx kvi.KVTransaction) error {
 		for _, vertex := range vertexArray {

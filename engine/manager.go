@@ -4,7 +4,7 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/bmeg/grip/badgerdb"
+	"github.com/bmeg/grip/kvi/badgerdb"
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/kvi"
 )
