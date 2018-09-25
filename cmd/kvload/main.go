@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/bmeg/golib"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/kvgraph"
 	"github.com/bmeg/grip/kvi"
@@ -17,6 +18,8 @@ var kvDriver = "badger"
 var graph string
 var vertexFile string
 var edgeFile string
+var vertexManifestFile string
+var edgeManifestFile string
 
 var batchSize = 1000
 
@@ -57,7 +60,34 @@ var Cmd = &cobra.Command{
 			return err
 		}
 
+		vertexFileArray := []string{}
+		edgeFileArray := []string{}
+
+		if vertexManifestFile != "" {
+			reader, err := golib.ReadFileLines(vertexManifestFile)
+			if err == nil {
+				for line := range reader {
+					vertexFileArray = append(vertexFileArray, string(line))
+				}
+			}
+		}
+		if edgeManifestFile != "" {
+			reader, err := golib.ReadFileLines(edgeManifestFile)
+			if err == nil {
+				for line := range reader {
+					edgeFileArray = append(edgeFileArray, string(line))
+				}
+			}
+		}
+
 		if vertexFile != "" {
+			vertexFileArray = append(vertexFileArray, vertexFile)
+		}
+		if edgeFile != "" {
+			edgeFileArray = append(edgeFileArray, edgeFile)
+		}
+
+		for _, vertexFile := range vertexFileArray {
 			log.Printf("Loading %s", vertexFile)
 			count := 0
 			vertexChan := make(chan []*gripql.Vertex, 100)
@@ -89,7 +119,7 @@ var Cmd = &cobra.Command{
 			}
 		}
 
-		if edgeFile != "" {
+		for _, edgeFile := range edgeFileArray {
 			log.Printf("Loading %s", edgeFile)
 			count := 0
 			edgeChan := make(chan []*gripql.Edge, 100)
@@ -131,5 +161,7 @@ func init() {
 	flags.StringVar(&kvDriver, "driver", kvDriver, "KV Driver")
 	flags.StringVar(&vertexFile, "vertex", "", "vertex file")
 	flags.StringVar(&edgeFile, "edge", "", "edge file")
-	flags.IntVar(&batchSize, "batch-size", batchSize, "mongo bulk load batch size")
+	flags.StringVar(&vertexManifestFile, "vertex-manifest", "", "vertex manifest file")
+	flags.StringVar(&edgeManifestFile, "edge-manifest", "", "edge manifest file")
+	flags.IntVar(&batchSize, "batch-size", batchSize, "bulk load batch size")
 }
