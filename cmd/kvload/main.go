@@ -6,6 +6,7 @@ import (
 
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/kvgraph"
+	"github.com/bmeg/grip/kvi"
 	"github.com/bmeg/grip/util"
 	"github.com/spf13/cobra"
 )
@@ -44,10 +45,11 @@ var Cmd = &cobra.Command{
 		// Create the graph  if it doesn't already exist.
 		// Creating the graph also results in the creation of indices
 		// for the edge/vertex collections.
-		db, err := kvgraph.NewKVGraphDB(kvDriver, dbPath)
+		kv, err := kvgraph.NewKVInterface(kvDriver, dbPath, &kvi.Options{BulkLoad: true})
 		if err != nil {
 			return err
 		}
+		db := kvgraph.NewKVGraph(kv)
 
 		db.AddGraph(graph)
 		kgraph, err := db.Graph(graph)

@@ -4,9 +4,9 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/bmeg/grip/kvi/badgerdb"
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/kvi"
+	"github.com/bmeg/grip/kvi/badgerdb"
 )
 
 // NewManager creates a resource manager
@@ -22,7 +22,7 @@ type manager struct {
 
 func (bm *manager) GetTempKV() kvi.KVInterface {
 	td, _ := ioutil.TempDir(bm.workDir, "kvTmp")
-	kv, _ := badgerdb.NewKVInterface(td)
+	kv, _ := badgerdb.NewKVInterface(td, kvi.Options{})
 
 	bm.kvs = append(bm.kvs, kv)
 	bm.paths = append(bm.paths, td)

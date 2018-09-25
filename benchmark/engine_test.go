@@ -5,15 +5,16 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/bmeg/grip/badgerdb"
 	"github.com/bmeg/grip/engine"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/kvgraph"
+	"github.com/bmeg/grip/kvi"
+	"github.com/bmeg/grip/kvi/badgerdb"
 )
 
 // Dead simple baseline tests: get all vertices from a memory-backed graph.
 func BenchmarkBaselineV(b *testing.B) {
-	kv, _ := badgerdb.NewKVInterface("test-badger.db")
+	kv, _ := badgerdb.NewKVInterface("test-badger.db", kvi.Options{})
 	db, err := kvgraph.NewKVGraph(kv).Graph("test-graph")
 	if err != nil {
 		b.Fatal(err)

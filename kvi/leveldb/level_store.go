@@ -13,28 +13,42 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/iterator"
-	//"github.com/syndtr/goleveldb/leveldb/opt"
+	"github.com/syndtr/goleveldb/leveldb/opt"
+	"github.com/syndtr/goleveldb/leveldb/util"
 )
 
 var loaded = kvgraph.AddKVDriver("level", NewKVInterface)
 
 // NewKVInterface creates new LevelDB backed KVInterface at `path`
-func NewKVInterface(path string) (kvi.KVInterface, error) {
+func NewKVInterface(path string, opts kvi.Options) (kvi.KVInterface, error) {
 	log.Info("Starting LevelDB")
-	db, err := leveldb.OpenFile(path, nil)
+
+	var db *leveldb.DB
+	var err error
+	if opts.BulkLoad {
+		o := opt.Options{}
+		o.CompactionL0Trigger = 1 << 31
+		db, err = leveldb.OpenFile(path, &o)
+	} else {
+		db, err = leveldb.OpenFile(path, nil)
+	}
 	if err != nil {
 		return &LevelKV{}, err
 	}
-	return &LevelKV{db: db}, nil
+	return &LevelKV{db: db, opts: opts}, nil
 }
 
 // LevelKV implements the generic key value interface using the leveldb library
 type LevelKV struct {
-	db *leveldb.DB
+	db   *leveldb.DB
+	opts kvi.Options
 }
 
 // Close database
 func (l *LevelKV) Close() error {
+	if l.opts.BulkLoad {
+		l.db.CompactRange(util.Range{Start: nil, Limit: nil})
+	}
 	return l.db.Close()
 }
 
