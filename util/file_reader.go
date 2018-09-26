@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"io"
+	"runtime"
 	"strings"
 
 	"github.com/bmeg/golib"
@@ -38,7 +39,7 @@ func StreamVerticesFromFile(file string) chan *gripql.Vertex {
 	m := jsonpb.Unmarshaler{AllowUnknownFields: true}
 	g, _ := errgroup.WithContext(context.Background())
 
-	for i := 0; i < 10; i++ {
+	for i := 0; i < runtime.NumCPU(); i++ {
 		g.Go(func() error {
 			for line := range reader {
 				v := &gripql.Vertex{}
@@ -78,7 +79,7 @@ func StreamEdgesFromFile(file string) chan *gripql.Edge {
 	m := jsonpb.Unmarshaler{AllowUnknownFields: true}
 	g, _ := errgroup.WithContext(context.Background())
 
-	for i := 0; i < 10; i++ {
+	for i := 0; i < runtime.NumCPU(); i++ {
 		g.Go(func() error {
 			for line := range reader {
 				e := &gripql.Edge{}
