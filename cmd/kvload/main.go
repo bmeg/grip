@@ -3,6 +3,8 @@ package kvload
 import (
 	"fmt"
 	"log"
+	"os"
+	"runtime/pprof"
 
 	"github.com/bmeg/golib"
 	"github.com/bmeg/grip/gripql"
@@ -20,6 +22,7 @@ var vertexFile string
 var edgeFile string
 var vertexManifestFile string
 var edgeManifestFile string
+var profile string
 
 var batchSize = 1000
 
@@ -85,6 +88,17 @@ var Cmd = &cobra.Command{
 		}
 		if edgeFile != "" {
 			edgeFileArray = append(edgeFileArray, edgeFile)
+		}
+
+		if profile != "" {
+			f, err := os.Create(profile + ".cpu_profile")
+			if err != nil {
+				log.Fatal("could not create CPU profile: ", err)
+			}
+			if err := pprof.StartCPUProfile(f); err != nil {
+				log.Fatal("could not start CPU profile: ", err)
+			}
+			defer pprof.StopCPUProfile()
 		}
 
 		for _, vertexFile := range vertexFileArray {
@@ -164,4 +178,5 @@ func init() {
 	flags.StringVar(&vertexManifestFile, "vertex-manifest", "", "vertex manifest file")
 	flags.StringVar(&edgeManifestFile, "edge-manifest", "", "edge manifest file")
 	flags.IntVar(&batchSize, "batch-size", batchSize, "bulk load batch size")
+	flags.StringVar(&profile, "profile", profile, "runtime profiling")
 }
