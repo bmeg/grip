@@ -81,6 +81,7 @@ func (server *GripServer) Serve(pctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("Cannot open port: %v", err)
 	}
+
 	grpcServer := grpc.NewServer(
 		grpc.UnaryInterceptor(
 			grpc_middleware.ChainUnaryServer(
@@ -94,10 +95,16 @@ func (server *GripServer) Serve(pctx context.Context) error {
 				streamErrorInterceptor(),
 			),
 		),
-		grpc.MaxSendMsgSize(1024*1028*16),
+		grpc.MaxSendMsgSize(1024*1024*16),
+		grpc.MaxRecvMsgSize(1024*1024*16),
 	)
+
 	opts := []grpc.DialOption{
 		grpc.WithInsecure(),
+		grpc.WithDefaultCallOptions(
+			grpc.MaxCallSendMsgSize(1024*1024*16),
+			grpc.MaxCallRecvMsgSize(1024*1024*16),
+		),
 	}
 
 	//setup RESTful proxy
