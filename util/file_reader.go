@@ -49,7 +49,6 @@ func StreamVerticesFromFile(file string) chan *gripql.Vertex {
 				}
 				if err != nil {
 					log.WithFields(log.Fields{"error": err}).Errorf("Unmarshaling vertex: %v", line)
-					return err
 				}
 				vertChan <- v
 			}
@@ -89,7 +88,6 @@ func StreamEdgesFromFile(file string) chan *gripql.Edge {
 				}
 				if err != nil {
 					log.WithFields(log.Fields{"error": err}).Errorf("Unmarshaling edge: %v", line)
-					return err
 				}
 				edgeChan <- e
 			}
