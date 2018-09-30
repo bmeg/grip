@@ -33,7 +33,7 @@ func NewKVInterface(path string, kopts kvi.Options) (kvi.KVInterface, error) {
 	opts.ValueDir = path
 	if kopts.BulkLoad {
 		opts.SyncWrites = false
-		opts.DoNotCompact = true // NOTE: this is a test value, it may need to be removed
+		//opts.DoNotCompact = true // NOTE: this is a test value, it may need to be removed
 	}
 	db, err := badger.Open(opts)
 	if err != nil {
