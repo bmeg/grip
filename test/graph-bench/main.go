@@ -1,21 +1,21 @@
 package main
 
 import (
-	"os"
 	"log"
-	"time"
 	"math/rand"
+	"os"
+	"time"
+
+	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
-	"github.com/bmeg/grip/protoutil"
 	"github.com/bmeg/grip/kvgraph"
 	"github.com/bmeg/grip/kvi"
-	"github.com/bmeg/grip/gdbi"
+	"github.com/bmeg/grip/protoutil"
 
 	_ "github.com/bmeg/grip/kvi/badgerdb" // import so badger will register itself
 	_ "github.com/bmeg/grip/kvi/boltdb"   // import so bolt will register itself
 	_ "github.com/bmeg/grip/kvi/leveldb"  // import so level will register itself
 	_ "github.com/bmeg/grip/kvi/rocksdb"  // import so rocks will register itself
-
 )
 
 var idRunes = []rune("abcdefghijklmnopqrstuvwxyz")
@@ -53,23 +53,21 @@ func randData() map[string]interface{} {
 
 func randVertex() *gripql.Vertex {
 	g := gripql.Vertex{
-		Gid: randID(),
+		Gid:   randID(),
 		Label: randLabel(),
-		Data: protoutil.AsStruct(randData()),
+		Data:  protoutil.AsStruct(randData()),
 	}
 	return &g
 }
 
-
 func logBenchmark(f func()) {
 	start := time.Now()
 	f()
- 	t := time.Now()
- 	elapsed := t.Sub(start)
+	t := time.Now()
+	elapsed := t.Sub(start)
 
 	log.Printf("Time: %s", elapsed)
 }
-
 
 func randomVertexInsert(kgraph gdbi.GraphInterface) {
 	for i := 0; i < 10000; i++ {
@@ -124,7 +122,6 @@ func rocksBench(graphPath string) {
 	kv.Close()
 	os.RemoveAll(graphPath)
 }
-
 
 func main() {
 	log.Printf("Starting Benchmark")

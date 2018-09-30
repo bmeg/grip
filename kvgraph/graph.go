@@ -34,10 +34,10 @@ func (kgdb *KVInterfaceGDB) Compiler() gdbi.Compiler {
 }
 
 type kvAddData struct {
-	key []byte
-	value []byte
+	key    []byte
+	value  []byte
 	vertex *gripql.Vertex
-	doc map[string]interface{}
+	doc    map[string]interface{}
 }
 
 // AddVertex adds an edge to the graph, if it already exists
@@ -57,7 +57,7 @@ func (kgdb *KVInterfaceGDB) AddVertex(vertexArray []*gripql.Vertex) error {
 			k := VertexKey(kgdb.graph, vertex.Gid)
 			if err == nil {
 				doc := map[string]interface{}{kgdb.graph: vertexIdxStruct(vertex)}
-				dataChan <- &kvAddData{key:k, value:d, vertex:vertex, doc:doc}
+				dataChan <- &kvAddData{key: k, value: d, vertex: vertex, doc: doc}
 			}
 		}
 		close(dataChan)
