@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/bmeg/grip/util"
 	"github.com/dgraph-io/badger"
 	"github.com/dgraph-io/badger/options"
 )
@@ -37,7 +38,7 @@ func BenchmarkBadgerPut(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N*10000; i++ {
-		id := randID()
+		id := util.RandomString(10)
 		val := []byte("testing")
 		db.Update(func(tx *badger.Txn) error {
 			return tx.Set([]byte(id), val)
