@@ -19,7 +19,7 @@ var loaded = kvgraph.AddKVDriver("bolt", NewKVInterface)
 var graphBucket = []byte("graph")
 
 // NewKVInterface creates new BoltDB backed KVInterface at `path`
-func NewKVInterface(path string) (kvi.KVInterface, error) {
+func NewKVInterface(path string, opts kvi.Options) (kvi.KVInterface, error) {
 	log.Info("Starting BoltDB")
 	db, err := bolt.Open(path, 0600, nil)
 	if err != nil {

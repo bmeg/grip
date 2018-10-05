@@ -19,7 +19,7 @@ import (
 var loaded = kvgraph.AddKVDriver("badger", NewKVInterface)
 
 // NewKVInterface creates new BoltDB backed KVInterface at `path`
-func NewKVInterface(path string) (kvi.KVInterface, error) {
+func NewKVInterface(path string, kopts kvi.Options) (kvi.KVInterface, error) {
 	log.Info("Starting BadgerDB")
 	_, err := os.Stat(path)
 	if os.IsNotExist(err) {
@@ -31,6 +31,10 @@ func NewKVInterface(path string) (kvi.KVInterface, error) {
 	opts.TableLoadingMode = options.MemoryMap
 	opts.Dir = path
 	opts.ValueDir = path
+	if kopts.BulkLoad {
+		opts.SyncWrites = false
+		opts.DoNotCompact = true // NOTE: this is a test value, it may need to be removed
+	}
 	db, err := badger.Open(opts)
 	if err != nil {
 		return nil, err
@@ -45,6 +49,7 @@ type BadgerKV struct {
 
 // Close closes the badger connection
 func (badgerkv *BadgerKV) Close() error {
+	log.Info("Closing BadgerDB")
 	return badgerkv.db.Close()
 }
 

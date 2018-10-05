@@ -7,8 +7,9 @@ import (
 
 	"github.com/bmeg/grip/gripql"
 	//"github.com/bmeg/grip/gdbi"
-	"github.com/bmeg/grip/badgerdb"
 	"github.com/bmeg/grip/kvgraph"
+	"github.com/bmeg/grip/kvi"
+	"github.com/bmeg/grip/kvi/badgerdb"
 )
 
 var idRunes = []rune("abcdefghijklmnopqrstuvwxyz")
@@ -22,7 +23,7 @@ func randID() string {
 }
 
 func BenchmarkVertexInsert(b *testing.B) {
-	kv, _ := badgerdb.NewKVInterface("test_1.db")
+	kv, _ := badgerdb.NewKVInterface("test_1.db", kvi.Options{})
 	graphDB := kvgraph.NewKVGraph(kv)
 	graphDB.AddGraph("test")
 	graph, err := graphDB.Graph("test")
@@ -45,7 +46,7 @@ func BenchmarkVertexInsert(b *testing.B) {
 }
 
 func BenchmarkEdgeInsert(b *testing.B) {
-	kv, _ := badgerdb.NewKVInterface("test_1.db")
+	kv, _ := badgerdb.NewKVInterface("test_1.db", kvi.Options{})
 	graphDB := kvgraph.NewKVGraph(kv)
 	graphDB.AddGraph("test")
 	graph, err := graphDB.Graph("test")

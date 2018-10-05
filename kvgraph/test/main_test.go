@@ -5,12 +5,12 @@ import (
 	"os"
 	"testing"
 
-	_ "github.com/bmeg/grip/badgerdb" // import so badger will register itself
-	_ "github.com/bmeg/grip/boltdb"   // import so bolt will register itself
 	"github.com/bmeg/grip/kvgraph"
 	"github.com/bmeg/grip/kvi"
-	_ "github.com/bmeg/grip/leveldb" // import so level will register itself
-	_ "github.com/bmeg/grip/rocksdb" // import so rocks will register itself
+	_ "github.com/bmeg/grip/kvi/badgerdb" // import so badger will register itself
+	_ "github.com/bmeg/grip/kvi/boltdb"   // import so bolt will register itself
+	_ "github.com/bmeg/grip/kvi/leveldb"  // import so level will register itself
+	_ "github.com/bmeg/grip/kvi/rocksdb"  // import so rocks will register itself
 	"github.com/bmeg/grip/util"
 )
 
@@ -25,7 +25,7 @@ func resetKVInterface() {
 		panic(err)
 	}
 	dbpath = "test.db." + util.RandomString(6)
-	kvdriver, err = kvgraph.NewKVInterface(dbname, dbpath)
+	kvdriver, err = kvgraph.NewKVInterface(dbname, dbpath, nil)
 	if err != nil {
 		panic(err)
 	}
@@ -55,7 +55,7 @@ func TestMain(m *testing.M) {
 	for _, dbname = range []string{"badger", "bolt", "level", "rocks"} {
 		dbpath = "test.db." + util.RandomString(6)
 
-		kvdriver, err = kvgraph.NewKVInterface(dbname, dbpath)
+		kvdriver, err = kvgraph.NewKVInterface(dbname, dbpath, nil)
 		if err != nil {
 			if dbname == "rocks" {
 				fmt.Println(`Warning: rocks driver not found; run test with "-tags rocksdb"`)
