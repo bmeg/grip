@@ -329,10 +329,16 @@ func (kgdb *KVInterfaceGDB) GetInList(ctx context.Context, id string, loadProp b
 				_, src, _, _, label, _ := DstEdgeKeyParse(keyValue)
 				if len(edgeLabels) == 0 || contains(edgeLabels, label) {
 					vkey := VertexKey(kgdb.graph, src)
-					dataValue, err := it.Get(vkey)
-					if err == nil {
-						v := &gripql.Vertex{}
-						proto.Unmarshal(dataValue, v)
+					v := &gripql.Vertex{}
+					if loadProp {
+						dataValue, err := it.Get(vkey)
+						if err == nil {
+							proto.Unmarshal(dataValue, v)
+							o <- v
+						}
+					} else {
+						v.Gid = src
+						v.Label = label
 						o <- v
 					}
 				}
@@ -346,8 +352,7 @@ func (kgdb *KVInterfaceGDB) GetInList(ctx context.Context, id string, loadProp b
 // GetOutList given vertex/edge `key` find vertices on outgoing edges,
 // if len(edgeLabels) > 0 the edge labels must match a string in the array
 func (kgdb *KVInterfaceGDB) GetOutList(ctx context.Context, id string, loadProp bool, edgeLabels []string) <-chan *gripql.Vertex {
-	o := make(chan *gripql.Vertex, 100)
-	vertexChan := make(chan []byte, 100)
+	vertexChan := make(chan *gripql.Vertex, 100)
 	go func() {
 		defer close(vertexChan)
 		kgdb.kvg.kv.View(func(it kvi.KVIterator) error {
@@ -361,9 +366,11 @@ func (kgdb *KVInterfaceGDB) GetOutList(ctx context.Context, id string, loadProp 
 				keyValue := it.Key()
 				_, _, dst, _, label, etype := SrcEdgeKeyParse(keyValue)
 				if len(edgeLabels) == 0 || contains(edgeLabels, label) {
-					vkey := VertexKey(kgdb.graph, dst)
 					if etype == edgeSingle {
-						vertexChan <- vkey
+						v := &gripql.Vertex{}
+						v.Gid = dst
+						v.Label = label
+						vertexChan <- v
 					}
 				}
 			}
@@ -371,21 +378,25 @@ func (kgdb *KVInterfaceGDB) GetOutList(ctx context.Context, id string, loadProp 
 		})
 	}()
 
-	go func() {
-		defer close(o)
-		kgdb.kvg.kv.View(func(it kvi.KVIterator) error {
-			for vkey := range vertexChan {
-				dataValue, err := it.Get(vkey)
-				if err == nil {
-					v := &gripql.Vertex{}
-					proto.Unmarshal(dataValue, v)
-					o <- v
+	if loadProp {
+		outChan := make(chan *gripql.Vertex, 100)
+		go func() {
+			defer close(outChan)
+			kgdb.kvg.kv.View(func(it kvi.KVIterator) error {
+				for vert := range vertexChan {
+					vkey := VertexKey(kgdb.graph, vert.Gid)
+					dataValue, err := it.Get(vkey)
+					if err == nil {
+						proto.Unmarshal(dataValue, vert)
+						outChan <- vert
+					}
 				}
-			}
-			return nil
-		})
-	}()
-	return o
+				return nil
+			})
+		}()
+		return outChan
+	}
+	return vertexChan
 }
 
 // GetVertex loads a vertex given an id. It returns a nil if not found
