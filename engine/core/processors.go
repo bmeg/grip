@@ -85,7 +85,7 @@ func (l *LookupVertsIndex) Process(ctx context.Context, man gdbi.Manager, in gdb
 		defer close(queryChan)
 		for t := range in {
 			for _, label := range l.labels {
-				for id := range l.db.VertexLabelScan(context.Background(), label) {
+				for id := range l.db.VertexLabelScan(ctx, label) {
 					queryChan <- gdbi.ElementLookup{
 						ID:  id,
 						Ref: t,
@@ -123,7 +123,7 @@ func (l *LookupEdges) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 		defer close(out)
 		for t := range in {
 			if len(l.ids) == 0 {
-				for v := range l.db.GetEdgeList(context.Background(), getPropLoad(ctx)) {
+				for v := range l.db.GetEdgeList(ctx, getPropLoad(ctx)) {
 					out <- t.AddCurrent(&gdbi.DataElement{
 						ID:    v.Gid,
 						Label: v.Label,
@@ -602,18 +602,20 @@ type Limit struct {
 
 // Process runs limit
 func (l *Limit) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
+	newCtx, cancel := context.WithCancel(ctx)
 	go func() {
 		defer close(out)
 		var i uint32
 		for t := range in {
-			if i == l.count {
-				return
+			if i < l.count {
+				out <- t
+			} else if i == l.count {
+				cancel()
 			}
-			out <- t
 			i++
 		}
 	}()
-	return ctx
+	return newCtx
 }
 
 ////////////////////////////////////////////////////////////////////////////////

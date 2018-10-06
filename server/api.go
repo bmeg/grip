@@ -26,23 +26,28 @@ func (server *GripServer) Traversal(query *gripql.GraphQuery, queryServer gripql
 		return err
 	}
 	res := engine.Run(queryServer.Context(), pipeline, server.conf.WorkDir)
+	err = nil
 	for row := range res {
-		err := queryServer.Send(row)
-		if err != nil {
-			return fmt.Errorf("error sending Traversal result: %v", err)
+		if err == nil {
+			err = queryServer.Send(row)
 		}
 	}
-
+	if err != nil {
+		return fmt.Errorf("error sending Traversal result: %v", err)
+	}
 	return nil
 }
 
 // ListGraphs returns a list of graphs managed by the driver
 func (server *GripServer) ListGraphs(empty *gripql.Empty, queryServer gripql.Query_ListGraphsServer) error {
+	var err error
 	for _, name := range server.db.ListGraphs() {
-		err := queryServer.Send(&gripql.GraphID{Graph: name})
-		if err != nil {
-			return fmt.Errorf("error sending ListGraphs result: %v", err)
+		if err == nil {
+			err = queryServer.Send(&gripql.GraphID{Graph: name})
 		}
+	}
+	if err != nil {
+		return fmt.Errorf("error sending ListGraphs result: %v", err)
 	}
 	return nil
 }
@@ -362,10 +367,12 @@ func (server *GripServer) ListIndices(idx *gripql.GraphID, stream gripql.Query_L
 	}
 	res := graph.GetVertexIndexList()
 	for i := range res {
-		err := stream.Send(&i)
-		if err != nil {
-			return fmt.Errorf("error sending ListIndices result: %v", err)
+		if err == nil {
+			err = stream.Send(&i)
 		}
+	}
+	if err != nil {
+		return fmt.Errorf("error sending ListIndices result: %v", err)
 	}
 	return nil
 }
