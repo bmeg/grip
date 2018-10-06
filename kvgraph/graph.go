@@ -434,36 +434,28 @@ type elementData struct {
 // GetVertexChannel is passed a channel of vertex ids and it produces a channel
 // of vertices
 func (kgdb *KVInterfaceGDB) GetVertexChannel(ids chan gdbi.ElementLookup, load bool) chan gdbi.ElementLookup {
-	data := make(chan elementData, 100)
+	outChan := make(chan gdbi.ElementLookup, 100)
 	go func() {
-		defer close(data)
+		defer close(outChan)
 		kgdb.kvg.kv.View(func(it kvi.KVIterator) error {
 			for id := range ids {
 				vkey := VertexKey(kgdb.graph, id.ID)
 				dataValue, err := it.Get(vkey)
 				if err == nil {
-					data <- elementData{
-						req:  id,
-						data: dataValue,
+					v := &gripql.Vertex{Gid:id.ID}
+					if load {
+						proto.Unmarshal( dataValue, v)
+					}
+					outChan <- gdbi.ElementLookup {
+						Vertex:  v,
+						Ref:  id.Ref,
 					}
 				}
 			}
 			return nil
 		})
 	}()
-
-	out := make(chan gdbi.ElementLookup, 100)
-	go func() {
-		defer close(out)
-		for d := range data {
-			v := gripql.Vertex{}
-			proto.Unmarshal(d.data, &v)
-			d.req.Vertex = &v
-			out <- d.req
-		}
-	}()
-
-	return out
+	return outChan
 }
 
 //GetOutChannel process requests of vertex ids and find the connected vertices on outgoing edges
