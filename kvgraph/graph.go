@@ -468,21 +468,21 @@ func (kgdb *KVInterfaceGDB) GetVertexChannel(ids chan gdbi.ElementLookup, load b
 
 //GetOutChannel process requests of vertex ids and find the connected vertices on outgoing edges
 func (kgdb *KVInterfaceGDB) GetOutChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
-	vertexChan := make(chan elementData, 100)
+	outChan := make(chan gdbi.ElementLookup, 100)
 	go func() {
-		defer close(vertexChan)
+		defer close(outChan)
 		kgdb.kvg.kv.View(func(it kvi.KVIterator) error {
 			for req := range reqChan {
 				skeyPrefix := SrcEdgePrefix(kgdb.graph, req.ID)
 				for it.Seek(skeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), skeyPrefix); it.Next() {
 					keyValue := it.Key()
 					_, _, dst, _, label, etype := SrcEdgeKeyParse(keyValue)
+					v := &gripql.Vertex{Gid: dst, Label: label}
 					if len(edgeLabels) == 0 || contains(edgeLabels, label) {
-						vkey := VertexKey(kgdb.graph, dst)
 						if etype == edgeSingle {
-							vertexChan <- elementData{
-								data: vkey,
-								req:  req,
+							outChan <- gdbi.ElementLookup{
+								Vertex: v,
+								Ref:    req.Ref,
 							}
 						}
 					}
@@ -492,30 +492,29 @@ func (kgdb *KVInterfaceGDB) GetOutChannel(reqChan chan gdbi.ElementLookup, load 
 		})
 	}()
 
-	o := make(chan gdbi.ElementLookup, 100)
-	go func() {
-		defer close(o)
-		kgdb.kvg.kv.View(func(it kvi.KVIterator) error {
-			for req := range vertexChan {
-				dataValue, err := it.Get(req.data)
-				if err == nil {
-					_, gid := VertexKeyParse(req.data)
-					v := &gripql.Vertex{Gid: gid}
-					if load {
-						err = proto.Unmarshal(dataValue, v)
+	if load {
+		o := make(chan gdbi.ElementLookup, 100)
+		go func() {
+			defer close(o)
+			kgdb.kvg.kv.View(func(it kvi.KVIterator) error {
+				for req := range outChan {
+					vkey := VertexKey(kgdb.graph, req.Vertex.Gid)
+					dataValue, err := it.Get(vkey)
+					if err == nil {
+						err = proto.Unmarshal(dataValue, req.Vertex)
 						if err != nil {
 							log.Errorf("GetOutChannel: unmarshal error: %v", err)
 							continue
 						}
+						o <- req
 					}
-					req.req.Vertex = v
-					o <- req.req
 				}
-			}
-			return nil
-		})
-	}()
-	return o
+				return nil
+			})
+		}()
+		return o
+	}
+	return outChan
 }
 
 //GetInChannel process requests of vertex ids and find the connected vertices on incoming edges
