@@ -272,7 +272,7 @@ class Query:
 
         for result in response.iter_lines(chunk_size=None):
             try:
-                result_dict = json.loads(result)
+                result_dict = json.loads(result.decode())
             except Exception as e:
                 logger.error("Failed to decode: %s", result)
                 raise e
