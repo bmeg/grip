@@ -1,11 +1,15 @@
 package main
 
 import (
+	"context"
 	"log"
 	"math/rand"
 	"os"
 	"time"
 
+	"runtime/pprof"
+
+	"github.com/bmeg/grip/engine"
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/kvgraph"
@@ -19,16 +23,25 @@ import (
 )
 
 var idRunes = []rune("abcdefghijklmnopqrstuvwxyz")
-var labelValues = []string{
+var vertexLabelValues = []string{
 	"Person",
 	"Place",
 	"Thing",
 }
+var edgeLabelValues = []string{
+	"knows",
+	"likes",
+	"hears",
+}
+
 var fieldNames = []string{
 	"firstName",
 	"lastName",
 	"city",
 	"state",
+	"ssn",
+	"dob",
+	"favoriteColor",
 }
 
 func randID() string {
@@ -39,8 +52,12 @@ func randID() string {
 	return string(b)
 }
 
-func randLabel() string {
-	return labelValues[rand.Intn(len(labelValues))]
+func randVertexLabel() string {
+	return vertexLabelValues[rand.Intn(len(vertexLabelValues))]
+}
+
+func randEdgeLabel() string {
+	return edgeLabelValues[rand.Intn(len(edgeLabelValues))]
 }
 
 func randData() map[string]interface{} {
@@ -54,10 +71,21 @@ func randData() map[string]interface{} {
 func randVertex() *gripql.Vertex {
 	g := gripql.Vertex{
 		Gid:   randID(),
-		Label: randLabel(),
+		Label: randVertexLabel(),
 		Data:  protoutil.AsStruct(randData()),
 	}
 	return &g
+}
+
+func randOneToMany(outCount int) (*gripql.Vertex, []*gripql.Edge, []*gripql.Vertex) {
+	a := randVertex()
+	oV := make([]*gripql.Vertex, outCount)
+	oE := make([]*gripql.Edge, outCount)
+	for i := 0; i < outCount; i++ {
+		oV[i] = randVertex()
+		oE[i] = &gripql.Edge{From: a.Gid, To: oV[i].Gid, Label: randEdgeLabel()}
+	}
+	return a, oE, oV
 }
 
 func logBenchmark(f func()) {
@@ -79,6 +107,15 @@ func randomVertexInsert(kgraph gdbi.GraphInterface) {
 	}
 }
 
+func randomOneToManyInsert(kgraph gdbi.GraphInterface) {
+	for i := 0; i < 50000; i++ {
+		v, oe, ov := randOneToMany(3)
+		kgraph.AddVertex([]*gripql.Vertex{v})
+		kgraph.AddVertex(ov)
+		kgraph.AddEdge(oe)
+	}
+}
+
 func graphBenchRun(kv kvi.KVInterface, f func(kgraph gdbi.GraphInterface)) {
 	db := kvgraph.NewKVGraph(kv)
 	graph := "bench-graph"
@@ -92,14 +129,54 @@ func graphBenchRun(kv kvi.KVInterface, f func(kgraph gdbi.GraphInterface)) {
 	})
 }
 
+func graphBenchRunQuery(kv kvi.KVInterface, build, query func(kgraph gdbi.GraphInterface)) {
+	db := kvgraph.NewKVGraph(kv)
+	graph := "bench-graph"
+	db.AddGraph(graph)
+	kgraph, err := db.Graph(graph)
+	if err != nil {
+		return
+	}
+	build(kgraph)
+
+	f, err := os.Create("query.cpu_profile")
+	if err != nil {
+		log.Fatal("could not create CPU profile: ", err)
+	}
+	if err := pprof.StartCPUProfile(f); err != nil {
+		log.Fatal("could not start CPU profile: ", err)
+	}
+	for i := 0; i < 3; i++ {
+		logBenchmark(func() {
+			query(kgraph)
+		})
+	}
+	pprof.StopCPUProfile()
+}
+
+func manyToOneQuery(kgraph gdbi.GraphInterface) {
+	query := gripql.V().Where(gripql.Eq("_label", "Person")).Out("knows").Count()
+	comp := kgraph.Compiler()
+	pipe, err := comp.Compile(query.Statements)
+	if err != nil {
+		log.Printf("%s", err)
+	}
+
+	o := engine.Run(context.Background(), pipe, "tmp-work")
+	for i := range o {
+		log.Printf("%s", i)
+	}
+}
+
 func badgerBench(graphPath string) {
 	kv, err := kvgraph.NewKVInterface("badger", graphPath, &kvi.Options{BulkLoad: true})
 	if err != nil {
 		return
 	}
-	graphBenchRun(kv, randomVertexInsert)
+	//graphBenchRun(kv, randomVertexInsert)
+	graphBenchRunQuery(kv, randomOneToManyInsert, manyToOneQuery)
 	kv.Close()
-	//os.RemoveAll(graphPath)
+	os.RemoveAll(graphPath)
 }
 
 func levelBench(graphPath string) {
