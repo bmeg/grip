@@ -5,6 +5,8 @@ import (
 	"os"
 	"testing"
 
+	"github.com/bmeg/grip/util"
+
 	"github.com/syndtr/goleveldb/leveldb"
 	//"github.com/syndtr/goleveldb/leveldb/iterator"
 )
@@ -18,7 +20,7 @@ func BenchmarkLevelDBPut(b *testing.B) {
 	}
 	b.ResetTimer()
 	for i := 0; i < b.N*10000; i++ {
-		id := randID()
+		id := util.RandomString(10)
 		val := []byte("testing")
 		db.Put([]byte(id), val, nil)
 	}
@@ -37,7 +39,7 @@ func BenchmarkLevelDBBatch(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		batch := new(leveldb.Batch)
 		for j := 0; j < 10000; j++ {
-			id := randID()
+			id := util.RandomString(10)
 			val := []byte("testing")
 			batch.Put([]byte(id), val)
 		}

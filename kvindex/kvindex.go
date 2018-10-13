@@ -2,6 +2,7 @@ package kvindex
 
 import (
 	"bytes"
+	"context"
 	"encoding/binary"
 	"fmt"
 	"math"
@@ -376,7 +377,7 @@ func (idx *KVIndex) RemoveDoc(docID string) error {
 }
 
 // GetTermMatch find all documents where field has the value
-func (idx *KVIndex) GetTermMatch(field string, value interface{}, maxCount int) chan string {
+func (idx *KVIndex) GetTermMatch(ctx context.Context, field string, value interface{}, maxCount int) chan string {
 	out := make(chan string, bufferSize)
 	go func() {
 		term, ttype := GetTermBytes(value)
@@ -385,6 +386,11 @@ func (idx *KVIndex) GetTermMatch(field string, value interface{}, maxCount int) 
 		count := 0
 		idx.kv.View(func(it kvi.KVIterator) error {
 			for it.Seek(entryPrefix); it.Valid() && bytes.HasPrefix(it.Key(), entryPrefix); it.Next() {
+				select {
+				case <-ctx.Done():
+					return nil
+				default:
+				}
 				_, _, _, doc := EntryKeyParse(it.Key())
 				out <- doc
 				count++

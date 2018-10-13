@@ -57,7 +57,7 @@ func (ma *KVGraph) getVertexSchema(ctx context.Context, graph string, n uint32, 
 	gi, _ := ma.Graph(graph)
 	for _, label := range labels {
 		schema := map[string]interface{}{}
-		for i := range ma.idx.GetTermMatch(labelField, label, int(n)) {
+		for i := range ma.idx.GetTermMatch(context.Background(), labelField, label, int(n)) {
 			v := gi.GetVertex(i, true)
 			data := protoutil.AsMap(v.Data)
 			ds := gripql.GetDataFieldTypes(data)
