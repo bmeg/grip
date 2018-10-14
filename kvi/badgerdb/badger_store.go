@@ -168,9 +168,36 @@ func (badgerTrans badgerTransaction) Get(id []byte) ([]byte, error) {
 }
 
 type badgerIterator struct {
-	tx    *badger.Txn
-	c     *badger.Iterator
-	key   []byte
+	tx      *badger.Txn
+	c       *badger.Iterator
+	key     []byte
+	forward bool
+}
+
+func newIterator(tx *badger.Txn) *badgerIterator {
+	return &badgerIterator{tx, nil, nil, true}
+}
+
+func (badgerIt *badgerIterator) close() {
+	if badgerIt.c != nil {
+		badgerIt.c.Close()
+	}
+	badgerIt.c = nil
+}
+
+func (badgerIt *badgerIterator) init(forward bool) {
+	if badgerIt.c != nil && badgerIt.forward == forward {
+		return
+	}
+	if badgerIt.c != nil {
+		badgerIt.c.Close()
+	}
+	opts := badger.DefaultIteratorOptions
+	opts.Reverse = !forward
+	opts.PrefetchValues = false
+	opts.PrefetchSize = 10
+	badgerIt.c = badgerIt.tx.NewIterator(opts)
+	badgerIt.forward = forward
 }
 
 // Get retrieves the value of key `id`
@@ -208,12 +235,7 @@ func (badgerIt *badgerIterator) Next() error {
 
 // Seek moves the iterator to a new location
 func (badgerIt *badgerIterator) Seek(id []byte) error {
-	if badgerIt.c != nil {
-		badgerIt.c.Close()
-	}
-	opts := badger.DefaultIteratorOptions
-	opts.PrefetchValues = false
-	badgerIt.c = badgerIt.tx.NewIterator(opts)
+	badgerIt.init(true)
 	badgerIt.c.Seek(id)
 	if !badgerIt.c.Valid() {
 		return fmt.Errorf("Invalid")
@@ -225,12 +247,7 @@ func (badgerIt *badgerIterator) Seek(id []byte) error {
 
 // Seek moves the iterator to a new location
 func (badgerIt *badgerIterator) SeekReverse(id []byte) error {
-	if badgerIt.c != nil {
-		badgerIt.c.Close()
-	}
-	opts := badger.DefaultIteratorOptions
-	opts.Reverse = true
-	badgerIt.c = badgerIt.tx.NewIterator(opts)
+	badgerIt.init(false)
 	badgerIt.c.Seek(id)
 	if !badgerIt.c.Valid() {
 		return fmt.Errorf("Invalid")
@@ -251,11 +268,9 @@ func (badgerIt *badgerIterator) Valid() bool {
 // View run iterator on bolt keyvalue store
 func (badgerkv *BadgerKV) View(u func(it kvi.KVIterator) error) error {
 	err := badgerkv.db.View(func(tx *badger.Txn) error {
-		ktx := &badgerIterator{tx, nil, nil}
+		ktx := newIterator(tx)
 		o := u(ktx)
-		if ktx.c != nil {
-			ktx.c.Close()
-		}
+		ktx.close()
 		return o
 	})
 	return err
