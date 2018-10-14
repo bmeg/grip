@@ -329,16 +329,10 @@ func (kgdb *KVInterfaceGDB) GetInList(ctx context.Context, id string, loadProp b
 				_, src, _, _, label, _ := DstEdgeKeyParse(keyValue)
 				if len(edgeLabels) == 0 || contains(edgeLabels, label) {
 					vkey := VertexKey(kgdb.graph, src)
-					v := &gripql.Vertex{}
-					if loadProp {
-						dataValue, err := it.Get(vkey)
-						if err == nil {
-							proto.Unmarshal(dataValue, v)
-							o <- v
-						}
-					} else {
-						v.Gid = src
-						v.Label = label
+					dataValue, err := it.Get(vkey)
+					if err == nil {
+						v := &gripql.Vertex{}
+						proto.Unmarshal(dataValue, v)
 						o <- v
 					}
 				}
@@ -352,7 +346,8 @@ func (kgdb *KVInterfaceGDB) GetInList(ctx context.Context, id string, loadProp b
 // GetOutList given vertex/edge `key` find vertices on outgoing edges,
 // if len(edgeLabels) > 0 the edge labels must match a string in the array
 func (kgdb *KVInterfaceGDB) GetOutList(ctx context.Context, id string, loadProp bool, edgeLabels []string) <-chan *gripql.Vertex {
-	vertexChan := make(chan *gripql.Vertex, 100)
+	o := make(chan *gripql.Vertex, 100)
+	vertexChan := make(chan []byte, 100)
 	go func() {
 		defer close(vertexChan)
 		kgdb.kvg.kv.View(func(it kvi.KVIterator) error {
@@ -366,11 +361,9 @@ func (kgdb *KVInterfaceGDB) GetOutList(ctx context.Context, id string, loadProp 
 				keyValue := it.Key()
 				_, _, dst, _, label, etype := SrcEdgeKeyParse(keyValue)
 				if len(edgeLabels) == 0 || contains(edgeLabels, label) {
+					vkey := VertexKey(kgdb.graph, dst)
 					if etype == edgeSingle {
-						v := &gripql.Vertex{}
-						v.Gid = dst
-						v.Label = label
-						vertexChan <- v
+						vertexChan <- vkey
 					}
 				}
 			}
@@ -378,25 +371,21 @@ func (kgdb *KVInterfaceGDB) GetOutList(ctx context.Context, id string, loadProp 
 		})
 	}()
 
-	if loadProp {
-		outChan := make(chan *gripql.Vertex, 100)
-		go func() {
-			defer close(outChan)
-			kgdb.kvg.kv.View(func(it kvi.KVIterator) error {
-				for vert := range vertexChan {
-					vkey := VertexKey(kgdb.graph, vert.Gid)
-					dataValue, err := it.Get(vkey)
-					if err == nil {
-						proto.Unmarshal(dataValue, vert)
-						outChan <- vert
-					}
+	go func() {
+		defer close(o)
+		kgdb.kvg.kv.View(func(it kvi.KVIterator) error {
+			for vkey := range vertexChan {
+				dataValue, err := it.Get(vkey)
+				if err == nil {
+					v := &gripql.Vertex{}
+					proto.Unmarshal(dataValue, v)
+					o <- v
 				}
-				return nil
-			})
-		}()
-		return outChan
-	}
-	return vertexChan
+			}
+			return nil
+		})
+	}()
+	return o
 }
 
 // GetVertex loads a vertex given an id. It returns a nil if not found
@@ -468,21 +457,21 @@ func (kgdb *KVInterfaceGDB) GetVertexChannel(ids chan gdbi.ElementLookup, load b
 
 //GetOutChannel process requests of vertex ids and find the connected vertices on outgoing edges
 func (kgdb *KVInterfaceGDB) GetOutChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
-	outChan := make(chan gdbi.ElementLookup, 100)
+	vertexChan := make(chan elementData, 100)
 	go func() {
-		defer close(outChan)
+		defer close(vertexChan)
 		kgdb.kvg.kv.View(func(it kvi.KVIterator) error {
 			for req := range reqChan {
 				skeyPrefix := SrcEdgePrefix(kgdb.graph, req.ID)
 				for it.Seek(skeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), skeyPrefix); it.Next() {
 					keyValue := it.Key()
 					_, _, dst, _, label, etype := SrcEdgeKeyParse(keyValue)
-					v := &gripql.Vertex{Gid: dst, Label: label}
 					if len(edgeLabels) == 0 || contains(edgeLabels, label) {
+						vkey := VertexKey(kgdb.graph, dst)
 						if etype == edgeSingle {
-							outChan <- gdbi.ElementLookup{
-								Vertex: v,
-								Ref:    req.Ref,
+							vertexChan <- elementData{
+								data: vkey,
+								req:  req,
 							}
 						}
 					}
@@ -492,29 +481,30 @@ func (kgdb *KVInterfaceGDB) GetOutChannel(reqChan chan gdbi.ElementLookup, load 
 		})
 	}()
 
-	if load {
-		o := make(chan gdbi.ElementLookup, 100)
-		go func() {
-			defer close(o)
-			kgdb.kvg.kv.View(func(it kvi.KVIterator) error {
-				for req := range outChan {
-					vkey := VertexKey(kgdb.graph, req.Vertex.Gid)
-					dataValue, err := it.Get(vkey)
-					if err == nil {
-						err = proto.Unmarshal(dataValue, req.Vertex)
+	o := make(chan gdbi.ElementLookup, 100)
+	go func() {
+		defer close(o)
+		kgdb.kvg.kv.View(func(it kvi.KVIterator) error {
+			for req := range vertexChan {
+				dataValue, err := it.Get(req.data)
+				if err == nil {
+					_, gid := VertexKeyParse(req.data)
+					v := &gripql.Vertex{Gid: gid}
+					if load {
+						err = proto.Unmarshal(dataValue, v)
 						if err != nil {
 							log.Errorf("GetOutChannel: unmarshal error: %v", err)
 							continue
 						}
-						o <- req
 					}
+					req.req.Vertex = v
+					o <- req.req
 				}
-				return nil
-			})
-		}()
-		return o
-	}
-	return outChan
+			}
+			return nil
+		})
+	}()
+	return o
 }
 
 //GetInChannel process requests of vertex ids and find the connected vertices on incoming edges
