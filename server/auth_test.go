@@ -2,6 +2,9 @@ package server
 
 import (
 	"context"
+	"fmt"
+	"io/ioutil"
+	"net/http"
 	"os"
 	"strings"
 	"testing"
@@ -47,6 +50,11 @@ func TestBasicAuthFail(t *testing.T) {
 	_, err = cli.GetVertex("test", "1")
 	if err == nil || !strings.Contains(err.Error(), "PermissionDenied") {
 		t.Error("expected error")
+	}
+
+	resp, _ := http.Get(fmt.Sprintf("http://localhost:%s/v1/graph", conf.HTTPPort))
+	if resp.StatusCode != 401 {
+		t.Error("expected http 401 error")
 	}
 }
 
@@ -107,4 +115,17 @@ func TestBasicAuth(t *testing.T) {
 		t.Error("unexpected error", err)
 	}
 
+	req, err := http.NewRequest("GET", fmt.Sprintf("http://localhost:%s/v1/graph", conf.HTTPPort), nil)
+	req.SetBasicAuth("testuser", "abc123")
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil || resp.StatusCode != 200 {
+		t.Error("basic auth error error")
+	}
+	returnString := `{"result":{"graph":"test"}}
+`
+	bodyText, err := ioutil.ReadAll(resp.Body)
+	if string(bodyText) != returnString {
+		t.Error("incorrect http return value")
+	}
 }
