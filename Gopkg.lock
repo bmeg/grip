@@ -141,7 +141,7 @@
     "internal/scram",
   ]
   pruneopts = "NUT"
-  revision = "1ca0a4f7cbcbe61c005d1bd43fdd8bb8b71df6bc"
+  revision = "eeefdecb41b842af6dc652aaea4026e8403e62df"
 
 [[projects]]
   digest = "1:7d5c6757be75cd60d5936e26b2894c16bbb555bd8dad4724b0fa19efb3a6f78b"
@@ -285,14 +285,14 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:f8670bc82b370c3dd4a64699bc7157cb66bb7c4f43be06edd5e7e4cc134bfa57"
+  digest = "1:0c11e987235e8f37af4e9f24cca02754827d009e8b66cf24483b0006504f6045"
   name = "github.com/jmoiron/sqlx"
   packages = [
     ".",
     "reflectx",
   ]
   pruneopts = "NUT"
-  revision = "0dae4fefe7c0e190f7b5a78dac28a1c82cc8d849"
+  revision = "98524a5580a7344664db720ea129c478615af756"
 
 [[projects]]
   branch = "master"
@@ -500,7 +500,7 @@
   name = "golang.org/x/crypto"
   packages = ["ssh/terminal"]
   pruneopts = "NUT"
-  revision = "a92615f3c49003920a58dedcf32cf55022cefb8d"
+  revision = "0c41d7ab0a0ee717d4590a44bcb987dfd9e183eb"
 
 [[projects]]
   branch = "master"
