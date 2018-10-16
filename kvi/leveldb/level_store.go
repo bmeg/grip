@@ -7,35 +7,48 @@ package leveldb
 import (
 	"bytes"
 	"fmt"
-	"log"
 
 	"github.com/bmeg/grip/kvgraph"
 	"github.com/bmeg/grip/kvi"
+	log "github.com/sirupsen/logrus"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/iterator"
+	"github.com/syndtr/goleveldb/leveldb/opt"
+	"github.com/syndtr/goleveldb/leveldb/util"
 )
 
 var loaded = kvgraph.AddKVDriver("level", NewKVInterface)
 
 // NewKVInterface creates new LevelDB backed KVInterface at `path`
-func NewKVInterface(path string) (kvi.KVInterface, error) {
-	log.Printf("Starting LevelDB")
-	db, err := leveldb.OpenFile(path, nil)
+func NewKVInterface(path string, opts kvi.Options) (kvi.KVInterface, error) {
+	log.Info("Starting LevelDB")
+
+	var db *leveldb.DB
+	var err error
+	if opts.BulkLoad {
+		o := opt.Options{}
+		o.CompactionL0Trigger = 1 << 31
+		db, err = leveldb.OpenFile(path, &o)
+	} else {
+		db, err = leveldb.OpenFile(path, nil)
+	}
 	if err != nil {
-		log.Printf("Error: %s", err)
 		return &LevelKV{}, err
 	}
-	o := &LevelKV{db: db}
-	return o, err
+	return &LevelKV{db: db, opts: opts}, nil
 }
 
 // LevelKV implements the generic key value interface using the leveldb library
 type LevelKV struct {
-	db *leveldb.DB
+	db   *leveldb.DB
+	opts kvi.Options
 }
 
 // Close database
 func (l *LevelKV) Close() error {
+	if l.opts.BulkLoad {
+		l.db.CompactRange(util.Range{Start: nil, Limit: nil})
+	}
 	return l.db.Close()
 }
 
@@ -84,17 +97,18 @@ func (l *LevelKV) Set(id []byte, val []byte) error {
 // Update runs an alteration transaction of the kvstore
 func (l *LevelKV) Update(u func(tx kvi.KVTransaction) error) error {
 	tx, _ := l.db.OpenTransaction()
-	ktx := levelTransaction{tx}
+	ktx := levelTransaction{tx, l.db}
 	defer tx.Commit()
 	return u(ktx)
 }
 
 type levelTransaction struct {
 	tx *leveldb.Transaction
+	db *leveldb.DB
 }
 
 func (ltx levelTransaction) Set(key, val []byte) error {
-	return ltx.tx.Put(key, val, nil)
+	return ltx.tx.Put(key, val, nil) //&opt.WriteOptions{NoWriteMerge: true})
 }
 
 // Delete removes key `id` from the kv store

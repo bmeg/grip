@@ -8,6 +8,29 @@ import requests
 from gripql.util import AttrDict, Rate, process_url
 
 
+def _wrap_value(value, typ):
+    wrapped = []
+    if isinstance(value, list):
+        if not all(isinstance(i, typ) for i in value):
+            raise TypeError("expected all values in array to be a string")
+        wrapped = value
+    elif isinstance(value, typ):
+        wrapped.append(value)
+    elif value is None:
+        pass
+    else:
+        raise TypeError("expected value to be a %s" % typ)
+    return wrapped
+
+
+def _wrap_str_value(value):
+    return _wrap_value(value, str)
+
+
+def _wrap_dict_value(value):
+    return _wrap_value(value, dict)
+
+
 class Query:
     def __init__(self, url, graph, user=None, password=None):
         self.query = []
@@ -34,8 +57,7 @@ class Query:
 
         "id" is an ID or a list of vertex IDs to start from. Optional.
         """
-        if not isinstance(id, list):
-            id = [id]
+        id = _wrap_str_value(id)
         return self.__append({"v": id})
 
     def E(self, id=[]):
@@ -44,8 +66,7 @@ class Query:
 
         "id" is an ID to start from. Optional.
         """
-        if not isinstance(id, list):
-            id = [id]
+        id = _wrap_str_value(id)
         return self.__append({"e": id})
 
     def where(self, expression):
@@ -54,13 +75,12 @@ class Query:
         """
         return self.__append({"where": expression})
 
-    def fields(self, fields=[]):
+    def fields(self, field=[]):
         """
         Select document properties to be returned in document.
         """
-        if not isinstance(fields, list):
-            fields = [fields]
-        return self.__append({"fields": fields})
+        field = _wrap_str_value(field)
+        return self.__append({"fields": field})
 
     def in_(self, label=[]):
         """
@@ -69,8 +89,7 @@ class Query:
         "label" is the label of the edge to follow.
         "label" can be a list.
         """
-        if not isinstance(label, list):
-            label = [label]
+        label = _wrap_str_value(label)
         return self.__append({"in": label})
 
     def out(self, label=[]):
@@ -80,8 +99,7 @@ class Query:
         "label" is the label of the edge to follow.
         "label" can be a list.
         """
-        if not isinstance(label, list):
-            label = [label]
+        label = _wrap_str_value(label)
         return self.__append({"out": label})
 
     def both(self, label=[]):
@@ -91,8 +109,7 @@ class Query:
         "label" is the label of the edge to follow.
         "label" can be a list.
         """
-        if not isinstance(label, list):
-            label = [label]
+        label = _wrap_str_value(label)
         return self.__append({"both": label})
 
     def inEdge(self, label=[]):
@@ -104,8 +121,7 @@ class Query:
 
         Must be called from a vertex.
         """
-        if not isinstance(label, list):
-            label = [label]
+        label = _wrap_str_value(label)
         return self.__append({"in_edge": label})
 
     def outEdge(self, label=[]):
@@ -117,8 +133,7 @@ class Query:
 
         Must be called from a vertex.
         """
-        if not isinstance(label, list):
-            label = [label]
+        label = _wrap_str_value(label)
         return self.__append({"out_edge": label})
 
     def bothEdge(self, label=[]):
@@ -130,8 +145,7 @@ class Query:
 
         Must be called from a vertex.
         """
-        if not isinstance(label, list):
-            label = [label]
+        label = _wrap_str_value(label)
         return self.__append({"both_edge": label})
 
     def mark(self, name):
@@ -155,8 +169,7 @@ class Query:
             [A2, B2],
         ]
         """
-        if not isinstance(marks, list):
-            marks = [marks]
+        marks = _wrap_str_value(marks)
         return self.__append({"select": {"marks": marks}})
 
     def limit(self, n):
@@ -181,8 +194,7 @@ class Query:
         """
         Select distinct elements based on the provided property list.
         """
-        if not isinstance(props, list):
-            props = [props]
+        props = _wrap_str_value(props)
         return self.__append({"distinct": props})
 
     def match(self, queries):
@@ -209,16 +221,21 @@ class Query:
         """
         Aggregate results of query output
         """
-        if not isinstance(aggregations, list):
-            aggregations = [aggregations]
+        aggregations = _wrap_dict_value(aggregations)
         return self.__append({"aggregate": {"aggregations": aggregations}})
 
-    def toJson(self):
+    def to_json(self):
         """
         Return the query as a JSON string.
         """
         output = {"query": self.query}
         return json.dumps(output)
+
+    def to_dict(self):
+        """
+        Return the query as a dictionary.
+        """
+        return {"query": self.query}
 
     def __iter__(self):
         return self.__stream()
@@ -241,20 +258,21 @@ class Query:
         logger.addHandler(stream_handler)
 
         rate = Rate(logger)
+        rate.init()
         response = requests.post(
             self.url,
-            json={"query": self.query},
+            json=self.to_dict(),
             stream=True,
             auth=(self.user, self.password)
         )
         logger.debug('POST %s', self.url)
-        logger.debug("BODY %s", self.toJson())
+        logger.debug("BODY %s", self.to_json())
         logger.debug('STATUS CODE %s', response.status_code)
         response.raise_for_status()
 
         for result in response.iter_lines(chunk_size=None):
             try:
-                result_dict = json.loads(result)
+                result_dict = json.loads(result.decode())
             except Exception as e:
                 logger.error("Failed to decode: %s", result)
                 raise e

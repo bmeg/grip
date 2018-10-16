@@ -3,13 +3,13 @@ package elastic
 import (
 	"context"
 	"fmt"
-	"log"
 	"strings"
 	"time"
 
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/timestamp"
+	log "github.com/sirupsen/logrus"
 	elastic "gopkg.in/olivere/elastic.v5"
 )
 
@@ -33,7 +33,7 @@ type GraphDB struct {
 
 // NewGraphDB creates a new elasticsearch graph database interface
 func NewGraphDB(conf Config) (gdbi.GraphDB, error) {
-	log.Printf("Starting Elastic Driver")
+	log.Info("Starting ElasticSearch Driver")
 	database := strings.ToLower(conf.DBName)
 	err := gripql.ValidateGraphName(database)
 	if err != nil {
@@ -69,7 +69,7 @@ func NewGraphDB(conf Config) (gdbi.GraphDB, error) {
 		go func() {
 			err := db.setupIndices(context.Background(), g)
 			if err != nil {
-				log.Printf("error setting up indices for graph %s: %v", g, err)
+				log.WithFields(log.Fields{"error": err, "graph": g}).Error("Setting up indices")
 			}
 		}()
 	}
@@ -88,7 +88,7 @@ func (es *GraphDB) ListGraphs() []string {
 	out := []string{}
 	idxNames, err := es.client.IndexNames()
 	if err != nil {
-		log.Printf("failed to get index names: %s", err)
+		log.WithFields(log.Fields{"error": err}).Error("ListGraphs: ElasticSearch: listing index names")
 	}
 	for _, idx := range idxNames {
 		if strings.HasPrefix(idx, graphPrefix) {
@@ -213,6 +213,6 @@ func (es *GraphDB) Graph(graph string) (gdbi.GraphInterface, error) {
 }
 
 // GetSchema returns the schema of a specific graph in the database
-func (es *GraphDB) GetSchema(ctx context.Context, graph string, sampleN uint32) (*gripql.GraphSchema, error) {
+func (es *GraphDB) GetSchema(ctx context.Context, graph string, sampleN uint32, random bool) (*gripql.GraphSchema, error) {
 	return nil, fmt.Errorf("not implemented")
 }

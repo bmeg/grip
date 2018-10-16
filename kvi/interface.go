@@ -1,8 +1,13 @@
 package kvi
 
+// Options are the options for loading the KeyValue driver
+type Options struct {
+	BulkLoad bool
+}
+
 // KVBuilder is function implemented by the various key/value storage drivers
 // that returns an initialized KVInterface given a file/path argument
-type KVBuilder func(path string) (KVInterface, error)
+type KVBuilder func(path string, opts Options) (KVInterface, error)
 
 // KVInterface is the base interface for key/value based graph driver
 type KVInterface interface {

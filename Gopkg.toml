@@ -99,7 +99,13 @@
 
 [[constraint]]
   name = "github.com/spf13/cobra"
-  version = "0.0.2"
+  version = "0.0.3"
+
+# the RDF command uses the new StringToStringVarP flag method
+# remove override when it is part of a release
+[[override]]
+  name = "github.com/spf13/pflag"
+  branch = "master"
 
 [[constraint]]
   name = "github.com/stretchr/testify"
@@ -144,3 +150,4 @@
 [prune]
   go-tests = true
   unused-packages = true
+  non-go = true

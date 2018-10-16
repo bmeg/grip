@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"log"
 	"math"
 	"reflect"
 	"strings"
@@ -16,6 +15,7 @@ import (
 	"github.com/bmeg/grip/kvindex"
 	"github.com/bmeg/grip/protoutil"
 	structpb "github.com/golang/protobuf/ptypes/struct"
+	log "github.com/sirupsen/logrus"
 	"github.com/spenczar/tdigest"
 	"golang.org/x/sync/errgroup"
 )
@@ -85,7 +85,7 @@ func (l *LookupVertsIndex) Process(ctx context.Context, man gdbi.Manager, in gdb
 		defer close(queryChan)
 		for t := range in {
 			for _, label := range l.labels {
-				for id := range l.db.VertexLabelScan(context.Background(), label) {
+				for id := range l.db.VertexLabelScan(ctx, label) {
 					queryChan <- gdbi.ElementLookup{
 						ID:  id,
 						Ref: t,
@@ -123,7 +123,7 @@ func (l *LookupEdges) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 		defer close(out)
 		for t := range in {
 			if len(l.ids) == 0 {
-				for v := range l.db.GetEdgeList(context.Background(), getPropLoad(ctx)) {
+				for v := range l.db.GetEdgeList(ctx, getPropLoad(ctx)) {
 					out <- t.AddCurrent(&gdbi.DataElement{
 						ID:    v.Gid,
 						Label: v.Label,
@@ -376,7 +376,7 @@ func (f *Fields) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, 
 			} else {
 				o, err := jsonpath.SelectTravelerFields(t, f.keys...)
 				if err != nil {
-					log.Printf("error selecting fields: %v for traveler %+v", f.keys, t)
+					log.WithFields(log.Fields{"error": err, "traveler": t, "fields": f.keys}).Error("Engine: Core: Processors: selecting fields")
 					continue
 				}
 				out <- o
@@ -487,7 +487,7 @@ func matchesCondition(trav *gdbi.Traveler, cond *gripql.WhereCondition) bool {
 			found = false
 
 		default:
-			log.Printf("Error: expected slice not %T for IN condition value", condVal)
+			log.Errorf("Error: expected slice not %T for IN condition value", condVal)
 		}
 
 		return found
@@ -510,7 +510,7 @@ func matchesCondition(trav *gdbi.Traveler, cond *gripql.WhereCondition) bool {
 			found = false
 
 		default:
-			log.Printf("Error: unknown condition value type %T for CONTAINS condition", val)
+			log.Errorf("Error: unknown condition value type %T for CONTAINS condition", val)
 		}
 
 		return found
@@ -557,7 +557,7 @@ func matchesWhereExpression(trav *gdbi.Traveler, stmt *gripql.WhereExpression) b
 		return !matchesWhereExpression(trav, e)
 
 	default:
-		log.Printf("unknown where expression type")
+		log.Errorf("unknown where expression type: %T", stmt.Expression)
 		return false
 	}
 }
@@ -602,18 +602,20 @@ type Limit struct {
 
 // Process runs limit
 func (l *Limit) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
+	newCtx, cancel := context.WithCancel(ctx)
 	go func() {
 		defer close(out)
 		var i uint32
 		for t := range in {
-			if i == l.count {
-				return
+			if i < l.count {
+				out <- t
+			} else if i == l.count {
+				cancel()
 			}
-			out <- t
 			i++
 		}
 	}()
-	return ctx
+	return newCtx
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -965,7 +967,7 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 			})
 
 		default:
-			log.Println("Error: unknown aggregation type")
+			log.Errorf("Error: unknown aggregation type: %T", a.Aggregation)
 			continue
 		}
 	}
@@ -974,7 +976,7 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 	go func() {
 		defer close(out)
 		if err := g.Wait(); err != nil {
-			log.Printf("Error: one or more aggregation failed: %v", err)
+			log.WithFields(log.Fields{"error": err}).Error("one or more aggregation failed")
 		}
 		close(aggChan)
 		aggs := map[string]*gripql.AggregationResult{}

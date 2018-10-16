@@ -2,9 +2,8 @@ package elastic
 
 import (
 	"context"
-	"fmt"
-	"log"
 
+	log "github.com/sirupsen/logrus"
 	elastic "gopkg.in/olivere/elastic.v5"
 )
 
@@ -20,7 +19,7 @@ func paginateQuery(ctx context.Context, q *elastic.SearchService, pageSize int) 
 			}
 			res, err := q.From(count).Do(ctx)
 			if err != nil {
-				log.Println(fmt.Errorf("query failed: %v", err))
+				log.WithFields(log.Fields{"error": err}).Error("ElasticSearch: paginateQuery")
 				return
 			}
 			if res.TotalHits() > 0 {

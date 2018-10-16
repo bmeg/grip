@@ -1,7 +1,5 @@
 from __future__ import absolute_import, print_function, unicode_literals
 
-import logging
-
 from datetime import datetime
 from requests import HTTPError
 from requests.compat import urlparse, urlunparse
@@ -100,20 +98,29 @@ class AttrDict(object):
 
 
 class Rate:
-    def __init__(self, logger, report_every=100):
+    def __init__(self, logger, report_every=1000):
         self.i = 0
         self.start = None
         self.first = None
         self.report_every = report_every
         self.logger = logger
 
+    def init(self):
+        self.start = datetime.now()
+
     def close(self):
         if self.i == 0:
             return
 
-        self.log()
-        dt = datetime.now() - self.first
-        m = "total: {0:,} results processed in {1:,d} seconds".format(
+        now = datetime.now()
+        dt = now - self.start
+        rate = self.i / dt.total_seconds()
+        m = "rate: {0:,} results received ({1:,d}/sec)".format(
+            self.i,
+            int(rate)
+        )
+        self.logger.debug(m)
+        m = "{0:,} results received in {1:,d} seconds".format(
             self.i,
             int(dt.total_seconds())
         )
@@ -123,17 +130,27 @@ class Rate:
         if self.i == 0:
             return
 
-        dt = datetime.now() - self.start
-        self.start = datetime.now()
+        dt = datetime.now() - self.current
+        self.current = datetime.now()
         rate = self.report_every / dt.total_seconds()
-        m = "rate: {0:,} results processed ({1:,d}/sec)".format(self.i,
-                                                                int(rate))
+        m = "rate: {0:,} results received ({1:,d}/sec)".format(
+            self.i,
+            int(rate)
+        )
         self.logger.debug(m)
 
     def tick(self):
         if self.start is None:
-            self.start = datetime.now()
-            self.first = self.start
+            raise RuntimeError("call Rate.init() before the first tick")
+
+        if self.i == 0:
+            now = datetime.now()
+            self.current = now
+            dt = now - self.start
+            m = "first result received after {0:,d} seconds".format(
+                int(dt.total_seconds())
+            )
+            self.logger.debug(m)
 
         self.i += 1
 

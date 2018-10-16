@@ -32,6 +32,7 @@ type Config struct {
 	Elasticsearch elastic.Config
 	MongoDB       mongo.Config
 	SQL           sql.Config
+	Logger        Logger
 }
 
 // DefaultConfig returns an instance of the default configuration for Grip.
@@ -45,8 +46,9 @@ func DefaultConfig() *Config {
 	c.Server.WorkDir = "grip.work"
 	c.Server.ReadOnly = false
 	c.Server.DisableHTTPCache = true
-	c.Server.SchemaRefreshInterval = 3 * time.Hour
-	c.Server.SchemaSampleSize = 500
+	c.Server.SchemaRefreshInterval = 24 * time.Hour
+	c.Server.SchemaInspectN = 500
+	c.Server.SchemaRandomSample = true
 
 	c.RPCClient.ServerAddress = c.Server.RPCAddress()
 	c.RPCClient.Timeout = 30 * time.Second
@@ -61,6 +63,7 @@ func DefaultConfig() *Config {
 	c.Elasticsearch.DBName = "gripdb"
 	c.Elasticsearch.BatchSize = 1000
 
+	c.Logger = DefaultLoggerConfig()
 	return c
 }
 

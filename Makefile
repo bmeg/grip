@@ -38,6 +38,13 @@ depends:
 with-rocksdb: depends
 	@go install -tags 'rocksdb' -ldflags '$(VERSION_LDFLAGS)' .
 
+local-rocksdb: rocksdb-lib
+	@CGO_LDFLAGS="-L$(shell pwd)/rocksdb-lib" CGO_CFLAGS="-I$(shell pwd)/rocksdb-lib/include/" go install -tags 'rocksdb' -ldflags '$(VERSION_LDFLAGS)' .
+
+rocksdb-lib:
+	@git clone https://github.com/facebook/rocksdb.git rocksdb-lib
+	@pushd rocksdb-lib && make static_lib && popd
+
 # --------------------------
 # Complile Protobuf Schemas
 # --------------------------
@@ -80,6 +87,7 @@ lint:
 		--vendor \
 		-e '.*bundle.go' -e ".*pb.go" -e ".*pb.gw.go" -e ".*pb.dgw.go" -e "underscore.go" \
 		./...
+	@flake8 gripql/python/ conformance/
 
 # ---------------------
 # Release / Snapshot

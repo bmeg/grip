@@ -6,11 +6,11 @@ package engine
 
 import (
 	"context"
-	"log"
 
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/protoutil"
+	log "github.com/sirupsen/logrus"
 )
 
 // Start begins processing a query pipeline
@@ -126,7 +126,7 @@ func Convert(dataType gdbi.DataType, markTypes map[string]gdbi.DataType, t *gdbi
 		}
 
 	default:
-		log.Printf("unhandled data type %d", dataType)
+		log.Errorf("unhandled data type %T", dataType)
 	}
 	return nil
 }

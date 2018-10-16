@@ -2,8 +2,9 @@ package test
 
 import (
 	"encoding/json"
-	"log"
 	"testing"
+
+	"context"
 
 	"github.com/bmeg/grip/kvindex"
 )
@@ -87,7 +88,7 @@ func TestLoadDoc(t *testing.T) {
 	}
 
 	count := 0
-	for d := range idx.GetTermMatch("v.label", "Person") {
+	for d := range idx.GetTermMatch(context.Background(), "v.label", "Person") {
 		if !contains(personDocs, d) {
 			t.Errorf("Bad doc return: %s", d)
 		}
@@ -98,7 +99,7 @@ func TestLoadDoc(t *testing.T) {
 	}
 
 	count = 0
-	for d := range idx.GetTermMatch("v.data.firstName", "Bob") {
+	for d := range idx.GetTermMatch(context.Background(), "v.data.firstName", "Bob") {
 		if !contains(bobDocs, d) {
 			t.Errorf("Bad doc return: %s", d)
 		}
@@ -254,7 +255,7 @@ func TestDocDelete(t *testing.T) {
 	}
 
 	count = 0
-	for range idx.GetTermMatch("v.data.firstName", "Bob") {
+	for range idx.GetTermMatch(context.Background(), "v.data.firstName", "Bob") {
 		count++
 	}
 	if count != 0 {
@@ -262,7 +263,7 @@ func TestDocDelete(t *testing.T) {
 	}
 }
 
-func TestNumField(b *testing.T) {
+func TestNumField(t *testing.T) {
 	data := []map[string]interface{}{}
 	json.Unmarshal([]byte(docs), &data)
 
@@ -278,6 +279,6 @@ func TestNumField(b *testing.T) {
 	count := 0
 	for d := range idx.FieldTerms("v.data.age") {
 		count++
-		log.Printf("Age: %v", d)
+		t.Logf("Age: %v", d)
 	}
 }

@@ -9,18 +9,18 @@ package rocksdb
 import (
 	"bytes"
 	"fmt"
-	"log"
 
 	"github.com/bmeg/grip/kvgraph"
 	"github.com/bmeg/grip/kvi"
+	log "github.com/sirupsen/logrus"
 	"github.com/tecbot/gorocksdb"
 )
 
 var loaded = kvgraph.AddKVDriver("rocks", NewKVInterface)
 
 // NewKVInterface creates new RocksDB backed KVInterface at `path`
-func NewKVInterface(path string) (kvi.KVInterface, error) {
-	log.Printf("Starting RocksDB")
+func NewKVInterface(path string, kopts kvi.Options) (kvi.KVInterface, error) {
+	log.Info("Starting RocksDB")
 
 	bbto := gorocksdb.NewDefaultBlockBasedTableOptions()
 	filter := gorocksdb.NewBloomFilter(10)
@@ -29,6 +29,9 @@ func NewKVInterface(path string) (kvi.KVInterface, error) {
 	opts := gorocksdb.NewDefaultOptions()
 	opts.SetBlockBasedTableFactory(bbto)
 	opts.SetCreateIfMissing(true)
+	if kopts.BulkLoad {
+		opts.PrepareForBulkLoad()
+	}
 
 	db, err := gorocksdb.OpenDb(opts, path)
 	if err != nil {
@@ -40,21 +43,26 @@ func NewKVInterface(path string) (kvi.KVInterface, error) {
 	//wo.SetSync(true)
 
 	return &RocksKV{
-		db: db,
-		ro: ro,
-		wo: wo,
+		db:   db,
+		ro:   ro,
+		wo:   wo,
+		opts: kopts,
 	}, nil
 }
 
 // RocksKV is an implementation of the KVStore for rocksdb
 type RocksKV struct {
-	db *gorocksdb.DB
-	ro *gorocksdb.ReadOptions
-	wo *gorocksdb.WriteOptions
+	db   *gorocksdb.DB
+	ro   *gorocksdb.ReadOptions
+	wo   *gorocksdb.WriteOptions
+	opts kvi.Options
 }
 
 // Close closes the rocksdb connection
 func (rockskv *RocksKV) Close() error {
+	if rockskv.opts.BulkLoad {
+		rockskv.db.CompactRange(gorocksdb.Range{nil, nil})
+	}
 	rockskv.db.Close()
 	return nil
 }
@@ -83,7 +91,7 @@ func (rockskv *RocksKV) DeletePrefix(prefix []byte) error {
 	}
 	err := rockskv.db.Write(rockskv.wo, wb)
 	if err != nil {
-		log.Printf("Del error: %s", err)
+		return err
 	}
 	wb.Destroy()
 	return nil

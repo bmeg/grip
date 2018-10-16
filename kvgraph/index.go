@@ -3,7 +3,6 @@ package kvgraph
 import (
 	"context"
 	"fmt"
-	"log"
 	"math"
 	"strings"
 
@@ -11,6 +10,7 @@ import (
 	"github.com/bmeg/grip/jsonpath"
 	"github.com/bmeg/grip/protoutil"
 	structpb "github.com/golang/protobuf/ptypes/struct"
+	log "github.com/sirupsen/logrus"
 	"github.com/spenczar/tdigest"
 )
 
@@ -36,18 +36,16 @@ func normalizePath(path string) string {
 }
 
 func vertexIdxStruct(v *gripql.Vertex) map[string]interface{} {
-	//vertexField := fmt.Sprintf("v.%s", v.Label)
 	k := map[string]interface{}{
 		"label": v.Label,
 		"v":     map[string]interface{}{v.Label: protoutil.AsMap(v.Data)},
 	}
-	//log.Printf("Vertex: %s", k)
 	return k
 }
 
 //AddVertexIndex add index to vertices
 func (kgdb *KVInterfaceGDB) AddVertexIndex(label string, field string) error {
-	log.Printf("Adding index: %s.%s", label, field)
+	log.WithFields(log.Fields{"label": label, "field": field}).Info("Adding vertex index")
 	field = normalizePath(field)
 	//TODO kick off background process to reindex existing data
 	return kgdb.kvg.idx.AddField(fmt.Sprintf("%s.v.%s.%s", kgdb.graph, label, field))
@@ -55,14 +53,14 @@ func (kgdb *KVInterfaceGDB) AddVertexIndex(label string, field string) error {
 
 //DeleteVertexIndex delete index from vertices
 func (kgdb *KVInterfaceGDB) DeleteVertexIndex(label string, field string) error {
-	log.Printf("Deleting index: %s.%s", label, field)
+	log.WithFields(log.Fields{"label": label, "field": field}).Info("Deleting vertex index")
 	field = normalizePath(field)
 	return kgdb.kvg.idx.RemoveField(fmt.Sprintf("%s.v.%s.%s", kgdb.graph, label, field))
 }
 
 //GetVertexIndexList lists out all the vertex indices for a graph
 func (kgdb *KVInterfaceGDB) GetVertexIndexList() chan gripql.IndexID {
-	log.Printf("Getting index list")
+	log.Debug("Running GetVertexIndexList")
 	out := make(chan gripql.IndexID)
 	go func() {
 		defer close(out)
@@ -81,13 +79,13 @@ func (kgdb *KVInterfaceGDB) GetVertexIndexList() chan gripql.IndexID {
 //VertexLabelScan produces a channel of all vertex ids in a graph
 //that match a given label
 func (kgdb *KVInterfaceGDB) VertexLabelScan(ctx context.Context, label string) chan string {
-	log.Printf("Running VertexLabelScan for label: %s", label)
+	log.WithFields(log.Fields{"label": label}).Debug("Running VertexLabelScan")
 	//TODO: Make this work better
 	out := make(chan string, 100)
 	go func() {
 		defer close(out)
 		//log.Printf("Searching %s %s", fmt.Sprintf("%s.label", kgdb.graph), label)
-		for i := range kgdb.kvg.idx.GetTermMatch(fmt.Sprintf("%s.label", kgdb.graph), label) {
+		for i := range kgdb.kvg.idx.GetTermMatch(ctx, fmt.Sprintf("%s.label", kgdb.graph), label) {
 			//log.Printf("Found: %s", i)
 			out <- i
 		}
@@ -97,7 +95,7 @@ func (kgdb *KVInterfaceGDB) VertexLabelScan(ctx context.Context, label string) c
 
 //GetVertexTermAggregation get count of every term across vertices
 func (kgdb *KVInterfaceGDB) GetVertexTermAggregation(ctx context.Context, label string, field string, size uint32) (*gripql.AggregationResult, error) {
-	log.Printf("Running GetVertexTermAggregation: { label: %s, field: %s size: %v}", label, field, size)
+	log.WithFields(log.Fields{"label": label, "field": field, "size": size}).Debug("Running GetVertexTermAggregation")
 	out := &gripql.AggregationResult{
 		Buckets: []*gripql.AggregationResultBucket{},
 	}
@@ -128,7 +126,7 @@ func (kgdb *KVInterfaceGDB) GetVertexTermAggregation(ctx context.Context, label 
 
 //GetVertexHistogramAggregation get binned counts of a term across vertices
 func (kgdb *KVInterfaceGDB) GetVertexHistogramAggregation(ctx context.Context, label string, field string, interval uint32) (*gripql.AggregationResult, error) {
-	log.Printf("Running GetVertexHistogramAggregation: { label: %s, field: %s interval: %v }", label, field, interval)
+	log.WithFields(log.Fields{"label": label, "field": field, "interval": interval}).Debug("Running GetVertexHistogramAggregation")
 	out := &gripql.AggregationResult{
 		Buckets: []*gripql.AggregationResultBucket{},
 	}
@@ -156,7 +154,7 @@ func (kgdb *KVInterfaceGDB) GetVertexHistogramAggregation(ctx context.Context, l
 
 //GetVertexPercentileAggregation get percentiles of a term across vertices
 func (kgdb *KVInterfaceGDB) GetVertexPercentileAggregation(ctx context.Context, label string, field string, percents []float64) (*gripql.AggregationResult, error) {
-	log.Printf("Running GetVertexPercentileAggregation: { label: %s, field: %s percents: %v }", label, field, percents)
+	log.WithFields(log.Fields{"label": label, "field": field, "percents": percents}).Debug("Running GetVertexPercentileAggregation")
 	out := &gripql.AggregationResult{
 		Buckets: []*gripql.AggregationResultBucket{},
 	}

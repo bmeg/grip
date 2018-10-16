@@ -3,25 +3,25 @@ package server
 import (
 	"context"
 	"fmt"
-	"log"
 	"os"
 	"os/signal"
 	"strings"
 
-	_ "github.com/bmeg/grip/badgerdb" // import so badger will register itself
-	_ "github.com/bmeg/grip/boltdb"   // import so bolt will register itself
 	"github.com/bmeg/grip/config"
 	"github.com/bmeg/grip/elastic"
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/kvgraph"
-	_ "github.com/bmeg/grip/leveldb" // import so level will register itself
+	_ "github.com/bmeg/grip/kvi/badgerdb" // import so badger will register itself
+	_ "github.com/bmeg/grip/kvi/boltdb"   // import so bolt will register itself
+	_ "github.com/bmeg/grip/kvi/leveldb"  // import so level will register itself
+	_ "github.com/bmeg/grip/kvi/rocksdb"  // import so rocks will register itself
 	"github.com/bmeg/grip/mongo"
-	_ "github.com/bmeg/grip/rocksdb" // import so rocks will register itself
 	"github.com/bmeg/grip/server"
 	"github.com/bmeg/grip/sql"
 	_ "github.com/go-sql-driver/mysql" //import so mysql will register as a sql driver
 	"github.com/imdario/mergo"
 	_ "github.com/lib/pq" // import so postgres will register as a sql driver
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -32,8 +32,8 @@ var configFile string
 // This opens a database and starts an API server.
 // This blocks indefinitely.
 func Run(conf *config.Config) error {
-	log.Printf("Starting Server")
-	log.Printf("Config: %+v", conf)
+	config.ConfigureLogger(conf.Logger)
+	log.WithFields(log.Fields{"Config": conf}).Info("Starting Server")
 
 	var db gdbi.GraphDB
 	var err error
