@@ -11,9 +11,10 @@ import (
 	"time"
 
 	"github.com/bmeg/grip/elastic"
+	"github.com/bmeg/grip/existing-sql"
 	"github.com/bmeg/grip/mongo"
+	"github.com/bmeg/grip/psql"
 	"github.com/bmeg/grip/server"
-	"github.com/bmeg/grip/sql"
 	"github.com/bmeg/grip/util"
 	"github.com/bmeg/grip/util/rpc"
 	"github.com/ghodss/yaml"
@@ -31,7 +32,8 @@ type Config struct {
 	KVStorePath   string
 	Elasticsearch elastic.Config
 	MongoDB       mongo.Config
-	SQL           sql.Config
+	PSQL          psql.Config
+	ExistingSQL   esql.Config
 	Logger        Logger
 }
 

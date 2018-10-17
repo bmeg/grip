@@ -1,6 +1,7 @@
 package protoutil
 
 import (
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"time"
@@ -147,6 +148,18 @@ func AsMap(src *structpb.Struct) map[string]interface{} {
 		out[k] = UnWrapValue(f)
 	}
 	return out
+}
+
+// AsBytes takes a protobuf Struct and converts it into a byte array
+func AsBytes(src *structpb.Struct) []byte {
+	if src == nil {
+		return []byte{}
+	}
+	b, err := json.Marshal(AsMap(src))
+	if err != nil {
+		panic(err)
+	}
+	return b
 }
 
 // AsStruct takes a go map and converts it into a protobuf Struct

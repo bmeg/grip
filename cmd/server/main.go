@@ -9,6 +9,7 @@ import (
 
 	"github.com/bmeg/grip/config"
 	"github.com/bmeg/grip/elastic"
+	"github.com/bmeg/grip/existing-sql"
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/kvgraph"
 	_ "github.com/bmeg/grip/kvi/badgerdb" // import so badger will register itself
@@ -16,9 +17,8 @@ import (
 	_ "github.com/bmeg/grip/kvi/leveldb"  // import so level will register itself
 	_ "github.com/bmeg/grip/kvi/rocksdb"  // import so rocks will register itself
 	"github.com/bmeg/grip/mongo"
+	"github.com/bmeg/grip/psql"
 	"github.com/bmeg/grip/server"
-	"github.com/bmeg/grip/sql"
-	_ "github.com/go-sql-driver/mysql" //import so mysql will register as a sql driver
 	"github.com/imdario/mergo"
 	_ "github.com/lib/pq" // import so postgres will register as a sql driver
 	log "github.com/sirupsen/logrus"
@@ -47,8 +47,11 @@ func Run(conf *config.Config) error {
 	case "mongo", "mongodb":
 		db, err = mongo.NewGraphDB(conf.MongoDB)
 
-	case "sql":
-		db, err = sql.NewGraphDB(conf.SQL)
+	case "psql":
+		db, err = psql.NewGraphDB(conf.PSQL)
+
+	case "existing-sql":
+		db, err = esql.NewGraphDB(conf.ExistingSQL)
 
 	default:
 		err = fmt.Errorf("unknown database: %s", dbname)

@@ -1,4 +1,4 @@
-package sql
+package esql
 
 import (
 	"database/sql"

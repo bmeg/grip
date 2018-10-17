@@ -10,6 +10,7 @@ import (
 
 	"github.com/bmeg/grip/config"
 	"github.com/bmeg/grip/elastic"
+	"github.com/bmeg/grip/existing-sql"
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/kvgraph"
@@ -18,7 +19,7 @@ import (
 	_ "github.com/bmeg/grip/kvi/leveldb"  // import so level will register itself
 	_ "github.com/bmeg/grip/kvi/rocksdb"  // import so rocks will register itself
 	"github.com/bmeg/grip/mongo"
-	"github.com/bmeg/grip/sql"
+	"github.com/bmeg/grip/psql"
 	"github.com/bmeg/grip/util"
 	_ "github.com/lib/pq" // import so postgres will register as a sql driver
 )
@@ -60,7 +61,6 @@ func setupGraph() error {
 func setupSQLGraph() error {
 	cmd := exec.Command("bash", "./resources/postgres_load_test_data.sh")
 	return cmd.Run()
-	// return nil
 }
 
 func TestMain(m *testing.M) {
@@ -85,7 +85,7 @@ func TestMain(m *testing.M) {
 	fmt.Printf("Test config: %+v\n", conf)
 	dbname = strings.ToLower(conf.Database)
 
-	if dbname == "sql" {
+	if dbname == "existing-sql" {
 		err = setupSQLGraph()
 		if err != nil {
 			fmt.Println("Error: setting up graph:", err)
@@ -106,8 +106,11 @@ func TestMain(m *testing.M) {
 	case "mongo":
 		gdb, err = mongo.NewGraphDB(conf.MongoDB)
 
-	case "sql":
-		gdb, err = sql.NewGraphDB(conf.SQL)
+	case "existing-sql":
+		gdb, err = esql.NewGraphDB(conf.ExistingSQL)
+
+	case "psql":
+		gdb, err = psql.NewGraphDB(conf.PSQL)
 
 	default:
 		err = fmt.Errorf("unknown database: %s", dbname)
@@ -133,7 +136,7 @@ func TestMain(m *testing.M) {
 		return
 	}
 
-	if dbname != "sql" {
+	if dbname != "existing-sql" {
 		err = setupGraph()
 		if err != nil {
 			fmt.Println("Error: setting up graph:", err)
