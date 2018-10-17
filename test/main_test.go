@@ -128,6 +128,7 @@ func TestMain(m *testing.M) {
 	err = gdb.AddGraph("test-graph")
 	if err != nil {
 		fmt.Println("Error: failed to add graph:", err)
+		return
 	}
 
 	db, err = gdb.Graph("test-graph")

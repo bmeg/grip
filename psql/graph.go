@@ -38,9 +38,9 @@ func (g *Graph) Compiler() gdbi.Compiler {
 func (g *Graph) AddVertex(vertexArray []*gripql.Vertex) error {
 	values := []string{}
 	for _, v := range vertexArray {
-		values = append(values, fmt.Sprintf("(%s, %s, %v)", v.Gid, v.Label, protoutil.AsBytes(v.Data)))
+		values = append(values, fmt.Sprintf("('%s', '%s', '%s')", v.Gid, v.Label, protoutil.AsJSONString(v.Data)))
 	}
-	stmt := fmt.Sprintf("INSERT INTO %s (gid, label, data) VALUES %s", g.v, strings.Join(values, ","))
+	stmt := fmt.Sprintf(`INSERT INTO %s (gid, label, data) VALUES %s ON CONFLICT DO UPDATE`, g.v, strings.Join(values, ","))
 	_, err := g.db.Exec(stmt)
 	if err != nil {
 		return fmt.Errorf("inserting one or more vertices: %v", err)
@@ -52,9 +52,9 @@ func (g *Graph) AddVertex(vertexArray []*gripql.Vertex) error {
 func (g *Graph) AddEdge(edgeArray []*gripql.Edge) error {
 	values := []string{}
 	for _, e := range edgeArray {
-		values = append(values, fmt.Sprintf("(%s, %s, %s, %s, %v)", e.Gid, e.Label, e.From, e.To, protoutil.AsBytes(e.Data)))
+		values = append(values, fmt.Sprintf("('%s', '%s', '%s', '%s', '%s')", e.Gid, e.Label, e.From, e.To, protoutil.AsJSONString(e.Data)))
 	}
-	stmt := fmt.Sprintf("INSERT INTO %s (gid, label, data) VALUES %s", g.e, strings.Join(values, ","))
+	stmt := fmt.Sprintf(`INSERT INTO %s (gid, label, from, to, data) VALUES %s ON CONFLICT DO UPDATE`, g.e, strings.Join(values, ","))
 	_, err := g.db.Exec(stmt)
 	if err != nil {
 		return fmt.Errorf("inserting one or more edges: %v", err)
@@ -81,6 +81,7 @@ func (g *Graph) DelVertex(key string) error {
 	if err != nil {
 		return fmt.Errorf("deleting incoming edges for %s: %v", key, err)
 	}
+
 	return nil
 }
 

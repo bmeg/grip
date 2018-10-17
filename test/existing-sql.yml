@@ -1,6 +1,6 @@
-Database: sql
+Database: existing-sql
 
-SQL:
+ExistingSQL:
   DataSourceName: "host=localhost port=15432 user=postgres dbname=smtest sslmode=disable"
   Driver: postgres
 

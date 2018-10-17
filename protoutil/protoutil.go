@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"time"
 
+	"github.com/golang/protobuf/jsonpb"
 	structpb "github.com/golang/protobuf/ptypes/struct"
 	log "github.com/sirupsen/logrus"
 )
@@ -160,6 +161,19 @@ func AsBytes(src *structpb.Struct) []byte {
 		panic(err)
 	}
 	return b
+}
+
+// ASJSONString takes a protobuf Struct and converts it into a JSON string
+func AsJSONString(src *structpb.Struct) string {
+	if src == nil {
+		return ""
+	}
+	m := jsonpb.Marshaler{}
+	s, err := m.MarshalToString(src)
+	if err != nil {
+		panic(err)
+	}
+	return s
 }
 
 // AsStruct takes a go map and converts it into a protobuf Struct
