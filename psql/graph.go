@@ -11,7 +11,6 @@ import (
 	"github.com/bmeg/grip/protoutil"
 	"github.com/bmeg/grip/timestamp"
 	"github.com/jmoiron/sqlx"
-	// "github.com/lib/pq"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -44,10 +43,10 @@ func (g *Graph) AddVertex(vertexArray []*gripql.Vertex) error {
 
 	s := fmt.Sprintf(
 		`INSERT INTO %s (gid, label, data) VALUES ($1, $2, $3) 
-     ON CONFLICT (gid) DO UPDATE SET 
-     gid = excluded.gid, 
-     label = excluded.label, 
-     data = excluded.data;`,
+		 ON CONFLICT (gid) DO UPDATE SET 
+		 gid = excluded.gid, 
+		 label = excluded.label, 
+		 data = excluded.data;`,
 		g.v,
 	)
 	stmt, err := txn.Prepare(s)
@@ -84,12 +83,12 @@ func (g *Graph) AddEdge(edgeArray []*gripql.Edge) error {
 
 	s := fmt.Sprintf(
 		`INSERT INTO %s (gid, label, "from", "to", data) VALUES ($1, $2, $3, $4, $5) 
-    ON CONFLICT (gid) DO UPDATE SET 
-    gid = excluded.gid, 
-    label = excluded.label, 
-    "from" = excluded.from, 
-    "to" = excluded.to, 
-    data = excluded.data;`,
+		ON CONFLICT (gid) DO UPDATE SET 
+		gid = excluded.gid, 
+		label = excluded.label, 
+		"from" = excluded.from, 
+		"to" = excluded.to, 
+		data = excluded.data;`,
 		g.e,
 	)
 	stmt, err := txn.Prepare(s)
@@ -119,19 +118,19 @@ func (g *Graph) AddEdge(edgeArray []*gripql.Edge) error {
 
 // DelVertex is not implemented in the SQL driver
 func (g *Graph) DelVertex(key string) error {
-	stmt := fmt.Sprintf("DELETE FROM %s where gid='%s'", g.v, key)
+	stmt := fmt.Sprintf("DELETE FROM %s WHERE gid='%s'", g.v, key)
 	_, err := g.db.Exec(stmt)
 	if err != nil {
 		return fmt.Errorf("deleting vertex: %v", err)
 	}
 
-	stmt = fmt.Sprintf("DELETE FROM %s where from='%s'", g.e, key)
+	stmt = fmt.Sprintf(`DELETE FROM %s WHERE "from"="%s"`, g.e, key)
 	_, err = g.db.Exec(stmt)
 	if err != nil {
 		return fmt.Errorf("deleting outgoing edges for %s: %v", key, err)
 	}
 
-	stmt = fmt.Sprintf("DELETE FROM %s where to='%s'", g.e, key)
+	stmt = fmt.Sprintf(`DELETE FROM %s WHERE "to"="%s"`, g.e, key)
 	_, err = g.db.Exec(stmt)
 	if err != nil {
 		return fmt.Errorf("deleting incoming edges for %s: %v", key, err)
@@ -142,7 +141,7 @@ func (g *Graph) DelVertex(key string) error {
 
 // DelEdge is not implemented in the SQL driver
 func (g *Graph) DelEdge(key string) error {
-	stmt := fmt.Sprintf("DELETE FROM %s where gid='%s'", g.e, key)
+	stmt := fmt.Sprintf("DELETE FROM %s WHERE gid='%s'", g.e, key)
 	_, err := g.db.Exec(stmt)
 	if err != nil {
 		return fmt.Errorf("deleting edge: %v", err)
