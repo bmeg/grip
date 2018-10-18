@@ -103,9 +103,19 @@ jobs:
     - script:
         - make start-postgres
         - sleep 15
-        - go test ./test -config sql.yml
+        - go test ./test -config existing-sql.yml
       env:
-        - n=sql
+        - n=existing-sql
+    - script:
+        - make start-postgres
+        - sleep 15
+        - grip server --rpc-port 18202 --http-port 18201 --config ./test/psql.yml &
+        - sleep 5
+        - make test-conformance
+        - go test ./test -config psql.yml
+      env:
+        - n=postgres
+
 
 notifications:
   email: false

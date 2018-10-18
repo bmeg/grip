@@ -11,6 +11,7 @@ import (
 	"github.com/bmeg/grip/protoutil"
 	"github.com/bmeg/grip/timestamp"
 	"github.com/jmoiron/sqlx"
+	// "github.com/lib/pq"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -36,29 +37,83 @@ func (g *Graph) Compiler() gdbi.Compiler {
 
 // AddVertex is not implemented in the SQL driver
 func (g *Graph) AddVertex(vertexArray []*gripql.Vertex) error {
-	values := []string{}
-	for _, v := range vertexArray {
-		values = append(values, fmt.Sprintf("('%s', '%s', '%s')", v.Gid, v.Label, protoutil.AsJSONString(v.Data)))
-	}
-	stmt := fmt.Sprintf(`INSERT INTO %s (gid, label, data) VALUES %s ON CONFLICT DO UPDATE`, g.v, strings.Join(values, ","))
-	_, err := g.db.Exec(stmt)
+	txn, err := g.db.Begin()
 	if err != nil {
-		return fmt.Errorf("inserting one or more vertices: %v", err)
+		return fmt.Errorf("AddVertex: Begin Txn: %v", err)
 	}
+
+	s := fmt.Sprintf(
+		`INSERT INTO %s (gid, label, data) VALUES ($1, $2, $3) 
+     ON CONFLICT (gid) DO UPDATE SET 
+     gid = excluded.gid, 
+     label = excluded.label, 
+     data = excluded.data;`,
+		g.v,
+	)
+	stmt, err := txn.Prepare(s)
+	if err != nil {
+		return fmt.Errorf("AddVertex: Prepare Stmt: %v", err)
+	}
+
+	for _, v := range vertexArray {
+		_, err = stmt.Exec(v.Gid, v.Label, protoutil.AsJSONString(v.Data))
+		if err != nil {
+			return fmt.Errorf("AddVertex: Stmt.Exec: %v", err)
+		}
+	}
+
+	err = stmt.Close()
+	if err != nil {
+		return fmt.Errorf("AddVertex: Stmt.Close: %v", err)
+	}
+
+	err = txn.Commit()
+	if err != nil {
+		return fmt.Errorf("AddVertex: Txn.Commit: %v", err)
+	}
+
 	return nil
 }
 
 // AddEdge is not implemented in the SQL driver
 func (g *Graph) AddEdge(edgeArray []*gripql.Edge) error {
-	values := []string{}
-	for _, e := range edgeArray {
-		values = append(values, fmt.Sprintf("('%s', '%s', '%s', '%s', '%s')", e.Gid, e.Label, e.From, e.To, protoutil.AsJSONString(e.Data)))
-	}
-	stmt := fmt.Sprintf(`INSERT INTO %s (gid, label, from, to, data) VALUES %s ON CONFLICT DO UPDATE`, g.e, strings.Join(values, ","))
-	_, err := g.db.Exec(stmt)
+	txn, err := g.db.Begin()
 	if err != nil {
-		return fmt.Errorf("inserting one or more edges: %v", err)
+		return fmt.Errorf("AddEdge: Begin Txn: %v", err)
 	}
+
+	s := fmt.Sprintf(
+		`INSERT INTO %s (gid, label, "from", "to", data) VALUES ($1, $2, $3, $4, $5) 
+    ON CONFLICT (gid) DO UPDATE SET 
+    gid = excluded.gid, 
+    label = excluded.label, 
+    "from" = excluded.from, 
+    "to" = excluded.to, 
+    data = excluded.data;`,
+		g.e,
+	)
+	stmt, err := txn.Prepare(s)
+	if err != nil {
+		return fmt.Errorf("AddEdge: Prepare Stmt: %v", err)
+	}
+
+	for _, e := range edgeArray {
+		_, err = stmt.Exec(e.Gid, e.Label, e.From, e.To, protoutil.AsJSONString(e.Data))
+		if err != nil {
+			return fmt.Errorf("AddEdge: Stmt.Exec: %v", err)
+		}
+	}
+
+	err = stmt.Close()
+	if err != nil {
+		return fmt.Errorf("AddEdge: Stmt.Close: %v", err)
+	}
+
+	err = txn.Commit()
+	if err != nil {
+		return fmt.Errorf("AddEdge: Txn.Commit: %v", err)
+	}
+
 	return nil
 }
 
@@ -263,7 +318,7 @@ func (g *Graph) GetVertexChannel(reqChan chan gdbi.ElementLookup, load bool) cha
 		for batch := range batches {
 			idBatch := make([]string, len(batch))
 			for i := range batch {
-				idBatch[i] = batch[i].ID
+				idBatch[i] = fmt.Sprintf("'%s'", batch[i].ID)
 			}
 			ids := strings.Join(idBatch, ", ")
 			q := fmt.Sprintf("SELECT gid FROM %s WHERE gid IN (%s)", g.v, ids)
@@ -327,7 +382,7 @@ func (g *Graph) GetOutChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLa
 			idBatch := make([]string, len(batch))
 			batchMap := make(map[string][]gdbi.ElementLookup, len(batch))
 			for i := range batch {
-				idBatch[i] = batch[i].ID
+				idBatch[i] = fmt.Sprintf("'%s'", batch[i].ID)
 				batchMap[batch[i].ID] = append(batchMap[batch[i].ID], batch[i])
 			}
 			ids := strings.Join(idBatch, ", ")
@@ -420,7 +475,7 @@ func (g *Graph) GetInChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLab
 			idBatch := make([]string, len(batch))
 			batchMap := make(map[string][]gdbi.ElementLookup, len(batch))
 			for i := range batch {
-				idBatch[i] = batch[i].ID
+				idBatch[i] = fmt.Sprintf("'%s'", batch[i].ID)
 				batchMap[batch[i].ID] = append(batchMap[batch[i].ID], batch[i])
 			}
 			ids := strings.Join(idBatch, ", ")
@@ -513,7 +568,7 @@ func (g *Graph) GetOutEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, ed
 			idBatch := make([]string, len(batch))
 			batchMap := make(map[string][]gdbi.ElementLookup, len(batch))
 			for i := range batch {
-				idBatch[i] = batch[i].ID
+				idBatch[i] = fmt.Sprintf("'%s'", batch[i].ID)
 				batchMap[batch[i].ID] = append(batchMap[batch[i].ID], batch[i])
 			}
 			ids := strings.Join(idBatch, ", ")
@@ -594,7 +649,7 @@ func (g *Graph) GetInEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, edg
 			idBatch := make([]string, len(batch))
 			batchMap := make(map[string][]gdbi.ElementLookup, len(batch))
 			for i := range batch {
-				idBatch[i] = batch[i].ID
+				idBatch[i] = fmt.Sprintf("'%s'", batch[i].ID)
 				batchMap[batch[i].ID] = append(batchMap[batch[i].ID], batch[i])
 			}
 			ids := strings.Join(idBatch, ", ")

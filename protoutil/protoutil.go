@@ -163,7 +163,7 @@ func AsBytes(src *structpb.Struct) []byte {
 	return b
 }
 
-// ASJSONString takes a protobuf Struct and converts it into a JSON string
+// AsJSONString takes a protobuf Struct and converts it into a JSON string
 func AsJSONString(src *structpb.Struct) string {
 	if src == nil {
 		return ""
