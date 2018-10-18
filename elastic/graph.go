@@ -11,7 +11,6 @@ import (
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/timestamp"
-	"github.com/bmeg/grip/util"
 	"github.com/golang/protobuf/jsonpb"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
@@ -49,16 +48,6 @@ func (es *Graph) GetTimestamp() string {
 // AddEdge adds an edge to the graph, if the id is not "" and in already exists
 // in the graph, it is replaced
 func (es *Graph) AddEdge(edgeArray []*gripql.Edge) error {
-	for _, edge := range edgeArray {
-		if edge.Gid == "" {
-			edge.Gid = util.UUID()
-		}
-		err := edge.Validate()
-		if err != nil {
-			return fmt.Errorf("edge validation failed: %v", err)
-		}
-	}
-
 	ctx := context.Background()
 
 	bulkRequest := es.client.Bulk()
@@ -91,12 +80,6 @@ func (es *Graph) AddEdge(edgeArray []*gripql.Edge) error {
 // AddVertex adds an edge to the graph, if the id is not "" and in already exists
 // in the graph, it is replaced
 func (es *Graph) AddVertex(vertexArray []*gripql.Vertex) error {
-	for _, vertex := range vertexArray {
-		err := vertex.Validate()
-		if err != nil {
-			return fmt.Errorf("vertex validation failed: %v", err)
-		}
-	}
 	ctx := context.Background()
 
 	bulkRequest := es.client.Bulk()

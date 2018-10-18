@@ -115,6 +115,7 @@ func TestMain(m *testing.M) {
 	default:
 		err = fmt.Errorf("unknown database: %s", dbname)
 	}
+
 	if err != nil {
 		if dbname == "rocks" {
 			fmt.Println(`Warning: rocks driver not found; run test with "-tags rocksdb"`)

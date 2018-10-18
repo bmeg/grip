@@ -10,7 +10,6 @@ import (
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/timestamp"
-	"github.com/bmeg/grip/util"
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
 	log "github.com/sirupsen/logrus"
@@ -100,13 +99,6 @@ func isNetError(e error) bool {
 // AddVertex adds an edge to the graph, if it already exists
 // in the graph, it is replaced
 func (mg *Graph) AddVertex(vertexArray []*gripql.Vertex) error {
-	for _, vertex := range vertexArray {
-		err := vertex.Validate()
-		if err != nil {
-			return fmt.Errorf("vertex validation failed: %v", err)
-		}
-	}
-
 	session := mg.ar.session.Copy()
 	defer session.Close()
 
@@ -131,16 +123,6 @@ func (mg *Graph) AddVertex(vertexArray []*gripql.Vertex) error {
 // AddEdge adds an edge to the graph, if the id is not "" and in already exists
 // in the graph, it is replaced
 func (mg *Graph) AddEdge(edgeArray []*gripql.Edge) error {
-	for _, edge := range edgeArray {
-		if edge.Gid == "" {
-			edge.Gid = util.UUID()
-		}
-		err := edge.Validate()
-		if err != nil {
-			return fmt.Errorf("edge validation failed: %v", err)
-		}
-	}
-
 	session := mg.ar.session.Copy()
 	defer session.Close()
 

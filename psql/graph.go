@@ -124,13 +124,13 @@ func (g *Graph) DelVertex(key string) error {
 		return fmt.Errorf("deleting vertex: %v", err)
 	}
 
-	stmt = fmt.Sprintf(`DELETE FROM %s WHERE "from"="%s"`, g.e, key)
+	stmt = fmt.Sprintf(`DELETE FROM %s WHERE "from"='%s'`, g.e, key)
 	_, err = g.db.Exec(stmt)
 	if err != nil {
 		return fmt.Errorf("deleting outgoing edges for %s: %v", key, err)
 	}
 
-	stmt = fmt.Sprintf(`DELETE FROM %s WHERE "to"="%s"`, g.e, key)
+	stmt = fmt.Sprintf(`DELETE FROM %s WHERE "to"='%s'`, g.e, key)
 	_, err = g.db.Exec(stmt)
 	if err != nil {
 		return fmt.Errorf("deleting incoming edges for %s: %v", key, err)
@@ -160,7 +160,7 @@ func (g *Graph) GetTimestamp() string {
 
 // GetVertex loads a vertex given an id. It returns a nil if not found.
 func (g *Graph) GetVertex(gid string, load bool) *gripql.Vertex {
-	q := fmt.Sprintf(`SELECT gid FROM %s WHERE gid='%s'`, g.v, gid)
+	q := fmt.Sprintf(`SELECT gid, label FROM %s WHERE gid='%s'`, g.v, gid)
 	if load {
 		q = fmt.Sprintf(`SELECT * FROM %s WHERE gid='%s'`, g.v, gid)
 	}
@@ -180,7 +180,7 @@ func (g *Graph) GetVertex(gid string, load bool) *gripql.Vertex {
 
 // GetEdge loads an edge  given an id. It returns a nil if not found.
 func (g *Graph) GetEdge(gid string, load bool) *gripql.Edge {
-	q := fmt.Sprintf(`SELECT gid FROM %s WHERE gid='%s'`, g.e, gid)
+	q := fmt.Sprintf(`SELECT gid, label, "from", "to" FROM %s WHERE gid='%s'`, g.e, gid)
 	if load {
 		q = fmt.Sprintf(`SELECT * FROM %s WHERE gid='%s'`, g.e, gid)
 	}
@@ -203,7 +203,7 @@ func (g *Graph) GetVertexList(ctx context.Context, load bool) <-chan *gripql.Ver
 	o := make(chan *gripql.Vertex, 100)
 	go func() {
 		defer close(o)
-		q := fmt.Sprintf("SELECT gid FROM %s", g.v)
+		q := fmt.Sprintf("SELECT gid, label FROM %s", g.v)
 		if load {
 			q = fmt.Sprintf(`SELECT * FROM %s`, g.v)
 		}
@@ -265,7 +265,7 @@ func (g *Graph) GetEdgeList(ctx context.Context, load bool) <-chan *gripql.Edge 
 	o := make(chan *gripql.Edge, 100)
 	go func() {
 		defer close(o)
-		q := fmt.Sprintf("SELECT gid FROM %s", g.e)
+		q := fmt.Sprintf(`SELECT gid, label, "from", "to" FROM %s`, g.e)
 		if load {
 			q = fmt.Sprintf(`SELECT * FROM %s`, g.e)
 		}
@@ -320,7 +320,7 @@ func (g *Graph) GetVertexChannel(reqChan chan gdbi.ElementLookup, load bool) cha
 				idBatch[i] = fmt.Sprintf("'%s'", batch[i].ID)
 			}
 			ids := strings.Join(idBatch, ", ")
-			q := fmt.Sprintf("SELECT gid FROM %s WHERE gid IN (%s)", g.v, ids)
+			q := fmt.Sprintf("SELECT gid, label FROM %s WHERE gid IN (%s)", g.v, ids)
 			if load {
 				q = fmt.Sprintf("SELECT * FROM %s WHERE gid IN (%s)", g.v, ids)
 			}
@@ -386,9 +386,9 @@ func (g *Graph) GetOutChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLa
 			}
 			ids := strings.Join(idBatch, ", ")
 			q := fmt.Sprintf(
-				"SELECT %s.gid, %s.from FROM %s INNER JOIN %s ON %s.to=%s.gid WHERE %s.from IN (%s)",
+				"SELECT %s.gid, %s.label, %s.from FROM %s INNER JOIN %s ON %s.to=%s.gid WHERE %s.from IN (%s)",
 				// SELECT
-				g.v, g.e,
+				g.v, g.v, g.e,
 				// FROM
 				g.v,
 				// INNER JOIN
@@ -418,11 +418,15 @@ func (g *Graph) GetOutChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLa
 				)
 			}
 			if len(edgeLabels) > 0 {
-				q = fmt.Sprintf("%s AND %s.label IN (%s)", q, g.e, strings.Join(edgeLabels, ", "))
+				labels := make([]string, len(edgeLabels))
+				for i := range edgeLabels {
+					labels[i] = fmt.Sprintf("'%s'", edgeLabels[i])
+				}
+				q = fmt.Sprintf("%s AND %s.label IN (%s)", q, g.e, strings.Join(labels, ", "))
 			}
 			rows, err := g.db.Queryx(q)
 			if err != nil {
-				log.WithFields(log.Fields{"error": err}).Error("GetOutChannel: Queryx")
+				log.WithFields(log.Fields{"error": err, "query": q}).Error("GetOutChannel: Queryx")
 				return
 			}
 			defer rows.Close()
@@ -479,9 +483,9 @@ func (g *Graph) GetInChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLab
 			}
 			ids := strings.Join(idBatch, ", ")
 			q := fmt.Sprintf(
-				"SELECT %s.gid, %s.to FROM %s INNER JOIN %s ON %s.from=%s.gid WHERE %s.to IN (%s)",
+				"SELECT %s.gid, %s.label, %s.to FROM %s INNER JOIN %s ON %s.from=%s.gid WHERE %s.to IN (%s)",
 				// SELECT
-				g.v, g.e,
+				g.v, g.v, g.e,
 				// FROM
 				g.v,
 				// INNER JOIN
@@ -511,11 +515,15 @@ func (g *Graph) GetInChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLab
 				)
 			}
 			if len(edgeLabels) > 0 {
-				q = fmt.Sprintf("%s AND %s.label IN (%s)", q, g.e, strings.Join(edgeLabels, ", "))
+				labels := make([]string, len(edgeLabels))
+				for i := range edgeLabels {
+					labels[i] = fmt.Sprintf("'%s'", edgeLabels[i])
+				}
+				q = fmt.Sprintf("%s AND %s.label IN (%s)", q, g.e, strings.Join(labels, ", "))
 			}
 			rows, err := g.db.Queryx(q)
 			if err != nil {
-				log.WithFields(log.Fields{"error": err}).Error("GetInChannel: Queryx")
+				log.WithFields(log.Fields{"error": err, "query": q}).Error("GetInChannel: Queryx")
 				return
 			}
 			defer rows.Close()
@@ -572,7 +580,7 @@ func (g *Graph) GetOutEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, ed
 			}
 			ids := strings.Join(idBatch, ", ")
 			q := fmt.Sprintf(
-				"SELECT gid, from FROM %s WHERE %s.from IN (%s)",
+				`SELECT gid, label, "from", "to" FROM %s WHERE %s.from IN (%s)`,
 				// FROM
 				g.e,
 				// WHERE
@@ -592,11 +600,15 @@ func (g *Graph) GetOutEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, ed
 				)
 			}
 			if len(edgeLabels) > 0 {
-				q = fmt.Sprintf("%s AND %s.label IN (%s)", q, g.e, strings.Join(edgeLabels, ", "))
+				labels := make([]string, len(edgeLabels))
+				for i := range edgeLabels {
+					labels[i] = fmt.Sprintf("'%s'", edgeLabels[i])
+				}
+				q = fmt.Sprintf("%s AND %s.label IN (%s)", q, g.e, strings.Join(labels, ", "))
 			}
 			rows, err := g.db.Queryx(q)
 			if err != nil {
-				log.WithFields(log.Fields{"error": err}).Error("GetOutEdgeChannel: Queryx")
+				log.WithFields(log.Fields{"error": err, "query": q}).Error("GetOutEdgeChannel: Queryx")
 				return
 			}
 			defer rows.Close()
@@ -653,7 +665,7 @@ func (g *Graph) GetInEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, edg
 			}
 			ids := strings.Join(idBatch, ", ")
 			q := fmt.Sprintf(
-				"SELECT gid, to FROM %s WHERE %s.to IN (%s)",
+				`SELECT gid, label, "from", "to" FROM %s WHERE %s.to IN (%s)`,
 				// FROM
 				g.e,
 				// WHERE
@@ -673,11 +685,15 @@ func (g *Graph) GetInEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, edg
 				)
 			}
 			if len(edgeLabels) > 0 {
-				q = fmt.Sprintf("%s AND %s.label IN (%s)", q, g.e, strings.Join(edgeLabels, ", "))
+				labels := make([]string, len(edgeLabels))
+				for i := range edgeLabels {
+					labels[i] = fmt.Sprintf("'%s'", edgeLabels[i])
+				}
+				q = fmt.Sprintf("%s AND %s.label IN (%s)", q, g.e, strings.Join(labels, ", "))
 			}
 			rows, err := g.db.Queryx(q)
 			if err != nil {
-				log.WithFields(log.Fields{"error": err}).Error("GetInEdgeChannel: Queryx")
+				log.WithFields(log.Fields{"error": err, "query": q}).Error("GetInEdgeChannel: Queryx")
 				return
 			}
 			defer rows.Close()
@@ -689,7 +705,7 @@ func (g *Graph) GetInEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, edg
 				}
 				e, err := convertEdgeRow(erow, load)
 				if err != nil {
-					log.WithFields(log.Fields{"error": err}).Error("GetOutEdgeChannel: convertEdgeRow")
+					log.WithFields(log.Fields{"error": err}).Error("GetInEdgeChannel: convertEdgeRow")
 					continue
 				}
 				r := batchMap[erow.To]
