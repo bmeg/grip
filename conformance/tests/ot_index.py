@@ -1,5 +1,4 @@
 
-import time
 
 def test_index(O):
     errors = []
@@ -21,7 +20,6 @@ def test_index(O):
     O.addEdge("6", "3", "created", {"weight": 0.2})
     O.addEdge("4", "5", "created", {"weight": 1.0})
 
-    time.sleep(3)
     found = False
     for i in O.listIndices():
         if i['field'] == 'name' and i['label'] == 'Person':
