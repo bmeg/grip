@@ -49,13 +49,13 @@ rocksdb-lib:
 # Complile Protobuf Schemas
 # --------------------------
 proto:
-	@go get github.com/ckaznocha/protoc-gen-lint
 	@cd gripql && protoc \
 		-I ./ \
 		-I ../googleapis \
 		--lint_out=. \
 		--go_out=Mgoogle/protobuf/struct.proto=github.com/golang/protobuf/ptypes/struct,plugins=grpc:. \
 		--grpc-gateway_out=logtostderr=true:. \
+		--grcp-rest-direct_out=. \
 		gripql.proto
 	@cd kvindex && protoc \
 		-I ./ \
@@ -66,13 +66,15 @@ proto-depends:
 	@go get github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway
 	@go get github.com/golang/protobuf/protoc-gen-go
 	@go get github.com/ckaznocha/protoc-gen-lint
+	@go get github.com/bmeg/protoc-gen-grcp-rest-direct
+
 
 # ---------------------
 # Code Style
 # ---------------------
 # Automatially update code formatting
 tidy:
-	@for f in $$(find . -path ./vendor -prune -o -name "*.go" -print | egrep -v "\.pb\.go|\.gw\.go|underscore\.go"); do \
+	@for f in $$(find . -path ./vendor -prune -o -name "*.go" -print | egrep -v "\.pb\.go|\.gw\.go|\.dgw\.go|underscore\.go"); do \
 		gofmt -w -s $$f ;\
 		goimports -w $$f ;\
 	done;
@@ -83,7 +85,7 @@ lint:
 	@gometalinter --install > /dev/null
 	@gometalinter --disable-all --enable=vet --enable=golint --enable=gofmt --enable=misspell \
 		--vendor \
-		-e '.*bundle.go' -e ".*pb.go" -e ".*pb.gw.go" -e "underscore.go" \
+		-e '.*bundle.go' -e ".*pb.go" -e ".*pb.gw.go" -e ".*pb.dgw.go" -e "underscore.go" \
 		./...
 	@flake8 gripql/python/ conformance/
 

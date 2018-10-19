@@ -99,13 +99,15 @@ func (server *GripServer) Serve(pctx context.Context) error {
 		grpc.MaxRecvMsgSize(1024*1024*16),
 	)
 
-	opts := []grpc.DialOption{
-		grpc.WithInsecure(),
-		grpc.WithDefaultCallOptions(
-			grpc.MaxCallSendMsgSize(1024*1024*16),
-			grpc.MaxCallRecvMsgSize(1024*1024*16),
-		),
-	}
+	/*
+		opts := []grpc.DialOption{
+			grpc.WithInsecure(),
+			grpc.WithDefaultCallOptions(
+				grpc.MaxCallSendMsgSize(1024*1024*16),
+				grpc.MaxCallRecvMsgSize(1024*1024*16),
+			),
+		}
+	*/
 
 	//setup RESTful proxy
 	marsh := MarshalClean{
@@ -179,7 +181,9 @@ func (server *GripServer) Serve(pctx context.Context) error {
 
 	// Regsiter Query Service
 	gripql.RegisterQueryServer(grpcServer, server)
-	err = gripql.RegisterQueryHandlerFromEndpoint(ctx, grpcMux, ":"+server.conf.RPCPort, opts)
+	//TODO: Put in some sort of logic that will allow web server to be configured to use GRPC client
+	err = gripql.RegisterQueryHandlerClient(ctx, grpcMux, gripql.NewQueryDirectClient(server))
+	//err = gripql.RegisterQueryHandlerFromEndpoint(ctx, grpcMux, ":"+server.conf.RPCPort, opts)
 	if err != nil {
 		return fmt.Errorf("registering query endpoint: %v", err)
 	}
@@ -187,7 +191,9 @@ func (server *GripServer) Serve(pctx context.Context) error {
 	// Regsiter Edit Service
 	if !server.conf.ReadOnly {
 		gripql.RegisterEditServer(grpcServer, server)
-		err = gripql.RegisterEditHandlerFromEndpoint(ctx, grpcMux, ":"+server.conf.RPCPort, opts)
+		//TODO: Put in some sort of logic that will allow web server to be configured to use GRPC client
+		err = gripql.RegisterEditHandlerClient(ctx, grpcMux, gripql.NewEditDirectClient(server))
+		//err = gripql.RegisterEditHandlerFromEndpoint(ctx, grpcMux, ":"+server.conf.RPCPort, opts)
 		if err != nil {
 			return fmt.Errorf("registering edit endpoint: %v", err)
 		}

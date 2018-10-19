@@ -368,7 +368,8 @@ func (server *GripServer) ListIndices(idx *gripql.GraphID, stream gripql.Query_L
 	res := graph.GetVertexIndexList()
 	for i := range res {
 		if err == nil {
-			err = stream.Send(&i)
+			a := i
+			err = stream.Send(&a)
 		}
 	}
 	if err != nil {
