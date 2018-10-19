@@ -64,12 +64,16 @@ func (kgdb *KVInterfaceGDB) AddVertex(vertexArray []*gripql.Vertex) error {
 	}()
 
 	err := kgdb.kvg.kv.Update(func(tx kvi.KVTransaction) error {
+		var anyErr error
 		for kv := range dataChan {
-			tx.Set(kv.key, kv.value)
-			kgdb.kvg.idx.AddDocTx(tx, kv.vertex.Gid, kv.doc)
+			if err := tx.Set(kv.key, kv.value); err != nil {
+				anyErr = err
+			} else {
+				kgdb.kvg.idx.AddDocTx(tx, kv.vertex.Gid, kv.doc)
+			}
 		}
 		kgdb.kvg.ts.Touch(kgdb.graph)
-		return nil
+		return anyErr
 	})
 	return err
 }
