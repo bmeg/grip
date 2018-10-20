@@ -246,11 +246,9 @@ func (kgdb *KVInterfaceGDB) GetVertex(id string, loadProp bool) *gripql.Vertex {
 		v = &gripql.Vertex{
 			Gid: id,
 		}
-		if loadProp {
-			err := proto.Unmarshal(dataValue, v)
-			if err != nil {
-				return fmt.Errorf("unmarshal error: %v", err)
-			}
+		err = proto.Unmarshal(dataValue, v) //FIXME: this can't be skipped because vertex label is in value...
+		if err != nil {
+			return fmt.Errorf("unmarshal error: %v", err)
 		}
 		return nil
 	})
