@@ -19,7 +19,7 @@ import gripql  # noqa: E402
 
 
 def id_generator(size=6, chars=string.ascii_uppercase + string.digits):
-    return ''.join(random.choice(chars) for _ in range(size))
+    return ''.join(random.choice(chars) for _ in range(size)).lower()
 
 
 if __name__ == "__main__":
