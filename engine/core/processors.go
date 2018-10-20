@@ -590,7 +590,7 @@ func (c *Count) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, o
 		}
 		out <- &gdbi.Traveler{Count: i}
 	}()
-	return ctx
+	return context.WithValue(ctx, propLoad, false)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
