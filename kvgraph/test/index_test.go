@@ -88,7 +88,7 @@ func TestLoadDoc(t *testing.T) {
 	}
 
 	count := 0
-	for d := range idx.GetTermMatch(context.Background(), "v.label", "Person") {
+	for d := range idx.GetTermMatch(context.Background(), "v.label", "Person", -1) {
 		if !contains(personDocs, d) {
 			t.Errorf("Bad doc return: %s", d)
 		}
@@ -99,7 +99,7 @@ func TestLoadDoc(t *testing.T) {
 	}
 
 	count = 0
-	for d := range idx.GetTermMatch(context.Background(), "v.data.firstName", "Bob") {
+	for d := range idx.GetTermMatch(context.Background(), "v.data.firstName", "Bob", -1) {
 		if !contains(bobDocs, d) {
 			t.Errorf("Bad doc return: %s", d)
 		}
@@ -255,7 +255,7 @@ func TestDocDelete(t *testing.T) {
 	}
 
 	count = 0
-	for range idx.GetTermMatch(context.Background(), "v.data.firstName", "Bob") {
+	for range idx.GetTermMatch(context.Background(), "v.data.firstName", "Bob", -1) {
 		count++
 	}
 	if count != 0 {
