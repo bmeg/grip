@@ -155,14 +155,6 @@
   version = "v2.1.2"
 
 [[projects]]
-  digest = "1:747c1fcb10f8f6734551465ab73c6ed9c551aa6e66250fb6683d1624f554546a"
-  name = "github.com/go-sql-driver/mysql"
-  packages = ["."]
-  pruneopts = "NUT"
-  revision = "d523deb1b23d913de5bdada721a6071e71283618"
-  version = "v1.4.0"
-
-[[projects]]
   branch = "master"
   digest = "1:8f251d09f52a8920bdba202b0c18a24cafb4f70f94b9afd8d02bf7643cfc99a0"
   name = "github.com/golang/gddo"
@@ -563,14 +555,6 @@
   version = "v0.3.0"
 
 [[projects]]
-  digest = "1:c25289f43ac4a68d88b02245742347c94f1e108c534dda442188015ff80669b3"
-  name = "google.golang.org/appengine"
-  packages = ["cloudsql"]
-  pruneopts = "NUT"
-  revision = "ae0ab99deb4dc413a2b4bd6c8bdd0eb67f1e4d06"
-  version = "v1.2.0"
-
-[[projects]]
   branch = "master"
   digest = "1:ec1919b8b80839559effbe3eabcebf92238d12d3dd9182e51deb5da3ed12e5e9"
   name = "google.golang.org/genproto"
@@ -661,7 +645,6 @@
     "github.com/ghodss/yaml",
     "github.com/globalsign/mgo",
     "github.com/globalsign/mgo/bson",
-    "github.com/go-sql-driver/mysql",
     "github.com/golang/gddo/httputil",
     "github.com/golang/protobuf/jsonpb",
     "github.com/golang/protobuf/proto",
