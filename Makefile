@@ -45,6 +45,10 @@ rocksdb-lib:
 	@git clone https://github.com/facebook/rocksdb.git rocksdb-lib
 	@pushd rocksdb-lib && make static_lib && popd
 
+bench: rocksdb-lib
+	#@CGO_LDFLAGS="-L$(shell pwd)/rocksdb-lib" CGO_CFLAGS="-I$(shell pwd)/rocksdb-lib/include/" go run -tags 'rocksdb' -ldflags '$(VERSION_LDFLAGS)' test/graph-bench/main.go
+	 go run -tags 'rocksdb' -ldflags '$(VERSION_LDFLAGS)' test/graph-bench/main.go
+	 
 # --------------------------
 # Complile Protobuf Schemas
 # --------------------------

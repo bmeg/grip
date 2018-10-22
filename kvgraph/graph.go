@@ -33,6 +33,13 @@ func (kgdb *KVInterfaceGDB) Compiler() gdbi.Compiler {
 	return core.NewCompiler(kgdb)
 }
 
+type kvAddData struct {
+	key    []byte
+	value  []byte
+	vertex *gripql.Vertex
+	doc    map[string]interface{}
+}
+
 // AddVertex adds an edge to the graph, if it already exists
 // in the graph, it is replaced
 func (kgdb *KVInterfaceGDB) AddVertex(vertexArray []*gripql.Vertex) error {
@@ -43,25 +50,34 @@ func (kgdb *KVInterfaceGDB) AddVertex(vertexArray []*gripql.Vertex) error {
 		}
 	}
 
-	err := kgdb.kvg.kv.Update(func(tx kvi.KVTransaction) error {
+	dataChan := make(chan *kvAddData, 100)
+	go func() {
 		for _, vertex := range vertexArray {
 			d, err := proto.Marshal(vertex)
-			if err != nil {
-				return err
-			}
 			k := VertexKey(kgdb.graph, vertex.Gid)
-			err = tx.Set(k, d)
-			if err != nil {
-				return err
+			if err == nil {
+				doc := map[string]interface{}{kgdb.graph: vertexIdxStruct(vertex)}
+				dataChan <- &kvAddData{key: k, value: d, vertex: vertex, doc: doc}
 			}
-			doc := vertexIdxStruct(vertex)
-			err = kgdb.kvg.idx.AddDocTx(tx, vertex.Gid, map[string]interface{}{kgdb.graph: doc})
-			if err != nil {
-				return err
+		}
+		close(dataChan)
+	}()
+
+	err := kgdb.kvg.kv.Update(func(tx kvi.KVTransaction) error {
+		var anyErr error
+		for kv := range dataChan {
+			if err := tx.Set(kv.key, kv.value); err != nil {
+				anyErr = err
+				log.Errorf("AddVertex Error %s", err)
+			} else {
+				if err := kgdb.kvg.idx.AddDocTx(tx, kv.vertex.Gid, kv.doc); err != nil {
+					anyErr = err
+					log.Errorf("AddVertex Error %s", err)
+				}
 			}
 		}
 		kgdb.kvg.ts.Touch(kgdb.graph)
-		return nil
+		return anyErr
 	})
 	return err
 }
