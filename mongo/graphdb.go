@@ -10,6 +10,7 @@ import (
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/protoutil"
 	"github.com/bmeg/grip/timestamp"
+	"github.com/bmeg/grip/util"
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
 	log "github.com/sirupsen/logrus"
@@ -333,8 +334,8 @@ func (ma *GraphDB) getVertexSchema(ctx context.Context, graph string, n uint32, 
 
 				default:
 					if result["data"] != nil {
-						ds := GetDataFieldTypes(result["data"].(map[string]interface{}))
-						MergeMaps(schema, ds)
+						ds := gripql.GetDataFieldTypes(result["data"].(map[string]interface{}))
+						util.MergeMaps(schema, ds)
 					}
 				}
 			}
@@ -425,8 +426,8 @@ func (ma *GraphDB) getEdgeSchema(ctx context.Context, graph string, n uint32, ra
 				default:
 					fromToPairs.Add(fromtokey{result["from"].(string), result["to"].(string)})
 					if result["data"] != nil {
-						ds := GetDataFieldTypes(result["data"].(map[string]interface{}))
-						MergeMaps(schema, ds)
+						ds := gripql.GetDataFieldTypes(result["data"].(map[string]interface{}))
+						util.MergeMaps(schema, ds)
 					}
 				}
 			}
@@ -539,71 +540,4 @@ func (ma *GraphDB) resolveLabels(graph string, ft fromto) fromto {
 	}
 
 	return outMap
-}
-
-// MergeMaps deeply merges two maps
-func MergeMaps(x1, x2 interface{}) interface{} {
-	switch x1 := x1.(type) {
-	case map[string]interface{}:
-		x2, ok := x2.(map[string]interface{})
-		if !ok {
-			return x1
-		}
-		for k, v2 := range x2 {
-			if v1, ok := x1[k]; ok {
-				x1[k] = MergeMaps(v1, v2)
-			} else {
-				x1[k] = v2
-			}
-		}
-	case nil:
-		x2, ok := x2.(map[string]interface{})
-		if ok {
-			return x2
-		}
-	}
-	return x1
-}
-
-// GetDataFieldTypes iterates over the data map and determines the type of each field
-func GetDataFieldTypes(data map[string]interface{}) map[string]interface{} {
-	out := make(map[string]interface{})
-	for key, val := range data {
-		if vMap, ok := val.(map[string]interface{}); ok {
-			out[key] = GetDataFieldTypes(vMap)
-			continue
-		}
-		if vSlice, ok := val.([]interface{}); ok {
-			var vType interface{}
-			vType = []interface{}{gripql.FieldType_UNKNOWN.String()}
-			if len(vSlice) > 0 {
-				vSliceVal := vSlice[0]
-				if vSliceValMap, ok := vSliceVal.(map[string]interface{}); ok {
-					vType = []map[string]interface{}{GetDataFieldTypes(vSliceValMap)}
-				} else {
-					vType = []interface{}{GetFieldType(vSliceVal)}
-				}
-			}
-			out[key] = vType
-			continue
-		}
-		out[key] = GetFieldType(val)
-	}
-	return out
-}
-
-// GetFieldType returns the gripql.FieldType for a value
-func GetFieldType(field interface{}) string {
-	switch field.(type) {
-	case string:
-		return gripql.FieldType_STRING.String()
-	case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64:
-		return gripql.FieldType_NUMERIC.String()
-	case float32, float64:
-		return gripql.FieldType_NUMERIC.String()
-	case bool:
-		return gripql.FieldType_BOOL.String()
-	default:
-		return gripql.FieldType_UNKNOWN.String()
-	}
 }
