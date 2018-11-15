@@ -154,6 +154,17 @@ Properties of an GRIP graph:
     </item>
     
     <item>
+      <title>PostgreSQL</title>
+      <link>https://docs.bmeg.io/grip/docs/databases/psql/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://docs.bmeg.io/grip/docs/databases/psql/</guid>
+      <description> PostgreSQL GRIP supports storing vertices and edges in PostgreSQL.
+Config:
+Database: psql PSQL: Host: localhost Port: 15432 User: &amp;quot;&amp;quot; Password: &amp;quot;&amp;quot; DBName: &amp;quot;&amp;quot; SSLMode: disable  </description>
+    </item>
+    
+    <item>
       <title>Query a Graph</title>
       <link>https://docs.bmeg.io/grip/docs/queries/</link>
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
@@ -180,7 +191,7 @@ O.query().V([&amp;quot;ENSG00000012048&amp;quot;]).mark(&amp;quot;gene&amp;quot;
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
       
       <guid>https://docs.bmeg.io/grip/docs/databases/sql/</guid>
-      <description>SQL GRIP supports modeling an existing SQL database as a graph. GRIP has been tested against PostgreSQL, but should work with MySQL (4.1+) and MariaDB.
+      <description>Connect to an existing SQL database GRIP supports modeling an existing SQL database as a graph. GRIP has been tested against PostgreSQL, but should work with MySQL (4.1+) and MariaDB.
 Since GRIP uses Go&amp;rsquo;s database/sql package, we could (in thoery) support any SQL databases listed on: https://github.com/golang/go/wiki/SQLDrivers. Open an issue if you would like to request support for your favorite SQL database.
 Configuration Notes  DataSourceName is a driver-specific data source name, usually consisting of at least a database name and connection information.</description>
     </item>

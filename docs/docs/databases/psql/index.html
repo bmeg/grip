@@ -8,7 +8,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
 
   
-  <title>Basic Auth &middot; GRIP</title>
+  <title>PostgreSQL &middot; GRIP</title>
   
 
   
@@ -103,7 +103,7 @@
             <ul class="sidebar-nav sidebar-nav-nested">
               <li>
                 <a href="https://docs.bmeg.io/grip/docs/databases/psql/"
-                   class="sidebar-nav-item "
+                   class="sidebar-nav-item  active"
                 >PostgreSQL</a></li>
             </ul>
           </li>
@@ -193,7 +193,7 @@
             <ul class="sidebar-nav sidebar-nav-nested">
               <li>
                 <a href="https://docs.bmeg.io/grip/docs/security/basic/"
-                   class="sidebar-nav-item  active"
+                   class="sidebar-nav-item "
                 >Basic Auth</a></li>
             </ul>
           </li>
@@ -231,29 +231,21 @@
   <div class="main col span_8_of_12">
     
 
-<h1 id="basic-auth">Basic Auth</h1>
+<h1 id="postgresql">PostgreSQL</h1>
 
-<p>By default, an GRIP server allows open access to its API endpoints, but it
-can be configured to require basic password authentication. To enable this,
-include users and passwords in your config file:</p>
+<p>GRIP supports storing vertices and edges in <a href="https://www.postgresql.org/">PostgreSQL</a>.</p>
 
-<pre><code class="language-yaml">Server:
-  BasicAuth:
-    - User: testuser
-      Password: abc123
-</code></pre>
+<p>Config:</p>
 
-<p>Make sure to properly protect the configuration file so that it&rsquo;s not readable
-by everyone:</p>
+<pre><code class="language-yaml">Database: psql
 
-<pre><code class="language-bash">$ chmod 600 grip.config.yml
-</code></pre>
-
-<p>To use the password, set the <code>GRIP_USER</code> and <code>GRIP_PASSWORD</code> environment variables:</p>
-
-<pre><code class="language-bash">$ export GRIP_USER=testuser
-$ export GRIP_PASSWORD=abc123
-$ grip list
+PSQL:
+  Host: localhost
+  Port: 15432
+  User: &quot;&quot;
+  Password: &quot;&quot;
+  DBName: &quot;&quot;
+  SSLMode: disable
 </code></pre>
 
   </div>
