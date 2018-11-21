@@ -201,7 +201,7 @@ func buildObjectMap(client gripql.Client, graph string, schema *gripql.GraphSche
 		if props == nil {
 			continue
 		}
-    props["id"] = "STRING"
+		props["id"] = "STRING"
 		gqlObj, err := buildObject(obj.Label, props)
 		if err != nil {
 			return nil, err
@@ -254,14 +254,14 @@ func buildQueryObject(client gripql.Client, graph string, objects map[string]*gr
 		f := &graphql.Field{
 			Name: objName,
 			Type: graphql.NewList(obj),
-      Args: graphql.FieldConfigArgument{
-        "id": &graphql.ArgumentConfig{Type: graphql.String},
-      },
+			Args: graphql.FieldConfigArgument{
+				"id": &graphql.ArgumentConfig{Type: graphql.String},
+			},
 			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-        q := gripql.V().Where(gripql.Eq("_label", label))
-        if id, ok := p.Args["id"].(string); ok {
-          q = gripql.V(id).Where(gripql.Eq("_label", label))
-        }
+				q := gripql.V().Where(gripql.Eq("_label", label))
+				if id, ok := p.Args["id"].(string); ok {
+					q = gripql.V(id).Where(gripql.Eq("_label", label))
+				}
 				result, err := client.Traversal(&gripql.GraphQuery{Graph: graph, Query: q.Statements})
 				if err != nil {
 					return nil, err
