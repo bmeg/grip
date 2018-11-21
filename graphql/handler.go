@@ -82,7 +82,11 @@ func (gh *graphHandler) setup() {
 	ts, _ := gh.client.GetTimestamp(gh.graph)
 	if ts == nil || ts.Timestamp != gh.timestamp {
 		log.WithFields(log.Fields{"graph": gh.graph}).Info("Reloading GraphQL schema")
-		schema, err := buildGraphQLSchema(gh.client, gh.graph)
+		schema, err := gh.client.GetSchema(gh.graph)
+		if err != nil {
+			log.WithFields(log.Fields{"graph": gh.graph, "error": err}).Error("GetSchema error")
+		}
+		gqlSchema, err := buildGraphQLSchema(schema, gh.client, gh.graph)
 		if err != nil {
 			log.WithFields(log.Fields{"graph": gh.graph, "error": err}).Error("GraphQL schema build failed")
 			gh.gqlHandler = nil
@@ -90,7 +94,7 @@ func (gh *graphHandler) setup() {
 		} else {
 			log.WithFields(log.Fields{"graph": gh.graph}).Info("Built GraphQL schema")
 			gh.gqlHandler = handler.New(&handler.Config{
-				Schema: schema,
+				Schema: gqlSchema,
 			})
 			gh.timestamp = ts.Timestamp
 		}
@@ -176,7 +180,8 @@ func buildObject(name string, obj map[string]interface{}) (*graphql.Object, erro
 		}
 
 		if err != nil {
-			return nil, fmt.Errorf("object: %s: field: %s: error: %v", name, key, err)
+			log.WithFields(log.Fields{"object": name, "field": key, "error": err}).Error("graphql: buildObject")
+			// return nil, fmt.Errorf("object: %s: field: %s: error: %v", name, key, err)
 		}
 	}
 
@@ -192,7 +197,12 @@ func buildObjectMap(client gripql.Client, graph string, schema *gripql.GraphSche
 	objects := map[string]*graphql.Object{}
 
 	for _, obj := range schema.Vertices {
-		gqlObj, err := buildObject(obj.Label, obj.GetDataMap())
+		props := obj.GetDataMap()
+		if props == nil {
+			continue
+		}
+		props["id"] = "STRING"
+		gqlObj, err := buildObject(obj.Label, props)
 		if err != nil {
 			return nil, err
 		}
@@ -212,7 +222,7 @@ func buildObjectMap(client gripql.Client, graph string, schema *gripql.GraphSche
 				if !ok {
 					return nil, fmt.Errorf("source conversion failed: %v", p.Source)
 				}
-				srcGid, ok := srcMap["__gid"].(string)
+				srcGid, ok := srcMap["id"].(string)
 				if !ok {
 					return nil, fmt.Errorf("source gid conversion failed: %+v", srcMap)
 				}
@@ -224,7 +234,7 @@ func buildObjectMap(client gripql.Client, graph string, schema *gripql.GraphSche
 				out := []interface{}{}
 				for r := range result {
 					d := r.GetVertex().GetDataMap()
-					d["__gid"] = r.GetVertex().Gid
+					d["id"] = r.GetVertex().Gid
 					out = append(out, d)
 				}
 				return out, nil
@@ -244,8 +254,14 @@ func buildQueryObject(client gripql.Client, graph string, objects map[string]*gr
 		f := &graphql.Field{
 			Name: objName,
 			Type: graphql.NewList(obj),
+			Args: graphql.FieldConfigArgument{
+				"id": &graphql.ArgumentConfig{Type: graphql.String},
+			},
 			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 				q := gripql.V().Where(gripql.Eq("_label", label))
+				if id, ok := p.Args["id"].(string); ok {
+					q = gripql.V(id).Where(gripql.Eq("_label", label))
+				}
 				result, err := client.Traversal(&gripql.GraphQuery{Graph: graph, Query: q.Statements})
 				if err != nil {
 					return nil, err
@@ -253,12 +269,13 @@ func buildQueryObject(client gripql.Client, graph string, objects map[string]*gr
 				out := []interface{}{}
 				for r := range result {
 					d := r.GetVertex().GetDataMap()
-					d["__gid"] = r.GetVertex().Gid
+					d["id"] = r.GetVertex().Gid
 					out = append(out, d)
 				}
 				return out, nil
 			},
 		}
+
 		queryFields[objName] = f
 	}
 
@@ -272,22 +289,21 @@ func buildQueryObject(client gripql.Client, graph string, objects map[string]*gr
 	return query
 }
 
-func buildGraphQLSchema(client gripql.Client, graph string) (*graphql.Schema, error) {
-	schema, err := client.GetSchema(graph)
-	if err != nil {
-		return nil, fmt.Errorf("GetSchema error: %v", err)
-	}
+func buildGraphQLSchema(schema *gripql.GraphSchema, client gripql.Client, graph string) (*graphql.Schema, error) {
 	objectMap, err := buildObjectMap(client, graph, schema)
 	if err != nil {
 		return nil, err
 	}
+
 	queryObj := buildQueryObject(client, graph, objectMap)
 	schemaConfig := graphql.SchemaConfig{
 		Query: queryObj,
 	}
+
 	gqlSchema, err := graphql.NewSchema(schemaConfig)
 	if err != nil {
 		return nil, fmt.Errorf("graphql.NewSchema error: %v", err)
 	}
+
 	return &gqlSchema, nil
 }

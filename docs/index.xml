@@ -11,6 +11,17 @@
     
     
     <item>
+      <title></title>
+      <link>https://docs.bmeg.io/grip/docs/tutorials/pathway-commons/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://docs.bmeg.io/grip/docs/tutorials/pathway-commons/</guid>
+      <description>Get Pathway Commons release
+curl -O http://www.pathwaycommons.org/archives/PC2/v10/PathwayCommons10.All.BIOPAX.owl.gz  Convert to Property Graph
+grip rdf --dump --gzip pc PathwayCommons10.All.BIOPAX.owl.gz -m http://pathwaycommons.org/pc2/#=pc: -m http://www.biopax.org/release/biopax-level3.owl#=biopax:  </description>
+    </item>
+    
+    <item>
       <title>Amazon Purchase Network</title>
       <link>https://docs.bmeg.io/grip/docs/tutorials/amazon/</link>
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
@@ -102,7 +113,7 @@ Load built-in example graph Loading the example data and the example schema:
 grip load example-graph  See the example graph
 grip dump example-graph --vertex --edge  See the example graph schema
 grip schema example-graph  Example queries Get Types:
-curl -X POST -H &amp;quot;Content-Type:application/graphql&amp;quot; -d &#39;{__schema{types{name}}}&#39; http://localhost:8201/graphql/example  Get Info about Human object</description>
+curl -X POST -H &amp;quot;Content-Type:application/graphql&amp;quot; -d &#39;{__schema{types{name}}}&#39; http://localhost:8201/graphql/example-graph  Get Info about Human object</description>
     </item>
     
     <item>

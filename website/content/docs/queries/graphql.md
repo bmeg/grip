@@ -37,23 +37,23 @@ grip schema example-graph
 Get Types:
 
 ```
-curl -X POST -H "Content-Type:application/graphql" -d '{__schema{types{name}}}' http://localhost:8201/graphql/example
+curl -X POST -H "Content-Type:application/graphql" -d '{__schema{types{name}}}' http://localhost:8201/graphql/example-graph
 ```
 
 Get Info about Human object
 
 ```
-curl -X POST -H "Content-Type:application/graphql" -d '{__type(name:"Human"){fields{name}}}' http://localhost:8201/graphql/example
+curl -X POST -H "Content-Type:application/graphql" -d '{__type(name:"Human"){fields{name}}}' http://localhost:8201/graphql/example-graph
 ```
 
 Get List of all Human ids
 
 ```
-curl -X POST -H "Content-Type:application/graphql" -d 'query { HumanIds }' http://localhost:8201/graphql/example
+curl -X POST -H "Content-Type:application/graphql" -d 'query {Human{id}}' http://localhost:8201/graphql/example-graph
 ```
 
 Get Human 1000 and list their friends
 
 ```
-curl -X POST -H "Content-Type:application/graphql" -d 'query {Human(id:"1000"){name,friends{name}}}' http://localhost:8201/graphql/example
+curl -X POST -H "Content-Type:application/graphql" -d 'query {Human(id:"1000"){name,friend_to_Human{name}}}' http://localhost:8201/graphql/example-graph
 ```

@@ -8,7 +8,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
 
   
-  <title>GraphQL &middot; GRIP</title>
+  <title> &middot; GRIP</title>
   
 
   
@@ -145,7 +145,7 @@
             <ul class="sidebar-nav sidebar-nav-nested">
               <li>
                 <a href="https://docs.bmeg.io/grip/docs/queries/graphql/"
-                   class="sidebar-nav-item  active"
+                   class="sidebar-nav-item "
                 >GraphQL</a></li>
             </ul>
           </li>
@@ -220,51 +220,14 @@
   </div>
 
   <div class="main col span_8_of_12">
-    
+    <p>Get Pathway Commons release</p>
 
-<h1 id="graphql">GraphQL</h1>
-
-<p>GRIP supports GraphQL access of the property graphs. Currently this is read-only access to the graph.</p>
-
-<p><strong><em>GraphQL access is only supported when using the MongoDB driver</em></strong></p>
-
-<h3 id="load-built-in-example-graph">Load built-in example graph</h3>
-
-<p>Loading the example data and the example schema:</p>
-
-<pre><code>grip load example-graph
+<pre><code>curl -O http://www.pathwaycommons.org/archives/PC2/v10/PathwayCommons10.All.BIOPAX.owl.gz
 </code></pre>
 
-<p>See the example graph</p>
+<p>Convert to Property Graph</p>
 
-<pre><code>grip dump example-graph --vertex --edge
-</code></pre>
-
-<p>See the example graph schema</p>
-
-<pre><code>grip schema example-graph
-</code></pre>
-
-<h3 id="example-queries">Example queries</h3>
-
-<p>Get Types:</p>
-
-<pre><code>curl -X POST -H &quot;Content-Type:application/graphql&quot; -d '{__schema{types{name}}}' http://localhost:8201/graphql/example-graph
-</code></pre>
-
-<p>Get Info about Human object</p>
-
-<pre><code>curl -X POST -H &quot;Content-Type:application/graphql&quot; -d '{__type(name:&quot;Human&quot;){fields{name}}}' http://localhost:8201/graphql/example-graph
-</code></pre>
-
-<p>Get List of all Human ids</p>
-
-<pre><code>curl -X POST -H &quot;Content-Type:application/graphql&quot; -d 'query {Human{id}}' http://localhost:8201/graphql/example-graph
-</code></pre>
-
-<p>Get Human 1000 and list their friends</p>
-
-<pre><code>curl -X POST -H &quot;Content-Type:application/graphql&quot; -d 'query {Human(id:&quot;1000&quot;){name,friend_to_Human{name}}}' http://localhost:8201/graphql/example-graph
+<pre><code>grip rdf --dump --gzip pc PathwayCommons10.All.BIOPAX.owl.gz -m http://pathwaycommons.org/pc2/#=pc: -m http://www.biopax.org/release/biopax-level3.owl#=biopax:
 </code></pre>
 
   </div>
