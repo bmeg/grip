@@ -278,6 +278,26 @@ func TestEngine(t *testing.T) {
 			pickRes(vertex("", "users", data{"email": "Earlean.Bonacci@yahoo.com"})),
 		},
 		{
+			Q.V("users:1").Mark("a").Out().Mark("b").Select("a"),
+			pick("users:1"),
+		},
+		{
+			Q.V("users:1").Mark("a").OutEdge().Mark("b").Out().Mark("c").Select("b"),
+			pick("userPurchases:users:1:purchases:57"),
+		},
+		{
+			Q.V("users:11").Mark("a").OutEdge().Mark("b").Out().Select("b").Count(),
+			count(2),
+		},
+		{
+			Q.V("users:11").Mark("a").OutEdge().Mark("b").Out().Where(gripql.Neq("_gid", "purchases:4")).Select("b").Count(),
+			count(1),
+		},
+		{
+			Q.V("users:11").Mark("a").OutEdge().Mark("b").Out().Where(gripql.Neq("_gid", "purchases:4")).Select("b").Out(),
+			pick("purchases:26"),
+		},
+		{
 			Q.V("users:1").Mark("a").Out().Mark("b").Select("a", "b"),
 			pickSelection(map[string]interface{}{
 				"a": getVertex("users:1"),
@@ -303,9 +323,7 @@ func TestEngine(t *testing.T) {
 				Q.Mark("a").Where(gripql.Eq("_label", "products")).Mark("b"),
 				Q.Mark("b").Where(gripql.Eq("price", 499.99)).Mark("c"),
 			).Select("c"),
-			pickSelection(map[string]interface{}{
-				"c": getVertex("products:6"),
-			}),
+			pick("products:6"),
 		},
 		{
 			Q.V("users:1").Mark("a").Out().Mark("b").

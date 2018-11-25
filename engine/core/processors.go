@@ -717,6 +717,24 @@ func (s *Selector) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe
 
 ////////////////////////////////////////////////////////////////////////////////
 
+// Jump moves to selected mark
+type Jump struct {
+	mark string
+}
+
+// Process runs Selector
+func (s *Jump) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
+	go func() {
+		defer close(out)
+		for t := range in {
+			out <- t.AddCurrent(t.GetMark(s.mark))
+		}
+	}()
+	return ctx
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
 type both struct {
 	db       gdbi.GraphInterface
 	labels   []string

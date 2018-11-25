@@ -183,11 +183,16 @@ func (comp DefaultCompiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeli
 			if lastType != gdbi.VertexData && lastType != gdbi.EdgeData {
 				return &DefaultPipeline{}, fmt.Errorf(`"select" statement is only valid for edge or vertex types not: %s`, lastType.String())
 			}
-			if len(stmt.Select.Marks) == 0 {
+			switch len(stmt.Select.Marks) {
+			case 0:
 				return &DefaultPipeline{}, fmt.Errorf(`"select" statement has an empty list of mark names`)
+			case 1:
+				add(&Jump{stmt.Select.Marks[0]})
+				lastType = markTypes[stmt.Select.Marks[0]]
+			default:
+				add(&Selector{stmt.Select.Marks})
+				lastType = gdbi.SelectionData
 			}
-			lastType = gdbi.SelectionData
-			add(&Selector{stmt.Select.Marks})
 
 		case *gripql.GraphStatement_Render:
 			if lastType != gdbi.VertexData && lastType != gdbi.EdgeData {
