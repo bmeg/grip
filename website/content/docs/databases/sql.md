@@ -7,7 +7,7 @@ menu:
     weight: 4
 ---
 
-# SQL
+# Connect to an existing SQL database
 
 GRIP supports modeling an existing SQL database as a graph. GRIP has been tested against [PostgreSQL][psql], but should  work with
 [MySQL][sql] (4.1+) and [MariaDB][maria].
@@ -48,7 +48,7 @@ psql --host localhost --port 15432 -U postgres smtest < postgres_smtest_data.dum
 GRIP Configuration:
 
 ```yaml
-Database: sql
+Database: existing-sql
 
 SQL:
   DataSourceName: "host=localhost port=15432 user=postgres dbname=smtest sslmode=disable"

@@ -7,6 +7,7 @@ import (
 
 	"github.com/bmeg/grip/engine"
 	"github.com/bmeg/grip/gripql"
+	"github.com/bmeg/grip/util"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	"golang.org/x/sync/errgroup"
@@ -28,6 +29,7 @@ func (server *GripServer) Traversal(query *gripql.GraphQuery, queryServer gripql
 	res := engine.Run(queryServer.Context(), pipeline, server.conf.WorkDir)
 	err = nil
 	for row := range res {
+		log.WithFields(log.Fields{"query": query, "result": row}).Info("Traversal")
 		if err == nil {
 			err = queryServer.Send(row)
 		}
@@ -175,7 +177,14 @@ func (server *GripServer) AddVertex(ctx context.Context, elem *gripql.GraphEleme
 	if err != nil {
 		return nil, err
 	}
-	err = graph.AddVertex([]*gripql.Vertex{elem.Vertex})
+
+	vertex := elem.Vertex
+	err = vertex.Validate()
+	if err != nil {
+		return nil, fmt.Errorf("vertex validation failed: %v", err)
+	}
+
+	err = graph.AddVertex([]*gripql.Vertex{vertex})
 	if err != nil {
 		return nil, err
 	}
@@ -188,11 +197,21 @@ func (server *GripServer) AddEdge(ctx context.Context, elem *gripql.GraphElement
 	if err != nil {
 		return nil, err
 	}
-	err = graph.AddEdge([]*gripql.Edge{elem.Edge})
+
+	edge := elem.Edge
+	if edge.Gid == "" {
+		edge.Gid = util.UUID()
+	}
+	err = edge.Validate()
+	if err != nil {
+		return nil, fmt.Errorf("edge validation failed: %v", err)
+	}
+
+	err = graph.AddEdge([]*gripql.Edge{edge})
 	if err != nil {
 		return nil, err
 	}
-	return &gripql.EditResult{Id: elem.Edge.Gid}, nil
+	return &gripql.EditResult{Id: edge.Gid}, nil
 }
 
 type graphElementArray struct {
@@ -282,15 +301,27 @@ func (server *GripServer) BulkAdd(stream gripql.Edit_BulkAddServer) error {
 					vertexBatchChan <- vertexBatch
 					vertexBatch = newGraphElementArray(element.Graph, vertexBatchSize, 0)
 				}
-				v := *element.Vertex
-				vertexBatch.vertices = append(vertexBatch.vertices, &v)
+				vertex := element.Vertex
+				err := vertex.Validate()
+				if err != nil {
+					return fmt.Errorf("vertex validation failed: %v", err)
+				}
+				vertexBatch.vertices = append(vertexBatch.vertices, vertex)
 				vertCount++
 			} else if element.Edge != nil {
 				if edgeBatch.graph != element.Graph || len(edgeBatch.edges) >= edgeBatchSize {
 					edgeBatchChan <- edgeBatch
 					edgeBatch = newGraphElementArray(element.Graph, 0, edgeBatchSize)
 				}
-				edgeBatch.edges = append(edgeBatch.edges, element.Edge)
+				edge := element.Edge
+				if edge.Gid == "" {
+					edge.Gid = util.UUID()
+				}
+				err := edge.Validate()
+				if err != nil {
+					return fmt.Errorf("edge validation failed: %v", err)
+				}
+				edgeBatch.edges = append(edgeBatch.edges, edge)
 				edgeCount++
 			}
 		}

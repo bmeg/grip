@@ -102,6 +102,15 @@
           <li>
             <ul class="sidebar-nav sidebar-nav-nested">
               <li>
+                <a href="https://docs.bmeg.io/grip/docs/databases/psql/"
+                   class="sidebar-nav-item "
+                >PostgreSQL</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
                 <a href="https://docs.bmeg.io/grip/docs/databases/sql/"
                    class="sidebar-nav-item  active"
                 >SQL</a></li>
@@ -222,7 +231,7 @@
   <div class="main col span_8_of_12">
     
 
-<h1 id="sql">SQL</h1>
+<h1 id="connect-to-an-existing-sql-database">Connect to an existing SQL database</h1>
 
 <p>GRIP supports modeling an existing SQL database as a graph. GRIP has been tested against <a href="https://www.postgresql.org/">PostgreSQL</a>, but should  work with
 <a href="https://www.mysql.com/">MySQL</a> (4.1+) and <a href="https://mariadb.org/">MariaDB</a>.</p>
@@ -267,7 +276,7 @@ psql --host localhost --port 15432 -U postgres smtest &lt; postgres_smtest_data.
 
 <p>GRIP Configuration:</p>
 
-<pre><code class="language-yaml">Database: sql
+<pre><code class="language-yaml">Database: existing-sql
 
 SQL:
   DataSourceName: &quot;host=localhost port=15432 user=postgres dbname=smtest sslmode=disable&quot;

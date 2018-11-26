@@ -9,7 +9,6 @@ import (
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/kvi"
-	"github.com/bmeg/grip/util"
 	proto "github.com/golang/protobuf/proto"
 	log "github.com/sirupsen/logrus"
 )
@@ -43,13 +42,6 @@ type kvAddData struct {
 // AddVertex adds an edge to the graph, if it already exists
 // in the graph, it is replaced
 func (kgdb *KVInterfaceGDB) AddVertex(vertexArray []*gripql.Vertex) error {
-	for _, vertex := range vertexArray {
-		err := vertex.Validate()
-		if err != nil {
-			return fmt.Errorf("vertex validation failed: %v", err)
-		}
-	}
-
 	dataChan := make(chan *kvAddData, 100)
 	go func() {
 		for _, vertex := range vertexArray {
@@ -85,16 +77,6 @@ func (kgdb *KVInterfaceGDB) AddVertex(vertexArray []*gripql.Vertex) error {
 // AddEdge adds an edge to the graph, if the id is not "" and in already exists
 // in the graph, it is replaced
 func (kgdb *KVInterfaceGDB) AddEdge(edgeArray []*gripql.Edge) error {
-	for _, edge := range edgeArray {
-		if edge.Gid == "" {
-			edge.Gid = util.UUID()
-		}
-		err := edge.Validate()
-		if err != nil {
-			return fmt.Errorf("edge validation failed: %v", err)
-		}
-	}
-
 	err := kgdb.kvg.kv.Update(func(tx kvi.KVTransaction) error {
 		for _, edge := range edgeArray {
 			eid := edge.Gid

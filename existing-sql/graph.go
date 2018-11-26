@@ -1,4 +1,4 @@
-package sql
+package esql
 
 import (
 	"context"
@@ -75,10 +75,12 @@ func (g *Graph) GetVertex(key string, load bool) *gripql.Vertex {
 	row := g.db.QueryRowx(q)
 	types, err := rowColumnTypeMap(row)
 	if err != nil {
+		log.WithFields(log.Fields{"error": err}).Error("GetVertex: rowColumnTypeMap")
 		return nil
 	}
 	err = row.MapScan(data)
 	if err != nil {
+		log.WithFields(log.Fields{"error": err}).Error("GetVertex: MapScan")
 		return nil
 	}
 	res := rowDataToVertex(g.schema.GetVertex(table), data, types, load)
@@ -107,10 +109,12 @@ func (g *Graph) getTableBackedEdge(key string, load bool) *gripql.Edge {
 	row := g.db.QueryRowx(q)
 	types, err := rowColumnTypeMap(row)
 	if err != nil {
+		log.WithFields(log.Fields{"error": err}).Error("GetEdge: rowColumnTypeMap")
 		return nil
 	}
 	err = row.MapScan(data)
 	if err != nil {
+		log.WithFields(log.Fields{"error": err}).Error("GetEdge: MapScan")
 		return nil
 	}
 	return rowDataToEdge(g.schema.GetEdge(table), data, types, load)

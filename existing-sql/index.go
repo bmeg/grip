@@ -1,4 +1,4 @@
-package sql
+package esql
 
 import (
 	"context"
@@ -20,9 +20,7 @@ func (g *Graph) DeleteVertexIndex(label string, field string) error {
 // GetVertexIndexList lists indices
 func (g *Graph) GetVertexIndexList() chan gripql.IndexID {
 	o := make(chan gripql.IndexID)
-	go func() {
-		defer close(o)
-	}()
+	defer close(o)
 	return o
 }
 

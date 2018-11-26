@@ -1,4 +1,4 @@
-package sql
+package esql
 
 import (
 	"context"
@@ -88,6 +88,11 @@ func (db *GraphDB) Close() error {
 
 // AddGraph creates a new graph named `graph`
 func (db *GraphDB) AddGraph(graph string) error {
+	// noop if exists
+	schema := db.getGraphSchema(graph)
+	if schema != nil {
+		return nil
+	}
 	return errors.New("not implemented")
 }
 
