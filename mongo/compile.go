@@ -443,15 +443,27 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, er
 			if lastType != gdbi.VertexData && lastType != gdbi.EdgeData {
 				return &Pipeline{}, fmt.Errorf(`"select" statement is only valid for edge or vertex types not: %s`, lastType.String())
 			}
-			if len(stmt.Select.Marks) == 0 {
+			switch len(stmt.Select.Marks) {
+			case 0:
 				return &Pipeline{}, fmt.Errorf(`"select" statement has an empty list of mark names`)
+			case 1:
+				mark := "$marks." + stmt.Select.Marks[0]
+				switch markTypes[stmt.Select.Marks[0]] {
+				case gdbi.VertexData:
+					query = append(query, bson.M{"$project": bson.M{"_id": mark + "._id", "label": mark + ".label", "data": mark + ".data", "marks": 1}})
+					lastType = gdbi.VertexData
+				case gdbi.EdgeData:
+					query = append(query, bson.M{"$project": bson.M{"_id": mark + "._id", "label": mark + ".label", "from": mark + ".from", "to": mark + ".to", "data": mark + ".data", "marks": 1}})
+					lastType = gdbi.EdgeData
+				}
+			default:
+				selection := bson.M{}
+				for _, mark := range stmt.Select.Marks {
+					selection["marks."+mark] = 1
+				}
+				query = append(query, bson.M{"$project": selection})
+				lastType = gdbi.SelectionData
 			}
-			selection := bson.M{}
-			for _, mark := range stmt.Select.Marks {
-				selection["marks."+mark] = 1
-			}
-			query = append(query, bson.M{"$project": selection})
-			lastType = gdbi.SelectionData
 
 		case *gripql.GraphStatement_Render:
 			if lastType != gdbi.VertexData && lastType != gdbi.EdgeData {
