@@ -80,8 +80,8 @@ func (comp DefaultCompiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeli
 			add(&LookupEdges{db: comp.db, ids: ids})
 			lastType = gdbi.EdgeData
 
-		case *gripql.GraphStatement_In:
-			labels := protoutil.AsStringList(stmt.In)
+		case *gripql.GraphStatement_In, *gripql.GraphStatement_InV:
+			labels := append(protoutil.AsStringList(gs.GetIn()), protoutil.AsStringList(gs.GetInV())...)
 			if lastType == gdbi.VertexData {
 				add(&LookupVertexAdjIn{comp.db, labels})
 			} else if lastType == gdbi.EdgeData {
@@ -91,8 +91,8 @@ func (comp DefaultCompiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeli
 			}
 			lastType = gdbi.VertexData
 
-		case *gripql.GraphStatement_Out:
-			labels := protoutil.AsStringList(stmt.Out)
+		case *gripql.GraphStatement_Out, *gripql.GraphStatement_OutV:
+			labels := append(protoutil.AsStringList(gs.GetOut()), protoutil.AsStringList(gs.GetOutV())...)
 			if lastType == gdbi.VertexData {
 				add(&LookupVertexAdjOut{comp.db, labels})
 			} else if lastType == gdbi.EdgeData {
@@ -102,8 +102,8 @@ func (comp DefaultCompiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeli
 			}
 			lastType = gdbi.VertexData
 
-		case *gripql.GraphStatement_Both:
-			labels := protoutil.AsStringList(stmt.Both)
+		case *gripql.GraphStatement_Both, *gripql.GraphStatement_BothV:
+			labels := append(protoutil.AsStringList(gs.GetBoth()), protoutil.AsStringList(gs.GetBothV())...)
 			if lastType == gdbi.VertexData {
 				add(&both{comp.db, labels, gdbi.VertexData, gdbi.VertexData})
 			} else if lastType == gdbi.EdgeData {
@@ -113,41 +113,74 @@ func (comp DefaultCompiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeli
 			}
 			lastType = gdbi.VertexData
 
-		case *gripql.GraphStatement_InEdge:
+		case *gripql.GraphStatement_InE:
 			if lastType != gdbi.VertexData {
 				return &DefaultPipeline{}, fmt.Errorf(`"inEdge" statement is only valid for the vertex type not: %s`, lastType.String())
 			}
-			labels := protoutil.AsStringList(stmt.InEdge)
-			add(&InEdge{comp.db, labels})
+			labels := protoutil.AsStringList(stmt.InE)
+			add(&InE{comp.db, labels})
 			lastType = gdbi.EdgeData
 
-		case *gripql.GraphStatement_OutEdge:
+		case *gripql.GraphStatement_OutE:
 			if lastType != gdbi.VertexData {
 				return &DefaultPipeline{}, fmt.Errorf(`"outEdge" statement is only valid for the vertex type not: %s`, lastType.String())
 			}
-			labels := protoutil.AsStringList(stmt.OutEdge)
-			add(&OutEdge{comp.db, labels})
+			labels := protoutil.AsStringList(stmt.OutE)
+			add(&OutE{comp.db, labels})
 			lastType = gdbi.EdgeData
 
-		case *gripql.GraphStatement_BothEdge:
+		case *gripql.GraphStatement_BothE:
 			if lastType != gdbi.VertexData {
 				return &DefaultPipeline{}, fmt.Errorf(`"bothEdge" statement is only valid for the vertex type not: %s`, lastType.String())
 			}
-			labels := protoutil.AsStringList(stmt.BothEdge)
+			labels := protoutil.AsStringList(stmt.BothE)
 			add(&both{comp.db, labels, gdbi.VertexData, gdbi.EdgeData})
 			lastType = gdbi.EdgeData
 
-		case *gripql.GraphStatement_Where:
+		case *gripql.GraphStatement_Has:
 			if lastType != gdbi.VertexData && lastType != gdbi.EdgeData {
-				return &DefaultPipeline{}, fmt.Errorf(`"distinct" statement is only valid for edge or vertex types not: %s`, lastType.String())
+				return &DefaultPipeline{}, fmt.Errorf(`"Has" statement is only valid for edge or vertex types not: %s`, lastType.String())
 			}
-			add(&Where{stmt.Where})
+			add(&Has{stmt.Has})
+
+		case *gripql.GraphStatement_HasLabel:
+			if lastType != gdbi.VertexData && lastType != gdbi.EdgeData {
+				return &DefaultPipeline{}, fmt.Errorf(`"HasLabel" statement is only valid for edge or vertex types not: %s`, lastType.String())
+			}
+			labels := protoutil.AsStringList(stmt.HasLabel)
+			if len(labels) == 0 {
+				return &DefaultPipeline{}, fmt.Errorf(`no labels provided to "HasLabel" statement`)
+			}
+			add(&HasLabel{labels})
+
+		case *gripql.GraphStatement_HasKey:
+			if lastType != gdbi.VertexData && lastType != gdbi.EdgeData {
+				return &DefaultPipeline{}, fmt.Errorf(`"HasKey" statement is only valid for edge or vertex types not: %s`, lastType.String())
+			}
+			keys := protoutil.AsStringList(stmt.HasKey)
+			if len(keys) == 0 {
+				return &DefaultPipeline{}, fmt.Errorf(`no keys provided to "HasKey" statement`)
+			}
+			add(&HasKey{keys})
+
+		case *gripql.GraphStatement_HasId:
+			if lastType != gdbi.VertexData && lastType != gdbi.EdgeData {
+				return &DefaultPipeline{}, fmt.Errorf(`"HasId" statement is only valid for edge or vertex types not: %s`, lastType.String())
+			}
+			ids := protoutil.AsStringList(stmt.HasId)
+			if len(ids) == 0 {
+				return &DefaultPipeline{}, fmt.Errorf(`no ids provided to "HasId" statement`)
+			}
+			add(&HasID{ids})
 
 		case *gripql.GraphStatement_Limit:
 			add(&Limit{stmt.Limit})
 
-		case *gripql.GraphStatement_Offset:
-			add(&Offset{stmt.Offset})
+		case *gripql.GraphStatement_Skip:
+			add(&Skip{stmt.Skip})
+
+		case *gripql.GraphStatement_Range:
+			add(&Range{start: stmt.Range.Start, end: stmt.Range.End})
 
 		case *gripql.GraphStatement_Count:
 			add(&Count{})
@@ -163,21 +196,21 @@ func (comp DefaultCompiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeli
 			}
 			add(&Distinct{fields})
 
-		case *gripql.GraphStatement_Mark:
+		case *gripql.GraphStatement_As:
 			if lastType == gdbi.NoData {
 				return &DefaultPipeline{}, fmt.Errorf(`"mark" statement is not valid at the beginning of a traversal`)
 			}
-			if stmt.Mark == "" {
+			if stmt.As == "" {
 				return &DefaultPipeline{}, fmt.Errorf(`"mark" statement cannot have an empty name`)
 			}
-			if err := gripql.ValidateFieldName(stmt.Mark); err != nil {
+			if err := gripql.ValidateFieldName(stmt.As); err != nil {
 				return &DefaultPipeline{}, fmt.Errorf(`"mark" statement invalid; %v`, err)
 			}
-			if stmt.Mark == jsonpath.Current {
+			if stmt.As == jsonpath.Current {
 				return &DefaultPipeline{}, fmt.Errorf(`"mark" statement invalid; uses reserved name %s`, jsonpath.Current)
 			}
-			markTypes[stmt.Mark] = lastType
-			add(&Marker{stmt.Mark})
+			markTypes[stmt.As] = lastType
+			add(&Marker{stmt.As})
 
 		case *gripql.GraphStatement_Select:
 			if lastType != gdbi.VertexData && lastType != gdbi.EdgeData {
@@ -231,12 +264,12 @@ func (comp DefaultCompiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeli
 	return &DefaultPipeline{procs, lastType, markTypes}, nil
 }
 
-// For V().Where(Eq("$.label", "Person")) and V().Where(Eq("$.gid", "1")) queries, streamline into a single index lookup
+// For V().Has(Eq("$.label", "Person")) and V().Has(Eq("$.gid", "1")) queries, streamline into a single index lookup
 func indexStartOptimize(pipe []gdbi.Processor) []gdbi.Processor {
 	if len(pipe) >= 2 {
 		if lookupV, ok := pipe[0].(*LookupVerts); ok {
 			if len(lookupV.ids) == 0 {
-				if where, ok := pipe[1].(*Where); ok {
+				if where, ok := pipe[1].(*Has); ok {
 					if cond := where.stmt.GetCondition(); cond != nil {
 						vals := []string{}
 						path := jsonpath.GetJSONPath(cond.Key)
@@ -247,7 +280,7 @@ func indexStartOptimize(pipe []gdbi.Processor) []gdbi.Processor {
 								if l, ok := val.(string); ok {
 									vals = []string{l}
 								}
-							case gripql.Condition_IN:
+							case gripql.Condition_WITHIN:
 								if l, ok := val.([]string); ok {
 									vals = l
 								}

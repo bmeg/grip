@@ -155,7 +155,7 @@ func graphBenchRunQuery(kv kvi.KVInterface, build, query func(kgraph gdbi.GraphI
 }
 
 func manyToOneQuery(kgraph gdbi.GraphInterface) {
-	query := gripql.V().Where(gripql.Eq("_label", "Person")).Out("knows").Count()
+	query := gripql.V().HasLabel("Person").Out("knows").Count()
 	comp := kgraph.Compiler()
 	pipe, err := comp.Compile(query.Statements)
 	if err != nil {

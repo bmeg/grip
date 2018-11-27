@@ -443,8 +443,8 @@ func (mg *Graph) GetInChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLa
 	return o
 }
 
-// GetOutEdgeChannel process requests of vertex ids and find the connected outgoing edges
-func (mg *Graph) GetOutEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
+// GetOutEChannel process requests of vertex ids and find the connected outgoing edges
+func (mg *Graph) GetOutEChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
 	batches := make(chan []gdbi.ElementLookup, 100)
 	go func() {
 		defer close(batches)
@@ -488,7 +488,7 @@ func (mg *Graph) GetOutEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, e
 				}
 			}
 			if err := iter.Close(); err != nil {
-				log.WithFields(log.Fields{"error": err}).Error("GetOutEdgeChannel: iter error")
+				log.WithFields(log.Fields{"error": err}).Error("GetOutEChannel: iter error")
 			}
 		}
 	}()
@@ -496,8 +496,8 @@ func (mg *Graph) GetOutEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, e
 	return o
 }
 
-// GetInEdgeChannel process requests of vertex ids and find the connected incoming edges
-func (mg *Graph) GetInEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
+// GetInEChannel process requests of vertex ids and find the connected incoming edges
+func (mg *Graph) GetInEChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
 	batches := make(chan []gdbi.ElementLookup, 100)
 	go func() {
 		defer close(batches)
@@ -541,7 +541,7 @@ func (mg *Graph) GetInEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, ed
 				}
 			}
 			if err := iter.Close(); err != nil {
-				log.WithFields(log.Fields{"error": err}).Error("GetInEdgeChannel: iter error")
+				log.WithFields(log.Fields{"error": err}).Error("GetInEChannel: iter error")
 			}
 		}
 	}()

@@ -10,37 +10,37 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func convertWhereExpression(stmt *gripql.WhereExpression, not bool) bson.M {
+func convertHasExpression(stmt *gripql.HasExpression, not bool) bson.M {
 	output := bson.M{}
 	switch stmt.Expression.(type) {
-	case *gripql.WhereExpression_Condition:
+	case *gripql.HasExpression_Condition:
 		cond := stmt.GetCondition()
 		output = convertCondition(cond, not)
 
-	case *gripql.WhereExpression_And:
+	case *gripql.HasExpression_And:
 		and := stmt.GetAnd()
 		andRes := []bson.M{}
 		for _, e := range and.Expressions {
-			andRes = append(andRes, convertWhereExpression(e, not))
+			andRes = append(andRes, convertHasExpression(e, not))
 		}
 		output = bson.M{"$and": andRes}
 		if not {
 			output = bson.M{"$or": andRes}
 		}
 
-	case *gripql.WhereExpression_Or:
+	case *gripql.HasExpression_Or:
 		or := stmt.GetOr()
 		orRes := []bson.M{}
 		for _, e := range or.Expressions {
-			orRes = append(orRes, convertWhereExpression(e, not))
+			orRes = append(orRes, convertHasExpression(e, not))
 		}
 		output = bson.M{"$or": orRes}
 		if not {
 			output = bson.M{"$and": orRes}
 		}
 
-	case *gripql.WhereExpression_Not:
-		notRes := convertWhereExpression(stmt.GetNot(), true)
+	case *gripql.HasExpression_Not:
+		notRes := convertHasExpression(stmt.GetNot(), true)
 		output = notRes
 
 	default:
@@ -59,7 +59,7 @@ func convertPath(key string) string {
 	return key
 }
 
-func convertCondition(cond *gripql.WhereCondition, not bool) bson.M {
+func convertCondition(cond *gripql.HasCondition, not bool) bson.M {
 	var key string
 	var val interface{}
 	key = convertPath(cond.Key)
@@ -78,8 +78,10 @@ func convertCondition(cond *gripql.WhereCondition, not bool) bson.M {
 		expr = bson.M{"$lt": val}
 	case gripql.Condition_LTE:
 		expr = bson.M{"$lte": val}
-	case gripql.Condition_IN:
+	case gripql.Condition_WITHIN:
 		expr = bson.M{"$in": val}
+	case gripql.Condition_WITHOUT:
+		expr = bson.M{"$not": bson.M{"$in": val}}
 	case gripql.Condition_CONTAINS:
 		expr = bson.M{"$in": []interface{}{val}}
 	default:

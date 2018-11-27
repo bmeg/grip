@@ -26,28 +26,43 @@ message MatchQuerySet {
 
 message GraphStatement {
   oneof statement {
+    // Tinkerpop methods
     google.protobuf.ListValue v = 1;
     google.protobuf.ListValue e = 2;
 
     google.protobuf.ListValue in = 10;
     google.protobuf.ListValue out = 11;
-    google.protobuf.ListValue in_edge = 12;
-    google.protobuf.ListValue out_edge = 13;
     google.protobuf.ListValue both = 14;
-    google.protobuf.ListValue both_edge = 15;
+    google.protobuf.ListValue in_e = 12;
+    google.protobuf.ListValue out_e = 13;
+    google.protobuf.ListValue both_e = 15;
+    google.protobuf.ListValue in_v = 16;
+    google.protobuf.ListValue out_v = 17;
+    google.protobuf.ListValue both_v = 18;
 
-    string mark = 20;
+    string as = 20;
     SelectStatement select = 21;
     uint32 limit = 24;
-    uint32 offset = 25;
+    uint32 skip = 25;
+    Range range = 33;
+    MatchQuerySet match = 28;
+    HasExpression has = 29;
+    google.protobuf.ListValue has_label = 34;
+    google.protobuf.ListValue has_key = 35;
+    google.protobuf.ListValue has_id = 36;
+    string count = 30;
+
+    // custom methods
     google.protobuf.ListValue fields = 26;
     google.protobuf.ListValue distinct = 27;
-    MatchQuerySet match = 28;
-    WhereExpression where = 29;
-    string count = 30;
     Aggregations aggregate = 31;
     google.protobuf.Value render = 32;
   }
+}
+
+message Range {
+  int32 start = 1;
+  int32 end = 2;
 }
 
 message AggregationsRequest {
@@ -99,20 +114,20 @@ message AggregationResultBucket {
   double value = 2;
 }
 
-message WhereExpressionList {
-  repeated WhereExpression expressions = 1;
+message HasExpressionList {
+  repeated HasExpression expressions = 1;
 }
 
-message WhereExpression {
+message HasExpression {
   oneof expression {
-    WhereExpressionList and = 1;
-    WhereExpressionList or = 2;
-    WhereExpression not = 3;
-    WhereCondition condition = 4;
+    HasExpressionList and = 1;
+    HasExpressionList or = 2;
+    HasExpression not = 3;
+    HasCondition condition = 4;
   }
 }
 
-message WhereCondition {
+message HasCondition {
   string key = 1;
   google.protobuf.Value value = 2;
   Condition condition = 3;
@@ -126,8 +141,12 @@ enum Condition {
   GTE = 4;
   LT  = 5;
   LTE = 6;
-  IN = 7;
-  CONTAINS = 8;
+  INSIDE = 7;
+  OUTSIDE = 8;
+  BETWEEN = 9;
+  WITHIN = 10;
+  WITHOUT = 11;
+  CONTAINS = 12;
 }
 
 message SelectStatement {

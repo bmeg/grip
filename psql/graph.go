@@ -552,8 +552,8 @@ func (g *Graph) GetInChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLab
 	return o
 }
 
-// GetOutEdgeChannel is passed a channel of vertex ids and finds the outgoing edges
-func (g *Graph) GetOutEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
+// GetOutEChannel is passed a channel of vertex ids and finds the outgoing edges
+func (g *Graph) GetOutEChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
 	batches := make(chan []gdbi.ElementLookup, 100)
 	go func() {
 		defer close(batches)
@@ -608,19 +608,19 @@ func (g *Graph) GetOutEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, ed
 			}
 			rows, err := g.db.Queryx(q)
 			if err != nil {
-				log.WithFields(log.Fields{"error": err, "query": q}).Error("GetOutEdgeChannel: Queryx")
+				log.WithFields(log.Fields{"error": err, "query": q}).Error("GetOutEChannel: Queryx")
 				return
 			}
 			defer rows.Close()
 			for rows.Next() {
 				erow := &row{}
 				if err := rows.StructScan(erow); err != nil {
-					log.WithFields(log.Fields{"error": err}).Error("GetOutEdgeChannel: StructScan")
+					log.WithFields(log.Fields{"error": err}).Error("GetOutEChannel: StructScan")
 					continue
 				}
 				e, err := convertEdgeRow(erow, load)
 				if err != nil {
-					log.WithFields(log.Fields{"error": err}).Error("GetOutEdgeChannel: convertEdgeRow")
+					log.WithFields(log.Fields{"error": err}).Error("GetOutEChannel: convertEdgeRow")
 					continue
 				}
 				r := batchMap[erow.From]
@@ -630,15 +630,15 @@ func (g *Graph) GetOutEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, ed
 				}
 			}
 			if err := rows.Err(); err != nil {
-				log.WithFields(log.Fields{"error": err}).Error("GetOutEdgeChannel: iterating")
+				log.WithFields(log.Fields{"error": err}).Error("GetOutEChannel: iterating")
 			}
 		}
 	}()
 	return o
 }
 
-// GetInEdgeChannel is passed a channel of vertex ids and finds the incoming edges
-func (g *Graph) GetInEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
+// GetInEChannel is passed a channel of vertex ids and finds the incoming edges
+func (g *Graph) GetInEChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
 	batches := make(chan []gdbi.ElementLookup, 100)
 	go func() {
 		defer close(batches)
@@ -693,19 +693,19 @@ func (g *Graph) GetInEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, edg
 			}
 			rows, err := g.db.Queryx(q)
 			if err != nil {
-				log.WithFields(log.Fields{"error": err, "query": q}).Error("GetInEdgeChannel: Queryx")
+				log.WithFields(log.Fields{"error": err, "query": q}).Error("GetInEChannel: Queryx")
 				return
 			}
 			defer rows.Close()
 			for rows.Next() {
 				erow := &row{}
 				if err := rows.StructScan(erow); err != nil {
-					log.WithFields(log.Fields{"error": err}).Error("GetInEdgeChannel: StructScan")
+					log.WithFields(log.Fields{"error": err}).Error("GetInEChannel: StructScan")
 					continue
 				}
 				e, err := convertEdgeRow(erow, load)
 				if err != nil {
-					log.WithFields(log.Fields{"error": err}).Error("GetInEdgeChannel: convertEdgeRow")
+					log.WithFields(log.Fields{"error": err}).Error("GetInEChannel: convertEdgeRow")
 					continue
 				}
 				r := batchMap[erow.To]
@@ -715,7 +715,7 @@ func (g *Graph) GetInEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, edg
 				}
 			}
 			if err := rows.Err(); err != nil {
-				log.WithFields(log.Fields{"error": err}).Error("GetInEdgeChannel: iterating")
+				log.WithFields(log.Fields{"error": err}).Error("GetInEChannel: iterating")
 			}
 		}
 	}()
