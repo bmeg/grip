@@ -78,6 +78,12 @@ func convertCondition(cond *gripql.HasCondition, not bool) bson.M {
 		expr = bson.M{"$lt": val}
 	case gripql.Condition_LTE:
 		expr = bson.M{"$lte": val}
+  case gripql.Condition_INSIDE:
+    // TODO
+  case gripql.Condition_OUTSIDE:
+    // TODO
+  case gripql.Condition_BETWEEN:
+    // TODO
 	case gripql.Condition_WITHIN:
 		expr = bson.M{"$in": val}
 	case gripql.Condition_WITHOUT:
