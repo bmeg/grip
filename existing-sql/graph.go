@@ -569,13 +569,13 @@ func (g *Graph) GetInChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLab
 	return o
 }
 
-// GetOutEChannel process requests of vertex ids and find the connected outgoing edges
-func (g *Graph) GetOutEChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
+// GetOutEdgeChannel process requests of vertex ids and find the connected outgoing edges
+func (g *Graph) GetOutEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
 	batches := make(map[string][]gdbi.ElementLookup)
 	for elem := range reqChan {
 		parts := strings.SplitN(elem.ID, ":", 2)
 		if len(parts) != 2 {
-			log.Errorln("GetOutEChannel encountered a strange ID:", elem.ID)
+			log.Errorln("GetOutEdgeChannel encountered a strange ID:", elem.ID)
 			continue
 		}
 		table := parts[0]
@@ -591,7 +591,7 @@ func (g *Graph) GetOutEChannel(reqChan chan gdbi.ElementLookup, load bool, edgeL
 			for i := range batch {
 				parts := strings.SplitN(batch[i].ID, ":", 2)
 				if len(parts) != 2 {
-					log.Errorln("GetOutEChannel encountered a strange ID:", batch[i].ID)
+					log.Errorln("GetOutEdgeChannel encountered a strange ID:", batch[i].ID)
 					continue
 				}
 				idBatch[i] = parts[1]
@@ -620,14 +620,14 @@ func (g *Graph) GetOutEChannel(reqChan chan gdbi.ElementLookup, load bool, edgeL
 					)
 					rows, err := g.db.Queryx(q)
 					if err != nil {
-						log.WithFields(log.Fields{"error": err}).Error("GetOutEChannel: Queryx")
+						log.WithFields(log.Fields{"error": err}).Error("GetOutEdgeChannel: Queryx")
 						return
 					}
 					defer rows.Close()
 					for rows.Next() {
 						var fromGid, toGid string
 						if err := rows.Scan(&fromGid, &toGid); err != nil {
-							log.WithFields(log.Fields{"error": err}).Error("GetOutEChannel: Scan")
+							log.WithFields(log.Fields{"error": err}).Error("GetOutEdgeChannel: Scan")
 							return
 						}
 						geid := &generatedEdgeID{edgeSchema.Label, edgeSchema.From.DestTable, fromGid, edgeSchema.To.DestTable, toGid}
@@ -639,7 +639,7 @@ func (g *Graph) GetOutEChannel(reqChan chan gdbi.ElementLookup, load bool, edgeL
 						}
 					}
 					if err := rows.Err(); err != nil {
-						log.WithFields(log.Fields{"error": err}).Error("GetOutEChannel: iterating")
+						log.WithFields(log.Fields{"error": err}).Error("GetOutEdgeChannel: iterating")
 						return
 					}
 
@@ -647,7 +647,7 @@ func (g *Graph) GetOutEChannel(reqChan chan gdbi.ElementLookup, load bool, edgeL
 					q = fmt.Sprintf("SELECT * FROM %s WHERE %s IN (%s)", edgeSchema.Table, edgeSchema.From.SourceField, ids)
 					rows, err := g.db.Queryx(q)
 					if err != nil {
-						log.WithFields(log.Fields{"error": err}).Error("GetOutEChannel: Queryx")
+						log.WithFields(log.Fields{"error": err}).Error("GetOutEdgeChannel: Queryx")
 						return
 					}
 					types, err := columnTypeMap(rows)
@@ -658,7 +658,7 @@ func (g *Graph) GetOutEChannel(reqChan chan gdbi.ElementLookup, load bool, edgeL
 					for rows.Next() {
 						data := make(map[string]interface{})
 						if err := rows.MapScan(data); err != nil {
-							log.WithFields(log.Fields{"error": err}).Error("GetOutEChannel: MapScan")
+							log.WithFields(log.Fields{"error": err}).Error("GetOutEdgeChannel: MapScan")
 							return
 						}
 						edge := rowDataToEdge(edgeSchema, data, types, load)
@@ -669,7 +669,7 @@ func (g *Graph) GetOutEChannel(reqChan chan gdbi.ElementLookup, load bool, edgeL
 						}
 					}
 					if err := rows.Err(); err != nil {
-						log.WithFields(log.Fields{"error": err}).Error("GetOutEChannel: iterating")
+						log.WithFields(log.Fields{"error": err}).Error("GetOutEdgeChannel: iterating")
 						return
 					}
 				}
@@ -679,13 +679,13 @@ func (g *Graph) GetOutEChannel(reqChan chan gdbi.ElementLookup, load bool, edgeL
 	return o
 }
 
-// GetInEChannel process requests of vertex ids and find the connected incoming edges
-func (g *Graph) GetInEChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
+// GetInEdgeChannel process requests of vertex ids and find the connected incoming edges
+func (g *Graph) GetInEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
 	batches := make(map[string][]gdbi.ElementLookup)
 	for elem := range reqChan {
 		parts := strings.SplitN(elem.ID, ":", 2)
 		if len(parts) != 2 {
-			log.Errorln("GetInEChannel encountered a strange ID:", elem.ID)
+			log.Errorln("GetInEdgeChannel encountered a strange ID:", elem.ID)
 			continue
 		}
 		table := parts[0]
@@ -701,7 +701,7 @@ func (g *Graph) GetInEChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLa
 			for i := range batch {
 				parts := strings.SplitN(batch[i].ID, ":", 2)
 				if len(parts) != 2 {
-					log.Errorln("GetInEChannel encountered a strange ID:", batch[i].ID)
+					log.Errorln("GetInEdgeChannel encountered a strange ID:", batch[i].ID)
 					continue
 				}
 				idBatch[i] = parts[1]
@@ -730,14 +730,14 @@ func (g *Graph) GetInEChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLa
 					)
 					rows, err := g.db.Queryx(q)
 					if err != nil {
-						log.WithFields(log.Fields{"error": err}).Error("GetInEChannel: Queryx")
+						log.WithFields(log.Fields{"error": err}).Error("GetInEdgeChannel: Queryx")
 						return
 					}
 					defer rows.Close()
 					for rows.Next() {
 						var fromGid, toGid string
 						if err := rows.Scan(&fromGid, &toGid); err != nil {
-							log.WithFields(log.Fields{"error": err}).Error("GetInEChannel: Scan")
+							log.WithFields(log.Fields{"error": err}).Error("GetInEdgeChannel: Scan")
 							return
 						}
 						geid := &generatedEdgeID{edgeSchema.Label, edgeSchema.From.DestTable, fromGid, edgeSchema.To.DestTable, toGid}
@@ -749,7 +749,7 @@ func (g *Graph) GetInEChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLa
 						}
 					}
 					if err := rows.Err(); err != nil {
-						log.WithFields(log.Fields{"error": err}).Error("GetInEChannel: iterating")
+						log.WithFields(log.Fields{"error": err}).Error("GetInEdgeChannel: iterating")
 						return
 					}
 
@@ -757,7 +757,7 @@ func (g *Graph) GetInEChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLa
 					q = fmt.Sprintf("SELECT * FROM %s WHERE %s IN (%s)", edgeSchema.Table, edgeSchema.To.SourceField, ids)
 					rows, err := g.db.Queryx(q)
 					if err != nil {
-						log.WithFields(log.Fields{"error": err}).Error("GetInEChannel: Queryx")
+						log.WithFields(log.Fields{"error": err}).Error("GetInEdgeChannel: Queryx")
 						return
 					}
 					types, err := columnTypeMap(rows)
@@ -768,7 +768,7 @@ func (g *Graph) GetInEChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLa
 					for rows.Next() {
 						data := make(map[string]interface{})
 						if err := rows.MapScan(data); err != nil {
-							log.WithFields(log.Fields{"error": err}).Error("GetInEChannel: MapScan")
+							log.WithFields(log.Fields{"error": err}).Error("GetInEdgeChannel: MapScan")
 							return
 						}
 						edge := rowDataToEdge(edgeSchema, data, types, load)
@@ -779,7 +779,7 @@ func (g *Graph) GetInEChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLa
 						}
 					}
 					if err := rows.Err(); err != nil {
-						log.WithFields(log.Fields{"error": err}).Error("GetInEChannel: iterating")
+						log.WithFields(log.Fields{"error": err}).Error("GetInEdgeChannel: iterating")
 						return
 					}
 				}

@@ -310,7 +310,7 @@ func (l *InE) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out
 	}()
 	go func() {
 		defer close(out)
-		for v := range l.db.GetInEChannel(queryChan, getPropLoad(ctx), l.labels) {
+		for v := range l.db.GetInEdgeChannel(queryChan, getPropLoad(ctx), l.labels) {
 			i := v.Ref.(*gdbi.Traveler)
 			out <- i.AddCurrent(&gdbi.DataElement{
 				ID:    v.Edge.Gid,
@@ -346,7 +346,7 @@ func (l *OutE) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, ou
 	}()
 	go func() {
 		defer close(out)
-		for v := range l.db.GetOutEChannel(queryChan, getPropLoad(ctx), l.labels) {
+		for v := range l.db.GetOutEdgeChannel(queryChan, getPropLoad(ctx), l.labels) {
 			i := v.Ref.(*gdbi.Traveler)
 			out <- i.AddCurrent(&gdbi.DataElement{
 				ID:    v.Edge.Gid,

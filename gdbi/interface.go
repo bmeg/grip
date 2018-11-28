@@ -100,8 +100,8 @@ type GraphInterface interface {
 	GetVertexChannel(req chan ElementLookup, load bool) chan ElementLookup
 	GetOutChannel(req chan ElementLookup, load bool, edgeLabels []string) chan ElementLookup
 	GetInChannel(req chan ElementLookup, load bool, edgeLabels []string) chan ElementLookup
-	GetOutEChannel(req chan ElementLookup, load bool, edgeLabels []string) chan ElementLookup
-	GetInEChannel(req chan ElementLookup, load bool, edgeLabels []string) chan ElementLookup
+	GetOutEdgeChannel(req chan ElementLookup, load bool, edgeLabels []string) chan ElementLookup
+	GetInEdgeChannel(req chan ElementLookup, load bool, edgeLabels []string) chan ElementLookup
 }
 
 // Manager is a resource manager that is passed to processors to allow them ]

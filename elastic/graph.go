@@ -617,8 +617,8 @@ func (es *Graph) GetInChannel(req chan gdbi.ElementLookup, load bool, edgeLabels
 	return o
 }
 
-// GetOutEChannel gets all outgoing edges connected to lookup element
-func (es *Graph) GetOutEChannel(req chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
+// GetOutEdgeChannel gets all outgoing edges connected to lookup element
+func (es *Graph) GetOutEdgeChannel(req chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
 	ctx := context.Background()
 	g, ctx := errgroup.WithContext(ctx)
 
@@ -686,7 +686,7 @@ func (es *Graph) GetOutEChannel(req chan gdbi.ElementLookup, load bool, edgeLabe
 	go func() {
 		defer close(o)
 		if err := g.Wait(); err != nil {
-			log.WithFields(log.Fields{"error": err}).Error("GetOutEChannel")
+			log.WithFields(log.Fields{"error": err}).Error("GetOutEdgeChannel")
 		}
 		return
 	}()
@@ -694,8 +694,8 @@ func (es *Graph) GetOutEChannel(req chan gdbi.ElementLookup, load bool, edgeLabe
 	return o
 }
 
-// GetInEChannel gets incoming edges connected to lookup element
-func (es *Graph) GetInEChannel(req chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
+// GetInEdgeChannel gets incoming edges connected to lookup element
+func (es *Graph) GetInEdgeChannel(req chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
 	ctx := context.Background()
 	g, ctx := errgroup.WithContext(ctx)
 
@@ -763,7 +763,7 @@ func (es *Graph) GetInEChannel(req chan gdbi.ElementLookup, load bool, edgeLabel
 	go func() {
 		defer close(o)
 		if err := g.Wait(); err != nil {
-			log.WithFields(log.Fields{"error": err}).Error("GetInEChannel")
+			log.WithFields(log.Fields{"error": err}).Error("GetInEdgeChannel")
 		}
 		return
 	}()

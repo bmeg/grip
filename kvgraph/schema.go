@@ -54,7 +54,7 @@ func (ma *KVGraph) sampleSchema(ctx context.Context, graph string, n uint32, ran
 			reqChan := make(chan gdbi.ElementLookup, 1)
 			reqChan <- gdbi.ElementLookup{ID: i}
 			close(reqChan)
-			for e := range gi.GetOutEChannel(reqChan, true, []string{}) {
+			for e := range gi.GetOutEdgeChannel(reqChan, true, []string{}) {
 				o := gi.GetVertex(e.Edge.To, false)
 				k := fromtokey{from: v.Label, to: o.Label, label: e.Edge.Label}
 				ds := gripql.GetDataFieldTypes(protoutil.AsMap(e.Edge.Data))
