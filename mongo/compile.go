@@ -388,7 +388,7 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, er
       ids := protoutil.AsStringList(stmt.HasId)
       iids := make([]interface{}, len(ids))
       for i, v := range ids {
-        iidss[i] = v
+        iids[i] = v
       }
       has := gripql.Within("_gid", iids...)
 			whereExpr := convertHasExpression(has, false)
