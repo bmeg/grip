@@ -522,7 +522,7 @@ func matchesCondition(trav *gdbi.Traveler, cond *gripql.HasCondition) bool {
 			log.Errorf("Error: could not cast OUTSIDE value: %v", err)
 			return false
 		}
-		return valF < lower && valF > upper
+		return valF < lower || valF > upper
 
 	case gripql.Condition_BETWEEN:
 		vals, err := cast.ToSliceE(condVal)
@@ -700,7 +700,7 @@ func (h *HasLabel) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe
 			}
 		}
 	}()
-	return context.WithValue(ctx, propLoad, false)
+	return context.WithValue(ctx, propLoad, true)
 }
 
 ////////////////////////////////////////////////////////////////////////////////

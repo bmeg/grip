@@ -227,11 +227,26 @@ func (q *Query) String() string {
 		case *GraphStatement_Has:
 			add("Has")
 
+		case *GraphStatement_HasLabel:
+      labels := protoutil.AsStringList(stmt.HasLabel)
+			add("HasLabel", labels...)
+
+		case *GraphStatement_HasId:
+      ids := protoutil.AsStringList(stmt.HasId)
+			add("HasId", ids...)
+
+		case *GraphStatement_HasKey:
+      keys := protoutil.AsStringList(stmt.HasKey)
+			add("HasKey", keys...)
+
 		case *GraphStatement_Limit:
 			add("Limit", fmt.Sprintf("%d", stmt.Limit))
 
 		case *GraphStatement_Skip:
 			add("Skip", fmt.Sprintf("%d", stmt.Skip))
+
+		case *GraphStatement_Range:
+			add("Range", fmt.Sprintf("%d", stmt.Range.Start), fmt.Sprintf("%d", stmt.Range.End))
 
 		case *GraphStatement_Count:
 			add("Count")
