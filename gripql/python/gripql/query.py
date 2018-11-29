@@ -118,7 +118,7 @@ class Query:
         Must be called from a vertex.
         """
         label = _wrap_str_value(label)
-        return self.__append({"in_edge": label})
+        return self.__append({"in_e": label})
 
     def outE(self, label=[]):
         """
@@ -130,7 +130,7 @@ class Query:
         Must be called from a vertex.
         """
         label = _wrap_str_value(label)
-        return self.__append({"out_edge": label})
+        return self.__append({"out_e": label})
 
     def bothE(self, label=[]):
         """
@@ -142,7 +142,7 @@ class Query:
         Must be called from a vertex.
         """
         label = _wrap_str_value(label)
-        return self.__append({"both_edge": label})
+        return self.__append({"both_e": label})
 
     def has(self, expression):
         """
@@ -154,18 +154,21 @@ class Query:
         """
         Filter vertex/edge based on label.
         """
+        label = _wrap_str_value(label)
         return self.__append({"hasLabel": label})
 
     def hasId(self, id):
         """
         Filter vertex/edge based on id.
         """
+        id = _wrap_str_value(id)
         return self.__append({"hasId": id})
 
     def hasKey(self, key):
         """
         Filter vertex/edge based on the existence of properties.
         """
+        key = _wrap_str_value(key)
         return self.__append({"hasKey": key})
 
     def fields(self, field=[]):
@@ -181,7 +184,7 @@ class Query:
 
         Used to return elements from select().
         """
-        return self.__append({"mark": name})
+        return self.__append({"as": name})
 
     def select(self, marks):
         """
@@ -205,17 +208,17 @@ class Query:
         """
         return self.__append({"limit": n})
 
-    def offset(self, n):
+    def skip(self, n):
         """
         Offset the results returned.
         """
-        return self.__append({"offset": n})
+        return self.__append({"skip": n})
 
     def range(self, offset, limit):
         """
         Offset and limit the results returned.
         """
-        return self.__append({"range": {"offset": offset, "limit": limit}})
+        return self.__append({"range": {"start": offset, "stop": limit}})
 
     def count(self):
         """

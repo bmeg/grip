@@ -54,7 +54,7 @@ def test_distinct(O):
         errors.append("Distinct %s != %s" % (count, 0))
 
     count = 0
-    for i in O.query().V().where(gripql.eq("_label", "Person")).mark("person").out().distinct("$person.name"):
+    for i in O.query().V().hasLabel("Person").as_("person").out().distinct("$person.name"):
         count += 1
     if count != 1:
         errors.append("Distinct %s != %s" % (count, 1))

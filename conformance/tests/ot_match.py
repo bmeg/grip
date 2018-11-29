@@ -21,10 +21,10 @@ def test_match_count(O):
     O.addEdge("4", "5", "created", {"weight": 1.0})
 
     query = O.query().V().match([
-        O.query().mark('a').out('created').mark('b'),
-        O.query().mark('b').where(gripql.eq('$.name', 'lop')),
-        O.query().mark('b').in_('created').mark('c'),
-        O.query().mark('c').where(gripql.eq('$.age', "29"))
+        O.query().as_('a').out('created').as_('b'),
+        O.query().as_('b').has(gripql.eq('$.name', 'lop')),
+        O.query().as_('b').in_('created').as_('c'),
+        O.query().as_('c').has(gripql.eq('$.age', "29"))
     ]).select(['a', 'c'])
 
     count = 0

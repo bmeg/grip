@@ -22,13 +22,13 @@ def test_subkey(O):
         errors.append("Incorrect outgoing vertex count %d != %d" % (count, 1))
 
     count = 0
-    for i in O.query().V("Work").outEdge():
+    for i in O.query().V("Work").outE():
         count += 1
     if count != 1:
         errors.append("Incorrect outgoing edge count %d != %d" % (count, 1))
 
     count = 0
-    for i in O.query().V("Other").inEdge():
+    for i in O.query().V("Other").inE():
         count += 1
     if count != 1:
         errors.append("Incorrect incoming edge count %d != %d" % (count, 1))
