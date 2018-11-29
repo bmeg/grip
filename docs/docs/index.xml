@@ -129,7 +129,7 @@ O.query().V([&amp;quot;vertex1]&amp;quot;)  Returns:
 {&amp;quot;gid&amp;quot; : &amp;quot;vertex1&amp;quot;, &amp;quot;label&amp;quot;:&amp;quot;TestVertex&amp;quot;, &amp;quot;data&amp;quot;:{}}  .E([ids]) Start query from Edge
 O.query().E()  Returns all edges in graph
 O.query().E([&amp;quot;edge1&amp;quot;])  Returns:
-{&amp;quot;gid&amp;quot; : &amp;quot;edge1&amp;quot;, &amp;quot;label&amp;quot;:&amp;quot;TestEdge&amp;quot;, From: &amp;quot;vertex1&amp;quot;, To: &amp;quot;vertex2&amp;quot;, data&amp;quot;:{}}  Traverse the graph .in_() Following incoming edges. Optional argument is the edge label (or list of labels) that should be followed.</description>
+{&amp;quot;gid&amp;quot; : &amp;quot;edge1&amp;quot;, &amp;quot;label&amp;quot;:&amp;quot;TestEdge&amp;quot;, From: &amp;quot;vertex1&amp;quot;, To: &amp;quot;vertex2&amp;quot;, data&amp;quot;:{}}  Traverse the graph .in_(), inV() Following incoming edges. Optional argument is the edge label (or list of labels) that should be followed.</description>
     </item>
     
     <item>
@@ -160,7 +160,7 @@ Database: psql PSQL: Host: localhost Port: 15432 User: &amp;quot;&amp;quot; Pass
       <guid>https://docs.bmeg.io/grip/docs/queries/jsonpath/</guid>
       <description>Several operations (where, fields, render, etc.) reference properties of the vertices/edges during the traversal. GRIP uses a variation on JSONPath syntax as described in http://goessner.net/articles/ to reference fields during traversals.
 The following query:
-O.query().V([&amp;quot;ENSG00000012048&amp;quot;]).mark(&amp;quot;gene&amp;quot;).out(&amp;quot;variant&amp;quot;)  Starts at vertex ENSG00000012048 and marks as gene:
+O.query().V([&amp;quot;ENSG00000012048&amp;quot;]).as_(&amp;quot;gene&amp;quot;).out(&amp;quot;variant&amp;quot;)  Starts at vertex ENSG00000012048 and marks as gene:
 { &amp;quot;gid&amp;quot;: &amp;quot;ENSG00000012048&amp;quot;, &amp;quot;label&amp;quot;: &amp;quot;gene&amp;quot;, &amp;quot;data&amp;quot;: { &amp;quot;symbol&amp;quot;: { &amp;quot;ensembl&amp;quot;: &amp;quot;ENSG00000012048&amp;quot;, &amp;quot;hgnc&amp;quot;: 1100, &amp;quot;entrez&amp;quot;: 672, &amp;quot;hugo&amp;quot;: &amp;quot;BRCA1&amp;quot; } &amp;quot;transcipts&amp;quot;: [&amp;quot;ENST00000471181.7&amp;quot;, &amp;quot;ENST00000357654.8&amp;quot;, &amp;quot;ENST00000493795.5&amp;quot;] } }  as &amp;ldquo;gene&amp;rdquo; and traverses the graph to:</description>
     </item>
     

@@ -236,7 +236,7 @@ GRIP uses a variation on JSONPath syntax as described in <a href="http://goessne
 
 <p>The following query:</p>
 
-<pre><code>O.query().V([&quot;ENSG00000012048&quot;]).mark(&quot;gene&quot;).out(&quot;variant&quot;)
+<pre><code>O.query().V([&quot;ENSG00000012048&quot;]).as_(&quot;gene&quot;).out(&quot;variant&quot;)
 </code></pre>
 
 <p>Starts at vertex <code>ENSG00000012048</code> and marks as <code>gene</code>:</p>
@@ -337,7 +337,7 @@ GRIP uses a variation on JSONPath syntax as described in <a href="http://goessne
 
 <h2 id="usage-example">Usage Example:</h2>
 
-<pre><code>O.query().V([&quot;ENSG00000012048&quot;]).mark(&quot;gene&quot;).out(&quot;variant&quot;).render({&quot;variant_id&quot;: &quot;_gid&quot;, &quot;variant_type&quot;: &quot;type&quot;, &quot;gene_id&quot;: &quot;$gene._gid&quot;})
+<pre><code>O.query().V([&quot;ENSG00000012048&quot;]).as_(&quot;gene&quot;).out(&quot;variant&quot;).render({&quot;variant_id&quot;: &quot;_gid&quot;, &quot;variant_type&quot;: &quot;type&quot;, &quot;gene_id&quot;: &quot;$gene._gid&quot;})
 </code></pre>
 
 <p>returns</p>

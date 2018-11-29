@@ -253,7 +253,7 @@ O = conn.graph(&quot;bmeg&quot;)
 
 <p>One of the first things you probably want to do is find some vertex out of all of the vertexes available in the system. In order to do this, we need to know something about the vertex we are looking for. To start, let&rsquo;s see if we can find a specific gene:</p>
 
-<pre><code class="language-python">print list(O.query().V().where(gripql.eq(&quot;_label&quot;, &quot;Gene&quot;)).where(gripql.eq(&quot;symbol&quot;, &quot;TP53&quot;)))
+<pre><code class="language-python">print list(O.query().V().hasLabel(&quot;Gene&quot;).has(gripql.eq(&quot;symbol&quot;, &quot;TP53&quot;)))
 </code></pre>
 
 <p>A couple things about this first and simplest query. We start with <code>O</code>, our grip client instance connected to the &ldquo;bmeg&rdquo; graph, and create a new query with <code>.query()</code>. This query is now being constructed. You can chain along as many operations as you want, and nothing will actually get sent to the server until you print the results.</p>
@@ -284,9 +284,9 @@ O = conn.graph(&quot;bmeg&quot;)
 <li><em>data</em>: This is where all the data goes. <code>data</code> can be an arbitrary map, and these properties can be referenced during traversals.</li>
 </ul>
 
-<p>You can also do a <code>where</code> query with a list of items using <code>gripql.in_([...])</code> (other conditions exist, see the <code>Conditions</code> section below):</p>
+<p>You can also do a <code>has</code> query with a list of items using <code>gripql.within([...])</code> (other conditions exist, see the <code>Conditions</code> section below):</p>
 
-<pre><code class="language-python">print list(O.query().V().where(gripql.eq(&quot;_label&quot;, &quot;Gene&quot;)).where(gripql.in_(&quot;symbol&quot;, [&quot;TP53&quot;, &quot;BRCA1&quot;])).render({&quot;gid&quot;: &quot;_gid&quot;, &quot;symbol&quot;:&quot;symbol&quot;}))
+<pre><code class="language-python">print list(O.query().V().hasLabel(&quot;Gene&quot;).has(gripql.within(&quot;symbol&quot;, [&quot;TP53&quot;, &quot;BRCA1&quot;])).render({&quot;gid&quot;: &quot;_gid&quot;, &quot;symbol&quot;:&quot;symbol&quot;}))
 </code></pre>
 
 <p>This returns both Gene vertexes:</p>
@@ -303,7 +303,7 @@ O = conn.graph(&quot;bmeg&quot;)
 
 <p>Starting with gene TP53, and see what kind of other vertexes it is connected to.</p>
 
-<pre><code class="language-python">O.query().V().where(gripql.eq(&quot;_label&quot;, &quot;Gene&quot;)).where(gripql.eq(&quot;symbol&quot;, &quot;TP53&quot;))
+<pre><code class="language-python">O.query().V().hasLabel(&quot;Gene&quot;).has(gripql.eq(&quot;symbol&quot;, &quot;TP53&quot;))
 </code></pre>
 
 <p>Here we have introduced a couple of new steps. The first is <code>.out()</code>. This starts from wherever you are in the graph at the moment and travels out along all the outgoing edges.</p>

@@ -269,97 +269,125 @@
 
 <h1 id="traverse-the-graph">Traverse the graph</h1>
 
-<h2 id="in">.in_()</h2>
+<h2 id="in-inv">.in_(), inV()</h2>
 
 <p>Following incoming edges. Optional argument is the edge label (or list of labels) that should be followed. If no argument is provided, all incoming edges.</p>
 
-<h2 id="out">.out()</h2>
+<h2 id="out-outv">.out(), .outV()</h2>
 
 <p>Following outgoing edges. Optional argument is the edge label (or list of labels) that should be followed. If no argument is provided, all outgoing edges.</p>
 
-<h2 id="both">.both()</h2>
+<h2 id="both-bothv">.both(), .bothV()</h2>
 
 <p>Following all edges (both in and out). Optional argument is the edge label (or list of labels) that should be followed.</p>
 
-<h2 id="inedge">.inEdge()</h2>
+<h2 id="ine">.inE()</h2>
 
 <p>Following incoming edges, but return the edge as the next element. This can be used to inspect edge properties. Optional argument is the edge label (or list of labels) that should be followed. To return back to a vertex, use <code>.in_</code> or <code>.out</code></p>
 
-<h2 id="outedge">.outEdge()</h2>
+<h2 id="oute">.outE()</h2>
 
 <p>Following outgoing edges, but return the edge as the next element. This can be used to inspect edge properties. Optional argument is the edge label (or list of labels) that should be followed. To return back to a vertex, use <code>.in_</code> or <code>.out</code></p>
 
-<h2 id="bothedge">.bothEdge()</h2>
+<h2 id="bothe">.bothE()</h2>
 
 <p>Following all edges, but return the edge as the next element. This can be used to inspect edge properties. Optional argument is the edge label (or list of labels) that should be followed. To return back to a vertex, use <code>.in_</code> or <code>.out</code></p>
 
 <h1 id="filtering">Filtering</h1>
 
-<h2 id="where">.where()</h2>
+<h2 id="has">.has()</h2>
 
 <p>Filter elements using conditional statements</p>
 
-<pre><code class="language-python">O.query().V().where(gripql.eq(&quot;_label&quot;, &quot;Gene&quot;)).where(gripql.eq(&quot;symbol&quot;, &quot;TP53&quot;))
+<pre><code class="language-python">O.query().V().has(gripql.eq(&quot;_label&quot;, &quot;Gene&quot;)).has(gripql.eq(&quot;symbol&quot;, &quot;TP53&quot;))
 </code></pre>
 
 <h2 id="conditions">Conditions</h2>
 
-<p>Conditions are arguments to <code>.where()</code> that define selection conditions</p>
+<p>Conditions are arguments to <code>.has()</code> that define selection conditions</p>
 
 <h3 id="gripql-eq-variable-value">gripql.eq(variable, value)</h3>
 
 <p>Returns rows where variable == value</p>
 
-<pre><code class="language-python">.where(gripql.eq(&quot;symbol&quot;, &quot;TP53&quot;))
+<pre><code class="language-python">.has(gripql.eq(&quot;symbol&quot;, &quot;TP53&quot;))
 </code></pre>
 
 <h3 id="gripql-neq-variable-value">gripql.neq(variable, value)</h3>
 
 <p>Returns rows where variable != value</p>
 
-<pre><code class="language-python">.where(gripql.neq(&quot;symbol&quot;, &quot;TP53&quot;))
+<pre><code class="language-python">.has(gripql.neq(&quot;symbol&quot;, &quot;TP53&quot;))
 </code></pre>
 
 <h3 id="gripql-gt-variable-value">gripql.gt(variable, value)</h3>
 
 <p>Returns rows where variable &gt; value</p>
 
-<pre><code class="language-python">.where(gripql.gt(&quot;age&quot;, 45))
+<pre><code class="language-python">.has(gripql.gt(&quot;age&quot;, 45))
 </code></pre>
 
 <h3 id="gripql-lt-variable-value">gripql.lt(variable, value)</h3>
 
 <p>Returns rows where variable &lt; value</p>
 
-<pre><code class="language-python">.where(gripql.lt(&quot;age&quot;, 45))
+<pre><code class="language-python">.has(gripql.lt(&quot;age&quot;, 45))
 </code></pre>
 
 <h3 id="gripql-gte-variable-value">gripql.gte(variable, value)</h3>
 
 <p>Returns rows where variable &gt;= value</p>
 
-<pre><code class="language-python">.where(gripql.gte(&quot;age&quot;, 45))
+<pre><code class="language-python">.has(gripql.gte(&quot;age&quot;, 45))
 </code></pre>
 
 <h3 id="gripql-lte-variable-value">gripql.lte(variable, value)</h3>
 
 <p>Returns rows where variable &lt;= value</p>
 
-<pre><code class="language-python">.where(gripql.lte(&quot;age&quot;, 45))
+<pre><code class="language-python">.has(gripql.lte(&quot;age&quot;, 45))
 </code></pre>
 
-<h3 id="gripql-in-variable-value">gripql.in_(variable, value)</h3>
+<h3 id="gripql-inside-variable-lower-bound-upper-bound">gripql.inside(variable, [lower_bound, upper_bound])</h3>
 
-<p>Returns rows where variable in value</p>
+<p>Returns rows where variable &gt; lower_bound &amp;&amp; variable &lt; upper_bound</p>
 
-<pre><code class="language-python">.where(gripql.in_(&quot;symbol&quot;, [&quot;TP53&quot;, &quot;BRCA1&quot;]))
+<pre><code class="language-python">.has(gripql.inside(&quot;age&quot;, [30, 45]))
+</code></pre>
+
+<h3 id="gripql-outside-variable-lower-bound-upper-bound">gripql.outside(variable, [lower_bound, upper_bound])</h3>
+
+<p>Returns rows where variable &lt; lower_bound || variable &gt; upper_bound</p>
+
+<pre><code class="language-python">.has(gripql.outside(&quot;age&quot;, [30, 45]))
+</code></pre>
+
+<h3 id="gripql-between-variable-lower-bound-upper-bound">gripql.between(variable, [lower_bound, upper_bound])</h3>
+
+<p>Returns rows where variable &gt;= lower_bound &amp;&amp; variable &lt; upper_bound</p>
+
+<pre><code class="language-python">.has(gripql.between(&quot;age&quot;, [30, 45]))
+</code></pre>
+
+<h3 id="gripql-within-variable-value">gripql.within(variable, value)</h3>
+
+<p>Returns rows where variable is within provided values</p>
+
+<pre><code class="language-python">.has(gripql.within(&quot;symbol&quot;, [&quot;TP53&quot;, &quot;BRCA1&quot;]))
+</code></pre>
+
+<h3 id="gripql-without-variable-value">gripql.without(variable, value)</h3>
+
+<p>Returns rows where variable is not within provided values</p>
+
+<pre><code class="language-python">.has(gripql.within(&quot;symbol&quot;, [&quot;TP53&quot;, &quot;BRCA1&quot;]))
 </code></pre>
 
 <h3 id="gripql-contains-variable-value">gripql.contains(variable, value)</h3>
 
 <p>Returns rows where variable contains value</p>
 
-<pre><code class="language-python">.where(gripql.in_(&quot;groups&quot;, &quot;group1&quot;))
+<pre><code class="language-python">.has(gripql.in_(&quot;groups&quot;, &quot;group1&quot;))
 </code></pre>
 
 <p>Returns:</p>
@@ -369,26 +397,26 @@
 
 <h3 id="gripql-and-conditions">gripql.and_([conditions])</h3>
 
-<pre><code class="language-python">.where(gripql.and_( [gripql.lte(&quot;age&quot;, 45), gripql.gte(&quot;age&quot;, 35)] ))
+<pre><code class="language-python">.has(gripql.and_( [gripql.lte(&quot;age&quot;, 45), gripql.gte(&quot;age&quot;, 35)] ))
 </code></pre>
 
 <h3 id="gripql-or-conditions">gripql.or_([conditions])</h3>
 
-<pre><code class="language-python">.where(gripql.or_( [...] ))
+<pre><code class="language-python">.has(gripql.or_( [...] ))
 </code></pre>
 
 <h3 id="gripql-not-condition">gripql.not_(condition)</h3>
 
-<pre><code class="language-python">.where(gripql.not_( [...] ))
+<pre><code class="language-python">.has(gripql.not_( [...] ))
 </code></pre>
 
 <h1 id="output">Output</h1>
 
-<h2 id="mark-name">.mark(name)</h2>
+<h2 id="as-name">.as_(name)</h2>
 
 <p>Store current row for future reference</p>
 
-<pre><code class="language-python">O.query().V().mark(&quot;a&quot;).out().mark(&quot;b&quot;)
+<pre><code class="language-python">O.query().V().as_(&quot;a&quot;).out().as_(&quot;b&quot;)
 </code></pre>
 
 <h2 id="select-names">.select([names])</h2>
@@ -405,11 +433,18 @@
 <pre><code class="language-python">O.query().V().limit(5)
 </code></pre>
 
-<h2 id="offset-count">.offset(count)</h2>
+<h2 id="skip-count">.skip(count)</h2>
 
 <p>Start return after offset</p>
 
-<pre><code class="language-python">O.query().V().offset(5).limit(5)
+<pre><code class="language-python">O.query().V().skip(5).limit(5)
+</code></pre>
+
+<h2 id="range-start-stop">.range(start, stop)</h2>
+
+<p>As results are iterated return objects starting with lower index As traversers propagate through the traversal, it is possible to only allow a certain number of them to pass through with range()-step (filter). When the low-end of the range is not met, objects are continued to be iterated. When within the low (inclusive) and high (exclusive) range, traversers are emitted. When above the high range, the traversal breaks out of iteration. Finally, the use of -1 on the high range will emit remaining traversers after the low range begins.</p>
+
+<pre><code class="language-python">O.query().V().range(5, 15)
 </code></pre>
 
 <h2 id="fields-fields">.fields([fields])</h2>

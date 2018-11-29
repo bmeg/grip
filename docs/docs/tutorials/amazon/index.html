@@ -269,18 +269,18 @@
 
 conn = gripql.Connection(&quot;http://localhost:8201&quot;)
 
-O = conn.graph(&quot;amazon&quot;)
+g = conn.graph(&quot;amazon&quot;)
 
 # Count the Vertices
-print O.query().V().count().execute()
+print g.query().V().count().execute()
 # Count the Edges
-print O.query().E().count().execute()
+print g.query().E().count().execute()
 
 # Try simple travesral
-print O.query().V(&quot;B00000I06U&quot;).outEdge().execute()
+print g.query().V(&quot;B00000I06U&quot;).outE().execute()
 
 # Find every Book that is similar to a DVD
-for result in O.query().V().where(gripql.eq(&quot;group&quot;, &quot;Book&quot;)).mark(&quot;a&quot;).out(&quot;similar&quot;).where(gripql.eq(&quot;group&quot;, &quot;DVD&quot;)).mark(&quot;b&quot;).select([&quot;a&quot;, &quot;b&quot;]):
+for result in g.query().V().has(gripql.eq(&quot;group&quot;, &quot;Book&quot;)).as_(&quot;a&quot;).out(&quot;similar&quot;).has(gripql.eq(&quot;group&quot;, &quot;DVD&quot;)).as_(&quot;b&quot;).select([&quot;a&quot;, &quot;b&quot;]):
     print result
 </code></pre>
 
