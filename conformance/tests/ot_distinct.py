@@ -1,6 +1,3 @@
-import gripql
-
-
 def test_distinct(O):
     errors = []
 

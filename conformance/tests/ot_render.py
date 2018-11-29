@@ -1,7 +1,5 @@
 from __future__ import absolute_import
 
-import gripql
-
 
 def test_render(O):
     errors = []
