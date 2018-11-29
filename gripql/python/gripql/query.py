@@ -69,19 +69,6 @@ class Query:
         id = _wrap_str_value(id)
         return self.__append({"e": id})
 
-    def where(self, expression):
-        """
-        Filter vertex/edge based on properties.
-        """
-        return self.__append({"where": expression})
-
-    def fields(self, field=[]):
-        """
-        Select document properties to be returned in document.
-        """
-        field = _wrap_str_value(field)
-        return self.__append({"fields": field})
-
     def in_(self, label=[]):
         """
         Follow an incoming edge to the source vertex.
@@ -91,6 +78,9 @@ class Query:
         """
         label = _wrap_str_value(label)
         return self.__append({"in": label})
+
+    def inV(self, label=[]):
+        return self.in_(label)
 
     def out(self, label=[]):
         """
@@ -102,6 +92,9 @@ class Query:
         label = _wrap_str_value(label)
         return self.__append({"out": label})
 
+    def outV(self, label=[]):
+        return self.out(label)
+
     def both(self, label=[]):
         """
         Follow both incoming and outgoing edges to vertices.
@@ -112,7 +105,10 @@ class Query:
         label = _wrap_str_value(label)
         return self.__append({"both": label})
 
-    def inEdge(self, label=[]):
+    def bothV(self, label=[]):
+        return self.both(label)
+
+    def inE(self, label=[]):
         """
         Move from a vertex to an incoming edge.
 
@@ -124,7 +120,7 @@ class Query:
         label = _wrap_str_value(label)
         return self.__append({"in_edge": label})
 
-    def outEdge(self, label=[]):
+    def outE(self, label=[]):
         """
         Move from a vertex to an outgoing edge.
 
@@ -136,7 +132,7 @@ class Query:
         label = _wrap_str_value(label)
         return self.__append({"out_edge": label})
 
-    def bothEdge(self, label=[]):
+    def bothE(self, label=[]):
         """
         Move from a vertex to incoming/outgoing edges.
 
@@ -148,7 +144,38 @@ class Query:
         label = _wrap_str_value(label)
         return self.__append({"both_edge": label})
 
-    def mark(self, name):
+    def has(self, expression):
+        """
+        Filter vertex/edge based on properties.
+        """
+        return self.__append({"has": expression})
+
+    def hasLabel(self, label):
+        """
+        Filter vertex/edge based on label.
+        """
+        return self.__append({"hasLabel": label})
+
+    def hasId(self, id):
+        """
+        Filter vertex/edge based on id.
+        """
+        return self.__append({"hasId": id})
+
+    def hasKey(self, key):
+        """
+        Filter vertex/edge based on the existence of properties.
+        """
+        return self.__append({"hasKey": key})
+
+    def fields(self, field=[]):
+        """
+        Select document properties to be returned in document.
+        """
+        field = _wrap_str_value(field)
+        return self.__append({"fields": field})
+
+    def as_(self, name):
         """
         Mark the current vertex/edge with the given name.
 
@@ -183,6 +210,12 @@ class Query:
         Offset the results returned.
         """
         return self.__append({"offset": n})
+
+    def range(self, offset, limit):
+        """
+        Offset and limit the results returned.
+        """
+        return self.__append({"range": {"offset": offset, "limit": limit}})
 
     def count(self):
         """
