@@ -133,12 +133,12 @@ func (q *Query) Skip(n uint32) *Query {
 }
 
 // Range will drop the first n number of records and return the rest.
-func (q *Query) Range(start, end int32) *Query {
+func (q *Query) Range(skip, limit int32) *Query {
 	return q.with(&GraphStatement{
 		Statement: &GraphStatement_Range{
 			&Range{
-				Start: start,
-				End:   end,
+				Skip:  skip,
+				Limit: limit,
 			},
 		},
 	})
@@ -228,15 +228,15 @@ func (q *Query) String() string {
 			add("Has")
 
 		case *GraphStatement_HasLabel:
-      labels := protoutil.AsStringList(stmt.HasLabel)
+			labels := protoutil.AsStringList(stmt.HasLabel)
 			add("HasLabel", labels...)
 
 		case *GraphStatement_HasId:
-      ids := protoutil.AsStringList(stmt.HasId)
+			ids := protoutil.AsStringList(stmt.HasId)
 			add("HasId", ids...)
 
 		case *GraphStatement_HasKey:
-      keys := protoutil.AsStringList(stmt.HasKey)
+			keys := protoutil.AsStringList(stmt.HasKey)
 			add("HasKey", keys...)
 
 		case *GraphStatement_Limit:
@@ -246,7 +246,7 @@ func (q *Query) String() string {
 			add("Skip", fmt.Sprintf("%d", stmt.Skip))
 
 		case *GraphStatement_Range:
-			add("Range", fmt.Sprintf("%d", stmt.Range.Start), fmt.Sprintf("%d", stmt.Range.End))
+			add("Range", fmt.Sprintf("%d", stmt.Range.Skip), fmt.Sprintf("%d", stmt.Range.Limit))
 
 		case *GraphStatement_Count:
 			add("Count")

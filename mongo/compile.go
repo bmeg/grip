@@ -371,12 +371,12 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, er
 			if lastType != gdbi.VertexData && lastType != gdbi.EdgeData {
 				return &Pipeline{}, fmt.Errorf(`"hasLabel" statement is only valid for edge or vertex types not: %s`, lastType.String())
 			}
-      labels := protoutil.AsStringList(stmt.HasLabel)
-      ilabels := make([]interface{}, len(labels))
-      for i, v := range labels {
-        ilabels[i] = v
-      }
-      has := gripql.Within("_label", ilabels...)
+			labels := protoutil.AsStringList(stmt.HasLabel)
+			ilabels := make([]interface{}, len(labels))
+			for i, v := range labels {
+				ilabels[i] = v
+			}
+			has := gripql.Within("_label", ilabels...)
 			whereExpr := convertHasExpression(has, false)
 			matchStmt := bson.M{"$match": whereExpr}
 			query = append(query, matchStmt)
@@ -385,12 +385,12 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, er
 			if lastType != gdbi.VertexData && lastType != gdbi.EdgeData {
 				return &Pipeline{}, fmt.Errorf(`"hasId" statement is only valid for edge or vertex types not: %s`, lastType.String())
 			}
-      ids := protoutil.AsStringList(stmt.HasId)
-      iids := make([]interface{}, len(ids))
-      for i, v := range ids {
-        iids[i] = v
-      }
-      has := gripql.Within("_gid", iids...)
+			ids := protoutil.AsStringList(stmt.HasId)
+			iids := make([]interface{}, len(ids))
+			for i, v := range ids {
+				iids[i] = v
+			}
+			has := gripql.Within("_gid", iids...)
 			whereExpr := convertHasExpression(has, false)
 			matchStmt := bson.M{"$match": whereExpr}
 			query = append(query, matchStmt)
@@ -399,8 +399,12 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, er
 			if lastType != gdbi.VertexData && lastType != gdbi.EdgeData {
 				return &Pipeline{}, fmt.Errorf(`"hasKey" statement is only valid for edge or vertex types not: %s`, lastType.String())
 			}
-      // keys := protoutil.AsStringList(stmt.HasKeys)
-      // TODO
+			hasKeys := bson.M{}
+			keys := protoutil.AsStringList(stmt.HasKey)
+			for _, key := range keys {
+				hasKeys[key] = bson.M{"$exists": true}
+			}
+			query = append(query, hasKeys)
 
 		case *gripql.GraphStatement_Limit:
 			query = append(query,
@@ -412,10 +416,10 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, er
 
 		case *gripql.GraphStatement_Range:
 			query = append(query,
-				bson.M{"$skip": stmt.Range.Start})
-			if stmt.Range.End != -1 {
+				bson.M{"$skip": stmt.Range.Skip})
+			if stmt.Range.Limit != -1 {
 				query = append(query,
-					bson.M{"$limit": stmt.Range.End})
+					bson.M{"$limit": stmt.Range.Limit - stmt.Range.Skip})
 			}
 
 		case *gripql.GraphStatement_Count:

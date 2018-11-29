@@ -15,7 +15,37 @@ func convertHasExpression(stmt *gripql.HasExpression, not bool) bson.M {
 	switch stmt.Expression.(type) {
 	case *gripql.HasExpression_Condition:
 		cond := stmt.GetCondition()
-		output = convertCondition(cond, not)
+		switch cond.Condition {
+		case gripql.Condition_INSIDE:
+			val := protoutil.UnWrapValue(cond.Value)
+			lims, ok := val.([]interface{})
+			if !ok {
+				log.Error("unable to cast values from INSIDE statement")
+			} else {
+				output = convertHasExpression(gripql.And(gripql.Gt(cond.Key, lims[0]), gripql.Lt(cond.Key, lims[1])), not)
+			}
+
+		case gripql.Condition_OUTSIDE:
+			val := protoutil.UnWrapValue(cond.Value)
+			lims, ok := val.([]interface{})
+			if !ok {
+				log.Error("unable to cast values from OUTSIDE statement")
+			} else {
+				output = convertHasExpression(gripql.Or(gripql.Lt(cond.Key, lims[0]), gripql.Gt(cond.Key, lims[1])), not)
+			}
+
+		case gripql.Condition_BETWEEN:
+			val := protoutil.UnWrapValue(cond.Value)
+			lims, ok := val.([]interface{})
+			if !ok {
+				log.Error("unable to cast values from BETWEEN statement")
+			} else {
+				output = convertHasExpression(gripql.And(gripql.Gte(cond.Key, lims[0]), gripql.Lt(cond.Key, lims[1])), not)
+			}
+
+		default:
+			output = convertCondition(cond, not)
+		}
 
 	case *gripql.HasExpression_And:
 		and := stmt.GetAnd()
@@ -78,12 +108,6 @@ func convertCondition(cond *gripql.HasCondition, not bool) bson.M {
 		expr = bson.M{"$lt": val}
 	case gripql.Condition_LTE:
 		expr = bson.M{"$lte": val}
-  case gripql.Condition_INSIDE:
-    // TODO
-  case gripql.Condition_OUTSIDE:
-    // TODO
-  case gripql.Condition_BETWEEN:
-    // TODO
 	case gripql.Condition_WITHIN:
 		expr = bson.M{"$in": val}
 	case gripql.Condition_WITHOUT:

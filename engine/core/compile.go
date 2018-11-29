@@ -180,7 +180,7 @@ func (comp DefaultCompiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeli
 			add(&Skip{stmt.Skip})
 
 		case *gripql.GraphStatement_Range:
-			add(&Range{start: stmt.Range.Start, end: stmt.Range.End})
+			add(&Range{skip: stmt.Range.Skip, limit: stmt.Range.Limit})
 
 		case *gripql.GraphStatement_Count:
 			add(&Count{})
