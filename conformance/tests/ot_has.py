@@ -16,6 +16,85 @@ def setupGraph(O):
     O.addEdge("vertex2", "vertex4", "friend", gid="edge3")
 
 
+def test_hasLabel(O):
+    errors = []
+    setupGraph(O)
+
+    count = 0
+    for i in O.query().V().hasLabel("robot"):
+        count += 1
+        if i['gid'] not in ["vertex3", "vertex4"]:
+            errors.append("Wrong vertex returned %s" % (i))
+    if count != 2:
+        errors.append(
+            "Fail: O.query().V().hasLabel(\"robot\") %s != %s" %
+            (count, 2))
+
+    count = 0
+    for i in O.query().V().hasLabel(["robot", "person"]):
+        count += 1
+    if count != 6:
+        errors.append(
+            "Fail: O.query().V().hasLabel([\"robot\", \"person\"]) %s != %s" %
+            (count, 6))
+
+    return errors
+
+
+def test_hasKey(O):
+    errors = []
+    setupGraph(O)
+
+    count = 0
+    for i in O.query().V().hasKey("age"):
+        count += 1
+        if i['gid'] not in ["vertex1", "vertex2", "vertex5", "vertex6"]:
+            errors.append("Wrong vertex returned %s" % (i))
+    if count != 4:
+        errors.append(
+            "Fail: O.query().V().hasKey(\"age\") %s != %s" %
+            (count, 4))
+
+    count = 0
+    for i in O.query().V().hasKey(["age", "starships"]):
+        count += 1
+        if i['gid'] not in ["vertex1", "vertex2", "vertex6"]:
+            errors.append("Wrong vertex returned %s" % (i))
+    if count != 3:
+        errors.append(
+            "Fail: O.query().V().hasKey([\"age\", \"starships\"]) %s != %s" %
+            (count, 3))
+
+    return errors
+
+
+def test_hasId(O):
+    errors = []
+    setupGraph(O)
+
+    count = 0
+    for i in O.query().V().hasId("vertex1"):
+        count += 1
+        if i['gid'] != "vertex1":
+            errors.append("Wrong vertex returned %s" % (i))
+    if count != 1:
+        errors.append(
+            "Fail: O.query().V().hasId(\"vertex1\") %s != %s" %
+            (count, 1))
+
+    count = 0
+    for i in O.query().V().hasId(["vertex1", "vertex2"]):
+        count += 1
+        if i['gid'] not in ["vertex1", "vertex2"]:
+            errors.append("Wrong vertex returned %s" % (i))
+    if count != 2:
+        errors.append(
+            "Fail: O.query().V().hasId([\"vertex1\", \"vertex2\"]) %s != %s" %
+            (count, 2))
+
+    return errors
+
+
 def test_has_eq(O):
     errors = []
     setupGraph(O)

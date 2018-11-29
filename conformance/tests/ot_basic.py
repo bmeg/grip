@@ -382,3 +382,40 @@ def test_skip(O):
         errors.append("Wrong edge count found %s != %s" % (count, 2))
 
     return errors
+
+
+def test_range(O):
+    errors = []
+
+    O.addVertex("vertex1", "person")
+    O.addVertex("vertex2", "person")
+    O.addVertex("vertex3", "person")
+    O.addVertex("vertex4", "person")
+    O.addVertex("vertex5", "person")
+    O.addVertex("vertex6", "person")
+    O.addVertex("vertex7", "person")
+    O.addVertex("vertex8", "person")
+    O.addVertex("vertex9", "person")
+
+    O.addEdge("vertex1", "vertex2", "friend", gid="edge1")
+    O.addEdge("vertex1", "vertex3", "friend", gid="edge2")
+    O.addEdge("vertex1", "vertex7", "parent", gid="edge3")
+    O.addEdge("vertex1", "vertex9", "parent", gid="edge4")
+    O.addEdge("vertex2", "vertex1", "enemy", gid="edge5")
+    O.addEdge("vertex8", "vertex1", "enemy", gid="edge6")
+
+    count = 0
+    for row in O.query().V().range(4, 6):
+        count += 1
+        if row['gid'] not in ["vertex5", "vertex6"]:
+            errors.append("Wrong vertex found: %s" % (row['gid']))
+    if count != 2:
+        errors.append("Wrong vertex count found %s != %s" % (count, 2))
+
+    count = 0
+    for row in O.query().V().range(4, -1):
+        count += 1
+    if count != 5:
+        errors.append("Wrong vertex count found %s != %s" % (count, 5))
+
+    return errors
