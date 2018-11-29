@@ -25,7 +25,7 @@ var Cmd = &cobra.Command{
 	Short: "Query a graph",
 	Long: `Query a graph.
 Example:
-    grip query example-graph 'V().where(eq("_label", "Variant")).out().limit(5)'`,
+    grip query example-graph 'V().hasLabel("Variant").out().limit(5)'`,
 	Args: cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		vm := goja.New()

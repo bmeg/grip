@@ -61,8 +61,8 @@ message GraphStatement {
 }
 
 message Range {
-  int32 skip = 1;
-  int32 limit = 2;
+  int32 start = 1;
+  int32 stop = 2;
 }
 
 message AggregationsRequest {

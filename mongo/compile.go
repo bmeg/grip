@@ -416,10 +416,10 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, er
 
 		case *gripql.GraphStatement_Range:
 			query = append(query,
-				bson.M{"$skip": stmt.Range.Skip})
-			if stmt.Range.Limit != -1 {
+				bson.M{"$skip": stmt.Range.Start})
+			if stmt.Range.Stop != -1 {
 				query = append(query,
-					bson.M{"$limit": stmt.Range.Limit - stmt.Range.Skip})
+					bson.M{"$limit": stmt.Range.Stop - stmt.Range.Start})
 			}
 
 		case *gripql.GraphStatement_Count:

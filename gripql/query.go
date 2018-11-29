@@ -132,13 +132,17 @@ func (q *Query) Skip(n uint32) *Query {
 	return q.with(&GraphStatement{Statement: &GraphStatement_Skip{n}})
 }
 
-// Range will drop the first n number of records and return the rest.
-func (q *Query) Range(skip, limit int32) *Query {
+// Range will limits which records are returned. When the low-end of the range is
+// not met, objects are continued to be iterated. When within the low (inclusive)
+// and high (exclusive) range, traversers are emitted. When above the high range,
+// the traversal breaks out of iteration. Finally, the use of -1 on the high range
+// will emit remaining traversers after the low range begins.
+func (q *Query) Range(start, stop int32) *Query {
 	return q.with(&GraphStatement{
 		Statement: &GraphStatement_Range{
 			&Range{
-				Skip:  skip,
-				Limit: limit,
+				Start: start,
+				Stop:  stop,
 			},
 		},
 	})
@@ -246,7 +250,7 @@ func (q *Query) String() string {
 			add("Skip", fmt.Sprintf("%d", stmt.Skip))
 
 		case *GraphStatement_Range:
-			add("Range", fmt.Sprintf("%d", stmt.Range.Skip), fmt.Sprintf("%d", stmt.Range.Limit))
+			add("Range", fmt.Sprintf("%d", stmt.Range.Start), fmt.Sprintf("%d", stmt.Range.Stop))
 
 		case *GraphStatement_Count:
 			add("Count")

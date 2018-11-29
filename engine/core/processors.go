@@ -823,8 +823,8 @@ func (o *Skip) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, ou
 // When within the low (inclusive) and high (exclusive) range, traversers are emitted.
 // When above the high range, the traversal breaks out of iteration. Finally, the use of -1 on the high range will emit remaining traversers after the low range begins.
 type Range struct {
-	skip  int32
-	limit int32
+	start int32
+	stop  int32
 }
 
 // Process runs range
@@ -834,9 +834,9 @@ func (r *Range) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, o
 		defer close(out)
 		var i int32
 		for t := range in {
-			if i >= r.skip && (i < r.limit || r.limit == -1) {
+			if i >= r.start && (i < r.stop || r.stop == -1) {
 				out <- t
-			} else if i == r.limit {
+			} else if i == r.stop {
 				cancel()
 			}
 			i++
