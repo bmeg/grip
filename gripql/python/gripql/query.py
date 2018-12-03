@@ -355,3 +355,26 @@ class Query:
             for r in self.__stream(debug):
                 output.append(r)
             return output
+
+
+class __Query(Query):
+    def __init__(self):
+        self.query = []
+
+    def __append(self, part):
+        q = self.__class__()
+        q.query = self.query[:]
+        q.query.append(part)
+        return q
+
+    def __iter__(self):
+        pass
+
+    def __stream(self):
+        pass
+
+    def execute(self):
+        pass
+
+
+__ = __Query()
