@@ -402,9 +402,11 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, er
 			hasKeys := bson.M{}
 			keys := protoutil.AsStringList(stmt.HasKey)
 			for _, key := range keys {
+				key = jsonpath.GetJSONPath(key)
+				key = strings.TrimPrefix(key, "$.")
 				hasKeys[key] = bson.M{"$exists": true}
 			}
-			query = append(query, hasKeys)
+			query = append(query, bson.M{"$match": hasKeys})
 
 		case *gripql.GraphStatement_Limit:
 			query = append(query,
