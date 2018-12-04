@@ -32,20 +32,32 @@ function query() {
 			this.query.push({'both': process(label)})
 			return this
 		},
-		outEdge: function(label) {
-			this.query.push({'out_edge': process(label)})
+		outV: function(label) {
+			this.query.push({'outV': process(label)})
+			return this
+		},
+		inV: function(label) {
+			this.query.push({'inV': process(label)})
+			return this
+		},
+		bothV: function(label) {
+			this.query.push({'bothV': process(label)})
+			return this
+		},
+		outE: function(label) {
+			this.query.push({'out_e': process(label)})
 			return this
 		},
 		inEdge: function(label) {
-			this.query.push({'in_edge': process(label)})
+			this.query.push({'in_e': process(label)})
 			return this
 		},
-		bothEdge: function(label) {
-			this.query.push({'both_edge': process(label)})
+		bothE: function(label) {
+			this.query.push({'both_e': process(label)})
 			return this
 		},
-		mark: function(name) {
-			this.query.push({'mark': name})
+		as_: function(name) {
+			this.query.push({'as': name})
 			return this
 		},
 		select: function(marks) {
@@ -60,6 +72,10 @@ function query() {
 			this.query.push({'offset': n})
 			return this
 		},
+		range: function(start, stop) {
+			this.query.push({'range': {'start': start, 'stop': stop}})
+			return this
+		},
 		count: function() {
 			this.query.push({'count': ''})
 			return this
@@ -68,12 +84,28 @@ function query() {
 			this.query.push({'distinct': process(val)})
 			return this
 		},
+		fields: function(fields) {
+			this.query.push({'fields': fields})
+			return this
+		},
 		render: function(r) {
 			this.query.push({'render': r})
 			return this
 		},
-		where: function(expression) {
-			this.query.push({'where': expression})
+		has: function(expression) {
+			this.query.push({'has': expression})
+			return this
+		},
+		hasLabel: function(label) {
+			this.query.push({'hasLabel': label})
+			return this
+		},
+		hasId: function(id) {
+			this.query.push({'hasId': id})
+			return this
+		},
+		hasKey: function(key) {
+			this.query.push({'hasKey': key})
 			return this
 		},
 		aggregate: function() {
@@ -120,8 +152,24 @@ function lte(key, value) {
 	return {'condition': {'key': key, 'value': value, 'condition': 'LTE'}}
 }
 
-function in_(key, values) {
-	return {'condition': {'key': key, 'value': process(values), 'condition': 'IN'}}
+function inside(key, values) {
+	return {'condition': {'key': key, 'value': process(values), 'condition': 'INSIDE'}}
+}
+
+function outside(key, values) {
+	return {'condition': {'key': key, 'value': process(values), 'condition': 'OUTSIDE'}}
+}
+
+function between(key, values) {
+	return {'condition': {'key': key, 'value': process(values), 'condition': 'BETWEEN'}}
+}
+
+function within(key, values) {
+	return {'condition': {'key': key, 'value': process(values), 'condition': 'WITHIN'}}
+}
+
+function without(key, values) {
+	return {'condition': {'key': key, 'value': process(values), 'condition': 'WITHOUT'}}
 }
 
 function contains(key, value) {

@@ -226,7 +226,7 @@ func buildObjectMap(client gripql.Client, graph string, schema *gripql.GraphSche
 				if !ok {
 					return nil, fmt.Errorf("source gid conversion failed: %+v", srcMap)
 				}
-				q := gripql.V(srcGid).Where(gripql.Eq("_label", obj.From)).Out(obj.Label).Where(gripql.Eq("_label", obj.To))
+				q := gripql.V(srcGid).HasLabel(obj.From).Out(obj.Label).HasLabel(obj.To)
 				result, err := client.Traversal(&gripql.GraphQuery{Graph: graph, Query: q.Statements})
 				if err != nil {
 					return nil, err
@@ -258,9 +258,9 @@ func buildQueryObject(client gripql.Client, graph string, objects map[string]*gr
 				"id": &graphql.ArgumentConfig{Type: graphql.String},
 			},
 			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-				q := gripql.V().Where(gripql.Eq("_label", label))
+				q := gripql.V().HasLabel(label)
 				if id, ok := p.Args["id"].(string); ok {
-					q = gripql.V(id).Where(gripql.Eq("_label", label))
+					q = gripql.V(id).HasLabel(label)
 				}
 				result, err := client.Traversal(&gripql.GraphQuery{Graph: graph, Query: q.Statements})
 				if err != nil {

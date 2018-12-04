@@ -1,7 +1,5 @@
 from __future__ import absolute_import
 
-import gripql
-
 
 def test_render(O):
     errors = []
@@ -20,7 +18,7 @@ def test_render(O):
     O.addEdge("6", "3", "created", {"weight": 0.2})
     O.addEdge("4", "5", "created", {"weight": 1.0})
 
-    query = O.query().V().where(gripql.eq("_label", "Person")).render(
+    query = O.query().V().hasLabel("Person").render(
         {
             "Name": "name",
             "Age": "age"
@@ -30,7 +28,7 @@ def test_render(O):
         if 'Age' not in row or "Name" not in row:
             errors.append("Missing fields")
 
-    query = O.query().V().where(gripql.eq("_label", "Person")).render(
+    query = O.query().V().hasLabel("Person").render(
         {
             "Name": "name",
             "NonExistent": "non-existent"
@@ -40,14 +38,14 @@ def test_render(O):
         if 'NonExistent' not in row or "Name" not in row:
             errors.append("Missing fields")
 
-    query = O.query().V().where(gripql.eq("_label", "Person")).render(["name", "age"])
+    query = O.query().V().hasLabel("Person").render(["name", "age"])
     for row in query:
         if not isinstance(row, list):
             errors.append("unexpected output format")
         if len(row) != 2:
             errors.append("Missing fields")
 
-    query = O.query().V().where(gripql.eq("_label", "Person")).render(["name", "non-existent"])
+    query = O.query().V().hasLabel("Person").render(["name", "non-existent"])
     for row in query:
         if not isinstance(row, list):
             errors.append("unexpected output format")

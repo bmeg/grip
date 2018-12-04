@@ -81,11 +81,11 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, er
 			}
 			lastType = gdbi.EdgeData
 
-		case *gripql.GraphStatement_In:
+		case *gripql.GraphStatement_In, *gripql.GraphStatement_InV:
 			if lastType != gdbi.VertexData && lastType != gdbi.EdgeData {
 				return &Pipeline{}, fmt.Errorf(`"in" statement is only valid for edge or vertex types not: %s`, lastType.String())
 			}
-			labels := protoutil.AsStringList(stmt.In)
+			labels := append(protoutil.AsStringList(gs.GetIn()), protoutil.AsStringList(gs.GetInV())...)
 			if lastType == gdbi.VertexData {
 				query = append(query,
 					bson.M{
@@ -129,11 +129,11 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, er
 			}})
 			lastType = gdbi.VertexData
 
-		case *gripql.GraphStatement_Out:
+		case *gripql.GraphStatement_Out, *gripql.GraphStatement_OutV:
 			if lastType != gdbi.VertexData && lastType != gdbi.EdgeData {
 				return &Pipeline{}, fmt.Errorf(`"out" statement is only valid for edge or vertex types not: %s`, lastType.String())
 			}
-			labels := protoutil.AsStringList(stmt.Out)
+			labels := append(protoutil.AsStringList(gs.GetOut()), protoutil.AsStringList(gs.GetOutV())...)
 			if lastType == gdbi.VertexData {
 				query = append(query,
 					bson.M{
@@ -177,11 +177,11 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, er
 			}})
 			lastType = gdbi.VertexData
 
-		case *gripql.GraphStatement_Both:
+		case *gripql.GraphStatement_Both, *gripql.GraphStatement_BothV:
 			if lastType != gdbi.VertexData && lastType != gdbi.EdgeData {
 				return &Pipeline{}, fmt.Errorf(`"both" statement is only valid for edge or vertex types not: %s`, lastType.String())
 			}
-			labels := protoutil.AsStringList(stmt.Both)
+			labels := append(protoutil.AsStringList(gs.GetBoth()), protoutil.AsStringList(gs.GetBothV())...)
 			if lastType == gdbi.VertexData {
 				query = append(query,
 					bson.M{
@@ -258,7 +258,7 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, er
 			}})
 			lastType = gdbi.VertexData
 
-		case *gripql.GraphStatement_InEdge:
+		case *gripql.GraphStatement_InE:
 			if lastType != gdbi.VertexData {
 				return &Pipeline{}, fmt.Errorf(`"inEdge" statement is only valid for the vertex type not: %s`, lastType.String())
 			}
@@ -281,13 +281,13 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, er
 				"from":  "$dst.from",
 				"marks": "$marks",
 			}})
-			labels := protoutil.AsStringList(stmt.InEdge)
+			labels := protoutil.AsStringList(stmt.InE)
 			if len(labels) > 0 {
 				query = append(query, bson.M{"$match": bson.M{"label": bson.M{"$in": labels}}})
 			}
 			lastType = gdbi.EdgeData
 
-		case *gripql.GraphStatement_OutEdge:
+		case *gripql.GraphStatement_OutE:
 			if lastType != gdbi.VertexData {
 				return &Pipeline{}, fmt.Errorf(`"outEdge" statement is only valid for the vertex type not: %s`, lastType.String())
 			}
@@ -310,13 +310,13 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, er
 				"from":  "$dst.from",
 				"marks": "$marks",
 			}})
-			labels := protoutil.AsStringList(stmt.OutEdge)
+			labels := protoutil.AsStringList(stmt.OutE)
 			if len(labels) > 0 {
 				query = append(query, bson.M{"$match": bson.M{"label": bson.M{"$in": labels}}})
 			}
 			lastType = gdbi.EdgeData
 
-		case *gripql.GraphStatement_BothEdge:
+		case *gripql.GraphStatement_BothE:
 			if lastType != gdbi.VertexData {
 				return &Pipeline{}, fmt.Errorf(`"bothEdge" statement is only valid for the vertex type not: %s`, lastType.String())
 			}
@@ -353,27 +353,76 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, er
 				"from":  "$dst.from",
 				"marks": "$marks",
 			}})
-			labels := protoutil.AsStringList(stmt.BothEdge)
+			labels := protoutil.AsStringList(stmt.BothE)
 			if len(labels) > 0 {
 				query = append(query, bson.M{"$match": bson.M{"label": bson.M{"$in": labels}}})
 			}
 			lastType = gdbi.EdgeData
 
-		case *gripql.GraphStatement_Where:
+		case *gripql.GraphStatement_Has:
 			if lastType != gdbi.VertexData && lastType != gdbi.EdgeData {
-				return &Pipeline{}, fmt.Errorf(`"where" statement is only valid for edge or vertex types not: %s`, lastType.String())
+				return &Pipeline{}, fmt.Errorf(`"has" statement is only valid for edge or vertex types not: %s`, lastType.String())
 			}
-			whereExpr := convertWhereExpression(stmt.Where, false)
+			whereExpr := convertHasExpression(stmt.Has, false)
 			matchStmt := bson.M{"$match": whereExpr}
 			query = append(query, matchStmt)
+
+		case *gripql.GraphStatement_HasLabel:
+			if lastType != gdbi.VertexData && lastType != gdbi.EdgeData {
+				return &Pipeline{}, fmt.Errorf(`"hasLabel" statement is only valid for edge or vertex types not: %s`, lastType.String())
+			}
+			labels := protoutil.AsStringList(stmt.HasLabel)
+			ilabels := make([]interface{}, len(labels))
+			for i, v := range labels {
+				ilabels[i] = v
+			}
+			has := gripql.Within("_label", ilabels...)
+			whereExpr := convertHasExpression(has, false)
+			matchStmt := bson.M{"$match": whereExpr}
+			query = append(query, matchStmt)
+
+		case *gripql.GraphStatement_HasId:
+			if lastType != gdbi.VertexData && lastType != gdbi.EdgeData {
+				return &Pipeline{}, fmt.Errorf(`"hasId" statement is only valid for edge or vertex types not: %s`, lastType.String())
+			}
+			ids := protoutil.AsStringList(stmt.HasId)
+			iids := make([]interface{}, len(ids))
+			for i, v := range ids {
+				iids[i] = v
+			}
+			has := gripql.Within("_gid", iids...)
+			whereExpr := convertHasExpression(has, false)
+			matchStmt := bson.M{"$match": whereExpr}
+			query = append(query, matchStmt)
+
+		case *gripql.GraphStatement_HasKey:
+			if lastType != gdbi.VertexData && lastType != gdbi.EdgeData {
+				return &Pipeline{}, fmt.Errorf(`"hasKey" statement is only valid for edge or vertex types not: %s`, lastType.String())
+			}
+			hasKeys := bson.M{}
+			keys := protoutil.AsStringList(stmt.HasKey)
+			for _, key := range keys {
+				key = jsonpath.GetJSONPath(key)
+				key = strings.TrimPrefix(key, "$.")
+				hasKeys[key] = bson.M{"$exists": true}
+			}
+			query = append(query, bson.M{"$match": hasKeys})
 
 		case *gripql.GraphStatement_Limit:
 			query = append(query,
 				bson.M{"$limit": stmt.Limit})
 
-		case *gripql.GraphStatement_Offset:
+		case *gripql.GraphStatement_Skip:
 			query = append(query,
-				bson.M{"$skip": stmt.Offset})
+				bson.M{"$skip": stmt.Skip})
+
+		case *gripql.GraphStatement_Range:
+			query = append(query,
+				bson.M{"$skip": stmt.Range.Start})
+			if stmt.Range.Stop != -1 {
+				query = append(query,
+					bson.M{"$limit": stmt.Range.Stop - stmt.Range.Start})
+			}
 
 		case *gripql.GraphStatement_Count:
 			query = append(query,
@@ -423,21 +472,21 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, er
 			}
 			query = append(query, distinct...)
 
-		case *gripql.GraphStatement_Mark:
+		case *gripql.GraphStatement_As:
 			if lastType == gdbi.NoData {
-				return &Pipeline{}, fmt.Errorf(`"mark" statement is not valid at the beginning of a traversal`)
+				return &Pipeline{}, fmt.Errorf(`"as" statement is not valid at the beginning of a traversal`)
 			}
-			if stmt.Mark == "" {
-				return &Pipeline{}, fmt.Errorf(`"mark" statement cannot have an empty name`)
+			if stmt.As == "" {
+				return &Pipeline{}, fmt.Errorf(`"as" statement cannot have an empty name`)
 			}
-			if err := gripql.ValidateFieldName(stmt.Mark); err != nil {
-				return &Pipeline{}, fmt.Errorf(`"mark" statement invalid; %v`, err)
+			if err := gripql.ValidateFieldName(stmt.As); err != nil {
+				return &Pipeline{}, fmt.Errorf(`"as" statement invalid; %v`, err)
 			}
-			if stmt.Mark == jsonpath.Current {
-				return &Pipeline{}, fmt.Errorf(`"mark" statement invalid; uses reserved name %s`, jsonpath.Current)
+			if stmt.As == jsonpath.Current {
+				return &Pipeline{}, fmt.Errorf(`"as" statement invalid; uses reserved name %s`, jsonpath.Current)
 			}
-			markTypes[stmt.Mark] = lastType
-			query = append(query, bson.M{"$addFields": bson.M{"marks": bson.M{stmt.Mark: "$$ROOT"}}})
+			markTypes[stmt.As] = lastType
+			query = append(query, bson.M{"$addFields": bson.M{"marks": bson.M{stmt.As: "$$ROOT"}}})
 
 		case *gripql.GraphStatement_Select:
 			if lastType != gdbi.VertexData && lastType != gdbi.EdgeData {

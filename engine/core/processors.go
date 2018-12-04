@@ -17,6 +17,7 @@ import (
 	structpb "github.com/golang/protobuf/ptypes/struct"
 	log "github.com/sirupsen/logrus"
 	"github.com/spenczar/tdigest"
+	"github.com/spf13/cast"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -289,14 +290,14 @@ func (l *LookupEdgeAdjIn) Process(ctx context.Context, man gdbi.Manager, in gdbi
 
 ////////////////////////////////////////////////////////////////////////////////
 
-// InEdge finds the incoming edges
-type InEdge struct {
+// InE finds the incoming edges
+type InE struct {
 	db     gdbi.GraphInterface
 	labels []string
 }
 
-// Process runs InEdge
-func (l *InEdge) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
+// Process runs InE
+func (l *InE) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
 	queryChan := make(chan gdbi.ElementLookup, 100)
 	go func() {
 		defer close(queryChan)
@@ -325,14 +326,14 @@ func (l *InEdge) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, 
 
 ////////////////////////////////////////////////////////////////////////////////
 
-// OutEdge finds the outgoing edges
-type OutEdge struct {
+// OutE finds the outgoing edges
+type OutE struct {
 	db     gdbi.GraphInterface
 	labels []string
 }
 
-// Process runs OutEdge
-func (l *OutEdge) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
+// Process runs OutE
+func (l *OutE) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
 	queryChan := make(chan gdbi.ElementLookup, 100)
 	go func() {
 		defer close(queryChan)
@@ -407,12 +408,12 @@ func (r *Render) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, 
 
 ////////////////////////////////////////////////////////////////////////////////
 
-// Where filters based on data
-type Where struct {
-	stmt *gripql.WhereExpression
+// Has filters based on data
+type Has struct {
+	stmt *gripql.HasExpression
 }
 
-func matchesCondition(trav *gdbi.Traveler, cond *gripql.WhereCondition) bool {
+func matchesCondition(trav *gdbi.Traveler, cond *gripql.HasCondition) bool {
 	var val interface{}
 	var condVal interface{}
 	val = jsonpath.TravelerPathLookup(trav, cond.Key)
@@ -469,7 +470,88 @@ func matchesCondition(trav *gdbi.Traveler, cond *gripql.WhereCondition) bool {
 		}
 		return valN <= condN
 
-	case gripql.Condition_IN:
+	case gripql.Condition_INSIDE:
+		vals, err := cast.ToSliceE(condVal)
+		if err != nil {
+			log.Errorf("Error: could not cast INSIDE condition value: %v", err)
+			return false
+		}
+		if len(vals) != 2 {
+			log.Errorf("Error: expected slice of length 2 not %v for INSIDE condition value", len(vals))
+			return false
+		}
+		lower, err := cast.ToFloat64E(vals[0])
+		if err != nil {
+			log.Errorf("Error: could not cast lower INSIDE condition value: %v", err)
+			return false
+		}
+		upper, err := cast.ToFloat64E(vals[1])
+		if err != nil {
+			log.Errorf("Error: could not cast upper INSIDE condition value: %v", err)
+			return false
+		}
+		valF, err := cast.ToFloat64E(val)
+		if err != nil {
+			log.Errorf("Error: could not cast INSIDE value: %v", err)
+			return false
+		}
+		return valF > lower && valF < upper
+
+	case gripql.Condition_OUTSIDE:
+		vals, err := cast.ToSliceE(condVal)
+		if err != nil {
+			log.Errorf("Error: could not cast OUTSIDE condition value: %v", err)
+			return false
+		}
+		if len(vals) != 2 {
+			log.Errorf("Error: expected slice of length 2 not %v for OUTSIDE condition value", len(vals))
+			return false
+		}
+		lower, err := cast.ToFloat64E(vals[0])
+		if err != nil {
+			log.Errorf("Error: could not cast lower OUTSIDE condition value: %v", err)
+			return false
+		}
+		upper, err := cast.ToFloat64E(vals[1])
+		if err != nil {
+			log.Errorf("Error: could not cast upper OUTSIDE condition value: %v", err)
+			return false
+		}
+		valF, err := cast.ToFloat64E(val)
+		if err != nil {
+			log.Errorf("Error: could not cast OUTSIDE value: %v", err)
+			return false
+		}
+		return valF < lower || valF > upper
+
+	case gripql.Condition_BETWEEN:
+		vals, err := cast.ToSliceE(condVal)
+		if err != nil {
+			log.Errorf("Error: could not cast BETWEEN condition value: %v", err)
+			return false
+		}
+		if len(vals) != 2 {
+			log.Errorf("Error: expected slice of length 2 not %v for BETWEEN condition value", len(vals))
+			return false
+		}
+		lower, err := cast.ToFloat64E(vals[0])
+		if err != nil {
+			log.Errorf("Error: could not cast lower BETWEEN condition value: %v", err)
+			return false
+		}
+		upper, err := cast.ToFloat64E(vals[1])
+		if err != nil {
+			log.Errorf("Error: could not cast upper BETWEEN condition value: %v", err)
+			return false
+		}
+		valF, err := cast.ToFloat64E(val)
+		if err != nil {
+			log.Errorf("Error: could not cast BETWEEN value: %v", err)
+			return false
+		}
+		return valF >= lower && valF < upper
+
+	case gripql.Condition_WITHIN:
 		found := false
 		switch condVal.(type) {
 		case []interface{}:
@@ -487,10 +569,34 @@ func matchesCondition(trav *gdbi.Traveler, cond *gripql.WhereCondition) bool {
 			found = false
 
 		default:
-			log.Errorf("Error: expected slice not %T for IN condition value", condVal)
+			log.Errorf("Error: expected slice not %T for WITHIN condition value", condVal)
 		}
 
 		return found
+
+	case gripql.Condition_WITHOUT:
+		found := false
+		switch condVal.(type) {
+		case []interface{}:
+			condL, ok := condVal.([]interface{})
+			if !ok {
+				return false
+			}
+			for _, v := range condL {
+				if reflect.DeepEqual(val, v) {
+					found = true
+				}
+			}
+
+		case nil:
+			found = false
+
+		default:
+			log.Errorf("Error: expected slice not %T for WITHOUT condition value", condVal)
+
+		}
+
+		return !found
 
 	case gripql.Condition_CONTAINS:
 		found := false
@@ -520,17 +626,17 @@ func matchesCondition(trav *gdbi.Traveler, cond *gripql.WhereCondition) bool {
 	}
 }
 
-func matchesWhereExpression(trav *gdbi.Traveler, stmt *gripql.WhereExpression) bool {
+func matchesHasExpression(trav *gdbi.Traveler, stmt *gripql.HasExpression) bool {
 	switch stmt.Expression.(type) {
-	case *gripql.WhereExpression_Condition:
+	case *gripql.HasExpression_Condition:
 		cond := stmt.GetCondition()
 		return matchesCondition(trav, cond)
 
-	case *gripql.WhereExpression_And:
+	case *gripql.HasExpression_And:
 		and := stmt.GetAnd()
 		andRes := []bool{}
 		for _, e := range and.Expressions {
-			andRes = append(andRes, matchesWhereExpression(trav, e))
+			andRes = append(andRes, matchesHasExpression(trav, e))
 		}
 		for _, r := range andRes {
 			if !r {
@@ -539,11 +645,11 @@ func matchesWhereExpression(trav *gdbi.Traveler, stmt *gripql.WhereExpression) b
 		}
 		return true
 
-	case *gripql.WhereExpression_Or:
+	case *gripql.HasExpression_Or:
 		or := stmt.GetOr()
 		orRes := []bool{}
 		for _, e := range or.Expressions {
-			orRes = append(orRes, matchesWhereExpression(trav, e))
+			orRes = append(orRes, matchesHasExpression(trav, e))
 		}
 		for _, r := range orRes {
 			if r {
@@ -552,9 +658,9 @@ func matchesWhereExpression(trav *gdbi.Traveler, stmt *gripql.WhereExpression) b
 		}
 		return false
 
-	case *gripql.WhereExpression_Not:
+	case *gripql.HasExpression_Not:
 		e := stmt.GetNot()
-		return !matchesWhereExpression(trav, e)
+		return !matchesHasExpression(trav, e)
 
 	default:
 		log.Errorf("unknown where expression type: %T", stmt.Expression)
@@ -562,17 +668,87 @@ func matchesWhereExpression(trav *gdbi.Traveler, stmt *gripql.WhereExpression) b
 	}
 }
 
-// Process runs Where
-func (w *Where) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
+// Process runs Has
+func (w *Has) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
 	go func() {
 		defer close(out)
 		for t := range in {
-			if matchesWhereExpression(t, w.stmt) {
+			if matchesHasExpression(t, w.stmt) {
 				out <- t
 			}
 		}
 	}()
 	return context.WithValue(ctx, propLoad, true)
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+// HasLabel filters elements based on their label.
+type HasLabel struct {
+	labels []string
+}
+
+// Process runs Count
+func (h *HasLabel) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
+	go func() {
+		defer close(out)
+		for t := range in {
+			for _, label := range dedupStringSlice(h.labels) {
+				if label == t.GetCurrent().Label {
+					out <- t
+				}
+			}
+		}
+	}()
+	return context.WithValue(ctx, propLoad, true)
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+// HasKey filters elements based on whether it has one or more properties.
+type HasKey struct {
+	keys []string
+}
+
+// Process runs Count
+func (h *HasKey) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
+	go func() {
+		defer close(out)
+		for t := range in {
+			found := true
+			for _, key := range dedupStringSlice(h.keys) {
+				if !jsonpath.TravelerPathExists(t, key) {
+					found = false
+				}
+			}
+			if found {
+				out <- t
+			}
+		}
+	}()
+	return context.WithValue(ctx, propLoad, true)
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+// HasID filters elements based on their id.
+type HasID struct {
+	ids []string
+}
+
+// Process runs Count
+func (h *HasID) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
+	go func() {
+		defer close(out)
+		for t := range in {
+			for _, id := range dedupStringSlice(h.ids) {
+				if id == t.GetCurrent().ID {
+					out <- t
+				}
+			}
+		}
+	}()
+	return context.WithValue(ctx, propLoad, false)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -620,13 +796,13 @@ func (l *Limit) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, o
 
 ////////////////////////////////////////////////////////////////////////////////
 
-// Offset limits incoming values to count
-type Offset struct {
+// Skip limits incoming values to count
+type Skip struct {
 	count uint32
 }
 
 // Process runs offset
-func (o *Offset) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
+func (o *Skip) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
 	go func() {
 		defer close(out)
 		var i uint32
@@ -638,6 +814,35 @@ func (o *Offset) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, 
 		}
 	}()
 	return ctx
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+// Range limits the number of travelers returned.
+// When the low-end of the range is not met, objects are continued to be iterated.
+// When within the low (inclusive) and high (exclusive) range, traversers are emitted.
+// When above the high range, the traversal breaks out of iteration. Finally, the use of -1 on the high range will emit remaining traversers after the low range begins.
+type Range struct {
+	start int32
+	stop  int32
+}
+
+// Process runs range
+func (r *Range) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
+	newCtx, cancel := context.WithCancel(ctx)
+	go func() {
+		defer close(out)
+		var i int32
+		for t := range in {
+			if i >= r.start && (i < r.stop || r.stop == -1) {
+				out <- t
+			} else if i == r.stop {
+				cancel()
+			}
+			i++
+		}
+	}()
+	return newCtx
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -751,8 +956,8 @@ func (b both) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out
 			switch b.toType {
 			case gdbi.EdgeData:
 				procs = []gdbi.Processor{
-					&InEdge{b.db, b.labels},
-					&OutEdge{b.db, b.labels},
+					&InE{b.db, b.labels},
+					&OutE{b.db, b.labels},
 				}
 			default:
 				procs = []gdbi.Processor{

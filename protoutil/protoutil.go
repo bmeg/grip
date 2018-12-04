@@ -187,6 +187,9 @@ func AsStruct(src map[string]interface{}) *structpb.Struct {
 
 // AsStringList takes a protobuf ListValue and converts it into a []string
 func AsStringList(src *structpb.ListValue) []string {
+	if src == nil {
+		return nil
+	}
 	out := make([]string, len(src.Values))
 	for i := range src.Values {
 		out[i] = src.Values[i].GetStringValue()

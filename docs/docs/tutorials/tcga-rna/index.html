@@ -280,12 +280,12 @@ tar xvzf gbm_tcga_pub2013.tar.gz
 import gripql
 
 conn = gripql.Connection(&quot;http://localhost:8201&quot;)
-O = conn.graph(&quot;tcga-rna&quot;)
+g = conn.graph(&quot;tcga-rna&quot;)
 genes = {}
-for k, v in O.query().V().where(gripql.eq(&quot;_label&quot;, &quot;Gene&quot;)).render([&quot;_gid&quot;, &quot;Hugo_Symbol&quot;]):
+for k, v in g.query().V().hasLabel(&quot;Gene&quot;).render([&quot;_gid&quot;, &quot;Hugo_Symbol&quot;]):
     genes[k] = v
 data = {}
-for row in O.query().V(&quot;Proneural&quot;).in_().out(&quot;rna&quot;).render([&quot;_gid&quot;, &quot;_data&quot;]):
+for row in g.query().V(&quot;Proneural&quot;).in_().out(&quot;rna&quot;).render([&quot;_gid&quot;, &quot;_data&quot;]):
     data[row[0]] = row[1]
 samples = pandas.DataFrame(data).rename(genes).transpose().fillna(0.0)
 </code></pre>

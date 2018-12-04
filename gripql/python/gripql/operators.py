@@ -37,11 +37,30 @@ def lte(key, value):
     return {"condition": {"key": key, "value": value, "condition": "LTE"}}
 
 
-def in_(key, values):
+def inside(key, lower, upper):
+    return {"condition": {"key": key, "value": [lower, upper], "condition": "INSIDE"}}
+
+
+def outside(key, lower, upper):
+    return {"condition": {"key": key, "value": [lower, upper], "condition": "OUTSIDE"}}
+
+
+def between(key, lower, upper):
+    return {"condition": {"key": key, "value": [lower, upper], "condition": "BETWEEN"}}
+
+
+def within(key, values):
     if not isinstance(values, list):
         if not isinstance(values, dict):
             values = [values]
-    return {"condition": {"key": key, "value": values, "condition": "IN"}}
+    return {"condition": {"key": key, "value": values, "condition": "WITHIN"}}
+
+
+def without(key, values):
+    if not isinstance(values, list):
+        if not isinstance(values, dict):
+            values = [values]
+    return {"condition": {"key": key, "value": values, "condition": "WITHOUT"}}
 
 
 def contains(key, value):

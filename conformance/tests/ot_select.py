@@ -18,8 +18,8 @@ def test_select(O):
     O.addEdge("4", "5", "controller", {})
     O.addEdge("4", "6", "controlled", {})
 
-    q = O.query().V().where(gripql.eq("_label", "Reaction")).mark("reaction")
-    q = q.out("controller").where(gripql.eq("symbol", "MDM2")).select("reaction")
+    q = O.query().V().hasLabel("Reaction").as_("reaction")
+    q = q.out("controller").has(gripql.eq("symbol", "MDM2")).select("reaction")
     q = q.out("controlled")
 
     found = 0

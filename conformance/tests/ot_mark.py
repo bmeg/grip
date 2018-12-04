@@ -15,9 +15,9 @@ def test_mark_select_label_filter(O):
     setupGraph(O)
 
     count = 0
-    for row in O.query().V("vertex2").mark("a").\
+    for row in O.query().V("vertex2").as_("a").\
             both("friend").\
-            mark("b").\
+            as_("b").\
             select(["a", "b"]):
         count += 1
         if len(row) != 2:
@@ -46,8 +46,8 @@ def test_mark_select(O):
     setupGraph(O)
 
     count = 0
-    for row in O.query().V("vertex1").mark("a").out().mark(
-            "b").out().mark("c").select(["a", "b", "c"]):
+    for row in O.query().V("vertex1").as_("a").out().as_(
+            "b").out().as_("c").select(["a", "b", "c"]):
         count += 1
         if len(row) != 3:
             errors.append("Incorrect number of marks returned")
@@ -76,8 +76,8 @@ def test_mark_edge_select(O):
     setupGraph(O)
 
     count = 0
-    for row in O.query().V("vertex1").mark("a").outEdge().mark(
-            "b").out().mark("c").select(["a", "b", "c"]):
+    for row in O.query().V("vertex1").as_("a").outE().as_(
+            "b").out().as_("c").select(["a", "b", "c"]):
         count += 1
         if len(row) != 3:
             errors.append("Incorrect number of marks returned")
@@ -101,8 +101,8 @@ def test_mark_select_fields(O):
     setupGraph(O)
 
     count = 0
-    for row in O.query().V("vertex1").mark("a").out().\
-            mark("b").out().mark("c").\
+    for row in O.query().V("vertex1").as_("a").out().\
+            as_("b").out().as_("c").\
             fields(["$a._gid", "$b._gid", "$c._gid", "$c.field1"]).\
             select(["a", "b", "c"]):
         count += 1
