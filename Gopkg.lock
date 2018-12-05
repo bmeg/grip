@@ -442,6 +442,14 @@
   version = "v2.1.0"
 
 [[projects]]
+  digest = "1:c5e6b121ef3d2043505edaf4c80e5a008cec2513dc8804795eb0479d1555bcf7"
+  name = "github.com/spf13/cast"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "8c9545af88b134710ab1cd196795e7f2388358d7"
+  version = "v1.3.0"
+
+[[projects]]
   digest = "1:343d44e06621142ab09ae0c76c1799104cdfddd3ffb445d78b1adf8dc3ffaf3d"
   name = "github.com/spf13/cobra"
   packages = ["."]
@@ -684,6 +692,7 @@
     "github.com/segmentio/ksuid",
     "github.com/sirupsen/logrus",
     "github.com/spenczar/tdigest",
+    "github.com/spf13/cast",
     "github.com/spf13/cobra",
     "github.com/stretchr/testify/assert",
     "github.com/syndtr/goleveldb/leveldb",
