@@ -290,9 +290,13 @@ func buildQueryObject(client gripql.Client, graph string, objects map[string]*gr
 }
 
 func buildGraphQLSchema(schema *gripql.GraphSchema, client gripql.Client, graph string) (*graphql.Schema, error) {
+	if schema == nil {
+		return nil, fmt.Errorf("graphql.NewSchema error: nil gripql.GraphSchema for graph: %s", graph)
+	}
+
 	objectMap, err := buildObjectMap(client, graph, schema)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("graphql.NewSchema error: %v", err)
 	}
 
 	queryObj := buildQueryObject(client, graph, objectMap)
