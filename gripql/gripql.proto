@@ -229,6 +229,7 @@ enum FieldType {
 // Example:
 //
 // {
+//   "graph": "example-graph",
 //   "vertices": [
 //     {
 //       "label": "Human",
@@ -250,7 +251,7 @@ enum FieldType {
 //   ],
 //   "edges": [
 //     {
-//       "label": "Owner",
+//       "label": "Owns",
 //       "from": "Human",
 //       "to": "Droid",
 //       "data" : {
@@ -260,8 +261,9 @@ enum FieldType {
 //   ]
 // }
 message GraphSchema {
-  repeated Vertex vertices = 1;
-  repeated Edge edges = 2;
+  string graph = 1;
+  repeated Vertex vertices = 2;
+  repeated Edge edges = 3;
 }
 
 message Empty {}
@@ -386,6 +388,13 @@ service Edit {
   rpc DeleteIndex(IndexID) returns (EditResult) {
     option (google.api.http) = {
       delete: "/v1/graph/{graph}/index/{label}/{field}"
+    };
+  }
+
+  rpc AddSchema(GraphSchema) returns (EditResult) {
+    option (google.api.http) = {
+      post: "/v1/graph/{graph}/schema"
+      body: "*"
     };
   }
 

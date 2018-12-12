@@ -16,6 +16,8 @@ type Config struct {
 	ReadOnly         bool
 	BasicAuth        []BasicCredential
 	DisableHTTPCache bool
+	// Should the server periodically build the graph schemas?
+	AutoBuildSchemas bool
 	// How often the server should rebuild the graph schemas
 	SchemaRefreshInterval time.Duration
 	// How many vertices/edges to inspect to infer the schema

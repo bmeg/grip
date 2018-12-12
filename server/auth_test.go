@@ -25,7 +25,7 @@ func TestBasicAuthFail(t *testing.T) {
 	conf.BasicAuth = []BasicCredential{{User: "testuser", Password: "abc123"}}
 	defer os.RemoveAll(conf.WorkDir)
 
-	srv, err := NewGripServer(nil, conf)
+	srv, err := NewGripServer(nil, conf, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -78,7 +78,7 @@ func TestBasicAuth(t *testing.T) {
 	}
 	defer os.RemoveAll(tmpDB)
 
-	srv, err := NewGripServer(db, conf)
+	srv, err := NewGripServer(db, conf, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

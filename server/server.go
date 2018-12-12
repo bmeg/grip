@@ -27,7 +27,7 @@ type GripServer struct {
 }
 
 // NewGripServer initializes a GRPC server to connect to the graph store
-func NewGripServer(db gdbi.GraphDB, conf Config) (*GripServer, error) {
+func NewGripServer(db gdbi.GraphDB, conf Config, schemas map[string]*gripql.GraphSchema) (*GripServer, error) {
 	_, err := os.Stat(conf.WorkDir)
 	if os.IsNotExist(err) {
 		err = os.Mkdir(conf.WorkDir, 0700)
@@ -35,7 +35,9 @@ func NewGripServer(db gdbi.GraphDB, conf Config) (*GripServer, error) {
 			return nil, fmt.Errorf("creating work dir: %v", err)
 		}
 	}
-	schemas := make(map[string]*gripql.GraphSchema)
+	if schemas == nil {
+		schemas = make(map[string]*gripql.GraphSchema)
+	}
 	return &GripServer{db: db, conf: conf, schemas: schemas}, nil
 }
 
@@ -216,9 +218,11 @@ func (server *GripServer) Serve(pctx context.Context) error {
 		cancel()
 	}()
 
-	go func() {
-		server.cacheSchemas(ctx)
-	}()
+	if server.conf.AutoBuildSchemas {
+		go func() {
+			server.cacheSchemas(ctx)
+		}()
+	}
 
 	log.Infoln("TCP+RPC server listening on " + server.conf.RPCPort)
 	log.Infoln("HTTP proxy connecting to localhost:" + server.conf.HTTPPort)

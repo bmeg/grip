@@ -7,10 +7,10 @@ import (
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 )
 
-//MarshalClean is a shim class to 'fix' outgoing streamed messages
-//in the default implementation, grpc-gateway wraps the individual messages
-//of the stream with a {"result" : <value>}. The cleaner idendifies that and
-//removes the wrapper
+// MarshalClean is a shim class to 'fix' outgoing streamed messages
+// in the default implementation, grpc-gateway wraps the individual messages
+// of the stream with a {"result" : <value>}. The cleaner idendifies that and
+// removes the wrapper
 type MarshalClean struct {
 	m runtime.Marshaler
 }

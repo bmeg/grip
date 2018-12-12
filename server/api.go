@@ -99,7 +99,10 @@ func (server *GripServer) GetSchema(ctx context.Context, elem *gripql.GraphID) (
 
 	schema, ok := server.schemas[elem.Graph]
 	if !ok {
-		return nil, grpc.Errorf(codes.Unavailable, fmt.Sprintf("graph %s: schema not available; try again later", elem.Graph))
+		if server.conf.AutoBuildSchemas {
+			return nil, grpc.Errorf(codes.Unavailable, fmt.Sprintf("graph %s: schema not available; try again later", elem.Graph))
+		}
+		return nil, grpc.Errorf(codes.NotFound, fmt.Sprintf("graph %s: schema not found", elem.Graph))
 	}
 
 	return schema, nil
@@ -409,4 +412,10 @@ func (server *GripServer) ListLabels(ctx context.Context, idx *gripql.GraphID) (
 		return nil, err
 	}
 	return &gripql.ListLabelsResponse{VertexLabels: vLabels, EdgeLabels: eLabels}, nil
+}
+
+// AddSchema caches a graph schema on the server
+func (server *GripServer) AddSchema(ctx context.Context, req *gripql.GraphSchema) (*gripql.EditResult, error) {
+	server.schemas[req.Graph] = req
+	return nil, nil
 }

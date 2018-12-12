@@ -197,3 +197,8 @@ func (shim *EditDirectClient) AddIndex(ctx context.Context, in *IndexID, opts ..
 func (shim *EditDirectClient) DeleteIndex(ctx context.Context, in *IndexID, opts ...grpc.CallOption) (*EditResult, error) {
 	return shim.server.DeleteIndex(ctx, in)
 }
+
+//AddSchema shim
+func (shim *EditDirectClient) AddSchema(ctx context.Context, in *GraphSchema, opts ...grpc.CallOption) (*EditResult, error) {
+	return shim.server.AddSchema(ctx, in)
+}
