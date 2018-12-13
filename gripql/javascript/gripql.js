@@ -68,8 +68,8 @@ function query() {
 			this.query.push({'limit': n})
 			return this
 		},
-		offset: function(n) {
-			this.query.push({'offset': n})
+		skip: function(n) {
+			this.query.push({'skip': n})
 			return this
 		},
 		range: function(start, stop) {
@@ -97,15 +97,15 @@ function query() {
 			return this
 		},
 		hasLabel: function(label) {
-			this.query.push({'hasLabel': label})
+			this.query.push({'hasLabel': process(label)})
 			return this
 		},
 		hasId: function(id) {
-			this.query.push({'hasId': id})
+			this.query.push({'hasId': process(id)})
 			return this
 		},
 		hasKey: function(key) {
-			this.query.push({'hasKey': key})
+			this.query.push({'hasKey': process(key)})
 			return this
 		},
 		aggregate: function() {
@@ -229,5 +229,5 @@ function V(id) {
 }
 
 function E(id) {
-  return query().V(id)
+  return query().E(id)
 }

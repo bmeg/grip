@@ -13,7 +13,6 @@ import (
 	"strings"
 	"time"
 )
-
 type asset struct {
 	bytes []byte
 	info  os.FileInfo
@@ -115,8 +114,8 @@ function query() {
 			this.query.push({'limit': n})
 			return this
 		},
-		offset: function(n) {
-			this.query.push({'offset': n})
+		skip: function(n) {
+			this.query.push({'skip': n})
 			return this
 		},
 		range: function(start, stop) {
@@ -144,15 +143,15 @@ function query() {
 			return this
 		},
 		hasLabel: function(label) {
-			this.query.push({'hasLabel': label})
+			this.query.push({'hasLabel': process(label)})
 			return this
 		},
 		hasId: function(id) {
-			this.query.push({'hasId': id})
+			this.query.push({'hasId': process(id)})
 			return this
 		},
 		hasKey: function(key) {
-			this.query.push({'hasKey': key})
+			this.query.push({'hasKey': process(key)})
 			return this
 		},
 		aggregate: function() {
@@ -276,7 +275,7 @@ function V(id) {
 }
 
 function E(id) {
-  return query().V(id)
+  return query().E(id)
 }
 `)
 
@@ -290,7 +289,7 @@ func gripqlJs() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "gripql.js", size: 5132, mode: os.FileMode(420), modTime: time.Unix(1543515333, 0)}
+	info := bindataFileInfo{name: "gripql.js", size: 5155, mode: os.FileMode(420), modTime: time.Unix(1544743565, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -389,9 +388,8 @@ type bintree struct {
 	Func     func() (*asset, error)
 	Children map[string]*bintree
 }
-
 var _bintree = &bintree{nil, map[string]*bintree{
-	"gripql.js": {gripqlJs, map[string]*bintree{}},
+	"gripql.js": &bintree{gripqlJs, map[string]*bintree{}},
 }}
 
 // RestoreAsset restores an asset under the given directory
@@ -440,3 +438,4 @@ func _filePath(dir, name string) string {
 	cannonicalName := strings.Replace(name, "\\", "/", -1)
 	return filepath.Join(append([]string{dir}, strings.Split(cannonicalName, "/")...)...)
 }
+
