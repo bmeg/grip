@@ -18,7 +18,7 @@ func (ma *KVGraph) GetSchema(ctx context.Context, graph string, sampleN uint32, 
 	var eSchema []*gripql.Edge
 	var err error
 
-	log.Info("Loading KV Schema")
+	log.WithFields(log.Fields{"graph": graph}).Debug("Starting KV GetSchema call")
 
 	vSchema, eSchema, err = ma.sampleSchema(ctx, graph, sampleN, random)
 	if err != nil {
@@ -26,7 +26,7 @@ func (ma *KVGraph) GetSchema(ctx context.Context, graph string, sampleN uint32, 
 	}
 
 	schema := &gripql.GraphSchema{Vertices: vSchema, Edges: eSchema}
-	log.WithFields(log.Fields{"graph": graph, "schema": schema}).Debug("Finished GetSchema call")
+	log.WithFields(log.Fields{"graph": graph}).Debug("Finished GetSchema call")
 	return schema, nil
 }
 
