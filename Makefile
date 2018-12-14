@@ -30,12 +30,14 @@ install: depends
 
 # Update submodules and build code
 depends:
-	@pwd
-	@ls -la
-	@ls -l .git/modules/
 	@git submodule update --init --recursive
 	@go get github.com/golang/dep/cmd/dep
 	@dep ensure
+
+#hack to get around submodule weirdness in automated docker builds
+reinit-modules:
+	@git submodule deinit --all
+	@git submodule update --init --recursive
 
 # Build the code including the rocksdb package
 with-rocksdb: depends
