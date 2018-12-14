@@ -30,8 +30,9 @@ install: depends
 
 # Update submodules and build code
 depends:
-	@ls -la
 	@pwd
+	@ls -la
+	@ls -l .git/modules/
 	@git submodule update --init --recursive
 	@go get github.com/golang/dep/cmd/dep
 	@dep ensure
