@@ -30,6 +30,8 @@ install: depends
 
 # Update submodules and build code
 depends:
+	@ls -la
+	@pwd
 	@git submodule update --init --recursive
 	@go get github.com/golang/dep/cmd/dep
 	@dep ensure
@@ -48,7 +50,7 @@ rocksdb-lib:
 bench: rocksdb-lib
 	#@CGO_LDFLAGS="-L$(shell pwd)/rocksdb-lib" CGO_CFLAGS="-I$(shell pwd)/rocksdb-lib/include/" go run -tags 'rocksdb' -ldflags '$(VERSION_LDFLAGS)' test/graph-bench/main.go
 	 go run -tags 'rocksdb' -ldflags '$(VERSION_LDFLAGS)' test/graph-bench/main.go
-	 
+
 # --------------------------
 # Complile Protobuf Schemas
 # --------------------------
