@@ -35,9 +35,9 @@ depends:
 	@dep ensure
 
 #hack to get around submodule weirdness in automated docker builds
-reinit-modules:
-	@git submodule deinit --all
-	@git submodule update --init --recursive
+get-dep:
+	@go get github.com/golang/dep/cmd/dep
+	@dep ensure
 
 # Build the code including the rocksdb package
 with-rocksdb: depends
