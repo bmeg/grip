@@ -34,6 +34,13 @@ depends:
 	@go get github.com/golang/dep/cmd/dep
 	@dep ensure
 
+#hack to get around submodule weirdness in automated docker builds
+hub-build:
+	@go get github.com/golang/dep/cmd/dep
+	@dep ensure
+	@touch version/version.go
+	@go install -ldflags '$(VERSION_LDFLAGS)' .
+
 # Build the code including the rocksdb package
 with-rocksdb: depends
 	@go install -tags 'rocksdb' -ldflags '$(VERSION_LDFLAGS)' .
@@ -48,7 +55,7 @@ rocksdb-lib:
 bench: rocksdb-lib
 	#@CGO_LDFLAGS="-L$(shell pwd)/rocksdb-lib" CGO_CFLAGS="-I$(shell pwd)/rocksdb-lib/include/" go run -tags 'rocksdb' -ldflags '$(VERSION_LDFLAGS)' test/graph-bench/main.go
 	 go run -tags 'rocksdb' -ldflags '$(VERSION_LDFLAGS)' test/graph-bench/main.go
-	 
+
 # --------------------------
 # Complile Protobuf Schemas
 # --------------------------
