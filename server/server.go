@@ -38,7 +38,14 @@ func NewGripServer(db gdbi.GraphDB, conf Config, schemas map[string]*gripql.Grap
 	if schemas == nil {
 		schemas = make(map[string]*gripql.GraphSchema)
 	}
-	return &GripServer{db: db, conf: conf, schemas: schemas}, nil
+	server := &GripServer{db: db, conf: conf, schemas: schemas}
+	for graph := range schemas {
+		_, err := server.AddGraph(context.Background(), &gripql.GraphID{Graph: graph})
+		if err != nil {
+			return nil, fmt.Errorf("error creating schema defined graph '%s': %v", graph, err)
+		}
+	}
+	return server, nil
 }
 
 // handleError is the grpc gateway error handler

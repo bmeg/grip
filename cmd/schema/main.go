@@ -5,11 +5,11 @@ import (
 
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/util/rpc"
-	"github.com/golang/protobuf/jsonpb"
 	"github.com/spf13/cobra"
 )
 
 var host = "localhost:8202"
+var yaml = false
 
 // Cmd line declaration
 var Cmd = &cobra.Command{
@@ -25,18 +25,17 @@ var Cmd = &cobra.Command{
 			return err
 		}
 
-		jm := jsonpb.Marshaler{
-			EnumsAsInts:  false,
-			EmitDefaults: true,
-			Indent:       "",
-			OrigName:     false,
-		}
-
 		schema, err := conn.GetSchema(graph)
 		if err != nil {
 			return err
 		}
-		txt, err := jm.MarshalToString(schema)
+
+		var txt string
+		if yaml {
+			txt, err = gripql.SchemaToYAMLString(schema)
+		} else {
+			txt, err = gripql.SchemaToJSONString(schema)
+		}
 		if err != nil {
 			return err
 		}
@@ -48,4 +47,5 @@ var Cmd = &cobra.Command{
 func init() {
 	flags := Cmd.Flags()
 	flags.StringVar(&host, "host", host, "grip server url")
+	flags.BoolVar(&yaml, "yaml", yaml, "output schema in YAML rather than JSON format")
 }

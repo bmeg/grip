@@ -1,6 +1,7 @@
 package gripql
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -16,7 +17,12 @@ func ParseSchema(raw []byte) ([]*GraphSchema, error) {
 	tmp := []interface{}{}
 	err := yaml.Unmarshal(raw, &tmp)
 	if err != nil {
-		return nil, err
+		var tmp2 interface{}
+		err := yaml.Unmarshal(raw, &tmp2)
+		if err != nil {
+			return nil, err
+		}
+		tmp = append(tmp, tmp2)
 	}
 	for _, s := range tmp {
 		part, err := json.Marshal(s)
@@ -27,6 +33,9 @@ func ParseSchema(raw []byte) ([]*GraphSchema, error) {
 		err = jsonpb.UnmarshalString(string(part), schema)
 		if err != nil {
 			return nil, err
+		}
+		if schema.Graph == "" {
+			return nil, fmt.Errorf("schema is missing graph name")
 		}
 		schemas = append(schemas, schema)
 	}
@@ -59,6 +68,37 @@ func ParseSchemaFile(relpath string) ([]*GraphSchema, error) {
 	}
 
 	return schemas, nil
+}
+
+// SchemaToYAML returns a schema formatted as a YAML string
+func SchemaToYAMLString(schema *GraphSchema) (string, error) {
+	m := jsonpb.Marshaler{}
+	b := []byte{}
+	out := bytes.NewBuffer(b)
+	err := m.Marshal(out, schema)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal schema: %v", err)
+	}
+	sb, err := yaml.JSONToYAML(out.Bytes())
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal schema: %v", err)
+	}
+	return string(sb), nil
+}
+
+// SchemaToJSON returns a schema formatted as a JSON string
+func SchemaToJSONString(schema *GraphSchema) (string, error) {
+	m := jsonpb.Marshaler{
+		EnumsAsInts:  false,
+		EmitDefaults: false,
+		Indent:       "  ",
+		OrigName:     false,
+	}
+	txt, err := m.MarshalToString(schema)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal schema: %v", err)
+	}
+	return txt, nil
 }
 
 // GetDataFieldTypes iterates over the data map and determines the type of each field
