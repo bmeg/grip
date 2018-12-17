@@ -96,7 +96,6 @@ func (server *GripServer) GetSchema(ctx context.Context, elem *gripql.GraphID) (
 	if !found {
 		return nil, grpc.Errorf(codes.NotFound, fmt.Sprintf("graph %s: not found", elem.Graph))
 	}
-	log.Info("server schemas:", server.schemas)
 	schema, ok := server.schemas[elem.Graph]
 	if !ok {
 		if server.conf.AutoBuildSchemas {
