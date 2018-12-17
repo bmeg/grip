@@ -53,6 +53,17 @@ class Connection:
         raise_for_status(response)
         return response.json()
 
+    def getSchema(self, name):
+        """
+        Get a graph schema.
+        """
+        response = requests.get(
+            self.url + "/" + name + "/schema",
+            auth=(self.user, self.password)
+        )
+        raise_for_status(response)
+        return response.json()
+
     def graph(self, name):
         """
         Get a graph handle.

@@ -21,6 +21,23 @@ class Graph:
             password = os.getenv("GRIP_PASSWORD", None)
         self.password = password
 
+    def addSchema(self, vertices=[], edges=[]):
+        """
+        Add vertex to a graph.
+        """
+        payload = {
+            "graph": self.name,
+            "vertices": vertices,
+            "edges": edges
+        }
+        response = requests.post(
+            self.url + "/schema",
+            json=payload,
+            auth=(self.user, self.password)
+        )
+        raise_for_status(response)
+        return response.json()
+
     def addVertex(self, gid, label, data={}):
         """
         Add vertex to a graph.
