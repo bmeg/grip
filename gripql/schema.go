@@ -70,7 +70,7 @@ func ParseSchemaFile(relpath string) ([]*GraphSchema, error) {
 	return schemas, nil
 }
 
-// SchemaToYAML returns a schema formatted as a YAML string
+// SchemaToYAMLString returns a schema formatted as a YAML string
 func SchemaToYAMLString(schema *GraphSchema) (string, error) {
 	m := jsonpb.Marshaler{}
 	b := []byte{}
@@ -86,7 +86,7 @@ func SchemaToYAMLString(schema *GraphSchema) (string, error) {
 	return string(sb), nil
 }
 
-// SchemaToJSON returns a schema formatted as a JSON string
+// SchemaToJSONString returns a schema formatted as a JSON string
 func SchemaToJSONString(schema *GraphSchema) (string, error) {
 	m := jsonpb.Marshaler{
 		EnumsAsInts:  false,
