@@ -1,7 +1,6 @@
 package psql
 
 import (
-	"context"
 	"fmt"
 	"strings"
 
@@ -205,9 +204,4 @@ func (db *GraphDB) Graph(graph string) (gdbi.GraphInterface, error) {
 		ts:    db.ts,
 		graph: graph,
 	}, nil
-}
-
-// GetSchema returns the schema of a specific graph in the database
-func (db *GraphDB) GetSchema(ctx context.Context, graph string, sampleN uint32, random bool) (*gripql.GraphSchema, error) {
-	return nil, fmt.Errorf("not implemented")
 }

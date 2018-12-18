@@ -601,7 +601,7 @@ func request_Edit_DeleteIndex_0(ctx context.Context, marshaler runtime.Marshaler
 }
 
 func request_Edit_AddSchema_0(ctx context.Context, marshaler runtime.Marshaler, client EditClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq GraphSchema
+	var protoReq Graph
 	var metadata runtime.ServerMetadata
 
 	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {

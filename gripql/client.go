@@ -36,8 +36,14 @@ func (client Client) Close() {
 }
 
 // GetSchema returns the schema for the given graph.
-func (client Client) GetSchema(graph string) (*GraphSchema, error) {
+func (client Client) GetSchema(graph string) (*Graph, error) {
 	return client.QueryC.GetSchema(context.Background(), &GraphID{Graph: graph})
+}
+
+// AddSchema adds a schema for a graph.
+func (client Client) AddSchema(graph *Graph) error {
+	_, err := client.EditC.AddSchema(context.Background(), graph)
+	return err
 }
 
 // ListGraphs lists the graphs in the database

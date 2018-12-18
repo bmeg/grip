@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/graphql"
@@ -23,11 +24,11 @@ import (
 type GripServer struct {
 	db      gdbi.GraphDB
 	conf    Config
-	schemas map[string]*gripql.GraphSchema
+	schemas map[string]*gripql.Graph
 }
 
 // NewGripServer initializes a GRPC server to connect to the graph store
-func NewGripServer(db gdbi.GraphDB, conf Config, schemas map[string]*gripql.GraphSchema) (*GripServer, error) {
+func NewGripServer(db gdbi.GraphDB, conf Config, schemas map[string]*gripql.Graph) (*GripServer, error) {
 	_, err := os.Stat(conf.WorkDir)
 	if os.IsNotExist(err) {
 		err = os.Mkdir(conf.WorkDir, 0700)
@@ -36,7 +37,7 @@ func NewGripServer(db gdbi.GraphDB, conf Config, schemas map[string]*gripql.Grap
 		}
 	}
 	if schemas == nil {
-		schemas = make(map[string]*gripql.GraphSchema)
+		schemas = make(map[string]*gripql.Graph)
 	}
 	server := &GripServer{db: db, conf: conf, schemas: schemas}
 	for graph := range schemas {
@@ -54,6 +55,38 @@ func handleError(w http.ResponseWriter, req *http.Request, err string, code int)
 	http.Error(w, err, code)
 }
 
+// Return a new interceptor function that logs all requests at the Debug level
+func unaryDebugInterceptor() grpc.UnaryServerInterceptor {
+	// Return a function that is the interceptor.
+	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo,
+		handler grpc.UnaryHandler) (interface{}, error) {
+		start := time.Now()
+		resp, err := handler(ctx, req)
+		log.WithFields(log.Fields{
+			"endpoint":     info.FullMethod,
+			"request":      req,
+			"elapsed_time": time.Since(start),
+			"error":        err}).Debug("Responding to request")
+		return resp, err
+	}
+}
+
+// Return a new interceptor function that logs all requests at the Debug level
+func streamDebugInterceptor() grpc.StreamServerInterceptor {
+	// Return a function that is the interceptor.
+	return func(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo,
+		handler grpc.StreamHandler) error {
+		start := time.Now()
+		err := handler(srv, ss)
+		log.WithFields(log.Fields{
+			"endpoint":     info.FullMethod,
+			"request":      ss.Context(),
+			"elapsed_time": time.Since(start),
+			"error":        err}).Debug("Responding to request")
+		return err
+	}
+}
+
 // unaryErrorInterceptor is an interceptor function that logs all errors
 func unaryErrorInterceptor() grpc.UnaryServerInterceptor {
 	// Return a function that is the interceptor.
@@ -61,7 +94,7 @@ func unaryErrorInterceptor() grpc.UnaryServerInterceptor {
 		handler grpc.UnaryHandler) (interface{}, error) {
 		resp, err := handler(ctx, req)
 		if err != nil {
-			log.WithFields(log.Fields{"endpoint": info.FullMethod, "error": err}).Error("Request failed")
+			log.WithFields(log.Fields{"endpoint": info.FullMethod, "request": req, "error": err}).Error("Request failed")
 		}
 		return resp, err
 	}
@@ -96,12 +129,14 @@ func (server *GripServer) Serve(pctx context.Context) error {
 			grpc_middleware.ChainUnaryServer(
 				unaryAuthInterceptor(server.conf.BasicAuth),
 				unaryErrorInterceptor(),
+				unaryDebugInterceptor(),
 			),
 		),
 		grpc.StreamInterceptor(
 			grpc_middleware.ChainStreamServer(
 				streamAuthInterceptor(server.conf.BasicAuth),
 				streamErrorInterceptor(),
+				streamDebugInterceptor(),
 			),
 		),
 		grpc.MaxSendMsgSize(1024*1024*16),

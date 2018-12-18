@@ -212,10 +212,11 @@ func ConfigureLogger(conf Logger) {
 	case "error":
 		log.SetLevel(log.ErrorLevel)
 	default:
+		log.Warningf("Unknown log level: '%s'; defaulting to 'info'", conf.Level)
 		log.SetLevel(log.InfoLevel)
 	}
 
-	switch conf.Formatter {
+	switch strings.ToLower(conf.Formatter) {
 	case "json":
 		log.SetFormatter(&jsonFormatter{
 			conf: conf.JSONFormat,
@@ -223,6 +224,9 @@ func ConfigureLogger(conf Logger) {
 
 	// Default to text
 	default:
+		if strings.ToLower(conf.Formatter) != "text" {
+			log.Warningf("Unknown log formatter: '%s'; defaulting to 'text'", conf.Formatter)
+		}
 		log.SetFormatter(&textFormatter{
 			conf.TextFormat,
 			jsonFormatter{

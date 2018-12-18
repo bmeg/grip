@@ -12,8 +12,8 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-// GetSchema returns the schema of a specific graph in the database
-func (ma *GraphDB) GetSchema(ctx context.Context, graph string, sampleN uint32, random bool) (*gripql.GraphSchema, error) {
+// BuildSchema returns the schema of a specific graph in the database
+func (ma *GraphDB) BuildSchema(ctx context.Context, graph string, sampleN uint32, random bool) (*gripql.Graph, error) {
 	var vSchema []*gripql.Vertex
 	var eSchema []*gripql.Edge
 	var g errgroup.Group
@@ -40,7 +40,7 @@ func (ma *GraphDB) GetSchema(ctx context.Context, graph string, sampleN uint32, 
 		return nil, err
 	}
 
-	schema := &gripql.GraphSchema{Vertices: vSchema, Edges: eSchema}
+	schema := &gripql.Graph{Vertices: vSchema, Edges: eSchema}
 	log.WithFields(log.Fields{"graph": graph}).Debug("Finished GetSchema call")
 	return schema, nil
 }

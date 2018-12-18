@@ -34,7 +34,7 @@ func ConfigWithDefaults(serverAddress string) Config {
 		Password:      os.Getenv("GRIP_PASSWORD"),
 		ServerAddress: serverAddress,
 		Timeout:       30 * time.Second,
-		MaxRetries:    10,
+		MaxRetries:    3,
 	}
 }
 
@@ -106,7 +106,7 @@ type exponentialBackoff struct {
 
 func newExponentialBackoff() *exponentialBackoff {
 	return &exponentialBackoff{
-		Initial:             5 * time.Second,
+		Initial:             100 * time.Millisecond,
 		Max:                 1 * time.Minute,
 		Multiplier:          2.0,
 		RandomizationFactor: 0.1,

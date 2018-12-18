@@ -48,13 +48,12 @@ func DefaultConfig() *Config {
 	c.Server.WorkDir = "grip.work"
 	c.Server.ReadOnly = false
 	c.Server.DisableHTTPCache = true
+	c.Server.AutoBuildSchemas = false
 	c.Server.SchemaRefreshInterval = 24 * time.Hour
 	c.Server.SchemaInspectN = 500
 	c.Server.SchemaRandomSample = true
 
-	c.RPCClient.ServerAddress = c.Server.RPCAddress()
-	c.RPCClient.Timeout = 30 * time.Second
-	c.RPCClient.MaxRetries = 10
+	c.RPCClient = rpc.ConfigWithDefaults(c.Server.RPCAddress())
 
 	c.KVStorePath = "grip.db"
 

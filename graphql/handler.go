@@ -22,7 +22,7 @@ type graphHandler struct {
 	gqlHandler *handler.Handler
 	timestamp  string
 	client     gripql.Client
-	schema     *gripql.GraphSchema
+	schema     *gripql.Graph
 }
 
 // Handler is a GraphQL endpoint to query the Grip database
@@ -193,7 +193,7 @@ func buildObject(name string, obj map[string]interface{}) (*graphql.Object, erro
 	), nil
 }
 
-func buildObjectMap(client gripql.Client, graph string, schema *gripql.GraphSchema) (map[string]*graphql.Object, error) {
+func buildObjectMap(client gripql.Client, graph string, schema *gripql.Graph) (map[string]*graphql.Object, error) {
 	objects := map[string]*graphql.Object{}
 
 	for _, obj := range schema.Vertices {
@@ -289,9 +289,9 @@ func buildQueryObject(client gripql.Client, graph string, objects map[string]*gr
 	return query
 }
 
-func buildGraphQLSchema(schema *gripql.GraphSchema, client gripql.Client, graph string) (*graphql.Schema, error) {
+func buildGraphQLSchema(schema *gripql.Graph, client gripql.Client, graph string) (*graphql.Schema, error) {
 	if schema == nil {
-		return nil, fmt.Errorf("graphql.NewSchema error: nil gripql.GraphSchema for graph: %s", graph)
+		return nil, fmt.Errorf("graphql.NewSchema error: nil gripql.Graph for graph: %s", graph)
 	}
 
 	objectMap, err := buildObjectMap(client, graph, schema)

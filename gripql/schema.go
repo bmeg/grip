@@ -11,9 +11,9 @@ import (
 	"github.com/golang/protobuf/jsonpb"
 )
 
-// ParseSchema parses a YAML doc into the given GraphSchema instance.
-func ParseSchema(raw []byte) ([]*GraphSchema, error) {
-	schemas := []*GraphSchema{}
+// ParseSchema parses a YAML doc into the given Graph instance.
+func ParseSchema(raw []byte) ([]*Graph, error) {
+	schemas := []*Graph{}
 	tmp := []interface{}{}
 	err := yaml.Unmarshal(raw, &tmp)
 	if err != nil {
@@ -29,7 +29,7 @@ func ParseSchema(raw []byte) ([]*GraphSchema, error) {
 		if err != nil {
 			return nil, err
 		}
-		schema := &GraphSchema{}
+		schema := &Graph{}
 		err = jsonpb.UnmarshalString(string(part), schema)
 		if err != nil {
 			return nil, err
@@ -44,7 +44,7 @@ func ParseSchema(raw []byte) ([]*GraphSchema, error) {
 
 // ParseSchemaFile parses a graph schema file, which is formatted in YAML,
 // and returns a slice of graph schemas.
-func ParseSchemaFile(relpath string) ([]*GraphSchema, error) {
+func ParseSchemaFile(relpath string) ([]*Graph, error) {
 	if relpath == "" {
 		return nil, fmt.Errorf("schema path is empty")
 	}
@@ -71,7 +71,7 @@ func ParseSchemaFile(relpath string) ([]*GraphSchema, error) {
 }
 
 // SchemaToYAMLString returns a schema formatted as a YAML string
-func SchemaToYAMLString(schema *GraphSchema) (string, error) {
+func SchemaToYAMLString(schema *Graph) (string, error) {
 	m := jsonpb.Marshaler{}
 	b := []byte{}
 	out := bytes.NewBuffer(b)
@@ -87,7 +87,7 @@ func SchemaToYAMLString(schema *GraphSchema) (string, error) {
 }
 
 // SchemaToJSONString returns a schema formatted as a JSON string
-func SchemaToJSONString(schema *GraphSchema) (string, error) {
+func SchemaToJSONString(schema *Graph) (string, error) {
 	m := jsonpb.Marshaler{
 		EnumsAsInts:  false,
 		EmitDefaults: false,

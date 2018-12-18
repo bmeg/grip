@@ -52,13 +52,13 @@ func (server *GripServer) getSchemas(ctx context.Context) {
 			return
 
 		default:
-			log.WithFields(log.Fields{"graph": name}).Debug("get graph schema")
-			schema, err := server.db.GetSchema(ctx, name, server.conf.SchemaInspectN, server.conf.SchemaRandomSample)
+			log.WithFields(log.Fields{"graph": name}).Debug("building graph schema")
+			schema, err := server.db.BuildSchema(ctx, name, server.conf.SchemaInspectN, server.conf.SchemaRandomSample)
 			if err == nil {
 				log.WithFields(log.Fields{"graph": name}).Debug("cached graph schema")
 				server.schemas[name] = schema
 			} else {
-				log.WithFields(log.Fields{"graph": name, "error": err}).Error("failed to get graph schema")
+				log.WithFields(log.Fields{"graph": name, "error": err}).Error("failed to build graph schema")
 			}
 		}
 	}
@@ -86,7 +86,7 @@ func (server *GripServer) cacheSchemas(ctx context.Context) {
 }
 
 // GetSchema returns the schema of a specific graph in the database
-func (server *GripServer) GetSchema(ctx context.Context, elem *gripql.GraphID) (*gripql.GraphSchema, error) {
+func (server *GripServer) GetSchema(ctx context.Context, elem *gripql.GraphID) (*gripql.Graph, error) {
 	found := false
 	for _, name := range server.db.ListGraphs() {
 		if name == elem.Graph {
@@ -418,7 +418,7 @@ func (server *GripServer) ListLabels(ctx context.Context, idx *gripql.GraphID) (
 }
 
 // AddSchema caches a graph schema on the server
-func (server *GripServer) AddSchema(ctx context.Context, req *gripql.GraphSchema) (*gripql.EditResult, error) {
+func (server *GripServer) AddSchema(ctx context.Context, req *gripql.Graph) (*gripql.EditResult, error) {
 	server.schemas[req.Graph] = req
 	return nil, nil
 }
