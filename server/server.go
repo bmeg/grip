@@ -80,7 +80,6 @@ func streamDebugInterceptor() grpc.StreamServerInterceptor {
 		err := handler(srv, ss)
 		log.WithFields(log.Fields{
 			"endpoint":     info.FullMethod,
-			"request":      ss.Context(),
 			"elapsed_time": time.Since(start),
 			"error":        err}).Debug("Responding to request")
 		return err

@@ -16,6 +16,8 @@ import (
 
 // Traversal parses a traversal request and streams the results back
 func (server *GripServer) Traversal(query *gripql.GraphQuery, queryServer gripql.Query_TraversalServer) error {
+	start := time.Now()
+	log.WithFields(log.Fields{"query": query}).Debug("Traversal")
 	graph, err := server.db.Graph(query.Graph)
 	if err != nil {
 		return err
@@ -28,7 +30,6 @@ func (server *GripServer) Traversal(query *gripql.GraphQuery, queryServer gripql
 	res := engine.Run(queryServer.Context(), pipeline, server.conf.WorkDir)
 	err = nil
 	for row := range res {
-		log.WithFields(log.Fields{"query": query, "result": row}).Info("Traversal")
 		if err == nil {
 			err = queryServer.Send(row)
 		}
@@ -36,6 +37,7 @@ func (server *GripServer) Traversal(query *gripql.GraphQuery, queryServer gripql
 	if err != nil {
 		return fmt.Errorf("error sending Traversal result: %v", err)
 	}
+	log.WithFields(log.Fields{"query": query, "elapsed_time": time.Since(start)}).Debug("Traversal")
 	return nil
 }
 
