@@ -111,7 +111,7 @@ func (ma *GraphDB) getVertexSchema(ctx context.Context, graph string, n uint32, 
 				return err
 			}
 
-			vSchema := &gripql.Vertex{Label: label, Data: protoutil.AsStruct(schema)}
+			vSchema := &gripql.Vertex{Gid: label, Label: label, Data: protoutil.AsStruct(schema)}
 			schemaChan <- vSchema
 			log.WithFields(log.Fields{"graph": graph, "label": label}).Debug("getVertexSchema: Finished schema build")
 
@@ -208,7 +208,13 @@ func (ma *GraphDB) getEdgeSchema(ctx context.Context, graph string, n uint32, ra
 			to := fromToPairs.GetTo()
 
 			for j := 0; j < len(from); j++ {
-				eSchema := &gripql.Edge{Label: label, From: from[j], To: to[j], Data: protoutil.AsStruct(schema)}
+				eSchema := &gripql.Edge{
+					Gid:   fmt.Sprintf("(%s)--%s->(%s)", from[j], label, to[j]),
+					Label: label,
+					From:  from[j],
+					To:    to[j],
+					Data:  protoutil.AsStruct(schema),
+				}
 				schemaChan <- eSchema
 			}
 			log.WithFields(log.Fields{"graph": graph, "label": label}).Debug("getEdgeSchema: Finished schema build")

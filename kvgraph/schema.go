@@ -64,11 +64,17 @@ func (ma *KVGraph) sampleSchema(ctx context.Context, graph string, n uint32, ran
 				}
 			}
 		}
-		vSchema := &gripql.Vertex{Label: label, Data: protoutil.AsStruct(schema)}
+		vSchema := &gripql.Vertex{Gid: label, Label: label, Data: protoutil.AsStruct(schema)}
 		vOutput = append(vOutput, vSchema)
 	}
 	for k, v := range fromToPairs {
-		eSchema := &gripql.Edge{Label: k.label, To: k.to, From: k.from, Data: protoutil.AsStruct(v.(map[string]interface{}))}
+		eSchema := &gripql.Edge{
+			Gid:   fmt.Sprintf("(%s)--%s->(%s)", k.from, k.label, k.to),
+			Label: k.label,
+			From:  k.from,
+			To:    k.to,
+			Data:  protoutil.AsStruct(v.(map[string]interface{})),
+		}
 		eOutput = append(eOutput, eSchema)
 	}
 	return vOutput, eOutput, nil
