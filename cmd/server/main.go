@@ -119,7 +119,7 @@ var Cmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		schemaMap := make(map[string]*gripql.Graph)
 		if schemaFile != "" {
-			schemas, err := gripql.ParseSchemaFile(schemaFile)
+			schemas, err := gripql.ParseYAMLGraphFile(schemaFile)
 			if err != nil {
 				return fmt.Errorf("error processing schema file: %v", err)
 			}
@@ -138,5 +138,6 @@ func init() {
 	flags.StringVar(&conf.Server.HTTPPort, "http-port", conf.Server.HTTPPort, "HTTP port")
 	flags.StringVar(&conf.Server.RPCPort, "rpc-port", conf.Server.RPCPort, "TCP+RPC port")
 	flags.BoolVar(&conf.Server.ReadOnly, "read-only", conf.Server.ReadOnly, "Start server in read-only mode")
-	flags.StringVar(&conf.Logger.Level, "log-level", conf.Logger.Level, "Log level")
+	flags.StringVar(&conf.Logger.Level, "log-level", conf.Logger.Level, "Log level [info, debug, warn, error]")
+	flags.StringVar(&conf.Logger.Formatter, "log-format", conf.Logger.Formatter, "Log format [text, json]")
 }

@@ -32,9 +32,9 @@ var Cmd = &cobra.Command{
 
 		var txt string
 		if yaml {
-			txt, err = gripql.SchemaToYAMLString(schema)
+			txt, err = gripql.GraphToYAMLString(schema)
 		} else {
-			txt, err = gripql.SchemaToJSONString(schema)
+			txt, err = gripql.GraphToJSONString(schema)
 		}
 		if err != nil {
 			return err
