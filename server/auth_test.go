@@ -14,6 +14,7 @@ import (
 	"github.com/bmeg/grip/kvgraph"
 	_ "github.com/bmeg/grip/kvi/badgerdb" // import so badger will register itself
 	"github.com/bmeg/grip/util"
+	"github.com/bmeg/grip/util/duration"
 	"github.com/bmeg/grip/util/rpc"
 )
 
@@ -32,7 +33,7 @@ func TestBasicAuthFail(t *testing.T) {
 
 	go srv.Serve(ctx)
 
-	cli, err := gripql.Connect(rpc.Config{ServerAddress: conf.RPCAddress(), Timeout: 5 * time.Second}, true)
+	cli, err := gripql.Connect(rpc.Config{ServerAddress: conf.RPCAddress(), Timeout: duration.Duration(5 * time.Second)}, true)
 	if err != nil {
 		t.Fatal(err)
 	}
