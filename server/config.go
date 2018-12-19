@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/bmeg/grip/util"
+	"github.com/bmeg/grip/util/duration"
 )
 
 // Config describes configuration for the server.
@@ -18,8 +19,8 @@ type Config struct {
 	DisableHTTPCache bool
 	// Should the server periodically build the graph schemas?
 	AutoBuildSchemas bool
-	// How often the server should rebuild the graph schemas
-	SchemaRefreshInterval time.Duration
+	// How often the server should rebuild the graph schemas. Set to 0 to turn off
+	SchemaRefreshInterval duration.Duration
 	// How many vertices/edges to inspect to infer the schema
 	SchemaInspectN uint32
 	// Strategy to use for selecting the vertices/edges to inspect.
@@ -61,7 +62,7 @@ func testConfig() Config {
 	c.RPCPort = util.RandomPort()
 	c.WorkDir = "grip.work." + util.RandomString(6)
 	c.DisableHTTPCache = true
-	c.SchemaRefreshInterval = 1 * time.Minute
+	c.SchemaRefreshInterval = duration.Duration(1 * time.Minute)
 	c.SchemaInspectN = 100
 	return c
 }

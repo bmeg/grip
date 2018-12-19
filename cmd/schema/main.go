@@ -10,11 +10,18 @@ import (
 
 var host = "localhost:8202"
 var yaml = false
+var jsonFile string
+var yamlFile string
 
 // Cmd line declaration
 var Cmd = &cobra.Command{
-	Use:   "schema <graph>",
-	Short: "Print the schema for a graph",
+	Use:   "schema",
+	Short: "Graph schema operations",
+}
+
+var getCmd = &cobra.Command{
+	Use:   "get <graph>",
+	Short: "Get the schema for a graph",
 	Long:  ``,
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -44,8 +51,60 @@ var Cmd = &cobra.Command{
 	},
 }
 
+var postCmd = &cobra.Command{
+	Use:   "post",
+	Short: "Post graph schemas",
+	Long:  ``,
+	Args:  cobra.NoArgs,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		if jsonFile == "" && yamlFile == "" {
+			return fmt.Errorf("no schema file was provided")
+		}
+
+		conn, err := gripql.Connect(rpc.ConfigWithDefaults(host), true)
+		if err != nil {
+			return err
+		}
+
+		if jsonFile != "" {
+			graphs, err := gripql.ParseJSONGraphFile(jsonFile)
+			if err != nil {
+				return err
+			}
+			for _, g := range graphs {
+				err := conn.AddSchema(g)
+				if err != nil {
+					return err
+				}
+			}
+		}
+
+		if yamlFile != "" {
+			graphs, err := gripql.ParseYAMLGraphFile(yamlFile)
+			if err != nil {
+				return err
+			}
+			for _, g := range graphs {
+				err := conn.AddSchema(g)
+				if err != nil {
+					return err
+				}
+			}
+		}
+		return nil
+	},
+}
+
 func init() {
-	flags := Cmd.Flags()
-	flags.StringVar(&host, "host", host, "grip server url")
-	flags.BoolVar(&yaml, "yaml", yaml, "output schema in YAML rather than JSON format")
+	gflags := getCmd.Flags()
+	gflags.StringVar(&host, "host", host, "grip server url")
+	gflags.BoolVar(&yaml, "yaml", yaml, "output schema in YAML rather than JSON format")
+
+	pflags := postCmd.Flags()
+	pflags.StringVar(&host, "host", host, "grip server url")
+	pflags.StringVar(&jsonFile, "json", "", "JSON graph file")
+	pflags.StringVar(&yamlFile, "yaml", "", "YAML graph file")
+
+	Cmd.AddCommand(getCmd)
+	Cmd.AddCommand(postCmd)
 }

@@ -7,6 +7,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/bmeg/grip/util/duration"
 	"github.com/grpc-ecosystem/go-grpc-middleware/retry"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
@@ -20,7 +21,7 @@ type Config struct {
 	// The timeout to use for making RPC client connections in nanoseconds
 	// This timeout is Only enforced when used in conjunction with the
 	// grpc.WithBlock dial option.
-	Timeout time.Duration
+	Timeout duration.Duration
 	// The maximum number of times that a request will be retried for failures.
 	// Time between retries follows an exponential backoff starting at 5 seconds
 	// up to 1 minute
@@ -33,7 +34,7 @@ func ConfigWithDefaults(serverAddress string) Config {
 		User:          os.Getenv("GRIP_USER"),
 		Password:      os.Getenv("GRIP_PASSWORD"),
 		ServerAddress: serverAddress,
-		Timeout:       30 * time.Second,
+		Timeout:       duration.Duration(30 * time.Second),
 		MaxRetries:    3,
 	}
 }

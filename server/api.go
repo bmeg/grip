@@ -110,6 +110,10 @@ func (server *GripServer) AddVertex(ctx context.Context, elem *gripql.GraphEleme
 	if isSchema(elem.Graph) {
 		return nil, fmt.Errorf("unable to add vertex to graph schema; use AddSchema")
 	}
+	return server.addVertex(ctx, elem)
+}
+
+func (server *GripServer) addVertex(ctx context.Context, elem *gripql.GraphElement) (*gripql.EditResult, error) {
 	graph, err := server.db.Graph(elem.Graph)
 	if err != nil {
 		return nil, err
@@ -133,6 +137,10 @@ func (server *GripServer) AddEdge(ctx context.Context, elem *gripql.GraphElement
 	if isSchema(elem.Graph) {
 		return nil, fmt.Errorf("unable to add edge to graph schema; use AddSchema")
 	}
+	return server.addEdge(ctx, elem)
+}
+
+func (server *GripServer) addEdge(ctx context.Context, elem *gripql.GraphElement) (*gripql.EditResult, error) {
 	graph, err := server.db.Graph(elem.Graph)
 	if err != nil {
 		return nil, err
@@ -414,9 +422,12 @@ func (server *GripServer) cacheSchemas(ctx context.Context) {
 	if server.db == nil {
 		return
 	}
-	ticker := time.NewTicker(server.conf.SchemaRefreshInterval)
+	ticker := time.NewTicker(time.Duration(server.conf.SchemaRefreshInterval))
 	go func() {
 		server.buildSchemas(ctx)
+		if time.Duration(server.conf.SchemaRefreshInterval) == 0 {
+			return
+		}
 		for {
 			select {
 			case <-ctx.Done():
@@ -457,13 +468,13 @@ func (server *GripServer) AddSchema(ctx context.Context, req *gripql.Graph) (*gr
 		return nil, fmt.Errorf("failed to store new schema: %v", err)
 	}
 	server.schemas[req.Graph] = req
-	return nil, err
+	return &gripql.EditResult{}, err
 }
 
 func (server *GripServer) addSchemaGraph(ctx context.Context, schema *gripql.Graph) error {
 	schemaName := fmt.Sprintf("%s%s", schema.Graph, schemaSuffix)
 	if server.graphExists(schemaName) {
-		_, err := server.DeleteGraph(ctx, &gripql.GraphID{Graph: schema.Graph})
+		_, err := server.DeleteGraph(ctx, &gripql.GraphID{Graph: schemaName})
 		if err != nil {
 			return fmt.Errorf("failed to remove previous schema: %v", err)
 		}
@@ -473,13 +484,13 @@ func (server *GripServer) addSchemaGraph(ctx context.Context, schema *gripql.Gra
 		return fmt.Errorf("error creating graph '%s': %v", schemaName, err)
 	}
 	for _, v := range schema.Vertices {
-		_, err := server.AddVertex(ctx, &gripql.GraphElement{Graph: schemaName, Vertex: v})
+		_, err := server.addVertex(ctx, &gripql.GraphElement{Graph: schemaName, Vertex: v})
 		if err != nil {
 			return fmt.Errorf("error adding vertex to graph '%s': %v", schemaName, err)
 		}
 	}
 	for _, e := range schema.Edges {
-		_, err := server.AddEdge(ctx, &gripql.GraphElement{Graph: schemaName, Edge: e})
+		_, err := server.addEdge(ctx, &gripql.GraphElement{Graph: schemaName, Edge: e})
 		if err != nil {
 			return fmt.Errorf("error adding edge to graph '%s': %v", schemaName, err)
 		}

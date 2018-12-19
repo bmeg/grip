@@ -40,7 +40,7 @@ func (ma *GraphDB) BuildSchema(ctx context.Context, graph string, sampleN uint32
 		return nil, err
 	}
 
-	schema := &gripql.Graph{Vertices: vSchema, Edges: eSchema}
+	schema := &gripql.Graph{Graph: graph, Vertices: vSchema, Edges: eSchema}
 	log.WithFields(log.Fields{"graph": graph}).Debug("Finished GetSchema call")
 	return schema, nil
 }
