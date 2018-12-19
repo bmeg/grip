@@ -7,11 +7,13 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/graphql"
 	"github.com/bmeg/grip/gripql"
+	"github.com/bmeg/grip/util/rpc"
 	"github.com/golang/gddo/httputil"
 	"github.com/grpc-ecosystem/go-grpc-middleware"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
@@ -40,10 +42,16 @@ func NewGripServer(db gdbi.GraphDB, conf Config, schemas map[string]*gripql.Grap
 		schemas = make(map[string]*gripql.Graph)
 	}
 	server := &GripServer{db: db, conf: conf, schemas: schemas}
-	for graph := range schemas {
-		_, err := server.AddGraph(context.Background(), &gripql.GraphID{Graph: graph})
+	for graph, schema := range schemas {
+		if !server.graphExists(graph) {
+			_, err := server.AddGraph(context.Background(), &gripql.GraphID{Graph: graph})
+			if err != nil {
+				return nil, fmt.Errorf("error creating graph defined by schema '%s': %v", graph, err)
+			}
+		}
+		err = server.addSchemaGraph(context.Background(), schema)
 		if err != nil {
-			return nil, fmt.Errorf("error creating schema defined graph '%s': %v", graph, err)
+			return nil, err
 		}
 	}
 	return server, nil
@@ -267,6 +275,34 @@ func (server *GripServer) Serve(pctx context.Context) error {
 
 	log.Infoln("TCP+RPC server listening on " + server.conf.RPCPort)
 	log.Infoln("HTTP proxy connecting to localhost:" + server.conf.HTTPPort)
+
+	for _, graph := range server.db.ListGraphs() {
+		if isSchema(graph) {
+			log.WithFields(log.Fields{"graph": graph}).Debug("Loading existing schema into cache")
+			conn, err := gripql.Connect(rpc.ConfigWithDefaults(server.conf.RPCAddress()), true)
+			if err != nil {
+				return fmt.Errorf("failed to load existing schema: %v", err)
+			}
+			res, err := conn.Traversal(&gripql.GraphQuery{Graph: graph, Query: gripql.NewQuery().V().Statements})
+			if err != nil {
+				return fmt.Errorf("failed to load existing schema: %v", err)
+			}
+			vertices := []*gripql.Vertex{}
+			for row := range res {
+				vertices = append(vertices, row.GetVertex())
+			}
+			res, err = conn.Traversal(&gripql.GraphQuery{Graph: graph, Query: gripql.NewQuery().E().Statements})
+			if err != nil {
+				return fmt.Errorf("failed to load existing schema: %v", err)
+			}
+			edges := []*gripql.Edge{}
+			for row := range res {
+				edges = append(edges, row.GetEdge())
+			}
+			graph = strings.TrimSuffix(graph, schemaSuffix)
+			server.schemas[graph] = &gripql.Graph{Graph: graph, Vertices: vertices, Edges: edges}
+		}
+	}
 
 	<-ctx.Done()
 	log.Infoln("closing database...")
