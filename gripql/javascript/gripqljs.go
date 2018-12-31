@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 )
+
 type asset struct {
 	bytes []byte
 	info  os.FileInfo
@@ -223,10 +224,10 @@ function contains(key, value) {
 }
 
 // Aggregation builders
-function term(name, label, field, size) {
+function term(name, field, size) {
 	agg = {
 		"name": name,
-		"term": {"label": label, "field": field}
+		"term": {"field": field}
 	}
 	if (size) {
 		if (typeof size != "number") {
@@ -237,7 +238,7 @@ function term(name, label, field, size) {
 	return agg
 }
 
-function percentile(name, label, field, percents) {
+function percentile(name, field, percents) {
 	if (!percents) {
 		percents = [1, 5, 25, 50, 75, 95, 99]
 	} else {
@@ -251,12 +252,12 @@ function percentile(name, label, field, percents) {
 	return {
 		"name": name,
 		"percentile": {
-			"label": label, "field": field, "percents": percents
+			"field": field, "percents": percents
 		}
 	}
 }
 
-function histogram(name, label, field, interval) {
+function histogram(name, field, interval) {
 	if (interval) {
 		if (typeof interval != "number") {
 			throw "expected interval to be a number"
@@ -265,7 +266,7 @@ function histogram(name, label, field, interval) {
 	return {
 		"name": name,
 		"histogram": {
-			"label": label, "field": field, "interval": interval
+			"field": field, "interval": interval
 		}
 	}
 }
@@ -289,7 +290,7 @@ func gripqlJs() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "gripql.js", size: 5155, mode: os.FileMode(420), modTime: time.Unix(1544743565, 0)}
+	info := bindataFileInfo{name: "gripql.js", size: 5086, mode: os.FileMode(420), modTime: time.Unix(1546273137, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -388,8 +389,9 @@ type bintree struct {
 	Func     func() (*asset, error)
 	Children map[string]*bintree
 }
+
 var _bintree = &bintree{nil, map[string]*bintree{
-	"gripql.js": &bintree{gripqlJs, map[string]*bintree{}},
+	"gripql.js": {gripqlJs, map[string]*bintree{}},
 }}
 
 // RestoreAsset restores an asset under the given directory
@@ -438,4 +440,3 @@ func _filePath(dir, name string) string {
 	cannonicalName := strings.Replace(name, "\\", "/", -1)
 	return filepath.Join(append([]string{dir}, strings.Split(cannonicalName, "/")...)...)
 }
-

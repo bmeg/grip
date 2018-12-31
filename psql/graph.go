@@ -34,8 +34,8 @@ func (g *Graph) Compiler() gdbi.Compiler {
 // Write methods
 ////////////////////////////////////////////////////////////////////////////////
 
-// AddVertex is not implemented in the SQL driver
-func (g *Graph) AddVertex(vertexArray []*gripql.Vertex) error {
+// AddVertex adds a vertex to the database
+func (g *Graph) AddVertex(vertices []*gripql.Vertex) error {
 	txn, err := g.db.Begin()
 	if err != nil {
 		return fmt.Errorf("AddVertex: Begin Txn: %v", err)
@@ -54,7 +54,7 @@ func (g *Graph) AddVertex(vertexArray []*gripql.Vertex) error {
 		return fmt.Errorf("AddVertex: Prepare Stmt: %v", err)
 	}
 
-	for _, v := range vertexArray {
+	for _, v := range vertices {
 		_, err = stmt.Exec(v.Gid, v.Label, protoutil.AsJSONString(v.Data))
 		if err != nil {
 			return fmt.Errorf("AddVertex: Stmt.Exec: %v", err)
@@ -74,8 +74,8 @@ func (g *Graph) AddVertex(vertexArray []*gripql.Vertex) error {
 	return nil
 }
 
-// AddEdge is not implemented in the SQL driver
-func (g *Graph) AddEdge(edgeArray []*gripql.Edge) error {
+// AddEdge adds an edge to the database
+func (g *Graph) AddEdge(edges []*gripql.Edge) error {
 	txn, err := g.db.Begin()
 	if err != nil {
 		return fmt.Errorf("AddEdge: Begin Txn: %v", err)
@@ -96,7 +96,7 @@ func (g *Graph) AddEdge(edgeArray []*gripql.Edge) error {
 		return fmt.Errorf("AddEdge: Prepare Stmt: %v", err)
 	}
 
-	for _, e := range edgeArray {
+	for _, e := range edges {
 		_, err = stmt.Exec(e.Gid, e.Label, e.From, e.To, protoutil.AsJSONString(e.Data))
 		if err != nil {
 			return fmt.Errorf("AddEdge: Stmt.Exec: %v", err)
@@ -720,4 +720,48 @@ func (g *Graph) GetInEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, edg
 		}
 	}()
 	return o
+}
+
+// ListVertexLabels returns a list of vertex types in the graph
+func (g *Graph) ListVertexLabels() ([]string, error) {
+	q := fmt.Sprintf("SELECT DISTINCT label FROM %s", g.v)
+	rows, err := g.db.Queryx(q)
+	if err != nil {
+		return nil, err
+	}
+	labels := []string{}
+	defer rows.Close()
+	for rows.Next() {
+		var l string
+		if err := rows.Scan(&l); err != nil {
+			return nil, err
+		}
+		labels = append(labels, l)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return labels, nil
+}
+
+// ListEdgeLabels returns a list of edge types in the graph
+func (g *Graph) ListEdgeLabels() ([]string, error) {
+	q := fmt.Sprintf("SELECT DISTINCT label FROM %s", g.e)
+	rows, err := g.db.Queryx(q)
+	if err != nil {
+		return nil, err
+	}
+	labels := []string{}
+	defer rows.Close()
+	for rows.Next() {
+		var l string
+		if err := rows.Scan(&l); err != nil {
+			return nil, err
+		}
+		labels = append(labels, l)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return labels, nil
 }

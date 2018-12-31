@@ -27,11 +27,11 @@ func (es *Graph) DeleteVertexIndex(label string, field string) error {
 }
 
 // GetVertexIndexList gets list if vertex indices
-func (es *Graph) GetVertexIndexList() chan gripql.IndexID {
+func (es *Graph) GetVertexIndexList() <-chan *gripql.IndexID {
 	log.Debug("Running GetVertexIndexList")
 	ctx := context.Background()
 
-	o := make(chan gripql.IndexID, 100)
+	o := make(chan *gripql.IndexID)
 	go func() {
 		defer close(o)
 
@@ -76,7 +76,7 @@ func (es *Graph) GetVertexIndexList() chan gripql.IndexID {
 
 		for k := range data {
 			for _, l := range labels {
-				o <- gripql.IndexID{Graph: es.graph, Label: l, Field: k}
+				o <- &gripql.IndexID{Graph: es.graph, Label: l, Field: k}
 			}
 		}
 	}()

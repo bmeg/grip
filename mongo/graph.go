@@ -98,7 +98,7 @@ func isNetError(e error) bool {
 
 // AddVertex adds an edge to the graph, if it already exists
 // in the graph, it is replaced
-func (mg *Graph) AddVertex(vertexArray []*gripql.Vertex) error {
+func (mg *Graph) AddVertex(vertices []*gripql.Vertex) error {
 	session := mg.ar.session.Copy()
 	defer session.Close()
 
@@ -106,7 +106,7 @@ func (mg *Graph) AddVertex(vertexArray []*gripql.Vertex) error {
 	var err error
 	for i := 0; i < MaxRetries; i++ {
 		bulk := vCol.Bulk()
-		for _, vertex := range vertexArray {
+		for _, vertex := range vertices {
 			bulk.Upsert(bson.M{"_id": vertex.Gid}, PackVertex(vertex))
 		}
 		_, err = bulk.Run()
@@ -120,9 +120,9 @@ func (mg *Graph) AddVertex(vertexArray []*gripql.Vertex) error {
 	return err
 }
 
-// AddEdge adds an edge to the graph, if the id is not "" and in already exists
+// AddEdge adds an edge to the graph, if it already exists
 // in the graph, it is replaced
-func (mg *Graph) AddEdge(edgeArray []*gripql.Edge) error {
+func (mg *Graph) AddEdge(edges []*gripql.Edge) error {
 	session := mg.ar.session.Copy()
 	defer session.Close()
 
@@ -130,7 +130,7 @@ func (mg *Graph) AddEdge(edgeArray []*gripql.Edge) error {
 	var err error
 	for i := 0; i < MaxRetries; i++ {
 		bulk := eCol.Bulk()
-		for _, edge := range edgeArray {
+		for _, edge := range edges {
 			bulk.Upsert(bson.M{"_id": edge.Gid}, PackEdge(edge))
 		}
 		_, err = bulk.Run()
@@ -547,4 +547,28 @@ func (mg *Graph) GetInEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, ed
 	}()
 
 	return o
+}
+
+// ListVertexLabels returns a list of vertex types in the graph
+func (mg *Graph) ListVertexLabels() ([]string, error) {
+	session := mg.ar.session.Copy()
+	v := mg.ar.VertexCollection(session, mg.graph)
+	var labels []string
+	err := v.Find(nil).Distinct("label", &labels)
+	if err != nil {
+		return nil, err
+	}
+	return labels, nil
+}
+
+// ListEdgeLabels returns a list of edge types in the graph
+func (mg *Graph) ListEdgeLabels() ([]string, error) {
+	session := mg.ar.session.Copy()
+	e := mg.ar.EdgeCollection(session, mg.graph)
+	var labels []string
+	err := e.Find(nil).Distinct("label", &labels)
+	if err != nil {
+		return nil, err
+	}
+	return labels, nil
 }

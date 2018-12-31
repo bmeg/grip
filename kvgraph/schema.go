@@ -32,7 +32,7 @@ func (ma *KVGraph) GetSchema(ctx context.Context, graph string, sampleN uint32, 
 
 func (ma *KVGraph) sampleSchema(ctx context.Context, graph string, n uint32, random bool) ([]*gripql.Vertex, []*gripql.Edge, error) {
 
-	labelField := fmt.Sprintf("%s.label", graph)
+	labelField := fmt.Sprintf("%s.v.label", graph)
 	labels := []string{}
 	for i := range ma.idx.FieldTerms(labelField) {
 		labels = append(labels, i.(string))

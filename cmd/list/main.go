@@ -21,11 +21,13 @@ var Cmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		graphs, err := conn.ListGraphs()
+
+		resp, err := conn.ListGraphs()
 		if err != nil {
 			return err
 		}
-		for g := range graphs {
+
+		for _, g := range resp.Graphs {
 			fmt.Printf("%s\n", g)
 		}
 		return nil

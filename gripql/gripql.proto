@@ -84,19 +84,16 @@ message Aggregate {
 }
 
 message TermAggregation {
-  string label = 1;
   string field = 2;
   uint32 size = 3;
 }
 
 message PercentileAggregation {
-  string label = 1;
   string field = 2;
   repeated double percents = 3;
 }
 
 message HistogramAggregation {
-  string label = 1;
   string field = 2;
   uint32 interval = 3;
 }
@@ -269,17 +266,23 @@ message GraphSchema {
 
 message Empty {}
 
+message ListGraphsResponse {
+  repeated string graphs = 1;
+}
+
+message ListIndicesResponse {
+  repeated IndexID indices = 1;
+}
+
+message ListLabelsResponse {
+  repeated string vertex_labels = 1;
+  repeated string edge_labels = 2;
+}
+
 service Query {
   rpc Traversal(GraphQuery) returns (stream QueryResult) {
     option (google.api.http) = {
       post: "/v1/graph/{graph}/query"
-      body: "*"
-    };
-  }
-
-  rpc Aggregate(AggregationsRequest) returns (NamedAggregationResult) {
-    option (google.api.http) = {
-      post: "/v1/graph/{graph}/aggregate"
       body: "*"
     };
   }
@@ -302,21 +305,27 @@ service Query {
     };
   }
 
-  rpc ListGraphs(Empty) returns (stream GraphID) {
+  rpc GetSchema(GraphID) returns (GraphSchema) {
+    option (google.api.http) = {
+      get: "/v1/graph/{graph}/schema"
+    };
+  }
+
+  rpc ListGraphs(Empty) returns (ListGraphsResponse) {
     option (google.api.http) = {
       get: "/v1/graph"
     };
   }
 
-  rpc ListIndices(GraphID) returns (stream IndexID) {
+  rpc ListIndices(GraphID) returns (ListIndicesResponse) {
     option (google.api.http) = {
       get: "/v1/graph/{graph}/index"
     };
   }
 
-  rpc GetSchema(GraphID) returns (GraphSchema) {
+  rpc ListLabels(GraphID) returns (ListLabelsResponse) {
     option (google.api.http) = {
-      get: "/v1/graph/{graph}/schema"
+      get: "/v1/graph/{graph}/labels"
     };
   }
 

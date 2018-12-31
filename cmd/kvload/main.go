@@ -2,13 +2,13 @@ package kvload
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/bmeg/golib"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/kvgraph"
 	"github.com/bmeg/grip/kvi"
 	"github.com/bmeg/grip/util"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -88,7 +88,7 @@ var Cmd = &cobra.Command{
 		}
 
 		for _, vertexFile := range vertexFileArray {
-			log.Printf("Loading %s", vertexFile)
+			log.Infof("Loading %s", vertexFile)
 			count := 0
 			vertexChan := make(chan []*gripql.Vertex, 100)
 			vertexBatch := make([]*gripql.Vertex, 0, batchSize)
@@ -101,20 +101,20 @@ var Cmd = &cobra.Command{
 					}
 					count++
 					if count%10000 == 0 {
-						log.Printf("Loaded %d vertices", count)
+						log.Infof("Loaded %d vertices", count)
 					}
 				}
 				if len(vertexBatch) > 0 {
 					vertexChan <- vertexBatch
 				}
-				log.Printf("Loaded %d vertices", count)
+				log.Infof("Loaded %d vertices", count)
 				close(vertexChan)
 			}()
 
 			for batch := range vertexChan {
 				//serialize and store vertex
 				if err := kgraph.AddVertex(batch); err != nil {
-					log.Printf("%s", err)
+					log.Errorf("%s", err)
 				}
 			}
 		}
@@ -133,19 +133,19 @@ var Cmd = &cobra.Command{
 					}
 					count++
 					if count%10000 == 0 {
-						log.Printf("Loaded %d edges", count)
+						log.Infof("Loaded %d edges", count)
 					}
 				}
 				if len(edgeBatch) > 0 {
 					edgeChan <- edgeBatch
 				}
-				log.Printf("Loaded %d edges", count)
+				log.Infof("Loaded %d edges", count)
 				close(edgeChan)
 			}()
 			for batch := range edgeChan {
 				//serialize and store vertex
 				if err := kgraph.AddEdge(batch); err != nil {
-					log.Printf("%s", err)
+					log.Errorf("%s", err)
 				}
 			}
 		}

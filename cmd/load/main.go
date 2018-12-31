@@ -64,13 +64,13 @@ var Cmd = &cobra.Command{
 			return err
 		}
 
-		graphs, err := conn.ListGraphs()
+		resp, err := conn.ListGraphs()
 		if err != nil {
 			return err
 		}
 
 		found := false
-		for g := range graphs {
+		for _, g := range resp.Graphs {
 			if graph == g {
 				found = true
 			}

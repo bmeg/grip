@@ -10,7 +10,6 @@ import (
 	"github.com/bmeg/grip/util"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
-	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 )
@@ -41,17 +40,9 @@ func (server *GripServer) Traversal(query *gripql.GraphQuery, queryServer gripql
 }
 
 // ListGraphs returns a list of graphs managed by the driver
-func (server *GripServer) ListGraphs(empty *gripql.Empty, queryServer gripql.Query_ListGraphsServer) error {
-	var err error
-	for _, name := range server.db.ListGraphs() {
-		if err == nil {
-			err = queryServer.Send(&gripql.GraphID{Graph: name})
-		}
-	}
-	if err != nil {
-		return fmt.Errorf("error sending ListGraphs result: %v", err)
-	}
-	return nil
+func (server *GripServer) ListGraphs(ctx context.Context, empty *gripql.Empty) (*gripql.ListGraphsResponse, error) {
+	graphs := server.db.ListGraphs()
+	return &gripql.ListGraphsResponse{Graphs: graphs}, nil
 }
 
 func (server *GripServer) getSchemas(ctx context.Context) {
@@ -391,86 +382,31 @@ func (server *GripServer) DeleteIndex(ctx context.Context, idx *gripql.IndexID) 
 }
 
 // ListIndices lists avalible indices from a graph
-func (server *GripServer) ListIndices(idx *gripql.GraphID, stream gripql.Query_ListIndicesServer) error {
+func (server *GripServer) ListIndices(ctx context.Context, idx *gripql.GraphID) (*gripql.ListIndicesResponse, error) {
 	graph, err := server.db.Graph(idx.Graph)
-	if err != nil {
-		return err
-	}
-	res := graph.GetVertexIndexList()
-	for i := range res {
-		if err == nil {
-			a := i
-			err = stream.Send(&a)
-		}
-	}
-	if err != nil {
-		return fmt.Errorf("error sending ListIndices result: %v", err)
-	}
-	return nil
-}
-
-// Aggregate is partially implemented
-func (server *GripServer) Aggregate(ctx context.Context, req *gripql.AggregationsRequest) (*gripql.NamedAggregationResult, error) {
-	graph, err := server.db.Graph(req.Graph)
 	if err != nil {
 		return nil, err
 	}
-
-	g, ctx := errgroup.WithContext(ctx)
-
-	aggChan := make(chan map[string]*gripql.AggregationResult, len(req.Aggregations))
-	for _, agg := range req.Aggregations {
-		agg := agg
-		switch agg.Aggregation.(type) {
-		case *gripql.Aggregate_Term:
-			g.Go(func() error {
-				termagg := agg.GetTerm()
-				res, err := graph.GetVertexTermAggregation(ctx, termagg.Label, termagg.Field, termagg.Size)
-				if err != nil {
-					return fmt.Errorf("term aggregation failed: %s", err)
-				}
-				aggChan <- map[string]*gripql.AggregationResult{agg.Name: res}
-				return nil
-			})
-
-		case *gripql.Aggregate_Percentile:
-			g.Go(func() error {
-				pagg := agg.GetPercentile()
-				res, err := graph.GetVertexPercentileAggregation(ctx, pagg.Label, pagg.Field, pagg.Percents)
-				if err != nil {
-					return fmt.Errorf("percentile aggregation failed: %s", err)
-				}
-				aggChan <- map[string]*gripql.AggregationResult{agg.Name: res}
-				return nil
-			})
-
-		case *gripql.Aggregate_Histogram:
-			g.Go(func() error {
-				histagg := agg.GetHistogram()
-				res, err := graph.GetVertexHistogramAggregation(ctx, histagg.Label, histagg.Field, histagg.Interval)
-				if err != nil {
-					return fmt.Errorf("histogram aggregation failed: %s", err)
-				}
-				aggChan <- map[string]*gripql.AggregationResult{agg.Name: res}
-				return nil
-			})
-
-		default:
-			return nil, fmt.Errorf("unknown aggregation type")
-		}
+	indices := []*gripql.IndexID{}
+	for i := range graph.GetVertexIndexList() {
+		indices = append(indices, i)
 	}
+	return &gripql.ListIndicesResponse{Indices: indices}, nil
+}
 
-	if err := g.Wait(); err != nil {
-		return nil, fmt.Errorf("one or more aggregation failed: %v", err)
+// ListLabels lists the vertex and edge labels in a graph
+func (server *GripServer) ListLabels(ctx context.Context, idx *gripql.GraphID) (*gripql.ListLabelsResponse, error) {
+	graph, err := server.db.Graph(idx.Graph)
+	if err != nil {
+		return nil, err
 	}
-	close(aggChan)
-
-	aggs := map[string]*gripql.AggregationResult{}
-	for a := range aggChan {
-		for k, v := range a {
-			aggs[k] = v
-		}
+	vLabels, err := graph.ListVertexLabels()
+	if err != nil {
+		return nil, err
 	}
-
-	return &gripql.NamedAggregationResult{Aggregations: aggs}, nil
+	eLabels, err := graph.ListEdgeLabels()
+	if err != nil {
+		return nil, err
+	}
+	return &gripql.ListLabelsResponse{VertexLabels: vLabels, EdgeLabels: eLabels}, nil
 }

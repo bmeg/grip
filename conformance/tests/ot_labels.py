@@ -1,6 +1,6 @@
 
 
-def test_index(O):
+def test_list_labels(O):
     errors = []
 
     O.addIndex("Person", "name")
@@ -20,12 +20,15 @@ def test_index(O):
     O.addEdge("6", "3", "created", {"weight": 0.2})
     O.addEdge("4", "5", "created", {"weight": 1.0})
 
-    resp = O.listIndices()
-    found = False
-    for i in resp:
-        if i["field"] == "name" and i["label"] == "Person":
-            found = True
-    if not found:
-        errors.append("Expected index not found")
+    resp = O.listLabels()
+    print(resp)
+    if len(resp["vertex_labels"]) != 2:
+        errors.append("listLabels returned an unexpected number of vertex labels; %d != 2" % (len(resp["vertex_labels"])))
+    if sorted(resp["vertex_labels"]) != ["Person", "Software"]:
+        errors.append("listLabels returned unexpected vertex labels")
+    if len(resp["edge_labels"]) != 2:
+        errors.append("listLabels returned an unexpected number of edge labels; %d != 2" % (len(resp["edge_labels"])))
+    if sorted(resp["edge_labels"]) != ["created", "knows"]:
+        errors.append("listLabels returned unexpected edge labels")
 
     return errors

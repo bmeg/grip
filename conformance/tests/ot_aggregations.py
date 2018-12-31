@@ -32,65 +32,12 @@ def setupGraph(O):
     O.addEdge("4", "5", "created", {"weight": 1.0})
 
 
-def test_term_aggregation(O):
-    errors = []
-    setupGraph(O)
-
-    response = O.aggregate(gripql.term("test-agg", "Person", "name", 2))
-    if 'test-agg' not in response:
-            errors.append("Result had Incorrect aggregation name")
-            return errors
-    response = response['test-agg']
-
-    if len(response["buckets"]) != 2:
-            errors.append(
-                "Unexpected number of terms: %d != %d" %
-                (len(response["buckets"]), 2)
-            )
-
-    for res in response["buckets"]:
-        if res["key"] not in ["marko", "alex"]:
-            errors.append(
-                "Incorrect term returned: %s" % (res["key"])
-            )
-        if res["value"] != 2:
-            errors.append(
-                "Incorrect term count: %d != %d" %
-                (res["value"], 2))
-
-    response = O.aggregate(gripql.term("test-agg-no-limit", "Person", "name", size=None))
-    if 'test-agg-no-limit' not in response:
-            errors.append("Result had Incorrect aggregation name")
-            return errors
-    response = response['test-agg-no-limit']
-
-    if len(response["buckets"]) != 8:
-            errors.append(
-                "Unexpected number of terms: %d != %d" %
-                (len(response["buckets"]), 8)
-            )
-
-    for res in response["buckets"]:
-        if res["key"] in ["marko", "alex"]:
-            if res["value"] != 2:
-                errors.append(
-                    "Incorrect term count: %d != %d" %
-                    (res["value"], 2))
-        else:
-            if res["value"] != 1:
-                errors.append(
-                    "Incorrect term count: %d != %d" %
-                    (res["value"], 1))
-
-    return errors
-
-
 def test_traversal_term_aggregation(O):
     errors = []
     setupGraph(O)
 
     count = 0
-    for row in O.query().V("1").out().aggregate(gripql.term("traversal-agg", "Person", "name")):
+    for row in O.query().V("1").out().hasLabel("Person").aggregate(gripql.term("traversal-agg", "name")):
         if 'traversal-agg' not in row:
             errors.append("Result had Incorrect aggregation name")
             return errors
@@ -123,53 +70,12 @@ def test_traversal_term_aggregation(O):
     return errors
 
 
-def test_histogram_aggregation(O):
-    errors = []
-    setupGraph(O)
-
-    response = O.aggregate(gripql.histogram("test-agg", "Person", "age", 5))
-    if 'test-agg' not in response:
-        errors.append("Result had Incorrect aggregation name")
-        return errors
-    response = response['test-agg']
-
-    if len(response["buckets"]) != 6:
-            errors.append(
-                "Unexpected number of terms: %d != %d" %
-                (len(response["buckets"]), 6)
-            )
-
-    for res in response["buckets"]:
-        if res["key"] == 20:
-            if res["value"] != 1:
-                errors.append("Incorrect bucket count returned: %s" % res)
-        elif res["key"] == 25:
-            if res["value"] != 3:
-                errors.append("Incorrect bucket count returned: %s" % res)
-        elif res["key"] == 30:
-            if res["value"] != 2:
-                errors.append("Incorrect bucket count returned: %s" % res)
-        elif res["key"] == 35:
-            if res["value"] != 2:
-                errors.append("Incorrect bucket count returned: %s" % res)
-        elif res["key"] == 40:
-            if res["value"] != 1:
-                errors.append("Incorrect bucket count returned: %s" % res)
-        elif res["key"] == 45:
-            if res["value"] != 1:
-                errors.append("Incorrect bucket count returned: %s" % res)
-        else:
-            errors.append("Incorrect bucket key returned: %s" % res)
-
-    return errors
-
-
 def test_traversal_histogram_aggregation(O):
     errors = []
     setupGraph(O)
 
     count = 0
-    for row in O.query().V("1").out().aggregate(gripql.histogram("traversal-agg", "Person", "age", 5)):
+    for row in O.query().V("1").out().hasLabel("Person").aggregate(gripql.histogram("traversal-agg", "age", 5)):
         count += 1
         if 'traversal-agg' not in row:
             errors.append("Result had Incorrect aggregation name")
@@ -209,75 +115,13 @@ def test_traversal_histogram_aggregation(O):
     return errors
 
 
-def test_percentile_aggregation(O):
-    errors = []
-    setupGraph(O)
-
-    percents = [1, 5, 25, 50, 75, 95, 99, 99.9]
-    response = O.aggregate(gripql.percentile("test-agg", "Person", "age", percents))
-    if 'test-agg' not in response:
-        errors.append("Result had Incorrect aggregation name")
-        return errors
-    response = response['test-agg']
-
-    if len(response["buckets"]) != len(percents):
-        errors.append(
-            "Unexpected number of terms: %d != %d" %
-            (len(response["buckets"]), len(percents))
-        )
-
-    ages = np.array([29, 41, 25, 32, 35, 30, 45, 26, 22, 36])
-
-    # for tests quantiles need to be withing 10% of the actual value
-    def getMinMax(input_data, percent, accuracy=0.1):
-        return np.percentile(input_data, percent) * (1 - accuracy), np.percentile(input_data, percent) * (1 + accuracy)
-
-    for res in response["buckets"]:
-        if res["key"] == 1:
-            minpv, maxpv = getMinMax(ages, res["key"])
-            if res["value"] <= minpv or res["value"] >= maxpv:
-                errors.append("Incorrect quantile value returned for %.2f:\n\tmin: %.2f\n\tmax: %.2f\n\tactual: %.2f" % (res["key"], minpv, maxpv, res["value"]))
-        elif res["key"] == 5:
-            minpv, maxpv = getMinMax(ages, res["key"])
-            if res["value"] <= minpv or res["value"] >= maxpv:
-                errors.append("Incorrect quantile value returned for %.2f:\n\tmin: %.2f\n\tmax: %.2f\n\tactual: %.2f" % (res["key"], minpv, maxpv, res["value"]))
-        elif res["key"] == 25:
-            minpv, maxpv = getMinMax(ages, res["key"])
-            if res["value"] <= minpv or res["value"] >= maxpv:
-                errors.append("Incorrect quantile value returned for %.2f:\n\tmin: %.2f\n\tmax: %.2f\n\tactual: %.2f" % (res["key"], minpv, maxpv, res["value"]))
-        elif res["key"] == 50:
-            minpv, maxpv = getMinMax(ages, res["key"])
-            if res["value"] <= minpv or res["value"] >= maxpv:
-                errors.append("Incorrect quantile value returned for %.2f:\n\tmin: %.2f\n\tmax: %.2f\n\tactual: %.2f" % (res["key"], minpv, maxpv, res["value"]))
-        elif res["key"] == 75:
-            minpv, maxpv = getMinMax(ages, res["key"])
-            if res["value"] <= minpv or res["value"] >= maxpv:
-                errors.append("Incorrect quantile value returned for %.2f:\n\tmin: %.2f\n\tmax: %.2f\n\tactual: %.2f" % (res["key"], minpv, maxpv, res["value"]))
-        elif res["key"] == 95:
-            minpv, maxpv = getMinMax(ages, res["key"])
-            if res["value"] <= minpv or res["value"] >= maxpv:
-                errors.append("Incorrect quantile value returned for %.2f:\n\tmin: %.2f\n\tmax: %.2f\n\tactual: %.2f" % (res["key"], minpv, maxpv, res["value"]))
-        elif res["key"] == 99:
-            minpv, maxpv = getMinMax(ages, res["key"])
-            if res["value"] <= minpv or res["value"] >= maxpv:
-                errors.append("Incorrect quantile value returned for %.2f:\n\tmin: %.2f\n\tmax: %.2f\n\tactual: %.2f" % (res["key"], minpv, maxpv, res["value"]))
-        elif res["key"] == 99.9:
-            minpv, maxpv = getMinMax(ages, res["key"])
-            if res["value"] <= minpv or res["value"] >= maxpv:
-                errors.append("Incorrect quantile value returned for %.2f:\n\tmin: %.2f\n\tmax: %.2f\n\tactual: %.2f" % (res["key"], minpv, maxpv, res["value"]))
-        else:
-            errors.append("Incorrect bucket key returned: %s" % res)
-
-    return errors
-
-
 def test_traversal_percentile_aggregation(O):
     errors = []
     setupGraph(O)
 
     count = 0
     percents = [1, 5, 25, 50, 75, 95, 99, 99.9]
-    for row in O.query().V("1").out().aggregate(gripql.percentile("traversal-agg", "Person", "age", percents)):
+    for row in O.query().V("1").out().hasLabel("Person").aggregate(gripql.percentile("traversal-agg", "age", percents)):
         count += 1
 
         if 'traversal-agg' not in row:

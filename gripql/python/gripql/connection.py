@@ -1,7 +1,6 @@
 from __future__ import absolute_import, print_function, unicode_literals
 
 import os
-import json
 import requests
 
 from gripql.graph import Graph
@@ -26,14 +25,10 @@ class Connection:
         """
         response = requests.get(
             self.url,
-            stream=True,
             auth=(self.user, self.password)
         )
         raise_for_status(response)
-        output = []
-        for line in response.iter_lines():
-            output.append(json.loads(line)['graph'])
-        return output
+        return response.json()['graphs']
 
     def addGraph(self, name):
         """

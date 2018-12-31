@@ -32,12 +32,12 @@ func (g *Graph) Compiler() gdbi.Compiler {
 ////////////////////////////////////////////////////////////////////////////////
 
 // AddVertex is not implemented in the SQL driver
-func (g *Graph) AddVertex(vertexArray []*gripql.Vertex) error {
+func (g *Graph) AddVertex(vertices []*gripql.Vertex) error {
 	return errors.New("not implemented")
 }
 
 // AddEdge is not implemented in the SQL driver
-func (g *Graph) AddEdge(edgeArray []*gripql.Edge) error {
+func (g *Graph) AddEdge(edges []*gripql.Edge) error {
 	return errors.New("not implemented")
 }
 
@@ -787,4 +787,22 @@ func (g *Graph) GetInEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, edg
 		}
 	}()
 	return o
+}
+
+// ListVertexLabels returns a list of vertex types in the graph
+func (g *Graph) ListVertexLabels() ([]string, error) {
+	labels := []string{}
+	for _, table := range g.schema.Vertices {
+		labels = append(labels, table.Label)
+	}
+	return labels, nil
+}
+
+// ListEdgeLabels returns a list of edge types in the graph
+func (g *Graph) ListEdgeLabels() ([]string, error) {
+	labels := []string{}
+	for _, table := range g.schema.Edges {
+		labels = append(labels, table.Label)
+	}
+	return labels, nil
 }

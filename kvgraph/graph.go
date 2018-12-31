@@ -41,10 +41,10 @@ type kvAddData struct {
 
 // AddVertex adds an edge to the graph, if it already exists
 // in the graph, it is replaced
-func (kgdb *KVInterfaceGDB) AddVertex(vertexArray []*gripql.Vertex) error {
+func (kgdb *KVInterfaceGDB) AddVertex(vertices []*gripql.Vertex) error {
 	dataChan := make(chan *kvAddData, 100)
 	go func() {
-		for _, vertex := range vertexArray {
+		for _, vertex := range vertices {
 			d, err := proto.Marshal(vertex)
 			k := VertexKey(kgdb.graph, vertex.Gid)
 			if err == nil {
@@ -76,9 +76,9 @@ func (kgdb *KVInterfaceGDB) AddVertex(vertexArray []*gripql.Vertex) error {
 
 // AddEdge adds an edge to the graph, if the id is not "" and in already exists
 // in the graph, it is replaced
-func (kgdb *KVInterfaceGDB) AddEdge(edgeArray []*gripql.Edge) error {
+func (kgdb *KVInterfaceGDB) AddEdge(edges []*gripql.Edge) error {
 	err := kgdb.kvg.kv.Update(func(tx kvi.KVTransaction) error {
-		for _, edge := range edgeArray {
+		for _, edge := range edges {
 			eid := edge.Gid
 			var err error
 			var data []byte
@@ -103,6 +103,10 @@ func (kgdb *KVInterfaceGDB) AddEdge(edgeArray []*gripql.Edge) error {
 				return err
 			}
 			err = tx.Set(dkey, []byte{})
+			if err != nil {
+				return err
+			}
+			err = kgdb.kvg.idx.AddDocTx(tx, eid, map[string]interface{}{kgdb.graph: edgeIdxStruct(edge)})
 			if err != nil {
 				return err
 			}
@@ -511,4 +515,24 @@ func (kgdb *KVInterfaceGDB) GetVertexList(ctx context.Context, loadProp bool) <-
 		})
 	}()
 	return o
+}
+
+// ListVertexLabels returns a list of vertex types in the graph
+func (kgdb *KVInterfaceGDB) ListVertexLabels() ([]string, error) {
+	labelField := fmt.Sprintf("%s.v.label", kgdb.graph)
+	labels := []string{}
+	for i := range kgdb.kvg.idx.FieldTerms(labelField) {
+		labels = append(labels, i.(string))
+	}
+	return labels, nil
+}
+
+// ListEdgeLabels returns a list of edge types in the graph
+func (kgdb *KVInterfaceGDB) ListEdgeLabels() ([]string, error) {
+	labelField := fmt.Sprintf("%s.e.label", kgdb.graph)
+	labels := []string{}
+	for i := range kgdb.kvg.idx.FieldTerms(labelField) {
+		labels = append(labels, i.(string))
+	}
+	return labels, nil
 }
