@@ -298,6 +298,9 @@ func indexStartOptimize(pipe []gdbi.Processor) []gdbi.Processor {
 							}
 						}
 					}
+				} else if where, ok := pipe[1].(*HasLabel); ok {
+					hIdx := LookupVertsIndex{labels: where.labels, db: lookupV.db}
+					return append([]gdbi.Processor{&hIdx}, pipe[2:]...)
 				}
 			}
 		}
