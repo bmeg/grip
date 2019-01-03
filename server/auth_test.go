@@ -122,10 +122,10 @@ func TestBasicAuth(t *testing.T) {
 	if err != nil || resp.StatusCode != 200 {
 		t.Error("basic auth error error")
 	}
-	returnString := `{"result":{"graph":"test"}}
-`
+	returnString := `{"graphs":["test"]}`
 	bodyText, err := ioutil.ReadAll(resp.Body)
 	if string(bodyText) != returnString {
+		t.Log(string(bodyText))
 		t.Error("incorrect http return value")
 	}
 }
