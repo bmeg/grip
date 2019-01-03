@@ -3,8 +3,6 @@
 def test_list_labels(O):
     errors = []
 
-    O.addIndex("Person", "name")
-
     O.addVertex("1", "Person", {"name": "marko", "age": "29"})
     O.addVertex("2", "Person", {"name": "vadas", "age": "27"})
     O.addVertex("3", "Software", {"name": "lop", "lang": "java"})
