@@ -7,6 +7,7 @@ import (
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/jsonpath"
 	"github.com/bmeg/grip/protoutil"
+	// log "github.com/sirupsen/logrus"
 )
 
 // DefaultPipeline a set of runnable query operations
@@ -266,8 +267,7 @@ func (comp DefaultCompiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeli
 
 // For V().Has(Eq("$.label", "Person")) and V().Has(Eq("$.gid", "1")) queries, streamline into a single index lookup
 func indexStartOptimize(pipe []gdbi.Processor) []gdbi.Processor {
-	optimized := make([]gdbi.Processor, len(pipe))
-	copy(optimized, pipe)
+	optimized := []gdbi.Processor{}
 
 	var lookupV *LookupVerts
 	hasIdIdx := []int{}
@@ -290,7 +290,7 @@ func indexStartOptimize(pipe []gdbi.Processor) []gdbi.Processor {
 			if cond := s.stmt.GetCondition(); cond != nil {
 				path := jsonpath.GetJSONPath(cond.Key)
 				switch path {
-				case ".gid":
+				case "$.gid":
 					hasIdIdx = append(hasIdIdx, i)
 				case "$.label":
 					hasLabelIdx = append(hasLabelIdx, i)
@@ -315,10 +315,13 @@ func indexStartOptimize(pipe []gdbi.Processor) []gdbi.Processor {
 				ids = append(ids, has.ids...)
 			}
 		}
-		hIdx := LookupVerts{ids: ids, db: lookupV.db}
+		hIdx := &LookupVerts{ids: ids, db: lookupV.db}
+		optimized = append(optimized, hIdx)
 	}
 
-	if len(hasLabelIdx) > 0 {
+	labelOpt := false
+	if len(hasLabelIdx) > 0 && !idOpt {
+		labelOpt = true
 		labels := []string{}
 		for _, idx := range hasLabelIdx {
 			if has, ok := pipe[idx].(*Has); ok {
@@ -328,7 +331,30 @@ func indexStartOptimize(pipe []gdbi.Processor) []gdbi.Processor {
 				labels = append(labels, has.labels...)
 			}
 		}
-		hIdx := LookupVertsIndex{labels: labels, db: lookupV.db}
+		hIdx := &LookupVertsIndex{labels: labels, db: lookupV.db}
+		optimized = append(optimized, hIdx)
+	}
+
+	for i, step := range pipe {
+		if idOpt || labelOpt {
+			if i == 0 {
+				continue
+			}
+		}
+		if idOpt {
+			for _, j := range hasIdIdx {
+				if i != j {
+					optimized = append(optimized, step)
+				}
+			}
+		}
+		if labelOpt {
+			for _, j := range hasLabelIdx {
+				if i != j {
+					optimized = append(optimized, step)
+				}
+			}
+		}
 	}
 
 	return optimized
@@ -346,8 +372,9 @@ func extractHasVals(h *Has) []string {
 					vals = []string{l}
 				}
 			case gripql.Condition_WITHIN:
-				if l, ok := val.([]string); ok {
-					vals = l
+				v := val.([]interface{})
+				for _, x := range v {
+					vals = append(vals, x.(string))
 				}
 			default:
 				// do nothing
