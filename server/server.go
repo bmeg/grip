@@ -139,7 +139,8 @@ func (server *GripServer) Serve(pctx context.Context) error {
 	dashmux.HandleFunc("/", func(resp http.ResponseWriter, req *http.Request) {
 		file, err := httpDir.Open("index.html")
 		if err != nil {
-			panic(err)
+			log.WithFields(log.Fields{"request": req, "error": err}).Error("Failed to open index.html")
+			return
 		}
 		io.Copy(resp, file)
 	})
