@@ -13,6 +13,10 @@ import (
 )
 
 func TestSchema(t *testing.T) {
+	if dbname == "psql" || dbname == "existing-sql" || dbname == "elastic" {
+		t.Skip("skipping schema test")
+	}
+
 	schema, err := gdb.BuildSchema(context.Background(), "test-graph", 10, false)
 	if err != nil {
 		t.Fatal(err)
