@@ -84,15 +84,13 @@ type GraphInterface interface {
 	DelEdge(key string) error
 
 	VertexLabelScan(ctx context.Context, label string) chan string
-	//EdgeLabelScan(ctx context.Context, label string) chan string
+	// EdgeLabelScan(ctx context.Context, label string) chan string
+	ListVertexLabels() ([]string, error)
+	ListEdgeLabels() ([]string, error)
 
 	AddVertexIndex(label string, field string) error
 	DeleteVertexIndex(label string, field string) error
-	GetVertexIndexList() chan gripql.IndexID
-
-	GetVertexTermAggregation(ctx context.Context, label string, field string, size uint32) (*gripql.AggregationResult, error)
-	GetVertexPercentileAggregation(ctx context.Context, label string, field string, percents []float64) (*gripql.AggregationResult, error)
-	GetVertexHistogramAggregation(ctx context.Context, label string, field string, interval uint32) (*gripql.AggregationResult, error)
+	GetVertexIndexList() <-chan *gripql.IndexID
 
 	GetVertexList(ctx context.Context, load bool) <-chan *gripql.Vertex
 	GetEdgeList(ctx context.Context, load bool) <-chan *gripql.Edge

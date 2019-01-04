@@ -567,8 +567,7 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, er
 					stmt := []bson.M{
 						{
 							"$match": bson.M{
-								"label": agg.Label,
-								field:   bson.M{"$exists": true},
+								field: bson.M{"$exists": true},
 							},
 						},
 						{
@@ -588,8 +587,7 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, er
 					stmt := []bson.M{
 						{
 							"$match": bson.M{
-								"label": agg.Label,
-								field:   bson.M{"$exists": true},
+								field: bson.M{"$exists": true},
 							},
 						},
 						{
@@ -614,8 +612,7 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, er
 					stmt := []bson.M{
 						{
 							"$match": bson.M{
-								"label": agg.Label,
-								field:   bson.M{"$exists": true},
+								field: bson.M{"$exists": true},
 							},
 						},
 						{

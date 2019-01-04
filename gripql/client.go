@@ -41,40 +41,18 @@ func (client Client) GetSchema(graph string) (*GraphSchema, error) {
 }
 
 // ListGraphs lists the graphs in the database
-func (client Client) ListGraphs() (chan string, error) {
-	out := make(chan string, 100)
-	cl, err := client.QueryC.ListGraphs(context.Background(), &Empty{})
-	if err != nil {
-		return nil, err
-	}
+func (client Client) ListGraphs() (*ListGraphsResponse, error) {
+	return client.QueryC.ListGraphs(context.Background(), &Empty{})
+}
 
-	elem, err := cl.Recv()
-	if err == io.EOF {
-		close(out)
-		return out, nil
-	}
-	if err != nil {
-		close(out)
-		return out, err
-	}
-	out <- elem.Graph
+// ListIndices lists the indices on a graph in the database
+func (client Client) ListIndices(graph string) (*ListIndicesResponse, error) {
+	return client.QueryC.ListIndices(context.Background(), &GraphID{Graph: graph})
+}
 
-	go func() {
-		defer close(out)
-		for {
-			elem, err := cl.Recv()
-			if err == io.EOF {
-				return
-			}
-			if err != nil {
-				log.WithFields(log.Fields{"error": err}).Error("Listing graphs")
-				return
-			}
-			out <- elem.Graph
-		}
-	}()
-
-	return out, nil
+// ListLabels lists the vertex and edge labels for a graph in the database
+func (client Client) ListLabels(graph string) (*ListLabelsResponse, error) {
+	return client.QueryC.ListLabels(context.Background(), &GraphID{Graph: graph})
 }
 
 // GetTimestamp get update timestamp for graph

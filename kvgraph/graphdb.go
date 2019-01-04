@@ -69,7 +69,7 @@ func (kgraph *KVGraph) Close() error {
 
 // ListGraphs lists the graphs managed by this driver
 func (kgraph *KVGraph) ListGraphs() []string {
-	out := make([]string, 0, 100)
+	out := []string{}
 	gPrefix := GraphPrefix()
 	kgraph.kv.View(func(it kvi.KVIterator) error {
 		for it.Seek(gPrefix); it.Valid() && bytes.HasPrefix(it.Key(), gPrefix); it.Next() {

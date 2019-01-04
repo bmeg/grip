@@ -127,11 +127,17 @@ class Graph:
             auth=(self.user, self.password)
         )
         raise_for_status(response)
-        output = []
-        for result in response.iter_lines():
-            d = json.loads(result)
-            output.append(d)
-        return output
+        return response.json()["indices"]
+
+    def listLabels(self):
+        url = self.url + "/label"
+        response = requests.get(
+            url,
+            stream=True,
+            auth=(self.user, self.password)
+        )
+        raise_for_status(response)
+        return response.json()
 
     def aggregate(self, aggregations):
         if not isinstance(aggregations, list):

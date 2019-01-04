@@ -1053,11 +1053,9 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 					err := kv.Update(func(tx kvi.KVTransaction) error {
 						for _, t := range batch {
 							doc := jsonpath.GetDoc(t, namespace)
-							if doc["label"] == tagg.Label {
-								err := idx.AddDocTx(tx, doc["gid"].(string), doc)
-								if err != nil {
-									return err
-								}
+							err := idx.AddDocTx(tx, doc["gid"].(string), doc)
+							if err != nil {
+								return err
 							}
 						}
 						return nil
@@ -1106,11 +1104,9 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 					err := kv.Update(func(tx kvi.KVTransaction) error {
 						for _, t := range batch {
 							doc := jsonpath.GetDoc(t, namespace)
-							if doc["label"] == hagg.Label {
-								err := idx.AddDocTx(tx, doc["gid"].(string), doc)
-								if err != nil {
-									return err
-								}
+							err := idx.AddDocTx(tx, doc["gid"].(string), doc)
+							if err != nil {
+								return err
 							}
 						}
 						return nil
@@ -1157,11 +1153,9 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 					err := kv.Update(func(tx kvi.KVTransaction) error {
 						for _, t := range batch {
 							doc := jsonpath.GetDoc(t, namespace)
-							if doc["label"] == pagg.Label {
-								err := idx.AddDocTx(tx, doc["gid"].(string), doc)
-								if err != nil {
-									return err
-								}
+							err := idx.AddDocTx(tx, doc["gid"].(string), doc)
+							if err != nil {
+								return err
 							}
 						}
 						return nil

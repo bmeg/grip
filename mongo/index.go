@@ -46,9 +46,9 @@ func (mg *Graph) DeleteVertexIndex(label string, field string) error {
 }
 
 // GetVertexIndexList lists indices
-func (mg *Graph) GetVertexIndexList() chan gripql.IndexID {
+func (mg *Graph) GetVertexIndexList() <-chan *gripql.IndexID {
 	log.Debug("Running GetVertexIndexList")
-	out := make(chan gripql.IndexID)
+	out := make(chan *gripql.IndexID)
 
 	go func() {
 		session := mg.ar.session.Copy()
@@ -75,7 +75,7 @@ func (mg *Graph) GetVertexIndexList() chan gripql.IndexID {
 			if len(idx.Key) > 1 && idx.Key[0] == "label" {
 				f := strings.TrimPrefix(idx.Key[1], "data.")
 				for _, l := range labels {
-					out <- gripql.IndexID{Graph: mg.graph, Label: l, Field: f}
+					out <- &gripql.IndexID{Graph: mg.graph, Label: l, Field: f}
 				}
 			}
 		}

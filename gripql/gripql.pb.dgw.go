@@ -60,11 +60,6 @@ func (dir *QueryDirectClient) Traversal(ctx context.Context, in *GraphQuery, opt
 }
 
 
-//Aggregate shim
-func (shim *QueryDirectClient) Aggregate(ctx context.Context, in *AggregationsRequest, opts ...grpc.CallOption) (*NamedAggregationResult, error) {
-	return shim.server.Aggregate(ctx, in)
-}
-
 //GetVertex shim
 func (shim *QueryDirectClient) GetVertex(ctx context.Context, in *ElementID, opts ...grpc.CallOption) (*Vertex, error) {
 	return shim.server.GetVertex(ctx, in)
@@ -80,91 +75,24 @@ func (shim *QueryDirectClient) GetTimestamp(ctx context.Context, in *GraphID, op
 	return shim.server.GetTimestamp(ctx, in)
 }
 
-//ListGraphs streaming output shim
-type directQueryListGraphs struct {
-  ctx context.Context
-  c   chan *GraphID
-}
-
-func (dsm *directQueryListGraphs) Recv() (*GraphID, error) {
-	value, ok := <-dsm.c
-	if !ok {
-		return nil, io.EOF
-	}
-	return value, nil
-}
-func (dsm *directQueryListGraphs) Send(a *GraphID) error {
-	dsm.c <- a
-	return nil
-}
-func (dsm *directQueryListGraphs) close() {
-	close(dsm.c)
-}
-func (dsm *directQueryListGraphs) Context() context.Context {
-	return dsm.ctx
-}
-func (dsm *directQueryListGraphs) CloseSend() error             { return nil }
-func (dsm *directQueryListGraphs) SetTrailer(metadata.MD)       {}
-func (dsm *directQueryListGraphs) SetHeader(metadata.MD) error  { return nil }
-func (dsm *directQueryListGraphs) SendHeader(metadata.MD) error { return nil }
-func (dsm *directQueryListGraphs) SendMsg(m interface{}) error  { return nil }
-func (dsm *directQueryListGraphs) RecvMsg(m interface{}) error  { return nil }
-func (dsm *directQueryListGraphs) Header() (metadata.MD, error) { return nil, nil }
-func (dsm *directQueryListGraphs) Trailer() metadata.MD         { return nil }
-func (dir *QueryDirectClient) ListGraphs(ctx context.Context, in *Empty, opts ...grpc.CallOption) (Query_ListGraphsClient, error) {
-	w := &directQueryListGraphs{ctx, make(chan *GraphID, 100)}
-	go func() {
-		dir.server.ListGraphs(in, w)
-		w.close()
-	}()
-	return w, nil
-}
-
-
-//ListIndices streaming output shim
-type directQueryListIndices struct {
-  ctx context.Context
-  c   chan *IndexID
-}
-
-func (dsm *directQueryListIndices) Recv() (*IndexID, error) {
-	value, ok := <-dsm.c
-	if !ok {
-		return nil, io.EOF
-	}
-	return value, nil
-}
-func (dsm *directQueryListIndices) Send(a *IndexID) error {
-	dsm.c <- a
-	return nil
-}
-func (dsm *directQueryListIndices) close() {
-	close(dsm.c)
-}
-func (dsm *directQueryListIndices) Context() context.Context {
-	return dsm.ctx
-}
-func (dsm *directQueryListIndices) CloseSend() error             { return nil }
-func (dsm *directQueryListIndices) SetTrailer(metadata.MD)       {}
-func (dsm *directQueryListIndices) SetHeader(metadata.MD) error  { return nil }
-func (dsm *directQueryListIndices) SendHeader(metadata.MD) error { return nil }
-func (dsm *directQueryListIndices) SendMsg(m interface{}) error  { return nil }
-func (dsm *directQueryListIndices) RecvMsg(m interface{}) error  { return nil }
-func (dsm *directQueryListIndices) Header() (metadata.MD, error) { return nil, nil }
-func (dsm *directQueryListIndices) Trailer() metadata.MD         { return nil }
-func (dir *QueryDirectClient) ListIndices(ctx context.Context, in *GraphID, opts ...grpc.CallOption) (Query_ListIndicesClient, error) {
-	w := &directQueryListIndices{ctx, make(chan *IndexID, 100)}
-	go func() {
-		dir.server.ListIndices(in, w)
-		w.close()
-	}()
-	return w, nil
-}
-
-
 //GetSchema shim
 func (shim *QueryDirectClient) GetSchema(ctx context.Context, in *GraphID, opts ...grpc.CallOption) (*GraphSchema, error) {
 	return shim.server.GetSchema(ctx, in)
+}
+
+//ListGraphs shim
+func (shim *QueryDirectClient) ListGraphs(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*ListGraphsResponse, error) {
+	return shim.server.ListGraphs(ctx, in)
+}
+
+//ListIndices shim
+func (shim *QueryDirectClient) ListIndices(ctx context.Context, in *GraphID, opts ...grpc.CallOption) (*ListIndicesResponse, error) {
+	return shim.server.ListIndices(ctx, in)
+}
+
+//ListLabels shim
+func (shim *QueryDirectClient) ListLabels(ctx context.Context, in *GraphID, opts ...grpc.CallOption) (*ListLabelsResponse, error) {
+	return shim.server.ListLabels(ctx, in)
 }
 
 // EditDirectClient is a shim to connect Edit client directly server

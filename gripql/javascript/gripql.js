@@ -177,10 +177,10 @@ function contains(key, value) {
 }
 
 // Aggregation builders
-function term(name, label, field, size) {
+function term(name, field, size) {
 	agg = {
 		"name": name,
-		"term": {"label": label, "field": field}
+		"term": {"field": field}
 	}
 	if (size) {
 		if (typeof size != "number") {
@@ -191,7 +191,7 @@ function term(name, label, field, size) {
 	return agg
 }
 
-function percentile(name, label, field, percents) {
+function percentile(name, field, percents) {
 	if (!percents) {
 		percents = [1, 5, 25, 50, 75, 95, 99]
 	} else {
@@ -205,12 +205,12 @@ function percentile(name, label, field, percents) {
 	return {
 		"name": name,
 		"percentile": {
-			"label": label, "field": field, "percents": percents
+			"field": field, "percents": percents
 		}
 	}
 }
 
-function histogram(name, label, field, interval) {
+function histogram(name, field, interval) {
 	if (interval) {
 		if (typeof interval != "number") {
 			throw "expected interval to be a number"
@@ -219,7 +219,7 @@ function histogram(name, label, field, interval) {
 	return {
 		"name": name,
 		"histogram": {
-			"label": label, "field": field, "interval": interval
+			"field": field, "interval": interval
 		}
 	}
 }

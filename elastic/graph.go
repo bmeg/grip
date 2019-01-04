@@ -47,14 +47,17 @@ func (es *Graph) GetTimestamp() string {
 
 // AddEdge adds an edge to the graph, if the id is not "" and in already exists
 // in the graph, it is replaced
-func (es *Graph) AddEdge(edgeArray []*gripql.Edge) error {
+func (es *Graph) AddEdge(edges []*gripql.Edge) error {
 	ctx := context.Background()
 
 	bulkRequest := es.client.Bulk()
 	if es.synchronous {
 		bulkRequest = bulkRequest.Refresh("true")
 	}
-	for _, e := range edgeArray {
+	for _, e := range edges {
+		if e.Gid == "" {
+			return fmt.Errorf("Edge Gid cannot be an empty string")
+		}
 		pe := PackEdge(e)
 		script := elastic.NewScript(`ctx._source.gid = params.gid;
                                  ctx._source.label = params.label; 
@@ -79,14 +82,14 @@ func (es *Graph) AddEdge(edgeArray []*gripql.Edge) error {
 
 // AddVertex adds an edge to the graph, if the id is not "" and in already exists
 // in the graph, it is replaced
-func (es *Graph) AddVertex(vertexArray []*gripql.Vertex) error {
+func (es *Graph) AddVertex(vertices []*gripql.Vertex) error {
 	ctx := context.Background()
 
 	bulkRequest := es.client.Bulk()
 	if es.synchronous {
 		bulkRequest = bulkRequest.Refresh("true")
 	}
-	for _, v := range vertexArray {
+	for _, v := range vertices {
 		if v.Gid == "" {
 			return fmt.Errorf("Vertex Gid cannot be an empty string")
 		}
@@ -769,4 +772,40 @@ func (es *Graph) GetInEdgeChannel(req chan gdbi.ElementLookup, load bool, edgeLa
 	}()
 
 	return o
+}
+
+// ListVertexLabels returns a list of vertex types in the graph
+func (es *Graph) ListVertexLabels() ([]string, error) {
+	q := es.client.Search().Index(es.vertexIndex).Type("vertex")
+	aggName := "vertex.labels.aggregation"
+	q = q.Aggregation(aggName, elastic.NewTermsAggregation().Field("label").Size(1000000))
+	res, err := q.Do(context.Background())
+	if err != nil {
+		return nil, err
+	}
+	labels := []string{}
+	if agg, found := res.Aggregations.Terms(aggName); found {
+		for _, bucket := range agg.Buckets {
+			labels = append(labels, bucket.Key.(string))
+		}
+	}
+	return labels, nil
+}
+
+// ListEdgeLabels returns a list of edge types in the graph
+func (es *Graph) ListEdgeLabels() ([]string, error) {
+	q := es.client.Search().Index(es.edgeIndex).Type("edge")
+	aggName := "edge.labels.aggregation"
+	q = q.Aggregation(aggName, elastic.NewTermsAggregation().Field("label").Size(1000000))
+	res, err := q.Do(context.Background())
+	if err != nil {
+		return nil, err
+	}
+	labels := []string{}
+	if agg, found := res.Aggregations.Terms(aggName); found {
+		for _, bucket := range agg.Buckets {
+			labels = append(labels, bucket.Key.(string))
+		}
+	}
+	return labels, nil
 }

@@ -33,12 +33,12 @@ var Cmd = &cobra.Command{
 			return err
 		}
 
-		graphCh, err := conn.ListGraphs()
+		resp, err := conn.ListGraphs()
 		if err != nil {
 			return err
 		}
 		graphs := []string{}
-		for g := range graphCh {
+		for _, g := range resp.Graphs {
 			graphs = append(graphs, g)
 		}
 		if found(graphs, graph) {
