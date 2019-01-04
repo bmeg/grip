@@ -266,43 +266,95 @@ func (comp DefaultCompiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeli
 
 // For V().Has(Eq("$.label", "Person")) and V().Has(Eq("$.gid", "1")) queries, streamline into a single index lookup
 func indexStartOptimize(pipe []gdbi.Processor) []gdbi.Processor {
-	if len(pipe) >= 2 {
-		if lookupV, ok := pipe[0].(*LookupVerts); ok {
-			if len(lookupV.ids) == 0 {
-				if where, ok := pipe[1].(*Has); ok {
-					if cond := where.stmt.GetCondition(); cond != nil {
-						vals := []string{}
-						path := jsonpath.GetJSONPath(cond.Key)
-						if path == "$.label" || path == "$.gid" {
-							val := protoutil.UnWrapValue(cond.Value)
-							switch cond.Condition {
-							case gripql.Condition_EQ:
-								if l, ok := val.(string); ok {
-									vals = []string{l}
-								}
-							case gripql.Condition_WITHIN:
-								if l, ok := val.([]string); ok {
-									vals = l
-								}
-							default:
-								// do nothing
-							}
-						}
-						if len(vals) > 0 {
-							if path == "$.label" {
-								hIdx := LookupVertsIndex{labels: vals, db: lookupV.db}
-								return append([]gdbi.Processor{&hIdx}, pipe[2:]...)
-							} else if path == "$.gid" {
-								hIdx := LookupVerts{ids: vals, db: lookupV.db}
-								return append([]gdbi.Processor{&hIdx}, pipe[2:]...)
-							}
-						}
-					}
+	optimized := make([]gdbi.Processor, len(pipe))
+	copy(optimized, pipe)
+
+	var lookupV *LookupVerts
+	hasIdIdx := []int{}
+	hasLabelIdx := []int{}
+	for i, step := range pipe {
+		if i == 0 {
+			if lv, ok := step.(*LookupVerts); ok {
+				lookupV = lv
+			} else {
+				break
+			}
+			continue
+		}
+		switch s := step.(type) {
+		case *HasID:
+			hasIdIdx = append(hasIdIdx, i)
+		case *HasLabel:
+			hasLabelIdx = append(hasLabelIdx, i)
+		case *Has:
+			if cond := s.stmt.GetCondition(); cond != nil {
+				path := jsonpath.GetJSONPath(cond.Key)
+				switch path {
+				case ".gid":
+					hasIdIdx = append(hasIdIdx, i)
+				case "$.label":
+					hasLabelIdx = append(hasLabelIdx, i)
+				default:
+					// do nothing
 				}
+			}
+		default:
+			break
+		}
+	}
+
+	idOpt := false
+	if len(hasIdIdx) > 0 {
+		idOpt = true
+		ids := []string{}
+		for _, idx := range hasIdIdx {
+			if has, ok := pipe[idx].(*Has); ok {
+				ids = append(ids, extractHasVals(has)...)
+			}
+			if has, ok := pipe[idx].(*HasID); ok {
+				ids = append(ids, has.ids...)
+			}
+		}
+		hIdx := LookupVerts{ids: ids, db: lookupV.db}
+	}
+
+	if len(hasLabelIdx) > 0 {
+		labels := []string{}
+		for _, idx := range hasLabelIdx {
+			if has, ok := pipe[idx].(*Has); ok {
+				labels = append(labels, extractHasVals(has)...)
+			}
+			if has, ok := pipe[idx].(*HasLabel); ok {
+				labels = append(labels, has.labels...)
+			}
+		}
+		hIdx := LookupVertsIndex{labels: labels, db: lookupV.db}
+	}
+
+	return optimized
+}
+
+func extractHasVals(h *Has) []string {
+	vals := []string{}
+	if cond := h.stmt.GetCondition(); cond != nil {
+		path := jsonpath.GetJSONPath(cond.Key)
+		if path == "$.label" || path == "$.gid" {
+			val := protoutil.UnWrapValue(cond.Value)
+			switch cond.Condition {
+			case gripql.Condition_EQ:
+				if l, ok := val.(string); ok {
+					vals = []string{l}
+				}
+			case gripql.Condition_WITHIN:
+				if l, ok := val.([]string); ok {
+					vals = l
+				}
+			default:
+				// do nothing
 			}
 		}
 	}
-	return pipe
+	return vals
 }
 
 func validate(stmts []*gripql.GraphStatement) error {
