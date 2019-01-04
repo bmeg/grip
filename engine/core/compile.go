@@ -270,7 +270,7 @@ func indexStartOptimize(pipe []gdbi.Processor) []gdbi.Processor {
 	optimized := []gdbi.Processor{}
 
 	var lookupV *LookupVerts
-	hasIdIdx := []int{}
+	hasIDIdx := []int{}
 	hasLabelIdx := []int{}
 	for i, step := range pipe {
 		if i == 0 {
@@ -283,7 +283,7 @@ func indexStartOptimize(pipe []gdbi.Processor) []gdbi.Processor {
 		}
 		switch s := step.(type) {
 		case *HasID:
-			hasIdIdx = append(hasIdIdx, i)
+			hasIDIdx = append(hasIDIdx, i)
 		case *HasLabel:
 			hasLabelIdx = append(hasLabelIdx, i)
 		case *Has:
@@ -291,7 +291,7 @@ func indexStartOptimize(pipe []gdbi.Processor) []gdbi.Processor {
 				path := jsonpath.GetJSONPath(cond.Key)
 				switch path {
 				case "$.gid":
-					hasIdIdx = append(hasIdIdx, i)
+					hasIDIdx = append(hasIDIdx, i)
 				case "$.label":
 					hasLabelIdx = append(hasLabelIdx, i)
 				default:
@@ -304,16 +304,15 @@ func indexStartOptimize(pipe []gdbi.Processor) []gdbi.Processor {
 	}
 
 	idOpt := false
-	if len(hasIdIdx) > 0 {
+	if len(hasIDIdx) > 0 {
 		idOpt = true
 		ids := []string{}
-		for _, idx := range hasIdIdx {
-			if has, ok := pipe[idx].(*Has); ok {
-				ids = append(ids, extractHasVals(has)...)
-			}
-			if has, ok := pipe[idx].(*HasID); ok {
-				ids = append(ids, has.ids...)
-			}
+		idx := hasIDIdx[0]
+		if has, ok := pipe[idx].(*Has); ok {
+			ids = append(ids, extractHasVals(has)...)
+		}
+		if has, ok := pipe[idx].(*HasID); ok {
+			ids = append(ids, has.ids...)
 		}
 		hIdx := &LookupVerts{ids: ids, db: lookupV.db}
 		optimized = append(optimized, hIdx)
@@ -323,13 +322,12 @@ func indexStartOptimize(pipe []gdbi.Processor) []gdbi.Processor {
 	if len(hasLabelIdx) > 0 && !idOpt {
 		labelOpt = true
 		labels := []string{}
-		for _, idx := range hasLabelIdx {
-			if has, ok := pipe[idx].(*Has); ok {
-				labels = append(labels, extractHasVals(has)...)
-			}
-			if has, ok := pipe[idx].(*HasLabel); ok {
-				labels = append(labels, has.labels...)
-			}
+		idx := hasLabelIdx[0]
+		if has, ok := pipe[idx].(*Has); ok {
+			labels = append(labels, extractHasVals(has)...)
+		}
+		if has, ok := pipe[idx].(*HasLabel); ok {
+			labels = append(labels, has.labels...)
 		}
 		hIdx := &LookupVertsIndex{labels: labels, db: lookupV.db}
 		optimized = append(optimized, hIdx)
@@ -342,17 +340,13 @@ func indexStartOptimize(pipe []gdbi.Processor) []gdbi.Processor {
 			}
 		}
 		if idOpt {
-			for _, j := range hasIdIdx {
-				if i != j {
-					optimized = append(optimized, step)
-				}
+			if i != hasIDIdx[0] {
+				optimized = append(optimized, step)
 			}
 		}
 		if labelOpt {
-			for _, j := range hasLabelIdx {
-				if i != j {
-					optimized = append(optimized, step)
-				}
+			if i != hasLabelIdx[0] {
+				optimized = append(optimized, step)
 			}
 		}
 	}
