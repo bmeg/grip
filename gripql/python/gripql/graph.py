@@ -130,7 +130,7 @@ class Graph:
         return response.json()["indices"]
 
     def listLabels(self):
-        url = self.url + "/labels"
+        url = self.url + "/label"
         response = requests.get(
             url,
             stream=True,

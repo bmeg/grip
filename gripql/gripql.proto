@@ -325,7 +325,7 @@ service Query {
 
   rpc ListLabels(GraphID) returns (ListLabelsResponse) {
     option (google.api.http) = {
-      get: "/v1/graph/{graph}/labels"
+      get: "/v1/graph/{graph}/label"
     };
   }
 
