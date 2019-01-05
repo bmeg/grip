@@ -7,7 +7,7 @@ import (
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/jsonpath"
 	"github.com/bmeg/grip/protoutil"
-	// log "github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 // DefaultPipeline a set of runnable query operations
@@ -260,7 +260,9 @@ func (comp DefaultCompiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeli
 		}
 	}
 
+	log.Infof("Before optimizer: %+v", procs)
 	procs = indexStartOptimize(procs)
+	log.Infof("After optimizer: %+v", procs)
 
 	return &DefaultPipeline{procs, lastType, markTypes}, nil
 }
@@ -272,7 +274,11 @@ func indexStartOptimize(pipe []gdbi.Processor) []gdbi.Processor {
 	var lookupV *LookupVerts
 	hasIDIdx := []int{}
 	hasLabelIdx := []int{}
+	isDone := false
 	for i, step := range pipe {
+		if isDone {
+			break
+		}
 		if i == 0 {
 			if lv, ok := step.(*LookupVerts); ok {
 				lookupV = lv
@@ -299,7 +305,7 @@ func indexStartOptimize(pipe []gdbi.Processor) []gdbi.Processor {
 				}
 			}
 		default:
-			break
+			isDone = true
 		}
 	}
 
@@ -338,6 +344,8 @@ func indexStartOptimize(pipe []gdbi.Processor) []gdbi.Processor {
 			if i == 0 {
 				continue
 			}
+		} else {
+			optimized = append(optimized, step)
 		}
 		if idOpt {
 			if i != hasIDIdx[0] {
