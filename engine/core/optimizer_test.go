@@ -15,11 +15,43 @@ func TestIndexStartOptimize(t *testing.T) {
 		&LookupVertexAdjOut{},
 	}
 	original := []gdbi.Processor{
+		&LookupVerts{ids: []string{"1", "2", "3"}},
+		&LookupVertexAdjOut{},
+	}
+	optimized := indexStartOptimize(original)
+	if !reflect.DeepEqual(optimized, expected) {
+		t.Log("actual", spew.Sdump(optimized))
+		t.Log("expected:", spew.Sdump(expected))
+		t.Error("indexStartOptimize returned an unexpected result")
+	}
+
+	expected = []gdbi.Processor{
+		&LookupVerts{},
+		&LookupVertexAdjOut{},
+		&HasID{ids: []string{"1", "2", "3"}},
+	}
+	original = []gdbi.Processor{
+		&LookupVerts{},
+		&LookupVertexAdjOut{},
+		&HasID{ids: []string{"1", "2", "3"}},
+	}
+	optimized = indexStartOptimize(original)
+	if !reflect.DeepEqual(optimized, expected) {
+		t.Log("actual", spew.Sdump(optimized))
+		t.Log("expected:", spew.Sdump(expected))
+		t.Error("indexStartOptimize returned an unexpected result")
+	}
+
+	expected = []gdbi.Processor{
+		&LookupVerts{ids: []string{"1", "2", "3"}},
+		&LookupVertexAdjOut{},
+	}
+	original = []gdbi.Processor{
 		&LookupVerts{},
 		&HasID{ids: []string{"1", "2", "3"}},
 		&LookupVertexAdjOut{},
 	}
-	optimized := indexStartOptimize(original)
+	optimized = indexStartOptimize(original)
 	if !reflect.DeepEqual(optimized, expected) {
 		t.Log("actual", spew.Sdump(optimized))
 		t.Log("expected:", spew.Sdump(expected))
