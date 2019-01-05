@@ -1,12 +1,10 @@
 package esql
 
 import (
-	"context"
 	"errors"
 	"fmt"
 
 	"github.com/bmeg/grip/gdbi"
-	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/timestamp"
 	"github.com/jmoiron/sqlx"
 )
@@ -131,9 +129,4 @@ func (db *GraphDB) Graph(graph string) (gdbi.GraphInterface, error) {
 		graph:  graph,
 		schema: schema,
 	}, nil
-}
-
-// GetSchema returns the schema of a specific graph in the database
-func (db *GraphDB) GetSchema(ctx context.Context, graph string, sampleN uint32, random bool) (*gripql.GraphSchema, error) {
-	return nil, fmt.Errorf("not implemented")
 }

@@ -92,6 +92,18 @@ import gripql conn = gripql.Connection(&#39;http://bmeg.io&#39;) O = conn.graph(
     </item>
     
     <item>
+      <title>Graph Schemas</title>
+      <link>https://docs.bmeg.io/grip/docs/queries/graph_schemas/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://docs.bmeg.io/grip/docs/queries/graph_schemas/</guid>
+      <description>Graph Schemas Graph schemas are themselves an instance of a graph. As such, they can be traversed like any other graph. The schemas are automatically added to the database following the naming pattern {graph-name}__schema__.
+Get the schema of a graph The schema of a graph can be accessed via a GET request to /v1/graph/{graph-name}/schema.
+Alternatively, you can use the grip CLI: grip schema get {graph-name}.
+Describing graph schemas There are several methods for desribing the schema of a graph.</description>
+    </item>
+    
+    <item>
       <title>GraphQL</title>
       <link>https://docs.bmeg.io/grip/docs/queries/graphql/</link>
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
@@ -158,7 +170,7 @@ Database: psql PSQL: Host: localhost Port: 15432 User: &amp;quot;&amp;quot; Pass
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
       
       <guid>https://docs.bmeg.io/grip/docs/queries/jsonpath/</guid>
-      <description>Several operations (where, fields, render, etc.) reference properties of the vertices/edges during the traversal. GRIP uses a variation on JSONPath syntax as described in http://goessner.net/articles/ to reference fields during traversals.
+      <description>Referencing Vertex/Edge Properties Several operations (where, fields, render, etc.) reference properties of the vertices/edges during the traversal. GRIP uses a variation on JSONPath syntax as described in http://goessner.net/articles/ to reference fields during traversals.
 The following query:
 O.query().V([&amp;quot;ENSG00000012048&amp;quot;]).as_(&amp;quot;gene&amp;quot;).out(&amp;quot;variant&amp;quot;)  Starts at vertex ENSG00000012048 and marks as gene:
 { &amp;quot;gid&amp;quot;: &amp;quot;ENSG00000012048&amp;quot;, &amp;quot;label&amp;quot;: &amp;quot;gene&amp;quot;, &amp;quot;data&amp;quot;: { &amp;quot;symbol&amp;quot;: { &amp;quot;ensembl&amp;quot;: &amp;quot;ENSG00000012048&amp;quot;, &amp;quot;hgnc&amp;quot;: 1100, &amp;quot;entrez&amp;quot;: 672, &amp;quot;hugo&amp;quot;: &amp;quot;BRCA1&amp;quot; } &amp;quot;transcipts&amp;quot;: [&amp;quot;ENST00000471181.7&amp;quot;, &amp;quot;ENST00000357654.8&amp;quot;, &amp;quot;ENST00000493795.5&amp;quot;] } }  as &amp;ldquo;gene&amp;rdquo; and traverses the graph to:</description>

@@ -16,6 +16,7 @@ import (
 	"github.com/bmeg/grip/psql"
 	"github.com/bmeg/grip/server"
 	"github.com/bmeg/grip/util"
+	"github.com/bmeg/grip/util/duration"
 	"github.com/bmeg/grip/util/rpc"
 	"github.com/ghodss/yaml"
 )
@@ -48,13 +49,12 @@ func DefaultConfig() *Config {
 	c.Server.WorkDir = "grip.work"
 	c.Server.ReadOnly = false
 	c.Server.DisableHTTPCache = true
-	c.Server.SchemaRefreshInterval = 24 * time.Hour
+	c.Server.AutoBuildSchemas = false
+	c.Server.SchemaRefreshInterval = duration.Duration(24 * time.Hour)
 	c.Server.SchemaInspectN = 500
 	c.Server.SchemaRandomSample = true
 
-	c.RPCClient.ServerAddress = c.Server.RPCAddress()
-	c.RPCClient.Timeout = 30 * time.Second
-	c.RPCClient.MaxRetries = 10
+	c.RPCClient = rpc.ConfigWithDefaults(c.Server.RPCAddress())
 
 	c.KVStorePath = "grip.db"
 

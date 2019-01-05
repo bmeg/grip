@@ -13,7 +13,7 @@ func TestWellDefined(t *testing.T) {
 		"Field2": "NUMERIC",
 		"Field3": "BOOL",
 	}
-	schema := &gripql.GraphSchema{
+	schema := &gripql.Graph{
 		Vertices: []*gripql.Vertex{
 			{
 				Gid:   "STRING",
@@ -47,7 +47,7 @@ func TestUnkownType(t *testing.T) {
 		"Field1": "UNKNOWN",
 		"Field2": "NUMERIC",
 	}
-	schema := &gripql.GraphSchema{
+	schema := &gripql.Graph{
 		Vertices: []*gripql.Vertex{
 			{
 				Gid:   "STRING",
@@ -70,7 +70,7 @@ func TestNilData(t *testing.T) {
 		"Field2": "NUMERIC",
 		"Field3": "BOOL",
 	}
-	schema := &gripql.GraphSchema{
+	schema := &gripql.Graph{
 		Vertices: []*gripql.Vertex{
 			{
 				Gid:   "STRING",
@@ -111,7 +111,7 @@ func TestComplex(t *testing.T) {
 		},
 		"Field7": "UNKNOWN",
 	}
-	schema := &gripql.GraphSchema{
+	schema := &gripql.Graph{
 		Vertices: []*gripql.Vertex{
 			{
 				Gid:   "STRING",

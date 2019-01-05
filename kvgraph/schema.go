@@ -11,22 +11,21 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// GetSchema gets schema of the graph
-// GetSchema returns the schema of a specific graph in the database
-func (ma *KVGraph) GetSchema(ctx context.Context, graph string, sampleN uint32, random bool) (*gripql.GraphSchema, error) {
+// BuildSchema returns the schema of a specific graph in the database
+func (ma *KVGraph) BuildSchema(ctx context.Context, graph string, sampleN uint32, random bool) (*gripql.Graph, error) {
 	var vSchema []*gripql.Vertex
 	var eSchema []*gripql.Edge
 	var err error
 
-	log.Info("Loading KV Schema")
+	log.WithFields(log.Fields{"graph": graph}).Debug("Starting KV GetSchema call")
 
 	vSchema, eSchema, err = ma.sampleSchema(ctx, graph, sampleN, random)
 	if err != nil {
 		return nil, fmt.Errorf("getting vertex schema: %v", err)
 	}
 
-	schema := &gripql.GraphSchema{Vertices: vSchema, Edges: eSchema}
-	log.WithFields(log.Fields{"graph": graph, "schema": schema}).Debug("Finished GetSchema call")
+	schema := &gripql.Graph{Graph: graph, Vertices: vSchema, Edges: eSchema}
+	log.WithFields(log.Fields{"graph": graph}).Debug("Finished GetSchema call")
 	return schema, nil
 }
 
@@ -65,11 +64,17 @@ func (ma *KVGraph) sampleSchema(ctx context.Context, graph string, n uint32, ran
 				}
 			}
 		}
-		vSchema := &gripql.Vertex{Label: label, Data: protoutil.AsStruct(schema)}
+		vSchema := &gripql.Vertex{Gid: label, Label: label, Data: protoutil.AsStruct(schema)}
 		vOutput = append(vOutput, vSchema)
 	}
 	for k, v := range fromToPairs {
-		eSchema := &gripql.Edge{Label: k.label, To: k.to, From: k.from, Data: protoutil.AsStruct(v.(map[string]interface{}))}
+		eSchema := &gripql.Edge{
+			Gid:   fmt.Sprintf("(%s)--%s->(%s)", k.from, k.label, k.to),
+			Label: k.label,
+			From:  k.from,
+			To:    k.to,
+			Data:  protoutil.AsStruct(v.(map[string]interface{})),
+		}
 		eOutput = append(eOutput, eSchema)
 	}
 	return vOutput, eOutput, nil

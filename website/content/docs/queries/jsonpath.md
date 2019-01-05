@@ -6,6 +6,8 @@ menu:
     weight: 5
 ---
 
+# Referencing Vertex/Edge Properties
+
 Several operations (where, fields, render, etc.) reference properties of the vertices/edges during the traversal.
 GRIP uses a variation on JSONPath syntax as described in http://goessner.net/articles/ to reference fields during traversals.
 

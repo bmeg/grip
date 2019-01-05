@@ -7,10 +7,13 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"strings"
+	"time"
 
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/graphql"
 	"github.com/bmeg/grip/gripql"
+	"github.com/bmeg/grip/util/rpc"
 	"github.com/golang/gddo/httputil"
 	"github.com/grpc-ecosystem/go-grpc-middleware"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
@@ -23,11 +26,11 @@ import (
 type GripServer struct {
 	db      gdbi.GraphDB
 	conf    Config
-	schemas map[string]*gripql.GraphSchema
+	schemas map[string]*gripql.Graph
 }
 
 // NewGripServer initializes a GRPC server to connect to the graph store
-func NewGripServer(db gdbi.GraphDB, conf Config) (*GripServer, error) {
+func NewGripServer(db gdbi.GraphDB, conf Config, schemas map[string]*gripql.Graph) (*GripServer, error) {
 	_, err := os.Stat(conf.WorkDir)
 	if os.IsNotExist(err) {
 		err = os.Mkdir(conf.WorkDir, 0700)
@@ -35,14 +38,60 @@ func NewGripServer(db gdbi.GraphDB, conf Config) (*GripServer, error) {
 			return nil, fmt.Errorf("creating work dir: %v", err)
 		}
 	}
-	schemas := make(map[string]*gripql.GraphSchema)
-	return &GripServer{db: db, conf: conf, schemas: schemas}, nil
+	if schemas == nil {
+		schemas = make(map[string]*gripql.Graph)
+	}
+	server := &GripServer{db: db, conf: conf, schemas: schemas}
+	for graph, schema := range schemas {
+		if !server.graphExists(graph) {
+			_, err := server.AddGraph(context.Background(), &gripql.GraphID{Graph: graph})
+			if err != nil {
+				return nil, fmt.Errorf("error creating graph defined by schema '%s': %v", graph, err)
+			}
+		}
+		err = server.addSchemaGraph(context.Background(), schema)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return server, nil
 }
 
 // handleError is the grpc gateway error handler
 func handleError(w http.ResponseWriter, req *http.Request, err string, code int) {
 	log.WithFields(log.Fields{"url": req.URL, "error": err}).Error("HTTP handler error")
 	http.Error(w, err, code)
+}
+
+// Return a new interceptor function that logs all requests at the Debug level
+func unaryDebugInterceptor() grpc.UnaryServerInterceptor {
+	// Return a function that is the interceptor.
+	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo,
+		handler grpc.UnaryHandler) (interface{}, error) {
+		start := time.Now()
+		resp, err := handler(ctx, req)
+		log.WithFields(log.Fields{
+			"endpoint":     info.FullMethod,
+			"request":      req,
+			"elapsed_time": time.Since(start),
+			"error":        err}).Debug("Responding to request")
+		return resp, err
+	}
+}
+
+// Return a new interceptor function that logs all requests at the Debug level
+func streamDebugInterceptor() grpc.StreamServerInterceptor {
+	// Return a function that is the interceptor.
+	return func(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo,
+		handler grpc.StreamHandler) error {
+		start := time.Now()
+		err := handler(srv, ss)
+		log.WithFields(log.Fields{
+			"endpoint":     info.FullMethod,
+			"elapsed_time": time.Since(start),
+			"error":        err}).Debug("Responding to request")
+		return err
+	}
 }
 
 // unaryErrorInterceptor is an interceptor function that logs all errors
@@ -52,7 +101,7 @@ func unaryErrorInterceptor() grpc.UnaryServerInterceptor {
 		handler grpc.UnaryHandler) (interface{}, error) {
 		resp, err := handler(ctx, req)
 		if err != nil {
-			log.WithFields(log.Fields{"endpoint": info.FullMethod, "error": err}).Error("Request failed")
+			log.WithFields(log.Fields{"endpoint": info.FullMethod, "request": req, "error": err}).Error("Request failed")
 		}
 		return resp, err
 	}
@@ -87,12 +136,14 @@ func (server *GripServer) Serve(pctx context.Context) error {
 			grpc_middleware.ChainUnaryServer(
 				unaryAuthInterceptor(server.conf.BasicAuth),
 				unaryErrorInterceptor(),
+				unaryDebugInterceptor(),
 			),
 		),
 		grpc.StreamInterceptor(
 			grpc_middleware.ChainStreamServer(
 				streamAuthInterceptor(server.conf.BasicAuth),
 				streamErrorInterceptor(),
+				streamDebugInterceptor(),
 			),
 		),
 		grpc.MaxSendMsgSize(1024*1024*16),
@@ -216,12 +267,45 @@ func (server *GripServer) Serve(pctx context.Context) error {
 		cancel()
 	}()
 
-	go func() {
-		server.cacheSchemas(ctx)
-	}()
-
 	log.Infoln("TCP+RPC server listening on " + server.conf.RPCPort)
 	log.Infoln("HTTP proxy connecting to localhost:" + server.conf.HTTPPort)
+
+	// load existing schemas from db
+	if server.db != nil {
+		for _, graph := range server.db.ListGraphs() {
+			if isSchema(graph) {
+				log.WithFields(log.Fields{"graph": graph}).Debug("Loading existing schema into cache")
+				conn, err := gripql.Connect(rpc.ConfigWithDefaults(server.conf.RPCAddress()), true)
+				if err != nil {
+					return fmt.Errorf("failed to load existing schema: %v", err)
+				}
+				res, err := conn.Traversal(&gripql.GraphQuery{Graph: graph, Query: gripql.NewQuery().V().Statements})
+				if err != nil {
+					return fmt.Errorf("failed to load existing schema: %v", err)
+				}
+				vertices := []*gripql.Vertex{}
+				for row := range res {
+					vertices = append(vertices, row.GetVertex())
+				}
+				res, err = conn.Traversal(&gripql.GraphQuery{Graph: graph, Query: gripql.NewQuery().E().Statements})
+				if err != nil {
+					return fmt.Errorf("failed to load existing schema: %v", err)
+				}
+				edges := []*gripql.Edge{}
+				for row := range res {
+					edges = append(edges, row.GetEdge())
+				}
+				graph = strings.TrimSuffix(graph, schemaSuffix)
+				server.schemas[graph] = &gripql.Graph{Graph: graph, Vertices: vertices, Edges: edges}
+			}
+		}
+	}
+
+	if server.conf.AutoBuildSchemas {
+		go func() {
+			server.cacheSchemas(ctx)
+		}()
+	}
 
 	<-ctx.Done()
 	log.Infoln("closing database...")

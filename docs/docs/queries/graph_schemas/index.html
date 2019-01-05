@@ -8,7 +8,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
 
   
-  <title>Developers &middot; GRIP</title>
+  <title>Graph Schemas &middot; GRIP</title>
   
 
   
@@ -154,7 +154,7 @@
             <ul class="sidebar-nav sidebar-nav-nested">
               <li>
                 <a href="https://docs.bmeg.io/grip/docs/queries/graph_schemas/"
-                   class="sidebar-nav-item "
+                   class="sidebar-nav-item  active"
                 >Graph Schemas</a></li>
             </ul>
           </li>
@@ -239,6 +239,90 @@
 
   <div class="main col span_8_of_12">
     
+
+<h1 id="graph-schemas">Graph Schemas</h1>
+
+<p>Graph schemas are themselves an instance of a graph. As such, they can be traversed like any other graph.
+The schemas are automatically added to the database following the naming pattern <code>{graph-name}__schema__</code>.</p>
+
+<h2 id="get-the-schema-of-a-graph">Get the schema of a graph</h2>
+
+<p>The schema of a graph can be accessed via a GET request to <code>/v1/graph/{graph-name}/schema</code>.</p>
+
+<p>Alternatively, you can use the grip CLI: <code>grip schema get {graph-name}</code>.</p>
+
+<h2 id="describing-graph-schemas">Describing graph schemas</h2>
+
+<p>There are several methods for desribing the schema of a graph.</p>
+
+<ul>
+<li>Provide the schema (as a YAML file) to the server at runtime. <code>grip server --schema {schema-file}</code></li>
+<li>POST the schema <code>/v1/graph/{graph-name}/schema</code> via curl or use the CLI <code>grip schema post --yaml {file} --json {file}</code>.</li>
+<li>Configure Grip to build the schema by sampling the data in each graph.</li>
+</ul>
+
+<pre><code class="language-yaml">Server:
+  # Should the server periodically build the graph schemas?
+  AutoBuildSchemas: true
+  # How often the server should rebuild the graph schemas. Set to 0 to turn off
+  SchemaRefreshInterval: &quot;24h&quot;
+  # How many vertices/edges to inspect to infer the schema
+  SchemaInspectN: 500
+  # Strategy to use for selecting the vertices/edges to inspect.
+  # Random if True; first N otherwise
+  SchemaRandomSample: true
+</code></pre>
+
+<h2 id="example-schema">Example schema</h2>
+
+<pre><code class="language-yaml"> graph: example-graph
+
+ edges:
+- data: {}
+  from: Human
+  gid: (Human)--starship-&gt;(Starship)
+  label: starship
+  to: Starship
+- data: {}
+  from: Human
+  gid: (Human)--friend-&gt;(Human)
+  label: friend
+  to: Human
+- data: {}
+  from: Human
+  gid: (Human)--friend-&gt;(Droid)
+  label: friend
+  to: Droid
+- data: {}
+  from: Human
+  gid: (Human)--appearsIn-&gt;(Movie)
+  label: appearsIn
+  to: Movie
+
+vertices:
+- data:
+    name: STRING
+  gid: Movie
+  label: Movie
+- data:
+    length: NUMERIC
+    name: STRING
+  gid: Starship
+  label: Starship
+- data:
+    name: STRING
+    primaryFunction: STRING
+  gid: Droid
+  label: Droid
+- data:
+    height: NUMERIC
+    homePlanet: STRING
+    mass: NUMERIC
+    name: STRING
+  gid: Human
+  label: Human
+</code></pre>
+
   </div>
 
 </div>

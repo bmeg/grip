@@ -211,8 +211,3 @@ func (es *GraphDB) Graph(graph string) (gdbi.GraphInterface, error) {
 		pageSize:    500,
 	}, nil
 }
-
-// GetSchema returns the schema of a specific graph in the database
-func (es *GraphDB) GetSchema(ctx context.Context, graph string, sampleN uint32, random bool) (*gripql.GraphSchema, error) {
-	return nil, fmt.Errorf("not implemented")
-}

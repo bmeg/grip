@@ -14,6 +14,7 @@ import (
 	"github.com/bmeg/grip/kvgraph"
 	_ "github.com/bmeg/grip/kvi/badgerdb" // import so badger will register itself
 	"github.com/bmeg/grip/util"
+	"github.com/bmeg/grip/util/duration"
 	"github.com/bmeg/grip/util/rpc"
 )
 
@@ -25,14 +26,14 @@ func TestBasicAuthFail(t *testing.T) {
 	conf.BasicAuth = []BasicCredential{{User: "testuser", Password: "abc123"}}
 	defer os.RemoveAll(conf.WorkDir)
 
-	srv, err := NewGripServer(nil, conf)
+	srv, err := NewGripServer(nil, conf, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	go srv.Serve(ctx)
 
-	cli, err := gripql.Connect(rpc.Config{ServerAddress: conf.RPCAddress(), Timeout: 5 * time.Second}, true)
+	cli, err := gripql.Connect(rpc.Config{ServerAddress: conf.RPCAddress(), Timeout: duration.Duration(5 * time.Second)}, true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -78,7 +79,7 @@ func TestBasicAuth(t *testing.T) {
 	}
 	defer os.RemoveAll(tmpDB)
 
-	srv, err := NewGripServer(db, conf)
+	srv, err := NewGripServer(db, conf, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

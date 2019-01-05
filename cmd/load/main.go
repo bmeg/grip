@@ -1,19 +1,14 @@
 package load
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
 
 	"github.com/bmeg/grip/cmd/load/example"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/util"
 	"github.com/bmeg/grip/util/rpc"
-	"github.com/golang/protobuf/jsonpb"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"gopkg.in/yaml.v2"
 )
 
 var host = "localhost:8202"
@@ -22,29 +17,6 @@ var vertexFile string
 var edgeFile string
 var jsonFile string
 var yamlFile string
-
-func mapNormalize(v interface{}) interface{} {
-	if base, ok := v.(map[interface{}]interface{}); ok {
-		out := map[string]interface{}{}
-		for k, v := range base {
-			out[k.(string)] = mapNormalize(v)
-		}
-		return out
-	} else if base, ok := v.(map[string]interface{}); ok {
-		out := map[string]interface{}{}
-		for k, v := range base {
-			out[k] = mapNormalize(v)
-		}
-		return out
-	} else if base, ok := v.([]interface{}); ok {
-		out := make([]interface{}, len(base))
-		for i, v := range base {
-			out[i] = mapNormalize(v)
-		}
-		return out
-	}
-	return v
-}
 
 // Cmd is the declaration of the command line
 var Cmd = &cobra.Command{
@@ -120,54 +92,40 @@ var Cmd = &cobra.Command{
 			log.Infof("Loaded %d edges", count)
 		}
 
-		m := jsonpb.Unmarshaler{AllowUnknownFields: true}
 		if jsonFile != "" {
 			log.Infof("Loading json file: %s", jsonFile)
-			content, err := ioutil.ReadFile(jsonFile)
+			graphs, err := gripql.ParseJSONGraphFile(jsonFile)
 			if err != nil {
 				return err
 			}
-			g := &gripql.Graph{}
-			if err := m.Unmarshal(bytes.NewReader(content), g); err != nil {
-				return err
+			for _, g := range graphs {
+				for _, v := range g.Vertices {
+					elemChan <- &gripql.GraphElement{Graph: graph, Vertex: v}
+				}
+				log.Infof("Loaded %d vertices", len(g.Vertices))
+				for _, e := range g.Edges {
+					elemChan <- &gripql.GraphElement{Graph: graph, Edge: e}
+				}
+				log.Infof("Loaded %d edges", len(g.Edges))
 			}
-			for _, v := range g.Vertices {
-				elemChan <- &gripql.GraphElement{Graph: graph, Vertex: v}
-			}
-			log.Infof("Loaded %d vertices", len(g.Vertices))
-			for _, e := range g.Edges {
-				elemChan <- &gripql.GraphElement{Graph: graph, Edge: e}
-			}
-			log.Infof("Loaded %d edges", len(g.Edges))
 		}
 
 		if yamlFile != "" {
 			log.Infof("Loading YAML file: %s", yamlFile)
-			yamlContent, err := ioutil.ReadFile(yamlFile)
+			graphs, err := gripql.ParseYAMLGraphFile(yamlFile)
 			if err != nil {
 				return err
 			}
-			t := map[string]interface{}{}
-			err = yaml.Unmarshal([]byte(yamlContent), &t)
-			if err != nil {
-				return err
+			for _, g := range graphs {
+				for _, v := range g.Vertices {
+					elemChan <- &gripql.GraphElement{Graph: graph, Vertex: v}
+				}
+				log.Infof("Loaded %d vertices", len(g.Vertices))
+				for _, e := range g.Edges {
+					elemChan <- &gripql.GraphElement{Graph: graph, Edge: e}
+				}
+				log.Infof("Loaded %d edges", len(g.Edges))
 			}
-			content, err := json.Marshal(mapNormalize(t))
-			if err != nil {
-				return err
-			}
-			g := &gripql.Graph{}
-			if err := m.Unmarshal(bytes.NewReader(content), g); err != nil {
-				return err
-			}
-			for _, v := range g.Vertices {
-				elemChan <- &gripql.GraphElement{Graph: graph, Vertex: v}
-			}
-			log.Infof("Loaded %d vertices", len(g.Vertices))
-			for _, e := range g.Edges {
-				elemChan <- &gripql.GraphElement{Graph: graph, Edge: e}
-			}
-			log.Infof("Loaded %d edges", len(g.Edges))
 		}
 
 		close(elemChan)

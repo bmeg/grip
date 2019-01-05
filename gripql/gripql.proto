@@ -222,48 +222,6 @@ enum FieldType {
   BOOL  = 3;
 }
 
-// Each data field in the vertices/edges will be mapped to a FieldType.
-// The `Gid` field is not used in the schema.
-// The `Label` field identifies the vertex/edge type.
-//
-// Example:
-//
-// {
-//   "vertices": [
-//     {
-//       "label": "Human",
-//       "data": {
-// 	      "name": "STRING",
-// 	      "height": "NUMERIC",
-// 	      "mass": "NUMERIC",
-// 	      "age": "NUMERIC",
-// 	      "homePlanet": "STRING"
-//       }
-//     },
-//     {
-//       "label": "Droid",
-//       "data": {
-// 	      "name": "STRING",
-// 	      "primaryFunction": "STRING"
-//       }
-//     },
-//   ],
-//   "edges": [
-//     {
-//       "label": "Owner",
-//       "from": "Human",
-//       "to": "Droid",
-//       "data" : {
-// 	      "years": "NUMERIC"
-//       }
-//     }
-//   ]
-// }
-message GraphSchema {
-  repeated Vertex vertices = 1;
-  repeated Edge edges = 2;
-}
-
 message Empty {}
 
 message ListGraphsResponse {
@@ -305,7 +263,7 @@ service Query {
     };
   }
 
-  rpc GetSchema(GraphID) returns (GraphSchema) {
+  rpc GetSchema(GraphID) returns (Graph) {
     option (google.api.http) = {
       get: "/v1/graph/{graph}/schema"
     };
@@ -386,6 +344,13 @@ service Edit {
   rpc DeleteIndex(IndexID) returns (EditResult) {
     option (google.api.http) = {
       delete: "/v1/graph/{graph}/index/{label}/{field}"
+    };
+  }
+
+  rpc AddSchema(Graph) returns (EditResult) {
+    option (google.api.http) = {
+      post: "/v1/graph/{graph}/schema"
+      body: "*"
     };
   }
 

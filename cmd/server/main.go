@@ -11,6 +11,7 @@ import (
 	"github.com/bmeg/grip/elastic"
 	"github.com/bmeg/grip/existing-sql"
 	"github.com/bmeg/grip/gdbi"
+	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/kvgraph"
 	_ "github.com/bmeg/grip/kvi/badgerdb" // import so badger will register itself
 	_ "github.com/bmeg/grip/kvi/boltdb"   // import so bolt will register itself
@@ -28,11 +29,12 @@ import (
 
 var conf = &config.Config{}
 var configFile string
+var schemaFile string
 
 // Run runs an Grip server.
 // This opens a database and starts an API server.
 // This blocks indefinitely.
-func Run(conf *config.Config) error {
+func Run(conf *config.Config, schemas map[string]*gripql.Graph) error {
 	config.ConfigureLogger(conf.Logger)
 	log.WithFields(log.Fields{"Config": conf}).Info("Starting Server")
 
@@ -70,7 +72,7 @@ func Run(conf *config.Config) error {
 		cancel()
 	}()
 
-	srv, err := server.NewGripServer(db, conf.Server)
+	srv, err := server.NewGripServer(db, conf.Server, schemas)
 	if err != nil {
 		return err
 	}
@@ -115,20 +117,27 @@ var Cmd = &cobra.Command{
 		return nil
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return Run(conf)
+		schemaMap := make(map[string]*gripql.Graph)
+		if schemaFile != "" {
+			schemas, err := gripql.ParseYAMLGraphFile(schemaFile)
+			if err != nil {
+				return fmt.Errorf("error processing schema file: %v", err)
+			}
+			for _, s := range schemas {
+				schemaMap[s.Graph] = s
+			}
+		}
+		return Run(conf, schemaMap)
 	},
 }
 
 func init() {
 	flags := Cmd.Flags()
 	flags.StringVarP(&configFile, "config", "c", configFile, "Config file")
-	flags.StringVarP(&conf.Database, "database", "d", conf.Database, `Database to use ["badger", "bolt", "level", "rocks", "mongo", "elastic"]`)
+	flags.StringVarP(&schemaFile, "schema", "s", schemaFile, "Schema file")
 	flags.StringVar(&conf.Server.HTTPPort, "http-port", conf.Server.HTTPPort, "HTTP port")
 	flags.StringVar(&conf.Server.RPCPort, "rpc-port", conf.Server.RPCPort, "TCP+RPC port")
-	flags.StringVar(&conf.Server.ContentDir, "content", conf.Server.ContentDir, "Server content directory")
-	flags.StringVar(&conf.Server.WorkDir, "workdir", conf.Server.WorkDir, "Server working directory")
 	flags.BoolVar(&conf.Server.ReadOnly, "read-only", conf.Server.ReadOnly, "Start server in read-only mode")
-	flags.StringVar(&conf.KVStorePath, "kvstore-path", conf.KVStorePath, "Path to use for key-value store database (Badger, BoltDB, LevelDB, RocksDB)")
-	flags.StringVar(&conf.MongoDB.URL, "mongo-url", conf.MongoDB.URL, "MongoDB URL")
-	flags.StringVar(&conf.Elasticsearch.URL, "elastic-url", conf.Elasticsearch.URL, "Elasticsearch URL")
+	flags.StringVar(&conf.Logger.Level, "log-level", conf.Logger.Level, "Log level [info, debug, warn, error]")
+	flags.StringVar(&conf.Logger.Formatter, "log-format", conf.Logger.Formatter, "Log format [text, json]")
 }

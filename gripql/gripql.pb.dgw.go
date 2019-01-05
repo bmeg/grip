@@ -76,7 +76,7 @@ func (shim *QueryDirectClient) GetTimestamp(ctx context.Context, in *GraphID, op
 }
 
 //GetSchema shim
-func (shim *QueryDirectClient) GetSchema(ctx context.Context, in *GraphID, opts ...grpc.CallOption) (*GraphSchema, error) {
+func (shim *QueryDirectClient) GetSchema(ctx context.Context, in *GraphID, opts ...grpc.CallOption) (*Graph, error) {
 	return shim.server.GetSchema(ctx, in)
 }
 
@@ -196,4 +196,9 @@ func (shim *EditDirectClient) AddIndex(ctx context.Context, in *IndexID, opts ..
 //DeleteIndex shim
 func (shim *EditDirectClient) DeleteIndex(ctx context.Context, in *IndexID, opts ...grpc.CallOption) (*EditResult, error) {
 	return shim.server.DeleteIndex(ctx, in)
+}
+
+//AddSchema shim
+func (shim *EditDirectClient) AddSchema(ctx context.Context, in *Graph, opts ...grpc.CallOption) (*EditResult, error) {
+	return shim.server.AddSchema(ctx, in)
 }
