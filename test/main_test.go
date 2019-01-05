@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"sort"
 	"strings"
 	"testing"
 
@@ -45,14 +46,25 @@ func init() {
 }
 
 func setupGraph() error {
-	err := db.AddVertex(vertices)
-	if err != nil {
-		return err
+	// sort edges/vertices and insert one at a time to ensure the same write order
+	sort.Slice(vertices[:], func(i, j int) bool {
+		return vertices[i].Gid < vertices[j].Gid
+	})
+	for _, v := range vertices {
+		err := db.AddVertex([]*gripql.Vertex{v})
+		if err != nil {
+			return err
+		}
 	}
 
-	err = db.AddEdge(edges)
-	if err != nil {
-		return err
+	sort.Slice(edges[:], func(i, j int) bool {
+		return edges[i].Gid < edges[j].Gid
+	})
+	for _, e := range edges {
+		err := db.AddEdge([]*gripql.Edge{e})
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

@@ -17,7 +17,7 @@ func TestSchema(t *testing.T) {
 		t.Skip("skipping schema test")
 	}
 
-	schema, err := gdb.BuildSchema(context.Background(), "test-graph", 10, false)
+	schema, err := gdb.BuildSchema(context.Background(), "test-graph", 1, false)
 	if err != nil {
 		t.Fatal(err)
 	}
