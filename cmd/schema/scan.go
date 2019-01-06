@@ -17,21 +17,13 @@ type edgeDstMap map[edgeDstKey]interface{}
 // ScanSchema attempts to construct a schema of a graph by sampling vertices and edges
 func ScanSchema(conn gripql.Client, graph string, sampleCount uint32) (*gripql.Graph, error) {
 
-	labelQuery := gripql.V().Distinct([]string{"_label"}).Render([]string{"_label"})
-	labelRes, err := conn.Traversal(&gripql.GraphQuery{Graph: graph, Query: labelQuery.Statements})
+	labelRes, err := conn.ListLabels(graph)
 	if err != nil {
 		return nil, err
 	}
 
-	labelList := []string{}
-	for row := range labelRes {
-		r := row.GetRender()
-		v := protoutil.AsStringList(r.GetListValue())[0]
-		labelList = append(labelList, v)
-	}
-
 	vList := []*gripql.Vertex{}
-	for _, label := range labelList {
+	for _, label := range labelRes.VertexLabels {
 		schema := map[string]interface{}{}
 		nodeQuery := gripql.V().HasLabel(label).Limit(sampleCount)
 		nodeRes, err := conn.Traversal(&gripql.GraphQuery{Graph: graph, Query: nodeQuery.Statements})
@@ -47,7 +39,7 @@ func ScanSchema(conn gripql.Client, graph string, sampleCount uint32) (*gripql.G
 	}
 
 	eList := []*gripql.Edge{}
-	for _, label := range labelList {
+	for _, label := range labelRes.VertexLabels {
 		edgeQuery := gripql.V().HasLabel(label).Limit(sampleCount).OutE().As("a").Out().As("b").Select("a", "b")
 		edgeRes, err := conn.Traversal(&gripql.GraphQuery{Graph: graph, Query: edgeQuery.Statements})
 		if err == nil {
