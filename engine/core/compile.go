@@ -260,9 +260,7 @@ func (comp DefaultCompiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeli
 		}
 	}
 
-	log.Infof("Before optimizer: %+v", procs)
 	procs = indexStartOptimize(procs)
-	log.Infof("After optimizer: %+v", procs)
 
 	return &DefaultPipeline{procs, lastType, markTypes}, nil
 }
