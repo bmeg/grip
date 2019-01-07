@@ -74,6 +74,23 @@ func TestIndexStartOptimize(t *testing.T) {
 		t.Error("indexStartOptimize returned an unexpected result")
 	}
 
+	expected = []gdbi.Processor{
+		&LookupVerts{},
+		&Has{stmt: gripql.Neq("_gid", "1")},
+		&LookupVertexAdjOut{},
+	}
+	original = []gdbi.Processor{
+		&LookupVerts{},
+		&Has{stmt: gripql.Neq("_gid", "1")},
+		&LookupVertexAdjOut{},
+	}
+	optimized = indexStartOptimize(original)
+	if !reflect.DeepEqual(optimized, expected) {
+		t.Log("actual", spew.Sdump(optimized))
+		t.Log("expected:", spew.Sdump(expected))
+		t.Error("indexStartOptimize returned an unexpected result")
+	}
+
 	// order shouldnt matter
 	expected = []gdbi.Processor{
 		&LookupVerts{ids: []string{"1", "2", "3"}},
@@ -119,6 +136,24 @@ func TestIndexStartOptimize(t *testing.T) {
 	original = []gdbi.Processor{
 		&LookupVerts{},
 		&HasLabel{labels: []string{"foo", "bar"}},
+		&LookupVertexAdjOut{},
+	}
+	optimized = indexStartOptimize(original)
+	if !reflect.DeepEqual(optimized, expected) {
+		t.Log("actual", spew.Sdump(optimized))
+		t.Log("expected:", spew.Sdump(expected))
+		t.Error("indexStartOptimize returned an unexpected result")
+	}
+
+	// TODO figure out how to optimize
+	expected = []gdbi.Processor{
+		&LookupVerts{},
+		&Has{stmt: gripql.Neq("_label", "foo")},
+		&LookupVertexAdjOut{},
+	}
+	original = []gdbi.Processor{
+		&LookupVerts{},
+		&Has{stmt: gripql.Neq("_label", "foo")},
 		&LookupVertexAdjOut{},
 	}
 	optimized = indexStartOptimize(original)
