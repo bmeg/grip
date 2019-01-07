@@ -7,7 +7,6 @@ import (
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/jsonpath"
 	"github.com/bmeg/grip/protoutil"
-	log "github.com/sirupsen/logrus"
 )
 
 // DefaultPipeline a set of runnable query operations
