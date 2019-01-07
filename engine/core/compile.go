@@ -311,7 +311,6 @@ func indexStartOptimize(pipe []gdbi.Processor) []gdbi.Processor {
 
 	idOpt := false
 	if len(hasIDIdx) > 0 {
-		idOpt = true
 		ids := []string{}
 		idx := hasIDIdx[0]
 		if has, ok := pipe[idx].(*Has); ok {
@@ -320,13 +319,15 @@ func indexStartOptimize(pipe []gdbi.Processor) []gdbi.Processor {
 		if has, ok := pipe[idx].(*HasID); ok {
 			ids = append(ids, has.ids...)
 		}
-		hIdx := &LookupVerts{ids: ids, db: lookupV.db}
-		optimized = append(optimized, hIdx)
+		if len(ids) > 0 {
+			idOpt = true
+			hIdx := &LookupVerts{ids: ids, db: lookupV.db}
+			optimized = append(optimized, hIdx)
+		}
 	}
 
 	labelOpt := false
 	if len(hasLabelIdx) > 0 && !idOpt {
-		labelOpt = true
 		labels := []string{}
 		idx := hasLabelIdx[0]
 		if has, ok := pipe[idx].(*Has); ok {
@@ -335,8 +336,11 @@ func indexStartOptimize(pipe []gdbi.Processor) []gdbi.Processor {
 		if has, ok := pipe[idx].(*HasLabel); ok {
 			labels = append(labels, has.labels...)
 		}
-		hIdx := &LookupVertsIndex{labels: labels, db: lookupV.db}
-		optimized = append(optimized, hIdx)
+		if len(labels) > 0 {
+			labelOpt = true
+			hIdx := &LookupVertsIndex{labels: labels, db: lookupV.db}
+			optimized = append(optimized, hIdx)
+		}
 	}
 
 	for i, step := range pipe {
@@ -365,22 +369,20 @@ func indexStartOptimize(pipe []gdbi.Processor) []gdbi.Processor {
 func extractHasVals(h *Has) []string {
 	vals := []string{}
 	if cond := h.stmt.GetCondition(); cond != nil {
-		path := jsonpath.GetJSONPath(cond.Key)
-		if path == "$.label" || path == "$.gid" {
-			val := protoutil.UnWrapValue(cond.Value)
-			switch cond.Condition {
-			case gripql.Condition_EQ:
-				if l, ok := val.(string); ok {
-					vals = []string{l}
-				}
-			case gripql.Condition_WITHIN:
-				v := val.([]interface{})
-				for _, x := range v {
-					vals = append(vals, x.(string))
-				}
-			default:
-				// do nothing
+		// path := jsonpath.GetJSONPath(cond.Key)
+		val := protoutil.UnWrapValue(cond.Value)
+		switch cond.Condition {
+		case gripql.Condition_EQ:
+			if l, ok := val.(string); ok {
+				vals = []string{l}
 			}
+		case gripql.Condition_WITHIN:
+			v := val.([]interface{})
+			for _, x := range v {
+				vals = append(vals, x.(string))
+			}
+		default:
+			// do nothing
 		}
 	}
 	return vals
