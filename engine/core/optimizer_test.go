@@ -236,4 +236,21 @@ func TestIndexStartOptimize(t *testing.T) {
 		t.Error("indexStartOptimize returned an unexpected result")
 	}
 
+	// handle 'and' statements
+	expected = []gdbi.Processor{
+		&LookupVertsIndex{labels: []string{"foo", "bar"}},
+		&Has{stmt: gripql.Eq("$.data.foo", "bar")},
+		&LookupVertexAdjOut{},
+	}
+	original = []gdbi.Processor{
+		&LookupVerts{},
+		&Has{stmt: gripql.And(gripql.Eq("$.data.foo", "bar"), gripql.Within("_label", "foo", "bar"))},
+		&LookupVertexAdjOut{},
+	}
+	optimized = indexStartOptimize(original)
+	if !reflect.DeepEqual(optimized, expected) {
+		t.Log("actual", spew.Sdump(optimized))
+		t.Log("expected:", spew.Sdump(expected))
+		t.Error("indexStartOptimize returned an unexpected result")
+	}
 }
