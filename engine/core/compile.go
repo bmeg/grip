@@ -290,6 +290,16 @@ func indexStartOptimize(pipe []gdbi.Processor) []gdbi.Processor {
 		case *HasLabel:
 			hasLabelIdx = append(hasLabelIdx, i)
 		case *Has:
+			if and := s.stmt.GetAnd(); and != nil {
+				stmts := and.GetExpressions()
+				newPipe := []gdbi.Processor{}
+				newPipe = append(newPipe, pipe[:i]...)
+				for _, stmt := range stmts {
+					newPipe = append(newPipe, &Has{stmt: stmt})
+				}
+				newPipe = append(newPipe, pipe[i+1:]...)
+				return indexStartOptimize(newPipe)
+			}
 			if cond := s.stmt.GetCondition(); cond != nil {
 				path := jsonpath.GetJSONPath(cond.Key)
 				switch path {
