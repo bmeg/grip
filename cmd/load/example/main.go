@@ -4,6 +4,8 @@ import (
 	"fmt"
 
 	"github.com/bmeg/grip/gripql"
+	"github.com/bmeg/grip/gripql/example"
+
 	"github.com/bmeg/grip/util/rpc"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -60,10 +62,10 @@ var Cmd = &cobra.Command{
 		}()
 
 		log.WithFields(log.Fields{"graph": graph}).Info("Loading example data into graph")
-		for _, v := range swVertices {
+		for _, v := range example.SWVertices {
 			elemChan <- &gripql.GraphElement{Graph: graph, Vertex: v}
 		}
-		for _, e := range swEdges {
+		for _, e := range example.SWEdges {
 			elemChan <- &gripql.GraphElement{Graph: graph, Edge: e}
 		}
 

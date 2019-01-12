@@ -16,6 +16,12 @@ type Client struct {
 	conn   *grpc.ClientConn
 }
 
+// WrapClient takes previously initialized GRPC clients and uses them for the
+// client wrapper
+func WrapClient(QueryC QueryClient, EditC EditClient) Client {
+	return Client{QueryC, EditC, nil}
+}
+
 // Connect opens a GRPC connection to an Grip server
 func Connect(conf rpc.Config, write bool) (Client, error) {
 	conn, err := rpc.Dial(context.Background(), conf)

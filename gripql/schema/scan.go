@@ -15,6 +15,8 @@ type edgeDstKey struct {
 type edgeDstMap map[edgeDstKey]interface{}
 
 // ScanSchema attempts to construct a schema of a graph by sampling vertices and edges
+// This version of the schema scanner (vs the ones found in the drivers) can be run
+// via the client library
 func ScanSchema(conn gripql.Client, graph string, sampleCount uint32) (*gripql.Graph, error) {
 
 	labelRes, err := conn.ListLabels(graph)
