@@ -5,7 +5,8 @@ import (
 	"github.com/bmeg/grip/protoutil"
 )
 
-var swVertices = []*gripql.Vertex{
+// SWVertices are the vertices for the test graph
+var SWVertices = []*gripql.Vertex{
 	{Gid: "1000", Label: "Human", Data: protoutil.AsStruct(
 		map[string]interface{}{
 			"name":       "Luke Skywalker",
@@ -97,7 +98,8 @@ var swVertices = []*gripql.Vertex{
 	)},
 }
 
-var swEdges = []*gripql.Edge{
+// SWEdges are the edges for the test graph
+var SWEdges = []*gripql.Edge{
 	//Luke Edges
 	{Label: "friend", From: "1000", To: "1002"},
 	{Label: "friend", From: "1000", To: "1003"},

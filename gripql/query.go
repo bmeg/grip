@@ -182,6 +182,11 @@ func (q *Query) Count() *Query {
 	return q.with(&GraphStatement{Statement: &GraphStatement_Count{}})
 }
 
+// Distinct selects records with distinct elements of arg
+func (q *Query) Distinct(args []string) *Query {
+	return q.with(&GraphStatement{Statement: &GraphStatement_Distinct{protoutil.AsListValue(args)}})
+}
+
 // Render adds a render step to the query
 func (q *Query) Render(template interface{}) *Query {
 	return q.with(&GraphStatement{Statement: &GraphStatement_Render{protoutil.WrapValue(template)}})
