@@ -65,9 +65,8 @@ func newFileEmitter(path string) emitter {
 	return fileEmitter{vertexFile, edgeFile, jm}
 }
 
-
 type grpcEmitter struct {
-	client gripql.Client
+	client   gripql.Client
 	elemChan chan *gripql.GraphElement
 }
 
@@ -81,13 +80,13 @@ func newGRPCEmitter(client gripql.Client) emitter {
 	return grpcEmitter{client, elemChan}
 }
 
-func (fe grpcEmitter) AddEdge(graph string, e *gripql.Edge) error {
-	fe.elemChan <- &gripql.GraphElement{Graph: graph, Edge: e}
+func (ge grpcEmitter) AddEdge(graph string, e *gripql.Edge) error {
+	ge.elemChan <- &gripql.GraphElement{Graph: graph, Edge: e}
 	return nil
 }
 
-func (fe grpcEmitter) AddVertex(graph string, v *gripql.Vertex) error {
-	fe.elemChan <- &gripql.GraphElement{Graph: graph, Vertex: v}
+func (ge grpcEmitter) AddVertex(graph string, v *gripql.Vertex) error {
+	ge.elemChan <- &gripql.GraphElement{Graph: graph, Vertex: v}
 	return nil
 }
 
