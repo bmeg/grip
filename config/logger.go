@@ -240,7 +240,7 @@ func ConfigureLogger(conf Logger) {
 			conf.OutputFile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666,
 		)
 		if err != nil {
-			log.Error("Can't open log output", "output", conf.OutputFile)
+			log.Errorf("Can't open log output file: %s", conf.OutputFile)
 		} else {
 			log.SetOutput(logFile)
 		}
