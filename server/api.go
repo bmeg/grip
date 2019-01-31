@@ -422,23 +422,23 @@ func (server *GripServer) cacheSchemas(ctx context.Context) {
 	if server.db == nil {
 		return
 	}
-	ticker := time.NewTicker(time.Duration(server.conf.SchemaRefreshInterval))
-	go func() {
+
+	if time.Duration(server.conf.SchemaRefreshInterval) == 0 {
 		server.buildSchemas(ctx)
-		if time.Duration(server.conf.SchemaRefreshInterval) == 0 {
+		return
+	}
+
+	ticker := time.NewTicker(time.Duration(server.conf.SchemaRefreshInterval))
+	server.buildSchemas(ctx)
+	for {
+		select {
+		case <-ctx.Done():
+			ticker.Stop()
 			return
+		case <-ticker.C:
+			server.buildSchemas(ctx)
 		}
-		for {
-			select {
-			case <-ctx.Done():
-				ticker.Stop()
-				return
-			case <-ticker.C:
-				server.buildSchemas(ctx)
-			}
-		}
-	}()
-	return
+	}
 }
 
 // GetSchema returns the schema of a specific graph in the database
