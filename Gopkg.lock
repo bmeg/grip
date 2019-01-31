@@ -663,6 +663,7 @@
     "github.com/augustoroman/v8",
     "github.com/bmeg/golib",
     "github.com/boltdb/bolt",
+    "github.com/davecgh/go-spew/spew",
     "github.com/dgraph-io/badger",
     "github.com/dgraph-io/badger/options",
     "github.com/dop251/goja",
