@@ -45,10 +45,10 @@ def test_traversal_term_aggregation(O):
 
         count += 1
         if len(row["buckets"]) != 3:
-                errors.append(
-                    "Unexpected number of terms: %d != %d" %
-                    (len(row["buckets"]), 3)
-                )
+            errors.append(
+                "Unexpected number of terms: %d != %d" %
+                (len(row["buckets"]), 3)
+            )
 
         for res in row["buckets"]:
             if res["key"] == "alex":
@@ -83,10 +83,10 @@ def test_traversal_histogram_aggregation(O):
         row = row['traversal-agg']
 
         if len(row["buckets"]) < 3:
-                errors.append(
-                    "Unexpected number of terms: %d != %d" %
-                    (len(row["buckets"]), 3)
-                )
+            errors.append(
+                "Unexpected number of terms: %d != %d" %
+                (len(row["buckets"]), 3)
+            )
 
         for res in row["buckets"]:
             if res["key"] == 25:
