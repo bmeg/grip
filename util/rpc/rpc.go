@@ -72,6 +72,7 @@ func Dial(pctx context.Context, conf Config, opts ...grpc.DialOption) (*grpc.Cli
 
 	defaultOpts := []grpc.DialOption{
 		grpc.WithInsecure(),
+		grpc.WithMaxMsgSize(1024 * 1024 * 16),
 		PerRPCPassword(conf.User, conf.Password),
 	}
 	opts = append(opts, defaultOpts...)
