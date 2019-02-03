@@ -74,7 +74,7 @@ func newGRPCEmitter(client gripql.Client) emitter {
 	elemChan := make(chan *gripql.GraphElement)
 	go func() {
 		if err := client.BulkAdd(elemChan); err != nil {
-			log.Printf("bulk add error: %v", err)
+			log.Errorf("bulk add error: %v", err)
 		}
 	}()
 	return grpcEmitter{client, elemChan}
@@ -192,14 +192,14 @@ func LoadRDFCmd(cmd *cobra.Command, args []string) error {
 			if element.vertex.Gid != "" && element.vertex.Label != "" {
 				err := emit.AddVertex(graph, element.vertex)
 				if err != nil {
-					log.Infof("%s", err)
+					log.Errorf("%s", err)
 				}
 			}
 		} else if element.edge != nil {
 			if element.edge.To != "" && element.edge.From != "" && element.edge.Label != "" {
 				err := emit.AddEdge(graph, element.edge)
 				if err != nil {
-					log.Infof("%s", err)
+					log.Errorf("%s", err)
 				}
 			}
 		}
