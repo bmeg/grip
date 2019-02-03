@@ -143,10 +143,6 @@
   name = "gopkg.in/olivere/elastic.v5"
   version = "5.0.68"
 
-[[constraint]]
-  name = "gopkg.in/yaml.v2"
-  version = "2.2.1"
-
 [prune]
   go-tests = true
   unused-packages = true
