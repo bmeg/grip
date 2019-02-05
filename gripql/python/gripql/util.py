@@ -8,7 +8,7 @@ from requests import HTTPError
 from requests.compat import urlparse, urlunparse
 
 
-class BaseConnection:
+class BaseConnection(object):
     def __init__(self, url, user=None, password=None, token=None):
         url = process_url(url)
         self.url = url
