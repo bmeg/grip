@@ -1,25 +1,17 @@
 from __future__ import absolute_import, print_function, unicode_literals
 
-import os
 import json
 import requests
 
-from gripql.util import process_url, raise_for_status
+from gripql.connection import BaseConnection
+from gripql.util import raise_for_status
 from gripql.query import Query
 
 
-class Graph:
-    def __init__(self, url, name, user=None, password=None):
-        url = process_url(url)
-        self.base_url = url
-        self.url = url + "/v1/graph/" + name
-        self.name = name
-        if user is None:
-            user = os.getenv("GRIP_USER", None)
-        self.user = user
-        if password is None:
-            password = os.getenv("GRIP_PASSWORD", None)
-        self.password = password
+class Graph(BaseConnection):
+    def __init__(self, url, name, user=None, password=None, token=None):
+        super().init(url, user, password, token)
+        self.url = self.url + "/v1/graph" + name
 
     def addSchema(self, vertices=[], edges=[]):
         """
@@ -33,7 +25,8 @@ class Graph:
         response = requests.post(
             self.url + "/schema",
             json=payload,
-            auth=(self.user, self.password)
+            auth=(self.user, self.password),
+            headers=self._request_header()
         )
         raise_for_status(response)
         return response.json()
@@ -50,7 +43,8 @@ class Graph:
         response = requests.post(
             self.url + "/vertex",
             json=payload,
-            auth=(self.user, self.password)
+            auth=(self.user, self.password),
+            headers=self._request_header()
         )
         raise_for_status(response)
         return response.json()
@@ -62,7 +56,8 @@ class Graph:
         url = self.url + "/vertex/" + gid
         response = requests.delete(
             url,
-            auth=(self.user, self.password)
+            auth=(self.user, self.password),
+            headers=self._request_header()
         )
         raise_for_status(response)
         return response.json()
@@ -74,7 +69,8 @@ class Graph:
         url = self.url + "/vertex/" + gid
         response = requests.get(
             url,
-            auth=(self.user, self.password)
+            auth=(self.user, self.password),
+            headers=self._request_header()
         )
         raise_for_status(response)
         return response.json()
@@ -94,7 +90,8 @@ class Graph:
         response = requests.post(
             self.url + "/edge",
             json=payload,
-            auth=(self.user, self.password)
+            auth=(self.user, self.password),
+            headers=self._request_header()
         )
         raise_for_status(response)
         return response.json()
@@ -106,7 +103,8 @@ class Graph:
         url = self.url + "/edge/" + gid
         response = requests.delete(
             url,
-            auth=(self.user, self.password)
+            auth=(self.user, self.password),
+            headers=self._request_header()
         )
         raise_for_status(response)
         return response.json()
@@ -118,20 +116,22 @@ class Graph:
         url = self.url + "/edge/" + gid
         response = requests.get(
             url,
-            auth=(self.user, self.password)
+            auth=(self.user, self.password),
+            headers=self._request_header()
         )
         raise_for_status(response)
         return response.json()
 
     def bulkAdd(self):
-        return BulkAdd(self.base_url, self.name, self.user, self.password)
+        return BulkAdd(self.base_url, self.name, self.user, self.password, self.token)
 
     def addIndex(self, label, field):
         url = self.url + "/index/" + label
         response = requests.post(
             url,
             json={"field": field},
-            auth=(self.user, self.password)
+            auth=(self.user, self.password),
+            headers=self._request_header()
         )
         raise_for_status(response)
         return response.json()
@@ -141,7 +141,8 @@ class Graph:
         response = requests.get(
             url,
             stream=True,
-            auth=(self.user, self.password)
+            auth=(self.user, self.password),
+            headers=self._request_header()
         )
         raise_for_status(response)
         return response.json()["indices"]
@@ -151,7 +152,8 @@ class Graph:
         response = requests.get(
             url,
             stream=True,
-            auth=(self.user, self.password)
+            auth=(self.user, self.password),
+            headers=self._request_header()
         )
         raise_for_status(response)
         return response.json()
@@ -166,7 +168,8 @@ class Graph:
         response = requests.post(
             url,
             json=payload,
-            auth=(self.user, self.password)
+            auth=(self.user, self.password),
+            headers=self._request_header()
         )
         raise_for_status(response)
         return response.json()["aggregations"]
@@ -175,22 +178,13 @@ class Graph:
         """
         Create a query handle.
         """
-        return Query(self.base_url, self.name)
+        return Query(self.base_url, self.name, self.user, self.password, self.token)
 
 
-class BulkAdd:
-    def __init__(self, url, graph, user=None, password=None):
-        url = process_url(url)
-        self.base_url = url
-        self.url = url + "/v1/graph"
-        self.graph = graph
-        self.elements = []
-        if user is None:
-            user = os.getenv("GRIP_USER", None)
-        self.user = user
-        if password is None:
-            password = os.getenv("GRIP_PASSWORD", None)
-        self.password = password
+class BulkAdd(BaseConnection):
+    def __init__(self, url, name, user=None, password=None, token=None):
+        super().init(url, user, password, token)
+        self.graph = name
 
     def addVertex(self, gid, label, data={}):
         payload = {
@@ -222,7 +216,8 @@ class BulkAdd:
         response = requests.post(
             self.url,
             data=payload,
-            auth=(self.user, self.password)
+            auth=(self.user, self.password),
+            headers=self._request_header()
         )
         raise_for_status(response)
         return response.json()
