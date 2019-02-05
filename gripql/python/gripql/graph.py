@@ -8,16 +8,17 @@ from gripql.query import Query
 
 
 class Graph(BaseConnection):
-    def __init__(self, url, name, user=None, password=None, token=None):
+    def __init__(self, url, graph, user=None, password=None, token=None):
         super(Graph, self).__init__(url, user, password, token)
-        self.url = self.url + "/v1/graph" + name
+        self.url = self.url + "/v1/graph/" + graph
+        self.graph = graph
 
     def addSchema(self, vertices=[], edges=[]):
         """
         Add vertex to a graph.
         """
         payload = {
-            "graph": self.name,
+            "graph": self.graph,
             "vertices": vertices,
             "edges": edges
         }
@@ -115,7 +116,7 @@ class Graph(BaseConnection):
         return response.json()
 
     def bulkAdd(self):
-        return BulkAdd(self.url, self.name, self.user, self.password, self.token)
+        return BulkAdd(self.url, self.graph, self.user, self.password, self.token)
 
     def addIndex(self, label, field):
         url = self.url + "/index/" + label
@@ -164,14 +165,14 @@ class Graph(BaseConnection):
         """
         Create a query handle.
         """
-        return Query(self.url, self.name, self.user, self.password, self.token)
+        return Query(self.url, self.graph, self.user, self.password, self.token)
 
 
 class BulkAdd(BaseConnection):
-    def __init__(self, url, name, user=None, password=None, token=None):
+    def __init__(self, url, graph, user=None, password=None, token=None):
         super(BulkAdd, self).__init__(url, user, password, token)
         self.url = self.url + "/v1/graph"
-        self.graph = name
+        self.graph = graph
 
     def addVertex(self, gid, label, data={}):
         payload = {
