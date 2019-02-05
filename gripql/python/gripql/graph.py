@@ -24,7 +24,6 @@ class Graph(BaseConnection):
         response = requests.post(
             self.url + "/schema",
             json=payload,
-            auth=(self.user, self.password),
             headers=self._request_header()
         )
         raise_for_status(response)
@@ -42,7 +41,6 @@ class Graph(BaseConnection):
         response = requests.post(
             self.url + "/vertex",
             json=payload,
-            auth=(self.user, self.password),
             headers=self._request_header()
         )
         raise_for_status(response)
@@ -55,7 +53,6 @@ class Graph(BaseConnection):
         url = self.url + "/vertex/" + gid
         response = requests.delete(
             url,
-            auth=(self.user, self.password),
             headers=self._request_header()
         )
         raise_for_status(response)
@@ -68,7 +65,6 @@ class Graph(BaseConnection):
         url = self.url + "/vertex/" + gid
         response = requests.get(
             url,
-            auth=(self.user, self.password),
             headers=self._request_header()
         )
         raise_for_status(response)
@@ -89,7 +85,6 @@ class Graph(BaseConnection):
         response = requests.post(
             self.url + "/edge",
             json=payload,
-            auth=(self.user, self.password),
             headers=self._request_header()
         )
         raise_for_status(response)
@@ -102,7 +97,6 @@ class Graph(BaseConnection):
         url = self.url + "/edge/" + gid
         response = requests.delete(
             url,
-            auth=(self.user, self.password),
             headers=self._request_header()
         )
         raise_for_status(response)
@@ -115,7 +109,6 @@ class Graph(BaseConnection):
         url = self.url + "/edge/" + gid
         response = requests.get(
             url,
-            auth=(self.user, self.password),
             headers=self._request_header()
         )
         raise_for_status(response)
@@ -129,7 +122,6 @@ class Graph(BaseConnection):
         response = requests.post(
             url,
             json={"field": field},
-            auth=(self.user, self.password),
             headers=self._request_header()
         )
         raise_for_status(response)
@@ -139,8 +131,6 @@ class Graph(BaseConnection):
         url = self.url + "/index"
         response = requests.get(
             url,
-            stream=True,
-            auth=(self.user, self.password),
             headers=self._request_header()
         )
         raise_for_status(response)
@@ -150,8 +140,6 @@ class Graph(BaseConnection):
         url = self.url + "/label"
         response = requests.get(
             url,
-            stream=True,
-            auth=(self.user, self.password),
             headers=self._request_header()
         )
         raise_for_status(response)
@@ -167,7 +155,6 @@ class Graph(BaseConnection):
         response = requests.post(
             url,
             json=payload,
-            auth=(self.user, self.password),
             headers=self._request_header()
         )
         raise_for_status(response)
@@ -216,7 +203,6 @@ class BulkAdd(BaseConnection):
         response = requests.post(
             self.url,
             data=payload,
-            auth=(self.user, self.password),
             headers=self._request_header()
         )
         raise_for_status(response)

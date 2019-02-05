@@ -291,7 +291,6 @@ class Query(BaseConnection):
             self.url,
             json=self.to_dict(),
             stream=True,
-            auth=(self.user, self.password),
             headers=self._request_header()
         )
         logger.debug('POST %s', self.url)

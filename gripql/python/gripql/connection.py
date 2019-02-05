@@ -17,7 +17,6 @@ class Connection(BaseConnection):
         """
         response = requests.get(
             self.url,
-            auth=(self.user, self.password),
             headers=self._request_header()
         )
         raise_for_status(response)
@@ -30,7 +29,6 @@ class Connection(BaseConnection):
         response = requests.post(
             self.url + "/" + name,
             {},
-            auth=(self.user, self.password),
             headers=self._request_header()
         )
         raise_for_status(response)
@@ -42,7 +40,6 @@ class Connection(BaseConnection):
         """
         response = requests.delete(
             self.url + "/" + name,
-            auth=(self.user, self.password),
             headers=self._request_header()
         )
         raise_for_status(response)
@@ -54,7 +51,6 @@ class Connection(BaseConnection):
         """
         response = requests.get(
             self.url + "/" + name + "/schema",
-            auth=(self.user, self.password),
             headers=self._request_header()
         )
         raise_for_status(response)
