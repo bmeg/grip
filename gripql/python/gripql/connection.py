@@ -1,39 +1,14 @@
 from __future__ import absolute_import, print_function, unicode_literals
 
-import os
 import requests
 
 from gripql.graph import Graph
-from gripql.util import process_url, raise_for_status
-
-
-class BaseConnection:
-    def __init__(self, url, user=None, password=None, token=None):
-        url = process_url(url)
-        self.base_url = url
-        self.url = url
-        if user is None:
-            user = os.getenv("GRIP_USER", None)
-        self.user = user
-        if password is None:
-            password = os.getenv("GRIP_PASSWORD", None)
-        self.password = password
-        if token is None:
-            token = os.getenv("GRIP_TOKEN", None)
-        self.token = token
-
-    def _request_header(self, data=None, params=None):
-        if self.token:
-            header = {'Content-type': 'application/json',
-                      'Authorization': 'Bearer ' + self.token}
-        else:
-            header = {'Content-type': 'application/json'}
-        return header
+from gripql.util import BaseConnection, raise_for_status
 
 
 class Connection(BaseConnection):
     def __init__(self, url, user=None, password=None, token=None):
-        super().init(url, user, password, token)
+        super(Connection, self).__init__(url, user, password, token)
         self.url = self.url + "/v1/graph"
 
     def listGraphs(self):
@@ -89,4 +64,4 @@ class Connection(BaseConnection):
         """
         Get a graph handle.
         """
-        return Graph(self.base_url, name, self.user, self.password, self.token)
+        return Graph(self.url, name, self.user, self.password, self.token)

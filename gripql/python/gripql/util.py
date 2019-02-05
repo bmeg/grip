@@ -1,8 +1,33 @@
 from __future__ import absolute_import, print_function, unicode_literals
 
+import os
+
 from datetime import datetime
 from requests import HTTPError
 from requests.compat import urlparse, urlunparse
+
+
+class BaseConnection:
+    def __init__(self, url, user=None, password=None, token=None):
+        url = process_url(url)
+        self.url = url
+        if user is None:
+            user = os.getenv("GRIP_USER", None)
+        self.user = user
+        if password is None:
+            password = os.getenv("GRIP_PASSWORD", None)
+        self.password = password
+        if token is None:
+            token = os.getenv("GRIP_TOKEN", None)
+        self.token = token
+
+    def _request_header(self, data=None, params=None):
+        if self.token:
+            header = {'Content-type': 'application/json',
+                      'Authorization': 'Bearer ' + self.token}
+        else:
+            header = {'Content-type': 'application/json'}
+        return header
 
 
 class AttrDict(object):
@@ -168,6 +193,7 @@ def process_url(url):
     if netloc == "" and path != "":
         netloc = path.split("/")[0]
         path = ""
+    path = ""
     return urlunparse((scheme, netloc, path, params, query, frag))
 
 

@@ -3,14 +3,13 @@ from __future__ import absolute_import, print_function, unicode_literals
 import json
 import requests
 
-from gripql.connection import BaseConnection
-from gripql.util import raise_for_status
+from gripql.util import BaseConnection, raise_for_status
 from gripql.query import Query
 
 
 class Graph(BaseConnection):
     def __init__(self, url, name, user=None, password=None, token=None):
-        super().init(url, user, password, token)
+        super(Graph, self).__init__(url, user, password, token)
         self.url = self.url + "/v1/graph" + name
 
     def addSchema(self, vertices=[], edges=[]):
@@ -123,7 +122,7 @@ class Graph(BaseConnection):
         return response.json()
 
     def bulkAdd(self):
-        return BulkAdd(self.base_url, self.name, self.user, self.password, self.token)
+        return BulkAdd(self.url, self.name, self.user, self.password, self.token)
 
     def addIndex(self, label, field):
         url = self.url + "/index/" + label
@@ -178,12 +177,13 @@ class Graph(BaseConnection):
         """
         Create a query handle.
         """
-        return Query(self.base_url, self.name, self.user, self.password, self.token)
+        return Query(self.url, self.name, self.user, self.password, self.token)
 
 
 class BulkAdd(BaseConnection):
     def __init__(self, url, name, user=None, password=None, token=None):
-        super().init(url, user, password, token)
+        super(BulkAdd, self).__init__(url, user, password, token)
+        self.url = self.url + "/v1/graph"
         self.graph = name
 
     def addVertex(self, gid, label, data={}):

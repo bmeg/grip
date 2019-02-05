@@ -4,8 +4,7 @@ import json
 import logging
 import requests
 
-from gripql.connection import BaseConnection
-from gripql.util import AttrDict, Rate, raise_for_status
+from gripql.util import AttrDict, BaseConnection, Rate, raise_for_status
 
 
 def _wrap_value(value, typ):
@@ -32,13 +31,14 @@ def _wrap_dict_value(value):
 
 
 class Query(BaseConnection):
-    def __init__(self, url, name, user=None, password=None, token=None):
-        super().init(url, user, password, token)
-        self.url = self.url + "/v1/graph" + name + "/query"
+    def __init__(self, url, graph, user=None, password=None, token=None):
+        super(Query, self).__init__(url, user, password, token)
+        self.url = self.url + "/v1/graph" + graph + "/query"
+        self.graph = graph
         self.query = []
 
     def __append(self, part):
-        q = self.__class__(self.base_url, self.graph)
+        q = self.__class__(self.url, self.graph, self.user, self.password, self.token)
         q.query = self.query[:]
         q.query.append(part)
         return q
