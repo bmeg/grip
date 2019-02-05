@@ -1,6 +1,7 @@
 from __future__ import absolute_import, print_function, unicode_literals
 
 import os
+import requests.auth
 
 from datetime import datetime
 from requests import HTTPError
@@ -21,10 +22,13 @@ class BaseConnection:
             token = os.getenv("GRIP_TOKEN", None)
         self.token = token
 
-    def _request_header(self, data=None, params=None):
+    def _request_header(self):
         if self.token:
             header = {'Content-type': 'application/json',
                       'Authorization': 'Bearer ' + self.token}
+        elif self.user and self.password:
+            header = {'Content-type': 'application/json',
+                      'Authorization': requests.auth._basic_auth_str(self.user, self.password)}
         else:
             header = {'Content-type': 'application/json'}
         return header
