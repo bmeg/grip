@@ -40,8 +40,8 @@ func (fe fileEmitter) AddVertex(graph string, v *gripql.Vertex) error {
 	if err != nil {
 		return err
 	}
-	fe.vertexHandle.Write([]byte("\n"))
-	return nil
+	_, err = fe.vertexHandle.Write([]byte("\n"))
+	return err
 }
 
 func (fe fileEmitter) AddEdge(graph string, e *gripql.Edge) error {
@@ -49,8 +49,8 @@ func (fe fileEmitter) AddEdge(graph string, e *gripql.Edge) error {
 	if err != nil {
 		return err
 	}
-	fe.edgeHandle.Write([]byte("\n"))
-	return nil
+	_, err = fe.edgeHandle.Write([]byte("\n"))
+	return err
 }
 
 func (fe fileEmitter) Close() {
