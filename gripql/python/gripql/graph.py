@@ -173,6 +173,7 @@ class BulkAdd(BaseConnection):
         super(BulkAdd, self).__init__(url, user, password, token)
         self.url = self.url + "/v1/graph"
         self.graph = graph
+        self.elements = []
 
     def addVertex(self, gid, label, data={}):
         payload = {
