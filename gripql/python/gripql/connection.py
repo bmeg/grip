@@ -9,7 +9,7 @@ from gripql.util import BaseConnection, raise_for_status
 class Connection(BaseConnection):
     def __init__(self, url, user=None, password=None, token=None):
         super(Connection, self).__init__(url, user, password, token)
-        self.url = self.url + "/v1/graph"
+        self.url = self.base_url + "/v1/graph"
 
     def listGraphs(self):
         """
@@ -60,4 +60,4 @@ class Connection(BaseConnection):
         """
         Get a graph handle.
         """
-        return Graph(self.url, name, self.user, self.password, self.token)
+        return Graph(self.base_url, name, self.user, self.password, self.token)

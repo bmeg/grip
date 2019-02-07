@@ -10,7 +10,7 @@ from gripql.query import Query
 class Graph(BaseConnection):
     def __init__(self, url, graph, user=None, password=None, token=None):
         super(Graph, self).__init__(url, user, password, token)
-        self.url = self.url + "/v1/graph/" + graph
+        self.url = self.base_url + "/v1/graph/" + graph
         self.graph = graph
 
     def addSchema(self, vertices=[], edges=[]):
@@ -116,7 +116,7 @@ class Graph(BaseConnection):
         return response.json()
 
     def bulkAdd(self):
-        return BulkAdd(self.url, self.graph, self.user, self.password, self.token)
+        return BulkAdd(self.base_url, self.graph, self.user, self.password, self.token)
 
     def addIndex(self, label, field):
         url = self.url + "/index/" + label
@@ -165,13 +165,13 @@ class Graph(BaseConnection):
         """
         Create a query handle.
         """
-        return Query(self.url, self.graph, self.user, self.password, self.token)
+        return Query(self.base_url, self.graph, self.user, self.password, self.token)
 
 
 class BulkAdd(BaseConnection):
     def __init__(self, url, graph, user=None, password=None, token=None):
         super(BulkAdd, self).__init__(url, user, password, token)
-        self.url = self.url + "/v1/graph"
+        self.url = self.base_url + "/v1/graph"
         self.graph = graph
         self.elements = []
 

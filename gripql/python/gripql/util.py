@@ -11,7 +11,7 @@ from requests.compat import urlparse, urlunparse
 class BaseConnection(object):
     def __init__(self, url, user=None, password=None, token=None):
         url = process_url(url)
-        self.url = url
+        self.base_url = url
         if user is None:
             user = os.getenv("GRIP_USER", None)
         self.user = user
@@ -197,7 +197,6 @@ def process_url(url):
     if netloc == "" and path != "":
         netloc = path.split("/")[0]
         path = ""
-    path = ""
     return urlunparse((scheme, netloc, path, params, query, frag))
 
 
