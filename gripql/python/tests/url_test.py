@@ -1,8 +1,6 @@
 import unittest
 
 from gripql.connection import Connection
-from gripql.graph import Graph, BulkAdd
-from gripql.query import Query
 from gripql.util import BaseConnection
 
 
@@ -20,6 +18,10 @@ class TestUrlBuilding(unittest.TestCase):
         g = c.graph("test")
         self.assertEqual(g.base_url, self.mock_url)
         self.assertEqual(g.url, self.mock_url + "/v1/graph/test")
+
+        ba = g.bulkAdd()
+        self.assertEqual(ba.base_url, self.mock_url)
+        self.assertEqual(ba.url, self.mock_url + "/v1/graph")
 
         q = g.query()
         self.assertEqual(q.base_url, self.mock_url)
