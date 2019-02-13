@@ -87,7 +87,14 @@ func (server *GripServer) GetTimestamp(ctx context.Context, elem *gripql.GraphID
 func (server *GripServer) DeleteGraph(ctx context.Context, elem *gripql.GraphID) (*gripql.EditResult, error) {
 	err := server.db.DeleteGraph(elem.Graph)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("DeleteGraph: deleting graph %s: %v", elem.Graph, err)
+	}
+	schemaName := fmt.Sprintf("%s%s", elem.Graph, schemaSuffix)
+	if server.graphExists(schemaName) {
+		err := server.db.DeleteGraph(schemaName)
+		if err != nil {
+			return nil, fmt.Errorf("DeleteGraph: deleting schema for graph %s: %v", elem.Graph, err)
+		}
 	}
 	return &gripql.EditResult{Id: elem.Graph}, nil
 }
