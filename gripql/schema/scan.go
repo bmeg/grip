@@ -36,7 +36,7 @@ func ScanSchema(conn gripql.Client, graph string, sampleCount uint32) (*gripql.G
 				ds := gripql.GetDataFieldTypes(data)
 				util.MergeMaps(schema, ds)
 			}
-			vList = append(vList, &gripql.Vertex{Gid: label, Label: "Vertex", Data: protoutil.AsStruct(schema)})
+			vList = append(vList, &gripql.Vertex{Gid: label, Label: label, Data: protoutil.AsStruct(schema)})
 		}
 	}
 
