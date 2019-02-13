@@ -14,10 +14,19 @@ type edgeDstKey struct {
 
 type edgeDstMap map[edgeDstKey]interface{}
 
+func stringInSlice(a string, list []string) bool {
+	for _, b := range list {
+		if b == a {
+			return true
+		}
+	}
+	return false
+}
+
 // ScanSchema attempts to construct a schema of a graph by sampling vertices and edges
 // This version of the schema scanner (vs the ones found in the drivers) can be run
 // via the client library
-func ScanSchema(conn gripql.Client, graph string, sampleCount uint32) (*gripql.Graph, error) {
+func ScanSchema(conn gripql.Client, graph string, sampleCount uint32, exclude []string) (*gripql.Graph, error) {
 
 	labelRes, err := conn.ListLabels(graph)
 	if err != nil {
@@ -26,6 +35,9 @@ func ScanSchema(conn gripql.Client, graph string, sampleCount uint32) (*gripql.G
 
 	vList := []*gripql.Vertex{}
 	for _, label := range labelRes.VertexLabels {
+		if stringInSlice(label, exclude) {
+			continue
+		}
 		schema := map[string]interface{}{}
 		nodeQuery := gripql.V().HasLabel(label).Limit(sampleCount)
 		nodeRes, err := conn.Traversal(&gripql.GraphQuery{Graph: graph, Query: nodeQuery.Statements})
@@ -42,6 +54,9 @@ func ScanSchema(conn gripql.Client, graph string, sampleCount uint32) (*gripql.G
 
 	eList := []*gripql.Edge{}
 	for _, label := range labelRes.VertexLabels {
+		if stringInSlice(label, exclude) {
+			continue
+		}
 		edgeQuery := gripql.V().HasLabel(label).Limit(sampleCount).OutE().As("a").Out().As("b").Select("a", "b")
 		edgeRes, err := conn.Traversal(&gripql.GraphQuery{Graph: graph, Query: edgeQuery.Statements})
 		if err == nil {
@@ -59,6 +74,9 @@ func ScanSchema(conn gripql.Client, graph string, sampleCount uint32) (*gripql.G
 				}
 			}
 			for k, v := range labelDstSchema {
+				if stringInSlice(k.label, exclude) {
+					continue
+				}
 				eSchema := &gripql.Edge{
 					Gid:   fmt.Sprintf("(%s)-%s->(%s)", label, k.label, k.to),
 					Label: k.label,
