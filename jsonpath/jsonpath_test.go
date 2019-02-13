@@ -156,8 +156,98 @@ func TestRender(t *testing.T) {
 	assert.Equal(t, expected, result)
 }
 
+func TestIncludeFields(t *testing.T) {
+	orig := &gdbi.DataElement{
+		ID:    "vertex1",
+		Label: "foo",
+		Data: map[string]interface{}{
+			"b": 1,
+			"c": true,
+			"e": []map[string]string{
+				{"nested": "field1"},
+				{"nested": "field2"},
+			},
+			"f": nil,
+		},
+	}
+	new := &gdbi.DataElement{
+		ID:    "vertex1",
+		Label: "foo",
+		Data:  map[string]interface{}{},
+	}
+
+	expected := &gdbi.DataElement{
+		ID:    "vertex1",
+		Label: "foo",
+		Data: map[string]interface{}{
+			"b": 1,
+			"c": true,
+		},
+	}
+	result := includeFields(new, orig, []string{"b", "data.c"})
+	assert.Equal(t, expected, result)
+
+	result = includeFields(new, orig, []string{"b", "data.c", "doesnotexist", "data.idonotexist", "i.do.not.exist"})
+	assert.Equal(t, expected, result)
+}
+
+func TestExcludeFields(t *testing.T) {
+	orig := &gdbi.DataElement{
+		ID:    "vertex1",
+		Label: "foo",
+		Data: map[string]interface{}{
+			"b": 1,
+			"c": true,
+			"e": []map[string]string{
+				{"nested": "field1"},
+				{"nested": "field2"},
+			},
+			"f": nil,
+		},
+	}
+	expected := &gdbi.DataElement{
+		ID:    "vertex1",
+		Label: "foo",
+		Data: map[string]interface{}{
+			"b": 1,
+			"c": true,
+		},
+	}
+
+	result := excludeFields(orig, []string{"e", "data.f"})
+	assert.Equal(t, expected, result)
+
+	result = excludeFields(orig, []string{"e", "data.f", "doesnotexist", "data.idonotexist", "i.do.not.exist"})
+	assert.Equal(t, expected, result)
+}
+
 func TestSelectFields(t *testing.T) {
 	expected := &gdbi.Traveler{}
+	expected = expected.AddMark("testMark", traveler.GetMark("testMark"))
+	expected = expected.AddCurrent(&gdbi.DataElement{
+		ID:    "vertex1",
+		Label: "foo",
+		Data: map[string]interface{}{
+			"b": 1,
+			"c": true,
+			"e": []map[string]string{
+				{"nested": "field1"},
+				{"nested": "field2"},
+			},
+			"f": nil,
+		},
+	})
+	result := SelectTravelerFields(traveler, "-a", "-_data.d")
+	assert.Equal(t, expected, result)
+
+	expected = expected.AddCurrent(&gdbi.DataElement{
+		ID:    "vertex1",
+		Label: "foo",
+		Data:  map[string]interface{}{},
+	})
+	result = SelectTravelerFields(traveler)
+	assert.Equal(t, expected, result)
+
 	expected = expected.AddCurrent(&gdbi.DataElement{
 		ID:    "vertex1",
 		Label: "foo",
@@ -166,27 +256,22 @@ func TestSelectFields(t *testing.T) {
 			"b": 1,
 		},
 	})
-	expected = expected.AddMark("testMark", &gdbi.DataElement{
-		Data: map[string]interface{}{
-			"b": 2,
-			"d": []interface{}{4, 5, 6},
-		},
-	})
-
-	result, err := SelectTravelerFields(traveler, "_gid", "_label", "a", "_data.b", "$testMark.b", "$testMark._data.d")
-	if err != nil {
-		t.Fatal(err)
-	}
+	result = SelectTravelerFields(traveler, "a", "_data.b")
 	assert.Equal(t, expected, result)
 
-	expected = &gdbi.Traveler{}
-	expected = expected.AddCurrent(&gdbi.DataElement{
-		Data: traveler.GetCurrent().Data,
-	})
+	result = SelectTravelerFields(traveler, "_gid", "_label", "a", "_data.b")
+	assert.Equal(t, expected, result)
 
-	result, err = SelectTravelerFields(traveler, "_data")
-	if err != nil {
-		t.Fatal(err)
-	}
+	result = SelectTravelerFields(traveler, "_gid", "_label", "a", "_data.b", "$testMark.b", "$testMark._data.d")
+	assert.Equal(t, expected, result)
+
+	expected = expected.AddCurrent(&gdbi.DataElement{
+		ID:    "vertex1",
+		Label: "foo",
+		Data: map[string]interface{}{
+			"b": 1,
+		},
+	})
+	result = SelectTravelerFields(traveler, "-a", "b")
 	assert.Equal(t, expected, result)
 }

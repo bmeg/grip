@@ -1,12 +1,13 @@
 package jsonpath
 
 import (
-	"fmt"
+	// "fmt"
 	"strings"
 
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
 	"github.com/oliveagle/jsonpath"
+	log "github.com/sirupsen/logrus"
 )
 
 // Current represents the 'current' traveler namespace
@@ -177,65 +178,166 @@ func RenderTraveler(traveler *gdbi.Traveler, template interface{}) interface{} {
 }
 
 // SelectTravelerFields returns a new copy of the traveler with only the selected fields
-func SelectTravelerFields(t *gdbi.Traveler, keys ...string) (*gdbi.Traveler, error) {
+func SelectTravelerFields(t *gdbi.Traveler, keys ...string) *gdbi.Traveler {
+	current := t.GetCurrent()
 	out := &gdbi.Traveler{}
 	out = out.AddCurrent(&gdbi.DataElement{
-		Data: map[string]interface{}{},
+		ID:    current.ID,
+		Label: current.Label,
+		From:  current.From,
+		To:    current.To,
+		Data:  map[string]interface{}{},
 	})
+	for _, mark := range t.ListMarks() {
+		out = out.AddMark(mark, t.GetMark(mark))
+	}
 
+	includePaths := []string{}
+	excludePaths := []string{}
+KeyLoop:
 	for _, key := range keys {
+		exclude := false
+		if strings.HasPrefix(key, "-") {
+			exclude = true
+			key = strings.TrimPrefix(key, "-")
+		}
 		namespace := GetNamespace(key)
+		switch namespace {
+		case Current:
+			// noop
+		default:
+			log.Errorf("only can select field from current traveler")
+			continue KeyLoop
+		}
 		path := GetJSONPath(key)
 		path = strings.TrimPrefix(path, "$.")
 
-		var cde *gdbi.DataElement
-		var ode *gdbi.DataElement
-		switch namespace {
-		case Current:
-			cde = t.GetCurrent()
-			ode = out.GetCurrent()
-		default:
-			cde = t.GetMark(namespace)
-			ode = out.GetMark(namespace)
-			if ode == nil {
-				out = out.AddMark(namespace, &gdbi.DataElement{
-					Data: map[string]interface{}{},
-				})
-				ode = out.GetMark(namespace)
-			}
+		if exclude {
+			excludePaths = append(excludePaths, path)
+		} else {
+			includePaths = append(includePaths, path)
 		}
+	}
 
+	var cde *gdbi.DataElement
+	var ode *gdbi.DataElement
+
+	cde = t.GetCurrent()
+	ode = out.GetCurrent()
+
+	if len(excludePaths) > 0 {
+		cde = excludeFields(cde, excludePaths)
+		for k, v := range cde.Data {
+			ode.Data[k] = v
+		}
+	}
+
+	if len(includePaths) > 0 {
+		ode = includeFields(ode, cde, includePaths)
+	}
+
+	return out
+}
+
+func includeFields(new, old *gdbi.DataElement, paths []string) *gdbi.DataElement {
+	newData := make(map[string]interface{})
+Include:
+	for _, path := range paths {
 		switch path {
-		case "gid":
-			ode.ID = cde.ID
-		case "label":
-			ode.Label = cde.Label
-		case "from":
-			ode.From = cde.From
-		case "to":
-			ode.To = cde.To
+		case "gid", "label", "from", "to":
+			// noop
 		case "data":
-			ode.Data = cde.Data
+			for k, v := range old.Data {
+				newData[k] = v
+			}
 		default:
 			parts := strings.Split(path, ".")
 			var data map[string]interface{}
 			var ok bool
-			data = cde.Data
+			data = old.Data
 			for i := 0; i < len(parts); i++ {
 				if parts[i] == "data" {
 					continue
 				}
 				if i == len(parts)-1 {
-					ode.Data[parts[i]] = data[parts[i]]
+					if val, ok := data[parts[i]]; ok {
+						newData[parts[i]] = val
+					} else {
+						log.Errorf("property does not exist: %s", path)
+						continue Include
+					}
 				} else {
-					ode.Data[parts[i]] = map[string]interface{}{}
+					if _, ok := data[parts[i]]; !ok {
+						log.Errorf("property does not exist: %s", path)
+						continue Include
+					}
+					newData[parts[i]] = map[string]interface{}{}
 					data, ok = data[parts[i]].(map[string]interface{})
 					if !ok {
-						return nil, fmt.Errorf("something went wrong when selecting fields on the traveler to return")
+						log.Errorf("property does not exist: %s", path)
+						continue Include
 					}
 				}
 			}
 		}
 	}
-	return out, nil
+	new.Data = newData
+	return new
+}
+
+func excludeFields(elem *gdbi.DataElement, paths []string) *gdbi.DataElement {
+	result := &gdbi.DataElement{
+		ID:    elem.ID,
+		Label: elem.Label,
+		From:  elem.From,
+		To:    elem.To,
+		Data:  map[string]interface{}{},
+	}
+	for k, v := range elem.Data {
+		result.Data[k] = v
+	}
+	data := result.Data
+Exclude:
+	for _, path := range paths {
+		switch path {
+		case "gid":
+			elem.ID = ""
+		case "label":
+			elem.Label = ""
+		case "from":
+			elem.From = ""
+		case "to":
+			elem.To = ""
+		case "data":
+			elem.Data = map[string]interface{}{}
+		default:
+			parts := strings.Split(path, ".")
+			for i := 0; i < len(parts); i++ {
+				if parts[i] == "data" {
+					continue
+				}
+				if i == len(parts)-1 {
+					if _, ok := data[parts[i]]; !ok {
+						log.Errorf("property does not exist: %s", path)
+						continue Exclude
+					}
+					delete(data, parts[i])
+				} else {
+					var ok bool
+					var val interface{}
+					var mapVal map[string]interface{}
+					if val, ok = elem.Data[parts[i]]; ok {
+						if mapVal, ok = val.(map[string]interface{}); ok {
+							data[parts[i]] = mapVal
+						}
+					}
+					if !ok {
+						log.Errorf("property does not exist: %s", path)
+						continue Exclude
+					}
+				}
+			}
+		}
+	}
+	return result
 }

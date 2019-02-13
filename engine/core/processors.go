@@ -372,16 +372,8 @@ func (f *Fields) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, 
 	go func() {
 		defer close(out)
 		for t := range in {
-			if len(f.keys) == 0 {
-				out <- t
-			} else {
-				o, err := jsonpath.SelectTravelerFields(t, f.keys...)
-				if err != nil {
-					log.WithFields(log.Fields{"error": err, "traveler": t, "fields": f.keys}).Error("Engine: Core: Processors: selecting fields")
-					continue
-				}
-				out <- o
-			}
+			o := jsonpath.SelectTravelerFields(t, f.keys...)
+			out <- o
 		}
 	}()
 	return context.WithValue(ctx, propLoad, true)

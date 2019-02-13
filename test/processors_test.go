@@ -298,8 +298,8 @@ func TestEngine(t *testing.T) {
 			count(40),
 		},
 		{
-			Q.V("users:1").Fields("_label", "email"),
-			pickRes(vertex("", "users", data{"email": "Earlean.Bonacci@yahoo.com"})),
+			Q.V("users:1").Fields("email"),
+			pickRes(vertex("users:1", "users", data{"email": "Earlean.Bonacci@yahoo.com"})),
 		},
 		{
 			Q.V("users:1").As("a").Out().As("b").Select("a"),
@@ -329,7 +329,7 @@ func TestEngine(t *testing.T) {
 			}),
 		},
 		{
-			Q.V("users:1").As("a").Out().As("b").Fields("$a._gid", "$a._label", "$b._gid", "$b._label").Select("a", "b"),
+			Q.V("users:1").Fields().As("a").Out().Fields().As("b").Select("a", "b"),
 			pickSelection(map[string]interface{}{
 				"a": vertex("users:1", "users", nil),
 				"b": vertex("purchases:57", "purchases", nil),
