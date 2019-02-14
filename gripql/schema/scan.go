@@ -53,38 +53,37 @@ func ScanSchema(conn gripql.Client, graph string, sampleCount uint32, exclude []
 	}
 
 	eList := []*gripql.Edge{}
-	for _, label := range labelRes.VertexLabels {
-		if stringInSlice(label, exclude) {
-			continue
-		}
-		edgeQuery := gripql.V().HasLabel(label).Limit(sampleCount).OutE().As("a").Out().As("b").Select("a", "b")
-		edgeRes, err := conn.Traversal(&gripql.GraphQuery{Graph: graph, Query: edgeQuery.Statements})
-		if err == nil {
-			labelDstSchema := edgeDstMap{}
-			for row := range edgeRes {
-				sel := row.GetSelections().Selections
-				edge := sel["a"].GetEdge()
-				dst := sel["b"].GetVertex()
-				ds := gripql.GetDataFieldTypes(protoutil.AsMap(edge.Data))
-				k := edgeDstKey{to: dst.Label, label: edge.Label}
-				if p, ok := labelDstSchema[k]; ok {
-					labelDstSchema[k] = util.MergeMaps(p, ds)
-				} else {
-					labelDstSchema[k] = ds
-				}
+	for _, elabel := range labelRes.EdgeLabels {
+		for _, vlabel := range labelRes.VertexLabels {
+			if stringInSlice(vlabel, exclude) || stringInSlice(elabel, exclude) {
+				continue
 			}
-			for k, v := range labelDstSchema {
-				if stringInSlice(k.label, exclude) {
-					continue
+			edgeQuery := gripql.V().HasLabel(vlabel).OutE(elabel).As("a").Limit(sampleCount).Out().Fields("_gid", "_label").As("b").Select("a", "b")
+			edgeRes, err := conn.Traversal(&gripql.GraphQuery{Graph: graph, Query: edgeQuery.Statements})
+			if err == nil {
+				labelDstSchema := edgeDstMap{}
+				for row := range edgeRes {
+					sel := row.GetSelections().Selections
+					edge := sel["a"].GetEdge()
+					dst := sel["b"].GetVertex()
+					ds := gripql.GetDataFieldTypes(protoutil.AsMap(edge.Data))
+					k := edgeDstKey{to: dst.Label, label: edge.Label}
+					if p, ok := labelDstSchema[k]; ok {
+						labelDstSchema[k] = util.MergeMaps(p, ds)
+					} else {
+						labelDstSchema[k] = ds
+					}
 				}
-				eSchema := &gripql.Edge{
-					Gid:   fmt.Sprintf("(%s)-%s->(%s)", label, k.label, k.to),
-					Label: k.label,
-					From:  label,
-					To:    k.to,
-					Data:  protoutil.AsStruct(v.(map[string]interface{})),
+				for k, v := range labelDstSchema {
+					eSchema := &gripql.Edge{
+						Gid:   fmt.Sprintf("(%s)-%s->(%s)", vlabel, elabel, k.to),
+						Label: k.label,
+						From:  vlabel,
+						To:    k.to,
+						Data:  protoutil.AsStruct(v.(map[string]interface{})),
+					}
+					eList = append(eList, eSchema)
 				}
-				eList = append(eList, eSchema)
 			}
 		}
 	}

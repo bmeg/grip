@@ -91,7 +91,35 @@ func TestSchemaScanner(t *testing.T) {
 		switch v.Label {
 		case "friend", "starship", "appearsIn":
 		default:
+			t.Log(v)
 			t.Errorf("Unexpected type %s ", v.Label)
+		}
+	}
+
+	exclude = []string{"Movie"}
+	graphSchema, err = ScanSchema(client, graph, 50, exclude)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(graphSchema.Vertices) != 3 {
+		t.Errorf("unexpected edge labels: %d != %d", len(graphSchema.Vertices), 3)
+	}
+	for _, v := range graphSchema.Vertices {
+		switch v.Gid {
+		case "Human", "Droid", "Starship":
+		default:
+			t.Errorf("Unexpected type %s ", v.Gid)
+		}
+	}
+	if len(graphSchema.Edges) != 4 {
+		t.Errorf("unexpected edge labels: %d != %d", len(graphSchema.Edges), 4)
+	}
+	for _, v := range graphSchema.Edges {
+		switch v.Label {
+		case "appearsIn", "friend", "starship":
+		default:
+			t.Errorf("Unexpected type %s", v.Label)
 		}
 	}
 
@@ -118,7 +146,7 @@ func TestSchemaScanner(t *testing.T) {
 		switch v.Label {
 		case "friend", "starship":
 		default:
-			t.Errorf("Unexpected type %s ", v.Label)
+			t.Errorf("Unexpected type %s", v.Label)
 		}
 	}
 }
