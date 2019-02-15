@@ -206,7 +206,7 @@ KeyLoop:
 		case Current:
 			// noop
 		default:
-			log.Errorf("only can select field from current traveler")
+			log.Errorf("SelectTravelerFields: only can select field from current traveler")
 			continue KeyLoop
 		}
 		path := GetJSONPath(key)
@@ -263,18 +263,18 @@ Include:
 					if val, ok := data[parts[i]]; ok {
 						newData[parts[i]] = val
 					} else {
-						log.Errorf("property does not exist: %s", path)
+						log.Errorf("SelectTravelerFields: includeFields: property does not exist: %s", path)
 						continue Include
 					}
 				} else {
 					if _, ok := data[parts[i]]; !ok {
-						log.Errorf("property does not exist: %s", path)
+						log.Errorf("SelectTravelerFields: includeFields: property does not exist: %s", path)
 						continue Include
 					}
 					newData[parts[i]] = map[string]interface{}{}
 					data, ok = data[parts[i]].(map[string]interface{})
 					if !ok {
-						log.Errorf("property does not exist: %s", path)
+						log.Errorf("SelectTravelerFields: includeFields: property does not exist: %s", path)
 						continue Include
 					}
 				}
@@ -318,7 +318,7 @@ Exclude:
 				}
 				if i == len(parts)-1 {
 					if _, ok := data[parts[i]]; !ok {
-						log.Errorf("property does not exist: %s", path)
+						log.Errorf("SelectTravelerFields: excludeFields: property does not exist: %s", path)
 						continue Exclude
 					}
 					delete(data, parts[i])
@@ -332,7 +332,7 @@ Exclude:
 						}
 					}
 					if !ok {
-						log.Errorf("property does not exist: %s", path)
+						log.Errorf("SelectTravelerFields: excludeFields: property does not exist: %s", path)
 						continue Exclude
 					}
 				}
