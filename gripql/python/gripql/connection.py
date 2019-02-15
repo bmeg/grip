@@ -7,8 +7,8 @@ from gripql.util import BaseConnection, raise_for_status
 
 
 class Connection(BaseConnection):
-    def __init__(self, url, user=None, password=None, token=None):
-        super(Connection, self).__init__(url, user, password, token)
+    def __init__(self, url, user=None, password=None, token=None, credential_file=None):
+        super(Connection, self).__init__(url, user, password, token, credential_file)
         self.url = self.base_url + "/v1/graph"
 
     def listGraphs(self):

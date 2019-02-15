@@ -1,6 +1,7 @@
 from __future__ import absolute_import, print_function, unicode_literals
 
 import os
+import json
 import requests.auth
 
 from datetime import datetime
@@ -9,7 +10,7 @@ from requests.compat import urlparse, urlunparse
 
 
 class BaseConnection(object):
-    def __init__(self, url, user=None, password=None, token=None):
+    def __init__(self, url, user=None, password=None, token=None, credential_file=None):
         url = process_url(url)
         self.base_url = url
         if user is None:
@@ -21,6 +22,10 @@ class BaseConnection(object):
         if token is None:
             token = os.getenv("GRIP_TOKEN", None)
         self.token = token
+        print(credential_file)
+        if credential_file is None:
+            credential_file = os.getenv("GRIP_CREDENTIAL_FILE", None)
+        self.credential_file = credential_file
 
     def _request_header(self):
         if self.token:
@@ -29,6 +34,11 @@ class BaseConnection(object):
         elif self.user and self.password:
             header = {'Content-type': 'application/json',
                       'Authorization': requests.auth._basic_auth_str(self.user, self.password)}
+        elif self.credential_file:
+            with open(self.credential_file, 'rt') as f:
+                header = json.load(f)
+                header['Content-type'] = 'application/json'
+                header['OauthExpires'] = str(header['OauthExpires'])
         else:
             header = {'Content-type': 'application/json'}
         return header
