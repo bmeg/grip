@@ -179,19 +179,6 @@ func RenderTraveler(traveler *gdbi.Traveler, template interface{}) interface{} {
 
 // SelectTravelerFields returns a new copy of the traveler with only the selected fields
 func SelectTravelerFields(t *gdbi.Traveler, keys ...string) *gdbi.Traveler {
-	current := t.GetCurrent()
-	out := &gdbi.Traveler{}
-	out = out.AddCurrent(&gdbi.DataElement{
-		ID:    current.ID,
-		Label: current.Label,
-		From:  current.From,
-		To:    current.To,
-		Data:  map[string]interface{}{},
-	})
-	for _, mark := range t.ListMarks() {
-		out = out.AddMark(mark, t.GetMark(mark))
-	}
-
 	includePaths := []string{}
 	excludePaths := []string{}
 KeyLoop:
@@ -219,6 +206,14 @@ KeyLoop:
 		}
 	}
 
+	out := &gdbi.Traveler{}
+	out = out.AddCurrent(&gdbi.DataElement{
+		Data: map[string]interface{}{},
+	})
+	for _, mark := range t.ListMarks() {
+		out = out.AddMark(mark, t.GetMark(mark))
+	}
+
 	var cde *gdbi.DataElement
 	var ode *gdbi.DataElement
 
@@ -231,6 +226,11 @@ KeyLoop:
 			ode.Data[k] = v
 		}
 	}
+
+	ode.ID = cde.ID
+	ode.Label = cde.Label
+	ode.From = cde.From
+	ode.To = cde.To
 
 	if len(includePaths) > 0 {
 		ode = includeFields(ode, cde, includePaths)
@@ -301,15 +301,15 @@ Exclude:
 	for _, path := range paths {
 		switch path {
 		case "gid":
-			elem.ID = ""
+			result.ID = ""
 		case "label":
-			elem.Label = ""
+			result.Label = ""
 		case "from":
-			elem.From = ""
+			result.From = ""
 		case "to":
-			elem.To = ""
+			result.To = ""
 		case "data":
-			elem.Data = map[string]interface{}{}
+			result.Data = map[string]interface{}{}
 		default:
 			parts := strings.Split(path, ".")
 			for i := 0; i < len(parts); i++ {
