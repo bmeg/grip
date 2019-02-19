@@ -458,9 +458,12 @@
 
 <h2 id="fields-fields">.fields([fields])</h2>
 
-<p>Select which vertex/edge fields to return</p>
+<p>Select which vertex/edge fields to return or exlucde. Operation with no arguments exlcudes all properties.
+&ldquo;gid&rdquo;, &ldquo;label&rdquo;, &ldquo;from&rdquo; and &ldquo;to&rdquo; are included by default.</p>
 
-<pre><code class="language-python">G.query().V(&quot;vertex1&quot;).fields(&quot;_gid&quot;, &quot;_label&quot;, &quot;symbol&quot;)
+<pre><code class="language-python">O.query().V(&quot;vertex1&quot;).fields(&quot;symbol&quot;)     # include only symbol property
+O.query().V(&quot;vertex1&quot;).fields(&quot;-symbol&quot;)    # exclude symbol property
+O.query().V(&quot;vertex1&quot;).fields()             # exclude all properties
 </code></pre>
 
 <h2 id="render-template">.render(template)</h2>
