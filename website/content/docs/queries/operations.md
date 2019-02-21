@@ -216,31 +216,33 @@ O.query().V("vertex1").render()
 Aggregate fields in the returned edges/vertices.
 
 ## Aggregation Types
-### .gripql.term(name, label, field, size)
+### .gripql.term(name, field, size)
 Return top n terms and their counts for a field.
 ```
-O.query().V("1").out().aggregate(gripql.histogram("top-names", "Person", "name", 10))
+O.query().V().hasLabel("Person").aggregate(gripql.term("top-names", "name", 10))
 ```
-Starts on vertex `1`, goes out and then counts `name` occurences across `Person` vertices and returns the 10 most frequent `name` values.
+Counts `name` occurences across `Person` vertices and returns the 10 most frequent `name` values.
 
 
-### .gripql.histogram(name, label, field, interval)
+### .gripql.histogram(name, field, interval)
 Return binned counts for a field.
 ```
-O.query().V("1").out().aggregate(gripql.histogram("age-hist", "Person", "age", 5))
+O.query().V().hasLabel("Person").aggregate(gripql.histogram("age-hist", "age", 5))
 ```
-Starts on vertex `1`, goes out and then creates a histogram of `age` values with bins of width 5 across `Person` vertices.
+Creates a histogram of `age` values with bins of width 5 across `Person` vertices.
 
 
-### .gripql.percentile(name, label, field, percents=[])
+### .gripql.percentile(name, field, percents=[])
 Return percentiles for a field.
 ```
-O.query().V("1").out().aggregate(gripql.percentile("age-hist", "Person", "age", [25,50,75]))
+O.query().V().hasLabel("Person").aggregate(gripql.percentile("age-percentiles", "age", [25,50,75]))
 ```
-Starts on vertex `1`, goes out and then calculates the 25th, 50th, and 75th percentiles for `age` values across `Person` vertices.
+Calculates the 25th, 50th, and 75th percentiles for `age` values across `Person` vertices.
+
 
 ## .count()
 Return the total count of returned edges/vertices.
+
 
 ## .distinct([fields])
 Only return distinct elements. An array of one or more fields may be passed in to define what elements are used to identify uniqueness. If none are

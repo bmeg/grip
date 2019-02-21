@@ -476,32 +476,32 @@
 
 <h2 id="aggregation-types">Aggregation Types</h2>
 
-<h3 id="gripql-term-name-label-field-size">.gripql.term(name, label, field, size)</h3>
+<h3 id="gripql-term-name-field-size">.gripql.term(name, field, size)</h3>
 
 <p>Return top n terms and their counts for a field.</p>
 
-<pre><code>O.query().V(&quot;1&quot;).out().aggregate(gripql.histogram(&quot;top-names&quot;, &quot;Person&quot;, &quot;name&quot;, 10))
+<pre><code>O.query().V().hasLabel(&quot;Person&quot;).aggregate(gripql.term(&quot;top-names&quot;, &quot;name&quot;, 10))
 </code></pre>
 
-<p>Starts on vertex <code>1</code>, goes out and then counts <code>name</code> occurences across <code>Person</code> vertices and returns the 10 most frequent <code>name</code> values.</p>
+<p>Counts <code>name</code> occurences across <code>Person</code> vertices and returns the 10 most frequent <code>name</code> values.</p>
 
-<h3 id="gripql-histogram-name-label-field-interval">.gripql.histogram(name, label, field, interval)</h3>
+<h3 id="gripql-histogram-name-field-interval">.gripql.histogram(name, field, interval)</h3>
 
 <p>Return binned counts for a field.</p>
 
-<pre><code>O.query().V(&quot;1&quot;).out().aggregate(gripql.histogram(&quot;age-hist&quot;, &quot;Person&quot;, &quot;age&quot;, 5))
+<pre><code>O.query().V().hasLabel(&quot;Person&quot;).aggregate(gripql.histogram(&quot;age-hist&quot;, &quot;age&quot;, 5))
 </code></pre>
 
-<p>Starts on vertex <code>1</code>, goes out and then creates a histogram of <code>age</code> values with bins of width 5 across <code>Person</code> vertices.</p>
+<p>Creates a histogram of <code>age</code> values with bins of width 5 across <code>Person</code> vertices.</p>
 
-<h3 id="gripql-percentile-name-label-field-percents">.gripql.percentile(name, label, field, percents=[])</h3>
+<h3 id="gripql-percentile-name-field-percents">.gripql.percentile(name, field, percents=[])</h3>
 
 <p>Return percentiles for a field.</p>
 
-<pre><code>O.query().V(&quot;1&quot;).out().aggregate(gripql.percentile(&quot;age-hist&quot;, &quot;Person&quot;, &quot;age&quot;, [25,50,75]))
+<pre><code>O.query().V().hasLabel(&quot;Person&quot;).aggregate(gripql.percentile(&quot;age-percentiles&quot;, &quot;age&quot;, [25,50,75]))
 </code></pre>
 
-<p>Starts on vertex <code>1</code>, goes out and then calculates the 25th, 50th, and 75th percentiles for <code>age</code> values across <code>Person</code> vertices.</p>
+<p>Calculates the 25th, 50th, and 75th percentiles for <code>age</code> values across <code>Person</code> vertices.</p>
 
 <h2 id="count">.count()</h2>
 

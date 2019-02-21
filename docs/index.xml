@@ -98,7 +98,7 @@ Database: elasticsearch Elasticsearch: URL: &amp;quot;http://localhost:9200&amp;
       <description>Getting Started GRIP has an API for making graph queries using structured data. Queries are defined using a series of step operations).
 Install the Python Client pip install &amp;quot;git+https://github.com/bmeg/grip.git#subdirectory=gripql/python&amp;quot;  Let&amp;rsquo;s go through the features currently supported in the python client.
 First, import the client and create a connection to an GRIP server:
-import gripql conn = gripql.Connection(&#39;http://bmeg.io&#39;) O = conn.graph(&amp;quot;bmeg&amp;quot;)  Now that we have a connection to a graph instance, we can use this to make all of our queries.</description>
+import gripql conn = gripql.Connection(&#39;http://bmeg.io&#39;).graph(&amp;quot;bmeg&amp;quot;)  Now that we have a connection to a graph instance, we can use this to make all of our queries.</description>
     </item>
     
     <item>
