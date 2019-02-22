@@ -548,8 +548,8 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, er
 			query = append(query, bson.M{"$project": fieldSelect})
 
 		case *gripql.GraphStatement_Aggregate:
-			if lastType != gdbi.VertexData {
-				return &Pipeline{}, fmt.Errorf(`"aggregate" statement is only valid for vertex types not: %s`, lastType.String())
+			if lastType != gdbi.VertexData && lastType != gdbi.EdgeData {
+				return &Pipeline{}, fmt.Errorf(`"aggregate" statement is only valid for edge or vertex types not: %s`, lastType.String())
 			}
 			aggNames := make(map[string]interface{})
 			for _, a := range stmt.Aggregate.Aggregations {
@@ -564,6 +564,9 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, er
 					agg := a.GetTerm()
 					field := jsonpath.GetJSONPath(agg.Field)
 					field = strings.TrimPrefix(field, "$.")
+					if field == "gid" {
+						field = "_id"
+					}
 					stmt := []bson.M{
 						{
 							"$match": bson.M{
