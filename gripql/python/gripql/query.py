@@ -5,7 +5,7 @@ import logging
 import os
 import requests
 
-from gripql.util import AttrDict, Rate, process_url
+from gripql.util import AttrDict, Rate, process_url, raise_for_status
 
 
 def _wrap_value(value, typ):
@@ -302,9 +302,9 @@ class Query:
             auth=(self.user, self.password)
         )
         logger.debug('POST %s', self.url)
-        logger.debug("BODY %s", self.to_json())
+        logger.debug('BODY %s', self.to_json())
         logger.debug('STATUS CODE %s', response.status_code)
-        response.raise_for_status()
+        raise_for_status(response)
 
         for result in response.iter_lines(chunk_size=None):
             try:
