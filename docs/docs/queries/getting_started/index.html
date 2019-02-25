@@ -254,14 +254,14 @@
 <p>First, import the client and create a connection to an GRIP server:</p>
 
 <pre><code class="language-python">import gripql
-conn = gripql.Connection('http://bmeg.io').graph(&quot;bmeg&quot;)
+G = gripql.Connection('http://bmeg.io').graph(&quot;bmeg&quot;)
 </code></pre>
 
 <p>Now that we have a connection to a graph instance, we can use this to make all of our queries.</p>
 
 <p>One of the first things you probably want to do is find some vertex out of all of the vertexes available in the system. In order to do this, we need to know something about the vertex we are looking for. To start, let&rsquo;s see if we can find a specific gene:</p>
 
-<pre><code class="language-python">result = conn.query().V().hasLabel(&quot;Gene&quot;).has(gripql.eq(&quot;symbol&quot;, &quot;TP53&quot;)).execute()
+<pre><code class="language-python">result = G.query().V().hasLabel(&quot;Gene&quot;).has(gripql.eq(&quot;symbol&quot;, &quot;TP53&quot;)).execute()
 print(result)
 </code></pre>
 
@@ -295,7 +295,7 @@ print(result)
 
 <p>You can also do a <code>has</code> query with a list of items using <code>gripql.within([...])</code> (other conditions exist, see the <code>Conditions</code> section below):</p>
 
-<pre><code class="language-python">result = conn.query().V().hasLabel(&quot;Gene&quot;).has(gripql.within(&quot;symbol&quot;, [&quot;TP53&quot;, &quot;BRCA1&quot;])).render({&quot;gid&quot;: &quot;_gid&quot;, &quot;symbol&quot;:&quot;symbol&quot;}).execute()
+<pre><code class="language-python">result = G.query().V().hasLabel(&quot;Gene&quot;).has(gripql.within(&quot;symbol&quot;, [&quot;TP53&quot;, &quot;BRCA1&quot;])).render({&quot;gid&quot;: &quot;_gid&quot;, &quot;symbol&quot;:&quot;symbol&quot;}).execute()
 print(result)
 </code></pre>
 
@@ -313,7 +313,7 @@ print(result)
 
 <p>Starting with gene TP53, and see what kind of other vertexes it is connected to.</p>
 
-<pre><code class="language-python">result = conn.query().V().hasLabel(&quot;Gene&quot;).has(gripql.eq(&quot;symbol&quot;, &quot;TP53&quot;)).in_(&quot;TranscriptFor&quot;)render({&quot;gid&quot;: &quot;_gid&quot;, &quot;label&quot;:&quot;_label&quot;}).execute()
+<pre><code class="language-python">result = G.query().V().hasLabel(&quot;Gene&quot;).has(gripql.eq(&quot;symbol&quot;, &quot;TP53&quot;)).in_(&quot;TranscriptFor&quot;)render({&quot;gid&quot;: &quot;_gid&quot;, &quot;label&quot;:&quot;_label&quot;}).execute()
 print(result)
 </code></pre>
 

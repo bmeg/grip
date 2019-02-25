@@ -98,7 +98,7 @@ Database: elasticsearch Elasticsearch: URL: &amp;quot;http://localhost:9200&amp;
       <description>Getting Started GRIP has an API for making graph queries using structured data. Queries are defined using a series of step operations).
 Install the Python Client pip install &amp;quot;git+https://github.com/bmeg/grip.git#subdirectory=gripql/python&amp;quot;  Let&amp;rsquo;s go through the features currently supported in the python client.
 First, import the client and create a connection to an GRIP server:
-import gripql conn = gripql.Connection(&#39;http://bmeg.io&#39;).graph(&amp;quot;bmeg&amp;quot;)  Now that we have a connection to a graph instance, we can use this to make all of our queries.</description>
+import gripql G = gripql.Connection(&#39;http://bmeg.io&#39;).graph(&amp;quot;bmeg&amp;quot;)  Now that we have a connection to a graph instance, we can use this to make all of our queries.</description>
     </item>
     
     <item>
@@ -146,11 +146,11 @@ Database: mongodb MongoDB: URL: &amp;quot;localhost:27017&amp;quot; DBName: &amp
       
       <guid>https://docs.bmeg.io/grip/docs/queries/operations/</guid>
       <description>Start a Traversal .V([ids]) Start query from Vertex
-O.query().V()  Returns all vertices in graph
-O.query().V([&amp;quot;vertex1]&amp;quot;)  Returns:
+G.query().V()  Returns all vertices in graph
+G.query().V([&amp;quot;vertex1]&amp;quot;)  Returns:
 {&amp;quot;gid&amp;quot; : &amp;quot;vertex1&amp;quot;, &amp;quot;label&amp;quot;:&amp;quot;TestVertex&amp;quot;, &amp;quot;data&amp;quot;:{}}  .E([ids]) Start query from Edge
-O.query().E()  Returns all edges in graph
-O.query().E([&amp;quot;edge1&amp;quot;])  Returns:
+G.query().E()  Returns all edges in graph
+G.query().E([&amp;quot;edge1&amp;quot;])  Returns:
 {&amp;quot;gid&amp;quot; : &amp;quot;edge1&amp;quot;, &amp;quot;label&amp;quot;:&amp;quot;TestEdge&amp;quot;, From: &amp;quot;vertex1&amp;quot;, To: &amp;quot;vertex2&amp;quot;, data&amp;quot;:{}}  Traverse the graph .in_(), inV() Following incoming edges. Optional argument is the edge label (or list of labels) that should be followed.</description>
     </item>
     

@@ -22,7 +22,7 @@ First, import the client and create a connection to an GRIP server:
 
 ```python
 import gripql
-conn = gripql.Connection('http://bmeg.io').graph("bmeg")
+G = gripql.Connection('http://bmeg.io').graph("bmeg")
 ```
 
 Now that we have a connection to a graph instance, we can use this to make all of our queries.
@@ -30,7 +30,7 @@ Now that we have a connection to a graph instance, we can use this to make all o
 One of the first things you probably want to do is find some vertex out of all of the vertexes available in the system. In order to do this, we need to know something about the vertex we are looking for. To start, let's see if we can find a specific gene:
 
 ```python
-result = conn.query().V().hasLabel("Gene").has(gripql.eq("symbol", "TP53")).execute()
+result = G.query().V().hasLabel("Gene").has(gripql.eq("symbol", "TP53")).execute()
 print(result)
 ```
 
@@ -64,7 +64,7 @@ This represents the vertex we queried for above. All vertexes in the system will
 You can also do a `has` query with a list of items using `gripql.within([...])` (other conditions exist, see the `Conditions` section below):
 
 ```python
-result = conn.query().V().hasLabel("Gene").has(gripql.within("symbol", ["TP53", "BRCA1"])).render({"gid": "_gid", "symbol":"symbol"}).execute()
+result = G.query().V().hasLabel("Gene").has(gripql.within("symbol", ["TP53", "BRCA1"])).render({"gid": "_gid", "symbol":"symbol"}).execute()
 print(result)
 ```
 
@@ -84,7 +84,7 @@ Edges in the graph are directional, so there are both incoming and outgoing edge
 Starting with gene TP53, and see what kind of other vertexes it is connected to.
 
 ```python
-result = conn.query().V().hasLabel("Gene").has(gripql.eq("symbol", "TP53")).in_("TranscriptFor")render({"gid": "_gid", "label":"_label"}).execute()
+result = G.query().V().hasLabel("Gene").has(gripql.eq("symbol", "TP53")).in_("TranscriptFor")render({"gid": "_gid", "label":"_label"}).execute()
 print(result)
 ```
 
