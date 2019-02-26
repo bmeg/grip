@@ -22,14 +22,14 @@ def setupGraph(O):
     O.addVertex("3", "Software", {"name": "lop", "lang": "java"})
     O.addVertex("8", "Software", {"name": "funnel", "lang": "go"})
 
-    O.addEdge("1", "2", "knows", {"weight": 0.5})
-    O.addEdge("1", "4", "knows", {"weight": 1.0})
-    O.addEdge("1", "9", "knows", {"weight": 1.0})
-    O.addEdge("1", "10", "knows", {"weight": 1.0})
-    O.addEdge("1", "3", "created", {"weight": 0.4})
-    O.addEdge("4", "3", "created", {"weight": 0.4})
-    O.addEdge("6", "3", "created", {"weight": 0.2})
-    O.addEdge("4", "5", "created", {"weight": 1.0})
+    O.addEdge("1", "2", "knows", {"weight": 0.5, "count": 20})
+    O.addEdge("1", "4", "knows", {"weight": 1.0, "count": 4})
+    O.addEdge("1", "9", "knows", {"weight": 1.0, "count": 50})
+    O.addEdge("1", "10", "knows", {"weight": 1.0, "count": 75})
+    O.addEdge("1", "3", "created", {"weight": 0.4, "count": 31})
+    O.addEdge("4", "3", "created", {"weight": 0.4, "count": 90})
+    O.addEdge("6", "3", "created", {"weight": 0.2, "count": 75})
+    O.addEdge("4", "5", "created", {"weight": 1.0, "count": 35})
 
 
 def test_traversal_term_aggregation(O):
@@ -174,6 +174,57 @@ def test_traversal_percentile_aggregation(O):
                 minpv, maxpv = getMinMax(ages, res["key"])
                 if res["value"] <= minpv or res["value"] >= maxpv:
                     errors.append("Incorrect quantile value returned for %.2f:\n\tmin: %.2f\n\tmax: %.2f\n\tactual: %.2f" % (res["key"], minpv, maxpv, res["value"]))
+            else:
+                errors.append("Incorrect bucket key returned: %s" % res)
+
+    if count != 1:
+        errors.append(
+            "Incorrect number of aggregations returned: %d != %d" %
+            (count, 1))
+
+    return errors
+
+
+def test_traversal_edge_histogram_aggregation(O):
+    errors = []
+    setupGraph(O)
+
+    count = 0
+    for row in O.query().V().hasLabel("Person").outE().aggregate(gripql.histogram("edge-agg", "count", 4)):
+        count += 1
+        if 'edge-agg' not in row:
+            errors.append("Result had Incorrect aggregation name")
+            return errors
+        row = row['edge-agg']
+
+        if len(row["buckets"]) < 2:
+            errors.append(
+                "Unexpected number of terms: %d != %d" %
+                (len(row["buckets"]), 2)
+            )
+
+        for res in row["buckets"]:
+            if res["key"] == 4:
+                if res["value"] != 1:
+                    errors.append("Incorrect bucket count returned: %s" % res)
+            elif res["key"] == 20:
+                if res["value"] != 1:
+                    errors.append("Incorrect bucket count returned: %s" % res)
+            elif res["key"] == 28:
+                if res["value"] != 1:
+                    errors.append("Incorrect bucket count returned: %s" % res)
+            elif res["key"] == 32:
+                if res["value"] != 1:
+                    errors.append("Incorrect bucket count returned: %s" % res)
+            elif res["key"] == 48:
+                if res["value"] != 1:
+                    errors.append("Incorrect bucket count returned: %s" % res)
+            elif res["key"] == 72:
+                if res["value"] != 2:
+                    errors.append("Incorrect bucket count returned: %s" % res)
+            elif res["key"] == 88:
+                if res["value"] != 1:
+                    errors.append("Incorrect bucket count returned: %s" % res)
             else:
                 errors.append("Incorrect bucket key returned: %s" % res)
 
