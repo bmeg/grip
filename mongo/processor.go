@@ -14,16 +14,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// aggType is a possible aggregation type
-type aggType uint8
-
-// aggTypes
-const (
-	unknownAgg aggType = iota
-	termAgg
-	histogramAgg
-	percentileAgg
-)
 
 // Processor stores the information for a mongo aggregation pipeline
 type Processor struct {
@@ -32,7 +22,7 @@ type Processor struct {
 	query           []bson.M
 	dataType        gdbi.DataType
 	markTypes       map[string]gdbi.DataType
-	aggTypes        map[string]aggType
+	aggTypes        map[string]*gripql.Aggregate
 }
 
 func getDataElement(result map[string]interface{}) *gdbi.DataElement {
@@ -108,12 +98,14 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 						out := &gripql.AggregationResult{
 							Buckets: []*gripql.AggregationResultBucket{},
 						}
-
 						buckets, ok := v.([]interface{})
 						if !ok {
 							plog.Errorf("Failed to convert Mongo aggregation result: %+v", v)
 							continue
 						}
+						//if proc.aggTypes[k].GetHistogram() != nil {
+						//	plog.Infof("Starting histogram agg result %+v", v)
+						//}
 						for _, bucket := range buckets {
 							bucket, ok := bucket.(map[string]interface{})
 							if !ok {
@@ -122,12 +114,13 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 							}
 
 							var term *structpb.Value
-							switch proc.aggTypes[k] {
-							case termAgg:
+							switch proc.aggTypes[k].GetAggregation().(type) {
+							case *gripql.Aggregate_Term:
 								term = protoutil.WrapValue(bucket["_id"])
-							case histogramAgg:
+							case *gripql.Aggregate_Histogram:
+								//plog.Infof("Starting histogram %+v", bucket)
 								term = protoutil.WrapValue(bucket["_id"])
-							case percentileAgg:
+							case *gripql.Aggregate_Percentile:
 								bid := strings.Replace(bucket["_id"].(string), "_", ".", -1)
 								f, err := strconv.ParseFloat(bid, 64)
 								if err != nil {

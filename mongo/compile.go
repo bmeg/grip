@@ -51,7 +51,7 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, er
 	startCollection := ""
 	lastType := gdbi.NoData
 	markTypes := map[string]gdbi.DataType{}
-	aggTypes := map[string]aggType{}
+	aggTypes := map[string]*gripql.Aggregate{}
 	vertCol := fmt.Sprintf("%s_vertices", comp.db.graph)
 	edgeCol := fmt.Sprintf("%s_edges", comp.db.graph)
 
@@ -580,7 +580,7 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, er
 					if agg.Size > 0 {
 						stmt = append(stmt, bson.M{"$limit": agg.Size})
 					}
-					aggTypes[a.Name] = termAgg
+					aggTypes[a.Name] = a
 					aggs[a.Name] = stmt
 
 				case *gripql.Aggregate_Histogram:
@@ -605,7 +605,7 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, er
 							"$sort": bson.M{"_id": 1},
 						},
 					}
-					aggTypes[a.Name] = histogramAgg
+					aggTypes[a.Name] = a
 					aggs[a.Name] = stmt
 
 				case *gripql.Aggregate_Percentile:
@@ -639,7 +639,7 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, er
 					stmt = append(stmt, bson.M{"$project": bson.M{"results": percentiles}})
 					stmt = append(stmt, bson.M{"$unwind": "$results"})
 					stmt = append(stmt, bson.M{"$project": bson.M{"_id": "$results._id", "count": "$results.count"}})
-					aggTypes[a.Name] = percentileAgg
+					aggTypes[a.Name] = a
 					aggs[a.Name] = stmt
 
 				default:
