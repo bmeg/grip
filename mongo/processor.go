@@ -14,17 +14,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// aggType is a possible aggregation type
-type aggType uint8
-
-// aggTypes
-const (
-	unknownAgg aggType = iota
-	termAgg
-	histogramAgg
-	percentileAgg
-)
-
 // Processor stores the information for a mongo aggregation pipeline
 type Processor struct {
 	db              *Graph
@@ -32,7 +21,7 @@ type Processor struct {
 	query           []bson.M
 	dataType        gdbi.DataType
 	markTypes       map[string]gdbi.DataType
-	aggTypes        map[string]aggType
+	aggTypes        map[string]*gripql.Aggregate
 }
 
 func getDataElement(result map[string]interface{}) *gdbi.DataElement {
@@ -108,13 +97,16 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 						out := &gripql.AggregationResult{
 							Buckets: []*gripql.AggregationResultBucket{},
 						}
-
 						buckets, ok := v.([]interface{})
 						if !ok {
 							plog.Errorf("Failed to convert Mongo aggregation result: %+v", v)
 							continue
 						}
-						for _, bucket := range buckets {
+						//if proc.aggTypes[k].GetHistogram() != nil {
+						//	plog.Infof("Starting histogram agg result %+v", v)
+						//}
+						var lastBucket float64
+						for i, bucket := range buckets {
 							bucket, ok := bucket.(map[string]interface{})
 							if !ok {
 								plog.Errorf("Failed to convert Mongo aggregation result: %+v", bucket)
@@ -122,12 +114,21 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 							}
 
 							var term *structpb.Value
-							switch proc.aggTypes[k] {
-							case termAgg:
+							switch proc.aggTypes[k].GetAggregation().(type) {
+							case *gripql.Aggregate_Term:
 								term = protoutil.WrapValue(bucket["_id"])
-							case histogramAgg:
+							case *gripql.Aggregate_Histogram:
 								term = protoutil.WrapValue(bucket["_id"])
-							case percentileAgg:
+								curPos := bucket["_id"].(float64)
+								stepSize := float64(proc.aggTypes[k].GetHistogram().Interval)
+								if i != 0 {
+									for nv := lastBucket + stepSize; nv < curPos; nv += stepSize {
+										out.Buckets = append(out.Buckets, &gripql.AggregationResultBucket{Key: protoutil.WrapValue(nv), Value: float64(0.0)})
+									}
+								}
+								lastBucket = curPos
+
+							case *gripql.Aggregate_Percentile:
 								bid := strings.Replace(bucket["_id"].(string), "_", ".", -1)
 								f, err := strconv.ParseFloat(bid, 64)
 								if err != nil {
