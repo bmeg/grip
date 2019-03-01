@@ -14,7 +14,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-
 // Processor stores the information for a mongo aggregation pipeline
 type Processor struct {
 	db              *Graph
@@ -106,7 +105,8 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 						//if proc.aggTypes[k].GetHistogram() != nil {
 						//	plog.Infof("Starting histogram agg result %+v", v)
 						//}
-						for _, bucket := range buckets {
+						var lastBucket float64
+						for i, bucket := range buckets {
 							bucket, ok := bucket.(map[string]interface{})
 							if !ok {
 								plog.Errorf("Failed to convert Mongo aggregation result: %+v", bucket)
@@ -118,8 +118,16 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 							case *gripql.Aggregate_Term:
 								term = protoutil.WrapValue(bucket["_id"])
 							case *gripql.Aggregate_Histogram:
-								//plog.Infof("Starting histogram %+v", bucket)
 								term = protoutil.WrapValue(bucket["_id"])
+								curPos := bucket["_id"].(float64)
+								stepSize := float64(proc.aggTypes[k].GetHistogram().Interval)
+								if i != 0 {
+									for nv := lastBucket + stepSize; nv < curPos; nv += stepSize {
+										out.Buckets = append(out.Buckets, &gripql.AggregationResultBucket{Key: protoutil.WrapValue(nv), Value: float64(0.0)})
+									}
+								}
+								lastBucket = curPos
+
 							case *gripql.Aggregate_Percentile:
 								bid := strings.Replace(bucket["_id"].(string), "_", ".", -1)
 								f, err := strconv.ParseFloat(bid, 64)

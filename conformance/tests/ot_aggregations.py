@@ -228,9 +228,14 @@ def test_traversal_edge_histogram_aggregation(O):
             elif res["key"] == 88:
                 if res["value"] != 1:
                     errors.append("Incorrect bucket count returned: %s" % res)
+            elif res["key"] in [8, 12, 16, 24, 36, 40, 44, 52, 56, 60, 64, 68, 76, 80, 84]:
+                if res["value"] != 0:
+                    errors.append("Incorrect bucket count returned: %s" % res)
             else:
                 errors.append("Incorrect bucket key returned: %s" % res)
 
+        if len(row["buckets"]) != 22:
+            errors.append("Incorrect bucket count: %d" % len(row["buckets"]))
     if count != 1:
         errors.append(
             "Incorrect number of aggregations returned: %d != %d" %
