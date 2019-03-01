@@ -14,6 +14,7 @@ var yaml = false
 var jsonFile string
 var yamlFile string
 var sampleCount uint32 = 50
+var excludeLabels []string
 
 // Cmd line declaration
 var Cmd = &cobra.Command{
@@ -110,7 +111,7 @@ var sampleCmd = &cobra.Command{
 			return err
 		}
 
-		schema, err := gripql_schema.ScanSchema(conn, graph, sampleCount)
+		schema, err := gripql_schema.ScanSchema(conn, graph, sampleCount, excludeLabels)
 		if err != nil {
 			return err
 		}
@@ -144,6 +145,7 @@ func init() {
 	sflags.StringVar(&host, "host", host, "grip server url")
 	sflags.Uint32Var(&sampleCount, "sample", sampleCount, "Number of elements to sample")
 	sflags.BoolVar(&yaml, "yaml", yaml, "output schema in YAML rather than JSON format")
+	sflags.StringSliceVar(&excludeLabels, "exclude-label", excludeLabels, "exclude vertex/edge label from schema")
 
 	Cmd.AddCommand(getCmd)
 	Cmd.AddCommand(postCmd)
