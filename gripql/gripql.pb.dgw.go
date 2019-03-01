@@ -23,14 +23,18 @@ func NewQueryDirectClient(server QueryServer) *QueryDirectClient {
 type directQueryTraversal struct {
   ctx context.Context
   c   chan *QueryResult
+  e   error
 }
 
 func (dsm *directQueryTraversal) Recv() (*QueryResult, error) {
 	value, ok := <-dsm.c
 	if !ok {
+    if dsm.e != nil {
+      return nil, dsm.e
+    }
 		return nil, io.EOF
 	}
-	return value, nil
+	return value, dsm.e
 }
 func (dsm *directQueryTraversal) Send(a *QueryResult) error {
 	dsm.c <- a
@@ -51,10 +55,10 @@ func (dsm *directQueryTraversal) RecvMsg(m interface{}) error  { return nil }
 func (dsm *directQueryTraversal) Header() (metadata.MD, error) { return nil, nil }
 func (dsm *directQueryTraversal) Trailer() metadata.MD         { return nil }
 func (dir *QueryDirectClient) Traversal(ctx context.Context, in *GraphQuery, opts ...grpc.CallOption) (Query_TraversalClient, error) {
-	w := &directQueryTraversal{ctx, make(chan *QueryResult, 100)}
+	w := &directQueryTraversal{ctx, make(chan *QueryResult, 100), nil}
 	go func() {
-		dir.server.Traversal(in, w)
-		w.close()
+    defer w.close()
+		w.e = dir.server.Traversal(in, w)
 	}()
 	return w, nil
 }
