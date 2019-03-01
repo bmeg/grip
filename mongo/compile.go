@@ -10,6 +10,7 @@ import (
 	"github.com/bmeg/grip/jsonpath"
 	"github.com/bmeg/grip/protoutil"
 	"github.com/globalsign/mgo/bson"
+	log "github.com/sirupsen/logrus"
 )
 
 // Pipeline a set of runnable query operations
@@ -526,25 +527,53 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, er
 				return &Pipeline{}, fmt.Errorf(`"fields" statement is only valid for edge or vertex types not: %s`, lastType.String())
 			}
 			fields := protoutil.AsStringList(stmt.Fields)
-			fieldSelect := bson.M{"_id": 0}
+			includeFields := []string{}
+			excludeFields := []string{}
+		SelectLoop:
 			for _, f := range fields {
+				exclude := false
+				if strings.HasPrefix(f, "-") {
+					exclude = true
+					f = strings.TrimPrefix(f, "-")
+				}
 				namespace := jsonpath.GetNamespace(f)
+				if namespace != jsonpath.Current {
+					log.Errorf("FieldsProcessor: only can select field from current traveler")
+					continue SelectLoop
+				}
 				f = jsonpath.GetJSONPath(f)
 				f = strings.TrimPrefix(f, "$.")
-				switch f {
-				case "gid":
-					f = "_id"
-					if namespace != jsonpath.Current {
-						f = "marks." + namespace + "." + f
-					}
-					fieldSelect[f] = 1
-				default:
-					if namespace != jsonpath.Current {
-						f = "marks." + namespace + "." + f
-					}
-					fieldSelect[f] = bson.M{"$ifNull": []interface{}{"$" + f, nil}}
+				if exclude {
+					excludeFields = append(excludeFields, f)
+				} else {
+					includeFields = append(includeFields, f)
 				}
 			}
+
+			fieldSelect := bson.M{}
+			for _, v := range excludeFields {
+				fieldSelect[v] = 0
+			}
+
+			if len(includeFields) > 0 || len(excludeFields) == 0 {
+				fieldSelect = bson.M{"_id": 1, "label": 1, "from": 1, "to": 1, "marks": 1}
+				for _, v := range excludeFields {
+					switch v {
+					case "gid":
+						fieldSelect["_id"] = 0
+					case "label":
+						delete(fieldSelect, "label")
+					case "from":
+						delete(fieldSelect, "from")
+					case "to":
+						delete(fieldSelect, "to")
+					}
+				}
+				for _, v := range includeFields {
+					fieldSelect[v] = 1
+				}
+			}
+
 			query = append(query, bson.M{"$project": fieldSelect})
 
 		case *gripql.GraphStatement_Aggregate:

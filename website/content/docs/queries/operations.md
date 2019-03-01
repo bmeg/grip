@@ -201,9 +201,12 @@ G.query().V().range(5, 15)
 
 
 ## .fields([fields])
-Select which vertex/edge fields to return
+Select which vertex/edge fields to return or exlucde. Operation with no arguments exlcudes all properties. 
+"gid", "label", "from" and "to" are included by default.
 ```python
-G.query().V("vertex1").fields("_gid", "_label", "symbol")
+O.query().V("vertex1").fields("symbol")     # include only symbol property
+O.query().V("vertex1").fields("-symbol")    # exclude symbol property
+O.query().V("vertex1").fields()             # exclude all properties
 ```
 
 ## .render(template)

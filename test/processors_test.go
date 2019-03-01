@@ -298,8 +298,41 @@ func TestEngine(t *testing.T) {
 			count(40),
 		},
 		{
-			Q.V("users:1").Fields("_label", "email"),
-			pickRes(vertex("", "users", data{"email": "Earlean.Bonacci@yahoo.com"})),
+			Q.V("users:1").Fields(),
+			pickRes(vertex("users:1", "users", data{})),
+		},
+		{
+			Q.V("users:1").Fields("email", "id"),
+			pickRes(vertex("users:1", "users", data{"email": "Earlean.Bonacci@yahoo.com", "id": 1})),
+		},
+		{
+			Q.V("users:1").Fields("-password", "email", "id"),
+			pickRes(vertex("users:1", "users", data{"email": "Earlean.Bonacci@yahoo.com", "id": 1})),
+		},
+		{
+			Q.V("users:1").Fields("-_gid", "-_label", "email", "id"),
+			pickRes(vertex("", "", data{"email": "Earlean.Bonacci@yahoo.com", "id": 1})),
+		},
+		{
+			Q.V("users:1").Fields("-created_at", "-deleted_at", "-details"),
+			pickRes(vertex("users:1", "users", data{
+				"email":    "Earlean.Bonacci@yahoo.com",
+				"id":       1,
+				"password": "029761dd44fec0b14825843ad0dfface",
+			},
+			)),
+		},
+		{
+			Q.V("users:1").Fields("-_label"),
+			pickRes(vertex("users:1", "", data{
+				"created_at": "2009-12-20 20:36:00 +0000 UTC",
+				"deleted_at": nil,
+				"details":    nil,
+				"email":      "Earlean.Bonacci@yahoo.com",
+				"id":         1,
+				"password":   "029761dd44fec0b14825843ad0dfface",
+			},
+			)),
 		},
 		{
 			Q.V("users:1").As("a").Out().As("b").Select("a"),
@@ -329,10 +362,31 @@ func TestEngine(t *testing.T) {
 			}),
 		},
 		{
-			Q.V("users:1").As("a").Out().As("b").Fields("$a._gid", "$a._label", "$b._gid", "$b._label").Select("a", "b"),
+			Q.V("users:1").Fields().As("a").Out().Fields().As("b").Select("a", "b"),
 			pickSelection(map[string]interface{}{
 				"a": vertex("users:1", "users", nil),
 				"b": vertex("purchases:57", "purchases", nil),
+			}),
+		},
+		{
+			Q.V("users:1").Fields("-created_at", "-deleted_at", "-details", "-id", "-password").As("a").Out().Fields().As("b").Select("a", "b"),
+			pickSelection(map[string]interface{}{
+				"a": vertex("users:1", "users", data{"email": "Earlean.Bonacci@yahoo.com"}),
+				"b": vertex("purchases:57", "purchases", nil),
+			}),
+		},
+		{
+			Q.V("users:1").Fields().As("a").Out().Fields("state").As("b").Select("a", "b"),
+			pickSelection(map[string]interface{}{
+				"a": vertex("users:1", "users", nil),
+				"b": vertex("purchases:57", "purchases", data{"state": "IL"}),
+			}),
+		},
+		{
+			Q.V("users:1").As("a").Fields().Out().As("b").Fields().Select("a", "b"),
+			pickSelection(map[string]interface{}{
+				"a": getVertex("users:1"),
+				"b": getVertex("purchases:57"),
 			}),
 		},
 		{

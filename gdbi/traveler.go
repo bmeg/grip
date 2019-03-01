@@ -37,6 +37,15 @@ func (t *Traveler) HasMark(label string) bool {
 	return ok
 }
 
+// ListMarks returns the list of marks in a travelers statemap
+func (t *Traveler) ListMarks() []string {
+	marks := []string{}
+	for k := range t.marks {
+		marks = append(marks, k)
+	}
+	return marks
+}
+
 // AddMark adds a result to travels state map using `label` as the name
 func (t *Traveler) AddMark(label string, r *DataElement) *Traveler {
 	o := Traveler{marks: map[string]*DataElement{}}
