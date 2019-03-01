@@ -110,6 +110,9 @@ def test_traversal_histogram_aggregation(O):
             else:
                 errors.append("Incorrect bucket key returned: %s" % res)
 
+        if len(row["buckets"]) != 5:
+            errors.append("Incorrect bucket size returned: %d" % len(row["buckets"]))
+
     if count != 1:
         errors.append(
             "Incorrect number of aggregations returned: %d != %d" %
