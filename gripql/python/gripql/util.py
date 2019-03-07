@@ -2,10 +2,10 @@ from __future__ import absolute_import, print_function, unicode_literals
 
 import os
 import json
+import requests
 import requests.auth
 
 from datetime import datetime
-from requests import HTTPError
 from requests.compat import urlparse, urlunparse
 
 
@@ -26,6 +26,9 @@ class BaseConnection(object):
         if credential_file is None:
             credential_file = os.getenv("GRIP_CREDENTIAL_FILE", None)
         self.credential_file = credential_file
+
+        self.session = Session()
+        _ = self.session.headers.update(self._request_header())
 
     def _request_header(self):
         if self.token:
@@ -230,17 +233,37 @@ def raise_for_status(response):
     except Exception:
         rsp_body = response.text
 
-    if 400 <= response.status_code < 500:
+    if response.status_code == 302 and 'oauth2' in response.headers.get('Location', None):
+        http_error_msg = '%s Client Error: OAuth2 redirect for url: %s redirect url: %s' % (
+            response.status_code, response.url, response.headers.get('Location', None)
+        )
+
+    elif 400 <= response.status_code < 500:
         http_error_msg = '%s Client Error: %s for url: % response: %s' % (
-            response.status_code, reason,
-            response.url, rsp_body
+            response.status_code, reason, response.url, rsp_body
         )
 
     elif 500 <= response.status_code < 600:
         http_error_msg = '%s Server Error: %s for url: %s response: %s' % (
-            response.status_code, reason,
-            response.url, rsp_body
+            response.status_code, reason, response.url, rsp_body
         )
 
     if http_error_msg:
-        raise HTTPError(http_error_msg, response=response)
+        raise requests.HTTPError(http_error_msg, response=response)
+
+
+class Session(requests.Session):
+    def __init__(self):
+        super(Session, self).__init__()
+
+    def get(self, url, **kwargs):
+        kwargs.setdefault('allow_redirects', False)
+        return self.request('GET', url, **kwargs)
+
+    def post(self, url, data=None, json=None, **kwargs):
+        kwargs.setdefault('allow_redirects', False)
+        return self.request('POST', url, data=data, json=json, **kwargs)
+
+    def delete(self, url, **kwargs):
+        kwargs.setdefault('allow_redirects', False)
+        return self.request('DELETE', url, **kwargs)

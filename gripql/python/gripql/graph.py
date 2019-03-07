@@ -1,7 +1,6 @@
 from __future__ import absolute_import, print_function, unicode_literals
 
 import json
-import requests
 
 from gripql.util import BaseConnection, raise_for_status
 from gripql.query import Query
@@ -22,10 +21,9 @@ class Graph(BaseConnection):
             "vertices": vertices,
             "edges": edges
         }
-        response = requests.post(
+        response = self.session.post(
             self.url + "/schema",
-            json=payload,
-            headers=self._request_header()
+            json=payload
         )
         raise_for_status(response)
         return response.json()
@@ -39,10 +37,9 @@ class Graph(BaseConnection):
             "label": label,
             "data": data
         }
-        response = requests.post(
+        response = self.session.post(
             self.url + "/vertex",
-            json=payload,
-            headers=self._request_header()
+            json=payload
         )
         raise_for_status(response)
         return response.json()
@@ -52,9 +49,8 @@ class Graph(BaseConnection):
         Delete a vertex from the graph.
         """
         url = self.url + "/vertex/" + gid
-        response = requests.delete(
-            url,
-            headers=self._request_header()
+        response = self.session.delete(
+            url
         )
         raise_for_status(response)
         return response.json()
@@ -64,9 +60,8 @@ class Graph(BaseConnection):
         Get a vertex by id.
         """
         url = self.url + "/vertex/" + gid
-        response = requests.get(
-            url,
-            headers=self._request_header()
+        response = self.session.get(
+            url
         )
         raise_for_status(response)
         return response.json()
@@ -83,10 +78,9 @@ class Graph(BaseConnection):
         }
         if gid is not None:
             payload["gid"] = gid
-        response = requests.post(
+        response = self.session.post(
             self.url + "/edge",
-            json=payload,
-            headers=self._request_header()
+            json=payload
         )
         raise_for_status(response)
         return response.json()
@@ -96,9 +90,8 @@ class Graph(BaseConnection):
         Delete an edge from the graph.
         """
         url = self.url + "/edge/" + gid
-        response = requests.delete(
-            url,
-            headers=self._request_header()
+        response = self.session.delete(
+            url
         )
         raise_for_status(response)
         return response.json()
@@ -108,9 +101,8 @@ class Graph(BaseConnection):
         Get an edge by id.
         """
         url = self.url + "/edge/" + gid
-        response = requests.get(
-            url,
-            headers=self._request_header()
+        response = self.session.get(
+            url
         )
         raise_for_status(response)
         return response.json()
@@ -120,17 +112,16 @@ class Graph(BaseConnection):
 
     def addIndex(self, label, field):
         url = self.url + "/index/" + label
-        response = requests.post(
+        response = self.session.post(
             url,
-            json={"field": field},
-            headers=self._request_header()
+            json={"field": field}
         )
         raise_for_status(response)
         return response.json()
 
     def listIndices(self):
         url = self.url + "/index"
-        response = requests.get(
+        response = self.session.get(
             url,
             headers=self._request_header()
         )
@@ -139,9 +130,8 @@ class Graph(BaseConnection):
 
     def listLabels(self):
         url = self.url + "/label"
-        response = requests.get(
-            url,
-            headers=self._request_header()
+        response = self.session.get(
+            url
         )
         raise_for_status(response)
         return response.json()
@@ -153,10 +143,9 @@ class Graph(BaseConnection):
             "aggregations": aggregations,
         }
         url = self.url + "/aggregate"
-        response = requests.post(
+        response = self.session.post(
             url,
-            json=payload,
-            headers=self._request_header()
+            json=payload
         )
         raise_for_status(response)
         return response.json()["aggregations"]
@@ -202,10 +191,9 @@ class BulkAdd(BaseConnection):
 
     def execute(self):
         payload = "\n".join(self.elements)
-        response = requests.post(
+        response = self.session.post(
             self.url,
-            data=payload,
-            headers=self._request_header()
+            data=payload
         )
         raise_for_status(response)
         return response.json()

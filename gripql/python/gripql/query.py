@@ -2,7 +2,6 @@ from __future__ import absolute_import, print_function, unicode_literals
 
 import json
 import logging
-import requests
 
 from gripql.util import AttrDict, BaseConnection, Rate, raise_for_status
 
@@ -287,11 +286,10 @@ class Query(BaseConnection):
 
         rate = Rate(logger)
         rate.init()
-        response = requests.post(
+        response = self.session.post(
             self.url,
             json=self.to_dict(),
-            stream=True,
-            headers=self._request_header()
+            stream=True
         )
         logger.debug('POST %s', self.url)
         logger.debug('BODY %s', self.to_json())

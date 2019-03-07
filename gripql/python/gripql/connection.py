@@ -1,7 +1,5 @@
 from __future__ import absolute_import, print_function, unicode_literals
 
-import requests
-
 from gripql.graph import Graph
 from gripql.util import BaseConnection, raise_for_status
 
@@ -15,9 +13,8 @@ class Connection(BaseConnection):
         """
         List graphs.
         """
-        response = requests.get(
-            self.url,
-            headers=self._request_header()
+        response = self.session.get(
+            self.url
         )
         raise_for_status(response)
         return response.json()['graphs']
@@ -26,10 +23,9 @@ class Connection(BaseConnection):
         """
         Create a new graph.
         """
-        response = requests.post(
+        response = self.session.post(
             self.url + "/" + name,
-            {},
-            headers=self._request_header()
+            {}
         )
         raise_for_status(response)
         return response.json()
@@ -38,9 +34,8 @@ class Connection(BaseConnection):
         """
         Delete graph.
         """
-        response = requests.delete(
-            self.url + "/" + name,
-            headers=self._request_header()
+        response = self.session.delete(
+            self.url + "/" + name
         )
         raise_for_status(response)
         return response.json()
@@ -49,9 +44,8 @@ class Connection(BaseConnection):
         """
         Get a graph schema.
         """
-        response = requests.get(
-            self.url + "/" + name + "/schema",
-            headers=self._request_header()
+        response = self.session.get(
+            self.url + "/" + name + "/schema"
         )
         raise_for_status(response)
         return response.json()
