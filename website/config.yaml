@@ -1,4 +1,4 @@
-baseURL: https://docs.bmeg.io/grip
+baseURL: https://bmeg.github.io/grip
 canonifyURLs: true
 languageCode: en-us
 title: GRIP

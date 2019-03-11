@@ -3,107 +3,107 @@
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   
   <url>
-    <loc>https://docs.bmeg.io/grip/docs/tutorials/pathway-commons/</loc>
+    <loc>https://bmeg.github.io/grip/docs/tutorials/pathway-commons/</loc>
   </url>
   
   <url>
-    <loc>https://docs.bmeg.io/grip/docs/tutorials/amazon/</loc>
+    <loc>https://bmeg.github.io/grip/docs/tutorials/amazon/</loc>
   </url>
   
   <url>
-    <loc>https://docs.bmeg.io/grip/docs/security/basic/</loc>
+    <loc>https://bmeg.github.io/grip/docs/security/basic/</loc>
   </url>
   
   <url>
-    <loc>https://docs.bmeg.io/grip/categories/</loc>
+    <loc>https://bmeg.github.io/grip/categories/</loc>
     <priority>0</priority>
   </url>
   
   <url>
-    <loc>https://docs.bmeg.io/grip/docs/developers/</loc>
+    <loc>https://bmeg.github.io/grip/docs/developers/</loc>
   </url>
   
   <url>
-    <loc>https://docs.bmeg.io/grip/docs/</loc>
+    <loc>https://bmeg.github.io/grip/docs/</loc>
     <priority>0</priority>
   </url>
   
   <url>
-    <loc>https://docs.bmeg.io/grip/download/</loc>
+    <loc>https://bmeg.github.io/grip/download/</loc>
   </url>
   
   <url>
-    <loc>https://docs.bmeg.io/grip/docs/databases/elastic/</loc>
+    <loc>https://bmeg.github.io/grip/docs/databases/elastic/</loc>
   </url>
   
   <url>
-    <loc>https://docs.bmeg.io/grip/docs/databases/kvstore/</loc>
+    <loc>https://bmeg.github.io/grip/docs/databases/kvstore/</loc>
   </url>
   
   <url>
-    <loc>https://docs.bmeg.io/grip/</loc>
+    <loc>https://bmeg.github.io/grip/</loc>
     <priority>0</priority>
   </url>
   
   <url>
-    <loc>https://docs.bmeg.io/grip/docs/queries/getting_started/</loc>
+    <loc>https://bmeg.github.io/grip/docs/queries/getting_started/</loc>
   </url>
   
   <url>
-    <loc>https://docs.bmeg.io/grip/docs/queries/graph_schemas/</loc>
+    <loc>https://bmeg.github.io/grip/docs/queries/graph_schemas/</loc>
   </url>
   
   <url>
-    <loc>https://docs.bmeg.io/grip/docs/queries/graphql/</loc>
+    <loc>https://bmeg.github.io/grip/docs/queries/graphql/</loc>
   </url>
   
   <url>
-    <loc>https://docs.bmeg.io/grip/docs/databases/mongo/</loc>
+    <loc>https://bmeg.github.io/grip/docs/databases/mongo/</loc>
   </url>
   
   <url>
-    <loc>https://docs.bmeg.io/grip/docs/queries/operations/</loc>
+    <loc>https://bmeg.github.io/grip/docs/queries/operations/</loc>
   </url>
   
   <url>
-    <loc>https://docs.bmeg.io/grip/docs/</loc>
+    <loc>https://bmeg.github.io/grip/docs/</loc>
   </url>
   
   <url>
-    <loc>https://docs.bmeg.io/grip/docs/databases/psql/</loc>
+    <loc>https://bmeg.github.io/grip/docs/databases/psql/</loc>
   </url>
   
   <url>
-    <loc>https://docs.bmeg.io/grip/docs/queries/</loc>
+    <loc>https://bmeg.github.io/grip/docs/queries/</loc>
   </url>
   
   <url>
-    <loc>https://docs.bmeg.io/grip/docs/queries/jsonpath/</loc>
+    <loc>https://bmeg.github.io/grip/docs/queries/jsonpath/</loc>
   </url>
   
   <url>
-    <loc>https://docs.bmeg.io/grip/docs/databases/sql/</loc>
+    <loc>https://bmeg.github.io/grip/docs/databases/sql/</loc>
   </url>
   
   <url>
-    <loc>https://docs.bmeg.io/grip/docs/security/</loc>
+    <loc>https://bmeg.github.io/grip/docs/security/</loc>
   </url>
   
   <url>
-    <loc>https://docs.bmeg.io/grip/docs/databases/</loc>
+    <loc>https://bmeg.github.io/grip/docs/databases/</loc>
   </url>
   
   <url>
-    <loc>https://docs.bmeg.io/grip/docs/tutorials/tcga-rna/</loc>
+    <loc>https://bmeg.github.io/grip/docs/tutorials/tcga-rna/</loc>
   </url>
   
   <url>
-    <loc>https://docs.bmeg.io/grip/tags/</loc>
+    <loc>https://bmeg.github.io/grip/tags/</loc>
     <priority>0</priority>
   </url>
   
   <url>
-    <loc>https://docs.bmeg.io/grip/docs/tutorials/</loc>
+    <loc>https://bmeg.github.io/grip/docs/tutorials/</loc>
   </url>
   
 </urlset>
