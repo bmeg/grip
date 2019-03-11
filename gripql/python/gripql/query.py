@@ -2,10 +2,8 @@ from __future__ import absolute_import, print_function, unicode_literals
 
 import json
 import logging
-import os
-import requests
 
-from gripql.util import AttrDict, Rate, process_url, raise_for_status
+from gripql.util import AttrDict, BaseConnection, Rate, raise_for_status
 
 
 def _wrap_value(value, typ):
@@ -31,22 +29,15 @@ def _wrap_dict_value(value):
     return _wrap_value(value, dict)
 
 
-class Query:
-    def __init__(self, url, graph, user=None, password=None):
-        self.query = []
-        url = process_url(url)
-        self.base_url = url
-        self.url = url + "/v1/graph/" + graph + "/query"
+class Query(BaseConnection):
+    def __init__(self, url, graph, user=None, password=None, token=None, credential_file=None):
+        super(Query, self).__init__(url, user, password, token, credential_file)
+        self.url = self.base_url + "/v1/graph/" + graph + "/query"
         self.graph = graph
-        if user is None:
-            user = os.getenv("GRIP_USER", None)
-        self.user = user
-        if password is None:
-            password = os.getenv("GRIP_PASSWORD", None)
-        self.password = password
+        self.query = []
 
     def __append(self, part):
-        q = self.__class__(self.base_url, self.graph)
+        q = self.__class__(self.base_url, self.graph, self.user, self.password, self.token, self.credential_file)
         q.query = self.query[:]
         q.query.append(part)
         return q
@@ -295,11 +286,10 @@ class Query:
 
         rate = Rate(logger)
         rate.init()
-        response = requests.post(
+        response = self.session.post(
             self.url,
             json=self.to_dict(),
-            stream=True,
-            auth=(self.user, self.password)
+            stream=True
         )
         logger.debug('POST %s', self.url)
         logger.debug('BODY %s', self.to_json())

@@ -40,22 +40,24 @@ func TestBasicAuthFail(t *testing.T) {
 
 	_, err = cli.Traversal(&gripql.GraphQuery{Graph: "test", Query: gripql.NewQuery().V().Statements})
 	if err == nil || !strings.Contains(err.Error(), "PermissionDenied") {
-		t.Error("expected error")
+		t.Errorf("expected PermissionDenied error; got: %v", err)
 	}
 
 	_, err = cli.ListGraphs()
 	if err == nil || !strings.Contains(err.Error(), "PermissionDenied") {
-		t.Error("expected error")
+		t.Errorf("expected PermissionDenied error; got: %v", err)
 	}
 
 	_, err = cli.GetVertex("test", "1")
 	if err == nil || !strings.Contains(err.Error(), "PermissionDenied") {
-		t.Error("expected error")
+		t.Errorf("expected PermissionDenied error; got: %v", err)
 	}
 
 	resp, err := http.Get(fmt.Sprintf("http://localhost:%s/v1/graph", conf.HTTPPort))
-	if err != nil || resp.StatusCode != 401 {
-		t.Error("expected http 401 error")
+	if err != nil {
+		t.Errorf("unexpected error; got: %v", err)
+	} else if resp.StatusCode != 401 {
+		t.Errorf("expected http 401 error; got: %v", resp.StatusCode)
 	}
 }
 
@@ -75,45 +77,45 @@ func TestBasicAuth(t *testing.T) {
 	tmpDB := "grip.db." + util.RandomString(6)
 	db, err := kvgraph.NewKVGraphDB("badger", tmpDB)
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("unexpected error: %v", err)
 	}
 	defer os.RemoveAll(tmpDB)
 
 	srv, err := NewGripServer(db, conf, nil)
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("unexpected error: %v", err)
 	}
 
 	go srv.Serve(ctx)
 
 	cli, err := gripql.Connect(rpc.ConfigWithDefaults(conf.RPCAddress()), true)
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("unexpected error: %v", err)
 	}
 
 	err = cli.AddGraph("test")
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("unexpected error: %v", err)
 	}
 
 	err = cli.AddVertex("test", &gripql.Vertex{Gid: "1", Label: "test"})
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("unexpected error: %v", err)
 	}
 
 	_, err = cli.Traversal(&gripql.GraphQuery{Graph: "test", Query: gripql.NewQuery().V().Statements})
 	if err != nil {
-		t.Error("unexpected error", err)
+		t.Errorf("unexpected error: %v", err)
 	}
 
 	_, err = cli.ListGraphs()
 	if err != nil {
-		t.Error("unexpected error", err)
+		t.Errorf("unexpected error: %v", err)
 	}
 
 	_, err = cli.GetVertex("test", "1")
 	if err != nil {
-		t.Error("unexpected error", err)
+		t.Errorf("unexpected error: %v", err)
 	}
 
 	req, err := http.NewRequest("GET", fmt.Sprintf("http://localhost:%s/v1/graph", conf.HTTPPort), nil)
@@ -121,7 +123,7 @@ func TestBasicAuth(t *testing.T) {
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil || resp.StatusCode != 200 {
-		t.Error("basic auth error error")
+		t.Errorf("unexpected error: %v", err)
 	}
 	returnString := `{"graphs":["test"]}`
 	bodyText, err := ioutil.ReadAll(resp.Body)

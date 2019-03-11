@@ -1,39 +1,29 @@
 from __future__ import absolute_import, print_function, unicode_literals
 
-import os
 import json
-import requests
 
-from gripql.util import process_url, raise_for_status
+from gripql.util import BaseConnection, raise_for_status
 from gripql.query import Query
 
 
-class Graph:
-    def __init__(self, url, name, user=None, password=None):
-        url = process_url(url)
-        self.base_url = url
-        self.url = url + "/v1/graph/" + name
-        self.name = name
-        if user is None:
-            user = os.getenv("GRIP_USER", None)
-        self.user = user
-        if password is None:
-            password = os.getenv("GRIP_PASSWORD", None)
-        self.password = password
+class Graph(BaseConnection):
+    def __init__(self, url, graph, user=None, password=None, token=None, credential_file=None):
+        super(Graph, self).__init__(url, user, password, token, credential_file)
+        self.url = self.base_url + "/v1/graph/" + graph
+        self.graph = graph
 
     def addSchema(self, vertices=[], edges=[]):
         """
         Add vertex to a graph.
         """
         payload = {
-            "graph": self.name,
+            "graph": self.graph,
             "vertices": vertices,
             "edges": edges
         }
-        response = requests.post(
+        response = self.session.post(
             self.url + "/schema",
-            json=payload,
-            auth=(self.user, self.password)
+            json=payload
         )
         raise_for_status(response)
         return response.json()
@@ -47,10 +37,9 @@ class Graph:
             "label": label,
             "data": data
         }
-        response = requests.post(
+        response = self.session.post(
             self.url + "/vertex",
-            json=payload,
-            auth=(self.user, self.password)
+            json=payload
         )
         raise_for_status(response)
         return response.json()
@@ -60,9 +49,8 @@ class Graph:
         Delete a vertex from the graph.
         """
         url = self.url + "/vertex/" + gid
-        response = requests.delete(
-            url,
-            auth=(self.user, self.password)
+        response = self.session.delete(
+            url
         )
         raise_for_status(response)
         return response.json()
@@ -72,9 +60,8 @@ class Graph:
         Get a vertex by id.
         """
         url = self.url + "/vertex/" + gid
-        response = requests.get(
-            url,
-            auth=(self.user, self.password)
+        response = self.session.get(
+            url
         )
         raise_for_status(response)
         return response.json()
@@ -91,10 +78,9 @@ class Graph:
         }
         if gid is not None:
             payload["gid"] = gid
-        response = requests.post(
+        response = self.session.post(
             self.url + "/edge",
-            json=payload,
-            auth=(self.user, self.password)
+            json=payload
         )
         raise_for_status(response)
         return response.json()
@@ -104,9 +90,8 @@ class Graph:
         Delete an edge from the graph.
         """
         url = self.url + "/edge/" + gid
-        response = requests.delete(
-            url,
-            auth=(self.user, self.password)
+        response = self.session.delete(
+            url
         )
         raise_for_status(response)
         return response.json()
@@ -116,42 +101,37 @@ class Graph:
         Get an edge by id.
         """
         url = self.url + "/edge/" + gid
-        response = requests.get(
-            url,
-            auth=(self.user, self.password)
+        response = self.session.get(
+            url
         )
         raise_for_status(response)
         return response.json()
 
     def bulkAdd(self):
-        return BulkAdd(self.base_url, self.name, self.user, self.password)
+        return BulkAdd(self.base_url, self.graph, self.user, self.password, self.token)
 
     def addIndex(self, label, field):
         url = self.url + "/index/" + label
-        response = requests.post(
+        response = self.session.post(
             url,
-            json={"field": field},
-            auth=(self.user, self.password)
+            json={"field": field}
         )
         raise_for_status(response)
         return response.json()
 
     def listIndices(self):
         url = self.url + "/index"
-        response = requests.get(
+        response = self.session.get(
             url,
-            stream=True,
-            auth=(self.user, self.password)
+            headers=self._request_header()
         )
         raise_for_status(response)
         return response.json()["indices"]
 
     def listLabels(self):
         url = self.url + "/label"
-        response = requests.get(
-            url,
-            stream=True,
-            auth=(self.user, self.password)
+        response = self.session.get(
+            url
         )
         raise_for_status(response)
         return response.json()
@@ -163,10 +143,9 @@ class Graph:
             "aggregations": aggregations,
         }
         url = self.url + "/aggregate"
-        response = requests.post(
+        response = self.session.post(
             url,
-            json=payload,
-            auth=(self.user, self.password)
+            json=payload
         )
         raise_for_status(response)
         return response.json()["aggregations"]
@@ -175,22 +154,15 @@ class Graph:
         """
         Create a query handle.
         """
-        return Query(self.base_url, self.name)
+        return Query(self.base_url, self.graph, self.user, self.password, self.token, self.credential_file)
 
 
-class BulkAdd:
-    def __init__(self, url, graph, user=None, password=None):
-        url = process_url(url)
-        self.base_url = url
-        self.url = url + "/v1/graph"
+class BulkAdd(BaseConnection):
+    def __init__(self, url, graph, user=None, password=None, token=None, credential_file=None):
+        super(BulkAdd, self).__init__(url, user, password, token, credential_file)
+        self.url = self.base_url + "/v1/graph"
         self.graph = graph
         self.elements = []
-        if user is None:
-            user = os.getenv("GRIP_USER", None)
-        self.user = user
-        if password is None:
-            password = os.getenv("GRIP_PASSWORD", None)
-        self.password = password
 
     def addVertex(self, gid, label, data={}):
         payload = {
@@ -219,10 +191,9 @@ class BulkAdd:
 
     def execute(self):
         payload = "\n".join(self.elements)
-        response = requests.post(
+        response = self.session.post(
             self.url,
-            data=payload,
-            auth=(self.user, self.password)
+            data=payload
         )
         raise_for_status(response)
         return response.json()

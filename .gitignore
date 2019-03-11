@@ -17,6 +17,7 @@ eggs/
 *.egg
 .tox/
 *venv*
+.pytest_cache/
 
 # Editor Temps
 .*.sw?
