@@ -85,22 +85,11 @@ Database: elasticsearch Elasticsearch: URL: &amp;quot;http://localhost:9200&amp;
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
       
       <guid>https://bmeg.github.io/grip/docs/queries/getting_started/</guid>
-      <description>Getting Started GRIP has an API for making graph queries using structured data. Queries are defined using a series of step operations).
-Install the Python Client pip install &amp;quot;git+https://github.com/bmeg/grip.git#subdirectory=gripql/python&amp;quot;  Let&amp;rsquo;s go through the features currently supported in the python client.
-First, import the client and create a connection to an GRIP server:
-import gripql G = gripql.Connection(&#39;http://bmeg.io&#39;).graph(&amp;quot;bmeg&amp;quot;)  Now that we have a connection to a graph instance, we can use this to make all of our queries.</description>
-    </item>
-    
-    <item>
-      <title>Graph Schemas</title>
-      <link>https://bmeg.github.io/grip/docs/queries/graph_schemas/</link>
-      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
-      
-      <guid>https://bmeg.github.io/grip/docs/queries/graph_schemas/</guid>
-      <description>Graph Schemas Graph schemas are themselves an instance of a graph. As such, they can be traversed like any other graph. The schemas are automatically added to the database following the naming pattern {graph-name}__schema__.
-Get the schema of a graph The schema of a graph can be accessed via a GET request to /v1/graph/{graph-name}/schema.
-Alternatively, you can use the grip CLI: grip schema get {graph-name}.
-Describing graph schemas There are several methods for desribing the schema of a graph.</description>
+      <description>Getting Started GRIP has an API for making graph queries using structured data. Queries are defined using a series of step operations.
+Install the Python Client Available on PyPI.
+pip install gripql  Or install the latest development version:
+pip install &amp;quot;git+https://github.com/bmeg/grip.git#subdirectory=gripql/python&amp;quot;  Using the Python Client Let&amp;rsquo;s go through the features currently supported in the python client.
+First, import the client and create a connection to an GRIP server:</description>
     </item>
     
     <item>

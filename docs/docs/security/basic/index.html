@@ -56,6 +56,13 @@
         
         <li>
           
+          <a href="https://bmeg.github.io/grip/docs/"
+             class="sidebar-nav-item "
+          >Overview</a></li>
+          
+        
+        <li>
+          
           <a href="https://bmeg.github.io/grip/download/"
              class="sidebar-nav-item "
           >Download</a></li>
@@ -63,9 +70,9 @@
         
         <li>
           
-          <a href="https://bmeg.github.io/grip/docs/"
+          <a href="https://bmeg.github.io/grip/graph_schemas/"
              class="sidebar-nav-item "
-          >Overview</a></li>
+          >Graph Schemas</a></li>
           
         
         <li>
@@ -147,15 +154,6 @@
                 <a href="https://bmeg.github.io/grip/docs/queries/jsonpath/"
                    class="sidebar-nav-item "
                 >Referencing Fields</a></li>
-            </ul>
-          </li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/queries/graph_schemas/"
-                   class="sidebar-nav-item "
-                >Graph Schemas</a></li>
             </ul>
           </li>
           
@@ -263,6 +261,29 @@ by everyone:</p>
 <pre><code class="language-bash">$ export GRIP_USER=testuser
 $ export GRIP_PASSWORD=abc123
 $ grip list
+</code></pre>
+
+<h2 id="using-the-python-client">Using the Python Client</h2>
+
+<p>Some GRIP servers may require authorizaiton to access its API endpoints. The client can be configured to pass
+authorization headers in its requests:</p>
+
+<pre><code class="language-python">import gripql
+
+# Basic Auth Header - {'Authorization': 'Basic dGVzdDpwYXNzd29yZA=='}
+G = gripql.Connection(&quot;https://bmeg.io&quot;, user=&quot;test&quot;, password=&quot;password&quot;).graph(&quot;bmeg&quot;)
+</code></pre>
+
+<p>Although GRIP only supports basic password authentication, some servers may be proctected via a nginx or apache
+server. The python client can be configured to handle these cases as well:</p>
+
+<pre><code class="language-python">import gripql 
+
+# Bearer Token - {'Authorization': 'Bearer iamnotarealtoken'}
+G = gripql.Connection(&quot;https://bmeg.io&quot;, token=&quot;iamnotarealtoken&quot;).graph(&quot;bmeg&quot;)
+
+# OAuth2 / Custom - {&quot;OauthEmail&quot;: &quot;fake.user@gmail.com&quot;, &quot;OauthAccessToken&quot;: &quot;iamnotarealtoken&quot;, &quot;OauthExpires&quot;: 1551985931}
+G = gripql.Connection(&quot;https://bmeg.io&quot;,  credential_file=&quot;~/.grip_token.json&quot;).graph(&quot;bmeg&quot;)
 </code></pre>
 
   </div>

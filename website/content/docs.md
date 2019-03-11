@@ -3,7 +3,7 @@ title: Overview
 menu:
   main:
     identifier: docs
-    weight: -1000
+    weight: -3000
 ---
 
 # Overview

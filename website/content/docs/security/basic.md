@@ -33,3 +33,28 @@ $ export GRIP_USER=testuser
 $ export GRIP_PASSWORD=abc123
 $ grip list
 ```
+
+## Using the Python Client
+
+Some GRIP servers may require authorizaiton to access its API endpoints. The client can be configured to pass
+authorization headers in its requests:
+
+```python
+import gripql
+
+# Basic Auth Header - {'Authorization': 'Basic dGVzdDpwYXNzd29yZA=='}
+G = gripql.Connection("https://bmeg.io", user="test", password="password").graph("bmeg")
+```
+
+Although GRIP only supports basic password authentication, some servers may be proctected via a nginx or apache 
+server. The python client can be configured to handle these cases as well:
+
+```python
+import gripql 
+
+# Bearer Token - {'Authorization': 'Bearer iamnotarealtoken'}
+G = gripql.Connection("https://bmeg.io", token="iamnotarealtoken").graph("bmeg")
+
+# OAuth2 / Custom - {"OauthEmail": "fake.user@gmail.com", "OauthAccessToken": "iamnotarealtoken", "OauthExpires": 1551985931}
+G = gripql.Connection("https://bmeg.io",  credential_file="~/.grip_token.json").graph("bmeg")
+```

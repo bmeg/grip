@@ -56,6 +56,13 @@
         
         <li>
           
+          <a href="https://bmeg.github.io/grip/docs/"
+             class="sidebar-nav-item "
+          >Overview</a></li>
+          
+        
+        <li>
+          
           <a href="https://bmeg.github.io/grip/download/"
              class="sidebar-nav-item "
           >Download</a></li>
@@ -63,9 +70,9 @@
         
         <li>
           
-          <a href="https://bmeg.github.io/grip/docs/"
+          <a href="https://bmeg.github.io/grip/graph_schemas/"
              class="sidebar-nav-item "
-          >Overview</a></li>
+          >Graph Schemas</a></li>
           
         
         <li>
@@ -153,15 +160,6 @@
           <li>
             <ul class="sidebar-nav sidebar-nav-nested">
               <li>
-                <a href="https://bmeg.github.io/grip/docs/queries/graph_schemas/"
-                   class="sidebar-nav-item "
-                >Graph Schemas</a></li>
-            </ul>
-          </li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
                 <a href="https://bmeg.github.io/grip/docs/queries/graphql/"
                    class="sidebar-nav-item "
                 >GraphQL</a></li>
@@ -242,19 +240,44 @@
 
 <h1 id="getting-started">Getting Started</h1>
 
-<p>GRIP has an API for making graph queries using structured data. Queries are defined using a series of step <a href="https://bmeg.github.io/grip/docs/queries/operations">operations</a>).</p>
+<p>GRIP has an API for making graph queries using structured data. Queries are defined using a series of step <a href="https://bmeg.github.io/grip/docs/queries/operations">operations</a>.</p>
 
 <h2 id="install-the-python-client">Install the Python Client</h2>
 
-<pre><code class="language-python">pip install &quot;git+https://github.com/bmeg/grip.git#subdirectory=gripql/python&quot;
+<p>Available on <a href="https://pypi.org/project/gripql/">PyPI</a>.</p>
+
+<pre><code>pip install gripql
 </code></pre>
+
+<p>Or install the latest development version:</p>
+
+<pre><code>pip install &quot;git+https://github.com/bmeg/grip.git#subdirectory=gripql/python&quot;
+</code></pre>
+
+<h2 id="using-the-python-client">Using the Python Client</h2>
 
 <p>Let&rsquo;s go through the features currently supported in the python client.</p>
 
 <p>First, import the client and create a connection to an GRIP server:</p>
 
 <pre><code class="language-python">import gripql
-G = gripql.Connection('http://bmeg.io').graph(&quot;bmeg&quot;)
+G = gripql.Connection(&quot;https://bmeg.io&quot;).graph(&quot;bmeg&quot;)
+</code></pre>
+
+<p>Some GRIP servers may require authorizaiton to access its API endpoints. The client can be configured to pass
+authorization headers in its requests.</p>
+
+<pre><code class="language-python">import gripql
+
+# Basic Auth Header - {'Authorization': 'Basic dGVzdDpwYXNzd29yZA=='}
+G = gripql.Connection(&quot;https://bmeg.io&quot;, user=&quot;test&quot;, password=&quot;password&quot;).graph(&quot;bmeg&quot;)
+# 
+
+# Bearer Token - {'Authorization': 'Bearer iamnotarealtoken'}
+G = gripql.Connection(&quot;https://bmeg.io&quot;, token=&quot;iamnotarealtoken&quot;).graph(&quot;bmeg&quot;)
+
+# OAuth2 / Custom - {&quot;OauthEmail&quot;: &quot;fake.user@gmail.com&quot;, &quot;OauthAccessToken&quot;: &quot;iamnotarealtoken&quot;, &quot;OauthExpires&quot;: 1551985931}
+G = gripql.Connection(&quot;https://bmeg.io&quot;,  credential_file=&quot;~/.grip_token.json&quot;).graph(&quot;bmeg&quot;)
 </code></pre>
 
 <p>Now that we have a connection to a graph instance, we can use this to make all of our queries.</p>
@@ -269,7 +292,7 @@ print(result)
 
 <p>Once we make this query, we get a result:</p>
 
-<pre><code>[&lt;AttrDict(
+<pre><code class="language-python">[&lt;AttrDict(
   {u'gid': u'ENSG00000141510',
   u'data': {
     u'end': 7687550,
@@ -292,6 +315,11 @@ print(result)
 <li><em>label</em>: The label represents the type of the vertex. All vertexes with a given label will share many property keys and edge labels, and form a logical group within the system.</li>
 <li><em>data</em>: This is where all the data goes. <code>data</code> can be an arbitrary map, and these properties can be referenced during traversals.</li>
 </ul>
+
+<p>The data on a query result can be accessed as properties on the result object; for example <code>result[0].data.symbol</code> would return:</p>
+
+<pre><code class="language-python">u'TP53'
+</code></pre>
 
 <p>You can also do a <code>has</code> query with a list of items using <code>gripql.within([...])</code> (other conditions exist, see the <code>Conditions</code> section below):</p>
 
@@ -326,6 +354,8 @@ Additionally, we have provided <code>TranscriptFor</code> as an argument to <cod
   ...
 ]
 </code></pre>
+
+<p>View a list of all available query operations <a href="https://bmeg.github.io/grip/docs/queries/operations">here</a>.</p>
 
   </div>
 

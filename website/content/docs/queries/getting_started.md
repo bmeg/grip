@@ -8,13 +8,24 @@ menu:
 
 # Getting Started
 
-GRIP has an API for making graph queries using structured data. Queries are defined using a series of step [operations](/docs/queries/operations)).
+GRIP has an API for making graph queries using structured data. Queries are defined using a series of step [operations](/docs/queries/operations).
 
 ## Install the Python Client
 
-```python
+Available on [PyPI](https://pypi.org/project/gripql/).
+
+```
+pip install gripql
+```
+
+Or install the latest development version:
+
+```
 pip install "git+https://github.com/bmeg/grip.git#subdirectory=gripql/python"
 ```
+
+
+## Using the Python Client
 
 Let's go through the features currently supported in the python client.
 
@@ -22,7 +33,24 @@ First, import the client and create a connection to an GRIP server:
 
 ```python
 import gripql
-G = gripql.Connection('http://bmeg.io').graph("bmeg")
+G = gripql.Connection("https://bmeg.io").graph("bmeg")
+```
+
+Some GRIP servers may require authorizaiton to access its API endpoints. The client can be configured to pass
+authorization headers in its requests.
+
+```python
+import gripql
+
+# Basic Auth Header - {'Authorization': 'Basic dGVzdDpwYXNzd29yZA=='}
+G = gripql.Connection("https://bmeg.io", user="test", password="password").graph("bmeg")
+# 
+
+# Bearer Token - {'Authorization': 'Bearer iamnotarealtoken'}
+G = gripql.Connection("https://bmeg.io", token="iamnotarealtoken").graph("bmeg")
+
+# OAuth2 / Custom - {"OauthEmail": "fake.user@gmail.com", "OauthAccessToken": "iamnotarealtoken", "OauthExpires": 1551985931}
+G = gripql.Connection("https://bmeg.io",  credential_file="~/.grip_token.json").graph("bmeg")
 ```
 
 Now that we have a connection to a graph instance, we can use this to make all of our queries.
@@ -38,7 +66,7 @@ A couple things about this first and simplest query. We start with `O`, our grip
 
 Once we make this query, we get a result:
 
-```
+```python
 [<AttrDict(
   {u'gid': u'ENSG00000141510',
   u'data': {
@@ -60,6 +88,12 @@ This represents the vertex we queried for above. All vertexes in the system will
 * _gid_: This represents the global identifier for this vertex. In order to draw edges between different vertexes from different data sets we need an identifier that can be constructed from available data. Often, the `gid` will be the field that you query on as a starting point for a traversal.
 * _label_: The label represents the type of the vertex. All vertexes with a given label will share many property keys and edge labels, and form a logical group within the system.
 * _data_: This is where all the data goes. `data` can be an arbitrary map, and these properties can be referenced during traversals.
+
+The data on a query result can be accessed as properties on the result object; for example `result[0].data.symbol` would return:
+
+```python
+u'TP53'
+```
 
 You can also do a `has` query with a list of items using `gripql.within([...])` (other conditions exist, see the `Conditions` section below):
 
@@ -99,3 +133,5 @@ Additionally, we have provided `TranscriptFor` as an argument to `.in_()`. This 
   ...
 ]
 ```
+
+View a list of all available query operations [here](/docs/queries/operations).

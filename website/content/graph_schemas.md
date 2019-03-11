@@ -2,8 +2,7 @@
 title: Graph Schemas
 menu:
   main:
-    parent: Queries
-    weight: 15
+    weight: -1000
 ---
 
 # Graph Schemas
