@@ -54,7 +54,10 @@ func TestBasicAuthFail(t *testing.T) {
 	}
 
 	resp, err := http.Get(fmt.Sprintf("http://localhost:%s/v1/graph", conf.HTTPPort))
-	if err != nil || resp.StatusCode != 401 {
+	if err != nil {
+		t.Errorf("unexpected error; got: %v", err)
+	}
+	if resp.StatusCode != 401 {
 		t.Errorf("expected http 401 error; got: %v", resp.StatusCode)
 	}
 }
