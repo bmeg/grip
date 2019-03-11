@@ -154,12 +154,12 @@ class Graph(BaseConnection):
         """
         Create a query handle.
         """
-        return Query(self.base_url, self.graph, self.user, self.password, self.token)
+        return Query(self.base_url, self.graph, self.user, self.password, self.token, self.credential_file)
 
 
 class BulkAdd(BaseConnection):
-    def __init__(self, url, graph, user=None, password=None, token=None):
-        super(BulkAdd, self).__init__(url, user, password, token)
+    def __init__(self, url, graph, user=None, password=None, token=None, credential_file=None):
+        super(BulkAdd, self).__init__(url, user, password, token, credential_file)
         self.url = self.base_url + "/v1/graph"
         self.graph = graph
         self.elements = []

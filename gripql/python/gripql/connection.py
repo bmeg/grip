@@ -54,4 +54,4 @@ class Connection(BaseConnection):
         """
         Get a graph handle.
         """
-        return Graph(self.base_url, name, self.user, self.password, self.token)
+        return Graph(self.base_url, name, self.user, self.password, self.token, self.credential_file)
