@@ -37,7 +37,7 @@ setup(
     url="https://github.com/bmeg/grip/gripql/python",
     license='MIT',
     packages=find_packages(),
-    python_requires='>=2.6, >=3.5, <4',
+    python_requires='>=2.7, <4',
     install_requires=[
         "requests>=2.19.1"
     ],
