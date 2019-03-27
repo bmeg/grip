@@ -3,7 +3,6 @@ package server
 
 import (
 	"fmt"
-	"io"
 	"net"
 	"net/http"
 	"os"
@@ -14,7 +13,6 @@ import (
 	"github.com/bmeg/grip/graphql"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/util/rpc"
-	"github.com/golang/gddo/httputil"
 	"github.com/grpc-ecosystem/go-grpc-middleware"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	log "github.com/sirupsen/logrus"
@@ -150,16 +148,6 @@ func (server *GripServer) Serve(pctx context.Context) error {
 		grpc.MaxRecvMsgSize(1024*1024*16),
 	)
 
-	/*
-		opts := []grpc.DialOption{
-			grpc.WithInsecure(),
-			grpc.WithDefaultCallOptions(
-				grpc.MaxCallSendMsgSize(1024*1024*16),
-				grpc.MaxCallRecvMsgSize(1024*1024*16),
-			),
-		}
-	*/
-
 	//setup RESTful proxy
 	marsh := MarshalClean{
 		m: &runtime.JSONPb{
@@ -187,18 +175,10 @@ func (server *GripServer) Serve(pctx context.Context) error {
 	dashmux := http.NewServeMux()
 	httpDir := http.Dir(server.conf.ContentDir)
 	dashfs := http.FileServer(httpDir)
-	dashmux.HandleFunc("/", func(resp http.ResponseWriter, req *http.Request) {
-		file, err := httpDir.Open("index.html")
-		if err != nil {
-			log.WithFields(log.Fields{"request": req, "error": err}).Error("Failed to open index.html")
-			return
-		}
-		io.Copy(resp, file)
-	})
-	mux.Handle("/static/", dashfs)
-	mux.Handle("/favicon.ico", dashfs)
+	dashmux.Handle("/", dashfs)
 
 	mux.HandleFunc("/", func(resp http.ResponseWriter, req *http.Request) {
+
 		if len(server.conf.BasicAuth) > 0 {
 			resp.Header().Set("WWW-Authenticate", "Basic")
 
@@ -219,15 +199,15 @@ func (server *GripServer) Serve(pctx context.Context) error {
 			}
 		}
 
-		switch httputil.NegotiateContentType(req, []string{"text/*", "text/html"}, "text/*") {
-		case "text/html":
-			dashmux.ServeHTTP(resp, req)
-
-		default:
+		switch strings.HasPrefix(req.URL.Path, "/v1/") {
+		case true:
 			if server.conf.DisableHTTPCache {
 				resp.Header().Set("Cache-Control", "no-store")
 			}
 			grpcMux.ServeHTTP(resp, req)
+
+		case false:
+			dashmux.ServeHTTP(resp, req)
 		}
 	})
 
