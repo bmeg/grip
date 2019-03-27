@@ -173,9 +173,11 @@ func (server *GripServer) Serve(pctx context.Context) error {
 	mux.Handle("/graphql/", gqlHandler)
 
 	dashmux := http.NewServeMux()
-	httpDir := http.Dir(server.conf.ContentDir)
-	dashfs := http.FileServer(httpDir)
-	dashmux.Handle("/", dashfs)
+	if server.conf.ContentDir != "" {
+		httpDir := http.Dir(server.conf.ContentDir)
+		dashfs := http.FileServer(httpDir)
+		dashmux.Handle("/", dashfs)
+	}
 
 	mux.HandleFunc("/", func(resp http.ResponseWriter, req *http.Request) {
 
