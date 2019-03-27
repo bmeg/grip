@@ -163,17 +163,6 @@
   version = "v1.4.1"
 
 [[projects]]
-  branch = "master"
-  digest = "1:8f251d09f52a8920bdba202b0c18a24cafb4f70f94b9afd8d02bf7643cfc99a0"
-  name = "github.com/golang/gddo"
-  packages = [
-    "httputil",
-    "httputil/header",
-  ]
-  pruneopts = "NUT"
-  revision = "9bd4a32950217197bb319565e843237cca7f85d2"
-
-[[projects]]
   digest = "1:9b117ac202b9de210a7093bca0c29d0d2424e4c9235c9e025ae0d6ef6b121c82"
   name = "github.com/golang/protobuf"
   packages = [
@@ -671,7 +660,6 @@
     "github.com/globalsign/mgo",
     "github.com/globalsign/mgo/bson",
     "github.com/go-sql-driver/mysql",
-    "github.com/golang/gddo/httputil",
     "github.com/golang/protobuf/jsonpb",
     "github.com/golang/protobuf/proto",
     "github.com/golang/protobuf/ptypes/struct",
