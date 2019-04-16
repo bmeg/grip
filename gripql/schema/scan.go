@@ -8,11 +8,11 @@ import (
 	"github.com/bmeg/grip/util"
 )
 
-type edgeDstKey struct {
-	label, to string
+type edgeKey struct {
+	label, to, from string
 }
 
-type edgeDstMap map[edgeDstKey]interface{}
+type edgeMap map[edgeKey]interface{}
 
 func stringInSlice(a string, list []string) bool {
 	for _, b := range list {
@@ -54,36 +54,35 @@ func ScanSchema(conn gripql.Client, graph string, sampleCount uint32, exclude []
 
 	eList := []*gripql.Edge{}
 	for _, elabel := range labelRes.EdgeLabels {
-		for _, vlabel := range labelRes.VertexLabels {
-			if stringInSlice(vlabel, exclude) || stringInSlice(elabel, exclude) {
-				continue
+		if stringInSlice(elabel, exclude) {
+			continue
+		}
+		edgeQuery := gripql.E().HasLabel(elabel).Limit(sampleCount).As("edge").Out().Fields().As("to").Select("edge").In().Fields().As("from").Select("edge", "from", "to")
+		edgeRes, err := conn.Traversal(&gripql.GraphQuery{Graph: graph, Query: edgeQuery.Statements})
+		if err == nil {
+			labelSchema := edgeMap{}
+			for row := range edgeRes {
+				sel := row.GetSelections().Selections
+				edge := sel["edge"].GetEdge()
+				src := sel["from"].GetVertex()
+				dst := sel["to"].GetVertex()
+				ds := gripql.GetDataFieldTypes(protoutil.AsMap(edge.Data))
+				k := edgeKey{to: dst.Label, from: src.Label, label: edge.Label}
+				if p, ok := labelSchema[k]; ok {
+					labelSchema[k] = util.MergeMaps(p, ds)
+				} else {
+					labelSchema[k] = ds
+				}
 			}
-			edgeQuery := gripql.V().HasLabel(vlabel).OutE(elabel).As("a").Limit(sampleCount).Out().Fields("_gid", "_label").As("b").Select("a", "b")
-			edgeRes, err := conn.Traversal(&gripql.GraphQuery{Graph: graph, Query: edgeQuery.Statements})
-			if err == nil {
-				labelDstSchema := edgeDstMap{}
-				for row := range edgeRes {
-					sel := row.GetSelections().Selections
-					edge := sel["a"].GetEdge()
-					dst := sel["b"].GetVertex()
-					ds := gripql.GetDataFieldTypes(protoutil.AsMap(edge.Data))
-					k := edgeDstKey{to: dst.Label, label: edge.Label}
-					if p, ok := labelDstSchema[k]; ok {
-						labelDstSchema[k] = util.MergeMaps(p, ds)
-					} else {
-						labelDstSchema[k] = ds
-					}
+			for k, v := range labelSchema {
+				eSchema := &gripql.Edge{
+					Gid:   fmt.Sprintf("(%s)-%s->(%s)", k.from, k.label, k.to),
+					Label: k.label,
+					From:  k.from,
+					To:    k.to,
+					Data:  protoutil.AsStruct(v.(map[string]interface{})),
 				}
-				for k, v := range labelDstSchema {
-					eSchema := &gripql.Edge{
-						Gid:   fmt.Sprintf("(%s)-%s->(%s)", vlabel, elabel, k.to),
-						Label: k.label,
-						From:  vlabel,
-						To:    k.to,
-						Data:  protoutil.AsStruct(v.(map[string]interface{})),
-					}
-					eList = append(eList, eSchema)
-				}
+				eList = append(eList, eSchema)
 			}
 		}
 	}

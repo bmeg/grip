@@ -99,7 +99,7 @@ var postCmd = &cobra.Command{
 }
 
 var sampleCmd = &cobra.Command{
-	Use:   "sample",
+	Use:   "sample <graph>",
 	Short: "Sample graph and construct schema",
 	Long:  ``,
 	Args:  cobra.ExactArgs(1),
