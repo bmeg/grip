@@ -183,7 +183,7 @@ func (q *Query) Count() *Query {
 }
 
 // Distinct selects records with distinct elements of arg
-func (q *Query) Distinct(args []string) *Query {
+func (q *Query) Distinct(args ...string) *Query {
 	return q.with(&GraphStatement{Statement: &GraphStatement_Distinct{protoutil.AsListValue(args)}})
 }
 
