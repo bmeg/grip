@@ -31,8 +31,6 @@ install:
 
 #hack to get around submodule weirdness in automated docker builds
 hub-build:
-	@go get github.com/golang/dep/cmd/dep
-	@dep ensure
 	@touch version/version.go
 	@go install -ldflags '$(VERSION_LDFLAGS)' .
 
