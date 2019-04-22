@@ -1,0 +1,66 @@
+module github.com/bmeg/grip
+
+go 1.12
+
+require (
+	github.com/AndreasBriese/bbloom v0.0.0-20180913140656-343706a395b7
+	github.com/Shopify/sarama v1.19.0
+	github.com/bmeg/golib v0.0.0-20170626075926-82a1e1d7a0b2
+	github.com/boltdb/bolt v1.3.1
+	github.com/davecgh/go-spew v1.1.1
+	github.com/dgraph-io/badger v1.5.4
+	github.com/dgryski/go-farm v0.0.0-20180109070241-2de33835d102
+	github.com/dlclark/regexp2 v1.1.6
+	github.com/dop251/goja v0.0.0-20181125163413-2dd08a5fc665
+	github.com/eapache/go-resiliency v1.1.0
+	github.com/eapache/go-xerial-snappy v0.0.0-20180814174437-776d5712da21
+	github.com/eapache/queue v1.1.0
+	github.com/ghodss/yaml v1.0.0
+	github.com/globalsign/mgo v0.0.0-20181015135952-eeefdecb41b8
+	github.com/go-sourcemap/sourcemap v2.1.2+incompatible
+	github.com/go-sql-driver/mysql v1.4.1
+	github.com/golang/protobuf v1.2.0
+	github.com/golang/snappy v0.0.0-20180518054509-2e65f85255db
+	github.com/graphql-go/graphql v0.7.6
+	github.com/graphql-go/handler v0.2.1
+	github.com/grpc-ecosystem/go-grpc-middleware v1.0.0
+	github.com/grpc-ecosystem/grpc-gateway v1.5.1
+	github.com/hashicorp/errwrap v1.0.0
+	github.com/hashicorp/go-multierror v1.0.0
+	github.com/imdario/mergo v0.3.6
+	github.com/inconshreveable/mousetrap v1.0.0
+	github.com/jmoiron/sqlx v1.2.0
+	github.com/knakk/rdf v0.0.0-20171130200148-b6ee24f8f40f
+	github.com/konsorten/go-windows-terminal-sequences v1.0.1
+	github.com/kr/pretty v0.1.0
+	github.com/kr/text v0.1.0
+	github.com/lib/pq v1.0.0
+	github.com/logrusorgru/aurora v0.0.0-20181002194514-a7b3b318ed4e
+	github.com/mailru/easyjson v0.0.0-20180823135443-60711f1a8329
+	github.com/oliveagle/jsonpath v0.0.0-20180606110733-2e52cf6e6852
+	github.com/pierrec/lz4 v0.0.0-20181005164709-635575b42742
+	github.com/pkg/errors v0.8.0
+	github.com/pmezard/go-difflib v1.0.0
+	github.com/rcrowley/go-metrics v0.0.0-20181016184325-3113b8401b8a
+	github.com/robertkrimen/otto v0.0.0-20180617131154-15f95af6e78d
+	github.com/segmentio/ksuid v1.0.2
+	github.com/sirupsen/logrus v1.2.0
+	github.com/spenczar/tdigest v2.1.0+incompatible
+	github.com/spf13/cast v1.3.0
+	github.com/spf13/cobra v0.0.3
+	github.com/spf13/pflag v0.0.0-20181107220802-aea12ed67216
+	github.com/stretchr/testify v1.2.2
+	github.com/syndtr/goleveldb v0.0.0-20181127023241-353a9fca669c
+	github.com/tecbot/gorocksdb v0.0.0-20181010114359-8752a9433481
+	golang.org/x/crypto v0.0.0-20181127143415-eb0de9b17e85
+	golang.org/x/net v0.0.0-20181114220301-adae6a3d119a
+	golang.org/x/sync v0.0.0-20181108010431-42b317875d0f
+	golang.org/x/sys v0.0.0-20181122145206-62eef0e2fa9b
+	golang.org/x/text v0.3.0
+	google.golang.org/appengine v1.3.0
+	google.golang.org/genproto v0.0.0-20181127195345-31ac5d88444a
+	google.golang.org/grpc v1.16.0
+	gopkg.in/olivere/elastic.v5 v5.0.76
+	gopkg.in/sourcemap.v1 v1.0.5
+	gopkg.in/yaml.v2 v2.2.1
+)
