@@ -8,6 +8,7 @@ git_upstream := $(shell git remote get-url $(shell git config branch.$(shell git
 
 export GIT_BRANCH = $(git_branch)
 export GIT_UPSTREAM = $(git_upstream)
+export GO111MODULE=on
 
 VERSION_LDFLAGS=\
  -X "github.com/bmeg/grip/version.BuildDate=$(shell date)" \
