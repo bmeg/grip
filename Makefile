@@ -24,15 +24,9 @@ export LAST_PR_NUMBER = 134
 # Compile and Install
 # ---------------------
 # Build the code
-install: depends
+install:
 	@touch version/version.go
 	@go install -ldflags '$(VERSION_LDFLAGS)' .
-
-# Update submodules and build code
-depends:
-	@git submodule update --init --recursive
-	@go get github.com/golang/dep/cmd/dep
-	@dep ensure
 
 #hack to get around submodule weirdness in automated docker builds
 hub-build:
@@ -42,7 +36,7 @@ hub-build:
 	@go install -ldflags '$(VERSION_LDFLAGS)' .
 
 # Build the code including the rocksdb package
-with-rocksdb: depends
+with-rocksdb:
 	@go install -tags 'rocksdb' -ldflags '$(VERSION_LDFLAGS)' .
 
 local-rocksdb: rocksdb-lib
@@ -103,12 +97,12 @@ lint:
 # ---------------------
 # Release / Snapshot
 # ---------------------
-snapshot: depends
+snapshot:
 	@goreleaser release \
 		--rm-dist \
 		--snapshot
 
-release: depends
+release:
 	@go get github.com/buchanae/github-release-notes
 	@goreleaser release \
 		--rm-dist \
