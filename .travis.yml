@@ -2,7 +2,7 @@ os:
   - linux
 language: go
 go:
-  - "1.10"
+  - "1.12"
 sudo: required
 
 services:
@@ -18,7 +18,6 @@ git:
   submodules: false
 
 install:
-  - make depends
   - make
   - sudo pip install -U numpy
   - sudo pip install -U requests
