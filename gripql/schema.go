@@ -9,8 +9,7 @@ func GetDataFieldTypes(data map[string]interface{}) map[string]interface{} {
 			continue
 		}
 		if vSlice, ok := val.([]interface{}); ok {
-			var vType interface{}
-			vType = []interface{}{FieldType_UNKNOWN.String()}
+			var vType interface{} = []interface{}{FieldType_UNKNOWN.String()}
 			if len(vSlice) > 0 {
 				vSliceVal := vSlice[0]
 				if vSliceValMap, ok := vSliceVal.(map[string]interface{}); ok {

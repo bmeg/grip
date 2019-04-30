@@ -1022,7 +1022,6 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 		for _, a := range agg.aggregations {
 			aChans[a.Name] <- batch
 		}
-		return
 	}()
 
 	aggChan := make(chan map[string]*gripql.AggregationResult, len(agg.aggregations))
@@ -1195,7 +1194,6 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 			}
 		}
 		out <- &gdbi.Traveler{Aggregations: aggs}
-		return
 	}()
 
 	return context.WithValue(ctx, propLoad, true)

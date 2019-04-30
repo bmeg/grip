@@ -29,11 +29,6 @@ install:
 	@touch version/version.go
 	@go install -ldflags '$(VERSION_LDFLAGS)' .
 
-#hack to get around submodule weirdness in automated docker builds
-hub-build:
-	@touch version/version.go
-	@go install -ldflags '$(VERSION_LDFLAGS)' .
-
 # Build the code including the rocksdb package
 with-rocksdb:
 	@go install -tags 'rocksdb' -ldflags '$(VERSION_LDFLAGS)' .
@@ -47,7 +42,7 @@ rocksdb-lib:
 
 bench: rocksdb-lib
 	#@CGO_LDFLAGS="-L$(shell pwd)/rocksdb-lib" CGO_CFLAGS="-I$(shell pwd)/rocksdb-lib/include/" go run -tags 'rocksdb' -ldflags '$(VERSION_LDFLAGS)' test/graph-bench/main.go
-	 go run -tags 'rocksdb' -ldflags '$(VERSION_LDFLAGS)' test/graph-bench/main.go
+	go run -tags 'rocksdb' -ldflags '$(VERSION_LDFLAGS)' test/graph-bench/main.go
 
 # --------------------------
 # Complile Protobuf Schemas
@@ -67,6 +62,7 @@ proto:
 		index.proto
 
 proto-depends:
+	@git submodule update --init --recursive
 	@go get github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway
 	@go get github.com/golang/protobuf/protoc-gen-go
 	@go get github.com/ckaznocha/protoc-gen-lint
@@ -85,12 +81,12 @@ tidy:
 
 # Run code style and other checks
 lint:
-	@go get github.com/alecthomas/gometalinter
-	@gometalinter --install > /dev/null
-	@gometalinter --disable-all --enable=vet --enable=golint --enable=gofmt --enable=misspell \
-		--vendor \
-		-e '.*bundle.go' -e ".*pb.go" -e ".*pb.gw.go" -e ".*pb.dgw.go" -e "underscore.go" \
-		./...
+	@go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.16.0
+	@$ golangci-lint run --disable-all -E gofmt -E misspell -E typecheck -E golint -E gosimple -E govet
+	# @gometalinter --disable-all --enable=vet --enable=golint --enable=gofmt --enable=misspell \
+	# 	--vendor \
+	# 	-e '.*bundle.go' -e ".*pb.go" -e ".*pb.gw.go" -e ".*pb.dgw.go" -e "underscore.go" \
+	# 	./...
 	@flake8 gripql/python/ conformance/
 
 # ---------------------

@@ -147,10 +147,7 @@ func TravelerPathExists(traveler *gdbi.Traveler, path string) bool {
 	}
 	doc := GetDoc(traveler, namespace)
 	_, err := jsonpath.JsonPathLookup(doc, field)
-	if err != nil {
-		return false
-	}
-	return true
+	return err == nil
 }
 
 // RenderTraveler takes a template and fills in the values using the data structure

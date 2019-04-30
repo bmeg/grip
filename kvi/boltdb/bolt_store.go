@@ -153,10 +153,7 @@ func (boltTrans boltTransaction) Get(id []byte) ([]byte, error) {
 func (boltTrans boltTransaction) HasKey(id []byte) bool {
 	b := boltTrans.tx.Bucket(graphBucket)
 	d := b.Get([]byte(id))
-	if d != nil {
-		return true
-	}
-	return false
+	return d == nil
 }
 
 type boltIterator struct {
