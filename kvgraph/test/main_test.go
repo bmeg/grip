@@ -19,8 +19,7 @@ var dbpath string
 var kvdriver kvi.KVInterface
 
 func resetKVInterface() {
-	var err error
-	err = os.RemoveAll(dbpath)
+	err := os.RemoveAll(dbpath)
 	if err != nil {
 		panic(err)
 	}

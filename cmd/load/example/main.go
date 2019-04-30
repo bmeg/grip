@@ -39,11 +39,7 @@ var Cmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		graphs := []string{}
-		for _, g := range resp.Graphs {
-			graphs = append(graphs, g)
-		}
-		if found(graphs, graph) {
+		if found(resp.Graphs, graph) {
 			return fmt.Errorf("grip already contains a graph called %s", graph)
 		}
 

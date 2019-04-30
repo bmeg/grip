@@ -152,10 +152,7 @@ func (badgerTrans badgerTransaction) Delete(id []byte) error {
 
 func (badgerTrans badgerTransaction) HasKey(id []byte) bool {
 	_, err := badgerTrans.tx.Get(id)
-	if err == nil {
-		return true
-	}
-	return false
+	return err == nil
 }
 
 func (badgerTrans badgerTransaction) Get(id []byte) ([]byte, error) {
@@ -259,10 +256,7 @@ func (badgerIt *badgerIterator) SeekReverse(id []byte) error {
 
 // Valid returns true if iterator is still in valid location
 func (badgerIt *badgerIterator) Valid() bool {
-	if badgerIt.key == nil {
-		return false
-	}
-	return true
+	return badgerIt.key != nil
 }
 
 // View run iterator on bolt keyvalue store

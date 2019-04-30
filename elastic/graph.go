@@ -264,7 +264,6 @@ func (es *Graph) GetEdgeList(ctx context.Context, load bool) <-chan *gripql.Edge
 		if err := g.Wait(); err != nil {
 			log.WithFields(log.Fields{"error": err}).Error("GetEdgeList")
 		}
-		return
 	}()
 
 	return o
@@ -318,7 +317,6 @@ func (es *Graph) GetVertexList(ctx context.Context, load bool) <-chan *gripql.Ve
 		if err := g.Wait(); err != nil {
 			log.WithFields(log.Fields{"error": err}).Error("GetVertexList")
 		}
-		return
 	}()
 
 	return o
@@ -387,7 +385,6 @@ func (es *Graph) GetVertexChannel(req chan gdbi.ElementLookup, load bool) chan g
 		if err := g.Wait(); err != nil {
 			log.WithFields(log.Fields{"error": err}).Error("GetVertexChannel")
 		}
-		return
 	}()
 
 	return o
@@ -501,7 +498,6 @@ func (es *Graph) GetOutChannel(req chan gdbi.ElementLookup, load bool, edgeLabel
 		if err := g.Wait(); err != nil {
 			log.WithFields(log.Fields{"error": err}).Error("GetOutChannel")
 		}
-		return
 	}()
 
 	return o
@@ -614,7 +610,6 @@ func (es *Graph) GetInChannel(req chan gdbi.ElementLookup, load bool, edgeLabels
 		if err := g.Wait(); err != nil {
 			log.WithFields(log.Fields{"error": err}).Error("GetInChannel")
 		}
-		return
 	}()
 
 	return o
@@ -691,7 +686,6 @@ func (es *Graph) GetOutEdgeChannel(req chan gdbi.ElementLookup, load bool, edgeL
 		if err := g.Wait(); err != nil {
 			log.WithFields(log.Fields{"error": err}).Error("GetOutEdgeChannel")
 		}
-		return
 	}()
 
 	return o
@@ -768,7 +762,6 @@ func (es *Graph) GetInEdgeChannel(req chan gdbi.ElementLookup, load bool, edgeLa
 		if err := g.Wait(); err != nil {
 			log.WithFields(log.Fields{"error": err}).Error("GetInEdgeChannel")
 		}
-		return
 	}()
 
 	return o
