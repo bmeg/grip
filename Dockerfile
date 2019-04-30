@@ -4,7 +4,7 @@ RUN apk add make git bash
 ENV GOPATH=/go
 ENV PATH="/go/bin:${PATH}"
 ADD ./ /go/src/github.com/bmeg/grip
-RUN cd /go/src/github.com/bmeg/grip && make hub-build
+RUN cd /go/src/github.com/bmeg/grip && make
 
 # final stage
 FROM alpine
