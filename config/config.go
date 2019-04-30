@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/bmeg/grip/elastic"
-	"github.com/bmeg/grip/existing-sql"
+	esql "github.com/bmeg/grip/existing-sql"
 	"github.com/bmeg/grip/mongo"
 	"github.com/bmeg/grip/psql"
 	"github.com/bmeg/grip/server"

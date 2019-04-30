@@ -81,13 +81,10 @@ tidy:
 
 # Run code style and other checks
 lint:
-	@go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.16.0
-	@$ golangci-lint run --disable-all -E gofmt -E misspell -E typecheck -E golint -E gosimple -E govet
-	# @gometalinter --disable-all --enable=vet --enable=golint --enable=gofmt --enable=misspell \
-	# 	--vendor \
-	# 	-e '.*bundle.go' -e ".*pb.go" -e ".*pb.gw.go" -e ".*pb.dgw.go" -e "underscore.go" \
-	# 	./...
-	@flake8 gripql/python/ conformance/
+	go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.16.0
+	golangci-lint run --disable-all \
+		-E gofmt -E goimports -E misspell -E typecheck -E golint -E gosimple -E govet
+	flake8 gripql/python/ conformance/
 
 # ---------------------
 # Release / Snapshot
