@@ -9,7 +9,7 @@ import (
 
 	"github.com/bmeg/grip/config"
 	"github.com/bmeg/grip/elastic"
-	"github.com/bmeg/grip/existing-sql"
+	esql "github.com/bmeg/grip/existing-sql"
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/kvgraph"

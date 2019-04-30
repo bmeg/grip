@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/bmeg/grip/util/duration"
-	"github.com/grpc-ecosystem/go-grpc-middleware/retry"
+	grpc_retry "github.com/grpc-ecosystem/go-grpc-middleware/retry"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 )
