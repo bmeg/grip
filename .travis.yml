@@ -11,13 +11,12 @@ services:
 cache:
   directories:
     - $GOPATH/pkg
-    - $GOPATH/src/github.com/bmeg/grip/.git/modules
-    - $GOPATH/src/github.com/bmeg/grip/vendor
 
 git:
   submodules: false
 
 install:
+  - export GO111MODULE=on
   - make
   - sudo pip install -U numpy
   - sudo pip install -U requests
