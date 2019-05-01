@@ -20,13 +20,13 @@ require (
 	github.com/go-sourcemap/sourcemap v2.1.2+incompatible // indirect
 	github.com/go-sql-driver/mysql v1.4.1
 	github.com/golang/protobuf v1.3.1
+	github.com/golangci/golangci-lint v1.16.0 // indirect
 	github.com/graphql-go/graphql v0.7.8
 	github.com/graphql-go/handler v0.2.3
 	github.com/grpc-ecosystem/go-grpc-middleware v1.0.0
 	github.com/grpc-ecosystem/grpc-gateway v1.8.5
 	github.com/hashicorp/go-multierror v1.0.0
 	github.com/imdario/mergo v0.3.7
-	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/jmoiron/sqlx v1.2.0
 	github.com/knakk/rdf v0.0.0-20190304171630-8521bf4c5042
 	github.com/kr/pretty v0.1.0

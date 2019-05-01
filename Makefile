@@ -86,6 +86,10 @@ lint:
 		-E gofmt -E goimports -E misspell -E typecheck -E golint -E gosimple -E govet
 	flake8 gripql/python/ conformance/
 
+lint-fast:
+	golangci-lint run --disable-all \
+		-E gofmt -E goimports -E misspell -E typecheck -E golint -E gosimple -E govet
+
 # ---------------------
 # Release / Snapshot
 # ---------------------

@@ -245,13 +245,15 @@ func validate(k string) error {
 }
 
 type VertexSorter []*Vertex
+
 func (a VertexSorter) Len() int           { return len(a) }
 func (a VertexSorter) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a VertexSorter) Less(i, j int) bool { return a[i].Label < a[j].Label }
 
 type EdgeSorter []*Edge
-func (a EdgeSorter) Len() int           { return len(a) }
-func (a EdgeSorter) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
-func (a EdgeSorter) Less(i, j int) bool { 
-  return fmt.Sprintf("%s%s%s", a[i].Label, a[i].From, a[i].To) < fmt.Sprintf("%s%s%s", a[j].Label, a[j].From, a[j].To)
+
+func (a EdgeSorter) Len() int      { return len(a) }
+func (a EdgeSorter) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+func (a EdgeSorter) Less(i, j int) bool {
+	return fmt.Sprintf("%s%s%s", a[i].Label, a[i].From, a[i].To) < fmt.Sprintf("%s%s%s", a[j].Label, a[j].From, a[j].To)
 }

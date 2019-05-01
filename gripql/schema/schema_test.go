@@ -3,13 +3,13 @@ package schema
 import (
 	"fmt"
 	"os"
-  "reflect"
-  "sort"
+	"reflect"
+	"sort"
 	"testing"
 
 	"github.com/bmeg/grip/config"
-	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/example"
+	"github.com/bmeg/grip/gripql"
 
 	"github.com/bmeg/grip/kvgraph"
 	_ "github.com/bmeg/grip/kvi/badgerdb" // import so badger will register itself
@@ -98,19 +98,19 @@ func TestSchemaScanner(t *testing.T) {
 		}
 	}
 
-  sort.Sort(gripql.EdgeSorter(example.SWSchema.Edges))
-  sort.Sort(gripql.EdgeSorter(graphSchema.Edges))
-  if !reflect.DeepEqual(example.SWSchema.Edges, graphSchema.Edges) {
-    t.Logf("expected: %+v", example.SWSchema.Edges)
-    t.Logf("actual:   %+v", graphSchema.Edges)
+	sort.Sort(gripql.EdgeSorter(example.SWSchema.Edges))
+	sort.Sort(gripql.EdgeSorter(graphSchema.Edges))
+	if !reflect.DeepEqual(example.SWSchema.Edges, graphSchema.Edges) {
+		t.Logf("expected: %+v", example.SWSchema.Edges)
+		t.Logf("actual:   %+v", graphSchema.Edges)
 		t.Fatal("unexpected edge schemas")
 	}
 
-  sort.Sort(gripql.VertexSorter(example.SWSchema.Vertices))
-  sort.Sort(gripql.VertexSorter(graphSchema.Vertices))
-  if !reflect.DeepEqual(example.SWSchema.Vertices, graphSchema.Vertices) {
-    t.Logf("expected: %+v", example.SWSchema.Vertices)
-    t.Logf("actual:   %+v", graphSchema.Vertices)
+	sort.Sort(gripql.VertexSorter(example.SWSchema.Vertices))
+	sort.Sort(gripql.VertexSorter(graphSchema.Vertices))
+	if !reflect.DeepEqual(example.SWSchema.Vertices, graphSchema.Vertices) {
+		t.Logf("expected: %+v", example.SWSchema.Vertices)
+		t.Logf("actual:   %+v", graphSchema.Vertices)
 		t.Fatal("unexpected vertex schemas")
 	}
 

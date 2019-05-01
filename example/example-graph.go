@@ -1,7 +1,7 @@
 package example
 
 import (
-  "fmt"
+	"fmt"
 
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/protoutil"
@@ -194,9 +194,9 @@ vertices:
 var SWSchema *gripql.Graph
 
 func init() {
-  schemas, err := gripql.ParseYAMLGraph([]byte(schema))
-  if err != nil {
-    panic(fmt.Errorf("Error loading example graph schema: %v", err))
-  }
-  SWSchema = schemas[0]
+	schemas, err := gripql.ParseYAMLGraph([]byte(schema))
+	if err != nil {
+		panic(fmt.Errorf("Error loading example graph schema: %v", err))
+	}
+	SWSchema = schemas[0]
 }
