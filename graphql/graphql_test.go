@@ -3,6 +3,7 @@ package graphql
 import (
 	"testing"
 
+	"github.com/bmeg/grip/example"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/protoutil"
 )
@@ -122,6 +123,13 @@ func TestComplex(t *testing.T) {
 	}
 
 	_, err := buildGraphQLSchema(schema, gripql.Client{}, "test")
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+}
+
+func TestExampleGraph(t *testing.T) {
+	_, err := buildGraphQLSchema(example.SWSchema, gripql.Client{}, "example-graph")
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}

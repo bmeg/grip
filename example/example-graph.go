@@ -1,6 +1,8 @@
 package example
 
 import (
+  "fmt"
+
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/protoutil"
 )
@@ -108,15 +110,15 @@ var SWEdges = []*gripql.Edge{
 	{Label: "appearsIn", From: "1000", To: "4000"},
 	{Label: "appearsIn", From: "1000", To: "4001"},
 	{Label: "appearsIn", From: "1000", To: "4002"},
-	{Label: "starship", From: "1000", To: "3001"},
-	{Label: "starship", From: "1000", To: "3003"},
+	{Label: "pilots", From: "1000", To: "3001"},
+	{Label: "pilots", From: "1000", To: "3003"},
 
 	//Darth Vader Edges
 	{Label: "friend", From: "1001", To: "1004"},
 	{Label: "appearsIn", From: "1001", To: "4000"},
 	{Label: "appearsIn", From: "1001", To: "4001"},
 	{Label: "appearsIn", From: "1001", To: "4002"},
-	{Label: "starship", From: "1001", To: "3002"},
+	{Label: "pilots", From: "1001", To: "3002"},
 
 	//Han Solo Edges
 	{Label: "friend", From: "1002", To: "1000"},
@@ -125,8 +127,8 @@ var SWEdges = []*gripql.Edge{
 	{Label: "appearsIn", From: "1002", To: "4000"},
 	{Label: "appearsIn", From: "1002", To: "4001"},
 	{Label: "appearsIn", From: "1002", To: "4002"},
-	{Label: "starship", From: "1002", To: "3000"},
-	{Label: "starship", From: "1002", To: "3003"},
+	{Label: "pilots", From: "1002", To: "3000"},
+	{Label: "pilots", From: "1002", To: "3003"},
 
 	//Leia Organa Edges
 	{Label: "friend", From: "1003", To: "1000"},
@@ -140,4 +142,61 @@ var SWEdges = []*gripql.Edge{
 	//Wilhuff Tarkin Edges
 	{Label: "friend", From: "1004", To: "1001"},
 	{Label: "appearsIn", From: "1004", To: "4000"},
+}
+
+var schema = `
+edges:
+- data: {}
+  from: Human
+  gid: (Human)--appearsIn->(Movie)
+  label: appearsIn
+  to: Movie
+- data: {}
+  from: Human
+  gid: (Human)--friend->(Droid)
+  label: friend
+  to: Droid
+- data: {}
+  from: Human
+  gid: (Human)--friend->(Human)
+  label: friend
+  to: Human
+- data: {}
+  from: Human
+  gid: (Human)--pilots->(Starship)
+  label: pilots
+  to: Starship
+graph: example-graph
+vertices:
+- data:
+    name: STRING
+    primaryFunction: STRING
+  gid: Droid
+  label: Droid
+- data:
+    height: NUMERIC
+    homePlanet: STRING
+    mass: NUMERIC
+    name: STRING
+  gid: Human
+  label: Human
+- data:
+    name: STRING
+  gid: Movie
+  label: Movie
+- data:
+    length: NUMERIC
+    name: STRING
+  gid: Starship
+  label: Starship
+`
+
+var SWSchema *gripql.Graph
+
+func init() {
+  schemas, err := gripql.ParseYAMLGraph([]byte(schema))
+  if err != nil {
+    panic(fmt.Errorf("Error loading example graph schema: %v", err))
+  }
+  SWSchema = schemas[0]
 }

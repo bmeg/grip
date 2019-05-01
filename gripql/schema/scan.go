@@ -76,7 +76,7 @@ func ScanSchema(conn gripql.Client, graph string, sampleCount uint32, exclude []
 			}
 			for k, v := range labelSchema {
 				eSchema := &gripql.Edge{
-					Gid:   fmt.Sprintf("(%s)-%s->(%s)", k.from, k.label, k.to),
+					Gid:   fmt.Sprintf("(%s)--%s->(%s)", k.from, k.label, k.to),
 					Label: k.label,
 					From:  k.from,
 					To:    k.to,
