@@ -79,25 +79,30 @@ func newGraphHandler(graph string, client gripql.Client) *graphHandler {
 // check timestamp to see if schema needs to be updated, and if so
 // rebuild graphql schema
 func (gh *graphHandler) setup() {
-	ts, _ := gh.client.GetTimestamp(gh.graph)
+	ts, err := gh.client.GetTimestamp(gh.graph)
+	if err != nil {
+		log.WithFields(log.Fields{"graph": gh.graph, "error": err}).Error("GetTimestamp error")
+		return
+	}
 	if ts == nil || ts.Timestamp != gh.timestamp {
 		log.WithFields(log.Fields{"graph": gh.graph}).Info("Reloading GraphQL schema")
 		schema, err := gh.client.GetSchema(gh.graph)
 		if err != nil {
 			log.WithFields(log.Fields{"graph": gh.graph, "error": err}).Error("GetSchema error")
+			return
 		}
 		gqlSchema, err := buildGraphQLSchema(schema, gh.client, gh.graph)
 		if err != nil {
 			log.WithFields(log.Fields{"graph": gh.graph, "error": err}).Error("GraphQL schema build failed")
-			gh.gqlHandler = nil
-			gh.timestamp = ""
-		} else {
-			log.WithFields(log.Fields{"graph": gh.graph}).Info("Built GraphQL schema")
-			gh.gqlHandler = handler.New(&handler.Config{
-				Schema: gqlSchema,
-			})
-			gh.timestamp = ts.Timestamp
+			return
 		}
+		log.WithFields(log.Fields{"graph": gh.graph}).Info("Built GraphQL schema")
+		gh.gqlHandler = handler.New(&handler.Config{
+			Schema: gqlSchema,
+		})
+		gh.timestamp = ts.Timestamp
+	} else {
+		log.WithFields(log.Fields{"graph": gh.graph}).Info("Using cached GraphQL schema")
 	}
 }
 
@@ -111,7 +116,7 @@ func buildField(x string) (*graphql.Field, error) {
 	case "BOOL":
 		o = &graphql.Field{Type: graphql.Boolean}
 	default:
-		return nil, fmt.Errorf("%s does not map to a GQL type", x)
+		return nil, fmt.Errorf("%s does not map to a GraphQL type", x)
 	}
 	return o, nil
 }

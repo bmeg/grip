@@ -166,6 +166,7 @@ func (server *GripServer) Serve(pctx context.Context) error {
 		user = server.conf.BasicAuth[0].User
 		password = server.conf.BasicAuth[0].Password
 	}
+
 	gqlHandler, err := graphql.NewHTTPHandler(server.conf.RPCAddress(), user, password)
 	if err != nil {
 		return fmt.Errorf("setting up GraphQL handler: %v", err)
