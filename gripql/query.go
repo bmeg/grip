@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/bmeg/grip/protoutil"
+	"github.com/golang/protobuf/jsonpb"
 )
 
 // V starts a new vertex query, short for `NewQuery().V()`.
@@ -192,6 +193,7 @@ func (q *Query) Render(template interface{}) *Query {
 	return q.with(&GraphStatement{Statement: &GraphStatement_Render{protoutil.WrapValue(template)}})
 }
 
+// Return a string representation of the query
 func (q *Query) String() string {
 	parts := []string{}
 	add := func(name string, x ...string) {
@@ -282,4 +284,14 @@ func (q *Query) String() string {
 	}
 
 	return strings.Join(parts, ".")
+}
+
+// Return Query object as a JSON string
+func (q *Query) JSON() string {
+	m := jsonpb.Marshaler{}
+	txt, err := m.MarshalToString(&GraphQuery{Query: q.Statements})
+	if err != nil {
+		return ""
+	}
+	return txt
 }

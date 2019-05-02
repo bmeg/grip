@@ -3,6 +3,7 @@ package graphql
 import (
 	"testing"
 
+	"github.com/bmeg/grip/gripql"
 	"github.com/graphql-go/graphql"
 )
 
@@ -16,7 +17,7 @@ func TestResolver(t *testing.T) {
 	})
 
 	personObject.AddFieldConfig(
-		"edge_friend",
+		"friend",
 		&graphql.Field{
 			Name: "Friend",
 			Type: personObject,
@@ -27,12 +28,28 @@ func TestResolver(t *testing.T) {
 		"person": &graphql.Field{
 			Type: personObject,
 			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-				_, err := resolveGraphql("person", p)
+				r := &gqlResolver{
+					schema: &gripql.Graph{
+						Vertices: []*gripql.Vertex{
+							{
+								Label: "Person",
+							},
+						},
+						Edges: []*gripql.Edge{
+							{
+								Label: "friend",
+								From:  "Person",
+								To:    "Person",
+							},
+						},
+					},
+				}
+				_, err := r.resolve("person", p)
 				if err != nil {
 					return nil, err
 				}
-				return map[string]interface{}{"name": "bob", "edge_friend": map[string]interface{}{"name": "Joe",
-					"edge_friend": map[string]interface{}{"name": "Sam"},
+				return map[string]interface{}{"name": "bob", "friend": map[string]interface{}{"name": "Joe",
+					"friend": map[string]interface{}{"name": "Sam"},
 				}}, nil
 			},
 		},
@@ -51,8 +68,9 @@ func TestResolver(t *testing.T) {
       person {
         name
         age
-        edge_friend { 
-          edge_friend {
+        friend {
+          name
+          friend {
             name
             age
           }

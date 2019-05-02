@@ -1,10 +1,16 @@
 package example
 
 import (
+	"context"
 	"fmt"
+	"os"
 
+	"github.com/bmeg/grip/config"
 	"github.com/bmeg/grip/gripql"
+	"github.com/bmeg/grip/kvgraph"
+	_ "github.com/bmeg/grip/kvi/badgerdb" // import so badger will register itself
 	"github.com/bmeg/grip/protoutil"
+	"github.com/bmeg/grip/server"
 )
 
 // SWVertices are the vertices for the test graph
@@ -199,4 +205,57 @@ func init() {
 		panic(fmt.Errorf("Error loading example graph schema: %v", err))
 	}
 	SWSchema = schemas[0]
+}
+
+func StartTestServer(ctx context.Context, conf *config.Config, graph string) (gripql.Client, error) {
+	kv, err := kvgraph.NewKVInterface("badger", conf.KVStorePath, nil)
+	if err != nil {
+		return gripql.Client{}, err
+	}
+
+	db := kvgraph.NewKVGraph(kv)
+	srv, err := server.NewGripServer(db, conf.Server, nil)
+	if err != nil {
+		return gripql.Client{}, err
+	}
+
+	queryClient := gripql.NewQueryDirectClient(srv)
+	editClient := gripql.NewEditDirectClient(srv)
+	client := gripql.WrapClient(queryClient, editClient)
+
+	err = client.AddGraph(graph)
+	if err != nil {
+		return gripql.Client{}, err
+	}
+
+	elemChan := make(chan *gripql.GraphElement)
+	wait := make(chan bool)
+	go func() {
+		if err := client.BulkAdd(elemChan); err != nil {
+			fmt.Printf("BulkAdd error: %v", err)
+		}
+		wait <- false
+	}()
+
+	for _, v := range SWVertices {
+		elemChan <- &gripql.GraphElement{Graph: graph, Vertex: v}
+	}
+
+	for _, e := range SWEdges {
+		elemChan <- &gripql.GraphElement{Graph: graph, Edge: e}
+	}
+
+	close(elemChan)
+	<-wait
+
+	go func() {
+		select {
+		case <-ctx.Done():
+			kv.Close()
+			os.RemoveAll(conf.Server.WorkDir)
+			os.RemoveAll(conf.KVStorePath)
+		}
+	}()
+
+	return client, nil
 }

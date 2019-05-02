@@ -97,6 +97,7 @@ func (gh *graphHandler) setup() {
 			return
 		}
 		log.WithFields(log.Fields{"graph": gh.graph}).Info("Built GraphQL schema")
+		gh.schema = schema
 		gh.gqlHandler = handler.New(&handler.Config{
 			Schema: gqlSchema,
 		})
