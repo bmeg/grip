@@ -7,7 +7,6 @@ import (
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/kvgraph"
 	"github.com/bmeg/grip/kvi"
-	"github.com/bmeg/grip/util"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -93,7 +92,7 @@ var Cmd = &cobra.Command{
 			vertexChan := make(chan []*gripql.Vertex, 100)
 			vertexBatch := make([]*gripql.Vertex, 0, batchSize)
 			go func() {
-				for v := range util.StreamVerticesFromFile(vertexFile) {
+				for v := range gripql.StreamVerticesFromFile(vertexFile) {
 					vertexBatch = append(vertexBatch, v)
 					if len(vertexBatch) >= batchSize {
 						vertexChan <- vertexBatch
@@ -125,7 +124,7 @@ var Cmd = &cobra.Command{
 			edgeChan := make(chan []*gripql.Edge, 100)
 			edgeBatch := make([]*gripql.Edge, 0, batchSize)
 			go func() {
-				for e := range util.StreamEdgesFromFile(edgeFile) {
+				for e := range gripql.StreamEdgesFromFile(edgeFile) {
 					edgeBatch = append(edgeBatch, e)
 					if len(edgeBatch) >= batchSize {
 						edgeChan <- edgeBatch

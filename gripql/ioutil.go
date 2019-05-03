@@ -3,13 +3,109 @@ package gripql
 import (
 	"bytes"
 	"encoding/json"
+	"context"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"path/filepath"
+	"runtime"
+	"strings"
 
-	"github.com/ghodss/yaml"
+	"github.com/bmeg/golib"
+  "github.com/ghodss/yaml"
 	"github.com/golang/protobuf/jsonpb"
+	log "github.com/sirupsen/logrus"
+	"golang.org/x/sync/errgroup"
 )
+
+func openFile(file string) (chan []byte, error) {
+	var reader chan []byte
+	var err error
+	if strings.HasSuffix(file, ".gz") {
+		reader, err = golib.ReadGzipLines(file)
+	} else {
+		reader, err = golib.ReadFileLines(file)
+	}
+	return reader, err
+}
+
+// StreamVerticesFromFile reads a file containing a vertex per line and
+// streams *Vertex objects out on a channel
+func StreamVerticesFromFile(file string) chan *Vertex {
+	vertChan := make(chan *Vertex, 1000)
+
+	reader, err := openFile(file)
+	if err != nil {
+		log.WithFields(log.Fields{"error": err}).Errorf("Reading file: %s", file)
+		close(vertChan)
+		return vertChan
+	}
+	m := jsonpb.Unmarshaler{AllowUnknownFields: true}
+	g, _ := errgroup.WithContext(context.Background())
+
+	for i := 0; i < runtime.NumCPU(); i++ {
+		g.Go(func() error {
+			for line := range reader {
+				v := &Vertex{}
+				err := m.Unmarshal(bytes.NewReader(line), v)
+				if err == io.EOF {
+					break
+				}
+				if err != nil {
+					log.WithFields(log.Fields{"error": err}).Errorf("Unmarshaling vertex: %v", line)
+				}
+				vertChan <- v
+			}
+			return nil
+		})
+	}
+
+	go func() {
+		g.Wait()
+		close(vertChan)
+	}()
+
+	return vertChan
+}
+
+// StreamEdgesFromFile reads a file containing an edge per line and
+// streams Edge objects on a channel
+func StreamEdgesFromFile(file string) chan *Edge {
+	edgeChan := make(chan *Edge, 1000)
+
+	reader, err := openFile(file)
+	if err != nil {
+		log.WithFields(log.Fields{"error": err}).Errorf("Reading file: %s", file)
+		close(edgeChan)
+		return edgeChan
+	}
+	m := jsonpb.Unmarshaler{AllowUnknownFields: true}
+	g, _ := errgroup.WithContext(context.Background())
+
+	for i := 0; i < runtime.NumCPU(); i++ {
+		g.Go(func() error {
+			for line := range reader {
+				e := &Edge{}
+				err := m.Unmarshal(bytes.NewReader(line), e)
+				if err == io.EOF {
+					break
+				}
+				if err != nil {
+					log.WithFields(log.Fields{"error": err}).Errorf("Unmarshaling edge: %v", line)
+				}
+				edgeChan <- e
+			}
+			return nil
+		})
+	}
+
+	go func() {
+		g.Wait()
+		close(edgeChan)
+	}()
+
+	return edgeChan
+}
 
 var m = jsonpb.Marshaler{}
 

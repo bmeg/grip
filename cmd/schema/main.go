@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/bmeg/grip/gripql"
-	gripql_schema "github.com/bmeg/grip/gripql/schema"
 	"github.com/bmeg/grip/util/rpc"
 	"github.com/spf13/cobra"
 )
@@ -111,7 +110,7 @@ var sampleCmd = &cobra.Command{
 			return err
 		}
 
-		schema, err := gripql_schema.ScanSchema(conn, graph, sampleCount, excludeLabels)
+		schema, err := gripql.ScanSchema(conn, graph, sampleCount, excludeLabels)
 		if err != nil {
 			return err
 		}

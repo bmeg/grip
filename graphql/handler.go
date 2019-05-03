@@ -5,12 +5,14 @@ GraphQL Web endpoint
 package graphql
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"regexp"
 
+	"github.com/bmeg/grip/engine"
+	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
-	"github.com/bmeg/grip/util/rpc"
 	"github.com/graphql-go/graphql"
 	"github.com/graphql-go/handler"
 	log "github.com/sirupsen/logrus"
@@ -20,31 +22,41 @@ import (
 type graphHandler struct {
 	graph      string
 	gqlHandler *handler.Handler
-	timestamp  string
-	client     gripql.Client
+	db         gdbi.GraphDB
 	schema     *gripql.Graph
+	workdir    string
 }
 
 // Handler is a GraphQL endpoint to query the Grip database
 type Handler struct {
 	handlers map[string]*graphHandler
-	client   gripql.Client
+	db       gdbi.GraphDB
+	workdir  string
 }
 
 // NewHTTPHandler initilizes a new GraphQLHandler
-func NewHTTPHandler(rpcAddress, user, password string) (http.Handler, error) {
-	rpcConf := rpc.ConfigWithDefaults(rpcAddress)
-	rpcConf.User = user
-	rpcConf.Password = password
-	client, err := gripql.Connect(rpcConf, false)
-	if err != nil {
-		return nil, err
-	}
+func NewHTTPHandler(db gdbi.GraphDB, workdir string) *Handler {
 	h := &Handler{
-		client:   client,
+		db:       db,
+		workdir:  workdir,
 		handlers: map[string]*graphHandler{},
 	}
-	return h, nil
+	return h
+}
+
+// Generate graphql handlers for all graphs
+func (gh *Handler) BuildGraphHandlers() {
+  if gh.db == nil {
+    return
+  }
+	for _, graph := range gh.db.ListGraphs() {
+		if !gripql.IsSchema(graph) {
+			handler := newGraphHandler(gh.db, gh.workdir, graph)
+			if handler != nil {
+				gh.handlers[graph] = handler
+			}
+		}
+	}
 }
 
 // ServeHTTP responds to HTTP graphql requests
@@ -54,12 +66,6 @@ func (gh *Handler) ServeHTTP(writer http.ResponseWriter, request *http.Request) 
 	var handler *graphHandler
 	var ok bool
 	if handler, ok = gh.handlers[graphName]; ok {
-		handler.setup()
-	} else {
-		handler = newGraphHandler(graphName, gh.client)
-		gh.handlers[graphName] = handler
-	}
-	if handler != nil && handler.gqlHandler != nil {
 		handler.gqlHandler.ServeHTTP(writer, request)
 	} else {
 		http.Error(writer, fmt.Sprintf("No GraphQL handler found for graph: %s", graphName), http.StatusInternalServerError)
@@ -67,44 +73,29 @@ func (gh *Handler) ServeHTTP(writer http.ResponseWriter, request *http.Request) 
 }
 
 // newGraphHandler creates a new graphql handler from schema
-func newGraphHandler(graph string, client gripql.Client) *graphHandler {
-	o := &graphHandler{
-		graph:  graph,
-		client: client,
+func newGraphHandler(db gdbi.GraphDB, workdir string, graph string) *graphHandler {
+	h := &graphHandler{
+		graph:   graph,
+		db:      db,
+		workdir: workdir,
 	}
-	o.setup()
-	return o
-}
-
-// check timestamp to see if schema needs to be updated, and if so
-// rebuild graphql schema
-func (gh *graphHandler) setup() {
-	ts, err := gh.client.GetTimestamp(gh.graph)
+	log.WithFields(log.Fields{"graph": graph}).Info("Building GraphQL schema")
+	schema, err := engine.GetSchema(context.Background(), db, workdir, graph)
 	if err != nil {
-		log.WithFields(log.Fields{"graph": gh.graph, "error": err}).Error("GetTimestamp error")
-		return
+		log.WithFields(log.Fields{"graph": graph, "error": err}).Error("GetSchema error")
+		return nil
 	}
-	if ts == nil || ts.Timestamp != gh.timestamp {
-		log.WithFields(log.Fields{"graph": gh.graph}).Info("Reloading GraphQL schema")
-		schema, err := gh.client.GetSchema(gh.graph)
-		if err != nil {
-			log.WithFields(log.Fields{"graph": gh.graph, "error": err}).Error("GetSchema error")
-			return
-		}
-		gqlSchema, err := buildGraphQLSchema(schema, gh.client, gh.graph)
-		if err != nil {
-			log.WithFields(log.Fields{"graph": gh.graph, "error": err}).Error("GraphQL schema build failed")
-			return
-		}
-		log.WithFields(log.Fields{"graph": gh.graph}).Info("Built GraphQL schema")
-		gh.schema = schema
-		gh.gqlHandler = handler.New(&handler.Config{
-			Schema: gqlSchema,
-		})
-		gh.timestamp = ts.Timestamp
-	} else {
-		log.WithFields(log.Fields{"graph": gh.graph}).Info("Using cached GraphQL schema")
+	h.schema = schema
+	gqlSchema, err := BuildGraphQLSchema(db, workdir, graph, schema)
+	if err != nil {
+		log.WithFields(log.Fields{"graph": graph, "error": err}).Error("GraphQL schema build failed")
+		return nil
 	}
+	log.WithFields(log.Fields{"graph": graph}).Info("Built GraphQL schema")
+	h.gqlHandler = handler.New(&handler.Config{
+		Schema: gqlSchema,
+	})
+	return h
 }
 
 func buildField(x string) (*graphql.Field, error) {
@@ -199,7 +190,7 @@ func buildObject(name string, obj map[string]interface{}) (*graphql.Object, erro
 	), nil
 }
 
-func buildObjectMap(client gripql.Client, graph string, schema *gripql.Graph) (map[string]*graphql.Object, error) {
+func buildObjectMap(db gdbi.GraphDB, workdir string, graph string, schema *gripql.Graph) (map[string]*graphql.Object, error) {
 	objects := map[string]*graphql.Object{}
 
 	for _, obj := range schema.Vertices {
@@ -233,7 +224,7 @@ func buildObjectMap(client gripql.Client, graph string, schema *gripql.Graph) (m
 					return nil, fmt.Errorf("source gid conversion failed: %+v", srcMap)
 				}
 				q := gripql.V(srcGid).HasLabel(obj.From).Out(obj.Label).HasLabel(obj.To)
-				result, err := client.Traversal(&gripql.GraphQuery{Graph: graph, Query: q.Statements})
+				result, err := engine.Traversal(context.Background(), db, workdir, &gripql.GraphQuery{Graph: graph, Query: q.Statements})
 				if err != nil {
 					return nil, err
 				}
@@ -252,7 +243,7 @@ func buildObjectMap(client gripql.Client, graph string, schema *gripql.Graph) (m
 	return objects, nil
 }
 
-func buildQueryObject(client gripql.Client, graph string, objects map[string]*graphql.Object) *graphql.Object {
+func buildQueryObject(db gdbi.GraphDB, workdir string, graph string, objects map[string]*graphql.Object) *graphql.Object {
 	queryFields := graphql.Fields{}
 
 	for objName, obj := range objects {
@@ -268,7 +259,7 @@ func buildQueryObject(client gripql.Client, graph string, objects map[string]*gr
 				if id, ok := p.Args["id"].(string); ok {
 					q = gripql.V(id).HasLabel(label)
 				}
-				result, err := client.Traversal(&gripql.GraphQuery{Graph: graph, Query: q.Statements})
+				result, err := engine.Traversal(context.Background(), db, workdir, &gripql.GraphQuery{Graph: graph, Query: q.Statements})
 				if err != nil {
 					return nil, err
 				}
@@ -295,17 +286,17 @@ func buildQueryObject(client gripql.Client, graph string, objects map[string]*gr
 	return query
 }
 
-func buildGraphQLSchema(schema *gripql.Graph, client gripql.Client, graph string) (*graphql.Schema, error) {
+func BuildGraphQLSchema(db gdbi.GraphDB, workdir string, graph string, schema *gripql.Graph) (*graphql.Schema, error) {
 	if schema == nil {
 		return nil, fmt.Errorf("graphql.NewSchema error: nil gripql.Graph for graph: %s", graph)
 	}
 
-	objectMap, err := buildObjectMap(client, graph, schema)
+	objectMap, err := buildObjectMap(db, workdir, graph, schema)
 	if err != nil {
 		return nil, fmt.Errorf("graphql.NewSchema error: %v", err)
 	}
 
-	queryObj := buildQueryObject(client, graph, objectMap)
+	queryObj := buildQueryObject(db, workdir, graph, objectMap)
 	schemaConfig := graphql.SchemaConfig{
 		Query: queryObj,
 	}

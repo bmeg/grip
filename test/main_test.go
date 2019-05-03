@@ -21,7 +21,6 @@ import (
 	_ "github.com/bmeg/grip/kvi/rocksdb"  // import so rocks will register itself
 	"github.com/bmeg/grip/mongo"
 	"github.com/bmeg/grip/psql"
-	"github.com/bmeg/grip/util"
 	_ "github.com/lib/pq" // import so postgres will register as a sql driver
 )
 
@@ -35,11 +34,11 @@ var edges = []*gripql.Edge{}
 func init() {
 	flag.StringVar(&configFile, "config", configFile, "config file to use for tests")
 	flag.Parse()
-	vertChan := util.StreamVerticesFromFile("./resources/smtest_vertices.txt")
+	vertChan := gripql.StreamVerticesFromFile("./resources/smtest_vertices.txt")
 	for v := range vertChan {
 		vertices = append(vertices, v)
 	}
-	edgeChan := util.StreamEdgesFromFile("./resources/smtest_edges.txt")
+	edgeChan := gripql.StreamEdgesFromFile("./resources/smtest_edges.txt")
 	for e := range edgeChan {
 		edges = append(edges, e)
 	}

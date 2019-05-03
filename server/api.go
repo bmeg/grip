@@ -3,7 +3,6 @@ package server
 import (
 	"fmt"
 	"io"
-	"strings"
 	"time"
 
 	"github.com/bmeg/grip/engine"
@@ -15,22 +14,14 @@ import (
 	"google.golang.org/grpc/codes"
 )
 
-// Traversal parses a traversal request and streams the results back
+// Traversal parses a GraphQuery request and streams the results back
 func (server *GripServer) Traversal(query *gripql.GraphQuery, queryServer gripql.Query_TraversalServer) error {
 	start := time.Now()
-	log.WithFields(log.Fields{"query": query}).Debug("Traversal")
-	graph, err := server.db.Graph(query.Graph)
+	resultsChan, err := engine.Traversal(queryServer.Context(), server.db, server.conf.WorkDir, query)
 	if err != nil {
 		return err
 	}
-	compiler := graph.Compiler()
-	pipeline, err := compiler.Compile(query.Query)
-	if err != nil {
-		return err
-	}
-	res := engine.Run(queryServer.Context(), pipeline, server.conf.WorkDir)
-	err = nil
-	for row := range res {
+	for row := range resultsChan {
 		if err == nil {
 			err = queryServer.Send(row)
 		}
@@ -89,8 +80,8 @@ func (server *GripServer) DeleteGraph(ctx context.Context, elem *gripql.GraphID)
 	if err != nil {
 		return nil, fmt.Errorf("DeleteGraph: deleting graph %s: %v", elem.Graph, err)
 	}
-	schemaName := fmt.Sprintf("%s%s", elem.Graph, schemaSuffix)
-	if server.graphExists(schemaName) {
+	schemaName := fmt.Sprintf("%s%s", elem.Graph, gripql.SchemaSuffix)
+	if engine.GraphExists(server.db, schemaName) {
 		err := server.db.DeleteGraph(schemaName)
 		if err != nil {
 			return nil, fmt.Errorf("DeleteGraph: deleting schema for graph %s: %v", elem.Graph, err)
@@ -114,7 +105,7 @@ func (server *GripServer) AddGraph(ctx context.Context, elem *gripql.GraphID) (*
 
 // AddVertex adds a vertex to the graph
 func (server *GripServer) AddVertex(ctx context.Context, elem *gripql.GraphElement) (*gripql.EditResult, error) {
-	if isSchema(elem.Graph) {
+	if gripql.IsSchema(elem.Graph) {
 		return nil, fmt.Errorf("unable to add vertex to graph schema; use AddSchema")
 	}
 	return server.addVertex(ctx, elem)
@@ -141,7 +132,7 @@ func (server *GripServer) addVertex(ctx context.Context, elem *gripql.GraphEleme
 
 // AddEdge adds an edge to the graph
 func (server *GripServer) AddEdge(ctx context.Context, elem *gripql.GraphElement) (*gripql.EditResult, error) {
-	if isSchema(elem.Graph) {
+	if gripql.IsSchema(elem.Graph) {
 		return nil, fmt.Errorf("unable to add edge to graph schema; use AddSchema")
 	}
 	return server.addEdge(ctx, elem)
@@ -199,7 +190,7 @@ func (server *GripServer) BulkAdd(stream gripql.Edit_BulkAddServer) error {
 
 	go func() {
 		for vBatch := range vertexBatchChan {
-			if isSchema(vBatch.graph) {
+			if gripql.IsSchema(vBatch.graph) {
 				err := "cannot add vertex to schema graph"
 				log.WithFields(log.Fields{"error": err}).Error("BulkAdd: add vertex error")
 				continue
@@ -221,7 +212,7 @@ func (server *GripServer) BulkAdd(stream gripql.Edit_BulkAddServer) error {
 
 	go func() {
 		for eBatch := range edgeBatchChan {
-			if isSchema(eBatch.graph) {
+			if gripql.IsSchema(eBatch.graph) {
 				err := "cannot add edge to schema graph"
 				log.WithFields(log.Fields{"error": err}).Error("BulkAdd: add edge error")
 				continue
@@ -304,7 +295,7 @@ func (server *GripServer) BulkAdd(stream gripql.Edit_BulkAddServer) error {
 
 // DeleteVertex deletes a vertex from the server
 func (server *GripServer) DeleteVertex(ctx context.Context, elem *gripql.ElementID) (*gripql.EditResult, error) {
-	if isSchema(elem.Graph) {
+	if gripql.IsSchema(elem.Graph) {
 		return nil, fmt.Errorf("unable to delete vertex from graph schema; use AddSchema")
 	}
 	graph, err := server.db.Graph(elem.Graph)
@@ -320,7 +311,7 @@ func (server *GripServer) DeleteVertex(ctx context.Context, elem *gripql.Element
 
 // DeleteEdge deletes an edge from the graph server
 func (server *GripServer) DeleteEdge(ctx context.Context, elem *gripql.ElementID) (*gripql.EditResult, error) {
-	if isSchema(elem.Graph) {
+	if gripql.IsSchema(elem.Graph) {
 		return nil, fmt.Errorf("unable to delete edge from graph schema; use AddSchema")
 	}
 	graph, err := server.db.Graph(elem.Graph)
@@ -336,7 +327,7 @@ func (server *GripServer) DeleteEdge(ctx context.Context, elem *gripql.ElementID
 
 // AddIndex adds a new index
 func (server *GripServer) AddIndex(ctx context.Context, idx *gripql.IndexID) (*gripql.EditResult, error) {
-	if isSchema(idx.Graph) {
+	if gripql.IsSchema(idx.Graph) {
 		return nil, fmt.Errorf("unupported operation for graph schema")
 	}
 	graph, err := server.db.Graph(idx.Graph)
@@ -352,7 +343,7 @@ func (server *GripServer) AddIndex(ctx context.Context, idx *gripql.IndexID) (*g
 
 // DeleteIndex removes an index from the server
 func (server *GripServer) DeleteIndex(ctx context.Context, idx *gripql.IndexID) (*gripql.EditResult, error) {
-	if isSchema(idx.Graph) {
+	if gripql.IsSchema(idx.Graph) {
 		return nil, fmt.Errorf("unupported operation for graph schema")
 	}
 	graph, err := server.db.Graph(idx.Graph)
@@ -396,8 +387,6 @@ func (server *GripServer) ListLabels(ctx context.Context, idx *gripql.GraphID) (
 	return &gripql.ListLabelsResponse{VertexLabels: vLabels, EdgeLabels: eLabels}, nil
 }
 
-var schemaSuffix = "__schema__"
-
 func (server *GripServer) buildSchemas(ctx context.Context) {
 	for _, name := range server.db.ListGraphs() {
 		select {
@@ -405,7 +394,7 @@ func (server *GripServer) buildSchemas(ctx context.Context) {
 			return
 
 		default:
-			if isSchema(name) {
+			if gripql.IsSchema(name) {
 				continue
 			}
 			log.WithFields(log.Fields{"graph": name}).Debug("building graph schema")
@@ -450,7 +439,7 @@ func (server *GripServer) cacheSchemas(ctx context.Context) {
 
 // GetSchema returns the schema of a specific graph in the database
 func (server *GripServer) GetSchema(ctx context.Context, elem *gripql.GraphID) (*gripql.Graph, error) {
-	if !server.graphExists(elem.Graph) {
+	if !engine.GraphExists(server.db, elem.Graph) {
 		return nil, grpc.Errorf(codes.NotFound, fmt.Sprintf("graph %s: not found", elem.Graph))
 	}
 	schema, ok := server.schemas[elem.Graph]
@@ -479,8 +468,8 @@ func (server *GripServer) AddSchema(ctx context.Context, req *gripql.Graph) (*gr
 }
 
 func (server *GripServer) addSchemaGraph(ctx context.Context, schema *gripql.Graph) error {
-	schemaName := fmt.Sprintf("%s%s", schema.Graph, schemaSuffix)
-	if server.graphExists(schemaName) {
+	schemaName := fmt.Sprintf("%s%s", schema.Graph, gripql.SchemaSuffix)
+	if engine.GraphExists(server.db, schemaName) {
 		_, err := server.DeleteGraph(ctx, &gripql.GraphID{Graph: schemaName})
 		if err != nil {
 			return fmt.Errorf("failed to remove previous schema: %v", err)
@@ -503,18 +492,4 @@ func (server *GripServer) addSchemaGraph(ctx context.Context, schema *gripql.Gra
 		}
 	}
 	return nil
-}
-
-func isSchema(graphName string) bool {
-	return strings.HasSuffix(graphName, schemaSuffix)
-}
-
-func (server *GripServer) graphExists(graphName string) bool {
-	found := false
-	for _, graph := range server.db.ListGraphs() {
-		if graph == graphName {
-			found = true
-		}
-	}
-	return found
 }

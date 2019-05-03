@@ -3,7 +3,6 @@ package graphql
 import (
 	"testing"
 
-	"github.com/bmeg/grip/example"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/protoutil"
 )
@@ -37,7 +36,7 @@ func TestWellDefined(t *testing.T) {
 		},
 	}
 
-	_, err := buildGraphQLSchema(schema, gripql.Client{}, "test")
+	_, err := BuildGraphQLSchema(nil, "", "test", schema)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -58,7 +57,7 @@ func TestUnkownType(t *testing.T) {
 		},
 	}
 
-	_, err := buildGraphQLSchema(schema, gripql.Client{}, "test")
+	_, err := BuildGraphQLSchema(nil, "", "test", schema)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -85,7 +84,7 @@ func TestNilData(t *testing.T) {
 		},
 	}
 
-	_, err := buildGraphQLSchema(schema, gripql.Client{}, "test")
+	_, err := BuildGraphQLSchema(nil, "", "test", schema)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -122,14 +121,7 @@ func TestComplex(t *testing.T) {
 		},
 	}
 
-	_, err := buildGraphQLSchema(schema, gripql.Client{}, "test")
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
-}
-
-func TestExampleGraph(t *testing.T) {
-	_, err := buildGraphQLSchema(example.SWSchema, gripql.Client{}, "example-graph")
+	_, err := BuildGraphQLSchema(nil, "", "test", schema)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}

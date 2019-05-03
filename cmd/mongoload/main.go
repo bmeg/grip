@@ -7,7 +7,6 @@ import (
 
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/mongo"
-	"github.com/bmeg/grip/util"
 	"github.com/bmeg/grip/util/rpc"
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
@@ -112,7 +111,7 @@ var Cmd = &cobra.Command{
 			docBatch := make([]map[string]interface{}, 0, batchSize)
 			go func() {
 				defer close(docChan)
-				for v := range util.StreamVerticesFromFile(vertexFile) {
+				for v := range gripql.StreamVerticesFromFile(vertexFile) {
 					data := mongo.PackVertex(v)
 					docBatch = append(docBatch, data)
 					if len(docBatch) > batchSize {
@@ -156,7 +155,7 @@ var Cmd = &cobra.Command{
 			docBatch := make([]map[string]interface{}, 0, batchSize)
 			go func() {
 				defer close(docChan)
-				for e := range util.StreamEdgesFromFile(edgeFile) {
+				for e := range gripql.StreamEdgesFromFile(edgeFile) {
 					data := mongo.PackEdge(e)
 					if data["_id"] == "" {
 						data["_id"] = bson.NewObjectId().Hex()

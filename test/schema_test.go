@@ -12,7 +12,7 @@ import (
 	"github.com/bmeg/grip/util"
 )
 
-func TestSchema(t *testing.T) {
+func TestBuildSchema(t *testing.T) {
 	if dbname == "psql" || dbname == "existing-sql" || dbname == "elastic" {
 		t.Skip("skipping schema test")
 	}

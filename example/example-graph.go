@@ -207,7 +207,10 @@ func init() {
 	SWSchema = schemas[0]
 }
 
-func StartTestServer(ctx context.Context, conf *config.Config, graph string) (gripql.Client, error) {
+func StartTestServer(ctx context.Context, graph string) (gripql.Client, error) {
+	conf := config.DefaultConfig()
+	config.TestifyConfig(conf)
+
 	kv, err := kvgraph.NewKVInterface("badger", conf.KVStorePath, nil)
 	if err != nil {
 		return gripql.Client{}, err

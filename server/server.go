@@ -9,10 +9,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/bmeg/grip/engine"
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/graphql"
 	"github.com/bmeg/grip/gripql"
-	"github.com/bmeg/grip/util/rpc"
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	log "github.com/sirupsen/logrus"
@@ -41,7 +41,7 @@ func NewGripServer(db gdbi.GraphDB, conf Config, schemas map[string]*gripql.Grap
 	}
 	server := &GripServer{db: db, conf: conf, schemas: schemas}
 	for graph, schema := range schemas {
-		if !server.graphExists(graph) {
+		if !engine.GraphExists(db, graph) {
 			_, err := server.AddGraph(context.Background(), &gripql.GraphID{Graph: graph})
 			if err != nil {
 				return nil, fmt.Errorf("error creating graph defined by schema '%s': %v", graph, err)
@@ -160,17 +160,8 @@ func (server *GripServer) Serve(pctx context.Context) error {
 	grpcMux := runtime.NewServeMux(runtime.WithMarshalerOption("*/*", &marsh))
 	runtime.OtherErrorHandler = handleError
 
-	user := ""
-	password := ""
-	if len(server.conf.BasicAuth) > 0 {
-		user = server.conf.BasicAuth[0].User
-		password = server.conf.BasicAuth[0].Password
-	}
-
-	gqlHandler, err := graphql.NewHTTPHandler(server.conf.RPCAddress(), user, password)
-	if err != nil {
-		return fmt.Errorf("setting up GraphQL handler: %v", err)
-	}
+	gqlHandler := graphql.NewHTTPHandler(server.db, server.conf.WorkDir)
+	gqlHandler.BuildGraphHandlers()
 	mux.Handle("/graphql/", gqlHandler)
 
 	dashmux := http.NewServeMux()
@@ -216,9 +207,9 @@ func (server *GripServer) Serve(pctx context.Context) error {
 
 	// Regsiter Query Service
 	gripql.RegisterQueryServer(grpcServer, server)
-	//TODO: Put in some sort of logic that will allow web server to be configured to use GRPC client
+	// TODO: Put in some sort of logic that will allow web server to be configured to use GRPC client
 	err = gripql.RegisterQueryHandlerClient(ctx, grpcMux, gripql.NewQueryDirectClient(server))
-	//err = gripql.RegisterQueryHandlerFromEndpoint(ctx, grpcMux, ":"+server.conf.RPCPort, opts)
+	// err = gripql.RegisterQueryHandlerFromEndpoint(ctx, grpcMux, ":"+server.conf.RPCPort, opts)
 	if err != nil {
 		return fmt.Errorf("registering query endpoint: %v", err)
 	}
@@ -226,9 +217,9 @@ func (server *GripServer) Serve(pctx context.Context) error {
 	// Regsiter Edit Service
 	if !server.conf.ReadOnly {
 		gripql.RegisterEditServer(grpcServer, server)
-		//TODO: Put in some sort of logic that will allow web server to be configured to use GRPC client
+		// TODO: Put in some sort of logic that will allow web server to be configured to use GRPC client
 		err = gripql.RegisterEditHandlerClient(ctx, grpcMux, gripql.NewEditDirectClient(server))
-		//err = gripql.RegisterEditHandlerFromEndpoint(ctx, grpcMux, ":"+server.conf.RPCPort, opts)
+		// err = gripql.RegisterEditHandlerFromEndpoint(ctx, grpcMux, ":"+server.conf.RPCPort, opts)
 		if err != nil {
 			return fmt.Errorf("registering edit endpoint: %v", err)
 		}
@@ -256,30 +247,13 @@ func (server *GripServer) Serve(pctx context.Context) error {
 	// load existing schemas from db
 	if server.db != nil {
 		for _, graph := range server.db.ListGraphs() {
-			if isSchema(graph) {
+			if gripql.IsSchema(graph) {
 				log.WithFields(log.Fields{"graph": graph}).Debug("Loading existing schema into cache")
-				conn, err := gripql.Connect(rpc.ConfigWithDefaults(server.conf.RPCAddress()), true)
+        s, err := engine.GetSchema(ctx, server.db, server.conf.WorkDir, graph)
 				if err != nil {
 					return fmt.Errorf("failed to load existing schema: %v", err)
 				}
-				res, err := conn.Traversal(&gripql.GraphQuery{Graph: graph, Query: gripql.NewQuery().V().Statements})
-				if err != nil {
-					return fmt.Errorf("failed to load existing schema: %v", err)
-				}
-				vertices := []*gripql.Vertex{}
-				for row := range res {
-					vertices = append(vertices, row.GetVertex())
-				}
-				res, err = conn.Traversal(&gripql.GraphQuery{Graph: graph, Query: gripql.NewQuery().E().Statements})
-				if err != nil {
-					return fmt.Errorf("failed to load existing schema: %v", err)
-				}
-				edges := []*gripql.Edge{}
-				for row := range res {
-					edges = append(edges, row.GetEdge())
-				}
-				graph = strings.TrimSuffix(graph, schemaSuffix)
-				server.schemas[graph] = &gripql.Graph{Graph: graph, Vertices: vertices, Edges: edges}
+				server.schemas[graph] = s
 			}
 		}
 	}

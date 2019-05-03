@@ -1,4 +1,4 @@
-package schema
+package test
 
 import (
 	"context"
@@ -6,26 +6,22 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/bmeg/grip/config"
+  "github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/example"
-	"github.com/bmeg/grip/gripql"
 )
 
 func TestSchemaScanner(t *testing.T) {
-	graph := "example-graph"
-	conf := config.DefaultConfig()
-	config.TestifyConfig(conf)
-
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	client, err := example.StartTestServer(ctx, conf, graph)
+	graph := "example-graph"
+	client, err := example.StartTestServer(ctx, graph)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	var exclude []string
-	graphSchema, err := ScanSchema(client, graph, 50, exclude)
+	graphSchema, err := gripql.ScanSchema(client, graph, 50, exclude)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -69,7 +65,7 @@ func TestSchemaScanner(t *testing.T) {
 	}
 
 	exclude = []string{"Movie"}
-	graphSchema, err = ScanSchema(client, graph, 50, exclude)
+	graphSchema, err = gripql.ScanSchema(client, graph, 50, exclude)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -96,7 +92,7 @@ func TestSchemaScanner(t *testing.T) {
 	}
 
 	exclude = []string{"Movie", "appearsIn"}
-	graphSchema, err = ScanSchema(client, graph, 50, exclude)
+	graphSchema, err = gripql.ScanSchema(client, graph, 50, exclude)
 	if err != nil {
 		t.Fatal(err)
 	}

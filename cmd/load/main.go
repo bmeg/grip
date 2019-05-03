@@ -5,7 +5,6 @@ import (
 
 	"github.com/bmeg/grip/cmd/load/example"
 	"github.com/bmeg/grip/gripql"
-	"github.com/bmeg/grip/util"
 	"github.com/bmeg/grip/util/rpc"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -69,7 +68,7 @@ var Cmd = &cobra.Command{
 		if vertexFile != "" {
 			log.Infof("Loading vertex file: %s", vertexFile)
 			count := 0
-			for v := range util.StreamVerticesFromFile(vertexFile) {
+			for v := range gripql.StreamVerticesFromFile(vertexFile) {
 				count++
 				if count%1000 == 0 {
 					log.Infof("Loaded %d vertices", count)
@@ -82,7 +81,7 @@ var Cmd = &cobra.Command{
 		if edgeFile != "" {
 			log.Infof("Loading edge file: %s", edgeFile)
 			count := 0
-			for e := range util.StreamEdgesFromFile(edgeFile) {
+			for e := range gripql.StreamEdgesFromFile(edgeFile) {
 				count++
 				if count%1000 == 0 {
 					log.Infof("Loaded %d edges", count)
