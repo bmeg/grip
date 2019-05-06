@@ -50,7 +50,7 @@ bench: rocksdb-lib
 proto:
 	@cd gripql && protoc \
 		-I ./ \
-		-I ../googleapis \
+		-I ../third_party/googleapis \
 		--lint_out=. \
 		--go_out=Mgoogle/protobuf/struct.proto=github.com/golang/protobuf/ptypes/struct,plugins=grpc:. \
 		--grpc-gateway_out=logtostderr=true:. \

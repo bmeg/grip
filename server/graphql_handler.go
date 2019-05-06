@@ -1,8 +1,4 @@
-/*
-GraphQL Web endpoint
-*/
-
-package graphql
+package server
 
 import (
 	"context"
@@ -18,25 +14,25 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-//handle the graphql queries for a single endpoint
+// graphHandler handles the graphql queries for a single graph
 type graphHandler struct {
-	graph      string
 	gqlHandler *handler.Handler
 	db         gdbi.GraphDB
+	graph      string
 	schema     *gripql.Graph
 	workdir    string
 }
 
-// Handler is a GraphQL endpoint to query the Grip database
-type Handler struct {
+// GraphQLHandler manages GraphQL queries to the Grip database
+type GraphQLHandler struct {
 	handlers map[string]*graphHandler
 	db       gdbi.GraphDB
 	workdir  string
 }
 
-// NewHTTPHandler initilizes a new GraphQLHandler
-func NewHTTPHandler(db gdbi.GraphDB, workdir string) *Handler {
-	h := &Handler{
+// NewGraphQLHandler initilizes a new GraphQLHandler
+func NewGraphQLHandler(db gdbi.GraphDB, workdir string) *GraphQLHandler {
+	h := &GraphQLHandler{
 		db:       db,
 		workdir:  workdir,
 		handlers: map[string]*graphHandler{},
@@ -45,10 +41,11 @@ func NewHTTPHandler(db gdbi.GraphDB, workdir string) *Handler {
 }
 
 // Generate graphql handlers for all graphs
-func (gh *Handler) BuildGraphHandlers() {
-  if gh.db == nil {
-    return
-  }
+func (gh *GraphQLHandler) BuildAllGraphHandlers() {
+	if gh.db == nil {
+		log.Error("GraphQLHandler: BuildGraphHandlers: database interface is nil")
+		return
+	}
 	for _, graph := range gh.db.ListGraphs() {
 		if !gripql.IsSchema(graph) {
 			handler := newGraphHandler(gh.db, gh.workdir, graph)
@@ -59,8 +56,20 @@ func (gh *Handler) BuildGraphHandlers() {
 	}
 }
 
+// Generate graphql handlers for all graphs
+func (gh *GraphQLHandler) BuildGraphHandler(graph string) {
+	if gh.db == nil {
+		log.Error("GraphQLHandler: BuildGraphHandlers: database interface is nil")
+		return
+	}
+	handler := newGraphHandler(gh.db, gh.workdir, graph)
+	if handler != nil {
+		gh.handlers[graph] = handler
+	}
+}
+
 // ServeHTTP responds to HTTP graphql requests
-func (gh *Handler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
+func (gh *GraphQLHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 	pathRE := regexp.MustCompile("/graphql/(.*)$")
 	graphName := pathRE.FindStringSubmatch(request.URL.Path)[1]
 	var handler *graphHandler
@@ -86,7 +95,7 @@ func newGraphHandler(db gdbi.GraphDB, workdir string, graph string) *graphHandle
 		return nil
 	}
 	h.schema = schema
-	gqlSchema, err := BuildGraphQLSchema(db, workdir, graph, schema)
+	gqlSchema, err := buildGraphQLSchema(db, workdir, graph, schema)
 	if err != nil {
 		log.WithFields(log.Fields{"graph": graph, "error": err}).Error("GraphQL schema build failed")
 		return nil
@@ -286,7 +295,7 @@ func buildQueryObject(db gdbi.GraphDB, workdir string, graph string, objects map
 	return query
 }
 
-func BuildGraphQLSchema(db gdbi.GraphDB, workdir string, graph string, schema *gripql.Graph) (*graphql.Schema, error) {
+func buildGraphQLSchema(db gdbi.GraphDB, workdir string, graph string, schema *gripql.Graph) (*graphql.Schema, error) {
 	if schema == nil {
 		return nil, fmt.Errorf("graphql.NewSchema error: nil gripql.Graph for graph: %s", graph)
 	}

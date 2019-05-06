@@ -2,8 +2,8 @@ package gripql
 
 import (
 	"bytes"
-	"encoding/json"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -12,7 +12,7 @@ import (
 	"strings"
 
 	"github.com/bmeg/golib"
-  "github.com/ghodss/yaml"
+	"github.com/ghodss/yaml"
 	"github.com/golang/protobuf/jsonpb"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"

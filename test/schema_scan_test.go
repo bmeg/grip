@@ -6,8 +6,8 @@ import (
 	"sort"
 	"testing"
 
-  "github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/example"
+	"github.com/bmeg/grip/gripql"
 )
 
 func TestSchemaScanner(t *testing.T) {

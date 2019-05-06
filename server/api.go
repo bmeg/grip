@@ -491,5 +491,7 @@ func (server *GripServer) addSchemaGraph(ctx context.Context, schema *gripql.Gra
 			return fmt.Errorf("error adding edge to graph '%s': %v", schemaName, err)
 		}
 	}
+	// register new schema with graphql endpoint to enable graphql queries
+	go server.gql.BuildGraphHandler(req.Graph)
 	return nil
 }

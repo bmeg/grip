@@ -1,4 +1,4 @@
-package graphql
+package server
 
 import (
 	"testing"
@@ -7,7 +7,7 @@ import (
 	"github.com/graphql-go/graphql"
 )
 
-func TestResolver(t *testing.T) {
+func TestGraphQLResolver(t *testing.T) {
 	// Schema
 	personObject := graphql.NewObject(graphql.ObjectConfig{Name: "Person",
 		Fields: graphql.Fields{

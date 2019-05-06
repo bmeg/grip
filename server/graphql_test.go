@@ -1,13 +1,14 @@
-package graphql
+package server
 
 import (
 	"testing"
 
+	"github.com/bmeg/grip/example"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/protoutil"
 )
 
-func TestWellDefined(t *testing.T) {
+func TestGraphQLWellDefined(t *testing.T) {
 	vdata := map[string]interface{}{
 		"Field1": "STRING",
 		"Field2": "NUMERIC",
@@ -36,13 +37,13 @@ func TestWellDefined(t *testing.T) {
 		},
 	}
 
-	_, err := BuildGraphQLSchema(nil, "", "test", schema)
+	_, err := buildGraphQLSchema(nil, "", "test", schema)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 }
 
-func TestUnkownType(t *testing.T) {
+func TestGraphQLUnkownType(t *testing.T) {
 	vdata := map[string]interface{}{
 		"Field1": "UNKNOWN",
 		"Field2": "NUMERIC",
@@ -57,13 +58,13 @@ func TestUnkownType(t *testing.T) {
 		},
 	}
 
-	_, err := BuildGraphQLSchema(nil, "", "test", schema)
+	_, err := buildGraphQLSchema(nil, "", "test", schema)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 }
 
-func TestNilData(t *testing.T) {
+func TestGraphQLNilData(t *testing.T) {
 	// TestVertexLabel1 will be omitted from the resulting GQL schema since it has no properties
 	vdata := map[string]interface{}{
 		"Field1": "STRING",
@@ -84,13 +85,13 @@ func TestNilData(t *testing.T) {
 		},
 	}
 
-	_, err := BuildGraphQLSchema(nil, "", "test", schema)
+	_, err := buildGraphQLSchema(nil, "", "test", schema)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 }
 
-func TestComplex(t *testing.T) {
+func TestGraphQLComplex(t *testing.T) {
 	vdata := map[string]interface{}{
 		"Field1": "STRING",
 		"Field2": "NUMERIC",
@@ -121,7 +122,14 @@ func TestComplex(t *testing.T) {
 		},
 	}
 
-	_, err := BuildGraphQLSchema(nil, "", "test", schema)
+	_, err := buildGraphQLSchema(nil, "", "test", schema)
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+}
+
+func TestGraphQLExampleSchema(t *testing.T) {
+	_, err := buildGraphQLSchema(nil, "", "example-graph", example.SWSchema)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}

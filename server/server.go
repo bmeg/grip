@@ -11,7 +11,6 @@ import (
 
 	"github.com/bmeg/grip/engine"
 	"github.com/bmeg/grip/gdbi"
-	"github.com/bmeg/grip/graphql"
 	"github.com/bmeg/grip/gripql"
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
@@ -25,17 +24,11 @@ type GripServer struct {
 	db      gdbi.GraphDB
 	conf    Config
 	schemas map[string]*gripql.Graph
+	gql     *GraphQLHandler
 }
 
 // NewGripServer initializes a GRPC server to connect to the graph store
 func NewGripServer(db gdbi.GraphDB, conf Config, schemas map[string]*gripql.Graph) (*GripServer, error) {
-	_, err := os.Stat(conf.WorkDir)
-	if os.IsNotExist(err) {
-		err = os.Mkdir(conf.WorkDir, 0700)
-		if err != nil {
-			return nil, fmt.Errorf("creating work dir: %v", err)
-		}
-	}
 	if schemas == nil {
 		schemas = make(map[string]*gripql.Graph)
 	}
@@ -52,6 +45,14 @@ func NewGripServer(db gdbi.GraphDB, conf Config, schemas map[string]*gripql.Grap
 			return nil, err
 		}
 	}
+	_, err := os.Stat(conf.WorkDir)
+	if os.IsNotExist(err) {
+		err = os.Mkdir(conf.WorkDir, 0700)
+		if err != nil {
+			return nil, fmt.Errorf("creating work dir: %v", err)
+		}
+	}
+	server.gql = NewGraphQLHandler(db, conf.WorkDir)
 	return server, nil
 }
 
@@ -156,13 +157,14 @@ func (server *GripServer) Serve(pctx context.Context) error {
 			OrigName:     true,
 		},
 	}
-	mux := http.NewServeMux()
 	grpcMux := runtime.NewServeMux(runtime.WithMarshalerOption("*/*", &marsh))
 	runtime.OtherErrorHandler = handleError
 
-	gqlHandler := graphql.NewHTTPHandler(server.db, server.conf.WorkDir)
-	gqlHandler.BuildGraphHandlers()
+	mux := http.NewServeMux()
 	mux.Handle("/graphql/", gqlHandler)
+	go func() {
+		gqlHandler.BuildAllGraphHandlers(ctx)
+	}()
 
 	dashmux := http.NewServeMux()
 	if server.conf.ContentDir != "" {
@@ -249,7 +251,7 @@ func (server *GripServer) Serve(pctx context.Context) error {
 		for _, graph := range server.db.ListGraphs() {
 			if gripql.IsSchema(graph) {
 				log.WithFields(log.Fields{"graph": graph}).Debug("Loading existing schema into cache")
-        s, err := engine.GetSchema(ctx, server.db, server.conf.WorkDir, graph)
+				s, err := engine.GetSchema(ctx, server.db, server.conf.WorkDir, graph)
 				if err != nil {
 					return fmt.Errorf("failed to load existing schema: %v", err)
 				}

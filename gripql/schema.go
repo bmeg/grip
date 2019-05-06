@@ -2,7 +2,7 @@ package gripql
 
 import (
 	"fmt"
-  "strings"
+	"strings"
 
 	"github.com/bmeg/grip/protoutil"
 	"github.com/bmeg/grip/util"
