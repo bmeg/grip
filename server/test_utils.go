@@ -1,8 +1,6 @@
 package server
 
 import (
-	"context"
-	"fmt"
 	"os"
 	"strings"
 
@@ -13,7 +11,7 @@ import (
 	"github.com/bmeg/grip/util"
 )
 
-func SetupTestServer(ctx context.Context, graph string) (gripql.Client, error) {
+func SetupTestServer(graph string) (gripql.Client, func(), error) {
 	rand := strings.ToLower(util.RandomString(6))
 	c := Config{}
 	c.HostName = "localhost"
@@ -22,15 +20,21 @@ func SetupTestServer(ctx context.Context, graph string) (gripql.Client, error) {
 	c.WorkDir = "grip.work." + rand
 	kvPath := "grip.db." + rand
 
+	cleanup := func() {
+		os.RemoveAll(c.WorkDir)
+		os.RemoveAll(kvPath)
+	}
+
 	kv, err := kvgraph.NewKVInterface("badger", kvPath, nil)
 	if err != nil {
-		return gripql.Client{}, err
+		return gripql.Client{}, cleanup, err
 	}
 
 	db := kvgraph.NewKVGraph(kv)
 	srv, err := NewGripServer(db, c, nil)
 	if err != nil {
-		return gripql.Client{}, err
+		cleanup()
+		return gripql.Client{}, cleanup, err
 	}
 
 	queryClient := gripql.NewQueryDirectClient(srv)
@@ -39,37 +43,23 @@ func SetupTestServer(ctx context.Context, graph string) (gripql.Client, error) {
 
 	err = client.AddGraph(graph)
 	if err != nil {
-		return gripql.Client{}, err
+		cleanup()
+		return gripql.Client{}, cleanup, err
 	}
 
-	elemChan := make(chan *gripql.GraphElement)
-	wait := make(chan bool)
-	go func() {
-		if err := client.BulkAdd(elemChan); err != nil {
-			fmt.Printf("BulkAdd error: %v", err)
-		}
-		wait <- false
-	}()
-
 	for _, v := range example.SWVertices {
-		elemChan <- &gripql.GraphElement{Graph: graph, Vertex: v}
+		if err := client.BulkAdd(&gripql.GraphElement{Graph: graph, Vertex: v}); err != nil {
+			cleanup()
+			return gripql.Client{}, cleanup, err
+		}
 	}
 
 	for _, e := range example.SWEdges {
-		elemChan <- &gripql.GraphElement{Graph: graph, Edge: e}
+		if err := client.BulkAdd(&gripql.GraphElement{Graph: graph, Edge: e}); err != nil {
+			cleanup()
+			return gripql.Client{}, cleanup, err
+		}
 	}
 
-	close(elemChan)
-	<-wait
-
-	go func() {
-		select {
-		case <-ctx.Done():
-			kv.Close()
-			os.RemoveAll(c.WorkDir)
-			os.RemoveAll(kvPath)
-		}
-	}()
-
-	return client, nil
+	return client, cleanup, nil
 }

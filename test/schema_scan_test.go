@@ -1,7 +1,6 @@
 package test
 
 import (
-	"context"
 	"reflect"
 	"sort"
 	"testing"
@@ -12,14 +11,12 @@ import (
 )
 
 func TestSchemaScanner(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
 	graph := "example-graph"
-	client, err := server.SetupTestServer(ctx, graph)
+	client, cleanup, err := server.SetupTestServer(graph)
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer cleanup()
 
 	var exclude []string
 	graphSchema, err := gripql.ScanSchema(client, graph, 50, exclude)
