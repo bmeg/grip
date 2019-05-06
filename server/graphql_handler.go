@@ -256,8 +256,7 @@ func buildGraphQLSchema(db gdbi.GraphDB, workdir string, graph string, schema *g
 				"first": &graphql.ArgumentConfig{Type: graphql.Int},
 			},
 			Resolve: func(params graphql.ResolveParams) (interface{}, error) {
-				resolver := NewGQLResolver(db, workdir, graph)
-				return resolver.resolve(label, params)
+				return ResolveGraphQL(db, workdir, graph, label, params)
 			},
 		}
 		queryFields[objName] = f

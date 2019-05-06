@@ -11,27 +11,13 @@ import (
 	//log "github.com/sirupsen/logrus"
 )
 
-func NewGQLResolver(db gdbi.GraphDB, workdir sting, graph string) *gqlResolver {
-	return &gqlResolver{
-		db:      db,
-		workdir: workdir,
-		graph:   graph,
-		outKeys: []string{},
-		outTmpl: make(map[string]map[string]interface{}),
-		query:   nil,
-	}
-}
-
-type gqlResolver struct {
-	db      gdbi.GraphDB
-	workdir string
-	graph   string
+type gqlTranslator struct {
 	query   *gripql.Query
 	outKeys []string
 	outTmpl map[string]map[string]interface{}
 }
 
-func (r *gqlResolver) isEdgeLabel(label string) bool {
+func (r *gqlTranslator) isEdgeLabel(label string) bool {
 	return strings.HasPrefix(label, "_to_")
 	// for _, e := range r.schema.Edges {
 	// 	if label == e.Label {
@@ -41,7 +27,7 @@ func (r *gqlResolver) isEdgeLabel(label string) bool {
 	// return false
 }
 
-func (r *gqlResolver) scanField(f *ast.Field, as string) error {
+func (r *gqlTranslator) scanField(f *ast.Field, as string) error {
 	if f.SelectionSet == nil {
 		return nil
 	}
@@ -101,7 +87,9 @@ func (r *gqlResolver) scanField(f *ast.Field, as string) error {
 	return nil
 }
 
-func (r *gqlResolver) translate(label string, params graphql.ResolveParams) (*gripql.Query, error) {
+func (r *gqlTranslator) translate(label string, params graphql.ResolveParams) (*gripql.Query, error) {
+	r.outKeys = []string{}
+	r.outTmpl = make(map[string]map[string]interface{})
 	r.outTmpl[label] = make(map[string]interface{})
 	r.query = gripql.NewQuery().V().HasLabel(label)
 
@@ -111,17 +99,17 @@ func (r *gqlResolver) translate(label string, params graphql.ResolveParams) (*gr
 			return nil, fmt.Errorf("translate: %v", err)
 		}
 	}
-
 	r.query = r.query.Select(r.outKeys...).Render(r.outTmpl)
-
-	fmt.Printf("Query: %+v\n", r.query.JSON())
 	return r.query, nil
 }
 
-func (r *gqlResolver) resolve(label string, params graphql.ResolveParams) (interface{}, error) {
-	_, err := r.translate(label, params)
+func ResolveGraphQL(db gdbi.GraphDB, workdir sting, graph string, label string, params graphql.ResolveParams) (interface{}, error) {
+	r := &gqlTranslator{}
+	query, err := r.translate(label, params)
 	if err != nil {
 		return nil, fmt.Errorf("resolve: %v", err)
 	}
+	fmt.Printf("Query: %+v\n", query.JSON())
+	// TODO: run query
 	return nil, fmt.Errorf("resolve: not implemented")
 }
