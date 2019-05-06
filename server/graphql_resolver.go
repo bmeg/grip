@@ -4,28 +4,41 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
 	"github.com/graphql-go/graphql"
 	"github.com/graphql-go/graphql/language/ast"
 	//log "github.com/sirupsen/logrus"
 )
 
+func NewGQLResolver(db gdbi.GraphDB, workdir sting, graph string) *gqlResolver {
+	return &gqlResolver{
+		db:      db,
+		workdir: workdir,
+		graph:   graph,
+		outKeys: []string{},
+		outTmpl: make(map[string]map[string]interface{}),
+		query:   nil,
+	}
+}
+
 type gqlResolver struct {
-	client  *gripql.Client
+	db      gdbi.GraphDB
+	workdir string
 	graph   string
-	schema  *gripql.Graph
 	query   *gripql.Query
 	outKeys []string
 	outTmpl map[string]map[string]interface{}
 }
 
 func (r *gqlResolver) isEdgeLabel(label string) bool {
-	for _, e := range r.schema.Edges {
-		if label == e.Label {
-			return true
-		}
-	}
-	return false
+	return strings.HasPrefix(label, "_to_")
+	// for _, e := range r.schema.Edges {
+	// 	if label == e.Label {
+	// 		return true
+	// 	}
+	// }
+	// return false
 }
 
 func (r *gqlResolver) scanField(f *ast.Field, as string) error {
@@ -78,6 +91,7 @@ func (r *gqlResolver) scanField(f *ast.Field, as string) error {
 	if len(edges) > 1 {
 		return fmt.Errorf("branched queries not supported")
 	}
+
 	// continue traversal
 	for eName, eField := range edges {
 		r.query = r.query.Out(eName)
@@ -88,9 +102,7 @@ func (r *gqlResolver) scanField(f *ast.Field, as string) error {
 }
 
 func (r *gqlResolver) translate(label string, params graphql.ResolveParams) (*gripql.Query, error) {
-	r.outTmpl = make(map[string]map[string]interface{})
 	r.outTmpl[label] = make(map[string]interface{})
-	r.outKeys = []string{}
 	r.query = gripql.NewQuery().V().HasLabel(label)
 
 	for _, f := range params.Info.FieldASTs {

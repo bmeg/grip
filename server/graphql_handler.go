@@ -199,15 +199,15 @@ func buildObject(name string, obj map[string]interface{}) (*graphql.Object, erro
 	), nil
 }
 
-func buildObjectMap(db gdbi.GraphDB, workdir string, graph string, schema *gripql.Graph) (map[string]*graphql.Object, error) {
+func buildObjectMap(schema *gripql.Graph) (map[string]*graphql.Object, error) {
 	objects := map[string]*graphql.Object{}
 
 	for _, obj := range schema.Vertices {
 		props := obj.GetDataMap()
 		if props == nil {
-			continue
+			props = make(map[string]interface{})
 		}
-		props["id"] = "STRING"
+		props["gid"] = "STRING"
 		gqlObj, err := buildObject(obj.Label, props)
 		if err != nil {
 			return nil, err
@@ -223,28 +223,6 @@ func buildObjectMap(db gdbi.GraphDB, workdir string, graph string, schema *gripq
 		f := &graphql.Field{
 			Name: fname,
 			Type: graphql.NewList(objects[obj.To]),
-			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-				srcMap, ok := p.Source.(map[string]interface{})
-				if !ok {
-					return nil, fmt.Errorf("source conversion failed: %v", p.Source)
-				}
-				srcGid, ok := srcMap["id"].(string)
-				if !ok {
-					return nil, fmt.Errorf("source gid conversion failed: %+v", srcMap)
-				}
-				q := gripql.V(srcGid).HasLabel(obj.From).Out(obj.Label).HasLabel(obj.To)
-				result, err := engine.Traversal(context.Background(), db, workdir, &gripql.GraphQuery{Graph: graph, Query: q.Statements})
-				if err != nil {
-					return nil, err
-				}
-				out := []interface{}{}
-				for r := range result {
-					d := r.GetVertex().GetDataMap()
-					d["id"] = r.GetVertex().Gid
-					out = append(out, d)
-				}
-				return out, nil
-			},
 		}
 		objects[obj.From].AddFieldConfig(fname, f)
 	}
@@ -253,35 +231,35 @@ func buildObjectMap(db gdbi.GraphDB, workdir string, graph string, schema *gripq
 }
 
 func buildQueryObject(db gdbi.GraphDB, workdir string, graph string, objects map[string]*graphql.Object) *graphql.Object {
-	queryFields := graphql.Fields{}
 
-	for objName, obj := range objects {
+	return query
+}
+
+func buildGraphQLSchema(db gdbi.GraphDB, workdir string, graph string, schema *gripql.Graph) (*graphql.Schema, error) {
+	if schema == nil {
+		return nil, fmt.Errorf("graphql.NewSchema error: nil gripql.Graph for graph: %s", graph)
+	}
+
+	objectMap, err := buildObjectMap(schema)
+	if err != nil {
+		return nil, fmt.Errorf("graphql.NewSchema error: %v", err)
+	}
+
+	queryFields := graphql.Fields{}
+	for objName, obj := range objectMap {
 		label := obj.Name()
 		f := &graphql.Field{
 			Name: objName,
 			Type: graphql.NewList(obj),
 			Args: graphql.FieldConfigArgument{
-				"id": &graphql.ArgumentConfig{Type: graphql.String},
+				"gid":   &graphql.ArgumentConfig{Type: graphql.String},
+				"first": &graphql.ArgumentConfig{Type: graphql.Int},
 			},
-			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-				q := gripql.V().HasLabel(label)
-				if id, ok := p.Args["id"].(string); ok {
-					q = gripql.V(id).HasLabel(label)
-				}
-				result, err := engine.Traversal(context.Background(), db, workdir, &gripql.GraphQuery{Graph: graph, Query: q.Statements})
-				if err != nil {
-					return nil, err
-				}
-				out := []interface{}{}
-				for r := range result {
-					d := r.GetVertex().GetDataMap()
-					d["id"] = r.GetVertex().Gid
-					out = append(out, d)
-				}
-				return out, nil
+			Resolve: func(params graphql.ResolveParams) (interface{}, error) {
+				resolver := NewGQLResolver(db, workdir, graph)
+				return resolver.resolve(label, params)
 			},
 		}
-
 		queryFields[objName] = f
 	}
 
@@ -292,22 +270,8 @@ func buildQueryObject(db gdbi.GraphDB, workdir string, graph string, objects map
 		},
 	)
 
-	return query
-}
-
-func buildGraphQLSchema(db gdbi.GraphDB, workdir string, graph string, schema *gripql.Graph) (*graphql.Schema, error) {
-	if schema == nil {
-		return nil, fmt.Errorf("graphql.NewSchema error: nil gripql.Graph for graph: %s", graph)
-	}
-
-	objectMap, err := buildObjectMap(db, workdir, graph, schema)
-	if err != nil {
-		return nil, fmt.Errorf("graphql.NewSchema error: %v", err)
-	}
-
-	queryObj := buildQueryObject(db, workdir, graph, objectMap)
 	schemaConfig := graphql.SchemaConfig{
-		Query: queryObj,
+		Query: query,
 	}
 
 	gqlSchema, err := graphql.NewSchema(schemaConfig)
