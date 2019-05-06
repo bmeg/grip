@@ -36,7 +36,7 @@ func GetSchema(ctx context.Context, db gdbi.GraphDB, workdir string, graph strin
 	}
 	res, err := Traversal(ctx, db, workdir, &gripql.GraphQuery{Graph: graph, Query: gripql.NewQuery().V().Statements})
 	if err != nil {
-		return nil, fmt.Errorf("failed to load schema for graph %s: %v", graph, err)
+		return nil, fmt.Errorf("failed to load schema for graph '%s': %v", graph, err)
 	}
 	vertices := []*gripql.Vertex{}
 	for row := range res {
@@ -44,7 +44,7 @@ func GetSchema(ctx context.Context, db gdbi.GraphDB, workdir string, graph strin
 	}
 	res, err = Traversal(ctx, db, workdir, &gripql.GraphQuery{Graph: graph, Query: gripql.NewQuery().E().Statements})
 	if err != nil {
-		return nil, fmt.Errorf("failed to load schema for graph %s: %v", graph, err)
+		return nil, fmt.Errorf("failed to load schema for graph '%s': %v", graph, err)
 	}
 	edges := []*gripql.Edge{}
 	for row := range res {

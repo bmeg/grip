@@ -492,6 +492,6 @@ func (server *GripServer) addSchemaGraph(ctx context.Context, schema *gripql.Gra
 		}
 	}
 	// register new schema with graphql endpoint to enable graphql queries
-	go server.gql.BuildGraphHandler(req.Graph)
+	go server.gql.BuildGraphHandler(schema.Graph)
 	return nil
 }

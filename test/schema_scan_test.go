@@ -8,6 +8,7 @@ import (
 
 	"github.com/bmeg/grip/example"
 	"github.com/bmeg/grip/gripql"
+	"github.com/bmeg/grip/server"
 )
 
 func TestSchemaScanner(t *testing.T) {
@@ -15,7 +16,7 @@ func TestSchemaScanner(t *testing.T) {
 	defer cancel()
 
 	graph := "example-graph"
-	client, err := example.StartTestServer(ctx, graph)
+	client, err := server.SetupTestServer(ctx, graph)
 	if err != nil {
 		t.Fatal(err)
 	}

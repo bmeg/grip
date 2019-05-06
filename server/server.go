@@ -40,7 +40,7 @@ func NewGripServer(db gdbi.GraphDB, conf Config, schemas map[string]*gripql.Grap
 				return nil, fmt.Errorf("error creating graph defined by schema '%s': %v", graph, err)
 			}
 		}
-		err = server.addSchemaGraph(context.Background(), schema)
+		err := server.addSchemaGraph(context.Background(), schema)
 		if err != nil {
 			return nil, err
 		}
@@ -161,9 +161,9 @@ func (server *GripServer) Serve(pctx context.Context) error {
 	runtime.OtherErrorHandler = handleError
 
 	mux := http.NewServeMux()
-	mux.Handle("/graphql/", gqlHandler)
+	mux.Handle("/graphql/", server.gql)
 	go func() {
-		gqlHandler.BuildAllGraphHandlers(ctx)
+		server.gql.BuildAllGraphHandlers()
 	}()
 
 	dashmux := http.NewServeMux()

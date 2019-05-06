@@ -13,7 +13,7 @@ import (
 	"github.com/bmeg/grip/util"
 )
 
-func SetupTestingServer(ctx context.Context, graph string) (gripql.Client, error) {
+func SetupTestServer(ctx context.Context, graph string) (gripql.Client, error) {
 	rand := strings.ToLower(util.RandomString(6))
 	c := Config{}
 	c.HostName = "localhost"
