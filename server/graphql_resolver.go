@@ -17,6 +17,7 @@ type gqlTranslator struct {
 	query   *gripql.Query
 	outKeys []string
 	outTmpl map[string]map[string]interface{}
+	edgeMap map[string]string
 }
 
 func (r *gqlTranslator) isEdgeLabel(label string) bool {
@@ -32,13 +33,10 @@ func (r *gqlTranslator) scanField(f *ast.Field, as string) error {
 		return fmt.Errorf("scanField: 'as' is an empty string")
 	}
 
-	parts := strings.Split(as, "_")
+	parts := strings.Split(as, "__to_")
 	outTmpl := r.outTmpl[parts[0]]
-	for i, k := range parts {
-		if i == 0 {
-			continue
-		}
-		if val, ok := outTmpl[k]; ok {
+	for _, k := range parts[1:] {
+		if val, ok := outTmpl["_to_"+k]; ok {
 			if mval, ok := val.(map[string]interface{}); ok {
 				outTmpl = mval
 			}
@@ -76,7 +74,12 @@ func (r *gqlTranslator) scanField(f *ast.Field, as string) error {
 
 	// continue traversal
 	for eName, eField := range edges {
-		r.query = r.query.Out(eName)
+		eLabel, ok := r.edgeMap[eName]
+		if !ok {
+			return fmt.Errorf("unknown edge field: %v", eName)
+		}
+		toLabel := strings.TrimPrefix(eName, "_to_")
+		r.query = r.query.Out(eLabel).HasLabel(toLabel)
 		return r.scanField(eField, as+"_"+eName)
 	}
 
@@ -99,14 +102,21 @@ func (r *gqlTranslator) translate(label string, params graphql.ResolveParams) (*
 	return r.query, nil
 }
 
-func ResolveGraphQL(db gdbi.GraphDB, workdir string, graph string, label string, params graphql.ResolveParams) (interface{}, error) {
+type GraphQLResolverConfig struct {
+	DB      gdbi.GraphDB
+	WorkDir string
+	Graph   string
+	EdgeMap map[string]string
+}
+
+func ResolveGraphQL(conf GraphQLResolverConfig, label string, params graphql.ResolveParams) (interface{}, error) {
 	start := time.Now()
-	r := &gqlTranslator{}
+	r := &gqlTranslator{edgeMap: conf.EdgeMap}
 	query, err := r.translate(label, params)
 	if err != nil {
 		return nil, err
 	}
-	resultsChan, err := engine.Traversal(params.Context, db, workdir, &gripql.GraphQuery{Graph: graph, Query: query.Statements})
+	resultsChan, err := engine.Traversal(params.Context, conf.DB, conf.WorkDir, &gripql.GraphQuery{Graph: conf.Graph, Query: query.Statements})
 	if err != nil {
 		return nil, err
 	}

@@ -1,14 +1,51 @@
 package server
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/bmeg/grip/gripql"
 	"github.com/graphql-go/graphql"
 )
 
-func TestGraphQLResolver(t *testing.T) {
-	// Schema
+func TestGraphQLTranslator(t *testing.T) {
+	// GraphQL query
+	query := `
+		{
+      person {
+        name
+        age
+        _to_person {
+          name
+          _to_person {
+            name
+            age
+          }
+        }
+      }
+		}
+	`
+
+	// Expected GripQL query
+	expected := gripql.NewQuery().V().HasLabel("person").Fields("name", "age").As("person").
+		Out("friend").HasLabel("person").Fields("name").As("person__to_person").
+		Out("friend").HasLabel("person").Fields("name", "age").As("person__to_person__to_person").
+		Select("person", "person__to_person", "person__to_person__to_person").
+		Render(map[string]interface{}{
+			"person": map[string]interface{}{
+				"name": "$person.name",
+				"age":  "$person.age",
+				"_to_person": map[string]interface{}{
+					"name": "$person__to_person.name",
+					"_to_person": map[string]interface{}{
+						"name": "$person__to_person__to_person.name",
+						"age":  "$person__to_person__to_person.age",
+					},
+				},
+			},
+		})
+
+	// Setup GraphQL schema
 	personObject := graphql.NewObject(graphql.ObjectConfig{Name: "Person",
 		Fields: graphql.Fields{
 			"name": &graphql.Field{Type: graphql.String},
@@ -17,9 +54,8 @@ func TestGraphQLResolver(t *testing.T) {
 	})
 
 	personObject.AddFieldConfig(
-		"friend",
+		"_to_person",
 		&graphql.Field{
-			Name: "Friend",
 			Type: personObject,
 		},
 	)
@@ -28,29 +64,18 @@ func TestGraphQLResolver(t *testing.T) {
 		"person": &graphql.Field{
 			Type: personObject,
 			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-				r := &gqlResolver{
-					schema: &gripql.Graph{
-						Vertices: []*gripql.Vertex{
-							{
-								Label: "Person",
-							},
-						},
-						Edges: []*gripql.Edge{
-							{
-								Label: "friend",
-								From:  "Person",
-								To:    "Person",
-							},
-						},
-					},
-				}
-				_, err := r.resolve("person", p)
+				tr := &gqlTranslator{edgeMap: map[string]string{"_to_person": "friend"}}
+				actual, err := tr.translate("person", p)
 				if err != nil {
+					t.Fatalf("failed to translate query: %v", err)
 					return nil, err
 				}
-				return map[string]interface{}{"name": "bob", "friend": map[string]interface{}{"name": "Joe",
-					"friend": map[string]interface{}{"name": "Sam"},
-				}}, nil
+				if !reflect.DeepEqual(expected.Statements, actual.Statements) {
+					t.Logf("expected: %+v", expected.JSON())
+					t.Logf("actual:   %+v", actual.JSON())
+					t.Fatal("unexpected query returned by GraphQL translator")
+				}
+				return nil, nil
 			},
 		},
 	}
@@ -62,25 +87,6 @@ func TestGraphQLResolver(t *testing.T) {
 		t.Fatalf("failed to create new schema, error: %v", err)
 	}
 
-	// Query
-	query := `
-		{
-      person {
-        name
-        age
-        friend {
-          name
-          friend {
-            name
-            age
-          }
-        }
-      }
-		}
-	`
 	params := graphql.Params{Schema: schema, RequestString: query}
-	r := graphql.Do(params)
-	if len(r.Errors) > 0 {
-		t.Fatalf("failed to execute graphql operation, errors: %+v", r.Errors)
-	}
+	graphql.Do(params)
 }
