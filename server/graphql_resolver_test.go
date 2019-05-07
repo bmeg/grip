@@ -15,9 +15,9 @@ func TestGraphQLTranslator(t *testing.T) {
       person {
         name
         age
-        _to_person {
+        friend {
           name
-          _to_person {
+          friend {
             name
             age
           }
@@ -28,18 +28,18 @@ func TestGraphQLTranslator(t *testing.T) {
 
 	// Expected GripQL query
 	expected := gripql.NewQuery().V().HasLabel("person").Fields("name", "age").As("person").
-		Out("friend").HasLabel("person").Fields("name").As("person__to_person").
-		Out("friend").HasLabel("person").Fields("name", "age").As("person__to_person__to_person").
-		Select("person", "person__to_person", "person__to_person__to_person").
+		Out("friend").Fields("name").As("person__friend").
+		Out("friend").Fields("name", "age").As("person__friend__friend").
+		Select("person", "person__friend", "person__friend__friend").
 		Render(map[string]interface{}{
 			"person": map[string]interface{}{
 				"name": "$person.name",
 				"age":  "$person.age",
-				"_to_person": map[string]interface{}{
-					"name": "$person__to_person.name",
-					"_to_person": map[string]interface{}{
-						"name": "$person__to_person__to_person.name",
-						"age":  "$person__to_person__to_person.age",
+				"friend": map[string]interface{}{
+					"name": "$person__friend.name",
+					"friend": map[string]interface{}{
+						"name": "$person__friend__friend.name",
+						"age":  "$person__friend__friend.age",
 					},
 				},
 			},
@@ -54,7 +54,7 @@ func TestGraphQLTranslator(t *testing.T) {
 	})
 
 	personObject.AddFieldConfig(
-		"_to_person",
+		"friend",
 		&graphql.Field{
 			Type: personObject,
 		},
@@ -64,7 +64,7 @@ func TestGraphQLTranslator(t *testing.T) {
 		"person": &graphql.Field{
 			Type: personObject,
 			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-				tr := &gqlTranslator{edgeMap: map[string]string{"_to_person": "friend"}}
+				tr := &gqlTranslator{edgeLabels: []string{"friend"}}
 				actual, err := tr.translate("person", p)
 				if err != nil {
 					t.Fatalf("failed to translate query: %v", err)
@@ -89,4 +89,35 @@ func TestGraphQLTranslator(t *testing.T) {
 
 	params := graphql.Params{Schema: schema, RequestString: query}
 	graphql.Do(params)
+}
+
+func TestGraphQLResolver(t *testing.T) {
+	graph := "example-graph"
+	ts, err := SetupTestServer(graph)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer ts.Cleanup()
+
+	gqlSchema, err := buildGraphQLSchema(ts.DB, ts.Config.WorkDir, ts.Graph, ts.Schema)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	query := `
+		{
+      Human {
+        name
+        mass
+        friend {
+          name
+        }
+      }
+		}
+	`
+
+	resp := graphql.Do(graphql.Params{Schema: *gqlSchema, RequestString: query})
+	if len(resp.Errors) > 0 {
+		t.Fatalf("failed to execute graphql operation, errors: %+v", resp.Errors)
+	}
 }

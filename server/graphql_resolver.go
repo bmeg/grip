@@ -14,14 +14,19 @@ import (
 )
 
 type gqlTranslator struct {
-	query   *gripql.Query
-	outKeys []string
-	outTmpl map[string]map[string]interface{}
-	edgeMap map[string]string
+	query      *gripql.Query
+	outKeys    []string
+	outTmpl    map[string]map[string]interface{}
+	edgeLabels []string
 }
 
 func (r *gqlTranslator) isEdgeLabel(label string) bool {
-	return strings.HasPrefix(label, "_to_")
+	for _, l := range r.edgeLabels {
+		if label == l {
+			return true
+		}
+	}
+	return false
 }
 
 func (r *gqlTranslator) scanField(f *ast.Field, as string) error {
@@ -33,10 +38,10 @@ func (r *gqlTranslator) scanField(f *ast.Field, as string) error {
 		return fmt.Errorf("scanField: 'as' is an empty string")
 	}
 
-	parts := strings.Split(as, "__to_")
+	parts := strings.Split(as, "__")
 	outTmpl := r.outTmpl[parts[0]]
 	for _, k := range parts[1:] {
-		if val, ok := outTmpl["_to_"+k]; ok {
+		if val, ok := outTmpl[k]; ok {
 			if mval, ok := val.(map[string]interface{}); ok {
 				outTmpl = mval
 			}
@@ -74,13 +79,8 @@ func (r *gqlTranslator) scanField(f *ast.Field, as string) error {
 
 	// continue traversal
 	for eName, eField := range edges {
-		eLabel, ok := r.edgeMap[eName]
-		if !ok {
-			return fmt.Errorf("unknown edge field: %v", eName)
-		}
-		toLabel := strings.TrimPrefix(eName, "_to_")
-		r.query = r.query.Out(eLabel).HasLabel(toLabel)
-		return r.scanField(eField, as+"_"+eName)
+		r.query = r.query.Out(eName)
+		return r.scanField(eField, as+"__"+eName)
 	}
 
 	return nil
@@ -103,15 +103,15 @@ func (r *gqlTranslator) translate(label string, params graphql.ResolveParams) (*
 }
 
 type GraphQLResolverConfig struct {
-	DB      gdbi.GraphDB
-	WorkDir string
-	Graph   string
-	EdgeMap map[string]string
+	DB         gdbi.GraphDB
+	WorkDir    string
+	Graph      string
+	EdgeLabels []string
 }
 
 func ResolveGraphQL(conf GraphQLResolverConfig, label string, params graphql.ResolveParams) (interface{}, error) {
 	start := time.Now()
-	r := &gqlTranslator{edgeMap: conf.EdgeMap}
+	r := &gqlTranslator{edgeLabels: conf.EdgeLabels}
 	query, err := r.translate(label, params)
 	if err != nil {
 		return nil, err

@@ -12,14 +12,14 @@ import (
 
 func TestSchemaScanner(t *testing.T) {
 	graph := "example-graph"
-	client, cleanup, err := server.SetupTestServer(graph)
+	ts, err := server.SetupTestServer(graph)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer cleanup()
+	defer ts.Cleanup()
 
 	var exclude []string
-	graphSchema, err := gripql.ScanSchema(client, graph, 50, exclude)
+	graphSchema, err := gripql.ScanSchema(ts.Client, graph, 50, exclude)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -63,7 +63,7 @@ func TestSchemaScanner(t *testing.T) {
 	}
 
 	exclude = []string{"Movie"}
-	graphSchema, err = gripql.ScanSchema(client, graph, 50, exclude)
+	graphSchema, err = gripql.ScanSchema(ts.Client, graph, 50, exclude)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -90,7 +90,7 @@ func TestSchemaScanner(t *testing.T) {
 	}
 
 	exclude = []string{"Movie", "appearsIn"}
-	graphSchema, err = gripql.ScanSchema(client, graph, 50, exclude)
+	graphSchema, err = gripql.ScanSchema(ts.Client, graph, 50, exclude)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -106,7 +106,7 @@ func buildGraphQLSchema(db gdbi.GraphDB, workdir string, graph string, schema *g
 		return nil, fmt.Errorf("graphql.NewSchema error: nil gripql.Graph for graph: %s", graph)
 	}
 
-	edgeMap := map[string]string{}
+	edgeLabels := []string{}
 	objects := map[string]*graphql.Object{}
 
 	for _, obj := range schema.Vertices {
@@ -125,21 +125,22 @@ func buildGraphQLSchema(db gdbi.GraphDB, workdir string, graph string, schema *g
 	// Setup outgoing edge fields
 	// Note: edge properties are not accessible in this model
 	for _, obj := range schema.Edges {
-		obj := obj
-		fname := "_to_" + obj.To
-		f := &graphql.Field{
-			Name: fname,
+		objects[obj.From].AddFieldConfig(obj.To, &graphql.Field{
+			Name: obj.To,
 			Type: graphql.NewList(objects[obj.To]),
-		}
-		objects[obj.From].AddFieldConfig(fname, f)
-		edgeMap[fname] = obj.Label
+		})
+		objects[obj.To].AddFieldConfig(obj.From, &graphql.Field{
+			Name: obj.From,
+			Type: graphql.NewList(objects[obj.From]),
+		})
+		edgeLabels = append(edgeLabels, obj.Label)
 	}
 
 	resolverConf := GraphQLResolverConfig{
-		DB:      db,
-		WorkDir: workdir,
-		Graph:   graph,
-		EdgeMap: edgeMap,
+		DB:         db,
+		WorkDir:    workdir,
+		Graph:      graph,
+		EdgeLabels: edgeLabels,
 	}
 
 	queryFields := graphql.Fields{}
@@ -149,8 +150,7 @@ func buildGraphQLSchema(db gdbi.GraphDB, workdir string, graph string, schema *g
 			Name: objName,
 			Type: graphql.NewList(obj),
 			Args: graphql.FieldConfigArgument{
-				"gid":   &graphql.ArgumentConfig{Type: graphql.String},
-				"first": &graphql.ArgumentConfig{Type: graphql.Int},
+				"gid": &graphql.ArgumentConfig{Type: graphql.String},
 			},
 			Resolve: func(params graphql.ResolveParams) (interface{}, error) {
 				return ResolveGraphQL(resolverConf, label, params)
