@@ -2,23 +2,16 @@ package server
 
 import (
 	"os"
-	"strings"
 
 	"github.com/bmeg/grip/example"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/kvgraph"
 	_ "github.com/bmeg/grip/kvi/badgerdb" // import so badger will register itself
-	"github.com/bmeg/grip/util"
 )
 
 func SetupTestServer(graph string) (gripql.Client, func(), error) {
-	rand := strings.ToLower(util.RandomString(6))
-	c := Config{}
-	c.HostName = "localhost"
-	c.HTTPPort = util.RandomPort()
-	c.RPCPort = util.RandomPort()
-	c.WorkDir = "grip.work." + rand
-	kvPath := "grip.db." + rand
+	c := testConfig()
+	kvPath := c.WorkDir + ".kv.db"
 
 	cleanup := func() {
 		os.RemoveAll(c.WorkDir)
@@ -48,14 +41,14 @@ func SetupTestServer(graph string) (gripql.Client, func(), error) {
 	}
 
 	for _, v := range example.SWVertices {
-		if err := client.BulkAdd(&gripql.GraphElement{Graph: graph, Vertex: v}); err != nil {
+		if err := client.AddVertex(graph, v); err != nil {
 			cleanup()
 			return gripql.Client{}, cleanup, err
 		}
 	}
 
 	for _, e := range example.SWEdges {
-		if err := client.BulkAdd(&gripql.GraphElement{Graph: graph, Edge: e}); err != nil {
+		if err := client.AddEdge(graph, e); err != nil {
 			cleanup()
 			return gripql.Client{}, cleanup, err
 		}

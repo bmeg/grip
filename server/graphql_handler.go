@@ -31,21 +31,19 @@ type GraphQLHandler struct {
 }
 
 // NewGraphQLHandler initilizes a new GraphQLHandler
-func NewGraphQLHandler(db gdbi.GraphDB, workdir string) *GraphQLHandler {
-	h := &GraphQLHandler{
+func NewGraphQLHandler(db gdbi.GraphDB, workdir string) (*GraphQLHandler, error) {
+	if db == nil {
+		return nil, fmt.Errorf("gdbi.GraphDB interface is nil")
+	}
+	return &GraphQLHandler{
 		db:       db,
 		workdir:  workdir,
 		handlers: map[string]*graphHandler{},
-	}
-	return h
+	}, nil
 }
 
 // Generate graphql handlers for all graphs
 func (gh *GraphQLHandler) BuildAllGraphHandlers() {
-	if gh.db == nil {
-		log.Error("GraphQLHandler: BuildGraphHandlers: database interface is nil")
-		return
-	}
 	for _, graph := range gh.db.ListGraphs() {
 		if !gripql.IsSchema(graph) {
 			handler := newGraphHandler(gh.db, gh.workdir, graph)
@@ -58,10 +56,6 @@ func (gh *GraphQLHandler) BuildAllGraphHandlers() {
 
 // Generate graphql handlers for all graphs
 func (gh *GraphQLHandler) BuildGraphHandler(graph string) {
-	if gh.db == nil {
-		log.Error("GraphQLHandler: BuildGraphHandlers: database interface is nil")
-		return
-	}
 	handler := newGraphHandler(gh.db, gh.workdir, graph)
 	if handler != nil {
 		gh.handlers[graph] = handler
@@ -83,24 +77,28 @@ func (gh *GraphQLHandler) ServeHTTP(writer http.ResponseWriter, request *http.Re
 
 // newGraphHandler creates a new graphql handler from schema
 func newGraphHandler(db gdbi.GraphDB, workdir string, graph string) *graphHandler {
+	if db == nil {
+		log.WithFields(log.Fields{"graph": graph, "error": fmt.Errorf("gdbi.GraphDB interface is nil")}).Errorf("newGraphHandler: checking args")
+		return nil
+	}
 	h := &graphHandler{
 		graph:   graph,
 		db:      db,
 		workdir: workdir,
 	}
-	log.WithFields(log.Fields{"graph": graph}).Info("Building GraphQL schema")
+	log.WithFields(log.Fields{"graph": graph}).Info("newGraphHandler: Building GraphQL schema")
 	schema, err := engine.GetSchema(context.Background(), db, workdir, graph)
 	if err != nil {
-		log.WithFields(log.Fields{"graph": graph, "error": err}).Error("GetSchema error")
+		log.WithFields(log.Fields{"graph": graph, "error": err}).Error("newGraphHandler: GetSchema error")
 		return nil
 	}
 	h.schema = schema
 	gqlSchema, err := buildGraphQLSchema(db, workdir, graph, schema)
 	if err != nil {
-		log.WithFields(log.Fields{"graph": graph, "error": err}).Error("GraphQL schema build failed")
+		log.WithFields(log.Fields{"graph": graph, "error": err}).Error("newGraphHandler: GraphQL schema build failed")
 		return nil
 	}
-	log.WithFields(log.Fields{"graph": graph}).Info("Built GraphQL schema")
+	log.WithFields(log.Fields{"graph": graph}).Info("newGraphHandler: Built GraphQL schema")
 	h.gqlHandler = handler.New(&handler.Config{
 		Schema: gqlSchema,
 	})
@@ -228,11 +226,6 @@ func buildObjectMap(schema *gripql.Graph) (map[string]*graphql.Object, error) {
 	}
 
 	return objects, nil
-}
-
-func buildQueryObject(db gdbi.GraphDB, workdir string, graph string, objects map[string]*graphql.Object) *graphql.Object {
-
-	return query
 }
 
 func buildGraphQLSchema(db gdbi.GraphDB, workdir string, graph string, schema *gripql.Graph) (*graphql.Schema, error) {

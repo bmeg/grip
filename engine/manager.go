@@ -7,6 +7,7 @@ import (
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/kvi"
 	"github.com/bmeg/grip/kvi/badgerdb"
+	log "github.com/sirupsen/logrus"
 )
 
 // NewManager creates a resource manager
@@ -21,8 +22,22 @@ type manager struct {
 }
 
 func (bm *manager) GetTempKV() kvi.KVInterface {
-	td, _ := ioutil.TempDir(bm.workDir, "kvTmp")
-	kv, _ := badgerdb.NewKVInterface(td, kvi.Options{})
+	_, err := os.Stat(bm.workDir)
+	if os.IsNotExist(err) {
+		err = os.Mkdir(bm.workDir, 0700)
+		if err != nil {
+			log.Errorf("GetTempKV: creating work dir: %v", err)
+		}
+	}
+
+	td, err := ioutil.TempDir(bm.workDir, "kvTmp")
+	if err != nil {
+		log.Errorf("GetTempKV: creating work dir: %v", err)
+	}
+	kv, err := badgerdb.NewKVInterface(td, kvi.Options{})
+	if err != nil {
+		log.Errorf("GetTempKV: creating kvi.KVInterface: %v", err)
+	}
 
 	bm.kvs = append(bm.kvs, kv)
 	bm.paths = append(bm.paths, td)

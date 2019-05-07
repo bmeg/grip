@@ -3,12 +3,14 @@ package server
 import (
 	"fmt"
 	"strings"
+	"time"
 
+	"github.com/bmeg/grip/engine"
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
 	"github.com/graphql-go/graphql"
 	"github.com/graphql-go/graphql/language/ast"
-	//log "github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 type gqlTranslator struct {
@@ -19,12 +21,6 @@ type gqlTranslator struct {
 
 func (r *gqlTranslator) isEdgeLabel(label string) bool {
 	return strings.HasPrefix(label, "_to_")
-	// for _, e := range r.schema.Edges {
-	// 	if label == e.Label {
-	// 		return true
-	// 	}
-	// }
-	// return false
 }
 
 func (r *gqlTranslator) scanField(f *ast.Field, as string) error {
@@ -96,20 +92,30 @@ func (r *gqlTranslator) translate(label string, params graphql.ResolveParams) (*
 	for _, f := range params.Info.FieldASTs {
 		err := r.scanField(f, label)
 		if err != nil {
-			return nil, fmt.Errorf("translate: %v", err)
+			return nil, fmt.Errorf("translating GraphQL query: %v", err)
 		}
 	}
 	r.query = r.query.Select(r.outKeys...).Render(r.outTmpl)
 	return r.query, nil
 }
 
-func ResolveGraphQL(db gdbi.GraphDB, workdir sting, graph string, label string, params graphql.ResolveParams) (interface{}, error) {
+func ResolveGraphQL(db gdbi.GraphDB, workdir string, graph string, label string, params graphql.ResolveParams) (interface{}, error) {
+	start := time.Now()
 	r := &gqlTranslator{}
 	query, err := r.translate(label, params)
 	if err != nil {
-		return nil, fmt.Errorf("resolve: %v", err)
+		return nil, err
 	}
-	fmt.Printf("Query: %+v\n", query.JSON())
-	// TODO: run query
-	return nil, fmt.Errorf("resolve: not implemented")
+	resultsChan, err := engine.Traversal(params.Context, db, workdir, &gripql.GraphQuery{Graph: graph, Query: query.Statements})
+	if err != nil {
+		return nil, err
+	}
+	out := []interface{}{}
+	for row := range resultsChan {
+		d := row.GetVertex().GetDataMap()
+		d["gid"] = row.GetVertex().Gid
+		out = append(out, d)
+	}
+	log.WithFields(log.Fields{"query": query, "elapsed_time": time.Since(start)}).Debug("ResolveGraphQL")
+	return out, nil
 }

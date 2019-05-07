@@ -29,10 +29,16 @@ type GripServer struct {
 
 // NewGripServer initializes a GRPC server to connect to the graph store
 func NewGripServer(db gdbi.GraphDB, conf Config, schemas map[string]*gripql.Graph) (*GripServer, error) {
+	if db == nil {
+		return nil, fmt.Errorf("gdbi.GraphDB interface is nil")
+	}
 	if schemas == nil {
 		schemas = make(map[string]*gripql.Graph)
 	}
+
 	server := &GripServer{db: db, conf: conf, schemas: schemas}
+
+	// Create graphs for provided schemas
 	for graph, schema := range schemas {
 		if !engine.GraphExists(db, graph) {
 			_, err := server.AddGraph(context.Background(), &gripql.GraphID{Graph: graph})
@@ -45,6 +51,7 @@ func NewGripServer(db gdbi.GraphDB, conf Config, schemas map[string]*gripql.Grap
 			return nil, err
 		}
 	}
+
 	_, err := os.Stat(conf.WorkDir)
 	if os.IsNotExist(err) {
 		err = os.Mkdir(conf.WorkDir, 0700)
@@ -52,7 +59,13 @@ func NewGripServer(db gdbi.GraphDB, conf Config, schemas map[string]*gripql.Grap
 			return nil, fmt.Errorf("creating work dir: %v", err)
 		}
 	}
-	server.gql = NewGraphQLHandler(db, conf.WorkDir)
+
+	gql, err := NewGraphQLHandler(db, conf.WorkDir)
+	if err != nil {
+		return nil, fmt.Errorf("failed to setup GraphQL handler: %v", err)
+	}
+	server.gql = gql
+
 	return server, nil
 }
 
@@ -149,7 +162,7 @@ func (server *GripServer) Serve(pctx context.Context) error {
 		grpc.MaxRecvMsgSize(1024*1024*16),
 	)
 
-	//setup RESTful proxy
+	// Setup gRPC mux
 	marsh := MarshalClean{
 		m: &runtime.JSONPb{
 			EnumsAsInts:  false,
@@ -160,12 +173,16 @@ func (server *GripServer) Serve(pctx context.Context) error {
 	grpcMux := runtime.NewServeMux(runtime.WithMarshalerOption("*/*", &marsh))
 	runtime.OtherErrorHandler = handleError
 
+	// Setup HTTP mux
 	mux := http.NewServeMux()
+
+	// Setup GraphQL handler
 	mux.Handle("/graphql/", server.gql)
 	go func() {
 		server.gql.BuildAllGraphHandlers()
 	}()
 
+	// Setup content mux
 	dashmux := http.NewServeMux()
 	if server.conf.ContentDir != "" {
 		httpDir := http.Dir(server.conf.ContentDir)
@@ -173,6 +190,7 @@ func (server *GripServer) Serve(pctx context.Context) error {
 		dashmux.Handle("/", dashfs)
 	}
 
+	// Setup main handler
 	mux.HandleFunc("/", func(resp http.ResponseWriter, req *http.Request) {
 
 		if len(server.conf.BasicAuth) > 0 {
@@ -209,6 +227,7 @@ func (server *GripServer) Serve(pctx context.Context) error {
 
 	// Regsiter Query Service
 	gripql.RegisterQueryServer(grpcServer, server)
+	// Setup HTTP proxy
 	// TODO: Put in some sort of logic that will allow web server to be configured to use GRPC client
 	err = gripql.RegisterQueryHandlerClient(ctx, grpcMux, gripql.NewQueryDirectClient(server))
 	// err = gripql.RegisterQueryHandlerFromEndpoint(ctx, grpcMux, ":"+server.conf.RPCPort, opts)
@@ -219,6 +238,7 @@ func (server *GripServer) Serve(pctx context.Context) error {
 	// Regsiter Edit Service
 	if !server.conf.ReadOnly {
 		gripql.RegisterEditServer(grpcServer, server)
+		// Setup HTTP proxy
 		// TODO: Put in some sort of logic that will allow web server to be configured to use GRPC client
 		err = gripql.RegisterEditHandlerClient(ctx, grpcMux, gripql.NewEditDirectClient(server))
 		// err = gripql.RegisterEditHandlerFromEndpoint(ctx, grpcMux, ":"+server.conf.RPCPort, opts)
