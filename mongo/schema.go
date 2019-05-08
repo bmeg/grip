@@ -3,6 +3,7 @@ package mongo
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/protoutil"
@@ -41,7 +42,7 @@ func (ma *GraphDB) BuildSchema(ctx context.Context, graph string, sampleN uint32
 	}
 
 	schema := &gripql.Graph{Graph: graph, Vertices: vSchema, Edges: eSchema}
-	log.WithFields(log.Fields{"graph": graph}).Debug("Finished GetSchema call")
+	log.WithFields(log.Fields{"graph": graph}).Debug("Finished BuildSchema call")
 	return schema, nil
 }
 
@@ -64,6 +65,7 @@ func (ma *GraphDB) getVertexSchema(ctx context.Context, graph string, n uint32, 
 			continue
 		}
 		g.Go(func() error {
+			start := time.Now()
 			log.WithFields(log.Fields{"graph": graph, "label": label}).Debug("getVertexSchema: Started schema build")
 
 			vsession := ma.session.Copy()
@@ -111,8 +113,7 @@ func (ma *GraphDB) getVertexSchema(ctx context.Context, graph string, n uint32, 
 
 			vSchema := &gripql.Vertex{Gid: label, Label: label, Data: protoutil.AsStruct(schema)}
 			schemaChan <- vSchema
-			log.WithFields(log.Fields{"graph": graph, "label": label}).Debug("getVertexSchema: Finished schema build")
-
+			log.WithFields(log.Fields{"graph": graph, "label": label, "elapsed_time": time.Since(start)}).Debug("getVertexSchema: Finished schema build")
 			return nil
 		})
 	}
@@ -151,6 +152,7 @@ func (ma *GraphDB) getEdgeSchema(ctx context.Context, graph string, n uint32, ra
 			continue
 		}
 		g.Go(func() error {
+			start := time.Now()
 			log.WithFields(log.Fields{"graph": graph, "label": label}).Debug("getEdgeSchema: Started schema build")
 
 			esession := ma.session.Copy()
@@ -213,7 +215,7 @@ func (ma *GraphDB) getEdgeSchema(ctx context.Context, graph string, n uint32, ra
 				}
 				schemaChan <- eSchema
 			}
-			log.WithFields(log.Fields{"graph": graph, "label": label}).Debug("getEdgeSchema: Finished schema build")
+			log.WithFields(log.Fields{"graph": graph, "label": label, "elapsed_time": time.Since(start)}).Debug("getEdgeSchema: Finished schema build")
 
 			return nil
 		})
