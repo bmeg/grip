@@ -479,10 +479,13 @@ func (server *GripServer) AddSchema(ctx context.Context, req *gripql.Graph) (*gr
 		return nil, fmt.Errorf("failed to store new schema: %v", err)
 	}
 	server.schemas[req.Graph] = req
-	return &gripql.EditResult{}, err
+	return &gripql.EditResult{}, nil
 }
 
 func (server *GripServer) addSchemaGraph(ctx context.Context, schema *gripql.Graph) error {
+	if schema.Graph == "" {
+		return fmt.Errorf("graph name is an empty string")
+	}
 	schemaName := fmt.Sprintf("%s%s", schema.Graph, schemaSuffix)
 	if server.graphExists(schemaName) {
 		_, err := server.DeleteGraph(ctx, &gripql.GraphID{Graph: schemaName})
