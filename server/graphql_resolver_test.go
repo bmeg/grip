@@ -1,6 +1,7 @@
 package server
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 
@@ -95,7 +96,7 @@ func TestGraphQLResolver(t *testing.T) {
 	graph := "example-graph"
 	ts, err := SetupTestServer(graph)
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("faield to setup test server: %v", err)
 	}
 	defer ts.Cleanup()
 
@@ -110,12 +111,13 @@ func TestGraphQLResolver(t *testing.T) {
         name
         mass
         friend {
-          name
+          __typename
         }
       }
 		}
 	`
 
+	fmt.Println("TEST")
 	resp := graphql.Do(graphql.Params{Schema: *gqlSchema, RequestString: query})
 	if len(resp.Errors) > 0 {
 		t.Fatalf("failed to execute graphql operation, errors: %+v", resp.Errors)

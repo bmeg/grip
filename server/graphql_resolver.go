@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
@@ -59,8 +60,12 @@ func (r *gqlTranslator) scanField(f *ast.Field, as string) error {
 				outTmpl[k.Name.Value] = make(map[string]interface{})
 				edges[k.Name.Value] = k
 			} else {
-				outTmpl[k.Name.Value] = "$" + as + "." + k.Name.Value
-				fields = append(fields, k.Name.Value)
+				val := k.Name.Value
+				if val == "__typename" {
+					val = "_label"
+				}
+				outTmpl[k.Name.Value] = "$" + as + "." + val
+				fields = append(fields, val)
 			}
 		} else {
 			return fmt.Errorf("unknown selection: %#v", s)
@@ -98,7 +103,8 @@ func (r *gqlTranslator) translate(label string, params graphql.ResolveParams) (*
 			return nil, fmt.Errorf("translating GraphQL query: %v", err)
 		}
 	}
-	r.query = r.query.Select(r.outKeys...).Render(r.outTmpl)
+	r.query = r.query.Render(r.outTmpl)
+	fmt.Println(r.query.JSON())
 	return r.query, nil
 }
 
@@ -109,22 +115,20 @@ type GraphQLResolverConfig struct {
 	EdgeLabels []string
 }
 
-func ResolveGraphQL(conf GraphQLResolverConfig, label string, params graphql.ResolveParams) (interface{}, error) {
+func ResolveGraphQL(conf *GraphQLResolverConfig, label string, params graphql.ResolveParams) (interface{}, error) {
 	start := time.Now()
 	r := &gqlTranslator{edgeLabels: conf.EdgeLabels}
 	query, err := r.translate(label, params)
 	if err != nil {
 		return nil, err
 	}
-	resultsChan, err := engine.Traversal(params.Context, conf.DB, conf.WorkDir, &gripql.GraphQuery{Graph: conf.Graph, Query: query.Statements})
+	resultsChan, err := engine.Traversal(context.TODO(), conf.DB, conf.WorkDir, &gripql.GraphQuery{Graph: conf.Graph, Query: query.Statements})
 	if err != nil {
 		return nil, err
 	}
 	out := []interface{}{}
 	for row := range resultsChan {
-		d := row.GetVertex().GetDataMap()
-		d["gid"] = row.GetVertex().Gid
-		out = append(out, d)
+		out = append(out, row)
 	}
 	log.WithFields(log.Fields{"query": query, "elapsed_time": time.Since(start)}).Debug("ResolveGraphQL")
 	return out, nil

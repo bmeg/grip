@@ -101,12 +101,31 @@ func buildObject(name string, obj map[string]interface{}) (*graphql.Object, erro
 	), nil
 }
 
+func getEdgeType(objects map[string]*graphql.Object, edgeMap map[string][]*graphql.Object, label, name string) graphql.Output {
+	objs := edgeMap[label]
+	if len(objs) == 1 {
+		return graphql.NewList(objs[0])
+	}
+	return graphql.NewUnion(graphql.UnionConfig{
+		Name:  name,
+		Types: objs,
+		ResolveType: func(p graphql.ResolveTypeParams) *graphql.Object {
+			if mapVal, ok := p.Value.(map[string]interface{}); ok {
+				vLabel := mapVal["label"]
+				//if label; ok := mapVal["label"]; ok {
+				return objects[vLabel.(string)]
+				//}
+			}
+			return nil
+		},
+	})
+}
+
 func buildGraphQLSchema(db gdbi.GraphDB, workdir string, graph string, schema *gripql.Graph) (*graphql.Schema, error) {
 	if schema == nil {
 		return nil, fmt.Errorf("graphql.NewSchema error: nil gripql.Graph for graph: %s", graph)
 	}
 
-	edgeLabels := []string{}
 	objects := map[string]*graphql.Object{}
 
 	for _, obj := range schema.Vertices {
@@ -124,19 +143,28 @@ func buildGraphQLSchema(db gdbi.GraphDB, workdir string, graph string, schema *g
 
 	// Setup outgoing edge fields
 	// Note: edge properties are not accessible in this model
-	for _, obj := range schema.Edges {
-		objects[obj.From].AddFieldConfig(obj.To, &graphql.Field{
-			Name: obj.To,
-			Type: graphql.NewList(objects[obj.To]),
-		})
-		objects[obj.To].AddFieldConfig(obj.From, &graphql.Field{
-			Name: obj.From,
-			Type: graphql.NewList(objects[obj.From]),
-		})
-		edgeLabels = append(edgeLabels, obj.Label)
+	edgeLabels := []string{}
+	polyEdgeTo := make(map[string][]*graphql.Object)
+	polyEdgeFrom := make(map[string][]*graphql.Object)
+	for _, e := range schema.Edges {
+		edgeLabels = append(edgeLabels, e.Label)
+		polyEdgeTo[e.Label] = append(polyEdgeTo[e.Label], objects[e.To])
+		polyEdgeFrom[e.Label] = append(polyEdgeFrom[e.Label], objects[e.From])
 	}
 
-	resolverConf := GraphQLResolverConfig{
+	for _, e := range schema.Edges {
+		objects[e.From].AddFieldConfig(e.Label, &graphql.Field{
+			Name: e.To,
+			Type: getEdgeType(objects, polyEdgeTo, e.Label, fmt.Sprintf("%s_%s_%s", e.From, e.Label, e.To)),
+		})
+
+		objects[e.To].AddFieldConfig(e.Label, &graphql.Field{
+			Name: e.From,
+			Type: getEdgeType(objects, polyEdgeFrom, e.Label, fmt.Sprintf("%s_%s_%s", e.To, e.Label, e.From)),
+		})
+	}
+
+	resolverConf := &GraphQLResolverConfig{
 		DB:         db,
 		WorkDir:    workdir,
 		Graph:      graph,
