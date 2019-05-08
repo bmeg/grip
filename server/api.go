@@ -408,6 +408,10 @@ func (server *GripServer) buildSchemas(ctx context.Context) {
 			if isSchema(name) {
 				continue
 			}
+			if _, ok := server.schemas[name]; ok {
+				log.WithFields(log.Fields{"graph": name}).Debug("skipping build; cached schema found")
+				continue
+			}
 			log.WithFields(log.Fields{"graph": name}).Debug("building graph schema")
 			schema, err := server.db.BuildSchema(ctx, name, server.conf.SchemaInspectN, server.conf.SchemaRandomSample)
 			if err == nil {
