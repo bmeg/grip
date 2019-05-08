@@ -38,7 +38,7 @@ func (server *GripServer) Traversal(query *gripql.GraphQuery, queryServer gripql
 	if err != nil {
 		return fmt.Errorf("error sending Traversal result: %v", err)
 	}
-	log.WithFields(log.Fields{"query": query, "elapsed_time": time.Since(start)}).Debug("Traversal")
+	log.WithFields(log.Fields{"query": query, "elapsed_time": time.Since(start).String()}).Debug("Traversal")
 	return nil
 }
 

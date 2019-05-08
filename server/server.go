@@ -71,7 +71,7 @@ func unaryDebugInterceptor() grpc.UnaryServerInterceptor {
 		log.WithFields(log.Fields{
 			"endpoint":     info.FullMethod,
 			"request":      req,
-			"elapsed_time": time.Since(start),
+			"elapsed_time": time.Since(start).String(),
 			"error":        err}).Debug("Responding to request")
 		return resp, err
 	}
@@ -86,7 +86,7 @@ func streamDebugInterceptor() grpc.StreamServerInterceptor {
 		err := handler(srv, ss)
 		log.WithFields(log.Fields{
 			"endpoint":     info.FullMethod,
-			"elapsed_time": time.Since(start),
+			"elapsed_time": time.Since(start).String(),
 			"error":        err}).Debug("Responding to request")
 		return err
 	}

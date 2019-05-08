@@ -42,7 +42,7 @@ func NewGraphDB(conf Config) (gdbi.GraphDB, error) {
 
 	ts := timestamp.NewTimestamp()
 	dialinfo := &mgo.DialInfo{
-		Addrs:         []string{conf.URL},
+		Addrs: []string{conf.URL},
 		//Timeout:       time.Minute,
 		Database:      conf.DBName,
 		Username:      conf.Username,

@@ -19,6 +19,9 @@ func (ma *GraphDB) BuildSchema(ctx context.Context, graph string, sampleN uint32
 	var eSchema []*gripql.Edge
 	var g errgroup.Group
 
+	start := time.Now()
+	log.WithFields(log.Fields{"graph": graph}).Debug("Starting BuildSchema call")
+
 	g.Go(func() error {
 		var err error
 		vSchema, err = ma.getVertexSchema(ctx, graph, sampleN, random)
@@ -42,7 +45,7 @@ func (ma *GraphDB) BuildSchema(ctx context.Context, graph string, sampleN uint32
 	}
 
 	schema := &gripql.Graph{Graph: graph, Vertices: vSchema, Edges: eSchema}
-	log.WithFields(log.Fields{"graph": graph}).Debug("Finished BuildSchema call")
+	log.WithFields(log.Fields{"graph": graph, "elapsed_time": time.Since(start).String()}).Debug("Finished BuildSchema call")
 	return schema, nil
 }
 
@@ -113,7 +116,7 @@ func (ma *GraphDB) getVertexSchema(ctx context.Context, graph string, n uint32, 
 
 			vSchema := &gripql.Vertex{Gid: label, Label: label, Data: protoutil.AsStruct(schema)}
 			schemaChan <- vSchema
-			log.WithFields(log.Fields{"graph": graph, "label": label, "elapsed_time": time.Since(start)}).Debug("getVertexSchema: Finished schema build")
+			log.WithFields(log.Fields{"graph": graph, "label": label, "elapsed_time": time.Since(start).String()}).Debug("getVertexSchema: Finished schema build")
 			return nil
 		})
 	}
@@ -215,7 +218,7 @@ func (ma *GraphDB) getEdgeSchema(ctx context.Context, graph string, n uint32, ra
 				}
 				schemaChan <- eSchema
 			}
-			log.WithFields(log.Fields{"graph": graph, "label": label, "elapsed_time": time.Since(start)}).Debug("getEdgeSchema: Finished schema build")
+			log.WithFields(log.Fields{"graph": graph, "label": label, "elapsed_time": time.Since(start).String()}).Debug("getEdgeSchema: Finished schema build")
 
 			return nil
 		})
