@@ -42,16 +42,18 @@ func NewGraphDB(conf Config) (gdbi.GraphDB, error) {
 
 	ts := timestamp.NewTimestamp()
 	dialinfo := &mgo.DialInfo{
-		Addrs:        []string{conf.URL},
-		Database:     conf.DBName,
-		Username:     conf.Username,
-		Password:     conf.Password,
-		AppName:      "grip",
-		ReadTimeout:  0,
-		WriteTimeout: 0,
-		PoolLimit:    4096,
-		PoolTimeout:  0,
-		MinPoolSize:  100,
+		Addrs:         []string{conf.URL},
+		Timeout:       time.Minute,
+		Database:      conf.DBName,
+		Username:      conf.Username,
+		Password:      conf.Password,
+		AppName:       "grip",
+		ReadTimeout:   0,
+		WriteTimeout:  0,
+		PoolLimit:     4096,
+		PoolTimeout:   0,
+		MinPoolSize:   100,
+		MaxIdleTimeMS: 120000,
 	}
 	session, err := mgo.DialWithInfo(dialinfo)
 	if err != nil {
@@ -121,8 +123,8 @@ func (ma *GraphDB) AddGraph(graph string) error {
 
 func (ma *GraphDB) setupIndices(graph string) error {
 	session := ma.session.Copy()
-	session.ResetIndexCache()
 	defer session.Close()
+	session.ResetIndexCache()
 
 	e := ma.EdgeCollection(session, graph)
 	err := e.EnsureIndex(mgo.Index{
