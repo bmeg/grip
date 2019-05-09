@@ -101,27 +101,57 @@ func buildObject(name string, obj map[string]interface{}) (*graphql.Object, erro
 	), nil
 }
 
-func getEdgeType(objectMap map[string]*graphql.Object, edgeMap map[string]map[string]*graphql.Object, label, name string) graphql.Output {
+func buildFieldConfigArument(obj *graphql.Object) graphql.FieldConfigArgument {
+	args := graphql.FieldConfigArgument{
+		"id":     &graphql.ArgumentConfig{Type: graphql.String},
+		"ids":    &graphql.ArgumentConfig{Type: graphql.NewList(graphql.String)},
+		"limit":  &graphql.ArgumentConfig{Type: graphql.Int},
+		"offset": &graphql.ArgumentConfig{Type: graphql.Int},
+	}
+	if obj == nil {
+		return args
+	}
+	for k, v := range obj.Fields() {
+		switch v.Type {
+		case graphql.String, graphql.Int, graphql.Float, graphql.Boolean:
+			args[k] = &graphql.ArgumentConfig{Type: v.Type}
+		default:
+			continue
+		}
+	}
+	return args
+}
+
+func buildEdgeField(objectMap map[string]*graphql.Object, edgeMap map[string]map[string]*graphql.Object, e *gripql.Edge) *graphql.Field {
 	objs := []*graphql.Object{}
-	for _, o := range edgeMap[label] {
+	for _, o := range edgeMap[e.Label] {
 		objs = append(objs, o)
 	}
 	if len(objs) == 0 {
 		return nil
 	} else if len(objs) == 1 {
-		return graphql.NewList(objs[0])
+		o := objs[0]
+		return &graphql.Field{
+			Name: e.To,
+			Type: graphql.NewList(o),
+			Args: buildFieldConfigArument(o),
+		}
 	} else {
-		return graphql.NewList(graphql.NewUnion(graphql.UnionConfig{
-			Name:  name,
-			Types: objs,
-			ResolveType: func(p graphql.ResolveTypeParams) *graphql.Object {
-				if mapVal, ok := p.Value.(map[string]interface{}); ok {
-					vLabel := mapVal["label"]
-					return objectMap[vLabel.(string)]
-				}
-				return nil
-			},
-		}))
+		return &graphql.Field{
+			Name: e.To,
+			Type: graphql.NewList(graphql.NewUnion(graphql.UnionConfig{
+				Name:  fmt.Sprintf("%s_to_%s", e.From, e.Label),
+				Types: objs,
+				ResolveType: func(p graphql.ResolveTypeParams) *graphql.Object {
+					if mapVal, ok := p.Value.(map[string]interface{}); ok {
+						vLabel := mapVal["label"]
+						return objectMap[vLabel.(string)]
+					}
+					return nil
+				},
+			})),
+			Args: buildFieldConfigArument(nil),
+		}
 	}
 }
 
@@ -137,7 +167,7 @@ func buildGraphQLSchema(db gdbi.GraphDB, workdir string, graph string, schema *g
 		if props == nil {
 			props = make(map[string]interface{})
 		}
-		props["gid"] = "STRING"
+		props["id"] = "STRING"
 		props["label"] = "STRING"
 		gqlObj, err := buildObject(obj.Label, props)
 		if err != nil {
@@ -161,10 +191,10 @@ func buildGraphQLSchema(db gdbi.GraphDB, workdir string, graph string, schema *g
 	}
 
 	for _, e := range schema.Edges {
-		objects[e.From].AddFieldConfig(e.Label, &graphql.Field{
-			Name: e.To,
-			Type: getEdgeType(objects, polyEdgeTo, e.Label, fmt.Sprintf("%s_to_%s", e.From, e.Label)),
-		})
+		f := buildEdgeField(objects, polyEdgeTo, e)
+		if f != nil {
+			objects[e.From].AddFieldConfig(e.Label, f)
+		}
 	}
 
 	resolverConf := &GraphQLResolverConfig{
@@ -177,12 +207,11 @@ func buildGraphQLSchema(db gdbi.GraphDB, workdir string, graph string, schema *g
 	queryFields := graphql.Fields{}
 	for objName, obj := range objects {
 		label := obj.Name()
+		args := buildFieldConfigArument(obj)
 		f := &graphql.Field{
 			Name: objName,
 			Type: graphql.NewList(obj),
-			Args: graphql.FieldConfigArgument{
-				"gid": &graphql.ArgumentConfig{Type: graphql.String},
-			},
+			Args: args,
 			Resolve: func(params graphql.ResolveParams) (interface{}, error) {
 				return ResolveGraphQL(resolverConf, label, params)
 			},

@@ -32,16 +32,28 @@ func TestGraphQLTranslator(t *testing.T) {
 	expected := gripql.NewQuery().V().HasLabel("person").Fields("name", "age").As("person").
 		Out("friend").Fields("name").As("person__friend").
 		Out("friend").Fields("name", "age").As("person__friend__friend").
-		Select("person", "person__friend", "person__friend__friend").
 		Render(map[string]interface{}{
 			"person": map[string]interface{}{
-				"name": "$person.name",
-				"age":  "$person.age",
-				"friend": map[string]interface{}{
-					"name": "$person__friend.name",
-					"friend": map[string]interface{}{
-						"name": "$person__friend__friend.name",
-						"age":  "$person__friend__friend.age",
+				"__typename": "$person._label",
+				"id":         "$person._gid",
+				"label":      "$person._label",
+				"name":       "$person.name",
+				"age":        "$person.age",
+				"friend": []map[string]interface{}{
+					{
+						"__typename": "$person__friend._label",
+						"id":         "$person__friend._gid",
+						"label":      "$person__friend._label",
+						"name":       "$person__friend.name",
+						"friend": []map[string]interface{}{
+							{
+								"__typename": "$person__friend__friend._label",
+								"id":         "$person__friend__friend._gid",
+								"label":      "$person__friend__friend._label",
+								"name":       "$person__friend__friend.name",
+								"age":        "$person__friend__friend.age",
+							},
+						},
 					},
 				},
 			},
@@ -69,13 +81,12 @@ func TestGraphQLTranslator(t *testing.T) {
 				tr := &gqlTranslator{edgeLabels: []string{"friend"}}
 				actual, err := tr.translate("person", p)
 				if err != nil {
-					t.Fatalf("failed to translate query: %v", err)
 					return nil, err
 				}
 				if !reflect.DeepEqual(expected.Statements, actual.Statements) {
 					t.Logf("expected: %+v", expected.JSON())
 					t.Logf("actual:   %+v", actual.JSON())
-					t.Fatal("unexpected query returned by GraphQL translator")
+					return nil, fmt.Errorf("unexpected query returned by GraphQL translator")
 				}
 				return nil, nil
 			},
@@ -90,7 +101,10 @@ func TestGraphQLTranslator(t *testing.T) {
 	}
 
 	params := graphql.Params{Schema: schema, RequestString: query}
-	graphql.Do(params)
+	resp := graphql.Do(params)
+	if len(resp.Errors) > 0 {
+		t.Fatalf("failed to execute graphql operation, errors: %+v", resp.Errors)
+	}
 }
 
 func TestGraphQLResolver(t *testing.T) {
@@ -109,13 +123,13 @@ func TestGraphQLResolver(t *testing.T) {
 	// query union type
 	query := `
 		{
-      Human {
-        gid
+      Human (ids: ["1000", "1003"]) {
+        id
         name
         bodyMeasurements {
           mass
         }
-        friendsWith {
+        friendsWith (id: "1002") {
           __typename
         }
       }

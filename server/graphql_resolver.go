@@ -50,7 +50,7 @@ func (r *gqlTranslator) scanField(f *ast.Field, as string) error {
 			}
 		}
 	}
-	outTmpl["gid"] = "$" + as + "._gid"
+	outTmpl["id"] = "$" + as + "._gid"
 	outTmpl["label"] = "$" + as + "._label"
 	outTmpl["__typename"] = "$" + as + "._label"
 
@@ -67,8 +67,10 @@ func (r *gqlTranslator) scanField(f *ast.Field, as string) error {
 				}
 				edges[k.Name.Value] = k
 			} else {
-				if _, ok := outTmpl[k.Name.Value]; ok {
+				switch k.Name.Value {
+				case "gid", "id", "label", "__typename":
 					continue
+				default:
 				}
 				outTmpl[k.Name.Value] = "$" + as + "." + k.Name.Value
 				fields = append(fields, k.Name.Value)
@@ -76,6 +78,34 @@ func (r *gqlTranslator) scanField(f *ast.Field, as string) error {
 		} else {
 			return fmt.Errorf("unknown selection: %#v", s)
 		}
+	}
+
+	// convert arguments to 'Has' statements
+	for _, arg := range f.Arguments {
+		key := arg.Name.Value
+		switch key {
+		case "id":
+			key = "_gid"
+		case "label":
+			key = "_label"
+		case "ids":
+			ids := []string{}
+			switch val := arg.Value.GetValue().(type) {
+			case string:
+				ids = append(ids, val)
+			case []ast.Value:
+				for _, v := range val {
+					ids = append(ids, v.GetValue().(string))
+				}
+			default:
+				return fmt.Errorf("unexpected type for argument ids: %T", val)
+			}
+			r.query = r.query.HasID(ids...)
+			continue
+		default:
+			// noop
+		}
+		r.query = r.query.Has(gripql.Eq(key, arg.Value.GetValue()))
 	}
 
 	// build up query; track mark names
@@ -111,7 +141,6 @@ func (r *gqlTranslator) translate(label string, params graphql.ResolveParams) (*
 	}
 	r.query = r.query.Render(r.outTmpl)
 	fmt.Println(r.query.JSON())
-	fmt.Println(r.outTmpl)
 	return r.query, nil
 }
 
