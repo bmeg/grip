@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -9,6 +10,7 @@ import (
 	"github.com/bmeg/grip/engine"
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
+	"github.com/bmeg/grip/protoutil"
 	"github.com/graphql-go/graphql"
 	"github.com/graphql-go/graphql/language/ast"
 	log "github.com/sirupsen/logrus"
@@ -43,11 +45,14 @@ func (r *gqlTranslator) scanField(f *ast.Field, as string) error {
 	outTmpl := r.outTmpl[parts[0]]
 	for _, k := range parts[1:] {
 		if val, ok := outTmpl[k]; ok {
-			if mval, ok := val.(map[string]interface{}); ok {
-				outTmpl = mval
+			if mval, ok := val.([]map[string]interface{}); ok {
+				outTmpl = mval[0]
 			}
 		}
 	}
+	outTmpl["gid"] = "$" + as + "._gid"
+	outTmpl["label"] = "$" + as + "._label"
+	outTmpl["__typename"] = "$" + as + "._label"
 
 	// build up output rendering template
 	// track which fields will be kept
@@ -57,15 +62,16 @@ func (r *gqlTranslator) scanField(f *ast.Field, as string) error {
 	for _, s := range f.SelectionSet.Selections {
 		if k, ok := s.(*ast.Field); ok {
 			if r.isEdgeLabel(k.Name.Value) {
-				outTmpl[k.Name.Value] = make(map[string]interface{})
+				outTmpl[k.Name.Value] = []map[string]interface{}{
+					{},
+				}
 				edges[k.Name.Value] = k
 			} else {
-				val := k.Name.Value
-				if val == "__typename" {
-					val = "_label"
+				if _, ok := outTmpl[k.Name.Value]; ok {
+					continue
 				}
-				outTmpl[k.Name.Value] = "$" + as + "." + val
-				fields = append(fields, val)
+				outTmpl[k.Name.Value] = "$" + as + "." + k.Name.Value
+				fields = append(fields, k.Name.Value)
 			}
 		} else {
 			return fmt.Errorf("unknown selection: %#v", s)
@@ -105,6 +111,7 @@ func (r *gqlTranslator) translate(label string, params graphql.ResolveParams) (*
 	}
 	r.query = r.query.Render(r.outTmpl)
 	fmt.Println(r.query.JSON())
+	fmt.Println(r.outTmpl)
 	return r.query, nil
 }
 
@@ -128,8 +135,14 @@ func ResolveGraphQL(conf *GraphQLResolverConfig, label string, params graphql.Re
 	}
 	out := []interface{}{}
 	for row := range resultsChan {
-		out = append(out, row)
+		res, ok := protoutil.UnWrapValue(row.GetRender()).(map[string]interface{})
+		if !ok {
+			return nil, fmt.Errorf("unexpected result: %#v", row)
+		}
+		out = append(out, res[label])
 	}
 	log.WithFields(log.Fields{"query": query, "elapsed_time": time.Since(start)}).Debug("ResolveGraphQL")
+	jsonOut, _ := json.MarshalIndent(out, "", "  ")
+	fmt.Println(string(jsonOut))
 	return out, nil
 }

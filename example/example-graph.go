@@ -11,40 +11,51 @@ import (
 var SWVertices = []*gripql.Vertex{
 	{Gid: "1000", Label: "Human", Data: protoutil.AsStruct(
 		map[string]interface{}{
-			"name":       "Luke Skywalker",
-			"height":     1.72,
-			"mass":       77,
+			"name": "Luke Skywalker",
+			"bodyMeasurements": map[string]interface{}{
+				"height": 1.72,
+				"mass":   77,
+			},
 			"homePlanet": "Tatooine",
 		},
 	)},
 	{Gid: "1001", Label: "Human", Data: protoutil.AsStruct(
 		map[string]interface{}{
-			"name":       "Darth Vader",
-			"height":     2.02,
-			"mass":       136,
+			"name": "Darth Vader",
+			"bodyMeasurements": map[string]interface{}{
+				"height": 2.02,
+				"mass":   136,
+			},
 			"homePlanet": "Tatooine",
 		},
 	)},
 	{Gid: "1002", Label: "Human", Data: protoutil.AsStruct(
 		map[string]interface{}{
-			"name":   "Han Solo",
-			"height": 1.8,
-			"mass":   80,
+			"name": "Han Solo",
+			"bodyMeasurements": map[string]interface{}{
+				"height": 1.8,
+				"mass":   80,
+			},
+			"homePlanet": "Corellia",
 		},
 	)},
 	{Gid: "1003", Label: "Human", Data: protoutil.AsStruct(
 		map[string]interface{}{
-			"name":       "Leia Organa",
-			"height":     1.5,
-			"mass":       49,
+			"name": "Leia Organa",
+			"bodyMeasurements": map[string]interface{}{
+				"height": 1.5,
+				"mass":   49,
+			},
 			"homePlanet": "Alderaan",
 		},
 	)},
 	{Gid: "1004", Label: "Human", Data: protoutil.AsStruct(
 		map[string]interface{}{
-			"name":   "Wilhuff Tarkin",
-			"height": 1.8,
-			"mass":   nil,
+			"name": "Wilhuff Tarkin",
+			"bodyMeasurements": map[string]interface{}{
+				"height": 1.8,
+			},
+			"homePlanet": "Eriadu",
 		},
 	)},
 	{Gid: "2000", Label: "Droid", Data: protoutil.AsStruct(
@@ -85,17 +96,17 @@ var SWVertices = []*gripql.Vertex{
 	)},
 	{Gid: "4000", Label: "Movie", Data: protoutil.AsStruct(
 		map[string]interface{}{
-			"name": "A New Hope",
+			"title": "A New Hope",
 		},
 	)},
 	{Gid: "4001", Label: "Movie", Data: protoutil.AsStruct(
 		map[string]interface{}{
-			"name": "Empire Strikes Back",
+			"title": "Empire Strikes Back",
 		},
 	)},
 	{Gid: "4002", Label: "Movie", Data: protoutil.AsStruct(
 		map[string]interface{}{
-			"name": "The Return of the Jedi",
+			"title": "The Return of the Jedi",
 		},
 	)},
 }
@@ -103,10 +114,10 @@ var SWVertices = []*gripql.Vertex{
 // SWEdges are the edges for the test graph
 var SWEdges = []*gripql.Edge{
 	//Luke Edges
-	{Label: "friend", From: "1000", To: "1002"},
-	{Label: "friend", From: "1000", To: "1003"},
-	{Label: "friend", From: "1000", To: "2000"},
-	{Label: "friend", From: "1000", To: "2001"},
+	{Label: "friendsWith", From: "1000", To: "1002"},
+	{Label: "friendsWith", From: "1000", To: "1003"},
+	{Label: "friendsWith", From: "1000", To: "2000"},
+	{Label: "friendsWith", From: "1000", To: "2001"},
 	{Label: "appearsIn", From: "1000", To: "4000"},
 	{Label: "appearsIn", From: "1000", To: "4001"},
 	{Label: "appearsIn", From: "1000", To: "4002"},
@@ -114,16 +125,16 @@ var SWEdges = []*gripql.Edge{
 	{Label: "pilots", From: "1000", To: "3003"},
 
 	//Darth Vader Edges
-	{Label: "friend", From: "1001", To: "1004"},
+	{Label: "friendsWith", From: "1001", To: "1004"},
 	{Label: "appearsIn", From: "1001", To: "4000"},
 	{Label: "appearsIn", From: "1001", To: "4001"},
 	{Label: "appearsIn", From: "1001", To: "4002"},
 	{Label: "pilots", From: "1001", To: "3002"},
 
 	//Han Solo Edges
-	{Label: "friend", From: "1002", To: "1000"},
-	{Label: "friend", From: "1002", To: "1003"},
-	{Label: "friend", From: "1002", To: "2001"},
+	{Label: "friendsWith", From: "1002", To: "1000"},
+	{Label: "friendsWith", From: "1002", To: "1003"},
+	{Label: "friendsWith", From: "1002", To: "2001"},
 	{Label: "appearsIn", From: "1002", To: "4000"},
 	{Label: "appearsIn", From: "1002", To: "4001"},
 	{Label: "appearsIn", From: "1002", To: "4002"},
@@ -131,16 +142,16 @@ var SWEdges = []*gripql.Edge{
 	{Label: "pilots", From: "1002", To: "3003"},
 
 	//Leia Organa Edges
-	{Label: "friend", From: "1003", To: "1000"},
-	{Label: "friend", From: "1003", To: "1002"},
-	{Label: "friend", From: "1003", To: "2000"},
-	{Label: "friend", From: "1003", To: "2001"},
+	{Label: "friendsWith", From: "1003", To: "1000"},
+	{Label: "friendsWith", From: "1003", To: "1002"},
+	{Label: "friendsWith", From: "1003", To: "2000"},
+	{Label: "friendsWith", From: "1003", To: "2001"},
 	{Label: "appearsIn", From: "1003", To: "4000"},
 	{Label: "appearsIn", From: "1003", To: "4001"},
 	{Label: "appearsIn", From: "1003", To: "4002"},
 
 	//Wilhuff Tarkin Edges
-	{Label: "friend", From: "1004", To: "1001"},
+	{Label: "friendsWith", From: "1004", To: "1001"},
 	{Label: "appearsIn", From: "1004", To: "4000"},
 }
 
@@ -153,13 +164,13 @@ edges:
   to: Movie
 - data: {}
   from: Human
-  gid: (Human)--friend->(Droid)
-  label: friend
+  gid: (Human)--friendsWith->(Droid)
+  label: friendsWith
   to: Droid
 - data: {}
   from: Human
-  gid: (Human)--friend->(Human)
-  label: friend
+  gid: (Human)--friendsWith->(Human)
+  label: friendsWith
   to: Human
 - data: {}
   from: Human
@@ -174,9 +185,10 @@ vertices:
   gid: Droid
   label: Droid
 - data:
-    height: NUMERIC
+    bodyMeasurements:
+      height: NUMERIC
+      mass: NUMERIC
     homePlanet: STRING
-    mass: NUMERIC
     name: STRING
   gid: Human
   label: Human

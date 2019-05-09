@@ -1,6 +1,7 @@
 package server
 
 import (
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"testing"
@@ -105,21 +106,64 @@ func TestGraphQLResolver(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// query union type
 	query := `
 		{
       Human {
+        gid
         name
-        mass
-        friend {
+        bodyMeasurements {
+          mass
+        }
+        friendsWith {
           __typename
         }
       }
 		}
 	`
-
-	fmt.Println("TEST")
 	resp := graphql.Do(graphql.Params{Schema: *gqlSchema, RequestString: query})
 	if len(resp.Errors) > 0 {
 		t.Fatalf("failed to execute graphql operation, errors: %+v", resp.Errors)
 	}
+	jsonOut, _ := json.MarshalIndent(resp.Data, "", "  ")
+	fmt.Println(string(jsonOut))
+
+	// // normal query
+	// query := `
+	// 	{
+	//     Human {
+	//       name
+	//       mass
+	//       pilots {
+	//         name
+	//         length
+	//       }
+	//     }
+	// 	}
+	// `
+	// resp := graphql.Do(graphql.Params{Schema: *gqlSchema, RequestString: query})
+	// if len(resp.Errors) > 0 {
+	// 	t.Fatalf("failed to execute graphql operation, errors: %+v", resp.Errors)
+	// }
+
+	// // branched query
+	// query := `
+	// 	{
+	//     Human {
+	//       name
+	//       mass
+	//       pilots {
+	//         name
+	//         length
+	//       }
+	//       appearsIn {
+	//         title
+	//       }
+	//     }
+	// 	}
+	// `
+	// resp := graphql.Do(graphql.Params{Schema: *gqlSchema, RequestString: query})
+	// if len(resp.Errors) == 0 {
+	// 	t.Fatalf("expected graphql operation to fail")
+	// }
 }

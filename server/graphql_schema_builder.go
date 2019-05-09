@@ -101,24 +101,28 @@ func buildObject(name string, obj map[string]interface{}) (*graphql.Object, erro
 	), nil
 }
 
-func getEdgeType(objects map[string]*graphql.Object, edgeMap map[string][]*graphql.Object, label, name string) graphql.Output {
-	objs := edgeMap[label]
-	if len(objs) == 1 {
-		return graphql.NewList(objs[0])
+func getEdgeType(objectMap map[string]*graphql.Object, edgeMap map[string]map[string]*graphql.Object, label, name string) graphql.Output {
+	objs := []*graphql.Object{}
+	for _, o := range edgeMap[label] {
+		objs = append(objs, o)
 	}
-	return graphql.NewUnion(graphql.UnionConfig{
-		Name:  name,
-		Types: objs,
-		ResolveType: func(p graphql.ResolveTypeParams) *graphql.Object {
-			if mapVal, ok := p.Value.(map[string]interface{}); ok {
-				vLabel := mapVal["label"]
-				//if label; ok := mapVal["label"]; ok {
-				return objects[vLabel.(string)]
-				//}
-			}
-			return nil
-		},
-	})
+	if len(objs) == 0 {
+		return nil
+	} else if len(objs) == 1 {
+		return graphql.NewList(objs[0])
+	} else {
+		return graphql.NewList(graphql.NewUnion(graphql.UnionConfig{
+			Name:  name,
+			Types: objs,
+			ResolveType: func(p graphql.ResolveTypeParams) *graphql.Object {
+				if mapVal, ok := p.Value.(map[string]interface{}); ok {
+					vLabel := mapVal["label"]
+					return objectMap[vLabel.(string)]
+				}
+				return nil
+			},
+		}))
+	}
 }
 
 func buildGraphQLSchema(db gdbi.GraphDB, workdir string, graph string, schema *gripql.Graph) (*graphql.Schema, error) {
@@ -134,6 +138,7 @@ func buildGraphQLSchema(db gdbi.GraphDB, workdir string, graph string, schema *g
 			props = make(map[string]interface{})
 		}
 		props["gid"] = "STRING"
+		props["label"] = "STRING"
 		gqlObj, err := buildObject(obj.Label, props)
 		if err != nil {
 			return nil, err
@@ -144,23 +149,21 @@ func buildGraphQLSchema(db gdbi.GraphDB, workdir string, graph string, schema *g
 	// Setup outgoing edge fields
 	// Note: edge properties are not accessible in this model
 	edgeLabels := []string{}
-	polyEdgeTo := make(map[string][]*graphql.Object)
-	polyEdgeFrom := make(map[string][]*graphql.Object)
+	polyEdgeTo := make(map[string]map[string]*graphql.Object)
 	for _, e := range schema.Edges {
 		edgeLabels = append(edgeLabels, e.Label)
-		polyEdgeTo[e.Label] = append(polyEdgeTo[e.Label], objects[e.To])
-		polyEdgeFrom[e.Label] = append(polyEdgeFrom[e.Label], objects[e.From])
+		to := objects[e.To]
+		if _, ok := polyEdgeTo[e.Label]; ok {
+			polyEdgeTo[e.Label][to.Name()] = to
+		} else {
+			polyEdgeTo[e.Label] = map[string]*graphql.Object{to.Name(): to}
+		}
 	}
 
 	for _, e := range schema.Edges {
 		objects[e.From].AddFieldConfig(e.Label, &graphql.Field{
 			Name: e.To,
-			Type: getEdgeType(objects, polyEdgeTo, e.Label, fmt.Sprintf("%s_%s_%s", e.From, e.Label, e.To)),
-		})
-
-		objects[e.To].AddFieldConfig(e.Label, &graphql.Field{
-			Name: e.From,
-			Type: getEdgeType(objects, polyEdgeFrom, e.Label, fmt.Sprintf("%s_%s_%s", e.To, e.Label, e.From)),
+			Type: getEdgeType(objects, polyEdgeTo, e.Label, fmt.Sprintf("%s_to_%s", e.From, e.Label)),
 		})
 	}
 
