@@ -38,7 +38,7 @@ func (server *GripServer) Traversal(query *gripql.GraphQuery, queryServer gripql
 	if err != nil {
 		return fmt.Errorf("error sending Traversal result: %v", err)
 	}
-	log.WithFields(log.Fields{"query": query, "elapsed_time": time.Since(start)}).Debug("Traversal")
+	log.WithFields(log.Fields{"query": query, "elapsed_time": time.Since(start).String()}).Debug("Traversal")
 	return nil
 }
 
@@ -408,6 +408,10 @@ func (server *GripServer) buildSchemas(ctx context.Context) {
 			if isSchema(name) {
 				continue
 			}
+			if _, ok := server.schemas[name]; ok {
+				log.WithFields(log.Fields{"graph": name}).Debug("skipping build; cached schema found")
+				continue
+			}
 			log.WithFields(log.Fields{"graph": name}).Debug("building graph schema")
 			schema, err := server.db.BuildSchema(ctx, name, server.conf.SchemaInspectN, server.conf.SchemaRandomSample)
 			if err == nil {
@@ -475,10 +479,13 @@ func (server *GripServer) AddSchema(ctx context.Context, req *gripql.Graph) (*gr
 		return nil, fmt.Errorf("failed to store new schema: %v", err)
 	}
 	server.schemas[req.Graph] = req
-	return &gripql.EditResult{}, err
+	return &gripql.EditResult{}, nil
 }
 
 func (server *GripServer) addSchemaGraph(ctx context.Context, schema *gripql.Graph) error {
+	if schema.Graph == "" {
+		return fmt.Errorf("graph name is an empty string")
+	}
 	schemaName := fmt.Sprintf("%s%s", schema.Graph, schemaSuffix)
 	if server.graphExists(schemaName) {
 		_, err := server.DeleteGraph(ctx, &gripql.GraphID{Graph: schemaName})

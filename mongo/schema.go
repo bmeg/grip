@@ -3,6 +3,7 @@ package mongo
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/protoutil"
@@ -17,6 +18,9 @@ func (ma *GraphDB) BuildSchema(ctx context.Context, graph string, sampleN uint32
 	var vSchema []*gripql.Vertex
 	var eSchema []*gripql.Edge
 	var g errgroup.Group
+
+	start := time.Now()
+	log.WithFields(log.Fields{"graph": graph}).Debug("Starting BuildSchema call")
 
 	g.Go(func() error {
 		var err error
@@ -41,17 +45,16 @@ func (ma *GraphDB) BuildSchema(ctx context.Context, graph string, sampleN uint32
 	}
 
 	schema := &gripql.Graph{Graph: graph, Vertices: vSchema, Edges: eSchema}
-	log.WithFields(log.Fields{"graph": graph}).Debug("Finished GetSchema call")
+	log.WithFields(log.Fields{"graph": graph, "elapsed_time": time.Since(start).String()}).Debug("Finished BuildSchema call")
 	return schema, nil
 }
 
 func (ma *GraphDB) getVertexSchema(ctx context.Context, graph string, n uint32, random bool) ([]*gripql.Vertex, error) {
 	session := ma.session.Copy()
 	defer session.Close()
-	v := ma.VertexCollection(session, graph)
 
 	var labels []string
-	err := v.Find(nil).Distinct("label", &labels)
+	err := ma.VertexCollection(session, graph).Find(nil).Distinct("label", &labels)
 	if err != nil {
 		return nil, err
 	}
@@ -65,16 +68,16 @@ func (ma *GraphDB) getVertexSchema(ctx context.Context, graph string, n uint32, 
 			continue
 		}
 		g.Go(func() error {
+			start := time.Now()
 			log.WithFields(log.Fields{"graph": graph, "label": label}).Debug("getVertexSchema: Started schema build")
 
-			session := ma.session.Copy()
-			err := session.Ping()
+			vsession := ma.session.Copy()
+			defer vsession.Close()
+			err := vsession.Ping()
 			if err != nil {
 				log.WithFields(log.Fields{"graph": graph, "label": label, "error": err}).Warning("getVertexSchema: Session ping error")
-				session.Refresh()
+				vsession.Refresh()
 			}
-			defer session.Close()
-			v := ma.VertexCollection(session, graph)
 
 			pipe := []bson.M{
 				{
@@ -90,7 +93,7 @@ func (ma *GraphDB) getVertexSchema(ctx context.Context, graph string, n uint32, 
 				pipe = append(pipe, bson.M{"$limit": n})
 			}
 
-			iter := v.Pipe(pipe).AllowDiskUse().Iter()
+			iter := ma.VertexCollection(vsession, graph).Pipe(pipe).AllowDiskUse().Iter()
 			defer iter.Close()
 			result := make(map[string]interface{})
 			schema := make(map[string]interface{})
@@ -113,8 +116,7 @@ func (ma *GraphDB) getVertexSchema(ctx context.Context, graph string, n uint32, 
 
 			vSchema := &gripql.Vertex{Gid: label, Label: label, Data: protoutil.AsStruct(schema)}
 			schemaChan <- vSchema
-			log.WithFields(log.Fields{"graph": graph, "label": label}).Debug("getVertexSchema: Finished schema build")
-
+			log.WithFields(log.Fields{"graph": graph, "label": label, "elapsed_time": time.Since(start).String()}).Debug("getVertexSchema: Finished schema build")
 			return nil
 		})
 	}
@@ -137,10 +139,9 @@ func (ma *GraphDB) getVertexSchema(ctx context.Context, graph string, n uint32, 
 func (ma *GraphDB) getEdgeSchema(ctx context.Context, graph string, n uint32, random bool) ([]*gripql.Edge, error) {
 	session := ma.session.Copy()
 	defer session.Close()
-	e := ma.EdgeCollection(session, graph)
 
 	var labels []string
-	err := e.Find(nil).Distinct("label", &labels)
+	err := ma.EdgeCollection(session, graph).Find(nil).Distinct("label", &labels)
 	if err != nil {
 		return nil, err
 	}
@@ -154,16 +155,16 @@ func (ma *GraphDB) getEdgeSchema(ctx context.Context, graph string, n uint32, ra
 			continue
 		}
 		g.Go(func() error {
+			start := time.Now()
 			log.WithFields(log.Fields{"graph": graph, "label": label}).Debug("getEdgeSchema: Started schema build")
 
-			session := ma.session.Copy()
-			err := session.Ping()
+			esession := ma.session.Copy()
+			defer esession.Close()
+			err := esession.Ping()
 			if err != nil {
 				log.WithFields(log.Fields{"graph": graph, "label": label, "error": err}).Warning("getEdgeSchema: Session ping error")
-				session.Refresh()
+				esession.Refresh()
 			}
-			defer session.Close()
-			e := ma.EdgeCollection(session, graph)
 
 			pipe := []bson.M{
 				{
@@ -179,7 +180,7 @@ func (ma *GraphDB) getEdgeSchema(ctx context.Context, graph string, n uint32, ra
 				pipe = append(pipe, bson.M{"$limit": n})
 			}
 
-			iter := e.Pipe(pipe).AllowDiskUse().Iter()
+			iter := ma.EdgeCollection(esession, graph).Pipe(pipe).AllowDiskUse().Iter()
 			defer iter.Close()
 			result := make(map[string]interface{})
 			schema := make(map[string]interface{})
@@ -217,7 +218,7 @@ func (ma *GraphDB) getEdgeSchema(ctx context.Context, graph string, n uint32, ra
 				}
 				schemaChan <- eSchema
 			}
-			log.WithFields(log.Fields{"graph": graph, "label": label}).Debug("getEdgeSchema: Finished schema build")
+			log.WithFields(log.Fields{"graph": graph, "label": label, "elapsed_time": time.Since(start).String()}).Debug("getEdgeSchema: Finished schema build")
 
 			return nil
 		})
@@ -284,17 +285,17 @@ func (ma *GraphDB) resolveLabels(graph string, ft fromto) fromto {
 		g.Go(func() error {
 			session := ma.session.Copy()
 			defer session.Close()
-			col := ma.VertexCollection(session, graph)
+			v := ma.VertexCollection(session, graph)
 
 			from := ""
 			to := ""
 			result := map[string]string{}
-			err := col.FindId(fromID).Select(bson.M{"_id": -1, "label": 1}).One(&result)
+			err := v.FindId(fromID).Select(bson.M{"_id": -1, "label": 1}).One(&result)
 			if err == nil {
 				from = result["label"]
 			}
 			result = map[string]string{}
-			err = col.FindId(toID).Select(bson.M{"_id": -1, "label": 1}).One(&result)
+			err = v.FindId(toID).Select(bson.M{"_id": -1, "label": 1}).One(&result)
 			if err == nil {
 				to = result["label"]
 			}

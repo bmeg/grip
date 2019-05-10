@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/augustoroman/v8"
+	v8 "github.com/augustoroman/v8"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/jsengine"
 	"github.com/bmeg/grip/jsengine/underscore"
