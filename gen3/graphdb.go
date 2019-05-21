@@ -3,30 +3,11 @@ package gen3
 import (
 	"fmt"
 
+	sq "github.com/Masterminds/squirrel"
 	"github.com/bmeg/grip/gdbi"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 )
-
-type edgeDef struct {
-	table    string
-	dstLabel string
-	srcLabel string
-  backref  bool
-}
-
-type vertexDef struct {
-	table string
-	out   map[string][]*edgeDef
-	in    map[string][]*edgeDef
-}
-
-type graphConfig struct {
-	// vertex label to vertexDef
-	vertices map[string]*vertexDef
-	// edge label to edgeDefs
-	edges map[string][]*edgeDef
-}
 
 // Config the configuration for the sql driver.
 // See https://godoc.org/github.com/lib/pq#hdr-Connection_String_Parameters for details.
@@ -61,10 +42,12 @@ func NewGraphDB(conf Config) (gdbi.GraphDB, error) {
 	}
 	db.SetMaxIdleConns(10)
 
-  layout, err := getGraphConfig(conf.SchemaDir)
+	layout, err := getGraphConfig(conf.SchemaDir)
 	if err != nil {
 		return nil, err
 	}
+
+	// TODO: ensure expected tables exist
 
 	gdb := &GraphDB{
 		graph:  conf.DBName,
@@ -102,8 +85,10 @@ func (db *GraphDB) Graph(graph string) (gdbi.GraphInterface, error) {
 			graph, db.graph,
 		)
 	}
+
 	return &Graph{
 		db:     db.db,
 		layout: db.layout,
+		psql:   sq.StatementBuilder.PlaceholderFormat(sq.Dollar),
 	}, nil
 }

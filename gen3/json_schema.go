@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-  "os"
+	"os"
 	"path/filepath"
 
 	"github.com/ghodss/yaml"
@@ -104,26 +104,26 @@ func loadSchema(path string) (*schema, error) {
 }
 
 func loadAllSchemas(path string) (map[string]*schema, error) {
-  fi, err := os.Stat(path)
-  if err != nil {
-    return nil, err
-  }
-  if !fi.IsDir() {
-    return nil, fmt.Errorf("provided path '%s', is not a directory", path)
-  }
+	fi, err := os.Stat(path)
+	if err != nil {
+		return nil, err
+	}
+	if !fi.IsDir() {
+		return nil, fmt.Errorf("provided path '%s', is not a directory", path)
+	}
 	files, err := filepath.Glob(filepath.Join(path, "*.yaml"))
-  if err != nil {
-    return nil, err
-  }
+	if err != nil {
+		return nil, err
+	}
 	out := make(map[string]*schema)
 	for _, f := range files {
 		s, err := loadSchema(f)
 		if err != nil {
 			return nil, fmt.Errorf("error loading schema: %s", err)
 		}
-    if _, ok := out[s.ID]; ok {
-      return nil, fmt.Errorf("encountered multiple schema with the same ID '%s'", s.ID)
-    }
+		if _, ok := out[s.ID]; ok {
+			return nil, fmt.Errorf("encountered multiple schema with the same ID '%s'", s.ID)
+		}
 		out[s.ID] = s
 	}
 	return out, nil

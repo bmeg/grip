@@ -4,6 +4,7 @@ go 1.12
 
 require (
 	github.com/AndreasBriese/bbloom v0.0.0-20190306092124-e2d15f34fcf9 // indirect
+	github.com/Masterminds/squirrel v1.1.0
 	github.com/Shopify/sarama v1.22.1
 	github.com/bmeg/golib v0.0.0-20170626075926-82a1e1d7a0b2
 	github.com/bmeg/protoc-gen-grcp-rest-direct v0.0.0-20190228222353-4d40e8b9d305 // indirect

@@ -1,11 +1,10 @@
 package gen3
 
 import (
-  "fmt"
+	"fmt"
 	"reflect"
-  "sort"
+	"sort"
 	"testing"
-
 	//"github.com/davecgh/go-spew/spew"
 )
 
@@ -39,10 +38,10 @@ func TestGetGraphConfig(t *testing.T) {
 	}
 	expected := &graphConfig{
 		vertices: map[string]*vertexDef{
-			"program": &vertexDef{
+			"program": {
 				table: "node_program",
 				in: map[string][]*edgeDef{
-					"member_of": []*edgeDef{
+					"member_of": {
 						{
 							table:    "edge_projectmemberofprogram",
 							srcLabel: "project",
@@ -52,7 +51,7 @@ func TestGetGraphConfig(t *testing.T) {
 					},
 				},
 				out: map[string][]*edgeDef{
-					"projects": []*edgeDef{
+					"projects": {
 						{
 							table:    "edge_projectmemberofprogram",
 							srcLabel: "project",
@@ -62,10 +61,10 @@ func TestGetGraphConfig(t *testing.T) {
 					},
 				},
 			},
-			"project": &vertexDef{
+			"project": {
 				table: "node_project",
 				in: map[string][]*edgeDef{
-					"projects": []*edgeDef{
+					"projects": {
 						{
 							table:    "edge_projectmemberofprogram",
 							srcLabel: "project",
@@ -73,7 +72,7 @@ func TestGetGraphConfig(t *testing.T) {
 							backref:  true,
 						},
 					},
-					"performed_for": []*edgeDef{
+					"performed_for": {
 						{
 							table:    "edge_experimentperformedforproject",
 							srcLabel: "experiment",
@@ -83,7 +82,7 @@ func TestGetGraphConfig(t *testing.T) {
 					},
 				},
 				out: map[string][]*edgeDef{
-					"member_of": []*edgeDef{
+					"member_of": {
 						{
 							table:    "edge_projectmemberofprogram",
 							srcLabel: "project",
@@ -91,7 +90,7 @@ func TestGetGraphConfig(t *testing.T) {
 							backref:  false,
 						},
 					},
-					"experiments": []*edgeDef{
+					"experiments": {
 						{
 							table:    "edge_experimentperformedforproject",
 							srcLabel: "experiment",
@@ -101,10 +100,10 @@ func TestGetGraphConfig(t *testing.T) {
 					},
 				},
 			},
-			"experiment": &vertexDef{
+			"experiment": {
 				table: "node_experiement",
 				in: map[string][]*edgeDef{
-					"experiments": []*edgeDef{
+					"experiments": {
 						{
 							table:    "edge_experimentperformedforproject",
 							srcLabel: "experiment",
@@ -112,7 +111,7 @@ func TestGetGraphConfig(t *testing.T) {
 							backref:  true,
 						},
 					},
-					"member_of": []*edgeDef{
+					"member_of": {
 						{
 							table:    "edge_casememberofexperiment",
 							srcLabel: "case",
@@ -122,7 +121,7 @@ func TestGetGraphConfig(t *testing.T) {
 					},
 				},
 				out: map[string][]*edgeDef{
-					"performed_for": []*edgeDef{
+					"performed_for": {
 						{
 							table:    "edge_experimentperformedforproject",
 							srcLabel: "experiment",
@@ -130,7 +129,7 @@ func TestGetGraphConfig(t *testing.T) {
 							backref:  false,
 						},
 					},
-					"cases": []*edgeDef{
+					"cases": {
 						{
 							table:    "edge_casememberofexperiment",
 							srcLabel: "case",
@@ -140,10 +139,10 @@ func TestGetGraphConfig(t *testing.T) {
 					},
 				},
 			},
-			"case": &vertexDef{
+			"case": {
 				table: "node_case",
 				in: map[string][]*edgeDef{
-					"cases": []*edgeDef{
+					"cases": {
 						{
 							table:    "edge_casememberofexperiment",
 							srcLabel: "case",
@@ -153,7 +152,7 @@ func TestGetGraphConfig(t *testing.T) {
 					},
 				},
 				out: map[string][]*edgeDef{
-					"member_of": []*edgeDef{
+					"member_of": {
 						{
 							table:    "edge_casememberofexperiment",
 							srcLabel: "case",
@@ -165,7 +164,7 @@ func TestGetGraphConfig(t *testing.T) {
 			},
 		},
 		edges: map[string][]*edgeDef{
-			"cases": []*edgeDef{
+			"cases": {
 				{
 					table:    "edge_casememberofexperiment",
 					srcLabel: "case",
@@ -173,7 +172,7 @@ func TestGetGraphConfig(t *testing.T) {
 					backref:  true,
 				},
 			},
-			"experiments": []*edgeDef{
+			"experiments": {
 				{
 					table:    "edge_experimentperformedforproject",
 					srcLabel: "experiment",
@@ -181,7 +180,7 @@ func TestGetGraphConfig(t *testing.T) {
 					backref:  true,
 				},
 			},
-			"projects": []*edgeDef{
+			"projects": {
 				{
 					table:    "edge_projectmemberofprogram",
 					srcLabel: "project",
@@ -189,7 +188,7 @@ func TestGetGraphConfig(t *testing.T) {
 					backref:  true,
 				},
 			},
-			"member_of": []*edgeDef{
+			"member_of": {
 				{
 					table:    "edge_casememberofexperiment",
 					srcLabel: "case",
@@ -203,7 +202,7 @@ func TestGetGraphConfig(t *testing.T) {
 					backref:  false,
 				},
 			},
-			"performed_for": []*edgeDef{
+			"performed_for": {
 				{
 					table:    "edge_experimentperformedforproject",
 					srcLabel: "experiment",
@@ -217,53 +216,53 @@ func TestGetGraphConfig(t *testing.T) {
 	if len(expected.vertices) != len(actual.vertices) {
 		t.Error("unexpected number of vertices in layout")
 	}
-  
-  if !reflect.DeepEqual(getSortedKeys(expected.vertices),getSortedKeys(actual.vertices)) {
+
+	if !reflect.DeepEqual(getSortedKeys(expected.vertices), getSortedKeys(actual.vertices)) {
 		t.Errorf("unexpected vertex keys in layout: %v != %v", getSortedKeys(actual.vertices), getSortedKeys(expected.vertices))
 	}
 
-  for k, _ := range expected.vertices {
-    e := expected.vertices[k]
-    a := actual.vertices[k]
-    if !reflect.DeepEqual(getSortedKeys(e.in),getSortedKeys(a.in)) {
-      t.Errorf("unexpected vertex keys in layout: %v != %v", getSortedKeys(a.in), getSortedKeys(e.in))
-    }
-    if !reflect.DeepEqual(getSortedKeys(e.out),getSortedKeys(a.out)) {
-      t.Errorf("unexpected vertex keys in layout: %v != %v", getSortedKeys(a.out), getSortedKeys(e.out))
-    }
-  }
+	for k := range expected.vertices {
+		e := expected.vertices[k]
+		a := actual.vertices[k]
+		if !reflect.DeepEqual(getSortedKeys(e.in), getSortedKeys(a.in)) {
+			t.Errorf("unexpected vertex keys in layout: %v != %v", getSortedKeys(a.in), getSortedKeys(e.in))
+		}
+		if !reflect.DeepEqual(getSortedKeys(e.out), getSortedKeys(a.out)) {
+			t.Errorf("unexpected vertex keys in layout: %v != %v", getSortedKeys(a.out), getSortedKeys(e.out))
+		}
+	}
 
-  if len(expected.edges) != len(actual.edges) {
+	if len(expected.edges) != len(actual.edges) {
 		t.Error("unexpected number of edges in layout")
 	}
 
-  if !reflect.DeepEqual(getSortedKeys(expected.edges),getSortedKeys(actual.edges)) {
+	if !reflect.DeepEqual(getSortedKeys(expected.edges), getSortedKeys(actual.edges)) {
 		t.Errorf("unexpected edge keys in layout: %v != %v", getSortedKeys(actual.edges), getSortedKeys(expected.edges))
 	}
 
-  for k, _ := range expected.edges {
-    e := expected.edges[k]
-    a := actual.edges[k]
-    if len(e) != len(a) {
-      t.Errorf("unexpected number of edge defs for label %s: %v != %v ", k, len(a), len(e))
-    }
-  }
+	for k := range expected.edges {
+		e := expected.edges[k]
+		a := actual.edges[k]
+		if len(e) != len(a) {
+			t.Errorf("unexpected number of edge defs for label %s: %v != %v ", k, len(a), len(e))
+		}
+	}
 }
 
 func getSortedKeys(input interface{}) []string {
-  out := []string{}
-  switch v := input.(type) {
-  case map[string]*vertexDef:
-    for k, _ := range v {
-      out = append(out, k)
-    }
-  case map[string][]*edgeDef:
-    for k, _ := range v {
-      out = append(out, k)
-    }
-  default:
-    panic(fmt.Sprintf("unknown type %T", input))
-  }
-  sort.Strings(out)
-  return out
+	out := []string{}
+	switch v := input.(type) {
+	case map[string]*vertexDef:
+		for k := range v {
+			out = append(out, k)
+		}
+	case map[string][]*edgeDef:
+		for k := range v {
+			out = append(out, k)
+		}
+	default:
+		panic(fmt.Sprintf("unknown type %T", input))
+	}
+	sort.Strings(out)
+	return out
 }

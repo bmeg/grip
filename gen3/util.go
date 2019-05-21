@@ -52,6 +52,75 @@ func convertEdgeRow(row *row, load bool) (*gripql.Edge, error) {
 	return e, nil
 }
 
+type edgeDef struct {
+	table    string
+	dstLabel string
+	srcLabel string
+	backref  bool
+}
+
+type vertexDef struct {
+	table string
+	out   map[string][]*edgeDef
+	in    map[string][]*edgeDef
+}
+
+type graphConfig struct {
+	// vertex label to vertexDef
+	vertices map[string]*vertexDef
+	// edge label to edgeDefs
+	edges map[string][]*edgeDef
+}
+
+// list vertex postgres tables
+func (gc *graphConfig) listVertexTables() []string {
+	out := make(map[string]interface{})
+	for _, v := range gc.vertices {
+		out[v.table] = nil
+	}
+	tables := []string{}
+	for k := range out {
+		tables = append(tables, k)
+	}
+	return tables
+}
+
+// list edge postgres tables
+func (gc *graphConfig) listEdgeTables() []string {
+	out := make(map[string]interface{})
+	for _, v := range gc.edges {
+		for _, e := range v {
+			out[e.table] = nil
+		}
+	}
+	tables := []string{}
+	for k := range out {
+		tables = append(tables, k)
+	}
+	return tables
+}
+
+// list all postgres tables
+func (gc *graphConfig) listTables() []string {
+	return append(gc.listVertexTables(), gc.listEdgeTables()...)
+}
+
+// get outgoing edgeDefs
+func (gc *graphConfig) out(label string) map[string][]*edgeDef {
+	if val, ok := gc.vertices[label]; ok {
+		return val.out
+	}
+	return make(map[string][]*edgeDef)
+}
+
+// get incoming edgeDefs
+func (gc *graphConfig) in(label string) map[string][]*edgeDef {
+	if val, ok := gc.vertices[label]; ok {
+		return val.in
+	}
+	return make(map[string][]*edgeDef)
+}
+
 // read the schema files to determine the layout of the postgres database
 func getGraphConfig(schemaDir string) (*graphConfig, error) {
 	schemas, err := loadAllSchemas(schemaDir)
@@ -63,17 +132,17 @@ func getGraphConfig(schemaDir string) (*graphConfig, error) {
 		edges:    make(map[string][]*edgeDef),
 	}
 
-  // initialize vertex objects
-	for label, _ := range schemas {
+	// initialize vertex objects
+	for label := range schemas {
 		g.vertices[label] = &vertexDef{
 			table: vertexTablename(label),
 			out:   make(map[string][]*edgeDef),
 			in:    make(map[string][]*edgeDef),
 		}
-  }
+	}
 
-  // add edge info
-  for srcLabel, data := range schemas {
+	// add edge info
+	for srcLabel, data := range schemas {
 		for _, link := range data.Links {
 			eDef := &edgeDef{
 				table:    edgeTablename(srcLabel, link.Label, link.TargetType),
@@ -91,8 +160,8 @@ func getGraphConfig(schemaDir string) (*graphConfig, error) {
 			g.edges[link.Backref] = append(g.edges[link.Backref], bRef)
 			g.vertices[srcLabel].out[link.Label] = append(g.vertices[srcLabel].out[link.Label], eDef)
 			g.vertices[srcLabel].in[link.Backref] = append(g.vertices[srcLabel].in[link.Backref], bRef)
-      g.vertices[link.TargetType].out[link.Backref] = append(g.vertices[link.TargetType].out[link.Backref], bRef)
-      g.vertices[link.TargetType].in[link.Label] = append(g.vertices[link.TargetType].in[link.Label], eDef)
+			g.vertices[link.TargetType].out[link.Backref] = append(g.vertices[link.TargetType].out[link.Backref], bRef)
+			g.vertices[link.TargetType].in[link.Label] = append(g.vertices[link.TargetType].in[link.Label], eDef)
 		}
 	}
 	return g, nil

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	sq "github.com/Masterminds/squirrel"
 	"github.com/bmeg/grip/engine/core"
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
@@ -20,6 +21,7 @@ type Graph struct {
 	v      string
 	e      string
 	graph  string
+	psql   sq.StatementBuilderType
 	layout *graphConfig
 }
 
@@ -63,6 +65,7 @@ func (g *Graph) GetTimestamp() string {
 
 // GetVertex loads a vertex given an id. It returns a nil if not found.
 func (g *Graph) GetVertex(gid string, load bool) *gripql.Vertex {
+	// g.psql.Select("node_id").From().Where(sq.Eq{"gid": gid})
 	q := fmt.Sprintf(`SELECT gid, label FROM %s WHERE gid='%s'`, g.v, gid)
 	if load {
 		q = fmt.Sprintf(`SELECT * FROM %s WHERE gid='%s'`, g.v, gid)
@@ -628,7 +631,7 @@ func (g *Graph) GetInEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, edg
 // ListVertexLabels returns a list of vertex types in the graph
 func (g *Graph) ListVertexLabels() ([]string, error) {
 	labels := []string{}
-	for l, _ := range g.layout.vertices {
+	for l := range g.layout.vertices {
 		labels = append(labels, l)
 	}
 	return labels, nil
@@ -637,7 +640,7 @@ func (g *Graph) ListVertexLabels() ([]string, error) {
 // ListEdgeLabels returns a list of edge types in the graph
 func (g *Graph) ListEdgeLabels() ([]string, error) {
 	labels := []string{}
-	for l, _ := range g.layout.edges {
+	for l := range g.layout.edges {
 		labels = append(labels, l)
 	}
 	return labels, nil
