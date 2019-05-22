@@ -1,212 +1,51 @@
 package gen3
 
 import (
-	"crypto/md5"
 	"encoding/json"
 	"fmt"
-	"strings"
 
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/protoutil"
+	//log "github.com/sirupsen/logrus"
 )
 
 type row struct {
-	Gid   string
-	Label string
-	From  string
-	To    string
-	Data  []byte
+	NodeID string `db:"node_id"`
+	SrcID  string `db:"src_id"`
+	DstID  string `db:"dst_id"`
+	Props  []byte `db:"_props"`
 }
 
-func convertVertexRow(row *row, load bool) (*gripql.Vertex, error) {
+func convertVertexRow(row *row, label string, load bool) (*gripql.Vertex, error) {
 	props := make(map[string]interface{})
 	if load {
-		err := json.Unmarshal(row.Data, &props)
+		err := json.Unmarshal(row.Props, &props)
 		if err != nil {
 			return nil, fmt.Errorf("unmarshal error: %v", err)
 		}
 	}
 	v := &gripql.Vertex{
-		Gid:   row.Gid,
-		Label: row.Label,
+		Gid:   row.NodeID,
+		Label: label,
 		Data:  protoutil.AsStruct(props),
 	}
 	return v, nil
 }
 
-func convertEdgeRow(row *row, load bool) (*gripql.Edge, error) {
+func convertEdgeRow(row *row, label string, load bool) (*gripql.Edge, error) {
 	props := make(map[string]interface{})
 	if load {
-		err := json.Unmarshal(row.Data, &props)
+		err := json.Unmarshal(row.Props, &props)
 		if err != nil {
 			return nil, fmt.Errorf("unmarshal error: %v", err)
 		}
 	}
 	e := &gripql.Edge{
-		Gid:   row.Gid,
-		Label: row.Label,
-		From:  row.From,
-		To:    row.To,
+		Gid:   fmt.Sprintf("%s%s", row.SrcID, row.DstID),
+		Label: label,
+		From:  row.SrcID,
+		To:    row.DstID,
 		Data:  protoutil.AsStruct(props),
 	}
 	return e, nil
-}
-
-type edgeDef struct {
-	table    string
-	dstLabel string
-	srcLabel string
-	backref  bool
-}
-
-type vertexDef struct {
-	table string
-	out   map[string][]*edgeDef
-	in    map[string][]*edgeDef
-}
-
-type graphConfig struct {
-	// vertex label to vertexDef
-	vertices map[string]*vertexDef
-	// edge label to edgeDefs
-	edges map[string][]*edgeDef
-}
-
-// list vertex postgres tables
-func (gc *graphConfig) listVertexTables() []string {
-	out := make(map[string]interface{})
-	for _, v := range gc.vertices {
-		out[v.table] = nil
-	}
-	tables := []string{}
-	for k := range out {
-		tables = append(tables, k)
-	}
-	return tables
-}
-
-// list edge postgres tables
-func (gc *graphConfig) listEdgeTables() []string {
-	out := make(map[string]interface{})
-	for _, v := range gc.edges {
-		for _, e := range v {
-			out[e.table] = nil
-		}
-	}
-	tables := []string{}
-	for k := range out {
-		tables = append(tables, k)
-	}
-	return tables
-}
-
-// list all postgres tables
-func (gc *graphConfig) listTables() []string {
-	return append(gc.listVertexTables(), gc.listEdgeTables()...)
-}
-
-// get outgoing edgeDefs
-func (gc *graphConfig) out(label string) map[string][]*edgeDef {
-	if val, ok := gc.vertices[label]; ok {
-		return val.out
-	}
-	return make(map[string][]*edgeDef)
-}
-
-// get incoming edgeDefs
-func (gc *graphConfig) in(label string) map[string][]*edgeDef {
-	if val, ok := gc.vertices[label]; ok {
-		return val.in
-	}
-	return make(map[string][]*edgeDef)
-}
-
-// read the schema files to determine the layout of the postgres database
-func getGraphConfig(schemaDir string) (*graphConfig, error) {
-	schemas, err := loadAllSchemas(schemaDir)
-	if err != nil {
-		return nil, err
-	}
-	g := &graphConfig{
-		vertices: make(map[string]*vertexDef),
-		edges:    make(map[string][]*edgeDef),
-	}
-
-	// initialize vertex objects
-	for label := range schemas {
-		g.vertices[label] = &vertexDef{
-			table: vertexTablename(label),
-			out:   make(map[string][]*edgeDef),
-			in:    make(map[string][]*edgeDef),
-		}
-	}
-
-	// add edge info
-	for srcLabel, data := range schemas {
-		for _, link := range data.Links {
-			eDef := &edgeDef{
-				table:    edgeTablename(srcLabel, link.Label, link.TargetType),
-				srcLabel: srcLabel,
-				dstLabel: link.TargetType,
-				backref:  false,
-			}
-			g.edges[link.Label] = append(g.edges[link.Label], eDef)
-			bRef := &edgeDef{
-				table:    edgeTablename(srcLabel, link.Label, link.TargetType),
-				srcLabel: srcLabel,
-				dstLabel: link.TargetType,
-				backref:  true,
-			}
-			g.edges[link.Backref] = append(g.edges[link.Backref], bRef)
-			g.vertices[srcLabel].out[link.Label] = append(g.vertices[srcLabel].out[link.Label], eDef)
-			g.vertices[srcLabel].in[link.Backref] = append(g.vertices[srcLabel].in[link.Backref], bRef)
-			g.vertices[link.TargetType].out[link.Backref] = append(g.vertices[link.TargetType].out[link.Backref], bRef)
-			g.vertices[link.TargetType].in[link.Label] = append(g.vertices[link.TargetType].in[link.Label], eDef)
-		}
-	}
-	return g, nil
-}
-
-func vertexTablename(label string) string {
-	return fmt.Sprintf(
-		"node_%s",
-		strings.ReplaceAll(label, "_", ""),
-	)
-}
-
-// https://github.com/uc-cdis/gdcdatamodel/blob/7aacbe2f383234b2ad4cb28418cb2f00dd2d24f7/gdcdatamodel/models/__init__.py#L370
-func edgeTablename(srcLabel, label, dstLabel string) string {
-	tablename := fmt.Sprintf(
-		"edge_%s%s%s",
-		strings.ReplaceAll(srcLabel, "_", ""),
-		strings.ReplaceAll(label, "_", ""),
-		strings.ReplaceAll(dstLabel, "_", ""),
-	)
-
-	if len(tablename) <= 40 {
-		return tablename
-	}
-
-	truncSrc := []string{}
-	truncLabel := []string{}
-	truncDst := []string{}
-	for _, x := range strings.Split(srcLabel, "_") {
-		truncSrc = append(truncSrc, x[:2])
-	}
-	for _, x := range strings.Split(label, "_") {
-		truncLabel = append(truncLabel, x[:2])
-	}
-	for _, x := range strings.Split(dstLabel, "_") {
-		truncDst = append(truncDst, x[:2])
-	}
-
-	return fmt.Sprintf(
-		"edge_%s_%s",
-		fmt.Sprintf("%x", md5.Sum([]byte(tablename)))[:8],
-		fmt.Sprintf(
-			"%s%s%s", strings.Join(truncSrc, ""),
-			strings.Join(truncLabel, ""),
-			strings.Join(truncDst, ""),
-		),
-	)
 }

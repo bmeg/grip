@@ -7,6 +7,7 @@ import (
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/timestamp"
+	"github.com/bmeg/grip/util"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 )
@@ -32,10 +33,12 @@ type GraphDB struct {
 func NewGraphDB(conf Config) (gdbi.GraphDB, error) {
 	log.Info("Starting Postgres Driver")
 
-	connString := fmt.Sprintf(
-		"host=%s port=%v user=%s password=%s dbname=%s sslmode=%s",
+	connString, err := util.BuildPostgresConnStr(
 		conf.Host, conf.Port, conf.User, conf.Password, conf.DBName, conf.SSLMode,
 	)
+	if err != nil {
+		return nil, err
+	}
 	db, err := sqlx.Connect("postgres", connString)
 	if err != nil {
 		return nil, err

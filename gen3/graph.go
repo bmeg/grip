@@ -63,45 +63,72 @@ func (g *Graph) GetTimestamp() string {
 	return "not implemented"
 }
 
-// GetVertex loads a vertex given an id. It returns a nil if not found.
-func (g *Graph) GetVertex(gid string, load bool) *gripql.Vertex {
-	// g.psql.Select("node_id").From().Where(sq.Eq{"gid": gid})
-	q := fmt.Sprintf(`SELECT gid, label FROM %s WHERE gid='%s'`, g.v, gid)
-	if load {
-		q = fmt.Sprintf(`SELECT * FROM %s WHERE gid='%s'`, g.v, gid)
+func (g *Graph) getVertex(gid string, table string, load bool) (*gripql.Vertex, error) {
+	q, args, err := g.psql.Select("node_id, _props").
+		From(table).
+		Where(sq.Eq{"node_id": gid}).
+		ToSql()
+	if err != nil {
+		return nil, err
 	}
 	vrow := &row{}
-	err := g.db.QueryRowx(q).StructScan(vrow)
+	err = g.db.QueryRowx(q, args...).StructScan(vrow)
 	if err != nil {
-		log.WithFields(log.Fields{"error": err, "query": q}).Error("GetVertex: StructScan")
-		return nil
+		return nil, err
 	}
-	vertex, err := convertVertexRow(vrow, load)
+	return convertVertexRow(vrow, g.layout.label(table), load)
+}
+
+// GetVertex loads a vertex given an id. It returns a nil if not found.
+func (g *Graph) GetVertex(gid string, load bool) *gripql.Vertex {
+	var v *gripql.Vertex
+	for _, table := range g.layout.listVertexTables() {
+		v, err := g.getVertex(gid, table, load)
+		if err != nil {
+			if strings.Contains(err.Error(), "no rows in result set") || strings.Contains(err.Error(), "does not exist") {
+				continue
+			}
+			log.WithFields(log.Fields{"error": err}).Error("GetVertex")
+			return nil
+		}
+		return v
+	}
+	return v
+}
+
+func (g *Graph) getEdge(src_id, dst_id, table string, load bool) (*gripql.Edge, error) {
+	q, args, err := g.psql.Select("src_id, dst_id, _props").
+		From(table).
+		Where(sq.Eq{"src_id": src_id, "dst_id": dst_id}).
+		ToSql()
 	if err != nil {
-		log.WithFields(log.Fields{"error": err}).Error("GetVertex: convertVertexRow")
-		return nil
+		return nil, err
 	}
-	return vertex
+	erow := &row{}
+	err = g.db.QueryRowx(q, args...).StructScan(erow)
+	if err != nil {
+		return nil, err
+	}
+	return convertEdgeRow(erow, g.layout.label(table), load)
 }
 
 // GetEdge loads an edge  given an id. It returns a nil if not found.
 func (g *Graph) GetEdge(gid string, load bool) *gripql.Edge {
-	q := fmt.Sprintf(`SELECT gid, label, "from", "to" FROM %s WHERE gid='%s'`, g.e, gid)
-	if load {
-		q = fmt.Sprintf(`SELECT * FROM %s WHERE gid='%s'`, g.e, gid)
+	var e *gripql.Edge
+	var src_id string
+	var dst_id string
+	for _, table := range g.layout.listEdgeTables() {
+		e, err := g.getEdge(src_id, dst_id, table, load)
+		if err != nil {
+			if strings.Contains(err.Error(), "no rows in result set") || strings.Contains(err.Error(), "does not exist") {
+				continue
+			}
+			log.WithFields(log.Fields{"error": err}).Error("GetEdge")
+			return nil
+		}
+		return e
 	}
-	erow := &row{}
-	err := g.db.QueryRowx(q).StructScan(erow)
-	if err != nil {
-		log.WithFields(log.Fields{"error": err, "query": q}).Error("GetEdge: StructScan")
-		return nil
-	}
-	edge, err := convertEdgeRow(erow, load)
-	if err != nil {
-		log.WithFields(log.Fields{"error": err}).Error("GetEdge: convertEdgeRow")
-		return nil
-	}
-	return edge
+	return e
 }
 
 // GetVertexList produces a channel of all vertices in the graph
@@ -125,7 +152,7 @@ func (g *Graph) GetVertexList(ctx context.Context, load bool) <-chan *gripql.Ver
 				log.WithFields(log.Fields{"error": err}).Error("GetVertexList: StructScan")
 				continue
 			}
-			v, err := convertVertexRow(vrow, load)
+			v, err := convertVertexRow(vrow, "", load)
 			if err != nil {
 				log.WithFields(log.Fields{"error": err}).Error("GetVertexList: convertVertexRow")
 				continue
@@ -187,7 +214,7 @@ func (g *Graph) GetEdgeList(ctx context.Context, load bool) <-chan *gripql.Edge 
 				log.WithFields(log.Fields{"error": err}).Error("GetEdgeList: StructScan")
 				continue
 			}
-			e, err := convertEdgeRow(erow, load)
+			e, err := convertEdgeRow(erow, "", load)
 			if err != nil {
 				log.WithFields(log.Fields{"error": err}).Error("GetEdgeList: convertEdgeRow")
 				continue
@@ -243,7 +270,7 @@ func (g *Graph) GetVertexChannel(reqChan chan gdbi.ElementLookup, load bool) cha
 					log.WithFields(log.Fields{"error": err}).Error("GetVertexChannel: StructScan")
 					continue
 				}
-				v, err := convertVertexRow(vrow, load)
+				v, err := convertVertexRow(vrow, "", load)
 				if err != nil {
 					log.WithFields(log.Fields{"error": err}).Error("GetVertexChannel: convertVertexRow")
 					continue
@@ -342,12 +369,12 @@ func (g *Graph) GetOutChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLa
 					log.WithFields(log.Fields{"error": err}).Error("GetOutChannel: StructScan")
 					continue
 				}
-				v, err := convertVertexRow(vrow, load)
+				v, err := convertVertexRow(vrow, "", load)
 				if err != nil {
 					log.WithFields(log.Fields{"error": err}).Error("GetOutChannel: convertVertexRow")
 					continue
 				}
-				r := batchMap[vrow.From]
+				r := batchMap[vrow.SrcID]
 				for _, ri := range r {
 					ri.Vertex = v
 					o <- ri
@@ -439,12 +466,12 @@ func (g *Graph) GetInChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLab
 					log.WithFields(log.Fields{"error": err}).Error("GetInChannel: StructScan")
 					continue
 				}
-				v, err := convertVertexRow(vrow, load)
+				v, err := convertVertexRow(vrow, "", load)
 				if err != nil {
 					log.WithFields(log.Fields{"error": err}).Error("GetInChannel: convertVertexRow")
 					continue
 				}
-				r := batchMap[vrow.To]
+				r := batchMap[vrow.DstID]
 				for _, ri := range r {
 					ri.Vertex = v
 					o <- ri
@@ -524,12 +551,12 @@ func (g *Graph) GetOutEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, ed
 					log.WithFields(log.Fields{"error": err}).Error("GetOutEdgeChannel: StructScan")
 					continue
 				}
-				e, err := convertEdgeRow(erow, load)
+				e, err := convertEdgeRow(erow, "", load)
 				if err != nil {
 					log.WithFields(log.Fields{"error": err}).Error("GetOutEdgeChannel: convertEdgeRow")
 					continue
 				}
-				r := batchMap[erow.From]
+				r := batchMap[erow.SrcID]
 				for _, ri := range r {
 					ri.Edge = e
 					o <- ri
@@ -609,12 +636,12 @@ func (g *Graph) GetInEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, edg
 					log.WithFields(log.Fields{"error": err}).Error("GetInEdgeChannel: StructScan")
 					continue
 				}
-				e, err := convertEdgeRow(erow, load)
+				e, err := convertEdgeRow(erow, "", load)
 				if err != nil {
 					log.WithFields(log.Fields{"error": err}).Error("GetInEdgeChannel: convertEdgeRow")
 					continue
 				}
-				r := batchMap[erow.To]
+				r := batchMap[erow.DstID]
 				for _, ri := range r {
 					ri.Edge = e
 					o <- ri
