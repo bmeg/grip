@@ -3,6 +3,8 @@ package gen3
 import (
 	"encoding/json"
 	"fmt"
+	"regexp"
+	"strings"
 
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/protoutil"
@@ -48,4 +50,16 @@ func convertEdgeRow(row *row, label string, load bool) (*gripql.Edge, error) {
 		Data:  protoutil.AsStruct(props),
 	}
 	return e, nil
+}
+
+func noRowsInResult(err error) bool {
+	return strings.Contains(err.Error(), "no rows in result set")
+}
+
+func tableDoesNotExist(err error) bool {
+	matched, err := regexp.MatchString(`relation "[a-z_]+" does not exist`, err.Error())
+	if err != nil {
+		return false
+	}
+	return matched
 }

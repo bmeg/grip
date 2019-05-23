@@ -119,6 +119,7 @@ func getGraphConfig(schemaDir string) (*graphConfig, error) {
 			g.edges[link.Label] = append(g.edges[link.Label], eDef)
 			bRef := &edgeDef{
 				table:    edgeTablename(srcLabel, link.Label, link.TargetType),
+				label:    link.Backref,
 				srcLabel: srcLabel,
 				dstLabel: link.TargetType,
 				backref:  true,

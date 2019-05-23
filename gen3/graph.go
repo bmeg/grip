@@ -3,7 +3,6 @@ package gen3
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/bmeg/grip/engine/core"
@@ -61,7 +60,7 @@ func (g *Graph) GetTimestamp() string {
 }
 
 func (g *Graph) getVertex(gid string, table string, load bool) (*gripql.Vertex, error) {
-	q, args, err := g.psql.Select("node_id, _props").
+	q, args, err := g.psql.Select("node_id", "_props").
 		From(table).
 		Where(sq.Eq{"node_id": gid}).
 		ToSql()
@@ -82,7 +81,7 @@ func (g *Graph) GetVertex(gid string, load bool) *gripql.Vertex {
 	for _, table := range g.layout.listVertexTables() {
 		v, err := g.getVertex(gid, table, load)
 		if err != nil {
-			if strings.Contains(err.Error(), "no rows in result set") || strings.Contains(err.Error(), "does not exist") {
+			if noRowsInResult(err) || tableDoesNotExist(err) {
 				continue
 			}
 			log.WithFields(log.Fields{"error": err}).Error("GetVertex")
@@ -94,7 +93,7 @@ func (g *Graph) GetVertex(gid string, load bool) *gripql.Vertex {
 }
 
 func (g *Graph) getEdge(src_id, dst_id, table string, load bool) (*gripql.Edge, error) {
-	q, args, err := g.psql.Select("src_id, dst_id, _props").
+	q, args, err := g.psql.Select("src_id", "dst_id", "_props").
 		From(table).
 		Where(sq.Eq{"src_id": src_id, "dst_id": dst_id}).
 		ToSql()
@@ -117,7 +116,7 @@ func (g *Graph) GetEdge(gid string, load bool) *gripql.Edge {
 	for _, table := range g.layout.listEdgeTables() {
 		e, err := g.getEdge(src_id, dst_id, table, load)
 		if err != nil {
-			if strings.Contains(err.Error(), "no rows in result set") || strings.Contains(err.Error(), "does not exist") {
+			if noRowsInResult(err) || tableDoesNotExist(err) {
 				continue
 			}
 			log.WithFields(log.Fields{"error": err}).Error("GetEdge")
@@ -134,13 +133,16 @@ func (g *Graph) GetVertexList(ctx context.Context, load bool) <-chan *gripql.Ver
 	go func() {
 		defer close(o)
 		for _, table := range g.layout.listVertexTables() {
-			q, args, err := g.psql.Select("*").From(table).ToSql()
+			q, args, err := g.psql.Select("node_id", "_props").From(table).ToSql()
 			if err != nil {
 				log.WithFields(log.Fields{"error": err}).Error("GetVertexList: ToSql")
 				return
 			}
 			rows, err := g.db.QueryxContext(ctx, q, args...)
 			if err != nil {
+				if noRowsInResult(err) || tableDoesNotExist(err) {
+					continue
+				}
 				log.WithFields(log.Fields{"error": err}).Error("GetVertexList: QueryxContext")
 				return
 			}
@@ -174,7 +176,6 @@ func (g *Graph) VertexLabelScan(ctx context.Context, label string) chan string {
 		table := g.layout.vertices[label].table
 		q, args, err := g.psql.Select("node_id").
 			From(table).
-			Where(sq.Eq{"label": g.layout.label(table)}).
 			ToSql()
 		if err != nil {
 			log.WithFields(log.Fields{"error": err}).Error("VertexLabelScan: ToSql")
@@ -207,13 +208,16 @@ func (g *Graph) GetEdgeList(ctx context.Context, load bool) <-chan *gripql.Edge 
 	go func() {
 		defer close(o)
 		for _, table := range g.layout.listEdgeTables() {
-			q, args, err := g.psql.Select("*").From(table).ToSql()
+			q, args, err := g.psql.Select("src_id", "dst_id", "_props").From(table).ToSql()
 			if err != nil {
 				log.WithFields(log.Fields{"error": err}).Error("GetVertexList: ToSql")
 				return
 			}
 			rows, err := g.db.QueryxContext(ctx, q, args...)
 			if err != nil {
+				if noRowsInResult(err) || tableDoesNotExist(err) {
+					continue
+				}
 				log.WithFields(log.Fields{"error": err}).Error("GetEdgeList: QueryxContext")
 				return
 			}
@@ -264,7 +268,7 @@ func (g *Graph) GetVertexChannel(reqChan chan gdbi.ElementLookup, load bool) cha
 				idBatch[i] = batch[i].ID
 			}
 			for _, table := range g.layout.listVertexTables() {
-				q, args, err := g.psql.Select("*").
+				q, args, err := g.psql.Select("node_id", "_props").
 					From(table).
 					Where(sq.Eq{"node_id": idBatch}).
 					ToSql()
@@ -274,7 +278,10 @@ func (g *Graph) GetVertexChannel(reqChan chan gdbi.ElementLookup, load bool) cha
 				}
 				rows, err := g.db.Queryx(q, args...)
 				if err != nil {
-					log.WithFields(log.Fields{"error": err}).Error("GetVertexChannel: Queryx")
+					if noRowsInResult(err) || tableDoesNotExist(err) {
+						continue
+					}
+					log.WithFields(log.Fields{"error": err, "query": q}).Error("GetVertexChannel: Queryx")
 					return
 				}
 				defer rows.Close()
@@ -282,18 +289,18 @@ func (g *Graph) GetVertexChannel(reqChan chan gdbi.ElementLookup, load bool) cha
 				for rows.Next() {
 					vrow := &row{}
 					if err := rows.StructScan(vrow); err != nil {
-						log.WithFields(log.Fields{"error": err}).Error("GetVertexChannel: StructScan")
+						log.WithFields(log.Fields{"error": err, "query": q}).Error("GetVertexChannel: StructScan")
 						continue
 					}
 					v, err := convertVertexRow(vrow, g.layout.label(table), load)
 					if err != nil {
-						log.WithFields(log.Fields{"error": err}).Error("GetVertexChannel: convertVertexRow")
+						log.WithFields(log.Fields{"error": err, "query": q}).Error("GetVertexChannel: convertVertexRow")
 						continue
 					}
 					chunk[v.Gid] = v
 				}
 				if err := rows.Err(); err != nil {
-					log.WithFields(log.Fields{"error": err}).Error("GetVertexChannel: iterating")
+					log.WithFields(log.Fields{"error": err, "query": q}).Error("GetVertexChannel: iterating")
 				}
 				for _, id := range batch {
 					if x, ok := chunk[id.ID]; ok {
@@ -314,7 +321,7 @@ func min(a, b int) int {
 	return b
 }
 
-func (g *Graph) getLinkChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string, direction string) chan gdbi.ElementLookup {
+func (g *Graph) lookupLinkedVertex(reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string, direction string) chan gdbi.ElementLookup {
 	batches := make(chan []gdbi.ElementLookup, 100)
 	reqChanMap := make(map[string][]gdbi.ElementLookup)
 	go func() {
@@ -351,9 +358,20 @@ func (g *Graph) getLinkChannel(reqChan chan gdbi.ElementLookup, load bool, edgeL
 				batchMap[batch[i].ID] = append(batchMap[batch[i].ID], batch[i])
 			}
 
+			var getEdgeDefs func(string) map[string][]*edgeDef
+			switch direction {
+			case "out":
+				getEdgeDefs = g.layout.out
+			case "in":
+				getEdgeDefs = g.layout.in
+			default:
+				log.Error("getLinkChannel: invalid direction argument")
+				return
+			}
+
 			edgeDefs := []*edgeDef{}
 			if len(edgeLabels) > 0 {
-				for elabel, e := range g.layout.out(label) {
+				for elabel, e := range getEdgeDefs(label) {
 					for _, l := range edgeLabels {
 						if elabel == l {
 							edgeDefs = append(edgeDefs, e...)
@@ -361,38 +379,43 @@ func (g *Graph) getLinkChannel(reqChan chan gdbi.ElementLookup, load bool, edgeL
 					}
 				}
 			} else {
-				for _, e := range g.layout.out(label) {
+				for _, e := range getEdgeDefs(label) {
 					edgeDefs = append(edgeDefs, e...)
 				}
 			}
 
 			for _, e := range edgeDefs {
-				var efield, dstLabel string
+				var esrc, edst, vLabel string
 				switch direction {
 				case "out":
-					efield = "src_id"
-					dstLabel = e.dstLabel
+					esrc = "src_id"
+					edst = "dst_id"
+					vLabel = e.dstLabel
 					if e.backref {
-						dstLabel = e.srcLabel
-						efield = "dst_id"
+						vLabel = e.srcLabel
+						esrc = "dst_id"
+						edst = "src_id"
 					}
 				case "in":
-					efield = "dst_id"
-					dstLabel = e.srcLabel
+					esrc = "dst_id"
+					edst = "src_id"
+					vLabel = e.srcLabel
 					if e.backref {
-						dstLabel = e.dstLabel
-						efield = "src_id"
+						vLabel = e.dstLabel
+						esrc = "src_id"
+						edst = "dst_id"
 					}
 				default:
 					log.Error("getLinkChannel: invalid direction argument")
 					return
 				}
-				dstTable := g.layout.vertices[dstLabel].table
+				dstTable := g.layout.vertices[vLabel].table
 
-				q, args, err := g.psql.Select(fmt.Sprintf("%s.*, %s.%s AS src_id", dstTable, e.table, efield)).
+				q, args, err := g.psql.
+					Select(fmt.Sprintf("%s.node_id, %s._props, %s.%s AS src_id", dstTable, dstTable, e.table, esrc)).
 					From(e.table).
-					JoinClause("INNER JOIN %s", dstTable).
-					Where(sq.Eq{fmt.Sprintf("%s.%s", e.table, efield): idBatch}).
+					JoinClause(fmt.Sprintf("INNER JOIN %s ON %s.node_id = %s.%s", dstTable, dstTable, e.table, edst)).
+					Where(sq.Eq{fmt.Sprintf("%s.%s", e.table, esrc): idBatch}).
 					ToSql()
 				rows, err := g.db.Queryx(q, args...)
 				if err != nil {
@@ -406,7 +429,7 @@ func (g *Graph) getLinkChannel(reqChan chan gdbi.ElementLookup, load bool, edgeL
 						log.WithFields(log.Fields{"error": err}).Error("GetOutChannel: StructScan")
 						continue
 					}
-					v, err := convertVertexRow(vrow, dstLabel, load)
+					v, err := convertVertexRow(vrow, vLabel, load)
 					if err != nil {
 						log.WithFields(log.Fields{"error": err}).Error("GetOutChannel: convertVertexRow")
 						continue
@@ -428,12 +451,12 @@ func (g *Graph) getLinkChannel(reqChan chan gdbi.ElementLookup, load bool, edgeL
 
 // GetOutChannel is passed a channel of vertex ids and finds the connected vertices via outgoing edges
 func (g *Graph) GetOutChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
-	return g.getLinkChannel(reqChan, load, edgeLabels, "out")
+	return g.lookupLinkedVertex(reqChan, load, edgeLabels, "out")
 }
 
 // GetInChannel is passed a channel of vertex ids and finds the connected vertices via incoming edges
 func (g *Graph) GetInChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
-	return g.getLinkChannel(reqChan, load, edgeLabels, "in")
+	return g.lookupLinkedVertex(reqChan, load, edgeLabels, "in")
 }
 
 // GetOutEdgeChannel is passed a channel of vertex ids and finds the outgoing edges
