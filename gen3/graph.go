@@ -18,9 +18,6 @@ const batchSize int = 1000
 // Graph is the interface to a single graph
 type Graph struct {
 	db     *sqlx.DB
-	v      string
-	e      string
-	graph  string
 	psql   sq.StatementBuilderType
 	layout *graphConfig
 }
@@ -136,31 +133,34 @@ func (g *Graph) GetVertexList(ctx context.Context, load bool) <-chan *gripql.Ver
 	o := make(chan *gripql.Vertex, 100)
 	go func() {
 		defer close(o)
-		q := fmt.Sprintf("SELECT gid, label FROM %s", g.v)
-		if load {
-			q = fmt.Sprintf(`SELECT * FROM %s`, g.v)
-		}
-		rows, err := g.db.QueryxContext(ctx, q)
-		if err != nil {
-			log.WithFields(log.Fields{"error": err}).Error("GetVertexList: QueryxContext")
-			return
-		}
-		defer rows.Close()
-		for rows.Next() {
-			vrow := &row{}
-			if err := rows.StructScan(vrow); err != nil {
-				log.WithFields(log.Fields{"error": err}).Error("GetVertexList: StructScan")
-				continue
-			}
-			v, err := convertVertexRow(vrow, "", load)
+		for _, table := range g.layout.listVertexTables() {
+			q, args, err := g.psql.Select("*").From(table).ToSql()
 			if err != nil {
-				log.WithFields(log.Fields{"error": err}).Error("GetVertexList: convertVertexRow")
-				continue
+				log.WithFields(log.Fields{"error": err}).Error("GetVertexList: ToSql")
+				return
 			}
-			o <- v
-		}
-		if err := rows.Err(); err != nil {
-			log.WithFields(log.Fields{"error": err}).Error("GetVertexList: iterating")
+			rows, err := g.db.QueryxContext(ctx, q, args...)
+			if err != nil {
+				log.WithFields(log.Fields{"error": err}).Error("GetVertexList: QueryxContext")
+				return
+			}
+			defer rows.Close()
+			for rows.Next() {
+				vrow := &row{}
+				if err := rows.StructScan(vrow); err != nil {
+					log.WithFields(log.Fields{"error": err}).Error("GetVertexList: StructScan")
+					continue
+				}
+				v, err := convertVertexRow(vrow, g.layout.label(table), load)
+				if err != nil {
+					log.WithFields(log.Fields{"error": err}).Error("GetVertexList: convertVertexRow")
+					continue
+				}
+				o <- v
+			}
+			if err := rows.Err(); err != nil {
+				log.WithFields(log.Fields{"error": err}).Error("GetVertexList: iterating")
+			}
 		}
 	}()
 	return o
@@ -171,8 +171,16 @@ func (g *Graph) VertexLabelScan(ctx context.Context, label string) chan string {
 	o := make(chan string, 100)
 	go func() {
 		defer close(o)
-		q := fmt.Sprintf("SELECT gid FROM %s WHERE label='%s'", g.v, label)
-		rows, err := g.db.QueryxContext(ctx, q)
+		table := g.layout.vertices[label].table
+		q, args, err := g.psql.Select("node_id").
+			From(table).
+			Where(sq.Eq{"label": g.layout.label(table)}).
+			ToSql()
+		if err != nil {
+			log.WithFields(log.Fields{"error": err}).Error("VertexLabelScan: ToSql")
+			return
+		}
+		rows, err := g.db.QueryxContext(ctx, q, args...)
 		if err != nil {
 			log.WithFields(log.Fields{"error": err}).Error("VertexLabelScan: QueryxContext")
 			return
@@ -198,31 +206,34 @@ func (g *Graph) GetEdgeList(ctx context.Context, load bool) <-chan *gripql.Edge 
 	o := make(chan *gripql.Edge, 100)
 	go func() {
 		defer close(o)
-		q := fmt.Sprintf(`SELECT gid, label, "from", "to" FROM %s`, g.e)
-		if load {
-			q = fmt.Sprintf(`SELECT * FROM %s`, g.e)
-		}
-		rows, err := g.db.QueryxContext(ctx, q)
-		if err != nil {
-			log.WithFields(log.Fields{"error": err}).Error("GetEdgeList: QueryxContext")
-			return
-		}
-		defer rows.Close()
-		for rows.Next() {
-			erow := &row{}
-			if err := rows.StructScan(erow); err != nil {
-				log.WithFields(log.Fields{"error": err}).Error("GetEdgeList: StructScan")
-				continue
-			}
-			e, err := convertEdgeRow(erow, "", load)
+		for _, table := range g.layout.listEdgeTables() {
+			q, args, err := g.psql.Select("*").From(table).ToSql()
 			if err != nil {
-				log.WithFields(log.Fields{"error": err}).Error("GetEdgeList: convertEdgeRow")
-				continue
+				log.WithFields(log.Fields{"error": err}).Error("GetVertexList: ToSql")
+				return
 			}
-			o <- e
-		}
-		if err := rows.Err(); err != nil {
-			log.WithFields(log.Fields{"error": err}).Error("GetEdgeList: iterating")
+			rows, err := g.db.QueryxContext(ctx, q, args...)
+			if err != nil {
+				log.WithFields(log.Fields{"error": err}).Error("GetEdgeList: QueryxContext")
+				return
+			}
+			defer rows.Close()
+			for rows.Next() {
+				erow := &row{}
+				if err := rows.StructScan(erow); err != nil {
+					log.WithFields(log.Fields{"error": err}).Error("GetEdgeList: StructScan")
+					continue
+				}
+				e, err := convertEdgeRow(erow, g.layout.label(table), load)
+				if err != nil {
+					log.WithFields(log.Fields{"error": err}).Error("GetEdgeList: convertEdgeRow")
+					continue
+				}
+				o <- e
+			}
+			if err := rows.Err(); err != nil {
+				log.WithFields(log.Fields{"error": err}).Error("GetEdgeList: iterating")
+			}
 		}
 	}()
 	return o
@@ -234,8 +245,8 @@ func (g *Graph) GetVertexChannel(reqChan chan gdbi.ElementLookup, load bool) cha
 	go func() {
 		defer close(batches)
 		o := make([]gdbi.ElementLookup, 0, batchSize)
-		for id := range reqChan {
-			o = append(o, id)
+		for req := range reqChan {
+			o = append(o, req)
 			if len(o) >= batchSize {
 				batches <- o
 				o = make([]gdbi.ElementLookup, 0, batchSize)
@@ -250,40 +261,164 @@ func (g *Graph) GetVertexChannel(reqChan chan gdbi.ElementLookup, load bool) cha
 		for batch := range batches {
 			idBatch := make([]string, len(batch))
 			for i := range batch {
-				idBatch[i] = fmt.Sprintf("'%s'", batch[i].ID)
+				idBatch[i] = batch[i].ID
 			}
-			ids := strings.Join(idBatch, ", ")
-			q := fmt.Sprintf("SELECT gid, label FROM %s WHERE gid IN (%s)", g.v, ids)
-			if load {
-				q = fmt.Sprintf("SELECT * FROM %s WHERE gid IN (%s)", g.v, ids)
-			}
-			rows, err := g.db.Queryx(q)
-			if err != nil {
-				log.WithFields(log.Fields{"error": err}).Error("GetVertexChannel: Queryx")
-				return
-			}
-			defer rows.Close()
-			chunk := map[string]*gripql.Vertex{}
-			for rows.Next() {
-				vrow := &row{}
-				if err := rows.StructScan(vrow); err != nil {
-					log.WithFields(log.Fields{"error": err}).Error("GetVertexChannel: StructScan")
-					continue
-				}
-				v, err := convertVertexRow(vrow, "", load)
+			for _, table := range g.layout.listVertexTables() {
+				q, args, err := g.psql.Select("*").
+					From(table).
+					Where(sq.Eq{"node_id": idBatch}).
+					ToSql()
 				if err != nil {
-					log.WithFields(log.Fields{"error": err}).Error("GetVertexChannel: convertVertexRow")
-					continue
+					log.WithFields(log.Fields{"error": err}).Error("GetVertexChannel: ToSql")
+					return
 				}
-				chunk[v.Gid] = v
+				rows, err := g.db.Queryx(q, args...)
+				if err != nil {
+					log.WithFields(log.Fields{"error": err}).Error("GetVertexChannel: Queryx")
+					return
+				}
+				defer rows.Close()
+				chunk := map[string]*gripql.Vertex{}
+				for rows.Next() {
+					vrow := &row{}
+					if err := rows.StructScan(vrow); err != nil {
+						log.WithFields(log.Fields{"error": err}).Error("GetVertexChannel: StructScan")
+						continue
+					}
+					v, err := convertVertexRow(vrow, g.layout.label(table), load)
+					if err != nil {
+						log.WithFields(log.Fields{"error": err}).Error("GetVertexChannel: convertVertexRow")
+						continue
+					}
+					chunk[v.Gid] = v
+				}
+				if err := rows.Err(); err != nil {
+					log.WithFields(log.Fields{"error": err}).Error("GetVertexChannel: iterating")
+				}
+				for _, id := range batch {
+					if x, ok := chunk[id.ID]; ok {
+						id.Vertex = x
+						o <- id
+					}
+				}
 			}
-			if err := rows.Err(); err != nil {
-				log.WithFields(log.Fields{"error": err}).Error("GetVertexChannel: iterating")
+		}
+	}()
+	return o
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+func (g *Graph) getLinkChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string, direction string) chan gdbi.ElementLookup {
+	batches := make(chan []gdbi.ElementLookup, 100)
+	reqChanMap := make(map[string][]gdbi.ElementLookup)
+	go func() {
+		defer close(batches)
+		// group lookups by label
+		for req := range reqChan {
+			label := req.GetRefVertex().Label
+			reqChanMap[label] = append(reqChanMap[label], req)
+		}
+		for _, reqs := range reqChanMap {
+			if len(reqs) <= batchSize {
+				batches <- reqs
+			} else {
+				var i, j int
+				total := len(reqs)
+				for i <= total {
+					j = min(i+batchSize, total)
+					batches <- reqs[i:j]
+					i += batchSize
+				}
 			}
-			for _, id := range batch {
-				if x, ok := chunk[id.ID]; ok {
-					id.Vertex = x
-					o <- id
+		}
+	}()
+
+	o := make(chan gdbi.ElementLookup, 100)
+	go func() {
+		defer close(o)
+		for batch := range batches {
+			idBatch := make([]string, len(batch))
+			batchMap := make(map[string][]gdbi.ElementLookup, len(batch))
+			label := batch[0].GetRefVertex().Label
+			for i := range batch {
+				idBatch[i] = batch[i].ID
+				batchMap[batch[i].ID] = append(batchMap[batch[i].ID], batch[i])
+			}
+
+			edgeDefs := []*edgeDef{}
+			if len(edgeLabels) > 0 {
+				for elabel, e := range g.layout.out(label) {
+					for _, l := range edgeLabels {
+						if elabel == l {
+							edgeDefs = append(edgeDefs, e...)
+						}
+					}
+				}
+			} else {
+				for _, e := range g.layout.out(label) {
+					edgeDefs = append(edgeDefs, e...)
+				}
+			}
+
+			for _, e := range edgeDefs {
+				var efield, dstLabel string
+				switch direction {
+				case "out":
+					efield = "src_id"
+					dstLabel = e.dstLabel
+					if e.backref {
+						dstLabel = e.srcLabel
+						efield = "dst_id"
+					}
+				case "in":
+					efield = "dst_id"
+					dstLabel = e.srcLabel
+					if e.backref {
+						dstLabel = e.dstLabel
+						efield = "src_id"
+					}
+				default:
+					log.Error("getLinkChannel: invalid direction argument")
+					return
+				}
+				dstTable := g.layout.vertices[dstLabel].table
+
+				q, args, err := g.psql.Select(fmt.Sprintf("%s.*, %s.%s AS src_id", dstTable, e.table, efield)).
+					From(e.table).
+					JoinClause("INNER JOIN %s", dstTable).
+					Where(sq.Eq{fmt.Sprintf("%s.%s", e.table, efield): idBatch}).
+					ToSql()
+				rows, err := g.db.Queryx(q, args...)
+				if err != nil {
+					log.WithFields(log.Fields{"error": err, "query": q}).Error("GetOutChannel: Queryx")
+					return
+				}
+				defer rows.Close()
+				for rows.Next() {
+					vrow := &row{}
+					if err := rows.StructScan(vrow); err != nil {
+						log.WithFields(log.Fields{"error": err}).Error("GetOutChannel: StructScan")
+						continue
+					}
+					v, err := convertVertexRow(vrow, dstLabel, load)
+					if err != nil {
+						log.WithFields(log.Fields{"error": err}).Error("GetOutChannel: convertVertexRow")
+						continue
+					}
+					r := batchMap[vrow.SrcID]
+					for _, ri := range r {
+						ri.Vertex = v
+						o <- ri
+					}
+				}
+				if err := rows.Err(); err != nil {
+					log.WithFields(log.Fields{"error": err}).Error("GetOutChannel: iterating")
 				}
 			}
 		}
@@ -293,364 +428,28 @@ func (g *Graph) GetVertexChannel(reqChan chan gdbi.ElementLookup, load bool) cha
 
 // GetOutChannel is passed a channel of vertex ids and finds the connected vertices via outgoing edges
 func (g *Graph) GetOutChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
-	batches := make(chan []gdbi.ElementLookup, 100)
-	go func() {
-		defer close(batches)
-		o := make([]gdbi.ElementLookup, 0, batchSize)
-		for id := range reqChan {
-			o = append(o, id)
-			if len(o) >= batchSize {
-				batches <- o
-				o = make([]gdbi.ElementLookup, 0, batchSize)
-			}
-		}
-		batches <- o
-	}()
-
-	o := make(chan gdbi.ElementLookup, 100)
-	go func() {
-		defer close(o)
-		for batch := range batches {
-			idBatch := make([]string, len(batch))
-			batchMap := make(map[string][]gdbi.ElementLookup, len(batch))
-			for i := range batch {
-				idBatch[i] = fmt.Sprintf("'%s'", batch[i].ID)
-				batchMap[batch[i].ID] = append(batchMap[batch[i].ID], batch[i])
-			}
-			ids := strings.Join(idBatch, ", ")
-			q := fmt.Sprintf(
-				"SELECT %s.gid, %s.label, %s.from FROM %s INNER JOIN %s ON %s.to=%s.gid WHERE %s.from IN (%s)",
-				// SELECT
-				g.v, g.v, g.e,
-				// FROM
-				g.v,
-				// INNER JOIN
-				g.e,
-				// ON
-				g.e, g.v,
-				// WHERE
-				g.e,
-				// IN
-				ids,
-			)
-			if load {
-				q = fmt.Sprintf(
-					"SELECT %s.*, %s.from FROM %s INNER JOIN %s ON %s.to=%s.gid WHERE %s.from IN (%s)",
-					// SELECT
-					g.v, g.e,
-					// FROM
-					g.v,
-					// INNER JOIN
-					g.e,
-					// ON
-					g.e, g.v,
-					// WHERE
-					g.e,
-					// IN
-					ids,
-				)
-			}
-			if len(edgeLabels) > 0 {
-				labels := make([]string, len(edgeLabels))
-				for i := range edgeLabels {
-					labels[i] = fmt.Sprintf("'%s'", edgeLabels[i])
-				}
-				q = fmt.Sprintf("%s AND %s.label IN (%s)", q, g.e, strings.Join(labels, ", "))
-			}
-			rows, err := g.db.Queryx(q)
-			if err != nil {
-				log.WithFields(log.Fields{"error": err, "query": q}).Error("GetOutChannel: Queryx")
-				return
-			}
-			defer rows.Close()
-			for rows.Next() {
-				vrow := &row{}
-				if err := rows.StructScan(vrow); err != nil {
-					log.WithFields(log.Fields{"error": err}).Error("GetOutChannel: StructScan")
-					continue
-				}
-				v, err := convertVertexRow(vrow, "", load)
-				if err != nil {
-					log.WithFields(log.Fields{"error": err}).Error("GetOutChannel: convertVertexRow")
-					continue
-				}
-				r := batchMap[vrow.SrcID]
-				for _, ri := range r {
-					ri.Vertex = v
-					o <- ri
-				}
-			}
-			if err := rows.Err(); err != nil {
-				log.WithFields(log.Fields{"error": err}).Error("GetOutChannel: iterating")
-			}
-		}
-	}()
-	return o
+	return g.getLinkChannel(reqChan, load, edgeLabels, "out")
 }
 
 // GetInChannel is passed a channel of vertex ids and finds the connected vertices via incoming edges
 func (g *Graph) GetInChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
-	batches := make(chan []gdbi.ElementLookup, 100)
-	go func() {
-		defer close(batches)
-		o := make([]gdbi.ElementLookup, 0, batchSize)
-		for id := range reqChan {
-			o = append(o, id)
-			if len(o) >= batchSize {
-				batches <- o
-				o = make([]gdbi.ElementLookup, 0, batchSize)
-			}
-		}
-		batches <- o
-	}()
-
-	o := make(chan gdbi.ElementLookup, 100)
-	go func() {
-		defer close(o)
-		for batch := range batches {
-			idBatch := make([]string, len(batch))
-			batchMap := make(map[string][]gdbi.ElementLookup, len(batch))
-			for i := range batch {
-				idBatch[i] = fmt.Sprintf("'%s'", batch[i].ID)
-				batchMap[batch[i].ID] = append(batchMap[batch[i].ID], batch[i])
-			}
-			ids := strings.Join(idBatch, ", ")
-			q := fmt.Sprintf(
-				"SELECT %s.gid, %s.label, %s.to FROM %s INNER JOIN %s ON %s.from=%s.gid WHERE %s.to IN (%s)",
-				// SELECT
-				g.v, g.v, g.e,
-				// FROM
-				g.v,
-				// INNER JOIN
-				g.e,
-				// ON
-				g.e, g.v,
-				// WHERE
-				g.e,
-				// IN
-				ids,
-			)
-			if load {
-				q = fmt.Sprintf(
-					"SELECT %s.*, %s.to FROM %s INNER JOIN %s ON %s.from=%s.gid WHERE %s.to IN (%s)",
-					// SELECT
-					g.v, g.e,
-					// FROM
-					g.v,
-					// INNER JOIN
-					g.e,
-					// ON
-					g.e, g.v,
-					// WHERE
-					g.e,
-					// IN
-					ids,
-				)
-			}
-			if len(edgeLabels) > 0 {
-				labels := make([]string, len(edgeLabels))
-				for i := range edgeLabels {
-					labels[i] = fmt.Sprintf("'%s'", edgeLabels[i])
-				}
-				q = fmt.Sprintf("%s AND %s.label IN (%s)", q, g.e, strings.Join(labels, ", "))
-			}
-			rows, err := g.db.Queryx(q)
-			if err != nil {
-				log.WithFields(log.Fields{"error": err, "query": q}).Error("GetInChannel: Queryx")
-				return
-			}
-			defer rows.Close()
-			for rows.Next() {
-				vrow := &row{}
-				if err := rows.StructScan(vrow); err != nil {
-					log.WithFields(log.Fields{"error": err}).Error("GetInChannel: StructScan")
-					continue
-				}
-				v, err := convertVertexRow(vrow, "", load)
-				if err != nil {
-					log.WithFields(log.Fields{"error": err}).Error("GetInChannel: convertVertexRow")
-					continue
-				}
-				r := batchMap[vrow.DstID]
-				for _, ri := range r {
-					ri.Vertex = v
-					o <- ri
-				}
-			}
-			if err := rows.Err(); err != nil {
-				log.WithFields(log.Fields{"error": err}).Error("GetInChannel: iterating")
-			}
-		}
-	}()
-	return o
+	return g.getLinkChannel(reqChan, load, edgeLabels, "in")
 }
 
 // GetOutEdgeChannel is passed a channel of vertex ids and finds the outgoing edges
 func (g *Graph) GetOutEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
-	batches := make(chan []gdbi.ElementLookup, 100)
-	go func() {
-		defer close(batches)
-		o := make([]gdbi.ElementLookup, 0, batchSize)
-		for id := range reqChan {
-			o = append(o, id)
-			if len(o) >= batchSize {
-				batches <- o
-				o = make([]gdbi.ElementLookup, 0, batchSize)
-			}
-		}
-		batches <- o
-	}()
-
 	o := make(chan gdbi.ElementLookup, 100)
 	go func() {
 		defer close(o)
-		for batch := range batches {
-			idBatch := make([]string, len(batch))
-			batchMap := make(map[string][]gdbi.ElementLookup, len(batch))
-			for i := range batch {
-				idBatch[i] = fmt.Sprintf("'%s'", batch[i].ID)
-				batchMap[batch[i].ID] = append(batchMap[batch[i].ID], batch[i])
-			}
-			ids := strings.Join(idBatch, ", ")
-			q := fmt.Sprintf(
-				`SELECT gid, label, "from", "to" FROM %s WHERE %s.from IN (%s)`,
-				// FROM
-				g.e,
-				// WHERE
-				g.e,
-				// IN
-				ids,
-			)
-			if load {
-				q = fmt.Sprintf(
-					"SELECT * FROM %s WHERE %s.from IN (%s)",
-					// FROM
-					g.e,
-					// WHERE
-					g.e,
-					// IN
-					ids,
-				)
-			}
-			if len(edgeLabels) > 0 {
-				labels := make([]string, len(edgeLabels))
-				for i := range edgeLabels {
-					labels[i] = fmt.Sprintf("'%s'", edgeLabels[i])
-				}
-				q = fmt.Sprintf("%s AND %s.label IN (%s)", q, g.e, strings.Join(labels, ", "))
-			}
-			rows, err := g.db.Queryx(q)
-			if err != nil {
-				log.WithFields(log.Fields{"error": err, "query": q}).Error("GetOutEdgeChannel: Queryx")
-				return
-			}
-			defer rows.Close()
-			for rows.Next() {
-				erow := &row{}
-				if err := rows.StructScan(erow); err != nil {
-					log.WithFields(log.Fields{"error": err}).Error("GetOutEdgeChannel: StructScan")
-					continue
-				}
-				e, err := convertEdgeRow(erow, "", load)
-				if err != nil {
-					log.WithFields(log.Fields{"error": err}).Error("GetOutEdgeChannel: convertEdgeRow")
-					continue
-				}
-				r := batchMap[erow.SrcID]
-				for _, ri := range r {
-					ri.Edge = e
-					o <- ri
-				}
-			}
-			if err := rows.Err(); err != nil {
-				log.WithFields(log.Fields{"error": err}).Error("GetOutEdgeChannel: iterating")
-			}
-		}
 	}()
 	return o
 }
 
 // GetInEdgeChannel is passed a channel of vertex ids and finds the incoming edges
 func (g *Graph) GetInEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
-	batches := make(chan []gdbi.ElementLookup, 100)
-	go func() {
-		defer close(batches)
-		o := make([]gdbi.ElementLookup, 0, batchSize)
-		for id := range reqChan {
-			o = append(o, id)
-			if len(o) >= batchSize {
-				batches <- o
-				o = make([]gdbi.ElementLookup, 0, batchSize)
-			}
-		}
-		batches <- o
-	}()
-
 	o := make(chan gdbi.ElementLookup, 100)
 	go func() {
 		defer close(o)
-		for batch := range batches {
-			idBatch := make([]string, len(batch))
-			batchMap := make(map[string][]gdbi.ElementLookup, len(batch))
-			for i := range batch {
-				idBatch[i] = fmt.Sprintf("'%s'", batch[i].ID)
-				batchMap[batch[i].ID] = append(batchMap[batch[i].ID], batch[i])
-			}
-			ids := strings.Join(idBatch, ", ")
-			q := fmt.Sprintf(
-				`SELECT gid, label, "from", "to" FROM %s WHERE %s.to IN (%s)`,
-				// FROM
-				g.e,
-				// WHERE
-				g.e,
-				// IN
-				ids,
-			)
-			if load {
-				q = fmt.Sprintf(
-					"SELECT * FROM %s WHERE %s.to IN (%s)",
-					// FROM
-					g.e,
-					// WHERE
-					g.e,
-					// IN
-					ids,
-				)
-			}
-			if len(edgeLabels) > 0 {
-				labels := make([]string, len(edgeLabels))
-				for i := range edgeLabels {
-					labels[i] = fmt.Sprintf("'%s'", edgeLabels[i])
-				}
-				q = fmt.Sprintf("%s AND %s.label IN (%s)", q, g.e, strings.Join(labels, ", "))
-			}
-			rows, err := g.db.Queryx(q)
-			if err != nil {
-				log.WithFields(log.Fields{"error": err, "query": q}).Error("GetInEdgeChannel: Queryx")
-				return
-			}
-			defer rows.Close()
-			for rows.Next() {
-				erow := &row{}
-				if err := rows.StructScan(erow); err != nil {
-					log.WithFields(log.Fields{"error": err}).Error("GetInEdgeChannel: StructScan")
-					continue
-				}
-				e, err := convertEdgeRow(erow, "", load)
-				if err != nil {
-					log.WithFields(log.Fields{"error": err}).Error("GetInEdgeChannel: convertEdgeRow")
-					continue
-				}
-				r := batchMap[erow.DstID]
-				for _, ri := range r {
-					ri.Edge = e
-					o <- ri
-				}
-			}
-			if err := rows.Err(); err != nil {
-				log.WithFields(log.Fields{"error": err}).Error("GetInEdgeChannel: iterating")
-			}
-		}
 	}()
 	return o
 }

@@ -57,6 +57,20 @@ type ElementLookup struct {
 	Edge   *gripql.Edge
 }
 
+func (e ElementLookup) GetRefVertex() *gripql.Vertex {
+	if v, ok := e.Ref.(*gripql.Vertex); ok {
+		return v
+	}
+	return nil
+}
+
+func (e ElementLookup) GetRefEdge() *gripql.Edge {
+	if v, ok := e.Ref.(*gripql.Edge); ok {
+		return v
+	}
+	return nil
+}
+
 // GraphDB is the base interface for graph databases
 type GraphDB interface {
 	AddGraph(string) error
