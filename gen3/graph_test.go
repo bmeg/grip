@@ -57,13 +57,17 @@ func TestGetVertex(t *testing.T) {
 }
 
 func TestGetVertexList(t *testing.T) {
-	outChan := g.GetVertexList(context.Background(), true)
-	count := 0
+	var outChan <-chan *gripql.Vertex
+	var count, expected int
+
+	outChan = g.GetVertexList(context.Background(), true)
+	count = 0
 	for range outChan {
 		count++
 	}
-	if count != 7 {
-		t.Error("unexpected number of results")
+	expected = 7
+	if count != expected {
+		t.Errorf("with label: unexpected number of results: %v != %v", count, expected)
 	}
 }
 
@@ -136,14 +140,88 @@ func TestGetInChannel(t *testing.T) {
 	close(reqChan)
 
 	var outChan chan gdbi.ElementLookup
-	var count int
+	var count, expected int
 
 	outChan = g.GetInChannel(reqChan, true, []string{"member_of"})
 	count = 0
 	for range outChan {
 		count++
 	}
-	if count != 4 {
-		t.Errorf("with label: unexpected number of results: %v != %v", count, 4)
+	expected = 4
+	if count != expected {
+		t.Errorf("with label: unexpected number of results: %v != %v", count, expected)
+	}
+}
+
+func TestGetEdge(t *testing.T) {
+	e := g.GetEdge("7eef5dc2-2679-4da2-99b3-34ac991089da_c4fb3551-dc61-4a7a-9db0-ac2ef6700b89", true)
+	t.Logf("%+v", e)
+	if e == nil {
+		t.Error("expected edge, got nil")
+	}
+}
+
+func TestGetEdgeList(t *testing.T) {
+	var outChan <-chan *gripql.Edge
+	var count, expected int
+
+	outChan = g.GetEdgeList(context.Background(), true)
+	count = 0
+	for range outChan {
+		count++
+	}
+	expected = 6
+	if count != expected {
+		t.Errorf("with label: unexpected number of results: %v != %v", count, expected)
+	}
+}
+
+func TestGetOutEdgeChannel(t *testing.T) {
+	ids := []string{
+		"c4fb3551-dc61-4a7a-9db0-ac2ef6700b89",
+	}
+
+	reqChan := make(chan gdbi.ElementLookup, 10)
+	for _, id := range ids {
+		reqChan <- gdbi.ElementLookup{ID: id, Ref: &gripql.Vertex{Gid: id, Label: "experiment"}}
+	}
+	close(reqChan)
+
+	var outChan chan gdbi.ElementLookup
+	var count, expected int
+
+	outChan = g.GetOutEdgeChannel(reqChan, true, []string{"cases"})
+	count = 0
+	for range outChan {
+		count++
+	}
+	expected = 6
+	if count != expected {
+		t.Errorf("with label: unexpected number of results: %v != %v", count, expected)
+	}
+}
+
+func TestGetInEdgeChannel(t *testing.T) {
+	ids := []string{
+		"c4fb3551-dc61-4a7a-9db0-ac2ef6700b89",
+	}
+
+	reqChan := make(chan gdbi.ElementLookup, 10)
+	for _, id := range ids {
+		reqChan <- gdbi.ElementLookup{ID: id, Ref: &gripql.Vertex{Gid: id, Label: "experiment"}}
+	}
+	close(reqChan)
+
+	var outChan chan gdbi.ElementLookup
+	var count, expected int
+
+	outChan = g.GetOutEdgeChannel(reqChan, true, []string{"experiments"})
+	count = 1
+	for range outChan {
+		count++
+	}
+	expected = 1
+	if count != expected {
+		t.Errorf("with label: unexpected number of results: %v != %v", count, expected)
 	}
 }

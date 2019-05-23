@@ -43,13 +43,25 @@ func convertEdgeRow(row *row, label string, load bool) (*gripql.Edge, error) {
 		}
 	}
 	e := &gripql.Edge{
-		Gid:   fmt.Sprintf("%s%s", row.SrcID, row.DstID),
+		Gid:   fmt.Sprintf("%s_%s", row.SrcID, row.DstID),
 		Label: label,
 		From:  row.SrcID,
 		To:    row.DstID,
 		Data:  protoutil.AsStruct(props),
 	}
 	return e, nil
+}
+
+func getEdgeIdParts(gid string) (src_id string, dst_id string) {
+	src_id = ""
+	dst_id = ""
+	parts := strings.SplitN(gid, "_", 2)
+	if len(parts) != 2 {
+		return
+	}
+	src_id = parts[0]
+	dst_id = parts[1]
+	return
 }
 
 func noRowsInResult(err error) bool {
