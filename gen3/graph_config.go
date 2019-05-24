@@ -4,6 +4,10 @@ import (
 	"crypto/md5"
 	"fmt"
 	"strings"
+
+	sq "github.com/Masterminds/squirrel"
+	"github.com/bmeg/grip/util"
+	"github.com/jmoiron/sqlx"
 	//log "github.com/sirupsen/logrus"
 )
 
@@ -185,4 +189,179 @@ func edgeTablename(srcLabel, label, dstLabel string) string {
 			strings.Join(truncDst, ""),
 		),
 	)
+}
+
+// create a postgres database
+func createDatabase(conf Config) error {
+	sslmode := conf.SSLMode
+	if sslmode == "" {
+		sslmode = "disable"
+	}
+	connString := fmt.Sprintf(
+		"host=%s port=%v user=%s sslmode=%s",
+		conf.Host, conf.Port, conf.User, sslmode,
+	)
+	if conf.Password != "" {
+		connString = fmt.Sprintf("%s password=%s", connString, conf.Password)
+	}
+	db, err := sqlx.Connect("postgres", connString)
+	if err != nil {
+		return fmt.Errorf("connecting to postgres: %v", err)
+	}
+	defer db.Close()
+	_, err = db.Exec(fmt.Sprintf("CREATE DATABASE %s", conf.DBName))
+	if err != nil {
+		return fmt.Errorf("creating database: %v", err)
+	}
+	return nil
+}
+
+// read the schema files and create tables in a postgres database
+// doesn't create contraints on tables like psqlgraph does
+// its a close enough approximation for testing
+func setupDatabase(conf Config) error {
+	schemas, err := loadAllSchemas(conf.SchemaDir)
+	if err != nil {
+		return err
+	}
+
+	connString, err := util.BuildPostgresConnStr(
+		conf.Host, conf.Port, conf.User, conf.Password, conf.DBName, conf.SSLMode,
+	)
+	if err != nil {
+		return err
+	}
+	db, err := sqlx.Connect("postgres", connString)
+	if err != nil {
+		if dbDoesNotExist(err) {
+			err = createDatabase(conf)
+			if err != nil {
+				return err
+			}
+			return setupDatabase(conf)
+		}
+		return fmt.Errorf("connecting to database: %v", err)
+	}
+	defer db.Close()
+
+	var stmts []string
+	var table, stmt string
+	for label, data := range schemas {
+		table = vertexTablename(label)
+		stmt = fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s ", table) +
+			"(created timestamp with time zone NOT NULL DEFAULT (current_timestamp), " +
+			"acl text[], _sysan jsonb, _props jsonb, node_id text PRIMARY KEY NOT NULL)"
+		stmts = append(stmts, stmt)
+		stmt = fmt.Sprintf("CREATE INDEX IF NOT EXISTS %s__sysan_idx ON %s using gin (_sysan)", table, table)
+		stmts = append(stmts, stmt)
+		stmt = fmt.Sprintf("CREATE INDEX IF NOT EXISTS %s__props_idx ON %s using gin (_props)", table, table)
+		stmts = append(stmts, stmt)
+		stmt = fmt.Sprintf("CREATE INDEX IF NOT EXISTS %s__sysan___props_idx ON %s using gin (_sysan, _props)", table, table)
+		stmts = append(stmts, stmt)
+		for _, link := range data.Links {
+			table = edgeTablename(label, link.Label, link.TargetType)
+			stmt = fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s ", table) +
+				"(created timestamp with time zone NOT NULL DEFAULT (current_timestamp), " +
+				"acl text[], _sysan jsonb, _props jsonb, " +
+				"src_id text NOT NULL, dst_id text NOT NULL, " +
+				"PRIMARY KEY (src_id, dst_id))"
+			stmts = append(stmts, stmt)
+			stmt = fmt.Sprintf("CREATE INDEX IF NOT EXISTS %s_src_id_idx ON %s using btree (src_id)", table, table)
+			stmts = append(stmts, stmt)
+			stmt = fmt.Sprintf("CREATE INDEX IF NOT EXISTS %s_dst_id_idx ON %s using btree (dst_id)", table, table)
+			stmts = append(stmts, stmt)
+		}
+	}
+	for _, s := range stmts {
+		_, err = db.Exec(s)
+		if err != nil {
+			return fmt.Errorf("executing statement: %s\n %v", s, err)
+		}
+	}
+	return nil
+}
+
+func insertNode(db *sqlx.DB, table, id string) error {
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+	stmt, args, err := psql.Insert(table).Columns("node_id").
+		Values(id).
+		Suffix("ON CONFLICT DO NOTHING").
+		ToSql()
+	if err != nil {
+		return fmt.Errorf("insertNode: creating statement: %v", err)
+	}
+	_, err = db.Exec(stmt, args...)
+	if err != nil {
+		return fmt.Errorf("insertNode: exec: %v", err)
+	}
+	return nil
+}
+
+func insertEdge(db *sqlx.DB, table, src_id, dst_id string) error {
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+	stmt, args, err := psql.Insert(table).Columns("src_id", "dst_id").
+		Values(src_id, dst_id).
+		Suffix("ON CONFLICT DO NOTHING").
+		ToSql()
+	if err != nil {
+		return fmt.Errorf("insertEdge: creating statement: %v", err)
+	}
+	_, err = db.Exec(stmt, args...)
+	if err != nil {
+		return fmt.Errorf("insertEdge: exec: %v", err)
+	}
+	return nil
+}
+
+func createTestData(conf Config) error {
+	connString, err := util.BuildPostgresConnStr(
+		conf.Host, conf.Port, conf.User, conf.Password, conf.DBName, conf.SSLMode,
+	)
+	if err != nil {
+		return err
+	}
+	db, err := sqlx.Connect("postgres", connString)
+	if err != nil {
+		return fmt.Errorf("connecting to database: %v", err)
+	}
+	defer db.Close()
+
+	err = insertNode(db, "node_program", "program-1")
+	if err != nil {
+		return err
+	}
+
+	err = insertNode(db, "node_project", "project-1")
+	if err != nil {
+		return err
+	}
+
+	err = insertEdge(db, "edge_projectmemberofprogram", "project-1", "program-1")
+	if err != nil {
+		return err
+	}
+
+	err = insertNode(db, "node_experiment", "experiment-1")
+	if err != nil {
+		return err
+	}
+
+	err = insertEdge(db, "edge_experimentperformedforproject", "experiment-1", "project-1")
+	if err != nil {
+		return err
+	}
+
+	cases := []string{"case-1", "case-2", "case-3", "case-4"}
+	for _, c := range cases {
+		err = insertNode(db, "node_case", c)
+		if err != nil {
+			return err
+		}
+		err = insertEdge(db, "edge_casememberofexperiment", c, "experiment-1")
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

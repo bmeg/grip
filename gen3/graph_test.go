@@ -24,11 +24,23 @@ func TestMain(m *testing.M) {
 	}()
 
 	c := Config{
-		Host:      "localhost",
-		Port:      5432,
-		User:      "postgres",
-		DBName:    "metadata_db",
-		SchemaDir: "/Users/strucka/Projects/gen3/compose-services/example-schemas",
+		Host:   "localhost",
+		Port:   5432,
+		User:   "postgres",
+		DBName: "test_db",
+		//DBName:    "metadata_db",
+		SchemaDir: "./example-json-schemas",
+	}
+	err = setupDatabase(c)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	err = createTestData(c)
+	if err != nil {
+		fmt.Println(err)
+		return
 	}
 
 	gdb, err = NewGraphDB(c)
@@ -49,10 +61,14 @@ func TestMain(m *testing.M) {
 }
 
 func TestGetVertex(t *testing.T) {
-	v := g.GetVertex("c4fb3551-dc61-4a7a-9db0-ac2ef6700b89", true)
-	t.Logf("%+v", v)
+	v := g.GetVertex("case-1", true)
 	if v == nil {
 		t.Error("expected vertex, got nil")
+	}
+
+	v = g.GetVertex("undefined", true)
+	if v != nil {
+		t.Errorf("expected nil, got %v", v)
 	}
 }
 
@@ -85,9 +101,9 @@ func TestVertexLabelScan(t *testing.T) {
 func TestGetVertexChannel(t *testing.T) {
 	reqChan := make(chan gdbi.ElementLookup, 10)
 	ids := []string{
-		"7eef5dc2-2679-4da2-99b3-34ac991089da",
-		"315358b5-b527-48c9-8d75-231d7a209cd4",
-		"c182ee44-28df-4c1e-aa92-3ea9f7400945",
+		"case-1",
+		"case-2",
+		"case-3",
 	}
 	for _, id := range ids {
 		reqChan <- gdbi.ElementLookup{ID: id}
@@ -106,7 +122,7 @@ func TestGetVertexChannel(t *testing.T) {
 
 func TestGetOutChannel(t *testing.T) {
 	ids := []string{
-		"c4fb3551-dc61-4a7a-9db0-ac2ef6700b89",
+		"experiment-1",
 	}
 
 	reqChan := make(chan gdbi.ElementLookup, 10)
@@ -130,7 +146,7 @@ func TestGetOutChannel(t *testing.T) {
 
 func TestGetInChannel(t *testing.T) {
 	ids := []string{
-		"c4fb3551-dc61-4a7a-9db0-ac2ef6700b89",
+		"experiment-1",
 	}
 
 	reqChan := make(chan gdbi.ElementLookup, 10)
@@ -154,10 +170,14 @@ func TestGetInChannel(t *testing.T) {
 }
 
 func TestGetEdge(t *testing.T) {
-	e := g.GetEdge("7eef5dc2-2679-4da2-99b3-34ac991089da_c4fb3551-dc61-4a7a-9db0-ac2ef6700b89", true)
-	t.Logf("%+v", e)
+	e := g.GetEdge("case-1_experiment-1", true)
 	if e == nil {
 		t.Error("expected edge, got nil")
+	}
+
+	e = g.GetEdge("case-1_undefined", true)
+	if e != nil {
+		t.Errorf("expected nil, got %v", e)
 	}
 }
 
@@ -178,7 +198,7 @@ func TestGetEdgeList(t *testing.T) {
 
 func TestGetOutEdgeChannel(t *testing.T) {
 	ids := []string{
-		"c4fb3551-dc61-4a7a-9db0-ac2ef6700b89",
+		"experiment-1",
 	}
 
 	reqChan := make(chan gdbi.ElementLookup, 10)
@@ -195,7 +215,7 @@ func TestGetOutEdgeChannel(t *testing.T) {
 	for range outChan {
 		count++
 	}
-	expected = 6
+	expected = 4
 	if count != expected {
 		t.Errorf("with label: unexpected number of results: %v != %v", count, expected)
 	}
@@ -203,7 +223,7 @@ func TestGetOutEdgeChannel(t *testing.T) {
 
 func TestGetInEdgeChannel(t *testing.T) {
 	ids := []string{
-		"c4fb3551-dc61-4a7a-9db0-ac2ef6700b89",
+		"experiment-1",
 	}
 
 	reqChan := make(chan gdbi.ElementLookup, 10)

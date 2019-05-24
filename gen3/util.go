@@ -20,7 +20,7 @@ type row struct {
 
 func convertVertexRow(row *row, label string, load bool) (*gripql.Vertex, error) {
 	props := make(map[string]interface{})
-	if load {
+	if load && len(row.Props) > 0 {
 		err := json.Unmarshal(row.Props, &props)
 		if err != nil {
 			return nil, fmt.Errorf("unmarshal error: %v", err)
@@ -36,7 +36,7 @@ func convertVertexRow(row *row, label string, load bool) (*gripql.Vertex, error)
 
 func convertEdgeRow(row *row, label string, load bool) (*gripql.Edge, error) {
 	props := make(map[string]interface{})
-	if load {
+	if load && len(row.Props) > 0 {
 		err := json.Unmarshal(row.Props, &props)
 		if err != nil {
 			return nil, fmt.Errorf("unmarshal error: %v", err)
@@ -70,6 +70,14 @@ func noRowsInResult(err error) bool {
 
 func tableDoesNotExist(err error) bool {
 	matched, err := regexp.MatchString(`relation "[a-z_]+" does not exist`, err.Error())
+	if err != nil {
+		return false
+	}
+	return matched
+}
+
+func dbDoesNotExist(err error) bool {
+	matched, err := regexp.MatchString(`database "[a-z_]+" does not exist`, err.Error())
 	if err != nil {
 		return false
 	}
