@@ -61,9 +61,11 @@ func (badgerkv *BadgerKV) Get(id []byte) ([]byte, error) {
 		if err != nil {
 			return err
 		}
-		d, _ := dataValue.Value()
-		out = copyBytes(d)
-		return nil
+		err = dataValue.Value(func(d []byte) error {
+			out = copyBytes(d)
+			return nil
+		})
+		return err
 	})
 	return out, err
 }
@@ -160,8 +162,12 @@ func (badgerTrans badgerTransaction) Get(id []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	d, _ := dataValue.Value()
-	return copyBytes(d), nil
+	var out []byte
+	err = dataValue.Value(func(d []byte) error {
+		out = copyBytes(d)
+		return nil
+	})
+	return out, err
 }
 
 type badgerIterator struct {
@@ -203,8 +209,12 @@ func (badgerIt *badgerIterator) Get(id []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	d, _ := dataValue.Value()
-	return copyBytes(d), nil
+	var out []byte
+	err = dataValue.Value(func(d []byte) error {
+		out = copyBytes(d)
+		return nil
+	})
+	return out, err
 }
 
 // Key returns the key the iterator is currently pointed at
@@ -214,8 +224,12 @@ func (badgerIt *badgerIterator) Key() []byte {
 
 // Value returns the valud of the iterator is currently pointed at
 func (badgerIt *badgerIterator) Value() ([]byte, error) {
-	v, err := badgerIt.c.Item().Value()
-	return copyBytes(v), err
+	var out []byte
+	err := badgerIt.c.Item().Value(func(d []byte) error {
+		out = copyBytes(d)
+		return nil
+	})
+	return out, err
 }
 
 // Next move the iterator to the next key

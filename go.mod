@@ -8,10 +8,11 @@ require (
 	github.com/bmeg/golib v0.0.0-20170626075926-82a1e1d7a0b2
 	github.com/boltdb/bolt v1.3.1
 	github.com/davecgh/go-spew v1.1.1
-	github.com/dgraph-io/badger v1.5.4
+	github.com/dgraph-io/badger v2.0.0-rc.2+incompatible
 	github.com/dgryski/go-farm v0.0.0-20190423205320-6a90982ecee2 // indirect
 	github.com/dlclark/regexp2 v1.1.6 // indirect
 	github.com/dop251/goja v0.0.0-20190429205339-8d6ee3d16611
+	github.com/dustin/go-humanize v1.0.0 // indirect
 	github.com/ghodss/yaml v1.0.0
 	github.com/globalsign/mgo v0.0.0-20181015135952-eeefdecb41b8
 	github.com/go-sourcemap/sourcemap v2.1.2+incompatible // indirect
