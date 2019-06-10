@@ -11,6 +11,7 @@ import (
 	"github.com/bmeg/grip/elastic"
 	esql "github.com/bmeg/grip/existing-sql"
 	"github.com/bmeg/grip/gdbi"
+	"github.com/bmeg/grip/gen3"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/kvgraph"
 	_ "github.com/bmeg/grip/kvi/badgerdb" // import so badger will register itself
@@ -55,6 +56,9 @@ func Run(conf *config.Config, schemas map[string]*gripql.Graph) error {
 
 	case "existing-sql":
 		db, err = esql.NewGraphDB(conf.ExistingSQL)
+
+	case "gen3":
+		db, err = gen3.NewGraphDB(conf.Gen3)
 
 	default:
 		err = fmt.Errorf("unknown database: %s", dbname)
