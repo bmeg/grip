@@ -41,9 +41,18 @@ func NewGraphDB(conf Config) (gdbi.GraphDB, error) {
 	}
 	db, err := sqlx.Connect("postgres", connString)
 	if err != nil {
-		return nil, err
+		if dbDoesNotExist(err) {
+			err = util.CreatePostgresDatabase(
+				conf.Host, conf.Port, conf.User, conf.Password, conf.DBName, conf.SSLMode,
+			)
+			if err != nil {
+				return nil, err
+			}
+			return NewGraphDB(conf)
+		}
+		return nil, fmt.Errorf("connecting to database: %v", err)
 	}
-	db.SetMaxIdleConns(5)
+	db.SetMaxIdleConns(10)
 
 	stmt := fmt.Sprintf("CREATE TABLE IF NOT EXISTS graphs (graph_name varchar PRIMARY KEY, sanitized_graph_name varchar NOT NULL, vertex_table varchar NOT NULL, edge_table varchar NOT NULL)")
 	_, err = db.Exec(stmt)

@@ -191,31 +191,6 @@ func edgeTablename(srcLabel, label, dstLabel string) string {
 	)
 }
 
-// create a postgres database
-func createDatabase(conf Config) error {
-	sslmode := conf.SSLMode
-	if sslmode == "" {
-		sslmode = "disable"
-	}
-	connString := fmt.Sprintf(
-		"host=%s port=%v user=%s sslmode=%s",
-		conf.Host, conf.Port, conf.User, sslmode,
-	)
-	if conf.Password != "" {
-		connString = fmt.Sprintf("%s password=%s", connString, conf.Password)
-	}
-	db, err := sqlx.Connect("postgres", connString)
-	if err != nil {
-		return fmt.Errorf("connecting to postgres: %v", err)
-	}
-	defer db.Close()
-	_, err = db.Exec(fmt.Sprintf("CREATE DATABASE %s", conf.DBName))
-	if err != nil {
-		return fmt.Errorf("creating database: %v", err)
-	}
-	return nil
-}
-
 // read the schema files and create tables in a postgres database
 // doesn't create contraints on tables like psqlgraph does
 // its a close enough approximation for testing
@@ -234,7 +209,9 @@ func setupDatabase(conf Config) error {
 	db, err := sqlx.Connect("postgres", connString)
 	if err != nil {
 		if dbDoesNotExist(err) {
-			err = createDatabase(conf)
+			err = util.CreatePostgresDatabase(
+				conf.Host, conf.Port, conf.User, conf.Password, conf.DBName, conf.SSLMode,
+			)
 			if err != nil {
 				return err
 			}
