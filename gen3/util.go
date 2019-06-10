@@ -52,15 +52,15 @@ func convertEdgeRow(row *row, label string, load bool) (*gripql.Edge, error) {
 	return e, nil
 }
 
-func getEdgeIdParts(gid string) (src_id string, dst_id string) {
-	src_id = ""
-	dst_id = ""
+func getEdgeIDParts(gid string) (srcID string, dstID string) {
+	srcID = ""
+	dstID = ""
 	parts := strings.SplitN(gid, "_", 2)
 	if len(parts) != 2 {
 		return
 	}
-	src_id = parts[0]
-	dst_id = parts[1]
+	srcID = parts[0]
+	dstID = parts[1]
 	return
 }
 

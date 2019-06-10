@@ -297,10 +297,10 @@ func insertNode(db *sqlx.DB, table, id string) error {
 	return nil
 }
 
-func insertEdge(db *sqlx.DB, table, src_id, dst_id string) error {
+func insertEdge(db *sqlx.DB, table, srcID, dstID string) error {
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 	stmt, args, err := psql.Insert(table).Columns("src_id", "dst_id").
-		Values(src_id, dst_id).
+		Values(srcID, dstID).
 		Suffix("ON CONFLICT DO NOTHING").
 		ToSql()
 	if err != nil {

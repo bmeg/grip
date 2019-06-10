@@ -92,10 +92,10 @@ func (g *Graph) GetVertex(gid string, load bool) *gripql.Vertex {
 	return v
 }
 
-func (g *Graph) getEdge(src_id, dst_id, table string, load bool) (*gripql.Edge, error) {
+func (g *Graph) getEdge(srcID, dstID, table string, load bool) (*gripql.Edge, error) {
 	q, args, err := g.psql.Select("src_id", "dst_id", "_props").
 		From(table).
-		Where(sq.Eq{"src_id": src_id, "dst_id": dst_id}).
+		Where(sq.Eq{"src_id": srcID, "dst_id": dstID}).
 		ToSql()
 	if err != nil {
 		return nil, err
@@ -111,9 +111,9 @@ func (g *Graph) getEdge(src_id, dst_id, table string, load bool) (*gripql.Edge, 
 // GetEdge loads an edge  given an id. It returns a nil if not found.
 func (g *Graph) GetEdge(gid string, load bool) *gripql.Edge {
 	var e *gripql.Edge
-	src_id, dst_id := getEdgeIdParts(gid)
+	srcID, dstID := getEdgeIDParts(gid)
 	for _, table := range g.layout.listEdgeTables() {
-		e, err := g.getEdge(src_id, dst_id, table, load)
+		e, err := g.getEdge(srcID, dstID, table, load)
 		if err != nil {
 			if noRowsInResult(err) || tableDoesNotExist(err) {
 				continue

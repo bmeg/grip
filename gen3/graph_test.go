@@ -25,7 +25,7 @@ func TestMain(m *testing.M) {
 
 	c := Config{
 		Host:   "localhost",
-		Port:   5432,
+		Port:   15432,
 		User:   "postgres",
 		DBName: "test_db",
 		//DBName:    "metadata_db",

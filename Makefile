@@ -1,6 +1,6 @@
 SHELL=/bin/bash
 
-TESTS=$(shell go list ./... | grep -v /vendor/)
+TESTS=$(shell go list ./... | grep -v /gen3)
 
 git_commit := $(shell git rev-parse --short HEAD)
 git_branch := $(shell git symbolic-ref -q --short HEAD)
