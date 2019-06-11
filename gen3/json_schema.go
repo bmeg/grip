@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/ghodss/yaml"
 )
@@ -103,7 +104,7 @@ func loadSchema(path string) (*schema, error) {
 	return s, nil
 }
 
-func loadAllSchemas(path string) (map[string]*schema, error) {
+func loadAllSchemas(path string, exclude []string) (map[string]*schema, error) {
 	fi, err := os.Stat(path)
 	if err != nil {
 		return nil, err
@@ -116,10 +117,19 @@ func loadAllSchemas(path string) (map[string]*schema, error) {
 		return nil, err
 	}
 	out := make(map[string]*schema)
+loadLoop:
 	for _, f := range files {
+		for _, pattern := range exclude {
+			if strings.Contains(filepath.Base(f), pattern) {
+				continue loadLoop
+			}
+		}
 		s, err := loadSchema(f)
 		if err != nil {
 			return nil, fmt.Errorf("error loading schema: %s", err)
+		}
+		if s.ID == "" {
+			return nil, fmt.Errorf("encountered schema with no ID '%s'", f)
 		}
 		if _, ok := out[s.ID]; ok {
 			return nil, fmt.Errorf("encountered multiple schema with the same ID '%s'", s.ID)

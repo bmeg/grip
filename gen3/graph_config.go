@@ -101,8 +101,8 @@ func (gc *graphConfig) table(label string) string {
 }
 
 // read the schema files to determine the layout of the postgres database
-func getGraphConfig(schemaDir string) (*graphConfig, error) {
-	schemas, err := loadAllSchemas(schemaDir)
+func getGraphConfig(schemaDir string, exclude []string) (*graphConfig, error) {
+	schemas, err := loadAllSchemas(schemaDir, exclude)
 	if err != nil {
 		return nil, err
 	}

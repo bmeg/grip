@@ -13,13 +13,14 @@ import (
 // Config the configuration for the sql driver.
 // See https://godoc.org/github.com/lib/pq#hdr-Connection_String_Parameters for details.
 type Config struct {
-	Host      string
-	Port      uint
-	User      string
-	Password  string
-	DBName    string
-	SSLMode   string
-	SchemaDir string
+	Host         string
+	Port         uint
+	User         string
+	Password     string
+	DBName       string
+	SSLMode      string
+	SchemaDir    string
+	ExcludeFiles []string
 }
 
 // GraphDB manages graphs in the database
@@ -45,7 +46,10 @@ func NewGraphDB(conf Config) (gdbi.GraphDB, error) {
 	}
 	db.SetMaxIdleConns(10)
 
-	layout, err := getGraphConfig(conf.SchemaDir)
+	// exclude some files by default
+	conf.ExcludeFiles = append(conf.ExcludeFiles, []string{"_definitions.yaml", "_terms.yaml", "_settings.yaml"}...)
+
+	layout, err := getGraphConfig(conf.SchemaDir, conf.ExcludeFiles)
 	if err != nil {
 		return nil, err
 	}
