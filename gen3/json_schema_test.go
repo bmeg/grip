@@ -22,7 +22,7 @@ func TestLoadSchema(t *testing.T) {
 
 func TestLoadSchemas(t *testing.T) {
 	path := "./example-json-schemas"
-	s, err := loadAllSchemas(path)
+	s, err := loadAllSchemas(path, []string{})
 	if err != nil {
 		t.Error(err)
 	}

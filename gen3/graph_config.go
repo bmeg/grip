@@ -208,7 +208,7 @@ func edgeTablename(srcLabel, label, dstLabel string) string {
 // doesn't create contraints on tables like psqlgraph does
 // its a close enough approximation for testing
 func setupDatabase(conf Config) error {
-	schemas, err := loadAllSchemas(conf.SchemaDir)
+	schemas, err := loadAllSchemas(conf.SchemaDir, conf.ExcludeFiles)
 	if err != nil {
 		return err
 	}

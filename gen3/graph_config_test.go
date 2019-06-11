@@ -32,7 +32,7 @@ func TestVertexTablename(t *testing.T) {
 
 func TestGetGraphConfig(t *testing.T) {
 	path := "./example-json-schemas"
-	actual, err := getGraphConfig(path)
+	actual, err := getGraphConfig(path, []string{})
 	if err != nil {
 		t.Error(err)
 	}

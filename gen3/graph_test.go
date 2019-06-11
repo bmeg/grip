@@ -135,7 +135,8 @@ func TestGetOutChannel(t *testing.T) {
 
 	reqChan := make(chan gdbi.ElementLookup, 10)
 	for _, id := range ids {
-		reqChan <- gdbi.ElementLookup{ID: id, Ref: &gripql.Vertex{Gid: id, Label: "experiment"}}
+		t := &gdbi.Traveler{}
+		reqChan <- gdbi.ElementLookup{ID: id, Ref: t.AddCurrent(&gdbi.DataElement{ID: id, Label: "experiment"})}
 	}
 	close(reqChan)
 
@@ -159,7 +160,8 @@ func TestGetInChannel(t *testing.T) {
 
 	reqChan := make(chan gdbi.ElementLookup, 10)
 	for _, id := range ids {
-		reqChan <- gdbi.ElementLookup{ID: id, Ref: &gripql.Vertex{Gid: id, Label: "experiment"}}
+		t := &gdbi.Traveler{}
+		reqChan <- gdbi.ElementLookup{ID: id, Ref: t.AddCurrent(&gdbi.DataElement{ID: id, Label: "experiment"})}
 	}
 	close(reqChan)
 
@@ -211,7 +213,8 @@ func TestGetOutEdgeChannel(t *testing.T) {
 
 	reqChan := make(chan gdbi.ElementLookup, 10)
 	for _, id := range ids {
-		reqChan <- gdbi.ElementLookup{ID: id, Ref: &gripql.Vertex{Gid: id, Label: "experiment"}}
+		t := &gdbi.Traveler{}
+		reqChan <- gdbi.ElementLookup{ID: id, Ref: t.AddCurrent(&gdbi.DataElement{ID: id, Label: "experiment"})}
 	}
 	close(reqChan)
 
@@ -236,7 +239,8 @@ func TestGetInEdgeChannel(t *testing.T) {
 
 	reqChan := make(chan gdbi.ElementLookup, 10)
 	for _, id := range ids {
-		reqChan <- gdbi.ElementLookup{ID: id, Ref: &gripql.Vertex{Gid: id, Label: "experiment"}}
+		t := &gdbi.Traveler{}
+		reqChan <- gdbi.ElementLookup{ID: id, Ref: t.AddCurrent(&gdbi.DataElement{ID: id, Label: "experiment"})}
 	}
 	close(reqChan)
 

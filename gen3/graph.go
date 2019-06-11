@@ -331,7 +331,7 @@ func (g *Graph) lookupLinkedVertices(reqChan chan gdbi.ElementLookup, load bool,
 		defer close(batches)
 		// group lookups by label
 		for req := range reqChan {
-			label := req.GetRefVertex().Label
+			label := req.Ref.GetCurrent().Label
 			reqChanMap[label] = append(reqChanMap[label], req)
 		}
 		for _, reqs := range reqChanMap {
@@ -355,7 +355,7 @@ func (g *Graph) lookupLinkedVertices(reqChan chan gdbi.ElementLookup, load bool,
 		for batch := range batches {
 			idBatch := make([]string, len(batch))
 			batchMap := make(map[string][]gdbi.ElementLookup, len(batch))
-			label := batch[0].GetRefVertex().Label
+			label := batch[0].Ref.GetCurrent().Label
 			for i := range batch {
 				idBatch[i] = batch[i].ID
 				batchMap[batch[i].ID] = append(batchMap[batch[i].ID], batch[i])
@@ -474,7 +474,7 @@ func (g *Graph) lookupLinkedEdges(reqChan chan gdbi.ElementLookup, load bool, ed
 		defer close(batches)
 		// group lookups by label
 		for req := range reqChan {
-			label := req.GetRefVertex().Label
+			label := req.Ref.GetCurrent().Label
 			reqChanMap[label] = append(reqChanMap[label], req)
 		}
 		for _, reqs := range reqChanMap {
@@ -498,7 +498,7 @@ func (g *Graph) lookupLinkedEdges(reqChan chan gdbi.ElementLookup, load bool, ed
 		for batch := range batches {
 			idBatch := make([]string, len(batch))
 			batchMap := make(map[string][]gdbi.ElementLookup, len(batch))
-			label := batch[0].GetRefVertex().Label
+			label := batch[0].Ref.GetCurrent().Label
 			for i := range batch {
 				idBatch[i] = batch[i].ID
 				batchMap[batch[i].ID] = append(batchMap[batch[i].ID], batch[i])
