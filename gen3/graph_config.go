@@ -126,6 +126,9 @@ func getGraphConfig(schemaDir string, exclude []string) (*graphConfig, error) {
 	// add edge info
 	for srcLabel, data := range schemas {
 		for _, link := range data.Links {
+			if link.TargetType == "" {
+				continue
+			}
 			eDef := &edgeDef{
 				table:    edgeTablename(srcLabel, link.Label, link.TargetType),
 				label:    link.Label,
@@ -134,6 +137,11 @@ func getGraphConfig(schemaDir string, exclude []string) (*graphConfig, error) {
 				backref:  false,
 			}
 			g.edges[link.Label] = append(g.edges[link.Label], eDef)
+			g.vertices[srcLabel].out[link.Label] = append(g.vertices[srcLabel].out[link.Label], eDef)
+			g.vertices[link.TargetType].in[link.Label] = append(g.vertices[link.TargetType].in[link.Label], eDef)
+			if link.Backref == "" {
+				continue
+			}
 			bRef := &edgeDef{
 				table:    edgeTablename(srcLabel, link.Label, link.TargetType),
 				label:    link.Backref,
@@ -142,10 +150,8 @@ func getGraphConfig(schemaDir string, exclude []string) (*graphConfig, error) {
 				backref:  true,
 			}
 			g.edges[link.Backref] = append(g.edges[link.Backref], bRef)
-			g.vertices[srcLabel].out[link.Label] = append(g.vertices[srcLabel].out[link.Label], eDef)
 			g.vertices[srcLabel].in[link.Backref] = append(g.vertices[srcLabel].in[link.Backref], bRef)
 			g.vertices[link.TargetType].out[link.Backref] = append(g.vertices[link.TargetType].out[link.Backref], bRef)
-			g.vertices[link.TargetType].in[link.Label] = append(g.vertices[link.TargetType].in[link.Label], eDef)
 		}
 	}
 	// fill in table lookups
