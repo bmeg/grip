@@ -172,7 +172,11 @@ func (g *Graph) VertexLabelScan(ctx context.Context, label string) chan string {
 	o := make(chan string, 100)
 	go func() {
 		defer close(o)
-		table := g.layout.vertices[label].table
+		table := g.layout.table(label)
+		if table == "" {
+			log.Errorf("VertexLabelScan: unknown label '%s'", label)
+			return
+		}
 		q, args, err := g.psql.Select("node_id").
 			From(table).
 			ToSql()
@@ -408,8 +412,11 @@ func (g *Graph) lookupLinkedVertices(reqChan chan gdbi.ElementLookup, load bool,
 					log.Error("lookupLinkedVertices: invalid direction argument")
 					return
 				}
-				dstTable := g.layout.vertices[vLabel].table
-
+				dstTable := g.layout.table(vLabel)
+				if dstTable == "" {
+					log.Errorf("lookupLinkedVertices: unknown destination vertex label '%s'", vLabel)
+					return
+				}
 				q, args, err := g.psql.
 					Select(fmt.Sprintf("%s.node_id, %s._props, %s.%s AS src_id", dstTable, dstTable, e.table, esrc)).
 					From(e.table).

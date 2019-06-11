@@ -87,6 +87,19 @@ func (gc *graphConfig) label(table string) string {
 	return label
 }
 
+// lookup tablename by label
+func (gc *graphConfig) table(label string) string {
+	table := ""
+	if val, ok := gc.vertices[label]; ok {
+		table = val.table
+	} else if val, ok := gc.edges[label]; ok {
+		if len(val) == 1 {
+			table = val[0].table
+		}
+	}
+	return table
+}
+
 // read the schema files to determine the layout of the postgres database
 func getGraphConfig(schemaDir string) (*graphConfig, error) {
 	schemas, err := loadAllSchemas(schemaDir)

@@ -95,6 +95,15 @@ func TestVertexLabelScan(t *testing.T) {
 	if count != 4 {
 		t.Error("unexpected number of results")
 	}
+
+	outChan = g.VertexLabelScan(context.Background(), "i-dont-exist")
+	count = 0
+	for range outChan {
+		count++
+	}
+	if count != 0 {
+		t.Error("unexpected number of results")
+	}
 }
 
 func TestGetVertexChannel(t *testing.T) {
