@@ -7,17 +7,17 @@ menu:
 
 # Graph Schemas
 
-Graph schemas are themselves an instance of a graph. As such, they can be traversed like any other graph. 
+Graph schemas are themselves an instance of a graph. As such, they can be traversed like any other graph.
 The schemas are automatically added to the database following the naming pattern `{graph-name}__schema__`.
 
 ## Get the schema of a graph
 
-The schema of a graph can be accessed via a GET request to `/v1/graph/{graph-name}/schema`. 
+The schema of a graph can be accessed via a GET request to `/v1/graph/{graph-name}/schema`.
 
 Alternatively, you can use the grip CLI: `grip schema get {graph-name}`.
 
 ## Describing graph schemas
-There are several methods for desribing the schema of a graph.
+There are several methods for describing the schema of a graph.
 
 - Provide the schema (as a YAML file) to the server at runtime. `grip server --schema {schema-file}`
 - POST the schema `/v1/graph/{graph-name}/schema` via curl or use the CLI `grip schema post --yaml {file} --json {file}`.
@@ -37,7 +37,7 @@ Server:
 ```
 
 ## Example schema
- 
+
  ```yaml
  graph: example-graph
 

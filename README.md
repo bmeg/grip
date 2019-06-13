@@ -5,7 +5,7 @@
 
 # GRIP
 
-https://docs.bmeg.io/grip
+https://bmeg.github.io/grip/
 
 GRIP stands for GRaph Integration Platform. It provides a graph interface on top of a variety of existing database technologies including: MongoDB, Elasticsearch, PostgreSQL, MySQL, MariaDB, Badger, and LevelDB.
 
@@ -17,4 +17,4 @@ Properties of an GRIP graph:
 * Edges in the graph are directed, meaning they have a source and destination.
 
 GRIP also provides a query API for the traversing, analyzing and manipulating your graphs. Its syntax is inspired by
-[Apache TinkerPop](http://tinkerpop.apache.org/). Learn more [here](https://bmeg.github.io/grip/docs/queries/getting_started).
+[Apache TinkerPop](http://tinkerpop.apache.org/). Learn more [here](https://bmeg.github.io/grip/).
