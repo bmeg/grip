@@ -100,8 +100,9 @@ release:
 		--release-notes <(github-release-notes -org bmeg -repo grip -stop-at ${LAST_PR_NUMBER})
 
 release-dep:
+	@go get github.com/goreleaser/goreleaser
 	@go get github.com/buchanae/github-release-notes
-	
+
 
 # ---------------------
 # Tests
