@@ -1,0 +1,268 @@
+package gen3
+
+import (
+	"fmt"
+	"reflect"
+	"sort"
+	"testing"
+	//"github.com/davecgh/go-spew/spew"
+)
+
+func TestEdgeTablename(t *testing.T) {
+	expected := "edge_07f60fb1_susomudefrregr"
+	actual := edgeTablename("submitted_somatic_mutation", "derived_from", "read_group")
+	if actual != expected {
+		t.Errorf("unexpected tablename: %s != %s", actual, expected)
+	}
+
+	expected = "edge_projectmemberofprogram"
+	actual = edgeTablename("project", "member_of", "program")
+	if actual != expected {
+		t.Errorf("unexpected tablename: %s != %s", actual, expected)
+	}
+}
+
+func TestVertexTablename(t *testing.T) {
+	expected := "node_program"
+	actual := vertexTablename("program")
+	if actual != expected {
+		t.Errorf("unexpected tablename: %s != %s", actual, expected)
+	}
+}
+
+func TestGetGraphConfig(t *testing.T) {
+	path := "./example-json-schemas"
+	actual, err := getGraphConfig(path, []string{})
+	if err != nil {
+		t.Error(err)
+	}
+	expected := &graphConfig{
+		vertices: map[string]*vertexDef{
+			"program": {
+				table: "node_program",
+				in: map[string][]*edgeDef{
+					"member_of": {
+						{
+							table:    "edge_projectmemberofprogram",
+							srcLabel: "project",
+							dstLabel: "program",
+							backref:  false,
+						},
+					},
+				},
+				out: map[string][]*edgeDef{
+					"projects": {
+						{
+							table:    "edge_projectmemberofprogram",
+							srcLabel: "project",
+							dstLabel: "program",
+							backref:  true,
+						},
+					},
+				},
+			},
+			"project": {
+				table: "node_project",
+				in: map[string][]*edgeDef{
+					"projects": {
+						{
+							table:    "edge_projectmemberofprogram",
+							srcLabel: "project",
+							dstLabel: "program",
+							backref:  true,
+						},
+					},
+					"performed_for": {
+						{
+							table:    "edge_experimentperformedforproject",
+							srcLabel: "experiment",
+							dstLabel: "project",
+							backref:  false,
+						},
+					},
+				},
+				out: map[string][]*edgeDef{
+					"member_of": {
+						{
+							table:    "edge_projectmemberofprogram",
+							srcLabel: "project",
+							dstLabel: "program",
+							backref:  false,
+						},
+					},
+					"experiments": {
+						{
+							table:    "edge_experimentperformedforproject",
+							srcLabel: "experiment",
+							dstLabel: "project",
+							backref:  false,
+						},
+					},
+				},
+			},
+			"experiment": {
+				table: "node_experiement",
+				in: map[string][]*edgeDef{
+					"experiments": {
+						{
+							table:    "edge_experimentperformedforproject",
+							srcLabel: "experiment",
+							dstLabel: "project",
+							backref:  true,
+						},
+					},
+					"member_of": {
+						{
+							table:    "edge_casememberofexperiment",
+							srcLabel: "case",
+							dstLabel: "experiment",
+							backref:  false,
+						},
+					},
+				},
+				out: map[string][]*edgeDef{
+					"performed_for": {
+						{
+							table:    "edge_experimentperformedforproject",
+							srcLabel: "experiment",
+							dstLabel: "project",
+							backref:  false,
+						},
+					},
+					"cases": {
+						{
+							table:    "edge_casememberofexperiment",
+							srcLabel: "case",
+							dstLabel: "experiment",
+							backref:  true,
+						},
+					},
+				},
+			},
+			"case": {
+				table: "node_case",
+				in: map[string][]*edgeDef{
+					"cases": {
+						{
+							table:    "edge_casememberofexperiment",
+							srcLabel: "case",
+							dstLabel: "experiment",
+							backref:  true,
+						},
+					},
+				},
+				out: map[string][]*edgeDef{
+					"member_of": {
+						{
+							table:    "edge_casememberofexperiment",
+							srcLabel: "case",
+							dstLabel: "experiment",
+							backref:  false,
+						},
+					},
+				},
+			},
+		},
+		edges: map[string][]*edgeDef{
+			"cases": {
+				{
+					table:    "edge_casememberofexperiment",
+					srcLabel: "case",
+					dstLabel: "experiment",
+					backref:  true,
+				},
+			},
+			"experiments": {
+				{
+					table:    "edge_experimentperformedforproject",
+					srcLabel: "experiment",
+					dstLabel: "project",
+					backref:  true,
+				},
+			},
+			"projects": {
+				{
+					table:    "edge_projectmemberofprogram",
+					srcLabel: "project",
+					dstLabel: "program",
+					backref:  true,
+				},
+			},
+			"member_of": {
+				{
+					table:    "edge_casememberofexperiment",
+					srcLabel: "case",
+					dstLabel: "experiment",
+					backref:  false,
+				},
+				{
+					table:    "edge_projectmemberofprogram",
+					srcLabel: "project",
+					dstLabel: "program",
+					backref:  false,
+				},
+			},
+			"performed_for": {
+				{
+					table:    "edge_experimentperformedforproject",
+					srcLabel: "experiment",
+					dstLabel: "project",
+					backref:  false,
+				},
+			},
+		},
+	}
+
+	if len(expected.vertices) != len(actual.vertices) {
+		t.Error("unexpected number of vertices in layout")
+	}
+
+	if !reflect.DeepEqual(getSortedKeys(expected.vertices), getSortedKeys(actual.vertices)) {
+		t.Errorf("unexpected vertex keys in layout: %v != %v", getSortedKeys(actual.vertices), getSortedKeys(expected.vertices))
+	}
+
+	for k := range expected.vertices {
+		e := expected.vertices[k]
+		a := actual.vertices[k]
+		if !reflect.DeepEqual(getSortedKeys(e.in), getSortedKeys(a.in)) {
+			t.Errorf("unexpected vertex keys in layout: %v != %v", getSortedKeys(a.in), getSortedKeys(e.in))
+		}
+		if !reflect.DeepEqual(getSortedKeys(e.out), getSortedKeys(a.out)) {
+			t.Errorf("unexpected vertex keys in layout: %v != %v", getSortedKeys(a.out), getSortedKeys(e.out))
+		}
+	}
+
+	if len(expected.edges) != len(actual.edges) {
+		t.Error("unexpected number of edges in layout")
+	}
+
+	if !reflect.DeepEqual(getSortedKeys(expected.edges), getSortedKeys(actual.edges)) {
+		t.Errorf("unexpected edge keys in layout: %v != %v", getSortedKeys(actual.edges), getSortedKeys(expected.edges))
+	}
+
+	for k := range expected.edges {
+		e := expected.edges[k]
+		a := actual.edges[k]
+		if len(e) != len(a) {
+			t.Errorf("unexpected number of edge defs for label %s: %v != %v ", k, len(a), len(e))
+		}
+	}
+}
+
+func getSortedKeys(input interface{}) []string {
+	out := []string{}
+	switch v := input.(type) {
+	case map[string]*vertexDef:
+		for k := range v {
+			out = append(out, k)
+		}
+	case map[string][]*edgeDef:
+		for k := range v {
+			out = append(out, k)
+		}
+	default:
+		panic(fmt.Sprintf("unknown type %T", input))
+	}
+	sort.Strings(out)
+	return out
+}

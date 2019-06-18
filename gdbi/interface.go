@@ -52,7 +52,7 @@ const (
 // ElementLookup request to look up data
 type ElementLookup struct {
 	ID     string
-	Ref    interface{}
+	Ref    *Traveler
 	Vertex *gripql.Vertex
 	Edge   *gripql.Edge
 }

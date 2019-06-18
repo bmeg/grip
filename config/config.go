@@ -12,6 +12,7 @@ import (
 
 	"github.com/bmeg/grip/elastic"
 	esql "github.com/bmeg/grip/existing-sql"
+	"github.com/bmeg/grip/gen3"
 	"github.com/bmeg/grip/mongo"
 	"github.com/bmeg/grip/psql"
 	"github.com/bmeg/grip/server"
@@ -35,6 +36,7 @@ type Config struct {
 	MongoDB       mongo.Config
 	PSQL          psql.Config
 	ExistingSQL   esql.Config
+	Gen3          gen3.Config
 	Logger        Logger
 }
 

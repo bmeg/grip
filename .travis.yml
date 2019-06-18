@@ -114,6 +114,12 @@ jobs:
         - go test ./test -config psql.yml
       env:
         - n=postgres
+    - script:
+        - make start-postgres
+        - sleep 15
+        - go test ./gen3
+      env:
+        - n=gen3
 
 
 notifications:
