@@ -16,7 +16,7 @@ VERSION_LDFLAGS=\
  -X "github.com/bmeg/grip/version.GitBranch=$(git_branch)" \
  -X "github.com/bmeg/grip/version.GitUpstream=$(git_upstream)"
 
-export GRIP_VERSION = 0.5.0
+export GRIP_VERSION = 0.5.1
 # LAST_PR_NUMBER is used by the release notes builder to generate notes
 # based on pull requests (PR) up until the last release.
 export LAST_PR_NUMBER = 134
@@ -95,10 +95,14 @@ snapshot:
 		--snapshot
 
 release:
-	@go get github.com/buchanae/github-release-notes
 	@goreleaser release \
 		--rm-dist \
 		--release-notes <(github-release-notes -org bmeg -repo grip -stop-at ${LAST_PR_NUMBER})
+
+release-dep:
+	@go get github.com/goreleaser/goreleaser
+	@go get github.com/buchanae/github-release-notes
+
 
 # ---------------------
 # Tests

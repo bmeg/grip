@@ -63,8 +63,9 @@ $ chmod 600 grip.config.yml  To use the password, set the GRIP_USER and GRIP_PAS
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
       
       <guid>https://bmeg.github.io/grip/download/</guid>
-      <description> Download 0.5.0  Linux MacOS Windows is not supported sorry!  Release History See the Releases page for release history.
-Build From Source $ mkdir -p $GOPATH/src/github.com/bmeg $ cd $GOPATH/src/github.com/bmeg $ git clone https://github.com/bmeg/grip.git $ cd grip $ make  </description>
+      <description> Download 0.5.1  Linux MacOS Windows is not supported sorry!  Release History See the Releases page for release history.
+Docker docker pull bmeg/grip docker run bmeg/grip grip server  Build From Source Go 1.12 or above suggested
+$ git clone https://github.com/bmeg/grip.git $ cd grip $ make  </description>
     </item>
     
     <item>
@@ -111,7 +112,7 @@ First, import the client and create a connection to an GRIP server:</description
       <description>Graph Schemas Graph schemas are themselves an instance of a graph. As such, they can be traversed like any other graph. The schemas are automatically added to the database following the naming pattern {graph-name}__schema__.
 Get the schema of a graph The schema of a graph can be accessed via a GET request to /v1/graph/{graph-name}/schema.
 Alternatively, you can use the grip CLI: grip schema get {graph-name}.
-Describing graph schemas There are several methods for desribing the schema of a graph.</description>
+Describing graph schemas There are several methods for describing the schema of a graph.</description>
     </item>
     
     <item>

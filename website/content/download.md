@@ -11,11 +11,17 @@ menu:
 
 See the [Releases](https://github.com/bmeg/grip/releases) page for release history.
 
-<h3>Build From Source</h3>
+## Docker
 
 ```shell
-$ mkdir -p $GOPATH/src/github.com/bmeg
-$ cd $GOPATH/src/github.com/bmeg
+docker pull bmeg/grip
+docker run bmeg/grip grip server
+```
+
+<h3>Build From Source</h3>
+Go 1.12 or above suggested
+
+```shell
 $ git clone https://github.com/bmeg/grip.git
 $ cd grip
 $ make
