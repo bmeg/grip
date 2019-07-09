@@ -27,7 +27,7 @@ func NewKVInterface(path string, kopts kvi.Options) (kvi.KVInterface, error) {
 	}
 
 	opts := badger.Options{}
-	opts = badger.DefaultOptions
+	opts = badger.DefaultOptions(path)
 	opts.TableLoadingMode = options.MemoryMap
 	opts.Dir = path
 	opts.ValueDir = path
