@@ -129,6 +129,14 @@ func (ltx levelTransaction) Get(id []byte) ([]byte, error) {
 	return copyBytes(o), nil
 }
 
+// View run iterator on bolt keyvalue store
+func (ltx levelTransaction) View(u func(it kvi.KVIterator) error) error {
+	it := ltx.db.NewIterator(nil, nil)
+	defer it.Release()
+	lit := levelIterator{ltx.db, it, true, nil, nil}
+	return u(&lit)
+}
+
 type levelIterator struct {
 	db      *leveldb.DB
 	it      iterator.Iterator
