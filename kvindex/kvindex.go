@@ -70,7 +70,7 @@ func TermPrefix(field string) []byte {
 	return bytes.Join([][]byte{idxTermPrefix, []byte(field), {}}, []byte{0})
 }
 
-// TermTypePrefix get a prefix for all the terms for a single field
+// TermTypePrefix get a prefix for all the terms of a particular type for a single field
 func TermTypePrefix(field string, ttype TermType) []byte {
 	return bytes.Join([][]byte{idxTermPrefix, []byte(field), {byte(ttype)}, {}}, []byte{0})
 }
@@ -290,13 +290,12 @@ func (idx *KVIndex) AddDocTx(tx kvi.KVTransaction, docID string, doc map[string]
 				}
 				sdoc.Entries = append(sdoc.Entries, entryKey)
 
-				var count uint64
 				termKey := TermKey(field, t, term)
-				i, err := tx.Get(termKey)
-				if err == nil {
-					count, _ = binary.Uvarint(i)
-				}
-				count = count + 1
+				//set the term count to 0 to invalidate it. Later on, if other code trying
+				//to get the term count will have to recount
+				//previously, it was a set(get+1), but for bulk loading, its better
+				//to just write and never look things up
+				var count uint64
 				buf := make([]byte, binary.MaxVarintLen64)
 				binary.PutUvarint(buf, count)
 				err = tx.Set(termKey, buf)
@@ -321,6 +320,37 @@ func (idx *KVIndex) AddDocTx(tx kvi.KVTransaction, docID string, doc map[string]
 	return nil
 }
 
+func (idx *KVIndex) termGetCount(tx kvi.KVTransaction, field string, ttype TermType, term []byte) (uint64, error) {
+	termKey := TermKey(field, ttype, term)
+	var count uint64
+	i, err := tx.Get(termKey)
+	if err == nil {
+		count, _ = binary.Uvarint(i)
+	} else {
+		return 0, err
+	}
+	//if the term is zero, it needs to be recounted
+	if count == 0 {
+		entryPrefix := EntryValuePrefix(field, ttype, term)
+		tx.View(func(it kvi.KVIterator) error {
+			for it.Seek(entryPrefix); it.Valid() && bytes.HasPrefix(it.Key(), entryPrefix); it.Next() {
+				count++
+			}
+			return nil
+		})
+		//FIXME: technically, setting the value here is redundant, they only piece of code that currently
+		//calls this function alters and sets the the value anyway, so you end up with an extra 'set'
+		buf := make([]byte, binary.MaxVarintLen64)
+		binary.PutUvarint(buf, count)
+		err = tx.Set(termKey, buf)
+		if err != nil {
+			log.Printf("Change count error: %s", err)
+			return 0, err
+		}
+	}
+	return count, nil
+}
+
 // RemoveDoc removes a document from the index: TODO
 func (idx *KVIndex) RemoveDoc(docID string) error {
 	err := idx.kv.Update(func(tx kvi.KVTransaction) error {
@@ -343,24 +373,26 @@ func (idx *KVIndex) RemoveDoc(docID string) error {
 
 			field, ttype, term, _ := EntryKeyParse(entryKey)
 			termKey := TermKey(field, ttype, term)
-			var count uint64
-			i, err := tx.Get(termKey)
-			if err == nil {
-				count, _ = binary.Uvarint(i)
-			}
-			count = count - 1
-			if count == 0 {
-				err = tx.Delete(termKey)
-				if err != nil {
-					return fmt.Errorf("failed to delete term key %s: %v", termKey, err)
+			if count, err := idx.termGetCount(tx, field, ttype, term); err == nil {
+				if count > 0 {
+					count = count - 1
+				}
+				//if count == 0, then the term should be removed from the index
+				if count == 0 {
+					err = tx.Delete(termKey)
+					if err != nil {
+						return fmt.Errorf("failed to delete term key %s: %v", termKey, err)
+					}
+				} else {
+					buf := make([]byte, binary.MaxVarintLen64)
+					binary.PutUvarint(buf, count)
+					err = tx.Set(termKey, buf)
+					if err != nil {
+						return fmt.Errorf("failed to set term key %s: %v", termKey, err)
+					}
 				}
 			} else {
-				buf := make([]byte, binary.MaxVarintLen64)
-				binary.PutUvarint(buf, count)
-				err = tx.Set(termKey, buf)
-				if err != nil {
-					return fmt.Errorf("failed to set term key %s: %v", termKey, err)
-				}
+				return fmt.Errorf("Termcount Error: %s", err)
 			}
 		}
 
@@ -448,11 +480,6 @@ func (idx *KVIndex) FieldNumbers(field string) chan float64 {
 	return out
 }
 
-type typedTerm struct {
-	t    TermType
-	term []byte
-}
-
 // FieldTermCounts get all terms, and their counts for a particular field
 func (idx *KVIndex) fieldTermCounts(field string, ftype TermType) chan KVTermCount {
 	out := make(chan KVTermCount, bufferSize)
@@ -462,20 +489,35 @@ func (idx *KVIndex) fieldTermCounts(field string, ftype TermType) chan KVTermCou
 		if ftype == TermUnknown {
 			termPrefix = TermPrefix(field)
 		}
-		idx.kv.View(func(it kvi.KVIterator) error {
-			for it.Seek(termPrefix); it.Valid() && bytes.HasPrefix(it.Key(), termPrefix); it.Next() {
-				countBytes, _ := it.Value()
-				count, _ := binary.Uvarint(countBytes)
-				_, ttype, term := TermKeyParse(it.Key())
-				switch ttype {
-				case TermNumber:
-					out <- KVTermCount{Number: GetBytesTerm(term, ttype).(float64), Count: count}
-				case TermString:
-					out <- KVTermCount{String: GetBytesTerm(term, ttype).(string), Count: count}
-				default:
-					continue
+		idx.kv.Update(func(tx kvi.KVTransaction) error {
+			tx.View(func(it kvi.KVIterator) error {
+				for it.Seek(termPrefix); it.Valid() && bytes.HasPrefix(it.Key(), termPrefix); it.Next() {
+					curKey := it.Key()
+					_, ttype, term := TermKeyParse(curKey)
+					countBytes, _ := it.Value()
+					count, _ := binary.Uvarint(countBytes)
+					//if we encounter a count == 0, it means the value was invalidated and needs to be recalculated
+					if count == 0 {
+						entryPrefix := EntryValuePrefix(field, ttype, term)
+						for it.Seek(entryPrefix); it.Valid() && bytes.HasPrefix(it.Key(), entryPrefix); it.Next() {
+							count++
+						}
+						buf := make([]byte, binary.MaxVarintLen64)
+						binary.PutUvarint(buf, count)
+						tx.Set(curKey, buf)
+						it.Seek(curKey)
+					}
+					switch ttype {
+					case TermNumber:
+						out <- KVTermCount{Number: GetBytesTerm(term, ttype).(float64), Count: count}
+					case TermString:
+						out <- KVTermCount{String: GetBytesTerm(term, ttype).(string), Count: count}
+					default:
+						continue
+					}
 				}
-			}
+				return nil
+			})
 			return nil
 		})
 	}()

@@ -42,4 +42,5 @@ type KVTransaction interface {
 	HasKey(key []byte) bool
 	Set(key, value []byte) error
 	Delete(key []byte) error
+	View(func(it KVIterator) error) error
 }

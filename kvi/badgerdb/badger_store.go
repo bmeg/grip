@@ -170,6 +170,13 @@ func (badgerTrans badgerTransaction) Get(id []byte) ([]byte, error) {
 	return out, err
 }
 
+func (badgerTrans badgerTransaction) View(u func(it kvi.KVIterator) error) error {
+	ktx := newIterator(badgerTrans.tx)
+	o := u(ktx)
+	ktx.close()
+	return o
+}
+
 type badgerIterator struct {
 	tx      *badger.Txn
 	c       *badger.Iterator

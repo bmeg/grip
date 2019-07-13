@@ -156,6 +156,13 @@ func (boltTrans boltTransaction) HasKey(id []byte) bool {
 	return d == nil
 }
 
+// View runs an iterator on bolt keyvalue store during transaction
+func (boltTrans boltTransaction) View(u func(it kvi.KVIterator) error) error {
+	b := boltTrans.tx.Bucket(graphBucket)
+	ktx := &boltIterator{boltTrans.tx, b, b.Cursor(), true, nil, nil}
+	return u(ktx)
+}
+
 type boltIterator struct {
 	tx      *bolt.Tx
 	b       *bolt.Bucket
