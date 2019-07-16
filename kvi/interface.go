@@ -19,6 +19,7 @@ type KVInterface interface {
 
 	View(func(it KVIterator) error) error
 	Update(func(tx KVTransaction) error) error
+	BulkWrite(func(bl KVBulkWrite) error) error
 	Close() error
 }
 
@@ -33,6 +34,10 @@ type KVIterator interface {
 	Next() error
 
 	Get(key []byte) ([]byte, error)
+}
+
+type KVBulkWrite interface {
+	Set(key, value []byte) error
 }
 
 // KVTransaction is a generic interface used by KVInterface.Update to allow the

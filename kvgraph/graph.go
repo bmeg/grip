@@ -55,7 +55,7 @@ func (kgdb *KVInterfaceGDB) AddVertex(vertices []*gripql.Vertex) error {
 		close(dataChan)
 	}()
 
-	err := kgdb.kvg.kv.Update(func(tx kvi.KVTransaction) error {
+	err := kgdb.kvg.kv.BulkWrite(func(tx kvi.KVBulkWrite) error {
 		var anyErr error
 		for kv := range dataChan {
 			if err := tx.Set(kv.key, kv.value); err != nil {
@@ -77,7 +77,7 @@ func (kgdb *KVInterfaceGDB) AddVertex(vertices []*gripql.Vertex) error {
 // AddEdge adds an edge to the graph, if the id is not "" and in already exists
 // in the graph, it is replaced
 func (kgdb *KVInterfaceGDB) AddEdge(edges []*gripql.Edge) error {
-	err := kgdb.kvg.kv.Update(func(tx kvi.KVTransaction) error {
+	err := kgdb.kvg.kv.BulkWrite(func(tx kvi.KVBulkWrite) error {
 		for _, edge := range edges {
 			eid := edge.Gid
 			var err error

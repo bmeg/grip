@@ -102,6 +102,14 @@ func (l *LevelKV) Update(u func(tx kvi.KVTransaction) error) error {
 	return u(ktx)
 }
 
+// BulkWrite is a copy of Update, with no special function yet...
+func (l *LevelKV) BulkWrite(u func(tx kvi.KVBulkWrite) error) error {
+	tx, _ := l.db.OpenTransaction()
+	ktx := levelTransaction{tx, l.db}
+	defer tx.Commit()
+	return u(ktx)
+}
+
 type levelTransaction struct {
 	tx *leveldb.Transaction
 	db *leveldb.DB

@@ -126,6 +126,16 @@ func (boltkv *BoltKV) Update(u func(tx kvi.KVTransaction) error) error {
 	return err
 }
 
+// BulkWrite is a replication of the regular update, no special code for bulk writes
+func (boltkv *BoltKV) BulkWrite(u func(tx kvi.KVBulkWrite) error) error {
+	err := boltkv.db.Update(func(tx *bolt.Tx) error {
+		b := tx.Bucket(graphBucket)
+		ktx := boltTransaction{tx, b}
+		return u(ktx)
+	})
+	return err
+}
+
 type boltTransaction struct {
 	tx *bolt.Tx
 	b  *bolt.Bucket
