@@ -31,10 +31,6 @@ func NewKVInterface(path string, kopts kvi.Options) (kvi.KVInterface, error) {
 	opts.TableLoadingMode = options.MemoryMap
 	opts.Dir = path
 	opts.ValueDir = path
-	if kopts.BulkLoad {
-		opts.SyncWrites = false
-		//opts.DoNotCompact = true // NOTE: this is a test value, it may need to be removed
-	}
 	db, err := badger.Open(opts)
 	if err != nil {
 		return nil, err
@@ -139,8 +135,26 @@ func (badgerkv *BadgerKV) Update(u func(tx kvi.KVTransaction) error) error {
 	return err
 }
 
+// BulkWrite returns a pointer to the badger bulk write method
+func (badgerkv *BadgerKV) BulkWrite(u func(tx kvi.KVBulkWrite) error) error {
+	bt := badgerkv.db.NewWriteBatch()
+	defer bt.Cancel()
+	ktx := badgerBulkWrite{bt}
+	out := u(ktx)
+	bt.Flush()
+	return out
+}
+
 type badgerTransaction struct {
 	tx *badger.Txn
+}
+
+type badgerBulkWrite struct {
+	bt *badger.WriteBatch
+}
+
+func (badgerBW badgerBulkWrite) Set(key, val []byte) error {
+	return badgerBW.bt.Set(key, val)
 }
 
 func (badgerTrans badgerTransaction) Set(key, val []byte) error {

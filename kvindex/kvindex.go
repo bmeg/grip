@@ -273,7 +273,7 @@ func (idx *KVIndex) AddDoc(docID string, value map[string]interface{}) error {
 }
 
 // AddDocTx add new document using a transaction provided by user
-func (idx *KVIndex) AddDocTx(tx kvi.KVTransaction, docID string, doc map[string]interface{}) error {
+func (idx *KVIndex) AddDocTx(tx kvi.KVBulkWrite, docID string, doc map[string]interface{}) error {
 	sdoc := Doc{Entries: [][]byte{}}
 	docKey := DocKey(docID)
 
