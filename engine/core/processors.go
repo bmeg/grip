@@ -1040,11 +1040,13 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 				field = strings.TrimPrefix(field, "$.")
 				idx.AddField(field)
 
+				tid := 0
 				for batch := range aChans[a.Name] {
 					err := kv.Update(func(tx kvi.KVTransaction) error {
 						for _, t := range batch {
 							doc := jsonpath.GetDoc(t, namespace)
-							err := idx.AddDocTx(tx, doc["gid"].(string), doc)
+							err := idx.AddDocTx(tx, fmt.Sprintf("%d", tid), doc)
+							tid++
 							if err != nil {
 								return err
 							}
@@ -1091,11 +1093,13 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 				field = strings.TrimPrefix(field, "$.")
 				idx.AddField(field)
 
+				tid := 0
 				for batch := range aChans[a.Name] {
 					err := kv.Update(func(tx kvi.KVTransaction) error {
 						for _, t := range batch {
 							doc := jsonpath.GetDoc(t, namespace)
-							err := idx.AddDocTx(tx, doc["gid"].(string), doc)
+							err := idx.AddDocTx(tx, fmt.Sprintf("%d", tid), doc)
+							tid++
 							if err != nil {
 								return err
 							}
@@ -1140,11 +1144,13 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 				field = strings.TrimPrefix(field, "$.")
 				idx.AddField(field)
 
+				tid := 0
 				for batch := range aChans[a.Name] {
 					err := kv.Update(func(tx kvi.KVTransaction) error {
 						for _, t := range batch {
 							doc := jsonpath.GetDoc(t, namespace)
-							err := idx.AddDocTx(tx, doc["gid"].(string), doc)
+							err := idx.AddDocTx(tx, fmt.Sprintf("%d", tid), doc)
+							tid++
 							if err != nil {
 								return err
 							}
