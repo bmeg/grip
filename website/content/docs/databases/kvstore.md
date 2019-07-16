@@ -14,12 +14,11 @@ GRIP supports storing vertices and edges in a variety of key-value stores includ
  * [Badger](https://github.com/dgraph-io/badger)
  * [BoltDB](https://github.com/boltdb/bolt)
  * [LevelDB](https://github.com/syndtr/goleveldb)
- * [RocksDB](https://rocksdb.org/)
 
 Config:
 
 ```yaml
-# pick one of: badger, bolt, level, rocks
+# pick one of: badger, bolt, level
 Database: badger
 
 KVStorePath: grip.db

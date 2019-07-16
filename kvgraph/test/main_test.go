@@ -10,7 +10,6 @@ import (
 	_ "github.com/bmeg/grip/kvi/badgerdb" // import so badger will register itself
 	_ "github.com/bmeg/grip/kvi/boltdb"   // import so bolt will register itself
 	_ "github.com/bmeg/grip/kvi/leveldb"  // import so level will register itself
-	_ "github.com/bmeg/grip/kvi/rocksdb"  // import so rocks will register itself
 	"github.com/bmeg/grip/util"
 )
 
@@ -51,16 +50,11 @@ func TestMain(m *testing.M) {
 		os.RemoveAll(dbpath)
 	}()
 
-	for _, dbname = range []string{"badger", "bolt", "level", "rocks"} {
+	for _, dbname = range []string{"badger", "bolt", "level"} {
 		dbpath = "test.db." + util.RandomString(6)
 
 		kvdriver, err = kvgraph.NewKVInterface(dbname, dbpath, nil)
 		if err != nil {
-			if dbname == "rocks" {
-				fmt.Println(`Warning: rocks driver not found; run test with "-tags rocksdb"`)
-				exit = 0
-				return
-			}
 			fmt.Println("Error: failed to initialize database driver:", err)
 			exit = 1
 			return

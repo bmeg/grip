@@ -16,7 +16,6 @@ import (
 	_ "github.com/bmeg/grip/kvi/badgerdb" // import so badger will register itself
 	_ "github.com/bmeg/grip/kvi/boltdb"   // import so bolt will register itself
 	_ "github.com/bmeg/grip/kvi/leveldb"  // import so level will register itself
-	_ "github.com/bmeg/grip/kvi/rocksdb"  // import so rocks will register itself
 	"github.com/bmeg/grip/mongo"
 	"github.com/bmeg/grip/psql"
 	"github.com/bmeg/grip/server"
@@ -41,7 +40,7 @@ func Run(conf *config.Config, schemas map[string]*gripql.Graph) error {
 	var db gdbi.GraphDB
 	var err error
 	switch dbname := strings.ToLower(conf.Database); dbname {
-	case "bolt", "badger", "level", "rocks":
+	case "bolt", "badger", "level":
 		db, err = kvgraph.NewKVGraphDB(dbname, conf.KVStorePath)
 
 	case "elastic", "elasticsearch":

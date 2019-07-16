@@ -18,7 +18,6 @@ import (
 	_ "github.com/bmeg/grip/kvi/badgerdb" // import so badger will register itself
 	_ "github.com/bmeg/grip/kvi/boltdb"   // import so bolt will register itself
 	_ "github.com/bmeg/grip/kvi/leveldb"  // import so level will register itself
-	_ "github.com/bmeg/grip/kvi/rocksdb"  // import so rocks will register itself
 	"github.com/bmeg/grip/mongo"
 	"github.com/bmeg/grip/psql"
 	"github.com/bmeg/grip/util"
@@ -106,7 +105,7 @@ func TestMain(m *testing.M) {
 	}
 
 	switch dbname {
-	case "bolt", "badger", "level", "rocks":
+	case "bolt", "badger", "level":
 		gdb, err = kvgraph.NewKVGraphDB(dbname, conf.KVStorePath)
 		defer func() {
 			os.RemoveAll(conf.KVStorePath)
@@ -126,16 +125,6 @@ func TestMain(m *testing.M) {
 
 	default:
 		err = fmt.Errorf("unknown database: %s", dbname)
-	}
-
-	if err != nil {
-		if dbname == "rocks" {
-			fmt.Println(`Warning: rocks driver not found; run test with "-tags rocksdb"`)
-			exit = 0
-			return
-		}
-		fmt.Println("Error: database connection failed:", err)
-		return
 	}
 
 	err = gdb.AddGraph("test-graph")
