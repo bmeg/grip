@@ -9,7 +9,7 @@ import (
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/kvi"
-	"github.com/bmeg/grip/util"
+	"github.com/bmeg/grip/kvindex"
 	proto "github.com/golang/protobuf/proto"
 	log "github.com/sirupsen/logrus"
 )
@@ -75,6 +75,58 @@ func (kgdb *KVInterfaceGDB) AddVertex(vertices []*gripql.Vertex) error {
 	return err
 }
 
+func insertVertex(tx kvi.KVBulkWrite, idx *kvindex.KVIndex, graph string, vertex *gripql.Vertex) error {
+	key := VertexKey(graph, vertex.Gid)
+	value, err := proto.Marshal(vertex)
+	if err != nil {
+		return nil
+	}
+	doc := map[string]interface{}{graph: vertexIdxStruct(vertex)}
+	if err := tx.Set(key, value); err != nil {
+		return fmt.Errorf("AddVertex Error %s", err)
+	} else {
+		if err := idx.AddDocTx(tx, vertex.Gid, doc); err != nil {
+			return fmt.Errorf("AddVertex Error %s", err)
+		}
+	}
+	return nil
+}
+
+func insertEdge(tx kvi.KVBulkWrite, idx *kvindex.KVIndex, graph string, edge *gripql.Edge) error {
+	eid := edge.Gid
+	var err error
+	var data []byte
+
+	data, err = proto.Marshal(edge)
+	if err != nil {
+		return err
+	}
+
+	src := edge.From
+	dst := edge.To
+	ekey := EdgeKey(graph, eid, src, dst, edge.Label, edgeSingle)
+	skey := SrcEdgeKey(graph, src, dst, eid, edge.Label, edgeSingle)
+	dkey := DstEdgeKey(graph, src, dst, eid, edge.Label, edgeSingle)
+
+	err = tx.Set(ekey, data)
+	if err != nil {
+		return err
+	}
+	err = tx.Set(skey, []byte{})
+	if err != nil {
+		return err
+	}
+	err = tx.Set(dkey, []byte{})
+	if err != nil {
+		return err
+	}
+	err = idx.AddDocTx(tx, eid, map[string]interface{}{graph: edgeIdxStruct(edge)})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // AddEdge adds an edge to the graph, if the id is not "" and in already exists
 // in the graph, it is replaced
 func (kgdb *KVInterfaceGDB) AddEdge(edges []*gripql.Edge) error {
@@ -119,7 +171,26 @@ func (kgdb *KVInterfaceGDB) AddEdge(edges []*gripql.Edge) error {
 }
 
 func (kgdb *KVInterfaceGDB) BulkAdd(stream <-chan *gripql.GraphElement) error {
-	return util.SteamBatch(stream, kgdb.AddVertex, kgdb.AddEdge)
+	var anyErr error
+	err := kgdb.kvg.kv.BulkWrite(func(tx kvi.KVBulkWrite) error {
+		for elem := range stream {
+			if elem.Vertex != nil {
+				if err := insertVertex(tx, kgdb.kvg.idx, kgdb.graph, elem.Vertex); err != nil {
+					anyErr = err
+				}
+			}
+			if elem.Edge != nil {
+				if err := insertEdge(tx, kgdb.kvg.idx, kgdb.graph, elem.Edge); err != nil {
+					anyErr = err
+				}
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	return anyErr
 }
 
 // DelEdge deletes edge with id `key`
