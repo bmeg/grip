@@ -66,10 +66,9 @@ func insertVertex(tx kvi.KVBulkWrite, idx *kvindex.KVIndex, graph string, vertex
 	doc := map[string]interface{}{graph: vertexIdxStruct(vertex)}
 	if err := tx.Set(key, value); err != nil {
 		return fmt.Errorf("AddVertex Error %s", err)
-	} else {
-		if err := idx.AddDocTx(tx, vertex.Gid, doc); err != nil {
-			return fmt.Errorf("AddVertex Error %s", err)
-		}
+	}
+	if err := idx.AddDocTx(tx, vertex.Gid, doc); err != nil {
+		return fmt.Errorf("AddVertex Error %s", err)
 	}
 	return nil
 }
