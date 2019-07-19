@@ -9,6 +9,7 @@ import (
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/kvi"
+	"github.com/bmeg/grip/util"
 	proto "github.com/golang/protobuf/proto"
 	log "github.com/sirupsen/logrus"
 )
@@ -115,6 +116,10 @@ func (kgdb *KVInterfaceGDB) AddEdge(edges []*gripql.Edge) error {
 		return nil
 	})
 	return err
+}
+
+func (kgdb *KVInterfaceGDB) BulkAdd(stream <-chan *gripql.GraphElement) error {
+	return util.SteamBatch(stream, kgdb.AddVertex, kgdb.AddEdge)
 }
 
 // DelEdge deletes edge with id `key`

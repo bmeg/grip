@@ -80,6 +80,8 @@ type GraphInterface interface {
 	AddVertex(vertex []*gripql.Vertex) error
 	AddEdge(edge []*gripql.Edge) error
 
+	BulkAdd(<-chan *gripql.GraphElement) error
+
 	DelVertex(key string) error
 	DelEdge(key string) error
 

@@ -6,6 +6,8 @@ import (
 	"strings"
 	"time"
 
+	"sync"
+
 	"github.com/bmeg/grip/engine"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/util"
@@ -169,133 +171,66 @@ func (server *GripServer) addEdge(ctx context.Context, elem *gripql.GraphElement
 	return &gripql.EditResult{Id: edge.Gid}, nil
 }
 
-type graphElementArray struct {
-	graph    string
-	vertices []*gripql.Vertex
-	edges    []*gripql.Edge
-}
-
-func newGraphElementArray(name string, vertexBufSize, edgeBufSize int) *graphElementArray {
-	if vertexBufSize != 0 {
-		return &graphElementArray{graph: name, vertices: make([]*gripql.Vertex, 0, vertexBufSize)}
-	}
-	if edgeBufSize != 0 {
-		return &graphElementArray{graph: name, edges: make([]*gripql.Edge, 0, edgeBufSize)}
-	}
-	return nil
-}
-
 // BulkAdd a stream of inputs and loads them into the graph
 func (server *GripServer) BulkAdd(stream gripql.Edit_BulkAddServer) error {
-	vertexBatchSize := 50
-	edgeBatchSize := 50
 
-	vertCount := 0
-	edgeCount := 0
+	var elementStream chan *gripql.GraphElement
+	var graphName string
 
-	vertexBatchChan := make(chan *graphElementArray)
-	edgeBatchChan := make(chan *graphElementArray)
-	closeChan := make(chan bool)
-
-	go func() {
-		for vBatch := range vertexBatchChan {
-			if isSchema(vBatch.graph) {
-				err := "cannot add vertex to schema graph"
-				log.WithFields(log.Fields{"error": err}).Error("BulkAdd: add vertex error")
-				continue
-			}
-			if len(vBatch.vertices) > 0 && vBatch.graph != "" {
-				graph, err := server.db.Graph(vBatch.graph)
-				if err != nil {
-					log.WithFields(log.Fields{"error": err}).Error("BulkAdd: graph connection error")
-					continue
-				}
-				err = graph.AddVertex(vBatch.vertices)
-				if err != nil {
-					log.WithFields(log.Fields{"error": err}).Error("BulkAdd: add vertex error")
-				}
-			}
-		}
-		closeChan <- true
-	}()
-
-	go func() {
-		for eBatch := range edgeBatchChan {
-			if isSchema(eBatch.graph) {
-				err := "cannot add edge to schema graph"
-				log.WithFields(log.Fields{"error": err}).Error("BulkAdd: add edge error")
-				continue
-			}
-			if len(eBatch.edges) > 0 && eBatch.graph != "" {
-				graph, err := server.db.Graph(eBatch.graph)
-				if err != nil {
-					log.WithFields(log.Fields{"error": err}).Error("BulkAdd: graph connection error")
-					continue
-				}
-				err = graph.AddEdge(eBatch.edges)
-				if err != nil {
-					log.WithFields(log.Fields{"error": err}).Error("BulkAdd: add edge error")
-				}
-			}
-		}
-		closeChan <- true
-	}()
-
-	vertexBatch := newGraphElementArray("", vertexBatchSize, 0)
-	edgeBatch := newGraphElementArray("", 0, edgeBatchSize)
+	wg := &sync.WaitGroup{}
 	var loopErr error
 	for loopErr == nil {
 		element, err := stream.Recv()
 		if err == io.EOF {
-			if vertCount != 0 {
-				log.Debugf("%d vertices streamed", vertCount)
-			}
-			if edgeCount != 0 {
-				log.Debugf("%d edges streamed", edgeCount)
-			}
-			vertexBatchChan <- vertexBatch
-			edgeBatchChan <- edgeBatch
 			loopErr = err
 		} else if err != nil {
 			log.WithFields(log.Fields{"error": err}).Error("BulkAdd: streaming error")
 			loopErr = err
 		} else {
-			if element.Vertex != nil {
-				if vertexBatch.graph != element.Graph || len(vertexBatch.vertices) >= vertexBatchSize {
-					vertexBatchChan <- vertexBatch
-					vertexBatch = newGraphElementArray(element.Graph, vertexBatchSize, 0)
+			if isSchema(element.Graph) {
+				err := "cannot add element to schema graph"
+				log.WithFields(log.Fields{"error": err}).Error("BulkAdd: add element error")
+			} else {
+				if element.Graph != graphName {
+					if graphName != "" {
+						close(elementStream)
+					}
+					graph, err := server.db.Graph(element.Graph)
+					if err != nil {
+						log.WithFields(log.Fields{"error": err}).Error("BulkAdd: graph not found")
+						loopErr = err
+					}
+					elementStream = make(chan *gripql.GraphElement, 100)
+					wg.Add(1)
+					go func() {
+						log.Printf("Streaming to %s", element.Graph)
+						graph.BulkAdd(elementStream)
+						wg.Done()
+					}()
+					graphName = element.Graph
 				}
-				vertex := element.Vertex
-				err := vertex.Validate()
-				if err != nil {
-					return fmt.Errorf("vertex validation failed: %v", err)
+				if element.Vertex != nil {
+					err := element.Vertex.Validate()
+					if err != nil {
+						log.Errorf("vertex validation failed: %v", err)
+					}
+					elementStream <- element
 				}
-				vertexBatch.vertices = append(vertexBatch.vertices, vertex)
-				vertCount++
-			} else if element.Edge != nil {
-				if edgeBatch.graph != element.Graph || len(edgeBatch.edges) >= edgeBatchSize {
-					edgeBatchChan <- edgeBatch
-					edgeBatch = newGraphElementArray(element.Graph, 0, edgeBatchSize)
+				if element.Edge != nil {
+					if element.Edge.Gid == "" {
+						element.Edge.Gid = util.UUID()
+					}
+					err := element.Edge.Validate()
+					if err != nil {
+						log.Errorf("edge validation failed: %v", err)
+					}
+					elementStream <- element
 				}
-				edge := element.Edge
-				if edge.Gid == "" {
-					edge.Gid = util.UUID()
-				}
-				err := edge.Validate()
-				if err != nil {
-					return fmt.Errorf("edge validation failed: %v", err)
-				}
-				edgeBatch.edges = append(edgeBatch.edges, edge)
-				edgeCount++
 			}
 		}
 	}
-
-	close(edgeBatchChan)
-	close(vertexBatchChan)
-	<-closeChan
-	<-closeChan
-
+	close(elementStream)
+	wg.Wait()
 	if loopErr != io.EOF {
 		return loopErr
 	}

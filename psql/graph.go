@@ -10,6 +10,7 @@ import (
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/protoutil"
 	"github.com/bmeg/grip/timestamp"
+	"github.com/bmeg/grip/util"
 	"github.com/jmoiron/sqlx"
 	log "github.com/sirupsen/logrus"
 )
@@ -42,10 +43,10 @@ func (g *Graph) AddVertex(vertices []*gripql.Vertex) error {
 	}
 
 	s := fmt.Sprintf(
-		`INSERT INTO %s (gid, label, data) VALUES ($1, $2, $3) 
-		 ON CONFLICT (gid) DO UPDATE SET 
-		 gid = excluded.gid, 
-		 label = excluded.label, 
+		`INSERT INTO %s (gid, label, data) VALUES ($1, $2, $3)
+		 ON CONFLICT (gid) DO UPDATE SET
+		 gid = excluded.gid,
+		 label = excluded.label,
 		 data = excluded.data;`,
 		g.v,
 	)
@@ -82,12 +83,12 @@ func (g *Graph) AddEdge(edges []*gripql.Edge) error {
 	}
 
 	s := fmt.Sprintf(
-		`INSERT INTO %s (gid, label, "from", "to", data) VALUES ($1, $2, $3, $4, $5) 
-		ON CONFLICT (gid) DO UPDATE SET 
-		gid = excluded.gid, 
-		label = excluded.label, 
-		"from" = excluded.from, 
-		"to" = excluded.to, 
+		`INSERT INTO %s (gid, label, "from", "to", data) VALUES ($1, $2, $3, $4, $5)
+		ON CONFLICT (gid) DO UPDATE SET
+		gid = excluded.gid,
+		label = excluded.label,
+		"from" = excluded.from,
+		"to" = excluded.to,
 		data = excluded.data;`,
 		g.e,
 	)
@@ -114,6 +115,10 @@ func (g *Graph) AddEdge(edges []*gripql.Edge) error {
 	}
 
 	return nil
+}
+
+func (g *Graph) BulkAdd(stream <-chan *gripql.GraphElement) error {
+	return util.SteamBatch(stream, g.AddVertex, g.AddEdge)
 }
 
 // DelVertex is not implemented in the SQL driver

@@ -10,6 +10,7 @@ import (
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/timestamp"
+	"github.com/bmeg/grip/util"
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
 	log "github.com/sirupsen/logrus"
@@ -142,6 +143,10 @@ func (mg *Graph) AddEdge(edges []*gripql.Edge) error {
 		session.Refresh()
 	}
 	return err
+}
+
+func (mg *Graph) BulkAdd(stream <-chan *gripql.GraphElement) error {
+	return util.SteamBatch(stream, mg.AddVertex, mg.AddEdge)
 }
 
 // deleteConnectedEdges deletes edges where `from` or `to` equal `key`

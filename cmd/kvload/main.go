@@ -9,9 +9,9 @@ import (
 	"github.com/bmeg/grip/kvgraph"
 	"github.com/bmeg/grip/kvi"
 	"github.com/bmeg/grip/util"
+	"github.com/paulbellamy/ratecounter"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"github.com/paulbellamy/ratecounter"
 )
 
 var dbPath = "grip.db"
@@ -105,7 +105,7 @@ var Cmd = &cobra.Command{
 					count++
 					vertexCounter.Incr(1)
 					if count%10000 == 0 {
-						log.Infof("Loaded %d vertices (%s/sec)", count, vertexCounter.Rate()/10)
+						log.Infof("Loaded %d vertices (%d/sec)", count, vertexCounter.Rate()/10)
 					}
 				}
 				if len(vertexBatch) > 0 {
