@@ -43,30 +43,12 @@ type kvAddData struct {
 // AddVertex adds an edge to the graph, if it already exists
 // in the graph, it is replaced
 func (kgdb *KVInterfaceGDB) AddVertex(vertices []*gripql.Vertex) error {
-	dataChan := make(chan *kvAddData, 100)
-	go func() {
-		for _, vertex := range vertices {
-			d, err := proto.Marshal(vertex)
-			k := VertexKey(kgdb.graph, vertex.Gid)
-			if err == nil {
-				doc := map[string]interface{}{kgdb.graph: vertexIdxStruct(vertex)}
-				dataChan <- &kvAddData{key: k, value: d, vertex: vertex, doc: doc}
-			}
-		}
-		close(dataChan)
-	}()
-
 	err := kgdb.kvg.kv.BulkWrite(func(tx kvi.KVBulkWrite) error {
 		var anyErr error
-		for kv := range dataChan {
-			if err := tx.Set(kv.key, kv.value); err != nil {
+		for _, vert := range vertices {
+			if err := insertVertex(tx, kgdb.kvg.idx, kgdb.graph, vert); err != nil {
 				anyErr = err
 				log.Errorf("AddVertex Error %s", err)
-			} else {
-				if err := kgdb.kvg.idx.AddDocTx(tx, kv.vertex.Gid, kv.doc); err != nil {
-					anyErr = err
-					log.Errorf("AddVertex Error %s", err)
-				}
 			}
 		}
 		kgdb.kvg.ts.Touch(kgdb.graph)
