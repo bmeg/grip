@@ -24,3 +24,9 @@ eggs/
 *~
 \#*\#
 .desktop
+
+# R temps
+gripql/R/*.tar.gz
+.Rproj.user
+.Rhistory
+.RData

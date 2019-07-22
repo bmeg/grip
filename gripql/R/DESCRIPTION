@@ -1,0 +1,17 @@
+Package: gripql
+Type: Package
+Title: gripql - A Graph Database Client Library
+Version: 0.0.1
+Author: Adam Struck
+Maintainer: Adam Struck <strucka@ohsu.edu>
+License: MIT
+Description: gripql provides a json-encoded schema for making graph queries as data. 
+             Queries are defined using a series of step operations provided by grip. 
+Encoding: UTF-8
+LazyData: true
+RoxygenNote: 6.0.1
+Imports:
+  httr,
+  jsonlite
+Suggests:
+  magrittr
