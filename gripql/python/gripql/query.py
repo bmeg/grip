@@ -205,11 +205,14 @@ class Query(BaseConnection):
         """
         return self.__append({"skip": n})
 
-    def range(self, offset, limit):
+    def range(self, start, stop):
         """
-        Offset and limit the results returned.
+        When the low-end of the range is not met, objects are continued to be iterated.
+        When within the low (inclusive) and high (exclusive) range, traversers are emitted.
+        When above the high range, the traversal breaks out of iteration. Finally, the use
+        of -1 on the high range will emit remaining traversers after the low range begins.
         """
-        return self.__append({"range": {"start": offset, "stop": limit}})
+        return self.__append({"range": {"start": start, "stop": stop}})
 
     def count(self):
         """
