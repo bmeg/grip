@@ -113,37 +113,7 @@ func insertEdge(tx kvi.KVBulkWrite, idx *kvindex.KVIndex, graph string, edge *gr
 func (kgdb *KVInterfaceGDB) AddEdge(edges []*gripql.Edge) error {
 	err := kgdb.kvg.kv.BulkWrite(func(tx kvi.KVBulkWrite) error {
 		for _, edge := range edges {
-			eid := edge.Gid
-			var err error
-			var data []byte
-
-			data, err = proto.Marshal(edge)
-			if err != nil {
-				return err
-			}
-
-			src := edge.From
-			dst := edge.To
-			ekey := EdgeKey(kgdb.graph, eid, src, dst, edge.Label, edgeSingle)
-			skey := SrcEdgeKey(kgdb.graph, src, dst, eid, edge.Label, edgeSingle)
-			dkey := DstEdgeKey(kgdb.graph, src, dst, eid, edge.Label, edgeSingle)
-
-			err = tx.Set(ekey, data)
-			if err != nil {
-				return err
-			}
-			err = tx.Set(skey, []byte{})
-			if err != nil {
-				return err
-			}
-			err = tx.Set(dkey, []byte{})
-			if err != nil {
-				return err
-			}
-			err = kgdb.kvg.idx.AddDocTx(tx, eid, map[string]interface{}{kgdb.graph: edgeIdxStruct(edge)})
-			if err != nil {
-				return err
-			}
+			insertEdge(tx, kgdb.kvg.idx, kgdb.graph, edge)
 		}
 		kgdb.kvg.ts.Touch(kgdb.graph)
 		return nil
