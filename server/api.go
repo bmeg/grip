@@ -204,7 +204,10 @@ func (server *GripServer) BulkAdd(stream gripql.Edit_BulkAddServer) error {
 					wg.Add(1)
 					go func() {
 						log.Printf("Streaming to %s", element.Graph)
-						graph.BulkAdd(elementStream)
+						err := graph.BulkAdd(elementStream)
+						if err != nil {
+							loopErr = err
+						}
 						wg.Done()
 					}()
 					graphName = element.Graph
