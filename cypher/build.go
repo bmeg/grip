@@ -3,6 +3,7 @@ package cypher
 
 
 import (
+	"strings"
 	"github.com/antlr/antlr4/runtime/Go/antlr"
 	"github.com/bmeg/grip/cypher/parser"
 
@@ -14,6 +15,7 @@ import (
 type vertexSelect struct {
   name  string
   label []string
+	selectMap map[string]string
 }
 
 type edgeSelect struct {
@@ -29,6 +31,20 @@ type cypherListener struct {
 
   curVariable string
   curLabels []string
+
+	curMapKey []string
+
+	curExpression []string
+
+	curMap map[string]string
+}
+
+
+func evalHasExpression(key string, exp string) *gripql.HasExpression {
+	if strings.HasPrefix(exp, "'") && strings.HasSuffix(exp, "'") {
+		exp = exp[1:len(exp)-1]
+	}
+	return gripql.Eq(key, exp)
 }
 
 func (c *cypherListener) BuildQuery() *gripql.Query {
@@ -37,8 +53,16 @@ func (c *cypherListener) BuildQuery() *gripql.Query {
   if len(c.vertexPath) > 0 && len(c.vertexPath[0].label) > 0 {
     q = q.HasLabel(c.vertexPath[0].label[0])
   }
-  for i := range c.vertexPath {
+  for i := 0; i < len(c.vertexPath); i++ {
+		if len(c.vertexPath[i].selectMap) > 0 {
+			for k, v := range c.vertexPath[i].selectMap {
+				e := evalHasExpression(k,v)
+				q = q.Has(e)
+			}
+		}
     q = q.As(c.vertexPath[i].name)
+
+
   }
   if len(c.returns) > 0 {
     q = q.Select(c.returns...)
@@ -70,15 +94,44 @@ func (c *cypherListener) EnterOC_NodePattern(ctx *parser.OC_NodePatternContext) 
   log.Printf("NodePattern: %s\n", ctx.GetText())
   c.curVariable = ""
   c.curLabels = []string{}
+	c.curMap = map[string]string{}
 }
 
 func (c *cypherListener) ExitOC_NodePattern(ctx *parser.OC_NodePatternContext) {
-  c.vertexPath = append(c.vertexPath, vertexSelect{name:c.curVariable, label:c.curLabels})
+	vs := vertexSelect{name:c.curVariable, label:c.curLabels}
+	if len(c.curMap) > 0 {
+		vs.selectMap = c.curMap
+	}
+  c.vertexPath = append(c.vertexPath, vs)
 }
 
 func (c *cypherListener) EnterOC_Variable(ctx *parser.OC_VariableContext) {
   log.Printf("Variable: %s\n", ctx.GetText())
   c.curVariable = ctx.GetText()
+}
+
+
+func (c *cypherListener) EnterOC_MapLiteral(ctx *parser.OC_MapLiteralContext) {
+	log.Printf("MapLiteral: %s", ctx.GetText())
+	c.curMapKey = []string{}
+	c.curExpression = []string{}
+}
+
+func (c *cypherListener) ExitOC_MapLiteral(ctx *parser.OC_MapLiteralContext) {
+	out := map[string]string{}
+	for i := 0; i < len(c.curMapKey) && i < len(c.curExpression); i++ {
+		out[ c.curMapKey[i] ] = c.curExpression[i]
+	}
+	c.curMap = out
+}
+
+func (c *cypherListener) EnterOC_PropertyKeyName(ctx *parser.OC_PropertyKeyNameContext) {
+	c.curMapKey = append(c.curMapKey, ctx.GetText())
+}
+
+func (c *cypherListener) EnterOC_Expression(ctx *parser.OC_ExpressionContext) {
+	log.Printf("Expression: %s", ctx.GetText())
+	c.curExpression = append(c.curExpression, ctx.GetText())
 }
 
 func (c *cypherListener) EnterOC_RelationshipPattern(ctx *parser.OC_RelationshipPatternContext) {

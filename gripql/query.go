@@ -224,7 +224,7 @@ func (q *Query) String() string {
 			add("BothE", ids...)
 
 		case *GraphStatement_Has:
-			add("Has")
+			add("Has", stmt.Has.String())
 
 		case *GraphStatement_HasLabel:
 			labels := protoutil.AsStringList(stmt.HasLabel)
