@@ -1,5 +1,35 @@
 #' @export
-gripql <- function(host) {
+gripql <- function(host, user=NULL, password=NULL, token=NULL, credential_file=NULL) {
+  env_vars <- Sys.getenv(c("GRIP_USER", "GRIP_PASSWORD", "GRIP_TOKEN", "GRIP_CREDENTIAL_FILE"))
+  if (is.null(user)) {
+    if (env_vars["GRIP_USER"] != "") {
+      user <- env_vars["GRIP_USER"]
+    }
+  }
+  if (is.null(password)) {
+    if (env_vars["GRIP_PASSWORD"] != "") {
+      password <- env_vars["GRIP_PASSWORD"]
+    }
+  }
+  if (is.null(token)) {
+    if (env_vars["GRIP_TOKEN"] != "") {
+      token <- env_vars["GRIP_TOKEN"]
+    }
+  }
+  if (is.null(credential_file)) {
+    if (env_vars["GRIP_CREDENTIAL_FILE"] != "") {
+      credential_file <- env_vars["GRIP_CREDENTIAL_FILE"]
+    }
+  }
+  header <- list("Content-Type" = "application/json",
+                 "Accept" = "application/json")
+  if (!is.null(token)) {
+    header["Authorization"] = paste("Bearer", token, sep=" ")
+  } else if (!(is.null(user) | is.null(password))) {
+    ## TODO  header["Authorization"] = httr::authenticate(user, password)
+  } else if (!is.null(credential_file)) {
+    ## TODO 
+  }
   structure(list(), class = "gripql", host = host)
 }
 
@@ -9,25 +39,25 @@ print.gripql <- function(x) {
 }
 
 #' @export
-graph <- function(conn, graph) {
+graph.gripql <- function(conn, graph) {
   class(conn) <- c("gripql.graph", "gripql")
   attr(conn, "graph") <- graph
   conn
 }
 
 #' @export
-query <- function(conn) {
-  class(conn) <- c("gripql.query", "gripql.graph", "gripql")
+query.gripql.graph <- function(conn) {
+  class(conn) <- c("gripql.graph.query", "gripql.graph", "gripql")
   attr(conn, "query") <- list()
   conn
 }
 
 #' @export
-print.gripql.query <- function(x) {
+print.gripql.graph.query <- function(x) {
   print(attr(x, "query"))
 }
 
-append.gripql.query <- function(x, values, after = length(x)) {
+append.gripql.graph.gquery <- function(x, values, after = length(x)) {
   q <- attr(x, "query")
   after <- length(q)
   q[[after + 1]] <- values
@@ -36,12 +66,12 @@ append.gripql.query <- function(x, values, after = length(x)) {
 }
 
 #' @export
-to_json <- function(q) {
+to_json.gripql.graph.query <- function(q) {
   jsonlite::toJSON(attr(q, "query"), auto_unbox = T, simplifyVector = F)
 }
 
 #' @export
-execute <- function(q) {
+execute.gripql.graph.query <- function(q) {
   body <- to_json(q)
   response <- httr::POST(url = paste(attr(q, "host"), "/v1/graph/", attr(q, "graph"), "/query", sep = ""),
                          body = body,
