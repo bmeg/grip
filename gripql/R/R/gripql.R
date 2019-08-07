@@ -43,7 +43,7 @@ to_json <- function(q) {
 #' @export
 execute <- function(q) {
   body <- to_json(q)
-  response <- httr::POST(url = paste(attr(q, "host"), "/vertex/query", sep = ""),
+  response <- httr::POST(url = paste(attr(q, "host"), "/v1/graph/", attr(q, "graph"), "/query", sep = ""),
                          body = body,
                          encode = "json",
                          httr::add_headers("Content-Type"="application/json",
@@ -151,7 +151,7 @@ fields <- function(q, fields=NULL) {
 
 #' @export
 as_ <- function(q, name) {
-  append.gripql.query(q, list("as" = name)))
+  append.gripql.query(q, list("as" = name))
 }
 
 #' @export
