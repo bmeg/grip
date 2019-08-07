@@ -30,18 +30,23 @@ library(magrittr)
 
 # Preview a query
 gripql("bmeg.io") %>%
+    graph("bmeg_rc2") %>%
     query() %>%
     V() %>%
-    has(eq("_gid", "Project::TCGA-READ")) %>%
-    out("cases") %>%
-    out("samples") %>%
-    out("aliquots") %>%
+    hasLabel("Project") %>%
+    out("cases") %>% as_("c") %>%
+    out("samples") %>% as_("s") %>%
+    out("aliquots") %>% as_("a") %>%
+    render(list("case_id" = "$c._gid", "sample_id" = "$s._gid", "aliquot_id" = "$a._gid"))
     to_json()
 
 # Execute a query
 gripql("bmeg.io") %>%
-  query() %>%
-  V() %>%
-  has(within("_gid", c("CCLE:OCIM1_HAEMATOPOIETIC_AND_LYMPHOID_TISSUE", "biosample:CCLE:JHUEM2_ENDOMETRIUM"))) %>% 
-  execute()
+    graph("bmeg_rc2") %>%
+    query() %>%
+    V() %>%
+    hasLabel("Aliquot") %>%
+    has(eq("sample_type", "Primary Tumor")) %>% 
+    limit(10) %>%
+    execute()
 ```
