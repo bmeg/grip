@@ -44,10 +44,10 @@ print.gripql <- function(x) {
 }
 
 #' @export
-graph <- function(conn, graph) {
+graph <- function(conn, graph_name) {
   check_class(conn, "gripql")
-  class(conn) <- c("gripql.graph", "gripql")
-  attr(conn, "graph") <- graph
+  class(conn) <- "gripql.graph"
+  attr(conn, "graph") <- graph_name
   conn
 }
 
@@ -60,7 +60,7 @@ print.gripql.graph <- function(x) {
 #' @export
 query <- function(conn) {
   check_class(conn, "gripql.graph")
-  class(conn) <- c("gripql.graph.query", "gripql.graph", "gripql")
+  class(conn) <- "gripql.graph.query"
   attr(conn, "query") <- list()
   conn
 }
@@ -72,8 +72,7 @@ print.gripql.graph.query <- function(x) {
   print(sprintf("query: %s", to_json(x)))
 }
 
-append.gripql.graph.gquery <- function(x, values, after = length(x)) {
-  check_class(q, "gripql.graph.query")
+append.gripql.graph.query <- function(x, values, after = length(x)) {
   q <- attr(x, "query")
   after <- length(q)
   q[[after + 1]] <- values
@@ -96,6 +95,11 @@ execute <- function(q) {
                          encode = "json",
                          httr::add_headers(unlist(attr(q, "header"), use.names = TRUE)),
                          httr::verbose())
+  httr::stop_for_status(response)
+  if (!grepl("application/json", response$headers$`content-type`)) {
+    stop(sprintf("unexpected content-type '%s' in query response",
+                 response$headers$`content-type`))
+  }
   httr::content(response, as="text") %>%
     trimws() %>%
     strsplit("\n") %>%
@@ -106,11 +110,33 @@ execute <- function(q) {
 }
 
 #' @export
+V <- function(q,  ids=NULL) {
+  check_class(q, "gripql.graph.query")
+  if (length(attr(q, "query")) > 0) {
+    stop("V() must be at the beginning of your query")
+  }
+  ids <- wrap_value(ids)
+  names(ids) <- NULL
+  append.gripql.graph.query(q, list("v" = ids))
+}
+
+#' @export
+E <- function(q,  ids=NULL) {
+  check_class(q, "gripql.graph.query")
+  if (length(attr(q, "query")) > 0) {
+    stop("E() must be at the beginning of your query")
+  }
+  ids <- wrap_value(ids)
+  names(ids) <- NULL
+  append.gripql.graph.query(q, list("e" = ids))
+}
+
+#' @export
 in_ <- function(q,  labels=NULL) {
   check_class(q, "gripql.graph.query")
   labels <- wrap_value(labels)
   names(labels) <- NULL
-  append.gripql.query(q, list("in" = labels))
+  append.gripql.graph.query(q, list("in" = labels))
 }
 
 #' @export
@@ -121,7 +147,7 @@ out <- function(q, labels=NULL) {
   check_class(q, "gripql.graph.query")
   labels <- wrap_value(labels)
   names(labels) <- NULL
-  append.gripql.query(q, list("out" = labels))
+  append.gripql.graph.query(q, list("out" = labels))
 }
 
 #' @export
@@ -132,7 +158,7 @@ both <- function(q, labels=NULL) {
   check_class(q, "gripql.graph.query")
   labels <- wrap_value(labels)
   names(labels) <- NULL
-  append.gripql.query(q, list("both" = labels))
+  append.gripql.graph.query(q, list("both" = labels))
 }
 
 #' @export
@@ -140,7 +166,7 @@ inE <- function(q, labels=NULL) {
   check_class(q, "gripql.graph.query")
   labels <- wrap_value(labels)
   names(labels) <- NULL
-  append.gripql.query(q, list("in_e" = labels))
+  append.gripql.graph.query(q, list("in_e" = labels))
 }
 
 #' @export
@@ -148,7 +174,7 @@ outE <- function(q, labels=NULL) {
   check_class(q, "gripql.graph.query")
   labels <- wrap_value(labels)
   names(labels) <- NULL
-  append.gripql.query(q, list("out_e" = labels))
+  append.gripql.graph.query(q, list("out_e" = labels))
 }
 
 #' @export
@@ -156,14 +182,14 @@ bothE <- function(q, labels=NULL) {
   check_class(q, "gripql.graph.query")
   labels <- wrap_value(labels)
   names(labels) <- NULL
-  append.gripql.query(q, list("both_e" = labels))
+  append.gripql.graph.query(q, list("both_e" = labels))
 }
 
 #' @export
 has <- function(q, expression) {
   check_class(q, "gripql.graph.query")
   check_class(expression, "list")
-  append.gripql.query(q, list("has" = expression))
+  append.gripql.graph.query(q, list("has" = expression))
 }
 
 #' @export
@@ -171,7 +197,7 @@ hasLabel <- function(q, label) {
   check_class(q, "gripql.graph.query")
   label <- wrap_value(label)
   names(label) <- NULL
-  append.gripql.query(q, list("hasLabel" = label))
+  append.gripql.graph.query(q, list("hasLabel" = label))
 }
 
 #' @export
@@ -179,7 +205,7 @@ hasId <- function(q, id) {
   check_class(q, "gripql.graph.query")
   id <- wrap_value(id)
   names(id) <- NULL
-  append.gripql.query(q, list("hasId" = id))
+  append.gripql.graph.query(q, list("hasId" = id))
 }
 
 #' @export
@@ -187,7 +213,7 @@ hasKey <- function(q, key) {
   check_class(q, "gripql.graph.query")
   key <- wrap_value(key)
   names(key) <- NULL
-  append.gripql.query(q, list("hasKey" = key))
+  append.gripql.graph.query(q, list("hasKey" = key))
 }
 
 #' @export
@@ -195,13 +221,13 @@ fields <- function(q, fields=NULL) {
   check_class(q, "gripql.graph.query")
   fields <- wrap_value(fields)
   names(fields) <- NULL
-  append.gripql.query(q, list("fields" = field))
+  append.gripql.graph.query(q, list("fields" = field))
 }
 
 #' @export
 as_ <- function(q, name) {
   check_class(q, "gripql.graph.query")
-  append.gripql.query(q, list("as" = name))
+  append.gripql.graph.query(q, list("as" = name))
 }
 
 #' @export
@@ -209,31 +235,31 @@ select <- function(q, marks) {
   check_class(q, "gripql.graph.query")
   marks <- wrap_value(marks)
   names(marks) <- NULL
-  append.gripql.query(q, list("select" = list("labels" = marks)))
+  append.gripql.graph.query(q, list("select" = list("labels" = marks)))
 }
 
 #' @export
 limit <- function(q, n) {
   check_class(q, "gripql.graph.query")
-  append.gripql.query(q, list("limit" = n))
+  append.gripql.graph.query(q, list("limit" = n))
 }
 
 #' @export
 skip <- function(q, n) {
   check_class(q, "gripql.graph.query")
-  append.gripql.query(q, list("skip" = n))
+  append.gripql.graph.query(q, list("skip" = n))
 }
 
 #' @export
 range <- function(q, start, stop) {
   check_class(q, "gripql.graph.query")
-  append.gripql.query(q, list("range" = list("start" = start, "stop" = stop)))
+  append.gripql.graph.query(q, list("range" = list("start" = start, "stop" = stop)))
 }
 
 #' @export
 count <- function(q) {
   check_class(q, "gripql.graph.query")
-  append.gripql.query(q, list("count" = ""))
+  append.gripql.graph.query(q, list("count" = ""))
 }
 
 #' @export
@@ -241,20 +267,20 @@ distinct <- function(q, props=NULL) {
   check_class(q, "gripql.graph.query")
   props <- wrap_value(props)
   names(props) <- NULL
-  append.gripql.query(q, list("distinct" = props))
+  append.gripql.graph.query(q, list("distinct" = props))
 }
 
 #' @export
 render <- function(q, template) {
   check_class(q, "gripql.graph.query")
-  append.gripql.query(q, list("render" = template))
+  append.gripql.graph.query(q, list("render" = template))
 }
 
 #' @export
 aggregate <- function(q, aggregations) {
   check_class(q, "gripql.graph.query")
   aggregations <- wrap_value(aggregations)
-  append.gripql.query(q, list("aggregate" = list("aggregations" = aggregations)))
+  append.gripql.graph.query(q, list("aggregate" = list("aggregations" = aggregations)))
 }
 
 #' @export
@@ -263,5 +289,5 @@ match <- function(q, queries) {
   if (length(queries) == 1) {
     queries <- list(queries)
   }
-  append.gripql.query(q, list("match", list("queries" = queries)))
+  append.gripql.graph.query(q, list("match", list("queries" = queries)))
 }
