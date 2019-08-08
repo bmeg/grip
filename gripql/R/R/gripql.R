@@ -26,7 +26,7 @@ gripql <- function(host, user=NULL, password=NULL, token=NULL, credential_file=N
   if (!is.null(token)) {
     header["Authorization"] = paste("Bearer", token, sep=" ")
   } else if (!(is.null(user) | is.null(password))) {
-    header["Authorization"] = paste("Basic", jsonlite::base64_enc(paste(user, password, sep = ":"), sep = " ")
+    header["Authorization"] = paste("Basic", jsonlite::base64_enc(paste(user, password, sep = ":"), sep = " "))
   } else if (!is.null(credential_file)) {
     if (!file.exists(credential_file)) {
       stop("credential file does not exist!")
@@ -44,14 +44,20 @@ print.gripql <- function(x) {
 }
 
 #' @export
-graph.gripql <- function(conn, graph) {
+graph <- function(conn, graph) {
   class(conn) <- c("gripql.graph", "gripql")
   attr(conn, "graph") <- graph
   conn
 }
 
 #' @export
-query.gripql.graph <- function(conn) {
+print.gripql.graph <- function(x) {
+  print(paste("host:", attr(x, "host"), sep = " "))
+  print(paste("graph:", attr(x, "graph"), sep = " "))
+}
+
+#' @export
+query <- function(conn) {
   class(conn) <- c("gripql.graph.query", "gripql.graph", "gripql")
   attr(conn, "query") <- list()
   conn
@@ -59,7 +65,9 @@ query.gripql.graph <- function(conn) {
 
 #' @export
 print.gripql.graph.query <- function(x) {
-  print(attr(x, "query"))
+  print(paste("host:", attr(x, "host"), sep = " "))
+  print(paste("graph:", attr(x, "graph"), sep = " "))
+  print(paste("query:", attr(x, "query"), sep = " "))
 }
 
 append.gripql.graph.gquery <- function(x, values, after = length(x)) {
@@ -71,12 +79,12 @@ append.gripql.graph.gquery <- function(x, values, after = length(x)) {
 }
 
 #' @export
-to_json.gripql.graph.query <- function(q) {
+to_json <- function(q) {
   jsonlite::toJSON(attr(q, "query"), auto_unbox = T, simplifyVector = F)
 }
 
 #' @export
-execute.gripql.graph.query <- function(q) {
+execute <- function(q) {
   body <- to_json(q)
   response <- httr::POST(url = paste(attr(q, "host"), "/v1/graph/", attr(q, "graph"), "/query", sep = ""),
                          body = body,
