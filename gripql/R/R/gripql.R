@@ -26,11 +26,16 @@ gripql <- function(host, user=NULL, password=NULL, token=NULL, credential_file=N
   if (!is.null(token)) {
     header["Authorization"] = paste("Bearer", token, sep=" ")
   } else if (!(is.null(user) | is.null(password))) {
-    ## TODO  header["Authorization"] = httr::authenticate(user, password)
+    header["Authorization"] = paste("Basic", jsonlite::base64_enc(paste(user, password, sep = ":"), sep = " ")
   } else if (!is.null(credential_file)) {
-    ## TODO 
+    if (!file.exists(credential_file)) {
+      stop("credential file does not exist!")
+    }
+    creds <- jsonlite::fromJSON(credential_file)
+    creds$OauthExpires <- toString(creds$OauthExpires)
+    header <- c(header, creds)
   }
-  structure(list(), class = "gripql", host = host)
+  structure(list(), class = "gripql", host = host, header = header)
 }
 
 #' @export
@@ -76,8 +81,7 @@ execute.gripql.graph.query <- function(q) {
   response <- httr::POST(url = paste(attr(q, "host"), "/v1/graph/", attr(q, "graph"), "/query", sep = ""),
                          body = body,
                          encode = "json",
-                         httr::add_headers("Content-Type"="application/json",
-                                           "Accept"="application/json"),
+                         httr::add_headers(unlist(attr(q, "header"), use.names = TRUE)),
                          httr::verbose())
   httr::content(response, as="text") %>%
     trimws() %>%
