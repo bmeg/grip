@@ -83,7 +83,9 @@ append.gripql.graph.query <- function(x, values, after = length(x)) {
 #' @export
 to_json <- function(q) {
   check_class(q, "gripql.graph.query")
-  jsonlite::toJSON(attr(q, "query"), auto_unbox = T, simplifyVector = F)
+  query <- attr(q, "query")
+  query <- list("query" = query)
+  jsonlite::toJSON(query, auto_unbox = T, simplifyVector = F)
 }
 
 #' @export
@@ -105,7 +107,20 @@ execute <- function(q) {
     strsplit("\n") %>%
     unlist() %>%
     lapply(function(x) {
-        jsonlite::fromJSON(x)
+        r <- jsonlite::fromJSON(x)
+        r <- r$result
+        if ("vertex" %in% names(r)) {
+          r <- r$vertex
+        } else if ("edge" %in% names(r)) {
+          r <- r$edge
+        } else if ("aggregations" %in% names(r)) {
+          r <- r$aggregations$aggregations
+        } else if ("selections" %in% names(r)) {
+          r <- r$selections$selections
+        } else if ("render" %in% names(r)) {
+          r <- r$render
+        }}
+        r
     })
 }
 
