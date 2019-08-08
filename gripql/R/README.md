@@ -29,7 +29,7 @@ library(gripql)
 library(magrittr)
 
 # Preview a query
-gripql("bmeg.io") %>%
+gripql("https://bmeg.io", credentials_file="/tmp/bmeg_credentials.json") %>%
     graph("bmeg_rc2") %>%
     query() %>%
     V() %>%
@@ -41,7 +41,7 @@ gripql("bmeg.io") %>%
     to_json()
 
 # Execute a query
-gripql("bmeg.io") %>%
+gripql("https://bmeg.io", credentials_file="/tmp/bmeg_credentials.json") %>%
     graph("bmeg_rc2") %>%
     query() %>%
     V() %>%
