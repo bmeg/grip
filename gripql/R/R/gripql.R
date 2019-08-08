@@ -44,6 +44,21 @@ print.gripql <- function(x) {
 }
 
 #' @export
+listGraphs <- function(conn) {
+  check_class(conn, "gripql")
+  response <- httr::GET(url = sprintf("%s/v1/graph", attr(conn, "host")),
+                        httr::add_headers(unlist(attr(conn, "header"), use.names = TRUE)),
+                        httr::verbose())
+  httr::stop_for_status(response)
+  if (!grepl("application/json", response$headers$`content-type`)) {
+    stop(sprintf("unexpected content-type '%s' in query response",
+                 response$headers$`content-type`))
+  }
+  r <- httr::content(response, as = "parsed", encoding = "UTF-8")
+  r$graphs
+}
+
+#' @export
 graph <- function(conn, graph_name) {
   check_class(conn, "gripql")
   class(conn) <- "gripql.graph"
@@ -55,6 +70,21 @@ graph <- function(conn, graph_name) {
 print.gripql.graph <- function(x) {
   print(sprintf("host: %s", attr(x, "host")))
   print(sprintf("graph: %s", attr(x, "graph")))
+}
+
+#' @export
+getSchema <- function(conn) {
+  check_class(conn, "gripql.graph")
+  response <- httr::GET(url = sprintf("%s/v1/graph/%s/schema", attr(conn, "host"), attr(conn, "graph")),
+                        httr::add_headers(unlist(attr(conn, "header"), use.names = TRUE)),
+                        httr::verbose())
+  httr::stop_for_status(response)
+  if (!grepl("application/json", response$headers$`content-type`)) {
+    stop(sprintf("unexpected content-type '%s' in query response",
+                 response$headers$`content-type`))
+  }
+  r <- httr::content(response, as = "parsed", encoding = "UTF-8")
+  r
 }
 
 #' @export
@@ -102,7 +132,7 @@ execute <- function(q) {
     stop(sprintf("unexpected content-type '%s' in query response",
                  response$headers$`content-type`))
   }
-  httr::content(response, as="text") %>%
+  httr::content(response, as="text", encoding = "UTF-8") %>%
     trimws() %>%
     strsplit("\n") %>%
     unlist() %>%
@@ -119,7 +149,7 @@ execute <- function(q) {
           r <- r$selections$selections
         } else if ("render" %in% names(r)) {
           r <- r$render
-        }}
+        }
         r
     })
 }
