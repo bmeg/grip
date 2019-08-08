@@ -3,6 +3,8 @@
 S3method(print,gripql)
 S3method(print,gripql.graph)
 S3method(print,gripql.graph.query)
+export(E)
+export(V)
 export(aggregate)
 export(as_)
 export(between)
