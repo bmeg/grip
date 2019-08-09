@@ -35,7 +35,10 @@ func (gh *Handler) ServeHTTP(writer http.ResponseWriter, request *http.Request) 
 		buf := bytes.Buffer{}
 		buf.ReadFrom(request.Body)
 		cyQuery := buf.String()
-		gripQuery := RunParser(cyQuery)
+		gripQuery, err := RunParser(cyQuery)
+		if err != nil {
+			log.Printf("Parse Error: %s", err)
+		}
 		log.Printf("Cypher Query: %s, %s = %s", graphName, cyQuery, gripQuery.String())
 	}
 }
