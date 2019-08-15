@@ -268,10 +268,12 @@ func (server *GripServer) BulkAdd(stream gripql.Edit_BulkAddServer) error {
 				vertex := element.Vertex
 				err := vertex.Validate()
 				if err != nil {
-					return fmt.Errorf("vertex validation failed: %v", err)
+					log.Errorf("vertex validation failed: %v", err)
+					loopErr = err
+				} else {
+					vertexBatch.vertices = append(vertexBatch.vertices, vertex)
+					vertCount++
 				}
-				vertexBatch.vertices = append(vertexBatch.vertices, vertex)
-				vertCount++
 			} else if element.Edge != nil {
 				if edgeBatch.graph != element.Graph || len(edgeBatch.edges) >= edgeBatchSize {
 					edgeBatchChan <- edgeBatch
@@ -283,10 +285,12 @@ func (server *GripServer) BulkAdd(stream gripql.Edit_BulkAddServer) error {
 				}
 				err := edge.Validate()
 				if err != nil {
-					return fmt.Errorf("edge validation failed: %v", err)
+					log.Errorf("edge validation failed: %v", err)
+					loopErr = err
+				} else {
+					edgeBatch.edges = append(edgeBatch.edges, edge)
+					edgeCount++
 				}
-				edgeBatch.edges = append(edgeBatch.edges, edge)
-				edgeCount++
 			}
 		}
 	}
