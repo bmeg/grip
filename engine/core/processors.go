@@ -6,15 +6,12 @@ import (
 	"fmt"
 	"math"
 	"reflect"
-	"strings"
+  "sort"
 
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/jsonpath"
-	"github.com/bmeg/grip/kvi"
-	"github.com/bmeg/grip/kvindex"
 	"github.com/bmeg/grip/protoutil"
-	structpb "github.com/golang/protobuf/ptypes/struct"
 	log "github.com/sirupsen/logrus"
 	"github.com/spenczar/tdigest"
 	"github.com/spf13/cast"
@@ -996,80 +993,61 @@ type aggregate struct {
 }
 
 func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
-	aChans := make(map[string](chan []*gdbi.Traveler))
+	aChans := make(map[string](chan *gdbi.Traveler))
 	g, ctx := errgroup.WithContext(ctx)
+
+  // # of travelers to buffer for agg
+  bufferSize := 1000
 
 	go func() {
 		for _, a := range agg.aggregations {
-			aChans[a.Name] = make(chan []*gdbi.Traveler, 100)
+			aChans[a.Name] = make(chan *gdbi.Traveler, bufferSize)
 			defer close(aChans[a.Name])
 		}
 
-		batchSize := 100
-		i := 0
-		batch := []*gdbi.Traveler{}
 		for t := range in {
-			if i == batchSize {
-				for _, a := range agg.aggregations {
-					aChans[a.Name] <- batch
-				}
-				i = 0
-				batch = []*gdbi.Traveler{}
-			}
-			batch = append(batch, t)
-			i++
-		}
-		for _, a := range agg.aggregations {
-			aChans[a.Name] <- batch
-		}
+      for _, a := range agg.aggregations {
+        aChans[a.Name] <- t
+      }
+    }
 	}()
-
+  
 	aggChan := make(chan map[string]*gripql.AggregationResult, len(agg.aggregations))
 	for _, a := range agg.aggregations {
 		a := a
 		switch a.Aggregation.(type) {
 		case *gripql.Aggregate_Term:
 			g.Go(func() error {
+        // max # of terms to collect before failing
+        // since the term can be a string this still isn't particulary safe
+        // the terms could be arbitrarily large strings and storing this many could eat up
+        // lots of memory. 
+        maxTerms := 100000
+
 				tagg := a.GetTerm()
 				size := tagg.Size
-				kv := man.GetTempKV()
-				idx := kvindex.NewIndex(kv)
 
-				namespace := jsonpath.GetNamespace(tagg.Field)
-				field := jsonpath.GetJSONPath(tagg.Field)
-				field = strings.TrimPrefix(field, "$.")
-				idx.AddField(field)
-
-				tid := 0
-				for batch := range aChans[a.Name] {
-					err := kv.Update(func(tx kvi.KVTransaction) error {
-						for _, t := range batch {
-							doc := jsonpath.GetDoc(t, namespace)
-							err := idx.AddDocTx(tx, fmt.Sprintf("%d", tid), doc)
-							tid++
-							if err != nil {
-								return err
-							}
-						}
-						return nil
-					})
-					if err != nil {
-						return err
-					}
-				}
+        i := 0
+        fieldTermCounts := map[interface{}]int{}
+				for t := range aChans[a.Name] {
+          val := jsonpath.TravelerPathLookup(t, tagg.Field)
+          if v, ok := fieldTermCounts[val]; ok {
+            fieldTermCounts[val] = v + 1
+          } else {
+            fieldTermCounts[val] = 1
+            i++
+            if i > maxTerms {
+              return fmt.Errorf("Term Aggreagtion: collected more unique terms (%v) than allowed (%v)", i, maxTerms)
+            }
+          }
+        }
 
 				aggOut := &gripql.AggregationResult{
 					Buckets: []*gripql.AggregationResultBucket{},
 				}
-
-				for tcount := range idx.FieldTermCounts(field) {
-					var t *structpb.Value
-					if tcount.String != "" {
-						t = protoutil.WrapValue(tcount.String)
-					} else {
-						t = protoutil.WrapValue(tcount.Number)
-					}
-					aggOut.SortedInsert(&gripql.AggregationResultBucket{Key: t, Value: float64(tcount.Count)})
+				for term, count := range fieldTermCounts {          
+          t := protoutil.WrapValue(term)
+					aggOut.SortedInsert(&gripql.AggregationResultBucket{Key: t, Value: float64(count)})
 					if size > 0 {
 						if len(aggOut.Buckets) > int(size) {
 							aggOut.Buckets = aggOut.Buckets[:size]
@@ -1082,48 +1060,42 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 			})
 
 		case *gripql.Aggregate_Histogram:
+      
 			g.Go(func() error {
+        // max # of values to collect before failing
+        maxValues := 10000000
+
 				hagg := a.GetHistogram()
-				interval := hagg.Interval
-				kv := man.GetTempKV()
-				idx := kvindex.NewIndex(kv)
+				i := float64(hagg.Interval)
 
-				namespace := jsonpath.GetNamespace(hagg.Field)
-				field := jsonpath.GetJSONPath(hagg.Field)
-				field = strings.TrimPrefix(field, "$.")
-				idx.AddField(field)
-
-				tid := 0
-				for batch := range aChans[a.Name] {
-					err := kv.Update(func(tx kvi.KVTransaction) error {
-						for _, t := range batch {
-							doc := jsonpath.GetDoc(t, namespace)
-							err := idx.AddDocTx(tx, fmt.Sprintf("%d", tid), doc)
-							tid++
-							if err != nil {
-								return err
-							}
-						}
-						return nil
-					})
-					if err != nil {
-						return err
-					}
+        c := 0
+        fieldValues := []float64{}
+				for t := range aChans[a.Name] {
+          val := jsonpath.TravelerPathLookup(t, hagg.Field)
+          fval, err := cast.ToFloat64E(val)
+          if err != nil {
+            return fmt.Errorf("Histogram Aggregation: can't convert %v to float64", val)
+          }
+          fieldValues = append(fieldValues, fval)
+          if c > maxValues {
+            return fmt.Errorf("Histogram Aggreagtion: collected more values (%v) than allowed (%v)", c, maxValues)
+          }
+          c++
 				}
+        sort.Float64s(fieldValues)
+				min := fieldValues[0]
+				max := fieldValues[len(fieldValues)-1]
 
 				aggOut := &gripql.AggregationResult{
 					Buckets: []*gripql.AggregationResultBucket{},
 				}
-
-				min := idx.FieldTermNumberMin(field)
-				max := idx.FieldTermNumberMax(field)
-
-				i := float64(interval)
 				for bucket := math.Floor(min/i) * i; bucket <= max; bucket += i {
 					var count uint64
-					for tcount := range idx.FieldTermNumberRange(field, bucket, bucket+i) {
-						count += tcount.Count
-					}
+          for _, v := range fieldValues {
+            if v >= bucket && v < (bucket + i) {
+              count++
+            }
+          }
 					aggOut.Buckets = append(aggOut.Buckets, &gripql.AggregationResultBucket{Key: protoutil.WrapValue(bucket), Value: float64(count)})
 				}
 
@@ -1136,41 +1108,20 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 			g.Go(func() error {
 				pagg := a.GetPercentile()
 				percents := pagg.Percents
-				kv := man.GetTempKV()
-				idx := kvindex.NewIndex(kv)
 
-				namespace := jsonpath.GetNamespace(pagg.Field)
-				field := jsonpath.GetJSONPath(pagg.Field)
-				field = strings.TrimPrefix(field, "$.")
-				idx.AddField(field)
-
-				tid := 0
-				for batch := range aChans[a.Name] {
-					err := kv.Update(func(tx kvi.KVTransaction) error {
-						for _, t := range batch {
-							doc := jsonpath.GetDoc(t, namespace)
-							err := idx.AddDocTx(tx, fmt.Sprintf("%d", tid), doc)
-							tid++
-							if err != nil {
-								return err
-							}
-						}
-						return nil
-					})
-					if err != nil {
-						return err
-					}
+				td := tdigest.New()
+				for t := range aChans[a.Name] {
+          val := jsonpath.TravelerPathLookup(t, pagg.Field)
+          fval, err := cast.ToFloat64E(val)
+          if err != nil {
+            return fmt.Errorf("Percentile Aggregation: can't convert %v to float64", val)
+          }
+          td.Add(fval, 1)
 				}
 
 				aggOut := &gripql.AggregationResult{
 					Buckets: []*gripql.AggregationResultBucket{},
 				}
-
-				td := tdigest.New()
-				for val := range idx.FieldNumbers(field) {
-					td.Add(val, 1)
-				}
-
 				for _, p := range percents {
 					q := td.Quantile(p / 100)
 					aggOut.Buckets = append(aggOut.Buckets, &gripql.AggregationResultBucket{Key: protoutil.WrapValue(p), Value: q})
