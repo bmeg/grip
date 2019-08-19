@@ -1019,7 +1019,7 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 		case *gripql.Aggregate_Term:
 			g.Go(func() error {
 				// max # of terms to collect before failing
-				// since the term can be a string this still isn't particulary safe
+				// since the term can be a string this still isn't particularly safe
 				// the terms could be arbitrarily large strings and storing this many could eat up
 				// lots of memory.
 				maxTerms := 100000
@@ -1028,13 +1028,12 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 				size := tagg.Size
 
 				log.Infof("term: collecting data")
-				i := 0
-				fieldTermCounts := map[interface{}]int{}
+				fieldTermCounts := map[interface{}]float64{}
 				for t := range aChans[a.Name] {
 					val := jsonpath.TravelerPathLookup(t, tagg.Field)
-					fieldTermCounts[val] += 1
+					fieldTermCounts[val]++
 					if len(fieldTermCounts) > maxTerms {
-						return fmt.Errorf("Term Aggreagtion: collected more unique terms (%v) than allowed (%v)", i, maxTerms)
+						return fmt.Errorf("term aggreagtion: collected more unique terms (%v) than allowed (%v)", len(fieldTermCounts), maxTerms)
 					}
 				}
 				log.Infof("term: collected data")
@@ -1043,8 +1042,7 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 					Buckets: []*gripql.AggregationResultBucket{},
 				}
 				for term, count := range fieldTermCounts {
-					t := protoutil.WrapValue(term)
-					aggOut.SortedInsert(&gripql.AggregationResultBucket{Key: t, Value: float64(count)})
+					aggOut.SortedInsert(&gripql.AggregationResultBucket{Key: protoutil.WrapValue(term), Value: count})
 					if size > 0 {
 						if len(aggOut.Buckets) > int(size) {
 							aggOut.Buckets = aggOut.Buckets[:size]
@@ -1072,11 +1070,11 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 					val := jsonpath.TravelerPathLookup(t, hagg.Field)
 					fval, err := cast.ToFloat64E(val)
 					if err != nil {
-						return fmt.Errorf("Histogram Aggregation: can't convert %v to float64", val)
+						return fmt.Errorf("histogram aggregation: can't convert %v to float64", val)
 					}
 					fieldValues = append(fieldValues, fval)
 					if c > maxValues {
-						return fmt.Errorf("Histogram Aggreagtion: collected more values (%v) than allowed (%v)", c, maxValues)
+						return fmt.Errorf("histogram aggreagtion: collected more values (%v) than allowed (%v)", c, maxValues)
 					}
 					c++
 				}
@@ -1089,13 +1087,13 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 					Buckets: []*gripql.AggregationResultBucket{},
 				}
 				for bucket := math.Floor(min/i) * i; bucket <= max; bucket += i {
-					var count uint64
+					var count float64
 					for _, v := range fieldValues {
 						if v >= bucket && v < (bucket+i) {
 							count++
 						}
 					}
-					aggOut.Buckets = append(aggOut.Buckets, &gripql.AggregationResultBucket{Key: protoutil.WrapValue(bucket), Value: float64(count)})
+					aggOut.Buckets = append(aggOut.Buckets, &gripql.AggregationResultBucket{Key: protoutil.WrapValue(bucket), Value: count})
 				}
 				log.Infof("histogram: done")
 				aggChan <- map[string]*gripql.AggregationResult{a.Name: aggOut}
@@ -1114,7 +1112,7 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 					val := jsonpath.TravelerPathLookup(t, pagg.Field)
 					fval, err := cast.ToFloat64E(val)
 					if err != nil {
-						return fmt.Errorf("Percentile Aggregation: can't convert %v to float64", val)
+						return fmt.Errorf("percentile aggregation: can't convert %v to float64", val)
 					}
 					td.Add(fval, 1)
 				}
