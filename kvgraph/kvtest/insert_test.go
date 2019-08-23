@@ -13,6 +13,8 @@ import (
 
 var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 
+var testDBSize = 100000
+
 func RandStringRunes(n int) string {
 	b := make([]rune, n)
 	for i := range b {
@@ -45,6 +47,77 @@ func BenchmarkStringInsert(b *testing.B) {
 	os.RemoveAll("test.db")
 }
 
+
+func BenchmarkIntInsert(b *testing.B) {
+	db, err := badgerdb.NewKVInterface("test.db", kvi.Options{})
+	if err != nil {
+		log.Errorf("issue: %s", err)
+		return
+	}
+
+	b.Run("insert-int", func(b *testing.B) {
+		keys := [][]byte{}
+		buf := make([]byte, binary.MaxVarintLen64)
+		for i := 0; i < b.N; i++ {
+			s := rand.Uint64()
+			binary.PutUvarint(buf, s)
+			keys = append(keys, buf)
+		}
+		b.ResetTimer()
+		db.Update(func(tx kvi.KVTransaction) error {
+			for i := 0; i < b.N; i++ {
+				tx.Set(keys[i], []byte{0})
+			}
+			return nil
+		})
+	})
+	db.Close()
+	os.RemoveAll("test.db")
+}
+
+
+func BenchmarkMixedInsert(b *testing.B) {
+	dbIdx, err := badgerdb.NewKVInterface("test_idx.db", kvi.Options{})
+	if err != nil {
+		log.Errorf("issue: %s", err)
+		return
+	}
+	db, err := badgerdb.NewKVInterface("test.db", kvi.Options{})
+	if err != nil {
+		log.Errorf("issue: %s", err)
+		return
+	}
+
+	b.Run("insert-mixed", func(b *testing.B) {
+		keys := [][]byte{}
+		for i := 0; i < b.N; i++ {
+			s := RandStringRunes(20)
+			keys = append(keys, []byte(s))
+		}
+		b.ResetTimer()
+		//db.BulkWrite(func(tx kvi.KVBulkWrite) error {
+		dbIdx.Update(func(txIdx kvi.KVTransaction) error {
+			var idx uint64
+			buf := make([]byte, binary.MaxVarintLen64)
+			db.Update(func(tx kvi.KVTransaction) error {
+				for i := 0; i < b.N; i++ {
+					binary.PutUvarint(buf, idx)
+					txIdx.Set(keys[i], buf)
+					tx.Set(buf, []byte{0})
+					idx += 1
+				}
+				return nil
+			})
+			return nil
+		})
+	})
+	db.Close()
+	dbIdx.Close()
+	os.RemoveAll("test.db")
+	os.RemoveAll("test_idx.db")
+}
+
+
 func BenchmarkStringScan(b *testing.B) {
 	db, err := badgerdb.NewKVInterface("test.db", kvi.Options{})
 	if err != nil {
@@ -53,7 +126,7 @@ func BenchmarkStringScan(b *testing.B) {
 	}
 	keys := [][]byte{}
 	db.Update(func(tx kvi.KVTransaction) error {
-		for i := 0; i < 10000; i++ {
+		for i := 0; i < testDBSize; i++ {
 			s := RandStringRunes(20)
 			keys = append(keys, []byte(s))
 			tx.Set([]byte(s), []byte{0})
@@ -92,7 +165,7 @@ func BenchmarkIntScan(b *testing.B) {
 	keys := [][]byte{}
 	buf := make([]byte, binary.MaxVarintLen64)
 	db.Update(func(tx kvi.KVTransaction) error {
-		for i := 0; i < 10000; i++ {
+		for i := 0; i < testDBSize; i++ {
 			s := rand.Uint64()
 			binary.PutUvarint(buf, s)
 			keys = append(keys, buf)
@@ -129,33 +202,6 @@ func BenchmarkIntScan(b *testing.B) {
 		}
 	})
 
-	db.Close()
-	os.RemoveAll("test.db")
-}
-
-func BenchmarkIntInsert(b *testing.B) {
-	db, err := badgerdb.NewKVInterface("test.db", kvi.Options{})
-	if err != nil {
-		log.Errorf("issue: %s", err)
-		return
-	}
-
-	b.Run("insert-int", func(b *testing.B) {
-		keys := [][]byte{}
-		buf := make([]byte, binary.MaxVarintLen64)
-		for i := 0; i < b.N; i++ {
-			s := rand.Uint64()
-			binary.PutUvarint(buf, s)
-			keys = append(keys, buf)
-		}
-		b.ResetTimer()
-		db.Update(func(tx kvi.KVTransaction) error {
-			for i := 0; i < b.N; i++ {
-				tx.Set(keys[i], []byte{0})
-			}
-			return nil
-		})
-	})
 	db.Close()
 	os.RemoveAll("test.db")
 }
