@@ -11,6 +11,7 @@ import (
 
 var vertexPrefix = []byte("v")
 var edgePrefix = []byte("e")
+var srcEdgePrefix = []byte("s")
 
 var intSize = 10
 
@@ -53,6 +54,37 @@ func edgeStringKeyParse(key []byte) (string, string, string, string, string) {
 	return string(graph), string(eid), string(sid), string(did), string(label)
 }
 
+func srcEdgeStringKeyPrefix(graph, id string) []byte {
+	return bytes.Join([][]byte{srcEdgePrefix, []byte(graph), []byte(id), {}}, []byte{0})
+}
+
+func srcEdgeStringKeyParse(key []byte) (string, string, string, string, string) {
+	tmp := bytes.Split(key, []byte{0})
+	graph := tmp[1]
+	src := tmp[2]
+	dst := tmp[3]
+	eid := tmp[4]
+	label := tmp[5]
+	return string(graph), string(src), string(dst), string(eid), string(label)
+}
+
+func srcEdgeIntKeyPrefix(graph, src uint64) []byte {
+  out := make([]byte, 1 + intSize*2)
+  out[0] = srcEdgePrefix[0]
+  binary.PutUvarint(out[1:intSize+1], graph)
+  binary.PutUvarint(out[intSize+1:intSize*2+1], src)
+  return out
+}
+
+func srcEdgeIntKeyParse(key []byte) (uint64, uint64, uint64, uint64, uint64) {
+  graph, _ := binary.Uvarint(key[1:intSize+1])
+	sid, _ := binary.Uvarint(key[intSize+1:intSize*2+1])
+	did, _ := binary.Uvarint(key[intSize*2+1:intSize*3+1])
+	eid, _ := binary.Uvarint(key[intSize*3+1:intSize*4+1])
+	label, _ := binary.Uvarint(key[intSize*4+1:intSize*5+1])
+	return graph, sid, did, eid, label
+}
+
 var edgeSize = 1 + intSize * 5
 
 func edgeIntKey(graph, id, src, dst, label uint64) []byte {
@@ -74,6 +106,24 @@ func edgeIntKeyParse(key []byte) (uint64, uint64, uint64, uint64, uint64) {
 	label, _ := binary.Uvarint(key[intSize*4+1:intSize*5+1])
 	return graph, eid, sid, did, label
 }
+
+
+
+func srcEdgeStringKey(graph, src, dst, eid, label string) []byte {
+	return bytes.Join([][]byte{srcEdgePrefix, []byte(graph), []byte(src), []byte(dst), []byte(eid), []byte(label)}, []byte{0})
+}
+
+func srcEdgeIntKey(graph, src, dst, eid, label uint64) []byte {
+  out := make([]byte, edgeSize)
+  out[0] = srcEdgePrefix[0]
+  binary.PutUvarint(out[1:intSize+1], graph)
+  binary.PutUvarint(out[intSize+1:intSize*2+1], src)
+  binary.PutUvarint(out[intSize*2+1:intSize*3+1], dst)
+  binary.PutUvarint(out[intSize*3+1:intSize*4+1], eid)
+  binary.PutUvarint(out[intSize*4+1:intSize*5+1], label)
+  return out
+}
+
 
 
 var keySetSize = 100000
