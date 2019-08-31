@@ -2,14 +2,13 @@ package mongo
 
 import (
 	"fmt"
-	"testing"
 	"strings"
+	"testing"
 
-	"github.com/bmeg/grip/jsonpath"
 	"github.com/bmeg/grip/gripql"
+	"github.com/bmeg/grip/jsonpath"
 	"github.com/bmeg/grip/util"
 	"github.com/globalsign/mgo/bson"
-
 )
 
 func TestQuerySizeLimit(t *testing.T) {
@@ -29,7 +28,6 @@ func TestQuerySizeLimit(t *testing.T) {
 		t.Error("expected an error on compile")
 	}
 }
-
 
 func TestDistinctPathing(t *testing.T) {
 
@@ -53,6 +51,20 @@ func TestDistinctPathing(t *testing.T) {
 		k := strings.Replace(f, ".", "_", -1)
 		keys[k] = "$" + f
 	}
-	fmt.Printf("%s\n", match)
-	fmt.Printf("%s\n", keys)
+	if m, ok := match["marks.case._id"]; ok {
+		m1 := m.(bson.M)
+		if e, ok := m1["$exists"]; ok {
+			if b, ok := e.(bool); ok {
+				if !b {
+					t.Errorf("$exist value incorrect")
+				}
+			} else {
+				t.Errorf("$exist value incorrect")
+			}
+		} else {
+			t.Errorf("Mark key not formatted correctly")
+		}
+	} else {
+		t.Errorf("mark key not found")
+	}
 }
