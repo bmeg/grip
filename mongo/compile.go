@@ -441,12 +441,12 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, er
 			keys := bson.M{}
 			match := bson.M{}
 			for _, f := range fields {
+				namespace := jsonpath.GetNamespace(f)
 				f = jsonpath.GetJSONPath(f)
 				f = strings.TrimPrefix(f, "$.")
 				if f == "gid" {
 					f = "_id"
 				}
-				namespace := jsonpath.GetNamespace(f)
 				if namespace != jsonpath.Current {
 					f = fmt.Sprintf("marks.%s.%s", namespace, f)
 				}
