@@ -48,12 +48,12 @@ func NewGraphDB(conf Config) (gdbi.GraphDB, error) {
 		Username:      conf.Username,
 		Password:      conf.Password,
 		AppName:       "grip",
-		ReadTimeout:   2 * time.Hour,
-		WriteTimeout:  5 * time.Minute,
+		ReadTimeout:   10 * time.Minute,
+		WriteTimeout:  10 * time.Minute,
 		PoolLimit:     4096,
 		PoolTimeout:   0,
 		MinPoolSize:   10,
-		MaxIdleTimeMS: 300000, // 5 minutes
+		MaxIdleTimeMS: 600000, // 10 minutes
 	}
 	session, err := mgo.DialWithInfo(dialinfo)
 	if err != nil {
