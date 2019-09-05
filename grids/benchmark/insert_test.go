@@ -1,10 +1,11 @@
-package kvtest
+package benchmark
 
 import (
 	//"fmt"
 	"encoding/binary"
 	"github.com/bmeg/grip/kvi"
 	"github.com/bmeg/grip/kvi/badgerdb"
+	"github.com/akrylysov/pogreb"
 	log "github.com/sirupsen/logrus"
 	"math/rand"
 	"os"
@@ -76,8 +77,37 @@ func BenchmarkIntInsert(b *testing.B) {
 }
 
 
+func BenchmarkHashInsert(b *testing.B) {
+	os.Mkdir("test_idx.db", 0700)
+	dbIdx, err := pogreb.Open("test_idx.db/keys", nil)
+	if err != nil {
+		log.Errorf("issue: %s", err)
+		return
+	}
+	b.Run("insert-hash", func(b *testing.B) {
+		keys := [][]byte{}
+		for i := 0; i < b.N; i++ {
+			s := RandStringRunes(20)
+			keys = append(keys, []byte(s))
+		}
+		b.ResetTimer()
+		//db.BulkWrite(func(tx kvi.KVBulkWrite) error {
+		var idx uint64
+		buf := make([]byte, binary.MaxVarintLen64)
+		for i := 0; i < b.N; i++ {
+			binary.PutUvarint(buf, idx)
+			dbIdx.Put(keys[i], buf)
+			idx += 1
+		}
+	})
+	dbIdx.Close()
+	os.RemoveAll("test_idx.db")
+}
+
+
 func BenchmarkMixedInsert(b *testing.B) {
-	dbIdx, err := badgerdb.NewKVInterface("test_idx.db", kvi.Options{})
+	os.Mkdir("test_idx.db", 0700)
+	dbIdx, err := pogreb.Open("test_idx.db/keys", nil)
 	if err != nil {
 		log.Errorf("issue: %s", err)
 		return
@@ -96,18 +126,15 @@ func BenchmarkMixedInsert(b *testing.B) {
 		}
 		b.ResetTimer()
 		//db.BulkWrite(func(tx kvi.KVBulkWrite) error {
-		dbIdx.Update(func(txIdx kvi.KVTransaction) error {
-			var idx uint64
-			buf := make([]byte, binary.MaxVarintLen64)
-			db.Update(func(tx kvi.KVTransaction) error {
-				for i := 0; i < b.N; i++ {
-					binary.PutUvarint(buf, idx)
-					txIdx.Set(keys[i], buf)
-					tx.Set(buf, []byte{0})
-					idx += 1
-				}
-				return nil
-			})
+		var idx uint64
+		buf := make([]byte, binary.MaxVarintLen64)
+		db.Update(func(tx kvi.KVTransaction) error {
+			for i := 0; i < b.N; i++ {
+				binary.PutUvarint(buf, idx)
+				dbIdx.Put(keys[i], buf)
+				tx.Set(buf, []byte{0})
+				idx += 1
+			}
 			return nil
 		})
 	})

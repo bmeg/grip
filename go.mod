@@ -4,6 +4,7 @@ go 1.12
 
 require (
 	github.com/Shopify/sarama v1.22.1
+	github.com/akrylysov/pogreb v0.8.1
 	github.com/bmeg/golib v0.0.0-20170626075926-82a1e1d7a0b2
 	github.com/boltdb/bolt v1.3.1
 	github.com/davecgh/go-spew v1.1.1

@@ -1,5 +1,5 @@
 
-package kvtest
+package benchmark
 
 import (
   "os"
