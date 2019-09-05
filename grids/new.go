@@ -1,11 +1,13 @@
 package grids
 
 import (
-	//"fmt"
+	"fmt"
+	"os"
 	"github.com/akrylysov/pogreb"
 
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/kvi"
+	"github.com/bmeg/grip/kvi/badgerdb"
 	"github.com/bmeg/grip/kvindex"
 	"github.com/bmeg/grip/timestamp"
 )
@@ -33,23 +35,25 @@ func NewGridsKVGraphDB(name string, dbPath string) (gdbi.GraphDB, error) {
 	if os.IsNotExist(err) {
 		os.Mkdir(dbPath, 0700)
 	}
-	keyMapPath := fmt.Sprintf("%s/keymap", dbPath)
+	keykvPath := fmt.Sprintf("%s/keymap", dbPath)
 	graphkvPath := fmt.Sprintf("%s/graph", dbPath)
-	idxkvPath := fmt.Sprintf("%s/index", dbPath)
-	keyMap, err := pogreb.Open(keyMapPath, nil)
+	//indexkvPath := fmt.Sprintf("%s/index", dbPath)
+	keykv, err := pogreb.Open(keykvPath, nil)
 	if err != nil {
 		return nil, err
 	}
-	graphkv, err := badger.NewKVInterface(graphkvPath, nil)
+	graphkv, err := badgerdb.NewKVInterface(graphkvPath, kvi.Options{})
 	if err != nil {
 		return nil, err
 	}
-	indexkv, err := badger.NewKVInterface(indexkvPath, nil)
+	/*
+	indexkv, err := badgerdb.NewKVInterface(indexkvPath, kvi.Options{})
 	if err != nil {
 		return nil, err
 	}
+	*/
 	ts := timestamp.NewTimestamp()
-	o := &GridsGDB{keyMap:keyMap, graphkv: graphkv, ts: &ts, idx: kvindex.NewIndex(indexkv)}
+	o := &GridsGDB{keyMap:NewKeyMap(keykv), graphkv: graphkv, ts: &ts, idx: kvindex.NewIndex(graphkv)}
 	for _, i := range o.ListGraphs() {
 		o.ts.Touch(i)
 	}
@@ -60,6 +64,6 @@ func NewGridsKVGraphDB(name string, dbPath string) (gdbi.GraphDB, error) {
 func (gridb *GridsGDB) Close() error {
 	gridb.keyMap.Close()
 	gridb.graphkv.Close()
-	gridb.indexkv.Close()
+	//gridb.indexkv.Close()
 	return nil
 }

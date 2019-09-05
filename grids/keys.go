@@ -1,7 +1,6 @@
 package grids
 
 import (
-	"bytes"
 	"encoding/binary"
 )
 
@@ -37,7 +36,7 @@ func VertexKey(graph, id uint64) []byte {
 	out := make([]byte, intSize * 2 + 1)
   out[0] = vertexPrefix[0]
   binary.PutUvarint(out[1:intSize+1], graph)
-  binary.PutUvarint(out[intSize+1:intSize*2+1], key)
+  binary.PutUvarint(out[intSize+1:intSize*2+1], id)
   return out
 }
 
@@ -97,6 +96,25 @@ func EdgeListPrefix(graph uint64) []byte {
 	binary.PutUvarint(out[1:intSize+1], graph)
 	return out
 }
+
+// SrcEdgeListPrefix returns a byte array prefix for all entries in the source
+// edge index for a graph
+func SrcEdgeListPrefix(graph uint64) []byte {
+	out := make([]byte, 1 + intSize)
+	out[0] = srcEdgePrefix[0]
+	binary.PutUvarint(out[1:intSize+1], graph)
+	return out
+}
+
+// DstEdgeListPrefix returns a byte array prefix for all entries in the dest
+// edge index for a graph
+func DstEdgeListPrefix(graph uint64) []byte {
+	out := make([]byte, 1 + intSize)
+	out[0] = dstEdgePrefix[0]
+	binary.PutUvarint(out[1:intSize+1], graph)
+	return out
+}
+
 
 // SrcEdgeKey creates a src edge index key
 func SrcEdgeKey(graph, eid, src, dst, label uint64) []byte {

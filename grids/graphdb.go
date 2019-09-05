@@ -21,27 +21,30 @@ func (kgraph *GridsGDB) AddGraph(graph string) error {
 	if err != nil {
 		return err
 	}
-	return kgraph.kv.Set(GraphKey(graph), []byte{})
+	gkey := kgraph.keyMap.GetGraphKey( graph )
+	return kgraph.graphkv.Set(GraphKey(gkey), []byte{})
 }
 
 // DeleteGraph deletes `graph`
 func (kgraph *GridsGDB) DeleteGraph(graph string) error {
 	kgraph.ts.Touch(graph)
 
-	eprefix := EdgeListPrefix(graph)
-	kgraph.kv.DeletePrefix(eprefix)
+	gkey := kgraph.keyMap.GetGraphKey( graph )
 
-	vprefix := VertexListPrefix(graph)
-	kgraph.kv.DeletePrefix(vprefix)
+	eprefix := EdgeListPrefix(gkey)
+	kgraph.graphkv.DeletePrefix(eprefix)
 
-	sprefix := SrcEdgeListPrefix(graph)
-	kgraph.kv.DeletePrefix(sprefix)
+	vprefix := VertexListPrefix(gkey)
+	kgraph.graphkv.DeletePrefix(vprefix)
 
-	dprefix := DstEdgeListPrefix(graph)
-	kgraph.kv.DeletePrefix(dprefix)
+	sprefix := SrcEdgeListPrefix(gkey)
+	kgraph.graphkv.DeletePrefix(sprefix)
 
-	graphKey := GraphKey(graph)
-	kgraph.kv.Delete(graphKey)
+	dprefix := DstEdgeListPrefix(gkey)
+	kgraph.graphkv.DeletePrefix(dprefix)
+
+	graphKey := GraphKey(gkey)
+	kgraph.graphkv.Delete(graphKey)
 
 	kgraph.deleteGraphIndex(graph)
 
@@ -59,7 +62,8 @@ func (kgraph *GridsGDB) Graph(graph string) (gdbi.GraphInterface, error) {
 	if !found {
 		return nil, fmt.Errorf("graph '%s' was not found", graph)
 	}
-	return &KVInterfaceGDB{kvg: kgraph, graph: graph}, nil
+	gkey := kgraph.keyMap.GetGraphKey(graph)
+	return &GridsGraph{kdb: kgraph, graphID: graph, graphKey: gkey}, nil
 }
 
 
@@ -67,9 +71,10 @@ func (kgraph *GridsGDB) Graph(graph string) (gdbi.GraphInterface, error) {
 func (kgraph *GridsGDB) ListGraphs() []string {
 	out := []string{}
 	gPrefix := GraphPrefix()
-	kgraph.kv.View(func(it kvi.KVIterator) error {
+	kgraph.graphkv.View(func(it kvi.KVIterator) error {
 		for it.Seek(gPrefix); it.Valid() && bytes.HasPrefix(it.Key(), gPrefix); it.Next() {
-			out = append(out, GraphKeyParse(it.Key()))
+			g := kgraph.keyMap.GetGraphID( GraphKeyParse(it.Key()) )
+			out = append(out, g)
 		}
 		return nil
 	})
