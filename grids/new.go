@@ -10,6 +10,8 @@ import (
 	"github.com/bmeg/grip/kvi/badgerdb"
 	"github.com/bmeg/grip/kvindex"
 	"github.com/bmeg/grip/timestamp"
+
+	log "github.com/sirupsen/logrus"
 )
 
 // GridsGDB implements the GripInterface using a generic key/value storage driver
@@ -28,9 +30,8 @@ type GridsGraph struct {
 	graphKey uint64
 }
 
-// NewKVGraphDB intitalize a new key value graph driver given the name of the
-// driver and path/url to create the database at
-func NewGridsKVGraphDB(name string, dbPath string) (gdbi.GraphDB, error) {
+// NewKVGraphDB intitalize a new grids graph driver
+func NewGridsGraphDB(dbPath string) (gdbi.GraphDB, error) {
 	_, err := os.Stat(dbPath)
 	if os.IsNotExist(err) {
 		os.Mkdir(dbPath, 0700)
@@ -57,6 +58,7 @@ func NewGridsKVGraphDB(name string, dbPath string) (gdbi.GraphDB, error) {
 	for _, i := range o.ListGraphs() {
 		o.ts.Touch(i)
 	}
+	log.Printf("Starting GRIDS driver")
 	return o, nil
 }
 

@@ -31,6 +31,7 @@ type Config struct {
 	Server        server.Config
 	RPCClient     rpc.Config
 	KVStorePath   string
+	Grids         string
 	Elasticsearch elastic.Config
 	MongoDB       mongo.Config
 	PSQL          psql.Config

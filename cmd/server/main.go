@@ -19,6 +19,7 @@ import (
 	"github.com/bmeg/grip/mongo"
 	"github.com/bmeg/grip/psql"
 	"github.com/bmeg/grip/server"
+	"github.com/bmeg/grip/grids"
 	_ "github.com/go-sql-driver/mysql" //import so mysql will register as a sql driver
 	"github.com/imdario/mergo"
 	_ "github.com/lib/pq" // import so postgres will register as a sql driver
@@ -42,6 +43,9 @@ func Run(conf *config.Config, schemas map[string]*gripql.Graph) error {
 	switch dbname := strings.ToLower(conf.Database); dbname {
 	case "bolt", "badger", "level":
 		db, err = kvgraph.NewKVGraphDB(dbname, conf.KVStorePath)
+
+	case "grids":
+		db, err = grids.NewGridsGraphDB(conf.Grids)
 
 	case "elastic", "elasticsearch":
 		db, err = elastic.NewGraphDB(conf.Elasticsearch)
