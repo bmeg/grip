@@ -1,10 +1,14 @@
 package mongo
 
 import (
+	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/bmeg/grip/gripql"
+	"github.com/bmeg/grip/jsonpath"
 	"github.com/bmeg/grip/util"
+	"github.com/globalsign/mgo/bson"
 )
 
 func TestQuerySizeLimit(t *testing.T) {
@@ -22,5 +26,45 @@ func TestQuerySizeLimit(t *testing.T) {
 	t.Log(err)
 	if err == nil {
 		t.Error("expected an error on compile")
+	}
+}
+
+func TestDistinctPathing(t *testing.T) {
+
+	fields := []string{"$case._gid", "$compound._gid"}
+
+	match := bson.M{}
+	keys := bson.M{}
+
+	for _, f := range fields {
+		namespace := jsonpath.GetNamespace(f)
+		fmt.Printf("Namespace: %s\n", namespace)
+		f = jsonpath.GetJSONPath(f)
+		f = strings.TrimPrefix(f, "$.")
+		if f == "gid" {
+			f = "_id"
+		}
+		if namespace != jsonpath.Current {
+			f = fmt.Sprintf("marks.%s.%s", namespace, f)
+		}
+		match[f] = bson.M{"$exists": true}
+		k := strings.Replace(f, ".", "_", -1)
+		keys[k] = "$" + f
+	}
+	if m, ok := match["marks.case._id"]; ok {
+		m1 := m.(bson.M)
+		if e, ok := m1["$exists"]; ok {
+			if b, ok := e.(bool); ok {
+				if !b {
+					t.Errorf("$exist value incorrect")
+				}
+			} else {
+				t.Errorf("$exist value incorrect")
+			}
+		} else {
+			t.Errorf("Mark key not formatted correctly")
+		}
+	} else {
+		t.Errorf("mark key not found")
 	}
 }

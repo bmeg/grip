@@ -1,0 +1,66 @@
+---
+output:
+  github_document:
+    html_preview: false
+---
+
+<!-- README.md is generated from README.Rmd. Please edit that file -->
+
+```{r, echo = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.path = "README-"
+)
+options(tibble.print_min = 5, tibble.print_max = 5)
+```
+
+# gripql
+
+
+## Overview
+
+
+## Installation
+
+To install from github:
+
+```{r eval = FALSE}
+library(devtools)
+install_github(repo="bmeg/grip", subdir="gripql/R")
+```
+
+To install locally:
+```{bash eval = FALSE}
+git clone https://github.com/bmeg/grip.git
+cd grip/gripql/R
+R CMD INSTALL .
+```
+
+## Usage
+```{r eval = FALSE}
+library(gripql)
+library(magrittr)
+
+# Preview a query
+gripql("bmeg.io") %>%
+    graph("bmeg_rc2") %>%
+    query() %>%
+    V() %>%
+    hasLabel("Project") %>%
+    out("cases") %>% as_("c") %>%
+    out("samples") %>% as_("s") %>%
+    out("aliquots") %>% as_("a") %>%
+    render(list("case_id" = "$c._gid", "sample_id" = "$s._gid", "aliquot_id" = "$a._gid"))
+    to_json()
+
+# Execute a query
+gripql("bmeg.io") %>%
+    graph("bmeg_rc2") %>%
+    query() %>%
+    V() %>%
+    hasLabel("Aliquot") %>%
+    has(eq("sample_type", "Primary Tumor")) %>% 
+    limit(10) %>%
+    execute()
+```
