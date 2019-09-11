@@ -6,18 +6,6 @@ import (
 	"testing"
 )
 
-func arrayEq(a, b []string) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i := range a {
-		if a[i] != b[i] {
-			return false
-		}
-	}
-	return true
-}
-
 
 func TestStepNumber(t *testing.T) {
 	q := gripql.NewQuery()
@@ -38,32 +26,63 @@ func TestAsMapping(t *testing.T) {
 func TestOutputMasking(t *testing.T) {
   q := gripql.NewQuery()
 	q = q.V().Out().In().Has(gripql.Eq("$.test", "value"))
-	out := PipelineOutputs(q.Statements)
+	out := PipelineStepOutputs(q.Statements)
   fmt.Printf("vars: %s\n", out)
+	if len(out) != 1 {
+		t.Errorf("Wrong number of step outputs %d", len(out))
+	}
+	if !arrayEq(out["3"], []string{}) {
+		t.Errorf("Incorrect output")
+	}
 
   q = gripql.NewQuery()
 	q = q.V().Out().In().Has(gripql.Eq("$.test", "value")).Out()
-	out = PipelineOutputs(q.Statements)
+	out = PipelineStepOutputs(q.Statements)
   fmt.Printf("vars: %s\n", out)
+	if len(out) != 2 {
+		t.Errorf("Wrong number of step outputs %d", len(out))
+	}
+	if !arrayEq(out["3"], []string{}) {
+		t.Errorf("Incorrect output")
+	}
+	if !arrayEq(out["4"], []string{}) {
+		t.Errorf("Incorrect output")
+	}
 
   q = gripql.NewQuery()
   q = q.V().Out().In().Count()
-  out = PipelineOutputs(q.Statements)
+  out = PipelineStepOutputs(q.Statements)
   fmt.Printf("vars: %s\n", out)
 
   q = gripql.NewQuery()
 	q = q.V().Out().In().Has(gripql.Eq("$.test", "value")).Count()
-	out = PipelineOutputs(q.Statements)
+	out = PipelineStepOutputs(q.Statements)
   fmt.Printf("vars: %s\n", out)
 
   q = gripql.NewQuery()
 	q = q.V().HasLabel("test").Out().In().Has(gripql.Eq("$.test", "value")).Count()
-	out = PipelineOutputs(q.Statements)
-  fmt.Printf("vars: %s\n", out)
+	out = PipelineStepOutputs(q.Statements)
+	if len(out) != 2 {
+		t.Errorf("Wrong number of step outputs %d", len(out))
+	}
+  fmt.Printf("outputs: %s\n", out)
 
   q = gripql.NewQuery()
 	q = q.V().HasLabel("test").Out().As("a").Out().Out().Select("a")
-	out = PipelineOutputs(q.Statements)
+	out = PipelineStepOutputs(q.Statements)
   fmt.Printf("vars: %s\n", out)
 
+}
+
+
+func TestPathFind(t *testing.T) {
+	q := gripql.NewQuery()
+	o := q.V().HasLabel("test").Out().As("a").Out().Out().Select("a")
+	r := PipelinePathSteps(o.Statements)
+	fmt.Printf("%s\n", r)
+
+	q = gripql.NewQuery()
+	o = q.V().HasLabel("test").Out().Out().Out().In("test")
+	r = PipelinePathSteps(o.Statements)
+	fmt.Printf("%s\n", r)
 }
