@@ -115,7 +115,7 @@ func (es *Graph) AddVertex(vertices []*gripql.Vertex) error {
 }
 
 func (es *Graph) BulkAdd(stream <-chan *gripql.GraphElement) error {
-	return util.SteamBatch(stream, es.AddVertex, es.AddEdge)
+	return util.SteamBatch(stream, 50, es.AddVertex, es.AddEdge)
 }
 
 // DelEdge deletes edge `eid`

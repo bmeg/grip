@@ -25,9 +25,7 @@ func newGraphElementArray(vertexBufSize, edgeBufSize int) *graphElementArray {
 
 // SteamBatch a stream of inputs and loads them into the graph
 // This function assumes incoming stream is GraphElemnts from a single graph
-func SteamBatch(stream <-chan *gripql.GraphElement, vertexAdd func([]*gripql.Vertex) error, edgeAdd func([]*gripql.Edge) error) error {
-	vertexBatchSize := 50
-	edgeBatchSize := 50
+func SteamBatch(stream <-chan *gripql.GraphElement, batchSize int, vertexAdd func([]*gripql.Vertex) error, edgeAdd func([]*gripql.Edge) error) error {
 
 	vertCount := 0
 	edgeCount := 0
@@ -60,14 +58,14 @@ func SteamBatch(stream <-chan *gripql.GraphElement, vertexAdd func([]*gripql.Ver
 		closeChan <- true
 	}()
 
-	vertexBatch := newGraphElementArray(vertexBatchSize, 0)
-	edgeBatch := newGraphElementArray(0, edgeBatchSize)
+	vertexBatch := newGraphElementArray(batchSize, 0)
+	edgeBatch := newGraphElementArray(0, batchSize)
 	var loopErr error
 	for element := range stream {
 		if element.Vertex != nil {
-			if len(vertexBatch.vertices) >= vertexBatchSize {
+			if len(vertexBatch.vertices) >= batchSize {
 				vertexBatchChan <- vertexBatch
-				vertexBatch = newGraphElementArray(vertexBatchSize, 0)
+				vertexBatch = newGraphElementArray(batchSize, 0)
 			}
 			vertex := element.Vertex
 			err := vertex.Validate()
@@ -77,9 +75,9 @@ func SteamBatch(stream <-chan *gripql.GraphElement, vertexAdd func([]*gripql.Ver
 			vertexBatch.vertices = append(vertexBatch.vertices, vertex)
 			vertCount++
 		} else if element.Edge != nil {
-			if len(edgeBatch.edges) >= edgeBatchSize {
+			if len(edgeBatch.edges) >= batchSize {
 				edgeBatchChan <- edgeBatch
-				edgeBatch = newGraphElementArray(0, edgeBatchSize)
+				edgeBatch = newGraphElementArray(0, batchSize)
 			}
 			edge := element.Edge
 			if edge.Gid == "" {

@@ -146,7 +146,7 @@ func (mg *Graph) AddEdge(edges []*gripql.Edge) error {
 }
 
 func (mg *Graph) BulkAdd(stream <-chan *gripql.GraphElement) error {
-	return util.SteamBatch(stream, mg.AddVertex, mg.AddEdge)
+	return util.SteamBatch(stream, 50, mg.AddVertex, mg.AddEdge)
 }
 
 // deleteConnectedEdges deletes edges where `from` or `to` equal `key`

@@ -112,11 +112,14 @@ func insertEdge(tx kvi.KVBulkWrite, idx *kvindex.KVIndex, graph string, edge *gr
 // in the graph, it is replaced
 func (kgdb *KVInterfaceGDB) AddEdge(edges []*gripql.Edge) error {
 	err := kgdb.kvg.kv.BulkWrite(func(tx kvi.KVBulkWrite) error {
+		var anyErr error
 		for _, edge := range edges {
-			insertEdge(tx, kgdb.kvg.idx, kgdb.graph, edge)
+			if err := insertEdge(tx, kgdb.kvg.idx, kgdb.graph, edge); err != nil {
+				anyErr = err
+			}
 		}
 		kgdb.kvg.ts.Touch(kgdb.graph)
-		return nil
+		return anyErr
 	})
 	return err
 }
