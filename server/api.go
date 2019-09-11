@@ -244,7 +244,7 @@ func (server *GripServer) BulkAdd(stream gripql.Edit_BulkAddServer) error {
 	}
 	close(elementStream)
 	wg.Wait()
-	return stream.SendAndClose(&gripql.BulkEditResult{InsertCount:insertCount,ErrorCount:errorCount})
+	return stream.SendAndClose(&gripql.BulkEditResult{InsertCount: insertCount, ErrorCount: errorCount})
 }
 
 // DeleteVertex deletes a vertex from the server
