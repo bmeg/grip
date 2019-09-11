@@ -38,6 +38,7 @@ def test_bulkload(O):
 
     return errors
 
+
 def test_bulkload_validate(O):
     errors = []
 
