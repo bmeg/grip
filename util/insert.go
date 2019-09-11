@@ -25,7 +25,7 @@ func newGraphElementArray(vertexBufSize, edgeBufSize int) *graphElementArray {
 
 // SteamBatch a stream of inputs and loads them into the graph
 // This function assumes incoming stream is GraphElemnts from a single graph
-func SteamBatch(stream <-chan *gripql.GraphElement, batchSize int, vertexAdd func([]*gripql.Vertex) error, edgeAdd func([]*gripql.Edge) error) error {
+func SteamBatch(stream <-chan *gripql.GraphElement, batchSize int, graph string, vertexAdd func([]*gripql.Vertex) error, edgeAdd func([]*gripql.Edge) error) error {
 
 	vertCount := 0
 	edgeCount := 0
@@ -62,33 +62,37 @@ func SteamBatch(stream <-chan *gripql.GraphElement, batchSize int, vertexAdd fun
 	edgeBatch := newGraphElementArray(0, batchSize)
 	var loopErr error
 	for element := range stream {
-		if element.Vertex != nil {
-			if len(vertexBatch.vertices) >= batchSize {
-				vertexBatchChan <- vertexBatch
-				vertexBatch = newGraphElementArray(batchSize, 0)
+		if element.Graph != graph {
+			loopErr = fmt.Errorf("Graph %s != %s", element.Graph, graph)
+		} else {
+			if element.Vertex != nil {
+				if len(vertexBatch.vertices) >= batchSize {
+					vertexBatchChan <- vertexBatch
+					vertexBatch = newGraphElementArray(batchSize, 0)
+				}
+				vertex := element.Vertex
+				err := vertex.Validate()
+				if err != nil {
+					return fmt.Errorf("vertex validation failed: %v", err)
+				}
+				vertexBatch.vertices = append(vertexBatch.vertices, vertex)
+				vertCount++
+			} else if element.Edge != nil {
+				if len(edgeBatch.edges) >= batchSize {
+					edgeBatchChan <- edgeBatch
+					edgeBatch = newGraphElementArray(0, batchSize)
+				}
+				edge := element.Edge
+				if edge.Gid == "" {
+					edge.Gid = UUID()
+				}
+				err := edge.Validate()
+				if err != nil {
+					return fmt.Errorf("edge validation failed: %v", err)
+				}
+				edgeBatch.edges = append(edgeBatch.edges, edge)
+				edgeCount++
 			}
-			vertex := element.Vertex
-			err := vertex.Validate()
-			if err != nil {
-				return fmt.Errorf("vertex validation failed: %v", err)
-			}
-			vertexBatch.vertices = append(vertexBatch.vertices, vertex)
-			vertCount++
-		} else if element.Edge != nil {
-			if len(edgeBatch.edges) >= batchSize {
-				edgeBatchChan <- edgeBatch
-				edgeBatch = newGraphElementArray(0, batchSize)
-			}
-			edge := element.Edge
-			if edge.Gid == "" {
-				edge.Gid = UUID()
-			}
-			err := edge.Validate()
-			if err != nil {
-				return fmt.Errorf("edge validation failed: %v", err)
-			}
-			edgeBatch.edges = append(edgeBatch.edges, edge)
-			edgeCount++
 		}
 	}
 

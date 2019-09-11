@@ -118,7 +118,7 @@ func (g *Graph) AddEdge(edges []*gripql.Edge) error {
 }
 
 func (g *Graph) BulkAdd(stream <-chan *gripql.GraphElement) error {
-	return util.SteamBatch(stream, 50, g.AddVertex, g.AddEdge)
+	return util.SteamBatch(stream, 50, g.graph, g.AddVertex, g.AddEdge)
 }
 
 // DelVertex is not implemented in the SQL driver
