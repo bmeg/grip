@@ -178,6 +178,8 @@ func (server *GripServer) BulkAdd(stream gripql.Edit_BulkAddServer) error {
 	var graphName string
 
 	wg := &sync.WaitGroup{}
+	var insertCount int32
+	var errorCount int32
 	var loopErr error
 	for loopErr == nil {
 		element, err := stream.Recv()
@@ -185,11 +187,12 @@ func (server *GripServer) BulkAdd(stream gripql.Edit_BulkAddServer) error {
 			loopErr = err
 		} else if err != nil {
 			log.WithFields(log.Fields{"error": err}).Error("BulkAdd: streaming error")
-			loopErr = err
+			errorCount++
 		} else {
 			if isSchema(element.Graph) {
 				err := "cannot add element to schema graph"
 				log.WithFields(log.Fields{"error": err}).Error("BulkAdd: add element error")
+				errorCount++
 			} else {
 				if element.Graph != graphName {
 					if graphName != "" {
@@ -199,6 +202,7 @@ func (server *GripServer) BulkAdd(stream gripql.Edit_BulkAddServer) error {
 					if err != nil {
 						log.WithFields(log.Fields{"error": err}).Error("BulkAdd: graph not found")
 						loopErr = err
+						errorCount++
 					}
 					elementStream = make(chan *gripql.GraphElement, 100)
 					wg.Add(1)
@@ -206,7 +210,7 @@ func (server *GripServer) BulkAdd(stream gripql.Edit_BulkAddServer) error {
 						log.Printf("Streaming to %s", element.Graph)
 						err := graph.BulkAdd(elementStream)
 						if err != nil {
-							loopErr = err
+							errorCount++
 						}
 						wg.Done()
 					}()
@@ -215,9 +219,12 @@ func (server *GripServer) BulkAdd(stream gripql.Edit_BulkAddServer) error {
 				if element.Vertex != nil {
 					err := element.Vertex.Validate()
 					if err != nil {
+						errorCount++
 						log.Errorf("vertex validation failed: %v", err)
+					} else {
+						insertCount++
+						elementStream <- element
 					}
-					elementStream <- element
 				}
 				if element.Edge != nil {
 					if element.Edge.Gid == "" {
@@ -225,19 +232,19 @@ func (server *GripServer) BulkAdd(stream gripql.Edit_BulkAddServer) error {
 					}
 					err := element.Edge.Validate()
 					if err != nil {
+						errorCount++
 						log.Errorf("edge validation failed: %v", err)
+					} else {
+						insertCount++
+						elementStream <- element
 					}
-					elementStream <- element
 				}
 			}
 		}
 	}
 	close(elementStream)
 	wg.Wait()
-	if loopErr != io.EOF {
-		return loopErr
-	}
-	return stream.SendAndClose(&gripql.EditResult{})
+	return stream.SendAndClose(&gripql.BulkEditResult{InsertCount:insertCount,ErrorCount:errorCount})
 }
 
 // DeleteVertex deletes a vertex from the server

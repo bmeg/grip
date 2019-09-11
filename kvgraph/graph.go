@@ -129,12 +129,20 @@ func (kgdb *KVInterfaceGDB) BulkAdd(stream <-chan *gripql.GraphElement) error {
 	err := kgdb.kvg.kv.BulkWrite(func(tx kvi.KVBulkWrite) error {
 		for elem := range stream {
 			if elem.Vertex != nil {
-				if err := insertVertex(tx, kgdb.kvg.idx, kgdb.graph, elem.Vertex); err != nil {
+				if err := elem.Vertex.Validate(); err == nil {
+					if err := insertVertex(tx, kgdb.kvg.idx, kgdb.graph, elem.Vertex); err != nil {
+						anyErr = err
+					}
+				} else {
 					anyErr = err
 				}
 			}
 			if elem.Edge != nil {
-				if err := insertEdge(tx, kgdb.kvg.idx, kgdb.graph, elem.Edge); err != nil {
+				if err := elem.Edge.Validate(); err == nil {
+					if err := insertEdge(tx, kgdb.kvg.idx, kgdb.graph, elem.Edge); err != nil {
+						anyErr = err
+					}
+				} else {
 					anyErr = err
 				}
 			}
