@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/bmeg/grip/engine/core"
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/kvi"
@@ -37,10 +36,6 @@ func (ggraph *GridsGraph) GetTimestamp() string {
 	return ggraph.kdb.ts.Get(ggraph.graphID)
 }
 
-// Compiler gets a compiler that will use the graph the execute the compiled query
-func (ggraph *GridsGraph) Compiler() gdbi.Compiler {
-	return core.NewCompiler(ggraph)
-}
 
 type kvAddData struct {
 	key    []byte

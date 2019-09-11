@@ -78,11 +78,11 @@ func TestOutputMasking(t *testing.T) {
 func TestPathFind(t *testing.T) {
 	q := gripql.NewQuery()
 	o := q.V().HasLabel("test").Out().As("a").Out().Out().Select("a")
-	r := PipelinePathSteps(o.Statements)
+	r := PipelineNoLoadPathSteps(o.Statements)
 	fmt.Printf("%s\n", r)
 
 	q = gripql.NewQuery()
 	o = q.V().HasLabel("test").Out().Out().Out().In("test")
-	r = PipelinePathSteps(o.Statements)
+	r = PipelineNoLoadPathSteps(o.Statements)
 	fmt.Printf("%s\n", r)
 }
