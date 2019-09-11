@@ -1,8 +1,9 @@
 package util
 
 import (
-	"github.com/bmeg/grip/gripql"
 	"testing"
+
+	"github.com/bmeg/grip/gripql"
 )
 
 func TestBatchInsertValidation(t *testing.T) {
