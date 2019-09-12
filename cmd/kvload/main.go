@@ -2,6 +2,7 @@ package kvload
 
 import (
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/bmeg/golib"
@@ -89,36 +90,24 @@ var Cmd = &cobra.Command{
 			edgeFileArray = append(edgeFileArray, edgeFile)
 		}
 
+		graphChan := make(chan *gripql.GraphElement, 10)
+		wg := &sync.WaitGroup{}
+		go func() {
+			wg.Add(1)
+			kgraph.BulkAdd(graphChan)
+			wg.Done()
+		}()
+
 		vertexCounter := ratecounter.NewRateCounter(10 * time.Second)
 		for _, vertexFile := range vertexFileArray {
 			log.Infof("Loading %s", vertexFile)
 			count := 0
-			vertexChan := make(chan []*gripql.Vertex, 100)
-			vertexBatch := make([]*gripql.Vertex, 0, batchSize)
-			go func() {
-				for v := range util.StreamVerticesFromFile(vertexFile) {
-					vertexBatch = append(vertexBatch, v)
-					if len(vertexBatch) >= batchSize {
-						vertexChan <- vertexBatch
-						vertexBatch = make([]*gripql.Vertex, 0, batchSize)
-					}
-					count++
-					vertexCounter.Incr(1)
-					if count%10000 == 0 {
-						log.Infof("Loaded %d vertices (%d/sec)", count, vertexCounter.Rate()/10)
-					}
-				}
-				if len(vertexBatch) > 0 {
-					vertexChan <- vertexBatch
-				}
-				log.Infof("Loaded %d vertices", count)
-				close(vertexChan)
-			}()
-
-			for batch := range vertexChan {
-				//serialize and store vertex
-				if err := kgraph.AddVertex(batch); err != nil {
-					log.Errorf("%s", err)
+			for v := range util.StreamVerticesFromFile(vertexFile) {
+				graphChan <- &gripql.GraphElement{Graph: graph, Vertex: v}
+				count++
+				vertexCounter.Incr(1)
+				if count%10000 == 0 {
+					log.Infof("Loaded %d vertices (%d/sec)", count, vertexCounter.Rate()/10)
 				}
 			}
 		}
@@ -126,34 +115,16 @@ var Cmd = &cobra.Command{
 		for _, edgeFile := range edgeFileArray {
 			log.Printf("Loading %s", edgeFile)
 			count := 0
-			edgeChan := make(chan []*gripql.Edge, 100)
-			edgeBatch := make([]*gripql.Edge, 0, batchSize)
-			go func() {
-				for e := range util.StreamEdgesFromFile(edgeFile) {
-					edgeBatch = append(edgeBatch, e)
-					if len(edgeBatch) >= batchSize {
-						edgeChan <- edgeBatch
-						edgeBatch = make([]*gripql.Edge, 0, batchSize)
-					}
-					count++
-					if count%10000 == 0 {
-						log.Infof("Loaded %d edges", count)
-					}
-				}
-				if len(edgeBatch) > 0 {
-					edgeChan <- edgeBatch
-				}
-				log.Infof("Loaded %d edges", count)
-				close(edgeChan)
-			}()
-			for batch := range edgeChan {
-				//serialize and store vertex
-				if err := kgraph.AddEdge(batch); err != nil {
-					log.Errorf("%s", err)
+			for e := range util.StreamEdgesFromFile(edgeFile) {
+				graphChan <- &gripql.GraphElement{Graph: graph, Edge: e}
+				count++
+				if count%10000 == 0 {
+					log.Infof("Loaded %d edges", count)
 				}
 			}
 		}
-
+		close(graphChan)
+		wg.Wait()
 		db.Close()
 		return nil
 	},
