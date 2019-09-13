@@ -94,7 +94,9 @@ var Cmd = &cobra.Command{
 		wg := &sync.WaitGroup{}
 		go func() {
 			wg.Add(1)
-			kgraph.BulkAdd(graphChan)
+			if err := kgraph.BulkAdd(graphChan); err != nil {
+				log.Error(err)
+			}
 			wg.Done()
 		}()
 
