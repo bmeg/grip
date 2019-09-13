@@ -114,14 +114,16 @@ var Cmd = &cobra.Command{
 			}
 		}
 
+		edgeCounter := ratecounter.NewRateCounter(10 * time.Second)
 		for _, edgeFile := range edgeFileArray {
 			log.Printf("Loading %s", edgeFile)
 			count := 0
 			for e := range util.StreamEdgesFromFile(edgeFile) {
 				graphChan <- &gripql.GraphElement{Graph: graph, Edge: e}
 				count++
+				edgeCounter.Incr(1)
 				if count%10000 == 0 {
-					log.Infof("Loaded %d edges", count)
+					log.Infof("Loaded %d edges (%d/sec)", count, edgeCounter.Rate()/10)
 				}
 			}
 		}
