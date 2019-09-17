@@ -180,71 +180,81 @@ func (server *GripServer) BulkAdd(stream gripql.Edit_BulkAddServer) error {
 	wg := &sync.WaitGroup{}
 	var insertCount int32
 	var errorCount int32
-	var loopErr error
-	for loopErr == nil {
+	for {
 		element, err := stream.Recv()
 		if err == io.EOF {
-			loopErr = err
-		} else if err != nil {
+			break
+		}
+		if err != nil {
 			log.WithFields(log.Fields{"error": err}).Error("BulkAdd: streaming error")
 			errorCount++
-		} else {
-			if isSchema(element.Graph) {
-				err := "cannot add element to schema graph"
-				log.WithFields(log.Fields{"error": err}).Error("BulkAdd: add element error")
+			break
+		}
+
+		if isSchema(element.Graph) {
+			err := "cannot add element to schema graph"
+			log.WithFields(log.Fields{"error": err}).Error("BulkAdd: error")
+			errorCount++
+			continue
+		}
+
+		// create a BulkAdd stream per graph
+		// close and switch when a new graph is encountered
+		if element.Graph != graphName && graphName != "" {
+			close(elementStream)
+
+			graph, err := server.db.Graph(element.Graph)
+			if err != nil {
+				log.WithFields(log.Fields{"error": err}).Error("BulkAdd: error")
 				errorCount++
+				continue
+			}
+
+			graphName = element.Graph
+			elementStream = make(chan *gripql.GraphElement, 100)
+
+			wg.Add(1)
+			go func() {
+				log.WithFields(log.Fields{"graph": element.Graph}).Info("BulkAdd: streaming elements to graph")
+				err := graph.BulkAdd(elementStream)
+				if err != nil {
+					log.WithFields(log.Fields{"graph": element.Graph, "error": err}).Error("BulkAdd: error")
+					// not a good representation of the true number of errors
+					errorCount++
+				}
+				wg.Done()
+			}()
+		}
+
+		if element.Vertex != nil {
+			err := element.Vertex.Validate()
+			if err != nil {
+				errorCount++
+				log.WithFields(log.Fields{"graph": element.Graph, "error": err}).Errorf("BulkAdd: vertex validation failed")
 			} else {
-				if element.Graph != graphName {
-					if graphName != "" {
-						close(elementStream)
-					}
-					graph, err := server.db.Graph(element.Graph)
-					if err != nil {
-						log.WithFields(log.Fields{"error": err}).Error("BulkAdd: graph not found")
-						loopErr = err
-						errorCount++
-					}
-					elementStream = make(chan *gripql.GraphElement, 100)
-					wg.Add(1)
-					go func() {
-						log.Printf("Streaming to %s", element.Graph)
-						err := graph.BulkAdd(elementStream)
-						if err != nil {
-							log.WithFields(log.Fields{"error": err}).Error("BulkAdd: error")
-							errorCount++
-						}
-						wg.Done()
-					}()
-					graphName = element.Graph
-				}
-				if element.Vertex != nil {
-					err := element.Vertex.Validate()
-					if err != nil {
-						errorCount++
-						log.Errorf("vertex validation failed: %v", err)
-					} else {
-						insertCount++
-						elementStream <- element
-					}
-				}
-				if element.Edge != nil {
-					if element.Edge.Gid == "" {
-						element.Edge.Gid = util.UUID()
-					}
-					err := element.Edge.Validate()
-					if err != nil {
-						errorCount++
-						log.Errorf("edge validation failed: %v", err)
-					} else {
-						insertCount++
-						elementStream <- element
-					}
-				}
+				insertCount++
+				elementStream <- element
+			}
+		}
+
+		if element.Edge != nil {
+			if element.Edge.Gid == "" {
+				element.Edge.Gid = util.UUID()
+			}
+			err := element.Edge.Validate()
+			if err != nil {
+				errorCount++
+				log.WithFields(log.Fields{"graph": element.Graph, "error": err}).Errorf("BulkAdd: edge validation failed")
+			} else {
+				insertCount++
+				elementStream <- element
 			}
 		}
 	}
+
 	close(elementStream)
 	wg.Wait()
+
 	return stream.SendAndClose(&gripql.BulkEditResult{InsertCount: insertCount, ErrorCount: errorCount})
 }
 

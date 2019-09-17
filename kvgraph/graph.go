@@ -11,6 +11,7 @@ import (
 	"github.com/bmeg/grip/kvi"
 	"github.com/bmeg/grip/kvindex"
 	proto "github.com/golang/protobuf/proto"
+	"github.com/hashicorp/go-multierror"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -125,34 +126,34 @@ func (kgdb *KVInterfaceGDB) AddEdge(edges []*gripql.Edge) error {
 }
 
 func (kgdb *KVInterfaceGDB) BulkAdd(stream <-chan *gripql.GraphElement) error {
-	var anyErr error
-	err := kgdb.kvg.kv.BulkWrite(func(tx kvi.KVBulkWrite) error {
+	var bulkErr *multierror.Error
+	_ = kgdb.kvg.kv.BulkWrite(func(tx kvi.KVBulkWrite) error {
 		for elem := range stream {
 			if elem.Vertex != nil {
-				if err := elem.Vertex.Validate(); err == nil {
-					if err := insertVertex(tx, kgdb.kvg.idx, kgdb.graph, elem.Vertex); err != nil {
-						anyErr = err
-					}
-				} else {
-					anyErr = err
+				if err := elem.Vertex.Validate(); err != nil {
+					bulkErr = multierror.Append(bulkErr, err)
+					continue
 				}
+				if err := insertVertex(tx, kgdb.kvg.idx, kgdb.graph, elem.Vertex); err != nil {
+					bulkErr = multierror.Append(bulkErr, err)
+				}
+				continue
 			}
+
 			if elem.Edge != nil {
-				if err := elem.Edge.Validate(); err == nil {
-					if err := insertEdge(tx, kgdb.kvg.idx, kgdb.graph, elem.Edge); err != nil {
-						anyErr = err
-					}
-				} else {
-					anyErr = err
+				if err := elem.Edge.Validate(); err != nil {
+					bulkErr = multierror.Append(bulkErr, err)
+					continue
 				}
+				if err := insertEdge(tx, kgdb.kvg.idx, kgdb.graph, elem.Edge); err != nil {
+					bulkErr = multierror.Append(bulkErr, err)
+				}
+				continue
 			}
 		}
 		return nil
 	})
-	if err != nil {
-		return err
-	}
-	return anyErr
+	return bulkErr.ErrorOrNil()
 }
 
 // DelEdge deletes edge with id `key`

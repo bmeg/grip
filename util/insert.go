@@ -2,117 +2,110 @@ package util
 
 import (
 	"fmt"
-	"io"
+	"sync"
 
 	"github.com/bmeg/grip/gripql"
+	"github.com/hashicorp/go-multierror"
 	log "github.com/sirupsen/logrus"
 )
 
-type graphElementArray struct {
-	vertices []*gripql.Vertex
-	edges    []*gripql.Edge
-}
-
-func newGraphElementArray(vertexBufSize, edgeBufSize int) *graphElementArray {
-	if vertexBufSize != 0 {
-		return &graphElementArray{vertices: make([]*gripql.Vertex, 0, vertexBufSize)}
-	}
-	if edgeBufSize != 0 {
-		return &graphElementArray{edges: make([]*gripql.Edge, 0, edgeBufSize)}
-	}
-	return nil
-}
-
-// SteamBatch a stream of inputs and loads them into the graph
+// StreamBatch a stream of inputs and loads them into the graph
 // This function assumes incoming stream is GraphElemnts from a single graph
-func SteamBatch(stream <-chan *gripql.GraphElement, batchSize int, graph string, vertexAdd func([]*gripql.Vertex) error, edgeAdd func([]*gripql.Edge) error) error {
+func StreamBatch(stream <-chan *gripql.GraphElement, batchSize int, graph string, vertexAdd func([]*gripql.Vertex) error, edgeAdd func([]*gripql.Edge) error) error {
 
+	var bulkErr *multierror.Error
 	vertCount := 0
 	edgeCount := 0
+	vertexBatchChan := make(chan []*gripql.Vertex)
+	edgeBatchChan := make(chan []*gripql.Edge)
+	wg := &sync.WaitGroup{}
 
-	vertexBatchChan := make(chan *graphElementArray)
-	edgeBatchChan := make(chan *graphElementArray)
-	closeChan := make(chan bool)
-
+	wg.Add(1)
 	go func() {
 		for vBatch := range vertexBatchChan {
-			if len(vBatch.vertices) > 0 {
-				err := vertexAdd(vBatch.vertices)
+			if len(vBatch) > 0 {
+				err := vertexAdd(vBatch)
 				if err != nil {
-					log.WithFields(log.Fields{"error": err}).Error("BulkAdd: add vertex error")
+					bulkErr = multierror.Append(bulkErr, err)
 				}
 			}
 		}
-		closeChan <- true
+		wg.Done()
 	}()
 
+	wg.Add(1)
 	go func() {
 		for eBatch := range edgeBatchChan {
-			if len(eBatch.edges) > 0 {
-				err := edgeAdd(eBatch.edges)
+			if len(eBatch) > 0 {
+				err := edgeAdd(eBatch)
 				if err != nil {
-					log.WithFields(log.Fields{"error": err}).Error("BulkAdd: add edge error")
+					bulkErr = multierror.Append(bulkErr, err)
 				}
 			}
 		}
-		closeChan <- true
+		wg.Done()
 	}()
 
-	vertexBatch := newGraphElementArray(batchSize, 0)
-	edgeBatch := newGraphElementArray(0, batchSize)
-	var loopErr error
+	vertexBatch := make([]*gripql.Vertex, 0, batchSize)
+	edgeBatch := make([]*gripql.Edge, 0, batchSize)
+
 	for element := range stream {
 		if element.Graph != graph {
-			loopErr = fmt.Errorf("Graph %s != %s", element.Graph, graph)
-		} else {
-			if element.Vertex != nil {
-				if len(vertexBatch.vertices) >= batchSize {
-					vertexBatchChan <- vertexBatch
-					vertexBatch = newGraphElementArray(batchSize, 0)
-				}
-				vertex := element.Vertex
-				err := vertex.Validate()
-				if err != nil {
-					return fmt.Errorf("vertex validation failed: %v", err)
-				}
-				vertexBatch.vertices = append(vertexBatch.vertices, vertex)
+			bulkErr = multierror.Append(
+				bulkErr,
+				fmt.Errorf("unexpected graph reference: %s != %s", element.Graph, graph),
+			)
+		} else if element.Vertex != nil {
+			if len(vertexBatch) >= batchSize {
+				vertexBatchChan <- vertexBatch
+				vertexBatch = make([]*gripql.Vertex, 0, batchSize)
+			}
+			vertex := element.Vertex
+			err := vertex.Validate()
+			if err != nil {
+				bulkErr = multierror.Append(
+					bulkErr,
+					fmt.Errorf("vertex validation failed: %v", err),
+				)
+			} else {
+				vertexBatch = append(vertexBatch, vertex)
 				vertCount++
-			} else if element.Edge != nil {
-				if len(edgeBatch.edges) >= batchSize {
-					edgeBatchChan <- edgeBatch
-					edgeBatch = newGraphElementArray(0, batchSize)
-				}
-				edge := element.Edge
-				if edge.Gid == "" {
-					edge.Gid = UUID()
-				}
-				err := edge.Validate()
-				if err != nil {
-					return fmt.Errorf("edge validation failed: %v", err)
-				}
-				edgeBatch.edges = append(edgeBatch.edges, edge)
+			}
+		} else if element.Edge != nil {
+			if len(edgeBatch) >= batchSize {
+				edgeBatchChan <- edgeBatch
+				edgeBatch = make([]*gripql.Edge, 0, batchSize)
+			}
+			edge := element.Edge
+			if edge.Gid == "" {
+				edge.Gid = UUID()
+			}
+			err := edge.Validate()
+			if err != nil {
+				bulkErr = multierror.Append(
+					bulkErr,
+					fmt.Errorf("edge validation failed: %v", err),
+				)
+			} else {
+				edgeBatch = append(edgeBatch, edge)
 				edgeCount++
 			}
 		}
 	}
-
 	vertexBatchChan <- vertexBatch
 	edgeBatchChan <- edgeBatch
 
 	if vertCount != 0 {
-		log.Debugf("%d vertices streamed", vertCount)
+		log.Debugf("%d vertices streamed to BulkAdd", vertCount)
 	}
+
 	if edgeCount != 0 {
-		log.Debugf("%d edges streamed", edgeCount)
+		log.Debugf("%d edges streamed to BulkAdd", edgeCount)
 	}
 
 	close(edgeBatchChan)
 	close(vertexBatchChan)
-	<-closeChan
-	<-closeChan
+	wg.Wait()
 
-	if loopErr != io.EOF {
-		return loopErr
-	}
-	return nil
+	return bulkErr.ErrorOrNil()
 }

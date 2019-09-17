@@ -23,7 +23,10 @@ func NewKVInterface(path string, kopts kvi.Options) (kvi.KVInterface, error) {
 	log.Info("Starting BadgerDB")
 	_, err := os.Stat(path)
 	if os.IsNotExist(err) {
-		os.Mkdir(path, 0700)
+		merr := os.MkdirAll(path, 0700)
+		if merr != nil {
+			return nil, err
+		}
 	}
 
 	opts := badger.Options{}
@@ -108,7 +111,7 @@ func (badgerkv *BadgerKV) DeletePrefix(prefix []byte) error {
 // HasKey returns true if the key is exists in kvstore
 func (badgerkv *BadgerKV) HasKey(id []byte) bool {
 	out := false
-	badgerkv.db.View(func(tx *badger.Txn) error {
+	_ = badgerkv.db.View(func(tx *badger.Txn) error {
 		_, err := tx.Get(id)
 		if err == nil {
 			out = true
@@ -140,9 +143,15 @@ func (badgerkv *BadgerKV) BulkWrite(u func(tx kvi.KVBulkWrite) error) error {
 	bt := badgerkv.db.NewWriteBatch()
 	defer bt.Cancel()
 	ktx := badgerBulkWrite{bt}
-	out := u(ktx)
-	bt.Flush()
-	return out
+	err := u(ktx)
+	if err != nil {
+		return err
+	}
+	err = bt.Flush()
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 type badgerTransaction struct {
