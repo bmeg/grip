@@ -16,9 +16,10 @@ import (
 
 // GridsGDB implements the GripInterface using a generic key/value storage driver
 type GridsGDB struct {
-	keyMap   KeyMap
+	keyMap   *KeyMap
 	keykv    pogreb.DB
 	graphkv  kvi.KVInterface
+	indexkv  kvi.KVInterface
 	idx      *kvindex.KVIndex
 	ts       *timestamp.Timestamp
 }
@@ -38,7 +39,7 @@ func NewGridsGraphDB(dbPath string) (gdbi.GraphDB, error) {
 	}
 	keykvPath := fmt.Sprintf("%s/keymap", dbPath)
 	graphkvPath := fmt.Sprintf("%s/graph", dbPath)
-	//indexkvPath := fmt.Sprintf("%s/index", dbPath)
+	indexkvPath := fmt.Sprintf("%s/index", dbPath)
 	keykv, err := pogreb.Open(keykvPath, nil)
 	if err != nil {
 		return nil, err
@@ -47,14 +48,12 @@ func NewGridsGraphDB(dbPath string) (gdbi.GraphDB, error) {
 	if err != nil {
 		return nil, err
 	}
-	/*
 	indexkv, err := badgerdb.NewKVInterface(indexkvPath, kvi.Options{})
 	if err != nil {
 		return nil, err
 	}
-	*/
 	ts := timestamp.NewTimestamp()
-	o := &GridsGDB{keyMap:NewKeyMap(keykv), graphkv: graphkv, ts: &ts, idx: kvindex.NewIndex(graphkv)}
+	o := &GridsGDB{keyMap:NewKeyMap(keykv), graphkv: graphkv, indexkv:indexkv, ts: &ts, idx: kvindex.NewIndex(indexkv)}
 	for _, i := range o.ListGraphs() {
 		o.ts.Touch(i)
 	}
@@ -66,6 +65,6 @@ func NewGridsGraphDB(dbPath string) (gdbi.GraphDB, error) {
 func (gridb *GridsGDB) Close() error {
 	gridb.keyMap.Close()
 	gridb.graphkv.Close()
-	//gridb.indexkv.Close()
+	gridb.indexkv.Close()
 	return nil
 }

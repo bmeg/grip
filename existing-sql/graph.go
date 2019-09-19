@@ -41,6 +41,10 @@ func (g *Graph) AddEdge(edges []*gripql.Edge) error {
 	return errors.New("not implemented")
 }
 
+func (g *Graph) BulkAdd(stream <-chan *gripql.GraphElement) error {
+	return errors.New("not implemented")
+}
+
 // DelVertex is not implemented in the SQL driver
 func (g *Graph) DelVertex(key string) error {
 	return errors.New("not implemented")

@@ -1,6 +1,7 @@
 package grids
 
 import (
+  "sync"
   "bytes"
   "encoding/binary"
   "github.com/akrylysov/pogreb"
@@ -14,6 +15,11 @@ type KeyMap struct {
   vIncCur  uint64
   eIncCur  uint64
   lIncCur  uint64
+
+  gIncMut  sync.Mutex
+  vIncMut  sync.Mutex
+  eIncMut  sync.Mutex
+  lIncMut  sync.Mutex
 }
 
 var incMod uint64 = 1000
@@ -34,8 +40,8 @@ var eInc []byte = []byte{'i', 'e'}
 var lInc []byte = []byte{'i', 'l'}
 
 
-func NewKeyMap(kv *pogreb.DB) KeyMap {
-  return KeyMap{db:kv}
+func NewKeyMap(kv *pogreb.DB) *KeyMap {
+  return &KeyMap{db:kv}
 }
 
 
@@ -50,7 +56,9 @@ func (km *KeyMap) GetGraphKey(id string) uint64 {
   if ok {
     return u
   }
+  km.gIncMut.Lock()
   o := dbInc(&km.gIncCur, gInc, km.db)
+  km.gIncMut.Unlock()
   setKeyId(gKeyPrefix, id, o, km.db)
   setIdKey(gIdPrefix, id, o, km.db)
   return o
@@ -67,7 +75,9 @@ func (km *KeyMap) GetVertexKey(id string) uint64 {
   if ok {
     return u
   }
+  km.vIncMut.Lock()
   o := dbInc(&km.vIncCur, vInc, km.db)
+  km.vIncMut.Unlock()
   setKeyId(vKeyPrefix, id, o, km.db)
   setIdKey(vIdPrefix, id, o, km.db)
   return o
@@ -86,7 +96,9 @@ func (km *KeyMap) GetEdgeKey(id string) uint64 {
   if ok {
     return u
   }
+  km.eIncMut.Lock()
   o := dbInc(&km.eIncCur, eInc, km.db)
+  km.eIncMut.Unlock()
   setKeyId(eKeyPrefix, id, o, km.db)
   setIdKey(eIdPrefix, id, o, km.db)
   return o
@@ -110,7 +122,9 @@ func (km *KeyMap) GetLabelKey(id string) uint64 {
   if ok {
     return u
   }
+  km.lIncMut.Lock()
   o := dbInc(&km.lIncCur, lInc, km.db)
+  km.lIncMut.Unlock()
   setKeyId(lKeyPrefix, id, o, km.db)
   setIdKey(lIdPrefix, id, o, km.db)
   return o

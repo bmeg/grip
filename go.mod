@@ -29,6 +29,7 @@ require (
 	github.com/lib/pq v1.1.0
 	github.com/logrusorgru/aurora v0.0.0-20190428105938-cea283e61946
 	github.com/oliveagle/jsonpath v0.0.0-20180606110733-2e52cf6e6852
+	github.com/paulbellamy/ratecounter v0.2.0
 	github.com/robertkrimen/otto v0.0.0-20180617131154-15f95af6e78d
 	github.com/segmentio/ksuid v1.0.2
 	github.com/sirupsen/logrus v1.4.1

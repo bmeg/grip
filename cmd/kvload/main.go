@@ -2,12 +2,14 @@ package kvload
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/bmeg/golib"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/kvgraph"
 	"github.com/bmeg/grip/kvi"
 	"github.com/bmeg/grip/util"
+	"github.com/paulbellamy/ratecounter"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -87,6 +89,7 @@ var Cmd = &cobra.Command{
 			edgeFileArray = append(edgeFileArray, edgeFile)
 		}
 
+		vertexCounter := ratecounter.NewRateCounter(10 * time.Second)
 		for _, vertexFile := range vertexFileArray {
 			log.Infof("Loading %s", vertexFile)
 			count := 0
@@ -100,8 +103,9 @@ var Cmd = &cobra.Command{
 						vertexBatch = make([]*gripql.Vertex, 0, batchSize)
 					}
 					count++
+					vertexCounter.Incr(1)
 					if count%10000 == 0 {
-						log.Infof("Loaded %d vertices", count)
+						log.Infof("Loaded %d vertices (%d/sec)", count, vertexCounter.Rate()/10)
 					}
 				}
 				if len(vertexBatch) > 0 {

@@ -3,10 +3,12 @@ package grids
 import (
 	"bytes"
 	"context"
+	"sync"
 	"fmt"
 
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
+	"github.com/bmeg/grip/kvindex"
 	"github.com/bmeg/grip/kvi"
 	proto "github.com/golang/protobuf/proto"
 	log "github.com/sirupsen/logrus"
@@ -44,35 +46,88 @@ type kvAddData struct {
 	doc    map[string]interface{}
 }
 
+func insertVertex(tx kvi.KVBulkWrite, keyMap *KeyMap, graphKey uint64, vertex *gripql.Vertex) error {
+	value, err := proto.Marshal(vertex)
+	if err != nil {
+		return err
+	}
+	vertexKey := keyMap.GetVertexKey(vertex.Gid)
+	key := VertexKey(graphKey, vertexKey)
+	if err != nil {
+		return err
+	}
+	if err := tx.Set(key, value); err != nil {
+		return fmt.Errorf("AddVertex Error %s", err)
+	}
+	return nil
+}
+
+func indexVertex(tx kvi.KVBulkWrite, idx *kvindex.KVIndex, graph string, vertex *gripql.Vertex) error {
+	doc := map[string]interface{}{graph: vertexIdxStruct(vertex)}
+	if err := idx.AddDocTx(tx, vertex.Gid, doc); err != nil {
+		return fmt.Errorf("AddVertex Error %s", err)
+	}
+	return nil
+}
+
+func insertEdge(tx kvi.KVBulkWrite, keyMap *KeyMap, graphKey uint64, edge *gripql.Edge) error {
+	var err error
+	var data []byte
+
+	data, err = proto.Marshal(edge)
+	if err != nil {
+		return err
+	}
+
+	label := keyMap.GetLabelKey(edge.Label)
+	eid := keyMap.GetEdgeKey(edge.Gid) //TODO: fill in black key?
+	src := keyMap.GetVertexKey(edge.From)
+	dst := keyMap.GetVertexKey(edge.To)
+
+	ekey := EdgeKey(graphKey, eid, src, dst, label)
+	skey := SrcEdgeKey(graphKey, eid, src, dst, label)
+	dkey := DstEdgeKey(graphKey, eid, src, dst, label)
+
+	err = tx.Set(ekey, data)
+	if err != nil {
+		return err
+	}
+	err = tx.Set(skey, []byte{})
+	if err != nil {
+		return err
+	}
+	err = tx.Set(dkey, []byte{})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func indexEdge(tx kvi.KVBulkWrite, idx *kvindex.KVIndex, graph string, edge *gripql.Edge) error {
+	err := idx.AddDocTx(tx, edge.Gid, map[string]interface{}{graph: edgeIdxStruct(edge)})
+	return err
+}
+
 // AddVertex adds an edge to the graph, if it already exists
 // in the graph, it is replaced
 func (ggraph *GridsGraph) AddVertex(vertices []*gripql.Vertex) error {
-	dataChan := make(chan *kvAddData, 100)
-	go func() {
-		for _, vertex := range vertices {
-			d, err := proto.Marshal(vertex)
-			vertexKey := ggraph.kdb.keyMap.GetVertexKey(vertex.Gid)
-			k := VertexKey(ggraph.graphKey, vertexKey)
-			if err == nil {
-				doc := map[string]interface{}{ggraph.graphID: vertexIdxStruct(vertex)}
-				dataChan <- &kvAddData{key: k, value: d, vertex: vertex, doc: doc}
-			}
-		}
-		close(dataChan)
-	}()
-
-	//TODO: split index out to other transation
 	err := ggraph.kdb.graphkv.BulkWrite(func(tx kvi.KVBulkWrite) error {
 		var anyErr error
-		for kv := range dataChan {
-			if err := tx.Set(kv.key, kv.value); err != nil {
+		for _, vert := range vertices {
+			if err := insertVertex(tx, ggraph.kdb.keyMap, ggraph.graphKey, vert); err != nil {
 				anyErr = err
 				log.Errorf("AddVertex Error %s", err)
-			} else {
-				if err := ggraph.kdb.idx.AddDocTx(tx, kv.vertex.Gid, kv.doc); err != nil {
-					anyErr = err
-					log.Errorf("AddVertex Error %s", err)
-				}
+			}
+		}
+		ggraph.kdb.ts.Touch(ggraph.graphID)
+		return anyErr
+	})
+	err = ggraph.kdb.indexkv.BulkWrite(func(tx kvi.KVBulkWrite) error {
+		var anyErr error
+		for _, vert := range vertices {
+			if err := indexVertex(tx, ggraph.kdb.idx, ggraph.graphID, vert); err != nil {
+				anyErr = err
+				log.Errorf("IndexVertex Error %s", err)
 			}
 		}
 		ggraph.kdb.ts.Touch(ggraph.graphID)
@@ -86,46 +141,77 @@ func (ggraph *GridsGraph) AddVertex(vertices []*gripql.Vertex) error {
 func (ggraph *GridsGraph) AddEdge(edges []*gripql.Edge) error {
 	err := ggraph.kdb.graphkv.BulkWrite(func(tx kvi.KVBulkWrite) error {
 		for _, edge := range edges {
-			var err error
-			var data []byte
-
-			data, err = proto.Marshal(edge)
-			if err != nil {
-				return err
-			}
-
-			label := ggraph.kdb.keyMap.GetLabelKey(edge.Label)
-			eid := ggraph.kdb.keyMap.GetEdgeKey(edge.Gid) //TODO: fill in black key?
-			src := ggraph.kdb.keyMap.GetVertexKey(edge.From)
-			dst := ggraph.kdb.keyMap.GetVertexKey(edge.To)
-
-			ekey := EdgeKey(ggraph.graphKey, eid, src, dst, label)
-			skey := SrcEdgeKey(ggraph.graphKey, eid, src, dst, label)
-			dkey := DstEdgeKey(ggraph.graphKey, eid, src, dst, label)
-
-			err = tx.Set(ekey, data)
-			if err != nil {
-				return err
-			}
-			err = tx.Set(skey, []byte{})
-			if err != nil {
-				return err
-			}
-			err = tx.Set(dkey, []byte{})
-			if err != nil {
-				return err
-			}
-			//TODO: change this to a different TX
-			err = ggraph.kdb.idx.AddDocTx(tx, edge.Gid, map[string]interface{}{ggraph.graphID: edgeIdxStruct(edge)})
-			if err != nil {
-				return err
-			}
+			insertEdge(tx, ggraph.kdb.keyMap, ggraph.graphKey, edge)
+		}
+		ggraph.kdb.ts.Touch(ggraph.graphID)
+		return nil
+	})
+	err = ggraph.kdb.indexkv.BulkWrite(func(tx kvi.KVBulkWrite) error {
+		for _, edge := range edges {
+			indexEdge(tx, ggraph.kdb.idx, ggraph.graphID, edge)
 		}
 		ggraph.kdb.ts.Touch(ggraph.graphID)
 		return nil
 	})
 	return err
+
 }
+
+
+func (ggraph *GridsGraph) BulkAdd(stream <-chan *gripql.GraphElement) error {
+	var anyErr error
+	insertStream := make(chan *gripql.GraphElement, 100)
+	indexStream := make(chan *gripql.GraphElement, 100)
+	s := &sync.WaitGroup{}
+	s.Add(2)
+	go func () {
+		ggraph.kdb.graphkv.BulkWrite(func(tx kvi.KVBulkWrite) error {
+			for elem := range insertStream {
+				if elem.Vertex != nil {
+					if err := insertVertex(tx, ggraph.kdb.keyMap, ggraph.graphKey, elem.Vertex); err != nil {
+						anyErr = err
+					}
+				}
+				if elem.Edge != nil {
+					if err := insertEdge(tx, ggraph.kdb.keyMap, ggraph.graphKey, elem.Edge); err != nil {
+						anyErr = err
+					}
+				}
+			}
+			s.Done()
+			return anyErr
+		})
+	}()
+
+	go func () {
+		ggraph.kdb.indexkv.BulkWrite(func(tx kvi.KVBulkWrite) error {
+			for elem := range indexStream {
+				if elem.Vertex != nil {
+					if err := indexVertex(tx, ggraph.kdb.idx, ggraph.graphID, elem.Vertex); err != nil {
+						anyErr = err
+					}
+				}
+				if elem.Edge != nil {
+					if err := indexEdge(tx, ggraph.kdb.idx, ggraph.graphID, elem.Edge); err != nil {
+						anyErr = err
+					}
+				}
+			}
+			s.Done()
+			return anyErr
+		})
+	}()
+
+	for i := range stream {
+		insertStream <- i
+		indexStream <- i
+	}
+	close(insertStream)
+	close(indexStream)
+	s.Wait()
+	return anyErr
+}
+
 
 // DelEdge deletes edge with id `key`
 func (ggraph *GridsGraph) DelEdge(eid string) error {
