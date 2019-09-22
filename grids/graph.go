@@ -49,9 +49,6 @@ type kvAddData struct {
 func insertVertex(tx kvi.KVBulkWrite, keyMap *KeyMap, graphKey uint64, vertex *gripql.Vertex) error {
 	vertexKey := keyMap.GetVertexKey(vertex.Gid)
 	key := VertexKey(graphKey, vertexKey)
-	if err != nil {
-		return err
-	}
 	value, err := proto.Marshal(vertex)
 	if err != nil {
 		return err
