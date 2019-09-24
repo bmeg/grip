@@ -17,23 +17,11 @@ import (
 
 var dbPath = "grip.db"
 var kvDriver = "badger"
-
 var graph string
 var vertexFile string
 var edgeFile string
 var vertexManifestFile string
 var edgeManifestFile string
-
-var batchSize = 1000
-
-func found(set []string, val string) bool {
-	for _, i := range set {
-		if i == val {
-			return true
-		}
-	}
-	return false
-}
 
 // Cmd is the declaration of the command line
 var Cmd = &cobra.Command{
@@ -57,7 +45,7 @@ var Cmd = &cobra.Command{
 		}
 		db := kvgraph.NewKVGraph(kv)
 
-		db.AddGraph(graph)
+		_ = db.AddGraph(graph)
 		kgraph, err := db.Graph(graph)
 		if err != nil {
 			return err
@@ -90,7 +78,7 @@ var Cmd = &cobra.Command{
 			edgeFileArray = append(edgeFileArray, edgeFile)
 		}
 
-		graphChan := make(chan *gripql.GraphElement, 10)
+		graphChan := make(chan *gripql.GraphElement, 1000)
 		wg := &sync.WaitGroup{}
 		go func() {
 			wg.Add(1)
@@ -142,5 +130,4 @@ func init() {
 	flags.StringVar(&edgeFile, "edge", "", "edge file")
 	flags.StringVar(&vertexManifestFile, "vertex-manifest", "", "vertex manifest file")
 	flags.StringVar(&edgeManifestFile, "edge-manifest", "", "edge manifest file")
-	flags.IntVar(&batchSize, "batch-size", batchSize, "bulk load batch size")
 }
