@@ -126,8 +126,8 @@ func (kgdb *KVInterfaceGDB) AddEdge(edges []*gripql.Edge) error {
 }
 
 func (kgdb *KVInterfaceGDB) BulkAdd(stream <-chan *gripql.GraphElement) error {
-	var bulkErr *multierror.Error
-	_ = kgdb.kvg.kv.BulkWrite(func(tx kvi.KVBulkWrite) error {
+	err = kgdb.kvg.kv.BulkWrite(func(tx kvi.KVBulkWrite) error {
+		var bulkErr *multierror.Error
 		for elem := range stream {
 			if elem.Vertex != nil {
 				if err := elem.Vertex.Validate(); err != nil {
@@ -151,9 +151,9 @@ func (kgdb *KVInterfaceGDB) BulkAdd(stream <-chan *gripql.GraphElement) error {
 				continue
 			}
 		}
-		return nil
+		return bulkErr.ErrorOrNil()
 	})
-	return bulkErr.ErrorOrNil()
+	return err
 }
 
 // DelEdge deletes edge with id `key`
