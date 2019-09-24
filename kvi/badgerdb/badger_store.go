@@ -12,7 +12,6 @@ import (
 	"github.com/bmeg/grip/kvgraph"
 	"github.com/bmeg/grip/kvi"
 	"github.com/dgraph-io/badger"
-	"github.com/dgraph-io/badger/options"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -29,15 +28,8 @@ func NewKVInterface(path string, kopts kvi.Options) (kvi.KVInterface, error) {
 		}
 	}
 
-	blog := log.New()
-	blog.SetLevel(log.WarnLevel)
-
-	opts := badger.Options{}
-	opts = badger.DefaultOptions(path)
-	opts.TableLoadingMode = options.MemoryMap
-	opts.Dir = path
-	opts.ValueDir = path
-	opts.Logger = blog
+	opts := badger.DefaultOptions(path)
+	opts = opts.WithLogger(log.New())
 	db, err := badger.Open(opts)
 	if err != nil {
 		return nil, err
