@@ -44,6 +44,7 @@ var Cmd = &cobra.Command{
 			return err
 		}
 		db := kvgraph.NewKVGraph(kv)
+		defer db.Close()
 
 		_ = db.AddGraph(graph)
 		kgraph, err := db.Graph(graph)
@@ -83,7 +84,7 @@ var Cmd = &cobra.Command{
 		go func() {
 			wg.Add(1)
 			if err := kgraph.BulkAdd(graphChan); err != nil {
-				log.Error(err)
+				log.Errorf("BulkdAdd: %v", err)
 			}
 			wg.Done()
 		}()
@@ -100,6 +101,7 @@ var Cmd = &cobra.Command{
 					log.Infof("Loaded %d vertices (%d/sec)", count, vertexCounter.Rate()/10)
 				}
 			}
+			log.Infof("Loaded %d vertices (%d/sec)", count, vertexCounter.Rate()/10)
 		}
 
 		edgeCounter := ratecounter.NewRateCounter(10 * time.Second)
@@ -114,10 +116,11 @@ var Cmd = &cobra.Command{
 					log.Infof("Loaded %d edges (%d/sec)", count, edgeCounter.Rate()/10)
 				}
 			}
+			log.Infof("Loaded %d edges (%d/sec)", count, edgeCounter.Rate()/10)
 		}
+
 		close(graphChan)
 		wg.Wait()
-		db.Close()
 		return nil
 	},
 }
