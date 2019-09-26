@@ -126,7 +126,7 @@ func (kgdb *KVInterfaceGDB) AddEdge(edges []*gripql.Edge) error {
 }
 
 func (kgdb *KVInterfaceGDB) BulkAdd(stream <-chan *gripql.GraphElement) error {
-	err = kgdb.kvg.kv.BulkWrite(func(tx kvi.KVBulkWrite) error {
+	err := kgdb.kvg.kv.BulkWrite(func(tx kvi.KVBulkWrite) error {
 		var bulkErr *multierror.Error
 		for elem := range stream {
 			if elem.Vertex != nil {
