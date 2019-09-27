@@ -5,7 +5,6 @@ import (
 
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
-	"github.com/bmeg/grip/engine/inspect"
 	"github.com/bmeg/grip/jsonpath"
 	"github.com/bmeg/grip/protoutil"
 )
@@ -17,7 +16,7 @@ type DefaultPipeline struct {
 	markTypes map[string]gdbi.DataType
 }
 
-func NewPipeline(procs []gdbi.Processor, ps *PipelineState) *DefaultPipeline {
+func NewPipeline(procs []gdbi.Processor, ps *gdbi.PipelineState) *DefaultPipeline {
 	return &DefaultPipeline{procs, ps.LastType, ps.MarkTypes}
 }
 
@@ -46,40 +45,6 @@ func NewCompiler(db gdbi.GraphInterface) gdbi.Compiler {
 	return DefaultCompiler{db: db}
 }
 
-type PipelineState struct {
-	LastType gdbi.DataType
-	MarkTypes map[string]gdbi.DataType
-	Steps    []string
-	StepOutputs map[string][]string
-	CurStep   string
-}
-
-func (ps *PipelineState) SetCurStatment(a int) {
-	ps.CurStep = ps.Steps[a]
-}
-
-func (ps *PipelineState) StepLoadData() bool {
-	if x, ok := ps.StepOutputs[ps.CurStep]; ok {
-		if len(x) == 1 && x[0] == "_label" {
-			return false
-		}
-		return true
-	}
-	return false
-}
-
-func NewPipelineState(stmts []*gripql.GraphStatement) *PipelineState {
-	steps := inspect.PipelineSteps(stmts)
-	stepOut := inspect.PipelineStepOutputs(stmts)
-
-	return &PipelineState{
-		LastType: gdbi.NoData,
-		MarkTypes: map[string]gdbi.DataType{},
-		Steps: steps,
-		StepOutputs: stepOut,
-	}
-}
-
 // Compile take set of statments and turns them into a runnable pipeline
 func (comp DefaultCompiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, error) {
 	if len(stmts) == 0 {
@@ -95,7 +60,7 @@ func (comp DefaultCompiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeli
 	stmts = IndexStartOptimize(stmts)
 
 
-	ps := NewPipelineState(stmts)
+	ps := gdbi.NewPipelineState(stmts)
 
 	procs := make([]gdbi.Processor, 0, len(stmts))
 
@@ -111,7 +76,7 @@ func (comp DefaultCompiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeli
 	return &DefaultPipeline{procs, ps.LastType, ps.MarkTypes}, nil
 }
 
-func StatementProcessor(gs *gripql.GraphStatement, db gdbi.GraphInterface, ps *PipelineState) (gdbi.Processor, error) {
+func StatementProcessor(gs *gripql.GraphStatement, db gdbi.GraphInterface, ps *gdbi.PipelineState) (gdbi.Processor, error) {
 	switch stmt := gs.GetStatement().(type) {
 
 	case *gripql.GraphStatement_V:
@@ -311,6 +276,10 @@ func StatementProcessor(gs *gripql.GraphStatement, db gdbi.GraphInterface, ps *P
 	case *gripql.GraphStatement_LookupVertsIndex:
 		ps.LastType = gdbi.VertexData
 		return &LookupVertsIndex{db:db, labels:stmt.Labels, loadData:ps.StepLoadData()}, nil
+
+	case *gripql.GraphStatement_EngineCustom:
+		proc := stmt.Custom.(gdbi.CustomProcGen)
+		return proc.GetProcessor(db, ps)
 
 	default:
 		return nil, fmt.Errorf("unknown statement type")

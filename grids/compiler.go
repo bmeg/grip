@@ -35,11 +35,12 @@ func (comp GridsCompiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline
 		return &core.DefaultPipeline{}, fmt.Errorf("invalid statments: %s", err)
 	}
 
-	ps := core.NewPipelineState(stmts)
+	ps := gdbi.NewPipelineState(stmts)
 
   noLoadPaths := inspect.PipelineNoLoadPathSteps(stmts)
   if len(noLoadPaths) > 0 {
     fmt.Printf("Found Path: %s\n", noLoadPaths)
+    //stmts = append(stmts, &gripql.GraphStatement{&gripql.GraphStatement_EngineCustom{"path", PathStatement{}}})
   }
 
 	procs := make([]gdbi.Processor, 0, len(stmts))
@@ -53,6 +54,10 @@ func (comp GridsCompiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline
 		procs = append(procs, p)
 	}
 
-
 	return core.NewPipeline(procs, ps), nil
+}
+
+
+type PathStatement struct {
+
 }

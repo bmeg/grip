@@ -10,3 +10,10 @@ type GraphStatement_LookupVertsIndex struct {
 }
 
 func (*GraphStatement_LookupVertsIndex) isGraphStatement_Statement()         {}
+
+type GraphStatement_EngineCustom struct {
+  Desc string
+  Custom interface{}
+}
+
+func (*GraphStatement_EngineCustom) isGraphStatement_Statement()         {}
