@@ -17,6 +17,10 @@ type DefaultPipeline struct {
 	markTypes map[string]gdbi.DataType
 }
 
+func NewPipeline(procs []gdbi.Processor, ps *PipelineState) *DefaultPipeline {
+	return &DefaultPipeline{procs, ps.LastType, ps.MarkTypes}
+}
+
 // DataType return the datatype
 func (pipe *DefaultPipeline) DataType() gdbi.DataType {
 	return pipe.dataType
@@ -65,8 +69,8 @@ func (ps *PipelineState) StepLoadData() bool {
 }
 
 func NewPipelineState(stmts []*gripql.GraphStatement) *PipelineState {
-	steps := engine.PipelineSteps(stmts)
-	stepOut := engine.PipelineStepOutputs(stmts)
+	steps := inspect.PipelineSteps(stmts)
+	stepOut := inspect.PipelineStepOutputs(stmts)
 
 	return &PipelineState{
 		LastType: gdbi.NoData,
@@ -84,9 +88,12 @@ func (comp DefaultCompiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeli
 
 	stmts = Flatten(stmts)
 
-	if err := validate(stmts); err != nil {
+	if err := Validate(stmts); err != nil {
 		return &DefaultPipeline{}, fmt.Errorf("invalid statments: %s", err)
 	}
+
+	stmts = IndexStartOptimize(stmts)
+
 
 	ps := NewPipelineState(stmts)
 
@@ -100,8 +107,6 @@ func (comp DefaultCompiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeli
 		}
 		procs = append(procs, p)
 	}
-
-	procs = indexStartOptimize(procs)
 
 	return &DefaultPipeline{procs, ps.LastType, ps.MarkTypes}, nil
 }
@@ -302,143 +307,21 @@ func StatementProcessor(gs *gripql.GraphStatement, db gdbi.GraphInterface, ps *P
 		ps.LastType = gdbi.AggregationData
 		return &aggregate{stmt.Aggregate.Aggregations}, nil
 
+	//Custom graph statements
+	case *gripql.GraphStatement_LookupVertsIndex:
+		ps.LastType = gdbi.VertexData
+		return &LookupVertsIndex{db:db, labels:stmt.Labels, loadData:ps.StepLoadData()}, nil
+
 	default:
 		return nil, fmt.Errorf("unknown statement type")
 	}
 }
 
-// For V().Has(Eq("$.label", "Person")) and V().Has(Eq("$.gid", "1")) queries, streamline into a single index lookup
-func indexStartOptimize(pipe []gdbi.Processor) []gdbi.Processor {
-	optimized := []gdbi.Processor{}
 
-	var lookupV *LookupVerts
-	hasIDIdx := []int{}
-	hasLabelIdx := []int{}
-	isDone := false
-	for i, step := range pipe {
-		if isDone {
-			break
-		}
-		if i == 0 {
-			if lv, ok := step.(*LookupVerts); ok {
-				lookupV = lv
-			} else {
-				break
-			}
-			continue
-		}
-		switch s := step.(type) {
-		case *HasID:
-			hasIDIdx = append(hasIDIdx, i)
-		case *HasLabel:
-			hasLabelIdx = append(hasLabelIdx, i)
-		case *Has:
-			if and := s.stmt.GetAnd(); and != nil {
-				stmts := and.GetExpressions()
-				newPipe := []gdbi.Processor{}
-				newPipe = append(newPipe, pipe[:i]...)
-				for _, stmt := range stmts {
-					newPipe = append(newPipe, &Has{stmt: stmt})
-				}
-				newPipe = append(newPipe, pipe[i+1:]...)
-				return indexStartOptimize(newPipe)
-			}
-			if cond := s.stmt.GetCondition(); cond != nil {
-				path := jsonpath.GetJSONPath(cond.Key)
-				switch path {
-				case "$.gid":
-					hasIDIdx = append(hasIDIdx, i)
-				case "$.label":
-					hasLabelIdx = append(hasLabelIdx, i)
-				default:
-					// do nothing
-				}
-			}
-		default:
-			isDone = true
-		}
-	}
 
-	idOpt := false
-	if len(hasIDIdx) > 0 {
-		ids := []string{}
-		idx := hasIDIdx[0]
-		if has, ok := pipe[idx].(*Has); ok {
-			ids = append(ids, extractHasVals(has)...)
-		}
-		if has, ok := pipe[idx].(*HasID); ok {
-			ids = append(ids, has.ids...)
-		}
-		if len(ids) > 0 {
-			idOpt = true
-			hIdx := &LookupVerts{ids: ids, db: lookupV.db}
-			optimized = append(optimized, hIdx)
-		}
-	}
 
-	labelOpt := false
-	if len(hasLabelIdx) > 0 && !idOpt {
-		labels := []string{}
-		idx := hasLabelIdx[0]
-		if has, ok := pipe[idx].(*Has); ok {
-			labels = append(labels, extractHasVals(has)...)
-		}
-		if has, ok := pipe[idx].(*HasLabel); ok {
-			labels = append(labels, has.labels...)
-		}
-		if len(labels) > 0 {
-			labelOpt = true
-			hIdx := &LookupVertsIndex{labels: labels, db: lookupV.db}
-			optimized = append(optimized, hIdx)
-		}
-	}
-
-	for i, step := range pipe {
-		if idOpt || labelOpt {
-			if i == 0 {
-				continue
-			}
-		} else {
-			optimized = append(optimized, step)
-		}
-		if idOpt {
-			if i != hasIDIdx[0] {
-				optimized = append(optimized, step)
-			}
-		}
-		if labelOpt {
-			if i != hasLabelIdx[0] {
-				optimized = append(optimized, step)
-			}
-		}
-	}
-
-	return optimized
-}
-
-func extractHasVals(h *Has) []string {
-	vals := []string{}
-	if cond := h.stmt.GetCondition(); cond != nil {
-		// path := jsonpath.GetJSONPath(cond.Key)
-		val := protoutil.UnWrapValue(cond.Value)
-		switch cond.Condition {
-		case gripql.Condition_EQ:
-			if l, ok := val.(string); ok {
-				vals = []string{l}
-			}
-		case gripql.Condition_WITHIN:
-			v := val.([]interface{})
-			for _, x := range v {
-				vals = append(vals, x.(string))
-			}
-		default:
-			// do nothing
-		}
-	}
-	return vals
-}
-
-func validate(stmts []*gripql.GraphStatement) error {
+//Validate checks pipeline for chains of statements that won't work
+func Validate(stmts []*gripql.GraphStatement) error {
 	for i, gs := range stmts {
 		// Validate that the first statement is V() or E()
 		if i == 0 {
