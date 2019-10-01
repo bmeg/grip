@@ -265,80 +265,62 @@ func ConfigureLogger(conf Logger) {
 
 // Debug log message
 func Debug(args ...interface{}) {
-	logger.Debug(fmt.Sprint(args...))
+	logger.Debug(args...)
 }
 
 // Debugln log message
 func Debugln(args ...interface{}) {
-	logger.Debug(fmt.Sprint(args...))
+	logger.Debugln(args...)
 }
 
 // Debugf log message
 func Debugf(format string, args ...interface{}) {
-	logger.Debug(fmt.Sprintf(format, args...))
+	logger.Debugf(format, args...)
 }
 
 // Info log message
 func Info(args ...interface{}) {
-	logger.Debug(fmt.Sprint(args...))
+	logger.Info(args...)
 }
 
 // Infoln log message
 func Infoln(args ...interface{}) {
-	logger.Debug(fmt.Sprint(args...))
+	logger.Infoln(args...)
 }
 
 // Infof log message
 func Infof(format string, args ...interface{}) {
-	logger.Debug(fmt.Sprintf(format, args...))
+	logger.Infof(format, args...)
 }
 
 // Warning log message
 func Warning(args ...interface{}) {
-	logger.Debug(fmt.Sprint(args...))
+	logger.Warning(args...)
 }
 
 // Warningln log message
 func Warningln(args ...interface{}) {
-	logger.Debug(fmt.Sprint(args...))
+	logger.Warningln(fmt.Sprint(args...))
 }
 
 // Warningf log message
 func Warningf(format string, args ...interface{}) {
-	logger.Debug(fmt.Sprintf(format, args...))
+	logger.Warningf(format, args...)
 }
 
 // Error log message
 func Error(args ...interface{}) {
-	logger.Error(fmt.Sprint(args...))
+	logger.Error(args...)
 }
 
 // Errorln log message
 func Errorln(args ...interface{}) {
-	logger.Error(fmt.Sprint(args...))
+	logger.Errorln(args...)
 }
 
 // Errorf log message
 func Errorf(format string, args ...interface{}) {
-	logger.Error(fmt.Sprintf(format, args...))
-}
-
-// Fatal log message
-func Fatal(args ...interface{}) {
-	logger.Error(fmt.Sprint(args...))
-	os.Exit(1)
-}
-
-// Fatalln log message
-func Fatalln(args ...interface{}) {
-	logger.Error(fmt.Sprint(args...))
-	os.Exit(1)
-}
-
-// Fatalf log message
-func Fatalf(format string, args ...interface{}) {
-	logger.Error(fmt.Sprintf(format, args...))
-	os.Exit(1)
+	logger.Errorf(format, args...)
 }
 
 // Fields type, used to pass to `WithFields`.

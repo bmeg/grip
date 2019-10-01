@@ -12,7 +12,7 @@ import (
 	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/util"
 	"github.com/paulbellamy/ratecounter"
-  "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -37,7 +37,7 @@ var Cmd = &cobra.Command{
 
 		graph = args[0]
 
-    log.GetLogger().SetLevel(logrus.DebugLevel)
+		log.GetLogger().SetLevel(logrus.DebugLevel)
 
 		// Create the graph  if it doesn't already exist.
 		// Creating the graph also results in the creation of indices
