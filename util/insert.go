@@ -5,8 +5,8 @@ import (
 	"sync"
 
 	"github.com/bmeg/grip/gripql"
+	"github.com/bmeg/grip/log"
 	"github.com/hashicorp/go-multierror"
-	log "github.com/sirupsen/logrus"
 )
 
 // StreamBatch a stream of inputs and loads them into the graph

@@ -10,10 +10,10 @@ import (
 	"github.com/bmeg/grip/engine/core"
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
+	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/timestamp"
 	"github.com/bmeg/grip/util"
 	"github.com/golang/protobuf/jsonpb"
-	log "github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
 	elastic "gopkg.in/olivere/elastic.v5"
 )

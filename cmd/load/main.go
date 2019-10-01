@@ -5,9 +5,9 @@ import (
 
 	"github.com/bmeg/grip/cmd/load/example"
 	"github.com/bmeg/grip/gripql"
+	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/util"
 	"github.com/bmeg/grip/util/rpc"
-	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -61,7 +61,7 @@ var Cmd = &cobra.Command{
 		wait := make(chan bool)
 		go func() {
 			if err := conn.BulkAdd(elemChan); err != nil {
-				log.Printf("bulk add error: %v", err)
+				log.Errorf("bulk add error: %v", err)
 			}
 			wait <- false
 		}()

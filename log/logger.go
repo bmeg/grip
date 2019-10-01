@@ -1,4 +1,4 @@
-package config
+package log
 
 import (
 	"bytes"
@@ -15,9 +15,11 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/kr/pretty"
 	"github.com/logrusorgru/aurora"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh/terminal"
 )
+
+var logger = logrus.New()
 
 const defaultTimestampFormat = time.RFC3339
 
@@ -72,12 +74,12 @@ func DefaultLoggerConfig() Logger {
 
 type jsonFormatter struct {
 	conf JSONFormatConfig
-	fmt  *log.JSONFormatter
+	fmt  *logrus.JSONFormatter
 }
 
-func (f *jsonFormatter) Format(entry *log.Entry) ([]byte, error) {
+func (f *jsonFormatter) Format(entry *logrus.Entry) ([]byte, error) {
 	if f.fmt == nil {
-		f.fmt = &log.JSONFormatter{
+		f.fmt = &logrus.JSONFormatter{
 			DisableTimestamp: f.conf.DisableTimestamp,
 			TimestampFormat:  f.conf.TimestampFormat,
 		}
@@ -107,7 +109,7 @@ func isColorTerminal(w io.Writer) bool {
 	return checkIfTerminal(w) && (runtime.GOOS != "windows")
 }
 
-func (f *textFormatter) Format(entry *log.Entry) ([]byte, error) {
+func (f *textFormatter) Format(entry *logrus.Entry) ([]byte, error) {
 	isColored := (f.ForceColors || isColorTerminal(entry.Logger.Out)) && !f.DisableColors
 	if !isColored {
 		return f.json.Format(entry)
@@ -125,11 +127,11 @@ func (f *textFormatter) Format(entry *log.Entry) ([]byte, error) {
 	var levelColor aurora.Color
 
 	switch entry.Level {
-	case log.DebugLevel:
+	case logrus.DebugLevel:
 		levelColor = aurora.MagentaFg
-	case log.WarnLevel:
+	case logrus.WarnLevel:
 		levelColor = aurora.BrownFg
-	case log.ErrorLevel, log.FatalLevel, log.PanicLevel:
+	case logrus.ErrorLevel, logrus.FatalLevel, logrus.PanicLevel:
 		levelColor = aurora.RedFg
 	default:
 		levelColor = aurora.CyanFg
@@ -183,7 +185,7 @@ func (f *textFormatter) Format(entry *log.Entry) ([]byte, error) {
 	return b.Bytes(), nil
 }
 
-func (f *textFormatter) sortKeys(entry *log.Entry) []string {
+func (f *textFormatter) sortKeys(entry *logrus.Entry) []string {
 
 	// Gather keys so they can be sorted
 	keys := make([]string, 0, len(entry.Data))
@@ -200,34 +202,47 @@ func (f *textFormatter) sortKeys(entry *log.Entry) []string {
 	return keys
 }
 
-// ConfigureLogger configures the global logrus logger
+// ConfigureLogger configures the global and local logrus logger
 func ConfigureLogger(conf Logger) {
 	switch strings.ToLower(conf.Level) {
 	case "debug":
-		log.SetLevel(log.DebugLevel)
+		logrus.SetLevel(logrus.DebugLevel)
+		logger.SetLevel(logrus.DebugLevel)
 	case "info":
-		log.SetLevel(log.InfoLevel)
+		logrus.SetLevel(logrus.InfoLevel)
+		logger.SetLevel(logrus.InfoLevel)
 	case "warn", "warning":
-		log.SetLevel(log.WarnLevel)
+		logrus.SetLevel(logrus.WarnLevel)
+		logger.SetLevel(logrus.WarnLevel)
 	case "error":
-		log.SetLevel(log.ErrorLevel)
+		logrus.SetLevel(logrus.ErrorLevel)
 	default:
-		log.Warningf("Unknown log level: '%s'; defaulting to 'info'", conf.Level)
-		log.SetLevel(log.InfoLevel)
+		logrus.Warningf("Unknown log level: '%s'; defaulting to 'info'", conf.Level)
+		logrus.SetLevel(logrus.InfoLevel)
+		logger.SetLevel(logrus.InfoLevel)
 	}
 
 	switch strings.ToLower(conf.Formatter) {
 	case "json":
-		log.SetFormatter(&jsonFormatter{
+		logrus.SetFormatter(&jsonFormatter{
+			conf: conf.JSONFormat,
+		})
+		logger.SetFormatter(&jsonFormatter{
 			conf: conf.JSONFormat,
 		})
 
 	// Default to text
 	default:
 		if strings.ToLower(conf.Formatter) != "text" {
-			log.Warningf("Unknown log formatter: '%s'; defaulting to 'text'", conf.Formatter)
+			logrus.Warningf("Unknown log formatter: '%s'; defaulting to 'text'", conf.Formatter)
 		}
-		log.SetFormatter(&textFormatter{
+		logrus.SetFormatter(&textFormatter{
+			conf.TextFormat,
+			jsonFormatter{
+				conf: conf.JSONFormat,
+			},
+		})
+		logger.SetFormatter(&textFormatter{
 			conf.TextFormat,
 			jsonFormatter{
 				conf: conf.JSONFormat,
@@ -240,9 +255,101 @@ func ConfigureLogger(conf Logger) {
 			conf.OutputFile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666,
 		)
 		if err != nil {
-			log.Errorf("Can't open log output file: %s", conf.OutputFile)
+			logrus.Errorf("Can't open log output file: %s", conf.OutputFile)
 		} else {
-			log.SetOutput(logFile)
+			logrus.SetOutput(logFile)
+			logger.SetOutput(logFile)
 		}
 	}
+}
+
+// Debug log message
+func Debug(args ...interface{}) {
+	logger.Debug(fmt.Sprint(args...))
+}
+
+// Debugln log message
+func Debugln(args ...interface{}) {
+	logger.Debug(fmt.Sprint(args...))
+}
+
+// Debugf log message
+func Debugf(format string, args ...interface{}) {
+	logger.Debug(fmt.Sprintf(format, args...))
+}
+
+// Info log message
+func Info(args ...interface{}) {
+	logger.Debug(fmt.Sprint(args...))
+}
+
+// Infoln log message
+func Infoln(args ...interface{}) {
+	logger.Debug(fmt.Sprint(args...))
+}
+
+// Infof log message
+func Infof(format string, args ...interface{}) {
+	logger.Debug(fmt.Sprintf(format, args...))
+}
+
+// Warning log message
+func Warning(args ...interface{}) {
+	logger.Debug(fmt.Sprint(args...))
+}
+
+// Warningln log message
+func Warningln(args ...interface{}) {
+	logger.Debug(fmt.Sprint(args...))
+}
+
+// Warningf log message
+func Warningf(format string, args ...interface{}) {
+	logger.Debug(fmt.Sprintf(format, args...))
+}
+
+// Error log message
+func Error(args ...interface{}) {
+	logger.Error(fmt.Sprint(args...))
+}
+
+// Errorln log message
+func Errorln(args ...interface{}) {
+	logger.Error(fmt.Sprint(args...))
+}
+
+// Errorf log message
+func Errorf(format string, args ...interface{}) {
+	logger.Error(fmt.Sprintf(format, args...))
+}
+
+// Fatal log message
+func Fatal(args ...interface{}) {
+	logger.Error(fmt.Sprint(args...))
+	os.Exit(1)
+}
+
+// Fatalln log message
+func Fatalln(args ...interface{}) {
+	logger.Error(fmt.Sprint(args...))
+	os.Exit(1)
+}
+
+// Fatalf log message
+func Fatalf(format string, args ...interface{}) {
+	logger.Error(fmt.Sprintf(format, args...))
+	os.Exit(1)
+}
+
+// Fields type, used to pass to `WithFields`.
+type Fields = logrus.Fields
+
+// WithFields creates an entry from the standard logger and adds multiple fields to it.
+func WithFields(fields Fields) *logrus.Entry {
+	return logger.WithFields(fields)
+}
+
+// GetLogger returns the configured logger
+func GetLogger() *logrus.Logger {
+	return logger
 }

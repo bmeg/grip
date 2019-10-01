@@ -9,9 +9,9 @@ import (
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/kvgraph"
 	"github.com/bmeg/grip/kvi"
+	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/util"
 	"github.com/paulbellamy/ratecounter"
-	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -106,7 +106,7 @@ var Cmd = &cobra.Command{
 
 		edgeCounter := ratecounter.NewRateCounter(10 * time.Second)
 		for _, edgeFile := range edgeFileArray {
-			log.Printf("Loading %s", edgeFile)
+			log.Infof("Loading %s", edgeFile)
 			count := 0
 			for e := range util.StreamEdgesFromFile(edgeFile) {
 				graphChan <- &gripql.GraphElement{Graph: graph, Edge: e}

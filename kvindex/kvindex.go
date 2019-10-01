@@ -9,8 +9,8 @@ import (
 	"strings"
 
 	"github.com/bmeg/grip/kvi"
+	"github.com/bmeg/grip/log"
 	proto "github.com/golang/protobuf/proto"
-	log "github.com/sirupsen/logrus"
 )
 
 // TermType defines in a term is a Number or a String
@@ -344,7 +344,7 @@ func (idx *KVIndex) termGetCount(tx kvi.KVTransaction, field string, ttype TermT
 		binary.PutUvarint(buf, count)
 		err = tx.Set(termKey, buf)
 		if err != nil {
-			log.Printf("Change count error: %s", err)
+			log.Errorf("Change count error: %s", err)
 			return 0, err
 		}
 	}

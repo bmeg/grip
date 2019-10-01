@@ -9,8 +9,8 @@ import (
 
 	"github.com/bmeg/golib"
 	"github.com/bmeg/grip/gripql"
+	"github.com/bmeg/grip/log"
 	"github.com/golang/protobuf/jsonpb"
-	log "github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
 )
 

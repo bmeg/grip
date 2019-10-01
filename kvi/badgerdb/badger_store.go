@@ -11,8 +11,8 @@ import (
 
 	"github.com/bmeg/grip/kvgraph"
 	"github.com/bmeg/grip/kvi"
+	"github.com/bmeg/grip/log"
 	"github.com/dgraph-io/badger"
-	log "github.com/sirupsen/logrus"
 )
 
 var loaded = kvgraph.AddKVDriver("badger", NewKVInterface)
@@ -28,8 +28,10 @@ func NewKVInterface(path string, kopts kvi.Options) (kvi.KVInterface, error) {
 		}
 	}
 
+	logger := log.GetLogger()
+	sublogger := logger.WithFields(log.Fields{"namespace": "badger"})
 	opts := badger.DefaultOptions(path)
-	opts = opts.WithLogger(log.New())
+	opts = opts.WithLogger(sublogger)
 	db, err := badger.Open(opts)
 	if err != nil {
 		return nil, err

@@ -10,9 +10,9 @@ import (
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/kvi"
 	"github.com/bmeg/grip/kvindex"
+	"github.com/bmeg/grip/log"
 	proto "github.com/golang/protobuf/proto"
 	"github.com/hashicorp/go-multierror"
-	log "github.com/sirupsen/logrus"
 )
 
 func contains(a []string, v string) bool {
