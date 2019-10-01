@@ -349,7 +349,13 @@ func WithFields(fields Fields) *logrus.Entry {
 	return logger.WithFields(fields)
 }
 
-// GetLogger returns the configured logger
+// GetLogger returns the configured logger instance
 func GetLogger() *logrus.Logger {
 	return logger
+}
+
+// Sub is a shortcut for log.WithFields(log.Fields{"namespace": ns}), it creates a new logger
+// which inherits the parent's configuration but changes the namespace.
+func Sub(ns string) *logrus.Entry {
+	return logger.WithFields(Fields{"namespace": ns})
 }
