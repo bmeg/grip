@@ -37,7 +37,7 @@ func (comp GridsCompiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline
 
 	ps := gdbi.NewPipelineState(stmts)
 
-	noLoadPaths := inspect.PipelineNoLoadPathSteps(stmts)
+	noLoadPaths := inspect.PipelineNoLoadPathSteps(stmts, 2)
 	if len(noLoadPaths) > 0 {
 		fmt.Printf("Found Path: %s\n", noLoadPaths)
 		//stmts = append(stmts, &gripql.GraphStatement{&gripql.GraphStatement_EngineCustom{"path", PathStatement{}}})

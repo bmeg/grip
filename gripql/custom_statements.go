@@ -6,14 +6,14 @@ package gripql
 //serialized user request
 
 type GraphStatement_LookupVertsIndex struct {
-  Labels []string
+  Labels []string   `protobuf:"bytes,1,rep,name=labels" json:"labels,omitempty"`
 }
 
 func (*GraphStatement_LookupVertsIndex) isGraphStatement_Statement()         {}
 
 type GraphStatement_EngineCustom struct {
-  Desc string
-  Custom interface{}
+  Desc string        `protobuf:"bytes,1,opt,name=desc" json:"desc,omitempty"`
+  Custom interface{} `protobuf:"bytes,2,opt,name=custom" json:"custom,omitempty"`
 }
 
 func (*GraphStatement_EngineCustom) isGraphStatement_Statement()         {}

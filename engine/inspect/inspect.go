@@ -115,7 +115,7 @@ func uniqueAppend(a []string, n string) []string {
 //PipelineNoLoadPathSteps identifies 'paths' which are groups of steps that move
 //travelers across multiple steps, and don't require data (other then the label)
 //to be loaded
-func PipelineNoLoadPathSteps(stmts []*gripql.GraphStatement) [][]string {
+func PipelineNoLoadPathSteps(stmts []*gripql.GraphStatement, minLen int) [][]string {
 	out := [][]string{}
 
 	steps := PipelineSteps(stmts)
@@ -128,14 +128,14 @@ func PipelineNoLoadPathSteps(stmts []*gripql.GraphStatement) [][]string {
 			if arrayEq(s, []string{"_label"}) {
 				curPath = uniqueAppend(curPath, steps[i])
 			} else {
-				if len(curPath) > 0 {
+				if len(curPath) >= minLen {
 					out = append(out, curPath)
 				}
 				curPath = []string{}
 			}
 		}
 	}
-	if len(curPath) > 0 {
+	if len(curPath) >= minLen {
 		out = append(out, curPath)
 	}
 	return out

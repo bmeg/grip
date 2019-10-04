@@ -206,3 +206,7 @@ func AsListValue(str []string) *structpb.ListValue {
 	o := structpb.ListValue{Values: v}
 	return &o
 }
+
+func NewStruct() *structpb.Struct {
+	return &structpb.Struct{}
+}

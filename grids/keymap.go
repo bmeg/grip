@@ -122,7 +122,7 @@ func (km *KeyMap) GetsertEdgeKey(id, label string) (uint64, uint64) {
     setKeyId(eKeyPrefix, id, o, km.db)
     setIdKey(eIdPrefix, id, o, km.db)
   }
-  lkey := km.GetsertLabelKey(id)
+  lkey := km.GetsertLabelKey(label)
   return o, lkey
 }
 
