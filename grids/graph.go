@@ -404,7 +404,7 @@ func (ggraph *GridsGraph) GetVertexChannel(ids chan gdbi.ElementLookup, load boo
 			v := gripql.Vertex{Gid:d.req.ID, Label:lId}
 			if load {
 				v.Data = protoutil.NewStruct()
-				proto.Unmarshal(d.data, &v)
+				proto.Unmarshal(d.data, v.Data)
 			}
 			d.req.Vertex = &v
 			out <- d.req
