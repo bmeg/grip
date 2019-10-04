@@ -3,6 +3,7 @@ package inspect
 import (
 	"fmt"
 	"github.com/bmeg/grip/gripql"
+	log "github.com/sirupsen/logrus"
 )
 
 
@@ -40,6 +41,12 @@ func PipelineSteps(stmts []*gripql.GraphStatement) []string {
 			*gripql.GraphStatement_OutE, *gripql.GraphStatement_InE, *gripql.GraphStatement_Both,
 			*gripql.GraphStatement_BothE, *gripql.GraphStatement_Select:
 			curState += 1
+		case *gripql.GraphStatement_Limit, *gripql.GraphStatement_As, *gripql.GraphStatement_Has,
+		*gripql.GraphStatement_HasId, *gripql.GraphStatement_HasKey, *gripql.GraphStatement_HasLabel,
+		*gripql.GraphStatement_Count:
+		case *gripql.GraphStatement_LookupVertsIndex:
+		default:
+			log.Printf("Unknown Graph Statement: %s", gs)
 		}
 		out = append(out, fmt.Sprintf("%d", curState))
 	}
@@ -88,6 +95,9 @@ func PipelineStepOutputs(stmts []*gripql.GraphStatement) map[string][]string {
 				*gripql.GraphStatement_BothE:
 				out[steps[i]] = []string{}
 				onLast = false
+			case *gripql.GraphStatement_LookupVertsIndex:
+				out[steps[i]] = []string{}
+				onLast = false				 
 			}
 		} else {
       switch gs.GetStatement().(type) {

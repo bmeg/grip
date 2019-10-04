@@ -32,6 +32,8 @@ def test_hasLabel(O):
 
     count = 0
     for i in O.query().V().hasLabel(["robot", "person"]):
+        if "name" not in i.data:
+            errors.append("vertex returned without data")
         count += 1
     if count != 6:
         errors.append(

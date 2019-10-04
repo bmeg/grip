@@ -29,11 +29,11 @@ func (comp GridsCompiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline
 
 	stmts = core.Flatten(stmts)
 
-	stmts = core.IndexStartOptimize(stmts)
-
 	if err := core.Validate(stmts); err != nil {
 		return &core.DefaultPipeline{}, fmt.Errorf("invalid statments: %s", err)
 	}
+
+	stmts = core.IndexStartOptimize(stmts)
 
 	ps := gdbi.NewPipelineState(stmts)
 
