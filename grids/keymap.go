@@ -84,6 +84,7 @@ func (km *KeyMap) GetsertVertexKey(id, label string) (uint64, uint64) {
     setIdKey(vIdPrefix, id, o, km.db)
   }
   lkey := km.GetsertLabelKey(label)
+  setIdLabel(vLabelPrefix, o, lkey, km.db)
   return o, lkey
 }
 
@@ -102,12 +103,6 @@ func (km *KeyMap) GetVertexLabel(key uint64) uint64 {
   return k
 }
 
-/*
-func (km *KeyMap) SetVertexLabel(key, label uint64) {
-  setIdLabel(vLabelPrefix, key, label, km.db)
-}
-*/
-
 func (km *KeyMap) DelVertexLabel(key uint64) {
 
 }
@@ -123,6 +118,7 @@ func (km *KeyMap) GetsertEdgeKey(id, label string) (uint64, uint64) {
     setIdKey(eIdPrefix, id, o, km.db)
   }
   lkey := km.GetsertLabelKey(label)
+  setIdLabel(eLabelPrefix, o, lkey, km.db)
   return o, lkey
 }
 
@@ -143,9 +139,11 @@ func (km *KeyMap) GetEdgeLabel(key uint64) uint64 {
   return k
 }
 
+/*
 func (km *KeyMap) SetEdgeLabel(key, label uint64) {
   setIdLabel(eLabelPrefix, key, label, km.db)
 }
+*/
 
 func (km *KeyMap) DelEdgeLabel(key uint64) {
 
@@ -194,7 +192,7 @@ func getIdKey(prefix []byte, id string, db *pogreb.DB) (uint64, bool) {
 func getIdLabel(prefix byte, key uint64, db *pogreb.DB) (uint64, bool) {
   k := make([]byte, binary.MaxVarintLen64 + 1)
   k[0] = prefix
-  binary.PutUvarint(k, key)
+  binary.PutUvarint(k[1:binary.MaxVarintLen64+1], key)
   v, err := db.Get(k)
   if v == nil || err != nil {
     return 0, false
@@ -206,7 +204,7 @@ func getIdLabel(prefix byte, key uint64, db *pogreb.DB) (uint64, bool) {
 func setIdLabel(prefix byte, key uint64, label uint64, db *pogreb.DB) error {
   k := make([]byte, binary.MaxVarintLen64 + 1)
   k[0] = prefix
-  binary.PutUvarint(k, key)
+  binary.PutUvarint(k[1:binary.MaxVarintLen64+1], key)
 
   b := make([]byte, binary.MaxVarintLen64)
   binary.PutUvarint(b, label)

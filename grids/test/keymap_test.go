@@ -5,6 +5,7 @@ import (
   "fmt"
   "testing"
   "github.com/akrylysov/pogreb"
+  "github.com/bmeg/grip/grids"
 )
 
 var kvPath string = "test.db"
@@ -26,11 +27,29 @@ func TestKeyInsert(t *testing.T) {
     t.Error(err)
 	}
 
-  keymap := NewKeyMap(keykv)
+  keymap := grids.NewKeyMap(keykv)
 
   vertexKeys := make([]uint64, 100)
+  var evenLabel uint64
   for i := range vertexKeys {
-    k := keymap.GetVertexKey(fmt.Sprintf("vertex_%d", i))
+    label := "even"
+    if i % 2 == 1 {
+      label = "odd"
+    }
+    k, l := keymap.GetsertVertexKey(fmt.Sprintf("vertex_%d", i), label)
+    if i == 0 {
+      evenLabel = l
+    } else {
+      if i % 2 == 1 {
+        if evenLabel == l {
+          t.Errorf("Getsert returns wrong key")
+        }
+      } else {
+        if evenLabel != l {
+          t.Errorf("Getsert returns wrong key")
+        }
+      }
+    }
     vertexKeys[i] = k
   }
   for i := range vertexKeys {
@@ -47,12 +66,27 @@ func TestKeyInsert(t *testing.T) {
     if id != fmt.Sprintf("vertex_%d", i) {
       t.Errorf("ID test_%d != %s", i, id)
     }
+    lkey := keymap.GetVertexLabel(vertexKeys[i])
+    lid := keymap.GetLabelID(lkey)
+    if i % 2 == 1 {
+      if lid != "odd" {
+        t.Errorf("Wrong vertex label %s : %s != %s", id, lid, "odd")
+      }
+    } else {
+      if lid != "even" {
+        t.Errorf("Wrong vertex label %s : %s != %s", id, lid, "even")
+      }
+    }
   }
 
 
   edgeKeys := make([]uint64, 100)
   for i := range edgeKeys {
-    k := keymap.GetEdgeKey(fmt.Sprintf("edge_%d", i))
+    label := "even_edge"
+    if i % 2 == 1 {
+      label = "odd_edge"
+    }
+    k, _ := keymap.GetsertEdgeKey(fmt.Sprintf("edge_%d", i), label)
     edgeKeys[i] = k
   }
   for i := range edgeKeys {
@@ -95,7 +129,7 @@ func TestKeyInsert(t *testing.T) {
 
   labelKeys := make([]uint64, 100)
   for i := range labelKeys {
-    k := keymap.GetLabelKey(fmt.Sprintf("label_%d", i))
+    k := keymap.GetsertLabelKey(fmt.Sprintf("label_%d", i))
     labelKeys[i] = k
   }
   for i := range labelKeys {

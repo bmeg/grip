@@ -8,6 +8,15 @@ def setupGraph(O):
     O.addVertex("vertex2", "person")
     O.addVertex("vertex3", "person", {"field1": "value3", "field2": "value4"})
     O.addVertex("vertex4", "person")
+    O.addVertex("vertex5", "dog")
+    O.addVertex("vertex6", "dog")
+    O.addVertex("vertex7", "dog")
+    O.addVertex("vertex8", "dog")
+    O.addVertex("vertex9", "car")
+    O.addVertex("vertex10", "car")
+    O.addVertex("vertex11", "car")
+    O.addVertex("vertex12", "car")
+
 
     O.addEdge("vertex1", "vertex2", "friend", gid="edge1")
     O.addEdge("vertex2", "vertex3", "friend", gid="edge2")
@@ -80,8 +89,20 @@ def test_V(O):
     count = 0
     for i in O.query().V():
         count += 1
-    if count != 4:
-        errors.append("Fail: O.query().V() %s != %s" % (count, 4))
+        if i.gid in ["vertex1", "vertex2", "vertex3", "vertex4"]:
+            if i.label != "person":
+                errors.append("Wrong vertex label. %s != %s" % (i.label, "person"))
+        elif i.gid in ["vertex5", "vertex6", "vertex7", "vertex8"]:
+            if i.label != "dog":
+                errors.append("Wrong vertex label. %s != %s" % (i.label, "dog"))
+        elif i.gid in ["vertex9", "vertex10", "vertex11", "vertex12"]:
+            if i.label != "car":
+                errors.append("Wrong vertex label. %s != %s" % (i.label, "car"))
+        else:
+            errors.append("Unknown vertex: %s" % (i.gid))
+
+    if count != 12:
+        errors.append("Fail: O.query().V() %s != %s" % (count, 12))
 
     count = 0
     for i in O.query().V("vertex1"):
@@ -104,6 +125,15 @@ def test_E(O):
     count = 0
     for i in O.query().E():
         count += 1
+        if i.gid in ["edge1", "edge2"]:
+            if i.label != "friend":
+                errors.append("Wrong vertex label. %s != %s" % (i.label, "friend"))
+        elif i.gid in ["edge3"]:
+            if i.label != "parent":
+                errors.append("Wrong vertex label. %s != %s" % (i.label, "parent"))
+        else:
+            errors.append("Unknown edge: %s" % (i.gid))
+
     if count != 3:
         errors.append("Fail: O.query().E() %s != %d" % (count, 3))
 

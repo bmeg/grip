@@ -43,7 +43,7 @@ func PipelineSteps(stmts []*gripql.GraphStatement) []string {
 			curState += 1
 		case *gripql.GraphStatement_Limit, *gripql.GraphStatement_As, *gripql.GraphStatement_Has,
 		*gripql.GraphStatement_HasId, *gripql.GraphStatement_HasKey, *gripql.GraphStatement_HasLabel,
-		*gripql.GraphStatement_Count:
+		*gripql.GraphStatement_Count, *gripql.GraphStatement_Skip:
 		case *gripql.GraphStatement_LookupVertsIndex:
 		default:
 			log.Printf("Unknown Graph Statement: %s", gs)
@@ -97,7 +97,7 @@ func PipelineStepOutputs(stmts []*gripql.GraphStatement) map[string][]string {
 				onLast = false
 			case *gripql.GraphStatement_LookupVertsIndex:
 				out[steps[i]] = []string{}
-				onLast = false				 
+				onLast = false
 			}
 		} else {
       switch gs.GetStatement().(type) {
