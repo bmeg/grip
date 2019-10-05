@@ -47,7 +47,7 @@ func TestOutputMasking(t *testing.T) {
 	if len(out) != 1 {
 		t.Errorf("Wrong number of step outputs %d", len(out))
 	}
-	if !arrayEq(out["3"], []string{}) {
+	if !arrayEq(out["3"], []string{"*"}) {
 		t.Errorf("Incorrect output")
 	}
 
@@ -58,10 +58,10 @@ func TestOutputMasking(t *testing.T) {
 	if len(out) != 2 {
 		t.Errorf("Wrong number of step outputs %d", len(out))
 	}
-	if !arrayEq(out["3"], []string{}) {
+	if !arrayEq(out["3"], []string{"*"}) {
 		t.Errorf("Incorrect output")
 	}
-	if !arrayEq(out["4"], []string{}) {
+	if !arrayEq(out["4"], []string{"*"}) {
 		t.Errorf("Incorrect output")
 	}
 
@@ -92,6 +92,12 @@ func TestOutputMasking(t *testing.T) {
 	q = q.V().HasLabel("robot", "person")
 	out = inspect.PipelineStepOutputs(q.Statements)
   fmt.Printf("vars: %s\n", out)
+
+	q = gripql.NewQuery()
+	q = q.V().HasLabel("Person").As("person").Out().Distinct("$person.name")
+	out = inspect.PipelineStepOutputs(q.Statements)
+  fmt.Printf("vars: %s -> %s\n", inspect.PipelineSteps(q.Statements), out)
+
 }
 
 

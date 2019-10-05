@@ -3,9 +3,10 @@ package inspect
 import (
 	"fmt"
 	"github.com/bmeg/grip/gripql"
+	"github.com/bmeg/grip/protoutil"
 	log "github.com/sirupsen/logrus"
+	"strings"
 )
-
 
 func arrayEq(a, b []string) bool {
 	if len(a) != len(b) {
@@ -37,16 +38,18 @@ func PipelineSteps(stmts []*gripql.GraphStatement) []string {
 		switch gs.GetStatement().(type) {
 		//These commands all change the postion of the traveler. When that happens,
 		//we go to the next 'step' of the traversal
-		case *gripql.GraphStatement_V, *gripql.GraphStatement_Out, *gripql.GraphStatement_In,
-			*gripql.GraphStatement_OutE, *gripql.GraphStatement_InE, *gripql.GraphStatement_Both,
-			*gripql.GraphStatement_BothE, *gripql.GraphStatement_Select:
+		case *gripql.GraphStatement_V, *gripql.GraphStatement_E, *gripql.GraphStatement_Out,
+			*gripql.GraphStatement_In, *gripql.GraphStatement_OutE, *gripql.GraphStatement_InE,
+			*gripql.GraphStatement_Both, *gripql.GraphStatement_BothE, *gripql.GraphStatement_Select:
 			curState += 1
 		case *gripql.GraphStatement_Limit, *gripql.GraphStatement_As, *gripql.GraphStatement_Has,
-		*gripql.GraphStatement_HasId, *gripql.GraphStatement_HasKey, *gripql.GraphStatement_HasLabel,
-		*gripql.GraphStatement_Count, *gripql.GraphStatement_Skip:
+			*gripql.GraphStatement_HasId, *gripql.GraphStatement_HasKey, *gripql.GraphStatement_HasLabel,
+			*gripql.GraphStatement_Count, *gripql.GraphStatement_Skip, *gripql.GraphStatement_Distinct,
+			*gripql.GraphStatement_Range, *gripql.GraphStatement_Aggregate, *gripql.GraphStatement_Render,
+			*gripql.GraphStatement_Fields:
 		case *gripql.GraphStatement_LookupVertsIndex:
 		default:
-			log.Printf("Unknown Graph Statement: %s", gs)
+			log.Printf("Unknown Graph Statement: %T", gs.GetStatement())
 		}
 		out = append(out, fmt.Sprintf("%d", curState))
 	}
@@ -56,27 +59,27 @@ func PipelineSteps(stmts []*gripql.GraphStatement) []string {
 //PipelineSteps identify the variable names each step can be aliasesed using
 //the as_ operation
 func PipelineAsSteps(stmts []*gripql.GraphStatement) map[string]string {
-  out := map[string]string{}
-  steps := PipelineSteps(stmts)
+	out := map[string]string{}
+	steps := PipelineSteps(stmts)
 
-  for i, gs := range stmts {
-    switch stmt := gs.GetStatement().(type) {
-    case *gripql.GraphStatement_As:
-      out[ stmt.As ] = steps[i]
-    }
-  }
-  return out
+	for i, gs := range stmts {
+		switch stmt := gs.GetStatement().(type) {
+		case *gripql.GraphStatement_As:
+			out[stmt.As] = steps[i]
+		}
+	}
+	return out
 }
 
 //PipelineStepOutputs identify the required outputs for each step in the traversal
 func PipelineStepOutputs(stmts []*gripql.GraphStatement) map[string][]string {
 
 	steps := PipelineSteps(stmts)
-  asMap := PipelineAsSteps(stmts)
+	asMap := PipelineAsSteps(stmts)
 	onLast := true
 	out := map[string][]string{}
 	for i := len(stmts) - 1; i >= 0; i-- {
-    gs := stmts[i]
+		gs := stmts[i]
 		if _, ok := gs.GetStatement().(*gripql.GraphStatement_Count); ok {
 			onLast = false
 		}
@@ -84,35 +87,68 @@ func PipelineStepOutputs(stmts []*gripql.GraphStatement) map[string][]string {
 			switch gs.GetStatement().(type) {
 			case *gripql.GraphStatement_Select:
 				sel := gs.GetSelect().Marks
-        for _, s := range sel {
-          if a, ok := asMap[s]; ok {
-            out[a] = []string{}
-          }
-        }
+				for _, s := range sel {
+					if a, ok := asMap[s]; ok {
+						out[a] = []string{"*"}
+					}
+				}
 				onLast = false
+			case *gripql.GraphStatement_Distinct:
+				fmt.Printf("Distinct\n")
+				//if there is a distinct step, we need to load data, but only for requested fields
+				fields := protoutil.AsStringList(gs.GetDistinct())
+				for _, f := range fields {
+					n := getNamespace(f)
+					if a, ok := asMap[n]; ok {
+						out[a] = []string{"*"}
+					}
+				}
 			case *gripql.GraphStatement_V, *gripql.GraphStatement_Out, *gripql.GraphStatement_In,
 				*gripql.GraphStatement_OutE, *gripql.GraphStatement_InE, *gripql.GraphStatement_Both,
 				*gripql.GraphStatement_BothE:
-				out[steps[i]] = []string{}
+				out[steps[i]] = []string{"*"}
 				onLast = false
 			case *gripql.GraphStatement_LookupVertsIndex:
-				out[steps[i]] = []string{}
+				out[steps[i]] = []string{"*"}
 				onLast = false
 			}
 		} else {
-      switch gs.GetStatement().(type) {
-      case *gripql.GraphStatement_HasLabel:
-        if x, ok := out[steps[i]]; ok {
-          out[steps[i]] = append(x, "_label")
-        } else {
-          out[steps[i]] = []string{"_label"}
-        }
-      case *gripql.GraphStatement_Has:
-        out[steps[i]] = []string{}
-      }
-    }
+			switch gs.GetStatement().(type) {
+			case *gripql.GraphStatement_HasLabel:
+				if x, ok := out[steps[i]]; ok {
+					out[steps[i]] = append(x, "_label")
+				} else {
+					out[steps[i]] = []string{"_label"}
+				}
+			case *gripql.GraphStatement_Has:
+				out[steps[i]] = []string{"*"}
+			case *gripql.GraphStatement_Distinct:
+				fmt.Printf("Distinct\n")
+				//if there is a distinct step, we need to load data, but only for requested fields
+				fields := protoutil.AsStringList(gs.GetDistinct())
+				for _, f := range fields {
+					n := getNamespace(f)
+					if a, ok := asMap[n]; ok {
+						out[a] = []string{"*"}
+					}
+				}
+			}
+		}
 	}
 	return out
+}
+
+//FIXME: tried to import this from jsonpath but ended up with an import cycle
+func getNamespace(path string) string {
+	namespace := ""
+	parts := strings.Split(path, ".")
+	if strings.HasPrefix(parts[0], "$") {
+		namespace = strings.TrimPrefix(parts[0], "$")
+	}
+	if namespace == "" {
+		namespace = "__current__"
+	}
+	return namespace
 }
 
 func uniqueAppend(a []string, n string) []string {
