@@ -71,7 +71,7 @@ func EdgeKeyPrefix(graph, id uint64) []byte {
 }
 
 // EdgeKeyParse takes a edge key and returns the elements encoded in it:
-// `graph`, `edgeID`, `srcVertexId`, `dstVertexId`, `label`, `edgeType`
+// `graph`, `edgeID`, `srcVertexId`, `dstVertexId`, `label`
 func EdgeKeyParse(key []byte) (uint64, uint64, uint64, uint64, uint64) {
 	graph, _ := binary.Uvarint(key[1:intSize+1])
 	eid, _ := binary.Uvarint(key[intSize+1:intSize*2+1])
