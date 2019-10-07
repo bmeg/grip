@@ -1,11 +1,43 @@
 package grids
 
 import (
+  "fmt"
   "bytes"
   "context"
   "github.com/bmeg/grip/gdbi"
+  "github.com/bmeg/grip/gripql"
   "github.com/bmeg/grip/kvi"
 )
+
+
+type RawPathProcessor struct {
+
+}
+
+func RawPathCompile(stmts []*gripql.GraphStatement) gdbi.Processor {
+
+  for _, s := range stmts {
+    switch s.GetStatement().(type) {
+    case *gripql.GraphStatement_V:
+      fmt.Printf("V\n")
+    case *gripql.GraphStatement_In:
+      fmt.Printf("In\n")
+    case *gripql.GraphStatement_Out:
+      fmt.Printf("Out\n")
+    default:
+      fmt.Printf("Unknown command: %T\n", s.GetStatement())
+    }
+  }
+
+  return &RawPathProcessor{}
+}
+
+
+func (pc *RawPathProcessor) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
+  return ctx
+}
+
+
 
 type RawDataElement struct {
   Gid   uint64

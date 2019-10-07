@@ -1,4 +1,4 @@
-package grids
+package test
 
 import (
   "os"
