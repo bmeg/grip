@@ -2,7 +2,6 @@ package grids
 
 import (
 	"fmt"
-  "context"
 	"github.com/bmeg/grip/engine/core"
 	"github.com/bmeg/grip/engine/inspect"
 	"github.com/bmeg/grip/gdbi"
@@ -54,22 +53,4 @@ func (comp GridsCompiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline
 		procs = append(procs, p)
 	}
 	return core.NewPipeline(procs, ps), nil
-}
-
-type PathStatement struct {
-
-}
-
-func (path *PathStatement) GetProcessor(db gdbi.GraphInterface, ps *gdbi.PipelineState) (gdbi.Processor, error) {
-	out := PathProcessor{}
-
-	return &out, nil
-}
-
-type PathProcessor struct {
-}
-
-func (pp *PathProcessor) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
-  //TODO: need actual code here
-  return ctx
 }
