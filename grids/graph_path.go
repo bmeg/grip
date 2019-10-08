@@ -46,7 +46,7 @@ type RawProcessor interface {
 
 type RawPipeline []RawProcessor
 
-func RawPathCompile(db *GridsGraph, stmts []*gripql.GraphStatement) gdbi.Processor {
+func RawPathCompile(db *GridsGraph, ps *gdbi.PipelineState, stmts []*gripql.GraphStatement) gdbi.Processor {
 
 	pipeline :=  RawPipeline{}
 
@@ -54,12 +54,16 @@ func RawPathCompile(db *GridsGraph, stmts []*gripql.GraphStatement) gdbi.Process
 		switch stmt := s.GetStatement().(type) {
 		case *gripql.GraphStatement_V:
       ids := protoutil.AsStringList(stmt.V)
-      //ps.LastType = gdbi.VertexData
+      ps.LastType = gdbi.VertexData
       pipeline = append(pipeline, &PathVProc{db: db, ids: ids})
 		case *gripql.GraphStatement_In:
-			fmt.Printf("In\n")
+      labels := protoutil.AsStringList(stmt.In)
+      ps.LastType = gdbi.VertexData
+      pipeline = append(pipeline, &PathInProc{db: db, labels: labels})
 		case *gripql.GraphStatement_Out:
-			fmt.Printf("Out\n")
+      labels := protoutil.AsStringList(stmt.Out)
+      ps.LastType = gdbi.VertexData
+      pipeline = append(pipeline, &PathOutProc{db: db, labels: labels})
 		default:
 			fmt.Printf("Unknown command: %T\n", s.GetStatement())
 		}
@@ -77,9 +81,20 @@ type PathVProc struct {
 }
 
 func (r *PathVProc) Process(ctx context.Context, in chan *PathTraveler, out chan *PathTraveler) context.Context {
-	for elem := range r.db.RawGetVertexList(ctx) {
-		out <- &PathTraveler{current: elem}
-	}
+  if len(r.ids) == 0 {
+  	for elem := range r.db.RawGetVertexList(ctx) {
+  		out <- &PathTraveler{current: elem}
+  	}
+  } else {
+    for _, i := range r.ids {
+      if key, ok := r.db.kdb.keyMap.GetVertexKey(i); ok {
+        label := r.db.kdb.keyMap.GetVertexLabel(key)
+        out <- &PathTraveler{
+          current: &RawDataElement{Gid: key, Label: label},
+        }
+      }
+    }
+  }
 	return ctx
 }
 
