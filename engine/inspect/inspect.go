@@ -151,33 +151,39 @@ func getNamespace(path string) string {
 	return namespace
 }
 
+/*
 func uniqueAppend(a []string, n string) []string {
 	if !contains(a, n) {
 		return append(a, n)
 	}
 	return a
 }
+*/
 
-//PipelineNoLoadPathSteps identifies 'paths' which are groups of steps that move
+//PipelineNoLoadPath identifies 'paths' which are groups of statements that move
 //travelers across multiple steps, and don't require data (other then the label)
 //to be loaded
-func PipelineNoLoadPathSteps(stmts []*gripql.GraphStatement, minLen int) [][]string {
-	out := [][]string{}
+func PipelineNoLoadPath(stmts []*gripql.GraphStatement, minLen int) [][]int {
+	out := [][]int{}
 
 	steps := PipelineSteps(stmts)
 	outputs := PipelineStepOutputs(stmts)
-	curPath := []string{}
+	curPath := []int{}
 	for i := range steps {
-		if s, ok := outputs[steps[i]]; !ok {
-			curPath = uniqueAppend(curPath, steps[i])
-		} else {
-			if arrayEq(s, []string{"_label"}) {
-				curPath = uniqueAppend(curPath, steps[i])
+		switch stmts[i].GetStatement().(type) {
+		case *gripql.GraphStatement_In, *gripql.GraphStatement_Out,
+			*gripql.GraphStatement_InE, *gripql.GraphStatement_OutE:
+			if s, ok := outputs[steps[i]]; !ok {
+				curPath = append(curPath, i)
 			} else {
-				if len(curPath) >= minLen {
-					out = append(out, curPath)
+				if arrayEq(s, []string{"_label"}) {
+					curPath = append(curPath, i)
+				} else {
+					if len(curPath) >= minLen {
+						out = append(out, curPath)
+					}
+					curPath = []int{}
 				}
-				curPath = []string{}
 			}
 		}
 	}

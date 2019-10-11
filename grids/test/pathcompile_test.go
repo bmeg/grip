@@ -28,18 +28,6 @@ var edges = []string{
   `{"gid" : "e4", "label" : "knows", "from" : "3", "to" : "4", "data" : {}}`,
 }
 
-func SelectPath(stmts []*gripql.GraphStatement, steps []string, path []string) []*gripql.GraphStatement {
-  out := []*gripql.GraphStatement{}
-  for _, p := range path {
-    for i := range steps {
-      if steps[i] == p {
-        out = append(out, stmts[i])
-      }
-    }
-  }
-  return out
-}
-
 
 func TestPath2Step(t *testing.T) {
   q := gripql.NewQuery()
@@ -47,12 +35,11 @@ func TestPath2Step(t *testing.T) {
 
   ps := gdbi.NewPipelineState(q.Statements)
 
-  steps := inspect.PipelineSteps(q.Statements)
-  noLoadPaths := inspect.PipelineNoLoadPathSteps(q.Statements, 2)
+  noLoadPaths := inspect.PipelineNoLoadPath(q.Statements, 2)
 
   if len(noLoadPaths) > 0 {
-  	fmt.Printf("Found Path: %s\n", noLoadPaths)
-    path := SelectPath(q.Statements, steps, noLoadPaths[0])
+  	fmt.Printf("Found Path: %#v\n", noLoadPaths)
+    path := grids.SelectPath(q.Statements, noLoadPaths[0])
     proc := grids.RawPathCompile( nil, ps, path )
     fmt.Printf("Proc: %s\n", proc)
   }

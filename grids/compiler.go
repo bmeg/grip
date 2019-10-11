@@ -6,6 +6,7 @@ import (
 	"github.com/bmeg/grip/engine/inspect"
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
+	log "github.com/sirupsen/logrus"
 )
 
 // Compiler gets a compiler that will use the graph the execute the compiled query
@@ -36,21 +37,32 @@ func (comp GridsCompiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline
 
 	ps := gdbi.NewPipelineState(stmts)
 
-	noLoadPaths := inspect.PipelineNoLoadPathSteps(stmts, 2)
-	if len(noLoadPaths) > 0 {
-		fmt.Printf("Found Path: %s\n", noLoadPaths)
-		//stmts = append(stmts, &gripql.GraphStatement{&gripql.GraphStatement_EngineCustom{"path", PathStatement{}}})
-	}
-
+	noLoadPaths := inspect.PipelineNoLoadPath(stmts, 2)
 	procs := make([]gdbi.Processor, 0, len(stmts))
 
-	for i, gs := range stmts {
-		ps.SetCurStatment(i)
-		p, err := core.StatementProcessor(gs, comp.graph, ps)
-		if err != nil {
-			return &core.DefaultPipeline{}, err
+	for i := 0; i < len(stmts); i++ {
+		foundPath := -1
+		for p := range noLoadPaths {
+			if containsInt(noLoadPaths[p], i) {
+				foundPath = p
+			}
 		}
-		procs = append(procs, p)
+		if (foundPath != -1) {
+			log.Printf("Compile Statements: %s", noLoadPaths[foundPath])
+			path := SelectPath(stmts, noLoadPaths[foundPath])
+			log.Printf("Compile: %s", path)
+    	p := RawPathCompile( comp.graph, ps, path )
+			procs = append(procs, p)
+			i += len(noLoadPaths[foundPath])-1
+		} else {
+			gs := stmts[i]
+			ps.SetCurStatment(i)
+			p, err := core.StatementProcessor(gs, comp.graph, ps)
+			if err != nil {
+				return &core.DefaultPipeline{}, err
+			}
+			procs = append(procs, p)
+		}
 	}
 	return core.NewPipeline(procs, ps), nil
 }
