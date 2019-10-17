@@ -57,6 +57,9 @@ type kvAddData struct {
 }
 
 func insertVertex(tx kvi.KVBulkWrite, keyMap *KeyMap, graphKey uint64, vertex *gripql.Vertex) error {
+	if vertex.Gid == "" {
+		return fmt.Errorf("Inserting null key vertex")
+	}
 	vertexKey, _ := keyMap.GetsertVertexKey(vertex.Gid, vertex.Label)
 	key := VertexKey(graphKey, vertexKey)
 	value, err := proto.Marshal(vertex.Data)
@@ -80,6 +83,10 @@ func indexVertex(tx kvi.KVBulkWrite, idx *kvindex.KVIndex, graph string, vertex 
 func insertEdge(tx kvi.KVBulkWrite, keyMap *KeyMap, graphKey uint64, edge *gripql.Edge) error {
 	var err error
 	var data []byte
+
+	if edge.Gid == "" {
+		return fmt.Errorf("Inserting null key edge")
+	}
 
 	eid, lid := keyMap.GetsertEdgeKey(edge.Gid, edge.Label)
 	src, ok := keyMap.GetVertexKey(edge.From)
@@ -153,11 +160,17 @@ func (ggraph *GridsGraph) AddVertex(vertices []*gripql.Vertex) error {
 func (ggraph *GridsGraph) AddEdge(edges []*gripql.Edge) error {
 	err := ggraph.kdb.graphkv.BulkWrite(func(tx kvi.KVBulkWrite) error {
 		for _, edge := range edges {
-			insertEdge(tx, ggraph.kdb.keyMap, ggraph.graphKey, edge)
+			err := insertEdge(tx, ggraph.kdb.keyMap, ggraph.graphKey, edge)
+			if err != nil {
+				return err
+			}
 		}
 		ggraph.kdb.ts.Touch(ggraph.graphID)
 		return nil
 	})
+	if err != nil {
+		return err
+	}
 	err = ggraph.kdb.indexkv.BulkWrite(func(tx kvi.KVBulkWrite) error {
 		for _, edge := range edges {
 			indexEdge(tx, ggraph.kdb.idx, ggraph.graphID, edge)

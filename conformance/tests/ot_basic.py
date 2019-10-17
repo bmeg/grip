@@ -239,6 +239,10 @@ def test_outgoing_edge(O):
         if i['gid'] not in ["edge2", "edge3"]:
             errors.append("Wrong outgoing vertex %s" % (i['gid']))
 
+    for i in O.query().V("vertex2").outE().out():
+        if i['gid'] not in ["vertex3", "vertex4"]:
+            errors.append("Wrong outgoing edge to vertex %s" % (i['gid']))
+
     if O.query().V("vertex2").outE("friend").count().execute()[0]["count"] != 1:
         errors.append("labeled outgoing doesn't work")
 

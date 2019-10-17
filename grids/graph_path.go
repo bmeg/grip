@@ -31,9 +31,9 @@ type RawDataElement struct {
 
 // ElementLookup request to look up data
 type RawElementLookup struct {
-	ID   uint64
-	Ref  interface{}
-	Data *RawDataElement
+	ID      uint64
+	Ref     interface{}
+	Element *RawDataElement
 }
 
 
@@ -85,7 +85,7 @@ type RawProcessor interface {
 
 type RawPipeline []RawProcessor
 
-func RawPathCompile(db *GridsGraph, ps *gdbi.PipelineState, stmts []*gripql.GraphStatement) gdbi.Processor {
+func RawPathCompile(db *GridsGraph, ps *gdbi.PipelineState, stmts []*gripql.GraphStatement) (gdbi.Processor, error) {
 
 	pipeline :=  RawPipeline{}
   firstType := ps.LastType
@@ -104,12 +104,19 @@ func RawPathCompile(db *GridsGraph, ps *gdbi.PipelineState, stmts []*gripql.Grap
       labels := protoutil.AsStringList(stmt.Out)
       ps.LastType = gdbi.VertexData
       pipeline = append(pipeline, &PathOutProc{db: db, labels: labels})
+		case *gripql.GraphStatement_InE:
+      labels := protoutil.AsStringList(stmt.InE)
+      ps.LastType = gdbi.EdgeData
+      pipeline = append(pipeline, &PathInEProc{db: db, labels: labels})
+		case *gripql.GraphStatement_OutE:
+      labels := protoutil.AsStringList(stmt.OutE)
+      ps.LastType = gdbi.EdgeData
+      pipeline = append(pipeline, &PathOutEProc{db: db, labels: labels})
 		default:
-			fmt.Printf("Unknown command: %T\n", s.GetStatement())
+			return nil, fmt.Errorf("Unknown command: %T\n", s.GetStatement())
 		}
 	}
-
-	return &RawPathProcessor{pipeline, db, firstType == gdbi.VertexData, ps.LastType == gdbi.VertexData}
+	return &RawPathProcessor{pipeline, db, firstType == gdbi.VertexData, ps.LastType == gdbi.VertexData}, nil
 }
 
 func (pc *RawPathProcessor) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
@@ -193,7 +200,7 @@ func (r *PathOutProc) Process(ctx context.Context, in chan *PathTraveler, out ch
 		defer close(out)
 		for ov := range r.db.RawGetOutChannel(queryChan, r.labels) {
 			i := ov.Ref.(*PathTraveler)
-			out <- i.AddCurrent(ov.Data)
+			out <- i.AddCurrent(ov.Element)
 		}
 	}()
 	return ctx
@@ -220,7 +227,7 @@ func (r *PathInProc) Process(ctx context.Context, in chan *PathTraveler, out cha
 		defer close(out)
 		for ov := range r.db.RawGetInChannel(queryChan, r.labels) {
 			i := ov.Ref.(*PathTraveler)
-			out <- i.AddCurrent(ov.Data)
+			out <- i.AddCurrent(ov.Element)
 		}
 	}()
 	return ctx
@@ -247,7 +254,7 @@ func (r *PathOutEProc) Process(ctx context.Context, in chan *PathTraveler, out c
 		defer close(out)
 		for ov := range r.db.RawGetOutEdgeChannel(queryChan, r.labels) {
 			i := ov.Ref.(*PathTraveler)
-			out <- i.AddCurrent(ov.Data)
+			out <- i.AddCurrent(ov.Element)
 		}
 	}()
 	return ctx
@@ -273,7 +280,7 @@ func (r *PathInEProc) Process(ctx context.Context, in chan *PathTraveler, out ch
 		defer close(out)
 		for ov := range r.db.RawGetOutEdgeChannel(queryChan, r.labels) {
 			i := ov.Ref.(*PathTraveler)
-			out <- i.AddCurrent(ov.Data)
+			out <- i.AddCurrent(ov.Element)
 		}
 	}()
 	return ctx
@@ -368,7 +375,7 @@ func (ggraph *GridsGraph) RawGetOutChannel(reqChan chan *RawElementLookup, edgeL
 					if len(edgeLabels) == 0 || containsUint(edgeLabelKeys, lkey) {
 						dstlkey := ggraph.kdb.keyMap.GetVertexLabel(dstvkey)
 						o <- &RawElementLookup{
-							Data: &RawDataElement{
+							Element: &RawDataElement{
 								Gid:   dstvkey,
 								Label: dstlkey,
 							},
@@ -404,7 +411,7 @@ func (ggraph *GridsGraph) RawGetInChannel(reqChan chan *RawElementLookup, edgeLa
 					if len(edgeLabels) == 0 || containsUint(edgeLabelKeys, lkey) {
 						srclkey := ggraph.kdb.keyMap.GetVertexLabel(srcvkey)
 						o <- &RawElementLookup{
-							Data: &RawDataElement{
+							Element: &RawDataElement{
 								Gid:   srcvkey,
 								Label: srclkey,
 							},
@@ -439,7 +446,7 @@ func (ggraph *GridsGraph) RawGetOutEdgeChannel(reqChan chan *RawElementLookup, e
 					_, ekey, srcvkey, dstvkey, lkey := SrcEdgeKeyParse(keyValue)
 					if len(edgeLabels) == 0 || containsUint(edgeLabelKeys, lkey) {
 						o <- &RawElementLookup{
-							Data: &RawDataElement{
+							Element: &RawDataElement{
 								Gid:   ekey,
 								Label: lkey,
 								From:  srcvkey,
@@ -476,7 +483,7 @@ func (ggraph *GridsGraph) RawGetInEdgeChannel(reqChan chan *RawElementLookup, ed
 					_, ekey, srcvkey, dstvkey, lkey := DstEdgeKeyParse(keyValue)
 					if len(edgeLabels) == 0 || containsUint(edgeLabelKeys, lkey) {
 						o <- &RawElementLookup{
-							Data: &RawDataElement{
+							Element: &RawDataElement{
 								Gid:   ekey,
 								Label: lkey,
 								From:  srcvkey,

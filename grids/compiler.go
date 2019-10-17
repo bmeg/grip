@@ -47,14 +47,28 @@ func (comp GridsCompiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline
 				foundPath = p
 			}
 		}
+		optimized := false
 		if (foundPath != -1) {
 			log.Printf("Compile Statements: %s", noLoadPaths[foundPath])
 			path := SelectPath(stmts, noLoadPaths[foundPath])
 			log.Printf("Compile: %s", path)
-    	p := RawPathCompile( comp.graph, ps, path )
-			procs = append(procs, p)
-			i += len(noLoadPaths[foundPath])-1
-		} else {
+    	p, err := RawPathCompile( comp.graph, ps, path )
+			if err == nil {
+				procs = append(procs, p)
+				i += len(noLoadPaths[foundPath])-1
+				optimized = true
+			} else {
+				//something went wrong and we'll skip optimizing this path
+				tmp := [][]int{}
+				for i := range noLoadPaths {
+					if i != foundPath {
+						tmp = append(tmp, noLoadPaths[i])
+					}
+				}
+				noLoadPaths = tmp
+			}
+		}
+		if !optimized {
 			gs := stmts[i]
 			ps.SetCurStatment(i)
 			p, err := core.StatementProcessor(gs, comp.graph, ps)
