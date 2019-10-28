@@ -50,13 +50,13 @@ func NewPathTraveler(tr *gdbi.Traveler, isVertex bool, gg *GridsGraph) *PathTrav
   el := RawDataElement{}
   cur := tr.GetCurrent()
   if isVertex {
-    el.Gid, _ = gg.kdb.keyMap.GetVertexKey(cur.ID)
-    el.Label = gg.kdb.keyMap.GetVertexLabel(el.Gid)
+    el.Gid, _ = gg.kdb.keyMap.GetVertexKey(gg.graphKey, cur.ID)
+    el.Label = gg.kdb.keyMap.GetVertexLabel(gg.graphKey, el.Gid)
   } else {
-    el.Gid, _ = gg.kdb.keyMap.GetEdgeKey(cur.ID)
-    el.Label = gg.kdb.keyMap.GetEdgeLabel(el.Gid)
-    el.To, _ = gg.kdb.keyMap.GetVertexKey(cur.To)
-    el.From, _ = gg.kdb.keyMap.GetVertexKey(cur.From)
+    el.Gid, _ = gg.kdb.keyMap.GetEdgeKey(gg.graphKey, cur.ID)
+    el.Label = gg.kdb.keyMap.GetEdgeLabel(gg.graphKey, el.Gid)
+    el.To, _ = gg.kdb.keyMap.GetVertexKey(gg.graphKey, cur.To)
+    el.From, _ = gg.kdb.keyMap.GetVertexKey(gg.graphKey, cur.From)
   }
   return &PathTraveler{
     current: &el,
@@ -168,8 +168,8 @@ func (r *PathVProc) Process(ctx context.Context, in chan *PathTraveler, out chan
     	}
     } else {
       for _, i := range r.ids {
-        if key, ok := r.db.kdb.keyMap.GetVertexKey(i); ok {
-          label := r.db.kdb.keyMap.GetVertexLabel(key)
+        if key, ok := r.db.kdb.keyMap.GetVertexKey(r.db.graphKey, i); ok {
+          label := r.db.kdb.keyMap.GetVertexLabel(r.db.graphKey, key)
           out <- &PathTraveler{
             current: &RawDataElement{Gid: key, Label: label},
           }
@@ -289,16 +289,16 @@ func (r *PathInEProc) Process(ctx context.Context, in chan *PathTraveler, out ch
 
 
 func (rd *RawDataElement) VertexDataElement(ggraph *GridsGraph) *gdbi.DataElement {
-	Gid := ggraph.kdb.keyMap.GetVertexID(rd.Gid)
-	Label := ggraph.kdb.keyMap.GetLabelID(rd.Label)
+	Gid := ggraph.kdb.keyMap.GetVertexID(ggraph.graphKey, rd.Gid)
+	Label := ggraph.kdb.keyMap.GetLabelID(ggraph.graphKey, rd.Label)
 	return &gdbi.DataElement{ID: Gid, Label: Label}
 }
 
 func (rd *RawDataElement) EdgeDataElement(ggraph *GridsGraph) *gdbi.DataElement {
-	Gid := ggraph.kdb.keyMap.GetEdgeID(rd.Gid)
-	Label := ggraph.kdb.keyMap.GetLabelID(rd.Label)
-	To := ggraph.kdb.keyMap.GetEdgeID(rd.To)
-	From := ggraph.kdb.keyMap.GetEdgeID(rd.From)
+	Gid := ggraph.kdb.keyMap.GetEdgeID(ggraph.graphKey, rd.Gid)
+	Label := ggraph.kdb.keyMap.GetLabelID(ggraph.graphKey, rd.Label)
+	To := ggraph.kdb.keyMap.GetEdgeID(ggraph.graphKey, rd.To)
+	From := ggraph.kdb.keyMap.GetEdgeID(ggraph.graphKey, rd.From)
 	return &gdbi.DataElement{ID: Gid, To: To, From: From, Label: Label}
 }
 
@@ -316,7 +316,7 @@ func (ggraph *GridsGraph) RawGetVertexList(ctx context.Context) <-chan *RawDataE
 				}
 				keyValue := it.Key()
 				_, vkey := VertexKeyParse(keyValue)
-				lkey := ggraph.kdb.keyMap.GetVertexLabel(vkey)
+				lkey := ggraph.kdb.keyMap.GetVertexLabel(ggraph.graphKey, vkey)
 				o <- &RawDataElement{
 					Gid:   vkey,
 					Label: lkey,
@@ -359,7 +359,7 @@ func (ggraph *GridsGraph) RawGetOutChannel(reqChan chan *RawElementLookup, edgeL
 	o := make(chan *RawElementLookup, 100)
 	edgeLabelKeys := make([]uint64, 0, len(edgeLabels))
 	for i := range edgeLabels {
-		el, ok := ggraph.kdb.keyMap.GetLabelKey(edgeLabels[i])
+		el, ok := ggraph.kdb.keyMap.GetLabelKey(ggraph.graphKey,edgeLabels[i])
 		if ok {
 			edgeLabelKeys = append(edgeLabelKeys, el)
 		}
@@ -373,7 +373,7 @@ func (ggraph *GridsGraph) RawGetOutChannel(reqChan chan *RawElementLookup, edgeL
 					keyValue := it.Key()
 					_, _, _, dstvkey, lkey := SrcEdgeKeyParse(keyValue)
 					if len(edgeLabels) == 0 || containsUint(edgeLabelKeys, lkey) {
-						dstlkey := ggraph.kdb.keyMap.GetVertexLabel(dstvkey)
+						dstlkey := ggraph.kdb.keyMap.GetVertexLabel(ggraph.graphKey, dstvkey)
 						o <- &RawElementLookup{
 							Element: &RawDataElement{
 								Gid:   dstvkey,
@@ -395,7 +395,7 @@ func (ggraph *GridsGraph) RawGetInChannel(reqChan chan *RawElementLookup, edgeLa
 	o := make(chan *RawElementLookup, 100)
 	edgeLabelKeys := make([]uint64, 0, len(edgeLabels))
 	for i := range edgeLabels {
-		el, ok := ggraph.kdb.keyMap.GetLabelKey(edgeLabels[i])
+		el, ok := ggraph.kdb.keyMap.GetLabelKey(ggraph.graphKey, edgeLabels[i])
 		if ok {
 			edgeLabelKeys = append(edgeLabelKeys, el)
 		}
@@ -409,7 +409,7 @@ func (ggraph *GridsGraph) RawGetInChannel(reqChan chan *RawElementLookup, edgeLa
 					keyValue := it.Key()
 					_, _, srcvkey, _, lkey := DstEdgeKeyParse(keyValue)
 					if len(edgeLabels) == 0 || containsUint(edgeLabelKeys, lkey) {
-						srclkey := ggraph.kdb.keyMap.GetVertexLabel(srcvkey)
+						srclkey := ggraph.kdb.keyMap.GetVertexLabel(ggraph.graphKey, srcvkey)
 						o <- &RawElementLookup{
 							Element: &RawDataElement{
 								Gid:   srcvkey,
@@ -431,7 +431,7 @@ func (ggraph *GridsGraph) RawGetOutEdgeChannel(reqChan chan *RawElementLookup, e
 	o := make(chan *RawElementLookup, 100)
 	edgeLabelKeys := make([]uint64, 0, len(edgeLabels))
 	for i := range edgeLabels {
-		el, ok := ggraph.kdb.keyMap.GetLabelKey(edgeLabels[i])
+		el, ok := ggraph.kdb.keyMap.GetLabelKey(ggraph.graphKey, edgeLabels[i])
 		if ok {
 			edgeLabelKeys = append(edgeLabelKeys, el)
 		}
@@ -468,7 +468,7 @@ func (ggraph *GridsGraph) RawGetInEdgeChannel(reqChan chan *RawElementLookup, ed
 	o := make(chan *RawElementLookup, 100)
 	edgeLabelKeys := make([]uint64, 0, len(edgeLabels))
 	for i := range edgeLabels {
-		el, ok := ggraph.kdb.keyMap.GetLabelKey(edgeLabels[i])
+		el, ok := ggraph.kdb.keyMap.GetLabelKey(ggraph.graphKey, edgeLabels[i])
 		if ok {
 			edgeLabelKeys = append(edgeLabelKeys, el)
 		}

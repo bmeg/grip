@@ -40,7 +40,10 @@ func TestPath2Step(t *testing.T) {
   if len(noLoadPaths) > 0 {
   	fmt.Printf("Found Path: %#v\n", noLoadPaths)
     path := grids.SelectPath(q.Statements, noLoadPaths[0])
-    proc := grids.RawPathCompile( nil, ps, path )
+    proc, err := grids.RawPathCompile( nil, ps, path )
+    if err != nil {
+      t.Error(err)
+    }
     fmt.Printf("Proc: %s\n", proc)
   }
 }

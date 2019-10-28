@@ -29,6 +29,8 @@ func TestKeyInsert(t *testing.T) {
 
   keymap := grids.NewKeyMap(keykv)
 
+  graphKey := keymap.GetGraphKey("test")
+
   vertexKeys := make([]uint64, 100)
   var evenLabel uint64
   for i := range vertexKeys {
@@ -36,7 +38,7 @@ func TestKeyInsert(t *testing.T) {
     if i % 2 == 1 {
       label = "odd"
     }
-    k, l := keymap.GetsertVertexKey(fmt.Sprintf("vertex_%d", i), label)
+    k, l := keymap.GetsertVertexKey(graphKey, fmt.Sprintf("vertex_%d", i), label)
     if i == 0 {
       evenLabel = l
     } else {
@@ -62,12 +64,12 @@ func TestKeyInsert(t *testing.T) {
     }
   }
   for i := range vertexKeys {
-    id := keymap.GetVertexID(vertexKeys[i])
+    id := keymap.GetVertexID(graphKey, vertexKeys[i])
     if id != fmt.Sprintf("vertex_%d", i) {
       t.Errorf("ID test_%d != %s", i, id)
     }
-    lkey := keymap.GetVertexLabel(vertexKeys[i])
-    lid := keymap.GetLabelID(lkey)
+    lkey := keymap.GetVertexLabel(graphKey, vertexKeys[i])
+    lid := keymap.GetLabelID(graphKey, lkey)
     if i % 2 == 1 {
       if lid != "odd" {
         t.Errorf("Wrong vertex label %s : %s != %s", id, lid, "odd")
@@ -86,7 +88,7 @@ func TestKeyInsert(t *testing.T) {
     if i % 2 == 1 {
       label = "odd_edge"
     }
-    k, _ := keymap.GetsertEdgeKey(fmt.Sprintf("edge_%d", i), label)
+    k, _ := keymap.GetsertEdgeKey(graphKey, fmt.Sprintf("edge_%d", i), label)
     edgeKeys[i] = k
   }
   for i := range edgeKeys {
@@ -99,7 +101,7 @@ func TestKeyInsert(t *testing.T) {
     }
   }
   for i := range edgeKeys {
-    id := keymap.GetEdgeID(edgeKeys[i])
+    id := keymap.GetEdgeID(graphKey, edgeKeys[i])
     if id != fmt.Sprintf("edge_%d", i) {
       t.Errorf("ID test_%d != %s", i, id)
     }
@@ -129,7 +131,7 @@ func TestKeyInsert(t *testing.T) {
 
   labelKeys := make([]uint64, 100)
   for i := range labelKeys {
-    k := keymap.GetsertLabelKey(fmt.Sprintf("label_%d", i))
+    k := keymap.GetsertLabelKey(graphKey, fmt.Sprintf("label_%d", i))
     labelKeys[i] = k
   }
   for i := range labelKeys {
@@ -142,7 +144,7 @@ func TestKeyInsert(t *testing.T) {
     }
   }
   for i := range labelKeys {
-    id := keymap.GetLabelID(labelKeys[i])
+    id := keymap.GetLabelID(graphKey, labelKeys[i])
     if id != fmt.Sprintf("label_%d", i) {
       t.Errorf("ID graph_%d != %s", i, id)
     }

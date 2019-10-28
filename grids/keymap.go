@@ -53,89 +53,84 @@ func (km *KeyMap) Close() {
 }
 
 
-//TODO: implement
 func (km *KeyMap) GetGraphKey(id string) uint64 {
-  u, ok := getIdKey(gIdPrefix, id, km.db)
+  u, ok := getIdKey(0, gIdPrefix, id, km.db)
   if ok {
     return u
   }
   km.gIncMut.Lock()
   o := dbInc(&km.gIncCur, gInc, km.db)
   km.gIncMut.Unlock()
-  setKeyId(gKeyPrefix, id, o, km.db)
-  setIdKey(gIdPrefix, id, o, km.db)
+  setKeyId(0, gKeyPrefix, id, o, km.db)
+  setIdKey(0, gIdPrefix, id, o, km.db)
   return o
 }
 
 //GetGraphID
 func (km *KeyMap) GetGraphID(key uint64) string {
-  k, _ := getKeyId(gKeyPrefix, key, km.db)
+  k, _ := getKeyId(0, gKeyPrefix, key, km.db)
   return k
 }
 
 //GetsertVertexKey : Get or Insert Vertex Key
-func (km *KeyMap) GetsertVertexKey(id, label string) (uint64, uint64) {
-  o, ok := getIdKey(vIdPrefix, id, km.db)
+func (km *KeyMap) GetsertVertexKey(graph uint64, id, label string) (uint64, uint64) {
+  o, ok := getIdKey(graph, vIdPrefix, id, km.db)
   if !ok {
     km.vIncMut.Lock()
     o = dbInc(&km.vIncCur, vInc, km.db)
     km.vIncMut.Unlock()
-    setKeyId(vKeyPrefix, id, o, km.db)
-    setIdKey(vIdPrefix, id, o, km.db)
+    setKeyId(graph, vKeyPrefix, id, o, km.db)
+    setIdKey(graph, vIdPrefix, id, o, km.db)
   }
-  lkey := km.GetsertLabelKey(label)
-  setIdLabel(vLabelPrefix, o, lkey, km.db)
+  lkey := km.GetsertLabelKey(graph, label)
+  setIdLabel(graph, vLabelPrefix, o, lkey, km.db)
   return o, lkey
 }
 
-func (km *KeyMap) GetVertexKey(id string) (uint64, bool) {
-  return getIdKey(vIdPrefix, id, km.db)
+func (km *KeyMap) GetVertexKey(graph uint64, id string) (uint64, bool) {
+  return getIdKey(graph, vIdPrefix, id, km.db)
 }
 
 //GetVertexID
-func (km *KeyMap) GetVertexID(key uint64) string {
-  k, _ := getKeyId(vKeyPrefix, key, km.db)
+func (km *KeyMap) GetVertexID(graph uint64, key uint64) string {
+  k, _ := getKeyId(graph, vKeyPrefix, key, km.db)
   return k
 }
 
-func (km *KeyMap) GetVertexLabel(key uint64) uint64 {
-  k, _ := getIdLabel(vLabelPrefix, key, km.db)
+func (km *KeyMap) GetVertexLabel(graph uint64, key uint64) uint64 {
+  k, _ := getIdLabel(graph, vLabelPrefix, key, km.db)
   return k
-}
-
-func (km *KeyMap) DelVertexLabel(key uint64) {
-
 }
 
 //TODO: implement
-func (km *KeyMap) GetsertEdgeKey(id, label string) (uint64, uint64) {
-  o, ok := getIdKey(eIdPrefix, id, km.db)
+func (km *KeyMap) GetsertEdgeKey(graph uint64, id, label string) (uint64, uint64) {
+  o, ok := getIdKey(graph, eIdPrefix, id, km.db)
   if !ok {
     km.eIncMut.Lock()
     o = dbInc(&km.eIncCur, eInc, km.db)
     km.eIncMut.Unlock()
-    setKeyId(eKeyPrefix, id, o, km.db)
-    setIdKey(eIdPrefix, id, o, km.db)
+    setKeyId(graph, eKeyPrefix, id, o, km.db)
+    setIdKey(graph, eIdPrefix, id, o, km.db)
   }
-  lkey := km.GetsertLabelKey(label)
-  setIdLabel(eLabelPrefix, o, lkey, km.db)
+  lkey := km.GetsertLabelKey(graph, label)
+  setIdLabel(graph, eLabelPrefix, o, lkey, km.db)
   return o, lkey
 }
 
 //TODO: implement
-func (km *KeyMap) GetEdgeKey(id string) (uint64, bool) {
-  return getIdKey(eIdPrefix, id, km.db)
+func (km *KeyMap) GetEdgeKey(graph uint64, id string) (uint64, bool) {
+  return getIdKey(graph, eIdPrefix, id, km.db)
 }
 
 
 //TODO: implement
-func (km *KeyMap) GetEdgeID(key uint64) string {
-  k, _ := getKeyId(eKeyPrefix, key, km.db)
+func (km *KeyMap) GetEdgeID(graph uint64, key uint64) string {
+  k, _ := getKeyId(graph, eKeyPrefix, key, km.db)
   return k
 }
 
-func (km *KeyMap) GetEdgeLabel(key uint64) uint64 {
-  k, _ := getIdLabel(eLabelPrefix, key, km.db)
+func (km *KeyMap) GetEdgeLabel(graph uint64, key uint64) uint64 {
+  k, _ := getIdLabel(graph, eLabelPrefix, key, km.db)
   return k
 }
 
@@ -145,42 +140,40 @@ func (km *KeyMap) SetEdgeLabel(key, label uint64) {
 }
 */
 
-func (km *KeyMap) DelEdgeLabel(key uint64) {
-
-}
-
 //TODO: implement
-func (km *KeyMap) DelEdgeKey(id string) {
+func (km *KeyMap) DelEdgeKey(graph uint64, id string) {
 }
 
 
 //TODO: implement
-func (km *KeyMap) GetsertLabelKey(id string) uint64 {
-  u, ok := getIdKey(lIdPrefix, id, km.db)
+func (km *KeyMap) GetsertLabelKey(graph uint64, id string) uint64 {
+  u, ok := getIdKey(graph, lIdPrefix, id, km.db)
   if ok {
     return u
   }
   km.lIncMut.Lock()
   o := dbInc(&km.lIncCur, lInc, km.db)
   km.lIncMut.Unlock()
-  setKeyId(lKeyPrefix, id, o, km.db)
-  setIdKey(lIdPrefix, id, o, km.db)
+  setKeyId(graph, lKeyPrefix, id, o, km.db)
+  setIdKey(graph, lIdPrefix, id, o, km.db)
   return o
 }
 
-func (km *KeyMap) GetLabelKey(id string) (uint64, bool) {
-  return getIdKey(lIdPrefix, id, km.db)
+func (km *KeyMap) GetLabelKey(graph uint64, id string) (uint64, bool) {
+  return getIdKey(graph, lIdPrefix, id, km.db)
 }
 
 //TODO: implement
-func (km *KeyMap) GetLabelID(key uint64) string {
-  k, _ := getKeyId(lKeyPrefix, key, km.db)
+func (km *KeyMap) GetLabelID(graph uint64, key uint64) string {
+  k, _ := getKeyId(graph, lKeyPrefix, key, km.db)
   return k
 }
 
 
-func getIdKey(prefix []byte, id string, db *pogreb.DB) (uint64, bool) {
-  k := bytes.Join( [][]byte{ prefix, []byte(id) }, []byte{} )
+func getIdKey(graph uint64, prefix []byte, id string, db *pogreb.DB) (uint64, bool) {
+  g := make([]byte, binary.MaxVarintLen64)
+  binary.PutUvarint(g, graph)
+  k := bytes.Join( [][]byte{ prefix, g, []byte(id) }, []byte{} )
   v, err := db.Get(k)
   if v == nil || err != nil {
     return 0, false
@@ -189,10 +182,20 @@ func getIdKey(prefix []byte, id string, db *pogreb.DB) (uint64, bool) {
   return key, true
 }
 
-func getIdLabel(prefix byte, key uint64, db *pogreb.DB) (uint64, bool) {
-  k := make([]byte, binary.MaxVarintLen64 + 1)
+func setIdKey(graph uint64, prefix []byte, id string, key uint64, db *pogreb.DB) {
+  g := make([]byte, binary.MaxVarintLen64)
+  binary.PutUvarint(g, graph)
+  k := bytes.Join( [][]byte{ prefix, g, []byte(id) }, []byte{} )
+  b := make([]byte, binary.MaxVarintLen64)
+  binary.PutUvarint(b, key)
+  db.Put(k, b)
+}
+
+func getIdLabel(graph uint64, prefix byte, key uint64, db *pogreb.DB) (uint64, bool) {
+  k := make([]byte, binary.MaxVarintLen64*2 + 1)
   k[0] = prefix
-  binary.PutUvarint(k[1:binary.MaxVarintLen64+1], key)
+  binary.PutUvarint(k[1:binary.MaxVarintLen64+1], graph)
+  binary.PutUvarint(k[binary.MaxVarintLen64+1:binary.MaxVarintLen64*2+1], key)
   v, err := db.Get(k)
   if v == nil || err != nil {
     return 0, false
@@ -201,10 +204,11 @@ func getIdLabel(prefix byte, key uint64, db *pogreb.DB) (uint64, bool) {
   return label, true
 }
 
-func setIdLabel(prefix byte, key uint64, label uint64, db *pogreb.DB) error {
-  k := make([]byte, binary.MaxVarintLen64 + 1)
+func setIdLabel(graph uint64, prefix byte, key uint64, label uint64, db *pogreb.DB) error {
+  k := make([]byte, binary.MaxVarintLen64 * 2 + 1)
   k[0] = prefix
-  binary.PutUvarint(k[1:binary.MaxVarintLen64+1], key)
+  binary.PutUvarint(k[1:binary.MaxVarintLen64+1], graph)
+  binary.PutUvarint(k[binary.MaxVarintLen64+1:binary.MaxVarintLen64*2+1], key)
 
   b := make([]byte, binary.MaxVarintLen64)
   binary.PutUvarint(b, label)
@@ -213,24 +217,19 @@ func setIdLabel(prefix byte, key uint64, label uint64, db *pogreb.DB) error {
   return err
 }
 
-func setIdKey(prefix []byte, id string, key uint64, db *pogreb.DB) {
-  k := bytes.Join( [][]byte{ prefix, []byte(id) }, []byte{} )
-  b := make([]byte, binary.MaxVarintLen64)
-  binary.PutUvarint(b, key)
-  db.Put(k, b)
-}
-
-func setKeyId(prefix byte, id string, key uint64, db *pogreb.DB) {
-  k := make([]byte, binary.MaxVarintLen64 + 1)
+func setKeyId(graph uint64, prefix byte, id string, key uint64, db *pogreb.DB) {
+  k := make([]byte, binary.MaxVarintLen64*2 + 1)
   k[0] = prefix
-  binary.PutUvarint(k[1:binary.MaxVarintLen64+1], key)
+  binary.PutUvarint(k[1:binary.MaxVarintLen64+1], graph)
+  binary.PutUvarint(k[binary.MaxVarintLen64+1:binary.MaxVarintLen64*2+1], key)
   db.Put(k, []byte(id))
 }
 
-func getKeyId(prefix byte, key uint64, db *pogreb.DB) (string, bool) {
-  k := make([]byte, binary.MaxVarintLen64 + 1)
+func getKeyId(graph uint64, prefix byte, key uint64, db *pogreb.DB) (string, bool) {
+  k := make([]byte, binary.MaxVarintLen64*2 + 1)
   k[0] = prefix
-  binary.PutUvarint(k[1:binary.MaxVarintLen64+1], key)
+  binary.PutUvarint(k[1:binary.MaxVarintLen64+1], graph)
+  binary.PutUvarint(k[binary.MaxVarintLen64+1:binary.MaxVarintLen64*2+1], key)
   b, err := db.Get(k)
   if b == nil || err != nil {
     return "", false
