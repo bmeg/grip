@@ -49,15 +49,15 @@ func (comp GridsCompiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline
 		}
 		optimized := false
 		if (foundPath != -1) {
-			log.Printf("Compile Statements: %s", noLoadPaths[foundPath])
+			//log.Printf("Compile Statements: %s", noLoadPaths[foundPath])
 			path := SelectPath(stmts, noLoadPaths[foundPath])
-			log.Printf("Compile: %s", path)
+			//log.Printf("Compile: %s", path)
     	p, err := RawPathCompile( comp.graph, ps, path )
 			if err == nil {
 				procs = append(procs, p)
 				i += len(noLoadPaths[foundPath])-1
 				optimized = true
-				fmt.Printf("Pathway out: %s\n", ps.LastType)
+				//fmt.Printf("Pathway out: %s\n", ps.LastType)
 			} else {
 				//BUG: if there is a failure, the pipline state may contain variables from the aborted pipeline optimziation
 				log.Printf("Failure optimizing pipeline")

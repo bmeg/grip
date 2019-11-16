@@ -17,7 +17,6 @@ type DefaultPipeline struct {
 }
 
 func NewPipeline(procs []gdbi.Processor, ps *gdbi.PipelineState) *DefaultPipeline {
-	fmt.Printf("New %s pipeline\n", ps.LastType)
 	return &DefaultPipeline{procs, ps.LastType, ps.MarkTypes}
 }
 

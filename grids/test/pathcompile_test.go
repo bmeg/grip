@@ -95,7 +95,19 @@ func TestEngineQuery(t *testing.T) {
   }
 
   out := engine.Run(context.Background(), pipeline, "./work.dir")
+  for r := range out {
+    fmt.Printf("result: %s\n", r)
+  }
 
+  q = gripql.NewQuery()
+  q = q.V().Out().Out().OutE().Out().Count()
+
+  pipeline, err = comp.Compile(q.Statements)
+  if err != nil {
+    t.Error(err)
+  }
+
+  out = engine.Run(context.Background(), pipeline, "./work.dir")
   for r := range out {
     fmt.Printf("result: %s\n", r)
   }

@@ -97,13 +97,23 @@ func RawPathCompile(db *GridsGraph, ps *gdbi.PipelineState, stmts []*gripql.Grap
       ps.LastType = gdbi.VertexData
       pipeline = append(pipeline, &PathVProc{db: db, ids: ids})
 		case *gripql.GraphStatement_In:
-      labels := protoutil.AsStringList(stmt.In)
-      ps.LastType = gdbi.VertexData
-      pipeline = append(pipeline, &PathInProc{db: db, labels: labels})
+			if ps.LastType == gdbi.VertexData {
+	      labels := protoutil.AsStringList(stmt.In)
+	      ps.LastType = gdbi.VertexData
+	      pipeline = append(pipeline, &PathInProc{db: db, labels: labels})
+			} else if ps.LastType == gdbi.EdgeData {
+	      ps.LastType = gdbi.VertexData
+	      pipeline = append(pipeline, &PathInEdgeAdjProc{db: db})
+			}
 		case *gripql.GraphStatement_Out:
-      labels := protoutil.AsStringList(stmt.Out)
-      ps.LastType = gdbi.VertexData
-      pipeline = append(pipeline, &PathOutProc{db: db, labels: labels})
+			if ps.LastType == gdbi.VertexData {
+      	labels := protoutil.AsStringList(stmt.Out)
+      	ps.LastType = gdbi.VertexData
+      	pipeline = append(pipeline, &PathOutProc{db: db, labels: labels})
+			} else if ps.LastType == gdbi.EdgeData {
+				ps.LastType = gdbi.VertexData
+	      pipeline = append(pipeline, &PathOutEdgeAdjProc{db: db})
+			}
 		case *gripql.GraphStatement_InE:
       labels := protoutil.AsStringList(stmt.InE)
       ps.LastType = gdbi.EdgeData
@@ -146,12 +156,13 @@ func (pc *RawPathProcessor) Process(ctx context.Context, man gdbi.Manager, in gd
     defer close(out)
     if pc.outVertex {
       for tr := range finalR {
-        out <- tr.ToVertexTraveler(pc.db)
+				o := tr.ToVertexTraveler(pc.db)
+        out <- o
       }
     } else {
       for tr := range finalR {
-				fmt.Printf("Path edge out: %#v\n", *tr.current)
-        out <- tr.ToEdgeTraveler(pc.db)
+				o := tr.ToEdgeTraveler(pc.db)
+        out <- o
       }
     }
   }()
@@ -260,18 +271,19 @@ func (r *PathOutEProc) Process(ctx context.Context, in chan *PathTraveler, out c
 		for ov := range r.db.RawGetOutEdgeChannel(queryChan, r.labels) {
 			i := ov.Ref.(*PathTraveler)
 			out <- i.AddCurrent(ov.Element)
-			fmt.Printf("Found : %d %s\n", ov.Element.Gid, r.db.kdb.keyMap.GetEdgeID(r.db.graphKey, ov.Element.Gid))
+			//fmt.Printf("Found : %d %s\n", ov.Element.Gid, r.db.kdb.keyMap.GetEdgeID(r.db.graphKey, ov.Element.Gid))
 		}
 	}()
 	return ctx
 }
 
 // PathOutAdjEProc process edge to out
-type PathOutEAdjProc struct {
+type PathOutEdgeAdjProc struct {
 	db     *GridsGraph
 }
 
-func (r *PathOutEAdjProc) Process(ctx context.Context, in chan *PathTraveler, out chan *PathTraveler) context.Context {
+func (r *PathOutEdgeAdjProc) Process(ctx context.Context, in chan *PathTraveler, out chan *PathTraveler) context.Context {
+	//fmt.Printf("Running PathOutEdgeAdjProc\n")
 	queryChan := make(chan *RawElementLookup, 100)
 	go func() {
 		defer close(queryChan)
@@ -319,12 +331,12 @@ func (r *PathInEProc) Process(ctx context.Context, in chan *PathTraveler, out ch
 	return ctx
 }
 
-type PathInEAdjProc struct {
+type PathInEdgeAdjProc struct {
 	db     *GridsGraph
 	labels []string
 }
 
-func (r *PathInEAdjProc) Process(ctx context.Context, in chan *PathTraveler, out chan *PathTraveler) context.Context {
+func (r *PathInEdgeAdjProc) Process(ctx context.Context, in chan *PathTraveler, out chan *PathTraveler) context.Context {
 	queryChan := make(chan *RawElementLookup, 100)
 	go func() {
 		defer close(queryChan)
@@ -356,8 +368,8 @@ func (rd *RawDataElement) VertexDataElement(ggraph *GridsGraph) *gdbi.DataElemen
 func (rd *RawDataElement) EdgeDataElement(ggraph *GridsGraph) *gdbi.DataElement {
 	Gid := ggraph.kdb.keyMap.GetEdgeID(ggraph.graphKey, rd.Gid)
 	Label := ggraph.kdb.keyMap.GetLabelID(ggraph.graphKey, rd.Label)
-	To := ggraph.kdb.keyMap.GetEdgeID(ggraph.graphKey, rd.To)
-	From := ggraph.kdb.keyMap.GetEdgeID(ggraph.graphKey, rd.From)
+	To := ggraph.kdb.keyMap.GetVertexID(ggraph.graphKey, rd.To)
+	From := ggraph.kdb.keyMap.GetVertexID(ggraph.graphKey, rd.From)
 	return &gdbi.DataElement{ID: Gid, To: To, From: From, Label: Label}
 }
 
