@@ -354,7 +354,7 @@ func (idx *KVIndex) termGetCount(tx kvi.KVTransaction, field string, ttype TermT
 // RemoveDoc removes a document from the index: TODO
 func (idx *KVIndex) RemoveDoc(docID string) error {
 	err := idx.kv.Update(func(tx kvi.KVTransaction) error {
-		log.WithFields(log.Fields{"document_id": docID}).Debug("KVIndex: deleteing document")
+		log.WithFields(log.Fields{"document_id": docID}).Debug("KVIndex: deleting document")
 		docKey := DocKey(docID)
 		data, err := tx.Get(docKey)
 		if err != nil {
