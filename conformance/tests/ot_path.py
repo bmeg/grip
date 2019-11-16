@@ -66,9 +66,9 @@ def test_path(O):
     for res in O.query().V().out().out().outE():
         print(res)
         if not res['from'].startswith("vertex3"):
-            errors.append("Wrong 'from' vertex found at end of path: %s" % (res['from']))
+            errors.append("Wrong 'from' vertex found at end of outE path: %s" % (res['from']))
         if not res['to'].startswith("vertex4"):
-            errors.append("Wrong 'to' vertex found at end of path: %s" % (res['to']))
+            errors.append("Wrong 'to' vertex found at end of ourE path: %s" % (res['to']))
         if not res.label == "step":
             errors.append("Wrong label found at end of path: %s" % (res.label))
         count += 1
@@ -79,9 +79,9 @@ def test_path(O):
     for res in O.query().V().out().out().outE().out():
         print(res)
         if not res.gid.startswith("vertex4"):
-            errors.append("Wrong vertex found at end of outE path: %s" % (res.gid))
+            errors.append("Wrong vertex found at end of outE to out path: %s" % (res.gid))
         if not res.label == "step4":
-            errors.append("Wrong label found at end of path: %s" % (res.label))
+            errors.append("Wrong label found at end of outE to out path: %s" % (res.label))
         count += 1
     if count != 3:
         errors.append("Incorrect vertex count returned: %d != %d" % (count, 3) )
