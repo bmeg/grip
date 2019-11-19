@@ -17,7 +17,6 @@ def setupGraph(O):
     O.addVertex("vertex11", "car")
     O.addVertex("vertex12", "car")
 
-
     O.addEdge("vertex1", "vertex2", "friend", gid="edge1")
     O.addEdge("vertex2", "vertex3", "friend", gid="edge2")
     O.addEdge("vertex2", "vertex4", "parent", gid="edge3")

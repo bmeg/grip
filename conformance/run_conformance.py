@@ -1,7 +1,6 @@
 from __future__ import absolute_import, print_function, unicode_literals
 
 import argparse
-#import imp
 from importlib.machinery import SourceFileLoader
 import os
 import random
@@ -68,7 +67,6 @@ if __name__ == "__main__":
     correct = 0
     total = 0
     for name in tests:
-        #mod = imp.load_source('test.%s' % name, os.path.join(TESTS, name + ".py"))
         mod = SourceFileLoader('test.%s' % name, os.path.join(TESTS, name + ".py")).load_module()
         for f in dir(mod):
             if f.startswith("test_"):
