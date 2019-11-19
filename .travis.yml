@@ -34,6 +34,13 @@ jobs:
       env:
         - n=tests
     - script:
+        - grip server --rpc-port 18202 --http-port 18201 --config ./test/grids.yml &
+        - sleep 5
+        - make test-conformance
+        - go test ./test
+      env:
+        - n=grids
+    - script:
         - grip server --rpc-port 18202 --http-port 18201 --config ./test/badger.yml &
         - sleep 5
         - make test-conformance
