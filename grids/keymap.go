@@ -24,10 +24,10 @@ type KeyMap struct {
 
 var incMod uint64 = 1000
 
-var gIdPrefix []byte = []byte{'g'}
-var vIdPrefix []byte = []byte{'v'}
-var eIdPrefix []byte = []byte{'e'}
-var lIdPrefix []byte = []byte{'l'}
+var gIdPrefix = []byte{'g'}
+var vIdPrefix = []byte{'v'}
+var eIdPrefix = []byte{'e'}
+var lIdPrefix = []byte{'l'}
 
 var gKeyPrefix byte = 'G'
 var vKeyPrefix byte = 'V'
@@ -37,10 +37,10 @@ var lKeyPrefix byte = 'L'
 var vLabelPrefix byte = 'x'
 var eLabelPrefix byte = 'y'
 
-var gInc []byte = []byte{'i', 'g'}
-var vInc []byte = []byte{'i', 'v'}
-var eInc []byte = []byte{'i', 'e'}
-var lInc []byte = []byte{'i', 'l'}
+var gInc = []byte{'i', 'g'}
+var vInc = []byte{'i', 'v'}
+var eInc = []byte{'i', 'e'}
+var lInc = []byte{'i', 'l'}
 
 
 func NewKeyMap(kv *pogreb.DB) *KeyMap {
@@ -54,32 +54,32 @@ func (km *KeyMap) Close() {
 
 
 func (km *KeyMap) GetGraphKey(id string) uint64 {
-  u, ok := getIdKey(0, gIdPrefix, id, km.db)
+  u, ok := getIDKey(0, gIdPrefix, id, km.db)
   if ok {
     return u
   }
   km.gIncMut.Lock()
   o := dbInc(&km.gIncCur, gInc, km.db)
   km.gIncMut.Unlock()
-  setKeyId(0, gKeyPrefix, id, o, km.db)
+  setKeyID(0, gKeyPrefix, id, o, km.db)
   setIdKey(0, gIdPrefix, id, o, km.db)
   return o
 }
 
 //GetGraphID
 func (km *KeyMap) GetGraphID(key uint64) string {
-  k, _ := getKeyId(0, gKeyPrefix, key, km.db)
+  k, _ := getKeyID(0, gKeyPrefix, key, km.db)
   return k
 }
 
 //GetsertVertexKey : Get or Insert Vertex Key
 func (km *KeyMap) GetsertVertexKey(graph uint64, id, label string) (uint64, uint64) {
-  o, ok := getIdKey(graph, vIdPrefix, id, km.db)
+  o, ok := getIDKey(graph, vIdPrefix, id, km.db)
   if !ok {
     km.vIncMut.Lock()
     o = dbInc(&km.vIncCur, vInc, km.db)
     km.vIncMut.Unlock()
-    setKeyId(graph, vKeyPrefix, id, o, km.db)
+    setKeyID(graph, vKeyPrefix, id, o, km.db)
     setIdKey(graph, vIdPrefix, id, o, km.db)
   }
   lkey := km.GetsertLabelKey(graph, label)
@@ -88,12 +88,12 @@ func (km *KeyMap) GetsertVertexKey(graph uint64, id, label string) (uint64, uint
 }
 
 func (km *KeyMap) GetVertexKey(graph uint64, id string) (uint64, bool) {
-  return getIdKey(graph, vIdPrefix, id, km.db)
+  return getIDKey(graph, vIdPrefix, id, km.db)
 }
 
 //GetVertexID
 func (km *KeyMap) GetVertexID(graph uint64, key uint64) string {
-  k, _ := getKeyId(graph, vKeyPrefix, key, km.db)
+  k, _ := getKeyID(graph, vKeyPrefix, key, km.db)
   return k
 }
 
@@ -104,12 +104,12 @@ func (km *KeyMap) GetVertexLabel(graph uint64, key uint64) uint64 {
 
 //TODO: implement
 func (km *KeyMap) GetsertEdgeKey(graph uint64, id, label string) (uint64, uint64) {
-  o, ok := getIdKey(graph, eIdPrefix, id, km.db)
+  o, ok := getIDKey(graph, eIdPrefix, id, km.db)
   if !ok {
     km.eIncMut.Lock()
     o = dbInc(&km.eIncCur, eInc, km.db)
     km.eIncMut.Unlock()
-    setKeyId(graph, eKeyPrefix, id, o, km.db)
+    setKeyID(graph, eKeyPrefix, id, o, km.db)
     setIdKey(graph, eIdPrefix, id, o, km.db)
   }
   lkey := km.GetsertLabelKey(graph, label)
@@ -119,13 +119,13 @@ func (km *KeyMap) GetsertEdgeKey(graph uint64, id, label string) (uint64, uint64
 
 //TODO: implement
 func (km *KeyMap) GetEdgeKey(graph uint64, id string) (uint64, bool) {
-  return getIdKey(graph, eIdPrefix, id, km.db)
+  return getIDKey(graph, eIdPrefix, id, km.db)
 }
 
 
 //TODO: implement
 func (km *KeyMap) GetEdgeID(graph uint64, key uint64) string {
-  k, _ := getKeyId(graph, eKeyPrefix, key, km.db)
+  k, _ := getKeyID(graph, eKeyPrefix, key, km.db)
   return k
 }
 
@@ -147,30 +147,30 @@ func (km *KeyMap) DelEdgeKey(graph uint64, id string) {
 
 //TODO: implement
 func (km *KeyMap) GetsertLabelKey(graph uint64, id string) uint64 {
-  u, ok := getIdKey(graph, lIdPrefix, id, km.db)
+  u, ok := getIDKey(graph, lIdPrefix, id, km.db)
   if ok {
     return u
   }
   km.lIncMut.Lock()
   o := dbInc(&km.lIncCur, lInc, km.db)
   km.lIncMut.Unlock()
-  setKeyId(graph, lKeyPrefix, id, o, km.db)
+  setKeyID(graph, lKeyPrefix, id, o, km.db)
   setIdKey(graph, lIdPrefix, id, o, km.db)
   return o
 }
 
 func (km *KeyMap) GetLabelKey(graph uint64, id string) (uint64, bool) {
-  return getIdKey(graph, lIdPrefix, id, km.db)
+  return getIDKey(graph, lIdPrefix, id, km.db)
 }
 
 //TODO: implement
 func (km *KeyMap) GetLabelID(graph uint64, key uint64) string {
-  k, _ := getKeyId(graph, lKeyPrefix, key, km.db)
+  k, _ := getKeyID(graph, lKeyPrefix, key, km.db)
   return k
 }
 
 
-func getIdKey(graph uint64, prefix []byte, id string, db *pogreb.DB) (uint64, bool) {
+func getIDKey(graph uint64, prefix []byte, id string, db *pogreb.DB) (uint64, bool) {
   g := make([]byte, binary.MaxVarintLen64)
   binary.PutUvarint(g, graph)
   k := bytes.Join( [][]byte{ prefix, g, []byte(id) }, []byte{} )
@@ -217,7 +217,7 @@ func setIdLabel(graph uint64, prefix byte, key uint64, label uint64, db *pogreb.
   return err
 }
 
-func setKeyId(graph uint64, prefix byte, id string, key uint64, db *pogreb.DB) {
+func setKeyID(graph uint64, prefix byte, id string, key uint64, db *pogreb.DB) {
   k := make([]byte, binary.MaxVarintLen64*2 + 1)
   k[0] = prefix
   binary.PutUvarint(k[1:binary.MaxVarintLen64+1], graph)
@@ -225,7 +225,7 @@ func setKeyId(graph uint64, prefix byte, id string, key uint64, db *pogreb.DB) {
   db.Put(k, []byte(id))
 }
 
-func getKeyId(graph uint64, prefix byte, key uint64, db *pogreb.DB) (string, bool) {
+func getKeyID(graph uint64, prefix byte, key uint64, db *pogreb.DB) (string, bool) {
   k := make([]byte, binary.MaxVarintLen64*2 + 1)
   k[0] = prefix
   binary.PutUvarint(k[1:binary.MaxVarintLen64+1], graph)
@@ -247,15 +247,14 @@ func dbInc(inc *uint64, k []byte, db *pogreb.DB) uint64 {
       db.Put(gInc, b)
       (*inc)++
       return 0
-    } else {
-      newInc, _ := binary.Uvarint(v)
-      *inc = newInc
-      binary.PutUvarint(b, (*inc) + incMod)
-      db.Put(k, b)
-      o := (*inc)
-      (*inc)++
-      return o
     }
+    newInc, _ := binary.Uvarint(v)
+    *inc = newInc
+    binary.PutUvarint(b, (*inc) + incMod)
+    db.Put(k, b)
+    o := (*inc)
+    (*inc)++
+    return o
   }
   o := *inc
   (*inc)++

@@ -2,10 +2,11 @@ package inspect
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/protoutil"
 	log "github.com/sirupsen/logrus"
-	"strings"
 )
 
 func arrayEq(a, b []string) bool {
@@ -36,18 +37,18 @@ func PipelineSteps(stmts []*gripql.GraphStatement) []string {
 	curState := 0
 	for _, gs := range stmts {
 		switch gs.GetStatement().(type) {
-		//These commands all change the postion of the traveler. When that happens,
+		//These commands all change the position of the traveler. When that happens,
 		//we go to the next 'step' of the traversal
 		case *gripql.GraphStatement_V, *gripql.GraphStatement_E, *gripql.GraphStatement_Out,
 			*gripql.GraphStatement_In, *gripql.GraphStatement_OutE, *gripql.GraphStatement_InE,
 			*gripql.GraphStatement_Both, *gripql.GraphStatement_BothE, *gripql.GraphStatement_Select:
-			curState += 1
+			curState++
 		case *gripql.GraphStatement_Limit, *gripql.GraphStatement_As, *gripql.GraphStatement_Has,
 			*gripql.GraphStatement_HasId, *gripql.GraphStatement_HasKey, *gripql.GraphStatement_HasLabel,
 			*gripql.GraphStatement_Count, *gripql.GraphStatement_Skip, *gripql.GraphStatement_Distinct,
 			*gripql.GraphStatement_Range, *gripql.GraphStatement_Aggregate, *gripql.GraphStatement_Render,
 			*gripql.GraphStatement_Fields:
-		case *gripql.GraphStatement_LookupVertsIndex:
+		case *gripql.GraphStatementLookupVertsIndex:
 		default:
 			log.Printf("Unknown Graph Statement: %T", gs.GetStatement())
 		}
@@ -108,7 +109,7 @@ func PipelineStepOutputs(stmts []*gripql.GraphStatement) map[string][]string {
 				*gripql.GraphStatement_BothE:
 				out[steps[i]] = []string{"*"}
 				onLast = false
-			case *gripql.GraphStatement_LookupVertsIndex:
+			case *gripql.GraphStatementLookupVertsIndex:
 				out[steps[i]] = []string{"*"}
 				onLast = false
 			}

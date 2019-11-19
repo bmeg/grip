@@ -12,7 +12,7 @@ import (
 
 type RawPathProcessor struct {
   pipeline RawPipeline
-  db *GridsGraph
+  db *Graph
   inVertex  bool
   outVertex bool
 }
@@ -46,7 +46,7 @@ func SelectPath(stmts []*gripql.GraphStatement, path []int) []*gripql.GraphState
 }
 
 
-func NewPathTraveler(tr *gdbi.Traveler, isVertex bool, gg *GridsGraph) *PathTraveler {
+func NewPathTraveler(tr *gdbi.Traveler, isVertex bool, gg *Graph) *PathTraveler {
   el := RawDataElement{}
   cur := tr.GetCurrent()
   if isVertex {
@@ -71,11 +71,11 @@ func (t *PathTraveler) AddCurrent(r *RawDataElement) *PathTraveler {
 	return &a
 }
 
-func (t *PathTraveler) ToVertexTraveler(gg *GridsGraph) *gdbi.Traveler {
+func (t *PathTraveler) ToVertexTraveler(gg *Graph) *gdbi.Traveler {
   return t.traveler.AddCurrent( t.current.VertexDataElement(gg) )
 }
 
-func (t *PathTraveler) ToEdgeTraveler(gg *GridsGraph) *gdbi.Traveler {
+func (t *PathTraveler) ToEdgeTraveler(gg *Graph) *gdbi.Traveler {
   return t.traveler.AddCurrent( t.current.EdgeDataElement(gg) )
 }
 
@@ -85,7 +85,7 @@ type RawProcessor interface {
 
 type RawPipeline []RawProcessor
 
-func RawPathCompile(db *GridsGraph, ps *gdbi.PipelineState, stmts []*gripql.GraphStatement) (gdbi.Processor, error) {
+func RawPathCompile(db *Graph, ps *gdbi.PipelineState, stmts []*gripql.GraphStatement) (gdbi.Processor, error) {
 
 	pipeline :=  RawPipeline{}
   firstType := ps.LastType
@@ -171,7 +171,7 @@ func (pc *RawPathProcessor) Process(ctx context.Context, man gdbi.Manager, in gd
 }
 
 type PathVProc struct {
-	db *GridsGraph
+	db *Graph
   ids []string
 }
 
@@ -197,7 +197,7 @@ func (r *PathVProc) Process(ctx context.Context, in chan *PathTraveler, out chan
 }
 
 type PathOutProc struct {
-	db     *GridsGraph
+	db     *Graph
 	labels []string
 }
 
@@ -224,7 +224,7 @@ func (r *PathOutProc) Process(ctx context.Context, in chan *PathTraveler, out ch
 
 
 type PathInProc struct {
-	db     *GridsGraph
+	db     *Graph
 	labels []string
 }
 
@@ -251,7 +251,7 @@ func (r *PathInProc) Process(ctx context.Context, in chan *PathTraveler, out cha
 
 
 type PathOutEProc struct {
-	db     *GridsGraph
+	db     *Graph
 	labels []string
 }
 
@@ -279,7 +279,7 @@ func (r *PathOutEProc) Process(ctx context.Context, in chan *PathTraveler, out c
 
 // PathOutAdjEProc process edge to out
 type PathOutEdgeAdjProc struct {
-	db     *GridsGraph
+	db     *Graph
 }
 
 func (r *PathOutEdgeAdjProc) Process(ctx context.Context, in chan *PathTraveler, out chan *PathTraveler) context.Context {
@@ -306,7 +306,7 @@ func (r *PathOutEdgeAdjProc) Process(ctx context.Context, in chan *PathTraveler,
 
 
 type PathInEProc struct {
-	db     *GridsGraph
+	db     *Graph
 	labels []string
 }
 
@@ -332,7 +332,7 @@ func (r *PathInEProc) Process(ctx context.Context, in chan *PathTraveler, out ch
 }
 
 type PathInEdgeAdjProc struct {
-	db     *GridsGraph
+	db     *Graph
 	labels []string
 }
 
@@ -359,13 +359,13 @@ func (r *PathInEdgeAdjProc) Process(ctx context.Context, in chan *PathTraveler, 
 
 
 
-func (rd *RawDataElement) VertexDataElement(ggraph *GridsGraph) *gdbi.DataElement {
+func (rd *RawDataElement) VertexDataElement(ggraph *Graph) *gdbi.DataElement {
 	Gid := ggraph.kdb.keyMap.GetVertexID(ggraph.graphKey, rd.Gid)
 	Label := ggraph.kdb.keyMap.GetLabelID(ggraph.graphKey, rd.Label)
 	return &gdbi.DataElement{ID: Gid, Label: Label}
 }
 
-func (rd *RawDataElement) EdgeDataElement(ggraph *GridsGraph) *gdbi.DataElement {
+func (rd *RawDataElement) EdgeDataElement(ggraph *Graph) *gdbi.DataElement {
 	Gid := ggraph.kdb.keyMap.GetEdgeID(ggraph.graphKey, rd.Gid)
 	Label := ggraph.kdb.keyMap.GetLabelID(ggraph.graphKey, rd.Label)
 	To := ggraph.kdb.keyMap.GetVertexID(ggraph.graphKey, rd.To)
@@ -373,7 +373,7 @@ func (rd *RawDataElement) EdgeDataElement(ggraph *GridsGraph) *gdbi.DataElement 
 	return &gdbi.DataElement{ID: Gid, To: To, From: From, Label: Label}
 }
 
-func (ggraph *GridsGraph) RawGetVertexList(ctx context.Context) <-chan *RawDataElement {
+func (ggraph *Graph) RawGetVertexList(ctx context.Context) <-chan *RawDataElement {
 	o := make(chan *RawDataElement, 100)
 	go func() {
 		defer close(o)
@@ -399,7 +399,7 @@ func (ggraph *GridsGraph) RawGetVertexList(ctx context.Context) <-chan *RawDataE
 	return o
 }
 
-func (ggraph *GridsGraph) RawGetEdgeList(ctx context.Context) <-chan *RawDataElement {
+func (ggraph *Graph) RawGetEdgeList(ctx context.Context) <-chan *RawDataElement {
 	o := make(chan *RawDataElement, 100)
 	go func() {
 		defer close(o)
@@ -426,7 +426,7 @@ func (ggraph *GridsGraph) RawGetEdgeList(ctx context.Context) <-chan *RawDataEle
 	return o
 }
 
-func (ggraph *GridsGraph) RawGetVertexChannel(reqChan chan *RawElementLookup) <-chan *RawElementLookup {
+func (ggraph *Graph) RawGetVertexChannel(reqChan chan *RawElementLookup) <-chan *RawElementLookup {
 	o := make(chan *RawElementLookup, 100)
 	go func() {
 		defer close(o)
@@ -448,7 +448,7 @@ func (ggraph *GridsGraph) RawGetVertexChannel(reqChan chan *RawElementLookup) <-
 
 
 
-func (ggraph *GridsGraph) RawGetOutChannel(reqChan chan *RawElementLookup, edgeLabels []string) chan *RawElementLookup {
+func (ggraph *Graph) RawGetOutChannel(reqChan chan *RawElementLookup, edgeLabels []string) chan *RawElementLookup {
 	o := make(chan *RawElementLookup, 100)
 	edgeLabelKeys := make([]uint64, 0, len(edgeLabels))
 	for i := range edgeLabels {
@@ -484,7 +484,7 @@ func (ggraph *GridsGraph) RawGetOutChannel(reqChan chan *RawElementLookup, edgeL
 	return o
 }
 
-func (ggraph *GridsGraph) RawGetInChannel(reqChan chan *RawElementLookup, edgeLabels []string) chan *RawElementLookup {
+func (ggraph *Graph) RawGetInChannel(reqChan chan *RawElementLookup, edgeLabels []string) chan *RawElementLookup {
 	o := make(chan *RawElementLookup, 100)
 	edgeLabelKeys := make([]uint64, 0, len(edgeLabels))
 	for i := range edgeLabels {
@@ -520,7 +520,7 @@ func (ggraph *GridsGraph) RawGetInChannel(reqChan chan *RawElementLookup, edgeLa
 	return o
 }
 
-func (ggraph *GridsGraph) RawGetOutEdgeChannel(reqChan chan *RawElementLookup, edgeLabels []string) chan *RawElementLookup {
+func (ggraph *Graph) RawGetOutEdgeChannel(reqChan chan *RawElementLookup, edgeLabels []string) chan *RawElementLookup {
 	o := make(chan *RawElementLookup, 100)
 	edgeLabelKeys := make([]uint64, 0, len(edgeLabels))
 	for i := range edgeLabels {
@@ -557,7 +557,7 @@ func (ggraph *GridsGraph) RawGetOutEdgeChannel(reqChan chan *RawElementLookup, e
 	return o
 }
 
-func (ggraph *GridsGraph) RawGetInEdgeChannel(reqChan chan *RawElementLookup, edgeLabels []string) chan *RawElementLookup {
+func (ggraph *Graph) RawGetInEdgeChannel(reqChan chan *RawElementLookup, edgeLabels []string) chan *RawElementLookup {
 	o := make(chan *RawElementLookup, 100)
 	edgeLabelKeys := make([]uint64, 0, len(edgeLabels))
 	for i := range edgeLabels {

@@ -45,7 +45,7 @@ func Run(conf *config.Config, schemas map[string]*gripql.Graph) error {
 		db, err = kvgraph.NewKVGraphDB(dbname, conf.KVStorePath)
 
 	case "grids":
-		db, err = grids.NewGridsGraphDB(conf.Grids)
+		db, err = grids.NewGraphDB(conf.Grids)
 
 	case "elastic", "elasticsearch":
 		db, err = elastic.NewGraphDB(conf.Elasticsearch)

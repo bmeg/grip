@@ -10,15 +10,15 @@ import (
 )
 
 // Compiler gets a compiler that will use the graph the execute the compiled query
-func (ggraph *GridsGraph) Compiler() gdbi.Compiler {
+func (ggraph *Graph) Compiler() gdbi.Compiler {
 	return NewCompiler(ggraph)
 }
 
 type GridsCompiler struct {
-	graph *GridsGraph
+	graph *Graph
 }
 
-func NewCompiler(ggraph *GridsGraph) gdbi.Compiler {
+func NewCompiler(ggraph *Graph) gdbi.Compiler {
 	return GridsCompiler{graph: ggraph}
 }
 
@@ -48,14 +48,14 @@ func (comp GridsCompiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline
 			}
 		}
 		optimized := false
-		if (foundPath != -1) {
+		if foundPath != -1 {
 			//log.Printf("Compile Statements: %s", noLoadPaths[foundPath])
 			path := SelectPath(stmts, noLoadPaths[foundPath])
 			//log.Printf("Compile: %s", path)
-    	p, err := RawPathCompile( comp.graph, ps, path )
+			p, err := RawPathCompile(comp.graph, ps, path)
 			if err == nil {
 				procs = append(procs, p)
-				i += len(noLoadPaths[foundPath])-1
+				i += len(noLoadPaths[foundPath]) - 1
 				optimized = true
 				//fmt.Printf("Pathway out: %s\n", ps.LastType)
 			} else {

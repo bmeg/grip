@@ -10,7 +10,7 @@ import (
 )
 
 // AddGraph creates a new graph named `graph`
-func (kgraph *GridsGDB) AddGraph(graph string) error {
+func (kgraph *GDB) AddGraph(graph string) error {
 	err := gripql.ValidateGraphName(graph)
 	if err != nil {
 		return err
@@ -26,7 +26,7 @@ func (kgraph *GridsGDB) AddGraph(graph string) error {
 }
 
 // DeleteGraph deletes `graph`
-func (kgraph *GridsGDB) DeleteGraph(graph string) error {
+func (kgraph *GDB) DeleteGraph(graph string) error {
 	kgraph.ts.Touch(graph)
 
 	gkey := kgraph.keyMap.GetGraphKey( graph )
@@ -52,7 +52,7 @@ func (kgraph *GridsGDB) DeleteGraph(graph string) error {
 }
 
 // Graph obtains the gdbi.DBI for a particular graph
-func (kgraph *GridsGDB) Graph(graph string) (gdbi.GraphInterface, error) {
+func (kgraph *GDB) Graph(graph string) (gdbi.GraphInterface, error) {
 	found := false
 	for _, gname := range kgraph.ListGraphs() {
 		if graph == gname {
@@ -63,12 +63,12 @@ func (kgraph *GridsGDB) Graph(graph string) (gdbi.GraphInterface, error) {
 		return nil, fmt.Errorf("graph '%s' was not found", graph)
 	}
 	gkey := kgraph.keyMap.GetGraphKey(graph)
-	return &GridsGraph{kdb: kgraph, graphID: graph, graphKey: gkey}, nil
+	return &Graph{kdb: kgraph, graphID: graph, graphKey: gkey}, nil
 }
 
 
 // ListGraphs lists the graphs managed by this driver
-func (kgraph *GridsGDB) ListGraphs() []string {
+func (kgraph *GDB) ListGraphs() []string {
 	out := []string{}
 	gPrefix := GraphPrefix()
 	kgraph.graphkv.View(func(it kvi.KVIterator) error {

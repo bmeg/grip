@@ -11,12 +11,12 @@ import (
 
 func TestIndexStartOptimize(t *testing.T) {
 	expected := []*gripql.GraphStatement{
-		&gripql.GraphStatement{Statement: &gripql.GraphStatement_V{V: protoutil.AsListValue([]string{"1", "2", "3"})}},
-		&gripql.GraphStatement{Statement: &gripql.GraphStatement_Out{}},
+		{Statement: &gripql.GraphStatement_V{V: protoutil.AsListValue([]string{"1", "2", "3"})}},
+		{Statement: &gripql.GraphStatement_Out{}},
 	}
 	original := []*gripql.GraphStatement{
-		&gripql.GraphStatement{Statement: &gripql.GraphStatement_V{V: protoutil.AsListValue([]string{"1", "2", "3"})}},
-		&gripql.GraphStatement{Statement: &gripql.GraphStatement_Out{}},
+		{Statement: &gripql.GraphStatement_V{V: protoutil.AsListValue([]string{"1", "2", "3"})}},
+		{Statement: &gripql.GraphStatement_Out{}},
 	}
 	optimized := IndexStartOptimize(original)
 	if !reflect.DeepEqual(optimized, expected) {
@@ -26,15 +26,15 @@ func TestIndexStartOptimize(t *testing.T) {
 	}
 
 	expected = []*gripql.GraphStatement{
-		&gripql.GraphStatement{Statement: &gripql.GraphStatement_V{}},
-		&gripql.GraphStatement{Statement: &gripql.GraphStatement_Out{}},
-		&gripql.GraphStatement{Statement: &gripql.GraphStatement_HasId{HasId: protoutil.AsListValue([]string{"1", "2", "3"})}},
+		{Statement: &gripql.GraphStatement_V{}},
+		{Statement: &gripql.GraphStatement_Out{}},
+		{Statement: &gripql.GraphStatement_HasId{HasId: protoutil.AsListValue([]string{"1", "2", "3"})}},
 	}
 
 	original = []*gripql.GraphStatement{
-		&gripql.GraphStatement{Statement: &gripql.GraphStatement_V{}},
-		&gripql.GraphStatement{Statement: &gripql.GraphStatement_Out{}},
-		&gripql.GraphStatement{Statement: &gripql.GraphStatement_HasId{HasId: protoutil.AsListValue([]string{"1", "2", "3"})}},
+		{Statement: &gripql.GraphStatement_V{}},
+		{Statement: &gripql.GraphStatement_Out{}},
+		{Statement: &gripql.GraphStatement_HasId{HasId: protoutil.AsListValue([]string{"1", "2", "3"})}},
 	}
 
 	optimized = IndexStartOptimize(original)
@@ -45,14 +45,14 @@ func TestIndexStartOptimize(t *testing.T) {
 	}
 
 	expected = []*gripql.GraphStatement{
-		&gripql.GraphStatement{Statement: &gripql.GraphStatement_V{V: protoutil.AsListValue([]string{"1", "2", "3"})}},
-		&gripql.GraphStatement{Statement: &gripql.GraphStatement_Out{}},
+		{Statement: &gripql.GraphStatement_V{V: protoutil.AsListValue([]string{"1", "2", "3"})}},
+		{Statement: &gripql.GraphStatement_Out{}},
 	}
 
 	original = []*gripql.GraphStatement{
-		&gripql.GraphStatement{Statement: &gripql.GraphStatement_V{}},
-		&gripql.GraphStatement{Statement: &gripql.GraphStatement_HasId{HasId: protoutil.AsListValue([]string{"1", "2", "3"})}},
-		&gripql.GraphStatement{Statement: &gripql.GraphStatement_Out{}},
+		{Statement: &gripql.GraphStatement_V{}},
+		{Statement: &gripql.GraphStatement_HasId{HasId: protoutil.AsListValue([]string{"1", "2", "3"})}},
+		{Statement: &gripql.GraphStatement_Out{}},
 	}
 
 	optimized = IndexStartOptimize(original)
@@ -63,22 +63,22 @@ func TestIndexStartOptimize(t *testing.T) {
 	}
 
 	expected = []*gripql.GraphStatement{
-		&gripql.GraphStatement{Statement: &gripql.GraphStatement_V{V: protoutil.AsListValue([]string{"1", "2", "3"})}},
-		&gripql.GraphStatement{Statement: &gripql.GraphStatement_Out{}},
+		{Statement: &gripql.GraphStatement_V{V: protoutil.AsListValue([]string{"1", "2", "3"})}},
+		{Statement: &gripql.GraphStatement_Out{}},
 	}
 
 	original = []*gripql.GraphStatement{
-		&gripql.GraphStatement{Statement: &gripql.GraphStatement_V{}},
-		&gripql.GraphStatement{Statement: &gripql.GraphStatement_Has{
+		{Statement: &gripql.GraphStatement_V{}},
+		{Statement: &gripql.GraphStatement_Has{
 			Has: &gripql.HasExpression{Expression: &gripql.HasExpression_Condition{
-				&gripql.HasCondition{
+				Condition: &gripql.HasCondition{
 					Condition: gripql.Condition_WITHIN,
-					Key: "_gid",
+					Key:       "_gid",
 					Value:     protoutil.WrapValue([]string{"1", "2", "3"}),
 				},
 			}},
 		}},
-		&gripql.GraphStatement{Statement: &gripql.GraphStatement_Out{}},
+		{Statement: &gripql.GraphStatement_Out{}},
 	}
 
 	optimized = IndexStartOptimize(original)
@@ -89,31 +89,31 @@ func TestIndexStartOptimize(t *testing.T) {
 	}
 
 	expected = []*gripql.GraphStatement{
-		&gripql.GraphStatement{Statement: &gripql.GraphStatement_V{}},
-		&gripql.GraphStatement{Statement: &gripql.GraphStatement_Has{
+		{Statement: &gripql.GraphStatement_V{}},
+		{Statement: &gripql.GraphStatement_Has{
 			Has: &gripql.HasExpression{Expression: &gripql.HasExpression_Condition{
-				&gripql.HasCondition{
+				Condition: &gripql.HasCondition{
 					Condition: gripql.Condition_NEQ,
 					Key:       "_gid",
 					Value:     protoutil.WrapValue("1"),
 				},
 			}},
 		}},
-		&gripql.GraphStatement{Statement: &gripql.GraphStatement_Out{}},
+		{Statement: &gripql.GraphStatement_Out{}},
 	}
 
 	original = []*gripql.GraphStatement{
-		&gripql.GraphStatement{Statement: &gripql.GraphStatement_V{}},
-		&gripql.GraphStatement{Statement: &gripql.GraphStatement_Has{
+		{Statement: &gripql.GraphStatement_V{}},
+		{Statement: &gripql.GraphStatement_Has{
 			Has: &gripql.HasExpression{Expression: &gripql.HasExpression_Condition{
-				&gripql.HasCondition{
+				Condition: &gripql.HasCondition{
 					Condition: gripql.Condition_NEQ,
 					Key:       "_gid",
 					Value:     protoutil.WrapValue("1"),
 				},
 			}},
 		}},
-		&gripql.GraphStatement{Statement: &gripql.GraphStatement_Out{}},
+		{Statement: &gripql.GraphStatement_Out{}},
 	}
 
 	optimized = IndexStartOptimize(original)
@@ -125,40 +125,40 @@ func TestIndexStartOptimize(t *testing.T) {
 
 	// order shouldnt matter
 	expected = []*gripql.GraphStatement{
-		&gripql.GraphStatement{Statement: &gripql.GraphStatement_V{V: protoutil.AsListValue([]string{"1", "2", "3"})}},
-		&gripql.GraphStatement{Statement: &gripql.GraphStatement_Has{
+		{Statement: &gripql.GraphStatement_V{V: protoutil.AsListValue([]string{"1", "2", "3"})}},
+		{Statement: &gripql.GraphStatement_Has{
 			Has: &gripql.HasExpression{Expression: &gripql.HasExpression_Condition{
-				&gripql.HasCondition{
+				Condition: &gripql.HasCondition{
 					Condition: gripql.Condition_EQ,
 					Key:       "$.data.foo",
 					Value:     protoutil.WrapValue("bar"),
 				},
 			}},
 		}},
-		&gripql.GraphStatement{Statement: &gripql.GraphStatement_Out{}},
+		{Statement: &gripql.GraphStatement_Out{}},
 	}
 
 	original = []*gripql.GraphStatement{
-		&gripql.GraphStatement{Statement: &gripql.GraphStatement_V{}},
-		&gripql.GraphStatement{Statement: &gripql.GraphStatement_Has{
+		{Statement: &gripql.GraphStatement_V{}},
+		{Statement: &gripql.GraphStatement_Has{
 			Has: &gripql.HasExpression{Expression: &gripql.HasExpression_Condition{
-				&gripql.HasCondition{
+				Condition: &gripql.HasCondition{
 					Condition: gripql.Condition_EQ,
 					Key:       "$.data.foo",
 					Value:     protoutil.WrapValue("bar"),
 				},
 			}},
 		}},
-		&gripql.GraphStatement{Statement: &gripql.GraphStatement_Has{
+		{Statement: &gripql.GraphStatement_Has{
 			Has: &gripql.HasExpression{Expression: &gripql.HasExpression_Condition{
-				&gripql.HasCondition{
+				Condition: &gripql.HasCondition{
 					Condition: gripql.Condition_WITHIN,
 					Key:       "_gid",
 					Value:     protoutil.WrapValue([]string{"1", "2", "3"}),
 				},
 			}},
 		}},
-		&gripql.GraphStatement{Statement: &gripql.GraphStatement_Out{}},
+		{Statement: &gripql.GraphStatement_Out{}},
 	}
 
 	optimized = IndexStartOptimize(original)
@@ -170,8 +170,8 @@ func TestIndexStartOptimize(t *testing.T) {
 
 	// only use the first statement
 	expected = []*gripql.GraphStatement{
-		&gripql.GraphStatement{Statement: &gripql.GraphStatement_V{V: protoutil.AsListValue([]string{"1", "2", "3"})}},
-		&gripql.GraphStatement{Statement: &gripql.GraphStatement_Has{
+		{Statement: &gripql.GraphStatement_V{V: protoutil.AsListValue([]string{"1", "2", "3"})}},
+		{Statement: &gripql.GraphStatement_Has{
 			Has: &gripql.HasExpression{Expression: &gripql.HasExpression_Condition{
 				&gripql.HasCondition{
 					Condition: gripql.Condition_WITHIN,
@@ -180,13 +180,13 @@ func TestIndexStartOptimize(t *testing.T) {
 				},
 			}},
 		}},
-		&gripql.GraphStatement{Statement: &gripql.GraphStatement_Out{}},
+		{Statement: &gripql.GraphStatement_Out{}},
 	}
 
 	original = []*gripql.GraphStatement{
-		&gripql.GraphStatement{Statement: &gripql.GraphStatement_V{}},
-		&gripql.GraphStatement{Statement: &gripql.GraphStatement_HasId{HasId: protoutil.AsListValue([]string{"1", "2", "3"})}},
-		&gripql.GraphStatement{Statement: &gripql.GraphStatement_Has{
+		{Statement: &gripql.GraphStatement_V{}},
+		{Statement: &gripql.GraphStatement_HasId{HasId: protoutil.AsListValue([]string{"1", "2", "3"})}},
+		{Statement: &gripql.GraphStatement_Has{
 			Has: &gripql.HasExpression{Expression: &gripql.HasExpression_Condition{
 				&gripql.HasCondition{
 					Condition: gripql.Condition_WITHIN,
@@ -195,7 +195,7 @@ func TestIndexStartOptimize(t *testing.T) {
 				},
 			}},
 		}},
-		&gripql.GraphStatement{Statement: &gripql.GraphStatement_Out{}},
+		{Statement: &gripql.GraphStatement_Out{}},
 	}
 
 	optimized = IndexStartOptimize(original)
@@ -206,14 +206,14 @@ func TestIndexStartOptimize(t *testing.T) {
 	}
 
 	expected = []*gripql.GraphStatement{
-		&gripql.GraphStatement{Statement: &gripql.GraphStatement_LookupVertsIndex{Labels: []string{"foo", "bar"}}},
-		&gripql.GraphStatement{Statement: &gripql.GraphStatement_Out{}},
+		{Statement: &gripql.GraphStatementLookupVertsIndex{Labels: []string{"foo", "bar"}}},
+		{Statement: &gripql.GraphStatement_Out{}},
 	}
 
 	original = []*gripql.GraphStatement{
-		&gripql.GraphStatement{Statement: &gripql.GraphStatement_V{}},
-		&gripql.GraphStatement{Statement: &gripql.GraphStatement_HasLabel{HasLabel: protoutil.AsListValue([]string{"foo", "bar"})}},
-		&gripql.GraphStatement{Statement: &gripql.GraphStatement_Out{}},
+		{Statement: &gripql.GraphStatement_V{}},
+		{Statement: &gripql.GraphStatement_HasLabel{HasLabel: protoutil.AsListValue([]string{"foo", "bar"})}},
+		{Statement: &gripql.GraphStatement_Out{}},
 	}
 
 	optimized = IndexStartOptimize(original)
@@ -225,8 +225,8 @@ func TestIndexStartOptimize(t *testing.T) {
 
 	// TODO figure out how to optimize
 	expected = []*gripql.GraphStatement{
-		&gripql.GraphStatement{Statement: &gripql.GraphStatement_V{}},
-		&gripql.GraphStatement{Statement: &gripql.GraphStatement_Has{
+		{Statement: &gripql.GraphStatement_V{}},
+		{Statement: &gripql.GraphStatement_Has{
 			Has: &gripql.HasExpression{Expression: &gripql.HasExpression_Condition{
 				&gripql.HasCondition{
 					Condition: gripql.Condition_NEQ,
@@ -235,12 +235,12 @@ func TestIndexStartOptimize(t *testing.T) {
 				},
 			}},
 		}},
-		&gripql.GraphStatement{Statement: &gripql.GraphStatement_Out{}},
+		{Statement: &gripql.GraphStatement_Out{}},
 	}
 
 	original = []*gripql.GraphStatement{
-		&gripql.GraphStatement{Statement: &gripql.GraphStatement_V{}},
-		&gripql.GraphStatement{Statement: &gripql.GraphStatement_Has{
+		{Statement: &gripql.GraphStatement_V{}},
+		{Statement: &gripql.GraphStatement_Has{
 			Has: &gripql.HasExpression{Expression: &gripql.HasExpression_Condition{
 				&gripql.HasCondition{
 					Condition: gripql.Condition_NEQ,
@@ -249,7 +249,7 @@ func TestIndexStartOptimize(t *testing.T) {
 				},
 			}},
 		}},
-		&gripql.GraphStatement{Statement: &gripql.GraphStatement_Out{}},
+		{Statement: &gripql.GraphStatement_Out{}},
 	}
 
 	optimized = IndexStartOptimize(original)
@@ -260,13 +260,13 @@ func TestIndexStartOptimize(t *testing.T) {
 	}
 
 	expected = []*gripql.GraphStatement{
-		&gripql.GraphStatement{Statement: &gripql.GraphStatement_LookupVertsIndex{Labels: []string{"foo", "bar"}}},
-		&gripql.GraphStatement{Statement: &gripql.GraphStatement_Out{}},
+		{Statement: &gripql.GraphStatementLookupVertsIndex{Labels: []string{"foo", "bar"}}},
+		{Statement: &gripql.GraphStatement_Out{}},
 	}
 
 	original = []*gripql.GraphStatement{
-		&gripql.GraphStatement{Statement: &gripql.GraphStatement_V{}},
-		&gripql.GraphStatement{Statement: &gripql.GraphStatement_Has{
+		{Statement: &gripql.GraphStatement_V{}},
+		{Statement: &gripql.GraphStatement_Has{
 			Has: &gripql.HasExpression{Expression: &gripql.HasExpression_Condition{
 				&gripql.HasCondition{
 					Condition: gripql.Condition_WITHIN,
@@ -275,7 +275,7 @@ func TestIndexStartOptimize(t *testing.T) {
 				},
 			}},
 		}},
-		&gripql.GraphStatement{Statement: &gripql.GraphStatement_Out{}},
+		{Statement: &gripql.GraphStatement_Out{}},
 	}
 
 	optimized = IndexStartOptimize(original)
@@ -286,8 +286,8 @@ func TestIndexStartOptimize(t *testing.T) {
 	}
 
 	expected = []*gripql.GraphStatement{
-		&gripql.GraphStatement{Statement: &gripql.GraphStatement_LookupVertsIndex{Labels: []string{"foo", "bar"}}},
-		&gripql.GraphStatement{Statement: &gripql.GraphStatement_Has{
+		{Statement: &gripql.GraphStatementLookupVertsIndex{Labels: []string{"foo", "bar"}}},
+		{Statement: &gripql.GraphStatement_Has{
 			Has: &gripql.HasExpression{Expression: &gripql.HasExpression_Condition{
 				&gripql.HasCondition{
 					Condition: gripql.Condition_EQ,
@@ -296,12 +296,12 @@ func TestIndexStartOptimize(t *testing.T) {
 				},
 			}},
 		}},
-		&gripql.GraphStatement{Statement: &gripql.GraphStatement_Out{}},
+		{Statement: &gripql.GraphStatement_Out{}},
 	}
 
 	original = []*gripql.GraphStatement{
-		&gripql.GraphStatement{Statement: &gripql.GraphStatement_V{}},
-		&gripql.GraphStatement{Statement: &gripql.GraphStatement_Has{
+		{Statement: &gripql.GraphStatement_V{}},
+		{Statement: &gripql.GraphStatement_Has{
 			Has: &gripql.HasExpression{Expression: &gripql.HasExpression_Condition{
 				&gripql.HasCondition{
 					Condition: gripql.Condition_EQ,
@@ -310,7 +310,7 @@ func TestIndexStartOptimize(t *testing.T) {
 				},
 			}},
 		}},
-		&gripql.GraphStatement{Statement: &gripql.GraphStatement_Has{
+		{Statement: &gripql.GraphStatement_Has{
 			Has: &gripql.HasExpression{Expression: &gripql.HasExpression_Condition{
 				&gripql.HasCondition{
 					Condition: gripql.Condition_WITHIN,
@@ -319,7 +319,7 @@ func TestIndexStartOptimize(t *testing.T) {
 				},
 			}},
 		}},
-		&gripql.GraphStatement{Statement: &gripql.GraphStatement_Out{}},
+		{Statement: &gripql.GraphStatement_Out{}},
 	}
 
 	optimized = IndexStartOptimize(original)
@@ -330,8 +330,8 @@ func TestIndexStartOptimize(t *testing.T) {
 	}
 
 	expected = []*gripql.GraphStatement{
-		&gripql.GraphStatement{Statement: &gripql.GraphStatement_LookupVertsIndex{Labels: []string{"foo", "bar"}}},
-		&gripql.GraphStatement{Statement: &gripql.GraphStatement_Has{
+		{Statement: &gripql.GraphStatementLookupVertsIndex{Labels: []string{"foo", "bar"}}},
+		{Statement: &gripql.GraphStatement_Has{
 			Has: &gripql.HasExpression{Expression: &gripql.HasExpression_Condition{
 				&gripql.HasCondition{
 					Condition: gripql.Condition_EQ,
@@ -340,13 +340,13 @@ func TestIndexStartOptimize(t *testing.T) {
 				},
 			}},
 		}},
-		&gripql.GraphStatement{Statement: &gripql.GraphStatement_Out{}},
+		{Statement: &gripql.GraphStatement_Out{}},
 	}
 
 	original = []*gripql.GraphStatement{
-		&gripql.GraphStatement{Statement: &gripql.GraphStatement_V{}},
-		&gripql.GraphStatement{Statement: &gripql.GraphStatement_HasLabel{HasLabel: protoutil.AsListValue([]string{"foo", "bar"})}},
-		&gripql.GraphStatement{Statement: &gripql.GraphStatement_Has{
+		{Statement: &gripql.GraphStatement_V{}},
+		{Statement: &gripql.GraphStatement_HasLabel{HasLabel: protoutil.AsListValue([]string{"foo", "bar"})}},
+		{Statement: &gripql.GraphStatement_Has{
 			Has: &gripql.HasExpression{Expression: &gripql.HasExpression_Condition{
 				&gripql.HasCondition{
 					Condition: gripql.Condition_EQ,
@@ -355,7 +355,7 @@ func TestIndexStartOptimize(t *testing.T) {
 				},
 			}},
 		}},
-		&gripql.GraphStatement{Statement: &gripql.GraphStatement_Out{}},
+		{Statement: &gripql.GraphStatement_Out{}},
 	}
 
 	optimized = IndexStartOptimize(original)
@@ -367,8 +367,8 @@ func TestIndexStartOptimize(t *testing.T) {
 
 	// use gid over label to optimize queries
 	expected = []*gripql.GraphStatement{
-		&gripql.GraphStatement{Statement: &gripql.GraphStatement_V{V: protoutil.AsListValue([]string{"1", "2", "3"})}},
-		&gripql.GraphStatement{Statement: &gripql.GraphStatement_Has{
+		{Statement: &gripql.GraphStatement_V{V: protoutil.AsListValue([]string{"1", "2", "3"})}},
+		{Statement: &gripql.GraphStatement_Has{
 			Has: &gripql.HasExpression{Expression: &gripql.HasExpression_Condition{
 				&gripql.HasCondition{
 					Condition: gripql.Condition_EQ,
@@ -377,7 +377,7 @@ func TestIndexStartOptimize(t *testing.T) {
 				},
 			}},
 		}},
-		&gripql.GraphStatement{Statement: &gripql.GraphStatement_Has{
+		{Statement: &gripql.GraphStatement_Has{
 			Has: &gripql.HasExpression{Expression: &gripql.HasExpression_Condition{
 				&gripql.HasCondition{
 					Condition: gripql.Condition_WITHIN,
@@ -386,12 +386,12 @@ func TestIndexStartOptimize(t *testing.T) {
 				},
 			}},
 		}},
-		&gripql.GraphStatement{Statement: &gripql.GraphStatement_Out{}},
+		{Statement: &gripql.GraphStatement_Out{}},
 	}
 
 	original = []*gripql.GraphStatement{
-		&gripql.GraphStatement{Statement: &gripql.GraphStatement_V{}},
-		&gripql.GraphStatement{Statement: &gripql.GraphStatement_Has{
+		{Statement: &gripql.GraphStatement_V{}},
+		{Statement: &gripql.GraphStatement_Has{
 			Has: &gripql.HasExpression{Expression: &gripql.HasExpression_Condition{
 				&gripql.HasCondition{
 					Condition: gripql.Condition_EQ,
@@ -400,7 +400,7 @@ func TestIndexStartOptimize(t *testing.T) {
 				},
 			}},
 		}},
-		&gripql.GraphStatement{Statement: &gripql.GraphStatement_Has{
+		{Statement: &gripql.GraphStatement_Has{
 			Has: &gripql.HasExpression{Expression: &gripql.HasExpression_Condition{
 				&gripql.HasCondition{
 					Condition: gripql.Condition_WITHIN,
@@ -409,7 +409,7 @@ func TestIndexStartOptimize(t *testing.T) {
 				},
 			}},
 		}},
-		&gripql.GraphStatement{Statement: &gripql.GraphStatement_Has{
+		{Statement: &gripql.GraphStatement_Has{
 			Has: &gripql.HasExpression{Expression: &gripql.HasExpression_Condition{
 				&gripql.HasCondition{
 					Condition: gripql.Condition_WITHIN,
@@ -418,7 +418,7 @@ func TestIndexStartOptimize(t *testing.T) {
 				},
 			}},
 		}},
-		&gripql.GraphStatement{Statement: &gripql.GraphStatement_Out{}},
+		{Statement: &gripql.GraphStatement_Out{}},
 	}
 
 	optimized = IndexStartOptimize(original)
@@ -431,8 +431,8 @@ func TestIndexStartOptimize(t *testing.T) {
 	// handle 'and' statements
 
 	expected = []*gripql.GraphStatement{
-		&gripql.GraphStatement{Statement: &gripql.GraphStatement_LookupVertsIndex{Labels: []string{"foo", "bar"}}},
-		&gripql.GraphStatement{Statement: &gripql.GraphStatement_Has{
+		{Statement: &gripql.GraphStatementLookupVertsIndex{Labels: []string{"foo", "bar"}}},
+		{Statement: &gripql.GraphStatement_Has{
 			Has: &gripql.HasExpression{Expression: &gripql.HasExpression_Condition{
 				&gripql.HasCondition{
 					Condition: gripql.Condition_EQ,
@@ -441,21 +441,21 @@ func TestIndexStartOptimize(t *testing.T) {
 				},
 			}},
 		}},
-		&gripql.GraphStatement{Statement: &gripql.GraphStatement_Out{}},
+		{Statement: &gripql.GraphStatement_Out{}},
 	}
 
 	original = []*gripql.GraphStatement{
-		&gripql.GraphStatement{Statement: &gripql.GraphStatement_V{}},
-		&gripql.GraphStatement{Statement: &gripql.GraphStatement_Has{
+		{Statement: &gripql.GraphStatement_V{}},
+		{Statement: &gripql.GraphStatement_Has{
 			Has: &gripql.HasExpression{Expression: &gripql.HasExpression_And{
-				&gripql.HasExpressionList{
-					[]*gripql.HasExpression{
-						&gripql.HasExpression{&gripql.HasExpression_Condition{&gripql.HasCondition{
-								Condition: gripql.Condition_EQ,
-								Key:       "$.data.foo",
-								Value:     protoutil.WrapValue("bar"),
+				And: &gripql.HasExpressionList{
+					Expressions: []*gripql.HasExpression{
+						{&gripql.HasExpression_Condition{Condition: &gripql.HasCondition{
+							Condition: gripql.Condition_EQ,
+							Key:       "$.data.foo",
+							Value:     protoutil.WrapValue("bar"),
 						}}},
-						&gripql.HasExpression{&gripql.HasExpression_Condition{&gripql.HasCondition{
+						{&gripql.HasExpression_Condition{Condition: &gripql.HasCondition{
 							Condition: gripql.Condition_WITHIN,
 							Key:       "_label",
 							Value:     protoutil.WrapValue([]string{"foo", "bar"}),
@@ -464,7 +464,7 @@ func TestIndexStartOptimize(t *testing.T) {
 				},
 			}},
 		}},
-		&gripql.GraphStatement{Statement: &gripql.GraphStatement_Out{}},
+		{Statement: &gripql.GraphStatement_Out{}},
 	}
 
 	optimized = IndexStartOptimize(original)

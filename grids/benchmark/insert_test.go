@@ -3,13 +3,14 @@ package benchmark
 import (
 	//"fmt"
 	"encoding/binary"
-	"github.com/bmeg/grip/kvi"
-	"github.com/bmeg/grip/kvi/badgerdb"
-	"github.com/akrylysov/pogreb"
-	log "github.com/sirupsen/logrus"
 	"math/rand"
 	"os"
 	"testing"
+
+	"github.com/akrylysov/pogreb"
+	"github.com/bmeg/grip/kvi"
+	"github.com/bmeg/grip/kvi/badgerdb"
+	log "github.com/sirupsen/logrus"
 )
 
 var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
@@ -48,7 +49,6 @@ func BenchmarkStringInsert(b *testing.B) {
 	os.RemoveAll("test.db")
 }
 
-
 func BenchmarkIntInsert(b *testing.B) {
 	db, err := badgerdb.NewKVInterface("test.db", kvi.Options{})
 	if err != nil {
@@ -76,7 +76,6 @@ func BenchmarkIntInsert(b *testing.B) {
 	os.RemoveAll("test.db")
 }
 
-
 func BenchmarkHashInsert(b *testing.B) {
 	os.Mkdir("test_idx.db", 0700)
 	dbIdx, err := pogreb.Open("test_idx.db/keys", nil)
@@ -97,13 +96,12 @@ func BenchmarkHashInsert(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			binary.PutUvarint(buf, idx)
 			dbIdx.Put(keys[i], buf)
-			idx += 1
+			idx++
 		}
 	})
 	dbIdx.Close()
 	os.RemoveAll("test_idx.db")
 }
-
 
 func BenchmarkMixedInsert(b *testing.B) {
 	os.Mkdir("test_idx.db", 0700)
@@ -133,7 +131,7 @@ func BenchmarkMixedInsert(b *testing.B) {
 				binary.PutUvarint(buf, idx)
 				dbIdx.Put(keys[i], buf)
 				tx.Set(buf, []byte{0})
-				idx += 1
+				idx++
 			}
 			return nil
 		})
@@ -143,7 +141,6 @@ func BenchmarkMixedInsert(b *testing.B) {
 	os.RemoveAll("test.db")
 	os.RemoveAll("test_idx.db")
 }
-
 
 func BenchmarkStringScan(b *testing.B) {
 	db, err := badgerdb.NewKVInterface("test.db", kvi.Options{})

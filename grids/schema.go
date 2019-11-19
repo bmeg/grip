@@ -12,7 +12,7 @@ import (
 )
 
 // BuildSchema returns the schema of a specific graph in the database
-func (ma *GridsGDB) BuildSchema(ctx context.Context, graph string, sampleN uint32, random bool) (*gripql.Graph, error) {
+func (ma *GDB) BuildSchema(ctx context.Context, graph string, sampleN uint32, random bool) (*gripql.Graph, error) {
 	var vSchema []*gripql.Vertex
 	var eSchema []*gripql.Edge
 	var err error
@@ -29,7 +29,7 @@ func (ma *GridsGDB) BuildSchema(ctx context.Context, graph string, sampleN uint3
 	return schema, nil
 }
 
-func (ma *GridsGDB) sampleSchema(ctx context.Context, graph string, n uint32, random bool) ([]*gripql.Vertex, []*gripql.Edge, error) {
+func (ma *GDB) sampleSchema(ctx context.Context, graph string, n uint32, random bool) ([]*gripql.Vertex, []*gripql.Edge, error) {
 
 	labelField := fmt.Sprintf("%s.v.label", graph)
 	labels := []string{}

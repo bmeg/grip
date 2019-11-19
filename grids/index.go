@@ -14,7 +14,7 @@ import (
 	"github.com/spenczar/tdigest"
 )
 
-func (kgraph *GridsGDB) setupGraphIndex(graph string) error {
+func (kgraph *GDB) setupGraphIndex(graph string) error {
 	err := kgraph.idx.AddField(fmt.Sprintf("%s.v.label", graph))
 	if err != nil {
 		return fmt.Errorf("failed to setup index on vertex label")
@@ -26,7 +26,7 @@ func (kgraph *GridsGDB) setupGraphIndex(graph string) error {
 	return nil
 }
 
-func (kgraph *GridsGDB) deleteGraphIndex(graph string) {
+func (kgraph *GDB) deleteGraphIndex(graph string) {
 	fields := kgraph.idx.ListFields()
 	for _, f := range fields {
 		t := strings.Split(f, ".")
@@ -64,7 +64,7 @@ func edgeIdxStruct(e *gripql.Edge) map[string]interface{} {
 }
 
 //AddVertexIndex add index to vertices
-func (ggraph *GridsGraph) AddVertexIndex(label string, field string) error {
+func (ggraph *Graph) AddVertexIndex(label string, field string) error {
 	log.WithFields(log.Fields{"label": label, "field": field}).Info("Adding vertex index")
 	field = normalizePath(field)
 	//TODO kick off background process to reindex existing data
@@ -72,14 +72,14 @@ func (ggraph *GridsGraph) AddVertexIndex(label string, field string) error {
 }
 
 //DeleteVertexIndex delete index from vertices
-func (ggraph *GridsGraph) DeleteVertexIndex(label string, field string) error {
+func (ggraph *Graph) DeleteVertexIndex(label string, field string) error {
 	log.WithFields(log.Fields{"label": label, "field": field}).Info("Deleting vertex index")
 	field = normalizePath(field)
 	return ggraph.kdb.idx.RemoveField(fmt.Sprintf("%s.v.%s.%s", ggraph.graphID, label, field))
 }
 
 //GetVertexIndexList lists out all the vertex indices for a graph
-func (ggraph *GridsGraph) GetVertexIndexList() <-chan *gripql.IndexID {
+func (ggraph *Graph) GetVertexIndexList() <-chan *gripql.IndexID {
 	log.Debug("Running GetVertexIndexList")
 	out := make(chan *gripql.IndexID)
 	go func() {
@@ -97,7 +97,7 @@ func (ggraph *GridsGraph) GetVertexIndexList() <-chan *gripql.IndexID {
 
 //VertexLabelScan produces a channel of all vertex ids in a graph
 //that match a given label
-func (ggraph *GridsGraph) VertexLabelScan(ctx context.Context, label string) chan string {
+func (ggraph *Graph) VertexLabelScan(ctx context.Context, label string) chan string {
 	log.WithFields(log.Fields{"label": label}).Debug("Running VertexLabelScan")
 	//TODO: Make this work better
 	out := make(chan string, 100)
@@ -113,7 +113,7 @@ func (ggraph *GridsGraph) VertexLabelScan(ctx context.Context, label string) cha
 }
 
 //GetVertexTermAggregation get count of every term across vertices
-func (ggraph *GridsGraph) GetVertexTermAggregation(ctx context.Context, label string, field string, size uint32) (*gripql.AggregationResult, error) {
+func (ggraph *Graph) GetVertexTermAggregation(ctx context.Context, label string, field string, size uint32) (*gripql.AggregationResult, error) {
 	log.WithFields(log.Fields{"label": label, "field": field, "size": size}).Debug("Running GetVertexTermAggregation")
 	out := &gripql.AggregationResult{
 		Buckets: []*gripql.AggregationResultBucket{},
@@ -144,7 +144,7 @@ func (ggraph *GridsGraph) GetVertexTermAggregation(ctx context.Context, label st
 }
 
 //GetVertexHistogramAggregation get binned counts of a term across vertices
-func (ggraph *GridsGraph) GetVertexHistogramAggregation(ctx context.Context, label string, field string, interval uint32) (*gripql.AggregationResult, error) {
+func (ggraph *Graph) GetVertexHistogramAggregation(ctx context.Context, label string, field string, interval uint32) (*gripql.AggregationResult, error) {
 	log.WithFields(log.Fields{"label": label, "field": field, "interval": interval}).Debug("Running GetVertexHistogramAggregation")
 	out := &gripql.AggregationResult{
 		Buckets: []*gripql.AggregationResultBucket{},
@@ -172,7 +172,7 @@ func (ggraph *GridsGraph) GetVertexHistogramAggregation(ctx context.Context, lab
 }
 
 //GetVertexPercentileAggregation get percentiles of a term across vertices
-func (ggraph *GridsGraph) GetVertexPercentileAggregation(ctx context.Context, label string, field string, percents []float64) (*gripql.AggregationResult, error) {
+func (ggraph *Graph) GetVertexPercentileAggregation(ctx context.Context, label string, field string, percents []float64) (*gripql.AggregationResult, error) {
 	log.WithFields(log.Fields{"label": label, "field": field, "percents": percents}).Debug("Running GetVertexPercentileAggregation")
 	out := &gripql.AggregationResult{
 		Buckets: []*gripql.AggregationResultBucket{},

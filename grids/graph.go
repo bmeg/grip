@@ -44,7 +44,7 @@ func containsUint(a []uint64, v uint64) bool {
 }
 
 // GetTimestamp returns the update timestamp
-func (ggraph *GridsGraph) GetTimestamp() string {
+func (ggraph *Graph) GetTimestamp() string {
 	return ggraph.kdb.ts.Get(ggraph.graphID)
 }
 
@@ -91,11 +91,11 @@ func insertEdge(tx kvi.KVBulkWrite, keyMap *KeyMap, graphKey uint64, edge *gripq
 	eid, lid := keyMap.GetsertEdgeKey(graphKey, edge.Gid, edge.Label)
 	src, ok := keyMap.GetVertexKey(graphKey, edge.From)
 	if !ok {
-		return fmt.Errorf("Vertex %s not found")
+		return fmt.Errorf("Vertex %s not found", edge.From)
 	}
 	dst, ok := keyMap.GetVertexKey(graphKey, edge.To)
 	if !ok {
-		return fmt.Errorf("Vertex %s not found")
+		return fmt.Errorf("Vertex %s not found", edge.To)
 	}
 
 	ekey := EdgeKey(graphKey, eid, src, dst, lid)
@@ -129,7 +129,7 @@ func indexEdge(tx kvi.KVBulkWrite, idx *kvindex.KVIndex, graph string, edge *gri
 
 // AddVertex adds an edge to the graph, if it already exists
 // in the graph, it is replaced
-func (ggraph *GridsGraph) AddVertex(vertices []*gripql.Vertex) error {
+func (ggraph *Graph) AddVertex(vertices []*gripql.Vertex) error {
 	err := ggraph.kdb.graphkv.BulkWrite(func(tx kvi.KVBulkWrite) error {
 		var anyErr error
 		for _, vert := range vertices {
@@ -157,7 +157,7 @@ func (ggraph *GridsGraph) AddVertex(vertices []*gripql.Vertex) error {
 
 // AddEdge adds an edge to the graph, if the id is not "" and in already exists
 // in the graph, it is replaced
-func (ggraph *GridsGraph) AddEdge(edges []*gripql.Edge) error {
+func (ggraph *Graph) AddEdge(edges []*gripql.Edge) error {
 	err := ggraph.kdb.graphkv.BulkWrite(func(tx kvi.KVBulkWrite) error {
 		for _, edge := range edges {
 			err := insertEdge(tx, ggraph.kdb.keyMap, ggraph.graphKey, edge)
@@ -183,7 +183,7 @@ func (ggraph *GridsGraph) AddEdge(edges []*gripql.Edge) error {
 }
 
 
-func (ggraph *GridsGraph) BulkAdd(stream <-chan *gripql.GraphElement) error {
+func (ggraph *Graph) BulkAdd(stream <-chan *gripql.GraphElement) error {
 	var anyErr error
 	insertStream := make(chan *gripql.GraphElement, 100)
 	indexStream := make(chan *gripql.GraphElement, 100)
@@ -239,7 +239,7 @@ func (ggraph *GridsGraph) BulkAdd(stream <-chan *gripql.GraphElement) error {
 
 
 // DelEdge deletes edge with id `key`
-func (ggraph *GridsGraph) DelEdge(eid string) error {
+func (ggraph *Graph) DelEdge(eid string) error {
 	edgeKey, ok := ggraph.kdb.keyMap.GetEdgeKey(ggraph.graphKey, eid)
 	if !ok {
 		fmt.Printf("Edge not found")
@@ -277,7 +277,7 @@ func (ggraph *GridsGraph) DelEdge(eid string) error {
 }
 
 // DelVertex deletes vertex with id `key`
-func (ggraph *GridsGraph) DelVertex(id string) error {
+func (ggraph *Graph) DelVertex(id string) error {
 	vertexKey, ok := ggraph.kdb.keyMap.GetVertexKey(ggraph.graphKey, id)
 	if !ok {
 		return fmt.Errorf("Vertex %s not found", id)
@@ -321,7 +321,7 @@ func (ggraph *GridsGraph) DelVertex(id string) error {
 }
 
 // GetEdgeList produces a channel of all edges in the graph
-func (ggraph *GridsGraph) GetEdgeList(ctx context.Context, loadProp bool) <-chan *gripql.Edge {
+func (ggraph *Graph) GetEdgeList(ctx context.Context, loadProp bool) <-chan *gripql.Edge {
 	o := make(chan *gripql.Edge, 100)
 	go func() {
 		defer close(o)
@@ -354,7 +354,7 @@ func (ggraph *GridsGraph) GetEdgeList(ctx context.Context, loadProp bool) <-chan
 }
 
 // GetVertex loads a vertex given an id. It returns a nil if not found
-func (ggraph *GridsGraph) GetVertex(id string, loadProp bool) *gripql.Vertex {
+func (ggraph *Graph) GetVertex(id string, loadProp bool) *gripql.Vertex {
 	key, ok := ggraph.kdb.keyMap.GetVertexKey(ggraph.graphKey, id)
 	if !ok {
 		return nil
@@ -393,7 +393,7 @@ type elementData struct {
 
 // GetVertexChannel is passed a channel of vertex ids and it produces a channel
 // of vertices
-func (ggraph *GridsGraph) GetVertexChannel(ids chan gdbi.ElementLookup, load bool) chan gdbi.ElementLookup {
+func (ggraph *Graph) GetVertexChannel(ids chan gdbi.ElementLookup, load bool) chan gdbi.ElementLookup {
 	data := make(chan elementData, 100)
 	go func() {
 		defer close(data)
@@ -434,7 +434,7 @@ func (ggraph *GridsGraph) GetVertexChannel(ids chan gdbi.ElementLookup, load boo
 }
 
 //GetOutChannel process requests of vertex ids and find the connected vertices on outgoing edges
-func (ggraph *GridsGraph) GetOutChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
+func (ggraph *Graph) GetOutChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
 	vertexChan := make(chan elementData, 100)
 	edgeLabelKeys := make([]uint64, 0, len(edgeLabels))
 	for i := range edgeLabels {
@@ -498,7 +498,7 @@ func (ggraph *GridsGraph) GetOutChannel(reqChan chan gdbi.ElementLookup, load bo
 }
 
 //GetInChannel process requests of vertex ids and find the connected vertices on incoming edges
-func (ggraph *GridsGraph) GetInChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
+func (ggraph *Graph) GetInChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
 	o := make(chan gdbi.ElementLookup, 100)
 	edgeLabelKeys := make([]uint64, 0, len(edgeLabels))
 	for i := range edgeLabels {
@@ -547,7 +547,7 @@ func (ggraph *GridsGraph) GetInChannel(reqChan chan gdbi.ElementLookup, load boo
 }
 
 //GetOutEdgeChannel process requests of vertex ids and find the connected outgoing edges
-func (ggraph *GridsGraph) GetOutEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
+func (ggraph *Graph) GetOutEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
 	o := make(chan gdbi.ElementLookup, 100)
 	edgeLabelKeys := make([]uint64, 0, len(edgeLabels))
 	for i := range edgeLabels {
@@ -594,7 +594,7 @@ func (ggraph *GridsGraph) GetOutEdgeChannel(reqChan chan gdbi.ElementLookup, loa
 }
 
 //GetInEdgeChannel process requests of vertex ids and find the connected incoming edges
-func (ggraph *GridsGraph) GetInEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
+func (ggraph *Graph) GetInEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
 	o := make(chan gdbi.ElementLookup, 100)
 	edgeLabelKeys := make([]uint64, 0, len(edgeLabels))
 	for i := range edgeLabels {
@@ -641,7 +641,7 @@ func (ggraph *GridsGraph) GetInEdgeChannel(reqChan chan gdbi.ElementLookup, load
 }
 
 // GetEdge loads an edge given an id. It returns nil if not found
-func (ggraph *GridsGraph) GetEdge(id string, loadProp bool) *gripql.Edge {
+func (ggraph *Graph) GetEdge(id string, loadProp bool) *gripql.Edge {
 	ekey, ok := ggraph.kdb.keyMap.GetEdgeKey(ggraph.graphKey, id)
 	if !ok {
 		return nil
@@ -676,7 +676,7 @@ func (ggraph *GridsGraph) GetEdge(id string, loadProp bool) *gripql.Edge {
 }
 
 // GetVertexList produces a channel of all edges in the graph
-func (ggraph *GridsGraph) GetVertexList(ctx context.Context, loadProp bool) <-chan *gripql.Vertex {
+func (ggraph *Graph) GetVertexList(ctx context.Context, loadProp bool) <-chan *gripql.Vertex {
 	o := make(chan *gripql.Vertex, 100)
 	go func() {
 		defer close(o)
@@ -709,7 +709,7 @@ func (ggraph *GridsGraph) GetVertexList(ctx context.Context, loadProp bool) <-ch
 }
 
 // ListVertexLabels returns a list of vertex types in the graph
-func (ggraph *GridsGraph) ListVertexLabels() ([]string, error) {
+func (ggraph *Graph) ListVertexLabels() ([]string, error) {
 	labelField := fmt.Sprintf("%s.v.label", ggraph.graphID)
 	labels := []string{}
 	for i := range ggraph.kdb.idx.FieldTerms(labelField) {
@@ -719,7 +719,7 @@ func (ggraph *GridsGraph) ListVertexLabels() ([]string, error) {
 }
 
 // ListEdgeLabels returns a list of edge types in the graph
-func (ggraph *GridsGraph) ListEdgeLabels() ([]string, error) {
+func (ggraph *Graph) ListEdgeLabels() ([]string, error) {
 	labelField := fmt.Sprintf("%s.e.label", ggraph.graphID)
 	labels := []string{}
 	for i := range ggraph.kdb.idx.FieldTerms(labelField) {

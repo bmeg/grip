@@ -2,13 +2,12 @@ package inspect
 
 import (
 	"fmt"
-	"github.com/bmeg/grip/gripql"
-	"github.com/bmeg/grip/engine/inspect"
-	"github.com/bmeg/grip/engine/core"
 	"testing"
+
+	"github.com/bmeg/grip/engine/core"
+	"github.com/bmeg/grip/engine/inspect"
+	"github.com/bmeg/grip/gripql"
 )
-
-
 
 func arrayEq(a, b []string) bool {
 	if len(a) != len(b) {
@@ -22,7 +21,6 @@ func arrayEq(a, b []string) bool {
 	return true
 }
 
-
 func TestStepNumber(t *testing.T) {
 	q := gripql.NewQuery()
 	q = q.V().Out().In().Has(gripql.Eq("$.test", "value"))
@@ -33,17 +31,17 @@ func TestStepNumber(t *testing.T) {
 }
 
 func TestAsMapping(t *testing.T) {
-  q := gripql.NewQuery()
+	q := gripql.NewQuery()
 	q = q.V().As("a").Out().As("b").In()
 	out := inspect.PipelineAsSteps(q.Statements)
-  fmt.Printf("vars: %s\n", out)
+	fmt.Printf("vars: %s\n", out)
 }
 
 func TestOutputMasking(t *testing.T) {
-  q := gripql.NewQuery()
+	q := gripql.NewQuery()
 	q = q.V().Out().In().Has(gripql.Eq("$.test", "value"))
 	out := inspect.PipelineStepOutputs(q.Statements)
-  fmt.Printf("vars: %s\n", out)
+	fmt.Printf("vars: %s\n", out)
 	if len(out) != 1 {
 		t.Errorf("Wrong number of step outputs %d", len(out))
 	}
@@ -51,10 +49,10 @@ func TestOutputMasking(t *testing.T) {
 		t.Errorf("Incorrect output")
 	}
 
-  q = gripql.NewQuery()
+	q = gripql.NewQuery()
 	q = q.V().Out().In().Has(gripql.Eq("$.test", "value")).Out()
 	out = inspect.PipelineStepOutputs(q.Statements)
-  fmt.Printf("vars: %s\n", out)
+	fmt.Printf("vars: %s\n", out)
 	if len(out) != 2 {
 		t.Errorf("Wrong number of step outputs %d", len(out))
 	}
@@ -65,41 +63,40 @@ func TestOutputMasking(t *testing.T) {
 		t.Errorf("Incorrect output")
 	}
 
-  q = gripql.NewQuery()
-  q = q.V().Out().In().Count()
-  out = inspect.PipelineStepOutputs(q.Statements)
-  fmt.Printf("vars: %s\n", out)
+	q = gripql.NewQuery()
+	q = q.V().Out().In().Count()
+	out = inspect.PipelineStepOutputs(q.Statements)
+	fmt.Printf("vars: %s\n", out)
 
-  q = gripql.NewQuery()
+	q = gripql.NewQuery()
 	q = q.V().Out().In().Has(gripql.Eq("$.test", "value")).Count()
 	out = inspect.PipelineStepOutputs(q.Statements)
-  fmt.Printf("vars: %s\n", out)
+	fmt.Printf("vars: %s\n", out)
 
-  q = gripql.NewQuery()
+	q = gripql.NewQuery()
 	q = q.V().HasLabel("test").Out().In().Has(gripql.Eq("$.test", "value")).Count()
 	out = inspect.PipelineStepOutputs(q.Statements)
 	if len(out) != 2 {
 		t.Errorf("Wrong number of step outputs %d", len(out))
 	}
-  fmt.Printf("outputs: %s\n", out)
+	fmt.Printf("outputs: %s\n", out)
 
-  q = gripql.NewQuery()
+	q = gripql.NewQuery()
 	q = q.V().HasLabel("test").Out().As("a").Out().Out().Select("a")
 	out = inspect.PipelineStepOutputs(q.Statements)
-  fmt.Printf("vars: %s\n", out)
+	fmt.Printf("vars: %s\n", out)
 
 	q = gripql.NewQuery()
 	q = q.V().HasLabel("robot", "person")
 	out = inspect.PipelineStepOutputs(q.Statements)
-  fmt.Printf("vars: %s\n", out)
+	fmt.Printf("vars: %s\n", out)
 
 	q = gripql.NewQuery()
 	q = q.V().HasLabel("Person").As("person").Out().Distinct("$person.name")
 	out = inspect.PipelineStepOutputs(q.Statements)
-  fmt.Printf("vars: %s -> %s\n", inspect.PipelineSteps(q.Statements), out)
+	fmt.Printf("vars: %s -> %s\n", inspect.PipelineSteps(q.Statements), out)
 
 }
-
 
 func TestOutputIndexMasking(t *testing.T) {
 	q := gripql.NewQuery()
@@ -112,17 +109,17 @@ func TestOutputIndexMasking(t *testing.T) {
 	if len(out) == 0 {
 		t.Errorf("No outputs found")
 	}
-  fmt.Printf("vars: %s\n", out)
+	fmt.Printf("vars: %s\n", out)
 }
 
 func TestPathFind(t *testing.T) {
 	q := gripql.NewQuery()
 	o := q.V().HasLabel("test").Out().As("a").Out().Out().Select("a")
-	r := inspect.PipelineNoLoadPathSteps(o.Statements, 2)
-	fmt.Printf("%s\n", r)
+	r := inspect.PipelineNoLoadPath(o.Statements, 2)
+	fmt.Printf("%#v\n", r)
 
 	q = gripql.NewQuery()
 	o = q.V().HasLabel("test").Out().Out().Out().In("test")
-	r = inspect.PipelineNoLoadPathSteps(o.Statements, 2)
-	fmt.Printf("%s\n", r)
+	r = inspect.PipelineNoLoadPath(o.Statements, 2)
+	fmt.Printf("%#v\n", r)
 }

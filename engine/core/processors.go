@@ -25,8 +25,8 @@ import (
 
 // LookupVerts starts query by looking on vertices
 type LookupVerts struct {
-	db  gdbi.GraphInterface
-	ids []string
+	db       gdbi.GraphInterface
+	ids      []string
 	loadData bool
 }
 
@@ -64,8 +64,8 @@ func (l *LookupVerts) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 
 // LookupVertsIndex look up vertices by indexed based feature
 type LookupVertsIndex struct {
-	db     gdbi.GraphInterface
-	labels []string
+	db       gdbi.GraphInterface
+	labels   []string
 	loadData bool
 }
 
@@ -104,8 +104,8 @@ func (l *LookupVertsIndex) Process(ctx context.Context, man gdbi.Manager, in gdb
 
 // LookupEdges starts query by looking up edges
 type LookupEdges struct {
-	db  gdbi.GraphInterface
-	ids []string
+	db       gdbi.GraphInterface
+	ids      []string
 	loadData bool
 }
 
@@ -147,8 +147,8 @@ func (l *LookupEdges) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 
 // LookupVertexAdjOut finds out vertex
 type LookupVertexAdjOut struct {
-	db     gdbi.GraphInterface
-	labels []string
+	db       gdbi.GraphInterface
+	labels   []string
 	loadData bool
 }
 
@@ -182,8 +182,8 @@ func (l *LookupVertexAdjOut) Process(ctx context.Context, man gdbi.Manager, in g
 
 // LookupEdgeAdjOut finds out edge
 type LookupEdgeAdjOut struct {
-	db     gdbi.GraphInterface
-	labels []string
+	db       gdbi.GraphInterface
+	labels   []string
 	loadData bool
 }
 
@@ -217,8 +217,8 @@ func (l *LookupEdgeAdjOut) Process(ctx context.Context, man gdbi.Manager, in gdb
 
 // LookupVertexAdjIn finds incoming vertex
 type LookupVertexAdjIn struct {
-	db     gdbi.GraphInterface
-	labels []string
+	db       gdbi.GraphInterface
+	labels   []string
 	loadData bool
 }
 
@@ -252,8 +252,8 @@ func (l *LookupVertexAdjIn) Process(ctx context.Context, man gdbi.Manager, in gd
 
 // LookupEdgeAdjIn finds incoming edge
 type LookupEdgeAdjIn struct {
-	db     gdbi.GraphInterface
-	labels []string
+	db       gdbi.GraphInterface
+	labels   []string
 	loadData bool
 }
 
@@ -287,8 +287,8 @@ func (l *LookupEdgeAdjIn) Process(ctx context.Context, man gdbi.Manager, in gdbi
 
 // InE finds the incoming edges
 type InE struct {
-	db     gdbi.GraphInterface
-	labels []string
+	db       gdbi.GraphInterface
+	labels   []string
 	loadData bool
 }
 
@@ -324,8 +324,8 @@ func (l *InE) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out
 
 // OutE finds the outgoing edges
 type OutE struct {
-	db     gdbi.GraphInterface
-	labels []string
+	db       gdbi.GraphInterface
+	labels   []string
 	loadData bool
 }
 
@@ -946,19 +946,19 @@ func (b both) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out
 			switch b.toType {
 			case gdbi.EdgeData:
 				procs = []gdbi.Processor{
-					&InE{db:b.db, loadData:b.loadData, labels:b.labels},
-					&OutE{db:b.db, loadData:b.loadData, labels:b.labels},
+					&InE{db: b.db, loadData: b.loadData, labels: b.labels},
+					&OutE{db: b.db, loadData: b.loadData, labels: b.labels},
 				}
 			default:
 				procs = []gdbi.Processor{
-					&LookupVertexAdjIn{db:b.db, labels:b.labels, loadData:b.loadData},
-					&LookupVertexAdjOut{db:b.db, labels:b.labels, loadData:b.loadData},
+					&LookupVertexAdjIn{db: b.db, labels: b.labels, loadData: b.loadData},
+					&LookupVertexAdjOut{db: b.db, labels: b.labels, loadData: b.loadData},
 				}
 			}
 		case gdbi.EdgeData:
 			procs = []gdbi.Processor{
-				&LookupEdgeAdjIn{db:b.db, labels:b.labels, loadData:b.loadData},
-				&LookupEdgeAdjOut{db:b.db, labels:b.labels, loadData:b.loadData},
+				&LookupEdgeAdjIn{db: b.db, labels: b.labels, loadData: b.loadData},
+				&LookupEdgeAdjOut{db: b.db, labels: b.labels, loadData: b.loadData},
 			}
 		}
 		chanIn := make([]chan *gdbi.Traveler, len(procs))

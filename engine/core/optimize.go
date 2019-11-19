@@ -1,10 +1,9 @@
-
 package core
 
 import (
-  "github.com/bmeg/grip/jsonpath"
-  "github.com/bmeg/grip/protoutil"
-  "github.com/bmeg/grip/gripql"
+	"github.com/bmeg/grip/gripql"
+	"github.com/bmeg/grip/jsonpath"
+	"github.com/bmeg/grip/protoutil"
 )
 
 //IndexStartOptimize looks at processor pipeline for queries like
@@ -40,7 +39,7 @@ func IndexStartOptimize(pipe []*gripql.GraphStatement) []*gripql.GraphStatement 
 				newPipe := []*gripql.GraphStatement{}
 				newPipe = append(newPipe, pipe[:i]...)
 				for _, stmt := range stmts {
-					newPipe = append(newPipe, &gripql.GraphStatement{Statement:&gripql.GraphStatement_Has{Has: stmt}})
+					newPipe = append(newPipe, &gripql.GraphStatement{Statement: &gripql.GraphStatement_Has{Has: stmt}})
 				}
 				newPipe = append(newPipe, pipe[i+1:]...)
 				return IndexStartOptimize(newPipe)
@@ -74,7 +73,7 @@ func IndexStartOptimize(pipe []*gripql.GraphStatement) []*gripql.GraphStatement 
 		if len(ids) > 0 {
 			idOpt = true
 			hIdx := &gripql.GraphStatement_V{V: protoutil.AsListValue(ids)}
-			optimized = append(optimized, &gripql.GraphStatement{Statement:hIdx})
+			optimized = append(optimized, &gripql.GraphStatement{Statement: hIdx})
 		}
 	}
 
@@ -90,8 +89,8 @@ func IndexStartOptimize(pipe []*gripql.GraphStatement) []*gripql.GraphStatement 
 		}
 		if len(labels) > 0 {
 			labelOpt = true
-			hIdx := &gripql.GraphStatement_LookupVertsIndex{Labels: labels}
-			optimized = append(optimized, &gripql.GraphStatement{hIdx})
+			hIdx := &gripql.GraphStatementLookupVertsIndex{Labels: labels}
+			optimized = append(optimized, &gripql.GraphStatement{Statement: hIdx})
 		}
 	}
 
@@ -117,8 +116,6 @@ func IndexStartOptimize(pipe []*gripql.GraphStatement) []*gripql.GraphStatement 
 
 	return optimized
 }
-
-
 
 func extractHasVals(h *gripql.GraphStatement_Has) []string {
 	vals := []string{}

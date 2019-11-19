@@ -15,7 +15,7 @@ import (
 )
 
 // GridsGDB implements the GripInterface using a generic key/value storage driver
-type GridsGDB struct {
+type GDB struct {
 	keyMap   *KeyMap
 	keykv    pogreb.DB
 	graphkv  kvi.KVInterface
@@ -24,15 +24,15 @@ type GridsGDB struct {
 	ts       *timestamp.Timestamp
 }
 
-// GridsGraph implements the GDB interface using a genertic key/value storage driver
-type GridsGraph struct {
-	kdb      *GridsGDB
+// Graph implements the GDB interface using a genertic key/value storage driver
+type Graph struct {
+	kdb      *GDB
 	graphID  string
 	graphKey uint64
 }
 
 // NewKVGraphDB intitalize a new grids graph driver
-func NewGridsGraphDB(dbPath string) (gdbi.GraphDB, error) {
+func NewGraphDB(dbPath string) (gdbi.GraphDB, error) {
 	_, err := os.Stat(dbPath)
 	if os.IsNotExist(err) {
 		os.Mkdir(dbPath, 0700)
@@ -53,7 +53,7 @@ func NewGridsGraphDB(dbPath string) (gdbi.GraphDB, error) {
 		return nil, err
 	}
 	ts := timestamp.NewTimestamp()
-	o := &GridsGDB{keyMap:NewKeyMap(keykv), graphkv: graphkv, indexkv:indexkv, ts: &ts, idx: kvindex.NewIndex(indexkv)}
+	o := &GDB{keyMap:NewKeyMap(keykv), graphkv: graphkv, indexkv:indexkv, ts: &ts, idx: kvindex.NewIndex(indexkv)}
 	for _, i := range o.ListGraphs() {
 		o.ts.Touch(i)
 	}
@@ -62,7 +62,7 @@ func NewGridsGraphDB(dbPath string) (gdbi.GraphDB, error) {
 }
 
 // Close the connection
-func (gridb *GridsGDB) Close() error {
+func (gridb *GDB) Close() error {
 	gridb.keyMap.Close()
 	gridb.graphkv.Close()
 	gridb.indexkv.Close()

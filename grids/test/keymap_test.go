@@ -8,7 +8,7 @@ import (
   "github.com/bmeg/grip/grids"
 )
 
-var kvPath string = "test.db"
+var kvPath = "test.db"
 
 
 func dbSetup() (*pogreb.DB, error) {

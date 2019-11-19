@@ -49,7 +49,7 @@ func TestPath2Step(t *testing.T) {
 }
 
 func TestEngineQuery(t *testing.T) {
-  gdb, err := grids.NewGridsGraphDB("testing.db")
+  gdb, err := grids.NewGraphDB("testing.db")
   if err != nil {
     t.Error(err)
   }

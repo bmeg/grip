@@ -1,18 +1,18 @@
-
 package gdbi
 
 import (
-  "context"
-  "github.com/bmeg/grip/gripql"
-  "github.com/bmeg/grip/engine/inspect"
+	"context"
+
+	"github.com/bmeg/grip/engine/inspect"
+	"github.com/bmeg/grip/gripql"
 )
 
 type PipelineState struct {
-	LastType DataType
-	MarkTypes map[string]DataType
-	Steps    []string
+	LastType    DataType
+	MarkTypes   map[string]DataType
+	Steps       []string
 	StepOutputs map[string][]string
-	CurStep   string
+	CurStep     string
 }
 
 func (ps *PipelineState) SetCurStatment(a int) {
@@ -34,18 +34,16 @@ func NewPipelineState(stmts []*gripql.GraphStatement) *PipelineState {
 	stepOut := inspect.PipelineStepOutputs(stmts)
 
 	return &PipelineState{
-		LastType: NoData,
-		MarkTypes: map[string]DataType{},
-		Steps: steps,
+		LastType:    NoData,
+		MarkTypes:   map[string]DataType{},
+		Steps:       steps,
 		StepOutputs: stepOut,
 	}
 }
 
-
 type CustomProcGen interface {
-  GetProcessor(db GraphInterface, ps *PipelineState) (Processor, error)
+	GetProcessor(db GraphInterface, ps *PipelineState) (Processor, error)
 }
-
 
 // Compiler takes a gripql query and turns it into an executable pipeline
 type Compiler interface {
