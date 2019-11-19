@@ -3,6 +3,7 @@ package grids
 import (
 	"fmt"
 	"os"
+
 	"github.com/akrylysov/pogreb"
 
 	"github.com/bmeg/grip/gdbi"
@@ -16,12 +17,12 @@ import (
 
 // GridsGDB implements the GripInterface using a generic key/value storage driver
 type GDB struct {
-	keyMap   *KeyMap
-	keykv    pogreb.DB
-	graphkv  kvi.KVInterface
-	indexkv  kvi.KVInterface
-	idx      *kvindex.KVIndex
-	ts       *timestamp.Timestamp
+	keyMap  *KeyMap
+	keykv   pogreb.DB
+	graphkv kvi.KVInterface
+	indexkv kvi.KVInterface
+	idx     *kvindex.KVIndex
+	ts      *timestamp.Timestamp
 }
 
 // Graph implements the GDB interface using a genertic key/value storage driver
@@ -53,7 +54,7 @@ func NewGraphDB(dbPath string) (gdbi.GraphDB, error) {
 		return nil, err
 	}
 	ts := timestamp.NewTimestamp()
-	o := &GDB{keyMap:NewKeyMap(keykv), graphkv: graphkv, indexkv:indexkv, ts: &ts, idx: kvindex.NewIndex(indexkv)}
+	o := &GDB{keyMap: NewKeyMap(keykv), graphkv: graphkv, indexkv: indexkv, ts: &ts, idx: kvindex.NewIndex(indexkv)}
 	for _, i := range o.ListGraphs() {
 		o.ts.Touch(i)
 	}

@@ -4,17 +4,18 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/kvi"
-  "github.com/bmeg/grip/protoutil"
+	"github.com/bmeg/grip/protoutil"
 )
 
 type RawPathProcessor struct {
-  pipeline RawPipeline
-  db *Graph
-  inVertex  bool
-  outVertex bool
+	pipeline  RawPipeline
+	db        *Graph
+	inVertex  bool
+	outVertex bool
 }
 
 type PathTraveler struct {
@@ -36,32 +37,30 @@ type RawElementLookup struct {
 	Element *RawDataElement
 }
 
-
 func SelectPath(stmts []*gripql.GraphStatement, path []int) []*gripql.GraphStatement {
-  out := []*gripql.GraphStatement{}
-  for _, p := range path {
-    out = append(out, stmts[p])
-  }
-  return out
+	out := []*gripql.GraphStatement{}
+	for _, p := range path {
+		out = append(out, stmts[p])
+	}
+	return out
 }
 
-
 func NewPathTraveler(tr *gdbi.Traveler, isVertex bool, gg *Graph) *PathTraveler {
-  el := RawDataElement{}
-  cur := tr.GetCurrent()
-  if isVertex {
-    el.Gid, _ = gg.kdb.keyMap.GetVertexKey(gg.graphKey, cur.ID)
-    el.Label, _ = gg.kdb.keyMap.GetLabelKey(gg.graphKey, cur.Label)
-  } else {
-    el.Gid, _ = gg.kdb.keyMap.GetEdgeKey(gg.graphKey, cur.ID)
-    el.Label, _ = gg.kdb.keyMap.GetLabelKey(gg.graphKey, cur.Label)
-    el.To, _ = gg.kdb.keyMap.GetVertexKey(gg.graphKey, cur.To)
-    el.From, _ = gg.kdb.keyMap.GetVertexKey(gg.graphKey, cur.From)
-  }
-  return &PathTraveler{
-    current: &el,
-    traveler: tr,
-  }
+	el := RawDataElement{}
+	cur := tr.GetCurrent()
+	if isVertex {
+		el.Gid, _ = gg.kdb.keyMap.GetVertexKey(gg.graphKey, cur.ID)
+		el.Label, _ = gg.kdb.keyMap.GetLabelKey(gg.graphKey, cur.Label)
+	} else {
+		el.Gid, _ = gg.kdb.keyMap.GetEdgeKey(gg.graphKey, cur.ID)
+		el.Label, _ = gg.kdb.keyMap.GetLabelKey(gg.graphKey, cur.Label)
+		el.To, _ = gg.kdb.keyMap.GetVertexKey(gg.graphKey, cur.To)
+		el.From, _ = gg.kdb.keyMap.GetVertexKey(gg.graphKey, cur.From)
+	}
+	return &PathTraveler{
+		current:  &el,
+		traveler: tr,
+	}
 }
 
 // AddCurrent creates a new copy of the travel with new 'current' value
@@ -72,11 +71,11 @@ func (t *PathTraveler) AddCurrent(r *RawDataElement) *PathTraveler {
 }
 
 func (t *PathTraveler) ToVertexTraveler(gg *Graph) *gdbi.Traveler {
-  return t.traveler.AddCurrent( t.current.VertexDataElement(gg) )
+	return t.traveler.AddCurrent(t.current.VertexDataElement(gg))
 }
 
 func (t *PathTraveler) ToEdgeTraveler(gg *Graph) *gdbi.Traveler {
-  return t.traveler.AddCurrent( t.current.EdgeDataElement(gg) )
+	return t.traveler.AddCurrent(t.current.EdgeDataElement(gg))
 }
 
 type RawProcessor interface {
@@ -87,55 +86,55 @@ type RawPipeline []RawProcessor
 
 func RawPathCompile(db *Graph, ps *gdbi.PipelineState, stmts []*gripql.GraphStatement) (gdbi.Processor, error) {
 
-	pipeline :=  RawPipeline{}
-  firstType := ps.LastType
+	pipeline := RawPipeline{}
+	firstType := ps.LastType
 
 	for _, s := range stmts {
 		switch stmt := s.GetStatement().(type) {
 		case *gripql.GraphStatement_V:
-      ids := protoutil.AsStringList(stmt.V)
-      ps.LastType = gdbi.VertexData
-      pipeline = append(pipeline, &PathVProc{db: db, ids: ids})
+			ids := protoutil.AsStringList(stmt.V)
+			ps.LastType = gdbi.VertexData
+			pipeline = append(pipeline, &PathVProc{db: db, ids: ids})
 		case *gripql.GraphStatement_In:
 			if ps.LastType == gdbi.VertexData {
-	      labels := protoutil.AsStringList(stmt.In)
-	      ps.LastType = gdbi.VertexData
-	      pipeline = append(pipeline, &PathInProc{db: db, labels: labels})
+				labels := protoutil.AsStringList(stmt.In)
+				ps.LastType = gdbi.VertexData
+				pipeline = append(pipeline, &PathInProc{db: db, labels: labels})
 			} else if ps.LastType == gdbi.EdgeData {
-	      ps.LastType = gdbi.VertexData
-	      pipeline = append(pipeline, &PathInEdgeAdjProc{db: db})
+				ps.LastType = gdbi.VertexData
+				pipeline = append(pipeline, &PathInEdgeAdjProc{db: db})
 			}
 		case *gripql.GraphStatement_Out:
 			if ps.LastType == gdbi.VertexData {
-      	labels := protoutil.AsStringList(stmt.Out)
-      	ps.LastType = gdbi.VertexData
-      	pipeline = append(pipeline, &PathOutProc{db: db, labels: labels})
+				labels := protoutil.AsStringList(stmt.Out)
+				ps.LastType = gdbi.VertexData
+				pipeline = append(pipeline, &PathOutProc{db: db, labels: labels})
 			} else if ps.LastType == gdbi.EdgeData {
 				ps.LastType = gdbi.VertexData
-	      pipeline = append(pipeline, &PathOutEdgeAdjProc{db: db})
+				pipeline = append(pipeline, &PathOutEdgeAdjProc{db: db})
 			}
 		case *gripql.GraphStatement_InE:
-      labels := protoutil.AsStringList(stmt.InE)
-      ps.LastType = gdbi.EdgeData
-      pipeline = append(pipeline, &PathInEProc{db: db, labels: labels})
+			labels := protoutil.AsStringList(stmt.InE)
+			ps.LastType = gdbi.EdgeData
+			pipeline = append(pipeline, &PathInEProc{db: db, labels: labels})
 		case *gripql.GraphStatement_OutE:
-      labels := protoutil.AsStringList(stmt.OutE)
-      ps.LastType = gdbi.EdgeData
-      pipeline = append(pipeline, &PathOutEProc{db: db, labels: labels})
+			labels := protoutil.AsStringList(stmt.OutE)
+			ps.LastType = gdbi.EdgeData
+			pipeline = append(pipeline, &PathOutEProc{db: db, labels: labels})
 		default:
-			return nil, fmt.Errorf("Unknown command: %T\n", s.GetStatement())
+			return nil, fmt.Errorf("Unknown command: %T", s.GetStatement())
 		}
 	}
 	return &RawPathProcessor{
-		pipeline:pipeline, db:db,
-		inVertex:firstType == gdbi.VertexData,
-		outVertex:ps.LastType == gdbi.VertexData,
+		pipeline: pipeline, db: db,
+		inVertex:  firstType == gdbi.VertexData,
+		outVertex: ps.LastType == gdbi.VertexData,
 	}, nil
 }
 
 func (pc *RawPathProcessor) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
 
-  bufsize := 100
+	bufsize := 100
 	inR := make(chan *PathTraveler, bufsize)
 	finalR := make(chan *PathTraveler, bufsize)
 	outR := finalR
@@ -145,54 +144,54 @@ func (pc *RawPathProcessor) Process(ctx context.Context, man gdbi.Manager, in gd
 		inR = make(chan *PathTraveler, bufsize)
 	}
 
-  go func() {
-    defer close(outR)
-    for tr := range in {
-      outR <- NewPathTraveler(tr, pc.inVertex, pc.db)
-    }
-  }()
+	go func() {
+		defer close(outR)
+		for tr := range in {
+			outR <- NewPathTraveler(tr, pc.inVertex, pc.db)
+		}
+	}()
 
-  go func() {
-    defer close(out)
-    if pc.outVertex {
-      for tr := range finalR {
+	go func() {
+		defer close(out)
+		if pc.outVertex {
+			for tr := range finalR {
 				o := tr.ToVertexTraveler(pc.db)
-        out <- o
-      }
-    } else {
-      for tr := range finalR {
+				out <- o
+			}
+		} else {
+			for tr := range finalR {
 				o := tr.ToEdgeTraveler(pc.db)
-        out <- o
-      }
-    }
-  }()
+				out <- o
+			}
+		}
+	}()
 
 	return ctx
 }
 
 type PathVProc struct {
-	db *Graph
-  ids []string
+	db  *Graph
+	ids []string
 }
 
 func (r *PathVProc) Process(ctx context.Context, in chan *PathTraveler, out chan *PathTraveler) context.Context {
-  go func() {
-    defer close(out)
-    if len(r.ids) == 0 {
-    	for elem := range r.db.RawGetVertexList(ctx) {
-    		out <- &PathTraveler{current: elem}
-    	}
-    } else {
-      for _, i := range r.ids {
-        if key, ok := r.db.kdb.keyMap.GetVertexKey(r.db.graphKey, i); ok {
-          label := r.db.kdb.keyMap.GetVertexLabel(r.db.graphKey, key)
-          out <- &PathTraveler{
-            current: &RawDataElement{Gid: key, Label: label},
-          }
-        }
-      }
-    }
-  }()
+	go func() {
+		defer close(out)
+		if len(r.ids) == 0 {
+			for elem := range r.db.RawGetVertexList(ctx) {
+				out <- &PathTraveler{current: elem}
+			}
+		} else {
+			for _, i := range r.ids {
+				if key, ok := r.db.kdb.keyMap.GetVertexKey(r.db.graphKey, i); ok {
+					label := r.db.kdb.keyMap.GetVertexLabel(r.db.graphKey, key)
+					out <- &PathTraveler{
+						current: &RawDataElement{Gid: key, Label: label},
+					}
+				}
+			}
+		}
+	}()
 	return ctx
 }
 
@@ -222,7 +221,6 @@ func (r *PathOutProc) Process(ctx context.Context, in chan *PathTraveler, out ch
 	return ctx
 }
 
-
 type PathInProc struct {
 	db     *Graph
 	labels []string
@@ -248,7 +246,6 @@ func (r *PathInProc) Process(ctx context.Context, in chan *PathTraveler, out cha
 	}()
 	return ctx
 }
-
 
 type PathOutEProc struct {
 	db     *Graph
@@ -279,7 +276,7 @@ func (r *PathOutEProc) Process(ctx context.Context, in chan *PathTraveler, out c
 
 // PathOutAdjEProc process edge to out
 type PathOutEdgeAdjProc struct {
-	db     *Graph
+	db *Graph
 }
 
 func (r *PathOutEdgeAdjProc) Process(ctx context.Context, in chan *PathTraveler, out chan *PathTraveler) context.Context {
@@ -303,7 +300,6 @@ func (r *PathOutEdgeAdjProc) Process(ctx context.Context, in chan *PathTraveler,
 	}()
 	return ctx
 }
-
 
 type PathInEProc struct {
 	db     *Graph
@@ -356,8 +352,6 @@ func (r *PathInEdgeAdjProc) Process(ctx context.Context, in chan *PathTraveler, 
 	}()
 	return ctx
 }
-
-
 
 func (rd *RawDataElement) VertexDataElement(ggraph *Graph) *gdbi.DataElement {
 	Gid := ggraph.kdb.keyMap.GetVertexID(ggraph.graphKey, rd.Gid)
@@ -446,13 +440,11 @@ func (ggraph *Graph) RawGetVertexChannel(reqChan chan *RawElementLookup) <-chan 
 	return o
 }
 
-
-
 func (ggraph *Graph) RawGetOutChannel(reqChan chan *RawElementLookup, edgeLabels []string) chan *RawElementLookup {
 	o := make(chan *RawElementLookup, 100)
 	edgeLabelKeys := make([]uint64, 0, len(edgeLabels))
 	for i := range edgeLabels {
-		el, ok := ggraph.kdb.keyMap.GetLabelKey(ggraph.graphKey,edgeLabels[i])
+		el, ok := ggraph.kdb.keyMap.GetLabelKey(ggraph.graphKey, edgeLabels[i])
 		if ok {
 			edgeLabelKeys = append(edgeLabelKeys, el)
 		}

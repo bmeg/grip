@@ -89,7 +89,7 @@ func IndexStartOptimize(pipe []*gripql.GraphStatement) []*gripql.GraphStatement 
 		}
 		if len(labels) > 0 {
 			labelOpt = true
-			hIdx := &gripql.GraphStatementLookupVertsIndex{Labels: labels}
+			hIdx := &gripql.GraphStatement_LookupVertsIndex{Labels: labels}
 			optimized = append(optimized, &gripql.GraphStatement{Statement: hIdx})
 		}
 	}

@@ -2,6 +2,7 @@ package grids
 
 import (
 	"fmt"
+
 	"github.com/bmeg/grip/engine/core"
 	"github.com/bmeg/grip/engine/inspect"
 	"github.com/bmeg/grip/gdbi"
@@ -14,15 +15,15 @@ func (ggraph *Graph) Compiler() gdbi.Compiler {
 	return NewCompiler(ggraph)
 }
 
-type GridsCompiler struct {
+type Compiler struct {
 	graph *Graph
 }
 
 func NewCompiler(ggraph *Graph) gdbi.Compiler {
-	return GridsCompiler{graph: ggraph}
+	return Compiler{graph: ggraph}
 }
 
-func (comp GridsCompiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, error) {
+func (comp Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, error) {
 	if len(stmts) == 0 {
 		return &core.DefaultPipeline{}, nil
 	}
@@ -59,7 +60,7 @@ func (comp GridsCompiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline
 				optimized = true
 				//fmt.Printf("Pathway out: %s\n", ps.LastType)
 			} else {
-				//BUG: if there is a failure, the pipline state may contain variables from the aborted pipeline optimziation
+				//BUG: if there is a failure, the pipline state may contain variables from the aborted pipeline optimization
 				log.Printf("Failure optimizing pipeline")
 				//something went wrong and we'll skip optimizing this path
 				tmp := [][]int{}

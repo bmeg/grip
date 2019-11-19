@@ -11,6 +11,7 @@ import (
 	"github.com/bmeg/grip/elastic"
 	esql "github.com/bmeg/grip/existing-sql"
 	"github.com/bmeg/grip/gdbi"
+	"github.com/bmeg/grip/grids"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/kvgraph"
 	_ "github.com/bmeg/grip/kvi/badgerdb" // import so badger will register itself
@@ -19,7 +20,6 @@ import (
 	"github.com/bmeg/grip/mongo"
 	"github.com/bmeg/grip/psql"
 	"github.com/bmeg/grip/server"
-	"github.com/bmeg/grip/grids"
 	_ "github.com/go-sql-driver/mysql" //import so mysql will register as a sql driver
 	"github.com/imdario/mergo"
 	_ "github.com/lib/pq" // import so postgres will register as a sql driver

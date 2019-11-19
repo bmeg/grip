@@ -21,7 +21,7 @@ func (kgraph *GDB) AddGraph(graph string) error {
 	if err != nil {
 		return err
 	}
-	gkey := kgraph.keyMap.GetGraphKey( graph )
+	gkey := kgraph.keyMap.GetGraphKey(graph)
 	return kgraph.graphkv.Set(GraphKey(gkey), []byte{})
 }
 
@@ -29,7 +29,7 @@ func (kgraph *GDB) AddGraph(graph string) error {
 func (kgraph *GDB) DeleteGraph(graph string) error {
 	kgraph.ts.Touch(graph)
 
-	gkey := kgraph.keyMap.GetGraphKey( graph )
+	gkey := kgraph.keyMap.GetGraphKey(graph)
 
 	eprefix := EdgeListPrefix(gkey)
 	kgraph.graphkv.DeletePrefix(eprefix)
@@ -66,14 +66,13 @@ func (kgraph *GDB) Graph(graph string) (gdbi.GraphInterface, error) {
 	return &Graph{kdb: kgraph, graphID: graph, graphKey: gkey}, nil
 }
 
-
 // ListGraphs lists the graphs managed by this driver
 func (kgraph *GDB) ListGraphs() []string {
 	out := []string{}
 	gPrefix := GraphPrefix()
 	kgraph.graphkv.View(func(it kvi.KVIterator) error {
 		for it.Seek(gPrefix); it.Valid() && bytes.HasPrefix(it.Key(), gPrefix); it.Next() {
-			g := kgraph.keyMap.GetGraphID( GraphKeyParse(it.Key()) )
+			g := kgraph.keyMap.GetGraphID(GraphKeyParse(it.Key()))
 			out = append(out, g)
 		}
 		return nil

@@ -272,11 +272,11 @@ func StatementProcessor(gs *gripql.GraphStatement, db gdbi.GraphInterface, ps *g
 		return &aggregate{stmt.Aggregate.Aggregations}, nil
 
 	//Custom graph statements
-	case *gripql.GraphStatementLookupVertsIndex:
+	case *gripql.GraphStatement_LookupVertsIndex:
 		ps.LastType = gdbi.VertexData
 		return &LookupVertsIndex{db: db, labels: stmt.Labels, loadData: ps.StepLoadData()}, nil
 
-	case *gripql.GraphStatementEngineCustom:
+	case *gripql.GraphStatement_EngineCustom:
 		proc := stmt.Custom.(gdbi.CustomProcGen)
 		return proc.GetProcessor(db, ps)
 
