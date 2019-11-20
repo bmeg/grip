@@ -4,6 +4,7 @@ language: go
 go:
   - "1.12"
 
+dist: xenial
 sudo: required
 
 services:
