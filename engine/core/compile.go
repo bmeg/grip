@@ -92,7 +92,7 @@ func StatementProcessor(gs *gripql.GraphStatement, db gdbi.GraphInterface, ps *g
 		}
 		ids := protoutil.AsStringList(stmt.E)
 		ps.LastType = gdbi.EdgeData
-		return &LookupEdges{db: db, ids: ids}, nil
+		return &LookupEdges{db: db, ids: ids, loadData: ps.StepLoadData()}, nil
 
 	case *gripql.GraphStatement_In, *gripql.GraphStatement_InV:
 		labels := append(protoutil.AsStringList(gs.GetIn()), protoutil.AsStringList(gs.GetInV())...)

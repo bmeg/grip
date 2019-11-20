@@ -64,6 +64,14 @@ func TestOutputMasking(t *testing.T) {
 	}
 
 	q = gripql.NewQuery()
+	q = q.E()
+	out = inspect.PipelineStepOutputs(q.Statements)
+	fmt.Printf("EdgeList vars: %s\n", out)
+	if len(out) != 1 {
+		t.Errorf("Wrong number of step outputs %d", len(out))
+	}
+
+	q = gripql.NewQuery()
 	q = q.V().Out().In().Count()
 	out = inspect.PipelineStepOutputs(q.Statements)
 	fmt.Printf("vars: %s\n", out)

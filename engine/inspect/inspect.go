@@ -104,9 +104,10 @@ func PipelineStepOutputs(stmts []*gripql.GraphStatement) map[string][]string {
 						out[a] = []string{"*"}
 					}
 				}
-			case *gripql.GraphStatement_V, *gripql.GraphStatement_Out, *gripql.GraphStatement_In,
-				*gripql.GraphStatement_OutE, *gripql.GraphStatement_InE, *gripql.GraphStatement_Both,
-				*gripql.GraphStatement_BothE:
+			case *gripql.GraphStatement_V, *gripql.GraphStatement_E,
+				*gripql.GraphStatement_Out, *gripql.GraphStatement_In,
+				*gripql.GraphStatement_OutE, *gripql.GraphStatement_InE,
+				*gripql.GraphStatement_Both, *gripql.GraphStatement_BothE:
 				out[steps[i]] = []string{"*"}
 				onLast = false
 			case *gripql.GraphStatement_LookupVertsIndex:
