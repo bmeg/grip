@@ -111,7 +111,7 @@ test:
 	@go test $(TESTS)
 
 test-conformance:
-	python3 conformance/run_conformance.py http://localhost:18201
+	python conformance/run_conformance.py http://localhost:18201
 
 # ---------------------
 # Database development
