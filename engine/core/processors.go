@@ -679,13 +679,12 @@ type HasLabel struct {
 
 // Process runs Count
 func (h *HasLabel) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
+	labels := dedupStringSlice(h.labels)
 	go func() {
 		defer close(out)
 		for t := range in {
-			for _, label := range dedupStringSlice(h.labels) {
-				if label == t.GetCurrent().Label {
-					out <- t
-				}
+			if contains(labels, t.GetCurrent().Label) {
+				out <- t
 			}
 		}
 	}()
@@ -702,10 +701,11 @@ type HasKey struct {
 // Process runs Count
 func (h *HasKey) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
 	go func() {
+		keys := dedupStringSlice(h.keys)
 		defer close(out)
 		for t := range in {
 			found := true
-			for _, key := range dedupStringSlice(h.keys) {
+			for _, key := range keys {
 				if !jsonpath.TravelerPathExists(t, key) {
 					found = false
 				}
@@ -729,11 +729,10 @@ type HasID struct {
 func (h *HasID) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
 	go func() {
 		defer close(out)
+		ids := dedupStringSlice(h.ids)
 		for t := range in {
-			for _, id := range dedupStringSlice(h.ids) {
-				if id == t.GetCurrent().ID {
-					out <- t
-				}
+			if contains(ids, t.GetCurrent().ID) {
+				out <- t
 			}
 		}
 	}()

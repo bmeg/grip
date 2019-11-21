@@ -346,16 +346,18 @@ def test_limit(O):
     count = 0
     for row in O.query().V().limit(3):
         count += 1
-        if row['gid'] not in ["vertex1", "vertex2", "vertex3"]:
-            errors.append("Wrong vertex found: %s" % (row['gid']))
+        correct = ["vertex1", "vertex2", "vertex3"]
+        if row['gid'] not in correct:
+            errors.append("Wrong vertex found: %s not in %s" % (row['gid'], correct))
     if count != 3:
         errors.append("Wrong vertex count found %s != %s" % (count, 3))
 
     count = 0
     for row in O.query().V("vertex1").both().limit(3):
         count += 1
-        if row['gid'] not in ["vertex2", "vertex8", "vertex2"]:
-            errors.append("Wrong vertex found: %s" % (row['gid']))
+        correct = ["vertex2", "vertex8", "vertex2"]
+        if row['gid'] not in correct:
+            errors.append("Wrong vertex found: %s not in %s" % (row['gid'], correct))
     if count != 3:
         errors.append("Wrong vertex count found %s != %s" % (count, 3))
 

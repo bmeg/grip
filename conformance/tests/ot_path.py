@@ -37,7 +37,7 @@ def setupGraph(O):
     O.addEdge("vertex3_3", "vertex4_3", "step")
 
 
-def test_path(O):
+def test_path_1(O):
     errors = []
     setupGraph(O)
 
@@ -49,7 +49,7 @@ def test_path(O):
             errors.append("Wrong label found at end of path: %s" % (res.label))
         count += 1
     if count != 3:
-        errors.append("Incorrect vertex count returned: %d != %d" % (count, 3))
+        errors.append("out-out-out Incorrect vertex count returned: %d != %d" % (count, 3))
 
     count = 0
     for res in O.query().V().in_().in_().in_():
@@ -59,7 +59,7 @@ def test_path(O):
             errors.append("Wrong label found at end of path: %s" % (res.label))
         count += 1
     if count != 3:
-        errors.append("Incorrect vertex count returned: %d != %d" % (count, 3))
+        errors.append("in-in-in Incorrect vertex count returned: %d != %d" % (count, 3))
 
     count = 0
     for res in O.query().V().out().out().outE():
@@ -71,27 +71,42 @@ def test_path(O):
             errors.append("Wrong label found at end of path: %s" % (res.label))
         count += 1
     if count != 3:
-        errors.append("Incorrect vertex count returned: %d != %d" % (count, 3))
-
-    for res in O.query().V().out().out().outE():
-        print(res)
+        errors.append("out-out-outE Incorrect vertex count returned: %d != %d" % (count, 3))
 
     count = 0
     for res in O.query().V().out().out().outE().out():
-        print(res)
         if not res.gid.startswith("vertex4"):
             errors.append("Wrong vertex found at end of outE to out path: %s" % (res.gid))
         if not res.label == "step4":
             errors.append("Wrong label found at end of outE to out path: %s" % (res.label))
         count += 1
     if count != 3:
-        errors.append("Incorrect vertex count returned: %d != %d" % (count, 3))
+        errors.append("out-out-outE-out Incorrect vertex count returned: %d != %d" % (count, 3))
 
+    return errors
+
+
+def test_path_2(O):
+    errors = []
+    setupGraph(O)
+
+    """
+    for res in O.query().V().out().out().out():
+        print("no haslabel", res)
+
+    for res in O.query().V().out().hasLabel("step2").outE():
+        print("haslabel", res)
+
+    for res in O.query().V(["vertex2_1", "vertex2_2", "vertex2_3"]).out().out():
+        print("V", res)
+    """
+
+    count = 0
     for res in O.query().V().out().hasLabel("step2").out().out():
         if not res.gid.startswith("vertex4"):
             errors.append("Wrong vertex found at end of hasLabel path: %s" % (res.gid))
         count += 1
     if count != 3:
-        errors.append("Incorrect vertex count returned: %d != %d" % (count, 3))
+        errors.append("out-hasLabel-out-out Incorrect vertex count returned: %d != %d" % (count, 3))
 
     return errors
