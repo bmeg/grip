@@ -19,13 +19,16 @@ import gripql  # noqa: E402
 
 try:
     from importlib.machinery import SourceFileLoader
+
     def load_test_mod(name):
-        return imp.load_source('test.%s' % name, os.path.join(TESTS, name + ".py"))
+        return SourceFileLoader('test.%s' % name, os.path.join(TESTS, name + ".py")).load_module()
 except ImportError:
-    #probably running older python without newer importlib
+    # probably running older python without newer importlib
     import imp
+
     def load_test_mod(name):
         return imp.load_source('test.%s' % name, os.path.join(TESTS, name + ".py"))
+
 
 def id_generator(size=6, chars=string.ascii_uppercase + string.digits):
     return ''.join(random.choice(chars) for _ in range(size)).lower()
