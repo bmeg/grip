@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"log"
 
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
@@ -121,7 +122,11 @@ func RawPathCompile(db *Graph, ps *gdbi.PipelineState, stmts []*gripql.GraphStat
 			labels := protoutil.AsStringList(stmt.OutE)
 			ps.LastType = gdbi.EdgeData
 			pipeline = append(pipeline, &PathOutEProc{db: db, labels: labels})
+		case *gripql.GraphStatement_HasLabel:
+			labels := protoutil.AsStringList(stmt.HasLabel)
+			pipeline = append(pipeline, &PathLabelProc{db: db, labels: labels})
 		default:
+			log.Printf("Unknown command: %T", s.GetStatement())
 			return nil, fmt.Errorf("Unknown command: %T", s.GetStatement())
 		}
 	}
@@ -348,6 +353,29 @@ func (r *PathInEdgeAdjProc) Process(ctx context.Context, in chan *PathTraveler, 
 		for ov := range r.db.RawGetVertexChannel(queryChan) {
 			i := ov.Ref.(*PathTraveler)
 			out <- i.AddCurrent(ov.Element)
+		}
+	}()
+	return ctx
+}
+
+type PathLabelProc struct {
+	db     *Graph
+	labels []string
+}
+
+func (r *PathLabelProc) Process(ctx context.Context, in chan *PathTraveler, out chan *PathTraveler) context.Context {
+	labels := []uint64{}
+	for i := range r.labels {
+		if j, ok := r.db.kdb.keyMap.GetLabelKey(r.db.graphKey, r.labels[i]); ok {
+			labels = append(labels, j)
+		}
+	}
+	go func() {
+		defer close(out)
+		for i := range in {
+			if containsUint(labels, i.current.Label) {
+				out <- i
+			}
 		}
 	}()
 	return ctx

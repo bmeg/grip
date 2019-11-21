@@ -52,7 +52,7 @@ func (comp Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, err
 		if foundPath != -1 {
 			//log.Printf("Compile Statements: %s", noLoadPaths[foundPath])
 			path := SelectPath(stmts, noLoadPaths[foundPath])
-			//log.Printf("Compile: %s", path)
+			//log.Printf("Compile: %s -> %s (%s)", stmts, path, noLoadPaths[foundPath])
 			p, err := RawPathCompile(comp.graph, ps, path)
 			if err == nil {
 				procs = append(procs, p)

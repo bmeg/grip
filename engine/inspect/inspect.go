@@ -174,7 +174,8 @@ func PipelineNoLoadPath(stmts []*gripql.GraphStatement, minLen int) [][]int {
 	for i := range steps {
 		switch stmts[i].GetStatement().(type) {
 		case *gripql.GraphStatement_In, *gripql.GraphStatement_Out,
-			*gripql.GraphStatement_InE, *gripql.GraphStatement_OutE:
+			*gripql.GraphStatement_InE, *gripql.GraphStatement_OutE,
+			*gripql.GraphStatement_HasLabel:
 			if s, ok := outputs[steps[i]]; !ok {
 				curPath = append(curPath, i)
 			} else {
