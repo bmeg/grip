@@ -32,6 +32,10 @@ func StreamLines(file string, chanSize int) (chan string, error) {
 		scanner = bufio.NewScanner(fh)
 	}
 
+	const maxCapacity = 16 * 1024 * 1024
+	buf := make([]byte, 0, 64*1024)
+	scanner.Buffer(buf, maxCapacity)
+
 	lineChan := make(chan string, chanSize)
 
 	go func() {
