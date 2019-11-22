@@ -69,7 +69,11 @@ var Cmd = &cobra.Command{
 		if vertexFile != "" {
 			log.Infof("Loading vertex file: %s", vertexFile)
 			count := 0
-			for v := range util.StreamVerticesFromFile(vertexFile) {
+			vertChan, err := util.StreamVerticesFromFile(vertexFile)
+			if err != nil {
+				return err
+			}
+			for v := range vertChan {
 				count++
 				if count%1000 == 0 {
 					log.Infof("Loaded %d vertices", count)
@@ -82,7 +86,11 @@ var Cmd = &cobra.Command{
 		if edgeFile != "" {
 			log.Infof("Loading edge file: %s", edgeFile)
 			count := 0
-			for e := range util.StreamEdgesFromFile(edgeFile) {
+			edgeChan, err := util.StreamEdgesFromFile(edgeFile)
+			if err != nil {
+				return err
+			}
+			for e := range edgeChan {
 				count++
 				if count%1000 == 0 {
 					log.Infof("Loaded %d edges", count)

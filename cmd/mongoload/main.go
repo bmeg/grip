@@ -106,94 +106,105 @@ var Cmd = &cobra.Command{
 
 		if vertexFile != "" {
 			log.Infof("Loading vertex file: %s", vertexFile)
-			count := 0
 
-			docChan := make(chan []map[string]interface{}, 100)
+			bulkVertChan := make(chan []map[string]interface{}, 5)
 			docBatch := make([]map[string]interface{}, 0, batchSize)
+
 			go func() {
-				defer close(docChan)
-				for v := range util.StreamVerticesFromFile(vertexFile) {
-					data := mongo.PackVertex(v)
-					docBatch = append(docBatch, data)
-					if len(docBatch) > batchSize {
-						docChan <- docBatch
-						docBatch = make([]map[string]interface{}, 0, batchSize)
+				count := 0
+				for batch := range bulkVertChan {
+					for i := 0; i < maxRetries; i++ {
+						bulk := vertexCo.Bulk()
+						bulk.Unordered()
+						for _, data := range batch {
+							bulk.Upsert(bson.M{"_id": data["_id"]}, data)
+							count++
+						}
+						_, err = bulk.Run()
+						if err == nil || !isNetError(err) {
+							i = maxRetries
+						} else {
+							log.Infof("Refreshing Connection")
+							session.Refresh()
+						}
 					}
-					count++
 					if count%1000 == 0 {
 						log.Infof("Loaded %d vertices", count)
 					}
 				}
-				if len(docBatch) > 0 {
-					docChan <- docBatch
-				}
+				log.Infof("Loaded %d vertices", count)
 			}()
 
-			for batch := range docChan {
-				for i := 0; i < maxRetries; i++ {
-					bulk := vertexCo.Bulk()
-					bulk.Unordered()
-					for _, data := range batch {
-						bulk.Upsert(bson.M{"_id": data["_id"]}, data)
-					}
-					_, err = bulk.Run()
-					if err == nil || !isNetError(err) {
-						i = maxRetries
-					} else {
-						log.Infof("Refreshing Connection")
-						session.Refresh()
-					}
+			vertChan, err := util.StreamVerticesFromFile(vertexFile)
+			if err != nil {
+				return err
+			}
+			for v := range vertChan {
+				data := mongo.PackVertex(v)
+				docBatch = append(docBatch, data)
+				if len(docBatch) > batchSize {
+					bulkVertChan <- docBatch
+					docBatch = make([]map[string]interface{}, 0, batchSize)
 				}
 			}
-			log.Infof("Loaded %d vertices", count)
+			if len(docBatch) > 0 {
+				bulkVertChan <- docBatch
+			}
+			close(bulkVertChan)
 		}
 
 		if edgeFile != "" {
 			log.Infof("Loading edge file: %s", edgeFile)
-			count := 0
 
-			docChan := make(chan []map[string]interface{}, 100)
+			bulkEdgeChan := make(chan []map[string]interface{}, 5)
 			docBatch := make([]map[string]interface{}, 0, batchSize)
+
 			go func() {
-				defer close(docChan)
-				for e := range util.StreamEdgesFromFile(edgeFile) {
-					data := mongo.PackEdge(e)
-					if data["_id"] == "" {
-						data["_id"] = bson.NewObjectId().Hex()
+				count := 0
+				for batch := range bulkEdgeChan {
+					for i := 0; i < maxRetries; i++ {
+						bulk := edgeCo.Bulk()
+						bulk.Unordered()
+						for _, data := range batch {
+							bulk.Upsert(bson.M{"_id": data["_id"]}, data)
+							count++
+						}
+						_, err = bulk.Run()
+						if err == nil || !isNetError(err) {
+							i = maxRetries
+						} else {
+							log.Infof("Refreshing Connection")
+							session.Refresh()
+						}
 					}
-					docBatch = append(docBatch, data)
-					if len(docBatch) > batchSize {
-						docChan <- docBatch
-						docBatch = make([]map[string]interface{}, 0, batchSize)
-					}
-					count++
 					if count%1000 == 0 {
 						log.Infof("Loaded %d edges", count)
 					}
 				}
-				if len(docBatch) > 0 {
-					docChan <- docBatch
-				}
+				log.Infof("Loaded %d edges", count)
 			}()
 
-			for batch := range docChan {
-				for i := 0; i < maxRetries; i++ {
-					bulk := edgeCo.Bulk()
-					bulk.Unordered()
-					for _, data := range batch {
-						bulk.Upsert(bson.M{"_id": data["_id"]}, data)
-					}
-					_, err = bulk.Run()
-					if err == nil || !isNetError(err) {
-						i = maxRetries
-					} else {
-						log.Infof("Refreshing Connection")
-						session.Refresh()
-					}
+			edgeChan, err := util.StreamEdgesFromFile(edgeFile)
+			if err != nil {
+				return err
+			}
+			for e := range edgeChan {
+				data := mongo.PackEdge(e)
+				if data["_id"] == "" {
+					data["_id"] = bson.NewObjectId().Hex()
+				}
+				docBatch = append(docBatch, data)
+				if len(docBatch) > batchSize {
+					bulkEdgeChan <- docBatch
+					docBatch = make([]map[string]interface{}, 0, batchSize)
 				}
 			}
-			log.Infof("Loaded %d edges", count)
+			if len(docBatch) > 0 {
+				bulkEdgeChan <- docBatch
+			}
+			close(bulkEdgeChan)
 		}
+
 		return nil
 	},
 }
