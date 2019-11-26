@@ -5,13 +5,16 @@ import (
   "os"
   "fmt"
   "github.com/bmeg/grip/tabular"
+  flag "github.com/spf13/pflag"
 )
 
 
 func main() {
+  var idxName *string = flag.String("db", "table.db", "Path to index db")
+
   file := os.Args[1]
   indexCol := os.Args[2]
-  idx, _ := tabular.NewTablularIndex("table.db")
+  idx, _ := tabular.NewTablularIndex(*idxName)
   tix := idx.IndexTSV(file, indexCol)
   fmt.Printf("Index: %#v\n", tix)
 

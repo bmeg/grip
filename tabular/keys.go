@@ -6,10 +6,15 @@ import (
 	"encoding/binary"
 )
 
+var pathCount  = []byte("c")
 var pathPrefix = []byte("p")
 var linePrefix = []byte("l")
 var idPrefix   = []byte("i")
+var countPrefix = []byte("n")
 
+func PathNumKey() []byte {
+	return pathCount
+}
 
 // PathKey produces the byte key for a particular file path
 func PathKey(path string) []byte {
@@ -42,5 +47,13 @@ func IDKey(pathID uint64, id string) []byte {
   for i := 0; i < len(p); i++ {
     out[i+1+binary.MaxVarintLen64] = p[i]
   }
+  return out
+}
+
+
+func LineCountKey(pathID uint64) []byte {
+	out := make([]byte, 1+binary.MaxVarintLen64)
+	out[0] = countPrefix[0]
+	binary.PutUvarint(out[1:binary.MaxVarintLen64+1], pathID)
   return out
 }

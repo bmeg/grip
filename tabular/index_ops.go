@@ -6,13 +6,37 @@ import (
   "github.com/bmeg/grip/kvi"
 )
 
-func SetPathValue( kv kvi.KVBulkWrite, path string, num uint64 ) {
+
+func SetPathID( kv kvi.KVBulkWrite, path string, num uint64 ) {
   pk := PathKey(path)
   b := make([]byte, binary.MaxVarintLen64)
   binary.PutUvarint(b, num)
   kv.Set(pk, b)
 }
 
+func GetPathID(kv kvi.KVTransaction, path string) (uint64, error) {
+  pk := PathKey(path)
+  v, err := kv.Get(pk)
+  if err != nil {
+    return 0, err
+  }
+  o, _ := binary.Uvarint(v)
+  return o, nil
+}
+
+func NewPathID( kv kvi.KVTransaction, path string ) uint64 {
+  ok := PathNumKey()
+  num := uint64(0)
+  if v, err := kv.Get(ok); err == nil {
+    num, _ = binary.Uvarint(v)
+  }
+  b := make([]byte, binary.MaxVarintLen64)
+  binary.PutUvarint(b, num+1)
+  kv.Set(ok, b)
+
+  SetPathID(kv, path, num)
+  return num
+}
 
 func SetIDLine( kv kvi.KVBulkWrite, pathID uint64, id string, line uint64) {
   ik := IDKey(pathID, id)
@@ -29,7 +53,7 @@ func SetLineOffset( kv kvi.KVBulkWrite, pathID uint64, line uint64, offset uint6
   kv.Set(lk, b)
 }
 
-func GetLineOffset( kv kvi.KVInterface, pathID uint64, line uint64 ) (uint64, error) {
+func GetLineOffset( kv kvi.KVTransaction, pathID uint64, line uint64 ) (uint64, error) {
   lk := LineKey(pathID, line)
   if v, err := kv.Get(lk); err == nil {
     o, _ := binary.Uvarint(v)
@@ -39,7 +63,7 @@ func GetLineOffset( kv kvi.KVInterface, pathID uint64, line uint64 ) (uint64, er
   }
 }
 
-func GetIDLine(kv kvi.KVInterface, pathID uint64, id string) (uint64, error) {
+func GetIDLine(kv kvi.KVTransaction, pathID uint64, id string) (uint64, error) {
   ik := IDKey(pathID, id)
   if v, err := kv.Get(ik); err == nil {
     o, _ := binary.Uvarint(v)
@@ -47,4 +71,23 @@ func GetIDLine(kv kvi.KVInterface, pathID uint64, id string) (uint64, error) {
   } else {
     return 0, err
   }
+}
+
+
+func GetLineCount(kv kvi.KVTransaction, pathID uint64) (uint64, error) {
+  ik := LineCountKey(pathID)
+  if v, err := kv.Get(ik); err == nil {
+    o, _ := binary.Uvarint(v)
+    return o, nil
+  } else {
+    return 0, err
+  }
+}
+
+
+func SetLineCount(kv kvi.KVBulkWrite, pathID, lineCount uint64) {
+  lk := LineCountKey(pathID)
+  b := make([]byte, binary.MaxVarintLen64)
+  binary.PutUvarint(b, lineCount)
+  kv.Set(lk, b)
 }

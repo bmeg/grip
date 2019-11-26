@@ -45,9 +45,20 @@ func (t *TSVIndex) Init() error {
     return err
   }
 
+  if i, err := GetPathID(t.kv, t.path); err == nil {
+    t.pathID = i
+  } else {
+    t.pathID = NewPathID(t.kv, t.path)
+    //SetPathValue(bl, t.path, t.pathID)
+  }
+
+  if _, err := GetLineCount(t.kv, t.pathID); err == nil {
+    //file have already been indexed
+    return nil
+  }
+
   count := uint64(0)
   t.kv.BulkWrite(func(bl kvi.KVBulkWrite) error{
-    SetPathValue(bl, t.path, t.pathID)
     cparse := CSVParse{}
     for line := range t.lineReader.ReadLines() {
       row := cparse.Parse(string(line.Text))
@@ -65,6 +76,7 @@ func (t *TSVIndex) Init() error {
         count++
       }
     }
+    SetLineCount(bl, t.pathID, count)
     return nil
   })
 
