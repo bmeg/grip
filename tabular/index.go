@@ -37,7 +37,6 @@ func (t *TabularIndex) IndexTSV(path string, indexName string) *TSVIndex {
 }
 
 func (t *TSVIndex) Init() error {
-  SetPathValue(t.kv, t.path, t.pathID)
 
   hasHeader := false
   var err error
@@ -45,36 +44,45 @@ func (t *TSVIndex) Init() error {
   if err != nil {
     return err
   }
-  cparse := CSVParse{}
+
   count := uint64(0)
-  for line := range t.lineReader.ReadLines() {
-    row := cparse.Parse(string(line.Text))
-    if !hasHeader {
-      t.header = row
-      hasHeader = true
-      for i := range row {
-        if t.indexName == row[i] {
-          t.indexCol = i
+  t.kv.BulkWrite(func(bl kvi.KVBulkWrite) error{
+    SetPathValue(bl, t.path, t.pathID)
+    cparse := CSVParse{}
+    for line := range t.lineReader.ReadLines() {
+      row := cparse.Parse(string(line.Text))
+      if !hasHeader {
+        t.header = row
+        hasHeader = true
+        for i := range row {
+          if t.indexName == row[i] {
+            t.indexCol = i
+          }
         }
+      } else {
+        SetIDLine(bl, t.pathID, row[t.indexCol], count)
+        SetLineOffset(bl, t.pathID, count, line.Offset)
+        count++
       }
-    } else {
-      SetIDLine(t.kv, t.pathID, row[t.indexCol], count)
-      SetLineOffset(t.kv, t.pathID, count, line.Offset)
-      count++
     }
-  }
+    return nil
+  })
+
   log.Printf("Found %d rows", count)
   return nil
 }
 
 
-func (t *TSVIndex) GetLineNumber(id string) uint64 {
+func (t *TSVIndex) GetLineNumber(id string) (uint64, error) {
   return GetIDLine(t.kv, t.pathID, id)
 }
 
-func (t *TSVIndex) GetLineText(lineNum uint64) []byte {
-  offset := GetLineOffset(t.kv, t.pathID, lineNum)
+func (t *TSVIndex) GetLineText(lineNum uint64) ([]byte, error) {
+  offset, err := GetLineOffset(t.kv, t.pathID, lineNum)
+  if err != nil {
+    return nil, err
+  }
   //cparse := CSVParse{}
   log.Printf("LineOffset: %d", offset)
-  return t.lineReader.SeekRead(offset)
+  return t.lineReader.SeekRead(offset), nil
 }

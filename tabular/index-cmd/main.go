@@ -15,8 +15,14 @@ func main() {
   tix := idx.IndexTSV(file, indexCol)
   fmt.Printf("Index: %#v\n", tix)
 
-  d := tix.GetLineNumber("24089")
-  fmt.Printf("%d\n", d)
-  o := tix.GetLineText(d)
-  fmt.Printf("%s\n", o)
+  if d, err := tix.GetLineNumber("13"); err == nil {
+    fmt.Printf("%d\n", d)
+    if o, err := tix.GetLineText(d); err == nil {
+      fmt.Printf("%s\n", o)
+    } else {
+      fmt.Printf("Error: %s\n", err)
+    }
+  } else {
+    fmt.Printf("Error: %s\n", err)
+  }
 }

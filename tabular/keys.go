@@ -37,7 +37,7 @@ func LineKey(pathID, line uint64) []byte {
 func IDKey(pathID uint64, id string) []byte {
   p := []byte(id)
   out := make([]byte, 1 + binary.MaxVarintLen64 + len(p))
-  p[0] = idPrefix[0]
+  out[0] = idPrefix[0]
 	binary.PutUvarint(out[1:binary.MaxVarintLen64+1], pathID)
   for i := 0; i < len(p); i++ {
     out[i+1+binary.MaxVarintLen64] = p[i]
