@@ -2,30 +2,40 @@ package main
 
 
 import (
-  "os"
   "fmt"
+  "log"
+  "context"
   "github.com/bmeg/grip/tabular"
+  "github.com/bmeg/grip/gdbi"
+  "github.com/golang/protobuf/jsonpb"
   flag "github.com/spf13/pflag"
 )
 
 
 func main() {
   var idxName *string = flag.String("db", "table.db", "Path to index db")
+  flag.Parse()
+  configFile := flag.Arg(0)
+  query := flag.Arg(1)
 
-  file := os.Args[1]
-  indexCol := os.Args[2]
-  idx, _ := tabular.NewTablularIndex(*idxName)
-  tix := idx.IndexTSV(file, indexCol)
-  fmt.Printf("Index: %#v\n", tix)
+  config, err := tabular.LoadConfig(configFile)
+  if err != nil {
+    log.Printf("%s", err)
+    return
+  }
+  graph := tabular.NewGraph(config, *idxName)
 
-  if d, err := tix.GetLineNumber("13"); err == nil {
-    fmt.Printf("%d\n", d)
-    if o, err := tix.GetLineText(d); err == nil {
-      fmt.Printf("%s\n", o)
-    } else {
-      fmt.Printf("Error: %s\n", err)
-    }
-  } else {
-    fmt.Printf("Error: %s\n", err)
+  fmt.Printf("%s\n", query)
+  fmt.Printf("%s\n", graph)
+
+  Query(graph)
+}
+
+
+func Query(graph gdbi.GraphInterface) {
+  marsh := jsonpb.Marshaler{}
+  for row := range graph.GetVertexList(context.Background(), false) {
+    rowString, _ := marsh.MarshalToString(row)
+    fmt.Printf("%s\n", rowString)
   }
 }
