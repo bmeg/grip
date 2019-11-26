@@ -44,7 +44,7 @@ func (l *LineReader) ReadLines() (chan Line) {
     for err == nil {
       line, isPrefix, err = reader.ReadLine()
       ln = append(ln, line...)
-      offset += uint64(len(line))
+      offset += uint64(len(line)+1)
       if !isPrefix {
         if len(ln) > 0 {
           out <- Line{lastOffset,ln}
@@ -56,6 +56,22 @@ func (l *LineReader) ReadLines() (chan Line) {
     close(out)
  } ()
  return out
+}
+
+func (l *LineReader) SeekRead(offset uint64) []byte {
+  l.file.Seek(int64(offset), os.SEEK_SET)
+  reader := bufio.NewReaderSize(l.file, 102400)
+  var err error
+  var isPrefix bool = true
+  var line, ln []byte
+  for err == nil {
+    line, isPrefix, err = reader.ReadLine()
+    ln = append(ln, line...)
+    if !isPrefix {
+      return ln
+    }
+  }
+  return ln
 }
 
 

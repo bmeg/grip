@@ -15,7 +15,8 @@ func main() {
   tix := idx.IndexTSV(file, indexCol)
   fmt.Printf("Index: %#v\n", tix)
 
-  d := idx.GetLineNumber("24089")
+  d := tix.GetLineNumber("24089")
   fmt.Printf("%d\n", d)
-
+  o := tix.GetLineText(d)
+  fmt.Printf("%s\n", o)
 }
