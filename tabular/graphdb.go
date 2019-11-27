@@ -16,15 +16,16 @@ type TabularGDB struct {
 func NewGDB(conf *GraphConfig, indexPath string) *TabularGDB {
   out := TabularGraph{}
   out.idx, _ = NewTablularIndex(indexPath)
-  out.tables = map[string]*Table{}
+  out.vertices = []*Table{}
 
   for _, t := range conf.Tables {
     log.Printf("Table: %s", t)
     fPath := filepath.Join( filepath.Dir(conf.path), t.Path )
     log.Printf("Loading: %s with primaryKey %s", fPath, t.PrimaryKey)
     tix := out.idx.IndexTSV(fPath, t.PrimaryKey)
-    log.Printf("Index: %#v\n", tix)
-    out.tables[fPath] = &Table{data:tix, prefix:t.Prefix, label:t.Label}
+    if t.Label != "" {
+      out.vertices = append(out.vertices, &Table{data:tix, prefix:t.Prefix, label:t.Label})
+    }
   }
   return &TabularGDB{&out}
 }

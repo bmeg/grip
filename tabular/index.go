@@ -2,6 +2,7 @@ package tabular
 
 import (
   "log"
+  "context"
   "github.com/bmeg/grip/kvi"
   //"github.com/bmeg/grip/kvi/boltdb"
   "github.com/bmeg/grip/kvi/badgerdb"
@@ -121,6 +122,22 @@ func (t *TSVIndex) GetLineText(lineNum uint64) ([]byte, error) {
   return t.lineReader.SeekRead(offset), nil
 }
 
+func (t *TSVIndex) GetLineRow(lineNum uint64) (*TableRow, error) {
+  text, err := t.GetLineText(lineNum)
+  if err != nil {
+    return nil, err
+  }
+  r := t.cparse.Parse(string(text))
+  d := map[string]string{}
+  for i := 0; i < len(t.header) && i < len(r); i++ {
+    if i != t.indexCol {
+      d[t.header[i]] = r[i]
+    }
+  }
+  o := TableRow{ r[t.indexCol], d }
+  return &o, nil
+}
+
 func (t *TSVIndex) GetRows() chan *TableRow {
   log.Printf("ReadIndexCol: %s", t.indexCol)
   out := make(chan *TableRow, 10)
@@ -145,4 +162,8 @@ func (t *TSVIndex) GetRows() chan *TableRow {
     }
   }()
   return out
+}
+
+func (t *TSVIndex) GetIDs(ctx context.Context) chan string {
+  return GetIDChannel(ctx, t.kv, t.pathID)
 }

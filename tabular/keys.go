@@ -37,6 +37,12 @@ func LineKey(pathID, line uint64) []byte {
   return out
 }
 
+func IDPrefix(pathID uint64) []byte {
+  out := make([]byte, 1 + binary.MaxVarintLen64)
+  out[0] = idPrefix[0]
+	binary.PutUvarint(out[1:binary.MaxVarintLen64+1], pathID)
+  return out
+}
 
 // IDKey produces the byte key for a particular file path
 func IDKey(pathID uint64, id string) []byte {
@@ -50,6 +56,15 @@ func IDKey(pathID uint64, id string) []byte {
   return out
 }
 
+func IDKeyParse(key []byte) (uint64, []byte) {
+	pathID, _ := binary.Uvarint(key[1:binary.MaxVarintLen64+1])
+	sLen := len(key) - (binary.MaxVarintLen64+1)
+	id := make([]byte, sLen)
+	for i := 0; i < sLen; i++ {
+		id[i] = key[i+1+binary.MaxVarintLen64]
+	}
+	return pathID, id
+}
 
 func LineCountKey(pathID uint64) []byte {
 	out := make([]byte, 1+binary.MaxVarintLen64)

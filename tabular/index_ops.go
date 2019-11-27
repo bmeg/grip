@@ -2,6 +2,9 @@
 package tabular
 
 import (
+  "log"
+  "context"
+  "bytes"
   "encoding/binary"
   "github.com/bmeg/grip/kvi"
 )
@@ -69,6 +72,7 @@ func GetIDLine(kv kvi.KVTransaction, pathID uint64, id string) (uint64, error) {
     o, _ := binary.Uvarint(v)
     return o, nil
   } else {
+    log.Printf("Line '%s' not found", id)
     return 0, err
   }
 }
@@ -90,4 +94,26 @@ func SetLineCount(kv kvi.KVBulkWrite, pathID, lineCount uint64) {
   b := make([]byte, binary.MaxVarintLen64)
   binary.PutUvarint(b, lineCount)
   kv.Set(lk, b)
+}
+
+
+func GetIDChannel(ctx context.Context, kv kvi.KVInterface, pathID uint64) chan string {
+  out := make(chan string, 10)
+  go func() {
+    defer close(out)
+    kv.View(func(it kvi.KVIterator) error {
+      prefix := IDPrefix(pathID)
+      for it.Seek(prefix); it.Valid() && bytes.HasPrefix(it.Key(), prefix); it.Next() {
+        select {
+  				case <-ctx.Done():
+  					return nil
+  				default:
+  			}
+        _, id := IDKeyParse(it.Key())
+        out <- string(id)
+      }
+      return nil
+    })
+  } ()
+  return out
 }
