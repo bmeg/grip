@@ -9,6 +9,7 @@ import (
   "github.com/bmeg/grip/gripql"
   "github.com/bmeg/grip/gdbi"
   "github.com/bmeg/grip/protoutil"
+  "github.com/bmeg/grip/engine/core"
 )
 
 
@@ -50,7 +51,7 @@ func (t *TabularGraph) AddEdge(edge []*gripql.Edge) error {
 
 
 func (t *TabularGraph) Compiler() gdbi.Compiler {
-  return nil
+  return core.NewCompiler(t)
 }
 
 func (t *TabularGraph) GetTimestamp() string {
