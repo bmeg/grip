@@ -72,7 +72,9 @@ func main() {
     log.Printf("%s", err)
     return
   }
-  graph := tabular.NewGraph(config, *idxName)
+  gdb := tabular.NewGDB(config, *idxName)
+
+  graph, _ := gdb.Graph("main")
 
   fmt.Printf("%s\n", queryString)
   fmt.Printf("%s\n", graph)
@@ -84,6 +86,8 @@ func main() {
   }
   log.Printf("Query: %s", query)
   Query(graph, query)
+
+  gdb.Close()
 }
 
 

@@ -26,8 +26,8 @@ func NewLineReader(path string) (*LineReader, error) {
 }
 
 
-func (l *LineReader) Close() {
-  l.file.Close()
+func (l *LineReader) Close() error {
+  return l.file.Close()
 }
 
 

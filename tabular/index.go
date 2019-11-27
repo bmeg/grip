@@ -44,6 +44,14 @@ func (t *TabularIndex) IndexTSV(path string, indexName string) *TSVIndex {
   return &o
 }
 
+func (t *TabularIndex) Close() error {
+    return t.kv.Close()
+}
+
+func (t *TSVIndex) Close() error {
+  return t.lineReader.Close()
+}
+
 func (t *TSVIndex) Init() error {
 
   hasHeader := false
@@ -118,17 +126,22 @@ func (t *TSVIndex) GetRows() chan *TableRow {
   out := make(chan *TableRow, 10)
   go func() {
     defer close(out)
+    hasHeader := false
     for line := range t.lineReader.ReadLines() {
-      r := t.cparse.Parse(string(line.Text))
-      d := map[string]string{}
-      for i := range t.header {
-        if i != t.indexCol {
-          d[t.header[i]] = r[i]
+      if !hasHeader {
+        hasHeader = true
+      } else {
+        r := t.cparse.Parse(string(line.Text))
+        d := map[string]string{}
+        for i := 0; i < len(t.header) && i < len(r); i++ {
+          if i != t.indexCol {
+            d[t.header[i]] = r[i]
+          }
         }
+        //log.Printf("Key: %s", r[t.indexCol])
+        o := TableRow{ r[t.indexCol], d }
+        out <- &o
       }
-      //log.Printf("Key: %s", r[t.indexCol])
-      o := TableRow{ r[t.indexCol], d }
-      out <- &o
     }
   }()
   return out

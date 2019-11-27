@@ -13,11 +13,20 @@ type GraphConfig struct {
   path    string
 }
 
+type EdgeConfig struct {
+  To        string       `json:"to"`
+  ToTable   string       `json:"toTable"`
+  From      string       `json:"from"`
+  FromTable string       `json:"fromTable"`
+  Label     string       `json:"label"`
+}
+
 type TableConfig struct {
   Path string            `json:"path"`
   PrimaryKey string      `json:"primaryKey"`
   Label      string      `json:"label"`
   Prefix     string      `json:"prefix"`
+  Edges      []EdgeConfig `json:"edges"`
 }
 
 

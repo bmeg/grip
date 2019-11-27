@@ -5,7 +5,6 @@ import (
   "log"
   "fmt"
   "context"
-  "path/filepath"
   "github.com/bmeg/grip/gripql"
   "github.com/bmeg/grip/gdbi"
   "github.com/bmeg/grip/protoutil"
@@ -24,20 +23,10 @@ type TabularGraph struct {
   tables map[string]*Table
 }
 
-func NewGraph(conf *GraphConfig, indexPath string) *TabularGraph {
-  out := TabularGraph{}
-  out.idx, _ = NewTablularIndex(indexPath)
-  out.tables = map[string]*Table{}
 
-  for _, t := range conf.Tables {
-    log.Printf("Table: %s", t)
-    fPath := filepath.Join( filepath.Dir(conf.path), t.Path )
-    log.Printf("Loading: %s with primaryKey %s", fPath, t.PrimaryKey)
-    tix := out.idx.IndexTSV(fPath, t.PrimaryKey)
-    log.Printf("Index: %#v\n", tix)
-    out.tables[fPath] = &Table{data:tix, prefix:t.Prefix, label:t.Label}
-  }
-  return &out
+func (t *TabularGraph) Close() error {
+  t.idx.Close()
+  return nil
 }
 
 func (t *TabularGraph) AddVertex(vertex []*gripql.Vertex) error {
@@ -58,7 +47,8 @@ func (t *TabularGraph) GetTimestamp() string {
   return "NA"
 }
 
-func (t *TabularGraph) GetVertex(key string, load bool) *gripql.Vertex{
+func (t *TabularGraph) GetVertex(key string, load bool) *gripql.Vertex {
+  log.Printf("Calling GetVertex")
   return nil
 }
 
@@ -76,11 +66,25 @@ func (t *TabularGraph) DelEdge(key string) error {
 }
 
 func (t *TabularGraph) VertexLabelScan(ctx context.Context, label string) chan string {
+  out := make(chan string, 10)
+  go func() {
+    defer close(out)
+    for _, t := range t.tables {
+      if t.label == label {
+
+      }
+    }
+  }()
+
   return nil
 }
 
 func (t *TabularGraph) ListVertexLabels() ([]string, error) {
-  return []string{}, nil
+  out := []string{}
+  for _, i := range t.tables {
+    out = append(out, i.label)
+  }
+  return out, nil
 }
 
 func (t *TabularGraph) ListEdgeLabels() ([]string, error) {
@@ -123,6 +127,7 @@ func (t *TabularGraph) GetEdgeList(ctx context.Context, load bool) <-chan *gripq
 }
 
 func (t *TabularGraph) GetVertexChannel(req chan gdbi.ElementLookup, load bool) chan gdbi.ElementLookup {
+  log.Printf("Calling GetVertexChannel")
   return nil
 }
 
