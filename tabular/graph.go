@@ -50,11 +50,9 @@ func (t *TabularGraph) GetTimestamp() string {
 }
 
 func (t *TabularGraph) GetVertex(key string, load bool) *gripql.Vertex {
-  log.Printf("Calling GetVertex")
   for _, v := range t.vertices {
     if strings.HasPrefix(key, v.prefix) {
       id := key[len(v.prefix):len(key)]
-      log.Printf("Getting %s", id)
       if ln, err := v.data.GetLineNumber(id); err == nil {
         row, err:= v.data.GetLineRow(ln)
         if err == nil {
@@ -91,13 +89,12 @@ func (t *TabularGraph) VertexLabelScan(ctx context.Context, label string) chan s
     for _, t := range t.vertices {
       if t.label == label {
         for n := range t.data.GetIDs(ctx) {
-          out <- n
+          out <- t.prefix + n
         }
       }
     }
   }()
-
-  return nil
+  return out
 }
 
 func (t *TabularGraph) ListVertexLabels() ([]string, error) {
@@ -126,6 +123,7 @@ func (t *TabularGraph) DeleteVertexIndex(label string, field string) error {
 
 
 func (t *TabularGraph) GetVertexIndexList() <-chan *gripql.IndexID {
+  log.Printf("Calling GetVertexIndexList")
   return nil
 }
 
@@ -133,7 +131,6 @@ func (t *TabularGraph) GetVertexIndexList() <-chan *gripql.IndexID {
 func (t *TabularGraph) GetVertexList(ctx context.Context, load bool) <-chan *gripql.Vertex {
   out := make(chan *gripql.Vertex, 100)
   go func() {
-    log.Printf("Listing Vertices")
     for _, table := range t.vertices {
       for row := range table.data.GetRows() {
         v := gripql.Vertex{ Gid: table.prefix + row.Key, Label: table.label, Data:protoutil.AsStringStruct(row.Values) }
@@ -147,28 +144,54 @@ func (t *TabularGraph) GetVertexList(ctx context.Context, load bool) <-chan *gri
 
 
 func (t *TabularGraph) GetEdgeList(ctx context.Context, load bool) <-chan *gripql.Edge {
+  log.Printf("Calling GetEdgeList")
   return nil
 }
 
 func (t *TabularGraph) GetVertexChannel(req chan gdbi.ElementLookup, load bool) chan gdbi.ElementLookup {
-  log.Printf("Calling GetVertexChannel")
-  return nil
+  out := make(chan gdbi.ElementLookup, 10)
+  go func() {
+    defer close(out)
+    for r := range req {
+      for _, v := range t.vertices {
+        if strings.HasPrefix(r.ID, v.prefix) {
+          id := r.ID[len(v.prefix):len(r.ID)]
+          o := gripql.Vertex{Gid:r.ID, Label:v.label}
+          if load {
+            if ln, err := v.data.GetLineNumber(id); err == nil {
+              row, err:= v.data.GetLineRow(ln)
+              if err == nil {
+                o.Data = protoutil.AsStringStruct(row.Values)
+              }
+            }
+          }
+          r.Vertex = &o
+          out <- r
+        }
+      }
+    }
+  }()
+  return out
 }
 
 
 func (t *TabularGraph) GetOutChannel(req chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
+  log.Printf("Calling GetOutChannel")
   return nil
 }
 
 func (t *TabularGraph) GetInChannel(req chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
+  log.Printf("Calling GetInChannel")
   return nil
 }
 
 func (t *TabularGraph) GetOutEdgeChannel(req chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
+  log.Printf("Calling GetOutEdgeChannel")
   return nil
 }
 
 
 func (t *TabularGraph) GetInEdgeChannel(req chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
+  log.Printf("Calling GetInEdgeChannel")
   return nil
 }
