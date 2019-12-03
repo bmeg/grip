@@ -2,10 +2,10 @@ package kvload
 
 import (
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
-	"github.com/bmeg/golib"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/kvgraph"
 	"github.com/bmeg/grip/kvi"
@@ -49,7 +49,12 @@ var Cmd = &cobra.Command{
 		db := kvgraph.NewKVGraph(kv)
 		defer db.Close()
 
-		_ = db.AddGraph(graph)
+		err = db.AddGraph(graph)
+		if err != nil {
+			if strings.Contains(err.Error(), "invalid graph name") {
+				return err
+			}
+		}
 		kgraph, err := db.Graph(graph)
 		if err != nil {
 			return err
@@ -59,17 +64,24 @@ var Cmd = &cobra.Command{
 		edgeFileArray := []string{}
 
 		if vertexManifestFile != "" {
-			reader, err := golib.ReadFileLines(vertexManifestFile)
-			if err == nil {
-				for line := range reader {
+			reader, err := util.StreamLines(vertexManifestFile, 10)
+			if err != nil {
+				return err
+			}
+			for line := range reader {
+				if line != "" {
 					vertexFileArray = append(vertexFileArray, string(line))
 				}
 			}
 		}
+
 		if edgeManifestFile != "" {
-			reader, err := golib.ReadFileLines(edgeManifestFile)
-			if err == nil {
-				for line := range reader {
+			reader, err := util.StreamLines(edgeManifestFile, 10)
+			if err != nil {
+				return err
+			}
+			for line := range reader {
+				if line != "" {
 					edgeFileArray = append(edgeFileArray, string(line))
 				}
 			}
@@ -82,7 +94,7 @@ var Cmd = &cobra.Command{
 			edgeFileArray = append(edgeFileArray, edgeFile)
 		}
 
-		graphChan := make(chan *gripql.GraphElement, 1000)
+		graphChan := make(chan *gripql.GraphElement, 10)
 		wg := &sync.WaitGroup{}
 		go func() {
 			wg.Add(1)
@@ -96,7 +108,12 @@ var Cmd = &cobra.Command{
 		for _, vertexFile := range vertexFileArray {
 			log.Infof("Loading %s", vertexFile)
 			count := 0
-			for v := range util.StreamVerticesFromFile(vertexFile) {
+			vertChan, err := util.StreamVerticesFromFile(vertexFile)
+			if err != nil {
+				log.WithFields(log.Fields{"error": err}).Errorf("Error reading file: %s", vertexFile)
+				continue
+			}
+			for v := range vertChan {
 				graphChan <- &gripql.GraphElement{Graph: graph, Vertex: v}
 				count++
 				vertexCounter.Incr(1)
@@ -111,7 +128,12 @@ var Cmd = &cobra.Command{
 		for _, edgeFile := range edgeFileArray {
 			log.Infof("Loading %s", edgeFile)
 			count := 0
-			for e := range util.StreamEdgesFromFile(edgeFile) {
+			edgeChan, err := util.StreamEdgesFromFile(edgeFile)
+			if err != nil {
+				log.WithFields(log.Fields{"error": err}).Errorf("Error reading file: %s", edgeFile)
+				continue
+			}
+			for e := range edgeChan {
 				graphChan <- &gripql.GraphElement{Graph: graph, Edge: e}
 				count++
 				edgeCounter.Incr(1)

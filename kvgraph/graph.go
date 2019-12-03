@@ -45,20 +45,23 @@ type kvAddData struct {
 // in the graph, it is replaced
 func (kgdb *KVInterfaceGDB) AddVertex(vertices []*gripql.Vertex) error {
 	err := kgdb.kvg.kv.BulkWrite(func(tx kvi.KVBulkWrite) error {
-		var anyErr error
+		var bulkErr *multierror.Error
 		for _, vert := range vertices {
 			if err := insertVertex(tx, kgdb.kvg.idx, kgdb.graph, vert); err != nil {
-				anyErr = err
-				log.Errorf("AddVertex Error %s", err)
+				bulkErr = multierror.Append(bulkErr, err)
 			}
 		}
 		kgdb.kvg.ts.Touch(kgdb.graph)
-		return anyErr
+		return bulkErr.ErrorOrNil()
 	})
 	return err
 }
 
 func insertVertex(tx kvi.KVBulkWrite, idx *kvindex.KVIndex, graph string, vertex *gripql.Vertex) error {
+	if err := vertex.Validate(); err != nil {
+		return err
+	}
+
 	key := VertexKey(graph, vertex.Gid)
 	value, err := proto.Marshal(vertex)
 	if err != nil {
@@ -78,6 +81,10 @@ func insertEdge(tx kvi.KVBulkWrite, idx *kvindex.KVIndex, graph string, edge *gr
 	eid := edge.Gid
 	var err error
 	var data []byte
+
+	if err = edge.Validate(); err != nil {
+		return err
+	}
 
 	data, err = proto.Marshal(edge)
 	if err != nil {
@@ -113,14 +120,14 @@ func insertEdge(tx kvi.KVBulkWrite, idx *kvindex.KVIndex, graph string, edge *gr
 // in the graph, it is replaced
 func (kgdb *KVInterfaceGDB) AddEdge(edges []*gripql.Edge) error {
 	err := kgdb.kvg.kv.BulkWrite(func(tx kvi.KVBulkWrite) error {
-		var anyErr error
+		var bulkErr *multierror.Error
 		for _, edge := range edges {
 			if err := insertEdge(tx, kgdb.kvg.idx, kgdb.graph, edge); err != nil {
-				anyErr = err
+				bulkErr = multierror.Append(bulkErr, err)
 			}
 		}
 		kgdb.kvg.ts.Touch(kgdb.graph)
-		return anyErr
+		return bulkErr.ErrorOrNil()
 	})
 	return err
 }
@@ -130,21 +137,12 @@ func (kgdb *KVInterfaceGDB) BulkAdd(stream <-chan *gripql.GraphElement) error {
 		var bulkErr *multierror.Error
 		for elem := range stream {
 			if elem.Vertex != nil {
-				if err := elem.Vertex.Validate(); err != nil {
-					bulkErr = multierror.Append(bulkErr, err)
-					continue
-				}
 				if err := insertVertex(tx, kgdb.kvg.idx, kgdb.graph, elem.Vertex); err != nil {
 					bulkErr = multierror.Append(bulkErr, err)
 				}
 				continue
 			}
-
 			if elem.Edge != nil {
-				if err := elem.Edge.Validate(); err != nil {
-					bulkErr = multierror.Append(bulkErr, err)
-					continue
-				}
 				if err := insertEdge(tx, kgdb.kvg.idx, kgdb.graph, elem.Edge); err != nil {
 					bulkErr = multierror.Append(bulkErr, err)
 				}
