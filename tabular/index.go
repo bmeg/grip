@@ -32,15 +32,17 @@ type TSVIndex struct {
   kv kvi.KVInterface
   path string
   pathID uint64
-  indexName string
-  indexCol int
+  idName string
+  idCol int
+  idxCols []string
+  idxMap map[string]uint64
   header []string
   lineReader *LineReader
   cparse     CSVParse
 }
 
-func (t *TabularIndex) IndexTSV(path string, indexName string) *TSVIndex {
-  o := TSVIndex{kv:t.kv, path:path, indexName:indexName, cparse: CSVParse{}}
+func (t *TabularIndex) IndexTSV(path string, idName string, idxCols []string) *TSVIndex {
+  o := TSVIndex{kv:t.kv, path:path, idName:idName, idxCols:idxCols, cparse:CSVParse{}}
   o.Init()
   return &o
 }
@@ -69,12 +71,18 @@ func (t *TSVIndex) Init() error {
     //SetPathValue(bl, t.path, t.pathID)
   }
 
+  t.idxMap = map[string]uint64{}
   if _, err := GetLineCount(t.kv, t.pathID); err == nil {
     row := t.cparse.Parse(string(t.lineReader.SeekRead(0)))
     t.header = row
     for i := range row {
-      if t.indexName == row[i] {
-        t.indexCol = i
+      if t.idName == row[i] {
+        t.idCol = i
+      }
+      for j := range t.idxCols {
+        if t.idxCols[j] == row[i] {
+          t.idxMap[row[i]] = uint64(i)
+        }
       }
     }
     //file have already been indexed
@@ -89,20 +97,28 @@ func (t *TSVIndex) Init() error {
         t.header = row
         hasHeader = true
         for i := range row {
-          if t.indexName == row[i] {
-            t.indexCol = i
+          if t.idName == row[i] {
+            t.idCol = i
+          }
+          for j := range t.idxCols {
+            if t.idxCols[j] == row[i] {
+              t.idxMap[row[i]] = uint64(i)
+            }
           }
         }
       } else {
-        SetIDLine(bl, t.pathID, row[t.indexCol], count)
+        SetIDLine(bl, t.pathID, row[t.idCol], count)
         SetLineOffset(bl, t.pathID, count, line.Offset)
+        for _, col := range t.idxMap {
+          SetColumnIndex(bl, t.pathID, col, row[col], count)
+        }
         count++
       }
     }
     SetLineCount(bl, t.pathID, count)
     return nil
   })
-  log.Printf("SetupIndexCol: %s", t.indexCol)
+  log.Printf("SetupIndexCol: %d", t.idCol)
   log.Printf("Found %d rows", count)
   return nil
 }
@@ -130,16 +146,16 @@ func (t *TSVIndex) GetLineRow(lineNum uint64) (*TableRow, error) {
   r := t.cparse.Parse(string(text))
   d := map[string]string{}
   for i := 0; i < len(t.header) && i < len(r); i++ {
-    if i != t.indexCol {
+    if i != t.idCol {
       d[t.header[i]] = r[i]
     }
   }
-  o := TableRow{ r[t.indexCol], d }
+  o := TableRow{ r[t.idCol], d }
   return &o, nil
 }
 
 func (t *TSVIndex) GetRows() chan *TableRow {
-  log.Printf("ReadIndexCol: %s", t.indexCol)
+  log.Printf("ReadIndexCol: %d", t.idCol)
   out := make(chan *TableRow, 10)
   go func() {
     defer close(out)
@@ -151,12 +167,12 @@ func (t *TSVIndex) GetRows() chan *TableRow {
         r := t.cparse.Parse(string(line.Text))
         d := map[string]string{}
         for i := 0; i < len(t.header) && i < len(r); i++ {
-          if i != t.indexCol {
+          if i != t.idCol {
             d[t.header[i]] = r[i]
           }
         }
-        //log.Printf("Key: %s", r[t.indexCol])
-        o := TableRow{ r[t.indexCol], d }
+        //log.Printf("Key: %s", r[t.idCol])
+        o := TableRow{ r[t.idCol], d }
         out <- &o
       }
     }

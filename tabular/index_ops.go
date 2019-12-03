@@ -117,3 +117,8 @@ func GetIDChannel(ctx context.Context, kv kvi.KVInterface, pathID uint64) chan s
   } ()
   return out
 }
+
+func SetColumnIndex(kv kvi.KVBulkWrite, pathID, col uint64, value string, lineCount uint64) {
+  idxKey := IndexKey(pathID, col, value, lineCount)
+  kv.Set(idxKey, []byte{})
+}

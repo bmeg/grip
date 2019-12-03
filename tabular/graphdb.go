@@ -22,7 +22,7 @@ func NewGDB(conf *GraphConfig, indexPath string) *TabularGDB {
     log.Printf("Table: %s", t)
     fPath := filepath.Join( filepath.Dir(conf.path), t.Path )
     log.Printf("Loading: %s with primaryKey %s", fPath, t.PrimaryKey)
-    tix := out.idx.IndexTSV(fPath, t.PrimaryKey)
+    tix := out.idx.IndexTSV(fPath, t.PrimaryKey, []string{})
     if t.Label != "" {
       out.vertices = append(out.vertices, &Table{data:tix, prefix:t.Prefix, label:t.Label})
     }
