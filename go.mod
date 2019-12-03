@@ -16,8 +16,8 @@ require (
 	github.com/globalsign/mgo v0.0.0-20181015135952-eeefdecb41b8
 	github.com/go-sourcemap/sourcemap v2.1.2+incompatible // indirect
 	github.com/go-sql-driver/mysql v1.4.1
-	github.com/golang/protobuf v1.3.2
-	github.com/golangci/golangci-lint v1.16.0 // indirect
+	github.com/golang/protobuf v1.3.1
+	github.com/golangci/golangci-lint v1.18.0 // indirect
 	github.com/graphql-go/graphql v0.7.8
 	github.com/graphql-go/handler v0.2.3
 	github.com/grpc-ecosystem/go-grpc-middleware v1.0.0

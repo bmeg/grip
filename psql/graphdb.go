@@ -8,6 +8,7 @@ import (
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/timestamp"
+	"github.com/bmeg/grip/util"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -32,15 +33,26 @@ type GraphDB struct {
 func NewGraphDB(conf Config) (gdbi.GraphDB, error) {
 	log.Info("Starting Postgres Driver")
 
-	connString := fmt.Sprintf(
-		"host=%s port=%v user=%s password=%s dbname=%s sslmode=%s",
+	connString, err := util.BuildPostgresConnStr(
 		conf.Host, conf.Port, conf.User, conf.Password, conf.DBName, conf.SSLMode,
 	)
-	db, err := sqlx.Connect("postgres", connString)
 	if err != nil {
 		return nil, err
 	}
-	db.SetMaxIdleConns(5)
+	db, err := sqlx.Connect("postgres", connString)
+	if err != nil {
+		if dbDoesNotExist(err) {
+			err = util.CreatePostgresDatabase(
+				conf.Host, conf.Port, conf.User, conf.Password, conf.DBName, conf.SSLMode,
+			)
+			if err != nil {
+				return nil, err
+			}
+			return NewGraphDB(conf)
+		}
+		return nil, fmt.Errorf("connecting to database: %v", err)
+	}
+	db.SetMaxIdleConns(10)
 
 	stmt := fmt.Sprintf("CREATE TABLE IF NOT EXISTS graphs (graph_name varchar PRIMARY KEY, sanitized_graph_name varchar NOT NULL, vertex_table varchar NOT NULL, edge_table varchar NOT NULL)")
 	_, err = db.Exec(stmt)
