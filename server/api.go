@@ -173,13 +173,13 @@ func (server *GripServer) addEdge(ctx context.Context, elem *gripql.GraphElement
 
 // BulkAdd a stream of inputs and loads them into the graph
 func (server *GripServer) BulkAdd(stream gripql.Edit_BulkAddServer) error {
-
-	var elementStream chan *gripql.GraphElement
 	var graphName string
-
-	wg := &sync.WaitGroup{}
 	var insertCount int32
 	var errorCount int32
+
+	elementStream := make(chan *gripql.GraphElement, 100)
+	wg := &sync.WaitGroup{}
+
 	for {
 		element, err := stream.Recv()
 		if err == io.EOF {
@@ -200,9 +200,8 @@ func (server *GripServer) BulkAdd(stream gripql.Edit_BulkAddServer) error {
 
 		// create a BulkAdd stream per graph
 		// close and switch when a new graph is encountered
-		if element.Graph != graphName && graphName != "" {
+		if element.Graph != graphName {
 			close(elementStream)
-
 			graph, err := server.db.Graph(element.Graph)
 			if err != nil {
 				log.WithFields(log.Fields{"error": err}).Error("BulkAdd: error")

@@ -26,19 +26,16 @@ func TestSchemaScanner(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer func() {
+		kv.Close()
 		os.RemoveAll(conf.KVStorePath)
+		os.RemoveAll(conf.Server.WorkDir)
 	}()
 
 	db := kvgraph.NewKVGraph(kv)
-
 	srv, err := server.NewGripServer(db, conf.Server, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer func() {
-		kv.Close()
-		os.RemoveAll(conf.Server.WorkDir)
-	}()
 
 	queryClient := gripql.NewQueryDirectClient(srv)
 	editClient := gripql.NewEditDirectClient(srv)
