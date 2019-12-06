@@ -36,6 +36,7 @@ require (
 	github.com/spenczar/tdigest v2.1.0+incompatible
 	github.com/spf13/cast v1.3.0
 	github.com/spf13/cobra v0.0.5
+	github.com/spf13/pflag v1.0.3
 	github.com/stretchr/testify v1.3.0
 	github.com/syndtr/goleveldb v1.0.0
 	golang.org/x/crypto v0.0.0-20190426145343-a29dc8fdc734

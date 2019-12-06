@@ -92,7 +92,7 @@ var Cmd = &cobra.Command{
 	Use:   "server",
 	Short: "Run the server",
 	Args:  cobra.NoArgs,
-	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+	PreRunE: func(cmd *cobra.Command, args []string) error {
 		dconf := config.DefaultConfig()
 		if configFile != "" {
 			err := config.ParseConfigFile(configFile, dconf)
