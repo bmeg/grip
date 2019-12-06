@@ -19,6 +19,13 @@ import (
 	"golang.org/x/crypto/ssh/terminal"
 )
 
+var PanicLevel = logrus.PanicLevel
+var FatalLevel = logrus.FatalLevel
+var ErrorLevel = logrus.ErrorLevel
+var WarnLevel = logrus.WarnLevel
+var InfoLevel = logrus.InfoLevel
+var DebugLevel = logrus.DebugLevel
+var TraceLevel = logrus.TraceLevel
 var logger = logrus.New()
 
 const defaultTimestampFormat = time.RFC3339
@@ -216,6 +223,7 @@ func ConfigureLogger(conf Logger) {
 		logger.SetLevel(logrus.WarnLevel)
 	case "error":
 		logrus.SetLevel(logrus.ErrorLevel)
+		logger.SetLevel(logrus.ErrorLevel)
 	default:
 		logrus.Warningf("Unknown log level: '%s'; defaulting to 'info'", conf.Level)
 		logrus.SetLevel(logrus.InfoLevel)

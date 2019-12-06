@@ -192,7 +192,7 @@ message EditResult {
 
 message BulkEditResult {
   int32 insert_count = 1;
-	int32 error_count = 2;
+  int32 error_count = 2;
 }
 
 message GraphElement {
