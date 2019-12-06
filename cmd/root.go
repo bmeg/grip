@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 	"net/http"
-	_ "net/http/pprof"
+	_ "net/http/pprof" // enable pprof via a flag
 	"os"
 
 	"github.com/bmeg/grip/cmd/create"
