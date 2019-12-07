@@ -22,6 +22,7 @@ type EdgeConfig struct {
 }
 
 type TableConfig struct {
+  Name string            `json:"name"`
   Path string            `json:"path"`
   PrimaryKey string      `json:"primaryKey"`
   Label      string      `json:"label"`

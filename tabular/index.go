@@ -134,7 +134,7 @@ func (t *TSVIndex) GetLineText(lineNum uint64) ([]byte, error) {
     return nil, err
   }
   //cparse := CSVParse{}
-  log.Printf("LineOffset: %d", offset)
+  //log.Printf("LineOffset: %d", offset)
   return t.lineReader.SeekRead(offset), nil
 }
 

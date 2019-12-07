@@ -17,12 +17,15 @@ type Table struct {
   data *TSVIndex
   prefix string
   label  string
+  inEdges []*EdgeConfig
+  outEdges []*EdgeConfig
+  config   *TableConfig
 }
 
 type TabularGraph struct {
   idx *TabularIndex
-  vertices []*Table
-  edges []*Table
+  vertices map[string]*Table
+  edges    []*EdgeConfig
 }
 
 
@@ -108,7 +111,7 @@ func (t *TabularGraph) ListVertexLabels() ([]string, error) {
 func (t *TabularGraph) ListEdgeLabels() ([]string, error) {
   out := []string{}
   for _, i := range t.edges {
-    out = append(out, i.label)
+    out = append(out, i.Label)
   }
   return out, nil
 }
@@ -176,8 +179,39 @@ func (t *TabularGraph) GetVertexChannel(req chan gdbi.ElementLookup, load bool) 
 
 
 func (t *TabularGraph) GetOutChannel(req chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
-  log.Printf("Calling GetOutChannel")
-  return nil
+  out := make(chan gdbi.ElementLookup, 10)
+  go func() {
+    defer close(out)
+    for r := range req {
+      for curTable, v := range t.vertices {
+        if strings.HasPrefix(r.ID, v.prefix) {
+          id := r.ID[len(v.prefix):len(r.ID)]
+          if ln, err := v.data.GetLineNumber(id); err == nil {
+            if row, err:= v.data.GetLineRow(ln); err == nil {
+              for _, e := range v.outEdges {
+                log.Printf("row: %s", row.Values)
+                did := row.Values[e.From]
+                dtable := t.vertices[e.ToTable]
+                log.Printf("From Table '%s' to '%s' : %s", curTable, e.ToTable, did)
+                outV := gripql.Vertex{Gid:dtable.prefix + did, Label:dtable.label}
+                if load {
+                  if ln, err := dtable.data.GetLineNumber(did); err == nil {
+                    row, err:= dtable.data.GetLineRow(ln)
+                    if err == nil {
+                      outV.Data = protoutil.AsStringStruct(row.Values)
+                    }
+                  }
+                }
+                r.Vertex = &outV
+                out <- r
+              }
+            }
+          }
+        }
+      }
+    }
+  }()
+  return out
 }
 
 func (t *TabularGraph) GetInChannel(req chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
