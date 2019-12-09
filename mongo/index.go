@@ -65,10 +65,8 @@ func (mg *Graph) GetVertexIndexList() <-chan *gripql.IndexID {
 		}
 
 		for _, idx := range idxList {
-			if len(idx.Key) > 1 {
-				f := strings.TrimPrefix(idx.Key[1], "data.")
-				out <- &gripql.IndexID{Graph: mg.graph, Field: f}
-			}
+			f := strings.TrimPrefix(idx.Key[0], "data.")
+			out <- &gripql.IndexID{Graph: mg.graph, Field: f}
 		}
 	}()
 

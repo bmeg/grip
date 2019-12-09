@@ -23,7 +23,7 @@ def test_index(O):
     resp = O.listIndices()
     found = False
     for i in resp:
-        print("found: %s" % (i))
+        #print("found: %s" % (i))
         if i["field"] == "name":
             found = True
     if not found:
