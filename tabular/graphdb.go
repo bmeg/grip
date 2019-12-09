@@ -34,13 +34,13 @@ func NewGDB(conf *GraphConfig, indexPath string) *TabularGDB {
       out.edges = append(out.edges, &e)
       if e.ToTable != "" {
         tt := out.vertices[e.ToTable]
-        out.vertices[e.ToTable].inEdges = append( out.vertices[e.ToTable].inEdges, &EdgeConfig{ ToTable:e.ToTable, Label:e.Label, From:tt.config.PrimaryKey })
-        out.vertices[t.Name].outEdges = append( out.vertices[t.Name].outEdges, &EdgeConfig{ ToTable:e.ToTable, Label:e.Label, To:e.To, From:t.PrimaryKey })
+        out.vertices[e.ToTable].inEdges = append( out.vertices[e.ToTable].inEdges, &EdgeConfig{ FromTable:e.ToTable, Label:e.Label, From:tt.config.PrimaryKey })
+        out.vertices[t.Name].outEdges = append( out.vertices[t.Name].outEdges, &EdgeConfig{ ToTable:t.Name, Label:e.Label, To:e.To, From:t.PrimaryKey })
       }
       if e.FromTable != "" {
         ft := out.vertices[e.FromTable]
-        out.vertices[e.FromTable].outEdges = append( out.vertices[e.FromTable].outEdges, &EdgeConfig{ ToTable:e.ToTable, Label:e.Label, From:ft.config.PrimaryKey })
-        out.vertices[t.Name].inEdges = append( out.vertices[t.Name].inEdges, &EdgeConfig{ ToTable:e.ToTable, Label:e.Label, From:t.PrimaryKey })
+        out.vertices[e.FromTable].outEdges = append( out.vertices[e.FromTable].outEdges, &EdgeConfig{ ToTable:ft.config.Name, Label:e.Label, To:ft.config.PrimaryKey })
+        out.vertices[t.Name].inEdges = append( out.vertices[t.Name].inEdges, &EdgeConfig{ FromTable:e.FromTable, Label:e.Label, From:ft.config.PrimaryKey })
       }
     }
   }

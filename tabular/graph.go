@@ -190,20 +190,20 @@ func (t *TabularGraph) GetOutChannel(req chan gdbi.ElementLookup, load bool, edg
             if row, err:= v.data.GetLineRow(ln); err == nil {
               for _, e := range v.outEdges {
                 log.Printf("row: %s", row.Values)
-                did := row.Values[e.From]
+                did := row.Values[e.To]
                 dtable := t.vertices[e.ToTable]
                 log.Printf("From Table '%s' to '%s' : %s", curTable, e.ToTable, did)
                 outV := gripql.Vertex{Gid:dtable.prefix + did, Label:dtable.label}
-                if load {
-                  if ln, err := dtable.data.GetLineNumber(did); err == nil {
+                if ln, err := dtable.data.GetLineNumber(did); err == nil {
+                  if load {
                     row, err:= dtable.data.GetLineRow(ln)
                     if err == nil {
                       outV.Data = protoutil.AsStringStruct(row.Values)
                     }
                   }
+                  r.Vertex = &outV
+                  out <- r
                 }
-                r.Vertex = &outV
-                out <- r
               }
             }
           }
