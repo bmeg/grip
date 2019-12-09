@@ -5,10 +5,11 @@ go 1.12
 require (
 	github.com/Shopify/sarama v1.22.1
 	github.com/akrylysov/pogreb v0.8.1
-	github.com/bmeg/golib v0.0.0-20170626075926-82a1e1d7a0b2
+	github.com/bmeg/protoc-gen-grcp-rest-direct v0.0.0-20190228222353-4d40e8b9d305 // indirect
 	github.com/boltdb/bolt v1.3.1
+	github.com/ckaznocha/protoc-gen-lint v0.2.1 // indirect
 	github.com/davecgh/go-spew v1.1.1
-	github.com/dgraph-io/badger v0.0.0-20190809121831-9d7b751e85c9
+	github.com/dgraph-io/badger/v2 v2.0.0
 	github.com/dlclark/regexp2 v1.1.6 // indirect
 	github.com/dop251/goja v0.0.0-20190429205339-8d6ee3d16611
 	github.com/ghodss/yaml v1.0.0
@@ -20,7 +21,7 @@ require (
 	github.com/graphql-go/graphql v0.7.8
 	github.com/graphql-go/handler v0.2.3
 	github.com/grpc-ecosystem/go-grpc-middleware v1.0.0
-	github.com/grpc-ecosystem/grpc-gateway v1.8.5
+	github.com/grpc-ecosystem/grpc-gateway v1.11.1
 	github.com/hashicorp/go-multierror v1.0.0
 	github.com/imdario/mergo v0.3.7
 	github.com/jmoiron/sqlx v1.2.0
@@ -36,7 +37,8 @@ require (
 	github.com/spenczar/tdigest v2.1.0+incompatible
 	github.com/spf13/cast v1.3.0
 	github.com/spf13/cobra v0.0.5
-	github.com/stretchr/testify v1.3.0
+	github.com/spf13/pflag v1.0.3
+	github.com/stretchr/testify v1.4.0
 	github.com/syndtr/goleveldb v1.0.0
 	golang.org/x/crypto v0.0.0-20190426145343-a29dc8fdc734
 	golang.org/x/net v0.0.0-20190620200207-3b0461eec859

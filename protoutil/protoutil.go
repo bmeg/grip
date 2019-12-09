@@ -6,9 +6,9 @@ import (
 	"reflect"
 	"time"
 
+	"github.com/bmeg/grip/log"
 	"github.com/golang/protobuf/jsonpb"
 	structpb "github.com/golang/protobuf/ptypes/struct"
-	log "github.com/sirupsen/logrus"
 )
 
 //StructSet take value and add it to Struct s using key

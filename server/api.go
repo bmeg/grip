@@ -10,8 +10,8 @@ import (
 
 	"github.com/bmeg/grip/engine"
 	"github.com/bmeg/grip/gripql"
+	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/util"
-	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -173,71 +173,88 @@ func (server *GripServer) addEdge(ctx context.Context, elem *gripql.GraphElement
 
 // BulkAdd a stream of inputs and loads them into the graph
 func (server *GripServer) BulkAdd(stream gripql.Edit_BulkAddServer) error {
-
-	var elementStream chan *gripql.GraphElement
 	var graphName string
+	var insertCount int32
+	var errorCount int32
 
+	elementStream := make(chan *gripql.GraphElement, 100)
 	wg := &sync.WaitGroup{}
-	var loopErr error
-	for loopErr == nil {
+
+	for {
 		element, err := stream.Recv()
 		if err == io.EOF {
-			loopErr = err
-		} else if err != nil {
+			break
+		}
+		if err != nil {
 			log.WithFields(log.Fields{"error": err}).Error("BulkAdd: streaming error")
-			loopErr = err
-		} else {
-			if isSchema(element.Graph) {
-				err := "cannot add element to schema graph"
-				log.WithFields(log.Fields{"error": err}).Error("BulkAdd: add element error")
+			errorCount++
+			break
+		}
+
+		if isSchema(element.Graph) {
+			err := "cannot add element to schema graph"
+			log.WithFields(log.Fields{"error": err}).Error("BulkAdd: error")
+			errorCount++
+			continue
+		}
+
+		// create a BulkAdd stream per graph
+		// close and switch when a new graph is encountered
+		if element.Graph != graphName {
+			close(elementStream)
+			graph, err := server.db.Graph(element.Graph)
+			if err != nil {
+				log.WithFields(log.Fields{"error": err}).Error("BulkAdd: error")
+				errorCount++
+				continue
+			}
+
+			graphName = element.Graph
+			elementStream = make(chan *gripql.GraphElement, 100)
+
+			wg.Add(1)
+			go func() {
+				log.WithFields(log.Fields{"graph": element.Graph}).Info("BulkAdd: streaming elements to graph")
+				err := graph.BulkAdd(elementStream)
+				if err != nil {
+					log.WithFields(log.Fields{"graph": element.Graph, "error": err}).Error("BulkAdd: error")
+					// not a good representation of the true number of errors
+					errorCount++
+				}
+				wg.Done()
+			}()
+		}
+
+		if element.Vertex != nil {
+			err := element.Vertex.Validate()
+			if err != nil {
+				errorCount++
+				log.WithFields(log.Fields{"graph": element.Graph, "error": err}).Errorf("BulkAdd: vertex validation failed")
 			} else {
-				if element.Graph != graphName {
-					if graphName != "" {
-						close(elementStream)
-					}
-					graph, err := server.db.Graph(element.Graph)
-					if err != nil {
-						log.WithFields(log.Fields{"error": err}).Error("BulkAdd: graph not found")
-						loopErr = err
-					}
-					elementStream = make(chan *gripql.GraphElement, 100)
-					wg.Add(1)
-					go func() {
-						log.Printf("Streaming to %s", element.Graph)
-						err := graph.BulkAdd(elementStream)
-						if err != nil {
-							loopErr = err
-						}
-						wg.Done()
-					}()
-					graphName = element.Graph
-				}
-				if element.Vertex != nil {
-					err := element.Vertex.Validate()
-					if err != nil {
-						log.Errorf("vertex validation failed: %v", err)
-					}
-					elementStream <- element
-				}
-				if element.Edge != nil {
-					if element.Edge.Gid == "" {
-						element.Edge.Gid = util.UUID()
-					}
-					err := element.Edge.Validate()
-					if err != nil {
-						log.Errorf("edge validation failed: %v", err)
-					}
-					elementStream <- element
-				}
+				insertCount++
+				elementStream <- element
+			}
+		}
+
+		if element.Edge != nil {
+			if element.Edge.Gid == "" {
+				element.Edge.Gid = util.UUID()
+			}
+			err := element.Edge.Validate()
+			if err != nil {
+				errorCount++
+				log.WithFields(log.Fields{"graph": element.Graph, "error": err}).Errorf("BulkAdd: edge validation failed")
+			} else {
+				insertCount++
+				elementStream <- element
 			}
 		}
 	}
+
 	close(elementStream)
 	wg.Wait()
-	if loopErr != io.EOF {
-		return loopErr
-	}
-	return stream.SendAndClose(&gripql.EditResult{})
+
+	return stream.SendAndClose(&gripql.BulkEditResult{InsertCount: insertCount, ErrorCount: errorCount})
 }
 
 // DeleteVertex deletes a vertex from the server

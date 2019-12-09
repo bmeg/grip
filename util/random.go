@@ -8,12 +8,9 @@ import (
 	"github.com/segmentio/ksuid"
 )
 
-func init() {
-	rand.NewSource(time.Now().UnixNano())
-}
-
 // RandomString generates a random string of length n.
 func RandomString(n int) string {
+	rand.NewSource(time.Now().UnixNano())
 	var letter = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
 	b := make([]rune, n)
 	for i := range b {

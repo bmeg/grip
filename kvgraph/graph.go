@@ -10,8 +10,9 @@ import (
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/kvi"
 	"github.com/bmeg/grip/kvindex"
+	"github.com/bmeg/grip/log"
 	proto "github.com/golang/protobuf/proto"
-	log "github.com/sirupsen/logrus"
+	"github.com/hashicorp/go-multierror"
 )
 
 func contains(a []string, v string) bool {
@@ -44,20 +45,23 @@ type kvAddData struct {
 // in the graph, it is replaced
 func (kgdb *KVInterfaceGDB) AddVertex(vertices []*gripql.Vertex) error {
 	err := kgdb.kvg.kv.BulkWrite(func(tx kvi.KVBulkWrite) error {
-		var anyErr error
+		var bulkErr *multierror.Error
 		for _, vert := range vertices {
 			if err := insertVertex(tx, kgdb.kvg.idx, kgdb.graph, vert); err != nil {
-				anyErr = err
-				log.Errorf("AddVertex Error %s", err)
+				bulkErr = multierror.Append(bulkErr, err)
 			}
 		}
 		kgdb.kvg.ts.Touch(kgdb.graph)
-		return anyErr
+		return bulkErr.ErrorOrNil()
 	})
 	return err
 }
 
 func insertVertex(tx kvi.KVBulkWrite, idx *kvindex.KVIndex, graph string, vertex *gripql.Vertex) error {
+	if err := vertex.Validate(); err != nil {
+		return err
+	}
+
 	key := VertexKey(graph, vertex.Gid)
 	value, err := proto.Marshal(vertex)
 	if err != nil {
@@ -77,6 +81,10 @@ func insertEdge(tx kvi.KVBulkWrite, idx *kvindex.KVIndex, graph string, edge *gr
 	eid := edge.Gid
 	var err error
 	var data []byte
+
+	if err = edge.Validate(); err != nil {
+		return err
+	}
 
 	data, err = proto.Marshal(edge)
 	if err != nil {
@@ -112,36 +120,38 @@ func insertEdge(tx kvi.KVBulkWrite, idx *kvindex.KVIndex, graph string, edge *gr
 // in the graph, it is replaced
 func (kgdb *KVInterfaceGDB) AddEdge(edges []*gripql.Edge) error {
 	err := kgdb.kvg.kv.BulkWrite(func(tx kvi.KVBulkWrite) error {
+		var bulkErr *multierror.Error
 		for _, edge := range edges {
-			insertEdge(tx, kgdb.kvg.idx, kgdb.graph, edge)
+			if err := insertEdge(tx, kgdb.kvg.idx, kgdb.graph, edge); err != nil {
+				bulkErr = multierror.Append(bulkErr, err)
+			}
 		}
 		kgdb.kvg.ts.Touch(kgdb.graph)
-		return nil
+		return bulkErr.ErrorOrNil()
 	})
 	return err
 }
 
 func (kgdb *KVInterfaceGDB) BulkAdd(stream <-chan *gripql.GraphElement) error {
-	var anyErr error
 	err := kgdb.kvg.kv.BulkWrite(func(tx kvi.KVBulkWrite) error {
+		var bulkErr *multierror.Error
 		for elem := range stream {
 			if elem.Vertex != nil {
 				if err := insertVertex(tx, kgdb.kvg.idx, kgdb.graph, elem.Vertex); err != nil {
-					anyErr = err
+					bulkErr = multierror.Append(bulkErr, err)
 				}
+				continue
 			}
 			if elem.Edge != nil {
 				if err := insertEdge(tx, kgdb.kvg.idx, kgdb.graph, elem.Edge); err != nil {
-					anyErr = err
+					bulkErr = multierror.Append(bulkErr, err)
 				}
+				continue
 			}
 		}
-		return nil
+		return bulkErr.ErrorOrNil()
 	})
-	if err != nil {
-		return err
-	}
-	return anyErr
+	return err
 }
 
 // DelEdge deletes edge with id `key`

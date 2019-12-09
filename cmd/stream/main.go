@@ -5,9 +5,9 @@ import (
 
 	"github.com/Shopify/sarama"
 	"github.com/bmeg/grip/gripql"
+	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/util/rpc"
 	"github.com/golang/protobuf/jsonpb"
-	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 

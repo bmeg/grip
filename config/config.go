@@ -12,6 +12,7 @@ import (
 
 	"github.com/bmeg/grip/elastic"
 	esql "github.com/bmeg/grip/existing-sql"
+	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/mongo"
 	"github.com/bmeg/grip/psql"
 	"github.com/bmeg/grip/server"
@@ -36,7 +37,7 @@ type Config struct {
 	MongoDB       mongo.Config
 	PSQL          psql.Config
 	ExistingSQL   esql.Config
-	Logger        Logger
+	Logger        log.Logger
 }
 
 // DefaultConfig returns an instance of the default configuration for Grip.
@@ -66,7 +67,7 @@ func DefaultConfig() *Config {
 	c.Elasticsearch.DBName = "gripdb"
 	c.Elasticsearch.BatchSize = 1000
 
-	c.Logger = DefaultLoggerConfig()
+	c.Logger = log.DefaultLoggerConfig()
 	return c
 }
 
