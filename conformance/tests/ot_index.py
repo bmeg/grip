@@ -29,3 +29,24 @@ def test_index(O):
         errors.append("Expected index not found")
 
     return errors
+
+
+def test_index_query(O):
+    errors = []
+
+    O.addIndex("Person", "name")
+
+    O.addVertex("1", "Person", {"name": "marko", "age": "29"})
+    O.addVertex("2", "Person", {"name": "mark", "age": "27"})
+    O.addVertex("3", "Person", {"name": "mary", "age": "27"})
+    O.addVertex("4", "Person", {"name": "josh", "age": "32"})
+
+    count = 0
+    for v in O.query().Index(name="mar"):
+        if v.gid not in ["1", "2", "3"]:
+            errors.append("Index query false hit: %s", v.gid)
+        count += 1
+    if count != 3:
+        errors.append("Incorrect number of hits returned %d != %d" % (count, 3))
+
+    return errors

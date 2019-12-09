@@ -6,9 +6,9 @@ import "google/api/annotations.proto";
 import "google/protobuf/struct.proto";
 
 message Graph {
-	string graph = 1;
-	repeated Vertex vertices = 2;
-	repeated Edge edges = 3;
+  string graph = 1;
+  repeated Vertex vertices = 2;
+  repeated Edge edges = 3;
 }
 
 message GraphQuery {
@@ -29,6 +29,7 @@ message GraphStatement {
     // Tinkerpop methods
     google.protobuf.ListValue v = 1;
     google.protobuf.ListValue e = 2;
+    IndexQuery index = 3;
 
     google.protobuf.ListValue in = 10;
     google.protobuf.ListValue out = 11;
@@ -58,6 +59,11 @@ message GraphStatement {
     Aggregations aggregate = 31;
     google.protobuf.Value render = 32;
   }
+}
+
+message IndexQuery {
+  string field = 1;
+  string value = 2;
 }
 
 message Range {
@@ -99,7 +105,7 @@ message HistogramAggregation {
 }
 
 message NamedAggregationResult {
-	map<string, AggregationResult> aggregations = 3;
+  map<string, AggregationResult> aggregations = 3;
 }
 
 message AggregationResult {
@@ -151,14 +157,14 @@ message SelectStatement {
 }
 
 message Selection {
-	oneof result {
-		Vertex vertex = 1;
-		Edge edge = 2;
-	}
+  oneof result {
+    Vertex vertex = 1;
+    Edge edge = 2;
+  }
 }
 
 message Selections {
-	map<string, Selection> selections = 1;
+  map<string, Selection> selections = 1;
 }
 
 message Vertex {
@@ -176,14 +182,14 @@ message Edge {
 }
 
 message QueryResult {
-	oneof result {
-		Vertex vertex = 1;
-		Edge edge = 2;
-		NamedAggregationResult aggregations = 3;
-		Selections selections = 4;
-		google.protobuf.Value render = 5;
-		uint32 count = 6;
-	}
+  oneof result {
+    Vertex vertex = 1;
+    Edge edge = 2;
+    NamedAggregationResult aggregations = 3;
+    Selections selections = 4;
+    google.protobuf.Value render = 5;
+    uint32 count = 6;
+  }
 }
 
 message EditResult {
