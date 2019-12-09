@@ -8,9 +8,9 @@ import (
 
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/jsonpath"
+	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/protoutil"
 	structpb "github.com/golang/protobuf/ptypes/struct"
-	log "github.com/sirupsen/logrus"
 	"github.com/spenczar/tdigest"
 )
 

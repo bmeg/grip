@@ -12,10 +12,10 @@ import (
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/graphql"
 	"github.com/bmeg/grip/gripql"
+	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/util/rpc"
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
-	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 )
@@ -294,7 +294,7 @@ func (server *GripServer) Serve(pctx context.Context) error {
 	if server.db != nil {
 		err = server.db.Close()
 		if err != nil {
-			log.Println("error:", err)
+			log.Errorln("db.Close() error:", err)
 		}
 	}
 	log.Infoln("shutting down RPC server...")

@@ -8,10 +8,10 @@ import (
 
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/jsonpath"
+	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/protoutil"
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
-	log "github.com/sirupsen/logrus"
 )
 
 // AddVertexIndex add index to vertices
@@ -288,7 +288,7 @@ func (mg *Graph) VertexLabelScan(ctx context.Context, label string) chan string 
 			}
 		}
 		if err := iter.Close(); err != nil {
-			log.Println("VertexLabelScan error:", err)
+			log.Errorln("VertexLabelScan error:", err)
 		}
 
 	}()

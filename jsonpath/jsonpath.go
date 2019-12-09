@@ -6,8 +6,8 @@ import (
 
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
+	"github.com/bmeg/grip/log"
 	"github.com/oliveagle/jsonpath"
-	log "github.com/sirupsen/logrus"
 )
 
 // Current represents the 'current' traveler namespace
