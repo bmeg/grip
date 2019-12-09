@@ -8,7 +8,7 @@ require (
 	github.com/boltdb/bolt v1.3.1
 	github.com/ckaznocha/protoc-gen-lint v0.2.1 // indirect
 	github.com/davecgh/go-spew v1.1.1
-	github.com/dgraph-io/badger v0.0.0-20190809121831-9d7b751e85c9
+	github.com/dgraph-io/badger/v2 v2.0.0
 	github.com/dlclark/regexp2 v1.1.6 // indirect
 	github.com/dop251/goja v0.0.0-20190429205339-8d6ee3d16611
 	github.com/ghodss/yaml v1.0.0
@@ -37,7 +37,7 @@ require (
 	github.com/spf13/cast v1.3.0
 	github.com/spf13/cobra v0.0.5
 	github.com/spf13/pflag v1.0.3
-	github.com/stretchr/testify v1.3.0
+	github.com/stretchr/testify v1.4.0
 	github.com/syndtr/goleveldb v1.0.0
 	golang.org/x/crypto v0.0.0-20190426145343-a29dc8fdc734
 	golang.org/x/net v0.0.0-20190620200207-3b0461eec859
