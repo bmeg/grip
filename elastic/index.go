@@ -15,14 +15,14 @@ import (
 )
 
 // AddVertexIndex adds a new field to be indexed
-func (es *Graph) AddVertexIndex(label string, field string) error {
-	log.WithFields(log.Fields{"label": label, "field": field}).Info("Adding vertex index")
+func (es *Graph) AddVertexIndex(field string) error {
+	log.WithFields(log.Fields{"field": field}).Info("Adding vertex index")
 	return nil
 }
 
 // DeleteVertexIndex removes a vertex field index
-func (es *Graph) DeleteVertexIndex(label string, field string) error {
-	log.WithFields(log.Fields{"label": label, "field": field}).Info("Deleting vertex index")
+func (es *Graph) DeleteVertexIndex(field string) error {
+	log.WithFields(log.Fields{"field": field}).Info("Deleting vertex index")
 	return nil
 }
 
@@ -75,9 +75,7 @@ func (es *Graph) GetVertexIndexList() <-chan *gripql.IndexID {
 		}
 
 		for k := range data {
-			for _, l := range labels {
-				o <- &gripql.IndexID{Graph: es.graph, Label: l, Field: k}
-			}
+			o <- &gripql.IndexID{Graph: es.graph, Field: k}
 		}
 	}()
 

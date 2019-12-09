@@ -7,12 +7,12 @@ import (
 )
 
 // AddVertexIndex add index to vertices
-func (g *Graph) AddVertexIndex(label string, field string) error {
+func (g *Graph) AddVertexIndex(field string) error {
 	return errors.New("not implemented")
 }
 
 // DeleteVertexIndex delete index from vertices
-func (g *Graph) DeleteVertexIndex(label string, field string) error {
+func (g *Graph) DeleteVertexIndex(field string) error {
 	return errors.New("not implemented")
 }
 

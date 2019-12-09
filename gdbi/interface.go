@@ -90,8 +90,8 @@ type GraphInterface interface {
 	ListVertexLabels() ([]string, error)
 	ListEdgeLabels() ([]string, error)
 
-	AddVertexIndex(label string, field string) error
-	DeleteVertexIndex(label string, field string) error
+	AddVertexIndex(field string) error
+	DeleteVertexIndex(field string) error
 	GetVertexIndexList() <-chan *gripql.IndexID
 
 	GetVertexList(ctx context.Context, load bool) <-chan *gripql.Vertex

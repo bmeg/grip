@@ -15,8 +15,8 @@ import (
 )
 
 // AddVertexIndex add index to vertices
-func (mg *Graph) AddVertexIndex(label string, field string) error {
-	log.WithFields(log.Fields{"label": label, "field": field}).Info("Adding vertex index")
+func (mg *Graph) AddVertexIndex(field string) error {
+	log.WithFields(log.Fields{"field": field}).Info("Adding vertex index")
 	field = jsonpath.GetJSONPath(field)
 	field = strings.TrimPrefix(field, "$.")
 
@@ -25,7 +25,7 @@ func (mg *Graph) AddVertexIndex(label string, field string) error {
 	session.ResetIndexCache()
 	c := mg.ar.VertexCollection(session, mg.graph)
 	return c.EnsureIndex(mgo.Index{
-		Key:        []string{"label", field},
+		Key:        []string{field},
 		Unique:     false,
 		DropDups:   false,
 		Sparse:     true,
@@ -34,15 +34,15 @@ func (mg *Graph) AddVertexIndex(label string, field string) error {
 }
 
 // DeleteVertexIndex delete index from vertices
-func (mg *Graph) DeleteVertexIndex(label string, field string) error {
-	log.WithFields(log.Fields{"label": label, "field": field}).Info("Deleting vertex index")
+func (mg *Graph) DeleteVertexIndex(field string) error {
+	log.WithFields(log.Fields{"field": field}).Info("Deleting vertex index")
 	field = jsonpath.GetJSONPath(field)
 	field = strings.TrimPrefix(field, "$.")
 
 	session := mg.ar.session.Copy()
 	defer session.Close()
 	c := mg.ar.VertexCollection(session, mg.graph)
-	return c.DropIndex("label", field)
+	return c.DropIndex(field)
 }
 
 // GetVertexIndexList lists indices
@@ -57,13 +57,6 @@ func (mg *Graph) GetVertexIndexList() <-chan *gripql.IndexID {
 
 		c := mg.ar.VertexCollection(session, mg.graph)
 
-		// get all unique labels
-		var labels []string
-		err := c.Find(nil).Distinct("label", &labels)
-		if err != nil {
-			log.WithFields(log.Fields{"error": err}).Error("GetVertexIndexList: finding distinct labels")
-		}
-
 		// list indexed fields
 		idxList, err := c.Indexes()
 		if err != nil {
@@ -72,11 +65,9 @@ func (mg *Graph) GetVertexIndexList() <-chan *gripql.IndexID {
 		}
 
 		for _, idx := range idxList {
-			if len(idx.Key) > 1 && idx.Key[0] == "label" {
+			if len(idx.Key) > 1 {
 				f := strings.TrimPrefix(idx.Key[1], "data.")
-				for _, l := range labels {
-					out <- &gripql.IndexID{Graph: mg.graph, Label: l, Field: f}
-				}
+				out <- &gripql.IndexID{Graph: mg.graph, Field: f}
 			}
 		}
 	}()

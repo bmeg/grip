@@ -298,7 +298,7 @@ func (server *GripServer) AddIndex(ctx context.Context, idx *gripql.IndexID) (*g
 	if err != nil {
 		return nil, err
 	}
-	err = graph.AddVertexIndex(idx.Label, idx.Field)
+	err = graph.AddVertexIndex(idx.Field)
 	if err != nil {
 		return nil, err
 	}
@@ -314,7 +314,7 @@ func (server *GripServer) DeleteIndex(ctx context.Context, idx *gripql.IndexID) 
 	if err != nil {
 		return nil, err
 	}
-	err = graph.DeleteVertexIndex(idx.Label, idx.Field)
+	err = graph.DeleteVertexIndex(idx.Field)
 	if err != nil {
 		return nil, err
 	}

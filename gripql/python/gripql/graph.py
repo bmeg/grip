@@ -120,8 +120,8 @@ class Graph(BaseConnection):
     def bulkAdd(self):
         return BulkAdd(self.base_url, self.graph, self.user, self.password, self.token)
 
-    def addIndex(self, label, field):
-        url = self.url + "/index/" + label
+    def addIndex(self, field):
+        url = self.url + "/index" 
         response = self.session.post(
             url,
             json={"field": field}

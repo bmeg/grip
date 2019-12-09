@@ -3,7 +3,7 @@
 def test_index(O):
     errors = []
 
-    O.addIndex("Person", "name")
+    O.addIndex("name")
 
     O.addVertex("1", "Person", {"name": "marko", "age": "29"})
     O.addVertex("2", "Person", {"name": "vadas", "age": "27"})
@@ -23,7 +23,8 @@ def test_index(O):
     resp = O.listIndices()
     found = False
     for i in resp:
-        if i["field"] == "name" and i["label"] == "Person":
+        print("found: %s" % (i))
+        if i["field"] == "name":
             found = True
     if not found:
         errors.append("Expected index not found")
@@ -34,7 +35,7 @@ def test_index(O):
 def test_index_query(O):
     errors = []
 
-    O.addIndex("Person", "name")
+    O.addIndex("name")
 
     O.addVertex("1", "Person", {"name": "marko", "age": "29"})
     O.addVertex("2", "Person", {"name": "mark", "age": "27"})
