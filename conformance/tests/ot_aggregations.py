@@ -5,8 +5,8 @@ import numpy as np
 
 
 def setupGraph(O):
-    O.addIndex("Person", "name")
-    O.addIndex("Person", "age")
+    O.addIndex("name")
+    O.addIndex("age")
 
     O.addVertex("1", "Person", {"name": "marko", "age": 29})
     O.addVertex("2", "Person", {"name": "vadas", "age": 25})

@@ -68,7 +68,7 @@ class Query(BaseConnection):
         """
         o = {}
         for k, v in kwds.items():
-            o = {"field" : k, "value" : v}
+            o = {"field": k, "value": v}
         return self.__append({"index": o})
 
     def in_(self, label=[]):
