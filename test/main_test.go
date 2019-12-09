@@ -31,19 +31,6 @@ var dbname string
 var vertices = []*gripql.Vertex{}
 var edges = []*gripql.Edge{}
 
-func init() {
-	flag.StringVar(&configFile, "config", configFile, "config file to use for tests")
-	flag.Parse()
-	vertChan := util.StreamVerticesFromFile("./resources/smtest_vertices.txt")
-	for v := range vertChan {
-		vertices = append(vertices, v)
-	}
-	edgeChan := util.StreamEdgesFromFile("./resources/smtest_edges.txt")
-	for e := range edgeChan {
-		edges = append(edges, e)
-	}
-}
-
 func setupGraph() error {
 	// sort edges/vertices and insert one at a time to ensure the same write order
 	sort.Slice(vertices[:], func(i, j int) bool {
@@ -75,7 +62,23 @@ func setupSQLGraph() error {
 }
 
 func TestMain(m *testing.M) {
-	var err error
+	flag.StringVar(&configFile, "config", configFile, "config file to use for tests")
+	flag.Parse()
+	vertChan, err := util.StreamVerticesFromFile("./resources/smtest_vertices.txt")
+	if err != nil {
+		panic(err)
+	}
+	for v := range vertChan {
+		vertices = append(vertices, v)
+	}
+	edgeChan, err := util.StreamEdgesFromFile("./resources/smtest_edges.txt")
+	if err != nil {
+		panic(err)
+	}
+	for e := range edgeChan {
+		edges = append(edges, e)
+	}
+
 	var exit = 1
 
 	defer func() {

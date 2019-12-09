@@ -5,11 +5,11 @@ import (
 	"os"
 
 	"github.com/bmeg/grip/cmd"
-	"github.com/bmeg/grip/config"
+	"github.com/bmeg/grip/log"
 )
 
 func main() {
-	config.ConfigureLogger(config.DefaultLoggerConfig())
+	log.ConfigureLogger(log.DefaultLoggerConfig())
 	if err := cmd.RootCmd.Execute(); err != nil {
 		fmt.Println("Error:", err.Error())
 		os.Exit(1)

@@ -4,8 +4,8 @@ import (
 	"context"
 	"io"
 
+	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/util/rpc"
-	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 )
 

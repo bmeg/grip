@@ -5,9 +5,9 @@ import (
 
 	"github.com/bmeg/grip/cmd/load/example"
 	"github.com/bmeg/grip/gripql"
+	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/util"
 	"github.com/bmeg/grip/util/rpc"
-	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -61,7 +61,7 @@ var Cmd = &cobra.Command{
 		wait := make(chan bool)
 		go func() {
 			if err := conn.BulkAdd(elemChan); err != nil {
-				log.Printf("bulk add error: %v", err)
+				log.Errorf("bulk add error: %v", err)
 			}
 			wait <- false
 		}()
@@ -69,7 +69,11 @@ var Cmd = &cobra.Command{
 		if vertexFile != "" {
 			log.Infof("Loading vertex file: %s", vertexFile)
 			count := 0
-			for v := range util.StreamVerticesFromFile(vertexFile) {
+			vertChan, err := util.StreamVerticesFromFile(vertexFile)
+			if err != nil {
+				return err
+			}
+			for v := range vertChan {
 				count++
 				if count%1000 == 0 {
 					log.Infof("Loaded %d vertices", count)
@@ -82,7 +86,11 @@ var Cmd = &cobra.Command{
 		if edgeFile != "" {
 			log.Infof("Loading edge file: %s", edgeFile)
 			count := 0
-			for e := range util.StreamEdgesFromFile(edgeFile) {
+			edgeChan, err := util.StreamEdgesFromFile(edgeFile)
+			if err != nil {
+				return err
+			}
+			for e := range edgeChan {
 				count++
 				if count%1000 == 0 {
 					log.Infof("Loaded %d edges", count)

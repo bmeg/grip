@@ -7,10 +7,10 @@ import (
 	"strings"
 
 	"github.com/bmeg/grip/gripql"
+	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/util/rpc"
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/knakk/rdf"
-	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 

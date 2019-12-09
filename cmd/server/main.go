@@ -16,13 +16,13 @@ import (
 	_ "github.com/bmeg/grip/kvi/badgerdb" // import so badger will register itself
 	_ "github.com/bmeg/grip/kvi/boltdb"   // import so bolt will register itself
 	_ "github.com/bmeg/grip/kvi/leveldb"  // import so level will register itself
+	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/mongo"
 	"github.com/bmeg/grip/psql"
 	"github.com/bmeg/grip/server"
 	_ "github.com/go-sql-driver/mysql" //import so mysql will register as a sql driver
 	"github.com/imdario/mergo"
 	_ "github.com/lib/pq" // import so postgres will register as a sql driver
-	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -34,7 +34,7 @@ var schemaFile string
 // This opens a database and starts an API server.
 // This blocks indefinitely.
 func Run(conf *config.Config, schemas map[string]*gripql.Graph) error {
-	config.ConfigureLogger(conf.Logger)
+	log.ConfigureLogger(conf.Logger)
 	log.WithFields(log.Fields{"Config": conf}).Info("Starting Server")
 
 	var db gdbi.GraphDB
@@ -92,7 +92,7 @@ var Cmd = &cobra.Command{
 	Use:   "server",
 	Short: "Run the server",
 	Args:  cobra.NoArgs,
-	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+	PreRunE: func(cmd *cobra.Command, args []string) error {
 		dconf := config.DefaultConfig()
 		if configFile != "" {
 			err := config.ParseConfigFile(configFile, dconf)

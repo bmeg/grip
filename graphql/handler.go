@@ -10,10 +10,10 @@ import (
 	"regexp"
 
 	"github.com/bmeg/grip/gripql"
+	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/util/rpc"
 	"github.com/graphql-go/graphql"
 	"github.com/graphql-go/handler"
-	log "github.com/sirupsen/logrus"
 )
 
 //handle the graphql queries for a single endpoint

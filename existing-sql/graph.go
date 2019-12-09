@@ -9,9 +9,9 @@ import (
 	"github.com/bmeg/grip/engine/core"
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
+	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/timestamp"
 	"github.com/jmoiron/sqlx"
-	log "github.com/sirupsen/logrus"
 )
 
 // Graph is the interface to a single graph
@@ -38,6 +38,10 @@ func (g *Graph) AddVertex(vertices []*gripql.Vertex) error {
 
 // AddEdge is not implemented in the SQL driver
 func (g *Graph) AddEdge(edges []*gripql.Edge) error {
+	return errors.New("not implemented")
+}
+
+func (g *Graph) BulkAdd(stream <-chan *gripql.GraphElement) error {
 	return errors.New("not implemented")
 }
 
@@ -190,7 +194,7 @@ func (g *Graph) VertexLabelScan(ctx context.Context, label string) chan string {
 					data := make(map[string]interface{})
 					if err := rows.MapScan(data); err != nil {
 						log.WithFields(log.Fields{"error": err}).Error("VertexLabelScan: MapScan")
-						log.Println("VertexLabelScan failed:", err)
+						log.Errorln("VertexLabelScan failed:", err)
 						return
 					}
 					v := rowDataToVertex(v, data, types, false)
