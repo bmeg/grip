@@ -13,6 +13,7 @@ import (
 	"github.com/bmeg/grip/elastic"
 	esql "github.com/bmeg/grip/existing-sql"
 	"github.com/bmeg/grip/gdbi"
+	"github.com/bmeg/grip/grids"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/kvgraph"
 	_ "github.com/bmeg/grip/kvi/badgerdb" // import so badger will register itself
@@ -112,6 +113,12 @@ func TestMain(m *testing.M) {
 		gdb, err = kvgraph.NewKVGraphDB(dbname, conf.KVStorePath)
 		defer func() {
 			os.RemoveAll(conf.KVStorePath)
+		}()
+
+	case "grids":
+		gdb, err = grids.NewGraphDB(conf.Grids)
+		defer func() {
+			os.RemoveAll(conf.Grids)
 		}()
 
 	case "elastic":
