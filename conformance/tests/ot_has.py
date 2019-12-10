@@ -30,8 +30,14 @@ def test_hasLabel(O):
             "Fail: O.query().V().hasLabel(\"robot\") %s != %s" %
             (count, 2))
 
+    for i in O.query().V().hasLabel("person"):
+        if i['gid'] not in ["vertex1", "vertex2", "vertex5", "vertex6"]:
+            errors.append("Wrong vertex returned %s" % (i))
+
     count = 0
     for i in O.query().V().hasLabel(["robot", "person"]):
+        if "name" not in i.data:
+            errors.append("vertex returned without data")
         count += 1
     if count != 6:
         errors.append(

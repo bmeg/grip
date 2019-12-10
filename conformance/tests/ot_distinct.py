@@ -54,7 +54,7 @@ def test_distinct(O):
     for i in O.query().V().hasLabel("Person").as_("person").out().distinct("$person.name"):
         count += 1
     if count != 1:
-        errors.append("Distinct %s != %s" % (count, 1))
+        errors.append("Distinct  O.query().V().hasLabel(\"Person\").as_(\"person\").out().distinct(\"$person.name\") %s != %s" % (count, 1))
 
     return errors
 
