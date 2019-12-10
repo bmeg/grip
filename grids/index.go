@@ -109,88 +109,17 @@ func (ggraph *Graph) VertexLabelScan(ctx context.Context, label string) chan str
 	return out
 }
 
-/*
-//GetVertexTermAggregation get count of every term across vertices
-func (ggraph *Graph) GetVertexTermAggregation(ctx context.Context, label string, field string, size uint32) (*gripql.AggregationResult, error) {
-	log.WithFields(log.Fields{"label": label, "field": field, "size": size}).Debug("Running GetVertexTermAggregation")
-	out := &gripql.AggregationResult{
-		Buckets: []*gripql.AggregationResultBucket{},
-	}
-
-	namespace := jsonpath.GetNamespace(field)
-	if namespace != jsonpath.Current {
-		return nil, fmt.Errorf("invalid field path")
-	}
-	field = normalizePath(field)
-
-	for tcount := range ggraph.kdb.idx.FieldTermCounts(fmt.Sprintf("%s.v.%s.%s", ggraph.graphID, label, field)) {
-		var t *structpb.Value
-		if tcount.String != "" {
-			t = protoutil.WrapValue(tcount.String)
-		} else {
-			t = protoutil.WrapValue(tcount.Number)
+// VertexIndexScan produces a channel of all vertex ids where the indexed field matches the query string
+func (ggraph *Graph) VertexIndexScan(ctx context.Context, query gripql.IndexQuery) <-chan string {
+	log.WithFields(log.Fields{"query": query}).Debug("Running VertexIndexScan")
+	//TODO: Make this work better
+	out := make(chan string, 100)
+	go func() {
+		defer close(out)
+		//TODO: Implement prefix matching
+		for i := range ggraph.kdb.idx.GetTermMatch(ctx, fmt.Sprintf("%s.v.%s", ggraph.graphID, query.Field), query.Value, 0) {
+			out <- i
 		}
-		out.SortedInsert(&gripql.AggregationResultBucket{Key: t, Value: float64(tcount.Count)})
-		if size > 0 {
-			if len(out.Buckets) > int(size) {
-				out.Buckets = out.Buckets[:size]
-			}
-		}
-	}
-
-	return out, nil
+	}()
+	return out
 }
-
-//GetVertexHistogramAggregation get binned counts of a term across vertices
-func (ggraph *Graph) GetVertexHistogramAggregation(ctx context.Context, label string, field string, interval uint32) (*gripql.AggregationResult, error) {
-	log.WithFields(log.Fields{"label": label, "field": field, "interval": interval}).Debug("Running GetVertexHistogramAggregation")
-	out := &gripql.AggregationResult{
-		Buckets: []*gripql.AggregationResultBucket{},
-	}
-
-	namespace := jsonpath.GetNamespace(field)
-	if namespace != jsonpath.Current {
-		return nil, fmt.Errorf("invalid field path")
-	}
-	field = normalizePath(field)
-
-	min := ggraph.kdb.idx.FieldTermNumberMin(fmt.Sprintf("%s.v.%s.%s", ggraph.graphID, label, field))
-	max := ggraph.kdb.idx.FieldTermNumberMax(fmt.Sprintf("%s.v.%s.%s", ggraph.graphID, label, field))
-
-	i := float64(interval)
-	for bucket := math.Floor(min/i) * i; bucket <= max; bucket += i {
-		var count uint64
-		for tcount := range ggraph.kdb.idx.FieldTermNumberRange(fmt.Sprintf("%s.v.%s.%s", ggraph.graphID, label, field), bucket, bucket+i) {
-			count += tcount.Count
-		}
-		out.Buckets = append(out.Buckets, &gripql.AggregationResultBucket{Key: protoutil.WrapValue(bucket), Value: float64(count)})
-	}
-
-	return out, nil
-}
-
-//GetVertexPercentileAggregation get percentiles of a term across vertices
-func (ggraph *Graph) GetVertexPercentileAggregation(ctx context.Context, label string, field string, percents []float64) (*gripql.AggregationResult, error) {
-	log.WithFields(log.Fields{"label": label, "field": field, "percents": percents}).Debug("Running GetVertexPercentileAggregation")
-	out := &gripql.AggregationResult{
-		Buckets: []*gripql.AggregationResultBucket{},
-	}
-
-	namespace := jsonpath.GetNamespace(field)
-	if namespace != jsonpath.Current {
-		return nil, fmt.Errorf("invalid field path")
-	}
-	field = normalizePath(field)
-
-	td := tdigest.New()
-	for val := range ggraph.kdb.idx.FieldNumbers(fmt.Sprintf("%s.v.%s.%s", ggraph.graphID, label, field)) {
-		td.Add(val, 1)
-	}
-	for _, p := range percents {
-		q := td.Quantile(p / 100)
-		out.Buckets = append(out.Buckets, &gripql.AggregationResultBucket{Key: protoutil.WrapValue(p), Value: q})
-	}
-
-	return out, nil
-}
-*/

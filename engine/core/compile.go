@@ -94,6 +94,13 @@ func StatementProcessor(gs *gripql.GraphStatement, db gdbi.GraphInterface, ps *g
 		ps.LastType = gdbi.EdgeData
 		return &LookupEdges{db: db, ids: ids, loadData: ps.StepLoadData()}, nil
 
+	case *gripql.GraphStatement_Index:
+		if ps.LastType != gdbi.NoData {
+			return nil, fmt.Errorf(`"Index" statement is only valid at the beginning of the traversal`)
+		}
+		ps.LastType = gdbi.VertexData
+		return &LookupIndex{db: db, query: stmt.Index, loadData: ps.StepLoadData()}, nil
+
 	case *gripql.GraphStatement_In, *gripql.GraphStatement_InV:
 		labels := append(protoutil.AsStringList(gs.GetIn()), protoutil.AsStringList(gs.GetInV())...)
 		if ps.LastType == gdbi.VertexData {
@@ -291,9 +298,9 @@ func Validate(stmts []*gripql.GraphStatement) error {
 		// Validate that the first statement is V() or E()
 		if i == 0 {
 			switch gs.GetStatement().(type) {
-			case *gripql.GraphStatement_V, *gripql.GraphStatement_E:
+			case *gripql.GraphStatement_V, *gripql.GraphStatement_E, *gripql.GraphStatement_Index:
 			default:
-				return fmt.Errorf("first statement is not V() or E(): %s", gs)
+				return fmt.Errorf("first statement is not V(), E() or Index(): %s", gs)
 			}
 		}
 	}

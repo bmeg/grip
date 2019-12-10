@@ -82,6 +82,16 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, er
 			}
 			lastType = gdbi.EdgeData
 
+		case *gripql.GraphStatement_Index:
+			if lastType != gdbi.NoData {
+				return &Pipeline{}, fmt.Errorf(`"Index" statement is only valid at the beginning of the traversal`)
+			}
+			startCollection = vertCol
+			field := convertPath(stmt.Index.Field)
+			reg := fmt.Sprintf("^%s", stmt.Index.Value)
+			query = append(query, bson.M{"$match": bson.M{field : bson.M{"$regex": reg}}})
+			lastType = gdbi.VertexData
+
 		case *gripql.GraphStatement_In, *gripql.GraphStatement_InV:
 			if lastType != gdbi.VertexData && lastType != gdbi.EdgeData {
 				return &Pipeline{}, fmt.Errorf(`"in" statement is only valid for edge or vertex types not: %s`, lastType.String())
@@ -683,6 +693,7 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, er
 		}
 	}
 
+	log.Info("%s", query)
 	// query must be less than 16MB limit
 	bsonSize, err := bson.Marshal(query)
 	if err != nil {

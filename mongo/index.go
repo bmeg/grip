@@ -283,3 +283,43 @@ func (mg *Graph) VertexLabelScan(ctx context.Context, label string) chan string 
 	}()
 	return out
 }
+
+
+func (mg *Graph) VertexIndexScan(ctx context.Context, query gripql.IndexQuery) <-chan string {
+
+	field := jsonpath.GetJSONPath(query.Field)
+	field = strings.TrimPrefix(field, "$.")
+
+	log.WithFields(log.Fields{"field": field}).Debug("Running VertexIndexScan")
+	out := make(chan string, 100)
+	go func() {
+		defer close(out)
+		session := mg.ar.session.Copy()
+		defer session.Close()
+		selection := map[string]interface{}{
+			field: query.Value,
+		}
+		vcol := mg.ar.VertexCollection(session, mg.graph)
+		iter := vcol.Find(selection).Select(map[string]interface{}{"_id": 1}).Iter()
+		defer iter.Close()
+		result := map[string]interface{}{}
+		for iter.Next(&result) {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+			}
+			id := result["_id"]
+			if idb, ok := id.(bson.ObjectId); ok {
+				out <- idb.String()
+			} else {
+				out <- id.(string)
+			}
+		}
+		if err := iter.Close(); err != nil {
+			log.Errorln("VertexIndexScan error:", err)
+		}
+
+	}()
+	return out
+}

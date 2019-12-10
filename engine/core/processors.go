@@ -143,6 +143,39 @@ func (l *LookupEdges) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 	return ctx
 }
 
+
+// LookupVertsIndex look up vertices by indexed based feature
+type LookupIndex struct {
+	db       gdbi.GraphInterface
+	query    *gripql.IndexQuery
+	loadData bool
+}
+
+// Process LookupVertsIndex
+func (l *LookupIndex) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
+	queryChan := make(chan gdbi.ElementLookup, 100)
+	go func() {
+		defer close(queryChan)
+		for range in {}
+
+	}()
+
+	go func() {
+		defer close(out)
+		for v := range l.db.GetVertexChannel(queryChan, l.loadData) {
+			i := v.Ref.(*gdbi.Traveler)
+			out <- i.AddCurrent(&gdbi.DataElement{
+				ID:    v.Vertex.Gid,
+				Label: v.Vertex.Label,
+				Data:  protoutil.AsMap(v.Vertex.Data),
+			})
+		}
+	}()
+	return ctx
+}
+
+
+
 ////////////////////////////////////////////////////////////////////////////////
 
 // LookupVertexAdjOut finds out vertex
