@@ -57,11 +57,6 @@ func (client Client) ListGraphs() (*ListGraphsResponse, error) {
 	return client.QueryC.ListGraphs(context.Background(), &Empty{})
 }
 
-// ListIndices lists the indices on a graph in the database
-func (client Client) ListIndices(graph string) (*ListIndicesResponse, error) {
-	return client.QueryC.ListIndices(context.Background(), &GraphID{Graph: graph})
-}
-
 // ListLabels lists the vertex and edge labels for a graph in the database
 func (client Client) ListLabels(graph string) (*ListLabelsResponse, error) {
 	return client.QueryC.ListLabels(context.Background(), &GraphID{Graph: graph})
@@ -156,4 +151,25 @@ func (client Client) Traversal(query *GraphQuery) (chan *QueryResult, error) {
 	}()
 
 	return out, nil
+}
+
+// AddIndex requests that a field is indexed on vertices across the graph
+func (client Client) AddIndex(graph string, field string) error {
+	_, err := client.EditC.AddIndex(context.Background(), &IndexID{Graph: graph, Field: field})
+	return err
+}
+
+// ListIndices lists all fields indexed on vertices across the graph
+func (client Client) ListIndices(graph string) ([]*IndexID, error) {
+	resp, err := client.QueryC.ListIndices(context.Background(), &GraphID{Graph: graph})
+	if err != nil {
+		return nil, err
+	}
+	return resp.Indices, nil
+}
+
+// AddIndex requests that a field is indexed on vertices across the graph
+func (client Client) DeleteIndex(graph string, field string) error {
+	_, err := client.EditC.DeleteIndex(context.Background(), &IndexID{Graph: graph, Field: field})
+	return err
 }

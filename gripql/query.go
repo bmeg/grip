@@ -17,6 +17,11 @@ func E(ids ...string) *Query {
 	return NewQuery().E(ids...)
 }
 
+// Index starts a new vertex query using an index hits to start
+func Index(field, term string) *Query {
+	return NewQuery().Index(field,term)
+}
+
 // NewQuery creates a new Query instance.
 func NewQuery() *Query {
 	return &Query{}
@@ -46,6 +51,13 @@ func (q *Query) V(id ...string) *Query {
 func (q *Query) E(id ...string) *Query {
 	elist := protoutil.AsListValue(id)
 	return q.with(&GraphStatement{Statement: &GraphStatement_E{elist}})
+}
+
+// Index adds a index selection step to the query
+func (q *Query) Index(field, term string) *Query {
+	return q.with(&GraphStatement{
+		Statement: &GraphStatement_Index{ &IndexQuery{Field:field, Value:term},
+	}})
 }
 
 // In follows incoming edges to adjacent vertex
