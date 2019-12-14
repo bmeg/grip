@@ -156,8 +156,14 @@ func (l *LookupIndex) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 	queryChan := make(chan gdbi.ElementLookup, 100)
 	go func() {
 		defer close(queryChan)
-		for range in {}
-
+		for t := range in {
+			for i := range l.db.VertexIndexScan(ctx, l.query) {
+				queryChan <- gdbi.ElementLookup {
+					ID: i,
+					Ref: t,
+				}
+			}
+		}
 	}()
 
 	go func() {

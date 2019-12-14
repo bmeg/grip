@@ -285,7 +285,7 @@ func (mg *Graph) VertexLabelScan(ctx context.Context, label string) chan string 
 }
 
 
-func (mg *Graph) VertexIndexScan(ctx context.Context, query gripql.IndexQuery) <-chan string {
+func (mg *Graph) VertexIndexScan(ctx context.Context, query *gripql.IndexQuery) <-chan string {
 
 	field := jsonpath.GetJSONPath(query.Field)
 	field = strings.TrimPrefix(field, "$.")

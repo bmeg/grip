@@ -20,6 +20,10 @@ function query() {
 			this.query.push({'e': process(id)})
 			return this
 		},
+		Index: function(field,term) {
+			this.query.push({'index': {field:field, value:term}})
+			return this
+		},
 		out: function(label) {
 			this.query.push({'out': process(label)})
 			return this

@@ -26,7 +26,7 @@ func (g *Graph) GetVertexIndexList() <-chan *gripql.IndexID {
 }
 
 
-func (g *Graph) VertexIndexScan(ctx context.Context, query gripql.IndexQuery) <-chan string {
+func (g *Graph) VertexIndexScan(ctx context.Context, query *gripql.IndexQuery) <-chan string {
 	log.Errorf("VertexIndexScan not implemented for PSQL")
 	o := make(chan string)
 	defer close(o)

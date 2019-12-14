@@ -110,7 +110,7 @@ func (ggraph *Graph) VertexLabelScan(ctx context.Context, label string) chan str
 }
 
 // VertexIndexScan produces a channel of all vertex ids where the indexed field matches the query string
-func (ggraph *Graph) VertexIndexScan(ctx context.Context, query gripql.IndexQuery) <-chan string {
+func (ggraph *Graph) VertexIndexScan(ctx context.Context, query *gripql.IndexQuery) <-chan string {
 	log.WithFields(log.Fields{"query": query}).Debug("Running VertexIndexScan")
 	//TODO: Make this work better
 	out := make(chan string, 100)

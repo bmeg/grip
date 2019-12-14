@@ -46,11 +46,9 @@ func normalizePath(path string) string {
 
 func vertexIdxStruct(v *gripql.Vertex) map[string]interface{} {
 	k := map[string]interface{}{
-		"v": map[string]interface{}{
-			"label": v.Label,
-			v.Label: protoutil.AsMap(v.Data),
-		},
+		"v": protoutil.AsMap(v.Data),
 	}
+	k["label"] = v.Label
 	return k
 }
 
@@ -58,7 +56,6 @@ func edgeIdxStruct(e *gripql.Edge) map[string]interface{} {
 	k := map[string]interface{}{
 		"e": map[string]interface{}{
 			"label": e.Label,
-			e.Label: protoutil.AsMap(e.Data),
 		},
 	}
 	return k
@@ -114,14 +111,13 @@ func (kgdb *KVInterfaceGDB) VertexLabelScan(ctx context.Context, label string) c
 }
 
 // VertexIndexScan produces a channel of all vertex ids where the indexed field matches the query string
-func (kgdb *KVInterfaceGDB) VertexIndexScan(ctx context.Context, query gripql.IndexQuery) <-chan string {
+func (kgdb *KVInterfaceGDB) VertexIndexScan(ctx context.Context, query *gripql.IndexQuery) <-chan string {
 	log.WithFields(log.Fields{"query": query}).Debug("Running VertexIndexScan")
 	//TODO: Make this work better
 	out := make(chan string, 100)
 	go func() {
 		defer close(out)
-		//TODO: Implement prefix matching
-		for i := range kgdb.kvg.idx.GetTermMatch(ctx, fmt.Sprintf("%s.v.%s", kgdb.graph, query.Field), query.Value, 0) {
+		for i := range kgdb.kvg.idx.GetTermPrefixMatch(ctx, fmt.Sprintf("%s.v.%s", kgdb.graph, query.Field), query.Value, 0) {
 			out <- i
 		}
 	}()
