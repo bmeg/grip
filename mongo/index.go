@@ -286,18 +286,27 @@ func (mg *Graph) VertexLabelScan(ctx context.Context, label string) chan string 
 
 
 func (mg *Graph) VertexIndexScan(ctx context.Context, query *gripql.IndexQuery) <-chan string {
-
-	field := jsonpath.GetJSONPath(query.Field)
-	field = strings.TrimPrefix(field, "$.")
-
-	log.WithFields(log.Fields{"field": field}).Debug("Running VertexIndexScan")
 	out := make(chan string, 100)
 	go func() {
 		defer close(out)
 		session := mg.ar.session.Copy()
 		defer session.Close()
-		selection := map[string]interface{}{
-			field: query.Value,
+
+		selection := map[string]interface{}{}
+
+		reg := fmt.Sprintf("^%s", query.Value)
+		if len(query.Field) == 1 {
+			field := jsonpath.GetJSONPath(query.Field[0])
+			field = strings.TrimPrefix(field, "$.")
+			selection[field] = bson.M{field : bson.M{"$regex": reg}}
+		} else {
+			a := []interface{}{}
+			for _, i := range query.Field {
+				field := jsonpath.GetJSONPath(i)
+				field = strings.TrimPrefix(field, "$.")
+				a = append(a, bson.M{field : bson.M{"$regex": reg}})
+			}
+			selection["$or"] = a
 		}
 		vcol := mg.ar.VertexCollection(session, mg.graph)
 		iter := vcol.Find(selection).Select(map[string]interface{}{"_id": 1}).Iter()

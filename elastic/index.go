@@ -235,11 +235,16 @@ func (es *Graph) VertexIndexScan(ctx context.Context, query *gripql.IndexQuery) 
 	go func() {
 		defer close(o)
 
-		scroll := es.client.Scroll().
-			Index(es.vertexIndex).
-			Query(elastic.NewBoolQuery().Must(elastic.NewTermQuery(query.Field, query.Value))).
-			Sort("gid", true).
-			Size(es.pageSize)
+		var scroll *elastic.ScrollService
+		if len(query.Field) == 1 {
+			scroll = es.client.Scroll().
+				Index(es.vertexIndex).
+				Query(elastic.NewBoolQuery().Must(elastic.NewTermQuery(query.Field[0], query.Value))).
+				Sort("gid", true).
+				Size(es.pageSize)
+		} else {
+				//TODO
+		}
 		for {
 			results, err := scroll.Do(ctx)
 			if err == io.EOF {
