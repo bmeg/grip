@@ -84,7 +84,7 @@ var indexSearchCmd = &cobra.Command{
       return err
     }
 
-    query := gripql.Index(args[1], args[2])
+    query := gripql.Index([]string{args[1]}, args[2])
     if limit > 0 {
       query = query.Limit(uint32(limit))
     }

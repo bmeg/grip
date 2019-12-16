@@ -87,9 +87,18 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, er
 				return &Pipeline{}, fmt.Errorf(`"Index" statement is only valid at the beginning of the traversal`)
 			}
 			startCollection = vertCol
-			field := convertPath(stmt.Index.Field)
 			reg := fmt.Sprintf("^%s", stmt.Index.Value)
-			query = append(query, bson.M{"$match": bson.M{field : bson.M{"$regex": reg}}})
+			if len(stmt.Index.Field) == 1 {
+				field := convertPath(stmt.Index.Field[0])
+				query = append(query, bson.M{"$match": bson.M{field : bson.M{"$regex": reg}}})
+			} else {
+				a := []interface{}{}
+				for _, i := range stmt.Index.Field {
+					field := convertPath(i)
+					a = append(a, bson.M{field : bson.M{"$regex": reg}} )
+				}
+				query = append(query, bson.M{"$match": bson.M{ "$or" : a } })
+			}
 			lastType = gdbi.VertexData
 
 		case *gripql.GraphStatement_In, *gripql.GraphStatement_InV:
