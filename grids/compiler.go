@@ -41,6 +41,7 @@ func (comp Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, err
 	noLoadPaths := inspect.PipelineNoLoadPath(stmts, 2)
 	procs := make([]gdbi.Processor, 0, len(stmts))
 
+	//log.Printf("Starting Grids Compiler: %s", stmts)
 	for i := 0; i < len(stmts); i++ {
 		foundPath := -1
 		for p := range noLoadPaths {
@@ -51,12 +52,13 @@ func (comp Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, err
 		optimized := false
 		if foundPath != -1 {
 			//log.Printf("Compile Statements: %s", noLoadPaths[foundPath])
-			path := SelectPath(stmts, noLoadPaths[foundPath])
-			//log.Printf("Compile: %s -> %s (%s)", stmts, path, noLoadPaths[foundPath])
+			curPathSteps := noLoadPaths[foundPath]
+			path := SelectPath(stmts, curPathSteps)
+			//log.Printf("Compile step %d: %s (%s)", i, path, curPathSteps)
 			p, err := RawPathCompile(comp.graph, ps, path)
 			if err == nil {
 				procs = append(procs, p)
-				i += len(noLoadPaths[foundPath]) - 1
+				i = curPathSteps[len(curPathSteps)-1]
 				optimized = true
 				//fmt.Printf("Pathway out: %s\n", ps.LastType)
 			} else {
@@ -64,9 +66,9 @@ func (comp Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, err
 				log.Printf("Failure optimizing pipeline")
 				//something went wrong and we'll skip optimizing this path
 				tmp := [][]int{}
-				for i := range noLoadPaths {
-					if i != foundPath {
-						tmp = append(tmp, noLoadPaths[i])
+				for j := range noLoadPaths {
+					if j != foundPath {
+						tmp = append(tmp, noLoadPaths[j])
 					}
 				}
 				noLoadPaths = tmp
