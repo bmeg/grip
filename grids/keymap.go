@@ -3,6 +3,7 @@ package grids
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 	"sync"
 
 	"github.com/akrylysov/pogreb"
@@ -99,7 +100,7 @@ func (km *KeyMap) GetVertexLabel(graph uint64, key uint64) uint64 {
 	return k
 }
 
-//TODO: implement
+//GetsertEdgeKey gets or inserts a new uint64 id for a given edge GID string
 func (km *KeyMap) GetsertEdgeKey(graph uint64, id, label string) (uint64, uint64) {
 	o, ok := getIDKey(graph, eIDPrefix, id, km.db)
 	if !ok {
@@ -114,12 +115,12 @@ func (km *KeyMap) GetsertEdgeKey(graph uint64, id, label string) (uint64, uint64
 	return o, lkey
 }
 
-//TODO: implement
+//GetEdgeKey gets the uint64 key for a given GID string
 func (km *KeyMap) GetEdgeKey(graph uint64, id string) (uint64, bool) {
 	return getIDKey(graph, eIDPrefix, id, km.db)
 }
 
-//TODO: implement
+//GetEdgeID gets the GID string for a given edge id uint64
 func (km *KeyMap) GetEdgeID(graph uint64, key uint64) string {
 	k, _ := getKeyID(graph, eKeyPrefix, key, km.db)
 	return k
@@ -130,17 +131,37 @@ func (km *KeyMap) GetEdgeLabel(graph uint64, key uint64) uint64 {
 	return k
 }
 
-/*
-func (km *KeyMap) SetEdgeLabel(key, label uint64) {
-  setIDLabel(eLabelPrefix, key, label, km.db)
+//DelVertexKey
+func (km *KeyMap) DelVertexKey(graph uint64, id string) error {
+	key, ok := km.GetVertexKey(graph, id)
+	if !ok {
+		return fmt.Errorf("%s not found", id)
+	}
+	if err := delKeyID(graph, vKeyPrefix, key, km.db); err != nil {
+		return err
+	}
+	if err := delIDKey(graph, vIDPrefix, id, km.db); err != nil {
+		return err
+	}
+	return nil
 }
-*/
 
-//TODO: implement
-func (km *KeyMap) DelEdgeKey(graph uint64, id string) {
+//DelEdgeKey
+func (km *KeyMap) DelEdgeKey(graph uint64, id string) error {
+	key, ok := km.GetEdgeKey(graph, id)
+	if !ok {
+		return fmt.Errorf("%s not found", id)
+	}
+	if err := delKeyID(graph, eKeyPrefix, key, km.db); err != nil {
+		return err
+	}
+	if err := delIDKey(graph, eIDPrefix, id, km.db); err != nil {
+		return err
+	}
+	return nil
 }
 
-//TODO: implement
+//GetsertLabelKey gets-or-inserts a new label key uint64 for a given string
 func (km *KeyMap) GetsertLabelKey(graph uint64, id string) uint64 {
 	u, ok := getIDKey(graph, lIDPrefix, id, km.db)
 	if ok {
@@ -158,7 +179,7 @@ func (km *KeyMap) GetLabelKey(graph uint64, id string) (uint64, bool) {
 	return getIDKey(graph, lIDPrefix, id, km.db)
 }
 
-//TODO: implement
+//GetLabelID gets the GID for a given uint64 label key
 func (km *KeyMap) GetLabelID(graph uint64, key uint64) string {
 	k, _ := getKeyID(graph, lKeyPrefix, key, km.db)
 	return k
@@ -176,13 +197,20 @@ func getIDKey(graph uint64, prefix []byte, id string, db *pogreb.DB) (uint64, bo
 	return key, true
 }
 
-func setIDKey(graph uint64, prefix []byte, id string, key uint64, db *pogreb.DB) {
+func setIDKey(graph uint64, prefix []byte, id string, key uint64, db *pogreb.DB) error {
 	g := make([]byte, binary.MaxVarintLen64)
 	binary.PutUvarint(g, graph)
 	k := bytes.Join([][]byte{prefix, g, []byte(id)}, []byte{})
 	b := make([]byte, binary.MaxVarintLen64)
 	binary.PutUvarint(b, key)
-	db.Put(k, b)
+	return db.Put(k, b)
+}
+
+func delIDKey(graph uint64, prefix []byte, id string, db *pogreb.DB) error {
+	g := make([]byte, binary.MaxVarintLen64)
+	binary.PutUvarint(g, graph)
+	k := bytes.Join([][]byte{prefix, g, []byte(id)}, []byte{})
+	return db.Delete(k)
 }
 
 func getIDLabel(graph uint64, prefix byte, key uint64, db *pogreb.DB) (uint64, bool) {
@@ -229,6 +257,14 @@ func getKeyID(graph uint64, prefix byte, key uint64, db *pogreb.DB) (string, boo
 		return "", false
 	}
 	return string(b), true
+}
+
+func delKeyID(graph uint64, prefix byte, key uint64, db *pogreb.DB) error {
+	k := make([]byte, binary.MaxVarintLen64*2+1)
+	k[0] = prefix
+	binary.PutUvarint(k[1:binary.MaxVarintLen64+1], graph)
+	binary.PutUvarint(k[binary.MaxVarintLen64+1:binary.MaxVarintLen64*2+1], key)
+	return db.Delete(k)
 }
 
 func dbInc(inc *uint64, k []byte, db *pogreb.DB) uint64 {

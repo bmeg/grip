@@ -81,11 +81,10 @@ func PipelineStepOutputs(stmts []*gripql.GraphStatement) map[string][]string {
 	out := map[string][]string{}
 	for i := len(stmts) - 1; i >= 0; i-- {
 		gs := stmts[i]
-		if _, ok := gs.GetStatement().(*gripql.GraphStatement_Count); ok {
-			onLast = false
-		}
 		if onLast {
 			switch gs.GetStatement().(type) {
+			case *gripql.GraphStatement_Count:
+				onLast = false
 			case *gripql.GraphStatement_Select:
 				sel := gs.GetSelect().Marks
 				for _, s := range sel {
@@ -95,7 +94,6 @@ func PipelineStepOutputs(stmts []*gripql.GraphStatement) map[string][]string {
 				}
 				onLast = false
 			case *gripql.GraphStatement_Distinct:
-				fmt.Printf("Distinct\n")
 				//if there is a distinct step, we need to load data, but only for requested fields
 				fields := protoutil.AsStringList(gs.GetDistinct())
 				for _, f := range fields {
@@ -125,7 +123,6 @@ func PipelineStepOutputs(stmts []*gripql.GraphStatement) map[string][]string {
 			case *gripql.GraphStatement_Has:
 				out[steps[i]] = []string{"*"}
 			case *gripql.GraphStatement_Distinct:
-				fmt.Printf("Distinct\n")
 				//if there is a distinct step, we need to load data, but only for requested fields
 				fields := protoutil.AsStringList(gs.GetDistinct())
 				for _, f := range fields {
@@ -152,15 +149,6 @@ func getNamespace(path string) string {
 	}
 	return namespace
 }
-
-/*
-func uniqueAppend(a []string, n string) []string {
-	if !contains(a, n) {
-		return append(a, n)
-	}
-	return a
-}
-*/
 
 //PipelineNoLoadPath identifies 'paths' which are groups of statements that move
 //travelers across multiple steps, and don't require data (other then the label)

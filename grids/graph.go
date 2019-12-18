@@ -291,6 +291,9 @@ func (ggraph *Graph) DelVertex(id string) error {
 			_, eid, sid, did, label := SrcEdgeKeyParse(skey)
 			ekey := EdgeKey(ggraph.graphKey, eid, sid, did, label)
 			delKeys = append(delKeys, skey, ekey)
+
+			edgeID := ggraph.kdb.keyMap.GetEdgeID(ggraph.graphKey, eid)
+			ggraph.kdb.keyMap.DelEdgeKey(ggraph.graphKey, edgeID)
 		}
 		for it.Seek(dkeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), dkeyPrefix); it.Next() {
 			dkey := it.Key()
@@ -298,14 +301,20 @@ func (ggraph *Graph) DelVertex(id string) error {
 			_, eid, sid, did, label := SrcEdgeKeyParse(dkey)
 			ekey := EdgeKey(ggraph.graphKey, eid, sid, did, label)
 			delKeys = append(delKeys, ekey)
+
+			edgeID := ggraph.kdb.keyMap.GetEdgeID(ggraph.graphKey, eid)
+			ggraph.kdb.keyMap.DelEdgeKey(ggraph.graphKey, edgeID)
 		}
 		return nil
 	})
+
+	ggraph.kdb.keyMap.DelVertexKey(ggraph.graphKey, id)
 
 	return ggraph.kdb.graphkv.Update(func(tx kvi.KVTransaction) error {
 		if err := tx.Delete(vid); err != nil {
 			return err
 		}
+		ggraph.kdb.keyMap.DelVertexKey(ggraph.graphKey, id)
 		for _, k := range delKeys {
 			if err := tx.Delete(k); err != nil {
 				return err
