@@ -11,36 +11,10 @@ import (
 	"github.com/bmeg/grip/kvi"
 	"github.com/bmeg/grip/kvindex"
 	"github.com/bmeg/grip/protoutil"
+	"github.com/bmeg/grip/util/setcmp"
 	proto "github.com/golang/protobuf/proto"
 	log "github.com/sirupsen/logrus"
 )
-
-func contains(a []string, v string) bool {
-	for _, i := range a {
-		if i == v {
-			return true
-		}
-	}
-	return false
-}
-
-func containsInt(a []int, v int) bool {
-	for _, i := range a {
-		if i == v {
-			return true
-		}
-	}
-	return false
-}
-
-func containsUint(a []uint64, v uint64) bool {
-	for _, i := range a {
-		if i == v {
-			return true
-		}
-	}
-	return false
-}
 
 // GetTimestamp returns the update timestamp
 func (ggraph *Graph) GetTimestamp() string {
@@ -458,7 +432,7 @@ func (ggraph *Graph) GetOutChannel(reqChan chan gdbi.ElementLookup, load bool, e
 					for it.Seek(skeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), skeyPrefix); it.Next() {
 						keyValue := it.Key()
 						_, _, _, dst, label := SrcEdgeKeyParse(keyValue)
-						if len(edgeLabelKeys) == 0 || containsUint(edgeLabelKeys, label) {
+						if len(edgeLabelKeys) == 0 || setcmp.ContainsUint(edgeLabelKeys, label) {
 							vkey := VertexKey(ggraph.graphKey, dst)
 							vertexChan <- elementData{
 								data: vkey,
@@ -522,7 +496,7 @@ func (ggraph *Graph) GetInChannel(reqChan chan gdbi.ElementLookup, load bool, ed
 					for it.Seek(dkeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), dkeyPrefix); it.Next() {
 						keyValue := it.Key()
 						_, _, src, _, label := DstEdgeKeyParse(keyValue)
-						if len(edgeLabelKeys) == 0 || containsUint(edgeLabelKeys, label) {
+						if len(edgeLabelKeys) == 0 || setcmp.ContainsUint(edgeLabelKeys, label) {
 							vkey := VertexKey(ggraph.graphKey, src)
 							srcID := ggraph.kdb.keyMap.GetVertexID(ggraph.graphKey, src)
 							lID := ggraph.kdb.keyMap.GetVertexLabel(ggraph.graphKey, src)
@@ -571,7 +545,7 @@ func (ggraph *Graph) GetOutEdgeChannel(reqChan chan gdbi.ElementLookup, load boo
 					for it.Seek(skeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), skeyPrefix); it.Next() {
 						keyValue := it.Key()
 						_, eid, src, dst, label := SrcEdgeKeyParse(keyValue)
-						if len(edgeLabelKeys) == 0 || containsUint(edgeLabelKeys, label) {
+						if len(edgeLabelKeys) == 0 || setcmp.ContainsUint(edgeLabelKeys, label) {
 							e := gripql.Edge{}
 							e.Gid = ggraph.kdb.keyMap.GetEdgeID(ggraph.graphKey, eid)
 							e.From = ggraph.kdb.keyMap.GetVertexID(ggraph.graphKey, src)
@@ -618,7 +592,7 @@ func (ggraph *Graph) GetInEdgeChannel(reqChan chan gdbi.ElementLookup, load bool
 					for it.Seek(dkeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), dkeyPrefix); it.Next() {
 						keyValue := it.Key()
 						_, eid, src, dst, label := DstEdgeKeyParse(keyValue)
-						if len(edgeLabelKeys) == 0 || containsUint(edgeLabelKeys, label) {
+						if len(edgeLabelKeys) == 0 || setcmp.ContainsUint(edgeLabelKeys, label) {
 							e := gripql.Edge{}
 							e.Gid = ggraph.kdb.keyMap.GetEdgeID(ggraph.graphKey, eid)
 							e.From = ggraph.kdb.keyMap.GetVertexID(ggraph.graphKey, src)

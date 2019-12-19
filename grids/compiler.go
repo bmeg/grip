@@ -8,6 +8,7 @@ import (
 	"github.com/bmeg/grip/engine/pipeline"
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
+	"github.com/bmeg/grip/util/setcmp"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -46,7 +47,7 @@ func (comp Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, err
 	for i := 0; i < len(stmts); i++ {
 		foundPath := -1
 		for p := range noLoadPaths {
-			if containsInt(noLoadPaths[p], i) {
+			if setcmp.ContainsInt(noLoadPaths[p], i) {
 				foundPath = p
 			}
 		}

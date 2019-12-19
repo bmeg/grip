@@ -10,6 +10,7 @@ import (
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/kvi"
 	"github.com/bmeg/grip/protoutil"
+	"github.com/bmeg/grip/util/setcmp"
 )
 
 type RawPathProcessor struct {
@@ -373,7 +374,7 @@ func (r *PathLabelProc) Process(ctx context.Context, in chan *PathTraveler, out 
 	go func() {
 		defer close(out)
 		for i := range in {
-			if containsUint(labels, i.current.Label) {
+			if setcmp.ContainsUint(labels, i.current.Label) {
 				out <- i
 			}
 		}
@@ -485,7 +486,7 @@ func (ggraph *Graph) RawGetOutChannel(reqChan chan *RawElementLookup, edgeLabels
 				for it.Seek(ePrefix); it.Valid() && bytes.HasPrefix(it.Key(), ePrefix); it.Next() {
 					keyValue := it.Key()
 					_, _, _, dstvkey, lkey := SrcEdgeKeyParse(keyValue)
-					if len(edgeLabels) == 0 || containsUint(edgeLabelKeys, lkey) {
+					if len(edgeLabels) == 0 || setcmp.ContainsUint(edgeLabelKeys, lkey) {
 						dstlkey := ggraph.kdb.keyMap.GetVertexLabel(ggraph.graphKey, dstvkey)
 						o <- &RawElementLookup{
 							Element: &RawDataElement{
@@ -521,7 +522,7 @@ func (ggraph *Graph) RawGetInChannel(reqChan chan *RawElementLookup, edgeLabels 
 				for it.Seek(ePrefix); it.Valid() && bytes.HasPrefix(it.Key(), ePrefix); it.Next() {
 					keyValue := it.Key()
 					_, _, srcvkey, _, lkey := DstEdgeKeyParse(keyValue)
-					if len(edgeLabels) == 0 || containsUint(edgeLabelKeys, lkey) {
+					if len(edgeLabels) == 0 || setcmp.ContainsUint(edgeLabelKeys, lkey) {
 						srclkey := ggraph.kdb.keyMap.GetVertexLabel(ggraph.graphKey, srcvkey)
 						o <- &RawElementLookup{
 							Element: &RawDataElement{
@@ -557,7 +558,7 @@ func (ggraph *Graph) RawGetOutEdgeChannel(reqChan chan *RawElementLookup, edgeLa
 				for it.Seek(ePrefix); it.Valid() && bytes.HasPrefix(it.Key(), ePrefix); it.Next() {
 					keyValue := it.Key()
 					_, ekey, srcvkey, dstvkey, lkey := SrcEdgeKeyParse(keyValue)
-					if len(edgeLabels) == 0 || containsUint(edgeLabelKeys, lkey) {
+					if len(edgeLabels) == 0 || setcmp.ContainsUint(edgeLabelKeys, lkey) {
 						o <- &RawElementLookup{
 							Element: &RawDataElement{
 								Gid:   ekey,
@@ -594,7 +595,7 @@ func (ggraph *Graph) RawGetInEdgeChannel(reqChan chan *RawElementLookup, edgeLab
 				for it.Seek(ePrefix); it.Valid() && bytes.HasPrefix(it.Key(), ePrefix); it.Next() {
 					keyValue := it.Key()
 					_, ekey, srcvkey, dstvkey, lkey := DstEdgeKeyParse(keyValue)
-					if len(edgeLabels) == 0 || containsUint(edgeLabelKeys, lkey) {
+					if len(edgeLabels) == 0 || setcmp.ContainsUint(edgeLabelKeys, lkey) {
 						o <- &RawElementLookup{
 							Element: &RawDataElement{
 								Gid:   ekey,
