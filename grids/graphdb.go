@@ -7,6 +7,7 @@ import (
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/kvi"
+	"github.com/hashicorp/go-multierror"
 )
 
 // AddGraph creates a new graph named `graph`
@@ -21,7 +22,10 @@ func (kgraph *GDB) AddGraph(graph string) error {
 	if err != nil {
 		return err
 	}
-	gkey := kgraph.keyMap.GetGraphKey(graph)
+	gkey, err := kgraph.keyMap.GetGraphKey(graph)
+	if err != nil {
+		return err
+	}
 	return kgraph.graphkv.Set(GraphKey(gkey), []byte{})
 }
 
@@ -29,40 +33,42 @@ func (kgraph *GDB) AddGraph(graph string) error {
 func (kgraph *GDB) DeleteGraph(graph string) error {
 	kgraph.ts.Touch(graph)
 
-	gkey := kgraph.keyMap.GetGraphKey(graph)
-
-	var anyError error
+	gkey, err := kgraph.keyMap.GetGraphKey(graph)
+	if err != nil {
+		return err
+	}
+	var bulkErr *multierror.Error
 
 	eprefix := EdgeListPrefix(gkey)
 	if err := kgraph.graphkv.DeletePrefix(eprefix); err != nil {
-		anyError = err
+		bulkErr = multierror.Append(bulkErr, err)
 	}
 
 	vprefix := VertexListPrefix(gkey)
 	if err := kgraph.graphkv.DeletePrefix(vprefix); err != nil {
-		anyError = err
+		bulkErr = multierror.Append(bulkErr, err)
 	}
 
 	sprefix := SrcEdgeListPrefix(gkey)
 	if err := kgraph.graphkv.DeletePrefix(sprefix); err != nil {
-		anyError = err
+		bulkErr = multierror.Append(bulkErr, err)
 	}
 
 	dprefix := DstEdgeListPrefix(gkey)
 	if err := kgraph.graphkv.DeletePrefix(dprefix); err != nil {
-		anyError = err
+		bulkErr = multierror.Append(bulkErr, err)
 	}
 
 	graphKey := GraphKey(gkey)
 	if err := kgraph.graphkv.Delete(graphKey); err != nil {
-		anyError = err
+		bulkErr = multierror.Append(bulkErr, err)
 	}
 
 	if err := kgraph.deleteGraphIndex(graph); err != nil {
-		anyError = err
+		bulkErr = multierror.Append(bulkErr, err)
 	}
 
-	return anyError
+	return bulkErr.ErrorOrNil()
 }
 
 // Graph obtains the gdbi.DBI for a particular graph
@@ -76,7 +82,10 @@ func (kgraph *GDB) Graph(graph string) (gdbi.GraphInterface, error) {
 	if !found {
 		return nil, fmt.Errorf("graph '%s' was not found", graph)
 	}
-	gkey := kgraph.keyMap.GetGraphKey(graph)
+	gkey, err := kgraph.keyMap.GetGraphKey(graph)
+	if err != nil {
+		return nil, err
+	}
 	return &Graph{kdb: kgraph, graphID: graph, graphKey: gkey}, nil
 }
 

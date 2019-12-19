@@ -29,7 +29,7 @@ func TestKeyInsert(t *testing.T) {
 
 	keymap := grids.NewKeyMap(keykv)
 
-	graphKey := keymap.GetGraphKey("test")
+	graphKey, _ := keymap.GetGraphKey("test")
 
 	vertexKeys := make([]uint64, 100)
 	var evenLabel uint64
@@ -108,7 +108,7 @@ func TestKeyInsert(t *testing.T) {
 
 	graphKeys := make([]uint64, 100)
 	for i := range graphKeys {
-		k := keymap.GetGraphKey(fmt.Sprintf("graph_%d", i))
+		k, _ := keymap.GetGraphKey(fmt.Sprintf("graph_%d", i))
 		graphKeys[i] = k
 	}
 	for i := range graphKeys {
