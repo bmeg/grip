@@ -258,7 +258,9 @@ func (ggraph *Graph) DelVertex(id string) error {
 
 	delKeys := make([][]byte, 0, 1000)
 
-	ggraph.kdb.graphkv.View(func(it kvi.KVIterator) error {
+	var anyError error
+
+	err := ggraph.kdb.graphkv.View(func(it kvi.KVIterator) error {
 		for it.Seek(skeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), skeyPrefix); it.Next() {
 			skey := it.Key()
 			// get edge ID from key
@@ -281,10 +283,15 @@ func (ggraph *Graph) DelVertex(id string) error {
 		}
 		return nil
 	})
+	if err != nil {
+		anyError = err
+	}
 
-	ggraph.kdb.keyMap.DelVertexKey(ggraph.graphKey, id)
+	if err := ggraph.kdb.keyMap.DelVertexKey(ggraph.graphKey, id); err != nil {
+		anyError = err
+	}
 
-	return ggraph.kdb.graphkv.Update(func(tx kvi.KVTransaction) error {
+	err = ggraph.kdb.graphkv.Update(func(tx kvi.KVTransaction) error {
 		if err := tx.Delete(vid); err != nil {
 			return err
 		}
@@ -297,6 +304,10 @@ func (ggraph *Graph) DelVertex(id string) error {
 		ggraph.kdb.ts.Touch(ggraph.graphID)
 		return nil
 	})
+	if err != nil {
+		anyError = err
+	}
+	return anyError
 }
 
 // GetEdgeList produces a channel of all edges in the graph
