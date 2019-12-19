@@ -188,17 +188,6 @@ func levelBench(graphPath string) {
 	os.RemoveAll(graphPath)
 }
 
-func rocksBench(graphPath string) {
-	kv, err := kvi.NewKVInterface("rocks", graphPath, &kvi.Options{})
-	if err != nil {
-		log.Printf("Rocks Failed to init")
-		return
-	}
-	graphBenchRun(kv, randomVertexInsert)
-	kv.Close()
-	os.RemoveAll(graphPath)
-}
-
 func main() {
 	log.Printf("Starting Benchmark")
 	badgerBench("test.db")
