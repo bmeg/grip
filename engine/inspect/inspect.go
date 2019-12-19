@@ -99,6 +99,9 @@ func PipelineStepOutputs(stmts []*gripql.GraphStatement) map[string][]string {
 			fields := protoutil.AsStringList(gs.GetDistinct())
 			for _, f := range fields {
 				n := jsonpath.GetNamespace(f)
+				if n == "__current__" {
+					out[steps[i]] = []string{"*"}
+				}
 				if a, ok := asMap[n]; ok {
 					out[a] = []string{"*"}
 				}

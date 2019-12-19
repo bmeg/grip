@@ -156,3 +156,41 @@ func TestPathFind(t *testing.T) {
 		}
 	}
 }
+
+func TestDistinct(t *testing.T) {
+	q := gripql.NewQuery()
+	o := q.V().HasLabel("Person").As("person").Out("friend").Distinct("$person.name", "$.name").Count()
+	out := inspect.PipelineStepOutputs(o.Statements)
+	fmt.Printf("%#v\n", out)
+
+	if x, ok := out["2"]; ok {
+		if !setcmp.ContainsString(x, "*") {
+			t.Errorf("Required data from step 2 not recognized")
+		}
+	} else {
+		t.Errorf("Data load for step 2 not recognized")
+	}
+
+	o = q.V().HasLabel("Person").As("person").Out("friend").Distinct("$.name").Count()
+	out = inspect.PipelineStepOutputs(o.Statements)
+	fmt.Printf("%#v\n", out)
+	if x, ok := out["2"]; ok {
+		if !setcmp.ContainsString(x, "*") {
+			t.Errorf("Required data from step 2 not recognized")
+		}
+	} else {
+		t.Errorf("Data load for step 2 not recognized")
+	}
+
+	o = q.V().HasLabel("Person").As("person").Out("friend").Distinct("$person.name").Out("friend").Distinct("$.name").Count()
+	out = inspect.PipelineStepOutputs(o.Statements)
+	fmt.Printf("%#v\n", out)
+	if x, ok := out["3"]; ok {
+		if !setcmp.ContainsString(x, "*") {
+			t.Errorf("Required data from step 3 not recognized")
+		}
+	} else {
+		t.Errorf("Data load for step 3 not recognized")
+	}
+
+}
