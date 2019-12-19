@@ -28,6 +28,7 @@ jobs:
   include:
     - stage: all
       script:
+        - make lint-depends
         - make lint
       env:
         - n=lint
