@@ -14,6 +14,7 @@ import (
 	"github.com/bmeg/grip/protoutil"
 	"github.com/bmeg/grip/util/setcmp"
 	proto "github.com/golang/protobuf/proto"
+	"github.com/hashicorp/go-multierror"
 )
 
 // GetTimestamp returns the update timestamp
@@ -103,26 +104,26 @@ func indexEdge(tx kvi.KVBulkWrite, idx *kvindex.KVIndex, graph string, edge *gri
 // in the graph, it is replaced
 func (ggraph *Graph) AddVertex(vertices []*gripql.Vertex) error {
 	err := ggraph.kdb.graphkv.BulkWrite(func(tx kvi.KVBulkWrite) error {
-		var anyErr error
+		var bulkErr *multierror.Error
 		for _, vert := range vertices {
 			if err := insertVertex(tx, ggraph.kdb.keyMap, ggraph.graphKey, vert); err != nil {
-				anyErr = err
+				bulkErr = multierror.Append(bulkErr, err)
 				log.Errorf("AddVertex Error %s", err)
 			}
 		}
 		ggraph.kdb.ts.Touch(ggraph.graphID)
-		return anyErr
+		return bulkErr.ErrorOrNil()
 	})
 	err = ggraph.kdb.indexkv.BulkWrite(func(tx kvi.KVBulkWrite) error {
-		var anyErr error
+		var bulkErr *multierror.Error
 		for _, vert := range vertices {
 			if err := indexVertex(tx, ggraph.kdb.idx, ggraph.graphID, vert); err != nil {
-				anyErr = err
+				bulkErr = multierror.Append(bulkErr, err)
 				log.Errorf("IndexVertex Error %s", err)
 			}
 		}
 		ggraph.kdb.ts.Touch(ggraph.graphID)
-		return anyErr
+		return bulkErr.ErrorOrNil()
 	})
 	return err
 }
@@ -232,18 +233,21 @@ func (ggraph *Graph) DelEdge(eid string) error {
 	skey := SrcEdgeKeyPrefix(ggraph.graphKey, edgeKey, sid, did)
 	dkey := DstEdgeKeyPrefix(ggraph.graphKey, edgeKey, sid, did)
 
+	var bulkErr *multierror.Error
 	if err := ggraph.kdb.graphkv.Delete(ekey); err != nil {
-		return err
+		bulkErr = multierror.Append(bulkErr, err)
 	}
 	if err := ggraph.kdb.graphkv.Delete(skey); err != nil {
-		return err
+		bulkErr = multierror.Append(bulkErr, err)
 	}
 	if err := ggraph.kdb.graphkv.Delete(dkey); err != nil {
-		return err
+		bulkErr = multierror.Append(bulkErr, err)
 	}
-	ggraph.kdb.keyMap.DelEdgeKey(ggraph.graphKey, eid)
+	if err := ggraph.kdb.keyMap.DelEdgeKey(ggraph.graphKey, eid); err != nil {
+		bulkErr = multierror.Append(bulkErr, err)
+	}
 	ggraph.kdb.ts.Touch(ggraph.graphID)
-	return nil
+	return bulkErr.ErrorOrNil()
 }
 
 // DelVertex deletes vertex with id `key`
@@ -258,7 +262,7 @@ func (ggraph *Graph) DelVertex(id string) error {
 
 	delKeys := make([][]byte, 0, 1000)
 
-	var anyError error
+	var bulkErr *multierror.Error
 
 	err := ggraph.kdb.graphkv.View(func(it kvi.KVIterator) error {
 		for it.Seek(skeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), skeyPrefix); it.Next() {
@@ -284,11 +288,11 @@ func (ggraph *Graph) DelVertex(id string) error {
 		return nil
 	})
 	if err != nil {
-		anyError = err
+		bulkErr = multierror.Append(bulkErr, err)
 	}
 
 	if err := ggraph.kdb.keyMap.DelVertexKey(ggraph.graphKey, id); err != nil {
-		anyError = err
+		bulkErr = multierror.Append(bulkErr, err)
 	}
 
 	err = ggraph.kdb.graphkv.Update(func(tx kvi.KVTransaction) error {
@@ -305,9 +309,9 @@ func (ggraph *Graph) DelVertex(id string) error {
 		return nil
 	})
 	if err != nil {
-		anyError = err
+		bulkErr = multierror.Append(bulkErr, err)
 	}
-	return anyError
+	return bulkErr.ErrorOrNil()
 }
 
 // GetEdgeList produces a channel of all edges in the graph
