@@ -5,8 +5,8 @@ import (
 
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/jsonpath"
+	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/protoutil"
-	log "github.com/sirupsen/logrus"
 )
 
 func arrayEq(a, b []string) bool {
@@ -50,7 +50,7 @@ func PipelineSteps(stmts []*gripql.GraphStatement) []string {
 			*gripql.GraphStatement_Fields:
 		case *gripql.GraphStatement_LookupVertsIndex:
 		default:
-			log.Printf("Unknown Graph Statement: %T", gs.GetStatement())
+			log.Errorf("Unknown Graph Statement: %T", gs.GetStatement())
 		}
 		out = append(out, fmt.Sprintf("%d", curState))
 	}

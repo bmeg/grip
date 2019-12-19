@@ -10,10 +10,10 @@ import (
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/kvi"
 	"github.com/bmeg/grip/kvindex"
+	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/protoutil"
 	"github.com/bmeg/grip/util/setcmp"
 	proto "github.com/golang/protobuf/proto"
-	log "github.com/sirupsen/logrus"
 )
 
 // GetTimestamp returns the update timestamp

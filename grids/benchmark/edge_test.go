@@ -8,8 +8,8 @@ import (
 
 	"github.com/bmeg/grip/kvi"
 	"github.com/bmeg/grip/kvi/badgerdb"
+	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/util"
-	log "github.com/sirupsen/logrus"
 )
 
 func BenchmarkEdgeStringScan(b *testing.B) {

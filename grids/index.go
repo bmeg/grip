@@ -7,8 +7,8 @@ import (
 
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/jsonpath"
+	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/protoutil"
-	log "github.com/sirupsen/logrus"
 )
 
 func (kgraph *GDB) setupGraphIndex(graph string) error {

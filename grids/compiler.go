@@ -8,8 +8,8 @@ import (
 	"github.com/bmeg/grip/engine/pipeline"
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
+	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/util/setcmp"
-	log "github.com/sirupsen/logrus"
 )
 
 // Compiler gets a compiler that will use the graph the execute the compiled query
@@ -65,7 +65,7 @@ func (comp Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, err
 				//fmt.Printf("Pathway out: %s\n", ps.LastType)
 			} else {
 				//BUG: if there is a failure, the pipline state may contain variables from the aborted pipeline optimization
-				log.Printf("Failure optimizing pipeline")
+				log.Errorf("Failure optimizing pipeline")
 				//something went wrong and we'll skip optimizing this path
 				tmp := [][]int{}
 				for j := range noLoadPaths {
