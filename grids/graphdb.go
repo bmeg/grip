@@ -31,24 +31,38 @@ func (kgraph *GDB) DeleteGraph(graph string) error {
 
 	gkey := kgraph.keyMap.GetGraphKey(graph)
 
+	var anyError error
+
 	eprefix := EdgeListPrefix(gkey)
-	kgraph.graphkv.DeletePrefix(eprefix)
+	if err := kgraph.graphkv.DeletePrefix(eprefix); err != nil {
+		anyError = err
+	}
 
 	vprefix := VertexListPrefix(gkey)
-	kgraph.graphkv.DeletePrefix(vprefix)
+	if err := kgraph.graphkv.DeletePrefix(vprefix); err != nil {
+		anyError = err
+	}
 
 	sprefix := SrcEdgeListPrefix(gkey)
-	kgraph.graphkv.DeletePrefix(sprefix)
+	if err := kgraph.graphkv.DeletePrefix(sprefix); err != nil {
+		anyError = err
+	}
 
 	dprefix := DstEdgeListPrefix(gkey)
-	kgraph.graphkv.DeletePrefix(dprefix)
+	if err := kgraph.graphkv.DeletePrefix(dprefix); err != nil {
+		anyError = err
+	}
 
 	graphKey := GraphKey(gkey)
-	kgraph.graphkv.Delete(graphKey)
+	if err := kgraph.graphkv.Delete(graphKey); err != nil {
+		anyError = err
+	}
 
-	kgraph.deleteGraphIndex(graph)
+	if err := kgraph.deleteGraphIndex(graph); err != nil {
+		anyError = err
+	}
 
-	return nil
+	return anyError
 }
 
 // Graph obtains the gdbi.DBI for a particular graph
