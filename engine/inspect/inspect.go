@@ -2,9 +2,9 @@ package inspect
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/bmeg/grip/gripql"
+	"github.com/bmeg/grip/jsonpath"
 	"github.com/bmeg/grip/protoutil"
 	log "github.com/sirupsen/logrus"
 )
@@ -97,7 +97,7 @@ func PipelineStepOutputs(stmts []*gripql.GraphStatement) map[string][]string {
 				//if there is a distinct step, we need to load data, but only for requested fields
 				fields := protoutil.AsStringList(gs.GetDistinct())
 				for _, f := range fields {
-					n := getNamespace(f)
+					n := jsonpath.GetNamespace(f)
 					if a, ok := asMap[n]; ok {
 						out[a] = []string{"*"}
 					}
@@ -126,7 +126,7 @@ func PipelineStepOutputs(stmts []*gripql.GraphStatement) map[string][]string {
 				//if there is a distinct step, we need to load data, but only for requested fields
 				fields := protoutil.AsStringList(gs.GetDistinct())
 				for _, f := range fields {
-					n := getNamespace(f)
+					n := jsonpath.GetNamespace(f)
 					if a, ok := asMap[n]; ok {
 						out[a] = []string{"*"}
 					}
@@ -135,19 +135,6 @@ func PipelineStepOutputs(stmts []*gripql.GraphStatement) map[string][]string {
 		}
 	}
 	return out
-}
-
-//FIXME: tried to import this from jsonpath but ended up with an import cycle
-func getNamespace(path string) string {
-	namespace := ""
-	parts := strings.Split(path, ".")
-	if strings.HasPrefix(parts[0], "$") {
-		namespace = strings.TrimPrefix(parts[0], "$")
-	}
-	if namespace == "" {
-		namespace = "__current__"
-	}
-	return namespace
 }
 
 //PipelineNoLoadPath identifies 'paths' which are groups of statements that move

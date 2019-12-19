@@ -7,9 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/bmeg/grip/engine"
 	"github.com/bmeg/grip/engine/inspect"
-	"github.com/bmeg/grip/gdbi"
+	"github.com/bmeg/grip/engine/pipeline"
 	"github.com/bmeg/grip/grids"
 	"github.com/bmeg/grip/gripql"
 	"github.com/golang/protobuf/jsonpb"
@@ -32,7 +31,7 @@ func TestPath2Step(t *testing.T) {
 	q := gripql.NewQuery()
 	q = q.V().Out().In().Has(gripql.Eq("$.test", "value"))
 
-	ps := gdbi.NewPipelineState(q.Statements)
+	ps := pipeline.NewPipelineState(q.Statements)
 
 	noLoadPaths := inspect.PipelineNoLoadPath(q.Statements, 2)
 
@@ -87,12 +86,12 @@ func TestEngineQuery(t *testing.T) {
 	q = q.V().Out().Out().Count()
 	comp := graph.Compiler()
 
-	pipeline, err := comp.Compile(q.Statements)
+	compiledPipeline, err := comp.Compile(q.Statements)
 	if err != nil {
 		t.Error(err)
 	}
 
-	out := engine.Run(context.Background(), pipeline, "./work.dir")
+	out := pipeline.Run(context.Background(), compiledPipeline, "./work.dir")
 	for r := range out {
 		fmt.Printf("result: %s\n", r)
 	}
@@ -100,12 +99,12 @@ func TestEngineQuery(t *testing.T) {
 	q = gripql.NewQuery()
 	q = q.V().Out().Out().OutE().Out().Count()
 
-	pipeline, err = comp.Compile(q.Statements)
+	compiledPipeline, err = comp.Compile(q.Statements)
 	if err != nil {
 		t.Error(err)
 	}
 
-	out = engine.Run(context.Background(), pipeline, "./work.dir")
+	out = pipeline.Run(context.Background(), compiledPipeline, "./work.dir")
 	for r := range out {
 		fmt.Printf("result: %s\n", r)
 	}

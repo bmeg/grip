@@ -3,6 +3,7 @@ package core
 import (
 	"fmt"
 
+	"github.com/bmeg/grip/engine/pipeline"
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/jsonpath"
@@ -16,7 +17,7 @@ type DefaultPipeline struct {
 	markTypes map[string]gdbi.DataType
 }
 
-func NewPipeline(procs []gdbi.Processor, ps *gdbi.PipelineState) *DefaultPipeline {
+func NewPipeline(procs []gdbi.Processor, ps *pipeline.State) *DefaultPipeline {
 	return &DefaultPipeline{procs, ps.LastType, ps.MarkTypes}
 }
 
@@ -59,7 +60,7 @@ func (comp DefaultCompiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeli
 
 	stmts = IndexStartOptimize(stmts)
 
-	ps := gdbi.NewPipelineState(stmts)
+	ps := pipeline.NewPipelineState(stmts)
 
 	procs := make([]gdbi.Processor, 0, len(stmts))
 
@@ -75,7 +76,7 @@ func (comp DefaultCompiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeli
 	return &DefaultPipeline{procs, ps.LastType, ps.MarkTypes}, nil
 }
 
-func StatementProcessor(gs *gripql.GraphStatement, db gdbi.GraphInterface, ps *gdbi.PipelineState) (gdbi.Processor, error) {
+func StatementProcessor(gs *gripql.GraphStatement, db gdbi.GraphInterface, ps *pipeline.State) (gdbi.Processor, error) {
 	switch stmt := gs.GetStatement().(type) {
 
 	case *gripql.GraphStatement_V:

@@ -85,42 +85,42 @@ type RawProcessor interface {
 
 type RawPipeline []RawProcessor
 
-func RawPathCompile(db *Graph, ps *gdbi.PipelineState, stmts []*gripql.GraphStatement) (gdbi.Processor, error) {
+func RawPathCompile(db *Graph, ps gdbi.PipelineState, stmts []*gripql.GraphStatement) (gdbi.Processor, error) {
 
 	pipeline := RawPipeline{}
-	firstType := ps.LastType
+	firstType := ps.GetLastType()
 
 	for _, s := range stmts {
 		switch stmt := s.GetStatement().(type) {
 		case *gripql.GraphStatement_V:
 			ids := protoutil.AsStringList(stmt.V)
-			ps.LastType = gdbi.VertexData
+			ps.SetLastType(gdbi.VertexData)
 			pipeline = append(pipeline, &PathVProc{db: db, ids: ids})
 		case *gripql.GraphStatement_In:
-			if ps.LastType == gdbi.VertexData {
+			if ps.GetLastType() == gdbi.VertexData {
 				labels := protoutil.AsStringList(stmt.In)
-				ps.LastType = gdbi.VertexData
+				ps.SetLastType(gdbi.VertexData)
 				pipeline = append(pipeline, &PathInProc{db: db, labels: labels})
-			} else if ps.LastType == gdbi.EdgeData {
-				ps.LastType = gdbi.VertexData
+			} else if ps.GetLastType() == gdbi.EdgeData {
+				ps.SetLastType(gdbi.VertexData)
 				pipeline = append(pipeline, &PathInEdgeAdjProc{db: db})
 			}
 		case *gripql.GraphStatement_Out:
-			if ps.LastType == gdbi.VertexData {
+			if ps.GetLastType() == gdbi.VertexData {
 				labels := protoutil.AsStringList(stmt.Out)
-				ps.LastType = gdbi.VertexData
+				ps.SetLastType(gdbi.VertexData)
 				pipeline = append(pipeline, &PathOutProc{db: db, labels: labels})
-			} else if ps.LastType == gdbi.EdgeData {
-				ps.LastType = gdbi.VertexData
+			} else if ps.GetLastType() == gdbi.EdgeData {
+				ps.SetLastType(gdbi.VertexData)
 				pipeline = append(pipeline, &PathOutEdgeAdjProc{db: db})
 			}
 		case *gripql.GraphStatement_InE:
 			labels := protoutil.AsStringList(stmt.InE)
-			ps.LastType = gdbi.EdgeData
+			ps.SetLastType(gdbi.EdgeData)
 			pipeline = append(pipeline, &PathInEProc{db: db, labels: labels})
 		case *gripql.GraphStatement_OutE:
 			labels := protoutil.AsStringList(stmt.OutE)
-			ps.LastType = gdbi.EdgeData
+			ps.SetLastType(gdbi.EdgeData)
 			pipeline = append(pipeline, &PathOutEProc{db: db, labels: labels})
 		case *gripql.GraphStatement_HasLabel:
 			labels := protoutil.AsStringList(stmt.HasLabel)
@@ -133,7 +133,7 @@ func RawPathCompile(db *Graph, ps *gdbi.PipelineState, stmts []*gripql.GraphStat
 	return &RawPathProcessor{
 		pipeline: pipeline, db: db,
 		inVertex:  firstType == gdbi.VertexData,
-		outVertex: ps.LastType == gdbi.VertexData,
+		outVertex: ps.GetLastType() == gdbi.VertexData,
 	}, nil
 }
 

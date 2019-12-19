@@ -11,10 +11,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bmeg/grip/engine"
+	"github.com/bmeg/grip/engine/pipeline"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/jsengine/underscore"
 	"github.com/bmeg/grip/kvgraph"
+	"github.com/bmeg/grip/kvi"
 	"github.com/dop251/goja"
 	"github.com/golang/protobuf/jsonpb"
 
@@ -33,7 +34,7 @@ func main() {
 
 	log.Printf("Starting Profile")
 
-	kv, err := kvgraph.NewKVInterface("badger", dbPath, nil)
+	kv, err := kvi.NewKVInterface("badger", dbPath, nil)
 	if err != nil {
 		return
 	}
@@ -102,7 +103,7 @@ func main() {
 	}
 
 	start := time.Now()
-	o := engine.Run(context.Background(), pipe, "tmp-work")
+	o := pipeline.Run(context.Background(), pipe, "tmp-work")
 	count := 0
 	for range o {
 		count++

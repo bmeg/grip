@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/bmeg/grip/engine"
+	"github.com/bmeg/grip/engine/pipeline"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/protoutil"
 	"github.com/bmeg/grip/util"
@@ -38,13 +38,13 @@ func TestSchema(t *testing.T) {
 		t.Fatal(err)
 	}
 	Q := &gripql.Query{}
-	pipeline, err := gi.Compiler().Compile(Q.V().HasLabel("users").Statements)
+	compiledPipeline, err := gi.Compiler().Compile(Q.V().HasLabel("users").Statements)
 	if err != nil {
 		t.Fatal(err)
 	}
 	workdir := "./test.workdir." + util.RandomString(6)
 	defer os.RemoveAll(workdir)
-	res := engine.Run(context.Background(), pipeline, workdir)
+	res := pipeline.Run(context.Background(), compiledPipeline, workdir)
 	expected := &gripql.QueryResult{
 		Result: &gripql.QueryResult_Vertex{
 			Vertex: &gripql.Vertex{

@@ -5,6 +5,7 @@ import (
 
 	"github.com/bmeg/grip/engine/core"
 	"github.com/bmeg/grip/engine/inspect"
+	"github.com/bmeg/grip/engine/pipeline"
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
 	log "github.com/sirupsen/logrus"
@@ -36,7 +37,7 @@ func (comp Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, err
 
 	stmts = core.IndexStartOptimize(stmts)
 
-	ps := gdbi.NewPipelineState(stmts)
+	ps := pipeline.NewPipelineState(stmts)
 
 	noLoadPaths := inspect.PipelineNoLoadPath(stmts, 2)
 	procs := make([]gdbi.Processor, 0, len(stmts))

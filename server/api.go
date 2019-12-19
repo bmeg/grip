@@ -8,7 +8,7 @@ import (
 
 	"sync"
 
-	"github.com/bmeg/grip/engine"
+	"github.com/bmeg/grip/engine/pipeline"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/util"
@@ -26,11 +26,11 @@ func (server *GripServer) Traversal(query *gripql.GraphQuery, queryServer gripql
 		return err
 	}
 	compiler := graph.Compiler()
-	pipeline, err := compiler.Compile(query.Query)
+	compiledPipeline, err := compiler.Compile(query.Query)
 	if err != nil {
 		return err
 	}
-	res := engine.Run(queryServer.Context(), pipeline, server.conf.WorkDir)
+	res := pipeline.Run(queryServer.Context(), compiledPipeline, server.conf.WorkDir)
 	err = nil
 	for row := range res {
 		if err == nil {

@@ -8,13 +8,12 @@ import (
 	"bytes"
 	"fmt"
 
-	"github.com/bmeg/grip/kvgraph"
 	"github.com/bmeg/grip/kvi"
 	"github.com/bmeg/grip/log"
 	"github.com/boltdb/bolt"
 )
 
-var loaded = kvgraph.AddKVDriver("bolt", NewKVInterface)
+var loaded = kvi.AddKVDriver("bolt", NewKVInterface)
 
 var graphBucket = []byte("graph")
 
