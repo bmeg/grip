@@ -345,7 +345,11 @@ func (ggraph *Graph) GetEdgeList(ctx context.Context, loadProp bool) <-chan *gri
 				if loadProp {
 					edgeData, _ := it.Value()
 					e.Data = protoutil.NewStruct()
-					proto.Unmarshal(edgeData, e.Data)
+					err := proto.Unmarshal(edgeData, e.Data)
+					if err != nil {
+						log.Errorf("GetInChannel: unmarshal error: %v", err)
+						continue
+					}
 				}
 				o <- e
 			}
@@ -425,7 +429,11 @@ func (ggraph *Graph) GetVertexChannel(ids chan gdbi.ElementLookup, load bool) ch
 			v := gripql.Vertex{Gid: d.req.ID, Label: lID}
 			if load {
 				v.Data = protoutil.NewStruct()
-				proto.Unmarshal(d.data, v.Data)
+				err := proto.Unmarshal(d.data, v.Data)
+				if err != nil {
+					log.Errorf("GetInChannel: unmarshal error: %v", err)
+					continue
+				}
 			}
 			d.req.Vertex = &v
 			out <- d.req
@@ -579,7 +587,11 @@ func (ggraph *Graph) GetOutEdgeChannel(reqChan chan gdbi.ElementLookup, load boo
 								dataValue, err := it.Get(ekey)
 								if err == nil {
 									e.Data = protoutil.NewStruct()
-									proto.Unmarshal(dataValue, e.Data)
+									err := proto.Unmarshal(dataValue, e.Data)
+									if err != nil {
+										log.Errorf("GetInChannel: unmarshal error: %v", err)
+										continue
+									}
 								}
 							}
 							req.Edge = &e
@@ -626,7 +638,11 @@ func (ggraph *Graph) GetInEdgeChannel(reqChan chan gdbi.ElementLookup, load bool
 								dataValue, err := it.Get(ekey)
 								if err == nil {
 									e.Data = protoutil.NewStruct()
-									proto.Unmarshal(dataValue, e.Data)
+									err := proto.Unmarshal(dataValue, e.Data)
+									if err != nil {
+										log.Errorf("GetInChannel: unmarshal error: %v", err)
+										continue
+									}
 								}
 							}
 							req.Edge = &e
@@ -700,7 +716,11 @@ func (ggraph *Graph) GetVertexList(ctx context.Context, loadProp bool) <-chan *g
 				if loadProp {
 					dataValue, _ := it.Value()
 					v.Data = protoutil.NewStruct()
-					proto.Unmarshal(dataValue, v.Data)
+					err := proto.Unmarshal(dataValue, v.Data)
+					if err != nil {
+						log.Errorf("GetInChannel: unmarshal error: %v", err)
+						continue
+					}
 				}
 				o <- v
 			}
