@@ -62,8 +62,12 @@ func (km *KeyMap) GetGraphKey(id string) (uint64, error) {
 	if err != nil {
 		return o, err
 	}
-	setKeyID(0, gKeyPrefix, id, o, km.db)
-	setIDKey(0, gIDPrefix, id, o, km.db)
+	if err := setKeyID(0, gKeyPrefix, id, o, km.db); err != nil {
+		return o, err
+	}
+	if err := setIDKey(0, gIDPrefix, id, o, km.db); err != nil {
+		return o, err
+	}
 	return o, nil
 }
 

@@ -14,14 +14,14 @@ import (
 	"github.com/golang/protobuf/jsonpb"
 )
 
-var vertices = []string{
+var pathVertices = []string{
 	`{"gid" : "1", "label" : "Person", "data" : { "name" : "bob" }}`,
 	`{"gid" : "2", "label" : "Person", "data" : { "name" : "alice" }}`,
 	`{"gid" : "3", "label" : "Person", "data" : { "name" : "jane" }}`,
 	`{"gid" : "4", "label" : "Person", "data" : { "name" : "janet" }}`,
 }
 
-var edges = []string{
+var pathEdges = []string{
 	`{"gid" : "e1", "label" : "knows", "from" : "1", "to" : "2", "data" : {}}`,
 	`{"gid" : "e3", "label" : "knows", "from" : "2", "to" : "3", "data" : {}}`,
 	`{"gid" : "e4", "label" : "knows", "from" : "3", "to" : "4", "data" : {}}`,
@@ -61,7 +61,7 @@ func TestEngineQuery(t *testing.T) {
 	m := jsonpb.Unmarshaler{}
 
 	vset := []*gripql.Vertex{}
-	for _, r := range vertices {
+	for _, r := range pathVertices {
 		v := &gripql.Vertex{}
 		err := m.Unmarshal(strings.NewReader(r), v)
 		if err != nil {
@@ -72,7 +72,7 @@ func TestEngineQuery(t *testing.T) {
 	graph.AddVertex(vset)
 
 	eset := []*gripql.Edge{}
-	for _, r := range edges {
+	for _, r := range pathEdges {
 		e := &gripql.Edge{}
 		err := m.Unmarshal(strings.NewReader(r), e)
 		if err != nil {
