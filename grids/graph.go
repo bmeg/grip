@@ -145,11 +145,14 @@ func (ggraph *Graph) AddEdge(edges []*gripql.Edge) error {
 		return err
 	}
 	err = ggraph.kdb.indexkv.BulkWrite(func(tx kvi.KVBulkWrite) error {
+		var bulkErr *multierror.Error
 		for _, edge := range edges {
-			indexEdge(tx, ggraph.kdb.idx, ggraph.graphID, edge)
+			if err := indexEdge(tx, ggraph.kdb.idx, ggraph.graphID, edge); err != nil {
+				bulkErr = multierror.Append(bulkErr, err)
+			}
 		}
 		ggraph.kdb.ts.Touch(ggraph.graphID)
-		return nil
+		return bulkErr.ErrorOrNil()
 	})
 	return err
 
@@ -265,6 +268,7 @@ func (ggraph *Graph) DelVertex(id string) error {
 	var bulkErr *multierror.Error
 
 	err := ggraph.kdb.graphkv.View(func(it kvi.KVIterator) error {
+		var bulkErr *multierror.Error
 		for it.Seek(skeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), skeyPrefix); it.Next() {
 			skey := it.Key()
 			// get edge ID from key
@@ -273,7 +277,9 @@ func (ggraph *Graph) DelVertex(id string) error {
 			delKeys = append(delKeys, skey, ekey)
 
 			edgeID := ggraph.kdb.keyMap.GetEdgeID(ggraph.graphKey, eid)
-			ggraph.kdb.keyMap.DelEdgeKey(ggraph.graphKey, edgeID)
+			if err := ggraph.kdb.keyMap.DelEdgeKey(ggraph.graphKey, edgeID); err != nil {
+				bulkErr = multierror.Append(bulkErr, err)
+			}
 		}
 		for it.Seek(dkeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), dkeyPrefix); it.Next() {
 			dkey := it.Key()
@@ -283,9 +289,11 @@ func (ggraph *Graph) DelVertex(id string) error {
 			delKeys = append(delKeys, ekey)
 
 			edgeID := ggraph.kdb.keyMap.GetEdgeID(ggraph.graphKey, eid)
-			ggraph.kdb.keyMap.DelEdgeKey(ggraph.graphKey, edgeID)
+			if err := ggraph.kdb.keyMap.DelEdgeKey(ggraph.graphKey, edgeID); err != nil {
+				bulkErr = multierror.Append(bulkErr, err)
+			}
 		}
-		return nil
+		return bulkErr.ErrorOrNil()
 	})
 	if err != nil {
 		bulkErr = multierror.Append(bulkErr, err)
