@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/akrylysov/pogreb"
+	"github.com/bmeg/grip/log"
 )
 
 type KeyMap struct {
@@ -82,10 +83,20 @@ func (km *KeyMap) GetsertVertexKey(graph uint64, id, label string) (uint64, uint
 	o, ok := getIDKey(graph, vIDPrefix, id, km.db)
 	if !ok {
 		km.vIncMut.Lock()
-		o, _ = dbInc(&km.vIncCur, vInc, km.db)
+		var err error
+		o, err = dbInc(&km.vIncCur, vInc, km.db)
+		if err != nil {
+			log.Errorf("%s", err)
+		}
 		km.vIncMut.Unlock()
-		setKeyID(graph, vKeyPrefix, id, o, km.db)
-		setIDKey(graph, vIDPrefix, id, o, km.db)
+		err = setKeyID(graph, vKeyPrefix, id, o, km.db)
+		if err != nil {
+			log.Errorf("%s", err)
+		}
+		err = setIDKey(graph, vIDPrefix, id, o, km.db)
+		if err != nil {
+			log.Errorf("%s", err)
+		}
 	}
 	lkey := km.GetsertLabelKey(graph, label)
 	setIDLabel(graph, vLabelPrefix, o, lkey, km.db)
@@ -114,11 +125,17 @@ func (km *KeyMap) GetsertEdgeKey(graph uint64, id, label string) (uint64, uint64
 		km.eIncMut.Lock()
 		o, _ = dbInc(&km.eIncCur, eInc, km.db)
 		km.eIncMut.Unlock()
-		setKeyID(graph, eKeyPrefix, id, o, km.db)
-		setIDKey(graph, eIDPrefix, id, o, km.db)
+		if err := setKeyID(graph, eKeyPrefix, id, o, km.db); err != nil {
+			log.Errorf("%s", err)
+		}
+		if err := setIDKey(graph, eIDPrefix, id, o, km.db); err != nil {
+			log.Errorf("%s", err)
+		}
 	}
 	lkey := km.GetsertLabelKey(graph, label)
-	setIDLabel(graph, eLabelPrefix, o, lkey, km.db)
+	if err := setIDLabel(graph, eLabelPrefix, o, lkey, km.db); err != nil {
+		log.Errorf("%s", err)
+	}
 	return o, lkey
 }
 
@@ -177,8 +194,12 @@ func (km *KeyMap) GetsertLabelKey(graph uint64, id string) uint64 {
 	km.lIncMut.Lock()
 	o, _ := dbInc(&km.lIncCur, lInc, km.db)
 	km.lIncMut.Unlock()
-	setKeyID(graph, lKeyPrefix, id, o, km.db)
-	setIDKey(graph, lIDPrefix, id, o, km.db)
+	if err := setKeyID(graph, lKeyPrefix, id, o, km.db); err != nil {
+		log.Errorf("%s", err)
+	}
+	if err := setIDKey(graph, lIDPrefix, id, o, km.db); err != nil {
+		log.Errorf("%s", err)
+	}
 	return o
 }
 

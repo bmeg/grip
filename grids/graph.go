@@ -307,7 +307,9 @@ func (ggraph *Graph) DelVertex(id string) error {
 		if err := tx.Delete(vid); err != nil {
 			return err
 		}
-		ggraph.kdb.keyMap.DelVertexKey(ggraph.graphKey, id)
+		if err := ggraph.kdb.keyMap.DelVertexKey(ggraph.graphKey, id); err != nil {
+			return err
+		}
 		for _, k := range delKeys {
 			if err := tx.Delete(k); err != nil {
 				return err
