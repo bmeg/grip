@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"fmt"
 
-	"github.com/bmeg/grip/kvgraph"
 	"github.com/bmeg/grip/kvi"
 	"github.com/bmeg/grip/log"
 	"github.com/syndtr/goleveldb/leveldb"
@@ -17,7 +16,7 @@ import (
 	"github.com/syndtr/goleveldb/leveldb/util"
 )
 
-var loaded = kvgraph.AddKVDriver("level", NewKVInterface)
+var loaded = kvi.AddKVDriver("level", NewKVInterface)
 
 // NewKVInterface creates new LevelDB backed KVInterface at `path`
 func NewKVInterface(path string, opts kvi.Options) (kvi.KVInterface, error) {

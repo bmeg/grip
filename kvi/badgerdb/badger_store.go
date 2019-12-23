@@ -9,13 +9,12 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/bmeg/grip/kvgraph"
 	"github.com/bmeg/grip/kvi"
 	"github.com/bmeg/grip/log"
 	"github.com/dgraph-io/badger/v2"
 )
 
-var loaded = kvgraph.AddKVDriver("badger", NewKVInterface)
+var loaded = kvi.AddKVDriver("badger", NewKVInterface)
 
 // NewKVInterface creates new BoltDB backed KVInterface at `path`
 func NewKVInterface(path string, kopts kvi.Options) (kvi.KVInterface, error) {

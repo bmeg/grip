@@ -11,6 +11,7 @@ import (
 	"github.com/bmeg/grip/elastic"
 	esql "github.com/bmeg/grip/existing-sql"
 	"github.com/bmeg/grip/gdbi"
+	"github.com/bmeg/grip/grids"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/kvgraph"
 	_ "github.com/bmeg/grip/kvi/badgerdb" // import so badger will register itself
@@ -42,6 +43,9 @@ func Run(conf *config.Config, schemas map[string]*gripql.Graph) error {
 	switch dbname := strings.ToLower(conf.Database); dbname {
 	case "bolt", "badger", "level":
 		db, err = kvgraph.NewKVGraphDB(dbname, conf.KVStorePath)
+
+	case "grids":
+		db, err = grids.NewGraphDB(conf.Grids)
 
 	case "elastic", "elasticsearch":
 		db, err = elastic.NewGraphDB(conf.Elasticsearch)

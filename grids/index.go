@@ -1,4 +1,4 @@
-package kvgraph
+package grids
 
 import (
 	"context"
@@ -11,7 +11,7 @@ import (
 	"github.com/bmeg/grip/protoutil"
 )
 
-func (kgraph *KVGraph) setupGraphIndex(graph string) error {
+func (kgraph *GDB) setupGraphIndex(graph string) error {
 	err := kgraph.idx.AddField(fmt.Sprintf("%s.v.label", graph))
 	if err != nil {
 		return fmt.Errorf("failed to setup index on vertex label")
@@ -23,14 +23,18 @@ func (kgraph *KVGraph) setupGraphIndex(graph string) error {
 	return nil
 }
 
-func (kgraph *KVGraph) deleteGraphIndex(graph string) {
+func (kgraph *GDB) deleteGraphIndex(graph string) error {
+	var anyError error
 	fields := kgraph.idx.ListFields()
 	for _, f := range fields {
 		t := strings.Split(f, ".")
 		if t[0] == graph {
-			kgraph.idx.RemoveField(f)
+			if err := kgraph.idx.RemoveField(f); err != nil {
+				anyError = err
+			}
 		}
 	}
+	return anyError
 }
 
 func normalizePath(path string) string {
@@ -61,31 +65,31 @@ func edgeIdxStruct(e *gripql.Edge) map[string]interface{} {
 }
 
 //AddVertexIndex add index to vertices
-func (kgdb *KVInterfaceGDB) AddVertexIndex(label string, field string) error {
+func (ggraph *Graph) AddVertexIndex(label string, field string) error {
 	log.WithFields(log.Fields{"label": label, "field": field}).Info("Adding vertex index")
 	field = normalizePath(field)
 	//TODO kick off background process to reindex existing data
-	return kgdb.kvg.idx.AddField(fmt.Sprintf("%s.v.%s.%s", kgdb.graph, label, field))
+	return ggraph.kdb.idx.AddField(fmt.Sprintf("%s.v.%s.%s", ggraph.graphID, label, field))
 }
 
 //DeleteVertexIndex delete index from vertices
-func (kgdb *KVInterfaceGDB) DeleteVertexIndex(label string, field string) error {
+func (ggraph *Graph) DeleteVertexIndex(label string, field string) error {
 	log.WithFields(log.Fields{"label": label, "field": field}).Info("Deleting vertex index")
 	field = normalizePath(field)
-	return kgdb.kvg.idx.RemoveField(fmt.Sprintf("%s.v.%s.%s", kgdb.graph, label, field))
+	return ggraph.kdb.idx.RemoveField(fmt.Sprintf("%s.v.%s.%s", ggraph.graphID, label, field))
 }
 
 //GetVertexIndexList lists out all the vertex indices for a graph
-func (kgdb *KVInterfaceGDB) GetVertexIndexList() <-chan *gripql.IndexID {
+func (ggraph *Graph) GetVertexIndexList() <-chan *gripql.IndexID {
 	log.Debug("Running GetVertexIndexList")
 	out := make(chan *gripql.IndexID)
 	go func() {
 		defer close(out)
-		fields := kgdb.kvg.idx.ListFields()
+		fields := ggraph.kdb.idx.ListFields()
 		for _, f := range fields {
 			t := strings.Split(f, ".")
 			if len(t) > 3 {
-				out <- &gripql.IndexID{Graph: kgdb.graph, Label: t[2], Field: t[3]}
+				out <- &gripql.IndexID{Graph: ggraph.graphID, Label: t[2], Field: t[3]}
 			}
 		}
 	}()
@@ -94,14 +98,14 @@ func (kgdb *KVInterfaceGDB) GetVertexIndexList() <-chan *gripql.IndexID {
 
 //VertexLabelScan produces a channel of all vertex ids in a graph
 //that match a given label
-func (kgdb *KVInterfaceGDB) VertexLabelScan(ctx context.Context, label string) chan string {
+func (ggraph *Graph) VertexLabelScan(ctx context.Context, label string) chan string {
 	log.WithFields(log.Fields{"label": label}).Debug("Running VertexLabelScan")
 	//TODO: Make this work better
 	out := make(chan string, 100)
 	go func() {
 		defer close(out)
-		//log.Printf("Searching %s %s", fmt.Sprintf("%s.label", kgdb.graph), label)
-		for i := range kgdb.kvg.idx.GetTermMatch(ctx, fmt.Sprintf("%s.v.label", kgdb.graph), label, 0) {
+		//log.Printf("Searching %s %s", fmt.Sprintf("%s.label", ggraph.graph), label)
+		for i := range ggraph.kdb.idx.GetTermMatch(ctx, fmt.Sprintf("%s.v.label", ggraph.graphID), label, 0) {
 			//log.Printf("Found: %s", i)
 			out <- i
 		}

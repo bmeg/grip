@@ -360,12 +360,12 @@ func (kgdb *KVInterfaceGDB) GetOutChannel(reqChan chan gdbi.ElementLookup, load 
 				if err == nil {
 					_, gid := VertexKeyParse(req.data)
 					v := &gripql.Vertex{Gid: gid}
-					if load {
-						err = proto.Unmarshal(dataValue, v)
-						if err != nil {
-							log.Errorf("GetOutChannel: unmarshal error: %v", err)
-							continue
-						}
+					//if load { //TODO: can't skip loading data, because the label in the data
+					err = proto.Unmarshal(dataValue, v)
+					if err != nil {
+						log.Errorf("GetOutChannel: unmarshal error: %v", err)
+						continue
+						//}
 					}
 					req.req.Vertex = v
 					o <- req.req
@@ -393,13 +393,13 @@ func (kgdb *KVInterfaceGDB) GetInChannel(reqChan chan gdbi.ElementLookup, load b
 						dataValue, err := it.Get(vkey)
 						if err == nil {
 							v := &gripql.Vertex{Gid: src}
-							if load {
-								err = proto.Unmarshal(dataValue, v)
-								if err != nil {
-									log.Errorf("GetInChannel: unmarshal error: %v", err)
-									continue
-								}
+							//if load { //TODO: Can't skip data load because vertex label is in data
+							err = proto.Unmarshal(dataValue, v)
+							if err != nil {
+								log.Errorf("GetInChannel: unmarshal error: %v", err)
+								continue
 							}
+							//}
 							req.Vertex = v
 							o <- req
 						}

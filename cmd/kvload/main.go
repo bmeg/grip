@@ -41,7 +41,7 @@ var Cmd = &cobra.Command{
 		// Create the graph  if it doesn't already exist.
 		// Creating the graph also results in the creation of indices
 		// for the edge/vertex collections.
-		kv, err := kvgraph.NewKVInterface(kvDriver, dbPath, &kvi.Options{BulkLoad: true})
+		kv, err := kvi.NewKVInterface(kvDriver, dbPath, &kvi.Options{BulkLoad: true})
 		if err != nil {
 			return err
 		}

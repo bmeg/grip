@@ -9,7 +9,7 @@ import (
 
 	"runtime/pprof"
 
-	"github.com/bmeg/grip/engine"
+	"github.com/bmeg/grip/engine/pipeline"
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/kvgraph"
@@ -161,14 +161,14 @@ func manyToOneQuery(kgraph gdbi.GraphInterface) {
 		log.Printf("%s", err)
 	}
 
-	o := engine.Run(context.Background(), pipe, "tmp-work")
+	o := pipeline.Run(context.Background(), pipe, "tmp-work")
 	for i := range o {
 		log.Printf("%s", i)
 	}
 }
 
 func badgerBench(graphPath string) {
-	kv, err := kvgraph.NewKVInterface("badger", graphPath, &kvi.Options{BulkLoad: true})
+	kv, err := kvi.NewKVInterface("badger", graphPath, &kvi.Options{BulkLoad: true})
 	if err != nil {
 		return
 	}
@@ -179,19 +179,8 @@ func badgerBench(graphPath string) {
 }
 
 func levelBench(graphPath string) {
-	kv, err := kvgraph.NewKVInterface("level", graphPath, &kvi.Options{})
+	kv, err := kvi.NewKVInterface("level", graphPath, &kvi.Options{})
 	if err != nil {
-		return
-	}
-	graphBenchRun(kv, randomVertexInsert)
-	kv.Close()
-	os.RemoveAll(graphPath)
-}
-
-func rocksBench(graphPath string) {
-	kv, err := kvgraph.NewKVInterface("rocks", graphPath, &kvi.Options{})
-	if err != nil {
-		log.Printf("Rocks Failed to init")
 		return
 	}
 	graphBenchRun(kv, randomVertexInsert)

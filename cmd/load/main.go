@@ -18,6 +18,8 @@ var edgeFile string
 var jsonFile string
 var yamlFile string
 
+var logRate = 10000
+
 // Cmd is the declaration of the command line
 var Cmd = &cobra.Command{
 	Use:   "load <graph>",
@@ -75,12 +77,12 @@ var Cmd = &cobra.Command{
 			}
 			for v := range vertChan {
 				count++
-				if count%1000 == 0 {
+				if count%logRate == 0 {
 					log.Infof("Loaded %d vertices", count)
 				}
 				elemChan <- &gripql.GraphElement{Graph: graph, Vertex: v}
 			}
-			log.Infof("Loaded %d vertices", count)
+			log.Infof("Loaded total of %d vertices", count)
 		}
 
 		if edgeFile != "" {
@@ -92,12 +94,12 @@ var Cmd = &cobra.Command{
 			}
 			for e := range edgeChan {
 				count++
-				if count%1000 == 0 {
+				if count%logRate == 0 {
 					log.Infof("Loaded %d edges", count)
 				}
 				elemChan <- &gripql.GraphElement{Graph: graph, Edge: e}
 			}
-			log.Infof("Loaded %d edges", count)
+			log.Infof("Loaded total of %d edges", count)
 		}
 
 		if jsonFile != "" {
