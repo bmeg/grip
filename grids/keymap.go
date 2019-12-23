@@ -108,9 +108,8 @@ func (km *KeyMap) GetVertexKey(graph uint64, id string) (uint64, bool) {
 }
 
 //GetVertexID
-func (km *KeyMap) GetVertexID(graph uint64, key uint64) string {
-	k, _ := getKeyID(graph, vKeyPrefix, key, km.db)
-	return k
+func (km *KeyMap) GetVertexID(graph uint64, key uint64) (string, bool) {
+	return getKeyID(graph, vKeyPrefix, key, km.db)
 }
 
 func (km *KeyMap) GetVertexLabel(graph uint64, key uint64) uint64 {
@@ -145,9 +144,8 @@ func (km *KeyMap) GetEdgeKey(graph uint64, id string) (uint64, bool) {
 }
 
 //GetEdgeID gets the GID string for a given edge id uint64
-func (km *KeyMap) GetEdgeID(graph uint64, key uint64) string {
-	k, _ := getKeyID(graph, eKeyPrefix, key, km.db)
-	return k
+func (km *KeyMap) GetEdgeID(graph uint64, key uint64) (string, bool) {
+	return getKeyID(graph, eKeyPrefix, key, km.db)
 }
 
 func (km *KeyMap) GetEdgeLabel(graph uint64, key uint64) uint64 {
@@ -159,7 +157,7 @@ func (km *KeyMap) GetEdgeLabel(graph uint64, key uint64) uint64 {
 func (km *KeyMap) DelVertexKey(graph uint64, id string) error {
 	key, ok := km.GetVertexKey(graph, id)
 	if !ok {
-		return fmt.Errorf("%s not found", id)
+		return fmt.Errorf("%s vertexKey not found", id)
 	}
 	if err := delKeyID(graph, vKeyPrefix, key, km.db); err != nil {
 		return err
@@ -174,7 +172,7 @@ func (km *KeyMap) DelVertexKey(graph uint64, id string) error {
 func (km *KeyMap) DelEdgeKey(graph uint64, id string) error {
 	key, ok := km.GetEdgeKey(graph, id)
 	if !ok {
-		return fmt.Errorf("%s not found", id)
+		return fmt.Errorf("%s edgeKey not found", id)
 	}
 	if err := delKeyID(graph, eKeyPrefix, key, km.db); err != nil {
 		return err
@@ -208,9 +206,8 @@ func (km *KeyMap) GetLabelKey(graph uint64, id string) (uint64, bool) {
 }
 
 //GetLabelID gets the GID for a given uint64 label key
-func (km *KeyMap) GetLabelID(graph uint64, key uint64) string {
-	k, _ := getKeyID(graph, lKeyPrefix, key, km.db)
-	return k
+func (km *KeyMap) GetLabelID(graph uint64, key uint64) (string, bool) {
+	return getKeyID(graph, lKeyPrefix, key, km.db)
 }
 
 func getIDKey(graph uint64, prefix []byte, id string, db *pogreb.DB) (uint64, bool) {

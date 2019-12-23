@@ -276,9 +276,11 @@ func (ggraph *Graph) DelVertex(id string) error {
 			ekey := EdgeKey(ggraph.graphKey, eid, sid, did, label)
 			delKeys = append(delKeys, skey, ekey)
 
-			edgeID := ggraph.kdb.keyMap.GetEdgeID(ggraph.graphKey, eid)
-			if err := ggraph.kdb.keyMap.DelEdgeKey(ggraph.graphKey, edgeID); err != nil {
-				bulkErr = multierror.Append(bulkErr, err)
+			edgeID, ok := ggraph.kdb.keyMap.GetEdgeID(ggraph.graphKey, eid)
+			if ok {
+				if err := ggraph.kdb.keyMap.DelEdgeKey(ggraph.graphKey, edgeID); err != nil {
+					bulkErr = multierror.Append(bulkErr, err)
+				}
 			}
 		}
 		for it.Seek(dkeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), dkeyPrefix); it.Next() {
@@ -288,9 +290,11 @@ func (ggraph *Graph) DelVertex(id string) error {
 			ekey := EdgeKey(ggraph.graphKey, eid, sid, did, label)
 			delKeys = append(delKeys, ekey)
 
-			edgeID := ggraph.kdb.keyMap.GetEdgeID(ggraph.graphKey, eid)
-			if err := ggraph.kdb.keyMap.DelEdgeKey(ggraph.graphKey, edgeID); err != nil {
-				bulkErr = multierror.Append(bulkErr, err)
+			edgeID, ok := ggraph.kdb.keyMap.GetEdgeID(ggraph.graphKey, eid)
+			if ok {
+				if err := ggraph.kdb.keyMap.DelEdgeKey(ggraph.graphKey, edgeID); err != nil {
+					bulkErr = multierror.Append(bulkErr, err)
+				}
 			}
 		}
 		return bulkErr.ErrorOrNil()
@@ -305,9 +309,6 @@ func (ggraph *Graph) DelVertex(id string) error {
 
 	err = ggraph.kdb.graphkv.Update(func(tx kvi.KVTransaction) error {
 		if err := tx.Delete(vid); err != nil {
-			return err
-		}
-		if err := ggraph.kdb.keyMap.DelVertexKey(ggraph.graphKey, id); err != nil {
 			return err
 		}
 		for _, k := range delKeys {
@@ -339,17 +340,17 @@ func (ggraph *Graph) GetEdgeList(ctx context.Context, loadProp bool) <-chan *gri
 				}
 				keyValue := it.Key()
 				_, ekey, skey, dkey, label := EdgeKeyParse(keyValue)
-				labelID := ggraph.kdb.keyMap.GetLabelID(ggraph.graphKey, label)
-				sid := ggraph.kdb.keyMap.GetVertexID(ggraph.graphKey, skey)
-				did := ggraph.kdb.keyMap.GetVertexID(ggraph.graphKey, dkey)
-				eid := ggraph.kdb.keyMap.GetEdgeID(ggraph.graphKey, ekey)
+				labelID, _ := ggraph.kdb.keyMap.GetLabelID(ggraph.graphKey, label)
+				sid, _ := ggraph.kdb.keyMap.GetVertexID(ggraph.graphKey, skey)
+				did, _ := ggraph.kdb.keyMap.GetVertexID(ggraph.graphKey, dkey)
+				eid, _ := ggraph.kdb.keyMap.GetEdgeID(ggraph.graphKey, ekey)
 				e := &gripql.Edge{Gid: eid, Label: labelID, From: sid, To: did}
 				if loadProp {
 					edgeData, _ := it.Value()
 					e.Data = protoutil.NewStruct()
 					err := proto.Unmarshal(edgeData, e.Data)
 					if err != nil {
-						log.Errorf("GetInChannel: unmarshal error: %v", err)
+						log.Errorf("GetEdgeList: unmarshal error: %v", err)
 						continue
 					}
 				}
@@ -372,7 +373,7 @@ func (ggraph *Graph) GetVertex(id string, loadProp bool) *gripql.Vertex {
 	var v *gripql.Vertex
 	err := ggraph.kdb.graphkv.View(func(it kvi.KVIterator) error {
 		lKey := ggraph.kdb.keyMap.GetVertexLabel(ggraph.graphKey, key)
-		lID := ggraph.kdb.keyMap.GetLabelID(ggraph.graphKey, lKey)
+		lID, _ := ggraph.kdb.keyMap.GetLabelID(ggraph.graphKey, lKey)
 		v = &gripql.Vertex{
 			Gid:   id,
 			Label: lID,
@@ -427,13 +428,13 @@ func (ggraph *Graph) GetVertexChannel(ids chan gdbi.ElementLookup, load bool) ch
 		defer close(out)
 		for d := range data {
 			lKey := ggraph.kdb.keyMap.GetVertexLabel(ggraph.graphKey, d.key)
-			lID := ggraph.kdb.keyMap.GetLabelID(ggraph.graphKey, lKey)
+			lID, _ := ggraph.kdb.keyMap.GetLabelID(ggraph.graphKey, lKey)
 			v := gripql.Vertex{Gid: d.req.ID, Label: lID}
 			if load {
 				v.Data = protoutil.NewStruct()
 				err := proto.Unmarshal(d.data, v.Data)
 				if err != nil {
-					log.Errorf("GetInChannel: unmarshal error: %v", err)
+					log.Errorf("GetVertexChannel: unmarshal error: %v", err)
 					continue
 				}
 			}
@@ -485,9 +486,9 @@ func (ggraph *Graph) GetOutChannel(reqChan chan gdbi.ElementLookup, load bool, e
 		ggraph.kdb.graphkv.View(func(it kvi.KVIterator) error {
 			for req := range vertexChan {
 				_, vkey := VertexKeyParse(req.data)
-				gid := ggraph.kdb.keyMap.GetVertexID(ggraph.graphKey, vkey)
+				gid, _ := ggraph.kdb.keyMap.GetVertexID(ggraph.graphKey, vkey)
 				lkey := ggraph.kdb.keyMap.GetVertexLabel(ggraph.graphKey, vkey)
-				lid := ggraph.kdb.keyMap.GetLabelID(ggraph.graphKey, lkey)
+				lid, _ := ggraph.kdb.keyMap.GetLabelID(ggraph.graphKey, lkey)
 				v := &gripql.Vertex{Gid: gid, Label: lid}
 				if load {
 					dataValue, err := it.Get(req.data)
@@ -531,9 +532,9 @@ func (ggraph *Graph) GetInChannel(reqChan chan gdbi.ElementLookup, load bool, ed
 						_, _, src, _, label := DstEdgeKeyParse(keyValue)
 						if len(edgeLabelKeys) == 0 || setcmp.ContainsUint(edgeLabelKeys, label) {
 							vkey := VertexKey(ggraph.graphKey, src)
-							srcID := ggraph.kdb.keyMap.GetVertexID(ggraph.graphKey, src)
+							srcID, _ := ggraph.kdb.keyMap.GetVertexID(ggraph.graphKey, src)
 							lID := ggraph.kdb.keyMap.GetVertexLabel(ggraph.graphKey, src)
-							lKey := ggraph.kdb.keyMap.GetLabelID(ggraph.graphKey, lID)
+							lKey, _ := ggraph.kdb.keyMap.GetLabelID(ggraph.graphKey, lID)
 							v := &gripql.Vertex{Gid: srcID, Label: lKey}
 							if load {
 								dataValue, err := it.Get(vkey)
@@ -580,10 +581,10 @@ func (ggraph *Graph) GetOutEdgeChannel(reqChan chan gdbi.ElementLookup, load boo
 						_, eid, src, dst, label := SrcEdgeKeyParse(keyValue)
 						if len(edgeLabelKeys) == 0 || setcmp.ContainsUint(edgeLabelKeys, label) {
 							e := gripql.Edge{}
-							e.Gid = ggraph.kdb.keyMap.GetEdgeID(ggraph.graphKey, eid)
-							e.From = ggraph.kdb.keyMap.GetVertexID(ggraph.graphKey, src)
-							e.To = ggraph.kdb.keyMap.GetVertexID(ggraph.graphKey, dst)
-							e.Label = ggraph.kdb.keyMap.GetLabelID(ggraph.graphKey, label)
+							e.Gid, _ = ggraph.kdb.keyMap.GetEdgeID(ggraph.graphKey, eid)
+							e.From, _ = ggraph.kdb.keyMap.GetVertexID(ggraph.graphKey, src)
+							e.To, _ = ggraph.kdb.keyMap.GetVertexID(ggraph.graphKey, dst)
+							e.Label, _ = ggraph.kdb.keyMap.GetLabelID(ggraph.graphKey, label)
 							if load {
 								ekey := EdgeKey(ggraph.graphKey, eid, src, dst, label)
 								dataValue, err := it.Get(ekey)
@@ -591,7 +592,7 @@ func (ggraph *Graph) GetOutEdgeChannel(reqChan chan gdbi.ElementLookup, load boo
 									e.Data = protoutil.NewStruct()
 									err := proto.Unmarshal(dataValue, e.Data)
 									if err != nil {
-										log.Errorf("GetInChannel: unmarshal error: %v", err)
+										log.Errorf("GetOutEdgeChannel: unmarshal error: %v", err)
 										continue
 									}
 								}
@@ -631,10 +632,10 @@ func (ggraph *Graph) GetInEdgeChannel(reqChan chan gdbi.ElementLookup, load bool
 						_, eid, src, dst, label := DstEdgeKeyParse(keyValue)
 						if len(edgeLabelKeys) == 0 || setcmp.ContainsUint(edgeLabelKeys, label) {
 							e := gripql.Edge{}
-							e.Gid = ggraph.kdb.keyMap.GetEdgeID(ggraph.graphKey, eid)
-							e.From = ggraph.kdb.keyMap.GetVertexID(ggraph.graphKey, src)
-							e.To = ggraph.kdb.keyMap.GetVertexID(ggraph.graphKey, dst)
-							e.Label = ggraph.kdb.keyMap.GetLabelID(ggraph.graphKey, label)
+							e.Gid, _ = ggraph.kdb.keyMap.GetEdgeID(ggraph.graphKey, eid)
+							e.From, _ = ggraph.kdb.keyMap.GetVertexID(ggraph.graphKey, src)
+							e.To, _ = ggraph.kdb.keyMap.GetVertexID(ggraph.graphKey, dst)
+							e.Label, _ = ggraph.kdb.keyMap.GetLabelID(ggraph.graphKey, label)
 							if load {
 								ekey := EdgeKey(ggraph.graphKey, eid, src, dst, label)
 								dataValue, err := it.Get(ekey)
@@ -642,7 +643,7 @@ func (ggraph *Graph) GetInEdgeChannel(reqChan chan gdbi.ElementLookup, load bool
 									e.Data = protoutil.NewStruct()
 									err := proto.Unmarshal(dataValue, e.Data)
 									if err != nil {
-										log.Errorf("GetInChannel: unmarshal error: %v", err)
+										log.Errorf("GetInEdgeChannel: unmarshal error: %v", err)
 										continue
 									}
 								}
@@ -671,12 +672,16 @@ func (ggraph *Graph) GetEdge(id string, loadProp bool) *gripql.Edge {
 	var e *gripql.Edge
 	err := ggraph.kdb.graphkv.View(func(it kvi.KVIterator) error {
 		for it.Seek(ekeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), ekeyPrefix); it.Next() {
-			_, eid, src, dst, label := EdgeKeyParse(it.Key())
+			_, eid, src, dst, labelKey := EdgeKeyParse(it.Key())
+			gid, _ := ggraph.kdb.keyMap.GetEdgeID(ggraph.graphKey, eid)
+			from, _ := ggraph.kdb.keyMap.GetVertexID(ggraph.graphKey, src)
+			to, _ := ggraph.kdb.keyMap.GetVertexID(ggraph.graphKey, dst)
+			label, _ := ggraph.kdb.keyMap.GetLabelID(ggraph.graphKey, labelKey)
 			e = &gripql.Edge{
-				Gid:   ggraph.kdb.keyMap.GetEdgeID(ggraph.graphKey, eid),
-				From:  ggraph.kdb.keyMap.GetVertexID(ggraph.graphKey, src),
-				To:    ggraph.kdb.keyMap.GetVertexID(ggraph.graphKey, dst),
-				Label: ggraph.kdb.keyMap.GetLabelID(ggraph.graphKey, label),
+				Gid:   gid,
+				From:  from,
+				To:    to,
+				Label: label,
 			}
 			if loadProp {
 				d, _ := it.Value()
@@ -713,14 +718,14 @@ func (ggraph *Graph) GetVertexList(ctx context.Context, loadProp bool) <-chan *g
 				keyValue := it.Key()
 				_, vKey := VertexKeyParse(keyValue)
 				lKey := ggraph.kdb.keyMap.GetVertexLabel(ggraph.graphKey, vKey)
-				v.Gid = ggraph.kdb.keyMap.GetVertexID(ggraph.graphKey, vKey)
-				v.Label = ggraph.kdb.keyMap.GetLabelID(ggraph.graphKey, lKey)
+				v.Gid, _ = ggraph.kdb.keyMap.GetVertexID(ggraph.graphKey, vKey)
+				v.Label, _ = ggraph.kdb.keyMap.GetLabelID(ggraph.graphKey, lKey)
 				if loadProp {
 					dataValue, _ := it.Value()
 					v.Data = protoutil.NewStruct()
 					err := proto.Unmarshal(dataValue, v.Data)
 					if err != nil {
-						log.Errorf("GetInChannel: unmarshal error: %v", err)
+						log.Errorf("GetVertexList: unmarshal error: %v", err)
 						continue
 					}
 				}

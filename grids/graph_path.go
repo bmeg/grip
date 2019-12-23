@@ -383,16 +383,16 @@ func (r *PathLabelProc) Process(ctx context.Context, in chan *PathTraveler, out 
 }
 
 func (rd *RawDataElement) VertexDataElement(ggraph *Graph) *gdbi.DataElement {
-	Gid := ggraph.kdb.keyMap.GetVertexID(ggraph.graphKey, rd.Gid)
-	Label := ggraph.kdb.keyMap.GetLabelID(ggraph.graphKey, rd.Label)
+	Gid, _ := ggraph.kdb.keyMap.GetVertexID(ggraph.graphKey, rd.Gid)
+	Label, _ := ggraph.kdb.keyMap.GetLabelID(ggraph.graphKey, rd.Label)
 	return &gdbi.DataElement{ID: Gid, Label: Label}
 }
 
 func (rd *RawDataElement) EdgeDataElement(ggraph *Graph) *gdbi.DataElement {
-	Gid := ggraph.kdb.keyMap.GetEdgeID(ggraph.graphKey, rd.Gid)
-	Label := ggraph.kdb.keyMap.GetLabelID(ggraph.graphKey, rd.Label)
-	To := ggraph.kdb.keyMap.GetVertexID(ggraph.graphKey, rd.To)
-	From := ggraph.kdb.keyMap.GetVertexID(ggraph.graphKey, rd.From)
+	Gid, _ := ggraph.kdb.keyMap.GetEdgeID(ggraph.graphKey, rd.Gid)
+	Label, _ := ggraph.kdb.keyMap.GetLabelID(ggraph.graphKey, rd.Label)
+	To, _ := ggraph.kdb.keyMap.GetVertexID(ggraph.graphKey, rd.To)
+	From, _ := ggraph.kdb.keyMap.GetVertexID(ggraph.graphKey, rd.From)
 	return &gdbi.DataElement{ID: Gid, To: To, From: From, Label: Label}
 }
 
