@@ -28,6 +28,7 @@ jobs:
   include:
     - stage: all
       script:
+        - make lint-depends
         - make lint
       env:
         - n=lint
@@ -39,7 +40,7 @@ jobs:
         - grip server --rpc-port 18202 --http-port 18201 --config ./test/grids.yml &
         - sleep 5
         - make test-conformance
-        - go test ./test
+        - go test ./test -config grids.yml
       env:
         - n=grids
     - script:

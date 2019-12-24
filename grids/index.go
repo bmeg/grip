@@ -7,8 +7,8 @@ import (
 
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/jsonpath"
+	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/protoutil"
-	log "github.com/sirupsen/logrus"
 )
 
 func (kgraph *GDB) setupGraphIndex(graph string) error {
@@ -23,14 +23,18 @@ func (kgraph *GDB) setupGraphIndex(graph string) error {
 	return nil
 }
 
-func (kgraph *GDB) deleteGraphIndex(graph string) {
+func (kgraph *GDB) deleteGraphIndex(graph string) error {
+	var anyError error
 	fields := kgraph.idx.ListFields()
 	for _, f := range fields {
 		t := strings.Split(f, ".")
 		if t[0] == graph {
-			kgraph.idx.RemoveField(f)
+			if err := kgraph.idx.RemoveField(f); err != nil {
+				anyError = err
+			}
 		}
 	}
+	return anyError
 }
 
 func normalizePath(path string) string {

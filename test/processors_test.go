@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/bmeg/grip/engine"
+	"github.com/bmeg/grip/engine/pipeline"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/protoutil"
 	"github.com/bmeg/grip/util"
@@ -415,13 +415,13 @@ func TestEngine(t *testing.T) {
 		name := cleanName(dbname + "_" + desc.query.String())
 
 		t.Run(name, func(t *testing.T) {
-			pipeline, err := db.Compiler().Compile(desc.query.Statements)
+			compiledPipeline, err := db.Compiler().Compile(desc.query.Statements)
 			if err != nil {
 				t.Fatal(err)
 			}
 			workdir := "./test.workdir." + util.RandomString(6)
 			defer os.RemoveAll(workdir)
-			res := engine.Run(context.Background(), pipeline, workdir)
+			res := pipeline.Run(context.Background(), compiledPipeline, workdir)
 			desc.expected(t, res)
 		})
 	}

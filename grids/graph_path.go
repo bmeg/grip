@@ -10,6 +10,7 @@ import (
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/kvi"
 	"github.com/bmeg/grip/protoutil"
+	"github.com/bmeg/grip/util/setcmp"
 )
 
 type RawPathProcessor struct {
@@ -85,42 +86,42 @@ type RawProcessor interface {
 
 type RawPipeline []RawProcessor
 
-func RawPathCompile(db *Graph, ps *gdbi.PipelineState, stmts []*gripql.GraphStatement) (gdbi.Processor, error) {
+func RawPathCompile(db *Graph, ps gdbi.PipelineState, stmts []*gripql.GraphStatement) (gdbi.Processor, error) {
 
 	pipeline := RawPipeline{}
-	firstType := ps.LastType
+	firstType := ps.GetLastType()
 
 	for _, s := range stmts {
 		switch stmt := s.GetStatement().(type) {
 		case *gripql.GraphStatement_V:
 			ids := protoutil.AsStringList(stmt.V)
-			ps.LastType = gdbi.VertexData
+			ps.SetLastType(gdbi.VertexData)
 			pipeline = append(pipeline, &PathVProc{db: db, ids: ids})
 		case *gripql.GraphStatement_In:
-			if ps.LastType == gdbi.VertexData {
+			if ps.GetLastType() == gdbi.VertexData {
 				labels := protoutil.AsStringList(stmt.In)
-				ps.LastType = gdbi.VertexData
+				ps.SetLastType(gdbi.VertexData)
 				pipeline = append(pipeline, &PathInProc{db: db, labels: labels})
-			} else if ps.LastType == gdbi.EdgeData {
-				ps.LastType = gdbi.VertexData
+			} else if ps.GetLastType() == gdbi.EdgeData {
+				ps.SetLastType(gdbi.VertexData)
 				pipeline = append(pipeline, &PathInEdgeAdjProc{db: db})
 			}
 		case *gripql.GraphStatement_Out:
-			if ps.LastType == gdbi.VertexData {
+			if ps.GetLastType() == gdbi.VertexData {
 				labels := protoutil.AsStringList(stmt.Out)
-				ps.LastType = gdbi.VertexData
+				ps.SetLastType(gdbi.VertexData)
 				pipeline = append(pipeline, &PathOutProc{db: db, labels: labels})
-			} else if ps.LastType == gdbi.EdgeData {
-				ps.LastType = gdbi.VertexData
+			} else if ps.GetLastType() == gdbi.EdgeData {
+				ps.SetLastType(gdbi.VertexData)
 				pipeline = append(pipeline, &PathOutEdgeAdjProc{db: db})
 			}
 		case *gripql.GraphStatement_InE:
 			labels := protoutil.AsStringList(stmt.InE)
-			ps.LastType = gdbi.EdgeData
+			ps.SetLastType(gdbi.EdgeData)
 			pipeline = append(pipeline, &PathInEProc{db: db, labels: labels})
 		case *gripql.GraphStatement_OutE:
 			labels := protoutil.AsStringList(stmt.OutE)
-			ps.LastType = gdbi.EdgeData
+			ps.SetLastType(gdbi.EdgeData)
 			pipeline = append(pipeline, &PathOutEProc{db: db, labels: labels})
 		case *gripql.GraphStatement_HasLabel:
 			labels := protoutil.AsStringList(stmt.HasLabel)
@@ -133,7 +134,7 @@ func RawPathCompile(db *Graph, ps *gdbi.PipelineState, stmts []*gripql.GraphStat
 	return &RawPathProcessor{
 		pipeline: pipeline, db: db,
 		inVertex:  firstType == gdbi.VertexData,
-		outVertex: ps.LastType == gdbi.VertexData,
+		outVertex: ps.GetLastType() == gdbi.VertexData,
 	}, nil
 }
 
@@ -373,7 +374,7 @@ func (r *PathLabelProc) Process(ctx context.Context, in chan *PathTraveler, out 
 	go func() {
 		defer close(out)
 		for i := range in {
-			if containsUint(labels, i.current.Label) {
+			if setcmp.ContainsUint(labels, i.current.Label) {
 				out <- i
 			}
 		}
@@ -382,16 +383,16 @@ func (r *PathLabelProc) Process(ctx context.Context, in chan *PathTraveler, out 
 }
 
 func (rd *RawDataElement) VertexDataElement(ggraph *Graph) *gdbi.DataElement {
-	Gid := ggraph.kdb.keyMap.GetVertexID(ggraph.graphKey, rd.Gid)
-	Label := ggraph.kdb.keyMap.GetLabelID(ggraph.graphKey, rd.Label)
+	Gid, _ := ggraph.kdb.keyMap.GetVertexID(ggraph.graphKey, rd.Gid)
+	Label, _ := ggraph.kdb.keyMap.GetLabelID(ggraph.graphKey, rd.Label)
 	return &gdbi.DataElement{ID: Gid, Label: Label}
 }
 
 func (rd *RawDataElement) EdgeDataElement(ggraph *Graph) *gdbi.DataElement {
-	Gid := ggraph.kdb.keyMap.GetEdgeID(ggraph.graphKey, rd.Gid)
-	Label := ggraph.kdb.keyMap.GetLabelID(ggraph.graphKey, rd.Label)
-	To := ggraph.kdb.keyMap.GetVertexID(ggraph.graphKey, rd.To)
-	From := ggraph.kdb.keyMap.GetVertexID(ggraph.graphKey, rd.From)
+	Gid, _ := ggraph.kdb.keyMap.GetEdgeID(ggraph.graphKey, rd.Gid)
+	Label, _ := ggraph.kdb.keyMap.GetLabelID(ggraph.graphKey, rd.Label)
+	To, _ := ggraph.kdb.keyMap.GetVertexID(ggraph.graphKey, rd.To)
+	From, _ := ggraph.kdb.keyMap.GetVertexID(ggraph.graphKey, rd.From)
 	return &gdbi.DataElement{ID: Gid, To: To, From: From, Label: Label}
 }
 
@@ -485,7 +486,7 @@ func (ggraph *Graph) RawGetOutChannel(reqChan chan *RawElementLookup, edgeLabels
 				for it.Seek(ePrefix); it.Valid() && bytes.HasPrefix(it.Key(), ePrefix); it.Next() {
 					keyValue := it.Key()
 					_, _, _, dstvkey, lkey := SrcEdgeKeyParse(keyValue)
-					if len(edgeLabels) == 0 || containsUint(edgeLabelKeys, lkey) {
+					if len(edgeLabels) == 0 || setcmp.ContainsUint(edgeLabelKeys, lkey) {
 						dstlkey := ggraph.kdb.keyMap.GetVertexLabel(ggraph.graphKey, dstvkey)
 						o <- &RawElementLookup{
 							Element: &RawDataElement{
@@ -521,7 +522,7 @@ func (ggraph *Graph) RawGetInChannel(reqChan chan *RawElementLookup, edgeLabels 
 				for it.Seek(ePrefix); it.Valid() && bytes.HasPrefix(it.Key(), ePrefix); it.Next() {
 					keyValue := it.Key()
 					_, _, srcvkey, _, lkey := DstEdgeKeyParse(keyValue)
-					if len(edgeLabels) == 0 || containsUint(edgeLabelKeys, lkey) {
+					if len(edgeLabels) == 0 || setcmp.ContainsUint(edgeLabelKeys, lkey) {
 						srclkey := ggraph.kdb.keyMap.GetVertexLabel(ggraph.graphKey, srcvkey)
 						o <- &RawElementLookup{
 							Element: &RawDataElement{
@@ -557,7 +558,7 @@ func (ggraph *Graph) RawGetOutEdgeChannel(reqChan chan *RawElementLookup, edgeLa
 				for it.Seek(ePrefix); it.Valid() && bytes.HasPrefix(it.Key(), ePrefix); it.Next() {
 					keyValue := it.Key()
 					_, ekey, srcvkey, dstvkey, lkey := SrcEdgeKeyParse(keyValue)
-					if len(edgeLabels) == 0 || containsUint(edgeLabelKeys, lkey) {
+					if len(edgeLabels) == 0 || setcmp.ContainsUint(edgeLabelKeys, lkey) {
 						o <- &RawElementLookup{
 							Element: &RawDataElement{
 								Gid:   ekey,
@@ -594,7 +595,7 @@ func (ggraph *Graph) RawGetInEdgeChannel(reqChan chan *RawElementLookup, edgeLab
 				for it.Seek(ePrefix); it.Valid() && bytes.HasPrefix(it.Key(), ePrefix); it.Next() {
 					keyValue := it.Key()
 					_, ekey, srcvkey, dstvkey, lkey := DstEdgeKeyParse(keyValue)
-					if len(edgeLabels) == 0 || containsUint(edgeLabelKeys, lkey) {
+					if len(edgeLabels) == 0 || setcmp.ContainsUint(edgeLabelKeys, lkey) {
 						o <- &RawElementLookup{
 							Element: &RawDataElement{
 								Gid:   ekey,
