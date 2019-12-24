@@ -109,7 +109,6 @@ func EntryValuePrefixStar(field string, ttype TermType, term []byte) []byte {
 	return bytes.Join([][]byte{idxEntryPrefix, []byte(field), {byte(ttype)}, term}, []byte{0})
 }
 
-
 // EntryKeyParse take entry key and parse out field term and document id
 func EntryKeyParse(key []byte) (string, TermType, []byte, string) {
 	tmp := bytes.SplitN(key, []byte{0}, 4)

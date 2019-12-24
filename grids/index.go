@@ -46,11 +46,9 @@ func normalizePath(path string) string {
 
 func vertexIdxStruct(v *gripql.Vertex) map[string]interface{} {
 	k := map[string]interface{}{
-		"v": map[string]interface{}{
-			"label": v.Label,
-			v.Label: protoutil.AsMap(v.Data),
-		},
+		"v": protoutil.AsMap(v.Data),
 	}
+	k["label"] = v.Label
 	return k
 }
 
@@ -116,12 +114,10 @@ func (ggraph *Graph) VertexLabelScan(ctx context.Context, label string) chan str
 // VertexIndexScan produces a channel of all vertex ids where the indexed field matches the query string
 func (ggraph *Graph) VertexIndexScan(ctx context.Context, query *gripql.IndexQuery) <-chan string {
 	log.WithFields(log.Fields{"query": query}).Debug("Running VertexIndexScan")
-	//TODO: Make this work better
 	out := make(chan string, 100)
 	go func() {
 		defer close(out)
-		//TODO: Implement prefix matching
-		for i := range ggraph.kdb.idx.GetTermMatch(ctx, fmt.Sprintf("%s.v.%s", ggraph.graphID, query.Field), query.Value, 0) {
+		for i := range ggraph.kdb.idx.GetTermPrefixMatch(ctx, fmt.Sprintf("%s.v.%s", ggraph.graphID, query.Field), query.Value, 0) {
 			out <- i
 		}
 	}()

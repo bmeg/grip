@@ -87,6 +87,7 @@ lint:
 
 lint-depends:
 	go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.18.0
+	go get golang.org/x/tools/cmd/goimports
 
 # ---------------------
 # Release / Snapshot

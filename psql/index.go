@@ -1,11 +1,11 @@
 package psql
 
 import (
-	"errors"
 	"context"
+	"errors"
 
-	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/gripql"
+	"github.com/bmeg/grip/log"
 )
 
 // AddVertexIndex add index to vertices
@@ -24,7 +24,6 @@ func (g *Graph) GetVertexIndexList() <-chan *gripql.IndexID {
 	defer close(o)
 	return o
 }
-
 
 func (g *Graph) VertexIndexScan(ctx context.Context, query *gripql.IndexQuery) <-chan string {
 	log.Errorf("VertexIndexScan not implemented for PSQL")

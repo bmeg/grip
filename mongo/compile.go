@@ -89,7 +89,7 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, er
 			startCollection = vertCol
 			field := convertPath(stmt.Index.Field)
 			reg := fmt.Sprintf("^%s", stmt.Index.Value)
-			query = append(query, bson.M{"$match": bson.M{field : bson.M{"$regex": reg}}})
+			query = append(query, bson.M{"$match": bson.M{field: bson.M{"$regex": reg}}})
 			lastType = gdbi.VertexData
 
 		case *gripql.GraphStatement_In, *gripql.GraphStatement_InV:
@@ -693,7 +693,7 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, er
 		}
 	}
 
-	log.Info("%s", query)
+	//log.Info("%s", query)
 	// query must be less than 16MB limit
 	bsonSize, err := bson.Marshal(query)
 	if err != nil {

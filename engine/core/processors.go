@@ -143,7 +143,6 @@ func (l *LookupEdges) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 	return ctx
 }
 
-
 // LookupVertsIndex look up vertices by indexed based feature
 type LookupIndex struct {
 	db       gdbi.GraphInterface
@@ -158,8 +157,8 @@ func (l *LookupIndex) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 		defer close(queryChan)
 		for t := range in {
 			for i := range l.db.VertexIndexScan(ctx, l.query) {
-				queryChan <- gdbi.ElementLookup {
-					ID: i,
+				queryChan <- gdbi.ElementLookup{
+					ID:  i,
 					Ref: t,
 				}
 			}
@@ -179,8 +178,6 @@ func (l *LookupIndex) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 	}()
 	return ctx
 }
-
-
 
 ////////////////////////////////////////////////////////////////////////////////
 
