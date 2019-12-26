@@ -57,6 +57,7 @@ def test_query_multi(O):
     errors = []
 
     O.addIndex("name")
+    O.addIndex("position")
 
     O.addVertex("1", "Person", {"name": "marko", "age": "29", "position" : "finance"})
     O.addVertex("2", "Person", {"name": "mark", "age": "27", "position" : "engineering"})

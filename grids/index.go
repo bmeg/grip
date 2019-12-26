@@ -117,8 +117,10 @@ func (ggraph *Graph) VertexIndexScan(ctx context.Context, query *gripql.SearchQu
 	out := make(chan string, 100)
 	go func() {
 		defer close(out)
-		for i := range ggraph.kdb.idx.GetTermPrefixMatch(ctx, fmt.Sprintf("%s.v.%s", ggraph.graphID, query.Fields), query.Term, 0) {
-			out <- i
+		for _, field := range query.Fields {
+			for i := range ggraph.kdb.idx.GetTermPrefixMatch(ctx, fmt.Sprintf("%s.v.%s", ggraph.graphID, field), query.Term, 0) {
+				out <- i
+			}
 		}
 	}()
 	return out
