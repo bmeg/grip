@@ -736,23 +736,3 @@ func (ggraph *Graph) GetVertexList(ctx context.Context, loadProp bool) <-chan *g
 	}()
 	return o
 }
-
-// ListVertexLabels returns a list of vertex types in the graph
-func (ggraph *Graph) ListVertexLabels() ([]string, error) {
-	labelField := fmt.Sprintf("%s.v.label", ggraph.graphID)
-	labels := []string{}
-	for i := range ggraph.kdb.idx.FieldTerms(labelField) {
-		labels = append(labels, i.(string))
-	}
-	return labels, nil
-}
-
-// ListEdgeLabels returns a list of edge types in the graph
-func (ggraph *Graph) ListEdgeLabels() ([]string, error) {
-	labelField := fmt.Sprintf("%s.e.label", ggraph.graphID)
-	labels := []string{}
-	for i := range ggraph.kdb.idx.FieldTerms(labelField) {
-		labels = append(labels, i.(string))
-	}
-	return labels, nil
-}
