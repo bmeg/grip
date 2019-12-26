@@ -553,23 +553,3 @@ func (kgdb *KVInterfaceGDB) GetVertexList(ctx context.Context, loadProp bool) <-
 	}()
 	return o
 }
-
-// ListVertexLabels returns a list of vertex types in the graph
-func (kgdb *KVInterfaceGDB) ListVertexLabels() ([]string, error) {
-	labelField := fmt.Sprintf("%s.v.label", kgdb.graph)
-	labels := []string{}
-	for i := range kgdb.kvg.idx.FieldTerms(labelField) {
-		labels = append(labels, i.(string))
-	}
-	return labels, nil
-}
-
-// ListEdgeLabels returns a list of edge types in the graph
-func (kgdb *KVInterfaceGDB) ListEdgeLabels() ([]string, error) {
-	labelField := fmt.Sprintf("%s.e.label", kgdb.graph)
-	labels := []string{}
-	for i := range kgdb.kvg.idx.FieldTerms(labelField) {
-		labels = append(labels, i.(string))
-	}
-	return labels, nil
-}
