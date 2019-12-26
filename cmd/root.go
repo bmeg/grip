@@ -9,6 +9,7 @@ import (
 	"github.com/bmeg/grip/cmd/create"
 	"github.com/bmeg/grip/cmd/drop"
 	"github.com/bmeg/grip/cmd/dump"
+	"github.com/bmeg/grip/cmd/index"
 	"github.com/bmeg/grip/cmd/info"
 	"github.com/bmeg/grip/cmd/kvload"
 	"github.com/bmeg/grip/cmd/list"
@@ -20,7 +21,6 @@ import (
 	"github.com/bmeg/grip/cmd/server"
 	"github.com/bmeg/grip/cmd/stream"
 	"github.com/bmeg/grip/cmd/version"
-	"github.com/bmeg/grip/cmd/index"
 	"github.com/bmeg/grip/log"
 	"github.com/spf13/cobra"
 )

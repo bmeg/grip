@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/bmeg/grip/engine"
+	"github.com/bmeg/grip/engine/pipeline"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/kvgraph"
 	"github.com/bmeg/grip/kvi"
@@ -34,7 +34,7 @@ func BenchmarkBaselineV(b *testing.B) {
 		if err != nil {
 			b.Fatal(err)
 		}
-		o := engine.Run(context.Background(), p, "workDir")
+		o := pipeline.Run(context.Background(), p, "workDir")
 		for range o {
 		}
 		if err != nil {

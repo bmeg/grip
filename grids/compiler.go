@@ -5,9 +5,11 @@ import (
 
 	"github.com/bmeg/grip/engine/core"
 	"github.com/bmeg/grip/engine/inspect"
+	"github.com/bmeg/grip/engine/pipeline"
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
-	log "github.com/sirupsen/logrus"
+	"github.com/bmeg/grip/log"
+	"github.com/bmeg/grip/util/setcmp"
 )
 
 // Compiler gets a compiler that will use the graph the execute the compiled query
@@ -36,37 +38,39 @@ func (comp Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, err
 
 	stmts = core.IndexStartOptimize(stmts)
 
-	ps := gdbi.NewPipelineState(stmts)
+	ps := pipeline.NewPipelineState(stmts)
 
 	noLoadPaths := inspect.PipelineNoLoadPath(stmts, 2)
 	procs := make([]gdbi.Processor, 0, len(stmts))
 
+	//log.Printf("Starting Grids Compiler: %s", stmts)
 	for i := 0; i < len(stmts); i++ {
 		foundPath := -1
 		for p := range noLoadPaths {
-			if containsInt(noLoadPaths[p], i) {
+			if setcmp.ContainsInt(noLoadPaths[p], i) {
 				foundPath = p
 			}
 		}
 		optimized := false
 		if foundPath != -1 {
 			//log.Printf("Compile Statements: %s", noLoadPaths[foundPath])
-			path := SelectPath(stmts, noLoadPaths[foundPath])
-			//log.Printf("Compile: %s -> %s (%s)", stmts, path, noLoadPaths[foundPath])
+			curPathSteps := noLoadPaths[foundPath]
+			path := SelectPath(stmts, curPathSteps)
+			//log.Printf("Compile step %d: %s (%s)", i, path, curPathSteps)
 			p, err := RawPathCompile(comp.graph, ps, path)
 			if err == nil {
 				procs = append(procs, p)
-				i += len(noLoadPaths[foundPath]) - 1
+				i = curPathSteps[len(curPathSteps)-1]
 				optimized = true
 				//fmt.Printf("Pathway out: %s\n", ps.LastType)
 			} else {
 				//BUG: if there is a failure, the pipline state may contain variables from the aborted pipeline optimization
-				log.Printf("Failure optimizing pipeline")
+				log.Errorf("Failure optimizing pipeline")
 				//something went wrong and we'll skip optimizing this path
 				tmp := [][]int{}
-				for i := range noLoadPaths {
-					if i != foundPath {
-						tmp = append(tmp, noLoadPaths[i])
+				for j := range noLoadPaths {
+					if j != foundPath {
+						tmp = append(tmp, noLoadPaths[j])
 					}
 				}
 				noLoadPaths = tmp

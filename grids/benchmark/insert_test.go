@@ -10,7 +10,7 @@ import (
 	"github.com/akrylysov/pogreb"
 	"github.com/bmeg/grip/kvi"
 	"github.com/bmeg/grip/kvi/badgerdb"
-	log "github.com/sirupsen/logrus"
+	"github.com/bmeg/grip/log"
 )
 
 var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")

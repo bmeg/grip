@@ -3,16 +3,12 @@ package kvgraph
 import (
 	"context"
 	"fmt"
-
-	//"math"
 	"strings"
 
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/jsonpath"
 	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/protoutil"
-	//structpb "github.com/golang/protobuf/ptypes/struct"
-	//"github.com/spenczar/tdigest"
 )
 
 func (kgraph *KVGraph) setupGraphIndex(graph string) error {

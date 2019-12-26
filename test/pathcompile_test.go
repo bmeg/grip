@@ -7,22 +7,21 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/bmeg/grip/engine"
 	"github.com/bmeg/grip/engine/inspect"
-	"github.com/bmeg/grip/gdbi"
+	"github.com/bmeg/grip/engine/pipeline"
 	"github.com/bmeg/grip/grids"
 	"github.com/bmeg/grip/gripql"
 	"github.com/golang/protobuf/jsonpb"
 )
 
-var vertices = []string{
+var pathVertices = []string{
 	`{"gid" : "1", "label" : "Person", "data" : { "name" : "bob" }}`,
 	`{"gid" : "2", "label" : "Person", "data" : { "name" : "alice" }}`,
 	`{"gid" : "3", "label" : "Person", "data" : { "name" : "jane" }}`,
 	`{"gid" : "4", "label" : "Person", "data" : { "name" : "janet" }}`,
 }
 
-var edges = []string{
+var pathEdges = []string{
 	`{"gid" : "e1", "label" : "knows", "from" : "1", "to" : "2", "data" : {}}`,
 	`{"gid" : "e3", "label" : "knows", "from" : "2", "to" : "3", "data" : {}}`,
 	`{"gid" : "e4", "label" : "knows", "from" : "3", "to" : "4", "data" : {}}`,
@@ -32,7 +31,7 @@ func TestPath2Step(t *testing.T) {
 	q := gripql.NewQuery()
 	q = q.V().Out().In().Has(gripql.Eq("$.test", "value"))
 
-	ps := gdbi.NewPipelineState(q.Statements)
+	ps := pipeline.NewPipelineState(q.Statements)
 
 	noLoadPaths := inspect.PipelineNoLoadPath(q.Statements, 2)
 
@@ -62,7 +61,7 @@ func TestEngineQuery(t *testing.T) {
 	m := jsonpb.Unmarshaler{}
 
 	vset := []*gripql.Vertex{}
-	for _, r := range vertices {
+	for _, r := range pathVertices {
 		v := &gripql.Vertex{}
 		err := m.Unmarshal(strings.NewReader(r), v)
 		if err != nil {
@@ -73,7 +72,7 @@ func TestEngineQuery(t *testing.T) {
 	graph.AddVertex(vset)
 
 	eset := []*gripql.Edge{}
-	for _, r := range edges {
+	for _, r := range pathEdges {
 		e := &gripql.Edge{}
 		err := m.Unmarshal(strings.NewReader(r), e)
 		if err != nil {
@@ -87,12 +86,12 @@ func TestEngineQuery(t *testing.T) {
 	q = q.V().Out().Out().Count()
 	comp := graph.Compiler()
 
-	pipeline, err := comp.Compile(q.Statements)
+	compiledPipeline, err := comp.Compile(q.Statements)
 	if err != nil {
 		t.Error(err)
 	}
 
-	out := engine.Run(context.Background(), pipeline, "./work.dir")
+	out := pipeline.Run(context.Background(), compiledPipeline, "./work.dir")
 	for r := range out {
 		fmt.Printf("result: %s\n", r)
 	}
@@ -100,12 +99,12 @@ func TestEngineQuery(t *testing.T) {
 	q = gripql.NewQuery()
 	q = q.V().Out().Out().OutE().Out().Count()
 
-	pipeline, err = comp.Compile(q.Statements)
+	compiledPipeline, err = comp.Compile(q.Statements)
 	if err != nil {
 		t.Error(err)
 	}
 
-	out = engine.Run(context.Background(), pipeline, "./work.dir")
+	out = pipeline.Run(context.Background(), compiledPipeline, "./work.dir")
 	for r := range out {
 		fmt.Printf("result: %s\n", r)
 	}

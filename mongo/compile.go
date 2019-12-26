@@ -702,7 +702,7 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, er
 		}
 	}
 
-	log.Info("%s", query)
+	//log.Info("%s", query)
 	// query must be less than 16MB limit
 	bsonSize, err := bson.Marshal(query)
 	if err != nil {

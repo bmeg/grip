@@ -12,7 +12,7 @@ import (
 	"github.com/bmeg/grip/kvindex"
 	"github.com/bmeg/grip/timestamp"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/bmeg/grip/log"
 )
 
 // GridsGDB implements the GripInterface using a generic key/value storage driver
@@ -58,7 +58,7 @@ func NewGraphDB(dbPath string) (gdbi.GraphDB, error) {
 	for _, i := range o.ListGraphs() {
 		o.ts.Touch(i)
 	}
-	log.Printf("Starting GRIDS driver")
+	log.Infof("Starting GRIDS driver")
 	return o, nil
 }
 

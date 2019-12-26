@@ -284,7 +284,6 @@ func (mg *Graph) VertexLabelScan(ctx context.Context, label string) chan string 
 	return out
 }
 
-
 func (mg *Graph) VertexIndexScan(ctx context.Context, query *gripql.IndexQuery) <-chan string {
 	out := make(chan string, 100)
 	go func() {

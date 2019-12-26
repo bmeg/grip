@@ -81,10 +81,13 @@ tidy:
 
 # Run code style and other checks
 lint:
-	go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.18.0
 	golangci-lint run --disable-all \
 		-E gofmt -E goimports -E misspell -E typecheck -E golint -E gosimple -E govet
 	flake8 gripql/python/ conformance/
+
+lint-depends:
+	go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.18.0
+	go get golang.org/x/tools/cmd/goimports
 
 # ---------------------
 # Release / Snapshot

@@ -5,7 +5,6 @@ import (
 	"os"
 	"testing"
 
-	"github.com/bmeg/grip/kvgraph"
 	"github.com/bmeg/grip/kvi"
 	_ "github.com/bmeg/grip/kvi/badgerdb" // import so badger will register itself
 	_ "github.com/bmeg/grip/kvi/boltdb"   // import so bolt will register itself
@@ -23,7 +22,7 @@ func resetKVInterface() {
 		panic(err)
 	}
 	dbpath = "test.db." + util.RandomString(6)
-	kvdriver, err = kvgraph.NewKVInterface(dbname, dbpath, nil)
+	kvdriver, err = kvi.NewKVInterface(dbname, dbpath, nil)
 	if err != nil {
 		panic(err)
 	}
@@ -53,7 +52,7 @@ func TestMain(m *testing.M) {
 	for _, dbname = range []string{"badger", "bolt", "level"} {
 		dbpath = "test.db." + util.RandomString(6)
 
-		kvdriver, err = kvgraph.NewKVInterface(dbname, dbpath, nil)
+		kvdriver, err = kvi.NewKVInterface(dbname, dbpath, nil)
 		if err != nil {
 			fmt.Println("Error: failed to initialize database driver:", err)
 			exit = 1
