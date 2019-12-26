@@ -12,11 +12,11 @@ import (
 )
 
 func (kgraph *KVGraph) setupGraphIndex(graph string) error {
-	err := kgraph.idx.AddField(fmt.Sprintf("%s.v.label", graph))
+	err := kgraph.idx.AddField(fmt.Sprintf("%s.vlabel", graph))
 	if err != nil {
 		return fmt.Errorf("failed to setup index on vertex label")
 	}
-	err = kgraph.idx.AddField(fmt.Sprintf("%s.e.label", graph))
+	err = kgraph.idx.AddField(fmt.Sprintf("%s.elabel", graph))
 	if err != nil {
 		return fmt.Errorf("failed to setup index on edge label")
 	}
@@ -44,15 +44,13 @@ func vertexIdxStruct(v *gripql.Vertex) map[string]interface{} {
 	k := map[string]interface{}{
 		"v": protoutil.AsMap(v.Data),
 	}
-	k["label"] = v.Label
+	k["vlabel"] = v.Label
 	return k
 }
 
 func edgeIdxStruct(e *gripql.Edge) map[string]interface{} {
 	k := map[string]interface{}{
-		"e": map[string]interface{}{
-			"label": e.Label,
-		},
+		"elabel": e.Label,
 	}
 	return k
 }
@@ -89,6 +87,26 @@ func (kgdb *KVInterfaceGDB) GetVertexIndexList() <-chan *gripql.IndexID {
 	return out
 }
 
+// ListVertexLabels returns a list of vertex types in the graph
+func (kgdb *KVInterfaceGDB) ListVertexLabels() ([]string, error) {
+	labelField := fmt.Sprintf("%s.vlabel", kgdb.graph)
+	labels := []string{}
+	for i := range kgdb.kvg.idx.FieldTerms(labelField) {
+		labels = append(labels, i.(string))
+	}
+	return labels, nil
+}
+
+// ListEdgeLabels returns a list of edge types in the graph
+func (kgdb *KVInterfaceGDB) ListEdgeLabels() ([]string, error) {
+	labelField := fmt.Sprintf("%s.elabel", kgdb.graph)
+	labels := []string{}
+	for i := range kgdb.kvg.idx.FieldTerms(labelField) {
+		labels = append(labels, i.(string))
+	}
+	return labels, nil
+}
+
 //VertexLabelScan produces a channel of all vertex ids in a graph
 //that match a given label
 func (kgdb *KVInterfaceGDB) VertexLabelScan(ctx context.Context, label string) chan string {
@@ -98,7 +116,7 @@ func (kgdb *KVInterfaceGDB) VertexLabelScan(ctx context.Context, label string) c
 	go func() {
 		defer close(out)
 		//log.Printf("Searching %s %s", fmt.Sprintf("%s.label", kgdb.graph), label)
-		for i := range kgdb.kvg.idx.GetTermMatch(ctx, fmt.Sprintf("%s.v.label", kgdb.graph), label, 0) {
+		for i := range kgdb.kvg.idx.GetTermMatch(ctx, fmt.Sprintf("%s.vlabel", kgdb.graph), label, 0) {
 			//log.Printf("Found: %s", i)
 			out <- i
 		}
