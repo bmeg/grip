@@ -19,7 +19,7 @@ func E(ids ...string) *Query {
 
 // Index starts a new vertex query using an index hits to start
 func Index(field []string, term string) *Query {
-	return NewQuery().Index(field,term)
+	return NewQuery().Index(field, term)
 }
 
 // NewQuery creates a new Query instance.
@@ -56,7 +56,7 @@ func (q *Query) E(id ...string) *Query {
 // Index adds a index selection step to the query
 func (q *Query) Index(field []string, term string) *Query {
 	return q.with(&GraphStatement{
-		Statement: &GraphStatement_Index{&IndexQuery{Field: field, Value: term}}})
+		Statement: &GraphStatement_Search{&SearchQuery{Fields: field, Term: term}}})
 }
 
 // In follows incoming edges to adjacent vertex

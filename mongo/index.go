@@ -284,7 +284,7 @@ func (mg *Graph) VertexLabelScan(ctx context.Context, label string) chan string 
 	return out
 }
 
-func (mg *Graph) VertexIndexScan(ctx context.Context, query *gripql.IndexQuery) <-chan string {
+func (mg *Graph) VertexIndexScan(ctx context.Context, query *gripql.SearchQuery) <-chan string {
 	out := make(chan string, 100)
 	go func() {
 		defer close(out)
@@ -293,17 +293,17 @@ func (mg *Graph) VertexIndexScan(ctx context.Context, query *gripql.IndexQuery) 
 
 		selection := map[string]interface{}{}
 
-		reg := fmt.Sprintf("^%s", query.Value)
-		if len(query.Field) == 1 {
-			field := jsonpath.GetJSONPath(query.Field[0])
+		reg := fmt.Sprintf("^%s", query.Term)
+		if len(query.Fields) == 1 {
+			field := jsonpath.GetJSONPath(query.Fields[0])
 			field = strings.TrimPrefix(field, "$.")
-			selection[field] = bson.M{field : bson.M{"$regex": reg}}
+			selection[field] = bson.M{field: bson.M{"$regex": reg}}
 		} else {
 			a := []interface{}{}
-			for _, i := range query.Field {
+			for _, i := range query.Fields {
 				field := jsonpath.GetJSONPath(i)
 				field = strings.TrimPrefix(field, "$.")
-				a = append(a, bson.M{field : bson.M{"$regex": reg}})
+				a = append(a, bson.M{field: bson.M{"$regex": reg}})
 			}
 			selection["$or"] = a
 		}

@@ -107,13 +107,13 @@ func (kgdb *KVInterfaceGDB) VertexLabelScan(ctx context.Context, label string) c
 }
 
 // VertexIndexScan produces a channel of all vertex ids where the indexed field matches the query string
-func (kgdb *KVInterfaceGDB) VertexIndexScan(ctx context.Context, query *gripql.IndexQuery) <-chan string {
+func (kgdb *KVInterfaceGDB) VertexIndexScan(ctx context.Context, query *gripql.SearchQuery) <-chan string {
 	log.WithFields(log.Fields{"query": query}).Debug("Running VertexIndexScan")
 	//TODO: Make this work better
 	out := make(chan string, 100)
 	go func() {
 		defer close(out)
-		for i := range kgdb.kvg.idx.GetTermPrefixMatch(ctx, fmt.Sprintf("%s.v.%s", kgdb.graph, query.Field), query.Value, 0) {
+		for i := range kgdb.kvg.idx.GetTermPrefixMatch(ctx, fmt.Sprintf("%s.v.%s", kgdb.graph, query.Fields), query.Term, 0) {
 			out <- i
 		}
 	}()

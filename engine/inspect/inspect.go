@@ -42,7 +42,7 @@ func PipelineSteps(stmts []*gripql.GraphStatement) []string {
 		case *gripql.GraphStatement_V, *gripql.GraphStatement_E, *gripql.GraphStatement_Out,
 			*gripql.GraphStatement_In, *gripql.GraphStatement_OutE, *gripql.GraphStatement_InE,
 			*gripql.GraphStatement_Both, *gripql.GraphStatement_BothE, *gripql.GraphStatement_Select,
-			*gripql.GraphStatement_Index:
+			*gripql.GraphStatement_Search:
 			curState++
 		case *gripql.GraphStatement_Limit, *gripql.GraphStatement_As, *gripql.GraphStatement_Has,
 			*gripql.GraphStatement_HasId, *gripql.GraphStatement_HasKey, *gripql.GraphStatement_HasLabel,

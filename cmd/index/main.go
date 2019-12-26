@@ -86,14 +86,14 @@ var indexSearchCmd = &cobra.Command{
 			return err
 		}
 
-    query := gripql.Index([]string{args[1]}, args[2])
-    if limit > 0 {
-      query = query.Limit(uint32(limit))
-    }
-    res, err := conn.Traversal(&gripql.GraphQuery{Graph:args[0], Query:query.Statements})
-    if err != nil {
-      return err
-    }
+		query := gripql.Index([]string{args[1]}, args[2])
+		if limit > 0 {
+			query = query.Limit(uint32(limit))
+		}
+		res, err := conn.Traversal(&gripql.GraphQuery{Graph: args[0], Query: query.Statements})
+		if err != nil {
+			return err
+		}
 
 		marsh := jsonpb.Marshaler{}
 		for row := range res {

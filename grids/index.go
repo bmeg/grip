@@ -112,12 +112,12 @@ func (ggraph *Graph) VertexLabelScan(ctx context.Context, label string) chan str
 }
 
 // VertexIndexScan produces a channel of all vertex ids where the indexed field matches the query string
-func (ggraph *Graph) VertexIndexScan(ctx context.Context, query *gripql.IndexQuery) <-chan string {
+func (ggraph *Graph) VertexIndexScan(ctx context.Context, query *gripql.SearchQuery) <-chan string {
 	log.WithFields(log.Fields{"query": query}).Debug("Running VertexIndexScan")
 	out := make(chan string, 100)
 	go func() {
 		defer close(out)
-		for i := range ggraph.kdb.idx.GetTermPrefixMatch(ctx, fmt.Sprintf("%s.v.%s", ggraph.graphID, query.Field), query.Value, 0) {
+		for i := range ggraph.kdb.idx.GetTermPrefixMatch(ctx, fmt.Sprintf("%s.v.%s", ggraph.graphID, query.Fields), query.Term, 0) {
 			out <- i
 		}
 	}()

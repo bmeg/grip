@@ -228,35 +228,31 @@ func (es *Graph) VertexLabelScan(ctx context.Context, label string) chan string 
 }
 
 // VertexIndexScan produces a channel of all vertex ids where the indexed field matches the query string
-func (es *Graph) VertexIndexScan(ctx context.Context, query *gripql.IndexQuery) <-chan string {
+func (es *Graph) VertexIndexScan(ctx context.Context, query *gripql.SearchQuery) <-chan string {
 	log.WithFields(log.Fields{"query": query}).Debug("Running VertexIndexScan")
 
 	o := make(chan string, es.pageSize)
 	go func() {
 		defer close(o)
-
-		var scroll *elastic.ScrollService
-		if len(query.Field) == 1 {
-			scroll = es.client.Scroll().
+		for _, field := range query.Fields {
+			scroll := es.client.Scroll().
 				Index(es.vertexIndex).
-				Query(elastic.NewBoolQuery().Must(elastic.NewTermQuery(query.Field[0], query.Value))).
+				Query(elastic.NewBoolQuery().Must(elastic.NewTermQuery(field, query.Term))).
 				Sort("gid", true).
 				Size(es.pageSize)
-		} else {
-				//TODO
-		}
-		for {
-			results, err := scroll.Do(ctx)
-			if err == io.EOF {
-				return // all results retrieved
-			}
-			if err != nil {
-				log.WithFields(log.Fields{"error": err}).Debug("VertexIndexScan: scroll failed")
-				return
-			}
-			// Send the hits to the hits channel
-			for _, hit := range results.Hits.Hits {
-				o <- hit.Id
+			for {
+				results, err := scroll.Do(ctx)
+				if err == io.EOF {
+					return // all results retrieved
+				}
+				if err != nil {
+					log.WithFields(log.Fields{"error": err}).Debug("VertexIndexScan: scroll failed")
+					return
+				}
+				// Send the hits to the hits channel
+				for _, hit := range results.Hits.Hits {
+					o <- hit.Id
+				}
 			}
 		}
 	}()

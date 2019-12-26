@@ -43,11 +43,32 @@ def test_index_query(O):
     O.addVertex("4", "Person", {"name": "josh", "age": "32"})
 
     count = 0
-    for v in O.query().Index(name="mar"):
+    for v in O.query().Search("name", "mar"):
         if v.gid not in ["1", "2", "3"]:
             errors.append("Index query false hit: %s", v.gid)
         count += 1
     if count != 3:
         errors.append("Incorrect number of hits returned %d != %d" % (count, 3))
+
+    return errors
+
+
+def test_query_multi(O):
+    errors = []
+
+    O.addIndex("name")
+
+    O.addVertex("1", "Person", {"name": "marko", "age": "29", "position" : "finance"})
+    O.addVertex("2", "Person", {"name": "mark", "age": "27", "position" : "engineering"})
+    O.addVertex("3", "Person", {"name": "mary", "age": "27", "position" : "engineering"})
+    O.addVertex("4", "Person", {"name": "josh", "age": "32", "position" : "marketing"})
+
+    count = 0
+    for v in O.query().Search(["name", "position"], "mar"):
+        if v.gid not in ["1", "2", "3", "4"]:
+            errors.append("Index query false hit: %s", v.gid)
+        count += 1
+    if count != 4:
+        errors.append("Incorrect number of hits returned %d != %d" % (count, 4))
 
     return errors

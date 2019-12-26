@@ -93,7 +93,7 @@ type GraphInterface interface {
 	AddVertexIndex(field string) error
 	DeleteVertexIndex(field string) error
 	GetVertexIndexList() <-chan *gripql.IndexID
-	VertexIndexScan(ctx context.Context, query *gripql.IndexQuery) <-chan string
+	VertexIndexScan(ctx context.Context, query *gripql.SearchQuery) <-chan string
 
 	GetVertexList(ctx context.Context, load bool) <-chan *gripql.Vertex
 	GetEdgeList(ctx context.Context, load bool) <-chan *gripql.Edge

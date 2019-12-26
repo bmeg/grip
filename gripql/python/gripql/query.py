@@ -60,16 +60,15 @@ class Query(BaseConnection):
         id = _wrap_str_value(id)
         return self.__append({"e": id})
 
-    def Index(self, **kwds):
+    def Search(self, fields, term):
         """
         Start the query using an index query.
 
         the format is 'field'='search_value'
         """
         o = {}
-        for k, v in kwds.items():
-            o = {"field": k, "value": v}
-        return self.__append({"index": o})
+        o = {"fields": _wrap_str_value(fields), "term": term}
+        return self.__append({"search": o})
 
     def in_(self, label=[]):
         """

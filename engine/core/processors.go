@@ -146,7 +146,7 @@ func (l *LookupEdges) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 // LookupVertsIndex look up vertices by indexed based feature
 type LookupIndex struct {
 	db       gdbi.GraphInterface
-	query    *gripql.IndexQuery
+	query    *gripql.SearchQuery
 	loadData bool
 }
 
