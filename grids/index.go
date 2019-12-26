@@ -12,11 +12,11 @@ import (
 )
 
 func (kgraph *GDB) setupGraphIndex(graph string) error {
-	err := kgraph.idx.AddField(fmt.Sprintf("%s.v.label", graph))
+	err := kgraph.idx.AddField(fmt.Sprintf("%s.vlabel", graph))
 	if err != nil {
 		return fmt.Errorf("failed to setup index on vertex label")
 	}
-	err = kgraph.idx.AddField(fmt.Sprintf("%s.e.label", graph))
+	err = kgraph.idx.AddField(fmt.Sprintf("%s.elabel", graph))
 	if err != nil {
 		return fmt.Errorf("failed to setup index on edge label")
 	}
@@ -48,16 +48,16 @@ func vertexIdxStruct(v *gripql.Vertex) map[string]interface{} {
 	k := map[string]interface{}{
 		"v": protoutil.AsMap(v.Data),
 	}
-	k["label"] = v.Label
+	k["vlabel"] = v.Label
 	return k
 }
 
 func edgeIdxStruct(e *gripql.Edge) map[string]interface{} {
 	k := map[string]interface{}{
 		"e": map[string]interface{}{
-			"label": e.Label,
 			e.Label: protoutil.AsMap(e.Data),
 		},
+		"elabel": e.Label,
 	}
 	return k
 }
@@ -103,7 +103,7 @@ func (ggraph *Graph) VertexLabelScan(ctx context.Context, label string) chan str
 	go func() {
 		defer close(out)
 		//log.Printf("Searching %s %s", fmt.Sprintf("%s.label", ggraph.graph), label)
-		for i := range ggraph.kdb.idx.GetTermMatch(ctx, fmt.Sprintf("%s.v.label", ggraph.graphID), label, 0) {
+		for i := range ggraph.kdb.idx.GetTermMatch(ctx, fmt.Sprintf("%s.vlabel", ggraph.graphID), label, 0) {
 			//log.Printf("Found: %s", i)
 			out <- i
 		}
@@ -122,4 +122,24 @@ func (ggraph *Graph) VertexIndexScan(ctx context.Context, query *gripql.SearchQu
 		}
 	}()
 	return out
+}
+
+// ListVertexLabels returns a list of vertex types in the graph
+func (ggraph *Graph) ListVertexLabels() ([]string, error) {
+	labelField := fmt.Sprintf("%s.vlabel", ggraph.graphID)
+	labels := []string{}
+	for i := range ggraph.kdb.idx.FieldTerms(labelField) {
+		labels = append(labels, i.(string))
+	}
+	return labels, nil
+}
+
+// ListEdgeLabels returns a list of edge types in the graph
+func (ggraph *Graph) ListEdgeLabels() ([]string, error) {
+	labelField := fmt.Sprintf("%s.elabel", ggraph.graphID)
+	labels := []string{}
+	for i := range ggraph.kdb.idx.FieldTerms(labelField) {
+		labels = append(labels, i.(string))
+	}
+	return labels, nil
 }
