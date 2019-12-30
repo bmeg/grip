@@ -10,8 +10,8 @@ import (
 	"github.com/bmeg/grip/jsonpath"
 	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/protoutil"
-	"github.com/globalsign/mgo"
-	"github.com/globalsign/mgo/bson"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 // AddVertexIndex add index to vertices
@@ -24,7 +24,7 @@ func (mg *Graph) AddVertexIndex(label string, field string) error {
 	defer session.Close()
 	session.ResetIndexCache()
 	c := mg.ar.VertexCollection(session, mg.graph)
-	return c.EnsureIndex(mgo.Index{
+	return c.EnsureIndex(mongo.Index{
 		Key:        []string{"label", field},
 		Unique:     false,
 		DropDups:   false,

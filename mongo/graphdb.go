@@ -9,8 +9,8 @@ import (
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/timestamp"
-	"github.com/globalsign/mgo"
-	"github.com/globalsign/mgo/bson"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 // Config describes the configuration for the mongodb driver.
@@ -27,7 +27,7 @@ type Config struct {
 type GraphDB struct {
 	database string
 	conf     Config
-	session  *mgo.Session
+	client   *mongo.Client
 	ts       *timestamp.Timestamp
 }
 
@@ -92,13 +92,13 @@ func (ma *GraphDB) Close() error {
 }
 
 // VertexCollection returns a *mgo.Collection
-func (ma *GraphDB) VertexCollection(session *mgo.Session, graph string) *mgo.Collection {
-	return session.DB(ma.database).C(fmt.Sprintf("%s_vertices", graph))
+func (ma *GraphDB) VertexCollection(graph string) *mongo.Collection {
+	return ma.Client.Database(ma.database).Collection(fmt.Sprintf("%s_vertices", graph))
 }
 
 // EdgeCollection returns a *mgo.Collection
-func (ma *GraphDB) EdgeCollection(session *mgo.Session, graph string) *mgo.Collection {
-	return session.DB(ma.database).C(fmt.Sprintf("%s_edges", graph))
+func (ma *GraphDB) EdgeCollection(graph string) *mongo.Collection {
+	return ma.Database(ma.database).Collection(fmt.Sprintf("%s_edges", graph))
 }
 
 // AddGraph creates a new graph named `graph`
