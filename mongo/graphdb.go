@@ -4,12 +4,14 @@ import (
 	"fmt"
 	"strings"
 	"time"
+	"context"
 
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/timestamp"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/bson"
 )
 
@@ -41,6 +43,19 @@ func NewGraphDB(conf Config) (gdbi.GraphDB, error) {
 	}
 
 	ts := timestamp.NewTimestamp()
+	clientOpts := options.Client()
+
+	clientOpts.SetAppName("grip")
+	clientOpts.SetConnectTimeout(1 * time.Minute)
+	if conf.Username != "" || conf.Password != "" {
+		cred := options.Credential{Username:conf.Username, Password:conf.Password}
+		clientOpts.SetAuth(cred)
+	}
+	clientOpts.SetRetryReads(true)
+	clientOpts.SetRetryWrites(true)
+	clientOpts.ApplyURI(conf.URL)
+
+	/*
 	dialinfo := &mgo.DialInfo{
 		Addrs:         []string{conf.URL},
 		Timeout:       1 * time.Minute,
@@ -55,50 +70,54 @@ func NewGraphDB(conf Config) (gdbi.GraphDB, error) {
 		MinPoolSize:   10,
 		MaxIdleTimeMS: 600000, // 10 minutes
 	}
-	session, err := mgo.DialWithInfo(dialinfo)
+	*/
+
+	client, err := mongo.NewClient(clientOpts)
 	if err != nil {
 		return nil, err
 	}
-	session.SetSyncTimeout(1 * time.Minute)
-	session.SetCursorTimeout(0)
 
+	/*
 	b, _ := session.BuildInfo()
 	if !b.VersionAtLeast(3, 6) {
 		session.Close()
 		return nil, fmt.Errorf("requires mongo 3.6 or later")
 	}
+	*/
+
 	if conf.BatchSize == 0 {
 		conf.BatchSize = 1000
 	}
-	db := &GraphDB{database: database, conf: conf, session: session, ts: &ts}
+	db := &GraphDB{database: database, conf: conf, client: client, ts: &ts}
 	for _, g := range db.ListGraphs() {
 		g := g
 		db.ts.Touch(g)
+		/*
 		go func() {
 			err := db.setupIndices(g)
 			if err != nil {
 				log.WithFields(log.Fields{"error": err, "graph": g}).Error("Setting up indices")
 			}
 		}()
+		*/
 	}
 	return db, nil
 }
 
 // Close the connection
 func (ma *GraphDB) Close() error {
-	ma.session.Close()
-	ma.session = nil
+	ma.client = nil
 	return nil
 }
 
 // VertexCollection returns a *mgo.Collection
 func (ma *GraphDB) VertexCollection(graph string) *mongo.Collection {
-	return ma.Client.Database(ma.database).Collection(fmt.Sprintf("%s_vertices", graph))
+	return ma.client.Database(ma.database).Collection(fmt.Sprintf("%s_vertices", graph))
 }
 
 // EdgeCollection returns a *mgo.Collection
 func (ma *GraphDB) EdgeCollection(graph string) *mongo.Collection {
-	return ma.Database(ma.database).Collection(fmt.Sprintf("%s_edges", graph))
+	return ma.client.Database(ma.database).Collection(fmt.Sprintf("%s_edges", graph))
 }
 
 // AddGraph creates a new graph named `graph`
@@ -107,91 +126,27 @@ func (ma *GraphDB) AddGraph(graph string) error {
 	if err != nil {
 		return err
 	}
-
-	session := ma.session.Copy()
-	defer session.Close()
 	defer ma.ts.Touch(graph)
-
-	graphs := session.DB(ma.database).C("graphs")
-	err = graphs.Insert(bson.M{"_id": graph})
-	if err != nil {
-		return fmt.Errorf("failed to insert graph %s: %v", graph, err)
-	}
-
-	return ma.setupIndices(graph)
-}
-
-func (ma *GraphDB) setupIndices(graph string) error {
-	session := ma.session.Copy()
-	defer session.Close()
-	session.ResetIndexCache()
-
-	e := ma.EdgeCollection(session, graph)
-	err := e.EnsureIndex(mgo.Index{
-		Key:        []string{"from"},
-		Unique:     false,
-		DropDups:   false,
-		Sparse:     false,
-		Background: true,
-	})
-	if err != nil {
-		return fmt.Errorf("failed create index for graph %s: %v", graph, err)
-	}
-	err = e.EnsureIndex(mgo.Index{
-		Key:        []string{"to"},
-		Unique:     false,
-		DropDups:   false,
-		Sparse:     false,
-		Background: true,
-	})
-	if err != nil {
-		return fmt.Errorf("failed create index for graph %s: %v", graph, err)
-	}
-	err = e.EnsureIndex(mgo.Index{
-		Key:        []string{"label"},
-		Unique:     false,
-		DropDups:   false,
-		Sparse:     false,
-		Background: true,
-	})
-	if err != nil {
-		return fmt.Errorf("failed create index for graph %s: %v", graph, err)
-	}
-
-	v := ma.VertexCollection(session, graph)
-	err = v.EnsureIndex(mgo.Index{
-		Key:        []string{"label"},
-		Unique:     false,
-		DropDups:   false,
-		Sparse:     false,
-		Background: true,
-	})
-	if err != nil {
-		return fmt.Errorf("failed create index for graph %s: %v", graph, err)
-	}
-
-	return nil
+	return AddMongoGraph(ma.client, ma.database, graph)
 }
 
 // DeleteGraph deletes `graph`
 func (ma *GraphDB) DeleteGraph(graph string) error {
-	session := ma.session.Copy()
-	defer session.Close()
 	defer ma.ts.Touch(graph)
 
-	g := session.DB(ma.database).C("graphs")
-	v := ma.VertexCollection(session, graph)
-	e := ma.EdgeCollection(session, graph)
+	g := ma.client.Database(ma.database).Collection("graphs")
+	v := ma.VertexCollection(graph)
+	e := ma.EdgeCollection(graph)
 
-	verr := v.DropCollection()
+	verr := v.Drop(context.TODO())
 	if verr != nil {
 		log.WithFields(log.Fields{"error": verr, "graph": graph}).Error("DeleteGraph: MongoDB: dropping vertex collection")
 	}
-	eerr := e.DropCollection()
+	eerr := e.Drop(context.TODO())
 	if eerr != nil {
 		log.WithFields(log.Fields{"error": eerr, "graph": graph}).Error("DeleteGraph: MongoDB: dropping edge collection")
 	}
-	gerr := g.RemoveId(graph)
+	_, gerr := g.DeleteOne(context.TODO(), bson.M{"_id" : graph})
 	if gerr != nil {
 		log.WithFields(log.Fields{"error": gerr, "graph": graph}).Error("DeleteGraph: MongoDB: removing graph id")
 	}
@@ -205,22 +160,22 @@ func (ma *GraphDB) DeleteGraph(graph string) error {
 
 // ListGraphs lists the graphs managed by this driver
 func (ma *GraphDB) ListGraphs() []string {
-	session := ma.session.Copy()
-	defer session.Close()
-
 	out := make([]string, 0, 100)
-	g := session.DB(ma.database).C("graphs")
+	g := ma.client.Database(ma.database).Collection("graphs")
 
-	iter := g.Find(nil).Iter()
-	defer iter.Close()
+	cursor, err := g.Find(context.TODO(), nil)
+	if err != nil {
+		log.WithFields(log.Fields{"error": err}).Error("ListGraphs: MongoDB: list error")
+		return nil
+	}
 	result := map[string]interface{}{}
-	for iter.Next(&result) {
+	for cursor.Next(context.TODO()) {
+		cursor.Decode(&result)
 		out = append(out, result["_id"].(string))
 	}
-	if err := iter.Close(); err != nil {
+	if err := cursor.Close(context.TODO()); err != nil {
 		log.WithFields(log.Fields{"error": err}).Error("ListGraphs: MongoDB: iterating over graphs collection")
 	}
-
 	return out
 }
 

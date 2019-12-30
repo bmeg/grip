@@ -63,82 +63,6 @@ func boolPtr(a bool) *bool {
 	return &a
 }
 
-func vertexCollection(session *mgo.Client, database string, graph string) *mgo.Collection {
-	return session.Database(database).Collection(fmt.Sprintf("%s_vertices", graph))
-}
-
-func edgeCollection(session *mgo.Client, database string, graph string) *mgo.Collection {
-	return session.Database(database).Collection(fmt.Sprintf("%s_edges", graph))
-}
-
-func addGraph(client *mgo.Client, database string, graph string) error {
-	graphs := client.Database(database).Collection("graphs")
-	_, err := graphs.InsertOne(context.Background(), bson.M{"_id": graph})
-	if err != nil {
-		return fmt.Errorf("failed to insert graph %s: %v", graph, err)
-	}
-
-	e := edgeCollection(client, database, graph)
-	eiv := e.Indexes()
-	_, err = eiv.CreateOne(
-		context.Background(),
-		mgo.IndexModel{
-			Keys: []string{"from"},
-			Options: &options.IndexOptions{
-				Unique:     boolPtr(false),
-				Sparse:     boolPtr(false),
-				Background: boolPtr(true),
-			},
-		})
-	if err != nil {
-		return fmt.Errorf("failed create index for graph %s: %v", graph, err)
-	}
-
-	_, err = eiv.CreateOne(
-		context.Background(),
-		mgo.IndexModel{
-			Keys: []string{"to"},
-			Options: &options.IndexOptions{
-				Unique:     boolPtr(false),
-				Sparse:     boolPtr(false),
-				Background: boolPtr(true),
-			},
-		})
-	if err != nil {
-		return fmt.Errorf("failed create index for graph %s: %v", graph, err)
-	}
-
-	_, err = eiv.CreateOne(
-		context.Background(),
-		mgo.IndexModel{
-			Keys: []string{"label"},
-			Options: &options.IndexOptions{
-				Unique:     boolPtr(false),
-				Sparse:     boolPtr(false),
-				Background: boolPtr(true),
-			},
-		})
-	if err != nil {
-		return fmt.Errorf("failed create index for graph %s: %v", graph, err)
-	}
-
-	v := vertexCollection(client, database, graph)
-	viv := v.Indexes()
-	_, err = viv.CreateOne(
-		context.Background(),
-		mgo.IndexModel{
-			Keys: []string{"label"},
-			Options: &options.IndexOptions{
-				Unique:     boolPtr(false),
-				Sparse:     boolPtr(false),
-				Background: boolPtr(true),
-			},
-		})
-	if err != nil {
-		return fmt.Errorf("failed create index for graph %s: %v", graph, err)
-	}
-	return nil
-}
 
 func docWriter(col *mgo.Collection, docChan chan bson.M, sn *sync.WaitGroup) {
 	defer sn.Done()
@@ -174,7 +98,6 @@ var Cmd = &cobra.Command{
 
 		graph = args[0]
 
-
 		// Connect to mongo and start the bulk load process
 		log.Infof("Loading data into graph: %s", graph)
 		client, err := mgo.NewClient(options.Client().ApplyURI(mongoHost))
@@ -184,7 +107,7 @@ var Cmd = &cobra.Command{
 		ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
 		err = client.Connect(ctx)
 
-		addGraph(client, database, graph)
+		mongo.AddMongoGraph(client, database, graph)
 
 		vertexCol := client.Database(database).Collection(fmt.Sprintf("%s_vertices", graph))
 		edgeCol := client.Database(database).Collection(fmt.Sprintf("%s_edges", graph))

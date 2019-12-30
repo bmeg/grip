@@ -11,6 +11,7 @@ import (
 	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/protoutil"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/bson"
 )
 
@@ -20,17 +21,18 @@ func (mg *Graph) AddVertexIndex(label string, field string) error {
 	field = jsonpath.GetJSONPath(field)
 	field = strings.TrimPrefix(field, "$.")
 
-	session := mg.ar.session.Copy()
-	defer session.Close()
-	session.ResetIndexCache()
-	c := mg.ar.VertexCollection(session, mg.graph)
-	return c.EnsureIndex(mongo.Index{
-		Key:        []string{"label", field},
-		Unique:     false,
-		DropDups:   false,
-		Sparse:     true,
-		Background: true,
+	idx := mg.ar.VertexCollection(mg.graph).Indexes()
+
+	_, err := idx.CreateOne(
+		context.Background(),
+		mongo.IndexModel{
+			Keys: []string{"label", field},
+			Options: options.Index().SetUnique(false).SetSparse(true).SetBackground(true),
 	})
+	if err != nil {
+		return fmt.Errorf("failed create index %s %s %s: %v", label, field, err)
+	}
+	return nil
 }
 
 // DeleteVertexIndex delete index from vertices
@@ -39,10 +41,21 @@ func (mg *Graph) DeleteVertexIndex(label string, field string) error {
 	field = jsonpath.GetJSONPath(field)
 	field = strings.TrimPrefix(field, "$.")
 
-	session := mg.ar.session.Copy()
-	defer session.Close()
-	c := mg.ar.VertexCollection(session, mg.graph)
-	return c.DropIndex("label", field)
+	idx := mg.ar.VertexCollection(mg.graph).Indexes()
+	cursor, err := idx.List(context.TODO())
+	var results []bson.M
+	if err = cursor.All(context.TODO(), &results); err != nil {
+	   return err
+	}
+	for _, rec := range results {
+		recKeys := rec["key"].(bson.M)
+		if _, ok := recKeys["label"]; ok {
+			if _, ok := recKeys[field]; ok {
+				idx.DropOne(context.TODO(), rec["name"].(string))
+			}
+		}
+	}
+	return nil
 }
 
 // GetVertexIndexList lists indices
@@ -51,31 +64,42 @@ func (mg *Graph) GetVertexIndexList() <-chan *gripql.IndexID {
 	out := make(chan *gripql.IndexID)
 
 	go func() {
-		session := mg.ar.session.Copy()
-		defer session.Close()
 		defer close(out)
-
-		c := mg.ar.VertexCollection(session, mg.graph)
+		c := mg.ar.VertexCollection(mg.graph)
 
 		// get all unique labels
-		var labels []string
-		err := c.Find(nil).Distinct("label", &labels)
+		outLabels, err := c.Distinct(context.TODO(), "label", nil)
 		if err != nil {
 			log.WithFields(log.Fields{"error": err}).Error("GetVertexIndexList: finding distinct labels")
 		}
-
-		// list indexed fields
-		idxList, err := c.Indexes()
-		if err != nil {
-			log.WithFields(log.Fields{"error": err}).Error("GetVertexIndexList: listing indices")
-			return
+		labels := make([]string, len(outLabels))
+		for i := range outLabels {
+			labels[i] = outLabels[i].(string)
 		}
 
-		for _, idx := range idxList {
-			if len(idx.Key) > 1 && idx.Key[0] == "label" {
-				f := strings.TrimPrefix(idx.Key[1], "data.")
-				for _, l := range labels {
-					out <- &gripql.IndexID{Graph: mg.graph, Label: l, Field: f}
+		// list indexed fields
+		idx := c.Indexes()
+		cursor, err := idx.List(context.TODO())
+		var idxList []bson.M
+		if err = cursor.All(context.TODO(), &idxList); err != nil {
+			log.WithFields(log.Fields{"error": err}).Error("GetVertexIndexList: finding indexed fields")
+		}
+		for _, rec := range idxList {
+			recKeys := rec["key"].(bson.M)
+			if len(recKeys) > 1 {
+				if _, ok := recKeys["label"]; ok {
+					key := ""
+					for k := range recKeys {
+						if k != "label" {
+							key = k
+						}
+					}
+					if len(key) > 0 {
+						f := strings.TrimPrefix(key, "data.")
+						for _, l := range labels {
+							out <- &gripql.IndexID{Graph: mg.graph, Label: l, Field: f}
+						}
+					}
 				}
 			}
 		}
@@ -113,14 +137,14 @@ func (mg *Graph) GetVertexTermAggregation(ctx context.Context, label string, fie
 		ag = append(ag, bson.M{"$limit": size})
 	}
 
-	session := mg.ar.session.Copy()
-	defer session.Close()
-	vcol := mg.ar.VertexCollection(session, mg.graph)
-	pipe := vcol.Pipe(ag)
-	iter := pipe.Iter()
-	defer iter.Close()
+	vcol := mg.ar.VertexCollection(mg.graph)
+	cursor, err := vcol.Aggregate(context.TODO(), ag)
+	if err != nil {
+		return nil, err
+	}
 	result := map[string]interface{}{}
-	for iter.Next(&result) {
+	for cursor.Next(context.TODO()) {
+		cursor.Decode(&result)
 		term := protoutil.WrapValue(result["_id"])
 		count, ok := result["count"].(int)
 		if !ok {
@@ -128,7 +152,7 @@ func (mg *Graph) GetVertexTermAggregation(ctx context.Context, label string, fie
 		}
 		out.SortedInsert(&gripql.AggregationResultBucket{Key: term, Value: float64(count)})
 	}
-	if err := iter.Close(); err != nil {
+	if err := cursor.Close(context.TODO()); err != nil {
 		return nil, fmt.Errorf("error occurred while iterating: %v", err)
 	}
 	return out, nil
@@ -168,14 +192,15 @@ func (mg *Graph) GetVertexHistogramAggregation(ctx context.Context, label string
 		},
 	}
 
-	session := mg.ar.session.Copy()
-	defer session.Close()
-	vcol := mg.ar.VertexCollection(session, mg.graph)
-	pipe := vcol.Pipe(ag)
-	iter := pipe.Iter()
-	defer iter.Close()
+	vcol := mg.ar.VertexCollection(mg.graph)
+	cursor, err := vcol.Aggregate(context.TODO(), ag)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(context.TODO())
 	result := map[string]interface{}{}
-	for iter.Next(&result) {
+	for cursor.Next(context.TODO()) {
+		cursor.Decode(&result)
 		term := protoutil.WrapValue(result["_id"])
 		count, ok := result["count"].(int)
 		if !ok {
@@ -183,7 +208,7 @@ func (mg *Graph) GetVertexHistogramAggregation(ctx context.Context, label string
 		}
 		out.Buckets = append(out.Buckets, &gripql.AggregationResultBucket{Key: term, Value: float64(count)})
 	}
-	if err := iter.Close(); err != nil {
+	if err := cursor.Close(context.TODO()); err != nil {
 		return nil, fmt.Errorf("error occurred while iterating: %v", err)
 	}
 	return out, nil
@@ -232,14 +257,15 @@ func (mg *Graph) GetVertexPercentileAggregation(ctx context.Context, label strin
 	stmt = append(stmt, bson.M{"$unwind": "$results"})
 	stmt = append(stmt, bson.M{"$project": bson.M{"_id": "$results._id", "count": "$results.count"}})
 
-	session := mg.ar.session.Copy()
-	defer session.Close()
-	vcol := mg.ar.VertexCollection(session, mg.graph)
-	pipe := vcol.Pipe(stmt)
-	iter := pipe.Iter()
-	defer iter.Close()
+	vcol := mg.ar.VertexCollection(mg.graph)
+	cursor, err := vcol.Aggregate(context.TODO(), stmt)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(context.TODO())
 	result := map[string]interface{}{}
-	for iter.Next(&result) {
+	for cursor.Next(context.TODO()) {
+		cursor.Decode(&result)
 		bid := strings.Replace(result["_id"].(string), "_", ".", -1)
 		f, err := strconv.ParseFloat(bid, 64)
 		if err != nil {
@@ -252,7 +278,7 @@ func (mg *Graph) GetVertexPercentileAggregation(ctx context.Context, label strin
 		}
 		out.Buckets = append(out.Buckets, &gripql.AggregationResultBucket{Key: term, Value: val})
 	}
-	if err := iter.Close(); err != nil {
+	if err := cursor.Close(context.TODO()); err != nil {
 		return nil, fmt.Errorf("error occurred while iterating: %v", err)
 	}
 
@@ -265,32 +291,30 @@ func (mg *Graph) VertexLabelScan(ctx context.Context, label string) chan string 
 	out := make(chan string, 100)
 	go func() {
 		defer close(out)
-		session := mg.ar.session.Copy()
-		defer session.Close()
 		selection := map[string]interface{}{
 			"label": label,
 		}
-		vcol := mg.ar.VertexCollection(session, mg.graph)
-		iter := vcol.Find(selection).Select(map[string]interface{}{"_id": 1}).Iter()
-		defer iter.Close()
-		result := map[string]interface{}{}
-		for iter.Next(&result) {
-			select {
-			case <-ctx.Done():
-				return
-			default:
-			}
-			id := result["_id"]
-			if idb, ok := id.(bson.ObjectId); ok {
-				out <- idb.String()
-			} else {
-				out <- id.(string)
-			}
-		}
-		if err := iter.Close(); err != nil {
-			log.Errorln("VertexLabelScan error:", err)
-		}
+		vcol := mg.ar.VertexCollection(mg.graph)
+		opts := options.Find()
+		opts.SetProjection(map[string]interface{}{"_id": 1, "label": 1})
 
+		cursor, err := vcol.Find(context.TODO(), selection, opts)
+		if err == nil {
+			defer cursor.Close(context.TODO())
+			result := map[string]interface{}{}
+			for cursor.Next(context.TODO()) {
+				select {
+				case <-ctx.Done():
+					return
+				default:
+				}
+				cursor.Decode(&result)
+				//BUG: return stuff here
+			}
+			if err := cursor.Close(context.TODO()); err != nil {
+				log.Errorln("VertexLabelScan error:", err)
+			}
+		}
 	}()
 	return out
 }

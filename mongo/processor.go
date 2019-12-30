@@ -50,23 +50,22 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 	plog.WithFields(log.Fields{"query": proc.query, "query_collection": proc.startCollection}).Debug("Running Mongo Processor")
 
 	go func() {
-		session := proc.db.ar.session.Copy()
-		defer session.Close()
 		defer close(out)
 
-		initCol := session.DB(proc.db.ar.database).C(proc.startCollection)
+		initCol := proc.db.ar.client.Database(proc.db.ar.database).Collection(proc.startCollection)
 		for t := range in {
 			nResults := 0
-			iter := initCol.Pipe(proc.query).AllowDiskUse().Iter()
-			defer iter.Close()
+			cursor, _ := initCol.Aggregate(context.TODO(), proc.query)
+			defer cursor.Close(context.TODO())
 			result := map[string]interface{}{}
-			for iter.Next(&result) {
+			for cursor.Next(context.TODO()) {
 				nResults++
 				select {
 				case <-ctx.Done():
 					return
 				default:
 				}
+				cursor.Decode(&result)
 
 				switch proc.dataType {
 				case gdbi.CountData:
@@ -187,7 +186,7 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 					out <- t.AddCurrent(de)
 				}
 			}
-			if err := iter.Close(); err != nil {
+			if err := cursor.Close(context.TODO()); err != nil {
 				plog.WithFields(log.Fields{"error": err}).Error("MongoDb: iterating results")
 				continue
 			}
