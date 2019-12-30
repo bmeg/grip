@@ -272,13 +272,13 @@ func (ma *GraphDB) resolveLabels(graph string, ft fromto) fromto {
 			result := map[string]string{}
 			opts := options.Find()
 			opts.SetProjection(bson.M{"_id": -1, "label": 1})
-			cursor := v.FindOne(context.TODO(), bson.M{"_id":fromID})
+			cursor := v.FindOne(context.TODO(), bson.M{"_id": fromID})
 			if cursor.Err() == nil {
 				cursor.Decode(&result)
 				from = result["label"]
 			}
 			result = map[string]string{}
-			cursor = v.FindOne(context.TODO(), bson.M{"_id" : toID})
+			cursor = v.FindOne(context.TODO(), bson.M{"_id": toID})
 			if cursor.Err() == nil {
 				cursor.Decode(&result)
 				to = result["label"]

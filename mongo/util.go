@@ -1,11 +1,12 @@
 package mongo
 
 import (
-  "fmt"
-  "context"
-  "go.mongodb.org/mongo-driver/bson"
-  "go.mongodb.org/mongo-driver/mongo/options"
-  mgo "go.mongodb.org/mongo-driver/mongo"
+	"context"
+	"fmt"
+
+	"go.mongodb.org/mongo-driver/bson"
+	mgo "go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 func GetVertexCollection(session *mgo.Client, database string, graph string) *mgo.Collection {
@@ -28,17 +29,7 @@ func AddMongoGraph(client *mgo.Client, database string, graph string) error {
 	_, err = eiv.CreateOne(
 		context.Background(),
 		mgo.IndexModel{
-			Keys: []string{"from"},
-			Options: options.Index().SetUnique(false).SetSparse(false).SetBackground(true),
-	})
-	if err != nil {
-		return fmt.Errorf("failed create index for graph %s: %v", graph, err)
-	}
-
-	_, err = eiv.CreateOne(
-		context.Background(),
-		mgo.IndexModel{
-			Keys: []string{"to"},
+			Keys:    []string{"from"},
 			Options: options.Index().SetUnique(false).SetSparse(false).SetBackground(true),
 		})
 	if err != nil {
@@ -48,7 +39,17 @@ func AddMongoGraph(client *mgo.Client, database string, graph string) error {
 	_, err = eiv.CreateOne(
 		context.Background(),
 		mgo.IndexModel{
-			Keys: []string{"label"},
+			Keys:    []string{"to"},
+			Options: options.Index().SetUnique(false).SetSparse(false).SetBackground(true),
+		})
+	if err != nil {
+		return fmt.Errorf("failed create index for graph %s: %v", graph, err)
+	}
+
+	_, err = eiv.CreateOne(
+		context.Background(),
+		mgo.IndexModel{
+			Keys:    []string{"label"},
 			Options: options.Index().SetUnique(false).SetSparse(false).SetBackground(true),
 		})
 	if err != nil {
@@ -60,7 +61,7 @@ func AddMongoGraph(client *mgo.Client, database string, graph string) error {
 	_, err = viv.CreateOne(
 		context.Background(),
 		mgo.IndexModel{
-			Keys: []string{"label"},
+			Keys:    []string{"label"},
 			Options: options.Index().SetUnique(false).SetSparse(false).SetBackground(true),
 		})
 	if err != nil {

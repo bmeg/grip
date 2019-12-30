@@ -3,6 +3,7 @@ package mongo
 import (
 	"context"
 	"fmt"
+
 	//"io"
 	//"strings"
 
@@ -12,9 +13,9 @@ import (
 	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/timestamp"
 	"github.com/bmeg/grip/util"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/bson"
 )
 
 // Graph is the interface to a single graph
@@ -121,7 +122,7 @@ func (mg *Graph) deleteConnectedEdges(key string) error {
 // DelVertex deletes vertex with id `key`
 func (mg *Graph) DelVertex(key string) error {
 	vCol := mg.ar.VertexCollection(mg.graph)
-	_, err := vCol.DeleteOne(context.TODO(), bson.M{"_id":key})
+	_, err := vCol.DeleteOne(context.TODO(), bson.M{"_id": key})
 	if err != nil {
 		return fmt.Errorf("failed to delete vertex %s: %s", key, err)
 	}
@@ -136,7 +137,7 @@ func (mg *Graph) DelVertex(key string) error {
 // DelEdge deletes edge with id `key`
 func (mg *Graph) DelEdge(key string) error {
 	eCol := mg.ar.EdgeCollection(mg.graph)
-	_, err := eCol.DeleteOne(context.TODO(), bson.M{"_id":key})
+	_, err := eCol.DeleteOne(context.TODO(), bson.M{"_id": key})
 	if err != nil {
 		return fmt.Errorf("failed to delete edge %s: %s", key, err)
 	}

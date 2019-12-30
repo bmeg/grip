@@ -1,18 +1,18 @@
 package mongo
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
-	"context"
 
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/timestamp"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/bson"
 )
 
 // Config describes the configuration for the mongodb driver.
@@ -48,7 +48,7 @@ func NewGraphDB(conf Config) (gdbi.GraphDB, error) {
 	clientOpts.SetAppName("grip")
 	clientOpts.SetConnectTimeout(1 * time.Minute)
 	if conf.Username != "" || conf.Password != "" {
-		cred := options.Credential{Username:conf.Username, Password:conf.Password}
+		cred := options.Credential{Username: conf.Username, Password: conf.Password}
 		clientOpts.SetAuth(cred)
 	}
 	clientOpts.SetRetryReads(true)
@@ -56,20 +56,20 @@ func NewGraphDB(conf Config) (gdbi.GraphDB, error) {
 	clientOpts.ApplyURI(conf.URL)
 
 	/*
-	dialinfo := &mgo.DialInfo{
-		Addrs:         []string{conf.URL},
-		Timeout:       1 * time.Minute,
-		Database:      conf.DBName,
-		Username:      conf.Username,
-		Password:      conf.Password,
-		AppName:       "grip",
-		ReadTimeout:   10 * time.Minute,
-		WriteTimeout:  10 * time.Minute,
-		PoolLimit:     4096,
-		PoolTimeout:   0,
-		MinPoolSize:   10,
-		MaxIdleTimeMS: 600000, // 10 minutes
-	}
+		dialinfo := &mgo.DialInfo{
+			Addrs:         []string{conf.URL},
+			Timeout:       1 * time.Minute,
+			Database:      conf.DBName,
+			Username:      conf.Username,
+			Password:      conf.Password,
+			AppName:       "grip",
+			ReadTimeout:   10 * time.Minute,
+			WriteTimeout:  10 * time.Minute,
+			PoolLimit:     4096,
+			PoolTimeout:   0,
+			MinPoolSize:   10,
+			MaxIdleTimeMS: 600000, // 10 minutes
+		}
 	*/
 
 	client, err := mongo.NewClient(clientOpts)
@@ -78,11 +78,11 @@ func NewGraphDB(conf Config) (gdbi.GraphDB, error) {
 	}
 
 	/*
-	b, _ := session.BuildInfo()
-	if !b.VersionAtLeast(3, 6) {
-		session.Close()
-		return nil, fmt.Errorf("requires mongo 3.6 or later")
-	}
+		b, _ := session.BuildInfo()
+		if !b.VersionAtLeast(3, 6) {
+			session.Close()
+			return nil, fmt.Errorf("requires mongo 3.6 or later")
+		}
 	*/
 
 	if conf.BatchSize == 0 {
@@ -93,12 +93,12 @@ func NewGraphDB(conf Config) (gdbi.GraphDB, error) {
 		g := g
 		db.ts.Touch(g)
 		/*
-		go func() {
-			err := db.setupIndices(g)
-			if err != nil {
-				log.WithFields(log.Fields{"error": err, "graph": g}).Error("Setting up indices")
-			}
-		}()
+			go func() {
+				err := db.setupIndices(g)
+				if err != nil {
+					log.WithFields(log.Fields{"error": err, "graph": g}).Error("Setting up indices")
+				}
+			}()
 		*/
 	}
 	return db, nil
@@ -146,7 +146,7 @@ func (ma *GraphDB) DeleteGraph(graph string) error {
 	if eerr != nil {
 		log.WithFields(log.Fields{"error": eerr, "graph": graph}).Error("DeleteGraph: MongoDB: dropping edge collection")
 	}
-	_, gerr := g.DeleteOne(context.TODO(), bson.M{"_id" : graph})
+	_, gerr := g.DeleteOne(context.TODO(), bson.M{"_id": graph})
 	if gerr != nil {
 		log.WithFields(log.Fields{"error": gerr, "graph": graph}).Error("DeleteGraph: MongoDB: removing graph id")
 	}

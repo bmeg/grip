@@ -1,20 +1,20 @@
 package mongoload
 
 import (
-	"fmt"
 	"context"
-	"time"
+	"fmt"
 	"sync"
+
 	//"io"
 	//"strings"
 
 	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/mongo"
 	"github.com/bmeg/grip/util"
+	"github.com/spf13/cobra"
+	"go.mongodb.org/mongo-driver/bson"
 	mgo "go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/bson"
-	"github.com/spf13/cobra"
 )
 
 var mongoHost = "localhost"
@@ -63,7 +63,6 @@ func boolPtr(a bool) *bool {
 	return &a
 }
 
-
 func docWriter(col *mgo.Collection, docChan chan bson.M, sn *sync.WaitGroup) {
 	defer sn.Done()
 	docBatch := make([]mgo.WriteModel, 0, batchSize)
@@ -84,7 +83,6 @@ func docWriter(col *mgo.Collection, docChan chan bson.M, sn *sync.WaitGroup) {
 	}
 }
 
-
 // Cmd is the declaration of the command line
 var Cmd = &cobra.Command{
 	Use:   "mongoload <graph>",
@@ -104,8 +102,7 @@ var Cmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
-		err = client.Connect(ctx)
+		err = client.Connect(context.TODO())
 
 		mongo.AddMongoGraph(client, database, graph)
 

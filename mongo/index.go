@@ -10,9 +10,9 @@ import (
 	"github.com/bmeg/grip/jsonpath"
 	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/protoutil"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/bson"
 )
 
 // AddVertexIndex add index to vertices
@@ -26,11 +26,11 @@ func (mg *Graph) AddVertexIndex(label string, field string) error {
 	_, err := idx.CreateOne(
 		context.Background(),
 		mongo.IndexModel{
-			Keys: []string{"label", field},
+			Keys:    []string{"label", field},
 			Options: options.Index().SetUnique(false).SetSparse(true).SetBackground(true),
-	})
+		})
 	if err != nil {
-		return fmt.Errorf("failed create index %s %s %s: %v", label, field, err)
+		return fmt.Errorf("failed create index %s %s %s", label, field, err)
 	}
 	return nil
 }
@@ -45,7 +45,7 @@ func (mg *Graph) DeleteVertexIndex(label string, field string) error {
 	cursor, err := idx.List(context.TODO())
 	var results []bson.M
 	if err = cursor.All(context.TODO(), &results); err != nil {
-	   return err
+		return err
 	}
 	for _, rec := range results {
 		recKeys := rec["key"].(bson.M)
