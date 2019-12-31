@@ -686,7 +686,7 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, er
 	// query must be less than 16MB limit
 	bsonSize, err := bson.Marshal(query)
 	if err != nil {
-		return &Pipeline{}, fmt.Errorf("failed to marshal query into BSON")
+		return &Pipeline{}, fmt.Errorf("failed to marshal query into BSON: %s", err)
 	}
 	if len(bsonSize) > 16000000 {
 		return &Pipeline{}, fmt.Errorf("BSON input query size: %v greater than max (16MB)", len(bsonSize))

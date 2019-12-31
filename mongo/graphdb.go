@@ -77,6 +77,12 @@ func NewGraphDB(conf Config) (gdbi.GraphDB, error) {
 		return nil, err
 	}
 
+	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
+	err = client.Connect(ctx)
+	if err != nil {
+		return nil, err
+	}
+	
 	/*
 		b, _ := session.BuildInfo()
 		if !b.VersionAtLeast(3, 6) {
@@ -163,7 +169,7 @@ func (ma *GraphDB) ListGraphs() []string {
 	out := make([]string, 0, 100)
 	g := ma.client.Database(ma.database).Collection("graphs")
 
-	cursor, err := g.Find(context.TODO(), nil)
+	cursor, err := g.Find(context.TODO(), bson.M{})
 	if err != nil {
 		log.WithFields(log.Fields{"error": err}).Error("ListGraphs: MongoDB: list error")
 		return nil
