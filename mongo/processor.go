@@ -11,14 +11,14 @@ import (
 	"github.com/bmeg/grip/protoutil"
 	"github.com/bmeg/grip/util"
 	structpb "github.com/golang/protobuf/ptypes/struct"
-	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 // Processor stores the information for a mongo aggregation pipeline
 type Processor struct {
 	db              *Graph
 	startCollection string
-	query           []bson.M
+	query           mongo.Pipeline
 	dataType        gdbi.DataType
 	markTypes       map[string]gdbi.DataType
 	aggTypes        map[string]*gripql.Aggregate
@@ -55,8 +55,12 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 		initCol := proc.db.ar.client.Database(proc.db.ar.database).Collection(proc.startCollection)
 		for t := range in {
 			nResults := 0
-			cursor, _ := initCol.Aggregate(context.TODO(), proc.query)
-			defer cursor.Close(context.TODO())
+			cursor, err := initCol.Aggregate(context.TODO(), proc.query)
+			if err != nil {
+				plog.Errorf("Query Error: %s", err)
+				continue
+			}
+			//defer cursor.Close(context.TODO())
 			result := map[string]interface{}{}
 			for cursor.Next(context.TODO()) {
 				nResults++
@@ -71,7 +75,7 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 				case gdbi.CountData:
 					eo := &gdbi.Traveler{}
 					if x, ok := result["count"]; ok {
-						eo.Count = uint32(x.(int))
+						eo.Count = uint32(x.(int32))
 					}
 					out <- eo
 

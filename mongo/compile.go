@@ -11,6 +11,7 @@ import (
 	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/protoutil"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 // Pipeline a set of runnable query operations
@@ -48,7 +49,7 @@ func NewCompiler(db *Graph) gdbi.Compiler {
 // Compile compiles a set of graph traversal statements into a mongo aggregation pipeline
 func (comp *Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, error) {
 	procs := []gdbi.Processor{}
-	query := []bson.M{}
+	query := bson.D{}
 	startCollection := ""
 	lastType := gdbi.NoData
 	markTypes := map[string]gdbi.DataType{}
@@ -67,7 +68,7 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, er
 			startCollection = vertCol
 			ids := protoutil.AsStringList(stmt.V)
 			if len(ids) > 0 {
-				query = append(query, bson.M{"$match": bson.M{"_id": bson.M{"$in": ids}}})
+				query = append(query, bson.E{"$match", bson.M{"_id": bson.M{"$in": ids}}})
 			}
 			lastType = gdbi.VertexData
 
@@ -78,7 +79,7 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, er
 			startCollection = edgeCol
 			ids := protoutil.AsStringList(stmt.E)
 			if len(ids) > 0 {
-				query = append(query, bson.M{"$match": bson.M{"_id": bson.M{"$in": ids}}})
+				query = append(query, bson.E{"$match", bson.M{"_id": bson.M{"$in": ids}}})
 			}
 			lastType = gdbi.EdgeData
 
@@ -89,8 +90,8 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, er
 			labels := append(protoutil.AsStringList(gs.GetIn()), protoutil.AsStringList(gs.GetInV())...)
 			if lastType == gdbi.VertexData {
 				query = append(query,
-					bson.M{
-						"$lookup": bson.M{
+					bson.E{
+						"$lookup", bson.M{
 							"from":         edgeCol,
 							"localField":   "_id",
 							"foreignField": "to",
@@ -98,8 +99,8 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, er
 						},
 					},
 				)
-				query = append(query, bson.M{"$unwind": "$dst"})
-				query = append(query, bson.M{"$project": bson.M{
+				query = append(query, bson.E{"$unwind", "$dst"})
+				query = append(query, bson.E{"$project", bson.M{
 					"_id":   "$dst._id",
 					"label": "$dst.label",
 					"data":  "$dst.data",
@@ -109,11 +110,11 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, er
 				}})
 			}
 			if len(labels) > 0 {
-				query = append(query, bson.M{"$match": bson.M{"label": bson.M{"$in": labels}}})
+				query = append(query, bson.E{"$match", bson.M{"label": bson.M{"$in": labels}}})
 			}
 			query = append(query,
-				bson.M{
-					"$lookup": bson.M{
+				bson.E{
+					"$lookup", bson.M{
 						"from":         vertCol,
 						"localField":   "from",
 						"foreignField": "_id",
@@ -121,8 +122,8 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, er
 					},
 				},
 			)
-			query = append(query, bson.M{"$unwind": "$dst"})
-			query = append(query, bson.M{"$project": bson.M{
+			query = append(query, bson.E{"$unwind", "$dst"})
+			query = append(query, bson.E{"$project", bson.M{
 				"_id":   "$dst._id",
 				"label": "$dst.label",
 				"data":  "$dst.data",
@@ -137,8 +138,8 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, er
 			labels := append(protoutil.AsStringList(gs.GetOut()), protoutil.AsStringList(gs.GetOutV())...)
 			if lastType == gdbi.VertexData {
 				query = append(query,
-					bson.M{
-						"$lookup": bson.M{
+					bson.E{
+						"$lookup", bson.M{
 							"from":         edgeCol,
 							"localField":   "_id",
 							"foreignField": "from",
@@ -146,8 +147,8 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, er
 						},
 					},
 				)
-				query = append(query, bson.M{"$unwind": "$dst"})
-				query = append(query, bson.M{"$project": bson.M{
+				query = append(query, bson.E{"$unwind", "$dst"})
+				query = append(query, bson.E{"$project", bson.M{
 					"_id":   "$dst._id",
 					"label": "$dst.label",
 					"data":  "$dst.data",
@@ -157,11 +158,11 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, er
 				}})
 			}
 			if len(labels) > 0 {
-				query = append(query, bson.M{"$match": bson.M{"label": bson.M{"$in": labels}}})
+				query = append(query, bson.E{"$match", bson.M{"label": bson.M{"$in": labels}}})
 			}
 			query = append(query,
-				bson.M{
-					"$lookup": bson.M{
+				bson.E{
+					"$lookup", bson.M{
 						"from":         vertCol,
 						"localField":   "to",
 						"foreignField": "_id",
@@ -169,8 +170,8 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, er
 					},
 				},
 			)
-			query = append(query, bson.M{"$unwind": "$dst"})
-			query = append(query, bson.M{"$project": bson.M{
+			query = append(query, bson.E{"$unwind", "$dst"})
+			query = append(query, bson.E{"$project", bson.M{
 				"_id":   "$dst._id",
 				"label": "$dst.label",
 				"data":  "$dst.data",
@@ -185,8 +186,8 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, er
 			labels := append(protoutil.AsStringList(gs.GetBoth()), protoutil.AsStringList(gs.GetBothV())...)
 			if lastType == gdbi.VertexData {
 				query = append(query,
-					bson.M{
-						"$lookup": bson.M{
+					bson.E{
+						"$lookup", bson.M{
 							"from": edgeCol,
 							"let":  bson.M{"vid": "$_id", "marks": "$marks"},
 							"pipeline": []bson.M{
@@ -208,8 +209,8 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, er
 						},
 					},
 				)
-				query = append(query, bson.M{"$unwind": "$dst"})
-				query = append(query, bson.M{"$project": bson.M{
+				query = append(query, bson.E{"$unwind", "$dst"})
+				query = append(query, bson.E{"$project", bson.M{
 					"_id":   "$dst._id",
 					"label": "$dst.label",
 					"data":  "$dst.data",
@@ -220,11 +221,11 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, er
 				}})
 			}
 			if len(labels) > 0 {
-				query = append(query, bson.M{"$match": bson.M{"label": bson.M{"$in": labels}}})
+				query = append(query, bson.E{"$match", bson.M{"label": bson.M{"$in": labels}}})
 			}
 			query = append(query,
-				bson.M{
-					"$lookup": bson.M{
+				bson.E{
+					"$lookup", bson.M{
 						"from": vertCol,
 						"let":  bson.M{"to": "$to", "from": "$from", "marks": "$marks", "vid": "$vid"},
 						"pipeline": []bson.M{
@@ -250,8 +251,8 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, er
 					},
 				},
 			)
-			query = append(query, bson.M{"$unwind": "$dst"})
-			query = append(query, bson.M{"$project": bson.M{
+			query = append(query, bson.E{"$unwind", "$dst"})
+			query = append(query, bson.E{"$project", bson.M{
 				"_id":   "$dst._id",
 				"label": "$dst.label",
 				"data":  "$dst.data",
@@ -264,8 +265,8 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, er
 				return &Pipeline{}, fmt.Errorf(`"inEdge" statement is only valid for the vertex type not: %s`, lastType.String())
 			}
 			query = append(query,
-				bson.M{
-					"$lookup": bson.M{
+				bson.E{
+					"$lookup", bson.M{
 						"from":         edgeCol,
 						"localField":   "_id",
 						"foreignField": "to",
@@ -273,8 +274,8 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, er
 					},
 				},
 			)
-			query = append(query, bson.M{"$unwind": "$dst"})
-			query = append(query, bson.M{"$project": bson.M{
+			query = append(query, bson.E{"$unwind", "$dst"})
+			query = append(query, bson.E{"$project", bson.M{
 				"_id":   "$dst._id",
 				"label": "$dst.label",
 				"data":  "$dst.data",
@@ -284,7 +285,7 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, er
 			}})
 			labels := protoutil.AsStringList(stmt.InE)
 			if len(labels) > 0 {
-				query = append(query, bson.M{"$match": bson.M{"label": bson.M{"$in": labels}}})
+				query = append(query, bson.E{"$match", bson.M{"label": bson.M{"$in": labels}}})
 			}
 			lastType = gdbi.EdgeData
 
@@ -293,8 +294,8 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, er
 				return &Pipeline{}, fmt.Errorf(`"outEdge" statement is only valid for the vertex type not: %s`, lastType.String())
 			}
 			query = append(query,
-				bson.M{
-					"$lookup": bson.M{
+				bson.E{
+					"$lookup", bson.M{
 						"from":         edgeCol,
 						"localField":   "_id",
 						"foreignField": "from",
@@ -302,8 +303,8 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, er
 					},
 				},
 			)
-			query = append(query, bson.M{"$unwind": "$dst"})
-			query = append(query, bson.M{"$project": bson.M{
+			query = append(query, bson.E{"$unwind", "$dst"})
+			query = append(query, bson.E{"$project", bson.M{
 				"_id":   "$dst._id",
 				"label": "$dst.label",
 				"data":  "$dst.data",
@@ -313,7 +314,7 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, er
 			}})
 			labels := protoutil.AsStringList(stmt.OutE)
 			if len(labels) > 0 {
-				query = append(query, bson.M{"$match": bson.M{"label": bson.M{"$in": labels}}})
+				query = append(query, bson.E{"$match", bson.M{"label": bson.M{"$in": labels}}})
 			}
 			lastType = gdbi.EdgeData
 
@@ -322,8 +323,8 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, er
 				return &Pipeline{}, fmt.Errorf(`"bothEdge" statement is only valid for the vertex type not: %s`, lastType.String())
 			}
 			query = append(query,
-				bson.M{
-					"$lookup": bson.M{
+				bson.E{
+					"$lookup", bson.M{
 						"from": edgeCol,
 						"let":  bson.M{"vid": "$_id", "marks": "$marks"},
 						"pipeline": []bson.M{
@@ -345,8 +346,8 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, er
 					},
 				},
 			)
-			query = append(query, bson.M{"$unwind": "$dst"})
-			query = append(query, bson.M{"$project": bson.M{
+			query = append(query, bson.E{"$unwind", "$dst"})
+			query = append(query, bson.E{"$project", bson.M{
 				"_id":   "$dst._id",
 				"label": "$dst.label",
 				"data":  "$dst.data",
@@ -356,7 +357,7 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, er
 			}})
 			labels := protoutil.AsStringList(stmt.BothE)
 			if len(labels) > 0 {
-				query = append(query, bson.M{"$match": bson.M{"label": bson.M{"$in": labels}}})
+				query = append(query, bson.E{"$match", bson.M{"label": bson.M{"$in": labels}}})
 			}
 			lastType = gdbi.EdgeData
 
@@ -365,7 +366,7 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, er
 				return &Pipeline{}, fmt.Errorf(`"has" statement is only valid for edge or vertex types not: %s`, lastType.String())
 			}
 			whereExpr := convertHasExpression(stmt.Has, false)
-			matchStmt := bson.M{"$match": whereExpr}
+			matchStmt := bson.E{"$match", whereExpr}
 			query = append(query, matchStmt)
 
 		case *gripql.GraphStatement_HasLabel:
@@ -379,7 +380,7 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, er
 			}
 			has := gripql.Within("_label", ilabels...)
 			whereExpr := convertHasExpression(has, false)
-			matchStmt := bson.M{"$match": whereExpr}
+			matchStmt := bson.E{"$match", whereExpr}
 			query = append(query, matchStmt)
 
 		case *gripql.GraphStatement_HasId:
@@ -393,7 +394,7 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, er
 			}
 			has := gripql.Within("_gid", iids...)
 			whereExpr := convertHasExpression(has, false)
-			matchStmt := bson.M{"$match": whereExpr}
+			matchStmt := bson.E{"$match", whereExpr}
 			query = append(query, matchStmt)
 
 		case *gripql.GraphStatement_HasKey:
@@ -407,27 +408,27 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, er
 				key = strings.TrimPrefix(key, "$.")
 				hasKeys[key] = bson.M{"$exists": true}
 			}
-			query = append(query, bson.M{"$match": hasKeys})
+			query = append(query, bson.E{"$match", hasKeys})
 
 		case *gripql.GraphStatement_Limit:
 			query = append(query,
-				bson.M{"$limit": stmt.Limit})
+				bson.E{"$limit", stmt.Limit})
 
 		case *gripql.GraphStatement_Skip:
 			query = append(query,
-				bson.M{"$skip": stmt.Skip})
+				bson.E{"$skip", stmt.Skip})
 
 		case *gripql.GraphStatement_Range:
 			query = append(query,
-				bson.M{"$skip": stmt.Range.Start})
+				bson.E{"$skip", stmt.Range.Start})
 			if stmt.Range.Stop != -1 {
 				query = append(query,
-					bson.M{"$limit": stmt.Range.Stop - stmt.Range.Start})
+					bson.E{"$limit", stmt.Range.Stop - stmt.Range.Start})
 			}
 
 		case *gripql.GraphStatement_Count:
 			query = append(query,
-				bson.M{"$count": "count"})
+				bson.E{"$count", "count"})
 			lastType = gdbi.CountData
 
 		case *gripql.GraphStatement_Distinct:
@@ -454,12 +455,12 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, er
 				k := strings.Replace(f, ".", "_", -1)
 				keys[k] = "$" + f
 			}
-			distinct := []bson.M{
+			distinct := []bson.E{
 				{
-					"$match": match,
+					"$match", match,
 				},
 				{
-					"$group": bson.M{
+					"$group", bson.M{
 						"_id": keys,
 						"dst": bson.M{"$first": "$$ROOT"},
 					},
@@ -467,9 +468,9 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, er
 			}
 			switch lastType {
 			case gdbi.VertexData:
-				distinct = append(distinct, bson.M{"$project": bson.M{"_id": "$dst._id", "label": "$dst.label", "data": "$dst.data", "marks": "$dst.marks"}})
+				distinct = append(distinct, bson.E{"$project", bson.M{"_id": "$dst._id", "label": "$dst.label", "data": "$dst.data", "marks": "$dst.marks"}})
 			case gdbi.EdgeData:
-				distinct = append(distinct, bson.M{"$project": bson.M{"_id": "$dst._id", "label": "$dst.label", "data": "$dst.data", "to": "$dst.to", "from": "$dst.from", "marks": "$dst.marks"}})
+				distinct = append(distinct, bson.E{"$project", bson.M{"_id": "$dst._id", "label": "$dst.label", "data": "$dst.data", "to": "$dst.to", "from": "$dst.from", "marks": "$dst.marks"}})
 			}
 			query = append(query, distinct...)
 
@@ -487,7 +488,7 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, er
 				return &Pipeline{}, fmt.Errorf(`"as" statement invalid; uses reserved name %s`, jsonpath.Current)
 			}
 			markTypes[stmt.As] = lastType
-			query = append(query, bson.M{"$addFields": bson.M{"marks": bson.M{stmt.As: "$$ROOT"}}})
+			query = append(query, bson.E{"$addFields", bson.M{"marks": bson.M{stmt.As: "$$ROOT"}}})
 
 		case *gripql.GraphStatement_Select:
 			if lastType != gdbi.VertexData && lastType != gdbi.EdgeData {
@@ -500,10 +501,10 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, er
 				mark := "$marks." + stmt.Select.Marks[0]
 				switch markTypes[stmt.Select.Marks[0]] {
 				case gdbi.VertexData:
-					query = append(query, bson.M{"$project": bson.M{"_id": mark + "._id", "label": mark + ".label", "data": mark + ".data", "marks": 1}})
+					query = append(query, bson.E{"$project", bson.M{"_id": mark + "._id", "label": mark + ".label", "data": mark + ".data", "marks": 1}})
 					lastType = gdbi.VertexData
 				case gdbi.EdgeData:
-					query = append(query, bson.M{"$project": bson.M{"_id": mark + "._id", "label": mark + ".label", "from": mark + ".from", "to": mark + ".to", "data": mark + ".data", "marks": 1}})
+					query = append(query, bson.E{"$project", bson.M{"_id": mark + "._id", "label": mark + ".label", "from": mark + ".from", "to": mark + ".to", "data": mark + ".data", "marks": 1}})
 					lastType = gdbi.EdgeData
 				}
 			default:
@@ -511,7 +512,7 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, er
 				for _, mark := range stmt.Select.Marks {
 					selection["marks."+mark] = 1
 				}
-				query = append(query, bson.M{"$project": selection})
+				query = append(query, bson.E{"$project", selection})
 				lastType = gdbi.SelectionData
 			}
 
@@ -574,7 +575,7 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, er
 				}
 			}
 
-			query = append(query, bson.M{"$project": fieldSelect})
+			query = append(query, bson.E{"$project", fieldSelect})
 
 		case *gripql.GraphStatement_Aggregate:
 			if lastType != gdbi.VertexData && lastType != gdbi.EdgeData {
@@ -675,7 +676,7 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, er
 					return &Pipeline{}, fmt.Errorf("%s uses an unknown aggregation type", a.Name)
 				}
 			}
-			query = append(query, bson.M{"$facet": aggs})
+			query = append(query, bson.E{"$facet", aggs})
 			lastType = gdbi.AggregationData
 
 		default:
@@ -692,6 +693,6 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, er
 		return &Pipeline{}, fmt.Errorf("BSON input query size: %v greater than max (16MB)", len(bsonSize))
 	}
 
-	procs = append([]gdbi.Processor{&Processor{comp.db, startCollection, query, lastType, markTypes, aggTypes}}, procs...)
+	procs = append([]gdbi.Processor{&Processor{comp.db, startCollection, mongo.Pipeline{query}, lastType, markTypes, aggTypes}}, procs...)
 	return &Pipeline{procs, lastType, markTypes}, nil
 }
