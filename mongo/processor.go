@@ -12,6 +12,7 @@ import (
 	"github.com/bmeg/grip/util"
 	structpb "github.com/golang/protobuf/ptypes/struct"
 	"go.mongodb.org/mongo-driver/mongo"
+	//"go.mongodb.org/mongo-driver/bson"
 )
 
 // Processor stores the information for a mongo aggregation pipeline
@@ -55,6 +56,7 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 		initCol := proc.db.ar.client.Database(proc.db.ar.database).Collection(proc.startCollection)
 		for t := range in {
 			nResults := 0
+			//plog.Infof("Running: %#v", proc.query)
 			cursor, err := initCol.Aggregate(context.TODO(), proc.query)
 			if err != nil {
 				plog.Errorf("Query Error: %s", err)
