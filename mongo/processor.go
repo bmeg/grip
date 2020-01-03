@@ -59,7 +59,7 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 			//plog.Infof("Running: %#v", proc.query)
 			cursor, err := initCol.Aggregate(context.TODO(), proc.query)
 			if err != nil {
-				plog.Errorf("Query Error: %s", err)
+				plog.Errorf("Query Error (%s) : %s", proc.query, err)
 				continue
 			}
 			//defer cursor.Close(context.TODO())

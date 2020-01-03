@@ -506,7 +506,7 @@ func (mg *Graph) GetInEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, ed
 // ListVertexLabels returns a list of vertex types in the graph
 func (mg *Graph) ListVertexLabels() ([]string, error) {
 	v := mg.ar.VertexCollection(mg.graph)
-	out, err := v.Distinct(context.TODO(), "label", nil)
+	out, err := v.Distinct(context.TODO(), "label", bson.M{})
 	if err != nil {
 		return nil, err
 	}
@@ -520,7 +520,7 @@ func (mg *Graph) ListVertexLabels() ([]string, error) {
 // ListEdgeLabels returns a list of edge types in the graph
 func (mg *Graph) ListEdgeLabels() ([]string, error) {
 	e := mg.ar.EdgeCollection(mg.graph)
-	out, err := e.Distinct(context.TODO(), "label", nil)
+	out, err := e.Distinct(context.TODO(), "label", bson.M{})
 	if err != nil {
 		return nil, err
 	}

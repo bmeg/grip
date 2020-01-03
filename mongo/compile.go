@@ -455,24 +455,22 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, er
 				k := strings.Replace(f, ".", "_", -1)
 				keys[k] = "$" + f
 			}
-			distinct := bson.D{
-				bson.E{
+			query = append(query, bson.D{{
 					"$match", match,
-				},
-				bson.E{
+			}})
+			query = append(query, bson.D{{
 					"$group", bson.M{
 						"_id": keys,
 						"dst": bson.M{"$first": "$$ROOT"},
 					},
 				},
-			}
+			})
 			switch lastType {
 			case gdbi.VertexData:
-				distinct = append(distinct, bson.E{"$project", bson.M{"_id": "$dst._id", "label": "$dst.label", "data": "$dst.data", "marks": "$dst.marks"}})
+				query = append(query, bson.D{{"$project", bson.M{"_id": "$dst._id", "label": "$dst.label", "data": "$dst.data", "marks": "$dst.marks"}}})
 			case gdbi.EdgeData:
-				distinct = append(distinct, bson.E{"$project", bson.M{"_id": "$dst._id", "label": "$dst.label", "data": "$dst.data", "to": "$dst.to", "from": "$dst.from", "marks": "$dst.marks"}})
+				query = append(query, bson.D{{"$project", bson.M{"_id": "$dst._id", "label": "$dst.label", "data": "$dst.data", "to": "$dst.to", "from": "$dst.from", "marks": "$dst.marks"}}})
 			}
-			query = append(query, distinct)
 
 		case *gripql.GraphStatement_As:
 			if lastType == gdbi.NoData {
