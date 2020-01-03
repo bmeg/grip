@@ -79,12 +79,15 @@ func (mg *Graph) AddVertex(vertices []*gripql.Vertex) error {
 	var err error
 	docBatch := make([]mongo.WriteModel, 0, len(vertices))
 	for _, v := range vertices {
-		i := mongo.NewInsertOneModel()
+		i := mongo.NewReplaceOneModel().SetUpsert(true).SetFilter(bson.M{"_id" : v.Gid})
 		ent := PackVertex(v)
-		i.SetDocument(ent)
+		i.SetReplacement(ent)
 		docBatch = append(docBatch, i)
 	}
 	_, err = vCol.BulkWrite(context.Background(), docBatch)
+	if err != nil {
+		log.Errorf("AddVertex error: (%s) %s", docBatch, err)
+	}
 	return err
 }
 
@@ -95,9 +98,9 @@ func (mg *Graph) AddEdge(edges []*gripql.Edge) error {
 	var err error
 	docBatch := make([]mongo.WriteModel, 0, len(edges))
 	for _, edge := range edges {
-		i := mongo.NewInsertOneModel()
+		i := mongo.NewReplaceOneModel().SetUpsert(true).SetFilter(bson.M{"_id" : edge.Gid})
 		ent := PackEdge(edge)
-		i.SetDocument(ent)
+		i.SetReplacement(ent)
 		docBatch = append(docBatch, i)
 	}
 	_, err = eCol.BulkWrite(context.Background(), docBatch)
