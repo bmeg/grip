@@ -12,7 +12,7 @@ import (
 	"github.com/bmeg/grip/util"
 	structpb "github.com/golang/protobuf/ptypes/struct"
 	"go.mongodb.org/mongo-driver/mongo"
-	//"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 // Processor stores the information for a mongo aggregation pipeline
@@ -102,9 +102,10 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 						out := &gripql.AggregationResult{
 							Buckets: []*gripql.AggregationResultBucket{},
 						}
-						buckets, ok := v.([]interface{})
+						//plog.Infof("Type: %T", v)
+						buckets, ok := v.(bson.A)
 						if !ok {
-							plog.Errorf("Failed to convert Mongo aggregation result: %+v", v)
+							plog.Errorf("Failed to convert Mongo aggregation result (%s): %+v", k, v)
 							continue
 						}
 						//if proc.aggTypes[k].GetHistogram() != nil {
@@ -114,7 +115,7 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 						for i, bucket := range buckets {
 							bucket, ok := bucket.(map[string]interface{})
 							if !ok {
-								plog.Errorf("Failed to convert Mongo aggregation result: %+v", bucket)
+								plog.Errorf("Failed to convert Mongo aggregation result bucket: %+v", bucket)
 								continue
 							}
 
@@ -148,6 +149,9 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 							switch bucket["count"].(type) {
 							case int:
 								count := bucket["count"].(int)
+								out.Buckets = append(out.Buckets, &gripql.AggregationResultBucket{Key: term, Value: float64(count)})
+							case int32:
+								count := bucket["count"].(int32)
 								out.Buckets = append(out.Buckets, &gripql.AggregationResultBucket{Key: term, Value: float64(count)})
 							case float64:
 								count := bucket["count"].(float64)
