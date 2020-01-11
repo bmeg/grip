@@ -56,7 +56,7 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 		initCol := proc.db.ar.client.Database(proc.db.ar.database).Collection(proc.startCollection)
 		for t := range in {
 			nResults := 0
-			plog.Infof("Running: %#v", proc.query)
+			//plog.Infof("Running: %#v", proc.query)
 			cursor, err := initCol.Aggregate(context.TODO(), proc.query)
 			if err != nil {
 				plog.Errorf("Query Error (%s) : %s", proc.query, err)
