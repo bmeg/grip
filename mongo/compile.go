@@ -158,7 +158,7 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, er
 				}}})
 			}
 			if len(labels) > 0 {
-				query = append(query, bson.D{{"$match", bson.E{"label", bson.E{"$in", labels}}}})
+				query = append(query, bson.D{{"$match", bson.M{"label": bson.M{"$in": labels}}}})
 			}
 			query = append(query,
 				bson.D{{
