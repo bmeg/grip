@@ -26,7 +26,7 @@ func (mg *Graph) AddVertexIndex(label string, field string) error {
 	_, err := idx.CreateOne(
 		context.Background(),
 		mongo.IndexModel{
-			Keys:    []string{"label", field},
+			Keys:     bson.M{"label":1, field:1},
 			Options: options.Index().SetUnique(false).SetSparse(true).SetBackground(true),
 		})
 	if err != nil {
@@ -67,14 +67,9 @@ func (mg *Graph) GetVertexIndexList() <-chan *gripql.IndexID {
 		defer close(out)
 		c := mg.ar.VertexCollection(mg.graph)
 
-		// get all unique labels
-		outLabels, err := c.Distinct(context.TODO(), "label", nil)
+		labels, err := mg.ListVertexLabels()
 		if err != nil {
 			log.WithFields(log.Fields{"error": err}).Error("GetVertexIndexList: finding distinct labels")
-		}
-		labels := make([]string, len(outLabels))
-		for i := range outLabels {
-			labels[i] = outLabels[i].(string)
 		}
 
 		// list indexed fields
