@@ -27,7 +27,7 @@ def test_simple(O):
         if row.label != "Reaction":
             errors.append("Wrong node label")
     if count != 4:
-        errors.append("Incorrect count")
+        errors.append("Incorrect count %d != %d" % (count, 4))
     return errors
 
 

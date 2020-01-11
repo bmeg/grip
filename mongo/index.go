@@ -304,6 +304,7 @@ func (mg *Graph) VertexLabelScan(ctx context.Context, label string) chan string 
 				default:
 				}
 				cursor.Decode(&result)
+				out <- result["_id"].(string)
 				//BUG: return stuff here
 			}
 			if err := cursor.Close(context.TODO()); err != nil {
