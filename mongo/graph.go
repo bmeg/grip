@@ -60,7 +60,7 @@ func (mg *Graph) GetVertex(id string, load bool) *gripql.Vertex {
 func (mg *Graph) GetEdge(id string, load bool) *gripql.Edge {
 	opts := options.FindOne()
 	if !load {
-		opts.SetProjection(map[string]interface{}{"_id": 1, "label": 1})
+		opts.SetProjection(map[string]interface{}{"_id": 1, "label": 1, "from": 1, "to": 1})
 	}
 	result := mg.ar.EdgeCollection(mg.graph).FindOne(context.TODO(), bson.M{"_id": id}, opts)
 	if result.Err() != nil {
@@ -159,7 +159,7 @@ func (mg *Graph) GetVertexList(ctx context.Context, load bool) <-chan *gripql.Ve
 		if !load {
 			opts.SetProjection(bson.M{"_id": 1, "label": 1})
 		}
-		query, err := vCol.Find(ctx, nil, opts)
+		query, err := vCol.Find(ctx, bson.M{}, opts)
 		if err != nil {
 			return
 		}
@@ -191,7 +191,7 @@ func (mg *Graph) GetEdgeList(ctx context.Context, loadProp bool) <-chan *gripql.
 		if !loadProp {
 			opts.SetProjection(bson.M{"_id": 1, "to": 1, "from": 1, "label": 1})
 		}
-		query, err := eCol.Find(ctx, nil, opts)
+		query, err := eCol.Find(ctx, bson.M{}, opts)
 		if err != nil {
 			return
 		}
