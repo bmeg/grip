@@ -35,7 +35,6 @@ def setupGraph(O):
     O.addEdge("4", "5", "created", {"weight": 1.0, "count": 35})
 
 
-
 def test_simple(O):
     errors = []
     setupGraph(O)
@@ -56,6 +55,7 @@ def test_simple(O):
     if count != 11:
         errors.append("Wrong number of results recieved")
     return errors
+
 
 def test_traversal_term_aggregation(O):
     errors = []
