@@ -70,7 +70,7 @@ jobs:
         - grip server --rpc-port 18202 --http-port 18201 --config ./test/mongo.yml &
         - sleep 5
         - make test-conformance
-        - go test ./test -config mongo-core-processor.yml
+        - go test ./test -config mongo.yml
       env:
         - n=mongodb
     - script:
