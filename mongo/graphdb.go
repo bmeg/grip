@@ -82,7 +82,7 @@ func NewGraphDB(conf Config) (gdbi.GraphDB, error) {
 	if err != nil {
 		return nil, err
 	}
-	
+
 	/*
 		b, _ := session.BuildInfo()
 		if !b.VersionAtLeast(3, 6) {

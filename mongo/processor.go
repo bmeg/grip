@@ -11,8 +11,8 @@ import (
 	"github.com/bmeg/grip/protoutil"
 	"github.com/bmeg/grip/util"
 	structpb "github.com/golang/protobuf/ptypes/struct"
-	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 // Processor stores the information for a mongo aggregation pipeline

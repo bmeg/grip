@@ -29,7 +29,7 @@ func AddMongoGraph(client *mgo.Client, database string, graph string) error {
 	_, err = eiv.CreateOne(
 		context.Background(),
 		mgo.IndexModel{
-			Keys:    bson.M{"from":1},
+			Keys:    bson.M{"from": 1},
 			Options: options.Index().SetUnique(false).SetSparse(false).SetBackground(true),
 		})
 	if err != nil {
@@ -39,7 +39,7 @@ func AddMongoGraph(client *mgo.Client, database string, graph string) error {
 	_, err = eiv.CreateOne(
 		context.Background(),
 		mgo.IndexModel{
-			Keys:    bson.M{"to":1},
+			Keys:    bson.M{"to": 1},
 			Options: options.Index().SetUnique(false).SetSparse(false).SetBackground(true),
 		})
 	if err != nil {
@@ -49,7 +49,7 @@ func AddMongoGraph(client *mgo.Client, database string, graph string) error {
 	_, err = eiv.CreateOne(
 		context.Background(),
 		mgo.IndexModel{
-			Keys:    bson.M{"label":1},
+			Keys:    bson.M{"label": 1},
 			Options: options.Index().SetUnique(false).SetSparse(false).SetBackground(true),
 		})
 	if err != nil {
@@ -61,7 +61,7 @@ func AddMongoGraph(client *mgo.Client, database string, graph string) error {
 	_, err = viv.CreateOne(
 		context.Background(),
 		mgo.IndexModel{
-			Keys:    bson.M{"label":1},
+			Keys:    bson.M{"label": 1},
 			Options: options.Index().SetUnique(false).SetSparse(false).SetBackground(true),
 		})
 	if err != nil {
