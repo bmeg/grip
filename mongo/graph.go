@@ -171,9 +171,12 @@ func (mg *Graph) GetVertexList(ctx context.Context, load bool) <-chan *gripql.Ve
 				return
 			default:
 			}
-			query.Decode(&result)
-			v := UnpackVertex(result)
-			o <- v
+			if err := query.Decode(&result); err == nil {
+				v := UnpackVertex(result)
+				o <- v
+			} else {
+				log.Errorf("Error decoding edge %#v", result)
+			}
 		}
 	}()
 
@@ -203,7 +206,7 @@ func (mg *Graph) GetEdgeList(ctx context.Context, loadProp bool) <-chan *gripql.
 				return
 			default:
 			}
-			if err := query.Decode(&result); err != nil {
+			if err := query.Decode(&result); err == nil {
 				if _, ok := result["to"]; ok {
 					e := UnpackEdge(result)
 					o <- e
