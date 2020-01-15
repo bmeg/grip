@@ -12,7 +12,7 @@ import (
 	"github.com/bmeg/grip/kvindex"
 	"github.com/bmeg/grip/log"
 	proto "github.com/golang/protobuf/proto"
-	"github.com/hashicorp/go-multierror"
+	multierror "github.com/hashicorp/go-multierror"
 )
 
 func contains(a []string, v string) bool {

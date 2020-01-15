@@ -26,6 +26,12 @@ type Config struct {
 	// Strategy to use for selecting the vertices/edges to inspect.
 	// Random if True; first N otherwise
 	SchemaRandomSample bool
+	// Configure how the server logs requests
+	RequestLogging struct {
+		Disable bool
+		// Which request headers to include the in the log
+		HeaderWhitelist []string
+	}
 }
 
 // HTTPAddress returns the HTTP address based on HostName and HTTPPort

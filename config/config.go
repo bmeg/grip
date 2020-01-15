@@ -55,6 +55,10 @@ func DefaultConfig() *Config {
 	c.Server.SchemaRefreshInterval = duration.Duration(24 * time.Hour)
 	c.Server.SchemaInspectN = 500
 	c.Server.SchemaRandomSample = true
+	c.Server.RequestLogging.HeaderWhitelist = []string{
+		"authorization", "oauthemail", "content-type", "content-length",
+		"forwarded", "x-forwarded-for", "x-forwarded-host", "user-agent",
+	}
 
 	c.RPCClient = rpc.ConfigWithDefaults(c.Server.RPCAddress())
 

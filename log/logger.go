@@ -39,6 +39,9 @@ type Logger struct {
 	TextFormat TextFormatConfig
 }
 
+// Entry is a logrus.Entry
+type Entry = logrus.Entry
+
 // JSONFormatConfig provides configuration for the JSON logger format.
 type JSONFormatConfig struct {
 	DisableTimestamp bool
