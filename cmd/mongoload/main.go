@@ -72,8 +72,11 @@ var Cmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		
-		mongo.AddMongoGraph(client, database, graph)
+
+		err = mongo.AddMongoGraph(client, database, graph)
+		if err != nil {
+			return err
+		}
 
 		vertexCol := client.Database(database).Collection(fmt.Sprintf("%s_vertices", graph))
 		edgeCol := client.Database(database).Collection(fmt.Sprintf("%s_edges", graph))

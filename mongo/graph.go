@@ -203,10 +203,13 @@ func (mg *Graph) GetEdgeList(ctx context.Context, loadProp bool) <-chan *gripql.
 				return
 			default:
 			}
-			query.Decode(&result)
-			if _, ok := result["to"]; ok {
-				e := UnpackEdge(result)
-				o <- e
+			if err := query.Decode(&result); err != nil {
+				if _, ok := result["to"]; ok {
+					e := UnpackEdge(result)
+					o <- e
+				}
+			} else {
+				log.Errorf("Error decoding edge %#v", result)
 			}
 		}
 	}()
@@ -252,9 +255,12 @@ func (mg *Graph) GetVertexChannel(ids chan gdbi.ElementLookup, load bool) chan g
 			chunk := map[string]*gripql.Vertex{}
 			result := map[string]interface{}{}
 			for cursor.Next(context.TODO()) {
-				cursor.Decode(&result)
-				v := UnpackVertex(result)
-				chunk[v.Gid] = v
+				if err := cursor.Decode(&result); err == nil {
+					v := UnpackVertex(result)
+					chunk[v.Gid] = v
+				} else {
+					log.WithFields(log.Fields{"error": err}).Error("Decode error")
+				}
 			}
 			if err := cursor.Close(context.TODO()); err != nil {
 				log.WithFields(log.Fields{"error": err}).Error("GetVertexChannel")
@@ -314,16 +320,19 @@ func (mg *Graph) GetOutChannel(reqChan chan gdbi.ElementLookup, load bool, edgeL
 			if err == nil {
 				result := map[string]interface{}{}
 				for cursor.Next(context.TODO()) {
-					cursor.Decode(&result)
-					if dst, ok := result["dst"].(map[string]interface{}); ok {
-						v := UnpackVertex(dst)
-						r := batchMap[result["from"].(string)]
-						for _, ri := range r {
-							ri.Vertex = v
-							o <- ri
+					if err := cursor.Decode(&result); err == nil {
+						if dst, ok := result["dst"].(map[string]interface{}); ok {
+							v := UnpackVertex(dst)
+							r := batchMap[result["from"].(string)]
+							for _, ri := range r {
+								ri.Vertex = v
+								o <- ri
+							}
+						} else {
+							log.WithFields(log.Fields{"result": result["dst"]}).Error("GetOutChannel: unable to cast result to map[string]interface{}")
 						}
 					} else {
-						log.WithFields(log.Fields{"result": result["dst"]}).Error("GetOutChannel: unable to cast result to map[string]interface{}")
+						log.WithFields(log.Fields{"result": result, "error": err}).Error("GetOutChannel: decode error")
 					}
 				}
 				if err := cursor.Close(context.TODO()); err != nil {
@@ -379,16 +388,19 @@ func (mg *Graph) GetInChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLa
 			if err == nil {
 				result := map[string]interface{}{}
 				for cursor.Next(context.TODO()) {
-					cursor.Decode(&result)
-					if src, ok := result["src"].(map[string]interface{}); ok {
-						v := UnpackVertex(src)
-						r := batchMap[result["to"].(string)]
-						for _, ri := range r {
-							ri.Vertex = v
-							o <- ri
+					if err := cursor.Decode(&result); err == nil {
+						if src, ok := result["src"].(map[string]interface{}); ok {
+							v := UnpackVertex(src)
+							r := batchMap[result["to"].(string)]
+							for _, ri := range r {
+								ri.Vertex = v
+								o <- ri
+							}
+						} else {
+							log.WithFields(log.Fields{"result": result["src"]}).Error("GetInChannel: unable to cast result to map[string]interface{}")
 						}
 					} else {
-						log.WithFields(log.Fields{"result": result["src"]}).Error("GetInChannel: unable to cast result to map[string]interface{}")
+						log.WithFields(log.Fields{"error": err}).Error("Decode")
 					}
 				}
 				if err := cursor.Close(context.TODO()); err != nil {
@@ -435,12 +447,15 @@ func (mg *Graph) GetOutEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, e
 			if err == nil {
 				result := map[string]interface{}{}
 				for cursor.Next(context.TODO()) {
-					cursor.Decode(&result)
-					e := UnpackEdge(result)
-					r := batchMap[result["from"].(string)]
-					for _, ri := range r {
-						ri.Edge = e
-						o <- ri
+					if err := cursor.Decode(&result); err == nil {
+						e := UnpackEdge(result)
+						r := batchMap[result["from"].(string)]
+						for _, ri := range r {
+							ri.Edge = e
+							o <- ri
+						}
+					} else {
+						log.WithFields(log.Fields{"error": err}).Error("Decode")
 					}
 				}
 				if err := cursor.Close(context.TODO()); err != nil {
@@ -488,12 +503,15 @@ func (mg *Graph) GetInEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, ed
 			if err == nil {
 				result := map[string]interface{}{}
 				for cursor.Next(context.TODO()) {
-					cursor.Decode(&result)
-					e := UnpackEdge(result)
-					r := batchMap[result["to"].(string)]
-					for _, ri := range r {
-						ri.Edge = e
-						o <- ri
+					if err := cursor.Decode(&result); err == nil {
+						e := UnpackEdge(result)
+						r := batchMap[result["to"].(string)]
+						for _, ri := range r {
+							ri.Edge = e
+							o <- ri
+						}
+					} else {
+						log.WithFields(log.Fields{"error": err}).Error("Decode")
 					}
 				}
 				if err := cursor.Close(context.TODO()); err != nil {
