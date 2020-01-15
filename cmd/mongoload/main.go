@@ -42,7 +42,10 @@ func docWriter(col *mgo.Collection, docChan chan bson.M, sn *sync.WaitGroup) {
 		}
 	}
 	if len(docBatch) > 0 {
-		col.BulkWrite(context.Background(), docBatch)
+		_, err := col.BulkWrite(context.Background(), docBatch)
+		if err != nil {
+			log.Errorf("%s", err)
+		}
 	}
 }
 
@@ -66,7 +69,10 @@ var Cmd = &cobra.Command{
 			return err
 		}
 		err = client.Connect(context.TODO())
-
+		if err != nil {
+			return err
+		}
+		
 		mongo.AddMongoGraph(client, database, graph)
 
 		vertexCol := client.Database(database).Collection(fmt.Sprintf("%s_vertices", graph))
