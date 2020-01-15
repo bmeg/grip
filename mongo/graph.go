@@ -84,9 +84,11 @@ func (mg *Graph) AddVertex(vertices []*gripql.Vertex) error {
 		i.SetReplacement(ent)
 		docBatch = append(docBatch, i)
 	}
-	_, err = vCol.BulkWrite(context.Background(), docBatch)
-	if err != nil {
-		log.Errorf("AddVertex error: (%s) %s", docBatch, err)
+	if len(docBatch) > 0 {
+		_, err = vCol.BulkWrite(context.Background(), docBatch)
+		if err != nil {
+			log.Errorf("AddVertex error: (%s) %s", docBatch, err)
+		}
 	}
 	return err
 }
@@ -103,7 +105,9 @@ func (mg *Graph) AddEdge(edges []*gripql.Edge) error {
 		i.SetReplacement(ent)
 		docBatch = append(docBatch, i)
 	}
-	_, err = eCol.BulkWrite(context.Background(), docBatch)
+	if len(docBatch) > 0 {
+		_, err = eCol.BulkWrite(context.Background(), docBatch)
+	}
 	return err
 }
 
