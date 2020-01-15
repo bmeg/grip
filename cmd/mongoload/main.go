@@ -25,43 +25,6 @@ var vertexFile string
 var edgeFile string
 
 var batchSize = 1000
-var maxRetries = 3
-
-func found(set []string, val string) bool {
-	for _, i := range set {
-		if i == val {
-			return true
-		}
-	}
-	return false
-}
-
-// MaxRetries is the number of times driver will reconnect on connection failure
-// TODO, move to per instance config, rather then global
-var MaxRetries = 3
-
-/*
-func isNetError(e error) bool {
-	if e == io.EOF {
-		return true
-	}
-	if b, ok := e.(*mgo.BulkError); ok {
-		for _, c := range b.Cases() {
-			if c.Err == io.EOF {
-				return true
-			}
-			if strings.Contains(c.Err.Error(), "connection") {
-				return true
-			}
-		}
-	}
-	return false
-}
-*/
-
-func boolPtr(a bool) *bool {
-	return &a
-}
 
 func docWriter(col *mgo.Collection, docChan chan bson.M, sn *sync.WaitGroup) {
 	defer sn.Done()
