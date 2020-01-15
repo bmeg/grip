@@ -55,23 +55,6 @@ func NewGraphDB(conf Config) (gdbi.GraphDB, error) {
 	clientOpts.SetRetryWrites(true)
 	clientOpts.ApplyURI(conf.URL)
 
-	/*
-		dialinfo := &mgo.DialInfo{
-			Addrs:         []string{conf.URL},
-			Timeout:       1 * time.Minute,
-			Database:      conf.DBName,
-			Username:      conf.Username,
-			Password:      conf.Password,
-			AppName:       "grip",
-			ReadTimeout:   10 * time.Minute,
-			WriteTimeout:  10 * time.Minute,
-			PoolLimit:     4096,
-			PoolTimeout:   0,
-			MinPoolSize:   10,
-			MaxIdleTimeMS: 600000, // 10 minutes
-		}
-	*/
-
 	client, err := mongo.NewClient(clientOpts)
 	if err != nil {
 		return nil, err
@@ -84,14 +67,6 @@ func NewGraphDB(conf Config) (gdbi.GraphDB, error) {
 		return nil, err
 	}
 
-	/*
-		b, _ := session.BuildInfo()
-		if !b.VersionAtLeast(3, 6) {
-			session.Close()
-			return nil, fmt.Errorf("requires mongo 3.6 or later")
-		}
-	*/
-
 	if conf.BatchSize == 0 {
 		conf.BatchSize = 1000
 	}
@@ -99,14 +74,6 @@ func NewGraphDB(conf Config) (gdbi.GraphDB, error) {
 	for _, g := range db.ListGraphs() {
 		g := g
 		db.ts.Touch(g)
-		/*
-			go func() {
-				err := db.setupIndices(g)
-				if err != nil {
-					log.WithFields(log.Fields{"error": err, "graph": g}).Error("Setting up indices")
-				}
-			}()
-		*/
 	}
 	return db, nil
 }
