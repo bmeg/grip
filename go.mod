@@ -9,7 +9,6 @@ require (
 	github.com/boltdb/bolt v1.3.1
 	github.com/ckaznocha/protoc-gen-lint v0.2.1 // indirect
 	github.com/davecgh/go-spew v1.1.1
-	github.com/dgraph-io/badger v1.6.0
 	github.com/dgraph-io/badger/v2 v2.0.1
 	github.com/dlclark/regexp2 v1.1.6 // indirect
 	github.com/dop251/goja v0.0.0-20190429205339-8d6ee3d16611
