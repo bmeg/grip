@@ -53,6 +53,8 @@ func NewGraphDB(conf Config) (gdbi.GraphDB, error) {
 	}
 	clientOpts.SetRetryReads(true)
 	clientOpts.SetRetryWrites(true)
+	clientOpts.SetMaxPoolSize(4096)
+	clientOpts.SetMaxConnIdleTime(10 * time.Minute)
 	clientOpts.ApplyURI(conf.URL)
 
 	client, err := mongo.NewClient(clientOpts)
