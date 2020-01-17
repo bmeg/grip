@@ -19,7 +19,7 @@ require (
 	github.com/go-sql-driver/mysql v1.4.1
 	github.com/golang/protobuf v1.3.2
 	github.com/golangci/go-tools v0.0.0-20190318055746-e32c54105b7c // indirect
-	github.com/golangci/golangci-lint v1.22.0 // indirect
+	github.com/golangci/golangci-lint v1.22.2 // indirect
 	github.com/golangci/gosec v0.0.0-20190211064107-66fb7fc33547 // indirect
 	github.com/graphql-go/graphql v0.7.8
 	github.com/graphql-go/handler v0.2.3
