@@ -30,10 +30,10 @@ func extractHeaderKeys(input map[string][]string, whitelist []string) map[string
 }
 
 // Return a new interceptor function that logs all requests at the Info level
-func unaryInterceptor(disabled bool, whitelist []string) grpc.UnaryServerInterceptor {
+func unaryInterceptor(enabled bool, whitelist []string) grpc.UnaryServerInterceptor {
 	// Return a function that is the interceptor.
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
-		if disabled {
+		if !enabled {
 			return handler(ctx, req)
 		}
 		start := time.Now()
@@ -50,7 +50,7 @@ func unaryInterceptor(disabled bool, whitelist []string) grpc.UnaryServerInterce
 		if err == nil {
 			entry.Info("gRPC server responded")
 		} else {
-			entry.Error("gRPC server responded")
+			entry.WithField("error", err).Error("gRPC server responded")
 		}
 		return resp, err
 	}
@@ -58,10 +58,10 @@ func unaryInterceptor(disabled bool, whitelist []string) grpc.UnaryServerInterce
 
 // Return a new interceptor function that logs all requests at the Info level
 // https://github.com/grpc-ecosystem/go-grpc-middleware/blob/6f8030a0b4ee588a3f33556266b552a90a5574e2/logging/logrus/payload_interceptors.go#L46
-func streamInterceptor(disabled bool, whitelist []string) grpc.StreamServerInterceptor {
+func streamInterceptor(enabled bool, whitelist []string) grpc.StreamServerInterceptor {
 	// Return a function that is the interceptor.
 	return func(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
-		if disabled {
+		if !enabled {
 			return handler(srv, ss)
 		}
 		start := time.Now()
@@ -79,7 +79,7 @@ func streamInterceptor(disabled bool, whitelist []string) grpc.StreamServerInter
 		if err == nil {
 			entry.Info("gRPC server responded")
 		} else {
-			entry.Error("gRPC server responded")
+			entry.WithField("error", err).Error("gRPC server responded")
 		}
 		return err
 	}
@@ -102,10 +102,6 @@ func (l *loggingServerStream) RecvMsg(m interface{}) error {
 type loggingResponseWriter struct {
 	http.ResponseWriter
 	statusCode int
-}
-
-func NewLoggingResponseWriter(w http.ResponseWriter) *loggingResponseWriter {
-	return &loggingResponseWriter{w, http.StatusOK}
 }
 
 func (lrw *loggingResponseWriter) WriteHeader(code int) {
