@@ -16,6 +16,7 @@ import (
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/util/rpc"
+	"github.com/felixge/httpsnoop"
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"golang.org/x/net/context"
@@ -155,8 +156,7 @@ func (server *GripServer) Serve(pctx context.Context) error {
 			}
 
 			// handle the request
-			lrw := &loggingResponseWriter{resp, http.StatusOK}
-			grpcMux.ServeHTTP(lrw, req)
+			m := httpsnoop.CaptureMetrics(grpcMux, resp, req)
 
 			if !server.conf.RequestLogging.Enable {
 				return
@@ -171,9 +171,9 @@ func (server *GripServer) Serve(pctx context.Context) error {
 				"request": string(body),
 				"header":  headers,
 				"latency": time.Since(start).String(),
-				"status":  lrw.statusCode,
+				"status":  m.Code,
 			})
-			if lrw.statusCode == http.StatusOK {
+			if m.Code == http.StatusOK {
 				entry.Info("HTTP server responded")
 			} else {
 				entry.Error("HTTP server responded")

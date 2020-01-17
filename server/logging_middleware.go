@@ -1,7 +1,6 @@
 package server
 
 import (
-	"net/http"
 	"strings"
 	"time"
 
@@ -97,14 +96,4 @@ func (l *loggingServerStream) SendMsg(m interface{}) error {
 func (l *loggingServerStream) RecvMsg(m interface{}) error {
 	l.request = m
 	return l.ServerStream.RecvMsg(m)
-}
-
-type loggingResponseWriter struct {
-	http.ResponseWriter
-	statusCode int
-}
-
-func (lrw *loggingResponseWriter) WriteHeader(code int) {
-	lrw.statusCode = code
-	lrw.ResponseWriter.WriteHeader(code)
 }
