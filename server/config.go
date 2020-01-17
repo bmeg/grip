@@ -28,7 +28,7 @@ type Config struct {
 	SchemaRandomSample bool
 	// Configure how the server logs requests
 	RequestLogging struct {
-		Disable bool
+		Enable bool
 		// Which request headers to include the in the log
 		HeaderWhitelist []string
 	}

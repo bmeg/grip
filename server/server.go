@@ -72,13 +72,13 @@ func (server *GripServer) Serve(pctx context.Context) error {
 		grpc.UnaryInterceptor(
 			grpc_middleware.ChainUnaryServer(
 				unaryAuthInterceptor(server.conf.BasicAuth),
-				unaryInterceptor(server.conf.RequestLogging.Disable, server.conf.RequestLogging.HeaderWhitelist),
+				unaryInterceptor(server.conf.RequestLogging.Enable, server.conf.RequestLogging.HeaderWhitelist),
 			),
 		),
 		grpc.StreamInterceptor(
 			grpc_middleware.ChainStreamServer(
 				streamAuthInterceptor(server.conf.BasicAuth),
-				streamInterceptor(server.conf.RequestLogging.Disable, server.conf.RequestLogging.HeaderWhitelist),
+				streamInterceptor(server.conf.RequestLogging.Enable, server.conf.RequestLogging.HeaderWhitelist),
 			),
 		),
 		grpc.MaxSendMsgSize(1024*1024*16),
@@ -149,16 +149,16 @@ func (server *GripServer) Serve(pctx context.Context) error {
 
 			// copy body and return it to request
 			var body []byte
-			if !server.conf.RequestLogging.Disable {
+			if server.conf.RequestLogging.Enable {
 				body, _ = ioutil.ReadAll(req.Body)
 				req.Body = ioutil.NopCloser(bytes.NewBuffer(body))
 			}
 
 			// handle the request
-			lrw := NewLoggingResponseWriter(resp)
+			lrw := &loggingResponseWriter{resp, http.StatusOK}
 			grpcMux.ServeHTTP(lrw, req)
 
-			if server.conf.RequestLogging.Disable {
+			if !server.conf.RequestLogging.Enable {
 				return
 			}
 

@@ -542,13 +542,9 @@ func matchesCondition(trav *gdbi.Traveler, cond *gripql.HasCondition) bool {
 
 	case gripql.Condition_WITHIN:
 		found := false
-		switch condVal.(type) {
+		switch condVal := condVal.(type) {
 		case []interface{}:
-			condL, ok := condVal.([]interface{})
-			if !ok {
-				return false
-			}
-			for _, v := range condL {
+			for _, v := range condVal {
 				if reflect.DeepEqual(val, v) {
 					found = true
 				}
@@ -565,13 +561,9 @@ func matchesCondition(trav *gdbi.Traveler, cond *gripql.HasCondition) bool {
 
 	case gripql.Condition_WITHOUT:
 		found := false
-		switch condVal.(type) {
+		switch condVal := condVal.(type) {
 		case []interface{}:
-			condL, ok := condVal.([]interface{})
-			if !ok {
-				return false
-			}
-			for _, v := range condL {
+			for _, v := range condVal {
 				if reflect.DeepEqual(val, v) {
 					found = true
 				}
@@ -589,13 +581,9 @@ func matchesCondition(trav *gdbi.Traveler, cond *gripql.HasCondition) bool {
 
 	case gripql.Condition_CONTAINS:
 		found := false
-		switch val.(type) {
+		switch val := val.(type) {
 		case []interface{}:
-			valL, ok := val.([]interface{})
-			if !ok {
-				return false
-			}
-			for _, v := range valL {
+			for _, v := range val {
 				if reflect.DeepEqual(v, condVal) {
 					found = true
 				}
