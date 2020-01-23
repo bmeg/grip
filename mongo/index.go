@@ -124,9 +124,9 @@ func (mg *Graph) VertexLabelScan(ctx context.Context, label string) chan string 
 					return
 				default:
 				}
-				cursor.Decode(&result)
-				out <- result["_id"].(string)
-				//BUG: return stuff here
+				if nil == cursor.Decode(&result) {
+					out <- result["_id"].(string)
+				}
 			}
 			if err := cursor.Close(context.TODO()); err != nil {
 				log.Errorln("VertexLabelScan error:", err)

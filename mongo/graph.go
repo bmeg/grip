@@ -51,9 +51,11 @@ func (mg *Graph) GetVertex(id string, load bool) *gripql.Vertex {
 		return nil
 	}
 	d := map[string]interface{}{}
-	result.Decode(d)
-	v := UnpackVertex(d)
-	return v
+	if nil == result.Decode(d) {
+		v := UnpackVertex(d)
+		return v
+	}
+	return nil
 }
 
 // GetEdge loads an edge given an id. It returns nil if not found
@@ -67,9 +69,11 @@ func (mg *Graph) GetEdge(id string, load bool) *gripql.Edge {
 		return nil
 	}
 	d := map[string]interface{}{}
-	result.Decode(d)
-	v := UnpackEdge(d)
-	return v
+	if nil == result.Decode(d) {
+		v := UnpackEdge(d)
+		return v
+	}
+	return nil
 }
 
 // AddVertex adds an edge to the graph, if it already exists

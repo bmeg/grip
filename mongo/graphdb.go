@@ -146,8 +146,9 @@ func (ma *GraphDB) ListGraphs() []string {
 	}
 	result := map[string]interface{}{}
 	for cursor.Next(context.TODO()) {
-		cursor.Decode(&result)
-		out = append(out, result["_id"].(string))
+		if nil == cursor.Decode(&result) {
+			out = append(out, result["_id"].(string))
+		}
 	}
 	if err := cursor.Close(context.TODO()); err != nil {
 		log.WithFields(log.Fields{"error": err}).Error("ListGraphs: MongoDB: iterating over graphs collection")
