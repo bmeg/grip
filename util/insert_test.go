@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/bmeg/grip/gripql"
-	"github.com/hashicorp/go-multierror"
+	multierror "github.com/hashicorp/go-multierror"
 )
 
 func TestBatchInsertValidation(t *testing.T) {

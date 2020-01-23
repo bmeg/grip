@@ -6,7 +6,7 @@ import (
 
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/log"
-	"github.com/hashicorp/go-multierror"
+	multierror "github.com/hashicorp/go-multierror"
 )
 
 // StreamBatch a stream of inputs and loads them into the graph
