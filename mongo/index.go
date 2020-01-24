@@ -49,7 +49,9 @@ func (mg *Graph) DeleteVertexIndex(label string, field string) error {
 		recKeys := rec["key"].(bson.M)
 		if _, ok := recKeys["label"]; ok {
 			if _, ok := recKeys[field]; ok {
-				idx.DropOne(context.TODO(), rec["name"].(string))
+				if _, err := idx.DropOne(context.TODO(), rec["name"].(string)); err != nil {
+					return err
+				}
 			}
 		}
 	}

@@ -47,8 +47,8 @@ func getDataElement(result map[string]interface{}) *gdbi.DataElement {
 
 // Process runs the mongo aggregation pipeline
 func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
-	plog := log.WithFields(log.Fields{"query_id": util.UUID()})
-	plog.WithFields(log.Fields{"query": proc.query, "query_collection": proc.startCollection}).Debug("Running Mongo Processor")
+	plog := log.WithFields(log.Fields{"query_id": util.UUID(), "query": proc.query, "query_collection": proc.startCollection})
+	plog.Debug("Running Mongo Processor")
 
 	go func() {
 		defer close(out)
@@ -57,7 +57,7 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 		for t := range in {
 			nResults := 0
 			//plog.Infof("Running: %#v", proc.query)
-			cursor, err := initCol.Aggregate(context.TODO(), proc.query)
+			cursor, err := initCol.Aggregate(ctx, proc.query)
 			if err != nil {
 				plog.Errorf("Query Error (%s) : %s", proc.query, err)
 				continue
@@ -71,8 +71,10 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 					return
 				default:
 				}
-				cursor.Decode(&result)
-
+				if nil != cursor.Decode(&result) {
+					plog.Errorf("Result Error : %s", err)
+					continue
+				}
 				switch proc.dataType {
 				case gdbi.CountData:
 					eo := &gdbi.Traveler{}
