@@ -64,7 +64,7 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 			}
 			//defer cursor.Close(context.TODO())
 			result := map[string]interface{}{}
-			for cursor.Next(context.TODO()) {
+			for cursor.Next(ctx) {
 				nResults++
 				select {
 				case <-ctx.Done():
