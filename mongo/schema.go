@@ -88,15 +88,18 @@ func (ma *GraphDB) getVertexSchema(ctx context.Context, graph string, n uint32, 
 			result := make(map[string]interface{})
 			schema := make(map[string]interface{})
 			for cursor.Next(context.TODO()) {
-				cursor.Decode(&result)
 				select {
 				case <-ctx.Done():
 					return ctx.Err()
 
 				default:
-					if result["data"] != nil {
-						ds := gripql.GetDataFieldTypes(result["data"].(map[string]interface{}))
-						util.MergeMaps(schema, ds)
+					if err := cursor.Decode(&result); err == nil {
+						if result["data"] != nil {
+							ds := gripql.GetDataFieldTypes(result["data"].(map[string]interface{}))
+							util.MergeMaps(schema, ds)
+						}
+					} else {
+						log.WithFields(log.Fields{"graph": graph, "label": label, "error": err}).Error("getVertexSchema: bad vertex")
 					}
 				}
 			}
@@ -168,16 +171,19 @@ func (ma *GraphDB) getEdgeSchema(ctx context.Context, graph string, n uint32, ra
 			fromToPairs := make(fromto)
 
 			for cursor.Next(context.TODO()) {
-				cursor.Decode(&result)
 				select {
 				case <-ctx.Done():
 					return ctx.Err()
 
 				default:
-					fromToPairs.Add(fromtokey{result["from"].(string), result["to"].(string)})
-					if result["data"] != nil {
-						ds := gripql.GetDataFieldTypes(result["data"].(map[string]interface{}))
-						util.MergeMaps(schema, ds)
+					if err := cursor.Decode(&result); err == nil {
+						fromToPairs.Add(fromtokey{result["from"].(string), result["to"].(string)})
+						if result["data"] != nil {
+							ds := gripql.GetDataFieldTypes(result["data"].(map[string]interface{}))
+							util.MergeMaps(schema, ds)
+						}
+					} else {
+						log.WithFields(log.Fields{"graph": graph, "label": label, "error": err}).Error("getVertexSchema: bad vertex")
 					}
 				}
 			}
@@ -266,7 +272,6 @@ func (ma *GraphDB) resolveLabels(graph string, ft fromto) fromto {
 
 		g.Go(func() error {
 			v := ma.VertexCollection(graph)
-
 			from := ""
 			to := ""
 			result := map[string]string{}
@@ -274,16 +279,20 @@ func (ma *GraphDB) resolveLabels(graph string, ft fromto) fromto {
 			opts.SetProjection(bson.M{"_id": -1, "label": 1})
 			cursor := v.FindOne(context.TODO(), bson.M{"_id": fromID})
 			if cursor.Err() == nil {
-				cursor.Decode(&result)
-				from = result["label"]
+				if nil == cursor.Decode(&result) {
+					from = result["label"]
+				}
 			}
 			result = map[string]string{}
 			cursor = v.FindOne(context.TODO(), bson.M{"_id": toID})
 			if cursor.Err() == nil {
-				cursor.Decode(&result)
-				to = result["label"]
+				if nil == cursor.Decode(&result) {
+					to = result["label"]
+				}
 			}
-			out[i] = fromtokey{from, to}
+			if from != "" && to != "" {
+				out[i] = fromtokey{from, to}
+			}
 			return nil
 		})
 	}
