@@ -11,18 +11,19 @@ import (
 	"github.com/bmeg/grip/elastic"
 	esql "github.com/bmeg/grip/existing-sql"
 	"github.com/bmeg/grip/gdbi"
+	"github.com/bmeg/grip/grids"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/kvgraph"
 	_ "github.com/bmeg/grip/kvi/badgerdb" // import so badger will register itself
 	_ "github.com/bmeg/grip/kvi/boltdb"   // import so bolt will register itself
 	_ "github.com/bmeg/grip/kvi/leveldb"  // import so level will register itself
+	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/mongo"
 	"github.com/bmeg/grip/psql"
 	"github.com/bmeg/grip/server"
 	_ "github.com/go-sql-driver/mysql" //import so mysql will register as a sql driver
 	"github.com/imdario/mergo"
 	_ "github.com/lib/pq" // import so postgres will register as a sql driver
-	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -34,7 +35,7 @@ var schemaFile string
 // This opens a database and starts an API server.
 // This blocks indefinitely.
 func Run(conf *config.Config, schemas map[string]*gripql.Graph) error {
-	config.ConfigureLogger(conf.Logger)
+	log.ConfigureLogger(conf.Logger)
 	log.WithFields(log.Fields{"Config": conf}).Info("Starting Server")
 
 	var db gdbi.GraphDB
@@ -42,6 +43,9 @@ func Run(conf *config.Config, schemas map[string]*gripql.Graph) error {
 	switch dbname := strings.ToLower(conf.Database); dbname {
 	case "bolt", "badger", "level":
 		db, err = kvgraph.NewKVGraphDB(dbname, conf.KVStorePath)
+
+	case "grids":
+		db, err = grids.NewGraphDB(conf.Grids)
 
 	case "elastic", "elasticsearch":
 		db, err = elastic.NewGraphDB(conf.Elasticsearch)
@@ -92,7 +96,7 @@ var Cmd = &cobra.Command{
 	Use:   "server",
 	Short: "Run the server",
 	Args:  cobra.NoArgs,
-	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+	PreRunE: func(cmd *cobra.Command, args []string) error {
 		dconf := config.DefaultConfig()
 		if configFile != "" {
 			err := config.ParseConfigFile(configFile, dconf)
@@ -139,4 +143,5 @@ func init() {
 	flags.BoolVar(&conf.Server.ReadOnly, "read-only", conf.Server.ReadOnly, "Start server in read-only mode")
 	flags.StringVar(&conf.Logger.Level, "log-level", conf.Logger.Level, "Log level [info, debug, warn, error]")
 	flags.StringVar(&conf.Logger.Formatter, "log-format", conf.Logger.Formatter, "Log format [text, json]")
+	flags.BoolVar(&conf.Server.RequestLogging.Enable, "log-requests", conf.Server.RequestLogging.Enable, "Log all requests")
 }

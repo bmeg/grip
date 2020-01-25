@@ -4,87 +4,119 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
+	"github.com/bmeg/grip/protoutil"
 	"github.com/davecgh/go-spew/spew"
 )
 
 func TestIndexStartOptimize(t *testing.T) {
-	expected := []gdbi.Processor{
-		&LookupVerts{ids: []string{"1", "2", "3"}},
-		&LookupVertexAdjOut{},
+	expected := []*gripql.GraphStatement{
+		{Statement: &gripql.GraphStatement_V{V: protoutil.AsListValue([]string{"1", "2", "3"})}},
+		{Statement: &gripql.GraphStatement_Out{}},
 	}
-	original := []gdbi.Processor{
-		&LookupVerts{ids: []string{"1", "2", "3"}},
-		&LookupVertexAdjOut{},
+	original := []*gripql.GraphStatement{
+		{Statement: &gripql.GraphStatement_V{V: protoutil.AsListValue([]string{"1", "2", "3"})}},
+		{Statement: &gripql.GraphStatement_Out{}},
 	}
-	optimized := indexStartOptimize(original)
+	optimized := IndexStartOptimize(original)
 	if !reflect.DeepEqual(optimized, expected) {
 		t.Log("actual", spew.Sdump(optimized))
 		t.Log("expected:", spew.Sdump(expected))
 		t.Error("indexStartOptimize returned an unexpected result")
 	}
 
-	expected = []gdbi.Processor{
-		&LookupVerts{},
-		&LookupVertexAdjOut{},
-		&HasID{ids: []string{"1", "2", "3"}},
+	expected = []*gripql.GraphStatement{
+		{Statement: &gripql.GraphStatement_V{}},
+		{Statement: &gripql.GraphStatement_Out{}},
+		{Statement: &gripql.GraphStatement_HasId{HasId: protoutil.AsListValue([]string{"1", "2", "3"})}},
 	}
-	original = []gdbi.Processor{
-		&LookupVerts{},
-		&LookupVertexAdjOut{},
-		&HasID{ids: []string{"1", "2", "3"}},
+
+	original = []*gripql.GraphStatement{
+		{Statement: &gripql.GraphStatement_V{}},
+		{Statement: &gripql.GraphStatement_Out{}},
+		{Statement: &gripql.GraphStatement_HasId{HasId: protoutil.AsListValue([]string{"1", "2", "3"})}},
 	}
-	optimized = indexStartOptimize(original)
+
+	optimized = IndexStartOptimize(original)
 	if !reflect.DeepEqual(optimized, expected) {
 		t.Log("actual", spew.Sdump(optimized))
 		t.Log("expected:", spew.Sdump(expected))
 		t.Error("indexStartOptimize returned an unexpected result")
 	}
 
-	expected = []gdbi.Processor{
-		&LookupVerts{ids: []string{"1", "2", "3"}},
-		&LookupVertexAdjOut{},
+	expected = []*gripql.GraphStatement{
+		{Statement: &gripql.GraphStatement_V{V: protoutil.AsListValue([]string{"1", "2", "3"})}},
+		{Statement: &gripql.GraphStatement_Out{}},
 	}
-	original = []gdbi.Processor{
-		&LookupVerts{},
-		&HasID{ids: []string{"1", "2", "3"}},
-		&LookupVertexAdjOut{},
+
+	original = []*gripql.GraphStatement{
+		{Statement: &gripql.GraphStatement_V{}},
+		{Statement: &gripql.GraphStatement_HasId{HasId: protoutil.AsListValue([]string{"1", "2", "3"})}},
+		{Statement: &gripql.GraphStatement_Out{}},
 	}
-	optimized = indexStartOptimize(original)
+
+	optimized = IndexStartOptimize(original)
 	if !reflect.DeepEqual(optimized, expected) {
 		t.Log("actual", spew.Sdump(optimized))
 		t.Log("expected:", spew.Sdump(expected))
 		t.Error("indexStartOptimize returned an unexpected result")
 	}
 
-	expected = []gdbi.Processor{
-		&LookupVerts{ids: []string{"1", "2", "3"}},
-		&LookupVertexAdjOut{},
+	expected = []*gripql.GraphStatement{
+		{Statement: &gripql.GraphStatement_V{V: protoutil.AsListValue([]string{"1", "2", "3"})}},
+		{Statement: &gripql.GraphStatement_Out{}},
 	}
-	original = []gdbi.Processor{
-		&LookupVerts{},
-		&Has{stmt: gripql.Within("_gid", "1", "2", "3")},
-		&LookupVertexAdjOut{},
+
+	original = []*gripql.GraphStatement{
+		{Statement: &gripql.GraphStatement_V{}},
+		{Statement: &gripql.GraphStatement_Has{
+			Has: &gripql.HasExpression{Expression: &gripql.HasExpression_Condition{
+				Condition: &gripql.HasCondition{
+					Condition: gripql.Condition_WITHIN,
+					Key:       "_gid",
+					Value:     protoutil.WrapValue([]string{"1", "2", "3"}),
+				},
+			}},
+		}},
+		{Statement: &gripql.GraphStatement_Out{}},
 	}
-	optimized = indexStartOptimize(original)
+
+	optimized = IndexStartOptimize(original)
 	if !reflect.DeepEqual(optimized, expected) {
 		t.Log("actual", spew.Sdump(optimized))
 		t.Log("expected:", spew.Sdump(expected))
 		t.Error("indexStartOptimize returned an unexpected result")
 	}
 
-	expected = []gdbi.Processor{
-		&LookupVerts{},
-		&Has{stmt: gripql.Neq("_gid", "1")},
-		&LookupVertexAdjOut{},
+	expected = []*gripql.GraphStatement{
+		{Statement: &gripql.GraphStatement_V{}},
+		{Statement: &gripql.GraphStatement_Has{
+			Has: &gripql.HasExpression{Expression: &gripql.HasExpression_Condition{
+				Condition: &gripql.HasCondition{
+					Condition: gripql.Condition_NEQ,
+					Key:       "_gid",
+					Value:     protoutil.WrapValue("1"),
+				},
+			}},
+		}},
+		{Statement: &gripql.GraphStatement_Out{}},
 	}
-	original = []gdbi.Processor{
-		&LookupVerts{},
-		&Has{stmt: gripql.Neq("_gid", "1")},
-		&LookupVertexAdjOut{},
+
+	original = []*gripql.GraphStatement{
+		{Statement: &gripql.GraphStatement_V{}},
+		{Statement: &gripql.GraphStatement_Has{
+			Has: &gripql.HasExpression{Expression: &gripql.HasExpression_Condition{
+				Condition: &gripql.HasCondition{
+					Condition: gripql.Condition_NEQ,
+					Key:       "_gid",
+					Value:     protoutil.WrapValue("1"),
+				},
+			}},
+		}},
+		{Statement: &gripql.GraphStatement_Out{}},
 	}
-	optimized = indexStartOptimize(original)
+
+	optimized = IndexStartOptimize(original)
 	if !reflect.DeepEqual(optimized, expected) {
 		t.Log("actual", spew.Sdump(optimized))
 		t.Log("expected:", spew.Sdump(expected))
@@ -92,18 +124,44 @@ func TestIndexStartOptimize(t *testing.T) {
 	}
 
 	// order shouldnt matter
-	expected = []gdbi.Processor{
-		&LookupVerts{ids: []string{"1", "2", "3"}},
-		&Has{stmt: gripql.Eq("$.data.foo", "bar")},
-		&LookupVertexAdjOut{},
+	expected = []*gripql.GraphStatement{
+		{Statement: &gripql.GraphStatement_V{V: protoutil.AsListValue([]string{"1", "2", "3"})}},
+		{Statement: &gripql.GraphStatement_Has{
+			Has: &gripql.HasExpression{Expression: &gripql.HasExpression_Condition{
+				Condition: &gripql.HasCondition{
+					Condition: gripql.Condition_EQ,
+					Key:       "$.data.foo",
+					Value:     protoutil.WrapValue("bar"),
+				},
+			}},
+		}},
+		{Statement: &gripql.GraphStatement_Out{}},
 	}
-	original = []gdbi.Processor{
-		&LookupVerts{},
-		&Has{stmt: gripql.Eq("$.data.foo", "bar")},
-		&Has{stmt: gripql.Within("_gid", "1", "2", "3")},
-		&LookupVertexAdjOut{},
+
+	original = []*gripql.GraphStatement{
+		{Statement: &gripql.GraphStatement_V{}},
+		{Statement: &gripql.GraphStatement_Has{
+			Has: &gripql.HasExpression{Expression: &gripql.HasExpression_Condition{
+				Condition: &gripql.HasCondition{
+					Condition: gripql.Condition_EQ,
+					Key:       "$.data.foo",
+					Value:     protoutil.WrapValue("bar"),
+				},
+			}},
+		}},
+		{Statement: &gripql.GraphStatement_Has{
+			Has: &gripql.HasExpression{Expression: &gripql.HasExpression_Condition{
+				Condition: &gripql.HasCondition{
+					Condition: gripql.Condition_WITHIN,
+					Key:       "_gid",
+					Value:     protoutil.WrapValue([]string{"1", "2", "3"}),
+				},
+			}},
+		}},
+		{Statement: &gripql.GraphStatement_Out{}},
 	}
-	optimized = indexStartOptimize(original)
+
+	optimized = IndexStartOptimize(original)
 	if !reflect.DeepEqual(optimized, expected) {
 		t.Log("actual", spew.Sdump(optimized))
 		t.Log("expected:", spew.Sdump(expected))
@@ -111,34 +169,54 @@ func TestIndexStartOptimize(t *testing.T) {
 	}
 
 	// only use the first statement
-	expected = []gdbi.Processor{
-		&LookupVerts{ids: []string{"1", "2", "3"}},
-		&Has{stmt: gripql.Within("_gid", "4", "5")},
-		&LookupVertexAdjOut{},
+	expected = []*gripql.GraphStatement{
+		{Statement: &gripql.GraphStatement_V{V: protoutil.AsListValue([]string{"1", "2", "3"})}},
+		{Statement: &gripql.GraphStatement_Has{
+			Has: &gripql.HasExpression{Expression: &gripql.HasExpression_Condition{
+				Condition: &gripql.HasCondition{
+					Condition: gripql.Condition_WITHIN,
+					Key:       "_gid",
+					Value:     protoutil.WrapValue([]string{"4", "5"}),
+				},
+			}},
+		}},
+		{Statement: &gripql.GraphStatement_Out{}},
 	}
-	original = []gdbi.Processor{
-		&LookupVerts{},
-		&HasID{ids: []string{"1", "2", "3"}},
-		&Has{stmt: gripql.Within("_gid", "4", "5")},
-		&LookupVertexAdjOut{},
+
+	original = []*gripql.GraphStatement{
+		{Statement: &gripql.GraphStatement_V{}},
+		{Statement: &gripql.GraphStatement_HasId{HasId: protoutil.AsListValue([]string{"1", "2", "3"})}},
+		{Statement: &gripql.GraphStatement_Has{
+			Has: &gripql.HasExpression{Expression: &gripql.HasExpression_Condition{
+				Condition: &gripql.HasCondition{
+					Condition: gripql.Condition_WITHIN,
+					Key:       "_gid",
+					Value:     protoutil.WrapValue([]string{"4", "5"}),
+				},
+			}},
+		}},
+		{Statement: &gripql.GraphStatement_Out{}},
 	}
-	optimized = indexStartOptimize(original)
+
+	optimized = IndexStartOptimize(original)
 	if !reflect.DeepEqual(optimized, expected) {
 		t.Log("actual", spew.Sdump(optimized))
 		t.Log("expected:", spew.Sdump(expected))
 		t.Error("indexStartOptimize returned an unexpected result")
 	}
 
-	expected = []gdbi.Processor{
-		&LookupVertsIndex{labels: []string{"foo", "bar"}},
-		&LookupVertexAdjOut{},
+	expected = []*gripql.GraphStatement{
+		{Statement: &gripql.GraphStatement_LookupVertsIndex{Labels: []string{"foo", "bar"}}},
+		{Statement: &gripql.GraphStatement_Out{}},
 	}
-	original = []gdbi.Processor{
-		&LookupVerts{},
-		&HasLabel{labels: []string{"foo", "bar"}},
-		&LookupVertexAdjOut{},
+
+	original = []*gripql.GraphStatement{
+		{Statement: &gripql.GraphStatement_V{}},
+		{Statement: &gripql.GraphStatement_HasLabel{HasLabel: protoutil.AsListValue([]string{"foo", "bar"})}},
+		{Statement: &gripql.GraphStatement_Out{}},
 	}
-	optimized = indexStartOptimize(original)
+
+	optimized = IndexStartOptimize(original)
 	if !reflect.DeepEqual(optimized, expected) {
 		t.Log("actual", spew.Sdump(optimized))
 		t.Log("expected:", spew.Sdump(expected))
@@ -146,69 +224,141 @@ func TestIndexStartOptimize(t *testing.T) {
 	}
 
 	// TODO figure out how to optimize
-	expected = []gdbi.Processor{
-		&LookupVerts{},
-		&Has{stmt: gripql.Neq("_label", "foo")},
-		&LookupVertexAdjOut{},
+	expected = []*gripql.GraphStatement{
+		{Statement: &gripql.GraphStatement_V{}},
+		{Statement: &gripql.GraphStatement_Has{
+			Has: &gripql.HasExpression{Expression: &gripql.HasExpression_Condition{
+				Condition: &gripql.HasCondition{
+					Condition: gripql.Condition_NEQ,
+					Key:       "_label",
+					Value:     protoutil.WrapValue("foo"),
+				},
+			}},
+		}},
+		{Statement: &gripql.GraphStatement_Out{}},
 	}
-	original = []gdbi.Processor{
-		&LookupVerts{},
-		&Has{stmt: gripql.Neq("_label", "foo")},
-		&LookupVertexAdjOut{},
+
+	original = []*gripql.GraphStatement{
+		{Statement: &gripql.GraphStatement_V{}},
+		{Statement: &gripql.GraphStatement_Has{
+			Has: &gripql.HasExpression{Expression: &gripql.HasExpression_Condition{
+				Condition: &gripql.HasCondition{
+					Condition: gripql.Condition_NEQ,
+					Key:       "_label",
+					Value:     protoutil.WrapValue("foo"),
+				},
+			}},
+		}},
+		{Statement: &gripql.GraphStatement_Out{}},
 	}
-	optimized = indexStartOptimize(original)
+
+	optimized = IndexStartOptimize(original)
 	if !reflect.DeepEqual(optimized, expected) {
 		t.Log("actual", spew.Sdump(optimized))
 		t.Log("expected:", spew.Sdump(expected))
 		t.Error("indexStartOptimize returned an unexpected result")
 	}
 
-	expected = []gdbi.Processor{
-		&LookupVertsIndex{labels: []string{"foo", "bar"}},
-		&LookupVertexAdjOut{},
+	expected = []*gripql.GraphStatement{
+		{Statement: &gripql.GraphStatement_LookupVertsIndex{Labels: []string{"foo", "bar"}}},
+		{Statement: &gripql.GraphStatement_Out{}},
 	}
-	original = []gdbi.Processor{
-		&LookupVerts{},
-		&Has{stmt: gripql.Within("_label", "foo", "bar")},
-		&LookupVertexAdjOut{},
+
+	original = []*gripql.GraphStatement{
+		{Statement: &gripql.GraphStatement_V{}},
+		{Statement: &gripql.GraphStatement_Has{
+			Has: &gripql.HasExpression{Expression: &gripql.HasExpression_Condition{
+				Condition: &gripql.HasCondition{
+					Condition: gripql.Condition_WITHIN,
+					Key:       "_label",
+					Value:     protoutil.WrapValue([]string{"foo", "bar"}),
+				},
+			}},
+		}},
+		{Statement: &gripql.GraphStatement_Out{}},
 	}
-	optimized = indexStartOptimize(original)
+
+	optimized = IndexStartOptimize(original)
 	if !reflect.DeepEqual(optimized, expected) {
 		t.Log("actual", spew.Sdump(optimized))
 		t.Log("expected:", spew.Sdump(expected))
 		t.Error("indexStartOptimize returned an unexpected result")
 	}
 
-	expected = []gdbi.Processor{
-		&LookupVertsIndex{labels: []string{"foo", "bar"}},
-		&Has{stmt: gripql.Eq("$.data.foo", "bar")},
-		&LookupVertexAdjOut{},
+	expected = []*gripql.GraphStatement{
+		{Statement: &gripql.GraphStatement_LookupVertsIndex{Labels: []string{"foo", "bar"}}},
+		{Statement: &gripql.GraphStatement_Has{
+			Has: &gripql.HasExpression{Expression: &gripql.HasExpression_Condition{
+				Condition: &gripql.HasCondition{
+					Condition: gripql.Condition_EQ,
+					Key:       "$.data.foo",
+					Value:     protoutil.WrapValue("bar"),
+				},
+			}},
+		}},
+		{Statement: &gripql.GraphStatement_Out{}},
 	}
-	original = []gdbi.Processor{
-		&LookupVerts{},
-		&Has{stmt: gripql.Eq("$.data.foo", "bar")},
-		&Has{stmt: gripql.Within("_label", "foo", "bar")},
-		&LookupVertexAdjOut{},
+
+	original = []*gripql.GraphStatement{
+		{Statement: &gripql.GraphStatement_V{}},
+		{Statement: &gripql.GraphStatement_Has{
+			Has: &gripql.HasExpression{Expression: &gripql.HasExpression_Condition{
+				Condition: &gripql.HasCondition{
+					Condition: gripql.Condition_EQ,
+					Key:       "$.data.foo",
+					Value:     protoutil.WrapValue("bar"),
+				},
+			}},
+		}},
+		{Statement: &gripql.GraphStatement_Has{
+			Has: &gripql.HasExpression{Expression: &gripql.HasExpression_Condition{
+				Condition: &gripql.HasCondition{
+					Condition: gripql.Condition_WITHIN,
+					Key:       "_label",
+					Value:     protoutil.WrapValue([]string{"foo", "bar"}),
+				},
+			}},
+		}},
+		{Statement: &gripql.GraphStatement_Out{}},
 	}
-	optimized = indexStartOptimize(original)
+
+	optimized = IndexStartOptimize(original)
 	if !reflect.DeepEqual(optimized, expected) {
 		t.Log("actual", spew.Sdump(optimized))
 		t.Log("expected:", spew.Sdump(expected))
 		t.Error("indexStartOptimize returned an unexpected result")
 	}
 
-	expected = []gdbi.Processor{
-		&LookupVertsIndex{labels: []string{"foo", "bar"}},
-		&Has{stmt: gripql.Eq("_label", "baz")},
-		&LookupVertexAdjOut{},
+	expected = []*gripql.GraphStatement{
+		{Statement: &gripql.GraphStatement_LookupVertsIndex{Labels: []string{"foo", "bar"}}},
+		{Statement: &gripql.GraphStatement_Has{
+			Has: &gripql.HasExpression{Expression: &gripql.HasExpression_Condition{
+				Condition: &gripql.HasCondition{
+					Condition: gripql.Condition_EQ,
+					Key:       "_label",
+					Value:     protoutil.WrapValue("baz"),
+				},
+			}},
+		}},
+		{Statement: &gripql.GraphStatement_Out{}},
 	}
-	original = []gdbi.Processor{
-		&LookupVerts{},
-		&HasLabel{labels: []string{"foo", "bar"}},
-		&Has{stmt: gripql.Eq("_label", "baz")},
-		&LookupVertexAdjOut{},
+
+	original = []*gripql.GraphStatement{
+		{Statement: &gripql.GraphStatement_V{}},
+		{Statement: &gripql.GraphStatement_HasLabel{HasLabel: protoutil.AsListValue([]string{"foo", "bar"})}},
+		{Statement: &gripql.GraphStatement_Has{
+			Has: &gripql.HasExpression{Expression: &gripql.HasExpression_Condition{
+				Condition: &gripql.HasCondition{
+					Condition: gripql.Condition_EQ,
+					Key:       "_label",
+					Value:     protoutil.WrapValue("baz"),
+				},
+			}},
+		}},
+		{Statement: &gripql.GraphStatement_Out{}},
 	}
-	optimized = indexStartOptimize(original)
+
+	optimized = IndexStartOptimize(original)
 	if !reflect.DeepEqual(optimized, expected) {
 		t.Log("actual", spew.Sdump(optimized))
 		t.Log("expected:", spew.Sdump(expected))
@@ -216,20 +366,62 @@ func TestIndexStartOptimize(t *testing.T) {
 	}
 
 	// use gid over label to optimize queries
-	expected = []gdbi.Processor{
-		&LookupVerts{ids: []string{"1", "2", "3"}},
-		&Has{stmt: gripql.Eq("$.data.foo", "bar")},
-		&Has{stmt: gripql.Within("_label", "foo", "bar")},
-		&LookupVertexAdjOut{},
+	expected = []*gripql.GraphStatement{
+		{Statement: &gripql.GraphStatement_V{V: protoutil.AsListValue([]string{"1", "2", "3"})}},
+		{Statement: &gripql.GraphStatement_Has{
+			Has: &gripql.HasExpression{Expression: &gripql.HasExpression_Condition{
+				Condition: &gripql.HasCondition{
+					Condition: gripql.Condition_EQ,
+					Key:       "$.data.foo",
+					Value:     protoutil.WrapValue("bar"),
+				},
+			}},
+		}},
+		{Statement: &gripql.GraphStatement_Has{
+			Has: &gripql.HasExpression{Expression: &gripql.HasExpression_Condition{
+				Condition: &gripql.HasCondition{
+					Condition: gripql.Condition_WITHIN,
+					Key:       "_label",
+					Value:     protoutil.WrapValue([]string{"foo", "bar"}),
+				},
+			}},
+		}},
+		{Statement: &gripql.GraphStatement_Out{}},
 	}
-	original = []gdbi.Processor{
-		&LookupVerts{},
-		&Has{stmt: gripql.Eq("$.data.foo", "bar")},
-		&Has{stmt: gripql.Within("_label", "foo", "bar")},
-		&Has{stmt: gripql.Within("_gid", "1", "2", "3")},
-		&LookupVertexAdjOut{},
+
+	original = []*gripql.GraphStatement{
+		{Statement: &gripql.GraphStatement_V{}},
+		{Statement: &gripql.GraphStatement_Has{
+			Has: &gripql.HasExpression{Expression: &gripql.HasExpression_Condition{
+				Condition: &gripql.HasCondition{
+					Condition: gripql.Condition_EQ,
+					Key:       "$.data.foo",
+					Value:     protoutil.WrapValue("bar"),
+				},
+			}},
+		}},
+		{Statement: &gripql.GraphStatement_Has{
+			Has: &gripql.HasExpression{Expression: &gripql.HasExpression_Condition{
+				Condition: &gripql.HasCondition{
+					Condition: gripql.Condition_WITHIN,
+					Key:       "_label",
+					Value:     protoutil.WrapValue([]string{"foo", "bar"}),
+				},
+			}},
+		}},
+		{Statement: &gripql.GraphStatement_Has{
+			Has: &gripql.HasExpression{Expression: &gripql.HasExpression_Condition{
+				Condition: &gripql.HasCondition{
+					Condition: gripql.Condition_WITHIN,
+					Key:       "_gid",
+					Value:     protoutil.WrapValue([]string{"1", "2", "3"}),
+				},
+			}},
+		}},
+		{Statement: &gripql.GraphStatement_Out{}},
 	}
-	optimized = indexStartOptimize(original)
+
+	optimized = IndexStartOptimize(original)
 	if !reflect.DeepEqual(optimized, expected) {
 		t.Log("actual", spew.Sdump(optimized))
 		t.Log("expected:", spew.Sdump(expected))
@@ -237,17 +429,45 @@ func TestIndexStartOptimize(t *testing.T) {
 	}
 
 	// handle 'and' statements
-	expected = []gdbi.Processor{
-		&LookupVertsIndex{labels: []string{"foo", "bar"}},
-		&Has{stmt: gripql.Eq("$.data.foo", "bar")},
-		&LookupVertexAdjOut{},
+
+	expected = []*gripql.GraphStatement{
+		{Statement: &gripql.GraphStatement_LookupVertsIndex{Labels: []string{"foo", "bar"}}},
+		{Statement: &gripql.GraphStatement_Has{
+			Has: &gripql.HasExpression{Expression: &gripql.HasExpression_Condition{
+				Condition: &gripql.HasCondition{
+					Condition: gripql.Condition_EQ,
+					Key:       "$.data.foo",
+					Value:     protoutil.WrapValue("bar"),
+				},
+			}},
+		}},
+		{Statement: &gripql.GraphStatement_Out{}},
 	}
-	original = []gdbi.Processor{
-		&LookupVerts{},
-		&Has{stmt: gripql.And(gripql.Eq("$.data.foo", "bar"), gripql.Within("_label", "foo", "bar"))},
-		&LookupVertexAdjOut{},
+
+	original = []*gripql.GraphStatement{
+		{Statement: &gripql.GraphStatement_V{}},
+		{Statement: &gripql.GraphStatement_Has{
+			Has: &gripql.HasExpression{Expression: &gripql.HasExpression_And{
+				And: &gripql.HasExpressionList{
+					Expressions: []*gripql.HasExpression{
+						{Expression: &gripql.HasExpression_Condition{Condition: &gripql.HasCondition{
+							Condition: gripql.Condition_EQ,
+							Key:       "$.data.foo",
+							Value:     protoutil.WrapValue("bar"),
+						}}},
+						{Expression: &gripql.HasExpression_Condition{Condition: &gripql.HasCondition{
+							Condition: gripql.Condition_WITHIN,
+							Key:       "_label",
+							Value:     protoutil.WrapValue([]string{"foo", "bar"}),
+						}}},
+					},
+				},
+			}},
+		}},
+		{Statement: &gripql.GraphStatement_Out{}},
 	}
-	optimized = indexStartOptimize(original)
+
+	optimized = IndexStartOptimize(original)
 	if !reflect.DeepEqual(optimized, expected) {
 		t.Log("actual", spew.Sdump(optimized))
 		t.Log("expected:", spew.Sdump(expected))

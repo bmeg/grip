@@ -5,9 +5,9 @@ import (
 
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/jsonpath"
+	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/protoutil"
 	"github.com/globalsign/mgo/bson"
-	log "github.com/sirupsen/logrus"
 )
 
 func convertHasExpression(stmt *gripql.HasExpression, not bool) bson.M {

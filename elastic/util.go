@@ -3,7 +3,7 @@ package elastic
 import (
 	"context"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/bmeg/grip/log"
 	elastic "gopkg.in/olivere/elastic.v5"
 )
 

@@ -10,8 +10,8 @@ import (
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/jsengine"
 	"github.com/bmeg/grip/jsengine/underscore"
+	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/protoutil"
-	log "github.com/sirupsen/logrus"
 )
 
 type V8Runtime struct {

@@ -190,6 +190,11 @@ message EditResult {
   string id = 1;
 }
 
+message BulkEditResult {
+  int32 insert_count = 1;
+  int32 error_count = 2;
+}
+
 message GraphElement {
   string graph = 1;
   Vertex vertex = 2;
@@ -304,7 +309,7 @@ service Edit {
     };
   }
 
-  rpc BulkAdd(stream GraphElement) returns (EditResult) {
+  rpc BulkAdd(stream GraphElement) returns (BulkEditResult) {
     option (google.api.http) = {
       post: "/v1/graph"
     };

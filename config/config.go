@@ -12,6 +12,7 @@ import (
 
 	"github.com/bmeg/grip/elastic"
 	esql "github.com/bmeg/grip/existing-sql"
+	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/mongo"
 	"github.com/bmeg/grip/psql"
 	"github.com/bmeg/grip/server"
@@ -31,11 +32,12 @@ type Config struct {
 	Server        server.Config
 	RPCClient     rpc.Config
 	KVStorePath   string
+	Grids         string
 	Elasticsearch elastic.Config
 	MongoDB       mongo.Config
 	PSQL          psql.Config
 	ExistingSQL   esql.Config
-	Logger        Logger
+	Logger        log.Logger
 }
 
 // DefaultConfig returns an instance of the default configuration for Grip.
@@ -53,6 +55,10 @@ func DefaultConfig() *Config {
 	c.Server.SchemaRefreshInterval = duration.Duration(24 * time.Hour)
 	c.Server.SchemaInspectN = 500
 	c.Server.SchemaRandomSample = true
+	c.Server.RequestLogging.HeaderWhitelist = []string{
+		"authorization", "oauthemail", "content-type", "content-length",
+		"forwarded", "x-forwarded-for", "x-forwarded-host", "user-agent",
+	}
 
 	c.RPCClient = rpc.ConfigWithDefaults(c.Server.RPCAddress())
 
@@ -65,7 +71,7 @@ func DefaultConfig() *Config {
 	c.Elasticsearch.DBName = "gripdb"
 	c.Elasticsearch.BatchSize = 1000
 
-	c.Logger = DefaultLoggerConfig()
+	c.Logger = log.DefaultLoggerConfig()
 	return c
 }
 
