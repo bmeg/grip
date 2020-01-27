@@ -26,7 +26,7 @@ func NewGDB(conf *GraphConfig, indexPath string) (*TabularGDB, error) {
   for _, t := range conf.Tables {
     log.Printf("Table: %s", t)
     fPath := filepath.Join( filepath.Dir(conf.path), t.Path )
-    log.Printf("Loading: %s with primaryKey %s", fPath, t.PrimaryKey)
+    log.Printf("Loading: %s with primaryKey %s", fPath)
     tix, err := out.idx.NewDriver(t.Driver, fPath, Options{PrimaryKey: t.PrimaryKey, IndexedColumns: []string{} })
     if err != nil {
       return nil, err

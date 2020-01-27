@@ -3,26 +3,32 @@ tables:
   - name: human
     driver: tsv
     path: human.csv
-    primaryKey: id
-    label: Human
-    prefix: human_
-  #- name: friend
-  #  path: friend.csv
-  #  edges:
-  #    - from: person
-  #      to: friend
-  #      label: friend
-  #      toTable: friend
   - name: starship
     driver: tsv
     path: starship.csv
-    primaryKey: id
-    label: Starship
-    prefix: starship_
-    edges:
-      #- to: owner
-      #  toTable: human
-      #  label: owner
-      - from: owner
-        fromTable: human
-        label: owns
+  - name: friend
+    driver: tsv
+    path: friend.csv
+
+graph:
+  vertices:
+    - table: human
+      primaryKey: id
+      label: Human
+      prefix: human_
+    - table: starship
+      primaryKey: id
+      label: Starship
+      prefix: starship_
+
+  edges:
+    - from: owner
+      fromTable: human
+      label: owns
+    - from: person
+      to: friend
+      label: friend
+      toTable: friend
+    - to: owner
+      toTable: human
+      label: owner
