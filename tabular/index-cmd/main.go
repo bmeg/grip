@@ -75,7 +75,11 @@ func main() {
     log.Printf("%s", err)
     return
   }
-  gdb := tabular.NewGDB(config, *idxName)
+  gdb, err := tabular.NewGDB(config, *idxName)
+  if err != nil {
+    log.Printf("%s", err)
+    return
+  }
 
   graph, _ := gdb.Graph("main")
 

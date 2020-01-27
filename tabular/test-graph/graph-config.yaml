@@ -1,6 +1,7 @@
 
 tables:
   - name: human
+    driver: tsv
     path: human.csv
     primaryKey: id
     label: Human
@@ -13,6 +14,7 @@ tables:
   #      label: friend
   #      toTable: friend
   - name: starship
+    driver: tsv
     path: starship.csv
     primaryKey: id
     label: Starship

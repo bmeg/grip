@@ -15,7 +15,11 @@ type TabularGDB struct {
 
 func NewGDB(conf *GraphConfig, indexPath string) (*TabularGDB, error) {
   out := TabularGraph{}
-  out.idx, _ = NewTableManager(indexPath)
+  idx, err := NewTableManager(indexPath)
+  if err != nil {
+    return nil, err
+  }
+  out.idx = idx
   out.vertices = map[string]*Table{}
   out.edges = []*EdgeConfig{}
 
