@@ -4,9 +4,6 @@ import (
   "testing"
 )
 
-
-
-
 func TestIndexKey(t *testing.T) {
 
   pathID := uint64(1)

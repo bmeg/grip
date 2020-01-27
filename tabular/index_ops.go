@@ -9,17 +9,20 @@ import (
   "github.com/bmeg/grip/kvi"
 )
 
+type TableIndex struct {
+  kv kvi.KVInterface
+}
 
-func SetPathID( kv kvi.KVBulkWrite, path string, num uint64 ) {
+func (t *TableIndex) SetPathID(path string, num uint64 ) {
   pk := PathKey(path)
   b := make([]byte, binary.MaxVarintLen64)
   binary.PutUvarint(b, num)
-  kv.Set(pk, b)
+  t.kv.Set(pk, b)
 }
 
-func GetPathID(kv kvi.KVTransaction, path string) (uint64, error) {
+func (t *TableIndex) GetPathID(path string) (uint64, error) {
   pk := PathKey(path)
-  v, err := kv.Get(pk)
+  v, err := t.kv.Get(pk)
   if err != nil {
     return 0, err
   }
@@ -27,48 +30,22 @@ func GetPathID(kv kvi.KVTransaction, path string) (uint64, error) {
   return o, nil
 }
 
-func NewPathID( kv kvi.KVTransaction, path string ) uint64 {
+func (t *TableIndex) NewPathID( path string ) uint64 {
   ok := PathNumKey()
   num := uint64(0)
-  if v, err := kv.Get(ok); err == nil {
+  if v, err := t.kv.Get(ok); err == nil {
     num, _ = binary.Uvarint(v)
   }
   b := make([]byte, binary.MaxVarintLen64)
   binary.PutUvarint(b, num+1)
-  kv.Set(ok, b)
-
-  SetPathID(kv, path, num)
+  t.kv.Set(ok, b) //Make part of same transaction as Get above?
+  t.SetPathID(path, num)
   return num
 }
 
-func SetIDLine( kv kvi.KVBulkWrite, pathID uint64, id string, line uint64) {
+func (t *TableIndex) GetIDLine(pathID uint64, id string) (uint64, error) {
   ik := IDKey(pathID, id)
-  b := make([]byte, binary.MaxVarintLen64)
-  binary.PutUvarint(b, line)
-  kv.Set(ik, b)
-}
-
-
-func SetLineOffset( kv kvi.KVBulkWrite, pathID uint64, line uint64, offset uint64) {
-  lk := LineKey(pathID, line)
-  b := make([]byte, binary.MaxVarintLen64)
-  binary.PutUvarint(b, offset)
-  kv.Set(lk, b)
-}
-
-func GetLineOffset( kv kvi.KVTransaction, pathID uint64, line uint64 ) (uint64, error) {
-  lk := LineKey(pathID, line)
-  if v, err := kv.Get(lk); err == nil {
-    o, _ := binary.Uvarint(v)
-    return o, nil
-  } else {
-    return 0, err
-  }
-}
-
-func GetIDLine(kv kvi.KVTransaction, pathID uint64, id string) (uint64, error) {
-  ik := IDKey(pathID, id)
-  if v, err := kv.Get(ik); err == nil {
+  if v, err := t.kv.Get(ik); err == nil {
     o, _ := binary.Uvarint(v)
     return o, nil
   } else {
@@ -78,9 +55,9 @@ func GetIDLine(kv kvi.KVTransaction, pathID uint64, id string) (uint64, error) {
 }
 
 
-func GetLineCount(kv kvi.KVTransaction, pathID uint64) (uint64, error) {
+func (t *TableIndex) GetLineCount(pathID uint64) (uint64, error) {
   ik := LineCountKey(pathID)
-  if v, err := kv.Get(ik); err == nil {
+  if v, err := t.kv.Get(ik); err == nil {
     o, _ := binary.Uvarint(v)
     return o, nil
   } else {
@@ -88,20 +65,21 @@ func GetLineCount(kv kvi.KVTransaction, pathID uint64) (uint64, error) {
   }
 }
 
-
-func SetLineCount(kv kvi.KVBulkWrite, pathID, lineCount uint64) {
-  lk := LineCountKey(pathID)
-  b := make([]byte, binary.MaxVarintLen64)
-  binary.PutUvarint(b, lineCount)
-  kv.Set(lk, b)
+func (t *TableIndex) GetLineOffset(pathID uint64, line uint64 ) (uint64, error) {
+  lk := LineKey(pathID, line)
+  if v, err := t.kv.Get(lk); err == nil {
+    o, _ := binary.Uvarint(v)
+    return o, nil
+  } else {
+    return 0, err
+  }
 }
 
-
-func GetIDChannel(ctx context.Context, kv kvi.KVInterface, pathID uint64) chan string {
+func (t *TableIndex) GetIDChannel(ctx context.Context, pathID uint64) chan string {
   out := make(chan string, 10)
   go func() {
     defer close(out)
-    kv.View(func(it kvi.KVIterator) error {
+    t.kv.View(func(it kvi.KVIterator) error {
       prefix := IDPrefix(pathID)
       for it.Seek(prefix); it.Valid() && bytes.HasPrefix(it.Key(), prefix); it.Next() {
         select {
@@ -118,7 +96,39 @@ func GetIDChannel(ctx context.Context, kv kvi.KVInterface, pathID uint64) chan s
   return out
 }
 
-func SetColumnIndex(kv kvi.KVBulkWrite, pathID, col uint64, value string, lineCount uint64) {
+func (t *TableIndex) IndexWrite( f func(*IndexWriter) error ) {
+  t.kv.BulkWrite(func(bl kvi.KVBulkWrite) error {
+    return f(&IndexWriter{bl})
+  })
+}
+
+type IndexWriter struct {
+  kv kvi.KVBulkWrite
+}
+
+func (w *IndexWriter) SetIDLine( pathID uint64, id string, line uint64) {
+  ik := IDKey(pathID, id)
+  b := make([]byte, binary.MaxVarintLen64)
+  binary.PutUvarint(b, line)
+  w.kv.Set(ik, b)
+}
+
+func (w *IndexWriter) SetLineOffset( pathID uint64, line uint64, offset uint64) {
+  lk := LineKey(pathID, line)
+  b := make([]byte, binary.MaxVarintLen64)
+  binary.PutUvarint(b, offset)
+  w.kv.Set(lk, b)
+}
+
+func (w *IndexWriter) SetColumnIndex(pathID, col uint64, value string, lineCount uint64) {
   idxKey := IndexKey(pathID, col, value, lineCount)
-  kv.Set(idxKey, []byte{})
+  w.kv.Set(idxKey, []byte{})
+}
+
+
+func (w *IndexWriter) SetLineCount( pathID, lineCount uint64) {
+  lk := LineCountKey(pathID)
+  b := make([]byte, binary.MaxVarintLen64)
+  binary.PutUvarint(b, lineCount)
+  w.kv.Set(lk, b)
 }

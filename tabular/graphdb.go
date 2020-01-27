@@ -13,9 +13,9 @@ type TabularGDB struct {
   graph *TabularGraph
 }
 
-func NewGDB(conf *GraphConfig, indexPath string) *TabularGDB {
+func NewGDB(conf *GraphConfig, indexPath string) (*TabularGDB, error) {
   out := TabularGraph{}
-  out.idx, _ = NewTablularIndex(indexPath)
+  out.idx, _ = NewTableManager(indexPath)
   out.vertices = map[string]*Table{}
   out.edges = []*EdgeConfig{}
 
@@ -23,9 +23,12 @@ func NewGDB(conf *GraphConfig, indexPath string) *TabularGDB {
     log.Printf("Table: %s", t)
     fPath := filepath.Join( filepath.Dir(conf.path), t.Path )
     log.Printf("Loading: %s with primaryKey %s", fPath, t.PrimaryKey)
-    tix := out.idx.IndexTSV(fPath, t.PrimaryKey, []string{})
+    tix, err := out.idx.NewDriver(t.Driver, fPath, Options{PrimaryKey: t.PrimaryKey, IndexedColumns: []string{} })
+    if err != nil {
+      return nil, err
+    }
     if t.Label != "" {
-      out.vertices[t.Name] = &Table{data:tix, prefix:t.Prefix, label:t.Label, inEdges:[]*EdgeConfig{}, outEdges:[]*EdgeConfig{}, config:&t}
+      out.vertices[t.Name] = &Table{driver:tix, prefix:t.Prefix, label:t.Label, inEdges:[]*EdgeConfig{}, outEdges:[]*EdgeConfig{}, config:&t}
     }
   }
 
@@ -45,7 +48,7 @@ func NewGDB(conf *GraphConfig, indexPath string) *TabularGDB {
     }
   }
 
-  return &TabularGDB{&out}
+  return &TabularGDB{&out}, nil
 }
 
 

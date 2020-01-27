@@ -1,7 +1,6 @@
 package tabular
 
 
-
 import (
 	"encoding/binary"
 )

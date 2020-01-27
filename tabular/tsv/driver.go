@@ -1,35 +1,14 @@
-package tabular
+package tsv
 
 import (
   "log"
   "context"
-  "github.com/bmeg/grip/kvi"
-  //"github.com/bmeg/grip/kvi/boltdb"
-  "github.com/bmeg/grip/kvi/badgerdb"
+  "github.com/bmeg/grip/tabular"
 )
 
-type TabularIndex struct {
-  kv kvi.KVInterface
-}
 
-type TableRow struct {
-  Key    string
-  Values map[string]string
-}
-
-func NewTablularIndex(path string) (*TabularIndex, error) {
-  out := TabularIndex{}
-  //kv, err := boltdb.NewKVInterface(path, kvi.Options{})
-  kv, err := badgerdb.NewKVInterface(path, kvi.Options{})
-  if err != nil {
-    return nil, err
-  }
-  out.kv = kv
-  return &out, nil
-}
-
-type TSVIndex struct {
-  kv kvi.KVInterface
+type TSVDriver struct {
+  man  *tabular.TableManager
   path string
   pathID uint64
   idName string
@@ -41,21 +20,21 @@ type TSVIndex struct {
   cparse     CSVParse
 }
 
-func (t *TabularIndex) IndexTSV(path string, idName string, idxCols []string) *TSVIndex {
-  o := TSVIndex{kv:t.kv, path:path, idName:idName, idxCols:idxCols, cparse:CSVParse{}}
-  o.Init()
-  return &o
+func TSVDriverBuilder(url string, manager *tabular.TableManager, opts tabular.Options) (tabular.Driver, error) {
+  o := TSVDriver{path:url, idName:opts.PrimaryKey, idxCols:opts.IndexedColumns, man:manager}
+  if err := o.Init(); err != nil {
+    return nil, err
+  }
+  return &o, nil
 }
 
-func (t *TabularIndex) Close() error {
-    return t.kv.Close()
-}
+var loaded = tabular.AddDriver("tsv", TSVDriverBuilder)
 
-func (t *TSVIndex) Close() error {
+func (t *TSVDriver) Close() error {
   return t.lineReader.Close()
 }
 
-func (t *TSVIndex) Init() error {
+func (t *TSVDriver) Init() error {
 
   hasHeader := false
   var err error
@@ -64,15 +43,15 @@ func (t *TSVIndex) Init() error {
     return err
   }
 
-  if i, err := GetPathID(t.kv, t.path); err == nil {
+  if i, err := t.man.Index.GetPathID(t.path); err == nil {
     t.pathID = i
   } else {
-    t.pathID = NewPathID(t.kv, t.path)
+    t.pathID = t.man.Index.NewPathID(t.path)
     //SetPathValue(bl, t.path, t.pathID)
   }
 
   t.idxMap = map[string]uint64{}
-  if _, err := GetLineCount(t.kv, t.pathID); err == nil {
+  if _, err := t.man.Index.GetLineCount(t.pathID); err == nil {
     row := t.cparse.Parse(string(t.lineReader.SeekRead(0)))
     t.header = row
     for i := range row {
@@ -90,7 +69,7 @@ func (t *TSVIndex) Init() error {
   }
 
   count := uint64(0)
-  t.kv.BulkWrite(func(bl kvi.KVBulkWrite) error{
+  t.man.Index.IndexWrite(func(bl *tabular.IndexWriter) error{
     for line := range t.lineReader.ReadLines() {
       row := t.cparse.Parse(string(line.Text))
       if !hasHeader {
@@ -107,15 +86,15 @@ func (t *TSVIndex) Init() error {
           }
         }
       } else {
-        SetIDLine(bl, t.pathID, row[t.idCol], count)
-        SetLineOffset(bl, t.pathID, count, line.Offset)
+        bl.SetIDLine(t.pathID, row[t.idCol], count)
+        bl.SetLineOffset(t.pathID, count, line.Offset)
         for _, col := range t.idxMap {
-          SetColumnIndex(bl, t.pathID, col, row[col], count)
+          bl.SetColumnIndex(t.pathID, col, row[col], count)
         }
         count++
       }
     }
-    SetLineCount(bl, t.pathID, count)
+    bl.SetLineCount(t.pathID, count)
     return nil
   })
   log.Printf("SetupIndexCol: %d", t.idCol)
@@ -124,12 +103,21 @@ func (t *TSVIndex) Init() error {
 }
 
 
-func (t *TSVIndex) GetLineNumber(id string) (uint64, error) {
-  return GetIDLine(t.kv, t.pathID, id)
+func (t *TSVDriver) GetLineNumber(id string) (uint64, error) {
+  return t.man.Index.GetIDLine(t.pathID, id)
 }
 
-func (t *TSVIndex) GetLineText(lineNum uint64) ([]byte, error) {
-  offset, err := GetLineOffset(t.kv, t.pathID, lineNum)
+func (t *TSVDriver) GetRowByID(id string) (*tabular.TableRow, error) {
+  ln, err := t.GetLineNumber(id)
+  if err != nil {
+    return nil, err
+  }
+  return t.GetLineRow(ln)
+}
+
+
+func (t *TSVDriver) GetLineText(lineNum uint64) ([]byte, error) {
+  offset, err := t.man.Index.GetLineOffset(t.pathID, lineNum)
   if err != nil {
     return nil, err
   }
@@ -138,7 +126,7 @@ func (t *TSVIndex) GetLineText(lineNum uint64) ([]byte, error) {
   return t.lineReader.SeekRead(offset), nil
 }
 
-func (t *TSVIndex) GetLineRow(lineNum uint64) (*TableRow, error) {
+func (t *TSVDriver) GetLineRow(lineNum uint64) (*tabular.TableRow, error) {
   text, err := t.GetLineText(lineNum)
   if err != nil {
     return nil, err
@@ -150,13 +138,13 @@ func (t *TSVIndex) GetLineRow(lineNum uint64) (*TableRow, error) {
       d[t.header[i]] = r[i]
     }
   }
-  o := TableRow{ r[t.idCol], d }
+  o := tabular.TableRow{ r[t.idCol], d }
   return &o, nil
 }
 
-func (t *TSVIndex) GetRows() chan *TableRow {
+func (t *TSVDriver) GetRows(ctx context.Context) chan *tabular.TableRow {
   log.Printf("ReadIndexCol: %d", t.idCol)
-  out := make(chan *TableRow, 10)
+  out := make(chan *tabular.TableRow, 10)
   go func() {
     defer close(out)
     hasHeader := false
@@ -172,7 +160,7 @@ func (t *TSVIndex) GetRows() chan *TableRow {
           }
         }
         //log.Printf("Key: %s", r[t.idCol])
-        o := TableRow{ r[t.idCol], d }
+        o := tabular.TableRow{ r[t.idCol], d }
         out <- &o
       }
     }
@@ -180,6 +168,6 @@ func (t *TSVIndex) GetRows() chan *TableRow {
   return out
 }
 
-func (t *TSVIndex) GetIDs(ctx context.Context) chan string {
-  return GetIDChannel(ctx, t.kv, t.pathID)
+func (t *TSVDriver) GetIDs(ctx context.Context) chan string {
+  return t.man.Index.GetIDChannel(ctx, t.pathID)
 }

@@ -22,6 +22,7 @@ type EdgeConfig struct {
 }
 
 type TableConfig struct {
+  Driver string          `json:"driver"`
   Name string            `json:"name"`
   Path string            `json:"path"`
   PrimaryKey string      `json:"primaryKey"`

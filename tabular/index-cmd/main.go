@@ -7,6 +7,9 @@ import (
   "log"
   "context"
   "github.com/bmeg/grip/tabular"
+
+  _ "github.com/bmeg/grip/tabular/tsv"
+
   "github.com/bmeg/grip/gdbi"
   "github.com/golang/protobuf/jsonpb"
   flag "github.com/spf13/pflag"
@@ -18,7 +21,7 @@ import (
   "github.com/dop251/goja"
   "github.com/bmeg/grip/jsengine/underscore"
 
-  "github.com/bmeg/grip/engine"
+  "github.com/bmeg/grip/engine/pipeline"
   "github.com/bmeg/grip/util"
 
 )
@@ -94,13 +97,13 @@ func main() {
 func Query(graph gdbi.GraphInterface, query gripql.GraphQuery) error {
   marsh := jsonpb.Marshaler{}
 
-  pipeline, err := graph.Compiler().Compile(query.Query)
+  p, err := graph.Compiler().Compile(query.Query)
   if err != nil {
     return err
   }
   workdir := "./test.workdir." + util.RandomString(6)
   defer os.RemoveAll(workdir)
-  res := engine.Run(context.Background(), pipeline, workdir)
+  res := pipeline.Run(context.Background(), p, workdir)
 
   for row := range res {
     rowString, _ := marsh.MarshalToString(row)

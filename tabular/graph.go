@@ -14,7 +14,7 @@ import (
 
 
 type Table struct {
-  data *TSVIndex
+  driver Driver
   prefix string
   label  string
   inEdges []*EdgeConfig
@@ -23,14 +23,13 @@ type Table struct {
 }
 
 type TabularGraph struct {
-  idx *TabularIndex
+  idx *TableManager
   vertices map[string]*Table
   edges    []*EdgeConfig
 }
 
 
 func (t *TabularGraph) Close() error {
-  t.idx.Close()
   return nil
 }
 
@@ -44,6 +43,10 @@ func (t *TabularGraph) AddEdge(edge []*gripql.Edge) error {
 }
 
 
+func (t *TabularGraph) BulkAdd(stream <-chan *gripql.GraphElement) error {
+  return fmt.Errorf("BulkAdd not implemented")
+}
+
 func (t *TabularGraph) Compiler() gdbi.Compiler {
   return core.NewCompiler(t)
 }
@@ -56,16 +59,12 @@ func (t *TabularGraph) GetVertex(key string, load bool) *gripql.Vertex {
   for _, v := range t.vertices {
     if strings.HasPrefix(key, v.prefix) {
       id := key[len(v.prefix):len(key)]
-      if ln, err := v.data.GetLineNumber(id); err == nil {
-        row, err:= v.data.GetLineRow(ln)
-        if err == nil {
-          o := gripql.Vertex{ Gid: v.prefix + row.Key, Label: v.label, Data:protoutil.AsStringStruct(row.Values) }
-          return &o
-        } else {
-          log.Printf("Row not read")
-        }
+      driver := v.driver
+      if row, err := driver.GetRowByID(id); err == nil {
+        o := gripql.Vertex{ Gid: v.prefix + row.Key, Label: v.label, Data:protoutil.AsStringStruct(row.Values) }
+        return &o
       } else {
-        log.Printf("Line not found")
+        log.Printf("Row not read")
       }
     }
   }
@@ -91,7 +90,7 @@ func (t *TabularGraph) VertexLabelScan(ctx context.Context, label string) chan s
     defer close(out)
     for _, t := range t.vertices {
       if t.label == label {
-        for n := range t.data.GetIDs(ctx) {
+        for n := range t.driver.GetIDs(ctx) {
           out <- t.prefix + n
         }
       }
@@ -135,7 +134,7 @@ func (t *TabularGraph) GetVertexList(ctx context.Context, load bool) <-chan *gri
   out := make(chan *gripql.Vertex, 100)
   go func() {
     for _, table := range t.vertices {
-      for row := range table.data.GetRows() {
+      for row := range table.driver.GetRows(ctx) {
         v := gripql.Vertex{ Gid: table.prefix + row.Key, Label: table.label, Data:protoutil.AsStringStruct(row.Values) }
         out <- &v
       }
@@ -160,16 +159,11 @@ func (t *TabularGraph) GetVertexChannel(req chan gdbi.ElementLookup, load bool) 
         if strings.HasPrefix(r.ID, v.prefix) {
           id := r.ID[len(v.prefix):len(r.ID)]
           o := gripql.Vertex{Gid:r.ID, Label:v.label}
-          if load {
-            if ln, err := v.data.GetLineNumber(id); err == nil {
-              row, err:= v.data.GetLineRow(ln)
-              if err == nil {
-                o.Data = protoutil.AsStringStruct(row.Values)
-              }
-            }
+          if row, err:= v.driver.GetRowByID(id); err == nil {
+            o.Data = protoutil.AsStringStruct(row.Values)
+            r.Vertex = &o
+            out <- r
           }
-          r.Vertex = &o
-          out <- r
         }
       }
     }
@@ -186,24 +180,17 @@ func (t *TabularGraph) GetOutChannel(req chan gdbi.ElementLookup, load bool, edg
       for curTable, v := range t.vertices {
         if strings.HasPrefix(r.ID, v.prefix) {
           id := r.ID[len(v.prefix):len(r.ID)]
-          if ln, err := v.data.GetLineNumber(id); err == nil {
-            if row, err:= v.data.GetLineRow(ln); err == nil {
-              for _, e := range v.outEdges {
-                log.Printf("row: %s", row.Values)
-                did := row.Values[e.To]
-                dtable := t.vertices[e.ToTable]
-                log.Printf("From Table '%s' to '%s' : %s", curTable, e.ToTable, did)
-                outV := gripql.Vertex{Gid:dtable.prefix + did, Label:dtable.label}
-                if ln, err := dtable.data.GetLineNumber(did); err == nil {
-                  if load {
-                    row, err:= dtable.data.GetLineRow(ln)
-                    if err == nil {
-                      outV.Data = protoutil.AsStringStruct(row.Values)
-                    }
-                  }
-                  r.Vertex = &outV
-                  out <- r
-                }
+          if row, err:= v.driver.GetRowByID(id); err == nil {
+            for _, e := range v.outEdges {
+              log.Printf("row: %s", row.Values)
+              did := row.Values[e.To]
+              dtable := t.vertices[e.ToTable]
+              log.Printf("From Table '%s' to '%s' : %s", curTable, e.ToTable, did)
+              outV := gripql.Vertex{Gid:dtable.prefix + did, Label:dtable.label}
+              if row, err := dtable.driver.GetRowByID(did); err == nil {
+                outV.Data = protoutil.AsStringStruct(row.Values)
+                r.Vertex = &outV
+                out <- r
               }
             }
           }
