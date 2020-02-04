@@ -77,7 +77,7 @@ func main() {
   }
   gdb, err := tabular.NewGDB(config, *idxName)
   if err != nil {
-    log.Printf("%s", err)
+    log.Printf("Error loading Graph: %s", err)
     return
   }
 

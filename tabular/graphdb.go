@@ -7,6 +7,7 @@ import (
   "path/filepath"
   "github.com/bmeg/grip/gdbi"
   "github.com/bmeg/grip/gripql"
+  "github.com/bmeg/grip/util/setcmp"
 )
 
 type TabularGDB struct {
@@ -20,22 +21,73 @@ func NewGDB(conf *GraphConfig, indexPath string) (*TabularGDB, error) {
     return nil, err
   }
   out.idx = idx
-  out.vertices = map[string]*Table{}
+  out.vertices = map[string]*VertexSource{}
   out.edges = []*EdgeConfig{}
 
-  for _, t := range conf.Tables {
-    log.Printf("Table: %s", t)
-    fPath := filepath.Join( filepath.Dir(conf.path), t.Path )
-    log.Printf("Loading: %s with primaryKey %s", fPath)
-    tix, err := out.idx.NewDriver(t.Driver, fPath, Options{PrimaryKey: t.PrimaryKey, IndexedColumns: []string{} })
-    if err != nil {
-      return nil, err
-    }
-    if t.Label != "" {
-      out.vertices[t.Name] = &Table{driver:tix, prefix:t.Prefix, label:t.Label, inEdges:[]*EdgeConfig{}, outEdges:[]*EdgeConfig{}, config:&t}
+  driverMap := map[string]Driver{}
+  tableOptions := map[string]*Options{}
+  log.Printf("Loading Table Conf")
+  //Set up configs for different tables to be opened
+  for name, _ := range conf.Tables {
+    tableOptions[ name ] = &Options{IndexedColumns: []string{}}
+  }
+
+  //add parameters to configs for the tables, based on how the vertices will use them
+  for _, v := range conf.Vertices {
+    if opt, ok := tableOptions[ v.Table ]; !ok {
+      return nil, fmt.Errorf("Trying to use undeclared table: %s", v.Table)
+    } else {
+      if opt.PrimaryKey != "" && opt.PrimaryKey != v.PrimaryKey {
+        //right now, only one vertex type can make a table (and declare its primary key type)
+        return nil, fmt.Errorf("Table used by two vertex types: %s", v.Table)
+      }
+      opt.PrimaryKey = v.PrimaryKey
     }
   }
 
+  //add parameters to configs for the tables, based on how the edges will use them
+  for _, e := range conf.Edges {
+    log.Printf("Edges: %s", e)
+    toTableOpts := tableOptions[e.ToTable]
+    fromTableOpts := tableOptions[e.FromTable]
+    if toTableOpts == nil || fromTableOpts == nil {
+      return nil, fmt.Errorf("Trying to use undeclared table")
+    }
+    if e.FromField != fromTableOpts.PrimaryKey {
+      if !setcmp.ContainsString(fromTableOpts.IndexedColumns, e.FromField) {
+        fromTableOpts.IndexedColumns = append(fromTableOpts.IndexedColumns, e.FromField)
+      }
+    }
+    if e.ToField != toTableOpts.PrimaryKey {
+      if !setcmp.ContainsString(toTableOpts.IndexedColumns, e.FromField) {
+        toTableOpts.IndexedColumns = append(toTableOpts.IndexedColumns, e.FromField)
+      }
+    }
+  }
+
+  //open the table drivers
+  for t, opt := range tableOptions {
+    table := conf.Tables[ t ]
+
+    log.Printf("Table: %s %#v", t, opt)
+    fPath := filepath.Join( filepath.Dir(conf.path), table.Path )
+    log.Printf("Loading: %s with primaryKey %s", fPath, opt.PrimaryKey)
+
+    tix, err := out.idx.NewDriver(table.Driver, fPath, *opt)
+    if err != nil {
+      return nil, err
+    }
+    driverMap[t] = tix
+  }
+
+  //map the table drivers back onto the vertices that will use them
+  for _, v := range conf.Vertices {
+    log.Printf("Adding vertex prefix: %s label: %s", v.Prefix, v.Label)
+    tix := driverMap[v.Table]
+    out.vertices[v.Prefix] = &VertexSource{driver:tix, prefix:v.Prefix, label:v.Label, config:&v}
+  }
+
+  /*
   for _, t := range conf.Tables {
     for _, e := range t.Edges {
       out.edges = append(out.edges, &e)
@@ -51,7 +103,7 @@ func NewGDB(conf *GraphConfig, indexPath string) (*TabularGDB, error) {
       }
     }
   }
-
+  */
   return &TabularGDB{&out}, nil
 }
 

@@ -9,14 +9,13 @@ import (
 )
 
 type GraphConfig struct {
-  Tables   []TableConfig  `json:"tables"`
-  Vertices []VertexConfig `json:"vertices"`
-  Edges    []EdgeConfig   `json:"edges"`
+  Tables   map[string]TableConfig  `json:"tables"`
+  Vertices []VertexConfig          `json:"vertices"`
+  Edges    []EdgeConfig            `json:"edges"`
   path    string
 }
 
 type TableConfig struct {
-  Name      string       `json:"name"`
   Driver    string       `json:"driver"`
   Path      string       `json:"path"`
 }
@@ -29,9 +28,9 @@ type VertexConfig struct {
 }
 
 type EdgeConfig struct {
-  To        string       `json:"to"`
+  ToField   string       `json:"toField"`
   ToTable   string       `json:"toTable"`
-  From      string       `json:"from"`
+  FromField string       `json:"fromField"`
   FromTable string       `json:"fromTable"`
   Label     string       `json:"label"`
 }

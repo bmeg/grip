@@ -13,18 +13,22 @@ import (
 )
 
 
-type Table struct {
+type VertexSource struct {
   driver Driver
   prefix string
   label  string
-  inEdges []*EdgeConfig
-  outEdges []*EdgeConfig
-  config   *TableConfig
+  config   *VertexConfig
+}
+
+type EdgeSource struct {
+  driver   Driver
+  inTable  string
+  outTable string
 }
 
 type TabularGraph struct {
   idx *TableManager
-  vertices map[string]*Table
+  vertices map[string]*VertexSource
   edges    []*EdgeConfig
 }
 
@@ -134,6 +138,7 @@ func (t *TabularGraph) GetVertexList(ctx context.Context, load bool) <-chan *gri
   out := make(chan *gripql.Vertex, 100)
   go func() {
     for _, table := range t.vertices {
+      log.Printf("table: %s", table.label)
       for row := range table.driver.GetRows(ctx) {
         v := gripql.Vertex{ Gid: table.prefix + row.Key, Label: table.label, Data:protoutil.AsStringStruct(row.Values) }
         out <- &v
@@ -173,6 +178,7 @@ func (t *TabularGraph) GetVertexChannel(req chan gdbi.ElementLookup, load bool) 
 
 
 func (t *TabularGraph) GetOutChannel(req chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
+  /*
   out := make(chan gdbi.ElementLookup, 10)
   go func() {
     defer close(out)
@@ -183,7 +189,7 @@ func (t *TabularGraph) GetOutChannel(req chan gdbi.ElementLookup, load bool, edg
           if row, err:= v.driver.GetRowByID(id); err == nil {
             for _, e := range v.outEdges {
               log.Printf("row: %s", row.Values)
-              did := row.Values[e.To]
+              did := row.Values[e.ToField]
               dtable := t.vertices[e.ToTable]
               log.Printf("From Table '%s' to '%s' : %s", curTable, e.ToTable, did)
               outV := gripql.Vertex{Gid:dtable.prefix + did, Label:dtable.label}
@@ -199,6 +205,9 @@ func (t *TabularGraph) GetOutChannel(req chan gdbi.ElementLookup, load bool, edg
     }
   }()
   return out
+  */
+  log.Printf("Calling GetInChannel")
+  return nil
 }
 
 func (t *TabularGraph) GetInChannel(req chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
