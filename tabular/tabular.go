@@ -3,13 +3,14 @@ package tabular
 import (
   "fmt"
   "context"
+  "github.com/bmeg/grip/tabular/rowindex"
   "github.com/bmeg/grip/kvi"
   "github.com/bmeg/grip/kvi/badgerdb"
 )
 
 
 type TableManager struct {
-  Index  TableIndex
+  Index  *rowindex.TableIndex
 }
 
 type TableRow struct {
@@ -56,7 +57,7 @@ func NewTableManager(path string) (*TableManager, error) {
   if err != nil {
     return nil, err
   }
-  out.Index = TableIndex{kv}
+  out.Index = rowindex.NewTableIndex(kv)
   return &out, nil
 }
 

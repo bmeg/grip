@@ -1,5 +1,5 @@
 
-package tabular
+package rowindex
 
 import (
   "log"
@@ -7,22 +7,27 @@ import (
   "bytes"
   "encoding/binary"
   "github.com/bmeg/grip/kvi"
+  "github.com/bmeg/grip/kvindex"
 )
 
 type TableIndex struct {
-  kv kvi.KVInterface
+  kvindex.KVIndex
+}
+
+func NewTableIndex(kv kvi.KVInterface) *TableIndex {
+  return &TableIndex{kvindex.KVIndex{KV:kv, Fields:map[string][]string{}}}
 }
 
 func (t *TableIndex) SetPathID(path string, num uint64 ) {
   pk := PathKey(path)
   b := make([]byte, binary.MaxVarintLen64)
   binary.PutUvarint(b, num)
-  t.kv.Set(pk, b)
+  t.KV.Set(pk, b)
 }
 
 func (t *TableIndex) GetPathID(path string) (uint64, error) {
   pk := PathKey(path)
-  v, err := t.kv.Get(pk)
+  v, err := t.KV.Get(pk)
   if err != nil {
     return 0, err
   }
@@ -33,19 +38,19 @@ func (t *TableIndex) GetPathID(path string) (uint64, error) {
 func (t *TableIndex) NewPathID( path string ) uint64 {
   ok := PathNumKey()
   num := uint64(0)
-  if v, err := t.kv.Get(ok); err == nil {
+  if v, err := t.KV.Get(ok); err == nil {
     num, _ = binary.Uvarint(v)
   }
   b := make([]byte, binary.MaxVarintLen64)
   binary.PutUvarint(b, num+1)
-  t.kv.Set(ok, b) //Make part of same transaction as Get above?
+  t.KV.Set(ok, b) //Make part of same transaction as Get above?
   t.SetPathID(path, num)
   return num
 }
 
 func (t *TableIndex) GetIDLine(pathID uint64, id string) (uint64, error) {
   ik := IDKey(pathID, id)
-  if v, err := t.kv.Get(ik); err == nil {
+  if v, err := t.KV.Get(ik); err == nil {
     o, _ := binary.Uvarint(v)
     return o, nil
   } else {
@@ -57,7 +62,7 @@ func (t *TableIndex) GetIDLine(pathID uint64, id string) (uint64, error) {
 
 func (t *TableIndex) GetLineCount(pathID uint64) (uint64, error) {
   ik := LineCountKey(pathID)
-  if v, err := t.kv.Get(ik); err == nil {
+  if v, err := t.KV.Get(ik); err == nil {
     o, _ := binary.Uvarint(v)
     return o, nil
   } else {
@@ -67,7 +72,7 @@ func (t *TableIndex) GetLineCount(pathID uint64) (uint64, error) {
 
 func (t *TableIndex) GetLineOffset(pathID uint64, line uint64 ) (uint64, error) {
   lk := LineKey(pathID, line)
-  if v, err := t.kv.Get(lk); err == nil {
+  if v, err := t.KV.Get(lk); err == nil {
     o, _ := binary.Uvarint(v)
     return o, nil
   } else {
@@ -79,7 +84,7 @@ func (t *TableIndex) GetIDChannel(ctx context.Context, pathID uint64) chan strin
   out := make(chan string, 10)
   go func() {
     defer close(out)
-    t.kv.View(func(it kvi.KVIterator) error {
+    t.KV.View(func(it kvi.KVIterator) error {
       prefix := IDPrefix(pathID)
       for it.Seek(prefix); it.Valid() && bytes.HasPrefix(it.Key(), prefix); it.Next() {
         select {
@@ -97,7 +102,7 @@ func (t *TableIndex) GetIDChannel(ctx context.Context, pathID uint64) chan strin
 }
 
 func (t *TableIndex) IndexWrite( f func(*IndexWriter) error ) {
-  t.kv.BulkWrite(func(bl kvi.KVBulkWrite) error {
+  t.KV.BulkWrite(func(bl kvi.KVBulkWrite) error {
     return f(&IndexWriter{bl})
   })
 }

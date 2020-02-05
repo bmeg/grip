@@ -1,4 +1,4 @@
-package tabular
+package rowindex
 
 import (
   "testing"

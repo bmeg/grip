@@ -1,4 +1,4 @@
-package tabular
+package rowindex
 
 
 import (
@@ -8,7 +8,7 @@ import (
 var pathCount  = []byte("c")
 var pathPrefix = []byte("p")
 var linePrefix = []byte("l")
-var idPrefix   = []byte("i")
+var idPrefix   = []byte("g")
 var countPrefix = []byte("n")
 var idxPrefix   = []byte("x")
 

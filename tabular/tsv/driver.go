@@ -4,6 +4,7 @@ import (
   "log"
   "context"
   "github.com/bmeg/grip/tabular"
+  "github.com/bmeg/grip/tabular/rowindex"
 )
 
 
@@ -69,7 +70,7 @@ func (t *TSVDriver) Init() error {
   }
 
   count := uint64(0)
-  t.man.Index.IndexWrite(func(bl *tabular.IndexWriter) error{
+  t.man.Index.IndexWrite(func(bl *rowindex.IndexWriter) error{
     for line := range t.lineReader.ReadLines() {
       row := t.cparse.Parse(string(line.Text))
       if !hasHeader {
