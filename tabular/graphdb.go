@@ -35,7 +35,7 @@ func NewGDB(conf *GraphConfig, indexPath string) (*TabularGDB, error) {
   //add parameters to configs for the tables, based on how the vertices will use them
   for _, v := range conf.Vertices {
     if opt, ok := tableOptions[ v.Table ]; !ok {
-      return nil, fmt.Errorf("Trying to use undeclared table: %s", v.Table)
+      return nil, fmt.Errorf("Trying to use undeclared table: '%s'", v.Table)
     } else {
       if opt.PrimaryKey != "" && opt.PrimaryKey != v.PrimaryKey {
         //right now, only one vertex type can make a table (and declare its primary key type)
@@ -48,8 +48,11 @@ func NewGDB(conf *GraphConfig, indexPath string) (*TabularGDB, error) {
   //add parameters to configs for the tables, based on how the edges will use them
   for _, e := range conf.Edges {
     log.Printf("Edges: %s", e)
-    toTableOpts := tableOptions[e.ToTable]
-    fromTableOpts := tableOptions[e.FromTable]
+    toVertex := conf.Vertices[e.ToVertex]
+    fromVertex := conf.Vertices[e.FromVertex]
+
+    toTableOpts := tableOptions[toVertex.Table]
+    fromTableOpts := tableOptions[fromVertex.Table]
     if toTableOpts == nil || fromTableOpts == nil {
       return nil, fmt.Errorf("Trying to use undeclared table")
     }
@@ -59,8 +62,8 @@ func NewGDB(conf *GraphConfig, indexPath string) (*TabularGDB, error) {
       }
     }
     if e.ToField != toTableOpts.PrimaryKey {
-      if !setcmp.ContainsString(toTableOpts.IndexedColumns, e.FromField) {
-        toTableOpts.IndexedColumns = append(toTableOpts.IndexedColumns, e.FromField)
+      if !setcmp.ContainsString(toTableOpts.IndexedColumns, e.ToField) {
+        toTableOpts.IndexedColumns = append(toTableOpts.IndexedColumns, e.ToField)
       }
     }
   }
@@ -81,10 +84,20 @@ func NewGDB(conf *GraphConfig, indexPath string) (*TabularGDB, error) {
   }
 
   //map the table drivers back onto the vertices that will use them
-  for _, v := range conf.Vertices {
-    log.Printf("Adding vertex prefix: %s label: %s", v.Prefix, v.Label)
+  for vPrefix, v := range conf.Vertices {
+    log.Printf("Adding vertex prefix: %s label: %s", vPrefix, v.Label)
     tix := driverMap[v.Table]
-    out.vertices[v.Prefix] = &VertexSource{driver:tix, prefix:v.Prefix, label:v.Label, config:&v}
+    out.vertices[vPrefix] = &VertexSource{driver:tix, prefix:vPrefix, label:v.Label, config:&v}
+  }
+
+  for _, e := range conf.Edges {
+    if e.Label != "" {
+      //fromDriver := driverMap[e.FromTable]
+      //toDriver := driverMap[e.ToTable]
+
+      log.Printf("Setting up out edge")
+      //es := EdgeSource{ driver:tix }
+    }
   }
 
   /*

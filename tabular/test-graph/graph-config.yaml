@@ -6,32 +6,28 @@ tables:
   starship:
     driver: tsv
     path: starship.csv
-  friend:
-    driver: tsv
-    path: friend.csv
+  #friend:
+  #  driver: tsv
+  #  path: friend.csv
 
 
 vertices:
-  - table: human
+  human_ :
+    table: human
     primaryKey: id
     label: Human
-    prefix: human_
-  - table: starship
+  starship_ :
+    table: starship
     primaryKey: id
     label: Starship
-    prefix: starship_
 
 edges:
-  - fromTable: human
-    toTable: starship
-    label: owns
-    fromField: owner
-    toField: id
-  - fromTable: starship
-    toTable: human
+  - fromVertex: starship_
+    toVertex: human_
     label: owner
-    toField: owner
-    fromField: id
+    backLabel: owns
+    toField: id
+    fromField: owner
   #- joinTable: friend
   #  fromTable: human
   #  toTable: human

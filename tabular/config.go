@@ -10,7 +10,7 @@ import (
 
 type GraphConfig struct {
   Tables   map[string]TableConfig  `json:"tables"`
-  Vertices []VertexConfig          `json:"vertices"`
+  Vertices map[string]VertexConfig `json:"vertices"`
   Edges    []EdgeConfig            `json:"edges"`
   path    string
 }
@@ -24,15 +24,15 @@ type VertexConfig struct {
   Table      string      `json:"table"`
   PrimaryKey string      `json:"primaryKey"`
   Label      string      `json:"label"`
-  Prefix     string      `json:"prefix"`
 }
 
 type EdgeConfig struct {
-  ToField   string       `json:"toField"`
-  ToTable   string       `json:"toTable"`
-  FromField string       `json:"fromField"`
-  FromTable string       `json:"fromTable"`
-  Label     string       `json:"label"`
+  ToField    string       `json:"toField"`
+  ToVertex   string       `json:"toVertex"`
+  FromField  string       `json:"fromField"`
+  FromVertex string       `json:"fromVertex"`
+  Label      string       `json:"label"`
+  BackLabel  string       `json:"backLabel"`
 }
 
 

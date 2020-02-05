@@ -97,7 +97,7 @@ func (t *TSVDriver) Init() error {
     bl.SetLineCount(t.pathID, count)
     return nil
   })
-  log.Printf("SetupIndexCol: %d", t.idCol)
+  log.Printf("SetupIndexCol: %d [%#v]", t.idCol, t.idxCols)
   log.Printf("Found %d rows", count)
   return nil
 }
