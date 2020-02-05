@@ -21,6 +21,7 @@ type Driver interface {
   GetIDs(ctx context.Context) chan string
   GetRows(ctx context.Context) chan *TableRow
   GetRowByID(id string) (*TableRow, error)
+  //GetRowsByField(ctx context.Context, field string, value string) (chan *TableRow, error)
 }
 
 type Options struct {

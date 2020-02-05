@@ -21,15 +21,19 @@ type VertexSource struct {
 }
 
 type EdgeSource struct {
-  driver   Driver
-  inTable  string
-  outTable string
+  fromDriver   Driver
+  toDriver     Driver
+  fromVertex   string
+  toVertex     string
+  prefix       string
+  label        string
 }
 
 type TabularGraph struct {
-  idx *TableManager
-  vertices map[string]*VertexSource
-  edges    []*EdgeConfig
+  idx       *TableManager
+  vertices  map[string]*VertexSource
+  outEdges  map[string]*EdgeSource
+  inEdges   map[string]*EdgeSource
 }
 
 
@@ -113,8 +117,8 @@ func (t *TabularGraph) ListVertexLabels() ([]string, error) {
 
 func (t *TabularGraph) ListEdgeLabels() ([]string, error) {
   out := []string{}
-  for _, i := range t.edges {
-    out = append(out, i.Label)
+  for _, i := range t.outEdges {
+    out = append(out, i.label)
   }
   return out, nil
 }
@@ -178,36 +182,34 @@ func (t *TabularGraph) GetVertexChannel(req chan gdbi.ElementLookup, load bool) 
 
 
 func (t *TabularGraph) GetOutChannel(req chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
-  /*
   out := make(chan gdbi.ElementLookup, 10)
   go func() {
     defer close(out)
     for r := range req {
-      for curTable, v := range t.vertices {
-        if strings.HasPrefix(r.ID, v.prefix) {
-          id := r.ID[len(v.prefix):len(r.ID)]
-          if row, err:= v.driver.GetRowByID(id); err == nil {
-            for _, e := range v.outEdges {
-              log.Printf("row: %s", row.Values)
-              did := row.Values[e.ToField]
-              dtable := t.vertices[e.ToTable]
-              log.Printf("From Table '%s' to '%s' : %s", curTable, e.ToTable, did)
-              outV := gripql.Vertex{Gid:dtable.prefix + did, Label:dtable.label}
-              if row, err := dtable.driver.GetRowByID(did); err == nil {
-                outV.Data = protoutil.AsStringStruct(row.Values)
-                r.Vertex = &outV
-                out <- r
-              }
+      for vPrefix, _ := range t.outEdges {
+        if strings.HasPrefix(r.ID, vPrefix) {
+          id := r.ID[len(vPrefix):len(r.ID)]
+          log.Printf("Lookup %s", id)
+          //if row, err:= v.toDriver.GetRowByID(id); err == nil {
+
+            /*
+            log.Printf("row: %s", row.Values)
+            did := row.Values[e.ToField]
+            dtable := t.vertices[e.ToTable]
+            log.Printf("From Table '%s' to '%s' : %s", curTable, e.ToTable, did)
+            outV := gripql.Vertex{Gid:dtable.prefix + did, Label:dtable.label}
+            if row, err := dtable.driver.GetRowByID(did); err == nil {
+              outV.Data = protoutil.AsStringStruct(row.Values)
+              r.Vertex = &outV
+              out <- r
             }
-          }
+            */
+          //}
         }
       }
     }
   }()
   return out
-  */
-  log.Printf("Calling GetInChannel")
-  return nil
 }
 
 func (t *TabularGraph) GetInChannel(req chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {

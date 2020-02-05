@@ -22,7 +22,8 @@ vertices:
     label: Starship
 
 edges:
-  - fromVertex: starship_
+  owns:
+    fromVertex: starship_
     toVertex: human_
     label: owner
     backLabel: owns

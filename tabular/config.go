@@ -11,7 +11,7 @@ import (
 type GraphConfig struct {
   Tables   map[string]TableConfig  `json:"tables"`
   Vertices map[string]VertexConfig `json:"vertices"`
-  Edges    []EdgeConfig            `json:"edges"`
+  Edges    map[string]EdgeConfig   `json:"edges"`
   path    string
 }
 

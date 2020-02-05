@@ -22,7 +22,8 @@ func NewGDB(conf *GraphConfig, indexPath string) (*TabularGDB, error) {
   }
   out.idx = idx
   out.vertices = map[string]*VertexSource{}
-  out.edges = []*EdgeConfig{}
+  out.outEdges = map[string]*EdgeSource{}
+  out.inEdges  = map[string]*EdgeSource{}
 
   driverMap := map[string]Driver{}
   tableOptions := map[string]*Options{}
@@ -90,13 +91,16 @@ func NewGDB(conf *GraphConfig, indexPath string) (*TabularGDB, error) {
     out.vertices[vPrefix] = &VertexSource{driver:tix, prefix:vPrefix, label:v.Label, config:&v}
   }
 
-  for _, e := range conf.Edges {
+  for ePrefix, e := range conf.Edges {
     if e.Label != "" {
-      //fromDriver := driverMap[e.FromTable]
-      //toDriver := driverMap[e.ToTable]
+      toVertex := conf.Vertices[e.ToVertex]
+      fromVertex := conf.Vertices[e.FromVertex]
 
-      log.Printf("Setting up out edge")
-      //es := EdgeSource{ driver:tix }
+      fromDriver := driverMap[fromVertex.Table]
+      toDriver := driverMap[toVertex.Table]
+      es := EdgeSource{ fromDriver:fromDriver, toDriver:toDriver, prefix:ePrefix, fromVertex:e.FromVertex, toVertex:e.ToVertex }
+      out.outEdges[ e.FromVertex ] = &es
+      out.inEdges[ e.ToVertex ] = &es
     }
   }
 
