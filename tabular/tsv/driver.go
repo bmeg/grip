@@ -69,6 +69,10 @@ func (t *TSVDriver) Init() error {
     return nil
   }
 
+  for _, colName := range t.idxCols {
+    t.man.Index.AddField(colName)
+  }
+
   count := uint64(0)
   t.man.Index.IndexWrite(func(bl *rowindex.IndexWriter) error{
     for line := range t.lineReader.ReadLines() {
@@ -89,9 +93,11 @@ func (t *TSVDriver) Init() error {
       } else {
         bl.SetIDLine(t.pathID, row[t.idCol], count)
         bl.SetLineOffset(t.pathID, count, line.Offset)
-        for _, col := range t.idxMap {
-          bl.SetColumnIndex(t.pathID, col, row[col], count)
+        iRow := map[string]interface{}{}
+        for colName, col := range t.idxMap {
+          iRow[colName] = row[col]
         }
+        bl.IndexRow(t.pathID, count, iRow)
         count++
       }
     }

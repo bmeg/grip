@@ -3,6 +3,7 @@ package rowindex
 
 import (
   "log"
+  "fmt"
   "context"
   "bytes"
   "encoding/binary"
@@ -103,11 +104,12 @@ func (t *TableIndex) GetIDChannel(ctx context.Context, pathID uint64) chan strin
 
 func (t *TableIndex) IndexWrite( f func(*IndexWriter) error ) {
   t.KV.BulkWrite(func(bl kvi.KVBulkWrite) error {
-    return f(&IndexWriter{bl})
+    return f(&IndexWriter{t, bl})
   })
 }
 
 type IndexWriter struct {
+  parent *TableIndex
   kv kvi.KVBulkWrite
 }
 
@@ -125,15 +127,16 @@ func (w *IndexWriter) SetLineOffset( pathID uint64, line uint64, offset uint64) 
   w.kv.Set(lk, b)
 }
 
-func (w *IndexWriter) SetColumnIndex(pathID, col uint64, value string, lineCount uint64) {
-  idxKey := IndexKey(pathID, col, value, lineCount)
-  w.kv.Set(idxKey, []byte{})
-}
-
 
 func (w *IndexWriter) SetLineCount( pathID, lineCount uint64) {
   lk := LineCountKey(pathID)
   b := make([]byte, binary.MaxVarintLen64)
   binary.PutUvarint(b, lineCount)
   w.kv.Set(lk, b)
+}
+
+func (w *IndexWriter) IndexRow( pathID, line uint64, row map[string]interface{}) error {
+  docID := fmt.Sprintf("%d.%d", pathID, line)
+  log.Printf("Indexing %s", row)
+  return w.parent.AddDocTx(w.kv, docID, row)
 }

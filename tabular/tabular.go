@@ -60,15 +60,3 @@ func NewTableManager(path string) (*TableManager, error) {
   out.Index = rowindex.NewTableIndex(kv)
   return &out, nil
 }
-
-/*
-func (t *TableManager) NewDriver(driver string, url string, idName string, idxCols []string) *TableManager {
-  o := TSVIndex{kv:t.kv, path:path, idName:idName, idxCols:idxCols, cparse:CSVParse{}}
-  o.Init()
-  return &o
-}
-
-func (t *TabularIndex) Close() error {
-    return t.kv.Close()
-}
-*/
