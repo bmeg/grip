@@ -6,6 +6,7 @@ import (
   "fmt"
   "strings"
   "context"
+  "github.com/bmeg/grip/util/setcmp"
   "github.com/bmeg/grip/gripql"
   "github.com/bmeg/grip/gdbi"
   "github.com/bmeg/grip/protoutil"
@@ -27,6 +28,8 @@ type EdgeSource struct {
   toVertex     string
   prefix       string
   label        string
+  fromField    string
+  toField      string
 }
 
 type TabularGraph struct {
@@ -186,10 +189,40 @@ func (t *TabularGraph) GetOutChannel(req chan gdbi.ElementLookup, load bool, edg
   go func() {
     defer close(out)
     for r := range req {
-      for vPrefix, _ := range t.outEdges {
+      for vPrefix, edge := range t.outEdges {
         if strings.HasPrefix(r.ID, vPrefix) {
-          id := r.ID[len(vPrefix):len(r.ID)]
-          log.Printf("Lookup %s", id)
+          if len(edgeLabels) == 0 || setcmp.ContainsString(edgeLabels, edge.label) {
+            id := r.ID[len(vPrefix):len(r.ID)]
+
+            fromVertex := t.vertices[ edge.fromVertex ]
+
+            joinVal := ""
+            if edge.fromField == fromVertex.config.PrimaryKey {
+              joinVal = id
+            } else {
+              elem := r.Ref.GetCurrent()
+              joinVal = elem.Data[edge.fromField].(string)
+            }
+            log.Printf("Lookup %s %s %s %s (%s)", id, edge.label, edge.fromField, edge.toField, joinVal )
+
+            toVertex := t.vertices[ edge.toVertex ]
+            if edge.toField == toVertex.config.PrimaryKey {
+              if row, err := edge.toDriver.GetRowByID(joinVal); err == nil {
+                outV := gripql.Vertex{Gid:toVertex.prefix + joinVal, Label:toVertex.label}
+                outV.Data = protoutil.AsStringStruct(row.Values)
+                r.Vertex = &outV
+                out <- r
+              }
+            } else {
+              for row := range edge.toDriver.GetRowsByField(context.TODO(), edge.toField, joinVal) {
+                outV := gripql.Vertex{Gid:toVertex.prefix + joinVal, Label:toVertex.label}
+                outV.Data = protoutil.AsStringStruct(row.Values)
+                r.Vertex = &outV
+                out <- r
+              }
+            }
+          }
+
           //if row, err:= v.toDriver.GetRowByID(id); err == nil {
 
             /*

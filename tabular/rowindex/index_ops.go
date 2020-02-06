@@ -4,6 +4,7 @@ package rowindex
 import (
   "log"
   "fmt"
+  "strconv"
   "context"
   "bytes"
   "encoding/binary"
@@ -102,6 +103,24 @@ func (t *TableIndex) GetIDChannel(ctx context.Context, pathID uint64) chan strin
   return out
 }
 
+
+func (t *TableIndex) GetLinesByField(ctx context.Context, pathID uint64, field string, value string) chan uint64 {
+  out := make(chan uint64, 10)
+  go func() {
+    defer close(out)
+    f := fmt.Sprintf("%d.%s", pathID, field)
+    for i := range t.GetTermMatch(ctx, f, value, -1) {
+      o, err := strconv.ParseUint(i, 10, 64)
+      if err == nil {
+        out <- o
+      }
+    }
+  }()
+
+  return out
+}
+
+
 func (t *TableIndex) IndexWrite( f func(*IndexWriter) error ) {
   t.KV.BulkWrite(func(bl kvi.KVBulkWrite) error {
     return f(&IndexWriter{t, bl})
@@ -136,7 +155,10 @@ func (w *IndexWriter) SetLineCount( pathID, lineCount uint64) {
 }
 
 func (w *IndexWriter) IndexRow( pathID, line uint64, row map[string]interface{}) error {
-  docID := fmt.Sprintf("%d.%d", pathID, line)
-  log.Printf("Indexing %s", row)
-  return w.parent.AddDocTx(w.kv, docID, row)
+  docID := fmt.Sprintf("%d", line)
+  pathS := fmt.Sprintf("%d", pathID)
+  d := map[string]interface{}{
+    pathS : row,
+  }
+  return w.parent.AddDocTx(w.kv, docID, d)
 }

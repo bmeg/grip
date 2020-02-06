@@ -2,6 +2,7 @@ package tsv
 
 import (
   "log"
+  "fmt"
   "context"
   "github.com/bmeg/grip/tabular"
   "github.com/bmeg/grip/tabular/rowindex"
@@ -70,7 +71,8 @@ func (t *TSVDriver) Init() error {
   }
 
   for _, colName := range t.idxCols {
-    t.man.Index.AddField(colName)
+    colPath := fmt.Sprintf("%d.%s", t.pathID, colName) //should probably abstract this into the library
+    t.man.Index.AddField(colPath)
   }
 
   count := uint64(0)
@@ -177,4 +179,19 @@ func (t *TSVDriver) GetRows(ctx context.Context) chan *tabular.TableRow {
 
 func (t *TSVDriver) GetIDs(ctx context.Context) chan string {
   return t.man.Index.GetIDChannel(ctx, t.pathID)
+}
+
+
+func (t *TSVDriver) GetRowsByField(ctx context.Context, field string, value string) chan *tabular.TableRow {
+  out := make(chan *tabular.TableRow, 10)
+  go func() {
+    defer close(out)
+    for line := range t.man.Index.GetLinesByField(ctx, t.pathID, field, value) {
+      o, err := t.GetLineRow(line)
+      if err == nil {
+        out <- o
+      }
+    }
+  }()
+  return out
 }

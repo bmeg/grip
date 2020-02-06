@@ -95,32 +95,32 @@ func NewGDB(conf *GraphConfig, indexPath string) (*TabularGDB, error) {
     if e.Label != "" {
       toVertex := conf.Vertices[e.ToVertex]
       fromVertex := conf.Vertices[e.FromVertex]
-
       fromDriver := driverMap[fromVertex.Table]
       toDriver := driverMap[toVertex.Table]
-      es := EdgeSource{ fromDriver:fromDriver, toDriver:toDriver, prefix:ePrefix, fromVertex:e.FromVertex, toVertex:e.ToVertex }
+      es := EdgeSource{
+        label:e.Label,
+        fromDriver:fromDriver,
+        toDriver:toDriver, prefix:ePrefix,
+        fromVertex:e.FromVertex, toVertex:e.ToVertex,
+        fromField:e.FromField, toField:e.ToField }
       out.outEdges[ e.FromVertex ] = &es
       out.inEdges[ e.ToVertex ] = &es
     }
-  }
-
-  /*
-  for _, t := range conf.Tables {
-    for _, e := range t.Edges {
-      out.edges = append(out.edges, &e)
-      if e.ToTable != "" {
-        tt := out.vertices[e.ToTable]
-        out.vertices[e.ToTable].inEdges = append( out.vertices[e.ToTable].inEdges, &EdgeConfig{ FromTable:e.ToTable, Label:e.Label, From:tt.config.PrimaryKey })
-        out.vertices[t.Name].outEdges = append( out.vertices[t.Name].outEdges, &EdgeConfig{ ToTable:t.Name, Label:e.Label, To:e.To, From:t.PrimaryKey })
-      }
-      if e.FromTable != "" {
-        ft := out.vertices[e.FromTable]
-        out.vertices[e.FromTable].outEdges = append( out.vertices[e.FromTable].outEdges, &EdgeConfig{ ToTable:ft.config.Name, Label:e.Label, To:ft.config.PrimaryKey })
-        out.vertices[t.Name].inEdges = append( out.vertices[t.Name].inEdges, &EdgeConfig{ FromTable:e.FromTable, Label:e.Label, From:ft.config.PrimaryKey })
-      }
+    if e.BackLabel != "" {
+      toVertex := conf.Vertices[e.ToVertex]
+      fromVertex := conf.Vertices[e.FromVertex]
+      fromDriver := driverMap[fromVertex.Table]
+      toDriver := driverMap[toVertex.Table]
+      es := EdgeSource{
+        label:e.BackLabel,
+        fromDriver:toDriver,
+        toDriver:fromDriver, prefix:ePrefix,
+        fromVertex:e.ToVertex, toVertex:e.FromVertex,
+        fromField:e.ToField, toField:e.FromField }
+      out.outEdges[ e.ToVertex ] = &es
+      out.inEdges[ e.FromVertex ] = &es
     }
   }
-  */
   return &TabularGDB{&out}, nil
 }
 
@@ -143,7 +143,7 @@ func (g *TabularGDB) Graph(graphID string) (gdbi.GraphInterface, error) {
 }
 
 func (g *TabularGDB) BuildSchema(ctx context.Context, graphID string, sampleN uint32, random bool) (*gripql.Graph, error) {
-  return nil, fmt.Errorf("AddGraph not implemented")
+  return nil, fmt.Errorf("BuildSchema not implemented")
 }
 
 func (g *TabularGDB) Close() error {
