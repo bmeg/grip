@@ -6,20 +6,49 @@ tables:
       list:
         url: https://api.gdc.cancer.gov/cases
         elementList: "$.data.hits"
+      get:
+        id:
+          url: https://api.gdc.cancer.gov/cases
+          params:
+            filters: >
+              {
+                 "op":"in",
+                 "content":{
+                    "field":"case_id",
+                    "value":["{{id}}"]
+                 }
+              }
+          element: "$.data.hits[0]"
 
-  gdc_smms_occurance:
+  gdc_smm_occurance:
     driver: web
     config:
       get:
-        url: https://api.gdc.cancer.gov/ssm_occurrences
-        params:
-          expand: case
-        templateParams:
-          op: in
-          content:
-            field: case.submitter_id
-            value: ["$.id"]
-
+        case_id:
+          url: https://api.gdc.cancer.gov/ssm_occurrences
+          params:
+            expand: case
+            filters: >
+              {
+                 "op":"in",
+                 "content":{
+                    "field":"case.case_id",
+                    "value":["{{case_id}}"]
+                 }
+              }
+        ssm_occurrence_id:
+            url: https://api.gdc.cancer.gov/ssm_occurrences
+            params:
+              expand: case
+              filters: >
+                {
+                   "op":"in",
+                   "content":{
+                      "field":"ssm_occurrence_id",
+                      "value":["{{ssm_occurrence_id}}"]
+                   }
+                }
+            element: "$.data.hits[0]"
 
   pdccase:
     driver: web
@@ -41,3 +70,8 @@ vertices:
     table: pdccase
     primaryKey: case_id
     label: PDCCase
+
+  "ssm_occurrence:" :
+    table: gdc_smm_occurance
+    primaryKey: ssm_occurrence_id
+    label: SSMoccurrence

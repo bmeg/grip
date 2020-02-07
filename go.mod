@@ -5,6 +5,7 @@ go 1.12
 require (
 	github.com/Shopify/sarama v1.22.1
 	github.com/akrylysov/pogreb v0.8.1
+	github.com/aymerick/raymond v2.0.2+incompatible
 	github.com/bmeg/protoc-gen-grcp-rest-direct v0.0.0-20190228222353-4d40e8b9d305 // indirect
 	github.com/boltdb/bolt v1.3.1
 	github.com/ckaznocha/protoc-gen-lint v0.2.1 // indirect
