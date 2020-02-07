@@ -7,6 +7,20 @@ tables:
         url: https://api.gdc.cancer.gov/cases
         elementList: "$.data.hits"
 
+  gdc_smms_occurance:
+    driver: web
+    config:
+      get:
+        url: https://api.gdc.cancer.gov/ssm_occurrences
+        params:
+          expand: case
+        templateParams:
+          op: in
+          content:
+            field: case.submitter_id
+            value: ["$.id"]
+
+
   pdccase:
     driver: web
     config:
