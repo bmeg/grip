@@ -141,7 +141,7 @@ func (t *TSVDriver) GetLineRow(lineNum uint64) (*tabular.TableRow, error) {
     return nil, err
   }
   r := t.cparse.Parse(string(text))
-  d := map[string]string{}
+  d := map[string]interface{}{}
   for i := 0; i < len(t.header) && i < len(r); i++ {
     if i != t.idCol {
       d[t.header[i]] = r[i]
@@ -162,7 +162,7 @@ func (t *TSVDriver) GetRows(ctx context.Context) chan *tabular.TableRow {
         hasHeader = true
       } else {
         r := t.cparse.Parse(string(line.Text))
-        d := map[string]string{}
+        d := map[string]interface{}{}
         for i := 0; i < len(t.header) && i < len(r); i++ {
           if i != t.idCol {
             d[t.header[i]] = r[i]

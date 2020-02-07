@@ -1,0 +1,15 @@
+
+tables:
+  case:
+    driver: webrest
+    config:
+      list:
+        url: https://api.gdc.cancer.gov/cases
+        elementList: "$.data.hits"
+
+
+vertices:
+  "case:" :
+    table: case
+    primaryKey: id
+    label: Case

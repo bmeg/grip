@@ -72,7 +72,7 @@ func (t *TabularGraph) GetVertex(key string, load bool) *gripql.Vertex {
       id := key[len(v.prefix):len(key)]
       driver := v.driver
       if row, err := driver.GetRowByID(id); err == nil {
-        o := gripql.Vertex{ Gid: v.prefix + row.Key, Label: v.label, Data:protoutil.AsStringStruct(row.Values) }
+        o := gripql.Vertex{ Gid: v.prefix + row.Key, Label: v.label, Data:protoutil.AsStruct(row.Values) }
         return &o
       } else {
         log.Printf("Row not read")
@@ -147,7 +147,7 @@ func (t *TabularGraph) GetVertexList(ctx context.Context, load bool) <-chan *gri
     for _, table := range t.vertices {
       log.Printf("table: %s", table.label)
       for row := range table.driver.GetRows(ctx) {
-        v := gripql.Vertex{ Gid: table.prefix + row.Key, Label: table.label, Data:protoutil.AsStringStruct(row.Values) }
+        v := gripql.Vertex{ Gid: table.prefix + row.Key, Label: table.label, Data:protoutil.AsStruct(row.Values) }
         out <- &v
       }
     }
@@ -172,7 +172,7 @@ func (t *TabularGraph) GetVertexChannel(req chan gdbi.ElementLookup, load bool) 
           id := r.ID[len(v.prefix):len(r.ID)]
           o := gripql.Vertex{Gid:r.ID, Label:v.label}
           if row, err:= v.driver.GetRowByID(id); err == nil {
-            o.Data = protoutil.AsStringStruct(row.Values)
+            o.Data = protoutil.AsStruct(row.Values)
             r.Vertex = &o
             out <- r
           }
@@ -209,14 +209,14 @@ func (t *TabularGraph) GetOutChannel(req chan gdbi.ElementLookup, load bool, edg
             if edge.toField == toVertex.config.PrimaryKey {
               if row, err := edge.toDriver.GetRowByID(joinVal); err == nil {
                 outV := gripql.Vertex{Gid:toVertex.prefix + joinVal, Label:toVertex.label}
-                outV.Data = protoutil.AsStringStruct(row.Values)
+                outV.Data = protoutil.AsStruct(row.Values)
                 r.Vertex = &outV
                 out <- r
               }
             } else {
               for row := range edge.toDriver.GetRowsByField(context.TODO(), edge.toField, joinVal) {
                 outV := gripql.Vertex{Gid:toVertex.prefix + joinVal, Label:toVertex.label}
-                outV.Data = protoutil.AsStringStruct(row.Values)
+                outV.Data = protoutil.AsStruct(row.Values)
                 r.Vertex = &outV
                 out <- r
               }

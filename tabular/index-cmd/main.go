@@ -9,6 +9,7 @@ import (
   "github.com/bmeg/grip/tabular"
 
   _ "github.com/bmeg/grip/tabular/tsv"
+  _ "github.com/bmeg/grip/tabular/webrest"
 
   "github.com/bmeg/grip/gdbi"
   "github.com/golang/protobuf/jsonpb"

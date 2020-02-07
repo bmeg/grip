@@ -15,7 +15,7 @@ type TableManager struct {
 
 type TableRow struct {
   Key    string
-  Values map[string]string
+  Values map[string]interface{}
 }
 
 type Driver interface {
@@ -28,6 +28,7 @@ type Driver interface {
 type Options struct {
   PrimaryKey      string
   IndexedColumns  []string
+  Config          map[string]interface{}
 }
 
 type DriverBuilder func(url string, manager *TableManager, opts Options) (Driver, error)

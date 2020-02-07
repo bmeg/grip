@@ -29,8 +29,8 @@ func NewGDB(conf *GraphConfig, indexPath string) (*TabularGDB, error) {
   tableOptions := map[string]*Options{}
   log.Printf("Loading Table Conf")
   //Set up configs for different tables to be opened
-  for name, _ := range conf.Tables {
-    tableOptions[ name ] = &Options{IndexedColumns: []string{}}
+  for name, table := range conf.Tables {
+    tableOptions[ name ] = &Options{IndexedColumns: []string{}, Config:table.Config}
   }
 
   //add parameters to configs for the tables, based on how the vertices will use them

@@ -16,8 +16,9 @@ type GraphConfig struct {
 }
 
 type TableConfig struct {
-  Driver    string       `json:"driver"`
-  Path      string       `json:"path"`
+  Driver    string                  `json:"driver"`
+  Path      string                  `json:"path"`
+  Config    map[string]interface{}  `json:"config"`
 }
 
 type VertexConfig struct {

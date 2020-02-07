@@ -15,6 +15,8 @@ require (
 	github.com/felixge/httpsnoop v1.0.1
 	github.com/ghodss/yaml v1.0.0
 	github.com/globalsign/mgo v0.0.0-20181015135952-eeefdecb41b8
+	github.com/go-python/gpython v0.0.3
+	github.com/go-resty/resty/v2 v2.1.0
 	github.com/go-sourcemap/sourcemap v2.1.2+incompatible // indirect
 	github.com/go-sql-driver/mysql v1.4.1
 	github.com/golang/protobuf v1.3.2
@@ -32,6 +34,7 @@ require (
 	github.com/kr/pretty v0.1.0
 	github.com/lib/pq v1.2.0
 	github.com/logrusorgru/aurora v0.0.0-20190428105938-cea283e61946
+	github.com/mitchellh/mapstructure v1.1.2
 	github.com/oliveagle/jsonpath v0.0.0-20180606110733-2e52cf6e6852
 	github.com/paulbellamy/ratecounter v0.2.0
 	github.com/robertkrimen/otto v0.0.0-20180617131154-15f95af6e78d
@@ -44,10 +47,8 @@ require (
 	github.com/stretchr/testify v1.4.0
 	github.com/syndtr/goleveldb v1.0.0
 	golang.org/x/crypto v0.0.0-20191011191535-87dc89f01550
-	golang.org/x/lint v0.0.0-20190313153728-d0100b6bd8b3 // indirect
 	golang.org/x/net v0.0.0-20190923162816-aa69164e4478
 	golang.org/x/sync v0.0.0-20190423024810-112230192c58
-	golang.org/x/sys v0.0.0-20190922100055-0a153f010e69 // indirect
 	golang.org/x/tools v0.0.0-20200116225955-84cebe10344f // indirect
 	google.golang.org/genproto v0.0.0-20190819201941-24fa4b261c55
 	google.golang.org/grpc v1.26.0
