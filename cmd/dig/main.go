@@ -111,8 +111,6 @@ var Cmd = &cobra.Command{
 
     graph, _ := gdb.Graph("main")
 
-    fmt.Printf("%s\n", queryString)
-    fmt.Printf("%s\n", graph)
 
     query, err := ParseQuery(queryString)
     if err != nil {
