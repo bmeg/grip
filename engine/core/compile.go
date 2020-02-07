@@ -39,12 +39,15 @@ func (pipe *DefaultPipeline) Processors() []gdbi.Processor {
 // DefaultCompiler is the core compiler that works with default graph interface
 type DefaultCompiler struct {
 	db gdbi.GraphInterface
+	optimizers []QueryOptimizer
 }
 
 // NewCompiler creates a new compiler that runs using the provided GraphInterface
-func NewCompiler(db gdbi.GraphInterface) gdbi.Compiler {
-	return DefaultCompiler{db: db}
+func NewCompiler(db gdbi.GraphInterface, optimizers ...QueryOptimizer) gdbi.Compiler {
+	return DefaultCompiler{db: db, optimizers: optimizers}
 }
+
+type QueryOptimizer func(pipe []*gripql.GraphStatement) []*gripql.GraphStatement
 
 // Compile take set of statments and turns them into a runnable pipeline
 func (comp DefaultCompiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, error) {
@@ -58,7 +61,9 @@ func (comp DefaultCompiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeli
 		return &DefaultPipeline{}, fmt.Errorf("invalid statments: %s", err)
 	}
 
-	stmts = IndexStartOptimize(stmts)
+	for _, o := range comp.optimizers {
+		stmts = o(stmts)
+	}
 
 	ps := pipeline.NewPipelineState(stmts)
 

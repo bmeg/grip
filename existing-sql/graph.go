@@ -24,7 +24,7 @@ type Graph struct {
 
 // Compiler returns a query compiler that uses the graph
 func (g *Graph) Compiler() gdbi.Compiler {
-	return core.NewCompiler(g)
+	return core.NewCompiler(g, core.IndexStartOptimize) //TODO: probably a better optimizer for vertex label search
 }
 
 ////////////////////////////////////////////////////////////////////////////////

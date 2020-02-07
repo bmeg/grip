@@ -31,7 +31,7 @@ func (kgdb *KVInterfaceGDB) GetTimestamp() string {
 
 // Compiler gets a compiler that will use the graph the execute the compiled query
 func (kgdb *KVInterfaceGDB) Compiler() gdbi.Compiler {
-	return core.NewCompiler(kgdb)
+	return core.NewCompiler(kgdb, core.IndexStartOptimize)
 }
 
 type kvAddData struct {

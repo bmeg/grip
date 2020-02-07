@@ -38,7 +38,7 @@ type Graph struct {
 
 // Compiler returns a query compiler that will use elastic search as a backend
 func (es *Graph) Compiler() gdbi.Compiler {
-	return core.NewCompiler(es)
+	return core.NewCompiler(es, core.IndexStartOptimize) //TODO: probably a better optimizer for vertex label search
 }
 
 // GetTimestamp returns the change timestamp of the current graph

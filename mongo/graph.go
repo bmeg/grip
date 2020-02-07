@@ -28,7 +28,7 @@ type Graph struct {
 // Compiler returns a query compiler that uses the graph
 func (mg *Graph) Compiler() gdbi.Compiler {
 	if !mg.ar.conf.UseAggregationPipeline {
-		return core.NewCompiler(mg)
+		return core.NewCompiler(mg, core.IndexStartOptimize) //TODO: probably a better optimizer for vertex label search
 	}
 	return NewCompiler(mg)
 }
