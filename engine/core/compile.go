@@ -284,6 +284,7 @@ func StatementProcessor(gs *gripql.GraphStatement, db gdbi.GraphInterface, ps *p
 
 	case *gripql.GraphStatement_EngineCustom:
 		proc := stmt.Custom.(gdbi.CustomProcGen)
+		ps.LastType = proc.GetType()
 		return proc.GetProcessor(db, ps)
 
 	default:

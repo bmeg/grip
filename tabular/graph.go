@@ -59,7 +59,7 @@ func (t *TabularGraph) BulkAdd(stream <-chan *gripql.GraphElement) error {
 }
 
 func (t *TabularGraph) Compiler() gdbi.Compiler {
-  return core.NewCompiler(t)
+  return core.NewCompiler(t, TabularOptimizer)
 }
 
 func (t *TabularGraph) GetTimestamp() string {
