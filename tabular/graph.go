@@ -185,7 +185,7 @@ func (t *TabularGraph) GetVertexChannel(req chan gdbi.ElementLookup, load bool) 
 
 
 func (t *TabularGraph) GetOutChannel(req chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
-  out := make(chan gdbi.ElementLookup, 10)
+  out := make(chan gdbi.ElementLookup, 100)
   go func() {
     defer close(out)
     for r := range req {
@@ -220,7 +220,6 @@ func (t *TabularGraph) GetOutChannel(req chan gdbi.ElementLookup, load bool, edg
               }
             }
           }
-
         }
       }
     }

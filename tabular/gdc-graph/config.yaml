@@ -19,6 +19,19 @@ tables:
                  }
               }
           element: "$.data.hits[0]"
+        submitter_id:
+          url: https://api.gdc.cancer.gov/cases
+          params:
+            filters: >
+              {
+                 "op":"in",
+                 "content":{
+                    "field":"submitter_id",
+                    "value":["{{submitter_id}}"]
+                 }
+              }
+          elementList: "$.data.hits"
+
 
   gdc_smm_occurance:
     driver: web
@@ -85,3 +98,10 @@ edges:
     label: ssms
     toField: case_id
     fromField: id
+
+  gdcRecord:
+    fromVertex: "pdccase:"
+    toVertex: "case:"
+    label: "gdcRecord"
+    fromField: case_submitter_id
+    toField: submitter_id

@@ -93,6 +93,11 @@ func (d *Driver) GetRows(ctx context.Context) chan *tabular.TableRow {
     }
 
     for _, row := range resList {
+      select {
+      case <-ctx.Done():
+        return
+      default:
+      }
       if rowData, ok := row.(map[string]interface{}); ok {
         gid, err := jsonpath.JsonPathLookup(rowData, pathFix(d.opts.PrimaryKey) )
         if err != nil {

@@ -34,6 +34,11 @@ func (t *tabularHasLabelProc) Process(ctx context.Context, man gdbi.Manager, in 
 		defer close(out)
 		for i := range in {
 			for _, table := range t.graph.vertices {
+				select {
+	      case <-ctx.Done():
+	        return
+	      default:
+				}
 				if setcmp.ContainsString(t.labels, table.label) {
 					for row := range table.driver.GetRows(ctx) {
 						out <- i.AddCurrent(&gdbi.DataElement{
