@@ -1,4 +1,4 @@
-package main
+package dig
 
 
 import (
@@ -13,7 +13,8 @@ import (
 
   "github.com/bmeg/grip/gdbi"
   "github.com/golang/protobuf/jsonpb"
-  flag "github.com/spf13/pflag"
+
+  "github.com/spf13/cobra"
 
   "encoding/json"
   "strings"
@@ -26,6 +27,8 @@ import (
   "github.com/bmeg/grip/util"
 
 )
+
+var idxName string = "table.db"
 
 
 func ParseQuery(queryString string) (gripql.GraphQuery, error) {
@@ -65,40 +68,6 @@ func ParseQuery(queryString string) (gripql.GraphQuery, error) {
   return query, nil
 }
 
-func main() {
-  var idxName *string = flag.String("db", "table.db", "Path to index db")
-  flag.Parse()
-  configFile := flag.Arg(0)
-  queryString := flag.Arg(1)
-
-  config, err := tabular.LoadConfig(configFile)
-  if err != nil {
-    log.Printf("%s", err)
-    return
-  }
-  gdb, err := tabular.NewGDB(config, *idxName)
-  if err != nil {
-    log.Printf("Error loading Graph: %s", err)
-    return
-  }
-
-  graph, _ := gdb.Graph("main")
-
-  fmt.Printf("%s\n", queryString)
-  fmt.Printf("%s\n", graph)
-
-  query, err := ParseQuery(queryString)
-  if err != nil {
-    log.Printf("%s", err)
-    return
-  }
-  log.Printf("Query: %s", query)
-  Query(graph, query)
-
-  gdb.Close()
-}
-
-
 func Query(graph gdbi.GraphInterface, query gripql.GraphQuery) error {
   marsh := jsonpb.Marshaler{}
 
@@ -115,4 +84,51 @@ func Query(graph gdbi.GraphInterface, query gripql.GraphQuery) error {
     fmt.Printf("%s\n", rowString)
   }
   return nil
+}
+
+
+// Cmd command line declaration
+var Cmd = &cobra.Command{
+	Use:   "dig <config> <query>",
+	Short: "Do a single query using the tabular driver",
+	Long:  ``,
+	Args:  cobra.ExactArgs(2),
+	RunE: func(cmd *cobra.Command, args []string) error {
+
+    configFile := args[0]
+    queryString := args[1]
+
+    config, err := tabular.LoadConfig(configFile)
+    if err != nil {
+      log.Printf("%s", err)
+      return err
+    }
+    gdb, err := tabular.NewGDB(config, idxName)
+    if err != nil {
+      log.Printf("Error loading Graph: %s", err)
+      return err
+    }
+
+    graph, _ := gdb.Graph("main")
+
+    fmt.Printf("%s\n", queryString)
+    fmt.Printf("%s\n", graph)
+
+    query, err := ParseQuery(queryString)
+    if err != nil {
+      log.Printf("%s", err)
+      return err
+    }
+    log.Printf("Query: %s", query)
+    Query(graph, query)
+
+    gdb.Close()
+    return nil
+  },
+}
+
+
+func init() {
+	flags := Cmd.Flags()
+	flags.StringVar(&idxName, "db", idxName, "Path to index db")
 }

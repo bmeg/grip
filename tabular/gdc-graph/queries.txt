@@ -1,3 +1,4 @@
 V().hasLabel("Case")
 V("ssm_occurrence:05c1bca0-c401-5d55-af7c-f7b38959488c")
 V("case:eb20d954-01a0-4fe0-a201-e37b917f0fc0")
+V("case:c43c8eea-7014-4abe-b805-397a9062d3e0").out("ssms")
