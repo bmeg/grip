@@ -206,14 +206,14 @@ func (t *TabularGraph) GetOutChannel(req chan gdbi.ElementLookup, load bool, edg
             toVertex := t.vertices[ edge.toVertex ]
             if edge.toField == toVertex.config.PrimaryKey {
               if row, err := edge.toDriver.GetRowByID(joinVal); err == nil {
-                outV := gripql.Vertex{Gid:toVertex.prefix + joinVal, Label:toVertex.label}
+                outV := gripql.Vertex{Gid:toVertex.prefix + row.Key, Label:toVertex.label}
                 outV.Data = protoutil.AsStruct(row.Values)
                 r.Vertex = &outV
                 out <- r
               }
             } else {
               for row := range edge.toDriver.GetRowsByField(context.TODO(), edge.toField, joinVal) {
-                outV := gripql.Vertex{Gid:toVertex.prefix + joinVal, Label:toVertex.label}
+                outV := gripql.Vertex{Gid:toVertex.prefix + row.Key, Label:toVertex.label}
                 outV.Data = protoutil.AsStruct(row.Values)
                 r.Vertex = &outV
                 out <- r

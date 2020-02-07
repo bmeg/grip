@@ -149,5 +149,59 @@ func (d *Driver) GetRowByID(id string) (*tabular.TableRow, error) {
 }
 
 func (d *Driver) GetRowsByField(ctx context.Context, field string, value string) chan *tabular.TableRow {
-  return nil
+  //log.Printf("Getting rows by field: %s (primaryKey: %s)", field, d.opts.PrimaryKey)
+  out := make(chan *tabular.TableRow, 10)
+  go func() {
+    defer close(out)
+
+    if tableGet, ok := d.conf.Get[field]; ok {
+      params := map[string]string{}
+      for k, v := range tableGet.Params {
+        ctx := map[string]string{
+            field: value,
+        }
+        result, err := raymond.Render(v, ctx)
+        if err == nil {
+          params[k] = result
+        }
+      }
+      data := map[string]interface{}{}
+
+      q := resty.New().R()
+      if len(params) > 0 {
+        q = q.SetQueryParams(params)
+      }
+      resp, err := q.SetResult(&data).
+      		Get(tableGet.URL)
+      if err != nil {
+        log.Printf("Error: %s", err)
+        return
+      }
+      resp.Result()
+      //log.Printf("Got: %s", data)
+      res, err := jsonpath.JsonPathLookup(data, tableGet.ElementList )
+      if err != nil {
+        log.Printf("Error: %s", err)
+        return
+      }
+
+      resList, ok := res.([]interface{})
+      if !ok {
+        return
+      }
+      for _, row := range resList {
+        if rowData, ok := row.(map[string]interface{}); ok {
+          gid, err := jsonpath.JsonPathLookup(rowData, pathFix(d.opts.PrimaryKey) )
+          if err == nil {
+            if gidStr, ok := gid.(string); ok {
+              out <- &tabular.TableRow{ gidStr, rowData }
+            }
+          }
+        }
+      }
+    } else {
+      log.Printf("Getter for %s not found", field)
+    }
+  }()
+  return out
 }

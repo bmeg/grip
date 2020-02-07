@@ -36,6 +36,8 @@ tables:
                     "value":["{{case_id}}"]
                  }
               }
+          elementList: "$.data.hits"
+
         ssm_occurrence_id:
             url: https://api.gdc.cancer.gov/ssm_occurrences
             params:
@@ -75,3 +77,11 @@ vertices:
     table: gdc_smm_occurance
     primaryKey: ssm_occurrence_id
     label: SSMoccurrence
+
+edges:
+  ssms:
+    fromVertex: "case:"
+    toVertex: "ssm_occurrence:"
+    label: ssms
+    toField: case_id
+    fromField: id
