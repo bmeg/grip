@@ -1,15 +1,29 @@
 
 tables:
-  case:
-    driver: webrest
+  gdccase:
+    driver: web
     config:
       list:
         url: https://api.gdc.cancer.gov/cases
         elementList: "$.data.hits"
 
+  pdccase:
+    driver: web
+    config:
+      list:
+        url: https://pdc.esacinc.com/graphql
+        elementList: "$.data.allCases"
+        params:
+          query: "{allCases {case_id case_submitter_id project_submitter_id disease_type primary_site}}"
+
 
 vertices:
   "case:" :
-    table: case
+    table: gdccase
     primaryKey: id
     label: Case
+
+  "pdccase:" :
+    table: pdccase
+    primaryKey: case_id
+    label: PDCCase

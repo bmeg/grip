@@ -1,4 +1,4 @@
-package webrest
+package web
 
 import (
   "log"
@@ -20,6 +20,7 @@ type Driver struct {
 type QueryConfig struct {
   URL         string  `json:"url"`
   ElementList string  `json:"elementList"`
+  Params      map[string]string `json:"params"`
 }
 
 type Config struct {
@@ -38,7 +39,7 @@ func TSVDriverBuilder(url string, manager *tabular.TableManager, opts tabular.Op
   return &o, nil
 }
 
-var loaded = tabular.AddDriver("webrest", TSVDriverBuilder)
+var loaded = tabular.AddDriver("web", TSVDriverBuilder)
 
 
 
@@ -63,8 +64,11 @@ func (d *Driver) GetRows(ctx context.Context) chan *tabular.TableRow {
 
     data := map[string]interface{}{}
 
-    resp, err := client.R().
-        SetResult(&data).
+    q := client.R()
+    if len(d.conf.List.Params) > 0 {
+      q = q.SetQueryParams(d.conf.List.Params)
+    }
+    resp, err := q.SetResult(&data).
     		Get(d.conf.List.URL)
 
     if err != nil {

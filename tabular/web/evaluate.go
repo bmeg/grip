@@ -1,5 +1,5 @@
 
-package webrest
+package web
 
 import (
   "log"

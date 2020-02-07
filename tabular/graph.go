@@ -203,8 +203,6 @@ func (t *TabularGraph) GetOutChannel(req chan gdbi.ElementLookup, load bool, edg
               elem := r.Ref.GetCurrent()
               joinVal = elem.Data[edge.fromField].(string)
             }
-            log.Printf("Lookup %s %s %s %s (%s)", id, edge.label, edge.fromField, edge.toField, joinVal )
-
             toVertex := t.vertices[ edge.toVertex ]
             if edge.toField == toVertex.config.PrimaryKey {
               if row, err := edge.toDriver.GetRowByID(joinVal); err == nil {
@@ -223,21 +221,6 @@ func (t *TabularGraph) GetOutChannel(req chan gdbi.ElementLookup, load bool, edg
             }
           }
 
-          //if row, err:= v.toDriver.GetRowByID(id); err == nil {
-
-            /*
-            log.Printf("row: %s", row.Values)
-            did := row.Values[e.ToField]
-            dtable := t.vertices[e.ToTable]
-            log.Printf("From Table '%s' to '%s' : %s", curTable, e.ToTable, did)
-            outV := gripql.Vertex{Gid:dtable.prefix + did, Label:dtable.label}
-            if row, err := dtable.driver.GetRowByID(did); err == nil {
-              outV.Data = protoutil.AsStringStruct(row.Values)
-              r.Vertex = &outV
-              out <- r
-            }
-            */
-          //}
         }
       }
     }
