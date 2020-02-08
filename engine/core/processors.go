@@ -88,7 +88,7 @@ func (l *LookupVertsIndex) Process(ctx context.Context, man gdbi.Manager, in gdb
 
 	go func() {
 		defer close(out)
-		for v := range l.db.GetVertexChannel(queryChan, l.loadData) {
+		for v := range l.db.GetVertexChannel(ctx, queryChan, l.loadData) {
 			i := v.Ref
 			out <- i.AddCurrent(&gdbi.DataElement{
 				ID:    v.Vertex.Gid,
@@ -166,7 +166,7 @@ func (l *LookupVertexAdjOut) Process(ctx context.Context, man gdbi.Manager, in g
 	}()
 	go func() {
 		defer close(out)
-		for ov := range l.db.GetOutChannel(queryChan, l.loadData, l.labels) {
+		for ov := range l.db.GetOutChannel(ctx, queryChan, l.loadData, l.labels) {
 			i := ov.Ref
 			out <- i.AddCurrent(&gdbi.DataElement{
 				ID:    ov.Vertex.Gid,
@@ -201,7 +201,7 @@ func (l *LookupEdgeAdjOut) Process(ctx context.Context, man gdbi.Manager, in gdb
 	}()
 	go func() {
 		defer close(out)
-		for v := range l.db.GetVertexChannel(queryChan, l.loadData) {
+		for v := range l.db.GetVertexChannel(ctx, queryChan, l.loadData) {
 			i := v.Ref
 			out <- i.AddCurrent(&gdbi.DataElement{
 				ID:    v.Vertex.Gid,
@@ -236,7 +236,7 @@ func (l *LookupVertexAdjIn) Process(ctx context.Context, man gdbi.Manager, in gd
 	}()
 	go func() {
 		defer close(out)
-		for v := range l.db.GetInChannel(queryChan, l.loadData, l.labels) {
+		for v := range l.db.GetInChannel(ctx, queryChan, l.loadData, l.labels) {
 			i := v.Ref
 			out <- i.AddCurrent(&gdbi.DataElement{
 				ID:    v.Vertex.Gid,
@@ -271,7 +271,7 @@ func (l *LookupEdgeAdjIn) Process(ctx context.Context, man gdbi.Manager, in gdbi
 	}()
 	go func() {
 		defer close(out)
-		for v := range l.db.GetVertexChannel(queryChan, l.loadData) {
+		for v := range l.db.GetVertexChannel(ctx, queryChan, l.loadData) {
 			i := v.Ref
 			out <- i.AddCurrent(&gdbi.DataElement{
 				ID:    v.Vertex.Gid,
@@ -306,7 +306,7 @@ func (l *InE) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out
 	}()
 	go func() {
 		defer close(out)
-		for v := range l.db.GetInEdgeChannel(queryChan, l.loadData, l.labels) {
+		for v := range l.db.GetInEdgeChannel(ctx, queryChan, l.loadData, l.labels) {
 			i := v.Ref
 			out <- i.AddCurrent(&gdbi.DataElement{
 				ID:    v.Edge.Gid,
@@ -343,7 +343,7 @@ func (l *OutE) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, ou
 	}()
 	go func() {
 		defer close(out)
-		for v := range l.db.GetOutEdgeChannel(queryChan, l.loadData, l.labels) {
+		for v := range l.db.GetOutEdgeChannel(ctx, queryChan, l.loadData, l.labels) {
 			i := v.Ref
 			out <- i.AddCurrent(&gdbi.DataElement{
 				ID:    v.Edge.Gid,

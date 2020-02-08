@@ -95,17 +95,16 @@ func (d *Driver) GetRows(ctx context.Context) chan *tabular.TableRow {
     for _, row := range resList {
       select {
       case <-ctx.Done():
-        return
       default:
-      }
-      if rowData, ok := row.(map[string]interface{}); ok {
-        gid, err := jsonpath.JsonPathLookup(rowData, pathFix(d.opts.PrimaryKey) )
-        if err != nil {
-          log.Printf("Error: %s", err)
-        }
-        if gidStr, ok := gid.(string); ok {
-          o := tabular.TableRow{ gidStr, rowData }
-          out <- &o
+        if rowData, ok := row.(map[string]interface{}); ok {
+          gid, err := jsonpath.JsonPathLookup(rowData, pathFix(d.opts.PrimaryKey) )
+          if err != nil {
+            log.Printf("Error: %s", err)
+          }
+          if gidStr, ok := gid.(string); ok {
+            o := tabular.TableRow{ gidStr, rowData }
+            out <- &o
+          }
         }
       }
     }
@@ -154,7 +153,7 @@ func (d *Driver) GetRowByID(id string) (*tabular.TableRow, error) {
 }
 
 func (d *Driver) GetRowsByField(ctx context.Context, field string, value string) chan *tabular.TableRow {
-  //log.Printf("Getting rows by field: %s (primaryKey: %s)", field, d.opts.PrimaryKey)
+  log.Printf("Getting rows by field: %s = %s (primaryKey: %s)", field, value, d.opts.PrimaryKey)
   out := make(chan *tabular.TableRow, 10)
   go func() {
     defer close(out)

@@ -74,34 +74,48 @@ tables:
         params:
           query: "{allCases {case_id case_submitter_id project_submitter_id disease_type primary_site}}"
 
+  pdcproject:
+    driver: web
+    config:
+      list:
+        url: https://pdc.esacinc.com/graphql
+        elementList: "$.data.projectsPerExperimentType"
+        params:
+          query: "{projectsPerExperimentType{experiment_type project_submitter_id name}}"
 
 vertices:
-  "gdc.org/case/" :
+  "gdc.cancer.gov/case/" :
     table: gdccase
     primaryKey: id
     label: Case
 
-  "pdc.org/case/" :
+  "pdc.esacinc.com/case/" :
     table: pdccase
     primaryKey: case_id
     label: PDCCase
 
-  "gdc.org/ssm_occurrence/" :
+  "pdc.esacinc.com/project/" :
+    table: pdcproject
+    primaryKey: project_submitter_id
+    label: PDCProject
+
+
+  "gdc.cancer.gov/ssm_occurrence/" :
     table: gdc_smm_occurance
     primaryKey: ssm_occurrence_id
     label: SSMoccurrence
 
 edges:
   ssms:
-    fromVertex: "gdc.org/case/"
-    toVertex: "gdc.org/ssm_occurrence/"
+    fromVertex: "gdc.cancer.gov/case/"
+    toVertex: "gdc.cancer.gov/ssm_occurrence/"
     label: ssms
     toField: case_id
     fromField: id
 
   gdcRecord:
-    fromVertex: "pdc.org/case/"
-    toVertex: "gdc.org/case/"
+    fromVertex: "pdc.esacinc.com/case/"
+    toVertex: "gdc.cancer.gov/case/"
     label: "gdcRecord"
     fromField: case_submitter_id
     toField: submitter_id

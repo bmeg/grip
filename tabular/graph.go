@@ -162,7 +162,7 @@ func (t *TabularGraph) GetEdgeList(ctx context.Context, load bool) <-chan *gripq
   return nil
 }
 
-func (t *TabularGraph) GetVertexChannel(req chan gdbi.ElementLookup, load bool) chan gdbi.ElementLookup {
+func (t *TabularGraph) GetVertexChannel(ctx context.Context, req chan gdbi.ElementLookup, load bool) chan gdbi.ElementLookup {
   out := make(chan gdbi.ElementLookup, 10)
   go func() {
     defer close(out)
@@ -184,39 +184,43 @@ func (t *TabularGraph) GetVertexChannel(req chan gdbi.ElementLookup, load bool) 
 }
 
 
-func (t *TabularGraph) GetOutChannel(req chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
+func (t *TabularGraph) GetOutChannel(ctx context.Context, req chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
   out := make(chan gdbi.ElementLookup, 100)
   go func() {
     defer close(out)
     for r := range req {
-      for vPrefix, edge := range t.outEdges {
-        if strings.HasPrefix(r.ID, vPrefix) {
-          if len(edgeLabels) == 0 || setcmp.ContainsString(edgeLabels, edge.label) {
-            id := r.ID[len(vPrefix):len(r.ID)]
+      select {
+      case <-ctx.Done():
+      default:
+        for vPrefix, edge := range t.outEdges {
+          if strings.HasPrefix(r.ID, vPrefix) {
+            if len(edgeLabels) == 0 || setcmp.ContainsString(edgeLabels, edge.label) {
+              id := r.ID[len(vPrefix):len(r.ID)]
 
-            fromVertex := t.vertices[ edge.fromVertex ]
+              fromVertex := t.vertices[ edge.fromVertex ]
 
-            joinVal := ""
-            if edge.fromField == fromVertex.config.PrimaryKey {
-              joinVal = id
-            } else {
-              elem := r.Ref.GetCurrent()
-              joinVal = elem.Data[edge.fromField].(string)
-            }
-            toVertex := t.vertices[ edge.toVertex ]
-            if edge.toField == toVertex.config.PrimaryKey {
-              if row, err := edge.toDriver.GetRowByID(joinVal); err == nil {
-                outV := gripql.Vertex{Gid:toVertex.prefix + row.Key, Label:toVertex.label}
-                outV.Data = protoutil.AsStruct(row.Values)
-                r.Vertex = &outV
-                out <- r
+              joinVal := ""
+              if edge.fromField == fromVertex.config.PrimaryKey {
+                joinVal = id
+              } else {
+                elem := r.Ref.GetCurrent()
+                joinVal = elem.Data[edge.fromField].(string)
               }
-            } else {
-              for row := range edge.toDriver.GetRowsByField(context.TODO(), edge.toField, joinVal) {
-                outV := gripql.Vertex{Gid:toVertex.prefix + row.Key, Label:toVertex.label}
-                outV.Data = protoutil.AsStruct(row.Values)
-                r.Vertex = &outV
-                out <- r
+              toVertex := t.vertices[ edge.toVertex ]
+              if edge.toField == toVertex.config.PrimaryKey {
+                if row, err := edge.toDriver.GetRowByID(joinVal); err == nil {
+                  outV := gripql.Vertex{Gid:toVertex.prefix + row.Key, Label:toVertex.label}
+                  outV.Data = protoutil.AsStruct(row.Values)
+                  r.Vertex = &outV
+                  out <- r
+                }
+              } else {
+                for row := range edge.toDriver.GetRowsByField(ctx, edge.toField, joinVal) {
+                  outV := gripql.Vertex{Gid:toVertex.prefix + row.Key, Label:toVertex.label}
+                  outV.Data = protoutil.AsStruct(row.Values)
+                  r.Vertex = &outV
+                  out <- r
+                }
               }
             }
           }
@@ -227,18 +231,18 @@ func (t *TabularGraph) GetOutChannel(req chan gdbi.ElementLookup, load bool, edg
   return out
 }
 
-func (t *TabularGraph) GetInChannel(req chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
+func (t *TabularGraph) GetInChannel(ctx context.Context, req chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
   log.Printf("Calling GetInChannel")
   return nil
 }
 
-func (t *TabularGraph) GetOutEdgeChannel(req chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
+func (t *TabularGraph) GetOutEdgeChannel(ctx context.Context, req chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
   log.Printf("Calling GetOutEdgeChannel")
   return nil
 }
 
 
-func (t *TabularGraph) GetInEdgeChannel(req chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
+func (t *TabularGraph) GetInEdgeChannel(ctx context.Context, req chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
   log.Printf("Calling GetInEdgeChannel")
   return nil
 }
