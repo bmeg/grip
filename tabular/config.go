@@ -8,6 +8,11 @@ import (
   "github.com/ghodss/yaml"
 )
 
+type Config struct {
+  Graphs  map[string]string        `json:"graphs"`
+  Index   string                   `json:"index"`
+}
+
 type GraphConfig struct {
   Tables   map[string]TableConfig  `json:"tables"`
   Vertices map[string]VertexConfig `json:"vertices"`

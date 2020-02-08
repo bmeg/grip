@@ -15,6 +15,7 @@ import (
 	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/mongo"
 	"github.com/bmeg/grip/psql"
+	"github.com/bmeg/grip/tabular"
 	"github.com/bmeg/grip/server"
 	"github.com/bmeg/grip/util"
 	"github.com/bmeg/grip/util/duration"
@@ -37,6 +38,7 @@ type Config struct {
 	MongoDB       mongo.Config
 	PSQL          psql.Config
 	ExistingSQL   esql.Config
+	Tabular       tabular.Config
 	Logger        log.Logger
 }
 
@@ -71,6 +73,8 @@ func DefaultConfig() *Config {
 	c.Elasticsearch.DBName = "gripdb"
 	c.Elasticsearch.BatchSize = 1000
 
+	c.Tabular.Index = "tableindex.db"
+
 	c.Logger = log.DefaultLoggerConfig()
 	return c
 }
@@ -99,7 +103,7 @@ func ParseConfig(raw []byte, conf *Config) error {
 	if err != nil {
 		return err
 	}
-	err = CheckForUnknownKeys(j, conf)
+	err = CheckForUnknownKeys(j, conf, []string{"Tabular.Graphs."})
 	if err != nil {
 		return err
 	}
@@ -183,7 +187,7 @@ func GetKeys(obj interface{}) []string {
 
 // CheckForUnknownKeys takes a json byte array and checks that all keys are fields
 // in the reference object
-func CheckForUnknownKeys(jsonStr []byte, obj interface{}) error {
+func CheckForUnknownKeys(jsonStr []byte, obj interface{}, exclude []string) error {
 	knownMap := make(map[string]interface{})
 	known := GetKeys(obj)
 	for _, k := range known {
@@ -200,7 +204,14 @@ func CheckForUnknownKeys(jsonStr []byte, obj interface{}) error {
 	all := GetKeys(anon)
 	for _, k := range all {
 		if _, found := knownMap[k]; !found {
-			unknown = append(unknown, k)
+			for _, e := range exclude {
+				if strings.HasPrefix(k, e) {
+					found = true
+				}
+			}
+			if !found {
+				unknown = append(unknown, k)
+			}
 		}
 	}
 

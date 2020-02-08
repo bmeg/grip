@@ -98,19 +98,19 @@ var Cmd = &cobra.Command{
     configFile := args[0]
     queryString := args[1]
 
-    config, err := tabular.LoadConfig(configFile)
-    if err != nil {
-      log.Printf("%s", err)
-      return err
-    }
-    gdb, err := tabular.NewGDB(config, idxName)
+    config := tabular.Config{Graphs:map[string]string{"main":configFile}, Index:idxName}
+
+    gdb, err := tabular.NewGDB(config, "./")
     if err != nil {
       log.Printf("Error loading Graph: %s", err)
       return err
     }
 
-    graph, _ := gdb.Graph("main")
-
+    graph, err := gdb.Graph("main")
+    if err != nil {
+      log.Printf("%s", err)
+      return err      
+    }
 
     query, err := ParseQuery(queryString)
     if err != nil {
