@@ -76,32 +76,32 @@ tables:
 
 
 vertices:
-  "case:" :
+  "gdc.org/case/" :
     table: gdccase
     primaryKey: id
     label: Case
 
-  "pdccase:" :
+  "pdc.org/case/" :
     table: pdccase
     primaryKey: case_id
     label: PDCCase
 
-  "ssm_occurrence:" :
+  "gdc.org/ssm_occurrence/" :
     table: gdc_smm_occurance
     primaryKey: ssm_occurrence_id
     label: SSMoccurrence
 
 edges:
   ssms:
-    fromVertex: "case:"
-    toVertex: "ssm_occurrence:"
+    fromVertex: "gdc.org/case/"
+    toVertex: "gdc.org/ssm_occurrence/"
     label: ssms
     toField: case_id
     fromField: id
 
   gdcRecord:
-    fromVertex: "pdccase:"
-    toVertex: "case:"
+    fromVertex: "pdc.org/case/"
+    toVertex: "gdc.org/case/"
     label: "gdcRecord"
     fromField: case_submitter_id
     toField: submitter_id
