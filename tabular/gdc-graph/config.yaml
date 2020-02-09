@@ -6,6 +6,16 @@ tables:
       list:
         url: https://api.gdc.cancer.gov/cases
         elementList: "$.data.hits"
+        params:
+          size: "100"
+        pager:
+          code: >
+            def pager(url, result):
+              p = result['data']['pagination']
+              if p['page'] >= p['pages']:
+                return None
+              return { "from" : p["from"] + p["count"] }
+          method: pager
       get:
         id:
           url: https://api.gdc.cancer.gov/cases
@@ -65,6 +75,23 @@ tables:
                 }
             element: "$.data.hits[0]"
 
+  ssm:
+    driver: web
+    config:
+      get:
+        cosmic_id:
+          url: https://api.gdc.cancer.gov/ssms
+          params:
+            filter: >
+              {
+                "op":"in",
+                "content":{
+                  "field":"cosmic_id",
+                  "value":[
+                     "{{cosmic_id}}"
+                  ]
+               }
+
   pdccase:
     driver: web
     config:
@@ -82,6 +109,42 @@ tables:
         elementList: "$.data.projectsPerExperimentType"
         params:
           query: "{projectsPerExperimentType{experiment_type project_submitter_id name}}"
+
+  pdcspectra:
+    driver: web
+    config:
+      get:
+        gene:
+
+          params:
+            query: >
+              query {
+                getPaginatedUIGeneStudySpectralCount(gene_name:"{{gene}}") {
+                  total
+                  spectralCounts {
+                    gene_name
+                    study_submitter_id
+                    project_submitter_id
+                    aliquot_id
+                    plex
+                    spectral_count
+                    distinct_peptide
+                    unshared_peptide
+                  }
+                }
+              }
+
+  hugo:
+    driver: web
+    config:
+      get:
+        symbol:
+          url: http://rest.genenames.org/fetch/symbol/{{symbol}}
+          headers:
+            - "Accept:application/json"
+          params:
+            format: json
+          element: "$.response.docs[0]"
 
 vertices:
   "gdc.cancer.gov/case/" :
@@ -104,6 +167,11 @@ vertices:
     table: gdc_smm_occurance
     primaryKey: ssm_occurrence_id
     label: SSMoccurrence
+
+  "genenames.org/gene/" :
+    table: hugo
+    primaryKey: symbol
+    label: Gene
 
 edges:
   ssms:

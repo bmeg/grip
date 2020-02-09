@@ -1,5 +1,5 @@
 V().hasLabel("Case")
-V("gdc.org/ssm_occurrence/05c1bca0-c401-5d55-af7c-f7b38959488c")
-V("gdc.org/case/eb20d954-01a0-4fe0-a201-e37b917f0fc0")
-V("gdc.org/case/c43c8eea-7014-4abe-b805-397a9062d3e0").out("ssms")
+V("gdc.cancer.gov/ssm_occurrence/05c1bca0-c401-5d55-af7c-f7b38959488c")
+V("gdc.cancer.gov/case/eb20d954-01a0-4fe0-a201-e37b917f0fc0")
+V("gdc.cancer.gov/case/c43c8eea-7014-4abe-b805-397a9062d3e0").out("ssms")
 V().hasLabel("PDCCase").out("gdcRecord").limit(10).out("ssms")

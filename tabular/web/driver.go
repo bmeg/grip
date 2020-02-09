@@ -25,6 +25,7 @@ type QueryConfig struct {
   ElementList string  `json:"elementList"`
   Element     string  `json:"element"`
   Params      map[string]string `json:"params"`
+  Headers     []string          `json:"headers"`
 }
 
 type Config struct {
@@ -132,8 +133,18 @@ func (d *Driver) GetRowByID(id string) (*tabular.TableRow, error) {
     if len(params) > 0 {
       q = q.SetQueryParams(params)
     }
+    for _, h := range tableGet.Headers {
+      t := strings.Split(h, ":")
+      q = q.SetHeader(t[0], t[1])
+    }
+
+    ctx := map[string]string{
+        d.opts.PrimaryKey: id,
+    }
+    url, err := raymond.Render(tableGet.URL, ctx)
+
     resp, err := q.SetResult(&data).
-    		Get(tableGet.URL)
+    		Get(url)
     if err != nil {
       return nil, err
     }
