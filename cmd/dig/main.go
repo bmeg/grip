@@ -10,6 +10,7 @@ import (
 
   _ "github.com/bmeg/grip/tabular/tsv"
   _ "github.com/bmeg/grip/tabular/web"
+  _ "github.com/bmeg/grip/tabular/kvcache"
 
   "github.com/bmeg/grip/gdbi"
   "github.com/golang/protobuf/jsonpb"
@@ -109,7 +110,7 @@ var Cmd = &cobra.Command{
     graph, err := gdb.Graph("main")
     if err != nil {
       log.Printf("%s", err)
-      return err      
+      return err
     }
 
     query, err := ParseQuery(queryString)

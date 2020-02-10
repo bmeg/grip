@@ -2,17 +2,15 @@ package tsv
 
 import (
   "log"
-  "fmt"
   "context"
   "github.com/bmeg/grip/tabular"
-  "github.com/bmeg/grip/tabular/rowindex"
 )
 
 
 type TSVDriver struct {
-  man  *tabular.TableManager
+  man  tabular.Cache
   path string
-  pathID uint64
+  lineIndex tabular.LineIndex
   idName string
   idCol int
   idxCols []string
@@ -22,7 +20,7 @@ type TSVDriver struct {
   cparse     CSVParse
 }
 
-func TSVDriverBuilder(url string, manager *tabular.TableManager, opts tabular.Options) (tabular.Driver, error) {
+func TSVDriverBuilder(url string, manager tabular.Cache, opts tabular.Options) (tabular.Driver, error) {
   o := TSVDriver{path:url, idName:opts.PrimaryKey, idxCols:opts.IndexedColumns, man:manager}
   if err := o.Init(); err != nil {
     return nil, err
@@ -45,15 +43,17 @@ func (t *TSVDriver) Init() error {
     return err
   }
 
-  if i, err := t.man.Index.GetPathID(t.path); err == nil {
-    t.pathID = i
+  if i, err := t.man.GetLineIndex(t.path); err == nil {
+    t.lineIndex = i
   } else {
-    t.pathID = t.man.Index.NewPathID(t.path)
-    //SetPathValue(bl, t.path, t.pathID)
+    t.lineIndex, err = t.man.NewLineIndex(t.path)
+    if err != nil {
+      return err
+    }
   }
 
   t.idxMap = map[string]uint64{}
-  if _, err := t.man.Index.GetLineCount(t.pathID); err == nil {
+  if _, err := t.lineIndex.GetLineCount(); err == nil {
     row := t.cparse.Parse(string(t.lineReader.SeekRead(0)))
     t.header = row
     for i := range row {
@@ -71,12 +71,11 @@ func (t *TSVDriver) Init() error {
   }
 
   for _, colName := range t.idxCols {
-    colPath := fmt.Sprintf("%d.%s", t.pathID, colName) //should probably abstract this into the library
-    t.man.Index.AddField(colPath)
+    t.lineIndex.AddIndexedField(colName)
   }
 
   count := uint64(0)
-  t.man.Index.IndexWrite(func(bl *rowindex.IndexWriter) error{
+  t.lineIndex.IndexWrite(func(bl tabular.LineIndexWriter) error{
     for line := range t.lineReader.ReadLines() {
       row := t.cparse.Parse(string(line.Text))
       if !hasHeader {
@@ -93,17 +92,17 @@ func (t *TSVDriver) Init() error {
           }
         }
       } else {
-        bl.SetIDLine(t.pathID, row[t.idCol], count)
-        bl.SetLineOffset(t.pathID, count, line.Offset)
+        bl.SetIDLine(row[t.idCol], count)
+        bl.SetLineOffset(count, line.Offset)
         iRow := map[string]interface{}{}
         for colName, col := range t.idxMap {
           iRow[colName] = row[col]
         }
-        bl.IndexRow(t.pathID, count, iRow)
+        bl.IndexRow(count, iRow)
         count++
       }
     }
-    bl.SetLineCount(t.pathID, count)
+    bl.SetLineCount(count)
     return nil
   })
   log.Printf("SetupIndexCol: %d [%#v]", t.idCol, t.idxCols)
@@ -112,12 +111,8 @@ func (t *TSVDriver) Init() error {
 }
 
 
-func (t *TSVDriver) GetLineNumber(id string) (uint64, error) {
-  return t.man.Index.GetIDLine(t.pathID, id)
-}
-
 func (t *TSVDriver) GetRowByID(id string) (*tabular.TableRow, error) {
-  ln, err := t.GetLineNumber(id)
+  ln, err := t.lineIndex.GetIDLine(id)
   if err != nil {
     return nil, err
   }
@@ -126,7 +121,7 @@ func (t *TSVDriver) GetRowByID(id string) (*tabular.TableRow, error) {
 
 
 func (t *TSVDriver) GetLineText(lineNum uint64) ([]byte, error) {
-  offset, err := t.man.Index.GetLineOffset(t.pathID, lineNum)
+  offset, err := t.lineIndex.GetLineOffset(lineNum)
   if err != nil {
     return nil, err
   }
@@ -178,7 +173,7 @@ func (t *TSVDriver) GetRows(ctx context.Context) chan *tabular.TableRow {
 }
 
 func (t *TSVDriver) GetIDs(ctx context.Context) chan string {
-  return t.man.Index.GetIDChannel(ctx, t.pathID)
+  return t.lineIndex.GetIDChannel(ctx)
 }
 
 
@@ -186,7 +181,7 @@ func (t *TSVDriver) GetRowsByField(ctx context.Context, field string, value stri
   out := make(chan *tabular.TableRow, 10)
   go func() {
     defer close(out)
-    for line := range t.man.Index.GetLinesByField(ctx, t.pathID, field, value) {
+    for line := range t.lineIndex.GetLinesByField(ctx, field, value) {
       o, err := t.GetLineRow(line)
       if err == nil {
         out <- o

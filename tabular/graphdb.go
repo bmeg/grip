@@ -18,7 +18,7 @@ func NewGDB(conf Config, configPath string) (*TabularGDB, error) {
   if indexPath == "" {
     indexPath = "tableindex.db"
   }
-  idx, err := NewTableManager(indexPath)
+  idx, err := NewCache(indexPath)
   if err != nil {
     return nil, err
   }
@@ -26,7 +26,7 @@ func NewGDB(conf Config, configPath string) (*TabularGDB, error) {
   for k, v := range conf.Graphs {
     fPath := filepath.Join( filepath.Dir(configPath), v )
     if gConf, err := LoadConfig(fPath); err == nil {
-      o, err := NewTabularGraph(*gConf, idx)
+      o, err := NewTabularGraph(*gConf, &TableManager{idx})
       if err == nil {
         out.graphs[k] = o
       } else {

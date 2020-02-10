@@ -109,6 +109,7 @@ tables:
         elementList: "$.data.projectsPerExperimentType"
         params:
           query: "{projectsPerExperimentType{experiment_type project_submitter_id name}}"
+        cache: True
 
   pdcspectra:
     driver: web

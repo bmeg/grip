@@ -33,7 +33,7 @@ type Config struct {
   Get   map[string]*QueryConfig  `json:"get"`
 }
 
-func TSVDriverBuilder(url string, manager *tabular.TableManager, opts tabular.Options) (tabular.Driver, error) {
+func TSVDriverBuilder(url string, manager tabular.Cache, opts tabular.Options) (tabular.Driver, error) {
   o := Driver{opts:opts}
   conf := Config{}
   err := mapstructure.Decode(opts.Config, &conf)
