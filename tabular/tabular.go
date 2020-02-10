@@ -46,6 +46,7 @@ type LineIndexWriter interface {
 
 type RowStorage interface {
   Write(row *TableRow) error
+  GetRowByID(id string) (*TableRow, error)
   GetRowsByField(ctx context.Context, field string, value string) chan *TableRow
 }
 
@@ -64,7 +65,7 @@ type Options struct {
   Config          map[string]interface{}
 }
 
-type DriverBuilder func(url string, cache Cache, opts Options) (Driver, error)
+type DriverBuilder func(name, url string, cache Cache, opts Options) (Driver, error)
 type CacheBuilder func(url string) (Cache, error)
 
 var driverMap = make(map[string]DriverBuilder)
@@ -83,9 +84,9 @@ func AddCache(name string, builder CacheBuilder) error {
 
 // NewDriver intitalize a new key value interface given the name of the
 // driver and path to create the database
-func (t *TableManager) NewDriver(name string, url string, opts Options) (Driver, error) {
-	if builder, ok := driverMap[name]; ok {
-		return builder(url, t.Index, opts)
+func (t *TableManager) NewDriver(name string, driver string, url string, opts Options) (Driver, error) {
+	if builder, ok := driverMap[driver]; ok {
+		return builder(name, url, t.Index, opts)
 	}
 	return nil, fmt.Errorf("driver %s Not Found", name)
 }

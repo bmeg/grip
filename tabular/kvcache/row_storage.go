@@ -26,6 +26,21 @@ func (r *KVRowStorage) Write(row *tabular.TableRow) error {
 }
 
 
+func (r *KVRowStorage) GetRowByID(id string) (*tabular.TableRow, error) {
+  key := RowKey(r.pathID, id)
+  value, err := r.cache.KV.Get(key)
+  if err != nil {
+    return nil, err
+  }
+  data := map[string]interface{}{}
+  buf := bytes.NewBuffer(value)
+  dec := json.NewDecoder(buf)
+  if err := dec.Decode(&data); err != nil {
+    log.Printf("Decode Error: %s", err)
+  }
+  return &tabular.TableRow{Key:string(id), Values:data}, nil
+}
+
 func (r *KVRowStorage) GetRowsByField(ctx context.Context, field string, value string) chan *tabular.TableRow {
   out := make(chan *tabular.TableRow, 10)
   go func() {

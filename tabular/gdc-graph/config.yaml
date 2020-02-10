@@ -97,6 +97,8 @@ tables:
     driver: web
     config:
       list:
+        cache: True
+        insecure: true
         url: https://pdc.esacinc.com/graphql
         elementList: "$.data.allCases"
         params:
@@ -106,11 +108,12 @@ tables:
     driver: web
     config:
       list:
+        cache: True
+        insecure: true
         url: https://pdc.esacinc.com/graphql
         elementList: "$.data.projectsPerExperimentType"
         params:
           query: "{projectsPerExperimentType{experiment_type project_submitter_id name}}"
-        cache: True
 
   pdcspectra:
     driver: web

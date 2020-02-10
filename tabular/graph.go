@@ -100,7 +100,7 @@ func NewTabularGraph(conf GraphConfig, idx *TableManager) (*TabularGraph,error) 
     fPath := filepath.Join( filepath.Dir(conf.path), table.Path )
     log.Printf("Loading: %s with primaryKey %s", fPath, opt.PrimaryKey)
 
-    tix, err := out.idx.NewDriver(table.Driver, fPath, *opt)
+    tix, err := out.idx.NewDriver(t, table.Driver, fPath, *opt)
     if err != nil {
       return nil, err
     }

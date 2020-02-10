@@ -10,12 +10,14 @@ import (
   "github.com/oliveagle/jsonpath"
   "github.com/aymerick/raymond"
 
+  "crypto/tls"
   "github.com/go-resty/resty/v2"
 
 )
 
 
 type Driver struct {
+  name  string
   conf Config
   opts tabular.Options
   cache      tabular.Cache
@@ -29,6 +31,7 @@ type QueryConfig struct {
   Params      map[string]string `json:"params"`
   Headers     []string          `json:"headers"`
   Cache       bool              `json:"cache"`
+  Insecure    bool              `json:"insecure"`
 }
 
 type Config struct {
@@ -36,8 +39,8 @@ type Config struct {
   Get   map[string]*QueryConfig  `json:"get"`
 }
 
-func TSVDriverBuilder(url string, manager tabular.Cache, opts tabular.Options) (tabular.Driver, error) {
-  o := Driver{opts:opts, cache:manager}
+func WebDriverBuilder(name string, url string, manager tabular.Cache, opts tabular.Options) (tabular.Driver, error) {
+  o := Driver{name:name, opts:opts, cache:manager}
   conf := Config{}
   err := mapstructure.Decode(opts.Config, &conf)
   if err != nil {
@@ -48,9 +51,7 @@ func TSVDriverBuilder(url string, manager tabular.Cache, opts tabular.Options) (
   return &o, nil
 }
 
-var loaded = tabular.AddDriver("web", TSVDriverBuilder)
-
-
+var loaded = tabular.AddDriver("web", WebDriverBuilder)
 
 func (d *Driver) GetIDs(ctx context.Context) chan string {
   return nil
@@ -65,7 +66,7 @@ func pathFix(p string) string {
 
 func (d *Driver) buildCache() {
   if d.conf.List != nil && d.conf.List.Cache {
-    url := d.conf.List.URL //BUG: need to make sure URL is unique in config file
+    url := d.name + ":" + d.conf.List.URL
     var err error
     if d.rowStorage, err = d.cache.GetRowStorage(url); err != nil {
       d.rowStorage, _ = d.cache.NewRowStorage(url)
@@ -87,6 +88,9 @@ func (d *Driver) fetchRows(ctx context.Context) chan *tabular.TableRow {
     data := map[string]interface{}{}
 
     client := resty.New()
+    if d.conf.List.Insecure {
+      client.SetTLSClientConfig( &tls.Config{InsecureSkipVerify: true} )
+    }
     q := client.R()
     if len(d.conf.List.Params) > 0 {
       q = q.SetQueryParams(d.conf.List.Params)
@@ -139,6 +143,10 @@ func (d *Driver) GetRows(ctx context.Context) chan *tabular.TableRow {
 }
 
 func (d *Driver) GetRowByID(id string) (*tabular.TableRow, error) {
+  d.buildCache()
+  if d.rowStorage != nil {
+    return d.rowStorage.GetRowByID(id)
+  }
   log.Printf("Getting row: %s", id)
   if tableGet, ok := d.conf.Get[d.opts.PrimaryKey]; ok {
     params := map[string]string{}
@@ -188,6 +196,12 @@ func (d *Driver) GetRowByID(id string) (*tabular.TableRow, error) {
 }
 
 func (d *Driver) GetRowsByField(ctx context.Context, field string, value string) chan *tabular.TableRow {
+
+  d.buildCache()
+  if d.rowStorage != nil {
+    return d.rowStorage.GetRowsByField(ctx, field, value)
+  }
+
   log.Printf("Getting rows by field: %s = %s (primaryKey: %s)", field, value, d.opts.PrimaryKey)
   out := make(chan *tabular.TableRow, 10)
   go func() {

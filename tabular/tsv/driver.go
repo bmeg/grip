@@ -20,7 +20,7 @@ type TSVDriver struct {
   cparse     CSVParse
 }
 
-func TSVDriverBuilder(url string, manager tabular.Cache, opts tabular.Options) (tabular.Driver, error) {
+func TSVDriverBuilder(name string, url string, manager tabular.Cache, opts tabular.Options) (tabular.Driver, error) {
   o := TSVDriver{path:url, idName:opts.PrimaryKey, idxCols:opts.IndexedColumns, man:manager}
   if err := o.Init(); err != nil {
     return nil, err
