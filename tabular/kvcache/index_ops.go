@@ -58,6 +58,27 @@ func (t *KVCache) NewLineIndex( path string ) (tabular.LineIndex, error) {
   return &LineIndex{t,num}, nil
 }
 
+func (t *KVCache) GetRowStorage(path string) (tabular.RowStorage, error) {
+  pk := PathKey(path)
+  v, err := t.KV.Get(pk)
+  if err != nil {
+    return nil, err
+  }
+  o, _ := binary.Uvarint(v)
+  return &KVRowStorage{t, o}, nil
+}
+
+func (t *KVCache) NewRowStorage( path string ) (tabular.RowStorage, error) {
+  ok := PathNumKey()
+  num := uint64(0)
+  if v, err := t.KV.Get(ok); err == nil {
+    num, _ = binary.Uvarint(v)
+  }
+  b := make([]byte, binary.MaxVarintLen64)
+  binary.PutUvarint(b, num+1)
+  t.KV.Set(ok, b) //Make part of same transaction as Get above?
+  return &KVRowStorage{t,num}, nil
+}
 
 
 func (t *LineIndex) AddIndexedField(colName string) {

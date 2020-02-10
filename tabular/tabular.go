@@ -3,6 +3,8 @@ package tabular
 import (
   "fmt"
   "context"
+  "strings"
+  "github.com/oliveagle/jsonpath"
 )
 
 
@@ -42,10 +44,18 @@ type LineIndexWriter interface {
   IndexRow( line uint64, row map[string]interface{}) error
 }
 
+type RowStorage interface {
+  Write(row *TableRow) error
+  GetRowsByField(ctx context.Context, field string, value string) chan *TableRow
+}
+
 //Cache
 type Cache interface {
   NewLineIndex(path string) (LineIndex, error)
   GetLineIndex(path string) (LineIndex, error)
+
+  NewRowStorage(path string) (RowStorage, error)
+  GetRowStorage(path string) (RowStorage, error)
 }
 
 type Options struct {
@@ -83,4 +93,28 @@ func (t *TableManager) NewDriver(name string, url string, opts Options) (Driver,
 
 func NewCache(path string) (Cache, error) {
   return cacheMap["kv"](path)
+}
+
+
+func pathFix(p string) string {
+  if !strings.HasPrefix(p, "$.") {
+    return "$." + p
+  }
+  return p
+}
+
+func FieldFilter(field string, value string, data map[string]interface{}) bool {
+  if field == "" {
+    return true
+  }
+  v, err := jsonpath.JsonPathLookup(data, pathFix(field) )
+  if err != nil {
+    return false
+  }
+  if valStr, ok := v.(string); ok {
+    if valStr == value {
+      return true
+    }
+  }
+  return false
 }

@@ -18,6 +18,8 @@ import (
 type Driver struct {
   conf Config
   opts tabular.Options
+  cache      tabular.Cache
+  rowStorage tabular.RowStorage
 }
 
 type QueryConfig struct {
@@ -26,6 +28,7 @@ type QueryConfig struct {
   Element     string  `json:"element"`
   Params      map[string]string `json:"params"`
   Headers     []string          `json:"headers"`
+  Cache       bool              `json:"cache"`
 }
 
 type Config struct {
@@ -34,7 +37,7 @@ type Config struct {
 }
 
 func TSVDriverBuilder(url string, manager tabular.Cache, opts tabular.Options) (tabular.Driver, error) {
-  o := Driver{opts:opts}
+  o := Driver{opts:opts, cache:manager}
   conf := Config{}
   err := mapstructure.Decode(opts.Config, &conf)
   if err != nil {
@@ -60,7 +63,21 @@ func pathFix(p string) string {
   return p
 }
 
-func (d *Driver) GetRows(ctx context.Context) chan *tabular.TableRow {
+func (d *Driver) buildCache() {
+  if d.conf.List != nil && d.conf.List.Cache {
+    url := d.conf.List.URL //BUG: need to make sure URL is unique in config file
+    var err error
+    if d.rowStorage, err = d.cache.GetRowStorage(url); err != nil {
+      d.rowStorage, _ = d.cache.NewRowStorage(url)
+    }
+    log.Printf("Caching %s", d.conf.List.URL)
+    for row := range d.fetchRows(context.TODO()) {
+      d.rowStorage.Write(row)
+    }
+  }
+}
+
+func (d *Driver) fetchRows(ctx context.Context) chan *tabular.TableRow {
   out := make(chan *tabular.TableRow, 10)
   go func() {
     defer close(out)
@@ -110,8 +127,15 @@ func (d *Driver) GetRows(ctx context.Context) chan *tabular.TableRow {
       }
     }
   }()
-
   return out
+}
+
+func (d *Driver) GetRows(ctx context.Context) chan *tabular.TableRow {
+  d.buildCache()
+  if d.rowStorage != nil {
+    return d.rowStorage.GetRowsByField(ctx, "", "")
+  }
+  return d.fetchRows(ctx)
 }
 
 func (d *Driver) GetRowByID(id string) (*tabular.TableRow, error) {

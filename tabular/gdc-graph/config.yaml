@@ -8,6 +8,7 @@ tables:
         elementList: "$.data.hits"
         params:
           size: "100"
+        cache: true
         pager:
           code: >
             def pager(url, result):

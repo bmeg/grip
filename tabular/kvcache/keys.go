@@ -12,6 +12,8 @@ var idPrefix   = []byte("g")
 var countPrefix = []byte("n")
 var idxPrefix   = []byte("x")
 
+var rowPrefix   = []byte("r")
+
 func PathNumKey() []byte {
 	return pathCount
 }
@@ -71,4 +73,32 @@ func LineCountKey(pathID uint64) []byte {
 	out[0] = countPrefix[0]
 	binary.PutUvarint(out[1:binary.MaxVarintLen64+1], pathID)
   return out
+}
+
+func RowPrefix(pathID uint64) []byte {
+  out := make([]byte, 1 + binary.MaxVarintLen64)
+  out[0] = rowPrefix[0]
+	binary.PutUvarint(out[1:binary.MaxVarintLen64+1], pathID)
+  return out
+}
+
+func RowKey(pathID uint64, id string) []byte {
+  p := []byte(id)
+  out := make([]byte, 1 + binary.MaxVarintLen64 + len(p))
+  out[0] = rowPrefix[0]
+	binary.PutUvarint(out[1:binary.MaxVarintLen64+1], pathID)
+  for i := 0; i < len(p); i++ {
+    out[i+1+binary.MaxVarintLen64] = p[i]
+  }
+  return out
+}
+
+func RowKeyParse(key []byte) (uint64, []byte) {
+	pathID, _ := binary.Uvarint(key[1:binary.MaxVarintLen64+1])
+	sLen := len(key) - (binary.MaxVarintLen64+1)
+	id := make([]byte, sLen)
+	for i := 0; i < sLen; i++ {
+		id[i] = key[i+1+binary.MaxVarintLen64]
+	}
+	return pathID, id
 }
