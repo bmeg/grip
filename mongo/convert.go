@@ -3,7 +3,6 @@ package mongo
 import (
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/protoutil"
-	"github.com/globalsign/mgo/bson"
 	structpb "github.com/golang/protobuf/ptypes/struct"
 )
 
@@ -56,11 +55,7 @@ func UnpackVertex(i map[string]interface{}) *gripql.Vertex {
 func UnpackEdge(i map[string]interface{}) *gripql.Edge {
 	o := &gripql.Edge{}
 	id := i["_id"]
-	if idb, ok := id.(bson.ObjectId); ok {
-		o.Gid = idb.Hex()
-	} else {
-		o.Gid = id.(string)
-	}
+	o.Gid = id.(string)
 	o.Label = i["label"].(string)
 	o.From = i["from"].(string)
 	o.To = i["to"].(string)

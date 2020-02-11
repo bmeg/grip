@@ -7,7 +7,7 @@ import (
 	"github.com/bmeg/grip/jsonpath"
 	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/protoutil"
-	"github.com/globalsign/mgo/bson"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 func convertHasExpression(stmt *gripql.HasExpression, not bool) bson.M {

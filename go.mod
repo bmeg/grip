@@ -14,7 +14,6 @@ require (
 	github.com/dop251/goja v0.0.0-20190429205339-8d6ee3d16611
 	github.com/felixge/httpsnoop v1.0.1
 	github.com/ghodss/yaml v1.0.0
-	github.com/globalsign/mgo v0.0.0-20181015135952-eeefdecb41b8
 	github.com/go-sourcemap/sourcemap v2.1.2+incompatible // indirect
 	github.com/go-sql-driver/mysql v1.4.1
 	github.com/golang/protobuf v1.3.2
@@ -43,6 +42,7 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.4.0
 	github.com/syndtr/goleveldb v1.0.0
+	go.mongodb.org/mongo-driver v1.3.0
 	golang.org/x/crypto v0.0.0-20191011191535-87dc89f01550
 	golang.org/x/net v0.0.0-20190923162816-aa69164e4478
 	golang.org/x/sync v0.0.0-20190423024810-112230192c58

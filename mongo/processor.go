@@ -10,15 +10,16 @@ import (
 	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/protoutil"
 	"github.com/bmeg/grip/util"
-	"github.com/globalsign/mgo/bson"
 	structpb "github.com/golang/protobuf/ptypes/struct"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 // Processor stores the information for a mongo aggregation pipeline
 type Processor struct {
 	db              *Graph
 	startCollection string
-	query           []bson.M
+	query           mongo.Pipeline
 	dataType        gdbi.DataType
 	markTypes       map[string]gdbi.DataType
 	aggTypes        map[string]*gripql.Aggregate
@@ -46,33 +47,39 @@ func getDataElement(result map[string]interface{}) *gdbi.DataElement {
 
 // Process runs the mongo aggregation pipeline
 func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
-	plog := log.WithFields(log.Fields{"query_id": util.UUID()})
-	plog.WithFields(log.Fields{"query": proc.query, "query_collection": proc.startCollection}).Debug("Running Mongo Processor")
+	plog := log.WithFields(log.Fields{"query_id": util.UUID(), "query": proc.query, "query_collection": proc.startCollection})
+	plog.Debug("Running Mongo Processor")
 
 	go func() {
-		session := proc.db.ar.session.Copy()
-		defer session.Close()
 		defer close(out)
 
-		initCol := session.DB(proc.db.ar.database).C(proc.startCollection)
+		initCol := proc.db.ar.client.Database(proc.db.ar.database).Collection(proc.startCollection)
 		for t := range in {
 			nResults := 0
-			iter := initCol.Pipe(proc.query).AllowDiskUse().Iter()
-			defer iter.Close()
+			//plog.Infof("Running: %#v", proc.query)
+			cursor, err := initCol.Aggregate(ctx, proc.query)
+			if err != nil {
+				plog.Errorf("Query Error (%s) : %s", proc.query, err)
+				continue
+			}
+			//defer cursor.Close(context.TODO())
 			result := map[string]interface{}{}
-			for iter.Next(&result) {
+			for cursor.Next(ctx) {
 				nResults++
 				select {
 				case <-ctx.Done():
 					return
 				default:
 				}
-
+				if nil != cursor.Decode(&result) {
+					plog.Errorf("Result Error : %s", err)
+					continue
+				}
 				switch proc.dataType {
 				case gdbi.CountData:
 					eo := &gdbi.Traveler{}
 					if x, ok := result["count"]; ok {
-						eo.Count = uint32(x.(int))
+						eo.Count = uint32(x.(int32))
 					}
 					out <- eo
 
@@ -97,9 +104,10 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 						out := &gripql.AggregationResult{
 							Buckets: []*gripql.AggregationResultBucket{},
 						}
-						buckets, ok := v.([]interface{})
+						//plog.Infof("Type: %T", v)
+						buckets, ok := v.(bson.A)
 						if !ok {
-							plog.Errorf("Failed to convert Mongo aggregation result: %+v", v)
+							plog.Errorf("Failed to convert Mongo aggregation result (%s): %+v", k, v)
 							continue
 						}
 						//if proc.aggTypes[k].GetHistogram() != nil {
@@ -109,7 +117,7 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 						for i, bucket := range buckets {
 							bucket, ok := bucket.(map[string]interface{})
 							if !ok {
-								plog.Errorf("Failed to convert Mongo aggregation result: %+v", bucket)
+								plog.Errorf("Failed to convert Mongo aggregation result bucket: %+v", bucket)
 								continue
 							}
 
@@ -143,6 +151,9 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 							switch bucket["count"].(type) {
 							case int:
 								count := bucket["count"].(int)
+								out.Buckets = append(out.Buckets, &gripql.AggregationResultBucket{Key: term, Value: float64(count)})
+							case int32:
+								count := bucket["count"].(int32)
 								out.Buckets = append(out.Buckets, &gripql.AggregationResultBucket{Key: term, Value: float64(count)})
 							case float64:
 								count := bucket["count"].(float64)
@@ -187,7 +198,7 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 					out <- t.AddCurrent(de)
 				}
 			}
-			if err := iter.Close(); err != nil {
+			if err := cursor.Close(context.TODO()); err != nil {
 				plog.WithFields(log.Fields{"error": err}).Error("MongoDb: iterating results")
 				continue
 			}

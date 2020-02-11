@@ -35,6 +35,28 @@ def setupGraph(O):
     O.addEdge("4", "5", "created", {"weight": 1.0, "count": 35})
 
 
+def test_simple(O):
+    errors = []
+    setupGraph(O)
+    count = 0
+    for row in O.query().V().aggregate(gripql.term("simple-agg", "name")):
+        if 'simple-agg' not in row:
+            errors.append("Result had Incorrect aggregation name")
+            return errors
+        row = row['simple-agg']
+        for res in row["buckets"]:
+            count += 1
+            if res['key'] in ['marko', 'alex']:
+                if res['value'] != 2:
+                    errors.append("Wrong key count for %s" % (res['key']))
+            elif res['key'] in ['funnel', 'josh', 'vadas', 'peter', 'steve', 'lop', 'alice', 'wanda', 'ripple']:
+                if res['value'] != 1:
+                    errors.append("Wrong key count for %s" % (res['key']))
+    if count != 11:
+        errors.append("Wrong number of results recieved")
+    return errors
+
+
 def test_traversal_term_aggregation(O):
     errors = []
     setupGraph(O)
@@ -253,6 +275,7 @@ def test_traversal_gid_aggregation(O):
 
     count = 0
     for row in O.query().V().hasLabel("Person").as_("a").out("knows").select("a").aggregate(gripql.term("gid-agg", "_gid")):
+        print(row)
         count += 1
         if 'gid-agg' not in row:
             errors.append("Result had Incorrect aggregation name")
