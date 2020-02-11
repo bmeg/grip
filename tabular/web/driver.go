@@ -90,7 +90,10 @@ func (d *Driver) fetchRows(ctx context.Context) chan *tabular.TableRow {
   out := make(chan *tabular.TableRow, 10)
   go func() {
     defer close(out)
-
+    if d.conf.List == nil {
+      log.Printf("Accessing table without row lister")
+      return
+    }
     log.Printf("Getting Rows from %s", d.conf.List.URL)
 
     data := map[string]interface{}{}
@@ -209,13 +212,12 @@ func (d *Driver) GetRowByID(id string) (*tabular.TableRow, error) {
 }
 
 func (d *Driver) GetRowsByField(ctx context.Context, field string, value string) chan *tabular.TableRow {
-
+  log.Printf("Getting rows by field: %s = %s (primaryKey: %s)", field, value, d.opts.PrimaryKey)
   d.buildCache()
   if d.rowStorage != nil {
     return d.rowStorage.GetRowsByField(ctx, field, value)
   }
 
-  log.Printf("Getting rows by field: %s = %s (primaryKey: %s)", field, value, d.opts.PrimaryKey)
   out := make(chan *tabular.TableRow, 10)
   go func() {
     defer close(out)

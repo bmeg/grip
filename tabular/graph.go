@@ -36,8 +36,8 @@ type EdgeSource struct {
 type TabularGraph struct {
   idx       *TableManager
   vertices  map[string]*VertexSource
-  outEdges  map[string]*EdgeSource
-  inEdges   map[string]*EdgeSource
+  outEdges  map[string][]*EdgeSource
+  inEdges   map[string][]*EdgeSource
 }
 
 func NewTabularGraph(conf GraphConfig, idx *TableManager) (*TabularGraph,error) {
@@ -45,8 +45,8 @@ func NewTabularGraph(conf GraphConfig, idx *TableManager) (*TabularGraph,error) 
 
   out.idx = idx
   out.vertices = map[string]*VertexSource{}
-  out.outEdges = map[string]*EdgeSource{}
-  out.inEdges  = map[string]*EdgeSource{}
+  out.outEdges = map[string][]*EdgeSource{}
+  out.inEdges  = map[string][]*EdgeSource{}
 
   driverMap := map[string]Driver{}
   tableOptions := map[string]*Options{}
@@ -126,8 +126,16 @@ func NewTabularGraph(conf GraphConfig, idx *TableManager) (*TabularGraph,error) 
         toDriver:toDriver, prefix:ePrefix,
         fromVertex:e.FromVertex, toVertex:e.ToVertex,
         fromField:e.FromField, toField:e.ToField }
-      out.outEdges[ e.FromVertex ] = &es
-      out.inEdges[ e.ToVertex ] = &es
+      if x, ok := out.outEdges[ e.FromVertex ]; ok {
+        out.outEdges[e.FromVertex] = append(x, &es)
+      } else {
+        out.outEdges[e.FromVertex] = []*EdgeSource{&es}
+      }
+      if x, ok := out.inEdges[ e.ToVertex ]; ok {
+        out.inEdges[e.ToVertex] = append(x, &es)
+      } else {
+        out.inEdges[e.ToVertex] = []*EdgeSource{&es}
+      }
     }
     if e.BackLabel != "" {
       toVertex := conf.Vertices[e.ToVertex]
@@ -140,8 +148,18 @@ func NewTabularGraph(conf GraphConfig, idx *TableManager) (*TabularGraph,error) 
         toDriver:fromDriver, prefix:ePrefix,
         fromVertex:e.ToVertex, toVertex:e.FromVertex,
         fromField:e.ToField, toField:e.FromField }
-      out.outEdges[ e.ToVertex ] = &es
-      out.inEdges[ e.FromVertex ] = &es
+
+      if x, ok := out.outEdges[ e.ToVertex ]; ok {
+        out.outEdges[e.ToVertex] = append(x, &es)
+      } else {
+        out.outEdges[e.ToVertex] = []*EdgeSource{&es}
+      }
+      if x, ok := out.inEdges[ e.FromVertex ]; ok {
+        out.inEdges[e.FromVertex] = append(x, &es)
+      } else {
+        out.inEdges[e.FromVertex] = []*EdgeSource{&es}
+      }
+
     }
   }
   return &out, nil
@@ -228,7 +246,9 @@ func (t *TabularGraph) ListVertexLabels() ([]string, error) {
 func (t *TabularGraph) ListEdgeLabels() ([]string, error) {
   out := []string{}
   for _, i := range t.outEdges {
-    out = append(out, i.label)
+    for _, e := range i {
+      out = append(out, e.label)
+    }
   }
   return out, nil
 }
@@ -299,34 +319,39 @@ func (t *TabularGraph) GetOutChannel(ctx context.Context, req chan gdbi.ElementL
       select {
       case <-ctx.Done():
       default:
-        for vPrefix, edge := range t.outEdges {
+        for vPrefix, edgeList := range t.outEdges {
           if strings.HasPrefix(r.ID, vPrefix) {
-            if len(edgeLabels) == 0 || setcmp.ContainsString(edgeLabels, edge.label) {
-              id := r.ID[len(vPrefix):len(r.ID)]
+            for _, edge := range edgeList {
+              if len(edgeLabels) == 0 || setcmp.ContainsString(edgeLabels, edge.label) {
+                log.Printf("Checkout edge %s %s", edge.fromVertex, edge.toVertex)
+                id := r.ID[len(vPrefix):len(r.ID)]
 
-              fromVertex := t.vertices[ edge.fromVertex ]
+                fromVertex := t.vertices[ edge.fromVertex ]
 
-              joinVal := ""
-              if edge.fromField == fromVertex.config.PrimaryKey {
-                joinVal = id
-              } else {
-                elem := r.Ref.GetCurrent()
-                joinVal = elem.Data[edge.fromField].(string)
-              }
-              toVertex := t.vertices[ edge.toVertex ]
-              if edge.toField == toVertex.config.PrimaryKey {
-                if row, err := edge.toDriver.GetRowByID(joinVal); err == nil {
-                  outV := gripql.Vertex{Gid:toVertex.prefix + row.Key, Label:toVertex.label}
-                  outV.Data = protoutil.AsStruct(row.Values)
-                  r.Vertex = &outV
-                  out <- r
+                joinVal := ""
+                if edge.fromField == fromVertex.config.PrimaryKey {
+                  joinVal = id
+                } else {
+                  elem := r.Ref.GetCurrent()
+                  joinVal = elem.Data[edge.fromField].(string)
                 }
-              } else {
-                for row := range edge.toDriver.GetRowsByField(ctx, edge.toField, joinVal) {
-                  outV := gripql.Vertex{Gid:toVertex.prefix + row.Key, Label:toVertex.label}
-                  outV.Data = protoutil.AsStruct(row.Values)
-                  r.Vertex = &outV
-                  out <- r
+                toVertex := t.vertices[ edge.toVertex ]
+                log.Printf("GetOutChannel: %s %s", edgeLabels, toVertex)
+
+                if edge.toField == toVertex.config.PrimaryKey {
+                  if row, err := edge.toDriver.GetRowByID(joinVal); err == nil {
+                    outV := gripql.Vertex{Gid:toVertex.prefix + row.Key, Label:toVertex.label}
+                    outV.Data = protoutil.AsStruct(row.Values)
+                    r.Vertex = &outV
+                    out <- r
+                  }
+                } else {
+                  for row := range edge.toDriver.GetRowsByField(ctx, edge.toField, joinVal) {
+                    outV := gripql.Vertex{Gid:toVertex.prefix + row.Key, Label:toVertex.label}
+                    outV.Data = protoutil.AsStruct(row.Values)
+                    r.Vertex = &outV
+                    out <- r
+                  }
                 }
               }
             }
