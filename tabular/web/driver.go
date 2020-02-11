@@ -67,13 +67,21 @@ func pathFix(p string) string {
 func (d *Driver) buildCache() {
   if d.conf.List != nil && d.conf.List.Cache {
     url := d.name + ":" + d.conf.List.URL
-    var err error
-    if d.rowStorage, err = d.cache.GetRowStorage(url); err != nil {
-      d.rowStorage, _ = d.cache.NewRowStorage(url)
-    }
-    log.Printf("Caching %s", d.conf.List.URL)
-    for row := range d.fetchRows(context.TODO()) {
-      d.rowStorage.Write(row)
+    if d.rowStorage == nil {
+      if r, err := d.cache.GetRowStorage(url); err != nil {
+        if r, err := d.cache.NewRowStorage(url); err != nil {
+          log.Printf("Error creating row storage")
+          return
+        } else {
+          d.rowStorage = r
+        }
+      } else {
+        d.rowStorage = r
+      }
+      log.Printf("Caching %s", d.conf.List.URL)
+      for row := range d.fetchRows(context.TODO()) {
+        d.rowStorage.Write(row)
+      }
     }
   }
 }
