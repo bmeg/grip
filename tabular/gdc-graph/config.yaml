@@ -8,6 +8,7 @@ tables:
         elementList: "$.data.hits"
         params:
           size: "100"
+          expand: project
         pager:
           code: >
             def pager(url, result):
@@ -37,11 +38,33 @@ tables:
                  "op":"in",
                  "content":{
                     "field":"submitter_id",
-                    "value":["{{submitter_id}}"]
+                    "value":["{{id}}"]
+                 }
+              }
+          elementList: "$.data.hits"
+        project.project_id:
+          url: https://api.gdc.cancer.gov/cases
+          params:
+            size: "200"
+            filters: >
+              {
+                 "op":"in",
+                 "content":{
+                    "field":"project.project_id",
+                    "value":["{{id}}"]
                  }
               }
           elementList: "$.data.hits"
 
+  gdcproject:
+    driver: web
+    config:
+      list:
+        url: https://api.gdc.cancer.gov/projects
+        elementList: "$.data.hits"
+        cache: true
+        params:
+          size: "100"
 
   gdc_smm_occurance:
     driver: web
@@ -92,7 +115,7 @@ tables:
                   ]
                }
 
-  pdccase:
+  pdc_public_case:
     driver: web
     config:
       list:
@@ -102,6 +125,51 @@ tables:
         elementList: "$.data.allCases"
         params:
           query: "{allCases {case_id case_submitter_id project_submitter_id disease_type primary_site}}"
+
+  pdc_case:
+    driver: web
+    config:
+      get:
+        case_id:
+          url: https://pdc.esacinc.com/graphql
+          element: "$.data.case"
+          params:
+            query: >
+              query {
+                case(case_id:"{{id}}") {
+                  case_id
+                  case_submitter_id
+                  project_submitter_id
+                  external_case_id
+                  tissue_source_site_code
+                  days_to_lost_to_followup
+                  disease_type
+                  index_date
+                  lost_to_followup
+                  primary_site
+                  count
+                  demographics {
+                    demographic_id
+                    demographic_submitter_id
+                    ethnicity
+                    gender
+                    race
+                    cause_of_death
+                    days_to_birth
+                    days_to_death
+                    vital_status
+                    year_of_birth
+                    year_of_death
+                  }
+                  project {
+                    project_id
+                  }
+                  samples {
+                    sample_id
+                  }
+                }
+              }
+
 
   pdcproject:
     driver: web
@@ -156,8 +224,18 @@ vertices:
     primaryKey: id
     label: Case
 
+  "gdc.cancer.gov/project/" :
+    table: gdcproject
+    primaryKey: id
+    label: Project
+
+  "pdc.esacinc.com/public_case/" :
+    table: pdc_public_case
+    primaryKey: case_id
+    label: PDCPublicCase
+
   "pdc.esacinc.com/case/" :
-    table: pdccase
+    table: pdc_case
     primaryKey: case_id
     label: PDCCase
 
@@ -185,9 +263,30 @@ edges:
     toField: case_id
     fromField: id
 
+  projectCase:
+    fromVertex: "gdc.cancer.gov/project/"
+    toVertex: "gdc.cancer.gov/case/"
+    label: cases
+    toField: project.project_id
+    fromField: id
+
   gdcRecord:
-    fromVertex: "pdc.esacinc.com/case/"
+    fromVertex: "pdc.esacinc.com/public_case/"
     toVertex: "gdc.cancer.gov/case/"
     label: "gdcRecord"
     fromField: case_submitter_id
     toField: submitter_id
+
+  pdcRecord:
+    toVertex: "pdc.esacinc.com/public_case/"
+    fromVertex: "gdc.cancer.gov/case/"
+    label: "pdcRecord"
+    toField: case_submitter_id
+    fromField: submitter_id
+
+  pdcFullCase:
+    fromVertex: "pdc.esacinc.com/public_case/"
+    toVertex: "pdc.esacinc.com/case/"
+    label: fullCase
+    fromField: case_id
+    toField: case_id

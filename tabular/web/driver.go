@@ -160,11 +160,13 @@ func (d *Driver) GetRowByID(id string) (*tabular.TableRow, error) {
     params := map[string]string{}
     for k, v := range tableGet.Params {
       ctx := map[string]string{
-          d.opts.PrimaryKey: id,
+          "id": id,
       }
       result, err := raymond.Render(v, ctx)
       if err == nil {
         params[k] = result
+      } else {
+        log.Printf("Template error: %s", err)
       }
     }
     data := map[string]interface{}{}
@@ -179,10 +181,12 @@ func (d *Driver) GetRowByID(id string) (*tabular.TableRow, error) {
     }
 
     ctx := map[string]string{
-        d.opts.PrimaryKey: id,
+        "id": id,
     }
     url, err := raymond.Render(tableGet.URL, ctx)
-
+    if err != nil {
+      log.Printf("Template error: %s", err)
+    }
     resp, err := q.SetResult(&data).
     		Get(url)
     if err != nil {
@@ -193,6 +197,7 @@ func (d *Driver) GetRowByID(id string) (*tabular.TableRow, error) {
     if rowData, ok := row.(map[string]interface{}); ok {
       gid, err := jsonpath.JsonPathLookup(rowData, pathFix(d.opts.PrimaryKey) )
       if err != nil {
+        log.Printf("Data error: %s", err)
         return nil, err
       }
       if gidStr, ok := gid.(string); ok {
@@ -219,11 +224,13 @@ func (d *Driver) GetRowsByField(ctx context.Context, field string, value string)
       params := map[string]string{}
       for k, v := range tableGet.Params {
         ctx := map[string]string{
-            field: value,
+            "id": value,
         }
         result, err := raymond.Render(v, ctx)
         if err == nil {
           params[k] = result
+        } else {
+          log.Printf("Template error: %s", err)
         }
       }
       data := map[string]interface{}{}
