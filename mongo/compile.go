@@ -99,7 +99,7 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, er
 					field := convertPath(i)
 					a = append(a, bson.M{field: bson.M{"$regex": reg}})
 				}
-				query = append(query, bson.D{primitive.E{Key: "$match", Value:bson.M{"$or": a}}})
+				query = append(query, bson.D{primitive.E{Key: "$match", Value: bson.M{"$or": a}}})
 			}
 			lastType = gdbi.VertexData
 

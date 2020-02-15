@@ -23,7 +23,6 @@ def test_index(O):
     resp = O.listIndices()
     found = False
     for i in resp:
-        #print("found: %s" % (i))
         if i["field"] == "name":
             found = True
     if not found:
@@ -59,10 +58,10 @@ def test_query_multi(O):
     O.addIndex("name")
     O.addIndex("position")
 
-    O.addVertex("1", "Person", {"name": "marko", "age": "29", "position" : "finance"})
-    O.addVertex("2", "Person", {"name": "mark", "age": "27", "position" : "engineering"})
-    O.addVertex("3", "Person", {"name": "mary", "age": "27", "position" : "engineering"})
-    O.addVertex("4", "Person", {"name": "josh", "age": "32", "position" : "marketing"})
+    O.addVertex("1", "Person", {"name": "marko", "age": "29", "position": "finance"})
+    O.addVertex("2", "Person", {"name": "mark", "age": "27", "position": "engineering"})
+    O.addVertex("3", "Person", {"name": "mary", "age": "27", "position": "engineering"})
+    O.addVertex("4", "Person", {"name": "josh", "age": "32", "position": "marketing"})
 
     count = 0
     for v in O.query().Search(["name", "position"], "mar"):
