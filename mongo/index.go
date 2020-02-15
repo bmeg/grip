@@ -134,14 +134,12 @@ func (mg *Graph) VertexIndexScan(ctx context.Context, query *gripql.SearchQuery)
 
 		reg := fmt.Sprintf("^%s", query.Term)
 		if len(query.Fields) == 1 {
-			field := jsonpath.GetJSONPath(query.Fields[0])
-			field = strings.TrimPrefix(field, "$.")
-			selection[field] = bson.M{field: bson.M{"$regex": reg}}
+			field := convertPath(query.Fields[0])
+			selection[field] = bson.M{"$regex": reg}
 		} else {
 			a := []interface{}{}
 			for _, i := range query.Fields {
-				field := jsonpath.GetJSONPath(i)
-				field = strings.TrimPrefix(field, "$.")
+				field := convertPath(i)
 				a = append(a, bson.M{field: bson.M{"$regex": reg}})
 			}
 			selection["$or"] = a
