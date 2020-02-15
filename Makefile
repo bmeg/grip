@@ -86,7 +86,7 @@ lint:
 	flake8 gripql/python/ conformance/
 
 lint-depends:
-	go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.18.0
+	go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.22.2
 	go get golang.org/x/tools/cmd/goimports
 
 # ---------------------

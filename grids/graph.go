@@ -14,7 +14,7 @@ import (
 	"github.com/bmeg/grip/protoutil"
 	"github.com/bmeg/grip/util/setcmp"
 	proto "github.com/golang/protobuf/proto"
-	"github.com/hashicorp/go-multierror"
+	multierror "github.com/hashicorp/go-multierror"
 )
 
 // GetTimestamp returns the update timestamp

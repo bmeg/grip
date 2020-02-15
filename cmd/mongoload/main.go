@@ -1,22 +1,23 @@
 package mongoload
 
 import (
+	"context"
 	"fmt"
-	"io"
-	"strings"
+	"sync"
 
-	"github.com/bmeg/grip/gripql"
+	//"io"
+	//"strings"
+
 	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/mongo"
 	"github.com/bmeg/grip/util"
-	"github.com/bmeg/grip/util/rpc"
-	"github.com/globalsign/mgo"
-	"github.com/globalsign/mgo/bson"
 	"github.com/spf13/cobra"
+	"go.mongodb.org/mongo-driver/bson"
+	mgo "go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 var mongoHost = "localhost"
-var host = "localhost:8202"
 var database = "gripdb"
 
 var graph string
@@ -24,36 +25,28 @@ var vertexFile string
 var edgeFile string
 
 var batchSize = 1000
-var maxRetries = 3
 
-func found(set []string, val string) bool {
-	for _, i := range set {
-		if i == val {
-			return true
+func docWriter(col *mgo.Collection, docChan chan bson.M, sn *sync.WaitGroup) {
+	defer sn.Done()
+	docBatch := make([]mgo.WriteModel, 0, batchSize)
+	for ent := range docChan {
+		i := mgo.NewInsertOneModel()
+		i.SetDocument(ent)
+		docBatch = append(docBatch, i)
+		if len(docBatch) > batchSize {
+			_, err := col.BulkWrite(context.Background(), docBatch)
+			if err != nil {
+				log.Errorf("%s", err)
+			}
+			docBatch = make([]mgo.WriteModel, 0, batchSize)
 		}
 	}
-	return false
-}
-
-// MaxRetries is the number of times driver will reconnect on connection failure
-// TODO, move to per instance config, rather then global
-var MaxRetries = 3
-
-func isNetError(e error) bool {
-	if e == io.EOF {
-		return true
-	}
-	if b, ok := e.(*mgo.BulkError); ok {
-		for _, c := range b.Cases() {
-			if c.Err == io.EOF {
-				return true
-			}
-			if strings.Contains(c.Err.Error(), "connection") {
-				return true
-			}
+	if len(docBatch) > 0 {
+		_, err := col.BulkWrite(context.Background(), docBatch)
+		if err != nil {
+			log.Errorf("%s", err)
 		}
 	}
-	return false
 }
 
 // Cmd is the declaration of the command line
@@ -69,40 +62,33 @@ var Cmd = &cobra.Command{
 
 		graph = args[0]
 
-		// Create the graph  if it doesn't already exist.
-		// Creating the graph also results in the creation of indices
-		// for the edge/vertex collections.
-		conn, err := gripql.Connect(rpc.ConfigWithDefaults(host), true)
-		if err != nil {
-			return err
-		}
-		resp, err := conn.ListGraphs()
-		if err != nil {
-			return err
-		}
-		found := false
-		for _, g := range resp.Graphs {
-			if graph == g {
-				found = true
-			}
-		}
-		if !found {
-			log.Infof("Creating graph: %s", graph)
-			err := conn.AddGraph(graph)
-			if err != nil {
-				return err
-			}
-		}
-
 		// Connect to mongo and start the bulk load process
 		log.Infof("Loading data into graph: %s", graph)
-		session, err := mgo.Dial(mongoHost)
+		client, err := mgo.NewClient(options.Client().ApplyURI(mongoHost))
+		if err != nil {
+			return err
+		}
+		err = client.Connect(context.TODO())
 		if err != nil {
 			return err
 		}
 
-		vertexCo := session.DB(database).C(fmt.Sprintf("%s_vertices", graph))
-		edgeCo := session.DB(database).C(fmt.Sprintf("%s_edges", graph))
+		err = mongo.AddMongoGraph(client, database, graph)
+		if err != nil {
+			return err
+		}
+
+		vertexCol := client.Database(database).Collection(fmt.Sprintf("%s_vertices", graph))
+		edgeCol := client.Database(database).Collection(fmt.Sprintf("%s_edges", graph))
+
+		vertexDocChan := make(chan bson.M, 5)
+		edgeDocChan := make(chan bson.M, 5)
+
+		s := &sync.WaitGroup{}
+		go docWriter(edgeCol, edgeDocChan, s)
+		s.Add(1)
+		go docWriter(vertexCol, vertexDocChan, s)
+		s.Add(1)
 
 		if vertexFile != "" {
 			log.Infof("Loading vertex file: %s", vertexFile)
@@ -113,25 +99,14 @@ var Cmd = &cobra.Command{
 			go func() {
 				count := 0
 				for batch := range bulkVertChan {
-					for i := 0; i < maxRetries; i++ {
-						bulk := vertexCo.Bulk()
-						bulk.Unordered()
-						for _, data := range batch {
-							bulk.Upsert(bson.M{"_id": data["_id"]}, data)
-							count++
+					for _, data := range batch {
+						vertexDocChan <- data
+						if count%1000 == 0 {
+							log.Infof("Loaded %d vertices", count)
 						}
-						_, err = bulk.Run()
-						if err == nil || !isNetError(err) {
-							i = maxRetries
-						} else {
-							log.Infof("Refreshing Connection")
-							session.Refresh()
-						}
-					}
-					if count%1000 == 0 {
-						log.Infof("Loaded %d vertices", count)
 					}
 				}
+				close(vertexDocChan)
 				log.Infof("Loaded %d vertices", count)
 			}()
 
@@ -162,23 +137,11 @@ var Cmd = &cobra.Command{
 			go func() {
 				count := 0
 				for batch := range bulkEdgeChan {
-					for i := 0; i < maxRetries; i++ {
-						bulk := edgeCo.Bulk()
-						bulk.Unordered()
-						for _, data := range batch {
-							bulk.Upsert(bson.M{"_id": data["_id"]}, data)
-							count++
+					for _, data := range batch {
+						edgeDocChan <- data
+						if count%1000 == 0 {
+							log.Infof("Loaded %d edges", count)
 						}
-						_, err = bulk.Run()
-						if err == nil || !isNetError(err) {
-							i = maxRetries
-						} else {
-							log.Infof("Refreshing Connection")
-							session.Refresh()
-						}
-					}
-					if count%1000 == 0 {
-						log.Infof("Loaded %d edges", count)
 					}
 				}
 				log.Infof("Loaded %d edges", count)
@@ -190,9 +153,9 @@ var Cmd = &cobra.Command{
 			}
 			for e := range edgeChan {
 				data := mongo.PackEdge(e)
-				if data["_id"] == "" {
-					data["_id"] = bson.NewObjectId().Hex()
-				}
+				//if data["_id"] == "" {
+				//	data["_id"] = bson.NewObjectId().Hex()
+				//}
 				docBatch = append(docBatch, data)
 				if len(docBatch) > batchSize {
 					bulkEdgeChan <- docBatch
@@ -212,7 +175,6 @@ var Cmd = &cobra.Command{
 func init() {
 	flags := Cmd.Flags()
 	flags.StringVar(&mongoHost, "mongo-host", mongoHost, "mongo server url")
-	flags.StringVar(&host, "grip-host", host, "grip rpc server address")
 	flags.StringVar(&database, "database", database, "database name in mongo to store graph")
 	flags.StringVar(&vertexFile, "vertex", "", "vertex file")
 	flags.StringVar(&edgeFile, "edge", "", "edge file")

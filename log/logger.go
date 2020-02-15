@@ -39,6 +39,9 @@ type Logger struct {
 	TextFormat TextFormatConfig
 }
 
+// Entry is a logrus.Entry
+type Entry = logrus.Entry
+
 // JSONFormatConfig provides configuration for the JSON logger format.
 type JSONFormatConfig struct {
 	DisableTimestamp bool
@@ -331,11 +334,16 @@ func Errorf(format string, args ...interface{}) {
 	logger.Errorf(format, args...)
 }
 
+// WithField creates an entry from the standard logger and adds a field to it.
+func WithField(key string, value interface{}) *Entry {
+	return logger.WithField(key, value)
+}
+
 // Fields type, used to pass to `WithFields`.
 type Fields = logrus.Fields
 
 // WithFields creates an entry from the standard logger and adds multiple fields to it.
-func WithFields(fields Fields) *logrus.Entry {
+func WithFields(fields Fields) *Entry {
 	return logger.WithFields(fields)
 }
 
@@ -346,6 +354,6 @@ func GetLogger() *logrus.Logger {
 
 // Sub is a shortcut for log.WithFields(log.Fields{"namespace": ns}), it creates a new logger
 // which inherits the parent's configuration but changes the namespace.
-func Sub(ns string) *logrus.Entry {
+func Sub(ns string) *Entry {
 	return logger.WithFields(Fields{"namespace": ns})
 }

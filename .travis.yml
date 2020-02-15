@@ -71,9 +71,17 @@ jobs:
         - sleep 5
         - make test-conformance
         - go test ./test -config mongo.yml
-        - go test ./test -config mongo-core-processor.yml
       env:
         - n=mongodb
+    - script:
+        - make start-mongo
+        - sleep 15
+        - grip server --rpc-port 18202 --http-port 18201 --config ./test/mongo-core-processor.yml &
+        - sleep 5
+        - make test-conformance
+        - go test ./test -config mongo-core-processor.yml
+      env:
+        - n=mongodb-core
     - script:
         - make start-elastic
         - sleep 15
