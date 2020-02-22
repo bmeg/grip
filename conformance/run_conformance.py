@@ -34,9 +34,14 @@ except ImportError:
 def id_generator(size=6, chars=string.ascii_uppercase + string.digits):
     return ''.join(random.choice(chars) for _ in range(size)).lower()
 
+
+class SkipTest(Exception):
+    pass
+
 class Manager:
-    def __init__(self, O):
+    def __init__(self, O, readOnly=False):
         self.O = O
+        self.readOnly = readOnly
 
     def setGraph(self, name):
         with open(os.path.join(BASE, "graphs", "%s.nodes" % (name))) as handle:
@@ -49,6 +54,10 @@ class Manager:
                 data = json.loads(line)
                 self.O.addEdge(src=data["from"], dst=data["to"], gid=data.get("gid", None), label=data["label"], data=data.get("data", {}))
 
+
+    def writeTest(self):
+        if self.readOnly:
+            raise SkipTest
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
@@ -81,6 +90,12 @@ if __name__ == "__main__":
         default=[],
         help="Unit Test Methods"
     )
+    parser.add_argument(
+        "--readOnly",
+        "-r",
+        default=False,
+        action="store_true"
+    )
     args = parser.parse_args()
     server = args.server
     if len(args.tests) > 0:
@@ -106,8 +121,11 @@ if __name__ == "__main__":
                             GRAPH = "test_graph_" + id_generator()
                             conn.addGraph(GRAPH)
                             G = conn.graph(GRAPH)
-                            manager = Manager(G)
-                            e = func(G, manager)
+                            manager = Manager(G, args.readOnly)
+                            try:
+                                e = func(G, manager)
+                            except SkipTest:
+                                continue
                             if len(e) == 0:
                                 correct += 1
                                 print("Passed: %s %s " % (name, f[5:]))
