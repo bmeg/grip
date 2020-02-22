@@ -1,0 +1,21 @@
+{"gid" : "01", "label" : "Person", "data" : {"name": "marko", "age": 29}}
+{"gid" : "02", "label" : "Person", "data" : {"name": "vadas", "age": 25}}
+{"gid" : "04", "label" : "Person", "data" : {"name": "josh", "age": 32}}
+{"gid" : "06", "label" : "Person", "data" : {"name": "peter", "age": 35}}
+{"gid" : "07", "label" : "Person", "data" : {"name": "marko", "age": 41}}
+{"gid" : "09", "label" : "Person", "data" : {"name": "alex", "age": 30}}
+{"gid" : "10", "label" : "Person", "data" : {"name": "alex", "age": 45}}
+{"gid" : "11", "label" : "Person", "data" : {"name": "steve", "age": 26}}
+{"gid" : "12", "label" : "Person", "data" : {"name": "alice", "age": 22}}
+{"gid" : "13", "label" : "Person", "data" : {"name": "wanda", "age": 36}}
+{"gid" : "05", "label" : "Software", "data" : {"name": "ripple", "lang": "java"}}
+{"gid" : "03", "label" : "Software", "data" : {"name": "lop", "lang": "java"}}
+{"gid" : "08", "label" : "Software", "data" : {"name": "funnel", "lang": "go"}}
+{"gid" : "20", "label" : "Dog"}
+{"gid" : "21", "label" : "Dog"}
+{"gid" : "22", "label" : "Dog"}
+{"gid" : "23", "label" : "Dog"}
+{"gid" : "30", "label" : "Car"}
+{"gid" : "31", "label" : "Car"}
+{"gid" : "32", "label" : "Car"}
+{"gid" : "33", "label" : "Car"}
