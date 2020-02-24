@@ -8,6 +8,12 @@
 {"gid" : "11", "label" : "Person", "data" : {"name": "steve", "age": 26}}
 {"gid" : "12", "label" : "Person", "data" : {"name": "alice", "age": 22}}
 {"gid" : "13", "label" : "Person", "data" : {"name": "wanda", "age": 36}}
+{"gid" : "14", "label" : "Person", "data" : {"name": "han", "age": 35, "occupation": "smuggler", "starships": ["millennium falcon"]}}
+{"gid" : "15", "label" : "Person", "data" : {"name": "luke", "age": 26, "occupation": "jedi", "starships": ["x-wing", "millennium falcon"]}}
+{"gid" : "16", "label" : "Person", "data" : {"name": "obi-wan", "age": 63, "occupation": "jedi"}}
+{"gid" : "17", "label" : "Person", "data" : {"name": "vader", "age": 55, "occupation": "sith", "starships": ["death star", "tie fighter"]}}
+{"gid" : "40", "label" : "Robot", "data" : {"name": "r2-d2"}}
+{"gid" : "41", "label" : "Robot", "data" : {"name": "c-3po"}}
 {"gid" : "05", "label" : "Software", "data" : {"name": "ripple", "lang": "java"}}
 {"gid" : "03", "label" : "Software", "data" : {"name": "lop", "lang": "java"}}
 {"gid" : "08", "label" : "Software", "data" : {"name": "funnel", "lang": "go"}}
@@ -15,7 +21,7 @@
 {"gid" : "21", "label" : "Dog"}
 {"gid" : "22", "label" : "Dog"}
 {"gid" : "23", "label" : "Dog"}
-{"gid" : "30", "label" : "Car"}
+{"gid" : "30", "label" : "Car", "data" : {}}
 {"gid" : "31", "label" : "Car"}
 {"gid" : "32", "label" : "Car"}
 {"gid" : "33", "label" : "Car"}

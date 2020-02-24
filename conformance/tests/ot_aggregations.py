@@ -4,37 +4,6 @@ import gripql
 import numpy as np
 
 
-def setupGraph(O):
-    O.addIndex("Person", "name")
-    O.addIndex("Person", "age")
-
-    O.addVertex("1", "Person", {"name": "marko", "age": 29})
-    O.addVertex("2", "Person", {"name": "vadas", "age": 25})
-    O.addVertex("4", "Person", {"name": "josh", "age": 32})
-    O.addVertex("6", "Person", {"name": "peter", "age": 35})
-    O.addVertex("7", "Person", {"name": "marko", "age": 41})
-    O.addVertex("9", "Person", {"name": "alex", "age": 30})
-    O.addVertex("10", "Person", {"name": "alex", "age": 45})
-    O.addVertex("11", "Person", {"name": "steve", "age": 26})
-    O.addVertex("12", "Person", {"name": "alice", "age": 22})
-    O.addVertex("13", "Person", {"name": "wanda", "age": 36})
-    O.addVertex("5", "Software", {"name": "ripple", "lang": "java"})
-    O.addVertex("3", "Software", {"name": "lop", "lang": "java"})
-    O.addVertex("8", "Software", {"name": "funnel", "lang": "go"})
-
-    O.addEdge("1", "2", "knows", {"weight": 0.5, "count": 20})
-    O.addEdge("1", "4", "knows", {"weight": 1.0, "count": 4})
-    O.addEdge("1", "9", "knows", {"weight": 1.0, "count": 50})
-    O.addEdge("1", "10", "knows", {"weight": 1.0, "count": 75})
-    O.addEdge("2", "3", "knows", {"weight": 1.0, "count": 32})
-    O.addEdge("2", "5", "knows", {"weight": 1.0, "count": 20})
-    O.addEdge("2", "11", "knows", {"weight": 1.0, "count": 75})
-    O.addEdge("1", "3", "created", {"weight": 0.4, "count": 31})
-    O.addEdge("4", "3", "created", {"weight": 0.4, "count": 90})
-    O.addEdge("6", "3", "created", {"weight": 0.2, "count": 75})
-    O.addEdge("4", "5", "created", {"weight": 1.0, "count": 35})
-
-
 def test_simple(O, man):
     errors = []
 
