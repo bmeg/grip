@@ -37,9 +37,10 @@ def setupGraph(O):
     O.addEdge("vertex3_3", "vertex4_3", "step")
 
 
-def test_path_1(O):
+def test_path_1(O, man):
     errors = []
-    setupGraph(O)
+
+    man.setGraph("graph1")
 
     count = 0
     for res in O.query().V().out().out().out():
@@ -86,23 +87,13 @@ def test_path_1(O):
     return errors
 
 
-def test_path_2(O):
+def test_path_2(O, man):
     errors = []
-    setupGraph(O)
 
-    """
-    for res in O.query().V().out().out().out():
-        print("no haslabel", res)
-
-    for res in O.query().V().out().hasLabel("step2").outE():
-        print("haslabel", res)
-
-    for res in O.query().V(["vertex2_1", "vertex2_2", "vertex2_3"]).out().out():
-        print("V", res)
-    """
+    man.setGraph("graph1")
 
     count = 0
-    for res in O.query().V().out().hasLabel("step2").out().out():
+    for res in O.query().V().out().hasLabel("Person").out().out():
         if not res.gid.startswith("vertex4"):
             errors.append("Wrong vertex found at end of hasLabel path: %s" % (res.gid))
         count += 1

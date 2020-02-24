@@ -9,10 +9,10 @@ def setupGraph(O):
     O.addEdge("vertex2", "vertex4", "parent", gid="edge3")
 
 
-def test_mark_select_label_filter(O):
+def test_mark_select_label_filter(O, man):
     errors = []
 
-    setupGraph(O)
+    man.writeTest()
 
     count = 0
     for row in O.query().V("vertex2").as_("a").\
@@ -40,10 +40,10 @@ def test_mark_select_label_filter(O):
     return errors
 
 
-def test_mark_select(O):
+def test_mark_select(O, man):
     errors = []
 
-    setupGraph(O)
+    man.writeTest()
 
     count = 0
     for row in O.query().V("vertex1").as_("a").out().as_(
@@ -70,10 +70,10 @@ def test_mark_select(O):
     return errors
 
 
-def test_mark_edge_select(O):
+def test_mark_edge_select(O, man):
     errors = []
 
-    setupGraph(O)
+    man.writeTest()
 
     count = 0
     for row in O.query().V("vertex1").as_("a").outE().as_(

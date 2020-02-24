@@ -9,9 +9,10 @@ def setupGraph(O):
     O.addEdge("vertex2", "vertex4", "parent", gid="edge3")
 
 
-def test_count(O):
+def test_count(O, man):
     errors = []
-    setupGraph(O)
+
+    man.setGraph("graph1")
 
     i = list(O.query().V().count())
     if len(i) < 1:
@@ -42,7 +43,7 @@ def test_count(O):
 
 # tests an edge case where mongo aggregations fill fail to return a count when
 # the ccollection doesnt exist
-def test_count_when_no_data(O):
+def test_count_when_no_data(O, man):
     errors = []
 
     i = list(O.query().V().count())

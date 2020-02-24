@@ -3,19 +3,6 @@ from __future__ import absolute_import
 import gripql
 
 
-def setupGraph(O):
-    O.addVertex("vertex1", "person", {"name": "han", "age": 35, "occupation": "smuggler", "starships": ["millennium falcon"]})
-    O.addVertex("vertex2", "person", {"name": "luke", "age": 26, "occupation": "jedi", "starships": ["x-wing", "millennium falcon"]})
-    O.addVertex("vertex3", "robot", {"name": "r2-d2"})
-    O.addVertex("vertex4", "robot", {"name": "c-3po"})
-    O.addVertex("vertex5", "person", {"name": "obi-wan", "age": 63, "occupation": "jedi"})
-    O.addVertex("vertex6", "person", {"name": "vader", "age": 55, "occupation": "sith", "starships": ["death star", "tie fighter"]})
-
-    O.addEdge("vertex1", "vertex2", "friend", gid="edge1")
-    O.addEdge("vertex2", "vertex3", "owner", gid="edge2")
-    O.addEdge("vertex2", "vertex4", "friend", gid="edge3")
-
-
 def test_hasLabel(O, man):
     errors = []
 

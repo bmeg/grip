@@ -4,7 +4,7 @@ import gripql
 from gripql import __
 
 
-def test_match(O):
+def test_match(O, man):
     """
     http://tinkerpop.apache.org/docs/3.3.4/reference/#match-step
 
@@ -12,6 +12,7 @@ def test_match(O):
     """
     errors = []
 
+    """
     O.addVertex("1", "Person", {"name": "marko", "age": "29"})
     O.addVertex("2", "Person", {"name": "vadas", "age": "27"})
     O.addVertex("3", "Software", {"name": "lop", "lang": "java"})
@@ -25,6 +26,9 @@ def test_match(O):
     O.addEdge("4", "3", "created", {"weight": 0.4})
     O.addEdge("6", "3", "created", {"weight": 0.2})
     O.addEdge("4", "5", "created", {"weight": 1.0})
+    """
+
+    man.setGraph("graph1")
 
     query = O.query().V().match([
         __.as_('a').out('created').as_('b'),

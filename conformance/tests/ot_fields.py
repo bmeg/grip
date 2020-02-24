@@ -1,8 +1,8 @@
 
-def test_fields(O):
+def test_fields(O, man):
     errors = []
 
-    O.addVertex("vertex1", "person", {"name": "han", "age": 35, "occupation": "smuggler", "starships": ["millennium falcon"]})
+    man.setGraph("graph1")
 
     expected = {
         u"gid": u"vertex1",

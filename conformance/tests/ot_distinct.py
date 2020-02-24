@@ -1,6 +1,7 @@
-def test_distinct(O):
+def test_distinct(O, man):
     errors = []
 
+    """
     O.addVertex("1", "Person", {"name": "marko", "age": 29})
     O.addVertex("2", "Person", {"name": "vadas", "age": 25})
     O.addVertex("4", "Person", {"name": "josh", "age": 32})
@@ -19,6 +20,9 @@ def test_distinct(O):
     O.addEdge("1", "5", "developer", gid="edge1")
     O.addEdge("7", "5", "developer", gid="edge2")
     O.addEdge("3", "8", "dependency", gid="edge3")
+    """
+
+    man.setGraph("graph1")
 
     count = 0
     for i in O.query().V().distinct():
@@ -62,6 +66,7 @@ def test_distinct(O):
 def test_distinct_multi(O):
     errors = []
 
+    """
     O.addVertex("1", "Person", {"name": "marko", "age": 29})
     O.addVertex("2", "Person", {"name": "vadas", "age": 25})
     O.addVertex("4", "Person", {"name": "josh", "age": 32})
@@ -82,7 +87,10 @@ def test_distinct_multi(O):
     O.addEdge("7", "5", "developer", gid="edge3")
     O.addEdge("3", "8", "dependency", gid="edge4")
     O.addEdge("11", "5", "dependency", gid="edge5")
+    """
 
+    man.setGraph("graph1")
+    
     count = 0
     for i in O.query().V().as_("a").out().distinct(["$a.name", "_gid"]).render(["$a.name", "_gid"]):
         count += 1

@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import re
 import requests
 
 
@@ -72,23 +73,29 @@ def test_V(O, man):
     count = 0
     for i in O.query().V():
         count += 1
-        if i.gid in ["01", "02", "04", "06", "07", "09", "10", "11", "12", "13"]:
+        if re.search(r'^0\d$', i.gid ):
             if i.label != "Person":
                 errors.append("Wrong vertex label. %s %s != %s" % (i.gid, i.label, "Person"))
-        elif i.gid in ["03", "05", "08"]:
-            if i.label != "Software":
-                errors.append("Wrong vertex label. %s != %s" % (i.label, "Software"))
-        elif i.gid in ["20", "21", "22", "23"]:
-            if i.label != "Dog":
-                errors.append("Wrong vertex label. %s != %s" % (i.label, "Dog"))
-        elif i.gid in ["30", "31", "32", "33"]:
-            if i.label != "Car":
-                errors.append("Wrong vertex label. %s != %s" % (i.label, "Car"))
+        elif re.search(r'^1\d$', i.gid ):
+            if i.label != "Character":
+                errors.append("Wrong vertex label. %s != %s" % (i.label, "Character"))
+        elif re.search(r'^2\d$', i.gid ):
+            if i.label != "Robot":
+                errors.append("Wrong vertex label. %s != %s" % (i.label, "Robot"))
+        elif re.search(r'^3\d$', i.gid ):
+            if i.label != "Starship":
+                errors.append("Wrong vertex label. %s != %s" % (i.label, "Starship"))
+        elif re.search(r'^4\d$', i.gid ):
+            if i.label != "Movie":
+                errors.append("Wrong vertex label. %s != %s" % (i.label, "Movie"))
+        elif re.search(r'^5\d$', i.gid ):
+            if i.label != "Book":
+                errors.append("Wrong vertex label. %s != %s" % (i.label, "Book"))
         else:
             errors.append("Unknown vertex: %s" % (i.gid))
 
-    if count != 21:
-        errors.append("Fail: O.query().V() %s != %s" % (count, 21))
+    if count != 25:
+        errors.append("Fail: O.query().V() %s != %s" % (count, 25))
 
     count = 0
     for i in O.query().V("01"):
@@ -126,8 +133,8 @@ def test_E(O, man):
     if count == unknownCount:
         errors.append("Only found unnamed edges")
 
-    if count != 12:
-        errors.append("Fail: O.query().E() %s != %d" % (count, 12))
+    if count != 13:
+        errors.append("Fail: O.query().E() %s != %d" % (count, 13))
 
     count = 0
     for i in O.query().E("edge01-02"):
@@ -152,7 +159,7 @@ def test_outgoing(O, man):
 
     count = 0
     for i in O.query().V("02").out():
-        if i['gid'] not in ["03", "05", "11"]:
+        if i['gid'] not in ["03", "05", "06"]:
             errors.append(
                 "Fail: O.query().V(\"02\").out() - \
                 Wrong vertex %s" % (i['gid'])
@@ -164,7 +171,7 @@ def test_outgoing(O, man):
 
     count = 0
     for i in O.query().V("02").out("friend"):
-        if i['gid'] not in ["03"]:
+        if i['gid'] not in ["03", "06"]:
             errors.append(
                 "Fail: O.query().V(\"02\").out(\"friend\") - \
                 Wrong vertex %s" % (i['gid'])
@@ -239,7 +246,7 @@ def test_outgoing_edge(O, man):
             errors.append("Wrong outgoing vertex %s" % (i['gid']))
 
     for i in O.query().V("02").outE().out():
-        if i['gid'] not in ["03", "05", "11"]:
+        if i['gid'] not in ["03", "05", "06"]:
             errors.append("Wrong outgoing edge to vertex %s" % (i['gid']))
 
     if O.query().V("02").outE("friend").count().execute()[0]["count"] != 1:
@@ -312,7 +319,7 @@ def test_both_edge(O, man):
     count = 0
     for row in O.query().V("05").bothE():
         count += 1
-        if row['gid'] not in ["edge02-05", "edge05-04"]:
+        if row['gid'] not in ["edge02-05", "edge05-42"]:
             errors.append("Fail: O.query().V(\"05\").bothE() - \
             Wrong edge found: %s" % (row['gid']))
     if count != 2:
@@ -380,15 +387,15 @@ def test_skip(O, man):
     count = 0
     for row in O.query().V("01").both().skip(4).limit(2):
         count += 1
-        if row['gid'] not in ["09", "10"]:
-            errors.append("Wrong vertex found on both: %s" % (row['gid']))
+        if row['gid'] not in ["09", "08"]:
+            errors.append("""O.query().V("01").both().skip(4).limit(2): Wrong vertex found on both: %s""" % (row['gid']))
     if count != 2:
-        errors.append("Wrong vertex count found %s != %s" % (count, 2))
+        errors.append("""O.query().V("01").both().skip(4).limit(2) : Wrong vertex count found %s != %s""" % (count, 2))
 
     count = 0
     for row in O.query().V("01").bothE().skip(4).limit(2):
         count += 1
-        if row['gid'] not in ["edge01-09", "edge01-10"]:
+        if row['gid'] not in ["edge01-09", "edge01-08"]:
             errors.append("Wrong edge found: %s" % (row['gid']))
     if count != 2:
         errors.append("Wrong edge count in bothE found %s != %s" % (count, 2))
@@ -412,7 +419,7 @@ def test_range(O, man):
     count = 0
     for row in O.query().V().range(4, -1):
         count += 1
-    if count != 17:
-        errors.append("Wrong vertex count found %s != %s" % (count, 17))
+    if count != 21:
+        errors.append("Wrong vertex count found %s != %s" % (count, 21))
 
     return errors

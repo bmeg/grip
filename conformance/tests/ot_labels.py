@@ -1,7 +1,9 @@
 
 
-def test_list_labels(O):
+def test_list_labels(O, man):
     errors = []
+
+    man.writeTest()
 
     O.addVertex("1", "Person", {"name": "marko", "age": "29"})
     O.addVertex("2", "Person", {"name": "vadas", "age": "27"})

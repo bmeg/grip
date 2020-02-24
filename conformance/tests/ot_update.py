@@ -1,4 +1,7 @@
-def test_duplicate(O):
+def test_duplicate(O, man):
+
+    man.writeTest()
+
     errors = []
     O.addVertex("vertex1", "person", {"somedata": 1})
     O.addVertex("vertex1", "person")
@@ -19,7 +22,10 @@ def test_duplicate(O):
     return errors
 
 
-def test_replace(O):
+def test_replace(O, man):
+
+    man.writeTest()
+
     errors = []
     O.addVertex("vertex1", "person", {"somedata": 1})
     O.addVertex("vertex1", "person")

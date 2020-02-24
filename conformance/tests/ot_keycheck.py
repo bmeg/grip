@@ -1,12 +1,14 @@
 
 
-def test_subkey(O):
+def test_subkey(O, man):
     """
     Bug in KVGraph scanned edge index prefixes, if key was a prefix subkey of another,
     edge sets would get merged (ie get outgoing from 'Work' and get edges from 'Work' and 'Workflow')
     """
     errors = []
 
+    man.writeTest()
+    
     O.addVertex("Work", "Thing", {})
     O.addVertex("Workflow", "Thing", {})
     O.addVertex("Other", "Thing", {})
