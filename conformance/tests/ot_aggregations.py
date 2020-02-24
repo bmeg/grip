@@ -35,9 +35,11 @@ def setupGraph(O):
     O.addEdge("4", "5", "created", {"weight": 1.0, "count": 35})
 
 
-def test_simple(O):
+def test_simple(O, man):
     errors = []
-    setupGraph(O)
+
+    man.setGraph("graph1")
+
     count = 0
     for row in O.query().V().aggregate(gripql.term("simple-agg", "name")):
         if 'simple-agg' not in row:
@@ -57,12 +59,13 @@ def test_simple(O):
     return errors
 
 
-def test_traversal_term_aggregation(O):
+def test_traversal_term_aggregation(O, man):
     errors = []
-    setupGraph(O)
+
+    man.setGraph("graph1")
 
     count = 0
-    for row in O.query().V("1").out().hasLabel("Person").aggregate(gripql.term("traversal-agg", "name")):
+    for row in O.query().V("01").out().hasLabel("Person").aggregate(gripql.term("traversal-agg", "name")):
         if 'traversal-agg' not in row:
             errors.append("Result had Incorrect aggregation name")
             return errors
@@ -95,12 +98,13 @@ def test_traversal_term_aggregation(O):
     return errors
 
 
-def test_traversal_histogram_aggregation(O):
+def test_traversal_histogram_aggregation(O, man):
     errors = []
-    setupGraph(O)
+
+    man.setGraph("graph1")
 
     count = 0
-    for row in O.query().V("1").out().hasLabel("Person").aggregate(gripql.histogram("traversal-agg", "age", 5)):
+    for row in O.query().V("01").out().hasLabel("Person").aggregate(gripql.histogram("traversal-agg", "age", 5)):
         count += 1
         if 'traversal-agg' not in row:
             errors.append("Result had Incorrect aggregation name")
@@ -143,13 +147,14 @@ def test_traversal_histogram_aggregation(O):
     return errors
 
 
-def test_traversal_percentile_aggregation(O):
+def test_traversal_percentile_aggregation(O, man):
     errors = []
-    setupGraph(O)
+
+    man.setGraph("graph1")
 
     count = 0
     percents = [1, 5, 25, 50, 75, 95, 99, 99.9]
-    for row in O.query().V("1").out().hasLabel("Person").aggregate(gripql.percentile("traversal-agg", "age", percents)):
+    for row in O.query().V("01").out().hasLabel("Person").aggregate(gripql.percentile("traversal-agg", "age", percents)):
         count += 1
 
         if 'traversal-agg' not in row:
@@ -213,9 +218,10 @@ def test_traversal_percentile_aggregation(O):
     return errors
 
 
-def test_traversal_edge_histogram_aggregation(O):
+def test_traversal_edge_histogram_aggregation(O, man):
     errors = []
-    setupGraph(O)
+
+    man.setGraph("graph1")
 
     count = 0
     for row in O.query().V().hasLabel("Person").outE().aggregate(gripql.histogram("edge-agg", "count", 4)):
@@ -242,7 +248,7 @@ def test_traversal_edge_histogram_aggregation(O):
                 if res["value"] != 1:
                     errors.append("Incorrect bucket count returned: %s" % res)
             elif res["key"] == 32:
-                if res["value"] != 2:
+                if res["value"] != 1:
                     errors.append("Incorrect bucket count returned: %s" % res)
             elif res["key"] == 48:
                 if res["value"] != 1:
@@ -269,19 +275,18 @@ def test_traversal_edge_histogram_aggregation(O):
     return errors
 
 
-def test_traversal_gid_aggregation(O):
+def test_traversal_gid_aggregation(O, man):
     errors = []
-    setupGraph(O)
+
+    man.setGraph("graph1")
 
     count = 0
     for row in O.query().V().hasLabel("Person").as_("a").out("knows").select("a").aggregate(gripql.term("gid-agg", "_gid")):
-        print(row)
         count += 1
         if 'gid-agg' not in row:
             errors.append("Result had Incorrect aggregation name")
             return errors
         row = row['gid-agg']
-        print(row)
 
         if len(row["buckets"]) < 2:
             errors.append(
@@ -290,11 +295,11 @@ def test_traversal_gid_aggregation(O):
             )
 
         for res in row["buckets"]:
-            if res["key"] == "1":
+            if res["key"] == "01":
                 if res["value"] != 4:
                     errors.append("Incorrect bucket count returned: %s" % res)
-            elif res["key"] == "2":
-                if res["value"] != 3:
+            elif res["key"] == "02":
+                if res["value"] != 1:
                     errors.append("Incorrect bucket count returned: %s" % res)
             else:
                 errors.append("Incorrect bucket key returned: %s" % res)
