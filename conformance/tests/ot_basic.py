@@ -268,7 +268,7 @@ def test_incoming_edge(O, man):
         if i['gid'] not in ["edge01-04", "edge05-04"]:
             errors.append("Wrong incoming vertex %s" % (i['gid']))
 
-    if list(O.query().V("03").inE("friend").count())[0]["count"] != 1:
+    if list(O.query().V("03").inE("friend").count())[0]["count"] != 2:
         errors.append("labeled incoming doesn't work")
 
     return errors

@@ -6,37 +6,6 @@ some engines (ie GRIDS) will do. Can't verify that the optimization
 was applied, but does verify that the results seem correct
 """
 
-
-def setupGraph(O):
-    O.addVertex("vertex1_1", "step1", {"field1": "value1", "field2": "value2"})
-    O.addVertex("vertex1_2", "step1")
-    O.addVertex("vertex1_3", "step1", {"field1": "value3", "field2": "value4"})
-
-    O.addVertex("vertex2_1", "step2", {"field1": "value3", "field2": "value4"})
-    O.addVertex("vertex2_2", "step2", {"field1": "value3", "field2": "value4"})
-    O.addVertex("vertex2_3", "step2", {"field1": "value3", "field2": "value4"})
-
-    O.addVertex("vertex3_1", "step3", {"field1": "value3", "field2": "value4"})
-    O.addVertex("vertex3_2", "step3", {"field1": "value3", "field2": "value4"})
-    O.addVertex("vertex3_3", "step3", {"field1": "value3", "field2": "value4"})
-
-    O.addVertex("vertex4_1", "step4", {"field1": "value3", "field2": "value4"})
-    O.addVertex("vertex4_2", "step4", {"field1": "value3", "field2": "value4"})
-    O.addVertex("vertex4_3", "step4", {"field1": "value3", "field2": "value4"})
-
-    O.addEdge("vertex1_1", "vertex2_1", "step", gid="edge1")
-    O.addEdge("vertex1_2", "vertex2_2", "step", gid="edge2")
-    O.addEdge("vertex1_3", "vertex2_3", "step")
-
-    O.addEdge("vertex2_1", "vertex3_1", "step", gid="edge3")
-    O.addEdge("vertex2_2", "vertex3_2", "step", gid="edge4")
-    O.addEdge("vertex2_3", "vertex3_3", "step")
-
-    O.addEdge("vertex3_1", "vertex4_1", "step", gid="edge5")
-    O.addEdge("vertex3_2", "vertex4_2", "step", gid="edge6")
-    O.addEdge("vertex3_3", "vertex4_3", "step")
-
-
 def test_path_1(O, man):
     errors = []
 
@@ -44,45 +13,45 @@ def test_path_1(O, man):
 
     count = 0
     for res in O.query().V().out().out().out():
-        if not res.gid.startswith("vertex4"):
+        if not res.gid in ["01", "02", "03", "04", "05", "06", "08", "09", "40", "41", "42", "50"]:
             errors.append("Wrong vertex found at end of path: %s" % (res.gid))
-        if not res.label == "step4":
+        if not res.label in ["Person", "Movie", "Book"]:
             errors.append("Wrong label found at end of path: %s" % (res.label))
         count += 1
-    if count != 3:
-        errors.append("out-out-out Incorrect vertex count returned: %d != %d" % (count, 3))
+    if count != 14:
+        errors.append("out-out-out Incorrect vertex count returned: %d != %d" % (count, 14))
 
     count = 0
     for res in O.query().V().in_().in_().in_():
-        if not res.gid.startswith("vertex1"):
+        if not res.gid in ["01", "08"]:
             errors.append("Wrong vertex found at end of path: %s" % (res.gid))
-        if not res.label == "step1":
+        if not res.label == "Person":
             errors.append("Wrong label found at end of path: %s" % (res.label))
         count += 1
-    if count != 3:
-        errors.append("in-in-in Incorrect vertex count returned: %d != %d" % (count, 3))
+    if count != 14:
+        errors.append("in-in-in Incorrect vertex count returned: %d != %d" % (count, 14))
 
     count = 0
     for res in O.query().V().out().out().outE():
-        if not res['from'].startswith("vertex3"):
+        if not res['from'] in ["01", "02", "04", "05", "06", "08"]:
             errors.append("Wrong 'from' vertex found at end of outE path: %s" % (res['from']))
-        if not res['to'].startswith("vertex4"):
+        if not res['to'] in ["01", "02", "03", "04", "05", "06", "08", "09", "40", "41", "42", "50"]:
             errors.append("Wrong 'to' vertex found at end of ourE path: %s" % (res['to']))
-        if not res.label == "step":
+        if not res.label in ["likes", "knows", "friend", "parent", "enemy"]:
             errors.append("Wrong label found at end of path: %s" % (res.label))
         count += 1
-    if count != 3:
-        errors.append("out-out-outE Incorrect vertex count returned: %d != %d" % (count, 3))
+    if count != 14:
+        errors.append("out-out-outE Incorrect vertex count returned: %d != %d" % (count, 14))
 
     count = 0
     for res in O.query().V().out().out().outE().out():
-        if not res.gid.startswith("vertex4"):
+        if not res.gid in ["42", "41", "02", "03", "04", "08", "09", "05", "50", "40", "06", "01"]:
             errors.append("Wrong vertex found at end of outE to out path: %s" % (res.gid))
-        if not res.label == "step4":
+        if not res.label in ["Movie", "Person", "Book"]:
             errors.append("Wrong label found at end of outE to out path: %s" % (res.label))
         count += 1
-    if count != 3:
-        errors.append("out-out-outE-out Incorrect vertex count returned: %d != %d" % (count, 3))
+    if count != 14:
+        errors.append("out-out-outE-out Incorrect vertex count returned: %d != %d" % (count, 14))
 
     return errors
 
@@ -94,10 +63,10 @@ def test_path_2(O, man):
 
     count = 0
     for res in O.query().V().out().hasLabel("Person").out().out():
-        if not res.gid.startswith("vertex4"):
+        if not res.gid in ["01", "02", "03", "04", "05", "06", "08", "09", "40", "41", "42", "50"]:
             errors.append("Wrong vertex found at end of hasLabel path: %s" % (res.gid))
         count += 1
-    if count != 3:
+    if count != 14:
         errors.append("out-hasLabel-out-out Incorrect vertex count returned: %d != %d" % (count, 3))
 
     return errors

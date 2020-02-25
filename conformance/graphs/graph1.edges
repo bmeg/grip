@@ -7,7 +7,7 @@
 { "from" : "02", "to" : "03", "label" : "friend", "data" : {"weight": 1.0, "count": 32}}
 { "gid"  : "edge02-05", "from" : "02", "to" : "05", "label" : "parent", "data" : {"weight": 1.0, "count": 20}}
 { "from" : "02", "to" : "06", "label" : "knows", "data" : {"weight": 1.0, "count": 75}}
-{ "gid"  : "edge01-03", "from" : "01", "to" : "03", "label" : "created", "data" : {"weight": 0.4, "count": 31}}
+{ "gid"  : "edge01-03", "from" : "01", "to" : "03", "label" : "friend", "data" : {"weight": 0.4, "count": 31}}
 { "from" : "04", "to" : "40", "label" : "likes", "data" : {"weight": 0.4, "count": 90}}
 { "from" : "06", "to" : "41", "label" : "likes", "data" : {"weight": 0.2, "count": 75}}
 { "gid"  : "edge05-42", "from" : "05", "to" : "42", "label" : "likes", "data" : {"weight": 1.0, "count": 35}}
