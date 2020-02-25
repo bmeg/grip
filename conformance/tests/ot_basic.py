@@ -133,8 +133,8 @@ def test_E(O, man):
     if count == unknownCount:
         errors.append("Only found unnamed edges")
 
-    if count != 13:
-        errors.append("Fail: O.query().E() %s != %d" % (count, 13))
+    if count != 14:
+        errors.append("Fail: O.query().E() %s != %d" % (count, 14))
 
     count = 0
     for i in O.query().E("edge01-02"):
@@ -159,15 +159,15 @@ def test_outgoing(O, man):
 
     count = 0
     for i in O.query().V("02").out():
-        if i['gid'] not in ["03", "05", "06"]:
+        if i['gid'] not in ["03", "05", "06", "50"]:
             errors.append(
                 "Fail: O.query().V(\"02\").out() - \
                 Wrong vertex %s" % (i['gid'])
             )
         count += 1
-    if count != 3:
+    if count != 4:
         errors.append(
-            "Fail: O.query().V(\"02\").out() %s != %d" % (count, 3))
+            "Fail: O.query().V(\"02\").out() %s != %d" % (count, 4))
 
     count = 0
     for i in O.query().V("02").out("friend"):
@@ -238,15 +238,15 @@ def test_outgoing_edge(O, man):
     #setupGraph(O)
 
     c = O.query().V("02").outE().count().execute()[0]["count"]
-    if c != 3:
-        errors.append("blank outgoing misscount: %d != %d" % (c, 3))
+    if c != 4:
+        errors.append("blank outgoing misscount: %d != %d" % (c, 4))
 
     for i in O.query().V("01").outE():
         if not i['gid'].startswith("edge01-"):
             errors.append("Wrong outgoing vertex %s" % (i['gid']))
 
     for i in O.query().V("02").outE().out():
-        if i['gid'] not in ["03", "05", "06"]:
+        if i['gid'] not in ["03", "05", "06", "50"]:
             errors.append("Wrong outgoing edge to vertex %s" % (i['gid']))
 
     if O.query().V("02").outE("friend").count().execute()[0]["count"] != 1:

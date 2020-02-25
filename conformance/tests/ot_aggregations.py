@@ -23,8 +23,8 @@ def test_simple(O, man):
             elif res['key'] in ['funnel', 'josh', 'vadas', 'peter', 'steve', 'lop', 'alice', 'wanda', 'ripple']:
                 if res['value'] != 1:
                     errors.append("Wrong key count for %s" % (res['key']))
-    if count != 11:
-        errors.append("Wrong number of results recieved")
+    if count != 23:
+        errors.append("Wrong number of results recieved %d" % (count))
     return errors
 
 
@@ -41,10 +41,10 @@ def test_traversal_term_aggregation(O, man):
         row = row['traversal-agg']
 
         count += 1
-        if len(row["buckets"]) != 3:
+        if len(row["buckets"]) != 5:
             errors.append(
                 "Unexpected number of terms: %d != %d" %
-                (len(row["buckets"]), 3)
+                (len(row["buckets"]), 5)
             )
 
         for res in row["buckets"]:
@@ -80,32 +80,29 @@ def test_traversal_histogram_aggregation(O, man):
             return errors
         row = row['traversal-agg']
 
-        if len(row["buckets"]) < 3:
+        if len(row["buckets"]) < 4:
             errors.append(
                 "Unexpected number of terms: %d != %d" %
-                (len(row["buckets"]), 3)
+                (len(row["buckets"]), 4)
             )
 
         for res in row["buckets"]:
-            if res["key"] == 25:
+            if res["key"] == 20:
                 if res["value"] != 1:
                     errors.append("Incorrect bucket count returned: %s" % res)
-            elif res["key"] == 30:
+            elif res["key"] == 25:
                 if res["value"] != 2:
                     errors.append("Incorrect bucket count returned: %s" % res)
+            elif res["key"] == 30:
+                if res["value"] != 1:
+                    errors.append("Incorrect bucket count returned: %s" % res)
             elif res["key"] == 35:
-                if res["value"] != 0:
-                    errors.append("Incorrect bucket count returned: %s" % res)
-            elif res["key"] == 40:
-                if res["value"] != 0:
-                    errors.append("Incorrect bucket count returned: %s" % res)
-            elif res["key"] == 45:
                 if res["value"] != 1:
                     errors.append("Incorrect bucket count returned: %s" % res)
             else:
                 errors.append("Incorrect bucket key returned: %s" % res)
 
-        if len(row["buckets"]) != 5:
+        if len(row["buckets"]) != 4:
             errors.append("Incorrect bucket size returned: %d" % len(row["buckets"]))
 
     if count != 1:
@@ -137,7 +134,7 @@ def test_traversal_percentile_aggregation(O, man):
                 (len(row["buckets"]), len(percents))
             )
 
-        ages = np.array([25, 32, 30, 45])
+        ages = np.array([25, 35, 32, 26, 22])
 
         # for tests quantiles need to be withing 15% of the actual value
         def getMinMax(input_data, percent, accuracy=0.15):
@@ -208,7 +205,7 @@ def test_traversal_edge_histogram_aggregation(O, man):
 
         for res in row["buckets"]:
             if res["key"] == 4:
-                if res["value"] != 1:
+                if res["value"] != 2:
                     errors.append("Incorrect bucket count returned: %s" % res)
             elif res["key"] == 20:
                 if res["value"] != 2:
@@ -217,7 +214,7 @@ def test_traversal_edge_histogram_aggregation(O, man):
                 if res["value"] != 1:
                     errors.append("Incorrect bucket count returned: %s" % res)
             elif res["key"] == 32:
-                if res["value"] != 1:
+                if res["value"] != 2:
                     errors.append("Incorrect bucket count returned: %s" % res)
             elif res["key"] == 48:
                 if res["value"] != 1:
@@ -268,6 +265,9 @@ def test_traversal_gid_aggregation(O, man):
                 if res["value"] != 4:
                     errors.append("Incorrect bucket count returned: %s" % res)
             elif res["key"] == "02":
+                if res["value"] != 1:
+                    errors.append("Incorrect bucket count returned: %s" % res)
+            elif res["key"] == "04":
                 if res["value"] != 1:
                     errors.append("Incorrect bucket count returned: %s" % res)
             else:

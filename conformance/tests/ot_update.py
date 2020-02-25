@@ -49,8 +49,10 @@ def test_replace(O, man):
     return errors
 
 
-def test_delete(O):
+def test_delete(O, man):
     errors = []
+
+    man.writeTest()
 
     O.addVertex("vertex1", "person", {"field1": "value1", "field2": "value2"})
     O.addVertex("vertex2", "person")

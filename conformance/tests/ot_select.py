@@ -8,15 +8,15 @@ def test_simple(O, man):
 
     man.setGraph("graph1")
 
-    q = O.query().V().hasLabel("Reaction").as_("a").out().select("a")
+    q = O.query().V().hasLabel("Person").as_("a").out().select("a")
 
     count = 0
     for row in q:
         count += 1
-        if row.label != "Reaction":
+        if row.label != "Person":
             errors.append("Wrong node label")
-    if count != 4:
-        errors.append("Incorrect count %d != %d" % (count, 4))
+    if count != 14:
+        errors.append("Incorrect count %d != %d" % (count, 14))
     return errors
 
 
@@ -25,16 +25,17 @@ def test_select(O, man):
 
     man.setGraph("graph1")
 
-    q = O.query().V().hasLabel("Reaction").as_("reaction")
-    q = q.out("controller").has(gripql.eq("symbol", "MDM2")).select("reaction")
-    q = q.out("controlled")
+    q = O.query().V().hasLabel("Person").as_("person")
+    q = q.out("knows").has(gripql.eq("name", "alex")).select("person")
+    q = q.out("likes")
 
     found = 0
     for row in q:
+        print(row)
         found += 1
-        if row.data.symbol != "TP53":
+        if row.data.name != "The Joy of Cooking":
             errors.append("Bad connection found")
 
     if found != 1:
-        errors.append("Incorrect number of reactions found: %s != 1" % (found))
+        errors.append("Incorrect number of people found: %s != 1" % (found))
     return errors
