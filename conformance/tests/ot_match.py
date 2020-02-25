@@ -31,10 +31,10 @@ def test_match(O, man):
     man.setGraph("graph1")
 
     query = O.query().V().match([
-        __.as_('a').out('created').as_('b'),
-        __.as_('b').has(gripql.eq('name', 'lop')),
-        __.as_('b').in_('created').as_('c'),
-        __.as_('c').has(gripql.eq('age', "29"))
+        __.as_('a').in_('parent').as_('b'),
+        __.as_('b').has(gripql.eq('name', 'vadas')),
+        __.as_('b').out('likes').as_('c'),
+        __.as_('c').has(gripql.eq('lang', "english"))
     ]).select(['a', 'c'])
 
     count = 0
@@ -43,13 +43,13 @@ def test_match(O, man):
         if len(row) != 2:
             errors.append("Incorrect number of marks returned in row")
             continue
-        if row["a"]['data']['name'] not in ["marko", "josh", "peter"]:
+        if row["a"]['data']['name'] not in ["marko"]:
             errors.append("Incorrect 'a' return")
-        if row["c"]['data']['name'] != "marko":
+        if row["c"]['data']['name'] != "The Joy of Cooking":
             errors.append("Incorrect 'c' return")
 
-    if count != 3:
-        errors.append("Incorrect return count: %d != %d" % (count, 3))
+    if count != 1:
+        errors.append("Incorrect return count: %d != %d" % (count, 1))
 
     return errors
 

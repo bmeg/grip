@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import re
 import gripql
 
 
@@ -139,30 +140,30 @@ def test_has_neq(O, man):
         count += 1
         if i['gid'] == "03":
             errors.append("Wrong vertex returned %s" % (i))
-    if count != 26:
+    if count != 24:
         errors.append(
             "Fail: O.query().V().has(gripql.not_(gripql.eq(\"_gid\", \"03\"))) %s != %s" %
-            (count, 26))
+            (count, 24))
 
     count = 0
     for i in O.query().V().has(gripql.neq("_label", "Person")):
         count += 1
         if i['label'] == "Person":
             errors.append("Wrong vertex label %s" % (i['label']))
-    if count != 13:
+    if count != 16:
         errors.append(
             "Fail: O.query().V().has(gripql.not_(gripql.eq(\"_label\", \"person\"))) %s != %s" %
-            (count, 13))
+            (count, 16))
 
     count = 0
     for i in O.query().V().has(gripql.neq("occupation", "jedi")):
         count += 1
         if i['gid'] in ["15", "16"]:
             errors.append("Wrong vertex returned %s" % (i))
-    if count != 25:
+    if count != 23:
         errors.append(
             "Fail: O.query().V().has(gripql.not_(gripql.eq(\"occupation\", \"jedi\"))) %s != %s" %
-            (count, 25))
+            (count, 23))
 
     return errors
 
@@ -203,7 +204,7 @@ def test_has_lt(O, man):
     count = 0
     for i in O.query().V().has(gripql.lt("age", 35)):
         count += 1
-        if i['gid'] not in ["01", "02", "04", "09", "11", "12", "15"]:
+        if i['gid'] not in ["01", "02", "03", "04", "06", "08", "09", "11"]:
             errors.append("Wrong vertex returned %s" % (i))
     if count != 7:
         errors.append(
@@ -213,7 +214,7 @@ def test_has_lt(O, man):
     count = 0
     for i in O.query().V().has(gripql.lte("age", 35)):
         count += 1
-        if i['gid'] not in ["01", "02", "04", "06", "09", "11", "12", "14", "15"]:
+        if i['gid'] not in ["01", "02", "03", "04", "06", "08", "09", "10", "11"]:
             errors.append("Wrong vertex returned %s" % (i))
     if count != 9:
         errors.append(
@@ -231,12 +232,12 @@ def test_has_inside(O, man):
     count = 0
     for i in O.query().V().has(gripql.inside("age", 30, 60)):
         count += 1
-        if i['gid'] not in ["04", "06", "07", "10", "13", "14", "17"]:
+        if i['gid'] not in ["03", "04", "05", "06", "07", "10", "13", "14", "17"]:
             errors.append("Wrong vertex returned %s" % (i))
-    if count != 7:
+    if count != 6:
         errors.append(
             "Fail: O.query().V().has(gripql.inside(\"age\", 30, 60)) %s != %s" %
-            (count, 7))
+            (count, 6))
 
     return errors
 
@@ -249,7 +250,7 @@ def test_has_outside(O, man):
     count = 0
     for i in O.query().V().has(gripql.outside("age", 30, 60)):
         count += 1
-        if i['gid'] not in ["01", "02", "11", "12", "15", "16"]:
+        if i['gid'] not in ["01", "02", "08", "09", "11", "12", "15", "16"]:
             errors.append("Wrong vertex returned %s" % (i))
     if count != 6:
         errors.append(
@@ -388,24 +389,24 @@ def test_has_not(O, man):
     man.setGraph("graph1")
 
     count = 0
-    for i in O.query().V().has(gripql.not_(gripql.eq("_label", "person"))):
+    for i in O.query().V().has(gripql.not_(gripql.eq("_label", "Person"))):
         count += 1
-        if i['gid'] not in ["vertex3", "vertex4"]:
+        if re.search(r'^0\d$', i['gid']):
             errors.append("Wrong vertex returned %s" % (i))
-    if count != 2:
+    if count != 16:
         errors.append(
             "Fail: O.query().V().has(gripql.not_(gripql.eq(\"_label\", \"person\"))) %s != %s" %
             (count, 2))
 
     count = 0
-    for i in O.query().V().has(gripql.not_(gripql.neq("_label", "person"))):
+    for i in O.query().V().has(gripql.not_(gripql.neq("_label", "Person"))):
         count += 1
-        if i['gid'] not in ["vertex1", "vertex2", "vertex5", "vertex6"]:
+        if not re.search(r'^0\d$', i['gid']):
             errors.append("Wrong vertex returned %s" % (i))
-    if count != 4:
+    if count != 9:
         errors.append(
             "Fail: O.query().V().has(gripql.not_(gripql.neq(\"_label\", \"person\"))) %s != %s" %
-            (count, 4))
+            (count, 9))
 
     return errors
 
