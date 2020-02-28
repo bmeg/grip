@@ -42,7 +42,8 @@ sys_vars = [
 
 
 def create_vertex(label, data):
-    gid = data["url"].replace("https://swapi.co/api/", "").strip("/").replace("/", ":")
+    id = data["url"].replace("https://swapi.co/api/", "").strip("/").split("/")[1]
+    gid = "%s:%s" % (label, id)
     tdata = {"system": {}}
     for k, v in data.items():
         if v == "n/a":
@@ -72,8 +73,10 @@ def create_vertex(label, data):
 
 
 def create_edge(label, fid, tid):
-    fid = fid.replace("https://swapi.co/api/", "").strip("/").replace("/", ":")
-    tid = tid.replace("https://swapi.co/api/", "").strip("/").replace("/", ":")
+    flab, fid = fid.replace("https://swapi.co/api/", "").strip("/").split("/")
+    tlab, tid = tid.replace("https://swapi.co/api/", "").strip("/").split("/")
+    fid = "%s:%s" % (edge_lookup[flab], fid)
+    tid = "%s:%s" % (edge_lookup[tlab], tid)
     return {"gid": "(%s)-[%s]->(%s)" % (fid, label, tid),
             "label": label, "from": fid, "to": tid}
 

@@ -21,7 +21,7 @@ for gid, e in edges.items():
     G1.add_edge(e["from"], e["to"])
 
 G = nx.DiGraph()
-whitelist = list(G1.neighbors("films:1")) + ["films:1"]
+whitelist = list(G1.neighbors("Film:1")) + ["Film:1"]
 edges_sub = []
 verts_sub = [verts[x] for x in whitelist]
 for gid, e in edges.items():
@@ -42,12 +42,12 @@ with open("swapi_subgraph_edges.json", "w") as fh:
         fh.write(os.linesep)
 
 # Plot the subgraph
-films = [x for x in G.nodes() if x.startswith("films")]
-people = [x for x in G.nodes() if x.startswith("people")]
-species = [x for x in G.nodes() if x.startswith("species")]
-planets = [x for x in G.nodes() if x.startswith("planets")]
-starships = [x for x in G.nodes() if x.startswith("starships")]
-vehicles = [x for x in G.nodes() if x.startswith("vehicles")]
+films = [x for x in G.nodes() if x.startswith("Film")]
+people = [x for x in G.nodes() if x.startswith("Character")]
+species = [x for x in G.nodes() if x.startswith("Species")]
+planets = [x for x in G.nodes() if x.startswith("Planet")]
+starships = [x for x in G.nodes() if x.startswith("Starship")]
+vehicles = [x for x in G.nodes() if x.startswith("Vehicle")]
 labels = {l: l.split(":")[1] for l in G.nodes()}
 pos = nx.spring_layout(G)
 
@@ -56,32 +56,32 @@ nx.draw_networkx_nodes(G, pos,
                        nodelist=films,
                        node_color='lightgrey',
                        node_size=500,
-                       label="films")
+                       label="Film")
 nx.draw_networkx_nodes(G, pos,
                        nodelist=people,
                        node_color='indianred',
                        node_size=500,
-                       label="people")
+                       label="Character")
 nx.draw_networkx_nodes(G, pos,
                        nodelist=species,
                        node_color='mediumturquoise',
                        node_size=500,
-                       label="species")
+                       label="Species")
 nx.draw_networkx_nodes(G, pos,
                        nodelist=planets,
                        node_color='mediumseagreen',
                        node_size=500,
-                       label="planets")
+                       label="Planet")
 nx.draw_networkx_nodes(G, pos,
                        nodelist=starships,
                        node_color='violet',
                        node_size=500,
-                       label="starships")
+                       label="Starship")
 nx.draw_networkx_nodes(G, pos,
                        nodelist=vehicles,
                        node_color='slateblue',
                        node_size=500,
-                       label="vehicles")
+                       label="Vehicle")
 nx.draw_networkx_edges(G, pos, width=1.5, arrowsize=12)
 nx.draw_networkx_labels(G, pos, labels, font_size=14)
 plt.legend(numpoints=1)
