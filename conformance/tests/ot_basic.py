@@ -73,22 +73,22 @@ def test_V(O, man):
     count = 0
     for i in O.query().V():
         count += 1
-        if re.search(r'^0\d$', i.gid ):
+        if re.search(r'^0\d$', i.gid):
             if i.label != "Person":
                 errors.append("Wrong vertex label. %s %s != %s" % (i.gid, i.label, "Person"))
-        elif re.search(r'^1\d$', i.gid ):
+        elif re.search(r'^1\d$', i.gid):
             if i.label != "Character":
                 errors.append("Wrong vertex label. %s != %s" % (i.label, "Character"))
-        elif re.search(r'^2\d$', i.gid ):
+        elif re.search(r'^2\d$', i.gid):
             if i.label != "Robot":
                 errors.append("Wrong vertex label. %s != %s" % (i.label, "Robot"))
-        elif re.search(r'^3\d$', i.gid ):
+        elif re.search(r'^3\d$', i.gid):
             if i.label != "Starship":
                 errors.append("Wrong vertex label. %s != %s" % (i.label, "Starship"))
-        elif re.search(r'^4\d$', i.gid ):
+        elif re.search(r'^4\d$', i.gid):
             if i.label != "Movie":
                 errors.append("Wrong vertex label. %s != %s" % (i.label, "Movie"))
-        elif re.search(r'^5\d$', i.gid ):
+        elif re.search(r'^5\d$', i.gid):
             if i.label != "Book":
                 errors.append("Wrong vertex label. %s != %s" % (i.label, "Book"))
         else:
@@ -115,7 +115,7 @@ def test_E(O, man):
     errors = []
 
     man.setGraph("graph1")
-    #setupGraph(O)
+    # setupGraph(O)
 
     count = 0
     unknownCount = 0
@@ -155,7 +155,7 @@ def test_outgoing(O, man):
     errors = []
 
     man.setGraph("graph1")
-    #setupGraph(O)
+    # setupGraph(O)
 
     count = 0
     for i in O.query().V("02").out():
@@ -195,7 +195,7 @@ def test_incoming(O, man):
     errors = []
 
     man.setGraph("graph1")
-    #setupGraph(O)
+    # setupGraph(O)
 
     count = 0
     for i in O.query().V("02").in_():
@@ -235,7 +235,7 @@ def test_outgoing_edge(O, man):
     errors = []
 
     man.setGraph("graph1")
-    #setupGraph(O)
+    # setupGraph(O)
 
     c = O.query().V("02").outE().count().execute()[0]["count"]
     if c != 4:
@@ -259,7 +259,7 @@ def test_incoming_edge(O, man):
     errors = []
 
     man.setGraph("graph1")
-    #setupGraph(O)
+    # setupGraph(O)
 
     if O.query().V("02").inE().count().execute()[0]["count"] != 1:
         errors.append("blank incoming doesn't work")
@@ -278,7 +278,7 @@ def test_both(O, man):
     errors = []
 
     man.setGraph("graph1")
-    #setupGraph(O)
+    # setupGraph(O)
 
     count = 0
     for row in O.query().V("01").both():
@@ -314,7 +314,7 @@ def test_both_edge(O, man):
     errors = []
 
     man.setGraph("graph1")
-    #setupGraph(O)
+    # setupGraph(O)
 
     count = 0
     for row in O.query().V("05").bothE():

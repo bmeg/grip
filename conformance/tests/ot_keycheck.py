@@ -8,7 +8,7 @@ def test_subkey(O, man):
     errors = []
 
     man.writeTest()
-    
+
     O.addVertex("Work", "Thing", {})
     O.addVertex("Workflow", "Thing", {})
     O.addVertex("Other", "Thing", {})

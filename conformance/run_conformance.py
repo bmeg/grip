@@ -38,26 +38,29 @@ def id_generator(size=6, chars=string.ascii_uppercase + string.digits):
 class SkipTest(Exception):
     pass
 
+
 class Manager:
-    def __init__(self, O, readOnly=False):
-        self.O = O
+    def __init__(self, conn, readOnly=False):
+        self._conn = conn
         self.readOnly = readOnly
 
     def setGraph(self, name):
-        with open(os.path.join(BASE, "graphs", "%s.nodes" % (name))) as handle:
+        with open(os.path.join(BASE, "graphs", "%s.vertices" % (name))) as handle:
             for line in handle:
                 data = json.loads(line)
-                self.O.addVertex(data["gid"], data["label"], data.get("data", {}))
+                self._conn.addVertex(data["gid"], data["label"], data.get("data", {}))
 
         with open(os.path.join(BASE, "graphs", "%s.edges" % (name))) as handle:
             for line in handle:
                 data = json.loads(line)
-                self.O.addEdge(src=data["from"], dst=data["to"], gid=data.get("gid", None), label=data["label"], data=data.get("data", {}))
-
+                self._conn.addEdge(src=data["from"], dst=data["to"],
+                                   gid=data.get("gid", None), label=data["label"],
+                                   data=data.get("data", {}))
 
     def writeTest(self):
         if self.readOnly:
             raise SkipTest
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
@@ -66,6 +69,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "server",
         type=str,
+        required=True,
         help="GRIP server url"
     )
     parser.add_argument(

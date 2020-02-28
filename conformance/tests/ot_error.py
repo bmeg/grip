@@ -1,6 +1,5 @@
 
 
-
 def test_fields(O, man):
     errors = []
 
