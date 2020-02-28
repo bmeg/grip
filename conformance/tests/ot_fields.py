@@ -2,7 +2,7 @@
 def test_fields(O, man):
     errors = []
 
-    man.setGraph("graph1")
+    man.setGraph("swapi")
 
     expected = {
         u"gid": u"10",

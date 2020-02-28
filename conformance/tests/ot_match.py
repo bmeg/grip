@@ -28,7 +28,7 @@ def test_match(O, man):
     O.addEdge("4", "5", "created", {"weight": 1.0})
     """
 
-    man.setGraph("graph1")
+    man.setGraph("swapi")
 
     query = O.query().V().match([
         __.as_('a').in_('parent').as_('b'),

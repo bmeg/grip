@@ -4,7 +4,7 @@ from __future__ import absolute_import
 def test_render(O, man):
     errors = []
 
-    man.setGraph("graph1")
+    man.setGraph("swapi")
 
     query = O.query().V().hasLabel("Person").render(
         {

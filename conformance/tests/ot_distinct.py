@@ -1,7 +1,7 @@
 def test_distinct(O, man):
     errors = []
 
-    man.setGraph("graph1")
+    man.setGraph("swapi")
 
     count = 0
     for i in O.query().V().distinct():
@@ -45,7 +45,7 @@ def test_distinct(O, man):
 def test_distinct_multi(O, man):
     errors = []
 
-    man.setGraph("graph1")
+    man.setGraph("swapi")
 
     count = 0
     for i in O.query().V().as_("a").out().distinct(["$a.name", "_gid"]).render(["$a.name", "_gid"]):

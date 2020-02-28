@@ -7,7 +7,7 @@ import numpy as np
 def test_simple(O, man):
     errors = []
 
-    man.setGraph("graph1")
+    man.setGraph("swapi")
 
     count = 0
     for row in O.query().V().aggregate(gripql.term("simple-agg", "name")):
@@ -31,7 +31,7 @@ def test_simple(O, man):
 def test_traversal_term_aggregation(O, man):
     errors = []
 
-    man.setGraph("graph1")
+    man.setGraph("swapi")
 
     count = 0
     for row in O.query().V("01").out().hasLabel("Person").aggregate(gripql.term("traversal-agg", "name")):
@@ -70,7 +70,7 @@ def test_traversal_term_aggregation(O, man):
 def test_traversal_histogram_aggregation(O, man):
     errors = []
 
-    man.setGraph("graph1")
+    man.setGraph("swapi")
 
     count = 0
     for row in O.query().V("01").out().hasLabel("Person").aggregate(gripql.histogram("traversal-agg", "age", 5)):
@@ -116,7 +116,7 @@ def test_traversal_histogram_aggregation(O, man):
 def test_traversal_percentile_aggregation(O, man):
     errors = []
 
-    man.setGraph("graph1")
+    man.setGraph("swapi")
 
     count = 0
     percents = [1, 5, 25, 50, 75, 95, 99, 99.9]
@@ -187,7 +187,7 @@ def test_traversal_percentile_aggregation(O, man):
 def test_traversal_edge_histogram_aggregation(O, man):
     errors = []
 
-    man.setGraph("graph1")
+    man.setGraph("swapi")
 
     count = 0
     for row in O.query().V().hasLabel("Person").outE().aggregate(gripql.histogram("edge-agg", "count", 4)):
@@ -244,7 +244,7 @@ def test_traversal_edge_histogram_aggregation(O, man):
 def test_traversal_gid_aggregation(O, man):
     errors = []
 
-    man.setGraph("graph1")
+    man.setGraph("swapi")
 
     count = 0
     for row in O.query().V().hasLabel("Person").as_("a").out("knows").select("a").aggregate(gripql.term("gid-agg", "_gid")):

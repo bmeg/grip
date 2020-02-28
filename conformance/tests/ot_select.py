@@ -6,7 +6,7 @@ import gripql
 def test_simple(O, man):
     errors = []
 
-    man.setGraph("graph1")
+    man.setGraph("swapi")
 
     q = O.query().V().hasLabel("Person").as_("a").out().select("a")
 
@@ -23,7 +23,7 @@ def test_simple(O, man):
 def test_select(O, man):
     errors = []
 
-    man.setGraph("graph1")
+    man.setGraph("swapi")
 
     q = O.query().V().hasLabel("Person").as_("person")
     q = q.out("knows").has(gripql.eq("name", "alex")).select("person")

@@ -3,7 +3,7 @@
 def test_fields(O, man):
     errors = []
 
-    man.setGraph("graph1")
+    man.setGraph("swapi")
 
     try:
         for i in O.query().out():

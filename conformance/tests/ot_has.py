@@ -7,7 +7,7 @@ import gripql
 def test_hasLabel(O, man):
     errors = []
 
-    man.setGraph("graph1")
+    man.setGraph("swapi")
 
     count = 0
     for i in O.query().V().hasLabel("Robot"):
@@ -39,7 +39,7 @@ def test_hasLabel(O, man):
 def test_hasKey(O, man):
     errors = []
 
-    man.setGraph("graph1")
+    man.setGraph("swapi")
 
     count = 0
     for i in O.query().V().hasKey("occupation"):
@@ -67,7 +67,7 @@ def test_hasKey(O, man):
 def test_hasId(O, man):
     errors = []
 
-    man.setGraph("graph1")
+    man.setGraph("swapi")
 
     count = 0
     for i in O.query().V().hasId("01"):
@@ -95,7 +95,7 @@ def test_hasId(O, man):
 def test_has_eq(O, man):
     errors = []
 
-    man.setGraph("graph1")
+    man.setGraph("swapi")
 
     count = 0
     for i in O.query().V().has(gripql.eq("_gid", "03")):
@@ -133,7 +133,7 @@ def test_has_eq(O, man):
 def test_has_neq(O, man):
     errors = []
 
-    man.setGraph("graph1")
+    man.setGraph("swapi")
 
     count = 0
     for i in O.query().V().has(gripql.neq("_gid", "03")):
@@ -171,7 +171,7 @@ def test_has_neq(O, man):
 def test_has_gt(O, man):
     errors = []
 
-    man.setGraph("graph1")
+    man.setGraph("swapi")
 
     count = 0
     for i in O.query().V().has(gripql.gt("age", 35)):
@@ -199,7 +199,7 @@ def test_has_gt(O, man):
 def test_has_lt(O, man):
     errors = []
 
-    man.setGraph("graph1")
+    man.setGraph("swapi")
 
     count = 0
     for i in O.query().V().has(gripql.lt("age", 35)):
@@ -227,7 +227,7 @@ def test_has_lt(O, man):
 def test_has_inside(O, man):
     errors = []
 
-    man.setGraph("graph1")
+    man.setGraph("swapi")
 
     count = 0
     for i in O.query().V().has(gripql.inside("age", 30, 60)):
@@ -245,7 +245,7 @@ def test_has_inside(O, man):
 def test_has_outside(O, man):
     errors = []
 
-    man.setGraph("graph1")
+    man.setGraph("swapi")
 
     count = 0
     for i in O.query().V().has(gripql.outside("age", 30, 60)):
@@ -263,7 +263,7 @@ def test_has_outside(O, man):
 def test_has_between(O, man):
     errors = []
 
-    man.setGraph("graph1")
+    man.setGraph("swapi")
 
     count = 0
     for i in O.query().V().has(gripql.between("age", 26, 35)):
@@ -280,7 +280,7 @@ def test_has_between(O, man):
 
 def test_has_within(O, man):
     errors = []
-    man.setGraph("graph1")
+    man.setGraph("swapi")
 
     count = 0
     for i in O.query().V().has(gripql.within("occupation", ["jedi", "sith"])):
@@ -306,7 +306,7 @@ def test_has_within(O, man):
 def test_has_without(O, man):
     errors = []
 
-    man.setGraph("graph1")
+    man.setGraph("swapi")
 
     count = 0
     for i in O.query().V().has(gripql.without("occupation", ["jedi", "sith"])):
@@ -332,7 +332,7 @@ def test_has_without(O, man):
 def test_has_contains(O, man):
     errors = []
 
-    man.setGraph("graph1")
+    man.setGraph("swapi")
 
     count = 0
     for i in O.query().V().has(gripql.contains("starships", "x-wing")):
@@ -350,7 +350,7 @@ def test_has_contains(O, man):
 def test_has_and(O, man):
     errors = []
 
-    man.setGraph("graph1")
+    man.setGraph("swapi")
 
     count = 0
     for i in O.query().V().has(gripql.and_(gripql.eq("_label", "Character"), gripql.eq("occupation", "jedi"))):
@@ -368,7 +368,7 @@ def test_has_and(O, man):
 def test_has_or(O, man):
     errors = []
 
-    man.setGraph("graph1")
+    man.setGraph("swapi")
 
     count = 0
     for i in O.query().V().has(gripql.or_(gripql.eq("occupation", "sith"), gripql.eq("occupation", "jedi"))):
@@ -386,7 +386,7 @@ def test_has_or(O, man):
 def test_has_not(O, man):
     errors = []
 
-    man.setGraph("graph1")
+    man.setGraph("swapi")
 
     count = 0
     for i in O.query().V().has(gripql.not_(gripql.eq("_label", "Person"))):
@@ -414,7 +414,7 @@ def test_has_not(O, man):
 def test_has_complex(O, man):
     errors = []
 
-    man.setGraph("graph1")
+    man.setGraph("swapi")
 
     count = 0
     for i in O.query().V().has(

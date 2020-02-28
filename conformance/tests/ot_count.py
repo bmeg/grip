@@ -3,7 +3,7 @@
 def test_count(O, man):
     errors = []
 
-    man.setGraph("graph1")
+    man.setGraph("swapi")
 
     i = list(O.query().V().count())
     if len(i) < 1:

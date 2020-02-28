@@ -3,7 +3,7 @@
 def test_mark_select_label_filter(O, man):
     errors = []
 
-    man.setGraph("graph1")
+    man.setGraph("swapi")
 
     count = 0
     for row in O.query().V("02").as_("a").\
@@ -28,7 +28,7 @@ def test_mark_select_label_filter(O, man):
 def test_mark_select(O, man):
     errors = []
 
-    man.setGraph("graph1")
+    man.setGraph("swapi")
 
     count = 0
     for row in O.query().V("01").as_("a").out().as_(
@@ -58,7 +58,7 @@ def test_mark_select(O, man):
 def test_mark_edge_select(O, man):
     errors = []
 
-    man.setGraph("graph1")
+    man.setGraph("swapi")
 
     count = 0
     for row in O.query().V("08").as_("a").outE().as_(

@@ -10,7 +10,7 @@ was applied, but does verify that the results seem correct
 def test_path_1(O, man):
     errors = []
 
-    man.setGraph("graph1")
+    man.setGraph("swapi")
 
     count = 0
     for res in O.query().V().out().out().out():
@@ -60,7 +60,7 @@ def test_path_1(O, man):
 def test_path_2(O, man):
     errors = []
 
-    man.setGraph("graph1")
+    man.setGraph("swapi")
 
     count = 0
     for res in O.query().V().out().hasLabel("Person").out().out():

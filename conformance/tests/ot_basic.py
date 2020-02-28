@@ -7,7 +7,7 @@ import requests
 def test_get_vertex(O, man):
     errors = []
 
-    man.setGraph("graph1")
+    man.setGraph("swapi")
 
     expected = {
         u"gid": u"01",
@@ -36,7 +36,7 @@ def test_get_vertex(O, man):
 def test_get_edge(O, man):
     errors = []
 
-    man.setGraph("graph1")
+    man.setGraph("swapi")
 
     expected = {
         u"gid": u"edge01-02",
@@ -68,7 +68,7 @@ def test_get_edge(O, man):
 def test_V(O, man):
     errors = []
 
-    man.setGraph("graph1")
+    man.setGraph("swapi")
 
     count = 0
     for i in O.query().V():
@@ -114,7 +114,7 @@ def test_V(O, man):
 def test_E(O, man):
     errors = []
 
-    man.setGraph("graph1")
+    man.setGraph("swapi")
     # setupGraph(O)
 
     count = 0
@@ -154,7 +154,7 @@ def test_E(O, man):
 def test_outgoing(O, man):
     errors = []
 
-    man.setGraph("graph1")
+    man.setGraph("swapi")
     # setupGraph(O)
 
     count = 0
@@ -194,7 +194,7 @@ def test_outgoing(O, man):
 def test_incoming(O, man):
     errors = []
 
-    man.setGraph("graph1")
+    man.setGraph("swapi")
     # setupGraph(O)
 
     count = 0
@@ -234,7 +234,7 @@ def test_incoming(O, man):
 def test_outgoing_edge(O, man):
     errors = []
 
-    man.setGraph("graph1")
+    man.setGraph("swapi")
     # setupGraph(O)
 
     c = O.query().V("02").outE().count().execute()[0]["count"]
@@ -258,7 +258,7 @@ def test_outgoing_edge(O, man):
 def test_incoming_edge(O, man):
     errors = []
 
-    man.setGraph("graph1")
+    man.setGraph("swapi")
     # setupGraph(O)
 
     if O.query().V("02").inE().count().execute()[0]["count"] != 1:
@@ -277,7 +277,7 @@ def test_incoming_edge(O, man):
 def test_both(O, man):
     errors = []
 
-    man.setGraph("graph1")
+    man.setGraph("swapi")
     # setupGraph(O)
 
     count = 0
@@ -313,7 +313,7 @@ def test_both(O, man):
 def test_both_edge(O, man):
     errors = []
 
-    man.setGraph("graph1")
+    man.setGraph("swapi")
     # setupGraph(O)
 
     count = 0
@@ -340,7 +340,7 @@ def test_both_edge(O, man):
 def test_limit(O, man):
     errors = []
 
-    man.setGraph("graph1")
+    man.setGraph("swapi")
 
     count = 0
     for row in O.query().V().limit(3):
@@ -374,7 +374,7 @@ def test_limit(O, man):
 def test_skip(O, man):
     errors = []
 
-    man.setGraph("graph1")
+    man.setGraph("swapi")
 
     count = 0
     for row in O.query().V().skip(4).limit(2):
@@ -406,7 +406,7 @@ def test_skip(O, man):
 def test_range(O, man):
     errors = []
 
-    man.setGraph("graph1")
+    man.setGraph("swapi")
 
     count = 0
     for row in O.query().V().range(4, 6):
