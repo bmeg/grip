@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import re
 import requests
 
 
@@ -10,13 +9,27 @@ def test_get_vertex(O, man):
     man.setGraph("swapi")
 
     expected = {
-        u"gid": u"01",
-        u"label": u"Person",
-        u"data": {u"name": u"marko", u"age": 29}
+        "gid": "Character:1",
+        "label": "Character",
+        "data": {
+            "system": {
+                "created": "2014-12-09T13:50:51.644000Z",
+                "edited": "2014-12-20T21:17:56.891000Z"
+            },
+            "name": "Luke Skywalker",
+            "height": 172,
+            "mass": 77,
+            "hair_color": "blond",
+            "skin_color": "fair",
+            "eye_color": "blue",
+            "birth_year": "19BBY",
+            "gender": "male",
+            "url": "https://swapi.co/api/people/1/"
+        }
     }
 
     try:
-        resp = O.getVertex("01")
+        resp = O.getVertex("Character:1")
         if resp != expected:
             errors.append("Wrong vertex %s != %s" % (resp, expected))
     except Exception as e:
@@ -39,15 +52,15 @@ def test_get_edge(O, man):
     man.setGraph("swapi")
 
     expected = {
-        u"gid": u"edge01-02",
-        u"label": u"knows",
-        u"from": u"01",
-        u"to": u"02",
-        u"data": {"weight": 0.5, "count": 20}
+        "gid": "(Film:1)-[characters]->(Character:1)",
+        "label": "characters",
+        "from": "Film:1",
+        "to": "Character:1",
+        "data": {}
     }
 
     try:
-        resp = O.getEdge("edge01-02")
+        resp = O.getEdge("(Film:1)-[characters]->(Character:1)")
         if resp != expected:
             errors.append("Wrong edge %s != %s" % (resp, expected))
     except Exception as e:
@@ -73,40 +86,18 @@ def test_V(O, man):
     count = 0
     for i in O.query().V():
         count += 1
-        if re.search(r'^0\d$', i.gid):
-            if i.label != "Person":
-                errors.append("Wrong vertex label. %s %s != %s" % (i.gid, i.label, "Person"))
-        elif re.search(r'^1\d$', i.gid):
-            if i.label != "Character":
-                errors.append("Wrong vertex label. %s != %s" % (i.label, "Character"))
-        elif re.search(r'^2\d$', i.gid):
-            if i.label != "Robot":
-                errors.append("Wrong vertex label. %s != %s" % (i.label, "Robot"))
-        elif re.search(r'^3\d$', i.gid):
-            if i.label != "Starship":
-                errors.append("Wrong vertex label. %s != %s" % (i.label, "Starship"))
-        elif re.search(r'^4\d$', i.gid):
-            if i.label != "Movie":
-                errors.append("Wrong vertex label. %s != %s" % (i.label, "Movie"))
-        elif re.search(r'^5\d$', i.gid):
-            if i.label != "Book":
-                errors.append("Wrong vertex label. %s != %s" % (i.label, "Book"))
-        else:
-            errors.append("Unknown vertex: %s" % (i.gid))
-
-    if count != 25:
+    if count != 39:
         errors.append("Fail: O.query().V() %s != %s" % (count, 25))
 
     count = 0
-    for i in O.query().V("01"):
-        if i['gid'] not in ["01"]:
-            errors.append(
-                "Fail: O.query().V(\"01\") - \
-                Wrong vertex %s" % (i['gid'])
-            )
+    for i in O.query().V("Character:1"):
         count += 1
+        if i['gid'] != "Character:1":
+            errors.append(
+                "Fail: O.query().V(\"Character:1\") - Wrong vertex %s" % (i['gid'])
+            )
     if count != 1:
-        errors.append("Fail: O.query().V(\"1\") %s != %s" % (count, 1))
+        errors.append("Fail: O.query().V(\"Character:1\") %s != %s" % (count, 1))
 
     return errors
 
@@ -115,38 +106,23 @@ def test_E(O, man):
     errors = []
 
     man.setGraph("swapi")
-    # setupGraph(O)
 
     count = 0
-    unknownCount = 0
     for i in O.query().E():
         count += 1
-        if i.gid in ["edge01-02", "edge01-04"]:
-            if i.label != "knows":
-                errors.append("Wrong vertex label. %s != %s" % (i.label, "knows"))
-        elif i.gid in ["edge3"]:
-            if i.label != "parent":
-                errors.append("Wrong vertex label. %s != %s" % (i.label, "parent"))
-        else:
-            unknownCount += 1
-
-    if count == unknownCount:
-        errors.append("Only found unnamed edges")
-
-    if count != 14:
-        errors.append("Fail: O.query().E() %s != %d" % (count, 14))
+    if count != 144:
+        errors.append("Fail: O.query().E() %s != %d" % (count, 144))
 
     count = 0
-    for i in O.query().E("edge01-02"):
-        if i['gid'] not in ["edge01-02"]:
+    for i in O.query().E("(Film:1)-[characters]->(Character:1)"):
+        if i['gid'] != "(Film:1)-[characters]->(Character:1)":
             errors.append(
-                "Fail: O.query().E(\"edge01-02\") - \
-                Wrong edge %s" % (i['gid'])
+                "Fail: O.query().E(\"(Film:1)-[characters]->(Character:1)\") - Wrong edge %s" % (i['gid'])
             )
         count += 1
     if count != 1:
         errors.append(
-            "Fail: O.query().E(\"edge1\") %s != %d" % (count, 1))
+            "Fail: O.query().E(\"(Film:1)-[characters]->(Character:1)\") %s != %d" % (count, 1))
 
     return errors
 
@@ -155,38 +131,41 @@ def test_outgoing(O, man):
     errors = []
 
     man.setGraph("swapi")
-    # setupGraph(O)
 
     count = 0
-    for i in O.query().V("02").out():
-        if i['gid'] not in ["03", "05", "06", "50"]:
+    for i in O.query().V("Starship:12").out():
+        if i['gid'] not in ['Character:1', 'Character:18', 'Character:19', 'Character:9', 'Film:1']:
             errors.append(
-                "Fail: O.query().V(\"02\").out() - \
-                Wrong vertex %s" % (i['gid'])
+                "Fail: O.query().V(\"Starship:12\").out() - Wrong vertex %s" % (i['gid'])
+            )
+        count += 1
+    if count != 5:
+        errors.append(
+            "Fail: O.query().V(\"Starship:12\").out() %s != %d" % (count, 5))
+
+    count = 0
+    for i in O.query().V("Starship:12").out("pilots"):
+        if i['gid'] not in ['Character:1', 'Character:18', 'Character:19', 'Character:9']:
+            errors.append(
+                "Fail: O.query().V(\"Starship:12\").out(\"pilots\") - Wrong vertex %s" % (i['gid'])
             )
         count += 1
     if count != 4:
         errors.append(
-            "Fail: O.query().V(\"02\").out() %s != %d" % (count, 4))
+            "Fail: O.query().V(\"Starship:12\").out(\"pilots\") %s != %d" % (count, 4)
+        )
 
     count = 0
-    for i in O.query().V("02").out("friend"):
-        if i['gid'] not in ["03", "06"]:
+    for i in O.query().E("(Film:1)-[characters]->(Character:1)").out():
+        if i['gid'] != "Character:1":
             errors.append(
-                "Fail: O.query().V(\"02\").out(\"friend\") - \
-                Wrong vertex %s" % (i['gid'])
+                "Fail: O.query().E(\"(Film:1)-[characters]->(Character:1)\").out() - Wrong vertex %s" % (i['gid'])
             )
         count += 1
     if count != 1:
         errors.append(
-            "Fail: O.query().V(\"vertex2\").out(\"friend\") %s != %d" % (count, 1))
-
-    count = 0
-    for i in O.query().E("edge01-02").out():
-        count += 1
-    if count != 1:
-        errors.append(
-            "Fail: O.query().E(\"edge1\").out() %s != %d" % (count, 1))
+            "Fail: O.query().E(\"(Film:1)-[characters]->(Character:1)\").out() %s != %d" % (count, 1)
+        )
 
     return errors
 
@@ -195,38 +174,50 @@ def test_incoming(O, man):
     errors = []
 
     man.setGraph("swapi")
-    # setupGraph(O)
 
     count = 0
-    for i in O.query().V("02").in_():
-        if i['gid'] not in ["01"]:
+    for i in O.query().V("Starship:12").in_():
+        if i['gid'] not in ['Character:1', 'Character:18', 'Character:19', 'Character:9', 'Film:1']:
             errors.append(
-                "Fail: O.query().V(\"02\").in_() - \
-                Wrong vertex %s" % (i['gid'])
+                "Fail: O.query().V(\"Starship:12\").in_() - Wrong vertex %s" % (i['gid'])
+            )
+        count += 1
+    if count != 5:
+        errors.append(
+            "Fail: O.query().V(\"Starship:12\").in_() %s != %d" % (count, 5))
+
+    count = 0
+    for i in O.query().V("Starship:12").in_("starships"):
+        if i['gid'] not in ['Character:1', 'Character:18', 'Character:19', 'Character:9', 'Film:1']:
+            errors.append(
+                "Fail: O.query().V(\"Starship:12\").in_(\"starships\") - Wrong vertex %s" % (i['gid'])
+            )
+        count += 1
+    if count != 5:
+        errors.append(
+            "Fail: O.query().V(\"Starship:12\").in_(\"starships\") %s != %d" % (count, 5)
+        )
+
+    # sanity check since vertices are connected by multipled edges
+    count = 0
+    for i in O.query().V("Starship:12").in_("pilots"):
+        count += 0
+    if count != 0:
+        errors.append(
+            "Fail: O.query().V(\"Starship:12\").in_(\"piolots\") %s != %d" % (count, 0)
+        )
+
+    count = 0
+    for i in O.query().E("(Film:1)-[characters]->(Character:1)").in_():
+        if i['gid'] != "Film:1":
+            errors.append(
+                "Fail: O.query().E(\"(Film:1)-[characters]->(Character:1)\").in_() - Wrong vertex %s" % (i['gid'])
             )
         count += 1
     if count != 1:
         errors.append(
-            "Fail: O.query().V(\"02\").in_() %s != %d" % (count, 1))
-
-    count = 0
-    for i in O.query().V("02").in_("knows"):
-        if i['gid'] not in ["01"]:
-            errors.append(
-                "Fail: O.query().V(\"02\").in_(\"knows\") - \
-                Wrong vertex %s" % (i['gid'])
-            )
-        count += 1
-    if count != 1:
-        errors.append(
-            "Fail: O.query().V(\"02\").in_(\"friend\") %s != %d" % (count, 1))
-
-    count = 0
-    for i in O.query().E("edge01-02").in_():
-        count += 1
-    if count != 1:
-        errors.append(
-            "Fail: O.query().E(\"edge1\").in_() %s != %d" % (count, 1))
+            "Fail: O.query().E(\"(Film:1)-[characters]->(Character:1)\").in_() %s != %d" % (count, 1)
+        )
 
     return errors
 
@@ -235,22 +226,24 @@ def test_outgoing_edge(O, man):
     errors = []
 
     man.setGraph("swapi")
-    # setupGraph(O)
 
-    c = O.query().V("02").outE().count().execute()[0]["count"]
+    c = O.query().V("Character:1").outE().count().execute()[0]["count"]
     if c != 4:
-        errors.append("blank outgoing misscount: %d != %d" % (c, 4))
+        errors.append("Fail: O.query().V(\"Character:1\").outE().count() %d != %d" % (c, 4))
 
-    for i in O.query().V("01").outE():
-        if not i['gid'].startswith("edge01-"):
-            errors.append("Wrong outgoing vertex %s" % (i['gid']))
+    for i in O.query().V("Character:1").outE():
+        if not i['gid'].startswith("(Character:1)"):
+            errors.append("Fail: O.query().V(\"Character:1\").outE() - \
+            Wrong edge %s" % (i['gid']))
 
-    for i in O.query().V("02").outE().out():
-        if i['gid'] not in ["03", "05", "06", "50"]:
-            errors.append("Wrong outgoing edge to vertex %s" % (i['gid']))
+    for i in O.query().V("Character:1").outE().out():
+        if i['gid'] not in ['Film:1', 'Planet:1', 'Species:1', 'Starship:12']:
+            errors.append("Fail: O.query().V(\"Character:1\").outE().out() - \
+            Wrong vertex %s" % (i['gid']))
 
-    if O.query().V("02").outE("friend").count().execute()[0]["count"] != 1:
-        errors.append("labeled outgoing doesn't work")
+    c = O.query().V("Character:1").outE("homeworld").count().execute()[0]["count"]
+    if c != 1:
+        errors.append("Fail: O.query().V(\"Character:1\").outE(\"homeworld\").count() - %s != %s" % (c, 1))
 
     return errors
 
@@ -259,17 +252,24 @@ def test_incoming_edge(O, man):
     errors = []
 
     man.setGraph("swapi")
-    # setupGraph(O)
 
-    if O.query().V("02").inE().count().execute()[0]["count"] != 1:
-        errors.append("blank incoming doesn't work")
+    c = O.query().V("Character:1").inE().count().execute()[0]["count"]
+    if c != 4:
+        errors.append("Fail: O.query().V(\"Character:1\").inE().count() %d != %d" % (c, 4))
 
-    for i in O.query().V("04").inE():
-        if i['gid'] not in ["edge01-04", "edge05-04"]:
-            errors.append("Wrong incoming vertex %s" % (i['gid']))
+    for i in O.query().V("Character:1").inE():
+        if not i['gid'].endswith("(Character:1)"):
+            errors.append("Fail: O.query().V(\"Character:1\").inE() - \
+            Wrong edge %s" % (i['gid']))
 
-    if list(O.query().V("03").inE("friend").count())[0]["count"] != 2:
-        errors.append("labeled incoming doesn't work")
+    for i in O.query().V("Character:1").inE().in_():
+        if i['gid'] not in ['Film:1', 'Planet:1', 'Species:1', 'Starship:12']:
+            errors.append("Fail: O.query().V(\"Character:1\").inE().in() - \
+            Wrong vertex %s" % (i['gid']))
+
+    c = O.query().V("Character:1").inE("residents").count().execute()[0]["count"]
+    if c != 1:
+        errors.append("Fail: O.query().V(\"Character:1\").inE(\"residents\").count() - %s != %s" % (c, 1))
 
     return errors
 
@@ -278,34 +278,44 @@ def test_both(O, man):
     errors = []
 
     man.setGraph("swapi")
-    # setupGraph(O)
 
     count = 0
-    for row in O.query().V("01").both():
+    for i in O.query().V("Starship:12").both():
+        if i['gid'] not in ['Character:1', 'Character:18', 'Character:19', 'Character:9', 'Film:1']:
+            errors.append(
+                "Fail: O.query().V(\"Starship:12\").both() - \
+                Wrong vertex %s" % (i['gid'])
+            )
         count += 1
-        if row['gid'] not in ["02", "03", "04", "08", "09", "10"]:
-            errors.append("Fail: O.query().V(\"01\").both() - \
-            Wrong vertex found: %s" % (row['gid']))
-    if count != 6:
-        errors.append("Fail: O.query().V(\"01\").both() %s != %s" % (count, 6))
+    if count != 10:
+        errors.append(
+            "Fail: O.query().V(\"Starship:12\").both() %s != %d" % (count, 10))
 
     count = 0
-    for row in O.query().V("02").both("parent"):
+    for i in O.query().V("Starship:12").both(["pilots", "starships"]):
+        if i['gid'] not in ['Character:1', 'Character:18', 'Character:19', 'Character:9', 'Film:1']:
+            errors.append(
+                "Fail: O.query().V(\"Starship:12\").both([\"pilots\", \"starships\"]) - \
+                Wrong vertex %s" % (i['gid'])
+            )
         count += 1
-        if row['gid'] not in ["05"]:
-            errors.append("Fail: O.query().V(\"02\").both(\"parent\") - \
-            Wrong vertex found: %s" % (row['gid']))
-    if count != 1:
-        errors.append("Fail: O.query().V(\"vertex1\").both(\"parent\") %s != %s" % (count, 1))
+    if count != 9:
+        errors.append(
+            "Fail: O.query().V(\"Starship:12\").both([\"pilots\", \"starships\"]) %s != %d" % (count, 9)
+        )
 
     count = 0
-    for row in O.query().E("edge01-02").both():
+    for i in O.query().E("(Film:1)-[characters]->(Character:1)").both():
+        if i['gid'] not in  ["Film:1", "Character:1"]:
+            errors.append(
+                "Fail: O.query().E(\"(Film:1)-[characters]->(Character:1)\").both() - \
+                Wrong vertex %s" % (i['gid'])
+            )
         count += 1
-        if row['gid'] not in ["01", "02"]:
-            errors.append("Fail: O.query().E(\"edge1\").both() - \
-            Wrong vertex found: %s" % (row['gid']))
     if count != 2:
-        errors.append("Fail: O.query().E(\"edge1\").both() %s != %s" % (count, 2))
+        errors.append(
+            "Fail: O.query().E(\"(Film:1)-[characters]->(Character:1)\").both() %s != %d" % (count, 2)
+        )
 
     return errors
 
@@ -314,25 +324,24 @@ def test_both_edge(O, man):
     errors = []
 
     man.setGraph("swapi")
-    # setupGraph(O)
 
-    count = 0
-    for row in O.query().V("05").bothE():
-        count += 1
-        if row['gid'] not in ["edge02-05", "edge05-42"]:
-            errors.append("Fail: O.query().V(\"05\").bothE() - \
-            Wrong edge found: %s" % (row['gid']))
-    if count != 2:
-        errors.append("Fail: O.query().V(\"vertex1\").bothE() %s != %s" % (count, 2))
+    c = O.query().V("Character:1").bothE().count().execute()[0]["count"]
+    if c != 8:
+        errors.append("Fail: O.query().V(\"Character:1\").bothE().count() %d != %d" % (c, 8))
 
-    count = 0
-    for row in O.query().V("02").bothE("parent"):
-        count += 1
-        if row['gid'] not in ["edge02-05"]:
-            errors.append("Fail: O.query().V(\"02\").bothE(\"parent\") - \
-            Wrong edge found: %s" % (row['gid']))
-    if count != 1:
-        errors.append("Fail: O.query().V(\"vertex1\").bothE(\"parent\") %s != %s" % (count, 1))
+    for i in O.query().V("Character:1").inE():
+        if not (i['gid'].startswith("(Character:1)") or i['gid'].endswith("(Character:1)")):
+            errors.append("Fail: O.query().V(\"Character:1\").bothE() - \
+            Wrong edge %s" % (i['gid']))
+
+    for i in O.query().V("Character:1").bothE().out():
+        if i['gid'] not in ['Character:1', 'Character:1', 'Character:1', 'Character:1', 'Film:1', 'Planet:1', 'Species:1', 'Starship:12']:
+            errors.append("Fail: O.query().V(\"Character:1\").bothE().out() - \
+            Wrong vertex %s" % (i['gid']))
+
+    c = O.query().V("Character:1").bothE(["homeworld", "residents"]).count().execute()[0]["count"]
+    if c != 2:
+        errors.append("Fail: O.query().V(\"Character:1\").inE([\"homeworld\", \"residents\"]).count() - %s != %s" % (c, 2))
 
     return errors
 
@@ -342,31 +351,34 @@ def test_limit(O, man):
 
     man.setGraph("swapi")
 
-    count = 0
-    for row in O.query().V().limit(3):
-        count += 1
-        correct = ["01", "02", "03"]
-        if row['gid'] not in correct:
-            errors.append("Wrong vertex found: %s not in %s" % (row['gid'], correct))
-    if count != 3:
-        errors.append("Wrong vertex count found %s != %s" % (count, 3))
+    tests = [
+        "O.query().V().limit(3)",
+        "O.query().E().limit(3)"
+    ]
 
-    count = 0
-    for row in O.query().V("01").both().limit(3):
-        count += 1
-        correct = ["02", "03", "08"]
-        if row['gid'] not in correct:
-            errors.append("Wrong vertex found: %s not in %s" % (row['gid'], correct))
-    if count != 3:
-        errors.append("Wrong vertex count found %s != %s" % (count, 3))
+    expected_results = [
+        ["Character:1", "Character:10", "Character:12"],
+        ['(Character:1)-[films]->(Film:1)', '(Character:1)-[homeworld]->(Planet:1)', '(Character:1)-[species]->(Species:1)']
+    ]
 
-    count = 0
-    for row in O.query().V("01").bothE().limit(3):
-        count += 1
-        if row['gid'] not in ["edge08-01", "edge01-02", "edge01-03"]:
-            errors.append("Wrong edge found: %s" % (row['gid']))
-    if count != 3:
-        errors.append("Wrong edge count found %s != %s" % (count, 3))
+    for test, expected in zip(tests, expected_results):
+        results = eval(test).execute()
+        actual = [x.gid for x in results]
+
+        # check contents
+        for x in actual:
+            if x not in expected:
+                errors.append("Fail: %s - unexpected result - %s" % (test, x))
+
+        # check number of results
+        if len(actual) != len(expected):
+            errors.append("Fail: %s - unexpected result count - \
+            %s != %s" % (test, len(actual), len(expected)))
+
+        # check order
+        if actual != expected:
+            errors.append("Fail: %s - unexpected order - \
+            %s != %s" % (test, actual, expected))
 
     return errors
 
@@ -376,29 +388,34 @@ def test_skip(O, man):
 
     man.setGraph("swapi")
 
-    count = 0
-    for row in O.query().V().skip(4).limit(2):
-        count += 1
-        if row['gid'] not in ["05", "06"]:
-            errors.append("Wrong vertex found: %s" % (row['gid']))
-    if count != 2:
-        errors.append("Wrong vertex count found %s != %s" % (count, 2))
+    tests = [
+        "O.query().V().skip(3).limit(3)",
+        "O.query().E().skip(3).limit(3)"
+    ]
 
-    count = 0
-    for row in O.query().V("01").both().skip(4).limit(2):
-        count += 1
-        if row['gid'] not in ["09", "08"]:
-            errors.append("""O.query().V("01").both().skip(4).limit(2): Wrong vertex found on both: %s""" % (row['gid']))
-    if count != 2:
-        errors.append("""O.query().V("01").both().skip(4).limit(2) : Wrong vertex count found %s != %s""" % (count, 2))
+    expected_results = [
+        ['Character:13', 'Character:14', 'Character:15'],
+        ['(Character:1)-[starships]->(Starship:12)', '(Character:10)-[films]->(Film:1)', '(Character:10)-[species]->(Species:1)']
+    ]
 
-    count = 0
-    for row in O.query().V("01").bothE().skip(4).limit(2):
-        count += 1
-        if row['gid'] not in ["edge01-09", "edge01-08"]:
-            errors.append("Wrong edge found: %s" % (row['gid']))
-    if count != 2:
-        errors.append("Wrong edge count in bothE found %s != %s" % (count, 2))
+    for test, expected in zip(tests, expected_results):
+        results = eval(test).execute()
+        actual = [x.gid for x in results]
+
+        # check contents
+        for x in actual:
+            if x not in expected:
+                errors.append("Fail: %s - unexpected result - %s" % (test, x))
+
+        # check number of results
+        if len(actual) != len(expected):
+            errors.append("Fail: %s - unexpected result count - \
+            %s != %s" % (test, len(actual), len(expected)))
+
+        # check order
+        if actual != expected:
+            errors.append("Fail: %s - unexpected order - \
+            %s != %s" % (test, actual, expected))
 
     return errors
 
@@ -408,18 +425,37 @@ def test_range(O, man):
 
     man.setGraph("swapi")
 
-    count = 0
-    for row in O.query().V().range(4, 6):
-        count += 1
-        if row['gid'] not in ["05", "06"]:
-            errors.append("Wrong vertex found: %s" % (row['gid']))
-    if count != 2:
-        errors.append("Wrong vertex count found %s != %s" % (count, 2))
+    tests = [
+        "O.query().V().range(3, 5)",
+        "O.query().V().range(34, -1)",
+        "O.query().E().range(120, 123)",
+        "O.query().E().range(140, -1)"
+    ]
 
-    count = 0
-    for row in O.query().V().range(4, -1):
-        count += 1
-    if count != 21:
-        errors.append("Wrong vertex count found %s != %s" % (count, 21))
+    expected_results = [
+        ['Character:13', 'Character:14'],
+        ['Starship:9', 'Vehicle:4', 'Vehicle:6', 'Vehicle:7', 'Vehicle:8'],
+        ['(Species:3)-[people]->(Character:13)', '(Species:4)-[films]->(Film:1)', '(Species:4)-[people]->(Character:15)'],
+        ['(Vehicle:4)-[films]->(Film:1)', '(Vehicle:6)-[films]->(Film:1)', '(Vehicle:7)-[films]->(Film:1)', '(Vehicle:8)-[films]->(Film:1)']
+    ]
+
+    for test, expected in zip(tests, expected_results):
+        results = eval(test).execute()
+        actual = [x.gid for x in results]
+
+        # check contents
+        for x in actual:
+            if x not in expected:
+                errors.append("Fail: %s - unexpected result - %s" % (test, x))
+
+        # check number of results
+        if len(actual) != len(expected):
+            errors.append("Fail: %s - unexpected result count - \
+            %s != %s" % (test, len(actual), len(expected)))
+
+        # check order
+        if actual != expected:
+            errors.append("Fail: %s - unexpected order - \
+            %s != %s" % (test, actual, expected))
 
     return errors

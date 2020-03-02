@@ -69,7 +69,6 @@ if __name__ == "__main__":
     parser.add_argument(
         "server",
         type=str,
-        required=True,
         help="GRIP server url"
     )
     parser.add_argument(
