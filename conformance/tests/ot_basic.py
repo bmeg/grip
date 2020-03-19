@@ -306,7 +306,7 @@ def test_both(O, man):
 
     count = 0
     for i in O.query().E("(Film:1)-[characters]->(Character:1)").both():
-        if i['gid'] not in  ["Film:1", "Character:1"]:
+        if i['gid'] not in ["Film:1", "Character:1"]:
             errors.append(
                 "Fail: O.query().E(\"(Film:1)-[characters]->(Character:1)\").both() - \
                 Wrong vertex %s" % (i['gid'])
