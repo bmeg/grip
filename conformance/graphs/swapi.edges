@@ -16,9 +16,9 @@
 {"gid": "(Film:1)-[characters]->(Character:18)", "label": "characters", "from": "Film:1", "to": "Character:18"}
 {"gid": "(Film:1)-[characters]->(Character:19)", "label": "characters", "from": "Film:1", "to": "Character:19"}
 {"gid": "(Film:1)-[characters]->(Character:81)", "label": "characters", "from": "Film:1", "to": "Character:81"}
-{"gid": "(Film:1)-[planets]->(Planet:2)", "label": "planets", "from": "Film:1", "to": "Planet:2"}
-{"gid": "(Film:1)-[planets]->(Planet:3)", "label": "planets", "from": "Film:1", "to": "Planet:3"}
-{"gid": "(Film:1)-[planets]->(Planet:1)", "label": "planets", "from": "Film:1", "to": "Planet:1"}
+{"gid": "(Film:1)-[planets]->(Planet:2)", "label": "planets", "from": "Film:1", "to": "Planet:2", "data" : {"scene_count" : 10}}
+{"gid": "(Film:1)-[planets]->(Planet:3)", "label": "planets", "from": "Film:1", "to": "Planet:3", "data" : {"scene_count" : 15}}
+{"gid": "(Film:1)-[planets]->(Planet:1)", "label": "planets", "from": "Film:1", "to": "Planet:1", "data" : {"scene_count" : 20}}
 {"gid": "(Film:1)-[starships]->(Starship:2)", "label": "starships", "from": "Film:1", "to": "Starship:2"}
 {"gid": "(Film:1)-[starships]->(Starship:3)", "label": "starships", "from": "Film:1", "to": "Starship:3"}
 {"gid": "(Film:1)-[starships]->(Starship:5)", "label": "starships", "from": "Film:1", "to": "Starship:5"}

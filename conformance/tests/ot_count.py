@@ -8,8 +8,8 @@ def test_count(O, man):
     i = list(O.query().V().count())
     if len(i) < 1:
         errors.append("Fail: nothing returned for O.query().V().count()")
-    elif i[0].count != 25:
-        errors.append("Fail: O.query().V().count() %s != %s" % (i[0].count, 25))
+    elif i[0].count != 39:
+        errors.append("Fail: O.query().V().count() %s != %s" % (i[0].count, 39))
 
     i = list(O.query().V("non-existent").count())
     if len(i) < 1:
@@ -20,8 +20,8 @@ def test_count(O, man):
     i = list(O.query().E().count())
     if len(i) < 1:
         errors.append("Fail: nothing returned for O.query().E().count()")
-    elif i[0].count != 14:
-        errors.append("Fail: O.query().E().count() %s != %s" % (i[0].count, 14))
+    elif i[0].count != 144:
+        errors.append("Fail: O.query().E().count() %s != %s" % (i[0].count, 144))
 
     i = list(O.query().E("non-existent").count())
     if len(i) < 1:
