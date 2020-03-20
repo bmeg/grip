@@ -6,21 +6,21 @@ def test_mark_select_label_filter(O, man):
     man.setGraph("swapi")
 
     count = 0
-    for row in O.query().V("02").as_("a").\
-            both("parent").\
+    for row in O.query().V("Film:1").as_("a").\
+            both("films").\
             as_("b").\
             select(["a", "b"]):
         count += 1
         if len(row) != 2:
             errors.append("Incorrect number of marks returned")
-        if row["a"]["gid"] != "02":
+        if row["a"]["gid"] != "Film:1":
             errors.append("Incorrect vertex returned for 'a': %s" % row["a"])
-        if row["b"]["gid"] not in ["05"]:
+        if row["b"]["label"] not in ["Vehicle", "Starship", "Species", "Planet", "Character"]:
             errors.append("Incorrect vertex returned for 'b': %s" % row["b"])
 
-    if count != 1:
+    if count != 38:
         errors.append("unexpected number of rows returned. %d != %d" %
-                      (count, 1))
+                      (count, 38))
 
     return errors
 
@@ -31,26 +31,21 @@ def test_mark_select(O, man):
     man.setGraph("swapi")
 
     count = 0
-    for row in O.query().V("01").as_("a").out().as_(
+    for row in O.query().V("Character:1").as_("a").out().as_(
             "b").out().as_("c").select(["a", "b", "c"]):
         count += 1
         if len(row) != 3:
             errors.append("Incorrect number of marks returned")
-        if row["a"]["gid"] != "01":
+        if row["a"]["gid"] != "Character:1":
             errors.append("Incorrect vertex returned for 'a': %s" % row["a"])
-        if row["a"]["data"] != {"age": 29, "name": "marko"}:
+        if row["a"]["data"]["height"] != 172:
             errors.append("Missing data for 'a'")
-        if row["b"]["gid"] not in ["02", "03", "04", "05", "06", "08"]:
+        if row["b"]["label"] not in ["Starship", "Planet", "Species", "Film"]:
             errors.append("Incorrect vertex returned for 'b': %s" % row["b"])
-        if row["c"]["gid"] not in ["01", "03", "05", "06", "08", "09", "40", "50"]:
-            errors.append("Incorrect vertex returned for 'c': %s" % row["c"])
-        else:
-            if "name" not in row["c"]["data"]:
-                errors.append("Missing data for 'c'")
 
-    if count != 7:
+    if count != 64:
         errors.append("unexpected number of rows returned. %d != %d" %
-                      (count, 7))
+                      (count, 64))
 
     return errors
 
@@ -61,20 +56,22 @@ def test_mark_edge_select(O, man):
     man.setGraph("swapi")
 
     count = 0
-    for row in O.query().V("08").as_("a").outE().as_(
+    for row in O.query().V("Film:1").as_("a").outE("planets").as_(
             "b").out().as_("c").select(["a", "b", "c"]):
         count += 1
         if len(row) != 3:
             errors.append("Incorrect number of marks returned")
-        if row["a"]["gid"] != "08":
+        if row["a"]["gid"] != "Film:1":
             errors.append("Incorrect as selection")
-        if row["b"]["gid"] != "edge08-01":
+        if row["b"]["label"] != "planets":
             errors.append("Incorrect as edge selection: %s" % row["b"])
-        if row["c"]["gid"] != "01":
-            errors.append("Incorrect as selection")
+        if "scene_count" not in row["b"]["data"]:
+            errors.append("Data not returned")
+        if row["c"]["label"] != "Planet":
+            errors.append("Incorrect element returned")
 
-    if count != 1:
+    if count != 3:
         errors.append("unexpected number of rows returned. %d != %d" %
-                      (count, 1))
+                      (count, 3))
 
     return errors
