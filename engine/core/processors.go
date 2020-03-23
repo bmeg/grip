@@ -16,7 +16,7 @@ import (
 	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/protoutil"
 	structpb "github.com/golang/protobuf/ptypes/struct"
-	"github.com/spenczar/tdigest"
+	"github.com/influxdata/tdigest"
 	"github.com/spf13/cast"
 	"golang.org/x/sync/errgroup"
 )

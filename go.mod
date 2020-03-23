@@ -26,6 +26,7 @@ require (
 	github.com/grpc-ecosystem/grpc-gateway v1.13.0
 	github.com/hashicorp/go-multierror v1.0.0
 	github.com/imdario/mergo v0.3.7
+	github.com/influxdata/tdigest v0.0.1
 	github.com/jmoiron/sqlx v1.2.0
 	github.com/knakk/rdf v0.0.0-20190304171630-8521bf4c5042
 	github.com/kr/pretty v0.1.0
@@ -36,7 +37,6 @@ require (
 	github.com/robertkrimen/otto v0.0.0-20180617131154-15f95af6e78d
 	github.com/segmentio/ksuid v1.0.2
 	github.com/sirupsen/logrus v1.4.2
-	github.com/spenczar/tdigest v2.1.0+incompatible
 	github.com/spf13/cast v1.3.0
 	github.com/spf13/cobra v0.0.5
 	github.com/spf13/pflag v1.0.5
