@@ -3,14 +3,14 @@ package tsv
 import (
   "log"
   "context"
-  "github.com/bmeg/grip/tabular"
+  "github.com/bmeg/grip/multi"
 )
 
 
 type TSVDriver struct {
-  man  tabular.Cache
+  man  multi.Cache
   path string
-  lineIndex tabular.LineIndex
+  lineIndex multi.LineIndex
   idName string
   idCol int
   idxCols []string
@@ -20,7 +20,7 @@ type TSVDriver struct {
   cparse     CSVParse
 }
 
-func TSVDriverBuilder(name string, url string, manager tabular.Cache, opts tabular.Options) (tabular.Driver, error) {
+func TSVDriverBuilder(name string, url string, manager multi.Cache, opts multi.Options) (multi.Driver, error) {
   o := TSVDriver{path:url, idName:opts.PrimaryKey, idxCols:opts.IndexedColumns, man:manager}
   if err := o.Init(); err != nil {
     return nil, err
@@ -28,7 +28,7 @@ func TSVDriverBuilder(name string, url string, manager tabular.Cache, opts tabul
   return &o, nil
 }
 
-var loaded = tabular.AddDriver("tsv", TSVDriverBuilder)
+var loaded = multi.AddDriver("tsv", TSVDriverBuilder)
 
 func (t *TSVDriver) Close() error {
   return t.lineReader.Close()
@@ -75,7 +75,7 @@ func (t *TSVDriver) Init() error {
   }
 
   count := uint64(0)
-  t.lineIndex.IndexWrite(func(bl tabular.LineIndexWriter) error{
+  t.lineIndex.IndexWrite(func(bl multi.LineIndexWriter) error{
     for line := range t.lineReader.ReadLines() {
       row := t.cparse.Parse(string(line.Text))
       if !hasHeader {
@@ -111,7 +111,7 @@ func (t *TSVDriver) Init() error {
 }
 
 
-func (t *TSVDriver) GetRowByID(id string) (*tabular.TableRow, error) {
+func (t *TSVDriver) GetRowByID(id string) (*multi.TableRow, error) {
   ln, err := t.lineIndex.GetIDLine(id)
   if err != nil {
     return nil, err
@@ -130,7 +130,7 @@ func (t *TSVDriver) GetLineText(lineNum uint64) ([]byte, error) {
   return t.lineReader.SeekRead(offset), nil
 }
 
-func (t *TSVDriver) GetLineRow(lineNum uint64) (*tabular.TableRow, error) {
+func (t *TSVDriver) GetLineRow(lineNum uint64) (*multi.TableRow, error) {
   text, err := t.GetLineText(lineNum)
   if err != nil {
     return nil, err
@@ -142,13 +142,13 @@ func (t *TSVDriver) GetLineRow(lineNum uint64) (*tabular.TableRow, error) {
       d[t.header[i]] = r[i]
     }
   }
-  o := tabular.TableRow{ r[t.idCol], d }
+  o := multi.TableRow{ r[t.idCol], d }
   return &o, nil
 }
 
-func (t *TSVDriver) GetRows(ctx context.Context) chan *tabular.TableRow {
+func (t *TSVDriver) GetRows(ctx context.Context) chan *multi.TableRow {
   log.Printf("ReadIndexCol: %d", t.idCol)
-  out := make(chan *tabular.TableRow, 10)
+  out := make(chan *multi.TableRow, 10)
   go func() {
     defer close(out)
     hasHeader := false
@@ -164,7 +164,7 @@ func (t *TSVDriver) GetRows(ctx context.Context) chan *tabular.TableRow {
           }
         }
         //log.Printf("Key: %s", r[t.idCol])
-        o := tabular.TableRow{ r[t.idCol], d }
+        o := multi.TableRow{ r[t.idCol], d }
         out <- &o
       }
     }
@@ -177,8 +177,8 @@ func (t *TSVDriver) GetIDs(ctx context.Context) chan string {
 }
 
 
-func (t *TSVDriver) GetRowsByField(ctx context.Context, field string, value string) chan *tabular.TableRow {
-  out := make(chan *tabular.TableRow, 10)
+func (t *TSVDriver) GetRowsByField(ctx context.Context, field string, value string) chan *multi.TableRow {
+  out := make(chan *multi.TableRow, 10)
   go func() {
     defer close(out)
     for line := range t.lineIndex.GetLinesByField(ctx, field, value) {

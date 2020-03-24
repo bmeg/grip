@@ -5,7 +5,7 @@ import (
   "context"
   "bytes"
   "encoding/json"
-  "github.com/bmeg/grip/tabular"
+  "github.com/bmeg/grip/multi"
   "github.com/bmeg/grip/kvi"
 )
 
@@ -15,7 +15,7 @@ type KVRowStorage struct {
 }
 
 
-func (r *KVRowStorage) Write(row *tabular.TableRow) error {
+func (r *KVRowStorage) Write(row *multi.TableRow) error {
   key := RowKey(r.pathID, row.Key)
   buf := bytes.Buffer{}
   enc := json.NewEncoder(&buf)
@@ -26,7 +26,7 @@ func (r *KVRowStorage) Write(row *tabular.TableRow) error {
 }
 
 
-func (r *KVRowStorage) GetRowByID(id string) (*tabular.TableRow, error) {
+func (r *KVRowStorage) GetRowByID(id string) (*multi.TableRow, error) {
   key := RowKey(r.pathID, id)
   value, err := r.cache.KV.Get(key)
   if err != nil {
@@ -38,11 +38,11 @@ func (r *KVRowStorage) GetRowByID(id string) (*tabular.TableRow, error) {
   if err := dec.Decode(&data); err != nil {
     log.Printf("Decode Error: %s", err)
   }
-  return &tabular.TableRow{Key:string(id), Values:data}, nil
+  return &multi.TableRow{Key:string(id), Values:data}, nil
 }
 
-func (r *KVRowStorage) GetRowsByField(ctx context.Context, field string, value string) chan *tabular.TableRow {
-  out := make(chan *tabular.TableRow, 10)
+func (r *KVRowStorage) GetRowsByField(ctx context.Context, field string, value string) chan *multi.TableRow {
+  out := make(chan *multi.TableRow, 10)
   go func() {
     defer close(out)
     prefix := RowPrefix(r.pathID)
@@ -61,8 +61,8 @@ func (r *KVRowStorage) GetRowsByField(ctx context.Context, field string, value s
         if err := dec.Decode(&data); err != nil {
           log.Printf("Decode Error: %s", err)
         }
-        if tabular.FieldFilter(field, value, data) {
-          out <- &tabular.TableRow{Key:string(id), Values:data}
+        if multi.FieldFilter(field, value, data) {
+          out <- &multi.TableRow{Key:string(id), Values:data}
         }
       }
       return nil

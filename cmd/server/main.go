@@ -20,7 +20,7 @@ import (
 	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/mongo"
 	"github.com/bmeg/grip/psql"
-	"github.com/bmeg/grip/tabular"
+	"github.com/bmeg/grip/multi"
 	"github.com/bmeg/grip/server"
 	_ "github.com/go-sql-driver/mysql" //import so mysql will register as a sql driver
 	"github.com/imdario/mergo"
@@ -60,8 +60,8 @@ func Run(conf *config.Config, schemas map[string]*gripql.Graph) error {
 	case "existing-sql":
 		db, err = esql.NewGraphDB(conf.ExistingSQL)
 
-	case "tabular":
-		db, err = tabular.NewGDB(conf.Tabular, configFile)
+	case "multi":
+		db, err = multi.NewGDB(conf.Multi, configFile)
 
 	default:
 		err = fmt.Errorf("unknown database: %s", dbname)

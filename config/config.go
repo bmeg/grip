@@ -15,7 +15,7 @@ import (
 	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/mongo"
 	"github.com/bmeg/grip/psql"
-	"github.com/bmeg/grip/tabular"
+	"github.com/bmeg/grip/multi"
 	"github.com/bmeg/grip/server"
 	"github.com/bmeg/grip/util"
 	"github.com/bmeg/grip/util/duration"
@@ -38,7 +38,7 @@ type Config struct {
 	MongoDB       mongo.Config
 	PSQL          psql.Config
 	ExistingSQL   esql.Config
-	Tabular       tabular.Config
+	Multi         multi.Config
 	Logger        log.Logger
 }
 
@@ -73,7 +73,7 @@ func DefaultConfig() *Config {
 	c.Elasticsearch.DBName = "gripdb"
 	c.Elasticsearch.BatchSize = 1000
 
-	c.Tabular.Index = "tableindex.db"
+	c.Multi.Index = "multi-index.db"
 
 	c.Logger = log.DefaultLoggerConfig()
 	return c

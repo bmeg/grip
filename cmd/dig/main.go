@@ -6,11 +6,11 @@ import (
   "os"
   "log"
   "context"
-  "github.com/bmeg/grip/tabular"
+  "github.com/bmeg/grip/multi"
 
-  _ "github.com/bmeg/grip/tabular/tsv"
-  _ "github.com/bmeg/grip/tabular/web"
-  _ "github.com/bmeg/grip/tabular/kvcache"
+  _ "github.com/bmeg/grip/multi/tsv"
+  _ "github.com/bmeg/grip/multi/web"
+  _ "github.com/bmeg/grip/multi/kvcache"
 
   "github.com/bmeg/grip/gdbi"
   "github.com/golang/protobuf/jsonpb"
@@ -91,7 +91,7 @@ func Query(graph gdbi.GraphInterface, query gripql.GraphQuery) error {
 // Cmd command line declaration
 var Cmd = &cobra.Command{
 	Use:   "dig <config> <query>",
-	Short: "Do a single query using the tabular driver",
+	Short: "Do a single query using the multi driver",
 	Long:  ``,
 	Args:  cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -99,9 +99,9 @@ var Cmd = &cobra.Command{
     configFile := args[0]
     queryString := args[1]
 
-    config := tabular.Config{Graphs:map[string]string{"main":configFile}, Index:idxName}
+    config := multi.Config{Graphs:map[string]string{"main":configFile}, Index:idxName}
 
-    gdb, err := tabular.NewGDB(config, "./")
+    gdb, err := multi.NewGDB(config, "./")
     if err != nil {
       log.Printf("Error loading Graph: %s", err)
       return err

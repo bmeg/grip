@@ -5,7 +5,7 @@ import (
   "fmt"
   "strings"
   "context"
-  "github.com/bmeg/grip/tabular"
+  "github.com/bmeg/grip/multi"
   "github.com/mitchellh/mapstructure"
   "github.com/oliveagle/jsonpath"
   "github.com/aymerick/raymond"
@@ -19,9 +19,9 @@ import (
 type Driver struct {
   name  string
   conf Config
-  opts tabular.Options
-  cache      tabular.Cache
-  rowStorage tabular.RowStorage
+  opts multi.Options
+  cache      multi.Cache
+  rowStorage multi.RowStorage
 }
 
 type QueryConfig struct {
@@ -39,7 +39,7 @@ type Config struct {
   Get   map[string]*QueryConfig  `json:"get"`
 }
 
-func WebDriverBuilder(name string, url string, manager tabular.Cache, opts tabular.Options) (tabular.Driver, error) {
+func WebDriverBuilder(name string, url string, manager multi.Cache, opts multi.Options) (multi.Driver, error) {
   o := Driver{name:name, opts:opts, cache:manager}
   conf := Config{}
   err := mapstructure.Decode(opts.Config, &conf)
@@ -51,7 +51,7 @@ func WebDriverBuilder(name string, url string, manager tabular.Cache, opts tabul
   return &o, nil
 }
 
-var loaded = tabular.AddDriver("web", WebDriverBuilder)
+var loaded = multi.AddDriver("web", WebDriverBuilder)
 
 func (d *Driver) GetIDs(ctx context.Context) chan string {
   return nil
@@ -86,8 +86,8 @@ func (d *Driver) buildCache() {
   }
 }
 
-func (d *Driver) fetchRows(ctx context.Context) chan *tabular.TableRow {
-  out := make(chan *tabular.TableRow, 10)
+func (d *Driver) fetchRows(ctx context.Context) chan *multi.TableRow {
+  out := make(chan *multi.TableRow, 10)
   go func() {
     defer close(out)
     if d.conf.List == nil {
@@ -135,7 +135,7 @@ func (d *Driver) fetchRows(ctx context.Context) chan *tabular.TableRow {
             log.Printf("Error: %s", err)
           }
           if gidStr, ok := gid.(string); ok {
-            o := tabular.TableRow{ gidStr, rowData }
+            o := multi.TableRow{ gidStr, rowData }
             out <- &o
           }
         }
@@ -145,7 +145,7 @@ func (d *Driver) fetchRows(ctx context.Context) chan *tabular.TableRow {
   return out
 }
 
-func (d *Driver) GetRows(ctx context.Context) chan *tabular.TableRow {
+func (d *Driver) GetRows(ctx context.Context) chan *multi.TableRow {
   d.buildCache()
   if d.rowStorage != nil {
     return d.rowStorage.GetRowsByField(ctx, "", "")
@@ -153,7 +153,7 @@ func (d *Driver) GetRows(ctx context.Context) chan *tabular.TableRow {
   return d.fetchRows(ctx)
 }
 
-func (d *Driver) GetRowByID(id string) (*tabular.TableRow, error) {
+func (d *Driver) GetRowByID(id string) (*multi.TableRow, error) {
   d.buildCache()
   if d.rowStorage != nil {
     return d.rowStorage.GetRowByID(id)
@@ -204,21 +204,21 @@ func (d *Driver) GetRowByID(id string) (*tabular.TableRow, error) {
         return nil, err
       }
       if gidStr, ok := gid.(string); ok {
-        return &tabular.TableRow{ gidStr, rowData }, nil
+        return &multi.TableRow{ gidStr, rowData }, nil
       }
     }
   }
   return nil, fmt.Errorf("Getter for %s not found", d.opts.PrimaryKey)
 }
 
-func (d *Driver) GetRowsByField(ctx context.Context, field string, value string) chan *tabular.TableRow {
+func (d *Driver) GetRowsByField(ctx context.Context, field string, value string) chan *multi.TableRow {
   log.Printf("Getting rows by field: %s = %s (primaryKey: %s)", field, value, d.opts.PrimaryKey)
   d.buildCache()
   if d.rowStorage != nil {
     return d.rowStorage.GetRowsByField(ctx, field, value)
   }
 
-  out := make(chan *tabular.TableRow, 10)
+  out := make(chan *multi.TableRow, 10)
   go func() {
     defer close(out)
 
@@ -264,7 +264,7 @@ func (d *Driver) GetRowsByField(ctx context.Context, field string, value string)
           gid, err := jsonpath.JsonPathLookup(rowData, pathFix(d.opts.PrimaryKey) )
           if err == nil {
             if gidStr, ok := gid.(string); ok {
-              out <- &tabular.TableRow{ gidStr, rowData }
+              out <- &multi.TableRow{ gidStr, rowData }
             }
           }
         }

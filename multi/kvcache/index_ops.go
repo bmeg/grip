@@ -9,7 +9,7 @@ import (
   "bytes"
   "encoding/binary"
   "github.com/bmeg/grip/kvi"
-  "github.com/bmeg/grip/tabular"
+  "github.com/bmeg/grip/multi"
   "github.com/bmeg/grip/kvindex"
   "github.com/bmeg/grip/kvi/badgerdb"
 
@@ -24,7 +24,7 @@ type LineIndex struct {
   pathID  uint64
 }
 
-func KVCacheBuilder(path string) (tabular.Cache, error) {
+func KVCacheBuilder(path string) (multi.Cache, error) {
   kv, err := badgerdb.NewKVInterface(path, kvi.Options{})
   if err != nil {
     return nil, err
@@ -32,10 +32,10 @@ func KVCacheBuilder(path string) (tabular.Cache, error) {
   return &KVCache{kvindex.KVIndex{KV:kv, Fields:map[string][]string{}}}, nil
 }
 
-var loaded = tabular.AddCache("kv", KVCacheBuilder)
+var loaded = multi.AddCache("kv", KVCacheBuilder)
 
 
-func (t *KVCache) GetLineIndex(path string) (tabular.LineIndex, error) {
+func (t *KVCache) GetLineIndex(path string) (multi.LineIndex, error) {
   pk := PathKey(path)
   v, err := t.KV.Get(pk)
   if err != nil {
@@ -46,7 +46,7 @@ func (t *KVCache) GetLineIndex(path string) (tabular.LineIndex, error) {
 }
 
 
-func (t *KVCache) NewLineIndex( path string ) (tabular.LineIndex, error) {
+func (t *KVCache) NewLineIndex( path string ) (multi.LineIndex, error) {
   ok := PathNumKey()
   num := uint64(0)
   if v, err := t.KV.Get(ok); err == nil {
@@ -58,7 +58,7 @@ func (t *KVCache) NewLineIndex( path string ) (tabular.LineIndex, error) {
   return &LineIndex{t,num}, nil
 }
 
-func (t *KVCache) GetRowStorage(path string) (tabular.RowStorage, error) {
+func (t *KVCache) GetRowStorage(path string) (multi.RowStorage, error) {
   pk := PathKey(path)
   v, err := t.KV.Get(pk)
   if err != nil {
@@ -68,7 +68,7 @@ func (t *KVCache) GetRowStorage(path string) (tabular.RowStorage, error) {
   return &KVRowStorage{t, o}, nil
 }
 
-func (t *KVCache) NewRowStorage( path string ) (tabular.RowStorage, error) {
+func (t *KVCache) NewRowStorage( path string ) (multi.RowStorage, error) {
   ok := PathNumKey()
   num := uint64(0)
   if v, err := t.KV.Get(ok); err == nil {
@@ -158,7 +158,7 @@ func (t *LineIndex) GetLinesByField(ctx context.Context, field string, value str
 }
 
 
-func (t *LineIndex) IndexWrite( f func(tabular.LineIndexWriter) error ) {
+func (t *LineIndex) IndexWrite( f func(multi.LineIndexWriter) error ) {
   t.cache.KV.BulkWrite(func(bl kvi.KVBulkWrite) error {
     return f(&IndexWriter{t, bl, t.pathID})
   })
