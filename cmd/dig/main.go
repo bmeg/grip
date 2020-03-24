@@ -118,7 +118,7 @@ var Cmd = &cobra.Command{
       log.Printf("%s", err)
       return err
     }
-    log.Printf("Query: %s", query)
+    log.Printf("Query: %#v", query)
     Query(graph, query)
 
     gdb.Close()

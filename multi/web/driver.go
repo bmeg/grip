@@ -46,7 +46,7 @@ func WebDriverBuilder(name string, url string, manager multi.Cache, opts multi.O
   if err != nil {
     log.Printf("Error: %s", err)
   }
-  log.Printf("Web Config: %s", conf)
+  log.Printf("Web Config: %#v", conf)
   o.conf = conf
   return &o, nil
 }

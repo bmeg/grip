@@ -336,7 +336,7 @@ func (t *TabularGraph) GetOutChannel(ctx context.Context, req chan gdbi.ElementL
                   joinVal = elem.Data[edge.fromField].(string)
                 }
                 toVertex := t.vertices[ edge.toVertex ]
-                log.Printf("GetOutChannel: %s %s", edgeLabels, toVertex)
+                log.Printf("GetOutChannel: %s %#v", edgeLabels, toVertex)
 
                 if edge.toField == toVertex.config.PrimaryKey {
                   if row, err := edge.toDriver.GetRowByID(joinVal); err == nil {
