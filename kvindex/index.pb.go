@@ -63,7 +63,9 @@ func init() {
 	proto.RegisterType((*Doc)(nil), "kvindex.Doc")
 }
 
-func init() { proto.RegisterFile("index.proto", fileDescriptor_f750e0f7889345b5) }
+func init() {
+	proto.RegisterFile("index.proto", fileDescriptor_f750e0f7889345b5)
+}
 
 var fileDescriptor_f750e0f7889345b5 = []byte{
 	// 75 bytes of a gzipped FileDescriptorProto

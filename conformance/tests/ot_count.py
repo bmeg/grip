@@ -1,23 +1,15 @@
-def setupGraph(O):
-    O.addVertex("vertex1", "person", {"field1": "value1", "field2": "value2"})
-    O.addVertex("vertex2", "person")
-    O.addVertex("vertex3", "person", {"field1": "value3", "field2": "value4"})
-    O.addVertex("vertex4", "person")
-
-    O.addEdge("vertex1", "vertex2", "friend", gid="edge1")
-    O.addEdge("vertex2", "vertex3", "friend", gid="edge2")
-    O.addEdge("vertex2", "vertex4", "parent", gid="edge3")
 
 
-def test_count(O):
+def test_count(O, man):
     errors = []
-    setupGraph(O)
+
+    man.setGraph("swapi")
 
     i = list(O.query().V().count())
     if len(i) < 1:
         errors.append("Fail: nothing returned for O.query().V().count()")
-    elif i[0].count != 4:
-        errors.append("Fail: O.query().V().count() %s != %s" % (i[0].count, 4))
+    elif i[0].count != 39:
+        errors.append("Fail: O.query().V().count() %s != %s" % (i[0].count, 39))
 
     i = list(O.query().V("non-existent").count())
     if len(i) < 1:
@@ -28,8 +20,8 @@ def test_count(O):
     i = list(O.query().E().count())
     if len(i) < 1:
         errors.append("Fail: nothing returned for O.query().E().count()")
-    elif i[0].count != 3:
-        errors.append("Fail: O.query().E().count() %s != %s" % (i[0].count, 3))
+    elif i[0].count != 144:
+        errors.append("Fail: O.query().E().count() %s != %s" % (i[0].count, 144))
 
     i = list(O.query().E("non-existent").count())
     if len(i) < 1:
@@ -42,7 +34,7 @@ def test_count(O):
 
 # tests an edge case where mongo aggregations fill fail to return a count when
 # the ccollection doesnt exist
-def test_count_when_no_data(O):
+def test_count_when_no_data(O, man):
     errors = []
 
     i = list(O.query().V().count())

@@ -16,7 +16,7 @@ import (
 	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/protoutil"
 	structpb "github.com/golang/protobuf/ptypes/struct"
-	"github.com/spenczar/tdigest"
+	"github.com/influxdata/tdigest"
 	"github.com/spf13/cast"
 	"golang.org/x/sync/errgroup"
 )
@@ -835,13 +835,16 @@ func (g *Distinct) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe
 		kv := man.GetTempKV()
 		for t := range in {
 			s := make([][]byte, len(g.vals))
+			found := true
 			for i, v := range g.vals {
 				if jsonpath.TravelerPathExists(t, v) {
 					s[i] = []byte(fmt.Sprintf("%#v", jsonpath.TravelerPathLookup(t, v)))
+				} else {
+					found = false
 				}
 			}
 			k := bytes.Join(s, []byte{0x00})
-			if len(k) > 0 {
+			if found && len(k) > 0 {
 				if !kv.HasKey(k) {
 					kv.Set(k, []byte{0x01})
 					out <- t

@@ -29,21 +29,6 @@ install:
 	@touch version/version.go
 	@go install -ldflags '$(VERSION_LDFLAGS)' .
 
-# Build the code including the rocksdb package
-with-rocksdb:
-	@go install -tags 'rocksdb' -ldflags '$(VERSION_LDFLAGS)' .
-
-local-rocksdb: rocksdb-lib
-	@CGO_LDFLAGS="-L$(shell pwd)/rocksdb-lib" CGO_CFLAGS="-I$(shell pwd)/rocksdb-lib/include/" go install -tags 'rocksdb' -ldflags '$(VERSION_LDFLAGS)' .
-
-rocksdb-lib:
-	@git clone https://github.com/facebook/rocksdb.git rocksdb-lib
-	@pushd rocksdb-lib && make static_lib && popd
-
-bench: rocksdb-lib
-	#@CGO_LDFLAGS="-L$(shell pwd)/rocksdb-lib" CGO_CFLAGS="-I$(shell pwd)/rocksdb-lib/include/" go run -tags 'rocksdb' -ldflags '$(VERSION_LDFLAGS)' test/graph-bench/main.go
-	go run -tags 'rocksdb' -ldflags '$(VERSION_LDFLAGS)' test/graph-bench/main.go
-
 # --------------------------
 # Complile Protobuf Schemas
 # --------------------------
@@ -53,7 +38,7 @@ proto:
 		-I ../googleapis \
 		--lint_out=. \
 		--go_out=Mgoogle/protobuf/struct.proto=github.com/golang/protobuf/ptypes/struct,plugins=grpc:. \
-		--grpc-gateway_out=logtostderr=true:. \
+		--grpc-gateway_out=logtostderr=true,allow_colon_final_segments=true:. \
 		--grcp-rest-direct_out=. \
 		gripql.proto
 	@cd kvindex && protoc \

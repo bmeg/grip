@@ -188,7 +188,7 @@ func (server *GripServer) Serve(pctx context.Context) error {
 	gripql.RegisterQueryServer(grpcServer, server)
 	//TODO: Put in some sort of logic that will allow web server to be configured to use GRPC client
 	err = gripql.RegisterQueryHandlerClient(ctx, grpcMux, gripql.NewQueryDirectClient(server))
-	//err = gripql.RegisterQueryHandlerFromEndpoint(ctx, grpcMux, ":"+server.conf.RPCPort, opts)
+	//err = gripql.RegisterQueryHandlerFromEndpoint(ctx, grpcMux, ":"+server.conf.RPCPort, []grpc.DialOption{grpc.WithInsecure()})
 	if err != nil {
 		return fmt.Errorf("registering query endpoint: %v", err)
 	}
@@ -198,7 +198,7 @@ func (server *GripServer) Serve(pctx context.Context) error {
 		gripql.RegisterEditServer(grpcServer, server)
 		//TODO: Put in some sort of logic that will allow web server to be configured to use GRPC client
 		err = gripql.RegisterEditHandlerClient(ctx, grpcMux, gripql.NewEditDirectClient(server))
-		//err = gripql.RegisterEditHandlerFromEndpoint(ctx, grpcMux, ":"+server.conf.RPCPort, opts)
+		//err = gripql.RegisterEditHandlerFromEndpoint(ctx, grpcMux, ":"+server.conf.RPCPort, []grpc.DialOption{grpc.WithInsecure()})
 		if err != nil {
 			return fmt.Errorf("registering edit endpoint: %v", err)
 		}
