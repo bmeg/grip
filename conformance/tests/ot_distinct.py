@@ -59,7 +59,7 @@ def test_distinct_multi(O, man):
         if i[0] in o and o[i[0]] != i[1]:
             errors.append("Non-unique pair returned: %s" % (i))
         count += 1
-    if count != 68:
-        errors.append("Distinct multi %s != %s" % (count, 68))
+    if count != 29:
+        errors.append("Distinct multi %s != %s" % (count, 29))
 
     return errors

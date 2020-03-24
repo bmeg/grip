@@ -357,8 +357,8 @@ def test_limit(O, man):
     ]
 
     expected_results = [
-        ["Character:1", "Character:10", "Character:12"],
-        ['(Character:1)-[films]->(Film:1)', '(Character:1)-[homeworld]->(Planet:1)', '(Character:1)-[species]->(Species:1)']
+        list(i.gid for i in O.query().V().execute())[:3],
+        list(i.gid for i in O.query().E().execute())[:3]
     ]
 
     for test, expected in zip(tests, expected_results):
@@ -394,8 +394,8 @@ def test_skip(O, man):
     ]
 
     expected_results = [
-        ['Character:13', 'Character:14', 'Character:15'],
-        ['(Character:1)-[starships]->(Starship:12)', '(Character:10)-[films]->(Film:1)', '(Character:10)-[species]->(Species:1)']
+        list(i.gid for i in O.query().V().execute())[3:6],
+        list(i.gid for i in O.query().E().execute())[3:6]
     ]
 
     for test, expected in zip(tests, expected_results):
@@ -433,10 +433,10 @@ def test_range(O, man):
     ]
 
     expected_results = [
-        ['Character:13', 'Character:14'],
-        ['Starship:9', 'Vehicle:4', 'Vehicle:6', 'Vehicle:7', 'Vehicle:8'],
-        ['(Species:3)-[people]->(Character:13)', '(Species:4)-[films]->(Film:1)', '(Species:4)-[people]->(Character:15)'],
-        ['(Vehicle:4)-[films]->(Film:1)', '(Vehicle:6)-[films]->(Film:1)', '(Vehicle:7)-[films]->(Film:1)', '(Vehicle:8)-[films]->(Film:1)']
+        list(i.gid for i in O.query().V().execute())[3:5],
+        list(i.gid for i in O.query().V().execute())[34:],
+        list(i.gid for i in O.query().E().execute())[120:123],
+        list(i.gid for i in O.query().E().execute())[140:]
     ]
 
     for test, expected in zip(tests, expected_results):

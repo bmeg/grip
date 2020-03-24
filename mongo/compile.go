@@ -452,11 +452,7 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, er
 				if namespace != jsonpath.Current {
 					f = fmt.Sprintf("marks.%s.%s", namespace, f)
 				}
-				// NOTE: Checking if the key did exist was on, but was then
-				// turned off to match behavior in the core driver
-				// if conformance defined as ignoring vertices with null fields when
-				// doing distinct, this shoul be added back in
-				// match[f] = bson.M{"$exists": true}
+				match[f] = bson.M{"$exists": true}
 				k := strings.Replace(f, ".", "_", -1)
 				keys[k] = "$" + f
 			}
