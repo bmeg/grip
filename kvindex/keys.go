@@ -1,7 +1,7 @@
 package kvindex
 
 import (
-  "bytes"
+	"bytes"
 )
 
 //Fields

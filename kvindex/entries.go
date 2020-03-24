@@ -1,12 +1,10 @@
-
 package kvindex
 
 import (
-  "fmt"
-  "encoding/binary"
-  "math"
+	"encoding/binary"
+	"fmt"
+	"math"
 )
-
 
 // TermType defines in a term is a Number or a String
 type TermType byte
@@ -19,7 +17,6 @@ const (
 	//TermNumber means the term is a number
 	TermNumber TermType = 0x02
 )
-
 
 type entryValue struct {
 	term     []byte

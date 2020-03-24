@@ -13,9 +13,7 @@ import (
 	proto "github.com/golang/protobuf/proto"
 )
 
-
 const bufferSize = 1000
-
 
 func contains(c string, s []string) bool {
 	for _, i := range s {
@@ -84,7 +82,6 @@ func (idx *KVIndex) ListFields() []string {
 	})
 	return out
 }
-
 
 // AddDoc adds new document to the index
 func (idx *KVIndex) AddDoc(docID string, value map[string]interface{}) error {

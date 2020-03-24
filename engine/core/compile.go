@@ -38,7 +38,7 @@ func (pipe *DefaultPipeline) Processors() []gdbi.Processor {
 
 // DefaultCompiler is the core compiler that works with default graph interface
 type DefaultCompiler struct {
-	db gdbi.GraphInterface
+	db         gdbi.GraphInterface
 	optimizers []QueryOptimizer
 }
 

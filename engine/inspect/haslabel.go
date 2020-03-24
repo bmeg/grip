@@ -1,12 +1,12 @@
 package inspect
 
 import (
-  "github.com/bmeg/grip/gripql"
-  "github.com/bmeg/grip/protoutil"
+	"github.com/bmeg/grip/gripql"
+	"github.com/bmeg/grip/protoutil"
 )
 
 func FindVertexHasLabelStart(pipe []*gripql.GraphStatement) ([]string, []*gripql.GraphStatement) {
-  hasLabelLen := 0
+	hasLabelLen := 0
 	labels := []string{}
 	isDone := false
 	for i, step := range pipe {
@@ -23,11 +23,11 @@ func FindVertexHasLabelStart(pipe []*gripql.GraphStatement) ([]string, []*gripql
 		}
 		switch s := step.GetStatement().(type) {
 		case *gripql.GraphStatement_HasLabel:
-      labels = protoutil.AsStringList(s.HasLabel)
-      hasLabelLen = i+1
+			labels = protoutil.AsStringList(s.HasLabel)
+			hasLabelLen = i + 1
 		default:
 			isDone = true
 		}
 	}
-	return labels, pipe[hasLabelLen:len(pipe)]
+	return labels, pipe[hasLabelLen:]
 }

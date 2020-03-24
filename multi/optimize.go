@@ -2,10 +2,11 @@ package multi
 
 import (
 	"context"
-  "github.com/bmeg/grip/util/setcmp"
+
 	"github.com/bmeg/grip/engine/inspect"
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
+	"github.com/bmeg/grip/util/setcmp"
 )
 
 func TabularOptimizer(pipe []*gripql.GraphStatement) []*gripql.GraphStatement {
@@ -25,8 +26,8 @@ type tabularHasLabelStep struct {
 }
 
 type tabularHasLabelProc struct {
-  labels []string
-	graph *TabularGraph
+	labels []string
+	graph  *TabularGraph
 }
 
 func (t *tabularHasLabelProc) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
@@ -35,9 +36,9 @@ func (t *tabularHasLabelProc) Process(ctx context.Context, man gdbi.Manager, in 
 		for i := range in {
 			for _, table := range t.graph.vertices {
 				select {
-	      case <-ctx.Done():
-	        return
-	      default:
+				case <-ctx.Done():
+					return
+				default:
 				}
 				if setcmp.ContainsString(t.labels, table.label) {
 					for row := range table.driver.GetRows(ctx) {
@@ -60,5 +61,5 @@ func (t tabularHasLabelStep) GetProcessor(db gdbi.GraphInterface, ps gdbi.Pipeli
 }
 
 func (t tabularHasLabelStep) GetType() gdbi.DataType {
-  return gdbi.VertexData
+	return gdbi.VertexData
 }

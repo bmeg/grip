@@ -7,8 +7,8 @@ import (
 	"os"
 
 	"github.com/bmeg/grip/cmd/create"
-	"github.com/bmeg/grip/cmd/drop"
 	"github.com/bmeg/grip/cmd/dig"
+	"github.com/bmeg/grip/cmd/drop"
 	"github.com/bmeg/grip/cmd/dump"
 	"github.com/bmeg/grip/cmd/info"
 	"github.com/bmeg/grip/cmd/kvload"
