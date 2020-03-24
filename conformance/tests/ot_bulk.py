@@ -1,7 +1,9 @@
 
 
-def test_bulkload(O):
+def test_bulkload(O, man):
     errors = []
+
+    man.writeTest()
 
     bulk = O.bulkAdd()
 
@@ -39,8 +41,10 @@ def test_bulkload(O):
     return errors
 
 
-def test_bulkload_validate(O):
+def test_bulkload_validate(O, man):
     errors = []
+
+    man.writeTest()
 
     bulk = O.bulkAdd()
 

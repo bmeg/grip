@@ -146,20 +146,6 @@ class Graph(BaseConnection):
         raise_for_status(response)
         return response.json()
 
-    def aggregate(self, aggregations):
-        if not isinstance(aggregations, list):
-            aggregations = [aggregations]
-        payload = {
-            "aggregations": aggregations,
-        }
-        url = self.url + "/aggregate"
-        response = self.session.post(
-            url,
-            json=payload
-        )
-        raise_for_status(response)
-        return response.json()["aggregations"]
-
     def query(self):
         """
         Create a query handle.

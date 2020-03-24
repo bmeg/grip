@@ -1,7 +1,7 @@
 package mongo
 
 import (
-	"github.com/globalsign/mgo/bson"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 func percentileCalc(percent float64) bson.M {
