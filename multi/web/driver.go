@@ -35,7 +35,8 @@ type QueryConfig struct {
 }
 
 type Config struct {
-	List *QueryConfig            `json:"list"`
+	List    *QueryConfig          `json:"list"`
+	ListIDs *QueryConfig          `json:"listIDs"`
 	Get  map[string]*QueryConfig `json:"get"`
 }
 
@@ -48,12 +49,30 @@ func WebDriverBuilder(name string, url string, manager multi.Cache, opts multi.O
 	}
 	log.Printf("Web Config: %#v", conf)
 	o.conf = conf
+	if err := o.CheckConfig(); err != nil {
+		log.Printf("Config error: %s", err)
+		return nil, err
+	}
 	return &o, nil
 }
 
 var loaded = multi.AddDriver("web", WebDriverBuilder)
 
 func (d *Driver) GetIDs(ctx context.Context) chan string {
+	return nil
+}
+
+func (d *Driver) CheckConfig() error {
+	if d.conf.List != nil && d.conf.List.ElementList == "" {
+		return fmt.Errorf("List has no elementList definition: %#v", d.conf.List)
+	}
+
+	for _, v := range d.conf.Get {
+		if v.Element == "" {
+			return fmt.Errorf("Get has no element definition: %#v", v.Element)
+		}
+	}
+
 	return nil
 }
 
@@ -90,57 +109,79 @@ func (d *Driver) fetchRows(ctx context.Context) chan *multi.TableRow {
 	out := make(chan *multi.TableRow, 10)
 	go func() {
 		defer close(out)
-		if d.conf.List == nil {
-			log.Printf("Accessing table without row lister")
-			return
-		}
-		log.Printf("Getting Rows from %s", d.conf.List.URL)
+		if d.conf.List != nil {
+			// Use method that lists all elements in collection
+			log.Printf("Getting Rows from %s", d.conf.List.URL)
 
-		data := map[string]interface{}{}
+			data := map[string]interface{}{}
 
-		client := resty.New()
-		if d.conf.List.Insecure {
-			client.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true})
-		}
-		q := client.R()
-		if len(d.conf.List.Params) > 0 {
-			q = q.SetQueryParams(d.conf.List.Params)
-		}
-		resp, err := q.SetResult(&data).
-			Get(d.conf.List.URL)
+			client := resty.New()
+			if d.conf.List.Insecure {
+				client.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true})
+			}
+			q := client.R()
+			if len(d.conf.List.Params) > 0 {
+				q = q.SetQueryParams(d.conf.List.Params)
+			}
+			resp, err := q.SetResult(&data).
+				Get(d.conf.List.URL)
 
-		if err != nil {
-			log.Printf("Error: %s", err)
-			return
-		}
-		resp.Result()
-		res, err := jsonpath.JsonPathLookup(data, d.conf.List.ElementList)
-		if err != nil {
-			log.Printf("Error: %s", err)
-			return
-		}
+			if err != nil {
+				log.Printf("Error: %s", err)
+				return
+			}
+			resp.Result()
+			log.Printf("list lookup: %s %s", data, d.conf.List.ElementList)
+			res, err := jsonpath.JsonPathLookup(data, d.conf.List.ElementList)
+			if err != nil {
+				log.Printf("Error: %s", err)
+				return
+			}
 
-		resList, ok := res.([]interface{})
-		if !ok {
-			return
-		}
+			resList, ok := res.([]interface{})
+			if !ok {
+				return
+			}
 
-		for _, row := range resList {
-			select {
-			case <-ctx.Done():
-			default:
-				if rowData, ok := row.(map[string]interface{}); ok {
-					gid, err := jsonpath.JsonPathLookup(rowData, pathFix(d.opts.PrimaryKey))
-					if err != nil {
-						log.Printf("Error: %s", err)
-					}
-					if gidStr, ok := gid.(string); ok {
-						o := multi.TableRow{gidStr, rowData}
-						out <- &o
+			for _, row := range resList {
+				select {
+				case <-ctx.Done():
+				default:
+					if rowData, ok := row.(map[string]interface{}); ok {
+						gid, err := jsonpath.JsonPathLookup(rowData, pathFix(d.opts.PrimaryKey))
+						if err != nil {
+							log.Printf("Error: %s", err)
+						}
+						if gidStr, ok := gid.(string); ok {
+							o := multi.TableRow{gidStr, rowData}
+							out <- &o
+						}
 					}
 				}
 			}
+		} else if d.conf.ListIDs != nil && d.conf.Get != nil {
+			// First you method to get all of the ids, the get them one at a time
+
+			ids, err := getListOfStrings(d.conf.ListIDs.URL, nil)
+			if err != nil {
+				log.Printf("Error: %s", err)
+				return
+			}
+
+			for _, id := range ids {
+				j, err := d.GetRowByID(id)
+				if err == nil {
+					out <- j
+				} else {
+					log.Printf("Error finding: %s %s", id, err)
+				}
+			}
+			log.Printf("list lookup: %s ", ids)
+		} else {
+			log.Printf("Accessing table without row lister")
+			return
 		}
+
 	}()
 	return out
 }
@@ -172,6 +213,7 @@ func (d *Driver) GetRowByID(id string) (*multi.TableRow, error) {
 				log.Printf("Template error: %s", err)
 			}
 		}
+
 		data := map[string]interface{}{}
 
 		q := resty.New().R()

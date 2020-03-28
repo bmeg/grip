@@ -103,7 +103,7 @@ func ParseConfig(raw []byte, conf *Config) error {
 	if err != nil {
 		return err
 	}
-	err = CheckForUnknownKeys(j, conf, []string{"Tabular.Graphs."})
+	err = CheckForUnknownKeys(j, conf, []string{"Multi.Graphs."})
 	if err != nil {
 		return err
 	}

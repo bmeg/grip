@@ -20,14 +20,15 @@ require (
 	github.com/go-resty/resty/v2 v2.1.0
 	github.com/go-sourcemap/sourcemap v2.1.2+incompatible // indirect
 	github.com/go-sql-driver/mysql v1.4.1
-	github.com/golang/protobuf v1.3.4
+	github.com/golang/protobuf v1.3.5
 	github.com/golangci/go-tools v0.0.0-20190318055746-e32c54105b7c // indirect
 	github.com/golangci/golangci-lint v1.22.2 // indirect
 	github.com/golangci/gosec v0.0.0-20190211064107-66fb7fc33547 // indirect
+	github.com/gorilla/mux v1.7.4 // indirect
 	github.com/graphql-go/graphql v0.7.8
 	github.com/graphql-go/handler v0.2.3
 	github.com/grpc-ecosystem/go-grpc-middleware v1.0.0
-	github.com/grpc-ecosystem/grpc-gateway v1.13.0
+	github.com/grpc-ecosystem/grpc-gateway v1.14.3
 	github.com/hashicorp/go-multierror v1.0.0
 	github.com/imdario/mergo v0.3.7
 	github.com/influxdata/tdigest v0.0.1

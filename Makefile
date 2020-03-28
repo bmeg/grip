@@ -45,6 +45,12 @@ proto:
 		-I ./ \
 		--go_out=. \
 		index.proto
+	@cd multi/multidriver && protoc \
+	  -I ./ \
+		-I ../../googleapis/ \
+		--go_out=Mgoogle/protobuf/struct.proto=github.com/golang/protobuf/ptypes/struct,plugins=grpc:. \
+		multidriver.proto 
+
 
 proto-depends:
 	@git submodule update --init --recursive

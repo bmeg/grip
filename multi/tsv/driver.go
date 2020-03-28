@@ -5,7 +5,12 @@ import (
 	"log"
 
 	"github.com/bmeg/grip/multi"
+	"github.com/mitchellh/mapstructure"
 )
+
+type Config struct {
+	Delim   string    `json:"delim"`
+}
 
 type TSVDriver struct {
 	man        multi.Cache
@@ -18,10 +23,20 @@ type TSVDriver struct {
 	header     []string
 	lineReader *LineReader
 	cparse     CSVParse
+	conf       Config
 }
 
 func TSVDriverBuilder(name string, url string, manager multi.Cache, opts multi.Options) (multi.Driver, error) {
-	o := TSVDriver{path: url, idName: opts.PrimaryKey, idxCols: opts.IndexedColumns, man: manager}
+	conf := Config{}
+	err := mapstructure.Decode(opts.Config, &conf)
+	if err != nil {
+		return nil, err
+	}
+	o := TSVDriver{path: url, idName: opts.PrimaryKey, idxCols: opts.IndexedColumns, man: manager, conf:conf}
+
+	if conf.Delim != "" {
+		o.cparse.Comma = conf.Delim
+	}
 	if err := o.Init(); err != nil {
 		return nil, err
 	}

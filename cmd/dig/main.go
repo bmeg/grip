@@ -8,9 +8,10 @@ import (
 
 	"github.com/bmeg/grip/multi"
 
-	_ "github.com/bmeg/grip/multi/kvcache"
-	_ "github.com/bmeg/grip/multi/tsv"
-	_ "github.com/bmeg/grip/multi/web"
+	_ "github.com/bmeg/grip/multi/kvcache"      // import so kvcache will register itself
+	_ "github.com/bmeg/grip/multi/tsv"          // import so tsv will register itself
+	_ "github.com/bmeg/grip/multi/web"          // import so web will register itself
+	_ "github.com/bmeg/grip/multi/multidriver"  // import so multidriver will register itself
 
 	"github.com/bmeg/grip/gdbi"
 	"github.com/golang/protobuf/jsonpb"
