@@ -1,0 +1,8 @@
+{"name" : "filmCharacters", "from" : "Film", "to" : "Character", "label" : "characters", "mode" : "edgeTable"}
+{"name" : "filmPlanets", "from" : "Film", "to" : "Planet", "label" : "planets", "mode" : "edgeTable"}
+{"name" : "filmStarships", "from" : "Film", "to" : "Starship", "label" : "starships", "mode" : "edgeTable"}
+{"name" : "filmVehicles", "from" : "Film", "to" : "Vehicle", "label" : "vehicles", "mode" : "edgeTable"}
+{"name" : "filmSpecies", "from" : "Film", "to" : "Species", "label" : "species", "mode" : "edgeTable"}
+{"name" : "characterHomeworld", "from" : "Character", "to" : "Planet", "label" : "homeworld", "mode" : "fieldToID", "field" : "homeworld"}
+{"name" : "characterSpecies", "from" : "Character", "to" : "Species", "label" : "species", "mode" : "fieldToID", "field" : "species"}
+{"name" : "characterStarships", "from" : "Character", "to" : "Starship", "label" : "starships", "mode" : "edgeTable"}

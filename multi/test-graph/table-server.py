@@ -73,6 +73,9 @@ if __name__ == "__main__":
                         header = r
                     else:
                         d = dict(zip(header,r))
-                        data[d['id']] = d
+                        if 'id' in d:
+                            data[d['id']] = d
+                        else:
+                            data[len(data)] = d
             dataMap[name] = data
     serve(50051, dataMap)
