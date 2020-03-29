@@ -45,6 +45,8 @@ class Manager:
         self.readOnly = readOnly
 
     def setGraph(self, name):
+        if self.readOnly is not None:
+            return
         with open(os.path.join(BASE, "graphs", "%s.vertices" % (name))) as handle:
             for line in handle:
                 data = json.loads(line)
@@ -58,7 +60,7 @@ class Manager:
                                    data=data.get("data", {}))
 
     def writeTest(self):
-        if self.readOnly:
+        if self.readOnly is not None:
             raise SkipTest
 
 
@@ -96,8 +98,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--readOnly",
         "-r",
-        default=False,
-        action="store_true"
+        default=None
     )
     args = parser.parse_args()
     server = args.server
@@ -121,8 +122,11 @@ if __name__ == "__main__":
                     if len(args.methods) == 0 or f[5:] in args.methods:
                         try:
                             print("Running: %s %s " % (name, f[5:]))
-                            GRAPH = "test_graph_" + id_generator()
-                            conn.addGraph(GRAPH)
+                            if args.readOnly is None:
+                                GRAPH = "test_graph_" + id_generator()
+                                conn.addGraph(GRAPH)
+                            else:
+                                GRAPH = args.readOnly
                             G = conn.graph(GRAPH)
                             manager = Manager(G, args.readOnly)
                             try:
@@ -140,7 +144,8 @@ if __name__ == "__main__":
                             print("Crashed: %s %s %s" % (name, f[5:], e))
                             traceback.print_exc()
                         total += 1
-                        conn.deleteGraph(GRAPH)
+                        if args.readOnly is None:
+                            conn.deleteGraph(GRAPH)
 
     print("Passed %s out of %s" % (correct, total))
     if correct != total:

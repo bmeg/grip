@@ -1,4 +1,4 @@
-package multi
+package dig
 
 import (
 	"context"
@@ -15,19 +15,11 @@ type TabularGDB struct {
 }
 
 func NewGDB(conf Config, configPath string) (*TabularGDB, error) {
-	indexPath := conf.Index
-	if indexPath == "" {
-		indexPath = "tableindex.db"
-	}
-	idx, err := NewCache(indexPath)
-	if err != nil {
-		return nil, err
-	}
 	out := TabularGDB{map[string]*TabularGraph{}}
 	for k, v := range conf.Graphs {
 		fPath := filepath.Join(filepath.Dir(configPath), v)
 		if gConf, err := LoadConfig(fPath); err == nil {
-			o, err := NewTabularGraph(*gConf, &TableManager{idx})
+			o, err := NewTabularGraph(*gConf)
 			if err == nil {
 				out.graphs[k] = o
 			} else {

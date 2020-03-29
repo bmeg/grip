@@ -6,12 +6,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/bmeg/grip/multi"
-
-	_ "github.com/bmeg/grip/multi/kvcache"      // import so kvcache will register itself
-	_ "github.com/bmeg/grip/multi/tsv"          // import so tsv will register itself
-	_ "github.com/bmeg/grip/multi/web"          // import so web will register itself
-	_ "github.com/bmeg/grip/multi/multidriver"  // import so multidriver will register itself
+	"github.com/bmeg/grip/dig"
 
 	"github.com/bmeg/grip/gdbi"
 	"github.com/golang/protobuf/jsonpb"
@@ -90,7 +85,7 @@ func Query(graph gdbi.GraphInterface, query gripql.GraphQuery) error {
 // Cmd command line declaration
 var Cmd = &cobra.Command{
 	Use:   "dig <config> <query>",
-	Short: "Do a single query using the multi driver",
+	Short: "Do a single query using the dig driver",
 	Long:  ``,
 	Args:  cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -98,9 +93,9 @@ var Cmd = &cobra.Command{
 		configFile := args[0]
 		queryString := args[1]
 
-		config := multi.Config{Graphs: map[string]string{"main": configFile}, Index: idxName}
+		config := dig.Config{Graphs: map[string]string{"main": configFile}}
 
-		gdb, err := multi.NewGDB(config, "./")
+		gdb, err := dig.NewGDB(config, "./")
 		if err != nil {
 			log.Printf("Error loading Graph: %s", err)
 			return err

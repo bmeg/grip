@@ -14,7 +14,7 @@ import (
 	esql "github.com/bmeg/grip/existing-sql"
 	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/mongo"
-	"github.com/bmeg/grip/multi"
+	"github.com/bmeg/grip/dig"
 	"github.com/bmeg/grip/psql"
 	"github.com/bmeg/grip/server"
 	"github.com/bmeg/grip/util"
@@ -38,7 +38,7 @@ type Config struct {
 	MongoDB       mongo.Config
 	PSQL          psql.Config
 	ExistingSQL   esql.Config
-	Multi         multi.Config
+	Dig           dig.Config
 	Logger        log.Logger
 }
 
@@ -73,8 +73,6 @@ func DefaultConfig() *Config {
 	c.Elasticsearch.DBName = "gripdb"
 	c.Elasticsearch.BatchSize = 1000
 
-	c.Multi.Index = "multi-index.db"
-
 	c.Logger = log.DefaultLoggerConfig()
 	return c
 }
@@ -103,7 +101,7 @@ func ParseConfig(raw []byte, conf *Config) error {
 	if err != nil {
 		return err
 	}
-	err = CheckForUnknownKeys(j, conf, []string{"Multi.Graphs."})
+	err = CheckForUnknownKeys(j, conf, []string{"Dig.Graphs."})
 	if err != nil {
 		return err
 	}

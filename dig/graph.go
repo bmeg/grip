@@ -1,81 +1,63 @@
-package multi
+package dig
 
 import (
 	"context"
 	"fmt"
 	"log"
-	"path/filepath"
+	"sync"
+	//"path/filepath"
 	"strings"
 
 	"github.com/bmeg/grip/engine/core"
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
-	"github.com/bmeg/grip/protoutil"
 	"github.com/bmeg/grip/util/setcmp"
 )
 
 type VertexSource struct {
-	driver Driver
-	prefix string
-	label  string
-	config *VertexConfig
+	prefix     string
+	config     *VertexConfig
 }
 
 type EdgeSource struct {
-	fromDriver Driver
-	toDriver   Driver
-	fromVertex string
-	toVertex   string
 	prefix     string
-	label      string
-	fromField  string
-	toField    string
+	config     *EdgeConfig
 }
 
+
 type TabularGraph struct {
-	idx      *TableManager
+	client   *DigClient
 	vertices map[string]*VertexSource
 	outEdges map[string][]*EdgeSource
 	inEdges  map[string][]*EdgeSource
 }
 
-func NewTabularGraph(conf GraphConfig, idx *TableManager) (*TabularGraph, error) {
+func NewTabularGraph(conf GraphConfig) (*TabularGraph, error) {
 	out := TabularGraph{}
 
-	out.idx = idx
 	out.vertices = map[string]*VertexSource{}
 	out.outEdges = map[string][]*EdgeSource{}
 	out.inEdges = map[string][]*EdgeSource{}
 
-	driverMap := map[string]Driver{}
-	tableOptions := map[string]*Options{}
-	log.Printf("Loading Table Conf")
-	//Set up configs for different tables to be opened
-	for name, table := range conf.Tables {
-		tableOptions[name] = &Options{IndexedColumns: []string{}, Config: table.Config}
-	}
+	log.Printf("Loading Graph Config")
 
-	//add parameters to configs for the tables, based on how the vertices will use them
+	out.client = NewDigClient(conf.Sources)
+
+	//Check if vertex mapping match to sources
 	for _, v := range conf.Vertices {
-		if opt, ok := tableOptions[v.Table]; !ok {
-			return nil, fmt.Errorf("Trying to use undeclared table: '%s'", v.Table)
-		} else {
-			if opt.PrimaryKey != "" && opt.PrimaryKey != v.PrimaryKey {
-				//right now, only one vertex type can make a table (and declare its primary key type)
-				return nil, fmt.Errorf("Table used by two vertex types: %s", v.Table)
-			}
-			opt.PrimaryKey = v.PrimaryKey
+		_, err := out.client.GetCollectionInfo(context.Background(), v.Source, v.Collection)
+		if err != nil {
+			return nil, fmt.Errorf("Unable to get collection information", v.Source, v.Collection)
 		}
 	}
 
 	//add parameters to configs for the tables, based on how the edges will use them
 	for _, e := range conf.Edges {
-		log.Printf("Edges: %s", e)
 		toVertex := conf.Vertices[e.ToVertex]
 		fromVertex := conf.Vertices[e.FromVertex]
+		log.Printf("Edges: %s %s %s", fromVertex, toVertex, e.Label )
+		/*
 
-		toTableOpts := tableOptions[toVertex.Table]
-		fromTableOpts := tableOptions[fromVertex.Table]
 		if toTableOpts == nil || fromTableOpts == nil {
 			return nil, fmt.Errorf("Trying to use undeclared table")
 		}
@@ -89,30 +71,18 @@ func NewTabularGraph(conf GraphConfig, idx *TableManager) (*TabularGraph, error)
 				toTableOpts.IndexedColumns = append(toTableOpts.IndexedColumns, e.ToField)
 			}
 		}
-	}
+		*/
 
-	//open the table drivers
-	for t, opt := range tableOptions {
-		table := conf.Tables[t]
-
-		log.Printf("Table: %s %#v", t, opt)
-		fPath := filepath.Join(filepath.Dir(conf.path), table.Path)
-		log.Printf("Loading: %s with primaryKey %s", fPath, opt.PrimaryKey)
-
-		tix, err := out.idx.NewDriver(t, table.Driver, fPath, *opt)
-		if err != nil {
-			return nil, err
-		}
-		driverMap[t] = tix
 	}
 
 	//map the table drivers back onto the vertices that will use them
 	for vPrefix, v := range conf.Vertices {
+		vConf := v
 		log.Printf("Adding vertex prefix: %s label: %s", vPrefix, v.Label)
-		tix := driverMap[v.Table]
-		out.vertices[vPrefix] = &VertexSource{driver: tix, prefix: vPrefix, label: v.Label, config: &v}
+		out.vertices[vPrefix] = &VertexSource{prefix: vPrefix, config: &vConf}
 	}
 
+	/*
 	for ePrefix, e := range conf.Edges {
 		if e.Label != "" {
 			toVertex := conf.Vertices[e.ToVertex]
@@ -161,6 +131,8 @@ func NewTabularGraph(conf GraphConfig, idx *TableManager) (*TabularGraph, error)
 
 		}
 	}
+	*/
+
 	return &out, nil
 }
 
@@ -192,9 +164,15 @@ func (t *TabularGraph) GetVertex(key string, load bool) *gripql.Vertex {
 	for _, v := range t.vertices {
 		if strings.HasPrefix(key, v.prefix) {
 			id := key[len(v.prefix):]
-			driver := v.driver
-			if row, err := driver.GetRowByID(id); err == nil {
-				o := gripql.Vertex{Gid: v.prefix + row.Key, Label: v.label, Data: protoutil.AsStruct(row.Values)}
+			c := make(chan RowRequest, 1)
+			c <- RowRequest{Id:id, RequestID:0}
+			close(c)
+			if rowChan, err := t.client.GetRowsByID(context.Background(), v.config.Source, v.config.Collection, c); err == nil {
+				var row *Row
+				for i := range rowChan {
+					row = i
+				}
+				o := gripql.Vertex{Gid: v.prefix + row.Id, Label: v.config.Label, Data:row.Data}
 				return &o
 			} else {
 				log.Printf("Row not read")
@@ -221,10 +199,10 @@ func (t *TabularGraph) VertexLabelScan(ctx context.Context, label string) chan s
 	out := make(chan string, 10)
 	go func() {
 		defer close(out)
-		for _, t := range t.vertices {
-			if t.label == label {
-				for n := range t.driver.GetIDs(ctx) {
-					out <- t.prefix + n
+		for _, v := range t.vertices {
+			if v.config.Label == label {
+				for n := range t.client.GetIDs(ctx, v.config.Source, v.config.Collection) {
+					out <- v.prefix + n
 				}
 			}
 		}
@@ -235,7 +213,7 @@ func (t *TabularGraph) VertexLabelScan(ctx context.Context, label string) chan s
 func (t *TabularGraph) ListVertexLabels() ([]string, error) {
 	out := []string{}
 	for _, i := range t.vertices {
-		out = append(out, i.label)
+		out = append(out, i.config.Label)
 	}
 	return out, nil
 }
@@ -244,7 +222,7 @@ func (t *TabularGraph) ListEdgeLabels() ([]string, error) {
 	out := []string{}
 	for _, i := range t.outEdges {
 		for _, e := range i {
-			out = append(out, e.label)
+			out = append(out, e.config.Label)
 		}
 	}
 	return out, nil
@@ -266,10 +244,10 @@ func (t *TabularGraph) GetVertexIndexList() <-chan *gripql.IndexID {
 func (t *TabularGraph) GetVertexList(ctx context.Context, load bool) <-chan *gripql.Vertex {
 	out := make(chan *gripql.Vertex, 100)
 	go func() {
-		for _, table := range t.vertices {
-			log.Printf("table: %s", table.label)
-			for row := range table.driver.GetRows(ctx) {
-				v := gripql.Vertex{Gid: table.prefix + row.Key, Label: table.label, Data: protoutil.AsStruct(row.Values)}
+		for _, c := range t.vertices {
+			log.Printf("Getting vertices from table: %s", c.config.Label)
+			for row := range t.client.GetRows(ctx, c.config.Source, c.config.Collection) {
+				v := gripql.Vertex{Gid: c.prefix + row.Id, Label: c.config.Label, Data: row.Data}
 				out <- &v
 			}
 		}
@@ -280,22 +258,60 @@ func (t *TabularGraph) GetVertexList(ctx context.Context, load bool) <-chan *gri
 
 func (t *TabularGraph) GetEdgeList(ctx context.Context, load bool) <-chan *gripql.Edge {
 	log.Printf("Calling GetEdgeList")
-	return nil
+	out := make(chan *gripql.Edge, 100)
+	go func() {
+		defer close(out)
+	}()
+	return out
 }
 
 func (t *TabularGraph) GetVertexChannel(ctx context.Context, req chan gdbi.ElementLookup, load bool) chan gdbi.ElementLookup {
 	out := make(chan gdbi.ElementLookup, 10)
 	go func() {
 		defer close(out)
+
+		inMap := map[string]chan RowRequest{}
+		outMap := map[string]chan *Row{}
+		reqMap := map[uint64]gdbi.ElementLookup{}
+		var reqCount uint64
+		reqSync := &sync.Mutex{} //sync access to reqMap, other maps are only access by outer thread
+
 		for r := range req {
 			for _, v := range t.vertices {
 				if strings.HasPrefix(r.ID, v.prefix) {
 					id := r.ID[len(v.prefix):len(r.ID)]
-					o := gripql.Vertex{Gid: r.ID, Label: v.label}
-					if row, err := v.driver.GetRowByID(id); err == nil {
-						o.Data = protoutil.AsStruct(row.Values)
-						r.Vertex = &o
-						out <- r
+
+					var curIn chan RowRequest
+					if x, ok := inMap[v.prefix]; ok {
+						curIn = x
+					} else {
+						curIn = make(chan RowRequest, 10)
+						if rowChan, err := t.client.GetRowsByID(ctx, v.config.Source, v.config.Collection, curIn); err == nil {
+							inMap[v.prefix] = curIn
+							outMap[v.prefix] = rowChan
+							go func() {
+								for r := range rowChan {
+									o := gripql.Vertex{Gid: v.prefix + r.Id, Label: v.config.Label}
+									o.Data = r.Data
+									reqSync.Lock()
+									outReq := reqMap[ r.RequestID ]
+									delete(reqMap, r.RequestID)
+									reqSync.Unlock()
+									outReq.Vertex = &o
+									out <- outReq
+								}
+							}()
+						} else {
+							log.Printf("Error opening streaming connection")
+						}
+					}
+					if curIn != nil {
+						reqSync.Lock()
+						rNum := reqCount
+						reqCount++
+						reqMap[ rNum ] = r
+						reqSync.Unlock()
+						curIn <- RowRequest{ Id:id, RequestID:rNum }
 					}
 				}
 			}
@@ -315,7 +331,8 @@ func (t *TabularGraph) GetOutChannel(ctx context.Context, req chan gdbi.ElementL
 				for vPrefix, edgeList := range t.outEdges {
 					if strings.HasPrefix(r.ID, vPrefix) {
 						for _, edge := range edgeList {
-							if len(edgeLabels) == 0 || setcmp.ContainsString(edgeLabels, edge.label) {
+							if len(edgeLabels) == 0 || setcmp.ContainsString(edgeLabels, edge.config.Label) {
+								/*
 								log.Printf("Checkout edge %s %s", edge.fromVertex, edge.toVertex)
 								id := r.ID[len(vPrefix):len(r.ID)]
 
@@ -346,6 +363,7 @@ func (t *TabularGraph) GetOutChannel(ctx context.Context, req chan gdbi.ElementL
 										out <- r
 									}
 								}
+								*/
 							}
 						}
 					}
@@ -357,16 +375,34 @@ func (t *TabularGraph) GetOutChannel(ctx context.Context, req chan gdbi.ElementL
 }
 
 func (t *TabularGraph) GetInChannel(ctx context.Context, req chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
-	log.Printf("Calling GetInChannel")
-	return nil
+	out := make(chan gdbi.ElementLookup, 10)
+	go func () {
+		defer close(out)
+		for r := range req {
+			out <- r
+		}
+	}()
+	return out
 }
 
 func (t *TabularGraph) GetOutEdgeChannel(ctx context.Context, req chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
-	log.Printf("Calling GetOutEdgeChannel")
-	return nil
+	out := make(chan gdbi.ElementLookup, 10)
+	go func () {
+		defer close(out)
+		for r := range req {
+			out <- r
+		}
+	}()
+	return out
 }
 
 func (t *TabularGraph) GetInEdgeChannel(ctx context.Context, req chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
-	log.Printf("Calling GetInEdgeChannel")
-	return nil
+	out := make(chan gdbi.ElementLookup, 10)
+	go func () {
+		defer close(out)
+		for r := range req {
+			out <- r
+		}
+	}()
+	return out
 }

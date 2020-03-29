@@ -2384,9 +2384,7 @@ func init() {
 	proto.RegisterType((*ListLabelsResponse)(nil), "gripql.ListLabelsResponse")
 }
 
-func init() {
-	proto.RegisterFile("gripql.proto", fileDescriptor_999694f8210e8272)
-}
+func init() { proto.RegisterFile("gripql.proto", fileDescriptor_999694f8210e8272) }
 
 var fileDescriptor_999694f8210e8272 = []byte{
 	// 2184 bytes of a gzipped FileDescriptorProto
@@ -2531,11 +2529,11 @@ var fileDescriptor_999694f8210e8272 = []byte{
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ context.Context
-var _ grpc.ClientConnInterface
+var _ grpc.ClientConn
 
 // This is a compile-time assertion to ensure that this generated file
 // is compatible with the grpc package it is being compiled against.
-const _ = grpc.SupportPackageIsVersion6
+const _ = grpc.SupportPackageIsVersion4
 
 // QueryClient is the client API for Query service.
 //
@@ -2552,10 +2550,10 @@ type QueryClient interface {
 }
 
 type queryClient struct {
-	cc grpc.ClientConnInterface
+	cc *grpc.ClientConn
 }
 
-func NewQueryClient(cc grpc.ClientConnInterface) QueryClient {
+func NewQueryClient(cc *grpc.ClientConn) QueryClient {
 	return &queryClient{cc}
 }
 
@@ -2906,10 +2904,10 @@ type EditClient interface {
 }
 
 type editClient struct {
-	cc grpc.ClientConnInterface
+	cc *grpc.ClientConn
 }
 
-func NewEditClient(cc grpc.ClientConnInterface) EditClient {
+func NewEditClient(cc *grpc.ClientConn) EditClient {
 	return &editClient{cc}
 }
 

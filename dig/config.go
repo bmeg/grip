@@ -1,4 +1,4 @@
-package multi
+package dig
 
 import (
 	"fmt"
@@ -8,37 +8,45 @@ import (
 	"github.com/ghodss/yaml"
 )
 
+// Config is the component in the global GRIP config file
 type Config struct {
 	Graphs map[string]string `json:"graphs"`
-	Index  string            `json:"index"`
 }
 
 type GraphConfig struct {
-	Tables   map[string]TableConfig  `json:"tables"`
-	Vertices map[string]VertexConfig `json:"vertices"`
-	Edges    map[string]EdgeConfig   `json:"edges"`
+	Sources  map[string]DriverConfig  `json:"sources"`
+	Vertices map[string]VertexConfig  `json:"vertices"`
+	Edges    map[string]EdgeConfig    `json:"edges"`
 	path     string
 }
 
-type TableConfig struct {
-	Driver string                 `json:"driver"`
-	Path   string                 `json:"path"`
-	Config map[string]interface{} `json:"config"`
+type DriverConfig struct {
+	Host  string                 `json:"host"`
 }
 
 type VertexConfig struct {
-	Table      string `json:"table"`
-	PrimaryKey string `json:"primaryKey"`
-	Label      string `json:"label"`
+	Source      string `json:"source"`
+	Collection  string `json:"collection"`
+	Label       string `json:"label"`
+}
+
+type FieldToIDConfig struct {
+	FromField   string `json:"fromField"`
+}
+
+type EdgeTableConfig struct {
+	Source      string `json:"source"`
+	Collection  string `json:"collection"`
+	FromField   string `json:"fromField"`
+	ToField     string `json:"toField"`
 }
 
 type EdgeConfig struct {
-	ToField    string `json:"toField"`
 	ToVertex   string `json:"toVertex"`
-	FromField  string `json:"fromField"`
 	FromVertex string `json:"fromVertex"`
 	Label      string `json:"label"`
-	BackLabel  string `json:"backLabel"`
+	FieldToID  *FieldToIDConfig  `json:"fieldToID"`
+	EdgeTable  *EdgeTableConfig  `json:"edgeTable"`
 }
 
 func LoadConfig(path string) (*GraphConfig, error) {

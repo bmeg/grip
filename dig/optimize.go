@@ -1,4 +1,4 @@
-package multi
+package dig
 
 import (
 	"context"
@@ -7,6 +7,7 @@ import (
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/util/setcmp"
+	"github.com/bmeg/grip/protoutil"
 )
 
 func TabularOptimizer(pipe []*gripql.GraphStatement) []*gripql.GraphStatement {
@@ -40,12 +41,12 @@ func (t *tabularHasLabelProc) Process(ctx context.Context, man gdbi.Manager, in 
 					return
 				default:
 				}
-				if setcmp.ContainsString(t.labels, table.label) {
-					for row := range table.driver.GetRows(ctx) {
+				if setcmp.ContainsString(t.labels, table.config.Label) {
+					for row := range t.graph.client.GetRows(ctx, table.config.Source, table.config.Collection) {
 						out <- i.AddCurrent(&gdbi.DataElement{
-							ID:    table.prefix + row.Key,
-							Label: table.label,
-							Data:  row.Values,
+							ID:    table.prefix + row.Id,
+							Label: table.config.Label,
+							Data:  protoutil.AsMap(row.Data),
 						})
 					}
 				}

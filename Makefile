@@ -45,11 +45,11 @@ proto:
 		-I ./ \
 		--go_out=. \
 		index.proto
-	@cd multi/multidriver && protoc \
+	@cd dig/ && protoc \
 	  -I ./ \
-		-I ../../googleapis/ \
+		-I ../googleapis/ \
 		--go_out=Mgoogle/protobuf/struct.proto=github.com/golang/protobuf/ptypes/struct,plugins=grpc:. \
-		multidriver.proto 
+		digdriver.proto
 
 
 proto-depends:

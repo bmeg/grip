@@ -3,51 +3,52 @@
 import os
 import sys
 import grpc
-import multidriver_pb2
-import multidriver_pb2_grpc
+import digdriver_pb2
+import digdriver_pb2_grpc
 
 from google.protobuf import json_format
 from concurrent import futures
 
 
-class CollectionServicer(multidriver_pb2_grpc.CollectionServicer):
+class CollectionServicer(digdriver_pb2_grpc.DigSourceServicer):
     def __init__(self, data):
         self.data = data
 
-    def GetServiceInfo(self, request, context):
-        o = multidriver_pb2.ServiceInfo()
+    def GetCollections(self, request, context):
+        for i in self.data:
+            o = digdriver_pb2.Collection()
+            o.name = i
+            yield o
+
+    def GetCollectionInfo(self, request, context):
+        o = digdriver_pb2.CollectionInfo()
         return o
 
     def GetIDs(self, request, context):
-        print("getids")
-
-        for k in self.data[request.collection]:
-            o = multidriver_pb2.RowID()
+        for k in self.data[request.name]:
+            o = digdriver_pb2.RowID()
             o.id = k
             yield o
 
-
     def GetRows(self, request, context):
-        print("getrows")
-
-        for k,v in self.data[request.collection].items():
-            o = multidriver_pb2.Row()
+        for k,v in self.data[request.name].items():
+            o = digdriver_pb2.Row()
             o.id = k
             json_format.ParseDict(v, o.data)
             yield o
 
     def GetRowsByID(self, request_iterator, context):
-        print("getrowsbyid")
-        # missing associated documentation comment in .proto file
-        pass
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
+        for req in request_iterator:
+            d = self.data[req.collection][req.id]
+            o = digdriver_pb2.Row()
+            o.id = req.id
+            json_format.ParseDict(d, o.data)
+            yield o
 
 
 def serve(port, data):
   server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
-  multidriver_pb2_grpc.add_CollectionServicer_to_server(
+  digdriver_pb2_grpc.add_DigSourceServicer_to_server(
       CollectionServicer(data), server)
   server.add_insecure_port('[::]:%s' % port)
   server.start()
