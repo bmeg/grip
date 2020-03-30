@@ -2,6 +2,7 @@
 
 import os
 import sys
+import json
 import grpc
 import digdriver_pb2
 import digdriver_pb2_grpc
@@ -9,6 +10,11 @@ import digdriver_pb2_grpc
 from google.protobuf import json_format
 from concurrent import futures
 
+def keyUnion(a):
+    o = set()
+    for i in a:
+        o.update(*a)
+    return list(o)
 
 class CollectionServicer(digdriver_pb2_grpc.DigSourceServicer):
     def __init__(self, data):
@@ -22,6 +28,9 @@ class CollectionServicer(digdriver_pb2_grpc.DigSourceServicer):
 
     def GetCollectionInfo(self, request, context):
         o = digdriver_pb2.CollectionInfo()
+        c = self.data[request.name]
+        for f in keyUnion(i.keys() for i in c.values()):
+            o.search_fields.append(f)
         return o
 
     def GetIDs(self, request, context):
@@ -42,8 +51,18 @@ class CollectionServicer(digdriver_pb2_grpc.DigSourceServicer):
             d = self.data[req.collection][req.id]
             o = digdriver_pb2.Row()
             o.id = req.id
+            o.requestID = req.requestID
             json_format.ParseDict(d, o.data)
             yield o
+
+    def GetRowsByField(self, request, context):
+        c = self.data[request.collection]
+        for k, v in c.items():
+            if v.get(request.field, None) == request.value:
+                o = digdriver_pb2.Row()
+                o.id = k
+                json_format.ParseDict(v, o.data)
+                yield o
 
 
 def serve(port, data):
@@ -73,10 +92,11 @@ if __name__ == "__main__":
                     if header is None:
                         header = r
                     else:
-                        d = dict(zip(header,r))
+                        j = list(json.loads(i) for i in r)
+                        d = dict(zip(header,j))
                         if 'id' in d:
-                            data[d['id']] = d
+                            data[str(d['id'])] = d
                         else:
-                            data[len(data)] = d
+                            data[str(len(data))] = d
             dataMap[name] = data
     serve(50051, dataMap)

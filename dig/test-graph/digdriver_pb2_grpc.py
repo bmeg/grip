@@ -39,6 +39,11 @@ class DigSourceStub(object):
         request_serializer=digdriver__pb2.RowRequest.SerializeToString,
         response_deserializer=digdriver__pb2.Row.FromString,
         )
+    self.GetRowsByField = channel.unary_stream(
+        '/dig.DigSource/GetRowsByField',
+        request_serializer=digdriver__pb2.FieldRequest.SerializeToString,
+        response_deserializer=digdriver__pb2.Row.FromString,
+        )
 
 
 class DigSourceServicer(object):
@@ -80,6 +85,13 @@ class DigSourceServicer(object):
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
+  def GetRowsByField(self, request, context):
+    # missing associated documentation comment in .proto file
+    pass
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
 
 def add_DigSourceServicer_to_server(servicer, server):
   rpc_method_handlers = {
@@ -106,6 +118,11 @@ def add_DigSourceServicer_to_server(servicer, server):
       'GetRowsByID': grpc.stream_stream_rpc_method_handler(
           servicer.GetRowsByID,
           request_deserializer=digdriver__pb2.RowRequest.FromString,
+          response_serializer=digdriver__pb2.Row.SerializeToString,
+      ),
+      'GetRowsByField': grpc.unary_stream_rpc_method_handler(
+          servicer.GetRowsByField,
+          request_deserializer=digdriver__pb2.FieldRequest.FromString,
           response_serializer=digdriver__pb2.Row.SerializeToString,
       ),
   }

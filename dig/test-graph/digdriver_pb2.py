@@ -19,7 +19,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   package='dig',
   syntax='proto3',
   serialized_options=None,
-  serialized_pb=b'\n\x0f\x64igdriver.proto\x12\x03\x64ig\x1a\x1cgoogle/protobuf/struct.proto\"\x07\n\x05\x45mpty\"\x1a\n\nCollection\x12\x0c\n\x04name\x18\x01 \x01(\t\"\x13\n\x05RowID\x12\n\n\x02id\x18\x01 \x01(\t\"?\n\nRowRequest\x12\x12\n\ncollection\x18\x01 \x01(\t\x12\n\n\x02id\x18\x02 \x01(\t\x12\x11\n\trequestID\x18\x03 \x01(\x04\"K\n\x03Row\x12\n\n\x02id\x18\x01 \x01(\t\x12%\n\x04\x64\x61ta\x18\x02 \x01(\x0b\x32\x17.google.protobuf.Struct\x12\x11\n\trequestID\x18\x03 \x01(\x04\"\x10\n\x0e\x43ollectionInfo2\xf6\x01\n\tDigSource\x12/\n\x0eGetCollections\x12\n.dig.Empty\x1a\x0f.dig.Collection0\x01\x12\x39\n\x11GetCollectionInfo\x12\x0f.dig.Collection\x1a\x13.dig.CollectionInfo\x12\'\n\x06GetIDs\x12\x0f.dig.Collection\x1a\n.dig.RowID0\x01\x12&\n\x07GetRows\x12\x0f.dig.Collection\x1a\x08.dig.Row0\x01\x12,\n\x0bGetRowsByID\x12\x0f.dig.RowRequest\x1a\x08.dig.Row(\x01\x30\x01\x62\x06proto3'
+  serialized_pb=b'\n\x0f\x64igdriver.proto\x12\x03\x64ig\x1a\x1cgoogle/protobuf/struct.proto\"\x07\n\x05\x45mpty\"\x1a\n\nCollection\x12\x0c\n\x04name\x18\x01 \x01(\t\"\x13\n\x05RowID\x12\n\n\x02id\x18\x01 \x01(\t\"?\n\nRowRequest\x12\x12\n\ncollection\x18\x01 \x01(\t\x12\n\n\x02id\x18\x02 \x01(\t\x12\x11\n\trequestID\x18\x03 \x01(\x04\"@\n\x0c\x46ieldRequest\x12\x12\n\ncollection\x18\x01 \x01(\t\x12\r\n\x05\x66ield\x18\x02 \x01(\t\x12\r\n\x05value\x18\x03 \x01(\t\"K\n\x03Row\x12\n\n\x02id\x18\x01 \x01(\t\x12%\n\x04\x64\x61ta\x18\x02 \x01(\x0b\x32\x17.google.protobuf.Struct\x12\x11\n\trequestID\x18\x03 \x01(\x04\"\'\n\x0e\x43ollectionInfo\x12\x15\n\rsearch_fields\x18\x01 \x03(\t2\xa7\x02\n\tDigSource\x12/\n\x0eGetCollections\x12\n.dig.Empty\x1a\x0f.dig.Collection0\x01\x12\x39\n\x11GetCollectionInfo\x12\x0f.dig.Collection\x1a\x13.dig.CollectionInfo\x12\'\n\x06GetIDs\x12\x0f.dig.Collection\x1a\n.dig.RowID0\x01\x12&\n\x07GetRows\x12\x0f.dig.Collection\x1a\x08.dig.Row0\x01\x12,\n\x0bGetRowsByID\x12\x0f.dig.RowRequest\x1a\x08.dig.Row(\x01\x30\x01\x12/\n\x0eGetRowsByField\x12\x11.dig.FieldRequest\x1a\x08.dig.Row0\x01\x62\x06proto3'
   ,
   dependencies=[google_dot_protobuf_dot_struct__pb2.DESCRIPTOR,])
 
@@ -157,6 +157,51 @@ _ROWREQUEST = _descriptor.Descriptor(
 )
 
 
+_FIELDREQUEST = _descriptor.Descriptor(
+  name='FieldRequest',
+  full_name='dig.FieldRequest',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='collection', full_name='dig.FieldRequest.collection', index=0,
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='field', full_name='dig.FieldRequest.field', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='value', full_name='dig.FieldRequest.value', index=2,
+      number=3, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=177,
+  serialized_end=241,
+)
+
+
 _ROW = _descriptor.Descriptor(
   name='Row',
   full_name='dig.Row',
@@ -197,8 +242,8 @@ _ROW = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=177,
-  serialized_end=252,
+  serialized_start=243,
+  serialized_end=318,
 )
 
 
@@ -209,6 +254,13 @@ _COLLECTIONINFO = _descriptor.Descriptor(
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
+    _descriptor.FieldDescriptor(
+      name='search_fields', full_name='dig.CollectionInfo.search_fields', index=0,
+      number=1, type=9, cpp_type=9, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -221,8 +273,8 @@ _COLLECTIONINFO = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=254,
-  serialized_end=270,
+  serialized_start=320,
+  serialized_end=359,
 )
 
 _ROW.fields_by_name['data'].message_type = google_dot_protobuf_dot_struct__pb2._STRUCT
@@ -230,6 +282,7 @@ DESCRIPTOR.message_types_by_name['Empty'] = _EMPTY
 DESCRIPTOR.message_types_by_name['Collection'] = _COLLECTION
 DESCRIPTOR.message_types_by_name['RowID'] = _ROWID
 DESCRIPTOR.message_types_by_name['RowRequest'] = _ROWREQUEST
+DESCRIPTOR.message_types_by_name['FieldRequest'] = _FIELDREQUEST
 DESCRIPTOR.message_types_by_name['Row'] = _ROW
 DESCRIPTOR.message_types_by_name['CollectionInfo'] = _COLLECTIONINFO
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
@@ -262,6 +315,13 @@ RowRequest = _reflection.GeneratedProtocolMessageType('RowRequest', (_message.Me
   })
 _sym_db.RegisterMessage(RowRequest)
 
+FieldRequest = _reflection.GeneratedProtocolMessageType('FieldRequest', (_message.Message,), {
+  'DESCRIPTOR' : _FIELDREQUEST,
+  '__module__' : 'digdriver_pb2'
+  # @@protoc_insertion_point(class_scope:dig.FieldRequest)
+  })
+_sym_db.RegisterMessage(FieldRequest)
+
 Row = _reflection.GeneratedProtocolMessageType('Row', (_message.Message,), {
   'DESCRIPTOR' : _ROW,
   '__module__' : 'digdriver_pb2'
@@ -284,8 +344,8 @@ _DIGSOURCE = _descriptor.ServiceDescriptor(
   file=DESCRIPTOR,
   index=0,
   serialized_options=None,
-  serialized_start=273,
-  serialized_end=519,
+  serialized_start=362,
+  serialized_end=657,
   methods=[
   _descriptor.MethodDescriptor(
     name='GetCollections',
@@ -329,6 +389,15 @@ _DIGSOURCE = _descriptor.ServiceDescriptor(
     index=4,
     containing_service=None,
     input_type=_ROWREQUEST,
+    output_type=_ROW,
+    serialized_options=None,
+  ),
+  _descriptor.MethodDescriptor(
+    name='GetRowsByField',
+    full_name='dig.DigSource.GetRowsByField',
+    index=5,
+    containing_service=None,
+    input_type=_FIELDREQUEST,
     output_type=_ROW,
     serialized_options=None,
   ),

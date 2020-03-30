@@ -165,6 +165,7 @@ func (m *DigClient) GetRowsByID(ctx context.Context, source string, collection s
       req := RowRequest{Collection: collection, Id:i.Id, RequestID:i.RequestID}
       cl.Send(&req)
     }
+    cl.CloseSend()
   }()
 	go func() {
 		defer close(out)
@@ -183,12 +184,31 @@ func (m *DigClient) GetRowsByID(ctx context.Context, source string, collection s
 	return out, nil
 }
 
-/*
-func (m *DigClient) GetRowsByField(ctx context.Context, collection string, field string, value string) chan *DigRow {
-	out := make(chan *DigRow, 10)
-	go func() {
-		defer close(out)
-	}()
-	return out
+func (m *DigClient) GetRowsByField(ctx context.Context, source string, collection string, field string, value string) (chan *Row, error) {
+	out := make(chan *Row, 10)
+  client, err := m.getConn(source)
+  if err != nil {
+    log.WithFields(log.Fields{"error": err}).Error("Connecting to %s")
+    return nil, err
+  }
+  req := FieldRequest{Collection:collection, Field:field, Value:value}
+  cl, err := client.GetRowsByField(ctx, &req)
+  if err != nil {
+    return nil, err
+  }
+  go func() {
+    defer close(out)
+    for {
+      t, err := cl.Recv()
+      if err == io.EOF {
+        return
+      }
+      if err != nil {
+        log.WithFields(log.Fields{"error": err}).Error("Getting Rows")
+        return
+      }
+      out <- t
+    }
+  }()
+  return out, nil
 }
-*/
