@@ -357,11 +357,50 @@ func (t *TabularGraph) GetOutChannel(ctx context.Context, req chan gdbi.ElementL
 }
 
 func (t *TabularGraph) GetInChannel(ctx context.Context, req chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
-	out := make(chan gdbi.ElementLookup, 10)
-	go func () {
-		defer close(out)
+	vReqs := make(chan gdbi.ElementLookup, 10)
+	out := t.GetVertexChannel(ctx, vReqs, load)
+
+	go func() {
+		defer close(vReqs)
+
 		for r := range req {
-			out <- r
+			select {
+			case <-ctx.Done():
+			default:
+				for vPrefix, edgeList := range t.inEdges {
+					if strings.HasPrefix(r.ID, vPrefix) {
+						id := r.ID[len(vPrefix):len(r.ID)]
+						for _, edge := range edgeList {
+							if len(edgeLabels) == 0 || setcmp.ContainsString(edgeLabels, edge.config.Label) {
+								if edge.config.EdgeTable != nil {
+									//log.Printf("Using EdgeTable %s", *edge.config.EdgeTable)
+									res, err := t.client.GetRowsByField( context.Background(),
+										edge.config.EdgeTable.Source,
+										edge.config.EdgeTable.Collection,
+										edge.config.EdgeTable.FromField, id )
+									if err == nil {
+										for row := range res {
+											data := protoutil.AsMap(row.Data)
+											if dst, ok := data[edge.config.EdgeTable.ToField]; ok {
+												if dstStr, ok := dst.(string); ok {
+													dstID := edge.config.ToVertex + dstStr
+													//log.Printf("Edge to %s", dstID)
+													nReq := gdbi.ElementLookup{ ID:dstID, Ref:r.Ref }
+													vReqs <- nReq
+												}
+											}
+										}
+									} else {
+										log.Printf("Row Error: %s", err)
+									}
+								} else if edge.config.FieldToID != nil {
+									log.Printf("Need to implement FieldToID")
+								}
+							}
+						}
+					}
+				}
+			}
 		}
 	}()
 	return out
@@ -369,10 +408,52 @@ func (t *TabularGraph) GetInChannel(ctx context.Context, req chan gdbi.ElementLo
 
 func (t *TabularGraph) GetOutEdgeChannel(ctx context.Context, req chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
 	out := make(chan gdbi.ElementLookup, 10)
-	go func () {
+
+	go func() {
 		defer close(out)
+
 		for r := range req {
-			out <- r
+			select {
+			case <-ctx.Done():
+			default:
+				for vPrefix, edgeList := range t.outEdges {
+					if strings.HasPrefix(r.ID, vPrefix) {
+						id := r.ID[len(vPrefix):len(r.ID)]
+						for _, edge := range edgeList {
+							if len(edgeLabels) == 0 || setcmp.ContainsString(edgeLabels, edge.config.Label) {
+								if edge.config.EdgeTable != nil {
+									//log.Printf("Using EdgeTable %s", *edge.config.EdgeTable)
+									res, err := t.client.GetRowsByField( context.Background(),
+										edge.config.EdgeTable.Source,
+										edge.config.EdgeTable.Collection,
+										edge.config.EdgeTable.FromField, id )
+									if err == nil {
+										for row := range res {
+											data := protoutil.AsMap(row.Data)
+											if dst, ok := data[edge.config.EdgeTable.ToField]; ok {
+												if dstStr, ok := dst.(string); ok {
+													o := gripql.Edge{
+														Gid: edge.prefix + row.Id,
+														To: edge.config.ToVertex + dstStr,
+														From: r.ID,
+														Label: edge.config.Label,
+														Data: row.Data,
+													}
+													out <- gdbi.ElementLookup{ Ref:r.Ref, Edge:&o }
+												}
+											}
+										}
+									} else {
+										log.Printf("Row Error: %s", err)
+									}
+								} else if edge.config.FieldToID != nil {
+									log.Printf("Need to implement FieldToID")
+								}
+							}
+						}
+					}
+				}
+			}
 		}
 	}()
 	return out
@@ -380,10 +461,52 @@ func (t *TabularGraph) GetOutEdgeChannel(ctx context.Context, req chan gdbi.Elem
 
 func (t *TabularGraph) GetInEdgeChannel(ctx context.Context, req chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
 	out := make(chan gdbi.ElementLookup, 10)
-	go func () {
+
+	go func() {
 		defer close(out)
+
 		for r := range req {
-			out <- r
+			select {
+			case <-ctx.Done():
+			default:
+				for vPrefix, edgeList := range t.inEdges {
+					if strings.HasPrefix(r.ID, vPrefix) {
+						id := r.ID[len(vPrefix):len(r.ID)]
+						for _, edge := range edgeList {
+							if len(edgeLabels) == 0 || setcmp.ContainsString(edgeLabels, edge.config.Label) {
+								if edge.config.EdgeTable != nil {
+									//log.Printf("Using EdgeTable %s", *edge.config.EdgeTable)
+									res, err := t.client.GetRowsByField( context.Background(),
+										edge.config.EdgeTable.Source,
+										edge.config.EdgeTable.Collection,
+										edge.config.EdgeTable.FromField, id )
+									if err == nil {
+										for row := range res {
+											data := protoutil.AsMap(row.Data)
+											if dst, ok := data[edge.config.EdgeTable.ToField]; ok {
+												if dstStr, ok := dst.(string); ok {
+													o := gripql.Edge{
+														Gid: edge.prefix + row.Id,
+														From: edge.config.ToVertex + dstStr,
+														To: r.ID,
+														Label: edge.config.Label,
+														Data: row.Data,
+													}
+													out <- gdbi.ElementLookup{ Ref:r.Ref, Edge:&o }
+												}
+											}
+										}
+									} else {
+										log.Printf("Row Error: %s", err)
+									}
+								} else if edge.config.FieldToID != nil {
+									log.Printf("Need to implement FieldToID")
+								}
+							}
+						}
+					}
+				}
+			}
 		}
 	}()
 	return out

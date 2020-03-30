@@ -48,7 +48,7 @@ function query() {
 			this.query.push({'out_e': process(label)})
 			return this
 		},
-		inEdge: function(label) {
+		inE: function(label) {
 			this.query.push({'in_e': process(label)})
 			return this
 		},
