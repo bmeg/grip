@@ -4,6 +4,7 @@ import os
 import sys
 import json
 import grpc
+import requests
 import digdriver_pb2
 import digdriver_pb2_grpc
 
@@ -11,12 +12,46 @@ from google.protobuf import json_format
 from concurrent import futures
 
 
+def pager(url, result):
+    p = result['data']['pagination']
+    if p['page'] >= p['pages']:
+        return None
+    return { "from" : p["from"] + p["count"] }
+
+class GDCCaseCollection:
+    def __init__(self):
+        self.url = "https://api.gdc.cancer.gov/cases"
+
+    def getFields(self):
+        return ["submitter_id", "project.project_id"]
+
+    def getRows(self):
+        res = requests.get(self.url, data={"size":"100", "expand":"project"})
+        j = res.json()
+        for row in j['data']['hits']:
+            yield row['id'], row
+
+class GDCProjectCollection:
+    def __init__(self):
+        self.url = "https://api.gdc.cancer.gov/projects"
+
+    def getRows(self):
+        res = requests.get(self.url, data={"size":"100", "expand":"project"})
+        j = res.json()
+        for row in j['data']['hits']:
+            yield row['id'], row
+
+collectionMap = {
+    "GDCCases" : GDCCaseCollection(),
+    "GDCProjects" : GDCProjectCollection()
+}
+
 class GDCSource(digdriver_pb2_grpc.DigSourceServicer):
     def __init__(self):
         pass
 
     def GetCollections(self, request, context):
-        for i in []:
+        for i in collectionMap.keys():
             o = digdriver_pb2.Collection()
             o.name = i
             yield o
@@ -35,7 +70,7 @@ class GDCSource(digdriver_pb2_grpc.DigSourceServicer):
 
     def GetRows(self, request, context):
         # request.name
-        for k,v in {}.items():
+        for k, v in collectionMap[request.name].getRows():
             o = digdriver_pb2.Row()
             o.id = k
             json_format.ParseDict(v, o.data)
