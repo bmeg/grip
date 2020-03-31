@@ -1,0 +1,35 @@
+
+sources:
+  proxyServer:
+    host: localhost:50051
+
+
+vertices:
+  "gdc.cancer.gov/case/" :
+    source: proxyServer
+    collection: GDCCases
+    label: GDCCase
+
+  "gdc.cancer.gov/project/" :
+    source: proxyServer
+    collection: GDCProjects
+    label: GDCProject
+
+  "pdc.esacinc.com/public_case/" :
+    source: proxyServer
+    collection: PDCPublicCases
+    label: PDCPublicCase
+
+  "gdc.cancer.gov/ssm_occurrence/" :
+    source: proxyServer
+    collection: GDCSSMOccurrence
+    label: SSMOccurrence
+
+edges:
+  pdc2gdccase:
+    fromVertex: "pdc.esacinc.com/public_case/"
+    toVertex: "gdc.cancer.gov/case/"
+    label: "gdcRecord"
+    fieldToField:
+      fromField: case_submitter_id
+      toField: submitter_id

@@ -34,6 +34,11 @@ type FieldToIDConfig struct {
 	FromField   string `json:"fromField"`
 }
 
+type FieldToFieldConfig struct {
+	ToField     string `json:"toField"`
+	FromField   string `json:"fromField"`
+}
+
 type EdgeTableConfig struct {
 	Source      string `json:"source"`
 	Collection  string `json:"collection"`
@@ -45,8 +50,9 @@ type EdgeConfig struct {
 	ToVertex   string `json:"toVertex"`
 	FromVertex string `json:"fromVertex"`
 	Label      string `json:"label"`
-	FieldToID  *FieldToIDConfig  `json:"fieldToID"`
-	EdgeTable  *EdgeTableConfig  `json:"edgeTable"`
+	FieldToID    *FieldToIDConfig     `json:"fieldToID"`
+	FieldToField *FieldToFieldConfig  `json:"fieldToField"`
+	EdgeTable    *EdgeTableConfig     `json:"edgeTable"`
 }
 
 func LoadConfig(path string) (*GraphConfig, error) {

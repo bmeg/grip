@@ -12,11 +12,16 @@ from google.protobuf import json_format
 from concurrent import futures
 
 
-def pager(url, result):
-    p = result['data']['pagination']
-    if p['page'] >= p['pages']:
-        return None
-    return { "from" : p["from"] + p["count"] }
+def gdcPager(url, params, getElementList):
+    while True:
+        res = requests.get(url, params=params)
+        result = res.json()
+        for i in getElementList(result):
+            yield i
+        p = result['data']['pagination']
+        if p['page'] >= p['pages']:
+            break
+        params["from"] = p["from"] + p["count"]
 
 class GDCCaseCollection:
     def __init__(self):
@@ -26,24 +31,166 @@ class GDCCaseCollection:
         return ["submitter_id", "project.project_id"]
 
     def getRows(self):
-        res = requests.get(self.url, data={"size":"100", "expand":"project"})
-        j = res.json()
-        for row in j['data']['hits']:
+        for row in gdcPager(self.url, {"size":"100", "expand":"project"}, lambda x: x['data']['hits']):
+            yield row['id'], row
+
+    def getRowByID(self, id):
+        filter = """{"op":"in","content":{"field":"id","value":["%s"]}}""" % id
+        res = requests.get(self.url, params={"filters":filter, "expand":"project"})
+        return res['data']['hits'][0]
+
+    def getRowsByField(self, field, value):
+        queryMap = {
+            "case_id" : """{"op":"in","content":{"field":"case_id","value":["%s"]}}""",
+            "submitter_id" : """{"op":"in","content":{"field":"submitter_id","value":["%s"]}}"""
+        }
+        filter = queryMap[field] % (value)
+
+        for row in gdcPager(self.url, {"filters":filter, "size":"100", "expand":"project"}, lambda x: x['data']['hits']):
             yield row['id'], row
 
 class GDCProjectCollection:
     def __init__(self):
         self.url = "https://api.gdc.cancer.gov/projects"
 
+    def getFields(self):
+        return []
+
     def getRows(self):
-        res = requests.get(self.url, data={"size":"100", "expand":"project"})
-        j = res.json()
-        for row in j['data']['hits']:
+        for row in gdcPager(self.url, {"size":"100", "expand":"project"}, lambda x: x['data']['hits']):
             yield row['id'], row
+
+class GDCSSMOccurrenceCollection:
+    def __init__(self):
+        self.url = "https://api.gdc.cancer.gov/ssm_occurrences"
+
+    def getFields(self):
+        return ["case.case_id"]
+
+    def getRowByID(self, id):
+        filter = """{"op":"in","content":{"field":"ssm_occurrence_id","value":["%s"]}}""" % (id)
+        res = requests.get(self.url, params={"filters":filter, "size" : "100", "expand":"case"})
+        j = res.json()
+        return j['data']['hits'][0]
+
+    def getRows(self):
+        for row in gdcPager(self.url, {"size":"100", "expand":"case"}, lambda x: x['data']['hits']):
+            yield row['id'], row
+
+    def getRowsByField(self, field, value):
+        queryMap = {
+            "case.case_id" : """{"op":"in","content":{"field":"case.case_id","value":["%s"]}}"""
+        }
+        filter = queryMap[field] % value
+        for row in gdcPager(self.url, {"filters":filter, "expand":"case"}, lambda x:x['data']['hits']):
+            yield row['id'], row
+
+class GDCSSMCollection:
+    def __init__(self):
+        self.url = "https://api.gdc.cancer.gov/ssms"
+
+    def getFields(self):
+        return ["cosmic_id"]
+
+    def getRows(self):
+        for row in gdcPager(self.url, {"size":"100"}, lambda x: x['data']['hits']):
+            yield row['id'], row
+
+    def getRowByID(self, id):
+        filter = """{"op":"in","content":{"field":"id","value":["%s"]}}""" % (id)
+        res = requests.get(self.url, params={"filters":filter, "size" : "100"})
+        j = res.json()
+        return j['data']['hits'][0]
+
+    def getRowsByField(self, field, value):
+        queryMap = {
+            "cosmic_id" : """{"op":"in","content":{"field":"case.case_id","value":["%s"]}}"""
+        }
+        filter = queryMap[field] % value
+        for row in gdcPager(self.url, {"filters":filter}, lambda x:x['data']['hits']):
+            yield row['id'], row
+
+
+class PDCPublicCaseCollection:
+    def __init__(self):
+        self.url = "https://pdc.esacinc.com/graphql"
+        query = "{allCases {case_id case_submitter_id project_submitter_id disease_type primary_site}}"
+        req = requests.get(self.url, params={"query":query})
+        j = req.json()
+        self.data = {}
+        for row in j['data']['allCases']:
+            self.data[row['case_id']] = row
+
+    def getFields(self):
+        return ["case_submitter_id", "project_submitter_id"]
+
+    def getRows(self):
+        for k, v in self.data.items():
+            yield k, v
+
+    def getRowByID(self, id):
+        return self.data[id]
+
+    def getRowsByField(self, field, value):
+        for id, row in self.data.items():
+            if row.get(field, None) == value:
+                yield id, row
+
+class PDBCaseCollection:
+
+    def __init__(self):
+        self.url = "https://pdc.esacinc.com/graphql"
+
+    def getRowByID(self, id):
+        filter = """
+            case_id:
+              url: https://pdc.esacinc.com/graphql
+              element: "
+              params:
+                query: >
+                  query {
+                    case(case_id:"%s") {
+                      case_id
+                      case_submitter_id
+                      project_submitter_id
+                      external_case_id
+                      tissue_source_site_code
+                      days_to_lost_to_followup
+                      disease_type
+                      index_date
+                      lost_to_followup
+                      primary_site
+                      count
+                      demographics {
+                        demographic_id
+                        demographic_submitter_id
+                        ethnicity
+                        gender
+                        race
+                        cause_of_death
+                        days_to_birth
+                        days_to_death
+                        vital_status
+                        year_of_birth
+                        year_of_death
+                      }
+                      project {
+                        project_id
+                      }
+                      samples {
+                        sample_id
+                      }
+                    }
+                  }""" % (id)
+        req = requests.get(self.url, params={"query":query})
+        j = req.json()
+        return j["data"]["case"]
 
 collectionMap = {
     "GDCCases" : GDCCaseCollection(),
-    "GDCProjects" : GDCProjectCollection()
+    "GDCProjects" : GDCProjectCollection(),
+    "PDCPublicCases" : PDCPublicCaseCollection(),
+    "GDCSSMOccurrence" : GDCSSMOccurrenceCollection()
 }
 
 class GDCSource(digdriver_pb2_grpc.DigSourceServicer):
@@ -58,6 +205,7 @@ class GDCSource(digdriver_pb2_grpc.DigSourceServicer):
 
     def GetCollectionInfo(self, request, context):
         o = digdriver_pb2.CollectionInfo()
+        o.search_fields.extend( collectionMap[request.name].getFields() )
         # request.name
         return o
 
@@ -78,7 +226,7 @@ class GDCSource(digdriver_pb2_grpc.DigSourceServicer):
 
     def GetRowsByID(self, request_iterator, context):
         for req in request_iterator:
-            d = self.data[req.collection][req.id]
+            d = collectionMap[req.collection].getRowByID(req.id)
             o = digdriver_pb2.Row()
             o.id = req.id
             o.requestID = req.requestID
@@ -86,13 +234,11 @@ class GDCSource(digdriver_pb2_grpc.DigSourceServicer):
             yield o
 
     def GetRowsByField(self, request, context):
-        c = self.data[request.collection]
-        for k, v in c.items():
-            if v.get(request.field, None) == request.value:
-                o = digdriver_pb2.Row()
-                o.id = k
-                json_format.ParseDict(v, o.data)
-                yield o
+        for k, v in collectionMap[request.collection].getRowsByField(request.field, request.value):
+            o = digdriver_pb2.Row()
+            o.id = k
+            json_format.ParseDict(v, o.data)
+            yield o
 
 
 def serve(port):
