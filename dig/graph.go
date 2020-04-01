@@ -12,6 +12,7 @@ import (
 	"github.com/bmeg/grip/protoutil"
 	"github.com/bmeg/grip/util/setcmp"
 	"github.com/bmeg/grip/log"
+	"github.com/oliveagle/jsonpath"
 )
 
 type VertexSource struct {
@@ -184,8 +185,10 @@ func (t *TabularGraph) GetVertex(key string, load bool) *gripql.Vertex {
 				for i := range rowChan {
 					row = i
 				}
-				o := gripql.Vertex{Gid: v.prefix + row.Id, Label: v.config.Label, Data: row.Data}
-				return &o
+				if row != nil {
+					o := gripql.Vertex{Gid: v.prefix + row.Id, Label: v.config.Label, Data: row.Data}
+					return &o
+				}
 			} else {
 				log.Error("Row not read: %s", err)
 			}
@@ -382,7 +385,7 @@ func (t *TabularGraph) GetOutChannel(ctx context.Context, req chan gdbi.ElementL
 									cur := r.Ref.GetCurrent()
 									fValue := ""
 									if cur != nil && cur.ID == r.ID {
-										if v, ok := cur.Data[edge.config.FieldToField.FromField]; ok {
+										if v, err := jsonpath.JsonPathLookup(cur.Data, edge.config.FieldToField.FromField ); err == nil {
 											if vStr, ok := v.(string); ok {
 												fValue = vStr
 											}
@@ -455,6 +458,37 @@ func (t *TabularGraph) GetInChannel(ctx context.Context, req chan gdbi.ElementLo
 									} else {
 										log.Errorf("Row Error: %s", err)
 									}
+								} else if edge.config.FieldToField != nil {
+									cur := r.Ref.GetCurrent()
+									fValue := ""
+									if cur != nil && cur.ID == r.ID {
+										if v, err := jsonpath.JsonPathLookup(cur.Data, edge.config.FieldToField.FromField ); err == nil {
+											if vStr, ok := v.(string); ok {
+												fValue = vStr
+											}
+										} else {
+											log.Infof("Missing Field: %s", edge.config.FieldToField.FromField)
+										}
+									} else {
+										//TODO: getting vertex out request without loading vertex
+										//Trying to figure out if this can happen...
+										log.Errorf("Source Vertex not in Ref")
+									}
+									if fValue != "" {
+										res, err := t.client.GetRowsByField(context.Background(),
+											edge.toVertex.config.Source,
+											edge.toVertex.config.Collection,
+											edge.config.FieldToField.ToField, fValue)
+										if err == nil {
+											for row := range res {
+												o := gripql.Vertex{Gid: edge.toVertex.prefix + row.Id, Label: edge.toVertex.config.Label, Data:row.Data}
+												el := gdbi.ElementLookup{ID: r.ID, Ref: r.Ref, Vertex: &o}
+												out <- el
+											}
+										} else {
+											log.Errorf("Error doing FieldToField search: %s", err)
+										}
+									}
 								} else if edge.config.FieldToID != nil {
 									log.Infof("Need to implement FieldToID")
 								}
@@ -492,7 +526,7 @@ func (t *TabularGraph) GetOutEdgeChannel(ctx context.Context, req chan gdbi.Elem
 									if err == nil {
 										for row := range res {
 											data := protoutil.AsMap(row.Data)
-											if dst, ok := data[edge.config.EdgeTable.ToField]; ok {
+											if dst, err := jsonpath.JsonPathLookup(data, edge.config.EdgeTable.ToField ); err == nil {
 												if dstStr, ok := dst.(string); ok {
 													o := gripql.Edge{
 														Gid:   edge.prefix + row.Id,
@@ -545,7 +579,7 @@ func (t *TabularGraph) GetInEdgeChannel(ctx context.Context, req chan gdbi.Eleme
 									if err == nil {
 										for row := range res {
 											data := protoutil.AsMap(row.Data)
-											if dst, ok := data[edge.config.EdgeTable.ToField]; ok {
+											if dst, err := jsonpath.JsonPathLookup(data, edge.config.EdgeTable.ToField ); err == nil {
 												if dstStr, ok := dst.(string); ok {
 													o := gripql.Edge{
 														Gid:   edge.prefix + row.Id,

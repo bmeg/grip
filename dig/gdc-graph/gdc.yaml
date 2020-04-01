@@ -25,19 +25,40 @@ vertices:
     collection: GDCSSMOccurrence
     label: SSMOccurrence
 
+  "gdc.cancer.gov/ssm/" :
+    source: proxyServer
+    collection: GDCSSM
+    label: SSM
+
 edges:
   pdc2gdccase:
     fromVertex: "pdc.esacinc.com/public_case/"
     toVertex: "gdc.cancer.gov/case/"
     label: "gdcRecord"
     fieldToField:
-      fromField: case_submitter_id
-      toField: submitter_id
+      fromField: $.case_submitter_id
+      toField: $.submitter_id
 
   case2ssms:
     fromVertex: "gdc.cancer.gov/case/"
     toVertex: "gdc.cancer.gov/ssm_occurrence/"
     label: ssms
     fieldToField:
-      fromField: id
-      toField: case.case_id
+      fromField: $.id
+      toField: $.case.case_id
+
+  project2case:
+    fromVertex: "gdc.cancer.gov/project/"
+    toVertex: "gdc.cancer.gov/case/"
+    label: "cases"
+    fieldToField:
+      fromField: $.project_id
+      toField: $.project.project_id
+
+  ssm2occurance:
+    fromVertex: "gdc.cancer.gov/ssm/"
+    toVertex: "gdc.cancer.gov/ssm_occurrence/"
+    label: "occurances"
+    fieldToField:
+      fromField: "$.ssm_id"
+      toField: "$.ssm.ssm_id"

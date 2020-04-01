@@ -24,8 +24,9 @@ edges:
     fromVertex: "Character:"
     toVertex: "Planet:"
     label: homeworld
-    fieldToID:
-      fromField: planet
+    fieldToField:
+      fromField: $.planet
+      toField: $.id
 
   characters:
     fromVertex: "Film:"
@@ -34,5 +35,5 @@ edges:
     edgeTable:
       source: tableServer
       collection: filmCharacters
-      fromField: "from"
-      toField: "to"
+      fromField: "$.from"
+      toField: "$.to"
