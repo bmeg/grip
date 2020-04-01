@@ -187,7 +187,7 @@ func (t *TabularGraph) GetVertex(key string, load bool) *gripql.Vertex {
 				o := gripql.Vertex{Gid: v.prefix + row.Id, Label: v.config.Label, Data: row.Data}
 				return &o
 			} else {
-				log.Error("Row not read")
+				log.Error("Row not read: %s", err)
 			}
 		}
 	}

@@ -33,3 +33,11 @@ edges:
     fieldToField:
       fromField: case_submitter_id
       toField: submitter_id
+
+  case2ssms:
+    fromVertex: "gdc.cancer.gov/case/"
+    toVertex: "gdc.cancer.gov/ssm_occurrence/"
+    label: ssms
+    fieldToField:
+      fromField: id
+      toField: case.case_id

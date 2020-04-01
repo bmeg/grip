@@ -65,12 +65,12 @@ func (m *DigClient) GetCollections(ctx context.Context, source string) chan stri
 		defer close(out)
     client, err := m.getConn(source)
     if err != nil {
-      log.WithFields(log.Fields{"error": err}).Error("Connecting to %s")
+      log.WithFields(log.Fields{"error": err}).Error("Error Connecting to %s")
       return
     }
     cl, err := client.GetCollections(ctx, &Empty{})
     if err != nil {
-      log.WithFields(log.Fields{"error": err}).Error("Receiving collecion list")
+      log.WithFields(log.Fields{"error": err}).Error("Error Receiving collecion list in GetCollections")
       return
     }
     for {
@@ -79,7 +79,7 @@ func (m *DigClient) GetCollections(ctx context.Context, source string) chan stri
         return
       }
       if err != nil {
-        log.WithFields(log.Fields{"error": err}).Error("Receiving collecion list")
+        log.WithFields(log.Fields{"error": err}).Error("Error with cl.Recv in GetCollections")
         return
       }
       out <- t.Name
@@ -95,13 +95,13 @@ func (m *DigClient) GetIDs(ctx context.Context, source string, collection string
 		defer close(out)
     client, err := m.getConn(source)
     if err != nil {
-      log.WithFields(log.Fields{"error": err}).Error("Connecting to %s")
+      log.WithFields(log.Fields{"error": err}).Error("Error Connecting to %s")
       return
     }
     req := Collection{Name: collection}
 		cl, err := client.GetIDs(ctx, &req)
     if err != nil {
-      log.WithFields(log.Fields{"error": err}).Error("Getting IDs")
+      log.WithFields(log.Fields{"error": err}).Error("Error calling GetIDs")
       return
     }
     for {
@@ -110,7 +110,7 @@ func (m *DigClient) GetIDs(ctx context.Context, source string, collection string
 				return
 			}
 			if err != nil {
-				log.WithFields(log.Fields{"error": err}).Error("Getting Rows")
+				log.WithFields(log.Fields{"error": err}).Error("Error calling cl.Recv in GetIDs")
 				return
 			}
 			out <- t.Id
@@ -125,13 +125,13 @@ func (m *DigClient) GetRows(ctx context.Context, source string, collection strin
 		defer close(out)
     client, err := m.getConn(source)
     if err != nil {
-      log.WithFields(log.Fields{"error": err}).Error("Connecting to %s")
+      log.WithFields(log.Fields{"error": err}).Error("Error Connecting to %s")
       return
     }
 		req := Collection{Name: collection}
 		cl, err := client.GetRows(ctx, &req)
     if err != nil {
-      log.WithFields(log.Fields{"error": err}).Error("Getting Rows")
+      log.WithFields(log.Fields{"error": err}).Error("Error calling GetRows")
       return
     }
 		for {
@@ -140,7 +140,7 @@ func (m *DigClient) GetRows(ctx context.Context, source string, collection strin
 				return
 			}
 			if err != nil {
-				log.WithFields(log.Fields{"error": err}).Error("Getting Rows")
+				log.WithFields(log.Fields{"error": err}).Error("Error calling cl.Recv in GetRows")
 				return
 			}
 			out <- t
@@ -153,7 +153,7 @@ func (m *DigClient) GetRowsByID(ctx context.Context, source string, collection s
   out := make(chan *Row, 10)
   client, err := m.getConn(source)
   if err != nil {
-    log.WithFields(log.Fields{"error": err}).Error("Connecting to %s")
+    log.WithFields(log.Fields{"error": err}).Error("Error Connecting to %s")
     return nil, err
   }
   cl, err := client.GetRowsByID(ctx)
@@ -175,7 +175,7 @@ func (m *DigClient) GetRowsByID(ctx context.Context, source string, collection s
 				return
 			}
 			if err != nil {
-				log.WithFields(log.Fields{"error": err}).Error("Getting Rows")
+				log.WithFields(log.Fields{"error": err}).Error("Error calling cl.Recv in GetRowsByID")
 				return
 			}
 			out <- t
@@ -188,7 +188,7 @@ func (m *DigClient) GetRowsByField(ctx context.Context, source string, collectio
 	out := make(chan *Row, 10)
   client, err := m.getConn(source)
   if err != nil {
-    log.WithFields(log.Fields{"error": err}).Error("Connecting to %s")
+    log.WithFields(log.Fields{"error": err}).Error("Error Connecting to %s")
     return nil, err
   }
   req := FieldRequest{Collection:collection, Field:field, Value:value}
@@ -204,7 +204,7 @@ func (m *DigClient) GetRowsByField(ctx context.Context, source string, collectio
         return
       }
       if err != nil {
-        log.WithFields(log.Fields{"error": err}).Error("Getting Rows")
+        log.WithFields(log.Fields{"error": err}).Error("Error calling cl.Recv in GetRowsByField")
         return
       }
       out <- t

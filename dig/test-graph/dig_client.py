@@ -25,6 +25,17 @@ def get_collection(conn, args):
     res = conn.GetCollectionInfo(req)
     print(res)
 
+def genIdReqs(ids, collection):
+    for i in ids:
+        o = digdriver_pb2.RowRequest()
+        o.collection = collection
+        o.id = i
+        yield o
+
+def getby_ids(conn, args):
+    for row in conn.GetRowsByID(genIdReqs(args.ids, args.collection)):
+        print("%s\t%s" % (row.id, json_format.MessageToDict(row.data)))
+
 def list_rows(conf, args):
     req = digdriver_pb2.Collection()
     req.name = args.collection
@@ -53,6 +64,11 @@ if __name__ == "__main__":
     ids_cmd = subcmd.add_parser("ids")
     ids_cmd.add_argument("collection")
     ids_cmd.set_defaults(func=list_ids)
+
+    get_cmd = subcmd.add_parser("get")
+    get_cmd.add_argument("collection")
+    get_cmd.add_argument("ids", nargs="+")
+    get_cmd.set_defaults(func=getby_ids)
 
     row_cmd = subcmd.add_parser("rows")
     row_cmd.add_argument("collection")

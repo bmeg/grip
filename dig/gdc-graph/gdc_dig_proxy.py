@@ -28,21 +28,23 @@ class GDCCaseCollection:
         self.url = "https://api.gdc.cancer.gov/cases"
 
     def getFields(self):
-        return ["submitter_id", "project.project_id"]
+        return ["id", "case_id", "submitter_id", "project.project_id"]
 
     def getRows(self):
         for row in gdcPager(self.url, {"size":"100", "expand":"project"}, lambda x: x['data']['hits']):
             yield row['id'], row
 
     def getRowByID(self, id):
-        filter = """{"op":"in","content":{"field":"id","value":["%s"]}}""" % id
+        filter = """{"op":"in","content":{"field":"case_id","value":["%s"]}}""" % id
         res = requests.get(self.url, params={"filters":filter, "expand":"project"})
-        return res['data']['hits'][0]
+        j = res.json()
+        return j['data']['hits'][0]
 
     def getRowsByField(self, field, value):
         queryMap = {
             "case_id" : """{"op":"in","content":{"field":"case_id","value":["%s"]}}""",
-            "submitter_id" : """{"op":"in","content":{"field":"submitter_id","value":["%s"]}}"""
+            "submitter_id" : """{"op":"in","content":{"field":"submitter_id","value":["%s"]}}""",
+            "project.project_id" : """{"op":"in","content":{"field":"project.project_id","value":["%s"]}}"""
         }
         filter = queryMap[field] % (value)
 
