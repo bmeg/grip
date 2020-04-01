@@ -3,7 +3,7 @@ function process(val) {
 		val = []
   } else if (typeof val == "string" || typeof val == "number") {
 	  val = [val]
-  } else if (!Array.isArray(vall)) {
+  } else if (!Array.isArray(val)) {
 		throw "not something we know how to process into an array"
 	}
 	return val
