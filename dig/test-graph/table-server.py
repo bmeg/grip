@@ -30,7 +30,7 @@ class CollectionServicer(digdriver_pb2_grpc.DigSourceServicer):
         o = digdriver_pb2.CollectionInfo()
         c = self.data[request.name]
         for f in keyUnion(i.keys() for i in c.values()):
-            o.search_fields.append(f)
+            o.search_fields.append( "$." + f)
         return o
 
     def GetIDs(self, request, context):
@@ -57,8 +57,9 @@ class CollectionServicer(digdriver_pb2_grpc.DigSourceServicer):
 
     def GetRowsByField(self, request, context):
         c = self.data[request.collection]
+        f = re.sub( r'^\$\.', '', request.field)
         for k, v in c.items():
-            if v.get(request.field, None) == request.value:
+            if v.get(f, None) == request.value:
                 o = digdriver_pb2.Row()
                 o.id = k
                 json_format.ParseDict(v, o.data)

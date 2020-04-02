@@ -19,16 +19,79 @@ vertices:
     label: Film
     collection: Film
 
+  "Species:" :
+    source: tableServer
+    label: Species
+    collection: Species
+
+  "Starship:" :
+    source: tableServer
+    label: Starship
+    collection: Starship
+
+  "Vehicle:" :
+    source: tableServer
+    label: Vehicle
+    collection: Vehicle
+
 edges:
   homeworld:
     fromVertex: "Character:"
     toVertex: "Planet:"
     label: homeworld
     fieldToField:
-      fromField: $.planet
+      fromField: $.homeworld
       toField: $.id
 
-  characters:
+  homeworld:
+    fromVertex: "Character:"
+    toVertex: "Species:"
+    label: species
+    fieldToField:
+      fromField: $.species
+      toField: $.id
+
+  filmVehicles:
+    fromVertex: "Film:"
+    toVertex: "Vehicle:"
+    label: "vehicles"
+    edgeTable:
+      source: tableServer
+      collection: filmVehicles
+      fromField: "$.from"
+      toField: "$.to"
+
+  filmStarships:
+    fromVertex: "Film:"
+    toVertex: "Starship:"
+    label: "starships"
+    edgeTable:
+      source: tableServer
+      collection: filmStarships
+      fromField: "$.from"
+      toField: "$.to"
+
+  filmPlanets:
+    fromVertex: "Film:"
+    toVertex: "Planet:"
+    label: "planets"
+    edgeTable:
+      source: tableServer
+      collection: filmPlanets
+      fromField: "$.from"
+      toField: "$.to"
+
+  filmSpecies:
+    fromVertex: "Film:"
+    toVertex: "Species:"
+    label: "species"
+    edgeTable:
+      source: tableServer
+      collection: filmSpecies
+      fromField: "$.from"
+      toField: "$.to"
+
+  filmCharacters:
     fromVertex: "Film:"
     toVertex: "Character:"
     label: characters
@@ -37,3 +100,13 @@ edges:
       collection: filmCharacters
       fromField: "$.from"
       toField: "$.to"
+
+  characterFilms:
+    fromVertex: "Character:"
+    toVertex: "Film:"
+    label: films
+    edgeTable:
+      source: tableServer
+      collection: filmCharacters
+      toField: "$.from"
+      fromField: "$.to"
