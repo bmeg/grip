@@ -68,11 +68,24 @@ func NewTabularGraph(conf GraphConfig) (*TabularGraph, error) {
 				return nil, fmt.Errorf("Unable to get collection information",
 					e.EdgeTable.Source, e.EdgeTable.Collection)
 			}
+			if !strings.HasPrefix(e.EdgeTable.ToField, "$.") {
+				return nil, fmt.Errorf("Edge 'To' Field does not start with JSONPath prefix ($.) = %s", e.EdgeTable.ToField)
+			}
+			if !strings.HasPrefix(e.EdgeTable.FromField, "$.") {
+				return nil, fmt.Errorf("Edge 'From' Field does not start with JSONPath prefix ($.) = %s", e.EdgeTable.FromField)
+			}
 		} else if e.FieldToID != nil {
 			//return nil, fmt.Errorf("Not supported yet")
 		} else if e.FieldToField != nil {
 			vTo := conf.Vertices[e.ToVertex]
 			vFrom := conf.Vertices[e.FromVertex]
+
+			if !strings.HasPrefix(e.FieldToField.ToField, "$.") {
+				return nil, fmt.Errorf("Edge 'To' Field does not start with JSONPath prefix ($.) = %s", e.FieldToField.ToField)
+			}
+			if !strings.HasPrefix(e.FieldToField.FromField, "$.") {
+				return nil, fmt.Errorf("Edge 'From' Field does not start with JSONPath prefix ($.) = %s", e.FieldToField.FromField)
+			}
 
 			if iTo, err := out.client.GetCollectionInfo(context.Background(),
 				vTo.Source, vTo.Collection); err == nil {
@@ -518,7 +531,7 @@ func (t *TabularGraph) GetOutEdgeChannel(ctx context.Context, req chan gdbi.Elem
 						for _, edge := range edgeList {
 							if len(edgeLabels) == 0 || setcmp.ContainsString(edgeLabels, edge.config.Label) {
 								if edge.config.EdgeTable != nil {
-									//log.Printf("Using EdgeTable %s", *edge.config.EdgeTable)
+									//log.Infof("Using EdgeTable %s", *edge.config.EdgeTable)
 									res, err := t.client.GetRowsByField(context.Background(),
 										edge.config.EdgeTable.Source,
 										edge.config.EdgeTable.Collection,
