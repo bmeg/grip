@@ -1,0 +1,4 @@
+id	orbital_period	name	system	terrain	population	url	gravity	surface_water	diameter	climate	rotation_period
+2	364	"Alderaan"	{"created": "2014-12-10T11:35:48.479000Z", "edited": "2014-12-20T20:58:18.420000Z"}	["grasslands", "mountains"]	2000000000	"https://swapi.co/api/planets/2/"	null	"40"	"12500"	"temperate"	24
+3	4818	"Yavin IV"	{"created": "2014-12-10T11:37:19.144000Z", "edited": "2014-12-20T20:58:18.421000Z"}	["jungle", "rainforests"]	1000	"https://swapi.co/api/planets/3/"	null	"8"	"10200"	"temperate, tropical"	24
+1	304	"Tatooine"	{"created": "2014-12-09T13:50:49.641000Z", "edited": "2014-12-21T20:48:04.175778Z"}	["desert"]	200000	"https://swapi.co/api/planets/1/"	null	"1"	"10465"	"arid"	23

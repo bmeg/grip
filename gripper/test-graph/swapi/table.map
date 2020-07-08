@@ -1,0 +1,14 @@
+Character	Character.tsv
+Planet	Planet.tsv
+Starship	Starship.tsv
+Vehicle	Vehicle.tsv
+Species	Species.tsv
+Film	Film.tsv
+filmCharacters	filmCharacters.tsv
+filmPlanets	filmPlanets.tsv
+filmStarships	filmStarships.tsv
+filmVehicles	filmVehicles.tsv
+filmSpecies	filmSpecies.tsv
+characterHomeworld	characterHomeworld.tsv
+characterSpecies	characterSpecies.tsv
+characterStarships	characterStarships.tsv

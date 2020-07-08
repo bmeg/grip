@@ -126,6 +126,9 @@ start-mysql:
 	@docker rm -f grip-mysql-test > /dev/null 2>&1 || echo
 	docker run -d --name grip-mysql-test -p 13306:3306 -e MYSQL_ALLOW_EMPTY_PASSWORD=yes mysql:8.0.11 --default-authentication-plugin=mysql_native_password > /dev/null
 
+start-gripper-test:
+	@cd ./gripper/test-graph && ./table-server.py swapi/table.map &
+
 # ---------------------
 # Website
 # ---------------------

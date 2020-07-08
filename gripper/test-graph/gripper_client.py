@@ -2,32 +2,32 @@
 
 import grpc
 import argparse
-import digdriver_pb2
-import digdriver_pb2_grpc
+import gripper_pb2
+import gripper_pb2_grpc
 from google.protobuf import json_format
 
 
 def list_collections(conn, args):
-    res = conn.GetCollections(digdriver_pb2.Empty())
+    res = conn.GetCollections(gripper_pb2.Empty())
     for l in res:
         print(l.name)
 
 def list_ids(conn, args):
-    req = digdriver_pb2.Collection()
+    req = gripper_pb2.Collection()
     req.name = args.collection
     res = conn.GetIDs(req)
     for l in res:
         print(l.id)
 
 def get_collection(conn, args):
-    req = digdriver_pb2.Collection()
+    req = gripper_pb2.Collection()
     req.name = args.collection
     res = conn.GetCollectionInfo(req)
     print(res)
 
 def genIdReqs(ids, collection):
     for i in ids:
-        o = digdriver_pb2.RowRequest()
+        o = gripper_pb2.RowRequest()
         o.collection = collection
         o.id = i
         yield o
@@ -37,14 +37,14 @@ def getby_ids(conn, args):
         print("%s\t%s" % (row.id, json_format.MessageToDict(row.data)))
 
 def list_rows(conf, args):
-    req = digdriver_pb2.Collection()
+    req = gripper_pb2.Collection()
     req.name = args.collection
     res = conn.GetRows(req)
     for l in res:
         print("%s\t%s" % (l.id, json_format.MessageToDict(l.data)))
 
 def search_collection(conf, args):
-    req = digdriver_pb2.FieldRequest()
+    req = gripper_pb2.FieldRequest()
     req.collection = args.collection
     req.field = args.field
     req.value = args.value
@@ -87,5 +87,5 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     with grpc.insecure_channel(args.server) as channel:
-        conn = digdriver_pb2_grpc.DigSourceStub(channel)
+        conn = gripper_pb2_grpc.DigSourceStub(channel)
         args.func(conn, args)
