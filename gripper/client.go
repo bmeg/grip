@@ -1,4 +1,4 @@
-package dig
+package gripper
 
 import (
   "io"

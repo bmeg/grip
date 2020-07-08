@@ -19,7 +19,7 @@ import (
 	_ "github.com/bmeg/grip/kvi/leveldb"  // import so level will register itself
 	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/mongo"
-	"github.com/bmeg/grip/dig"
+	"github.com/bmeg/grip/gripper"
 	"github.com/bmeg/grip/psql"
 	"github.com/bmeg/grip/server"
 	_ "github.com/go-sql-driver/mysql" //import so mysql will register as a sql driver
@@ -60,8 +60,8 @@ func Run(conf *config.Config, schemas map[string]*gripql.Graph) error {
 	case "existing-sql":
 		db, err = esql.NewGraphDB(conf.ExistingSQL)
 
-	case "dig":
-		db, err = dig.NewGDB(conf.Dig, configFile)
+	case "gripper":
+		db, err = gripper.NewGDB(conf.Gripper, configFile)
 
 	default:
 		err = fmt.Errorf("unknown database: %s", dbname)

@@ -45,11 +45,11 @@ proto:
 		-I ./ \
 		--go_out=. \
 		index.proto
-	@cd dig/ && protoc \
+	@cd gripper/ && protoc \
 	  -I ./ \
 		-I ../googleapis/ \
 		--go_out=Mgoogle/protobuf/struct.proto=github.com/golang/protobuf/ptypes/struct,plugins=grpc:. \
-		digdriver.proto
+		gripper.proto
 
 
 proto-depends:

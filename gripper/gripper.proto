@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package dig;
+package gripper;
 
 import "google/protobuf/struct.proto";
 
@@ -23,7 +23,7 @@ message RowRequest {
 message FieldRequest {
   string collection = 1;
   string field = 2;
-  string value = 3;  
+  string value = 3;
 }
 
 message Row {

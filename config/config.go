@@ -14,7 +14,7 @@ import (
 	esql "github.com/bmeg/grip/existing-sql"
 	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/mongo"
-	"github.com/bmeg/grip/dig"
+	"github.com/bmeg/grip/gripper"
 	"github.com/bmeg/grip/psql"
 	"github.com/bmeg/grip/server"
 	"github.com/bmeg/grip/util"
@@ -38,7 +38,7 @@ type Config struct {
 	MongoDB       mongo.Config
 	PSQL          psql.Config
 	ExistingSQL   esql.Config
-	Dig           dig.Config
+	Gripper       gripper.Config
 	Logger        log.Logger
 }
 
