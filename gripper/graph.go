@@ -363,7 +363,6 @@ func (t *TabularGraph) GetOutChannel(ctx context.Context, req chan gdbi.ElementL
 
 	go func() {
 		defer close(vReqs)
-
 		for r := range req {
 			select {
 			case <-ctx.Done():
@@ -381,11 +380,13 @@ func (t *TabularGraph) GetOutChannel(ctx context.Context, req chan gdbi.ElementL
 									if err == nil {
 										for row := range res {
 											data := protoutil.AsMap(row.Data)
-											if dst, ok := data[edge.config.EdgeTable.ToField]; ok {
+											if dst, err := jsonpath.JsonPathLookup(data, edge.config.EdgeTable.ToField); err == nil {
 												if dstStr, ok := dst.(string); ok {
 													dstID := edge.config.ToVertex + dstStr
 													nReq := gdbi.ElementLookup{ID: dstID, Ref: r.Ref}
 													vReqs <- nReq
+												} else {
+													log.Errorf("Type Error")
 												}
 											}
 										}
@@ -395,6 +396,7 @@ func (t *TabularGraph) GetOutChannel(ctx context.Context, req chan gdbi.ElementL
 								} else if edge.config.FieldToID != nil {
 									log.Infof("FieldToID not yet implemented")
 								} else if edge.config.FieldToField != nil {
+									log.Infof("FieldToField lookup")
 									cur := r.Ref.GetCurrent()
 									fValue := ""
 									if cur != nil && cur.ID == r.ID {
@@ -459,10 +461,9 @@ func (t *TabularGraph) GetInChannel(ctx context.Context, req chan gdbi.ElementLo
 									if err == nil {
 										for row := range res {
 											data := protoutil.AsMap(row.Data)
-											if dst, ok := data[edge.config.EdgeTable.ToField]; ok {
+											if dst, err := jsonpath.JsonPathLookup(data, edge.config.EdgeTable.FromField); err == nil {
 												if dstStr, ok := dst.(string); ok {
-													dstID := edge.config.ToVertex + dstStr
-													//log.Printf("Edge to %s", dstID)
+													dstID := edge.config.FromVertex + dstStr
 													nReq := gdbi.ElementLookup{ID: dstID, Ref: r.Ref}
 													vReqs <- nReq
 												}
