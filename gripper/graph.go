@@ -3,15 +3,15 @@ package gripper
 import (
 	"context"
 	"fmt"
-	"sync"
 	"strings"
+	"sync"
 
 	"github.com/bmeg/grip/engine/core"
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
+	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/protoutil"
 	"github.com/bmeg/grip/util/setcmp"
-	"github.com/bmeg/grip/log"
 	"github.com/oliveagle/jsonpath"
 )
 
@@ -21,10 +21,10 @@ type VertexSource struct {
 }
 
 type EdgeSource struct {
-	prefix string
+	prefix     string
 	toVertex   *VertexSource
 	fromVertex *VertexSource
-	config *EdgeConfig
+	config     *EdgeConfig
 }
 
 type TabularGraph struct {
@@ -145,16 +145,16 @@ func NewTabularGraph(conf GraphConfig) (*TabularGraph, error) {
 		}
 
 		out.inEdges[e.ToVertex] = append(out.inEdges[e.ToVertex], &EdgeSource{
-			prefix: ePrefix,
-			config: &iConf,
+			prefix:     ePrefix,
+			config:     &iConf,
 			fromVertex: out.vertices[e.ToVertex],
-			toVertex: out.vertices[e.FromVertex],
+			toVertex:   out.vertices[e.FromVertex],
 		})
 		out.outEdges[e.FromVertex] = append(out.outEdges[e.FromVertex], &EdgeSource{
-			prefix: ePrefix,
-			config: &oConf,
+			prefix:     ePrefix,
+			config:     &oConf,
 			fromVertex: out.vertices[e.FromVertex],
-			toVertex: out.vertices[e.ToVertex],
+			toVertex:   out.vertices[e.ToVertex],
 		})
 
 	}
@@ -190,8 +190,8 @@ func (t *TabularGraph) GetVertex(key string, load bool) *gripql.Vertex {
 	for _, v := range t.vertices {
 		if strings.HasPrefix(key, v.prefix) {
 			id := key[len(v.prefix):]
-			c := make(chan RowRequest, 1)
-			c <- RowRequest{Id: id, RequestID: 0}
+			c := make(chan *RowRequest, 1)
+			c <- &RowRequest{Id: id, RequestID: 0}
 			close(c)
 			if rowChan, err := t.client.GetRowsByID(context.Background(), v.config.Source, v.config.Collection, c); err == nil {
 				var row *Row
@@ -299,7 +299,7 @@ func (t *TabularGraph) GetVertexChannel(ctx context.Context, req chan gdbi.Eleme
 	go func() {
 		defer close(out)
 
-		inMap := map[string]chan RowRequest{}
+		inMap := map[string]chan *RowRequest{}
 		//outMap := map[string]chan *Row{}
 		reqMap := map[uint64]gdbi.ElementLookup{}
 		var reqCount uint64
@@ -311,11 +311,11 @@ func (t *TabularGraph) GetVertexChannel(ctx context.Context, req chan gdbi.Eleme
 				if strings.HasPrefix(r.ID, v.prefix) {
 					id := r.ID[len(v.prefix):len(r.ID)]
 
-					var curIn chan RowRequest
+					var curIn chan *RowRequest
 					if x, ok := inMap[v.prefix]; ok {
 						curIn = x
 					} else {
-						curIn = make(chan RowRequest, 10)
+						curIn = make(chan *RowRequest, 10)
 						inMap[v.prefix] = curIn
 						if rowChan, err := t.client.GetRowsByID(ctx, v.config.Source, v.config.Collection, curIn); err == nil {
 							//outMap[v.prefix] = rowChan
@@ -343,7 +343,7 @@ func (t *TabularGraph) GetVertexChannel(ctx context.Context, req chan gdbi.Eleme
 						reqCount++
 						reqMap[rNum] = r
 						reqSync.Unlock()
-						curIn <- RowRequest{Id: id, RequestID: rNum}
+						curIn <- &RowRequest{Id: id, RequestID: rNum}
 					}
 				}
 			}
@@ -398,7 +398,7 @@ func (t *TabularGraph) GetOutChannel(ctx context.Context, req chan gdbi.ElementL
 									cur := r.Ref.GetCurrent()
 									fValue := ""
 									if cur != nil && cur.ID == r.ID {
-										if v, err := jsonpath.JsonPathLookup(cur.Data, edge.config.FieldToField.FromField ); err == nil {
+										if v, err := jsonpath.JsonPathLookup(cur.Data, edge.config.FieldToField.FromField); err == nil {
 											if vStr, ok := v.(string); ok {
 												fValue = vStr
 											}
@@ -415,7 +415,7 @@ func (t *TabularGraph) GetOutChannel(ctx context.Context, req chan gdbi.ElementL
 											edge.config.FieldToField.ToField, fValue)
 										if err == nil {
 											for row := range res {
-												o := gripql.Vertex{Gid: edge.toVertex.prefix + row.Id, Label: edge.toVertex.config.Label, Data:row.Data}
+												o := gripql.Vertex{Gid: edge.toVertex.prefix + row.Id, Label: edge.toVertex.config.Label, Data: row.Data}
 												el := gdbi.ElementLookup{ID: r.ID, Ref: r.Ref, Vertex: &o}
 												out <- el
 											}
@@ -475,7 +475,7 @@ func (t *TabularGraph) GetInChannel(ctx context.Context, req chan gdbi.ElementLo
 									cur := r.Ref.GetCurrent()
 									fValue := ""
 									if cur != nil && cur.ID == r.ID {
-										if v, err := jsonpath.JsonPathLookup(cur.Data, edge.config.FieldToField.FromField ); err == nil {
+										if v, err := jsonpath.JsonPathLookup(cur.Data, edge.config.FieldToField.FromField); err == nil {
 											if vStr, ok := v.(string); ok {
 												fValue = vStr
 											}
@@ -494,7 +494,7 @@ func (t *TabularGraph) GetInChannel(ctx context.Context, req chan gdbi.ElementLo
 											edge.config.FieldToField.ToField, fValue)
 										if err == nil {
 											for row := range res {
-												o := gripql.Vertex{Gid: edge.toVertex.prefix + row.Id, Label: edge.toVertex.config.Label, Data:row.Data}
+												o := gripql.Vertex{Gid: edge.toVertex.prefix + row.Id, Label: edge.toVertex.config.Label, Data: row.Data}
 												el := gdbi.ElementLookup{ID: r.ID, Ref: r.Ref, Vertex: &o}
 												out <- el
 											}
@@ -539,7 +539,7 @@ func (t *TabularGraph) GetOutEdgeChannel(ctx context.Context, req chan gdbi.Elem
 									if err == nil {
 										for row := range res {
 											data := protoutil.AsMap(row.Data)
-											if dst, err := jsonpath.JsonPathLookup(data, edge.config.EdgeTable.ToField ); err == nil {
+											if dst, err := jsonpath.JsonPathLookup(data, edge.config.EdgeTable.ToField); err == nil {
 												if dstStr, ok := dst.(string); ok {
 													o := gripql.Edge{
 														Gid:   edge.prefix + row.Id,
@@ -592,7 +592,7 @@ func (t *TabularGraph) GetInEdgeChannel(ctx context.Context, req chan gdbi.Eleme
 									if err == nil {
 										for row := range res {
 											data := protoutil.AsMap(row.Data)
-											if dst, err := jsonpath.JsonPathLookup(data, edge.config.EdgeTable.ToField ); err == nil {
+											if dst, err := jsonpath.JsonPathLookup(data, edge.config.EdgeTable.ToField); err == nil {
 												if dstStr, ok := dst.(string); ok {
 													o := gripql.Edge{
 														Gid:   edge.prefix + row.Id,

@@ -6,8 +6,8 @@ import (
 	"github.com/bmeg/grip/engine/inspect"
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
-	"github.com/bmeg/grip/util/setcmp"
 	"github.com/bmeg/grip/protoutil"
+	"github.com/bmeg/grip/util/setcmp"
 )
 
 func TabularOptimizer(pipe []*gripql.GraphStatement) []*gripql.GraphStatement {

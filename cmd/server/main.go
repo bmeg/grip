@@ -12,6 +12,7 @@ import (
 	esql "github.com/bmeg/grip/existing-sql"
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/grids"
+	"github.com/bmeg/grip/gripper"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/kvgraph"
 	_ "github.com/bmeg/grip/kvi/badgerdb" // import so badger will register itself
@@ -19,7 +20,6 @@ import (
 	_ "github.com/bmeg/grip/kvi/leveldb"  // import so level will register itself
 	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/mongo"
-	"github.com/bmeg/grip/gripper"
 	"github.com/bmeg/grip/psql"
 	"github.com/bmeg/grip/server"
 	_ "github.com/go-sql-driver/mysql" //import so mysql will register as a sql driver

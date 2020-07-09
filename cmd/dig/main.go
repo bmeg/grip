@@ -27,44 +27,44 @@ import (
 
 var idxName string = "table.db"
 
-func ParseQuery(queryString string) (gripql.GraphQuery, error) {
+func ParseQuery(queryString string) (*gripql.GraphQuery, error) {
 	vm := goja.New()
 
 	us, err := underscore.Asset("underscore.js")
 	if err != nil {
-		return gripql.GraphQuery{}, fmt.Errorf("failed to load underscore.js")
+		return nil, fmt.Errorf("failed to load underscore.js")
 	}
 	if _, err := vm.RunString(string(us)); err != nil {
-		return gripql.GraphQuery{}, err
+		return nil, err
 	}
 
 	gripqlString, err := gripqljs.Asset("gripql.js")
 	if err != nil {
-		return gripql.GraphQuery{}, fmt.Errorf("failed to load gripql.js")
+		return nil, fmt.Errorf("failed to load gripql.js")
 	}
 	if _, err := vm.RunString(string(gripqlString)); err != nil {
-		return gripql.GraphQuery{}, err
+		return nil, err
 	}
 
 	val, err := vm.RunString(queryString)
 	if err != nil {
-		return gripql.GraphQuery{}, err
+		return nil, err
 	}
 
 	queryJSON, err := json.Marshal(val)
 	if err != nil {
-		return gripql.GraphQuery{}, err
+		return nil, err
 	}
 
 	query := gripql.GraphQuery{}
 	err = jsonpb.Unmarshal(strings.NewReader(string(queryJSON)), &query)
 	if err != nil {
-		return gripql.GraphQuery{}, err
+		return nil, err
 	}
-	return query, nil
+	return &query, nil
 }
 
-func Query(graph gdbi.GraphInterface, query gripql.GraphQuery) error {
+func Query(graph gdbi.GraphInterface, query *gripql.GraphQuery) error {
 	marsh := jsonpb.Marshaler{}
 
 	p, err := graph.Compiler().Compile(query.Query)

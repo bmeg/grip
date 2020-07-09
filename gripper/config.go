@@ -14,45 +14,45 @@ type Config struct {
 }
 
 type GraphConfig struct {
-	Sources  map[string]DriverConfig  `json:"sources"`
-	Vertices map[string]VertexConfig  `json:"vertices"`
-	Edges    map[string]EdgeConfig    `json:"edges"`
+	Sources  map[string]DriverConfig `json:"sources"`
+	Vertices map[string]VertexConfig `json:"vertices"`
+	Edges    map[string]EdgeConfig   `json:"edges"`
 	path     string
 }
 
 type DriverConfig struct {
-	Host  string                 `json:"host"`
+	Host string `json:"host"`
 }
 
 type VertexConfig struct {
-	Source      string `json:"source"`
-	Collection  string `json:"collection"`
-	Label       string `json:"label"`
+	Source     string `json:"source"`
+	Collection string `json:"collection"`
+	Label      string `json:"label"`
 }
 
 type FieldToIDConfig struct {
-	FromField   string `json:"fromField"`
+	FromField string `json:"fromField"`
 }
 
 type FieldToFieldConfig struct {
-	ToField     string `json:"toField"`
-	FromField   string `json:"fromField"`
+	ToField   string `json:"toField"`
+	FromField string `json:"fromField"`
 }
 
 type EdgeTableConfig struct {
-	Source      string `json:"source"`
-	Collection  string `json:"collection"`
-	FromField   string `json:"fromField"`
-	ToField     string `json:"toField"`
+	Source     string `json:"source"`
+	Collection string `json:"collection"`
+	FromField  string `json:"fromField"`
+	ToField    string `json:"toField"`
 }
 
 type EdgeConfig struct {
-	ToVertex   string `json:"toVertex"`
-	FromVertex string `json:"fromVertex"`
-	Label      string `json:"label"`
-	FieldToID    *FieldToIDConfig     `json:"fieldToID"`
-	FieldToField *FieldToFieldConfig  `json:"fieldToField"`
-	EdgeTable    *EdgeTableConfig     `json:"edgeTable"`
+	ToVertex     string              `json:"toVertex"`
+	FromVertex   string              `json:"fromVertex"`
+	Label        string              `json:"label"`
+	FieldToID    *FieldToIDConfig    `json:"fieldToID"`
+	FieldToField *FieldToFieldConfig `json:"fieldToField"`
+	EdgeTable    *EdgeTableConfig    `json:"edgeTable"`
 }
 
 func LoadConfig(path string) (*GraphConfig, error) {
