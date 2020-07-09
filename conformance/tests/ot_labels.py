@@ -1,11 +1,11 @@
 
 
-def test_list_labels(O, man):
+def test_list_labels(G, man):
     errors = []
 
     man.setGraph("swapi")
 
-    resp = O.listLabels()
+    resp = G.listLabels()
     print(resp)
 
     if len(resp["vertex_labels"]) != 6:

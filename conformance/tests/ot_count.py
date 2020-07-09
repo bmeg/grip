@@ -1,64 +1,64 @@
 
 
-def test_count(O, man):
+def test_count(G, man):
     errors = []
 
     man.setGraph("swapi")
 
-    i = list(O.query().V().count())
+    i = list(G.query().V().count())
     if len(i) < 1:
-        errors.append("Fail: nothing returned for O.query().V().count()")
+        errors.append("Fail: nothing returned for G.query().V().count()")
     elif i[0].count != 39:
-        errors.append("Fail: O.query().V().count() %s != %s" % (i[0].count, 39))
+        errors.append("Fail: G.query().V().count() %s != %s" % (i[0].count, 39))
 
-    i = list(O.query().V("non-existent").count())
+    i = list(G.query().V("non-existent").count())
     if len(i) < 1:
-        errors.append("Fail: nothing returned for O.query().V(\"non-existent\").count()")
+        errors.append("Fail: nothing returned for G.query().V(\"non-existent\").count()")
     elif i[0].count != 0:
-        errors.append("Fail: O.query().V(\"non-existent\").count() %s != %s" % (i[0].count, 0))
+        errors.append("Fail: G.query().V(\"non-existent\").count() %s != %s" % (i[0].count, 0))
 
-    i = list(O.query().E().count())
+    i = list(G.query().E().count())
     if len(i) < 1:
-        errors.append("Fail: nothing returned for O.query().E().count()")
+        errors.append("Fail: nothing returned for G.query().E().count()")
     elif i[0].count != 144:
-        errors.append("Fail: O.query().E().count() %s != %s" % (i[0].count, 144))
+        errors.append("Fail: G.query().E().count() %s != %s" % (i[0].count, 144))
 
-    i = list(O.query().E("non-existent").count())
+    i = list(G.query().E("non-existent").count())
     if len(i) < 1:
-        errors.append("Fail: nothing returned for O.query().E(\"non-existent\").count()")
+        errors.append("Fail: nothing returned for G.query().E(\"non-existent\").count()")
     elif i[0].count != 0:
-        errors.append("Fail: O.query().E(\"non-existent\").count() %s != %s" % (i[0].count, 0))
+        errors.append("Fail: G.query().E(\"non-existent\").count() %s != %s" % (i[0].count, 0))
 
     return errors
 
 
 # tests an edge case where mongo aggregations fill fail to return a count when
 # the ccollection doesnt exist
-def test_count_when_no_data(O, man):
+def test_count_when_no_data(G, man):
     errors = []
 
-    i = list(O.query().V().count())
+    i = list(G.query().V().count())
     if len(i) < 1:
-        errors.append("Fail: nothing returned for O.query().V().count()")
+        errors.append("Fail: nothing returned for G.query().V().count()")
     elif i[0].count != 0:
-        errors.append("Fail: O.query().V().count() %s != %s" % (i[0].count, 0))
+        errors.append("Fail: G.query().V().count() %s != %s" % (i[0].count, 0))
 
-    i = list(O.query().V("non-existent").count())
+    i = list(G.query().V("non-existent").count())
     if len(i) < 1:
-        errors.append("Fail: nothing returned for O.query().V(\"non-existent\").count()")
+        errors.append("Fail: nothing returned for G.query().V(\"non-existent\").count()")
     elif i[0].count != 0:
-        errors.append("Fail: O.query().V(\"non-existent\").count() %s != %s" % (i[0].count, 0))
+        errors.append("Fail: G.query().V(\"non-existent\").count() %s != %s" % (i[0].count, 0))
 
-    i = list(O.query().E().count())
+    i = list(G.query().E().count())
     if len(i) < 1:
-        errors.append("Fail: nothing returned for O.query().E().count()")
+        errors.append("Fail: nothing returned for G.query().E().count()")
     elif i[0].count != 0:
-        errors.append("Fail: O.query().E().count() %s != %s" % (i[0].count, 0))
+        errors.append("Fail: G.query().E().count() %s != %s" % (i[0].count, 0))
 
-    i = list(O.query().E("non-existent").count())
+    i = list(G.query().E("non-existent").count())
     if len(i) < 1:
-        errors.append("Fail: nothing returned for O.query().E(\"non-existent\").count()")
+        errors.append("Fail: nothing returned for G.query().E(\"non-existent\").count()")
     elif i[0].count != 0:
-        errors.append("Fail: O.query().E(\"non-existent\").count() %s != %s" % (i[0].count, 0))
+        errors.append("Fail: G.query().E(\"non-existent\").count() %s != %s" % (i[0].count, 0))
 
     return errors

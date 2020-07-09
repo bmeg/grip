@@ -1,12 +1,12 @@
 
 
-def test_fields(O, man):
+def test_fields(G, man):
     errors = []
 
     man.setGraph("swapi")
 
     try:
-        for i in O.query().out():
+        for i in G.query().out():
             pass
         errors.append("Bad traversal query returned without exception")
     except Exception:

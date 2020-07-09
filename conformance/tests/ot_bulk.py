@@ -1,11 +1,11 @@
 
 
-def test_bulkload(O, man):
+def test_bulkload(G, man):
     errors = []
 
     man.writeTest()
 
-    bulk = O.bulkAdd()
+    bulk = G.bulkAdd()
 
     bulk.addVertex("1", "Person", {"name": "marko", "age": "29"})
     bulk.addVertex("2", "Person", {"name": "vadas", "age": "27"})
@@ -26,13 +26,13 @@ def test_bulkload(O, man):
         print(err)
         errors.append("Bulk insertion error")
 
-    res = O.query().V().count().execute()[0]
+    res = G.query().V().count().execute()[0]
     if res["count"] != 6:
         errors.append(
             "Bulk Add wrong number of vertices: %s != %s" %
             (res["count"], 6))
 
-    res = O.query().E().count().execute()[0]
+    res = G.query().E().count().execute()[0]
     if res["count"] != 6:
         errors.append(
             "Bulk Add wrong number of edges: %s != %s" %
@@ -41,12 +41,12 @@ def test_bulkload(O, man):
     return errors
 
 
-def test_bulkload_validate(O, man):
+def test_bulkload_validate(G, man):
     errors = []
 
     man.writeTest()
 
-    bulk = O.bulkAdd()
+    bulk = G.bulkAdd()
 
     bulk.addVertex("1", "Person", {"name": "marko", "age": "29"})
     bulk.addVertex("2", "Person", {"name": "vadas", "age": "27"})

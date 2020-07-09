@@ -4,7 +4,7 @@ import gripql
 from gripql import __
 
 
-def test_match(O, man):
+def test_match(G, man):
     """
     http://tinkerpop.apache.org/docs/3.3.4/reference/#match-step
 
@@ -14,7 +14,7 @@ def test_match(O, man):
 
     man.setGraph("swapi")
 
-    query = O.query().V().match([
+    query = G.query().V().match([
         __.as_('a').in_('residents').as_('b'),
         __.as_('b').has(gripql.eq('name', 'Tatooine')),
         __.as_('b').out('films').as_('c'),

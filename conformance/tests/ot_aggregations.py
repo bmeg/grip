@@ -15,13 +15,13 @@ eye_color_count_map = {
 }
 
 
-def test_simple(O, man):
+def test_simple(G, man):
     errors = []
 
     man.setGraph("swapi")
 
     count = 0
-    for row in O.query().V().aggregate(gripql.term("simple-agg", "eye_color")):
+    for row in G.query().V().aggregate(gripql.term("simple-agg", "eye_color")):
         if 'simple-agg' not in row:
             errors.append("Result had Incorrect aggregation name")
             return errors
@@ -35,13 +35,13 @@ def test_simple(O, man):
     return errors
 
 
-def test_traversal_term_aggregation(O, man):
+def test_traversal_term_aggregation(G, man):
     errors = []
 
     man.setGraph("swapi")
 
     count = 0
-    for row in O.query().V("Film:1").out().hasLabel("Character").aggregate(gripql.term("traversal-agg", "eye_color")):
+    for row in G.query().V("Film:1").out().hasLabel("Character").aggregate(gripql.term("traversal-agg", "eye_color")):
         if 'traversal-agg' not in row:
             errors.append("Result had Incorrect aggregation name")
             return errors
@@ -66,7 +66,7 @@ def test_traversal_term_aggregation(O, man):
     return errors
 
 
-def test_traversal_histogram_aggregation(O, man):
+def test_traversal_histogram_aggregation(G, man):
     errors = []
 
     man.setGraph("swapi")
@@ -82,7 +82,7 @@ def test_traversal_histogram_aggregation(O, man):
     }
 
     count = 0
-    for row in O.query().V("Film:1").out().hasLabel("Character").aggregate(gripql.histogram("traversal-agg", "height", 25)):
+    for row in G.query().V("Film:1").out().hasLabel("Character").aggregate(gripql.histogram("traversal-agg", "height", 25)):
         count += 1
         if 'traversal-agg' not in row:
             errors.append("Result had Incorrect aggregation name")
@@ -104,14 +104,14 @@ def test_traversal_histogram_aggregation(O, man):
     return errors
 
 
-def test_traversal_percentile_aggregation(O, man):
+def test_traversal_percentile_aggregation(G, man):
     errors = []
 
     man.setGraph("swapi")
 
     count = 0
     percents = [1, 5, 25, 50, 75, 95, 99, 99.9]
-    for row in O.query().V("Film:1").out().hasLabel("Character").aggregate(gripql.percentile("traversal-agg", "height", percents)):
+    for row in G.query().V("Film:1").out().hasLabel("Character").aggregate(gripql.percentile("traversal-agg", "height", percents)):
         count += 1
 
         if 'traversal-agg' not in row:
@@ -147,7 +147,7 @@ def test_traversal_percentile_aggregation(O, man):
     return errors
 
 
-def test_traversal_edge_histogram_aggregation(O, man):
+def test_traversal_edge_histogram_aggregation(G, man):
     errors = []
 
     man.setGraph("swapi")
@@ -160,7 +160,7 @@ def test_traversal_edge_histogram_aggregation(O, man):
     }
 
     count = 0
-    for row in O.query().V().hasLabel("Film").outE().aggregate(gripql.histogram("edge-agg", "scene_count", 4)):
+    for row in G.query().V().hasLabel("Film").outE().aggregate(gripql.histogram("edge-agg", "scene_count", 4)):
         count += 1
         if 'edge-agg' not in row:
             errors.append("Result had Incorrect aggregation name")
@@ -186,7 +186,7 @@ def test_traversal_edge_histogram_aggregation(O, man):
     return errors
 
 
-def test_traversal_gid_aggregation(O, man):
+def test_traversal_gid_aggregation(G, man):
     errors = []
 
     man.setGraph("swapi")
@@ -197,7 +197,7 @@ def test_traversal_gid_aggregation(O, man):
     }
 
     count = 0
-    for row in O.query().V().hasLabel("Planet").as_("a").out("residents").select("a").aggregate(gripql.term("gid-agg", "_gid")):
+    for row in G.query().V().hasLabel("Planet").as_("a").out("residents").select("a").aggregate(gripql.term("gid-agg", "_gid")):
         count += 1
         if 'gid-agg' not in row:
             errors.append("Result had Incorrect aggregation name")

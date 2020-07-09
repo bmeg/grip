@@ -1,6 +1,6 @@
 
 
-def test_subkey(O, man):
+def test_subkey(G, man):
     """
     Bug in KVGraph scanned edge index prefixes, if key was a prefix subkey of another,
     edge sets would get merged (ie get outgoing from 'Work' and get edges from 'Work' and 'Workflow')
@@ -9,28 +9,28 @@ def test_subkey(O, man):
 
     man.writeTest()
 
-    O.addVertex("Work", "Thing", {})
-    O.addVertex("Workflow", "Thing", {})
-    O.addVertex("Other", "Thing", {})
-    O.addVertex("OtherGuy", "Thing", {})
+    G.addVertex("Work", "Thing", {})
+    G.addVertex("Workflow", "Thing", {})
+    G.addVertex("Other", "Thing", {})
+    G.addVertex("OtherGuy", "Thing", {})
 
-    O.addEdge("Work", "Other", "edge")
-    O.addEdge("Workflow", "OtherGuy", "edge")
+    G.addEdge("Work", "Other", "edge")
+    G.addEdge("Workflow", "OtherGuy", "edge")
 
     count = 0
-    for i in O.query().V("Work").out():
+    for i in G.query().V("Work").out():
         count += 1
     if count != 1:
         errors.append("Incorrect outgoing vertex count %d != %d" % (count, 1))
 
     count = 0
-    for i in O.query().V("Work").outE():
+    for i in G.query().V("Work").outE():
         count += 1
     if count != 1:
         errors.append("Incorrect outgoing edge count %d != %d" % (count, 1))
 
     count = 0
-    for i in O.query().V("Other").inE():
+    for i in G.query().V("Other").inE():
         count += 1
     if count != 1:
         errors.append("Incorrect incoming edge count %d != %d" % (count, 1))
