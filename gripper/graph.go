@@ -320,9 +320,9 @@ func (t *TabularGraph) GetVertexChannel(ctx context.Context, req chan gdbi.Eleme
 						if rowChan, err := t.client.GetRowsByID(ctx, v.config.Source, v.config.Collection, curIn); err == nil {
 							//outMap[v.prefix] = rowChan
 							wg.Add(1)
-							go func() {
+							go func(prefix string, label string, rowChan chan *Row) {
 								for r := range rowChan {
-									o := gripql.Vertex{Gid: v.prefix + r.Id, Label: v.config.Label}
+									o := gripql.Vertex{Gid: prefix + r.Id, Label: label}
 									o.Data = r.Data
 									reqSync.Lock()
 									outReq := reqMap[r.RequestID]
@@ -332,7 +332,7 @@ func (t *TabularGraph) GetVertexChannel(ctx context.Context, req chan gdbi.Eleme
 									out <- outReq
 								}
 								wg.Done()
-							}()
+							}(v.prefix, v.config.Label, rowChan)
 						} else {
 							log.Error("Error opening streaming connection")
 						}
