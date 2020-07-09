@@ -30,10 +30,10 @@ func (m *DigClient) startConn(name string) (DigSourceClient, error) {
 	conf := m.confs[name]
 
 	rpcConf := rpc.ConfigWithDefaults(conf.Host)
-	log.Info("Connecting to %s", conf.Host)
+	log.Infof("Connecting to %s", conf.Host)
 	conn, err := rpc.Dial(context.Background(), rpcConf)
 	if err != nil {
-		log.Error("RPC Connection error: %s", err)
+		log.Errorf("RPC Connection error: %s", err)
 		return nil, err
 	}
 	client := NewDigSourceClient(conn)
@@ -63,7 +63,7 @@ func (m *DigClient) GetCollections(ctx context.Context, source string) chan stri
 		defer close(out)
 		client, err := m.getConn(source)
 		if err != nil {
-			log.WithFields(log.Fields{"error": err}).Error("Error Connecting to %s")
+			log.WithFields(log.Fields{"error": err}).Errorf("Error Connecting to %s", source)
 			return
 		}
 		cl, err := client.GetCollections(ctx, &Empty{})
@@ -92,7 +92,7 @@ func (m *DigClient) GetIDs(ctx context.Context, source string, collection string
 		defer close(out)
 		client, err := m.getConn(source)
 		if err != nil {
-			log.WithFields(log.Fields{"error": err}).Error("Error Connecting to %s")
+			log.WithFields(log.Fields{"error": err}).Errorf("Error Connecting to %s", source)
 			return
 		}
 		req := Collection{Name: collection}
@@ -122,7 +122,7 @@ func (m *DigClient) GetRows(ctx context.Context, source string, collection strin
 		defer close(out)
 		client, err := m.getConn(source)
 		if err != nil {
-			log.WithFields(log.Fields{"error": err}).Error("Error Connecting to %s")
+			log.WithFields(log.Fields{"error": err}).Errorf("Error Connecting to %s", source)
 			return
 		}
 		req := Collection{Name: collection}
@@ -150,7 +150,7 @@ func (m *DigClient) GetRowsByID(ctx context.Context, source string, collection s
 	out := make(chan *Row, 10)
 	client, err := m.getConn(source)
 	if err != nil {
-		log.WithFields(log.Fields{"error": err}).Error("Error Connecting to %s")
+		log.WithFields(log.Fields{"error": err}).Errorf("Error Connecting to %s", source)
 		return nil, err
 	}
 	cl, err := client.GetRowsByID(ctx)
@@ -185,7 +185,7 @@ func (m *DigClient) GetRowsByField(ctx context.Context, source string, collectio
 	out := make(chan *Row, 10)
 	client, err := m.getConn(source)
 	if err != nil {
-		log.WithFields(log.Fields{"error": err}).Error("Error Connecting to %s")
+		log.WithFields(log.Fields{"error": err}).Errorf("Error Connecting to %s", source)
 		return nil, err
 	}
 	req := FieldRequest{Collection: collection, Field: field, Value: value}

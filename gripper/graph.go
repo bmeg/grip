@@ -49,7 +49,7 @@ func NewTabularGraph(conf GraphConfig) (*TabularGraph, error) {
 	for _, v := range conf.Vertices {
 		_, err := out.client.GetCollectionInfo(context.Background(), v.Source, v.Collection)
 		if err != nil {
-			return nil, fmt.Errorf("Unable to get collection information", v.Source, v.Collection)
+			return nil, fmt.Errorf("Unable to get collection information %s : %s", v.Source, v.Collection)
 		}
 	}
 
@@ -65,7 +65,7 @@ func NewTabularGraph(conf GraphConfig) (*TabularGraph, error) {
 			_, err := out.client.GetCollectionInfo(context.Background(),
 				e.EdgeTable.Source, e.EdgeTable.Collection)
 			if err != nil {
-				return nil, fmt.Errorf("Unable to get collection information",
+				return nil, fmt.Errorf("Unable to get collection information %s : %s",
 					e.EdgeTable.Source, e.EdgeTable.Collection)
 			}
 			if !strings.HasPrefix(e.EdgeTable.ToField, "$.") {
@@ -203,7 +203,7 @@ func (t *TabularGraph) GetVertex(key string, load bool) *gripql.Vertex {
 					return &o
 				}
 			} else {
-				log.Error("Row not read: %s", err)
+				log.Errorf("Row not read: %s", err)
 			}
 		}
 	}
