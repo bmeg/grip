@@ -453,17 +453,18 @@ func (t *TabularGraph) GetInChannel(ctx context.Context, req chan gdbi.ElementLo
 						for _, edge := range edgeList {
 							if len(edgeLabels) == 0 || setcmp.ContainsString(edgeLabels, edge.config.Label) {
 								if edge.config.EdgeTable != nil {
-									//log.Printf("Using EdgeTable %s", *edge.config.EdgeTable)
+									log.Infof("Using EdgeTable %s:%s to find %s", edge.config.EdgeTable.Collection, edge.config.EdgeTable.FromField, id)
 									res, err := t.client.GetRowsByField(context.Background(),
 										edge.config.EdgeTable.Source,
 										edge.config.EdgeTable.Collection,
 										edge.config.EdgeTable.FromField, id)
 									if err == nil {
 										for row := range res {
+											log.Infof("Found %s", row)
 											data := protoutil.AsMap(row.Data)
-											if dst, err := jsonpath.JsonPathLookup(data, edge.config.EdgeTable.FromField); err == nil {
+											if dst, err := jsonpath.JsonPathLookup(data, edge.config.EdgeTable.ToField); err == nil {
 												if dstStr, ok := dst.(string); ok {
-													dstID := edge.config.FromVertex + dstStr
+													dstID := edge.config.ToVertex + dstStr
 													nReq := gdbi.ElementLookup{ID: dstID, Ref: r.Ref}
 													vReqs <- nReq
 												}
@@ -476,12 +477,12 @@ func (t *TabularGraph) GetInChannel(ctx context.Context, req chan gdbi.ElementLo
 									cur := r.Ref.GetCurrent()
 									fValue := ""
 									if cur != nil && cur.ID == r.ID {
-										if v, err := jsonpath.JsonPathLookup(cur.Data, edge.config.FieldToField.FromField); err == nil {
+										if v, err := jsonpath.JsonPathLookup(cur.Data, edge.config.FieldToField.ToField); err == nil {
 											if vStr, ok := v.(string); ok {
 												fValue = vStr
 											}
 										} else {
-											log.Infof("Missing Field: %s", edge.config.FieldToField.FromField)
+											log.Infof("Missing Field: %s", edge.config.FieldToField.ToField)
 										}
 									} else {
 										//TODO: getting vertex out request without loading vertex
@@ -492,7 +493,7 @@ func (t *TabularGraph) GetInChannel(ctx context.Context, req chan gdbi.ElementLo
 										res, err := t.client.GetRowsByField(context.Background(),
 											edge.toVertex.config.Source,
 											edge.toVertex.config.Collection,
-											edge.config.FieldToField.ToField, fValue)
+											edge.config.FieldToField.FromField, fValue)
 										if err == nil {
 											for row := range res {
 												o := gripql.Vertex{Gid: edge.toVertex.prefix + row.Id, Label: edge.toVertex.config.Label, Data: row.Data}

@@ -71,6 +71,16 @@ edges:
       fromField: "$.from"
       toField: "$.to"
 
+  starshipFilms:
+    toVertex: "Film:"
+    fromVertex: "Starship:"
+    label: "films"
+    edgeTable:
+      source: tableServer
+      collection: filmStarships
+      toField: "$.from"
+      fromField: "$.to"
+
   filmPlanets:
     fromVertex: "Film:"
     toVertex: "Planet:"
@@ -108,5 +118,25 @@ edges:
     edgeTable:
       source: tableServer
       collection: filmCharacters
+      toField: "$.from"
+      fromField: "$.to"
+
+  characterStarships:
+    fromVertex: "Character:"
+    toVertex: "Starship:"
+    label: "starships"
+    edgeTable:
+      source: tableServer
+      collection: characterStarships
+      fromField: "$.from"
+      toField: "$.to"
+
+  starshipCharacters:
+    toVertex: "Character:"
+    fromVertex: "Starship:"
+    label: "pilots"
+    edgeTable:
+      source: tableServer
+      collection: characterStarships
       toField: "$.from"
       fromField: "$.to"
