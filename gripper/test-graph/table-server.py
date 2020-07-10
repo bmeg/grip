@@ -68,7 +68,7 @@ class CollectionServicer(gripper_pb2_grpc.DigSourceServicer):
 
 
 def serve(port, data):
-  server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+  server = grpc.server(futures.ThreadPoolExecutor(max_workers=100))
   gripper_pb2_grpc.add_DigSourceServicer_to_server(
       CollectionServicer(data), server)
   server.add_insecure_port('[::]:%s' % port)
