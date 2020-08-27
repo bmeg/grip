@@ -434,7 +434,7 @@ func (t *TabularGraph) GetOutChannel(ctx context.Context, req chan gdbi.ElementL
 								} else if edge.config.FieldToID != nil {
 									log.Infof("FieldToID not yet implemented")
 								} else if edge.config.FieldToField != nil {
-									log.Infof("FieldToField lookup %#v", edge.config.FieldToField)
+									//log.Infof("FieldToField lookup %#v", edge.config.FieldToField)
 									cur := r.Ref.GetCurrent()
 									fValue := ""
 									if cur != nil && cur.ID == r.ID {
@@ -454,9 +454,9 @@ func (t *TabularGraph) GetOutChannel(ctx context.Context, req chan gdbi.ElementL
 											edge.toVertex.config.Collection,
 											edge.config.FieldToField.ToField, fValue)
 										if err == nil {
-											log.Infof("Searching %s : %s == %s", edge.toVertex.config.Collection, edge.config.FieldToField.ToField, fValue )
+											//log.Infof("Searching %s : %s == %s", edge.toVertex.config.Collection, edge.config.FieldToField.ToField, fValue )
 											for row := range res {
-												log.Infof("Found %#v", row)
+												//log.Infof("Found %#v", row)
 												o := gripql.Vertex{Gid: edge.toVertex.prefix + row.Id, Label: edge.toVertex.config.Label, Data: row.Data}
 												el := gdbi.ElementLookup{ID: r.ID, Ref: r.Ref, Vertex: &o}
 												out <- el

@@ -83,7 +83,7 @@ if __name__ == "__main__":
             p = os.path.join(outdir, "%s.tsv" % (name))
             with open(p, "w") as handle:
                 if 'data' in rows[0] and 'gid' in rows[0]:
-                    headers = keyUnion( list(r['data'].keys()) for r in rows )
+                    headers = keyUnion( list(list(r['data'].keys()) for r in rows) )
                     handle.write("\t".join(['id'] + headers) + "\n")
                     for row in rows:
                         id = row['gid'].split(":")[1]
