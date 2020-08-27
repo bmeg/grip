@@ -286,10 +286,40 @@ func (t *TabularGraph) GetVertexList(ctx context.Context, load bool) <-chan *gri
 }
 
 func (t *TabularGraph) GetEdgeList(ctx context.Context, load bool) <-chan *gripql.Edge {
-	log.Errorf("Calling GetEdgeList. Not supported in current Dig implmentation")
 	out := make(chan *gripql.Edge, 100)
 	go func() {
 		defer close(out)
+		for _, edgeList := range t.outEdges {
+			for _, edge := range edgeList {
+				if edge.config.EdgeTable != nil {
+					res := t.client.GetRows(context.Background(),
+						edge.config.EdgeTable.Source,
+						edge.config.EdgeTable.Collection)
+					for row := range res {
+						data := protoutil.AsMap(row.Data)
+						if dst, err := jsonpath.JsonPathLookup(data, edge.config.EdgeTable.ToField); err == nil {
+							if dstStr, ok := dst.(string); ok {
+								if src, err := jsonpath.JsonPathLookup(data, edge.config.EdgeTable.FromField); err == nil {
+									if srcStr, ok := src.(string); ok {
+										e := gripql.Edge{
+											To: edge.toVertex.prefix + dstStr,
+											From:edge.fromVertex.prefix + srcStr,
+											Label: edge.config.Label,
+											Data: row.Data,
+										}
+										out <- &e
+									}
+								}
+							}
+						}
+					}
+				} else if edge.config.FieldToID != nil {
+					log.Infof("FieldToID not yet implemented")
+				} else if edge.config.FieldToField != nil {
+
+				}
+			}
+		}
 	}()
 	return out
 }
@@ -396,7 +426,7 @@ func (t *TabularGraph) GetOutChannel(ctx context.Context, req chan gdbi.ElementL
 								} else if edge.config.FieldToID != nil {
 									log.Infof("FieldToID not yet implemented")
 								} else if edge.config.FieldToField != nil {
-									log.Infof("FieldToField lookup")
+									//log.Infof("FieldToField lookup")
 									cur := r.Ref.GetCurrent()
 									fValue := ""
 									if cur != nil && cur.ID == r.ID {
@@ -453,14 +483,14 @@ func (t *TabularGraph) GetInChannel(ctx context.Context, req chan gdbi.ElementLo
 						for _, edge := range edgeList {
 							if len(edgeLabels) == 0 || setcmp.ContainsString(edgeLabels, edge.config.Label) {
 								if edge.config.EdgeTable != nil {
-									log.Infof("Using EdgeTable %s:%s to find %s", edge.config.EdgeTable.Collection, edge.config.EdgeTable.FromField, id)
+									//log.Infof("Using EdgeTable %s:%s to find %s", edge.config.EdgeTable.Collection, edge.config.EdgeTable.FromField, id)
 									res, err := t.client.GetRowsByField(context.Background(),
 										edge.config.EdgeTable.Source,
 										edge.config.EdgeTable.Collection,
 										edge.config.EdgeTable.FromField, id)
 									if err == nil {
 										for row := range res {
-											log.Infof("Found %s", row)
+											//log.Infof("Found %s", row)
 											data := protoutil.AsMap(row.Data)
 											if dst, err := jsonpath.JsonPathLookup(data, edge.config.EdgeTable.ToField); err == nil {
 												if dstStr, ok := dst.(string); ok {

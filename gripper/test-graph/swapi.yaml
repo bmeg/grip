@@ -43,13 +43,23 @@ edges:
       fromField: $.homeworld
       toField: $.id
 
-  homeworld:
+  species:
     fromVertex: "Character:"
     toVertex: "Species:"
     label: species
     fieldToField:
       fromField: $.species
       toField: $.id
+
+  residents:
+    fromVertex: "Planet:"
+    toVertex: "Character:"
+    label: residents
+    edgeTable:
+      source: tableServer
+      collection: planetCharacter
+      fromField: $.from
+      toField: $.to
 
   filmVehicles:
     fromVertex: "Film:"

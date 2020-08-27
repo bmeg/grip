@@ -43,7 +43,10 @@ def graph2tables(vFile, eFile, ePlanFile):
                 if vTypes[e['to']] == plan['to'] and vTypes[e['from']] == plan['from'] and e['label'] == plan['label']:
                     f = e['from'].split(":")[1]
                     t = e['to'].split(":")[1]
-                    o.append( {"from" : f, "to" : t} )
+                    d = e.get("data", {})
+                    d["from"] = f
+                    d["to"] = t
+                    o.append( d )
         elif plan['mode'] == 'fieldToID':
             for e in eTable:
                 if vTypes[e['to']] == plan['to'] and vTypes[e['from']] == plan['from'] and e['label'] == plan['label']:
