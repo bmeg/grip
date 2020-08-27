@@ -239,19 +239,27 @@ func (t *TabularGraph) VertexLabelScan(ctx context.Context, label string) chan s
 }
 
 func (t *TabularGraph) ListVertexLabels() ([]string, error) {
-	out := []string{}
+	s := map[string]bool{}
 	for _, i := range t.vertices {
-		out = append(out, i.config.Label)
+		s[i.config.Label] = true
+	}
+	out := []string{}
+	for i := range s {
+		out = append(out, i)
 	}
 	return out, nil
 }
 
 func (t *TabularGraph) ListEdgeLabels() ([]string, error) {
-	out := []string{}
+	s := map[string]bool{}
 	for _, i := range t.outEdges {
 		for _, e := range i {
-			out = append(out, e.config.Label)
+			s[e.config.Label] = true
 		}
+	}
+	out := []string{}
+	for i := range s {
+		out = append(out, i)
 	}
 	return out, nil
 }

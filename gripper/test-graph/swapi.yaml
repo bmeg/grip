@@ -51,6 +51,17 @@ edges:
       fromField: $.species
       toField: $.id
 
+  people:
+    fromVertex: "Species:"
+    toVertex: "Character:"
+    label: people
+    edgeTable:
+      source: tableServer
+      collection: speciesCharacter
+      fromField: $.from
+      toField: $.to
+
+
   residents:
     fromVertex: "Planet:"
     toVertex: "Character:"

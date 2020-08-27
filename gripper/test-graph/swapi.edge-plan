@@ -7,3 +7,4 @@
 {"name" : "characterSpecies", "from" : "Character", "to" : "Species", "label" : "species", "mode" : "fieldToID", "field" : "species"}
 {"name" : "characterStarships", "from" : "Character", "to" : "Starship", "label" : "starships", "mode" : "edgeTable"}
 {"name" : "planetCharacter", "from" : "Planet", "to":"Character", "label":"residents", "mode":"edgeTable"}
+{"name" : "speciesCharacter", "from" : "Species", "to":"Character", "label":"people", "mode":"edgeTable"}

@@ -15,7 +15,7 @@ def test_list_labels(G, man):
         errors.append("listLabels returned unexpected vertex labels")
 
     if len(resp["edge_labels"]) != 10:
-        errors.append("listLabels returned an unexpected number of edge labels; %d != 2" % (len(resp["edge_labels"])))
+        errors.append("listLabels returned an unexpected number of edge labels; %d != 10" % (len(resp["edge_labels"])))
 
     if sorted(resp["edge_labels"]) != ["characters", "films", "homeworld", "people", "pilots", "planets", "residents", "species", "starships", "vehicles"]:
         errors.append("listLabels returned unexpected edge labels")
