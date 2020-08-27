@@ -1,19 +1,19 @@
-id	system	skin_color	homeworld	species	birth_year	name	url	gender	mass	hair_color	eye_color	height
-1	{"created": "2014-12-09T13:50:51.644000Z", "edited": "2014-12-20T21:17:56.891000Z"}	"fair"	"1"	"1"	"19BBY"	"Luke Skywalker"	"https://swapi.co/api/people/1/"	"male"	77	"blond"	"blue"	172
-2	{"created": "2014-12-10T15:10:51.357000Z", "edited": "2014-12-20T21:17:50.309000Z"}	"gold"	"1"	"2"	"112BBY"	"C-3PO"	"https://swapi.co/api/people/2/"	null	75	null	"yellow"	167
-3	{"created": "2014-12-10T15:11:50.376000Z", "edited": "2014-12-20T21:17:50.311000Z"}	"white, blue"	""	"2"	"33BBY"	"R2-D2"	"https://swapi.co/api/people/3/"	null	32	null	"red"	96
-4	{"created": "2014-12-10T15:18:20.704000Z", "edited": "2014-12-20T21:17:50.313000Z"}	"white"	"1"	"1"	"41.9BBY"	"Darth Vader"	"https://swapi.co/api/people/4/"	"male"	136	"none"	"yellow"	202
-5	{"created": "2014-12-10T15:20:09.791000Z", "edited": "2014-12-20T21:17:50.315000Z"}	"light"	"2"	"1"	"19BBY"	"Leia Organa"	"https://swapi.co/api/people/5/"	"female"	49	"brown"	"brown"	150
-6	{"created": "2014-12-10T15:52:14.024000Z", "edited": "2014-12-20T21:17:50.317000Z"}	"light"	"1"	"1"	"52BBY"	"Owen Lars"	"https://swapi.co/api/people/6/"	"male"	120	"brown, grey"	"blue"	178
-7	{"created": "2014-12-10T15:53:41.121000Z", "edited": "2014-12-20T21:17:50.319000Z"}	"light"	"1"	"1"	"47BBY"	"Beru Whitesun lars"	"https://swapi.co/api/people/7/"	"female"	75	"brown"	"blue"	165
-8	{"created": "2014-12-10T15:57:50.959000Z", "edited": "2014-12-20T21:17:50.321000Z"}	"white, red"	"1"	"2"	"unknown"	"R5-D4"	"https://swapi.co/api/people/8/"	null	32	null	"red"	97
-9	{"created": "2014-12-10T15:59:50.509000Z", "edited": "2014-12-20T21:17:50.323000Z"}	"light"	"1"	"1"	"24BBY"	"Biggs Darklighter"	"https://swapi.co/api/people/9/"	"male"	84	"black"	"brown"	183
-10	{"created": "2014-12-10T16:16:29.192000Z", "edited": "2014-12-20T21:17:50.325000Z"}	"fair"	""	"1"	"57BBY"	"Obi-Wan Kenobi"	"https://swapi.co/api/people/10/"	"male"	77	"auburn, white"	"blue-gray"	182
-12	{"created": "2014-12-10T16:26:56.138000Z", "edited": "2014-12-20T21:17:50.330000Z"}	"fair"	""	"1"	"64BBY"	"Wilhuff Tarkin"	"https://swapi.co/api/people/12/"	"male"	null	"auburn, grey"	"blue"	180
-13	{"created": "2014-12-10T16:42:45.066000Z", "edited": "2014-12-20T21:17:50.332000Z"}	"unknown"	""	"3"	"200BBY"	"Chewbacca"	"https://swapi.co/api/people/13/"	"male"	112	"brown"	"blue"	228
-14	{"created": "2014-12-10T16:49:14.582000Z", "edited": "2014-12-20T21:17:50.334000Z"}	"fair"	""	"1"	"29BBY"	"Han Solo"	"https://swapi.co/api/people/14/"	"male"	80	"brown"	"brown"	180
-15	{"created": "2014-12-10T17:03:30.334000Z", "edited": "2014-12-20T21:17:50.336000Z"}	"green"	""	"4"	"44BBY"	"Greedo"	"https://swapi.co/api/people/15/"	"male"	74	null	"black"	173
-16	{"created": "2014-12-10T17:11:31.638000Z", "edited": "2014-12-20T21:17:50.338000Z"}	"green-tan, brown"	""	"5"	"600BBY"	"Jabba Desilijic Tiure"	"https://swapi.co/api/people/16/"	"hermaphrodite"	null	null	"orange"	175
-18	{"created": "2014-12-12T11:08:06.469000Z", "edited": "2014-12-20T21:17:50.341000Z"}	"fair"	""	"1"	"21BBY"	"Wedge Antilles"	"https://swapi.co/api/people/18/"	"male"	77	"brown"	"hazel"	170
-19	{"created": "2014-12-12T11:16:56.569000Z", "edited": "2014-12-20T21:17:50.343000Z"}	"fair"	""	"1"	"unknown"	"Jek Tono Porkins"	"https://swapi.co/api/people/19/"	"male"	110	"brown"	"blue"	180
-81	{"created": "2014-12-20T19:49:35.583000Z", "edited": "2014-12-20T21:17:50.493000Z"}	"light"	"2"	"1"	"unknown"	"Raymus Antilles"	"https://swapi.co/api/people/81/"	"male"	79	"brown"	"brown"	188
+id	height	hair_color	homeworld	species	gender	mass	eye_color	url	birth_year	system	name	skin_color
+"1"	172	"blond"	"1"	"1"	"male"	77	"blue"	"https://swapi.co/api/people/1/"	"19BBY"	{"created": "2014-12-09T13:50:51.644000Z", "edited": "2014-12-20T21:17:56.891000Z"}	"Luke Skywalker"	"fair"
+"2"	167	null	"1"	"2"	null	75	"yellow"	"https://swapi.co/api/people/2/"	"112BBY"	{"created": "2014-12-10T15:10:51.357000Z", "edited": "2014-12-20T21:17:50.309000Z"}	"C-3PO"	"gold"
+"3"	96	null	""	"2"	null	32	"red"	"https://swapi.co/api/people/3/"	"33BBY"	{"created": "2014-12-10T15:11:50.376000Z", "edited": "2014-12-20T21:17:50.311000Z"}	"R2-D2"	"white, blue"
+"4"	202	"none"	"1"	"1"	"male"	136	"yellow"	"https://swapi.co/api/people/4/"	"41.9BBY"	{"created": "2014-12-10T15:18:20.704000Z", "edited": "2014-12-20T21:17:50.313000Z"}	"Darth Vader"	"white"
+"5"	150	"brown"	"2"	"1"	"female"	49	"brown"	"https://swapi.co/api/people/5/"	"19BBY"	{"created": "2014-12-10T15:20:09.791000Z", "edited": "2014-12-20T21:17:50.315000Z"}	"Leia Organa"	"light"
+"6"	178	"brown, grey"	"1"	"1"	"male"	120	"blue"	"https://swapi.co/api/people/6/"	"52BBY"	{"created": "2014-12-10T15:52:14.024000Z", "edited": "2014-12-20T21:17:50.317000Z"}	"Owen Lars"	"light"
+"7"	165	"brown"	"1"	"1"	"female"	75	"blue"	"https://swapi.co/api/people/7/"	"47BBY"	{"created": "2014-12-10T15:53:41.121000Z", "edited": "2014-12-20T21:17:50.319000Z"}	"Beru Whitesun lars"	"light"
+"8"	97	null	"1"	"2"	null	32	"red"	"https://swapi.co/api/people/8/"	"unknown"	{"created": "2014-12-10T15:57:50.959000Z", "edited": "2014-12-20T21:17:50.321000Z"}	"R5-D4"	"white, red"
+"9"	183	"black"	"1"	"1"	"male"	84	"brown"	"https://swapi.co/api/people/9/"	"24BBY"	{"created": "2014-12-10T15:59:50.509000Z", "edited": "2014-12-20T21:17:50.323000Z"}	"Biggs Darklighter"	"light"
+"10"	182	"auburn, white"	""	"1"	"male"	77	"blue-gray"	"https://swapi.co/api/people/10/"	"57BBY"	{"created": "2014-12-10T16:16:29.192000Z", "edited": "2014-12-20T21:17:50.325000Z"}	"Obi-Wan Kenobi"	"fair"
+"12"	180	"auburn, grey"	""	"1"	"male"	null	"blue"	"https://swapi.co/api/people/12/"	"64BBY"	{"created": "2014-12-10T16:26:56.138000Z", "edited": "2014-12-20T21:17:50.330000Z"}	"Wilhuff Tarkin"	"fair"
+"13"	228	"brown"	""	"3"	"male"	112	"blue"	"https://swapi.co/api/people/13/"	"200BBY"	{"created": "2014-12-10T16:42:45.066000Z", "edited": "2014-12-20T21:17:50.332000Z"}	"Chewbacca"	"unknown"
+"14"	180	"brown"	""	"1"	"male"	80	"brown"	"https://swapi.co/api/people/14/"	"29BBY"	{"created": "2014-12-10T16:49:14.582000Z", "edited": "2014-12-20T21:17:50.334000Z"}	"Han Solo"	"fair"
+"15"	173	null	""	"4"	"male"	74	"black"	"https://swapi.co/api/people/15/"	"44BBY"	{"created": "2014-12-10T17:03:30.334000Z", "edited": "2014-12-20T21:17:50.336000Z"}	"Greedo"	"green"
+"16"	175	null	""	"5"	"hermaphrodite"	null	"orange"	"https://swapi.co/api/people/16/"	"600BBY"	{"created": "2014-12-10T17:11:31.638000Z", "edited": "2014-12-20T21:17:50.338000Z"}	"Jabba Desilijic Tiure"	"green-tan, brown"
+"18"	170	"brown"	""	"1"	"male"	77	"hazel"	"https://swapi.co/api/people/18/"	"21BBY"	{"created": "2014-12-12T11:08:06.469000Z", "edited": "2014-12-20T21:17:50.341000Z"}	"Wedge Antilles"	"fair"
+"19"	180	"brown"	""	"1"	"male"	110	"blue"	"https://swapi.co/api/people/19/"	"unknown"	{"created": "2014-12-12T11:16:56.569000Z", "edited": "2014-12-20T21:17:50.343000Z"}	"Jek Tono Porkins"	"fair"
+"81"	188	"brown"	"2"	"1"	"male"	79	"brown"	"https://swapi.co/api/people/81/"	"unknown"	{"created": "2014-12-20T19:49:35.583000Z", "edited": "2014-12-20T21:17:50.493000Z"}	"Raymus Antilles"	"light"

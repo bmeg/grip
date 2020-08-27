@@ -1,4 +1,4 @@
-id	system	name	orbital_period	population	terrain	gravity	diameter	surface_water	rotation_period	url	climate
-2	{"created": "2014-12-10T11:35:48.479000Z", "edited": "2014-12-20T20:58:18.420000Z"}	"Alderaan"	364	2000000000	["grasslands", "mountains"]	null	"12500"	"40"	24	"https://swapi.co/api/planets/2/"	"temperate"
-3	{"created": "2014-12-10T11:37:19.144000Z", "edited": "2014-12-20T20:58:18.421000Z"}	"Yavin IV"	4818	1000	["jungle", "rainforests"]	null	"10200"	"8"	24	"https://swapi.co/api/planets/3/"	"temperate, tropical"
-1	{"created": "2014-12-09T13:50:49.641000Z", "edited": "2014-12-21T20:48:04.175778Z"}	"Tatooine"	304	200000	["desert"]	null	"10465"	"1"	23	"https://swapi.co/api/planets/1/"	"arid"
+id	population	gravity	url	climate	orbital_period	diameter	surface_water	system	rotation_period	name	terrain
+"2"	2000000000	null	"https://swapi.co/api/planets/2/"	"temperate"	364	"12500"	"40"	{"created": "2014-12-10T11:35:48.479000Z", "edited": "2014-12-20T20:58:18.420000Z"}	24	"Alderaan"	["grasslands", "mountains"]
+"3"	1000	null	"https://swapi.co/api/planets/3/"	"temperate, tropical"	4818	"10200"	"8"	{"created": "2014-12-10T11:37:19.144000Z", "edited": "2014-12-20T20:58:18.421000Z"}	24	"Yavin IV"	["jungle", "rainforests"]
+"1"	200000	null	"https://swapi.co/api/planets/1/"	"arid"	304	"10465"	"1"	{"created": "2014-12-09T13:50:49.641000Z", "edited": "2014-12-21T20:48:04.175778Z"}	23	"Tatooine"	["desert"]

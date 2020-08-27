@@ -87,7 +87,7 @@ if __name__ == "__main__":
                     handle.write("\t".join(['id'] + headers) + "\n")
                     for row in rows:
                         id = row['gid'].split(":")[1]
-                        handle.write("\t".join( [id] + list( json.dumps(row['data'].get(k,"")) for k in headers ) ) + "\n")
+                        handle.write("\t".join( [json.dumps(id)] + list( json.dumps(row['data'].get(k,"")) for k in headers ) ) + "\n")
                 else:
                     headers = list(rows[0].keys())
                     handle.write("\t".join(headers) + "\n")
