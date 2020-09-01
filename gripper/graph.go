@@ -26,6 +26,7 @@ type EdgeSource struct {
 	toVertex   *VertexSource
 	fromVertex *VertexSource
 	config     *EdgeConfig
+	reverse    bool
 }
 
 type TabularGraph struct {
@@ -158,12 +159,14 @@ func NewTabularGraph(conf GraphConfig) (*TabularGraph, error) {
 			config:     &iConf,
 			fromVertex: out.vertices[e.ToVertex],
 			toVertex:   out.vertices[e.FromVertex],
+			reverse:    true,
 		})
 		out.outEdges[e.FromVertex] = append(out.outEdges[e.FromVertex], &EdgeSource{
 			prefix:     ePrefix,
 			config:     &oConf,
 			fromVertex: out.vertices[e.FromVertex],
 			toVertex:   out.vertices[e.ToVertex],
+			reverse:    false,
 		})
 	}
 	for e := range out.outEdges {
@@ -299,7 +302,7 @@ func (t *TabularGraph) GetVertexList(ctx context.Context, load bool) <-chan *gri
 	go func() {
 		for _, source := range t.vertexSourceOrder {
 			c := t.vertices[source]
-			log.Infof("Getting vertices from table: %s", c.config.Label)
+			//log.Infof("Getting vertices from table: %s", c.config.Label)
 			for row := range t.client.GetRows(context.Background(), c.config.Source, c.config.Collection) {
 				v := gripql.Vertex{Gid: c.prefix + row.Id, Label: c.config.Label, Data: row.Data}
 				out <- &v
@@ -328,6 +331,7 @@ func (t *TabularGraph) GetEdgeList(ctx context.Context, load bool) <-chan *gripq
 								if src, err := jsonpath.JsonPathLookup(data, edge.config.EdgeTable.FromField); err == nil {
 									if srcStr, ok := src.(string); ok {
 										e := gripql.Edge{
+											Gid:   edge.GenID(srcStr, dstStr),
 											To:    edge.toVertex.prefix + dstStr,
 											From:  edge.fromVertex.prefix + srcStr,
 											Label: edge.config.Label,
@@ -625,7 +629,7 @@ func (t *TabularGraph) GetOutEdgeChannel(ctx context.Context, req chan gdbi.Elem
 											if dst, err := jsonpath.JsonPathLookup(data, edge.config.EdgeTable.ToField); err == nil {
 												if dstStr, ok := dst.(string); ok {
 													o := gripql.Edge{
-														Gid:   edge.prefix + row.Id,
+														Gid:   edge.GenID(id, row.Id),//edge.prefix + row.Id,
 														To:    edge.config.ToVertex + dstStr,
 														From:  r.ID,
 														Label: edge.config.Label,
@@ -661,7 +665,13 @@ func (t *TabularGraph) GetOutEdgeChannel(ctx context.Context, req chan gdbi.Elem
 											edge.config.FieldToField.ToField, fValue)
 										if err == nil {
 											for row := range res {
-												o := gripql.Edge{From: edge.fromVertex.prefix + id, To: edge.toVertex.prefix + row.Id, Label: edge.config.Label, Data: row.Data}
+												o := gripql.Edge{
+													Gid: edge.GenID(id, row.Id),
+													From: edge.fromVertex.prefix + id,
+													To: edge.toVertex.prefix + row.Id,
+													Label: edge.config.Label,
+													Data: row.Data,
+												}
 												el := gdbi.ElementLookup{ID: r.ID, Ref: r.Ref, Edge: &o}
 												out <- el
 											}
@@ -711,7 +721,7 @@ func (t *TabularGraph) GetInEdgeChannel(ctx context.Context, req chan gdbi.Eleme
 											if dst, err := jsonpath.JsonPathLookup(data, edge.config.EdgeTable.ToField); err == nil {
 												if dstStr, ok := dst.(string); ok {
 													o := gripql.Edge{
-														Gid:   edge.prefix + row.Id,
+														Gid:   edge.GenID(id, dstStr),//edge.prefix + row.Id,
 														From:  edge.config.ToVertex + dstStr,
 														To:    r.ID,
 														Label: edge.config.Label,

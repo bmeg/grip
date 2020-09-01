@@ -52,7 +52,7 @@ def test_get_edge(G, man):
     man.setGraph("swapi")
 
     expected = {
-        "gid": "(Film:1)-[characters]->(Character:1)",
+        "gid": "Film:1-characters-Character:1",
         "label": "characters",
         "from": "Film:1",
         "to": "Character:1",
@@ -60,7 +60,7 @@ def test_get_edge(G, man):
     }
 
     try:
-        resp = G.getEdge("(Film:1)-[characters]->(Character:1)")
+        resp = G.getEdge("Film:1-characters-Character:1")
         if resp != expected:
             errors.append("Wrong edge %s != %s" % (resp, expected))
     except Exception as e:
@@ -114,15 +114,15 @@ def test_E(G, man):
         errors.append("Fail: G.query().E() %s != %d" % (count, 144))
 
     count = 0
-    for i in G.query().E("(Film:1)-[characters]->(Character:1)"):
-        if i['gid'] != "(Film:1)-[characters]->(Character:1)":
+    for i in G.query().E("Film:1-characters-Character:1"):
+        if i['gid'] != "Film:1-characters-Character:1":
             errors.append(
-                "Fail: G.query().E(\"(Film:1)-[characters]->(Character:1)\") - Wrong edge %s" % (i['gid'])
+                "Fail: G.query().E(\"Film:1-characters-Character:1\") - Wrong edge %s" % (i['gid'])
             )
         count += 1
     if count != 1:
         errors.append(
-            "Fail: G.query().E(\"(Film:1)-[characters]->(Character:1)\") %s != %d" % (count, 1))
+            "Fail: G.query().E(\"Film:1-characters-Character:1\") %s != %d" % (count, 1))
 
     return errors
 
@@ -156,15 +156,15 @@ def test_outgoing(G, man):
         )
 
     count = 0
-    for i in G.query().E("(Film:1)-[characters]->(Character:1)").out():
+    for i in G.query().E("Film:1-characters-Character:1").out():
         if i['gid'] != "Character:1":
             errors.append(
-                "Fail: G.query().E(\"(Film:1)-[characters]->(Character:1)\").out() - Wrong vertex %s" % (i['gid'])
+                "Fail: G.query().E(\"Film:1-characters-Character:1\").out() - Wrong vertex %s" % (i['gid'])
             )
         count += 1
     if count != 1:
         errors.append(
-            "Fail: G.query().E(\"(Film:1)-[characters]->(Character:1)\").out() %s != %d" % (count, 1)
+            "Fail: G.query().E(\"Film:1-characters-Character:1\").out() %s != %d" % (count, 1)
         )
 
     return errors
@@ -208,15 +208,15 @@ def test_incoming(G, man):
         )
 
     count = 0
-    for i in G.query().E("(Film:1)-[characters]->(Character:1)").in_():
+    for i in G.query().E("Film:1-characters-Character:1").in_():
         if i['gid'] != "Film:1":
             errors.append(
-                "Fail: G.query().E(\"(Film:1)-[characters]->(Character:1)\").in_() - Wrong vertex %s" % (i['gid'])
+                "Fail: G.query().E(\"Film:1-characters-Character:1\").in_() - Wrong vertex %s" % (i['gid'])
             )
         count += 1
     if count != 1:
         errors.append(
-            "Fail: G.query().E(\"(Film:1)-[characters]->(Character:1)\").in_() %s != %d" % (count, 1)
+            "Fail: G.query().E(\"Film:1-characters-Character:1\").in_() %s != %d" % (count, 1)
         )
 
     return errors
@@ -232,9 +232,9 @@ def test_outgoing_edge(G, man):
         errors.append("Fail: G.query().V(\"Character:1\").outE().count() %d != %d" % (c, 4))
 
     for i in G.query().V("Character:1").outE():
-        if not i['gid'].startswith("(Character:1)"):
+        if not i['gid'].startswith("Character:1"):
             errors.append("Fail: G.query().V(\"Character:1\").outE() - \
-            Wrong edge %s" % (i['gid']))
+            Wrong edge '%s'" % (i['gid']))
 
     for i in G.query().V("Character:1").outE().out():
         if i['gid'] not in ['Film:1', 'Planet:1', 'Species:1', 'Starship:12']:
@@ -258,7 +258,7 @@ def test_incoming_edge(G, man):
         errors.append("Fail: G.query().V(\"Character:1\").inE().count() %d != %d" % (c, 4))
 
     for i in G.query().V("Character:1").inE():
-        if not i['gid'].endswith("(Character:1)"):
+        if not i['gid'].endswith("Character:1"):
             errors.append("Fail: G.query().V(\"Character:1\").inE() - \
             Wrong edge %s" % (i['gid']))
 
@@ -305,16 +305,16 @@ def test_both(G, man):
         )
 
     count = 0
-    for i in G.query().E("(Film:1)-[characters]->(Character:1)").both():
+    for i in G.query().E("Film:1-characters-Character:1").both():
         if i['gid'] not in ["Film:1", "Character:1"]:
             errors.append(
-                "Fail: G.query().E(\"(Film:1)-[characters]->(Character:1)\").both() - \
+                "Fail: G.query().E(\"Film:1-characters-Character:1\").both() - \
                 Wrong vertex %s" % (i['gid'])
             )
         count += 1
     if count != 2:
         errors.append(
-            "Fail: G.query().E(\"(Film:1)-[characters]->(Character:1)\").both() %s != %d" % (count, 2)
+            "Fail: G.query().E(\"Film:1-characters-Character:1\").both() %s != %d" % (count, 2)
         )
 
     return errors
@@ -330,7 +330,7 @@ def test_both_edge(G, man):
         errors.append("Fail: G.query().V(\"Character:1\").bothE().count() %d != %d" % (c, 8))
 
     for i in G.query().V("Character:1").inE():
-        if not (i['gid'].startswith("(Character:1)") or i['gid'].endswith("(Character:1)")):
+        if not (i['gid'].startswith("Character:1") or i['gid'].endswith("Character:1")):
             errors.append("Fail: G.query().V(\"Character:1\").bothE() - \
             Wrong edge %s" % (i['gid']))
 
