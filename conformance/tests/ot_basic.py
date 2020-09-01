@@ -1,7 +1,18 @@
 from __future__ import absolute_import
 
 import requests
+import json
 
+
+def vertex_compare(val, expected):
+    if val["gid"] != expected["gid"]:
+        return False
+    if val["label"] != expected["label"]:
+        return False
+    for k in expected['data']:
+        if expected['data'][k] != val['data'].get(k, None):
+            return False
+    return True
 
 def test_get_vertex(G, man):
     errors = []
@@ -30,8 +41,8 @@ def test_get_vertex(G, man):
 
     try:
         resp = G.getVertex("Character:1")
-        if resp != expected:
-            errors.append("Wrong vertex %s != %s" % (resp, expected))
+        if not vertex_compare(resp, expected):
+            errors.append("Wrong vertex \n %s !=\n %s" % (json.dumps(resp, indent=4), json.dumps(expected, indent=4)))
     except Exception as e:
         errors.append("Unexpected error %s: %s" % (type(e).__name__, e))
 

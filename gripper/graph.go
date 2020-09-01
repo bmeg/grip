@@ -227,6 +227,58 @@ func (t *TabularGraph) GetVertex(key string, load bool) *gripql.Vertex {
 }
 
 func (t *TabularGraph) GetEdge(key string, load bool) *gripql.Edge {
+	src, dst, label, err := t.ParseEdge(key)
+	if err != nil {
+		return nil
+	}
+	for _, source := range t.edgeSourceOrder {
+		edgeList := t.outEdges[source]
+		for _, edge := range edgeList {
+			if edge.config.Label == label {
+				if strings.HasPrefix(src, edge.fromVertex.prefix) && strings.HasPrefix(dst, edge.toVertex.prefix) {
+					if edge.config.EdgeTable != nil {
+						log.Infof("Found table %s edge from %s to %s", label, src, dst)
+
+						srcID := strings.TrimPrefix(src, edge.fromVertex.prefix)
+						dstID := strings.TrimPrefix(dst, edge.toVertex.prefix)
+
+						res, err := t.client.GetRowsByField(context.Background(),
+							edge.config.EdgeTable.Source,
+							edge.config.EdgeTable.Collection,
+							edge.config.EdgeTable.FromField, srcID)
+
+						if err == nil {
+							var out *gripql.Edge
+							for row := range res {
+								data := protoutil.AsMap(row.Data)
+								if rowDst, err := jsonpath.JsonPathLookup(data, edge.config.EdgeTable.ToField); err == nil {
+									if rowdDstStr, ok := rowDst.(string); ok {
+										if dstID == rowdDstStr {
+											o := gripql.Edge{
+												Gid:   edge.GenID(srcID, dstID), //edge.prefix + row.Id,
+												To:    edge.config.ToVertex + dstID,
+												From:  edge.config.FromVertex + srcID,
+												Label: edge.config.Label,
+												Data:  row.Data,
+											}
+											out = &o
+										}
+									}
+								}
+							}
+							return out
+						} else {
+							log.Errorf("Row Error: %s", err)
+						}
+					} else if edge.config.FieldToID != nil {
+						log.Errorf("FieldToID not yet implemented")
+					} else if edge.config.FieldToField != nil {
+						log.Errorf("FieldToField not yet implemented")
+					}
+				}
+			}
+		}
+	}
 	return nil
 }
 
@@ -344,9 +396,9 @@ func (t *TabularGraph) GetEdgeList(ctx context.Context, load bool) <-chan *gripq
 						}
 					}
 				} else if edge.config.FieldToID != nil {
-					log.Infof("FieldToID not yet implemented")
+					log.Errorf("FieldToID not yet implemented")
 				} else if edge.config.FieldToField != nil {
-
+					log.Errorf("FieldToField not yet implemented")
 				}
 			}
 		}
@@ -475,7 +527,7 @@ func (t *TabularGraph) GetOutChannel(ctx context.Context, req chan gdbi.ElementL
 										log.Errorf("Row Error: %s", err)
 									}
 								} else if edge.config.FieldToID != nil {
-									log.Infof("FieldToID not yet implemented")
+									log.Errorf("FieldToID not yet implemented")
 								} else if edge.config.FieldToField != nil {
 									//log.Infof("FieldToField lookup %#v", edge.config.FieldToField)
 									cur := r.Ref.GetCurrent()
@@ -629,7 +681,7 @@ func (t *TabularGraph) GetOutEdgeChannel(ctx context.Context, req chan gdbi.Elem
 											if dst, err := jsonpath.JsonPathLookup(data, edge.config.EdgeTable.ToField); err == nil {
 												if dstStr, ok := dst.(string); ok {
 													o := gripql.Edge{
-														Gid:   edge.GenID(id, row.Id),//edge.prefix + row.Id,
+														Gid:   edge.GenID(id, row.Id), //edge.prefix + row.Id,
 														To:    edge.config.ToVertex + dstStr,
 														From:  r.ID,
 														Label: edge.config.Label,
@@ -666,11 +718,11 @@ func (t *TabularGraph) GetOutEdgeChannel(ctx context.Context, req chan gdbi.Elem
 										if err == nil {
 											for row := range res {
 												o := gripql.Edge{
-													Gid: edge.GenID(id, row.Id),
-													From: edge.fromVertex.prefix + id,
-													To: edge.toVertex.prefix + row.Id,
+													Gid:   edge.GenID(id, row.Id),
+													From:  edge.fromVertex.prefix + id,
+													To:    edge.toVertex.prefix + row.Id,
 													Label: edge.config.Label,
-													Data: row.Data,
+													Data:  row.Data,
 												}
 												el := gdbi.ElementLookup{ID: r.ID, Ref: r.Ref, Edge: &o}
 												out <- el
@@ -721,7 +773,7 @@ func (t *TabularGraph) GetInEdgeChannel(ctx context.Context, req chan gdbi.Eleme
 											if dst, err := jsonpath.JsonPathLookup(data, edge.config.EdgeTable.ToField); err == nil {
 												if dstStr, ok := dst.(string); ok {
 													o := gripql.Edge{
-														Gid:   edge.GenID(id, dstStr),//edge.prefix + row.Id,
+														Gid:   edge.GenID(id, dstStr), //edge.prefix + row.Id,
 														From:  edge.config.ToVertex + dstStr,
 														To:    r.ID,
 														Label: edge.config.Label,
