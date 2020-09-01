@@ -3,6 +3,7 @@ package gripper
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strings"
 	"sync"
 
@@ -32,6 +33,9 @@ type TabularGraph struct {
 	vertices map[string]*VertexSource
 	outEdges map[string][]*EdgeSource //outbound edges by vertex prefix
 	inEdges  map[string][]*EdgeSource //inbound edges by vertex prefix
+
+	vertexSourceOrder []string //order of vertex sources, because map key iteration changes order
+	edgeSourceOrder   []string
 }
 
 func NewTabularGraph(conf GraphConfig) (*TabularGraph, error) {
@@ -40,6 +44,9 @@ func NewTabularGraph(conf GraphConfig) (*TabularGraph, error) {
 	out.vertices = map[string]*VertexSource{}
 	out.outEdges = map[string][]*EdgeSource{}
 	out.inEdges = map[string][]*EdgeSource{}
+
+	out.vertexSourceOrder = []string{}
+	out.edgeSourceOrder = []string{}
 
 	log.Info("Loading Graph Config")
 
@@ -114,7 +121,9 @@ func NewTabularGraph(conf GraphConfig) (*TabularGraph, error) {
 		vConf := v
 		log.Infof("Adding vertex prefix: %s label: %s", vPrefix, v.Label)
 		out.vertices[vPrefix] = &VertexSource{prefix: vPrefix, config: &vConf}
+		out.vertexSourceOrder = append(out.vertexSourceOrder, vPrefix)
 	}
+	sort.Strings(out.vertexSourceOrder)
 
 	for ePrefix, e := range conf.Edges {
 		oConf := EdgeConfig{}
@@ -156,8 +165,11 @@ func NewTabularGraph(conf GraphConfig) (*TabularGraph, error) {
 			fromVertex: out.vertices[e.FromVertex],
 			toVertex:   out.vertices[e.ToVertex],
 		})
-
 	}
+	for e := range out.outEdges {
+		out.edgeSourceOrder = append(out.edgeSourceOrder, e)
+	}
+	sort.Strings(out.edgeSourceOrder)
 
 	return &out, nil
 }
@@ -187,7 +199,8 @@ func (t *TabularGraph) GetTimestamp() string {
 }
 
 func (t *TabularGraph) GetVertex(key string, load bool) *gripql.Vertex {
-	for _, v := range t.vertices {
+	for _, source := range t.vertexSourceOrder {
+		v := t.vertices[source]
 		if strings.HasPrefix(key, v.prefix) {
 			id := key[len(v.prefix):]
 			c := make(chan *RowRequest, 1)
@@ -227,7 +240,8 @@ func (t *TabularGraph) VertexLabelScan(ctx context.Context, label string) chan s
 	out := make(chan string, 10)
 	go func() {
 		defer close(out)
-		for _, v := range t.vertices {
+		for _, source := range t.vertexSourceOrder {
+			v := t.vertices[source]
 			if v.config.Label == label {
 				for n := range t.client.GetIDs(ctx, v.config.Source, v.config.Collection) {
 					out <- v.prefix + n
@@ -240,7 +254,8 @@ func (t *TabularGraph) VertexLabelScan(ctx context.Context, label string) chan s
 
 func (t *TabularGraph) ListVertexLabels() ([]string, error) {
 	s := map[string]bool{}
-	for _, i := range t.vertices {
+	for _, source := range t.vertexSourceOrder {
+		i := t.vertices[source]
 		s[i.config.Label] = true
 	}
 	out := []string{}
@@ -252,7 +267,8 @@ func (t *TabularGraph) ListVertexLabels() ([]string, error) {
 
 func (t *TabularGraph) ListEdgeLabels() ([]string, error) {
 	s := map[string]bool{}
-	for _, i := range t.outEdges {
+	for _, source := range t.edgeSourceOrder {
+		i := t.inEdges[source]
 		for _, e := range i {
 			s[e.config.Label] = true
 		}
@@ -281,9 +297,10 @@ func (t *TabularGraph) GetVertexIndexList() <-chan *gripql.IndexID {
 func (t *TabularGraph) GetVertexList(ctx context.Context, load bool) <-chan *gripql.Vertex {
 	out := make(chan *gripql.Vertex, 100)
 	go func() {
-		for _, c := range t.vertices {
-			//log.Printf("Getting vertices from table: %s", c.config.Label)
-			for row := range t.client.GetRows(ctx, c.config.Source, c.config.Collection) {
+		for _, source := range t.vertexSourceOrder {
+			c := t.vertices[source]
+			log.Infof("Getting vertices from table: %s", c.config.Label)
+			for row := range t.client.GetRows(context.Background(), c.config.Source, c.config.Collection) {
 				v := gripql.Vertex{Gid: c.prefix + row.Id, Label: c.config.Label, Data: row.Data}
 				out <- &v
 			}
@@ -297,7 +314,8 @@ func (t *TabularGraph) GetEdgeList(ctx context.Context, load bool) <-chan *gripq
 	out := make(chan *gripql.Edge, 100)
 	go func() {
 		defer close(out)
-		for _, edgeList := range t.outEdges {
+		for _, source := range t.edgeSourceOrder {
+			edgeList := t.outEdges[source]
 			for _, edge := range edgeList {
 				if edge.config.EdgeTable != nil {
 					res := t.client.GetRows(context.Background(),
@@ -310,10 +328,10 @@ func (t *TabularGraph) GetEdgeList(ctx context.Context, load bool) <-chan *gripq
 								if src, err := jsonpath.JsonPathLookup(data, edge.config.EdgeTable.FromField); err == nil {
 									if srcStr, ok := src.(string); ok {
 										e := gripql.Edge{
-											To: edge.toVertex.prefix + dstStr,
-											From:edge.fromVertex.prefix + srcStr,
+											To:    edge.toVertex.prefix + dstStr,
+											From:  edge.fromVertex.prefix + srcStr,
 											Label: edge.config.Label,
-											Data: row.Data,
+											Data:  row.Data,
 										}
 										out <- &e
 									}
@@ -332,63 +350,83 @@ func (t *TabularGraph) GetEdgeList(ctx context.Context, load bool) <-chan *gripq
 	return out
 }
 
+func rowRequestVertexPipeline(ctx context.Context, prefix string,
+	label string, client *DigClient, source string, collection string) (chan interface{}, chan interface{}) {
+	reqSync := &sync.Mutex{}
+	reqMap := map[uint64]gdbi.ElementLookup{}
+	in := make(chan interface{}, 10)
+	rowIn := make(chan *RowRequest, 10)
+	go func() {
+		defer close(rowIn)
+		var reqCount uint64
+		for r := range in {
+			req := r.(gdbi.ElementLookup)
+			reqSync.Lock()
+			rNum := reqCount
+			reqCount++
+			reqMap[rNum] = req
+			reqSync.Unlock()
+			id := req.ID[len(prefix):len(req.ID)]
+			rowIn <- &RowRequest{Id: id, RequestID: rNum}
+		}
+	}()
+
+	out := make(chan interface{}, 10)
+	if rowChan, err := client.GetRowsByID(context.Background(), source, collection, rowIn); err == nil {
+		go func() {
+			defer close(out)
+			for r := range rowChan {
+				o := gripql.Vertex{Gid: prefix + r.Id, Label: label}
+				o.Data = r.Data
+				reqSync.Lock()
+				outReq := reqMap[r.RequestID]
+				delete(reqMap, r.RequestID)
+				reqSync.Unlock()
+				outReq.Vertex = &o
+				out <- outReq
+			}
+		}()
+	} else {
+		log.Error("Error opening streaming connection") //BUG: deal with this!!!
+	}
+	return in, out
+}
+
 func (t *TabularGraph) GetVertexChannel(ctx context.Context, req chan gdbi.ElementLookup, load bool) chan gdbi.ElementLookup {
 	out := make(chan gdbi.ElementLookup, 10)
+
+	prefixMap := map[string]int{}
+	mux := NewChannelMux()
+	wg := &sync.WaitGroup{}
+	wg.Add(1)
 	go func() {
+		mout := mux.GetOutChannel()
 		defer close(out)
+		for o := range mout {
+			if oe, ok := o.(gdbi.ElementLookup); ok {
+				out <- oe
+			}
+		}
+		wg.Done()
+	}()
 
-		inMap := map[string]chan *RowRequest{}
-		//outMap := map[string]chan *Row{}
-		reqMap := map[uint64]gdbi.ElementLookup{}
-		var reqCount uint64
-		reqSync := &sync.Mutex{} //sync access to reqMap, other maps are only access by outer thread
-		wg := &sync.WaitGroup{}
-
+	go func() {
 		for r := range req {
-			for _, v := range t.vertices {
-				if strings.HasPrefix(r.ID, v.prefix) {
-					id := r.ID[len(v.prefix):len(r.ID)]
-
-					var curIn chan *RowRequest
-					if x, ok := inMap[v.prefix]; ok {
-						curIn = x
+			for _, vPrefix := range t.vertexSourceOrder {
+				if strings.HasPrefix(r.ID, vPrefix) {
+					v := t.vertices[vPrefix]
+					if x, ok := prefixMap[v.prefix]; ok {
+						mux.Put(x, r)
 					} else {
-						curIn = make(chan *RowRequest, 10)
-						inMap[v.prefix] = curIn
-						if rowChan, err := t.client.GetRowsByID(ctx, v.config.Source, v.config.Collection, curIn); err == nil {
-							//outMap[v.prefix] = rowChan
-							wg.Add(1)
-							go func(prefix string, label string, rowChan chan *Row) {
-								for r := range rowChan {
-									o := gripql.Vertex{Gid: prefix + r.Id, Label: label}
-									o.Data = r.Data
-									reqSync.Lock()
-									outReq := reqMap[r.RequestID]
-									delete(reqMap, r.RequestID)
-									reqSync.Unlock()
-									outReq.Vertex = &o
-									out <- outReq
-								}
-								wg.Done()
-							}(v.prefix, v.config.Label, rowChan)
-						} else {
-							log.Error("Error opening streaming connection")
-						}
-					}
-					if curIn != nil {
-						reqSync.Lock()
-						rNum := reqCount
-						reqCount++
-						reqMap[rNum] = r
-						reqSync.Unlock()
-						curIn <- &RowRequest{Id: id, RequestID: rNum}
+						in, out := rowRequestVertexPipeline(ctx, v.prefix, v.config.Label, t.client, v.config.Source, v.config.Collection)
+						x, _ := mux.AddPipeline(in, out)
+						prefixMap[v.prefix] = x
+						mux.Put(x, r)
 					}
 				}
 			}
 		}
-		for _, c := range inMap {
-			close(c)
-		}
+		mux.Close()
 		wg.Wait()
 	}()
 	return out
@@ -405,7 +443,8 @@ func (t *TabularGraph) GetOutChannel(ctx context.Context, req chan gdbi.ElementL
 			select {
 			case <-ctx.Done():
 			default:
-				for vPrefix, edgeList := range t.outEdges {
+				for _, vPrefix := range t.edgeSourceOrder {
+					edgeList := t.outEdges[vPrefix]
 					if strings.HasPrefix(r.ID, vPrefix) {
 						id := r.ID[len(vPrefix):len(r.ID)]
 						for _, edge := range edgeList {
@@ -487,7 +526,8 @@ func (t *TabularGraph) GetInChannel(ctx context.Context, req chan gdbi.ElementLo
 			select {
 			case <-ctx.Done():
 			default:
-				for vPrefix, edgeList := range t.inEdges {
+				for _, vPrefix := range t.edgeSourceOrder {
+					edgeList := t.inEdges[vPrefix]
 					if strings.HasPrefix(r.ID, vPrefix) {
 						id := r.ID[len(vPrefix):len(r.ID)]
 						for _, edge := range edgeList {
@@ -567,7 +607,8 @@ func (t *TabularGraph) GetOutEdgeChannel(ctx context.Context, req chan gdbi.Elem
 			select {
 			case <-ctx.Done():
 			default:
-				for vPrefix, edgeList := range t.outEdges {
+				for _, vPrefix := range t.edgeSourceOrder {
+					edgeList := t.outEdges[vPrefix]
 					if strings.HasPrefix(r.ID, vPrefix) {
 						id := r.ID[len(vPrefix):len(r.ID)]
 						for _, edge := range edgeList {
@@ -652,7 +693,8 @@ func (t *TabularGraph) GetInEdgeChannel(ctx context.Context, req chan gdbi.Eleme
 			select {
 			case <-ctx.Done():
 			default:
-				for vPrefix, edgeList := range t.inEdges {
+				for _, vPrefix := range t.edgeSourceOrder {
+					edgeList := t.inEdges[vPrefix]
 					if strings.HasPrefix(r.ID, vPrefix) {
 						id := r.ID[len(vPrefix):len(r.ID)]
 						for _, edge := range edgeList {

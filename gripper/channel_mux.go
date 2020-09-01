@@ -1,6 +1,5 @@
 package gripper
 
-
 /*
 The Channel Multiplexer is designed to allow the user to create multiple processing
 pipelines, each with a different input/output channel. The multiplexer then takes
@@ -30,46 +29,50 @@ and in2 -> out2
 */
 
 type ChannelMux struct {
-  messageOrder  chan int
-  inputs        []chan <- interface{}
-  outputs       []<- chan interface{}
-  outChannel    chan interface{}
+	messageOrder chan int
+	inputs       []chan<- interface{}
+	outputs      []<-chan interface{}
+	outChannel   chan interface{}
 }
 
-
 func runMux(m *ChannelMux) {
-  for n := range m.messageOrder {
-    m.outChannel <- m.outputs[n]
-  }
+	for n := range m.messageOrder {
+		t := <-m.outputs[n]
+		m.outChannel <- t
+	}
+	close(m.outChannel)
 }
 
 func NewChannelMux() *ChannelMux {
-  out := ChannelMux{
-    messageOrder: make(chan int, 10),
-    inputs: make([]chan <- interface{}, 0, 10),
-    outputs: make([]<- chan interface{}, 0, 10),
-    outChannel: make(chan interface{}, 10),
-  }
-  go runMux(&out)
-  return &out
+	out := ChannelMux{
+		messageOrder: make(chan int, 10),
+		inputs:       make([]chan<- interface{}, 0, 10),
+		outputs:      make([]<-chan interface{}, 0, 10),
+		outChannel:   make(chan interface{}, 10),
+	}
+	go runMux(&out)
+	return &out
 }
 
 func (m *ChannelMux) Close() {
-  close(m.messageOrder)
+	for _, c := range m.inputs {
+		close(c)
+	}
+	close(m.messageOrder)
 }
 
-func (m *ChannelMux) AddPipeline(input chan <- interface{}, output <- chan interface{}) (int, error) {
-  i := len(m.inputs)
-  m.inputs = append(m.inputs, input)
-  m.outputs = append(m.outputs, output)
-  return i, nil
+func (m *ChannelMux) AddPipeline(input chan<- interface{}, output <-chan interface{}) (int, error) {
+	i := len(m.inputs)
+	m.inputs = append(m.inputs, input)
+	m.outputs = append(m.outputs, output)
+	return i, nil
 }
 
 func (m *ChannelMux) Put(num int, d interface{}) {
-  m.inputs[num] <- d
-  m.messageOrder <- num
+	m.inputs[num] <- d
+	m.messageOrder <- num
 }
 
-func (m *ChannelMux) GetOutChannel() <- chan interface{} {
-  return m.outChannel
+func (m *ChannelMux) GetOutChannel() <-chan interface{} {
+	return m.outChannel
 }

@@ -41,7 +41,7 @@ class CollectionServicer(gripper_pb2_grpc.DigSourceServicer):
             yield o
 
     def GetRows(self, request, context):
-        for k,v in self.data[request.name].items():
+        for k,v in sorted(self.data[request.name].items()):
             o = gripper_pb2.Row()
             o.id = k
             json_format.ParseDict(v, o.data)
@@ -59,7 +59,7 @@ class CollectionServicer(gripper_pb2_grpc.DigSourceServicer):
     def GetRowsByField(self, request, context):
         c = self.data[request.collection]
         f = re.sub( r'^\$\.', '', request.field)
-        for k, v in c.items():
+        for k, v in sorted(c.items()):
             if v.get(f, None) == request.value:
                 o = gripper_pb2.Row()
                 o.id = k
