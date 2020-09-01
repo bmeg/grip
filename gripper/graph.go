@@ -201,6 +201,22 @@ func (t *TabularGraph) GetTimestamp() string {
 	return "NA"
 }
 
+func (t *TabularGraph) getRow(source, collection, id string) *Row {
+	c := make(chan *RowRequest, 1)
+	c <- &RowRequest{Id: id, RequestID: 0}
+	close(c)
+	var row *Row
+	if rowChan, err := t.client.GetRowsByID(context.Background(), source, collection, c); err == nil {
+		for i := range rowChan {
+			row = i
+		}
+	} else {
+		log.Errorf("Row not read: %s", err)
+	}
+	return row
+
+}
+
 func (t *TabularGraph) GetVertex(key string, load bool) *gripql.Vertex {
 	for _, source := range t.vertexSourceOrder {
 		v := t.vertices[source]
@@ -237,8 +253,6 @@ func (t *TabularGraph) GetEdge(key string, load bool) *gripql.Edge {
 			if edge.config.Label == label {
 				if strings.HasPrefix(src, edge.fromVertex.prefix) && strings.HasPrefix(dst, edge.toVertex.prefix) {
 					if edge.config.EdgeTable != nil {
-						log.Infof("Found table %s edge from %s to %s", label, src, dst)
-
 						srcID := strings.TrimPrefix(src, edge.fromVertex.prefix)
 						dstID := strings.TrimPrefix(dst, edge.toVertex.prefix)
 
@@ -271,9 +285,32 @@ func (t *TabularGraph) GetEdge(key string, load bool) *gripql.Edge {
 							log.Errorf("Row Error: %s", err)
 						}
 					} else if edge.config.FieldToID != nil {
-						log.Errorf("FieldToID not yet implemented")
+						log.Errorf("GetEdge.FieldToID not yet implemented")
 					} else if edge.config.FieldToField != nil {
-						log.Errorf("FieldToField not yet implemented")
+						srcID := strings.TrimPrefix(src, edge.fromVertex.prefix)
+						dstID := strings.TrimPrefix(dst, edge.toVertex.prefix)
+
+						srcRow := t.getRow(edge.fromVertex.config.Source, edge.fromVertex.config.Collection, srcID)
+						if srcRow != nil {
+							dstRow := t.getRow(edge.fromVertex.config.Source, edge.fromVertex.config.Collection, dstID)
+							if dstRow != nil {
+								srcData := protoutil.AsMap(srcRow.Data)
+								dstData := protoutil.AsMap(dstRow.Data)
+								if srcField, err := jsonpath.JsonPathLookup(srcData, edge.config.FieldToField.FromField); err == nil {
+									if dstField, err := jsonpath.JsonPathLookup(dstData, edge.config.FieldToField.ToField); err == nil {
+										if srcField == dstField {
+											o := gripql.Edge{
+												Gid:   edge.GenID(srcID, dstID), //edge.prefix + row.Id,
+												To:    edge.config.ToVertex + dstID,
+												From:  edge.config.FromVertex + srcID,
+												Label: edge.config.Label,
+											}
+											return &o
+										}
+									}
+								}
+							}
+						}
 					}
 				}
 			}
@@ -396,9 +433,37 @@ func (t *TabularGraph) GetEdgeList(ctx context.Context, load bool) <-chan *gripq
 						}
 					}
 				} else if edge.config.FieldToID != nil {
-					log.Errorf("FieldToID not yet implemented")
+					log.Errorf("GetEdgeList.FieldToID not yet implemented")
 				} else if edge.config.FieldToField != nil {
-					log.Errorf("FieldToField not yet implemented")
+					srcRes := t.client.GetRows(context.Background(),
+						edge.fromVertex.config.Source,
+						edge.fromVertex.config.Collection)
+					for srcRow := range srcRes {
+						srcData := protoutil.AsMap(srcRow.Data)
+						if field, err := jsonpath.JsonPathLookup(srcData, edge.config.FieldToField.FromField); err == nil {
+							if fValue, ok := field.(string); ok {
+								if fValue != "" {
+									dstRes, err := t.client.GetRowsByField(context.Background(),
+										edge.toVertex.config.Source,
+										edge.toVertex.config.Collection,
+										edge.config.FieldToField.ToField, fValue)
+									if err == nil {
+										for dstRow := range dstRes {
+											o := gripql.Edge{
+												Gid:   edge.GenID(srcRow.Id, dstRow.Id),
+												From:  edge.fromVertex.prefix + srcRow.Id,
+												To:    edge.toVertex.prefix + dstRow.Id,
+												Label: edge.config.Label,
+											}
+											out <- &o
+										}
+									} else {
+										log.Errorf("Error doing FieldToField search: %s", err)
+									}
+								}
+							}
+						}
+					}
 				}
 			}
 		}
@@ -527,7 +592,7 @@ func (t *TabularGraph) GetOutChannel(ctx context.Context, req chan gdbi.ElementL
 										log.Errorf("Row Error: %s", err)
 									}
 								} else if edge.config.FieldToID != nil {
-									log.Errorf("FieldToID not yet implemented")
+									log.Errorf("GetOutChannel.FieldToID not yet implemented")
 								} else if edge.config.FieldToField != nil {
 									//log.Infof("FieldToField lookup %#v", edge.config.FieldToField)
 									cur := r.Ref.GetCurrent()
@@ -618,7 +683,7 @@ func (t *TabularGraph) GetInChannel(ctx context.Context, req chan gdbi.ElementLo
 												fValue = vStr
 											}
 										} else {
-											log.Infof("Missing Field: %s", edge.config.FieldToField.ToField)
+											//log.Infof("Missing Field: %s", edge.config.FieldToField.ToField)
 										}
 									} else {
 										//TODO: getting vertex out request without loading vertex
@@ -703,7 +768,7 @@ func (t *TabularGraph) GetOutEdgeChannel(ctx context.Context, req chan gdbi.Elem
 												fValue = vStr
 											}
 										} else {
-											log.Infof("Missing Field: %s", edge.config.FieldToField.ToField)
+											//log.Infof("Missing Field: %s", edge.config.FieldToField.ToField)
 										}
 									} else {
 										//TODO: getting vertex out request without loading vertex

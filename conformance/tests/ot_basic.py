@@ -14,6 +14,21 @@ def vertex_compare(val, expected):
             return False
     return True
 
+def edge_compare(val, expected):
+    if val["gid"] != expected["gid"]:
+        return False
+    if val["to"] != expected["to"]:
+        return False
+    if val["from"] != expected["from"]:
+        return False
+    if val["label"] != expected["label"]:
+        return False
+    for k in expected['data']:
+        if expected['data'][k] != val['data'].get(k, None):
+            return False
+    return True
+
+
 def test_get_vertex(G, man):
     errors = []
 
@@ -72,7 +87,7 @@ def test_get_edge(G, man):
 
     try:
         resp = G.getEdge("Film:1-characters-Character:1")
-        if resp != expected:
+        if not edge_compare(resp, expected):
             errors.append("Wrong edge %s != %s" % (resp, expected))
     except Exception as e:
         errors.append("Unexpected error %s: %s" % (type(e).__name__, e))
