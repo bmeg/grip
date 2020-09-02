@@ -706,7 +706,7 @@ func (t *TabularGraph) GetInChannel(ctx context.Context, req chan gdbi.ElementLo
 										}
 									}
 								} else if edge.config.FieldToID != nil {
-									log.Infof("Need to implement FieldToID")
+									log.Errorf("Need to implement FieldToID")
 								}
 							}
 						}
@@ -798,7 +798,7 @@ func (t *TabularGraph) GetOutEdgeChannel(ctx context.Context, req chan gdbi.Elem
 									}
 
 								} else if edge.config.FieldToID != nil {
-									log.Infof("Need to implement FieldToID")
+									log.Errorf("Need to implement FieldToID")
 								}
 							}
 						}
@@ -851,8 +851,46 @@ func (t *TabularGraph) GetInEdgeChannel(ctx context.Context, req chan gdbi.Eleme
 									} else {
 										log.Errorf("Row Error: %s", err)
 									}
+								} else if edge.config.FieldToField != nil {
+									//TODO: Check this
+									cur := r.Ref.GetCurrent()
+									fValue := ""
+									if cur != nil && cur.ID == r.ID {
+										if v, err := jsonpath.JsonPathLookup(cur.Data, edge.config.FieldToField.ToField); err == nil {
+											if vStr, ok := v.(string); ok {
+												fValue = vStr
+											}
+										} else {
+											//log.Infof("Missing Field: %s", edge.config.FieldToField.ToField)
+										}
+									} else {
+										//TODO: getting vertex out request without loading vertex
+										//Trying to figure out if this can happen...
+										log.Errorf("Source Vertex not in Ref")
+									}
+									if fValue != "" {
+										res, err := t.client.GetRowsByField(context.Background(),
+											edge.fromVertex.config.Source,
+											edge.fromVertex.config.Collection,
+											edge.config.FieldToField.FromField, fValue)
+										if err == nil {
+											for row := range res {
+												o := gripql.Edge{
+													Gid:   edge.GenID(row.Id, id),
+													To:    edge.fromVertex.prefix + row.Id,
+													From:  edge.toVertex.prefix + id,
+													Label: edge.config.Label,
+													Data:  row.Data,
+												}
+												el := gdbi.ElementLookup{ID: r.ID, Ref: r.Ref, Edge: &o}
+												out <- el
+											}
+										} else {
+											log.Errorf("Error doing FieldToField search: %s", err)
+										}
+									}
 								} else if edge.config.FieldToID != nil {
-									log.Info("Need to implement FieldToID")
+									log.Errorf("Need to implement FieldToID")
 								}
 							}
 						}

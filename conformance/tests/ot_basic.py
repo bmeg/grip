@@ -302,11 +302,13 @@ def test_incoming_edge(man):
 def test_outgoing_edge_all(man):
     errors = []
     G = man.setGraph("swapi")
-    for i in G.query().V().as_("a").outE().as_("b").render(["$a._gid", "$b._from", "$b._gid"]):
+    for i in G.query().V().as_("a").outE().as_("b").render(["$a._gid", "$b._from", "$b._to", "$b._gid"]):
         if i[0] != i[1]:
             errors.append("outE _gid/from missmatch %s != %s" % (i[0], i[1]))
-        if not i[2].startswith(i[0]):
-            errors.append("outE _gid prefix %s != %s" % (i[2], i[0]))
+        if i[1] == i[2]:
+            errors.append("outE to/from the same %s == %s" % (i[1], i[2]))
+        if not i[3].startswith(i[0]):
+            errors.append("outE _gid prefix %s != %s" % (i[3], i[0]))
     return errors
 
 def test_incoming_edge_all(man):
@@ -319,6 +321,16 @@ def test_incoming_edge_all(man):
             errors.append("outE _gid wrong suffix %s != %s" % (i[2], i[0]))
     return errors
 
+
+def test_out_edge_out_all(man):
+    errors = []
+    G = man.setGraph("swapi")
+    for i in G.query().V().as_("a").outE().as_("b").out().as_("c").render(["$a._gid", "$b._from", "$b._to", "$c._gid"]):
+        if i[0] != i[1]:
+            errors.append("outE-out _gid/from missmatch %s != %s" % (i[0], i[1]))
+        if i[2] != i[3]:
+            errors.append("outE-out to/_gid missmatch %s != %s" % (i[0], i[1]))
+    return errors
 
 def test_both(man):
     errors = []
