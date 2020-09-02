@@ -1,9 +1,9 @@
 
 
-def test_count(G, man):
+def test_count(man):
     errors = []
 
-    man.setGraph("swapi")
+    G = man.setGraph("swapi")
 
     i = list(G.query().V().count())
     if len(i) < 1:
@@ -34,8 +34,10 @@ def test_count(G, man):
 
 # tests an edge case where mongo aggregations fill fail to return a count when
 # the ccollection doesnt exist
-def test_count_when_no_data(G, man):
+def test_count_when_no_data(man):
     errors = []
+
+    G = man.writeTest()
 
     i = list(G.query().V().count())
     if len(i) < 1:

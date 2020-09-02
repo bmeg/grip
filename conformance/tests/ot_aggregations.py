@@ -15,10 +15,10 @@ eye_color_count_map = {
 }
 
 
-def test_simple(G, man):
+def test_simple(man):
     errors = []
 
-    man.setGraph("swapi")
+    G = man.setGraph("swapi")
 
     count = 0
     for row in G.query().V().aggregate(gripql.term("simple-agg", "eye_color")):
@@ -35,10 +35,10 @@ def test_simple(G, man):
     return errors
 
 
-def test_traversal_term_aggregation(G, man):
+def test_traversal_term_aggregation(man):
     errors = []
 
-    man.setGraph("swapi")
+    G = man.setGraph("swapi")
 
     count = 0
     for row in G.query().V("Film:1").out().hasLabel("Character").aggregate(gripql.term("traversal-agg", "eye_color")):
@@ -66,10 +66,10 @@ def test_traversal_term_aggregation(G, man):
     return errors
 
 
-def test_traversal_histogram_aggregation(G, man):
+def test_traversal_histogram_aggregation(man):
     errors = []
 
-    man.setGraph("swapi")
+    G = man.setGraph("swapi")
 
     height_agg_map = {
         75: 2,
@@ -104,10 +104,10 @@ def test_traversal_histogram_aggregation(G, man):
     return errors
 
 
-def test_traversal_percentile_aggregation(G, man):
+def test_traversal_percentile_aggregation(man):
     errors = []
 
-    man.setGraph("swapi")
+    G = man.setGraph("swapi")
 
     count = 0
     percents = [1, 5, 25, 50, 75, 95, 99, 99.9]
@@ -147,10 +147,10 @@ def test_traversal_percentile_aggregation(G, man):
     return errors
 
 
-def test_traversal_edge_histogram_aggregation(G, man):
+def test_traversal_edge_histogram_aggregation(man):
     errors = []
 
-    man.setGraph("swapi")
+    G = man.setGraph("swapi")
 
     scene_count_agg_map = {
         8: 1,
@@ -186,10 +186,10 @@ def test_traversal_edge_histogram_aggregation(G, man):
     return errors
 
 
-def test_traversal_gid_aggregation(G, man):
+def test_traversal_gid_aggregation(man):
     errors = []
 
-    man.setGraph("swapi")
+    G = man.setGraph("swapi")
 
     planet_agg_map = {
         "Planet:1": 7,

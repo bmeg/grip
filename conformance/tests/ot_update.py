@@ -1,6 +1,6 @@
-def test_duplicate(G, man):
+def test_duplicate(man):
 
-    man.writeTest()
+    G = man.writeTest()
 
     errors = []
     G.addVertex("vertex1", "person", {"somedata": 1})
@@ -22,9 +22,9 @@ def test_duplicate(G, man):
     return errors
 
 
-def test_replace(G, man):
+def test_replace(man):
 
-    man.writeTest()
+    G = man.writeTest()
 
     errors = []
     G.addVertex("vertex1", "person", {"somedata": 1})
@@ -49,10 +49,10 @@ def test_replace(G, man):
     return errors
 
 
-def test_delete(G, man):
+def test_delete(man):
     errors = []
 
-    man.writeTest()
+    G = man.writeTest()
 
     G.addVertex("vertex1", "person", {"field1": "value1", "field2": "value2"})
     G.addVertex("vertex2", "person")

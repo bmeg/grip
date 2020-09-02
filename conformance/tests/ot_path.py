@@ -7,10 +7,10 @@ was applied, but does verify that the results seem correct
 """
 
 
-def test_path_1(G, man):
+def test_path_1(man):
     errors = []
 
-    man.setGraph("swapi")
+    G = man.setGraph("swapi")
 
     count = 0
     for res in G.query().V("Film:1").out().out().out():
@@ -41,10 +41,10 @@ def test_path_1(G, man):
     return errors
 
 
-def test_path_2(G, man):
+def test_path_2(man):
     errors = []
 
-    man.setGraph("swapi")
+    G = man.setGraph("swapi")
 
     count = 0
     for res in G.query().V().out().hasLabel("Starship").out().out():

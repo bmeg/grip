@@ -29,10 +29,10 @@ def edge_compare(val, expected):
     return True
 
 
-def test_get_vertex(G, man):
+def test_get_vertex(man):
     errors = []
 
-    man.setGraph("swapi")
+    G = man.setGraph("swapi")
 
     expected = {
         "gid": "Character:1",
@@ -72,10 +72,10 @@ def test_get_vertex(G, man):
     return errors
 
 
-def test_get_edge(G, man):
+def test_get_edge(man):
     errors = []
 
-    man.setGraph("swapi")
+    G = man.setGraph("swapi")
 
     expected = {
         "gid": "Film:1-characters-Character:1",
@@ -104,10 +104,10 @@ def test_get_edge(G, man):
     return errors
 
 
-def test_V(G, man):
+def test_V(man):
     errors = []
 
-    man.setGraph("swapi")
+    G = man.setGraph("swapi")
 
     count = 0
     for i in G.query().V():
@@ -128,10 +128,10 @@ def test_V(G, man):
     return errors
 
 
-def test_E(G, man):
+def test_E(man):
     errors = []
 
-    man.setGraph("swapi")
+    G = man.setGraph("swapi")
 
     count = 0
     for i in G.query().E():
@@ -153,10 +153,10 @@ def test_E(G, man):
     return errors
 
 
-def test_outgoing(G, man):
+def test_outgoing(man):
     errors = []
 
-    man.setGraph("swapi")
+    G = man.setGraph("swapi")
 
     count = 0
     for i in G.query().V("Starship:12").out():
@@ -196,10 +196,10 @@ def test_outgoing(G, man):
     return errors
 
 
-def test_incoming(G, man):
+def test_incoming(man):
     errors = []
 
-    man.setGraph("swapi")
+    G = man.setGraph("swapi")
 
     count = 0
     for i in G.query().V("Starship:12").in_():
@@ -248,10 +248,10 @@ def test_incoming(G, man):
     return errors
 
 
-def test_outgoing_edge(G, man):
+def test_outgoing_edge(man):
     errors = []
 
-    man.setGraph("swapi")
+    G = man.setGraph("swapi")
 
     c = G.query().V("Character:1").outE().count().execute()[0]["count"]
     if c != 4:
@@ -274,10 +274,10 @@ def test_outgoing_edge(G, man):
     return errors
 
 
-def test_incoming_edge(G, man):
+def test_incoming_edge(man):
     errors = []
 
-    man.setGraph("swapi")
+    G = man.setGraph("swapi")
 
     c = G.query().V("Character:1").inE().count().execute()[0]["count"]
     if c != 4:
@@ -299,11 +299,31 @@ def test_incoming_edge(G, man):
 
     return errors
 
+def test_outgoing_edge_all(man):
+    errors = []
+    G = man.setGraph("swapi")
+    for i in G.query().V().as_("a").outE().as_("b").render(["$a._gid", "$b._from", "$b._gid"]):
+        if i[0] != i[1]:
+            errors.append("outE _gid/from missmatch %s != %s" % (i[0], i[1]))
+        if not i[2].startswith(i[0]):
+            errors.append("outE _gid prefix %s != %s" % (i[2], i[0]))
+    return errors
 
-def test_both(G, man):
+def test_incoming_edge_all(man):
+    errors = []
+    G = man.setGraph("swapi")
+    for i in G.query().V().as_("a").inE().as_("b").render(["$a._gid", "$b._to", "$b._gid"]):
+        if i[0] != i[1]:
+            errors.append("inE _gid/to missmatch %s != %s" % (i[0], i[1]))
+        if not i[2].endswith(i[0]):
+            errors.append("outE _gid wrong suffix %s != %s" % (i[2], i[0]))
+    return errors
+
+
+def test_both(man):
     errors = []
 
-    man.setGraph("swapi")
+    G = man.setGraph("swapi")
 
     count = 0
     for i in G.query().V("Starship:12").both():
@@ -346,10 +366,10 @@ def test_both(G, man):
     return errors
 
 
-def test_both_edge(G, man):
+def test_both_edge(man):
     errors = []
 
-    man.setGraph("swapi")
+    G = man.setGraph("swapi")
 
     c = G.query().V("Character:1").bothE().count().execute()[0]["count"]
     if c != 8:
@@ -372,10 +392,10 @@ def test_both_edge(G, man):
     return errors
 
 
-def test_limit(G, man):
+def test_limit(man):
     errors = []
 
-    man.setGraph("swapi")
+    G = man.setGraph("swapi")
 
     tests = [
         "G.query().V().limit(3)",
@@ -409,10 +429,10 @@ def test_limit(G, man):
     return errors
 
 
-def test_skip(G, man):
+def test_skip(man):
     errors = []
 
-    man.setGraph("swapi")
+    G = man.setGraph("swapi")
 
     tests = [
         "G.query().V().skip(3).limit(3)",
@@ -446,10 +466,10 @@ def test_skip(G, man):
     return errors
 
 
-def test_range(G, man):
+def test_range(man):
     errors = []
 
-    man.setGraph("swapi")
+    G = man.setGraph("swapi")
 
     tests = [
         "G.query().V().range(3, 5)",

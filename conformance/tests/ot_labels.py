@@ -1,9 +1,9 @@
 
 
-def test_list_labels(G, man):
+def test_list_labels(man):
     errors = []
 
-    man.setGraph("swapi")
+    G = man.setGraph("swapi")
 
     resp = G.listLabels()
     print(resp)

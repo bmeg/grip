@@ -1,10 +1,10 @@
 from __future__ import absolute_import
 
 
-def test_render(G, man):
+def test_render(man):
     errors = []
 
-    man.setGraph("swapi")
+    G = man.setGraph("swapi")
 
     query = G.query().V().hasLabel("Person").render(
         {

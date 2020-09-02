@@ -1,8 +1,8 @@
 
-def test_fields(G, man):
+def test_fields(man):
     errors = []
 
-    man.setGraph("swapi")
+    G = man.setGraph("swapi")
 
     expected = {
         u"gid": u"Character:1",

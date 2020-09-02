@@ -1,7 +1,7 @@
-def test_distinct(G, man):
+def test_distinct(man):
     errors = []
 
-    man.setGraph("swapi")
+    G = man.setGraph("swapi")
 
     count = 0
     for i in G.query().V().distinct():
@@ -48,10 +48,10 @@ def test_distinct(G, man):
     return errors
 
 
-def test_distinct_multi(G, man):
+def test_distinct_multi(man):
     errors = []
 
-    man.setGraph("swapi")
+    G = man.setGraph("swapi")
 
     count = 0
     o = {}

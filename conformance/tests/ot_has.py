@@ -3,10 +3,10 @@ from __future__ import absolute_import
 import gripql
 
 
-def test_hasLabel(G, man):
+def test_hasLabel(man):
     errors = []
 
-    man.setGraph("swapi")
+    G = man.setGraph("swapi")
 
     count = 0
     for i in G.query().V().hasLabel("Vehicle"):
@@ -35,10 +35,10 @@ def test_hasLabel(G, man):
     return errors
 
 
-def test_hasKey(G, man):
+def test_hasKey(man):
     errors = []
 
-    man.setGraph("swapi")
+    G = man.setGraph("swapi")
 
     count = 0
     for i in G.query().V().hasKey("manufacturer"):
@@ -63,10 +63,10 @@ def test_hasKey(G, man):
     return errors
 
 
-def test_hasId(G, man):
+def test_hasId(man):
     errors = []
 
-    man.setGraph("swapi")
+    G = man.setGraph("swapi")
 
     count = 0
     for i in G.query().V().hasId("Character:1"):
@@ -91,10 +91,10 @@ def test_hasId(G, man):
     return errors
 
 
-def test_has_eq(G, man):
+def test_has_eq(man):
     errors = []
 
-    man.setGraph("swapi")
+    G = man.setGraph("swapi")
 
     count = 0
     for i in G.query().V().has(gripql.eq("_gid", "Character:3")):
@@ -129,10 +129,10 @@ def test_has_eq(G, man):
     return errors
 
 
-def test_has_neq(G, man):
+def test_has_neq(man):
     errors = []
 
-    man.setGraph("swapi")
+    G = man.setGraph("swapi")
 
     count = 0
     for i in G.query().V().has(gripql.neq("_gid", "Character:1")):
@@ -167,10 +167,10 @@ def test_has_neq(G, man):
     return errors
 
 
-def test_has_gt(G, man):
+def test_has_gt(man):
     errors = []
 
-    man.setGraph("swapi")
+    G = man.setGraph("swapi")
 
     count = 0
     for i in G.query().V().has(gripql.gt("height", 202)):
@@ -195,10 +195,10 @@ def test_has_gt(G, man):
     return errors
 
 
-def test_has_lt(G, man):
+def test_has_lt(man):
     errors = []
 
-    man.setGraph("swapi")
+    G = man.setGraph("swapi")
 
     count = 0
     for i in G.query().V().has(gripql.lt("height", 97)):
@@ -223,10 +223,10 @@ def test_has_lt(G, man):
     return errors
 
 
-def test_has_inside(G, man):
+def test_has_inside(man):
     errors = []
 
-    man.setGraph("swapi")
+    G = man.setGraph("swapi")
 
     count = 0
     for i in G.query().V().has(gripql.inside("height", 100, 200)):
@@ -241,10 +241,10 @@ def test_has_inside(G, man):
     return errors
 
 
-def test_has_outside(G, man):
+def test_has_outside(man):
     errors = []
 
-    man.setGraph("swapi")
+    G = man.setGraph("swapi")
 
     count = 0
     for i in G.query().V().has(gripql.outside("height", 100, 200)):
@@ -259,10 +259,10 @@ def test_has_outside(G, man):
     return errors
 
 
-def test_has_between(G, man):
+def test_has_between(man):
     errors = []
 
-    man.setGraph("swapi")
+    G = man.setGraph("swapi")
 
     count = 0
     for i in G.query().V().has(gripql.between("height", 180, 200)):
@@ -277,9 +277,9 @@ def test_has_between(G, man):
     return errors
 
 
-def test_has_within(G, man):
+def test_has_within(man):
     errors = []
-    man.setGraph("swapi")
+    G = man.setGraph("swapi")
 
     count = 0
     for i in G.query().V().has(gripql.within("eye_color", ["brown", "hazel"])):
@@ -302,10 +302,10 @@ def test_has_within(G, man):
     return errors
 
 
-def test_has_without(G, man):
+def test_has_without(man):
     errors = []
 
-    man.setGraph("swapi")
+    G = man.setGraph("swapi")
 
     count = 0
     for i in G.query().V().has(gripql.without("eye_color", ["brown"])):
@@ -328,10 +328,10 @@ def test_has_without(G, man):
     return errors
 
 
-def test_has_contains(G, man):
+def test_has_contains(man):
     errors = []
 
-    man.setGraph("swapi")
+    G = man.setGraph("swapi")
 
     count = 0
     for i in G.query().V().has(gripql.contains("terrain", "jungle")):
@@ -346,10 +346,10 @@ def test_has_contains(G, man):
     return errors
 
 
-def test_has_and(G, man):
+def test_has_and(man):
     errors = []
 
-    man.setGraph("swapi")
+    G = man.setGraph("swapi")
 
     count = 0
     for i in G.query().V().has(gripql.and_(gripql.eq("_label", "Character"), gripql.eq("eye_color", "blue"))):
@@ -364,10 +364,10 @@ def test_has_and(G, man):
     return errors
 
 
-def test_has_or(G, man):
+def test_has_or(man):
     errors = []
 
-    man.setGraph("swapi")
+    G = man.setGraph("swapi")
 
     count = 0
     for i in G.query().V().has(gripql.or_(gripql.eq("eye_color", "blue"), gripql.eq("eye_color", "hazel"))):
@@ -382,10 +382,10 @@ def test_has_or(G, man):
     return errors
 
 
-def test_has_not(G, man):
+def test_has_not(man):
     errors = []
 
-    man.setGraph("swapi")
+    G = man.setGraph("swapi")
 
     count = 0
     for i in G.query().V().has(gripql.not_(gripql.eq("_label", "Character"))):
@@ -410,10 +410,10 @@ def test_has_not(G, man):
     return errors
 
 
-def test_has_complex(G, man):
+def test_has_complex(man):
     errors = []
 
-    man.setGraph("swapi")
+    G = man.setGraph("swapi")
 
     count = 0
     for i in G.query().V().has(

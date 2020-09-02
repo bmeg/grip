@@ -4,7 +4,7 @@ import gripql
 from gripql import __
 
 
-def test_match(G, man):
+def test_match(man):
     """
     http://tinkerpop.apache.org/docs/3.3.4/reference/#match-step
 
@@ -12,7 +12,7 @@ def test_match(G, man):
     """
     errors = []
 
-    man.setGraph("swapi")
+    G = man.setGraph("swapi")
 
     query = G.query().V().match([
         __.as_('a').in_('residents').as_('b'),

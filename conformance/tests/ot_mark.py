@@ -1,9 +1,9 @@
 
 
-def test_mark_select_label_filter(G, man):
+def test_mark_select_label_filter(man):
     errors = []
 
-    man.setGraph("swapi")
+    G = man.setGraph("swapi")
 
     count = 0
     for row in G.query().V("Film:1").as_("a").\
@@ -25,10 +25,10 @@ def test_mark_select_label_filter(G, man):
     return errors
 
 
-def test_mark_select(G, man):
+def test_mark_select(man):
     errors = []
 
-    man.setGraph("swapi")
+    G = man.setGraph("swapi")
 
     count = 0
     for row in G.query().V("Character:1").as_("a").out().as_(
@@ -50,10 +50,10 @@ def test_mark_select(G, man):
     return errors
 
 
-def test_mark_edge_select(G, man):
+def test_mark_edge_select(man):
     errors = []
 
-    man.setGraph("swapi")
+    G = man.setGraph("swapi")
 
     count = 0
     for row in G.query().V("Film:1").as_("a").outE("planets").as_(

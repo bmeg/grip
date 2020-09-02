@@ -3,10 +3,10 @@ from __future__ import absolute_import
 import gripql
 
 
-def test_simple(G, man):
+def test_simple(man):
     errors = []
 
-    man.setGraph("swapi")
+    G = man.setGraph("swapi")
 
     q = G.query().V().hasLabel("Character").as_("a").out().select("a")
 
@@ -20,10 +20,10 @@ def test_simple(G, man):
     return errors
 
 
-def test_select(G, man):
+def test_select(man):
     errors = []
 
-    man.setGraph("swapi")
+    G = man.setGraph("swapi")
 
     q = G.query().V().hasLabel("Character").as_("person")
     q = q.out("homeworld").has(gripql.eq("name", "Tatooine")).select("person")

@@ -1,9 +1,9 @@
 
 
-def test_index(G, man):
+def test_index(man):
     errors = []
 
-    man.writeTest()
+    G = man.writeTest()
 
     G.addIndex("Person", "name")
 
