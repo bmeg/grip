@@ -318,7 +318,7 @@ def test_incoming_edge_all(man):
         if i[0] != i[1]:
             errors.append("inE _gid/to missmatch %s != %s" % (i[0], i[1]))
         if not i[2].endswith(i[0]):
-            errors.append("outE _gid wrong suffix %s != %s" % (i[2], i[0]))
+            errors.append("inE _gid wrong suffix %s != %s" % (i[2], i[0]))
     return errors
 
 
@@ -331,6 +331,37 @@ def test_out_edge_out_all(man):
         if i[2] != i[3]:
             errors.append("outE-out to/_gid missmatch %s != %s" % (i[0], i[1]))
     return errors
+
+def test_in_out_equal(man):
+    G = man.setGraph("swapi")
+    errors = []
+    count1 = 0
+    for i in G.query().V().out():
+        count1 += 1
+
+    count2 = 0
+    for i in G.query().V().in_():
+        count2 += 1
+
+    if count1 != count2:
+        errors.append("in / out counts not the same %s != %s" % (count1, count2))
+    return errors
+
+def test_ine_oute_equal(man):
+    G = man.setGraph("swapi")
+    errors = []
+    count1 = 0
+    for i in G.query().V().outE():
+        count1 += 1
+
+    count2 = 0
+    for i in G.query().V().inE():
+        count2 += 1
+
+    if count1 != count2:
+        errors.append("inE / outE counts not the same %s != %s" % (count1, count2))
+    return errors
+
 
 def test_both(man):
     errors = []

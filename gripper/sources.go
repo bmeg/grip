@@ -17,7 +17,7 @@ func (t *TabularGraph) ParseEdge(gid string) (string, string, string, error) {
 
 func (es *EdgeSource) GenID(srcID, dstID string) string {
   if es.reverse {
-    return es.toVertex.prefix + dstID + "-" + es.config.Label + "-" + es.fromVertex.prefix + srcID
+    return es.toVertex.prefix + srcID + "-" + es.config.Label + "-" + es.fromVertex.prefix + dstID
   }
   return es.fromVertex.prefix + srcID + "-" + es.config.Label + "-" + es.toVertex.prefix + dstID
 }
