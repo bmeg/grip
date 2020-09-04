@@ -14,6 +14,7 @@ def vertex_compare(val, expected):
             return False
     return True
 
+
 def edge_compare(val, expected):
     if val["gid"] != expected["gid"]:
         return False
@@ -299,6 +300,7 @@ def test_incoming_edge(man):
 
     return errors
 
+
 def test_outgoing_edge_all(man):
     errors = []
     G = man.setGraph("swapi")
@@ -310,6 +312,7 @@ def test_outgoing_edge_all(man):
         if not i[3].startswith(i[0]):
             errors.append("outE _gid prefix %s != %s" % (i[3], i[0]))
     return errors
+
 
 def test_incoming_edge_all(man):
     errors = []
@@ -332,6 +335,7 @@ def test_out_edge_out_all(man):
             errors.append("outE-out to/_gid missmatch %s != %s" % (i[0], i[1]))
     return errors
 
+
 def test_in_out_equal(man):
     G = man.setGraph("swapi")
     errors = []
@@ -346,6 +350,7 @@ def test_in_out_equal(man):
     if count1 != count2:
         errors.append("in / out counts not the same %s != %s" % (count1, count2))
     return errors
+
 
 def test_ine_oute_equal(man):
     G = man.setGraph("swapi")

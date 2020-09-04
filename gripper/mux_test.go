@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-var test_count = 100
+var testCount = 100
 
 func incPipeline() (chan interface{}, chan interface{}) {
 	in := make(chan interface{})
@@ -33,12 +33,12 @@ func TestMux(t *testing.T) {
 	wg.Add(1)
 	counted := 0
 	go func() {
-		for i := 0; i < test_count; i++ {
+		for i := 0; i < testCount; i++ {
 			o := <-out
 			if o != i+1 {
 				t.Errorf("Wrong order: %d != %d", o, i+1)
 			}
-			counted += 1
+			counted++
 		}
 		wg.Done()
 	}()
@@ -55,7 +55,7 @@ func TestMux(t *testing.T) {
 		t.Error(err)
 	}
 
-	for i := 0; i < test_count; i++ {
+	for i := 0; i < testCount; i++ {
 		switch rand.Intn(3) {
 		case 0:
 			mux.Put(m1, i)
@@ -68,7 +68,7 @@ func TestMux(t *testing.T) {
 
 	mux.Close()
 	wg.Wait()
-	if counted != test_count {
-		t.Errorf("Incorrect output count: %d != %d", counted, test_count)
+	if counted != testCount {
+		t.Errorf("Incorrect output count: %d != %d", counted, testCount)
 	}
 }

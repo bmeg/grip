@@ -49,7 +49,7 @@ class Manager:
     def newGraph(self):
         if self.readOnly is None:
             self.curGraph = "test_graph_" + id_generator()
-            self._conn.addGraph(GRAPH)
+            self._conn.addGraph(self.curGraph)
         else:
             self.curGraph = args.readOnly
 
@@ -64,7 +64,7 @@ class Manager:
             self.clean()
 
         self.curGraph = "test_graph_" + id_generator()
-        self._conn.addGraph(self.curGraph )
+        self._conn.addGraph(self.curGraph)
 
         G = self._conn.graph(self.curGraph)
 
@@ -77,8 +77,8 @@ class Manager:
             for line in handle:
                 data = json.loads(line)
                 G.addEdge(src=data["from"], dst=data["to"],
-                                   gid=data.get("gid", None), label=data["label"],
-                                   data=data.get("data", {}))
+                          gid=data.get("gid", None), label=data["label"],
+                          data=data.get("data", {}))
         self.curName = name
         return G
 
@@ -92,9 +92,10 @@ class Manager:
         self.clean()
         self.curName = ""
         self.curGraph = "test_graph_" + id_generator()
-        self._conn.addGraph(self.curGraph )
+        self._conn.addGraph(self.curGraph)
         G = self._conn.graph(self.curGraph)
         return G
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(

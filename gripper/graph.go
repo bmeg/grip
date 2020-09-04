@@ -281,9 +281,8 @@ func (t *TabularGraph) GetEdge(key string, load bool) *gripql.Edge {
 								}
 							}
 							return out
-						} else {
-							log.Errorf("Row Error: %s", err)
 						}
+						log.Errorf("Row Error: %s", err)
 					} else if edge.config.FieldToID != nil {
 						log.Errorf("GetEdge.FieldToID not yet implemented")
 					} else if edge.config.FieldToField != nil {
