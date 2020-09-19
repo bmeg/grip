@@ -37,12 +37,15 @@ proto:
 		-I ./ \
 		-I ../googleapis \
 		--lint_out=. \
+		--go_opt=paths=source_relative \
 		--go_out=Mgoogle/protobuf/struct.proto=github.com/golang/protobuf/ptypes/struct,plugins=grpc:. \
-		--grpc-gateway_out=logtostderr=true,allow_colon_final_segments=true:. \
+		--grpc-gateway_out=logtostderr=true,allow_colon_final_segments=true:./ \
+		--grpc-gateway_opt paths=source_relative \
 		--grcp-rest-direct_out=. \
 		gripql.proto
 	@cd kvindex && protoc \
 		-I ./ \
+		--go_opt=paths=source_relative \
 		--go_out=. \
 		index.proto
 

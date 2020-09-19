@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package gripql;
 
+option go_package = "github.com/bmeg/grip/gripql";
+
 import "google/api/annotations.proto";
 import "google/protobuf/struct.proto";
 
@@ -186,6 +188,28 @@ message QueryResult {
 	}
 }
 
+message QueryJob {
+	string id = 1;
+	string graph = 2;
+}
+
+
+enum JobState {
+	QUEUED = 0;
+	RUNNING = 1;
+	STREAMING = 2;
+	COMPLETE = 3;
+	ERROR = 4;
+}
+
+message JobStatus {
+	string id = 1;
+	string graph = 2;
+	JobState state = 3;
+	uint64   count = 4;
+	repeated GraphStatement query = 5;
+}
+
 message EditResult {
   string id = 1;
 }
@@ -247,6 +271,25 @@ service Query {
     option (google.api.http) = {
       post: "/v1/graph/{graph}/query"
       body: "*"
+    };
+  }
+
+	rpc Job(GraphQuery) returns (QueryJob) {
+    option (google.api.http) = {
+      post: "/v1/graph/{graph}/job"
+      body: "*"
+    };
+  }
+
+	rpc GetJob(QueryJob) returns (JobStatus) {
+    option (google.api.http) = {
+      get: "/v1/graph/{graph}/job/{id}"
+    };
+  }
+
+	rpc GetResults(QueryJob) returns (stream QueryResult) {
+    option (google.api.http) = {
+      get: "/v1/graph/{graph}/job/{id}/results"
     };
   }
 

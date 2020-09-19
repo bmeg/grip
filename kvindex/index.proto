@@ -3,6 +3,8 @@ syntax = "proto3";
 
 package kvindex;
 
+option go_package = "github.com/bmeg/grip/kvindex";
+
 message Doc {
   repeated bytes entries = 1;
 }
