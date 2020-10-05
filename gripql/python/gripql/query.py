@@ -4,7 +4,7 @@ import json
 import logging
 import requests
 
-from gripql.util import BaseConnection, Rate, raise_for_status
+from gripql.util import BaseConnection, Rate
 
 
 def _wrap_value(value, typ):
@@ -299,7 +299,7 @@ class Query(BaseConnection):
         logger.debug('BODY %s', self.to_json())
         logger.debug('STATUS CODE %s', response.status_code)
 
-        for result in response.iter_lines():
+        for result in response.iter_lines(chunk_size=None):
             try:
                 result_dict = json.loads(result.decode())
             except Exception as e:
@@ -324,7 +324,7 @@ class Query(BaseConnection):
             elif "count" in result_dict:
                 extracted = result_dict
             elif "error" in result_dict:
-                raise requests.HTTPError(http_error_msg, response=result_dict['error']['message'])
+                raise requests.HTTPError(result_dict['error']['message'])
             else:
                 extracted = result_dict
 
