@@ -357,13 +357,13 @@ def test_limit(O, man):
     ]
 
     expected_results = [
-        list(i.gid for i in O.query().V().execute())[:3],
-        list(i.gid for i in O.query().E().execute())[:3]
+        list(i["gid"] for i in O.query().V().execute())[:3],
+        list(i["gid"] for i in O.query().E().execute())[:3]
     ]
 
     for test, expected in zip(tests, expected_results):
         results = eval(test).execute()
-        actual = [x.gid for x in results]
+        actual = [x["gid"] for x in results]
 
         # check contents
         for x in actual:
@@ -394,13 +394,13 @@ def test_skip(O, man):
     ]
 
     expected_results = [
-        list(i.gid for i in O.query().V().execute())[3:6],
-        list(i.gid for i in O.query().E().execute())[3:6]
+        list(i["gid"] for i in O.query().V().execute())[3:6],
+        list(i["gid"] for i in O.query().E().execute())[3:6]
     ]
 
     for test, expected in zip(tests, expected_results):
         results = eval(test).execute()
-        actual = [x.gid for x in results]
+        actual = [x["gid"] for x in results]
 
         # check contents
         for x in actual:
@@ -433,15 +433,15 @@ def test_range(O, man):
     ]
 
     expected_results = [
-        list(i.gid for i in O.query().V().execute())[3:5],
-        list(i.gid for i in O.query().V().execute())[34:],
-        list(i.gid for i in O.query().E().execute())[120:123],
-        list(i.gid for i in O.query().E().execute())[140:]
+        list(i["gid"] for i in O.query().V().execute())[3:5],
+        list(i["gid"] for i in O.query().V().execute())[34:],
+        list(i["gid"] for i in O.query().E().execute())[120:123],
+        list(i["gid"] for i in O.query().E().execute())[140:]
     ]
 
     for test, expected in zip(tests, expected_results):
         results = eval(test).execute()
-        actual = [x.gid for x in results]
+        actual = [x["gid"] for x in results]
 
         # check contents
         for x in actual:

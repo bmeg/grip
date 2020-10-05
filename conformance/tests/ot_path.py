@@ -26,8 +26,8 @@ def test_path_1(O, man):
 
     count = 0
     for res in O.query().V("Film:1").out().out().outE():
-        if res.label not in ["vehicles", "species", "planets", "characters", "enemy", "starships", "films", "homeworld", "people", "pilots", "residents"]:
-            errors.append("Wrong label found at end of path: %s" % (res.label))
+        if res["label"] not in ["vehicles", "species", "planets", "characters", "enemy", "starships", "films", "homeworld", "people", "pilots", "residents"]:
+            errors.append("Wrong label found at end of path: %s" % (res["label"]))
         count += 1
     if count != 1814:
         errors.append("out-out-outE Incorrect vertex count returned: %d != %d" % (count, 1814))

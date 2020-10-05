@@ -2,8 +2,9 @@ from __future__ import absolute_import, print_function, unicode_literals
 
 import json
 import logging
+import requests
 
-from gripql.util import AttrDict, BaseConnection, Rate, raise_for_status
+from gripql.util import BaseConnection, Rate, raise_for_status
 
 
 def _wrap_value(value, typ):
@@ -297,9 +298,8 @@ class Query(BaseConnection):
         logger.debug('POST %s', self.url)
         logger.debug('BODY %s', self.to_json())
         logger.debug('STATUS CODE %s', response.status_code)
-        raise_for_status(response)
 
-        for result in response.iter_lines(chunk_size=None):
+        for result in response.iter_lines():
             try:
                 result_dict = json.loads(result.decode())
             except Exception as e:
@@ -323,13 +323,12 @@ class Query(BaseConnection):
                 extracted = result_dict["render"]
             elif "count" in result_dict:
                 extracted = result_dict
+            elif "error" in result_dict:
+                raise requests.HTTPError(http_error_msg, response=result_dict['error']['message'])
             else:
                 extracted = result_dict
 
-            if isinstance(extracted, dict):
-                yield AttrDict(extracted)
-            else:
-                yield extracted
+            yield extracted
 
             rate.tick()
         rate.close()

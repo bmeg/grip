@@ -14,9 +14,10 @@ from glob import glob
 BASE = os.path.dirname(os.path.abspath(__file__))
 TESTS = os.path.join(BASE, "tests")
 GRIPQL = os.path.join(os.path.dirname(BASE), "gripql", "python")
-sys.path.append(GRIPQL)
+sys.path.insert(0,GRIPQL)
 import gripql  # noqa: E402
 
+print("Running Conformance with %s" % (gripql.__file__))
 
 try:
     from importlib.machinery import SourceFileLoader

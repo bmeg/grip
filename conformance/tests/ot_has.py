@@ -24,7 +24,7 @@ def test_hasLabel(O, man):
 
     count = 0
     for i in O.query().V().hasLabel(["Vehicle", "Starship"]):
-        if "name" not in i.data:
+        if "name" not in i["data"]:
             errors.append("vertex %s returned without data" % (i.gid))
         count += 1
     if count != 12:
