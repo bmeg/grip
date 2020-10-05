@@ -40,24 +40,24 @@ func Run(conf *config.Config, schemas map[string]*gripql.Graph) error {
 
 	var db gdbi.GraphDB
 	var err error
-	switch dbname := strings.ToLower(conf.Database); dbname {
+	switch dbname := strings.ToLower(conf.Default.Database); dbname {
 	case "bolt", "badger", "level":
-		db, err = kvgraph.NewKVGraphDB(dbname, conf.KVStorePath)
+		db, err = kvgraph.NewKVGraphDB(dbname, conf.Default.KVStorePath)
 
 	case "grids":
-		db, err = grids.NewGraphDB(conf.Grids)
+		db, err = grids.NewGraphDB(conf.Default.Grids)
 
 	case "elastic", "elasticsearch":
-		db, err = elastic.NewGraphDB(conf.Elasticsearch)
+		db, err = elastic.NewGraphDB(conf.Default.Elasticsearch)
 
 	case "mongo", "mongodb":
-		db, err = mongo.NewGraphDB(conf.MongoDB)
+		db, err = mongo.NewGraphDB(conf.Default.MongoDB)
 
 	case "psql":
-		db, err = psql.NewGraphDB(conf.PSQL)
+		db, err = psql.NewGraphDB(conf.Default.PSQL)
 
 	case "existing-sql":
-		db, err = esql.NewGraphDB(conf.ExistingSQL)
+		db, err = esql.NewGraphDB(conf.Default.ExistingSQL)
 
 	default:
 		err = fmt.Errorf("unknown database: %s", dbname)

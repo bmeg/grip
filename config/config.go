@@ -26,24 +26,29 @@ func init() {
 	rand.Seed(time.Now().UTC().UnixNano())
 }
 
-// Config describes the configuration for Grip.
-type Config struct {
+type GraphConfig struct {
 	Database      string
-	Server        server.Config
-	RPCClient     rpc.Config
 	KVStorePath   string
 	Grids         string
 	Elasticsearch elastic.Config
 	MongoDB       mongo.Config
 	PSQL          psql.Config
 	ExistingSQL   esql.Config
+}
+
+// Config describes the configuration for Grip.
+type Config struct {
+	Server        server.Config
+	RPCClient     rpc.Config
 	Logger        log.Logger
+	Default       GraphConfig
+	Graphs        map[string]GraphConfig
 }
 
 // DefaultConfig returns an instance of the default configuration for Grip.
 func DefaultConfig() *Config {
 	c := &Config{}
-	c.Database = "badger"
+	c.Default.Database = "badger"
 
 	c.Server.HostName = "localhost"
 	c.Server.HTTPPort = "8201"
@@ -62,14 +67,14 @@ func DefaultConfig() *Config {
 
 	c.RPCClient = rpc.ConfigWithDefaults(c.Server.RPCAddress())
 
-	c.KVStorePath = "grip.db"
+	c.Default.KVStorePath = "grip.db"
 
-	c.MongoDB.DBName = "gripdb"
-	c.MongoDB.BatchSize = 1000
-	c.MongoDB.UseAggregationPipeline = true
+	c.Default.MongoDB.DBName = "gripdb"
+	c.Default.MongoDB.BatchSize = 1000
+	c.Default.MongoDB.UseAggregationPipeline = true
 
-	c.Elasticsearch.DBName = "gripdb"
-	c.Elasticsearch.BatchSize = 1000
+	c.Default.Elasticsearch.DBName = "gripdb"
+	c.Default.Elasticsearch.BatchSize = 1000
 
 	c.Logger = log.DefaultLoggerConfig()
 	return c
@@ -85,12 +90,12 @@ func TestifyConfig(c *Config) {
 
 	c.RPCClient.ServerAddress = c.Server.RPCAddress()
 
-	c.KVStorePath = "grip.db." + rand
+	c.Default.KVStorePath = "grip.db." + rand
 
-	c.MongoDB.DBName = "gripdb-" + rand
+	c.Default.MongoDB.DBName = "gripdb-" + rand
 
-	c.Elasticsearch.DBName = "gripdb-" + rand
-	c.Elasticsearch.Synchronous = true
+	c.Default.Elasticsearch.DBName = "gripdb-" + rand
+	c.Default.Elasticsearch.Synchronous = true
 }
 
 // ParseConfig parses a YAML doc into the given Config instance.
