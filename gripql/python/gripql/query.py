@@ -1,6 +1,12 @@
 from __future__ import absolute_import, print_function, unicode_literals
 
-import json
+try:
+    # attempt to load JSON parsing library that works faster
+    from orjson import loads as jloads, dumps as jdumps
+except ImportError:
+    # fall back to standard JSON parsing library
+    from json import loads as jloads, dumps as jdumps
+
 import logging
 import requests
 
@@ -260,7 +266,7 @@ class Query(BaseConnection):
         Return the query as a JSON string.
         """
         output = {"query": self.query}
-        return json.dumps(output)
+        return jdumps(output)
 
     def to_dict(self):
         """
@@ -301,7 +307,7 @@ class Query(BaseConnection):
 
         for result in response.iter_lines(chunk_size=None):
             try:
-                result_dict = json.loads(result.decode())
+                result_dict = jloads(result.decode())
             except Exception as e:
                 logger.error("Failed to decode: %s", result)
                 raise e
