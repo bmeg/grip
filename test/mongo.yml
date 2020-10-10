@@ -1,5 +1,6 @@
-Database: mongo
+Default:
+  Database: mongo
 
-MongoDB:
-  URL: mongodb://localhost:27000
-  UseAggregationPipeline: true
+  MongoDB:
+    URL: mongodb://localhost:27000
+    UseAggregationPipeline: true

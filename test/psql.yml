@@ -1,8 +1,9 @@
-Database: psql
+Default:
+  Database: psql
 
-PSQL:
-  Host: localhost
-  Port: 15432
-  User: postgres
-  DBName: test
-  SSLMode: disable
+  PSQL:
+    Host: localhost
+    Port: 15432
+    User: postgres
+    DBName: test
+    SSLMode: disable

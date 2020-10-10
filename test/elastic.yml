@@ -1,5 +1,6 @@
-Database: elastic
+Default:
+  Database: elastic
 
-Elasticsearch:
-  URL: http://localhost:19200
-  Synchronous: true
+  Elasticsearch:
+    URL: http://localhost:19200
+    Synchronous: true

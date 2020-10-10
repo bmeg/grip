@@ -1,1 +1,2 @@
-Database: rocks
+Default:
+  Database: rocks

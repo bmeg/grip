@@ -1,1 +1,2 @@
-Database: badger
+Default:
+  Database: badger
