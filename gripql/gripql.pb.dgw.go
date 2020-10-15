@@ -122,7 +122,7 @@ func (shim *EditDirectClient) AddEdge(ctx context.Context, in *GraphElement, opt
 type directEditBulkAdd struct {
   ctx context.Context
   c   chan *GraphElement
-  out chan *EditResult
+  out chan *BulkEditResult
 }
 
 func (dsm *directEditBulkAdd) Recv() (*GraphElement, error) {
@@ -142,13 +142,13 @@ func (dsm *directEditBulkAdd) Context() context.Context {
 	return dsm.ctx
 }
 
-func (dsm *directEditBulkAdd) SendAndClose(o *EditResult) error {
+func (dsm *directEditBulkAdd) SendAndClose(o *BulkEditResult) error {
   dsm.out <- o
   close(dsm.out)
   return nil
 }
 
-func (dsm *directEditBulkAdd) CloseAndRecv() (*EditResult, error) {
+func (dsm *directEditBulkAdd) CloseAndRecv() (*BulkEditResult, error) {
   close(dsm.c)
   out := <- dsm.out
   return out, nil
@@ -164,7 +164,7 @@ func (dsm *directEditBulkAdd) Header() (metadata.MD, error) { return nil, nil }
 func (dsm *directEditBulkAdd) Trailer() metadata.MD         { return nil }
 
 func (dir *EditDirectClient) BulkAdd(ctx context.Context, opts ...grpc.CallOption) (Edit_BulkAddClient, error) {
-	w := &directEditBulkAdd{ctx, make(chan *GraphElement, 100), make(chan *EditResult, 3)}
+	w := &directEditBulkAdd{ctx, make(chan *GraphElement, 100), make(chan *BulkEditResult, 3)}
 	go func() {
 		dir.server.BulkAdd(w)
 	}()

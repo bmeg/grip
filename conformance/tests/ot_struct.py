@@ -1,7 +1,9 @@
 
 
-def test_vertex_struct(O):
+def test_vertex_struct(O, man):
     errors = []
+
+    man.writeTest()
 
     O.addVertex("vertex1", "person", {"field1": {"test": 1, "value": False}})
 
@@ -25,8 +27,10 @@ def test_vertex_struct(O):
     return errors
 
 
-def test_edge_struct(O):
+def test_edge_struct(O, man):
     errors = []
+
+    man.writeTest()
 
     O.addVertex("vertex1", "person", {"field1": {"test": 1, "value": False}})
     O.addVertex("vertex2", "person", {"field1": {"test": 2, "value": True}})
@@ -44,8 +48,10 @@ def test_edge_struct(O):
     return errors
 
 
-def test_nested_struct(O):
+def test_nested_struct(O, man):
     errors = []
+
+    man.writeTest()
 
     data = {"field1": {"nested": {"test": 1,
                                   "array": [{"value": {"entry": 1}}]}}}

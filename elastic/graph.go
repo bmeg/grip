@@ -10,9 +10,10 @@ import (
 	"github.com/bmeg/grip/engine/core"
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
+	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/timestamp"
+	"github.com/bmeg/grip/util"
 	"github.com/golang/protobuf/jsonpb"
-	log "github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
 	elastic "gopkg.in/olivere/elastic.v5"
 )
@@ -60,9 +61,9 @@ func (es *Graph) AddEdge(edges []*gripql.Edge) error {
 		}
 		pe := PackEdge(e)
 		script := elastic.NewScript(`ctx._source.gid = params.gid;
-                                 ctx._source.label = params.label; 
-                                 ctx._source.from = params.from; 
-                                 ctx._source.to = params.to; 
+                                 ctx._source.label = params.label;
+                                 ctx._source.from = params.from;
+                                 ctx._source.to = params.to;
                                  ctx._source.data = params.data;`).Params(pe)
 		req := elastic.NewBulkUpdateRequest().
 			Index(es.edgeIndex).
@@ -95,7 +96,7 @@ func (es *Graph) AddVertex(vertices []*gripql.Vertex) error {
 		}
 		pv := PackVertex(v)
 		script := elastic.NewScript(`ctx._source.gid = params.gid;
-                                 ctx._source.label = params.label; 
+                                 ctx._source.label = params.label;
                                  ctx._source.data = params.data;`).Params(pv)
 		req := elastic.NewBulkUpdateRequest().
 			Index(es.vertexIndex).
@@ -111,6 +112,10 @@ func (es *Graph) AddVertex(vertices []*gripql.Vertex) error {
 	}
 	es.ts.Touch(es.graph)
 	return nil
+}
+
+func (es *Graph) BulkAdd(stream <-chan *gripql.GraphElement) error {
+	return util.StreamBatch(stream, 50, es.graph, es.AddVertex, es.AddEdge)
 }
 
 // DelEdge deletes edge `eid`

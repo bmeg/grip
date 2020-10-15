@@ -13,8 +13,7 @@ import (
 // Return a new interceptor function that authorizes RPCs
 // using a password stored in the config.
 func unaryAuthInterceptor(creds []BasicCredential) grpc.UnaryServerInterceptor {
-	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo,
-		handler grpc.UnaryHandler) (interface{}, error) {
+	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 		var authorized bool
 		var err error
 		for _, cred := range creds {
@@ -36,8 +35,7 @@ func unaryAuthInterceptor(creds []BasicCredential) grpc.UnaryServerInterceptor {
 // Return a new interceptor function that authorizes RPCs
 // using a password stored in the config.
 func streamAuthInterceptor(creds []BasicCredential) grpc.StreamServerInterceptor {
-	return func(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo,
-		handler grpc.StreamHandler) error {
+	return func(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
 		var authorized bool
 		var err error
 		for _, cred := range creds {

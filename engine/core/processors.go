@@ -11,31 +11,20 @@ import (
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/jsonpath"
+	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/protoutil"
-	log "github.com/sirupsen/logrus"
-	"github.com/spenczar/tdigest"
+	"github.com/influxdata/tdigest"
 	"github.com/spf13/cast"
 	"golang.org/x/sync/errgroup"
 )
-
-type propKey string
-
-var propLoad propKey = "load"
-
-func getPropLoad(ctx context.Context) bool {
-	v := ctx.Value(propLoad)
-	if v == nil {
-		return true
-	}
-	return v.(bool)
-}
 
 ////////////////////////////////////////////////////////////////////////////////
 
 // LookupVerts starts query by looking on vertices
 type LookupVerts struct {
-	db  gdbi.GraphInterface
-	ids []string
+	db       gdbi.GraphInterface
+	ids      []string
+	loadData bool
 }
 
 // Process LookupVerts
@@ -44,7 +33,7 @@ func (l *LookupVerts) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 		defer close(out)
 		for t := range in {
 			if len(l.ids) == 0 {
-				for v := range l.db.GetVertexList(ctx, getPropLoad(ctx)) {
+				for v := range l.db.GetVertexList(ctx, l.loadData) {
 					out <- t.AddCurrent(&gdbi.DataElement{
 						ID:    v.Gid,
 						Label: v.Label,
@@ -53,7 +42,7 @@ func (l *LookupVerts) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 				}
 			} else {
 				for _, i := range l.ids {
-					v := l.db.GetVertex(i, getPropLoad(ctx))
+					v := l.db.GetVertex(i, l.loadData)
 					if v != nil {
 						out <- t.AddCurrent(&gdbi.DataElement{
 							ID:    v.Gid,
@@ -72,8 +61,9 @@ func (l *LookupVerts) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 
 // LookupVertsIndex look up vertices by indexed based feature
 type LookupVertsIndex struct {
-	db     gdbi.GraphInterface
-	labels []string
+	db       gdbi.GraphInterface
+	labels   []string
+	loadData bool
 }
 
 // Process LookupVertsIndex
@@ -95,7 +85,7 @@ func (l *LookupVertsIndex) Process(ctx context.Context, man gdbi.Manager, in gdb
 
 	go func() {
 		defer close(out)
-		for v := range l.db.GetVertexChannel(queryChan, getPropLoad(ctx)) {
+		for v := range l.db.GetVertexChannel(queryChan, l.loadData) {
 			i := v.Ref.(*gdbi.Traveler)
 			out <- i.AddCurrent(&gdbi.DataElement{
 				ID:    v.Vertex.Gid,
@@ -111,8 +101,9 @@ func (l *LookupVertsIndex) Process(ctx context.Context, man gdbi.Manager, in gdb
 
 // LookupEdges starts query by looking up edges
 type LookupEdges struct {
-	db  gdbi.GraphInterface
-	ids []string
+	db       gdbi.GraphInterface
+	ids      []string
+	loadData bool
 }
 
 // Process runs LookupEdges
@@ -121,7 +112,7 @@ func (l *LookupEdges) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 		defer close(out)
 		for t := range in {
 			if len(l.ids) == 0 {
-				for v := range l.db.GetEdgeList(ctx, getPropLoad(ctx)) {
+				for v := range l.db.GetEdgeList(ctx, l.loadData) {
 					out <- t.AddCurrent(&gdbi.DataElement{
 						ID:    v.Gid,
 						Label: v.Label,
@@ -132,7 +123,7 @@ func (l *LookupEdges) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 				}
 			} else {
 				for _, i := range l.ids {
-					v := l.db.GetEdge(i, getPropLoad(ctx))
+					v := l.db.GetEdge(i, l.loadData)
 					if v != nil {
 						out <- t.AddCurrent(&gdbi.DataElement{
 							ID:    v.Gid,
@@ -153,8 +144,9 @@ func (l *LookupEdges) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 
 // LookupVertexAdjOut finds out vertex
 type LookupVertexAdjOut struct {
-	db     gdbi.GraphInterface
-	labels []string
+	db       gdbi.GraphInterface
+	labels   []string
+	loadData bool
 }
 
 // Process runs out vertex
@@ -171,7 +163,7 @@ func (l *LookupVertexAdjOut) Process(ctx context.Context, man gdbi.Manager, in g
 	}()
 	go func() {
 		defer close(out)
-		for ov := range l.db.GetOutChannel(queryChan, getPropLoad(ctx), l.labels) {
+		for ov := range l.db.GetOutChannel(queryChan, l.loadData, l.labels) {
 			i := ov.Ref.(*gdbi.Traveler)
 			out <- i.AddCurrent(&gdbi.DataElement{
 				ID:    ov.Vertex.Gid,
@@ -180,15 +172,16 @@ func (l *LookupVertexAdjOut) Process(ctx context.Context, man gdbi.Manager, in g
 			})
 		}
 	}()
-	return context.WithValue(ctx, propLoad, false)
+	return ctx
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 
 // LookupEdgeAdjOut finds out edge
 type LookupEdgeAdjOut struct {
-	db     gdbi.GraphInterface
-	labels []string
+	db       gdbi.GraphInterface
+	labels   []string
+	loadData bool
 }
 
 // Process runs LookupEdgeAdjOut
@@ -205,7 +198,7 @@ func (l *LookupEdgeAdjOut) Process(ctx context.Context, man gdbi.Manager, in gdb
 	}()
 	go func() {
 		defer close(out)
-		for v := range l.db.GetVertexChannel(queryChan, getPropLoad(ctx)) {
+		for v := range l.db.GetVertexChannel(queryChan, l.loadData) {
 			i := v.Ref.(*gdbi.Traveler)
 			out <- i.AddCurrent(&gdbi.DataElement{
 				ID:    v.Vertex.Gid,
@@ -214,15 +207,16 @@ func (l *LookupEdgeAdjOut) Process(ctx context.Context, man gdbi.Manager, in gdb
 			})
 		}
 	}()
-	return context.WithValue(ctx, propLoad, false)
+	return ctx
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 
 // LookupVertexAdjIn finds incoming vertex
 type LookupVertexAdjIn struct {
-	db     gdbi.GraphInterface
-	labels []string
+	db       gdbi.GraphInterface
+	labels   []string
+	loadData bool
 }
 
 // Process runs LookupVertexAdjIn
@@ -239,7 +233,7 @@ func (l *LookupVertexAdjIn) Process(ctx context.Context, man gdbi.Manager, in gd
 	}()
 	go func() {
 		defer close(out)
-		for v := range l.db.GetInChannel(queryChan, getPropLoad(ctx), l.labels) {
+		for v := range l.db.GetInChannel(queryChan, l.loadData, l.labels) {
 			i := v.Ref.(*gdbi.Traveler)
 			out <- i.AddCurrent(&gdbi.DataElement{
 				ID:    v.Vertex.Gid,
@@ -248,15 +242,16 @@ func (l *LookupVertexAdjIn) Process(ctx context.Context, man gdbi.Manager, in gd
 			})
 		}
 	}()
-	return context.WithValue(ctx, propLoad, false)
+	return ctx
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 
 // LookupEdgeAdjIn finds incoming edge
 type LookupEdgeAdjIn struct {
-	db     gdbi.GraphInterface
-	labels []string
+	db       gdbi.GraphInterface
+	labels   []string
+	loadData bool
 }
 
 // Process runs LookupEdgeAdjIn
@@ -273,7 +268,7 @@ func (l *LookupEdgeAdjIn) Process(ctx context.Context, man gdbi.Manager, in gdbi
 	}()
 	go func() {
 		defer close(out)
-		for v := range l.db.GetVertexChannel(queryChan, getPropLoad(ctx)) {
+		for v := range l.db.GetVertexChannel(queryChan, l.loadData) {
 			i := v.Ref.(*gdbi.Traveler)
 			out <- i.AddCurrent(&gdbi.DataElement{
 				ID:    v.Vertex.Gid,
@@ -282,15 +277,16 @@ func (l *LookupEdgeAdjIn) Process(ctx context.Context, man gdbi.Manager, in gdbi
 			})
 		}
 	}()
-	return context.WithValue(ctx, propLoad, false)
+	return ctx
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 
 // InE finds the incoming edges
 type InE struct {
-	db     gdbi.GraphInterface
-	labels []string
+	db       gdbi.GraphInterface
+	labels   []string
+	loadData bool
 }
 
 // Process runs InE
@@ -307,7 +303,7 @@ func (l *InE) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out
 	}()
 	go func() {
 		defer close(out)
-		for v := range l.db.GetInEdgeChannel(queryChan, getPropLoad(ctx), l.labels) {
+		for v := range l.db.GetInEdgeChannel(queryChan, l.loadData, l.labels) {
 			i := v.Ref.(*gdbi.Traveler)
 			out <- i.AddCurrent(&gdbi.DataElement{
 				ID:    v.Edge.Gid,
@@ -318,15 +314,16 @@ func (l *InE) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out
 			})
 		}
 	}()
-	return context.WithValue(ctx, propLoad, false)
+	return ctx
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 
 // OutE finds the outgoing edges
 type OutE struct {
-	db     gdbi.GraphInterface
-	labels []string
+	db       gdbi.GraphInterface
+	labels   []string
+	loadData bool
 }
 
 // Process runs OutE
@@ -343,7 +340,7 @@ func (l *OutE) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, ou
 	}()
 	go func() {
 		defer close(out)
-		for v := range l.db.GetOutEdgeChannel(queryChan, getPropLoad(ctx), l.labels) {
+		for v := range l.db.GetOutEdgeChannel(queryChan, l.loadData, l.labels) {
 			i := v.Ref.(*gdbi.Traveler)
 			out <- i.AddCurrent(&gdbi.DataElement{
 				ID:    v.Edge.Gid,
@@ -354,7 +351,7 @@ func (l *OutE) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, ou
 			})
 		}
 	}()
-	return context.WithValue(ctx, propLoad, false)
+	return ctx
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -373,7 +370,7 @@ func (f *Fields) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, 
 			out <- o
 		}
 	}()
-	return context.WithValue(ctx, propLoad, true)
+	return ctx
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -392,7 +389,7 @@ func (r *Render) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, 
 			out <- &gdbi.Traveler{Render: v}
 		}
 	}()
-	return context.WithValue(ctx, propLoad, true)
+	return ctx
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -542,13 +539,9 @@ func matchesCondition(trav *gdbi.Traveler, cond *gripql.HasCondition) bool {
 
 	case gripql.Condition_WITHIN:
 		found := false
-		switch condVal.(type) {
+		switch condVal := condVal.(type) {
 		case []interface{}:
-			condL, ok := condVal.([]interface{})
-			if !ok {
-				return false
-			}
-			for _, v := range condL {
+			for _, v := range condVal {
 				if reflect.DeepEqual(val, v) {
 					found = true
 				}
@@ -565,13 +558,9 @@ func matchesCondition(trav *gdbi.Traveler, cond *gripql.HasCondition) bool {
 
 	case gripql.Condition_WITHOUT:
 		found := false
-		switch condVal.(type) {
+		switch condVal := condVal.(type) {
 		case []interface{}:
-			condL, ok := condVal.([]interface{})
-			if !ok {
-				return false
-			}
-			for _, v := range condL {
+			for _, v := range condVal {
 				if reflect.DeepEqual(val, v) {
 					found = true
 				}
@@ -589,13 +578,9 @@ func matchesCondition(trav *gdbi.Traveler, cond *gripql.HasCondition) bool {
 
 	case gripql.Condition_CONTAINS:
 		found := false
-		switch val.(type) {
+		switch val := val.(type) {
 		case []interface{}:
-			valL, ok := val.([]interface{})
-			if !ok {
-				return false
-			}
-			for _, v := range valL {
+			for _, v := range val {
 				if reflect.DeepEqual(v, condVal) {
 					found = true
 				}
@@ -667,7 +652,7 @@ func (w *Has) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out
 			}
 		}
 	}()
-	return context.WithValue(ctx, propLoad, true)
+	return ctx
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -679,17 +664,16 @@ type HasLabel struct {
 
 // Process runs Count
 func (h *HasLabel) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
+	labels := dedupStringSlice(h.labels)
 	go func() {
 		defer close(out)
 		for t := range in {
-			for _, label := range dedupStringSlice(h.labels) {
-				if label == t.GetCurrent().Label {
-					out <- t
-				}
+			if contains(labels, t.GetCurrent().Label) {
+				out <- t
 			}
 		}
 	}()
-	return context.WithValue(ctx, propLoad, true)
+	return ctx
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -702,10 +686,11 @@ type HasKey struct {
 // Process runs Count
 func (h *HasKey) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
 	go func() {
+		keys := dedupStringSlice(h.keys)
 		defer close(out)
 		for t := range in {
 			found := true
-			for _, key := range dedupStringSlice(h.keys) {
+			for _, key := range keys {
 				if !jsonpath.TravelerPathExists(t, key) {
 					found = false
 				}
@@ -715,7 +700,7 @@ func (h *HasKey) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, 
 			}
 		}
 	}()
-	return context.WithValue(ctx, propLoad, true)
+	return ctx
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -729,15 +714,14 @@ type HasID struct {
 func (h *HasID) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
 	go func() {
 		defer close(out)
+		ids := dedupStringSlice(h.ids)
 		for t := range in {
-			for _, id := range dedupStringSlice(h.ids) {
-				if id == t.GetCurrent().ID {
-					out <- t
-				}
+			if contains(ids, t.GetCurrent().ID) {
+				out <- t
 			}
 		}
 	}()
-	return context.WithValue(ctx, propLoad, false)
+	return ctx
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -755,7 +739,7 @@ func (c *Count) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, o
 		}
 		out <- &gdbi.Traveler{Count: i}
 	}()
-	return context.WithValue(ctx, propLoad, false)
+	return ctx
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -848,13 +832,16 @@ func (g *Distinct) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe
 		kv := man.GetTempKV()
 		for t := range in {
 			s := make([][]byte, len(g.vals))
+			found := true
 			for i, v := range g.vals {
 				if jsonpath.TravelerPathExists(t, v) {
 					s[i] = []byte(fmt.Sprintf("%#v", jsonpath.TravelerPathLookup(t, v)))
+				} else {
+					found = false
 				}
 			}
 			k := bytes.Join(s, []byte{0x00})
-			if len(k) > 0 {
+			if found && len(k) > 0 {
 				if !kv.HasKey(k) {
 					kv.Set(k, []byte{0x01})
 					out <- t
@@ -862,7 +849,7 @@ func (g *Distinct) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe
 			}
 		}
 	}()
-	return context.WithValue(ctx, propLoad, true)
+	return ctx
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -880,7 +867,7 @@ func (m *Marker) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, 
 			out <- t.AddMark(m.mark, t.GetCurrent())
 		}
 	}()
-	return context.WithValue(ctx, propLoad, true)
+	return ctx
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -934,6 +921,7 @@ type both struct {
 	labels   []string
 	lastType gdbi.DataType
 	toType   gdbi.DataType
+	loadData bool
 }
 
 func (b both) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
@@ -945,19 +933,19 @@ func (b both) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out
 			switch b.toType {
 			case gdbi.EdgeData:
 				procs = []gdbi.Processor{
-					&InE{b.db, b.labels},
-					&OutE{b.db, b.labels},
+					&InE{db: b.db, loadData: b.loadData, labels: b.labels},
+					&OutE{db: b.db, loadData: b.loadData, labels: b.labels},
 				}
 			default:
 				procs = []gdbi.Processor{
-					&LookupVertexAdjIn{b.db, b.labels},
-					&LookupVertexAdjOut{b.db, b.labels},
+					&LookupVertexAdjIn{db: b.db, labels: b.labels, loadData: b.loadData},
+					&LookupVertexAdjOut{db: b.db, labels: b.labels, loadData: b.loadData},
 				}
 			}
 		case gdbi.EdgeData:
 			procs = []gdbi.Processor{
-				&LookupEdgeAdjIn{b.db, b.labels},
-				&LookupEdgeAdjOut{b.db, b.labels},
+				&LookupEdgeAdjIn{db: b.db, labels: b.labels, loadData: b.loadData},
+				&LookupEdgeAdjOut{db: b.db, labels: b.labels, loadData: b.loadData},
 			}
 		}
 		chanIn := make([]chan *gdbi.Traveler, len(procs))
@@ -983,7 +971,7 @@ func (b both) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out
 			}
 		}
 	}()
-	return context.WithValue(ctx, propLoad, false)
+	return ctx
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1153,5 +1141,5 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 		out <- &gdbi.Traveler{Aggregations: aggs}
 	}()
 
-	return context.WithValue(ctx, propLoad, true)
+	return ctx
 }

@@ -3,6 +3,7 @@ package psql
 import (
 	"encoding/json"
 	"fmt"
+	"regexp"
 
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/protoutil"
@@ -48,4 +49,12 @@ func convertEdgeRow(row *row, load bool) (*gripql.Edge, error) {
 		Data:  protoutil.AsStruct(props),
 	}
 	return e, nil
+}
+
+func dbDoesNotExist(err error) bool {
+	matched, err := regexp.MatchString(`database "[a-z_]+" does not exist`, err.Error())
+	if err != nil {
+		return false
+	}
+	return matched
 }

@@ -10,6 +10,7 @@ import (
 	"github.com/bmeg/grip/gripql/example"
 
 	"github.com/bmeg/grip/kvgraph"
+	"github.com/bmeg/grip/kvi"
 	_ "github.com/bmeg/grip/kvi/badgerdb" // import so badger will register itself
 	"github.com/bmeg/grip/server"
 )
@@ -21,24 +22,21 @@ func TestSchemaScanner(t *testing.T) {
 	conf := config.DefaultConfig()
 	config.TestifyConfig(conf)
 
-	kv, err := kvgraph.NewKVInterface("badger", conf.KVStorePath, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer func() {
-		os.RemoveAll(conf.KVStorePath)
-	}()
-
-	db := kvgraph.NewKVGraph(kv)
-
-	srv, err := server.NewGripServer(db, conf.Server, nil)
+	kv, err := kvi.NewKVInterface("badger", conf.KVStorePath, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer func() {
 		kv.Close()
+		os.RemoveAll(conf.KVStorePath)
 		os.RemoveAll(conf.Server.WorkDir)
 	}()
+
+	db := kvgraph.NewKVGraph(kv)
+	srv, err := server.NewGripServer(db, conf.Server, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	queryClient := gripql.NewQueryDirectClient(srv)
 	editClient := gripql.NewEditDirectClient(srv)

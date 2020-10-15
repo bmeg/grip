@@ -9,28 +9,28 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/bmeg/grip/kvgraph"
 	"github.com/bmeg/grip/kvi"
-	"github.com/dgraph-io/badger"
-	"github.com/dgraph-io/badger/options"
-	log "github.com/sirupsen/logrus"
+	"github.com/bmeg/grip/log"
+	"github.com/dgraph-io/badger/v2"
 )
 
-var loaded = kvgraph.AddKVDriver("badger", NewKVInterface)
+var loaded = kvi.AddKVDriver("badger", NewKVInterface)
 
 // NewKVInterface creates new BoltDB backed KVInterface at `path`
 func NewKVInterface(path string, kopts kvi.Options) (kvi.KVInterface, error) {
 	log.Info("Starting BadgerDB")
 	_, err := os.Stat(path)
 	if os.IsNotExist(err) {
-		os.Mkdir(path, 0700)
+		merr := os.MkdirAll(path, 0700)
+		if merr != nil {
+			return nil, err
+		}
 	}
 
-	opts := badger.Options{}
-	opts = badger.DefaultOptions(path)
-	opts.TableLoadingMode = options.MemoryMap
-	opts.Dir = path
-	opts.ValueDir = path
+	logger := log.GetLogger()
+	sublogger := logger.WithFields(log.Fields{"namespace": "badger"})
+	opts := badger.DefaultOptions(path)
+	opts = opts.WithLogger(sublogger)
 	db, err := badger.Open(opts)
 	if err != nil {
 		return nil, err
@@ -108,7 +108,7 @@ func (badgerkv *BadgerKV) DeletePrefix(prefix []byte) error {
 // HasKey returns true if the key is exists in kvstore
 func (badgerkv *BadgerKV) HasKey(id []byte) bool {
 	out := false
-	badgerkv.db.View(func(tx *badger.Txn) error {
+	_ = badgerkv.db.View(func(tx *badger.Txn) error {
 		_, err := tx.Get(id)
 		if err == nil {
 			out = true
@@ -140,9 +140,15 @@ func (badgerkv *BadgerKV) BulkWrite(u func(tx kvi.KVBulkWrite) error) error {
 	bt := badgerkv.db.NewWriteBatch()
 	defer bt.Cancel()
 	ktx := badgerBulkWrite{bt}
-	out := u(ktx)
-	bt.Flush()
-	return out
+	err := u(ktx)
+	if err != nil {
+		return err
+	}
+	err = bt.Flush()
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 type badgerTransaction struct {

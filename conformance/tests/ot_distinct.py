@@ -1,48 +1,31 @@
-def test_distinct(O):
+def test_distinct(O, man):
     errors = []
 
-    O.addVertex("1", "Person", {"name": "marko", "age": 29})
-    O.addVertex("2", "Person", {"name": "vadas", "age": 25})
-    O.addVertex("4", "Person", {"name": "josh", "age": 32})
-    O.addVertex("6", "Person", {"name": "peter", "age": 35})
-    O.addVertex("7", "Person", {"name": "marko", "age": 41})
-    O.addVertex("9", "Person", {"name": "alex", "age": 30})
-    O.addVertex("10", "Person", {"name": "alex", "age": 45})
-    O.addVertex("11", "Person", {"name": "steve", "age": 26})
-    O.addVertex("12", "Person", {"name": "alice", "age": 22})
-    O.addVertex("13", "Person", {"name": "wanda", "age": 36})
-    O.addVertex("5", "Software", {"name": "ripple", "lang": "java"})
-    O.addVertex("3", "Software", {"name": "lop", "lang": "java"})
-    O.addVertex("8", "Software", {"name": "funnel", "lang": "go"})
-    O.addVertex("14", "Software", {"name": "grip", "lang": None})
-
-    O.addEdge("1", "5", "developer", gid="edge1")
-    O.addEdge("7", "5", "developer", gid="edge2")
-    O.addEdge("3", "8", "dependency", gid="edge3")
+    man.setGraph("swapi")
 
     count = 0
     for i in O.query().V().distinct():
         count += 1
-    if count != 14:
-        errors.append("Distinct %s != %s" % (count, 14))
+    if count != 39:
+        errors.append("Distinct %s != %s" % (count, 39))
 
     count = 0
     for i in O.query().V().distinct("_gid"):
         count += 1
-    if count != 14:
-        errors.append("Distinct %s != %s" % (count, 14))
+    if count != 39:
+        errors.append("Distinct %s != %s" % (count, 39))
 
     count = 0
-    for i in O.query().V().distinct("name"):
+    for i in O.query().V().distinct("eye_color"):
         count += 1
-    if count != 12:
-        errors.append("Distinct %s != %s" % (count, 12))
+    if count != 8:
+        errors.append("Distinct %s != %s" % (count, 8))
 
     count = 0
-    for i in O.query().V().distinct("lang"):
+    for i in O.query().V().distinct("gender"):
         count += 1
-    if count != 3:
-        errors.append("Distinct %s != %s" % (count, 3))
+    if count != 4:
+        errors.append("Distinct %s != %s" % (count, 4))
 
     count = 0
     for i in O.query().V().distinct("non-existent-field"):
@@ -51,9 +34,32 @@ def test_distinct(O):
         errors.append("Distinct %s != %s" % (count, 0))
 
     count = 0
-    for i in O.query().V().hasLabel("Person").as_("person").out().distinct("$person.name"):
+    for i in O.query().V().hasLabel("Character").as_("person").out().distinct("$person.name"):
         count += 1
-    if count != 1:
-        errors.append("Distinct %s != %s" % (count, 1))
+    if count != 18:
+        errors.append("Distinct  O.query().V().hasLabel(\"Person\").as_(\"person\").out().distinct(\"$person.name\") %s != %s" % (count, 18))
+
+    count = 0
+    for i in O.query().V().hasLabel("Character").as_("person").out().distinct("$person.eye_color"):
+        count += 1
+    if count != 8:
+        errors.append("Distinct  O.query().V().hasLabel(\"Person\").as_(\"person\").out().distinct(\"$person.eye_color\") %s != %s" % (count, 8))
+
+    return errors
+
+
+def test_distinct_multi(O, man):
+    errors = []
+
+    man.setGraph("swapi")
+
+    count = 0
+    o = {}
+    for i in O.query().V().as_("a").out().distinct(["$a.eye_color", "_gid"]).render(["$a.eye_color", "_gid"]):
+        if i[0] in o and o[i[0]] != i[1]:
+            errors.append("Non-unique pair returned: %s" % (i))
+        count += 1
+    if count != 29:
+        errors.append("Distinct multi %s != %s" % (count, 29))
 
     return errors

@@ -18,9 +18,16 @@ eggs/
 .tox/
 *venv*
 .pytest_cache/
+.mypy_cache/
 
 # Editor Temps
 .*.sw?
 *~
 \#*\#
 .desktop
+
+# R temps
+gripql/R/*.tar.gz
+.Rproj.user
+.Rhistory
+.RData

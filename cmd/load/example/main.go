@@ -6,8 +6,8 @@ import (
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/gripql/example"
 
+	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/util/rpc"
-	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 

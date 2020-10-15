@@ -1,20 +1,21 @@
 /*
-The engine package pulls togeather pipelines and runs processing
+The pipeline connects togeather the processors
 */
 
-package engine
+package pipeline
 
 import (
 	"context"
 
+	"github.com/bmeg/grip/engine"
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
+	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/protoutil"
-	log "github.com/sirupsen/logrus"
 )
 
 // Start begins processing a query pipeline
-func Start(ctx context.Context, pipe gdbi.Pipeline, workdir string, bufsize int) gdbi.InPipe {
+func Start(ctx context.Context, pipe gdbi.Pipeline, man gdbi.Manager, bufsize int) gdbi.InPipe {
 	procs := pipe.Processors()
 	if len(procs) == 0 {
 		ch := make(chan *gdbi.Traveler)
@@ -26,7 +27,6 @@ func Start(ctx context.Context, pipe gdbi.Pipeline, workdir string, bufsize int)
 	final := make(chan *gdbi.Traveler, bufsize)
 	out := final
 	for i := len(procs) - 1; i >= 0; i-- {
-		man := NewManager(workdir)
 		ctx = procs[i].Process(ctx, man, in, out)
 		out = in
 		in = make(chan *gdbi.Traveler, bufsize)
@@ -51,9 +51,11 @@ func Run(ctx context.Context, pipe gdbi.Pipeline, workdir string) <-chan *gripql
 		defer close(resch)
 		dataType := pipe.DataType()
 		markTypes := pipe.MarkTypes()
-		for t := range Start(ctx, pipe, workdir, bufsize) {
+		man := engine.NewManager(workdir)
+		for t := range Start(ctx, pipe, man, bufsize) {
 			resch <- Convert(dataType, markTypes, t)
 		}
+		man.Cleanup()
 	}()
 
 	return resch

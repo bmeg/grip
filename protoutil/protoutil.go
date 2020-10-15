@@ -6,9 +6,9 @@ import (
 	"reflect"
 	"time"
 
+	"github.com/bmeg/grip/log"
 	"github.com/golang/protobuf/jsonpb"
 	structpb "github.com/golang/protobuf/ptypes/struct"
-	log "github.com/sirupsen/logrus"
 )
 
 //StructSet take value and add it to Struct s using key
@@ -205,4 +205,8 @@ func AsListValue(str []string) *structpb.ListValue {
 	}
 	o := structpb.ListValue{Values: v}
 	return &o
+}
+
+func NewStruct() *structpb.Struct {
+	return &structpb.Struct{}
 }

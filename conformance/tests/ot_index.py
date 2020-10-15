@@ -1,7 +1,9 @@
 
 
-def test_index(O):
+def test_index(O, man):
     errors = []
+
+    man.writeTest()
 
     O.addIndex("Person", "name")
 

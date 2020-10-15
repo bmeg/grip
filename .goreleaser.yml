@@ -5,14 +5,6 @@ builds:
       - linux
     goarch:
       - amd64
-    env:
-      - CGO_ENABLED=0
-    ldflags: >
-      -X github.com/bmeg/grip/version.BuildDate={{.Date}}
-      -X github.com/bmeg/grip/version.GitCommit={{.ShortCommit}}
-      -X github.com/bmeg/grip/version.GitBranch={{.Env.GIT_BRANCH}}
-      -X github.com/bmeg/grip/version.GitUpstream={{.Env.GIT_UPSTREAM}}
-      -X github.com/bmeg/grip/version.Version={{.Version}}
 
 dist: build/release
 
@@ -22,9 +14,9 @@ release:
 env_files:
   github_token: .github_token
 
-archive:
-  format: tar.gz
-  name_template: "{{.ProjectName}}-{{.Os}}-{{.Arch}}-{{.Version}}"
+archives:
+  - format: tar.gz
+    name_template: "{{.ProjectName}}-{{.Os}}-{{.Arch}}-{{.Version}}"
 
 snapshot:
   name_template: "SNAPSHOT-{{.ShortCommit}}"

@@ -13,6 +13,7 @@ import (
 	"github.com/bmeg/grip/elastic"
 	esql "github.com/bmeg/grip/existing-sql"
 	"github.com/bmeg/grip/gdbi"
+	"github.com/bmeg/grip/grids"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/kvgraph"
 	_ "github.com/bmeg/grip/kvi/badgerdb" // import so badger will register itself
@@ -30,19 +31,6 @@ var db gdbi.GraphInterface
 var dbname string
 var vertices = []*gripql.Vertex{}
 var edges = []*gripql.Edge{}
-
-func init() {
-	flag.StringVar(&configFile, "config", configFile, "config file to use for tests")
-	flag.Parse()
-	vertChan := util.StreamVerticesFromFile("./resources/smtest_vertices.txt")
-	for v := range vertChan {
-		vertices = append(vertices, v)
-	}
-	edgeChan := util.StreamEdgesFromFile("./resources/smtest_edges.txt")
-	for e := range edgeChan {
-		edges = append(edges, e)
-	}
-}
 
 func setupGraph() error {
 	// sort edges/vertices and insert one at a time to ensure the same write order
@@ -75,7 +63,23 @@ func setupSQLGraph() error {
 }
 
 func TestMain(m *testing.M) {
-	var err error
+	flag.StringVar(&configFile, "config", configFile, "config file to use for tests")
+	flag.Parse()
+	vertChan, err := util.StreamVerticesFromFile("./resources/smtest_vertices.txt")
+	if err != nil {
+		panic(err)
+	}
+	for v := range vertChan {
+		vertices = append(vertices, v)
+	}
+	edgeChan, err := util.StreamEdgesFromFile("./resources/smtest_edges.txt")
+	if err != nil {
+		panic(err)
+	}
+	for e := range edgeChan {
+		edges = append(edges, e)
+	}
+
 	var exit = 1
 
 	defer func() {
@@ -109,6 +113,12 @@ func TestMain(m *testing.M) {
 		gdb, err = kvgraph.NewKVGraphDB(dbname, conf.KVStorePath)
 		defer func() {
 			os.RemoveAll(conf.KVStorePath)
+		}()
+
+	case "grids":
+		gdb, err = grids.NewGraphDB(conf.Grids)
+		defer func() {
+			os.RemoveAll(conf.Grids)
 		}()
 
 	case "elastic":

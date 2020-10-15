@@ -3,486 +3,497 @@ from __future__ import absolute_import
 import gripql
 
 
-def setupGraph(O):
-    O.addVertex("vertex1", "person", {"name": "han", "age": 35, "occupation": "smuggler", "starships": ["millennium falcon"]})
-    O.addVertex("vertex2", "person", {"name": "luke", "age": 26, "occupation": "jedi", "starships": ["x-wing", "millennium falcon"]})
-    O.addVertex("vertex3", "robot", {"name": "r2-d2"})
-    O.addVertex("vertex4", "robot", {"name": "c-3po"})
-    O.addVertex("vertex5", "person", {"name": "obi-wan", "age": 63, "occupation": "jedi"})
-    O.addVertex("vertex6", "person", {"name": "vader", "age": 55, "occupation": "sith", "starships": ["death star", "tie fighter"]})
-
-    O.addEdge("vertex1", "vertex2", "friend", gid="edge1")
-    O.addEdge("vertex2", "vertex3", "owner", gid="edge2")
-    O.addEdge("vertex2", "vertex4", "friend", gid="edge3")
-
-
-def test_hasLabel(O):
+def test_hasLabel(O, man):
     errors = []
-    setupGraph(O)
+
+    man.setGraph("swapi")
 
     count = 0
-    for i in O.query().V().hasLabel("robot"):
+    for i in O.query().V().hasLabel("Vehicle"):
         count += 1
-        if i['gid'] not in ["vertex3", "vertex4"]:
-            errors.append("Wrong vertex returned %s" % (i))
-    if count != 2:
-        errors.append(
-            "Fail: O.query().V().hasLabel(\"robot\") %s != %s" %
-            (count, 2))
-
-    count = 0
-    for i in O.query().V().hasLabel(["robot", "person"]):
-        count += 1
-    if count != 6:
-        errors.append(
-            "Fail: O.query().V().hasLabel([\"robot\", \"person\"]) %s != %s" %
-            (count, 6))
-
-    return errors
-
-
-def test_hasKey(O):
-    errors = []
-    setupGraph(O)
-
-    count = 0
-    for i in O.query().V().hasKey("age"):
-        count += 1
-        if i['gid'] not in ["vertex1", "vertex2", "vertex5", "vertex6"]:
+        if not i['gid'].startswith("Vehicle:"):
             errors.append("Wrong vertex returned %s" % (i))
     if count != 4:
         errors.append(
-            "Fail: O.query().V().hasKey(\"age\") %s != %s" %
+            "Fail: O.query().V().hasLabel(\"Vehicle\") %s != %s" %
             (count, 4))
 
-    count = 0
-    for i in O.query().V().hasKey(["age", "starships"]):
-        count += 1
-        if i['gid'] not in ["vertex1", "vertex2", "vertex6"]:
+    for i in O.query().V().hasLabel("Starship"):
+        if not i['gid'].startswith("Starship:"):
             errors.append("Wrong vertex returned %s" % (i))
-    if count != 3:
+
+    count = 0
+    for i in O.query().V().hasLabel(["Vehicle", "Starship"]):
+        if "name" not in i.data:
+            errors.append("vertex %s returned without data" % (i.gid))
+        count += 1
+    if count != 12:
         errors.append(
-            "Fail: O.query().V().hasKey([\"age\", \"starships\"]) %s != %s" %
-            (count, 3))
+            "Fail: O.query().V().hasLabel([\"Vehicle\", \"Starship\"]) %s != %s" %
+            (count, 12))
 
     return errors
 
 
-def test_hasId(O):
+def test_hasKey(O, man):
     errors = []
-    setupGraph(O)
+
+    man.setGraph("swapi")
 
     count = 0
-    for i in O.query().V().hasId("vertex1"):
+    for i in O.query().V().hasKey("manufacturer"):
         count += 1
-        if i['gid'] != "vertex1":
+        if not i['gid'].startswith("Vehicle:") and not i['gid'].startswith("Starship:"):
+            errors.append("Wrong vertex returned %s" % (i))
+    if count != 12:
+        errors.append(
+            "Fail: O.query().V().hasKey(\"manufacturer\") %s != %s" %
+            (count, 12))
+
+    count = 0
+    for i in O.query().V().hasKey(["hyperdrive_rating", "manufacturer"]):
+        count += 1
+        if not i['gid'].startswith("Starship:"):
+            errors.append("Wrong vertex returned %s" % (i))
+    if count != 8:
+        errors.append(
+            "Fail: O.query().V().hasKey([\"hyperdrive_rating\", \"manufacturer\"]) %s != %s" %
+            (count, 8))
+
+    return errors
+
+
+def test_hasId(O, man):
+    errors = []
+
+    man.setGraph("swapi")
+
+    count = 0
+    for i in O.query().V().hasId("Character:1"):
+        count += 1
+        if i['gid'] != "Character:1":
             errors.append("Wrong vertex returned %s" % (i))
     if count != 1:
         errors.append(
-            "Fail: O.query().V().hasId(\"vertex1\") %s != %s" %
+            "Fail: O.query().V().hasId(\"01\") %s != %s" %
             (count, 1))
 
     count = 0
-    for i in O.query().V().hasId(["vertex1", "vertex2"]):
+    for i in O.query().V().hasId(["Character:1", "Character:2"]):
         count += 1
-        if i['gid'] not in ["vertex1", "vertex2"]:
+        if i['gid'] not in ["Character:1", "Character:2"]:
             errors.append("Wrong vertex returned %s" % (i))
     if count != 2:
         errors.append(
-            "Fail: O.query().V().hasId([\"vertex1\", \"vertex2\"]) %s != %s" %
+            "Fail: O.query().V().hasId([\"Character:1\", \"Character:2\"]) %s != %s" %
             (count, 2))
 
     return errors
 
 
-def test_has_eq(O):
+def test_has_eq(O, man):
     errors = []
-    setupGraph(O)
+
+    man.setGraph("swapi")
 
     count = 0
-    for i in O.query().V().has(gripql.eq("_gid", "vertex3")):
+    for i in O.query().V().has(gripql.eq("_gid", "Character:3")):
         count += 1
-        if i['gid'] != "vertex3":
+        if i['gid'] != "Character:3":
             errors.append("Wrong vertex returned %s" % (i))
     if count != 1:
         errors.append(
-            "Fail: O.query().V().has(gripql.eq(\"_gid\", \"vertex3\")) %s != %s" %
+            "Fail: O.query().V().has(gripql.eq(\"_gid\", \"Character:3\")) %s != %s" %
             (count, 1))
 
     count = 0
-    for i in O.query().V().has(gripql.eq("_label", "person")):
+    for i in O.query().V().has(gripql.eq("_label", "Character")):
         count += 1
-        if i['label'] != "person":
+        if i['label'] != "Character":
             errors.append("Wrong vertex label %s" % (i['label']))
-    if count != 4:
+    if count != 18:
         errors.append(
             "Fail: O.query().V().has(gripql.eq(\"_label\", \"person\")) %s != %s" %
-            (count, 4))
+            (count, 18))
 
     count = 0
-    for i in O.query().V().has(gripql.eq("occupation", "jedi")):
+    for i in O.query().V().has(gripql.eq("eye_color", "brown")):
         count += 1
-        if i['gid'] not in ["vertex2", "vertex5"]:
+        if i['gid'] not in ["Character:14", "Character:5", "Character:81", "Character:9"]:
+            errors.append("Wrong vertex returned %s" % (i))
+    if count != 4:
+        errors.append(
+            "Fail: O.query().V().has(gripql.eq(\"eye_color\", \"brown\")) %s != %s" %
+            (count, 4))
+
+    return errors
+
+
+def test_has_neq(O, man):
+    errors = []
+
+    man.setGraph("swapi")
+
+    count = 0
+    for i in O.query().V().has(gripql.neq("_gid", "Character:1")):
+        count += 1
+        if i['gid'] == "Character:1":
+            errors.append("Wrong vertex returned %s" % (i))
+    if count != 38:
+        errors.append(
+            "Fail: O.query().V().has(gripql.not_(gripql.eq(\"_gid\", \"Character:1\"))) %s != %s" %
+            (count, 38))
+
+    count = 0
+    for i in O.query().V().has(gripql.neq("_label", "Character")):
+        count += 1
+        if i['label'] == "Character":
+            errors.append("Wrong vertex label %s" % (i['label']))
+    if count != 21:
+        errors.append(
+            "Fail: O.query().V().has(gripql.not_(gripql.eq(\"_label\", \"Character\"))) %s != %s" %
+            (count, 21))
+
+    count = 0
+    for i in O.query().V().hasLabel("Character").has(gripql.neq("eye_color", "brown")):
+        count += 1
+        if i['data']["eye_color"] == "brown":
+            errors.append("Wrong vertex returned %s" % (i))
+    if count != 14:
+        errors.append(
+            "Fail: O.query().V().has(gripql.not_(gripql.eq(\"eye_color\", \"brown\"))) %s != %s" %
+            (count, 14))
+
+    return errors
+
+
+def test_has_gt(O, man):
+    errors = []
+
+    man.setGraph("swapi")
+
+    count = 0
+    for i in O.query().V().has(gripql.gt("height", 202)):
+        count += 1
+        if i['gid'] not in ["Character:13"]:
+            errors.append("Wrong vertex returned %s" % (i))
+    if count != 1:
+        errors.append(
+            "Fail: O.query().V().has(gripql.gt(\"height\", 200)) %s != %s" %
+            (count, 1))
+
+    count = 0
+    for i in O.query().V().has(gripql.gte("height", 202)):
+        count += 1
+        if i['gid'] not in ["Character:4", "Character:13"]:
             errors.append("Wrong vertex returned %s" % (i))
     if count != 2:
         errors.append(
-            "Fail: O.query().V().has(gripql.eq(\"occupation\", \"jedi\")) %s != %s" %
+            "Fail: O.query().V().has(gripql.gte(\"height\", 202)) %s != %s" %
             (count, 2))
 
     return errors
 
 
-def test_has_neq(O):
+def test_has_lt(O, man):
     errors = []
-    setupGraph(O)
+
+    man.setGraph("swapi")
 
     count = 0
-    for i in O.query().V().has(gripql.neq("_gid", "vertex3")):
+    for i in O.query().V().has(gripql.lt("height", 97)):
         count += 1
-        if i['gid'] == "vertex3":
+        if i['gid'] not in ["Character:3"]:
+            errors.append("Wrong vertex returned %s" % (i))
+    if count != 1:
+        errors.append(
+            "Fail: O.query().V().has(gripql.lt(\"height\", 97)) %s != %s" %
+            (count, 1))
+
+    count = 0
+    for i in O.query().V().has(gripql.lte("height", 97)):
+        count += 1
+        if i['gid'] not in ["Character:3", "Character:8"]:
+            errors.append("Wrong vertex returned %s" % (i))
+    if count != 2:
+        errors.append(
+            "Fail: O.query().V().has(gripql.lte(\"height\", 97)) %s != %s" %
+            (count, 2))
+
+    return errors
+
+
+def test_has_inside(O, man):
+    errors = []
+
+    man.setGraph("swapi")
+
+    count = 0
+    for i in O.query().V().has(gripql.inside("height", 100, 200)):
+        count += 1
+        if i['gid'] in ["Character:3", "Character:4", "Character:8", "Character:13"]:
+            errors.append("Wrong vertex returned %s" % (i))
+    if count != 14:
+        errors.append(
+            "Fail: O.query().V().has(gripql.inside(\"age\", 30, 60)) %s != %s" %
+            (count, 14))
+
+    return errors
+
+
+def test_has_outside(O, man):
+    errors = []
+
+    man.setGraph("swapi")
+
+    count = 0
+    for i in O.query().V().has(gripql.outside("height", 100, 200)):
+        count += 1
+        if i['gid'] not in ["Character:3", "Character:4", "Character:8", "Character:13"]:
+            errors.append("Wrong vertex returned %s" % (i))
+    if count != 4:
+        errors.append(
+            "Fail: O.query().V().has(gripql.outside(\"age\", 30, 60)) %s != %s" %
+            (count, 4))
+
+    return errors
+
+
+def test_has_between(O, man):
+    errors = []
+
+    man.setGraph("swapi")
+
+    count = 0
+    for i in O.query().V().has(gripql.between("height", 180, 200)):
+        count += 1
+        if i['gid'] not in ["Character:10", "Character:12", "Character:14", "Character:19", "Character:81", "Character:9"]:
+            errors.append("Wrong vertex returned %s" % (i))
+    if count != 6:
+        errors.append(
+            "Fail: O.query().V().has(gripql.between(\"height\", 180, 200)) %s != %s" %
+            (count, 5))
+
+    return errors
+
+
+def test_has_within(O, man):
+    errors = []
+    man.setGraph("swapi")
+
+    count = 0
+    for i in O.query().V().has(gripql.within("eye_color", ["brown", "hazel"])):
+        count += 1
+        if i['gid'] not in ["Character:14", "Character:18", "Character:5", "Character:81", "Character:9"]:
             errors.append("Wrong vertex returned %s" % (i))
     if count != 5:
         errors.append(
-            "Fail: O.query().V().has(gripql.not_(gripql.eq(\"_gid\", \"vertex3\"))) %s != %s" %
+            "Fail: O.query().V().has(gripql.within(\"eye_color\", [\"brown\", \"hazel\"])) %s != %s" %
             (count, 5))
 
     count = 0
-    for i in O.query().V().has(gripql.neq("_label", "person")):
-        count += 1
-        if i['label'] == "person":
-            errors.append("Wrong vertex label %s" % (i['label']))
-    if count != 2:
-        errors.append(
-            "Fail: O.query().V().has(gripql.not_(gripql.eq(\"_label\", \"person\"))) %s != %s" %
-            (count, 2))
-
-    count = 0
-    for i in O.query().V().has(gripql.neq("occupation", "jedi")):
-        count += 1
-        if i['gid'] in ["vertex2", "vertex5"]:
-            errors.append("Wrong vertex returned %s" % (i))
-    if count != 4:
-        errors.append(
-            "Fail: O.query().V().has(gripql.not_(gripql.eq(\"occupation\", \"jedi\"))) %s != %s" %
-            (count, 4))
-
-    return errors
-
-
-def test_has_gt(O):
-    errors = []
-    setupGraph(O)
-
-    count = 0
-    for i in O.query().V().has(gripql.gt("age", 35)):
-        count += 1
-        if i['gid'] not in ["vertex5", "vertex6"]:
-            errors.append("Wrong vertex returned %s" % (i))
-    if count != 2:
-        errors.append(
-            "Fail: O.query().V().has(gripql.gt(\"age\", 35)) %s != %s" %
-            (count, 2))
-
-    count = 0
-    for i in O.query().V().has(gripql.gte("age", 35)):
-        count += 1
-        if i['gid'] not in ["vertex1", "vertex5", "vertex6"]:
-            errors.append("Wrong vertex returned %s" % (i))
-    if count != 3:
-        errors.append(
-            "Fail: O.query().V().has(gripql.gte(\"age\", 35)) %s != %s" %
-            (count, 3))
-
-    return errors
-
-
-def test_has_lt(O):
-    errors = []
-    setupGraph(O)
-
-    count = 0
-    for i in O.query().V().has(gripql.lt("age", 35)):
-        count += 1
-        if i['gid'] not in ["vertex2"]:
-            errors.append("Wrong vertex returned %s" % (i))
-    if count != 1:
-        errors.append(
-            "Fail: O.query().V().has(gripql.lt(\"age\", 35)) %s != %s" %
-            (count, 1))
-
-    count = 0
-    for i in O.query().V().has(gripql.lte("age", 35)):
-        count += 1
-        if i['gid'] not in ["vertex1", "vertex2"]:
-            errors.append("Wrong vertex returned %s" % (i))
-    if count != 2:
-        errors.append(
-            "Fail: O.query().V().has(gripql.lte(\"age\", 35)) %s != %s" %
-            (count, 2))
-
-    return errors
-
-
-def test_has_inside(O):
-    errors = []
-    setupGraph(O)
-
-    count = 0
-    for i in O.query().V().has(gripql.inside("age", 30, 60)):
-        count += 1
-        if i['gid'] not in ["vertex1", "vertex6"]:
-            errors.append("Wrong vertex returned %s" % (i))
-    if count != 2:
-        errors.append(
-            "Fail: O.query().V().has(gripql.inside(\"age\", 30, 60)) %s != %s" %
-            (count, 2))
-
-    return errors
-
-
-def test_has_outside(O):
-    errors = []
-    setupGraph(O)
-
-    count = 0
-    for i in O.query().V().has(gripql.outside("age", 30, 60)):
-        count += 1
-        if i['gid'] not in ["vertex2", "vertex5"]:
-            errors.append("Wrong vertex returned %s" % (i))
-    if count != 2:
-        errors.append(
-            "Fail: O.query().V().has(gripql.outside(\"age\", 30, 60)) %s != %s" %
-            (count, 2))
-
-    return errors
-
-
-def test_has_between(O):
-    errors = []
-    setupGraph(O)
-
-    count = 0
-    for i in O.query().V().has(gripql.between("age", 26, 35)):
-        count += 1
-        if i['gid'] not in ["vertex2"]:
-            errors.append("Wrong vertex returned %s" % (i))
-    if count != 1:
-        errors.append(
-            "Fail: O.query().V().has(gripql.between(\"age\", 26, 35)) %s != %s" %
-            (count, 1))
-
-    return errors
-
-
-def test_has_within(O):
-    errors = []
-    setupGraph(O)
-
-    count = 0
-    for i in O.query().V().has(gripql.within("occupation", ["jedi", "sith"])):
-        count += 1
-        if i['gid'] not in ["vertex2", "vertex5", "vertex6"]:
-            errors.append("Wrong vertex returned %s" % (i))
-    if count != 3:
-        errors.append(
-            "Fail: O.query().V().has(gripql.within(\"occupation\", [\"jedi\", \"sith\"])) %s != %s" %
-            (count, 3))
-
-    count = 0
-    for i in O.query().V().has(gripql.within("occupation", 0)):
+    for i in O.query().V().has(gripql.within("eye_color", 0)):
         count += 1
     if count != 0:
         errors.append(
-            "Fail: O.query().V().has(gripql.within(\"occupation\", 0)) %s != %s" %
+            "Fail: O.query().V().has(gripql.within(\"eye_color\", 0)) %s != %s" %
             (count, 0))
 
     return errors
 
 
-def test_has_without(O):
+def test_has_without(O, man):
     errors = []
-    setupGraph(O)
+
+    man.setGraph("swapi")
 
     count = 0
-    for i in O.query().V().has(gripql.without("occupation", ["jedi", "sith"])):
+    for i in O.query().V().has(gripql.without("eye_color", ["brown"])):
         count += 1
-        if i['gid'] not in ["vertex1", "vertex3", "vertex4"]:
+        if i['gid'] in ["Character:5", "Character:9", "Character:14", "Character:81"]:
             errors.append("Wrong vertex returned %s" % (i))
-    if count != 3:
+    if count != 35:
         errors.append(
             "Fail: O.query().V().has(gripql.without(\"occupation\", [\"jedi\", \"sith\"])) %s != %s" %
-            (count, 3))
+            (count, 35))
 
     count = 0
     for i in O.query().V().has(gripql.without("occupation", 0)):
         count += 1
-    if count != 6:
+    if count != 39:
         errors.append(
             "Fail: O.query().V().has(gripql.without(\"occupation\", 0)) %s != %s" %
-            (count, 6))
+            (count, 39))
 
     return errors
 
 
-def test_has_contains(O):
+def test_has_contains(O, man):
     errors = []
-    setupGraph(O)
+
+    man.setGraph("swapi")
 
     count = 0
-    for i in O.query().V().has(gripql.contains("starships", "x-wing")):
+    for i in O.query().V().has(gripql.contains("terrain", "jungle")):
         count += 1
-        if i['gid'] not in ["vertex2"]:
+        if i['gid'] not in ["Planet:3"]:
             errors.append("Wrong vertex returned %s" % (i))
     if count != 1:
         errors.append(
-            "Fail: O.query().V().has(gripql.contains(\"starships\", \"x-wing\")) %s != %s" %
+            "Fail: O.query().V().has(gripql.contains(\"terrain\", \"jungle\")) %s != %s" %
             (count, 1))
 
     return errors
 
 
-def test_has_and(O):
+def test_has_and(O, man):
     errors = []
-    setupGraph(O)
+
+    man.setGraph("swapi")
 
     count = 0
-    for i in O.query().V().has(gripql.and_(gripql.eq("_label", "person"), gripql.eq("occupation", "jedi"))):
+    for i in O.query().V().has(gripql.and_(gripql.eq("_label", "Character"), gripql.eq("eye_color", "blue"))):
         count += 1
-        if i['gid'] not in ["vertex2", "vertex5"]:
+        if i['gid'] not in ["Character:1", "Character:12", "Character:13", "Character:19", "Character:6", "Character:7"]:
             errors.append("Wrong vertex returned %s" % (i))
-    if count != 2:
+    if count != 6:
         errors.append(
-            "Fail: O.query().V().has(gripql.and_(gripql.eq(\"_label\", \"person\"), gripql.eq(\"occupation\", \"jedi\"))) %s != %s" %
-            (count, 2))
+            "Fail: O.query().V().has(gripql.and_(gripql.eq(\"_label\", \"Character\"), gripql.eq(\"eye_color\", \"blue\"))) %s != %s" %
+            (count, 6))
 
     return errors
 
 
-def test_has_or(O):
+def test_has_or(O, man):
     errors = []
-    setupGraph(O)
+
+    man.setGraph("swapi")
 
     count = 0
-    for i in O.query().V().has(gripql.or_(gripql.eq("occupation", "sith"), gripql.eq("occupation", "jedi"))):
+    for i in O.query().V().has(gripql.or_(gripql.eq("eye_color", "blue"), gripql.eq("eye_color", "hazel"))):
         count += 1
-        if i['gid'] not in ["vertex2", "vertex5", "vertex6"]:
+        if i['gid'] not in ["Character:1", "Character:12", "Character:13", "Character:18", "Character:19", "Character:6", "Character:7"]:
             errors.append("Wrong vertex returned %s" % (i))
-    if count != 3:
+    if count != 7:
         errors.append(
-            "Fail: O.query().V().has(gripql.or_(gripql.eq(\"occupation\", \"sith\"), gripql.eq(\"occupation\", \"jedi\"))) %s != %s" %
-            (count, 3))
+            "Fail: O.query().V().has(gripql.or_(gripql.eq(\"eye_color\", \"blue\"), gripql.eq(\"eye_color\", \"hazel\"))) %s != %s" %
+            (count, 7))
 
     return errors
 
 
-def test_has_not(O):
+def test_has_not(O, man):
     errors = []
-    setupGraph(O)
+
+    man.setGraph("swapi")
 
     count = 0
-    for i in O.query().V().has(gripql.not_(gripql.eq("_label", "person"))):
+    for i in O.query().V().has(gripql.not_(gripql.eq("_label", "Character"))):
         count += 1
-        if i['gid'] not in ["vertex3", "vertex4"]:
+        if i['gid'].startswith("Character"):
             errors.append("Wrong vertex returned %s" % (i))
-    if count != 2:
+    if count != 21:
         errors.append(
-            "Fail: O.query().V().has(gripql.not_(gripql.eq(\"_label\", \"person\"))) %s != %s" %
-            (count, 2))
+            "Fail: O.query().V().has(gripql.not_(gripql.eq(\"_label\", \"Character\"))) %s != %s" %
+            (count, 21))
 
     count = 0
-    for i in O.query().V().has(gripql.not_(gripql.neq("_label", "person"))):
+    for i in O.query().V().has(gripql.not_(gripql.neq("_label", "Character"))):
         count += 1
-        if i['gid'] not in ["vertex1", "vertex2", "vertex5", "vertex6"]:
+        if not i['gid'].startswith("Character"):
             errors.append("Wrong vertex returned %s" % (i))
-    if count != 4:
+    if count != 18:
         errors.append(
-            "Fail: O.query().V().has(gripql.not_(gripql.neq(\"_label\", \"person\"))) %s != %s" %
-            (count, 4))
+            "Fail: O.query().V().has(gripql.not_(gripql.neq(\"_label\", \"Character\"))) %s != %s" %
+            (count, 18))
 
     return errors
 
 
-def test_has_complex(O):
+def test_has_complex(O, man):
     errors = []
-    setupGraph(O)
+
+    man.setGraph("swapi")
 
     count = 0
     for i in O.query().V().has(
             gripql.and_(
-                gripql.eq("_label", "person"),
+                gripql.eq("_label", "Character"),
                 gripql.not_(
                     gripql.or_(
-                        gripql.eq("occupation", "jedi"),
-                        gripql.eq("occupation", "sith")
+                        gripql.eq("eye_color", "brown"),
+                        gripql.eq("eye_color", "hazel")
                     )
                 )
             )
     ):
         count += 1
-        if i['gid'] != "vertex1":
+        if i['label'] == "Character" and (i["data"]["eye_color"] == "brown" or i["data"]["eye_color"] == "hazel"):
             errors.append("Wrong vertex returned %s" % (i))
-    if count != 1:
+    if count != 13:
         errors.append(
-            "Fail: O.query().V().has(gripql.and_(gripql.eq(\"_label\", \"person\"), gripql.not_(gripql.or_(gripql.eq(\"occupation\", \"jedi\"), gripql.eq(\"occupation\", \"sith\"))))) %s != %s" %
-            (count, 1)
+            "Fail: O.query().V().has(gripql.and_(gripql.eq(\"_label\", \"Character\"), gripql.not_(gripql.or_(gripql.eq(\"eye_color\", \"brown\"), gripql.eq(\"eye_color\", \"hazel\"))))) %s != %s" %
+            (count, 13)
         )
 
     count = 0
     for i in O.query().V().has(
             gripql.not_(
                 gripql.or_(
-                    gripql.eq("_label", "robot"),
-                    gripql.eq("occupation", "jedi"),
+                    gripql.eq("_label", "Character"),
+                    gripql.eq("name", "Human"),
                 )
             )
     ):
         count += 1
-        if i['gid'] not in ["vertex1", "vertex6"]:
+        if i['label'] == "Character" or ("name" in i["data"] and i['data']["name"] == "Human"):
             errors.append("Wrong vertex returned %s" % (i))
-    if count != 2:
+    if count != 20:
         errors.append(
-            "Fail: O.query().V().has(gripql.not_(gripql.and_(gripql.eq(\"_label\", \"robot\"), gripql.eq(\"occupation\", \"jedi\")))) %s != %s" %
-            (count, 2)
+            "Fail: O.query().V().has(gripql.not_(gripql.and_(gripql.eq(\"_label\", \"Character\"), gripql.eq(\"name\", \"Human\")))) %s != %s" %
+            (count, 20)
         )
 
     count = 0
     for i in O.query().V().has(
             gripql.not_(
                 gripql.or_(
-                    gripql.eq("_label", "robot"),
+                    gripql.eq("_label", "Character"),
                     gripql.or_(
-                        gripql.eq("occupation", "jedi"),
-                        gripql.contains("starships", "millennium falcon")
+                        gripql.eq("name", "Human"),
+                        gripql.contains("terrain", "jungle")
                     )
                 )
             )
     ):
         count += 1
-        if i['gid'] != "vertex6":
+        if not i['gid'].startswith("Vehicle:") \
+            and not i["gid"].startswith("Starship:") and not i["gid"].startswith("Species:") \
+                and not i["gid"].startswith("Planet:") and not i["gid"].startswith("Film:"):
             errors.append("Wrong vertex returned %s" % (i))
-    if count != 1:
+    if count != 19:
         errors.append(
-            "Fail: O.query().V().has(gripql.not_(gripql.or_(gripql.eq(\"_label\", \"robot\"), gripql.or_(gripql.eq(\"occupation\", \"jedi\"),  gripql.contains(\"starships\", \"millennium falcon\"))))) %s != %s" %
-            (count, 1)
+            "Fail: O.query().V().has(gripql.not_(gripql.or_(gripql.eq(\"_label\", \"Character\"), gripql.or_(gripql.eq(\"name\", \"Human\"),  gripql.contains(\"terrain\", \"jungle\"))))) %s != %s" %
+            (count, 19)
         )
 
     count = 0
     for i in O.query().V().has(
             gripql.not_(
                 gripql.and_(
-                    gripql.eq("_label", "robot"),
+                    gripql.eq("_label", "Planet"),
                     gripql.or_(
-                        gripql.eq("occupation", "jedi"),
-                        gripql.contains("starships", "millennium falcon")
+                        gripql.eq("surface_water", "1"),
+                        gripql.contains("terrain", "jungle")
                     )
                 )
             )
     ):
         count += 1
-    if count != 6:
+    if count != 37:
         errors.append(
-            "Fail: O.query().V().has(gripql.not_(gripql.and_(gripql.eq(\"_label\", \"robot\"), gripql.or_(gripql.eq(\"occupation\", \"jedi\"),  gripql.contains(\"starships\", \"millennium falcon\"))))) %s != %s" %
-            (count, 6)
+            "Fail: O.query().V().has(gripql.not_(gripql.and_(gripql.eq(\"_label\", \"Planet\"), gripql.or_(gripql.eq(\"surface_water\", \"1\"),  gripql.contains(\"terrain\", \"jungle\"))))) %s != %s" %
+            (count, 37)
         )
 
     return errors

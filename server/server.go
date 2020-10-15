@@ -2,7 +2,9 @@
 package server
 
 import (
+	"bytes"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"os"
@@ -12,10 +14,11 @@ import (
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/graphql"
 	"github.com/bmeg/grip/gripql"
+	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/util/rpc"
+	"github.com/felixge/httpsnoop"
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
-	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 )
@@ -55,69 +58,6 @@ func NewGripServer(db gdbi.GraphDB, conf Config, schemas map[string]*gripql.Grap
 	return server, nil
 }
 
-// handleError is the grpc gateway error handler
-func handleError(w http.ResponseWriter, req *http.Request, err string, code int) {
-	log.WithFields(log.Fields{"url": req.URL, "error": err}).Error("HTTP handler error")
-	http.Error(w, err, code)
-}
-
-// Return a new interceptor function that logs all requests at the Debug level
-func unaryDebugInterceptor() grpc.UnaryServerInterceptor {
-	// Return a function that is the interceptor.
-	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo,
-		handler grpc.UnaryHandler) (interface{}, error) {
-		start := time.Now()
-		resp, err := handler(ctx, req)
-		log.WithFields(log.Fields{
-			"endpoint":     info.FullMethod,
-			"request":      req,
-			"elapsed_time": time.Since(start).String(),
-			"error":        err}).Debug("Responding to request")
-		return resp, err
-	}
-}
-
-// Return a new interceptor function that logs all requests at the Debug level
-func streamDebugInterceptor() grpc.StreamServerInterceptor {
-	// Return a function that is the interceptor.
-	return func(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo,
-		handler grpc.StreamHandler) error {
-		start := time.Now()
-		err := handler(srv, ss)
-		log.WithFields(log.Fields{
-			"endpoint":     info.FullMethod,
-			"elapsed_time": time.Since(start).String(),
-			"error":        err}).Debug("Responding to request")
-		return err
-	}
-}
-
-// unaryErrorInterceptor is an interceptor function that logs all errors
-func unaryErrorInterceptor() grpc.UnaryServerInterceptor {
-	// Return a function that is the interceptor.
-	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo,
-		handler grpc.UnaryHandler) (interface{}, error) {
-		resp, err := handler(ctx, req)
-		if err != nil {
-			log.WithFields(log.Fields{"endpoint": info.FullMethod, "request": req, "error": err}).Error("Request failed")
-		}
-		return resp, err
-	}
-}
-
-// streamErrorInterceptor is an interceptor function that logs all errors
-func streamErrorInterceptor() grpc.StreamServerInterceptor {
-	// Return a function that is the interceptor.
-	return func(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo,
-		handler grpc.StreamHandler) error {
-		err := handler(srv, ss)
-		if err != nil {
-			log.WithFields(log.Fields{"endpoint": info.FullMethod, "error": err}).Error("Request failed")
-		}
-		return err
-	}
-}
-
 // Serve starts the server and does not block. This will open TCP ports
 // for both RPC and HTTP.
 func (server *GripServer) Serve(pctx context.Context) error {
@@ -133,22 +73,20 @@ func (server *GripServer) Serve(pctx context.Context) error {
 		grpc.UnaryInterceptor(
 			grpc_middleware.ChainUnaryServer(
 				unaryAuthInterceptor(server.conf.BasicAuth),
-				unaryErrorInterceptor(),
-				unaryDebugInterceptor(),
+				unaryInterceptor(server.conf.RequestLogging.Enable, server.conf.RequestLogging.HeaderWhitelist),
 			),
 		),
 		grpc.StreamInterceptor(
 			grpc_middleware.ChainStreamServer(
 				streamAuthInterceptor(server.conf.BasicAuth),
-				streamErrorInterceptor(),
-				streamDebugInterceptor(),
+				streamInterceptor(server.conf.RequestLogging.Enable, server.conf.RequestLogging.HeaderWhitelist),
 			),
 		),
 		grpc.MaxSendMsgSize(1024*1024*16),
 		grpc.MaxRecvMsgSize(1024*1024*16),
 	)
 
-	//setup RESTful proxy
+	// Setup RESTful proxy
 	marsh := MarshalClean{
 		m: &runtime.JSONPb{
 			EnumsAsInts:  false,
@@ -156,10 +94,10 @@ func (server *GripServer) Serve(pctx context.Context) error {
 			OrigName:     true,
 		},
 	}
-	mux := http.NewServeMux()
 	grpcMux := runtime.NewServeMux(runtime.WithMarshalerOption("*/*", &marsh))
-	runtime.OtherErrorHandler = handleError
+	mux := http.NewServeMux()
 
+	// Setup GraphQL handler
 	user := ""
 	password := ""
 	if len(server.conf.BasicAuth) > 0 {
@@ -172,6 +110,7 @@ func (server *GripServer) Serve(pctx context.Context) error {
 	}
 	mux.Handle("/graphql/", gqlHandler)
 
+	// Setup web ui handler
 	dashmux := http.NewServeMux()
 	if server.conf.ContentDir != "" {
 		httpDir := http.Dir(server.conf.ContentDir)
@@ -179,11 +118,13 @@ func (server *GripServer) Serve(pctx context.Context) error {
 		dashmux.Handle("/", dashfs)
 	}
 
+	// Setup logic to route to either HTML site or API
+	// HTTP middleware is injected here as well
 	mux.HandleFunc("/", func(resp http.ResponseWriter, req *http.Request) {
+		start := time.Now()
 
 		if len(server.conf.BasicAuth) > 0 {
 			resp.Header().Set("WWW-Authenticate", "Basic")
-
 			u, p, ok := req.BasicAuth()
 			if !ok {
 				http.Error(resp, "authorization failed", http.StatusUnauthorized)
@@ -206,7 +147,37 @@ func (server *GripServer) Serve(pctx context.Context) error {
 			if server.conf.DisableHTTPCache {
 				resp.Header().Set("Cache-Control", "no-store")
 			}
-			grpcMux.ServeHTTP(resp, req)
+
+			// copy body and return it to request
+			var body []byte
+			if server.conf.RequestLogging.Enable {
+				body, _ = ioutil.ReadAll(req.Body)
+				req.Body = ioutil.NopCloser(bytes.NewBuffer(body))
+			}
+
+			// handle the request
+			m := httpsnoop.CaptureMetrics(grpcMux, resp, req)
+
+			if !server.conf.RequestLogging.Enable {
+				return
+			}
+
+			// copy whitelisted headers for logging
+			headers := extractHeaderKeys(req.Header, server.conf.RequestLogging.HeaderWhitelist)
+
+			// log the request
+			entry := log.WithFields(log.Fields{
+				"path":    req.URL.Path,
+				"request": string(body),
+				"header":  headers,
+				"latency": time.Since(start).String(),
+				"status":  m.Code,
+			})
+			if m.Code == http.StatusOK {
+				entry.Info("HTTP server responded")
+			} else {
+				entry.Error("HTTP server responded")
+			}
 
 		case false:
 			dashmux.ServeHTTP(resp, req)
@@ -217,7 +188,7 @@ func (server *GripServer) Serve(pctx context.Context) error {
 	gripql.RegisterQueryServer(grpcServer, server)
 	//TODO: Put in some sort of logic that will allow web server to be configured to use GRPC client
 	err = gripql.RegisterQueryHandlerClient(ctx, grpcMux, gripql.NewQueryDirectClient(server))
-	//err = gripql.RegisterQueryHandlerFromEndpoint(ctx, grpcMux, ":"+server.conf.RPCPort, opts)
+	//err = gripql.RegisterQueryHandlerFromEndpoint(ctx, grpcMux, ":"+server.conf.RPCPort, []grpc.DialOption{grpc.WithInsecure()})
 	if err != nil {
 		return fmt.Errorf("registering query endpoint: %v", err)
 	}
@@ -227,7 +198,7 @@ func (server *GripServer) Serve(pctx context.Context) error {
 		gripql.RegisterEditServer(grpcServer, server)
 		//TODO: Put in some sort of logic that will allow web server to be configured to use GRPC client
 		err = gripql.RegisterEditHandlerClient(ctx, grpcMux, gripql.NewEditDirectClient(server))
-		//err = gripql.RegisterEditHandlerFromEndpoint(ctx, grpcMux, ":"+server.conf.RPCPort, opts)
+		//err = gripql.RegisterEditHandlerFromEndpoint(ctx, grpcMux, ":"+server.conf.RPCPort, []grpc.DialOption{grpc.WithInsecure()})
 		if err != nil {
 			return fmt.Errorf("registering edit endpoint: %v", err)
 		}
@@ -238,14 +209,15 @@ func (server *GripServer) Serve(pctx context.Context) error {
 		Handler: mux,
 	}
 
-	var srverr error
+	var grpcErr error
+	var httpErr error
 	go func() {
-		srverr = grpcServer.Serve(lis)
+		grpcErr = grpcServer.Serve(lis)
 		cancel()
 	}()
 
 	go func() {
-		srverr = httpServer.ListenAndServe()
+		httpErr = httpServer.ListenAndServe()
 		cancel()
 	}()
 
@@ -294,7 +266,7 @@ func (server *GripServer) Serve(pctx context.Context) error {
 	if server.db != nil {
 		err = server.db.Close()
 		if err != nil {
-			log.Println("error:", err)
+			log.Errorln("db.Close() error:", err)
 		}
 	}
 	log.Infoln("shutting down RPC server...")
@@ -305,5 +277,8 @@ func (server *GripServer) Serve(pctx context.Context) error {
 		log.Errorf("shutdown error: %v", err)
 	}
 
-	return srverr
+	if grpcErr != nil || httpErr != nil {
+		return fmt.Errorf("gRPC Server Error: %v\nHTTP Server Error: %v", grpcErr, httpErr)
+	}
+	return nil
 }
