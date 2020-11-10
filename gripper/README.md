@@ -113,13 +113,34 @@ edges:
       fromField: $.homeworld
       toField: $.id
 
-  homeworld:
+  species:
     fromVertex: "Character:"
     toVertex: "Species:"
     label: species
     fieldToField:
       fromField: $.species
       toField: $.id
+
+  people:
+    fromVertex: "Species:"
+    toVertex: "Character:"
+    label: people
+    edgeTable:
+      source: tableServer
+      collection: speciesCharacter
+      fromField: $.from
+      toField: $.to
+
+
+  residents:
+    fromVertex: "Planet:"
+    toVertex: "Character:"
+    label: residents
+    edgeTable:
+      source: tableServer
+      collection: planetCharacter
+      fromField: $.from
+      toField: $.to
 
   filmVehicles:
     fromVertex: "Film:"
@@ -131,6 +152,16 @@ edges:
       fromField: "$.from"
       toField: "$.to"
 
+  vehicleFilms:
+    toVertex: "Film:"
+    fromVertex: "Vehicle:"
+    label: "films"
+    edgeTable:
+      source: tableServer
+      collection: filmVehicles
+      toField: "$.from"
+      fromField: "$.to"
+
   filmStarships:
     fromVertex: "Film:"
     toVertex: "Starship:"
@@ -140,6 +171,16 @@ edges:
       collection: filmStarships
       fromField: "$.from"
       toField: "$.to"
+
+  starshipFilms:
+    toVertex: "Film:"
+    fromVertex: "Starship:"
+    label: "films"
+    edgeTable:
+      source: tableServer
+      collection: filmStarships
+      toField: "$.from"
+      fromField: "$.to"
 
   filmPlanets:
     fromVertex: "Film:"
@@ -151,6 +192,16 @@ edges:
       fromField: "$.from"
       toField: "$.to"
 
+  planetFilms:
+    toVertex: "Film:"
+    fromVertex: "Planet:"
+    label: "films"
+    edgeTable:
+      source: tableServer
+      collection: filmPlanets
+      toField: "$.from"
+      fromField: "$.to"
+
   filmSpecies:
     fromVertex: "Film:"
     toVertex: "Species:"
@@ -160,6 +211,16 @@ edges:
       collection: filmSpecies
       fromField: "$.from"
       toField: "$.to"
+
+  speciesFilms:
+    toVertex: "Film:"
+    fromVertex: "Species:"
+    label: "films"
+    edgeTable:
+      source: tableServer
+      collection: filmSpecies
+      toField: "$.from"
+      fromField: "$.to"
 
   filmCharacters:
     fromVertex: "Film:"
@@ -181,4 +242,23 @@ edges:
       toField: "$.from"
       fromField: "$.to"
 
+  characterStarships:
+    fromVertex: "Character:"
+    toVertex: "Starship:"
+    label: "starships"
+    edgeTable:
+      source: tableServer
+      collection: characterStarships
+      fromField: "$.from"
+      toField: "$.to"
+
+  starshipCharacters:
+    toVertex: "Character:"
+    fromVertex: "Starship:"
+    label: "pilots"
+    edgeTable:
+      source: tableServer
+      collection: characterStarships
+      toField: "$.from"
+      fromField: "$.to"
 ```
