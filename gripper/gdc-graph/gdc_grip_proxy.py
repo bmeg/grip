@@ -6,8 +6,8 @@ import sys
 import json
 import grpc
 import requests
-import digdriver_pb2
-import digdriver_pb2_grpc
+import gripper_pb2
+import gripper_pb2_grpc
 
 from google.protobuf import json_format
 from concurrent import futures
@@ -216,18 +216,18 @@ collectionMap = {
     "GDCSSMOccurrence" : GDCSSMOccurrenceCollection()
 }
 
-class GDCSource(digdriver_pb2_grpc.DigSourceServicer):
+class GDCSource(gripper_pb2_grpc.DigSourceServicer):
     def __init__(self):
         pass
 
     def GetCollections(self, request, context):
         for i in collectionMap.keys():
-            o = digdriver_pb2.Collection()
+            o = gripper_pb2.Collection()
             o.name = i
             yield o
 
     def GetCollectionInfo(self, request, context):
-        o = digdriver_pb2.CollectionInfo()
+        o = gripper_pb2.CollectionInfo()
         o.search_fields.extend( collectionMap[request.name].getFields() )
         # request.name
         return o
@@ -235,14 +235,14 @@ class GDCSource(digdriver_pb2_grpc.DigSourceServicer):
     def GetIDs(self, request, context):
         # request.name
         for k in []:
-            o = digdriver_pb2.RowID()
+            o = gripper_pb2.RowID()
             o.id = k
             yield o
 
     def GetRows(self, request, context):
         # request.name
         for k, v in collectionMap[request.name].getRows():
-            o = digdriver_pb2.Row()
+            o = gripper_pb2.Row()
             o.id = k
             json_format.ParseDict(v, o.data)
             yield o
@@ -250,7 +250,7 @@ class GDCSource(digdriver_pb2_grpc.DigSourceServicer):
     def GetRowsByID(self, request_iterator, context):
         for req in request_iterator:
             d = collectionMap[req.collection].getRowByID(req.id)
-            o = digdriver_pb2.Row()
+            o = gripper_pb2.Row()
             o.id = req.id
             o.requestID = req.requestID
             json_format.ParseDict(d, o.data)
@@ -258,7 +258,7 @@ class GDCSource(digdriver_pb2_grpc.DigSourceServicer):
 
     def GetRowsByField(self, request, context):
         for k, v in collectionMap[request.collection].getRowsByField(request.field, request.value):
-            o = digdriver_pb2.Row()
+            o = gripper_pb2.Row()
             o.id = k
             json_format.ParseDict(v, o.data)
             yield o
@@ -266,7 +266,7 @@ class GDCSource(digdriver_pb2_grpc.DigSourceServicer):
 
 def serve(port):
   server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
-  digdriver_pb2_grpc.add_DigSourceServicer_to_server(
+  gripper_pb2_grpc.add_DigSourceServicer_to_server(
       GDCSource(), server)
   server.add_insecure_port('[::]:%s' % port)
   server.start()
