@@ -1019,9 +1019,11 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 				fieldTermCounts := map[interface{}]float64{}
 				for t := range aChans[a.Name] {
 					val := jsonpath.TravelerPathLookup(t, tagg.Field)
-					fieldTermCounts[val]++
-					if len(fieldTermCounts) > maxTerms {
-						return fmt.Errorf("term aggreagtion: collected more unique terms (%v) than allowed (%v)", len(fieldTermCounts), maxTerms)
+					if val != nil {
+						fieldTermCounts[val]++
+						if len(fieldTermCounts) > maxTerms {
+							return fmt.Errorf("term aggreagtion: collected more unique terms (%v) than allowed (%v)", len(fieldTermCounts), maxTerms)
+						}
 					}
 				}
 				log.Infof("term: collected data")
@@ -1056,15 +1058,17 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 				fieldValues := []float64{}
 				for t := range aChans[a.Name] {
 					val := jsonpath.TravelerPathLookup(t, hagg.Field)
-					fval, err := cast.ToFloat64E(val)
-					if err != nil {
-						return fmt.Errorf("histogram aggregation: can't convert %v to float64", val)
+					if val != nil {
+						fval, err := cast.ToFloat64E(val)
+						if err != nil {
+							return fmt.Errorf("histogram aggregation: can't convert %v to float64", val)
+						}
+						fieldValues = append(fieldValues, fval)
+						if c > maxValues {
+							return fmt.Errorf("histogram aggreagtion: collected more values (%v) than allowed (%v)", c, maxValues)
+						}
+						c++
 					}
-					fieldValues = append(fieldValues, fval)
-					if c > maxValues {
-						return fmt.Errorf("histogram aggreagtion: collected more values (%v) than allowed (%v)", c, maxValues)
-					}
-					c++
 				}
 				sort.Float64s(fieldValues)
 				min := fieldValues[0]
