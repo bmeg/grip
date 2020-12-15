@@ -23,6 +23,7 @@ install:
   - sudo pip install -U numpy
   - sudo pip install -U requests
   - sudo pip install -U flake8
+  - sudo pip install -U grpcio-tools
 
 jobs:
   include:
@@ -107,7 +108,14 @@ jobs:
         - go test ./test -config psql.yml
       env:
         - n=postgres
-
+    - script:
+        - make start-gripper-test
+        - sleep 5
+        - grip server --rpc-port 18202 --http-port 18201 --config ./gripper/test-graph/config.yaml &
+        - sleep 5
+        - python conformance/run_conformance.py http://localhost:18201 --readOnly swapi
+      env:
+        - n=gripper
 
 notifications:
   email: false

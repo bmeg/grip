@@ -12,6 +12,7 @@ type PipelineState interface {
 }
 
 type CustomProcGen interface {
+	GetType() DataType
 	GetProcessor(db GraphInterface, ps PipelineState) (Processor, error)
 }
 

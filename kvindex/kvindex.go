@@ -13,114 +13,7 @@ import (
 	proto "github.com/golang/protobuf/proto"
 )
 
-// TermType defines in a term is a Number or a String
-type TermType byte
-
-const (
-	//TermUnknown is an undefined term type
-	TermUnknown TermType = 0x00
-	//TermString means the term is a string
-	TermString TermType = 0x01
-	//TermNumber means the term is a number
-	TermNumber TermType = 0x02
-)
-
 const bufferSize = 1000
-
-//key: f | field
-//val:
-var idxFieldPrefix = []byte("f")
-
-//key: t | field | TermType | term
-//val: count
-var idxTermPrefix = []byte("t")
-
-//key: i | field | TermType | term | docid
-//val:
-var idxEntryPrefix = []byte("i")
-
-//key: d | docid
-//val: Doc
-var idxDocPrefix = []byte("d")
-
-// FieldPrefix returns the byte array prefix for all graph entry keys
-func FieldPrefix() []byte {
-	return idxFieldPrefix
-}
-
-// FieldKey produces the byte key for a particular graph
-func FieldKey(field string) []byte {
-	return bytes.Join([][]byte{idxFieldPrefix, []byte(field)}, []byte{0})
-}
-
-// FieldKeyParse extracts the string name of a graph from a byte key
-func FieldKeyParse(key []byte) string {
-	tmp := bytes.Split(key, []byte{0})
-	field := string(tmp[1])
-	return field
-}
-
-// TermKey create a key for a term index
-func TermKey(field string, ttype TermType, term []byte) []byte {
-	return bytes.Join([][]byte{idxTermPrefix, []byte(field), {byte(ttype)}, term}, []byte{0})
-}
-
-// TermPrefix get a prefix for all the terms for a single field
-func TermPrefix(field string) []byte {
-	return bytes.Join([][]byte{idxTermPrefix, []byte(field), {}}, []byte{0})
-}
-
-// TermTypePrefix get a prefix for all the terms of a particular type for a single field
-func TermTypePrefix(field string, ttype TermType) []byte {
-	return bytes.Join([][]byte{idxTermPrefix, []byte(field), {byte(ttype)}, {}}, []byte{0})
-}
-
-// TermKeyParse parse a term key into a field and a value
-func TermKeyParse(key []byte) (string, TermType, []byte) {
-	tmp := bytes.SplitN(key, []byte{0}, 4)
-	field := string(tmp[1])
-	ttype := tmp[2][0]
-	term := tmp[3]
-	return field, TermType(ttype), term
-}
-
-// EntryKey create a key for an entry
-func EntryKey(field string, ttype TermType, term []byte, docid string) []byte {
-	return bytes.Join([][]byte{idxEntryPrefix, []byte(field), {byte(ttype)}, term, []byte(docid)}, []byte{0})
-}
-
-// EntryPrefix get prefix for all entries for a single field
-func EntryPrefix(field string) []byte {
-	return bytes.Join([][]byte{idxEntryPrefix, []byte(field), {}}, []byte{0})
-}
-
-// EntryTypePrefix get prefix for all entries for a single field
-func EntryTypePrefix(field string, ttype TermType) []byte {
-	return bytes.Join([][]byte{idxEntryPrefix, []byte(field), {byte(ttype)}, {}}, []byte{0})
-}
-
-// EntryValuePrefix get prefix for all terms for a field
-func EntryValuePrefix(field string, ttype TermType, term []byte) []byte {
-	return bytes.Join([][]byte{idxEntryPrefix, []byte(field), {byte(ttype)}, term, {}}, []byte{0})
-}
-
-// EntryKeyParse take entry key and parse out field term and document id
-func EntryKeyParse(key []byte) (string, TermType, []byte, string) {
-	tmp := bytes.SplitN(key, []byte{0}, 4)
-	field := string(tmp[1])
-	ttype := TermType(tmp[2][0])
-	suffix := tmp[3]
-	if ttype == TermNumber {
-		return field, ttype, suffix[0:8], string(suffix[8:])
-	}
-	stmp := bytes.Split(suffix, []byte{0})
-	return field, ttype, stmp[0], string(stmp[1])
-}
-
-// DocKey create a document entry key
-func DocKey(docID string) []byte {
-	return bytes.Join([][]byte{idxDocPrefix, []byte(docID)}, []byte{0})
-}
 
 func contains(c string, s []string) bool {
 	for _, i := range s {
@@ -138,13 +31,12 @@ func containsPrefix(c string, s []string) bool {
 		}
 	}
 	return false
-
 }
 
 // KVIndex is a index implementation using the generic key value store
 type KVIndex struct {
-	kv     kvi.KVInterface
-	fields map[string][]string
+	KV     kvi.KVInterface
+	Fields map[string][]string
 }
 
 // KVTermCount Get all terms and their counts
@@ -156,14 +48,14 @@ type KVTermCount struct {
 
 // NewIndex create new key value index
 func NewIndex(kv kvi.KVInterface) *KVIndex {
-	return &KVIndex{kv: kv, fields: make(map[string][]string)}
+	return &KVIndex{KV: kv, Fields: make(map[string][]string)}
 }
 
 // AddField add new field to be indexed
 func (idx *KVIndex) AddField(path string) error {
 	fk := FieldKey(path)
-	idx.fields[path] = strings.Split(path, ".")
-	return idx.kv.Set(fk, []byte{})
+	idx.Fields[path] = strings.Split(path, ".")
+	return idx.KV.Set(fk, []byte{})
 }
 
 // RemoveField removes an indexed field
@@ -171,17 +63,17 @@ func (idx *KVIndex) RemoveField(path string) error {
 	fk := FieldKey(path)
 	fkt := TermPrefix(path)
 	ed := EntryPrefix(path)
-	idx.kv.DeletePrefix(fkt)
-	idx.kv.DeletePrefix(ed)
-	delete(idx.fields, path)
-	return idx.kv.Delete(fk)
+	idx.KV.DeletePrefix(fkt)
+	idx.KV.DeletePrefix(ed)
+	delete(idx.Fields, path)
+	return idx.KV.Delete(fk)
 }
 
 // ListFields lists all indexed fields
 func (idx *KVIndex) ListFields() []string {
 	out := make([]string, 0, 10)
 	fPrefix := FieldPrefix()
-	idx.kv.View(func(it kvi.KVIterator) error {
+	idx.KV.View(func(it kvi.KVIterator) error {
 		for it.Seek(fPrefix); it.Valid() && bytes.HasPrefix(it.Key(), fPrefix); it.Next() {
 			field := FieldKeyParse(it.Key())
 			out = append(out, field)
@@ -191,79 +83,9 @@ func (idx *KVIndex) ListFields() []string {
 	return out
 }
 
-type entryValue struct {
-	term     []byte
-	termKey  []byte
-	entryKey []byte
-}
-
-func newEntry(docID string, field string, value interface{}) entryValue {
-	term, ttype := GetTermBytes(value)
-	t := TermKey(field, ttype, term)
-	ent := EntryKey(field, ttype, term, docID)
-	return entryValue{term: term, termKey: t, entryKey: ent}
-}
-
-func fieldScan(docID string, doc map[string]interface{}, fieldPrefix string, fields []string, out chan entryValue) {
-	for k, v := range doc {
-		f := fmt.Sprintf("%s.%s", fieldPrefix, k)
-		if containsPrefix(f, fields) {
-			if x, ok := v.(map[string]interface{}); ok {
-				fieldScan(docID, x, fmt.Sprintf("%s.%s", fieldPrefix, k), fields, out)
-			} else if contains(f, fields) {
-				out <- newEntry(docID, f, v)
-			}
-		}
-	}
-}
-
-func mapDig(i map[string]interface{}, path []string) interface{} {
-	if x, ok := i[path[0]]; ok {
-		if len(path) > 1 {
-			if y, ok := x.(map[string]interface{}); ok {
-				return mapDig(y, path[1:])
-			}
-		} else {
-			return x
-		}
-	}
-	return nil
-}
-
-// GetTermBytes converts a term into its bytes representation and returns its type
-func GetTermBytes(term interface{}) ([]byte, TermType) {
-	switch val := term.(type) {
-	case string:
-		return []byte(val), TermString
-
-	case float64:
-		out := make([]byte, 8)
-		binary.BigEndian.PutUint64(out, math.Float64bits(val))
-		return out, TermNumber
-
-	default:
-		return nil, TermUnknown
-	}
-}
-
-// GetBytesTerm converts the bytes representation of a term back to its original value
-func GetBytesTerm(val []byte, ttype TermType) interface{} {
-	switch ttype {
-	case TermString:
-		return string(val)
-
-	case TermNumber:
-		u := binary.BigEndian.Uint64(val)
-		return math.Float64frombits(u)
-
-	default:
-		return nil
-	}
-}
-
 // AddDoc adds new document to the index
 func (idx *KVIndex) AddDoc(docID string, value map[string]interface{}) error {
-	err := idx.kv.Update(func(tx kvi.KVTransaction) error {
+	err := idx.KV.Update(func(tx kvi.KVTransaction) error {
 		return idx.AddDocTx(tx, docID, value)
 	})
 	if err != nil {
@@ -277,7 +99,7 @@ func (idx *KVIndex) AddDocTx(tx kvi.KVBulkWrite, docID string, doc map[string]in
 	sdoc := Doc{Entries: [][]byte{}}
 	docKey := DocKey(docID)
 
-	for field, p := range idx.fields {
+	for field, p := range idx.Fields {
 		x := mapDig(doc, p)
 		if x != nil {
 			term, t := GetTermBytes(x)
@@ -353,7 +175,7 @@ func (idx *KVIndex) termGetCount(tx kvi.KVTransaction, field string, ttype TermT
 
 // RemoveDoc removes a document from the index: TODO
 func (idx *KVIndex) RemoveDoc(docID string) error {
-	err := idx.kv.Update(func(tx kvi.KVTransaction) error {
+	err := idx.KV.Update(func(tx kvi.KVTransaction) error {
 		log.WithFields(log.Fields{"document_id": docID}).Debug("KVIndex: deleting document")
 		docKey := DocKey(docID)
 		data, err := tx.Get(docKey)
@@ -416,7 +238,7 @@ func (idx *KVIndex) GetTermMatch(ctx context.Context, field string, value interf
 		entryPrefix := EntryValuePrefix(field, ttype, term)
 		defer close(out)
 		count := 0
-		idx.kv.View(func(it kvi.KVIterator) error {
+		idx.KV.View(func(it kvi.KVIterator) error {
 			for it.Seek(entryPrefix); it.Valid() && bytes.HasPrefix(it.Key(), entryPrefix); it.Next() {
 				select {
 				case <-ctx.Done():
@@ -442,7 +264,7 @@ func (idx *KVIndex) FieldTerms(field string) chan interface{} {
 	go func() {
 		termPrefix := TermPrefix(field)
 		defer close(out)
-		idx.kv.View(func(it kvi.KVIterator) error {
+		idx.KV.View(func(it kvi.KVIterator) error {
 			for it.Seek(termPrefix); it.Valid() && bytes.HasPrefix(it.Key(), termPrefix); it.Next() {
 				_, ttype, term := TermKeyParse(it.Key())
 				out <- GetBytesTerm(term, ttype)
@@ -458,7 +280,7 @@ func (idx *KVIndex) FieldNumbers(field string) chan float64 {
 	out := make(chan float64, bufferSize)
 	go func() {
 		defer close(out)
-		idx.kv.View(func(it kvi.KVIterator) error {
+		idx.KV.View(func(it kvi.KVIterator) error {
 			//check negative
 			prefix := EntryPrefix(field)
 			ninf := EntryValuePrefix(field, TermNumber, floatNegInfBytes)
@@ -489,7 +311,7 @@ func (idx *KVIndex) fieldTermCounts(field string, ftype TermType) chan KVTermCou
 		if ftype == TermUnknown {
 			termPrefix = TermPrefix(field)
 		}
-		idx.kv.Update(func(tx kvi.KVTransaction) error {
+		idx.KV.Update(func(tx kvi.KVTransaction) error {
 			tx.View(func(it kvi.KVIterator) error {
 				for it.Seek(termPrefix); it.Valid() && bytes.HasPrefix(it.Key(), termPrefix); it.Next() {
 					curKey := it.Key()
@@ -541,7 +363,7 @@ var floatZeroBytes, _ = GetTermBytes(0.0)
 // FieldTermNumberMin for a field, get the min number term value
 func (idx *KVIndex) FieldTermNumberMin(field string) float64 {
 	var min float64
-	idx.kv.View(func(it kvi.KVIterator) error {
+	idx.KV.View(func(it kvi.KVIterator) error {
 		prefix := EntryTypePrefix(field, TermNumber)
 		//check negative
 		ninf := EntryValuePrefix(field, TermNumber, floatNegInfBytes)
@@ -573,7 +395,7 @@ func (idx *KVIndex) FieldTermNumberMin(field string) float64 {
 // FieldTermNumberMax finds the max number term for a field
 func (idx *KVIndex) FieldTermNumberMax(field string) float64 {
 	var min float64
-	idx.kv.View(func(it kvi.KVIterator) error {
+	idx.KV.View(func(it kvi.KVIterator) error {
 		prefix := EntryTypePrefix(field, TermNumber)
 		//check positive
 		inf := EntryValuePrefix(field, TermNumber, floatPosInfBytes)
@@ -619,7 +441,7 @@ func (idx *KVIndex) FieldTermNumberRange(field string, min, max float64) chan KV
 		if max > 0 {
 			maxPrefix = EntryValuePrefix(field, TermNumber, floatPosInfBytes)
 		}
-		idx.kv.View(func(it kvi.KVIterator) error {
+		idx.KV.View(func(it kvi.KVIterator) error {
 			var count uint64
 			last := math.Inf(1)
 			for it.SeekReverse(minPrefix); it.Valid() && bytes.Compare(maxPrefix, it.Key()) < 0; it.Next() {
@@ -646,7 +468,7 @@ func (idx *KVIndex) FieldTermNumberRange(field string, min, max float64) chan KV
 			minPrefix = EntryValuePrefix(field, TermNumber, floatZeroBytes)
 		}
 		maxPrefix := EntryValuePrefix(field, TermNumber, maxBytes)
-		idx.kv.View(func(it kvi.KVIterator) error {
+		idx.KV.View(func(it kvi.KVIterator) error {
 			var count uint64
 			last := math.Inf(1)
 			for it.Seek(minPrefix); it.Valid() && bytes.Compare(it.Key(), maxPrefix) < 0; it.Next() {

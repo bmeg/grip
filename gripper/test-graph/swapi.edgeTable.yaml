@@ -1,0 +1,53 @@
+
+sources:
+  tableServer:
+    host: localhost:50051
+
+vertices:
+  "Character:" :
+    source: tableServer
+    label: Character
+    collection: Character
+
+  "Planet:" :
+    source: tableServer
+    label: Planet
+    collection: Planet
+
+  "Film:" :
+    source: tableServer
+    label: Film
+    collection: Film
+
+  "Species:" :
+    source: tableServer
+    label: Species
+    collection: Species
+
+  "Starship:" :
+    source: tableServer
+    label: Starship
+    collection: Starship
+
+  "Vehicle:" :
+    source: tableServer
+    label: Vehicle
+    collection: Vehicle
+
+edges:
+  homeworld:
+    fromVertex: "Character:"
+    toVertex: "Planet:"
+    label: homeworld
+    fieldToID:
+      fromField: planet
+
+  characters:
+    fromVertex: "Film:"
+    toVertex: "Character:"
+    label: characters
+    edgeTable:
+      source: tableServer
+      collection: filmCharacters
+      fromField: "from"
+      toField: "to"

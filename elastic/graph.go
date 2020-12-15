@@ -38,7 +38,7 @@ type Graph struct {
 
 // Compiler returns a query compiler that will use elastic search as a backend
 func (es *Graph) Compiler() gdbi.Compiler {
-	return core.NewCompiler(es)
+	return core.NewCompiler(es, core.IndexStartOptimize) //TODO: probably a better optimizer for vertex label search
 }
 
 // GetTimestamp returns the change timestamp of the current graph
@@ -328,8 +328,7 @@ func (es *Graph) GetVertexList(ctx context.Context, load bool) <-chan *gripql.Ve
 }
 
 // GetVertexChannel get a channel that returns all vertices in a graph
-func (es *Graph) GetVertexChannel(req chan gdbi.ElementLookup, load bool) chan gdbi.ElementLookup {
-	ctx := context.Background()
+func (es *Graph) GetVertexChannel(ctx context.Context, req chan gdbi.ElementLookup, load bool) chan gdbi.ElementLookup {
 	g, ctx := errgroup.WithContext(ctx)
 
 	// Create query batches
@@ -396,8 +395,7 @@ func (es *Graph) GetVertexChannel(req chan gdbi.ElementLookup, load bool) chan g
 }
 
 // GetOutChannel gets channel of all vertices connected to element via outgoing edge
-func (es *Graph) GetOutChannel(req chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
-	ctx := context.Background()
+func (es *Graph) GetOutChannel(ctx context.Context, req chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
 	g, ctx := errgroup.WithContext(ctx)
 
 	// Create query batches
@@ -509,8 +507,7 @@ func (es *Graph) GetOutChannel(req chan gdbi.ElementLookup, load bool, edgeLabel
 }
 
 // GetInChannel gets all vertices connected to lookup elements by incoming edges
-func (es *Graph) GetInChannel(req chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
-	ctx := context.Background()
+func (es *Graph) GetInChannel(ctx context.Context, req chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
 	g, ctx := errgroup.WithContext(ctx)
 
 	// Create query batches
@@ -621,8 +618,7 @@ func (es *Graph) GetInChannel(req chan gdbi.ElementLookup, load bool, edgeLabels
 }
 
 // GetOutEdgeChannel gets all outgoing edges connected to lookup element
-func (es *Graph) GetOutEdgeChannel(req chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
-	ctx := context.Background()
+func (es *Graph) GetOutEdgeChannel(ctx context.Context, req chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
 	g, ctx := errgroup.WithContext(ctx)
 
 	// Create query batches
@@ -697,8 +693,7 @@ func (es *Graph) GetOutEdgeChannel(req chan gdbi.ElementLookup, load bool, edgeL
 }
 
 // GetInEdgeChannel gets incoming edges connected to lookup element
-func (es *Graph) GetInEdgeChannel(req chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
-	ctx := context.Background()
+func (es *Graph) GetInEdgeChannel(ctx context.Context, req chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
 	g, ctx := errgroup.WithContext(ctx)
 
 	// Create query batches

@@ -31,7 +31,7 @@ func (kgdb *KVInterfaceGDB) GetTimestamp() string {
 
 // Compiler gets a compiler that will use the graph the execute the compiled query
 func (kgdb *KVInterfaceGDB) Compiler() gdbi.Compiler {
-	return core.NewCompiler(kgdb)
+	return core.NewCompiler(kgdb, core.IndexStartOptimize)
 }
 
 type kvAddData struct {
@@ -292,7 +292,7 @@ type elementData struct {
 
 // GetVertexChannel is passed a channel of vertex ids and it produces a channel
 // of vertices
-func (kgdb *KVInterfaceGDB) GetVertexChannel(ids chan gdbi.ElementLookup, load bool) chan gdbi.ElementLookup {
+func (kgdb *KVInterfaceGDB) GetVertexChannel(ctx context.Context, ids chan gdbi.ElementLookup, load bool) chan gdbi.ElementLookup {
 	data := make(chan elementData, 100)
 	go func() {
 		defer close(data)
@@ -326,7 +326,7 @@ func (kgdb *KVInterfaceGDB) GetVertexChannel(ids chan gdbi.ElementLookup, load b
 }
 
 //GetOutChannel process requests of vertex ids and find the connected vertices on outgoing edges
-func (kgdb *KVInterfaceGDB) GetOutChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
+func (kgdb *KVInterfaceGDB) GetOutChannel(ctx context.Context, reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
 	vertexChan := make(chan elementData, 100)
 	go func() {
 		defer close(vertexChan)
@@ -378,7 +378,7 @@ func (kgdb *KVInterfaceGDB) GetOutChannel(reqChan chan gdbi.ElementLookup, load 
 }
 
 //GetInChannel process requests of vertex ids and find the connected vertices on incoming edges
-func (kgdb *KVInterfaceGDB) GetInChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
+func (kgdb *KVInterfaceGDB) GetInChannel(ctx context.Context, reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
 	o := make(chan gdbi.ElementLookup, 100)
 	go func() {
 		defer close(o)
@@ -413,7 +413,7 @@ func (kgdb *KVInterfaceGDB) GetInChannel(reqChan chan gdbi.ElementLookup, load b
 }
 
 //GetOutEdgeChannel process requests of vertex ids and find the connected outgoing edges
-func (kgdb *KVInterfaceGDB) GetOutEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
+func (kgdb *KVInterfaceGDB) GetOutEdgeChannel(ctx context.Context, reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
 	o := make(chan gdbi.ElementLookup, 100)
 	go func() {
 		defer close(o)
@@ -452,7 +452,7 @@ func (kgdb *KVInterfaceGDB) GetOutEdgeChannel(reqChan chan gdbi.ElementLookup, l
 }
 
 //GetInEdgeChannel process requests of vertex ids and find the connected incoming edges
-func (kgdb *KVInterfaceGDB) GetInEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
+func (kgdb *KVInterfaceGDB) GetInEdgeChannel(ctx context.Context, reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
 	o := make(chan gdbi.ElementLookup, 100)
 	go func() {
 		defer close(o)
