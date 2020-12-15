@@ -1,0 +1,5 @@
+Database: gripper
+
+Gripper:
+  Graphs:
+    swapi: ./swapi.yaml

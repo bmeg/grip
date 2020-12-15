@@ -185,6 +185,15 @@ func AsStruct(src map[string]interface{}) *structpb.Struct {
 	return &out
 }
 
+// AsStringStruct takes a go map and converts it into a protobuf Struct
+func AsStringStruct(src map[string]string) *structpb.Struct {
+	out := structpb.Struct{Fields: map[string]*structpb.Value{}}
+	for k, v := range src {
+		out.Fields[k] = &structpb.Value{Kind: &structpb.Value_StringValue{StringValue: v}}
+	}
+	return &out
+}
+
 // AsStringList takes a protobuf ListValue and converts it into a []string
 func AsStringList(src *structpb.ListValue) []string {
 	if src == nil {

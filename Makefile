@@ -45,6 +45,12 @@ proto:
 		-I ./ \
 		--go_out=. \
 		index.proto
+	@cd gripper/ && protoc \
+	  -I ./ \
+		-I ../googleapis/ \
+		--go_out=Mgoogle/protobuf/struct.proto=github.com/golang/protobuf/ptypes/struct,plugins=grpc:. \
+		gripper.proto
+
 
 proto-depends:
 	@git submodule update --init --recursive
@@ -72,6 +78,7 @@ lint:
 
 lint-depends:
 	go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.22.2
+	go install golang.org/x/tools/cmd/goimports
 
 # ---------------------
 # Release / Snapshot
@@ -118,6 +125,9 @@ start-postgres:
 start-mysql:
 	@docker rm -f grip-mysql-test > /dev/null 2>&1 || echo
 	docker run -d --name grip-mysql-test -p 13306:3306 -e MYSQL_ALLOW_EMPTY_PASSWORD=yes mysql:8.0.11 --default-authentication-plugin=mysql_native_password > /dev/null
+
+start-gripper-test:
+	@cd ./gripper/test-graph && ./table-server.py swapi/table.map &
 
 # ---------------------
 # Website

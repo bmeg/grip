@@ -85,8 +85,8 @@ func (l *LookupVertsIndex) Process(ctx context.Context, man gdbi.Manager, in gdb
 
 	go func() {
 		defer close(out)
-		for v := range l.db.GetVertexChannel(queryChan, l.loadData) {
-			i := v.Ref.(*gdbi.Traveler)
+		for v := range l.db.GetVertexChannel(ctx, queryChan, l.loadData) {
+			i := v.Ref
 			out <- i.AddCurrent(&gdbi.DataElement{
 				ID:    v.Vertex.Gid,
 				Label: v.Vertex.Label,
@@ -163,8 +163,8 @@ func (l *LookupVertexAdjOut) Process(ctx context.Context, man gdbi.Manager, in g
 	}()
 	go func() {
 		defer close(out)
-		for ov := range l.db.GetOutChannel(queryChan, l.loadData, l.labels) {
-			i := ov.Ref.(*gdbi.Traveler)
+		for ov := range l.db.GetOutChannel(ctx, queryChan, l.loadData, l.labels) {
+			i := ov.Ref
 			out <- i.AddCurrent(&gdbi.DataElement{
 				ID:    ov.Vertex.Gid,
 				Label: ov.Vertex.Label,
@@ -198,8 +198,8 @@ func (l *LookupEdgeAdjOut) Process(ctx context.Context, man gdbi.Manager, in gdb
 	}()
 	go func() {
 		defer close(out)
-		for v := range l.db.GetVertexChannel(queryChan, l.loadData) {
-			i := v.Ref.(*gdbi.Traveler)
+		for v := range l.db.GetVertexChannel(ctx, queryChan, l.loadData) {
+			i := v.Ref
 			out <- i.AddCurrent(&gdbi.DataElement{
 				ID:    v.Vertex.Gid,
 				Label: v.Vertex.Label,
@@ -233,8 +233,8 @@ func (l *LookupVertexAdjIn) Process(ctx context.Context, man gdbi.Manager, in gd
 	}()
 	go func() {
 		defer close(out)
-		for v := range l.db.GetInChannel(queryChan, l.loadData, l.labels) {
-			i := v.Ref.(*gdbi.Traveler)
+		for v := range l.db.GetInChannel(ctx, queryChan, l.loadData, l.labels) {
+			i := v.Ref
 			out <- i.AddCurrent(&gdbi.DataElement{
 				ID:    v.Vertex.Gid,
 				Label: v.Vertex.Label,
@@ -268,8 +268,8 @@ func (l *LookupEdgeAdjIn) Process(ctx context.Context, man gdbi.Manager, in gdbi
 	}()
 	go func() {
 		defer close(out)
-		for v := range l.db.GetVertexChannel(queryChan, l.loadData) {
-			i := v.Ref.(*gdbi.Traveler)
+		for v := range l.db.GetVertexChannel(ctx, queryChan, l.loadData) {
+			i := v.Ref
 			out <- i.AddCurrent(&gdbi.DataElement{
 				ID:    v.Vertex.Gid,
 				Label: v.Vertex.Label,
@@ -303,8 +303,8 @@ func (l *InE) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out
 	}()
 	go func() {
 		defer close(out)
-		for v := range l.db.GetInEdgeChannel(queryChan, l.loadData, l.labels) {
-			i := v.Ref.(*gdbi.Traveler)
+		for v := range l.db.GetInEdgeChannel(ctx, queryChan, l.loadData, l.labels) {
+			i := v.Ref
 			out <- i.AddCurrent(&gdbi.DataElement{
 				ID:    v.Edge.Gid,
 				To:    v.Edge.To,
@@ -340,8 +340,8 @@ func (l *OutE) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, ou
 	}()
 	go func() {
 		defer close(out)
-		for v := range l.db.GetOutEdgeChannel(queryChan, l.loadData, l.labels) {
-			i := v.Ref.(*gdbi.Traveler)
+		for v := range l.db.GetOutEdgeChannel(ctx, queryChan, l.loadData, l.labels) {
+			i := v.Ref
 			out <- i.AddCurrent(&gdbi.DataElement{
 				ID:    v.Edge.Gid,
 				To:    v.Edge.To,

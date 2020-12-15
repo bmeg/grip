@@ -24,7 +24,7 @@ type Graph struct {
 
 // Compiler returns a query compiler that uses the graph
 func (g *Graph) Compiler() gdbi.Compiler {
-	return core.NewCompiler(g)
+	return core.NewCompiler(g, core.IndexStartOptimize) //TODO: probably a better optimizer for vertex label search
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -286,7 +286,7 @@ func (g *Graph) GetEdgeList(ctx context.Context, load bool) <-chan *gripql.Edge 
 
 // GetVertexChannel is passed a channel of vertex ids and it produces a channel
 // of vertices
-func (g *Graph) GetVertexChannel(reqChan chan gdbi.ElementLookup, load bool) chan gdbi.ElementLookup {
+func (g *Graph) GetVertexChannel(ctx context.Context, reqChan chan gdbi.ElementLookup, load bool) chan gdbi.ElementLookup {
 	batches := make(map[string][]gdbi.ElementLookup)
 	for elem := range reqChan {
 		parts := strings.SplitN(elem.ID, ":", 2)
@@ -350,7 +350,7 @@ func (g *Graph) GetVertexChannel(reqChan chan gdbi.ElementLookup, load bool) cha
 }
 
 // GetOutChannel process requests of vertex ids and find the connected vertices on outgoing edges
-func (g *Graph) GetOutChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
+func (g *Graph) GetOutChannel(ctx context.Context, reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
 	batches := make(map[string][]gdbi.ElementLookup)
 	for elem := range reqChan {
 		parts := strings.SplitN(elem.ID, ":", 2)
@@ -462,7 +462,7 @@ func (g *Graph) GetOutChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLa
 }
 
 // GetInChannel process requests of vertex ids and find the connected vertices on incoming edges
-func (g *Graph) GetInChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
+func (g *Graph) GetInChannel(ctx context.Context, reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
 	batches := make(map[string][]gdbi.ElementLookup)
 	for elem := range reqChan {
 		parts := strings.SplitN(elem.ID, ":", 2)
@@ -574,7 +574,7 @@ func (g *Graph) GetInChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLab
 }
 
 // GetOutEdgeChannel process requests of vertex ids and find the connected outgoing edges
-func (g *Graph) GetOutEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
+func (g *Graph) GetOutEdgeChannel(ctx context.Context, reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
 	batches := make(map[string][]gdbi.ElementLookup)
 	for elem := range reqChan {
 		parts := strings.SplitN(elem.ID, ":", 2)
@@ -684,7 +684,7 @@ func (g *Graph) GetOutEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, ed
 }
 
 // GetInEdgeChannel process requests of vertex ids and find the connected incoming edges
-func (g *Graph) GetInEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
+func (g *Graph) GetInEdgeChannel(ctx context.Context, reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
 	batches := make(map[string][]gdbi.ElementLookup)
 	for elem := range reqChan {
 		parts := strings.SplitN(elem.ID, ":", 2)

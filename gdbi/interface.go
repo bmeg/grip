@@ -52,7 +52,7 @@ const (
 // ElementLookup request to look up data
 type ElementLookup struct {
 	ID     string
-	Ref    interface{}
+	Ref    *Traveler
 	Vertex *gripql.Vertex
 	Edge   *gripql.Edge
 }
@@ -97,11 +97,11 @@ type GraphInterface interface {
 	GetVertexList(ctx context.Context, load bool) <-chan *gripql.Vertex
 	GetEdgeList(ctx context.Context, load bool) <-chan *gripql.Edge
 
-	GetVertexChannel(req chan ElementLookup, load bool) chan ElementLookup
-	GetOutChannel(req chan ElementLookup, load bool, edgeLabels []string) chan ElementLookup
-	GetInChannel(req chan ElementLookup, load bool, edgeLabels []string) chan ElementLookup
-	GetOutEdgeChannel(req chan ElementLookup, load bool, edgeLabels []string) chan ElementLookup
-	GetInEdgeChannel(req chan ElementLookup, load bool, edgeLabels []string) chan ElementLookup
+	GetVertexChannel(ctx context.Context, req chan ElementLookup, load bool) chan ElementLookup
+	GetOutChannel(ctx context.Context, req chan ElementLookup, load bool, edgeLabels []string) chan ElementLookup
+	GetInChannel(ctx context.Context, req chan ElementLookup, load bool, edgeLabels []string) chan ElementLookup
+	GetOutEdgeChannel(ctx context.Context, req chan ElementLookup, load bool, edgeLabels []string) chan ElementLookup
+	GetInEdgeChannel(ctx context.Context, req chan ElementLookup, load bool, edgeLabels []string) chan ElementLookup
 }
 
 // Manager is a resource manager that is passed to processors to allow them ]
