@@ -1015,7 +1015,6 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 				tagg := a.GetTerm()
 				size := tagg.Size
 
-				log.Infof("term: collecting data")
 				fieldTermCounts := map[interface{}]float64{}
 				for t := range aChans[a.Name] {
 					val := jsonpath.TravelerPathLookup(t, tagg.Field)
@@ -1026,8 +1025,6 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 						}
 					}
 				}
-				log.Infof("term: collected data")
-				log.Infof("term: sorting outputs")
 				aggOut := &gripql.AggregationResult{
 					Buckets: []*gripql.AggregationResultBucket{},
 				}
@@ -1039,7 +1036,6 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 						}
 					}
 				}
-				log.Infof("term: done")
 				aggChan <- map[string]*gripql.AggregationResult{a.Name: aggOut}
 				return nil
 			})
@@ -1053,7 +1049,6 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 				hagg := a.GetHistogram()
 				i := float64(hagg.Interval)
 
-				log.Infof("histogram: collecting data")
 				c := 0
 				fieldValues := []float64{}
 				for t := range aChans[a.Name] {
@@ -1073,8 +1068,6 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 				sort.Float64s(fieldValues)
 				min := fieldValues[0]
 				max := fieldValues[len(fieldValues)-1]
-				log.Infof("histogram: collected data")
-				log.Infof("histogram: bucket logic")
 				aggOut := &gripql.AggregationResult{
 					Buckets: []*gripql.AggregationResultBucket{},
 				}
@@ -1087,7 +1080,6 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 					}
 					aggOut.Buckets = append(aggOut.Buckets, &gripql.AggregationResultBucket{Key: protoutil.WrapValue(bucket), Value: count})
 				}
-				log.Infof("histogram: done")
 				aggChan <- map[string]*gripql.AggregationResult{a.Name: aggOut}
 				return nil
 			})
@@ -1098,7 +1090,6 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 				pagg := a.GetPercentile()
 				percents := pagg.Percents
 
-				log.Infof("percentile: collecting data")
 				td := tdigest.New()
 				for t := range aChans[a.Name] {
 					val := jsonpath.TravelerPathLookup(t, pagg.Field)
@@ -1109,8 +1100,6 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 					td.Add(fval, 1)
 				}
 
-				log.Infof("percentile: collected data")
-				log.Infof("percentile: get percentiles")
 				aggOut := &gripql.AggregationResult{
 					Buckets: []*gripql.AggregationResultBucket{},
 				}
@@ -1118,7 +1107,6 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 					q := td.Quantile(p / 100)
 					aggOut.Buckets = append(aggOut.Buckets, &gripql.AggregationResultBucket{Key: protoutil.WrapValue(p), Value: q})
 				}
-				log.Infof("percentile: done")
 				aggChan <- map[string]*gripql.AggregationResult{a.Name: aggOut}
 				return nil
 			})
