@@ -18,13 +18,15 @@ import (
 	"github.com/bmeg/grip/util/rpc"
 	"github.com/felixge/httpsnoop"
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
-	"github.com/grpc-ecosystem/grpc-gateway/runtime"
+	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 )
 
 // GripServer is a GRPC based grip server
 type GripServer struct {
+	gripql.UnimplementedQueryServer
+	gripql.UnimplementedEditServer
 	db      gdbi.GraphDB
 	conf    Config
 	schemas map[string]*gripql.Graph
@@ -89,9 +91,9 @@ func (server *GripServer) Serve(pctx context.Context) error {
 	// Setup RESTful proxy
 	marsh := MarshalClean{
 		m: &runtime.JSONPb{
-			EnumsAsInts:  false,
-			EmitDefaults: true,
-			OrigName:     true,
+			//EnumsAsInts:  false,
+			//EmitDefaults: true,
+			//OrigName:     true,
 		},
 	}
 	grpcMux := runtime.NewServeMux(runtime.WithMarshalerOption("*/*", &marsh))

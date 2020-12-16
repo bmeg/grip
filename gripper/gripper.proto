@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package gripper;
 
+option go_package = "github.com/bmeg/grip/gripper";
+
 import "google/protobuf/struct.proto";
 
 message Empty {}

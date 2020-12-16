@@ -24,7 +24,7 @@ def test_hasLabel(man):
 
     count = 0
     for i in G.query().V().hasLabel(["Vehicle", "Starship"]):
-        if "name" not in i.data:
+        if "name" not in i["data"]:
             errors.append("vertex %s returned without data" % (i.gid))
         count += 1
     if count != 12:
@@ -98,6 +98,7 @@ def test_has_eq(man):
 
     count = 0
     for i in G.query().V().has(gripql.eq("_gid", "Character:3")):
+        print(i)
         count += 1
         if i['gid'] != "Character:3":
             errors.append("Wrong vertex returned %s" % (i))

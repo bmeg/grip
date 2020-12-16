@@ -44,7 +44,7 @@ import gripql
 
 # Basic Auth Header - {'Authorization': 'Basic dGVzdDpwYXNzd29yZA=='}
 G = gripql.Connection("https://bmeg.io", user="test", password="password").graph("bmeg")
-# 
+#
 
 # Bearer Token - {'Authorization': 'Bearer iamnotarealtoken'}
 G = gripql.Connection("https://bmeg.io", token="iamnotarealtoken").graph("bmeg")
@@ -67,7 +67,7 @@ A couple things about this first and simplest query. We start with `O`, our grip
 Once we make this query, we get a result:
 
 ```python
-[<AttrDict(
+[
   {u'gid': u'ENSG00000141510',
   u'data': {
     u'end': 7687550,
@@ -79,7 +79,7 @@ Once we make this query, we get a result:
     u'id': u'ENSG00000141510',
     u'chromosome': u'17'
   },
-  u'label': u'Gene'})>
+  u'label': u'Gene'})
 ]
 ```
 
@@ -106,8 +106,8 @@ This returns both Gene vertexes:
 
 ```
 [
-  <AttrDict({u'symbol': u'TP53', u'gid': u'ENSG00000141510'})>,
-  <AttrDict({u'symbol': u'BRCA1', u'gid': u'ENSG00000012048'})>
+  {u'symbol': u'TP53', u'gid': u'ENSG00000141510'},
+  {u'symbol': u'BRCA1', u'gid': u'ENSG00000012048'}
 ]
 ```
 
@@ -123,13 +123,13 @@ print(result)
 ```
 
 Here we have introduced a couple of new steps. The first is `.in_()`. This starts from wherever you are in the graph at the moment and travels out along all the incoming edges.
-Additionally, we have provided `TranscriptFor` as an argument to `.in_()`. This limits the returned vertices to only those connected to the `Gene`  verticies by edges labeled `TranscriptFor`. 
+Additionally, we have provided `TranscriptFor` as an argument to `.in_()`. This limits the returned vertices to only those connected to the `Gene`  verticies by edges labeled `TranscriptFor`.
 
 
 ```
 [
-  <AttrDict({u'label': u'Transcript', u'gid': u'ENST00000413465'})>,
-  <AttrDict({u'label': u'Transcript', u'gid': u'ENST00000604348'})>,
+  {u'label': u'Transcript', u'gid': u'ENST00000413465'},
+  {u'label': u'Transcript', u'gid': u'ENST00000604348'},
   ...
 ]
 ```

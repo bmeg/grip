@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package gripql;
 
+option go_package = "github.com/bmeg/grip/gripql";
+
 import "google/api/annotations.proto";
 import "google/protobuf/struct.proto";
 
@@ -176,14 +178,12 @@ message Edge {
 }
 
 message QueryResult {
-	oneof result {
-		Vertex vertex = 1;
-		Edge edge = 2;
-		NamedAggregationResult aggregations = 3;
-		Selections selections = 4;
-		google.protobuf.Value render = 5;
-		uint32 count = 6;
-	}
+	Vertex vertex = 1;
+	Edge edge = 2;
+	NamedAggregationResult aggregations = 3;
+	Selections selections = 4;
+	google.protobuf.Value render = 5;
+	uint32 count = 6;
 }
 
 message EditResult {
