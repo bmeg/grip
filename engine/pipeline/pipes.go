@@ -66,17 +66,23 @@ func Convert(dataType gdbi.DataType, markTypes map[string]gdbi.DataType, t *gdbi
 	switch dataType {
 	case gdbi.VertexData:
 		return &gripql.QueryResult{
-			Vertex: t.GetCurrent().ToVertex(),
+			Result: &gripql.QueryResult_Vertex{
+				Vertex: t.GetCurrent().ToVertex(),
+			},
 		}
 
 	case gdbi.EdgeData:
 		return &gripql.QueryResult{
-			Edge: t.GetCurrent().ToEdge(),
+			Result: &gripql.QueryResult_Edge{
+				Edge: t.GetCurrent().ToEdge(),
+			},
 		}
 
 	case gdbi.CountData:
 		return &gripql.QueryResult{
-			Count: t.Count,
+			Result: &gripql.QueryResult_Count{
+				Count: t.Count,
+			},
 		}
 
 	case gdbi.SelectionData:
@@ -98,20 +104,26 @@ func Convert(dataType gdbi.DataType, markTypes map[string]gdbi.DataType, t *gdbi
 			}
 		}
 		return &gripql.QueryResult{
-			Selections: &gripql.Selections{
-				Selections: selections,
+			Result: &gripql.QueryResult_Selections{
+				Selections: &gripql.Selections{
+					Selections: selections,
+				},
 			},
 		}
 
 	case gdbi.RenderData:
 		return &gripql.QueryResult{
-			Render: protoutil.WrapValue(t.Render),
+			Result: &gripql.QueryResult_Render{
+				Render: protoutil.WrapValue(t.Render),
+			},
 		}
 
 	case gdbi.AggregationData:
 		return &gripql.QueryResult{
-			Aggregations: &gripql.NamedAggregationResult{
-				Aggregations: t.Aggregations,
+			Result: &gripql.QueryResult_Aggregations{
+				Aggregations: &gripql.NamedAggregationResult{
+					Aggregations: t.Aggregations,
+				},
 			},
 		}
 

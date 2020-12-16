@@ -21,6 +21,7 @@ import (
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 // GripServer is a GRPC based grip server
@@ -91,6 +92,8 @@ func (server *GripServer) Serve(pctx context.Context) error {
 	// Setup RESTful proxy
 	marsh := MarshalClean{
 		m: &runtime.JSONPb{
+			protojson.MarshalOptions{EmitUnpopulated:true},
+			protojson.UnmarshalOptions{},
 			//EnumsAsInts:  false,
 			//EmitDefaults: true,
 			//OrigName:     true,

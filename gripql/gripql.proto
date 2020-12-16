@@ -6,6 +6,7 @@ option go_package = "github.com/bmeg/grip/gripql";
 
 import "google/api/annotations.proto";
 import "google/protobuf/struct.proto";
+import "google/api/field_behavior.proto";
 
 message Graph {
 	string graph = 1;
@@ -110,7 +111,7 @@ message AggregationResult {
 
 message AggregationResultBucket {
   google.protobuf.Value key = 1;
-  double value = 2;
+  double value = 2 [(google.api.field_behavior) = REQUIRED];
 }
 
 message HasExpressionList {
@@ -178,12 +179,14 @@ message Edge {
 }
 
 message QueryResult {
-	Vertex vertex = 1;
-	Edge edge = 2;
-	NamedAggregationResult aggregations = 3;
-	Selections selections = 4;
-	google.protobuf.Value render = 5;
-	uint32 count = 6;
+	oneof result {
+		Vertex vertex = 1;
+		Edge edge = 2;
+		NamedAggregationResult aggregations = 3;
+		Selections selections = 4;
+		google.protobuf.Value render = 5;
+		uint32 count = 6;
+	}
 }
 
 message EditResult {

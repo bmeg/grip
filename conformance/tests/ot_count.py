@@ -12,6 +12,7 @@ def test_count(man):
         errors.append("Fail: G.query().V().count() %s != %s" % (i[0]["count"], 39))
 
     i = list(G.query().V("non-existent").count())
+    print(i)
     if len(i) < 1:
         errors.append("Fail: nothing returned for O.query().V(\"non-existent\").count()")
     elif i[0]["count"] != 0:
@@ -40,6 +41,7 @@ def test_count_when_no_data(man):
     G = man.writeTest()
 
     i = list(G.query().V().count())
+    print(i)
     if len(i) < 1:
         errors.append("Fail: nothing returned for G.query().V().count()")
     elif i[0]["count"] != 0:

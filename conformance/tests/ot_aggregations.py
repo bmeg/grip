@@ -90,6 +90,7 @@ def test_traversal_histogram_aggregation(man):
         row = row['traversal-agg']
 
         for res in row["buckets"]:
+            print(res)
             if height_agg_map[res["key"]] != res["value"]:
                 errors.append("Incorrect bucket count returned: %s" % res)
 

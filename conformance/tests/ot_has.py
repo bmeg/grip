@@ -98,7 +98,6 @@ def test_has_eq(man):
 
     count = 0
     for i in G.query().V().has(gripql.eq("_gid", "Character:3")):
-        print(i)
         count += 1
         if i['gid'] != "Character:3":
             errors.append("Wrong vertex returned %s" % (i))
