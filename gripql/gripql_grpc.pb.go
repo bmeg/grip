@@ -36,7 +36,7 @@ func NewQueryClient(cc grpc.ClientConnInterface) QueryClient {
 }
 
 func (c *queryClient) Traversal(ctx context.Context, in *GraphQuery, opts ...grpc.CallOption) (Query_TraversalClient, error) {
-	stream, err := c.cc.NewStream(ctx, &_Query_serviceDesc.Streams[0], "/gripql.Query/Traversal", opts...)
+	stream, err := c.cc.NewStream(ctx, &Query_ServiceDesc.Streams[0], "/gripql.Query/Traversal", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -183,7 +183,7 @@ type UnsafeQueryServer interface {
 }
 
 func RegisterQueryServer(s grpc.ServiceRegistrar, srv QueryServer) {
-	s.RegisterService(&_Query_serviceDesc, srv)
+	s.RegisterService(&Query_ServiceDesc, srv)
 }
 
 func _Query_Traversal_Handler(srv interface{}, stream grpc.ServerStream) error {
@@ -333,7 +333,10 @@ func _Query_ListLabels_Handler(srv interface{}, ctx context.Context, dec func(in
 	return interceptor(ctx, in, info, handler)
 }
 
-var _Query_serviceDesc = grpc.ServiceDesc{
+// Query_ServiceDesc is the grpc.ServiceDesc for Query service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var Query_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "gripql.Query",
 	HandlerType: (*QueryServer)(nil),
 	Methods: []grpc.MethodDesc{
@@ -419,7 +422,7 @@ func (c *editClient) AddEdge(ctx context.Context, in *GraphElement, opts ...grpc
 }
 
 func (c *editClient) BulkAdd(ctx context.Context, opts ...grpc.CallOption) (Edit_BulkAddClient, error) {
-	stream, err := c.cc.NewStream(ctx, &_Edit_serviceDesc.Streams[0], "/gripql.Edit/BulkAdd", opts...)
+	stream, err := c.cc.NewStream(ctx, &Edit_ServiceDesc.Streams[0], "/gripql.Edit/BulkAdd", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -576,7 +579,7 @@ type UnsafeEditServer interface {
 }
 
 func RegisterEditServer(s grpc.ServiceRegistrar, srv EditServer) {
-	s.RegisterService(&_Edit_serviceDesc, srv)
+	s.RegisterService(&Edit_ServiceDesc, srv)
 }
 
 func _Edit_AddVertex_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -767,7 +770,10 @@ func _Edit_AddSchema_Handler(srv interface{}, ctx context.Context, dec func(inte
 	return interceptor(ctx, in, info, handler)
 }
 
-var _Edit_serviceDesc = grpc.ServiceDesc{
+// Edit_ServiceDesc is the grpc.ServiceDesc for Edit service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var Edit_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "gripql.Edit",
 	HandlerType: (*EditServer)(nil),
 	Methods: []grpc.MethodDesc{

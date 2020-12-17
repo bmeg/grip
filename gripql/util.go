@@ -3,7 +3,7 @@ package gripql
 import (
 	"errors"
 	"fmt"
-	"sort"
+	//"sort"
 	"strings"
 
 	"github.com/bmeg/grip/protoutil"
@@ -124,89 +124,6 @@ func (edge *Edge) Validate() error {
 	return nil
 }
 
-// AsMap converts a NamedAggregationResult to a map[string]interface{}
-func (aggRes *AggregationResult) AsMap() map[string]interface{} {
-	buckets := make([]map[string]interface{}, len(aggRes.Buckets))
-	for i, b := range aggRes.Buckets {
-		buckets[i] = b.AsMap()
-	}
-
-	return map[string]interface{}{
-		"buckets": buckets,
-	}
-}
-
-// AsMap converts an AggregationResultBucket to a map[string]interface{}
-func (aggRes *AggregationResultBucket) AsMap() map[string]interface{} {
-	return map[string]interface{}{
-		"key":   aggRes.Key,
-		"value": aggRes.Value,
-	}
-}
-
-// SortedInsert inserts an AggregationResultBucket into the Buckets field
-// and returns the index of the insertion
-func (aggRes *AggregationResult) SortedInsert(el *AggregationResultBucket) (int, error) {
-	if !aggRes.IsValueSorted() {
-		return 0, errors.New("buckets are not value sorted")
-	}
-
-	if len(aggRes.Buckets) == 0 {
-		aggRes.Buckets = []*AggregationResultBucket{el}
-		return 0, nil
-	}
-
-	index := sort.Search(len(aggRes.Buckets), func(i int) bool {
-		if aggRes.Buckets[i] == nil {
-			return true
-		}
-		return el.Value > aggRes.Buckets[i].Value
-	})
-
-	aggRes.Buckets = append(aggRes.Buckets, &AggregationResultBucket{})
-	copy(aggRes.Buckets[index+1:], aggRes.Buckets[index:])
-	aggRes.Buckets[index] = el
-
-	return index, nil
-}
-
-// SortOnValue sorts Buckets by Value in descending order
-func (aggRes *AggregationResult) SortOnValue() {
-	sort.Slice(aggRes.Buckets, func(i, j int) bool {
-		if aggRes.Buckets[i] == nil && aggRes.Buckets[j] != nil {
-			return true
-		}
-		if aggRes.Buckets[i] != nil && aggRes.Buckets[j] == nil {
-			return false
-		}
-		if aggRes.Buckets[i] == nil && aggRes.Buckets[j] == nil {
-			return false
-		}
-		return aggRes.Buckets[i].Value > aggRes.Buckets[j].Value
-	})
-}
-
-// IsValueSorted returns true if the Buckets are sorted by Value
-func (aggRes *AggregationResult) IsValueSorted() bool {
-	for i := range aggRes.Buckets {
-		j := i + 1
-		if i < len(aggRes.Buckets)-2 {
-			if aggRes.Buckets[i] != nil && aggRes.Buckets[j] == nil {
-				return true
-			}
-			if aggRes.Buckets[i] == nil && aggRes.Buckets[j] != nil {
-				return false
-			}
-			if aggRes.Buckets[i] == nil && aggRes.Buckets[j] == nil {
-				return true
-			}
-			if aggRes.Buckets[i].Value < aggRes.Buckets[j].Value {
-				return false
-			}
-		}
-	}
-	return true
-}
 
 // ValidateGraphName returns an error if the graph name is invalid
 func ValidateGraphName(graph string) error {

@@ -122,7 +122,9 @@ func Convert(dataType gdbi.DataType, markTypes map[string]gdbi.DataType, t *gdbi
 		return &gripql.QueryResult{
 			Result: &gripql.QueryResult_Aggregations{
 				Aggregations: &gripql.NamedAggregationResult{
-					Aggregations: t.Aggregations,
+					Name: t.Aggregation.Name,
+					Key : protoutil.WrapValue(t.Aggregation.Key),
+					Value: t.Aggregation.Value,
 				},
 			},
 		}

@@ -98,21 +98,14 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 					out <- &gdbi.Traveler{Selections: selections}
 
 				case gdbi.AggregationData:
-					aggs := map[string]*gripql.AggregationResult{}
 
 					for k, v := range result {
-						out := &gripql.AggregationResult{
-							Buckets: []*gripql.AggregationResultBucket{},
-						}
-						//plog.Infof("Type: %T", v)
 						buckets, ok := v.(bson.A)
 						if !ok {
 							plog.Errorf("Failed to convert Mongo aggregation result (%s): %+v", k, v)
 							continue
 						}
-						//if proc.aggTypes[k].GetHistogram() != nil {
-						//	plog.Infof("Starting histogram agg result %+v", v)
-						//}
+
 						var lastBucket float64
 						for i, bucket := range buckets {
 							bucket, ok := bucket.(map[string]interface{})
@@ -131,7 +124,7 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 								stepSize := float64(proc.aggTypes[k].GetHistogram().Interval)
 								if i != 0 {
 									for nv := lastBucket + stepSize; nv < curPos; nv += stepSize {
-										out.Buckets = append(out.Buckets, &gripql.AggregationResultBucket{Key: protoutil.WrapValue(nv), Value: float64(0.0)})
+										out <- &gdbi.Traveler{Aggregation: &gdbi.Aggregate{Name:k, Key: protoutil.WrapValue(nv), Value: float64(0.0) }}
 									}
 								}
 								lastBucket = curPos
@@ -151,21 +144,19 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 							switch bucket["count"].(type) {
 							case int:
 								count := bucket["count"].(int)
-								out.Buckets = append(out.Buckets, &gripql.AggregationResultBucket{Key: term, Value: float64(count)})
+								out <- &gdbi.Traveler{Aggregation: &gdbi.Aggregate{Name:k, Key: term, Value: float64(count)}}
 							case int32:
 								count := bucket["count"].(int32)
-								out.Buckets = append(out.Buckets, &gripql.AggregationResultBucket{Key: term, Value: float64(count)})
+								out <- &gdbi.Traveler{Aggregation: &gdbi.Aggregate{Name:k, Key: term, Value: float64(count)}}
 							case float64:
 								count := bucket["count"].(float64)
-								out.Buckets = append(out.Buckets, &gripql.AggregationResultBucket{Key: term, Value: count})
+								out <- &gdbi.Traveler{Aggregation: &gdbi.Aggregate{Name:k, Key: term, Value: float64(count)}}
 							default:
 								plog.Errorf("unexpected aggregation result type: %T", bucket["count"])
 								continue
 							}
 						}
-						aggs[k] = out
 					}
-					out <- &gdbi.Traveler{Aggregations: aggs}
 
 				default:
 					if marks, ok := result["marks"]; ok {

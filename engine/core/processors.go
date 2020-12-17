@@ -18,7 +18,6 @@ import (
 	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/influxdata/tdigest"
 	"github.com/spf13/cast"
-	"golang.org/x/sync/errgroup"
 )
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -985,7 +984,6 @@ type aggregate struct {
 
 func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
 	aChans := make(map[string](chan []*gdbi.Traveler))
-	g, ctx := errgroup.WithContext(ctx)
 
 	go func() {
 		for _, a := range agg.aggregations {
@@ -1012,12 +1010,12 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 		}
 	}()
 
-	aggChan := make(chan map[string]*gripql.AggregationResult, len(agg.aggregations))
-	for _, a := range agg.aggregations {
-		a := a
-		switch a.Aggregation.(type) {
-		case *gripql.Aggregate_Term:
-			g.Go(func() error {
+	go func() {
+		defer close(out)
+		for _, a := range agg.aggregations {
+			a := a
+			switch a.Aggregation.(type) {
+			case *gripql.Aggregate_Term:
 				tagg := a.GetTerm()
 				size := tagg.Size
 				kv := man.GetTempKV()
@@ -1042,14 +1040,11 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 						return nil
 					})
 					if err != nil {
-						return err
+						log.Errorf("Error: aggregation index: %s", err)
 					}
 				}
 
-				aggOut := &gripql.AggregationResult{
-					Buckets: []*gripql.AggregationResultBucket{},
-				}
-
+				count := 0
 				for tcount := range idx.FieldTermCounts(field) {
 					var t *structpb.Value
 					if tcount.String != "" {
@@ -1057,20 +1052,13 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 					} else {
 						t = protoutil.WrapValue(tcount.Number)
 					}
-					aggOut.SortedInsert(&gripql.AggregationResultBucket{Key: t, Value: float64(tcount.Count)})
-					if size > 0 {
-						if len(aggOut.Buckets) > int(size) {
-							aggOut.Buckets = aggOut.Buckets[:size]
-						}
+					if size <= 0 || count < int(size) {
+						out <- &gdbi.Traveler{Aggregation: &gdbi.Aggregate{Name: a.Name, Key: t, Value: float64(tcount.Count)}}
 					}
+					count++
 				}
 
-				aggChan <- map[string]*gripql.AggregationResult{a.Name: aggOut}
-				return nil
-			})
-
-		case *gripql.Aggregate_Histogram:
-			g.Go(func() error {
+			case *gripql.Aggregate_Histogram:
 				hagg := a.GetHistogram()
 				interval := hagg.Interval
 				kv := man.GetTempKV()
@@ -1095,12 +1083,8 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 						return nil
 					})
 					if err != nil {
-						return err
+						log.Errorf("Error: aggregation index: %s", err)
 					}
-				}
-
-				aggOut := &gripql.AggregationResult{
-					Buckets: []*gripql.AggregationResultBucket{},
 				}
 
 				min := idx.FieldTermNumberMin(field)
@@ -1112,16 +1096,11 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 					for tcount := range idx.FieldTermNumberRange(field, bucket, bucket+i) {
 						count += tcount.Count
 					}
-					aggOut.Buckets = append(aggOut.Buckets, &gripql.AggregationResultBucket{Key: protoutil.WrapValue(bucket), Value: float64(count)})
+					out <- &gdbi.Traveler{Aggregation: &gdbi.Aggregate{Name: a.Name, Key: protoutil.WrapValue(bucket), Value: float64(count)}}
 				}
 
-				aggChan <- map[string]*gripql.AggregationResult{a.Name: aggOut}
-				return nil
-			})
+			case *gripql.Aggregate_Percentile:
 
-		case *gripql.Aggregate_Percentile:
-
-			g.Go(func() error {
 				pagg := a.GetPercentile()
 				percents := pagg.Percents
 				kv := man.GetTempKV()
@@ -1146,12 +1125,8 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 						return nil
 					})
 					if err != nil {
-						return err
+						log.Errorf("Error: aggregation index: %s", err)
 					}
-				}
-
-				aggOut := &gripql.AggregationResult{
-					Buckets: []*gripql.AggregationResultBucket{},
 				}
 
 				td := tdigest.New()
@@ -1161,33 +1136,14 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 
 				for _, p := range percents {
 					q := td.Quantile(p / 100)
-					aggOut.Buckets = append(aggOut.Buckets, &gripql.AggregationResultBucket{Key: protoutil.WrapValue(p), Value: q})
+					out <- &gdbi.Traveler{Aggregation: &gdbi.Aggregate{Name: a.Name, Key: protoutil.WrapValue(p), Value: q}}
 				}
 
-				aggChan <- map[string]*gripql.AggregationResult{a.Name: aggOut}
-				return nil
-			})
-
-		default:
-			log.Errorf("Error: unknown aggregation type: %T", a.Aggregation)
-			continue
-		}
-	}
-
-	// Check whether any goroutines failed.
-	go func() {
-		defer close(out)
-		if err := g.Wait(); err != nil {
-			log.WithFields(log.Fields{"error": err}).Error("one or more aggregation failed")
-		}
-		close(aggChan)
-		aggs := map[string]*gripql.AggregationResult{}
-		for a := range aggChan {
-			for k, v := range a {
-				aggs[k] = v
+			default:
+				log.Errorf("Error: unknown aggregation type: %T", a.Aggregation)
+				continue
 			}
 		}
-		out <- &gdbi.Traveler{Aggregations: aggs}
 	}()
 
 	return ctx

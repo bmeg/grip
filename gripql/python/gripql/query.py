@@ -317,7 +317,7 @@ class Query(BaseConnection):
             elif "edge" in result_dict:
                 extracted = result_dict["edge"]
             elif "aggregations" in result_dict:
-                extracted = result_dict["aggregations"]["aggregations"]
+                extracted = result_dict["aggregations"]
             elif "selections" in result_dict:
                 extracted = result_dict["selections"]["selections"]
                 for k in extracted:
