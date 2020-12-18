@@ -986,16 +986,18 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 
 	// # of travelers to buffer for agg
 	bufferSize := 1000
+	for _, a := range agg.aggregations {
+		aChans[a.Name] = make(chan *gdbi.Traveler, bufferSize)
+	}
 
 	g.Go(func() error {
-		for _, a := range agg.aggregations {
-			aChans[a.Name] = make(chan *gdbi.Traveler, bufferSize)
-			defer close(aChans[a.Name])
-		}
 		for t := range in {
 			for _, a := range agg.aggregations {
 				aChans[a.Name] <- t
 			}
+		}
+		for _, a := range agg.aggregations {
+			close(aChans[a.Name])
 		}
 		return nil
 	})
@@ -1117,13 +1119,8 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 		}
 	}
 
-	// Check whether any goroutines failed.
 	go func() {
 		defer close(out)
-		if err := g.Wait(); err != nil {
-			log.WithFields(log.Fields{"error": err}).Error("one or more aggregation failed")
-		}
-		close(aggChan)
 		aggs := map[string]*gripql.AggregationResult{}
 		for a := range aggChan {
 			for k, v := range a {
@@ -1131,6 +1128,14 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 			}
 		}
 		out <- &gdbi.Traveler{Aggregations: aggs}
+	}()
+
+	// Check whether any goroutines failed.
+	go func() {
+		if err := g.Wait(); err != nil {
+			log.WithFields(log.Fields{"error": err}).Error("one or more aggregation failed")
+		}
+		close(aggChan)
 	}()
 
 	return ctx
