@@ -29,8 +29,10 @@ jobs:
   badgerTest:
     needs: build
     name: Badger Conformance
+    runs-on: ubuntu-latest
     steps:
-      - run: |
+      - name: Badger Test
+        run: |
           ./grip server --rpc-port 18202 --http-port 18201 --config ./test/badger.yml &
           sleep 5
           make test-conformance
