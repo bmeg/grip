@@ -6,27 +6,43 @@ on:
 
 jobs:
 
-  testBadger:
-    name: Test
+  build:
+    name: Build
     runs-on: ubuntu-latest
     steps:
 
-    - name: Set up Go 1.x
-      uses: actions/setup-go@v2
-      with:
-        go-version: ^1.13
+      - name: Set up Go 1.x
+        uses: actions/setup-go@v2
+        with:
+          go-version: ^1.13
 
-    - name: Check out code into the Go module directory
-      uses: actions/checkout@v2
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v2
 
-    - name: Build
-      run: go build -v ./
+      - name: Build
+        run: go build -v ./
 
-    - name: Python Dependencies for Conformance
-      run: pip install requests numpy
+      - name: Python Dependencies for Conformance
+        run: pip install requests numpy
 
-    - name: Conformance
-      run: |
-        ./grip server --rpc-port 18202 --http-port 18201 --config ./test/badger.yml &
-        sleep 5
-        make test-conformance
+
+  badgerTest:
+    needs: build
+    name: Badger Conformance
+    steps:
+      - run: |
+          ./grip server --rpc-port 18202 --http-port 18201 --config ./test/badger.yml &
+          sleep 5
+          make test-conformance
+
+
+  mongoTest:
+    needs: build
+    name: Mongo Conformance
+    steps:
+      - name: Mongo Conformance
+        run: |
+          make start-mongo
+          ./grip server --rpc-port 18202 --http-port 18201 --config ./test/mongo.yml &
+          sleep 5
+          make test-conformance
