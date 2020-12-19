@@ -20,8 +20,12 @@ jobs:
     - name: Build
       run: go build -v ./
 
-    - name: Python Dependencies for Conformance
-      run: pip install requests numpy
+    - name: Store grip
+      uses: actions/upload-artifact@v2
+      with:
+        name: gripBin
+        path: grip
+
 
 
   badgerTest:
@@ -29,6 +33,14 @@ jobs:
     name: Badger Conformance
     runs-on: ubuntu-latest
     steps:
+    - name: Check out code
+      uses: actions/checkout@v2
+    - name: Python Dependencies for Conformance
+      run: pip install requests numpy
+    - name: Download grip
+      uses: actions/download-artifact@v2
+      with:
+        name: gripBin
     - name: Badger Test
       run: |
         ./grip server --rpc-port 18202 --http-port 18201 --config ./test/badger.yml &
