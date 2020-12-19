@@ -34,15 +34,3 @@ jobs:
         ./grip server --rpc-port 18202 --http-port 18201 --config ./test/badger.yml &
         sleep 5
         make test-conformance
-
-
-  mongoTest:
-    needs: build
-    name: Mongo Conformance
-    steps:
-    - name: Mongo Conformance
-      run: |
-        make start-mongo
-        ./grip server --rpc-port 18202 --http-port 18201 --config ./test/mongo.yml &
-        sleep 5
-        make test-conformance
