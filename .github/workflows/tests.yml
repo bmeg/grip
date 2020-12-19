@@ -43,6 +43,7 @@ jobs:
         name: gripBin
     - name: Badger Test
       run: |
+        chmod +x grip
         ./grip server --rpc-port 18202 --http-port 18201 --config ./test/badger.yml &
         sleep 5
         make test-conformance
