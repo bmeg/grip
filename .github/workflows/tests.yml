@@ -66,3 +66,25 @@ jobs:
         ./grip server --rpc-port 18202 --http-port 18201 --config ./test/mongo.yml &
         sleep 5
         make test-conformance
+
+  gripperTest:
+    needs: build
+    name: Gripper Test
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check out code
+      uses: actions/checkout@v2
+    - name: Python Dependencies for Conformance
+      run: pip install requests numpy
+    - name: Download grip
+      uses: actions/download-artifact@v2
+      with:
+        name: gripBin
+    - name: Gripper Conformance
+      run: |
+        chmod +x grip
+        make start-gripper-test
+        sleep 5
+        grip server --rpc-port 18202 --http-port 18201 --config ./gripper/test-graph/config.yaml &
+        sleep 5
+        python conformance/run_conformance.py http://localhost:18201 --readOnly swapi
