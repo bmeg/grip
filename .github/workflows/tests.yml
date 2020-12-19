@@ -75,7 +75,7 @@ jobs:
     - name: Check out code
       uses: actions/checkout@v2
     - name: Python Dependencies for Conformance
-      run: pip install requests numpy
+      run: pip install requests numpy grpcio-tools
     - name: Download grip
       uses: actions/download-artifact@v2
       with:
@@ -85,6 +85,6 @@ jobs:
         chmod +x grip
         make start-gripper-test
         sleep 5
-        grip server --rpc-port 18202 --http-port 18201 --config ./gripper/test-graph/config.yaml &
+        ./grip server --rpc-port 18202 --http-port 18201 --config ./gripper/test-graph/config.yaml &
         sleep 5
         python conformance/run_conformance.py http://localhost:18201 --readOnly swapi
