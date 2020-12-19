@@ -26,8 +26,6 @@ jobs:
         name: gripBin
         path: grip
 
-
-
   badgerTest:
     needs: build
     name: Badger Conformance
@@ -45,5 +43,26 @@ jobs:
       run: |
         chmod +x grip
         ./grip server --rpc-port 18202 --http-port 18201 --config ./test/badger.yml &
+        sleep 5
+        make test-conformance
+
+  mongoTest:
+    needs: build
+    name: Mongo Test
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check out code
+      uses: actions/checkout@v2
+    - name: Python Dependencies for Conformance
+      run: pip install requests numpy
+    - name: Download grip
+      uses: actions/download-artifact@v2
+      with:
+        name: gripBin
+    - name: Mongo Conformance
+      run: |
+        chmod +x grip
+        make start-mongo
+        ./grip server --rpc-port 18202 --http-port 18201 --config ./test/mongo.yml &
         sleep 5
         make test-conformance
