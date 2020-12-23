@@ -8,9 +8,8 @@ import (
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/log"
-	"github.com/bmeg/grip/protoutil"
 	"github.com/bmeg/grip/util"
-	structpb "github.com/golang/protobuf/ptypes/struct"
+	"google.golang.org/protobuf/types/known/structpb"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 )
@@ -117,14 +116,15 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 							var term *structpb.Value
 							switch proc.aggTypes[k].GetAggregation().(type) {
 							case *gripql.Aggregate_Term:
-								term = protoutil.WrapValue(bucket["_id"])
+								term, _ = structpb.NewValue(bucket["_id"])
 							case *gripql.Aggregate_Histogram:
-								term = protoutil.WrapValue(bucket["_id"])
+								term, _ = structpb.NewValue(bucket["_id"])
 								curPos := bucket["_id"].(float64)
 								stepSize := float64(proc.aggTypes[k].GetHistogram().Interval)
 								if i != 0 {
 									for nv := lastBucket + stepSize; nv < curPos; nv += stepSize {
-										out <- &gdbi.Traveler{Aggregation: &gdbi.Aggregate{Name: k, Key: protoutil.WrapValue(nv), Value: float64(0.0)}}
+										snv, _ := structpb.NewValue(nv)
+										out <- &gdbi.Traveler{Aggregation: &gdbi.Aggregate{Name: k, Key: snv, Value: float64(0.0)}}
 									}
 								}
 								lastBucket = curPos
@@ -136,7 +136,7 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 									plog.Errorf("failed to parse percentile aggregation result key: %v", err)
 									continue
 								}
-								term = protoutil.WrapValue(f)
+								term, _ = structpb.NewValue(f)
 							default:
 								plog.Errorf("unknown aggregation result type")
 							}

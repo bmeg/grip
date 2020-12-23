@@ -10,13 +10,12 @@ import (
 	"github.com/bmeg/grip/jsonpath"
 	"github.com/bmeg/grip/kvi"
 	"github.com/bmeg/grip/kvindex"
-	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/influxdata/tdigest"
 	"golang.org/x/sync/errgroup"
 
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/log"
-	"github.com/bmeg/grip/protoutil"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 type aggregateDisk struct {
@@ -89,9 +88,9 @@ func (agg *aggregateDisk) Process(ctx context.Context, man gdbi.Manager, in gdbi
 				for tcount := range idx.FieldTermCounts(field) {
 					var t *structpb.Value
 					if tcount.String != "" {
-						t = protoutil.WrapValue(tcount.String)
+						t, _ = structpb.NewValue(tcount.String)
 					} else {
-						t = protoutil.WrapValue(tcount.Number)
+						t, _ = structpb.NewValue(tcount.Number)
 					}
 					if size <= 0 || count < int(size) {
 						out <- &gdbi.Traveler{Aggregation: &gdbi.Aggregate{Name: a.Name, Key: t, Value: float64(tcount.Count)}}
@@ -140,7 +139,8 @@ func (agg *aggregateDisk) Process(ctx context.Context, man gdbi.Manager, in gdbi
 					for tcount := range idx.FieldTermNumberRange(field, bucket, bucket+i) {
 						count += tcount.Count
 					}
-					out <- &gdbi.Traveler{Aggregation: &gdbi.Aggregate{Name: a.Name, Key: protoutil.WrapValue(bucket), Value: float64(count)}}
+					sBucket, _ := structpb.NewValue(bucket)
+					out <- &gdbi.Traveler{Aggregation: &gdbi.Aggregate{Name: a.Name, Key: sBucket, Value: float64(count)}}
 				}
         return nil
 			})
@@ -182,7 +182,8 @@ func (agg *aggregateDisk) Process(ctx context.Context, man gdbi.Manager, in gdbi
 
 				for _, p := range percents {
 					q := td.Quantile(p / 100)
-					out <- &gdbi.Traveler{Aggregation: &gdbi.Aggregate{Name: a.Name, Key: protoutil.WrapValue(p), Value: q}}
+					sp, _ := structpb.NewValue(p)
+					out <- &gdbi.Traveler{Aggregation: &gdbi.Aggregate{Name: a.Name, Key: sp, Value: q}}
 				}
         return nil
 			})

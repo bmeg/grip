@@ -12,10 +12,11 @@ import (
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/jsonpath"
 	"github.com/bmeg/grip/log"
-	"github.com/bmeg/grip/protoutil"
 	"github.com/influxdata/tdigest"
 	"github.com/spf13/cast"
 	"golang.org/x/sync/errgroup"
+
+	//"google.golang.org/protobuf/types/known/structpb"
 )
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -37,7 +38,7 @@ func (l *LookupVerts) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 					out <- t.AddCurrent(&gdbi.DataElement{
 						ID:    v.Gid,
 						Label: v.Label,
-						Data:  protoutil.AsMap(v.Data),
+						Data:  v.Data.AsMap(),
 					})
 				}
 			} else {
@@ -47,7 +48,7 @@ func (l *LookupVerts) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 						out <- t.AddCurrent(&gdbi.DataElement{
 							ID:    v.Gid,
 							Label: v.Label,
-							Data:  protoutil.AsMap(v.Data),
+							Data:  v.Data.AsMap(),
 						})
 					}
 				}
@@ -90,7 +91,7 @@ func (l *LookupVertsIndex) Process(ctx context.Context, man gdbi.Manager, in gdb
 			out <- i.AddCurrent(&gdbi.DataElement{
 				ID:    v.Vertex.Gid,
 				Label: v.Vertex.Label,
-				Data:  protoutil.AsMap(v.Vertex.Data),
+				Data:  v.Vertex.Data.AsMap(),
 			})
 		}
 	}()
@@ -118,7 +119,7 @@ func (l *LookupEdges) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 						Label: v.Label,
 						From:  v.From,
 						To:    v.To,
-						Data:  protoutil.AsMap(v.Data),
+						Data:  v.Data.AsMap(),
 					})
 				}
 			} else {
@@ -130,7 +131,7 @@ func (l *LookupEdges) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 							Label: v.Label,
 							From:  v.From,
 							To:    v.To,
-							Data:  protoutil.AsMap(v.Data),
+							Data:  v.Data.AsMap(),
 						})
 					}
 				}
@@ -168,7 +169,7 @@ func (l *LookupVertexAdjOut) Process(ctx context.Context, man gdbi.Manager, in g
 			out <- i.AddCurrent(&gdbi.DataElement{
 				ID:    ov.Vertex.Gid,
 				Label: ov.Vertex.Label,
-				Data:  protoutil.AsMap(ov.Vertex.Data),
+				Data:  ov.Vertex.Data.AsMap(),
 			})
 		}
 	}()
@@ -203,7 +204,7 @@ func (l *LookupEdgeAdjOut) Process(ctx context.Context, man gdbi.Manager, in gdb
 			out <- i.AddCurrent(&gdbi.DataElement{
 				ID:    v.Vertex.Gid,
 				Label: v.Vertex.Label,
-				Data:  protoutil.AsMap(v.Vertex.Data),
+				Data:  v.Vertex.Data.AsMap(),
 			})
 		}
 	}()
@@ -238,7 +239,7 @@ func (l *LookupVertexAdjIn) Process(ctx context.Context, man gdbi.Manager, in gd
 			out <- i.AddCurrent(&gdbi.DataElement{
 				ID:    v.Vertex.Gid,
 				Label: v.Vertex.Label,
-				Data:  protoutil.AsMap(v.Vertex.Data),
+				Data:  v.Vertex.Data.AsMap(),
 			})
 		}
 	}()
@@ -273,7 +274,7 @@ func (l *LookupEdgeAdjIn) Process(ctx context.Context, man gdbi.Manager, in gdbi
 			out <- i.AddCurrent(&gdbi.DataElement{
 				ID:    v.Vertex.Gid,
 				Label: v.Vertex.Label,
-				Data:  protoutil.AsMap(v.Vertex.Data),
+				Data:  v.Vertex.Data.AsMap(),
 			})
 		}
 	}()
@@ -310,7 +311,7 @@ func (l *InE) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out
 				To:    v.Edge.To,
 				From:  v.Edge.From,
 				Label: v.Edge.Label,
-				Data:  protoutil.AsMap(v.Edge.Data),
+				Data:  v.Edge.Data.AsMap(),
 			})
 		}
 	}()
@@ -347,7 +348,7 @@ func (l *OutE) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, ou
 				To:    v.Edge.To,
 				From:  v.Edge.From,
 				Label: v.Edge.Label,
-				Data:  protoutil.AsMap(v.Edge.Data),
+				Data:  v.Edge.Data.AsMap(),
 			})
 		}
 	}()
@@ -403,7 +404,7 @@ func matchesCondition(trav *gdbi.Traveler, cond *gripql.HasCondition) bool {
 	var val interface{}
 	var condVal interface{}
 	val = jsonpath.TravelerPathLookup(trav, cond.Key)
-	condVal = protoutil.UnWrapValue(cond.Value)
+	condVal = cond.Value.AsInterface()
 
 	switch cond.Condition {
 	case gripql.Condition_EQ:
@@ -1030,7 +1031,9 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 				count := 0
 				for term, tcount := range fieldTermCounts {
 					if size <= 0 || count < int(size) {
-						out <- &gdbi.Traveler{Aggregation: &gdbi.Aggregate{Name: a.Name, Key: protoutil.WrapValue(term), Value: float64(tcount)}}
+						//sTerm, _ := structpb.NewValue(term)
+						//fmt.Printf("Term: %s %s %d\n", a.Name, sTerm, tcount)
+						out <- &gdbi.Traveler{Aggregation: &gdbi.Aggregate{Name: a.Name, Key: term, Value: float64(tcount)}}
 					}
 				}
 				return nil
@@ -1072,7 +1075,8 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 							count++
 						}
 					}
-					out <- &gdbi.Traveler{Aggregation: &gdbi.Aggregate{Name: a.Name, Key: protoutil.WrapValue(bucket), Value: float64(count)}}
+					//sBucket, _ := structpb.NewValue(bucket)
+					out <- &gdbi.Traveler{Aggregation: &gdbi.Aggregate{Name: a.Name, Key: bucket, Value: float64(count)}}
 				}
 				return nil
 			})
@@ -1095,7 +1099,8 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 
 				for _, p := range percents {
 					q := td.Quantile(p / 100)
-					out <- &gdbi.Traveler{Aggregation: &gdbi.Aggregate{Name: a.Name, Key: protoutil.WrapValue(p), Value: q}}
+					//sp, _ := structpb.NewValue(p)
+					out <- &gdbi.Traveler{Aggregation: &gdbi.Aggregate{Name: a.Name, Key: p, Value: q}}
 				}
 
 				return nil

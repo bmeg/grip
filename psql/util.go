@@ -6,7 +6,7 @@ import (
 	"regexp"
 
 	"github.com/bmeg/grip/gripql"
-	"github.com/bmeg/grip/protoutil"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 type row struct {
@@ -25,10 +25,11 @@ func convertVertexRow(row *row, load bool) (*gripql.Vertex, error) {
 			return nil, fmt.Errorf("unmarshal error: %v", err)
 		}
 	}
+	sProps, _ := structpb.NewStruct(props)
 	v := &gripql.Vertex{
 		Gid:   row.Gid,
 		Label: row.Label,
-		Data:  protoutil.AsStruct(props),
+		Data:  sProps,
 	}
 	return v, nil
 }
@@ -41,12 +42,13 @@ func convertEdgeRow(row *row, load bool) (*gripql.Edge, error) {
 			return nil, fmt.Errorf("unmarshal error: %v", err)
 		}
 	}
+	sProps, _ := structpb.NewStruct(props)
 	e := &gripql.Edge{
 		Gid:   row.Gid,
 		Label: row.Label,
 		From:  row.From,
 		To:    row.To,
-		Data:  protoutil.AsStruct(props),
+		Data:  sProps,
 	}
 	return e, nil
 }

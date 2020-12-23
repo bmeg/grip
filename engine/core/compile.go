@@ -7,7 +7,7 @@ import (
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/jsonpath"
-	"github.com/bmeg/grip/protoutil"
+	"github.com/bmeg/grip/util/protoutil"
 )
 
 // DefaultPipeline a set of runnable query operations
@@ -255,7 +255,7 @@ func StatementProcessor(gs *gripql.GraphStatement, db gdbi.GraphInterface, ps *p
 			return nil, fmt.Errorf(`"render" statement is only valid for edge or vertex types not: %s`, ps.LastType.String())
 		}
 		ps.LastType = gdbi.RenderData
-		return &Render{protoutil.UnWrapValue(stmt.Render)}, nil
+		return &Render{stmt.Render.AsInterface()}, nil
 
 	case *gripql.GraphStatement_Fields:
 		if ps.LastType != gdbi.VertexData && ps.LastType != gdbi.EdgeData {

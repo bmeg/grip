@@ -2,7 +2,7 @@ package gdbi
 
 import (
 	"github.com/bmeg/grip/gripql"
-	"github.com/bmeg/grip/protoutil"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 // These consts mark the type of a Pipeline traveler chan
@@ -69,21 +69,23 @@ func (t *Traveler) GetCurrent() *DataElement {
 
 // ToVertex converts data element to vertex
 func (elem *DataElement) ToVertex() *gripql.Vertex {
+	sValue, _ := structpb.NewStruct(elem.Data)
 	return &gripql.Vertex{
 		Gid:   elem.ID,
 		Label: elem.Label,
-		Data:  protoutil.AsStruct(elem.Data),
+		Data:  sValue,
 	}
 }
 
 // ToEdge converts data element to edge
 func (elem *DataElement) ToEdge() *gripql.Edge {
+	sValue, _ := structpb.NewStruct(elem.Data)
 	return &gripql.Edge{
 		Gid:   elem.ID,
 		From:  elem.From,
 		To:    elem.To,
 		Label: elem.Label,
-		Data:  protoutil.AsStruct(elem.Data),
+		Data:  sValue,
 	}
 }
 

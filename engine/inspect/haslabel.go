@@ -2,7 +2,7 @@ package inspect
 
 import (
 	"github.com/bmeg/grip/gripql"
-	"github.com/bmeg/grip/protoutil"
+	"github.com/bmeg/grip/util/protoutil"
 )
 
 func FindVertexHasLabelStart(pipe []*gripql.GraphStatement) ([]string, []*gripql.GraphStatement) {

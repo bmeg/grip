@@ -9,7 +9,6 @@ import (
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/log"
-	"github.com/bmeg/grip/protoutil"
 	"github.com/bmeg/grip/timestamp"
 	"github.com/bmeg/grip/util"
 	"github.com/jmoiron/sqlx"
@@ -56,7 +55,11 @@ func (g *Graph) AddVertex(vertices []*gripql.Vertex) error {
 	}
 
 	for _, v := range vertices {
-		_, err = stmt.Exec(v.Gid, v.Label, protoutil.AsJSONString(v.Data))
+		js, err := v.Data.MarshalJSON()
+		if err != nil {
+			return fmt.Errorf("AddVertex: Stmt.Exec: %v", err)
+		}
+		_, err = stmt.Exec(v.Gid, v.Label, js)
 		if err != nil {
 			return fmt.Errorf("AddVertex: Stmt.Exec: %v", err)
 		}
@@ -98,7 +101,11 @@ func (g *Graph) AddEdge(edges []*gripql.Edge) error {
 	}
 
 	for _, e := range edges {
-		_, err = stmt.Exec(e.Gid, e.Label, e.From, e.To, protoutil.AsJSONString(e.Data))
+		js, err := e.Data.MarshalJSON()
+		if err != nil {
+			return fmt.Errorf("AddEdge: Stmt.Exec: %v", err)
+		}
+		_, err = stmt.Exec(e.Gid, e.Label, e.From, e.To, js)
 		if err != nil {
 			return fmt.Errorf("AddEdge: Stmt.Exec: %v", err)
 		}

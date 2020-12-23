@@ -6,7 +6,6 @@ import (
 	"github.com/bmeg/grip/engine/inspect"
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
-	"github.com/bmeg/grip/protoutil"
 	"github.com/bmeg/grip/util/setcmp"
 )
 
@@ -46,7 +45,7 @@ func (t *tabularHasLabelProc) Process(ctx context.Context, man gdbi.Manager, in 
 						out <- i.AddCurrent(&gdbi.DataElement{
 							ID:    table.prefix + row.Id,
 							Label: table.config.Label,
-							Data:  protoutil.AsMap(row.Data),
+							Data:  row.Data.AsMap(),
 						})
 					}
 				}

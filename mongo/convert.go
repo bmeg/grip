@@ -2,15 +2,14 @@ package mongo
 
 import (
 	"github.com/bmeg/grip/gripql"
-	"github.com/bmeg/grip/protoutil"
-	structpb "github.com/golang/protobuf/ptypes/struct"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 // PackVertex take a GRIP vertex and convert it to a mongo doc
 func PackVertex(v *gripql.Vertex) map[string]interface{} {
 	p := map[string]interface{}{}
 	if v.Data != nil {
-		p = protoutil.AsMap(v.Data)
+		p = v.Data.AsMap()
 	}
 	return map[string]interface{}{
 		"_id":   v.Gid,
@@ -23,7 +22,7 @@ func PackVertex(v *gripql.Vertex) map[string]interface{} {
 func PackEdge(e *gripql.Edge) map[string]interface{} {
 	p := map[string]interface{}{}
 	if e.Data != nil {
-		p = protoutil.AsMap(e.Data)
+		p = e.Data.AsMap()
 	}
 	return map[string]interface{}{
 		"_id":   e.Gid,
@@ -46,7 +45,8 @@ func UnpackVertex(i map[string]interface{}) *gripql.Vertex {
 	o.Gid = i["_id"].(string)
 	o.Label = i["label"].(string)
 	if p, ok := i["data"]; ok {
-		o.Data = protoutil.AsStruct(p.(map[string]interface{}))
+		sData, _ := structpb.NewStruct( p.(map[string]interface{}) )
+		o.Data = sData
 	}
 	return o
 }
@@ -60,9 +60,10 @@ func UnpackEdge(i map[string]interface{}) *gripql.Edge {
 	o.From = i["from"].(string)
 	o.To = i["to"].(string)
 	if d, ok := i["data"]; ok {
-		o.Data = protoutil.AsStruct(d.(map[string]interface{}))
+		sData, _ := structpb.NewStruct( d.(map[string]interface{}) )
+		o.Data = sData
 	} else {
-		o.Data = protoutil.AsStruct(map[string]interface{}{})
+		o.Data = &structpb.Struct{}
 	}
 	return o
 }

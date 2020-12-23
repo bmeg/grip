@@ -11,7 +11,6 @@ import (
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/log"
-	"github.com/bmeg/grip/protoutil"
 	"github.com/bmeg/grip/util/setcmp"
 	"github.com/oliveagle/jsonpath"
 )
@@ -264,7 +263,7 @@ func (t *TabularGraph) GetEdge(key string, load bool) *gripql.Edge {
 						if err == nil {
 							var out *gripql.Edge
 							for row := range res {
-								data := protoutil.AsMap(row.Data)
+								data := row.Data.AsMap()
 								if rowDst, err := jsonpath.JsonPathLookup(data, edge.config.EdgeTable.ToField); err == nil {
 									if rowdDstStr, ok := rowDst.(string); ok {
 										if dstID == rowdDstStr {
@@ -293,8 +292,8 @@ func (t *TabularGraph) GetEdge(key string, load bool) *gripql.Edge {
 						if srcRow != nil {
 							dstRow := t.getRow(edge.fromVertex.config.Source, edge.fromVertex.config.Collection, dstID)
 							if dstRow != nil {
-								srcData := protoutil.AsMap(srcRow.Data)
-								dstData := protoutil.AsMap(dstRow.Data)
+								srcData := srcRow.Data.AsMap()
+								dstData := dstRow.Data.AsMap()
 								if srcField, err := jsonpath.JsonPathLookup(srcData, edge.config.FieldToField.FromField); err == nil {
 									if dstField, err := jsonpath.JsonPathLookup(dstData, edge.config.FieldToField.ToField); err == nil {
 										if srcField == dstField {
@@ -413,7 +412,7 @@ func (t *TabularGraph) GetEdgeList(ctx context.Context, load bool) <-chan *gripq
 						edge.config.EdgeTable.Source,
 						edge.config.EdgeTable.Collection)
 					for row := range res {
-						data := protoutil.AsMap(row.Data)
+						data := row.Data.AsMap()
 						if dst, err := jsonpath.JsonPathLookup(data, edge.config.EdgeTable.ToField); err == nil {
 							if dstStr, ok := dst.(string); ok {
 								if src, err := jsonpath.JsonPathLookup(data, edge.config.EdgeTable.FromField); err == nil {
@@ -438,7 +437,7 @@ func (t *TabularGraph) GetEdgeList(ctx context.Context, load bool) <-chan *gripq
 						edge.fromVertex.config.Source,
 						edge.fromVertex.config.Collection)
 					for srcRow := range srcRes {
-						srcData := protoutil.AsMap(srcRow.Data)
+						srcData := srcRow.Data.AsMap()
 						if field, err := jsonpath.JsonPathLookup(srcData, edge.config.FieldToField.FromField); err == nil {
 							if fValue, ok := field.(string); ok {
 								if fValue != "" {
@@ -576,7 +575,7 @@ func (t *TabularGraph) GetOutChannel(ctx context.Context, req chan gdbi.ElementL
 										edge.config.EdgeTable.FromField, id)
 									if err == nil {
 										for row := range res {
-											data := protoutil.AsMap(row.Data)
+											data := row.Data.AsMap()
 											if dst, err := jsonpath.JsonPathLookup(data, edge.config.EdgeTable.ToField); err == nil {
 												if dstStr, ok := dst.(string); ok {
 													dstID := edge.config.ToVertex + dstStr
@@ -661,7 +660,7 @@ func (t *TabularGraph) GetInChannel(ctx context.Context, req chan gdbi.ElementLo
 									if err == nil {
 										for row := range res {
 											//log.Infof("Found %s", row)
-											data := protoutil.AsMap(row.Data)
+											data := row.Data.AsMap()
 											if dst, err := jsonpath.JsonPathLookup(data, edge.config.EdgeTable.ToField); err == nil {
 												if dstStr, ok := dst.(string); ok {
 													dstID := edge.config.ToVertex + dstStr
@@ -745,7 +744,7 @@ func (t *TabularGraph) GetOutEdgeChannel(ctx context.Context, req chan gdbi.Elem
 										edge.config.EdgeTable.FromField, id)
 									if err == nil {
 										for row := range res {
-											data := protoutil.AsMap(row.Data)
+											data := row.Data.AsMap()
 											if dst, err := jsonpath.JsonPathLookup(data, edge.config.EdgeTable.ToField); err == nil {
 												if dstStr, ok := dst.(string); ok {
 													o := gripql.Edge{
@@ -837,7 +836,7 @@ func (t *TabularGraph) GetInEdgeChannel(ctx context.Context, req chan gdbi.Eleme
 										edge.config.EdgeTable.FromField, id)
 									if err == nil {
 										for row := range res {
-											data := protoutil.AsMap(row.Data)
+											data := row.Data.AsMap()
 											if dst, err := jsonpath.JsonPathLookup(data, edge.config.EdgeTable.ToField); err == nil {
 												if dstStr, ok := dst.(string); ok {
 													o := gripql.Edge{

@@ -3,7 +3,7 @@ package core
 import (
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/jsonpath"
-	"github.com/bmeg/grip/protoutil"
+	"github.com/bmeg/grip/util/protoutil"
 )
 
 //IndexStartOptimize looks at processor pipeline for queries like
@@ -72,7 +72,7 @@ func IndexStartOptimize(pipe []*gripql.GraphStatement) []*gripql.GraphStatement 
 		}
 		if len(ids) > 0 {
 			idOpt = true
-			hIdx := &gripql.GraphStatement_V{V: protoutil.AsListValue(ids)}
+			hIdx := &gripql.GraphStatement_V{V: protoutil.NewListFromStrings(ids)}
 			optimized = append(optimized, &gripql.GraphStatement{Statement: hIdx})
 		}
 	}
@@ -121,7 +121,7 @@ func extractHasVals(h *gripql.GraphStatement_Has) []string {
 	vals := []string{}
 	if cond := h.Has.GetCondition(); cond != nil {
 		// path := jsonpath.GetJSONPath(cond.Key)
-		val := protoutil.UnWrapValue(cond.Value)
+		val := cond.Value.AsInterface()
 		switch cond.Condition {
 		case gripql.Condition_EQ:
 			if l, ok := val.(string); ok {
