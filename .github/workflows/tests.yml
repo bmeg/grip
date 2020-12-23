@@ -139,6 +139,8 @@ jobs:
     steps:
     - name: Check out code
       uses: actions/checkout@v2
+    - name: Update pip
+      run: pip install --upgrade pip
     - name: Python Dependencies for Conformance
       run: pip install requests numpy grpcio-tools
     - name: Download grip
