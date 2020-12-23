@@ -173,24 +173,15 @@ def test_traversal_gid_aggregation(man):
     count = 0
     for row in G.query().V().hasLabel("Planet").as_("a").out("residents").select("a").aggregate(gripql.term("gid-agg", "_gid")):
         count += 1
-        if 'gid-agg' not in row:
+        if 'gid-agg' != row['name']:
             errors.append("Result had Incorrect aggregation name")
             return errors
-        row = row['gid-agg']
-        print(row)
 
-        if len(row["buckets"]) < len(planet_agg_map):
-            errors.append(
-                "Unexpected number of terms: %d != %d" %
-                (len(row["buckets"]), 2)
-            )
+        if planet_agg_map[row["key"]] != row["value"]:
+            errors.append("Incorrect bucket count returned: %s" % res)
 
-        for res in row["buckets"]:
-            if planet_agg_map[res["key"]] != res["value"]:
-                errors.append("Incorrect bucket count returned: %s" % res)
-
-    if count != 1:
+    if count != 2:
         errors.append(
             "Incorrect number of aggregations returned: %d != %d" %
-            (count, 1))
+            (count, 2))
     return errors
