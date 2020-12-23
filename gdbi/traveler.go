@@ -1,6 +1,7 @@
 package gdbi
 
 import (
+	"fmt"
 	"github.com/bmeg/grip/gripql"
 	"google.golang.org/protobuf/types/known/structpb"
 )
@@ -69,7 +70,10 @@ func (t *Traveler) GetCurrent() *DataElement {
 
 // ToVertex converts data element to vertex
 func (elem *DataElement) ToVertex() *gripql.Vertex {
-	sValue, _ := structpb.NewStruct(elem.Data)
+	sValue, err := structpb.NewStruct(elem.Data)
+	if err != nil {
+		fmt.Printf("Error: %s %#v\n", err, elem.Data)
+	}
 	return &gripql.Vertex{
 		Gid:   elem.ID,
 		Label: elem.Label,

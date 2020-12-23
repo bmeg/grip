@@ -33,7 +33,7 @@ func getDataElement(result map[string]interface{}) *gdbi.DataElement {
 		de.Label = x.(string)
 	}
 	if x, ok := result["data"]; ok {
-		de.Data = x.(map[string]interface{})
+		de.Data = removePrimatives(x).(map[string]interface{})
 	}
 	if x, ok := result["to"]; ok {
 		de.To = x.(string)
@@ -177,7 +177,7 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 						de.Label = x.(string)
 					}
 					if x, ok := result["data"]; ok {
-						de.Data = x.(map[string]interface{})
+						de.Data = removePrimatives(x).(map[string]interface{})
 					}
 					if x, ok := result["to"]; ok {
 						de.To = x.(string)

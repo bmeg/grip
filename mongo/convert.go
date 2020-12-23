@@ -3,6 +3,8 @@ package mongo
 import (
 	"github.com/bmeg/grip/gripql"
 	"google.golang.org/protobuf/types/known/structpb"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 // PackVertex take a GRIP vertex and convert it to a mongo doc
@@ -44,9 +46,10 @@ func UnpackVertex(i map[string]interface{}) *gripql.Vertex {
 	o := &gripql.Vertex{}
 	o.Gid = i["_id"].(string)
 	o.Label = i["label"].(string)
-	if p, ok := i["data"]; ok {
-		sData, _ := structpb.NewStruct( p.(map[string]interface{}) )
-		o.Data = sData
+	if d, ok := i["data"]; ok {
+		o.Data, _ = structpb.NewStruct( d.(map[string]interface{}) )
+	} else {
+		o.Data, _ = structpb.NewStruct( map[string]interface{}{} )
 	}
 	return o
 }
@@ -60,10 +63,30 @@ func UnpackEdge(i map[string]interface{}) *gripql.Edge {
 	o.From = i["from"].(string)
 	o.To = i["to"].(string)
 	if d, ok := i["data"]; ok {
-		sData, _ := structpb.NewStruct( d.(map[string]interface{}) )
-		o.Data = sData
+		o.Data, _ = structpb.NewStruct( d.(map[string]interface{}) )
 	} else {
-		o.Data = &structpb.Struct{}
+		o.Data, _ = structpb.NewStruct( map[string]interface{}{} )
 	}
 	return o
+}
+
+// this is needed because protobuf doesn't recognize primitive.A
+// may want to find another solution, rather then copying the
+// entire data structure
+func removePrimatives(i interface{}) interface{} {
+	if x, ok := i.(primitive.A); ok {
+		out := make([]interface{}, len(x))
+		for i := range x {
+			out[i] = removePrimatives(x[i])
+		}
+		return out
+	}
+	if x, ok := i.(map[string]interface{}); ok {
+		out := make(map[string]interface{})
+		for i := range x {
+			out[i] = removePrimatives(x[i])
+		}
+		return out
+	}
+	return i
 }
