@@ -12,9 +12,9 @@ import (
 
 	"github.com/bmeg/grip/engine/pipeline"
 	"github.com/bmeg/grip/gripql"
-	"github.com/bmeg/grip/protoutil"
 	"github.com/bmeg/grip/util"
 	"github.com/golang/protobuf/jsonpb"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 var Q = &gripql.Query{}
@@ -428,20 +428,22 @@ func TestEngine(t *testing.T) {
 }
 
 func vertex(gid, label string, d data) *gripql.Vertex {
+	ds, _ := structpb.NewStruct(d)
 	return &gripql.Vertex{
 		Gid:   gid,
 		Label: label,
-		Data:  protoutil.AsStruct(d),
+		Data:  ds,
 	}
 }
 
 func edge(gid interface{}, from, to string, label string, d data) *gripql.Edge {
+	ds, _ := structpb.NewStruct(d)
 	return &gripql.Edge{
 		Gid:   fmt.Sprintf("%v", gid),
 		From:  from,
 		To:    to,
 		Label: label,
-		Data:  protoutil.AsStruct(d),
+		Data:  ds,
 	}
 }
 
@@ -609,10 +611,11 @@ func count(i int) checker {
 }
 
 func render(v interface{}) checker {
+	vs, _ := structpb.NewValue(v)
 	expect := []*gripql.QueryResult{
 		{
 			Result: &gripql.QueryResult_Render{
-				Render: protoutil.WrapValue(v),
+				Render: vs,
 			},
 		},
 	}
