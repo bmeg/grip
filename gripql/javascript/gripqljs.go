@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 )
+
 type asset struct {
 	bytes []byte
 	info  os.FileInfo
@@ -399,7 +400,7 @@ type bintree struct {
 }
 
 var _bintree = &bintree{nil, map[string]*bintree{
-	"gripql.js": &bintree{gripqlJs, map[string]*bintree{}},
+	"gripql.js": {gripqlJs, map[string]*bintree{}},
 }}
 
 // RestoreAsset restores an asset under the given directory

@@ -4,14 +4,18 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"math"
 	"reflect"
+	"sort"
 
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/jsonpath"
 	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/protoutil"
+	"github.com/influxdata/tdigest"
 	"github.com/spf13/cast"
+	"golang.org/x/sync/errgroup"
 )
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -971,3 +975,144 @@ func (b both) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+
+type aggregate struct {
+	aggregations []*gripql.Aggregate
+}
+
+func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
+	aChans := make(map[string](chan *gdbi.Traveler))
+	g, ctx := errgroup.WithContext(ctx)
+
+	// # of travelers to buffer for agg
+	bufferSize := 1000
+	for _, a := range agg.aggregations {
+		aChans[a.Name] = make(chan *gdbi.Traveler, bufferSize)
+	}
+
+	g.Go(func() error {
+		for t := range in {
+			for _, a := range agg.aggregations {
+				aChans[a.Name] <- t
+			}
+		}
+		for _, a := range agg.aggregations {
+			close(aChans[a.Name])
+		}
+		return nil
+	})
+
+	for _, a := range agg.aggregations {
+		a := a
+		switch a.Aggregation.(type) {
+		case *gripql.Aggregate_Term:
+			g.Go(func() error {
+				// max # of terms to collect before failing
+				// since the term can be a string this still isn't particularly safe
+				// the terms could be arbitrarily large strings and storing this many could eat up
+				// lots of memory.
+				maxTerms := 100000
+
+				tagg := a.GetTerm()
+				size := tagg.Size
+
+				fieldTermCounts := map[interface{}]int{}
+				for t := range aChans[a.Name] {
+					val := jsonpath.TravelerPathLookup(t, tagg.Field)
+					if val != nil {
+						fieldTermCounts[val]++
+						if len(fieldTermCounts) > maxTerms {
+							return fmt.Errorf("term aggreagtion: collected more unique terms (%v) than allowed (%v)", len(fieldTermCounts), maxTerms)
+						}
+					}
+				}
+
+				count := 0
+				for term, tcount := range fieldTermCounts {
+					if size <= 0 || count < int(size) {
+						out <- &gdbi.Traveler{Aggregation: &gdbi.Aggregate{Name: a.Name, Key: protoutil.WrapValue(term), Value: float64(tcount)}}
+					}
+				}
+				return nil
+			})
+
+		case *gripql.Aggregate_Histogram:
+
+			g.Go(func() error {
+				// max # of values to collect before failing
+				maxValues := 10000000
+
+				hagg := a.GetHistogram()
+				i := float64(hagg.Interval)
+
+				c := 0
+				fieldValues := []float64{}
+				for t := range aChans[a.Name] {
+					val := jsonpath.TravelerPathLookup(t, hagg.Field)
+					if val != nil {
+						fval, err := cast.ToFloat64E(val)
+						if err != nil {
+							return fmt.Errorf("histogram aggregation: can't convert %v to float64", val)
+						}
+						fieldValues = append(fieldValues, fval)
+						if c > maxValues {
+							return fmt.Errorf("histogram aggreagtion: collected more values (%v) than allowed (%v)", c, maxValues)
+						}
+						c++
+					}
+				}
+				sort.Float64s(fieldValues)
+				min := fieldValues[0]
+				max := fieldValues[len(fieldValues)-1]
+
+				for bucket := math.Floor(min/i) * i; bucket <= max; bucket += i {
+					var count float64
+					for _, v := range fieldValues {
+						if v >= bucket && v < (bucket+i) {
+							count++
+						}
+					}
+					out <- &gdbi.Traveler{Aggregation: &gdbi.Aggregate{Name: a.Name, Key: protoutil.WrapValue(bucket), Value: float64(count)}}
+				}
+				return nil
+			})
+
+		case *gripql.Aggregate_Percentile:
+
+			g.Go(func() error {
+				pagg := a.GetPercentile()
+				percents := pagg.Percents
+
+				td := tdigest.New()
+				for t := range aChans[a.Name] {
+					val := jsonpath.TravelerPathLookup(t, pagg.Field)
+					fval, err := cast.ToFloat64E(val)
+					if err != nil {
+						return fmt.Errorf("percentile aggregation: can't convert %v to float64", val)
+					}
+					td.Add(fval, 1)
+				}
+
+				for _, p := range percents {
+					q := td.Quantile(p / 100)
+					out <- &gdbi.Traveler{Aggregation: &gdbi.Aggregate{Name: a.Name, Key: protoutil.WrapValue(p), Value: q}}
+				}
+
+				return nil
+			})
+
+		default:
+			log.Errorf("Error: unknown aggregation type: %T", a.Aggregation)
+			continue
+		}
+	}
+
+	go func() {
+		if err := g.Wait(); err != nil {
+			log.WithFields(log.Fields{"error": err}).Error("one or more aggregation failed")
+		}
+		close(out)
+	}()
+
+	return ctx
+}

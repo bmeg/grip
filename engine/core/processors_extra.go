@@ -1,29 +1,31 @@
-
 package core
 
 import (
-  "fmt"
-  "context"
-  "math"
-  "strings"
-  "github.com/bmeg/grip/kvi"
-  "github.com/bmeg/grip/kvindex"
-  structpb "github.com/golang/protobuf/ptypes/struct"
-	"github.com/influxdata/tdigest"
-  "github.com/bmeg/grip/gripql"
-  "github.com/bmeg/grip/jsonpath"
+	"context"
+	"fmt"
+	"math"
+	"strings"
 
-  "github.com/bmeg/grip/gdbi"
-  "github.com/bmeg/grip/log"
-  "github.com/bmeg/grip/protoutil"
+	"github.com/bmeg/grip/gripql"
+	"github.com/bmeg/grip/jsonpath"
+	"github.com/bmeg/grip/kvi"
+	"github.com/bmeg/grip/kvindex"
+	structpb "github.com/golang/protobuf/ptypes/struct"
+	"github.com/influxdata/tdigest"
+	"golang.org/x/sync/errgroup"
+
+	"github.com/bmeg/grip/gdbi"
+	"github.com/bmeg/grip/log"
+	"github.com/bmeg/grip/protoutil"
 )
 
-type aggregate struct {
+type aggregateDisk struct {
 	aggregations []*gripql.Aggregate
 }
 
-func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
+func (agg *aggregateDisk) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
 	aChans := make(map[string](chan []*gdbi.Traveler))
+	g, ctx := errgroup.WithContext(ctx)
 
 	go func() {
 		for _, a := range agg.aggregations {
@@ -50,12 +52,11 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 		}
 	}()
 
-	go func() {
-		defer close(out)
-		for _, a := range agg.aggregations {
-			a := a
-			switch a.Aggregation.(type) {
-			case *gripql.Aggregate_Term:
+	for _, a := range agg.aggregations {
+		a := a
+		switch a.Aggregation.(type) {
+		case *gripql.Aggregate_Term:
+			g.Go(func() error {
 				tagg := a.GetTerm()
 				size := tagg.Size
 				kv := man.GetTempKV()
@@ -97,8 +98,11 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 					}
 					count++
 				}
+        return nil
+			})
 
-			case *gripql.Aggregate_Histogram:
+		case *gripql.Aggregate_Histogram:
+			g.Go(func() error {
 				hagg := a.GetHistogram()
 				interval := hagg.Interval
 				kv := man.GetTempKV()
@@ -138,9 +142,11 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 					}
 					out <- &gdbi.Traveler{Aggregation: &gdbi.Aggregate{Name: a.Name, Key: protoutil.WrapValue(bucket), Value: float64(count)}}
 				}
+        return nil
+			})
 
-			case *gripql.Aggregate_Percentile:
-
+		case *gripql.Aggregate_Percentile:
+			g.Go(func() error {
 				pagg := a.GetPercentile()
 				percents := pagg.Percents
 				kv := man.GetTempKV()
@@ -178,12 +184,20 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 					q := td.Quantile(p / 100)
 					out <- &gdbi.Traveler{Aggregation: &gdbi.Aggregate{Name: a.Name, Key: protoutil.WrapValue(p), Value: q}}
 				}
+        return nil
+			})
 
-			default:
-				log.Errorf("Error: unknown aggregation type: %T", a.Aggregation)
-				continue
-			}
+		default:
+			log.Errorf("Error: unknown aggregation type: %T", a.Aggregation)
+			continue
 		}
+	}
+
+	go func() {
+		if err := g.Wait(); err != nil {
+			log.WithFields(log.Fields{"error": err}).Error("one or more aggregation failed")
+		}
+		close(out)
 	}()
 
 	return ctx

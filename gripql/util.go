@@ -3,6 +3,7 @@ package gripql
 import (
 	"errors"
 	"fmt"
+
 	//"sort"
 	"strings"
 
@@ -123,7 +124,6 @@ func (edge *Edge) Validate() error {
 	}
 	return nil
 }
-
 
 // ValidateGraphName returns an error if the graph name is invalid
 func ValidateGraphName(graph string) error {

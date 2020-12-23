@@ -124,7 +124,7 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 								stepSize := float64(proc.aggTypes[k].GetHistogram().Interval)
 								if i != 0 {
 									for nv := lastBucket + stepSize; nv < curPos; nv += stepSize {
-										out <- &gdbi.Traveler{Aggregation: &gdbi.Aggregate{Name:k, Key: protoutil.WrapValue(nv), Value: float64(0.0) }}
+										out <- &gdbi.Traveler{Aggregation: &gdbi.Aggregate{Name: k, Key: protoutil.WrapValue(nv), Value: float64(0.0)}}
 									}
 								}
 								lastBucket = curPos
@@ -144,13 +144,13 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 							switch bucket["count"].(type) {
 							case int:
 								count := bucket["count"].(int)
-								out <- &gdbi.Traveler{Aggregation: &gdbi.Aggregate{Name:k, Key: term, Value: float64(count)}}
+								out <- &gdbi.Traveler{Aggregation: &gdbi.Aggregate{Name: k, Key: term, Value: float64(count)}}
 							case int32:
 								count := bucket["count"].(int32)
-								out <- &gdbi.Traveler{Aggregation: &gdbi.Aggregate{Name:k, Key: term, Value: float64(count)}}
+								out <- &gdbi.Traveler{Aggregation: &gdbi.Aggregate{Name: k, Key: term, Value: float64(count)}}
 							case float64:
 								count := bucket["count"].(float64)
-								out <- &gdbi.Traveler{Aggregation: &gdbi.Aggregate{Name:k, Key: term, Value: float64(count)}}
+								out <- &gdbi.Traveler{Aggregation: &gdbi.Aggregate{Name: k, Key: term, Value: float64(count)}}
 							default:
 								plog.Errorf("unexpected aggregation result type: %T", bucket["count"])
 								continue
