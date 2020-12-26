@@ -47,6 +47,7 @@ func UnpackVertex(i map[string]interface{}) *gripql.Vertex {
 	o.Gid = i["_id"].(string)
 	o.Label = i["label"].(string)
 	if d, ok := i["data"]; ok {
+		d = removePrimatives(d)
 		o.Data, _ = structpb.NewStruct( d.(map[string]interface{}) )
 	} else {
 		o.Data, _ = structpb.NewStruct( map[string]interface{}{} )
