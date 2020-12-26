@@ -84,7 +84,7 @@ class Manager:
         return G
 
     def clean(self):
-        if self.readOnly is None:
+        if self.readOnly is None and self.curGraph != "":
             self._conn.deleteGraph(self.curGraph)
 
     def writeTest(self):
