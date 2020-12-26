@@ -258,15 +258,15 @@ func TestEngine(t *testing.T) {
 			count(15),
 		},
 		{
-			Q.V().HasLabel("products").Has(gripql.Inside("price", []float64{9.99, 19.99})).Count(),
+			Q.V().HasLabel("products").Has(gripql.Inside("price", []interface{}{9.99, 19.99})).Count(),
 			count(5),
 		},
 		{
-			Q.V().HasLabel("products").Has(gripql.Between("price", []float64{9.99, 19.99})).Count(),
+			Q.V().HasLabel("products").Has(gripql.Between("price", []interface{}{9.99, 19.99})).Count(),
 			count(11),
 		},
 		{
-			Q.V().HasLabel("products").Has(gripql.Outside("price", []float64{9.99, 19.99})).Count(),
+			Q.V().HasLabel("products").Has(gripql.Outside("price", []interface{}{9.99, 19.99})).Count(),
 			count(9),
 		},
 		{
