@@ -12,6 +12,7 @@ import (
 	esql "github.com/bmeg/grip/existing-sql"
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/grids"
+	"github.com/bmeg/grip/gripper"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/kvgraph"
 	_ "github.com/bmeg/grip/kvi/badgerdb" // import so badger will register itself
@@ -58,6 +59,9 @@ func Run(conf *config.Config, schemas map[string]*gripql.Graph) error {
 
 	case "existing-sql":
 		db, err = esql.NewGraphDB(conf.Default.ExistingSQL)
+
+	case "gripper":
+		db, err = gripper.NewGDB(conf.Default.Gripper, configFile)
 
 	default:
 		err = fmt.Errorf("unknown database: %s", dbname)

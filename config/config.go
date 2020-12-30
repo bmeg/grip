@@ -12,6 +12,7 @@ import (
 
 	"github.com/bmeg/grip/elastic"
 	esql "github.com/bmeg/grip/existing-sql"
+	"github.com/bmeg/grip/gripper"
 	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/mongo"
 	"github.com/bmeg/grip/psql"
@@ -34,6 +35,7 @@ type GraphConfig struct {
 	MongoDB       mongo.Config
 	PSQL          psql.Config
 	ExistingSQL   esql.Config
+	Gripper       gripper.Config
 }
 
 // Config describes the configuration for Grip.
@@ -104,7 +106,7 @@ func ParseConfig(raw []byte, conf *Config) error {
 	if err != nil {
 		return err
 	}
-	err = CheckForUnknownKeys(j, conf)
+	err = CheckForUnknownKeys(j, conf, []string{"Gripper.Graphs."})
 	if err != nil {
 		return err
 	}
@@ -188,7 +190,7 @@ func GetKeys(obj interface{}) []string {
 
 // CheckForUnknownKeys takes a json byte array and checks that all keys are fields
 // in the reference object
-func CheckForUnknownKeys(jsonStr []byte, obj interface{}) error {
+func CheckForUnknownKeys(jsonStr []byte, obj interface{}, exclude []string) error {
 	knownMap := make(map[string]interface{})
 	known := GetKeys(obj)
 	for _, k := range known {
@@ -205,7 +207,14 @@ func CheckForUnknownKeys(jsonStr []byte, obj interface{}) error {
 	all := GetKeys(anon)
 	for _, k := range all {
 		if _, found := knownMap[k]; !found {
-			unknown = append(unknown, k)
+			for _, e := range exclude {
+				if strings.HasPrefix(k, e) {
+					found = true
+				}
+			}
+			if !found {
+				unknown = append(unknown, k)
+			}
 		}
 	}
 
