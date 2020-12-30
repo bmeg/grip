@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	"github.com/bmeg/grip/gripql"
-	"google.golang.org/protobuf/types/known/structpb"
 	"github.com/bmeg/grip/util"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 type edgeKey struct {

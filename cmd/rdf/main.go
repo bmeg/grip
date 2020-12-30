@@ -12,7 +12,6 @@ import (
 	"github.com/knakk/rdf"
 	"github.com/spf13/cobra"
 	"google.golang.org/protobuf/encoding/protojson"
-
 )
 
 var host = "localhost:8202"

@@ -2,7 +2,6 @@ package util
 
 import (
 	"bufio"
-	"bytes"
 	"compress/gzip"
 	"os"
 	"strings"
@@ -10,7 +9,8 @@ import (
 
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/log"
-	"github.com/golang/protobuf/jsonpb"
+
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 // StreamLines returns a channel of lines from a file.
@@ -62,7 +62,6 @@ func StreamVerticesFromFile(file string) (chan *gripql.Vertex, error) {
 	}
 
 	vertChan := make(chan *gripql.Vertex, 10)
-	m := jsonpb.Unmarshaler{AllowUnknownFields: true}
 	var wg sync.WaitGroup
 
 	nUnmarshallers := 2
@@ -71,7 +70,7 @@ func StreamVerticesFromFile(file string) (chan *gripql.Vertex, error) {
 		go func() {
 			for line := range lineChan {
 				v := &gripql.Vertex{}
-				err := m.Unmarshal(bytes.NewReader([]byte(line)), v)
+				err := protojson.Unmarshal([]byte(line), v)
 				if err != nil {
 					log.WithFields(log.Fields{"error": err}).Errorf("Unmarshaling vertex: %s", line)
 				} else {
@@ -99,7 +98,6 @@ func StreamEdgesFromFile(file string) (chan *gripql.Edge, error) {
 	}
 
 	edgeChan := make(chan *gripql.Edge, 10)
-	m := jsonpb.Unmarshaler{AllowUnknownFields: true}
 	var wg sync.WaitGroup
 
 	nUnmarshallers := 2
@@ -108,7 +106,7 @@ func StreamEdgesFromFile(file string) (chan *gripql.Edge, error) {
 		go func() {
 			for line := range lineChan {
 				e := &gripql.Edge{}
-				err := m.Unmarshal(bytes.NewReader([]byte(line)), e)
+				err := protojson.Unmarshal([]byte(line), e)
 				if err != nil {
 					log.WithFields(log.Fields{"error": err}).Errorf("Unmarshaling edge: %s", line)
 				} else {

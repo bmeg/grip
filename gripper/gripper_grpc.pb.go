@@ -34,7 +34,7 @@ func NewDigSourceClient(cc grpc.ClientConnInterface) DigSourceClient {
 }
 
 func (c *digSourceClient) GetCollections(ctx context.Context, in *Empty, opts ...grpc.CallOption) (DigSource_GetCollectionsClient, error) {
-	stream, err := c.cc.NewStream(ctx, &DigSource_ServiceDesc.Streams[0], "/gripper.DigSource/GetCollections", opts...)
+	stream, err := c.cc.NewStream(ctx, &_DigSource_serviceDesc.Streams[0], "/gripper.DigSource/GetCollections", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -75,7 +75,7 @@ func (c *digSourceClient) GetCollectionInfo(ctx context.Context, in *Collection,
 }
 
 func (c *digSourceClient) GetIDs(ctx context.Context, in *Collection, opts ...grpc.CallOption) (DigSource_GetIDsClient, error) {
-	stream, err := c.cc.NewStream(ctx, &DigSource_ServiceDesc.Streams[1], "/gripper.DigSource/GetIDs", opts...)
+	stream, err := c.cc.NewStream(ctx, &_DigSource_serviceDesc.Streams[1], "/gripper.DigSource/GetIDs", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -107,7 +107,7 @@ func (x *digSourceGetIDsClient) Recv() (*RowID, error) {
 }
 
 func (c *digSourceClient) GetRows(ctx context.Context, in *Collection, opts ...grpc.CallOption) (DigSource_GetRowsClient, error) {
-	stream, err := c.cc.NewStream(ctx, &DigSource_ServiceDesc.Streams[2], "/gripper.DigSource/GetRows", opts...)
+	stream, err := c.cc.NewStream(ctx, &_DigSource_serviceDesc.Streams[2], "/gripper.DigSource/GetRows", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -139,7 +139,7 @@ func (x *digSourceGetRowsClient) Recv() (*Row, error) {
 }
 
 func (c *digSourceClient) GetRowsByID(ctx context.Context, opts ...grpc.CallOption) (DigSource_GetRowsByIDClient, error) {
-	stream, err := c.cc.NewStream(ctx, &DigSource_ServiceDesc.Streams[3], "/gripper.DigSource/GetRowsByID", opts...)
+	stream, err := c.cc.NewStream(ctx, &_DigSource_serviceDesc.Streams[3], "/gripper.DigSource/GetRowsByID", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -170,7 +170,7 @@ func (x *digSourceGetRowsByIDClient) Recv() (*Row, error) {
 }
 
 func (c *digSourceClient) GetRowsByField(ctx context.Context, in *FieldRequest, opts ...grpc.CallOption) (DigSource_GetRowsByFieldClient, error) {
-	stream, err := c.cc.NewStream(ctx, &DigSource_ServiceDesc.Streams[4], "/gripper.DigSource/GetRowsByField", opts...)
+	stream, err := c.cc.NewStream(ctx, &_DigSource_serviceDesc.Streams[4], "/gripper.DigSource/GetRowsByField", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -246,7 +246,7 @@ type UnsafeDigSourceServer interface {
 }
 
 func RegisterDigSourceServer(s grpc.ServiceRegistrar, srv DigSourceServer) {
-	s.RegisterService(&DigSource_ServiceDesc, srv)
+	s.RegisterService(&_DigSource_serviceDesc, srv)
 }
 
 func _DigSource_GetCollections_Handler(srv interface{}, stream grpc.ServerStream) error {
@@ -377,10 +377,7 @@ func (x *digSourceGetRowsByFieldServer) Send(m *Row) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-// DigSource_ServiceDesc is the grpc.ServiceDesc for DigSource service.
-// It's only intended for direct use with grpc.RegisterService,
-// and not to be introspected or modified (even as a copy)
-var DigSource_ServiceDesc = grpc.ServiceDesc{
+var _DigSource_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "gripper.DigSource",
 	HandlerType: (*DigSourceServer)(nil),
 	Methods: []grpc.MethodDesc{

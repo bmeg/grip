@@ -5,8 +5,8 @@ import (
 
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/util/rpc"
-	"google.golang.org/protobuf/encoding/protojson"
 	"github.com/spf13/cobra"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 var host = "localhost:8202"
@@ -60,8 +60,8 @@ var listLabelsCmd = &cobra.Command{
 		m := protojson.MarshalOptions{
 			UseEnumNumbers:  false,
 			EmitUnpopulated: false,
-			Indent:       "  ",
-			UseProtoNames:     false,
+			Indent:          "  ",
+			UseProtoNames:   false,
 		}
 		txt, err := m.Marshal(resp)
 		if err != nil {

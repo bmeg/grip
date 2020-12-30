@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/bmeg/grip/util/protoutil"
-  "google.golang.org/protobuf/types/known/structpb"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 // V starts a new vertex query, short for `NewQuery().V()`.

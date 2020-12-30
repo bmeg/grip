@@ -7,11 +7,11 @@ import (
 
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/log"
-	"google.golang.org/protobuf/types/known/structpb"
 	"github.com/bmeg/grip/util"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"golang.org/x/sync/errgroup"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 // BuildSchema returns the schema of a specific graph in the database

@@ -139,8 +139,8 @@ func GraphToJSONString(graph *Graph) (string, error) {
 	m := protojson.MarshalOptions{
 		UseEnumNumbers:  false,
 		EmitUnpopulated: false,
-		Indent:       "  ",
-		UseProtoNames:     false,
+		Indent:          "  ",
+		UseProtoNames:   false,
 	}
 	txt := m.Format(graph)
 	return txt, nil

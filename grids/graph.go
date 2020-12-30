@@ -11,10 +11,10 @@ import (
 	"github.com/bmeg/grip/kvi"
 	"github.com/bmeg/grip/kvindex"
 	"github.com/bmeg/grip/log"
-	"google.golang.org/protobuf/types/known/structpb"
 	"github.com/bmeg/grip/util/setcmp"
-	"google.golang.org/protobuf/proto"
 	multierror "github.com/hashicorp/go-multierror"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 // GetTimestamp returns the update timestamp

@@ -12,8 +12,8 @@ import (
 	_ "github.com/bmeg/grip/jsengine/v8" // import v8 so it registers with the driver map
 	"github.com/bmeg/grip/util/rpc"
 	"github.com/dop251/goja"
-	"google.golang.org/protobuf/encoding/protojson"
 	"github.com/spf13/cobra"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 var host = "localhost:8202"
