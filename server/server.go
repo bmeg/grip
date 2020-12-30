@@ -48,7 +48,7 @@ type GripServer struct {
 }
 
 // NewGripServer initializes a GRPC server to connect to the graph store
-func NewGripServer(conf *config.Config, schemas map[string]*gripql.Graph) (*GripServer, error) {
+func NewGripServer(conf *config.Config, schemas map[string]*gripql.Graph, baseDir string) (*GripServer, error) {
 	_, err := os.Stat(conf.Server.WorkDir)
 	if os.IsNotExist(err) {
 		err = os.Mkdir(conf.Server.WorkDir, 0700)
@@ -59,7 +59,16 @@ func NewGripServer(conf *config.Config, schemas map[string]*gripql.Graph) (*Grip
 	if schemas == nil {
 		schemas = make(map[string]*gripql.Graph)
 	}
-	server := &GripServer{conf: conf, schemas: schemas}
+
+	gdbs := map[string]gdbi.GraphDB{}
+	for name, dConfig := range conf.Drivers {
+		g, err := startDriver(dConfig, baseDir)
+		if err == nil {
+			gdbs[name] = g
+		}
+	}
+
+	server := &GripServer{dbs:gdbs, conf: conf, schemas: schemas}
 	for graph, schema := range schemas {
 		if !server.graphExists(graph) {
 			_, err := server.AddGraph(context.Background(), &gripql.GraphID{Graph: graph})
@@ -75,7 +84,7 @@ func NewGripServer(conf *config.Config, schemas map[string]*gripql.Graph) (*Grip
 	return server, nil
 }
 
-func (server *GripServer) startDriver(d config.DriverConfig) (gdbi.GraphDB, error) {
+func startDriver(d config.DriverConfig, baseDir string) (gdbi.GraphDB, error) {
 	if d.Bolt != nil {
 		return kvgraph.NewKVGraphDB("bolt", *d.Bolt)
 	} else if d.Badger != nil {
@@ -93,7 +102,7 @@ func (server *GripServer) startDriver(d config.DriverConfig) (gdbi.GraphDB, erro
 	} else if d.ExistingSQL != nil {
 		return esql.NewGraphDB(*d.ExistingSQL)
 	} else if d.Gripper != nil {
-		return gripper.NewGDB(*d.Gripper, server.baseDir)
+		return gripper.NewGDB(*d.Gripper, baseDir)
 	}
 	return nil, fmt.Errorf("unknown driver: %#v", d)
 }

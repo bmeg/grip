@@ -23,7 +23,7 @@ var schemaFile string
 // Run runs an Grip server.
 // This opens a database and starts an API server.
 // This blocks indefinitely.
-func Run(conf *config.Config, schemas map[string]*gripql.Graph) error {
+func Run(conf *config.Config, schemas map[string]*gripql.Graph, baseDir string) error {
 	log.ConfigureLogger(conf.Logger)
 	log.WithFields(log.Fields{"Config": conf}).Info("Starting Server")
 
@@ -36,7 +36,7 @@ func Run(conf *config.Config, schemas map[string]*gripql.Graph) error {
 		cancel()
 	}()
 
-	srv, err := server.NewGripServer(conf, schemas)
+	srv, err := server.NewGripServer(conf, schemas, baseDir)
 	if err != nil {
 		return err
 	}
@@ -91,7 +91,7 @@ var Cmd = &cobra.Command{
 				schemaMap[s.Graph] = s
 			}
 		}
-		return Run(conf, schemaMap)
+		return Run(conf, schemaMap, configFile)
 	},
 }
 
