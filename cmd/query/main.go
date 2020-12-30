@@ -3,7 +3,6 @@ package query
 import (
 	"encoding/json"
 	"fmt"
-	"strings"
 
 	"github.com/bmeg/grip/gripql"
 	gripqljs "github.com/bmeg/grip/gripql/javascript"
@@ -13,7 +12,7 @@ import (
 	_ "github.com/bmeg/grip/jsengine/v8" // import v8 so it registers with the driver map
 	"github.com/bmeg/grip/util/rpc"
 	"github.com/dop251/goja"
-	"github.com/golang/protobuf/jsonpb"
+	"google.golang.org/protobuf/encoding/protojson"
 	"github.com/spf13/cobra"
 )
 
@@ -58,7 +57,7 @@ Example:
 		}
 
 		query := gripql.GraphQuery{}
-		err = jsonpb.Unmarshal(strings.NewReader(string(queryJSON)), &query)
+		err = protojson.Unmarshal(queryJSON, &query)
 		if err != nil {
 			return err
 		}
@@ -74,9 +73,8 @@ Example:
 			return err
 		}
 
-		marsh := jsonpb.Marshaler{}
 		for row := range res {
-			rowString, _ := marsh.MarshalToString(row)
+			rowString, _ := protojson.Marshal(row)
 			fmt.Printf("%s\n", rowString)
 		}
 		return nil

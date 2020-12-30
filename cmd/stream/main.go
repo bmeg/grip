@@ -1,13 +1,11 @@
 package stream
 
 import (
-	"strings"
-
 	"github.com/Shopify/sarama"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/util/rpc"
-	"github.com/golang/protobuf/jsonpb"
+	"google.golang.org/protobuf/encoding/protojson"
 	"github.com/spf13/cobra"
 )
 
@@ -46,7 +44,7 @@ var Cmd = &cobra.Command{
 			count := 0
 			for msg := range vertexConsumer.Messages() {
 				v := gripql.Vertex{}
-				err := jsonpb.Unmarshal(strings.NewReader(string(msg.Value)), &v)
+				err := protojson.Unmarshal(msg.Value, &v)
 				if err != nil {
 					log.WithFields(log.Fields{"error": err}).Error("vertex consumer: unmarshal error")
 					continue
@@ -68,7 +66,7 @@ var Cmd = &cobra.Command{
 			count := 0
 			for msg := range edgeConsumer.Messages() {
 				e := gripql.Edge{}
-				err := jsonpb.Unmarshal(strings.NewReader(string(msg.Value)), &e)
+				err := protojson.Unmarshal(msg.Value, &e)
 				if err != nil {
 					log.WithFields(log.Fields{"error": err}).Error("edge consumer: unmarshal error")
 					continue

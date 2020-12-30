@@ -5,8 +5,8 @@ import (
 
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/util/rpc"
-	"github.com/golang/protobuf/jsonpb"
 	"github.com/spf13/cobra"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 var host = "localhost:8202"
@@ -28,34 +28,32 @@ var Cmd = &cobra.Command{
 		}
 
 		if vertexDump {
-			jm := jsonpb.Marshaler{}
 			q := gripql.V()
 			elems, err := conn.Traversal(&gripql.GraphQuery{Graph: graph, Query: q.Statements})
 			if err != nil {
 				return err
 			}
 			for v := range elems {
-				txt, err := jm.MarshalToString(v.GetVertex())
+				txt, err := protojson.Marshal(v.GetVertex())
 				if err != nil {
 					return err
 				}
-				fmt.Printf("%s\n", txt)
+				fmt.Printf("%s\n", string(txt))
 			}
 		}
 
 		if edgeDump {
-			jm := jsonpb.Marshaler{}
 			q := gripql.E()
 			elems, err := conn.Traversal(&gripql.GraphQuery{Graph: graph, Query: q.Statements})
 			if err != nil {
 				return err
 			}
 			for v := range elems {
-				txt, err := jm.MarshalToString(v.GetEdge())
+				txt, err := protojson.Marshal(v.GetEdge())
 				if err != nil {
 					return err
 				}
-				fmt.Printf("%s\n", txt)
+				fmt.Printf("%s\n", string(txt))
 			}
 		}
 

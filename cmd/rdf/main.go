@@ -9,9 +9,10 @@ import (
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/util/rpc"
-	"github.com/golang/protobuf/jsonpb"
 	"github.com/knakk/rdf"
 	"github.com/spf13/cobra"
+	"google.golang.org/protobuf/encoding/protojson"
+
 )
 
 var host = "localhost:8202"
@@ -32,23 +33,24 @@ type emitter interface {
 type fileEmitter struct {
 	vertexHandle io.WriteCloser
 	edgeHandle   io.WriteCloser
-	jm           jsonpb.Marshaler
 }
 
 func (fe fileEmitter) AddVertex(graph string, v *gripql.Vertex) error {
-	err := fe.jm.Marshal(fe.vertexHandle, v)
+	b, err := protojson.Marshal(v)
 	if err != nil {
 		return err
 	}
+	fe.vertexHandle.Write(b)
 	_, err = fe.vertexHandle.Write([]byte("\n"))
 	return err
 }
 
 func (fe fileEmitter) AddEdge(graph string, e *gripql.Edge) error {
-	err := fe.jm.Marshal(fe.edgeHandle, e)
+	b, err := protojson.Marshal(e)
 	if err != nil {
 		return err
 	}
+	fe.edgeHandle.Write(b)
 	_, err = fe.edgeHandle.Write([]byte("\n"))
 	return err
 }
@@ -61,8 +63,7 @@ func (fe fileEmitter) Close() {
 func newFileEmitter(path string) emitter {
 	vertexFile, _ := os.Create(path + ".vertex.json")
 	edgeFile, _ := os.Create(path + ".edge.json")
-	jm := jsonpb.Marshaler{}
-	return fileEmitter{vertexFile, edgeFile, jm}
+	return fileEmitter{vertexFile, edgeFile}
 }
 
 type grpcEmitter struct {

@@ -5,7 +5,7 @@ import (
 
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/util/rpc"
-	"github.com/golang/protobuf/jsonpb"
+	"google.golang.org/protobuf/encoding/protojson"
 	"github.com/spf13/cobra"
 )
 
@@ -57,17 +57,17 @@ var listLabelsCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		m := jsonpb.Marshaler{
-			EnumsAsInts:  false,
-			EmitDefaults: false,
+		m := protojson.MarshalOptions{
+			UseEnumNumbers:  false,
+			EmitUnpopulated: false,
 			Indent:       "  ",
-			OrigName:     false,
+			UseProtoNames:     false,
 		}
-		txt, err := m.MarshalToString(resp)
+		txt, err := m.Marshal(resp)
 		if err != nil {
 			return fmt.Errorf("failed to marshal ListLabels response: %v", err)
 		}
-		fmt.Printf("%s\n", txt)
+		fmt.Printf("%s\n", string(txt))
 		return nil
 	},
 }
