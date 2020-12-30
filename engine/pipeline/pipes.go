@@ -11,7 +11,7 @@ import (
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/log"
-	"github.com/bmeg/grip/protoutil"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 // Start begins processing a query pipeline
@@ -112,17 +112,21 @@ func Convert(dataType gdbi.DataType, markTypes map[string]gdbi.DataType, t *gdbi
 		}
 
 	case gdbi.RenderData:
+		sValue, _ := structpb.NewValue(t.Render)
 		return &gripql.QueryResult{
 			Result: &gripql.QueryResult_Render{
-				Render: protoutil.WrapValue(t.Render),
+				Render: sValue,
 			},
 		}
 
 	case gdbi.AggregationData:
+		sValue, _ := structpb.NewValue(t.Aggregation.Key)
 		return &gripql.QueryResult{
 			Result: &gripql.QueryResult_Aggregations{
 				Aggregations: &gripql.NamedAggregationResult{
-					Aggregations: t.Aggregations,
+					Name:  t.Aggregation.Name,
+					Key:   sValue,
+					Value: t.Aggregation.Value,
 				},
 			},
 		}

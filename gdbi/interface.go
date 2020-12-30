@@ -25,14 +25,20 @@ type DataElement struct {
 	Data     map[string]interface{}
 }
 
+type Aggregate struct {
+	Name  string
+	Key   interface{}
+	Value float64
+}
+
 // Traveler is a query element that traverse the graph
 type Traveler struct {
-	current      *DataElement
-	marks        map[string]*DataElement
-	Selections   map[string]*DataElement
-	Aggregations map[string]*gripql.AggregationResult
-	Count        uint32
-	Render       interface{}
+	current     *DataElement
+	marks       map[string]*DataElement
+	Selections  map[string]*DataElement
+	Aggregation *Aggregate
+	Count       uint32
+	Render      interface{}
 }
 
 // DataType is a possible output data type

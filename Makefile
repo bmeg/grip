@@ -37,25 +37,36 @@ proto:
 		-I ./ \
 		-I ../googleapis \
 		--lint_out=. \
-		--go_out=Mgoogle/protobuf/struct.proto=github.com/golang/protobuf/ptypes/struct,plugins=grpc:. \
-		--grpc-gateway_out=logtostderr=true,allow_colon_final_segments=true:. \
-		--grcp-rest-direct_out=. \
+		--go_out ./ \
+  	--go_opt paths=source_relative \
+		--go-grpc_out ./ \
+		--go-grpc_opt paths=source_relative \
+		--grpc-gateway_out ./ \
+		--grpc-gateway_opt logtostderr=true \
+		--grpc-gateway_opt paths=source_relative \
+		--grcp-rest-direct_out . \
 		gripql.proto
 	@cd kvindex && protoc \
 		-I ./ \
 		--go_out=. \
+		--go_opt paths=source_relative \
 		index.proto
 	@cd gripper/ && protoc \
 	  -I ./ \
 		-I ../googleapis/ \
-		--go_out=Mgoogle/protobuf/struct.proto=github.com/golang/protobuf/ptypes/struct,plugins=grpc:. \
+		--go_out . \
+		--go_opt paths=source_relative \
+		--go-grpc_out ./ \
+		--go-grpc_opt paths=source_relative \
 		gripper.proto
 
 
 proto-depends:
 	@git submodule update --init --recursive
-	@go get github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway
-	@go get github.com/golang/protobuf/protoc-gen-go
+	@go get github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-grpc-gateway
+	@go get github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2
+	@go get google.golang.org/protobuf/cmd/protoc-gen-go
+	@go get google.golang.org/grpc/cmd/protoc-gen-go-grpc
 	@go get github.com/ckaznocha/protoc-gen-lint
 	@go get github.com/bmeg/protoc-gen-grcp-rest-direct
 

@@ -8,8 +8,8 @@ import (
 
 	"github.com/bmeg/grip/engine/pipeline"
 	"github.com/bmeg/grip/gripql"
-	"github.com/bmeg/grip/protoutil"
 	"github.com/bmeg/grip/util"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 func TestSchema(t *testing.T) {
@@ -45,19 +45,20 @@ func TestSchema(t *testing.T) {
 	workdir := "./test.workdir." + util.RandomString(6)
 	defer os.RemoveAll(workdir)
 	res := pipeline.Run(context.Background(), compiledPipeline, workdir)
+	ds, _ := structpb.NewStruct(map[string]interface{}{
+		"created_at": "STRING",
+		"deleted_at": "UNKNOWN",
+		"details":    "UNKNOWN",
+		"email":      "STRING",
+		"id":         "NUMERIC",
+		"password":   "STRING",
+	})
 	expected := &gripql.QueryResult{
 		Result: &gripql.QueryResult_Vertex{
 			Vertex: &gripql.Vertex{
 				Gid:   "users",
 				Label: "users",
-				Data: protoutil.AsStruct(map[string]interface{}{
-					"created_at": "STRING",
-					"deleted_at": "UNKNOWN",
-					"details":    "UNKNOWN",
-					"email":      "STRING",
-					"id":         "NUMERIC",
-					"password":   "STRING",
-				}),
+				Data:  ds,
 			},
 		},
 	}

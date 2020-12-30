@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/bmeg/grip/gripql"
-	"github.com/bmeg/grip/protoutil"
+	"google.golang.org/protobuf/types/known/structpb"
 	multierror "github.com/hashicorp/go-multierror"
 	"github.com/jmoiron/sqlx"
 )
@@ -94,7 +94,7 @@ func rowDataToVertex(schema *Vertex, data map[string]interface{}, types map[stri
 	}
 	if load {
 		data = convertData(data, types)
-		v.Data = protoutil.AsStruct(data)
+		v.Data, _ = structpb.NewStruct(data)
 	}
 	return v
 }
@@ -108,7 +108,7 @@ func rowDataToEdge(schema *Edge, data map[string]interface{}, types map[string]*
 	}
 	if load {
 		data = convertData(data, types)
-		e.Data = protoutil.AsStruct(data)
+		e.Data, _ = structpb.NewStruct(data)
 	}
 	return e
 }

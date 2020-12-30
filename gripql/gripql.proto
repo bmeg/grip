@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package gripql;
 
+option go_package = "github.com/bmeg/grip/gripql";
+
 import "google/api/annotations.proto";
 import "google/protobuf/struct.proto";
 
@@ -99,16 +101,9 @@ message HistogramAggregation {
 }
 
 message NamedAggregationResult {
-	map<string, AggregationResult> aggregations = 3;
-}
-
-message AggregationResult {
-  repeated AggregationResultBucket buckets = 2;
-}
-
-message AggregationResultBucket {
-  google.protobuf.Value key = 1;
-  double value = 2;
+	string name = 1;
+	google.protobuf.Value key = 2;
+  double value = 3;
 }
 
 message HasExpressionList {

@@ -1,9 +1,16 @@
 from __future__ import absolute_import, print_function, unicode_literals
 
-import json
-import logging
+try:
+    # attempt to load JSON parsing library that works faster
+    from orjson import loads as jloads, dumps as jdumps
+except ImportError:
+    # fall back to standard JSON parsing library
+    from json import loads as jloads, dumps as jdumps
 
-from gripql.util import AttrDict, BaseConnection, Rate, raise_for_status
+import logging
+import requests
+
+from gripql.util import BaseConnection, Rate
 
 
 def _wrap_value(value, typ):
@@ -259,7 +266,7 @@ class Query(BaseConnection):
         Return the query as a JSON string.
         """
         output = {"query": self.query}
-        return json.dumps(output)
+        return jdumps(output)
 
     def to_dict(self):
         """
@@ -297,11 +304,10 @@ class Query(BaseConnection):
         logger.debug('POST %s', self.url)
         logger.debug('BODY %s', self.to_json())
         logger.debug('STATUS CODE %s', response.status_code)
-        raise_for_status(response)
 
         for result in response.iter_lines(chunk_size=None):
             try:
-                result_dict = json.loads(result.decode())
+                result_dict = jloads(result.decode())
             except Exception as e:
                 logger.error("Failed to decode: %s", result)
                 raise e
@@ -311,7 +317,7 @@ class Query(BaseConnection):
             elif "edge" in result_dict:
                 extracted = result_dict["edge"]
             elif "aggregations" in result_dict:
-                extracted = result_dict["aggregations"]["aggregations"]
+                extracted = result_dict["aggregations"]
             elif "selections" in result_dict:
                 extracted = result_dict["selections"]["selections"]
                 for k in extracted:
@@ -323,13 +329,12 @@ class Query(BaseConnection):
                 extracted = result_dict["render"]
             elif "count" in result_dict:
                 extracted = result_dict
+            elif "error" in result_dict:
+                raise requests.HTTPError(result_dict['error']['message'])
             else:
                 extracted = result_dict
 
-            if isinstance(extracted, dict):
-                yield AttrDict(extracted)
-            else:
-                yield extracted
+            yield extracted
 
             rate.tick()
         rate.close()

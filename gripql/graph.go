@@ -1,17 +1,14 @@
 package gripql
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
 
 	"github.com/ghodss/yaml"
-	"github.com/golang/protobuf/jsonpb"
+	"google.golang.org/protobuf/encoding/protojson"
 )
-
-var m = jsonpb.Marshaler{}
 
 // ParseYAMLGraph parses a YAML doc into the given Graph instance.
 func ParseYAMLGraph(raw []byte) ([]*Graph, error) {
@@ -32,7 +29,7 @@ func ParseYAMLGraph(raw []byte) ([]*Graph, error) {
 			return nil, err
 		}
 		g := &Graph{}
-		err = jsonpb.UnmarshalString(string(part), g)
+		err = protojson.Unmarshal(part, g)
 		if err != nil {
 			return nil, err
 		}
@@ -63,7 +60,7 @@ func ParseJSONGraph(raw []byte) ([]*Graph, error) {
 			return nil, err
 		}
 		g := &Graph{}
-		err = jsonpb.UnmarshalString(string(part), g)
+		err = protojson.Unmarshal(part, g)
 		if err != nil {
 			return nil, err
 		}
@@ -126,13 +123,11 @@ func ParseJSONGraphFile(relpath string) ([]*Graph, error) {
 
 // GraphToYAMLString returns a graph formatted as a YAML string
 func GraphToYAMLString(graph *Graph) (string, error) {
-	b := []byte{}
-	out := bytes.NewBuffer(b)
-	err := m.Marshal(out, graph)
+	out, err := protojson.Marshal(graph)
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal graph: %v", err)
 	}
-	sb, err := yaml.JSONToYAML(out.Bytes())
+	sb, err := yaml.JSONToYAML(out)
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal graph: %v", err)
 	}
@@ -141,15 +136,12 @@ func GraphToYAMLString(graph *Graph) (string, error) {
 
 // GraphToJSONString returns a graph formatted as a JSON string
 func GraphToJSONString(graph *Graph) (string, error) {
-	m := jsonpb.Marshaler{
-		EnumsAsInts:  false,
-		EmitDefaults: false,
+	m := protojson.MarshalOptions{
+		UseEnumNumbers:  false,
+		EmitUnpopulated: false,
 		Indent:       "  ",
-		OrigName:     false,
+		UseProtoNames:     false,
 	}
-	txt, err := m.MarshalToString(graph)
-	if err != nil {
-		return "", fmt.Errorf("failed to marshal graph: %v", err)
-	}
+	txt := m.Format(graph)
 	return txt, nil
 }

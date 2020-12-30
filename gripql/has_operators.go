@@ -1,14 +1,15 @@
 package gripql
 
-import "github.com/bmeg/grip/protoutil"
+import "google.golang.org/protobuf/types/known/structpb"
 
 // Eq asserts that the value the provided key resolves to is equal to the provided value.
 func Eq(key string, value interface{}) *HasExpression {
+	sValue, _ := structpb.NewValue(value)
 	return &HasExpression{
 		Expression: &HasExpression_Condition{
 			Condition: &HasCondition{
 				Key:       key,
-				Value:     protoutil.WrapValue(value),
+				Value:     sValue,
 				Condition: Condition_EQ,
 			},
 		},
@@ -17,11 +18,12 @@ func Eq(key string, value interface{}) *HasExpression {
 
 // Neq asserts that the value the provided key resolves to is not equal to the provided value.
 func Neq(key string, value interface{}) *HasExpression {
+	sValue, _ := structpb.NewValue(value)
 	return &HasExpression{
 		Expression: &HasExpression_Condition{
 			Condition: &HasCondition{
 				Key:       key,
-				Value:     protoutil.WrapValue(value),
+				Value:     sValue,
 				Condition: Condition_NEQ,
 			},
 		},
@@ -30,11 +32,12 @@ func Neq(key string, value interface{}) *HasExpression {
 
 // Gt asserts that the value the provided key resolves to is greater than the provided value.
 func Gt(key string, value interface{}) *HasExpression {
+	sValue, _ := structpb.NewValue(value)
 	return &HasExpression{
 		Expression: &HasExpression_Condition{
 			Condition: &HasCondition{
 				Key:       key,
-				Value:     protoutil.WrapValue(value),
+				Value:     sValue,
 				Condition: Condition_GT,
 			},
 		},
@@ -43,11 +46,12 @@ func Gt(key string, value interface{}) *HasExpression {
 
 // Gte asserts that the value the provided key resolves to is greater than or equal to the provided value.
 func Gte(key string, value interface{}) *HasExpression {
+	sValue, _ := structpb.NewValue(value)
 	return &HasExpression{
 		Expression: &HasExpression_Condition{
 			Condition: &HasCondition{
 				Key:       key,
-				Value:     protoutil.WrapValue(value),
+				Value:     sValue,
 				Condition: Condition_GTE,
 			},
 		},
@@ -56,11 +60,12 @@ func Gte(key string, value interface{}) *HasExpression {
 
 // Lt asserts that the value the provided key resolves to is less than the provided value.
 func Lt(key string, value interface{}) *HasExpression {
+	sValue, _ := structpb.NewValue(value)
 	return &HasExpression{
 		Expression: &HasExpression_Condition{
 			Condition: &HasCondition{
 				Key:       key,
-				Value:     protoutil.WrapValue(value),
+				Value:     sValue,
 				Condition: Condition_LT,
 			},
 		},
@@ -69,11 +74,12 @@ func Lt(key string, value interface{}) *HasExpression {
 
 // Lte asserts that the value the provided key resolves to is less than or equal to the provided value.
 func Lte(key string, value interface{}) *HasExpression {
+	sValue, _ := structpb.NewValue(value)
 	return &HasExpression{
 		Expression: &HasExpression_Condition{
 			Condition: &HasCondition{
 				Key:       key,
-				Value:     protoutil.WrapValue(value),
+				Value:     sValue,
 				Condition: Condition_LTE,
 			},
 		},
@@ -83,11 +89,12 @@ func Lte(key string, value interface{}) *HasExpression {
 // Inside asserts that the number the provided key resolves to is greater than
 // the first provided number and less than the second.
 func Inside(key string, value interface{}) *HasExpression {
+	sValue, _ := structpb.NewValue(value)
 	return &HasExpression{
 		Expression: &HasExpression_Condition{
 			Condition: &HasCondition{
 				Key:       key,
-				Value:     protoutil.WrapValue(value),
+				Value:     sValue,
 				Condition: Condition_INSIDE,
 			},
 		},
@@ -97,11 +104,12 @@ func Inside(key string, value interface{}) *HasExpression {
 // Outside asserts that the number the provided key resolves to is less than
 // the first provided number and greater than the second.
 func Outside(key string, value interface{}) *HasExpression {
+	sValue, _ := structpb.NewValue(value)
 	return &HasExpression{
 		Expression: &HasExpression_Condition{
 			Condition: &HasCondition{
 				Key:       key,
-				Value:     protoutil.WrapValue(value),
+				Value:     sValue,
 				Condition: Condition_OUTSIDE,
 			},
 		},
@@ -111,11 +119,12 @@ func Outside(key string, value interface{}) *HasExpression {
 // Between asserts that the number the provided key resolves to is greater than
 // or equal to the first provided number and less than the second.
 func Between(key string, value interface{}) *HasExpression {
+	sValue, _ := structpb.NewValue(value)
 	return &HasExpression{
 		Expression: &HasExpression_Condition{
 			Condition: &HasCondition{
 				Key:       key,
-				Value:     protoutil.WrapValue(value),
+				Value:     sValue,
 				Condition: Condition_BETWEEN,
 			},
 		},
@@ -124,11 +133,12 @@ func Between(key string, value interface{}) *HasExpression {
 
 // Within asserts that the value the provided key resolves to is in the provided list of values.
 func Within(key string, values ...interface{}) *HasExpression {
+	sValue, _ := structpb.NewValue(values)
 	return &HasExpression{
 		Expression: &HasExpression_Condition{
 			Condition: &HasCondition{
 				Key:       key,
-				Value:     protoutil.WrapValue(values),
+				Value:     sValue,
 				Condition: Condition_WITHIN,
 			},
 		},
@@ -137,11 +147,12 @@ func Within(key string, values ...interface{}) *HasExpression {
 
 // Without asserts that the value the provided key resolves to is not in the provided list of values.
 func Without(key string, values ...interface{}) *HasExpression {
+	sValue, _ := structpb.NewValue(values)
 	return &HasExpression{
 		Expression: &HasExpression_Condition{
 			Condition: &HasCondition{
 				Key:       key,
-				Value:     protoutil.WrapValue(values),
+				Value:     sValue,
 				Condition: Condition_WITHOUT,
 			},
 		},
@@ -150,11 +161,12 @@ func Without(key string, values ...interface{}) *HasExpression {
 
 // Contains asserts that the array the provided key resolves to contains the provided value.
 func Contains(key string, value interface{}) *HasExpression {
+	sValue, _ := structpb.NewValue(value)
 	return &HasExpression{
 		Expression: &HasExpression_Condition{
 			Condition: &HasCondition{
 				Key:       key,
-				Value:     protoutil.WrapValue(value),
+				Value:     sValue,
 				Condition: Condition_CONTAINS,
 			},
 		},

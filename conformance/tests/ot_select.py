@@ -13,7 +13,7 @@ def test_simple(man):
     count = 0
     for row in q:
         count += 1
-        if row.label != "Character":
+        if row["label"] != "Character":
             errors.append("Wrong node label")
     if count != 52:
         errors.append("Incorrect count %d != %d" % (count, 52))
@@ -32,8 +32,8 @@ def test_select(man):
     found = 0
     for row in q:
         found += 1
-        if row.data.name not in ["Human", "Droid"]:
-            errors.append("Bad connection found: %s" % (row.data.name))
+        if row["data"]["name"] not in ["Human", "Droid"]:
+            errors.append("Bad connection found: %s" % (row["data"]["name"]))
 
     if found != 7:
         errors.append("Incorrect number of people found: %s != 7" % (found))

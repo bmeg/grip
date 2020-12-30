@@ -11,9 +11,9 @@ import (
 	"github.com/bmeg/grip/kvi"
 	"github.com/bmeg/grip/kvindex"
 	"github.com/bmeg/grip/log"
-	"github.com/bmeg/grip/protoutil"
+	"google.golang.org/protobuf/types/known/structpb"
 	"github.com/bmeg/grip/util/setcmp"
-	proto "github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 	multierror "github.com/hashicorp/go-multierror"
 )
 
@@ -347,7 +347,7 @@ func (ggraph *Graph) GetEdgeList(ctx context.Context, loadProp bool) <-chan *gri
 				e := &gripql.Edge{Gid: eid, Label: labelID, From: sid, To: did}
 				if loadProp {
 					edgeData, _ := it.Value()
-					e.Data = protoutil.NewStruct()
+					e.Data, _ = structpb.NewStruct(map[string]interface{}{})
 					err := proto.Unmarshal(edgeData, e.Data)
 					if err != nil {
 						log.Errorf("GetEdgeList: unmarshal error: %v", err)
@@ -380,7 +380,7 @@ func (ggraph *Graph) GetVertex(id string, loadProp bool) *gripql.Vertex {
 		}
 		if loadProp {
 			dataValue, err := it.Get(vkey)
-			v.Data = protoutil.NewStruct()
+			v.Data, _ = structpb.NewStruct(map[string]interface{}{})
 			err = proto.Unmarshal(dataValue, v.Data)
 			if err != nil {
 				return fmt.Errorf("unmarshal error: %v", err)
@@ -431,7 +431,7 @@ func (ggraph *Graph) GetVertexChannel(ctx context.Context, ids chan gdbi.Element
 			lID, _ := ggraph.kdb.keyMap.GetLabelID(ggraph.graphKey, lKey)
 			v := gripql.Vertex{Gid: d.req.ID, Label: lID}
 			if load {
-				v.Data = protoutil.NewStruct()
+				v.Data, _ = structpb.NewStruct(map[string]interface{}{})
 				err := proto.Unmarshal(d.data, v.Data)
 				if err != nil {
 					log.Errorf("GetVertexChannel: unmarshal error: %v", err)
@@ -493,7 +493,7 @@ func (ggraph *Graph) GetOutChannel(ctx context.Context, reqChan chan gdbi.Elemen
 				if load {
 					dataValue, err := it.Get(req.data)
 					if err == nil {
-						v.Data = protoutil.NewStruct()
+						v.Data, _ = structpb.NewStruct(map[string]interface{}{})
 						err = proto.Unmarshal(dataValue, v.Data)
 						if err != nil {
 							log.Errorf("GetOutChannel: unmarshal error: %v", err)
@@ -539,7 +539,7 @@ func (ggraph *Graph) GetInChannel(ctx context.Context, reqChan chan gdbi.Element
 							if load {
 								dataValue, err := it.Get(vkey)
 								if err == nil {
-									v.Data = protoutil.NewStruct()
+									v.Data, _ = structpb.NewStruct(map[string]interface{}{})
 									err = proto.Unmarshal(dataValue, v.Data)
 									if err != nil {
 										log.Errorf("GetInChannel: unmarshal error: %v", err)
@@ -589,7 +589,7 @@ func (ggraph *Graph) GetOutEdgeChannel(ctx context.Context, reqChan chan gdbi.El
 								ekey := EdgeKey(ggraph.graphKey, eid, src, dst, label)
 								dataValue, err := it.Get(ekey)
 								if err == nil {
-									e.Data = protoutil.NewStruct()
+									e.Data, _ = structpb.NewStruct(map[string]interface{}{})
 									err := proto.Unmarshal(dataValue, e.Data)
 									if err != nil {
 										log.Errorf("GetOutEdgeChannel: unmarshal error: %v", err)
@@ -640,7 +640,7 @@ func (ggraph *Graph) GetInEdgeChannel(ctx context.Context, reqChan chan gdbi.Ele
 								ekey := EdgeKey(ggraph.graphKey, eid, src, dst, label)
 								dataValue, err := it.Get(ekey)
 								if err == nil {
-									e.Data = protoutil.NewStruct()
+									e.Data = &structpb.Struct{}
 									err := proto.Unmarshal(dataValue, e.Data)
 									if err != nil {
 										log.Errorf("GetInEdgeChannel: unmarshal error: %v", err)
@@ -685,7 +685,7 @@ func (ggraph *Graph) GetEdge(id string, loadProp bool) *gripql.Edge {
 			}
 			if loadProp {
 				d, _ := it.Value()
-				e.Data = protoutil.NewStruct()
+				e.Data = &structpb.Struct{}
 				err := proto.Unmarshal(d, e.Data)
 				if err != nil {
 					return fmt.Errorf("unmarshal error: %v", err)
@@ -722,7 +722,7 @@ func (ggraph *Graph) GetVertexList(ctx context.Context, loadProp bool) <-chan *g
 				v.Label, _ = ggraph.kdb.keyMap.GetLabelID(ggraph.graphKey, lKey)
 				if loadProp {
 					dataValue, _ := it.Value()
-					v.Data = protoutil.NewStruct()
+					v.Data = &structpb.Struct{}
 					err := proto.Unmarshal(dataValue, v.Data)
 					if err != nil {
 						log.Errorf("GetVertexList: unmarshal error: %v", err)
