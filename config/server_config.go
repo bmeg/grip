@@ -1,4 +1,4 @@
-package server
+package config
 
 import (
 	"time"
@@ -8,7 +8,7 @@ import (
 )
 
 // Config describes configuration for the server.
-type Config struct {
+type ServerConfig struct {
 	HostName         string
 	HTTPPort         string
 	RPCPort          string
@@ -35,7 +35,7 @@ type Config struct {
 }
 
 // HTTPAddress returns the HTTP address based on HostName and HTTPPort
-func (c Config) HTTPAddress() string {
+func (c ServerConfig) HTTPAddress() string {
 	http := ""
 	if c.HostName != "" {
 		http = "http://" + c.HostName
@@ -47,7 +47,7 @@ func (c Config) HTTPAddress() string {
 }
 
 // RPCAddress returns the RPC address based on HostName and RPCPort
-func (c *Config) RPCAddress() string {
+func (c *ServerConfig) RPCAddress() string {
 	rpc := c.HostName
 	if c.RPCPort != "" {
 		rpc = rpc + ":" + c.RPCPort
@@ -61,8 +61,8 @@ type BasicCredential struct {
 	Password string
 }
 
-func testConfig() Config {
-	c := Config{}
+func testServerConfig() ServerConfig {
+	c := ServerConfig{}
 	c.HostName = "localhost"
 	c.HTTPPort = util.RandomPort()
 	c.RPCPort = util.RandomPort()

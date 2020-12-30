@@ -1,2 +1,5 @@
-Default:
-  Database: level
+Default: level
+
+Drivers:
+  level:
+    Level: grip-level.db

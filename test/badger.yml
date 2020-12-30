@@ -1,2 +1,5 @@
-Default:
-  Database: badger
+Default: badger
+
+Drivers:
+  badger:
+    Badger: grip-badger.db

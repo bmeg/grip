@@ -16,7 +16,6 @@ import (
 	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/mongo"
 	"github.com/bmeg/grip/psql"
-	"github.com/bmeg/grip/server"
 	"github.com/bmeg/grip/util"
 	"github.com/bmeg/grip/util/duration"
 	"github.com/bmeg/grip/util/rpc"
@@ -27,30 +26,32 @@ func init() {
 	rand.Seed(time.Now().UTC().UnixNano())
 }
 
-type GraphConfig struct {
-	Database      string
-	KVStorePath   string
-	Grids         string
-	Elasticsearch elastic.Config
-	MongoDB       mongo.Config
-	PSQL          psql.Config
-	ExistingSQL   esql.Config
-	Gripper       gripper.Config
+type DriverConfig struct {
+	Grids         *string
+	Badger        *string
+	Bolt          *string
+	Level         *string
+	Elasticsearch *elastic.Config
+	MongoDB       *mongo.Config
+	PSQL          *psql.Config
+	ExistingSQL   *esql.Config
+	Gripper       *gripper.Config
 }
 
 // Config describes the configuration for Grip.
 type Config struct {
-	Server        server.Config
+	Server        ServerConfig
 	RPCClient     rpc.Config
 	Logger        log.Logger
-	Default       GraphConfig
-	Graphs        map[string]GraphConfig
+	Default       string
+	Graphs				map[string]string
+	Drivers       map[string]DriverConfig
 }
 
 // DefaultConfig returns an instance of the default configuration for Grip.
 func DefaultConfig() *Config {
 	c := &Config{}
-	c.Default.Database = "badger"
+	c.Default = "badger"
 
 	c.Server.HostName = "localhost"
 	c.Server.HTTPPort = "8201"
@@ -69,14 +70,21 @@ func DefaultConfig() *Config {
 
 	c.RPCClient = rpc.ConfigWithDefaults(c.Server.RPCAddress())
 
-	c.Default.KVStorePath = "grip.db"
+	path := "grip.db"
+	c.Drivers = map[string]DriverConfig{
+			"badger" : DriverConfig {
+				Badger: &path,
+			},
+	}
 
+	/*
 	c.Default.MongoDB.DBName = "gripdb"
 	c.Default.MongoDB.BatchSize = 1000
 	c.Default.MongoDB.UseAggregationPipeline = true
 
 	c.Default.Elasticsearch.DBName = "gripdb"
 	c.Default.Elasticsearch.BatchSize = 1000
+	*/
 
 	c.Logger = log.DefaultLoggerConfig()
 	return c
@@ -92,12 +100,20 @@ func TestifyConfig(c *Config) {
 
 	c.RPCClient.ServerAddress = c.Server.RPCAddress()
 
-	c.Default.KVStorePath = "grip.db." + rand
+	d := c.Drivers[c.Default]
 
-	c.Default.MongoDB.DBName = "gripdb-" + rand
-
-	c.Default.Elasticsearch.DBName = "gripdb-" + rand
-	c.Default.Elasticsearch.Synchronous = true
+	if d.Badger != nil {
+		a := "grip.db." + rand
+		d.Badger = &a
+	}
+	if d.MongoDB != nil {
+		d.MongoDB.DBName = "gripdb-" + rand
+	}
+	if d.Elasticsearch != nil {
+		d.Elasticsearch.DBName = "gripdb-" + rand
+		d.Elasticsearch.Synchronous = true
+	}
+	c.Drivers[c.Default] = d
 }
 
 // ParseConfig parses a YAML doc into the given Config instance.

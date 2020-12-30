@@ -5,22 +5,10 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"strings"
 
 	"github.com/bmeg/grip/config"
-	"github.com/bmeg/grip/elastic"
-	esql "github.com/bmeg/grip/existing-sql"
-	"github.com/bmeg/grip/gdbi"
-	"github.com/bmeg/grip/grids"
-	"github.com/bmeg/grip/gripper"
 	"github.com/bmeg/grip/gripql"
-	"github.com/bmeg/grip/kvgraph"
-	_ "github.com/bmeg/grip/kvi/badgerdb" // import so badger will register itself
-	_ "github.com/bmeg/grip/kvi/boltdb"   // import so bolt will register itself
-	_ "github.com/bmeg/grip/kvi/leveldb"  // import so level will register itself
 	"github.com/bmeg/grip/log"
-	"github.com/bmeg/grip/mongo"
-	"github.com/bmeg/grip/psql"
 	"github.com/bmeg/grip/server"
 	_ "github.com/go-sql-driver/mysql" //import so mysql will register as a sql driver
 	"github.com/imdario/mergo"
@@ -39,37 +27,6 @@ func Run(conf *config.Config, schemas map[string]*gripql.Graph) error {
 	log.ConfigureLogger(conf.Logger)
 	log.WithFields(log.Fields{"Config": conf}).Info("Starting Server")
 
-	var db gdbi.GraphDB
-	var err error
-	switch dbname := strings.ToLower(conf.Default.Database); dbname {
-	case "bolt", "badger", "level":
-		db, err = kvgraph.NewKVGraphDB(dbname, conf.Default.KVStorePath)
-
-	case "grids":
-		db, err = grids.NewGraphDB(conf.Default.Grids)
-
-	case "elastic", "elasticsearch":
-		db, err = elastic.NewGraphDB(conf.Default.Elasticsearch)
-
-	case "mongo", "mongodb":
-		db, err = mongo.NewGraphDB(conf.Default.MongoDB)
-
-	case "psql":
-		db, err = psql.NewGraphDB(conf.Default.PSQL)
-
-	case "existing-sql":
-		db, err = esql.NewGraphDB(conf.Default.ExistingSQL)
-
-	case "gripper":
-		db, err = gripper.NewGDB(conf.Default.Gripper, configFile)
-
-	default:
-		err = fmt.Errorf("unknown database: %s", dbname)
-	}
-	if err != nil {
-		return fmt.Errorf("database connection failed: %v", err)
-	}
-
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	c := make(chan os.Signal, 1)
@@ -79,7 +36,7 @@ func Run(conf *config.Config, schemas map[string]*gripql.Graph) error {
 		cancel()
 	}()
 
-	srv, err := server.NewGripServer(db, conf.Server, schemas)
+	srv, err := server.NewGripServer(conf, schemas)
 	if err != nil {
 		return err
 	}

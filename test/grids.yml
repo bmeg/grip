@@ -1,3 +1,5 @@
-Default:
-  Database: grids
-  Grids: grids.db
+Default: grids
+
+Drivers:
+  grids:
+    Grids: grids-grids.db

@@ -13,6 +13,7 @@ import (
 
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/graphql"
+	"github.com/bmeg/grip/config"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/util/rpc"
@@ -22,22 +23,35 @@ import (
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/encoding/protojson"
+
+	"github.com/bmeg/grip/elastic"
+	"github.com/bmeg/grip/mongo"
+	"github.com/bmeg/grip/grids"
+	"github.com/bmeg/grip/gripper"
+	"github.com/bmeg/grip/kvgraph"
+	esql "github.com/bmeg/grip/existing-sql"
+	"github.com/bmeg/grip/psql"
+	_ "github.com/bmeg/grip/kvi/badgerdb" // import so badger will register itself
+	_ "github.com/bmeg/grip/kvi/boltdb"   // import so bolt will register itself
+	_ "github.com/bmeg/grip/kvi/leveldb"  // import so level will register itself
+
 )
 
 // GripServer is a GRPC based grip server
 type GripServer struct {
 	gripql.UnimplementedQueryServer
 	gripql.UnimplementedEditServer
-	db      gdbi.GraphDB
-	conf    Config
+	dbs     map[string]gdbi.GraphDB
+	conf    *config.Config
 	schemas map[string]*gripql.Graph
+	baseDir string
 }
 
 // NewGripServer initializes a GRPC server to connect to the graph store
-func NewGripServer(db gdbi.GraphDB, conf Config, schemas map[string]*gripql.Graph) (*GripServer, error) {
-	_, err := os.Stat(conf.WorkDir)
+func NewGripServer(conf *config.Config, schemas map[string]*gripql.Graph) (*GripServer, error) {
+	_, err := os.Stat(conf.Server.WorkDir)
 	if os.IsNotExist(err) {
-		err = os.Mkdir(conf.WorkDir, 0700)
+		err = os.Mkdir(conf.Server.WorkDir, 0700)
 		if err != nil {
 			return nil, fmt.Errorf("creating work dir: %v", err)
 		}
@@ -45,7 +59,7 @@ func NewGripServer(db gdbi.GraphDB, conf Config, schemas map[string]*gripql.Grap
 	if schemas == nil {
 		schemas = make(map[string]*gripql.Graph)
 	}
-	server := &GripServer{db: db, conf: conf, schemas: schemas}
+	server := &GripServer{conf: conf, schemas: schemas}
 	for graph, schema := range schemas {
 		if !server.graphExists(graph) {
 			_, err := server.AddGraph(context.Background(), &gripql.GraphID{Graph: graph})
@@ -61,13 +75,50 @@ func NewGripServer(db gdbi.GraphDB, conf Config, schemas map[string]*gripql.Grap
 	return server, nil
 }
 
+func (server *GripServer) startDriver(d config.DriverConfig) (gdbi.GraphDB, error) {
+	if d.Bolt != nil {
+		return kvgraph.NewKVGraphDB("bolt", *d.Bolt)
+	} else if d.Badger != nil {
+		return kvgraph.NewKVGraphDB("badger", *d.Badger)
+	} else if d.Level != nil {
+		return kvgraph.NewKVGraphDB("level", *d.Level)
+	} else if d.Grids != nil {
+		return grids.NewGraphDB(*d.Grids)
+	} else if d.Elasticsearch != nil {
+		return elastic.NewGraphDB(*d.Elasticsearch)
+	} else if d.MongoDB != nil {
+		return mongo.NewGraphDB(*d.MongoDB)
+	} else if d.PSQL != nil {
+		return psql.NewGraphDB(*d.PSQL)
+	} else if d.ExistingSQL != nil {
+		return esql.NewGraphDB(*d.ExistingSQL)
+	} else if d.Gripper != nil {
+		return gripper.NewGDB(*d.Gripper, server.baseDir)
+	}
+	return nil, fmt.Errorf("unknown driver: %#v", d)
+}
+
+
+func (server *GripServer) getGraphDB(graph string) (gdbi.GraphDB, error) {
+	if driverName, ok := server.conf.Graphs[graph]; ok {
+		if gdb, ok := server.dbs[driverName]; ok {
+			return gdb, nil
+		}
+	} else {
+		if gdb, ok := server.dbs[server.conf.Default]; ok {
+			return gdb, nil
+		}
+	}
+	return nil, fmt.Errorf("Driver not found")
+}
+
 // Serve starts the server and does not block. This will open TCP ports
 // for both RPC and HTTP.
 func (server *GripServer) Serve(pctx context.Context) error {
 	ctx, cancel := context.WithCancel(pctx)
 	defer cancel()
 
-	lis, err := net.Listen("tcp", ":"+server.conf.RPCPort)
+	lis, err := net.Listen("tcp", ":"+server.conf.Server.RPCPort)
 	if err != nil {
 		return fmt.Errorf("Cannot open port: %v", err)
 	}
@@ -75,14 +126,14 @@ func (server *GripServer) Serve(pctx context.Context) error {
 	grpcServer := grpc.NewServer(
 		grpc.UnaryInterceptor(
 			grpc_middleware.ChainUnaryServer(
-				unaryAuthInterceptor(server.conf.BasicAuth),
-				unaryInterceptor(server.conf.RequestLogging.Enable, server.conf.RequestLogging.HeaderWhitelist),
+				unaryAuthInterceptor(server.conf.Server.BasicAuth),
+				unaryInterceptor(server.conf.Server.RequestLogging.Enable, server.conf.Server.RequestLogging.HeaderWhitelist),
 			),
 		),
 		grpc.StreamInterceptor(
 			grpc_middleware.ChainStreamServer(
-				streamAuthInterceptor(server.conf.BasicAuth),
-				streamInterceptor(server.conf.RequestLogging.Enable, server.conf.RequestLogging.HeaderWhitelist),
+				streamAuthInterceptor(server.conf.Server.BasicAuth),
+				streamInterceptor(server.conf.Server.RequestLogging.Enable, server.conf.Server.RequestLogging.HeaderWhitelist),
 			),
 		),
 		grpc.MaxSendMsgSize(1024*1024*16),
@@ -105,11 +156,11 @@ func (server *GripServer) Serve(pctx context.Context) error {
 	// Setup GraphQL handler
 	user := ""
 	password := ""
-	if len(server.conf.BasicAuth) > 0 {
-		user = server.conf.BasicAuth[0].User
-		password = server.conf.BasicAuth[0].Password
+	if len(server.conf.Server.BasicAuth) > 0 {
+		user = server.conf.Server.BasicAuth[0].User
+		password = server.conf.Server.BasicAuth[0].Password
 	}
-	gqlHandler, err := graphql.NewHTTPHandler(server.conf.RPCAddress(), user, password)
+	gqlHandler, err := graphql.NewHTTPHandler(server.conf.Server.RPCAddress(), user, password)
 	if err != nil {
 		return fmt.Errorf("setting up GraphQL handler: %v", err)
 	}
@@ -117,8 +168,8 @@ func (server *GripServer) Serve(pctx context.Context) error {
 
 	// Setup web ui handler
 	dashmux := http.NewServeMux()
-	if server.conf.ContentDir != "" {
-		httpDir := http.Dir(server.conf.ContentDir)
+	if server.conf.Server.ContentDir != "" {
+		httpDir := http.Dir(server.conf.Server.ContentDir)
 		dashfs := http.FileServer(httpDir)
 		dashmux.Handle("/", dashfs)
 	}
@@ -128,7 +179,7 @@ func (server *GripServer) Serve(pctx context.Context) error {
 	mux.HandleFunc("/", func(resp http.ResponseWriter, req *http.Request) {
 		start := time.Now()
 
-		if len(server.conf.BasicAuth) > 0 {
+		if len(server.conf.Server.BasicAuth) > 0 {
 			resp.Header().Set("WWW-Authenticate", "Basic")
 			u, p, ok := req.BasicAuth()
 			if !ok {
@@ -136,7 +187,7 @@ func (server *GripServer) Serve(pctx context.Context) error {
 				return
 			}
 			authorized := false
-			for _, cred := range server.conf.BasicAuth {
+			for _, cred := range server.conf.Server.BasicAuth {
 				if cred.User == u && cred.Password == p {
 					authorized = true
 				}
@@ -149,13 +200,13 @@ func (server *GripServer) Serve(pctx context.Context) error {
 
 		switch strings.HasPrefix(req.URL.Path, "/v1/") {
 		case true:
-			if server.conf.DisableHTTPCache {
+			if server.conf.Server.DisableHTTPCache {
 				resp.Header().Set("Cache-Control", "no-store")
 			}
 
 			// copy body and return it to request
 			var body []byte
-			if server.conf.RequestLogging.Enable {
+			if server.conf.Server.RequestLogging.Enable {
 				body, _ = ioutil.ReadAll(req.Body)
 				req.Body = ioutil.NopCloser(bytes.NewBuffer(body))
 			}
@@ -163,12 +214,12 @@ func (server *GripServer) Serve(pctx context.Context) error {
 			// handle the request
 			m := httpsnoop.CaptureMetrics(grpcMux, resp, req)
 
-			if !server.conf.RequestLogging.Enable {
+			if !server.conf.Server.RequestLogging.Enable {
 				return
 			}
 
 			// copy whitelisted headers for logging
-			headers := extractHeaderKeys(req.Header, server.conf.RequestLogging.HeaderWhitelist)
+			headers := extractHeaderKeys(req.Header, server.conf.Server.RequestLogging.HeaderWhitelist)
 
 			// log the request
 			entry := log.WithFields(log.Fields{
@@ -199,7 +250,7 @@ func (server *GripServer) Serve(pctx context.Context) error {
 	}
 
 	// Regsiter Edit Service
-	if !server.conf.ReadOnly {
+	if !server.conf.Server.ReadOnly {
 		gripql.RegisterEditServer(grpcServer, server)
 		//TODO: Put in some sort of logic that will allow web server to be configured to use GRPC client
 		err = gripql.RegisterEditHandlerClient(ctx, grpcMux, gripql.NewEditDirectClient(server))
@@ -210,7 +261,7 @@ func (server *GripServer) Serve(pctx context.Context) error {
 	}
 
 	httpServer := &http.Server{
-		Addr:    ":" + server.conf.HTTPPort,
+		Addr:    ":" + server.conf.Server.HTTPPort,
 		Handler: mux,
 	}
 
@@ -226,15 +277,15 @@ func (server *GripServer) Serve(pctx context.Context) error {
 		cancel()
 	}()
 
-	log.Infoln("TCP+RPC server listening on " + server.conf.RPCPort)
-	log.Infoln("HTTP proxy connecting to localhost:" + server.conf.HTTPPort)
+	log.Infoln("TCP+RPC server listening on " + server.conf.Server.RPCPort)
+	log.Infoln("HTTP proxy connecting to localhost:" + server.conf.Server.HTTPPort)
 
 	// load existing schemas from db
-	if server.db != nil {
-		for _, graph := range server.db.ListGraphs() {
+	for _, gdb := range server.dbs {
+		for _, graph := range gdb.ListGraphs() {
 			if isSchema(graph) {
 				log.WithFields(log.Fields{"graph": graph}).Debug("Loading existing schema into cache")
-				conn, err := gripql.Connect(rpc.ConfigWithDefaults(server.conf.RPCAddress()), true)
+				conn, err := gripql.Connect(rpc.ConfigWithDefaults(server.conf.Server.RPCAddress()), true)
 				if err != nil {
 					return fmt.Errorf("failed to load existing schema: %v", err)
 				}
@@ -260,7 +311,7 @@ func (server *GripServer) Serve(pctx context.Context) error {
 		}
 	}
 
-	if server.conf.AutoBuildSchemas {
+	if server.conf.Server.AutoBuildSchemas {
 		go func() {
 			server.cacheSchemas(ctx)
 		}()
@@ -268,8 +319,8 @@ func (server *GripServer) Serve(pctx context.Context) error {
 
 	<-ctx.Done()
 	log.Infoln("closing database...")
-	if server.db != nil {
-		err = server.db.Close()
+	for _, gdb := range server.dbs {
+		err = gdb.Close()
 		if err != nil {
 			log.Errorln("db.Close() error:", err)
 		}

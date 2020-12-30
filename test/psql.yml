@@ -1,9 +1,10 @@
-Default:
-  Database: psql
+Default: psql
 
-  PSQL:
-    Host: localhost
-    Port: 15432
-    User: postgres
-    DBName: test
-    SSLMode: disable
+Drivers:
+  psql:
+    PSQL:
+      Host: localhost
+      Port: 15432
+      User: postgres
+      DBName: test
+      SSLMode: disable
