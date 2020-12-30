@@ -7,8 +7,8 @@ import (
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/log"
-	"google.golang.org/protobuf/types/known/structpb"
 	"github.com/bmeg/grip/util"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 // BuildSchema returns the schema of a specific graph in the database

@@ -11,7 +11,8 @@ import (
 	"github.com/bmeg/grip/kvi"
 	"github.com/bmeg/grip/kvindex"
 	"github.com/bmeg/grip/log"
-	proto "github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
+
 	multierror "github.com/hashicorp/go-multierror"
 )
 

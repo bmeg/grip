@@ -52,12 +52,11 @@ require (
 	github.com/syndtr/goleveldb v1.0.0
 	go.mongodb.org/mongo-driver v1.3.0
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
-	golang.org/x/net v0.0.0-20200822124328-c89045814202
-	golang.org/x/sync v0.0.0-20200625203802-6e8e738ad208
-	golang.org/x/tools v0.0.0-20200903185744-af4cc2cd812e // indirect
+	golang.org/x/net v0.0.0-20201021035429-f5854403a974
+	golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9
 	google.golang.org/genproto v0.0.0-20201019141844-1ed22bb0c154
 	google.golang.org/grpc v1.34.0
-	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.0.2-0.20201216172828-cfef8c7e035d
+	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.0.1 // indirect
 	google.golang.org/protobuf v1.25.0
 	gopkg.in/airbrake/gobrake.v2 v2.0.9 // indirect
 	gopkg.in/gemnasium/logrus-airbrake-hook.v2 v2.1.2 // indirect

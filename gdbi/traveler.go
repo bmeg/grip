@@ -2,6 +2,7 @@ package gdbi
 
 import (
 	"fmt"
+
 	"github.com/bmeg/grip/gripql"
 	"google.golang.org/protobuf/types/known/structpb"
 )

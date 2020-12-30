@@ -97,7 +97,7 @@ func (agg *aggregateDisk) Process(ctx context.Context, man gdbi.Manager, in gdbi
 					}
 					count++
 				}
-        return nil
+				return nil
 			})
 
 		case *gripql.Aggregate_Histogram:
@@ -142,7 +142,7 @@ func (agg *aggregateDisk) Process(ctx context.Context, man gdbi.Manager, in gdbi
 					sBucket, _ := structpb.NewValue(bucket)
 					out <- &gdbi.Traveler{Aggregation: &gdbi.Aggregate{Name: a.Name, Key: sBucket, Value: float64(count)}}
 				}
-        return nil
+				return nil
 			})
 
 		case *gripql.Aggregate_Percentile:
@@ -185,7 +185,7 @@ func (agg *aggregateDisk) Process(ctx context.Context, man gdbi.Manager, in gdbi
 					sp, _ := structpb.NewValue(p)
 					out <- &gdbi.Traveler{Aggregation: &gdbi.Aggregate{Name: a.Name, Key: sp, Value: q}}
 				}
-        return nil
+				return nil
 			})
 
 		default:

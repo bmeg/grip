@@ -9,10 +9,10 @@ import (
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/jsonpath"
 	"github.com/bmeg/grip/log"
+	"github.com/bmeg/grip/util/protoutil"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
-	"github.com/bmeg/grip/util/protoutil"
 )
 
 // Pipeline a set of runnable query operations

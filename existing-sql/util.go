@@ -8,9 +8,9 @@ import (
 	"strings"
 
 	"github.com/bmeg/grip/gripql"
-	"google.golang.org/protobuf/types/known/structpb"
 	multierror "github.com/hashicorp/go-multierror"
 	"github.com/jmoiron/sqlx"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 func rowColumnTypeMap(r *sqlx.Row) (map[string]*sql.ColumnType, error) {

@@ -48,9 +48,9 @@ func UnpackVertex(i map[string]interface{}) *gripql.Vertex {
 	o.Label = i["label"].(string)
 	if d, ok := i["data"]; ok {
 		d = removePrimatives(d)
-		o.Data, _ = structpb.NewStruct( d.(map[string]interface{}) )
+		o.Data, _ = structpb.NewStruct(d.(map[string]interface{}))
 	} else {
-		o.Data, _ = structpb.NewStruct( map[string]interface{}{} )
+		o.Data, _ = structpb.NewStruct(map[string]interface{}{})
 	}
 	return o
 }
@@ -64,9 +64,9 @@ func UnpackEdge(i map[string]interface{}) *gripql.Edge {
 	o.From = i["from"].(string)
 	o.To = i["to"].(string)
 	if d, ok := i["data"]; ok {
-		o.Data, _ = structpb.NewStruct( d.(map[string]interface{}) )
+		o.Data, _ = structpb.NewStruct(d.(map[string]interface{}))
 	} else {
-		o.Data, _ = structpb.NewStruct( map[string]interface{}{} )
+		o.Data, _ = structpb.NewStruct(map[string]interface{}{})
 	}
 	return o
 }

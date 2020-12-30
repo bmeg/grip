@@ -9,12 +9,11 @@ import (
 	"github.com/bmeg/grip/gripper"
 
 	"github.com/bmeg/grip/gdbi"
-	"github.com/golang/protobuf/jsonpb"
+	"google.golang.org/protobuf/encoding/protojson"
 
 	"github.com/spf13/cobra"
 
 	"encoding/json"
-	"strings"
 
 	"github.com/bmeg/grip/gripql"
 	gripqljs "github.com/bmeg/grip/gripql/javascript"
@@ -57,7 +56,7 @@ func ParseQuery(queryString string) (*gripql.GraphQuery, error) {
 	}
 
 	query := gripql.GraphQuery{}
-	err = jsonpb.Unmarshal(strings.NewReader(string(queryJSON)), &query)
+	err = protojson.Unmarshal(queryJSON, &query)
 	if err != nil {
 		return nil, err
 	}
@@ -65,7 +64,6 @@ func ParseQuery(queryString string) (*gripql.GraphQuery, error) {
 }
 
 func Query(graph gdbi.GraphInterface, query *gripql.GraphQuery) error {
-	marsh := jsonpb.Marshaler{}
 
 	p, err := graph.Compiler().Compile(query.Query)
 	if err != nil {
@@ -76,8 +74,8 @@ func Query(graph gdbi.GraphInterface, query *gripql.GraphQuery) error {
 	res := pipeline.Run(context.Background(), p, workdir)
 
 	for row := range res {
-		rowString, _ := marsh.MarshalToString(row)
-		fmt.Printf("%s\n", rowString)
+		rowString, _ := protojson.Marshal(row)
+		fmt.Printf("%s\n", string(rowString))
 	}
 	return nil
 }
