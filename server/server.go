@@ -62,7 +62,7 @@ func NewGripServer(conf *config.Config, schemas map[string]*gripql.Graph, baseDi
 
 	gdbs := map[string]gdbi.GraphDB{}
 	for name, dConfig := range conf.Drivers {
-		g, err := startDriver(dConfig, baseDir)
+		g, err := StartDriver(dConfig, baseDir)
 		if err == nil {
 			gdbs[name] = g
 		}
@@ -84,7 +84,7 @@ func NewGripServer(conf *config.Config, schemas map[string]*gripql.Graph, baseDi
 	return server, nil
 }
 
-func startDriver(d config.DriverConfig, baseDir string) (gdbi.GraphDB, error) {
+func StartDriver(d config.DriverConfig, baseDir string) (gdbi.GraphDB, error) {
 	if d.Bolt != nil {
 		return kvgraph.NewKVGraphDB("bolt", *d.Bolt)
 	} else if d.Badger != nil {
