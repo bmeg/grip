@@ -48,11 +48,13 @@ type Config struct {
 	Drivers       map[string]DriverConfig
 }
 
+type DriverParams interface {
+	 SetDefaults()
+}
+
 // DefaultConfig returns an instance of the default configuration for Grip.
 func DefaultConfig() *Config {
 	c := &Config{}
-	c.Default = "badger"
-
 	c.Server.HostName = "localhost"
 	c.Server.HTTPPort = "8201"
 	c.Server.RPCPort = "8202"
@@ -70,24 +72,16 @@ func DefaultConfig() *Config {
 
 	c.RPCClient = rpc.ConfigWithDefaults(c.Server.RPCAddress())
 
-	path := "grip.db"
-	c.Drivers = map[string]DriverConfig{
-			"badger" : DriverConfig {
-				Badger: &path,
-			},
-	}
-
-	/*
-	c.Default.MongoDB.DBName = "gripdb"
-	c.Default.MongoDB.BatchSize = 1000
-	c.Default.MongoDB.UseAggregationPipeline = true
-
-	c.Default.Elasticsearch.DBName = "gripdb"
-	c.Default.Elasticsearch.BatchSize = 1000
-	*/
+	c.Drivers = map[string]DriverConfig{}
 
 	c.Logger = log.DefaultLoggerConfig()
 	return c
+}
+
+func (conf *Config) AddBadgerDefault() {
+	n := "grip.db"
+	conf.Drivers["badger"] = DriverConfig{Badger:&n}
+	conf.Default = "badger"
 }
 
 // TestifyConfig randomizes ports and database paths/names
@@ -116,17 +110,28 @@ func TestifyConfig(c *Config) {
 	c.Drivers[c.Default] = d
 }
 
+func (c *Config) SetDefaults() {
+	for _, d := range c.Drivers {
+		if d.MongoDB != nil {
+			d.MongoDB.SetDefaults()
+		}
+		if d.Elasticsearch != nil {
+			d.Elasticsearch.SetDefaults()
+		}
+	}
+}
+
 // ParseConfig parses a YAML doc into the given Config instance.
 func ParseConfig(raw []byte, conf *Config) error {
-	j, err := yaml.YAMLToJSON(raw)
-	if err != nil {
-		return err
-	}
-	err = CheckForUnknownKeys(j, conf, []string{"Gripper.Graphs."})
-	if err != nil {
-		return err
-	}
-	err = yaml.Unmarshal(raw, conf)
+	//j, err := yaml.YAMLToJSON(raw)
+	//if err != nil {
+	//	return err
+	//}
+	//err = CheckForUnknownKeys(j, conf, []string{"Gripper.Graphs."})
+	//if err != nil {
+	//	return err
+	//}
+	err := yaml.Unmarshal(raw, conf)
 	if err != nil {
 		return err
 	}
@@ -207,6 +212,11 @@ func GetKeys(obj interface{}) []string {
 // CheckForUnknownKeys takes a json byte array and checks that all keys are fields
 // in the reference object
 func CheckForUnknownKeys(jsonStr []byte, obj interface{}, exclude []string) error {
+	fmt.Printf("Checking: %#v\n", obj)
+	if _, ok := obj.(map[string]DriverConfig); ok {
+		fmt.Printf("Is map\n")
+		return nil
+	}
 	knownMap := make(map[string]interface{})
 	known := GetKeys(obj)
 	for _, k := range known {

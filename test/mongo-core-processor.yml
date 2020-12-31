@@ -4,4 +4,4 @@ Drivers:
   mongo:
     MongoDB:
       URL: mongodb://localhost:27000
-      UseAggregationPipeline: false
+      UseCorePipeline: true

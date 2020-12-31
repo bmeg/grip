@@ -64,6 +64,9 @@ var Cmd = &cobra.Command{
 			if err != nil {
 				return fmt.Errorf("error processing config file: %v", err)
 			}
+			dconf.SetDefaults()
+		} else {
+			dconf.AddBadgerDefault()
 		}
 		// file vals <- cli val
 		err := mergo.MergeWithOverwrite(dconf, conf)

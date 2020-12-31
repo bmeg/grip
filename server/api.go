@@ -48,6 +48,7 @@ func (server *GripServer) Traversal(query *gripql.GraphQuery, queryServer gripql
 // ListGraphs returns a list of graphs managed by the driver
 func (server *GripServer) ListGraphs(ctx context.Context, empty *gripql.Empty) (*gripql.ListGraphsResponse, error) {
 	graphs := []string{}
+	fmt.Printf("Listing Graqphs")
 	for _, gdb := range server.dbs {
 		o := gdb.ListGraphs()
 		graphs = append(graphs, o...)
