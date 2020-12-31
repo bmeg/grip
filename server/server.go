@@ -42,6 +42,7 @@ type GripServer struct {
 	gripql.UnimplementedQueryServer
 	gripql.UnimplementedEditServer
 	dbs     map[string]gdbi.GraphDB
+	graphMap map[string]string
 	conf    *config.Config
 	schemas map[string]*gripql.Graph
 	baseDir string
@@ -81,6 +82,7 @@ func NewGripServer(conf *config.Config, schemas map[string]*gripql.Graph, baseDi
 			return nil, err
 		}
 	}
+	server.updateGraphMap()
 	return server, nil
 }
 
@@ -108,8 +110,22 @@ func StartDriver(d config.DriverConfig, baseDir string) (gdbi.GraphDB, error) {
 }
 
 
+func (server *GripServer) updateGraphMap() {
+	o := map[string]string{}
+	for k, v := range server.conf.Graphs {
+		o[k] = v
+	}
+	for n, dbs := range server.dbs {
+		for _, g := range dbs.ListGraphs() {
+			o[g] = n
+		}
+	}
+	server.graphMap = o
+}
+
+
 func (server *GripServer) getGraphDB(graph string) (gdbi.GraphDB, error) {
-	if driverName, ok := server.conf.Graphs[graph]; ok {
+	if driverName, ok := server.graphMap[graph]; ok {
 		if gdb, ok := server.dbs[driverName]; ok {
 			return gdb, nil
 		}
