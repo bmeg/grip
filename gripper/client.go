@@ -15,18 +15,18 @@ type TableConfig struct {
 }
 */
 
-// DigClient manages the multiple connections to named Dig sources
-type DigClient struct {
+// GripperClient manages the multiple connections to named Dig sources
+type GripperClient struct {
 	confs   map[string]DriverConfig
-	clients map[string]DigSourceClient
+	clients map[string]GripperSourceClient
 }
 
-func NewDigClient(confs map[string]DriverConfig) *DigClient {
-	o := DigClient{confs: confs, clients: map[string]DigSourceClient{}}
+func NewGripperClient(confs map[string]DriverConfig) *GripperClient {
+	o := GripperClient{confs: confs, clients: map[string]GripperSourceClient{}}
 	return &o
 }
 
-func (m *DigClient) startConn(name string) (DigSourceClient, error) {
+func (m *GripperClient) startConn(name string) (GripperSourceClient, error) {
 	conf := m.confs[name]
 
 	rpcConf := rpc.ConfigWithDefaults(conf.Host)
@@ -36,19 +36,19 @@ func (m *DigClient) startConn(name string) (DigSourceClient, error) {
 		log.Errorf("RPC Connection error: %s", err)
 		return nil, err
 	}
-	client := NewDigSourceClient(conn)
+	client := NewGripperSourceClient(conn)
 	m.clients[name] = client
 	return client, nil
 }
 
-func (m *DigClient) getConn(name string) (DigSourceClient, error) {
+func (m *GripperClient) getConn(name string) (GripperSourceClient, error) {
 	if c, ok := m.clients[name]; ok {
 		return c, nil
 	}
 	return m.startConn(name)
 }
 
-func (m *DigClient) GetCollectionInfo(ctx context.Context, source string, collection string) (*CollectionInfo, error) {
+func (m *GripperClient) GetCollectionInfo(ctx context.Context, source string, collection string) (*CollectionInfo, error) {
 	client, err := m.getConn(source)
 	if err != nil {
 		return nil, err
@@ -57,7 +57,7 @@ func (m *DigClient) GetCollectionInfo(ctx context.Context, source string, collec
 	return client.GetCollectionInfo(ctx, &req)
 }
 
-func (m *DigClient) GetCollections(ctx context.Context, source string) chan string {
+func (m *GripperClient) GetCollections(ctx context.Context, source string) chan string {
 	out := make(chan string, 10)
 	go func() {
 		defer close(out)
@@ -86,7 +86,7 @@ func (m *DigClient) GetCollections(ctx context.Context, source string) chan stri
 	return out
 }
 
-func (m *DigClient) GetIDs(ctx context.Context, source string, collection string) chan string {
+func (m *GripperClient) GetIDs(ctx context.Context, source string, collection string) chan string {
 	out := make(chan string, 10)
 	go func() {
 		defer close(out)
@@ -116,7 +116,7 @@ func (m *DigClient) GetIDs(ctx context.Context, source string, collection string
 	return out
 }
 
-func (m *DigClient) GetRows(ctx context.Context, source string, collection string) chan *Row {
+func (m *GripperClient) GetRows(ctx context.Context, source string, collection string) chan *Row {
 	out := make(chan *Row, 10)
 	go func() {
 		defer close(out)
@@ -146,7 +146,7 @@ func (m *DigClient) GetRows(ctx context.Context, source string, collection strin
 	return out
 }
 
-func (m *DigClient) GetRowsByID(ctx context.Context, source string, collection string, reqChan chan *RowRequest) (chan *Row, error) {
+func (m *GripperClient) GetRowsByID(ctx context.Context, source string, collection string, reqChan chan *RowRequest) (chan *Row, error) {
 	out := make(chan *Row, 10)
 	client, err := m.getConn(source)
 	if err != nil {
@@ -181,7 +181,7 @@ func (m *DigClient) GetRowsByID(ctx context.Context, source string, collection s
 	return out, nil
 }
 
-func (m *DigClient) GetRowsByField(ctx context.Context, source string, collection string, field string, value string) (chan *Row, error) {
+func (m *GripperClient) GetRowsByField(ctx context.Context, source string, collection string, field string, value string) (chan *Row, error) {
 	out := make(chan *Row, 10)
 	client, err := m.getConn(source)
 	if err != nil {

@@ -29,7 +29,7 @@ type EdgeSource struct {
 }
 
 type TabularGraph struct {
-	client   *DigClient
+	client   *GripperClient
 	vertices map[string]*VertexSource
 	outEdges map[string][]*EdgeSource //outbound edges by vertex prefix
 	inEdges  map[string][]*EdgeSource //inbound edges by vertex prefix
@@ -50,7 +50,7 @@ func NewTabularGraph(conf GraphConfig) (*TabularGraph, error) {
 
 	log.Info("Loading Graph Config")
 
-	out.client = NewDigClient(conf.Sources)
+	out.client = NewGripperClient(conf.Sources)
 
 	//Check if vertex mapping match to sources
 	for _, v := range conf.Vertices {
@@ -470,7 +470,7 @@ func (t *TabularGraph) GetEdgeList(ctx context.Context, load bool) <-chan *gripq
 }
 
 func rowRequestVertexPipeline(ctx context.Context, prefix string,
-	label string, client *DigClient, source string, collection string) (chan interface{}, chan interface{}) {
+	label string, client *GripperClient, source string, collection string) (chan interface{}, chan interface{}) {
 	reqSync := &sync.Mutex{}
 	reqMap := map[uint64]gdbi.ElementLookup{}
 	in := make(chan interface{}, 10)
