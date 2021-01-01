@@ -13,32 +13,32 @@ import (
 // is compatible with the grpc package it is being compiled against.
 const _ = grpc.SupportPackageIsVersion7
 
-// GripperSourceClient is the client API for GripperSource service.
+// GRIPSourceClient is the client API for GRIPSource service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
-type GripperSourceClient interface {
-	GetCollections(ctx context.Context, in *Empty, opts ...grpc.CallOption) (GripperSource_GetCollectionsClient, error)
+type GRIPSourceClient interface {
+	GetCollections(ctx context.Context, in *Empty, opts ...grpc.CallOption) (GRIPSource_GetCollectionsClient, error)
 	GetCollectionInfo(ctx context.Context, in *Collection, opts ...grpc.CallOption) (*CollectionInfo, error)
-	GetIDs(ctx context.Context, in *Collection, opts ...grpc.CallOption) (GripperSource_GetIDsClient, error)
-	GetRows(ctx context.Context, in *Collection, opts ...grpc.CallOption) (GripperSource_GetRowsClient, error)
-	GetRowsByID(ctx context.Context, opts ...grpc.CallOption) (GripperSource_GetRowsByIDClient, error)
-	GetRowsByField(ctx context.Context, in *FieldRequest, opts ...grpc.CallOption) (GripperSource_GetRowsByFieldClient, error)
+	GetIDs(ctx context.Context, in *Collection, opts ...grpc.CallOption) (GRIPSource_GetIDsClient, error)
+	GetRows(ctx context.Context, in *Collection, opts ...grpc.CallOption) (GRIPSource_GetRowsClient, error)
+	GetRowsByID(ctx context.Context, opts ...grpc.CallOption) (GRIPSource_GetRowsByIDClient, error)
+	GetRowsByField(ctx context.Context, in *FieldRequest, opts ...grpc.CallOption) (GRIPSource_GetRowsByFieldClient, error)
 }
 
-type gripperSourceClient struct {
+type gRIPSourceClient struct {
 	cc grpc.ClientConnInterface
 }
 
-func NewGripperSourceClient(cc grpc.ClientConnInterface) GripperSourceClient {
-	return &gripperSourceClient{cc}
+func NewGRIPSourceClient(cc grpc.ClientConnInterface) GRIPSourceClient {
+	return &gRIPSourceClient{cc}
 }
 
-func (c *gripperSourceClient) GetCollections(ctx context.Context, in *Empty, opts ...grpc.CallOption) (GripperSource_GetCollectionsClient, error) {
-	stream, err := c.cc.NewStream(ctx, &_GripperSource_serviceDesc.Streams[0], "/gripper.GripperSource/GetCollections", opts...)
+func (c *gRIPSourceClient) GetCollections(ctx context.Context, in *Empty, opts ...grpc.CallOption) (GRIPSource_GetCollectionsClient, error) {
+	stream, err := c.cc.NewStream(ctx, &_GRIPSource_serviceDesc.Streams[0], "/gripper.GRIPSource/GetCollections", opts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &gripperSourceGetCollectionsClient{stream}
+	x := &gRIPSourceGetCollectionsClient{stream}
 	if err := x.ClientStream.SendMsg(in); err != nil {
 		return nil, err
 	}
@@ -48,16 +48,16 @@ func (c *gripperSourceClient) GetCollections(ctx context.Context, in *Empty, opt
 	return x, nil
 }
 
-type GripperSource_GetCollectionsClient interface {
+type GRIPSource_GetCollectionsClient interface {
 	Recv() (*Collection, error)
 	grpc.ClientStream
 }
 
-type gripperSourceGetCollectionsClient struct {
+type gRIPSourceGetCollectionsClient struct {
 	grpc.ClientStream
 }
 
-func (x *gripperSourceGetCollectionsClient) Recv() (*Collection, error) {
+func (x *gRIPSourceGetCollectionsClient) Recv() (*Collection, error) {
 	m := new(Collection)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
@@ -65,21 +65,21 @@ func (x *gripperSourceGetCollectionsClient) Recv() (*Collection, error) {
 	return m, nil
 }
 
-func (c *gripperSourceClient) GetCollectionInfo(ctx context.Context, in *Collection, opts ...grpc.CallOption) (*CollectionInfo, error) {
+func (c *gRIPSourceClient) GetCollectionInfo(ctx context.Context, in *Collection, opts ...grpc.CallOption) (*CollectionInfo, error) {
 	out := new(CollectionInfo)
-	err := c.cc.Invoke(ctx, "/gripper.GripperSource/GetCollectionInfo", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/gripper.GRIPSource/GetCollectionInfo", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *gripperSourceClient) GetIDs(ctx context.Context, in *Collection, opts ...grpc.CallOption) (GripperSource_GetIDsClient, error) {
-	stream, err := c.cc.NewStream(ctx, &_GripperSource_serviceDesc.Streams[1], "/gripper.GripperSource/GetIDs", opts...)
+func (c *gRIPSourceClient) GetIDs(ctx context.Context, in *Collection, opts ...grpc.CallOption) (GRIPSource_GetIDsClient, error) {
+	stream, err := c.cc.NewStream(ctx, &_GRIPSource_serviceDesc.Streams[1], "/gripper.GRIPSource/GetIDs", opts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &gripperSourceGetIDsClient{stream}
+	x := &gRIPSourceGetIDsClient{stream}
 	if err := x.ClientStream.SendMsg(in); err != nil {
 		return nil, err
 	}
@@ -89,16 +89,16 @@ func (c *gripperSourceClient) GetIDs(ctx context.Context, in *Collection, opts .
 	return x, nil
 }
 
-type GripperSource_GetIDsClient interface {
+type GRIPSource_GetIDsClient interface {
 	Recv() (*RowID, error)
 	grpc.ClientStream
 }
 
-type gripperSourceGetIDsClient struct {
+type gRIPSourceGetIDsClient struct {
 	grpc.ClientStream
 }
 
-func (x *gripperSourceGetIDsClient) Recv() (*RowID, error) {
+func (x *gRIPSourceGetIDsClient) Recv() (*RowID, error) {
 	m := new(RowID)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
@@ -106,12 +106,12 @@ func (x *gripperSourceGetIDsClient) Recv() (*RowID, error) {
 	return m, nil
 }
 
-func (c *gripperSourceClient) GetRows(ctx context.Context, in *Collection, opts ...grpc.CallOption) (GripperSource_GetRowsClient, error) {
-	stream, err := c.cc.NewStream(ctx, &_GripperSource_serviceDesc.Streams[2], "/gripper.GripperSource/GetRows", opts...)
+func (c *gRIPSourceClient) GetRows(ctx context.Context, in *Collection, opts ...grpc.CallOption) (GRIPSource_GetRowsClient, error) {
+	stream, err := c.cc.NewStream(ctx, &_GRIPSource_serviceDesc.Streams[2], "/gripper.GRIPSource/GetRows", opts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &gripperSourceGetRowsClient{stream}
+	x := &gRIPSourceGetRowsClient{stream}
 	if err := x.ClientStream.SendMsg(in); err != nil {
 		return nil, err
 	}
@@ -121,16 +121,16 @@ func (c *gripperSourceClient) GetRows(ctx context.Context, in *Collection, opts 
 	return x, nil
 }
 
-type GripperSource_GetRowsClient interface {
+type GRIPSource_GetRowsClient interface {
 	Recv() (*Row, error)
 	grpc.ClientStream
 }
 
-type gripperSourceGetRowsClient struct {
+type gRIPSourceGetRowsClient struct {
 	grpc.ClientStream
 }
 
-func (x *gripperSourceGetRowsClient) Recv() (*Row, error) {
+func (x *gRIPSourceGetRowsClient) Recv() (*Row, error) {
 	m := new(Row)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
@@ -138,30 +138,30 @@ func (x *gripperSourceGetRowsClient) Recv() (*Row, error) {
 	return m, nil
 }
 
-func (c *gripperSourceClient) GetRowsByID(ctx context.Context, opts ...grpc.CallOption) (GripperSource_GetRowsByIDClient, error) {
-	stream, err := c.cc.NewStream(ctx, &_GripperSource_serviceDesc.Streams[3], "/gripper.GripperSource/GetRowsByID", opts...)
+func (c *gRIPSourceClient) GetRowsByID(ctx context.Context, opts ...grpc.CallOption) (GRIPSource_GetRowsByIDClient, error) {
+	stream, err := c.cc.NewStream(ctx, &_GRIPSource_serviceDesc.Streams[3], "/gripper.GRIPSource/GetRowsByID", opts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &gripperSourceGetRowsByIDClient{stream}
+	x := &gRIPSourceGetRowsByIDClient{stream}
 	return x, nil
 }
 
-type GripperSource_GetRowsByIDClient interface {
+type GRIPSource_GetRowsByIDClient interface {
 	Send(*RowRequest) error
 	Recv() (*Row, error)
 	grpc.ClientStream
 }
 
-type gripperSourceGetRowsByIDClient struct {
+type gRIPSourceGetRowsByIDClient struct {
 	grpc.ClientStream
 }
 
-func (x *gripperSourceGetRowsByIDClient) Send(m *RowRequest) error {
+func (x *gRIPSourceGetRowsByIDClient) Send(m *RowRequest) error {
 	return x.ClientStream.SendMsg(m)
 }
 
-func (x *gripperSourceGetRowsByIDClient) Recv() (*Row, error) {
+func (x *gRIPSourceGetRowsByIDClient) Recv() (*Row, error) {
 	m := new(Row)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
@@ -169,12 +169,12 @@ func (x *gripperSourceGetRowsByIDClient) Recv() (*Row, error) {
 	return m, nil
 }
 
-func (c *gripperSourceClient) GetRowsByField(ctx context.Context, in *FieldRequest, opts ...grpc.CallOption) (GripperSource_GetRowsByFieldClient, error) {
-	stream, err := c.cc.NewStream(ctx, &_GripperSource_serviceDesc.Streams[4], "/gripper.GripperSource/GetRowsByField", opts...)
+func (c *gRIPSourceClient) GetRowsByField(ctx context.Context, in *FieldRequest, opts ...grpc.CallOption) (GRIPSource_GetRowsByFieldClient, error) {
+	stream, err := c.cc.NewStream(ctx, &_GRIPSource_serviceDesc.Streams[4], "/gripper.GRIPSource/GetRowsByField", opts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &gripperSourceGetRowsByFieldClient{stream}
+	x := &gRIPSourceGetRowsByFieldClient{stream}
 	if err := x.ClientStream.SendMsg(in); err != nil {
 		return nil, err
 	}
@@ -184,16 +184,16 @@ func (c *gripperSourceClient) GetRowsByField(ctx context.Context, in *FieldReque
 	return x, nil
 }
 
-type GripperSource_GetRowsByFieldClient interface {
+type GRIPSource_GetRowsByFieldClient interface {
 	Recv() (*Row, error)
 	grpc.ClientStream
 }
 
-type gripperSourceGetRowsByFieldClient struct {
+type gRIPSourceGetRowsByFieldClient struct {
 	grpc.ClientStream
 }
 
-func (x *gripperSourceGetRowsByFieldClient) Recv() (*Row, error) {
+func (x *gRIPSourceGetRowsByFieldClient) Recv() (*Row, error) {
 	m := new(Row)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
@@ -201,154 +201,154 @@ func (x *gripperSourceGetRowsByFieldClient) Recv() (*Row, error) {
 	return m, nil
 }
 
-// GripperSourceServer is the server API for GripperSource service.
-// All implementations must embed UnimplementedGripperSourceServer
+// GRIPSourceServer is the server API for GRIPSource service.
+// All implementations must embed UnimplementedGRIPSourceServer
 // for forward compatibility
-type GripperSourceServer interface {
-	GetCollections(*Empty, GripperSource_GetCollectionsServer) error
+type GRIPSourceServer interface {
+	GetCollections(*Empty, GRIPSource_GetCollectionsServer) error
 	GetCollectionInfo(context.Context, *Collection) (*CollectionInfo, error)
-	GetIDs(*Collection, GripperSource_GetIDsServer) error
-	GetRows(*Collection, GripperSource_GetRowsServer) error
-	GetRowsByID(GripperSource_GetRowsByIDServer) error
-	GetRowsByField(*FieldRequest, GripperSource_GetRowsByFieldServer) error
-	mustEmbedUnimplementedGripperSourceServer()
+	GetIDs(*Collection, GRIPSource_GetIDsServer) error
+	GetRows(*Collection, GRIPSource_GetRowsServer) error
+	GetRowsByID(GRIPSource_GetRowsByIDServer) error
+	GetRowsByField(*FieldRequest, GRIPSource_GetRowsByFieldServer) error
+	mustEmbedUnimplementedGRIPSourceServer()
 }
 
-// UnimplementedGripperSourceServer must be embedded to have forward compatible implementations.
-type UnimplementedGripperSourceServer struct {
+// UnimplementedGRIPSourceServer must be embedded to have forward compatible implementations.
+type UnimplementedGRIPSourceServer struct {
 }
 
-func (UnimplementedGripperSourceServer) GetCollections(*Empty, GripperSource_GetCollectionsServer) error {
+func (UnimplementedGRIPSourceServer) GetCollections(*Empty, GRIPSource_GetCollectionsServer) error {
 	return status.Errorf(codes.Unimplemented, "method GetCollections not implemented")
 }
-func (UnimplementedGripperSourceServer) GetCollectionInfo(context.Context, *Collection) (*CollectionInfo, error) {
+func (UnimplementedGRIPSourceServer) GetCollectionInfo(context.Context, *Collection) (*CollectionInfo, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetCollectionInfo not implemented")
 }
-func (UnimplementedGripperSourceServer) GetIDs(*Collection, GripperSource_GetIDsServer) error {
+func (UnimplementedGRIPSourceServer) GetIDs(*Collection, GRIPSource_GetIDsServer) error {
 	return status.Errorf(codes.Unimplemented, "method GetIDs not implemented")
 }
-func (UnimplementedGripperSourceServer) GetRows(*Collection, GripperSource_GetRowsServer) error {
+func (UnimplementedGRIPSourceServer) GetRows(*Collection, GRIPSource_GetRowsServer) error {
 	return status.Errorf(codes.Unimplemented, "method GetRows not implemented")
 }
-func (UnimplementedGripperSourceServer) GetRowsByID(GripperSource_GetRowsByIDServer) error {
+func (UnimplementedGRIPSourceServer) GetRowsByID(GRIPSource_GetRowsByIDServer) error {
 	return status.Errorf(codes.Unimplemented, "method GetRowsByID not implemented")
 }
-func (UnimplementedGripperSourceServer) GetRowsByField(*FieldRequest, GripperSource_GetRowsByFieldServer) error {
+func (UnimplementedGRIPSourceServer) GetRowsByField(*FieldRequest, GRIPSource_GetRowsByFieldServer) error {
 	return status.Errorf(codes.Unimplemented, "method GetRowsByField not implemented")
 }
-func (UnimplementedGripperSourceServer) mustEmbedUnimplementedGripperSourceServer() {}
+func (UnimplementedGRIPSourceServer) mustEmbedUnimplementedGRIPSourceServer() {}
 
-// UnsafeGripperSourceServer may be embedded to opt out of forward compatibility for this service.
-// Use of this interface is not recommended, as added methods to GripperSourceServer will
+// UnsafeGRIPSourceServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to GRIPSourceServer will
 // result in compilation errors.
-type UnsafeGripperSourceServer interface {
-	mustEmbedUnimplementedGripperSourceServer()
+type UnsafeGRIPSourceServer interface {
+	mustEmbedUnimplementedGRIPSourceServer()
 }
 
-func RegisterGripperSourceServer(s grpc.ServiceRegistrar, srv GripperSourceServer) {
-	s.RegisterService(&_GripperSource_serviceDesc, srv)
+func RegisterGRIPSourceServer(s grpc.ServiceRegistrar, srv GRIPSourceServer) {
+	s.RegisterService(&_GRIPSource_serviceDesc, srv)
 }
 
-func _GripperSource_GetCollections_Handler(srv interface{}, stream grpc.ServerStream) error {
+func _GRIPSource_GetCollections_Handler(srv interface{}, stream grpc.ServerStream) error {
 	m := new(Empty)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
-	return srv.(GripperSourceServer).GetCollections(m, &gripperSourceGetCollectionsServer{stream})
+	return srv.(GRIPSourceServer).GetCollections(m, &gRIPSourceGetCollectionsServer{stream})
 }
 
-type GripperSource_GetCollectionsServer interface {
+type GRIPSource_GetCollectionsServer interface {
 	Send(*Collection) error
 	grpc.ServerStream
 }
 
-type gripperSourceGetCollectionsServer struct {
+type gRIPSourceGetCollectionsServer struct {
 	grpc.ServerStream
 }
 
-func (x *gripperSourceGetCollectionsServer) Send(m *Collection) error {
+func (x *gRIPSourceGetCollectionsServer) Send(m *Collection) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-func _GripperSource_GetCollectionInfo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _GRIPSource_GetCollectionInfo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(Collection)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(GripperSourceServer).GetCollectionInfo(ctx, in)
+		return srv.(GRIPSourceServer).GetCollectionInfo(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/gripper.GripperSource/GetCollectionInfo",
+		FullMethod: "/gripper.GRIPSource/GetCollectionInfo",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(GripperSourceServer).GetCollectionInfo(ctx, req.(*Collection))
+		return srv.(GRIPSourceServer).GetCollectionInfo(ctx, req.(*Collection))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _GripperSource_GetIDs_Handler(srv interface{}, stream grpc.ServerStream) error {
+func _GRIPSource_GetIDs_Handler(srv interface{}, stream grpc.ServerStream) error {
 	m := new(Collection)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
-	return srv.(GripperSourceServer).GetIDs(m, &gripperSourceGetIDsServer{stream})
+	return srv.(GRIPSourceServer).GetIDs(m, &gRIPSourceGetIDsServer{stream})
 }
 
-type GripperSource_GetIDsServer interface {
+type GRIPSource_GetIDsServer interface {
 	Send(*RowID) error
 	grpc.ServerStream
 }
 
-type gripperSourceGetIDsServer struct {
+type gRIPSourceGetIDsServer struct {
 	grpc.ServerStream
 }
 
-func (x *gripperSourceGetIDsServer) Send(m *RowID) error {
+func (x *gRIPSourceGetIDsServer) Send(m *RowID) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-func _GripperSource_GetRows_Handler(srv interface{}, stream grpc.ServerStream) error {
+func _GRIPSource_GetRows_Handler(srv interface{}, stream grpc.ServerStream) error {
 	m := new(Collection)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
-	return srv.(GripperSourceServer).GetRows(m, &gripperSourceGetRowsServer{stream})
+	return srv.(GRIPSourceServer).GetRows(m, &gRIPSourceGetRowsServer{stream})
 }
 
-type GripperSource_GetRowsServer interface {
+type GRIPSource_GetRowsServer interface {
 	Send(*Row) error
 	grpc.ServerStream
 }
 
-type gripperSourceGetRowsServer struct {
+type gRIPSourceGetRowsServer struct {
 	grpc.ServerStream
 }
 
-func (x *gripperSourceGetRowsServer) Send(m *Row) error {
+func (x *gRIPSourceGetRowsServer) Send(m *Row) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-func _GripperSource_GetRowsByID_Handler(srv interface{}, stream grpc.ServerStream) error {
-	return srv.(GripperSourceServer).GetRowsByID(&gripperSourceGetRowsByIDServer{stream})
+func _GRIPSource_GetRowsByID_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(GRIPSourceServer).GetRowsByID(&gRIPSourceGetRowsByIDServer{stream})
 }
 
-type GripperSource_GetRowsByIDServer interface {
+type GRIPSource_GetRowsByIDServer interface {
 	Send(*Row) error
 	Recv() (*RowRequest, error)
 	grpc.ServerStream
 }
 
-type gripperSourceGetRowsByIDServer struct {
+type gRIPSourceGetRowsByIDServer struct {
 	grpc.ServerStream
 }
 
-func (x *gripperSourceGetRowsByIDServer) Send(m *Row) error {
+func (x *gRIPSourceGetRowsByIDServer) Send(m *Row) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-func (x *gripperSourceGetRowsByIDServer) Recv() (*RowRequest, error) {
+func (x *gRIPSourceGetRowsByIDServer) Recv() (*RowRequest, error) {
 	m := new(RowRequest)
 	if err := x.ServerStream.RecvMsg(m); err != nil {
 		return nil, err
@@ -356,61 +356,61 @@ func (x *gripperSourceGetRowsByIDServer) Recv() (*RowRequest, error) {
 	return m, nil
 }
 
-func _GripperSource_GetRowsByField_Handler(srv interface{}, stream grpc.ServerStream) error {
+func _GRIPSource_GetRowsByField_Handler(srv interface{}, stream grpc.ServerStream) error {
 	m := new(FieldRequest)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
-	return srv.(GripperSourceServer).GetRowsByField(m, &gripperSourceGetRowsByFieldServer{stream})
+	return srv.(GRIPSourceServer).GetRowsByField(m, &gRIPSourceGetRowsByFieldServer{stream})
 }
 
-type GripperSource_GetRowsByFieldServer interface {
+type GRIPSource_GetRowsByFieldServer interface {
 	Send(*Row) error
 	grpc.ServerStream
 }
 
-type gripperSourceGetRowsByFieldServer struct {
+type gRIPSourceGetRowsByFieldServer struct {
 	grpc.ServerStream
 }
 
-func (x *gripperSourceGetRowsByFieldServer) Send(m *Row) error {
+func (x *gRIPSourceGetRowsByFieldServer) Send(m *Row) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-var _GripperSource_serviceDesc = grpc.ServiceDesc{
-	ServiceName: "gripper.GripperSource",
-	HandlerType: (*GripperSourceServer)(nil),
+var _GRIPSource_serviceDesc = grpc.ServiceDesc{
+	ServiceName: "gripper.GRIPSource",
+	HandlerType: (*GRIPSourceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
 			MethodName: "GetCollectionInfo",
-			Handler:    _GripperSource_GetCollectionInfo_Handler,
+			Handler:    _GRIPSource_GetCollectionInfo_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{
 		{
 			StreamName:    "GetCollections",
-			Handler:       _GripperSource_GetCollections_Handler,
+			Handler:       _GRIPSource_GetCollections_Handler,
 			ServerStreams: true,
 		},
 		{
 			StreamName:    "GetIDs",
-			Handler:       _GripperSource_GetIDs_Handler,
+			Handler:       _GRIPSource_GetIDs_Handler,
 			ServerStreams: true,
 		},
 		{
 			StreamName:    "GetRows",
-			Handler:       _GripperSource_GetRows_Handler,
+			Handler:       _GRIPSource_GetRows_Handler,
 			ServerStreams: true,
 		},
 		{
 			StreamName:    "GetRowsByID",
-			Handler:       _GripperSource_GetRowsByID_Handler,
+			Handler:       _GRIPSource_GetRowsByID_Handler,
 			ServerStreams: true,
 			ClientStreams: true,
 		},
 		{
 			StreamName:    "GetRowsByField",
-			Handler:       _GripperSource_GetRowsByField_Handler,
+			Handler:       _GRIPSource_GetRowsByField_Handler,
 			ServerStreams: true,
 		},
 	},

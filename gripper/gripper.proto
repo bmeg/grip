@@ -39,7 +39,7 @@ message CollectionInfo {
   repeated string search_fields = 1;
 }
 
-service GripperSource {
+service GRIPSource {
 
   rpc GetCollections(Empty) returns (stream Collection);
 
