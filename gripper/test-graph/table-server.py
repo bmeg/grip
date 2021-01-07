@@ -17,7 +17,7 @@ def keyUnion(a):
         o.update(*a)
     return list(o)
 
-class CollectionServicer(gripper_pb2_grpc.DigSourceServicer):
+class CollectionServicer(gripper_pb2_grpc.GRIPSourceServicer):
     def __init__(self, data):
         self.data = data
 
@@ -69,7 +69,7 @@ class CollectionServicer(gripper_pb2_grpc.DigSourceServicer):
 
 def serve(port, data):
   server = grpc.server(futures.ThreadPoolExecutor(max_workers=100))
-  gripper_pb2_grpc.add_DigSourceServicer_to_server(
+  gripper_pb2_grpc.add_GRIPSourceServicer_to_server(
       CollectionServicer(data), server)
   server.add_insecure_port('[::]:%s' % port)
   server.start()
