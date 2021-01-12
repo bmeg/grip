@@ -281,7 +281,7 @@ class Query(BaseConnection):
         """
         Execute the query and return an iterator.
         """
-        log_level = logging.INFO
+        log_level = logging.root.level
         if debug:
             log_level = logging.DEBUG
         logger = logging.getLogger(__name__)
