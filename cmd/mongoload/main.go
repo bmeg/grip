@@ -29,6 +29,8 @@ var edgeFile string
 var bulkBufferSize = 1000
 var workerCount = 1
 
+var logRate = 10000
+
 var createGraph = false
 
 func vertexSerialize(vertChan chan *gripql.Vertex, workers int) chan []byte {
@@ -107,7 +109,7 @@ var Cmd = &cobra.Command{
 				return err
 			}
 		}
-		
+
 		vertexCol := client.Database(database).Collection(fmt.Sprintf("%s_vertices", graph))
 		edgeCol := client.Database(database).Collection(fmt.Sprintf("%s_edges", graph))
 
@@ -125,7 +127,7 @@ var Cmd = &cobra.Command{
 			count := 0
 			for d := range dataChan {
 				vertInserter.InsertRaw(d)
-				if count%1000 == 0 {
+				if count%logRate == 0 {
 					log.Infof("Loaded %d vertices", count)
 				}
 				count++
@@ -147,7 +149,7 @@ var Cmd = &cobra.Command{
 			count := 0
 			for d := range dataChan {
 				edgeInserter.InsertRaw(d)
-				if count%1000 == 0 {
+				if count%logRate == 0 {
 					log.Infof("Loaded %d edges", count)
 				}
 				count++
