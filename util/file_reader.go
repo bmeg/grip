@@ -70,12 +70,14 @@ func StreamVerticesFromFile(file string, workers int) (chan *gripql.Vertex, erro
 	vertChan := make(chan *gripql.Vertex, workers)
 	var wg sync.WaitGroup
 
+	jum := protojson.UnmarshalOptions{DiscardUnknown:true}
+
 	for i := 0; i < workers; i++ {
 		wg.Add(1)
 		go func() {
 			for line := range lineChan {
 				v := &gripql.Vertex{}
-				err := protojson.Unmarshal([]byte(line), v)
+				err := jum.Unmarshal([]byte(line), v)
 				if err != nil {
 					log.WithFields(log.Fields{"error": err}).Errorf("Unmarshaling vertex: %s", line)
 				} else {
@@ -111,12 +113,14 @@ func StreamEdgesFromFile(file string, workers int) (chan *gripql.Edge, error) {
 	edgeChan := make(chan *gripql.Edge, workers)
 	var wg sync.WaitGroup
 
+	jum := protojson.UnmarshalOptions{DiscardUnknown:true}
+
 	for i := 0; i < workers; i++ {
 		wg.Add(1)
 		go func() {
 			for line := range lineChan {
 				e := &gripql.Edge{}
-				err := protojson.Unmarshal([]byte(line), e)
+				err := jum.Unmarshal([]byte(line), e)
 				if err != nil {
 					log.WithFields(log.Fields{"error": err}).Errorf("Unmarshaling edge: %s", line)
 				} else {
