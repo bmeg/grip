@@ -29,6 +29,8 @@ var edgeFile string
 var bulkBufferSize = 1000
 var workerCount = 1
 
+var createGraph = false
+
 func vertexSerialize(vertChan chan *gripql.Vertex, workers int) chan []byte {
 	dataChan := make(chan []byte, workers)
 	var wg sync.WaitGroup
@@ -99,11 +101,13 @@ var Cmd = &cobra.Command{
 			return err
 		}
 
-		err = mongo.AddMongoGraph(client, database, graph)
-		if err != nil {
-			return err
+		if createGraph {
+			err = mongo.AddMongoGraph(client, database, graph)
+			if err != nil {
+				return err
+			}
 		}
-
+		
 		vertexCol := client.Database(database).Collection(fmt.Sprintf("%s_vertices", graph))
 		edgeCol := client.Database(database).Collection(fmt.Sprintf("%s_edges", graph))
 
@@ -160,6 +164,7 @@ func init() {
 	flags.StringVar(&database, "database", database, "database name in mongo to store graph")
 	flags.StringVar(&vertexFile, "vertex", "", "vertex file")
 	flags.StringVar(&edgeFile, "edge", "", "edge file")
+	flags.BoolVarP(&createGraph, "create", "c", false, "create graph")
 	flags.IntVarP(&workerCount, "workers", "n", workerCount, "number of processing threads")
 	flags.IntVar(&bulkBufferSize, "batch-size", bulkBufferSize, "mongo bulk load batch size")
 }
