@@ -141,7 +141,7 @@ var Cmd = &cobra.Command{
 				SetBypassDocumentValidation(true).
 				SetOrdered(false).
 				SetUpsert(true)
-			edgeChan, err := util.StreamEdgesFromFile(vertexFile, workerCount)
+			edgeChan, err := util.StreamEdgesFromFile(edgeFile, workerCount)
 			if err != nil {
 				return err
 			}
