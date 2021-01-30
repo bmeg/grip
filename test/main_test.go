@@ -64,14 +64,14 @@ func setupSQLGraph() error {
 func TestMain(m *testing.M) {
 	flag.StringVar(&configFile, "config", configFile, "config file to use for tests")
 	flag.Parse()
-	vertChan, err := util.StreamVerticesFromFile("./resources/smtest_vertices.txt")
+	vertChan, err := util.StreamVerticesFromFile("./resources/smtest_vertices.txt", 2)
 	if err != nil {
 		panic(err)
 	}
 	for v := range vertChan {
 		vertices = append(vertices, v)
 	}
-	edgeChan, err := util.StreamEdgesFromFile("./resources/smtest_edges.txt")
+	edgeChan, err := util.StreamEdgesFromFile("./resources/smtest_edges.txt", 2)
 	if err != nil {
 		panic(err)
 	}
