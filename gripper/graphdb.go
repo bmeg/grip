@@ -16,18 +16,16 @@ type TabularGDB struct {
 
 func NewGDB(conf Config, configPath string) (*TabularGDB, error) {
 	out := TabularGDB{map[string]*TabularGraph{}}
-	for k, v := range conf.Graphs {
-		fPath := filepath.Join(filepath.Dir(configPath), v)
-		if gConf, err := LoadConfig(fPath); err == nil {
-			o, err := NewTabularGraph(*gConf)
-			if err == nil {
-				out.graphs[k] = o
-			} else {
-				log.Printf("Error loading graph config: %s", err)
-			}
+	fPath := filepath.Join(filepath.Dir(configPath), conf.ConfigFile)
+	if gConf, err := LoadConfig(fPath); err == nil {
+		o, err := NewTabularGraph(*gConf)
+		if err == nil {
+			out.graphs[conf.Graph] = o
 		} else {
-			log.Printf("Error loading config: %s", err)
+			log.Printf("Error loading graph config: %s", err)
 		}
+	} else {
+		log.Printf("Error loading config: %s", err)
 	}
 	return &out, nil
 }

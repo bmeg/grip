@@ -6,7 +6,6 @@ import (
 	"os"
 	"os/exec"
 	"sort"
-	"strings"
 	"testing"
 
 	"github.com/bmeg/grip/config"
@@ -98,43 +97,43 @@ func TestMain(m *testing.M) {
 
 	config.TestifyConfig(conf)
 	fmt.Printf("Test config: %+v\n", conf)
-	dbname = strings.ToLower(conf.Database)
+	dbconfig := conf.Drivers[conf.Default]
 
-	if dbname == "existing-sql" {
+	if dbconfig.ExistingSQL != nil {
 		err = setupSQLGraph()
 		if err != nil {
 			fmt.Println("Error: setting up graph:", err)
 			return
 		}
-	}
-
-	switch dbname {
-	case "bolt", "badger", "level":
-		gdb, err = kvgraph.NewKVGraphDB(dbname, conf.KVStorePath)
+		gdb, err = esql.NewGraphDB(*dbconfig.ExistingSQL)
+	} else if dbconfig.Badger != nil {
+		gdb, err = kvgraph.NewKVGraphDB("badger", *dbconfig.Badger)
 		defer func() {
-			os.RemoveAll(conf.KVStorePath)
+			os.RemoveAll(*dbconfig.Badger)
 		}()
-
-	case "grids":
-		gdb, err = grids.NewGraphDB(conf.Grids)
+	} else if dbconfig.Bolt != nil {
+		gdb, err = kvgraph.NewKVGraphDB("bolt", *dbconfig.Bolt)
 		defer func() {
-			os.RemoveAll(conf.Grids)
+			os.RemoveAll(*dbconfig.Bolt)
 		}()
-
-	case "elastic":
-		gdb, err = elastic.NewGraphDB(conf.Elasticsearch)
-
-	case "mongo":
-		gdb, err = mongo.NewGraphDB(conf.MongoDB)
-
-	case "existing-sql":
-		gdb, err = esql.NewGraphDB(conf.ExistingSQL)
-
-	case "psql":
-		gdb, err = psql.NewGraphDB(conf.PSQL)
-
-	default:
-		err = fmt.Errorf("unknown database: %s", dbname)
+	} else if dbconfig.Level != nil {
+		gdb, err = kvgraph.NewKVGraphDB("badger", *dbconfig.Level)
+		defer func() {
+			os.RemoveAll(*dbconfig.Level)
+		}()
+	} else if dbconfig.Grids != nil {
+		gdb, err = grids.NewGraphDB(*dbconfig.Grids)
+		defer func() {
+			os.RemoveAll(*dbconfig.Grids)
+		}()
+	} else if dbconfig.Elasticsearch != nil {
+		gdb, err = elastic.NewGraphDB(*dbconfig.Elasticsearch)
+	} else if dbconfig.MongoDB != nil {
+		gdb, err = mongo.NewGraphDB(*dbconfig.MongoDB)
+	} else if dbconfig.PSQL != nil {
+		gdb, err = psql.NewGraphDB(*dbconfig.PSQL)
+	} else {
+		err = fmt.Errorf("unknown database")
 	}
 
 	err = gdb.AddGraph("test-graph")

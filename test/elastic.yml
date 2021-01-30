@@ -1,5 +1,7 @@
-Database: elastic
+Default: elastic
 
-Elasticsearch:
-  URL: http://localhost:19200
-  Synchronous: true
+Drivers:
+  elastic:
+    Elasticsearch:
+      URL: http://localhost:19200
+      Synchronous: true

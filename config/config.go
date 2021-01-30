@@ -16,7 +16,6 @@ import (
 	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/mongo"
 	"github.com/bmeg/grip/psql"
-	"github.com/bmeg/grip/server"
 	"github.com/bmeg/grip/util"
 	"github.com/bmeg/grip/util/duration"
 	"github.com/bmeg/grip/util/rpc"
@@ -27,26 +26,35 @@ func init() {
 	rand.Seed(time.Now().UTC().UnixNano())
 }
 
+type DriverConfig struct {
+	Grids         *string
+	Badger        *string
+	Bolt          *string
+	Level         *string
+	Elasticsearch *elastic.Config
+	MongoDB       *mongo.Config
+	PSQL          *psql.Config
+	ExistingSQL   *esql.Config
+	Gripper       *gripper.Config
+}
+
 // Config describes the configuration for Grip.
 type Config struct {
-	Database      string
-	Server        server.Config
+	Server        ServerConfig
 	RPCClient     rpc.Config
-	KVStorePath   string
-	Grids         string
-	Elasticsearch elastic.Config
-	MongoDB       mongo.Config
-	PSQL          psql.Config
-	ExistingSQL   esql.Config
-	Gripper       gripper.Config
 	Logger        log.Logger
+	Default       string
+	Graphs				map[string]string
+	Drivers       map[string]DriverConfig
+}
+
+type DriverParams interface {
+	 SetDefaults()
 }
 
 // DefaultConfig returns an instance of the default configuration for Grip.
 func DefaultConfig() *Config {
 	c := &Config{}
-	c.Database = "badger"
-
 	c.Server.HostName = "localhost"
 	c.Server.HTTPPort = "8201"
 	c.Server.RPCPort = "8202"
@@ -64,17 +72,16 @@ func DefaultConfig() *Config {
 
 	c.RPCClient = rpc.ConfigWithDefaults(c.Server.RPCAddress())
 
-	c.KVStorePath = "grip.db"
-
-	c.MongoDB.DBName = "gripdb"
-	c.MongoDB.BatchSize = 1000
-	c.MongoDB.UseAggregationPipeline = true
-
-	c.Elasticsearch.DBName = "gripdb"
-	c.Elasticsearch.BatchSize = 1000
+	c.Drivers = map[string]DriverConfig{}
 
 	c.Logger = log.DefaultLoggerConfig()
 	return c
+}
+
+func (conf *Config) AddBadgerDefault() {
+	n := "grip.db"
+	conf.Drivers["badger"] = DriverConfig{Badger:&n}
+	conf.Default = "badger"
 }
 
 // TestifyConfig randomizes ports and database paths/names
@@ -87,25 +94,44 @@ func TestifyConfig(c *Config) {
 
 	c.RPCClient.ServerAddress = c.Server.RPCAddress()
 
-	c.KVStorePath = "grip.db." + rand
+	d := c.Drivers[c.Default]
 
-	c.MongoDB.DBName = "gripdb-" + rand
+	if d.Badger != nil {
+		a := "grip.db." + rand
+		d.Badger = &a
+	}
+	if d.MongoDB != nil {
+		d.MongoDB.DBName = "gripdb-" + rand
+	}
+	if d.Elasticsearch != nil {
+		d.Elasticsearch.DBName = "gripdb-" + rand
+		d.Elasticsearch.Synchronous = true
+	}
+	c.Drivers[c.Default] = d
+}
 
-	c.Elasticsearch.DBName = "gripdb-" + rand
-	c.Elasticsearch.Synchronous = true
+func (c *Config) SetDefaults() {
+	for _, d := range c.Drivers {
+		if d.MongoDB != nil {
+			d.MongoDB.SetDefaults()
+		}
+		if d.Elasticsearch != nil {
+			d.Elasticsearch.SetDefaults()
+		}
+	}
 }
 
 // ParseConfig parses a YAML doc into the given Config instance.
 func ParseConfig(raw []byte, conf *Config) error {
-	j, err := yaml.YAMLToJSON(raw)
-	if err != nil {
-		return err
-	}
-	err = CheckForUnknownKeys(j, conf, []string{"Gripper.Graphs."})
-	if err != nil {
-		return err
-	}
-	err = yaml.Unmarshal(raw, conf)
+	//j, err := yaml.YAMLToJSON(raw)
+	//if err != nil {
+	//	return err
+	//}
+	//err = CheckForUnknownKeys(j, conf, []string{"Gripper.Graphs."})
+	//if err != nil {
+	//	return err
+	//}
+	err := yaml.Unmarshal(raw, conf)
 	if err != nil {
 		return err
 	}
@@ -186,6 +212,11 @@ func GetKeys(obj interface{}) []string {
 // CheckForUnknownKeys takes a json byte array and checks that all keys are fields
 // in the reference object
 func CheckForUnknownKeys(jsonStr []byte, obj interface{}, exclude []string) error {
+	fmt.Printf("Checking: %#v\n", obj)
+	if _, ok := obj.(map[string]DriverConfig); ok {
+		fmt.Printf("Is map\n")
+		return nil
+	}
 	knownMap := make(map[string]interface{})
 	known := GetKeys(obj)
 	for _, k := range known {
