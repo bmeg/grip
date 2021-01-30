@@ -18,6 +18,8 @@ var edgeFile string
 var jsonFile string
 var yamlFile string
 
+var workerCount = 1
+
 var logRate = 10000
 
 // Cmd is the declaration of the command line
@@ -71,7 +73,7 @@ var Cmd = &cobra.Command{
 		if vertexFile != "" {
 			log.Infof("Loading vertex file: %s", vertexFile)
 			count := 0
-			vertChan, err := util.StreamVerticesFromFile(vertexFile)
+			vertChan, err := util.StreamVerticesFromFile(vertexFile, workerCount)
 			if err != nil {
 				return err
 			}
@@ -88,7 +90,7 @@ var Cmd = &cobra.Command{
 		if edgeFile != "" {
 			log.Infof("Loading edge file: %s", edgeFile)
 			count := 0
-			edgeChan, err := util.StreamEdgesFromFile(edgeFile)
+			edgeChan, err := util.StreamEdgesFromFile(edgeFile, workerCount)
 			if err != nil {
 				return err
 			}
@@ -153,4 +155,5 @@ func init() {
 	flags.StringVar(&edgeFile, "edge", "", "edge file")
 	flags.StringVar(&jsonFile, "json", "", "JSON graph file")
 	flags.StringVar(&yamlFile, "yaml", "", "YAML graph file")
+	flags.IntVarP(&workerCount, "workers", "n", workerCount, "number of processing threads")
 }
