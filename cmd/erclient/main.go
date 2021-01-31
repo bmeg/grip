@@ -144,6 +144,5 @@ func init() {
 	Cmd.AddCommand(IdsCmd)
 	Cmd.AddCommand(QueryCmd)
 	Cmd.AddCommand(GetCmd)
-	flags := Cmd.Flags()
-	flags.StringVar(&host, "host", host, "gripper server url")
+	Cmd.PersistentFlags().StringVar(&host, "host", host, "gripper server url")
 }
