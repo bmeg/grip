@@ -36,6 +36,24 @@ var ListCmd = &cobra.Command{
 	},
 }
 
+
+var InfoCmd = &cobra.Command{
+	Use:   "info",
+	Short: "Get info about a collection",
+	Args:  cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		client := getClient()
+		collection := args[0]
+		out, err := client.GetCollectionInfo(context.Background(), source, collection)
+		if err != nil {
+			return err
+		}
+		jm := protojson.MarshalOptions{}
+		fmt.Printf("%s\n", jm.Format(out))
+		return nil
+	},
+}
+
 var RowsCmd = &cobra.Command{
 	Use:   "rows",
 	Short: "List rows from a collection",
@@ -140,6 +158,7 @@ func init() {
 	gFlags.BoolVarP(&dataOnly, "data", "d", false, "Only Show data")
 
 	Cmd.AddCommand(ListCmd)
+	Cmd.AddCommand(InfoCmd)
 	Cmd.AddCommand(RowsCmd)
 	Cmd.AddCommand(IdsCmd)
 	Cmd.AddCommand(QueryCmd)
