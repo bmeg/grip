@@ -69,11 +69,21 @@ func NewTabularGraph(conf GraphConfig) (*TabularGraph, error) {
 			return nil, fmt.Errorf("Edge ToVertex not found")
 		}
 		if e.EdgeTable != nil {
-			_, err := out.client.GetCollectionInfo(context.Background(),
+			eTable, err := out.client.GetCollectionInfo(context.Background(),
 				e.EdgeTable.Source, e.EdgeTable.Collection)
 			if err != nil {
 				return nil, fmt.Errorf("Unable to get collection information %s : %s",
 					e.EdgeTable.Source, e.EdgeTable.Collection)
+			}
+			if !setcmp.ContainsString(eTable.SearchFields, e.EdgeTable.ToField) {
+				return nil, fmt.Errorf("Edge 'To' Field not indexed: %s %s",
+					e.EdgeTable.Collection,
+					e.EdgeTable.ToField)
+			}
+			if !setcmp.ContainsString(eTable.SearchFields, e.EdgeTable.FromField) {
+				return nil, fmt.Errorf("Edge 'From' Field not indexed: %s %s",
+					e.EdgeTable.Collection,
+					e.EdgeTable.FromField)
 			}
 			if !strings.HasPrefix(e.EdgeTable.ToField, "$.") {
 				return nil, fmt.Errorf("Edge 'To' Field does not start with JSONPath prefix ($.) = %s", e.EdgeTable.ToField)
@@ -168,6 +178,20 @@ func NewTabularGraph(conf GraphConfig) (*TabularGraph, error) {
 			reverse:    false,
 		})
 	}
+
+	// make sure inEdges and outEdges are balanced
+	for e := range out.outEdges {
+		if _, ok := out.inEdges[e]; !ok {
+			out.inEdges[e] = []*EdgeSource{}
+		}
+	}
+	for e := range out.inEdges {
+		if _, ok := out.outEdges[e]; !ok {
+			out.outEdges[e] = []*EdgeSource{}
+		}
+	}
+
+	// generate a list of all vertices
 	for e := range out.outEdges {
 		out.edgeSourceOrder = append(out.edgeSourceOrder, e)
 	}
