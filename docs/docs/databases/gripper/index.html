@@ -8,7 +8,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
 
   
-  <title>Amazon Purchase Network &middot; GRIP</title>
+  <title>GRIPPER &middot; GRIP</title>
   
 
   
@@ -128,7 +128,7 @@
             <ul class="sidebar-nav sidebar-nav-nested">
               <li>
                 <a href="https://bmeg.github.io/grip/docs/databases/gripper/"
-                   class="sidebar-nav-item "
+                   class="sidebar-nav-item  active"
                 >GRIPPER</a></li>
             </ul>
           </li>
@@ -185,7 +185,7 @@
             <ul class="sidebar-nav sidebar-nav-nested">
               <li>
                 <a href="https://bmeg.github.io/grip/docs/tutorials/amazon/"
-                   class="sidebar-nav-item  active"
+                   class="sidebar-nav-item "
                 >Amazon Purchase Network</a></li>
             </ul>
           </li>
@@ -278,38 +278,18 @@
   </div>
 
   <div class="main col span_8_of_12">
-    <h1 id="explore-amazon-product-co-purchasing-network-metadata">Explore Amazon Product Co-Purchasing Network Metadata</h1>
-<p>Download the data</p>
-<pre><code>curl -O http://snap.stanford.edu/data/bigdata/amazon/amazon-meta.txt.gz
-</code></pre><p>Convert the data into vertices and edges</p>
-<pre><code>python $GOPATH/src/github.com/bmeg/grip/example/amazon_convert.py amazon-meta.txt.gz amazon.data
-</code></pre><p>Create a graph called &lsquo;amazon&rsquo;</p>
-<pre><code>grip create amazon
-</code></pre><p>Load the vertices/edges into the graph</p>
-<pre><code>grip load amazon --edge amazon.data.edge --vertex amazon.data.vertex
-</code></pre><p>Query the graph</p>
-<p><em>command line client</em></p>
-<pre><code>grip query amazon 'O.query().V().out()'
-</code></pre><p><em>python client</em></p>
-<pre><code>pip install &quot;git+https://github.com/bmeg/grip.git#egg=gripql&amp;subdirectory=gripql/python/&quot;
-</code></pre><div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python"><span style="color:#f92672">import</span> gripql
+    <h1 id="gripper">GRIPPER</h1>
+<p>GRIP Plugable External Resources are data systems that GRIP can combine together
+to create graphs.</p>
+<p>Example:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-yaml" data-lang="yaml"><span style="color:#f92672">Drivers</span>:
+  <span style="color:#f92672">swapi-driver</span>:
+    <span style="color:#f92672">Gripper</span>:
+      <span style="color:#f92672">ConfigFile</span>: <span style="color:#ae81ff">./swapi.yaml</span>
+      <span style="color:#f92672">Graph</span>: <span style="color:#ae81ff">swapi</span>
+</code></pre></div><p><code>ConfigFile</code> - Path to GRIPPER graph map</p>
+<p><code>Graph</code> - Name of the graph for the mapped external resources.</p>
 
-conn <span style="color:#f92672">=</span> gripql<span style="color:#f92672">.</span>Connection(<span style="color:#e6db74">&#34;http://localhost:8201&#34;</span>)
-
-g <span style="color:#f92672">=</span> conn<span style="color:#f92672">.</span>graph(<span style="color:#e6db74">&#34;amazon&#34;</span>)
-
-<span style="color:#75715e"># Count the Vertices</span>
-<span style="color:#66d9ef">print</span> g<span style="color:#f92672">.</span>query()<span style="color:#f92672">.</span>V()<span style="color:#f92672">.</span>count()<span style="color:#f92672">.</span>execute()
-<span style="color:#75715e"># Count the Edges</span>
-<span style="color:#66d9ef">print</span> g<span style="color:#f92672">.</span>query()<span style="color:#f92672">.</span>E()<span style="color:#f92672">.</span>count()<span style="color:#f92672">.</span>execute()
-
-<span style="color:#75715e"># Try simple travesral</span>
-<span style="color:#66d9ef">print</span> g<span style="color:#f92672">.</span>query()<span style="color:#f92672">.</span>V(<span style="color:#e6db74">&#34;B00000I06U&#34;</span>)<span style="color:#f92672">.</span>outE()<span style="color:#f92672">.</span>execute()
-
-<span style="color:#75715e"># Find every Book that is similar to a DVD</span>
-<span style="color:#66d9ef">for</span> result <span style="color:#f92672">in</span> g<span style="color:#f92672">.</span>query()<span style="color:#f92672">.</span>V()<span style="color:#f92672">.</span>has(gripql<span style="color:#f92672">.</span>eq(<span style="color:#e6db74">&#34;group&#34;</span>, <span style="color:#e6db74">&#34;Book&#34;</span>))<span style="color:#f92672">.</span>as_(<span style="color:#e6db74">&#34;a&#34;</span>)<span style="color:#f92672">.</span>out(<span style="color:#e6db74">&#34;similar&#34;</span>)<span style="color:#f92672">.</span>has(gripql<span style="color:#f92672">.</span>eq(<span style="color:#e6db74">&#34;group&#34;</span>, <span style="color:#e6db74">&#34;DVD&#34;</span>))<span style="color:#f92672">.</span>as_(<span style="color:#e6db74">&#34;b&#34;</span>)<span style="color:#f92672">.</span>select([<span style="color:#e6db74">&#34;a&#34;</span>, <span style="color:#e6db74">&#34;b&#34;</span>]):
-    <span style="color:#66d9ef">print</span> result
-</code></pre></div>
   </div>
 
 </div>

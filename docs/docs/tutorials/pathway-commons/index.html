@@ -124,6 +124,15 @@
             </ul>
           </li>
           
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/databases/gripper/"
+                   class="sidebar-nav-item "
+                >GRIPPER</a></li>
+            </ul>
+          </li>
+          
           
         
         <li>
@@ -231,21 +240,49 @@
           
           
         
+        <li>
+          
+          <span class="intermediate">GIPPER</span></li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/gripper/gripper/"
+                   class="sidebar-nav-item "
+                >Intro</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/gripper/proxy/"
+                   class="sidebar-nav-item "
+                >External Resource Proxies</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/gripper/graphmodel/"
+                   class="sidebar-nav-item "
+                >Graph Model</a></li>
+            </ul>
+          </li>
+          
+          
+        
       
     </ul>
   </div>
 
   <div class="main col span_8_of_12">
     <p>Get Pathway Commons release</p>
-
 <pre><code>curl -O http://www.pathwaycommons.org/archives/PC2/v10/PathwayCommons10.All.BIOPAX.owl.gz
-</code></pre>
-
-<p>Convert to Property Graph</p>
-
+</code></pre><p>Convert to Property Graph</p>
 <pre><code>grip rdf --dump --gzip pc PathwayCommons10.All.BIOPAX.owl.gz -m http://pathwaycommons.org/pc2/#=pc: -m http://www.biopax.org/release/biopax-level3.owl#=biopax:
 </code></pre>
-
   </div>
 
 </div>

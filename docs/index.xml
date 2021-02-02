@@ -1,15 +1,11 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
     <title>GRIP</title>
     <link>https://bmeg.github.io/grip/</link>
     <description>Recent content on GRIP</description>
     <generator>Hugo -- gohugo.io</generator>
-    <language>en-us</language>
-    
-	<atom:link href="https://bmeg.github.io/grip/index.xml" rel="self" type="application/rss+xml" />
-    
-    
+    <language>en-us</language><atom:link href="https://bmeg.github.io/grip/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title></title>
       <link>https://bmeg.github.io/grip/docs/tutorials/pathway-commons/</link>
@@ -17,8 +13,8 @@
       
       <guid>https://bmeg.github.io/grip/docs/tutorials/pathway-commons/</guid>
       <description>Get Pathway Commons release
-curl -O http://www.pathwaycommons.org/archives/PC2/v10/PathwayCommons10.All.BIOPAX.owl.gz  Convert to Property Graph
-grip rdf --dump --gzip pc PathwayCommons10.All.BIOPAX.owl.gz -m http://pathwaycommons.org/pc2/#=pc: -m http://www.biopax.org/release/biopax-level3.owl#=biopax:  </description>
+curl -O http://www.pathwaycommons.org/archives/PC2/v10/PathwayCommons10.All.BIOPAX.owl.gz Convert to Property Graph
+grip rdf --dump --gzip pc PathwayCommons10.All.BIOPAX.owl.gz -m http://pathwaycommons.org/pc2/#=pc: -m http://www.biopax.org/release/biopax-level3.owl#=biopax: </description>
     </item>
     
     <item>
@@ -28,13 +24,13 @@ grip rdf --dump --gzip pc PathwayCommons10.All.BIOPAX.owl.gz -m http://pathwayco
       
       <guid>https://bmeg.github.io/grip/docs/tutorials/amazon/</guid>
       <description>Explore Amazon Product Co-Purchasing Network Metadata Download the data
-curl -O http://snap.stanford.edu/data/bigdata/amazon/amazon-meta.txt.gz  Convert the data into vertices and edges
-python $GOPATH/src/github.com/bmeg/grip/example/amazon_convert.py amazon-meta.txt.gz amazon.data  Create a graph called &amp;lsquo;amazon&amp;rsquo;
-grip create amazon  Load the vertices/edges into the graph
-grip load amazon --edge amazon.data.edge --vertex amazon.data.vertex  Query the graph
+curl -O http://snap.stanford.edu/data/bigdata/amazon/amazon-meta.txt.gz Convert the data into vertices and edges
+python $GOPATH/src/github.com/bmeg/grip/example/amazon_convert.py amazon-meta.txt.gz amazon.data Create a graph called &amp;lsquo;amazon&amp;rsquo;
+grip create amazon Load the vertices/edges into the graph
+grip load amazon --edge amazon.data.edge --vertex amazon.data.vertex Query the graph
 command line client
-grip query amazon &#39;O.query().V().out()&#39;  python client
-pip install &amp;quot;git+https://github.com/bmeg/grip.git#egg=gripql&amp;amp;subdirectory=gripql/python/&amp;quot;  import gripql conn = gripql.</description>
+grip query amazon &#39;O.query().V().out()&#39; python client
+pip install &amp;quot;git+https://github.com/bmeg/grip.git#egg=gripql&amp;amp;subdirectory=gripql/python/&amp;quot; import gripql conn = gripql.Connection(&amp;#34;http://localhost:8201&amp;#34;) g = conn.graph(&amp;#34;amazon&amp;#34;) # Count the Vertices print g.</description>
     </item>
     
     <item>
@@ -44,8 +40,8 @@ pip install &amp;quot;git+https://github.com/bmeg/grip.git#egg=gripql&amp;amp;su
       
       <guid>https://bmeg.github.io/grip/docs/security/basic/</guid>
       <description>Basic Auth By default, an GRIP server allows open access to its API endpoints, but it can be configured to require basic password authentication. To enable this, include users and passwords in your config file:
-Server: BasicAuth: - User: testuser Password: abc123  Make sure to properly protect the configuration file so that it&amp;rsquo;s not readable by everyone:
-$ chmod 600 grip.config.yml  To use the password, set the GRIP_USER and GRIP_PASSWORD environment variables:</description>
+Server: BasicAuth: - User: testuser Password: abc123 Make sure to properly protect the configuration file so that it&amp;rsquo;s not readable by everyone:
+$ chmod 600 grip.config.yml To use the password, set the GRIP_USER and GRIP_PASSWORD environment variables:</description>
     </item>
     
     <item>
@@ -64,8 +60,7 @@ $ chmod 600 grip.config.yml  To use the password, set the GRIP_USER and GRIP_PAS
       
       <guid>https://bmeg.github.io/grip/download/</guid>
       <description> Download 0.5.1  Linux MacOS Windows is not supported sorry!  Release History See the Releases page for release history.
-Docker docker pull bmeg/grip docker run bmeg/grip grip server  Build From Source Go 1.12 or above suggested
-$ git clone https://github.com/bmeg/grip.git $ cd grip $ make  </description>
+Docker docker pull bmeg/grip docker run bmeg/grip grip server $ git clone https://github.com/bmeg/grip.git $ cd grip $ make </description>
     </item>
     
     <item>
@@ -74,9 +69,9 @@ $ git clone https://github.com/bmeg/grip.git $ cd grip $ make  </description>
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
       
       <guid>https://bmeg.github.io/grip/docs/databases/elastic/</guid>
-      <description> Elasticsearch GRIP supports storing vertices and edges in Elasticsearch.
+      <description>Elasticsearch GRIP supports storing vertices and edges in Elasticsearch.
 Config:
-Database: elasticsearch Elasticsearch: URL: &amp;quot;http://localhost:9200&amp;quot; DBName: &amp;quot;gripdb&amp;quot; Username: &amp;quot;&amp;quot; Password: &amp;quot;&amp;quot;  </description>
+Default: elastic Drivers: elastic: Elasticsearch: URL: &amp;#34;http://localhost:9200&amp;#34; DBName: &amp;#34;gripdb&amp;#34; Username: &amp;#34;&amp;#34; Password: &amp;#34;&amp;#34; </description>
     </item>
     
     <item>
@@ -85,9 +80,21 @@ Database: elasticsearch Elasticsearch: URL: &amp;quot;http://localhost:9200&amp;
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
       
       <guid>https://bmeg.github.io/grip/docs/databases/kvstore/</guid>
-      <description> Embedded Key Value Stores GRIP supports storing vertices and edges in a variety of key-value stores including:
- Badger BoltDB LevelDB RocksDB  Config:
-# pick one of: badger, bolt, level, rocks Database: badger KVStorePath: grip.db  </description>
+      <description>Embedded Key Value Stores GRIP supports storing vertices and edges in a variety of key-value stores including:
+ Badger BoltDB LevelDB  Config:
+Default: kv Driver: kv: Badger: grip.db </description>
+    </item>
+    
+    <item>
+      <title>External Resource Proxies</title>
+      <link>https://bmeg.github.io/grip/docs/gripper/proxy/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://bmeg.github.io/grip/docs/gripper/proxy/</guid>
+      <description>GRIPPER GRIPPER proxy With the external resources normalized to a single data model, the graph model describes how to connect the set of collections into a graph model. Each GRIPPER is required to provide a GRPC interface that allows access to collections stored in the resource.
+The required functions include:
+rpc GetCollections(Empty) returns (stream Collection); GetCollections returns a list of all of the Collections accessible via this server.
+rpc GetCollectionInfo(Collection) returns (CollectionInfo); GetCollectionInfo provides information, such as the list of indexed fields, in a collection.</description>
     </item>
     
     <item>
@@ -98,9 +105,20 @@ Database: elasticsearch Elasticsearch: URL: &amp;quot;http://localhost:9200&amp;
       <guid>https://bmeg.github.io/grip/docs/queries/getting_started/</guid>
       <description>Getting Started GRIP has an API for making graph queries using structured data. Queries are defined using a series of step operations.
 Install the Python Client Available on PyPI.
-pip install gripql  Or install the latest development version:
-pip install &amp;quot;git+https://github.com/bmeg/grip.git#subdirectory=gripql/python&amp;quot;  Using the Python Client Let&amp;rsquo;s go through the features currently supported in the python client.
-First, import the client and create a connection to an GRIP server:</description>
+pip install gripql Or install the latest development version:
+pip install &amp;quot;git+https://github.com/bmeg/grip.git#subdirectory=gripql/python&amp;quot; Using the Python Client Let&amp;rsquo;s go through the features currently supported in the python client.
+First, import the client and create a connection to an GRIP server:
+import gripql G = gripql.</description>
+    </item>
+    
+    <item>
+      <title>Graph Model</title>
+      <link>https://bmeg.github.io/grip/docs/gripper/graphmodel/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://bmeg.github.io/grip/docs/gripper/graphmodel/</guid>
+      <description>GRIPPER Graph Model The graph model describes how GRIP will access multiple gripper servers. The graph is described using three sections, sources, vertices and edges.
+The sources section describes all of the GRIPPER resources that GRIP will use to build the graph. The vertices section describes how different collections found in these sources will be turned into Vertex found in the graph. Finally, the edges section describes the different kinds of rules that can be used build the edges in the graph.</description>
     </item>
     
     <item>
@@ -124,10 +142,40 @@ Describing graph schemas There are several methods for describing the schema of 
       <description>GraphQL GRIP supports GraphQL access of the property graphs. Currently this is read-only access to the graph.
 GraphQL access is only supported when using the MongoDB driver
 Load built-in example graph Loading the example data and the example schema:
-grip load example-graph  See the example graph
-grip dump example-graph --vertex --edge  See the example graph schema
-grip schema example-graph  Example queries Get Types:
-curl -X POST -H &amp;quot;Content-Type:application/graphql&amp;quot; -d &#39;{__schema{types{name}}}&#39; http://localhost:8201/graphql/example-graph  Get Info about Human object</description>
+grip load example-graph See the example graph
+grip dump example-graph --vertex --edge See the example graph schema
+grip schema example-graph Example queries Get Types:
+curl -X POST -H &amp;quot;Content-Type:application/graphql&amp;quot; -d &#39;{__schema{types{name}}}&#39; http://localhost:8201/graphql/example-graph Get Info about Human object</description>
+    </item>
+    
+    <item>
+      <title>GRIP Plugable External Resources</title>
+      <link>https://bmeg.github.io/grip/docs/gripper/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://bmeg.github.io/grip/docs/gripper/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>GRIPPER</title>
+      <link>https://bmeg.github.io/grip/docs/databases/gripper/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://bmeg.github.io/grip/docs/databases/gripper/</guid>
+      <description>GRIPPER GRIP Plugable External Resources are data systems that GRIP can combine together to create graphs.
+Example:
+Drivers: swapi-driver: Gripper: ConfigFile: ./swapi.yaml Graph: swapi ConfigFile - Path to GRIPPER graph map
+Graph - Name of the graph for the mapped external resources.</description>
+    </item>
+    
+    <item>
+      <title>Intro</title>
+      <link>https://bmeg.github.io/grip/docs/gripper/gripper/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://bmeg.github.io/grip/docs/gripper/gripper/</guid>
+      <description>GRIPPER GRIP Plugin External Resources GRIP Plugin External Resources (GRIPPERs) are GRIP drivers that take external resources and allow GRIP to access them are part of a unified graph. To integrate new resources into the graph, you first deploy griper proxies that plug into the external resources. They are unique and configured to access specific resources. These provide a view into external resources as a series of document collections. For example, an SQL gripper would plug into an SQL server and provide the tables as a set of collections with each every row a document.</description>
     </item>
     
     <item>
@@ -136,9 +184,10 @@ curl -X POST -H &amp;quot;Content-Type:application/graphql&amp;quot; -d &#39;{__
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
       
       <guid>https://bmeg.github.io/grip/docs/databases/mongo/</guid>
-      <description> MongoDB GRIP supports storing vertices and edges in MongoDB.
+      <description>MongoDB GRIP supports storing vertices and edges in MongoDB.
 Config:
-Database: mongodb MongoDB: URL: &amp;quot;localhost:27017&amp;quot; DBName: &amp;quot;gripdb&amp;quot; Username: &amp;quot;&amp;quot; Password: &amp;quot;&amp;quot;  </description>
+Default: mongo Drivers: mongo: MongoDB: URL: &amp;#34;mongodb://localhost:27000&amp;#34; DBName: &amp;#34;gripdb&amp;#34; Username: &amp;#34;&amp;#34; Password: &amp;#34;&amp;#34; UseCorePipeline: False BatchSize: 0 UseCorePipeline - Default is to use Mongo pipeline API to do graph traversals. By enabling UseCorePipeline, GRIP will do the traversal logic itself, only using Mongo for graph storage.
+BatchSize - For core engine operations, GRIP dispatches element lookups in batches to minimize query overhead.</description>
     </item>
     
     <item>
@@ -148,12 +197,12 @@ Database: mongodb MongoDB: URL: &amp;quot;localhost:27017&amp;quot; DBName: &amp
       
       <guid>https://bmeg.github.io/grip/docs/queries/operations/</guid>
       <description>Start a Traversal .V([ids]) Start query from Vertex
-G.query().V()  Returns all vertices in graph
-G.query().V([&amp;quot;vertex1]&amp;quot;)  Returns:
-{&amp;quot;gid&amp;quot; : &amp;quot;vertex1&amp;quot;, &amp;quot;label&amp;quot;:&amp;quot;TestVertex&amp;quot;, &amp;quot;data&amp;quot;:{}}  .E([ids]) Start query from Edge
-G.query().E()  Returns all edges in graph
-G.query().E([&amp;quot;edge1&amp;quot;])  Returns:
-{&amp;quot;gid&amp;quot; : &amp;quot;edge1&amp;quot;, &amp;quot;label&amp;quot;:&amp;quot;TestEdge&amp;quot;, From: &amp;quot;vertex1&amp;quot;, To: &amp;quot;vertex2&amp;quot;, data&amp;quot;:{}}  Traverse the graph .in_(), inV() Following incoming edges. Optional argument is the edge label (or list of labels) that should be followed.</description>
+G.query().V() Returns all vertices in graph
+G.query().V([&amp;#34;vertex1]&amp;#34;) Returns:
+{&amp;#34;gid&amp;#34; : &amp;#34;vertex1&amp;#34;, &amp;#34;label&amp;#34;:&amp;#34;TestVertex&amp;#34;, &amp;#34;data&amp;#34;:{}} .E([ids]) Start query from Edge
+G.query().E() Returns all edges in graph
+G.query().E([&amp;#34;edge1&amp;#34;]) Returns:
+{&amp;#34;gid&amp;#34; : &amp;#34;edge1&amp;#34;, &amp;#34;label&amp;#34;:&amp;#34;TestEdge&amp;#34;, From: &amp;#34;vertex1&amp;#34;, To: &amp;#34;vertex2&amp;#34;, data&amp;#34;:{}} Traverse the graph .in_(), inV() Following incoming edges. Optional argument is the edge label (or list of labels) that should be followed. If no argument is provided, all incoming edges.</description>
     </item>
     
     <item>
@@ -173,9 +222,9 @@ Properties of an GRIP graph:
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
       
       <guid>https://bmeg.github.io/grip/docs/databases/psql/</guid>
-      <description> PostgreSQL GRIP supports storing vertices and edges in PostgreSQL.
+      <description>PostgreSQL GRIP supports storing vertices and edges in PostgreSQL.
 Config:
-Database: psql PSQL: Host: localhost Port: 15432 User: &amp;quot;&amp;quot; Password: &amp;quot;&amp;quot; DBName: &amp;quot;&amp;quot; SSLMode: disable  </description>
+Default: psql Drivers: psql: PSQL: Host: localhost Port: 15432 User: &amp;#34;&amp;#34; Password: &amp;#34;&amp;#34; DBName: &amp;#34;grip&amp;#34; SSLMode: disable </description>
     </item>
     
     <item>
@@ -195,19 +244,8 @@ Database: psql PSQL: Host: localhost Port: 15432 User: &amp;quot;&amp;quot; Pass
       <guid>https://bmeg.github.io/grip/docs/queries/jsonpath/</guid>
       <description>Referencing Vertex/Edge Properties Several operations (where, fields, render, etc.) reference properties of the vertices/edges during the traversal. GRIP uses a variation on JSONPath syntax as described in http://goessner.net/articles/ to reference fields during traversals.
 The following query:
-O.query().V([&amp;quot;ENSG00000012048&amp;quot;]).as_(&amp;quot;gene&amp;quot;).out(&amp;quot;variant&amp;quot;)  Starts at vertex ENSG00000012048 and marks as gene:
-{ &amp;quot;gid&amp;quot;: &amp;quot;ENSG00000012048&amp;quot;, &amp;quot;label&amp;quot;: &amp;quot;gene&amp;quot;, &amp;quot;data&amp;quot;: { &amp;quot;symbol&amp;quot;: { &amp;quot;ensembl&amp;quot;: &amp;quot;ENSG00000012048&amp;quot;, &amp;quot;hgnc&amp;quot;: 1100, &amp;quot;entrez&amp;quot;: 672, &amp;quot;hugo&amp;quot;: &amp;quot;BRCA1&amp;quot; } &amp;quot;transcipts&amp;quot;: [&amp;quot;ENST00000471181.7&amp;quot;, &amp;quot;ENST00000357654.8&amp;quot;, &amp;quot;ENST00000493795.5&amp;quot;] } }  as &amp;ldquo;gene&amp;rdquo; and traverses the graph to:</description>
-    </item>
-    
-    <item>
-      <title>SQL</title>
-      <link>https://bmeg.github.io/grip/docs/databases/sql/</link>
-      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
-      
-      <guid>https://bmeg.github.io/grip/docs/databases/sql/</guid>
-      <description>Connect to an existing SQL database GRIP supports modeling an existing SQL database as a graph. GRIP has been tested against PostgreSQL, but should work with MySQL (4.1+) and MariaDB.
-Since GRIP uses Go&amp;rsquo;s database/sql package, we could (in thoery) support any SQL databases listed on: https://github.com/golang/go/wiki/SQLDrivers. Open an issue if you would like to request support for your favorite SQL database.
-Configuration Notes  DataSourceName is a driver-specific data source name, usually consisting of at least a database name and connection information.</description>
+O.query().V([&amp;quot;ENSG00000012048&amp;quot;]).as_(&amp;quot;gene&amp;quot;).out(&amp;quot;variant&amp;quot;) Starts at vertex ENSG00000012048 and marks as gene:
+{ &amp;quot;gid&amp;quot;: &amp;quot;ENSG00000012048&amp;quot;, &amp;quot;label&amp;quot;: &amp;quot;gene&amp;quot;, &amp;quot;data&amp;quot;: { &amp;quot;symbol&amp;quot;: { &amp;quot;ensembl&amp;quot;: &amp;quot;ENSG00000012048&amp;quot;, &amp;quot;hgnc&amp;quot;: 1100, &amp;quot;entrez&amp;quot;: 672, &amp;quot;hugo&amp;quot;: &amp;quot;BRCA1&amp;quot; } &amp;quot;transcipts&amp;quot;: [&amp;quot;ENST00000471181.7&amp;quot;, &amp;quot;ENST00000357654.8&amp;quot;, &amp;quot;ENST00000493795.5&amp;quot;] } } as &amp;ldquo;gene&amp;rdquo; and traverses the graph to:</description>
     </item>
     
     <item>
@@ -229,17 +267,29 @@ Configuration Notes  DataSourceName is a driver-specific data source name, usual
     </item>
     
     <item>
+      <title>SQL</title>
+      <link>https://bmeg.github.io/grip/docs/databases/sql/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://bmeg.github.io/grip/docs/databases/sql/</guid>
+      <description>Connect to an existing SQL database Note: This driver is being superseded by the GRIPPER engine
+GRIP supports modeling an existing SQL database as a graph. GRIP has been tested against PostgreSQL, but should work with MySQL (4.1+) and MariaDB.
+Since GRIP uses Go&amp;rsquo;s database/sql package, we could (in thoery) support any SQL databases listed on: https://github.com/golang/go/wiki/SQLDrivers. Open an issue if you would like to request support for your favorite SQL database.</description>
+    </item>
+    
+    <item>
       <title>TCGA RNA Expression</title>
       <link>https://bmeg.github.io/grip/docs/tutorials/tcga-rna/</link>
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
       
       <guid>https://bmeg.github.io/grip/docs/tutorials/tcga-rna/</guid>
       <description>Explore TCGA RNA Expression Data Create the graph
-grip create tcga-rna  Get the data
-curl -O http://download.cbioportal.org/gbm_tcga_pub2013.tar.gz tar xvzf gbm_tcga_pub2013.tar.gz  Load clinical data
-./example/load_matrix.py tcga-rna gbm_tcga_pub2013/data_clinical.txt --row-label &#39;Donor&#39;  Load RNASeq data
-./example/load_matrix.py tcga-rna gbm_tcga_pub2013/data_RNA_Seq_v2_expression_median.txt -t --index-col 1 --row-label RNASeq --row-prefix &amp;quot;RNA:&amp;quot; --exclude RNA:Hugo_Symbol  Connect RNASeq data to Clinical data
-./example/load_matrix.py tcga-rna gbm_tcga_pub2013/data_RNA_Seq_v2_expression_median.txt -t --index-col 1 --no-vertex --edge &#39;RNA:{_gid}&#39; rna  Connect Clinical data to subtypes</description>
+grip create tcga-rna Get the data
+curl -O http://download.cbioportal.org/gbm_tcga_pub2013.tar.gz tar xvzf gbm_tcga_pub2013.tar.gz Load clinical data
+./example/load_matrix.py tcga-rna gbm_tcga_pub2013/data_clinical.txt --row-label &#39;Donor&#39; Load RNASeq data
+./example/load_matrix.py tcga-rna gbm_tcga_pub2013/data_RNA_Seq_v2_expression_median.txt -t --index-col 1 --row-label RNASeq --row-prefix &amp;quot;RNA:&amp;quot; --exclude RNA:Hugo_Symbol Connect RNASeq data to Clinical data
+./example/load_matrix.py tcga-rna gbm_tcga_pub2013/data_RNA_Seq_v2_expression_median.txt -t --index-col 1 --no-vertex --edge &#39;RNA:{_gid}&#39; rna Connect Clinical data to subtypes
+./example/load_matrix.py tcga-rna gbm_tcga_pub2013/data_clinical.txt --no-vertex -e &amp;quot;{EXPRESSION_SUBTYPE}&amp;quot; subtype --dst-vertex &amp;quot;{EXPRESSION_SUBTYPE}&amp;quot; Subtype Load Hugo Symbol to EntrezID translation table from RNA matrix annotations</description>
     </item>
     
     <item>

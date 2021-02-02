@@ -124,6 +124,15 @@
             </ul>
           </li>
           
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/databases/gripper/"
+                   class="sidebar-nav-item "
+                >GRIPPER</a></li>
+            </ul>
+          </li>
+          
           
         
         <li>
@@ -231,25 +240,50 @@
           
           
         
+        <li>
+          
+          <span class="intermediate">GIPPER</span></li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/gripper/gripper/"
+                   class="sidebar-nav-item "
+                >Intro</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/gripper/proxy/"
+                   class="sidebar-nav-item "
+                >External Resource Proxies</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/gripper/graphmodel/"
+                   class="sidebar-nav-item "
+                >Graph Model</a></li>
+            </ul>
+          </li>
+          
+          
+        
       
     </ul>
   </div>
 
   <div class="main col span_8_of_12">
-    
-
-<h1 id="referencing-vertex-edge-properties">Referencing Vertex/Edge Properties</h1>
-
+    <h1 id="referencing-vertexedge-properties">Referencing Vertex/Edge Properties</h1>
 <p>Several operations (where, fields, render, etc.) reference properties of the vertices/edges during the traversal.
 GRIP uses a variation on JSONPath syntax as described in <a href="http://goessner.net/articles/">http://goessner.net/articles/</a> to reference fields during traversals.</p>
-
 <p>The following query:</p>
-
 <pre><code>O.query().V([&quot;ENSG00000012048&quot;]).as_(&quot;gene&quot;).out(&quot;variant&quot;)
-</code></pre>
-
-<p>Starts at vertex <code>ENSG00000012048</code> and marks as <code>gene</code>:</p>
-
+</code></pre><p>Starts at vertex <code>ENSG00000012048</code> and marks as <code>gene</code>:</p>
 <pre><code>{
   &quot;gid&quot;: &quot;ENSG00000012048&quot;,
   &quot;label&quot;: &quot;gene&quot;,
@@ -263,10 +297,7 @@ GRIP uses a variation on JSONPath syntax as described in <a href="http://goessne
     &quot;transcipts&quot;: [&quot;ENST00000471181.7&quot;, &quot;ENST00000357654.8&quot;, &quot;ENST00000493795.5&quot;]
   }
 }
-</code></pre>
-
-<p>as &ldquo;gene&rdquo; and traverses the graph to:</p>
-
+</code></pre><p>as &ldquo;gene&rdquo; and traverses the graph to:</p>
 <pre><code>{
   &quot;gid&quot;: &quot;NM_007294.3:c.4963_4981delTGGCCTGACCCCAGAAG&quot;,
   &quot;label&quot;: &quot;variant&quot;,
@@ -284,80 +315,62 @@ GRIP uses a variation on JSONPath syntax as described in <a href="http://goessne
     ]
   }
 }
-</code></pre>
-
-<p>Below is a table of field and the values they would reference in subsequent traversal operations.</p>
-
+</code></pre><p>Below is a table of field and the values they would reference in subsequent traversal operations.</p>
 <table>
 <thead>
 <tr>
-<th align="left">jsonpath</th>
-<th align="left">result</th>
+<th style="text-align:left">jsonpath</th>
+<th style="text-align:left">result</th>
 </tr>
 </thead>
-
 <tbody>
 <tr>
-<td align="left">_gid</td>
-<td align="left">&ldquo;NM_007294.3:c.4963_4981delTGGCCTGACCCCAGAAG&rdquo;</td>
+<td style="text-align:left">_gid</td>
+<td style="text-align:left">&ldquo;NM_007294.3:c.4963_4981delTGGCCTGACCCCAGAAG&rdquo;</td>
 </tr>
-
 <tr>
-<td align="left">_label</td>
-<td align="left">&ldquo;variant&rdquo;</td>
+<td style="text-align:left">_label</td>
+<td style="text-align:left">&ldquo;variant&rdquo;</td>
 </tr>
-
 <tr>
-<td align="left">_data.type</td>
-<td align="left">&ldquo;deletion&rdquo;</td>
+<td style="text-align:left">_data.type</td>
+<td style="text-align:left">&ldquo;deletion&rdquo;</td>
 </tr>
-
 <tr>
-<td align="left">type</td>
-<td align="left">&ldquo;deletion&rdquo;</td>
+<td style="text-align:left">type</td>
+<td style="text-align:left">&ldquo;deletion&rdquo;</td>
 </tr>
-
 <tr>
-<td align="left">publications[0].pmid</td>
-<td align="left">29480828</td>
+<td style="text-align:left">publications[0].pmid</td>
+<td style="text-align:left">29480828</td>
 </tr>
-
 <tr>
-<td align="left">publications[:].pmid</td>
-<td align="left">[29480828, 23666017]</td>
+<td style="text-align:left">publications[:].pmid</td>
+<td style="text-align:left">[29480828, 23666017]</td>
 </tr>
-
 <tr>
-<td align="left">publications.pmid</td>
-<td align="left">[29480828, 23666017]</td>
+<td style="text-align:left">publications.pmid</td>
+<td style="text-align:left">[29480828, 23666017]</td>
 </tr>
-
 <tr>
-<td align="left">$gene.symbol.hugo</td>
-<td align="left">&ldquo;BRCA1&rdquo;</td>
+<td style="text-align:left">$gene.symbol.hugo</td>
+<td style="text-align:left">&ldquo;BRCA1&rdquo;</td>
 </tr>
-
 <tr>
-<td align="left">$gene.transcripts[0]</td>
-<td align="left">&ldquo;ENST00000471181.7&rdquo;</td>
+<td style="text-align:left">$gene.transcripts[0]</td>
+<td style="text-align:left">&ldquo;ENST00000471181.7&rdquo;</td>
 </tr>
 </tbody>
 </table>
-
 <h2 id="usage-example">Usage Example:</h2>
-
 <pre><code>O.query().V([&quot;ENSG00000012048&quot;]).as_(&quot;gene&quot;).out(&quot;variant&quot;).render({&quot;variant_id&quot;: &quot;_gid&quot;, &quot;variant_type&quot;: &quot;type&quot;, &quot;gene_id&quot;: &quot;$gene._gid&quot;})
-</code></pre>
-
-<p>returns</p>
-
+</code></pre><p>returns</p>
 <pre><code>{
   &quot;variant_id&quot;: &quot;NM_007294.3:c.4963_4981delTGGCCTGACCCCAGAAG&quot;,
   &quot;variant_type&quot;: &quot;deletion&quot;,
   &quot;gene_id&quot;: &quot;ENSG00000012048&quot;
 }
 </code></pre>
-
   </div>
 
 </div>

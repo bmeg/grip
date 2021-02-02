@@ -124,6 +124,15 @@
             </ul>
           </li>
           
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/databases/gripper/"
+                   class="sidebar-nav-item "
+                >GRIPPER</a></li>
+            </ul>
+          </li>
+          
           
         
         <li>
@@ -231,131 +240,118 @@
           
           
         
+        <li>
+          
+          <span class="intermediate">GIPPER</span></li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/gripper/gripper/"
+                   class="sidebar-nav-item "
+                >Intro</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/gripper/proxy/"
+                   class="sidebar-nav-item "
+                >External Resource Proxies</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/gripper/graphmodel/"
+                   class="sidebar-nav-item "
+                >Graph Model</a></li>
+            </ul>
+          </li>
+          
+          
+        
       
     </ul>
   </div>
 
   <div class="main col span_8_of_12">
-    
-
-<h1 id="getting-started">Getting Started</h1>
-
+    <h1 id="getting-started">Getting Started</h1>
 <p>GRIP has an API for making graph queries using structured data. Queries are defined using a series of step <a href="https://bmeg.github.io/grip/docs/queries/operations">operations</a>.</p>
-
 <h2 id="install-the-python-client">Install the Python Client</h2>
-
 <p>Available on <a href="https://pypi.org/project/gripql/">PyPI</a>.</p>
-
 <pre><code>pip install gripql
-</code></pre>
-
-<p>Or install the latest development version:</p>
-
+</code></pre><p>Or install the latest development version:</p>
 <pre><code>pip install &quot;git+https://github.com/bmeg/grip.git#subdirectory=gripql/python&quot;
-</code></pre>
-
-<h2 id="using-the-python-client">Using the Python Client</h2>
-
+</code></pre><h2 id="using-the-python-client">Using the Python Client</h2>
 <p>Let&rsquo;s go through the features currently supported in the python client.</p>
-
 <p>First, import the client and create a connection to an GRIP server:</p>
-
-<pre><code class="language-python">import gripql
-G = gripql.Connection(&quot;https://bmeg.io&quot;).graph(&quot;bmeg&quot;)
-</code></pre>
-
-<p>Some GRIP servers may require authorizaiton to access its API endpoints. The client can be configured to pass
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python"><span style="color:#f92672">import</span> gripql
+G <span style="color:#f92672">=</span> gripql<span style="color:#f92672">.</span>Connection(<span style="color:#e6db74">&#34;https://bmeg.io&#34;</span>)<span style="color:#f92672">.</span>graph(<span style="color:#e6db74">&#34;bmeg&#34;</span>)
+</code></pre></div><p>Some GRIP servers may require authorizaiton to access its API endpoints. The client can be configured to pass
 authorization headers in its requests.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python"><span style="color:#f92672">import</span> gripql
 
-<pre><code class="language-python">import gripql
+<span style="color:#75715e"># Basic Auth Header - {&#39;Authorization&#39;: &#39;Basic dGVzdDpwYXNzd29yZA==&#39;}</span>
+G <span style="color:#f92672">=</span> gripql<span style="color:#f92672">.</span>Connection(<span style="color:#e6db74">&#34;https://bmeg.io&#34;</span>, user<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;test&#34;</span>, password<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;password&#34;</span>)<span style="color:#f92672">.</span>graph(<span style="color:#e6db74">&#34;bmeg&#34;</span>)
+<span style="color:#75715e">#</span>
 
-# Basic Auth Header - {'Authorization': 'Basic dGVzdDpwYXNzd29yZA=='}
-G = gripql.Connection(&quot;https://bmeg.io&quot;, user=&quot;test&quot;, password=&quot;password&quot;).graph(&quot;bmeg&quot;)
-# 
+<span style="color:#75715e"># Bearer Token - {&#39;Authorization&#39;: &#39;Bearer iamnotarealtoken&#39;}</span>
+G <span style="color:#f92672">=</span> gripql<span style="color:#f92672">.</span>Connection(<span style="color:#e6db74">&#34;https://bmeg.io&#34;</span>, token<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;iamnotarealtoken&#34;</span>)<span style="color:#f92672">.</span>graph(<span style="color:#e6db74">&#34;bmeg&#34;</span>)
 
-# Bearer Token - {'Authorization': 'Bearer iamnotarealtoken'}
-G = gripql.Connection(&quot;https://bmeg.io&quot;, token=&quot;iamnotarealtoken&quot;).graph(&quot;bmeg&quot;)
-
-# OAuth2 / Custom - {&quot;OauthEmail&quot;: &quot;fake.user@gmail.com&quot;, &quot;OauthAccessToken&quot;: &quot;iamnotarealtoken&quot;, &quot;OauthExpires&quot;: 1551985931}
-G = gripql.Connection(&quot;https://bmeg.io&quot;,  credential_file=&quot;~/.grip_token.json&quot;).graph(&quot;bmeg&quot;)
-</code></pre>
-
-<p>Now that we have a connection to a graph instance, we can use this to make all of our queries.</p>
-
+<span style="color:#75715e"># OAuth2 / Custom - {&#34;OauthEmail&#34;: &#34;fake.user@gmail.com&#34;, &#34;OauthAccessToken&#34;: &#34;iamnotarealtoken&#34;, &#34;OauthExpires&#34;: 1551985931}</span>
+G <span style="color:#f92672">=</span> gripql<span style="color:#f92672">.</span>Connection(<span style="color:#e6db74">&#34;https://bmeg.io&#34;</span>,  credential_file<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;~/.grip_token.json&#34;</span>)<span style="color:#f92672">.</span>graph(<span style="color:#e6db74">&#34;bmeg&#34;</span>)
+</code></pre></div><p>Now that we have a connection to a graph instance, we can use this to make all of our queries.</p>
 <p>One of the first things you probably want to do is find some vertex out of all of the vertexes available in the system. In order to do this, we need to know something about the vertex we are looking for. To start, let&rsquo;s see if we can find a specific gene:</p>
-
-<pre><code class="language-python">result = G.query().V().hasLabel(&quot;Gene&quot;).has(gripql.eq(&quot;symbol&quot;, &quot;TP53&quot;)).execute()
-print(result)
-</code></pre>
-
-<p>A couple things about this first and simplest query. We start with <code>O</code>, our grip client instance connected to the &ldquo;bmeg&rdquo; graph, and create a new query with <code>.query()</code>. This query is now being constructed. You can chain along as many operations as you want, and nothing will actually get sent to the server until you print the results.</p>
-
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python">result <span style="color:#f92672">=</span> G<span style="color:#f92672">.</span>query()<span style="color:#f92672">.</span>V()<span style="color:#f92672">.</span>hasLabel(<span style="color:#e6db74">&#34;Gene&#34;</span>)<span style="color:#f92672">.</span>has(gripql<span style="color:#f92672">.</span>eq(<span style="color:#e6db74">&#34;symbol&#34;</span>, <span style="color:#e6db74">&#34;TP53&#34;</span>))<span style="color:#f92672">.</span>execute()
+<span style="color:#66d9ef">print</span>(result)
+</code></pre></div><p>A couple things about this first and simplest query. We start with <code>O</code>, our grip client instance connected to the &ldquo;bmeg&rdquo; graph, and create a new query with <code>.query()</code>. This query is now being constructed. You can chain along as many operations as you want, and nothing will actually get sent to the server until you print the results.</p>
 <p>Once we make this query, we get a result:</p>
-
-<pre><code class="language-python">[&lt;AttrDict(
-  {u'gid': u'ENSG00000141510',
-  u'data': {
-    u'end': 7687550,
-    u'description': u'tumor protein p53 [Source:HGNC Symbol%3BAcc:HGNC:11998]',
-    u'symbol': u'TP53',
-    u'start': 7661779,
-    u'seqId': u'17',
-    u'strand': u'-',
-    u'id': u'ENSG00000141510',
-    u'chromosome': u'17'
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python">[
+  {<span style="color:#e6db74">u</span><span style="color:#e6db74">&#39;gid&#39;</span>: <span style="color:#e6db74">u</span><span style="color:#e6db74">&#39;ENSG00000141510&#39;</span>,
+  <span style="color:#e6db74">u</span><span style="color:#e6db74">&#39;data&#39;</span>: {
+    <span style="color:#e6db74">u</span><span style="color:#e6db74">&#39;end&#39;</span>: <span style="color:#ae81ff">7687550</span>,
+    <span style="color:#e6db74">u</span><span style="color:#e6db74">&#39;description&#39;</span>: <span style="color:#e6db74">u</span><span style="color:#e6db74">&#39;tumor protein p53 [Source:HGNC Symbol%3BAcc:HGNC:11998]&#39;</span>,
+    <span style="color:#e6db74">u</span><span style="color:#e6db74">&#39;symbol&#39;</span>: <span style="color:#e6db74">u</span><span style="color:#e6db74">&#39;TP53&#39;</span>,
+    <span style="color:#e6db74">u</span><span style="color:#e6db74">&#39;start&#39;</span>: <span style="color:#ae81ff">7661779</span>,
+    <span style="color:#e6db74">u</span><span style="color:#e6db74">&#39;seqId&#39;</span>: <span style="color:#e6db74">u</span><span style="color:#e6db74">&#39;17&#39;</span>,
+    <span style="color:#e6db74">u</span><span style="color:#e6db74">&#39;strand&#39;</span>: <span style="color:#e6db74">u</span><span style="color:#e6db74">&#39;-&#39;</span>,
+    <span style="color:#e6db74">u</span><span style="color:#e6db74">&#39;id&#39;</span>: <span style="color:#e6db74">u</span><span style="color:#e6db74">&#39;ENSG00000141510&#39;</span>,
+    <span style="color:#e6db74">u</span><span style="color:#e6db74">&#39;chromosome&#39;</span>: <span style="color:#e6db74">u</span><span style="color:#e6db74">&#39;17&#39;</span>
   },
-  u'label': u'Gene'})&gt;
+  <span style="color:#e6db74">u</span><span style="color:#e6db74">&#39;label&#39;</span>: <span style="color:#e6db74">u</span><span style="color:#e6db74">&#39;Gene&#39;</span>})
 ]
-</code></pre>
-
-<p>This represents the vertex we queried for above. All vertexes in the system will have a similar structure, basically:</p>
-
+</code></pre></div><p>This represents the vertex we queried for above. All vertexes in the system will have a similar structure, basically:</p>
 <ul>
 <li><em>gid</em>: This represents the global identifier for this vertex. In order to draw edges between different vertexes from different data sets we need an identifier that can be constructed from available data. Often, the <code>gid</code> will be the field that you query on as a starting point for a traversal.</li>
 <li><em>label</em>: The label represents the type of the vertex. All vertexes with a given label will share many property keys and edge labels, and form a logical group within the system.</li>
 <li><em>data</em>: This is where all the data goes. <code>data</code> can be an arbitrary map, and these properties can be referenced during traversals.</li>
 </ul>
-
 <p>The data on a query result can be accessed as properties on the result object; for example <code>result[0].data.symbol</code> would return:</p>
-
-<pre><code class="language-python">u'TP53'
-</code></pre>
-
-<p>You can also do a <code>has</code> query with a list of items using <code>gripql.within([...])</code> (other conditions exist, see the <code>Conditions</code> section below):</p>
-
-<pre><code class="language-python">result = G.query().V().hasLabel(&quot;Gene&quot;).has(gripql.within(&quot;symbol&quot;, [&quot;TP53&quot;, &quot;BRCA1&quot;])).render({&quot;gid&quot;: &quot;_gid&quot;, &quot;symbol&quot;:&quot;symbol&quot;}).execute()
-print(result)
-</code></pre>
-
-<p>This returns both Gene vertexes:</p>
-
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python"><span style="color:#e6db74">u</span><span style="color:#e6db74">&#39;TP53&#39;</span>
+</code></pre></div><p>You can also do a <code>has</code> query with a list of items using <code>gripql.within([...])</code> (other conditions exist, see the <code>Conditions</code> section below):</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python">result <span style="color:#f92672">=</span> G<span style="color:#f92672">.</span>query()<span style="color:#f92672">.</span>V()<span style="color:#f92672">.</span>hasLabel(<span style="color:#e6db74">&#34;Gene&#34;</span>)<span style="color:#f92672">.</span>has(gripql<span style="color:#f92672">.</span>within(<span style="color:#e6db74">&#34;symbol&#34;</span>, [<span style="color:#e6db74">&#34;TP53&#34;</span>, <span style="color:#e6db74">&#34;BRCA1&#34;</span>]))<span style="color:#f92672">.</span>render({<span style="color:#e6db74">&#34;gid&#34;</span>: <span style="color:#e6db74">&#34;_gid&#34;</span>, <span style="color:#e6db74">&#34;symbol&#34;</span>:<span style="color:#e6db74">&#34;symbol&#34;</span>})<span style="color:#f92672">.</span>execute()
+<span style="color:#66d9ef">print</span>(result)
+</code></pre></div><p>This returns both Gene vertexes:</p>
 <pre><code>[
-  &lt;AttrDict({u'symbol': u'TP53', u'gid': u'ENSG00000141510'})&gt;,
-  &lt;AttrDict({u'symbol': u'BRCA1', u'gid': u'ENSG00000012048'})&gt;
+  {u'symbol': u'TP53', u'gid': u'ENSG00000141510'},
+  {u'symbol': u'BRCA1', u'gid': u'ENSG00000012048'}
 ]
-</code></pre>
-
-<p>Once you are on a vertex, you can travel through that vertex&rsquo;s edges to find the vertexes it is connected to. Sometimes you don&rsquo;t even need to go all the way to the next vertex, the information on the edge between them may be sufficient.</p>
-
+</code></pre><p>Once you are on a vertex, you can travel through that vertex&rsquo;s edges to find the vertexes it is connected to. Sometimes you don&rsquo;t even need to go all the way to the next vertex, the information on the edge between them may be sufficient.</p>
 <p>Edges in the graph are directional, so there are both incoming and outgoing edges from each vertex, leading to other vertexes in the graph. Edges also have a <em>label</em>, which distinguishes the kind of connections different vertexes can have with one another.</p>
-
 <p>Starting with gene TP53, and see what kind of other vertexes it is connected to.</p>
-
-<pre><code class="language-python">result = G.query().V().hasLabel(&quot;Gene&quot;).has(gripql.eq(&quot;symbol&quot;, &quot;TP53&quot;)).in_(&quot;TranscriptFor&quot;)render({&quot;gid&quot;: &quot;_gid&quot;, &quot;label&quot;:&quot;_label&quot;}).execute()
-print(result)
-</code></pre>
-
-<p>Here we have introduced a couple of new steps. The first is <code>.in_()</code>. This starts from wherever you are in the graph at the moment and travels out along all the incoming edges.
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python">result <span style="color:#f92672">=</span> G<span style="color:#f92672">.</span>query()<span style="color:#f92672">.</span>V()<span style="color:#f92672">.</span>hasLabel(<span style="color:#e6db74">&#34;Gene&#34;</span>)<span style="color:#f92672">.</span>has(gripql<span style="color:#f92672">.</span>eq(<span style="color:#e6db74">&#34;symbol&#34;</span>, <span style="color:#e6db74">&#34;TP53&#34;</span>))<span style="color:#f92672">.</span>in_(<span style="color:#e6db74">&#34;TranscriptFor&#34;</span>)render({<span style="color:#e6db74">&#34;gid&#34;</span>: <span style="color:#e6db74">&#34;_gid&#34;</span>, <span style="color:#e6db74">&#34;label&#34;</span>:<span style="color:#e6db74">&#34;_label&#34;</span>})<span style="color:#f92672">.</span>execute()
+<span style="color:#66d9ef">print</span>(result)
+</code></pre></div><p>Here we have introduced a couple of new steps. The first is <code>.in_()</code>. This starts from wherever you are in the graph at the moment and travels out along all the incoming edges.
 Additionally, we have provided <code>TranscriptFor</code> as an argument to <code>.in_()</code>. This limits the returned vertices to only those connected to the <code>Gene</code>  verticies by edges labeled <code>TranscriptFor</code>.</p>
-
 <pre><code>[
-  &lt;AttrDict({u'label': u'Transcript', u'gid': u'ENST00000413465'})&gt;,
-  &lt;AttrDict({u'label': u'Transcript', u'gid': u'ENST00000604348'})&gt;,
+  {u'label': u'Transcript', u'gid': u'ENST00000413465'},
+  {u'label': u'Transcript', u'gid': u'ENST00000604348'},
   ...
 ]
-</code></pre>
-
-<p>View a list of all available query operations <a href="https://bmeg.github.io/grip/docs/queries/operations">here</a>.</p>
+</code></pre><p>View a list of all available query operations <a href="https://bmeg.github.io/grip/docs/queries/operations">here</a>.</p>
 
   </div>
 
