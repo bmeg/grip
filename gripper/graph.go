@@ -414,7 +414,7 @@ func (t *TabularGraph) GetVertexList(ctx context.Context, load bool) <-chan *gri
 		for _, source := range t.vertexSourceOrder {
 			c := t.vertices[source]
 			//log.Infof("Getting vertices from table: %s", c.config.Label)
-			for row := range t.client.GetRows(context.Background(), c.config.Source, c.config.Collection) {
+			for row := range t.client.GetRows(ctx, c.config.Source, c.config.Collection) {
 				v := gripql.Vertex{Gid: c.prefix + row.Id, Label: c.config.Label, Data: row.Data}
 				out <- &v
 			}
@@ -431,8 +431,11 @@ func (t *TabularGraph) GetEdgeList(ctx context.Context, load bool) <-chan *gripq
 		for _, source := range t.edgeSourceOrder {
 			edgeList := t.outEdges[source]
 			for _, edge := range edgeList {
+				if ctx.Err() == context.Canceled {
+					return
+				}
 				if edge.config.EdgeTable != nil {
-					res := t.client.GetRows(context.Background(),
+					res := t.client.GetRows(ctx,
 						edge.config.EdgeTable.Source,
 						edge.config.EdgeTable.Collection)
 					for row := range res {
@@ -457,7 +460,7 @@ func (t *TabularGraph) GetEdgeList(ctx context.Context, load bool) <-chan *gripq
 				} else if edge.config.FieldToID != nil {
 					log.Errorf("GetEdgeList.FieldToID not yet implemented")
 				} else if edge.config.FieldToField != nil {
-					srcRes := t.client.GetRows(context.Background(),
+					srcRes := t.client.GetRows(ctx,
 						edge.fromVertex.config.Source,
 						edge.fromVertex.config.Collection)
 					for srcRow := range srcRes {
@@ -465,7 +468,7 @@ func (t *TabularGraph) GetEdgeList(ctx context.Context, load bool) <-chan *gripq
 						if field, err := jsonpath.JsonPathLookup(srcData, edge.config.FieldToField.FromField); err == nil {
 							if fValue, ok := field.(string); ok {
 								if fValue != "" {
-									dstRes, err := t.client.GetRowsByField(context.Background(),
+									dstRes, err := t.client.GetRowsByField(ctx,
 										edge.toVertex.config.Source,
 										edge.toVertex.config.Collection,
 										edge.config.FieldToField.ToField, fValue)
@@ -515,7 +518,7 @@ func rowRequestVertexPipeline(ctx context.Context, prefix string,
 	}()
 
 	out := make(chan interface{}, 10)
-	if rowChan, err := client.GetRowsByID(context.Background(), source, collection, rowIn); err == nil {
+	if rowChan, err := client.GetRowsByID(ctx, source, collection, rowIn); err == nil {
 		go func() {
 			defer close(out)
 			for r := range rowChan {
@@ -556,7 +559,7 @@ func (t *TabularGraph) GetVertexChannel(ctx context.Context, req chan gdbi.Eleme
 	go func() {
 		for r := range req {
 			for _, vPrefix := range t.vertexSourceOrder {
-				if strings.HasPrefix(r.ID, vPrefix) {
+				if strings.HasPrefix(r.ID, vPrefix) && ctx.Err() != context.Canceled {
 					v := t.vertices[vPrefix]
 					if x, ok := prefixMap[v.prefix]; ok {
 						mux.Put(x, r)
@@ -588,12 +591,12 @@ func (t *TabularGraph) GetOutChannel(ctx context.Context, req chan gdbi.ElementL
 			default:
 				for _, vPrefix := range t.edgeSourceOrder {
 					edgeList := t.outEdges[vPrefix]
-					if strings.HasPrefix(r.ID, vPrefix) {
+					if strings.HasPrefix(r.ID, vPrefix) && ctx.Err() != context.Canceled {
 						id := r.ID[len(vPrefix):len(r.ID)]
 						for _, edge := range edgeList {
 							if len(edgeLabels) == 0 || setcmp.ContainsString(edgeLabels, edge.config.Label) {
 								if edge.config.EdgeTable != nil {
-									res, err := t.client.GetRowsByField(context.Background(),
+									res, err := t.client.GetRowsByField(ctx,
 										edge.config.EdgeTable.Source,
 										edge.config.EdgeTable.Collection,
 										edge.config.EdgeTable.FromField, id)
@@ -631,7 +634,7 @@ func (t *TabularGraph) GetOutChannel(ctx context.Context, req chan gdbi.ElementL
 										log.Errorf("Source Vertex not in Ref")
 									}
 									if fValue != "" {
-										res, err := t.client.GetRowsByField(context.Background(),
+										res, err := t.client.GetRowsByField(ctx,
 											edge.toVertex.config.Source,
 											edge.toVertex.config.Collection,
 											edge.config.FieldToField.ToField, fValue)
@@ -671,13 +674,13 @@ func (t *TabularGraph) GetInChannel(ctx context.Context, req chan gdbi.ElementLo
 			default:
 				for _, vPrefix := range t.edgeSourceOrder {
 					edgeList := t.inEdges[vPrefix]
-					if strings.HasPrefix(r.ID, vPrefix) {
+					if strings.HasPrefix(r.ID, vPrefix) && ctx.Err() != context.Canceled {
 						id := r.ID[len(vPrefix):len(r.ID)]
 						for _, edge := range edgeList {
 							if len(edgeLabels) == 0 || setcmp.ContainsString(edgeLabels, edge.config.Label) {
 								if edge.config.EdgeTable != nil {
 									//log.Infof("Using EdgeTable %s:%s to find %s", edge.config.EdgeTable.Collection, edge.config.EdgeTable.FromField, id)
-									res, err := t.client.GetRowsByField(context.Background(),
+									res, err := t.client.GetRowsByField(ctx,
 										edge.config.EdgeTable.Source,
 										edge.config.EdgeTable.Collection,
 										edge.config.EdgeTable.FromField, id)
@@ -713,7 +716,7 @@ func (t *TabularGraph) GetInChannel(ctx context.Context, req chan gdbi.ElementLo
 										log.Errorf("Source Vertex not in Ref")
 									}
 									if fValue != "" {
-										res, err := t.client.GetRowsByField(context.Background(),
+										res, err := t.client.GetRowsByField(ctx,
 											edge.toVertex.config.Source,
 											edge.toVertex.config.Collection,
 											edge.config.FieldToField.ToField, fValue)
@@ -756,13 +759,13 @@ func (t *TabularGraph) GetOutEdgeChannel(ctx context.Context, req chan gdbi.Elem
 			default:
 				for _, vPrefix := range t.edgeSourceOrder {
 					edgeList := t.outEdges[vPrefix]
-					if strings.HasPrefix(r.ID, vPrefix) {
+					if strings.HasPrefix(r.ID, vPrefix) && ctx.Err() != context.Canceled  {
 						id := r.ID[len(vPrefix):len(r.ID)]
 						for _, edge := range edgeList {
 							if len(edgeLabels) == 0 || setcmp.ContainsString(edgeLabels, edge.config.Label) {
 								if edge.config.EdgeTable != nil {
 									//log.Infof("Using EdgeTable %s", *edge.config.EdgeTable)
-									res, err := t.client.GetRowsByField(context.Background(),
+									res, err := t.client.GetRowsByField(ctx,
 										edge.config.EdgeTable.Source,
 										edge.config.EdgeTable.Collection,
 										edge.config.EdgeTable.FromField, id)
@@ -802,7 +805,7 @@ func (t *TabularGraph) GetOutEdgeChannel(ctx context.Context, req chan gdbi.Elem
 										log.Errorf("Source Vertex not in Ref")
 									}
 									if fValue != "" {
-										res, err := t.client.GetRowsByField(context.Background(),
+										res, err := t.client.GetRowsByField(ctx,
 											edge.toVertex.config.Source,
 											edge.toVertex.config.Collection,
 											edge.config.FieldToField.ToField, fValue)
@@ -848,13 +851,13 @@ func (t *TabularGraph) GetInEdgeChannel(ctx context.Context, req chan gdbi.Eleme
 			default:
 				for _, vPrefix := range t.edgeSourceOrder {
 					edgeList := t.inEdges[vPrefix]
-					if strings.HasPrefix(r.ID, vPrefix) {
+					if strings.HasPrefix(r.ID, vPrefix) && ctx.Err() != context.Canceled {
 						id := r.ID[len(vPrefix):len(r.ID)]
 						for _, edge := range edgeList {
 							if len(edgeLabels) == 0 || setcmp.ContainsString(edgeLabels, edge.config.Label) {
 								if edge.config.EdgeTable != nil {
 									//log.Printf("Using EdgeTable %s", *edge.config.EdgeTable)
-									res, err := t.client.GetRowsByField(context.Background(),
+									res, err := t.client.GetRowsByField(ctx,
 										edge.config.EdgeTable.Source,
 										edge.config.EdgeTable.Collection,
 										edge.config.EdgeTable.FromField, id)
@@ -894,7 +897,7 @@ func (t *TabularGraph) GetInEdgeChannel(ctx context.Context, req chan gdbi.Eleme
 										log.Errorf("Source Vertex not in Ref")
 									}
 									if fValue != "" {
-										res, err := t.client.GetRowsByField(context.Background(),
+										res, err := t.client.GetRowsByField(ctx,
 											edge.toVertex.config.Source,
 											edge.toVertex.config.Collection,
 											edge.config.FieldToField.ToField, fValue)

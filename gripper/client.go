@@ -68,7 +68,9 @@ func (m *GripperClient) GetCollections(ctx context.Context, source string) chan 
 		}
 		cl, err := client.GetCollections(ctx, &Empty{})
 		if err != nil {
-			log.WithFields(log.Fields{"error": err}).Error("Error Receiving collecion list in GetCollections")
+			if ctx.Err() != context.Canceled {
+				log.WithFields(log.Fields{"error": err}).Error("Error Receiving collecion list in GetCollections")
+			}
 			return
 		}
 		for {
@@ -77,7 +79,9 @@ func (m *GripperClient) GetCollections(ctx context.Context, source string) chan 
 				return
 			}
 			if err != nil {
-				log.WithFields(log.Fields{"error": err}).Error("Error with cl.Recv in GetCollections")
+				if ctx.Err() != context.Canceled {
+					log.WithFields(log.Fields{"error": err}).Error("Error with cl.Recv in GetCollections")
+				}
 				return
 			}
 			out <- t.Name
@@ -98,7 +102,9 @@ func (m *GripperClient) GetIDs(ctx context.Context, source string, collection st
 		req := Collection{Name: collection}
 		cl, err := client.GetIDs(ctx, &req)
 		if err != nil {
-			log.WithFields(log.Fields{"error": err}).Error("Error calling GetIDs")
+			if ctx.Err() != context.Canceled {
+				log.WithFields(log.Fields{"error": err}).Error("Error calling GetIDs")
+			}
 			return
 		}
 		for {
@@ -107,7 +113,9 @@ func (m *GripperClient) GetIDs(ctx context.Context, source string, collection st
 				return
 			}
 			if err != nil {
-				log.WithFields(log.Fields{"error": err}).Error("Error calling cl.Recv in GetIDs")
+				if ctx.Err() != context.Canceled {
+					log.WithFields(log.Fields{"error": err}).Error("Error calling cl.Recv in GetIDs")
+				}
 				return
 			}
 			out <- t.Id
@@ -128,7 +136,9 @@ func (m *GripperClient) GetRows(ctx context.Context, source string, collection s
 		req := Collection{Name: collection}
 		cl, err := client.GetRows(ctx, &req)
 		if err != nil {
-			log.WithFields(log.Fields{"error": err}).Error("Error calling GetRows")
+			if ctx.Err() != context.Canceled {
+				log.WithFields(log.Fields{"error": err}).Error("Error calling GetRows")
+			}
 			return
 		}
 		for {
@@ -137,7 +147,9 @@ func (m *GripperClient) GetRows(ctx context.Context, source string, collection s
 				return
 			}
 			if err != nil {
-				log.WithFields(log.Fields{"error": err}).Error("Error calling cl.Recv in GetRows")
+				if ctx.Err() != context.Canceled {
+					log.WithFields(log.Fields{"error": err}).Error("Error calling cl.Recv in GetRows")
+				}
 				return
 			}
 			out <- t
@@ -172,7 +184,9 @@ func (m *GripperClient) GetRowsByID(ctx context.Context, source string, collecti
 				return
 			}
 			if err != nil {
-				log.WithFields(log.Fields{"error": err}).Error("Error calling cl.Recv in GetRowsByID")
+				if ctx.Err() != context.Canceled {
+					log.WithFields(log.Fields{"error": err}).Error("Error calling cl.Recv in GetRowsByID")
+				}
 				return
 			}
 			out <- t
@@ -201,7 +215,9 @@ func (m *GripperClient) GetRowsByField(ctx context.Context, source string, colle
 				return
 			}
 			if err != nil {
-				log.WithFields(log.Fields{"error": err}).Error("Error calling cl.Recv in GetRowsByField")
+				if ctx.Err() != context.Canceled {
+					log.WithFields(log.Fields{"error": err}).Error("Error calling cl.Recv in GetRowsByField")
+				}
 				return
 			}
 			out <- t
