@@ -58,8 +58,6 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, er
 	vertCol := fmt.Sprintf("%s_vertices", comp.db.graph)
 	edgeCol := fmt.Sprintf("%s_edges", comp.db.graph)
 
-	stmts = core.Flatten(stmts)
-
 	for _, gs := range stmts {
 		switch stmt := gs.GetStatement().(type) {
 		case *gripql.GraphStatement_V:

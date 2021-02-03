@@ -234,20 +234,6 @@ class Query(BaseConnection):
         props = _wrap_str_value(props)
         return self.__append({"distinct": props})
 
-    def match(self, queries):
-        """
-        Intersect multiple queries.
-        """
-        if not isinstance(queries, list):
-            raise TypeError("match expects an array")
-        if not all(isinstance(i, Query) for i in queries):
-            raise TypeError("expected all aruments to match to be a \
-            Query instance")
-        mq = []
-        for i in queries:
-            mq.append({"query": i.query})
-        return self.__append({"match": {"queries": mq}})
-
     def render(self, template):
         """
         Render output of query
