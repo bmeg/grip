@@ -205,15 +205,15 @@ func (t *TabularGraph) Close() error {
 }
 
 func (t *TabularGraph) AddVertex(vertex []*gripql.Vertex) error {
-	return fmt.Errorf("DigGraph is ReadOnly")
+	return fmt.Errorf("GRIPPER Graph is ReadOnly")
 }
 
 func (t *TabularGraph) AddEdge(edge []*gripql.Edge) error {
-	return fmt.Errorf("DigGraph is ReadOnly")
+	return fmt.Errorf("GRIPPER is ReadOnly")
 }
 
 func (t *TabularGraph) BulkAdd(stream <-chan *gripql.GraphElement) error {
-	return fmt.Errorf("DigGraph is ReadOnly")
+	return fmt.Errorf("GRIPPER is ReadOnly")
 }
 
 func (t *TabularGraph) Compiler() gdbi.Compiler {
@@ -483,7 +483,9 @@ func (t *TabularGraph) GetEdgeList(ctx context.Context, load bool) <-chan *gripq
 											out <- &o
 										}
 									} else {
-										log.Errorf("Error doing FieldToField search: %s", err)
+										if ctx.Err() != context.Canceled {
+											log.Errorf("Error doing FieldToField search: %s", err)
+										}
 									}
 								}
 							}
@@ -614,7 +616,9 @@ func (t *TabularGraph) GetOutChannel(ctx context.Context, req chan gdbi.ElementL
 											}
 										}
 									} else {
-										log.Errorf("Row Error: %s", err)
+										if ctx.Err() != context.Canceled {
+											log.Errorf("Row Error: %s", err)
+										}
 									}
 								} else if edge.config.FieldToID != nil {
 									log.Errorf("GetOutChannel.FieldToID not yet implemented")
@@ -697,7 +701,9 @@ func (t *TabularGraph) GetInChannel(ctx context.Context, req chan gdbi.ElementLo
 											}
 										}
 									} else {
-										log.Errorf("Row Error: %s", err)
+										if ctx.Err() != context.Canceled {
+											log.Errorf("Row Error: %s", err)
+										}
 									}
 								} else if edge.config.FieldToField != nil {
 									cur := r.Ref.GetCurrent()
@@ -731,7 +737,9 @@ func (t *TabularGraph) GetInChannel(ctx context.Context, req chan gdbi.ElementLo
 												out <- el
 											}
 										} else {
-											log.Errorf("Error doing FieldToField search: %s", err)
+											if ctx.Err() != context.Canceled {
+												log.Errorf("Error doing FieldToField search: %s", err)
+											}
 										}
 									}
 								} else if edge.config.FieldToID != nil {
@@ -786,7 +794,9 @@ func (t *TabularGraph) GetOutEdgeChannel(ctx context.Context, req chan gdbi.Elem
 											}
 										}
 									} else {
-										log.Errorf("Row Error: %s", err)
+										if ctx.Err() != context.Canceled {
+											log.Errorf("Row Error: %s", err)
+										}
 									}
 								} else if edge.config.FieldToField != nil {
 									cur := r.Ref.GetCurrent()
@@ -822,7 +832,9 @@ func (t *TabularGraph) GetOutEdgeChannel(ctx context.Context, req chan gdbi.Elem
 												out <- el
 											}
 										} else {
-											log.Errorf("Error doing FieldToField search: %s", err)
+											if ctx.Err() != context.Canceled {
+												log.Errorf("Error doing FieldToField search: %s", err)
+											}
 										}
 									}
 
@@ -878,7 +890,9 @@ func (t *TabularGraph) GetInEdgeChannel(ctx context.Context, req chan gdbi.Eleme
 											}
 										}
 									} else {
-										log.Errorf("Row Error: %s", err)
+										if ctx.Err() != context.Canceled {
+											log.Errorf("Row Error: %s", err)
+										}
 									}
 								} else if edge.config.FieldToField != nil {
 									cur := r.Ref.GetCurrent()
@@ -914,7 +928,9 @@ func (t *TabularGraph) GetInEdgeChannel(ctx context.Context, req chan gdbi.Eleme
 												out <- el
 											}
 										} else {
-											log.Errorf("Error doing FieldToField search: %s", err)
+											if ctx.Err() != context.Canceled {
+												log.Errorf("Error doing FieldToField search: %s", err)
+											}
 										}
 									}
 								} else if edge.config.FieldToID != nil {
