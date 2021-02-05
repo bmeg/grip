@@ -240,6 +240,12 @@ class Query(BaseConnection):
         """
         return self.__append({"render": template})
 
+    def unwind(self, field):
+        """
+        Unwind an array
+        """
+        return self.__append({"unwind": field})
+
     def aggregate(self, aggregations):
         """
         Aggregate results of query output

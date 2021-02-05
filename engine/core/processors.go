@@ -392,6 +392,39 @@ func (r *Render) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, 
 	return ctx
 }
 
+
+////////////////////////////////////////////////////////////////////////////////
+
+// Unwind takes an array field and replicates the message for every element in the array
+type Unwind struct {
+	Field string
+}
+
+// Process runs the render processor
+func (r *Unwind) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
+	go func() {
+		defer close(out)
+		for t := range in {
+			v := jsonpath.TravelerPathLookup(t, r.Field)
+			if a, ok := v.([]interface{}); ok {
+				cur := t.GetCurrent()
+				for _, i := range a {
+					o := gdbi.DataElement{ID:cur.ID,Label:cur.Label,From:cur.From,To:cur.To,Data:map[string]interface{}{}}
+					//do something here
+					for k, v := range cur.Data {
+						o.Data[k] = v
+					}
+					o.Data[r.Field] = i
+					out <- t.AddCurrent(&o)
+				}
+			}
+			out <- &gdbi.Traveler{Render: v}
+		}
+	}()
+	return ctx
+}
+
+
 ////////////////////////////////////////////////////////////////////////////////
 
 // Has filters based on data
@@ -1020,9 +1053,12 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 				for t := range aChans[a.Name] {
 					val := jsonpath.TravelerPathLookup(t, tagg.Field)
 					if val != nil {
-						fieldTermCounts[val]++
-						if len(fieldTermCounts) > maxTerms {
-							return fmt.Errorf("term aggreagtion: collected more unique terms (%v) than allowed (%v)", len(fieldTermCounts), maxTerms)
+						k := reflect.TypeOf(val).Kind()
+						if k != reflect.Array && k != reflect.Slice {
+							fieldTermCounts[val]++
+							if len(fieldTermCounts) > maxTerms {
+								return fmt.Errorf("term aggreagtion: collected more unique terms (%v) than allowed (%v)", len(fieldTermCounts), maxTerms)
+							}
 						}
 					}
 				}
