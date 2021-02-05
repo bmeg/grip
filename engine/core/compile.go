@@ -7,7 +7,7 @@ import (
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/jsonpath"
-	"github.com/bmeg/grip/protoutil"
+	"github.com/bmeg/grip/util/protoutil"
 )
 
 // DefaultPipeline a set of runnable query operations
@@ -38,13 +38,16 @@ func (pipe *DefaultPipeline) Processors() []gdbi.Processor {
 
 // DefaultCompiler is the core compiler that works with default graph interface
 type DefaultCompiler struct {
-	db gdbi.GraphInterface
+	db         gdbi.GraphInterface
+	optimizers []QueryOptimizer
 }
 
 // NewCompiler creates a new compiler that runs using the provided GraphInterface
-func NewCompiler(db gdbi.GraphInterface) gdbi.Compiler {
-	return DefaultCompiler{db: db}
+func NewCompiler(db gdbi.GraphInterface, optimizers ...QueryOptimizer) gdbi.Compiler {
+	return DefaultCompiler{db: db, optimizers: optimizers}
 }
+
+type QueryOptimizer func(pipe []*gripql.GraphStatement) []*gripql.GraphStatement
 
 // Compile take set of statments and turns them into a runnable pipeline
 func (comp DefaultCompiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, error) {
@@ -58,7 +61,9 @@ func (comp DefaultCompiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeli
 		return &DefaultPipeline{}, fmt.Errorf("invalid statments: %s", err)
 	}
 
-	stmts = IndexStartOptimize(stmts)
+	for _, o := range comp.optimizers {
+		stmts = o(stmts)
+	}
 
 	ps := pipeline.NewPipelineState(stmts)
 
@@ -250,7 +255,7 @@ func StatementProcessor(gs *gripql.GraphStatement, db gdbi.GraphInterface, ps *p
 			return nil, fmt.Errorf(`"render" statement is only valid for edge or vertex types not: %s`, ps.LastType.String())
 		}
 		ps.LastType = gdbi.RenderData
-		return &Render{protoutil.UnWrapValue(stmt.Render)}, nil
+		return &Render{stmt.Render.AsInterface()}, nil
 
 	case *gripql.GraphStatement_Fields:
 		if ps.LastType != gdbi.VertexData && ps.LastType != gdbi.EdgeData {
@@ -279,6 +284,7 @@ func StatementProcessor(gs *gripql.GraphStatement, db gdbi.GraphInterface, ps *p
 
 	case *gripql.GraphStatement_EngineCustom:
 		proc := stmt.Custom.(gdbi.CustomProcGen)
+		ps.LastType = proc.GetType()
 		return proc.GetProcessor(db, ps)
 
 	default:

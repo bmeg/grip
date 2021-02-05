@@ -3,12 +3,12 @@ from __future__ import absolute_import
 import gripql
 
 
-def test_simple(O, man):
+def test_simple(man):
     errors = []
 
-    man.setGraph("swapi")
+    G = man.setGraph("swapi")
 
-    q = O.query().V().hasLabel("Character").as_("a").out().select("a")
+    q = G.query().V().hasLabel("Character").as_("a").out().select("a")
 
     count = 0
     for row in q:
@@ -20,12 +20,12 @@ def test_simple(O, man):
     return errors
 
 
-def test_select(O, man):
+def test_select(man):
     errors = []
 
-    man.setGraph("swapi")
+    G = man.setGraph("swapi")
 
-    q = O.query().V().hasLabel("Character").as_("person")
+    q = G.query().V().hasLabel("Character").as_("person")
     q = q.out("homeworld").has(gripql.eq("name", "Tatooine")).select("person")
     q = q.out("species")
 

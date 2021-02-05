@@ -124,6 +124,15 @@
             </ul>
           </li>
           
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/databases/gripper/"
+                   class="sidebar-nav-item "
+                >GRIPPER</a></li>
+            </ul>
+          </li>
+          
           
         
         <li>
@@ -231,30 +240,59 @@
           
           
         
+        <li>
+          
+          <span class="intermediate">GIPPER</span></li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/gripper/gripper/"
+                   class="sidebar-nav-item "
+                >Intro</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/gripper/proxy/"
+                   class="sidebar-nav-item "
+                >External Resource Proxies</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/gripper/graphmodel/"
+                   class="sidebar-nav-item "
+                >Graph Model</a></li>
+            </ul>
+          </li>
+          
+          
+        
       
     </ul>
   </div>
 
   <div class="main col span_8_of_12">
-    
-
-<h1 id="postgresql">PostgreSQL</h1>
-
+    <h1 id="postgresql">PostgreSQL</h1>
 <p>GRIP supports storing vertices and edges in <a href="https://www.postgresql.org/">PostgreSQL</a>.</p>
-
 <p>Config:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-yaml" data-lang="yaml"><span style="color:#f92672">Default</span>: <span style="color:#ae81ff">psql</span>
 
-<pre><code class="language-yaml">Database: psql
-
-PSQL:
-  Host: localhost
-  Port: 15432
-  User: &quot;&quot;
-  Password: &quot;&quot;
-  DBName: &quot;&quot;
-  SSLMode: disable
-</code></pre>
-
+<span style="color:#f92672">Drivers</span>:
+  <span style="color:#f92672">psql</span>:
+    <span style="color:#f92672">PSQL</span>:
+      <span style="color:#f92672">Host</span>: <span style="color:#ae81ff">localhost</span>
+      <span style="color:#f92672">Port</span>: <span style="color:#ae81ff">15432</span>
+      <span style="color:#f92672">User</span>: <span style="color:#e6db74">&#34;&#34;</span>
+      <span style="color:#f92672">Password</span>: <span style="color:#e6db74">&#34;&#34;</span>
+      <span style="color:#f92672">DBName</span>: <span style="color:#e6db74">&#34;grip&#34;</span>
+      <span style="color:#f92672">SSLMode</span>: <span style="color:#ae81ff">disable</span>
+</code></pre></div>
   </div>
 
 </div>

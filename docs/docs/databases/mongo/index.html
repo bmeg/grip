@@ -124,6 +124,15 @@
             </ul>
           </li>
           
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/databases/gripper/"
+                   class="sidebar-nav-item "
+                >GRIPPER</a></li>
+            </ul>
+          </li>
+          
           
         
         <li>
@@ -231,27 +240,64 @@
           
           
         
+        <li>
+          
+          <span class="intermediate">GIPPER</span></li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/gripper/gripper/"
+                   class="sidebar-nav-item "
+                >Intro</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/gripper/proxy/"
+                   class="sidebar-nav-item "
+                >External Resource Proxies</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/gripper/graphmodel/"
+                   class="sidebar-nav-item "
+                >Graph Model</a></li>
+            </ul>
+          </li>
+          
+          
+        
       
     </ul>
   </div>
 
   <div class="main col span_8_of_12">
-    
-
-<h1 id="mongodb">MongoDB</h1>
-
+    <h1 id="mongodb">MongoDB</h1>
 <p>GRIP supports storing vertices and edges in <a href="https://www.mongodb.com/">MongoDB</a>.</p>
-
 <p>Config:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-yaml" data-lang="yaml"><span style="color:#f92672">Default</span>: <span style="color:#ae81ff">mongo</span>
 
-<pre><code class="language-yaml">Database: mongodb
-
-MongoDB:
-  URL: &quot;localhost:27017&quot;
-  DBName: &quot;gripdb&quot;
-  Username: &quot;&quot;
-  Password: &quot;&quot;
-</code></pre>
+<span style="color:#f92672">Drivers</span>:
+  <span style="color:#f92672">mongo</span>:
+    <span style="color:#f92672">MongoDB</span>:
+      <span style="color:#f92672">URL</span>: <span style="color:#e6db74">&#34;mongodb://localhost:27000&#34;</span>
+      <span style="color:#f92672">DBName</span>: <span style="color:#e6db74">&#34;gripdb&#34;</span>
+      <span style="color:#f92672">Username</span>: <span style="color:#e6db74">&#34;&#34;</span>
+      <span style="color:#f92672">Password</span>: <span style="color:#e6db74">&#34;&#34;</span>
+      <span style="color:#f92672">UseCorePipeline</span>: <span style="color:#66d9ef">False</span>
+      <span style="color:#f92672">BatchSize</span>: <span style="color:#ae81ff">0</span>
+</code></pre></div><p><code>UseCorePipeline</code> - Default is to use Mongo pipeline API to do graph traversals.
+By enabling <code>UseCorePipeline</code>, GRIP will do the traversal logic itself, only using
+Mongo for graph storage.</p>
+<p><code>BatchSize</code> - For core engine operations, GRIP dispatches element lookups in
+batches to minimize query overhead. If missing from config file (which defaults to 0)
+the engine will default to 1000.</p>
 
   </div>
 

@@ -1,0 +1,56 @@
+syntax = "proto3";
+
+package gripper;
+
+option go_package = "github.com/bmeg/grip/gripper";
+
+import "google/protobuf/struct.proto";
+
+message Empty {}
+
+message Collection {
+  string name = 1;
+}
+
+message RowID {
+  string id = 1;
+}
+
+message RowRequest {
+  string collection = 1;
+  string id = 2;
+  uint64 requestID = 3;
+}
+
+message FieldRequest {
+  string collection = 1;
+  string field = 2;
+  string value = 3;
+}
+
+message Row {
+  string id = 1;
+  google.protobuf.Struct data = 2;
+  uint64 requestID = 3;
+}
+
+
+message CollectionInfo {
+  repeated string search_fields = 1;
+}
+
+service GRIPSource {
+
+  rpc GetCollections(Empty) returns (stream Collection);
+
+  rpc GetCollectionInfo(Collection) returns (CollectionInfo);
+
+  rpc GetIDs(Collection) returns (stream RowID);
+
+  rpc GetRows(Collection) returns (stream Row);
+
+  rpc GetRowsByID(stream RowRequest) returns (stream Row);
+
+  rpc GetRowsByField(FieldRequest) returns (stream Row);
+
+}

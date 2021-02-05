@@ -48,7 +48,7 @@ species = [x for x in G.nodes() if x.startswith("Species")]
 planets = [x for x in G.nodes() if x.startswith("Planet")]
 starships = [x for x in G.nodes() if x.startswith("Starship")]
 vehicles = [x for x in G.nodes() if x.startswith("Vehicle")]
-labels = {l: l.split(":")[1] for l in G.nodes()}
+labels = {label: label.split(":")[1] for label in G.nodes()}
 pos = nx.spring_layout(G)
 
 plt.clf()

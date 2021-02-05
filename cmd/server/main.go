@@ -5,21 +5,10 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"strings"
 
 	"github.com/bmeg/grip/config"
-	"github.com/bmeg/grip/elastic"
-	esql "github.com/bmeg/grip/existing-sql"
-	"github.com/bmeg/grip/gdbi"
-	"github.com/bmeg/grip/grids"
 	"github.com/bmeg/grip/gripql"
-	"github.com/bmeg/grip/kvgraph"
-	_ "github.com/bmeg/grip/kvi/badgerdb" // import so badger will register itself
-	_ "github.com/bmeg/grip/kvi/boltdb"   // import so bolt will register itself
-	_ "github.com/bmeg/grip/kvi/leveldb"  // import so level will register itself
 	"github.com/bmeg/grip/log"
-	"github.com/bmeg/grip/mongo"
-	"github.com/bmeg/grip/psql"
 	"github.com/bmeg/grip/server"
 	_ "github.com/go-sql-driver/mysql" //import so mysql will register as a sql driver
 	"github.com/imdario/mergo"
@@ -34,37 +23,9 @@ var schemaFile string
 // Run runs an Grip server.
 // This opens a database and starts an API server.
 // This blocks indefinitely.
-func Run(conf *config.Config, schemas map[string]*gripql.Graph) error {
+func Run(conf *config.Config, schemas map[string]*gripql.Graph, baseDir string) error {
 	log.ConfigureLogger(conf.Logger)
 	log.WithFields(log.Fields{"Config": conf}).Info("Starting Server")
-
-	var db gdbi.GraphDB
-	var err error
-	switch dbname := strings.ToLower(conf.Database); dbname {
-	case "bolt", "badger", "level":
-		db, err = kvgraph.NewKVGraphDB(dbname, conf.KVStorePath)
-
-	case "grids":
-		db, err = grids.NewGraphDB(conf.Grids)
-
-	case "elastic", "elasticsearch":
-		db, err = elastic.NewGraphDB(conf.Elasticsearch)
-
-	case "mongo", "mongodb":
-		db, err = mongo.NewGraphDB(conf.MongoDB)
-
-	case "psql":
-		db, err = psql.NewGraphDB(conf.PSQL)
-
-	case "existing-sql":
-		db, err = esql.NewGraphDB(conf.ExistingSQL)
-
-	default:
-		err = fmt.Errorf("unknown database: %s", dbname)
-	}
-	if err != nil {
-		return fmt.Errorf("database connection failed: %v", err)
-	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -75,7 +36,7 @@ func Run(conf *config.Config, schemas map[string]*gripql.Graph) error {
 		cancel()
 	}()
 
-	srv, err := server.NewGripServer(db, conf.Server, schemas)
+	srv, err := server.NewGripServer(conf, schemas, baseDir)
 	if err != nil {
 		return err
 	}
@@ -103,6 +64,9 @@ var Cmd = &cobra.Command{
 			if err != nil {
 				return fmt.Errorf("error processing config file: %v", err)
 			}
+			dconf.SetDefaults()
+		} else {
+			dconf.AddBadgerDefault()
 		}
 		// file vals <- cli val
 		err := mergo.MergeWithOverwrite(dconf, conf)
@@ -130,7 +94,7 @@ var Cmd = &cobra.Command{
 				schemaMap[s.Graph] = s
 			}
 		}
-		return Run(conf, schemaMap)
+		return Run(conf, schemaMap, configFile)
 	},
 }
 

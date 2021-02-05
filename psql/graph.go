@@ -9,7 +9,6 @@ import (
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/log"
-	"github.com/bmeg/grip/protoutil"
 	"github.com/bmeg/grip/timestamp"
 	"github.com/bmeg/grip/util"
 	"github.com/jmoiron/sqlx"
@@ -28,7 +27,7 @@ type Graph struct {
 
 // Compiler returns a query compiler that uses the graph
 func (g *Graph) Compiler() gdbi.Compiler {
-	return core.NewCompiler(g)
+	return core.NewCompiler(g, core.IndexStartOptimize) //TODO: probably a better optimizer for vertex label search)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -56,7 +55,11 @@ func (g *Graph) AddVertex(vertices []*gripql.Vertex) error {
 	}
 
 	for _, v := range vertices {
-		_, err = stmt.Exec(v.Gid, v.Label, protoutil.AsJSONString(v.Data))
+		js, err := v.Data.MarshalJSON()
+		if err != nil {
+			return fmt.Errorf("AddVertex: Stmt.Exec: %v", err)
+		}
+		_, err = stmt.Exec(v.Gid, v.Label, js)
 		if err != nil {
 			return fmt.Errorf("AddVertex: Stmt.Exec: %v", err)
 		}
@@ -98,7 +101,11 @@ func (g *Graph) AddEdge(edges []*gripql.Edge) error {
 	}
 
 	for _, e := range edges {
-		_, err = stmt.Exec(e.Gid, e.Label, e.From, e.To, protoutil.AsJSONString(e.Data))
+		js, err := e.Data.MarshalJSON()
+		if err != nil {
+			return fmt.Errorf("AddEdge: Stmt.Exec: %v", err)
+		}
+		_, err = stmt.Exec(e.Gid, e.Label, e.From, e.To, js)
 		if err != nil {
 			return fmt.Errorf("AddEdge: Stmt.Exec: %v", err)
 		}
@@ -301,7 +308,7 @@ func (g *Graph) GetEdgeList(ctx context.Context, load bool) <-chan *gripql.Edge 
 }
 
 // GetVertexChannel is passed a channel of vertex ids and it produces a channel of vertices
-func (g *Graph) GetVertexChannel(reqChan chan gdbi.ElementLookup, load bool) chan gdbi.ElementLookup {
+func (g *Graph) GetVertexChannel(ctx context.Context, reqChan chan gdbi.ElementLookup, load bool) chan gdbi.ElementLookup {
 	batches := make(chan []gdbi.ElementLookup, 100)
 	go func() {
 		defer close(batches)
@@ -364,7 +371,7 @@ func (g *Graph) GetVertexChannel(reqChan chan gdbi.ElementLookup, load bool) cha
 }
 
 // GetOutChannel is passed a channel of vertex ids and finds the connected vertices via outgoing edges
-func (g *Graph) GetOutChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
+func (g *Graph) GetOutChannel(ctx context.Context, reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
 	batches := make(chan []gdbi.ElementLookup, 100)
 	go func() {
 		defer close(batches)
@@ -461,7 +468,7 @@ func (g *Graph) GetOutChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLa
 }
 
 // GetInChannel is passed a channel of vertex ids and finds the connected vertices via incoming edges
-func (g *Graph) GetInChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
+func (g *Graph) GetInChannel(ctx context.Context, reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
 	batches := make(chan []gdbi.ElementLookup, 100)
 	go func() {
 		defer close(batches)
@@ -558,7 +565,7 @@ func (g *Graph) GetInChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLab
 }
 
 // GetOutEdgeChannel is passed a channel of vertex ids and finds the outgoing edges
-func (g *Graph) GetOutEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
+func (g *Graph) GetOutEdgeChannel(ctx context.Context, reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
 	batches := make(chan []gdbi.ElementLookup, 100)
 	go func() {
 		defer close(batches)
@@ -643,7 +650,7 @@ func (g *Graph) GetOutEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, ed
 }
 
 // GetInEdgeChannel is passed a channel of vertex ids and finds the incoming edges
-func (g *Graph) GetInEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
+func (g *Graph) GetInEdgeChannel(ctx context.Context, reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
 	batches := make(chan []gdbi.ElementLookup, 100)
 	go func() {
 		defer close(batches)

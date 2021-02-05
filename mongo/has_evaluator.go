@@ -6,7 +6,6 @@ import (
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/jsonpath"
 	"github.com/bmeg/grip/log"
-	"github.com/bmeg/grip/protoutil"
 	"go.mongodb.org/mongo-driver/bson"
 )
 
@@ -17,7 +16,7 @@ func convertHasExpression(stmt *gripql.HasExpression, not bool) bson.M {
 		cond := stmt.GetCondition()
 		switch cond.Condition {
 		case gripql.Condition_INSIDE:
-			val := protoutil.UnWrapValue(cond.Value)
+			val := cond.Value.AsInterface()
 			lims, ok := val.([]interface{})
 			if !ok {
 				log.Error("unable to cast values from INSIDE statement")
@@ -26,7 +25,7 @@ func convertHasExpression(stmt *gripql.HasExpression, not bool) bson.M {
 			}
 
 		case gripql.Condition_OUTSIDE:
-			val := protoutil.UnWrapValue(cond.Value)
+			val := cond.Value.AsInterface()
 			lims, ok := val.([]interface{})
 			if !ok {
 				log.Error("unable to cast values from OUTSIDE statement")
@@ -35,7 +34,7 @@ func convertHasExpression(stmt *gripql.HasExpression, not bool) bson.M {
 			}
 
 		case gripql.Condition_BETWEEN:
-			val := protoutil.UnWrapValue(cond.Value)
+			val := cond.Value.AsInterface()
 			lims, ok := val.([]interface{})
 			if !ok {
 				log.Error("unable to cast values from BETWEEN statement")
@@ -93,7 +92,7 @@ func convertCondition(cond *gripql.HasCondition, not bool) bson.M {
 	var key string
 	var val interface{}
 	key = convertPath(cond.Key)
-	val = protoutil.UnWrapValue(cond.Value)
+	val = cond.Value.AsInterface()
 	expr := bson.M{}
 	switch cond.Condition {
 	case gripql.Condition_EQ:
