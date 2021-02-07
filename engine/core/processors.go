@@ -408,14 +408,26 @@ func (r *Unwind) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, 
 			v := jsonpath.TravelerPathLookup(t, r.Field)
 			if a, ok := v.([]interface{}); ok {
 				cur := t.GetCurrent()
-				for _, i := range a {
+				if len(a) > 0 {
+					for _, i := range a {
+						o := gdbi.DataElement{ID:cur.ID,Label:cur.Label,From:cur.From,To:cur.To,Data:util.DeepCopy(cur.Data).(map[string]interface{})}
+						n := t.AddCurrent(&o)
+						jsonpath.TravelerSetValue(n, r.Field, i)
+						out <- n
+					}
+				} else {
 					o := gdbi.DataElement{ID:cur.ID,Label:cur.Label,From:cur.From,To:cur.To,Data:util.DeepCopy(cur.Data).(map[string]interface{})}
 					n := t.AddCurrent(&o)
-					jsonpath.TravelerSetValue(n, r.Field, i)
+					jsonpath.TravelerSetValue(n, r.Field, nil)
 					out <- n
 				}
+			} else {
+				cur := t.GetCurrent()
+				o := gdbi.DataElement{ID:cur.ID,Label:cur.Label,From:cur.From,To:cur.To,Data:util.DeepCopy(cur.Data).(map[string]interface{})}
+				n := t.AddCurrent(&o)
+				jsonpath.TravelerSetValue(n, r.Field, nil)
+				out <- n
 			}
-			out <- &gdbi.Traveler{Render: v}
 		}
 	}()
 	return ctx
