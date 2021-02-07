@@ -2,7 +2,7 @@ module github.com/bmeg/grip
 
 go 1.12
 
-replace github.com/oliveagle/jsonpath v0.0.0-20180606110733-2e52cf6e6852 => github.com/bmeg/jsonpath v0.0.0-20210206233818-187625a87c08
+replace github.com/oliveagle/jsonpath v0.0.0-20180606110733-2e52cf6e6852 => github.com/bmeg/jsonpath v0.0.0-20210207014051-cca5355553ad
 
 require (
 	github.com/Shopify/sarama v1.22.1

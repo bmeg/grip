@@ -12,10 +12,10 @@ import (
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/jsonpath"
 	"github.com/bmeg/grip/log"
+	"github.com/bmeg/grip/util"
 	"github.com/influxdata/tdigest"
 	"github.com/spf13/cast"
 	"golang.org/x/sync/errgroup"
-	//"google.golang.org/protobuf/types/known/structpb"
 )
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -409,13 +409,10 @@ func (r *Unwind) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, 
 			if a, ok := v.([]interface{}); ok {
 				cur := t.GetCurrent()
 				for _, i := range a {
-					o := gdbi.DataElement{ID:cur.ID,Label:cur.Label,From:cur.From,To:cur.To,Data:map[string]interface{}{}}
-					//do something here
-					for k, v := range cur.Data {
-						o.Data[k] = v
-					}
-					o.Data[r.Field] = i
-					out <- t.AddCurrent(&o)
+					o := gdbi.DataElement{ID:cur.ID,Label:cur.Label,From:cur.From,To:cur.To,Data:util.DeepCopy(cur.Data).(map[string]interface{})}
+					n := t.AddCurrent(&o)
+					jsonpath.TravelerSetValue(n, r.Field, i)
+					out <- n
 				}
 			}
 			out <- &gdbi.Traveler{Render: v}
