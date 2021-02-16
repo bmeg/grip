@@ -138,6 +138,18 @@ func TravelerPathLookup(traveler *gdbi.Traveler, path string) interface{} {
 	return res
 }
 
+// TravelerSetValue(travler, "$gene.symbol.ensembl", "hi") inserts the value in the location"
+func TravelerSetValue(traveler *gdbi.Traveler, path string, val interface{}) error {
+	namespace := GetNamespace(path)
+	field := GetJSONPath(path)
+	if field == "" {
+		return nil
+	}
+	doc := GetDoc(traveler, namespace)
+	return jsonpath.JsonPathSet(doc, field, val)
+}
+
+
 // TravelerPathExists returns true if the field exists in the given Traveler
 func TravelerPathExists(traveler *gdbi.Traveler, path string) bool {
 	namespace := GetNamespace(path)

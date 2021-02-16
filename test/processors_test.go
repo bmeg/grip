@@ -390,20 +390,6 @@ func TestEngine(t *testing.T) {
 			}),
 		},
 		{
-			Q.V().Match(
-				Q.HasLabel("products"),
-				Q.Has(gripql.Eq("price", 499.99)),
-			),
-			pick("products:6"),
-		},
-		{
-			Q.V().Match(
-				Q.As("a").HasLabel("products").As("b"),
-				Q.As("b").Has(gripql.Eq("price", 499.99)).As("c"),
-			).Select("c"),
-			pick("products:6"),
-		},
-		{
 			Q.V("users:1").As("a").Out().As("b").
 				Render(map[string]interface{}{"user_id": "$a._gid", "purchase_id": "$b._gid", "purchaser": "$b.name"}),
 			render(map[string]interface{}{"user_id": "users:1", "purchase_id": "purchases:57", "purchaser": "Letitia Sprau"}),

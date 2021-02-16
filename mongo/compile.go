@@ -520,6 +520,11 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, er
 			procs = append(procs, &core.Render{Template: stmt.Render.AsInterface()})
 			lastType = gdbi.RenderData
 
+		case *gripql.GraphStatement_Unwind:
+			f := strings.TrimPrefix(stmt.Unwind, "$.")
+			query = append(query,
+				bson.D{primitive.E{Key: "$unwind", Value: "$data." + f}})
+
 		case *gripql.GraphStatement_Fields:
 			if lastType != gdbi.VertexData && lastType != gdbi.EdgeData {
 				return &Pipeline{}, fmt.Errorf(`"fields" statement is only valid for edge or vertex types not: %s`, lastType.String())

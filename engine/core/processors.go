@@ -12,10 +12,10 @@ import (
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/jsonpath"
 	"github.com/bmeg/grip/log"
+	"github.com/bmeg/grip/util"
 	"github.com/influxdata/tdigest"
 	"github.com/spf13/cast"
 	"golang.org/x/sync/errgroup"
-	//"google.golang.org/protobuf/types/known/structpb"
 )
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -391,6 +391,48 @@ func (r *Render) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, 
 	}()
 	return ctx
 }
+
+
+////////////////////////////////////////////////////////////////////////////////
+
+// Unwind takes an array field and replicates the message for every element in the array
+type Unwind struct {
+	Field string
+}
+
+// Process runs the render processor
+func (r *Unwind) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
+	go func() {
+		defer close(out)
+		for t := range in {
+			v := jsonpath.TravelerPathLookup(t, r.Field)
+			if a, ok := v.([]interface{}); ok {
+				cur := t.GetCurrent()
+				if len(a) > 0 {
+					for _, i := range a {
+						o := gdbi.DataElement{ID:cur.ID,Label:cur.Label,From:cur.From,To:cur.To,Data:util.DeepCopy(cur.Data).(map[string]interface{})}
+						n := t.AddCurrent(&o)
+						jsonpath.TravelerSetValue(n, r.Field, i)
+						out <- n
+					}
+				} else {
+					o := gdbi.DataElement{ID:cur.ID,Label:cur.Label,From:cur.From,To:cur.To,Data:util.DeepCopy(cur.Data).(map[string]interface{})}
+					n := t.AddCurrent(&o)
+					jsonpath.TravelerSetValue(n, r.Field, nil)
+					out <- n
+				}
+			} else {
+				cur := t.GetCurrent()
+				o := gdbi.DataElement{ID:cur.ID,Label:cur.Label,From:cur.From,To:cur.To,Data:util.DeepCopy(cur.Data).(map[string]interface{})}
+				n := t.AddCurrent(&o)
+				jsonpath.TravelerSetValue(n, r.Field, nil)
+				out <- n
+			}
+		}
+	}()
+	return ctx
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -1020,9 +1062,12 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 				for t := range aChans[a.Name] {
 					val := jsonpath.TravelerPathLookup(t, tagg.Field)
 					if val != nil {
-						fieldTermCounts[val]++
-						if len(fieldTermCounts) > maxTerms {
-							return fmt.Errorf("term aggreagtion: collected more unique terms (%v) than allowed (%v)", len(fieldTermCounts), maxTerms)
+						k := reflect.TypeOf(val).Kind()
+						if k != reflect.Array && k != reflect.Slice {
+							fieldTermCounts[val]++
+							if len(fieldTermCounts) > maxTerms {
+								return fmt.Errorf("term aggreagtion: collected more unique terms (%v) than allowed (%v)", len(fieldTermCounts), maxTerms)
+							}
 						}
 					}
 				}

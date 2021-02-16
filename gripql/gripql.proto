@@ -49,11 +49,11 @@ message GraphStatement {
     google.protobuf.ListValue has_id = 36;
     string count = 30;
 
-    // custom methods
     google.protobuf.ListValue fields = 26;
     google.protobuf.ListValue distinct = 27;
     Aggregations aggregate = 31;
     google.protobuf.Value render = 32;
+		string unwind = 37;
   }
 }
 
