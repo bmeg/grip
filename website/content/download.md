@@ -2,7 +2,8 @@
 title: Download
 menu:
   main:
-    weight: -2000
+    identifier: download
+    weight: 5
 ---
 
 {{< download-links >}}

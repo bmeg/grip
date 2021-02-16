@@ -3,7 +3,7 @@ title: Graph Schemas
 menu:
   main:
     parent: graphql
-    weight: 1000
+    weight: 30
 ---
 
 # Graph Schemas

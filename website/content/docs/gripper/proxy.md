@@ -3,7 +3,7 @@ title: External Resource Proxies
 
 menu:
   main:
-    parent: GIPPER
+    parent: gripper
     weight: 2
 ---
 

@@ -3,7 +3,7 @@ title: Graph Model
 
 menu:
   main:
-    parent: GIPPER
+    parent: gripper
     weight: 3
 ---
 

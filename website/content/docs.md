@@ -3,7 +3,7 @@ title: Overview
 menu:
   main:
     identifier: docs
-    weight: -3000
+    weight: 1
 ---
 
 # Overview
@@ -45,4 +45,5 @@ GRIP is still under active development and there are plans for a number of addit
  - Query Continuation. Ability to describe a graph query that starts off where another query ended. For example,
  from batch or cached query and to filtering or a few additional steps.
  - Optimized Plugable External Resource API. Adding additional operations, such as 'joins' or better filtering, to
- external resources would allow GRIP to better optimize queries and reduce query time. 
+ external resources would allow GRIP to better optimize queries and reduce query time.
+ - Managed Plugin deployment.

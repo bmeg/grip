@@ -1,5 +1,5 @@
 ---
-title: drop
+title: query
 
 menu:
   main:
