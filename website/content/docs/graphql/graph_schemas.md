@@ -2,11 +2,14 @@
 title: Graph Schemas
 menu:
   main:
-    weight: -1000
+    parent: graphql
+    weight: 1000
 ---
 
 # Graph Schemas
-
+Most GRIP based graphs are not required to have a strict schema. However, GraphQL requires
+a graph schema as part of it's API. To utilize the GraphQL endpoint, there must be a
+Graph Schema provided to be used by the GRIP engine to determine how to render a GraphQL endpoint.
 Graph schemas are themselves an instance of a graph. As such, they can be traversed like any other graph.
 The schemas are automatically added to the database following the naming pattern `{graph-name}__schema__`.
 

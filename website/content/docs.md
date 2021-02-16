@@ -20,3 +20,18 @@ Properties of an GRIP graph:
 
 GRIP also provides a query API for the traversing, analyzing and manipulating your graphs. Its syntax is inspired by
 [Apache TinkerPop](http://tinkerpop.apache.org/). Learn more [here](/docs/queries/getting_started).
+
+# Supported Systems
+
+GRIP has three types of drivers:
+
+ - *Embedded* : GRIP has built in graph storage, built using embedded databases. This allows you to quick
+ set graphs for data storage and analysis, without having to configure an external database and connect it
+ to GRIP. This is the default mode if GRIP is started without any configuration. The primarily driver
+ is based on [Badger](https://github.com/dgraph-io/badger).
+ - *Database Backends* : GRIP can utilize a number of different database backends to store graph data.
+ In this mode, GRIP formats the database and manages the data. It provides a full Read/Write API, the same
+ as the Embedded deployment. Supported systems include Mongo, Portgres SQL and Elastic Search. When deployed
+ using Mongo, GRIP will translate GripQL queries into [Mongo Aggregation Pipeline queries](https://docs.mongodb.com/manual/core/aggregation-pipeline/). 
+  - *Plugin Existing Resources* : This mode is designed to take advantage of existing data resources, mapping
+ them into a graph framework so they can be accessed using GripQL. This mode is currently read-only.

@@ -2,15 +2,17 @@
 title: GraphQL
 menu:
   main:
-    parent: Queries
+    parent: graphql
     weight: 25
 ---
 
 # GraphQL
 
+**GraphQL support is considered Alpha. The code is not stable and the API will likely change.**
+**_GraphQL access is only supported when using the MongoDB driver_**
+
 GRIP supports GraphQL access of the property graphs. Currently this is read-only access to the graph.
 
-**_GraphQL access is only supported when using the MongoDB driver_**
 
 ### Load built-in example graph
 
