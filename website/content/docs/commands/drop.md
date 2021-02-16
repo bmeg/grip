@@ -1,5 +1,5 @@
 ---
-title: mongoload
+title: drop
 
 menu:
   main:
@@ -8,5 +8,7 @@ menu:
 ---
 
 ```
-grip mongoload
+grip drop <graph>
 ```
+
+Deletes a graph.

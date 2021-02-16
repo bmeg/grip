@@ -13,6 +13,10 @@ grip server
 
 The server command starts up a graph server and waits for incoming requests.
 
+## Default Configuration
+If invoked with no arguments or config files, GRIP will start up in embedded mode,
+using a Badger based graph driver.
+
 ## Networking
 By default the GRIP server operates on 2 ports, `8201` is the HTTP based interface.
 Port `8202` is a GRPC based interface. Python, R and Javascript clients are designed

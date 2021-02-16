@@ -32,6 +32,17 @@ GRIP has three types of drivers:
  - *Database Backends* : GRIP can utilize a number of different database backends to store graph data.
  In this mode, GRIP formats the database and manages the data. It provides a full Read/Write API, the same
  as the Embedded deployment. Supported systems include Mongo, Portgres SQL and Elastic Search. When deployed
- using Mongo, GRIP will translate GripQL queries into [Mongo Aggregation Pipeline queries](https://docs.mongodb.com/manual/core/aggregation-pipeline/). 
+ using Mongo, GRIP will translate GripQL queries into [Mongo Aggregation Pipeline queries](https://docs.mongodb.com/manual/core/aggregation-pipeline/).
   - *Plugin Existing Resources* : This mode is designed to take advantage of existing data resources, mapping
  them into a graph framework so they can be accessed using GripQL. This mode is currently read-only.
+
+# Future Plans
+
+GRIP is still under active development and there are plans for a number of additional features. These include:
+
+ - Batch queries. Ability to submit long running queries to be processed asynchronously and stored for later retrieval.
+ - Query Caching.
+ - Query Continuation. Ability to describe a graph query that starts off where another query ended. For example,
+ from batch or cached query and to filtering or a few additional steps.
+ - Optimized Plugable External Resource API. Adding additional operations, such as 'joins' or better filtering, to
+ external resources would allow GRIP to better optimize queries and reduce query time. 
