@@ -2,6 +2,6 @@
 title: GRIP Commands
 menu:
   main:
-    identifier: Commands
+    identifier: commands
     weight: -200
 ---
