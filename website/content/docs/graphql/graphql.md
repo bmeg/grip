@@ -28,10 +28,21 @@ See the example graph
 grip dump example-graph --vertex --edge
 ```
 
-See the example graph schema
+Sample components of the graph to produce a schema and store to a file
+```
+grip schema sample example-graph > test.schema
+```
+
+You may want to edit the schema, but if it seems correct, post it to the server:
 
 ```
-grip schema example-graph
+./grip schema post --json test.schema
+```
+
+See the graph schema
+
+```
+grip schema get example-graph
 ```
 
 ### Example queries
