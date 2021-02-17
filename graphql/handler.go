@@ -40,6 +40,11 @@ func NewHTTPHandler(rpcAddress, user, password string) (http.Handler, error) {
 	if err != nil {
 		return nil, err
 	}
+	return NewClientHTTPHandler(client) 
+}
+
+// NewClientHTTPHandler initilizes a new GraphQLHandler
+func NewClientHTTPHandler(client gripql.Client) (http.Handler, error) {
 	h := &Handler{
 		client:   client,
 		handlers: map[string]*graphHandler{},

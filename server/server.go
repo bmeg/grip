@@ -49,7 +49,7 @@ type GripServer struct {
 }
 
 // NewGripServer initializes a GRPC server to connect to the graph store
-func NewGripServer(conf *config.Config, schemas map[string]*gripql.Graph, baseDir string) (*GripServer, error) {
+func NewGripServer(conf *config.Config, baseDir string) (*GripServer, error) {
 	_, err := os.Stat(conf.Server.WorkDir)
 	if os.IsNotExist(err) {
 		err = os.Mkdir(conf.Server.WorkDir, 0700)
@@ -57,9 +57,7 @@ func NewGripServer(conf *config.Config, schemas map[string]*gripql.Graph, baseDi
 			return nil, fmt.Errorf("creating work dir: %v", err)
 		}
 	}
-	if schemas == nil {
-		schemas = make(map[string]*gripql.Graph)
-	}
+	schemas := make(map[string]*gripql.Graph)
 
 	gdbs := map[string]gdbi.GraphDB{}
 	for name, dConfig := range conf.Drivers {
@@ -179,6 +177,7 @@ func (server *GripServer) Serve(pctx context.Context) error {
 	mux := http.NewServeMux()
 
 	// Setup GraphQL handler
+	/*
 	user := ""
 	password := ""
 	if len(server.conf.Server.BasicAuth) > 0 {
@@ -188,7 +187,9 @@ func (server *GripServer) Serve(pctx context.Context) error {
 	gqlHandler, err := graphql.NewHTTPHandler(server.conf.Server.RPCAddress(), user, password)
 	if err != nil {
 		return fmt.Errorf("setting up GraphQL handler: %v", err)
-	}
+	}*/
+	gqlHandler, err := graphql.NewClientHTTPHandler(gripql.WrapClient(gripql.NewQueryDirectClient(server), nil))
+
 	mux.Handle("/graphql/", gqlHandler)
 
 	// Setup web ui handler
