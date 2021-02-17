@@ -49,7 +49,7 @@ type GripServer struct {
 }
 
 // NewGripServer initializes a GRPC server to connect to the graph store
-func NewGripServer(conf *config.Config, baseDir string) (*GripServer, error) {
+func NewGripServer(conf *config.Config, baseDir string, drivers ...gdbi.GraphDB ) (*GripServer, error) {
 	_, err := os.Stat(conf.Server.WorkDir)
 	if os.IsNotExist(err) {
 		err = os.Mkdir(conf.Server.WorkDir, 0700)
@@ -66,20 +66,19 @@ func NewGripServer(conf *config.Config, baseDir string) (*GripServer, error) {
 			gdbs[name] = g
 		}
 	}
-
-	server := &GripServer{dbs:gdbs, conf: conf, schemas: schemas}
-	for graph, schema := range schemas {
-		if !server.graphExists(graph) {
-			_, err := server.AddGraph(context.Background(), &gripql.GraphID{Graph: graph})
-			if err != nil {
-				return nil, fmt.Errorf("error creating graph defined by schema '%s': %v", graph, err)
+	for i, d := range drivers {
+		n := fmt.Sprintf("__driver__%d", i)
+		gdbs[n] = d
+	}
+	if conf.Default == "" {
+		//if no default is found set it to the first driver found
+		for i := range gdbs {
+			if conf.Default == "" {
+				conf.Default = i
 			}
 		}
-		err = server.addSchemaGraph(context.Background(), schema)
-		if err != nil {
-			return nil, err
-		}
 	}
+	server := &GripServer{dbs:gdbs, conf: conf, schemas: schemas}
 	server.updateGraphMap()
 	return server, nil
 }

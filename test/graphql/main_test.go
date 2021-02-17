@@ -11,8 +11,10 @@ import (
 	"github.com/bmeg/grip/config"
 	"github.com/bmeg/grip/elastic"
 	"github.com/bmeg/grip/gdbi"
+  "github.com/bmeg/grip/server"
 	"github.com/bmeg/grip/grids"
 	"github.com/bmeg/grip/gripql"
+  "github.com/bmeg/grip/graphql"
 	"github.com/bmeg/grip/kvgraph"
 	_ "github.com/bmeg/grip/kvi/badgerdb" // import so badger will register itself
 	_ "github.com/bmeg/grip/kvi/boltdb"   // import so bolt will register itself
@@ -147,6 +149,17 @@ func TestMain(m *testing.M) {
       return
     }
   }
+
+
+  srv, err := server.NewGripServer(conf, "./", gdb)
+  if err != nil {
+    fmt.Println("Error: failed to init server", err)
+    return
+  }
+
+  gqlHandler, err := graphql.NewClientHTTPHandler(gripql.WrapClient(gripql.NewQueryDirectClient(srv), nil))
+
+  fmt.Printf("%s\n", gqlHandler)
 
   // run tests
   exit = m.Run()
