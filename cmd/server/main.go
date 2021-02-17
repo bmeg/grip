@@ -34,7 +34,7 @@ func Run(conf *config.Config, baseDir string) error {
 		cancel()
 	}()
 
-	srv, err := server.NewGripServer(conf, baseDir)
+	srv, err := server.NewGripServer(conf, baseDir, nil)
 	if err != nil {
 		return err
 	}

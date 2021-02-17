@@ -14,6 +14,7 @@ import (
   "github.com/bmeg/grip/server"
 	"github.com/bmeg/grip/grids"
 	"github.com/bmeg/grip/gripql"
+  "github.com/bmeg/grip/gripql/schema"
   "github.com/bmeg/grip/graphql"
 	"github.com/bmeg/grip/kvgraph"
 	_ "github.com/bmeg/grip/kvi/badgerdb" // import so badger will register itself
@@ -150,16 +151,32 @@ func TestMain(m *testing.M) {
     }
   }
 
-
-  srv, err := server.NewGripServer(conf, "./", gdb)
+  srv, err := server.NewGripServer(conf, "./", map[string]gdbi.GraphDB{conf.Default:gdb})
   if err != nil {
     fmt.Println("Error: failed to init server", err)
     return
   }
 
-  gqlHandler, err := graphql.NewClientHTTPHandler(gripql.WrapClient(gripql.NewQueryDirectClient(srv), nil))
+  conn := gripql.WrapClient(gripql.NewQueryDirectClient(srv), gripql.NewEditDirectClient(srv))
+
+	sch, err := schema.ScanSchema(conn, "test-graph", 10, []string{})
+	if err != nil {
+    fmt.Println("Error: failed to init server", err)
+		return
+	}
+  fmt.Printf("Adding Schema\n")
+	err = conn.AddSchema(sch)
+  if err != nil {
+    fmt.Printf("Error: failed to add schema %s\n", err)
+    return
+  }
+
+  gqlHandler, err := graphql.NewClientHTTPHandler(conn)
 
   fmt.Printf("%s\n", gqlHandler)
+  fmt.Printf("%s\n", sch)
+
+  defer os.RemoveAll(conf.Server.WorkDir)
 
   // run tests
   exit = m.Run()

@@ -13,6 +13,7 @@ import (
 
 	"github.com/bmeg/grip/config"
 	"github.com/bmeg/grip/gripql"
+	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/server"
 	"github.com/bmeg/grip/kvgraph"
 	_ "github.com/bmeg/grip/kvi/badgerdb" // import so badger will register itself
@@ -34,15 +35,16 @@ func TestBasicAuthFail(t *testing.T) {
 	defer cancel()
 
 	conf := config.DefaultConfig()
+	conf.AddBadgerDefault()
 	config.TestifyConfig(conf)
 
 	conf.Server.BasicAuth = []config.BasicCredential{{User: "testuser", Password: "abc123"}}
 	defer os.RemoveAll(conf.Server.WorkDir)
-
-	srv, err := server.NewGripServer(conf, "./")
+	srv, err := server.NewGripServer(conf, "./", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer os.RemoveAll(*conf.Drivers[conf.Default].Badger)
 
 	go srv.Serve(ctx)
 
@@ -96,7 +98,7 @@ func TestBasicAuth(t *testing.T) {
 	}
 	defer os.RemoveAll(tmpDB)
 
-	srv, err := server.NewGripServer(conf, "./", gdb)
+	srv, err := server.NewGripServer(conf, "./", map[string]gdbi.GraphDB{"badger":gdb})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

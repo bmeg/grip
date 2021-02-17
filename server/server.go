@@ -49,7 +49,7 @@ type GripServer struct {
 }
 
 // NewGripServer initializes a GRPC server to connect to the graph store
-func NewGripServer(conf *config.Config, baseDir string, drivers ...gdbi.GraphDB ) (*GripServer, error) {
+func NewGripServer(conf *config.Config, baseDir string, drivers map[string]gdbi.GraphDB ) (*GripServer, error) {
 	_, err := os.Stat(conf.Server.WorkDir)
 	if os.IsNotExist(err) {
 		err = os.Mkdir(conf.Server.WorkDir, 0700)
@@ -60,15 +60,18 @@ func NewGripServer(conf *config.Config, baseDir string, drivers ...gdbi.GraphDB 
 	schemas := make(map[string]*gripql.Graph)
 
 	gdbs := map[string]gdbi.GraphDB{}
-	for name, dConfig := range conf.Drivers {
-		g, err := StartDriver(dConfig, baseDir)
-		if err == nil {
-			gdbs[name] = g
+	if drivers != nil {
+		for i, d := range drivers {
+			gdbs[i] = d
 		}
 	}
-	for i, d := range drivers {
-		n := fmt.Sprintf("__driver__%d", i)
-		gdbs[n] = d
+	for name, dConfig := range conf.Drivers {
+		if _, ok := gdbs[name]; !ok {
+			g, err := StartDriver(dConfig, baseDir)
+			if err == nil {
+				gdbs[name] = g
+			}
+		}
 	}
 	if conf.Default == "" {
 		//if no default is found set it to the first driver found
@@ -78,6 +81,10 @@ func NewGripServer(conf *config.Config, baseDir string, drivers ...gdbi.GraphDB 
 			}
 		}
 	}
+	if _, ok := gdbs[conf.Default]; ! ok {
+		return nil, fmt.Errorf("Default driver '%s' does not exist", conf.Default)
+	}
+	fmt.Printf("Default graph driver: %s\n", conf.Default )
 	server := &GripServer{dbs:gdbs, conf: conf, schemas: schemas}
 	server.updateGraphMap()
 	return server, nil
