@@ -20,7 +20,7 @@ docker run bmeg/grip grip server
 ```
 
 <h3>Build From Source</h3>
-Go 1.15 or above suggested
+Recommended [Go](https://golang.org/) version 1.15 or later.
 
 ```shell
 $ git clone https://github.com/bmeg/grip.git

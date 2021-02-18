@@ -55,8 +55,6 @@ func (comp DefaultCompiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeli
 		return &DefaultPipeline{}, nil
 	}
 
-	stmts = Flatten(stmts)
-
 	if err := Validate(stmts); err != nil {
 		return &DefaultPipeline{}, fmt.Errorf("invalid statments: %s", err)
 	}
@@ -257,6 +255,9 @@ func StatementProcessor(gs *gripql.GraphStatement, db gdbi.GraphInterface, ps *p
 		ps.LastType = gdbi.RenderData
 		return &Render{stmt.Render.AsInterface()}, nil
 
+	case *gripql.GraphStatement_Unwind:
+		return &Unwind{stmt.Unwind}, nil
+
 	case *gripql.GraphStatement_Fields:
 		if ps.LastType != gdbi.VertexData && ps.LastType != gdbi.EdgeData {
 			return nil, fmt.Errorf(`"fields" statement is only valid for edge or vertex types not: %s`, ps.LastType.String())
@@ -305,20 +306,4 @@ func Validate(stmts []*gripql.GraphStatement) error {
 		}
 	}
 	return nil
-}
-
-// Flatten flattens Match statements
-func Flatten(stmts []*gripql.GraphStatement) []*gripql.GraphStatement {
-	out := make([]*gripql.GraphStatement, 0, len(stmts))
-	for _, gs := range stmts {
-		switch stmt := gs.GetStatement().(type) {
-		case *gripql.GraphStatement_Match:
-			for _, q := range stmt.Match.Queries {
-				out = append(out, Flatten(q.Query)...)
-			}
-		default:
-			out = append(out, gs)
-		}
-	}
-	return out
 }

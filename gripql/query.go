@@ -166,18 +166,6 @@ func (q *Query) Fields(keys ...string) *Query {
 	return q.with(&GraphStatement{Statement: &GraphStatement_Fields{klist}})
 }
 
-// Match is used to concatenate multiple queries.
-func (q *Query) Match(qs ...*Query) *Query {
-	queries := []*QuerySet{}
-	for _, q := range qs {
-		queries = append(queries, &QuerySet{
-			Query: q.Statements,
-		})
-	}
-	set := &MatchQuerySet{Queries: queries}
-	return q.with(&GraphStatement{Statement: &GraphStatement_Match{set}})
-}
-
 // Count adds a count step to the query
 func (q *Query) Count() *Query {
 	return q.with(&GraphStatement{Statement: &GraphStatement_Count{}})
@@ -267,9 +255,6 @@ func (q *Query) String() string {
 
 		case *GraphStatement_Select:
 			add("Select", stmt.Select.Marks...)
-
-		case *GraphStatement_Match:
-			add("Match")
 
 		case *GraphStatement_Fields:
 			fields := protoutil.AsStringList(stmt.Fields)
