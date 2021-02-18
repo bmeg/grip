@@ -40,7 +40,7 @@ func NewHTTPHandler(rpcAddress, user, password string) (http.Handler, error) {
 	if err != nil {
 		return nil, err
 	}
-	return NewClientHTTPHandler(client) 
+	return NewClientHTTPHandler(client)
 }
 
 // NewClientHTTPHandler initilizes a new GraphQLHandler
@@ -169,7 +169,8 @@ func buildObject(name string, obj map[string]interface{}) (*graphql.Object, erro
 
 		// handle map
 		if x, ok := val.(map[string]interface{}); ok {
-			objFields[key], err = buildObjectField(key, x)
+			// make object name parent_field
+			objFields[key], err = buildObjectField(name+"_"+key, x)
 
 			// handle slice
 		} else if x, ok := val.([]interface{}); ok {
@@ -177,8 +178,11 @@ func buildObject(name string, obj map[string]interface{}) (*graphql.Object, erro
 
 			// handle string
 		} else if x, ok := val.(string); ok {
-			objFields[key], err = buildField(x)
-
+			if f, err := buildField(x); err == nil {
+				objFields[key] = f
+			} else {
+				log.WithFields(log.Fields{"object": name, "field": key, "error": err}).Error("graphql: buildField ignoring field")
+			}
 			// handle other cases
 		} else {
 			err = fmt.Errorf("unhandled type: %T %v", val, val)
@@ -290,7 +294,7 @@ func buildQueryObject(client gripql.Client, graph string, objects map[string]*gr
 			Fields: queryFields,
 		},
 	)
-
+	fmt.Printf("Query fields: %s\n", queryFields)
 	return query
 }
 

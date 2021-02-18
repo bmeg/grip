@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-  "time"
 	"os"
 	"sort"
 	"testing"
+	"time"
 
 	"github.com/bmeg/grip/config"
 	"github.com/bmeg/grip/elastic"
@@ -27,6 +27,7 @@ import (
 	"github.com/bmeg/grip/server"
 	"github.com/bmeg/grip/util"
 	_ "github.com/lib/pq" // import so postgres will register as a sql driver
+	//"google.golang.org/protobuf/encoding/protojson"
 )
 
 var configFile string
@@ -168,7 +169,8 @@ func TestMain(m *testing.M) {
 		fmt.Println("Error: failed to init server", err)
 		return
 	}
-	fmt.Printf("Adding Schema\n")
+
+	//fmt.Printf("Adding Schema: %s\n", protojson.Format(sch))
 	err = conn.AddSchema(sch)
 	if err != nil {
 		fmt.Printf("Error: failed to add schema %s\n", err)
@@ -186,7 +188,7 @@ func TestMain(m *testing.M) {
 	}()
 
 	defer os.RemoveAll(conf.Server.WorkDir)
-  time.Sleep(time.Second)
+	time.Sleep(time.Second)
 
 	// run tests
 	exit = m.Run()

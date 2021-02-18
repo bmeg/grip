@@ -1,35 +1,59 @@
 package graphql
 
-
 import (
-  "fmt"
-  "testing"
-  "context"
-  "github.com/machinebox/graphql"
+	"fmt"
+	//"io/ioutil"
+	//"net/http"
+	//"bytes"
+	"context"
+	"testing"
+
+	"github.com/machinebox/graphql"
 )
 
-func TestGraphQL(t *testing.T) {
-  fmt.Printf("Running GraphQL testing\n")
-  url := fmt.Sprintf("http://%s/graphql/%s", GraphQLAddr, GraphName)
-  client := graphql.NewClient(url)
+func TestCharacterQuery(t *testing.T) {
+	url := fmt.Sprintf("http://%s/graphql/%s", GraphQLAddr, GraphName)
+	client := graphql.NewClient(url)
 
-  // make a request
-  req := graphql.NewRequest(`
+	// make a request
+	req := graphql.NewRequest(`
     query {
-      Human(id:"1000"){
-        name,
-        friend_to_Human{
+      Character(id:"1"){
+        name
+        starships_to_Starship {
           name
         }
       }
     }
   `)
 
-  ctx := context.Background()
-  respData := map[string]interface{}{}
-  if err := client.Run(ctx, req, &respData); err != nil {
-    t.Error(err)
-  }
-  fmt.Printf("Response: %#v\n", respData  )
+	ctx := context.Background()
+	respData := map[string]interface{}{}
+	if err := client.Run(ctx, req, &respData); err != nil {
+		t.Error(err)
+	}
+	fmt.Printf("Response: %#v\n", respData)
+}
+
+func TestIntrospectionQuery(t *testing.T) {
+	url := fmt.Sprintf("http://%s/graphql/%s", GraphQLAddr, GraphName)
+	client := graphql.NewClient(url)
+
+	// make a request
+	req := graphql.NewRequest(`{
+     __type(name:"Character") {
+        fields {
+           name
+           description
+        }
+     }
+  }`)
+
+	ctx := context.Background()
+	respData := map[string]interface{}{}
+	if err := client.Run(ctx, req, &respData); err != nil {
+		t.Error(err)
+	}
+	fmt.Printf("Response: %#v\n", respData)
 
 }

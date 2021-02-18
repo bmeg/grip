@@ -2,21 +2,21 @@ package server
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
-	"flag"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/bmeg/grip/config"
-	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/gdbi"
-	"github.com/bmeg/grip/server"
+	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/kvgraph"
 	_ "github.com/bmeg/grip/kvi/badgerdb" // import so badger will register itself
+	"github.com/bmeg/grip/server"
 	"github.com/bmeg/grip/util"
 	"github.com/bmeg/grip/util/duration"
 	"github.com/bmeg/grip/util/rpc"
@@ -26,9 +26,8 @@ func TestMain(m *testing.M) {
 	var configFile string
 	flag.StringVar(&configFile, "config", configFile, "config file to use for tests")
 	flag.Parse()
- 	m.Run()
+	m.Run()
 }
-
 
 func TestBasicAuthFail(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
@@ -98,7 +97,7 @@ func TestBasicAuth(t *testing.T) {
 	}
 	defer os.RemoveAll(tmpDB)
 
-	srv, err := server.NewGripServer(conf, "./", map[string]gdbi.GraphDB{"badger":gdb})
+	srv, err := server.NewGripServer(conf, "./", map[string]gdbi.GraphDB{"badger": gdb})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

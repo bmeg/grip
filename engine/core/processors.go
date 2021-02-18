@@ -392,7 +392,6 @@ func (r *Render) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, 
 	return ctx
 }
 
-
 ////////////////////////////////////////////////////////////////////////////////
 
 // Unwind takes an array field and replicates the message for every element in the array
@@ -410,20 +409,20 @@ func (r *Unwind) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, 
 				cur := t.GetCurrent()
 				if len(a) > 0 {
 					for _, i := range a {
-						o := gdbi.DataElement{ID:cur.ID,Label:cur.Label,From:cur.From,To:cur.To,Data:util.DeepCopy(cur.Data).(map[string]interface{})}
+						o := gdbi.DataElement{ID: cur.ID, Label: cur.Label, From: cur.From, To: cur.To, Data: util.DeepCopy(cur.Data).(map[string]interface{})}
 						n := t.AddCurrent(&o)
 						jsonpath.TravelerSetValue(n, r.Field, i)
 						out <- n
 					}
 				} else {
-					o := gdbi.DataElement{ID:cur.ID,Label:cur.Label,From:cur.From,To:cur.To,Data:util.DeepCopy(cur.Data).(map[string]interface{})}
+					o := gdbi.DataElement{ID: cur.ID, Label: cur.Label, From: cur.From, To: cur.To, Data: util.DeepCopy(cur.Data).(map[string]interface{})}
 					n := t.AddCurrent(&o)
 					jsonpath.TravelerSetValue(n, r.Field, nil)
 					out <- n
 				}
 			} else {
 				cur := t.GetCurrent()
-				o := gdbi.DataElement{ID:cur.ID,Label:cur.Label,From:cur.From,To:cur.To,Data:util.DeepCopy(cur.Data).(map[string]interface{})}
+				o := gdbi.DataElement{ID: cur.ID, Label: cur.Label, From: cur.From, To: cur.To, Data: util.DeepCopy(cur.Data).(map[string]interface{})}
 				n := t.AddCurrent(&o)
 				jsonpath.TravelerSetValue(n, r.Field, nil)
 				out <- n
@@ -432,7 +431,6 @@ func (r *Unwind) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, 
 	}()
 	return ctx
 }
-
 
 ////////////////////////////////////////////////////////////////////////////////
 
