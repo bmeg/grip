@@ -269,6 +269,7 @@ func buildQueryObject(client gripql.Client, graph string, objects map[string]*gr
 			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 				q := gripql.V().HasLabel(label)
 				if id, ok := p.Args["id"].(string); ok {
+					fmt.Printf("Doing %s id=%s query", label, id)
 					q = gripql.V(id).HasLabel(label)
 				}
 				result, err := client.Traversal(&gripql.GraphQuery{Graph: graph, Query: q.Statements})
@@ -277,6 +278,7 @@ func buildQueryObject(client gripql.Client, graph string, objects map[string]*gr
 				}
 				out := []interface{}{}
 				for r := range result {
+					fmt.Printf("ID query traversal: %s\n", r)
 					d := r.GetVertex().GetDataMap()
 					d["id"] = r.GetVertex().Gid
 					out = append(out, d)

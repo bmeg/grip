@@ -21,8 +21,10 @@ func IndexStartOptimize(pipe []*gripql.GraphStatement) []*gripql.GraphStatement 
 			break
 		}
 		if i == 0 {
-			if _, ok := step.GetStatement().(*gripql.GraphStatement_V); ok {
-				//lookupV = lv
+			if v, ok := step.GetStatement().(*gripql.GraphStatement_V); ok {
+				if v.V != nil && len(v.V.Values) > 0 {
+					break
+				}
 			} else {
 				break
 			}
