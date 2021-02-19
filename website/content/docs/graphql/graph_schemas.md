@@ -11,20 +11,20 @@ Most GRIP based graphs are not required to have a strict schema. However, GraphQ
 a graph schema as part of it's API. To utilize the GraphQL endpoint, there must be a
 Graph Schema provided to be used by the GRIP engine to determine how to render a GraphQL endpoint.
 Graph schemas are themselves an instance of a graph. As such, they can be traversed like any other graph.
-The schemas are automatically added to the database following the naming pattern `{graph-name}__schema__`.
+The schemas are automatically added to the database following the naming pattern. `{graph-name}__schema__`
 
-## Get the schema of a graph
+## Get the Schema of a Graph
 
-The schema of a graph can be accessed via a GET request to `/v1/graph/{graph-name}/schema`.
+The schema of a graph can be accessed via a GET request to `/v1/graph/{graph-name}/schema`
 
-Alternatively, you can use the grip CLI: `grip schema get {graph-name}`.
+Alternatively, you can use the grip CLI. `grip schema get {graph-name}`
 
-## Describing graph schemas
+## Describing Graph Schemas
 There are several methods for describing the schema of a graph.
 
 - Provide the schema (as a YAML file) to the server at runtime. `grip server --schema {schema-file}`
-- POST the schema `/v1/graph/{graph-name}/schema` via curl or use the CLI `grip schema post --yaml {file} --json {file}`.
-- Configure Grip to build the schema by sampling the data in each graph.
+- POST the schema `/v1/graph/{graph-name}/schema` via curl or use the CLI. `grip schema post --yaml {file} --json {file}`
+- Configure GRIP to build the schema by sampling the data in each graph.
 
 ```yaml
 Server:

@@ -22,10 +22,6 @@ message QuerySet {
   repeated GraphStatement query = 1;
 }
 
-message MatchQuerySet {
-  repeated QuerySet queries = 1;
-}
-
 message GraphStatement {
   oneof statement {
     // Tinkerpop methods
@@ -47,18 +43,17 @@ message GraphStatement {
     uint32 limit = 24;
     uint32 skip = 25;
     Range range = 33;
-    MatchQuerySet match = 28;
     HasExpression has = 29;
     google.protobuf.ListValue has_label = 34;
     google.protobuf.ListValue has_key = 35;
     google.protobuf.ListValue has_id = 36;
     string count = 30;
 
-    // custom methods
     google.protobuf.ListValue fields = 26;
     google.protobuf.ListValue distinct = 27;
     Aggregations aggregate = 31;
     google.protobuf.Value render = 32;
+		string unwind = 37;
   }
 }
 

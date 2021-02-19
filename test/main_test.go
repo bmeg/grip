@@ -93,10 +93,16 @@ func TestMain(m *testing.M) {
 			fmt.Printf("error processing config file: %v", err)
 			return
 		}
+	} else {
+		conf.AddBadgerDefault()
 	}
 
 	config.TestifyConfig(conf)
 	fmt.Printf("Test config: %+v\n", conf)
+	if _, ok := conf.Drivers[conf.Default]; !ok {
+		fmt.Printf("default driver %s not found\n", conf.Default)
+		return
+	}
 	dbconfig := conf.Drivers[conf.Default]
 
 	if dbconfig.ExistingSQL != nil {
