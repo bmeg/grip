@@ -124,6 +124,15 @@
             </ul>
           </li>
           
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/databases/gripper/"
+                   class="sidebar-nav-item "
+                >GRIPPER</a></li>
+            </ul>
+          </li>
+          
           
         
         <li>
@@ -231,28 +240,57 @@
           
           
         
+        <li>
+          
+          <span class="intermediate">GIPPER</span></li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/gripper/gripper/"
+                   class="sidebar-nav-item "
+                >Intro</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/gripper/proxy/"
+                   class="sidebar-nav-item "
+                >External Resource Proxies</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/gripper/graphmodel/"
+                   class="sidebar-nav-item "
+                >Graph Model</a></li>
+            </ul>
+          </li>
+          
+          
+        
       
     </ul>
   </div>
 
   <div class="main col span_8_of_12">
-    
-
-<h1 id="elasticsearch">Elasticsearch</h1>
-
+    <h1 id="elasticsearch">Elasticsearch</h1>
 <p>GRIP supports storing vertices and edges in <a href="https://www.elastic.co/">Elasticsearch</a>.</p>
-
 <p>Config:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-yaml" data-lang="yaml"><span style="color:#f92672">Default</span>: <span style="color:#ae81ff">elastic</span>
 
-<pre><code class="language-yaml">Database: elasticsearch
-
-Elasticsearch:
-  URL: &quot;http://localhost:9200&quot;
-  DBName: &quot;gripdb&quot;
-  Username: &quot;&quot;
-  Password: &quot;&quot;
-</code></pre>
-
+<span style="color:#f92672">Drivers</span>:
+  <span style="color:#f92672">elastic</span>:
+    <span style="color:#f92672">Elasticsearch</span>:
+      <span style="color:#f92672">URL</span>: <span style="color:#e6db74">&#34;http://localhost:9200&#34;</span>
+      <span style="color:#f92672">DBName</span>: <span style="color:#e6db74">&#34;gripdb&#34;</span>
+      <span style="color:#f92672">Username</span>: <span style="color:#e6db74">&#34;&#34;</span>
+      <span style="color:#f92672">Password</span>: <span style="color:#e6db74">&#34;&#34;</span>
+</code></pre></div>
   </div>
 
 </div>

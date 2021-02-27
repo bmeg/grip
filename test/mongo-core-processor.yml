@@ -1,5 +1,7 @@
-Database: mongo
+Default: mongo
 
-MongoDB:
-  URL: mongodb://localhost:27000
-  UseAggregationPipeline: false
+Drivers:
+  mongo:
+    MongoDB:
+      URL: mongodb://localhost:27000
+      UseCorePipeline: true

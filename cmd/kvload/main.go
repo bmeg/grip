@@ -23,6 +23,8 @@ var edgeFile string
 var vertexManifestFile string
 var edgeManifestFile string
 
+var workerCount = 1
+
 // Cmd is the declaration of the command line
 var Cmd = &cobra.Command{
 	Use:   "kvload <graph>",
@@ -107,7 +109,7 @@ var Cmd = &cobra.Command{
 		for _, vertexFile := range vertexFileArray {
 			log.Infof("Loading %s", vertexFile)
 			count := 0
-			vertChan, err := util.StreamVerticesFromFile(vertexFile)
+			vertChan, err := util.StreamVerticesFromFile(vertexFile, workerCount)
 			if err != nil {
 				log.WithFields(log.Fields{"error": err}).Errorf("Error reading file: %s", vertexFile)
 				continue
@@ -127,7 +129,7 @@ var Cmd = &cobra.Command{
 		for _, edgeFile := range edgeFileArray {
 			log.Infof("Loading %s", edgeFile)
 			count := 0
-			edgeChan, err := util.StreamEdgesFromFile(edgeFile)
+			edgeChan, err := util.StreamEdgesFromFile(edgeFile, workerCount)
 			if err != nil {
 				log.WithFields(log.Fields{"error": err}).Errorf("Error reading file: %s", edgeFile)
 				continue
@@ -156,5 +158,6 @@ func init() {
 	flags.StringVar(&vertexFile, "vertex", "", "vertex file")
 	flags.StringVar(&edgeFile, "edge", "", "edge file")
 	flags.StringVar(&vertexManifestFile, "vertex-manifest", "", "vertex manifest file")
+	flags.IntVarP(&workerCount, "workers", "n", workerCount, "number of processing threads")
 	flags.StringVar(&edgeManifestFile, "edge-manifest", "", "edge manifest file")
 }

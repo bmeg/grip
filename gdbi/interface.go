@@ -25,14 +25,20 @@ type DataElement struct {
 	Data     map[string]interface{}
 }
 
+type Aggregate struct {
+	Name  string
+	Key   interface{}
+	Value float64
+}
+
 // Traveler is a query element that traverse the graph
 type Traveler struct {
-	current      *DataElement
-	marks        map[string]*DataElement
-	Selections   map[string]*DataElement
-	Aggregations map[string]*gripql.AggregationResult
-	Count        uint32
-	Render       interface{}
+	current     *DataElement
+	marks       map[string]*DataElement
+	Selections  map[string]*DataElement
+	Aggregation *Aggregate
+	Count       uint32
+	Render      interface{}
 }
 
 // DataType is a possible output data type
@@ -52,7 +58,7 @@ const (
 // ElementLookup request to look up data
 type ElementLookup struct {
 	ID     string
-	Ref    interface{}
+	Ref    *Traveler
 	Vertex *gripql.Vertex
 	Edge   *gripql.Edge
 }
@@ -97,11 +103,11 @@ type GraphInterface interface {
 	GetVertexList(ctx context.Context, load bool) <-chan *gripql.Vertex
 	GetEdgeList(ctx context.Context, load bool) <-chan *gripql.Edge
 
-	GetVertexChannel(req chan ElementLookup, load bool) chan ElementLookup
-	GetOutChannel(req chan ElementLookup, load bool, edgeLabels []string) chan ElementLookup
-	GetInChannel(req chan ElementLookup, load bool, edgeLabels []string) chan ElementLookup
-	GetOutEdgeChannel(req chan ElementLookup, load bool, edgeLabels []string) chan ElementLookup
-	GetInEdgeChannel(req chan ElementLookup, load bool, edgeLabels []string) chan ElementLookup
+	GetVertexChannel(ctx context.Context, req chan ElementLookup, load bool) chan ElementLookup
+	GetOutChannel(ctx context.Context, req chan ElementLookup, load bool, edgeLabels []string) chan ElementLookup
+	GetInChannel(ctx context.Context, req chan ElementLookup, load bool, edgeLabels []string) chan ElementLookup
+	GetOutEdgeChannel(ctx context.Context, req chan ElementLookup, load bool, edgeLabels []string) chan ElementLookup
+	GetInEdgeChannel(ctx context.Context, req chan ElementLookup, load bool, edgeLabels []string) chan ElementLookup
 }
 
 // Manager is a resource manager that is passed to processors to allow them ]

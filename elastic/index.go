@@ -2,15 +2,15 @@ package elastic
 
 import (
 	"context"
-	"fmt"
+	//"fmt"
 	"io"
-	"strconv"
-	"strings"
+	//"strconv"
+	//"strings"
 
 	"github.com/bmeg/grip/gripql"
-	"github.com/bmeg/grip/jsonpath"
+	//"github.com/bmeg/grip/jsonpath"
 	"github.com/bmeg/grip/log"
-	"github.com/bmeg/grip/protoutil"
+	//"github.com/bmeg/grip/protoutil"
 	elastic "gopkg.in/olivere/elastic.v5"
 )
 
@@ -84,6 +84,7 @@ func (es *Graph) GetVertexIndexList() <-chan *gripql.IndexID {
 	return o
 }
 
+/*
 // GetVertexTermAggregation returns the count of every term across vertices
 func (es *Graph) GetVertexTermAggregation(ctx context.Context, label string, field string, size uint32) (*gripql.AggregationResult, error) {
 	log.WithFields(log.Fields{"label": label, "field": field, "size": size}).Debug("Running GetVertexTermAggregation")
@@ -124,7 +125,9 @@ func (es *Graph) GetVertexTermAggregation(ctx context.Context, label string, fie
 
 	return out, nil
 }
+*/
 
+/*
 //GetVertexHistogramAggregation get binned counts of a term across vertices
 func (es *Graph) GetVertexHistogramAggregation(ctx context.Context, label string, field string, interval uint32) (*gripql.AggregationResult, error) {
 	log.WithFields(log.Fields{"label": label, "field": field, "interval": interval}).Debug("Running GetVertexHistogramAggregation")
@@ -157,7 +160,9 @@ func (es *Graph) GetVertexHistogramAggregation(ctx context.Context, label string
 
 	return out, nil
 }
+*/
 
+/*
 //GetVertexPercentileAggregation get percentiles of a term across vertices
 func (es *Graph) GetVertexPercentileAggregation(ctx context.Context, label string, field string, percents []float64) (*gripql.AggregationResult, error) {
 	log.WithFields(log.Fields{"label": label, "field": field, "percents": percents}).Debug("Running GetVertexPercentileAggregation")
@@ -194,6 +199,7 @@ func (es *Graph) GetVertexPercentileAggregation(ctx context.Context, label strin
 
 	return out, nil
 }
+*/
 
 // VertexLabelScan produces a channel of all vertex ids where the vertex label matches `label`
 func (es *Graph) VertexLabelScan(ctx context.Context, label string) chan string {

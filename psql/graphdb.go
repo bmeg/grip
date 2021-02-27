@@ -54,7 +54,7 @@ func NewGraphDB(conf Config) (gdbi.GraphDB, error) {
 	}
 	db.SetMaxIdleConns(10)
 
-	stmt := fmt.Sprintf("CREATE TABLE IF NOT EXISTS graphs (graph_name varchar PRIMARY KEY, sanitized_graph_name varchar NOT NULL, vertex_table varchar NOT NULL, edge_table varchar NOT NULL)")
+	stmt := "CREATE TABLE IF NOT EXISTS graphs (graph_name varchar PRIMARY KEY, sanitized_graph_name varchar NOT NULL, vertex_table varchar NOT NULL, edge_table varchar NOT NULL)"
 	_, err = db.Exec(stmt)
 	if err != nil {
 		return nil, fmt.Errorf("creating graphs table: %v", err)

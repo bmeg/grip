@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/bmeg/grip/protoutil"
+	"github.com/bmeg/grip/util/protoutil"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 // V starts a new vertex query, short for `NewQuery().V()`.
@@ -38,19 +39,19 @@ func (q *Query) with(st *GraphStatement) *Query {
 
 // V adds a vertex selection step to the query
 func (q *Query) V(id ...string) *Query {
-	vlist := protoutil.AsListValue(id)
+	vlist := protoutil.NewListFromStrings(id)
 	return q.with(&GraphStatement{Statement: &GraphStatement_V{vlist}})
 }
 
 // E adds a edge selection step to the query
 func (q *Query) E(id ...string) *Query {
-	elist := protoutil.AsListValue(id)
+	elist := protoutil.NewListFromStrings(id)
 	return q.with(&GraphStatement{Statement: &GraphStatement_E{elist}})
 }
 
 // In follows incoming edges to adjacent vertex
 func (q *Query) In(label ...string) *Query {
-	vlist := protoutil.AsListValue(label)
+	vlist := protoutil.NewListFromStrings(label)
 	return q.with(&GraphStatement{Statement: &GraphStatement_In{vlist}})
 }
 
@@ -61,13 +62,13 @@ func (q *Query) InV(label ...string) *Query {
 
 // InE moves to incoming edge
 func (q *Query) InE(label ...string) *Query {
-	vlist := protoutil.AsListValue(label)
+	vlist := protoutil.NewListFromStrings(label)
 	return q.with(&GraphStatement{Statement: &GraphStatement_InE{vlist}})
 }
 
 // Out follows outgoing edges to adjacent vertex
 func (q *Query) Out(label ...string) *Query {
-	vlist := protoutil.AsListValue(label)
+	vlist := protoutil.NewListFromStrings(label)
 	return q.with(&GraphStatement{Statement: &GraphStatement_Out{vlist}})
 }
 
@@ -78,13 +79,13 @@ func (q *Query) OutV(label ...string) *Query {
 
 // OutE moves to outgoing edge
 func (q *Query) OutE(label ...string) *Query {
-	vlist := protoutil.AsListValue(label)
+	vlist := protoutil.NewListFromStrings(label)
 	return q.with(&GraphStatement{Statement: &GraphStatement_OutE{vlist}})
 }
 
 // Both follows both incoming and outgoing edges to adjacent vertex
 func (q *Query) Both(label ...string) *Query {
-	vlist := protoutil.AsListValue(label)
+	vlist := protoutil.NewListFromStrings(label)
 	return q.with(&GraphStatement{Statement: &GraphStatement_Both{vlist}})
 }
 
@@ -95,7 +96,7 @@ func (q *Query) BothV(label ...string) *Query {
 
 // BothE moves to both incoming and outgoing edges
 func (q *Query) BothE(label ...string) *Query {
-	vlist := protoutil.AsListValue(label)
+	vlist := protoutil.NewListFromStrings(label)
 	return q.with(&GraphStatement{Statement: &GraphStatement_BothE{vlist}})
 }
 
@@ -106,19 +107,19 @@ func (q *Query) Has(expression *HasExpression) *Query {
 
 // HasLabel filters elements based on their label.
 func (q *Query) HasLabel(label ...string) *Query {
-	vlist := protoutil.AsListValue(label)
+	vlist := protoutil.NewListFromStrings(label)
 	return q.with(&GraphStatement{Statement: &GraphStatement_HasLabel{vlist}})
 }
 
 // HasKey filters elements based on whether it has one or more properties.
 func (q *Query) HasKey(key ...string) *Query {
-	vlist := protoutil.AsListValue(key)
+	vlist := protoutil.NewListFromStrings(key)
 	return q.with(&GraphStatement{Statement: &GraphStatement_HasKey{vlist}})
 }
 
 // HasID filters elements based on their id.
 func (q *Query) HasID(id ...string) *Query {
-	vlist := protoutil.AsListValue(id)
+	vlist := protoutil.NewListFromStrings(id)
 	return q.with(&GraphStatement{Statement: &GraphStatement_HasId{vlist}})
 }
 
@@ -161,20 +162,8 @@ func (q *Query) Select(id ...string) *Query {
 
 // Fields selects which properties are returned in the result.
 func (q *Query) Fields(keys ...string) *Query {
-	klist := protoutil.AsListValue(keys)
+	klist := protoutil.NewListFromStrings(keys)
 	return q.with(&GraphStatement{Statement: &GraphStatement_Fields{klist}})
-}
-
-// Match is used to concatenate multiple queries.
-func (q *Query) Match(qs ...*Query) *Query {
-	queries := []*QuerySet{}
-	for _, q := range qs {
-		queries = append(queries, &QuerySet{
-			Query: q.Statements,
-		})
-	}
-	set := &MatchQuerySet{Queries: queries}
-	return q.with(&GraphStatement{Statement: &GraphStatement_Match{set}})
 }
 
 // Count adds a count step to the query
@@ -184,12 +173,13 @@ func (q *Query) Count() *Query {
 
 // Distinct selects records with distinct elements of arg
 func (q *Query) Distinct(args ...string) *Query {
-	return q.with(&GraphStatement{Statement: &GraphStatement_Distinct{protoutil.AsListValue(args)}})
+	return q.with(&GraphStatement{Statement: &GraphStatement_Distinct{protoutil.NewListFromStrings(args)}})
 }
 
 // Render adds a render step to the query
 func (q *Query) Render(template interface{}) *Query {
-	return q.with(&GraphStatement{Statement: &GraphStatement_Render{protoutil.WrapValue(template)}})
+	value, _ := structpb.NewValue(template)
+	return q.with(&GraphStatement{Statement: &GraphStatement_Render{value}})
 }
 
 func (q *Query) String() string {
@@ -265,9 +255,6 @@ func (q *Query) String() string {
 
 		case *GraphStatement_Select:
 			add("Select", stmt.Select.Marks...)
-
-		case *GraphStatement_Match:
-			add("Match")
 
 		case *GraphStatement_Fields:
 			fields := protoutil.AsStringList(stmt.Fields)

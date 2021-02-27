@@ -12,9 +12,9 @@ import (
 
 	"github.com/bmeg/grip/engine/pipeline"
 	"github.com/bmeg/grip/gripql"
-	"github.com/bmeg/grip/protoutil"
 	"github.com/bmeg/grip/util"
 	"github.com/golang/protobuf/jsonpb"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 var Q = &gripql.Query{}
@@ -258,15 +258,15 @@ func TestEngine(t *testing.T) {
 			count(15),
 		},
 		{
-			Q.V().HasLabel("products").Has(gripql.Inside("price", []float64{9.99, 19.99})).Count(),
+			Q.V().HasLabel("products").Has(gripql.Inside("price", []interface{}{9.99, 19.99})).Count(),
 			count(5),
 		},
 		{
-			Q.V().HasLabel("products").Has(gripql.Between("price", []float64{9.99, 19.99})).Count(),
+			Q.V().HasLabel("products").Has(gripql.Between("price", []interface{}{9.99, 19.99})).Count(),
 			count(11),
 		},
 		{
-			Q.V().HasLabel("products").Has(gripql.Outside("price", []float64{9.99, 19.99})).Count(),
+			Q.V().HasLabel("products").Has(gripql.Outside("price", []interface{}{9.99, 19.99})).Count(),
 			count(9),
 		},
 		{
@@ -390,20 +390,6 @@ func TestEngine(t *testing.T) {
 			}),
 		},
 		{
-			Q.V().Match(
-				Q.HasLabel("products"),
-				Q.Has(gripql.Eq("price", 499.99)),
-			),
-			pick("products:6"),
-		},
-		{
-			Q.V().Match(
-				Q.As("a").HasLabel("products").As("b"),
-				Q.As("b").Has(gripql.Eq("price", 499.99)).As("c"),
-			).Select("c"),
-			pick("products:6"),
-		},
-		{
 			Q.V("users:1").As("a").Out().As("b").
 				Render(map[string]interface{}{"user_id": "$a._gid", "purchase_id": "$b._gid", "purchaser": "$b.name"}),
 			render(map[string]interface{}{"user_id": "users:1", "purchase_id": "purchases:57", "purchaser": "Letitia Sprau"}),
@@ -428,20 +414,22 @@ func TestEngine(t *testing.T) {
 }
 
 func vertex(gid, label string, d data) *gripql.Vertex {
+	ds, _ := structpb.NewStruct(d)
 	return &gripql.Vertex{
 		Gid:   gid,
 		Label: label,
-		Data:  protoutil.AsStruct(d),
+		Data:  ds,
 	}
 }
 
 func edge(gid interface{}, from, to string, label string, d data) *gripql.Edge {
+	ds, _ := structpb.NewStruct(d)
 	return &gripql.Edge{
 		Gid:   fmt.Sprintf("%v", gid),
 		From:  from,
 		To:    to,
 		Label: label,
-		Data:  protoutil.AsStruct(d),
+		Data:  ds,
 	}
 }
 
@@ -609,10 +597,11 @@ func count(i int) checker {
 }
 
 func render(v interface{}) checker {
+	vs, _ := structpb.NewValue(v)
 	expect := []*gripql.QueryResult{
 		{
 			Result: &gripql.QueryResult_Render{
-				Render: protoutil.WrapValue(v),
+				Render: vs,
 			},
 		},
 	}

@@ -1,7 +1,6 @@
 package elastic
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -13,8 +12,8 @@ import (
 	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/timestamp"
 	"github.com/bmeg/grip/util"
-	"github.com/golang/protobuf/jsonpb"
 	"golang.org/x/sync/errgroup"
+	"google.golang.org/protobuf/encoding/protojson"
 	elastic "gopkg.in/olivere/elastic.v5"
 )
 
@@ -38,7 +37,7 @@ type Graph struct {
 
 // Compiler returns a query compiler that will use elastic search as a backend
 func (es *Graph) Compiler() gdbi.Compiler {
-	return core.NewCompiler(es)
+	return core.NewCompiler(es, core.IndexStartOptimize) //TODO: probably a better optimizer for vertex label search
 }
 
 // GetTimestamp returns the change timestamp of the current graph
@@ -187,7 +186,7 @@ func (es *Graph) GetEdge(id string, load bool) *gripql.Edge {
 	}
 
 	edge := &gripql.Edge{}
-	err = jsonpb.Unmarshal(bytes.NewReader(*res.Source), edge)
+	err = protojson.Unmarshal(*res.Source, edge)
 	if err != nil {
 		log.WithFields(log.Fields{"error": err}).Error("GetEdge: unmarshal")
 		return nil
@@ -212,7 +211,7 @@ func (es *Graph) GetVertex(id string, load bool) *gripql.Vertex {
 	}
 
 	vertex := &gripql.Vertex{}
-	err = jsonpb.Unmarshal(bytes.NewReader(*res.Source), vertex)
+	err = protojson.Unmarshal(*res.Source, vertex)
 	if err != nil {
 		log.WithFields(log.Fields{"error": err}).Error("GetVertex: unmarshal")
 		return nil
@@ -254,7 +253,7 @@ func (es *Graph) GetEdgeList(ctx context.Context, load bool) <-chan *gripql.Edge
 	g.Go(func() error {
 		for hit := range hits {
 			edge := &gripql.Edge{}
-			err := jsonpb.Unmarshal(bytes.NewReader(hit), edge)
+			err := protojson.Unmarshal(hit, edge)
 			if err != nil {
 				return err
 			}
@@ -307,7 +306,7 @@ func (es *Graph) GetVertexList(ctx context.Context, load bool) <-chan *gripql.Ve
 	g.Go(func() error {
 		for hit := range hits {
 			vertex := &gripql.Vertex{}
-			err := jsonpb.Unmarshal(bytes.NewReader(hit), vertex)
+			err := protojson.Unmarshal(hit, vertex)
 			if err != nil {
 				return fmt.Errorf("Failed to unmarshal vertex: %v", err)
 			}
@@ -328,8 +327,7 @@ func (es *Graph) GetVertexList(ctx context.Context, load bool) <-chan *gripql.Ve
 }
 
 // GetVertexChannel get a channel that returns all vertices in a graph
-func (es *Graph) GetVertexChannel(req chan gdbi.ElementLookup, load bool) chan gdbi.ElementLookup {
-	ctx := context.Background()
+func (es *Graph) GetVertexChannel(ctx context.Context, req chan gdbi.ElementLookup, load bool) chan gdbi.ElementLookup {
 	g, ctx := errgroup.WithContext(ctx)
 
 	// Create query batches
@@ -369,7 +367,7 @@ func (es *Graph) GetVertexChannel(req chan gdbi.ElementLookup, load bool) chan g
 			for hit := range paginateQuery(ctx, q, es.pageSize) {
 				// Deserialize
 				vertex := &gripql.Vertex{}
-				err := jsonpb.Unmarshal(bytes.NewReader(*hit.Source), vertex)
+				err := protojson.Unmarshal(*hit.Source, vertex)
 				if err != nil {
 					return fmt.Errorf("Failed to unmarshal vertex: %s", err)
 				}
@@ -396,8 +394,7 @@ func (es *Graph) GetVertexChannel(req chan gdbi.ElementLookup, load bool) chan g
 }
 
 // GetOutChannel gets channel of all vertices connected to element via outgoing edge
-func (es *Graph) GetOutChannel(req chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
-	ctx := context.Background()
+func (es *Graph) GetOutChannel(ctx context.Context, req chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
 	g, ctx := errgroup.WithContext(ctx)
 
 	// Create query batches
@@ -445,7 +442,7 @@ func (es *Graph) GetOutChannel(req chan gdbi.ElementLookup, load bool, edgeLabel
 			for hit := range paginateQuery(ctx, q, es.pageSize) {
 				// Deserialize
 				edge := &gripql.Edge{}
-				err := jsonpb.Unmarshal(bytes.NewReader(*hit.Source), edge)
+				err := protojson.Unmarshal(*hit.Source, edge)
 				if err != nil {
 					return fmt.Errorf("Failed to unmarshal edge: %s", err)
 				}
@@ -482,7 +479,7 @@ func (es *Graph) GetOutChannel(req chan gdbi.ElementLookup, load bool, edgeLabel
 			for hit := range paginateQuery(ctx, q, es.pageSize) {
 				// Deserialize
 				vertex := &gripql.Vertex{}
-				err := jsonpb.Unmarshal(bytes.NewReader(*hit.Source), vertex)
+				err := protojson.Unmarshal(*hit.Source, vertex)
 				if err != nil {
 					return fmt.Errorf("Failed to unmarshal vertex: %s", err)
 				}
@@ -509,8 +506,7 @@ func (es *Graph) GetOutChannel(req chan gdbi.ElementLookup, load bool, edgeLabel
 }
 
 // GetInChannel gets all vertices connected to lookup elements by incoming edges
-func (es *Graph) GetInChannel(req chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
-	ctx := context.Background()
+func (es *Graph) GetInChannel(ctx context.Context, req chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
 	g, ctx := errgroup.WithContext(ctx)
 
 	// Create query batches
@@ -558,7 +554,7 @@ func (es *Graph) GetInChannel(req chan gdbi.ElementLookup, load bool, edgeLabels
 			for hit := range paginateQuery(ctx, q, es.pageSize) {
 				// Deserialize
 				edge := &gripql.Edge{}
-				err := jsonpb.Unmarshal(bytes.NewReader(*hit.Source), edge)
+				err := protojson.Unmarshal(*hit.Source, edge)
 				if err != nil {
 					return fmt.Errorf("Failed to unmarshal edge: %s", err)
 				}
@@ -594,7 +590,7 @@ func (es *Graph) GetInChannel(req chan gdbi.ElementLookup, load bool, edgeLabels
 			for hit := range paginateQuery(ctx, q, es.pageSize) {
 				// Deserialize
 				vertex := &gripql.Vertex{}
-				err := jsonpb.Unmarshal(bytes.NewReader(*hit.Source), vertex)
+				err := protojson.Unmarshal(*hit.Source, vertex)
 				if err != nil {
 					return fmt.Errorf("Failed to unmarshal vertex: %s", err)
 				}
@@ -621,8 +617,7 @@ func (es *Graph) GetInChannel(req chan gdbi.ElementLookup, load bool, edgeLabels
 }
 
 // GetOutEdgeChannel gets all outgoing edges connected to lookup element
-func (es *Graph) GetOutEdgeChannel(req chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
-	ctx := context.Background()
+func (es *Graph) GetOutEdgeChannel(ctx context.Context, req chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
 	g, ctx := errgroup.WithContext(ctx)
 
 	// Create query batches
@@ -670,7 +665,7 @@ func (es *Graph) GetOutEdgeChannel(req chan gdbi.ElementLookup, load bool, edgeL
 			for hit := range paginateQuery(ctx, q, es.pageSize) {
 				// Deserialize
 				edge := &gripql.Edge{}
-				err := jsonpb.Unmarshal(bytes.NewReader(*hit.Source), edge)
+				err := protojson.Unmarshal(*hit.Source, edge)
 				if err != nil {
 					return fmt.Errorf("Failed to unmarshal edge: %s", err)
 				}
@@ -697,8 +692,7 @@ func (es *Graph) GetOutEdgeChannel(req chan gdbi.ElementLookup, load bool, edgeL
 }
 
 // GetInEdgeChannel gets incoming edges connected to lookup element
-func (es *Graph) GetInEdgeChannel(req chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
-	ctx := context.Background()
+func (es *Graph) GetInEdgeChannel(ctx context.Context, req chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
 	g, ctx := errgroup.WithContext(ctx)
 
 	// Create query batches
@@ -746,7 +740,7 @@ func (es *Graph) GetInEdgeChannel(req chan gdbi.ElementLookup, load bool, edgeLa
 			for hit := range paginateQuery(ctx, q, es.pageSize) {
 				// Deserialize
 				edge := &gripql.Edge{}
-				err := jsonpb.Unmarshal(bytes.NewReader(*hit.Source), edge)
+				err := protojson.Unmarshal(*hit.Source, edge)
 				if err != nil {
 					return fmt.Errorf("Failed to unmarshal edge: %s", err)
 				}

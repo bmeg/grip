@@ -1,12 +1,12 @@
 
 
-def test_mark_select_label_filter(O, man):
+def test_mark_select_label_filter(man):
     errors = []
 
-    man.setGraph("swapi")
+    G = man.setGraph("swapi")
 
     count = 0
-    for row in O.query().V("Film:1").as_("a").\
+    for row in G.query().V("Film:1").as_("a").\
             both("films").\
             as_("b").\
             select(["a", "b"]):
@@ -25,13 +25,13 @@ def test_mark_select_label_filter(O, man):
     return errors
 
 
-def test_mark_select(O, man):
+def test_mark_select(man):
     errors = []
 
-    man.setGraph("swapi")
+    G = man.setGraph("swapi")
 
     count = 0
-    for row in O.query().V("Character:1").as_("a").out().as_(
+    for row in G.query().V("Character:1").as_("a").out().as_(
             "b").out().as_("c").select(["a", "b", "c"]):
         count += 1
         if len(row) != 3:
@@ -50,13 +50,13 @@ def test_mark_select(O, man):
     return errors
 
 
-def test_mark_edge_select(O, man):
+def test_mark_edge_select(man):
     errors = []
 
-    man.setGraph("swapi")
+    G = man.setGraph("swapi")
 
     count = 0
-    for row in O.query().V("Film:1").as_("a").outE("planets").as_(
+    for row in G.query().V("Film:1").as_("a").outE("planets").as_(
             "b").out().as_("c").select(["a", "b", "c"]):
         count += 1
         if len(row) != 3:

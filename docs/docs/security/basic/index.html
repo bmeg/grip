@@ -124,6 +124,15 @@
             </ul>
           </li>
           
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/databases/gripper/"
+                   class="sidebar-nav-item "
+                >GRIPPER</a></li>
+            </ul>
+          </li>
+          
           
         
         <li>
@@ -231,61 +240,76 @@
           
           
         
+        <li>
+          
+          <span class="intermediate">GIPPER</span></li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/gripper/gripper/"
+                   class="sidebar-nav-item "
+                >Intro</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/gripper/proxy/"
+                   class="sidebar-nav-item "
+                >External Resource Proxies</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/gripper/graphmodel/"
+                   class="sidebar-nav-item "
+                >Graph Model</a></li>
+            </ul>
+          </li>
+          
+          
+        
       
     </ul>
   </div>
 
   <div class="main col span_8_of_12">
-    
-
-<h1 id="basic-auth">Basic Auth</h1>
-
+    <h1 id="basic-auth">Basic Auth</h1>
 <p>By default, an GRIP server allows open access to its API endpoints, but it
 can be configured to require basic password authentication. To enable this,
 include users and passwords in your config file:</p>
-
-<pre><code class="language-yaml">Server:
-  BasicAuth:
-    - User: testuser
-      Password: abc123
-</code></pre>
-
-<p>Make sure to properly protect the configuration file so that it&rsquo;s not readable
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-yaml" data-lang="yaml"><span style="color:#f92672">Server</span>:
+  <span style="color:#f92672">BasicAuth</span>:
+    - <span style="color:#f92672">User</span>: <span style="color:#ae81ff">testuser</span>
+      <span style="color:#f92672">Password</span>: <span style="color:#ae81ff">abc123</span>
+</code></pre></div><p>Make sure to properly protect the configuration file so that it&rsquo;s not readable
 by everyone:</p>
-
-<pre><code class="language-bash">$ chmod 600 grip.config.yml
-</code></pre>
-
-<p>To use the password, set the <code>GRIP_USER</code> and <code>GRIP_PASSWORD</code> environment variables:</p>
-
-<pre><code class="language-bash">$ export GRIP_USER=testuser
-$ export GRIP_PASSWORD=abc123
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">$ chmod <span style="color:#ae81ff">600</span> grip.config.yml
+</code></pre></div><p>To use the password, set the <code>GRIP_USER</code> and <code>GRIP_PASSWORD</code> environment variables:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">$ export GRIP_USER<span style="color:#f92672">=</span>testuser
+$ export GRIP_PASSWORD<span style="color:#f92672">=</span>abc123
 $ grip list
-</code></pre>
-
-<h2 id="using-the-python-client">Using the Python Client</h2>
-
+</code></pre></div><h2 id="using-the-python-client">Using the Python Client</h2>
 <p>Some GRIP servers may require authorizaiton to access its API endpoints. The client can be configured to pass
 authorization headers in its requests:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python"><span style="color:#f92672">import</span> gripql
 
-<pre><code class="language-python">import gripql
-
-# Basic Auth Header - {'Authorization': 'Basic dGVzdDpwYXNzd29yZA=='}
-G = gripql.Connection(&quot;https://bmeg.io&quot;, user=&quot;test&quot;, password=&quot;password&quot;).graph(&quot;bmeg&quot;)
-</code></pre>
-
-<p>Although GRIP only supports basic password authentication, some servers may be proctected via a nginx or apache
+<span style="color:#75715e"># Basic Auth Header - {&#39;Authorization&#39;: &#39;Basic dGVzdDpwYXNzd29yZA==&#39;}</span>
+G <span style="color:#f92672">=</span> gripql<span style="color:#f92672">.</span>Connection(<span style="color:#e6db74">&#34;https://bmeg.io&#34;</span>, user<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;test&#34;</span>, password<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;password&#34;</span>)<span style="color:#f92672">.</span>graph(<span style="color:#e6db74">&#34;bmeg&#34;</span>)
+</code></pre></div><p>Although GRIP only supports basic password authentication, some servers may be proctected via a nginx or apache
 server. The python client can be configured to handle these cases as well:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python"><span style="color:#f92672">import</span> gripql 
 
-<pre><code class="language-python">import gripql 
+<span style="color:#75715e"># Bearer Token - {&#39;Authorization&#39;: &#39;Bearer iamnotarealtoken&#39;}</span>
+G <span style="color:#f92672">=</span> gripql<span style="color:#f92672">.</span>Connection(<span style="color:#e6db74">&#34;https://bmeg.io&#34;</span>, token<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;iamnotarealtoken&#34;</span>)<span style="color:#f92672">.</span>graph(<span style="color:#e6db74">&#34;bmeg&#34;</span>)
 
-# Bearer Token - {'Authorization': 'Bearer iamnotarealtoken'}
-G = gripql.Connection(&quot;https://bmeg.io&quot;, token=&quot;iamnotarealtoken&quot;).graph(&quot;bmeg&quot;)
-
-# OAuth2 / Custom - {&quot;OauthEmail&quot;: &quot;fake.user@gmail.com&quot;, &quot;OauthAccessToken&quot;: &quot;iamnotarealtoken&quot;, &quot;OauthExpires&quot;: 1551985931}
-G = gripql.Connection(&quot;https://bmeg.io&quot;,  credential_file=&quot;~/.grip_token.json&quot;).graph(&quot;bmeg&quot;)
-</code></pre>
-
+<span style="color:#75715e"># OAuth2 / Custom - {&#34;OauthEmail&#34;: &#34;fake.user@gmail.com&#34;, &#34;OauthAccessToken&#34;: &#34;iamnotarealtoken&#34;, &#34;OauthExpires&#34;: 1551985931}</span>
+G <span style="color:#f92672">=</span> gripql<span style="color:#f92672">.</span>Connection(<span style="color:#e6db74">&#34;https://bmeg.io&#34;</span>,  credential_file<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;~/.grip_token.json&#34;</span>)<span style="color:#f92672">.</span>graph(<span style="color:#e6db74">&#34;bmeg&#34;</span>)
+</code></pre></div>
   </div>
 
 </div>

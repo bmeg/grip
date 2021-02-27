@@ -30,8 +30,6 @@ func (comp Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, err
 		return &core.DefaultPipeline{}, nil
 	}
 
-	stmts = core.Flatten(stmts)
-
 	if err := core.Validate(stmts); err != nil {
 		return &core.DefaultPipeline{}, fmt.Errorf("invalid statments: %s", err)
 	}

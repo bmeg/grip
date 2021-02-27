@@ -9,7 +9,7 @@ import (
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/jsonpath"
 	"github.com/bmeg/grip/log"
-	"github.com/bmeg/grip/protoutil"
+	"github.com/bmeg/grip/util/protoutil"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -57,8 +57,6 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, er
 	aggTypes := map[string]*gripql.Aggregate{}
 	vertCol := fmt.Sprintf("%s_vertices", comp.db.graph)
 	edgeCol := fmt.Sprintf("%s_edges", comp.db.graph)
-
-	stmts = core.Flatten(stmts)
 
 	for _, gs := range stmts {
 		switch stmt := gs.GetStatement().(type) {
@@ -519,8 +517,13 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, er
 			if lastType != gdbi.VertexData && lastType != gdbi.EdgeData {
 				return &Pipeline{}, fmt.Errorf(`"render" statement is only valid for edge or vertex types not: %s`, lastType.String())
 			}
-			procs = append(procs, &core.Render{Template: protoutil.UnWrapValue(stmt.Render)})
+			procs = append(procs, &core.Render{Template: stmt.Render.AsInterface()})
 			lastType = gdbi.RenderData
+
+		case *gripql.GraphStatement_Unwind:
+			f := strings.TrimPrefix(stmt.Unwind, "$.")
+			query = append(query,
+				bson.D{primitive.E{Key: "$unwind", Value: "$data." + f}})
 
 		case *gripql.GraphStatement_Fields:
 			if lastType != gdbi.VertexData && lastType != gdbi.EdgeData {

@@ -2,7 +2,6 @@ package util
 
 import (
 	"bufio"
-	"bytes"
 	"compress/gzip"
 	"os"
 	"strings"
@@ -10,7 +9,8 @@ import (
 
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/log"
-	"github.com/golang/protobuf/jsonpb"
+
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 // StreamLines returns a channel of lines from a file.
@@ -55,23 +55,29 @@ func StreamLines(file string, chanSize int) (chan string, error) {
 
 // StreamVerticesFromFile reads a file containing a vertex per line and
 // streams *gripql.Vertex objects out on a channel
-func StreamVerticesFromFile(file string) (chan *gripql.Vertex, error) {
-	lineChan, err := StreamLines(file, 10)
+func StreamVerticesFromFile(file string, workers int) (chan *gripql.Vertex, error) {
+	if workers < 1 {
+		workers = 1
+	}
+	if workers > 99 {
+		workers = 99
+	}
+	lineChan, err := StreamLines(file, workers)
 	if err != nil {
 		return nil, err
 	}
 
-	vertChan := make(chan *gripql.Vertex, 10)
-	m := jsonpb.Unmarshaler{AllowUnknownFields: true}
+	vertChan := make(chan *gripql.Vertex, workers)
 	var wg sync.WaitGroup
 
-	nUnmarshallers := 2
-	for i := 0; i < nUnmarshallers; i++ {
+	jum := protojson.UnmarshalOptions{DiscardUnknown:true}
+
+	for i := 0; i < workers; i++ {
 		wg.Add(1)
 		go func() {
 			for line := range lineChan {
 				v := &gripql.Vertex{}
-				err := m.Unmarshal(bytes.NewReader([]byte(line)), v)
+				err := jum.Unmarshal([]byte(line), v)
 				if err != nil {
 					log.WithFields(log.Fields{"error": err}).Errorf("Unmarshaling vertex: %s", line)
 				} else {
@@ -92,23 +98,29 @@ func StreamVerticesFromFile(file string) (chan *gripql.Vertex, error) {
 
 // StreamEdgesFromFile reads a file containing an edge per line and
 // streams gripql.Edge objects on a channel
-func StreamEdgesFromFile(file string) (chan *gripql.Edge, error) {
-	lineChan, err := StreamLines(file, 10)
+func StreamEdgesFromFile(file string, workers int) (chan *gripql.Edge, error) {
+	if workers < 1 {
+		workers = 1
+	}
+	if workers > 99 {
+		workers = 99
+	}
+	lineChan, err := StreamLines(file, workers)
 	if err != nil {
 		return nil, err
 	}
 
-	edgeChan := make(chan *gripql.Edge, 10)
-	m := jsonpb.Unmarshaler{AllowUnknownFields: true}
+	edgeChan := make(chan *gripql.Edge, workers)
 	var wg sync.WaitGroup
 
-	nUnmarshallers := 2
-	for i := 0; i < nUnmarshallers; i++ {
+	jum := protojson.UnmarshalOptions{DiscardUnknown:true}
+
+	for i := 0; i < workers; i++ {
 		wg.Add(1)
 		go func() {
 			for line := range lineChan {
 				e := &gripql.Edge{}
-				err := m.Unmarshal(bytes.NewReader([]byte(line)), e)
+				err := jum.Unmarshal([]byte(line), e)
 				if err != nil {
 					log.WithFields(log.Fields{"error": err}).Errorf("Unmarshaling edge: %s", line)
 				} else {

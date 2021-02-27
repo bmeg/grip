@@ -11,10 +11,10 @@ import (
 	"github.com/bmeg/grip/kvi"
 	"github.com/bmeg/grip/kvindex"
 	"github.com/bmeg/grip/log"
-	"github.com/bmeg/grip/protoutil"
 	"github.com/bmeg/grip/util/setcmp"
-	proto "github.com/golang/protobuf/proto"
 	multierror "github.com/hashicorp/go-multierror"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 // GetTimestamp returns the update timestamp
@@ -347,7 +347,7 @@ func (ggraph *Graph) GetEdgeList(ctx context.Context, loadProp bool) <-chan *gri
 				e := &gripql.Edge{Gid: eid, Label: labelID, From: sid, To: did}
 				if loadProp {
 					edgeData, _ := it.Value()
-					e.Data = protoutil.NewStruct()
+					e.Data, _ = structpb.NewStruct(map[string]interface{}{})
 					err := proto.Unmarshal(edgeData, e.Data)
 					if err != nil {
 						log.Errorf("GetEdgeList: unmarshal error: %v", err)
@@ -380,7 +380,7 @@ func (ggraph *Graph) GetVertex(id string, loadProp bool) *gripql.Vertex {
 		}
 		if loadProp {
 			dataValue, err := it.Get(vkey)
-			v.Data = protoutil.NewStruct()
+			v.Data, _ = structpb.NewStruct(map[string]interface{}{})
 			err = proto.Unmarshal(dataValue, v.Data)
 			if err != nil {
 				return fmt.Errorf("unmarshal error: %v", err)
@@ -402,7 +402,7 @@ type elementData struct {
 
 // GetVertexChannel is passed a channel of vertex ids and it produces a channel
 // of vertices
-func (ggraph *Graph) GetVertexChannel(ids chan gdbi.ElementLookup, load bool) chan gdbi.ElementLookup {
+func (ggraph *Graph) GetVertexChannel(ctx context.Context, ids chan gdbi.ElementLookup, load bool) chan gdbi.ElementLookup {
 	data := make(chan elementData, 100)
 	go func() {
 		defer close(data)
@@ -431,7 +431,7 @@ func (ggraph *Graph) GetVertexChannel(ids chan gdbi.ElementLookup, load bool) ch
 			lID, _ := ggraph.kdb.keyMap.GetLabelID(ggraph.graphKey, lKey)
 			v := gripql.Vertex{Gid: d.req.ID, Label: lID}
 			if load {
-				v.Data = protoutil.NewStruct()
+				v.Data, _ = structpb.NewStruct(map[string]interface{}{})
 				err := proto.Unmarshal(d.data, v.Data)
 				if err != nil {
 					log.Errorf("GetVertexChannel: unmarshal error: %v", err)
@@ -447,7 +447,7 @@ func (ggraph *Graph) GetVertexChannel(ids chan gdbi.ElementLookup, load bool) ch
 }
 
 //GetOutChannel process requests of vertex ids and find the connected vertices on outgoing edges
-func (ggraph *Graph) GetOutChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
+func (ggraph *Graph) GetOutChannel(ctx context.Context, reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
 	vertexChan := make(chan elementData, 100)
 	edgeLabelKeys := make([]uint64, 0, len(edgeLabels))
 	for i := range edgeLabels {
@@ -493,7 +493,7 @@ func (ggraph *Graph) GetOutChannel(reqChan chan gdbi.ElementLookup, load bool, e
 				if load {
 					dataValue, err := it.Get(req.data)
 					if err == nil {
-						v.Data = protoutil.NewStruct()
+						v.Data, _ = structpb.NewStruct(map[string]interface{}{})
 						err = proto.Unmarshal(dataValue, v.Data)
 						if err != nil {
 							log.Errorf("GetOutChannel: unmarshal error: %v", err)
@@ -511,7 +511,7 @@ func (ggraph *Graph) GetOutChannel(reqChan chan gdbi.ElementLookup, load bool, e
 }
 
 //GetInChannel process requests of vertex ids and find the connected vertices on incoming edges
-func (ggraph *Graph) GetInChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
+func (ggraph *Graph) GetInChannel(ctx context.Context, reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
 	o := make(chan gdbi.ElementLookup, 100)
 	edgeLabelKeys := make([]uint64, 0, len(edgeLabels))
 	for i := range edgeLabels {
@@ -539,7 +539,7 @@ func (ggraph *Graph) GetInChannel(reqChan chan gdbi.ElementLookup, load bool, ed
 							if load {
 								dataValue, err := it.Get(vkey)
 								if err == nil {
-									v.Data = protoutil.NewStruct()
+									v.Data, _ = structpb.NewStruct(map[string]interface{}{})
 									err = proto.Unmarshal(dataValue, v.Data)
 									if err != nil {
 										log.Errorf("GetInChannel: unmarshal error: %v", err)
@@ -560,7 +560,7 @@ func (ggraph *Graph) GetInChannel(reqChan chan gdbi.ElementLookup, load bool, ed
 }
 
 //GetOutEdgeChannel process requests of vertex ids and find the connected outgoing edges
-func (ggraph *Graph) GetOutEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
+func (ggraph *Graph) GetOutEdgeChannel(ctx context.Context, reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
 	o := make(chan gdbi.ElementLookup, 100)
 	edgeLabelKeys := make([]uint64, 0, len(edgeLabels))
 	for i := range edgeLabels {
@@ -589,7 +589,7 @@ func (ggraph *Graph) GetOutEdgeChannel(reqChan chan gdbi.ElementLookup, load boo
 								ekey := EdgeKey(ggraph.graphKey, eid, src, dst, label)
 								dataValue, err := it.Get(ekey)
 								if err == nil {
-									e.Data = protoutil.NewStruct()
+									e.Data, _ = structpb.NewStruct(map[string]interface{}{})
 									err := proto.Unmarshal(dataValue, e.Data)
 									if err != nil {
 										log.Errorf("GetOutEdgeChannel: unmarshal error: %v", err)
@@ -611,7 +611,7 @@ func (ggraph *Graph) GetOutEdgeChannel(reqChan chan gdbi.ElementLookup, load boo
 }
 
 //GetInEdgeChannel process requests of vertex ids and find the connected incoming edges
-func (ggraph *Graph) GetInEdgeChannel(reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
+func (ggraph *Graph) GetInEdgeChannel(ctx context.Context, reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
 	o := make(chan gdbi.ElementLookup, 100)
 	edgeLabelKeys := make([]uint64, 0, len(edgeLabels))
 	for i := range edgeLabels {
@@ -640,7 +640,7 @@ func (ggraph *Graph) GetInEdgeChannel(reqChan chan gdbi.ElementLookup, load bool
 								ekey := EdgeKey(ggraph.graphKey, eid, src, dst, label)
 								dataValue, err := it.Get(ekey)
 								if err == nil {
-									e.Data = protoutil.NewStruct()
+									e.Data = &structpb.Struct{}
 									err := proto.Unmarshal(dataValue, e.Data)
 									if err != nil {
 										log.Errorf("GetInEdgeChannel: unmarshal error: %v", err)
@@ -685,7 +685,7 @@ func (ggraph *Graph) GetEdge(id string, loadProp bool) *gripql.Edge {
 			}
 			if loadProp {
 				d, _ := it.Value()
-				e.Data = protoutil.NewStruct()
+				e.Data = &structpb.Struct{}
 				err := proto.Unmarshal(d, e.Data)
 				if err != nil {
 					return fmt.Errorf("unmarshal error: %v", err)
@@ -722,7 +722,7 @@ func (ggraph *Graph) GetVertexList(ctx context.Context, loadProp bool) <-chan *g
 				v.Label, _ = ggraph.kdb.keyMap.GetLabelID(ggraph.graphKey, lKey)
 				if loadProp {
 					dataValue, _ := it.Value()
-					v.Data = protoutil.NewStruct()
+					v.Data = &structpb.Struct{}
 					err := proto.Unmarshal(dataValue, v.Data)
 					if err != nil {
 						log.Errorf("GetVertexList: unmarshal error: %v", err)

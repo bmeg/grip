@@ -1,0 +1,6 @@
+
+Drivers:
+  swapi-driver:
+    Gripper:
+      ConfigFile: ./swapi.yaml
+      Graph: swapi
