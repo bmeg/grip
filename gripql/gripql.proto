@@ -269,6 +269,20 @@ service Query {
     };
   }
 
+	rpc ListJobs(Graph) returns (stream QueryJob) {
+		option (google.api.http) = {
+			get: "/v1/graph/{graph}/job"
+		};
+	}
+
+
+  rpc DeleteJob(QueryJob) returns (JobStatus) {
+    option (google.api.http) = {
+      delete: "/v1/graph/{graph}/job/{id}"
+    };
+  }
+
+
 	rpc GetJob(QueryJob) returns (JobStatus) {
     option (google.api.http) = {
       get: "/v1/graph/{graph}/job/{id}"
