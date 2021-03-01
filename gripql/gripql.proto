@@ -185,9 +185,9 @@ message QueryJob {
 enum JobState {
 	QUEUED = 0;
 	RUNNING = 1;
-	STREAMING = 2;
-	COMPLETE = 3;
-	ERROR = 4;
+	COMPLETE = 2;
+	ERROR = 3;
+	DELETED = 4;
 }
 
 message JobStatus {
@@ -262,33 +262,6 @@ service Query {
     };
   }
 
-	rpc Job(GraphQuery) returns (QueryJob) {
-    option (google.api.http) = {
-      post: "/v1/graph/{graph}/job"
-      body: "*"
-    };
-  }
-
-	rpc ListJobs(Graph) returns (stream QueryJob) {
-		option (google.api.http) = {
-			get: "/v1/graph/{graph}/job"
-		};
-	}
-
-
-  rpc DeleteJob(QueryJob) returns (JobStatus) {
-    option (google.api.http) = {
-      delete: "/v1/graph/{graph}/job/{id}"
-    };
-  }
-
-
-	rpc GetJob(QueryJob) returns (JobStatus) {
-    option (google.api.http) = {
-      get: "/v1/graph/{graph}/job/{id}"
-    };
-  }
-
 	rpc GetResults(QueryJob) returns (stream QueryResult) {
     option (google.api.http) = {
       get: "/v1/graph/{graph}/job/{id}/results"
@@ -336,7 +309,35 @@ service Query {
       get: "/v1/graph/{graph}/label"
     };
   }
+}
 
+service Job {
+	rpc Job(GraphQuery) returns (QueryJob) {
+		option (google.api.http) = {
+			post: "/v1/graph/{graph}/job"
+			body: "*"
+		};
+	}
+
+	rpc ListJobs(Graph) returns (stream QueryJob) {
+		option (google.api.http) = {
+			get: "/v1/graph/{graph}/job"
+		};
+	}
+
+
+	rpc DeleteJob(QueryJob) returns (JobStatus) {
+		option (google.api.http) = {
+			delete: "/v1/graph/{graph}/job/{id}"
+		};
+	}
+
+
+	rpc GetJob(QueryJob) returns (JobStatus) {
+		option (google.api.http) = {
+			get: "/v1/graph/{graph}/job/{id}"
+		};
+	}
 }
 
 service Edit {

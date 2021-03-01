@@ -153,6 +153,16 @@ class Graph(BaseConnection):
         return Query(self.base_url, self.graph, self.user, self.password, self.token, self.credential_file)
 
 
+    def listJobs(self):
+        url = self.url + "/jobs"
+        response = self.session.get(
+            url,
+            headers=self._request_header()
+        )
+        raise_for_status(response)
+        return response.json()
+
+
 class BulkAdd(BaseConnection):
     def __init__(self, url, graph, user=None, password=None, token=None, credential_file=None):
         super(BulkAdd, self).__init__(url, user, password, token, credential_file)

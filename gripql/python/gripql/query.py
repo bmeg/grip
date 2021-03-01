@@ -10,7 +10,7 @@ except ImportError:
 import logging
 import requests
 
-from gripql.util import BaseConnection, Rate
+from gripql.util import BaseConnection, Rate, raise_for_status
 
 
 def _wrap_value(value, typ):
@@ -345,6 +345,33 @@ class Query(BaseConnection):
             for r in self.__stream(debug):
                 output.append(r)
             return output
+    
+    def submit(self, debug=False):
+        """
+        Post the traversal as an asynchronous job
+        """
+        log_level = logging.root.level
+        if debug:
+            log_level = logging.DEBUG
+        logger = logging.getLogger(__name__)
+        logger.handlers = []
+        stream_handler = logging.StreamHandler()
+        stream_handler.setFormatter(
+            logging.Formatter('[%(levelname)s]\t%(asctime)s\t%(message)s')
+        )
+        stream_handler.setLevel(log_level)
+        logger.setLevel(log_level)
+        logger.addHandler(stream_handler)
+
+        url = self.base_url + "/v1/graph/" + self.graph + "/job"
+        
+        response = self.session.post(
+            url,
+            json=self.to_dict()
+        )
+        raise_for_status(response)
+        return response.json()
+
 
 
 class __Query(Query):

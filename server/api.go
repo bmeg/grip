@@ -17,18 +17,6 @@ import (
 	"google.golang.org/grpc/codes"
 )
 
-func (server *GripServer) Job(ctx context.Context, query *gripql.GraphQuery) (*gripql.QueryJob, error) {
-	return nil, fmt.Errorf("Not implemented")
-}
-
-func (server *GripServer)	GetJob(ctx context.Context, query *gripql.QueryJob) (*gripql.JobStatus, error) {
-	return nil, fmt.Errorf("Not implemented")
-}
-
-func (server *GripServer)	GetResults(*gripql.QueryJob, gripql.Query_GetResultsServer) error {
-	return fmt.Errorf("Not implemented")
-}
-
 
 // Traversal parses a traversal request and streams the results back
 func (server *GripServer) Traversal(query *gripql.GraphQuery, queryServer gripql.Query_TraversalServer) error {
