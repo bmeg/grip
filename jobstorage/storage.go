@@ -1,10 +1,14 @@
 package jobstorage
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
+	"sync"
 
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
@@ -16,6 +20,7 @@ type Stream struct {
 	Pipe      gdbi.InPipe
 	DataType  gdbi.DataType
 	MarkTypes map[string]gdbi.DataType
+	Query     []*gripql.GraphStatement
 }
 
 type JobStorage interface {
@@ -26,62 +31,161 @@ type JobStorage interface {
 	Status(graph, id string) (*gripql.JobStatus, error)
 }
 
+type Job struct {
+	Status    gripql.JobStatus
+	DataType  gdbi.DataType
+	MarkTypes map[string]gdbi.DataType
+}
+
+func jobKey(graph, job string) string {
+	return fmt.Sprintf("%s/%s", sanitize.Name(graph), sanitize.Name(job))
+}
+
+func NewFSJobStorage(path string) *FSResults {
+	out := FSResults{path, &sync.Map{}}
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		os.MkdirAll(path, 0700)
+	}
+	statusGlob := filepath.Join(path, "*", "*", "status")
+	matches, _ := filepath.Glob(statusGlob)
+	for _, j := range matches {
+		jobDir := filepath.Dir(j)
+		graphDir := filepath.Dir(jobDir)
+		jobName := filepath.Base(jobDir)
+		graphName := filepath.Base(graphDir)
+		file, err := os.Open(j)
+		if err == nil {
+			sData, err := ioutil.ReadAll(file)
+			if err == nil {
+				job := Job{}
+				err := json.Unmarshal(sData, &job)
+				if err == nil {
+					out.jobs.Store(jobKey(graphName, jobName), &job)
+				}
+			}
+		}
+	}
+	return &out
+}
+
 type FSResults struct {
 	BaseDir string
+	jobs    *sync.Map
 }
 
 func (fs *FSResults) List(graph string) (chan string, error) {
 	out := make(chan string)
 	go func() {
 		defer close(out)
+		fs.jobs.Range(func(key, value interface{}) bool {
+			vJob := value.(*Job)
+			if vJob.Status.Graph == graph {
+				out <- vJob.Status.Id
+			}
+			return true
+		})
 	}()
 	return out, nil
 }
 
 func (fs *FSResults) Spool(graph string, stream *Stream) (string, error) {
-	id := "test-1"
-	graph = sanitize.Name(graph)
-  spoolDir := filepath.Join(fs.BaseDir, graph, id)
-  if _, err := os.Stat(spoolDir); os.IsNotExist(err) {
-    os.MkdirAll(spoolDir, 0700)
-  }
-  resultPath := filepath.Join(spoolDir, "results")
-  resultFile, err := os.Create(resultPath)
-  if err != nil {
-    return "", err
-  }
+	graphDir := filepath.Join(fs.BaseDir, sanitize.Name(graph))
+	if _, err := os.Stat(graphDir); os.IsNotExist(err) {
+		os.MkdirAll(graphDir, 0700)
+	}
+	spoolDir, err := ioutil.TempDir(graphDir, "job-")
+	if err != nil {
+		return "", err
+	}
+	jobName := filepath.Base(spoolDir)
+	if _, err := os.Stat(spoolDir); os.IsNotExist(err) {
+		os.MkdirAll(spoolDir, 0700)
+	}
+	resultPath := filepath.Join(spoolDir, "results")
+	resultFile, err := os.Create(resultPath)
+	if err != nil {
+		return "", err
+	}
+
+	job := &Job{
+		Status:    gripql.JobStatus{Query: stream.Query, Id: jobName, Graph: graph},
+		DataType:  stream.DataType,
+		MarkTypes: stream.MarkTypes,
+	}
+	fs.jobs.Store(jobKey(graph, jobName), job)
 	go func() {
-    defer resultFile.Close()
+		job.Status.State = gripql.JobState_RUNNING
+		log.Printf("Starting Job: %#v", job)
+		defer resultFile.Close()
 		for i := range stream.Pipe {
-      fmt.Printf("Storing: %s\n", i)
 			out, err := json.Marshal(i)
 			if err == nil {
 				resultFile.Write([]byte(fmt.Sprintf("%s\n", out)))
 			}
+			job.Status.Count += 1
+		}
+		statusPath := filepath.Join(spoolDir, "status")
+		statusFile, err := os.Create(statusPath)
+		if err == nil {
+			defer statusFile.Close()
+			out, err := json.Marshal(job)
+			if err == nil {
+				statusFile.Write([]byte(fmt.Sprintf("%s\n", out)))
+			}
+			job.Status.State = gripql.JobState_COMPLETE
+		} else {
+			job.Status.State = gripql.JobState_ERROR
 		}
 	}()
-	return id, nil
+	return jobName, nil
 }
 
 func (fs *FSResults) Stream(graph, id string) (*Stream, error) {
-	out := make(chan *gdbi.Traveler, 10)
-
-	var dt gdbi.DataType
-	var markTypes map[string]gdbi.DataType
-
-	return &Stream{
-		Pipe:      out,
-		DataType:  dt,
-		MarkTypes: markTypes,
-	}, nil
+	if v, ok := fs.jobs.Load(jobKey(graph, id)); ok {
+		vJob := v.(*Job)
+		if vJob.Status.State == gripql.JobState_COMPLETE {
+			out := make(chan *gdbi.Traveler, 10)
+			resultFile := filepath.Join(fs.BaseDir, sanitize.Name(graph), sanitize.Name(id), "results")
+			results, err := os.Open(resultFile)
+			if err != nil {
+				return nil, err
+			}
+			go func() {
+				defer close(out)
+				defer results.Close()
+				scan := bufio.NewScanner(results)
+				bufSize := 1024 * 1024 * 32
+				buf := make([]byte, bufSize)
+				scan.Buffer(buf, bufSize)
+				for scan.Scan() {
+					t := gdbi.Traveler{}
+					err := json.Unmarshal([]byte(scan.Text()), &t)
+					if err == nil {
+						out <- &t
+					}
+				}
+			}()
+			return &Stream{
+				Pipe:      out,
+				DataType:  vJob.DataType,
+				MarkTypes: vJob.MarkTypes,
+			}, nil
+		}
+		return nil, fmt.Errorf("Job %s not complete", id)
+	}
+	return nil, fmt.Errorf("Job Not Found")
 }
 
 func (fs *FSResults) Delete(graph, id string) error {
-
+	//We'll get to this
 	return nil
 }
 
 func (fs *FSResults) Status(graph, id string) (*gripql.JobStatus, error) {
-
-	return nil, nil
+	if v, ok := fs.jobs.Load(jobKey(graph, id)); ok {
+		vJob := v.(*Job)
+		a := vJob.Status
+		return &a, nil
+	}
+	return nil, fmt.Errorf("Job Not Found")
 }

@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 import gripql
-
+import time
 
 def test_job(man):
     errors = []
@@ -13,13 +13,22 @@ def test_job(man):
 
     count = 0
     for j in G.listJobs():
-        if job == j:
+        if job['id'] == j['id']:
             count += 1
     if count != 1:
-        errors.append("Wrong job counts: %s != %s", count, 1)
+        errors.append("Job not found: %s != %s" % (count, 1))
+
+    while True:
+        cJob = G.getJob(job["id"])
+        if cJob['state'] not in ["RUNNING", "QUEUED"]:
+            break
+        time.sleep(1)
+
+    for row in G.readJob(job["id"]):
+        print(row)
 
 
-    if count != 5:
-        errors.append("Incorrect # elements returned")
+    #if count != 5:
+    #    errors.append("Incorrect # elements returned")
 
     return errors

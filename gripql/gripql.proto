@@ -332,10 +332,16 @@ service Job {
 		};
 	}
 
-
 	rpc GetJob(QueryJob) returns (JobStatus) {
 		option (google.api.http) = {
 			get: "/v1/graph/{graph}/job/{id}"
+		};
+	}
+
+	rpc ViewJob(QueryJob) returns (stream QueryResult) {
+		option (google.api.http) = {
+			post: "/v1/graph/{graph}/job/{id}"
+			body: "*"
 		};
 	}
 }

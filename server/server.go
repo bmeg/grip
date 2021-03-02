@@ -7,8 +7,8 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
-	"path/filepath"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -295,7 +295,7 @@ func (server *GripServer) Serve(pctx context.Context) error {
 			return fmt.Errorf("registering job endpoint: %v", err)
 		}
 		jobDir := filepath.Join(server.conf.Server.WorkDir, "jobs")
-		server.jStorage = &jobstorage.FSResults{ BaseDir:jobDir }
+		server.jStorage = jobstorage.NewFSJobStorage(jobDir)
 	}
 
 	httpServer := &http.Server{

@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"log"
 
 	"github.com/bmeg/grip/engine"
 	"github.com/bmeg/grip/engine/pipeline"
@@ -35,6 +36,7 @@ func (server *GripServer) Job(ctx context.Context, query *gripql.GraphQuery) (*g
 			DataType:  dataType,
 			MarkTypes: markTypes,
 			Pipe:      res,
+			Query:     query.Query,
 		})
 	return &gripql.QueryJob{
 		Id:    jobID,
@@ -80,6 +82,19 @@ func (server *GripServer) ListJobs(graph *gripql.Graph, srv gripql.Job_ListJobsS
 			Id:    i,
 			Graph: graph.Graph,
 		})
+		log.Printf("job id sent: %s", i)
+	}
+	return nil
+}
+
+func (server *GripServer) ViewJob(job *gripql.QueryJob, srv gripql.Job_ViewJobServer) error {
+	stream, err := server.jStorage.Stream(job.Graph, job.Id)
+	if err != nil {
+		return nil
+	}
+	for o := range stream.Pipe {
+		res := pipeline.Convert(stream.DataType, stream.MarkTypes, o)
+		srv.Send(res)
 	}
 	return nil
 }

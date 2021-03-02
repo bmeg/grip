@@ -451,6 +451,7 @@ type JobClient interface {
 	ListJobs(ctx context.Context, in *Graph, opts ...grpc.CallOption) (Job_ListJobsClient, error)
 	DeleteJob(ctx context.Context, in *QueryJob, opts ...grpc.CallOption) (*JobStatus, error)
 	GetJob(ctx context.Context, in *QueryJob, opts ...grpc.CallOption) (*JobStatus, error)
+	ViewJob(ctx context.Context, in *QueryJob, opts ...grpc.CallOption) (Job_ViewJobClient, error)
 }
 
 type jobClient struct {
@@ -520,6 +521,38 @@ func (c *jobClient) GetJob(ctx context.Context, in *QueryJob, opts ...grpc.CallO
 	return out, nil
 }
 
+func (c *jobClient) ViewJob(ctx context.Context, in *QueryJob, opts ...grpc.CallOption) (Job_ViewJobClient, error) {
+	stream, err := c.cc.NewStream(ctx, &Job_ServiceDesc.Streams[1], "/gripql.Job/ViewJob", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &jobViewJobClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type Job_ViewJobClient interface {
+	Recv() (*QueryResult, error)
+	grpc.ClientStream
+}
+
+type jobViewJobClient struct {
+	grpc.ClientStream
+}
+
+func (x *jobViewJobClient) Recv() (*QueryResult, error) {
+	m := new(QueryResult)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // JobServer is the server API for Job service.
 // All implementations must embed UnimplementedJobServer
 // for forward compatibility
@@ -528,6 +561,7 @@ type JobServer interface {
 	ListJobs(*Graph, Job_ListJobsServer) error
 	DeleteJob(context.Context, *QueryJob) (*JobStatus, error)
 	GetJob(context.Context, *QueryJob) (*JobStatus, error)
+	ViewJob(*QueryJob, Job_ViewJobServer) error
 	mustEmbedUnimplementedJobServer()
 }
 
@@ -546,6 +580,9 @@ func (UnimplementedJobServer) DeleteJob(context.Context, *QueryJob) (*JobStatus,
 }
 func (UnimplementedJobServer) GetJob(context.Context, *QueryJob) (*JobStatus, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetJob not implemented")
+}
+func (UnimplementedJobServer) ViewJob(*QueryJob, Job_ViewJobServer) error {
+	return status.Errorf(codes.Unimplemented, "method ViewJob not implemented")
 }
 func (UnimplementedJobServer) mustEmbedUnimplementedJobServer() {}
 
@@ -635,6 +672,27 @@ func _Job_GetJob_Handler(srv interface{}, ctx context.Context, dec func(interfac
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Job_ViewJob_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(QueryJob)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(JobServer).ViewJob(m, &jobViewJobServer{stream})
+}
+
+type Job_ViewJobServer interface {
+	Send(*QueryResult) error
+	grpc.ServerStream
+}
+
+type jobViewJobServer struct {
+	grpc.ServerStream
+}
+
+func (x *jobViewJobServer) Send(m *QueryResult) error {
+	return x.ServerStream.SendMsg(m)
+}
+
 // Job_ServiceDesc is the grpc.ServiceDesc for Job service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -659,6 +717,11 @@ var Job_ServiceDesc = grpc.ServiceDesc{
 		{
 			StreamName:    "ListJobs",
 			Handler:       _Job_ListJobs_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "ViewJob",
+			Handler:       _Job_ViewJob_Handler,
 			ServerStreams: true,
 		},
 	},

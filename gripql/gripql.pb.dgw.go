@@ -213,6 +213,51 @@ func (shim *JobDirectClient) GetJob(ctx context.Context, in *QueryJob, opts ...g
 	return shim.server.GetJob(ctx, in)
 }
 
+//ViewJob streaming output shim
+type directJobViewJob struct {
+  ctx context.Context
+  c   chan *QueryResult
+  e   error
+}
+
+func (dsm *directJobViewJob) Recv() (*QueryResult, error) {
+	value, ok := <-dsm.c
+	if !ok {
+    if dsm.e != nil {
+      return nil, dsm.e
+    }
+		return nil, io.EOF
+	}
+	return value, dsm.e
+}
+func (dsm *directJobViewJob) Send(a *QueryResult) error {
+	dsm.c <- a
+	return nil
+}
+func (dsm *directJobViewJob) close() {
+	close(dsm.c)
+}
+func (dsm *directJobViewJob) Context() context.Context {
+	return dsm.ctx
+}
+func (dsm *directJobViewJob) CloseSend() error             { return nil }
+func (dsm *directJobViewJob) SetTrailer(metadata.MD)       {}
+func (dsm *directJobViewJob) SetHeader(metadata.MD) error  { return nil }
+func (dsm *directJobViewJob) SendHeader(metadata.MD) error { return nil }
+func (dsm *directJobViewJob) SendMsg(m interface{}) error  { return nil }
+func (dsm *directJobViewJob) RecvMsg(m interface{}) error  { return nil }
+func (dsm *directJobViewJob) Header() (metadata.MD, error) { return nil, nil }
+func (dsm *directJobViewJob) Trailer() metadata.MD         { return nil }
+func (dir *JobDirectClient) ViewJob(ctx context.Context, in *QueryJob, opts ...grpc.CallOption) (Job_ViewJobClient, error) {
+	w := &directJobViewJob{ctx, make(chan *QueryResult, 100), nil}
+	go func() {
+    defer w.close()
+		w.e = dir.server.ViewJob(in, w)
+	}()
+	return w, nil
+}
+
+
 // EditDirectClient is a shim to connect Edit client directly server
 type EditDirectClient struct {
 	server EditServer
