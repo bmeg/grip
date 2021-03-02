@@ -17,7 +17,6 @@ import (
 	"google.golang.org/grpc/codes"
 )
 
-
 // Traversal parses a traversal request and streams the results back
 func (server *GripServer) Traversal(query *gripql.GraphQuery, queryServer gripql.Query_TraversalServer) error {
 	gdb, err := server.getGraphDB(query.Graph)

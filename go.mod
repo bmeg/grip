@@ -37,6 +37,7 @@ require (
 	github.com/influxdata/tdigest v0.0.1
 	github.com/jessevdk/go-flags v1.4.0 // indirect
 	github.com/jmoiron/sqlx v1.2.0
+	github.com/kennygrant/sanitize v1.2.4
 	github.com/knakk/rdf v0.0.0-20190304171630-8521bf4c5042
 	github.com/kr/pretty v0.1.0
 	github.com/lib/pq v1.2.0

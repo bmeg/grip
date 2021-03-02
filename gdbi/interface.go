@@ -33,8 +33,8 @@ type Aggregate struct {
 
 // Traveler is a query element that traverse the graph
 type Traveler struct {
-	current     *DataElement
-	marks       map[string]*DataElement
+	Current     *DataElement
+	Marks       map[string]*DataElement
 	Selections  map[string]*DataElement
 	Aggregation *Aggregate
 	Count       uint32

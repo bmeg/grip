@@ -70,7 +70,7 @@ func StreamVerticesFromFile(file string, workers int) (chan *gripql.Vertex, erro
 	vertChan := make(chan *gripql.Vertex, workers)
 	var wg sync.WaitGroup
 
-	jum := protojson.UnmarshalOptions{DiscardUnknown:true}
+	jum := protojson.UnmarshalOptions{DiscardUnknown: true}
 
 	for i := 0; i < workers; i++ {
 		wg.Add(1)
@@ -113,7 +113,7 @@ func StreamEdgesFromFile(file string, workers int) (chan *gripql.Edge, error) {
 	edgeChan := make(chan *gripql.Edge, workers)
 	var wg sync.WaitGroup
 
-	jum := protojson.UnmarshalOptions{DiscardUnknown:true}
+	jum := protojson.UnmarshalOptions{DiscardUnknown: true}
 
 	for i := 0; i < workers; i++ {
 		wg.Add(1)

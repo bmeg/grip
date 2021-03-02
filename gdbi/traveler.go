@@ -25,24 +25,24 @@ const (
 
 // AddCurrent creates a new copy of the travel with new 'current' value
 func (t *Traveler) AddCurrent(r *DataElement) *Traveler {
-	o := Traveler{marks: map[string]*DataElement{}}
-	for k, v := range t.marks {
-		o.marks[k] = v
+	o := Traveler{Marks: map[string]*DataElement{}}
+	for k, v := range t.Marks {
+		o.Marks[k] = v
 	}
-	o.current = r
+	o.Current = r
 	return &o
 }
 
 // HasMark checks to see if a results is stored in a travelers statemap
 func (t *Traveler) HasMark(label string) bool {
-	_, ok := t.marks[label]
+	_, ok := t.Marks[label]
 	return ok
 }
 
 // ListMarks returns the list of marks in a travelers statemap
 func (t *Traveler) ListMarks() []string {
 	marks := []string{}
-	for k := range t.marks {
+	for k := range t.Marks {
 		marks = append(marks, k)
 	}
 	return marks
@@ -50,23 +50,23 @@ func (t *Traveler) ListMarks() []string {
 
 // AddMark adds a result to travels state map using `label` as the name
 func (t *Traveler) AddMark(label string, r *DataElement) *Traveler {
-	o := Traveler{marks: map[string]*DataElement{}}
-	for k, v := range t.marks {
-		o.marks[k] = v
+	o := Traveler{Marks: map[string]*DataElement{}}
+	for k, v := range t.Marks {
+		o.Marks[k] = v
 	}
-	o.marks[label] = r
-	o.current = t.current
+	o.Marks[label] = r
+	o.Current = t.Current
 	return &o
 }
 
 // GetMark gets stored result in travels state using its label
 func (t *Traveler) GetMark(label string) *DataElement {
-	return t.marks[label]
+	return t.Marks[label]
 }
 
 // GetCurrent get current result value attached to the traveler
 func (t *Traveler) GetCurrent() *DataElement {
-	return t.current
+	return t.Current
 }
 
 // ToVertex converts data element to vertex

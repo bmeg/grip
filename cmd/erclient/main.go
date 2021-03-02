@@ -3,6 +3,7 @@ package erclient
 import (
 	"context"
 	"fmt"
+
 	"github.com/bmeg/grip/gripper"
 	"github.com/spf13/cobra"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -35,7 +36,6 @@ var ListCmd = &cobra.Command{
 		return nil
 	},
 }
-
 
 var InfoCmd = &cobra.Command{
 	Use:   "info",

@@ -40,16 +40,16 @@ type DriverConfig struct {
 
 // Config describes the configuration for Grip.
 type Config struct {
-	Server        ServerConfig
-	RPCClient     rpc.Config
-	Logger        log.Logger
-	Default       string
-	Graphs				map[string]string
-	Drivers       map[string]DriverConfig
+	Server    ServerConfig
+	RPCClient rpc.Config
+	Logger    log.Logger
+	Default   string
+	Graphs    map[string]string
+	Drivers   map[string]DriverConfig
 }
 
 type DriverParams interface {
-	 SetDefaults()
+	SetDefaults()
 }
 
 // DefaultConfig returns an instance of the default configuration for Grip.
@@ -80,7 +80,7 @@ func DefaultConfig() *Config {
 
 func (conf *Config) AddBadgerDefault() {
 	n := "grip.db"
-	conf.Drivers["badger"] = DriverConfig{Badger:&n}
+	conf.Drivers["badger"] = DriverConfig{Badger: &n}
 	conf.Default = "badger"
 }
 
