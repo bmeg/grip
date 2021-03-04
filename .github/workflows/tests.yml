@@ -163,7 +163,7 @@ jobs:
     - name: Update pip
       run: pip install --upgrade pip
     - name: Python Dependencies for Conformance
-      run: pip install -U requests numpy grpcio-tools
+      run: pip install -U requests numpy grpcio-tools protobuf
     - name: Download grip
       uses: actions/download-artifact@v2
       with:
