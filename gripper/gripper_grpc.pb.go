@@ -11,6 +11,7 @@ import (
 
 // This is a compile-time assertion to ensure that this generated file
 // is compatible with the grpc package it is being compiled against.
+// Requires gRPC-Go v1.32.0 or later.
 const _ = grpc.SupportPackageIsVersion7
 
 // GRIPSourceClient is the client API for GRIPSource service.
@@ -34,7 +35,7 @@ func NewGRIPSourceClient(cc grpc.ClientConnInterface) GRIPSourceClient {
 }
 
 func (c *gRIPSourceClient) GetCollections(ctx context.Context, in *Empty, opts ...grpc.CallOption) (GRIPSource_GetCollectionsClient, error) {
-	stream, err := c.cc.NewStream(ctx, &_GRIPSource_serviceDesc.Streams[0], "/gripper.GRIPSource/GetCollections", opts...)
+	stream, err := c.cc.NewStream(ctx, &GRIPSource_ServiceDesc.Streams[0], "/gripper.GRIPSource/GetCollections", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -75,7 +76,7 @@ func (c *gRIPSourceClient) GetCollectionInfo(ctx context.Context, in *Collection
 }
 
 func (c *gRIPSourceClient) GetIDs(ctx context.Context, in *Collection, opts ...grpc.CallOption) (GRIPSource_GetIDsClient, error) {
-	stream, err := c.cc.NewStream(ctx, &_GRIPSource_serviceDesc.Streams[1], "/gripper.GRIPSource/GetIDs", opts...)
+	stream, err := c.cc.NewStream(ctx, &GRIPSource_ServiceDesc.Streams[1], "/gripper.GRIPSource/GetIDs", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -107,7 +108,7 @@ func (x *gRIPSourceGetIDsClient) Recv() (*RowID, error) {
 }
 
 func (c *gRIPSourceClient) GetRows(ctx context.Context, in *Collection, opts ...grpc.CallOption) (GRIPSource_GetRowsClient, error) {
-	stream, err := c.cc.NewStream(ctx, &_GRIPSource_serviceDesc.Streams[2], "/gripper.GRIPSource/GetRows", opts...)
+	stream, err := c.cc.NewStream(ctx, &GRIPSource_ServiceDesc.Streams[2], "/gripper.GRIPSource/GetRows", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -139,7 +140,7 @@ func (x *gRIPSourceGetRowsClient) Recv() (*Row, error) {
 }
 
 func (c *gRIPSourceClient) GetRowsByID(ctx context.Context, opts ...grpc.CallOption) (GRIPSource_GetRowsByIDClient, error) {
-	stream, err := c.cc.NewStream(ctx, &_GRIPSource_serviceDesc.Streams[3], "/gripper.GRIPSource/GetRowsByID", opts...)
+	stream, err := c.cc.NewStream(ctx, &GRIPSource_ServiceDesc.Streams[3], "/gripper.GRIPSource/GetRowsByID", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -170,7 +171,7 @@ func (x *gRIPSourceGetRowsByIDClient) Recv() (*Row, error) {
 }
 
 func (c *gRIPSourceClient) GetRowsByField(ctx context.Context, in *FieldRequest, opts ...grpc.CallOption) (GRIPSource_GetRowsByFieldClient, error) {
-	stream, err := c.cc.NewStream(ctx, &_GRIPSource_serviceDesc.Streams[4], "/gripper.GRIPSource/GetRowsByField", opts...)
+	stream, err := c.cc.NewStream(ctx, &GRIPSource_ServiceDesc.Streams[4], "/gripper.GRIPSource/GetRowsByField", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -246,7 +247,7 @@ type UnsafeGRIPSourceServer interface {
 }
 
 func RegisterGRIPSourceServer(s grpc.ServiceRegistrar, srv GRIPSourceServer) {
-	s.RegisterService(&_GRIPSource_serviceDesc, srv)
+	s.RegisterService(&GRIPSource_ServiceDesc, srv)
 }
 
 func _GRIPSource_GetCollections_Handler(srv interface{}, stream grpc.ServerStream) error {
@@ -377,7 +378,10 @@ func (x *gRIPSourceGetRowsByFieldServer) Send(m *Row) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-var _GRIPSource_serviceDesc = grpc.ServiceDesc{
+// GRIPSource_ServiceDesc is the grpc.ServiceDesc for GRIPSource service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var GRIPSource_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "gripper.GRIPSource",
 	HandlerType: (*GRIPSourceServer)(nil),
 	Methods: []grpc.MethodDesc{

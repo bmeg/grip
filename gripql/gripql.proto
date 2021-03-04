@@ -34,9 +34,6 @@ message GraphStatement {
     google.protobuf.ListValue in_e = 12;
     google.protobuf.ListValue out_e = 13;
     google.protobuf.ListValue both_e = 15;
-    google.protobuf.ListValue in_v = 16;
-    google.protobuf.ListValue out_v = 17;
-    google.protobuf.ListValue both_v = 18;
 
     string as = 20;
     SelectStatement select = 21;

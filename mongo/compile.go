@@ -82,11 +82,11 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, er
 			}
 			lastType = gdbi.EdgeData
 
-		case *gripql.GraphStatement_In, *gripql.GraphStatement_InV:
+		case *gripql.GraphStatement_In:
 			if lastType != gdbi.VertexData && lastType != gdbi.EdgeData {
 				return &Pipeline{}, fmt.Errorf(`"in" statement is only valid for edge or vertex types not: %s`, lastType.String())
 			}
-			labels := append(protoutil.AsStringList(gs.GetIn()), protoutil.AsStringList(gs.GetInV())...)
+			labels := protoutil.AsStringList(gs.GetIn())
 			if lastType == gdbi.VertexData {
 				query = append(query,
 					bson.D{primitive.E{
@@ -130,11 +130,11 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, er
 			}}})
 			lastType = gdbi.VertexData
 
-		case *gripql.GraphStatement_Out, *gripql.GraphStatement_OutV:
+		case *gripql.GraphStatement_Out:
 			if lastType != gdbi.VertexData && lastType != gdbi.EdgeData {
 				return &Pipeline{}, fmt.Errorf(`"out" statement is only valid for edge or vertex types not: %s`, lastType.String())
 			}
-			labels := append(protoutil.AsStringList(gs.GetOut()), protoutil.AsStringList(gs.GetOutV())...)
+			labels := protoutil.AsStringList(gs.GetOut())
 			if lastType == gdbi.VertexData {
 				query = append(query,
 					bson.D{primitive.E{
@@ -178,11 +178,11 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, er
 			}}})
 			lastType = gdbi.VertexData
 
-		case *gripql.GraphStatement_Both, *gripql.GraphStatement_BothV:
+		case *gripql.GraphStatement_Both:
 			if lastType != gdbi.VertexData && lastType != gdbi.EdgeData {
 				return &Pipeline{}, fmt.Errorf(`"both" statement is only valid for edge or vertex types not: %s`, lastType.String())
 			}
-			labels := append(protoutil.AsStringList(gs.GetBoth()), protoutil.AsStringList(gs.GetBothV())...)
+			labels := protoutil.AsStringList(gs.GetBoth())
 			if lastType == gdbi.VertexData {
 				query = append(query,
 					bson.D{primitive.E{
