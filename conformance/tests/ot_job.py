@@ -24,11 +24,19 @@ def test_job(man):
             break
         time.sleep(1)
 
+    count = 0
     for row in G.readJob(job["id"]):
-        print(row)
-
-
-    #if count != 5:
-    #    errors.append("Incorrect # elements returned")
+        count += 1
+    
+    if count != 5:
+        errors.append("Incorrect # elements returned")
+        
+    G.deleteJob(job["id"])
+    count = 0
+    for j in G.listJobs():
+        if job['id'] == j['id']:
+            count += 1
+    if count != 0:
+        errors.append("Job not deleted")
 
     return errors

@@ -172,6 +172,17 @@ class Graph(BaseConnection):
         raise_for_status(response)
         return response.json()
 
+    def deleteJob(self, id):
+        """
+        Delete an job
+        """
+        url = self.url + "/job/" + id
+        response = self.session.delete(
+            url
+        )
+        raise_for_status(response)
+        return response.json()
+
     def readJob(self, id):
         """
         read job
