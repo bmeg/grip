@@ -177,7 +177,15 @@ func (fs *FSResults) Stream(graph, id string) (*Stream, error) {
 }
 
 func (fs *FSResults) Delete(graph, id string) error {
-	//We'll get to this
+	if v, ok := fs.jobs.Load(jobKey(graph, id)); ok {
+		vJob := v.(*Job)
+		if vJob.Status.State == gripql.JobState_RUNNING || vJob.Status.State == gripql.JobState_QUEUED {
+			return fmt.Errorf("Job cancel not yet implemented")
+		}
+		fs.jobs.Delete(jobKey(graph, id))
+		jobDir := filepath.Join(fs.BaseDir, sanitize.Name(graph), sanitize.Name(id))
+		os.RemoveAll(jobDir)
+	}
 	return nil
 }
 

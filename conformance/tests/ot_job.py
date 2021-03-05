@@ -9,8 +9,6 @@ def test_job(man):
     G = man.setGraph("swapi")
     job = G.query().V().hasLabel("Planet").out().submit()
 
-    print(job)
-
     count = 0
     for j in G.listJobs():
         if job['id'] == j['id']:
