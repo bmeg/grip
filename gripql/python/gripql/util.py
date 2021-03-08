@@ -11,6 +11,8 @@ from requests.compat import urlparse, urlunparse
 
 class BaseConnection(object):
     def __init__(self, url, user=None, password=None, token=None, credential_file=None):
+        if url is None:
+            url = os.getenv("GRIP_URL", None)
         url = process_url(url)
         self.base_url = url
         if user is None:
