@@ -240,6 +240,12 @@ class Query(BaseConnection):
         """
         return self.__append({"render": template})
 
+    def path(self):
+        """
+        Display path of query
+        """
+        return self.__append({"path": []})
+
     def unwind(self, field):
         """
         Unwind an array
@@ -319,6 +325,8 @@ class Query(BaseConnection):
                         extracted[k] = extracted[k]["edge"]
             elif "render" in result_dict:
                 extracted = result_dict["render"]
+            elif "path" in result_dict:
+                extracted = result_dict["path"]
             elif "count" in result_dict:
                 extracted = result_dict
             elif "error" in result_dict:

@@ -149,7 +149,6 @@ func TravelerSetValue(traveler *gdbi.Traveler, path string, val interface{}) err
 	return jsonpath.JsonPathSet(doc, field, val)
 }
 
-
 // TravelerPathExists returns true if the field exists in the given Traveler
 func TravelerPathExists(traveler *gdbi.Traveler, path string) bool {
 	namespace := GetNamespace(path)

@@ -25,9 +25,17 @@ const (
 
 // AddCurrent creates a new copy of the travel with new 'current' value
 func (t *Traveler) AddCurrent(r *DataElement) *Traveler {
-	o := Traveler{marks: map[string]*DataElement{}}
+	o := Traveler{marks: map[string]*DataElement{}, Path: make([]DataElementID, len(t.Path)+1)}
 	for k, v := range t.marks {
 		o.marks[k] = v
+	}
+	for i := range t.Path {
+		o.Path[i] = t.Path[i]
+	}
+	if r.To != "" {
+		o.Path[len(t.Path)] = DataElementID{Edge: r.ID}
+	} else {
+		o.Path[len(t.Path)] = DataElementID{Vertex: r.ID}
 	}
 	o.current = r
 	return &o

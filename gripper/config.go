@@ -10,7 +10,7 @@ import (
 
 // Config is the component in the global GRIP config file
 type Config struct {
-	Graph  string
+	Graph      string
 	ConfigFile string
 }
 

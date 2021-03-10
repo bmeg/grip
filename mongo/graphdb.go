@@ -17,12 +17,12 @@ import (
 
 // Config describes the configuration for the mongodb driver.
 type Config struct {
-	URL                    string
-	DBName                 string
-	Username               string
-	Password               string
-	BatchSize              int
-	UseCorePipeline        bool
+	URL             string
+	DBName          string
+	Username        string
+	Password        string
+	BatchSize       int
+	UseCorePipeline bool
 }
 
 func (c *Config) SetDefaults() {
