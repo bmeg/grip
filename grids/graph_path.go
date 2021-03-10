@@ -67,7 +67,7 @@ func NewPathTraveler(tr *gdbi.Traveler, isVertex bool, gg *Graph) *PathTraveler 
 
 // AddCurrent creates a new copy of the travel with new 'current' value
 func (t *PathTraveler) AddCurrent(r *RawDataElement) *PathTraveler {
-	o := t.traveler.AddCurrent(nil)
+	o := t.traveler.Copy()
 	a := PathTraveler{current: r, traveler: o}
 	return &a
 }
