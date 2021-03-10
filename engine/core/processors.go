@@ -967,9 +967,7 @@ func (s *Jump) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, ou
 		defer close(out)
 		for t := range in {
 			m := t.GetMark(s.mark)
-			if m != nil {
-				out <- t.AddCurrent(m)
-			}
+			out <- t.AddCurrent(m)
 		}
 	}()
 	return ctx

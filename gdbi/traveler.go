@@ -32,7 +32,9 @@ func (t *Traveler) AddCurrent(r *DataElement) *Traveler {
 	for i := range t.Path {
 		o.Path[i] = t.Path[i]
 	}
-	if r.To != "" {
+	if r == nil {
+		o.Path[len(t.Path)] = DataElementID{}
+	} else if r.To != "" {
 		o.Path[len(t.Path)] = DataElementID{Edge: r.ID}
 	} else {
 		o.Path[len(t.Path)] = DataElementID{Vertex: r.ID}
