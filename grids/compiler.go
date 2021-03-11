@@ -51,7 +51,7 @@ func (comp Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, err
 		}
 		optimized := false
 		if foundPath != -1 {
-			//log.Printf("Compile Optimized Statements: %s", noLoadPaths[foundPath])
+			//log.Printf("Compile Statements: %s", noLoadPaths[foundPath])
 			curPathSteps := noLoadPaths[foundPath]
 			path := SelectPath(stmts, curPathSteps)
 			//log.Printf("Compile step %d: %s (%s)", i, path, curPathSteps)

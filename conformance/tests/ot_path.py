@@ -30,14 +30,6 @@ def test_path_in_in(man):
         errors.append("Incorrect count returned %d != %d" % (count, 1814))
     return errors
 
-
-def test_path_outE_out_select_count(man):
-    errors = []
-    G = man.setGraph("swapi")
-    for res in G.query().V("Film:1").as_("a").outE().as_("b").out().select("b").count():
-        print(res)
-    return errors
-
 def test_path_outE_out_select(man):
     errors = []
     G = man.setGraph("swapi")
@@ -48,7 +40,6 @@ def test_path_outE_out_select(man):
             errors.append("Wrong path length %d != %d" % (4, len(res)))
         else:
             if res[1] != res[3]:
-                print(res)
                 errors.append("path select failed")
     if count == 0:
         errors.append("No results Received")
