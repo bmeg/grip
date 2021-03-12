@@ -91,7 +91,7 @@ var Cmd = &cobra.Command{
 		configFile := args[0]
 		queryString := args[1]
 
-		config := gripper.Config{Graph:"main", ConfigFile:configFile}
+		config := gripper.Config{Graph: "main", ConfigFile: configFile}
 
 		gdb, err := gripper.NewGDB(config, "./")
 		if err != nil {

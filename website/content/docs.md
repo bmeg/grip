@@ -19,7 +19,8 @@ Properties of an GRIP graph:
 * Edges in the graph are directed, meaning they have a source and destination.
 
 GRIP also provides a query API for the traversing, analyzing and manipulating your graphs. Its syntax is inspired by
-[Apache TinkerPop](http://tinkerpop.apache.org/). Learn more [here](/docs/queries/getting_started) about GRIP and its application for querying the Bio Medical Evidence Graph ([BMEG](https://bmeg.io)).
+[Apache TinkerPop](http://tinkerpop.apache.org/). Learn more [here](/docs/queries/getting_started) about GRIP and its
+application for querying the Bio Medical Evidence Graph ([BMEG](https://bmeg.io)).
 
 # Supported Systems
 

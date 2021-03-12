@@ -767,7 +767,7 @@ func (t *TabularGraph) GetOutEdgeChannel(ctx context.Context, req chan gdbi.Elem
 			default:
 				for _, vPrefix := range t.edgeSourceOrder {
 					edgeList := t.outEdges[vPrefix]
-					if strings.HasPrefix(r.ID, vPrefix) && ctx.Err() != context.Canceled  {
+					if strings.HasPrefix(r.ID, vPrefix) && ctx.Err() != context.Canceled {
 						id := r.ID[len(vPrefix):len(r.ID)]
 						for _, edge := range edgeList {
 							if len(edgeLabels) == 0 || setcmp.ContainsString(edgeLabels, edge.config.Label) {
