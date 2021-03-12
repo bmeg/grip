@@ -121,6 +121,8 @@ func (fs *FSResults) Spool(graph string, stream *Stream) (string, error) {
 			out, err := json.Marshal(i)
 			if err == nil {
 				resultFile.Write([]byte(fmt.Sprintf("%s\n", out)))
+			} else {
+				log.Printf("Marshal Error: %s", err)
 			}
 			job.Status.Count += 1
 		}
@@ -133,8 +135,10 @@ func (fs *FSResults) Spool(graph string, stream *Stream) (string, error) {
 				statusFile.Write([]byte(fmt.Sprintf("%s\n", out)))
 			}
 			job.Status.State = gripql.JobState_COMPLETE
+			log.Printf("Job Done: %s (%d results)", jobName, job.Status.Count)
 		} else {
 			job.Status.State = gripql.JobState_ERROR
+			log.Printf("Job Error: %s %s", jobName, err)
 		}
 	}()
 	return jobName, nil
