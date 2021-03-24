@@ -30,7 +30,7 @@ func (server *GripServer) Job(ctx context.Context, query *gripql.GraphQuery) (*g
 	markTypes := pipe.MarkTypes()
 	man := engine.NewManager(server.conf.Server.WorkDir)
 	bufsize := 5000 //make this configurable?
-	
+
 	res := pipeline.Start(context.Background(), pipe, man, bufsize)
 	jobID, err := server.jStorage.Spool(query.Graph,
 		&jobstorage.Stream{

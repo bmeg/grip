@@ -32,9 +32,10 @@ type JobStorage interface {
 }
 
 type Job struct {
-	Status    gripql.JobStatus
-	DataType  gdbi.DataType
-	MarkTypes map[string]gdbi.DataType
+	Status        gripql.JobStatus
+	DataType      gdbi.DataType
+	MarkTypes     map[string]gdbi.DataType
+	StepChecksums []string
 }
 
 func jobKey(graph, job string) string {
@@ -107,10 +108,12 @@ func (fs *FSResults) Spool(graph string, stream *Stream) (string, error) {
 		return "", err
 	}
 
+	cs, _ := TraversalChecksum(stream.Query)
 	job := &Job{
-		Status:    gripql.JobStatus{Query: stream.Query, Id: jobName, Graph: graph},
-		DataType:  stream.DataType,
-		MarkTypes: stream.MarkTypes,
+		Status:        gripql.JobStatus{Query: stream.Query, Id: jobName, Graph: graph},
+		DataType:      stream.DataType,
+		MarkTypes:     stream.MarkTypes,
+		StepChecksums: cs,
 	}
 	fs.jobs.Store(jobKey(graph, jobName), job)
 	go func() {
