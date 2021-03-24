@@ -24,3 +24,16 @@ func TraversalChecksum(query []*gripql.GraphStatement) ([]string, error) {
 	}
 	return out, nil
 }
+
+func JobMatch(query []string, job []string) bool {
+	if len(job) > len(query) {
+		return false
+	}
+	match := true
+	for i := 0; i < len(job); i++ {
+		if query[i] != job[i] {
+			match = false
+		}
+	}
+	return len(job) > 1 && match
+}

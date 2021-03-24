@@ -2941,7 +2941,7 @@ var file_gripql_proto_rawDesc = []byte{
 	0x73, 0x74, 0x4c, 0x61, 0x62, 0x65, 0x6c, 0x73, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65,
 	0x22, 0x1f, 0x82, 0xd3, 0xe4, 0x93, 0x02, 0x19, 0x12, 0x17, 0x2f, 0x76, 0x31, 0x2f, 0x67, 0x72,
 	0x61, 0x70, 0x68, 0x2f, 0x7b, 0x67, 0x72, 0x61, 0x70, 0x68, 0x7d, 0x2f, 0x6c, 0x61, 0x62, 0x65,
-	0x6c, 0x32, 0xa6, 0x03, 0x0a, 0x03, 0x4a, 0x6f, 0x62, 0x12, 0x4d, 0x0a, 0x03, 0x4a, 0x6f, 0x62,
+	0x6c, 0x32, 0x86, 0x04, 0x0a, 0x03, 0x4a, 0x6f, 0x62, 0x12, 0x4d, 0x0a, 0x03, 0x4a, 0x6f, 0x62,
 	0x12, 0x12, 0x2e, 0x67, 0x72, 0x69, 0x70, 0x71, 0x6c, 0x2e, 0x47, 0x72, 0x61, 0x70, 0x68, 0x51,
 	0x75, 0x65, 0x72, 0x79, 0x1a, 0x10, 0x2e, 0x67, 0x72, 0x69, 0x70, 0x71, 0x6c, 0x2e, 0x51, 0x75,
 	0x65, 0x72, 0x79, 0x4a, 0x6f, 0x62, 0x22, 0x20, 0x82, 0xd3, 0xe4, 0x93, 0x02, 0x1a, 0x22, 0x15,
@@ -2951,7 +2951,13 @@ var file_gripql_proto_rawDesc = []byte{
 	0x61, 0x70, 0x68, 0x1a, 0x10, 0x2e, 0x67, 0x72, 0x69, 0x70, 0x71, 0x6c, 0x2e, 0x51, 0x75, 0x65,
 	0x72, 0x79, 0x4a, 0x6f, 0x62, 0x22, 0x1d, 0x82, 0xd3, 0xe4, 0x93, 0x02, 0x17, 0x12, 0x15, 0x2f,
 	0x76, 0x31, 0x2f, 0x67, 0x72, 0x61, 0x70, 0x68, 0x2f, 0x7b, 0x67, 0x72, 0x61, 0x70, 0x68, 0x7d,
-	0x2f, 0x6a, 0x6f, 0x62, 0x30, 0x01, 0x12, 0x54, 0x0a, 0x09, 0x44, 0x65, 0x6c, 0x65, 0x74, 0x65,
+	0x2f, 0x6a, 0x6f, 0x62, 0x30, 0x01, 0x12, 0x5e, 0x0a, 0x0a, 0x53, 0x65, 0x61, 0x72, 0x63, 0x68,
+	0x4a, 0x6f, 0x62, 0x73, 0x12, 0x12, 0x2e, 0x67, 0x72, 0x69, 0x70, 0x71, 0x6c, 0x2e, 0x47, 0x72,
+	0x61, 0x70, 0x68, 0x51, 0x75, 0x65, 0x72, 0x79, 0x1a, 0x11, 0x2e, 0x67, 0x72, 0x69, 0x70, 0x71,
+	0x6c, 0x2e, 0x4a, 0x6f, 0x62, 0x53, 0x74, 0x61, 0x74, 0x75, 0x73, 0x22, 0x27, 0x82, 0xd3, 0xe4,
+	0x93, 0x02, 0x21, 0x22, 0x1c, 0x2f, 0x76, 0x31, 0x2f, 0x67, 0x72, 0x61, 0x70, 0x68, 0x2f, 0x7b,
+	0x67, 0x72, 0x61, 0x70, 0x68, 0x7d, 0x2f, 0x6a, 0x6f, 0x62, 0x2d, 0x73, 0x65, 0x61, 0x72, 0x63,
+	0x68, 0x3a, 0x01, 0x2a, 0x30, 0x01, 0x12, 0x54, 0x0a, 0x09, 0x44, 0x65, 0x6c, 0x65, 0x74, 0x65,
 	0x4a, 0x6f, 0x62, 0x12, 0x10, 0x2e, 0x67, 0x72, 0x69, 0x70, 0x71, 0x6c, 0x2e, 0x51, 0x75, 0x65,
 	0x72, 0x79, 0x4a, 0x6f, 0x62, 0x1a, 0x11, 0x2e, 0x67, 0x72, 0x69, 0x70, 0x71, 0x6c, 0x2e, 0x4a,
 	0x6f, 0x62, 0x53, 0x74, 0x61, 0x74, 0x75, 0x73, 0x22, 0x22, 0x82, 0xd3, 0xe4, 0x93, 0x02, 0x1c,
@@ -3148,45 +3154,47 @@ var file_gripql_proto_depIdxs = []int32{
 	29, // 59: gripql.Query.ListLabels:input_type -> gripql.GraphID
 	4,  // 60: gripql.Job.Job:input_type -> gripql.GraphQuery
 	3,  // 61: gripql.Job.ListJobs:input_type -> gripql.Graph
-	24, // 62: gripql.Job.DeleteJob:input_type -> gripql.QueryJob
-	24, // 63: gripql.Job.GetJob:input_type -> gripql.QueryJob
-	24, // 64: gripql.Job.ViewJob:input_type -> gripql.QueryJob
-	28, // 65: gripql.Edit.AddVertex:input_type -> gripql.GraphElement
-	28, // 66: gripql.Edit.AddEdge:input_type -> gripql.GraphElement
-	28, // 67: gripql.Edit.BulkAdd:input_type -> gripql.GraphElement
-	29, // 68: gripql.Edit.AddGraph:input_type -> gripql.GraphID
-	29, // 69: gripql.Edit.DeleteGraph:input_type -> gripql.GraphID
-	30, // 70: gripql.Edit.DeleteVertex:input_type -> gripql.ElementID
-	30, // 71: gripql.Edit.DeleteEdge:input_type -> gripql.ElementID
-	31, // 72: gripql.Edit.AddIndex:input_type -> gripql.IndexID
-	31, // 73: gripql.Edit.DeleteIndex:input_type -> gripql.IndexID
-	3,  // 74: gripql.Edit.AddSchema:input_type -> gripql.Graph
-	23, // 75: gripql.Query.Traversal:output_type -> gripql.QueryResult
-	23, // 76: gripql.Query.GetResults:output_type -> gripql.QueryResult
-	21, // 77: gripql.Query.GetVertex:output_type -> gripql.Vertex
-	22, // 78: gripql.Query.GetEdge:output_type -> gripql.Edge
-	32, // 79: gripql.Query.GetTimestamp:output_type -> gripql.Timestamp
-	3,  // 80: gripql.Query.GetSchema:output_type -> gripql.Graph
-	34, // 81: gripql.Query.ListGraphs:output_type -> gripql.ListGraphsResponse
-	35, // 82: gripql.Query.ListIndices:output_type -> gripql.ListIndicesResponse
-	36, // 83: gripql.Query.ListLabels:output_type -> gripql.ListLabelsResponse
-	24, // 84: gripql.Job.Job:output_type -> gripql.QueryJob
-	24, // 85: gripql.Job.ListJobs:output_type -> gripql.QueryJob
-	25, // 86: gripql.Job.DeleteJob:output_type -> gripql.JobStatus
-	25, // 87: gripql.Job.GetJob:output_type -> gripql.JobStatus
-	23, // 88: gripql.Job.ViewJob:output_type -> gripql.QueryResult
-	26, // 89: gripql.Edit.AddVertex:output_type -> gripql.EditResult
-	26, // 90: gripql.Edit.AddEdge:output_type -> gripql.EditResult
-	27, // 91: gripql.Edit.BulkAdd:output_type -> gripql.BulkEditResult
-	26, // 92: gripql.Edit.AddGraph:output_type -> gripql.EditResult
-	26, // 93: gripql.Edit.DeleteGraph:output_type -> gripql.EditResult
-	26, // 94: gripql.Edit.DeleteVertex:output_type -> gripql.EditResult
-	26, // 95: gripql.Edit.DeleteEdge:output_type -> gripql.EditResult
-	26, // 96: gripql.Edit.AddIndex:output_type -> gripql.EditResult
-	26, // 97: gripql.Edit.DeleteIndex:output_type -> gripql.EditResult
-	26, // 98: gripql.Edit.AddSchema:output_type -> gripql.EditResult
-	75, // [75:99] is the sub-list for method output_type
-	51, // [51:75] is the sub-list for method input_type
+	4,  // 62: gripql.Job.SearchJobs:input_type -> gripql.GraphQuery
+	24, // 63: gripql.Job.DeleteJob:input_type -> gripql.QueryJob
+	24, // 64: gripql.Job.GetJob:input_type -> gripql.QueryJob
+	24, // 65: gripql.Job.ViewJob:input_type -> gripql.QueryJob
+	28, // 66: gripql.Edit.AddVertex:input_type -> gripql.GraphElement
+	28, // 67: gripql.Edit.AddEdge:input_type -> gripql.GraphElement
+	28, // 68: gripql.Edit.BulkAdd:input_type -> gripql.GraphElement
+	29, // 69: gripql.Edit.AddGraph:input_type -> gripql.GraphID
+	29, // 70: gripql.Edit.DeleteGraph:input_type -> gripql.GraphID
+	30, // 71: gripql.Edit.DeleteVertex:input_type -> gripql.ElementID
+	30, // 72: gripql.Edit.DeleteEdge:input_type -> gripql.ElementID
+	31, // 73: gripql.Edit.AddIndex:input_type -> gripql.IndexID
+	31, // 74: gripql.Edit.DeleteIndex:input_type -> gripql.IndexID
+	3,  // 75: gripql.Edit.AddSchema:input_type -> gripql.Graph
+	23, // 76: gripql.Query.Traversal:output_type -> gripql.QueryResult
+	23, // 77: gripql.Query.GetResults:output_type -> gripql.QueryResult
+	21, // 78: gripql.Query.GetVertex:output_type -> gripql.Vertex
+	22, // 79: gripql.Query.GetEdge:output_type -> gripql.Edge
+	32, // 80: gripql.Query.GetTimestamp:output_type -> gripql.Timestamp
+	3,  // 81: gripql.Query.GetSchema:output_type -> gripql.Graph
+	34, // 82: gripql.Query.ListGraphs:output_type -> gripql.ListGraphsResponse
+	35, // 83: gripql.Query.ListIndices:output_type -> gripql.ListIndicesResponse
+	36, // 84: gripql.Query.ListLabels:output_type -> gripql.ListLabelsResponse
+	24, // 85: gripql.Job.Job:output_type -> gripql.QueryJob
+	24, // 86: gripql.Job.ListJobs:output_type -> gripql.QueryJob
+	25, // 87: gripql.Job.SearchJobs:output_type -> gripql.JobStatus
+	25, // 88: gripql.Job.DeleteJob:output_type -> gripql.JobStatus
+	25, // 89: gripql.Job.GetJob:output_type -> gripql.JobStatus
+	23, // 90: gripql.Job.ViewJob:output_type -> gripql.QueryResult
+	26, // 91: gripql.Edit.AddVertex:output_type -> gripql.EditResult
+	26, // 92: gripql.Edit.AddEdge:output_type -> gripql.EditResult
+	27, // 93: gripql.Edit.BulkAdd:output_type -> gripql.BulkEditResult
+	26, // 94: gripql.Edit.AddGraph:output_type -> gripql.EditResult
+	26, // 95: gripql.Edit.DeleteGraph:output_type -> gripql.EditResult
+	26, // 96: gripql.Edit.DeleteVertex:output_type -> gripql.EditResult
+	26, // 97: gripql.Edit.DeleteEdge:output_type -> gripql.EditResult
+	26, // 98: gripql.Edit.AddIndex:output_type -> gripql.EditResult
+	26, // 99: gripql.Edit.DeleteIndex:output_type -> gripql.EditResult
+	26, // 100: gripql.Edit.AddSchema:output_type -> gripql.EditResult
+	76, // [76:101] is the sub-list for method output_type
+	51, // [51:76] is the sub-list for method input_type
 	51, // [51:51] is the sub-list for extension type_name
 	51, // [51:51] is the sub-list for extension extendee
 	0,  // [0:51] is the sub-list for field type_name

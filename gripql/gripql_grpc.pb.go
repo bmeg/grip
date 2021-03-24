@@ -449,6 +449,7 @@ var Query_ServiceDesc = grpc.ServiceDesc{
 type JobClient interface {
 	Job(ctx context.Context, in *GraphQuery, opts ...grpc.CallOption) (*QueryJob, error)
 	ListJobs(ctx context.Context, in *Graph, opts ...grpc.CallOption) (Job_ListJobsClient, error)
+	SearchJobs(ctx context.Context, in *GraphQuery, opts ...grpc.CallOption) (Job_SearchJobsClient, error)
 	DeleteJob(ctx context.Context, in *QueryJob, opts ...grpc.CallOption) (*JobStatus, error)
 	GetJob(ctx context.Context, in *QueryJob, opts ...grpc.CallOption) (*JobStatus, error)
 	ViewJob(ctx context.Context, in *QueryJob, opts ...grpc.CallOption) (Job_ViewJobClient, error)
@@ -503,6 +504,38 @@ func (x *jobListJobsClient) Recv() (*QueryJob, error) {
 	return m, nil
 }
 
+func (c *jobClient) SearchJobs(ctx context.Context, in *GraphQuery, opts ...grpc.CallOption) (Job_SearchJobsClient, error) {
+	stream, err := c.cc.NewStream(ctx, &Job_ServiceDesc.Streams[1], "/gripql.Job/SearchJobs", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &jobSearchJobsClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type Job_SearchJobsClient interface {
+	Recv() (*JobStatus, error)
+	grpc.ClientStream
+}
+
+type jobSearchJobsClient struct {
+	grpc.ClientStream
+}
+
+func (x *jobSearchJobsClient) Recv() (*JobStatus, error) {
+	m := new(JobStatus)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 func (c *jobClient) DeleteJob(ctx context.Context, in *QueryJob, opts ...grpc.CallOption) (*JobStatus, error) {
 	out := new(JobStatus)
 	err := c.cc.Invoke(ctx, "/gripql.Job/DeleteJob", in, out, opts...)
@@ -522,7 +555,7 @@ func (c *jobClient) GetJob(ctx context.Context, in *QueryJob, opts ...grpc.CallO
 }
 
 func (c *jobClient) ViewJob(ctx context.Context, in *QueryJob, opts ...grpc.CallOption) (Job_ViewJobClient, error) {
-	stream, err := c.cc.NewStream(ctx, &Job_ServiceDesc.Streams[1], "/gripql.Job/ViewJob", opts...)
+	stream, err := c.cc.NewStream(ctx, &Job_ServiceDesc.Streams[2], "/gripql.Job/ViewJob", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -559,6 +592,7 @@ func (x *jobViewJobClient) Recv() (*QueryResult, error) {
 type JobServer interface {
 	Job(context.Context, *GraphQuery) (*QueryJob, error)
 	ListJobs(*Graph, Job_ListJobsServer) error
+	SearchJobs(*GraphQuery, Job_SearchJobsServer) error
 	DeleteJob(context.Context, *QueryJob) (*JobStatus, error)
 	GetJob(context.Context, *QueryJob) (*JobStatus, error)
 	ViewJob(*QueryJob, Job_ViewJobServer) error
@@ -574,6 +608,9 @@ func (UnimplementedJobServer) Job(context.Context, *GraphQuery) (*QueryJob, erro
 }
 func (UnimplementedJobServer) ListJobs(*Graph, Job_ListJobsServer) error {
 	return status.Errorf(codes.Unimplemented, "method ListJobs not implemented")
+}
+func (UnimplementedJobServer) SearchJobs(*GraphQuery, Job_SearchJobsServer) error {
+	return status.Errorf(codes.Unimplemented, "method SearchJobs not implemented")
 }
 func (UnimplementedJobServer) DeleteJob(context.Context, *QueryJob) (*JobStatus, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteJob not implemented")
@@ -633,6 +670,27 @@ type jobListJobsServer struct {
 }
 
 func (x *jobListJobsServer) Send(m *QueryJob) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func _Job_SearchJobs_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(GraphQuery)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(JobServer).SearchJobs(m, &jobSearchJobsServer{stream})
+}
+
+type Job_SearchJobsServer interface {
+	Send(*JobStatus) error
+	grpc.ServerStream
+}
+
+type jobSearchJobsServer struct {
+	grpc.ServerStream
+}
+
+func (x *jobSearchJobsServer) Send(m *JobStatus) error {
 	return x.ServerStream.SendMsg(m)
 }
 
@@ -717,6 +775,11 @@ var Job_ServiceDesc = grpc.ServiceDesc{
 		{
 			StreamName:    "ListJobs",
 			Handler:       _Job_ListJobs_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "SearchJobs",
+			Handler:       _Job_SearchJobs_Handler,
 			ServerStreams: true,
 		},
 		{

@@ -345,7 +345,7 @@ class Query(BaseConnection):
             for r in self.__stream(debug):
                 output.append(r)
             return output
-    
+
     def submit(self, debug=False):
         """
         Post the traversal as an asynchronous job
@@ -364,13 +364,40 @@ class Query(BaseConnection):
         logger.addHandler(stream_handler)
 
         url = self.base_url + "/v1/graph/" + self.graph + "/job"
-        
+
         response = self.session.post(
             url,
             json=self.to_dict()
         )
         raise_for_status(response)
         return response.json()
+
+    def searchJobs(self, debug=False):
+        """
+        Find jobs that match this query
+        """
+        log_level = logging.root.level
+        if debug:
+            log_level = logging.DEBUG
+        logger = logging.getLogger(__name__)
+        logger.handlers = []
+        stream_handler = logging.StreamHandler()
+        stream_handler.setFormatter(
+            logging.Formatter('[%(levelname)s]\t%(asctime)s\t%(message)s')
+        )
+        stream_handler.setLevel(log_level)
+        logger.setLevel(log_level)
+        logger.addHandler(stream_handler)
+
+        url = self.base_url + "/v1/graph/" + self.graph + "/job-search"
+
+        response = self.session.post(
+            url,
+            json=self.to_dict()
+        )
+        for result in response.iter_lines(chunk_size=None):
+            result_dict = jloads(result.decode())
+            yield result_dict
 
 
 

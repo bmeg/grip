@@ -203,6 +203,51 @@ func (dir *JobDirectClient) ListJobs(ctx context.Context, in *Graph, opts ...grp
 }
 
 
+//SearchJobs streaming output shim
+type directJobSearchJobs struct {
+  ctx context.Context
+  c   chan *JobStatus
+  e   error
+}
+
+func (dsm *directJobSearchJobs) Recv() (*JobStatus, error) {
+	value, ok := <-dsm.c
+	if !ok {
+    if dsm.e != nil {
+      return nil, dsm.e
+    }
+		return nil, io.EOF
+	}
+	return value, dsm.e
+}
+func (dsm *directJobSearchJobs) Send(a *JobStatus) error {
+	dsm.c <- a
+	return nil
+}
+func (dsm *directJobSearchJobs) close() {
+	close(dsm.c)
+}
+func (dsm *directJobSearchJobs) Context() context.Context {
+	return dsm.ctx
+}
+func (dsm *directJobSearchJobs) CloseSend() error             { return nil }
+func (dsm *directJobSearchJobs) SetTrailer(metadata.MD)       {}
+func (dsm *directJobSearchJobs) SetHeader(metadata.MD) error  { return nil }
+func (dsm *directJobSearchJobs) SendHeader(metadata.MD) error { return nil }
+func (dsm *directJobSearchJobs) SendMsg(m interface{}) error  { return nil }
+func (dsm *directJobSearchJobs) RecvMsg(m interface{}) error  { return nil }
+func (dsm *directJobSearchJobs) Header() (metadata.MD, error) { return nil, nil }
+func (dsm *directJobSearchJobs) Trailer() metadata.MD         { return nil }
+func (dir *JobDirectClient) SearchJobs(ctx context.Context, in *GraphQuery, opts ...grpc.CallOption) (Job_SearchJobsClient, error) {
+	w := &directJobSearchJobs{ctx, make(chan *JobStatus, 100), nil}
+	go func() {
+    defer w.close()
+		w.e = dir.server.SearchJobs(in, w)
+	}()
+	return w, nil
+}
+
+
 //DeleteJob shim
 func (shim *JobDirectClient) DeleteJob(ctx context.Context, in *QueryJob, opts ...grpc.CallOption) (*JobStatus, error) {
 	return shim.server.DeleteJob(ctx, in)

@@ -28,7 +28,17 @@ def test_job(man):
     
     if count != 12:
         errors.append("Incorrect # elements returned %d != %d" % (count, 12))
-        
+
+    jobs = G.query().V().hasLabel("Planet").out().out().count().searchJobs()
+    count = 0
+    for cJob in jobs:
+        if cJob["id"] != job["id"]:
+            errors.append("Wrong job found")
+        else:
+            count += 1
+    if count != 1:
+        errors.append("Job not found in search")
+
     G.deleteJob(job["id"])
     count = 0
     for j in G.listJobs():

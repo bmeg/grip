@@ -2,7 +2,6 @@ package server
 
 import (
 	"context"
-	"log"
 
 	"github.com/bmeg/grip/engine"
 	"github.com/bmeg/grip/engine/pipeline"
@@ -83,7 +82,17 @@ func (server *GripServer) ListJobs(graph *gripql.Graph, srv gripql.Job_ListJobsS
 			Id:    i,
 			Graph: graph.Graph,
 		})
-		log.Printf("job id sent: %s", i)
+	}
+	return nil
+}
+
+func (server *GripServer) SearchJobs(query *gripql.GraphQuery, srv gripql.Job_SearchJobsServer) error {
+	stream, err := server.jStorage.Search(query.Graph, query.Query)
+	if err != nil {
+		return err
+	}
+	for i := range stream {
+		srv.Send(i)
 	}
 	return nil
 }

@@ -25,6 +25,7 @@ type Stream struct {
 
 type JobStorage interface {
 	List(graph string) (chan string, error)
+	Search(graph string, Query []*gripql.GraphStatement) (chan *gripql.JobStatus, error)
 	Spool(graph string, stream *Stream) (string, error)
 	Stream(graph, id string) (*Stream, error)
 	Delete(graph, id string) error
@@ -82,6 +83,24 @@ func (fs *FSResults) List(graph string) (chan string, error) {
 			vJob := value.(*Job)
 			if vJob.Status.Graph == graph {
 				out <- vJob.Status.Id
+			}
+			return true
+		})
+	}()
+	return out, nil
+}
+
+func (fs *FSResults) Search(graph string, Query []*gripql.GraphStatement) (chan *gripql.JobStatus, error) {
+	out := make(chan *gripql.JobStatus)
+	qcs, _ := TraversalChecksum(Query)
+	go func() {
+		defer close(out)
+		fs.jobs.Range(func(key, value interface{}) bool {
+			vJob := value.(*Job)
+			if vJob.Status.Graph == graph {
+				if JobMatch(qcs, vJob.StepChecksums) {
+					out <- &vJob.Status
+				}
 			}
 			return true
 		})

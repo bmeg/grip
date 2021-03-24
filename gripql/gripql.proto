@@ -322,6 +322,12 @@ service Job {
 		};
 	}
 
+	rpc SearchJobs(GraphQuery) returns (stream JobStatus) {
+		option (google.api.http) = {
+			post: "/v1/graph/{graph}/job-search"
+			body: "*"
+		};
+	}
 
 	rpc DeleteJob(QueryJob) returns (JobStatus) {
 		option (google.api.http) = {
