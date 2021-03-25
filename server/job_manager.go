@@ -108,3 +108,16 @@ func (server *GripServer) ViewJob(job *gripql.QueryJob, srv gripql.Job_ViewJobSe
 	}
 	return nil
 }
+
+
+func (server *GripServer) ResumeJob(query *gripql.ExtendQuery, srv gripql.Job_ResumeJobServer) error {
+	stream, err := server.jStorage.Stream(query.Graph, query.SrcId)
+	if err != nil {
+		return nil
+	}
+	for o := range stream.Pipe {
+		res := pipeline.Convert(stream.DataType, stream.MarkTypes, o)
+		srv.Send(res)
+	}
+	return nil
+}

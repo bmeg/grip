@@ -178,6 +178,11 @@ message QueryJob {
 	string graph = 2;
 }
 
+message ExtendQuery {
+	string src_id = 1;
+	string graph = 2;
+	repeated GraphStatement query = 3;
+}
 
 enum JobState {
 	QUEUED = 0;
@@ -347,6 +352,14 @@ service Job {
 			body: "*"
 		};
 	}
+
+	rpc ResumeJob(ExtendQuery) returns (stream QueryResult) {
+		option (google.api.http) = {
+			post: "/v1/graph/{graph}/job-resume"
+			body: "*"
+		};
+	}
+
 }
 
 service Edit {

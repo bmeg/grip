@@ -25,7 +25,7 @@ def test_job(man):
     count = 0
     for row in G.readJob(job["id"]):
         count += 1
-    
+
     if count != 12:
         errors.append("Incorrect # elements returned %d != %d" % (count, 12))
 
@@ -38,6 +38,9 @@ def test_job(man):
             count += 1
     if count != 1:
         errors.append("Job not found in search")
+
+    for res in G.resume(job["id"]).out().count().execute(debug=True):
+        print(res)
 
     G.deleteJob(job["id"])
     count = 0

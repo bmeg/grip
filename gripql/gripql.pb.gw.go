@@ -838,6 +838,48 @@ func request_Job_ViewJob_0(ctx context.Context, marshaler runtime.Marshaler, cli
 
 }
 
+func request_Job_ResumeJob_0(ctx context.Context, marshaler runtime.Marshaler, client JobClient, req *http.Request, pathParams map[string]string) (Job_ResumeJobClient, runtime.ServerMetadata, error) {
+	var protoReq ExtendQuery
+	var metadata runtime.ServerMetadata
+
+	newReader, berr := utilities.IOReaderFactory(req.Body)
+	if berr != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", berr)
+	}
+	if err := marshaler.NewDecoder(newReader()).Decode(&protoReq); err != nil && err != io.EOF {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+	}
+
+	var (
+		val string
+		ok  bool
+		err error
+		_   = err
+	)
+
+	val, ok = pathParams["graph"]
+	if !ok {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "missing parameter %s", "graph")
+	}
+
+	protoReq.Graph, err = runtime.String(val)
+	if err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "graph", err)
+	}
+
+	stream, err := client.ResumeJob(ctx, &protoReq)
+	if err != nil {
+		return nil, metadata, err
+	}
+	header, err := stream.Header()
+	if err != nil {
+		return nil, metadata, err
+	}
+	metadata.HeaderMD = header
+	return stream, metadata, nil
+
+}
+
 var (
 	filter_Edit_AddVertex_0 = &utilities.DoubleArray{Encoding: map[string]int{"vertex": 0, "graph": 1}, Base: []int{1, 1, 2, 0, 0}, Check: []int{0, 1, 1, 2, 3}}
 )
@@ -1830,6 +1872,13 @@ func RegisterJobHandlerServer(ctx context.Context, mux *runtime.ServeMux, server
 		return
 	})
 
+	mux.Handle("POST", pattern_Job_ResumeJob_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+		err := status.Error(codes.Unimplemented, "streaming calls are not yet supported in the in-process transport")
+		_, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
+		runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
+		return
+	})
+
 	return nil
 }
 
@@ -2475,6 +2524,26 @@ func RegisterJobHandlerClient(ctx context.Context, mux *runtime.ServeMux, client
 
 	})
 
+	mux.Handle("POST", pattern_Job_ResumeJob_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+		ctx, cancel := context.WithCancel(req.Context())
+		defer cancel()
+		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
+		rctx, err := runtime.AnnotateContext(ctx, mux, req, "/gripql.Job/ResumeJob")
+		if err != nil {
+			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
+			return
+		}
+		resp, md, err := request_Job_ResumeJob_0(rctx, inboundMarshaler, client, req, pathParams)
+		ctx = runtime.NewServerMetadataContext(ctx, md)
+		if err != nil {
+			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
+			return
+		}
+
+		forward_Job_ResumeJob_0(ctx, mux, outboundMarshaler, w, req, func() (proto.Message, error) { return resp.Recv() }, mux.GetForwardResponseOptions()...)
+
+	})
+
 	return nil
 }
 
@@ -2490,6 +2559,8 @@ var (
 	pattern_Job_GetJob_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 1, 0, 4, 1, 5, 1, 2, 2, 1, 0, 4, 1, 5, 3}, []string{"v1", "graph", "job", "id"}, ""))
 
 	pattern_Job_ViewJob_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 1, 0, 4, 1, 5, 1, 2, 2, 1, 0, 4, 1, 5, 3}, []string{"v1", "graph", "job", "id"}, ""))
+
+	pattern_Job_ResumeJob_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 1, 0, 4, 1, 5, 1, 2, 2}, []string{"v1", "graph", "job-resume"}, ""))
 )
 
 var (
@@ -2504,6 +2575,8 @@ var (
 	forward_Job_GetJob_0 = runtime.ForwardResponseMessage
 
 	forward_Job_ViewJob_0 = runtime.ForwardResponseStream
+
+	forward_Job_ResumeJob_0 = runtime.ForwardResponseStream
 )
 
 // RegisterEditHandlerFromEndpoint is same as RegisterEditHandler but
