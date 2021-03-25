@@ -37,6 +37,9 @@ func (comp Compiler) Compile(stmts []*gripql.GraphStatement, opts *gdbi.CompileO
 	stmts = core.IndexStartOptimize(stmts)
 
 	ps := pipeline.NewPipelineState(stmts)
+	if opts != nil {
+		ps.LastType = opts.PipelineExtension
+	}
 
 	noLoadPaths := inspect.PipelineNoLoadPath(stmts, 2)
 	procs := make([]gdbi.Processor, 0, len(stmts))

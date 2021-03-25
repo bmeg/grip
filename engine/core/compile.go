@@ -292,7 +292,7 @@ func StatementProcessor(gs *gripql.GraphStatement, db gdbi.GraphInterface, ps *p
 		return proc.GetProcessor(db, ps)
 
 	default:
-		return nil, fmt.Errorf("unknown statement type")
+		return nil, fmt.Errorf("gridsCompile: unknown statement type: %s", gs.GetStatement())
 	}
 }
 

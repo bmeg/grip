@@ -691,7 +691,7 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement, opts *gdbi.Compile
 			lastType = gdbi.AggregationData
 
 		default:
-			return &Pipeline{}, fmt.Errorf("unknown statement type")
+			return &Pipeline{}, fmt.Errorf("mongoCompile: unknown statement type: %s", gs.GetStatement())
 		}
 	}
 
