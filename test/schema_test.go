@@ -38,7 +38,7 @@ func TestSchema(t *testing.T) {
 		t.Fatal(err)
 	}
 	Q := &gripql.Query{}
-	compiledPipeline, err := gi.Compiler().Compile(Q.V().HasLabel("users").Statements)
+	compiledPipeline, err := gi.Compiler().Compile(Q.V().HasLabel("users").Statements, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

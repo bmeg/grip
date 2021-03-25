@@ -86,7 +86,7 @@ func TestEngineQuery(t *testing.T) {
 	q = q.V().Out().Out().Count()
 	comp := graph.Compiler()
 
-	compiledPipeline, err := comp.Compile(q.Statements)
+	compiledPipeline, err := comp.Compile(q.Statements, nil)
 	if err != nil {
 		t.Error(err)
 	}
@@ -99,7 +99,7 @@ func TestEngineQuery(t *testing.T) {
 	q = gripql.NewQuery()
 	q = q.V().Out().Out().OutE().Out().Count()
 
-	compiledPipeline, err = comp.Compile(q.Statements)
+	compiledPipeline, err = comp.Compile(q.Statements, nil)
 	if err != nil {
 		t.Error(err)
 	}
