@@ -5,8 +5,10 @@ import (
 
 	"github.com/bmeg/grip/engine"
 	"github.com/bmeg/grip/engine/pipeline"
+	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/jobstorage"
+	"github.com/bmeg/grip/log"
 )
 
 func (server *GripServer) Job(ctx context.Context, query *gripql.GraphQuery) (*gripql.QueryJob, error) {
@@ -20,7 +22,7 @@ func (server *GripServer) Job(ctx context.Context, query *gripql.GraphQuery) (*g
 		return nil, err
 	}
 	compiler := graph.Compiler()
-	pipe, err := compiler.Compile(query.Query)
+	pipe, err := compiler.Compile(query.Query, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -30,7 +32,7 @@ func (server *GripServer) Job(ctx context.Context, query *gripql.GraphQuery) (*g
 	man := engine.NewManager(server.conf.Server.WorkDir)
 	bufsize := 5000 //make this configurable?
 
-	res := pipeline.Start(context.Background(), pipe, man, bufsize)
+	res := pipeline.Start(context.Background(), pipe, man, bufsize, nil)
 	jobID, err := server.jStorage.Spool(query.Graph,
 		&jobstorage.Stream{
 			DataType:  dataType,
@@ -109,15 +111,35 @@ func (server *GripServer) ViewJob(job *gripql.QueryJob, srv gripql.Job_ViewJobSe
 	return nil
 }
 
-
 func (server *GripServer) ResumeJob(query *gripql.ExtendQuery, srv gripql.Job_ResumeJobServer) error {
+
+	gdb, err := server.getGraphDB(query.Graph)
+	if err != nil {
+		return err
+	}
+	graph, err := gdb.Graph(query.Graph)
+	if err != nil {
+		return err
+	}
 	stream, err := server.jStorage.Stream(query.Graph, query.SrcId)
 	if err != nil {
-		return nil
+		return err
 	}
-	for o := range stream.Pipe {
-		res := pipeline.Convert(stream.DataType, stream.MarkTypes, o)
-		srv.Send(res)
+	compiler := graph.Compiler()
+	log.Infof("Compiling resume pipeline: %s", stream.DataType)
+	pipe, err := compiler.Compile(query.Query, &gdbi.CompileOptions{PipelineExtension: stream.DataType})
+	if err != nil {
+		//reading through the whole file after a compile failure is kind of dumb.
+		//should probably add a context cancel to Stream
+		go func() {
+			for range stream.Pipe {
+			}
+		}()
+		return err
+	}
+	res := pipeline.Resume(context.Background(), pipe, server.conf.Server.WorkDir, stream.Pipe)
+	for o := range res {
+		srv.Send(o)
 	}
 	return nil
 }

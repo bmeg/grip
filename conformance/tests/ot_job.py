@@ -39,8 +39,16 @@ def test_job(man):
     if count != 1:
         errors.append("Job not found in search")
 
+    fullResults = []
+    for res in G.query().V().hasLabel("Planet").out().out().count():
+        fullResults.append(res)
+
+    resumedResults = []
     for res in G.resume(job["id"]).out().count().execute(debug=True):
-        print(res)
+        resumedResults.append(res)
+
+    if len(fullResults) != len(resumedResults):
+        errors.append( "Missmatch on resumed result" )
 
     G.deleteJob(job["id"])
     count = 0

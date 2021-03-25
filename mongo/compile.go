@@ -48,7 +48,7 @@ func NewCompiler(db *Graph) gdbi.Compiler {
 }
 
 // Compile compiles a set of graph traversal statements into a mongo aggregation pipeline
-func (comp *Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, error) {
+func (comp *Compiler) Compile(stmts []*gripql.GraphStatement, opts *gdbi.CompileOptions) (gdbi.Pipeline, error) {
 	procs := []gdbi.Processor{}
 	query := mongo.Pipeline{}
 	startCollection := ""

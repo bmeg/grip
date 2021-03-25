@@ -25,12 +25,12 @@ func NewCompiler(ggraph *Graph) gdbi.Compiler {
 	return Compiler{graph: ggraph}
 }
 
-func (comp Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, error) {
+func (comp Compiler) Compile(stmts []*gripql.GraphStatement, opts *gdbi.CompileOptions) (gdbi.Pipeline, error) {
 	if len(stmts) == 0 {
 		return &core.DefaultPipeline{}, nil
 	}
 
-	if err := core.Validate(stmts); err != nil {
+	if err := core.Validate(stmts, opts); err != nil {
 		return &core.DefaultPipeline{}, fmt.Errorf("invalid statments: %s", err)
 	}
 

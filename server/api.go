@@ -28,7 +28,7 @@ func (server *GripServer) Traversal(query *gripql.GraphQuery, queryServer gripql
 		return err
 	}
 	compiler := graph.Compiler()
-	compiledPipeline, err := compiler.Compile(query.Query)
+	compiledPipeline, err := compiler.Compile(query.Query, nil)
 	if err != nil {
 		return err
 	}

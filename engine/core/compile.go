@@ -50,12 +50,12 @@ func NewCompiler(db gdbi.GraphInterface, optimizers ...QueryOptimizer) gdbi.Comp
 type QueryOptimizer func(pipe []*gripql.GraphStatement) []*gripql.GraphStatement
 
 // Compile take set of statments and turns them into a runnable pipeline
-func (comp DefaultCompiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, error) {
+func (comp DefaultCompiler) Compile(stmts []*gripql.GraphStatement, opts *gdbi.CompileOptions) (gdbi.Pipeline, error) {
 	if len(stmts) == 0 {
 		return &DefaultPipeline{}, nil
 	}
 
-	if err := Validate(stmts); err != nil {
+	if err := Validate(stmts, opts); err != nil {
 		return &DefaultPipeline{}, fmt.Errorf("invalid statments: %s", err)
 	}
 
@@ -64,6 +64,9 @@ func (comp DefaultCompiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeli
 	}
 
 	ps := pipeline.NewPipelineState(stmts)
+	if opts != nil {
+		ps.LastType = opts.PipelineExtension
+	}
 
 	procs := make([]gdbi.Processor, 0, len(stmts))
 
@@ -294,14 +297,16 @@ func StatementProcessor(gs *gripql.GraphStatement, db gdbi.GraphInterface, ps *p
 }
 
 //Validate checks pipeline for chains of statements that won't work
-func Validate(stmts []*gripql.GraphStatement) error {
+func Validate(stmts []*gripql.GraphStatement, opts *gdbi.CompileOptions) error {
 	for i, gs := range stmts {
 		// Validate that the first statement is V() or E()
 		if i == 0 {
 			switch gs.GetStatement().(type) {
 			case *gripql.GraphStatement_V, *gripql.GraphStatement_E:
 			default:
-				return fmt.Errorf("first statement is not V() or E(): %s", gs)
+				if opts == nil || opts.PipelineExtension == gdbi.NoData {
+					return fmt.Errorf("first statement is not V() or E(): %s", gs)
+				}
 			}
 		}
 	}
