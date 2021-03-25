@@ -39,6 +39,7 @@ func (comp Compiler) Compile(stmts []*gripql.GraphStatement, opts *gdbi.CompileO
 	ps := pipeline.NewPipelineState(stmts)
 	if opts != nil {
 		ps.LastType = opts.PipelineExtension
+		ps.MarkTypes = opts.ExtensionMarkTypes
 	}
 
 	noLoadPaths := inspect.PipelineNoLoadPath(stmts, 2)

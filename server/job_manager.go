@@ -127,7 +127,7 @@ func (server *GripServer) ResumeJob(query *gripql.ExtendQuery, srv gripql.Job_Re
 	}
 	compiler := graph.Compiler()
 	log.Infof("Compiling resume pipeline: %s", stream.DataType)
-	pipe, err := compiler.Compile(query.Query, &gdbi.CompileOptions{PipelineExtension: stream.DataType})
+	pipe, err := compiler.Compile(query.Query, &gdbi.CompileOptions{PipelineExtension: stream.DataType, ExtensionMarkTypes: stream.MarkTypes})
 	if err != nil {
 		//reading through the whole file after a compile failure is kind of dumb.
 		//should probably add a context cancel to Stream

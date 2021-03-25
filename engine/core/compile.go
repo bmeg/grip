@@ -66,6 +66,7 @@ func (comp DefaultCompiler) Compile(stmts []*gripql.GraphStatement, opts *gdbi.C
 	ps := pipeline.NewPipelineState(stmts)
 	if opts != nil {
 		ps.LastType = opts.PipelineExtension
+		ps.MarkTypes = opts.ExtensionMarkTypes
 	}
 
 	procs := make([]gdbi.Processor, 0, len(stmts))

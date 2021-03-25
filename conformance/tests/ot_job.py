@@ -7,7 +7,7 @@ def test_job(man):
     errors = []
 
     G = man.setGraph("swapi")
-    job = G.query().V().hasLabel("Planet").out().submit()
+    job = G.query().V().hasLabel("Planet").as_("a").out().submit()
 
     count = 0
     for j in G.listJobs():
@@ -29,7 +29,7 @@ def test_job(man):
     if count != 12:
         errors.append("Incorrect # elements returned %d != %d" % (count, 12))
 
-    jobs = G.query().V().hasLabel("Planet").out().out().count().searchJobs()
+    jobs = G.query().V().hasLabel("Planet").as_("a").out().out().count().searchJobs()
     count = 0
     for cJob in jobs:
         if cJob["id"] != job["id"]:
@@ -37,18 +37,33 @@ def test_job(man):
         else:
             count += 1
     if count != 1:
-        errors.append("Job not found in search")
+        errors.append("Job not found in search: %d" % (count))
 
     fullResults = []
     for res in G.query().V().hasLabel("Planet").out().out().count():
         fullResults.append(res)
 
     resumedResults = []
-    for res in G.resume(job["id"]).out().count().execute(debug=True):
+    for res in G.resume(job["id"]).out().count().execute():
         resumedResults.append(res)
 
     if len(fullResults) != len(resumedResults):
         errors.append( "Missmatch on resumed result" )
+
+    fullResults = []
+    for res in G.query().V().hasLabel("Planet").as_("a").out().out().select("a"):
+        fullResults.append(res)
+
+    resumedResults = []
+    for res in G.resume(job["id"]).out().select("a").execute():
+        resumedResults.append(res)
+
+    if len(fullResults) != len(resumedResults):
+        errors.append( "Missmatch on resumed result" )
+
+    for a, b in zip(fullResults, resumedResults):
+        if a != b:
+            errors.append("%s != %s" % (a, b))
 
     G.deleteJob(job["id"])
     count = 0

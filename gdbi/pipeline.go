@@ -18,7 +18,8 @@ type CustomProcGen interface {
 
 type CompileOptions struct {
 	//Compile pipeline extension
-	PipelineExtension DataType
+	PipelineExtension  DataType
+	ExtensionMarkTypes map[string]DataType
 }
 
 // Compiler takes a gripql query and turns it into an executable pipeline
