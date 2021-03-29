@@ -187,7 +187,7 @@ func (g *Graph) GetVertex(gid string, load bool) *gdbi.Vertex {
 		log.WithFields(log.Fields{"error": err}).Error("GetVertex: convertVertexRow")
 		return nil
 	}
-	return gdbi.NewElementFromVertex(vertex)
+	return vertex
 }
 
 // GetEdge loads an edge  given an id. It returns a nil if not found.
@@ -207,7 +207,7 @@ func (g *Graph) GetEdge(gid string, load bool) *gdbi.Edge {
 		log.WithFields(log.Fields{"error": err}).Error("GetEdge: convertEdgeRow")
 		return nil
 	}
-	return gdbi.NewElementFromEdge(edge)
+	return edge
 }
 
 // GetVertexList produces a channel of all vertices in the graph
@@ -236,7 +236,7 @@ func (g *Graph) GetVertexList(ctx context.Context, load bool) <-chan *gdbi.Verte
 				log.WithFields(log.Fields{"error": err}).Error("GetVertexList: convertVertexRow")
 				continue
 			}
-			o <- gdbi.NewElementFromVertex(v)
+			o <- v
 		}
 		if err := rows.Err(); err != nil {
 			log.WithFields(log.Fields{"error": err}).Error("GetVertexList: iterating")
@@ -298,7 +298,7 @@ func (g *Graph) GetEdgeList(ctx context.Context, load bool) <-chan *gdbi.Edge {
 				log.WithFields(log.Fields{"error": err}).Error("GetEdgeList: convertEdgeRow")
 				continue
 			}
-			o <- gdbi.NewElementFromEdge(e)
+			o <- e
 		}
 		if err := rows.Err(); err != nil {
 			log.WithFields(log.Fields{"error": err}).Error("GetEdgeList: iterating")
@@ -354,7 +354,7 @@ func (g *Graph) GetVertexChannel(ctx context.Context, reqChan chan gdbi.ElementL
 					log.WithFields(log.Fields{"error": err}).Error("GetVertexChannel: convertVertexRow")
 					continue
 				}
-				chunk[v.Gid] = gdbi.NewElementFromVertex(v)
+				chunk[v.ID] = v
 			}
 			if err := rows.Err(); err != nil {
 				log.WithFields(log.Fields{"error": err}).Error("GetVertexChannel: iterating")
@@ -455,7 +455,7 @@ func (g *Graph) GetOutChannel(ctx context.Context, reqChan chan gdbi.ElementLook
 				}
 				r := batchMap[vrow.From]
 				for _, ri := range r {
-					ri.Vertex = gdbi.NewElementFromVertex(v)
+					ri.Vertex = v
 					o <- ri
 				}
 			}
@@ -552,7 +552,7 @@ func (g *Graph) GetInChannel(ctx context.Context, reqChan chan gdbi.ElementLooku
 				}
 				r := batchMap[vrow.To]
 				for _, ri := range r {
-					ri.Vertex = gdbi.NewElementFromVertex(v)
+					ri.Vertex = v
 					o <- ri
 				}
 			}
@@ -637,7 +637,7 @@ func (g *Graph) GetOutEdgeChannel(ctx context.Context, reqChan chan gdbi.Element
 				}
 				r := batchMap[erow.From]
 				for _, ri := range r {
-					ri.Edge = gdbi.NewElementFromEdge(e)
+					ri.Edge = e
 					o <- ri
 				}
 			}
@@ -722,7 +722,7 @@ func (g *Graph) GetInEdgeChannel(ctx context.Context, reqChan chan gdbi.ElementL
 				}
 				r := batchMap[erow.To]
 				for _, ri := range r {
-					ri.Edge = gdbi.NewElementFromEdge(e)
+					ri.Edge = e
 					o <- ri
 				}
 			}
