@@ -55,11 +55,12 @@ func Run(ctx context.Context, pipe gdbi.Pipeline, workdir string) <-chan *gripql
 	resch := make(chan *gripql.QueryResult, bufsize)
 	go func() {
 		defer close(resch)
+		graph := pipe.Graph()
 		dataType := pipe.DataType()
 		markTypes := pipe.MarkTypes()
 		man := engine.NewManager(workdir)
 		for t := range Start(ctx, pipe, man, bufsize, nil) {
-			resch <- Convert(dataType, markTypes, t)
+			resch <- Convert(graph, dataType, markTypes, t)
 		}
 		man.Cleanup()
 	}()
@@ -72,11 +73,12 @@ func Resume(ctx context.Context, pipe gdbi.Pipeline, workdir string, input gdbi.
 	resch := make(chan *gripql.QueryResult, bufsize)
 	go func() {
 		defer close(resch)
+		graph := pipe.Graph()
 		dataType := pipe.DataType()
 		markTypes := pipe.MarkTypes()
 		man := engine.NewManager(workdir)
 		for t := range Start(ctx, pipe, man, bufsize, input) {
-			resch <- Convert(dataType, markTypes, t)
+			resch <- Convert(graph, dataType, markTypes, t)
 		}
 		man.Cleanup()
 	}()
@@ -84,19 +86,29 @@ func Resume(ctx context.Context, pipe gdbi.Pipeline, workdir string, input gdbi.
 }
 
 // Convert takes a traveler and converts it to query output
-func Convert(dataType gdbi.DataType, markTypes map[string]gdbi.DataType, t *gdbi.Traveler) *gripql.QueryResult {
+func Convert(graph gdbi.GraphInterface, dataType gdbi.DataType, markTypes map[string]gdbi.DataType, t *gdbi.Traveler) *gripql.QueryResult {
 	switch dataType {
 	case gdbi.VertexData:
+		ve := t.GetCurrent()
+		if !ve.Loaded {
+			//TODO: doing single vertex queries is slow.
+			// Need to rework this to do batched queries
+			ve = graph.GetVertex(ve.ID, true)
+		}
 		return &gripql.QueryResult{
 			Result: &gripql.QueryResult_Vertex{
-				Vertex: t.GetCurrent().ToVertex(),
+				Vertex: ve.ToVertex(),
 			},
 		}
 
 	case gdbi.EdgeData:
+		ee := t.GetCurrent()
+		if !ee.Loaded {
+			ee = graph.GetEdge(ee.ID, true)
+		}
 		return &gripql.QueryResult{
 			Result: &gripql.QueryResult_Edge{
-				Edge: t.GetCurrent().ToEdge(),
+				Edge: ee.ToEdge(),
 			},
 		}
 

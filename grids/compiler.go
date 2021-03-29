@@ -88,5 +88,5 @@ func (comp Compiler) Compile(stmts []*gripql.GraphStatement, opts *gdbi.CompileO
 			procs = append(procs, p)
 		}
 	}
-	return core.NewPipeline(procs, ps), nil
+	return core.NewPipeline(comp.graph, procs, ps), nil
 }
