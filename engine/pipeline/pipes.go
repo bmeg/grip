@@ -91,6 +91,7 @@ func Convert(graph gdbi.GraphInterface, dataType gdbi.DataType, markTypes map[st
 	case gdbi.VertexData:
 		ve := t.GetCurrent()
 		if !ve.Loaded {
+			//log.Infof("Loading output vertex: %s", ve.ID)
 			//TODO: doing single vertex queries is slow.
 			// Need to rework this to do batched queries
 			ve = graph.GetVertex(ve.ID, true)
