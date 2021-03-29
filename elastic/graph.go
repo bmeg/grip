@@ -47,7 +47,7 @@ func (es *Graph) GetTimestamp() string {
 
 // AddEdge adds an edge to the graph, if the id is not "" and in already exists
 // in the graph, it is replaced
-func (es *Graph) AddEdge(edges []*gripql.Edge) error {
+func (es *Graph) AddEdge(edges []*gdbi.Edge) error {
 	ctx := context.Background()
 
 	bulkRequest := es.client.Bulk()
@@ -55,7 +55,7 @@ func (es *Graph) AddEdge(edges []*gripql.Edge) error {
 		bulkRequest = bulkRequest.Refresh("true")
 	}
 	for _, e := range edges {
-		if e.Gid == "" {
+		if e.ID == "" {
 			return fmt.Errorf("Edge Gid cannot be an empty string")
 		}
 		pe := PackEdge(e)
@@ -67,7 +67,7 @@ func (es *Graph) AddEdge(edges []*gripql.Edge) error {
 		req := elastic.NewBulkUpdateRequest().
 			Index(es.edgeIndex).
 			Type("edge").
-			Id(e.Gid).
+			Id(e.ID).
 			Script(script).
 			Upsert(pe)
 		bulkRequest = bulkRequest.Add(req)
@@ -82,7 +82,7 @@ func (es *Graph) AddEdge(edges []*gripql.Edge) error {
 
 // AddVertex adds an edge to the graph, if the id is not "" and in already exists
 // in the graph, it is replaced
-func (es *Graph) AddVertex(vertices []*gripql.Vertex) error {
+func (es *Graph) AddVertex(vertices []*gdbi.Vertex) error {
 	ctx := context.Background()
 
 	bulkRequest := es.client.Bulk()
@@ -90,7 +90,7 @@ func (es *Graph) AddVertex(vertices []*gripql.Vertex) error {
 		bulkRequest = bulkRequest.Refresh("true")
 	}
 	for _, v := range vertices {
-		if v.Gid == "" {
+		if v.ID == "" {
 			return fmt.Errorf("Vertex Gid cannot be an empty string")
 		}
 		pv := PackVertex(v)
@@ -100,7 +100,7 @@ func (es *Graph) AddVertex(vertices []*gripql.Vertex) error {
 		req := elastic.NewBulkUpdateRequest().
 			Index(es.vertexIndex).
 			Type("vertex").
-			Id(v.Gid).
+			Id(v.ID).
 			Script(script).
 			Upsert(pv)
 		bulkRequest = bulkRequest.Add(req)
@@ -113,7 +113,7 @@ func (es *Graph) AddVertex(vertices []*gripql.Vertex) error {
 	return nil
 }
 
-func (es *Graph) BulkAdd(stream <-chan *gripql.GraphElement) error {
+func (es *Graph) BulkAdd(stream <-chan *gdbi.GraphElement) error {
 	return util.StreamBatch(stream, 50, es.graph, es.AddVertex, es.AddEdge)
 }
 
@@ -171,7 +171,7 @@ func (es *Graph) DelVertex(vid string) error {
 }
 
 // GetEdge gets a specific edge
-func (es *Graph) GetEdge(id string, load bool) *gripql.Edge {
+func (es *Graph) GetEdge(id string, load bool) *gdbi.Edge {
 	ctx := context.Background()
 
 	g := es.client.Get().Index(es.edgeIndex).Id(id)
@@ -192,11 +192,11 @@ func (es *Graph) GetEdge(id string, load bool) *gripql.Edge {
 		return nil
 	}
 
-	return edge
+	return gdbi.NewElementFromEdge(edge)
 }
 
 // GetVertex gets vertex `id`
-func (es *Graph) GetVertex(id string, load bool) *gripql.Vertex {
+func (es *Graph) GetVertex(id string, load bool) *gdbi.Vertex {
 	ctx := context.Background()
 
 	g := es.client.Get().Index(es.vertexIndex).Id(id)
@@ -217,12 +217,12 @@ func (es *Graph) GetVertex(id string, load bool) *gripql.Vertex {
 		return nil
 	}
 
-	return vertex
+	return gdbi.NewElementFromVertex(vertex)
 }
 
 // GetEdgeList produces a channel of all edges in the graph
-func (es *Graph) GetEdgeList(ctx context.Context, load bool) <-chan *gripql.Edge {
-	o := make(chan *gripql.Edge, 100)
+func (es *Graph) GetEdgeList(ctx context.Context, load bool) <-chan *gdbi.Edge {
+	o := make(chan *gdbi.Edge, 100)
 
 	// 1st goroutine sends individual hits to channel.
 	hits := make(chan json.RawMessage, es.pageSize)
@@ -257,7 +257,7 @@ func (es *Graph) GetEdgeList(ctx context.Context, load bool) <-chan *gripql.Edge
 			if err != nil {
 				return err
 			}
-			o <- edge
+			o <- gdbi.NewElementFromEdge(edge)
 		}
 		return nil
 	})
@@ -274,8 +274,8 @@ func (es *Graph) GetEdgeList(ctx context.Context, load bool) <-chan *gripql.Edge
 }
 
 // GetVertexList produces a channel of all vertices in the graph
-func (es *Graph) GetVertexList(ctx context.Context, load bool) <-chan *gripql.Vertex {
-	o := make(chan *gripql.Vertex, es.pageSize)
+func (es *Graph) GetVertexList(ctx context.Context, load bool) <-chan *gdbi.Vertex {
+	o := make(chan *gdbi.Vertex, es.pageSize)
 
 	// 1st goroutine sends individual hits to channel.
 	hits := make(chan json.RawMessage, es.pageSize)
@@ -310,7 +310,7 @@ func (es *Graph) GetVertexList(ctx context.Context, load bool) <-chan *gripql.Ve
 			if err != nil {
 				return fmt.Errorf("Failed to unmarshal vertex: %v", err)
 			}
-			o <- vertex
+			o <- gdbi.NewElementFromVertex(vertex)
 		}
 		return nil
 	})
@@ -373,7 +373,7 @@ func (es *Graph) GetVertexChannel(ctx context.Context, req chan gdbi.ElementLook
 				}
 				r := batchMap[vertex.Gid]
 				for _, ri := range r {
-					ri.Vertex = vertex
+					ri.Vertex = gdbi.NewElementFromVertex(vertex)
 					o <- ri
 				}
 			}
@@ -448,7 +448,7 @@ func (es *Graph) GetOutChannel(ctx context.Context, req chan gdbi.ElementLookup,
 				}
 				r := batchMap[edge.From]
 				for _, ri := range r {
-					ri.Vertex = &gripql.Vertex{Gid: edge.To}
+					ri.Vertex = &gdbi.Vertex{ID: edge.To}
 					b = append(b, ri)
 				}
 			}
@@ -465,8 +465,8 @@ func (es *Graph) GetOutChannel(ctx context.Context, req chan gdbi.ElementLookup,
 			idBatch := make([]string, len(batch))
 			batchMap := make(map[string][]gdbi.ElementLookup, len(batch))
 			for i := range batch {
-				idBatch[i] = batch[i].Vertex.Gid
-				batchMap[batch[i].Vertex.Gid] = append(batchMap[batch[i].Vertex.Gid], batch[i])
+				idBatch[i] = batch[i].Vertex.ID
+				batchMap[batch[i].Vertex.ID] = append(batchMap[batch[i].Vertex.ID], batch[i])
 			}
 
 			q := es.client.Search().Index(es.vertexIndex)
@@ -485,7 +485,7 @@ func (es *Graph) GetOutChannel(ctx context.Context, req chan gdbi.ElementLookup,
 				}
 				r := batchMap[vertex.Gid]
 				for _, ri := range r {
-					ri.Vertex = vertex
+					ri.Vertex = gdbi.NewElementFromVertex(vertex)
 					o <- ri
 				}
 			}
@@ -560,7 +560,7 @@ func (es *Graph) GetInChannel(ctx context.Context, req chan gdbi.ElementLookup, 
 				}
 				r := batchMap[edge.To]
 				for _, ri := range r {
-					ri.Vertex = &gripql.Vertex{Gid: edge.From}
+					ri.Vertex = &gdbi.Vertex{ID: edge.From}
 					b = append(b, ri)
 				}
 			}
@@ -577,8 +577,8 @@ func (es *Graph) GetInChannel(ctx context.Context, req chan gdbi.ElementLookup, 
 			idBatch := make([]string, len(batch))
 			batchMap := make(map[string][]gdbi.ElementLookup, len(batch))
 			for i := range batch {
-				idBatch[i] = batch[i].Vertex.Gid
-				batchMap[batch[i].Vertex.Gid] = append(batchMap[batch[i].Vertex.Gid], batch[i])
+				idBatch[i] = batch[i].Vertex.ID
+				batchMap[batch[i].Vertex.ID] = append(batchMap[batch[i].Vertex.ID], batch[i])
 			}
 			q := es.client.Search().Index(es.vertexIndex)
 			q = q.Query(elastic.NewBoolQuery().Must(elastic.NewIdsQuery().Ids(idBatch...)))
@@ -596,7 +596,7 @@ func (es *Graph) GetInChannel(ctx context.Context, req chan gdbi.ElementLookup, 
 				}
 				r := batchMap[vertex.Gid]
 				for _, ri := range r {
-					ri.Vertex = vertex
+					ri.Vertex = gdbi.NewElementFromVertex(vertex)
 					o <- ri
 				}
 			}
@@ -671,7 +671,7 @@ func (es *Graph) GetOutEdgeChannel(ctx context.Context, req chan gdbi.ElementLoo
 				}
 				r := batchMap[edge.From]
 				for _, ri := range r {
-					ri.Edge = edge
+					ri.Edge = gdbi.NewElementFromEdge(edge)
 					o <- ri
 				}
 			}
@@ -746,7 +746,7 @@ func (es *Graph) GetInEdgeChannel(ctx context.Context, req chan gdbi.ElementLook
 				}
 				r := batchMap[edge.To]
 				for _, ri := range r {
-					ri.Edge = edge
+					ri.Edge = gdbi.NewElementFromEdge(edge)
 					o <- ri
 				}
 			}

@@ -35,9 +35,10 @@ func (l *LookupVerts) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 			if len(l.ids) == 0 {
 				for v := range l.db.GetVertexList(ctx, l.loadData) {
 					out <- t.AddCurrent(&gdbi.DataElement{
-						ID:    v.Gid,
-						Label: v.Label,
-						Data:  v.Data.AsMap(),
+						ID:     v.ID,
+						Label:  v.Label,
+						Data:   v.Data,
+						Loaded: l.loadData,
 					})
 				}
 			} else {
@@ -45,9 +46,10 @@ func (l *LookupVerts) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 					v := l.db.GetVertex(i, l.loadData)
 					if v != nil {
 						out <- t.AddCurrent(&gdbi.DataElement{
-							ID:    v.Gid,
-							Label: v.Label,
-							Data:  v.Data.AsMap(),
+							ID:     v.ID,
+							Label:  v.Label,
+							Data:   v.Data,
+							Loaded: l.loadData,
 						})
 					}
 				}
@@ -88,9 +90,10 @@ func (l *LookupVertsIndex) Process(ctx context.Context, man gdbi.Manager, in gdb
 		for v := range l.db.GetVertexChannel(ctx, queryChan, l.loadData) {
 			i := v.Ref
 			out <- i.AddCurrent(&gdbi.DataElement{
-				ID:    v.Vertex.Gid,
-				Label: v.Vertex.Label,
-				Data:  v.Vertex.Data.AsMap(),
+				ID:     v.Vertex.ID,
+				Label:  v.Vertex.Label,
+				Data:   v.Vertex.Data,
+				Loaded: v.Vertex.Loaded,
 			})
 		}
 	}()
@@ -114,11 +117,12 @@ func (l *LookupEdges) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 			if len(l.ids) == 0 {
 				for v := range l.db.GetEdgeList(ctx, l.loadData) {
 					out <- t.AddCurrent(&gdbi.DataElement{
-						ID:    v.Gid,
-						Label: v.Label,
-						From:  v.From,
-						To:    v.To,
-						Data:  v.Data.AsMap(),
+						ID:     v.ID,
+						Label:  v.Label,
+						From:   v.From,
+						To:     v.To,
+						Data:   v.Data,
+						Loaded: v.Loaded,
 					})
 				}
 			} else {
@@ -126,11 +130,12 @@ func (l *LookupEdges) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 					v := l.db.GetEdge(i, l.loadData)
 					if v != nil {
 						out <- t.AddCurrent(&gdbi.DataElement{
-							ID:    v.Gid,
-							Label: v.Label,
-							From:  v.From,
-							To:    v.To,
-							Data:  v.Data.AsMap(),
+							ID:     v.ID,
+							Label:  v.Label,
+							From:   v.From,
+							To:     v.To,
+							Data:   v.Data,
+							Loaded: v.Loaded,
 						})
 					}
 				}
@@ -166,9 +171,10 @@ func (l *LookupVertexAdjOut) Process(ctx context.Context, man gdbi.Manager, in g
 		for ov := range l.db.GetOutChannel(ctx, queryChan, l.loadData, l.labels) {
 			i := ov.Ref
 			out <- i.AddCurrent(&gdbi.DataElement{
-				ID:    ov.Vertex.Gid,
-				Label: ov.Vertex.Label,
-				Data:  ov.Vertex.Data.AsMap(),
+				ID:     ov.Vertex.ID,
+				Label:  ov.Vertex.Label,
+				Data:   ov.Vertex.Data,
+				Loaded: ov.Vertex.Loaded,
 			})
 		}
 	}()
@@ -201,9 +207,10 @@ func (l *LookupEdgeAdjOut) Process(ctx context.Context, man gdbi.Manager, in gdb
 		for v := range l.db.GetVertexChannel(ctx, queryChan, l.loadData) {
 			i := v.Ref
 			out <- i.AddCurrent(&gdbi.DataElement{
-				ID:    v.Vertex.Gid,
-				Label: v.Vertex.Label,
-				Data:  v.Vertex.Data.AsMap(),
+				ID:     v.Vertex.ID,
+				Label:  v.Vertex.Label,
+				Data:   v.Vertex.Data,
+				Loaded: v.Vertex.Loaded,
 			})
 		}
 	}()
@@ -236,9 +243,10 @@ func (l *LookupVertexAdjIn) Process(ctx context.Context, man gdbi.Manager, in gd
 		for v := range l.db.GetInChannel(ctx, queryChan, l.loadData, l.labels) {
 			i := v.Ref
 			out <- i.AddCurrent(&gdbi.DataElement{
-				ID:    v.Vertex.Gid,
-				Label: v.Vertex.Label,
-				Data:  v.Vertex.Data.AsMap(),
+				ID:     v.Vertex.ID,
+				Label:  v.Vertex.Label,
+				Data:   v.Vertex.Data,
+				Loaded: v.Vertex.Loaded,
 			})
 		}
 	}()
@@ -271,9 +279,10 @@ func (l *LookupEdgeAdjIn) Process(ctx context.Context, man gdbi.Manager, in gdbi
 		for v := range l.db.GetVertexChannel(ctx, queryChan, l.loadData) {
 			i := v.Ref
 			out <- i.AddCurrent(&gdbi.DataElement{
-				ID:    v.Vertex.Gid,
-				Label: v.Vertex.Label,
-				Data:  v.Vertex.Data.AsMap(),
+				ID:     v.Vertex.ID,
+				Label:  v.Vertex.Label,
+				Data:   v.Vertex.Data,
+				Loaded: v.Vertex.Loaded,
 			})
 		}
 	}()
@@ -306,11 +315,12 @@ func (l *InE) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out
 		for v := range l.db.GetInEdgeChannel(ctx, queryChan, l.loadData, l.labels) {
 			i := v.Ref
 			out <- i.AddCurrent(&gdbi.DataElement{
-				ID:    v.Edge.Gid,
-				To:    v.Edge.To,
-				From:  v.Edge.From,
-				Label: v.Edge.Label,
-				Data:  v.Edge.Data.AsMap(),
+				ID:     v.Edge.ID,
+				To:     v.Edge.To,
+				From:   v.Edge.From,
+				Label:  v.Edge.Label,
+				Data:   v.Edge.Data,
+				Loaded: v.Edge.Loaded,
 			})
 		}
 	}()
@@ -343,11 +353,12 @@ func (l *OutE) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, ou
 		for v := range l.db.GetOutEdgeChannel(ctx, queryChan, l.loadData, l.labels) {
 			i := v.Ref
 			out <- i.AddCurrent(&gdbi.DataElement{
-				ID:    v.Edge.Gid,
-				To:    v.Edge.To,
-				From:  v.Edge.From,
-				Label: v.Edge.Label,
-				Data:  v.Edge.Data.AsMap(),
+				ID:     v.Edge.ID,
+				To:     v.Edge.To,
+				From:   v.Edge.From,
+				Label:  v.Edge.Label,
+				Data:   v.Edge.Data,
+				Loaded: v.Edge.Loaded,
 			})
 		}
 	}()
@@ -409,20 +420,20 @@ func (r *Unwind) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, 
 				cur := t.GetCurrent()
 				if len(a) > 0 {
 					for _, i := range a {
-						o := gdbi.DataElement{ID: cur.ID, Label: cur.Label, From: cur.From, To: cur.To, Data: util.DeepCopy(cur.Data).(map[string]interface{})}
+						o := gdbi.DataElement{ID: cur.ID, Label: cur.Label, From: cur.From, To: cur.To, Data: util.DeepCopy(cur.Data).(map[string]interface{}), Loaded: true}
 						n := t.AddCurrent(&o)
 						jsonpath.TravelerSetValue(n, r.Field, i)
 						out <- n
 					}
 				} else {
-					o := gdbi.DataElement{ID: cur.ID, Label: cur.Label, From: cur.From, To: cur.To, Data: util.DeepCopy(cur.Data).(map[string]interface{})}
+					o := gdbi.DataElement{ID: cur.ID, Label: cur.Label, From: cur.From, To: cur.To, Data: util.DeepCopy(cur.Data).(map[string]interface{}), Loaded: true}
 					n := t.AddCurrent(&o)
 					jsonpath.TravelerSetValue(n, r.Field, nil)
 					out <- n
 				}
 			} else {
 				cur := t.GetCurrent()
-				o := gdbi.DataElement{ID: cur.ID, Label: cur.Label, From: cur.From, To: cur.To, Data: util.DeepCopy(cur.Data).(map[string]interface{})}
+				o := gdbi.DataElement{ID: cur.ID, Label: cur.Label, From: cur.From, To: cur.To, Data: util.DeepCopy(cur.Data).(map[string]interface{}), Loaded: true}
 				n := t.AddCurrent(&o)
 				jsonpath.TravelerSetValue(n, r.Field, nil)
 				out <- n

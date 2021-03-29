@@ -1,6 +1,7 @@
 package gdbi
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/bmeg/grip/gripql"
@@ -69,6 +70,26 @@ func (t *Traveler) GetCurrent() *DataElement {
 	return t.Current
 }
 
+func NewElementFromVertex(v *gripql.Vertex) *Vertex {
+	return &Vertex{
+		ID:     v.Gid,
+		Label:  v.Label,
+		Data:   v.Data.AsMap(),
+		Loaded: true,
+	}
+}
+
+func NewElementFromEdge(e *gripql.Edge) *Edge {
+	return &Edge{
+		ID:     e.Gid,
+		Label:  e.Label,
+		To:     e.To,
+		From:   e.From,
+		Data:   e.Data.AsMap(),
+		Loaded: true,
+	}
+}
+
 // ToVertex converts data element to vertex
 func (elem *DataElement) ToVertex() *gripql.Vertex {
 	sValue, err := structpb.NewStruct(elem.Data)
@@ -120,4 +141,32 @@ func (elem *DataElement) ToDict() map[string]interface{} {
 	}
 	out["data"] = elem.Data
 	return out
+}
+
+// Validate returns an error if the vertex is invalid
+func (vertex *Vertex) Validate() error {
+	if vertex.ID == "" {
+		return errors.New("'gid' cannot be blank")
+	}
+	if vertex.Label == "" {
+		return errors.New("'label' cannot be blank")
+	}
+	for k := range vertex.Data {
+		err := gripql.ValidateFieldName(k)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func NewGraphElement(g *gripql.GraphElement) *GraphElement {
+	o := GraphElement{Graph: g.Graph}
+	if g.Vertex != nil {
+		o.Vertex = NewElementFromVertex(g.Vertex)
+	}
+	if g.Edge != nil {
+		o.Edge = NewElementFromEdge(g.Edge)
+	}
+	return &o
 }

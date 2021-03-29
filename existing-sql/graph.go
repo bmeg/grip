@@ -32,16 +32,16 @@ func (g *Graph) Compiler() gdbi.Compiler {
 ////////////////////////////////////////////////////////////////////////////////
 
 // AddVertex is not implemented in the SQL driver
-func (g *Graph) AddVertex(vertices []*gripql.Vertex) error {
+func (g *Graph) AddVertex(vertices []*gdbi.Vertex) error {
 	return errors.New("not implemented")
 }
 
 // AddEdge is not implemented in the SQL driver
-func (g *Graph) AddEdge(edges []*gripql.Edge) error {
+func (g *Graph) AddEdge(edges []*gdbi.Edge) error {
 	return errors.New("not implemented")
 }
 
-func (g *Graph) BulkAdd(stream <-chan *gripql.GraphElement) error {
+func (g *Graph) BulkAdd(stream <-chan *gdbi.GraphElement) error {
 	return errors.New("not implemented")
 }
 
@@ -66,7 +66,7 @@ func (g *Graph) GetTimestamp() string {
 
 // GetVertex loads a vertex given an id. It returns a nil if not found.
 // Keys are expected to be of the form: <table>:<primary_key>
-func (g *Graph) GetVertex(key string, load bool) *gripql.Vertex {
+func (g *Graph) GetVertex(key string, load bool) *gdbi.Vertex {
 	parts := strings.SplitN(key, ":", 2)
 	if len(parts) != 2 {
 		return nil
@@ -88,7 +88,7 @@ func (g *Graph) GetVertex(key string, load bool) *gripql.Vertex {
 		return nil
 	}
 	res := rowDataToVertex(g.schema.GetVertex(table), data, types, load)
-	return res
+	return gdbi.NewElementFromVertex(res)
 }
 
 func (g *Graph) getGeneratedEdge(key string, load bool) *gripql.Edge {
@@ -126,21 +126,21 @@ func (g *Graph) getTableBackedEdge(key string, load bool) *gripql.Edge {
 
 // GetEdge loads an edge given an id. It returns nil if not found
 // Keys are expected to be of the form: <table>:<primary_key>
-func (g *Graph) GetEdge(key string, load bool) *gripql.Edge {
+func (g *Graph) GetEdge(key string, load bool) *gdbi.Edge {
 	parts := strings.SplitN(key, ":", 2)
 	if len(parts) != 2 {
 		return nil
 	}
 	table := parts[0]
 	if table == "generated" {
-		return g.getGeneratedEdge(key, load)
+		return gdbi.NewElementFromEdge(g.getGeneratedEdge(key, load))
 	}
-	return g.getTableBackedEdge(key, load)
+	return gdbi.NewElementFromEdge(g.getTableBackedEdge(key, load))
 }
 
 // GetVertexList produces a channel of all vertices in the graph
-func (g *Graph) GetVertexList(ctx context.Context, load bool) <-chan *gripql.Vertex {
-	o := make(chan *gripql.Vertex, 100)
+func (g *Graph) GetVertexList(ctx context.Context, load bool) <-chan *gdbi.Vertex {
+	o := make(chan *gdbi.Vertex, 100)
 	go func() {
 		defer close(o)
 		for _, v := range g.schema.Vertices {
@@ -161,7 +161,7 @@ func (g *Graph) GetVertexList(ctx context.Context, load bool) <-chan *gripql.Ver
 					log.WithFields(log.Fields{"error": err}).Error("GetVertexList: MapScan")
 					return
 				}
-				o <- rowDataToVertex(v, data, types, load)
+				o <- gdbi.NewElementFromVertex(rowDataToVertex(v, data, types, load))
 			}
 			if err := rows.Err(); err != nil {
 				log.WithFields(log.Fields{"error": err}).Error("GetVertexList: iterating")
@@ -211,8 +211,8 @@ func (g *Graph) VertexLabelScan(ctx context.Context, label string) chan string {
 }
 
 // GetEdgeList produces a channel of all edges in the graph
-func (g *Graph) GetEdgeList(ctx context.Context, load bool) <-chan *gripql.Edge {
-	o := make(chan *gripql.Edge, 100)
+func (g *Graph) GetEdgeList(ctx context.Context, load bool) <-chan *gdbi.Edge {
+	o := make(chan *gdbi.Edge, 100)
 	go func() {
 		defer close(o)
 		for _, edgeSchema := range g.schema.Edges {
@@ -245,7 +245,7 @@ func (g *Graph) GetEdgeList(ctx context.Context, load bool) <-chan *gripql.Edge 
 					}
 					geid := &generatedEdgeID{edgeSchema.Label, edgeSchema.From.DestTable, fromGid, edgeSchema.To.DestTable, toGid}
 					edge := geid.Edge()
-					o <- edge
+					o <- gdbi.NewElementFromEdge(edge)
 				}
 				if err := rows.Err(); err != nil {
 					log.WithFields(log.Fields{"error": err}).Error("GetEdgeList: iterating")
@@ -272,7 +272,7 @@ func (g *Graph) GetEdgeList(ctx context.Context, load bool) <-chan *gripql.Edge 
 						log.WithFields(log.Fields{"error": err}).Error("GetEdgeList: MapScan")
 						return
 					}
-					o <- rowDataToEdge(edgeSchema, data, types, load)
+					o <- gdbi.NewElementFromEdge(rowDataToEdge(edgeSchema, data, types, load))
 				}
 				if err := rows.Err(); err != nil {
 					log.WithFields(log.Fields{"error": err}).Error("GetEdgeList: iterating")
@@ -335,7 +335,7 @@ func (g *Graph) GetVertexChannel(ctx context.Context, reqChan chan gdbi.ElementL
 				v := rowDataToVertex(g.schema.GetVertex(table), data, types, load)
 				r := batchMap[v.Gid]
 				for _, ri := range r {
-					ri.Vertex = v
+					ri.Vertex = gdbi.NewElementFromVertex(v)
 					o <- ri
 				}
 			}
@@ -446,7 +446,7 @@ func (g *Graph) GetOutChannel(ctx context.Context, reqChan chan gdbi.ElementLook
 					}
 					v := rowDataToVertex(g.schema.GetVertex(edgeSchema.To.DestTable), data, types, load)
 					for _, ri := range r {
-						ri.Vertex = v
+						ri.Vertex = gdbi.NewElementFromVertex(v)
 						o <- ri
 					}
 				}
@@ -558,7 +558,7 @@ func (g *Graph) GetInChannel(ctx context.Context, reqChan chan gdbi.ElementLooku
 					}
 					v := rowDataToVertex(g.schema.GetVertex(edgeSchema.From.DestTable), data, types, load)
 					for _, ri := range r {
-						ri.Vertex = v
+						ri.Vertex = gdbi.NewElementFromVertex(v)
 						o <- ri
 					}
 				}
@@ -638,7 +638,7 @@ func (g *Graph) GetOutEdgeChannel(ctx context.Context, reqChan chan gdbi.Element
 						edge := geid.Edge()
 						r := batchMap[edge.From]
 						for _, ri := range r {
-							ri.Edge = edge
+							ri.Edge = gdbi.NewElementFromEdge(edge)
 							o <- ri
 						}
 					}
@@ -668,7 +668,7 @@ func (g *Graph) GetOutEdgeChannel(ctx context.Context, reqChan chan gdbi.Element
 						edge := rowDataToEdge(edgeSchema, data, types, load)
 						r := batchMap[fmt.Sprintf("%v:%v", edgeSchema.From.DestTable, data[edgeSchema.From.SourceField])]
 						for _, ri := range r {
-							ri.Edge = edge
+							ri.Edge = gdbi.NewElementFromEdge(edge)
 							o <- ri
 						}
 					}
@@ -748,7 +748,7 @@ func (g *Graph) GetInEdgeChannel(ctx context.Context, reqChan chan gdbi.ElementL
 						edge := geid.Edge()
 						r := batchMap[edge.To]
 						for _, ri := range r {
-							ri.Edge = edge
+							ri.Edge = gdbi.NewElementFromEdge(edge)
 							o <- ri
 						}
 					}
@@ -778,7 +778,7 @@ func (g *Graph) GetInEdgeChannel(ctx context.Context, reqChan chan gdbi.ElementL
 						edge := rowDataToEdge(edgeSchema, data, types, load)
 						r := batchMap[fmt.Sprintf("%v:%v", edgeSchema.To.DestTable, data[edgeSchema.To.SourceField])]
 						for _, ri := range r {
-							ri.Edge = edge
+							ri.Edge = gdbi.NewElementFromEdge(edge)
 							o <- ri
 						}
 					}

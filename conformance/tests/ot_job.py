@@ -64,7 +64,7 @@ def test_job(man):
     for a, b in zip(fullResults, resumedResults):
         if a != b:
             errors.append("%s != %s" % (a, b))
-
+    return errors
     G.deleteJob(job["id"])
     count = 0
     for j in G.listJobs():
