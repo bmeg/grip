@@ -191,8 +191,9 @@ func (es *Graph) GetEdge(id string, load bool) *gdbi.Edge {
 		log.WithFields(log.Fields{"error": err}).Error("GetEdge: unmarshal")
 		return nil
 	}
-
-	return gdbi.NewElementFromEdge(edge)
+	o := gdbi.NewElementFromEdge(edge)
+	o.Loaded = load
+	return o
 }
 
 // GetVertex gets vertex `id`
@@ -217,7 +218,9 @@ func (es *Graph) GetVertex(id string, load bool) *gdbi.Vertex {
 		return nil
 	}
 
-	return gdbi.NewElementFromVertex(vertex)
+	o := gdbi.NewElementFromVertex(vertex)
+	o.Loaded = load
+	return o
 }
 
 // GetEdgeList produces a channel of all edges in the graph
@@ -257,7 +260,9 @@ func (es *Graph) GetEdgeList(ctx context.Context, load bool) <-chan *gdbi.Edge {
 			if err != nil {
 				return err
 			}
-			o <- gdbi.NewElementFromEdge(edge)
+			i := gdbi.NewElementFromEdge(edge)
+			i.Loaded = load
+			o <- i
 		}
 		return nil
 	})
@@ -310,7 +315,9 @@ func (es *Graph) GetVertexList(ctx context.Context, load bool) <-chan *gdbi.Vert
 			if err != nil {
 				return fmt.Errorf("Failed to unmarshal vertex: %v", err)
 			}
-			o <- gdbi.NewElementFromVertex(vertex)
+			i := gdbi.NewElementFromVertex(vertex)
+			i.Loaded = load
+			o <- i
 		}
 		return nil
 	})
@@ -374,6 +381,7 @@ func (es *Graph) GetVertexChannel(ctx context.Context, req chan gdbi.ElementLook
 				r := batchMap[vertex.Gid]
 				for _, ri := range r {
 					ri.Vertex = gdbi.NewElementFromVertex(vertex)
+					ri.Vertex.Loaded = load
 					o <- ri
 				}
 			}
@@ -486,6 +494,7 @@ func (es *Graph) GetOutChannel(ctx context.Context, req chan gdbi.ElementLookup,
 				r := batchMap[vertex.Gid]
 				for _, ri := range r {
 					ri.Vertex = gdbi.NewElementFromVertex(vertex)
+					ri.Vertex.Loaded = load
 					o <- ri
 				}
 			}
@@ -597,6 +606,7 @@ func (es *Graph) GetInChannel(ctx context.Context, req chan gdbi.ElementLookup, 
 				r := batchMap[vertex.Gid]
 				for _, ri := range r {
 					ri.Vertex = gdbi.NewElementFromVertex(vertex)
+					ri.Vertex.Loaded = load
 					o <- ri
 				}
 			}
@@ -672,6 +682,7 @@ func (es *Graph) GetOutEdgeChannel(ctx context.Context, req chan gdbi.ElementLoo
 				r := batchMap[edge.From]
 				for _, ri := range r {
 					ri.Edge = gdbi.NewElementFromEdge(edge)
+					ri.Edge.Loaded = load
 					o <- ri
 				}
 			}
@@ -747,6 +758,7 @@ func (es *Graph) GetInEdgeChannel(ctx context.Context, req chan gdbi.ElementLook
 				r := batchMap[edge.To]
 				for _, ri := range r {
 					ri.Edge = gdbi.NewElementFromEdge(edge)
+					ri.Edge.Loaded = load
 					o <- ri
 				}
 			}
