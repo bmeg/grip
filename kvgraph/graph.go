@@ -381,7 +381,7 @@ func (kgdb *KVInterfaceGDB) GetOutChannel(ctx context.Context, reqChan chan gdbi
 						//}
 					}
 					req.req.Vertex = &gdbi.Vertex{
-						ID:     req.req.ID,
+						ID:     gid,
 						Label:  v.Label,
 						Data:   v.Data.AsMap(),
 						Loaded: true,
@@ -419,7 +419,7 @@ func (kgdb *KVInterfaceGDB) GetInChannel(ctx context.Context, reqChan chan gdbi.
 							}
 							//}
 							req.Vertex = &gdbi.Vertex{
-								ID:     req.ID,
+								ID:     src,
 								Label:  v.Label,
 								Data:   v.Data.AsMap(),
 								Loaded: true,
