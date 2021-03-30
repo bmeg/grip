@@ -17,6 +17,7 @@ import (
 
 // Pipeline a set of runnable query operations
 type Pipeline struct {
+	graph     gdbi.GraphInterface
 	procs     []gdbi.Processor
 	dataType  gdbi.DataType
 	markTypes map[string]gdbi.DataType
@@ -35,6 +36,11 @@ func (pipe *Pipeline) MarkTypes() map[string]gdbi.DataType {
 // Processors gets the list of processors
 func (pipe *Pipeline) Processors() []gdbi.Processor {
 	return pipe.procs
+}
+
+// Graph gets the graph interface
+func (pipe *Pipeline) Graph() gdbi.GraphInterface {
+	return pipe.graph
 }
 
 // Compiler is a mongo specific compiler that works with default graph interface
@@ -705,5 +711,5 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement, opts *gdbi.Compile
 	}
 
 	procs = append([]gdbi.Processor{&Processor{comp.db, startCollection, query, lastType, markTypes, aggTypes}}, procs...)
-	return &Pipeline{procs, lastType, markTypes}, nil
+	return &Pipeline{comp.db, procs, lastType, markTypes}, nil
 }

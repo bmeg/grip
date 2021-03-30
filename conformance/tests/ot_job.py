@@ -53,10 +53,13 @@ def test_job(man):
     fullResults = []
     for res in G.query().V().hasLabel("Planet").as_("a").out().out().select("a"):
         fullResults.append(res)
-
+    #TODO: in the future, this 'fix' may need to be removed.
+    #Always producing elements in the same order may become a requirement.
+    fullResults.sort(key=lambda x:x["gid"])
     resumedResults = []
     for res in G.resume(job["id"]).out().select("a").execute():
         resumedResults.append(res)
+    resumedResults.sort(key=lambda x:x["gid"])
 
     if len(fullResults) != len(resumedResults):
         errors.append( "Missmatch on resumed result" )

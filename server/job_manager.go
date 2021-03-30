@@ -55,8 +55,13 @@ func (server *GripServer) GetResults(job *gripql.QueryJob, srv gripql.Query_GetR
 	if err != nil {
 		return err
 	}
+	gdb, err := server.getGraphDB(job.Graph)
+	if err != nil {
+		return err
+	}
+	graph, err := gdb.Graph(job.Graph)
 	for o := range out.Pipe {
-		res := pipeline.Convert(out.DataType, out.MarkTypes, o)
+		res := pipeline.Convert(graph, out.DataType, out.MarkTypes, o)
 		srv.Send(res)
 	}
 	return nil
@@ -104,8 +109,13 @@ func (server *GripServer) ViewJob(job *gripql.QueryJob, srv gripql.Job_ViewJobSe
 	if err != nil {
 		return nil
 	}
+	gdb, err := server.getGraphDB(job.Graph)
+	if err != nil {
+		return err
+	}
+	graph, err := gdb.Graph(job.Graph)
 	for o := range stream.Pipe {
-		res := pipeline.Convert(stream.DataType, stream.MarkTypes, o)
+		res := pipeline.Convert(graph, stream.DataType, stream.MarkTypes, o)
 		srv.Send(res)
 	}
 	return nil

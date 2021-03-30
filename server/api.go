@@ -9,6 +9,7 @@ import (
 	"sync"
 
 	"github.com/bmeg/grip/engine/pipeline"
+	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/util"
@@ -69,7 +70,7 @@ func (server *GripServer) GetVertex(ctx context.Context, elem *gripql.ElementID)
 	if o == nil {
 		return nil, grpc.Errorf(codes.NotFound, fmt.Sprintf("vertex %s not found", elem.Id))
 	}
-	return o, nil
+	return o.ToVertex(), nil
 }
 
 // GetEdge returns an edge given a gripql.Element
@@ -86,7 +87,7 @@ func (server *GripServer) GetEdge(ctx context.Context, elem *gripql.ElementID) (
 	if o == nil {
 		return nil, grpc.Errorf(codes.NotFound, fmt.Sprintf("edge %s not found", elem.Id))
 	}
-	return o, nil
+	return o.ToEdge(), nil
 }
 
 // GetTimestamp returns the update timestamp of a graph
@@ -163,7 +164,7 @@ func (server *GripServer) addVertex(ctx context.Context, elem *gripql.GraphEleme
 		return nil, fmt.Errorf("vertex validation failed: %v", err)
 	}
 
-	err = graph.AddVertex([]*gripql.Vertex{vertex})
+	err = graph.AddVertex([]*gdbi.Vertex{gdbi.NewElementFromVertex(vertex)})
 	if err != nil {
 		return nil, err
 	}
@@ -197,7 +198,7 @@ func (server *GripServer) addEdge(ctx context.Context, elem *gripql.GraphElement
 		return nil, fmt.Errorf("edge validation failed: %v", err)
 	}
 
-	err = graph.AddEdge([]*gripql.Edge{edge})
+	err = graph.AddEdge([]*gdbi.Edge{gdbi.NewElementFromEdge(edge)})
 	if err != nil {
 		return nil, err
 	}
@@ -210,7 +211,7 @@ func (server *GripServer) BulkAdd(stream gripql.Edit_BulkAddServer) error {
 	var insertCount int32
 	var errorCount int32
 
-	elementStream := make(chan *gripql.GraphElement, 100)
+	elementStream := make(chan *gdbi.GraphElement, 100)
 	wg := &sync.WaitGroup{}
 
 	for {
@@ -249,7 +250,7 @@ func (server *GripServer) BulkAdd(stream gripql.Edit_BulkAddServer) error {
 			}
 
 			graphName = element.Graph
-			elementStream = make(chan *gripql.GraphElement, 100)
+			elementStream = make(chan *gdbi.GraphElement, 100)
 
 			wg.Add(1)
 			go func() {
@@ -271,7 +272,7 @@ func (server *GripServer) BulkAdd(stream gripql.Edit_BulkAddServer) error {
 				log.WithFields(log.Fields{"graph": element.Graph, "error": err}).Errorf("BulkAdd: vertex validation failed")
 			} else {
 				insertCount++
-				elementStream <- element
+				elementStream <- gdbi.NewGraphElement(element)
 			}
 		}
 
@@ -285,7 +286,7 @@ func (server *GripServer) BulkAdd(stream gripql.Edit_BulkAddServer) error {
 				log.WithFields(log.Fields{"graph": element.Graph, "error": err}).Errorf("BulkAdd: edge validation failed")
 			} else {
 				insertCount++
-				elementStream <- element
+				elementStream <- gdbi.NewGraphElement(element)
 			}
 		}
 	}

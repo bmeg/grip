@@ -34,6 +34,7 @@ type Processor interface {
 
 // Pipeline represents a set of processors
 type Pipeline interface {
+	Graph() GraphInterface
 	Processors() []Processor
 	DataType() DataType
 	MarkTypes() map[string]DataType

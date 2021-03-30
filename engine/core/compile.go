@@ -12,13 +12,14 @@ import (
 
 // DefaultPipeline a set of runnable query operations
 type DefaultPipeline struct {
+	graph     gdbi.GraphInterface
 	procs     []gdbi.Processor
 	dataType  gdbi.DataType
 	markTypes map[string]gdbi.DataType
 }
 
-func NewPipeline(procs []gdbi.Processor, ps *pipeline.State) *DefaultPipeline {
-	return &DefaultPipeline{procs, ps.LastType, ps.MarkTypes}
+func NewPipeline(graph gdbi.GraphInterface, procs []gdbi.Processor, ps *pipeline.State) *DefaultPipeline {
+	return &DefaultPipeline{graph, procs, ps.LastType, ps.MarkTypes}
 }
 
 // DataType return the datatype
@@ -34,6 +35,11 @@ func (pipe *DefaultPipeline) MarkTypes() map[string]gdbi.DataType {
 // Processors gets the list of processors
 func (pipe *DefaultPipeline) Processors() []gdbi.Processor {
 	return pipe.procs
+}
+
+// Graph gets the processor graph interface
+func (pipe *DefaultPipeline) Graph() gdbi.GraphInterface {
+	return pipe.graph
 }
 
 // DefaultCompiler is the core compiler that works with default graph interface
@@ -80,7 +86,7 @@ func (comp DefaultCompiler) Compile(stmts []*gripql.GraphStatement, opts *gdbi.C
 		procs = append(procs, p)
 	}
 
-	return &DefaultPipeline{procs, ps.LastType, ps.MarkTypes}, nil
+	return &DefaultPipeline{comp.db, procs, ps.LastType, ps.MarkTypes}, nil
 }
 
 func StatementProcessor(gs *gripql.GraphStatement, db gdbi.GraphInterface, ps *pipeline.State) (gdbi.Processor, error) {
