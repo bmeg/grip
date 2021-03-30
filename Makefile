@@ -124,7 +124,7 @@ test-conformance:
 # ---------------------
 start-mongo:
 	@docker rm -f grip-mongodb-test > /dev/null 2>&1 || echo
-	docker run -d --name grip-mongodb-test -p 27000:27017 docker.io/mongo:3.6.4 > /dev/null
+	docker run -d --name grip-mongodb-test -p 27017:27017 docker.io/mongo:3.6.4 > /dev/null
 
 start-elastic:
 	@docker rm -f grip-es-test > /dev/null 2>&1 || echo
