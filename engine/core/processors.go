@@ -392,6 +392,23 @@ func (r *Render) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, 
 	return ctx
 }
 
+////////////////////////////////////////////////////////////////////////////////
+
+// Path tells system to return path data
+type Path struct {
+	Template interface{} //this isn't really used yet.
+}
+
+// Process runs the render processor
+func (r *Path) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
+	go func() {
+		defer close(out)
+		for t := range in {
+			out <- t
+		}
+	}()
+	return ctx
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -410,20 +427,20 @@ func (r *Unwind) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, 
 				cur := t.GetCurrent()
 				if len(a) > 0 {
 					for _, i := range a {
-						o := gdbi.DataElement{ID:cur.ID,Label:cur.Label,From:cur.From,To:cur.To,Data:util.DeepCopy(cur.Data).(map[string]interface{})}
+						o := gdbi.DataElement{ID: cur.ID, Label: cur.Label, From: cur.From, To: cur.To, Data: util.DeepCopy(cur.Data).(map[string]interface{})}
 						n := t.AddCurrent(&o)
 						jsonpath.TravelerSetValue(n, r.Field, i)
 						out <- n
 					}
 				} else {
-					o := gdbi.DataElement{ID:cur.ID,Label:cur.Label,From:cur.From,To:cur.To,Data:util.DeepCopy(cur.Data).(map[string]interface{})}
+					o := gdbi.DataElement{ID: cur.ID, Label: cur.Label, From: cur.From, To: cur.To, Data: util.DeepCopy(cur.Data).(map[string]interface{})}
 					n := t.AddCurrent(&o)
 					jsonpath.TravelerSetValue(n, r.Field, nil)
 					out <- n
 				}
 			} else {
 				cur := t.GetCurrent()
-				o := gdbi.DataElement{ID:cur.ID,Label:cur.Label,From:cur.From,To:cur.To,Data:util.DeepCopy(cur.Data).(map[string]interface{})}
+				o := gdbi.DataElement{ID: cur.ID, Label: cur.Label, From: cur.From, To: cur.To, Data: util.DeepCopy(cur.Data).(map[string]interface{})}
 				n := t.AddCurrent(&o)
 				jsonpath.TravelerSetValue(n, r.Field, nil)
 				out <- n
@@ -432,7 +449,6 @@ func (r *Unwind) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, 
 	}()
 	return ctx
 }
-
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -950,7 +966,8 @@ func (s *Jump) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, ou
 	go func() {
 		defer close(out)
 		for t := range in {
-			out <- t.AddCurrent(t.GetMark(s.mark))
+			m := t.GetMark(s.mark)
+			out <- t.AddCurrent(m)
 		}
 	}()
 	return ctx

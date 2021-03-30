@@ -11,9 +11,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/bmeg/grip/config"
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/graphql"
-	"github.com/bmeg/grip/config"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/util/rpc"
@@ -25,27 +25,26 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 
 	"github.com/bmeg/grip/elastic"
-	"github.com/bmeg/grip/mongo"
+	esql "github.com/bmeg/grip/existing-sql"
 	"github.com/bmeg/grip/grids"
 	"github.com/bmeg/grip/gripper"
 	"github.com/bmeg/grip/kvgraph"
-	esql "github.com/bmeg/grip/existing-sql"
-	"github.com/bmeg/grip/psql"
 	_ "github.com/bmeg/grip/kvi/badgerdb" // import so badger will register itself
 	_ "github.com/bmeg/grip/kvi/boltdb"   // import so bolt will register itself
 	_ "github.com/bmeg/grip/kvi/leveldb"  // import so level will register itself
-
+	"github.com/bmeg/grip/mongo"
+	"github.com/bmeg/grip/psql"
 )
 
 // GripServer is a GRPC based grip server
 type GripServer struct {
 	gripql.UnimplementedQueryServer
 	gripql.UnimplementedEditServer
-	dbs     map[string]gdbi.GraphDB
+	dbs      map[string]gdbi.GraphDB
 	graphMap map[string]string
-	conf    *config.Config
-	schemas map[string]*gripql.Graph
-	baseDir string
+	conf     *config.Config
+	schemas  map[string]*gripql.Graph
+	baseDir  string
 }
 
 // NewGripServer initializes a GRPC server to connect to the graph store
@@ -69,7 +68,7 @@ func NewGripServer(conf *config.Config, schemas map[string]*gripql.Graph, baseDi
 		}
 	}
 
-	server := &GripServer{dbs:gdbs, conf: conf, schemas: schemas}
+	server := &GripServer{dbs: gdbs, conf: conf, schemas: schemas}
 	for graph, schema := range schemas {
 		if !server.graphExists(graph) {
 			_, err := server.AddGraph(context.Background(), &gripql.GraphID{Graph: graph})
@@ -109,7 +108,6 @@ func StartDriver(d config.DriverConfig, baseDir string) (gdbi.GraphDB, error) {
 	return nil, fmt.Errorf("unknown driver: %#v", d)
 }
 
-
 func (server *GripServer) updateGraphMap() {
 	o := map[string]string{}
 	for k, v := range server.conf.Graphs {
@@ -122,7 +120,6 @@ func (server *GripServer) updateGraphMap() {
 	}
 	server.graphMap = o
 }
-
 
 func (server *GripServer) getGraphDB(graph string) (gdbi.GraphDB, error) {
 	if driverName, ok := server.graphMap[graph]; ok {

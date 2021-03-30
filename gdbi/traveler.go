@@ -25,11 +25,34 @@ const (
 
 // AddCurrent creates a new copy of the travel with new 'current' value
 func (t *Traveler) AddCurrent(r *DataElement) *Traveler {
-	o := Traveler{marks: map[string]*DataElement{}}
+	o := Traveler{marks: map[string]*DataElement{}, Path: make([]DataElementID, len(t.Path)+1)}
 	for k, v := range t.marks {
 		o.marks[k] = v
 	}
+	for i := range t.Path {
+		o.Path[i] = t.Path[i]
+	}
+	if r == nil {
+		o.Path[len(t.Path)] = DataElementID{}
+	} else if r.To != "" {
+		o.Path[len(t.Path)] = DataElementID{Edge: r.ID}
+	} else {
+		o.Path[len(t.Path)] = DataElementID{Vertex: r.ID}
+	}
 	o.current = r
+	return &o
+}
+
+// AddCurrent creates a new copy of the travel with new 'current' value
+func (t *Traveler) Copy() *Traveler {
+	o := Traveler{marks: map[string]*DataElement{}, Path: make([]DataElementID, len(t.Path))}
+	for k, v := range t.marks {
+		o.marks[k] = v
+	}
+	for i := range t.Path {
+		o.Path[i] = t.Path[i]
+	}
+	o.current = t.current
 	return &o
 }
 
@@ -50,11 +73,14 @@ func (t *Traveler) ListMarks() []string {
 
 // AddMark adds a result to travels state map using `label` as the name
 func (t *Traveler) AddMark(label string, r *DataElement) *Traveler {
-	o := Traveler{marks: map[string]*DataElement{}}
+	o := Traveler{marks: map[string]*DataElement{}, Path: make([]DataElementID, len(t.Path))}
 	for k, v := range t.marks {
 		o.marks[k] = v
 	}
 	o.marks[label] = r
+	for i := range t.Path {
+		o.Path[i] = t.Path[i]
+	}
 	o.current = t.current
 	return &o
 }
