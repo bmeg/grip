@@ -7,7 +7,6 @@ import (
 	"os/signal"
 
 	"github.com/bmeg/grip/config"
-	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/server"
 	_ "github.com/go-sql-driver/mysql" //import so mysql will register as a sql driver
@@ -18,12 +17,11 @@ import (
 
 var conf = &config.Config{}
 var configFile string
-var schemaFile string
 
 // Run runs an Grip server.
 // This opens a database and starts an API server.
 // This blocks indefinitely.
-func Run(conf *config.Config, schemas map[string]*gripql.Graph, baseDir string) error {
+func Run(conf *config.Config, baseDir string) error {
 	log.ConfigureLogger(conf.Logger)
 	log.WithFields(log.Fields{"Config": conf}).Info("Starting Server")
 
@@ -36,7 +34,7 @@ func Run(conf *config.Config, schemas map[string]*gripql.Graph, baseDir string) 
 		cancel()
 	}()
 
-	srv, err := server.NewGripServer(conf, schemas, baseDir)
+	srv, err := server.NewGripServer(conf, baseDir, nil)
 	if err != nil {
 		return err
 	}
@@ -84,24 +82,13 @@ var Cmd = &cobra.Command{
 		return nil
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
-		schemaMap := make(map[string]*gripql.Graph)
-		if schemaFile != "" {
-			schemas, err := gripql.ParseYAMLGraphFile(schemaFile)
-			if err != nil {
-				return fmt.Errorf("error processing schema file: %v", err)
-			}
-			for _, s := range schemas {
-				schemaMap[s.Graph] = s
-			}
-		}
-		return Run(conf, schemaMap, configFile)
+		return Run(conf, configFile)
 	},
 }
 
 func init() {
 	flags := Cmd.Flags()
 	flags.StringVarP(&configFile, "config", "c", configFile, "Config file")
-	flags.StringVarP(&schemaFile, "schema", "s", schemaFile, "Schema file")
 	flags.StringVar(&conf.Server.HTTPPort, "http-port", conf.Server.HTTPPort, "HTTP port")
 	flags.StringVar(&conf.Server.RPCPort, "rpc-port", conf.Server.RPCPort, "TCP+RPC port")
 	flags.BoolVar(&conf.Server.ReadOnly, "read-only", conf.Server.ReadOnly, "Start server in read-only mode")

@@ -2,5 +2,6 @@
 title: Tutorials
 menu:
   main:
-    weight: -25
+    identifier: Tutorials
+    weight: 40
 ---

@@ -40,6 +40,11 @@ func NewHTTPHandler(rpcAddress, user, password string) (http.Handler, error) {
 	if err != nil {
 		return nil, err
 	}
+	return NewClientHTTPHandler(client)
+}
+
+// NewClientHTTPHandler initilizes a new GraphQLHandler
+func NewClientHTTPHandler(client gripql.Client) (http.Handler, error) {
 	h := &Handler{
 		client:   client,
 		handlers: map[string]*graphHandler{},
@@ -164,7 +169,8 @@ func buildObject(name string, obj map[string]interface{}) (*graphql.Object, erro
 
 		// handle map
 		if x, ok := val.(map[string]interface{}); ok {
-			objFields[key], err = buildObjectField(key, x)
+			// make object name parent_field
+			objFields[key], err = buildObjectField(name+"_"+key, x)
 
 			// handle slice
 		} else if x, ok := val.([]interface{}); ok {
@@ -172,8 +178,11 @@ func buildObject(name string, obj map[string]interface{}) (*graphql.Object, erro
 
 			// handle string
 		} else if x, ok := val.(string); ok {
-			objFields[key], err = buildField(x)
-
+			if f, err := buildField(x); err == nil {
+				objFields[key] = f
+			} else {
+				log.WithFields(log.Fields{"object": name, "field": key, "error": err}).Error("graphql: buildField ignoring field")
+			}
 			// handle other cases
 		} else {
 			err = fmt.Errorf("unhandled type: %T %v", val, val)
@@ -260,6 +269,7 @@ func buildQueryObject(client gripql.Client, graph string, objects map[string]*gr
 			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 				q := gripql.V().HasLabel(label)
 				if id, ok := p.Args["id"].(string); ok {
+					fmt.Printf("Doing %s id=%s query", label, id)
 					q = gripql.V(id).HasLabel(label)
 				}
 				result, err := client.Traversal(&gripql.GraphQuery{Graph: graph, Query: q.Statements})
@@ -268,6 +278,7 @@ func buildQueryObject(client gripql.Client, graph string, objects map[string]*gr
 				}
 				out := []interface{}{}
 				for r := range result {
+					fmt.Printf("ID query traversal: %s\n", r)
 					d := r.GetVertex().GetDataMap()
 					d["id"] = r.GetVertex().Gid
 					out = append(out, d)
@@ -285,7 +296,7 @@ func buildQueryObject(client gripql.Client, graph string, objects map[string]*gr
 			Fields: queryFields,
 		},
 	)
-
+	fmt.Printf("Query fields: %s\n", queryFields)
 	return query
 }
 
