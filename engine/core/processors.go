@@ -405,6 +405,24 @@ func (r *Render) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, 
 
 ////////////////////////////////////////////////////////////////////////////////
 
+// Path tells system to return path data
+type Path struct {
+	Template interface{} //this isn't really used yet.
+}
+
+// Process runs the render processor
+func (r *Path) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
+	go func() {
+		defer close(out)
+		for t := range in {
+			out <- t
+		}
+	}()
+	return ctx
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
 // Unwind takes an array field and replicates the message for every element in the array
 type Unwind struct {
 	Field string
@@ -959,7 +977,8 @@ func (s *Jump) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, ou
 	go func() {
 		defer close(out)
 		for t := range in {
-			out <- t.AddCurrent(t.GetMark(s.mark))
+			m := t.GetMark(s.mark)
+			out <- t.AddCurrent(m)
 		}
 	}()
 	return ctx

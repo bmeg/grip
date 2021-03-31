@@ -1,55 +1,58 @@
+
 from __future__ import absolute_import
 
-"""
-Queries that are designed to test the path traversal optimization
-some engines (ie GRIDS) will do. Can't verify that the optimization
-was applied, but does verify that the results seem correct
-"""
 
-
-def test_path_1(man):
+def test_path_out_out_out(man):
     errors = []
 
     G = man.setGraph("swapi")
 
     count = 0
-    for res in G.query().V("Film:1").out().out().out():
+    for res in G.query().V("Film:1").out().out().out().path():
+        if res[0]['vertex'] != "Film:1":
+            errors.append("Wrong first step %s != %s" % (res[0]['vertex'], "Film:1"))
         count += 1
     if count != 1814:
-        errors.append("out-out-out Incorrect vertex count returned: %d != %d" % (count, 1814))
-
-    count = 0
-    for res in G.query().V("Film:1").in_().in_().in_():
-        count += 1
-    if count != 1814:
-        errors.append("in-in-in Incorrect vertex count returned: %d != %d" % (count, 1814))
-
-    count = 0
-    for res in G.query().V("Film:1").out().out().outE():
-        if res["label"] not in ["vehicles", "species", "planets", "characters", "enemy", "starships", "films", "homeworld", "people", "pilots", "residents"]:
-            errors.append("Wrong label found at end of path: %s" % (res["label"]))
-        count += 1
-    if count != 1814:
-        errors.append("out-out-outE Incorrect vertex count returned: %d != %d" % (count, 1814))
-
-    count = 0
-    for res in G.query().V("Film:1").out().out().outE().out():
-        count += 1
-    if count != 1814:
-        errors.append("out-out-outE-out Incorrect vertex count returned: %d != %d" % (count, 1814))
-
+        errors.append("Incorrect count returned %d != %d" % (count, 1814))
     return errors
 
-
-def test_path_2(man):
+def test_path_in_in(man):
     errors = []
 
     G = man.setGraph("swapi")
 
     count = 0
-    for res in G.query().V().out().hasLabel("Starship").out().out():
+    for res in G.query().V("Film:1").in_().in_().path():
+        if res[0]['vertex'] != "Film:1":
+            errors.append("Wrong first step %s != %s" % (res[0]['vertex'], "Film:1"))
         count += 1
-    if count != 666:
-        errors.append("out-hasLabel-out-out Incorrect vertex count returned: %d != %d" % (count, 666))
+    if count != 106:
+        errors.append("Incorrect count returned %d != %d" % (count, 1814))
+    return errors
 
+def test_path_outE_out_select(man):
+    errors = []
+    G = man.setGraph("swapi")
+    count = 0
+    for res in G.query().V("Film:1").as_("a").outE().as_("b").out().select("b").path():
+        count += 1
+        if len(res) != 4:
+            errors.append("Wrong path length %d != %d" % (4, len(res)))
+        else:
+            if res[1] != res[3]:
+                errors.append("path select failed")
+    if count == 0:
+        errors.append("No results Received")
+    return errors
+
+def test_path_out_out_select(man):
+    errors = []
+    G = man.setGraph("swapi")
+    count = 0
+    for res in G.query().V("Film:1").as_("a").out().as_("b").out().select("a").path():
+        if len(res) != 4:
+            errors.append("Wrong path length %d != %d" % (4, len(res)))
+        else:
+            if res[0] != res[3]:
+                errors.append("path select failed")
     return errors

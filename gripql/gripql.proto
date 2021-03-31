@@ -39,18 +39,21 @@ message GraphStatement {
     SelectStatement select = 21;
     uint32 limit = 24;
     uint32 skip = 25;
-    Range range = 33;
-    HasExpression has = 29;
-    google.protobuf.ListValue has_label = 34;
-    google.protobuf.ListValue has_key = 35;
-    google.protobuf.ListValue has_id = 36;
-    string count = 30;
+    Range range = 26;
+    HasExpression has = 30;
+    google.protobuf.ListValue has_label = 31;
+    google.protobuf.ListValue has_key = 32;
+    google.protobuf.ListValue has_id = 33;
 
-    google.protobuf.ListValue fields = 26;
-    google.protobuf.ListValue distinct = 27;
-    Aggregations aggregate = 31;
-    google.protobuf.Value render = 32;
-		string unwind = 37;
+    google.protobuf.ListValue distinct = 40;
+
+		google.protobuf.ListValue fields = 50;
+		string unwind = 51;
+
+		string count = 60;
+    Aggregations aggregate = 61;
+    google.protobuf.Value render = 62;
+		google.protobuf.ListValue path = 63;
   }
 }
 
@@ -170,6 +173,7 @@ message QueryResult {
 		Selections selections = 4;
 		google.protobuf.Value render = 5;
 		uint32 count = 6;
+		google.protobuf.ListValue path = 7;
 	}
 }
 

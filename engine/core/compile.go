@@ -265,6 +265,13 @@ func StatementProcessor(gs *gripql.GraphStatement, db gdbi.GraphInterface, ps *p
 		ps.LastType = gdbi.RenderData
 		return &Render{stmt.Render.AsInterface()}, nil
 
+	case *gripql.GraphStatement_Path:
+		if ps.LastType != gdbi.VertexData && ps.LastType != gdbi.EdgeData {
+			return nil, fmt.Errorf(`"path" statement is only valid for edge or vertex types not: %s`, ps.LastType.String())
+		}
+		ps.LastType = gdbi.PathData
+		return &Path{stmt.Path.AsSlice()}, nil
+
 	case *gripql.GraphStatement_Unwind:
 		return &Unwind{stmt.Unwind}, nil
 

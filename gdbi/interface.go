@@ -42,6 +42,11 @@ type Aggregate struct {
 	Value float64
 }
 
+type DataElementID struct {
+	Vertex string
+	Edge   string
+}
+
 // Traveler is a query element that traverse the graph
 type Traveler struct {
 	Current     *DataElement
@@ -50,6 +55,7 @@ type Traveler struct {
 	Aggregation *Aggregate
 	Count       uint32
 	Render      interface{}
+	Path        []DataElementID
 }
 
 // DataType is a possible output data type
@@ -64,6 +70,7 @@ const (
 	AggregationData
 	SelectionData
 	RenderData
+	PathData
 )
 
 // ElementLookup request to look up data

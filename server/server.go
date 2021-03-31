@@ -52,7 +52,7 @@ type GripServer struct {
 }
 
 // NewGripServer initializes a GRPC server to connect to the graph store
-func NewGripServer(conf *config.Config, schemas map[string]*gripql.Graph, baseDir string) (*GripServer, error) {
+func NewGripServer(conf *config.Config, baseDir string, drivers map[string]gdbi.GraphDB) (*GripServer, error) {
 	_, err := os.Stat(conf.Server.WorkDir)
 	if os.IsNotExist(err) {
 		err = os.Mkdir(conf.Server.WorkDir, 0700)
@@ -60,19 +60,26 @@ func NewGripServer(conf *config.Config, schemas map[string]*gripql.Graph, baseDi
 			return nil, fmt.Errorf("creating work dir: %v", err)
 		}
 	}
-	if schemas == nil {
-		schemas = make(map[string]*gripql.Graph)
-	}
+	schemas := make(map[string]*gripql.Graph)
 
 	gdbs := map[string]gdbi.GraphDB{}
+	if drivers != nil {
+		for i, d := range drivers {
+			gdbs[i] = d
+		}
+	}
 	for name, dConfig := range conf.Drivers {
-		g, err := StartDriver(dConfig, baseDir)
-		if err == nil {
-			gdbs[name] = g
+		if _, ok := gdbs[name]; !ok {
+			g, err := StartDriver(dConfig, baseDir)
+			if err == nil {
+				gdbs[name] = g
+			}
 		}
 	}
 
 	server := &GripServer{dbs: gdbs, conf: conf, schemas: schemas}
+
+	/*
 	for graph, schema := range schemas {
 		if !server.graphExists(graph) {
 			_, err := server.AddGraph(context.Background(), &gripql.GraphID{Graph: graph})
@@ -80,11 +87,20 @@ func NewGripServer(conf *config.Config, schemas map[string]*gripql.Graph, baseDi
 				return nil, fmt.Errorf("error creating graph defined by schema '%s': %v", graph, err)
 			}
 		}
-		err = server.addSchemaGraph(context.Background(), schema)
-		if err != nil {
-			return nil, err
+	}*/
+
+	if conf.Default == "" {
+		//if no default is found set it to the first driver found
+		for i := range gdbs {
+			if conf.Default == "" {
+				conf.Default = i
+			}
 		}
 	}
+	if _, ok := gdbs[conf.Default]; !ok {
+		return nil, fmt.Errorf("Default driver '%s' does not exist", conf.Default)
+	}
+	fmt.Printf("Default graph driver: %s\n", conf.Default)
 	server.updateGraphMap()
 	return server, nil
 }
@@ -181,16 +197,19 @@ func (server *GripServer) Serve(pctx context.Context) error {
 	mux := http.NewServeMux()
 
 	// Setup GraphQL handler
-	user := ""
-	password := ""
-	if len(server.conf.Server.BasicAuth) > 0 {
-		user = server.conf.Server.BasicAuth[0].User
-		password = server.conf.Server.BasicAuth[0].Password
-	}
-	gqlHandler, err := graphql.NewHTTPHandler(server.conf.Server.RPCAddress(), user, password)
-	if err != nil {
-		return fmt.Errorf("setting up GraphQL handler: %v", err)
-	}
+	/*
+		user := ""
+		password := ""
+		if len(server.conf.Server.BasicAuth) > 0 {
+			user = server.conf.Server.BasicAuth[0].User
+			password = server.conf.Server.BasicAuth[0].Password
+		}
+		gqlHandler, err := graphql.NewHTTPHandler(server.conf.Server.RPCAddress(), user, password)
+		if err != nil {
+			return fmt.Errorf("setting up GraphQL handler: %v", err)
+		}*/
+	gqlHandler, err := graphql.NewClientHTTPHandler(gripql.WrapClient(gripql.NewQueryDirectClient(server), nil))
+
 	mux.Handle("/graphql/", gqlHandler)
 
 	// Setup web ui handler

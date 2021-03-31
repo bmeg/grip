@@ -2,5 +2,5 @@
 title: Developers
 menu:
   main:
-    weight: 1000
+    weight: 100
 ---

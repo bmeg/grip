@@ -154,6 +154,24 @@ func Convert(graph gdbi.GraphInterface, dataType gdbi.DataType, markTypes map[st
 			},
 		}
 
+	case gdbi.PathData:
+		o := make([]interface{}, len(t.Path))
+		for i := range t.Path {
+			j := map[string]interface{}{}
+			if t.Path[i].Vertex != "" {
+				j["vertex"] = t.Path[i].Vertex
+			} else if t.Path[i].Edge != "" {
+				j["edge"] = t.Path[i].Edge
+			}
+			o[i] = j
+		}
+		sValue, _ := structpb.NewList(o)
+		return &gripql.QueryResult{
+			Result: &gripql.QueryResult_Path{
+				Path: sValue,
+			},
+		}
+
 	case gdbi.AggregationData:
 		sValue, _ := structpb.NewValue(t.Aggregation.Key)
 		return &gripql.QueryResult{

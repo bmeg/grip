@@ -171,6 +171,21 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 							}
 						}
 					}
+					if path, ok := result["path"]; ok {
+						if pathA, ok := path.(bson.A); ok {
+							o := make([]gdbi.DataElementID, len(pathA))
+							for i := range pathA {
+								if elem, ok := pathA[i].(map[string]interface{}); ok {
+									if v, ok := elem["vertex"]; ok {
+										o[i] = gdbi.DataElementID{Vertex: v.(string)}
+									} else if v, ok := elem["edge"]; ok {
+										o[i] = gdbi.DataElementID{Edge: v.(string)}
+									}
+								}
+							}
+							t.Path = o
+						}
+					}
 
 					de := &gdbi.DataElement{}
 					if x, ok := result["_id"]; ok {
