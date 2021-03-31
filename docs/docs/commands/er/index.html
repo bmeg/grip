@@ -8,7 +8,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
 
   
-  <title>SQL &middot; GRIP</title>
+  <title>er &middot; GRIP</title>
   
 
   
@@ -121,7 +121,7 @@
             <ul class="sidebar-nav sidebar-nav-nested">
               <li>
                 <a href="https://bmeg.github.io/grip/docs/commands/er/"
-                   class="sidebar-nav-item "
+                   class="sidebar-nav-item  active"
                 >er</a></li>
             </ul>
           </li>
@@ -172,7 +172,7 @@
             <ul class="sidebar-nav sidebar-nav-nested">
               <li>
                 <a href="https://bmeg.github.io/grip/docs/databases/sql/"
-                   class="sidebar-nav-item  active"
+                   class="sidebar-nav-item "
                 >SQL</a></li>
             </ul>
           </li>
@@ -355,90 +355,25 @@
   </div>
 
   <div class="main col span_8_of_12">
-    <h1 id="connect-to-an-existing-sql-database">Connect to an existing SQL database</h1>
-<p>Note: This driver is being superseded by the <a href="https://bmeg.github.io/grip/docs/gripper/gripper/">GRIPPER engine</a></p>
-<p>GRIP supports modeling an existing SQL database as a graph. GRIP has been tested against <a href="https://www.postgresql.org/">PostgreSQL</a>, but should  work with
-<a href="https://www.mysql.com/">MySQL</a> (4.1+) and <a href="https://mariadb.org/">MariaDB</a>.</p>
-<p>Since GRIP uses Go&rsquo;s <code>database/sql</code> package, we could (in thoery) support any SQL databases listed on:
-<a href="https://github.com/golang/go/wiki/SQLDrivers">https://github.com/golang/go/wiki/SQLDrivers</a>. Open an <a href="https://github.com/bmeg/grip/issues/new">issue</a> if you
-would like to request support for your favorite SQL database.</p>
-<h2 id="configuration-notes">Configuration Notes</h2>
-<ul>
-<li>
-<p><code>DataSourceName</code> is a driver-specific data source name, usually consisting of at least a database name and connection information. Here are links for
-to documentation for this field for each supported driver:</p>
-<ul>
-<li>PostgreSQL - <a href="https://godoc.org/github.com/lib/pq#hdr-Connection_String_Parameters">https://godoc.org/github.com/lib/pq#hdr-Connection_String_Parameters</a></li>
-<li>MySQL, Mariadb - <a href="https://github.com/go-sql-driver/mysql/#dsn-data-source-name">https://github.com/go-sql-driver/mysql/#dsn-data-source-name</a></li>
-</ul>
-</li>
-<li>
-<p><code>Driver</code> should be one of: <code>postgres</code> or <code>mysql</code> (for MySQL or MariaDB).</p>
-</li>
-<li>
-<p><code>Graphs</code> is a list of graphs you want to define using the existing tables in the database. For each entry:</p>
-<ul>
-<li><code>Graph</code> is the name of the graph you want to define</li>
-<li><code>Vertices</code> is a list of entries, each of which binds a table to a vertex <code>label</code> and defines which field in the table to use as the <code>gid</code>.
-The remaining columns in the table are treated as the <code>data</code> associated with the vertex.</li>
-<li><code>Edges</code> is a list of entries. Edge entries may be associate an edge <code>label</code> with a table, but they are not required to.
-See below for examples of both types of edge definitions.</li>
-</ul>
-</li>
-</ul>
-<h2 id="example">Example</h2>
-<p>Given the following example database: <a href="https://github.com/bmeg/grip/blob/master/test/resources/postgres_smtest_data.dump">https://github.com/bmeg/grip/blob/master/test/resources/postgres_smtest_data.dump</a></p>
-<p>Load this dump file into your own postgres instance by running:</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">createdb --host localhost --port <span style="color:#ae81ff">15432</span> -U postgres smtest
-psql --host localhost --port <span style="color:#ae81ff">15432</span> -U postgres smtest &lt; postgres_smtest_data.dump
-</code></pre></div><p>GRIP Configuration:</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-yaml" data-lang="yaml">
-<span style="color:#f92672">Drivers</span>:
-  <span style="color:#f92672">esql</span>:
-    <span style="color:#f92672">ExistingSQL</span>:
-      <span style="color:#f92672">DataSourceName</span>: <span style="color:#e6db74">&#34;host=localhost port=15432 user=postgres dbname=smtest sslmode=disable&#34;</span>
-      <span style="color:#f92672">Driver</span>: <span style="color:#ae81ff">postgres</span>
-
-      <span style="color:#f92672">Graphs</span>:
-        - <span style="color:#f92672">Graph</span>: <span style="color:#ae81ff">test-graph</span>
-          <span style="color:#f92672">Vertices</span>:
-            - <span style="color:#f92672">Table</span>: <span style="color:#ae81ff">users</span>
-              <span style="color:#f92672">Label</span>: <span style="color:#ae81ff">users</span>
-              <span style="color:#f92672">GidField</span>: <span style="color:#ae81ff">id</span>
-
-            - <span style="color:#f92672">Table</span>: <span style="color:#ae81ff">products</span>
-              <span style="color:#f92672">Label</span>: <span style="color:#ae81ff">products</span>
-              <span style="color:#f92672">GidField</span>: <span style="color:#ae81ff">id</span>
-
-            - <span style="color:#f92672">Table</span>: <span style="color:#ae81ff">purchases</span>
-              <span style="color:#f92672">Label</span>: <span style="color:#ae81ff">purchases</span>
-              <span style="color:#f92672">GidField</span>: <span style="color:#ae81ff">id</span>
-
-          <span style="color:#f92672">Edges</span>:
-            - <span style="color:#f92672">Table</span>: <span style="color:#ae81ff">purchase_items</span>
-              <span style="color:#f92672">Label</span>: <span style="color:#ae81ff">purchasedProducts</span>
-              <span style="color:#f92672">GidField</span>: <span style="color:#ae81ff">id</span>
-              <span style="color:#f92672">From</span>:
-                <span style="color:#f92672">SourceField</span>: <span style="color:#ae81ff">purchase_id</span>
-                <span style="color:#f92672">DestTable</span>: <span style="color:#ae81ff">purchases</span>
-                <span style="color:#f92672">DestField</span>: <span style="color:#ae81ff">id</span>
-              <span style="color:#f92672">To</span>:
-                <span style="color:#f92672">SourceField</span>: <span style="color:#ae81ff">product_id</span>
-                <span style="color:#f92672">DestTable</span>: <span style="color:#ae81ff">products</span>
-                <span style="color:#f92672">DestField</span>: <span style="color:#ae81ff">id</span>
-
-            - <span style="color:#f92672">Table</span>: <span style="color:#e6db74">&#34;&#34;</span>
-              <span style="color:#f92672">Label</span>: <span style="color:#ae81ff">userPurchases          </span>
-              <span style="color:#f92672">GidField</span>: <span style="color:#e6db74">&#34;&#34;</span>
-              <span style="color:#f92672">From</span>:
-                <span style="color:#f92672">SourceField</span>: <span style="color:#e6db74">&#34;&#34;</span>
-                <span style="color:#f92672">DestTable</span>: <span style="color:#ae81ff">users</span>
-                <span style="color:#f92672">DestField</span>: <span style="color:#ae81ff">id</span>
-              <span style="color:#f92672">To</span>:
-                <span style="color:#f92672">SourceField</span>: <span style="color:#e6db74">&#34;&#34;</span>
-                <span style="color:#f92672">DestTable</span>: <span style="color:#ae81ff">purchases</span>
-                <span style="color:#f92672">DestField</span>: <span style="color:#ae81ff">user_id</span>
-</code></pre></div>
+    <pre><code>grip er
+</code></pre><p>The <em>External Resource</em> system allows GRIP to plug into existing data systems and
+integrate them into queriable graphs. The <code>grip er</code> sub command acts as a client
+to the external resource plugin proxies, issues command and displays the results.
+This is often useful for debugging external resources before making them part of
+an actual graph.</p>
+<p>List collections provided by external resource</p>
+<pre><code>grip er list
+</code></pre><p>Get info about a collection</p>
+<pre><code>grip er info
+</code></pre><p>List ids from a collection</p>
+<pre><code>grip er ids
+</code></pre><p>List rows from a collection</p>
+<pre><code>grip er rows
+</code></pre><p>List rows with field match</p>
+<pre><code>grip get
+</code></pre><p>List rows with field match</p>
+<pre><code>grip er query
+</code></pre>
   </div>
 
 </div>

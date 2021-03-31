@@ -8,7 +8,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
 
   
-  <title>SQL &middot; GRIP</title>
+  <title>Graph Schemas &middot; GRIP</title>
   
 
   
@@ -172,7 +172,7 @@
             <ul class="sidebar-nav sidebar-nav-nested">
               <li>
                 <a href="https://bmeg.github.io/grip/docs/databases/sql/"
-                   class="sidebar-nav-item  active"
+                   class="sidebar-nav-item "
                 >SQL</a></li>
             </ul>
           </li>
@@ -319,7 +319,7 @@
             <ul class="sidebar-nav sidebar-nav-nested">
               <li>
                 <a href="https://bmeg.github.io/grip/docs/graphql/graph_schemas/"
-                   class="sidebar-nav-item "
+                   class="sidebar-nav-item  active"
                 >Graph Schemas</a></li>
             </ul>
           </li>
@@ -355,89 +355,79 @@
   </div>
 
   <div class="main col span_8_of_12">
-    <h1 id="connect-to-an-existing-sql-database">Connect to an existing SQL database</h1>
-<p>Note: This driver is being superseded by the <a href="https://bmeg.github.io/grip/docs/gripper/gripper/">GRIPPER engine</a></p>
-<p>GRIP supports modeling an existing SQL database as a graph. GRIP has been tested against <a href="https://www.postgresql.org/">PostgreSQL</a>, but should  work with
-<a href="https://www.mysql.com/">MySQL</a> (4.1+) and <a href="https://mariadb.org/">MariaDB</a>.</p>
-<p>Since GRIP uses Go&rsquo;s <code>database/sql</code> package, we could (in thoery) support any SQL databases listed on:
-<a href="https://github.com/golang/go/wiki/SQLDrivers">https://github.com/golang/go/wiki/SQLDrivers</a>. Open an <a href="https://github.com/bmeg/grip/issues/new">issue</a> if you
-would like to request support for your favorite SQL database.</p>
-<h2 id="configuration-notes">Configuration Notes</h2>
+    <h1 id="graph-schemas">Graph Schemas</h1>
+<p>Most GRIP based graphs are not required to have a strict schema. However, GraphQL requires
+a graph schema as part of it&rsquo;s API. To utilize the GraphQL endpoint, there must be a
+Graph Schema provided to be used by the GRIP engine to determine how to render a GraphQL endpoint.
+Graph schemas are themselves an instance of a graph. As such, they can be traversed like any other graph.
+The schemas are automatically added to the database following the naming pattern. <code>{graph-name}__schema__</code></p>
+<h2 id="get-the-schema-of-a-graph">Get the Schema of a Graph</h2>
+<p>The schema of a graph can be accessed via a GET request to <code>/v1/graph/{graph-name}/schema</code></p>
+<p>Alternatively, you can use the grip CLI. <code>grip schema get {graph-name}</code></p>
+<h2 id="describing-graph-schemas">Describing Graph Schemas</h2>
+<p>There are several methods for describing the schema of a graph.</p>
 <ul>
-<li>
-<p><code>DataSourceName</code> is a driver-specific data source name, usually consisting of at least a database name and connection information. Here are links for
-to documentation for this field for each supported driver:</p>
-<ul>
-<li>PostgreSQL - <a href="https://godoc.org/github.com/lib/pq#hdr-Connection_String_Parameters">https://godoc.org/github.com/lib/pq#hdr-Connection_String_Parameters</a></li>
-<li>MySQL, Mariadb - <a href="https://github.com/go-sql-driver/mysql/#dsn-data-source-name">https://github.com/go-sql-driver/mysql/#dsn-data-source-name</a></li>
+<li>Provide the schema (as a YAML file) to the server at runtime. <code>grip server --schema {schema-file}</code></li>
+<li>POST the schema <code>/v1/graph/{graph-name}/schema</code> via curl or use the CLI. <code>grip schema post --yaml {file} --json {file}</code></li>
+<li>Configure GRIP to build the schema by sampling the data in each graph.</li>
 </ul>
-</li>
-<li>
-<p><code>Driver</code> should be one of: <code>postgres</code> or <code>mysql</code> (for MySQL or MariaDB).</p>
-</li>
-<li>
-<p><code>Graphs</code> is a list of graphs you want to define using the existing tables in the database. For each entry:</p>
-<ul>
-<li><code>Graph</code> is the name of the graph you want to define</li>
-<li><code>Vertices</code> is a list of entries, each of which binds a table to a vertex <code>label</code> and defines which field in the table to use as the <code>gid</code>.
-The remaining columns in the table are treated as the <code>data</code> associated with the vertex.</li>
-<li><code>Edges</code> is a list of entries. Edge entries may be associate an edge <code>label</code> with a table, but they are not required to.
-See below for examples of both types of edge definitions.</li>
-</ul>
-</li>
-</ul>
-<h2 id="example">Example</h2>
-<p>Given the following example database: <a href="https://github.com/bmeg/grip/blob/master/test/resources/postgres_smtest_data.dump">https://github.com/bmeg/grip/blob/master/test/resources/postgres_smtest_data.dump</a></p>
-<p>Load this dump file into your own postgres instance by running:</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">createdb --host localhost --port <span style="color:#ae81ff">15432</span> -U postgres smtest
-psql --host localhost --port <span style="color:#ae81ff">15432</span> -U postgres smtest &lt; postgres_smtest_data.dump
-</code></pre></div><p>GRIP Configuration:</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-yaml" data-lang="yaml">
-<span style="color:#f92672">Drivers</span>:
-  <span style="color:#f92672">esql</span>:
-    <span style="color:#f92672">ExistingSQL</span>:
-      <span style="color:#f92672">DataSourceName</span>: <span style="color:#e6db74">&#34;host=localhost port=15432 user=postgres dbname=smtest sslmode=disable&#34;</span>
-      <span style="color:#f92672">Driver</span>: <span style="color:#ae81ff">postgres</span>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-yaml" data-lang="yaml"><span style="color:#f92672">Server</span>:
+  <span style="color:#75715e"># Should the server periodically build the graph schemas?</span>
+  <span style="color:#f92672">AutoBuildSchemas</span>: <span style="color:#66d9ef">true</span>
+  <span style="color:#75715e"># How often the server should rebuild the graph schemas. Set to 0 to turn off</span>
+  <span style="color:#f92672">SchemaRefreshInterval</span>: <span style="color:#e6db74">&#34;24h&#34;</span>
+  <span style="color:#75715e"># How many vertices/edges to inspect to infer the schema</span>
+  <span style="color:#f92672">SchemaInspectN</span>: <span style="color:#ae81ff">500</span>
+  <span style="color:#75715e"># Strategy to use for selecting the vertices/edges to inspect.</span>
+  <span style="color:#75715e"># Random if True; first N otherwise</span>
+  <span style="color:#f92672">SchemaRandomSample</span>: <span style="color:#66d9ef">true</span>
+</code></pre></div><h2 id="example-schema">Example schema</h2>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-yaml" data-lang="yaml"><span style="color:#f92672">graph</span>: <span style="color:#ae81ff">example-graph</span>
 
-      <span style="color:#f92672">Graphs</span>:
-        - <span style="color:#f92672">Graph</span>: <span style="color:#ae81ff">test-graph</span>
-          <span style="color:#f92672">Vertices</span>:
-            - <span style="color:#f92672">Table</span>: <span style="color:#ae81ff">users</span>
-              <span style="color:#f92672">Label</span>: <span style="color:#ae81ff">users</span>
-              <span style="color:#f92672">GidField</span>: <span style="color:#ae81ff">id</span>
+<span style="color:#f92672">edges</span>:
+- <span style="color:#f92672">data</span>: {}
+ <span style="color:#f92672">from</span>: <span style="color:#ae81ff">Human</span>
+ <span style="color:#f92672">gid</span>: <span style="color:#ae81ff">(Human)--starship-&gt;(Starship)</span>
+ <span style="color:#f92672">label</span>: <span style="color:#ae81ff">starship</span>
+ <span style="color:#f92672">to</span>: <span style="color:#ae81ff">Starship</span>
+- <span style="color:#f92672">data</span>: {}
+ <span style="color:#f92672">from</span>: <span style="color:#ae81ff">Human</span>
+ <span style="color:#f92672">gid</span>: <span style="color:#ae81ff">(Human)--friend-&gt;(Human)</span>
+ <span style="color:#f92672">label</span>: <span style="color:#ae81ff">friend</span>
+ <span style="color:#f92672">to</span>: <span style="color:#ae81ff">Human</span>
+- <span style="color:#f92672">data</span>: {}
+ <span style="color:#f92672">from</span>: <span style="color:#ae81ff">Human</span>
+ <span style="color:#f92672">gid</span>: <span style="color:#ae81ff">(Human)--friend-&gt;(Droid)</span>
+ <span style="color:#f92672">label</span>: <span style="color:#ae81ff">friend</span>
+ <span style="color:#f92672">to</span>: <span style="color:#ae81ff">Droid</span>
+- <span style="color:#f92672">data</span>: {}
+ <span style="color:#f92672">from</span>: <span style="color:#ae81ff">Human</span>
+ <span style="color:#f92672">gid</span>: <span style="color:#ae81ff">(Human)--appearsIn-&gt;(Movie)</span>
+ <span style="color:#f92672">label</span>: <span style="color:#ae81ff">appearsIn</span>
+ <span style="color:#f92672">to</span>: <span style="color:#ae81ff">Movie</span>
 
-            - <span style="color:#f92672">Table</span>: <span style="color:#ae81ff">products</span>
-              <span style="color:#f92672">Label</span>: <span style="color:#ae81ff">products</span>
-              <span style="color:#f92672">GidField</span>: <span style="color:#ae81ff">id</span>
-
-            - <span style="color:#f92672">Table</span>: <span style="color:#ae81ff">purchases</span>
-              <span style="color:#f92672">Label</span>: <span style="color:#ae81ff">purchases</span>
-              <span style="color:#f92672">GidField</span>: <span style="color:#ae81ff">id</span>
-
-          <span style="color:#f92672">Edges</span>:
-            - <span style="color:#f92672">Table</span>: <span style="color:#ae81ff">purchase_items</span>
-              <span style="color:#f92672">Label</span>: <span style="color:#ae81ff">purchasedProducts</span>
-              <span style="color:#f92672">GidField</span>: <span style="color:#ae81ff">id</span>
-              <span style="color:#f92672">From</span>:
-                <span style="color:#f92672">SourceField</span>: <span style="color:#ae81ff">purchase_id</span>
-                <span style="color:#f92672">DestTable</span>: <span style="color:#ae81ff">purchases</span>
-                <span style="color:#f92672">DestField</span>: <span style="color:#ae81ff">id</span>
-              <span style="color:#f92672">To</span>:
-                <span style="color:#f92672">SourceField</span>: <span style="color:#ae81ff">product_id</span>
-                <span style="color:#f92672">DestTable</span>: <span style="color:#ae81ff">products</span>
-                <span style="color:#f92672">DestField</span>: <span style="color:#ae81ff">id</span>
-
-            - <span style="color:#f92672">Table</span>: <span style="color:#e6db74">&#34;&#34;</span>
-              <span style="color:#f92672">Label</span>: <span style="color:#ae81ff">userPurchases          </span>
-              <span style="color:#f92672">GidField</span>: <span style="color:#e6db74">&#34;&#34;</span>
-              <span style="color:#f92672">From</span>:
-                <span style="color:#f92672">SourceField</span>: <span style="color:#e6db74">&#34;&#34;</span>
-                <span style="color:#f92672">DestTable</span>: <span style="color:#ae81ff">users</span>
-                <span style="color:#f92672">DestField</span>: <span style="color:#ae81ff">id</span>
-              <span style="color:#f92672">To</span>:
-                <span style="color:#f92672">SourceField</span>: <span style="color:#e6db74">&#34;&#34;</span>
-                <span style="color:#f92672">DestTable</span>: <span style="color:#ae81ff">purchases</span>
-                <span style="color:#f92672">DestField</span>: <span style="color:#ae81ff">user_id</span>
+<span style="color:#f92672">vertices</span>:
+- <span style="color:#f92672">data</span>:
+   <span style="color:#f92672">name</span>: <span style="color:#ae81ff">STRING</span>
+ <span style="color:#f92672">gid</span>: <span style="color:#ae81ff">Movie</span>
+ <span style="color:#f92672">label</span>: <span style="color:#ae81ff">Movie</span>
+- <span style="color:#f92672">data</span>:
+   <span style="color:#f92672">length</span>: <span style="color:#ae81ff">NUMERIC</span>
+   <span style="color:#f92672">name</span>: <span style="color:#ae81ff">STRING</span>
+ <span style="color:#f92672">gid</span>: <span style="color:#ae81ff">Starship</span>
+ <span style="color:#f92672">label</span>: <span style="color:#ae81ff">Starship</span>
+- <span style="color:#f92672">data</span>:
+   <span style="color:#f92672">name</span>: <span style="color:#ae81ff">STRING</span>
+   <span style="color:#f92672">primaryFunction</span>: <span style="color:#ae81ff">STRING</span>
+ <span style="color:#f92672">gid</span>: <span style="color:#ae81ff">Droid</span>
+ <span style="color:#f92672">label</span>: <span style="color:#ae81ff">Droid</span>
+- <span style="color:#f92672">data</span>:
+   <span style="color:#f92672">height</span>: <span style="color:#ae81ff">NUMERIC</span>
+   <span style="color:#f92672">homePlanet</span>: <span style="color:#ae81ff">STRING</span>
+   <span style="color:#f92672">mass</span>: <span style="color:#ae81ff">NUMERIC</span>
+   <span style="color:#f92672">name</span>: <span style="color:#ae81ff">STRING</span>
+ <span style="color:#f92672">gid</span>: <span style="color:#ae81ff">Human</span>
+ <span style="color:#f92672">label</span>: <span style="color:#ae81ff">Human</span>
 </code></pre></div>
   </div>
 
