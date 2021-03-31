@@ -98,8 +98,8 @@ func StatementProcessor(gs *gripql.GraphStatement, db gdbi.GraphInterface, ps *p
 		ps.LastType = gdbi.EdgeData
 		return &LookupEdges{db: db, ids: ids, loadData: ps.StepLoadData()}, nil
 
-	case *gripql.GraphStatement_In, *gripql.GraphStatement_InV:
-		labels := append(protoutil.AsStringList(gs.GetIn()), protoutil.AsStringList(gs.GetInV())...)
+	case *gripql.GraphStatement_In:
+		labels := protoutil.AsStringList(gs.GetIn())
 		if ps.LastType == gdbi.VertexData {
 			ps.LastType = gdbi.VertexData
 			return &LookupVertexAdjIn{db: db, labels: labels, loadData: ps.StepLoadData()}, nil
@@ -110,8 +110,8 @@ func StatementProcessor(gs *gripql.GraphStatement, db gdbi.GraphInterface, ps *p
 			return nil, fmt.Errorf(`"in" statement is only valid for edge or vertex types not: %s`, ps.LastType.String())
 		}
 
-	case *gripql.GraphStatement_Out, *gripql.GraphStatement_OutV:
-		labels := append(protoutil.AsStringList(gs.GetOut()), protoutil.AsStringList(gs.GetOutV())...)
+	case *gripql.GraphStatement_Out:
+		labels := protoutil.AsStringList(gs.GetOut())
 		if ps.LastType == gdbi.VertexData {
 			ps.LastType = gdbi.VertexData
 			return &LookupVertexAdjOut{db: db, labels: labels, loadData: ps.StepLoadData()}, nil
@@ -122,8 +122,8 @@ func StatementProcessor(gs *gripql.GraphStatement, db gdbi.GraphInterface, ps *p
 			return nil, fmt.Errorf(`"out" statement is only valid for edge or vertex types not: %s`, ps.LastType.String())
 		}
 
-	case *gripql.GraphStatement_Both, *gripql.GraphStatement_BothV:
-		labels := append(protoutil.AsStringList(gs.GetBoth()), protoutil.AsStringList(gs.GetBothV())...)
+	case *gripql.GraphStatement_Both:
+		labels := protoutil.AsStringList(gs.GetBoth())
 		if ps.LastType == gdbi.VertexData {
 			ps.LastType = gdbi.VertexData
 			return &both{db: db, labels: labels, lastType: gdbi.VertexData, toType: gdbi.VertexData, loadData: ps.StepLoadData()}, nil
@@ -254,6 +254,13 @@ func StatementProcessor(gs *gripql.GraphStatement, db gdbi.GraphInterface, ps *p
 		}
 		ps.LastType = gdbi.RenderData
 		return &Render{stmt.Render.AsInterface()}, nil
+
+	case *gripql.GraphStatement_Path:
+		if ps.LastType != gdbi.VertexData && ps.LastType != gdbi.EdgeData {
+			return nil, fmt.Errorf(`"path" statement is only valid for edge or vertex types not: %s`, ps.LastType.String())
+		}
+		ps.LastType = gdbi.PathData
+		return &Path{stmt.Path.AsSlice()}, nil
 
 	case *gripql.GraphStatement_Unwind:
 		return &Unwind{stmt.Unwind}, nil

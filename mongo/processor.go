@@ -12,6 +12,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 // Processor stores the information for a mongo aggregation pipeline
@@ -56,7 +57,8 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 		for t := range in {
 			nResults := 0
 			//plog.Infof("Running: %#v", proc.query)
-			cursor, err := initCol.Aggregate(ctx, proc.query)
+			trueVal := true
+			cursor, err := initCol.Aggregate(ctx, proc.query, &options.AggregateOptions{AllowDiskUse: &trueVal})
 			if err != nil {
 				plog.Errorf("Query Error (%s) : %s", proc.query, err)
 				continue
@@ -166,6 +168,21 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 									t = t.AddMark(k, de)
 								}
 							}
+						}
+					}
+					if path, ok := result["path"]; ok {
+						if pathA, ok := path.(bson.A); ok {
+							o := make([]gdbi.DataElementID, len(pathA))
+							for i := range pathA {
+								if elem, ok := pathA[i].(map[string]interface{}); ok {
+									if v, ok := elem["vertex"]; ok {
+										o[i] = gdbi.DataElementID{Vertex: v.(string)}
+									} else if v, ok := elem["edge"]; ok {
+										o[i] = gdbi.DataElementID{Edge: v.(string)}
+									}
+								}
+							}
+							t.Path = o
 						}
 					}
 
