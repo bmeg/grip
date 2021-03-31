@@ -24,6 +24,17 @@ job = G.query().V().hasLabel("Planet").out().submit()
 jinfo = G.getJob(job["id"])
 ```
 
+Example job info:
+```json
+{
+  "id": "job-326392951",
+  "graph": "test_graph_qd7rs7",
+  "state": "COMPLETE",
+  "count": "12",
+  "query": [{"v": []}, {"hasLabel": ["Planet"]}, {"as": "a"}, {"out": []}],
+  "timestamp": "2021-03-30T23:12:01-07:00"
+}
+```
 
 ### Reading job results
 ```

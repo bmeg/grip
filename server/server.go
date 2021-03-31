@@ -80,14 +80,14 @@ func NewGripServer(conf *config.Config, baseDir string, drivers map[string]gdbi.
 	server := &GripServer{dbs: gdbs, conf: conf, schemas: schemas}
 
 	/*
-	for graph, schema := range schemas {
-		if !server.graphExists(graph) {
-			_, err := server.AddGraph(context.Background(), &gripql.GraphID{Graph: graph})
-			if err != nil {
-				return nil, fmt.Errorf("error creating graph defined by schema '%s': %v", graph, err)
+		for graph, schema := range schemas {
+			if !server.graphExists(graph) {
+				_, err := server.AddGraph(context.Background(), &gripql.GraphID{Graph: graph})
+				if err != nil {
+					return nil, fmt.Errorf("error creating graph defined by schema '%s': %v", graph, err)
+				}
 			}
-		}
-	}*/
+		}*/
 
 	if conf.Default == "" {
 		//if no default is found set it to the first driver found

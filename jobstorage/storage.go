@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
@@ -129,7 +130,7 @@ func (fs *FSResults) Spool(graph string, stream *Stream) (string, error) {
 
 	cs, _ := TraversalChecksum(stream.Query)
 	job := &Job{
-		Status:        gripql.JobStatus{Query: stream.Query, Id: jobName, Graph: graph},
+		Status:        gripql.JobStatus{Query: stream.Query, Id: jobName, Graph: graph, Timestamp: time.Now().Format(time.RFC3339)},
 		DataType:      stream.DataType,
 		MarkTypes:     stream.MarkTypes,
 		StepChecksums: cs,

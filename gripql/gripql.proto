@@ -202,6 +202,7 @@ message JobStatus {
 	JobState state = 3;
 	uint64   count = 4;
 	repeated GraphStatement query = 5;
+	string timestamp = 6;
 }
 
 message EditResult {
