@@ -4,20 +4,20 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/bmeg/grip/gripql"
+	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/log"
 	multierror "github.com/hashicorp/go-multierror"
 )
 
 // StreamBatch a stream of inputs and loads them into the graph
 // This function assumes incoming stream is GraphElemnts from a single graph
-func StreamBatch(stream <-chan *gripql.GraphElement, batchSize int, graph string, vertexAdd func([]*gripql.Vertex) error, edgeAdd func([]*gripql.Edge) error) error {
+func StreamBatch(stream <-chan *gdbi.GraphElement, batchSize int, graph string, vertexAdd func([]*gdbi.Vertex) error, edgeAdd func([]*gdbi.Edge) error) error {
 
 	var bulkErr *multierror.Error
 	vertCount := 0
 	edgeCount := 0
-	vertexBatchChan := make(chan []*gripql.Vertex)
-	edgeBatchChan := make(chan []*gripql.Edge)
+	vertexBatchChan := make(chan []*gdbi.Vertex)
+	edgeBatchChan := make(chan []*gdbi.Edge)
 	wg := &sync.WaitGroup{}
 
 	wg.Add(1)
@@ -46,8 +46,8 @@ func StreamBatch(stream <-chan *gripql.GraphElement, batchSize int, graph string
 		wg.Done()
 	}()
 
-	vertexBatch := make([]*gripql.Vertex, 0, batchSize)
-	edgeBatch := make([]*gripql.Edge, 0, batchSize)
+	vertexBatch := make([]*gdbi.Vertex, 0, batchSize)
+	edgeBatch := make([]*gdbi.Edge, 0, batchSize)
 
 	for element := range stream {
 		if element.Graph != graph {
@@ -58,7 +58,7 @@ func StreamBatch(stream <-chan *gripql.GraphElement, batchSize int, graph string
 		} else if element.Vertex != nil {
 			if len(vertexBatch) >= batchSize {
 				vertexBatchChan <- vertexBatch
-				vertexBatch = make([]*gripql.Vertex, 0, batchSize)
+				vertexBatch = make([]*gdbi.Vertex, 0, batchSize)
 			}
 			vertex := element.Vertex
 			err := vertex.Validate()
@@ -74,11 +74,11 @@ func StreamBatch(stream <-chan *gripql.GraphElement, batchSize int, graph string
 		} else if element.Edge != nil {
 			if len(edgeBatch) >= batchSize {
 				edgeBatchChan <- edgeBatch
-				edgeBatch = make([]*gripql.Edge, 0, batchSize)
+				edgeBatch = make([]*gdbi.Edge, 0, batchSize)
 			}
 			edge := element.Edge
-			if edge.Gid == "" {
-				edge.Gid = UUID()
+			if edge.ID == "" {
+				edge.ID = UUID()
 			}
 			err := edge.Validate()
 			if err != nil {

@@ -65,7 +65,7 @@ func ParseQuery(queryString string) (*gripql.GraphQuery, error) {
 
 func Query(graph gdbi.GraphInterface, query *gripql.GraphQuery) error {
 
-	p, err := graph.Compiler().Compile(query.Query)
+	p, err := graph.Compiler().Compile(query.Query, nil)
 	if err != nil {
 		return err
 	}

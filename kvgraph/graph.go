@@ -44,11 +44,11 @@ type kvAddData struct {
 
 // AddVertex adds an edge to the graph, if it already exists
 // in the graph, it is replaced
-func (kgdb *KVInterfaceGDB) AddVertex(vertices []*gripql.Vertex) error {
+func (kgdb *KVInterfaceGDB) AddVertex(vertices []*gdbi.Vertex) error {
 	err := kgdb.kvg.kv.BulkWrite(func(tx kvi.KVBulkWrite) error {
 		var bulkErr *multierror.Error
 		for _, vert := range vertices {
-			if err := insertVertex(tx, kgdb.kvg.idx, kgdb.graph, vert); err != nil {
+			if err := insertVertex(tx, kgdb.kvg.idx, kgdb.graph, vert.ToVertex()); err != nil {
 				bulkErr = multierror.Append(bulkErr, err)
 			}
 		}
@@ -119,11 +119,11 @@ func insertEdge(tx kvi.KVBulkWrite, idx *kvindex.KVIndex, graph string, edge *gr
 
 // AddEdge adds an edge to the graph, if the id is not "" and in already exists
 // in the graph, it is replaced
-func (kgdb *KVInterfaceGDB) AddEdge(edges []*gripql.Edge) error {
+func (kgdb *KVInterfaceGDB) AddEdge(edges []*gdbi.Edge) error {
 	err := kgdb.kvg.kv.BulkWrite(func(tx kvi.KVBulkWrite) error {
 		var bulkErr *multierror.Error
 		for _, edge := range edges {
-			if err := insertEdge(tx, kgdb.kvg.idx, kgdb.graph, edge); err != nil {
+			if err := insertEdge(tx, kgdb.kvg.idx, kgdb.graph, edge.ToEdge()); err != nil {
 				bulkErr = multierror.Append(bulkErr, err)
 			}
 		}
@@ -133,18 +133,18 @@ func (kgdb *KVInterfaceGDB) AddEdge(edges []*gripql.Edge) error {
 	return err
 }
 
-func (kgdb *KVInterfaceGDB) BulkAdd(stream <-chan *gripql.GraphElement) error {
+func (kgdb *KVInterfaceGDB) BulkAdd(stream <-chan *gdbi.GraphElement) error {
 	err := kgdb.kvg.kv.BulkWrite(func(tx kvi.KVBulkWrite) error {
 		var bulkErr *multierror.Error
 		for elem := range stream {
 			if elem.Vertex != nil {
-				if err := insertVertex(tx, kgdb.kvg.idx, kgdb.graph, elem.Vertex); err != nil {
+				if err := insertVertex(tx, kgdb.kvg.idx, kgdb.graph, elem.Vertex.ToVertex()); err != nil {
 					bulkErr = multierror.Append(bulkErr, err)
 				}
 				continue
 			}
 			if elem.Edge != nil {
-				if err := insertEdge(tx, kgdb.kvg.idx, kgdb.graph, elem.Edge); err != nil {
+				if err := insertEdge(tx, kgdb.kvg.idx, kgdb.graph, elem.Edge.ToEdge()); err != nil {
 					bulkErr = multierror.Append(bulkErr, err)
 				}
 				continue
@@ -229,8 +229,8 @@ func (kgdb *KVInterfaceGDB) DelVertex(id string) error {
 }
 
 // GetEdgeList produces a channel of all edges in the graph
-func (kgdb *KVInterfaceGDB) GetEdgeList(ctx context.Context, loadProp bool) <-chan *gripql.Edge {
-	o := make(chan *gripql.Edge, 100)
+func (kgdb *KVInterfaceGDB) GetEdgeList(ctx context.Context, loadProp bool) <-chan *gdbi.Edge {
+	o := make(chan *gdbi.Edge, 100)
 	go func() {
 		defer close(o)
 		kgdb.kvg.kv.View(func(it kvi.KVIterator) error {
@@ -246,11 +246,12 @@ func (kgdb *KVInterfaceGDB) GetEdgeList(ctx context.Context, loadProp bool) <-ch
 				if etype == edgeSingle {
 					if loadProp {
 						edgeData, _ := it.Value()
-						e := &gripql.Edge{}
-						proto.Unmarshal(edgeData, e)
+						ge := &gripql.Edge{}
+						proto.Unmarshal(edgeData, ge)
+						e := &gdbi.Edge{ID: ge.Gid, Label: ge.Label, From: sid, To: did, Data: ge.Data.AsMap(), Loaded: true}
 						o <- e
 					} else {
-						e := &gripql.Edge{Gid: string(eid), Label: label, From: sid, To: did}
+						e := &gdbi.Edge{ID: string(eid), Label: label, From: sid, To: did, Loaded: false}
 						o <- e
 					}
 				}
@@ -262,21 +263,27 @@ func (kgdb *KVInterfaceGDB) GetEdgeList(ctx context.Context, loadProp bool) <-ch
 }
 
 // GetVertex loads a vertex given an id. It returns a nil if not found
-func (kgdb *KVInterfaceGDB) GetVertex(id string, loadProp bool) *gripql.Vertex {
+func (kgdb *KVInterfaceGDB) GetVertex(id string, loadProp bool) *gdbi.Vertex {
 	vkey := VertexKey(kgdb.graph, id)
 
-	var v *gripql.Vertex
+	var v *gdbi.Vertex
 	err := kgdb.kvg.kv.View(func(it kvi.KVIterator) error {
 		dataValue, err := it.Get(vkey)
 		if err != nil {
 			return fmt.Errorf("get call failed: %v", err)
 		}
-		v = &gripql.Vertex{
+		gv := &gripql.Vertex{
 			Gid: id,
 		}
-		err = proto.Unmarshal(dataValue, v) //FIXME: this can't be skipped because vertex label is in value...
+		err = proto.Unmarshal(dataValue, gv) //FIXME: this can't be skipped because vertex label is in value...
 		if err != nil {
 			return fmt.Errorf("unmarshal error: %v", err)
+		}
+		v = &gdbi.Vertex{
+			ID:     id,
+			Label:  gv.Label,
+			Data:   gv.Data.AsMap(),
+			Loaded: true,
 		}
 		return nil
 	})
@@ -318,7 +325,12 @@ func (kgdb *KVInterfaceGDB) GetVertexChannel(ctx context.Context, ids chan gdbi.
 		for d := range data {
 			v := gripql.Vertex{}
 			proto.Unmarshal(d.data, &v)
-			d.req.Vertex = &v
+			d.req.Vertex = &gdbi.Vertex{
+				ID:     d.req.ID,
+				Label:  v.Label,
+				Data:   v.Data.AsMap(),
+				Loaded: true,
+			}
 			out <- d.req
 		}
 	}()
@@ -368,7 +380,12 @@ func (kgdb *KVInterfaceGDB) GetOutChannel(ctx context.Context, reqChan chan gdbi
 						continue
 						//}
 					}
-					req.req.Vertex = v
+					req.req.Vertex = &gdbi.Vertex{
+						ID:     gid,
+						Label:  v.Label,
+						Data:   v.Data.AsMap(),
+						Loaded: true,
+					}
 					o <- req.req
 				}
 			}
@@ -401,7 +418,12 @@ func (kgdb *KVInterfaceGDB) GetInChannel(ctx context.Context, reqChan chan gdbi.
 								continue
 							}
 							//}
-							req.Vertex = v
+							req.Vertex = &gdbi.Vertex{
+								ID:     src,
+								Label:  v.Label,
+								Data:   v.Data.AsMap(),
+								Loaded: true,
+							}
 							o <- req
 						}
 					}
@@ -426,18 +448,26 @@ func (kgdb *KVInterfaceGDB) GetOutEdgeChannel(ctx context.Context, reqChan chan 
 					_, src, dst, eid, label, edgeType := SrcEdgeKeyParse(keyValue)
 					if len(edgeLabels) == 0 || contains(edgeLabels, label) {
 						if edgeType == edgeSingle {
-							e := gripql.Edge{}
+							e := gdbi.Edge{}
 							if load {
 								ekey := EdgeKey(kgdb.graph, eid, src, dst, label, edgeType)
 								dataValue, err := it.Get(ekey)
+								ge := gripql.Edge{}
 								if err == nil {
-									proto.Unmarshal(dataValue, &e)
+									proto.Unmarshal(dataValue, &ge)
+									e.ID = string(eid)
+									e.From = string(src)
+									e.To = dst
+									e.Label = label
+									e.Data = ge.Data.AsMap()
+									e.Loaded = true
 								}
 							} else {
-								e.Gid = string(eid)
+								e.ID = string(eid)
 								e.From = string(src)
 								e.To = dst
 								e.Label = label
+								e.Loaded = false
 							}
 							req.Edge = &e
 							o <- req
@@ -465,18 +495,26 @@ func (kgdb *KVInterfaceGDB) GetInEdgeChannel(ctx context.Context, reqChan chan g
 					_, src, dst, eid, label, edgeType := DstEdgeKeyParse(keyValue)
 					if len(edgeLabels) == 0 || contains(edgeLabels, label) {
 						if edgeType == edgeSingle {
-							e := gripql.Edge{}
+							e := gdbi.Edge{}
 							if load {
 								ekey := EdgeKey(kgdb.graph, eid, src, dst, label, edgeType)
 								dataValue, err := it.Get(ekey)
 								if err == nil {
-									proto.Unmarshal(dataValue, &e)
+									ge := gripql.Edge{}
+									proto.Unmarshal(dataValue, &ge)
+									e.ID = string(eid)
+									e.From = string(src)
+									e.To = dst
+									e.Label = label
+									e.Data = ge.Data.AsMap()
+									e.Loaded = true
 								}
 							} else {
-								e.Gid = string(eid)
+								e.ID = string(eid)
 								e.From = string(src)
 								e.To = dst
 								e.Label = label
+								e.Loaded = false
 							}
 							req.Edge = &e
 							o <- req
@@ -492,26 +530,35 @@ func (kgdb *KVInterfaceGDB) GetInEdgeChannel(ctx context.Context, reqChan chan g
 }
 
 // GetEdge loads an edge given an id. It returns nil if not found
-func (kgdb *KVInterfaceGDB) GetEdge(id string, loadProp bool) *gripql.Edge {
+func (kgdb *KVInterfaceGDB) GetEdge(id string, loadProp bool) *gdbi.Edge {
 	ekeyPrefix := EdgeKeyPrefix(kgdb.graph, id)
 
-	var e *gripql.Edge
+	var e *gdbi.Edge
 	err := kgdb.kvg.kv.View(func(it kvi.KVIterator) error {
 		for it.Seek(ekeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), ekeyPrefix); it.Next() {
 			_, eid, src, dst, label, _ := EdgeKeyParse(it.Key())
 			if loadProp {
-				e = &gripql.Edge{}
 				d, _ := it.Value()
-				err := proto.Unmarshal(d, e)
+				ge := &gripql.Edge{}
+				err := proto.Unmarshal(d, ge)
 				if err != nil {
 					return fmt.Errorf("unmarshal error: %v", err)
 				}
+				e = &gdbi.Edge{
+					ID:     eid,
+					From:   src,
+					To:     dst,
+					Label:  label,
+					Data:   ge.Data.AsMap(),
+					Loaded: true,
+				}
 			} else {
-				e = &gripql.Edge{
-					Gid:   eid,
-					From:  src,
-					To:    dst,
-					Label: label,
+				e = &gdbi.Edge{
+					ID:     eid,
+					From:   src,
+					To:     dst,
+					Label:  label,
+					Loaded: false,
 				}
 			}
 		}
@@ -520,13 +567,12 @@ func (kgdb *KVInterfaceGDB) GetEdge(id string, loadProp bool) *gripql.Edge {
 	if err != nil {
 		return nil
 	}
-
 	return e
 }
 
 // GetVertexList produces a channel of all edges in the graph
-func (kgdb *KVInterfaceGDB) GetVertexList(ctx context.Context, loadProp bool) <-chan *gripql.Vertex {
-	o := make(chan *gripql.Vertex, 100)
+func (kgdb *KVInterfaceGDB) GetVertexList(ctx context.Context, loadProp bool) <-chan *gdbi.Vertex {
+	o := make(chan *gdbi.Vertex, 100)
 	go func() {
 		defer close(o)
 		kgdb.kvg.kv.View(func(it kvi.KVIterator) error {
@@ -538,16 +584,17 @@ func (kgdb *KVInterfaceGDB) GetVertexList(ctx context.Context, loadProp bool) <-
 					return nil
 				default:
 				}
-				v := &gripql.Vertex{}
-				if loadProp {
-					dataValue, _ := it.Value()
-					proto.Unmarshal(dataValue, v)
-				} else {
-					keyValue := it.Key()
-					_, vid := VertexKeyParse(keyValue)
-					v.Gid = string(vid)
+				gv := &gripql.Vertex{}
+				dataValue, _ := it.Value()
+				proto.Unmarshal(dataValue, gv)
+				keyValue := it.Key()
+				_, vid := VertexKeyParse(keyValue)
+				o <- &gdbi.Vertex{
+					ID:     string(vid),
+					Label:  gv.Label,
+					Data:   gv.Data.AsMap(),
+					Loaded: true,
 				}
-				o <- v
 			}
 			return nil
 		})

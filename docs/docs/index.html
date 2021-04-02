@@ -70,14 +70,67 @@
         
         <li>
           
-          <a href="https://bmeg.github.io/grip/graph_schemas/"
-             class="sidebar-nav-item "
-          >Graph Schemas</a></li>
+          <span class="intermediate">GRIP Commands</span></li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/commands/server/"
+                   class="sidebar-nav-item "
+                >server</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/commands/query/"
+                   class="sidebar-nav-item "
+                >query</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/commands/list/"
+                   class="sidebar-nav-item "
+                >list</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/commands/drop/"
+                   class="sidebar-nav-item "
+                >drop</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/commands/mongoload/"
+                   class="sidebar-nav-item "
+                >mongoload</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/commands/er/"
+                   class="sidebar-nav-item "
+                >er</a></li>
+            </ul>
+          </li>
+          
           
         
         <li>
           
-          <span class="intermediate">Setup your Database</span></li>
+          <span class="intermediate">Database Configuration</span></li>
           
           <li>
             <ul class="sidebar-nav sidebar-nav-nested">
@@ -137,6 +190,39 @@
         
         <li>
           
+          <span class="intermediate">GRIP Plugable External Resources</span></li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/gripper/gripper/"
+                   class="sidebar-nav-item "
+                >Intro</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/gripper/proxy/"
+                   class="sidebar-nav-item "
+                >External Resource Proxies</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/gripper/graphmodel/"
+                   class="sidebar-nav-item "
+                >Graph Model</a></li>
+            </ul>
+          </li>
+          
+          
+        
+        <li>
+          
           <span class="intermediate">Query a Graph</span></li>
           
           <li>
@@ -169,9 +255,9 @@
           <li>
             <ul class="sidebar-nav sidebar-nav-nested">
               <li>
-                <a href="https://bmeg.github.io/grip/docs/queries/graphql/"
+                <a href="https://bmeg.github.io/grip/docs/queries/jobs_api/"
                    class="sidebar-nav-item "
-                >GraphQL</a></li>
+                >Jobs API</a></li>
             </ul>
           </li>
           
@@ -218,6 +304,30 @@
         
         <li>
           
+          <span class="intermediate">GraphQL</span></li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/graphql/graphql/"
+                   class="sidebar-nav-item "
+                >GraphQL</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/graphql/graph_schemas/"
+                   class="sidebar-nav-item "
+                >Graph Schemas</a></li>
+            </ul>
+          </li>
+          
+          
+        
+        <li>
+          
           <span class="intermediate">Developers</span></li>
           
           <li>
@@ -240,39 +350,6 @@
           
           
         
-        <li>
-          
-          <span class="intermediate">GIPPER</span></li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/gripper/gripper/"
-                   class="sidebar-nav-item "
-                >Intro</a></li>
-            </ul>
-          </li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/gripper/proxy/"
-                   class="sidebar-nav-item "
-                >External Resource Proxies</a></li>
-            </ul>
-          </li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/gripper/graphmodel/"
-                   class="sidebar-nav-item "
-                >Graph Model</a></li>
-            </ul>
-          </li>
-          
-          
-        
       
     </ul>
   </div>
@@ -284,12 +361,38 @@ MongoDB, Elasticsearch, PostgreSQL, MySQL, MariaDB, Badger, and LevelDB.</p>
 <p>Properties of an GRIP graph:</p>
 <ul>
 <li>Both vertices and edges in a graph can have any number of properties associated with them.</li>
-<li>There are many types of vertices and edges in a graph. Thus two vertices may have myriad types of edges
-connecting them reflecting myriad types of relationships.</li>
+<li>There are many types of vertices and edges in a graph. Two vertices may have many types of edges
+connecting them, thus reflecting a myriad of relationship types.</li>
 <li>Edges in the graph are directed, meaning they have a source and destination.</li>
 </ul>
 <p>GRIP also provides a query API for the traversing, analyzing and manipulating your graphs. Its syntax is inspired by
-<a href="http://tinkerpop.apache.org/">Apache TinkerPop</a>. Learn more <a href="https://bmeg.github.io/grip/docs/queries/getting_started">here</a>.</p>
+<a href="http://tinkerpop.apache.org/">Apache TinkerPop</a>. Learn more <a href="https://bmeg.github.io/grip/docs/queries/getting_started">here</a> about GRIP and its
+application for querying the Bio Medical Evidence Graph (<a href="https://bmeg.io">BMEG</a>).</p>
+<h1 id="supported-systems">Supported Systems</h1>
+<p>GRIP has three types of drivers:</p>
+<ul>
+<li><em>Embedded</em> : GRIP has built in graph storage, built using embedded databases. This allows you to quick
+set graphs for data storage and analysis, without having to configure an external database and connect it
+to GRIP. This is the default mode if GRIP is started without any configuration. The primarily driver
+is based on <a href="https://github.com/dgraph-io/badger">Badger</a>.</li>
+<li><em>Database Backends</em> : GRIP can utilize a number of different database backends to store graph data.
+In this mode, GRIP formats the database and manages the data. It provides a full Read/Write API, the same
+as the Embedded deployment. Supported systems include Mongo, Portgres SQL and Elastic Search. When deployed
+using Mongo, GRIP will translate GripQL queries into <a href="https://docs.mongodb.com/manual/core/aggregation-pipeline/">Mongo Aggregation Pipeline queries</a>.</li>
+<li><em>Plugin Existing Resources</em> : This mode is designed to take advantage of existing data resources, mapping
+them into a graph framework so they can be accessed using GripQL. This mode is currently read-only.</li>
+</ul>
+<h1 id="future-plans">Future Plans</h1>
+<p>GRIP is still under active development and there are plans for a number of additional features. These include:</p>
+<ul>
+<li>Batch queries. Ability to submit long running queries to be processed asynchronously and stored for later retrieval.</li>
+<li>Query Caching.</li>
+<li>Query Continuation. Ability to describe a graph query that starts off where another query ended. For example,
+from batch or cached query and to filtering or a few additional steps.</li>
+<li>Optimized Plugable External Resource API. Adding additional operations, such as &lsquo;joins&rsquo; or better filtering, to
+external resources would allow GRIP to better optimize queries and reduce query time.</li>
+<li>Managed Plugin deployment.</li>
+</ul>
 
   </div>
 

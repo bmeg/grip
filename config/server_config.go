@@ -15,6 +15,7 @@ type ServerConfig struct {
 	WorkDir          string
 	ContentDir       string
 	ReadOnly         bool
+	NoJobs           bool
 	BasicAuth        []BasicCredential
 	DisableHTTPCache bool
 	// Should the server periodically build the graph schemas?

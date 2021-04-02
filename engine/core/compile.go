@@ -12,13 +12,14 @@ import (
 
 // DefaultPipeline a set of runnable query operations
 type DefaultPipeline struct {
+	graph     gdbi.GraphInterface
 	procs     []gdbi.Processor
 	dataType  gdbi.DataType
 	markTypes map[string]gdbi.DataType
 }
 
-func NewPipeline(procs []gdbi.Processor, ps *pipeline.State) *DefaultPipeline {
-	return &DefaultPipeline{procs, ps.LastType, ps.MarkTypes}
+func NewPipeline(graph gdbi.GraphInterface, procs []gdbi.Processor, ps *pipeline.State) *DefaultPipeline {
+	return &DefaultPipeline{graph, procs, ps.LastType, ps.MarkTypes}
 }
 
 // DataType return the datatype
@@ -36,6 +37,11 @@ func (pipe *DefaultPipeline) Processors() []gdbi.Processor {
 	return pipe.procs
 }
 
+// Graph gets the processor graph interface
+func (pipe *DefaultPipeline) Graph() gdbi.GraphInterface {
+	return pipe.graph
+}
+
 // DefaultCompiler is the core compiler that works with default graph interface
 type DefaultCompiler struct {
 	db         gdbi.GraphInterface
@@ -50,12 +56,12 @@ func NewCompiler(db gdbi.GraphInterface, optimizers ...QueryOptimizer) gdbi.Comp
 type QueryOptimizer func(pipe []*gripql.GraphStatement) []*gripql.GraphStatement
 
 // Compile take set of statments and turns them into a runnable pipeline
-func (comp DefaultCompiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, error) {
+func (comp DefaultCompiler) Compile(stmts []*gripql.GraphStatement, opts *gdbi.CompileOptions) (gdbi.Pipeline, error) {
 	if len(stmts) == 0 {
 		return &DefaultPipeline{}, nil
 	}
 
-	if err := Validate(stmts); err != nil {
+	if err := Validate(stmts, opts); err != nil {
 		return &DefaultPipeline{}, fmt.Errorf("invalid statments: %s", err)
 	}
 
@@ -64,6 +70,10 @@ func (comp DefaultCompiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeli
 	}
 
 	ps := pipeline.NewPipelineState(stmts)
+	if opts != nil {
+		ps.LastType = opts.PipelineExtension
+		ps.MarkTypes = opts.ExtensionMarkTypes
+	}
 
 	procs := make([]gdbi.Processor, 0, len(stmts))
 
@@ -76,7 +86,7 @@ func (comp DefaultCompiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeli
 		procs = append(procs, p)
 	}
 
-	return &DefaultPipeline{procs, ps.LastType, ps.MarkTypes}, nil
+	return &DefaultPipeline{comp.db, procs, ps.LastType, ps.MarkTypes}, nil
 }
 
 func StatementProcessor(gs *gripql.GraphStatement, db gdbi.GraphInterface, ps *pipeline.State) (gdbi.Processor, error) {
@@ -296,19 +306,21 @@ func StatementProcessor(gs *gripql.GraphStatement, db gdbi.GraphInterface, ps *p
 		return proc.GetProcessor(db, ps)
 
 	default:
-		return nil, fmt.Errorf("unknown statement type")
+		return nil, fmt.Errorf("gridsCompile: unknown statement type: %s", gs.GetStatement())
 	}
 }
 
 //Validate checks pipeline for chains of statements that won't work
-func Validate(stmts []*gripql.GraphStatement) error {
+func Validate(stmts []*gripql.GraphStatement, opts *gdbi.CompileOptions) error {
 	for i, gs := range stmts {
 		// Validate that the first statement is V() or E()
 		if i == 0 {
 			switch gs.GetStatement().(type) {
 			case *gripql.GraphStatement_V, *gripql.GraphStatement_E:
 			default:
-				return fmt.Errorf("first statement is not V() or E(): %s", gs)
+				if opts == nil || opts.PipelineExtension == gdbi.NoData {
+					return fmt.Errorf("first statement is not V() or E(): %s", gs)
+				}
 			}
 		}
 	}

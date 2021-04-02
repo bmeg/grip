@@ -401,7 +401,7 @@ func TestEngine(t *testing.T) {
 		name := cleanName(dbname + "_" + desc.query.String())
 
 		t.Run(name, func(t *testing.T) {
-			compiledPipeline, err := db.Compiler().Compile(desc.query.Statements)
+			compiledPipeline, err := db.Compiler().Compile(desc.query.Statements, nil)
 			if err != nil {
 				t.Fatal(err)
 			}

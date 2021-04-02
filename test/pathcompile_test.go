@@ -9,6 +9,7 @@ import (
 
 	"github.com/bmeg/grip/engine/inspect"
 	"github.com/bmeg/grip/engine/pipeline"
+	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/grids"
 	"github.com/bmeg/grip/gripql"
 	"github.com/golang/protobuf/jsonpb"
@@ -60,25 +61,25 @@ func TestEngineQuery(t *testing.T) {
 
 	m := jsonpb.Unmarshaler{}
 
-	vset := []*gripql.Vertex{}
+	vset := []*gdbi.Vertex{}
 	for _, r := range pathVertices {
 		v := &gripql.Vertex{}
 		err := m.Unmarshal(strings.NewReader(r), v)
 		if err != nil {
 			t.Error(err)
 		}
-		vset = append(vset, v)
+		vset = append(vset, gdbi.NewElementFromVertex(v))
 	}
 	graph.AddVertex(vset)
 
-	eset := []*gripql.Edge{}
+	eset := []*gdbi.Edge{}
 	for _, r := range pathEdges {
 		e := &gripql.Edge{}
 		err := m.Unmarshal(strings.NewReader(r), e)
 		if err != nil {
 			t.Error(err)
 		}
-		eset = append(eset, e)
+		eset = append(eset, gdbi.NewElementFromEdge(e))
 	}
 	graph.AddEdge(eset)
 
@@ -86,7 +87,7 @@ func TestEngineQuery(t *testing.T) {
 	q = q.V().Out().Out().Count()
 	comp := graph.Compiler()
 
-	compiledPipeline, err := comp.Compile(q.Statements)
+	compiledPipeline, err := comp.Compile(q.Statements, nil)
 	if err != nil {
 		t.Error(err)
 	}
@@ -99,7 +100,7 @@ func TestEngineQuery(t *testing.T) {
 	q = gripql.NewQuery()
 	q = q.V().Out().Out().OutE().Out().Count()
 
-	compiledPipeline, err = comp.Compile(q.Statements)
+	compiledPipeline, err = comp.Compile(q.Statements, nil)
 	if err != nil {
 		t.Error(err)
 	}

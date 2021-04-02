@@ -9,7 +9,6 @@ import (
 
 	"github.com/bmeg/grip/engine/core"
 	"github.com/bmeg/grip/gdbi"
-	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/timestamp"
 	"github.com/bmeg/grip/util"
@@ -41,7 +40,7 @@ func (mg *Graph) GetTimestamp() string {
 }
 
 // GetVertex loads a vertex given an id. It returns a nil if not found
-func (mg *Graph) GetVertex(id string, load bool) *gripql.Vertex {
+func (mg *Graph) GetVertex(id string, load bool) *gdbi.Vertex {
 	opts := options.FindOne()
 	if !load {
 		opts.SetProjection(map[string]interface{}{"_id": 1, "label": 1})
@@ -59,7 +58,7 @@ func (mg *Graph) GetVertex(id string, load bool) *gripql.Vertex {
 }
 
 // GetEdge loads an edge given an id. It returns nil if not found
-func (mg *Graph) GetEdge(id string, load bool) *gripql.Edge {
+func (mg *Graph) GetEdge(id string, load bool) *gdbi.Edge {
 	opts := options.FindOne()
 	if !load {
 		opts.SetProjection(map[string]interface{}{"_id": 1, "label": 1, "from": 1, "to": 1})
@@ -78,12 +77,12 @@ func (mg *Graph) GetEdge(id string, load bool) *gripql.Edge {
 
 // AddVertex adds an edge to the graph, if it already exists
 // in the graph, it is replaced
-func (mg *Graph) AddVertex(vertices []*gripql.Vertex) error {
+func (mg *Graph) AddVertex(vertices []*gdbi.Vertex) error {
 	vCol := mg.ar.VertexCollection(mg.graph)
 	var err error
 	docBatch := make([]mongo.WriteModel, 0, len(vertices))
 	for _, v := range vertices {
-		i := mongo.NewReplaceOneModel().SetUpsert(true).SetFilter(bson.M{"_id": v.Gid})
+		i := mongo.NewReplaceOneModel().SetUpsert(true).SetFilter(bson.M{"_id": v.ID})
 		ent := PackVertex(v)
 		i.SetReplacement(ent)
 		docBatch = append(docBatch, i)
@@ -99,12 +98,12 @@ func (mg *Graph) AddVertex(vertices []*gripql.Vertex) error {
 
 // AddEdge adds an edge to the graph, if it already exists
 // in the graph, it is replaced
-func (mg *Graph) AddEdge(edges []*gripql.Edge) error {
+func (mg *Graph) AddEdge(edges []*gdbi.Edge) error {
 	eCol := mg.ar.EdgeCollection(mg.graph)
 	var err error
 	docBatch := make([]mongo.WriteModel, 0, len(edges))
 	for _, edge := range edges {
-		i := mongo.NewReplaceOneModel().SetUpsert(true).SetFilter(bson.M{"_id": edge.Gid})
+		i := mongo.NewReplaceOneModel().SetUpsert(true).SetFilter(bson.M{"_id": edge.ID})
 		ent := PackEdge(edge)
 		i.SetReplacement(ent)
 		docBatch = append(docBatch, i)
@@ -115,7 +114,7 @@ func (mg *Graph) AddEdge(edges []*gripql.Edge) error {
 	return err
 }
 
-func (mg *Graph) BulkAdd(stream <-chan *gripql.GraphElement) error {
+func (mg *Graph) BulkAdd(stream <-chan *gdbi.GraphElement) error {
 	return util.StreamBatch(stream, 50, mg.graph, mg.AddVertex, mg.AddEdge)
 }
 
@@ -157,8 +156,8 @@ func (mg *Graph) DelEdge(key string) error {
 }
 
 // GetVertexList produces a channel of all vertices in the graph
-func (mg *Graph) GetVertexList(ctx context.Context, load bool) <-chan *gripql.Vertex {
-	o := make(chan *gripql.Vertex, 100)
+func (mg *Graph) GetVertexList(ctx context.Context, load bool) <-chan *gdbi.Vertex {
+	o := make(chan *gdbi.Vertex, 100)
 
 	go func() {
 		defer close(o)
@@ -192,8 +191,8 @@ func (mg *Graph) GetVertexList(ctx context.Context, load bool) <-chan *gripql.Ve
 }
 
 // GetEdgeList produces a channel of all edges in the graph
-func (mg *Graph) GetEdgeList(ctx context.Context, loadProp bool) <-chan *gripql.Edge {
-	o := make(chan *gripql.Edge, 100)
+func (mg *Graph) GetEdgeList(ctx context.Context, loadProp bool) <-chan *gdbi.Edge {
+	o := make(chan *gdbi.Edge, 100)
 
 	go func() {
 		defer close(o)
@@ -263,12 +262,12 @@ func (mg *Graph) GetVertexChannel(ctx context.Context, ids chan gdbi.ElementLook
 			if err != nil {
 				return
 			}
-			chunk := map[string]*gripql.Vertex{}
+			chunk := map[string]*gdbi.Vertex{}
 			result := map[string]interface{}{}
 			for cursor.Next(context.TODO()) {
 				if err := cursor.Decode(&result); err == nil {
 					v := UnpackVertex(result)
-					chunk[v.Gid] = v
+					chunk[v.ID] = v
 				} else {
 					log.WithFields(log.Fields{"error": err}).Error("Decode error")
 				}

@@ -14,7 +14,7 @@
       <guid>https://bmeg.github.io/grip/docs/tutorials/pathway-commons/</guid>
       <description>Get Pathway Commons release
 curl -O http://www.pathwaycommons.org/archives/PC2/v10/PathwayCommons10.All.BIOPAX.owl.gz Convert to Property Graph
-grip rdf --dump --gzip pc PathwayCommons10.All.BIOPAX.owl.gz -m http://pathwaycommons.org/pc2/#=pc: -m http://www.biopax.org/release/biopax-level3.owl#=biopax: </description>
+grip rdf --dump --gzip pc PathwayCommons10.All.BIOPAX.owl.gz -m &amp;quot;http://pathwaycommons.org/pc2/#=pc:&amp;quot; -m &amp;quot;http://www.biopax.org/release/biopax-level3.owl#=biopax:&amp;quot; </description>
     </item>
     
     <item>
@@ -45,12 +45,30 @@ $ chmod 600 grip.config.yml To use the password, set the GRIP_USER and GRIP_PASS
     </item>
     
     <item>
+      <title>Database Configuration</title>
+      <link>https://bmeg.github.io/grip/docs/databases/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://bmeg.github.io/grip/docs/databases/</guid>
+      <description></description>
+    </item>
+    
+    <item>
       <title>Developers</title>
       <link>https://bmeg.github.io/grip/docs/developers/</link>
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
       
       <guid>https://bmeg.github.io/grip/docs/developers/</guid>
       <description></description>
+    </item>
+    
+    <item>
+      <title>drop</title>
+      <link>https://bmeg.github.io/grip/docs/commands/drop/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://bmeg.github.io/grip/docs/commands/drop/</guid>
+      <description>grip drop &amp;lt;graph&amp;gt; Deletes a graph.</description>
     </item>
     
     <item>
@@ -73,6 +91,17 @@ Default: elastic Drivers: elastic: Elasticsearch: URL: &amp;#34;http://localhost
       <description>Embedded Key Value Stores GRIP supports storing vertices and edges in a variety of key-value stores including:
  Badger BoltDB LevelDB  Config:
 Default: kv Driver: kv: Badger: grip.db </description>
+    </item>
+    
+    <item>
+      <title>er</title>
+      <link>https://bmeg.github.io/grip/docs/commands/er/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://bmeg.github.io/grip/docs/commands/er/</guid>
+      <description>grip er The External Resource system allows GRIP to plug into existing data systems and integrate them into queriable graphs. The grip er sub command acts as a client to the external resource plugin proxies, issues command and displays the results. This is often useful for debugging external resources before making them part of an actual graph.
+List collections provided by external resource
+grip er list Get info about a collection</description>
     </item>
     
     <item>
@@ -112,18 +141,43 @@ The sources section describes all of the GRIPPER resources that GRIP will use to
     </item>
     
     <item>
-      <title>GraphQL</title>
-      <link>https://bmeg.github.io/grip/docs/queries/graphql/</link>
+      <title>Graph Schemas</title>
+      <link>https://bmeg.github.io/grip/docs/graphql/graph_schemas/</link>
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
       
-      <guid>https://bmeg.github.io/grip/docs/queries/graphql/</guid>
-      <description>GraphQL GRIP supports GraphQL access of the property graphs. Currently this is read-only access to the graph.
-GraphQL access is only supported when using the MongoDB driver
+      <guid>https://bmeg.github.io/grip/docs/graphql/graph_schemas/</guid>
+      <description>Graph Schemas Most GRIP based graphs are not required to have a strict schema. However, GraphQL requires a graph schema as part of it&amp;rsquo;s API. To utilize the GraphQL endpoint, there must be a Graph Schema provided to be used by the GRIP engine to determine how to render a GraphQL endpoint. Graph schemas are themselves an instance of a graph. As such, they can be traversed like any other graph.</description>
+    </item>
+    
+    <item>
+      <title>GraphQL</title>
+      <link>https://bmeg.github.io/grip/docs/graphql/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://bmeg.github.io/grip/docs/graphql/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>GraphQL</title>
+      <link>https://bmeg.github.io/grip/docs/graphql/graphql/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://bmeg.github.io/grip/docs/graphql/graphql/</guid>
+      <description>GraphQL GraphQL support is considered Alpha. The code is not stable and the API will likely change. GraphQL access is only supported when using the MongoDB driver
+GRIP supports GraphQL access of the property graphs. Currently this is read-only access to the graph.
 Load built-in example graph Loading the example data and the example schema:
 grip load example-graph See the example graph
-grip dump example-graph --vertex --edge See the example graph schema
-grip schema example-graph Example queries Get Types:
-curl -X POST -H &amp;quot;Content-Type:application/graphql&amp;quot; -d &#39;{__schema{types{name}}}&#39; http://localhost:8201/graphql/example-graph Get Info about Human object</description>
+grip dump example-graph --vertex --edge Sample components of the graph to produce a schema and store to a file</description>
+    </item>
+    
+    <item>
+      <title>GRIP Commands</title>
+      <link>https://bmeg.github.io/grip/docs/commands/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://bmeg.github.io/grip/docs/commands/</guid>
+      <description></description>
     </item>
     
     <item>
@@ -157,6 +211,25 @@ Graph - Name of the graph for the mapped external resources.</description>
     </item>
     
     <item>
+      <title>Jobs API</title>
+      <link>https://bmeg.github.io/grip/docs/queries/jobs_api/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://bmeg.github.io/grip/docs/queries/jobs_api/</guid>
+      <description>Jobs API Not all queries return instantaneously, additionally some queries elements are used repeatedly. The query Jobs API provides a mechanism to submit graph traversals that will be evaluated asynchronously and can be retrieved at a later time.
+Submitting a job job = G.query().V().hasLabel(&amp;quot;Planet&amp;quot;).out().submit() Getting job status jinfo = G.getJob(job[&amp;quot;id&amp;quot;]) Reading job results for row in G.readJob(job[&amp;quot;id&amp;quot;]): print(row) Search for jobs Find jobs that match the prefix of the current request (example should find job from G.</description>
+    </item>
+    
+    <item>
+      <title>list</title>
+      <link>https://bmeg.github.io/grip/docs/commands/list/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://bmeg.github.io/grip/docs/commands/list/</guid>
+      <description>grip list graphs grip list graphs </description>
+    </item>
+    
+    <item>
       <title>MongoDB</title>
       <link>https://bmeg.github.io/grip/docs/databases/mongo/</link>
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
@@ -166,6 +239,15 @@ Graph - Name of the graph for the mapped external resources.</description>
 Config:
 Default: mongo Drivers: mongo: MongoDB: URL: &amp;#34;mongodb://localhost:27000&amp;#34; DBName: &amp;#34;gripdb&amp;#34; Username: &amp;#34;&amp;#34; Password: &amp;#34;&amp;#34; UseCorePipeline: False BatchSize: 0 UseCorePipeline - Default is to use Mongo pipeline API to do graph traversals. By enabling UseCorePipeline, GRIP will do the traversal logic itself, only using Mongo for graph storage.
 BatchSize - For core engine operations, GRIP dispatches element lookups in batches to minimize query overhead.</description>
+    </item>
+    
+    <item>
+      <title>mongoload</title>
+      <link>https://bmeg.github.io/grip/docs/commands/mongoload/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://bmeg.github.io/grip/docs/commands/mongoload/</guid>
+      <description>grip mongoload </description>
     </item>
     
     <item>
@@ -192,6 +274,15 @@ G.query().E([&amp;#34;edge1&amp;#34;]) Returns:
       <description>PostgreSQL GRIP supports storing vertices and edges in PostgreSQL.
 Config:
 Default: psql Drivers: psql: PSQL: Host: localhost Port: 15432 User: &amp;#34;&amp;#34; Password: &amp;#34;&amp;#34; DBName: &amp;#34;grip&amp;#34; SSLMode: disable </description>
+    </item>
+    
+    <item>
+      <title>query</title>
+      <link>https://bmeg.github.io/grip/docs/commands/query/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://bmeg.github.io/grip/docs/commands/query/</guid>
+      <description>grip query &amp;lt;graph&amp;gt; &amp;lt;query&amp;gt; Run a query on a graph.</description>
     </item>
     
     <item>
@@ -225,12 +316,14 @@ O.query().V([&amp;quot;ENSG00000012048&amp;quot;]).as_(&amp;quot;gene&amp;quot;)
     </item>
     
     <item>
-      <title>Setup your Database</title>
-      <link>https://bmeg.github.io/grip/docs/databases/</link>
+      <title>server</title>
+      <link>https://bmeg.github.io/grip/docs/commands/server/</link>
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
       
-      <guid>https://bmeg.github.io/grip/docs/databases/</guid>
-      <description></description>
+      <guid>https://bmeg.github.io/grip/docs/commands/server/</guid>
+      <description>grip server The server command starts up a graph server and waits for incoming requests.
+Default Configuration If invoked with no arguments or config files, GRIP will start up in embedded mode, using a Badger based graph driver.
+Networking By default the GRIP server operates on 2 ports, 8201 is the HTTP based interface. Port 8202 is a GRPC based interface. Python, R and Javascript clients are designed to connect to the HTTP interface on 8201.</description>
     </item>
     
     <item>

@@ -37,7 +37,7 @@ func setupGraph() error {
 		return vertices[i].Gid < vertices[j].Gid
 	})
 	for _, v := range vertices {
-		err := db.AddVertex([]*gripql.Vertex{v})
+		err := db.AddVertex([]*gdbi.Vertex{gdbi.NewElementFromVertex(v)})
 		if err != nil {
 			return err
 		}
@@ -47,7 +47,7 @@ func setupGraph() error {
 		return edges[i].Gid < edges[j].Gid
 	})
 	for _, e := range edges {
-		err := db.AddEdge([]*gripql.Edge{e})
+		err := db.AddEdge([]*gdbi.Edge{gdbi.NewElementFromEdge(e)})
 		if err != nil {
 			return err
 		}

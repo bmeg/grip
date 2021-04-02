@@ -152,6 +152,84 @@ class Graph(BaseConnection):
         """
         return Query(self.base_url, self.graph, self.user, self.password, self.token, self.credential_file)
 
+    def resume(self, job_id):
+        """
+        Create a query handle.
+        """
+        return Query(self.base_url, self.graph, self.user, self.password, self.token, self.credential_file, resume=job_id)
+
+    def listJobs(self):
+        url = self.url + "/job"
+        response = self.session.get(
+            url,
+            headers=self._request_header()
+        )
+        for result in response.iter_lines(chunk_size=None):
+            yield json.loads(result)
+
+    def getJob(self, id):
+        """
+        get job
+        """
+        response = self.session.get(
+            self.url + "/job/" + id,
+            headers=self._request_header()
+        )
+        raise_for_status(response)
+        return response.json()
+
+    def deleteJob(self, id):
+        """
+        Delete an job
+        """
+        url = self.url + "/job/" + id
+        response = self.session.delete(
+            url
+        )
+        raise_for_status(response)
+        return response.json()
+
+    def readJob(self, id):
+        """
+        read job
+        """
+        response = self.session.post(
+            self.url + "/job/" + id,
+            json={},
+            headers=self._request_header()
+        )
+        # Duplicate code from Query, need to get helper function
+        for result in response.iter_lines(chunk_size=None):
+            try:
+                result_dict = json.loads(result.decode())
+            except Exception as e:
+                #logger.error("Failed to decode: %s", result)
+                raise e
+
+            if "vertex" in result_dict:
+                extracted = result_dict["vertex"]
+            elif "edge" in result_dict:
+                extracted = result_dict["edge"]
+            elif "aggregations" in result_dict:
+                extracted = result_dict["aggregations"]
+            elif "selections" in result_dict:
+                extracted = result_dict["selections"]["selections"]
+                for k in extracted:
+                    if "vertex" in extracted[k]:
+                        extracted[k] = extracted[k]["vertex"]
+                    elif "edge" in extracted[k]:
+                        extracted[k] = extracted[k]["edge"]
+            elif "render" in result_dict:
+                extracted = result_dict["render"]
+            elif "count" in result_dict:
+                extracted = result_dict
+            elif "error" in result_dict:
+                raise requests.HTTPError(result_dict['error']['message'])
+            else:
+                extracted = result_dict
+
+            yield extracted
+
 
 class BulkAdd(BaseConnection):
     def __init__(self, url, graph, user=None, password=None, token=None, credential_file=None):

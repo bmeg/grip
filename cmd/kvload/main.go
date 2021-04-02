@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/bmeg/grip/gripql"
+	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/kvgraph"
 	"github.com/bmeg/grip/kvi"
 	"github.com/bmeg/grip/log"
@@ -95,7 +95,7 @@ var Cmd = &cobra.Command{
 			edgeFileArray = append(edgeFileArray, edgeFile)
 		}
 
-		graphChan := make(chan *gripql.GraphElement, 10)
+		graphChan := make(chan *gdbi.GraphElement, 10)
 		wg := &sync.WaitGroup{}
 		go func() {
 			wg.Add(1)
@@ -115,7 +115,7 @@ var Cmd = &cobra.Command{
 				continue
 			}
 			for v := range vertChan {
-				graphChan <- &gripql.GraphElement{Graph: graph, Vertex: v}
+				graphChan <- &gdbi.GraphElement{Graph: graph, Vertex: gdbi.NewElementFromVertex(v)}
 				count++
 				vertexCounter.Incr(1)
 				if count%10000 == 0 {
@@ -135,7 +135,7 @@ var Cmd = &cobra.Command{
 				continue
 			}
 			for e := range edgeChan {
-				graphChan <- &gripql.GraphElement{Graph: graph, Edge: e}
+				graphChan <- &gdbi.GraphElement{Graph: graph, Edge: gdbi.NewElementFromEdge(e)}
 				count++
 				edgeCounter.Incr(1)
 				if count%10000 == 0 {

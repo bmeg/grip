@@ -1,36 +1,28 @@
 package elastic
 
 import (
+	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
-// PackVertex take a AQL vertex and convert it to a mongo doc
-func PackVertex(v *gripql.Vertex) map[string]interface{} {
-	p := map[string]interface{}{}
-	if v.Data != nil {
-		p = v.Data.AsMap()
-	}
-	//fmt.Printf("proto:%s\nmap:%s\n", v.Data, p)
+// PackVertex take a gdbi vertex and convert it to a mongo doc
+func PackVertex(v *gdbi.Vertex) map[string]interface{} {
 	return map[string]interface{}{
-		"gid":   v.Gid,
+		"gid":   v.ID,
 		"label": v.Label,
-		"data":  p,
+		"data":  v.Data,
 	}
 }
 
 // PackEdge takes a AQL edge and converts it to a mongo doc
-func PackEdge(e *gripql.Edge) map[string]interface{} {
-	p := map[string]interface{}{}
-	if e.Data != nil {
-		p = e.Data.AsMap()
-	}
+func PackEdge(e *gdbi.Edge) map[string]interface{} {
 	return map[string]interface{}{
-		"gid":   e.Gid,
+		"gid":   e.ID,
 		"from":  e.From,
 		"to":    e.To,
 		"label": e.Label,
-		"data":  p,
+		"data":  e.Data,
 	}
 }
 

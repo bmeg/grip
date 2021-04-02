@@ -16,9 +16,15 @@ type CustomProcGen interface {
 	GetProcessor(db GraphInterface, ps PipelineState) (Processor, error)
 }
 
+type CompileOptions struct {
+	//Compile pipeline extension
+	PipelineExtension  DataType
+	ExtensionMarkTypes map[string]DataType
+}
+
 // Compiler takes a gripql query and turns it into an executable pipeline
 type Compiler interface {
-	Compile(stmts []*gripql.GraphStatement) (Pipeline, error)
+	Compile(stmts []*gripql.GraphStatement, opts *CompileOptions) (Pipeline, error)
 }
 
 // Processor is the interface for a step in the pipe engine
@@ -28,6 +34,7 @@ type Processor interface {
 
 // Pipeline represents a set of processors
 type Pipeline interface {
+	Graph() GraphInterface
 	Processors() []Processor
 	DataType() DataType
 	MarkTypes() map[string]DataType

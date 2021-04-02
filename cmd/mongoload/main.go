@@ -8,6 +8,7 @@ import (
 	//"io"
 	//"strings"
 
+	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/mongo"
@@ -40,7 +41,7 @@ func vertexSerialize(vertChan chan *gripql.Vertex, workers int) chan []byte {
 		wg.Add(1)
 		go func() {
 			for v := range vertChan {
-				doc := mongo.PackVertex(v)
+				doc := mongo.PackVertex(gdbi.NewElementFromVertex(v))
 				rawBytes, err := bson.Marshal(doc)
 				if err == nil {
 					dataChan <- rawBytes
@@ -63,7 +64,7 @@ func edgeSerialize(edgeChan chan *gripql.Edge, workers int) chan []byte {
 		wg.Add(1)
 		go func() {
 			for e := range edgeChan {
-				doc := mongo.PackEdge(e)
+				doc := mongo.PackEdge(gdbi.NewElementFromEdge(e))
 				rawBytes, err := bson.Marshal(doc)
 				if err == nil {
 					dataChan <- rawBytes
