@@ -1,6 +1,6 @@
 name: Go
 
-on: [pull_request]
+on: [ pull_request ]
 
 jobs:
 
@@ -43,6 +43,9 @@ jobs:
         ./grip server --rpc-port 18202 --http-port 18201 --config ./test/badger.yml &
         sleep 5
         make test-conformance
+    - name: GRIDs unit tests
+      run: |
+        go test ./test/... -config badger.yml
 
   gridsTest:
     needs: build

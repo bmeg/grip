@@ -42,6 +42,7 @@ require (
 	github.com/kr/pretty v0.1.0
 	github.com/lib/pq v1.2.0
 	github.com/logrusorgru/aurora v0.0.0-20190428105938-cea283e61946
+	github.com/machinebox/graphql v0.2.2
 	github.com/mitchellh/mapstructure v1.1.2 // indirect
 	github.com/mongodb/mongo-tools-common v4.0.18+incompatible
 	github.com/oliveagle/jsonpath v0.0.0-20180606110733-2e52cf6e6852

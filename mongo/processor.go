@@ -12,6 +12,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 // Processor stores the information for a mongo aggregation pipeline
@@ -56,7 +57,8 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 		for t := range in {
 			nResults := 0
 			//plog.Infof("Running: %#v", proc.query)
-			cursor, err := initCol.Aggregate(ctx, proc.query)
+			trueVal := true
+			cursor, err := initCol.Aggregate(ctx, proc.query, &options.AggregateOptions{AllowDiskUse: &trueVal})
 			if err != nil {
 				plog.Errorf("Query Error (%s) : %s", proc.query, err)
 				continue

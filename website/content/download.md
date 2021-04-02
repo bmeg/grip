@@ -2,7 +2,8 @@
 title: Download
 menu:
   main:
-    weight: -2000
+    identifier: download
+    weight: 5
 ---
 
 {{< download-links >}}
@@ -19,7 +20,7 @@ docker run bmeg/grip grip server
 ```
 
 <h3>Build From Source</h3>
-Recommended [Go](https://golang.org/) version 1.12 or later.
+Recommended [Go](https://golang.org/) version 1.15 or later.
 
 ```shell
 $ git clone https://github.com/bmeg/grip.git

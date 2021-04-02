@@ -3,7 +3,7 @@ title: Intro
 
 menu:
   main:
-    parent: GIPPER
+    parent: gripper
     weight: 1
 ---
 
