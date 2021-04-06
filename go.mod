@@ -30,7 +30,7 @@ require (
 	github.com/graphql-go/graphql v0.7.8
 	github.com/graphql-go/handler v0.2.3
 	github.com/grpc-ecosystem/go-grpc-middleware v1.0.0
-	github.com/grpc-ecosystem/grpc-gateway v1.9.0
+	github.com/grpc-ecosystem/grpc-gateway v1.9.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.0.1
 	github.com/hashicorp/go-multierror v1.0.0
 	github.com/imdario/mergo v0.3.7
@@ -42,8 +42,9 @@ require (
 	github.com/lib/pq v1.2.0
 	github.com/logrusorgru/aurora v0.0.0-20190428105938-cea283e61946
 	github.com/machinebox/graphql v0.2.2
+	github.com/matryer/is v1.4.0 // indirect
 	github.com/mitchellh/mapstructure v1.1.2 // indirect
-	github.com/mongodb/mongo-tools-common v4.0.18+incompatible
+	github.com/mongodb/mongo-tools v0.0.0-20210401103731-387f92fbcf79
 	github.com/paulbellamy/ratecounter v0.2.0
 	github.com/robertkrimen/otto v0.0.0-20180617131154-15f95af6e78d
 	github.com/segmentio/ksuid v1.0.2
@@ -58,6 +59,7 @@ require (
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
 	golang.org/x/net v0.0.0-20201021035429-f5854403a974
 	golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9
+	google.golang.org/api v0.30.0
 	google.golang.org/genproto v0.0.0-20201019141844-1ed22bb0c154
 	google.golang.org/grpc v1.34.0
 	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.0.1 // indirect

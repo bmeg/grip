@@ -296,7 +296,7 @@ func buildQueryObject(client gripql.Client, graph string, objects map[string]*gr
 			Fields: queryFields,
 		},
 	)
-	fmt.Printf("Query fields: %s\n", queryFields)
+	fmt.Printf("Query fields: %#v\n", queryFields)
 	return query
 }
 
