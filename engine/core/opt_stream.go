@@ -42,7 +42,7 @@ func OptWrapCall(ctx context.Context, req chan gdbi.ElementLookup, load bool, la
     cur, _ := <- order
     count := 0
     for i := range f(ctx, reqIn, load, labels) {
-      for ; i.ID != cur.ID; cur, _ = <- order {
+      for ; i.Ref != cur.Ref; cur, _ = <- order {
         if count == 0 {
           out <- gdbi.ElementLookup{ID:cur.ID, Ref:cur.Ref}
         }
