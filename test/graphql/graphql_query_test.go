@@ -10,8 +10,8 @@ import (
 
 	//"encoding/json"
 
+	"github.com/bmeg/jsonpath"
 	"github.com/machinebox/graphql"
-	"github.com/oliveagle/jsonpath"
 )
 
 var tests = [][]string{

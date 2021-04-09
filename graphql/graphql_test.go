@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/bmeg/grip/gripql"
-	"github.com/bmeg/grip/protoutil"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 func TestWellDefined(t *testing.T) {
@@ -13,17 +13,18 @@ func TestWellDefined(t *testing.T) {
 		"Field2": "NUMERIC",
 		"Field3": "BOOL",
 	}
+	d, _ := structpb.NewStruct(vdata)
 	schema := &gripql.Graph{
 		Vertices: []*gripql.Vertex{
 			{
 				Gid:   "STRING",
 				Label: "TestVertexLabel1",
-				Data:  protoutil.AsStruct(vdata),
+				Data:  d,
 			},
 			{
 				Gid:   "STRING",
 				Label: "TestVertexLabel2",
-				Data:  protoutil.AsStruct(vdata),
+				Data:  d,
 			},
 		},
 		Edges: []*gripql.Edge{
@@ -47,12 +48,13 @@ func TestUnkownType(t *testing.T) {
 		"Field1": "UNKNOWN",
 		"Field2": "NUMERIC",
 	}
+	d, _ := structpb.NewStruct(vdata)
 	schema := &gripql.Graph{
 		Vertices: []*gripql.Vertex{
 			{
 				Gid:   "STRING",
 				Label: "TestVertexLabel1",
-				Data:  protoutil.AsStruct(vdata),
+				Data:  d,
 			},
 		},
 	}
@@ -70,6 +72,7 @@ func TestNilData(t *testing.T) {
 		"Field2": "NUMERIC",
 		"Field3": "BOOL",
 	}
+	d, _ := structpb.NewStruct(vdata)
 	schema := &gripql.Graph{
 		Vertices: []*gripql.Vertex{
 			{
@@ -79,7 +82,7 @@ func TestNilData(t *testing.T) {
 			{
 				Gid:   "STRING",
 				Label: "TestVertexLabel2",
-				Data:  protoutil.AsStruct(vdata),
+				Data:  d,
 			},
 		},
 	}
@@ -111,12 +114,13 @@ func TestComplex(t *testing.T) {
 		},
 		"Field7": "UNKNOWN",
 	}
+	d, _ := structpb.NewStruct(vdata)
 	schema := &gripql.Graph{
 		Vertices: []*gripql.Vertex{
 			{
 				Gid:   "STRING",
 				Label: "TestVertexLabel1",
-				Data:  protoutil.AsStruct(vdata),
+				Data:  d,
 			},
 		},
 	}

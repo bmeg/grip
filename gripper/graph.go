@@ -12,7 +12,7 @@ import (
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/util/setcmp"
-	"github.com/oliveagle/jsonpath"
+	"github.com/bmeg/jsonpath"
 )
 
 type VertexSource struct {

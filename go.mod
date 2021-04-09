@@ -2,13 +2,12 @@ module github.com/bmeg/grip
 
 go 1.12
 
-replace github.com/oliveagle/jsonpath v0.0.0-20180606110733-2e52cf6e6852 => github.com/bmeg/jsonpath v0.0.0-20210207014051-cca5355553ad
-
 require (
 	github.com/Shopify/sarama v1.22.1
 	github.com/Workiva/go-datastructures v1.0.52
 	github.com/akrylysov/pogreb v0.8.1
 	github.com/aymerick/raymond v2.0.2+incompatible // indirect
+	github.com/bmeg/jsonpath v0.0.0-20210207014051-cca5355553ad
 	github.com/bmeg/protoc-gen-grcp-rest-direct v0.0.0-20190228222353-4d40e8b9d305 // indirect
 	github.com/boltdb/bolt v1.3.1
 	github.com/ckaznocha/protoc-gen-lint v0.2.1 // indirect
@@ -42,11 +41,11 @@ require (
 	github.com/kr/pretty v0.1.0
 	github.com/lib/pq v1.2.0
 	github.com/logrusorgru/aurora v0.0.0-20190428105938-cea283e61946
-	github.com/mitchellh/hashstructure/v2 v2.0.1
 	github.com/machinebox/graphql v0.2.2
+	github.com/matryer/is v1.4.0 // indirect
+	github.com/mitchellh/hashstructure/v2 v2.0.1
 	github.com/mitchellh/mapstructure v1.1.2 // indirect
-	github.com/mongodb/mongo-tools-common v4.0.18+incompatible
-	github.com/oliveagle/jsonpath v0.0.0-20180606110733-2e52cf6e6852
+	github.com/mongodb/mongo-tools v0.0.0-20210401103731-387f92fbcf79
 	github.com/paulbellamy/ratecounter v0.2.0
 	github.com/robertkrimen/otto v0.0.0-20180617131154-15f95af6e78d
 	github.com/segmentio/ksuid v1.0.2
@@ -61,9 +60,10 @@ require (
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
 	golang.org/x/net v0.0.0-20210119194325-5f4716e94777
 	golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9
+	google.golang.org/api v0.30.0
 	google.golang.org/genproto v0.0.0-20210224155714-063164c882e6
 	google.golang.org/grpc v1.36.0
-	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.1.0 // indirect
+	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.0.1 // indirect
 	google.golang.org/protobuf v1.25.1-0.20201208041424-160c7477e0e8
 	gopkg.in/airbrake/gobrake.v2 v2.0.9 // indirect
 	gopkg.in/gemnasium/logrus-airbrake-hook.v2 v2.1.2 // indirect
