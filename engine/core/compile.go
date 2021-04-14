@@ -132,6 +132,18 @@ func StatementProcessor(gs *gripql.GraphStatement, db gdbi.GraphInterface, ps *p
 			return nil, fmt.Errorf(`"out" statement is only valid for edge or vertex types not: %s`, ps.LastType.String())
 		}
 
+	case *gripql.GraphStatement_OutOpt:
+		labels := protoutil.AsStringList(gs.GetOutOpt())
+		if ps.LastType == gdbi.VertexData {
+			ps.LastType = gdbi.VertexData
+			return &LookupVertexAdjOut{db: db, labels: labels, loadData: ps.StepLoadData(), optional:true}, nil
+		} else if ps.LastType == gdbi.EdgeData {
+			ps.LastType = gdbi.VertexData
+			return &LookupEdgeAdjOut{db: db, labels: labels, loadData: ps.StepLoadData(), optional:true}, nil
+		} else {
+			return nil, fmt.Errorf(`"outOpt" statement is only valid for edge or vertex types not: %s`, ps.LastType.String())
+		}
+
 	case *gripql.GraphStatement_Both:
 		labels := protoutil.AsStringList(gs.GetBoth())
 		if ps.LastType == gdbi.VertexData {

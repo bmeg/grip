@@ -152,6 +152,7 @@ type LookupVertexAdjOut struct {
 	db       gdbi.GraphInterface
 	labels   []string
 	loadData bool
+	optional bool
 }
 
 // Process runs out vertex
@@ -168,14 +169,15 @@ func (l *LookupVertexAdjOut) Process(ctx context.Context, man gdbi.Manager, in g
 	}()
 	go func() {
 		defer close(out)
-		for ov := range l.db.GetOutChannel(ctx, queryChan, l.loadData, l.labels) {
+		var vlookup chan gdbi.ElementLookup
+		if l.optional {
+			vlookup = OptWrapCall(ctx, queryChan, l.loadData, l.labels, l.db.GetOutChannel)
+		} else {
+			vlookup = l.db.GetOutChannel(ctx, queryChan, l.loadData, l.labels)
+		}
+		for ov := range vlookup {
 			i := ov.Ref
-			out <- i.AddCurrent(&gdbi.DataElement{
-				ID:     ov.Vertex.ID,
-				Label:  ov.Vertex.Label,
-				Data:   ov.Vertex.Data,
-				Loaded: ov.Vertex.Loaded,
-			})
+			out <- i.AddCurrent(ov.Vertex)
 		}
 	}()
 	return ctx
@@ -188,6 +190,7 @@ type LookupEdgeAdjOut struct {
 	db       gdbi.GraphInterface
 	labels   []string
 	loadData bool
+	optional bool
 }
 
 // Process runs LookupEdgeAdjOut
