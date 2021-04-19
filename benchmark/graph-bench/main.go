@@ -14,7 +14,7 @@ import (
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/kvgraph"
 	"github.com/bmeg/grip/kvi"
-	"github.com/bmeg/grip/protoutil"
+	"google.golang.org/protobuf/types/known/structpb"
 
 	_ "github.com/bmeg/grip/kvi/badgerdb" // import so badger will register itself
 	_ "github.com/bmeg/grip/kvi/boltdb"   // import so bolt will register itself
@@ -68,10 +68,11 @@ func randData() map[string]interface{} {
 }
 
 func randVertex() *gripql.Vertex {
+	randData, _ := structpb.NewStruct(randData())
 	g := gripql.Vertex{
 		Gid:   randID(),
 		Label: randVertexLabel(),
-		Data:  protoutil.AsStruct(randData()),
+		Data:  randData,
 	}
 	return &g
 }

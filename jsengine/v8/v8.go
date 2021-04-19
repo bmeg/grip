@@ -11,7 +11,7 @@ import (
 	"github.com/bmeg/grip/jsengine"
 	"github.com/bmeg/grip/jsengine/underscore"
 	"github.com/bmeg/grip/log"
-	"github.com/bmeg/grip/protoutil"
+	"github.com/bmeg/grip/util/protoutil"
 )
 
 type V8Runtime struct {
