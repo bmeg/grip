@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -15,6 +16,7 @@ import (
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/graphql"
 	"github.com/bmeg/grip/gripql"
+	"github.com/bmeg/grip/jobstorage"
 	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/util/rpc"
 	"github.com/felixge/httpsnoop"
@@ -40,11 +42,13 @@ import (
 type GripServer struct {
 	gripql.UnimplementedQueryServer
 	gripql.UnimplementedEditServer
+	gripql.UnimplementedJobServer
 	dbs      map[string]gdbi.GraphDB
 	graphMap map[string]string
 	conf     *config.Config
 	schemas  map[string]*gripql.Graph
 	baseDir  string
+	jStorage jobstorage.JobStorage
 }
 
 // NewGripServer initializes a GRPC server to connect to the graph store
@@ -74,6 +78,7 @@ func NewGripServer(conf *config.Config, baseDir string, drivers map[string]gdbi.
 	}
 
 	server := &GripServer{dbs: gdbs, conf: conf, schemas: schemas}
+
 	/*
 		for graph, schema := range schemas {
 			if !server.graphExists(graph) {
@@ -100,6 +105,7 @@ func NewGripServer(conf *config.Config, baseDir string, drivers map[string]gdbi.
 	return server, nil
 }
 
+// StartDriver: based on string entry in config file, figure out which driver to initialize
 func StartDriver(d config.DriverConfig, baseDir string) (gdbi.GraphDB, error) {
 	if d.Bolt != nil {
 		return kvgraph.NewKVGraphDB("bolt", *d.Bolt)
@@ -300,6 +306,17 @@ func (server *GripServer) Serve(pctx context.Context) error {
 		}
 	}
 
+	if !server.conf.Server.NoJobs {
+		gripql.RegisterJobServer(grpcServer, server)
+		//TODO: Put in some sort of logic that will allow web server to be configured to use GRPC client
+		err = gripql.RegisterJobHandlerClient(ctx, grpcMux, gripql.NewJobDirectClient(server))
+		if err != nil {
+			return fmt.Errorf("registering job endpoint: %v", err)
+		}
+		jobDir := filepath.Join(server.conf.Server.WorkDir, "jobs")
+		server.jStorage = jobstorage.NewFSJobStorage(jobDir)
+	}
+
 	httpServer := &http.Server{
 		Addr:    ":" + server.conf.Server.HTTPPort,
 		Handler: mux,
@@ -357,7 +374,7 @@ func (server *GripServer) Serve(pctx context.Context) error {
 		}()
 	}
 
-	<-ctx.Done()
+	<-ctx.Done() //This will hold until canceled, usually from kill signal
 	log.Infoln("closing database...")
 	for _, gdb := range server.dbs {
 		err = gdb.Close()

@@ -243,7 +243,7 @@ KeyLoop:
 	if len(includePaths) > 0 {
 		ode = includeFields(ode, cde, includePaths)
 	}
-
+	ode.Loaded = true
 	return out
 }
 

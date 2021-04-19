@@ -25,18 +25,22 @@ func NewCompiler(ggraph *Graph) gdbi.Compiler {
 	return Compiler{graph: ggraph}
 }
 
-func (comp Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, error) {
+func (comp Compiler) Compile(stmts []*gripql.GraphStatement, opts *gdbi.CompileOptions) (gdbi.Pipeline, error) {
 	if len(stmts) == 0 {
 		return &core.DefaultPipeline{}, nil
 	}
 
-	if err := core.Validate(stmts); err != nil {
+	if err := core.Validate(stmts, opts); err != nil {
 		return &core.DefaultPipeline{}, fmt.Errorf("invalid statments: %s", err)
 	}
 
 	stmts = core.IndexStartOptimize(stmts)
 
 	ps := pipeline.NewPipelineState(stmts)
+	if opts != nil {
+		ps.LastType = opts.PipelineExtension
+		ps.MarkTypes = opts.ExtensionMarkTypes
+	}
 
 	noLoadPaths := inspect.PipelineNoLoadPath(stmts, 2)
 	procs := make([]gdbi.Processor, 0, len(stmts))
@@ -84,5 +88,5 @@ func (comp Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, err
 			procs = append(procs, p)
 		}
 	}
-	return core.NewPipeline(procs, ps), nil
+	return core.NewPipeline(comp.graph, procs, ps), nil
 }

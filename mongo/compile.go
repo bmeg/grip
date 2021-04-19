@@ -17,6 +17,7 @@ import (
 
 // Pipeline a set of runnable query operations
 type Pipeline struct {
+	graph     gdbi.GraphInterface
 	procs     []gdbi.Processor
 	dataType  gdbi.DataType
 	markTypes map[string]gdbi.DataType
@@ -37,6 +38,11 @@ func (pipe *Pipeline) Processors() []gdbi.Processor {
 	return pipe.procs
 }
 
+// Graph gets the graph interface
+func (pipe *Pipeline) Graph() gdbi.GraphInterface {
+	return pipe.graph
+}
+
 // Compiler is a mongo specific compiler that works with default graph interface
 type Compiler struct {
 	db *Graph
@@ -48,7 +54,16 @@ func NewCompiler(db *Graph) gdbi.Compiler {
 }
 
 // Compile compiles a set of graph traversal statements into a mongo aggregation pipeline
-func (comp *Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, error) {
+func (comp *Compiler) Compile(stmts []*gripql.GraphStatement, opts *gdbi.CompileOptions) (gdbi.Pipeline, error) {
+
+	//in the case of a pipeline extension, switch over the the
+	//core based engine. Until the mongo aggregation pipeline engine
+	//is updated to support
+	if opts != nil && opts.PipelineExtension != gdbi.NoData {
+		cmpl := core.NewCompiler(comp.db)
+		return cmpl.Compile(stmts, opts)
+	}
+
 	procs := []gdbi.Processor{}
 	query := mongo.Pipeline{}
 	startCollection := ""
@@ -747,7 +762,7 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, er
 			lastType = gdbi.AggregationData
 
 		default:
-			return &Pipeline{}, fmt.Errorf("unknown statement type")
+			return &Pipeline{}, fmt.Errorf("mongoCompile: unknown statement type: %s", gs.GetStatement())
 		}
 	}
 
@@ -761,5 +776,5 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement) (gdbi.Pipeline, er
 	}
 
 	procs = append([]gdbi.Processor{&Processor{comp.db, startCollection, query, lastType, markTypes, aggTypes}}, procs...)
-	return &Pipeline{procs, lastType, markTypes}, nil
+	return &Pipeline{comp.db, procs, lastType, markTypes}, nil
 }

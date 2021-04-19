@@ -10,7 +10,7 @@ except ImportError:
 import logging
 import requests
 
-from gripql.util import BaseConnection, Rate
+from gripql.util import BaseConnection, Rate, raise_for_status
 
 
 def _wrap_value(value, typ):
@@ -37,14 +37,15 @@ def _wrap_dict_value(value):
 
 
 class Query(BaseConnection):
-    def __init__(self, url, graph, user=None, password=None, token=None, credential_file=None):
+    def __init__(self, url, graph, user=None, password=None, token=None, credential_file=None, resume=None):
         super(Query, self).__init__(url, user, password, token, credential_file)
         self.url = self.base_url + "/v1/graph/" + graph + "/query"
         self.graph = graph
         self.query = []
+        self.resume = resume
 
     def __append(self, part):
-        q = self.__class__(self.base_url, self.graph, self.user, self.password, self.token, self.credential_file)
+        q = self.__class__(self.base_url, self.graph, self.user, self.password, self.token, self.credential_file, self.resume)
         q.query = self.query[:]
         q.query.append(part)
         return q
@@ -294,12 +295,23 @@ class Query(BaseConnection):
 
         rate = Rate(logger)
         rate.init()
-        response = self.session.post(
-            self.url,
-            json=self.to_dict(),
-            stream=True
-        )
-        logger.debug('POST %s', self.url)
+        if self.resume is None:
+            response = self.session.post(
+                self.url,
+                json=self.to_dict(),
+                stream=True
+            )
+            logger.debug('POST %s', self.url)
+        else:
+            url = self.base_url + "/v1/graph/" + self.graph + "/job-resume"
+            data = self.to_dict()
+            data['srcId'] = self.resume
+            response = self.session.post(
+                url,
+                json=data,
+                stream=True
+            )
+            logger.debug('POST %s', url)
         logger.debug('BODY %s', self.to_json())
         logger.debug('STATUS CODE %s', response.status_code)
 
@@ -353,6 +365,60 @@ class Query(BaseConnection):
             for r in self.__stream(debug):
                 output.append(r)
             return output
+
+    def submit(self, debug=False):
+        """
+        Post the traversal as an asynchronous job
+        """
+        log_level = logging.root.level
+        if debug:
+            log_level = logging.DEBUG
+        logger = logging.getLogger(__name__)
+        logger.handlers = []
+        stream_handler = logging.StreamHandler()
+        stream_handler.setFormatter(
+            logging.Formatter('[%(levelname)s]\t%(asctime)s\t%(message)s')
+        )
+        stream_handler.setLevel(log_level)
+        logger.setLevel(log_level)
+        logger.addHandler(stream_handler)
+
+        url = self.base_url + "/v1/graph/" + self.graph + "/job"
+
+        response = self.session.post(
+            url,
+            json=self.to_dict()
+        )
+        raise_for_status(response)
+        return response.json()
+
+    def searchJobs(self, debug=False):
+        """
+        Find jobs that match this query
+        """
+        log_level = logging.root.level
+        if debug:
+            log_level = logging.DEBUG
+        logger = logging.getLogger(__name__)
+        logger.handlers = []
+        stream_handler = logging.StreamHandler()
+        stream_handler.setFormatter(
+            logging.Formatter('[%(levelname)s]\t%(asctime)s\t%(message)s')
+        )
+        stream_handler.setLevel(log_level)
+        logger.setLevel(log_level)
+        logger.addHandler(stream_handler)
+
+        url = self.base_url + "/v1/graph/" + self.graph + "/job-search"
+
+        response = self.session.post(
+            url,
+            json=self.to_dict()
+        )
+        for result in response.iter_lines(chunk_size=None):
+            result_dict = jloads(result.decode())
+            yield result_dict
+
 
 
 class __Query(Query):

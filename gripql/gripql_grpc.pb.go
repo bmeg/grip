@@ -19,6 +19,7 @@ const _ = grpc.SupportPackageIsVersion7
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type QueryClient interface {
 	Traversal(ctx context.Context, in *GraphQuery, opts ...grpc.CallOption) (Query_TraversalClient, error)
+	GetResults(ctx context.Context, in *QueryJob, opts ...grpc.CallOption) (Query_GetResultsClient, error)
 	GetVertex(ctx context.Context, in *ElementID, opts ...grpc.CallOption) (*Vertex, error)
 	GetEdge(ctx context.Context, in *ElementID, opts ...grpc.CallOption) (*Edge, error)
 	GetTimestamp(ctx context.Context, in *GraphID, opts ...grpc.CallOption) (*Timestamp, error)
@@ -61,6 +62,38 @@ type queryTraversalClient struct {
 }
 
 func (x *queryTraversalClient) Recv() (*QueryResult, error) {
+	m := new(QueryResult)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (c *queryClient) GetResults(ctx context.Context, in *QueryJob, opts ...grpc.CallOption) (Query_GetResultsClient, error) {
+	stream, err := c.cc.NewStream(ctx, &Query_ServiceDesc.Streams[1], "/gripql.Query/GetResults", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &queryGetResultsClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type Query_GetResultsClient interface {
+	Recv() (*QueryResult, error)
+	grpc.ClientStream
+}
+
+type queryGetResultsClient struct {
+	grpc.ClientStream
+}
+
+func (x *queryGetResultsClient) Recv() (*QueryResult, error) {
 	m := new(QueryResult)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
@@ -136,6 +169,7 @@ func (c *queryClient) ListLabels(ctx context.Context, in *GraphID, opts ...grpc.
 // for forward compatibility
 type QueryServer interface {
 	Traversal(*GraphQuery, Query_TraversalServer) error
+	GetResults(*QueryJob, Query_GetResultsServer) error
 	GetVertex(context.Context, *ElementID) (*Vertex, error)
 	GetEdge(context.Context, *ElementID) (*Edge, error)
 	GetTimestamp(context.Context, *GraphID) (*Timestamp, error)
@@ -152,6 +186,9 @@ type UnimplementedQueryServer struct {
 
 func (UnimplementedQueryServer) Traversal(*GraphQuery, Query_TraversalServer) error {
 	return status.Errorf(codes.Unimplemented, "method Traversal not implemented")
+}
+func (UnimplementedQueryServer) GetResults(*QueryJob, Query_GetResultsServer) error {
+	return status.Errorf(codes.Unimplemented, "method GetResults not implemented")
 }
 func (UnimplementedQueryServer) GetVertex(context.Context, *ElementID) (*Vertex, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetVertex not implemented")
@@ -205,6 +242,27 @@ type queryTraversalServer struct {
 }
 
 func (x *queryTraversalServer) Send(m *QueryResult) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func _Query_GetResults_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(QueryJob)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(QueryServer).GetResults(m, &queryGetResultsServer{stream})
+}
+
+type Query_GetResultsServer interface {
+	Send(*QueryResult) error
+	grpc.ServerStream
+}
+
+type queryGetResultsServer struct {
+	grpc.ServerStream
+}
+
+func (x *queryGetResultsServer) Send(m *QueryResult) error {
 	return x.ServerStream.SendMsg(m)
 }
 
@@ -374,6 +432,422 @@ var Query_ServiceDesc = grpc.ServiceDesc{
 		{
 			StreamName:    "Traversal",
 			Handler:       _Query_Traversal_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "GetResults",
+			Handler:       _Query_GetResults_Handler,
+			ServerStreams: true,
+		},
+	},
+	Metadata: "gripql.proto",
+}
+
+// JobClient is the client API for Job service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+type JobClient interface {
+	Job(ctx context.Context, in *GraphQuery, opts ...grpc.CallOption) (*QueryJob, error)
+	ListJobs(ctx context.Context, in *Graph, opts ...grpc.CallOption) (Job_ListJobsClient, error)
+	SearchJobs(ctx context.Context, in *GraphQuery, opts ...grpc.CallOption) (Job_SearchJobsClient, error)
+	DeleteJob(ctx context.Context, in *QueryJob, opts ...grpc.CallOption) (*JobStatus, error)
+	GetJob(ctx context.Context, in *QueryJob, opts ...grpc.CallOption) (*JobStatus, error)
+	ViewJob(ctx context.Context, in *QueryJob, opts ...grpc.CallOption) (Job_ViewJobClient, error)
+	ResumeJob(ctx context.Context, in *ExtendQuery, opts ...grpc.CallOption) (Job_ResumeJobClient, error)
+}
+
+type jobClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewJobClient(cc grpc.ClientConnInterface) JobClient {
+	return &jobClient{cc}
+}
+
+func (c *jobClient) Job(ctx context.Context, in *GraphQuery, opts ...grpc.CallOption) (*QueryJob, error) {
+	out := new(QueryJob)
+	err := c.cc.Invoke(ctx, "/gripql.Job/Job", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *jobClient) ListJobs(ctx context.Context, in *Graph, opts ...grpc.CallOption) (Job_ListJobsClient, error) {
+	stream, err := c.cc.NewStream(ctx, &Job_ServiceDesc.Streams[0], "/gripql.Job/ListJobs", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &jobListJobsClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type Job_ListJobsClient interface {
+	Recv() (*QueryJob, error)
+	grpc.ClientStream
+}
+
+type jobListJobsClient struct {
+	grpc.ClientStream
+}
+
+func (x *jobListJobsClient) Recv() (*QueryJob, error) {
+	m := new(QueryJob)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (c *jobClient) SearchJobs(ctx context.Context, in *GraphQuery, opts ...grpc.CallOption) (Job_SearchJobsClient, error) {
+	stream, err := c.cc.NewStream(ctx, &Job_ServiceDesc.Streams[1], "/gripql.Job/SearchJobs", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &jobSearchJobsClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type Job_SearchJobsClient interface {
+	Recv() (*JobStatus, error)
+	grpc.ClientStream
+}
+
+type jobSearchJobsClient struct {
+	grpc.ClientStream
+}
+
+func (x *jobSearchJobsClient) Recv() (*JobStatus, error) {
+	m := new(JobStatus)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (c *jobClient) DeleteJob(ctx context.Context, in *QueryJob, opts ...grpc.CallOption) (*JobStatus, error) {
+	out := new(JobStatus)
+	err := c.cc.Invoke(ctx, "/gripql.Job/DeleteJob", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *jobClient) GetJob(ctx context.Context, in *QueryJob, opts ...grpc.CallOption) (*JobStatus, error) {
+	out := new(JobStatus)
+	err := c.cc.Invoke(ctx, "/gripql.Job/GetJob", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *jobClient) ViewJob(ctx context.Context, in *QueryJob, opts ...grpc.CallOption) (Job_ViewJobClient, error) {
+	stream, err := c.cc.NewStream(ctx, &Job_ServiceDesc.Streams[2], "/gripql.Job/ViewJob", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &jobViewJobClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type Job_ViewJobClient interface {
+	Recv() (*QueryResult, error)
+	grpc.ClientStream
+}
+
+type jobViewJobClient struct {
+	grpc.ClientStream
+}
+
+func (x *jobViewJobClient) Recv() (*QueryResult, error) {
+	m := new(QueryResult)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (c *jobClient) ResumeJob(ctx context.Context, in *ExtendQuery, opts ...grpc.CallOption) (Job_ResumeJobClient, error) {
+	stream, err := c.cc.NewStream(ctx, &Job_ServiceDesc.Streams[3], "/gripql.Job/ResumeJob", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &jobResumeJobClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type Job_ResumeJobClient interface {
+	Recv() (*QueryResult, error)
+	grpc.ClientStream
+}
+
+type jobResumeJobClient struct {
+	grpc.ClientStream
+}
+
+func (x *jobResumeJobClient) Recv() (*QueryResult, error) {
+	m := new(QueryResult)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+// JobServer is the server API for Job service.
+// All implementations must embed UnimplementedJobServer
+// for forward compatibility
+type JobServer interface {
+	Job(context.Context, *GraphQuery) (*QueryJob, error)
+	ListJobs(*Graph, Job_ListJobsServer) error
+	SearchJobs(*GraphQuery, Job_SearchJobsServer) error
+	DeleteJob(context.Context, *QueryJob) (*JobStatus, error)
+	GetJob(context.Context, *QueryJob) (*JobStatus, error)
+	ViewJob(*QueryJob, Job_ViewJobServer) error
+	ResumeJob(*ExtendQuery, Job_ResumeJobServer) error
+	mustEmbedUnimplementedJobServer()
+}
+
+// UnimplementedJobServer must be embedded to have forward compatible implementations.
+type UnimplementedJobServer struct {
+}
+
+func (UnimplementedJobServer) Job(context.Context, *GraphQuery) (*QueryJob, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Job not implemented")
+}
+func (UnimplementedJobServer) ListJobs(*Graph, Job_ListJobsServer) error {
+	return status.Errorf(codes.Unimplemented, "method ListJobs not implemented")
+}
+func (UnimplementedJobServer) SearchJobs(*GraphQuery, Job_SearchJobsServer) error {
+	return status.Errorf(codes.Unimplemented, "method SearchJobs not implemented")
+}
+func (UnimplementedJobServer) DeleteJob(context.Context, *QueryJob) (*JobStatus, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteJob not implemented")
+}
+func (UnimplementedJobServer) GetJob(context.Context, *QueryJob) (*JobStatus, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetJob not implemented")
+}
+func (UnimplementedJobServer) ViewJob(*QueryJob, Job_ViewJobServer) error {
+	return status.Errorf(codes.Unimplemented, "method ViewJob not implemented")
+}
+func (UnimplementedJobServer) ResumeJob(*ExtendQuery, Job_ResumeJobServer) error {
+	return status.Errorf(codes.Unimplemented, "method ResumeJob not implemented")
+}
+func (UnimplementedJobServer) mustEmbedUnimplementedJobServer() {}
+
+// UnsafeJobServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to JobServer will
+// result in compilation errors.
+type UnsafeJobServer interface {
+	mustEmbedUnimplementedJobServer()
+}
+
+func RegisterJobServer(s grpc.ServiceRegistrar, srv JobServer) {
+	s.RegisterService(&Job_ServiceDesc, srv)
+}
+
+func _Job_Job_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GraphQuery)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(JobServer).Job(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/gripql.Job/Job",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(JobServer).Job(ctx, req.(*GraphQuery))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Job_ListJobs_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(Graph)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(JobServer).ListJobs(m, &jobListJobsServer{stream})
+}
+
+type Job_ListJobsServer interface {
+	Send(*QueryJob) error
+	grpc.ServerStream
+}
+
+type jobListJobsServer struct {
+	grpc.ServerStream
+}
+
+func (x *jobListJobsServer) Send(m *QueryJob) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func _Job_SearchJobs_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(GraphQuery)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(JobServer).SearchJobs(m, &jobSearchJobsServer{stream})
+}
+
+type Job_SearchJobsServer interface {
+	Send(*JobStatus) error
+	grpc.ServerStream
+}
+
+type jobSearchJobsServer struct {
+	grpc.ServerStream
+}
+
+func (x *jobSearchJobsServer) Send(m *JobStatus) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func _Job_DeleteJob_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(QueryJob)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(JobServer).DeleteJob(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/gripql.Job/DeleteJob",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(JobServer).DeleteJob(ctx, req.(*QueryJob))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Job_GetJob_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(QueryJob)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(JobServer).GetJob(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/gripql.Job/GetJob",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(JobServer).GetJob(ctx, req.(*QueryJob))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Job_ViewJob_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(QueryJob)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(JobServer).ViewJob(m, &jobViewJobServer{stream})
+}
+
+type Job_ViewJobServer interface {
+	Send(*QueryResult) error
+	grpc.ServerStream
+}
+
+type jobViewJobServer struct {
+	grpc.ServerStream
+}
+
+func (x *jobViewJobServer) Send(m *QueryResult) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func _Job_ResumeJob_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(ExtendQuery)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(JobServer).ResumeJob(m, &jobResumeJobServer{stream})
+}
+
+type Job_ResumeJobServer interface {
+	Send(*QueryResult) error
+	grpc.ServerStream
+}
+
+type jobResumeJobServer struct {
+	grpc.ServerStream
+}
+
+func (x *jobResumeJobServer) Send(m *QueryResult) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+// Job_ServiceDesc is the grpc.ServiceDesc for Job service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var Job_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "gripql.Job",
+	HandlerType: (*JobServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "Job",
+			Handler:    _Job_Job_Handler,
+		},
+		{
+			MethodName: "DeleteJob",
+			Handler:    _Job_DeleteJob_Handler,
+		},
+		{
+			MethodName: "GetJob",
+			Handler:    _Job_GetJob_Handler,
+		},
+	},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "ListJobs",
+			Handler:       _Job_ListJobs_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "SearchJobs",
+			Handler:       _Job_SearchJobs_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "ViewJob",
+			Handler:       _Job_ViewJob_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "ResumeJob",
+			Handler:       _Job_ResumeJob_Handler,
 			ServerStreams: true,
 		},
 	},

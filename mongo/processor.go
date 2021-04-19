@@ -35,6 +35,7 @@ func getDataElement(result map[string]interface{}) *gdbi.DataElement {
 	}
 	if x, ok := result["data"]; ok {
 		de.Data = removePrimatives(x).(map[string]interface{})
+		de.Loaded = true
 	}
 	if x, ok := result["to"]; ok {
 		de.To = x.(string)
@@ -195,6 +196,7 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 					}
 					if x, ok := result["data"]; ok {
 						de.Data = removePrimatives(x).(map[string]interface{})
+						de.Loaded = true
 					}
 					if x, ok := result["to"]; ok {
 						de.To = x.(string)

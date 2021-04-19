@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/bmeg/grip/engine/pipeline"
+	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/util"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -29,16 +30,24 @@ func TestSchema(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = gi.AddVertex(schema.Vertices)
+	ve := []*gdbi.Vertex{}
+	for i := range schema.Vertices {
+		ve = append(ve, gdbi.NewElementFromVertex(schema.Vertices[i]))
+	}
+	err = gi.AddVertex(ve)
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = gi.AddEdge(schema.Edges)
+	ee := []*gdbi.Edge{}
+	for i := range schema.Edges {
+		ee = append(ee, gdbi.NewElementFromEdge(schema.Edges[i]))
+	}
+	err = gi.AddEdge(ee)
 	if err != nil {
 		t.Fatal(err)
 	}
 	Q := &gripql.Query{}
-	compiledPipeline, err := gi.Compiler().Compile(Q.V().HasLabel("users").Statements)
+	compiledPipeline, err := gi.Compiler().Compile(Q.V().HasLabel("users").Statements, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
