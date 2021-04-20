@@ -64,9 +64,16 @@ func NewFSJobStorage(path string) *FSResults {
 				job := Job{}
 				err := json.Unmarshal(sData, &job)
 				if err == nil {
+					log.Printf("Found job %s %s", graphName, jobName)
 					out.jobs.Store(jobKey(graphName, jobName), &job)
+				} else {
+					log.Printf("Error Unmarshaling job data: %s", err)
 				}
+			} else {
+				log.Printf("Error reading job data: %s", err)
 			}
+		} else {
+			log.Printf("Error opening job data: %s", err)
 		}
 	}
 	return &out
@@ -154,11 +161,11 @@ func (fs *FSResults) Spool(graph string, stream *Stream) (string, error) {
 		statusFile, err := os.Create(statusPath)
 		if err == nil {
 			defer statusFile.Close()
+			job.Status.State = gripql.JobState_COMPLETE
 			out, err := json.Marshal(job)
 			if err == nil {
 				statusFile.Write([]byte(fmt.Sprintf("%s\n", out)))
 			}
-			job.Status.State = gripql.JobState_COMPLETE
 			log.Printf("Job Done: %s (%d results)", jobName, job.Status.Count)
 		} else {
 			job.Status.State = gripql.JobState_ERROR
