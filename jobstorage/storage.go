@@ -144,17 +144,14 @@ func (fs *FSResults) Spool(graph string, stream *Stream) (string, error) {
 		StepChecksums: cs,
 	}
 	fs.jobs.Store(jobKey(graph, jobName), job)
+	tbStream := MarshalStream(stream.Pipe, 4) //TODO: make worker count configurable
 	go func() {
 		job.Status.State = gripql.JobState_RUNNING
 		log.Printf("Starting Job: %#v", job)
 		defer resultFile.Close()
-		for i := range stream.Pipe {
-			out, err := json.Marshal(i)
-			if err == nil {
-				resultFile.Write([]byte(fmt.Sprintf("%s\n", out)))
-			} else {
-				log.Printf("Marshal Error: %s", err)
-			}
+		for i := range tbStream {
+			resultFile.Write(i)
+			resultFile.Write([]byte("\n"))
 			job.Status.Count += 1
 		}
 		statusPath := filepath.Join(spoolDir, "status")
@@ -179,14 +176,15 @@ func (fs *FSResults) Stream(ctx context.Context, graph, id string) (*Stream, err
 	if v, ok := fs.jobs.Load(jobKey(graph, id)); ok {
 		vJob := v.(*Job)
 		if vJob.Status.State == gripql.JobState_COMPLETE {
-			out := make(chan *gdbi.Traveler, 10)
 			resultFile := filepath.Join(fs.BaseDir, sanitize.Name(graph), sanitize.Name(id), "results")
 			results, err := os.Open(resultFile)
 			if err != nil {
 				return nil, err
 			}
+			os := make(chan []byte, 40)
+			out := UnmarshalStream(os, 4) //TODO: make worker count configurable
 			go func() {
-				defer close(out)
+				defer close(os)
 				defer results.Close()
 				scan := bufio.NewScanner(results)
 				bufSize := 1024 * 1024 * 32
@@ -196,11 +194,9 @@ func (fs *FSResults) Stream(ctx context.Context, graph, id string) (*Stream, err
 					if ctx.Err() == context.Canceled {
 						return
 					}
-					t := gdbi.Traveler{}
-					err := json.Unmarshal([]byte(scan.Text()), &t)
-					if err == nil {
-						out <- &t
-					}
+					c := make([]byte, len(scan.Bytes()))
+					copy(c, scan.Bytes())
+					os <- c
 				}
 			}()
 			return &Stream{
