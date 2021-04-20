@@ -269,12 +269,6 @@ service Query {
     };
   }
 
-	rpc GetResults(QueryJob) returns (stream QueryResult) {
-    option (google.api.http) = {
-      get: "/v1/graph/{graph}/job/{id}/results"
-    };
-  }
-
   rpc GetVertex(ElementID) returns (Vertex) {
     option (google.api.http) = {
       get: "/v1/graph/{graph}/vertex/{id}"

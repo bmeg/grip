@@ -64,51 +64,6 @@ func (dir *QueryDirectClient) Traversal(ctx context.Context, in *GraphQuery, opt
 }
 
 
-//GetResults streaming output shim
-type directQueryGetResults struct {
-  ctx context.Context
-  c   chan *QueryResult
-  e   error
-}
-
-func (dsm *directQueryGetResults) Recv() (*QueryResult, error) {
-	value, ok := <-dsm.c
-	if !ok {
-    if dsm.e != nil {
-      return nil, dsm.e
-    }
-		return nil, io.EOF
-	}
-	return value, dsm.e
-}
-func (dsm *directQueryGetResults) Send(a *QueryResult) error {
-	dsm.c <- a
-	return nil
-}
-func (dsm *directQueryGetResults) close() {
-	close(dsm.c)
-}
-func (dsm *directQueryGetResults) Context() context.Context {
-	return dsm.ctx
-}
-func (dsm *directQueryGetResults) CloseSend() error             { return nil }
-func (dsm *directQueryGetResults) SetTrailer(metadata.MD)       {}
-func (dsm *directQueryGetResults) SetHeader(metadata.MD) error  { return nil }
-func (dsm *directQueryGetResults) SendHeader(metadata.MD) error { return nil }
-func (dsm *directQueryGetResults) SendMsg(m interface{}) error  { return nil }
-func (dsm *directQueryGetResults) RecvMsg(m interface{}) error  { return nil }
-func (dsm *directQueryGetResults) Header() (metadata.MD, error) { return nil, nil }
-func (dsm *directQueryGetResults) Trailer() metadata.MD         { return nil }
-func (dir *QueryDirectClient) GetResults(ctx context.Context, in *QueryJob, opts ...grpc.CallOption) (Query_GetResultsClient, error) {
-	w := &directQueryGetResults{ctx, make(chan *QueryResult, 100), nil}
-	go func() {
-    defer w.close()
-		w.e = dir.server.GetResults(in, w)
-	}()
-	return w, nil
-}
-
-
 //GetVertex shim
 func (shim *QueryDirectClient) GetVertex(ctx context.Context, in *ElementID, opts ...grpc.CallOption) (*Vertex, error) {
 	return shim.server.GetVertex(ctx, in)

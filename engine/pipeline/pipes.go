@@ -15,7 +15,7 @@ import (
 )
 
 // Start begins processing a query pipeline
-func Start(ctx context.Context, pipe gdbi.Pipeline, man gdbi.Manager, bufsize int, input gdbi.InPipe) gdbi.InPipe {
+func Start(ctx context.Context, pipe gdbi.Pipeline, man gdbi.Manager, bufsize int, input gdbi.InPipe, cancel func()) gdbi.InPipe {
 	procs := pipe.Processors()
 	if len(procs) == 0 {
 		ch := make(chan *gdbi.Traveler)
@@ -32,15 +32,19 @@ func Start(ctx context.Context, pipe gdbi.Pipeline, man gdbi.Manager, bufsize in
 		in = make(chan *gdbi.Traveler, bufsize)
 	}
 
-	// Write an empty traveler to input
-	// to trigger the computation.
-	// Sends an empty traveler to the pipe to kick off pipelines of processors.
 	go func() {
 		if input != nil {
 			for i := range input {
+				if ctx.Err() == context.Canceled {
+					//cancel upstream
+					cancel()
+				}
 				out <- i
 			}
 		} else {
+			// Write an empty traveler to input
+			// to trigger the computation.
+			// Sends an empty traveler to the pipe to kick off pipelines of processors.
 			out <- &gdbi.Traveler{}
 		}
 		close(in)
@@ -59,7 +63,7 @@ func Run(ctx context.Context, pipe gdbi.Pipeline, workdir string) <-chan *gripql
 		dataType := pipe.DataType()
 		markTypes := pipe.MarkTypes()
 		man := engine.NewManager(workdir)
-		for t := range Start(ctx, pipe, man, bufsize, nil) {
+		for t := range Start(ctx, pipe, man, bufsize, nil, nil) {
 			resch <- Convert(graph, dataType, markTypes, t)
 		}
 		man.Cleanup()
@@ -68,7 +72,7 @@ func Run(ctx context.Context, pipe gdbi.Pipeline, workdir string) <-chan *gripql
 }
 
 // Run starts a pipeline and converts the output to server output structures
-func Resume(ctx context.Context, pipe gdbi.Pipeline, workdir string, input gdbi.InPipe) <-chan *gripql.QueryResult {
+func Resume(ctx context.Context, pipe gdbi.Pipeline, workdir string, input gdbi.InPipe, cancel func()) <-chan *gripql.QueryResult {
 	bufsize := 5000
 	resch := make(chan *gripql.QueryResult, bufsize)
 	go func() {
@@ -77,7 +81,7 @@ func Resume(ctx context.Context, pipe gdbi.Pipeline, workdir string, input gdbi.
 		dataType := pipe.DataType()
 		markTypes := pipe.MarkTypes()
 		man := engine.NewManager(workdir)
-		for t := range Start(ctx, pipe, man, bufsize, input) {
+		for t := range Start(ctx, pipe, man, bufsize, input, cancel) {
 			resch <- Convert(graph, dataType, markTypes, t)
 		}
 		man.Cleanup()

@@ -19,7 +19,6 @@ const _ = grpc.SupportPackageIsVersion7
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type QueryClient interface {
 	Traversal(ctx context.Context, in *GraphQuery, opts ...grpc.CallOption) (Query_TraversalClient, error)
-	GetResults(ctx context.Context, in *QueryJob, opts ...grpc.CallOption) (Query_GetResultsClient, error)
 	GetVertex(ctx context.Context, in *ElementID, opts ...grpc.CallOption) (*Vertex, error)
 	GetEdge(ctx context.Context, in *ElementID, opts ...grpc.CallOption) (*Edge, error)
 	GetTimestamp(ctx context.Context, in *GraphID, opts ...grpc.CallOption) (*Timestamp, error)
@@ -62,38 +61,6 @@ type queryTraversalClient struct {
 }
 
 func (x *queryTraversalClient) Recv() (*QueryResult, error) {
-	m := new(QueryResult)
-	if err := x.ClientStream.RecvMsg(m); err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-
-func (c *queryClient) GetResults(ctx context.Context, in *QueryJob, opts ...grpc.CallOption) (Query_GetResultsClient, error) {
-	stream, err := c.cc.NewStream(ctx, &Query_ServiceDesc.Streams[1], "/gripql.Query/GetResults", opts...)
-	if err != nil {
-		return nil, err
-	}
-	x := &queryGetResultsClient{stream}
-	if err := x.ClientStream.SendMsg(in); err != nil {
-		return nil, err
-	}
-	if err := x.ClientStream.CloseSend(); err != nil {
-		return nil, err
-	}
-	return x, nil
-}
-
-type Query_GetResultsClient interface {
-	Recv() (*QueryResult, error)
-	grpc.ClientStream
-}
-
-type queryGetResultsClient struct {
-	grpc.ClientStream
-}
-
-func (x *queryGetResultsClient) Recv() (*QueryResult, error) {
 	m := new(QueryResult)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
@@ -169,7 +136,6 @@ func (c *queryClient) ListLabels(ctx context.Context, in *GraphID, opts ...grpc.
 // for forward compatibility
 type QueryServer interface {
 	Traversal(*GraphQuery, Query_TraversalServer) error
-	GetResults(*QueryJob, Query_GetResultsServer) error
 	GetVertex(context.Context, *ElementID) (*Vertex, error)
 	GetEdge(context.Context, *ElementID) (*Edge, error)
 	GetTimestamp(context.Context, *GraphID) (*Timestamp, error)
@@ -186,9 +152,6 @@ type UnimplementedQueryServer struct {
 
 func (UnimplementedQueryServer) Traversal(*GraphQuery, Query_TraversalServer) error {
 	return status.Errorf(codes.Unimplemented, "method Traversal not implemented")
-}
-func (UnimplementedQueryServer) GetResults(*QueryJob, Query_GetResultsServer) error {
-	return status.Errorf(codes.Unimplemented, "method GetResults not implemented")
 }
 func (UnimplementedQueryServer) GetVertex(context.Context, *ElementID) (*Vertex, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetVertex not implemented")
@@ -242,27 +205,6 @@ type queryTraversalServer struct {
 }
 
 func (x *queryTraversalServer) Send(m *QueryResult) error {
-	return x.ServerStream.SendMsg(m)
-}
-
-func _Query_GetResults_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(QueryJob)
-	if err := stream.RecvMsg(m); err != nil {
-		return err
-	}
-	return srv.(QueryServer).GetResults(m, &queryGetResultsServer{stream})
-}
-
-type Query_GetResultsServer interface {
-	Send(*QueryResult) error
-	grpc.ServerStream
-}
-
-type queryGetResultsServer struct {
-	grpc.ServerStream
-}
-
-func (x *queryGetResultsServer) Send(m *QueryResult) error {
 	return x.ServerStream.SendMsg(m)
 }
 
@@ -432,11 +374,6 @@ var Query_ServiceDesc = grpc.ServiceDesc{
 		{
 			StreamName:    "Traversal",
 			Handler:       _Query_Traversal_Handler,
-			ServerStreams: true,
-		},
-		{
-			StreamName:    "GetResults",
-			Handler:       _Query_GetResults_Handler,
 			ServerStreams: true,
 		},
 	},

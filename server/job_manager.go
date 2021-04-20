@@ -32,7 +32,7 @@ func (server *GripServer) Job(ctx context.Context, query *gripql.GraphQuery) (*g
 	man := engine.NewManager(server.conf.Server.WorkDir)
 	bufsize := 5000 //make this configurable?
 
-	res := pipeline.Start(context.Background(), pipe, man, bufsize, nil)
+	res := pipeline.Start(context.Background(), pipe, man, bufsize, nil, nil)
 	jobID, err := server.jStorage.Spool(query.Graph,
 		&jobstorage.Stream{
 			DataType:  dataType,
@@ -48,23 +48,6 @@ func (server *GripServer) Job(ctx context.Context, query *gripql.GraphQuery) (*g
 
 func (server *GripServer) GetJob(ctx context.Context, job *gripql.QueryJob) (*gripql.JobStatus, error) {
 	return server.jStorage.Status(job.Graph, job.Id)
-}
-
-func (server *GripServer) GetResults(job *gripql.QueryJob, srv gripql.Query_GetResultsServer) error {
-	out, err := server.jStorage.Stream(job.Graph, job.Id)
-	if err != nil {
-		return err
-	}
-	gdb, err := server.getGraphDB(job.Graph)
-	if err != nil {
-		return err
-	}
-	graph, err := gdb.Graph(job.Graph)
-	for o := range out.Pipe {
-		res := pipeline.Convert(graph, out.DataType, out.MarkTypes, o)
-		srv.Send(res)
-	}
-	return nil
 }
 
 func (server *GripServer) DeleteJob(ctx context.Context, job *gripql.QueryJob) (*gripql.JobStatus, error) {
@@ -105,7 +88,7 @@ func (server *GripServer) SearchJobs(query *gripql.GraphQuery, srv gripql.Job_Se
 }
 
 func (server *GripServer) ViewJob(job *gripql.QueryJob, srv gripql.Job_ViewJobServer) error {
-	stream, err := server.jStorage.Stream(job.Graph, job.Id)
+	stream, err := server.jStorage.Stream(context.Background(), job.Graph, job.Id)
 	if err != nil {
 		return nil
 	}
@@ -131,7 +114,10 @@ func (server *GripServer) ResumeJob(query *gripql.ExtendQuery, srv gripql.Job_Re
 	if err != nil {
 		return err
 	}
-	stream, err := server.jStorage.Stream(query.Graph, query.SrcId)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	stream, err := server.jStorage.Stream(ctx, query.Graph, query.SrcId)
 	if err != nil {
 		return err
 	}
@@ -139,15 +125,14 @@ func (server *GripServer) ResumeJob(query *gripql.ExtendQuery, srv gripql.Job_Re
 	log.Infof("Compiling resume pipeline: %s", stream.DataType)
 	pipe, err := compiler.Compile(query.Query, &gdbi.CompileOptions{PipelineExtension: stream.DataType, ExtensionMarkTypes: stream.MarkTypes})
 	if err != nil {
-		//reading through the whole file after a compile failure is kind of dumb.
-		//should probably add a context cancel to Stream
+		cancel()
 		go func() {
 			for range stream.Pipe {
 			}
 		}()
 		return err
 	}
-	res := pipeline.Resume(context.Background(), pipe, server.conf.Server.WorkDir, stream.Pipe)
+	res := pipeline.Resume(context.Background(), pipe, server.conf.Server.WorkDir, stream.Pipe, cancel)
 	for o := range res {
 		srv.Send(o)
 	}

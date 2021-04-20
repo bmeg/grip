@@ -2,6 +2,7 @@ package jobstorage
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -28,7 +29,7 @@ type JobStorage interface {
 	List(graph string) (chan string, error)
 	Search(graph string, Query []*gripql.GraphStatement) (chan *gripql.JobStatus, error)
 	Spool(graph string, stream *Stream) (string, error)
-	Stream(graph, id string) (*Stream, error)
+	Stream(ctx context.Context, graph, id string) (*Stream, error)
 	Delete(graph, id string) error
 	Status(graph, id string) (*gripql.JobStatus, error)
 }
@@ -167,7 +168,7 @@ func (fs *FSResults) Spool(graph string, stream *Stream) (string, error) {
 	return jobName, nil
 }
 
-func (fs *FSResults) Stream(graph, id string) (*Stream, error) {
+func (fs *FSResults) Stream(ctx context.Context, graph, id string) (*Stream, error) {
 	if v, ok := fs.jobs.Load(jobKey(graph, id)); ok {
 		vJob := v.(*Job)
 		if vJob.Status.State == gripql.JobState_COMPLETE {
@@ -185,6 +186,9 @@ func (fs *FSResults) Stream(graph, id string) (*Stream, error) {
 				buf := make([]byte, bufSize)
 				scan.Buffer(buf, bufSize)
 				for scan.Scan() {
+					if ctx.Err() == context.Canceled {
+						return
+					}
 					t := gdbi.Traveler{}
 					err := json.Unmarshal([]byte(scan.Text()), &t)
 					if err == nil {
