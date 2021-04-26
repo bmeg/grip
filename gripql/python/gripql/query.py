@@ -117,7 +117,7 @@ class Query(BaseConnection):
         Must be called from a vertex.
         """
         label = _wrap_str_value(label)
-        return self.__append({"in_e": label})
+        return self.__append({"inE": label})
 
     def outE(self, label=[]):
         """
@@ -129,7 +129,7 @@ class Query(BaseConnection):
         Must be called from a vertex.
         """
         label = _wrap_str_value(label)
-        return self.__append({"out_e": label})
+        return self.__append({"outE": label})
 
     def bothE(self, label=[]):
         """
@@ -141,7 +141,7 @@ class Query(BaseConnection):
         Must be called from a vertex.
         """
         label = _wrap_str_value(label)
-        return self.__append({"both_e": label})
+        return self.__append({"bothE": label})
 
     def has(self, expression):
         """
