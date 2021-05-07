@@ -2,6 +2,8 @@ package schema
 
 import (
 	"fmt"
+	"os"
+	"io/ioutil"
 
 	"github.com/bmeg/grip/gripql"
 	gripql_schema "github.com/bmeg/grip/gripql/schema"
@@ -70,7 +72,17 @@ var postCmd = &cobra.Command{
 		}
 
 		if jsonFile != "" {
-			graphs, err := gripql.ParseJSONGraphFile(jsonFile)
+			var graphs []*gripql.Graph
+			var err error
+			if jsonFile == "-" {
+				bytes, err := ioutil.ReadAll(os.Stdin)
+				if err != nil {
+					return err
+				}
+				graphs, err = gripql.ParseJSONGraph(bytes)
+			} else {
+				graphs, err = gripql.ParseJSONGraphFile(jsonFile)
+			}
 			if err != nil {
 				return err
 			}
@@ -83,7 +95,17 @@ var postCmd = &cobra.Command{
 		}
 
 		if yamlFile != "" {
-			graphs, err := gripql.ParseYAMLGraphFile(yamlFile)
+			var graphs []*gripql.Graph
+			var err error
+			if jsonFile == "-" {
+				bytes, err := ioutil.ReadAll(os.Stdin)
+				if err != nil {
+					return err
+				}
+				graphs, err = gripql.ParseYAMLGraph(bytes)
+			} else {
+				graphs, err = gripql.ParseYAMLGraphFile(yamlFile)
+			}
 			if err != nil {
 				return err
 			}
