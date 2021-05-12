@@ -2,8 +2,8 @@ package schema
 
 import (
 	"fmt"
-	"os"
 	"io/ioutil"
+	"os"
 
 	"github.com/bmeg/grip/gripql"
 	gripql_schema "github.com/bmeg/grip/gripql/schema"
