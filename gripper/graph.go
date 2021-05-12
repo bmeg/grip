@@ -434,6 +434,7 @@ func (t *TabularGraph) GetVertexList(ctx context.Context, load bool) <-chan *gdb
 func (t *TabularGraph) GetEdgeList(ctx context.Context, load bool) <-chan *gdbi.Edge {
 	out := make(chan *gdbi.Edge, 100)
 	go func() {
+		log.Infof("Getting edge list")
 		defer close(out)
 		for _, source := range t.edgeSourceOrder {
 			edgeList := t.outEdges[source]
@@ -503,6 +504,7 @@ func (t *TabularGraph) GetEdgeList(ctx context.Context, load bool) <-chan *gdbi.
 				}
 			}
 		}
+		log.Infof("Done with edgelist")
 	}()
 	return out
 }
