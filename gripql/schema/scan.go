@@ -49,12 +49,12 @@ func ScanSchema(conn gripql.Client, graph string, sampleCount uint32, exclude []
 				ds := gripql.GetDataFieldTypes(data)
 				util.MergeMaps(schema, ds)
 			}
-			fmt.Printf("Scan %s %#v\n", label, schema)
+			//fmt.Printf("Scan %s %#v\n", label, schema)
 			sValue, err := structpb.NewStruct(schema)
 			if err != nil {
 				log.Error(err)
 			}
-			fmt.Printf("Scan %s %#v\n", label, sValue)
+			//fmt.Printf("Scan %s %#v\n", label, sValue)
 			vList = append(vList, &gripql.Vertex{Gid: label, Label: label, Data: sValue})
 		}
 	}
