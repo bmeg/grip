@@ -33,7 +33,7 @@ class Writer:
 
         self.record_count += 1
         if self.record_count % 1000 == 0:
-            print "%s vertices written" % (self.record_count)
+            print("%s vertices written" % (self.record_count))
 
     def close(self):
         self.vert_handle.close()
@@ -41,7 +41,7 @@ class Writer:
 
 writer = Writer(sys.argv[2])
 
-with gzip.GzipFile(sys.argv[1]) as handle:
+with gzip.open(sys.argv[1], "rt") as handle:
 
     record = None
     for line in handle:
@@ -56,14 +56,15 @@ with gzip.GzipFile(sys.argv[1]) as handle:
                     record = {"Id" : e[1]}
                 elif e[0] == "ASIN":
                     record["ASIN"] = e[1]
-                elif e[0] in ["group", "title", "salesrank"]:
+                elif e[0] in ["group", "title"]:
                     record[e[0]] = e[1]
+                elif e[0] in ["salesrank"]:
+                    record[e[0]] = int(e[1])
                 elif e[0] == "similar":
                     record['similar'] = e[1].split("  ")[1:]
                 elif e[0] == "categories":
                     for i in range(int(e[1])):
                         l = handle.readline()
-                        #print e
                 elif e[0] == "reviews":
                     #print "review", e[1].split("  ")
                     record['reviews'] = []
@@ -72,8 +73,8 @@ with gzip.GzipFile(sys.argv[1]) as handle:
                         l = handle.readline().strip()
                         eres = re.search("([^\s]+)\s+cutomer:\s+(\w+)\s+rating:\s+(.)\s+votes:\s+(\d+)\s+helpful:\s+(\d+)", l)
                         if eres is None:
-                            print "review", e[1]
-                            print "review", l
+                            print("review", e[1])
+                            print("review", l)
                         date, customer, rating, votes, helpful = eres.groups()
                         record['reviews'].append({
                             "date" : date,
@@ -83,6 +84,6 @@ with gzip.GzipFile(sys.argv[1]) as handle:
                             "helpful" : helpful
                         })
                 else:
-                    print e
+                    print(e)
                 #print e[0]
 writer.close()

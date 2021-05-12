@@ -22,7 +22,7 @@ require (
 	github.com/go-resty/resty/v2 v2.1.0 // indirect
 	github.com/go-sourcemap/sourcemap v2.1.2+incompatible // indirect
 	github.com/go-sql-driver/mysql v1.5.0
-	github.com/golang/protobuf v1.4.3
+	github.com/golang/protobuf v1.5.0
 	github.com/golangci/go-tools v0.0.0-20190318055746-e32c54105b7c // indirect
 	github.com/golangci/golangci-lint v1.22.2 // indirect
 	github.com/golangci/gosec v0.0.0-20190211064107-66fb7fc33547 // indirect
@@ -41,9 +41,9 @@ require (
 	github.com/kr/pretty v0.1.0
 	github.com/lib/pq v1.2.0
 	github.com/logrusorgru/aurora v0.0.0-20190428105938-cea283e61946
-	github.com/mitchellh/hashstructure/v2 v2.0.1
 	github.com/machinebox/graphql v0.2.2
 	github.com/matryer/is v1.4.0 // indirect
+	github.com/mitchellh/hashstructure/v2 v2.0.1
 	github.com/mitchellh/mapstructure v1.1.2 // indirect
 	github.com/mongodb/mongo-tools v0.0.0-20210401103731-387f92fbcf79
 	github.com/paulbellamy/ratecounter v0.2.0
@@ -63,7 +63,7 @@ require (
 	google.golang.org/genproto v0.0.0-20210224155714-063164c882e6
 	google.golang.org/grpc v1.36.0
 	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.1.0 // indirect
-	google.golang.org/protobuf v1.25.1-0.20201208041424-160c7477e0e8
+	google.golang.org/protobuf v1.26.0
 	gopkg.in/airbrake/gobrake.v2 v2.0.9 // indirect
 	gopkg.in/gemnasium/logrus-airbrake-hook.v2 v2.1.2 // indirect
 	gopkg.in/olivere/elastic.v5 v5.0.80

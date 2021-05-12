@@ -1067,7 +1067,10 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 			}
 		}
 		for _, a := range agg.aggregations {
-			close(aChans[a.Name])
+			if aChans[a.Name] != nil {
+				close(aChans[a.Name])
+				aChans[a.Name] = nil
+			}
 		}
 		return nil
 	})
@@ -1091,7 +1094,7 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 					val := jsonpath.TravelerPathLookup(t, tagg.Field)
 					if val != nil {
 						k := reflect.TypeOf(val).Kind()
-						if k != reflect.Array && k != reflect.Slice {
+						if k != reflect.Array && k != reflect.Slice && k != reflect.Map {
 							fieldTermCounts[val]++
 							if len(fieldTermCounts) > maxTerms {
 								return fmt.Errorf("term aggreagtion: collected more unique terms (%v) than allowed (%v)", len(fieldTermCounts), maxTerms)
