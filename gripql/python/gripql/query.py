@@ -276,7 +276,7 @@ class Query(BaseConnection):
     def __iter__(self):
         return self.__stream()
 
-    def __stream(self, debug=False):
+    def __stream(self, raw=False, debug=False):
         """
         Execute the query and return an iterator.
         """
@@ -322,7 +322,9 @@ class Query(BaseConnection):
                 logger.error("Failed to decode: %s", result)
                 raise e
 
-            if "vertex" in result_dict:
+            if raw:
+                extracted = result_dict
+            elif "vertex" in result_dict:
                 extracted = result_dict["vertex"]
             elif "edge" in result_dict:
                 extracted = result_dict["edge"]
@@ -351,7 +353,7 @@ class Query(BaseConnection):
             rate.tick()
         rate.close()
 
-    def execute(self, stream=False, debug=False):
+    def execute(self, stream=False, raw=False, debug=False):
         """
         Execute the query.
 
@@ -359,10 +361,10 @@ class Query(BaseConnection):
         is returned.
         """
         if stream:
-            return self.__stream(debug)
+            return self.__stream(raw=raw, debug=debug)
         else:
             output = []
-            for r in self.__stream(debug):
+            for r in self.__stream(raw=raw, debug=debug):
                 output.append(r)
             return output
 

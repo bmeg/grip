@@ -189,7 +189,7 @@ class Graph(BaseConnection):
         raise_for_status(response)
         return response.json()
 
-    def readJob(self, id):
+    def readJob(self, id, raw=False):
         """
         read job
         """
@@ -206,7 +206,9 @@ class Graph(BaseConnection):
                 #logger.error("Failed to decode: %s", result)
                 raise e
 
-            if "vertex" in result_dict:
+            if raw:
+                extracted = result_dict
+            elif "vertex" in result_dict:
                 extracted = result_dict["vertex"]
             elif "edge" in result_dict:
                 extracted = result_dict["edge"]
