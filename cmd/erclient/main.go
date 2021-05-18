@@ -55,7 +55,7 @@ var InfoCmd = &cobra.Command{
 }
 
 var RowsCmd = &cobra.Command{
-	Use:   "rows",
+	Use:   "rows <collection>",
 	Short: "List rows from a collection",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -74,7 +74,7 @@ var RowsCmd = &cobra.Command{
 }
 
 var IdsCmd = &cobra.Command{
-	Use:   "ids",
+	Use:   "ids <collection>",
 	Short: "List ids from a collection",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -88,7 +88,7 @@ var IdsCmd = &cobra.Command{
 }
 
 var QueryCmd = &cobra.Command{
-	Use:   "query",
+	Use:   "query <collection> <field> <value>",
 	Short: "List rows with field match",
 	Args:  cobra.ExactArgs(3),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -113,7 +113,7 @@ var QueryCmd = &cobra.Command{
 }
 
 var GetCmd = &cobra.Command{
-	Use:   "get",
+	Use:   "get <collection> <ids ...>",
 	Short: "List rows with field match",
 	Args:  cobra.MinimumNArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
