@@ -315,7 +315,7 @@ func (t *TabularGraph) GetEdge(key string, load bool) *gdbi.Edge {
 
 						srcRow := t.getRow(edge.fromVertex.config.Source, edge.fromVertex.config.Collection, srcID)
 						if srcRow != nil {
-							dstRow := t.getRow(edge.fromVertex.config.Source, edge.fromVertex.config.Collection, dstID)
+							dstRow := t.getRow(edge.toVertex.config.Source, edge.toVertex.config.Collection, dstID)
 							if dstRow != nil {
 								srcData := srcRow.Data.AsMap()
 								dstData := dstRow.Data.AsMap()

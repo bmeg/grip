@@ -32,7 +32,6 @@ func TabularOptimizer(pipe []*gripql.GraphStatement) []*gripql.GraphStatement {
 	return pipe
 }
 
-
 // vertex hasLabel optimization
 
 type tabularHasLabelStep struct {
@@ -58,9 +57,9 @@ func (t *tabularHasLabelProc) Process(ctx context.Context, man gdbi.Manager, in 
 				if setcmp.ContainsString(t.labels, table.config.Label) {
 					for row := range t.graph.client.GetRows(ctx, table.config.Source, table.config.Collection) {
 						out <- i.AddCurrent(&gdbi.DataElement{
-							ID:    table.prefix + row.Id,
-							Label: table.config.Label,
-							Data:  row.Data.AsMap(),
+							ID:     table.prefix + row.Id,
+							Label:  table.config.Label,
+							Data:   row.Data.AsMap(),
 							Loaded: true,
 						})
 					}
@@ -79,7 +78,6 @@ func (t tabularHasLabelStep) GetProcessor(db gdbi.GraphInterface, ps gdbi.Pipeli
 func (t tabularHasLabelStep) GetType() gdbi.DataType {
 	return gdbi.VertexData
 }
-
 
 // Edge hasLabel optimization
 
@@ -129,10 +127,37 @@ func (t *tabularEdgeHasLabelProc) Process(ctx context.Context, man gdbi.Manager,
 								}
 							}
 						} else if edge.config.FieldToField != nil {
-
-
+							for srcRow := range t.graph.client.GetRows(ctx, edge.fromVertex.config.Source, edge.fromVertex.config.Collection) {
+								srcData := srcRow.Data.AsMap()
+								if srcField, err := jsonpath.JsonPathLookup(srcData, edge.config.FieldToField.FromField); err == nil {
+									if fValue, ok := srcField.(string); ok {
+										if fValue != "" {
+											dstRes, err := t.graph.client.GetRowsByField(ctx,
+												edge.toVertex.config.Source,
+												edge.toVertex.config.Collection,
+												edge.config.FieldToField.ToField, fValue)
+											if err == nil {
+												for dstRow := range dstRes {
+													o := gdbi.Edge{
+														ID:     edge.GenID(srcRow.Id, dstRow.Id),
+														From:   edge.fromVertex.prefix + srcRow.Id,
+														To:     edge.toVertex.prefix + dstRow.Id,
+														Label:  edge.config.Label,
+														Loaded: true,
+													}
+													out <- i.AddCurrent(&o)
+												}
+											} else {
+												if ctx.Err() != context.Canceled {
+													log.Errorf("Error doing FieldToField search: %s", err)
+												}
+											}
+										}
+									}
+								}
+							}
 						} else {
-								log.Errorf("GetEdge.FieldToID not yet implemented")
+							log.Errorf("GetEdge.FieldToID not yet implemented")
 						}
 					}
 				}
