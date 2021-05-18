@@ -2,7 +2,7 @@
 """Client and server classes corresponding to protobuf-defined services."""
 import grpc
 
-import gripper_pb2 as gripper__pb2
+from gripper import gripper_pb2 as gripper_dot_gripper__pb2
 
 
 class GRIPSourceStub(object):
@@ -16,33 +16,33 @@ class GRIPSourceStub(object):
         """
         self.GetCollections = channel.unary_stream(
                 '/gripper.GRIPSource/GetCollections',
-                request_serializer=gripper__pb2.Empty.SerializeToString,
-                response_deserializer=gripper__pb2.Collection.FromString,
+                request_serializer=gripper_dot_gripper__pb2.Empty.SerializeToString,
+                response_deserializer=gripper_dot_gripper__pb2.Collection.FromString,
                 )
         self.GetCollectionInfo = channel.unary_unary(
                 '/gripper.GRIPSource/GetCollectionInfo',
-                request_serializer=gripper__pb2.Collection.SerializeToString,
-                response_deserializer=gripper__pb2.CollectionInfo.FromString,
+                request_serializer=gripper_dot_gripper__pb2.Collection.SerializeToString,
+                response_deserializer=gripper_dot_gripper__pb2.CollectionInfo.FromString,
                 )
         self.GetIDs = channel.unary_stream(
                 '/gripper.GRIPSource/GetIDs',
-                request_serializer=gripper__pb2.Collection.SerializeToString,
-                response_deserializer=gripper__pb2.RowID.FromString,
+                request_serializer=gripper_dot_gripper__pb2.Collection.SerializeToString,
+                response_deserializer=gripper_dot_gripper__pb2.RowID.FromString,
                 )
         self.GetRows = channel.unary_stream(
                 '/gripper.GRIPSource/GetRows',
-                request_serializer=gripper__pb2.Collection.SerializeToString,
-                response_deserializer=gripper__pb2.Row.FromString,
+                request_serializer=gripper_dot_gripper__pb2.Collection.SerializeToString,
+                response_deserializer=gripper_dot_gripper__pb2.Row.FromString,
                 )
         self.GetRowsByID = channel.stream_stream(
                 '/gripper.GRIPSource/GetRowsByID',
-                request_serializer=gripper__pb2.RowRequest.SerializeToString,
-                response_deserializer=gripper__pb2.Row.FromString,
+                request_serializer=gripper_dot_gripper__pb2.RowRequest.SerializeToString,
+                response_deserializer=gripper_dot_gripper__pb2.Row.FromString,
                 )
         self.GetRowsByField = channel.unary_stream(
                 '/gripper.GRIPSource/GetRowsByField',
-                request_serializer=gripper__pb2.FieldRequest.SerializeToString,
-                response_deserializer=gripper__pb2.Row.FromString,
+                request_serializer=gripper_dot_gripper__pb2.FieldRequest.SerializeToString,
+                response_deserializer=gripper_dot_gripper__pb2.Row.FromString,
                 )
 
 
@@ -90,33 +90,33 @@ def add_GRIPSourceServicer_to_server(servicer, server):
     rpc_method_handlers = {
             'GetCollections': grpc.unary_stream_rpc_method_handler(
                     servicer.GetCollections,
-                    request_deserializer=gripper__pb2.Empty.FromString,
-                    response_serializer=gripper__pb2.Collection.SerializeToString,
+                    request_deserializer=gripper_dot_gripper__pb2.Empty.FromString,
+                    response_serializer=gripper_dot_gripper__pb2.Collection.SerializeToString,
             ),
             'GetCollectionInfo': grpc.unary_unary_rpc_method_handler(
                     servicer.GetCollectionInfo,
-                    request_deserializer=gripper__pb2.Collection.FromString,
-                    response_serializer=gripper__pb2.CollectionInfo.SerializeToString,
+                    request_deserializer=gripper_dot_gripper__pb2.Collection.FromString,
+                    response_serializer=gripper_dot_gripper__pb2.CollectionInfo.SerializeToString,
             ),
             'GetIDs': grpc.unary_stream_rpc_method_handler(
                     servicer.GetIDs,
-                    request_deserializer=gripper__pb2.Collection.FromString,
-                    response_serializer=gripper__pb2.RowID.SerializeToString,
+                    request_deserializer=gripper_dot_gripper__pb2.Collection.FromString,
+                    response_serializer=gripper_dot_gripper__pb2.RowID.SerializeToString,
             ),
             'GetRows': grpc.unary_stream_rpc_method_handler(
                     servicer.GetRows,
-                    request_deserializer=gripper__pb2.Collection.FromString,
-                    response_serializer=gripper__pb2.Row.SerializeToString,
+                    request_deserializer=gripper_dot_gripper__pb2.Collection.FromString,
+                    response_serializer=gripper_dot_gripper__pb2.Row.SerializeToString,
             ),
             'GetRowsByID': grpc.stream_stream_rpc_method_handler(
                     servicer.GetRowsByID,
-                    request_deserializer=gripper__pb2.RowRequest.FromString,
-                    response_serializer=gripper__pb2.Row.SerializeToString,
+                    request_deserializer=gripper_dot_gripper__pb2.RowRequest.FromString,
+                    response_serializer=gripper_dot_gripper__pb2.Row.SerializeToString,
             ),
             'GetRowsByField': grpc.unary_stream_rpc_method_handler(
                     servicer.GetRowsByField,
-                    request_deserializer=gripper__pb2.FieldRequest.FromString,
-                    response_serializer=gripper__pb2.Row.SerializeToString,
+                    request_deserializer=gripper_dot_gripper__pb2.FieldRequest.FromString,
+                    response_serializer=gripper_dot_gripper__pb2.Row.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -140,8 +140,8 @@ class GRIPSource(object):
             timeout=None,
             metadata=None):
         return grpc.experimental.unary_stream(request, target, '/gripper.GRIPSource/GetCollections',
-            gripper__pb2.Empty.SerializeToString,
-            gripper__pb2.Collection.FromString,
+            gripper_dot_gripper__pb2.Empty.SerializeToString,
+            gripper_dot_gripper__pb2.Collection.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
@@ -157,8 +157,8 @@ class GRIPSource(object):
             timeout=None,
             metadata=None):
         return grpc.experimental.unary_unary(request, target, '/gripper.GRIPSource/GetCollectionInfo',
-            gripper__pb2.Collection.SerializeToString,
-            gripper__pb2.CollectionInfo.FromString,
+            gripper_dot_gripper__pb2.Collection.SerializeToString,
+            gripper_dot_gripper__pb2.CollectionInfo.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
@@ -174,8 +174,8 @@ class GRIPSource(object):
             timeout=None,
             metadata=None):
         return grpc.experimental.unary_stream(request, target, '/gripper.GRIPSource/GetIDs',
-            gripper__pb2.Collection.SerializeToString,
-            gripper__pb2.RowID.FromString,
+            gripper_dot_gripper__pb2.Collection.SerializeToString,
+            gripper_dot_gripper__pb2.RowID.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
@@ -191,8 +191,8 @@ class GRIPSource(object):
             timeout=None,
             metadata=None):
         return grpc.experimental.unary_stream(request, target, '/gripper.GRIPSource/GetRows',
-            gripper__pb2.Collection.SerializeToString,
-            gripper__pb2.Row.FromString,
+            gripper_dot_gripper__pb2.Collection.SerializeToString,
+            gripper_dot_gripper__pb2.Row.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
@@ -208,8 +208,8 @@ class GRIPSource(object):
             timeout=None,
             metadata=None):
         return grpc.experimental.stream_stream(request_iterator, target, '/gripper.GRIPSource/GetRowsByID',
-            gripper__pb2.RowRequest.SerializeToString,
-            gripper__pb2.Row.FromString,
+            gripper_dot_gripper__pb2.RowRequest.SerializeToString,
+            gripper_dot_gripper__pb2.Row.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
@@ -225,7 +225,7 @@ class GRIPSource(object):
             timeout=None,
             metadata=None):
         return grpc.experimental.unary_stream(request, target, '/gripper.GRIPSource/GetRowsByField',
-            gripper__pb2.FieldRequest.SerializeToString,
-            gripper__pb2.Row.FromString,
+            gripper_dot_gripper__pb2.FieldRequest.SerializeToString,
+            gripper_dot_gripper__pb2.Row.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
