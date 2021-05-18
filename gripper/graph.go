@@ -537,7 +537,10 @@ func rowRequestVertexPipeline(ctx context.Context, prefix string,
 			for r := range rowChan {
 				o := gdbi.Vertex{ID: prefix + r.Id, Label: label, Data: r.Data.AsMap(), Loaded: true}
 				reqSync.Lock()
-				outReq := reqMap[r.RequestID]
+				outReq, ok := reqMap[r.RequestID]
+				if !ok {
+					log.Error("Bad returned request ID from plugin") //TODO: Need to do something here to prevent error in processing
+				}
 				delete(reqMap, r.RequestID)
 				reqSync.Unlock()
 				outReq.Vertex = &o
@@ -623,11 +626,13 @@ func (t *TabularGraph) GetOutChannel(ctx context.Context, req chan gdbi.ElementL
 												} else {
 													log.Errorf("Type Error")
 												}
+											} else {
+												log.Errorf("Lookup Error %s", err)
 											}
 										}
 									} else {
 										if ctx.Err() != context.Canceled {
-											log.Errorf("Row Error: %s", err)
+											log.Errorf("Row Error: %s\n", err)
 										}
 									}
 								} else if edge.config.FieldToID != nil {
