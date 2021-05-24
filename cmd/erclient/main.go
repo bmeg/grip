@@ -23,11 +23,17 @@ func getClient() *gripper.GripperClient {
 var Cmd = &cobra.Command{
 	Use:   "er",
 	Short: "Issue command to Grip External Resource",
+	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		if len(args) > 0 {
+			host = args[0]
+		}
+	},
 }
 
 var ListCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List collections provided by external resource",
+	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		client := getClient()
 		for name := range client.GetCollections(context.Background(), source) {
@@ -40,10 +46,10 @@ var ListCmd = &cobra.Command{
 var InfoCmd = &cobra.Command{
 	Use:   "info",
 	Short: "Get info about a collection",
-	Args:  cobra.ExactArgs(1),
+	Args:  cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		client := getClient()
-		collection := args[0]
+		collection := args[1]
 		out, err := client.GetCollectionInfo(context.Background(), source, collection)
 		if err != nil {
 			return err
@@ -57,10 +63,10 @@ var InfoCmd = &cobra.Command{
 var RowsCmd = &cobra.Command{
 	Use:   "rows <collection>",
 	Short: "List rows from a collection",
-	Args:  cobra.ExactArgs(1),
+	Args:  cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		client := getClient()
-		collection := args[0]
+		collection := args[1]
 		jm := protojson.MarshalOptions{}
 		for row := range client.GetRows(context.Background(), source, collection) {
 			if dataOnly {
@@ -76,10 +82,10 @@ var RowsCmd = &cobra.Command{
 var IdsCmd = &cobra.Command{
 	Use:   "ids <collection>",
 	Short: "List ids from a collection",
-	Args:  cobra.ExactArgs(1),
+	Args:  cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		client := getClient()
-		collection := args[0]
+		collection := args[1]
 		for i := range client.GetIDs(context.Background(), source, collection) {
 			fmt.Printf("%s\n", i)
 		}
@@ -90,12 +96,12 @@ var IdsCmd = &cobra.Command{
 var QueryCmd = &cobra.Command{
 	Use:   "query <collection> <field> <value>",
 	Short: "List rows with field match",
-	Args:  cobra.ExactArgs(3),
+	Args:  cobra.ExactArgs(4),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		client := getClient()
-		collection := args[0]
-		field := args[1]
-		value := args[2]
+		collection := args[1]
+		field := args[2]
+		value := args[3]
 		jm := protojson.MarshalOptions{}
 		rows, err := client.GetRowsByField(context.Background(), source, collection, field, value)
 		if err != nil {
@@ -115,11 +121,11 @@ var QueryCmd = &cobra.Command{
 var GetCmd = &cobra.Command{
 	Use:   "get <collection> <ids ...>",
 	Short: "List rows with field match",
-	Args:  cobra.MinimumNArgs(2),
+	Args:  cobra.MinimumNArgs(3),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		client := getClient()
-		collection := args[0]
-		ids := args[1:]
+		collection := args[1]
+		ids := args[2:]
 
 		idChan := make(chan *gripper.RowRequest, 10)
 
@@ -163,5 +169,4 @@ func init() {
 	Cmd.AddCommand(IdsCmd)
 	Cmd.AddCommand(QueryCmd)
 	Cmd.AddCommand(GetCmd)
-	Cmd.PersistentFlags().StringVar(&host, "host", host, "gripper server url")
 }
