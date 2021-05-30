@@ -7,7 +7,7 @@ import (
 
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/log"
-	"github.com/bmeg/grip/util"
+	gripSchema "github.com/bmeg/grip/gripql/schema"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"golang.org/x/sync/errgroup"
@@ -96,7 +96,7 @@ func (ma *GraphDB) getVertexSchema(ctx context.Context, graph string, n uint32, 
 					if err := cursor.Decode(&result); err == nil {
 						if result["data"] != nil {
 							ds := gripql.GetDataFieldTypes(result["data"].(map[string]interface{}))
-							util.MergeMaps(schema, ds)
+							gripSchema.MergeMaps(schema, ds)
 						}
 					} else {
 						log.WithFields(log.Fields{"graph": graph, "label": label, "error": err}).Error("getVertexSchema: bad vertex")
@@ -180,7 +180,7 @@ func (ma *GraphDB) getEdgeSchema(ctx context.Context, graph string, n uint32, ra
 						fromToPairs.Add(fromtokey{result["from"].(string), result["to"].(string)})
 						if result["data"] != nil {
 							ds := gripql.GetDataFieldTypes(result["data"].(map[string]interface{}))
-							util.MergeMaps(schema, ds)
+							gripSchema.MergeMaps(schema, ds)
 						}
 					} else {
 						log.WithFields(log.Fields{"graph": graph, "label": label, "error": err}).Error("getVertexSchema: bad vertex")
