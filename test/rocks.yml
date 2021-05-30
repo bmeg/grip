@@ -1,1 +1,5 @@
-Database: rocks
+Default: rocks
+
+Drivers:
+  rocks:
+    Rocks: grip-rocks.db

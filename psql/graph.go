@@ -2,14 +2,13 @@ package psql
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 
 	"github.com/bmeg/grip/engine/core"
 	"github.com/bmeg/grip/gdbi"
-	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/log"
-	"github.com/bmeg/grip/protoutil"
 	"github.com/bmeg/grip/timestamp"
 	"github.com/bmeg/grip/util"
 	"github.com/jmoiron/sqlx"
@@ -36,7 +35,7 @@ func (g *Graph) Compiler() gdbi.Compiler {
 ////////////////////////////////////////////////////////////////////////////////
 
 // AddVertex adds a vertex to the database
-func (g *Graph) AddVertex(vertices []*gripql.Vertex) error {
+func (g *Graph) AddVertex(vertices []*gdbi.Vertex) error {
 	txn, err := g.db.Begin()
 	if err != nil {
 		return fmt.Errorf("AddVertex: Begin Txn: %v", err)
@@ -56,7 +55,11 @@ func (g *Graph) AddVertex(vertices []*gripql.Vertex) error {
 	}
 
 	for _, v := range vertices {
-		_, err = stmt.Exec(v.Gid, v.Label, protoutil.AsJSONString(v.Data))
+		js, err := json.Marshal(v.Data)
+		if err != nil {
+			return fmt.Errorf("AddVertex: Stmt.Exec: %v", err)
+		}
+		_, err = stmt.Exec(v.ID, v.Label, js)
 		if err != nil {
 			return fmt.Errorf("AddVertex: Stmt.Exec: %v", err)
 		}
@@ -76,7 +79,7 @@ func (g *Graph) AddVertex(vertices []*gripql.Vertex) error {
 }
 
 // AddEdge adds an edge to the database
-func (g *Graph) AddEdge(edges []*gripql.Edge) error {
+func (g *Graph) AddEdge(edges []*gdbi.Edge) error {
 	txn, err := g.db.Begin()
 	if err != nil {
 		return fmt.Errorf("AddEdge: Begin Txn: %v", err)
@@ -98,7 +101,11 @@ func (g *Graph) AddEdge(edges []*gripql.Edge) error {
 	}
 
 	for _, e := range edges {
-		_, err = stmt.Exec(e.Gid, e.Label, e.From, e.To, protoutil.AsJSONString(e.Data))
+		js, err := json.Marshal(e.Data)
+		if err != nil {
+			return fmt.Errorf("AddEdge: Stmt.Exec: %v", err)
+		}
+		_, err = stmt.Exec(e.ID, e.Label, e.From, e.To, js)
 		if err != nil {
 			return fmt.Errorf("AddEdge: Stmt.Exec: %v", err)
 		}
@@ -117,7 +124,7 @@ func (g *Graph) AddEdge(edges []*gripql.Edge) error {
 	return nil
 }
 
-func (g *Graph) BulkAdd(stream <-chan *gripql.GraphElement) error {
+func (g *Graph) BulkAdd(stream <-chan *gdbi.GraphElement) error {
 	return util.StreamBatch(stream, 50, g.graph, g.AddVertex, g.AddEdge)
 }
 
@@ -164,7 +171,7 @@ func (g *Graph) GetTimestamp() string {
 }
 
 // GetVertex loads a vertex given an id. It returns a nil if not found.
-func (g *Graph) GetVertex(gid string, load bool) *gripql.Vertex {
+func (g *Graph) GetVertex(gid string, load bool) *gdbi.Vertex {
 	q := fmt.Sprintf(`SELECT gid, label FROM %s WHERE gid='%s'`, g.v, gid)
 	if load {
 		q = fmt.Sprintf(`SELECT * FROM %s WHERE gid='%s'`, g.v, gid)
@@ -184,7 +191,7 @@ func (g *Graph) GetVertex(gid string, load bool) *gripql.Vertex {
 }
 
 // GetEdge loads an edge  given an id. It returns a nil if not found.
-func (g *Graph) GetEdge(gid string, load bool) *gripql.Edge {
+func (g *Graph) GetEdge(gid string, load bool) *gdbi.Edge {
 	q := fmt.Sprintf(`SELECT gid, label, "from", "to" FROM %s WHERE gid='%s'`, g.e, gid)
 	if load {
 		q = fmt.Sprintf(`SELECT * FROM %s WHERE gid='%s'`, g.e, gid)
@@ -204,8 +211,8 @@ func (g *Graph) GetEdge(gid string, load bool) *gripql.Edge {
 }
 
 // GetVertexList produces a channel of all vertices in the graph
-func (g *Graph) GetVertexList(ctx context.Context, load bool) <-chan *gripql.Vertex {
-	o := make(chan *gripql.Vertex, 100)
+func (g *Graph) GetVertexList(ctx context.Context, load bool) <-chan *gdbi.Vertex {
+	o := make(chan *gdbi.Vertex, 100)
 	go func() {
 		defer close(o)
 		q := fmt.Sprintf("SELECT gid, label FROM %s", g.v)
@@ -266,8 +273,8 @@ func (g *Graph) VertexLabelScan(ctx context.Context, label string) chan string {
 }
 
 // GetEdgeList produces a channel of all edges in the graph
-func (g *Graph) GetEdgeList(ctx context.Context, load bool) <-chan *gripql.Edge {
-	o := make(chan *gripql.Edge, 100)
+func (g *Graph) GetEdgeList(ctx context.Context, load bool) <-chan *gdbi.Edge {
+	o := make(chan *gdbi.Edge, 100)
 	go func() {
 		defer close(o)
 		q := fmt.Sprintf(`SELECT gid, label, "from", "to" FROM %s`, g.e)
@@ -335,7 +342,7 @@ func (g *Graph) GetVertexChannel(ctx context.Context, reqChan chan gdbi.ElementL
 				return
 			}
 			defer rows.Close()
-			chunk := map[string]*gripql.Vertex{}
+			chunk := map[string]*gdbi.Vertex{}
 			for rows.Next() {
 				vrow := &row{}
 				if err := rows.StructScan(vrow); err != nil {
@@ -347,7 +354,7 @@ func (g *Graph) GetVertexChannel(ctx context.Context, reqChan chan gdbi.ElementL
 					log.WithFields(log.Fields{"error": err}).Error("GetVertexChannel: convertVertexRow")
 					continue
 				}
-				chunk[v.Gid] = v
+				chunk[v.ID] = v
 			}
 			if err := rows.Err(); err != nil {
 				log.WithFields(log.Fields{"error": err}).Error("GetVertexChannel: iterating")

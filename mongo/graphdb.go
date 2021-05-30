@@ -17,12 +17,24 @@ import (
 
 // Config describes the configuration for the mongodb driver.
 type Config struct {
-	URL                    string
-	DBName                 string
-	Username               string
-	Password               string
-	BatchSize              int
-	UseAggregationPipeline bool
+	URL             string
+	DBName          string
+	Username        string
+	Password        string
+	BatchSize       int
+	UseCorePipeline bool
+}
+
+func (c *Config) SetDefaults() {
+	if c.URL == "" {
+		c.URL = "mongodb://localhost:27000"
+	}
+	if c.DBName == "" {
+		c.DBName = "gripdb"
+	}
+	if c.BatchSize == 0 {
+		c.BatchSize = 1000
+	}
 }
 
 // GraphDB is the base driver that manages multiple graphs in mongo

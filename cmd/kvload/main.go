@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/bmeg/grip/gripql"
+	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/kvgraph"
 	"github.com/bmeg/grip/kvi"
 	"github.com/bmeg/grip/log"
@@ -22,6 +22,8 @@ var vertexFile string
 var edgeFile string
 var vertexManifestFile string
 var edgeManifestFile string
+
+var workerCount = 1
 
 // Cmd is the declaration of the command line
 var Cmd = &cobra.Command{
@@ -93,7 +95,7 @@ var Cmd = &cobra.Command{
 			edgeFileArray = append(edgeFileArray, edgeFile)
 		}
 
-		graphChan := make(chan *gripql.GraphElement, 10)
+		graphChan := make(chan *gdbi.GraphElement, 10)
 		wg := &sync.WaitGroup{}
 		go func() {
 			wg.Add(1)
@@ -107,13 +109,13 @@ var Cmd = &cobra.Command{
 		for _, vertexFile := range vertexFileArray {
 			log.Infof("Loading %s", vertexFile)
 			count := 0
-			vertChan, err := util.StreamVerticesFromFile(vertexFile)
+			vertChan, err := util.StreamVerticesFromFile(vertexFile, workerCount)
 			if err != nil {
 				log.WithFields(log.Fields{"error": err}).Errorf("Error reading file: %s", vertexFile)
 				continue
 			}
 			for v := range vertChan {
-				graphChan <- &gripql.GraphElement{Graph: graph, Vertex: v}
+				graphChan <- &gdbi.GraphElement{Graph: graph, Vertex: gdbi.NewElementFromVertex(v)}
 				count++
 				vertexCounter.Incr(1)
 				if count%10000 == 0 {
@@ -127,13 +129,13 @@ var Cmd = &cobra.Command{
 		for _, edgeFile := range edgeFileArray {
 			log.Infof("Loading %s", edgeFile)
 			count := 0
-			edgeChan, err := util.StreamEdgesFromFile(edgeFile)
+			edgeChan, err := util.StreamEdgesFromFile(edgeFile, workerCount)
 			if err != nil {
 				log.WithFields(log.Fields{"error": err}).Errorf("Error reading file: %s", edgeFile)
 				continue
 			}
 			for e := range edgeChan {
-				graphChan <- &gripql.GraphElement{Graph: graph, Edge: e}
+				graphChan <- &gdbi.GraphElement{Graph: graph, Edge: gdbi.NewElementFromEdge(e)}
 				count++
 				edgeCounter.Incr(1)
 				if count%10000 == 0 {
@@ -156,5 +158,6 @@ func init() {
 	flags.StringVar(&vertexFile, "vertex", "", "vertex file")
 	flags.StringVar(&edgeFile, "edge", "", "edge file")
 	flags.StringVar(&vertexManifestFile, "vertex-manifest", "", "vertex manifest file")
+	flags.IntVarP(&workerCount, "workers", "n", workerCount, "number of processing threads")
 	flags.StringVar(&edgeManifestFile, "edge-manifest", "", "edge manifest file")
 }

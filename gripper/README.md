@@ -1,7 +1,9 @@
 # GRIPPER
+## GRIP Plugin External Resources
 
-Grippers are GRIP drivers that take external resources and allow GRIP to access
-them are part of a unified graph. To integrate new resources into the graph, you
+GRIP Plugin External Resources (GRIPPERs) are GRIP drivers that take external
+resources and allow GRIP to access them are part of a unified graph.
+To integrate new resources into the graph, you
 first deploy griper proxies that plug into the external resources. They are unique
 and configured to access specific resources. These provide a view into external
 resources as a series of document collections. For example, an SQL gripper would
@@ -9,6 +11,12 @@ plug into an SQL server and provide the tables as a set of collections with each
 every row a document. A gripper is written as a gRPC server.
 
 ![GIPPER Architecture](../website/static/img/gripper_architecture.png)
+
+## GRIPPER versioning
+
+The Plugin External Resource (PER) is version Alpha 1. As an alpha system,
+the plugin interface works, but the API will change and there is no expectation
+of continued support for older alpha APIs.
 
 ## GRIPPER proxy
 

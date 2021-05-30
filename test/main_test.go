@@ -6,7 +6,6 @@ import (
 	"os"
 	"os/exec"
 	"sort"
-	"strings"
 	"testing"
 
 	"github.com/bmeg/grip/config"
@@ -38,7 +37,7 @@ func setupGraph() error {
 		return vertices[i].Gid < vertices[j].Gid
 	})
 	for _, v := range vertices {
-		err := db.AddVertex([]*gripql.Vertex{v})
+		err := db.AddVertex([]*gdbi.Vertex{gdbi.NewElementFromVertex(v)})
 		if err != nil {
 			return err
 		}
@@ -48,7 +47,7 @@ func setupGraph() error {
 		return edges[i].Gid < edges[j].Gid
 	})
 	for _, e := range edges {
-		err := db.AddEdge([]*gripql.Edge{e})
+		err := db.AddEdge([]*gdbi.Edge{gdbi.NewElementFromEdge(e)})
 		if err != nil {
 			return err
 		}
@@ -65,14 +64,14 @@ func setupSQLGraph() error {
 func TestMain(m *testing.M) {
 	flag.StringVar(&configFile, "config", configFile, "config file to use for tests")
 	flag.Parse()
-	vertChan, err := util.StreamVerticesFromFile("./resources/smtest_vertices.txt")
+	vertChan, err := util.StreamVerticesFromFile("./resources/smtest_vertices.txt", 2)
 	if err != nil {
 		panic(err)
 	}
 	for v := range vertChan {
 		vertices = append(vertices, v)
 	}
-	edgeChan, err := util.StreamEdgesFromFile("./resources/smtest_edges.txt")
+	edgeChan, err := util.StreamEdgesFromFile("./resources/smtest_edges.txt", 2)
 	if err != nil {
 		panic(err)
 	}
@@ -94,47 +93,53 @@ func TestMain(m *testing.M) {
 			fmt.Printf("error processing config file: %v", err)
 			return
 		}
+	} else {
+		conf.AddBadgerDefault()
 	}
 
 	config.TestifyConfig(conf)
 	fmt.Printf("Test config: %+v\n", conf)
-	dbname = strings.ToLower(conf.Database)
+	if _, ok := conf.Drivers[conf.Default]; !ok {
+		fmt.Printf("default driver %s not found\n", conf.Default)
+		return
+	}
+	dbconfig := conf.Drivers[conf.Default]
 
-	if dbname == "existing-sql" {
+	if dbconfig.ExistingSQL != nil {
 		err = setupSQLGraph()
 		if err != nil {
 			fmt.Println("Error: setting up graph:", err)
 			return
 		}
-	}
-
-	switch dbname {
-	case "bolt", "badger", "level":
-		gdb, err = kvgraph.NewKVGraphDB(dbname, conf.KVStorePath)
+		gdb, err = esql.NewGraphDB(*dbconfig.ExistingSQL)
+	} else if dbconfig.Badger != nil {
+		gdb, err = kvgraph.NewKVGraphDB("badger", *dbconfig.Badger)
 		defer func() {
-			os.RemoveAll(conf.KVStorePath)
+			os.RemoveAll(*dbconfig.Badger)
 		}()
-
-	case "grids":
-		gdb, err = grids.NewGraphDB(conf.Grids)
+	} else if dbconfig.Bolt != nil {
+		gdb, err = kvgraph.NewKVGraphDB("bolt", *dbconfig.Bolt)
 		defer func() {
-			os.RemoveAll(conf.Grids)
+			os.RemoveAll(*dbconfig.Bolt)
 		}()
-
-	case "elastic":
-		gdb, err = elastic.NewGraphDB(conf.Elasticsearch)
-
-	case "mongo":
-		gdb, err = mongo.NewGraphDB(conf.MongoDB)
-
-	case "existing-sql":
-		gdb, err = esql.NewGraphDB(conf.ExistingSQL)
-
-	case "psql":
-		gdb, err = psql.NewGraphDB(conf.PSQL)
-
-	default:
-		err = fmt.Errorf("unknown database: %s", dbname)
+	} else if dbconfig.Level != nil {
+		gdb, err = kvgraph.NewKVGraphDB("badger", *dbconfig.Level)
+		defer func() {
+			os.RemoveAll(*dbconfig.Level)
+		}()
+	} else if dbconfig.Grids != nil {
+		gdb, err = grids.NewGraphDB(*dbconfig.Grids)
+		defer func() {
+			os.RemoveAll(*dbconfig.Grids)
+		}()
+	} else if dbconfig.Elasticsearch != nil {
+		gdb, err = elastic.NewGraphDB(*dbconfig.Elasticsearch)
+	} else if dbconfig.MongoDB != nil {
+		gdb, err = mongo.NewGraphDB(*dbconfig.MongoDB)
+	} else if dbconfig.PSQL != nil {
+		gdb, err = psql.NewGraphDB(*dbconfig.PSQL)
+	} else {
+		err = fmt.Errorf("unknown database")
 	}
 
 	err = gdb.AddGraph("test-graph")

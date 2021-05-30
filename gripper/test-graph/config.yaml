@@ -1,5 +1,6 @@
-Database: gripper
 
-Gripper:
-  Graphs:
-    swapi: ./swapi.yaml
+Drivers:
+  swapi-driver:
+    Gripper:
+      ConfigFile: ./swapi.yaml
+      Graph: swapi

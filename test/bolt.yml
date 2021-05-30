@@ -1,1 +1,5 @@
-Database: bolt
+Default: bolt
+
+Drivers:
+  bolt:
+    Bolt: grip-bolt.db

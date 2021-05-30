@@ -1,7 +1,7 @@
 ---
-title: Setup your Database
+title: Database Configuration
 menu:
   main:
     identifier: Databases
-    weight: -100
+    weight: 20
 ---

@@ -1,6 +1,6 @@
-package util
+package schema
 
-// MergeMaps deeply merges two maps
+// MergeMaps deeply merges two schema maps
 func MergeMaps(x1, x2 interface{}) interface{} {
 	switch x1 := x1.(type) {
 	case map[string]interface{}:
@@ -18,6 +18,11 @@ func MergeMaps(x1, x2 interface{}) interface{} {
 	case nil:
 		x2, ok := x2.(map[string]interface{})
 		if ok {
+			return x2
+		}
+	case string:
+		x2, ok := x2.(string)
+		if ok && x1 == "UNKNOWN" {
 			return x2
 		}
 	}

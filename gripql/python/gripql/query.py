@@ -1,9 +1,16 @@
 from __future__ import absolute_import, print_function, unicode_literals
 
-import json
-import logging
+try:
+    # attempt to load JSON parsing library that works faster
+    from orjson import loads as jloads, dumps as jdumps
+except ImportError:
+    # fall back to standard JSON parsing library
+    from json import loads as jloads, dumps as jdumps
 
-from gripql.util import AttrDict, BaseConnection, Rate, raise_for_status
+import logging
+import requests
+
+from gripql.util import BaseConnection, Rate, raise_for_status
 
 
 def _wrap_value(value, typ):
@@ -30,14 +37,15 @@ def _wrap_dict_value(value):
 
 
 class Query(BaseConnection):
-    def __init__(self, url, graph, user=None, password=None, token=None, credential_file=None):
+    def __init__(self, url, graph, user=None, password=None, token=None, credential_file=None, resume=None):
         super(Query, self).__init__(url, user, password, token, credential_file)
         self.url = self.base_url + "/v1/graph/" + graph + "/query"
         self.graph = graph
         self.query = []
+        self.resume = resume
 
     def __append(self, part):
-        q = self.__class__(self.base_url, self.graph, self.user, self.password, self.token, self.credential_file)
+        q = self.__class__(self.base_url, self.graph, self.user, self.password, self.token, self.credential_file, self.resume)
         q.query = self.query[:]
         q.query.append(part)
         return q
@@ -109,7 +117,7 @@ class Query(BaseConnection):
         Must be called from a vertex.
         """
         label = _wrap_str_value(label)
-        return self.__append({"in_e": label})
+        return self.__append({"inE": label})
 
     def outE(self, label=[]):
         """
@@ -121,7 +129,7 @@ class Query(BaseConnection):
         Must be called from a vertex.
         """
         label = _wrap_str_value(label)
-        return self.__append({"out_e": label})
+        return self.__append({"outE": label})
 
     def bothE(self, label=[]):
         """
@@ -133,7 +141,7 @@ class Query(BaseConnection):
         Must be called from a vertex.
         """
         label = _wrap_str_value(label)
-        return self.__append({"both_e": label})
+        return self.__append({"bothE": label})
 
     def has(self, expression):
         """
@@ -227,25 +235,23 @@ class Query(BaseConnection):
         props = _wrap_str_value(props)
         return self.__append({"distinct": props})
 
-    def match(self, queries):
-        """
-        Intersect multiple queries.
-        """
-        if not isinstance(queries, list):
-            raise TypeError("match expects an array")
-        if not all(isinstance(i, Query) for i in queries):
-            raise TypeError("expected all aruments to match to be a \
-            Query instance")
-        mq = []
-        for i in queries:
-            mq.append({"query": i.query})
-        return self.__append({"match": {"queries": mq}})
-
     def render(self, template):
         """
         Render output of query
         """
         return self.__append({"render": template})
+
+    def path(self):
+        """
+        Display path of query
+        """
+        return self.__append({"path": []})
+
+    def unwind(self, field):
+        """
+        Unwind an array
+        """
+        return self.__append({"unwind": field})
 
     def aggregate(self, aggregations):
         """
@@ -259,7 +265,7 @@ class Query(BaseConnection):
         Return the query as a JSON string.
         """
         output = {"query": self.query}
-        return json.dumps(output)
+        return jdumps(output)
 
     def to_dict(self):
         """
@@ -270,11 +276,11 @@ class Query(BaseConnection):
     def __iter__(self):
         return self.__stream()
 
-    def __stream(self, debug=False):
+    def __stream(self, raw=False, debug=False):
         """
         Execute the query and return an iterator.
         """
-        log_level = logging.INFO
+        log_level = logging.root.level
         if debug:
             log_level = logging.DEBUG
         logger = logging.getLogger(__name__)
@@ -289,29 +295,41 @@ class Query(BaseConnection):
 
         rate = Rate(logger)
         rate.init()
-        response = self.session.post(
-            self.url,
-            json=self.to_dict(),
-            stream=True
-        )
-        logger.debug('POST %s', self.url)
+        if self.resume is None:
+            response = self.session.post(
+                self.url,
+                json=self.to_dict(),
+                stream=True
+            )
+            logger.debug('POST %s', self.url)
+        else:
+            url = self.base_url + "/v1/graph/" + self.graph + "/job-resume"
+            data = self.to_dict()
+            data['srcId'] = self.resume
+            response = self.session.post(
+                url,
+                json=data,
+                stream=True
+            )
+            logger.debug('POST %s', url)
         logger.debug('BODY %s', self.to_json())
         logger.debug('STATUS CODE %s', response.status_code)
-        raise_for_status(response)
 
         for result in response.iter_lines(chunk_size=None):
             try:
-                result_dict = json.loads(result.decode())
+                result_dict = jloads(result.decode())
             except Exception as e:
                 logger.error("Failed to decode: %s", result)
                 raise e
 
-            if "vertex" in result_dict:
+            if raw:
+                extracted = result_dict
+            elif "vertex" in result_dict:
                 extracted = result_dict["vertex"]
             elif "edge" in result_dict:
                 extracted = result_dict["edge"]
             elif "aggregations" in result_dict:
-                extracted = result_dict["aggregations"]["aggregations"]
+                extracted = result_dict["aggregations"]
             elif "selections" in result_dict:
                 extracted = result_dict["selections"]["selections"]
                 for k in extracted:
@@ -321,20 +339,21 @@ class Query(BaseConnection):
                         extracted[k] = extracted[k]["edge"]
             elif "render" in result_dict:
                 extracted = result_dict["render"]
+            elif "path" in result_dict:
+                extracted = result_dict["path"]
             elif "count" in result_dict:
                 extracted = result_dict
+            elif "error" in result_dict:
+                raise requests.HTTPError(result_dict['error']['message'])
             else:
                 extracted = result_dict
 
-            if isinstance(extracted, dict):
-                yield AttrDict(extracted)
-            else:
-                yield extracted
+            yield extracted
 
             rate.tick()
         rate.close()
 
-    def execute(self, stream=False, debug=False):
+    def execute(self, stream=False, raw=False, debug=False):
         """
         Execute the query.
 
@@ -342,12 +361,66 @@ class Query(BaseConnection):
         is returned.
         """
         if stream:
-            return self.__stream(debug)
+            return self.__stream(raw=raw, debug=debug)
         else:
             output = []
-            for r in self.__stream(debug):
+            for r in self.__stream(raw=raw, debug=debug):
                 output.append(r)
             return output
+
+    def submit(self, debug=False):
+        """
+        Post the traversal as an asynchronous job
+        """
+        log_level = logging.root.level
+        if debug:
+            log_level = logging.DEBUG
+        logger = logging.getLogger(__name__)
+        logger.handlers = []
+        stream_handler = logging.StreamHandler()
+        stream_handler.setFormatter(
+            logging.Formatter('[%(levelname)s]\t%(asctime)s\t%(message)s')
+        )
+        stream_handler.setLevel(log_level)
+        logger.setLevel(log_level)
+        logger.addHandler(stream_handler)
+
+        url = self.base_url + "/v1/graph/" + self.graph + "/job"
+
+        response = self.session.post(
+            url,
+            json=self.to_dict()
+        )
+        raise_for_status(response)
+        return response.json()
+
+    def searchJobs(self, debug=False):
+        """
+        Find jobs that match this query
+        """
+        log_level = logging.root.level
+        if debug:
+            log_level = logging.DEBUG
+        logger = logging.getLogger(__name__)
+        logger.handlers = []
+        stream_handler = logging.StreamHandler()
+        stream_handler.setFormatter(
+            logging.Formatter('[%(levelname)s]\t%(asctime)s\t%(message)s')
+        )
+        stream_handler.setLevel(log_level)
+        logger.setLevel(log_level)
+        logger.addHandler(stream_handler)
+
+        url = self.base_url + "/v1/graph/" + self.graph + "/job-search"
+
+        response = self.session.post(
+            url,
+            json=self.to_dict()
+        )
+        for result in response.iter_lines(chunk_size=None):
+            result_dict = jloads(result.decode())
+            yield result_dict
+
 
 
 class __Query(Query):

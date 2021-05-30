@@ -14,15 +14,17 @@ GRIP supports storing vertices and edges in [PostgreSQL][psql].
 Config:
 
 ```yaml
-Database: psql
+Default: psql
 
-PSQL:
-  Host: localhost
-  Port: 15432
-  User: ""
-  Password: ""
-  DBName: ""
-  SSLMode: disable
+Drivers:
+  psql:
+    PSQL:
+      Host: localhost
+      Port: 15432
+      User: ""
+      Password: ""
+      DBName: "grip"
+      SSLMode: disable
 ```
 
 [psql]: https://www.postgresql.org/

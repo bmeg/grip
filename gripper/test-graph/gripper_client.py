@@ -87,5 +87,5 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     with grpc.insecure_channel(args.server) as channel:
-        conn = gripper_pb2_grpc.DigSourceStub(channel)
+        conn = gripper_pb2_grpc.GRIPSourceStub(channel)
         args.func(conn, args)

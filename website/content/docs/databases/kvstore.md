@@ -18,8 +18,9 @@ GRIP supports storing vertices and edges in a variety of key-value stores includ
 Config:
 
 ```yaml
-# pick one of: badger, bolt, level
-Database: badger
+Default: kv
 
-KVStorePath: grip.db
+Driver:
+  kv:
+    Badger: grip.db
 ```

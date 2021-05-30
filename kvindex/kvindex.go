@@ -10,7 +10,8 @@ import (
 
 	"github.com/bmeg/grip/kvi"
 	"github.com/bmeg/grip/log"
-	proto "github.com/golang/protobuf/proto"
+
+	"google.golang.org/protobuf/proto"
 )
 
 const bufferSize = 1000

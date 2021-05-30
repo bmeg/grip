@@ -3,21 +3,22 @@ package gripql
 import (
 	"errors"
 	"fmt"
-	"sort"
+
+	//"sort"
 	"strings"
 
-	"github.com/bmeg/grip/protoutil"
-	structpb "github.com/golang/protobuf/ptypes/struct"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 // GetDataMap obtains data attached to vertex in the form of a map
 func (vertex *Vertex) GetDataMap() map[string]interface{} {
-	return protoutil.AsMap(vertex.Data)
+	return vertex.Data.AsMap()
 }
 
 // SetDataMap obtains data attached to vertex in the form of a map
 func (vertex *Vertex) SetDataMap(i map[string]interface{}) {
-	vertex.Data = protoutil.AsStruct(i)
+	v, _ := structpb.NewStruct(i)
+	vertex.Data = v
 }
 
 // SetProperty sets named field in Vertex data
@@ -25,7 +26,8 @@ func (vertex *Vertex) SetProperty(key string, value interface{}) {
 	if vertex.Data == nil {
 		vertex.Data = &structpb.Struct{Fields: map[string]*structpb.Value{}}
 	}
-	protoutil.StructSet(vertex.Data, key, value)
+	v, _ := structpb.NewValue(value)
+	vertex.Data.Fields[key] = v
 }
 
 // GetProperty get named field from vertex data
@@ -33,8 +35,10 @@ func (vertex *Vertex) GetProperty(key string) interface{} {
 	if vertex.Data == nil {
 		return nil
 	}
-	m := protoutil.AsMap(vertex.Data)
-	return m[key]
+	if v, ok := vertex.Data.Fields[key]; ok {
+		return v.AsInterface()
+	}
+	return nil
 }
 
 // HasProperty returns true is field is defined
@@ -42,8 +46,7 @@ func (vertex *Vertex) HasProperty(key string) bool {
 	if vertex.Data == nil {
 		return false
 	}
-	m := protoutil.AsMap(vertex.Data)
-	_, ok := m[key]
+	_, ok := vertex.Data.Fields[key]
 	return ok
 }
 
@@ -66,12 +69,13 @@ func (vertex *Vertex) Validate() error {
 
 // GetDataMap obtains data attached to vertex in the form of a map
 func (edge *Edge) GetDataMap() map[string]interface{} {
-	return protoutil.AsMap(edge.Data)
+	return edge.Data.AsMap()
 }
 
 // SetDataMap obtains data attached to vertex in the form of a map
 func (edge *Edge) SetDataMap(i map[string]interface{}) {
-	edge.Data = protoutil.AsStruct(i)
+	s, _ := structpb.NewStruct(i)
+	edge.Data = s
 }
 
 // SetProperty sets named field in Vertex data
@@ -79,7 +83,8 @@ func (edge *Edge) SetProperty(key string, value interface{}) {
 	if edge.Data == nil {
 		edge.Data = &structpb.Struct{Fields: map[string]*structpb.Value{}}
 	}
-	protoutil.StructSet(edge.Data, key, value)
+	v, _ := structpb.NewValue(value)
+	edge.Data.Fields[key] = v
 }
 
 // GetProperty get named field from edge data
@@ -87,8 +92,10 @@ func (edge *Edge) GetProperty(key string) interface{} {
 	if edge.Data == nil {
 		return nil
 	}
-	m := protoutil.AsMap(edge.Data)
-	return m[key]
+	if e, ok := edge.Data.Fields[key]; ok {
+		return e.AsInterface()
+	}
+	return nil
 }
 
 // HasProperty returns true is field is defined
@@ -96,8 +103,7 @@ func (edge *Edge) HasProperty(key string) bool {
 	if edge.Data == nil {
 		return false
 	}
-	m := protoutil.AsMap(edge.Data)
-	_, ok := m[key]
+	_, ok := edge.Data.Fields[key]
 	return ok
 }
 
@@ -122,90 +128,6 @@ func (edge *Edge) Validate() error {
 		}
 	}
 	return nil
-}
-
-// AsMap converts a NamedAggregationResult to a map[string]interface{}
-func (aggRes *AggregationResult) AsMap() map[string]interface{} {
-	buckets := make([]map[string]interface{}, len(aggRes.Buckets))
-	for i, b := range aggRes.Buckets {
-		buckets[i] = b.AsMap()
-	}
-
-	return map[string]interface{}{
-		"buckets": buckets,
-	}
-}
-
-// AsMap converts an AggregationResultBucket to a map[string]interface{}
-func (aggRes *AggregationResultBucket) AsMap() map[string]interface{} {
-	return map[string]interface{}{
-		"key":   aggRes.Key,
-		"value": aggRes.Value,
-	}
-}
-
-// SortedInsert inserts an AggregationResultBucket into the Buckets field
-// and returns the index of the insertion
-func (aggRes *AggregationResult) SortedInsert(el *AggregationResultBucket) (int, error) {
-	if !aggRes.IsValueSorted() {
-		return 0, errors.New("buckets are not value sorted")
-	}
-
-	if len(aggRes.Buckets) == 0 {
-		aggRes.Buckets = []*AggregationResultBucket{el}
-		return 0, nil
-	}
-
-	index := sort.Search(len(aggRes.Buckets), func(i int) bool {
-		if aggRes.Buckets[i] == nil {
-			return true
-		}
-		return el.Value > aggRes.Buckets[i].Value
-	})
-
-	aggRes.Buckets = append(aggRes.Buckets, &AggregationResultBucket{})
-	copy(aggRes.Buckets[index+1:], aggRes.Buckets[index:])
-	aggRes.Buckets[index] = el
-
-	return index, nil
-}
-
-// SortOnValue sorts Buckets by Value in descending order
-func (aggRes *AggregationResult) SortOnValue() {
-	sort.Slice(aggRes.Buckets, func(i, j int) bool {
-		if aggRes.Buckets[i] == nil && aggRes.Buckets[j] != nil {
-			return true
-		}
-		if aggRes.Buckets[i] != nil && aggRes.Buckets[j] == nil {
-			return false
-		}
-		if aggRes.Buckets[i] == nil && aggRes.Buckets[j] == nil {
-			return false
-		}
-		return aggRes.Buckets[i].Value > aggRes.Buckets[j].Value
-	})
-}
-
-// IsValueSorted returns true if the Buckets are sorted by Value
-func (aggRes *AggregationResult) IsValueSorted() bool {
-	for i := range aggRes.Buckets {
-		j := i + 1
-		if i < len(aggRes.Buckets)-2 {
-			if aggRes.Buckets[i] != nil && aggRes.Buckets[j] == nil {
-				return true
-			}
-			if aggRes.Buckets[i] == nil && aggRes.Buckets[j] != nil {
-				return false
-			}
-			if aggRes.Buckets[i] == nil && aggRes.Buckets[j] == nil {
-				return true
-			}
-			if aggRes.Buckets[i].Value < aggRes.Buckets[j].Value {
-				return false
-			}
-		}
-	}
-	return true
 }
 
 // ValidateGraphName returns an error if the graph name is invalid

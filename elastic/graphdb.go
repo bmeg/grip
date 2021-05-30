@@ -23,6 +23,15 @@ type Config struct {
 	BatchSize   int
 }
 
+func (c *Config) SetDefaults() {
+	if c.DBName == "" {
+		c.DBName = "gripdb"
+	}
+	if c.BatchSize == 0 {
+		c.BatchSize = 1000
+	}
+}
+
 // GraphDB implements the GraphDB interface with elasticsearch as a backend
 type GraphDB struct {
 	database string

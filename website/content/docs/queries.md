@@ -3,5 +3,5 @@ title: Query a Graph
 menu:
   main:
     identifier: Queries
-    weight: -50
+    weight: 30
 ---

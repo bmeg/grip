@@ -1,8 +1,10 @@
-Database: mongo
+Default: mongo
 
 Server:
   HTTPPort: 80
   ContentDir: /usr/share/grip
-MongoDB:
-  URL: localhost
-  DBName: grip
+Drivers:
+  mongo:
+    MongoDB:
+      URL: mongodb://localhost:27017
+      DBName: grip

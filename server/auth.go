@@ -4,6 +4,8 @@ import (
 	"encoding/base64"
 	"strings"
 
+	"github.com/bmeg/grip/config"
+
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -12,7 +14,7 @@ import (
 
 // Return a new interceptor function that authorizes RPCs
 // using a password stored in the config.
-func unaryAuthInterceptor(creds []BasicCredential) grpc.UnaryServerInterceptor {
+func unaryAuthInterceptor(creds []config.BasicCredential) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 		var authorized bool
 		var err error
@@ -34,7 +36,7 @@ func unaryAuthInterceptor(creds []BasicCredential) grpc.UnaryServerInterceptor {
 
 // Return a new interceptor function that authorizes RPCs
 // using a password stored in the config.
-func streamAuthInterceptor(creds []BasicCredential) grpc.StreamServerInterceptor {
+func streamAuthInterceptor(creds []config.BasicCredential) grpc.StreamServerInterceptor {
 	return func(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
 		var authorized bool
 		var err error

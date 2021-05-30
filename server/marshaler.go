@@ -3,8 +3,7 @@ package server
 import (
 	"io"
 
-	"github.com/golang/protobuf/proto"
-	"github.com/grpc-ecosystem/grpc-gateway/runtime"
+	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 )
 
 // MarshalClean is a shim class to 'fix' outgoing streamed messages
@@ -16,8 +15,8 @@ type MarshalClean struct {
 }
 
 // ContentType return content type of marshler
-func (mclean *MarshalClean) ContentType() string {
-	return mclean.m.ContentType()
+func (mclean *MarshalClean) ContentType(i interface{}) string {
+	return mclean.m.ContentType(i)
 }
 
 // Marshal serializes v into a JSON encoded byte array. If v is of
@@ -25,7 +24,7 @@ func (mclean *MarshalClean) ContentType() string {
 // itself. This is mainly to get around a weird behavior of the GRPC gateway
 // streaming output
 func (mclean *MarshalClean) Marshal(v interface{}) ([]byte, error) {
-	if x, ok := v.(map[string]proto.Message); ok {
+	if x, ok := v.(map[string]interface{}); ok {
 		if val, ok := x["result"]; ok {
 			return mclean.m.Marshal(val)
 		}

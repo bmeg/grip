@@ -1,11 +1,12 @@
 from __future__ import absolute_import, print_function, unicode_literals
 
+import os
 from gripql.graph import Graph
 from gripql.util import BaseConnection, raise_for_status
 
 
 class Connection(BaseConnection):
-    def __init__(self, url, user=None, password=None, token=None, credential_file=None):
+    def __init__(self, url=None, user=None, password=None, token=None, credential_file=None):
         super(Connection, self).__init__(url, user, password, token, credential_file)
         self.url = self.base_url + "/v1/graph"
 

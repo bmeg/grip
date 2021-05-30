@@ -8,7 +8,6 @@ import (
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/jsonpath"
 	"github.com/bmeg/grip/log"
-	"github.com/bmeg/grip/protoutil"
 )
 
 func (kgraph *KVGraph) setupGraphIndex(graph string) error {
@@ -44,7 +43,7 @@ func vertexIdxStruct(v *gripql.Vertex) map[string]interface{} {
 	k := map[string]interface{}{
 		"v": map[string]interface{}{
 			"label": v.Label,
-			v.Label: protoutil.AsMap(v.Data),
+			v.Label: v.Data.AsMap(),
 		},
 	}
 	return k
@@ -54,7 +53,7 @@ func edgeIdxStruct(e *gripql.Edge) map[string]interface{} {
 	k := map[string]interface{}{
 		"e": map[string]interface{}{
 			"label": e.Label,
-			e.Label: protoutil.AsMap(e.Data),
+			e.Label: e.Data.AsMap(),
 		},
 	}
 	return k

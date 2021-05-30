@@ -37,25 +37,37 @@ proto:
 		-I ./ \
 		-I ../googleapis \
 		--lint_out=. \
-		--go_out=Mgoogle/protobuf/struct.proto=github.com/golang/protobuf/ptypes/struct,plugins=grpc:. \
-		--grpc-gateway_out=logtostderr=true,allow_colon_final_segments=true:. \
-		--grcp-rest-direct_out=. \
+		--go_out ./ \
+  	--go_opt paths=source_relative \
+		--go-grpc_out ./ \
+		--go-grpc_opt paths=source_relative \
+		--grpc-gateway_out ./ \
+		--grpc-gateway_opt logtostderr=true \
+		--grpc-gateway_opt paths=source_relative \
+		--grcp-rest-direct_out . \
 		gripql.proto
 	@cd kvindex && protoc \
 		-I ./ \
+		--go_opt=paths=source_relative \
 		--go_out=. \
+		--go_opt paths=source_relative \
 		index.proto
 	@cd gripper/ && protoc \
 	  -I ./ \
 		-I ../googleapis/ \
-		--go_out=Mgoogle/protobuf/struct.proto=github.com/golang/protobuf/ptypes/struct,plugins=grpc:. \
+		--go_out . \
+		--go_opt paths=source_relative \
+		--go-grpc_out ./ \
+		--go-grpc_opt paths=source_relative \
 		gripper.proto
 
 
 proto-depends:
 	@git submodule update --init --recursive
-	@go get github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway
-	@go get github.com/golang/protobuf/protoc-gen-go
+	@go get github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-grpc-gateway
+	@go get github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2
+	@go get google.golang.org/protobuf/cmd/protoc-gen-go
+	@go get google.golang.org/grpc/cmd/protoc-gen-go-grpc
 	@go get github.com/ckaznocha/protoc-gen-lint
 	@go get github.com/bmeg/protoc-gen-grcp-rest-direct
 
@@ -112,7 +124,7 @@ test-conformance:
 # ---------------------
 start-mongo:
 	@docker rm -f grip-mongodb-test > /dev/null 2>&1 || echo
-	docker run -d --name grip-mongodb-test -p 27000:27017 docker.io/mongo:3.6.4 > /dev/null
+	docker run -d --name grip-mongodb-test -p 27017:27017 docker.io/mongo:3.6.4 > /dev/null
 
 start-elastic:
 	@docker rm -f grip-es-test > /dev/null 2>&1 || echo
