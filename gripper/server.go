@@ -31,6 +31,11 @@ type SimpleTableServicer struct {
 }
 
 
+func NewSimpleTableServer(dr map[string]Driver) *SimpleTableServicer {
+	return &SimpleTableServicer{drivers: dr}
+}
+
+
 func StartServer(port int, serv GRIPSourceServer) {
 	lis, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", port))
 	if err != nil {
@@ -118,8 +123,4 @@ func (st *SimpleTableServicer) GetRowsByField(req *FieldRequest, srv GRIPSource_
 		return nil
 	}
 	return fmt.Errorf("Not Found")
-}
-
-func NewSimpleTableServer(dr map[string]Driver) *SimpleTableServicer {
-	return &SimpleTableServicer{drivers: dr}
 }
