@@ -17,20 +17,20 @@ type TableConfig struct {
 
 // GripperClient manages the multiple connections to named Dig sources
 type GripperClient struct {
-	confs   map[string]DriverConfig
+	confs   map[string]string
 	clients map[string]GRIPSourceClient
 }
 
-func NewGripperClient(confs map[string]DriverConfig) *GripperClient {
+func NewGripperClient(confs map[string]string) *GripperClient {
 	o := GripperClient{confs: confs, clients: map[string]GRIPSourceClient{}}
 	return &o
 }
 
 func (m *GripperClient) startConn(name string) (GRIPSourceClient, error) {
-	conf := m.confs[name]
+	host := m.confs[name]
 
-	rpcConf := rpc.ConfigWithDefaults(conf.Host)
-	log.Infof("Connecting to %s", conf.Host)
+	rpcConf := rpc.ConfigWithDefaults(host)
+	log.Infof("Connecting to %s", host)
 	conn, err := rpc.Dial(context.Background(), rpcConf)
 	if err != nil {
 		log.Errorf("RPC Connection error: %s", err)

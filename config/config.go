@@ -46,6 +46,7 @@ type Config struct {
 	Default   string
 	Graphs    map[string]string
 	Drivers   map[string]DriverConfig
+	Sources   map[string]string
 }
 
 type DriverParams interface {
@@ -73,6 +74,8 @@ func DefaultConfig() *Config {
 	c.RPCClient = rpc.ConfigWithDefaults(c.Server.RPCAddress())
 
 	c.Drivers = map[string]DriverConfig{}
+
+	c.Sources = map[string]string{}
 
 	c.Logger = log.DefaultLoggerConfig()
 	return c
