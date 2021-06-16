@@ -185,3 +185,14 @@ def test_traversal_gid_aggregation(man):
             "Incorrect number of aggregations returned: %d != %d" %
             (count, 2))
     return errors
+
+
+def test_field_aggregation(man):
+    errors = []
+
+    G = man.setGraph("swapi")
+
+    for row in G.query().V().hasLabel("Planet").aggregate(gripql.field("gid-agg", "$._data")):
+        print(row)
+
+    return errors

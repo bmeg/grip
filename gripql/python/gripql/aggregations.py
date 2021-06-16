@@ -27,3 +27,9 @@ def histogram(name, field, interval):
             "field": field, "interval": interval
         }
     }
+
+def field(name, field):
+    return {
+        "name": name,
+        "field": {"field":field}
+    }

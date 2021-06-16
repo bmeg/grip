@@ -1181,6 +1181,24 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 				return nil
 			})
 
+		case *gripql.Aggregate_Field:
+				g.Go(func() error {
+					fa := a.GetField()
+					fieldCounts := map[interface{}]int{}
+					for t := range aChans[a.Name] {
+						val := jsonpath.TravelerPathLookup(t, fa.Field)
+						if m, ok := val.(map[string]interface{}); ok {
+							for k := range m {
+								fieldCounts[k]++
+							}
+						}
+					}
+					for term, tcount := range fieldCounts {
+							out <- &gdbi.Traveler{Aggregation: &gdbi.Aggregate{Name: a.Name, Key: term, Value: float64(tcount)}}
+					}
+					return nil
+				})
+
 		default:
 			log.Errorf("Error: unknown aggregation type: %T", a.Aggregation)
 			continue
