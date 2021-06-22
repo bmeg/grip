@@ -200,7 +200,7 @@ def test_field_aggregation(man):
         if row["value"] != 3:
             errors.append("incorrect count returned: %s" % (row['value']))
         count += 1
-    if count in [11, 12]: # gripper returns an id field as well, others dont....
+    if count not in [11, 12]: # gripper returns an id field as well, others dont....
         errors.append("Incorrect number of results returned")
     return errors
 
