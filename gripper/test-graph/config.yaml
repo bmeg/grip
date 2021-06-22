@@ -4,3 +4,6 @@ Drivers:
     Gripper:
       ConfigFile: ./swapi.yaml
       Graph: swapi
+
+Sources:
+  tableServer: localhost:50051
