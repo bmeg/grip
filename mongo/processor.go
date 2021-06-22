@@ -1,7 +1,7 @@
 package mongo
 
 import (
-	"fmt"
+	//"fmt"
 	"context"
 	"strconv"
 	"strings"
@@ -78,7 +78,7 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 					plog.Errorf("Result Error : %s", err)
 					continue
 				}
-				fmt.Printf("Data: %s\n", result)
+				//fmt.Printf("Data: %s\n", result)
 				switch proc.dataType {
 				case gdbi.CountData:
 					eo := &gdbi.Traveler{}
@@ -141,6 +141,8 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 									continue
 								}
 								term = f
+							case *gripql.Aggregate_Field:
+								term = bucket["_id"]
 							case *gripql.Aggregate_Type:
 								switch bucket["_id"] {
 								case "double":

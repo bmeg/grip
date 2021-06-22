@@ -190,10 +190,18 @@ def test_traversal_gid_aggregation(man):
 def test_field_aggregation(man):
     errors = []
 
-    G = man.setGraph("swapi")
-    for row in G.query().V().hasLabel("Planet").aggregate(gripql.field("gid-agg", "$._data")):
-        print(row)
+    fields = [ 'orbital_period', 'gravity', 'terrain', 'name','climate', 'system', 'diameter', 'rotation_period', 'url', 'population', 'surface_water']
 
+    G = man.setGraph("swapi")
+    count = 0
+    for row in G.query().V().hasLabel("Planet").aggregate(gripql.field("gid-agg", "$._data")):
+        if row["key"] not in fields:
+            errors.append("unknown field returned: %s" % (row['key']))
+        if row["value"] != 3:
+            errors.append("incorrect count returned: %s" % (row['value']))
+        count += 1
+    if count != 11:
+        errors.append("Incorrect number of results returned")
     return errors
 
 
