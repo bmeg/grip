@@ -190,7 +190,7 @@ def test_traversal_gid_aggregation(man):
 def test_field_aggregation(man):
     errors = []
 
-    fields = [ 'orbital_period', 'gravity', 'terrain', 'name','climate', 'system', 'diameter', 'rotation_period', 'url', 'population', 'surface_water']
+    fields = [ "id", 'orbital_period', 'gravity', 'terrain', 'name','climate', 'system', 'diameter', 'rotation_period', 'url', 'population', 'surface_water']
 
     G = man.setGraph("swapi")
     count = 0
@@ -200,7 +200,7 @@ def test_field_aggregation(man):
         if row["value"] != 3:
             errors.append("incorrect count returned: %s" % (row['value']))
         count += 1
-    if count != 11:
+    if count not in [11, 12]: # gripper returns an id field as well, others dont....
         errors.append("Incorrect number of results returned")
     return errors
 
