@@ -191,8 +191,17 @@ def test_field_aggregation(man):
     errors = []
 
     G = man.setGraph("swapi")
-
     for row in G.query().V().hasLabel("Planet").aggregate(gripql.field("gid-agg", "$._data")):
+        print(row)
+
+    return errors
+
+
+def test_field_type_aggregation(man):
+    errors = []
+
+    G = man.setGraph("swapi")
+    for row in G.query().V().hasLabel("Planet").aggregate(gripql.type("gid-agg", "population")):
         print(row)
 
     return errors

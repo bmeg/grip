@@ -78,6 +78,7 @@ message Aggregate {
     PercentileAggregation percentile = 3;
     HistogramAggregation histogram = 4;
 		FieldAggregation field = 5;
+		TypeAggregation type = 6;
   }
 }
 
@@ -97,6 +98,10 @@ message HistogramAggregation {
 }
 
 message FieldAggregation {
+	string field = 2;
+}
+
+message TypeAggregation {
 	string field = 2;
 }
 
@@ -249,6 +254,8 @@ enum FieldType {
   STRING  = 1;
   NUMERIC = 2;
   BOOL  = 3;
+	MAP   = 4;
+	ARRAY = 5;
 }
 
 message Empty {}

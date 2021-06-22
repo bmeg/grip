@@ -33,3 +33,9 @@ def field(name, field):
         "name": name,
         "field": {"field":field}
     }
+
+def type(name, field):
+    return {
+        "name": name,
+        "type": {"field":field}
+    }
