@@ -1,5 +1,5 @@
-id	cost_in_credits	crew	manufacturer	max_atmosphering_speed	passengers	cargo_capacity	url	name	length	system	vehicle_class	model	consumables
-"4"	150000	46	"Corellia Mining Corporation"	30	30	50000	"https://swapi.co/api/vehicles/4/"	"Sand Crawler"	36.8	{"created": "2014-12-10T15:36:25.724000Z", "edited": "2014-12-22T18:21:15.523587Z"}	"wheeled"	"Digger Crawler"	"2 months"
-"6"	14500	1	"Incom Corporation"	1200	1	50	"https://swapi.co/api/vehicles/6/"	"T-16 skyhopper"	10.4	{"created": "2014-12-10T16:01:52.434000Z", "edited": "2014-12-22T18:21:15.552614Z"}	"repulsorcraft"	"T-16 skyhopper"	"0"
-"7"	10550	1	"SoroSuub Corporation"	250	1	5	"https://swapi.co/api/vehicles/7/"	"X-34 landspeeder"	3.4	{"created": "2014-12-10T16:13:52.586000Z", "edited": "2014-12-22T18:21:15.583700Z"}	"repulsorcraft"	"X-34 landspeeder"	"unknown"
-"8"	null	1	"Sienar Fleet Systems"	1200	0	65	"https://swapi.co/api/vehicles/8/"	"TIE/LN starfighter"	6.4	{"created": "2014-12-10T16:33:52.860000Z", "edited": "2014-12-22T18:21:15.606149Z"}	"starfighter"	"Twin Ion Engine/Ln Starfighter"	"2 days"
+id	system	cost_in_credits	cargo_capacity	passengers	max_atmosphering_speed	crew	name	consumables	model	manufacturer	url	length	vehicle_class
+"4"	{"created": "2014-12-10T15:36:25.724000Z", "edited": "2014-12-22T18:21:15.523587Z"}	150000	50000	30	30	46	"Sand Crawler"	"2 months"	"Digger Crawler"	"Corellia Mining Corporation"	"https://swapi.co/api/vehicles/4/"	36.8	"wheeled"
+"6"	{"created": "2014-12-10T16:01:52.434000Z", "edited": "2014-12-22T18:21:15.552614Z"}	14500	50	1	1200	1	"T-16 skyhopper"	"0"	"T-16 skyhopper"	"Incom Corporation"	"https://swapi.co/api/vehicles/6/"	10.4	"repulsorcraft"
+"7"	{"created": "2014-12-10T16:13:52.586000Z", "edited": "2014-12-22T18:21:15.583700Z"}	10550	5	1	250	1	"X-34 landspeeder"	"unknown"	"X-34 landspeeder"	"SoroSuub Corporation"	"https://swapi.co/api/vehicles/7/"	3.4	"repulsorcraft"
+"8"	{"created": "2014-12-10T16:33:52.860000Z", "edited": "2014-12-22T18:21:15.606149Z"}	null	65	0	1200	1	"TIE/LN starfighter"	"2 days"	"Twin Ion Engine/Ln Starfighter"	"Sienar Fleet Systems"	"https://swapi.co/api/vehicles/8/"	6.4	"starfighter"
