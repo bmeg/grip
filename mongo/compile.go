@@ -754,6 +754,23 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement, opts *gdbi.Compile
 					aggTypes[a.Name] = a
 					aggs[a.Name] = stmt
 
+				case *gripql.Aggregate_Type:
+					agg := a.GetType()
+					field := jsonpath.GetJSONPath(agg.Field)
+					field = strings.TrimPrefix(field, "$.")
+					stmt := []bson.M{
+						{
+							"$match": bson.M{
+								field: bson.M{"$exists": true},
+							},
+						},
+						{
+							"$sortByCount": bson.M{ "$type" : "$" + field },
+						},
+					}
+					aggTypes[a.Name] = a
+					aggs[a.Name] = stmt
+
 				default:
 					return &Pipeline{}, fmt.Errorf("%s uses an unknown aggregation type", a.Name)
 				}
