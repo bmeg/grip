@@ -200,8 +200,18 @@ def test_field_aggregation(man):
 def test_field_type_aggregation(man):
     errors = []
 
+    types = {
+        "population" : 'NUMERIC',
+        "name" : "STRING",
+        "diameter" : "NUMERIC",
+        "gravity" : "UNKNOWN"
+    }
     G = man.setGraph("swapi")
-    for row in G.query().V().hasLabel("Planet").aggregate(gripql.type("gid-agg", "population")):
-        print(row)
-
+    count = 0
+    for row in G.query().V().hasLabel("Planet").aggregate(list( gripql.type(a) for a in ["population", "name", "gravity", "diameter"])):
+        if types[row['name']] != row['key']:
+            errors.append("Wrong type: %s != %s" % (types[row['name']], row['key']))
+        count += 1
+    if count != 4:
+        errors.append("Incorrect number of results returned")
     return errors

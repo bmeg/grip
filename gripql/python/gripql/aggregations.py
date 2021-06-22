@@ -34,7 +34,9 @@ def field(name, field):
         "field": {"field":field}
     }
 
-def type(name, field):
+def type(name, field=None):
+    if field is None:
+        field = name
     return {
         "name": name,
         "type": {"field":field}
