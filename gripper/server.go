@@ -19,10 +19,10 @@ type BaseRow struct {
 
 type Driver interface {
 	GetTimeout() int
-	GetFields() []string
-	FetchRow(string) (BaseRow, error)
-	FetchRows(context.Context) (chan BaseRow, error)
-	FetchMatchRows(context.Context, string, string) (chan BaseRow, error)
+	GetFields() ([]string, error)
+	FetchRow(string) (*BaseRow, error)
+	FetchRows(context.Context) (chan *BaseRow, error)
+	FetchMatchRows(context.Context, string, string) (chan *BaseRow, error)
 }
 
 type SimpleTableServicer struct {
@@ -60,7 +60,11 @@ func (st *SimpleTableServicer) GetCollections(e *Empty, srv GRIPSource_GetCollec
 func (st *SimpleTableServicer) GetCollectionInfo(cxt context.Context, col *Collection) (*CollectionInfo, error) {
 	if dr, ok := st.drivers[col.Name]; ok {
 		o := []string{}
-		for _, f := range dr.GetFields() {
+    fields, err := dr.GetFields()
+    if err != nil {
+      return nil, err
+    }
+		for _, f := range fields {
 			o = append(o, "$." + f)
 		}
 		return &CollectionInfo{SearchFields: o}, nil
