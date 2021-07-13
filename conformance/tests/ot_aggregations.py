@@ -185,3 +185,41 @@ def test_traversal_gid_aggregation(man):
             "Incorrect number of aggregations returned: %d != %d" %
             (count, 2))
     return errors
+
+
+def test_field_aggregation(man):
+    errors = []
+
+    fields = [ "id", 'orbital_period', 'gravity', 'terrain', 'name','climate', 'system', 'diameter', 'rotation_period', 'url', 'population', 'surface_water']
+
+    G = man.setGraph("swapi")
+    count = 0
+    for row in G.query().V().hasLabel("Planet").aggregate(gripql.field("gid-agg", "$._data")):
+        if row["key"] not in fields:
+            errors.append("unknown field returned: %s" % (row['key']))
+        if row["value"] != 3:
+            errors.append("incorrect count returned: %s" % (row['value']))
+        count += 1
+    if count not in [11, 12]: # gripper returns an id field as well, others dont....
+        errors.append("Incorrect number of results returned")
+    return errors
+
+
+def test_field_type_aggregation(man):
+    errors = []
+
+    types = {
+        "population" : 'NUMERIC',
+        "name" : "STRING",
+        "diameter" : "NUMERIC",
+        "gravity" : "UNKNOWN"
+    }
+    G = man.setGraph("swapi")
+    count = 0
+    for row in G.query().V().hasLabel("Planet").aggregate(list( gripql.type(a) for a in ["population", "name", "gravity", "diameter"])):
+        if types[row['name']] != row['key']:
+            errors.append("Wrong type: %s != %s" % (types[row['name']], row['key']))
+        count += 1
+    if count != 4:
+        errors.append("Incorrect number of results returned")
+    return errors

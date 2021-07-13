@@ -1,6 +1,7 @@
 from __future__ import absolute_import, print_function, unicode_literals
 
 import os
+import json
 from gripql.graph import Graph
 from gripql.util import BaseConnection, raise_for_status
 
@@ -56,3 +57,14 @@ class Connection(BaseConnection):
         Get a graph handle.
         """
         return Graph(self.base_url, name, self.user, self.password, self.token, self.credential_file)
+
+    def listTables(self):
+        """
+        List graphs.
+        """
+        response = self.session.get(
+            self.base_url + "/v1/table"
+        )
+        raise_for_status(response)
+        for line in response.iter_lines(chunk_size=None):
+            yield json.loads(line)

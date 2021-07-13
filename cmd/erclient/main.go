@@ -14,7 +14,7 @@ var source = "main"
 var dataOnly = false
 
 func getClient() *gripper.GripperClient {
-	c := map[string]gripper.DriverConfig{source: {Host: host}}
+	c := map[string]string{source: host}
 	out := gripper.NewGripperClient(c)
 	return out
 }

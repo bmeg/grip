@@ -70,7 +70,7 @@ func NewGripServer(conf *config.Config, baseDir string, drivers map[string]gdbi.
 	}
 	for name, dConfig := range conf.Drivers {
 		if _, ok := gdbs[name]; !ok {
-			g, err := StartDriver(dConfig, baseDir)
+			g, err := StartDriver(conf, dConfig, baseDir)
 			if err == nil {
 				gdbs[name] = g
 			}
@@ -106,7 +106,7 @@ func NewGripServer(conf *config.Config, baseDir string, drivers map[string]gdbi.
 }
 
 // StartDriver: based on string entry in config file, figure out which driver to initialize
-func StartDriver(d config.DriverConfig, baseDir string) (gdbi.GraphDB, error) {
+func StartDriver(conf *config.Config, d config.DriverConfig, baseDir string) (gdbi.GraphDB, error) {
 	if d.Bolt != nil {
 		return kvgraph.NewKVGraphDB("bolt", *d.Bolt)
 	} else if d.Badger != nil {
@@ -124,7 +124,7 @@ func StartDriver(d config.DriverConfig, baseDir string) (gdbi.GraphDB, error) {
 	} else if d.ExistingSQL != nil {
 		return esql.NewGraphDB(*d.ExistingSQL)
 	} else if d.Gripper != nil {
-		return gripper.NewGDB(*d.Gripper, baseDir)
+		return gripper.NewGDB(*d.Gripper, baseDir, conf.Sources)
 	}
 	return nil, fmt.Errorf("unknown driver: %#v", d)
 }
@@ -137,6 +137,9 @@ func (server *GripServer) updateGraphMap() {
 	for n, dbs := range server.dbs {
 		for _, g := range dbs.ListGraphs() {
 			o[g] = n
+			if strings.HasSuffix(g, "__mapping__") {
+				log.Infof("Starting up a gripper driver here")
+			}
 		}
 	}
 	server.graphMap = o

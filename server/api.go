@@ -11,6 +11,7 @@ import (
 	"github.com/bmeg/grip/engine/pipeline"
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
+	"github.com/bmeg/grip/gripper"
 	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/util"
 	"golang.org/x/net/context"
@@ -55,6 +56,20 @@ func (server *GripServer) ListGraphs(ctx context.Context, empty *gripql.Empty) (
 	}
 	return &gripql.ListGraphsResponse{Graphs: graphs}, nil
 }
+
+// ListTables returns list of all tables that are found in plugin system
+func (server *GripServer) ListTables(empty *gripql.Empty, srv gripql.Query_ListTablesServer) error {
+	client := gripper.NewGripperClient(server.conf.Sources)
+
+	for k := range server.conf.Sources {
+		for col := range client.GetCollections(context.Background(), k) {
+			info, _ := client.GetCollectionInfo(context.Background(), k, col)
+			srv.Send(&gripql.TableInfo{Source: k, Name:col, Fields:info.SearchFields})
+		}
+	}
+	return nil
+}
+
 
 // GetVertex returns a vertex given a gripql.Element
 func (server *GripServer) GetVertex(ctx context.Context, elem *gripql.ElementID) (*gripql.Vertex, error) {

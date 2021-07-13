@@ -14,11 +14,11 @@ type TabularGDB struct {
 	graphs map[string]*TabularGraph
 }
 
-func NewGDB(conf Config, configPath string) (*TabularGDB, error) {
+func NewGDB(conf Config, configPath string, sources map[string]string) (*TabularGDB, error) {
 	out := TabularGDB{map[string]*TabularGraph{}}
 	fPath := filepath.Join(filepath.Dir(configPath), conf.ConfigFile)
 	if gConf, err := LoadConfig(fPath); err == nil {
-		o, err := NewTabularGraph(*gConf)
+		o, err := NewTabularGraph(*gConf, sources)
 		if err == nil {
 			out.graphs[conf.Graph] = o
 		} else {
@@ -29,6 +29,23 @@ func NewGDB(conf Config, configPath string) (*TabularGDB, error) {
 	}
 	return &out, nil
 }
+
+
+func NewGDBFromGraph(graph *gripql.Graph, sources map[string]string) (*TabularGDB, error) {
+	out := TabularGDB{map[string]*TabularGraph{}}
+	if conf, err := GraphToConfig(graph); err == nil {
+		o, err := NewTabularGraph(*conf, sources)
+		if err == nil {
+			out.graphs[graph.Graph] = o
+		} else {
+			log.Printf("Error loading graph config: %s", err)
+		}
+	} else {
+		log.Printf("Error loading config: %s", err)
+	}
+	return &out, nil
+}
+
 
 func (g *TabularGDB) AddGraph(string) error {
 	return fmt.Errorf("AddGraph not implemented")

@@ -38,7 +38,7 @@ type TabularGraph struct {
 	edgeSourceOrder   []string
 }
 
-func NewTabularGraph(conf GraphConfig) (*TabularGraph, error) {
+func NewTabularGraph(conf GraphConfig, sources map[string]string) (*TabularGraph, error) {
 	out := TabularGraph{}
 
 	out.vertices = map[string]*VertexSource{}
@@ -50,7 +50,7 @@ func NewTabularGraph(conf GraphConfig) (*TabularGraph, error) {
 
 	log.Info("Loading Graph Config")
 
-	out.client = NewGripperClient(conf.Sources)
+	out.client = NewGripperClient(sources)
 
 	//Check if vertex mapping match to sources
 	for _, v := range conf.Vertices {

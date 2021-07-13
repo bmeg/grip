@@ -1,6 +1,6 @@
 from __future__ import absolute_import, print_function, unicode_literals
 
-from gripql.aggregations import term, histogram, percentile
+from gripql.aggregations import term, histogram, percentile, field, type
 from gripql.connection import Connection
 from gripql.graph import Graph, BulkAdd
 from gripql.operators import (and_, or_, not_, eq, neq, gt, gte, lt, lte,

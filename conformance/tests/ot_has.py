@@ -483,7 +483,7 @@ def test_has_complex(man):
                 gripql.and_(
                     gripql.eq("_label", "Planet"),
                     gripql.or_(
-                        gripql.eq("surface_water", "1"),
+                        gripql.eq("surface_water", 1),
                         gripql.contains("terrain", "jungle")
                     )
                 )
@@ -492,7 +492,7 @@ def test_has_complex(man):
         count += 1
     if count != 37:
         errors.append(
-            "Fail: G.query().V().has(gripql.not_(gripql.and_(gripql.eq(\"_label\", \"Planet\"), gripql.or_(gripql.eq(\"surface_water\", \"1\"),  gripql.contains(\"terrain\", \"jungle\"))))) %s != %s" %
+            "Fail: G.query().V().has(gripql.not_(gripql.and_(gripql.eq(\"_label\", \"Planet\"), gripql.or_(gripql.eq(\"surface_water\", 1),  gripql.contains(\"terrain\", \"jungle\"))))) %s != %s" %
             (count, 37)
         )
 
