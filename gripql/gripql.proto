@@ -273,6 +273,12 @@ message ListLabelsResponse {
   repeated string edge_labels = 2;
 }
 
+message TableInfo {
+	string source = 1;
+	string name = 2;
+	repeated string fields = 3;
+}
+
 service Query {
   rpc Traversal(GraphQuery) returns (stream QueryResult) {
     option (google.api.http) = {
@@ -322,6 +328,12 @@ service Query {
       get: "/v1/graph/{graph}/label"
     };
   }
+
+	rpc ListTables(Empty) returns (stream TableInfo) {
+		option (google.api.http) = {
+			get: "/v1/table"
+		};
+	}
 }
 
 service Job {

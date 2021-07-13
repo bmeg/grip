@@ -26,6 +26,7 @@ type QueryClient interface {
 	ListGraphs(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*ListGraphsResponse, error)
 	ListIndices(ctx context.Context, in *GraphID, opts ...grpc.CallOption) (*ListIndicesResponse, error)
 	ListLabels(ctx context.Context, in *GraphID, opts ...grpc.CallOption) (*ListLabelsResponse, error)
+	ListTables(ctx context.Context, in *Empty, opts ...grpc.CallOption) (Query_ListTablesClient, error)
 }
 
 type queryClient struct {
@@ -131,6 +132,38 @@ func (c *queryClient) ListLabels(ctx context.Context, in *GraphID, opts ...grpc.
 	return out, nil
 }
 
+func (c *queryClient) ListTables(ctx context.Context, in *Empty, opts ...grpc.CallOption) (Query_ListTablesClient, error) {
+	stream, err := c.cc.NewStream(ctx, &Query_ServiceDesc.Streams[1], "/gripql.Query/ListTables", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &queryListTablesClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type Query_ListTablesClient interface {
+	Recv() (*TableInfo, error)
+	grpc.ClientStream
+}
+
+type queryListTablesClient struct {
+	grpc.ClientStream
+}
+
+func (x *queryListTablesClient) Recv() (*TableInfo, error) {
+	m := new(TableInfo)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // QueryServer is the server API for Query service.
 // All implementations must embed UnimplementedQueryServer
 // for forward compatibility
@@ -143,6 +176,7 @@ type QueryServer interface {
 	ListGraphs(context.Context, *Empty) (*ListGraphsResponse, error)
 	ListIndices(context.Context, *GraphID) (*ListIndicesResponse, error)
 	ListLabels(context.Context, *GraphID) (*ListLabelsResponse, error)
+	ListTables(*Empty, Query_ListTablesServer) error
 	mustEmbedUnimplementedQueryServer()
 }
 
@@ -173,6 +207,9 @@ func (UnimplementedQueryServer) ListIndices(context.Context, *GraphID) (*ListInd
 }
 func (UnimplementedQueryServer) ListLabels(context.Context, *GraphID) (*ListLabelsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListLabels not implemented")
+}
+func (UnimplementedQueryServer) ListTables(*Empty, Query_ListTablesServer) error {
+	return status.Errorf(codes.Unimplemented, "method ListTables not implemented")
 }
 func (UnimplementedQueryServer) mustEmbedUnimplementedQueryServer() {}
 
@@ -334,6 +371,27 @@ func _Query_ListLabels_Handler(srv interface{}, ctx context.Context, dec func(in
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Query_ListTables_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(Empty)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(QueryServer).ListTables(m, &queryListTablesServer{stream})
+}
+
+type Query_ListTablesServer interface {
+	Send(*TableInfo) error
+	grpc.ServerStream
+}
+
+type queryListTablesServer struct {
+	grpc.ServerStream
+}
+
+func (x *queryListTablesServer) Send(m *TableInfo) error {
+	return x.ServerStream.SendMsg(m)
+}
+
 // Query_ServiceDesc is the grpc.ServiceDesc for Query service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -374,6 +432,11 @@ var Query_ServiceDesc = grpc.ServiceDesc{
 		{
 			StreamName:    "Traversal",
 			Handler:       _Query_Traversal_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "ListTables",
+			Handler:       _Query_ListTables_Handler,
 			ServerStreams: true,
 		},
 	},
