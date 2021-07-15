@@ -84,6 +84,11 @@ func (shim *QueryDirectClient) GetSchema(ctx context.Context, in *GraphID, opts 
 	return shim.server.GetSchema(ctx, in)
 }
 
+//GetMapping shim
+func (shim *QueryDirectClient) GetMapping(ctx context.Context, in *GraphID, opts ...grpc.CallOption) (*Graph, error) {
+	return shim.server.GetMapping(ctx, in)
+}
+
 //ListGraphs shim
 func (shim *QueryDirectClient) ListGraphs(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*ListGraphsResponse, error) {
 	return shim.server.ListGraphs(ctx, in)
@@ -454,4 +459,9 @@ func (shim *EditDirectClient) DeleteIndex(ctx context.Context, in *IndexID, opts
 //AddSchema shim
 func (shim *EditDirectClient) AddSchema(ctx context.Context, in *Graph, opts ...grpc.CallOption) (*EditResult, error) {
 	return shim.server.AddSchema(ctx, in)
+}
+
+//AddMapping shim
+func (shim *EditDirectClient) AddMapping(ctx context.Context, in *Graph, opts ...grpc.CallOption) (*EditResult, error) {
+	return shim.server.AddMapping(ctx, in)
 }

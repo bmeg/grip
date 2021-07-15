@@ -32,8 +32,6 @@ func FindVertexHasLabelStart(pipe []*gripql.GraphStatement) ([]string, []*gripql
 	return labels, pipe[hasLabelLen:]
 }
 
-
-
 func FindEdgeHasLabelStart(pipe []*gripql.GraphStatement) ([]string, []*gripql.GraphStatement) {
 	hasLabelLen := 0
 	labels := []string{}

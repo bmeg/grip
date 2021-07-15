@@ -1,15 +1,15 @@
-
 package gripper
 
 import (
-  "net"
-  "context"
-  "fmt"
-  "log"
+	"context"
+	"fmt"
+	"log"
+	"net"
 
-  "strings"
-  "google.golang.org/grpc"
-  "google.golang.org/protobuf/types/known/structpb"
+	"strings"
+
+	"google.golang.org/grpc"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 type BaseRow struct {
@@ -30,11 +30,9 @@ type SimpleTableServicer struct {
 	drivers map[string]Driver
 }
 
-
 func NewSimpleTableServer(dr map[string]Driver) *SimpleTableServicer {
 	return &SimpleTableServicer{drivers: dr}
 }
-
 
 func StartServer(port int, serv GRIPSourceServer) {
 	lis, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", port))
@@ -49,7 +47,6 @@ func StartServer(port int, serv GRIPSourceServer) {
 	grpcServer.Serve(lis)
 }
 
-
 func (st *SimpleTableServicer) GetCollections(e *Empty, srv GRIPSource_GetCollectionsServer) error {
 	for n := range st.drivers {
 		srv.Send(&Collection{Name: n})
@@ -60,12 +57,12 @@ func (st *SimpleTableServicer) GetCollections(e *Empty, srv GRIPSource_GetCollec
 func (st *SimpleTableServicer) GetCollectionInfo(cxt context.Context, col *Collection) (*CollectionInfo, error) {
 	if dr, ok := st.drivers[col.Name]; ok {
 		o := []string{}
-    fields, err := dr.GetFields()
-    if err != nil {
-      return nil, err
-    }
+		fields, err := dr.GetFields()
+		if err != nil {
+			return nil, err
+		}
 		for _, f := range fields {
-			o = append(o, "$." + f)
+			o = append(o, "$."+f)
 		}
 		return &CollectionInfo{SearchFields: o}, nil
 	}
@@ -117,7 +114,7 @@ func (st *SimpleTableServicer) GetRowsByField(req *FieldRequest, srv GRIPSource_
 	if dr, ok := st.drivers[req.Collection]; ok {
 		field := req.Field
 		if strings.HasPrefix(field, "$.") {
-			field = field[2:len(field)]
+			field = field[2:]
 		}
 		ch, _ := dr.FetchMatchRows(srv.Context(), field, req.Value)
 		for row := range ch {

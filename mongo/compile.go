@@ -765,7 +765,7 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement, opts *gdbi.Compile
 							},
 						},
 						{
-							"$sortByCount": bson.M{ "$type" : "$" + field },
+							"$sortByCount": bson.M{"$type": "$" + field},
 						},
 					}
 					aggTypes[a.Name] = a
@@ -783,13 +783,13 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement, opts *gdbi.Compile
 						},
 						{
 							"$project": bson.M{
-								"results" :  bson.M{ "$objectToArray": "$" + field },
+								"results": bson.M{"$objectToArray": "$" + field},
 							},
 						},
-						bson.M{"$unwind": "$results"},
+						{"$unwind": "$results"},
 						{
 							"$project": bson.M{
-								"results" : "$results.k",
+								"results": "$results.k",
 							},
 						},
 						{
@@ -798,7 +798,6 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement, opts *gdbi.Compile
 					}
 					aggTypes[a.Name] = a
 					aggs[a.Name] = stmt
-
 
 				default:
 					return &Pipeline{}, fmt.Errorf("%s uses an unknown aggregation type", a.Name)

@@ -4,7 +4,6 @@
 
 package gripqljs
 
-
 import (
 	"fmt"
 	"io/ioutil"
@@ -13,7 +12,6 @@ import (
 	"strings"
 	"time"
 )
-
 
 type asset struct {
 	bytes []byte
@@ -294,8 +292,6 @@ func bindataGripqlJsBytes() ([]byte, error) {
 	return _bindataGripqlJs, nil
 }
 
-
-
 func bindataGripqlJs() (*asset, error) {
 	bytes, err := bindataGripqlJsBytes()
 	if err != nil {
@@ -303,18 +299,17 @@ func bindataGripqlJs() (*asset, error) {
 	}
 
 	info := bindataFileInfo{
-		name: "gripql.js",
-		size: 5082,
+		name:        "gripql.js",
+		size:        5082,
 		md5checksum: "",
-		mode: os.FileMode(436),
-		modTime: time.Unix(1614443422, 0),
+		mode:        os.FileMode(436),
+		modTime:     time.Unix(1614443422, 0),
 	}
 
 	a := &asset{bytes: bytes, info: info}
 
 	return a, nil
 }
-
 
 //
 // Asset loads and returns the asset for the given name.
@@ -406,18 +401,18 @@ func AssetDir(name string) ([]string, error) {
 			node = node.Children[p]
 			if node == nil {
 				return nil, &os.PathError{
-					Op: "open",
+					Op:   "open",
 					Path: name,
-					Err: os.ErrNotExist,
+					Err:  os.ErrNotExist,
 				}
 			}
 		}
 	}
 	if node.Func != nil {
 		return nil, &os.PathError{
-			Op: "open",
+			Op:   "open",
 			Path: name,
-			Err: os.ErrNotExist,
+			Err:  os.ErrNotExist,
 		}
 	}
 	rv := make([]string, 0, len(node.Children))
@@ -426,7 +421,6 @@ func AssetDir(name string) ([]string, error) {
 	}
 	return rv, nil
 }
-
 
 type bintree struct {
 	Func     func() (*asset, error)

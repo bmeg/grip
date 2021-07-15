@@ -139,7 +139,6 @@ func (dc *DriverCache) FetchMatchRows(ctx context.Context, field string, value s
 	return out, nil
 }
 
-
 type DriverPreLoad struct {
 	tableCache map[string]*BaseRow
 	tableKeys  []string
@@ -163,7 +162,7 @@ func (dp *DriverPreLoad) GetFields() ([]string, error) {
 	for _, row := range dp.tableCache {
 		for k, v := range row.Value {
 			if _, ok := v.(string); ok {
-					fields[k] = true
+				fields[k] = true
 			}
 		}
 	}

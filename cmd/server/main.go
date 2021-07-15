@@ -96,5 +96,5 @@ func init() {
 	flags.StringVar(&conf.Logger.Formatter, "log-format", conf.Logger.Formatter, "Log format [text, json]")
 	flags.BoolVar(&conf.Server.RequestLogging.Enable, "log-requests", conf.Server.RequestLogging.Enable, "Log all requests")
 
-	flags.StringToStringVarP(&conf.Sources, "er", "e", conf.Sources, "GRIPPER source address" )
+	flags.StringToStringVarP(&conf.Sources, "er", "e", conf.Sources, "GRIPPER source address")
 }

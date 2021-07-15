@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/bmeg/grip/gripql"
-	"github.com/bmeg/grip/log"
 	gripSchema "github.com/bmeg/grip/gripql/schema"
+	"github.com/bmeg/grip/log"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"golang.org/x/sync/errgroup"

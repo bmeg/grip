@@ -18,7 +18,6 @@ import (
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/jobstorage"
 	"github.com/bmeg/grip/log"
-	"github.com/bmeg/grip/util/rpc"
 	"github.com/felixge/httpsnoop"
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
@@ -43,10 +42,11 @@ type GripServer struct {
 	gripql.UnimplementedQueryServer
 	gripql.UnimplementedEditServer
 	gripql.UnimplementedJobServer
-	dbs      map[string]gdbi.GraphDB
-	graphMap map[string]string
-	conf     *config.Config
-	schemas  map[string]*gripql.Graph
+	dbs      map[string]gdbi.GraphDB         //graph database drivers
+	graphMap map[string]string               //mapping from graph name to graph database driver
+	conf     *config.Config                  //global configuration
+	schemas  map[string]*gripql.Graph        //cached schemas
+	mappings map[string]*gripper.GraphConfig //cached gripper graph mappings
 	baseDir  string
 	jStorage jobstorage.JobStorage
 }
@@ -139,6 +139,11 @@ func (server *GripServer) updateGraphMap() {
 			o[g] = n
 			if strings.HasSuffix(g, "__mapping__") {
 				log.Infof("Starting up a gripper driver here")
+			}
+			graph, err := server.getGraph(g)
+			gConf, err := gripper.GraphToConfig(graph)
+			if err == nil {
+				fmt.Printf("Mapping: %s\n", gConf)
 			}
 		}
 	}
@@ -345,28 +350,19 @@ func (server *GripServer) Serve(pctx context.Context) error {
 		for _, graph := range gdb.ListGraphs() {
 			if isSchema(graph) {
 				log.WithFields(log.Fields{"graph": graph}).Debug("Loading existing schema into cache")
-				conn, err := gripql.Connect(rpc.ConfigWithDefaults(server.conf.Server.RPCAddress()), true)
-				if err != nil {
-					return fmt.Errorf("failed to load existing schema: %v", err)
+				schema, err := server.getGraph(graph)
+				if err == nil {
+					server.schemas[strings.TrimSuffix(graph, schemaSuffix)] = schema
 				}
-				res, err := conn.Traversal(&gripql.GraphQuery{Graph: graph, Query: gripql.NewQuery().V().Statements})
-				if err != nil {
-					return fmt.Errorf("failed to load existing schema: %v", err)
+			} else if isMapping(graph) {
+				log.WithFields(log.Fields{"graph": graph}).Debug("Loading existing mapping into cache")
+				mapping, err := server.getGraph(graph)
+				if err == nil {
+					config, err := gripper.GraphToConfig(mapping)
+					if err == nil {
+						server.mappings[strings.TrimSuffix(graph, mappingSuffix)] = config
+					}
 				}
-				vertices := []*gripql.Vertex{}
-				for row := range res {
-					vertices = append(vertices, row.GetVertex())
-				}
-				res, err = conn.Traversal(&gripql.GraphQuery{Graph: graph, Query: gripql.NewQuery().E().Statements})
-				if err != nil {
-					return fmt.Errorf("failed to load existing schema: %v", err)
-				}
-				edges := []*gripql.Edge{}
-				for row := range res {
-					edges = append(edges, row.GetEdge())
-				}
-				graph = strings.TrimSuffix(graph, schemaSuffix)
-				server.schemas[graph] = &gripql.Graph{Graph: graph, Vertices: vertices, Edges: edges}
 			}
 		}
 	}

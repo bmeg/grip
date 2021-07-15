@@ -52,6 +52,38 @@ class Connection(BaseConnection):
         raise_for_status(response)
         return response.json()
 
+    def postSchema(self, name, vertices, edges):
+        """
+        Post a graph schema
+        """
+        response = self.session.post(
+            self.url + "/" + name + "/schema",
+            {"vertices" : vertices, "edges" : edges}
+        )
+        raise_for_status(response)
+        return response.json()
+
+    def getMapping(self, name):
+        """
+        Get a graph mapping.
+        """
+        response = self.session.get(
+            self.url + "/" + name + "/mapping"
+        )
+        raise_for_status(response)
+        return response.json()
+
+    def postMapping(self, name, vertices, edges):
+        """
+        Post a graph mapping
+        """
+        response = self.session.post(
+            self.url + "/" + name + "/mapping",
+            {"vertices" : vertices, "edges" : edges}
+        )
+        raise_for_status(response)
+        return response.json()
+
     def graph(self, name):
         """
         Get a graph handle.

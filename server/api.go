@@ -3,15 +3,12 @@ package server
 import (
 	"fmt"
 	"io"
-	"strings"
-	"time"
-
 	"sync"
 
 	"github.com/bmeg/grip/engine/pipeline"
 	"github.com/bmeg/grip/gdbi"
-	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/gripper"
+	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/util"
 	"golang.org/x/net/context"
@@ -64,12 +61,11 @@ func (server *GripServer) ListTables(empty *gripql.Empty, srv gripql.Query_ListT
 	for k := range server.conf.Sources {
 		for col := range client.GetCollections(context.Background(), k) {
 			info, _ := client.GetCollectionInfo(context.Background(), k, col)
-			srv.Send(&gripql.TableInfo{Source: k, Name:col, Fields:info.SearchFields})
+			srv.Send(&gripql.TableInfo{Source: k, Name: col, Fields: info.SearchFields})
 		}
 	}
 	return nil
 }
-
 
 // GetVertex returns a vertex given a gripql.Element
 func (server *GripServer) GetVertex(ctx context.Context, elem *gripql.ElementID) (*gripql.Vertex, error) {
@@ -430,61 +426,6 @@ func (server *GripServer) ListLabels(ctx context.Context, idx *gripql.GraphID) (
 	return &gripql.ListLabelsResponse{VertexLabels: vLabels, EdgeLabels: eLabels}, nil
 }
 
-var schemaSuffix = "__schema__"
-
-func (server *GripServer) buildSchemas(ctx context.Context) {
-	for _, gdb := range server.dbs {
-		for _, name := range gdb.ListGraphs() {
-			select {
-			case <-ctx.Done():
-				return
-
-			default:
-				if isSchema(name) {
-					continue
-				}
-				if _, ok := server.schemas[name]; ok {
-					log.WithFields(log.Fields{"graph": name}).Debug("skipping build; cached schema found")
-					continue
-				}
-				log.WithFields(log.Fields{"graph": name}).Debug("building graph schema")
-				schema, err := gdb.BuildSchema(ctx, name, server.conf.Server.SchemaInspectN, server.conf.Server.SchemaRandomSample)
-				if err == nil {
-					log.WithFields(log.Fields{"graph": name}).Debug("cached graph schema")
-					err := server.addSchemaGraph(ctx, schema)
-					if err != nil {
-						log.WithFields(log.Fields{"graph": name, "error": err}).Error("failed to store graph schema")
-					}
-					server.schemas[name] = schema
-				} else {
-					log.WithFields(log.Fields{"graph": name, "error": err}).Error("failed to build graph schema")
-				}
-			}
-		}
-	}
-}
-
-// cacheSchemas calls GetSchema on each graph and caches the schemas in memory
-func (server *GripServer) cacheSchemas(ctx context.Context) {
-
-	if time.Duration(server.conf.Server.SchemaRefreshInterval) == 0 {
-		server.buildSchemas(ctx)
-		return
-	}
-
-	ticker := time.NewTicker(time.Duration(server.conf.Server.SchemaRefreshInterval))
-	server.buildSchemas(ctx)
-	for {
-		select {
-		case <-ctx.Done():
-			ticker.Stop()
-			return
-		case <-ticker.C:
-			server.buildSchemas(ctx)
-		}
-	}
-}
-
 // GetSchema returns the schema of a specific graph in the database
 func (server *GripServer) GetSchema(ctx context.Context, elem *gripql.GraphID) (*gripql.Graph, error) {
 	if !server.graphExists(elem.Graph) {
@@ -501,13 +442,12 @@ func (server *GripServer) GetSchema(ctx context.Context, elem *gripql.GraphID) (
 	if schema.Graph == "" {
 		schema.Graph = elem.Graph
 	}
-
 	return schema, nil
 }
 
 // AddSchema caches a graph schema on the server
 func (server *GripServer) AddSchema(ctx context.Context, req *gripql.Graph) (*gripql.EditResult, error) {
-	err := server.addSchemaGraph(ctx, req)
+	err := server.addFullGraph(ctx, fmt.Sprintf(req.Graph, schemaSuffix), req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to store new schema: %v", err)
 	}
@@ -515,38 +455,30 @@ func (server *GripServer) AddSchema(ctx context.Context, req *gripql.Graph) (*gr
 	return &gripql.EditResult{}, nil
 }
 
-func (server *GripServer) addSchemaGraph(ctx context.Context, schema *gripql.Graph) error {
-	if schema.Graph == "" {
-		return fmt.Errorf("graph name is an empty string")
+// GetMapping returns the schema of a specific graph in the database
+func (server *GripServer) GetMapping(ctx context.Context, elem *gripql.GraphID) (*gripql.Graph, error) {
+	if !server.graphExists(elem.Graph) {
+		return nil, grpc.Errorf(codes.NotFound, fmt.Sprintf("graph %s: not found", elem.Graph))
 	}
-	schemaName := fmt.Sprintf("%s%s", schema.Graph, schemaSuffix)
-	if server.graphExists(schemaName) {
-		_, err := server.DeleteGraph(ctx, &gripql.GraphID{Graph: schemaName})
-		if err != nil {
-			return fmt.Errorf("failed to remove previous schema: %v", err)
-		}
-	}
-	_, err := server.AddGraph(ctx, &gripql.GraphID{Graph: schemaName})
+	mapping, err := server.getGraph(elem.Graph + mappingSuffix)
 	if err != nil {
-		return fmt.Errorf("error creating graph '%s': %v", schemaName, err)
+		return nil, err
 	}
-	for _, v := range schema.Vertices {
-		_, err := server.addVertex(ctx, &gripql.GraphElement{Graph: schemaName, Vertex: v})
-		if err != nil {
-			return fmt.Errorf("error adding vertex to graph '%s': %v", schemaName, err)
-		}
-	}
-	for _, e := range schema.Edges {
-		_, err := server.addEdge(ctx, &gripql.GraphElement{Graph: schemaName, Edge: e})
-		if err != nil {
-			return fmt.Errorf("error adding edge to graph '%s': %v", schemaName, err)
-		}
-	}
-	return nil
+	return mapping, nil
 }
 
-func isSchema(graphName string) bool {
-	return strings.HasSuffix(graphName, schemaSuffix)
+// AddMapping caches a graph schema on the server
+func (server *GripServer) AddMapping(ctx context.Context, req *gripql.Graph) (*gripql.EditResult, error) {
+	err := server.addFullGraph(ctx, fmt.Sprintf("%s%s", req.Graph, mappingSuffix), req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to store new mapping: %v", err)
+	}
+	c, err := gripper.GraphToConfig(req)
+	if err != nil {
+		return nil, err
+	}
+	server.mappings[req.Graph] = c
+	return &gripql.EditResult{}, nil
 }
 
 func (server *GripServer) graphExists(graphName string) bool {

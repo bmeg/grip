@@ -3,8 +3,10 @@ package gripper
 import (
 	"fmt"
 	"io/ioutil"
-	"path/filepath"
+
+	//"path/filepath"
 	"encoding/json"
+
 	"github.com/bmeg/grip/gripql"
 	"github.com/ghodss/yaml"
 )
@@ -18,7 +20,7 @@ type Config struct {
 type GraphConfig struct {
 	Vertices map[string]VertexConfig `json:"vertices"`
 	Edges    map[string]EdgeConfig   `json:"edges"`
-	path     string
+	//path     string
 }
 
 type VertexConfig struct {
@@ -64,7 +66,7 @@ func LoadConfig(path string) (*GraphConfig, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse config at path %s: \n%v", path, err)
 	}
-	conf.path, _ = filepath.Abs(path)
+	//conf.path, _ = filepath.Abs(path)
 	return conf, nil
 }
 
@@ -73,9 +75,8 @@ func ParseConfig(raw []byte, conf *GraphConfig) error {
 	return yaml.Unmarshal(raw, conf)
 }
 
-
 func GraphToConfig(graph *gripql.Graph) (*GraphConfig, error) {
-	out := GraphConfig{Vertices:map[string]VertexConfig{}, Edges:map[string]EdgeConfig{}}
+	out := GraphConfig{Vertices: map[string]VertexConfig{}, Edges: map[string]EdgeConfig{}}
 	for _, vert := range graph.Vertices {
 		d := vert.Data.AsMap()
 		s, _ := json.Marshal(d)

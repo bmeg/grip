@@ -30,7 +30,6 @@ func NewGDB(conf Config, configPath string, sources map[string]string) (*Tabular
 	return &out, nil
 }
 
-
 func NewGDBFromGraph(graph *gripql.Graph, sources map[string]string) (*TabularGDB, error) {
 	out := TabularGDB{map[string]*TabularGraph{}}
 	if conf, err := GraphToConfig(graph); err == nil {
@@ -45,7 +44,6 @@ func NewGDBFromGraph(graph *gripql.Graph, sources map[string]string) (*TabularGD
 	}
 	return &out, nil
 }
-
 
 func (g *TabularGDB) AddGraph(string) error {
 	return fmt.Errorf("AddGraph not implemented")
