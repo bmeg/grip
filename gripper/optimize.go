@@ -55,7 +55,7 @@ func (t *tabularHasLabelProc) Process(ctx context.Context, man gdbi.Manager, in 
 				default:
 				}
 				if setcmp.ContainsString(t.labels, table.config.Label) {
-					for row := range t.graph.client.GetRows(ctx, table.config.Source, table.config.Collection) {
+					for row := range t.graph.client.GetRows(ctx, table.config.Data.Source, table.config.Data.Collection) {
 						out <- i.AddCurrent(&gdbi.DataElement{
 							ID:     table.prefix + row.Id,
 							Label:  table.config.Label,
@@ -103,19 +103,19 @@ func (t *tabularEdgeHasLabelProc) Process(ctx context.Context, man gdbi.Manager,
 					default:
 					}
 					if setcmp.ContainsString(t.labels, edge.config.Label) {
-						if edge.config.EdgeTable != nil {
+						if edge.config.Data.EdgeTable != nil {
 							//srcID := strings.TrimPrefix(src, edge.fromVertex.prefix)
 							//dstID := strings.TrimPrefix(dst, edge.toVertex.prefix)
-							for row := range t.graph.client.GetRows(ctx, edge.config.EdgeTable.Source, edge.config.EdgeTable.Collection) {
+							for row := range t.graph.client.GetRows(ctx, edge.config.Data.EdgeTable.Source, edge.config.Data.EdgeTable.Collection) {
 								data := row.Data.AsMap()
-								if rowSrc, err := jsonpath.JsonPathLookup(data, edge.config.EdgeTable.FromField); err == nil {
+								if rowSrc, err := jsonpath.JsonPathLookup(data, edge.config.Data.EdgeTable.FromField); err == nil {
 									if rowSrcStr, ok := rowSrc.(string); ok {
-										if rowDst, err := jsonpath.JsonPathLookup(data, edge.config.EdgeTable.ToField); err == nil {
+										if rowDst, err := jsonpath.JsonPathLookup(data, edge.config.Data.EdgeTable.ToField); err == nil {
 											if rowDstStr, ok := rowDst.(string); ok {
 												o := gdbi.Edge{
 													ID:     edge.GenID(rowSrcStr, rowDstStr), //edge.prefix + row.Id,
-													To:     edge.config.ToVertex + rowDstStr,
-													From:   edge.config.FromVertex + rowSrcStr,
+													To:     edge.config.To + rowDstStr,
+													From:   edge.config.From + rowSrcStr,
 													Label:  edge.config.Label,
 													Data:   row.Data.AsMap(),
 													Loaded: true,
@@ -126,16 +126,16 @@ func (t *tabularEdgeHasLabelProc) Process(ctx context.Context, man gdbi.Manager,
 									}
 								}
 							}
-						} else if edge.config.FieldToField != nil {
-							for srcRow := range t.graph.client.GetRows(ctx, edge.fromVertex.config.Source, edge.fromVertex.config.Collection) {
+						} else if edge.config.Data.FieldToField != nil {
+							for srcRow := range t.graph.client.GetRows(ctx, edge.fromVertex.config.Data.Source, edge.fromVertex.config.Data.Collection) {
 								srcData := srcRow.Data.AsMap()
-								if srcField, err := jsonpath.JsonPathLookup(srcData, edge.config.FieldToField.FromField); err == nil {
+								if srcField, err := jsonpath.JsonPathLookup(srcData, edge.config.Data.FieldToField.FromField); err == nil {
 									if fValue, ok := srcField.(string); ok {
 										if fValue != "" {
 											dstRes, err := t.graph.client.GetRowsByField(ctx,
-												edge.toVertex.config.Source,
-												edge.toVertex.config.Collection,
-												edge.config.FieldToField.ToField, fValue)
+												edge.toVertex.config.Data.Source,
+												edge.toVertex.config.Data.Collection,
+												edge.config.Data.FieldToField.ToField, fValue)
 											if err == nil {
 												for dstRow := range dstRes {
 													o := gdbi.Edge{

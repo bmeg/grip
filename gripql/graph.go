@@ -145,3 +145,16 @@ func GraphToJSONString(graph *Graph) (string, error) {
 	txt := m.Format(graph)
 	return txt, nil
 }
+
+func GraphMapToProto(data map[string]interface{}) (*Graph, error) {
+	part, err := json.Marshal(data)
+	if err != nil {
+		return nil, err
+	}
+	g := &Graph{}
+	err = protojson.Unmarshal(part, g)
+	if err != nil {
+		return nil, err
+	}
+	return g, nil
+}

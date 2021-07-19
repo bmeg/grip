@@ -6,9 +6,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bmeg/grip/log"
-
+	"github.com/bmeg/grip/config"
+	"github.com/bmeg/grip/gripper"
 	"github.com/bmeg/grip/gripql"
+	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/util/rpc"
 )
 
@@ -21,6 +22,15 @@ func isSchema(graphName string) bool {
 
 func isMapping(graphName string) bool {
 	return strings.HasSuffix(graphName, mappingSuffix)
+}
+
+func (server *GripServer) setupMapping(name string, graph *gripql.Graph) {
+	server.mappings[name] = graph
+	mGraph, _ := gripper.GraphToConfig(graph)
+	dbs, err := StartDriver(server.conf, config.DriverConfig{Gripper: &gripper.Config{Mapping: mGraph}})
+	if err == nil {
+		server.dbs[name] = dbs
+	}
 }
 
 func (server *GripServer) getGraph(graph string) (*gripql.Graph, error) {

@@ -42,11 +42,11 @@ type GripServer struct {
 	gripql.UnimplementedQueryServer
 	gripql.UnimplementedEditServer
 	gripql.UnimplementedJobServer
-	dbs      map[string]gdbi.GraphDB         //graph database drivers
-	graphMap map[string]string               //mapping from graph name to graph database driver
-	conf     *config.Config                  //global configuration
-	schemas  map[string]*gripql.Graph        //cached schemas
-	mappings map[string]*gripper.GraphConfig //cached gripper graph mappings
+	dbs      map[string]gdbi.GraphDB  //graph database drivers
+	graphMap map[string]string        //mapping from graph name to graph database driver
+	conf     *config.Config           //global configuration
+	schemas  map[string]*gripql.Graph //cached schemas
+	mappings map[string]*gripql.Graph //cached gripper graph mappings
 	baseDir  string
 	jStorage jobstorage.JobStorage
 }
@@ -70,7 +70,7 @@ func NewGripServer(conf *config.Config, baseDir string, drivers map[string]gdbi.
 	}
 	for name, dConfig := range conf.Drivers {
 		if _, ok := gdbs[name]; !ok {
-			g, err := StartDriver(conf, dConfig, baseDir)
+			g, err := StartDriver(conf, dConfig)
 			if err == nil {
 				gdbs[name] = g
 			}
@@ -78,7 +78,6 @@ func NewGripServer(conf *config.Config, baseDir string, drivers map[string]gdbi.
 	}
 
 	server := &GripServer{dbs: gdbs, conf: conf, schemas: schemas}
-
 	/*
 		for graph, schema := range schemas {
 			if !server.graphExists(graph) {
@@ -106,7 +105,7 @@ func NewGripServer(conf *config.Config, baseDir string, drivers map[string]gdbi.
 }
 
 // StartDriver: based on string entry in config file, figure out which driver to initialize
-func StartDriver(conf *config.Config, d config.DriverConfig, baseDir string) (gdbi.GraphDB, error) {
+func StartDriver(conf *config.Config, d config.DriverConfig) (gdbi.GraphDB, error) {
 	if d.Bolt != nil {
 		return kvgraph.NewKVGraphDB("bolt", *d.Bolt)
 	} else if d.Badger != nil {
@@ -124,7 +123,7 @@ func StartDriver(conf *config.Config, d config.DriverConfig, baseDir string) (gd
 	} else if d.ExistingSQL != nil {
 		return esql.NewGraphDB(*d.ExistingSQL)
 	} else if d.Gripper != nil {
-		return gripper.NewGDB(*d.Gripper, baseDir, conf.Sources)
+		return gripper.NewGDBFromConfig(d.Gripper.Graph, d.Gripper.Mapping, conf.Sources)
 	}
 	return nil, fmt.Errorf("unknown driver: %#v", d)
 }
@@ -139,11 +138,14 @@ func (server *GripServer) updateGraphMap() {
 			o[g] = n
 			if strings.HasSuffix(g, "__mapping__") {
 				log.Infof("Starting up a gripper driver here")
-			}
-			graph, err := server.getGraph(g)
-			gConf, err := gripper.GraphToConfig(graph)
-			if err == nil {
-				fmt.Printf("Mapping: %s\n", gConf)
+				graph, err := server.getGraph(g)
+				if err == nil {
+					mapping, _ := gripper.GraphToConfig(graph)
+					gdb, err := StartDriver(server.conf, config.DriverConfig{Gripper: &gripper.Config{Mapping: mapping}})
+					if err != nil {
+						server.dbs[strings.TrimSuffix(g, mappingSuffix)] = gdb
+					}
+				}
 			}
 		}
 	}
@@ -358,10 +360,7 @@ func (server *GripServer) Serve(pctx context.Context) error {
 				log.WithFields(log.Fields{"graph": graph}).Debug("Loading existing mapping into cache")
 				mapping, err := server.getGraph(graph)
 				if err == nil {
-					config, err := gripper.GraphToConfig(mapping)
-					if err == nil {
-						server.mappings[strings.TrimSuffix(graph, mappingSuffix)] = config
-					}
+					server.mappings[strings.TrimSuffix(graph, mappingSuffix)] = mapping
 				}
 			}
 		}

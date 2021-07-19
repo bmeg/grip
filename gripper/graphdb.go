@@ -4,7 +4,8 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"path/filepath"
+
+	//"path/filepath"
 
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
@@ -14,6 +15,7 @@ type TabularGDB struct {
 	graphs map[string]*TabularGraph
 }
 
+/*
 func NewGDB(conf Config, configPath string, sources map[string]string) (*TabularGDB, error) {
 	out := TabularGDB{map[string]*TabularGraph{}}
 	fPath := filepath.Join(filepath.Dir(configPath), conf.ConfigFile)
@@ -29,6 +31,7 @@ func NewGDB(conf Config, configPath string, sources map[string]string) (*Tabular
 	}
 	return &out, nil
 }
+*/
 
 func NewGDBFromGraph(graph *gripql.Graph, sources map[string]string) (*TabularGDB, error) {
 	out := TabularGDB{map[string]*TabularGraph{}}
@@ -41,6 +44,17 @@ func NewGDBFromGraph(graph *gripql.Graph, sources map[string]string) (*TabularGD
 		}
 	} else {
 		log.Printf("Error loading config: %s", err)
+	}
+	return &out, nil
+}
+
+func NewGDBFromConfig(name string, conf *GraphConfig, sources map[string]string) (*TabularGDB, error) {
+	out := TabularGDB{map[string]*TabularGraph{}}
+	o, err := NewTabularGraph(*conf, sources)
+	if err == nil {
+		out.graphs[name] = o
+	} else {
+		log.Printf("Error loading graph config: %s", err)
 	}
 	return &out, nil
 }

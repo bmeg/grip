@@ -473,11 +473,7 @@ func (server *GripServer) AddMapping(ctx context.Context, req *gripql.Graph) (*g
 	if err != nil {
 		return nil, fmt.Errorf("failed to store new mapping: %v", err)
 	}
-	c, err := gripper.GraphToConfig(req)
-	if err != nil {
-		return nil, err
-	}
-	server.mappings[req.Graph] = c
+	server.setupMapping(req.Graph, req)
 	return &gripql.EditResult{}, nil
 }
 
