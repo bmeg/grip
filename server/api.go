@@ -447,7 +447,7 @@ func (server *GripServer) GetSchema(ctx context.Context, elem *gripql.GraphID) (
 
 // AddSchema caches a graph schema on the server
 func (server *GripServer) AddSchema(ctx context.Context, req *gripql.Graph) (*gripql.EditResult, error) {
-	err := server.addFullGraph(ctx, fmt.Sprintf(req.Graph, schemaSuffix), req)
+	err := server.addFullGraph(ctx, fmt.Sprintf("%s%s", req.Graph, schemaSuffix), req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to store new schema: %v", err)
 	}
