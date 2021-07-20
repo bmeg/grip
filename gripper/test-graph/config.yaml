@@ -1,5 +1,10 @@
 
+Default: badger
+
 Drivers:
+  badger:
+    Badger: grip-badger.db
+
   swapi-driver:
     Gripper:
       ConfigFile: ./swapi.yaml

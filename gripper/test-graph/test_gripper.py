@@ -1,6 +1,7 @@
 
 import os
 import sys
+import yaml
 import unittest
 
 BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -17,6 +18,14 @@ class TestTableList(unittest.TestCase):
         conn = gripql.Connection(SERVER)
         for r in conn.listTables():
             print(r)
+
+    def test_post_mapping(self):
+        with open(os.path.join(BASE, "test-graph/swapi.yaml")) as handle:
+            mappingGraph = yaml.load(handle.read())
+        conn = gripql.Connection(SERVER)
+        conn.postMapping("posted_tabledata", mappingGraph['vertices'], mappingGraph['edges'])
+        for l in conn.listGraphs():
+            print(l)
 
 if __name__ == '__main__':
     SERVER = sys.argv.pop(-1)

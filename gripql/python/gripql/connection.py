@@ -79,9 +79,10 @@ class Connection(BaseConnection):
         """
         response = self.session.post(
             self.url + "/" + name + "/mapping",
-            {"vertices" : vertices, "edges" : edges}
+            json={"vertices" : vertices, "edges" : edges}
         )
-        raise_for_status(response)
+        #raise_for_status(response)
+        print("mapping", response.text)
         return response.json()
 
     def graph(self, name):
