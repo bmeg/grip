@@ -77,7 +77,7 @@ func NewGripServer(conf *config.Config, baseDir string, drivers map[string]gdbi.
 		}
 	}
 
-	server := &GripServer{dbs: gdbs, conf: conf, schemas: schemas}
+	server := &GripServer{dbs: gdbs, conf: conf, schemas: schemas, mappings: map[string]*gripql.Graph{}}
 	/*
 		for graph, schema := range schemas {
 			if !server.graphExists(graph) {
@@ -100,7 +100,6 @@ func NewGripServer(conf *config.Config, baseDir string, drivers map[string]gdbi.
 		return nil, fmt.Errorf("Default driver '%s' does not exist", conf.Default)
 	}
 	fmt.Printf("Default graph driver: %s\n", conf.Default)
-	server.updateGraphMap()
 	return server, nil
 }
 
@@ -126,30 +125,6 @@ func StartDriver(conf *config.Config, d config.DriverConfig) (gdbi.GraphDB, erro
 		return gripper.NewGDBFromConfig(d.Gripper.Graph, d.Gripper.Mapping, conf.Sources)
 	}
 	return nil, fmt.Errorf("unknown driver: %#v", d)
-}
-
-func (server *GripServer) updateGraphMap() {
-	o := map[string]string{}
-	for k, v := range server.conf.Graphs {
-		o[k] = v
-	}
-	for n, dbs := range server.dbs {
-		for _, g := range dbs.ListGraphs() {
-			o[g] = n
-			if strings.HasSuffix(g, "__mapping__") {
-				log.Infof("Starting up a gripper driver here")
-				graph, err := server.getGraph(g)
-				if err == nil {
-					mapping, _ := gripper.GraphToConfig(graph)
-					gdb, err := StartDriver(server.conf, config.DriverConfig{Gripper: &gripper.Config{Mapping: mapping}})
-					if err != nil {
-						server.dbs[strings.TrimSuffix(g, mappingSuffix)] = gdb
-					}
-				}
-			}
-		}
-	}
-	server.graphMap = o
 }
 
 func (server *GripServer) getGraphDB(graph string) (gdbi.GraphDB, error) {
@@ -365,6 +340,8 @@ func (server *GripServer) Serve(pctx context.Context) error {
 			}
 		}
 	}
+
+	server.updateGraphMap()
 
 	if server.conf.Server.AutoBuildSchemas {
 		go func() {

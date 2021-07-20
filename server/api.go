@@ -46,7 +46,7 @@ func (server *GripServer) Traversal(query *gripql.GraphQuery, queryServer gripql
 
 // ListGraphs returns a list of graphs managed by the driver
 func (server *GripServer) ListGraphs(ctx context.Context, empty *gripql.Empty) (*gripql.ListGraphsResponse, error) {
-	server.updateGraphMap()
+	//server.updateGraphMap()
 	graphs := []string{}
 	for g := range server.graphMap {
 		graphs = append(graphs, g)
@@ -131,6 +131,7 @@ func (server *GripServer) DeleteGraph(ctx context.Context, elem *gripql.GraphID)
 			return nil, fmt.Errorf("DeleteGraph: deleting schema for graph %s: %v", elem.Graph, err)
 		}
 	}
+	server.updateGraphMap()
 	return &gripql.EditResult{Id: elem.Graph}, nil
 }
 
@@ -473,7 +474,7 @@ func (server *GripServer) AddMapping(ctx context.Context, req *gripql.Graph) (*g
 	if err != nil {
 		return nil, fmt.Errorf("failed to store new mapping: %v", err)
 	}
-	server.setupMapping(req.Graph, req)
+	server.updateGraphMap()
 	return &gripql.EditResult{}, nil
 }
 

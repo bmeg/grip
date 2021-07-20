@@ -24,15 +24,6 @@ func isMapping(graphName string) bool {
 	return strings.HasSuffix(graphName, mappingSuffix)
 }
 
-func (server *GripServer) setupMapping(name string, graph *gripql.Graph) {
-	server.mappings[name] = graph
-	mGraph, _ := gripper.GraphToConfig(graph)
-	dbs, err := StartDriver(server.conf, config.DriverConfig{Gripper: &gripper.Config{Mapping: mGraph}})
-	if err == nil {
-		server.dbs[name] = dbs
-	}
-}
-
 func (server *GripServer) getGraph(graph string) (*gripql.Graph, error) {
 
 	conn, err := gripql.Connect(rpc.ConfigWithDefaults(server.conf.Server.RPCAddress()), true)
@@ -109,6 +100,37 @@ func (server *GripServer) cacheSchemas(ctx context.Context) {
 			server.buildSchemas(ctx)
 		}
 	}
+}
+
+func (server *GripServer) updateGraphMap() {
+	o := map[string]string{}
+	for k, v := range server.conf.Graphs {
+		o[k] = v
+	}
+	for n, dbs := range server.dbs {
+		for _, g := range dbs.ListGraphs() {
+			o[g] = n
+			if strings.HasSuffix(g, "__mapping__") {
+				graph, err := server.getGraph(g)
+				if err == nil {
+					log.Infof("Reading config for a gripper driver %s", g)
+					mapping, _ := gripper.GraphToConfig(graph)
+					graphName := strings.TrimSuffix(g, mappingSuffix)
+					gdb, err := StartDriver(server.conf, config.DriverConfig{Gripper: &gripper.Config{Graph: graphName, Mapping: mapping}})
+					if err == nil {
+						driverName := fmt.Sprintf("%s__driver__", graphName)
+						server.dbs[driverName] = gdb
+						o[graphName] = driverName
+					} else {
+						log.Errorf("Failed to start gripper: %s", graphName)
+					}
+				} else {
+					log.Errorf("Failed to get graph mapping: %s", err)
+				}
+			}
+		}
+	}
+	server.graphMap = o
 }
 
 func (server *GripServer) addFullGraph(ctx context.Context, graphName string, schema *gripql.Graph) error {

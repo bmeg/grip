@@ -3,7 +3,8 @@ package gripper
 import (
 	"context"
 	"fmt"
-	"log"
+
+	"github.com/bmeg/grip/log"
 
 	//"path/filepath"
 
@@ -40,21 +41,22 @@ func NewGDBFromGraph(graph *gripql.Graph, sources map[string]string) (*TabularGD
 		if err == nil {
 			out.graphs[graph.Graph] = o
 		} else {
-			log.Printf("Error loading graph config: %s", err)
+			log.Errorf("Error loading graph config: %s", err)
 		}
 	} else {
-		log.Printf("Error loading config: %s", err)
+		log.Errorf("Error loading config: %s", err)
 	}
 	return &out, nil
 }
 
 func NewGDBFromConfig(name string, conf *GraphConfig, sources map[string]string) (*TabularGDB, error) {
+	log.Infof("Starting GRIPPER driver for %s", name)
 	out := TabularGDB{map[string]*TabularGraph{}}
 	o, err := NewTabularGraph(*conf, sources)
 	if err == nil {
 		out.graphs[name] = o
 	} else {
-		log.Printf("Error loading graph config: %s", err)
+		log.Errorf("Error loading graph config: %s", err)
 	}
 	return &out, nil
 }
