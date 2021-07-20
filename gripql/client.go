@@ -57,6 +57,32 @@ func (client Client) ListGraphs() (*ListGraphsResponse, error) {
 	return client.QueryC.ListGraphs(context.Background(), &Empty{})
 }
 
+// ListTables lists the tables in the database
+func (client Client) ListTables() (chan *TableInfo, error) {
+	out := make(chan *TableInfo, 10)
+
+	clt, err := client.QueryC.ListTables(context.Background(), &Empty{})
+	if err != nil {
+		close(out)
+		return out, err
+	}
+	go func() {
+		defer close(out)
+		for {
+			t, err := clt.Recv()
+			if err == io.EOF {
+				return
+			}
+			if err != nil {
+				log.WithFields(log.Fields{"error": err}).Error("Receiving table list")
+				return
+			}
+			out <- t
+		}
+	}()
+	return out, nil
+}
+
 // ListIndices lists the indices on a graph in the database
 func (client Client) ListIndices(graph string) (*ListIndicesResponse, error) {
 	return client.QueryC.ListIndices(context.Background(), &GraphID{Graph: graph})
