@@ -372,7 +372,7 @@ in the resource.</p>
 </code></pre><p><code>GetRows</code> returns a stream of all of the rows in a collection.</p>
 <pre><code>rpc GetRowsByID(stream RowRequest) returns (stream Row);
 </code></pre><p><code>GetRowsByID</code> accepts a stream of row requests, each one requesting a single row
-by it&rsquo;s id, and then returns a stream of results.</p>
+by it's id, and then returns a stream of results.</p>
 <pre><code>rpc GetRowsByField(FieldRequest) returns (stream Row);
 </code></pre><p><code>GetRowsByField</code> searches a collection, looking for values found in an indexed field.</p>
 

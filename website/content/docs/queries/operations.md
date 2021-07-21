@@ -242,6 +242,14 @@ G.query().V().hasLabel("Person").aggregate(gripql.percentile("age-percentiles", 
 ```
 Calculates the 25th, 50th, and 75th percentiles for `age` values across `Person` vertices.
 
+### .gripql.gripql.field("fields", "$._data"))
+Returns all of the fields found in the data structure. Use `$._data` to get a listing 
+of all fields found at the root level of records. 
+
+### gripql.type(name, field)
+Returns the data type of requested field. For the python client, if `field` is not provided, it is copied from `name`.
+Current returned types include `NUMERIC`, `STRING` and `UNKNOWN`. If a field is always null, or has multiple types, it will 
+be returned as `UNKNOWN`.
 
 ## .count()
 Return the total count of returned edges/vertices.

@@ -363,7 +363,16 @@ that will be evaluated asynchronously and can be retrieved at a later time.</p>
 <pre><code>job = G.query().V().hasLabel(&quot;Planet&quot;).out().submit()
 </code></pre><h3 id="getting-job-status">Getting job status</h3>
 <pre><code>jinfo = G.getJob(job[&quot;id&quot;])
-</code></pre><h3 id="reading-job-results">Reading job results</h3>
+</code></pre><p>Example job info:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-json" data-lang="json">{
+  <span style="color:#f92672">&#34;id&#34;</span>: <span style="color:#e6db74">&#34;job-326392951&#34;</span>,
+  <span style="color:#f92672">&#34;graph&#34;</span>: <span style="color:#e6db74">&#34;test_graph_qd7rs7&#34;</span>,
+  <span style="color:#f92672">&#34;state&#34;</span>: <span style="color:#e6db74">&#34;COMPLETE&#34;</span>,
+  <span style="color:#f92672">&#34;count&#34;</span>: <span style="color:#e6db74">&#34;12&#34;</span>,
+  <span style="color:#f92672">&#34;query&#34;</span>: [{<span style="color:#f92672">&#34;v&#34;</span>: []}, {<span style="color:#f92672">&#34;hasLabel&#34;</span>: [<span style="color:#e6db74">&#34;Planet&#34;</span>]}, {<span style="color:#f92672">&#34;as&#34;</span>: <span style="color:#e6db74">&#34;a&#34;</span>}, {<span style="color:#f92672">&#34;out&#34;</span>: []}],
+  <span style="color:#f92672">&#34;timestamp&#34;</span>: <span style="color:#e6db74">&#34;2021-03-30T23:12:01-07:00&#34;</span>
+}
+</code></pre></div><h3 id="reading-job-results">Reading job results</h3>
 <pre><code>for row in G.readJob(job[&quot;id&quot;]):
    print(row)
 </code></pre><h3 id="search-for-jobs">Search for jobs</h3>
