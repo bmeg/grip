@@ -149,6 +149,7 @@ func (server *GripServer) AddGraph(ctx context.Context, elem *gripql.GraphID) (*
 	if err != nil {
 		return nil, err
 	}
+	server.updateGraphMap()
 	return &gripql.EditResult{Id: elem.Graph}, err
 }
 
