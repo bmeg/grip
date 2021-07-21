@@ -64,7 +64,7 @@ var listGraphsCmd = &cobra.Command{
 }
 
 var listLabelsCmd = &cobra.Command{
-	Use:   "labels <graph>}",
+	Use:   "labels <graph>",
 	Short: "List the vertex and edge labels in a graph",
 	Long:  ``,
 	Args:  cobra.ExactArgs(1),

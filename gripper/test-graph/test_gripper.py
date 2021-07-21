@@ -1,6 +1,8 @@
 
 import os
 import sys
+import string
+import random
 import yaml
 import unittest
 
@@ -14,18 +16,22 @@ SERVER = None
 
 class TestTableList(unittest.TestCase):
     def test_table_list(self):
-        print("Do something here: %s " % (SERVER) )
         conn = gripql.Connection(SERVER)
+        found = False
         for r in conn.listTables():
-            print(r)
+            if r['source'] == 'tableServer':
+                found = True
+        self.assertTrue(found)
 
     def test_post_mapping(self):
         with open(os.path.join(BASE, "test-graph/swapi.yaml")) as handle:
             mappingGraph = yaml.load(handle.read())
         conn = gripql.Connection(SERVER)
-        conn.postMapping("posted_tabledata", mappingGraph['vertices'], mappingGraph['edges'])
-        for l in conn.listGraphs():
-            print(l)
+        graphName = "posted_tabledata_%s" % (''.join(random.choices(string.ascii_uppercase + string.digits, k=4)))
+        conn.postMapping(graphName, mappingGraph['vertices'], mappingGraph['edges'])
+        graphs = list(conn.listGraphs())
+        self.assertTrue( graphName in graphs )
+        self.assertTrue( graphName + "__mapping__" in graphs )
 
 if __name__ == '__main__':
     SERVER = sys.argv.pop(-1)
