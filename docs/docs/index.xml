@@ -140,8 +140,9 @@ import gripql G = gripql.</description>
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
       
       <guid>https://bmeg.github.io/grip/docs/gripper/graphmodel/</guid>
-      <description>GRIPPER Graph Model The graph model describes how GRIP will access multiple gripper servers. The graph is described using three sections, sources, vertices and edges.
-The sources section describes all of the GRIPPER resources that GRIP will use to build the graph. The vertices section describes how different collections found in these sources will be turned into Vertex found in the graph. Finally, the edges section describes the different kinds of rules that can be used build the edges in the graph.</description>
+      <description>GRIPPER GRIP Plugable External Resources
+Graph Model The graph model describes how GRIP will access multiple gripper servers. The mapping of these data resources is done using a graph. The vertices represent how each vertex type will be mapped, and the edges describe how edges will be created. The gid of each vertex represents the prefix domain of all vertices that can be found in that source.
+The sources referenced by the graph are provided to GRIP at run time, each named resource is a different GRIPPER plugin that abstracts an external resource.</description>
     </item>
     
     <item>
