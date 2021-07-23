@@ -358,17 +358,17 @@
     <h1 id="mongodb">MongoDB</h1>
 <p>GRIP supports storing vertices and edges in <a href="https://www.mongodb.com/">MongoDB</a>.</p>
 <p>Config:</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-yaml" data-lang="yaml"><span style="color:#f92672">Default</span>: <span style="color:#ae81ff">mongo</span>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-yaml" data-lang="yaml">Default: mongo
 
-<span style="color:#f92672">Drivers</span>:
-  <span style="color:#f92672">mongo</span>:
-    <span style="color:#f92672">MongoDB</span>:
-      <span style="color:#f92672">URL</span>: <span style="color:#e6db74">&#34;mongodb://localhost:27000&#34;</span>
-      <span style="color:#f92672">DBName</span>: <span style="color:#e6db74">&#34;gripdb&#34;</span>
-      <span style="color:#f92672">Username</span>: <span style="color:#e6db74">&#34;&#34;</span>
-      <span style="color:#f92672">Password</span>: <span style="color:#e6db74">&#34;&#34;</span>
-      <span style="color:#f92672">UseCorePipeline</span>: <span style="color:#66d9ef">False</span>
-      <span style="color:#f92672">BatchSize</span>: <span style="color:#ae81ff">0</span>
+Drivers:
+  mongo:
+    MongoDB:
+      URL: <span style="color:#e6db74">&#34;mongodb://localhost:27000&#34;</span>
+      DBName: <span style="color:#e6db74">&#34;gripdb&#34;</span>
+      Username: <span style="color:#e6db74">&#34;&#34;</span>
+      Password: <span style="color:#e6db74">&#34;&#34;</span>
+      UseCorePipeline: False
+      BatchSize: <span style="color:#ae81ff">0</span>
 </code></pre></div><p><code>UseCorePipeline</code> - Default is to use Mongo pipeline API to do graph traversals.
 By enabling <code>UseCorePipeline</code>, GRIP will do the traversal logic itself, only using
 Mongo for graph storage.</p>

@@ -358,17 +358,17 @@
     <h1 id="postgresql">PostgreSQL</h1>
 <p>GRIP supports storing vertices and edges in <a href="https://www.postgresql.org/">PostgreSQL</a>.</p>
 <p>Config:</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-yaml" data-lang="yaml"><span style="color:#f92672">Default</span>: <span style="color:#ae81ff">psql</span>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-yaml" data-lang="yaml">Default: psql
 
-<span style="color:#f92672">Drivers</span>:
-  <span style="color:#f92672">psql</span>:
-    <span style="color:#f92672">PSQL</span>:
-      <span style="color:#f92672">Host</span>: <span style="color:#ae81ff">localhost</span>
-      <span style="color:#f92672">Port</span>: <span style="color:#ae81ff">15432</span>
-      <span style="color:#f92672">User</span>: <span style="color:#e6db74">&#34;&#34;</span>
-      <span style="color:#f92672">Password</span>: <span style="color:#e6db74">&#34;&#34;</span>
-      <span style="color:#f92672">DBName</span>: <span style="color:#e6db74">&#34;grip&#34;</span>
-      <span style="color:#f92672">SSLMode</span>: <span style="color:#ae81ff">disable</span>
+Drivers:
+  psql:
+    PSQL:
+      Host: localhost
+      Port: <span style="color:#ae81ff">15432</span>
+      User: <span style="color:#e6db74">&#34;&#34;</span>
+      Password: <span style="color:#e6db74">&#34;&#34;</span>
+      DBName: <span style="color:#e6db74">&#34;grip&#34;</span>
+      SSLMode: disable
 </code></pre></div>
   </div>
 

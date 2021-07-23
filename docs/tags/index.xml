@@ -5,6 +5,10 @@
     <link>https://bmeg.github.io/grip/tags/</link>
     <description>Recent content in Tags on GRIP</description>
     <generator>Hugo -- gohugo.io</generator>
-    <language>en-us</language><atom:link href="https://bmeg.github.io/grip/tags/index.xml" rel="self" type="application/rss+xml" />
+    <language>en-us</language>
+    
+	<atom:link href="https://bmeg.github.io/grip/tags/index.xml" rel="self" type="application/rss+xml" />
+    
+    
   </channel>
 </rss>
