@@ -5,7 +5,11 @@
     <link>https://bmeg.github.io/grip/</link>
     <description>Recent content on GRIP</description>
     <generator>Hugo -- gohugo.io</generator>
-    <language>en-us</language><atom:link href="https://bmeg.github.io/grip/index.xml" rel="self" type="application/rss+xml" />
+    <language>en-us</language>
+    
+	<atom:link href="https://bmeg.github.io/grip/index.xml" rel="self" type="application/rss+xml" />
+    
+    
     <item>
       <title></title>
       <link>https://bmeg.github.io/grip/docs/tutorials/pathway-commons/</link>
@@ -40,7 +44,7 @@ pip install &amp;quot;git+https://github.com/bmeg/grip.git#egg=gripql&amp;amp;su
       
       <guid>https://bmeg.github.io/grip/docs/security/basic/</guid>
       <description>Basic Auth By default, an GRIP server allows open access to its API endpoints, but it can be configured to require basic password authentication. To enable this, include users and passwords in your config file:
-Server: BasicAuth: - User: testuser Password: abc123 Make sure to properly protect the configuration file so that it&amp;rsquo;s not readable by everyone:
+Server: BasicAuth: - User: testuser Password: abc123 Make sure to properly protect the configuration file so that it&#39;s not readable by everyone:
 $ chmod 600 grip.config.yml To use the password, set the GRIP_USER and GRIP_PASSWORD environment variables:</description>
     </item>
     
@@ -135,7 +139,7 @@ rpc GetCollectionInfo(Collection) returns (CollectionInfo); GetCollectionInfo pr
       <description>Getting Started GRIP has an API for making graph queries using structured data. Queries are defined using a series of step operations.
 Install the Python Client Available on PyPI.
 pip install gripql Or install the latest development version:
-pip install &amp;quot;git+https://github.com/bmeg/grip.git#subdirectory=gripql/python&amp;quot; Using the Python Client Let&amp;rsquo;s go through the features currently supported in the python client.
+pip install &amp;quot;git+https://github.com/bmeg/grip.git#subdirectory=gripql/python&amp;quot; Using the Python Client Let&#39;s go through the features currently supported in the python client.
 First, import the client and create a connection to an GRIP server:
 import gripql G = gripql.</description>
     </item>
@@ -156,7 +160,7 @@ The sources section describes all of the GRIPPER resources that GRIP will use to
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
       
       <guid>https://bmeg.github.io/grip/docs/graphql/graph_schemas/</guid>
-      <description>Graph Schemas Most GRIP based graphs are not required to have a strict schema. However, GraphQL requires a graph schema as part of it&amp;rsquo;s API. To utilize the GraphQL endpoint, there must be a Graph Schema provided to be used by the GRIP engine to determine how to render a GraphQL endpoint. Graph schemas are themselves an instance of a graph. As such, they can be traversed like any other graph.</description>
+      <description>Graph Schemas Most GRIP based graphs are not required to have a strict schema. However, GraphQL requires a graph schema as part of it&#39;s API. To utilize the GraphQL endpoint, there must be a Graph Schema provided to be used by the GRIP engine to determine how to render a GraphQL endpoint. Graph schemas are themselves an instance of a graph. As such, they can be traversed like any other graph.</description>
     </item>
     
     <item>
@@ -227,7 +231,8 @@ Graph - Name of the graph for the mapped external resources.</description>
       
       <guid>https://bmeg.github.io/grip/docs/queries/jobs_api/</guid>
       <description>Jobs API Not all queries return instantaneously, additionally some queries elements are used repeatedly. The query Jobs API provides a mechanism to submit graph traversals that will be evaluated asynchronously and can be retrieved at a later time.
-Submitting a job job = G.query().V().hasLabel(&amp;quot;Planet&amp;quot;).out().submit() Getting job status jinfo = G.getJob(job[&amp;quot;id&amp;quot;]) Reading job results for row in G.readJob(job[&amp;quot;id&amp;quot;]): print(row) Search for jobs Find jobs that match the prefix of the current request (example should find job from G.</description>
+Submitting a job job = G.query().V().hasLabel(&amp;quot;Planet&amp;quot;).out().submit() Getting job status jinfo = G.getJob(job[&amp;quot;id&amp;quot;]) Example job info:
+{ &amp;#34;id&amp;#34;: &amp;#34;job-326392951&amp;#34;, &amp;#34;graph&amp;#34;: &amp;#34;test_graph_qd7rs7&amp;#34;, &amp;#34;state&amp;#34;: &amp;#34;COMPLETE&amp;#34;, &amp;#34;count&amp;#34;: &amp;#34;12&amp;#34;, &amp;#34;query&amp;#34;: [{&amp;#34;v&amp;#34;: []}, {&amp;#34;hasLabel&amp;#34;: [&amp;#34;Planet&amp;#34;]}, {&amp;#34;as&amp;#34;: &amp;#34;a&amp;#34;}, {&amp;#34;out&amp;#34;: []}], &amp;#34;timestamp&amp;#34;: &amp;#34;2021-03-30T23:12:01-07:00&amp;#34; } Reading job results for row in G.</description>
     </item>
     
     <item>
@@ -355,7 +360,7 @@ Networking By default the GRIP server operates on 2 ports, 8201 is the HTTP base
       <guid>https://bmeg.github.io/grip/docs/databases/sql/</guid>
       <description>Connect to an existing SQL database Note: This driver is being superseded by the GRIPPER engine
 GRIP supports modeling an existing SQL database as a graph. GRIP has been tested against PostgreSQL, but should work with MySQL (4.1+) and MariaDB.
-Since GRIP uses Go&amp;rsquo;s database/sql package, we could (in thoery) support any SQL databases listed on: https://github.com/golang/go/wiki/SQLDrivers. Open an issue if you would like to request support for your favorite SQL database.</description>
+Since GRIP uses Go&#39;s database/sql package, we could (in thoery) support any SQL databases listed on: https://github.com/golang/go/wiki/SQLDrivers. Open an issue if you would like to request support for your favorite SQL database.</description>
     </item>
     
     <item>

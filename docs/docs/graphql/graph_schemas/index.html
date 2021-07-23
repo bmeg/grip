@@ -357,7 +357,7 @@
   <div class="main col span_8_of_12">
     <h1 id="graph-schemas">Graph Schemas</h1>
 <p>Most GRIP based graphs are not required to have a strict schema. However, GraphQL requires
-a graph schema as part of it&rsquo;s API. To utilize the GraphQL endpoint, there must be a
+a graph schema as part of it's API. To utilize the GraphQL endpoint, there must be a
 Graph Schema provided to be used by the GRIP engine to determine how to render a GraphQL endpoint.
 Graph schemas are themselves an instance of a graph. As such, they can be traversed like any other graph.
 The schemas are automatically added to the database following the naming pattern. <code>{graph-name}__schema__</code></p>
@@ -371,63 +371,63 @@ The schemas are automatically added to the database following the naming pattern
 <li>POST the schema <code>/v1/graph/{graph-name}/schema</code> via curl or use the CLI. <code>grip schema post --yaml {file} --json {file}</code></li>
 <li>Configure GRIP to build the schema by sampling the data in each graph.</li>
 </ul>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-yaml" data-lang="yaml"><span style="color:#f92672">Server</span>:
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-yaml" data-lang="yaml">Server:
   <span style="color:#75715e"># Should the server periodically build the graph schemas?</span>
-  <span style="color:#f92672">AutoBuildSchemas</span>: <span style="color:#66d9ef">true</span>
+  AutoBuildSchemas: <span style="color:#66d9ef">true</span>
   <span style="color:#75715e"># How often the server should rebuild the graph schemas. Set to 0 to turn off</span>
-  <span style="color:#f92672">SchemaRefreshInterval</span>: <span style="color:#e6db74">&#34;24h&#34;</span>
+  SchemaRefreshInterval: <span style="color:#e6db74">&#34;24h&#34;</span>
   <span style="color:#75715e"># How many vertices/edges to inspect to infer the schema</span>
-  <span style="color:#f92672">SchemaInspectN</span>: <span style="color:#ae81ff">500</span>
+  SchemaInspectN: <span style="color:#ae81ff">500</span>
   <span style="color:#75715e"># Strategy to use for selecting the vertices/edges to inspect.</span>
   <span style="color:#75715e"># Random if True; first N otherwise</span>
-  <span style="color:#f92672">SchemaRandomSample</span>: <span style="color:#66d9ef">true</span>
+  SchemaRandomSample: <span style="color:#66d9ef">true</span>
 </code></pre></div><h2 id="example-schema">Example schema</h2>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-yaml" data-lang="yaml"><span style="color:#f92672">graph</span>: <span style="color:#ae81ff">example-graph</span>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-yaml" data-lang="yaml">graph: example-graph
 
-<span style="color:#f92672">edges</span>:
-- <span style="color:#f92672">data</span>: {}
- <span style="color:#f92672">from</span>: <span style="color:#ae81ff">Human</span>
- <span style="color:#f92672">gid</span>: <span style="color:#ae81ff">(Human)--starship-&gt;(Starship)</span>
- <span style="color:#f92672">label</span>: <span style="color:#ae81ff">starship</span>
- <span style="color:#f92672">to</span>: <span style="color:#ae81ff">Starship</span>
-- <span style="color:#f92672">data</span>: {}
- <span style="color:#f92672">from</span>: <span style="color:#ae81ff">Human</span>
- <span style="color:#f92672">gid</span>: <span style="color:#ae81ff">(Human)--friend-&gt;(Human)</span>
- <span style="color:#f92672">label</span>: <span style="color:#ae81ff">friend</span>
- <span style="color:#f92672">to</span>: <span style="color:#ae81ff">Human</span>
-- <span style="color:#f92672">data</span>: {}
- <span style="color:#f92672">from</span>: <span style="color:#ae81ff">Human</span>
- <span style="color:#f92672">gid</span>: <span style="color:#ae81ff">(Human)--friend-&gt;(Droid)</span>
- <span style="color:#f92672">label</span>: <span style="color:#ae81ff">friend</span>
- <span style="color:#f92672">to</span>: <span style="color:#ae81ff">Droid</span>
-- <span style="color:#f92672">data</span>: {}
- <span style="color:#f92672">from</span>: <span style="color:#ae81ff">Human</span>
- <span style="color:#f92672">gid</span>: <span style="color:#ae81ff">(Human)--appearsIn-&gt;(Movie)</span>
- <span style="color:#f92672">label</span>: <span style="color:#ae81ff">appearsIn</span>
- <span style="color:#f92672">to</span>: <span style="color:#ae81ff">Movie</span>
+edges:
+- data: {}
+ from: Human
+ gid: (Human)--starship-&gt;(Starship)
+ label: starship
+ to: Starship
+- data: {}
+ from: Human
+ gid: (Human)--friend-&gt;(Human)
+ label: friend
+ to: Human
+- data: {}
+ from: Human
+ gid: (Human)--friend-&gt;(Droid)
+ label: friend
+ to: Droid
+- data: {}
+ from: Human
+ gid: (Human)--appearsIn-&gt;(Movie)
+ label: appearsIn
+ to: Movie
 
-<span style="color:#f92672">vertices</span>:
-- <span style="color:#f92672">data</span>:
-   <span style="color:#f92672">name</span>: <span style="color:#ae81ff">STRING</span>
- <span style="color:#f92672">gid</span>: <span style="color:#ae81ff">Movie</span>
- <span style="color:#f92672">label</span>: <span style="color:#ae81ff">Movie</span>
-- <span style="color:#f92672">data</span>:
-   <span style="color:#f92672">length</span>: <span style="color:#ae81ff">NUMERIC</span>
-   <span style="color:#f92672">name</span>: <span style="color:#ae81ff">STRING</span>
- <span style="color:#f92672">gid</span>: <span style="color:#ae81ff">Starship</span>
- <span style="color:#f92672">label</span>: <span style="color:#ae81ff">Starship</span>
-- <span style="color:#f92672">data</span>:
-   <span style="color:#f92672">name</span>: <span style="color:#ae81ff">STRING</span>
-   <span style="color:#f92672">primaryFunction</span>: <span style="color:#ae81ff">STRING</span>
- <span style="color:#f92672">gid</span>: <span style="color:#ae81ff">Droid</span>
- <span style="color:#f92672">label</span>: <span style="color:#ae81ff">Droid</span>
-- <span style="color:#f92672">data</span>:
-   <span style="color:#f92672">height</span>: <span style="color:#ae81ff">NUMERIC</span>
-   <span style="color:#f92672">homePlanet</span>: <span style="color:#ae81ff">STRING</span>
-   <span style="color:#f92672">mass</span>: <span style="color:#ae81ff">NUMERIC</span>
-   <span style="color:#f92672">name</span>: <span style="color:#ae81ff">STRING</span>
- <span style="color:#f92672">gid</span>: <span style="color:#ae81ff">Human</span>
- <span style="color:#f92672">label</span>: <span style="color:#ae81ff">Human</span>
+vertices:
+- data:
+   name: STRING
+ gid: Movie
+ label: Movie
+- data:
+   length: NUMERIC
+   name: STRING
+ gid: Starship
+ label: Starship
+- data:
+   name: STRING
+   primaryFunction: STRING
+ gid: Droid
+ label: Droid
+- data:
+   height: NUMERIC
+   homePlanet: STRING
+   mass: NUMERIC
+   name: STRING
+ gid: Human
+ label: Human
 </code></pre></div>
   </div>
 
