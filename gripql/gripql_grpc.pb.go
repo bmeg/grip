@@ -23,9 +23,11 @@ type QueryClient interface {
 	GetEdge(ctx context.Context, in *ElementID, opts ...grpc.CallOption) (*Edge, error)
 	GetTimestamp(ctx context.Context, in *GraphID, opts ...grpc.CallOption) (*Timestamp, error)
 	GetSchema(ctx context.Context, in *GraphID, opts ...grpc.CallOption) (*Graph, error)
+	GetMapping(ctx context.Context, in *GraphID, opts ...grpc.CallOption) (*Graph, error)
 	ListGraphs(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*ListGraphsResponse, error)
 	ListIndices(ctx context.Context, in *GraphID, opts ...grpc.CallOption) (*ListIndicesResponse, error)
 	ListLabels(ctx context.Context, in *GraphID, opts ...grpc.CallOption) (*ListLabelsResponse, error)
+	ListTables(ctx context.Context, in *Empty, opts ...grpc.CallOption) (Query_ListTablesClient, error)
 }
 
 type queryClient struct {
@@ -104,6 +106,15 @@ func (c *queryClient) GetSchema(ctx context.Context, in *GraphID, opts ...grpc.C
 	return out, nil
 }
 
+func (c *queryClient) GetMapping(ctx context.Context, in *GraphID, opts ...grpc.CallOption) (*Graph, error) {
+	out := new(Graph)
+	err := c.cc.Invoke(ctx, "/gripql.Query/GetMapping", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *queryClient) ListGraphs(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*ListGraphsResponse, error) {
 	out := new(ListGraphsResponse)
 	err := c.cc.Invoke(ctx, "/gripql.Query/ListGraphs", in, out, opts...)
@@ -131,6 +142,38 @@ func (c *queryClient) ListLabels(ctx context.Context, in *GraphID, opts ...grpc.
 	return out, nil
 }
 
+func (c *queryClient) ListTables(ctx context.Context, in *Empty, opts ...grpc.CallOption) (Query_ListTablesClient, error) {
+	stream, err := c.cc.NewStream(ctx, &Query_ServiceDesc.Streams[1], "/gripql.Query/ListTables", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &queryListTablesClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type Query_ListTablesClient interface {
+	Recv() (*TableInfo, error)
+	grpc.ClientStream
+}
+
+type queryListTablesClient struct {
+	grpc.ClientStream
+}
+
+func (x *queryListTablesClient) Recv() (*TableInfo, error) {
+	m := new(TableInfo)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // QueryServer is the server API for Query service.
 // All implementations must embed UnimplementedQueryServer
 // for forward compatibility
@@ -140,9 +183,11 @@ type QueryServer interface {
 	GetEdge(context.Context, *ElementID) (*Edge, error)
 	GetTimestamp(context.Context, *GraphID) (*Timestamp, error)
 	GetSchema(context.Context, *GraphID) (*Graph, error)
+	GetMapping(context.Context, *GraphID) (*Graph, error)
 	ListGraphs(context.Context, *Empty) (*ListGraphsResponse, error)
 	ListIndices(context.Context, *GraphID) (*ListIndicesResponse, error)
 	ListLabels(context.Context, *GraphID) (*ListLabelsResponse, error)
+	ListTables(*Empty, Query_ListTablesServer) error
 	mustEmbedUnimplementedQueryServer()
 }
 
@@ -165,6 +210,9 @@ func (UnimplementedQueryServer) GetTimestamp(context.Context, *GraphID) (*Timest
 func (UnimplementedQueryServer) GetSchema(context.Context, *GraphID) (*Graph, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetSchema not implemented")
 }
+func (UnimplementedQueryServer) GetMapping(context.Context, *GraphID) (*Graph, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetMapping not implemented")
+}
 func (UnimplementedQueryServer) ListGraphs(context.Context, *Empty) (*ListGraphsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListGraphs not implemented")
 }
@@ -173,6 +221,9 @@ func (UnimplementedQueryServer) ListIndices(context.Context, *GraphID) (*ListInd
 }
 func (UnimplementedQueryServer) ListLabels(context.Context, *GraphID) (*ListLabelsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListLabels not implemented")
+}
+func (UnimplementedQueryServer) ListTables(*Empty, Query_ListTablesServer) error {
+	return status.Errorf(codes.Unimplemented, "method ListTables not implemented")
 }
 func (UnimplementedQueryServer) mustEmbedUnimplementedQueryServer() {}
 
@@ -280,6 +331,24 @@ func _Query_GetSchema_Handler(srv interface{}, ctx context.Context, dec func(int
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Query_GetMapping_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GraphID)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(QueryServer).GetMapping(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/gripql.Query/GetMapping",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(QueryServer).GetMapping(ctx, req.(*GraphID))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _Query_ListGraphs_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(Empty)
 	if err := dec(in); err != nil {
@@ -334,6 +403,27 @@ func _Query_ListLabels_Handler(srv interface{}, ctx context.Context, dec func(in
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Query_ListTables_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(Empty)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(QueryServer).ListTables(m, &queryListTablesServer{stream})
+}
+
+type Query_ListTablesServer interface {
+	Send(*TableInfo) error
+	grpc.ServerStream
+}
+
+type queryListTablesServer struct {
+	grpc.ServerStream
+}
+
+func (x *queryListTablesServer) Send(m *TableInfo) error {
+	return x.ServerStream.SendMsg(m)
+}
+
 // Query_ServiceDesc is the grpc.ServiceDesc for Query service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -358,6 +448,10 @@ var Query_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _Query_GetSchema_Handler,
 		},
 		{
+			MethodName: "GetMapping",
+			Handler:    _Query_GetMapping_Handler,
+		},
+		{
 			MethodName: "ListGraphs",
 			Handler:    _Query_ListGraphs_Handler,
 		},
@@ -374,6 +468,11 @@ var Query_ServiceDesc = grpc.ServiceDesc{
 		{
 			StreamName:    "Traversal",
 			Handler:       _Query_Traversal_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "ListTables",
+			Handler:       _Query_ListTables_Handler,
 			ServerStreams: true,
 		},
 	},
@@ -805,6 +904,7 @@ type EditClient interface {
 	AddIndex(ctx context.Context, in *IndexID, opts ...grpc.CallOption) (*EditResult, error)
 	DeleteIndex(ctx context.Context, in *IndexID, opts ...grpc.CallOption) (*EditResult, error)
 	AddSchema(ctx context.Context, in *Graph, opts ...grpc.CallOption) (*EditResult, error)
+	AddMapping(ctx context.Context, in *Graph, opts ...grpc.CallOption) (*EditResult, error)
 }
 
 type editClient struct {
@@ -930,6 +1030,15 @@ func (c *editClient) AddSchema(ctx context.Context, in *Graph, opts ...grpc.Call
 	return out, nil
 }
 
+func (c *editClient) AddMapping(ctx context.Context, in *Graph, opts ...grpc.CallOption) (*EditResult, error) {
+	out := new(EditResult)
+	err := c.cc.Invoke(ctx, "/gripql.Edit/AddMapping", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // EditServer is the server API for Edit service.
 // All implementations must embed UnimplementedEditServer
 // for forward compatibility
@@ -944,6 +1053,7 @@ type EditServer interface {
 	AddIndex(context.Context, *IndexID) (*EditResult, error)
 	DeleteIndex(context.Context, *IndexID) (*EditResult, error)
 	AddSchema(context.Context, *Graph) (*EditResult, error)
+	AddMapping(context.Context, *Graph) (*EditResult, error)
 	mustEmbedUnimplementedEditServer()
 }
 
@@ -980,6 +1090,9 @@ func (UnimplementedEditServer) DeleteIndex(context.Context, *IndexID) (*EditResu
 }
 func (UnimplementedEditServer) AddSchema(context.Context, *Graph) (*EditResult, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AddSchema not implemented")
+}
+func (UnimplementedEditServer) AddMapping(context.Context, *Graph) (*EditResult, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AddMapping not implemented")
 }
 func (UnimplementedEditServer) mustEmbedUnimplementedEditServer() {}
 
@@ -1182,6 +1295,24 @@ func _Edit_AddSchema_Handler(srv interface{}, ctx context.Context, dec func(inte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Edit_AddMapping_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Graph)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(EditServer).AddMapping(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/gripql.Edit/AddMapping",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(EditServer).AddMapping(ctx, req.(*Graph))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Edit_ServiceDesc is the grpc.ServiceDesc for Edit service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -1224,6 +1355,10 @@ var Edit_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "AddSchema",
 			Handler:    _Edit_AddSchema_Handler,
+		},
+		{
+			MethodName: "AddMapping",
+			Handler:    _Edit_AddMapping_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

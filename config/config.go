@@ -13,6 +13,7 @@ import (
 	"github.com/bmeg/grip/elastic"
 	esql "github.com/bmeg/grip/existing-sql"
 	"github.com/bmeg/grip/gripper"
+	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/mongo"
 	"github.com/bmeg/grip/psql"
@@ -46,6 +47,7 @@ type Config struct {
 	Default   string
 	Graphs    map[string]string
 	Drivers   map[string]DriverConfig
+	Sources   map[string]string
 }
 
 type DriverParams interface {
@@ -73,6 +75,8 @@ func DefaultConfig() *Config {
 	c.RPCClient = rpc.ConfigWithDefaults(c.Server.RPCAddress())
 
 	c.Drivers = map[string]DriverConfig{}
+
+	c.Sources = map[string]string{}
 
 	c.Logger = log.DefaultLoggerConfig()
 	return c
@@ -161,6 +165,29 @@ func ParseConfigFile(relpath string, conf *Config) error {
 	err = ParseConfig(source, conf)
 	if err != nil {
 		return fmt.Errorf("failed to parse config at path %s: \n%v", path, err)
+	}
+	for i := range conf.Drivers {
+		if conf.Drivers[i].Gripper != nil {
+			if conf.Drivers[i].Gripper.ConfigFile != "" {
+				gpath := filepath.Join(filepath.Dir(path), conf.Drivers[i].Gripper.ConfigFile)
+
+				gsource, err := ioutil.ReadFile(gpath)
+				if err != nil {
+					return fmt.Errorf("failed to read graph at path %s: \n%v", gpath, err)
+				}
+				// Parse file
+				data := map[string]interface{}{}
+				err = yaml.Unmarshal(gsource, &data)
+				if err != nil {
+					return fmt.Errorf("failed to parse config at path %s: \n%v", path, err)
+				}
+				graph, err := gripql.GraphMapToProto(data)
+				if err != nil {
+					return fmt.Errorf("failed to parse config at path %s: \n%v", path, err)
+				}
+				conf.Drivers[i].Gripper.Mapping, _ = gripper.GraphToConfig(graph)
+			}
+		}
 	}
 	return nil
 }

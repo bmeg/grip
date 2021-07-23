@@ -9,15 +9,19 @@ menu:
 
 # GRIPPER
 
-
+GRIP Plugable External Resources
 
 ## Graph Model
 
-The graph model describes how GRIP will access multiple gripper servers. The graph
-is described using three sections, `sources`, `vertices` and `edges`.
+The graph model describes how GRIP will access multiple gripper servers. The mapping 
+of these data resources is done using a graph. The `vertices` represent how each vertex 
+type will be mapped, and the `edges` describe how edges will be created. The `gid`
+of each vertex represents the prefix domain of all vertices that can be found in that 
+source.  
 
-The `sources` section describes all of the GRIPPER resources that GRIP will use
-to build the graph. The `vertices` section describes how different collections
+The `sources` referenced by the graph are provided to GRIP at run time, each named resource is a 
+different GRIPPER plugin that abstracts an external resource. 
+The `vertices` section describes how different collections
 found in these sources will be turned into Vertex found in the graph. Finally, the
 `edges` section describes the different kinds of rules that can be used build the
 edges in the graph.
@@ -28,198 +32,245 @@ by using an indexed field found in another collection that has been mapped to a 
 For `edgeTable` connections, there is a single collection that represents a connection between
 two other collections that have been mapped to vertices.
 
-Example:
+## Runtime External Resource Config
+
+External resources are passed to GRIP as command line options. For the command line:
 ```
-sources:
-  tableServer:
-    host: localhost:50051
+grip server config.yaml --er tableServer=localhost:50051 --er pfb=localhost:50052
+```
 
+`tableServer` is a ER plugin that serves table data (see `gripper/test-graph`) 
+while `pfb` parses PFB based files (see https://github.com/bmeg/grip_pfb )
+
+The `config.yaml` is 
+```
+Default: badger
+
+Drivers:
+  badger:
+    Badger: grip-badger.db
+
+  swapi-driver:
+    Gripper:
+      ConfigFile: ./swapi.yaml
+      Graph: swapi
+
+```
+
+This runs with a default `badger` based driver, but also provides a GRIPPER based 
+graph from the `swapi` mapping (see example graph map below).
+
+
+## Example graph map
+
+```
 vertices:
-  "Character:" :
-    source: tableServer
+  - gid: "Character:"
     label: Character
-    collection: Character
+    data:
+      source: tableServer
+      collection: Character
 
-  "Planet:" :
-    source: tableServer
+  - gid: "Planet:"
     label: Planet
-    collection: Planet
+    data:
+      collection: Planet
+      source: tableServer
 
-  "Film:" :
-    source: tableServer
+  - gid: "Film:"
     label: Film
-    collection: Film
+    data:
+      collection: Film
+      source: tableServer
 
-  "Species:" :
-    source: tableServer
+  - gid: "Species:"
     label: Species
-    collection: Species
+    data:
+      source: tableServer
+      collection: Species
 
-  "Starship:" :
-    source: tableServer
+  - gid: "Starship:"
     label: Starship
-    collection: Starship
+    data:
+      source: tableServer
+      collection: Starship
 
-  "Vehicle:" :
-    source: tableServer
+  - gid: "Vehicle:"
     label: Vehicle
-    collection: Vehicle
+    data:
+      source: tableServer
+      collection: Vehicle
 
 edges:
-  homeworld:
-    fromVertex: "Character:"
-    toVertex: "Planet:"
+  - gid: "homeworld"
+    from: "Character:"
+    to: "Planet:"
     label: homeworld
-    fieldToField:
-      fromField: $.homeworld
-      toField: $.id
+    data:
+      fieldToField:
+        fromField: $.homeworld
+        toField: $.id
 
-  species:
-    fromVertex: "Character:"
-    toVertex: "Species:"
+  - gid: species
+    from: "Character:"
+    to: "Species:"
     label: species
-    fieldToField:
-      fromField: $.species
-      toField: $.id
+    data:
+      fieldToField:
+        fromField: $.species
+        toField: $.id
 
-  people:
-    fromVertex: "Species:"
-    toVertex: "Character:"
+  - gid: people
+    from: "Species:"
+    to: "Character:"
     label: people
-    edgeTable:
-      source: tableServer
-      collection: speciesCharacter
-      fromField: $.from
-      toField: $.to
+    data:
+      edgeTable:
+        source: tableServer
+        collection: speciesCharacter
+        fromField: $.from
+        toField: $.to
 
-
-  residents:
-    fromVertex: "Planet:"
-    toVertex: "Character:"
+  - gid: residents
+    from: "Planet:"
+    to: "Character:"
     label: residents
-    edgeTable:
-      source: tableServer
-      collection: planetCharacter
-      fromField: $.from
-      toField: $.to
+    data:
+      edgeTable:
+        source: tableServer
+        collection: planetCharacter
+        fromField: $.from
+        toField: $.to
 
-  filmVehicles:
-    fromVertex: "Film:"
-    toVertex: "Vehicle:"
+  - gid: filmVehicles
+    from: "Film:"
+    to: "Vehicle:"
     label: "vehicles"
-    edgeTable:
-      source: tableServer
-      collection: filmVehicles
-      fromField: "$.from"
-      toField: "$.to"
+    data:
+      edgeTable:
+        source: tableServer
+        collection: filmVehicles
+        fromField: "$.from"
+        toField: "$.to"
 
-  vehicleFilms:
-    toVertex: "Film:"
-    fromVertex: "Vehicle:"
+  - gid: vehicleFilms
+    to: "Film:"
+    from: "Vehicle:"
     label: "films"
-    edgeTable:
-      source: tableServer
-      collection: filmVehicles
-      toField: "$.from"
-      fromField: "$.to"
+    data:
+      edgeTable:
+        source: tableServer
+        collection: filmVehicles
+        toField: "$.from"
+        fromField: "$.to"
 
-  filmStarships:
-    fromVertex: "Film:"
-    toVertex: "Starship:"
+  - gid: filmStarships
+    from: "Film:"
+    to: "Starship:"
     label: "starships"
-    edgeTable:
-      source: tableServer
-      collection: filmStarships
-      fromField: "$.from"
-      toField: "$.to"
+    data:
+      edgeTable:
+        source: tableServer
+        collection: filmStarships
+        fromField: "$.from"
+        toField: "$.to"
 
-  starshipFilms:
-    toVertex: "Film:"
-    fromVertex: "Starship:"
+  - gid: starshipFilms
+    to: "Film:"
+    from: "Starship:"
     label: "films"
-    edgeTable:
-      source: tableServer
-      collection: filmStarships
-      toField: "$.from"
-      fromField: "$.to"
+    data:
+      edgeTable:
+        source: tableServer
+        collection: filmStarships
+        toField: "$.from"
+        fromField: "$.to"
 
-  filmPlanets:
-    fromVertex: "Film:"
-    toVertex: "Planet:"
+  - gid: filmPlanets
+    from: "Film:"
+    to: "Planet:"
     label: "planets"
-    edgeTable:
-      source: tableServer
-      collection: filmPlanets
-      fromField: "$.from"
-      toField: "$.to"
+    data:
+      edgeTable:
+        source: tableServer
+        collection: filmPlanets
+        fromField: "$.from"
+        toField: "$.to"
 
-  planetFilms:
-    toVertex: "Film:"
-    fromVertex: "Planet:"
+  - gid: planetFilms
+    to: "Film:"
+    from: "Planet:"
     label: "films"
-    edgeTable:
-      source: tableServer
-      collection: filmPlanets
-      toField: "$.from"
-      fromField: "$.to"
+    data:
+      edgeTable:
+        source: tableServer
+        collection: filmPlanets
+        toField: "$.from"
+        fromField: "$.to"
 
-  filmSpecies:
-    fromVertex: "Film:"
-    toVertex: "Species:"
+  - gid: filmSpecies
+    from: "Film:"
+    to: "Species:"
     label: "species"
-    edgeTable:
-      source: tableServer
-      collection: filmSpecies
-      fromField: "$.from"
-      toField: "$.to"
+    data:
+      edgeTable:
+        source: tableServer
+        collection: filmSpecies
+        fromField: "$.from"
+        toField: "$.to"
 
-  speciesFilms:
-    toVertex: "Film:"
-    fromVertex: "Species:"
+  - gid: speciesFilms
+    to: "Film:"
+    from: "Species:"
     label: "films"
-    edgeTable:
-      source: tableServer
-      collection: filmSpecies
-      toField: "$.from"
-      fromField: "$.to"
+    data:
+      edgeTable:
+        source: tableServer
+        collection: filmSpecies
+        toField: "$.from"
+        fromField: "$.to"
 
-  filmCharacters:
-    fromVertex: "Film:"
-    toVertex: "Character:"
+  - gid: filmCharacters
+    from: "Film:"
+    to: "Character:"
     label: characters
-    edgeTable:
-      source: tableServer
-      collection: filmCharacters
-      fromField: "$.from"
-      toField: "$.to"
+    data:
+      edgeTable:
+        source: tableServer
+        collection: filmCharacters
+        fromField: "$.from"
+        toField: "$.to"
 
-  characterFilms:
-    fromVertex: "Character:"
-    toVertex: "Film:"
+  - gid: characterFilms
+    from: "Character:"
+    to: "Film:"
     label: films
-    edgeTable:
-      source: tableServer
-      collection: filmCharacters
-      toField: "$.from"
-      fromField: "$.to"
+    data:
+      edgeTable:
+        source: tableServer
+        collection: filmCharacters
+        toField: "$.from"
+        fromField: "$.to"
 
-  characterStarships:
-    fromVertex: "Character:"
-    toVertex: "Starship:"
+  - gid: characterStarships
+    from: "Character:"
+    to: "Starship:"
     label: "starships"
-    edgeTable:
-      source: tableServer
-      collection: characterStarships
-      fromField: "$.from"
-      toField: "$.to"
+    data:
+      edgeTable:
+        source: tableServer
+        collection: characterStarships
+        fromField: "$.from"
+        toField: "$.to"
 
-  starshipCharacters:
-    toVertex: "Character:"
-    fromVertex: "Starship:"
+  - gid: starshipCharacters
+    to: "Character:"
+    from: "Starship:"
     label: "pilots"
-    edgeTable:
-      source: tableServer
-      collection: characterStarships
-      toField: "$.from"
-      fromField: "$.to"
+    data:
+      edgeTable:
+        source: tableServer
+        collection: characterStarships
+        toField: "$.from"
+        fromField: "$.to"
 ```

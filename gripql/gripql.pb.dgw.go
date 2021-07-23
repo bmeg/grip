@@ -84,6 +84,11 @@ func (shim *QueryDirectClient) GetSchema(ctx context.Context, in *GraphID, opts 
 	return shim.server.GetSchema(ctx, in)
 }
 
+//GetMapping shim
+func (shim *QueryDirectClient) GetMapping(ctx context.Context, in *GraphID, opts ...grpc.CallOption) (*Graph, error) {
+	return shim.server.GetMapping(ctx, in)
+}
+
 //ListGraphs shim
 func (shim *QueryDirectClient) ListGraphs(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*ListGraphsResponse, error) {
 	return shim.server.ListGraphs(ctx, in)
@@ -98,6 +103,51 @@ func (shim *QueryDirectClient) ListIndices(ctx context.Context, in *GraphID, opt
 func (shim *QueryDirectClient) ListLabels(ctx context.Context, in *GraphID, opts ...grpc.CallOption) (*ListLabelsResponse, error) {
 	return shim.server.ListLabels(ctx, in)
 }
+
+//ListTables streaming output shim
+type directQueryListTables struct {
+  ctx context.Context
+  c   chan *TableInfo
+  e   error
+}
+
+func (dsm *directQueryListTables) Recv() (*TableInfo, error) {
+	value, ok := <-dsm.c
+	if !ok {
+    if dsm.e != nil {
+      return nil, dsm.e
+    }
+		return nil, io.EOF
+	}
+	return value, dsm.e
+}
+func (dsm *directQueryListTables) Send(a *TableInfo) error {
+	dsm.c <- a
+	return nil
+}
+func (dsm *directQueryListTables) close() {
+	close(dsm.c)
+}
+func (dsm *directQueryListTables) Context() context.Context {
+	return dsm.ctx
+}
+func (dsm *directQueryListTables) CloseSend() error             { return nil }
+func (dsm *directQueryListTables) SetTrailer(metadata.MD)       {}
+func (dsm *directQueryListTables) SetHeader(metadata.MD) error  { return nil }
+func (dsm *directQueryListTables) SendHeader(metadata.MD) error { return nil }
+func (dsm *directQueryListTables) SendMsg(m interface{}) error  { return nil }
+func (dsm *directQueryListTables) RecvMsg(m interface{}) error  { return nil }
+func (dsm *directQueryListTables) Header() (metadata.MD, error) { return nil, nil }
+func (dsm *directQueryListTables) Trailer() metadata.MD         { return nil }
+func (dir *QueryDirectClient) ListTables(ctx context.Context, in *Empty, opts ...grpc.CallOption) (Query_ListTablesClient, error) {
+	w := &directQueryListTables{ctx, make(chan *TableInfo, 100), nil}
+	go func() {
+    defer w.close()
+		w.e = dir.server.ListTables(in, w)
+	}()
+	return w, nil
+}
+
 
 // JobDirectClient is a shim to connect Job client directly server
 type JobDirectClient struct {
@@ -409,4 +459,9 @@ func (shim *EditDirectClient) DeleteIndex(ctx context.Context, in *IndexID, opts
 //AddSchema shim
 func (shim *EditDirectClient) AddSchema(ctx context.Context, in *Graph, opts ...grpc.CallOption) (*EditResult, error) {
 	return shim.server.AddSchema(ctx, in)
+}
+
+//AddMapping shim
+func (shim *EditDirectClient) AddMapping(ctx context.Context, in *Graph, opts ...grpc.CallOption) (*EditResult, error) {
+	return shim.server.AddMapping(ctx, in)
 }

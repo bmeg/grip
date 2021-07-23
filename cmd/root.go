@@ -7,7 +7,6 @@ import (
 	"os"
 
 	"github.com/bmeg/grip/cmd/create"
-	"github.com/bmeg/grip/cmd/dig"
 	"github.com/bmeg/grip/cmd/drop"
 	"github.com/bmeg/grip/cmd/dump"
 	"github.com/bmeg/grip/cmd/erclient"
@@ -50,7 +49,6 @@ func init() {
 	RootCmd.PersistentFlags().BoolVar(&enableProf, "pprof", enableProf, "enable pprof on port 6060")
 	RootCmd.AddCommand(create.Cmd)
 	RootCmd.AddCommand(drop.Cmd)
-	RootCmd.AddCommand(dig.Cmd)
 	RootCmd.AddCommand(dump.Cmd)
 	RootCmd.AddCommand(genBashCompletionCmd)
 	RootCmd.AddCommand(info.Cmd)

@@ -1,6 +1,14 @@
 
+Default: badger
+
 Drivers:
+  badger:
+    Badger: grip-badger.db
+
   swapi-driver:
     Gripper:
       ConfigFile: ./swapi.yaml
       Graph: swapi
+
+Sources:
+  tableServer: localhost:50051

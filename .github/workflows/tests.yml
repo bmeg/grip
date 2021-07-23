@@ -176,6 +176,7 @@ jobs:
         chmod +x grip
         make start-gripper-test
         sleep 5
-        ./grip server --rpc-port 18202 --http-port 18201 --config ./gripper/test-graph/config.yaml &
+        ./grip server --rpc-port 18202 --http-port 18201 --config ./gripper/test-graph/config.yaml --er tableServer=localhost:50051 &
         sleep 5
+        python gripper/test-graph/test_gripper.py http://localhost:18201
         python conformance/run_conformance.py http://localhost:18201 --readOnly swapi

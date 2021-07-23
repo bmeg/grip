@@ -6,8 +6,8 @@ import (
 
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
-	"github.com/bmeg/grip/log"
 	gripSchema "github.com/bmeg/grip/gripql/schema"
+	"github.com/bmeg/grip/log"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
