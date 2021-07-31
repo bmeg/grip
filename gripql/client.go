@@ -30,11 +30,15 @@ func Connect(conf rpc.Config, write bool) (Client, error) {
 		return Client{}, err
 	}
 	queryOut := NewQueryClient(conn)
-	if !write {
-		return Client{queryOut, nil, nil, conn}, nil
+	var editOut EditClient
+	if write {
+		editOut = NewEditClient(conn)
 	}
-	editOut := NewEditClient(conn)
 	return Client{queryOut, editOut, nil, conn}, nil
+}
+
+func (client Client) WithConfigureAPI() Client {
+	return Client{client.QueryC, client.EditC, NewConfigureClient(client.conn), client.conn}
 }
 
 // Close the connection

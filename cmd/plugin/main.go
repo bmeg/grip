@@ -25,8 +25,9 @@ var ListDriversCmd = &cobra.Command{
     if err != nil {
       return err
     }
+		conn = conn.WithConfigureAPI()
     lst, err := conn.ListDrivers()
-    for l := range lst.Drivers {
+    for _, l := range lst.Drivers {
       fmt.Printf("%s\n", l)
     }
 		return err
