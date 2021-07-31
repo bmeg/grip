@@ -13,13 +13,14 @@ import (
 type Client struct {
 	QueryC QueryClient
 	EditC  EditClient
+	ConfigureC ConfigureClient
 	conn   *grpc.ClientConn
 }
 
 // WrapClient takes previously initialized GRPC clients and uses them for the
 // client wrapper
-func WrapClient(QueryC QueryClient, EditC EditClient) Client {
-	return Client{QueryC, EditC, nil}
+func WrapClient(QueryC QueryClient, EditC EditClient, ConfigureC ConfigureClient) Client {
+	return Client{QueryC, EditC, ConfigureC, nil}
 }
 
 // Connect opens a GRPC connection to an Grip server
@@ -30,10 +31,10 @@ func Connect(conf rpc.Config, write bool) (Client, error) {
 	}
 	queryOut := NewQueryClient(conn)
 	if !write {
-		return Client{queryOut, nil, conn}, nil
+		return Client{queryOut, nil, nil, conn}, nil
 	}
 	editOut := NewEditClient(conn)
-	return Client{queryOut, editOut, conn}, nil
+	return Client{queryOut, editOut, nil, conn}, nil
 }
 
 // Close the connection
@@ -182,4 +183,10 @@ func (client Client) Traversal(query *GraphQuery) (chan *QueryResult, error) {
 	}()
 
 	return out, nil
+}
+
+
+// ListLabels lists the vertex and edge labels for a graph in the database
+func (client Client) ListDrivers() (*ListDriversResponse, error) {
+	return client.ConfigureC.ListDrivers(context.Background(), &Empty{})
 }

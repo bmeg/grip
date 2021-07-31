@@ -20,6 +20,7 @@ import (
 	"github.com/bmeg/grip/cmd/schema"
 	"github.com/bmeg/grip/cmd/server"
 	"github.com/bmeg/grip/cmd/stream"
+	"github.com/bmeg/grip/cmd/plugin"
 	"github.com/bmeg/grip/cmd/version"
 	"github.com/bmeg/grip/log"
 	"github.com/spf13/cobra"
@@ -61,6 +62,7 @@ func init() {
 	RootCmd.AddCommand(schema.Cmd)
 	RootCmd.AddCommand(server.Cmd)
 	RootCmd.AddCommand(stream.Cmd)
+	RootCmd.AddCommand(plugin.Cmd)
 	RootCmd.AddCommand(version.Cmd)
 	RootCmd.AddCommand(kvload.Cmd)
 }

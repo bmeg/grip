@@ -15,6 +15,8 @@ type ServerConfig struct {
 	WorkDir          string
 	ContentDir       string
 	ReadOnly         bool
+	EnablePlugins    bool
+	PluginDir        string
 	NoJobs           bool
 	BasicAuth        []BasicCredential
 	DisableHTTPCache bool

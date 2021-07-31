@@ -42,6 +42,7 @@ type GripServer struct {
 	gripql.UnimplementedQueryServer
 	gripql.UnimplementedEditServer
 	gripql.UnimplementedJobServer
+	gripql.UnimplementedConfigureServer
 	dbs      map[string]gdbi.GraphDB  //graph database drivers
 	graphMap map[string]string        //mapping from graph name to graph database driver
 	conf     *config.Config           //global configuration
@@ -193,7 +194,7 @@ func (server *GripServer) Serve(pctx context.Context) error {
 		if err != nil {
 			return fmt.Errorf("setting up GraphQL handler: %v", err)
 		}*/
-	gqlHandler, err := graphql.NewClientHTTPHandler(gripql.WrapClient(gripql.NewQueryDirectClient(server), nil))
+	gqlHandler, err := graphql.NewClientHTTPHandler(gripql.WrapClient(gripql.NewQueryDirectClient(server), nil, nil))
 
 	mux.Handle("/graphql/", gqlHandler)
 
@@ -293,13 +294,20 @@ func (server *GripServer) Serve(pctx context.Context) error {
 
 	if !server.conf.Server.NoJobs {
 		gripql.RegisterJobServer(grpcServer, server)
-		//TODO: Put in some sort of logic that will allow web server to be configured to use GRPC client
 		err = gripql.RegisterJobHandlerClient(ctx, grpcMux, gripql.NewJobDirectClient(server))
 		if err != nil {
 			return fmt.Errorf("registering job endpoint: %v", err)
 		}
 		jobDir := filepath.Join(server.conf.Server.WorkDir, "jobs")
 		server.jStorage = jobstorage.NewFSJobStorage(jobDir)
+	}
+
+	if server.conf.Server.EnablePlugins {
+		gripql.RegisterConfigureServer(grpcServer, server)
+		err = gripql.RegisterConfigureHandlerClient(ctx, grpcMux, gripql.NewConfigureDirectClient(server))
+		if err != nil {
+			return fmt.Errorf("registering plugin endpoint: %v", err)
+		}
 	}
 
 	httpServer := &http.Server{

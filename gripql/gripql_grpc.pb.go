@@ -1370,3 +1370,125 @@ var Edit_ServiceDesc = grpc.ServiceDesc{
 	},
 	Metadata: "gripql.proto",
 }
+
+// ConfigureClient is the client API for Configure service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+type ConfigureClient interface {
+	StartPlugin(ctx context.Context, in *PluginConfig, opts ...grpc.CallOption) (*PluginStatus, error)
+	ListDrivers(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*ListDriversResponse, error)
+}
+
+type configureClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewConfigureClient(cc grpc.ClientConnInterface) ConfigureClient {
+	return &configureClient{cc}
+}
+
+func (c *configureClient) StartPlugin(ctx context.Context, in *PluginConfig, opts ...grpc.CallOption) (*PluginStatus, error) {
+	out := new(PluginStatus)
+	err := c.cc.Invoke(ctx, "/gripql.Configure/StartPlugin", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *configureClient) ListDrivers(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*ListDriversResponse, error) {
+	out := new(ListDriversResponse)
+	err := c.cc.Invoke(ctx, "/gripql.Configure/ListDrivers", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// ConfigureServer is the server API for Configure service.
+// All implementations must embed UnimplementedConfigureServer
+// for forward compatibility
+type ConfigureServer interface {
+	StartPlugin(context.Context, *PluginConfig) (*PluginStatus, error)
+	ListDrivers(context.Context, *Empty) (*ListDriversResponse, error)
+	mustEmbedUnimplementedConfigureServer()
+}
+
+// UnimplementedConfigureServer must be embedded to have forward compatible implementations.
+type UnimplementedConfigureServer struct {
+}
+
+func (UnimplementedConfigureServer) StartPlugin(context.Context, *PluginConfig) (*PluginStatus, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method StartPlugin not implemented")
+}
+func (UnimplementedConfigureServer) ListDrivers(context.Context, *Empty) (*ListDriversResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListDrivers not implemented")
+}
+func (UnimplementedConfigureServer) mustEmbedUnimplementedConfigureServer() {}
+
+// UnsafeConfigureServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to ConfigureServer will
+// result in compilation errors.
+type UnsafeConfigureServer interface {
+	mustEmbedUnimplementedConfigureServer()
+}
+
+func RegisterConfigureServer(s grpc.ServiceRegistrar, srv ConfigureServer) {
+	s.RegisterService(&Configure_ServiceDesc, srv)
+}
+
+func _Configure_StartPlugin_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PluginConfig)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ConfigureServer).StartPlugin(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/gripql.Configure/StartPlugin",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ConfigureServer).StartPlugin(ctx, req.(*PluginConfig))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Configure_ListDrivers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Empty)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ConfigureServer).ListDrivers(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/gripql.Configure/ListDrivers",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ConfigureServer).ListDrivers(ctx, req.(*Empty))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+// Configure_ServiceDesc is the grpc.ServiceDesc for Configure service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var Configure_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "gripql.Configure",
+	HandlerType: (*ConfigureServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "StartPlugin",
+			Handler:    _Configure_StartPlugin_Handler,
+		},
+		{
+			MethodName: "ListDrivers",
+			Handler:    _Configure_ListDrivers_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "gripql.proto",
+}

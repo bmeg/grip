@@ -465,3 +465,22 @@ func (shim *EditDirectClient) AddSchema(ctx context.Context, in *Graph, opts ...
 func (shim *EditDirectClient) AddMapping(ctx context.Context, in *Graph, opts ...grpc.CallOption) (*EditResult, error) {
 	return shim.server.AddMapping(ctx, in)
 }
+
+// ConfigureDirectClient is a shim to connect Configure client directly server
+type ConfigureDirectClient struct {
+	server ConfigureServer
+}
+ // NewConfigureDirectClient creates new ConfigureDirectClient
+func NewConfigureDirectClient(server ConfigureServer) *ConfigureDirectClient {
+	return &ConfigureDirectClient{server}
+}
+
+//StartPlugin shim
+func (shim *ConfigureDirectClient) StartPlugin(ctx context.Context, in *PluginConfig, opts ...grpc.CallOption) (*PluginStatus, error) {
+	return shim.server.StartPlugin(ctx, in)
+}
+
+//ListDrivers shim
+func (shim *ConfigureDirectClient) ListDrivers(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*ListDriversResponse, error) {
+	return shim.server.ListDrivers(ctx, in)
+}

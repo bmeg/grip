@@ -62,6 +62,7 @@ func DefaultConfig() *Config {
 	c.Server.RPCPort = "8202"
 	c.Server.WorkDir = "grip.work"
 	c.Server.ReadOnly = false
+	c.Server.EnablePlugins = false
 	c.Server.DisableHTTPCache = true
 	c.Server.AutoBuildSchemas = false
 	c.Server.SchemaRefreshInterval = duration.Duration(24 * time.Hour)
