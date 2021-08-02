@@ -1,10 +1,16 @@
 package gripper
 
 import (
+  "os"
+  "fmt"
+  "path/filepath"
   "context"
   "os/exec"
+  "io/ioutil"
+  "encoding/json"
   grpc "google.golang.org/grpc"
   "github.com/hashicorp/go-plugin"
+  "github.com/kennygrant/sanitize"
 )
 
 var Handshake = plugin.HandshakeConfig{
@@ -32,14 +38,30 @@ func (p *GripPlugin) GRPCClient(ctx context.Context, broker *plugin.GRPCBroker, 
 }
 
 
-func LaunchPluginClient(name string, params map[string]string) (*plugin.Client, error) {
+func LaunchPluginClient(plugindir string, name string, workdir string, params map[string]string) (*plugin.Client, error) {
+  name = sanitize.BaseName(name)
+  plugPath := filepath.Join(plugindir, "gripper-" + name)
+
+  if _, err := os.Stat(plugPath); err != nil {
+    return nil, fmt.Errorf("plugin %s not found", name)
+  }
+
+  confPath := filepath.Join(workdir, "conf.json")
+  message, err := json.Marshal(params)
+  if err != nil {
+    return nil, err
+  }
+  err = ioutil.WriteFile(confPath, message, 0644)
+	if err != nil {
+    return nil, err
+  }
   client := plugin.NewClient(&plugin.ClientConfig{
     HandshakeConfig: Handshake,
     Plugins:         PluginMap,
-    Cmd:             exec.Command("./grip_pfb", "export_2021-06-24T18_56_28.avro"), //FIXME
+    Cmd:             exec.Command(plugPath, confPath), //FIXME
     AllowedProtocols: []plugin.Protocol{plugin.ProtocolGRPC},
   })
-  _, err := client.Start()
+  _, err = client.Start()
   return client, err
 }
 

@@ -1704,16 +1704,6 @@ func request_Configure_StartPlugin_0(ctx context.Context, marshaler runtime.Mars
 		_   = err
 	)
 
-	val, ok = pathParams["driver"]
-	if !ok {
-		return nil, metadata, status.Errorf(codes.InvalidArgument, "missing parameter %s", "driver")
-	}
-
-	protoReq.Driver, err = runtime.String(val)
-	if err != nil {
-		return nil, metadata, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "driver", err)
-	}
-
 	val, ok = pathParams["name"]
 	if !ok {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "missing parameter %s", "name")
@@ -1748,16 +1738,6 @@ func local_request_Configure_StartPlugin_0(ctx context.Context, marshaler runtim
 		_   = err
 	)
 
-	val, ok = pathParams["driver"]
-	if !ok {
-		return nil, metadata, status.Errorf(codes.InvalidArgument, "missing parameter %s", "driver")
-	}
-
-	protoReq.Driver, err = runtime.String(val)
-	if err != nil {
-		return nil, metadata, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "driver", err)
-	}
-
 	val, ok = pathParams["name"]
 	if !ok {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "missing parameter %s", "name")
@@ -1769,6 +1749,24 @@ func local_request_Configure_StartPlugin_0(ctx context.Context, marshaler runtim
 	}
 
 	msg, err := server.StartPlugin(ctx, &protoReq)
+	return msg, metadata, err
+
+}
+
+func request_Configure_ListPlugins_0(ctx context.Context, marshaler runtime.Marshaler, client ConfigureClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
+	var protoReq Empty
+	var metadata runtime.ServerMetadata
+
+	msg, err := client.ListPlugins(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
+	return msg, metadata, err
+
+}
+
+func local_request_Configure_ListPlugins_0(ctx context.Context, marshaler runtime.Marshaler, server ConfigureServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
+	var protoReq Empty
+	var metadata runtime.ServerMetadata
+
+	msg, err := server.ListPlugins(ctx, &protoReq)
 	return msg, metadata, err
 
 }
@@ -2362,7 +2360,7 @@ func RegisterConfigureHandlerServer(ctx context.Context, mux *runtime.ServeMux, 
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		rctx, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/gripql.Configure/StartPlugin", runtime.WithHTTPPathPattern("/v1/drivers/{driver}/{name}"))
+		rctx, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/gripql.Configure/StartPlugin", runtime.WithHTTPPathPattern("/v1/plugin/{name}"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -2379,13 +2377,36 @@ func RegisterConfigureHandlerServer(ctx context.Context, mux *runtime.ServeMux, 
 
 	})
 
+	mux.Handle("GET", pattern_Configure_ListPlugins_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+		ctx, cancel := context.WithCancel(req.Context())
+		defer cancel()
+		var stream runtime.ServerTransportStream
+		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
+		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
+		rctx, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/gripql.Configure/ListPlugins", runtime.WithHTTPPathPattern("/v1/plugin"))
+		if err != nil {
+			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
+			return
+		}
+		resp, md, err := local_request_Configure_ListPlugins_0(rctx, inboundMarshaler, server, req, pathParams)
+		md.HeaderMD, md.TrailerMD = metadata.Join(md.HeaderMD, stream.Header()), metadata.Join(md.TrailerMD, stream.Trailer())
+		ctx = runtime.NewServerMetadataContext(ctx, md)
+		if err != nil {
+			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
+			return
+		}
+
+		forward_Configure_ListPlugins_0(ctx, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
+
+	})
+
 	mux.Handle("GET", pattern_Configure_ListDrivers_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		rctx, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/gripql.Configure/ListDrivers", runtime.WithHTTPPathPattern("/v1/drivers"))
+		rctx, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/gripql.Configure/ListDrivers", runtime.WithHTTPPathPattern("/v1/driver"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -3254,7 +3275,7 @@ func RegisterConfigureHandlerClient(ctx context.Context, mux *runtime.ServeMux, 
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		rctx, err := runtime.AnnotateContext(ctx, mux, req, "/gripql.Configure/StartPlugin", runtime.WithHTTPPathPattern("/v1/drivers/{driver}/{name}"))
+		rctx, err := runtime.AnnotateContext(ctx, mux, req, "/gripql.Configure/StartPlugin", runtime.WithHTTPPathPattern("/v1/plugin/{name}"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -3270,11 +3291,31 @@ func RegisterConfigureHandlerClient(ctx context.Context, mux *runtime.ServeMux, 
 
 	})
 
+	mux.Handle("GET", pattern_Configure_ListPlugins_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+		ctx, cancel := context.WithCancel(req.Context())
+		defer cancel()
+		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
+		rctx, err := runtime.AnnotateContext(ctx, mux, req, "/gripql.Configure/ListPlugins", runtime.WithHTTPPathPattern("/v1/plugin"))
+		if err != nil {
+			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
+			return
+		}
+		resp, md, err := request_Configure_ListPlugins_0(rctx, inboundMarshaler, client, req, pathParams)
+		ctx = runtime.NewServerMetadataContext(ctx, md)
+		if err != nil {
+			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
+			return
+		}
+
+		forward_Configure_ListPlugins_0(ctx, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
+
+	})
+
 	mux.Handle("GET", pattern_Configure_ListDrivers_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		rctx, err := runtime.AnnotateContext(ctx, mux, req, "/gripql.Configure/ListDrivers", runtime.WithHTTPPathPattern("/v1/drivers"))
+		rctx, err := runtime.AnnotateContext(ctx, mux, req, "/gripql.Configure/ListDrivers", runtime.WithHTTPPathPattern("/v1/driver"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -3294,13 +3335,17 @@ func RegisterConfigureHandlerClient(ctx context.Context, mux *runtime.ServeMux, 
 }
 
 var (
-	pattern_Configure_StartPlugin_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 1, 0, 4, 1, 5, 2, 1, 0, 4, 1, 5, 3}, []string{"v1", "drivers", "driver", "name"}, ""))
+	pattern_Configure_StartPlugin_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 1, 0, 4, 1, 5, 2}, []string{"v1", "plugin", "name"}, ""))
 
-	pattern_Configure_ListDrivers_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"v1", "drivers"}, ""))
+	pattern_Configure_ListPlugins_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"v1", "plugin"}, ""))
+
+	pattern_Configure_ListDrivers_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"v1", "driver"}, ""))
 )
 
 var (
 	forward_Configure_StartPlugin_0 = runtime.ForwardResponseMessage
+
+	forward_Configure_ListPlugins_0 = runtime.ForwardResponseMessage
 
 	forward_Configure_ListDrivers_0 = runtime.ForwardResponseMessage
 )

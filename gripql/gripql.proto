@@ -481,18 +481,27 @@ message ListDriversResponse {
   repeated string drivers = 1;
 }
 
+message ListPluginsResponse {
+	repeated string plugins = 1;
+}
 
 service Configure {
   rpc StartPlugin(PluginConfig) returns (PluginStatus) {
     option (google.api.http) = {
-      post: "/v1/drivers/{driver}/{name}"
+      post: "/v1/plugin/{name}"
       body: "*"
     };
   }
 
+	rpc ListPlugins(Empty) returns (ListPluginsResponse) {
+		option (google.api.http) = {
+			get: "/v1/plugin"
+		};
+	}
+
 	rpc ListDrivers(Empty) returns (ListDriversResponse) {
 		option (google.api.http) = {
-			get: "/v1/drivers"
+			get: "/v1/driver"
 		};
 	}
 

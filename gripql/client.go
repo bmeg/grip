@@ -190,7 +190,17 @@ func (client Client) Traversal(query *GraphQuery) (chan *QueryResult, error) {
 }
 
 
-// ListLabels lists the vertex and edge labels for a graph in the database
+// ListDrivers lists avalible drivers
 func (client Client) ListDrivers() (*ListDriversResponse, error) {
 	return client.ConfigureC.ListDrivers(context.Background(), &Empty{})
+}
+
+// ListPlugins
+func (client Client) ListPlugins() (*ListPluginsResponse, error) {
+	return client.ConfigureC.ListPlugins(context.Background(), &Empty{})
+}
+
+// ListPlugins
+func (client Client) StartPlugin(conf *PluginConfig) (*PluginStatus, error) {
+	return client.ConfigureC.StartPlugin(context.Background(), conf)
 }

@@ -480,6 +480,11 @@ func (shim *ConfigureDirectClient) StartPlugin(ctx context.Context, in *PluginCo
 	return shim.server.StartPlugin(ctx, in)
 }
 
+//ListPlugins shim
+func (shim *ConfigureDirectClient) ListPlugins(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*ListPluginsResponse, error) {
+	return shim.server.ListPlugins(ctx, in)
+}
+
 //ListDrivers shim
 func (shim *ConfigureDirectClient) ListDrivers(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*ListDriversResponse, error) {
 	return shim.server.ListDrivers(ctx, in)

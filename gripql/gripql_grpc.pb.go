@@ -1376,6 +1376,7 @@ var Edit_ServiceDesc = grpc.ServiceDesc{
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ConfigureClient interface {
 	StartPlugin(ctx context.Context, in *PluginConfig, opts ...grpc.CallOption) (*PluginStatus, error)
+	ListPlugins(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*ListPluginsResponse, error)
 	ListDrivers(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*ListDriversResponse, error)
 }
 
@@ -1396,6 +1397,15 @@ func (c *configureClient) StartPlugin(ctx context.Context, in *PluginConfig, opt
 	return out, nil
 }
 
+func (c *configureClient) ListPlugins(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*ListPluginsResponse, error) {
+	out := new(ListPluginsResponse)
+	err := c.cc.Invoke(ctx, "/gripql.Configure/ListPlugins", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *configureClient) ListDrivers(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*ListDriversResponse, error) {
 	out := new(ListDriversResponse)
 	err := c.cc.Invoke(ctx, "/gripql.Configure/ListDrivers", in, out, opts...)
@@ -1410,6 +1420,7 @@ func (c *configureClient) ListDrivers(ctx context.Context, in *Empty, opts ...gr
 // for forward compatibility
 type ConfigureServer interface {
 	StartPlugin(context.Context, *PluginConfig) (*PluginStatus, error)
+	ListPlugins(context.Context, *Empty) (*ListPluginsResponse, error)
 	ListDrivers(context.Context, *Empty) (*ListDriversResponse, error)
 	mustEmbedUnimplementedConfigureServer()
 }
@@ -1420,6 +1431,9 @@ type UnimplementedConfigureServer struct {
 
 func (UnimplementedConfigureServer) StartPlugin(context.Context, *PluginConfig) (*PluginStatus, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method StartPlugin not implemented")
+}
+func (UnimplementedConfigureServer) ListPlugins(context.Context, *Empty) (*ListPluginsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListPlugins not implemented")
 }
 func (UnimplementedConfigureServer) ListDrivers(context.Context, *Empty) (*ListDriversResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListDrivers not implemented")
@@ -1455,6 +1469,24 @@ func _Configure_StartPlugin_Handler(srv interface{}, ctx context.Context, dec fu
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Configure_ListPlugins_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Empty)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ConfigureServer).ListPlugins(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/gripql.Configure/ListPlugins",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ConfigureServer).ListPlugins(ctx, req.(*Empty))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _Configure_ListDrivers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(Empty)
 	if err := dec(in); err != nil {
@@ -1483,6 +1515,10 @@ var Configure_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "StartPlugin",
 			Handler:    _Configure_StartPlugin_Handler,
+		},
+		{
+			MethodName: "ListPlugins",
+			Handler:    _Configure_ListPlugins_Handler,
 		},
 		{
 			MethodName: "ListDrivers",

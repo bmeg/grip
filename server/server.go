@@ -48,6 +48,7 @@ type GripServer struct {
 	conf     *config.Config           //global configuration
 	schemas  map[string]*gripql.Graph //cached schemas
 	mappings map[string]*gripql.Graph //cached gripper graph mappings
+	plugins  map[string]*Plugin
 	baseDir  string
 	jStorage jobstorage.JobStorage
 }
@@ -78,7 +79,7 @@ func NewGripServer(conf *config.Config, baseDir string, drivers map[string]gdbi.
 		}
 	}
 
-	server := &GripServer{dbs: gdbs, conf: conf, schemas: schemas, mappings: map[string]*gripql.Graph{}}
+	server := &GripServer{dbs: gdbs, conf: conf, schemas: schemas, mappings: map[string]*gripql.Graph{}, plugins:map[string]*Plugin{}}
 	/*
 		for graph, schema := range schemas {
 			if !server.graphExists(graph) {
@@ -358,13 +359,6 @@ func (server *GripServer) Serve(pctx context.Context) error {
 	}
 
 	<-ctx.Done() //This will hold until canceled, usually from kill signal
-	log.Infoln("closing database...")
-	for _, gdb := range server.dbs {
-		err = gdb.Close()
-		if err != nil {
-			log.Errorln("db.Close() error:", err)
-		}
-	}
 	log.Infoln("shutting down RPC server...")
 	grpcServer.GracefulStop()
 	log.Infoln("shutting down HTTP proxy...")
@@ -372,6 +366,16 @@ func (server *GripServer) Serve(pctx context.Context) error {
 	if err != nil {
 		log.Errorf("shutdown error: %v", err)
 	}
+
+	log.Infoln("closing database...")
+	for _, gdb := range server.dbs {
+		err = gdb.Close()
+		if err != nil {
+			log.Errorln("db.Close() error:", err)
+		}
+	}
+
+	server.ClosePlugins()
 
 	if grpcErr != nil || httpErr != nil {
 		return fmt.Errorf("gRPC Server Error: %v\nHTTP Server Error: %v", grpcErr, httpErr)
