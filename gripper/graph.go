@@ -38,7 +38,7 @@ type TabularGraph struct {
 	edgeSourceOrder   []string
 }
 
-func NewTabularGraph(conf GraphConfig, sources map[string]string) (*TabularGraph, error) {
+func NewTabularGraph(conf GraphConfig, sources map[string]GRIPSourceClient) (*TabularGraph, error) {
 	out := TabularGraph{}
 
 	out.vertices = map[string]*VertexSource{}

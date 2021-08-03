@@ -56,7 +56,7 @@ func (server *GripServer) ListGraphs(ctx context.Context, empty *gripql.Empty) (
 
 // ListTables returns list of all tables that are found in plugin system
 func (server *GripServer) ListTables(empty *gripql.Empty, srv gripql.Query_ListTablesServer) error {
-	client := gripper.NewGripperClient(server.conf.Sources)
+	client := gripper.NewGripperClient(server.sources)
 
 	for k := range server.conf.Sources {
 		for col := range client.GetCollections(context.Background(), k) {

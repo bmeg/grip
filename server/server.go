@@ -49,6 +49,7 @@ type GripServer struct {
 	schemas  map[string]*gripql.Graph //cached schemas
 	mappings map[string]*gripql.Graph //cached gripper graph mappings
 	plugins  map[string]*Plugin
+	sources  map[string]gripper.GRIPSourceClient
 	baseDir  string
 	jStorage jobstorage.JobStorage
 }
@@ -70,25 +71,34 @@ func NewGripServer(conf *config.Config, baseDir string, drivers map[string]gdbi.
 			gdbs[i] = d
 		}
 	}
+
+	sources := map[string]gripper.GRIPSourceClient{}
+	for name, host := range conf.Sources {
+		conn, err := gripper.StartConnection(host)
+		if err == nil {
+			sources[name] = conn
+		} else {
+			log.Errorf("Cannot reach source: %s", name)
+		}
+	}
+	
 	for name, dConfig := range conf.Drivers {
 		if _, ok := gdbs[name]; !ok {
-			g, err := StartDriver(conf, dConfig)
+			g, err := StartDriver(dConfig, sources)
 			if err == nil {
 				gdbs[name] = g
 			}
 		}
 	}
 
-	server := &GripServer{dbs: gdbs, conf: conf, schemas: schemas, mappings: map[string]*gripql.Graph{}, plugins:map[string]*Plugin{}}
-	/*
-		for graph, schema := range schemas {
-			if !server.graphExists(graph) {
-				_, err := server.AddGraph(context.Background(), &gripql.GraphID{Graph: graph})
-				if err != nil {
-					return nil, fmt.Errorf("error creating graph defined by schema '%s': %v", graph, err)
-				}
-			}
-		}*/
+	server := &GripServer{
+		dbs: gdbs,
+		conf: conf,
+		schemas: schemas,
+		mappings: map[string]*gripql.Graph{},
+		plugins:map[string]*Plugin{},
+		sources:sources,
+	}
 
 	if conf.Default == "" {
 		//if no default is found set it to the first driver found
@@ -106,7 +116,7 @@ func NewGripServer(conf *config.Config, baseDir string, drivers map[string]gdbi.
 }
 
 // StartDriver: based on string entry in config file, figure out which driver to initialize
-func StartDriver(conf *config.Config, d config.DriverConfig) (gdbi.GraphDB, error) {
+func StartDriver(d config.DriverConfig, sources map[string]gripper.GRIPSourceClient) (gdbi.GraphDB, error) {
 	if d.Bolt != nil {
 		return kvgraph.NewKVGraphDB("bolt", *d.Bolt)
 	} else if d.Badger != nil {
@@ -124,7 +134,7 @@ func StartDriver(conf *config.Config, d config.DriverConfig) (gdbi.GraphDB, erro
 	} else if d.ExistingSQL != nil {
 		return esql.NewGraphDB(*d.ExistingSQL)
 	} else if d.Gripper != nil {
-		return gripper.NewGDBFromConfig(d.Gripper.Graph, d.Gripper.Mapping, conf.Sources)
+		return gripper.NewGDBFromConfig(d.Gripper.Graph, d.Gripper.Mapping, sources)
 	}
 	return nil, fmt.Errorf("unknown driver: %#v", d)
 }

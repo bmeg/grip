@@ -116,7 +116,7 @@ func (server *GripServer) updateGraphMap() {
 					log.Infof("Reading config for a gripper driver %s", g)
 					mapping, _ := gripper.GraphToConfig(graph)
 					graphName := strings.TrimSuffix(g, mappingSuffix)
-					gdb, err := StartDriver(server.conf, config.DriverConfig{Gripper: &gripper.Config{Graph: graphName, Mapping: mapping}})
+					gdb, err := StartDriver(config.DriverConfig{Gripper: &gripper.Config{Graph: graphName, Mapping: mapping}}, server.sources)
 					if err == nil {
 						driverName := fmt.Sprintf("%s__driver__", graphName)
 						server.dbs[driverName] = gdb

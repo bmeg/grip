@@ -13,10 +13,14 @@ var host = "localhost:50051"
 var source = "main"
 var dataOnly = false
 
-func getClient() *gripper.GripperClient {
-	c := map[string]string{source: host}
+func getClient() (*gripper.GripperClient, error) {
+	conn, err := gripper.StartConnection(host)
+	if err != nil {
+		return nil, err
+	}
+	c := map[string]gripper.GRIPSourceClient{source: conn}
 	out := gripper.NewGripperClient(c)
-	return out
+	return out, nil
 }
 
 // Cmd is the declaration of the command line
@@ -35,7 +39,10 @@ var ListCmd = &cobra.Command{
 	Short: "List collections provided by external resource",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		client := getClient()
+		client, err := getClient()
+		if err != nil {
+			return err
+		}
 		for name := range client.GetCollections(context.Background(), source) {
 			fmt.Printf("%s\n", name)
 		}
@@ -48,7 +55,10 @@ var InfoCmd = &cobra.Command{
 	Short: "Get info about a collection",
 	Args:  cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		client := getClient()
+		client, err := getClient()
+		if err != nil {
+			return err
+		}
 		collection := args[1]
 		out, err := client.GetCollectionInfo(context.Background(), source, collection)
 		if err != nil {
@@ -65,7 +75,10 @@ var RowsCmd = &cobra.Command{
 	Short: "List rows from a collection",
 	Args:  cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		client := getClient()
+		client, err := getClient()
+		if err != nil {
+			return err
+		}
 		collection := args[1]
 		jm := protojson.MarshalOptions{}
 		for row := range client.GetRows(context.Background(), source, collection) {
@@ -84,7 +97,10 @@ var IdsCmd = &cobra.Command{
 	Short: "List ids from a collection",
 	Args:  cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		client := getClient()
+		client, err := getClient()
+		if err != nil {
+			return err
+		}
 		collection := args[1]
 		for i := range client.GetIDs(context.Background(), source, collection) {
 			fmt.Printf("%s\n", i)
@@ -98,7 +114,10 @@ var QueryCmd = &cobra.Command{
 	Short: "List rows with field match",
 	Args:  cobra.ExactArgs(4),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		client := getClient()
+		client, err := getClient()
+		if err != nil {
+			return err
+		}
 		collection := args[1]
 		field := args[2]
 		value := args[3]
@@ -123,7 +142,10 @@ var GetCmd = &cobra.Command{
 	Short: "List rows with field match",
 	Args:  cobra.MinimumNArgs(3),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		client := getClient()
+		client, err := getClient()
+		if err != nil {
+			return err
+		}
 		collection := args[1]
 		ids := args[2:]
 
