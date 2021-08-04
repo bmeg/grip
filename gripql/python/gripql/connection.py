@@ -101,3 +101,10 @@ class Connection(BaseConnection):
         raise_for_status(response)
         for line in response.iter_lines(chunk_size=None):
             yield json.loads(line)
+
+    def startPlugin(self, name, driver, config):
+        response = self.session.post(
+            self.base_url + "/v1/plugin/" + name,
+            json={"driver":driver, "config":config}
+        )
+        return response.json()
