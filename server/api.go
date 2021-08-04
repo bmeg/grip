@@ -58,7 +58,7 @@ func (server *GripServer) ListGraphs(ctx context.Context, empty *gripql.Empty) (
 func (server *GripServer) ListTables(empty *gripql.Empty, srv gripql.Query_ListTablesServer) error {
 	client := gripper.NewGripperClient(server.sources)
 
-	for k := range server.conf.Sources {
+	for k := range server.sources {
 		for col := range client.GetCollections(context.Background(), k) {
 			info, _ := client.GetCollectionInfo(context.Background(), k, col)
 			srv.Send(&gripql.TableInfo{Source: k, Name: col, Fields: info.SearchFields})

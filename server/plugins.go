@@ -40,6 +40,7 @@ func (server *GripServer) StartPlugin(ctx context.Context, config *gripql.Plugin
     return nil, err
   }
   server.plugins[config.Name] = &Plugin{name:config.Name, plugin:plg, client:cli}
+  server.sources[config.Name] = cli
   return &gripql.PluginStatus{Name: config.Name}, nil
 }
 
