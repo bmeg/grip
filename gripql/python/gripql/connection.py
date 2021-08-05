@@ -102,6 +102,26 @@ class Connection(BaseConnection):
         for line in response.iter_lines(chunk_size=None):
             yield json.loads(line)
 
+    def listDrivers(self):
+        """
+        List graphs.
+        """
+        response = self.session.get(
+            self.base_url + "/v1/driver"
+        )
+        raise_for_status(response)
+        return response.json()['drivers']
+
+    def listPlugins(self):
+        """
+        List graphs.
+        """
+        response = self.session.get(
+            self.base_url + "/v1/plugin"
+        )
+        raise_for_status(response)
+        return response.json()['plugins']
+
     def startPlugin(self, name, driver, config):
         response = self.session.post(
             self.base_url + "/v1/plugin/" + name,
