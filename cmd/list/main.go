@@ -34,7 +34,7 @@ var listTablesCmd = &cobra.Command{
 		}
 
 		for g := range resp {
-			fmt.Printf("%s\t%s\t%s\n", g.Source, g.Name, g.Fields)
+			fmt.Printf("%s\t%s\t%s\t%s\n", g.Source, g.Name, g.Fields, g.LinkMap)
 		}
 		return nil
 	},

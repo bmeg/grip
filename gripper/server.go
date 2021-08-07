@@ -20,6 +20,7 @@ type BaseRow struct {
 type Driver interface {
 	GetTimeout() int
 	GetFields() ([]string, error)
+	GetFieldLinks() (map[string]string, error)
 	FetchRow(string) (*BaseRow, error)
 	FetchRows(context.Context) (chan *BaseRow, error)
 	FetchMatchRows(context.Context, string, string) (chan *BaseRow, error)
@@ -64,7 +65,15 @@ func (st *SimpleTableServicer) GetCollectionInfo(cxt context.Context, col *Colle
 		for _, f := range fields {
 			o = append(o, "$."+f)
 		}
-		return &CollectionInfo{SearchFields: o}, nil
+		om := map[string]string{}
+		m, err := dr.GetFieldLinks()
+		if err != nil {
+			return nil, err
+		}
+		for k, v := range m {
+			om["$." +k] = v
+		}
+		return &CollectionInfo{SearchFields: o, LinkMap:om}, nil
 	}
 	return nil, fmt.Errorf("Not Found")
 }

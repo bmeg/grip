@@ -61,7 +61,7 @@ func (server *GripServer) ListTables(empty *gripql.Empty, srv gripql.Query_ListT
 	for k := range server.sources {
 		for col := range client.GetCollections(context.Background(), k) {
 			info, _ := client.GetCollectionInfo(context.Background(), k, col)
-			srv.Send(&gripql.TableInfo{Source: k, Name: col, Fields: info.SearchFields})
+			srv.Send(&gripql.TableInfo{Source: k, Name: col, Fields: info.SearchFields, LinkMap: info.LinkMap})
 		}
 	}
 	return nil

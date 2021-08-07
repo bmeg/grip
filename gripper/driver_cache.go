@@ -142,14 +142,15 @@ func (dc *DriverCache) FetchMatchRows(ctx context.Context, field string, value s
 type DriverPreLoad struct {
 	tableCache map[string]*BaseRow
 	tableKeys  []string
+	fieldLinks map[string]string
 }
 
-func NewDriverPreload(data map[string]*BaseRow) *DriverPreLoad {
+func NewDriverPreload(data map[string]*BaseRow, fieldLinks map[string]string) *DriverPreLoad {
 	keys := []string{}
 	for k := range data {
 		keys = append(keys, k)
 	}
-	return &DriverPreLoad{data, keys}
+	return &DriverPreLoad{data, keys, fieldLinks}
 }
 
 func (dp *DriverPreLoad) GetTimeout() int {
@@ -172,6 +173,10 @@ func (dp *DriverPreLoad) GetFields() ([]string, error) {
 		out = append(out, k)
 	}
 	return out, nil
+}
+
+func (dp *DriverPreLoad) GetFieldLinks() (map[string]string, error) {
+	return dp.fieldLinks, nil
 }
 
 func (dp *DriverPreLoad) FetchRow(id string) (*BaseRow, error) {
