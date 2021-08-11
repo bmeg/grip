@@ -71,9 +71,9 @@ func (st *SimpleTableServicer) GetCollectionInfo(cxt context.Context, col *Colle
 			return nil, err
 		}
 		for k, v := range m {
-			om["$." +k] = v
+			om["$."+k] = v
 		}
-		return &CollectionInfo{SearchFields: o, LinkMap:om}, nil
+		return &CollectionInfo{SearchFields: o, LinkMap: om}, nil
 	}
 	return nil, fmt.Errorf("Not Found")
 }

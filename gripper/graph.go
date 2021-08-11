@@ -68,61 +68,25 @@ func NewTabularGraph(conf GraphConfig, sources map[string]GRIPSourceClient) (*Ta
 		if _, ok := conf.Vertices[e.From]; !ok {
 			return nil, fmt.Errorf("Edge ToVertex not found")
 		}
-		if e.Data.EdgeTable != nil {
+		if e.Data.Collection != "" && e.Data.Source != "" && e.Data.FromField != "" && e.Data.ToField != "" {
 			eTable, err := out.client.GetCollectionInfo(context.Background(),
-				e.Data.EdgeTable.Source, e.Data.EdgeTable.Collection)
+				e.Data.Source, e.Data.Collection)
 			if err != nil {
 				return nil, fmt.Errorf("Unable to get collection information %s : %s",
-					e.Data.EdgeTable.Source, e.Data.EdgeTable.Collection)
+					e.Data.Source, e.Data.Collection)
 			}
-			if !setcmp.ContainsString(eTable.SearchFields, e.Data.EdgeTable.ToField) {
+			if !setcmp.ContainsString(eTable.SearchFields, e.Data.ToField) {
 				return nil, fmt.Errorf("Edge 'To' Field not indexed: %s %s",
-					e.Data.EdgeTable.Collection,
-					e.Data.EdgeTable.ToField)
+					e.Data.Collection,
+					e.Data.ToField)
 			}
-			if !setcmp.ContainsString(eTable.SearchFields, e.Data.EdgeTable.FromField) {
+			if !setcmp.ContainsString(eTable.SearchFields, e.Data.FromField) {
 				return nil, fmt.Errorf("Edge 'From' Field not indexed: %s %s",
-					e.Data.EdgeTable.Collection,
-					e.Data.EdgeTable.FromField)
-			}
-			if !strings.HasPrefix(e.Data.EdgeTable.ToField, "$.") {
-				return nil, fmt.Errorf("Edge 'To' Field does not start with JSONPath prefix ($.) = %s", e.Data.EdgeTable.ToField)
-			}
-			if !strings.HasPrefix(e.Data.EdgeTable.FromField, "$.") {
-				return nil, fmt.Errorf("Edge 'From' Field does not start with JSONPath prefix ($.) = %s", e.Data.EdgeTable.FromField)
-			}
-		} else if e.Data.FieldToID != nil {
-			//return nil, fmt.Errorf("Not supported yet")
-		} else if e.Data.FieldToField != nil {
-			vTo := conf.Vertices[e.To]
-			vFrom := conf.Vertices[e.From]
-
-			if !strings.HasPrefix(e.Data.FieldToField.ToField, "$.") {
-				return nil, fmt.Errorf("Edge 'To' Field does not start with JSONPath prefix ($.) = %s", e.Data.FieldToField.ToField)
-			}
-			if !strings.HasPrefix(e.Data.FieldToField.FromField, "$.") {
-				return nil, fmt.Errorf("Edge 'From' Field does not start with JSONPath prefix ($.) = %s", e.Data.FieldToField.FromField)
-			}
-
-			if iTo, err := out.client.GetCollectionInfo(context.Background(),
-				vTo.Data.Source, vTo.Data.Collection); err == nil {
-				if !setcmp.ContainsString(iTo.SearchFields, e.Data.FieldToField.ToField) {
-					return nil, fmt.Errorf("Edge 'To' Field not indexed: %s %s",
-						vTo.Data.Collection,
-						e.Data.FieldToField.ToField)
-				}
-			}
-
-			if iFrom, err := out.client.GetCollectionInfo(context.Background(),
-				vFrom.Data.Source, vFrom.Data.Collection); err == nil {
-				if !setcmp.ContainsString(iFrom.SearchFields, e.Data.FieldToField.FromField) {
-					return nil, fmt.Errorf("Edge 'From' Field not indexed: %s %s",
-						vFrom.Data.Collection,
-						e.Data.FieldToField.FromField)
-				}
+					e.Data.Collection,
+					e.Data.FromField)
 			}
 		} else {
-			return nil, fmt.Errorf("Edge Doesn't declare lookup method")
+			return nil, fmt.Errorf("Edge missing config info")
 		}
 	}
 
@@ -139,29 +103,15 @@ func NewTabularGraph(conf GraphConfig, sources map[string]GRIPSourceClient) (*Ta
 		oConf := EdgeConfig{}
 		iConf := EdgeConfig{}
 
-		if e.Data.EdgeTable != nil {
-			oConf = e
-			//copy the edge config, but flip the field requests for the incoming edges
-			iConf.From = oConf.To
-			iConf.To = oConf.From
-			iConf.Label = oConf.Label
-			iConf.Data.EdgeTable = &EdgeTableConfig{}
-			iConf.Data.EdgeTable.Source = oConf.Data.EdgeTable.Source
-			iConf.Data.EdgeTable.Collection = oConf.Data.EdgeTable.Collection
-			iConf.Data.EdgeTable.ToField = oConf.Data.EdgeTable.FromField
-			iConf.Data.EdgeTable.FromField = oConf.Data.EdgeTable.ToField
-		} else if e.Data.FieldToID != nil {
-			//do something here
-		} else if e.Data.FieldToField != nil {
-			oConf = e
-			//copy the edge config, but flip the field requests for the incoming edges
-			iConf.From = oConf.To
-			iConf.To = oConf.From
-			iConf.Label = oConf.Label
-			iConf.Data.FieldToField = &FieldToFieldConfig{}
-			iConf.Data.FieldToField.FromField = oConf.Data.FieldToField.ToField
-			iConf.Data.FieldToField.ToField = oConf.Data.FieldToField.FromField
-		}
+		oConf = e
+		//copy the edge config, but flip the field requests for the incoming edges
+		iConf.From = oConf.To
+		iConf.To = oConf.From
+		iConf.Label = oConf.Label
+		iConf.Data.Source = oConf.Data.Source
+		iConf.Data.Collection = oConf.Data.Collection
+		iConf.Data.ToField = oConf.Data.FromField
+		iConf.Data.FromField = oConf.Data.ToField
 
 		out.inEdges[e.To] = append(out.inEdges[e.To], &EdgeSource{
 			prefix:     ePrefix,
@@ -275,67 +225,37 @@ func (t *TabularGraph) GetEdge(key string, load bool) *gdbi.Edge {
 		for _, edge := range edgeList {
 			if edge.config.Label == label {
 				if strings.HasPrefix(src, edge.fromVertex.prefix) && strings.HasPrefix(dst, edge.toVertex.prefix) {
-					if edge.config.Data.EdgeTable != nil {
-						srcID := strings.TrimPrefix(src, edge.fromVertex.prefix)
-						dstID := strings.TrimPrefix(dst, edge.toVertex.prefix)
+					srcID := strings.TrimPrefix(src, edge.fromVertex.prefix)
+					dstID := strings.TrimPrefix(dst, edge.toVertex.prefix)
 
-						res, err := t.client.GetRowsByField(context.Background(),
-							edge.config.Data.EdgeTable.Source,
-							edge.config.Data.EdgeTable.Collection,
-							edge.config.Data.EdgeTable.FromField, srcID)
+					res, err := t.client.GetRowsByField(context.Background(),
+						edge.config.Data.Source,
+						edge.config.Data.Collection,
+						edge.config.Data.FromField, srcID)
 
-						if err == nil {
-							var out *gdbi.Edge
-							for row := range res {
-								data := row.Data.AsMap()
-								if rowDst, err := jsonpath.JsonPathLookup(data, edge.config.Data.EdgeTable.ToField); err == nil {
-									if rowdDstStr, ok := rowDst.(string); ok {
-										if dstID == rowdDstStr {
-											o := gdbi.Edge{
-												ID:     edge.GenID(srcID, dstID), //edge.prefix + row.Id,
-												To:     edge.config.To + dstID,
-												From:   edge.config.From + srcID,
-												Label:  edge.config.Label,
-												Data:   row.Data.AsMap(),
-												Loaded: true,
-											}
-											out = &o
+					if err == nil {
+						var out *gdbi.Edge
+						for row := range res {
+							data := row.Data.AsMap()
+							if rowDst, err := jsonpath.JsonPathLookup(data, edge.config.Data.ToField); err == nil {
+								if rowdDstStr, ok := rowDst.(string); ok {
+									if dstID == rowdDstStr {
+										o := gdbi.Edge{
+											ID:     edge.GenID(srcID, dstID), //edge.prefix + row.Id,
+											To:     edge.config.To + dstID,
+											From:   edge.config.From + srcID,
+											Label:  edge.config.Label,
+											Data:   row.Data.AsMap(),
+											Loaded: true,
 										}
-									}
-								}
-							}
-							return out
-						}
-						log.Errorf("Row Error: %s", err)
-					} else if edge.config.Data.FieldToID != nil {
-						log.Errorf("GetEdge.FieldToID not yet implemented")
-					} else if edge.config.Data.FieldToField != nil {
-						srcID := strings.TrimPrefix(src, edge.fromVertex.prefix)
-						dstID := strings.TrimPrefix(dst, edge.toVertex.prefix)
-
-						srcRow := t.getRow(edge.fromVertex.config.Data.Source, edge.fromVertex.config.Data.Collection, srcID)
-						if srcRow != nil {
-							dstRow := t.getRow(edge.toVertex.config.Data.Source, edge.toVertex.config.Data.Collection, dstID)
-							if dstRow != nil {
-								srcData := srcRow.Data.AsMap()
-								dstData := dstRow.Data.AsMap()
-								if srcField, err := jsonpath.JsonPathLookup(srcData, edge.config.Data.FieldToField.FromField); err == nil {
-									if dstField, err := jsonpath.JsonPathLookup(dstData, edge.config.Data.FieldToField.ToField); err == nil {
-										if srcField == dstField {
-											o := gdbi.Edge{
-												ID:     edge.GenID(srcID, dstID), //edge.prefix + row.Id,
-												To:     edge.config.To + dstID,
-												From:   edge.config.From + srcID,
-												Label:  edge.config.Label,
-												Loaded: true,
-											}
-											return &o
-										}
+										out = &o
 									}
 								}
 							}
 						}
+						return out
 					}
+					log.Errorf("Row Error: %s", err)
 				}
 			}
 		}
@@ -442,61 +362,24 @@ func (t *TabularGraph) GetEdgeList(ctx context.Context, load bool) <-chan *gdbi.
 				if ctx.Err() == context.Canceled {
 					return
 				}
-				if edge.config.Data.EdgeTable != nil {
-					res := t.client.GetRows(ctx,
-						edge.config.Data.EdgeTable.Source,
-						edge.config.Data.EdgeTable.Collection)
-					for row := range res {
-						data := row.Data.AsMap()
-						if dst, err := jsonpath.JsonPathLookup(data, edge.config.Data.EdgeTable.ToField); err == nil {
-							if dstStr, ok := dst.(string); ok {
-								if src, err := jsonpath.JsonPathLookup(data, edge.config.Data.EdgeTable.FromField); err == nil {
-									if srcStr, ok := src.(string); ok {
-										e := gdbi.Edge{
-											ID:     edge.GenID(srcStr, dstStr),
-											To:     edge.toVertex.prefix + dstStr,
-											From:   edge.fromVertex.prefix + srcStr,
-											Label:  edge.config.Label,
-											Data:   row.Data.AsMap(),
-											Loaded: true,
-										}
-										out <- &e
+				res := t.client.GetRows(ctx,
+					edge.config.Data.Source,
+					edge.config.Data.Collection)
+				for row := range res {
+					data := row.Data.AsMap()
+					if dst, err := jsonpath.JsonPathLookup(data, edge.config.Data.ToField); err == nil {
+						if dstStr, ok := dst.(string); ok {
+							if src, err := jsonpath.JsonPathLookup(data, edge.config.Data.FromField); err == nil {
+								if srcStr, ok := src.(string); ok {
+									e := gdbi.Edge{
+										ID:     edge.GenID(srcStr, dstStr),
+										To:     edge.toVertex.prefix + dstStr,
+										From:   edge.fromVertex.prefix + srcStr,
+										Label:  edge.config.Label,
+										Data:   row.Data.AsMap(),
+										Loaded: true,
 									}
-								}
-							}
-						}
-					}
-				} else if edge.config.Data.FieldToID != nil {
-					log.Errorf("GetEdgeList.FieldToID not yet implemented")
-				} else if edge.config.Data.FieldToField != nil {
-					srcRes := t.client.GetRows(ctx,
-						edge.fromVertex.config.Data.Source,
-						edge.fromVertex.config.Data.Collection)
-					for srcRow := range srcRes {
-						srcData := srcRow.Data.AsMap()
-						if field, err := jsonpath.JsonPathLookup(srcData, edge.config.Data.FieldToField.FromField); err == nil {
-							if fValue, ok := field.(string); ok {
-								if fValue != "" {
-									dstRes, err := t.client.GetRowsByField(ctx,
-										edge.toVertex.config.Data.Source,
-										edge.toVertex.config.Data.Collection,
-										edge.config.Data.FieldToField.ToField, fValue)
-									if err == nil {
-										for dstRow := range dstRes {
-											o := gdbi.Edge{
-												ID:     edge.GenID(srcRow.Id, dstRow.Id),
-												From:   edge.fromVertex.prefix + srcRow.Id,
-												To:     edge.toVertex.prefix + dstRow.Id,
-												Label:  edge.config.Label,
-												Loaded: true,
-											}
-											out <- &o
-										}
-									} else {
-										if ctx.Err() != context.Canceled {
-											log.Errorf("Error doing FieldToField search: %s", err)
-										}
-									}
+									out <- &e
 								}
 							}
 						}
@@ -610,64 +493,28 @@ func (t *TabularGraph) GetOutChannel(ctx context.Context, req chan gdbi.ElementL
 						id := r.ID[len(vPrefix):len(r.ID)]
 						for _, edge := range edgeList {
 							if len(edgeLabels) == 0 || setcmp.ContainsString(edgeLabels, edge.config.Label) {
-								if edge.config.Data.EdgeTable != nil {
-									res, err := t.client.GetRowsByField(ctx,
-										edge.config.Data.EdgeTable.Source,
-										edge.config.Data.EdgeTable.Collection,
-										edge.config.Data.EdgeTable.FromField, id)
-									if err == nil {
-										for row := range res {
-											data := row.Data.AsMap()
-											if dst, err := jsonpath.JsonPathLookup(data, edge.config.Data.EdgeTable.ToField); err == nil {
-												if dstStr, ok := dst.(string); ok {
-													dstID := edge.config.To + dstStr
-													nReq := gdbi.ElementLookup{ID: dstID, Ref: r.Ref}
-													vReqs <- nReq
-												} else {
-													log.Errorf("Type Error")
-												}
+								res, err := t.client.GetRowsByField(ctx,
+									edge.config.Data.Source,
+									edge.config.Data.Collection,
+									edge.config.Data.FromField, id)
+								if err == nil {
+									for row := range res {
+										data := row.Data.AsMap()
+										if dst, err := jsonpath.JsonPathLookup(data, edge.config.Data.ToField); err == nil {
+											if dstStr, ok := dst.(string); ok {
+												dstID := edge.config.To + dstStr
+												nReq := gdbi.ElementLookup{ID: dstID, Ref: r.Ref}
+												vReqs <- nReq
 											} else {
-												log.Errorf("Lookup Error %s", err)
-											}
-										}
-									} else {
-										if ctx.Err() != context.Canceled {
-											log.Errorf("Row Error: %s\n", err)
-										}
-									}
-								} else if edge.config.Data.FieldToID != nil {
-									log.Errorf("GetOutChannel.FieldToID not yet implemented")
-								} else if edge.config.Data.FieldToField != nil {
-									//log.Infof("FieldToField lookup %#v", edge.config.FieldToField)
-									cur := r.Ref.GetCurrent()
-									fValue := ""
-									if cur != nil && cur.ID == r.ID {
-										if v, err := jsonpath.JsonPathLookup(cur.Data, edge.config.Data.FieldToField.FromField); err == nil {
-											if vStr, ok := v.(string); ok {
-												fValue = vStr
-											}
-										}
-									} else {
-										//TODO: getting vertex out request without loading vertex
-										//Trying to figure out if this can happen...
-										log.Errorf("Source Vertex not in Ref")
-									}
-									if fValue != "" {
-										res, err := t.client.GetRowsByField(ctx,
-											edge.toVertex.config.Data.Source,
-											edge.toVertex.config.Data.Collection,
-											edge.config.Data.FieldToField.ToField, fValue)
-										if err == nil {
-											//log.Infof("Searching %s : %s == %s", edge.toVertex.config.Collection, edge.config.FieldToField.ToField, fValue )
-											for row := range res {
-												//log.Infof("Found %#v", row)
-												o := gdbi.Vertex{ID: edge.toVertex.prefix + row.Id, Label: edge.toVertex.config.Label, Data: row.Data.AsMap(), Loaded: true}
-												el := gdbi.ElementLookup{ID: r.ID, Ref: r.Ref, Vertex: &o}
-												out <- el
+												log.Errorf("Type Error")
 											}
 										} else {
-											log.Errorf("Error doing FieldToField search: %s", err)
+											log.Errorf("Lookup Error %s", err)
 										}
+									}
+								} else {
+									if ctx.Err() != context.Canceled {
+										log.Errorf("Row Error: %s\n", err)
 									}
 								}
 							}
@@ -697,69 +544,26 @@ func (t *TabularGraph) GetInChannel(ctx context.Context, req chan gdbi.ElementLo
 						id := r.ID[len(vPrefix):len(r.ID)]
 						for _, edge := range edgeList {
 							if len(edgeLabels) == 0 || setcmp.ContainsString(edgeLabels, edge.config.Label) {
-								if edge.config.Data.EdgeTable != nil {
-									//log.Infof("Using EdgeTable %s:%s to find %s", edge.config.EdgeTable.Collection, edge.config.EdgeTable.FromField, id)
-									res, err := t.client.GetRowsByField(ctx,
-										edge.config.Data.EdgeTable.Source,
-										edge.config.Data.EdgeTable.Collection,
-										edge.config.Data.EdgeTable.FromField, id)
-									if err == nil {
-										for row := range res {
-											//log.Infof("Found %s", row)
-											data := row.Data.AsMap()
-											if dst, err := jsonpath.JsonPathLookup(data, edge.config.Data.EdgeTable.ToField); err == nil {
-												if dstStr, ok := dst.(string); ok {
-													dstID := edge.config.To + dstStr
-													nReq := gdbi.ElementLookup{ID: dstID, Ref: r.Ref}
-													vReqs <- nReq
-												}
-											}
-										}
-									} else {
-										if ctx.Err() != context.Canceled {
-											log.Errorf("Row Error: %s", err)
-										}
-									}
-								} else if edge.config.Data.FieldToField != nil {
-									cur := r.Ref.GetCurrent()
-									fValue := ""
-									if cur != nil && cur.ID == r.ID {
-										if v, err := jsonpath.JsonPathLookup(cur.Data, edge.config.Data.FieldToField.FromField); err == nil {
-											if vStr, ok := v.(string); ok {
-												fValue = vStr
-											}
-										} else {
-											//log.Infof("Missing Field: %s", edge.config.FieldToField.ToField)
-										}
-									} else {
-										//TODO: getting vertex out request without loading vertex
-										//Trying to figure out if this can happen...
-										log.Errorf("Source Vertex not in Ref")
-									}
-									if fValue != "" {
-										res, err := t.client.GetRowsByField(ctx,
-											edge.toVertex.config.Data.Source,
-											edge.toVertex.config.Data.Collection,
-											edge.config.Data.FieldToField.ToField, fValue)
-										if err == nil {
-											for row := range res {
-												o := gdbi.Vertex{
-													ID:     edge.toVertex.prefix + row.Id,
-													Label:  edge.toVertex.config.Label,
-													Data:   row.Data.AsMap(),
-													Loaded: true,
-												}
-												el := gdbi.ElementLookup{ID: r.ID, Ref: r.Ref, Vertex: &o}
-												out <- el
-											}
-										} else {
-											if ctx.Err() != context.Canceled {
-												log.Errorf("Error doing FieldToField search: %s", err)
+								res, err := t.client.GetRowsByField(ctx,
+									edge.config.Data.Source,
+									edge.config.Data.Collection,
+									edge.config.Data.FromField, id)
+								if err == nil {
+									for row := range res {
+										//log.Infof("Found %s", row)
+										data := row.Data.AsMap()
+										if dst, err := jsonpath.JsonPathLookup(data, edge.config.Data.ToField); err == nil {
+											if dstStr, ok := dst.(string); ok {
+												dstID := edge.config.To + dstStr
+												nReq := gdbi.ElementLookup{ID: dstID, Ref: r.Ref}
+												vReqs <- nReq
 											}
 										}
 									}
-								} else if edge.config.Data.FieldToID != nil {
-									log.Errorf("Need to implement FieldToID")
+								} else {
+									if ctx.Err() != context.Canceled {
+										log.Errorf("Row Error: %s", err)
+									}
 								}
 							}
 						}
@@ -787,77 +591,31 @@ func (t *TabularGraph) GetOutEdgeChannel(ctx context.Context, req chan gdbi.Elem
 						id := r.ID[len(vPrefix):len(r.ID)]
 						for _, edge := range edgeList {
 							if len(edgeLabels) == 0 || setcmp.ContainsString(edgeLabels, edge.config.Label) {
-								if edge.config.Data.EdgeTable != nil {
-									//log.Infof("Using EdgeTable %s", *edge.config.EdgeTable)
-									res, err := t.client.GetRowsByField(ctx,
-										edge.config.Data.EdgeTable.Source,
-										edge.config.Data.EdgeTable.Collection,
-										edge.config.Data.EdgeTable.FromField, id)
-									if err == nil {
-										for row := range res {
-											data := row.Data.AsMap()
-											if dst, err := jsonpath.JsonPathLookup(data, edge.config.Data.EdgeTable.ToField); err == nil {
-												if dstStr, ok := dst.(string); ok {
-													o := gdbi.Edge{
-														ID:     edge.GenID(id, dstStr),
-														From:   edge.config.From + id,
-														To:     edge.config.To + dstStr,
-														Label:  edge.config.Label,
-														Data:   row.Data.AsMap(),
-														Loaded: true,
-													}
-													out <- gdbi.ElementLookup{Ref: r.Ref, Edge: &o}
-												}
-											}
-										}
-									} else {
-										if ctx.Err() != context.Canceled {
-											log.Errorf("Row Error: %s", err)
-										}
-									}
-								} else if edge.config.Data.FieldToField != nil {
-									cur := r.Ref.GetCurrent()
-									fValue := ""
-									if cur != nil && cur.ID == r.ID {
-										if v, err := jsonpath.JsonPathLookup(cur.Data, edge.config.Data.FieldToField.FromField); err == nil {
-											if vStr, ok := v.(string); ok {
-												fValue = vStr
-											}
-										} else {
-											//log.Infof("Missing Field: %s", edge.config.FieldToField.ToField)
-										}
-									} else {
-										//TODO: getting vertex out request without loading vertex
-										//Trying to figure out if this can happen...
-										log.Errorf("Source Vertex not in Ref")
-									}
-									if fValue != "" {
-										res, err := t.client.GetRowsByField(ctx,
-											edge.toVertex.config.Data.Source,
-											edge.toVertex.config.Data.Collection,
-											edge.config.Data.FieldToField.ToField, fValue)
-										if err == nil {
-											for row := range res {
+								res, err := t.client.GetRowsByField(ctx,
+									edge.config.Data.Source,
+									edge.config.Data.Collection,
+									edge.config.Data.FromField, id)
+								if err == nil {
+									for row := range res {
+										data := row.Data.AsMap()
+										if dst, err := jsonpath.JsonPathLookup(data, edge.config.Data.ToField); err == nil {
+											if dstStr, ok := dst.(string); ok {
 												o := gdbi.Edge{
-													ID:     edge.GenID(id, row.Id),
-													From:   edge.fromVertex.prefix + id,
-													To:     edge.toVertex.prefix + row.Id,
+													ID:     edge.GenID(id, dstStr),
+													From:   edge.config.From + id,
+													To:     edge.config.To + dstStr,
 													Label:  edge.config.Label,
 													Data:   row.Data.AsMap(),
 													Loaded: true,
 												}
-												el := gdbi.ElementLookup{ID: r.ID, Ref: r.Ref, Edge: &o}
-												out <- el
-											}
-										} else {
-											if ctx.Err() != context.Canceled {
-												log.Errorf("Error doing FieldToField search: %s", err)
+												out <- gdbi.ElementLookup{Ref: r.Ref, Edge: &o}
 											}
 										}
 									}
-
-								} else if edge.config.Data.FieldToID != nil {
-									log.Errorf("Need to implement FieldToID")
+								} else {
+									if ctx.Err() != context.Canceled {
+										log.Errorf("Row Error: %s", err)
+									}
 								}
 							}
 						}
@@ -885,78 +643,31 @@ func (t *TabularGraph) GetInEdgeChannel(ctx context.Context, req chan gdbi.Eleme
 						id := r.ID[len(vPrefix):len(r.ID)]
 						for _, edge := range edgeList {
 							if len(edgeLabels) == 0 || setcmp.ContainsString(edgeLabels, edge.config.Label) {
-								if edge.config.Data.EdgeTable != nil {
-									//log.Printf("Using EdgeTable %s", *edge.config.EdgeTable)
-									res, err := t.client.GetRowsByField(ctx,
-										edge.config.Data.EdgeTable.Source,
-										edge.config.Data.EdgeTable.Collection,
-										edge.config.Data.EdgeTable.FromField, id)
-									if err == nil {
-										for row := range res {
-											data := row.Data.AsMap()
-											if dst, err := jsonpath.JsonPathLookup(data, edge.config.Data.EdgeTable.ToField); err == nil {
-												if dstStr, ok := dst.(string); ok {
-													o := gdbi.Edge{
-														ID:     edge.GenID(dstStr, id),
-														From:   edge.toVertex.prefix + dstStr,
-														To:     edge.fromVertex.prefix + id,
-														Label:  edge.config.Label,
-														Data:   row.Data.AsMap(),
-														Loaded: true,
-													}
-													out <- gdbi.ElementLookup{Ref: r.Ref, Edge: &o}
-												}
-											}
-										}
-									} else {
-										if ctx.Err() != context.Canceled {
-											log.Errorf("Row Error: %s", err)
-										}
-									}
-								} else if edge.config.Data.FieldToField != nil {
-									cur := r.Ref.GetCurrent()
-									fValue := ""
-									if cur != nil && cur.ID == r.ID {
-										if v, err := jsonpath.JsonPathLookup(cur.Data, edge.config.Data.FieldToField.FromField); err == nil {
-											if vStr, ok := v.(string); ok {
-												fValue = vStr
-											}
-										} else {
-											//log.Infof("Missing Field: %s", edge.config.FieldToField.ToField)
-										}
-									} else {
-										//TODO: getting vertex out request without loading vertex
-										//Trying to figure out if this can happen...
-										log.Errorf("Source Vertex not in Ref")
-									}
-									if fValue != "" {
-										res, err := t.client.GetRowsByField(ctx,
-											edge.toVertex.config.Data.Source,
-											edge.toVertex.config.Data.Collection,
-											edge.config.Data.FieldToField.ToField, fValue)
-										if err == nil {
-											for row := range res {
+								res, err := t.client.GetRowsByField(ctx,
+									edge.config.Data.Source,
+									edge.config.Data.Collection,
+									edge.config.Data.FromField, id)
+								if err == nil {
+									for row := range res {
+										data := row.Data.AsMap()
+										if dst, err := jsonpath.JsonPathLookup(data, edge.config.Data.ToField); err == nil {
+											if dstStr, ok := dst.(string); ok {
 												o := gdbi.Edge{
-													ID:     edge.GenID(row.Id, id),
-													To:     edge.fromVertex.prefix + id,   //row.Id,
-													From:   edge.toVertex.prefix + row.Id, //id,
+													ID:     edge.GenID(dstStr, id),
+													From:   edge.toVertex.prefix + dstStr,
+													To:     edge.fromVertex.prefix + id,
 													Label:  edge.config.Label,
 													Data:   row.Data.AsMap(),
 													Loaded: true,
 												}
-												el := gdbi.ElementLookup{ID: r.ID, Ref: r.Ref, Edge: &o}
-												out <- el
-											}
-										} else {
-											if ctx.Err() != context.Canceled {
-												log.Errorf("Error doing FieldToField search: %s", err)
+												out <- gdbi.ElementLookup{Ref: r.Ref, Edge: &o}
 											}
 										}
 									}
-								} else if edge.config.Data.FieldToID != nil {
-									log.Errorf("Need to implement FieldToID")
 								} else {
-									log.Errorf("No Edge plan configured")
+									if ctx.Err() != context.Canceled {
+										log.Errorf("Row Error: %s", err)
+									}
 								}
 							}
 						}

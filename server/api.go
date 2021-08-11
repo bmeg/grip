@@ -454,7 +454,7 @@ func (server *GripServer) AddSchema(ctx context.Context, req *gripql.Graph) (*gr
 		return nil, fmt.Errorf("failed to store new schema: %v", err)
 	}
 	server.schemas[req.Graph] = req
-	return &gripql.EditResult{Id:req.Graph}, nil
+	return &gripql.EditResult{Id: req.Graph}, nil
 }
 
 // GetMapping returns the schema of a specific graph in the database
@@ -476,7 +476,7 @@ func (server *GripServer) AddMapping(ctx context.Context, req *gripql.Graph) (*g
 		return nil, fmt.Errorf("failed to store new mapping: %v", err)
 	}
 	server.updateGraphMap()
-	return &gripql.EditResult{Id:req.Graph}, nil
+	return &gripql.EditResult{Id: req.Graph}, nil
 }
 
 func (server *GripServer) graphExists(graphName string) bool {
