@@ -24,10 +24,10 @@ type GraphConfig struct {
 }
 
 type ElementConfig struct {
-	Source     string `json:"_source"`
-	Collection string `json:"_collection"`
-	FromField  string `json:"_fromField"`
-	ToField    string `json:"_toField"`
+	Source     string `json:"source"`
+	Collection string `json:"collection"`
+	FromField  string `json:"fromField"`
+	ToField    string `json:"toField"`
 }
 
 type VertexConfig struct {
