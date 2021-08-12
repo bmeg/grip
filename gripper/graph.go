@@ -369,17 +369,21 @@ func (t *TabularGraph) GetEdgeList(ctx context.Context, load bool) <-chan *gdbi.
 					data := row.Data.AsMap()
 					if dst, err := jsonpath.JsonPathLookup(data, edge.config.Data.ToField); err == nil {
 						if dstStr, ok := dst.(string); ok {
-							if src, err := jsonpath.JsonPathLookup(data, edge.config.Data.FromField); err == nil {
-								if srcStr, ok := src.(string); ok {
-									e := gdbi.Edge{
-										ID:     edge.GenID(srcStr, dstStr),
-										To:     edge.toVertex.prefix + dstStr,
-										From:   edge.fromVertex.prefix + srcStr,
-										Label:  edge.config.Label,
-										Data:   row.Data.AsMap(),
-										Loaded: true,
+							if dstStr != "" {
+								if src, err := jsonpath.JsonPathLookup(data, edge.config.Data.FromField); err == nil {
+									if srcStr, ok := src.(string); ok {
+										if srcStr != "" {
+											e := gdbi.Edge{
+												ID:     edge.GenID(srcStr, dstStr),
+												To:     edge.toVertex.prefix + dstStr,
+												From:   edge.fromVertex.prefix + srcStr,
+												Label:  edge.config.Label,
+												Data:   row.Data.AsMap(),
+												Loaded: true,
+											}
+											out <- &e
+										}
 									}
-									out <- &e
 								}
 							}
 						}
@@ -491,30 +495,34 @@ func (t *TabularGraph) GetOutChannel(ctx context.Context, req chan gdbi.ElementL
 					edgeList := t.outEdges[vPrefix]
 					if strings.HasPrefix(r.ID, vPrefix) && ctx.Err() != context.Canceled {
 						id := r.ID[len(vPrefix):len(r.ID)]
-						for _, edge := range edgeList {
-							if len(edgeLabels) == 0 || setcmp.ContainsString(edgeLabels, edge.config.Label) {
-								res, err := t.client.GetRowsByField(ctx,
-									edge.config.Data.Source,
-									edge.config.Data.Collection,
-									edge.config.Data.FromField, id)
-								if err == nil {
-									for row := range res {
-										data := row.Data.AsMap()
-										if dst, err := jsonpath.JsonPathLookup(data, edge.config.Data.ToField); err == nil {
-											if dstStr, ok := dst.(string); ok {
-												dstID := edge.config.To + dstStr
-												nReq := gdbi.ElementLookup{ID: dstID, Ref: r.Ref}
-												vReqs <- nReq
+						if id != "" {
+							for _, edge := range edgeList {
+								if len(edgeLabels) == 0 || setcmp.ContainsString(edgeLabels, edge.config.Label) {
+									res, err := t.client.GetRowsByField(ctx,
+										edge.config.Data.Source,
+										edge.config.Data.Collection,
+										edge.config.Data.FromField, id)
+									if err == nil {
+										for row := range res {
+											data := row.Data.AsMap()
+											if dst, err := jsonpath.JsonPathLookup(data, edge.config.Data.ToField); err == nil {
+												if dstStr, ok := dst.(string); ok {
+													if dstStr != "" {
+														dstID := edge.config.To + dstStr
+														nReq := gdbi.ElementLookup{ID: dstID, Ref: r.Ref}
+														vReqs <- nReq
+													}
+												} else {
+													log.Errorf("Type Error")
+												}
 											} else {
-												log.Errorf("Type Error")
+												log.Errorf("Lookup Error %s", err)
 											}
-										} else {
-											log.Errorf("Lookup Error %s", err)
 										}
-									}
-								} else {
-									if ctx.Err() != context.Canceled {
-										log.Errorf("Row Error: %s\n", err)
+									} else {
+										if ctx.Err() != context.Canceled {
+											log.Errorf("Row Error: %s\n", err)
+										}
 									}
 								}
 							}
@@ -542,27 +550,31 @@ func (t *TabularGraph) GetInChannel(ctx context.Context, req chan gdbi.ElementLo
 					edgeList := t.inEdges[vPrefix]
 					if strings.HasPrefix(r.ID, vPrefix) && ctx.Err() != context.Canceled {
 						id := r.ID[len(vPrefix):len(r.ID)]
-						for _, edge := range edgeList {
-							if len(edgeLabels) == 0 || setcmp.ContainsString(edgeLabels, edge.config.Label) {
-								res, err := t.client.GetRowsByField(ctx,
-									edge.config.Data.Source,
-									edge.config.Data.Collection,
-									edge.config.Data.FromField, id)
-								if err == nil {
-									for row := range res {
-										//log.Infof("Found %s", row)
-										data := row.Data.AsMap()
-										if dst, err := jsonpath.JsonPathLookup(data, edge.config.Data.ToField); err == nil {
-											if dstStr, ok := dst.(string); ok {
-												dstID := edge.config.To + dstStr
-												nReq := gdbi.ElementLookup{ID: dstID, Ref: r.Ref}
-												vReqs <- nReq
+						if id != "" {
+							for _, edge := range edgeList {
+								if len(edgeLabels) == 0 || setcmp.ContainsString(edgeLabels, edge.config.Label) {
+									res, err := t.client.GetRowsByField(ctx,
+										edge.config.Data.Source,
+										edge.config.Data.Collection,
+										edge.config.Data.FromField, id)
+									if err == nil {
+										for row := range res {
+											//log.Infof("Found %s", row)
+											data := row.Data.AsMap()
+											if dst, err := jsonpath.JsonPathLookup(data, edge.config.Data.ToField); err == nil {
+												if dstStr, ok := dst.(string); ok {
+													if dstStr != "" {
+														dstID := edge.config.To + dstStr
+														nReq := gdbi.ElementLookup{ID: dstID, Ref: r.Ref}
+														vReqs <- nReq
+													}
+												}
 											}
 										}
-									}
-								} else {
-									if ctx.Err() != context.Canceled {
-										log.Errorf("Row Error: %s", err)
+									} else {
+										if ctx.Err() != context.Canceled {
+											log.Errorf("Row Error: %s", err)
+										}
 									}
 								}
 							}
@@ -589,32 +601,36 @@ func (t *TabularGraph) GetOutEdgeChannel(ctx context.Context, req chan gdbi.Elem
 					edgeList := t.outEdges[vPrefix]
 					if strings.HasPrefix(r.ID, vPrefix) && ctx.Err() != context.Canceled {
 						id := r.ID[len(vPrefix):len(r.ID)]
-						for _, edge := range edgeList {
-							if len(edgeLabels) == 0 || setcmp.ContainsString(edgeLabels, edge.config.Label) {
-								res, err := t.client.GetRowsByField(ctx,
-									edge.config.Data.Source,
-									edge.config.Data.Collection,
-									edge.config.Data.FromField, id)
-								if err == nil {
-									for row := range res {
-										data := row.Data.AsMap()
-										if dst, err := jsonpath.JsonPathLookup(data, edge.config.Data.ToField); err == nil {
-											if dstStr, ok := dst.(string); ok {
-												o := gdbi.Edge{
-													ID:     edge.GenID(id, dstStr),
-													From:   edge.config.From + id,
-													To:     edge.config.To + dstStr,
-													Label:  edge.config.Label,
-													Data:   row.Data.AsMap(),
-													Loaded: true,
+						if id != "" {
+							for _, edge := range edgeList {
+								if len(edgeLabels) == 0 || setcmp.ContainsString(edgeLabels, edge.config.Label) {
+									res, err := t.client.GetRowsByField(ctx,
+										edge.config.Data.Source,
+										edge.config.Data.Collection,
+										edge.config.Data.FromField, id)
+									if err == nil {
+										for row := range res {
+											data := row.Data.AsMap()
+											if dst, err := jsonpath.JsonPathLookup(data, edge.config.Data.ToField); err == nil {
+												if dstStr, ok := dst.(string); ok {
+													if dstStr != "" {
+														o := gdbi.Edge{
+															ID:     edge.GenID(id, dstStr),
+															From:   edge.config.From + id,
+															To:     edge.config.To + dstStr,
+															Label:  edge.config.Label,
+															Data:   row.Data.AsMap(),
+															Loaded: true,
+														}
+														out <- gdbi.ElementLookup{Ref: r.Ref, Edge: &o}
+													}
 												}
-												out <- gdbi.ElementLookup{Ref: r.Ref, Edge: &o}
 											}
 										}
-									}
-								} else {
-									if ctx.Err() != context.Canceled {
-										log.Errorf("Row Error: %s", err)
+									} else {
+										if ctx.Err() != context.Canceled {
+											log.Errorf("Row Error: %s", err)
+										}
 									}
 								}
 							}
@@ -641,32 +657,36 @@ func (t *TabularGraph) GetInEdgeChannel(ctx context.Context, req chan gdbi.Eleme
 					edgeList := t.inEdges[vPrefix]
 					if strings.HasPrefix(r.ID, vPrefix) && ctx.Err() != context.Canceled {
 						id := r.ID[len(vPrefix):len(r.ID)]
-						for _, edge := range edgeList {
-							if len(edgeLabels) == 0 || setcmp.ContainsString(edgeLabels, edge.config.Label) {
-								res, err := t.client.GetRowsByField(ctx,
-									edge.config.Data.Source,
-									edge.config.Data.Collection,
-									edge.config.Data.FromField, id)
-								if err == nil {
-									for row := range res {
-										data := row.Data.AsMap()
-										if dst, err := jsonpath.JsonPathLookup(data, edge.config.Data.ToField); err == nil {
-											if dstStr, ok := dst.(string); ok {
-												o := gdbi.Edge{
-													ID:     edge.GenID(dstStr, id),
-													From:   edge.toVertex.prefix + dstStr,
-													To:     edge.fromVertex.prefix + id,
-													Label:  edge.config.Label,
-													Data:   row.Data.AsMap(),
-													Loaded: true,
+						if id != "" {
+							for _, edge := range edgeList {
+								if len(edgeLabels) == 0 || setcmp.ContainsString(edgeLabels, edge.config.Label) {
+									res, err := t.client.GetRowsByField(ctx,
+										edge.config.Data.Source,
+										edge.config.Data.Collection,
+										edge.config.Data.FromField, id)
+									if err == nil {
+										for row := range res {
+											data := row.Data.AsMap()
+											if dst, err := jsonpath.JsonPathLookup(data, edge.config.Data.ToField); err == nil {
+												if dstStr, ok := dst.(string); ok {
+													if dstStr != "" {
+														o := gdbi.Edge{
+															ID:     edge.GenID(dstStr, id),
+															From:   edge.toVertex.prefix + dstStr,
+															To:     edge.fromVertex.prefix + id,
+															Label:  edge.config.Label,
+															Data:   row.Data.AsMap(),
+															Loaded: true,
+														}
+														out <- gdbi.ElementLookup{Ref: r.Ref, Edge: &o}
+													}
 												}
-												out <- gdbi.ElementLookup{Ref: r.Ref, Edge: &o}
 											}
 										}
-									}
-								} else {
-									if ctx.Err() != context.Canceled {
-										log.Errorf("Row Error: %s", err)
+									} else {
+										if ctx.Err() != context.Canceled {
+											log.Errorf("Row Error: %s", err)
+										}
 									}
 								}
 							}

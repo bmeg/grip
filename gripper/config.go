@@ -13,9 +13,9 @@ import (
 
 // Config is the component in the global GRIP config file
 type Config struct {
-	Graph      string
-	ConfigFile string
-	Mapping    *GraphConfig
+	Graph       string
+	MappingFile string
+	Mapping     *GraphConfig
 }
 
 type GraphConfig struct {

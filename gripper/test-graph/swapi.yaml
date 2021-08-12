@@ -44,8 +44,8 @@ edges:
     data:
       source: tableServer
       collection: Character
-      fromField: $.homeworld
-      toField: $.id
+      toField: $.homeworld
+      fromField: $.id
 
   - gid: species
     from: "Character:"
@@ -54,8 +54,8 @@ edges:
     data:
       source: tableServer
       collection: Character
-      fromField: $.species
-      toField: $.id
+      toField: $.species
+      fromField: $.id
 
   - gid: people
     from: "Species:"

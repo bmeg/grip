@@ -7,7 +7,7 @@ Drivers:
 
   swapi-driver:
     Gripper:
-      ConfigFile: ./swapi.yaml
+      MappingFile: ./swapi.yaml
       Graph: swapi
 
 Sources:
