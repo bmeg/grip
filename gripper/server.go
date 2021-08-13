@@ -114,9 +114,6 @@ func (st *SimpleTableServicer) GetRowsByID(srv GRIPSource_GetRowsByIDServer) err
 func (st *SimpleTableServicer) GetRowsByField(req *FieldRequest, srv GRIPSource_GetRowsByFieldServer) error {
 	if dr, ok := st.drivers[req.Collection]; ok {
 		field := req.Field
-		if strings.HasPrefix(field, "$.") {
-			field = field[2:]
-		}
 		ch, _ := dr.FetchMatchRows(srv.Context(), field, req.Value)
 		for row := range ch {
 			data, _ := structpb.NewStruct(row.Value)
