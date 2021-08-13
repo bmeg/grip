@@ -44,8 +44,8 @@ edges:
     data:
       source: tableServer
       collection: Character
-      toField: $.homeworld
-      fromField: $.id
+      toField: homeworld
+      fromField: id
 
   - gid: species
     from: "Character:"
@@ -54,8 +54,8 @@ edges:
     data:
       source: tableServer
       collection: Character
-      toField: $.species
-      fromField: $.id
+      toField: species
+      fromField: id
 
   - gid: people
     from: "Species:"
@@ -64,8 +64,8 @@ edges:
     data:
       source: tableServer
       collection: speciesCharacter
-      fromField: $.from
-      toField: $.to
+      fromField: from
+      toField: to
 
   - gid: residents
     from: "Planet:"
@@ -74,8 +74,8 @@ edges:
     data:
       source: tableServer
       collection: planetCharacter
-      fromField: $.from
-      toField: $.to
+      fromField: from
+      toField: to
 
   - gid: filmVehicles
     from: "Film:"
@@ -84,8 +84,8 @@ edges:
     data:
       source: tableServer
       collection: filmVehicles
-      fromField: "$.from"
-      toField: "$.to"
+      fromField: from
+      toField: to
 
   - gid: vehicleFilms
     to: "Film:"
@@ -94,8 +94,8 @@ edges:
     data:
       source: tableServer
       collection: filmVehicles
-      toField: "$.from"
-      fromField: "$.to"
+      toField: from
+      fromField: to
 
   - gid: filmStarships
     from: "Film:"
@@ -104,8 +104,8 @@ edges:
     data:
       source: tableServer
       collection: filmStarships
-      fromField: "$.from"
-      toField: "$.to"
+      fromField: from
+      toField: to
 
   - gid: starshipFilms
     to: "Film:"
@@ -114,8 +114,8 @@ edges:
     data:
       source: tableServer
       collection: filmStarships
-      toField: "$.from"
-      fromField: "$.to"
+      toField: from
+      fromField: to
 
   - gid: filmPlanets
     from: "Film:"
@@ -124,8 +124,8 @@ edges:
     data:
       source: tableServer
       collection: filmPlanets
-      fromField: "$.from"
-      toField: "$.to"
+      fromField: from
+      toField: to
 
   - gid: planetFilms
     to: "Film:"
@@ -134,8 +134,8 @@ edges:
     data:
       source: tableServer
       collection: filmPlanets
-      toField: "$.from"
-      fromField: "$.to"
+      toField: from
+      fromField: to
 
   - gid: filmSpecies
     from: "Film:"
@@ -144,8 +144,8 @@ edges:
     data:
       source: tableServer
       collection: filmSpecies
-      fromField: "$.from"
-      toField: "$.to"
+      fromField: from
+      toField: to
 
   - gid: speciesFilms
     to: "Film:"
@@ -154,8 +154,8 @@ edges:
     data:
       source: tableServer
       collection: filmSpecies
-      toField: "$.from"
-      fromField: "$.to"
+      toField: from
+      fromField: to
 
   - gid: filmCharacters
     from: "Film:"
@@ -164,8 +164,8 @@ edges:
     data:
       source: tableServer
       collection: filmCharacters
-      fromField: "$.from"
-      toField: "$.to"
+      fromField: from
+      toField: to
 
   - gid: characterFilms
     from: "Character:"
@@ -174,8 +174,8 @@ edges:
     data:
       source: tableServer
       collection: filmCharacters
-      toField: "$.from"
-      fromField: "$.to"
+      toField: from
+      fromField: to
 
   - gid: characterStarships
     from: "Character:"
@@ -184,8 +184,8 @@ edges:
     data:
       source: tableServer
       collection: characterStarships
-      fromField: "$.from"
-      toField: "$.to"
+      fromField: from
+      toField: to
 
   - gid: starshipCharacters
     to: "Character:"
@@ -194,5 +194,5 @@ edges:
     data:
       source: tableServer
       collection: characterStarships
-      toField: "$.from"
-      fromField: "$.to"
+      toField: from
+      fromField: to

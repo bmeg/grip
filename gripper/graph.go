@@ -12,7 +12,6 @@ import (
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/util/setcmp"
-	"github.com/bmeg/jsonpath"
 )
 
 type VertexSource struct {
@@ -36,6 +35,16 @@ type TabularGraph struct {
 
 	vertexSourceOrder []string //order of vertex sources, because map key iteration changes order
 	edgeSourceOrder   []string
+}
+
+func getFieldString(data map[string]interface{}, field string) (string, error) {
+	if v, ok := data[field]; ok {
+		if vStr, ok := v.(string); ok {
+			return vStr, nil
+		}
+		return "", fmt.Errorf("Field %s not string", field)
+	}
+	return "", fmt.Errorf("Field %s not found", field)
 }
 
 func NewTabularGraph(conf GraphConfig, sources map[string]GRIPSourceClient) (*TabularGraph, error) {
@@ -237,19 +246,17 @@ func (t *TabularGraph) GetEdge(key string, load bool) *gdbi.Edge {
 						var out *gdbi.Edge
 						for row := range res {
 							data := row.Data.AsMap()
-							if rowDst, err := jsonpath.JsonPathLookup(data, edge.config.Data.ToField); err == nil {
-								if rowdDstStr, ok := rowDst.(string); ok {
-									if dstID == rowdDstStr {
-										o := gdbi.Edge{
-											ID:     edge.GenID(srcID, dstID), //edge.prefix + row.Id,
-											To:     edge.config.To + dstID,
-											From:   edge.config.From + srcID,
-											Label:  edge.config.Label,
-											Data:   row.Data.AsMap(),
-											Loaded: true,
-										}
-										out = &o
+							if rowdDstStr, err := getFieldString(data, edge.config.Data.ToField); err == nil {
+								if dstID == rowdDstStr {
+									o := gdbi.Edge{
+										ID:     edge.GenID(srcID, dstID), //edge.prefix + row.Id,
+										To:     edge.config.To + dstID,
+										From:   edge.config.From + srcID,
+										Label:  edge.config.Label,
+										Data:   row.Data.AsMap(),
+										Loaded: true,
 									}
+									out = &o
 								}
 							}
 						}
@@ -367,23 +374,19 @@ func (t *TabularGraph) GetEdgeList(ctx context.Context, load bool) <-chan *gdbi.
 					edge.config.Data.Collection)
 				for row := range res {
 					data := row.Data.AsMap()
-					if dst, err := jsonpath.JsonPathLookup(data, edge.config.Data.ToField); err == nil {
-						if dstStr, ok := dst.(string); ok {
-							if dstStr != "" {
-								if src, err := jsonpath.JsonPathLookup(data, edge.config.Data.FromField); err == nil {
-									if srcStr, ok := src.(string); ok {
-										if srcStr != "" {
-											e := gdbi.Edge{
-												ID:     edge.GenID(srcStr, dstStr),
-												To:     edge.toVertex.prefix + dstStr,
-												From:   edge.fromVertex.prefix + srcStr,
-												Label:  edge.config.Label,
-												Data:   row.Data.AsMap(),
-												Loaded: true,
-											}
-											out <- &e
-										}
+					if dstStr, err := getFieldString(data, edge.config.Data.ToField); err == nil {
+						if dstStr != "" {
+							if srcStr, err := getFieldString(data, edge.config.Data.FromField); err == nil {
+								if srcStr != "" {
+									e := gdbi.Edge{
+										ID:     edge.GenID(srcStr, dstStr),
+										To:     edge.toVertex.prefix + dstStr,
+										From:   edge.fromVertex.prefix + srcStr,
+										Label:  edge.config.Label,
+										Data:   row.Data.AsMap(),
+										Loaded: true,
 									}
+									out <- &e
 								}
 							}
 						}
@@ -505,15 +508,11 @@ func (t *TabularGraph) GetOutChannel(ctx context.Context, req chan gdbi.ElementL
 									if err == nil {
 										for row := range res {
 											data := row.Data.AsMap()
-											if dst, err := jsonpath.JsonPathLookup(data, edge.config.Data.ToField); err == nil {
-												if dstStr, ok := dst.(string); ok {
-													if dstStr != "" {
-														dstID := edge.config.To + dstStr
-														nReq := gdbi.ElementLookup{ID: dstID, Ref: r.Ref}
-														vReqs <- nReq
-													}
-												} else {
-													log.Errorf("Type Error")
+											if dstStr, err := getFieldString(data, edge.config.Data.ToField); err == nil {
+												if dstStr != "" {
+													dstID := edge.config.To + dstStr
+													nReq := gdbi.ElementLookup{ID: dstID, Ref: r.Ref}
+													vReqs <- nReq
 												}
 											} else {
 												log.Errorf("Lookup Error %s", err)
@@ -561,13 +560,11 @@ func (t *TabularGraph) GetInChannel(ctx context.Context, req chan gdbi.ElementLo
 										for row := range res {
 											//log.Infof("Found %s", row)
 											data := row.Data.AsMap()
-											if dst, err := jsonpath.JsonPathLookup(data, edge.config.Data.ToField); err == nil {
-												if dstStr, ok := dst.(string); ok {
-													if dstStr != "" {
-														dstID := edge.config.To + dstStr
-														nReq := gdbi.ElementLookup{ID: dstID, Ref: r.Ref}
-														vReqs <- nReq
-													}
+											if dstStr, err := getFieldString(data, edge.config.Data.ToField); err == nil {
+												if dstStr != "" {
+													dstID := edge.config.To + dstStr
+													nReq := gdbi.ElementLookup{ID: dstID, Ref: r.Ref}
+													vReqs <- nReq
 												}
 											}
 										}
@@ -611,19 +608,17 @@ func (t *TabularGraph) GetOutEdgeChannel(ctx context.Context, req chan gdbi.Elem
 									if err == nil {
 										for row := range res {
 											data := row.Data.AsMap()
-											if dst, err := jsonpath.JsonPathLookup(data, edge.config.Data.ToField); err == nil {
-												if dstStr, ok := dst.(string); ok {
-													if dstStr != "" {
-														o := gdbi.Edge{
-															ID:     edge.GenID(id, dstStr),
-															From:   edge.config.From + id,
-															To:     edge.config.To + dstStr,
-															Label:  edge.config.Label,
-															Data:   row.Data.AsMap(),
-															Loaded: true,
-														}
-														out <- gdbi.ElementLookup{Ref: r.Ref, Edge: &o}
+											if dstStr, err := getFieldString(data, edge.config.Data.ToField); err == nil {
+												if dstStr != "" {
+													o := gdbi.Edge{
+														ID:     edge.GenID(id, dstStr),
+														From:   edge.config.From + id,
+														To:     edge.config.To + dstStr,
+														Label:  edge.config.Label,
+														Data:   row.Data.AsMap(),
+														Loaded: true,
 													}
+													out <- gdbi.ElementLookup{Ref: r.Ref, Edge: &o}
 												}
 											}
 										}
@@ -667,19 +662,17 @@ func (t *TabularGraph) GetInEdgeChannel(ctx context.Context, req chan gdbi.Eleme
 									if err == nil {
 										for row := range res {
 											data := row.Data.AsMap()
-											if dst, err := jsonpath.JsonPathLookup(data, edge.config.Data.ToField); err == nil {
-												if dstStr, ok := dst.(string); ok {
-													if dstStr != "" {
-														o := gdbi.Edge{
-															ID:     edge.GenID(dstStr, id),
-															From:   edge.toVertex.prefix + dstStr,
-															To:     edge.fromVertex.prefix + id,
-															Label:  edge.config.Label,
-															Data:   row.Data.AsMap(),
-															Loaded: true,
-														}
-														out <- gdbi.ElementLookup{Ref: r.Ref, Edge: &o}
+											if dstStr, err := getFieldString(data, edge.config.Data.ToField); err == nil {
+												if dstStr != "" {
+													o := gdbi.Edge{
+														ID:     edge.GenID(dstStr, id),
+														From:   edge.toVertex.prefix + dstStr,
+														To:     edge.fromVertex.prefix + id,
+														Label:  edge.config.Label,
+														Data:   row.Data.AsMap(),
+														Loaded: true,
 													}
+													out <- gdbi.ElementLookup{Ref: r.Ref, Edge: &o}
 												}
 											}
 										}
