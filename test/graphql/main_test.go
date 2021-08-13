@@ -162,7 +162,7 @@ func TestMain(m *testing.M) {
 		return
 	}
 
-	conn := gripql.WrapClient(gripql.NewQueryDirectClient(srv), gripql.NewEditDirectClient(srv))
+	conn := gripql.WrapClient(gripql.NewQueryDirectClient(srv), gripql.NewEditDirectClient(srv), nil)
 
 	sch, err := schema.ScanSchema(conn, GraphName, 10, []string{})
 	if err != nil {

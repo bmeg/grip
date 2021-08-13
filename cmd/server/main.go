@@ -18,6 +18,8 @@ import (
 var conf = &config.Config{}
 var configFile string
 
+var pluginDir = ""
+
 // Run runs an Grip server.
 // This opens a database and starts an API server.
 // This blocks indefinitely.
@@ -66,6 +68,10 @@ var Cmd = &cobra.Command{
 		} else {
 			dconf.AddBadgerDefault()
 		}
+		if pluginDir != "" {
+			dconf.Server.EnablePlugins = true
+			dconf.Server.PluginDir = pluginDir
+		}
 		// file vals <- cli val
 		err := mergo.MergeWithOverwrite(dconf, conf)
 		if err != nil {
@@ -95,6 +101,8 @@ func init() {
 	flags.StringVar(&conf.Logger.Level, "log-level", conf.Logger.Level, "Log level [info, debug, warn, error]")
 	flags.StringVar(&conf.Logger.Formatter, "log-format", conf.Logger.Formatter, "Log format [text, json]")
 	flags.BoolVar(&conf.Server.RequestLogging.Enable, "log-requests", conf.Server.RequestLogging.Enable, "Log all requests")
+
+	flags.StringVarP(&pluginDir, "plugins", "p", pluginDir, "Directory with GRIPPER plugins")
 
 	flags.StringToStringVarP(&conf.Sources, "er", "e", conf.Sources, "GRIPPER source address")
 }

@@ -37,6 +37,7 @@ message Row {
 
 message CollectionInfo {
   repeated string search_fields = 1;
+  map<string,string> link_map = 2; // Map field name to collection name
 }
 
 service GRIPSource {

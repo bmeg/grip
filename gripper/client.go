@@ -2,50 +2,27 @@ package gripper
 
 import (
 	"context"
+	"fmt"
 	"io"
 
 	"github.com/bmeg/grip/log"
-	"github.com/bmeg/grip/util/rpc"
 )
-
-/*
-type TableConfig struct {
-	Collection string `json:"collection"`
-	Host       string `json:"host"`
-}
-*/
 
 // GripperClient manages the multiple connections to named Dig sources
 type GripperClient struct {
-	confs   map[string]string
 	clients map[string]GRIPSourceClient
 }
 
-func NewGripperClient(confs map[string]string) *GripperClient {
-	o := GripperClient{confs: confs, clients: map[string]GRIPSourceClient{}}
+func NewGripperClient(clients map[string]GRIPSourceClient) *GripperClient {
+	o := GripperClient{clients: clients}
 	return &o
-}
-
-func (m *GripperClient) startConn(name string) (GRIPSourceClient, error) {
-	host := m.confs[name]
-
-	rpcConf := rpc.ConfigWithDefaults(host)
-	log.Infof("Connecting to %s", host)
-	conn, err := rpc.Dial(context.Background(), rpcConf)
-	if err != nil {
-		log.Errorf("RPC Connection error: %s", err)
-		return nil, err
-	}
-	client := NewGRIPSourceClient(conn)
-	m.clients[name] = client
-	return client, nil
 }
 
 func (m *GripperClient) getConn(name string) (GRIPSourceClient, error) {
 	if c, ok := m.clients[name]; ok {
 		return c, nil
 	}
-	return m.startConn(name)
+	return nil, fmt.Errorf("%s not found", name)
 }
 
 func (m *GripperClient) GetCollectionInfo(ctx context.Context, source string, collection string) (*CollectionInfo, error) {

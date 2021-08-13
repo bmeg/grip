@@ -11,15 +11,16 @@ import (
 
 // Client is a GRPC grip client with some helper functions
 type Client struct {
-	QueryC QueryClient
-	EditC  EditClient
-	conn   *grpc.ClientConn
+	QueryC     QueryClient
+	EditC      EditClient
+	ConfigureC ConfigureClient
+	conn       *grpc.ClientConn
 }
 
 // WrapClient takes previously initialized GRPC clients and uses them for the
 // client wrapper
-func WrapClient(QueryC QueryClient, EditC EditClient) Client {
-	return Client{QueryC, EditC, nil}
+func WrapClient(QueryC QueryClient, EditC EditClient, ConfigureC ConfigureClient) Client {
+	return Client{QueryC, EditC, ConfigureC, nil}
 }
 
 // Connect opens a GRPC connection to an Grip server
@@ -29,11 +30,15 @@ func Connect(conf rpc.Config, write bool) (Client, error) {
 		return Client{}, err
 	}
 	queryOut := NewQueryClient(conn)
-	if !write {
-		return Client{queryOut, nil, conn}, nil
+	var editOut EditClient
+	if write {
+		editOut = NewEditClient(conn)
 	}
-	editOut := NewEditClient(conn)
-	return Client{queryOut, editOut, conn}, nil
+	return Client{queryOut, editOut, nil, conn}, nil
+}
+
+func (client Client) WithConfigureAPI() Client {
+	return Client{client.QueryC, client.EditC, NewConfigureClient(client.conn), client.conn}
 }
 
 // Close the connection
@@ -182,4 +187,19 @@ func (client Client) Traversal(query *GraphQuery) (chan *QueryResult, error) {
 	}()
 
 	return out, nil
+}
+
+// ListDrivers lists avalible drivers
+func (client Client) ListDrivers() (*ListDriversResponse, error) {
+	return client.ConfigureC.ListDrivers(context.Background(), &Empty{})
+}
+
+// ListPlugins
+func (client Client) ListPlugins() (*ListPluginsResponse, error) {
+	return client.ConfigureC.ListPlugins(context.Background(), &Empty{})
+}
+
+// ListPlugins
+func (client Client) StartPlugin(conf *PluginConfig) (*PluginStatus, error) {
+	return client.ConfigureC.StartPlugin(context.Background(), conf)
 }

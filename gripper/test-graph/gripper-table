@@ -31,7 +31,7 @@ class CollectionServicer(gripper_pb2_grpc.GRIPSourceServicer):
         o = gripper_pb2.CollectionInfo()
         c = self.data[request.name]
         for f in keyUnion(i.keys() for i in c.values()):
-            o.search_fields.append( "$." + f)
+            o.search_fields.append(f)
         return o
 
     def GetIDs(self, request, context):
@@ -58,9 +58,8 @@ class CollectionServicer(gripper_pb2_grpc.GRIPSourceServicer):
 
     def GetRowsByField(self, request, context):
         c = self.data[request.collection]
-        f = re.sub( r'^\$\.', '', request.field)
         for k, v in sorted(c.items()):
-            if v.get(f, None) == request.value:
+            if v.get(request.field, None) == request.value:
                 o = gripper_pb2.Row()
                 o.id = k
                 json_format.ParseDict(v, o.data)
@@ -73,18 +72,27 @@ def serve(port, data):
       CollectionServicer(data), server)
   server.add_insecure_port('[::]:%s' % port)
   server.start()
-  print("Serving: %s" % (port))
+  print("1|1|tcp|127.0.0.1:%d|grpc" % (port))
+  sys.stdout.flush()
   server.wait_for_termination()
 
 
 if __name__ == "__main__":
     tableMap = {}
     dataMap = {}
-    with open(sys.argv[1]) as handle:
+
+    if sys.argv[1] == "-m":
+        mappingPath = sys.argv[2]
+    else:
+        with open(sys.argv[1]) as handle:
+            data = json.loads(handle.read())
+            mappingPath = data["path"]
+
+    with open(mappingPath) as handle:
         for line in handle:
             row = line.rstrip().split("\t")
             name = row[0]
-            path = os.path.join( os.path.dirname(os.path.abspath(sys.argv[1]) ), row[1] )
+            path = os.path.join( os.path.dirname(os.path.abspath(mappingPath) ), row[1] )
 
             data = {}
             with open(path) as h:

@@ -62,6 +62,7 @@ func DefaultConfig() *Config {
 	c.Server.RPCPort = "8202"
 	c.Server.WorkDir = "grip.work"
 	c.Server.ReadOnly = false
+	c.Server.EnablePlugins = false
 	c.Server.DisableHTTPCache = true
 	c.Server.AutoBuildSchemas = false
 	c.Server.SchemaRefreshInterval = duration.Duration(24 * time.Hour)
@@ -168,8 +169,8 @@ func ParseConfigFile(relpath string, conf *Config) error {
 	}
 	for i := range conf.Drivers {
 		if conf.Drivers[i].Gripper != nil {
-			if conf.Drivers[i].Gripper.ConfigFile != "" {
-				gpath := filepath.Join(filepath.Dir(path), conf.Drivers[i].Gripper.ConfigFile)
+			if conf.Drivers[i].Gripper.MappingFile != "" {
+				gpath := filepath.Join(filepath.Dir(path), conf.Drivers[i].Gripper.MappingFile)
 
 				gsource, err := ioutil.ReadFile(gpath)
 				if err != nil {

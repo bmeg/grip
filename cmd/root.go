@@ -15,6 +15,7 @@ import (
 	"github.com/bmeg/grip/cmd/list"
 	"github.com/bmeg/grip/cmd/load"
 	"github.com/bmeg/grip/cmd/mongoload"
+	"github.com/bmeg/grip/cmd/plugin"
 	"github.com/bmeg/grip/cmd/query"
 	"github.com/bmeg/grip/cmd/rdf"
 	"github.com/bmeg/grip/cmd/schema"
@@ -61,6 +62,7 @@ func init() {
 	RootCmd.AddCommand(schema.Cmd)
 	RootCmd.AddCommand(server.Cmd)
 	RootCmd.AddCommand(stream.Cmd)
+	RootCmd.AddCommand(plugin.Cmd)
 	RootCmd.AddCommand(version.Cmd)
 	RootCmd.AddCommand(kvload.Cmd)
 }

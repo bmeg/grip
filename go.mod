@@ -33,6 +33,7 @@ require (
 	github.com/grpc-ecosystem/go-grpc-middleware v1.0.0
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.5.0
 	github.com/hashicorp/go-multierror v1.0.0
+	github.com/hashicorp/go-plugin v1.4.2
 	github.com/imdario/mergo v0.3.7
 	github.com/influxdata/tdigest v0.0.1
 	github.com/jessevdk/go-flags v1.4.0 // indirect

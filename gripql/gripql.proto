@@ -277,6 +277,7 @@ message TableInfo {
 	string source = 1;
 	string name = 2;
 	repeated string fields = 3;
+	map<string,string> link_map = 4;
 }
 
 service Query {
@@ -462,5 +463,47 @@ service Edit {
       body: "*"
     };
   }
+
+}
+
+
+message PluginConfig {
+	string name = 1;
+  string driver = 2;
+	map<string, string> config = 3;
+}
+
+message PluginStatus {
+	string name = 1;
+	string error = 2;
+}
+
+message ListDriversResponse {
+  repeated string drivers = 1;
+}
+
+message ListPluginsResponse {
+	repeated string plugins = 1;
+}
+
+service Configure {
+  rpc StartPlugin(PluginConfig) returns (PluginStatus) {
+    option (google.api.http) = {
+      post: "/v1/plugin/{name}"
+      body: "*"
+    };
+  }
+
+	rpc ListPlugins(Empty) returns (ListPluginsResponse) {
+		option (google.api.http) = {
+			get: "/v1/plugin"
+		};
+	}
+
+	rpc ListDrivers(Empty) returns (ListDriversResponse) {
+		option (google.api.http) = {
+			get: "/v1/driver"
+		};
+	}
 
 }

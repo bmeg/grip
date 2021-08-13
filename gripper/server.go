@@ -6,8 +6,6 @@ import (
 	"log"
 	"net"
 
-	"strings"
-
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/structpb"
 )
@@ -20,6 +18,7 @@ type BaseRow struct {
 type Driver interface {
 	GetTimeout() int
 	GetFields() ([]string, error)
+	GetFieldLinks() (map[string]string, error)
 	FetchRow(string) (*BaseRow, error)
 	FetchRows(context.Context) (chan *BaseRow, error)
 	FetchMatchRows(context.Context, string, string) (chan *BaseRow, error)
@@ -56,15 +55,15 @@ func (st *SimpleTableServicer) GetCollections(e *Empty, srv GRIPSource_GetCollec
 
 func (st *SimpleTableServicer) GetCollectionInfo(cxt context.Context, col *Collection) (*CollectionInfo, error) {
 	if dr, ok := st.drivers[col.Name]; ok {
-		o := []string{}
 		fields, err := dr.GetFields()
 		if err != nil {
 			return nil, err
 		}
-		for _, f := range fields {
-			o = append(o, "$."+f)
+		m, err := dr.GetFieldLinks()
+		if err != nil {
+			return nil, err
 		}
-		return &CollectionInfo{SearchFields: o}, nil
+		return &CollectionInfo{SearchFields: fields, LinkMap: m}, nil
 	}
 	return nil, fmt.Errorf("Not Found")
 }
@@ -113,9 +112,6 @@ func (st *SimpleTableServicer) GetRowsByID(srv GRIPSource_GetRowsByIDServer) err
 func (st *SimpleTableServicer) GetRowsByField(req *FieldRequest, srv GRIPSource_GetRowsByFieldServer) error {
 	if dr, ok := st.drivers[req.Collection]; ok {
 		field := req.Field
-		if strings.HasPrefix(field, "$.") {
-			field = field[2:]
-		}
 		ch, _ := dr.FetchMatchRows(srv.Context(), field, req.Value)
 		for row := range ch {
 			data, _ := structpb.NewStruct(row.Value)

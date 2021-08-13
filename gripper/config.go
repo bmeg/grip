@@ -13,9 +13,9 @@ import (
 
 // Config is the component in the global GRIP config file
 type Config struct {
-	Graph      string
-	ConfigFile string
-	Mapping    *GraphConfig
+	Graph       string
+	MappingFile string
+	Mapping     *GraphConfig
 }
 
 type GraphConfig struct {
@@ -24,33 +24,16 @@ type GraphConfig struct {
 }
 
 type ElementConfig struct {
-	Source       string              `json:"source"`
-	Collection   string              `json:"collection"`
-	FieldToID    *FieldToIDConfig    `json:"fieldToID"`
-	FieldToField *FieldToFieldConfig `json:"fieldToField"`
-	EdgeTable    *EdgeTableConfig    `json:"edgeTable"`
+	Source     string `json:"source"`
+	Collection string `json:"collection"`
+	FromField  string `json:"fromField"`
+	ToField    string `json:"toField"`
 }
 
 type VertexConfig struct {
 	Gid   string        `json:"gid"`
 	Label string        `json:"label"`
 	Data  ElementConfig `json:"data"`
-}
-
-type FieldToIDConfig struct {
-	FromField string `json:"fromField"`
-}
-
-type FieldToFieldConfig struct {
-	ToField   string `json:"toField"`
-	FromField string `json:"fromField"`
-}
-
-type EdgeTableConfig struct {
-	Source     string `json:"source"`
-	Collection string `json:"collection"`
-	FromField  string `json:"fromField"`
-	ToField    string `json:"toField"`
 }
 
 type EdgeConfig struct {

@@ -56,12 +56,12 @@ func (server *GripServer) ListGraphs(ctx context.Context, empty *gripql.Empty) (
 
 // ListTables returns list of all tables that are found in plugin system
 func (server *GripServer) ListTables(empty *gripql.Empty, srv gripql.Query_ListTablesServer) error {
-	client := gripper.NewGripperClient(server.conf.Sources)
+	client := gripper.NewGripperClient(server.sources)
 
-	for k := range server.conf.Sources {
+	for k := range server.sources {
 		for col := range client.GetCollections(context.Background(), k) {
 			info, _ := client.GetCollectionInfo(context.Background(), k, col)
-			srv.Send(&gripql.TableInfo{Source: k, Name: col, Fields: info.SearchFields})
+			srv.Send(&gripql.TableInfo{Source: k, Name: col, Fields: info.SearchFields, LinkMap: info.LinkMap})
 		}
 	}
 	return nil
@@ -454,7 +454,7 @@ func (server *GripServer) AddSchema(ctx context.Context, req *gripql.Graph) (*gr
 		return nil, fmt.Errorf("failed to store new schema: %v", err)
 	}
 	server.schemas[req.Graph] = req
-	return &gripql.EditResult{Id:req.Graph}, nil
+	return &gripql.EditResult{Id: req.Graph}, nil
 }
 
 // GetMapping returns the schema of a specific graph in the database
@@ -476,7 +476,7 @@ func (server *GripServer) AddMapping(ctx context.Context, req *gripql.Graph) (*g
 		return nil, fmt.Errorf("failed to store new mapping: %v", err)
 	}
 	server.updateGraphMap()
-	return &gripql.EditResult{Id:req.Graph}, nil
+	return &gripql.EditResult{Id: req.Graph}, nil
 }
 
 func (server *GripServer) graphExists(graphName string) bool {

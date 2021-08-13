@@ -34,7 +34,7 @@ func NewGDB(conf Config, configPath string, sources map[string]string) (*Tabular
 }
 */
 
-func NewGDBFromGraph(graph *gripql.Graph, sources map[string]string) (*TabularGDB, error) {
+func NewGDBFromGraph(graph *gripql.Graph, sources map[string]GRIPSourceClient) (*TabularGDB, error) {
 	out := TabularGDB{map[string]*TabularGraph{}}
 	if conf, err := GraphToConfig(graph); err == nil {
 		o, err := NewTabularGraph(*conf, sources)
@@ -49,7 +49,7 @@ func NewGDBFromGraph(graph *gripql.Graph, sources map[string]string) (*TabularGD
 	return &out, nil
 }
 
-func NewGDBFromConfig(name string, conf *GraphConfig, sources map[string]string) (*TabularGDB, error) {
+func NewGDBFromConfig(name string, conf *GraphConfig, sources map[string]GRIPSourceClient) (*TabularGDB, error) {
 	log.Infof("Starting GRIPPER driver for %s", name)
 	out := TabularGDB{map[string]*TabularGraph{}}
 	o, err := NewTabularGraph(*conf, sources)

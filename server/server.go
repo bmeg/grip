@@ -42,11 +42,14 @@ type GripServer struct {
 	gripql.UnimplementedQueryServer
 	gripql.UnimplementedEditServer
 	gripql.UnimplementedJobServer
+	gripql.UnimplementedConfigureServer
 	dbs      map[string]gdbi.GraphDB  //graph database drivers
 	graphMap map[string]string        //mapping from graph name to graph database driver
 	conf     *config.Config           //global configuration
 	schemas  map[string]*gripql.Graph //cached schemas
 	mappings map[string]*gripql.Graph //cached gripper graph mappings
+	plugins  map[string]*Plugin
+	sources  map[string]gripper.GRIPSourceClient
 	baseDir  string
 	jStorage jobstorage.JobStorage
 }
@@ -68,25 +71,34 @@ func NewGripServer(conf *config.Config, baseDir string, drivers map[string]gdbi.
 			gdbs[i] = d
 		}
 	}
+
+	sources := map[string]gripper.GRIPSourceClient{}
+	for name, host := range conf.Sources {
+		conn, err := gripper.StartConnection(host)
+		if err == nil {
+			sources[name] = conn
+		} else {
+			log.Errorf("Cannot reach source: %s", name)
+		}
+	}
+
 	for name, dConfig := range conf.Drivers {
 		if _, ok := gdbs[name]; !ok {
-			g, err := StartDriver(conf, dConfig)
+			g, err := StartDriver(dConfig, sources)
 			if err == nil {
 				gdbs[name] = g
 			}
 		}
 	}
 
-	server := &GripServer{dbs: gdbs, conf: conf, schemas: schemas, mappings: map[string]*gripql.Graph{}}
-	/*
-		for graph, schema := range schemas {
-			if !server.graphExists(graph) {
-				_, err := server.AddGraph(context.Background(), &gripql.GraphID{Graph: graph})
-				if err != nil {
-					return nil, fmt.Errorf("error creating graph defined by schema '%s': %v", graph, err)
-				}
-			}
-		}*/
+	server := &GripServer{
+		dbs:      gdbs,
+		conf:     conf,
+		schemas:  schemas,
+		mappings: map[string]*gripql.Graph{},
+		plugins:  map[string]*Plugin{},
+		sources:  sources,
+	}
 
 	if conf.Default == "" {
 		//if no default is found set it to the first driver found
@@ -104,7 +116,7 @@ func NewGripServer(conf *config.Config, baseDir string, drivers map[string]gdbi.
 }
 
 // StartDriver: based on string entry in config file, figure out which driver to initialize
-func StartDriver(conf *config.Config, d config.DriverConfig) (gdbi.GraphDB, error) {
+func StartDriver(d config.DriverConfig, sources map[string]gripper.GRIPSourceClient) (gdbi.GraphDB, error) {
 	if d.Bolt != nil {
 		return kvgraph.NewKVGraphDB("bolt", *d.Bolt)
 	} else if d.Badger != nil {
@@ -122,7 +134,7 @@ func StartDriver(conf *config.Config, d config.DriverConfig) (gdbi.GraphDB, erro
 	} else if d.ExistingSQL != nil {
 		return esql.NewGraphDB(*d.ExistingSQL)
 	} else if d.Gripper != nil {
-		return gripper.NewGDBFromConfig(d.Gripper.Graph, d.Gripper.Mapping, conf.Sources)
+		return gripper.NewGDBFromConfig(d.Gripper.Graph, d.Gripper.Mapping, sources)
 	}
 	return nil, fmt.Errorf("unknown driver: %#v", d)
 }
@@ -193,7 +205,7 @@ func (server *GripServer) Serve(pctx context.Context) error {
 		if err != nil {
 			return fmt.Errorf("setting up GraphQL handler: %v", err)
 		}*/
-	gqlHandler, err := graphql.NewClientHTTPHandler(gripql.WrapClient(gripql.NewQueryDirectClient(server), nil))
+	gqlHandler, err := graphql.NewClientHTTPHandler(gripql.WrapClient(gripql.NewQueryDirectClient(server), nil, nil))
 
 	mux.Handle("/graphql/", gqlHandler)
 
@@ -293,13 +305,20 @@ func (server *GripServer) Serve(pctx context.Context) error {
 
 	if !server.conf.Server.NoJobs {
 		gripql.RegisterJobServer(grpcServer, server)
-		//TODO: Put in some sort of logic that will allow web server to be configured to use GRPC client
 		err = gripql.RegisterJobHandlerClient(ctx, grpcMux, gripql.NewJobDirectClient(server))
 		if err != nil {
 			return fmt.Errorf("registering job endpoint: %v", err)
 		}
 		jobDir := filepath.Join(server.conf.Server.WorkDir, "jobs")
 		server.jStorage = jobstorage.NewFSJobStorage(jobDir)
+	}
+
+	if server.conf.Server.EnablePlugins {
+		gripql.RegisterConfigureServer(grpcServer, server)
+		err = gripql.RegisterConfigureHandlerClient(ctx, grpcMux, gripql.NewConfigureDirectClient(server))
+		if err != nil {
+			return fmt.Errorf("registering plugin endpoint: %v", err)
+		}
 	}
 
 	httpServer := &http.Server{
@@ -350,13 +369,6 @@ func (server *GripServer) Serve(pctx context.Context) error {
 	}
 
 	<-ctx.Done() //This will hold until canceled, usually from kill signal
-	log.Infoln("closing database...")
-	for _, gdb := range server.dbs {
-		err = gdb.Close()
-		if err != nil {
-			log.Errorln("db.Close() error:", err)
-		}
-	}
 	log.Infoln("shutting down RPC server...")
 	grpcServer.GracefulStop()
 	log.Infoln("shutting down HTTP proxy...")
@@ -364,6 +376,16 @@ func (server *GripServer) Serve(pctx context.Context) error {
 	if err != nil {
 		log.Errorf("shutdown error: %v", err)
 	}
+
+	log.Infoln("closing database...")
+	for _, gdb := range server.dbs {
+		err = gdb.Close()
+		if err != nil {
+			log.Errorln("db.Close() error:", err)
+		}
+	}
+
+	server.ClosePlugins()
 
 	if grpcErr != nil || httpErr != nil {
 		return fmt.Errorf("gRPC Server Error: %v\nHTTP Server Error: %v", grpcErr, httpErr)
