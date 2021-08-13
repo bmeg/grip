@@ -81,7 +81,7 @@ func NewGripServer(conf *config.Config, baseDir string, drivers map[string]gdbi.
 			log.Errorf("Cannot reach source: %s", name)
 		}
 	}
-	
+
 	for name, dConfig := range conf.Drivers {
 		if _, ok := gdbs[name]; !ok {
 			g, err := StartDriver(dConfig, sources)
@@ -92,12 +92,12 @@ func NewGripServer(conf *config.Config, baseDir string, drivers map[string]gdbi.
 	}
 
 	server := &GripServer{
-		dbs: gdbs,
-		conf: conf,
-		schemas: schemas,
+		dbs:      gdbs,
+		conf:     conf,
+		schemas:  schemas,
 		mappings: map[string]*gripql.Graph{},
-		plugins:map[string]*Plugin{},
-		sources:sources,
+		plugins:  map[string]*Plugin{},
+		sources:  sources,
 	}
 
 	if conf.Default == "" {

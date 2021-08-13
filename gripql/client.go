@@ -11,10 +11,10 @@ import (
 
 // Client is a GRPC grip client with some helper functions
 type Client struct {
-	QueryC QueryClient
-	EditC  EditClient
+	QueryC     QueryClient
+	EditC      EditClient
 	ConfigureC ConfigureClient
-	conn   *grpc.ClientConn
+	conn       *grpc.ClientConn
 }
 
 // WrapClient takes previously initialized GRPC clients and uses them for the
@@ -188,7 +188,6 @@ func (client Client) Traversal(query *GraphQuery) (chan *QueryResult, error) {
 
 	return out, nil
 }
-
 
 // ListDrivers lists avalible drivers
 func (client Client) ListDrivers() (*ListDriversResponse, error) {

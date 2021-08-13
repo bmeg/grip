@@ -31,7 +31,7 @@ class CollectionServicer(gripper_pb2_grpc.GRIPSourceServicer):
         o = gripper_pb2.CollectionInfo()
         c = self.data[request.name]
         for f in keyUnion(i.keys() for i in c.values()):
-            o.search_fields.append( "$." + f)
+            o.search_fields.append(f)
         return o
 
     def GetIDs(self, request, context):
@@ -58,9 +58,8 @@ class CollectionServicer(gripper_pb2_grpc.GRIPSourceServicer):
 
     def GetRowsByField(self, request, context):
         c = self.data[request.collection]
-        f = re.sub( r'^\$\.', '', request.field)
         for k, v in sorted(c.items()):
-            if v.get(f, None) == request.value:
+            if v.get(request.field, None) == request.value:
                 o = gripper_pb2.Row()
                 o.id = k
                 json_format.ParseDict(v, o.data)

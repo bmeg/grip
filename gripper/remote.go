@@ -1,13 +1,11 @@
 package gripper
 
-
 import (
 	"context"
 
 	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/util/rpc"
 )
-
 
 func StartConnection(host string) (GRIPSourceClient, error) {
 	rpcConf := rpc.ConfigWithDefaults(host)
@@ -18,5 +16,5 @@ func StartConnection(host string) (GRIPSourceClient, error) {
 		return nil, err
 	}
 	client := NewGRIPSourceClient(conn)
-  return client, nil
+	return client, nil
 }

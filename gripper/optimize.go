@@ -3,8 +3,6 @@ package gripper
 import (
 	"context"
 
-	"github.com/bmeg/grip/log"
-
 	"github.com/bmeg/grip/engine/inspect"
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
@@ -103,61 +101,25 @@ func (t *tabularEdgeHasLabelProc) Process(ctx context.Context, man gdbi.Manager,
 					default:
 					}
 					if setcmp.ContainsString(t.labels, edge.config.Label) {
-						if edge.config.Data.EdgeTable != nil {
-							//srcID := strings.TrimPrefix(src, edge.fromVertex.prefix)
-							//dstID := strings.TrimPrefix(dst, edge.toVertex.prefix)
-							for row := range t.graph.client.GetRows(ctx, edge.config.Data.EdgeTable.Source, edge.config.Data.EdgeTable.Collection) {
-								data := row.Data.AsMap()
-								if rowSrc, err := jsonpath.JsonPathLookup(data, edge.config.Data.EdgeTable.FromField); err == nil {
-									if rowSrcStr, ok := rowSrc.(string); ok {
-										if rowDst, err := jsonpath.JsonPathLookup(data, edge.config.Data.EdgeTable.ToField); err == nil {
-											if rowDstStr, ok := rowDst.(string); ok {
-												o := gdbi.Edge{
-													ID:     edge.GenID(rowSrcStr, rowDstStr), //edge.prefix + row.Id,
-													To:     edge.config.To + rowDstStr,
-													From:   edge.config.From + rowSrcStr,
-													Label:  edge.config.Label,
-													Data:   row.Data.AsMap(),
-													Loaded: true,
-												}
-												out <- i.AddCurrent(&o)
+						for row := range t.graph.client.GetRows(ctx, edge.config.Data.Source, edge.config.Data.Collection) {
+							data := row.Data.AsMap()
+							if rowSrc, err := jsonpath.JsonPathLookup(data, edge.config.Data.FromField); err == nil {
+								if rowSrcStr, ok := rowSrc.(string); ok {
+									if rowDst, err := jsonpath.JsonPathLookup(data, edge.config.Data.ToField); err == nil {
+										if rowDstStr, ok := rowDst.(string); ok {
+											o := gdbi.Edge{
+												ID:     edge.GenID(rowSrcStr, rowDstStr), //edge.prefix + row.Id,
+												To:     edge.config.To + rowDstStr,
+												From:   edge.config.From + rowSrcStr,
+												Label:  edge.config.Label,
+												Data:   row.Data.AsMap(),
+												Loaded: true,
 											}
+											out <- i.AddCurrent(&o)
 										}
 									}
 								}
 							}
-						} else if edge.config.Data.FieldToField != nil {
-							for srcRow := range t.graph.client.GetRows(ctx, edge.fromVertex.config.Data.Source, edge.fromVertex.config.Data.Collection) {
-								srcData := srcRow.Data.AsMap()
-								if srcField, err := jsonpath.JsonPathLookup(srcData, edge.config.Data.FieldToField.FromField); err == nil {
-									if fValue, ok := srcField.(string); ok {
-										if fValue != "" {
-											dstRes, err := t.graph.client.GetRowsByField(ctx,
-												edge.toVertex.config.Data.Source,
-												edge.toVertex.config.Data.Collection,
-												edge.config.Data.FieldToField.ToField, fValue)
-											if err == nil {
-												for dstRow := range dstRes {
-													o := gdbi.Edge{
-														ID:     edge.GenID(srcRow.Id, dstRow.Id),
-														From:   edge.fromVertex.prefix + srcRow.Id,
-														To:     edge.toVertex.prefix + dstRow.Id,
-														Label:  edge.config.Label,
-														Loaded: true,
-													}
-													out <- i.AddCurrent(&o)
-												}
-											} else {
-												if ctx.Err() != context.Canceled {
-													log.Errorf("Error doing FieldToField search: %s", err)
-												}
-											}
-										}
-									}
-								}
-							}
-						} else {
-							log.Errorf("GetEdge.FieldToID not yet implemented")
 						}
 					}
 				}

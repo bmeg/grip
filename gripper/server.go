@@ -57,23 +57,15 @@ func (st *SimpleTableServicer) GetCollections(e *Empty, srv GRIPSource_GetCollec
 
 func (st *SimpleTableServicer) GetCollectionInfo(cxt context.Context, col *Collection) (*CollectionInfo, error) {
 	if dr, ok := st.drivers[col.Name]; ok {
-		o := []string{}
 		fields, err := dr.GetFields()
 		if err != nil {
 			return nil, err
 		}
-		for _, f := range fields {
-			o = append(o, "$."+f)
-		}
-		om := map[string]string{}
 		m, err := dr.GetFieldLinks()
 		if err != nil {
 			return nil, err
 		}
-		for k, v := range m {
-			om["$." +k] = v
-		}
-		return &CollectionInfo{SearchFields: o, LinkMap:om}, nil
+		return &CollectionInfo{SearchFields: fields, LinkMap: m}, nil
 	}
 	return nil, fmt.Errorf("Not Found")
 }
