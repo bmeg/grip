@@ -6,8 +6,6 @@ import (
 	"log"
 	"net"
 
-	"strings"
-
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/structpb"
 )
