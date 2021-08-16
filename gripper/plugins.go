@@ -40,8 +40,11 @@ func (p *GripPlugin) GRPCClient(ctx context.Context, broker *plugin.GRPCBroker, 
 
 func LaunchPluginClient(plugindir string, name string, workdir string, params map[string]string) (*plugin.Client, error) {
 	name = sanitize.BaseName(name)
-	plugPath := filepath.Join(plugindir, "gripper-"+name)
+	plugPath, err := filepath.Abs(filepath.Join(plugindir, "gripper-"+name))
 
+	if err != nil {
+		return nil, fmt.Errorf("plugin %s not found", name)
+	}
 	if _, err := os.Stat(plugPath); err != nil {
 		return nil, fmt.Errorf("plugin %s not found", name)
 	}
