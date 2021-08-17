@@ -79,9 +79,9 @@ var postCmd = &cobra.Command{
 				if err != nil {
 					return err
 				}
-				graphs, err = gripql.ParseJSONGraph(bytes)
+				graphs, err = gripql.ParseJSONGraphs(bytes)
 			} else {
-				graphs, err = gripql.ParseJSONGraphFile(jsonFile)
+				graphs, err = gripql.ParseJSONGraphsFile(jsonFile)
 			}
 			if err != nil {
 				return err
@@ -102,9 +102,9 @@ var postCmd = &cobra.Command{
 				if err != nil {
 					return err
 				}
-				graphs, err = gripql.ParseYAMLGraph(bytes)
+				graphs, err = gripql.ParseYAMLGraphs(bytes)
 			} else {
-				graphs, err = gripql.ParseYAMLGraphFile(yamlFile)
+				graphs, err = gripql.ParseYAMLGraphsFile(yamlFile)
 			}
 			if err != nil {
 				return err
