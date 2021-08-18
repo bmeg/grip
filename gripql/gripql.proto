@@ -457,6 +457,12 @@ service Edit {
     };
   }
 
+	rpc SampleSchema(GraphID) returns (Graph) {
+    option (google.api.http) = {
+      get: "/v1/graph/{graph}/schema-sample"
+    };
+  }
+
 	rpc AddMapping(Graph) returns (EditResult) {
     option (google.api.http) = {
       post: "/v1/graph/{graph}/mapping"

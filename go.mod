@@ -11,7 +11,7 @@ require (
 	github.com/bmeg/protoc-gen-grcp-rest-direct v0.0.0-20190228222353-4d40e8b9d305 // indirect
 	github.com/boltdb/bolt v1.3.1
 	github.com/bufbuild/buf v0.37.0 // indirect
-	github.com/ckaznocha/protoc-gen-lint v0.2.1 // indirect
+	github.com/ckaznocha/protoc-gen-lint v0.2.3 // indirect
 	github.com/davecgh/go-spew v1.1.1
 	github.com/dgraph-io/badger/v2 v2.0.1
 	github.com/dlclark/regexp2 v1.1.6 // indirect

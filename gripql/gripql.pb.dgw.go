@@ -461,6 +461,11 @@ func (shim *EditDirectClient) AddSchema(ctx context.Context, in *Graph, opts ...
 	return shim.server.AddSchema(ctx, in)
 }
 
+//SampleSchema shim
+func (shim *EditDirectClient) SampleSchema(ctx context.Context, in *GraphID, opts ...grpc.CallOption) (*Graph, error) {
+	return shim.server.SampleSchema(ctx, in)
+}
+
 //AddMapping shim
 func (shim *EditDirectClient) AddMapping(ctx context.Context, in *Graph, opts ...grpc.CallOption) (*EditResult, error) {
 	return shim.server.AddMapping(ctx, in)

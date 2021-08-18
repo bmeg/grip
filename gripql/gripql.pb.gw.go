@@ -1617,6 +1617,58 @@ func local_request_Edit_AddSchema_0(ctx context.Context, marshaler runtime.Marsh
 
 }
 
+func request_Edit_SampleSchema_0(ctx context.Context, marshaler runtime.Marshaler, client EditClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
+	var protoReq GraphID
+	var metadata runtime.ServerMetadata
+
+	var (
+		val string
+		ok  bool
+		err error
+		_   = err
+	)
+
+	val, ok = pathParams["graph"]
+	if !ok {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "missing parameter %s", "graph")
+	}
+
+	protoReq.Graph, err = runtime.String(val)
+	if err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "graph", err)
+	}
+
+	msg, err := client.SampleSchema(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
+	return msg, metadata, err
+
+}
+
+func local_request_Edit_SampleSchema_0(ctx context.Context, marshaler runtime.Marshaler, server EditServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
+	var protoReq GraphID
+	var metadata runtime.ServerMetadata
+
+	var (
+		val string
+		ok  bool
+		err error
+		_   = err
+	)
+
+	val, ok = pathParams["graph"]
+	if !ok {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "missing parameter %s", "graph")
+	}
+
+	protoReq.Graph, err = runtime.String(val)
+	if err != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "graph", err)
+	}
+
+	msg, err := server.SampleSchema(ctx, &protoReq)
+	return msg, metadata, err
+
+}
+
 func request_Edit_AddMapping_0(ctx context.Context, marshaler runtime.Marshaler, client EditClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
 	var protoReq Graph
 	var metadata runtime.ServerMetadata
@@ -2319,6 +2371,29 @@ func RegisterEditHandlerServer(ctx context.Context, mux *runtime.ServeMux, serve
 		}
 
 		forward_Edit_AddSchema_0(ctx, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
+
+	})
+
+	mux.Handle("GET", pattern_Edit_SampleSchema_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+		ctx, cancel := context.WithCancel(req.Context())
+		defer cancel()
+		var stream runtime.ServerTransportStream
+		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
+		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
+		rctx, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/gripql.Edit/SampleSchema", runtime.WithHTTPPathPattern("/v1/graph/{graph}/schema-sample"))
+		if err != nil {
+			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
+			return
+		}
+		resp, md, err := local_request_Edit_SampleSchema_0(rctx, inboundMarshaler, server, req, pathParams)
+		md.HeaderMD, md.TrailerMD = metadata.Join(md.HeaderMD, stream.Header()), metadata.Join(md.TrailerMD, stream.Trailer())
+		ctx = runtime.NewServerMetadataContext(ctx, md)
+		if err != nil {
+			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
+			return
+		}
+
+		forward_Edit_SampleSchema_0(ctx, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
 
 	})
 
@@ -3162,6 +3237,26 @@ func RegisterEditHandlerClient(ctx context.Context, mux *runtime.ServeMux, clien
 
 	})
 
+	mux.Handle("GET", pattern_Edit_SampleSchema_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+		ctx, cancel := context.WithCancel(req.Context())
+		defer cancel()
+		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
+		rctx, err := runtime.AnnotateContext(ctx, mux, req, "/gripql.Edit/SampleSchema", runtime.WithHTTPPathPattern("/v1/graph/{graph}/schema-sample"))
+		if err != nil {
+			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
+			return
+		}
+		resp, md, err := request_Edit_SampleSchema_0(rctx, inboundMarshaler, client, req, pathParams)
+		ctx = runtime.NewServerMetadataContext(ctx, md)
+		if err != nil {
+			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
+			return
+		}
+
+		forward_Edit_SampleSchema_0(ctx, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
+
+	})
+
 	mux.Handle("POST", pattern_Edit_AddMapping_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
@@ -3206,6 +3301,8 @@ var (
 
 	pattern_Edit_AddSchema_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 1, 0, 4, 1, 5, 1, 2, 2}, []string{"v1", "graph", "schema"}, ""))
 
+	pattern_Edit_SampleSchema_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 1, 0, 4, 1, 5, 1, 2, 2}, []string{"v1", "graph", "schema-sample"}, ""))
+
 	pattern_Edit_AddMapping_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 1, 0, 4, 1, 5, 1, 2, 2}, []string{"v1", "graph", "mapping"}, ""))
 )
 
@@ -3229,6 +3326,8 @@ var (
 	forward_Edit_DeleteIndex_0 = runtime.ForwardResponseMessage
 
 	forward_Edit_AddSchema_0 = runtime.ForwardResponseMessage
+
+	forward_Edit_SampleSchema_0 = runtime.ForwardResponseMessage
 
 	forward_Edit_AddMapping_0 = runtime.ForwardResponseMessage
 )

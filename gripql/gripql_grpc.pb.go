@@ -904,6 +904,7 @@ type EditClient interface {
 	AddIndex(ctx context.Context, in *IndexID, opts ...grpc.CallOption) (*EditResult, error)
 	DeleteIndex(ctx context.Context, in *IndexID, opts ...grpc.CallOption) (*EditResult, error)
 	AddSchema(ctx context.Context, in *Graph, opts ...grpc.CallOption) (*EditResult, error)
+	SampleSchema(ctx context.Context, in *GraphID, opts ...grpc.CallOption) (*Graph, error)
 	AddMapping(ctx context.Context, in *Graph, opts ...grpc.CallOption) (*EditResult, error)
 }
 
@@ -1030,6 +1031,15 @@ func (c *editClient) AddSchema(ctx context.Context, in *Graph, opts ...grpc.Call
 	return out, nil
 }
 
+func (c *editClient) SampleSchema(ctx context.Context, in *GraphID, opts ...grpc.CallOption) (*Graph, error) {
+	out := new(Graph)
+	err := c.cc.Invoke(ctx, "/gripql.Edit/SampleSchema", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *editClient) AddMapping(ctx context.Context, in *Graph, opts ...grpc.CallOption) (*EditResult, error) {
 	out := new(EditResult)
 	err := c.cc.Invoke(ctx, "/gripql.Edit/AddMapping", in, out, opts...)
@@ -1053,6 +1063,7 @@ type EditServer interface {
 	AddIndex(context.Context, *IndexID) (*EditResult, error)
 	DeleteIndex(context.Context, *IndexID) (*EditResult, error)
 	AddSchema(context.Context, *Graph) (*EditResult, error)
+	SampleSchema(context.Context, *GraphID) (*Graph, error)
 	AddMapping(context.Context, *Graph) (*EditResult, error)
 	mustEmbedUnimplementedEditServer()
 }
@@ -1090,6 +1101,9 @@ func (UnimplementedEditServer) DeleteIndex(context.Context, *IndexID) (*EditResu
 }
 func (UnimplementedEditServer) AddSchema(context.Context, *Graph) (*EditResult, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AddSchema not implemented")
+}
+func (UnimplementedEditServer) SampleSchema(context.Context, *GraphID) (*Graph, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SampleSchema not implemented")
 }
 func (UnimplementedEditServer) AddMapping(context.Context, *Graph) (*EditResult, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AddMapping not implemented")
@@ -1295,6 +1309,24 @@ func _Edit_AddSchema_Handler(srv interface{}, ctx context.Context, dec func(inte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Edit_SampleSchema_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GraphID)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(EditServer).SampleSchema(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/gripql.Edit/SampleSchema",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(EditServer).SampleSchema(ctx, req.(*GraphID))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _Edit_AddMapping_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(Graph)
 	if err := dec(in); err != nil {
@@ -1355,6 +1387,10 @@ var Edit_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "AddSchema",
 			Handler:    _Edit_AddSchema_Handler,
+		},
+		{
+			MethodName: "SampleSchema",
+			Handler:    _Edit_SampleSchema_Handler,
 		},
 		{
 			MethodName: "AddMapping",
