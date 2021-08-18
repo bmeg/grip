@@ -13,14 +13,15 @@ import (
 type Client struct {
 	QueryC     QueryClient
 	EditC      EditClient
+	JobC       JobClient
 	ConfigureC ConfigureClient
 	conn       *grpc.ClientConn
 }
 
 // WrapClient takes previously initialized GRPC clients and uses them for the
 // client wrapper
-func WrapClient(QueryC QueryClient, EditC EditClient, ConfigureC ConfigureClient) Client {
-	return Client{QueryC, EditC, ConfigureC, nil}
+func WrapClient(QueryC QueryClient, EditC EditClient, JobC JobClient, ConfigureC ConfigureClient) Client {
+	return Client{QueryC, EditC, JobC, ConfigureC, nil}
 }
 
 // Connect opens a GRPC connection to an Grip server
@@ -34,11 +35,11 @@ func Connect(conf rpc.Config, write bool) (Client, error) {
 	if write {
 		editOut = NewEditClient(conn)
 	}
-	return Client{queryOut, editOut, nil, conn}, nil
+	return Client{queryOut, editOut, nil, nil, conn}, nil
 }
 
 func (client Client) WithConfigureAPI() Client {
-	return Client{client.QueryC, client.EditC, NewConfigureClient(client.conn), client.conn}
+	return Client{client.QueryC, client.EditC, nil, NewConfigureClient(client.conn), client.conn}
 }
 
 // Close the connection
@@ -188,6 +189,47 @@ func (client Client) Traversal(query *GraphQuery) (chan *QueryResult, error) {
 
 	return out, nil
 }
+
+
+func (client Client) ListJobs(graph string) ([]*QueryJob, error) {
+	out := []*QueryJob{}
+	tclient, err := client.JobC.ListJobs(context.Background(), &Graph{Graph:graph})
+	if err != nil {
+		return nil, err
+	}
+	for {
+		t, err := tclient.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, t)
+	}
+	return out, nil
+}
+
+/*
+func (client Client) SearchJobs(in *GraphQuery, opts ...grpc.CallOption) (Job_SearchJobsClient, error) {
+	
+}
+*/
+
+func (client Client) DeleteJob(graph string, jobID string) (*JobStatus, error) {
+	return client.JobC.DeleteJob(context.Background(), &QueryJob{Graph:graph, Id:jobID})
+}
+
+
+func (client Client) GetJob(graph string, jobID string) (*JobStatus, error) {
+	return client.JobC.GetJob(context.Background(), &QueryJob{Graph:graph, Id:jobID})
+}
+
+/*
+func (client Client) ViewJob(in *QueryJob, opts ...grpc.CallOption) (Job_ViewJobClient, error) {
+	
+}
+*/
 
 // ListDrivers lists avalible drivers
 func (client Client) ListDrivers() (*ListDriversResponse, error) {

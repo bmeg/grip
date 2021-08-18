@@ -14,6 +14,7 @@ import (
 	"github.com/bmeg/grip/cmd/kvload"
 	"github.com/bmeg/grip/cmd/list"
 	"github.com/bmeg/grip/cmd/load"
+	"github.com/bmeg/grip/cmd/job"
 	"github.com/bmeg/grip/cmd/mongoload"
 	"github.com/bmeg/grip/cmd/plugin"
 	"github.com/bmeg/grip/cmd/query"
@@ -54,6 +55,7 @@ func init() {
 	RootCmd.AddCommand(genBashCompletionCmd)
 	RootCmd.AddCommand(info.Cmd)
 	RootCmd.AddCommand(list.Cmd)
+	RootCmd.AddCommand(job.Cmd)
 	RootCmd.AddCommand(load.Cmd)
 	RootCmd.AddCommand(mongoload.Cmd)
 	RootCmd.AddCommand(query.Cmd)
