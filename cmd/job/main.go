@@ -3,11 +3,15 @@ package job
 
 import (
 	"fmt"
-
+	"encoding/json"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/util/rpc"
 	"github.com/spf13/cobra"
+	_ "github.com/bmeg/grip/jsengine/goja" // import goja so it registers with the driver map
 	"google.golang.org/protobuf/encoding/protojson"
+	"github.com/dop251/goja"
+	gripqljs "github.com/bmeg/grip/gripql/javascript"
+	"github.com/bmeg/grip/jsengine/underscore"
 )
 
 var host = "localhost:8202"
@@ -95,6 +99,64 @@ var getCmd = &cobra.Command{
 			return fmt.Errorf("failed to marshal job response: %v", err)
 		}
 		fmt.Printf("%s\n", string(txt))
+		return nil
+	},
+}
+
+
+var submitCmd = &cobra.Command{
+	Use:   "submit <graph> <query>",
+	Short: "Submit query job",
+	Long:  ``,
+	Args:  cobra.ExactArgs(2),
+	RunE: func(cmd *cobra.Command, args []string) error {
+    graph := args[0]
+		queryString := args[1]
+
+		vm := goja.New()
+		us, err := underscore.Asset("underscore.js")
+		if err != nil {
+			return fmt.Errorf("failed to load underscore.js")
+		}
+		if _, err := vm.RunString(string(us)); err != nil {
+			return err
+		}
+		gripqlString, err := gripqljs.Asset("gripql.js")
+		if err != nil {
+			return fmt.Errorf("failed to load gripql.js")
+		}
+		if _, err := vm.RunString(string(gripqlString)); err != nil {
+			return err
+		}
+
+		val, err := vm.RunString(queryString)
+		if err != nil {
+			return err
+		}
+
+		queryJSON, err := json.Marshal(val)
+		if err != nil {
+			return err
+		}
+
+		query := gripql.GraphQuery{}
+		err = protojson.Unmarshal(queryJSON, &query)
+		if err != nil {
+			return err
+		}
+		query.Graph = graph
+
+		conn, err := gripql.Connect(rpc.ConfigWithDefaults(host), true)
+		if err != nil {
+			return err
+		}
+
+		res, err := conn.Submit(&query)
+		if err != nil {
+			return err
+		}
+
+		fmt.Printf("%s\n", res)
 		return nil
 	},
 }

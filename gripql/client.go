@@ -212,9 +212,13 @@ func (client Client) ListJobs(graph string) ([]*QueryJob, error) {
 
 /*
 func (client Client) SearchJobs(in *GraphQuery, opts ...grpc.CallOption) (Job_SearchJobsClient, error) {
-	
+
 }
 */
+
+func (client Client) Submit(query *GraphQuery) (*QueryJob, error) {
+	return client.JobC.Submit(context.Background(), query)
+}
 
 func (client Client) DeleteJob(graph string, jobID string) (*JobStatus, error) {
 	return client.JobC.DeleteJob(context.Background(), &QueryJob{Graph:graph, Id:jobID})
@@ -227,7 +231,7 @@ func (client Client) GetJob(graph string, jobID string) (*JobStatus, error) {
 
 /*
 func (client Client) ViewJob(in *QueryJob, opts ...grpc.CallOption) (Job_ViewJobClient, error) {
-	
+
 }
 */
 

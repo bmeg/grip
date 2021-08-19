@@ -11,7 +11,7 @@ import (
 	"github.com/bmeg/grip/log"
 )
 
-func (server *GripServer) Job(ctx context.Context, query *gripql.GraphQuery) (*gripql.QueryJob, error) {
+func (server *GripServer) Submit(ctx context.Context, query *gripql.GraphQuery) (*gripql.QueryJob, error) {
 
 	gdb, err := server.getGraphDB(query.Graph)
 	if err != nil {
