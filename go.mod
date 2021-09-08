@@ -6,12 +6,12 @@ require (
 	github.com/Shopify/sarama v1.22.1
 	github.com/Workiva/go-datastructures v1.0.52
 	github.com/akrylysov/pogreb v0.8.1
-	github.com/aymerick/raymond v2.0.2+incompatible // indirect
 	github.com/bmeg/jsonpath v0.0.0-20210207014051-cca5355553ad
 	github.com/bmeg/protoc-gen-grcp-rest-direct v0.0.0-20190228222353-4d40e8b9d305 // indirect
 	github.com/boltdb/bolt v1.3.1
 	github.com/bufbuild/buf v0.37.0 // indirect
 	github.com/ckaznocha/protoc-gen-lint v0.2.1 // indirect
+	github.com/cockroachdb/pebble v0.0.0-20210908194350-daf93f0f148d
 	github.com/davecgh/go-spew v1.1.1
 	github.com/dgraph-io/badger/v2 v2.0.1
 	github.com/dlclark/regexp2 v1.1.6 // indirect
