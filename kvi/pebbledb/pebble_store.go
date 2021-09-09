@@ -5,15 +5,16 @@ The KeyValue interface wrapper for BadgerDB
 package pebbledb
 
 import (
-	"io"
 	"bytes"
+	"io"
+
 	//"fmt"
 	//"os"
 
 	"github.com/bmeg/grip/kvi"
 	"github.com/bmeg/grip/log"
 
-  "github.com/cockroachdb/pebble"
+	"github.com/cockroachdb/pebble"
 )
 
 var loaded = kvi.AddKVDriver("pebble", NewKVInterface)
@@ -25,13 +26,12 @@ type PebbleKV struct {
 
 // NewKVInterface creates new BoltDB backed KVInterface at `path`
 func NewKVInterface(path string, kopts kvi.Options) (kvi.KVInterface, error) {
-  db, err := pebble.Open(path, &pebble.Options{})
+	db, err := pebble.Open(path, &pebble.Options{})
 	if err != nil {
 		return nil, err
 	}
 	return &PebbleKV{db: db}, nil
 }
-
 
 // Close closes the badger connection
 func (pdb *PebbleKV) Close() error {
@@ -52,7 +52,7 @@ func (pdb *PebbleKV) Get(id []byte) ([]byte, error) {
 
 // Delete removes a key/value from a kvstore
 func (pdb *PebbleKV) Delete(id []byte) error {
-	return pdb.db.Delete( id, nil )
+	return pdb.db.Delete(id, nil)
 }
 
 // DeletePrefix deletes all elements in kvstore that begin with prefix `id`
@@ -61,8 +61,8 @@ func (pdb *PebbleKV) DeletePrefix(prefix []byte) error {
 	for found := true; found; {
 		found = false
 		wb := make([][]byte, 0, deleteBlockSize)
-		it := pdb.db.NewIter(&pebble.IterOptions{LowerBound:prefix})
-		for ;  it.Valid() && bytes.HasPrefix(it.Key(), prefix) && len(wb) < deleteBlockSize-1; it.Next() {
+		it := pdb.db.NewIter(&pebble.IterOptions{LowerBound: prefix})
+		for ; it.Valid() && bytes.HasPrefix(it.Key(), prefix) && len(wb) < deleteBlockSize-1; it.Next() {
 			wb = append(wb, copyBytes(it.Key()))
 		}
 		it.Close()
@@ -92,7 +92,6 @@ func (pdb *PebbleKV) Set(id []byte, val []byte) error {
 	return pdb.db.Set(id, val, nil)
 }
 
-
 func (pdb *PebbleKV) View(u func(it kvi.KVIterator) error) error {
 	it := pdb.db.NewIter(&pebble.IterOptions{})
 	pit := &pebbleIterator{pdb.db, it, true, nil, nil}
@@ -104,7 +103,6 @@ func (pdb *PebbleKV) View(u func(it kvi.KVIterator) error) error {
 type pebbleTransaction struct {
 	db *pebble.DB
 }
-
 
 func (ptx pebbleTransaction) HasKey(id []byte) bool {
 	_, c, err := ptx.db.Get(id)
@@ -129,12 +127,10 @@ func (ptx pebbleTransaction) Set(id []byte, val []byte) error {
 	return ptx.db.Set(id, val, nil)
 }
 
-
 // Delete removes key `id` from the kv store
 func (ptx pebbleTransaction) Delete(id []byte) error {
 	return ptx.db.Delete(id, nil)
 }
-
 
 func (ptx pebbleTransaction) View(u func(it kvi.KVIterator) error) error {
 	it := ptx.db.NewIter(&pebble.IterOptions{})
@@ -145,8 +141,8 @@ func (ptx pebbleTransaction) View(u func(it kvi.KVIterator) error) error {
 }
 
 type pebbleIterator struct {
-	db *pebble.DB
-	iter *pebble.Iterator
+	db      *pebble.DB
+	iter    *pebble.Iterator
 	forward bool
 	key     []byte
 	value   []byte
@@ -228,7 +224,6 @@ func (pdb *PebbleKV) BulkWrite(u func(tx kvi.KVBulkWrite) error) error {
 	ptx := pebbleTransaction{pdb.db}
 	return u(ptx)
 }
-
 
 func copyBytes(in []byte) []byte {
 	out := make([]byte, len(in))

@@ -33,7 +33,7 @@ import (
 	_ "github.com/bmeg/grip/kvi/badgerdb" // import so badger will register itself
 	_ "github.com/bmeg/grip/kvi/boltdb"   // import so bolt will register itself
 	_ "github.com/bmeg/grip/kvi/leveldb"  // import so level will register itself
-	_ "github.com/bmeg/grip/kvi/pebbledb"  // import so level will register itself
+	_ "github.com/bmeg/grip/kvi/pebbledb" // import so level will register itself
 	"github.com/bmeg/grip/mongo"
 	"github.com/bmeg/grip/psql"
 )
