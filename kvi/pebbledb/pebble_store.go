@@ -222,16 +222,28 @@ func (pdb *PebbleKV) Update(u func(tx kvi.KVTransaction) error) error {
 type pebbleBulkWrite struct {
 	db    *pebble.DB
 	batch *pebble.Batch
+	curSize int
 }
 
+const (
+	maxWriterBuffer = 3 << 30
+)
+
 func (pbw *pebbleBulkWrite) Set(id []byte, val []byte) error {
-	return pbw.batch.Set(id, val, nil)
+	pbw.curSize += len(id) + len(val)
+	err := pbw.batch.Set(id, val, nil)
+	if pbw.curSize > maxWriterBuffer {
+		pbw.batch.Commit(nil)
+		pbw.batch.Reset()
+		pbw.curSize = 0
+	}
+	return err
 }
 
 // BulkWrite is a replication of the regular update, no special code for bulk writes
 func (pdb *PebbleKV) BulkWrite(u func(tx kvi.KVBulkWrite) error) error {
 	batch := pdb.db.NewBatch()
-	ptx := &pebbleBulkWrite{pdb.db, batch}
+	ptx := &pebbleBulkWrite{pdb.db, batch, 0}
 	err := u(ptx)
 	batch.Commit(nil)
 	batch.Close()
