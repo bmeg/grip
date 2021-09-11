@@ -42,6 +42,7 @@ func (server *GripServer) StartPlugin(ctx context.Context, config *gripql.Plugin
 	}
 	server.plugins[config.Name] = &Plugin{name: config.Name, plugin: plg, client: cli}
 	server.sources[config.Name] = cli
+	server.updateGraphMap()
 	return &gripql.PluginStatus{Name: config.Name}, nil
 }
 
