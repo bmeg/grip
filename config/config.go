@@ -32,6 +32,7 @@ type DriverConfig struct {
 	Badger        *string
 	Bolt          *string
 	Level         *string
+	Pebble        *string
 	Elasticsearch *elastic.Config
 	MongoDB       *mongo.Config
 	PSQL          *psql.Config
