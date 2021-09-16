@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package gripper;
 
+option go_package = "github.com/bmeg/grip/gripper";
+
 import "google/protobuf/struct.proto";
 
 message Empty {}
@@ -35,9 +37,10 @@ message Row {
 
 message CollectionInfo {
   repeated string search_fields = 1;
+  map<string,string> link_map = 2; // Map field name to collection name
 }
 
-service DigSource {
+service GRIPSource {
 
   rpc GetCollections(Empty) returns (stream Collection);
 

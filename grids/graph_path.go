@@ -9,7 +9,7 @@ import (
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/kvi"
-	"github.com/bmeg/grip/protoutil"
+	"github.com/bmeg/grip/util/protoutil"
 	"github.com/bmeg/grip/util/setcmp"
 )
 
@@ -23,13 +23,20 @@ type RawPathProcessor struct {
 type PathTraveler struct {
 	current  *RawDataElement
 	traveler *gdbi.Traveler
+	path     []RawDataElementID
+}
+
+type RawDataElementID struct {
+	IsVertex bool
+	Gid      uint64
 }
 
 type RawDataElement struct {
-	Gid   uint64
-	To    uint64
-	From  uint64
-	Label uint64
+	IsVertex bool
+	Gid      uint64
+	To       uint64
+	From     uint64
+	Label    uint64
 }
 
 // ElementLookup request to look up data
@@ -50,6 +57,7 @@ func SelectPath(stmts []*gripql.GraphStatement, path []int) []*gripql.GraphState
 func NewPathTraveler(tr *gdbi.Traveler, isVertex bool, gg *Graph) *PathTraveler {
 	el := RawDataElement{}
 	cur := tr.GetCurrent()
+	el.IsVertex = isVertex
 	if isVertex {
 		el.Gid, _ = gg.kdb.keyMap.GetVertexKey(gg.graphKey, cur.ID)
 		el.Label, _ = gg.kdb.keyMap.GetLabelKey(gg.graphKey, cur.Label)
@@ -62,22 +70,51 @@ func NewPathTraveler(tr *gdbi.Traveler, isVertex bool, gg *Graph) *PathTraveler 
 	return &PathTraveler{
 		current:  &el,
 		traveler: tr,
+		path:     []RawDataElementID{},
 	}
 }
 
 // AddCurrent creates a new copy of the travel with new 'current' value
 func (t *PathTraveler) AddCurrent(r *RawDataElement) *PathTraveler {
-	o := t.traveler.AddCurrent(nil)
-	a := PathTraveler{current: r, traveler: o}
+	o := t.traveler.Copy()
+	a := PathTraveler{current: r, traveler: o, path: append(t.path, RawDataElementID{IsVertex: r.IsVertex, Gid: r.Gid})}
 	return &a
 }
 
 func (t *PathTraveler) ToVertexTraveler(gg *Graph) *gdbi.Traveler {
-	return t.traveler.AddCurrent(t.current.VertexDataElement(gg))
+	o := t.traveler.AddCurrent(t.current.VertexDataElement(gg))
+	o.Path = make([]gdbi.DataElementID, len(t.traveler.Path)+len(t.path))
+	for i := range t.traveler.Path {
+		o.Path[i] = t.traveler.Path[i]
+	}
+	for i := range t.path {
+		if t.path[i].IsVertex {
+			Gid, _ := gg.kdb.keyMap.GetVertexID(gg.graphKey, t.path[i].Gid)
+			o.Path[len(t.traveler.Path)+i] = gdbi.DataElementID{Vertex: Gid}
+		} else {
+			Gid, _ := gg.kdb.keyMap.GetEdgeID(gg.graphKey, t.path[i].Gid)
+			o.Path[len(t.traveler.Path)+i] = gdbi.DataElementID{Edge: Gid}
+		}
+	}
+	return o
 }
 
 func (t *PathTraveler) ToEdgeTraveler(gg *Graph) *gdbi.Traveler {
-	return t.traveler.AddCurrent(t.current.EdgeDataElement(gg))
+	o := t.traveler.AddCurrent(t.current.EdgeDataElement(gg))
+	o.Path = make([]gdbi.DataElementID, len(t.traveler.Path)+len(t.path))
+	for i := range t.traveler.Path {
+		o.Path[i] = t.traveler.Path[i]
+	}
+	for i := range t.path {
+		if t.path[i].IsVertex {
+			Gid, _ := gg.kdb.keyMap.GetVertexID(gg.graphKey, t.path[i].Gid)
+			o.Path[len(t.traveler.Path)+i] = gdbi.DataElementID{Vertex: Gid}
+		} else {
+			Gid, _ := gg.kdb.keyMap.GetEdgeID(gg.graphKey, t.path[i].Gid)
+			o.Path[len(t.traveler.Path)+i] = gdbi.DataElementID{Edge: Gid}
+		}
+	}
+	return o
 }
 
 type RawProcessor interface {
@@ -192,7 +229,7 @@ func (r *PathVProc) Process(ctx context.Context, in chan *PathTraveler, out chan
 				if key, ok := r.db.kdb.keyMap.GetVertexKey(r.db.graphKey, i); ok {
 					label := r.db.kdb.keyMap.GetVertexLabel(r.db.graphKey, key)
 					out <- &PathTraveler{
-						current: &RawDataElement{Gid: key, Label: label},
+						current: &RawDataElement{IsVertex: true, Gid: key, Label: label},
 					}
 				}
 			}
@@ -412,8 +449,9 @@ func (ggraph *Graph) RawGetVertexList(ctx context.Context) <-chan *RawDataElemen
 				_, vkey := VertexKeyParse(keyValue)
 				lkey := ggraph.kdb.keyMap.GetVertexLabel(ggraph.graphKey, vkey)
 				o <- &RawDataElement{
-					Gid:   vkey,
-					Label: lkey,
+					IsVertex: true,
+					Gid:      vkey,
+					Label:    lkey,
 				}
 			}
 			return nil
@@ -437,10 +475,11 @@ func (ggraph *Graph) RawGetEdgeList(ctx context.Context) <-chan *RawDataElement 
 				keyValue := it.Key()
 				_, ekey, srcvkey, dstvkey, lkey := EdgeKeyParse(keyValue)
 				o <- &RawDataElement{
-					Gid:   ekey,
-					Label: lkey,
-					From:  srcvkey,
-					To:    dstvkey,
+					IsVertex: false,
+					Gid:      ekey,
+					Label:    lkey,
+					From:     srcvkey,
+					To:       dstvkey,
 				}
 			}
 			return nil
@@ -458,8 +497,9 @@ func (ggraph *Graph) RawGetVertexChannel(reqChan chan *RawElementLookup) <-chan 
 			lkey := ggraph.kdb.keyMap.GetVertexLabel(ggraph.graphKey, vkey)
 			o <- &RawElementLookup{
 				Element: &RawDataElement{
-					Gid:   vkey,
-					Label: lkey,
+					IsVertex: true,
+					Gid:      vkey,
+					Label:    lkey,
 				},
 				ID:  req.ID,
 				Ref: req.Ref,
@@ -490,8 +530,9 @@ func (ggraph *Graph) RawGetOutChannel(reqChan chan *RawElementLookup, edgeLabels
 						dstlkey := ggraph.kdb.keyMap.GetVertexLabel(ggraph.graphKey, dstvkey)
 						o <- &RawElementLookup{
 							Element: &RawDataElement{
-								Gid:   dstvkey,
-								Label: dstlkey,
+								IsVertex: true,
+								Gid:      dstvkey,
+								Label:    dstlkey,
 							},
 							ID:  req.ID,
 							Ref: req.Ref,
@@ -526,8 +567,9 @@ func (ggraph *Graph) RawGetInChannel(reqChan chan *RawElementLookup, edgeLabels 
 						srclkey := ggraph.kdb.keyMap.GetVertexLabel(ggraph.graphKey, srcvkey)
 						o <- &RawElementLookup{
 							Element: &RawDataElement{
-								Gid:   srcvkey,
-								Label: srclkey,
+								IsVertex: true,
+								Gid:      srcvkey,
+								Label:    srclkey,
 							},
 							ID:  req.ID,
 							Ref: req.Ref,
@@ -561,10 +603,11 @@ func (ggraph *Graph) RawGetOutEdgeChannel(reqChan chan *RawElementLookup, edgeLa
 					if len(edgeLabels) == 0 || setcmp.ContainsUint(edgeLabelKeys, lkey) {
 						o <- &RawElementLookup{
 							Element: &RawDataElement{
-								Gid:   ekey,
-								Label: lkey,
-								From:  srcvkey,
-								To:    dstvkey,
+								IsVertex: false,
+								Gid:      ekey,
+								Label:    lkey,
+								From:     srcvkey,
+								To:       dstvkey,
 							},
 							ID:  req.ID,
 							Ref: req.Ref,
@@ -598,10 +641,11 @@ func (ggraph *Graph) RawGetInEdgeChannel(reqChan chan *RawElementLookup, edgeLab
 					if len(edgeLabels) == 0 || setcmp.ContainsUint(edgeLabelKeys, lkey) {
 						o <- &RawElementLookup{
 							Element: &RawDataElement{
-								Gid:   ekey,
-								Label: lkey,
-								From:  srcvkey,
-								To:    dstvkey,
+								IsVertex: false,
+								Gid:      ekey,
+								Label:    lkey,
+								From:     srcvkey,
+								To:       dstvkey,
 							},
 							ID:  req.ID,
 							Ref: req.Ref,

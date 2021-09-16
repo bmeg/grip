@@ -6,9 +6,9 @@ import (
 
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
+	gripSchema "github.com/bmeg/grip/gripql/schema"
 	"github.com/bmeg/grip/log"
-	"github.com/bmeg/grip/protoutil"
-	"github.com/bmeg/grip/util"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 // BuildSchema returns the schema of a specific graph in the database
@@ -46,9 +46,9 @@ func (ma *KVGraph) sampleSchema(ctx context.Context, graph string, n uint32, ran
 		schema := map[string]interface{}{}
 		for i := range ma.idx.GetTermMatch(context.Background(), labelField, label, int(n)) {
 			v := gi.GetVertex(i, true)
-			data := protoutil.AsMap(v.Data)
+			data := v.Data
 			ds := gripql.GetDataFieldTypes(data)
-			util.MergeMaps(schema, ds)
+			gripSchema.MergeMaps(schema, ds)
 
 			reqChan := make(chan gdbi.ElementLookup, 1)
 			reqChan <- gdbi.ElementLookup{ID: i}
@@ -56,24 +56,26 @@ func (ma *KVGraph) sampleSchema(ctx context.Context, graph string, n uint32, ran
 			for e := range gi.GetOutEdgeChannel(ctx, reqChan, true, []string{}) {
 				o := gi.GetVertex(e.Edge.To, false)
 				k := fromtokey{from: v.Label, to: o.Label, label: e.Edge.Label}
-				ds := gripql.GetDataFieldTypes(protoutil.AsMap(e.Edge.Data))
+				ds := gripql.GetDataFieldTypes(e.Edge.Data)
 				if p, ok := fromToPairs[k]; ok {
-					fromToPairs[k] = util.MergeMaps(p, ds)
+					fromToPairs[k] = gripSchema.MergeMaps(p, ds)
 				} else {
 					fromToPairs[k] = ds
 				}
 			}
 		}
-		vSchema := &gripql.Vertex{Gid: label, Label: label, Data: protoutil.AsStruct(schema)}
+		sSchema, _ := structpb.NewStruct(schema)
+		vSchema := &gripql.Vertex{Gid: label, Label: label, Data: sSchema}
 		vOutput = append(vOutput, vSchema)
 	}
 	for k, v := range fromToPairs {
+		sV, _ := structpb.NewStruct(v.(map[string]interface{}))
 		eSchema := &gripql.Edge{
 			Gid:   fmt.Sprintf("(%s)--%s->(%s)", k.from, k.label, k.to),
 			Label: k.label,
 			From:  k.from,
 			To:    k.to,
-			Data:  protoutil.AsStruct(v.(map[string]interface{})),
+			Data:  sV,
 		}
 		eOutput = append(eOutput, eSchema)
 	}

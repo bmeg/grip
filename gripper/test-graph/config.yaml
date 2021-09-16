@@ -1,5 +1,14 @@
-Database: gripper
 
-Gripper:
-  Graphs:
-    swapi: ./swapi.yaml
+Default: badger
+
+Drivers:
+  badger:
+    Badger: grip-badger.db
+
+  swapi-driver:
+    Gripper:
+      MappingFile: ./swapi.yaml
+      Graph: swapi
+
+Sources:
+  tableServer: localhost:50051

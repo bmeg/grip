@@ -6,12 +6,12 @@ import (
 	"time"
 
 	"github.com/bmeg/grip/gripql"
+	gripSchema "github.com/bmeg/grip/gripql/schema"
 	"github.com/bmeg/grip/log"
-	"github.com/bmeg/grip/protoutil"
-	"github.com/bmeg/grip/util"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"golang.org/x/sync/errgroup"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 // BuildSchema returns the schema of a specific graph in the database
@@ -96,7 +96,7 @@ func (ma *GraphDB) getVertexSchema(ctx context.Context, graph string, n uint32, 
 					if err := cursor.Decode(&result); err == nil {
 						if result["data"] != nil {
 							ds := gripql.GetDataFieldTypes(result["data"].(map[string]interface{}))
-							util.MergeMaps(schema, ds)
+							gripSchema.MergeMaps(schema, ds)
 						}
 					} else {
 						log.WithFields(log.Fields{"graph": graph, "label": label, "error": err}).Error("getVertexSchema: bad vertex")
@@ -107,8 +107,8 @@ func (ma *GraphDB) getVertexSchema(ctx context.Context, graph string, n uint32, 
 				log.WithFields(log.Fields{"graph": graph, "label": label, "error": err}).Error("getVertexSchema: MongoDB: iter error")
 				return err
 			}
-
-			vSchema := &gripql.Vertex{Gid: label, Label: label, Data: protoutil.AsStruct(schema)}
+			sSchema, _ := structpb.NewStruct(schema)
+			vSchema := &gripql.Vertex{Gid: label, Label: label, Data: sSchema}
 			schemaChan <- vSchema
 			log.WithFields(log.Fields{"graph": graph, "label": label, "elapsed_time": time.Since(start).String()}).Debug("getVertexSchema: Finished schema build")
 			return nil
@@ -180,7 +180,7 @@ func (ma *GraphDB) getEdgeSchema(ctx context.Context, graph string, n uint32, ra
 						fromToPairs.Add(fromtokey{result["from"].(string), result["to"].(string)})
 						if result["data"] != nil {
 							ds := gripql.GetDataFieldTypes(result["data"].(map[string]interface{}))
-							util.MergeMaps(schema, ds)
+							gripSchema.MergeMaps(schema, ds)
 						}
 					} else {
 						log.WithFields(log.Fields{"graph": graph, "label": label, "error": err}).Error("getVertexSchema: bad vertex")
@@ -197,12 +197,13 @@ func (ma *GraphDB) getEdgeSchema(ctx context.Context, graph string, n uint32, ra
 			to := fromToPairs.GetTo()
 
 			for j := 0; j < len(from); j++ {
+				sSchema, _ := structpb.NewStruct(schema)
 				eSchema := &gripql.Edge{
 					Gid:   fmt.Sprintf("(%s)--%s->(%s)", from[j], label, to[j]),
 					Label: label,
 					From:  from[j],
 					To:    to[j],
-					Data:  protoutil.AsStruct(schema),
+					Data:  sSchema,
 				}
 				schemaChan <- eSchema
 			}

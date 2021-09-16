@@ -124,6 +124,15 @@
             </ul>
           </li>
           
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/databases/gripper/"
+                   class="sidebar-nav-item "
+                >GRIPPER</a></li>
+            </ul>
+          </li>
+          
           
         
         <li>
@@ -231,58 +240,64 @@
           
           
         
+        <li>
+          
+          <span class="intermediate">GIPPER</span></li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/gripper/gripper/"
+                   class="sidebar-nav-item "
+                >Intro</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/gripper/proxy/"
+                   class="sidebar-nav-item "
+                >External Resource Proxies</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/gripper/graphmodel/"
+                   class="sidebar-nav-item "
+                >Graph Model</a></li>
+            </ul>
+          </li>
+          
+          
+        
       
     </ul>
   </div>
 
   <div class="main col span_8_of_12">
-    
-
-<h1 id="graphql">GraphQL</h1>
-
+    <h1 id="graphql">GraphQL</h1>
 <p>GRIP supports GraphQL access of the property graphs. Currently this is read-only access to the graph.</p>
-
 <p><strong><em>GraphQL access is only supported when using the MongoDB driver</em></strong></p>
-
 <h3 id="load-built-in-example-graph">Load built-in example graph</h3>
-
 <p>Loading the example data and the example schema:</p>
-
 <pre><code>grip load example-graph
-</code></pre>
-
-<p>See the example graph</p>
-
+</code></pre><p>See the example graph</p>
 <pre><code>grip dump example-graph --vertex --edge
-</code></pre>
-
-<p>See the example graph schema</p>
-
+</code></pre><p>See the example graph schema</p>
 <pre><code>grip schema example-graph
-</code></pre>
-
-<h3 id="example-queries">Example queries</h3>
-
+</code></pre><h3 id="example-queries">Example queries</h3>
 <p>Get Types:</p>
-
 <pre><code>curl -X POST -H &quot;Content-Type:application/graphql&quot; -d '{__schema{types{name}}}' http://localhost:8201/graphql/example-graph
-</code></pre>
-
-<p>Get Info about Human object</p>
-
+</code></pre><p>Get Info about Human object</p>
 <pre><code>curl -X POST -H &quot;Content-Type:application/graphql&quot; -d '{__type(name:&quot;Human&quot;){fields{name}}}' http://localhost:8201/graphql/example-graph
-</code></pre>
-
-<p>Get List of all Human ids</p>
-
+</code></pre><p>Get List of all Human ids</p>
 <pre><code>curl -X POST -H &quot;Content-Type:application/graphql&quot; -d 'query {Human{id}}' http://localhost:8201/graphql/example-graph
-</code></pre>
-
-<p>Get Human 1000 and list their friends</p>
-
+</code></pre><p>Get Human 1000 and list their friends</p>
 <pre><code>curl -X POST -H &quot;Content-Type:application/graphql&quot; -d 'query {Human(id:&quot;1000&quot;){name,friend_to_Human{name}}}' http://localhost:8201/graphql/example-graph
 </code></pre>
-
   </div>
 
 </div>

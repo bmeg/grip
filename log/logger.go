@@ -11,8 +11,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/golang/protobuf/jsonpb"
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
+
 	"github.com/kr/pretty"
 	"github.com/logrusorgru/aurora"
 	"github.com/sirupsen/logrus"
@@ -97,7 +98,7 @@ func (f *jsonFormatter) Format(entry *logrus.Entry) ([]byte, error) {
 	return f.fmt.Format(entry)
 }
 
-var jsonmar = jsonpb.Marshaler{
+var jsonmar = protojson.MarshalOptions{
 	Indent: "  ",
 }
 
@@ -171,7 +172,7 @@ func (f *textFormatter) Format(entry *logrus.Entry) ([]byte, error) {
 		case proto.Message:
 			if reflect.ValueOf(x).IsNil() {
 				// do nothing
-			} else if s, err := jsonmar.MarshalToString(x); err == nil {
+			} else if s, err := jsonmar.Marshal(x); err == nil {
 				v = s
 			} else {
 				v = pretty.Sprint(x)

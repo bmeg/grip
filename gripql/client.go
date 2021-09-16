@@ -11,15 +11,16 @@ import (
 
 // Client is a GRPC grip client with some helper functions
 type Client struct {
-	QueryC QueryClient
-	EditC  EditClient
-	conn   *grpc.ClientConn
+	QueryC     QueryClient
+	EditC      EditClient
+	ConfigureC ConfigureClient
+	conn       *grpc.ClientConn
 }
 
 // WrapClient takes previously initialized GRPC clients and uses them for the
 // client wrapper
-func WrapClient(QueryC QueryClient, EditC EditClient) Client {
-	return Client{QueryC, EditC, nil}
+func WrapClient(QueryC QueryClient, EditC EditClient, ConfigureC ConfigureClient) Client {
+	return Client{QueryC, EditC, ConfigureC, nil}
 }
 
 // Connect opens a GRPC connection to an Grip server
@@ -29,11 +30,15 @@ func Connect(conf rpc.Config, write bool) (Client, error) {
 		return Client{}, err
 	}
 	queryOut := NewQueryClient(conn)
-	if !write {
-		return Client{queryOut, nil, conn}, nil
+	var editOut EditClient
+	if write {
+		editOut = NewEditClient(conn)
 	}
-	editOut := NewEditClient(conn)
-	return Client{queryOut, editOut, conn}, nil
+	return Client{queryOut, editOut, nil, conn}, nil
+}
+
+func (client Client) WithConfigureAPI() Client {
+	return Client{client.QueryC, client.EditC, NewConfigureClient(client.conn), client.conn}
 }
 
 // Close the connection
@@ -52,9 +57,46 @@ func (client Client) AddSchema(graph *Graph) error {
 	return err
 }
 
+// GetMaping returns the mapping for the given graph.
+func (client Client) GetMapping(graph string) (*Graph, error) {
+	return client.QueryC.GetMapping(context.Background(), &GraphID{Graph: graph})
+}
+
+// AddMapping adds a mapping for a graph.
+func (client Client) AddMapping(graph *Graph) error {
+	_, err := client.EditC.AddMapping(context.Background(), graph)
+	return err
+}
+
 // ListGraphs lists the graphs in the database
 func (client Client) ListGraphs() (*ListGraphsResponse, error) {
 	return client.QueryC.ListGraphs(context.Background(), &Empty{})
+}
+
+// ListTables lists the tables in the database
+func (client Client) ListTables() (chan *TableInfo, error) {
+	out := make(chan *TableInfo, 10)
+
+	clt, err := client.QueryC.ListTables(context.Background(), &Empty{})
+	if err != nil {
+		close(out)
+		return out, err
+	}
+	go func() {
+		defer close(out)
+		for {
+			t, err := clt.Recv()
+			if err == io.EOF {
+				return
+			}
+			if err != nil {
+				log.WithFields(log.Fields{"error": err}).Error("Receiving table list")
+				return
+			}
+			out <- t
+		}
+	}()
+	return out, nil
 }
 
 // ListIndices lists the indices on a graph in the database
@@ -156,4 +198,19 @@ func (client Client) Traversal(query *GraphQuery) (chan *QueryResult, error) {
 	}()
 
 	return out, nil
+}
+
+// ListDrivers lists avalible drivers
+func (client Client) ListDrivers() (*ListDriversResponse, error) {
+	return client.ConfigureC.ListDrivers(context.Background(), &Empty{})
+}
+
+// ListPlugins
+func (client Client) ListPlugins() (*ListPluginsResponse, error) {
+	return client.ConfigureC.ListPlugins(context.Background(), &Empty{})
+}
+
+// ListPlugins
+func (client Client) StartPlugin(conf *PluginConfig) (*PluginStatus, error) {
+	return client.ConfigureC.StartPlugin(context.Background(), conf)
 }

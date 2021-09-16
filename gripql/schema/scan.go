@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	"github.com/bmeg/grip/gripql"
-	"github.com/bmeg/grip/protoutil"
-	"github.com/bmeg/grip/util"
+	"github.com/bmeg/grip/log"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 type edgeKey struct {
@@ -39,16 +39,23 @@ func ScanSchema(conn gripql.Client, graph string, sampleCount uint32, exclude []
 			continue
 		}
 		schema := map[string]interface{}{}
+		log.Infof("Scanning %s\n", label)
 		nodeQuery := gripql.V().HasLabel(label).Limit(sampleCount)
 		nodeRes, err := conn.Traversal(&gripql.GraphQuery{Graph: graph, Query: nodeQuery.Statements})
 		if err == nil {
 			for row := range nodeRes {
 				v := row.GetVertex()
-				data := protoutil.AsMap(v.Data)
+				data := v.Data.AsMap()
 				ds := gripql.GetDataFieldTypes(data)
-				util.MergeMaps(schema, ds)
+				MergeMaps(schema, ds)
 			}
-			vList = append(vList, &gripql.Vertex{Gid: label, Label: label, Data: protoutil.AsStruct(schema)})
+			sValue, err := structpb.NewStruct(schema)
+			if err != nil {
+				log.Error(err)
+			}
+			vList = append(vList, &gripql.Vertex{Gid: label, Label: label, Data: sValue})
+		} else {
+			log.Errorf("Traversal error: %s", err)
 		}
 	}
 
@@ -57,6 +64,7 @@ func ScanSchema(conn gripql.Client, graph string, sampleCount uint32, exclude []
 		if stringInSlice(elabel, exclude) {
 			continue
 		}
+		log.Infof("Scanning edge %s\n", elabel)
 		edgeQuery := gripql.E().HasLabel(elabel).Limit(sampleCount).As("edge").Out().Fields().As("to").Select("edge").In().Fields().As("from").Select("edge", "from", "to")
 		edgeRes, err := conn.Traversal(&gripql.GraphQuery{Graph: graph, Query: edgeQuery.Statements})
 		if err == nil {
@@ -66,21 +74,22 @@ func ScanSchema(conn gripql.Client, graph string, sampleCount uint32, exclude []
 				edge := sel["edge"].GetEdge()
 				src := sel["from"].GetVertex()
 				dst := sel["to"].GetVertex()
-				ds := gripql.GetDataFieldTypes(protoutil.AsMap(edge.Data))
+				ds := gripql.GetDataFieldTypes(edge.Data.AsMap())
 				k := edgeKey{to: dst.Label, from: src.Label, label: edge.Label}
 				if p, ok := labelSchema[k]; ok {
-					labelSchema[k] = util.MergeMaps(p, ds)
+					labelSchema[k] = MergeMaps(p, ds)
 				} else {
 					labelSchema[k] = ds
 				}
 			}
 			for k, v := range labelSchema {
+				sValue, _ := structpb.NewStruct(v.(map[string]interface{}))
 				eSchema := &gripql.Edge{
 					Gid:   fmt.Sprintf("(%s)-%s->(%s)", k.from, k.label, k.to),
 					Label: k.label,
 					From:  k.from,
 					To:    k.to,
-					Data:  protoutil.AsStruct(v.(map[string]interface{})),
+					Data:  sValue,
 				}
 				eList = append(eList, eSchema)
 			}

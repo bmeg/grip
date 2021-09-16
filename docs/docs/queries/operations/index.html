@@ -70,14 +70,67 @@
         
         <li>
           
-          <a href="https://bmeg.github.io/grip/graph_schemas/"
-             class="sidebar-nav-item "
-          >Graph Schemas</a></li>
+          <span class="intermediate">GRIP Commands</span></li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/commands/server/"
+                   class="sidebar-nav-item "
+                >server</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/commands/query/"
+                   class="sidebar-nav-item "
+                >query</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/commands/list/"
+                   class="sidebar-nav-item "
+                >list</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/commands/drop/"
+                   class="sidebar-nav-item "
+                >drop</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/commands/mongoload/"
+                   class="sidebar-nav-item "
+                >mongoload</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/commands/er/"
+                   class="sidebar-nav-item "
+                >er</a></li>
+            </ul>
+          </li>
+          
           
         
         <li>
           
-          <span class="intermediate">Setup your Database</span></li>
+          <span class="intermediate">Database Configuration</span></li>
           
           <li>
             <ul class="sidebar-nav sidebar-nav-nested">
@@ -124,6 +177,48 @@
             </ul>
           </li>
           
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/databases/gripper/"
+                   class="sidebar-nav-item "
+                >GRIPPER</a></li>
+            </ul>
+          </li>
+          
+          
+        
+        <li>
+          
+          <span class="intermediate">GRIP Plugable External Resources</span></li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/gripper/gripper/"
+                   class="sidebar-nav-item "
+                >Intro</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/gripper/proxy/"
+                   class="sidebar-nav-item "
+                >External Resource Proxies</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/gripper/graphmodel/"
+                   class="sidebar-nav-item "
+                >Graph Model</a></li>
+            </ul>
+          </li>
+          
           
         
         <li>
@@ -160,9 +255,9 @@
           <li>
             <ul class="sidebar-nav sidebar-nav-nested">
               <li>
-                <a href="https://bmeg.github.io/grip/docs/queries/graphql/"
+                <a href="https://bmeg.github.io/grip/docs/queries/jobs_api/"
                    class="sidebar-nav-item "
-                >GraphQL</a></li>
+                >Jobs API</a></li>
             </ul>
           </li>
           
@@ -209,6 +304,30 @@
         
         <li>
           
+          <span class="intermediate">GraphQL</span></li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/graphql/graphql/"
+                   class="sidebar-nav-item "
+                >GraphQL</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/graphql/graph_schemas/"
+                   class="sidebar-nav-item "
+                >Graph Schemas</a></li>
+            </ul>
+          </li>
+          
+          
+        
+        <li>
+          
           <span class="intermediate">Developers</span></li>
           
           <li>
@@ -236,280 +355,134 @@
   </div>
 
   <div class="main col span_8_of_12">
-    
-
-<h1 id="start-a-traversal">Start a Traversal</h1>
-
-<h2 id="v-ids">.V([ids])</h2>
-
+    <h1 id="start-a-traversal">Start a Traversal</h1>
+<h2 id="vids">.V([ids])</h2>
 <p>Start query from Vertex</p>
-
-<pre><code class="language-python">G.query().V()
-</code></pre>
-
-<p>Returns all vertices in graph</p>
-
-<pre><code class="language-python">G.query().V([&quot;vertex1]&quot;)
-</code></pre>
-
-<p>Returns:</p>
-
-<pre><code class="language-json">{&quot;gid&quot; : &quot;vertex1&quot;, &quot;label&quot;:&quot;TestVertex&quot;, &quot;data&quot;:{}}
-</code></pre>
-
-<h2 id="e-ids">.E([ids])</h2>
-
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python">G<span style="color:#f92672">.</span>query()<span style="color:#f92672">.</span>V()
+</code></pre></div><p>Returns all vertices in graph</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python">G<span style="color:#f92672">.</span>query()<span style="color:#f92672">.</span>V([<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">vertex1]</span><span style="color:#e6db74">&#34;</span>)
+</code></pre></div><p>Returns:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-json" data-lang="json">{<span style="color:#f92672">&#34;gid&#34;</span> : <span style="color:#e6db74">&#34;vertex1&#34;</span>, <span style="color:#f92672">&#34;label&#34;</span>:<span style="color:#e6db74">&#34;TestVertex&#34;</span>, <span style="color:#f92672">&#34;data&#34;</span>:{}}
+</code></pre></div><h2 id="eids">.E([ids])</h2>
 <p>Start query from Edge</p>
-
-<pre><code class="language-python">G.query().E()
-</code></pre>
-
-<p>Returns all edges in graph</p>
-
-<pre><code class="language-python">G.query().E([&quot;edge1&quot;])
-</code></pre>
-
-<p>Returns:</p>
-
-<pre><code class="language-json">{&quot;gid&quot; : &quot;edge1&quot;, &quot;label&quot;:&quot;TestEdge&quot;, From: &quot;vertex1&quot;, To: &quot;vertex2&quot;, data&quot;:{}}
-</code></pre>
-
-<h1 id="traverse-the-graph">Traverse the graph</h1>
-
-<h2 id="in-inv">.in_(), inV()</h2>
-
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python">G<span style="color:#f92672">.</span>query()<span style="color:#f92672">.</span>E()
+</code></pre></div><p>Returns all edges in graph</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python">G<span style="color:#f92672">.</span>query()<span style="color:#f92672">.</span>E([<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">edge1</span><span style="color:#e6db74">&#34;</span>])
+</code></pre></div><p>Returns:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-json" data-lang="json">{<span style="color:#f92672">&#34;gid&#34;</span> : <span style="color:#e6db74">&#34;edge1&#34;</span>, <span style="color:#f92672">&#34;label&#34;</span>:<span style="color:#e6db74">&#34;TestEdge&#34;</span>, <span style="color:#960050;background-color:#1e0010">F</span><span style="color:#960050;background-color:#1e0010">r</span><span style="color:#960050;background-color:#1e0010">o</span><span style="color:#960050;background-color:#1e0010">m</span><span style="color:#960050;background-color:#1e0010">:</span> <span style="color:#f92672">&#34;vertex1&#34;</span>, <span style="color:#960050;background-color:#1e0010">T</span><span style="color:#960050;background-color:#1e0010">o</span><span style="color:#960050;background-color:#1e0010">:</span> <span style="color:#f92672">&#34;vertex2&#34;</span>, <span style="color:#960050;background-color:#1e0010">d</span><span style="color:#960050;background-color:#1e0010">a</span><span style="color:#960050;background-color:#1e0010">t</span><span style="color:#960050;background-color:#1e0010">a</span><span style="color:#960050;background-color:#1e0010">&#34;</span><span style="color:#960050;background-color:#1e0010">:</span><span style="color:#960050;background-color:#1e0010">{</span>}<span style="color:#960050;background-color:#1e0010">}</span>
+</code></pre></div><h1 id="traverse-the-graph">Traverse the graph</h1>
+<h2 id="in_-inv">.in_(), inV()</h2>
 <p>Following incoming edges. Optional argument is the edge label (or list of labels) that should be followed. If no argument is provided, all incoming edges.</p>
-
 <h2 id="out-outv">.out(), .outV()</h2>
-
 <p>Following outgoing edges. Optional argument is the edge label (or list of labels) that should be followed. If no argument is provided, all outgoing edges.</p>
-
 <h2 id="both-bothv">.both(), .bothV()</h2>
-
 <p>Following all edges (both in and out). Optional argument is the edge label (or list of labels) that should be followed.</p>
-
 <h2 id="ine">.inE()</h2>
-
 <p>Following incoming edges, but return the edge as the next element. This can be used to inspect edge properties. Optional argument is the edge label (or list of labels) that should be followed. To return back to a vertex, use <code>.in_</code> or <code>.out</code></p>
-
 <h2 id="oute">.outE()</h2>
-
 <p>Following outgoing edges, but return the edge as the next element. This can be used to inspect edge properties. Optional argument is the edge label (or list of labels) that should be followed. To return back to a vertex, use <code>.in_</code> or <code>.out</code></p>
-
 <h2 id="bothe">.bothE()</h2>
-
 <p>Following all edges, but return the edge as the next element. This can be used to inspect edge properties. Optional argument is the edge label (or list of labels) that should be followed. To return back to a vertex, use <code>.in_</code> or <code>.out</code></p>
-
 <h1 id="filtering">Filtering</h1>
-
 <h2 id="has">.has()</h2>
-
 <p>Filter elements using conditional statements</p>
-
-<pre><code class="language-python">G.query().V().has(gripql.eq(&quot;_label&quot;, &quot;Gene&quot;)).has(gripql.eq(&quot;symbol&quot;, &quot;TP53&quot;))
-</code></pre>
-
-<h2 id="conditions">Conditions</h2>
-
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python">G<span style="color:#f92672">.</span>query()<span style="color:#f92672">.</span>V()<span style="color:#f92672">.</span>has(gripql<span style="color:#f92672">.</span>eq(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">_label</span><span style="color:#e6db74">&#34;</span>, <span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Gene</span><span style="color:#e6db74">&#34;</span>))<span style="color:#f92672">.</span>has(gripql<span style="color:#f92672">.</span>eq(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">symbol</span><span style="color:#e6db74">&#34;</span>, <span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">TP53</span><span style="color:#e6db74">&#34;</span>))
+</code></pre></div><h2 id="conditions">Conditions</h2>
 <p>Conditions are arguments to <code>.has()</code> that define selection conditions</p>
-
-<h3 id="gripql-eq-variable-value">gripql.eq(variable, value)</h3>
-
+<h3 id="gripqleqvariable-value">gripql.eq(variable, value)</h3>
 <p>Returns rows where variable == value</p>
-
-<pre><code class="language-python">.has(gripql.eq(&quot;symbol&quot;, &quot;TP53&quot;))
-</code></pre>
-
-<h3 id="gripql-neq-variable-value">gripql.neq(variable, value)</h3>
-
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python"><span style="color:#f92672">.</span>has(gripql<span style="color:#f92672">.</span>eq(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">symbol</span><span style="color:#e6db74">&#34;</span>, <span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">TP53</span><span style="color:#e6db74">&#34;</span>))
+</code></pre></div><h3 id="gripqlneqvariable-value">gripql.neq(variable, value)</h3>
 <p>Returns rows where variable != value</p>
-
-<pre><code class="language-python">.has(gripql.neq(&quot;symbol&quot;, &quot;TP53&quot;))
-</code></pre>
-
-<h3 id="gripql-gt-variable-value">gripql.gt(variable, value)</h3>
-
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python"><span style="color:#f92672">.</span>has(gripql<span style="color:#f92672">.</span>neq(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">symbol</span><span style="color:#e6db74">&#34;</span>, <span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">TP53</span><span style="color:#e6db74">&#34;</span>))
+</code></pre></div><h3 id="gripqlgtvariable-value">gripql.gt(variable, value)</h3>
 <p>Returns rows where variable &gt; value</p>
-
-<pre><code class="language-python">.has(gripql.gt(&quot;age&quot;, 45))
-</code></pre>
-
-<h3 id="gripql-lt-variable-value">gripql.lt(variable, value)</h3>
-
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python"><span style="color:#f92672">.</span>has(gripql<span style="color:#f92672">.</span>gt(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">age</span><span style="color:#e6db74">&#34;</span>, <span style="color:#ae81ff">45</span>))
+</code></pre></div><h3 id="gripqlltvariable-value">gripql.lt(variable, value)</h3>
 <p>Returns rows where variable &lt; value</p>
-
-<pre><code class="language-python">.has(gripql.lt(&quot;age&quot;, 45))
-</code></pre>
-
-<h3 id="gripql-gte-variable-value">gripql.gte(variable, value)</h3>
-
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python"><span style="color:#f92672">.</span>has(gripql<span style="color:#f92672">.</span>lt(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">age</span><span style="color:#e6db74">&#34;</span>, <span style="color:#ae81ff">45</span>))
+</code></pre></div><h3 id="gripqlgtevariable-value">gripql.gte(variable, value)</h3>
 <p>Returns rows where variable &gt;= value</p>
-
-<pre><code class="language-python">.has(gripql.gte(&quot;age&quot;, 45))
-</code></pre>
-
-<h3 id="gripql-lte-variable-value">gripql.lte(variable, value)</h3>
-
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python"><span style="color:#f92672">.</span>has(gripql<span style="color:#f92672">.</span>gte(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">age</span><span style="color:#e6db74">&#34;</span>, <span style="color:#ae81ff">45</span>))
+</code></pre></div><h3 id="gripqlltevariable-value">gripql.lte(variable, value)</h3>
 <p>Returns rows where variable &lt;= value</p>
-
-<pre><code class="language-python">.has(gripql.lte(&quot;age&quot;, 45))
-</code></pre>
-
-<h3 id="gripql-inside-variable-lower-bound-upper-bound">gripql.inside(variable, [lower_bound, upper_bound])</h3>
-
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python"><span style="color:#f92672">.</span>has(gripql<span style="color:#f92672">.</span>lte(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">age</span><span style="color:#e6db74">&#34;</span>, <span style="color:#ae81ff">45</span>))
+</code></pre></div><h3 id="gripqlinsidevariable-lower_bound-upper_bound">gripql.inside(variable, [lower_bound, upper_bound])</h3>
 <p>Returns rows where variable &gt; lower_bound &amp;&amp; variable &lt; upper_bound</p>
-
-<pre><code class="language-python">.has(gripql.inside(&quot;age&quot;, [30, 45]))
-</code></pre>
-
-<h3 id="gripql-outside-variable-lower-bound-upper-bound">gripql.outside(variable, [lower_bound, upper_bound])</h3>
-
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python"><span style="color:#f92672">.</span>has(gripql<span style="color:#f92672">.</span>inside(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">age</span><span style="color:#e6db74">&#34;</span>, [<span style="color:#ae81ff">30</span>, <span style="color:#ae81ff">45</span>]))
+</code></pre></div><h3 id="gripqloutsidevariable-lower_bound-upper_bound">gripql.outside(variable, [lower_bound, upper_bound])</h3>
 <p>Returns rows where variable &lt; lower_bound || variable &gt; upper_bound</p>
-
-<pre><code class="language-python">.has(gripql.outside(&quot;age&quot;, [30, 45]))
-</code></pre>
-
-<h3 id="gripql-between-variable-lower-bound-upper-bound">gripql.between(variable, [lower_bound, upper_bound])</h3>
-
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python"><span style="color:#f92672">.</span>has(gripql<span style="color:#f92672">.</span>outside(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">age</span><span style="color:#e6db74">&#34;</span>, [<span style="color:#ae81ff">30</span>, <span style="color:#ae81ff">45</span>]))
+</code></pre></div><h3 id="gripqlbetweenvariable-lower_bound-upper_bound">gripql.between(variable, [lower_bound, upper_bound])</h3>
 <p>Returns rows where variable &gt;= lower_bound &amp;&amp; variable &lt; upper_bound</p>
-
-<pre><code class="language-python">.has(gripql.between(&quot;age&quot;, [30, 45]))
-</code></pre>
-
-<h3 id="gripql-within-variable-value">gripql.within(variable, value)</h3>
-
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python"><span style="color:#f92672">.</span>has(gripql<span style="color:#f92672">.</span>between(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">age</span><span style="color:#e6db74">&#34;</span>, [<span style="color:#ae81ff">30</span>, <span style="color:#ae81ff">45</span>]))
+</code></pre></div><h3 id="gripqlwithinvariable-value">gripql.within(variable, value)</h3>
 <p>Returns rows where variable is within provided values</p>
-
-<pre><code class="language-python">.has(gripql.within(&quot;symbol&quot;, [&quot;TP53&quot;, &quot;BRCA1&quot;]))
-</code></pre>
-
-<h3 id="gripql-without-variable-value">gripql.without(variable, value)</h3>
-
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python"><span style="color:#f92672">.</span>has(gripql<span style="color:#f92672">.</span>within(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">symbol</span><span style="color:#e6db74">&#34;</span>, [<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">TP53</span><span style="color:#e6db74">&#34;</span>, <span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">BRCA1</span><span style="color:#e6db74">&#34;</span>]))
+</code></pre></div><h3 id="gripqlwithoutvariable-value">gripql.without(variable, value)</h3>
 <p>Returns rows where variable is not within provided values</p>
-
-<pre><code class="language-python">.has(gripql.within(&quot;symbol&quot;, [&quot;TP53&quot;, &quot;BRCA1&quot;]))
-</code></pre>
-
-<h3 id="gripql-contains-variable-value">gripql.contains(variable, value)</h3>
-
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python"><span style="color:#f92672">.</span>has(gripql<span style="color:#f92672">.</span>within(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">symbol</span><span style="color:#e6db74">&#34;</span>, [<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">TP53</span><span style="color:#e6db74">&#34;</span>, <span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">BRCA1</span><span style="color:#e6db74">&#34;</span>]))
+</code></pre></div><h3 id="gripqlcontainsvariable-value">gripql.contains(variable, value)</h3>
 <p>Returns rows where variable contains value</p>
-
-<pre><code class="language-python">.has(gripql.in_(&quot;groups&quot;, &quot;group1&quot;))
-</code></pre>
-
-<p>Returns:</p>
-
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python"><span style="color:#f92672">.</span>has(gripql<span style="color:#f92672">.</span>in_(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">groups</span><span style="color:#e6db74">&#34;</span>, <span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">group1</span><span style="color:#e6db74">&#34;</span>))
+</code></pre></div><p>Returns:</p>
 <pre><code>{&quot;data&quot; : {&quot;groups&quot; : [&quot;group1&quot;, &quot;group2&quot;]}}
-</code></pre>
-
-<h3 id="gripql-and-conditions">gripql.and_([conditions])</h3>
-
-<pre><code class="language-python">.has(gripql.and_( [gripql.lte(&quot;age&quot;, 45), gripql.gte(&quot;age&quot;, 35)] ))
-</code></pre>
-
-<h3 id="gripql-or-conditions">gripql.or_([conditions])</h3>
-
-<pre><code class="language-python">.has(gripql.or_( [...] ))
-</code></pre>
-
-<h3 id="gripql-not-condition">gripql.not_(condition)</h3>
-
-<pre><code class="language-python">.has(gripql.not_( [...] ))
-</code></pre>
-
-<h1 id="output">Output</h1>
-
-<h2 id="as-name">.as_(name)</h2>
-
+</code></pre><h3 id="gripqland_conditions">gripql.and_([conditions])</h3>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python"><span style="color:#f92672">.</span>has(gripql<span style="color:#f92672">.</span>and_( [gripql<span style="color:#f92672">.</span>lte(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">age</span><span style="color:#e6db74">&#34;</span>, <span style="color:#ae81ff">45</span>), gripql<span style="color:#f92672">.</span>gte(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">age</span><span style="color:#e6db74">&#34;</span>, <span style="color:#ae81ff">35</span>)] ))
+</code></pre></div><h3 id="gripqlor_conditions">gripql.or_([conditions])</h3>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python"><span style="color:#f92672">.</span>has(gripql<span style="color:#f92672">.</span>or_( [<span style="color:#f92672">.</span><span style="color:#f92672">.</span><span style="color:#f92672">.</span>] ))
+</code></pre></div><h3 id="gripqlnot_condition">gripql.not_(condition)</h3>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python"><span style="color:#f92672">.</span>has(gripql<span style="color:#f92672">.</span>not_( [<span style="color:#f92672">.</span><span style="color:#f92672">.</span><span style="color:#f92672">.</span>] ))
+</code></pre></div><h1 id="output">Output</h1>
+<h2 id="as_name">.as_(name)</h2>
 <p>Store current row for future reference</p>
-
-<pre><code class="language-python">G.query().V().as_(&quot;a&quot;).out().as_(&quot;b&quot;)
-</code></pre>
-
-<h2 id="select-names">.select([names])</h2>
-
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python">G<span style="color:#f92672">.</span>query()<span style="color:#f92672">.</span>V()<span style="color:#f92672">.</span>as_(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">a</span><span style="color:#e6db74">&#34;</span>)<span style="color:#f92672">.</span>out()<span style="color:#f92672">.</span>as_(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;</span>)
+</code></pre></div><h2 id="selectnames">.select([names])</h2>
 <p>Output previously marked elements</p>
-
-<pre><code class="language-python">G.query().V().mark(&quot;a&quot;).out().mark(&quot;b&quot;).select([&quot;a&quot;, &quot;b&quot;])
-</code></pre>
-
-<h2 id="limit-count">.limit(count)</h2>
-
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python">G<span style="color:#f92672">.</span>query()<span style="color:#f92672">.</span>V()<span style="color:#f92672">.</span>mark(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">a</span><span style="color:#e6db74">&#34;</span>)<span style="color:#f92672">.</span>out()<span style="color:#f92672">.</span>mark(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;</span>)<span style="color:#f92672">.</span>select([<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">a</span><span style="color:#e6db74">&#34;</span>, <span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;</span>])
+</code></pre></div><h2 id="limitcount">.limit(count)</h2>
 <p>Limit number of total output rows</p>
-
-<pre><code class="language-python">G.query().V().limit(5)
-</code></pre>
-
-<h2 id="skip-count">.skip(count)</h2>
-
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python">G<span style="color:#f92672">.</span>query()<span style="color:#f92672">.</span>V()<span style="color:#f92672">.</span>limit(<span style="color:#ae81ff">5</span>)
+</code></pre></div><h2 id="skipcount">.skip(count)</h2>
 <p>Start return after offset</p>
-
-<pre><code class="language-python">G.query().V().skip(5).limit(5)
-</code></pre>
-
-<h2 id="range-start-stop">.range(start, stop)</h2>
-
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python">G<span style="color:#f92672">.</span>query()<span style="color:#f92672">.</span>V()<span style="color:#f92672">.</span>skip(<span style="color:#ae81ff">5</span>)<span style="color:#f92672">.</span>limit(<span style="color:#ae81ff">5</span>)
+</code></pre></div><h2 id="rangestart-stop">.range(start, stop)</h2>
 <p>As results are iterated return objects starting with lower index As traversers propagate through the traversal, it is possible to only allow a certain number of them to pass through with range()-step (filter). When the low-end of the range is not met, objects are continued to be iterated. When within the low (inclusive) and high (exclusive) range, traversers are emitted. When above the high range, the traversal breaks out of iteration. Finally, the use of -1 on the high range will emit remaining traversers after the low range begins.</p>
-
-<pre><code class="language-python">G.query().V().range(5, 15)
-</code></pre>
-
-<h2 id="fields-fields">.fields([fields])</h2>
-
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python">G<span style="color:#f92672">.</span>query()<span style="color:#f92672">.</span>V()<span style="color:#f92672">.</span>range(<span style="color:#ae81ff">5</span>, <span style="color:#ae81ff">15</span>)
+</code></pre></div><h2 id="fieldsfields">.fields([fields])</h2>
 <p>Select which vertex/edge fields to return or exlucde. Operation with no arguments exlcudes all properties.
 &ldquo;gid&rdquo;, &ldquo;label&rdquo;, &ldquo;from&rdquo; and &ldquo;to&rdquo; are included by default.</p>
-
-<pre><code class="language-python">O.query().V(&quot;vertex1&quot;).fields(&quot;symbol&quot;)     # include only symbol property
-O.query().V(&quot;vertex1&quot;).fields(&quot;-symbol&quot;)    # exclude symbol property
-O.query().V(&quot;vertex1&quot;).fields()             # exclude all properties
-</code></pre>
-
-<h2 id="render-template">.render(template)</h2>
-
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python">O<span style="color:#f92672">.</span>query()<span style="color:#f92672">.</span>V(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">vertex1</span><span style="color:#e6db74">&#34;</span>)<span style="color:#f92672">.</span>fields(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">symbol</span><span style="color:#e6db74">&#34;</span>)     <span style="color:#75715e"># include only symbol property</span>
+O<span style="color:#f92672">.</span>query()<span style="color:#f92672">.</span>V(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">vertex1</span><span style="color:#e6db74">&#34;</span>)<span style="color:#f92672">.</span>fields(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">-symbol</span><span style="color:#e6db74">&#34;</span>)    <span style="color:#75715e"># exclude symbol property</span>
+O<span style="color:#f92672">.</span>query()<span style="color:#f92672">.</span>V(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">vertex1</span><span style="color:#e6db74">&#34;</span>)<span style="color:#f92672">.</span>fields()             <span style="color:#75715e"># exclude all properties</span>
+</code></pre></div><h2 id="rendertemplate">.render(template)</h2>
 <p>Render current selection into arbitrary data structure</p>
-
-<pre><code class="language-python">G.query().V(&quot;vertex1&quot;).render()
-</code></pre>
-
-<h2 id="aggregate-aggregations">.aggregate([aggregations])</h2>
-
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python">G<span style="color:#f92672">.</span>query()<span style="color:#f92672">.</span>V(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">vertex1</span><span style="color:#e6db74">&#34;</span>)<span style="color:#f92672">.</span>render()
+</code></pre></div><h2 id="aggregateaggregations">.aggregate([aggregations])</h2>
 <p>Aggregate fields in the returned edges/vertices.</p>
-
 <h2 id="aggregation-types">Aggregation Types</h2>
-
-<h3 id="gripql-term-name-field-size">.gripql.term(name, field, size)</h3>
-
+<h3 id="gripqltermname-field-size">.gripql.term(name, field, size)</h3>
 <p>Return top n terms and their counts for a field.</p>
-
 <pre><code>G.query().V().hasLabel(&quot;Person&quot;).aggregate(gripql.term(&quot;top-names&quot;, &quot;name&quot;, 10))
-</code></pre>
-
-<p>Counts <code>name</code> occurences across <code>Person</code> vertices and returns the 10 most frequent <code>name</code> values.</p>
-
-<h3 id="gripql-histogram-name-field-interval">.gripql.histogram(name, field, interval)</h3>
-
+</code></pre><p>Counts <code>name</code> occurences across <code>Person</code> vertices and returns the 10 most frequent <code>name</code> values.</p>
+<h3 id="gripqlhistogramname-field-interval">.gripql.histogram(name, field, interval)</h3>
 <p>Return binned counts for a field.</p>
-
 <pre><code>G.query().V().hasLabel(&quot;Person&quot;).aggregate(gripql.histogram(&quot;age-hist&quot;, &quot;age&quot;, 5))
-</code></pre>
-
-<p>Creates a histogram of <code>age</code> values with bins of width 5 across <code>Person</code> vertices.</p>
-
-<h3 id="gripql-percentile-name-field-percents">.gripql.percentile(name, field, percents=[])</h3>
-
+</code></pre><p>Creates a histogram of <code>age</code> values with bins of width 5 across <code>Person</code> vertices.</p>
+<h3 id="gripqlpercentilename-field-percents">.gripql.percentile(name, field, percents=[])</h3>
 <p>Return percentiles for a field.</p>
-
 <pre><code>G.query().V().hasLabel(&quot;Person&quot;).aggregate(gripql.percentile(&quot;age-percentiles&quot;, &quot;age&quot;, [25,50,75]))
-</code></pre>
-
-<p>Calculates the 25th, 50th, and 75th percentiles for <code>age</code> values across <code>Person</code> vertices.</p>
-
+</code></pre><p>Calculates the 25th, 50th, and 75th percentiles for <code>age</code> values across <code>Person</code> vertices.</p>
+<h3 id="gripqlgripqlfieldfields-_data">.gripql.gripql.field(&ldquo;fields&rdquo;, &ldquo;$._data&rdquo;))</h3>
+<p>Returns all of the fields found in the data structure. Use <code>$._data</code> to get a listing
+of all fields found at the root level of records.</p>
+<h3 id="gripqltypename-field">gripql.type(name, field)</h3>
+<p>Returns the data type of requested field. For the python client, if <code>field</code> is not provided, it is copied from <code>name</code>.
+Current returned types include <code>NUMERIC</code>, <code>STRING</code> and <code>UNKNOWN</code>. If a field is always null, or has multiple types, it will
+be returned as <code>UNKNOWN</code>.</p>
 <h2 id="count">.count()</h2>
-
 <p>Return the total count of returned edges/vertices.</p>
-
-<h2 id="distinct-fields">.distinct([fields])</h2>
-
+<h2 id="distinctfields">.distinct([fields])</h2>
 <p>Only return distinct elements. An array of one or more fields may be passed in to define what elements are used to identify uniqueness. If none are
 provided, the <code>gid</code> is used.</p>
 

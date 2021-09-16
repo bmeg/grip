@@ -3,12 +3,11 @@ package server
 import (
 	"fmt"
 	"io"
-	"strings"
-	"time"
-
 	"sync"
 
 	"github.com/bmeg/grip/engine/pipeline"
+	"github.com/bmeg/grip/gdbi"
+	"github.com/bmeg/grip/gripper"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/util"
@@ -19,16 +18,20 @@ import (
 
 // Traversal parses a traversal request and streams the results back
 func (server *GripServer) Traversal(query *gripql.GraphQuery, queryServer gripql.Query_TraversalServer) error {
-	graph, err := server.db.Graph(query.Graph)
+	gdb, err := server.getGraphDB(query.Graph)
+	if err != nil {
+		return err
+	}
+	graph, err := gdb.Graph(query.Graph)
 	if err != nil {
 		return err
 	}
 	compiler := graph.Compiler()
-	compiledPipeline, err := compiler.Compile(query.Query)
+	compiledPipeline, err := compiler.Compile(query.Query, nil)
 	if err != nil {
 		return err
 	}
-	res := pipeline.Run(queryServer.Context(), compiledPipeline, server.conf.WorkDir)
+	res := pipeline.Run(queryServer.Context(), compiledPipeline, server.conf.Server.WorkDir)
 	err = nil
 	for row := range res {
 		if err == nil {
@@ -43,13 +46,34 @@ func (server *GripServer) Traversal(query *gripql.GraphQuery, queryServer gripql
 
 // ListGraphs returns a list of graphs managed by the driver
 func (server *GripServer) ListGraphs(ctx context.Context, empty *gripql.Empty) (*gripql.ListGraphsResponse, error) {
-	graphs := server.db.ListGraphs()
+	//server.updateGraphMap()
+	graphs := []string{}
+	for g := range server.graphMap {
+		graphs = append(graphs, g)
+	}
 	return &gripql.ListGraphsResponse{Graphs: graphs}, nil
+}
+
+// ListTables returns list of all tables that are found in plugin system
+func (server *GripServer) ListTables(empty *gripql.Empty, srv gripql.Query_ListTablesServer) error {
+	client := gripper.NewGripperClient(server.sources)
+
+	for k := range server.sources {
+		for col := range client.GetCollections(context.Background(), k) {
+			info, _ := client.GetCollectionInfo(context.Background(), k, col)
+			srv.Send(&gripql.TableInfo{Source: k, Name: col, Fields: info.SearchFields, LinkMap: info.LinkMap})
+		}
+	}
+	return nil
 }
 
 // GetVertex returns a vertex given a gripql.Element
 func (server *GripServer) GetVertex(ctx context.Context, elem *gripql.ElementID) (*gripql.Vertex, error) {
-	graph, err := server.db.Graph(elem.Graph)
+	gdb, err := server.getGraphDB(elem.Graph)
+	if err != nil {
+		return nil, err
+	}
+	graph, err := gdb.Graph(elem.Graph)
 	if err != nil {
 		return nil, err
 	}
@@ -57,12 +81,16 @@ func (server *GripServer) GetVertex(ctx context.Context, elem *gripql.ElementID)
 	if o == nil {
 		return nil, grpc.Errorf(codes.NotFound, fmt.Sprintf("vertex %s not found", elem.Id))
 	}
-	return o, nil
+	return o.ToVertex(), nil
 }
 
 // GetEdge returns an edge given a gripql.Element
 func (server *GripServer) GetEdge(ctx context.Context, elem *gripql.ElementID) (*gripql.Edge, error) {
-	graph, err := server.db.Graph(elem.Graph)
+	gdb, err := server.getGraphDB(elem.Graph)
+	if err != nil {
+		return nil, err
+	}
+	graph, err := gdb.Graph(elem.Graph)
 	if err != nil {
 		return nil, err
 	}
@@ -70,12 +98,16 @@ func (server *GripServer) GetEdge(ctx context.Context, elem *gripql.ElementID) (
 	if o == nil {
 		return nil, grpc.Errorf(codes.NotFound, fmt.Sprintf("edge %s not found", elem.Id))
 	}
-	return o, nil
+	return o.ToEdge(), nil
 }
 
 // GetTimestamp returns the update timestamp of a graph
 func (server *GripServer) GetTimestamp(ctx context.Context, elem *gripql.GraphID) (*gripql.Timestamp, error) {
-	graph, err := server.db.Graph(elem.Graph)
+	gdb, err := server.getGraphDB(elem.Graph)
+	if err != nil {
+		return nil, err
+	}
+	graph, err := gdb.Graph(elem.Graph)
 	if err != nil {
 		return nil, err
 	}
@@ -84,17 +116,22 @@ func (server *GripServer) GetTimestamp(ctx context.Context, elem *gripql.GraphID
 
 // DeleteGraph deletes a graph
 func (server *GripServer) DeleteGraph(ctx context.Context, elem *gripql.GraphID) (*gripql.EditResult, error) {
-	err := server.db.DeleteGraph(elem.Graph)
+	gdb, err := server.getGraphDB(elem.Graph)
+	if err != nil {
+		return nil, err
+	}
+	err = gdb.DeleteGraph(elem.Graph)
 	if err != nil {
 		return nil, fmt.Errorf("DeleteGraph: deleting graph %s: %v", elem.Graph, err)
 	}
 	schemaName := fmt.Sprintf("%s%s", elem.Graph, schemaSuffix)
 	if server.graphExists(schemaName) {
-		err := server.db.DeleteGraph(schemaName)
+		err := gdb.DeleteGraph(schemaName)
 		if err != nil {
 			return nil, fmt.Errorf("DeleteGraph: deleting schema for graph %s: %v", elem.Graph, err)
 		}
 	}
+	server.updateGraphMap()
 	return &gripql.EditResult{Id: elem.Graph}, nil
 }
 
@@ -104,10 +141,15 @@ func (server *GripServer) AddGraph(ctx context.Context, elem *gripql.GraphID) (*
 	if err != nil {
 		return nil, err
 	}
-	err = server.db.AddGraph(elem.Graph)
+	gdb, err := server.getGraphDB(elem.Graph)
 	if err != nil {
 		return nil, err
 	}
+	err = gdb.AddGraph(elem.Graph)
+	if err != nil {
+		return nil, err
+	}
+	server.updateGraphMap()
 	return &gripql.EditResult{Id: elem.Graph}, err
 }
 
@@ -120,7 +162,11 @@ func (server *GripServer) AddVertex(ctx context.Context, elem *gripql.GraphEleme
 }
 
 func (server *GripServer) addVertex(ctx context.Context, elem *gripql.GraphElement) (*gripql.EditResult, error) {
-	graph, err := server.db.Graph(elem.Graph)
+	gdb, err := server.getGraphDB(elem.Graph)
+	if err != nil {
+		return nil, err
+	}
+	graph, err := gdb.Graph(elem.Graph)
 	if err != nil {
 		return nil, err
 	}
@@ -131,7 +177,7 @@ func (server *GripServer) addVertex(ctx context.Context, elem *gripql.GraphEleme
 		return nil, fmt.Errorf("vertex validation failed: %v", err)
 	}
 
-	err = graph.AddVertex([]*gripql.Vertex{vertex})
+	err = graph.AddVertex([]*gdbi.Vertex{gdbi.NewElementFromVertex(vertex)})
 	if err != nil {
 		return nil, err
 	}
@@ -147,7 +193,11 @@ func (server *GripServer) AddEdge(ctx context.Context, elem *gripql.GraphElement
 }
 
 func (server *GripServer) addEdge(ctx context.Context, elem *gripql.GraphElement) (*gripql.EditResult, error) {
-	graph, err := server.db.Graph(elem.Graph)
+	gdb, err := server.getGraphDB(elem.Graph)
+	if err != nil {
+		return nil, err
+	}
+	graph, err := gdb.Graph(elem.Graph)
 	if err != nil {
 		return nil, err
 	}
@@ -161,7 +211,7 @@ func (server *GripServer) addEdge(ctx context.Context, elem *gripql.GraphElement
 		return nil, fmt.Errorf("edge validation failed: %v", err)
 	}
 
-	err = graph.AddEdge([]*gripql.Edge{edge})
+	err = graph.AddEdge([]*gdbi.Edge{gdbi.NewElementFromEdge(edge)})
 	if err != nil {
 		return nil, err
 	}
@@ -174,7 +224,7 @@ func (server *GripServer) BulkAdd(stream gripql.Edit_BulkAddServer) error {
 	var insertCount int32
 	var errorCount int32
 
-	elementStream := make(chan *gripql.GraphElement, 100)
+	elementStream := make(chan *gdbi.GraphElement, 100)
 	wg := &sync.WaitGroup{}
 
 	for {
@@ -199,7 +249,13 @@ func (server *GripServer) BulkAdd(stream gripql.Edit_BulkAddServer) error {
 		// close and switch when a new graph is encountered
 		if element.Graph != graphName {
 			close(elementStream)
-			graph, err := server.db.Graph(element.Graph)
+			gdb, err := server.getGraphDB(element.Graph)
+			if err != nil {
+				errorCount++
+				continue
+			}
+
+			graph, err := gdb.Graph(element.Graph)
 			if err != nil {
 				log.WithFields(log.Fields{"error": err}).Error("BulkAdd: error")
 				errorCount++
@@ -207,7 +263,7 @@ func (server *GripServer) BulkAdd(stream gripql.Edit_BulkAddServer) error {
 			}
 
 			graphName = element.Graph
-			elementStream = make(chan *gripql.GraphElement, 100)
+			elementStream = make(chan *gdbi.GraphElement, 100)
 
 			wg.Add(1)
 			go func() {
@@ -229,7 +285,7 @@ func (server *GripServer) BulkAdd(stream gripql.Edit_BulkAddServer) error {
 				log.WithFields(log.Fields{"graph": element.Graph, "error": err}).Errorf("BulkAdd: vertex validation failed")
 			} else {
 				insertCount++
-				elementStream <- element
+				elementStream <- gdbi.NewGraphElement(element)
 			}
 		}
 
@@ -243,7 +299,7 @@ func (server *GripServer) BulkAdd(stream gripql.Edit_BulkAddServer) error {
 				log.WithFields(log.Fields{"graph": element.Graph, "error": err}).Errorf("BulkAdd: edge validation failed")
 			} else {
 				insertCount++
-				elementStream <- element
+				elementStream <- gdbi.NewGraphElement(element)
 			}
 		}
 	}
@@ -259,7 +315,11 @@ func (server *GripServer) DeleteVertex(ctx context.Context, elem *gripql.Element
 	if isSchema(elem.Graph) {
 		return nil, fmt.Errorf("unable to delete vertex from graph schema; use AddSchema")
 	}
-	graph, err := server.db.Graph(elem.Graph)
+	gdb, err := server.getGraphDB(elem.Graph)
+	if err != nil {
+		return nil, err
+	}
+	graph, err := gdb.Graph(elem.Graph)
 	if err != nil {
 		return nil, err
 	}
@@ -275,7 +335,11 @@ func (server *GripServer) DeleteEdge(ctx context.Context, elem *gripql.ElementID
 	if isSchema(elem.Graph) {
 		return nil, fmt.Errorf("unable to delete edge from graph schema; use AddSchema")
 	}
-	graph, err := server.db.Graph(elem.Graph)
+	gdb, err := server.getGraphDB(elem.Graph)
+	if err != nil {
+		return nil, err
+	}
+	graph, err := gdb.Graph(elem.Graph)
 	if err != nil {
 		return nil, err
 	}
@@ -291,7 +355,11 @@ func (server *GripServer) AddIndex(ctx context.Context, idx *gripql.IndexID) (*g
 	if isSchema(idx.Graph) {
 		return nil, fmt.Errorf("unupported operation for graph schema")
 	}
-	graph, err := server.db.Graph(idx.Graph)
+	gdb, err := server.getGraphDB(idx.Graph)
+	if err != nil {
+		return nil, err
+	}
+	graph, err := gdb.Graph(idx.Graph)
 	if err != nil {
 		return nil, err
 	}
@@ -307,7 +375,11 @@ func (server *GripServer) DeleteIndex(ctx context.Context, idx *gripql.IndexID) 
 	if isSchema(idx.Graph) {
 		return nil, fmt.Errorf("unupported operation for graph schema")
 	}
-	graph, err := server.db.Graph(idx.Graph)
+	gdb, err := server.getGraphDB(idx.Graph)
+	if err != nil {
+		return nil, err
+	}
+	graph, err := gdb.Graph(idx.Graph)
 	if err != nil {
 		return nil, err
 	}
@@ -320,7 +392,11 @@ func (server *GripServer) DeleteIndex(ctx context.Context, idx *gripql.IndexID) 
 
 // ListIndices lists avalible indices from a graph
 func (server *GripServer) ListIndices(ctx context.Context, idx *gripql.GraphID) (*gripql.ListIndicesResponse, error) {
-	graph, err := server.db.Graph(idx.Graph)
+	gdb, err := server.getGraphDB(idx.Graph)
+	if err != nil {
+		return nil, err
+	}
+	graph, err := gdb.Graph(idx.Graph)
 	if err != nil {
 		return nil, err
 	}
@@ -333,7 +409,11 @@ func (server *GripServer) ListIndices(ctx context.Context, idx *gripql.GraphID) 
 
 // ListLabels lists the vertex and edge labels in a graph
 func (server *GripServer) ListLabels(ctx context.Context, idx *gripql.GraphID) (*gripql.ListLabelsResponse, error) {
-	graph, err := server.db.Graph(idx.Graph)
+	gdb, err := server.getGraphDB(idx.Graph)
+	if err != nil {
+		return nil, err
+	}
+	graph, err := gdb.Graph(idx.Graph)
 	if err != nil {
 		return nil, err
 	}
@@ -348,62 +428,6 @@ func (server *GripServer) ListLabels(ctx context.Context, idx *gripql.GraphID) (
 	return &gripql.ListLabelsResponse{VertexLabels: vLabels, EdgeLabels: eLabels}, nil
 }
 
-var schemaSuffix = "__schema__"
-
-func (server *GripServer) buildSchemas(ctx context.Context) {
-	for _, name := range server.db.ListGraphs() {
-		select {
-		case <-ctx.Done():
-			return
-
-		default:
-			if isSchema(name) {
-				continue
-			}
-			if _, ok := server.schemas[name]; ok {
-				log.WithFields(log.Fields{"graph": name}).Debug("skipping build; cached schema found")
-				continue
-			}
-			log.WithFields(log.Fields{"graph": name}).Debug("building graph schema")
-			schema, err := server.db.BuildSchema(ctx, name, server.conf.SchemaInspectN, server.conf.SchemaRandomSample)
-			if err == nil {
-				log.WithFields(log.Fields{"graph": name}).Debug("cached graph schema")
-				err := server.addSchemaGraph(ctx, schema)
-				if err != nil {
-					log.WithFields(log.Fields{"graph": name, "error": err}).Error("failed to store graph schema")
-				}
-				server.schemas[name] = schema
-			} else {
-				log.WithFields(log.Fields{"graph": name, "error": err}).Error("failed to build graph schema")
-			}
-		}
-	}
-}
-
-// cacheSchemas calls GetSchema on each graph and caches the schemas in memory
-func (server *GripServer) cacheSchemas(ctx context.Context) {
-	if server.db == nil {
-		return
-	}
-
-	if time.Duration(server.conf.SchemaRefreshInterval) == 0 {
-		server.buildSchemas(ctx)
-		return
-	}
-
-	ticker := time.NewTicker(time.Duration(server.conf.SchemaRefreshInterval))
-	server.buildSchemas(ctx)
-	for {
-		select {
-		case <-ctx.Done():
-			ticker.Stop()
-			return
-		case <-ticker.C:
-			server.buildSchemas(ctx)
-		}
-	}
-}
-
 // GetSchema returns the schema of a specific graph in the database
 func (server *GripServer) GetSchema(ctx context.Context, elem *gripql.GraphID) (*gripql.Graph, error) {
 	if !server.graphExists(elem.Graph) {
@@ -411,7 +435,7 @@ func (server *GripServer) GetSchema(ctx context.Context, elem *gripql.GraphID) (
 	}
 	schema, ok := server.schemas[elem.Graph]
 	if !ok {
-		if server.conf.AutoBuildSchemas {
+		if server.conf.Server.AutoBuildSchemas {
 			return nil, grpc.Errorf(codes.Unavailable, fmt.Sprintf("graph %s: schema not available; try again later", elem.Graph))
 		}
 		return nil, grpc.Errorf(codes.NotFound, fmt.Sprintf("graph %s: schema not found", elem.Graph))
@@ -420,57 +444,48 @@ func (server *GripServer) GetSchema(ctx context.Context, elem *gripql.GraphID) (
 	if schema.Graph == "" {
 		schema.Graph = elem.Graph
 	}
-
 	return schema, nil
 }
 
 // AddSchema caches a graph schema on the server
 func (server *GripServer) AddSchema(ctx context.Context, req *gripql.Graph) (*gripql.EditResult, error) {
-	err := server.addSchemaGraph(ctx, req)
+	err := server.addFullGraph(ctx, fmt.Sprintf("%s%s", req.Graph, schemaSuffix), req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to store new schema: %v", err)
 	}
 	server.schemas[req.Graph] = req
-	return &gripql.EditResult{}, nil
+	return &gripql.EditResult{Id: req.Graph}, nil
 }
 
-func (server *GripServer) addSchemaGraph(ctx context.Context, schema *gripql.Graph) error {
-	if schema.Graph == "" {
-		return fmt.Errorf("graph name is an empty string")
+// GetMapping returns the schema of a specific graph in the database
+func (server *GripServer) GetMapping(ctx context.Context, elem *gripql.GraphID) (*gripql.Graph, error) {
+	if !server.graphExists(elem.Graph) {
+		return nil, grpc.Errorf(codes.NotFound, fmt.Sprintf("graph %s: not found", elem.Graph))
 	}
-	schemaName := fmt.Sprintf("%s%s", schema.Graph, schemaSuffix)
-	if server.graphExists(schemaName) {
-		_, err := server.DeleteGraph(ctx, &gripql.GraphID{Graph: schemaName})
-		if err != nil {
-			return fmt.Errorf("failed to remove previous schema: %v", err)
-		}
-	}
-	_, err := server.AddGraph(ctx, &gripql.GraphID{Graph: schemaName})
+	mapping, err := server.getGraph(elem.Graph + mappingSuffix)
 	if err != nil {
-		return fmt.Errorf("error creating graph '%s': %v", schemaName, err)
+		return nil, err
 	}
-	for _, v := range schema.Vertices {
-		_, err := server.addVertex(ctx, &gripql.GraphElement{Graph: schemaName, Vertex: v})
-		if err != nil {
-			return fmt.Errorf("error adding vertex to graph '%s': %v", schemaName, err)
-		}
-	}
-	for _, e := range schema.Edges {
-		_, err := server.addEdge(ctx, &gripql.GraphElement{Graph: schemaName, Edge: e})
-		if err != nil {
-			return fmt.Errorf("error adding edge to graph '%s': %v", schemaName, err)
-		}
-	}
-	return nil
+	return mapping, nil
 }
 
-func isSchema(graphName string) bool {
-	return strings.HasSuffix(graphName, schemaSuffix)
+// AddMapping caches a graph schema on the server
+func (server *GripServer) AddMapping(ctx context.Context, req *gripql.Graph) (*gripql.EditResult, error) {
+	err := server.addFullGraph(ctx, fmt.Sprintf("%s%s", req.Graph, mappingSuffix), req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to store new mapping: %v", err)
+	}
+	server.updateGraphMap()
+	return &gripql.EditResult{Id: req.Graph}, nil
 }
 
 func (server *GripServer) graphExists(graphName string) bool {
+	gdb, err := server.getGraphDB(graphName)
+	if err != nil {
+		return false
+	}
 	found := false
-	for _, graph := range server.db.ListGraphs() {
+	for _, graph := range gdb.ListGraphs() {
 		if graph == graphName {
 			found = true
 		}

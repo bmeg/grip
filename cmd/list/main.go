@@ -5,8 +5,8 @@ import (
 
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/util/rpc"
-	"github.com/golang/protobuf/jsonpb"
 	"github.com/spf13/cobra"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 var host = "localhost:8202"
@@ -15,6 +15,29 @@ var host = "localhost:8202"
 var Cmd = &cobra.Command{
 	Use:   "list",
 	Short: "List operations",
+}
+
+var listTablesCmd = &cobra.Command{
+	Use:   "tables",
+	Short: "List tables",
+	Long:  ``,
+	Args:  cobra.NoArgs,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		conn, err := gripql.Connect(rpc.ConfigWithDefaults(host), true)
+		if err != nil {
+			return err
+		}
+
+		resp, err := conn.ListTables()
+		if err != nil {
+			return err
+		}
+
+		for g := range resp {
+			fmt.Printf("%s\t%s\t%s\t%s\n", g.Source, g.Name, g.Fields, g.LinkMap)
+		}
+		return nil
+	},
 }
 
 var listGraphsCmd = &cobra.Command{
@@ -41,7 +64,7 @@ var listGraphsCmd = &cobra.Command{
 }
 
 var listLabelsCmd = &cobra.Command{
-	Use:   "labels <graph>}",
+	Use:   "labels <graph>",
 	Short: "List the vertex and edge labels in a graph",
 	Long:  ``,
 	Args:  cobra.ExactArgs(1),
@@ -57,28 +80,27 @@ var listLabelsCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		m := jsonpb.Marshaler{
-			EnumsAsInts:  false,
-			EmitDefaults: false,
-			Indent:       "  ",
-			OrigName:     false,
+		m := protojson.MarshalOptions{
+			UseEnumNumbers:  false,
+			EmitUnpopulated: false,
+			Indent:          "  ",
+			UseProtoNames:   false,
 		}
-		txt, err := m.MarshalToString(resp)
+		txt, err := m.Marshal(resp)
 		if err != nil {
 			return fmt.Errorf("failed to marshal ListLabels response: %v", err)
 		}
-		fmt.Printf("%s\n", txt)
+		fmt.Printf("%s\n", string(txt))
 		return nil
 	},
 }
 
 func init() {
-	gflags := listGraphsCmd.Flags()
-	gflags.StringVar(&host, "host", host, "grip server url")
-
-	lflags := listLabelsCmd.Flags()
-	lflags.StringVar(&host, "host", host, "grip server url")
+	listGraphsCmd.Flags().StringVar(&host, "host", host, "grip server url")
+	listLabelsCmd.Flags().StringVar(&host, "host", host, "grip server url")
+	listTablesCmd.Flags().StringVar(&host, "host", host, "grip server url")
 
 	Cmd.AddCommand(listGraphsCmd)
 	Cmd.AddCommand(listLabelsCmd)
+	Cmd.AddCommand(listTablesCmd)
 }

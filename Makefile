@@ -16,7 +16,7 @@ VERSION_LDFLAGS=\
  -X "github.com/bmeg/grip/version.GitBranch=$(git_branch)" \
  -X "github.com/bmeg/grip/version.GitUpstream=$(git_upstream)"
 
-export GRIP_VERSION = 0.5.1
+export GRIP_VERSION = 0.7.0
 # LAST_PR_NUMBER is used by the release notes builder to generate notes
 # based on pull requests (PR) up until the last release.
 export LAST_PR_NUMBER = 134
@@ -37,25 +37,37 @@ proto:
 		-I ./ \
 		-I ../googleapis \
 		--lint_out=. \
-		--go_out=Mgoogle/protobuf/struct.proto=github.com/golang/protobuf/ptypes/struct,plugins=grpc:. \
-		--grpc-gateway_out=logtostderr=true,allow_colon_final_segments=true:. \
-		--grcp-rest-direct_out=. \
+		--go_out ./ \
+  	--go_opt paths=source_relative \
+		--go-grpc_out ./ \
+		--go-grpc_opt paths=source_relative \
+		--grpc-gateway_out ./ \
+		--grpc-gateway_opt logtostderr=true \
+		--grpc-gateway_opt paths=source_relative \
+		--grcp-rest-direct_out . \
 		gripql.proto
 	@cd kvindex && protoc \
 		-I ./ \
+		--go_opt=paths=source_relative \
 		--go_out=. \
+		--go_opt paths=source_relative \
 		index.proto
 	@cd gripper/ && protoc \
 	  -I ./ \
 		-I ../googleapis/ \
-		--go_out=Mgoogle/protobuf/struct.proto=github.com/golang/protobuf/ptypes/struct,plugins=grpc:. \
+		--go_out . \
+		--go_opt paths=source_relative \
+		--go-grpc_out ./ \
+		--go-grpc_opt paths=source_relative \
 		gripper.proto
 
 
 proto-depends:
 	@git submodule update --init --recursive
-	@go get github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway
-	@go get github.com/golang/protobuf/protoc-gen-go
+	@go get github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-grpc-gateway
+	@go get github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2
+	@go get google.golang.org/protobuf/cmd/protoc-gen-go
+	@go get google.golang.org/grpc/cmd/protoc-gen-go-grpc
 	@go get github.com/ckaznocha/protoc-gen-lint
 	@go get github.com/bmeg/protoc-gen-grcp-rest-direct
 
@@ -77,7 +89,7 @@ lint:
 	flake8 gripql/python/ conformance/
 
 lint-depends:
-	go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.22.2
+	go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.35.2
 	go install golang.org/x/tools/cmd/goimports
 
 # ---------------------
@@ -112,7 +124,7 @@ test-conformance:
 # ---------------------
 start-mongo:
 	@docker rm -f grip-mongodb-test > /dev/null 2>&1 || echo
-	docker run -d --name grip-mongodb-test -p 27000:27017 docker.io/mongo:3.6.4 > /dev/null
+	docker run -d --name grip-mongodb-test -p 27017:27017 docker.io/mongo:3.6.4 > /dev/null
 
 start-elastic:
 	@docker rm -f grip-es-test > /dev/null 2>&1 || echo
@@ -127,7 +139,7 @@ start-mysql:
 	docker run -d --name grip-mysql-test -p 13306:3306 -e MYSQL_ALLOW_EMPTY_PASSWORD=yes mysql:8.0.11 --default-authentication-plugin=mysql_native_password > /dev/null
 
 start-gripper-test:
-	@cd ./gripper/test-graph && ./table-server.py swapi/table.map &
+	@cd ./gripper/test-graph && ./gripper-table -m swapi/table.map &
 
 # ---------------------
 # Website

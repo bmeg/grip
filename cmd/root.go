@@ -7,17 +7,19 @@ import (
 	"os"
 
 	"github.com/bmeg/grip/cmd/create"
-	"github.com/bmeg/grip/cmd/dig"
 	"github.com/bmeg/grip/cmd/drop"
 	"github.com/bmeg/grip/cmd/dump"
+	"github.com/bmeg/grip/cmd/erclient"
 	"github.com/bmeg/grip/cmd/info"
 	"github.com/bmeg/grip/cmd/kvload"
 	"github.com/bmeg/grip/cmd/list"
 	"github.com/bmeg/grip/cmd/load"
 	"github.com/bmeg/grip/cmd/mongoload"
+	"github.com/bmeg/grip/cmd/plugin"
 	"github.com/bmeg/grip/cmd/query"
 	"github.com/bmeg/grip/cmd/rdf"
 	"github.com/bmeg/grip/cmd/schema"
+	"github.com/bmeg/grip/cmd/mapping"
 	"github.com/bmeg/grip/cmd/server"
 	"github.com/bmeg/grip/cmd/stream"
 	"github.com/bmeg/grip/cmd/version"
@@ -49,7 +51,6 @@ func init() {
 	RootCmd.PersistentFlags().BoolVar(&enableProf, "pprof", enableProf, "enable pprof on port 6060")
 	RootCmd.AddCommand(create.Cmd)
 	RootCmd.AddCommand(drop.Cmd)
-	RootCmd.AddCommand(dig.Cmd)
 	RootCmd.AddCommand(dump.Cmd)
 	RootCmd.AddCommand(genBashCompletionCmd)
 	RootCmd.AddCommand(info.Cmd)
@@ -57,10 +58,13 @@ func init() {
 	RootCmd.AddCommand(load.Cmd)
 	RootCmd.AddCommand(mongoload.Cmd)
 	RootCmd.AddCommand(query.Cmd)
+	RootCmd.AddCommand(erclient.Cmd)
 	RootCmd.AddCommand(rdf.Cmd)
 	RootCmd.AddCommand(schema.Cmd)
+	RootCmd.AddCommand(mapping.Cmd)
 	RootCmd.AddCommand(server.Cmd)
 	RootCmd.AddCommand(stream.Cmd)
+	RootCmd.AddCommand(plugin.Cmd)
 	RootCmd.AddCommand(version.Cmd)
 	RootCmd.AddCommand(kvload.Cmd)
 }

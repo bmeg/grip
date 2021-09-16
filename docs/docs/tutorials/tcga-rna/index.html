@@ -70,14 +70,67 @@
         
         <li>
           
-          <a href="https://bmeg.github.io/grip/graph_schemas/"
-             class="sidebar-nav-item "
-          >Graph Schemas</a></li>
+          <span class="intermediate">GRIP Commands</span></li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/commands/server/"
+                   class="sidebar-nav-item "
+                >server</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/commands/query/"
+                   class="sidebar-nav-item "
+                >query</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/commands/list/"
+                   class="sidebar-nav-item "
+                >list</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/commands/drop/"
+                   class="sidebar-nav-item "
+                >drop</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/commands/mongoload/"
+                   class="sidebar-nav-item "
+                >mongoload</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/commands/er/"
+                   class="sidebar-nav-item "
+                >er</a></li>
+            </ul>
+          </li>
+          
           
         
         <li>
           
-          <span class="intermediate">Setup your Database</span></li>
+          <span class="intermediate">Database Configuration</span></li>
           
           <li>
             <ul class="sidebar-nav sidebar-nav-nested">
@@ -124,6 +177,48 @@
             </ul>
           </li>
           
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/databases/gripper/"
+                   class="sidebar-nav-item "
+                >GRIPPER</a></li>
+            </ul>
+          </li>
+          
+          
+        
+        <li>
+          
+          <span class="intermediate">GRIP Plugable External Resources</span></li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/gripper/gripper/"
+                   class="sidebar-nav-item "
+                >Intro</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/gripper/proxy/"
+                   class="sidebar-nav-item "
+                >External Resource Proxies</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/gripper/graphmodel/"
+                   class="sidebar-nav-item "
+                >Graph Model</a></li>
+            </ul>
+          </li>
+          
           
         
         <li>
@@ -160,9 +255,9 @@
           <li>
             <ul class="sidebar-nav sidebar-nav-nested">
               <li>
-                <a href="https://bmeg.github.io/grip/docs/queries/graphql/"
+                <a href="https://bmeg.github.io/grip/docs/queries/jobs_api/"
                    class="sidebar-nav-item "
-                >GraphQL</a></li>
+                >Jobs API</a></li>
             </ul>
           </li>
           
@@ -209,6 +304,30 @@
         
         <li>
           
+          <span class="intermediate">GraphQL</span></li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/graphql/graphql/"
+                   class="sidebar-nav-item "
+                >GraphQL</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/graphql/graph_schemas/"
+                   class="sidebar-nav-item "
+                >Graph Schemas</a></li>
+            </ul>
+          </li>
+          
+          
+        
+        <li>
+          
           <span class="intermediate">Developers</span></li>
           
           <li>
@@ -236,69 +355,38 @@
   </div>
 
   <div class="main col span_8_of_12">
-    
-
-<h3 id="explore-tcga-rna-expression-data">Explore TCGA RNA Expression Data</h3>
-
+    <h3 id="explore-tcga-rna-expression-data">Explore TCGA RNA Expression Data</h3>
 <p>Create the graph</p>
-
 <pre><code>grip create tcga-rna
-</code></pre>
-
-<p>Get the data</p>
-
+</code></pre><p>Get the data</p>
 <pre><code>curl -O http://download.cbioportal.org/gbm_tcga_pub2013.tar.gz
 tar xvzf gbm_tcga_pub2013.tar.gz
-</code></pre>
-
-<p>Load clinical data</p>
-
+</code></pre><p>Load clinical data</p>
 <pre><code>./example/load_matrix.py tcga-rna gbm_tcga_pub2013/data_clinical.txt --row-label 'Donor'
-</code></pre>
-
-<p>Load RNASeq data</p>
-
+</code></pre><p>Load RNASeq data</p>
 <pre><code>./example/load_matrix.py tcga-rna gbm_tcga_pub2013/data_RNA_Seq_v2_expression_median.txt -t  --index-col 1 --row-label RNASeq --row-prefix &quot;RNA:&quot; --exclude RNA:Hugo_Symbol
-</code></pre>
-
-<p>Connect RNASeq data to Clinical data</p>
-
+</code></pre><p>Connect RNASeq data to Clinical data</p>
 <pre><code>./example/load_matrix.py tcga-rna gbm_tcga_pub2013/data_RNA_Seq_v2_expression_median.txt -t  --index-col 1 --no-vertex --edge 'RNA:{_gid}' rna
-</code></pre>
-
-<p>Connect Clinical data to subtypes</p>
-
+</code></pre><p>Connect Clinical data to subtypes</p>
 <pre><code>./example/load_matrix.py tcga-rna gbm_tcga_pub2013/data_clinical.txt --no-vertex -e &quot;{EXPRESSION_SUBTYPE}&quot; subtype --dst-vertex &quot;{EXPRESSION_SUBTYPE}&quot; Subtype
-</code></pre>
-
-<p>Load Hugo Symbol to EntrezID translation table from RNA matrix annotations</p>
-
+</code></pre><p>Load Hugo Symbol to EntrezID translation table from RNA matrix annotations</p>
 <pre><code>./example/load_matrix.py tcga-rna gbm_tcga_pub2013/data_RNA_Seq_v2_expression_median.txt --column-include Entrez_Gene_Id --row-label Gene
-</code></pre>
-
-<p>Load Mutation Information</p>
-
+</code></pre><p>Load Mutation Information</p>
 <pre><code>./example/load_matrix.py tcga-rna gbm_tcga_pub2013/data_mutations_extended.txt --skiprows 1 --index-col -1  --regex Matched_Norm_Sample_Barcode '\-\d\d$' '' --edge '{Matched_Norm_Sample_Barcode}' variantIn --edge '{Hugo_Symbol}' effectsGene --column-exclude ma_func.impact ma_fi.score MA_FI.score MA_Func.Impact MA:link.MSA MA:FImpact MA:protein.change MA:link.var MA:FIS MA:link.PDB --row-label Variant
-</code></pre>
+</code></pre><p>Load Proneural samples into a matrix</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python"><span style="color:#f92672">import</span> pandas
+<span style="color:#f92672">import</span> gripql
 
-<p>Load Proneural samples into a matrix</p>
-
-<pre><code class="language-python">import pandas
-import gripql
-
-conn = gripql.Connection(&quot;http://localhost:8201&quot;)
-g = conn.graph(&quot;tcga-rna&quot;)
-genes = {}
-for k, v in g.query().V().hasLabel(&quot;Gene&quot;).render([&quot;_gid&quot;, &quot;Hugo_Symbol&quot;]):
-    genes[k] = v
-data = {}
-for row in g.query().V(&quot;Proneural&quot;).in_().out(&quot;rna&quot;).render([&quot;_gid&quot;, &quot;_data&quot;]):
-    data[row[0]] = row[1]
-samples = pandas.DataFrame(data).rename(genes).transpose().fillna(0.0)
-</code></pre>
-
-<h1 id="matrix-load-project">Matrix Load project</h1>
-
+conn <span style="color:#f92672">=</span> gripql<span style="color:#f92672">.</span>Connection(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">http://localhost:8201</span><span style="color:#e6db74">&#34;</span>)
+g <span style="color:#f92672">=</span> conn<span style="color:#f92672">.</span>graph(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">tcga-rna</span><span style="color:#e6db74">&#34;</span>)
+genes <span style="color:#f92672">=</span> {}
+<span style="color:#66d9ef">for</span> k, v <span style="color:#f92672">in</span> g<span style="color:#f92672">.</span>query()<span style="color:#f92672">.</span>V()<span style="color:#f92672">.</span>hasLabel(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Gene</span><span style="color:#e6db74">&#34;</span>)<span style="color:#f92672">.</span>render([<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">_gid</span><span style="color:#e6db74">&#34;</span>, <span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Hugo_Symbol</span><span style="color:#e6db74">&#34;</span>]):
+    genes[k] <span style="color:#f92672">=</span> v
+data <span style="color:#f92672">=</span> {}
+<span style="color:#66d9ef">for</span> row <span style="color:#f92672">in</span> g<span style="color:#f92672">.</span>query()<span style="color:#f92672">.</span>V(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Proneural</span><span style="color:#e6db74">&#34;</span>)<span style="color:#f92672">.</span>in_()<span style="color:#f92672">.</span>out(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">rna</span><span style="color:#e6db74">&#34;</span>)<span style="color:#f92672">.</span>render([<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">_gid</span><span style="color:#e6db74">&#34;</span>, <span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">_data</span><span style="color:#e6db74">&#34;</span>]):
+    data[row[<span style="color:#ae81ff">0</span>]] <span style="color:#f92672">=</span> row[<span style="color:#ae81ff">1</span>]
+samples <span style="color:#f92672">=</span> pandas<span style="color:#f92672">.</span>DataFrame(data)<span style="color:#f92672">.</span>rename(genes)<span style="color:#f92672">.</span>transpose()<span style="color:#f92672">.</span>fillna(<span style="color:#ae81ff">0.0</span>)
+</code></pre></div><h1 id="matrix-load-project">Matrix Load project</h1>
 <pre><code>usage: load_matrix.py [-h] [--sep SEP] [--server SERVER]
                       [--row-label ROW_LABEL] [--row-prefix ROW_PREFIX] [-t]
                       [--index-col INDEX_COL] [--connect]
@@ -352,7 +440,6 @@ optional arguments:
   -d                    Run in debug mode. Print actions and make no changes
 
 </code></pre>
-
   </div>
 
 </div>

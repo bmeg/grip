@@ -9,6 +9,8 @@ menu:
 
 # Connect to an existing SQL database
 
+Note: This driver is being superseded by the [GRIPPER engine]({{< ref "../gripper/gripper.md" >}})
+
 GRIP supports modeling an existing SQL database as a graph. GRIP has been tested against [PostgreSQL][psql], but should  work with
 [MySQL][sql] (4.1+) and [MariaDB][maria].
 
@@ -48,51 +50,52 @@ psql --host localhost --port 15432 -U postgres smtest < postgres_smtest_data.dum
 GRIP Configuration:
 
 ```yaml
-Database: existing-sql
 
-SQL:
-  DataSourceName: "host=localhost port=15432 user=postgres dbname=smtest sslmode=disable"
-  Driver: postgres
+Drivers:
+  esql:
+    ExistingSQL:
+      DataSourceName: "host=localhost port=15432 user=postgres dbname=smtest sslmode=disable"
+      Driver: postgres
 
-  Graphs:
-    - Graph: test-graph
-      Vertices:
-        - Table: users
-          Label: users
-          GidField: id
+      Graphs:
+        - Graph: test-graph
+          Vertices:
+            - Table: users
+              Label: users
+              GidField: id
 
-        - Table: products
-          Label: products
-          GidField: id
+            - Table: products
+              Label: products
+              GidField: id
 
-        - Table: purchases
-          Label: purchases
-          GidField: id
+            - Table: purchases
+              Label: purchases
+              GidField: id
 
-      Edges:
-        - Table: purchase_items
-          Label: purchasedProducts
-          GidField: id
-          From:
-            SourceField: purchase_id
-            DestTable: purchases
-            DestField: id
-          To:
-            SourceField: product_id
-            DestTable: products
-            DestField: id
+          Edges:
+            - Table: purchase_items
+              Label: purchasedProducts
+              GidField: id
+              From:
+                SourceField: purchase_id
+                DestTable: purchases
+                DestField: id
+              To:
+                SourceField: product_id
+                DestTable: products
+                DestField: id
 
-        - Table: ""
-          Label: userPurchases          
-          GidField: ""
-          From:
-            SourceField: ""
-            DestTable: users
-            DestField: id
-          To:
-            SourceField: ""
-            DestTable: purchases
-            DestField: user_id
+            - Table: ""
+              Label: userPurchases          
+              GidField: ""
+              From:
+                SourceField: ""
+                DestTable: users
+                DestField: id
+              To:
+                SourceField: ""
+                DestTable: purchases
+                DestField: user_id
 ```
 
 [psql]: https://www.postgresql.org/

@@ -2,5 +2,6 @@
 title: Security
 menu:
   main:
-    weight: 500
+    identifier: Security
+    weight: 50
 ---

@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package gripql;
 
+option go_package = "github.com/bmeg/grip/gripql";
+
 import "google/api/annotations.proto";
 import "google/protobuf/struct.proto";
 
@@ -20,10 +22,6 @@ message QuerySet {
   repeated GraphStatement query = 1;
 }
 
-message MatchQuerySet {
-  repeated QuerySet queries = 1;
-}
-
 message GraphStatement {
   oneof statement {
     // Tinkerpop methods
@@ -36,27 +34,26 @@ message GraphStatement {
     google.protobuf.ListValue in_e = 12;
     google.protobuf.ListValue out_e = 13;
     google.protobuf.ListValue both_e = 15;
-    google.protobuf.ListValue in_v = 16;
-    google.protobuf.ListValue out_v = 17;
-    google.protobuf.ListValue both_v = 18;
 
     string as = 20;
     SelectStatement select = 21;
     uint32 limit = 24;
     uint32 skip = 25;
-    Range range = 33;
-    MatchQuerySet match = 28;
-    HasExpression has = 29;
-    google.protobuf.ListValue has_label = 34;
-    google.protobuf.ListValue has_key = 35;
-    google.protobuf.ListValue has_id = 36;
-    string count = 30;
+    Range range = 26;
+    HasExpression has = 30;
+    google.protobuf.ListValue has_label = 31;
+    google.protobuf.ListValue has_key = 32;
+    google.protobuf.ListValue has_id = 33;
 
-    // custom methods
-    google.protobuf.ListValue fields = 26;
-    google.protobuf.ListValue distinct = 27;
-    Aggregations aggregate = 31;
-    google.protobuf.Value render = 32;
+    google.protobuf.ListValue distinct = 40;
+
+		google.protobuf.ListValue fields = 50;
+		string unwind = 51;
+
+		string count = 60;
+    Aggregations aggregate = 61;
+    google.protobuf.Value render = 62;
+		google.protobuf.ListValue path = 63;
   }
 }
 
@@ -80,6 +77,8 @@ message Aggregate {
     TermAggregation term = 2;
     PercentileAggregation percentile = 3;
     HistogramAggregation histogram = 4;
+		FieldAggregation field = 5;
+		TypeAggregation type = 6;
   }
 }
 
@@ -98,17 +97,18 @@ message HistogramAggregation {
   uint32 interval = 3;
 }
 
+message FieldAggregation {
+	string field = 2;
+}
+
+message TypeAggregation {
+	string field = 2;
+}
+
 message NamedAggregationResult {
-	map<string, AggregationResult> aggregations = 3;
-}
-
-message AggregationResult {
-  repeated AggregationResultBucket buckets = 2;
-}
-
-message AggregationResultBucket {
-  google.protobuf.Value key = 1;
-  double value = 2;
+	string name = 1;
+	google.protobuf.Value key = 2;
+  double value = 3;
 }
 
 message HasExpressionList {
@@ -183,7 +183,36 @@ message QueryResult {
 		Selections selections = 4;
 		google.protobuf.Value render = 5;
 		uint32 count = 6;
+		google.protobuf.ListValue path = 7;
 	}
+}
+
+message QueryJob {
+	string id = 1;
+	string graph = 2;
+}
+
+message ExtendQuery {
+	string src_id = 1;
+	string graph = 2;
+	repeated GraphStatement query = 3;
+}
+
+enum JobState {
+	QUEUED = 0;
+	RUNNING = 1;
+	COMPLETE = 2;
+	ERROR = 3;
+	DELETED = 4;
+}
+
+message JobStatus {
+	string id = 1;
+	string graph = 2;
+	JobState state = 3;
+	uint64   count = 4;
+	repeated GraphStatement query = 5;
+	string timestamp = 6;
 }
 
 message EditResult {
@@ -225,6 +254,8 @@ enum FieldType {
   STRING  = 1;
   NUMERIC = 2;
   BOOL  = 3;
+	MAP   = 4;
+	ARRAY = 5;
 }
 
 message Empty {}
@@ -240,6 +271,13 @@ message ListIndicesResponse {
 message ListLabelsResponse {
   repeated string vertex_labels = 1;
   repeated string edge_labels = 2;
+}
+
+message TableInfo {
+	string source = 1;
+	string name = 2;
+	repeated string fields = 3;
+	map<string,string> link_map = 4;
 }
 
 service Query {
@@ -274,6 +312,12 @@ service Query {
     };
   }
 
+	rpc GetMapping(GraphID) returns (Graph) {
+    option (google.api.http) = {
+      get: "/v1/graph/{graph}/mapping"
+    };
+  }
+
   rpc ListGraphs(Empty) returns (ListGraphsResponse) {
     option (google.api.http) = {
       get: "/v1/graph"
@@ -291,6 +335,60 @@ service Query {
       get: "/v1/graph/{graph}/label"
     };
   }
+
+	rpc ListTables(Empty) returns (stream TableInfo) {
+		option (google.api.http) = {
+			get: "/v1/table"
+		};
+	}
+}
+
+service Job {
+	rpc Job(GraphQuery) returns (QueryJob) {
+		option (google.api.http) = {
+			post: "/v1/graph/{graph}/job"
+			body: "*"
+		};
+	}
+
+	rpc ListJobs(Graph) returns (stream QueryJob) {
+		option (google.api.http) = {
+			get: "/v1/graph/{graph}/job"
+		};
+	}
+
+	rpc SearchJobs(GraphQuery) returns (stream JobStatus) {
+		option (google.api.http) = {
+			post: "/v1/graph/{graph}/job-search"
+			body: "*"
+		};
+	}
+
+	rpc DeleteJob(QueryJob) returns (JobStatus) {
+		option (google.api.http) = {
+			delete: "/v1/graph/{graph}/job/{id}"
+		};
+	}
+
+	rpc GetJob(QueryJob) returns (JobStatus) {
+		option (google.api.http) = {
+			get: "/v1/graph/{graph}/job/{id}"
+		};
+	}
+
+	rpc ViewJob(QueryJob) returns (stream QueryResult) {
+		option (google.api.http) = {
+			post: "/v1/graph/{graph}/job/{id}"
+			body: "*"
+		};
+	}
+
+	rpc ResumeJob(ExtendQuery) returns (stream QueryResult) {
+		option (google.api.http) = {
+			post: "/v1/graph/{graph}/job-resume"
+			body: "*"
+		};
+	}
 
 }
 
@@ -358,5 +456,54 @@ service Edit {
       body: "*"
     };
   }
+
+	rpc AddMapping(Graph) returns (EditResult) {
+    option (google.api.http) = {
+      post: "/v1/graph/{graph}/mapping"
+      body: "*"
+    };
+  }
+
+}
+
+
+message PluginConfig {
+	string name = 1;
+  string driver = 2;
+	map<string, string> config = 3;
+}
+
+message PluginStatus {
+	string name = 1;
+	string error = 2;
+}
+
+message ListDriversResponse {
+  repeated string drivers = 1;
+}
+
+message ListPluginsResponse {
+	repeated string plugins = 1;
+}
+
+service Configure {
+  rpc StartPlugin(PluginConfig) returns (PluginStatus) {
+    option (google.api.http) = {
+      post: "/v1/plugin/{name}"
+      body: "*"
+    };
+  }
+
+	rpc ListPlugins(Empty) returns (ListPluginsResponse) {
+		option (google.api.http) = {
+			get: "/v1/plugin"
+		};
+	}
+
+	rpc ListDrivers(Empty) returns (ListDriversResponse) {
+		option (google.api.http) = {
+			get: "/v1/driver"
+		};
+	}
 
 }

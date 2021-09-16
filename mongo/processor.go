@@ -1,6 +1,7 @@
 package mongo
 
 import (
+	//"fmt"
 	"context"
 	"strconv"
 	"strings"
@@ -8,11 +9,11 @@ import (
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/log"
-	"github.com/bmeg/grip/protoutil"
 	"github.com/bmeg/grip/util"
-	structpb "github.com/golang/protobuf/ptypes/struct"
+
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 // Processor stores the information for a mongo aggregation pipeline
@@ -34,7 +35,8 @@ func getDataElement(result map[string]interface{}) *gdbi.DataElement {
 		de.Label = x.(string)
 	}
 	if x, ok := result["data"]; ok {
-		de.Data = x.(map[string]interface{})
+		de.Data = removePrimatives(x).(map[string]interface{})
+		de.Loaded = true
 	}
 	if x, ok := result["to"]; ok {
 		de.To = x.(string)
@@ -57,7 +59,8 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 		for t := range in {
 			nResults := 0
 			//plog.Infof("Running: %#v", proc.query)
-			cursor, err := initCol.Aggregate(ctx, proc.query)
+			trueVal := true
+			cursor, err := initCol.Aggregate(ctx, proc.query, &options.AggregateOptions{AllowDiskUse: &trueVal})
 			if err != nil {
 				plog.Errorf("Query Error (%s) : %s", proc.query, err)
 				continue
@@ -75,6 +78,7 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 					plog.Errorf("Result Error : %s", err)
 					continue
 				}
+				//fmt.Printf("Data: %s\n", result)
 				switch proc.dataType {
 				case gdbi.CountData:
 					eo := &gdbi.Traveler{}
@@ -98,21 +102,14 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 					out <- &gdbi.Traveler{Selections: selections}
 
 				case gdbi.AggregationData:
-					aggs := map[string]*gripql.AggregationResult{}
 
 					for k, v := range result {
-						out := &gripql.AggregationResult{
-							Buckets: []*gripql.AggregationResultBucket{},
-						}
-						//plog.Infof("Type: %T", v)
 						buckets, ok := v.(bson.A)
 						if !ok {
 							plog.Errorf("Failed to convert Mongo aggregation result (%s): %+v", k, v)
 							continue
 						}
-						//if proc.aggTypes[k].GetHistogram() != nil {
-						//	plog.Infof("Starting histogram agg result %+v", v)
-						//}
+
 						var lastBucket float64
 						for i, bucket := range buckets {
 							bucket, ok := bucket.(map[string]interface{})
@@ -121,17 +118,17 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 								continue
 							}
 
-							var term *structpb.Value
+							var term interface{}
 							switch proc.aggTypes[k].GetAggregation().(type) {
 							case *gripql.Aggregate_Term:
-								term = protoutil.WrapValue(bucket["_id"])
+								term = bucket["_id"]
 							case *gripql.Aggregate_Histogram:
-								term = protoutil.WrapValue(bucket["_id"])
+								term = bucket["_id"]
 								curPos := bucket["_id"].(float64)
 								stepSize := float64(proc.aggTypes[k].GetHistogram().Interval)
 								if i != 0 {
 									for nv := lastBucket + stepSize; nv < curPos; nv += stepSize {
-										out.Buckets = append(out.Buckets, &gripql.AggregationResultBucket{Key: protoutil.WrapValue(nv), Value: float64(0.0)})
+										out <- &gdbi.Traveler{Aggregation: &gdbi.Aggregate{Name: k, Key: nv, Value: float64(0.0)}}
 									}
 								}
 								lastBucket = curPos
@@ -143,29 +140,38 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 									plog.Errorf("failed to parse percentile aggregation result key: %v", err)
 									continue
 								}
-								term = protoutil.WrapValue(f)
+								term = f
+							case *gripql.Aggregate_Field:
+								term = bucket["_id"]
+							case *gripql.Aggregate_Type:
+								switch bucket["_id"] {
+								case "double":
+									term = "NUMERIC"
+								case "null":
+									term = "UNKNOWN"
+								case "string":
+									term = "STRING"
+								}
 							default:
 								plog.Errorf("unknown aggregation result type")
 							}
-
+							//fmt.Printf("term: %s %s", term, count)
 							switch bucket["count"].(type) {
 							case int:
 								count := bucket["count"].(int)
-								out.Buckets = append(out.Buckets, &gripql.AggregationResultBucket{Key: term, Value: float64(count)})
+								out <- &gdbi.Traveler{Aggregation: &gdbi.Aggregate{Name: k, Key: term, Value: float64(count)}}
 							case int32:
 								count := bucket["count"].(int32)
-								out.Buckets = append(out.Buckets, &gripql.AggregationResultBucket{Key: term, Value: float64(count)})
+								out <- &gdbi.Traveler{Aggregation: &gdbi.Aggregate{Name: k, Key: term, Value: float64(count)}}
 							case float64:
 								count := bucket["count"].(float64)
-								out.Buckets = append(out.Buckets, &gripql.AggregationResultBucket{Key: term, Value: count})
+								out <- &gdbi.Traveler{Aggregation: &gdbi.Aggregate{Name: k, Key: term, Value: float64(count)}}
 							default:
 								plog.Errorf("unexpected aggregation result type: %T", bucket["count"])
 								continue
 							}
 						}
-						aggs[k] = out
 					}
-					out <- &gdbi.Traveler{Aggregations: aggs}
 
 				default:
 					if marks, ok := result["marks"]; ok {
@@ -178,6 +184,21 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 							}
 						}
 					}
+					if path, ok := result["path"]; ok {
+						if pathA, ok := path.(bson.A); ok {
+							o := make([]gdbi.DataElementID, len(pathA))
+							for i := range pathA {
+								if elem, ok := pathA[i].(map[string]interface{}); ok {
+									if v, ok := elem["vertex"]; ok {
+										o[i] = gdbi.DataElementID{Vertex: v.(string)}
+									} else if v, ok := elem["edge"]; ok {
+										o[i] = gdbi.DataElementID{Edge: v.(string)}
+									}
+								}
+							}
+							t.Path = o
+						}
+					}
 
 					de := &gdbi.DataElement{}
 					if x, ok := result["_id"]; ok {
@@ -187,7 +208,8 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 						de.Label = x.(string)
 					}
 					if x, ok := result["data"]; ok {
-						de.Data = x.(map[string]interface{})
+						de.Data = removePrimatives(x).(map[string]interface{})
+						de.Loaded = true
 					}
 					if x, ok := result["to"]; ok {
 						de.To = x.(string)

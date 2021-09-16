@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/jsonpath"
 	"github.com/bmeg/grip/log"
-	"github.com/bmeg/grip/protoutil"
 )
 
 func (kgraph *GDB) setupGraphIndex(graph string) error {
@@ -44,21 +44,21 @@ func normalizePath(path string) string {
 	return path
 }
 
-func vertexIdxStruct(v *gripql.Vertex) map[string]interface{} {
+func vertexIdxStruct(v *gdbi.Vertex) map[string]interface{} {
 	k := map[string]interface{}{
 		"v": map[string]interface{}{
 			"label": v.Label,
-			v.Label: protoutil.AsMap(v.Data),
+			v.Label: v.Data,
 		},
 	}
 	return k
 }
 
-func edgeIdxStruct(e *gripql.Edge) map[string]interface{} {
+func edgeIdxStruct(e *gdbi.Edge) map[string]interface{} {
 	k := map[string]interface{}{
 		"e": map[string]interface{}{
 			"label": e.Label,
-			e.Label: protoutil.AsMap(e.Data),
+			e.Label: e.Data,
 		},
 	}
 	return k

@@ -70,14 +70,67 @@
         
         <li>
           
-          <a href="https://bmeg.github.io/grip/graph_schemas/"
-             class="sidebar-nav-item "
-          >Graph Schemas</a></li>
+          <span class="intermediate">GRIP Commands</span></li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/commands/server/"
+                   class="sidebar-nav-item "
+                >server</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/commands/query/"
+                   class="sidebar-nav-item "
+                >query</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/commands/list/"
+                   class="sidebar-nav-item "
+                >list</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/commands/drop/"
+                   class="sidebar-nav-item "
+                >drop</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/commands/mongoload/"
+                   class="sidebar-nav-item "
+                >mongoload</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/commands/er/"
+                   class="sidebar-nav-item "
+                >er</a></li>
+            </ul>
+          </li>
+          
           
         
         <li>
           
-          <span class="intermediate">Setup your Database</span></li>
+          <span class="intermediate">Database Configuration</span></li>
           
           <li>
             <ul class="sidebar-nav sidebar-nav-nested">
@@ -124,6 +177,48 @@
             </ul>
           </li>
           
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/databases/gripper/"
+                   class="sidebar-nav-item "
+                >GRIPPER</a></li>
+            </ul>
+          </li>
+          
+          
+        
+        <li>
+          
+          <span class="intermediate">GRIP Plugable External Resources</span></li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/gripper/gripper/"
+                   class="sidebar-nav-item "
+                >Intro</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/gripper/proxy/"
+                   class="sidebar-nav-item "
+                >External Resource Proxies</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/gripper/graphmodel/"
+                   class="sidebar-nav-item "
+                >Graph Model</a></li>
+            </ul>
+          </li>
+          
           
         
         <li>
@@ -160,9 +255,9 @@
           <li>
             <ul class="sidebar-nav sidebar-nav-nested">
               <li>
-                <a href="https://bmeg.github.io/grip/docs/queries/graphql/"
+                <a href="https://bmeg.github.io/grip/docs/queries/jobs_api/"
                    class="sidebar-nav-item "
-                >GraphQL</a></li>
+                >Jobs API</a></li>
             </ul>
           </li>
           
@@ -209,6 +304,30 @@
         
         <li>
           
+          <span class="intermediate">GraphQL</span></li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/graphql/graphql/"
+                   class="sidebar-nav-item "
+                >GraphQL</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/graphql/graph_schemas/"
+                   class="sidebar-nav-item "
+                >Graph Schemas</a></li>
+            </ul>
+          </li>
+          
+          
+        
+        <li>
+          
           <span class="intermediate">Developers</span></li>
           
           <li>
@@ -236,22 +355,26 @@
   </div>
 
   <div class="main col span_8_of_12">
-    
-
-<h1 id="mongodb">MongoDB</h1>
-
+    <h1 id="mongodb">MongoDB</h1>
 <p>GRIP supports storing vertices and edges in <a href="https://www.mongodb.com/">MongoDB</a>.</p>
-
 <p>Config:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-yaml" data-lang="yaml">Default: mongo
 
-<pre><code class="language-yaml">Database: mongodb
-
-MongoDB:
-  URL: &quot;localhost:27017&quot;
-  DBName: &quot;gripdb&quot;
-  Username: &quot;&quot;
-  Password: &quot;&quot;
-</code></pre>
+Drivers:
+  mongo:
+    MongoDB:
+      URL: <span style="color:#e6db74">&#34;mongodb://localhost:27000&#34;</span>
+      DBName: <span style="color:#e6db74">&#34;gripdb&#34;</span>
+      Username: <span style="color:#e6db74">&#34;&#34;</span>
+      Password: <span style="color:#e6db74">&#34;&#34;</span>
+      UseCorePipeline: False
+      BatchSize: <span style="color:#ae81ff">0</span>
+</code></pre></div><p><code>UseCorePipeline</code> - Default is to use Mongo pipeline API to do graph traversals.
+By enabling <code>UseCorePipeline</code>, GRIP will do the traversal logic itself, only using
+Mongo for graph storage.</p>
+<p><code>BatchSize</code> - For core engine operations, GRIP dispatches element lookups in
+batches to minimize query overhead. If missing from config file (which defaults to 0)
+the engine will default to 1000.</p>
 
   </div>
 

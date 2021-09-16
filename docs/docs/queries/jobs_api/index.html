@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head>
+  <link href="http://gmpg.org/xfn/11" rel="profile">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+
+  
+  <title>Jobs API &middot; GRIP</title>
+  
+
+  
+  <link rel="stylesheet" href="https://bmeg.github.io/grip/css/poole.css">
+  <link rel="stylesheet" href="https://bmeg.github.io/grip/css/darcula.css">
+  <link rel="stylesheet" href="https://bmeg.github.io/grip/css/syntax.css">
+  <link rel="stylesheet" href="https://bmeg.github.io/grip/css/theme.css">
+  <link rel="stylesheet" href="https://bmeg.github.io/grip/css/funnel.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=PT+Sans:400,400italic,700">
+
+  
+  <link rel="apple-touch-icon-precomposed" sizes="144x144" href="https://bmeg.github.io/grip/apple-touch-icon-144-precomposed.png">
+  <link rel="shortcut icon" href="https://bmeg.github.io/grip/favicon.png">
+
+  <script src="https://bmeg.github.io/grip/js/highlight.pack.js"></script>
+  <script>hljs.initHighlightingOnLoad();</script>
+
+</head>
+<body>
+
+  <div class="global-header">
+    <div class="global-header-container">
+      <div class="global-header-home">
+        <a href="https://bmeg.github.io/grip"><h1>GRIP</h1></a>
+      </div>
+      <ul class="global-header-nav">
+          <li><a href="https://bmeg.github.io/grip/download//">Download</a></li>
+          <li><a href="https://bmeg.github.io/grip/docs/">Docs</a></li>
+          <li><a href="https://github.com/bmeg/grip">GitHub</a></li>
+          <li><a href="https://gitter.im/bmeg/grip">Chat</a></li>
+        </ul>
+      <div class="global-header-ohsucb">
+        <a href="https://www.ohsu.edu/compbio/"><h2>OHSU Comp Bio</h2></a>
+      </div>
+    </div>
+  </div>
+
+
+<div class="content section group">
+
+  <div class="sidebar col span_3_of_12">
+    <ul class="sidebar-nav">
+      
+      
+        
+        <li>
+          
+          <a href="https://bmeg.github.io/grip/docs/"
+             class="sidebar-nav-item "
+          >Overview</a></li>
+          
+        
+        <li>
+          
+          <a href="https://bmeg.github.io/grip/download/"
+             class="sidebar-nav-item "
+          >Download</a></li>
+          
+        
+        <li>
+          
+          <span class="intermediate">GRIP Commands</span></li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/commands/server/"
+                   class="sidebar-nav-item "
+                >server</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/commands/query/"
+                   class="sidebar-nav-item "
+                >query</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/commands/list/"
+                   class="sidebar-nav-item "
+                >list</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/commands/drop/"
+                   class="sidebar-nav-item "
+                >drop</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/commands/mongoload/"
+                   class="sidebar-nav-item "
+                >mongoload</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/commands/er/"
+                   class="sidebar-nav-item "
+                >er</a></li>
+            </ul>
+          </li>
+          
+          
+        
+        <li>
+          
+          <span class="intermediate">Database Configuration</span></li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/databases/elastic/"
+                   class="sidebar-nav-item "
+                >Elasticsearch</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/databases/kvstore/"
+                   class="sidebar-nav-item "
+                >Embedded KV Store</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/databases/mongo/"
+                   class="sidebar-nav-item "
+                >MongoDB</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/databases/psql/"
+                   class="sidebar-nav-item "
+                >PostgreSQL</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/databases/sql/"
+                   class="sidebar-nav-item "
+                >SQL</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/databases/gripper/"
+                   class="sidebar-nav-item "
+                >GRIPPER</a></li>
+            </ul>
+          </li>
+          
+          
+        
+        <li>
+          
+          <span class="intermediate">GRIP Plugable External Resources</span></li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/gripper/gripper/"
+                   class="sidebar-nav-item "
+                >Intro</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/gripper/proxy/"
+                   class="sidebar-nav-item "
+                >External Resource Proxies</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/gripper/graphmodel/"
+                   class="sidebar-nav-item "
+                >Graph Model</a></li>
+            </ul>
+          </li>
+          
+          
+        
+        <li>
+          
+          <span class="intermediate">Query a Graph</span></li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/queries/getting_started/"
+                   class="sidebar-nav-item "
+                >Getting Started</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/queries/operations/"
+                   class="sidebar-nav-item "
+                >Operations</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/queries/jsonpath/"
+                   class="sidebar-nav-item "
+                >Referencing Fields</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/queries/jobs_api/"
+                   class="sidebar-nav-item  active"
+                >Jobs API</a></li>
+            </ul>
+          </li>
+          
+          
+        
+        <li>
+          
+          <span class="intermediate">Tutorials</span></li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/tutorials/amazon/"
+                   class="sidebar-nav-item "
+                >Amazon Purchase Network</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/tutorials/tcga-rna/"
+                   class="sidebar-nav-item "
+                >TCGA RNA Expression</a></li>
+            </ul>
+          </li>
+          
+          
+        
+        <li>
+          
+          <span class="intermediate">Security</span></li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/security/basic/"
+                   class="sidebar-nav-item "
+                >Basic Auth</a></li>
+            </ul>
+          </li>
+          
+          
+        
+        <li>
+          
+          <span class="intermediate">GraphQL</span></li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/graphql/graphql/"
+                   class="sidebar-nav-item "
+                >GraphQL</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/graphql/graph_schemas/"
+                   class="sidebar-nav-item "
+                >Graph Schemas</a></li>
+            </ul>
+          </li>
+          
+          
+        
+        <li>
+          
+          <span class="intermediate">Developers</span></li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://github.com/bmeg/grip/blob/master/gripql/gripql.proto"
+                   class="sidebar-nav-item "
+                >API</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://godoc.org/github.com/bmeg/grip"
+                   class="sidebar-nav-item "
+                >GoDoc</a></li>
+            </ul>
+          </li>
+          
+          
+        
+      
+    </ul>
+  </div>
+
+  <div class="main col span_8_of_12">
+    <h1 id="jobs-api">Jobs API</h1>
+<p>Not all queries return instantaneously, additionally some queries elements are used
+repeatedly. The query Jobs API provides a mechanism to submit graph traversals
+that will be evaluated asynchronously and can be retrieved at a later time.</p>
+<h3 id="submitting-a-job">Submitting a job</h3>
+<pre><code>job = G.query().V().hasLabel(&quot;Planet&quot;).out().submit()
+</code></pre><h3 id="getting-job-status">Getting job status</h3>
+<pre><code>jinfo = G.getJob(job[&quot;id&quot;])
+</code></pre><p>Example job info:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-json" data-lang="json">{
+  <span style="color:#f92672">&#34;id&#34;</span>: <span style="color:#e6db74">&#34;job-326392951&#34;</span>,
+  <span style="color:#f92672">&#34;graph&#34;</span>: <span style="color:#e6db74">&#34;test_graph_qd7rs7&#34;</span>,
+  <span style="color:#f92672">&#34;state&#34;</span>: <span style="color:#e6db74">&#34;COMPLETE&#34;</span>,
+  <span style="color:#f92672">&#34;count&#34;</span>: <span style="color:#e6db74">&#34;12&#34;</span>,
+  <span style="color:#f92672">&#34;query&#34;</span>: [{<span style="color:#f92672">&#34;v&#34;</span>: []}, {<span style="color:#f92672">&#34;hasLabel&#34;</span>: [<span style="color:#e6db74">&#34;Planet&#34;</span>]}, {<span style="color:#f92672">&#34;as&#34;</span>: <span style="color:#e6db74">&#34;a&#34;</span>}, {<span style="color:#f92672">&#34;out&#34;</span>: []}],
+  <span style="color:#f92672">&#34;timestamp&#34;</span>: <span style="color:#e6db74">&#34;2021-03-30T23:12:01-07:00&#34;</span>
+}
+</code></pre></div><h3 id="reading-job-results">Reading job results</h3>
+<pre><code>for row in G.readJob(job[&quot;id&quot;]):
+   print(row)
+</code></pre><h3 id="search-for-jobs">Search for jobs</h3>
+<p>Find jobs that match the prefix of the current request (example should find job from G.query().V().hasLabel(&ldquo;Planet&rdquo;).out())</p>
+<pre><code>jobs = G.query().V().hasLabel(&quot;Planet&quot;).out().out().count().searchJobs()
+</code></pre><p>If there are multiple jobs that match the prefix of the search, all of them will be returned. It will be a client side
+job to decide which of the jobs to use as a starting point. This can either be the job with the longest matching prefix, or
+the most recent job. Note, that if the underlying database has changed since the job was run, adding additional steps to the
+traversal may produce inaccurate results.</p>
+<p>Once <code>job</code> has been selected from the returned list you can use these existing results and continue the traversal.</p>
+<pre><code>for res in G.resume(job[&quot;id&quot;]).out().count():
+    print(res)
+</code></pre>
+  </div>
+
+</div>
+</body>
+</html>

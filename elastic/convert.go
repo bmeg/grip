@@ -1,36 +1,28 @@
 package elastic
 
 import (
+	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
-	"github.com/bmeg/grip/protoutil"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
-// PackVertex take a AQL vertex and convert it to a mongo doc
-func PackVertex(v *gripql.Vertex) map[string]interface{} {
-	p := map[string]interface{}{}
-	if v.Data != nil {
-		p = protoutil.AsMap(v.Data)
-	}
-	//fmt.Printf("proto:%s\nmap:%s\n", v.Data, p)
+// PackVertex take a gdbi vertex and convert it to a mongo doc
+func PackVertex(v *gdbi.Vertex) map[string]interface{} {
 	return map[string]interface{}{
-		"gid":   v.Gid,
+		"gid":   v.ID,
 		"label": v.Label,
-		"data":  p,
+		"data":  v.Data,
 	}
 }
 
 // PackEdge takes a AQL edge and converts it to a mongo doc
-func PackEdge(e *gripql.Edge) map[string]interface{} {
-	p := map[string]interface{}{}
-	if e.Data != nil {
-		p = protoutil.AsMap(e.Data)
-	}
+func PackEdge(e *gdbi.Edge) map[string]interface{} {
 	return map[string]interface{}{
-		"gid":   e.Gid,
+		"gid":   e.ID,
 		"from":  e.From,
 		"to":    e.To,
 		"label": e.Label,
-		"data":  p,
+		"data":  e.Data,
 	}
 }
 
@@ -40,7 +32,7 @@ func UnpackVertex(i map[string]interface{}) *gripql.Vertex {
 	o.Gid = i["gid"].(string)
 	o.Label = i["label"].(string)
 	if p, ok := i["data"]; ok {
-		o.Data = protoutil.AsStruct(p.(map[string]interface{}))
+		o.Data, _ = structpb.NewStruct(p.(map[string]interface{}))
 	}
 	return o
 }
@@ -53,7 +45,7 @@ func UnpackEdge(i map[string]interface{}) *gripql.Edge {
 	o.From = i["from"].(string)
 	o.To = i["to"].(string)
 	if d, ok := i["data"]; ok {
-		o.Data = protoutil.AsStruct(d.(map[string]interface{}))
+		o.Data, _ = structpb.NewStruct(d.(map[string]interface{}))
 	}
 	return o
 }

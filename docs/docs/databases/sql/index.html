@@ -70,14 +70,67 @@
         
         <li>
           
-          <a href="https://bmeg.github.io/grip/graph_schemas/"
-             class="sidebar-nav-item "
-          >Graph Schemas</a></li>
+          <span class="intermediate">GRIP Commands</span></li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/commands/server/"
+                   class="sidebar-nav-item "
+                >server</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/commands/query/"
+                   class="sidebar-nav-item "
+                >query</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/commands/list/"
+                   class="sidebar-nav-item "
+                >list</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/commands/drop/"
+                   class="sidebar-nav-item "
+                >drop</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/commands/mongoload/"
+                   class="sidebar-nav-item "
+                >mongoload</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/commands/er/"
+                   class="sidebar-nav-item "
+                >er</a></li>
+            </ul>
+          </li>
+          
           
         
         <li>
           
-          <span class="intermediate">Setup your Database</span></li>
+          <span class="intermediate">Database Configuration</span></li>
           
           <li>
             <ul class="sidebar-nav sidebar-nav-nested">
@@ -124,6 +177,48 @@
             </ul>
           </li>
           
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/databases/gripper/"
+                   class="sidebar-nav-item "
+                >GRIPPER</a></li>
+            </ul>
+          </li>
+          
+          
+        
+        <li>
+          
+          <span class="intermediate">GRIP Plugable External Resources</span></li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/gripper/gripper/"
+                   class="sidebar-nav-item "
+                >Intro</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/gripper/proxy/"
+                   class="sidebar-nav-item "
+                >External Resource Proxies</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/gripper/graphmodel/"
+                   class="sidebar-nav-item "
+                >Graph Model</a></li>
+            </ul>
+          </li>
+          
           
         
         <li>
@@ -160,9 +255,9 @@
           <li>
             <ul class="sidebar-nav sidebar-nav-nested">
               <li>
-                <a href="https://bmeg.github.io/grip/docs/queries/graphql/"
+                <a href="https://bmeg.github.io/grip/docs/queries/jobs_api/"
                    class="sidebar-nav-item "
-                >GraphQL</a></li>
+                >Jobs API</a></li>
             </ul>
           </li>
           
@@ -209,6 +304,30 @@
         
         <li>
           
+          <span class="intermediate">GraphQL</span></li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/graphql/graphql/"
+                   class="sidebar-nav-item "
+                >GraphQL</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/graphql/graph_schemas/"
+                   class="sidebar-nav-item "
+                >Graph Schemas</a></li>
+            </ul>
+          </li>
+          
+          
+        
+        <li>
+          
           <span class="intermediate">Developers</span></li>
           
           <li>
@@ -236,100 +355,90 @@
   </div>
 
   <div class="main col span_8_of_12">
-    
-
-<h1 id="connect-to-an-existing-sql-database">Connect to an existing SQL database</h1>
-
+    <h1 id="connect-to-an-existing-sql-database">Connect to an existing SQL database</h1>
+<p>Note: This driver is being superseded by the <a href="https://bmeg.github.io/grip/docs/gripper/gripper/">GRIPPER engine</a></p>
 <p>GRIP supports modeling an existing SQL database as a graph. GRIP has been tested against <a href="https://www.postgresql.org/">PostgreSQL</a>, but should  work with
 <a href="https://www.mysql.com/">MySQL</a> (4.1+) and <a href="https://mariadb.org/">MariaDB</a>.</p>
-
-<p>Since GRIP uses Go&rsquo;s <code>database/sql</code> package, we could (in thoery) support any SQL databases listed on:
+<p>Since GRIP uses Go's <code>database/sql</code> package, we could (in thoery) support any SQL databases listed on:
 <a href="https://github.com/golang/go/wiki/SQLDrivers">https://github.com/golang/go/wiki/SQLDrivers</a>. Open an <a href="https://github.com/bmeg/grip/issues/new">issue</a> if you
 would like to request support for your favorite SQL database.</p>
-
 <h2 id="configuration-notes">Configuration Notes</h2>
-
 <ul>
-<li><p><code>DataSourceName</code> is a driver-specific data source name, usually consisting of at least a database name and connection information. Here are links for
+<li>
+<p><code>DataSourceName</code> is a driver-specific data source name, usually consisting of at least a database name and connection information. Here are links for
 to documentation for this field for each supported driver:</p>
-
 <ul>
 <li>PostgreSQL - <a href="https://godoc.org/github.com/lib/pq#hdr-Connection_String_Parameters">https://godoc.org/github.com/lib/pq#hdr-Connection_String_Parameters</a></li>
 <li>MySQL, Mariadb - <a href="https://github.com/go-sql-driver/mysql/#dsn-data-source-name">https://github.com/go-sql-driver/mysql/#dsn-data-source-name</a></li>
-</ul></li>
-
-<li><p><code>Driver</code> should be one of: <code>postgres</code> or <code>mysql</code> (for MySQL or MariaDB).</p></li>
-
-<li><p><code>Graphs</code> is a list of graphs you want to define using the existing tables in the database. For each entry:</p>
-
+</ul>
+</li>
+<li>
+<p><code>Driver</code> should be one of: <code>postgres</code> or <code>mysql</code> (for MySQL or MariaDB).</p>
+</li>
+<li>
+<p><code>Graphs</code> is a list of graphs you want to define using the existing tables in the database. For each entry:</p>
 <ul>
 <li><code>Graph</code> is the name of the graph you want to define</li>
 <li><code>Vertices</code> is a list of entries, each of which binds a table to a vertex <code>label</code> and defines which field in the table to use as the <code>gid</code>.
 The remaining columns in the table are treated as the <code>data</code> associated with the vertex.</li>
 <li><code>Edges</code> is a list of entries. Edge entries may be associate an edge <code>label</code> with a table, but they are not required to.
 See below for examples of both types of edge definitions.</li>
-</ul></li>
 </ul>
-
+</li>
+</ul>
 <h2 id="example">Example</h2>
-
 <p>Given the following example database: <a href="https://github.com/bmeg/grip/blob/master/test/resources/postgres_smtest_data.dump">https://github.com/bmeg/grip/blob/master/test/resources/postgres_smtest_data.dump</a></p>
-
 <p>Load this dump file into your own postgres instance by running:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">createdb --host localhost --port <span style="color:#ae81ff">15432</span> -U postgres smtest
+psql --host localhost --port <span style="color:#ae81ff">15432</span> -U postgres smtest &lt; postgres_smtest_data.dump
+</code></pre></div><p>GRIP Configuration:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-yaml" data-lang="yaml">
+Drivers:
+  esql:
+    ExistingSQL:
+      DataSourceName: <span style="color:#e6db74">&#34;host=localhost port=15432 user=postgres dbname=smtest sslmode=disable&#34;</span>
+      Driver: postgres
 
-<pre><code class="language-bash">createdb --host localhost --port 15432 -U postgres smtest
-psql --host localhost --port 15432 -U postgres smtest &lt; postgres_smtest_data.dump
-</code></pre>
+      Graphs:
+        - Graph: test-graph
+          Vertices:
+            - Table: users
+              Label: users
+              GidField: id
 
-<p>GRIP Configuration:</p>
+            - Table: products
+              Label: products
+              GidField: id
 
-<pre><code class="language-yaml">Database: existing-sql
+            - Table: purchases
+              Label: purchases
+              GidField: id
 
-SQL:
-  DataSourceName: &quot;host=localhost port=15432 user=postgres dbname=smtest sslmode=disable&quot;
-  Driver: postgres
+          Edges:
+            - Table: purchase_items
+              Label: purchasedProducts
+              GidField: id
+              From:
+                SourceField: purchase_id
+                DestTable: purchases
+                DestField: id
+              To:
+                SourceField: product_id
+                DestTable: products
+                DestField: id
 
-  Graphs:
-    - Graph: test-graph
-      Vertices:
-        - Table: users
-          Label: users
-          GidField: id
-
-        - Table: products
-          Label: products
-          GidField: id
-
-        - Table: purchases
-          Label: purchases
-          GidField: id
-
-      Edges:
-        - Table: purchase_items
-          Label: purchasedProducts
-          GidField: id
-          From:
-            SourceField: purchase_id
-            DestTable: purchases
-            DestField: id
-          To:
-            SourceField: product_id
-            DestTable: products
-            DestField: id
-
-        - Table: &quot;&quot;
-          Label: userPurchases          
-          GidField: &quot;&quot;
-          From:
-            SourceField: &quot;&quot;
-            DestTable: users
-            DestField: id
-          To:
-            SourceField: &quot;&quot;
-            DestTable: purchases
-            DestField: user_id
-</code></pre>
-
+            - Table: <span style="color:#e6db74">&#34;&#34;</span>
+              Label: userPurchases          
+              GidField: <span style="color:#e6db74">&#34;&#34;</span>
+              From:
+                SourceField: <span style="color:#e6db74">&#34;&#34;</span>
+                DestTable: users
+                DestField: id
+              To:
+                SourceField: <span style="color:#e6db74">&#34;&#34;</span>
+                DestTable: purchases
+                DestField: user_id
+</code></pre></div>
   </div>
 
 </div>

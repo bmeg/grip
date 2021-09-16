@@ -10,7 +10,6 @@ def test_vertex_struct(man):
     count = 0
     for i in G.query().V():
         count += 1
-        i = i.to_dict()
         p = i['data']['field1']
         if not isinstance(p, dict):
             errors.append("Dictionary data failed")

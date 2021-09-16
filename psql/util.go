@@ -5,8 +5,7 @@ import (
 	"fmt"
 	"regexp"
 
-	"github.com/bmeg/grip/gripql"
-	"github.com/bmeg/grip/protoutil"
+	"github.com/bmeg/grip/gdbi"
 )
 
 type row struct {
@@ -17,7 +16,7 @@ type row struct {
 	Data  []byte
 }
 
-func convertVertexRow(row *row, load bool) (*gripql.Vertex, error) {
+func convertVertexRow(row *row, load bool) (*gdbi.Vertex, error) {
 	props := make(map[string]interface{})
 	if load {
 		err := json.Unmarshal(row.Data, &props)
@@ -25,15 +24,16 @@ func convertVertexRow(row *row, load bool) (*gripql.Vertex, error) {
 			return nil, fmt.Errorf("unmarshal error: %v", err)
 		}
 	}
-	v := &gripql.Vertex{
-		Gid:   row.Gid,
-		Label: row.Label,
-		Data:  protoutil.AsStruct(props),
+	v := &gdbi.Vertex{
+		ID:     row.Gid,
+		Label:  row.Label,
+		Data:   props,
+		Loaded: load,
 	}
 	return v, nil
 }
 
-func convertEdgeRow(row *row, load bool) (*gripql.Edge, error) {
+func convertEdgeRow(row *row, load bool) (*gdbi.Edge, error) {
 	props := make(map[string]interface{})
 	if load {
 		err := json.Unmarshal(row.Data, &props)
@@ -41,12 +41,13 @@ func convertEdgeRow(row *row, load bool) (*gripql.Edge, error) {
 			return nil, fmt.Errorf("unmarshal error: %v", err)
 		}
 	}
-	e := &gripql.Edge{
-		Gid:   row.Gid,
-		Label: row.Label,
-		From:  row.From,
-		To:    row.To,
-		Data:  protoutil.AsStruct(props),
+	e := &gdbi.Edge{
+		ID:     row.Gid,
+		Label:  row.Label,
+		From:   row.From,
+		To:     row.To,
+		Data:   props,
+		Loaded: load,
 	}
 	return e, nil
 }

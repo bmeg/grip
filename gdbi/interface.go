@@ -23,16 +23,39 @@ type DataElement struct {
 	Label    string
 	From, To string
 	Data     map[string]interface{}
+	Loaded   bool
+}
+
+type Vertex = DataElement
+
+type Edge = DataElement
+
+type GraphElement struct {
+	Vertex *Vertex
+	Edge   *Edge
+	Graph  string
+}
+
+type Aggregate struct {
+	Name  string
+	Key   interface{}
+	Value float64
+}
+
+type DataElementID struct {
+	Vertex string
+	Edge   string
 }
 
 // Traveler is a query element that traverse the graph
 type Traveler struct {
-	current      *DataElement
-	marks        map[string]*DataElement
-	Selections   map[string]*DataElement
-	Aggregations map[string]*gripql.AggregationResult
-	Count        uint32
-	Render       interface{}
+	Current     *DataElement
+	Marks       map[string]*DataElement
+	Selections  map[string]*DataElement
+	Aggregation *Aggregate
+	Count       uint32
+	Render      interface{}
+	Path        []DataElementID
 }
 
 // DataType is a possible output data type
@@ -47,14 +70,15 @@ const (
 	AggregationData
 	SelectionData
 	RenderData
+	PathData
 )
 
 // ElementLookup request to look up data
 type ElementLookup struct {
 	ID     string
 	Ref    *Traveler
-	Vertex *gripql.Vertex
-	Edge   *gripql.Edge
+	Vertex *Vertex
+	Edge   *Edge
 }
 
 // GraphDB is the base interface for graph databases
@@ -74,13 +98,13 @@ type GraphInterface interface {
 
 	GetTimestamp() string
 
-	GetVertex(key string, load bool) *gripql.Vertex
-	GetEdge(key string, load bool) *gripql.Edge
+	GetVertex(key string, load bool) *Vertex
+	GetEdge(key string, load bool) *Edge
 
-	AddVertex(vertex []*gripql.Vertex) error
-	AddEdge(edge []*gripql.Edge) error
+	AddVertex(vertex []*Vertex) error
+	AddEdge(edge []*Edge) error
 
-	BulkAdd(<-chan *gripql.GraphElement) error
+	BulkAdd(<-chan *GraphElement) error
 
 	DelVertex(key string) error
 	DelEdge(key string) error
@@ -94,8 +118,8 @@ type GraphInterface interface {
 	DeleteVertexIndex(label string, field string) error
 	GetVertexIndexList() <-chan *gripql.IndexID
 
-	GetVertexList(ctx context.Context, load bool) <-chan *gripql.Vertex
-	GetEdgeList(ctx context.Context, load bool) <-chan *gripql.Edge
+	GetVertexList(ctx context.Context, load bool) <-chan *Vertex
+	GetEdgeList(ctx context.Context, load bool) <-chan *Edge
 
 	GetVertexChannel(ctx context.Context, req chan ElementLookup, load bool) chan ElementLookup
 	GetOutChannel(ctx context.Context, req chan ElementLookup, load bool, edgeLabels []string) chan ElementLookup
