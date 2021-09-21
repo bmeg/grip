@@ -17,6 +17,7 @@ import (
 
 var conf = &config.Config{}
 var configFile string
+var driver = "badger"
 
 var pluginDir = ""
 
@@ -66,7 +67,13 @@ var Cmd = &cobra.Command{
 			}
 			dconf.SetDefaults()
 		} else {
-			dconf.AddBadgerDefault()
+			if driver == "badger" {
+				dconf.AddBadgerDefault()
+			} else if driver == "pebble" {
+				dconf.AddPebbleDefault()
+			} else if driver == "mongo" {
+				dconf.AddMongoDefault()
+			}
 		}
 		if pluginDir != "" {
 			dconf.Server.EnablePlugins = true
@@ -103,6 +110,7 @@ func init() {
 	flags.BoolVar(&conf.Server.RequestLogging.Enable, "log-requests", conf.Server.RequestLogging.Enable, "Log all requests")
 
 	flags.StringVarP(&pluginDir, "plugins", "p", pluginDir, "Directory with GRIPPER plugins")
+	flags.StringVarP(&driver, "driver", "d", driver, "Default Driver")
 
 	flags.StringToStringVarP(&conf.Sources, "er", "e", conf.Sources, "GRIPPER source address")
 }

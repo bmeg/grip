@@ -90,6 +90,20 @@ func (conf *Config) AddBadgerDefault() {
 	conf.Default = "badger"
 }
 
+func (conf *Config) AddPebbleDefault() {
+	n := "grip-pebble.db"
+	conf.Drivers["pebble"] = DriverConfig{Pebble: &n}
+	conf.Default = "pebble"
+}
+
+func (conf *Config) AddMongoDefault() {
+	c := mongo.Config{}
+	c.SetDefaults()
+	conf.Drivers["mongo"] = DriverConfig{MongoDB: &c}
+	conf.Default = "mongo"
+}
+
+
 // TestifyConfig randomizes ports and database paths/names
 func TestifyConfig(c *Config) {
 	rand := strings.ToLower(util.RandomString(6))
