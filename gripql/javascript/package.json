@@ -1,6 +1,6 @@
 {
   "name": "gripql",
-  "version": "0.2.0",
+  "version": "0.7.0",
   "description": "schema and api for graph queries and operations",
   "main": "gripql.js",
   "scripts": {
@@ -14,6 +14,6 @@
   "repository": "git@github.com:bmeg/grip.git",
   "license": "MIT",
   "dependencies": {
-    "underscore": "1.8.3"
+    "underscore": ">=1.12.1"
   }
 }

@@ -11,7 +11,42 @@ import (
 )
 
 // ParseYAMLGraph parses a YAML doc into the given Graph instance.
-func ParseYAMLGraph(raw []byte) ([]*Graph, error) {
+func ParseYAMLGraph(raw []byte) (*Graph, error) {
+	tmp := map[string]interface{}{}
+	err := yaml.Unmarshal(raw, &tmp)
+	if err != nil {
+		return nil, err
+	}
+	part, err := json.Marshal(tmp)
+	if err != nil {
+		return nil, err
+	}
+	g := &Graph{}
+	err = protojson.Unmarshal(part, g)
+	if err != nil {
+		return nil, err
+	}
+	return g, nil
+}
+
+
+func ParseYAMLGraphPath(relpath string) (*Graph, error) {
+	// Try to get absolute path. If it fails, fall back to relative path.
+	path, err := filepath.Abs(relpath)
+	if err != nil {
+		path = relpath
+	}
+	// Read file
+	source, err := ioutil.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read graph at path %s: \n%v", path, err)
+	}
+	return ParseYAMLGraph(source)
+}
+
+
+// ParseYAMLGraph parses a YAML doc into the given Graph instance.
+func ParseYAMLGraphs(raw []byte) ([]*Graph, error) {
 	graphs := []*Graph{}
 	tmp := []interface{}{}
 	err := yaml.Unmarshal(raw, &tmp)
@@ -42,7 +77,7 @@ func ParseYAMLGraph(raw []byte) ([]*Graph, error) {
 }
 
 // ParseJSONGraph parses a JSON doc into the given Graph instance.
-func ParseJSONGraph(raw []byte) ([]*Graph, error) {
+func ParseJSONGraphs(raw []byte) ([]*Graph, error) {
 	graphs := []*Graph{}
 	tmp := []interface{}{}
 	err := json.Unmarshal(raw, &tmp)
@@ -97,9 +132,9 @@ func parseGraphFile(relpath string, format string) ([]*Graph, error) {
 	// Parse file contents
 	switch format {
 	case "yaml":
-		graphs, err = ParseYAMLGraph(source)
+		graphs, err = ParseYAMLGraphs(source)
 	case "json":
-		graphs, err = ParseJSONGraph(source)
+		graphs, err = ParseJSONGraphs(source)
 	default:
 		err = fmt.Errorf("unknown file format: %s", format)
 	}
@@ -111,13 +146,13 @@ func parseGraphFile(relpath string, format string) ([]*Graph, error) {
 
 // ParseYAMLGraphFile parses a graph file, which is formatted in YAML,
 // and returns a slice of graph objects.
-func ParseYAMLGraphFile(relpath string) ([]*Graph, error) {
+func ParseYAMLGraphsFile(relpath string) ([]*Graph, error) {
 	return parseGraphFile(relpath, "yaml")
 }
 
 // ParseJSONGraphFile parses a graph file, which is formatted in JSON,
 // and returns a slice of graph objects.
-func ParseJSONGraphFile(relpath string) ([]*Graph, error) {
+func ParseJSONGraphsFile(relpath string) ([]*Graph, error) {
 	return parseGraphFile(relpath, "json")
 }
 

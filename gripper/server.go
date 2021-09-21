@@ -99,9 +99,10 @@ func (st *SimpleTableServicer) GetRowsByID(srv GRIPSource_GetRowsByIDServer) err
 		}
 		log.Printf("Request: %s %s", err, req)
 		if dr, ok := st.drivers[req.Collection]; ok {
-			row, _ := dr.FetchRow(req.Id)
-			data, _ := structpb.NewStruct(row.Value)
-			srv.Send(&Row{Id: row.Key, Data: data, RequestID: req.RequestID})
+			if row, err := dr.FetchRow(req.Id); err == nil {
+				data, _ := structpb.NewStruct(row.Value)
+				srv.Send(&Row{Id: row.Key, Data: data, RequestID: req.RequestID})
+			}
 		} else {
 			//do something here
 		}
