@@ -32,6 +32,7 @@ type DriverConfig struct {
 	Badger        *string
 	Bolt          *string
 	Level         *string
+	Pebble        *string
 	Elasticsearch *elastic.Config
 	MongoDB       *mongo.Config
 	PSQL          *psql.Config
@@ -88,6 +89,20 @@ func (conf *Config) AddBadgerDefault() {
 	conf.Drivers["badger"] = DriverConfig{Badger: &n}
 	conf.Default = "badger"
 }
+
+func (conf *Config) AddPebbleDefault() {
+	n := "grip-pebble.db"
+	conf.Drivers["pebble"] = DriverConfig{Pebble: &n}
+	conf.Default = "pebble"
+}
+
+func (conf *Config) AddMongoDefault() {
+	c := mongo.Config{}
+	c.SetDefaults()
+	conf.Drivers["mongo"] = DriverConfig{MongoDB: &c}
+	conf.Default = "mongo"
+}
+
 
 // TestifyConfig randomizes ports and database paths/names
 func TestifyConfig(c *Config) {
@@ -169,8 +184,8 @@ func ParseConfigFile(relpath string, conf *Config) error {
 	}
 	for i := range conf.Drivers {
 		if conf.Drivers[i].Gripper != nil {
-			if conf.Drivers[i].Gripper.ConfigFile != "" {
-				gpath := filepath.Join(filepath.Dir(path), conf.Drivers[i].Gripper.ConfigFile)
+			if conf.Drivers[i].Gripper.MappingFile != "" {
+				gpath := filepath.Join(filepath.Dir(path), conf.Drivers[i].Gripper.MappingFile)
 
 				gsource, err := ioutil.ReadFile(gpath)
 				if err != nil {

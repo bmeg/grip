@@ -33,6 +33,7 @@ import (
 	_ "github.com/bmeg/grip/kvi/badgerdb" // import so badger will register itself
 	_ "github.com/bmeg/grip/kvi/boltdb"   // import so bolt will register itself
 	_ "github.com/bmeg/grip/kvi/leveldb"  // import so level will register itself
+	_ "github.com/bmeg/grip/kvi/pebbledb" // import so level will register itself
 	"github.com/bmeg/grip/mongo"
 	"github.com/bmeg/grip/psql"
 )
@@ -81,7 +82,7 @@ func NewGripServer(conf *config.Config, baseDir string, drivers map[string]gdbi.
 			log.Errorf("Cannot reach source: %s", name)
 		}
 	}
-	
+
 	for name, dConfig := range conf.Drivers {
 		if _, ok := gdbs[name]; !ok {
 			g, err := StartDriver(dConfig, sources)
@@ -92,12 +93,12 @@ func NewGripServer(conf *config.Config, baseDir string, drivers map[string]gdbi.
 	}
 
 	server := &GripServer{
-		dbs: gdbs,
-		conf: conf,
-		schemas: schemas,
+		dbs:      gdbs,
+		conf:     conf,
+		schemas:  schemas,
 		mappings: map[string]*gripql.Graph{},
-		plugins:map[string]*Plugin{},
-		sources:sources,
+		plugins:  map[string]*Plugin{},
+		sources:  sources,
 	}
 
 	if conf.Default == "" {
@@ -123,6 +124,8 @@ func StartDriver(d config.DriverConfig, sources map[string]gripper.GRIPSourceCli
 		return kvgraph.NewKVGraphDB("badger", *d.Badger)
 	} else if d.Level != nil {
 		return kvgraph.NewKVGraphDB("level", *d.Level)
+	} else if d.Pebble != nil {
+		return kvgraph.NewKVGraphDB("pebble", *d.Pebble)
 	} else if d.Grids != nil {
 		return grids.NewGraphDB(*d.Grids)
 	} else if d.Elasticsearch != nil {

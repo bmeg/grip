@@ -15,12 +15,13 @@ import (
 	"github.com/bmeg/grip/cmd/list"
 	"github.com/bmeg/grip/cmd/load"
 	"github.com/bmeg/grip/cmd/mongoload"
+	"github.com/bmeg/grip/cmd/plugin"
 	"github.com/bmeg/grip/cmd/query"
 	"github.com/bmeg/grip/cmd/rdf"
 	"github.com/bmeg/grip/cmd/schema"
+	"github.com/bmeg/grip/cmd/mapping"
 	"github.com/bmeg/grip/cmd/server"
 	"github.com/bmeg/grip/cmd/stream"
-	"github.com/bmeg/grip/cmd/plugin"
 	"github.com/bmeg/grip/cmd/version"
 	"github.com/bmeg/grip/log"
 	"github.com/spf13/cobra"
@@ -60,6 +61,7 @@ func init() {
 	RootCmd.AddCommand(erclient.Cmd)
 	RootCmd.AddCommand(rdf.Cmd)
 	RootCmd.AddCommand(schema.Cmd)
+	RootCmd.AddCommand(mapping.Cmd)
 	RootCmd.AddCommand(server.Cmd)
 	RootCmd.AddCommand(stream.Cmd)
 	RootCmd.AddCommand(plugin.Cmd)

@@ -11,10 +11,10 @@ import (
 
 // Client is a GRPC grip client with some helper functions
 type Client struct {
-	QueryC QueryClient
-	EditC  EditClient
+	QueryC     QueryClient
+	EditC      EditClient
 	ConfigureC ConfigureClient
-	conn   *grpc.ClientConn
+	conn       *grpc.ClientConn
 }
 
 // WrapClient takes previously initialized GRPC clients and uses them for the
@@ -54,6 +54,17 @@ func (client Client) GetSchema(graph string) (*Graph, error) {
 // AddSchema adds a schema for a graph.
 func (client Client) AddSchema(graph *Graph) error {
 	_, err := client.EditC.AddSchema(context.Background(), graph)
+	return err
+}
+
+// GetMaping returns the mapping for the given graph.
+func (client Client) GetMapping(graph string) (*Graph, error) {
+	return client.QueryC.GetMapping(context.Background(), &GraphID{Graph: graph})
+}
+
+// AddMapping adds a mapping for a graph.
+func (client Client) AddMapping(graph *Graph) error {
+	_, err := client.EditC.AddMapping(context.Background(), graph)
 	return err
 }
 
@@ -188,7 +199,6 @@ func (client Client) Traversal(query *GraphQuery) (chan *QueryResult, error) {
 
 	return out, nil
 }
-
 
 // ListDrivers lists avalible drivers
 func (client Client) ListDrivers() (*ListDriversResponse, error) {

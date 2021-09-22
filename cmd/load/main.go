@@ -106,7 +106,7 @@ var Cmd = &cobra.Command{
 
 		if jsonFile != "" {
 			log.Infof("Loading json file: %s", jsonFile)
-			graphs, err := gripql.ParseJSONGraphFile(jsonFile)
+			graphs, err := gripql.ParseJSONGraphsFile(jsonFile)
 			if err != nil {
 				return err
 			}
@@ -124,7 +124,7 @@ var Cmd = &cobra.Command{
 
 		if yamlFile != "" {
 			log.Infof("Loading YAML file: %s", yamlFile)
-			graphs, err := gripql.ParseYAMLGraphFile(yamlFile)
+			graphs, err := gripql.ParseYAMLGraphsFile(yamlFile)
 			if err != nil {
 				return err
 			}

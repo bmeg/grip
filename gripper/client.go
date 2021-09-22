@@ -1,9 +1,9 @@
 package gripper
 
 import (
-	"io"
-	"fmt"
 	"context"
+	"fmt"
+	"io"
 
 	"github.com/bmeg/grip/log"
 )
