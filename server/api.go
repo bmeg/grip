@@ -447,6 +447,21 @@ func (server *GripServer) GetSchema(ctx context.Context, elem *gripql.GraphID) (
 	return schema, nil
 }
 
+// GetSchema returns the schema of a specific graph in the database
+func (server *GripServer) SampleSchema(ctx context.Context, elem *gripql.GraphID) (*gripql.Graph, error) {
+	if !server.graphExists(elem.Graph) {
+		return nil, grpc.Errorf(codes.NotFound, fmt.Sprintf("graph %s: not found", elem.Graph))
+	}
+	if gdb, err := server.getGraphDB(elem.Graph); err == nil {
+		schema, err := gdb.BuildSchema(ctx, elem.Graph, 50, true)
+		if schema.Graph == "" {
+			schema.Graph = elem.Graph
+		}
+		return schema, err
+	}
+	return nil, fmt.Errorf("Graph driver not found")
+}
+
 // AddSchema caches a graph schema on the server
 func (server *GripServer) AddSchema(ctx context.Context, req *gripql.Graph) (*gripql.EditResult, error) {
 	err := server.addFullGraph(ctx, fmt.Sprintf("%s%s", req.Graph, schemaSuffix), req)
