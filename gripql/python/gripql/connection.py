@@ -58,7 +58,7 @@ class Connection(BaseConnection):
         """
         response = self.session.post(
             self.url + "/" + name + "/schema",
-            {"vertices" : vertices, "edges" : edges}
+            json={"vertices" : vertices, "edges" : edges}
         )
         raise_for_status(response)
         return response.json()
@@ -74,7 +74,7 @@ class Connection(BaseConnection):
         )
         raise_for_status(response)
         return response.json()
-    
+
     def getMapping(self, name):
         """
         Get a graph mapping.
