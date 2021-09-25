@@ -12,4 +12,8 @@ def test_getscheama(man):
     if vLabels != ['Character', 'Film', 'Planet', 'Species', 'Starship', 'Vehicle']:
         errors.append("Incorrect labels returned from sampling")
 
+    eLabels = sorted( list( set( v['label'] for v in s['edges']) ) )
+    if eLabels != ["characters", "films", "homeworld", "people", "pilots", "planets", "residents", "species", "starships", "vehicles"]:
+        errors.append("Incorrect labels returned from sampling")
+
     return errors

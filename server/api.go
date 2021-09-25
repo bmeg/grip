@@ -454,6 +454,9 @@ func (server *GripServer) SampleSchema(ctx context.Context, elem *gripql.GraphID
 	}
 	if gdb, err := server.getGraphDB(elem.Graph); err == nil {
 		schema, err := gdb.BuildSchema(ctx, elem.Graph, 50, true)
+		if err != nil {
+			return nil, err
+		}
 		if schema.Graph == "" {
 			schema.Graph = elem.Graph
 		}
