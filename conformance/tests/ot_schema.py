@@ -9,11 +9,22 @@ def test_getscheama(man):
 
     vLabels = sorted( list(v['gid'] for v in s['vertices']) )
 
-    if vLabels != ['Character', 'Film', 'Planet', 'Species', 'Starship', 'Vehicle']:
-        errors.append("Incorrect labels returned from sampling")
+    vExpectedLabels = [
+        'Character', 'Film', 'Planet', 'Species', 'Starship', 'Vehicle'
+    ]
 
+    if vLabels != vExpectedLabels:
+        errors.append(
+            "Incorrect labels returned from sampling %s != %s" %
+                (vLabels, vExpectedLabels)
+        )
+
+    eExpectedLabels = ["characters", "films", "homeworld", "people",
+        "pilots", "planets", "residents", "species", "starships", "vehicles"]
     eLabels = sorted( list( set( v['label'] for v in s['edges']) ) )
-    if eLabels != ["characters", "films", "homeworld", "people", "pilots", "planets", "residents", "species", "starships", "vehicles"]:
-        errors.append("Incorrect labels returned from sampling")
+    if eLabels != eExpectedLabels:
+        errors.append("Incorrect labels returned from sampling: %s != %s " %
+            (eLabels, eExpectedLabels)
+        )
 
     return errors
