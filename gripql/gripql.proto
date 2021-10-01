@@ -344,7 +344,7 @@ service Query {
 }
 
 service Job {
-	rpc Job(GraphQuery) returns (QueryJob) {
+	rpc Submit(GraphQuery) returns (QueryJob) {
 		option (google.api.http) = {
 			post: "/v1/graph/{graph}/job"
 			body: "*"

@@ -158,9 +158,9 @@ func NewJobDirectClient(server JobServer) *JobDirectClient {
 	return &JobDirectClient{server}
 }
 
-//Job shim
-func (shim *JobDirectClient) Job(ctx context.Context, in *GraphQuery, opts ...grpc.CallOption) (*QueryJob, error) {
-	return shim.server.Job(ctx, in)
+//Submit shim
+func (shim *JobDirectClient) Submit(ctx context.Context, in *GraphQuery, opts ...grpc.CallOption) (*QueryJob, error) {
+	return shim.server.Submit(ctx, in)
 }
 
 //ListJobs streaming output shim

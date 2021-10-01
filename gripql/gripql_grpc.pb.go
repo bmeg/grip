@@ -483,7 +483,7 @@ var Query_ServiceDesc = grpc.ServiceDesc{
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type JobClient interface {
-	Job(ctx context.Context, in *GraphQuery, opts ...grpc.CallOption) (*QueryJob, error)
+	Submit(ctx context.Context, in *GraphQuery, opts ...grpc.CallOption) (*QueryJob, error)
 	ListJobs(ctx context.Context, in *Graph, opts ...grpc.CallOption) (Job_ListJobsClient, error)
 	SearchJobs(ctx context.Context, in *GraphQuery, opts ...grpc.CallOption) (Job_SearchJobsClient, error)
 	DeleteJob(ctx context.Context, in *QueryJob, opts ...grpc.CallOption) (*JobStatus, error)
@@ -500,9 +500,9 @@ func NewJobClient(cc grpc.ClientConnInterface) JobClient {
 	return &jobClient{cc}
 }
 
-func (c *jobClient) Job(ctx context.Context, in *GraphQuery, opts ...grpc.CallOption) (*QueryJob, error) {
+func (c *jobClient) Submit(ctx context.Context, in *GraphQuery, opts ...grpc.CallOption) (*QueryJob, error) {
 	out := new(QueryJob)
-	err := c.cc.Invoke(ctx, "/gripql.Job/Job", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/gripql.Job/Submit", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -659,7 +659,7 @@ func (x *jobResumeJobClient) Recv() (*QueryResult, error) {
 // All implementations must embed UnimplementedJobServer
 // for forward compatibility
 type JobServer interface {
-	Job(context.Context, *GraphQuery) (*QueryJob, error)
+	Submit(context.Context, *GraphQuery) (*QueryJob, error)
 	ListJobs(*Graph, Job_ListJobsServer) error
 	SearchJobs(*GraphQuery, Job_SearchJobsServer) error
 	DeleteJob(context.Context, *QueryJob) (*JobStatus, error)
@@ -673,8 +673,8 @@ type JobServer interface {
 type UnimplementedJobServer struct {
 }
 
-func (UnimplementedJobServer) Job(context.Context, *GraphQuery) (*QueryJob, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Job not implemented")
+func (UnimplementedJobServer) Submit(context.Context, *GraphQuery) (*QueryJob, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Submit not implemented")
 }
 func (UnimplementedJobServer) ListJobs(*Graph, Job_ListJobsServer) error {
 	return status.Errorf(codes.Unimplemented, "method ListJobs not implemented")
@@ -707,20 +707,20 @@ func RegisterJobServer(s grpc.ServiceRegistrar, srv JobServer) {
 	s.RegisterService(&Job_ServiceDesc, srv)
 }
 
-func _Job_Job_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Job_Submit_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GraphQuery)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(JobServer).Job(ctx, in)
+		return srv.(JobServer).Submit(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/gripql.Job/Job",
+		FullMethod: "/gripql.Job/Submit",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(JobServer).Job(ctx, req.(*GraphQuery))
+		return srv.(JobServer).Submit(ctx, req.(*GraphQuery))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -853,8 +853,8 @@ var Job_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*JobServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "Job",
-			Handler:    _Job_Job_Handler,
+			MethodName: "Submit",
+			Handler:    _Job_Submit_Handler,
 		},
 		{
 			MethodName: "DeleteJob",
