@@ -276,16 +276,16 @@ func (ma *GraphDB) resolveLabels(graph string, ft fromto) fromto {
 			from := ""
 			to := ""
 			result := map[string]string{}
-			opts := options.Find()
+			opts := options.FindOne()
 			opts.SetProjection(bson.M{"_id": -1, "label": 1})
-			cursor := v.FindOne(context.TODO(), bson.M{"_id": fromID})
+			cursor := v.FindOne(context.TODO(), bson.M{"_id": fromID}, opts)
 			if cursor.Err() == nil {
 				if nil == cursor.Decode(&result) {
 					from = result["label"]
 				}
 			}
 			result = map[string]string{}
-			cursor = v.FindOne(context.TODO(), bson.M{"_id": toID})
+			cursor = v.FindOne(context.TODO(), bson.M{"_id": toID}, opts)
 			if cursor.Err() == nil {
 				if nil == cursor.Decode(&result) {
 					to = result["label"]
