@@ -208,7 +208,7 @@ func (server *GripServer) Serve(pctx context.Context) error {
 		if err != nil {
 			return fmt.Errorf("setting up GraphQL handler: %v", err)
 		}*/
-	gqlHandler, err := graphql.NewClientHTTPHandler(gripql.WrapClient(gripql.NewQueryDirectClient(server), nil, nil))
+	gqlHandler, err := graphql.NewClientHTTPHandler(gripql.WrapClient(gripql.NewQueryDirectClient(server), nil, nil, nil))
 
 	mux.Handle("/graphql/", gqlHandler)
 
