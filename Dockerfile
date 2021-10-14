@@ -1,5 +1,5 @@
 # build stage
-FROM golang:1.12.4-alpine AS build-env
+FROM golang:1.17.2-alpine AS build-env
 RUN apk add make git bash build-base
 ENV GOPATH=/go
 ENV PATH="/go/bin:${PATH}"
