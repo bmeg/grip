@@ -19,7 +19,7 @@ VERSION_LDFLAGS=\
 export GRIP_VERSION = 0.7.0
 # LAST_PR_NUMBER is used by the release notes builder to generate notes
 # based on pull requests (PR) up until the last release.
-export LAST_PR_NUMBER = 134
+export LAST_PR_NUMBER = 229
 
 # ---------------------
 # Compile and Install
