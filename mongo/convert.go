@@ -83,6 +83,9 @@ func removePrimatives(i interface{}) interface{} {
 		}
 		return out
 	}
+	if x, ok := i.(primitive.ObjectID); ok {
+		return x.String()
+	}
 	if x, ok := i.(map[string]interface{}); ok {
 		out := make(map[string]interface{})
 		for i := range x {
