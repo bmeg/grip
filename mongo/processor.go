@@ -190,9 +190,9 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 							for i := range pathA {
 								if elem, ok := pathA[i].(map[string]interface{}); ok {
 									if v, ok := elem["vertex"]; ok {
-										o[i] = gdbi.DataElementID{Vertex: v.(string)}
+										o[i] = gdbi.DataElementID{Vertex: removePrimatives(v).(string)}
 									} else if v, ok := elem["edge"]; ok {
-										o[i] = gdbi.DataElementID{Edge: v.(string)}
+										o[i] = gdbi.DataElementID{Edge: removePrimatives(v).(string)}
 									}
 								}
 							}
@@ -202,7 +202,7 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 
 					de := &gdbi.DataElement{}
 					if x, ok := result["_id"]; ok {
-						de.ID = x.(string)
+						de.ID = removePrimatives(x).(string)
 					}
 					if x, ok := result["label"]; ok {
 						de.Label = x.(string)
