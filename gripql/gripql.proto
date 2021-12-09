@@ -54,6 +54,11 @@ message GraphStatement {
     Aggregations aggregate = 61;
     google.protobuf.Value render = 62;
 		google.protobuf.ListValue path = 63;
+
+		string mark = 70;
+		Jump jump = 71;
+		Set  set = 72;
+		Increment increment = 73;
   }
 }
 
@@ -159,6 +164,22 @@ message Selection {
 
 message Selections {
 	map<string, Selection> selections = 1;
+}
+
+message Jump {
+	string mark = 1;
+	HasCondition condition = 2;
+	bool emit = 3;
+}
+
+message Set {
+	string key = 1;
+	google.protobuf.Value value = 2;
+}
+
+message Increment {
+	string key = 1;
+	int32  value = 2;
 }
 
 message Vertex {

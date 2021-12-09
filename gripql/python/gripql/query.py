@@ -235,6 +235,18 @@ class Query(BaseConnection):
         props = _wrap_str_value(props)
         return self.__append({"distinct": props})
 
+    def set(self, key, value):
+        """
+        Set field to constant value
+        """
+        return self.__append({"set": {"key":key, "value":value}})
+
+    def increment(self, key, value):
+        """
+        Increment field by value
+        """
+        return self.__append({"set": {"key":key, "value":value}})
+
     def render(self, template):
         """
         Render output of query
