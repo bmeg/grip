@@ -26,45 +26,45 @@ func MatchesCondition(trav *gdbi.Traveler, cond *gripql.HasCondition) bool {
 		return !reflect.DeepEqual(val, condVal)
 
 	case gripql.Condition_GT:
-		valN, ok := val.(float64)
-		if !ok {
+		valN, err := cast.ToFloat64E(val)
+		if err != nil {
 			return false
 		}
-		condN, ok := condVal.(float64)
-		if !ok {
+		condN, err := cast.ToFloat64E(condVal)
+		if err != nil {
 			return false
 		}
 		return valN > condN
 
 	case gripql.Condition_GTE:
-		valN, ok := val.(float64)
-		if !ok {
+		valN, err := cast.ToFloat64E(val)
+		if err != nil {
 			return false
 		}
-		condN, ok := condVal.(float64)
-		if !ok {
+		condN, err := cast.ToFloat64E(condVal)
+		if err != nil {
 			return false
 		}
 		return valN >= condN
 
 	case gripql.Condition_LT:
-		valN, ok := val.(float64)
-		if !ok {
+		valN, err := cast.ToFloat64E(val)
+		if err != nil {
 			return false
 		}
-		condN, ok := condVal.(float64)
-		if !ok {
+		condN, err := cast.ToFloat64E(condVal)
+		if err != nil {
 			return false
 		}
 		return valN < condN
 
 	case gripql.Condition_LTE:
-		valN, ok := val.(float64)
-		if !ok {
+		valN, err := cast.ToFloat64E(val)
+		if err != nil {
 			return false
 		}
-		condN, ok := condVal.(float64)
-		if !ok {
+		condN, err := cast.ToFloat64E(condVal)
+		if err != nil {
 			return false
 		}
 		return valN <= condN

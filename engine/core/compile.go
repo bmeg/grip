@@ -254,7 +254,10 @@ func StatementProcessor(gs *gripql.GraphStatement, db gdbi.GraphInterface, ps *p
 		return &logic.JumpMark{Name:stmt.Mark}, nil
 
 	case *gripql.GraphStatement_Jump:
-		return &logic.Jump{Mark:stmt.Jump.Mark, Stmt:stmt.Jump.Expression, Emit:stmt.Jump.Emit}, nil
+		j := &logic.Jump{Mark:stmt.Jump.Mark, Stmt:stmt.Jump.Expression, Emit:stmt.Jump.Emit}
+		j.Init()
+		return j, nil
+
 
 	case *gripql.GraphStatement_Select:
 		if ps.LastType != gdbi.VertexData && ps.LastType != gdbi.EdgeData {
