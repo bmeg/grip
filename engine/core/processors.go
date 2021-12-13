@@ -13,7 +13,7 @@ import (
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/jsonpath"
 	"github.com/bmeg/grip/log"
-	"github.com/bmeg/grip/util"
+	"github.com/bmeg/grip/util/copy"
 	"github.com/influxdata/tdigest"
 	"github.com/spf13/cast"
 	"golang.org/x/sync/errgroup"
@@ -439,20 +439,20 @@ func (r *Unwind) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, 
 				cur := t.GetCurrent()
 				if len(a) > 0 {
 					for _, i := range a {
-						o := gdbi.DataElement{ID: cur.ID, Label: cur.Label, From: cur.From, To: cur.To, Data: util.DeepCopy(cur.Data).(map[string]interface{}), Loaded: true}
+						o := gdbi.DataElement{ID: cur.ID, Label: cur.Label, From: cur.From, To: cur.To, Data: copy.DeepCopy(cur.Data).(map[string]interface{}), Loaded: true}
 						n := t.AddCurrent(&o)
 						jsonpath.TravelerSetValue(n, r.Field, i)
 						out <- n
 					}
 				} else {
-					o := gdbi.DataElement{ID: cur.ID, Label: cur.Label, From: cur.From, To: cur.To, Data: util.DeepCopy(cur.Data).(map[string]interface{}), Loaded: true}
+					o := gdbi.DataElement{ID: cur.ID, Label: cur.Label, From: cur.From, To: cur.To, Data: copy.DeepCopy(cur.Data).(map[string]interface{}), Loaded: true}
 					n := t.AddCurrent(&o)
 					jsonpath.TravelerSetValue(n, r.Field, nil)
 					out <- n
 				}
 			} else {
 				cur := t.GetCurrent()
-				o := gdbi.DataElement{ID: cur.ID, Label: cur.Label, From: cur.From, To: cur.To, Data: util.DeepCopy(cur.Data).(map[string]interface{}), Loaded: true}
+				o := gdbi.DataElement{ID: cur.ID, Label: cur.Label, From: cur.From, To: cur.To, Data: copy.DeepCopy(cur.Data).(map[string]interface{}), Loaded: true}
 				n := t.AddCurrent(&o)
 				jsonpath.TravelerSetValue(n, r.Field, nil)
 				out <- n
@@ -741,6 +741,27 @@ func (s *ValueSet) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe
 	}()
 	return ctx
 }
+
+type ValueIncrement struct {
+	key string
+	value int32
+}
+
+
+func (s *ValueIncrement) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
+	go func() {
+		defer close(out)
+		for t := range in {
+			v := jsonpath.TravelerPathLookup(t, s.key)
+			i := cast.ToInt(v) + int(s.value)
+			o := t.Copy()
+			jsonpath.TravelerSetValue(o, s.key, i)
+			out <- o
+		}
+	}()
+	return ctx
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////
 

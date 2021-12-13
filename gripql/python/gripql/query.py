@@ -245,7 +245,7 @@ class Query(BaseConnection):
         """
         Increment field by value
         """
-        return self.__append({"set": {"key":key, "value":value}})
+        return self.__append({"increment": {"key":key, "value":value}})
 
     def jump(self, mark, expression, emit=False):
         """

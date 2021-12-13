@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/bmeg/grip/gripql"
+	"github.com/bmeg/grip/util/copy"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -48,7 +49,13 @@ func (t *Traveler) AddCurrent(r *DataElement) *Traveler {
 func (t *Traveler) Copy() *Traveler {
 	o := Traveler{Marks: map[string]*DataElement{}, Path: make([]DataElementID, len(t.Path))}
 	for k, v := range t.Marks {
-		o.Marks[k] = v
+		o.Marks[k] = &DataElement{
+			ID: v.ID,
+			Label: v.Label,
+			From:v.From, To:v.To,
+			Data: copy.DeepCopy(v.Data).(map[string]interface{}),
+			Loaded:v.Loaded,
+		}
 	}
 	for i := range t.Path {
 		o.Path[i] = t.Path[i]
