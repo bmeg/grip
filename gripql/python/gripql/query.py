@@ -241,11 +241,24 @@ class Query(BaseConnection):
         """
         return self.__append({"set": {"key":key, "value":value}})
 
-    def increment(self, key, value):
+    def increment(self, key, value=1):
         """
         Increment field by value
         """
         return self.__append({"set": {"key":key, "value":value}})
+
+    def jump(self, mark, expression, emit=False):
+        """
+        Jump to marked instruction if condition is true. If `emit` is true
+        send copy to next step inm chain
+        """
+        return self.__append({"jump": {"mark":mark, "expression" : expression, "emit":emit}})
+
+    def mark(self, name):
+        """
+        Mark a labeled step that can recieve travelers from `jump` command
+        """
+        return self.__append({"mark": name})
 
     def render(self, template):
         """

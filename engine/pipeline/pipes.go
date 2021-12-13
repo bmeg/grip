@@ -8,6 +8,7 @@ import (
 	"context"
 
 	"github.com/bmeg/grip/engine"
+	"github.com/bmeg/grip/engine/logic"
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/log"
@@ -21,6 +22,23 @@ func Start(ctx context.Context, pipe gdbi.Pipeline, man gdbi.Manager, bufsize in
 		ch := make(chan *gdbi.Traveler)
 		close(ch)
 		return ch
+	}
+
+	markProcs := map[string]*logic.JumpMark{}
+	for i := range procs {
+		if p, ok := procs[i].(*logic.JumpMark); ok {
+			markProcs[p.Name] = p
+		}
+	}
+	for i := range procs {
+		if p, ok := procs[i].(*logic.Jump); ok {
+			if d, ok := markProcs[p.Mark]; ok {
+				p.Init()
+				d.AddInput(p.Jumpers)
+			} else {
+				log.Errorf("Missing Jump Mark")
+			}
+		}
 	}
 
 	in := make(chan *gdbi.Traveler, bufsize)

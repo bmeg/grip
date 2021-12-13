@@ -168,7 +168,7 @@ message Selections {
 
 message Jump {
 	string mark = 1;
-	HasCondition condition = 2;
+	HasExpression expression = 2;
 	bool emit = 3;
 }
 
