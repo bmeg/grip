@@ -56,6 +56,8 @@ type Traveler struct {
 	Count       uint32
 	Render      interface{}
 	Path        []DataElementID
+	Signal      bool
+	SignalDest  string
 }
 
 // DataType is a possible output data type

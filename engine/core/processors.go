@@ -33,6 +33,10 @@ func (l *LookupVerts) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 	go func() {
 		defer close(out)
 		for t := range in {
+			if t.Signal {
+				out <- t
+				continue
+			}
 			if len(l.ids) == 0 {
 				for v := range l.db.GetVertexList(ctx, l.loadData) {
 					out <- t.AddCurrent(&gdbi.DataElement{
@@ -75,6 +79,10 @@ func (l *LookupVertsIndex) Process(ctx context.Context, man gdbi.Manager, in gdb
 	go func() {
 		defer close(queryChan)
 		for t := range in {
+			if t.Signal {
+				out <- t
+				continue
+			}
 			for _, label := range l.labels {
 				for id := range l.db.VertexLabelScan(ctx, label) {
 					queryChan <- gdbi.ElementLookup{
@@ -115,6 +123,10 @@ func (l *LookupEdges) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 	go func() {
 		defer close(out)
 		for t := range in {
+			if t.Signal {
+				out <- t
+				continue
+			}
 			if len(l.ids) == 0 {
 				for v := range l.db.GetEdgeList(ctx, l.loadData) {
 					out <- t.AddCurrent(&gdbi.DataElement{
@@ -160,10 +172,14 @@ func (l *LookupVertexAdjOut) Process(ctx context.Context, man gdbi.Manager, in g
 	queryChan := make(chan gdbi.ElementLookup, 100)
 	go func() {
 		defer close(queryChan)
-		for i := range in {
+		for t := range in {
+			if t.Signal {
+				out <- t
+				continue
+			}
 			queryChan <- gdbi.ElementLookup{
-				ID:  i.GetCurrent().ID,
-				Ref: i,
+				ID:  t.GetCurrent().ID,
+				Ref: t,
 			}
 		}
 	}()
@@ -196,10 +212,14 @@ func (l *LookupEdgeAdjOut) Process(ctx context.Context, man gdbi.Manager, in gdb
 	queryChan := make(chan gdbi.ElementLookup, 100)
 	go func() {
 		defer close(queryChan)
-		for i := range in {
+		for t := range in {
+			if t.Signal {
+				out <- t
+				continue
+			}
 			queryChan <- gdbi.ElementLookup{
-				ID:  i.GetCurrent().To,
-				Ref: i,
+				ID:  t.GetCurrent().To,
+				Ref: t,
 			}
 		}
 	}()
@@ -232,10 +252,14 @@ func (l *LookupVertexAdjIn) Process(ctx context.Context, man gdbi.Manager, in gd
 	queryChan := make(chan gdbi.ElementLookup, 100)
 	go func() {
 		defer close(queryChan)
-		for i := range in {
+		for t := range in {
+			if t.Signal {
+				out <- t
+				continue
+			}
 			queryChan <- gdbi.ElementLookup{
-				ID:  i.GetCurrent().ID,
-				Ref: i,
+				ID:  t.GetCurrent().ID,
+				Ref: t,
 			}
 		}
 	}()
@@ -268,10 +292,14 @@ func (l *LookupEdgeAdjIn) Process(ctx context.Context, man gdbi.Manager, in gdbi
 	queryChan := make(chan gdbi.ElementLookup, 100)
 	go func() {
 		defer close(queryChan)
-		for i := range in {
+		for t := range in {
+			if t.Signal {
+				out <- t
+				continue
+			}
 			queryChan <- gdbi.ElementLookup{
-				ID:  i.GetCurrent().From,
-				Ref: i,
+				ID:  t.GetCurrent().From,
+				Ref: t,
 			}
 		}
 	}()
@@ -304,10 +332,14 @@ func (l *InE) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out
 	queryChan := make(chan gdbi.ElementLookup, 100)
 	go func() {
 		defer close(queryChan)
-		for i := range in {
+		for t := range in {
+			if t.Signal {
+				out <- t
+				continue
+			}
 			queryChan <- gdbi.ElementLookup{
-				ID:  i.GetCurrent().ID,
-				Ref: i,
+				ID:  t.GetCurrent().ID,
+				Ref: t,
 			}
 		}
 	}()
@@ -342,10 +374,14 @@ func (l *OutE) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, ou
 	queryChan := make(chan gdbi.ElementLookup, 100)
 	go func() {
 		defer close(queryChan)
-		for i := range in {
+		for t := range in {
+			if t.Signal {
+				out <- t
+				continue
+			}
 			queryChan <- gdbi.ElementLookup{
-				ID:  i.GetCurrent().ID,
-				Ref: i,
+				ID:  t.GetCurrent().ID,
+				Ref: t,
 			}
 		}
 	}()
@@ -378,6 +414,10 @@ func (f *Fields) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, 
 	go func() {
 		defer close(out)
 		for t := range in {
+			if t.Signal {
+				out <- t
+				continue
+			}
 			o := jsonpath.SelectTravelerFields(t, f.keys...)
 			out <- o
 		}
@@ -397,6 +437,10 @@ func (r *Render) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, 
 	go func() {
 		defer close(out)
 		for t := range in {
+			if t.Signal {
+				out <- t
+				continue
+			}
 			v := jsonpath.RenderTraveler(t, r.Template)
 			out <- &gdbi.Traveler{Render: v}
 		}
@@ -416,6 +460,10 @@ func (r *Path) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, ou
 	go func() {
 		defer close(out)
 		for t := range in {
+			if t.Signal {
+				out <- t
+				continue
+			}
 			out <- t
 		}
 	}()
@@ -434,6 +482,10 @@ func (r *Unwind) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, 
 	go func() {
 		defer close(out)
 		for t := range in {
+			if t.Signal {
+				out <- t
+				continue
+			}
 			v := jsonpath.TravelerPathLookup(t, r.Field)
 			if a, ok := v.([]interface{}); ok {
 				cur := t.GetCurrent()
@@ -474,6 +526,10 @@ func (w *Has) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out
 	go func() {
 		defer close(out)
 		for t := range in {
+			if t.Signal {
+				out <- t
+				continue
+			}
 			if logic.MatchesHasExpression(t, w.stmt) {
 				out <- t
 			}
@@ -495,6 +551,10 @@ func (h *HasLabel) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe
 	go func() {
 		defer close(out)
 		for t := range in {
+			if t.Signal {
+				out <- t
+				continue
+			}
 			if contains(labels, t.GetCurrent().Label) {
 				out <- t
 			}
@@ -516,6 +576,10 @@ func (h *HasKey) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, 
 		keys := dedupStringSlice(h.keys)
 		defer close(out)
 		for t := range in {
+			if t.Signal {
+				out <- t
+				continue
+			}
 			found := true
 			for _, key := range keys {
 				if !jsonpath.TravelerPathExists(t, key) {
@@ -543,6 +607,10 @@ func (h *HasID) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, o
 		defer close(out)
 		ids := dedupStringSlice(h.ids)
 		for t := range in {
+			if t.Signal {
+				out <- t
+				continue
+			}
 			if contains(ids, t.GetCurrent().ID) {
 				out <- t
 			}
@@ -561,7 +629,11 @@ func (c *Count) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, o
 	go func() {
 		defer close(out)
 		var i uint32
-		for range in {
+		for t := range in {
+			if t.Signal {
+				out <- t
+				continue
+			}
 			i++
 		}
 		out <- &gdbi.Traveler{Count: i}
@@ -583,6 +655,10 @@ func (l *Limit) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, o
 		defer close(out)
 		var i uint32
 		for t := range in {
+			if t.Signal {
+				out <- t
+				continue
+			}
 			if i < l.count {
 				out <- t
 			} else if i == l.count {
@@ -607,6 +683,10 @@ func (o *Skip) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, ou
 		defer close(out)
 		var i uint32
 		for t := range in {
+			if t.Signal {
+				out <- t
+				continue
+			}
 			if i >= o.count {
 				out <- t
 			}
@@ -634,6 +714,10 @@ func (r *Range) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, o
 		defer close(out)
 		var i int32
 		for t := range in {
+			if t.Signal {
+				out <- t
+				continue
+			}
 			if i >= r.start && (i < r.stop || r.stop == -1) {
 				out <- t
 			} else if i == r.stop {
@@ -658,6 +742,10 @@ func (g *Distinct) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe
 		defer close(out)
 		kv := man.GetTempKV()
 		for t := range in {
+			if t.Signal {
+				out <- t
+				continue
+			}
 			s := make([][]byte, len(g.vals))
 			found := true
 			for i, v := range g.vals {
@@ -691,6 +779,10 @@ func (m *Marker) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, 
 	go func() {
 		defer close(out)
 		for t := range in {
+			if t.Signal {
+				out <- t
+				continue
+			}
 			out <- t.AddMark(m.mark, t.GetCurrent())
 		}
 	}()
@@ -709,6 +801,10 @@ func (s *Selector) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe
 	go func() {
 		defer close(out)
 		for t := range in {
+			if t.Signal {
+				out <- t
+				continue
+			}
 			res := map[string]*gdbi.DataElement{}
 			for _, mark := range s.marks {
 				val := t.GetMark(mark)
@@ -735,6 +831,10 @@ func (s *ValueSet) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe
 	go func() {
 		defer close(out)
 		for t := range in {
+			if t.Signal {
+				out <- t
+				continue
+			}
 			jsonpath.TravelerSetValue(t, s.key, s.value)
 			out <- t
 		}
@@ -752,6 +852,10 @@ func (s *ValueIncrement) Process(ctx context.Context, man gdbi.Manager, in gdbi.
 	go func() {
 		defer close(out)
 		for t := range in {
+			if t.Signal {
+				out <- t
+				continue
+			}
 			v := jsonpath.TravelerPathLookup(t, s.key)
 			i := cast.ToInt(v) + int(s.value)
 			o := t.Copy()
@@ -775,6 +879,10 @@ func (s *MarkSelect) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPi
 	go func() {
 		defer close(out)
 		for t := range in {
+			if t.Signal {
+				out <- t
+				continue
+			}
 			m := t.GetMark(s.mark)
 			out <- t.AddCurrent(m)
 		}
@@ -826,6 +934,10 @@ func (b both) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out
 			p.Process(ctx, man, chanIn[i], chanOut[i])
 		}
 		for t := range in {
+			if t.Signal {
+				out <- t
+				continue
+			}
 			for _, ch := range chanIn {
 				ch <- t
 			}
@@ -860,6 +972,10 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 
 	g.Go(func() error {
 		for t := range in {
+			if t.Signal {
+				out <- t
+				continue
+			}
 			for _, a := range agg.aggregations {
 				aChans[a.Name] <- t
 			}

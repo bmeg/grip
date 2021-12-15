@@ -27,7 +27,12 @@ const (
 
 // AddCurrent creates a new copy of the travel with new 'current' value
 func (t *Traveler) AddCurrent(r *DataElement) *Traveler {
-	o := Traveler{Marks: map[string]*DataElement{}, Path: make([]DataElementID, len(t.Path)+1)}
+	o := Traveler{
+		Marks:      map[string]*DataElement{},
+		Path:       make([]DataElementID, len(t.Path)+1),
+		Signal:     t.Signal,
+		SignalDest: t.SignalDest,
+	}
 	for k, v := range t.Marks {
 		o.Marks[k] = v
 	}
@@ -47,14 +52,19 @@ func (t *Traveler) AddCurrent(r *DataElement) *Traveler {
 
 // AddCurrent creates a new copy of the travel with new 'current' value
 func (t *Traveler) Copy() *Traveler {
-	o := Traveler{Marks: map[string]*DataElement{}, Path: make([]DataElementID, len(t.Path))}
+	o := Traveler{
+		Marks:      map[string]*DataElement{},
+		Path:       make([]DataElementID, len(t.Path)),
+		Signal:     t.Signal,
+		SignalDest: t.SignalDest,
+	}
 	for k, v := range t.Marks {
 		o.Marks[k] = &DataElement{
-			ID: v.ID,
+			ID:    v.ID,
 			Label: v.Label,
-			From:v.From, To:v.To,
-			Data: copy.DeepCopy(v.Data).(map[string]interface{}),
-			Loaded:v.Loaded,
+			From:  v.From, To: v.To,
+			Data:   copy.DeepCopy(v.Data).(map[string]interface{}),
+			Loaded: v.Loaded,
 		}
 	}
 	for i := range t.Path {
