@@ -82,7 +82,7 @@ func Run(ctx context.Context, pipe gdbi.Pipeline, workdir string) <-chan *gripql
 		markTypes := pipe.MarkTypes()
 		man := engine.NewManager(workdir)
 		for t := range Start(ctx, pipe, man, bufsize, nil, nil) {
-			if !t.Signal {
+			if t.Signal == nil {
 				resch <- Convert(graph, dataType, markTypes, t)
 			}
 		}
@@ -102,7 +102,7 @@ func Resume(ctx context.Context, pipe gdbi.Pipeline, workdir string, input gdbi.
 		markTypes := pipe.MarkTypes()
 		man := engine.NewManager(workdir)
 		for t := range Start(ctx, pipe, man, bufsize, input, cancel) {
-			if !t.Signal {
+			if t.Signal == nil {
 				resch <- Convert(graph, dataType, markTypes, t)
 			}
 		}

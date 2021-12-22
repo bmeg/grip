@@ -31,7 +31,6 @@ func (t *Traveler) AddCurrent(r *DataElement) *Traveler {
 		Marks:      map[string]*DataElement{},
 		Path:       make([]DataElementID, len(t.Path)+1),
 		Signal:     t.Signal,
-		SignalDest: t.SignalDest,
 	}
 	for k, v := range t.Marks {
 		o.Marks[k] = v
@@ -56,7 +55,6 @@ func (t *Traveler) Copy() *Traveler {
 		Marks:      map[string]*DataElement{},
 		Path:       make([]DataElementID, len(t.Path)),
 		Signal:     t.Signal,
-		SignalDest: t.SignalDest,
 	}
 	for k, v := range t.Marks {
 		o.Marks[k] = &DataElement{

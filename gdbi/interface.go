@@ -47,6 +47,11 @@ type DataElementID struct {
 	Edge   string
 }
 
+type Signal struct {
+	Dest       string
+	ID         int
+}
+
 // Traveler is a query element that traverse the graph
 type Traveler struct {
 	Current     *DataElement
@@ -56,8 +61,7 @@ type Traveler struct {
 	Count       uint32
 	Render      interface{}
 	Path        []DataElementID
-	Signal      bool
-	SignalDest  string
+	Signal      *Signal
 }
 
 // DataType is a possible output data type

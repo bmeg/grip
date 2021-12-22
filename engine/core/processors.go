@@ -33,7 +33,7 @@ func (l *LookupVerts) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 	go func() {
 		defer close(out)
 		for t := range in {
-			if t.Signal {
+			if t.Signal != nil {
 				out <- t
 				continue
 			}
@@ -79,7 +79,7 @@ func (l *LookupVertsIndex) Process(ctx context.Context, man gdbi.Manager, in gdb
 	go func() {
 		defer close(queryChan)
 		for t := range in {
-			if t.Signal {
+			if t.Signal != nil  {
 				out <- t
 				continue
 			}
@@ -123,7 +123,7 @@ func (l *LookupEdges) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 	go func() {
 		defer close(out)
 		for t := range in {
-			if t.Signal {
+			if t.Signal != nil  {
 				out <- t
 				continue
 			}
@@ -173,7 +173,7 @@ func (l *LookupVertexAdjOut) Process(ctx context.Context, man gdbi.Manager, in g
 	go func() {
 		defer close(queryChan)
 		for t := range in {
-			if t.Signal {
+			if t.Signal != nil  {
 				out <- t
 				continue
 			}
@@ -213,7 +213,7 @@ func (l *LookupEdgeAdjOut) Process(ctx context.Context, man gdbi.Manager, in gdb
 	go func() {
 		defer close(queryChan)
 		for t := range in {
-			if t.Signal {
+			if t.Signal != nil  {
 				out <- t
 				continue
 			}
@@ -253,7 +253,7 @@ func (l *LookupVertexAdjIn) Process(ctx context.Context, man gdbi.Manager, in gd
 	go func() {
 		defer close(queryChan)
 		for t := range in {
-			if t.Signal {
+			if t.Signal != nil  {
 				out <- t
 				continue
 			}
@@ -293,7 +293,7 @@ func (l *LookupEdgeAdjIn) Process(ctx context.Context, man gdbi.Manager, in gdbi
 	go func() {
 		defer close(queryChan)
 		for t := range in {
-			if t.Signal {
+			if t.Signal != nil  {
 				out <- t
 				continue
 			}
@@ -333,7 +333,7 @@ func (l *InE) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out
 	go func() {
 		defer close(queryChan)
 		for t := range in {
-			if t.Signal {
+			if t.Signal != nil  {
 				out <- t
 				continue
 			}
@@ -375,7 +375,7 @@ func (l *OutE) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, ou
 	go func() {
 		defer close(queryChan)
 		for t := range in {
-			if t.Signal {
+			if t.Signal != nil  {
 				out <- t
 				continue
 			}
@@ -414,7 +414,7 @@ func (f *Fields) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, 
 	go func() {
 		defer close(out)
 		for t := range in {
-			if t.Signal {
+			if t.Signal != nil  {
 				out <- t
 				continue
 			}
@@ -437,7 +437,7 @@ func (r *Render) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, 
 	go func() {
 		defer close(out)
 		for t := range in {
-			if t.Signal {
+			if t.Signal != nil  {
 				out <- t
 				continue
 			}
@@ -460,7 +460,7 @@ func (r *Path) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, ou
 	go func() {
 		defer close(out)
 		for t := range in {
-			if t.Signal {
+			if t.Signal != nil  {
 				out <- t
 				continue
 			}
@@ -482,7 +482,7 @@ func (r *Unwind) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, 
 	go func() {
 		defer close(out)
 		for t := range in {
-			if t.Signal {
+			if t.Signal != nil  {
 				out <- t
 				continue
 			}
@@ -526,7 +526,7 @@ func (w *Has) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out
 	go func() {
 		defer close(out)
 		for t := range in {
-			if t.Signal {
+			if t.Signal != nil  {
 				out <- t
 				continue
 			}
@@ -551,7 +551,7 @@ func (h *HasLabel) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe
 	go func() {
 		defer close(out)
 		for t := range in {
-			if t.Signal {
+			if t.Signal != nil  {
 				out <- t
 				continue
 			}
@@ -576,7 +576,7 @@ func (h *HasKey) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, 
 		keys := dedupStringSlice(h.keys)
 		defer close(out)
 		for t := range in {
-			if t.Signal {
+			if t.Signal != nil  {
 				out <- t
 				continue
 			}
@@ -607,7 +607,7 @@ func (h *HasID) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, o
 		defer close(out)
 		ids := dedupStringSlice(h.ids)
 		for t := range in {
-			if t.Signal {
+			if t.Signal != nil  {
 				out <- t
 				continue
 			}
@@ -630,7 +630,7 @@ func (c *Count) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, o
 		defer close(out)
 		var i uint32
 		for t := range in {
-			if t.Signal {
+			if t.Signal != nil  {
 				out <- t
 				continue
 			}
@@ -655,7 +655,7 @@ func (l *Limit) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, o
 		defer close(out)
 		var i uint32
 		for t := range in {
-			if t.Signal {
+			if t.Signal != nil  {
 				out <- t
 				continue
 			}
@@ -683,7 +683,7 @@ func (o *Skip) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, ou
 		defer close(out)
 		var i uint32
 		for t := range in {
-			if t.Signal {
+			if t.Signal != nil  {
 				out <- t
 				continue
 			}
@@ -714,7 +714,7 @@ func (r *Range) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, o
 		defer close(out)
 		var i int32
 		for t := range in {
-			if t.Signal {
+			if t.Signal != nil  {
 				out <- t
 				continue
 			}
@@ -742,7 +742,7 @@ func (g *Distinct) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe
 		defer close(out)
 		kv := man.GetTempKV()
 		for t := range in {
-			if t.Signal {
+			if t.Signal != nil  {
 				out <- t
 				continue
 			}
@@ -779,7 +779,7 @@ func (m *Marker) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, 
 	go func() {
 		defer close(out)
 		for t := range in {
-			if t.Signal {
+			if t.Signal != nil  {
 				out <- t
 				continue
 			}
@@ -801,7 +801,7 @@ func (s *Selector) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe
 	go func() {
 		defer close(out)
 		for t := range in {
-			if t.Signal {
+			if t.Signal != nil  {
 				out <- t
 				continue
 			}
@@ -831,7 +831,7 @@ func (s *ValueSet) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe
 	go func() {
 		defer close(out)
 		for t := range in {
-			if t.Signal {
+			if t.Signal != nil  {
 				out <- t
 				continue
 			}
@@ -852,7 +852,7 @@ func (s *ValueIncrement) Process(ctx context.Context, man gdbi.Manager, in gdbi.
 	go func() {
 		defer close(out)
 		for t := range in {
-			if t.Signal {
+			if t.Signal != nil  {
 				out <- t
 				continue
 			}
@@ -879,7 +879,7 @@ func (s *MarkSelect) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPi
 	go func() {
 		defer close(out)
 		for t := range in {
-			if t.Signal {
+			if t.Signal != nil  {
 				out <- t
 				continue
 			}
@@ -934,7 +934,7 @@ func (b both) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out
 			p.Process(ctx, man, chanIn[i], chanOut[i])
 		}
 		for t := range in {
-			if t.Signal {
+			if t.Signal != nil  {
 				out <- t
 				continue
 			}
@@ -972,7 +972,7 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 
 	g.Go(func() error {
 		for t := range in {
-			if t.Signal {
+			if t.Signal != nil  {
 				out <- t
 				continue
 			}
