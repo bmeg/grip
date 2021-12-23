@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import gripql
 
+# test basic repeat cycle
 def test_repeat(man):
     errors = []
     G = man.setGraph("swapi")
@@ -10,10 +11,41 @@ def test_repeat(man):
     q = q.has(gripql.lt("$start.count", 2))
     q = q.jump("a", None, True)
 
+    count = 0
     for row in q:
+        count += 1
         print(row)
 
+    if count != 4:
+        errors.append("cycle output count %d != %d" % (count, 4))
+
     return errors
+
+# make sure jumping forward in chain works
+def test_forward(man):
+    errors = []
+    G = man.setGraph("swapi")
+
+    q = G.query().V().jump("skip", gripql.eq( "_label", "Character" ), True).out()
+    q = q.has(gripql.eq( "_label", "Character" ))
+    q = q.mark("skip").path()
+
+    count1 = 0
+    count2 = 0
+    for row in q:
+        if not row[-1]['vertex'].startswith("Character:"):
+            errors.append("Incorrect last node on path")
+        if len(row) == 1:
+            count1 += 1
+        if len(row) == 2:
+            count2 += 1
+    if count1 != 18:
+        errors.append("Single step count %d != %d" % (count1, 10))
+    if count2 != 52:
+        errors.append("Two step count %d != %d" % (count2, 10))
+
+    return errors
+
 
 def test_set(man):
     errors = []
