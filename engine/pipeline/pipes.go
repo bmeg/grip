@@ -34,7 +34,7 @@ func Start(ctx context.Context, pipe gdbi.Pipeline, man gdbi.Manager, bufsize in
 		if p, ok := procs[i].(*logic.Jump); ok {
 			if d, ok := markProcs[p.Mark]; ok {
 				p.Init()
-				d.AddInput(p.Jumpers)
+				d.AddInput(p.GetJumpOutput())
 			} else {
 				log.Errorf("Missing Jump Mark")
 				ch := make(chan *gdbi.Traveler)

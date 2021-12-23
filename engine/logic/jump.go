@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
+	"github.com/bmeg/grip/engine/queue"
 )
 
 // MarkJump creates mark where jump instruction can send travelers
@@ -18,6 +19,7 @@ func (s *JumpMark) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe
 	go func() {
 		defer close(out)
 
+		mCount := 0
 		for inputOpen := true; inputOpen ; {
 			jumperFound := false
 			if s.inputs != nil {
@@ -49,9 +51,11 @@ func (s *JumpMark) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe
 				case msg, ok := <-in:
 					if !ok {
             //main input has closed, move onto closing phase
+						fmt.Printf("Got input close, messages: %d\n", mCount)
             inputOpen = false
 					} else {
 						out <- msg
+						mCount++
 					}
 				default:
 				}
@@ -131,28 +135,35 @@ type Jump struct {
 	Mark    string
 	Stmt    *gripql.HasExpression
 	Emit    bool
-	Jumpers chan *gdbi.Traveler
+	jumpers chan *gdbi.Traveler
+	queue   queue.Queue
 }
 
 func (s *Jump) Init() {
-	s.Jumpers = make(chan *gdbi.Traveler, 10)
+	q := queue.New()
+	s.jumpers = q.GetInput()
+	s.queue = q
+}
+
+func (s *Jump) GetJumpOutput() chan *gdbi.Traveler {
+	return s.queue.GetOutput()
 }
 
 func (s *Jump) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
 	go func() {
 		defer close(out)
-		defer close(s.Jumpers)
+		defer close(s.jumpers)
 		for t := range in {
 			if t.Signal != nil {
         // If receiving a signal from the destintion marker, send it forward
         if t.Signal.Dest == s.Mark {
-          s.Jumpers <- t
+          s.jumpers <- t
 				}
 				out <- t
 				continue
 			}
 			if s.Stmt == nil || MatchesHasExpression(t, s.Stmt) {
-				s.Jumpers <- t
+				s.jumpers <- t
 			}
 			if s.Emit {
 				out <- t.Copy()

@@ -6,7 +6,7 @@ import gripql
 def test_repeat(man):
     errors = []
     G = man.setGraph("swapi")
-
+    """
     q = G.query().V("Character:1").set("count", 0).as_("start").mark("a").out().increment("$start.count")
     q = q.has(gripql.lt("$start.count", 2))
     q = q.jump("a", None, True)
@@ -14,11 +14,21 @@ def test_repeat(man):
     count = 0
     for row in q:
         count += 1
-        print(row)
 
     if count != 4:
         errors.append("cycle output count %d != %d" % (count, 4))
+    """
+    #do a deeper search, to see if channels are overloaded
+    q = G.query().V().set("count", 0).as_("start").mark("a").out().increment("$start.count")
+    q = q.has(gripql.lt("$start.count", 4))
+    q = q.jump("a", None, True)
 
+    count = 0
+    for row in q:
+        #print(row)
+        count += 1
+    if count != 11786:
+        errors.append("cycle output count %d != %d" % (count, 11786))
     return errors
 
 # make sure jumping forward in chain works
