@@ -9,6 +9,19 @@ type RetrievedData struct {
 	Data interface{}
 }
 
+func (tr Traveler) IsSignal() bool {
+  if tr.Signal != nil {
+    return true
+  }
+  return false
+}
+
+func (req ElementLookup) IsSignal() bool {
+  if req.Ref != nil && req.Ref.Signal != nil {
+    return true
+  }
+  return false
+}
 
 type LoadData func(req ElementLookup, load bool) chan interface{}
 

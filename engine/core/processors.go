@@ -79,10 +79,6 @@ func (l *LookupVertsIndex) Process(ctx context.Context, man gdbi.Manager, in gdb
 	go func() {
 		defer close(queryChan)
 		for t := range in {
-			if t.Signal != nil  {
-				out <- t
-				continue
-			}
 			for _, label := range l.labels {
 				for id := range l.db.VertexLabelScan(ctx, label) {
 					queryChan <- gdbi.ElementLookup{
@@ -173,26 +169,32 @@ func (l *LookupVertexAdjOut) Process(ctx context.Context, man gdbi.Manager, in g
 	go func() {
 		defer close(queryChan)
 		for t := range in {
-			if t.Signal != nil  {
-				out <- t
-				continue
-			}
-			queryChan <- gdbi.ElementLookup{
-				ID:  t.GetCurrent().ID,
-				Ref: t,
+			if t.IsSignal() {
+				queryChan <- gdbi.ElementLookup{
+					Ref: t,
+				}
+			} else {
+				queryChan <- gdbi.ElementLookup{
+					ID:  t.GetCurrent().ID,
+					Ref: t,
+				}
 			}
 		}
 	}()
 	go func() {
 		defer close(out)
 		for ov := range l.db.GetOutChannel(ctx, queryChan, l.loadData, l.labels) {
-			i := ov.Ref
-			out <- i.AddCurrent(&gdbi.DataElement{
-				ID:     ov.Vertex.ID,
-				Label:  ov.Vertex.Label,
-				Data:   ov.Vertex.Data,
-				Loaded: ov.Vertex.Loaded,
-			})
+			if ov.IsSignal() {
+				out <- ov.Ref
+			} else {
+				i := ov.Ref
+				out <- i.AddCurrent(&gdbi.DataElement{
+					ID:     ov.Vertex.ID,
+					Label:  ov.Vertex.Label,
+					Data:   ov.Vertex.Data,
+					Loaded: ov.Vertex.Loaded,
+				})
+			}
 		}
 	}()
 	return ctx
@@ -213,13 +215,13 @@ func (l *LookupEdgeAdjOut) Process(ctx context.Context, man gdbi.Manager, in gdb
 	go func() {
 		defer close(queryChan)
 		for t := range in {
-			if t.Signal != nil  {
-				out <- t
-				continue
-			}
-			queryChan <- gdbi.ElementLookup{
-				ID:  t.GetCurrent().To,
-				Ref: t,
+			if t.IsSignal() {
+				queryChan <- gdbi.ElementLookup{Ref: t}
+			} else {
+				queryChan <- gdbi.ElementLookup{
+					ID:  t.GetCurrent().To,
+					Ref: t,
+				}
 			}
 		}
 	}()
@@ -227,12 +229,16 @@ func (l *LookupEdgeAdjOut) Process(ctx context.Context, man gdbi.Manager, in gdb
 		defer close(out)
 		for v := range l.db.GetVertexChannel(ctx, queryChan, l.loadData) {
 			i := v.Ref
-			out <- i.AddCurrent(&gdbi.DataElement{
-				ID:     v.Vertex.ID,
-				Label:  v.Vertex.Label,
-				Data:   v.Vertex.Data,
-				Loaded: v.Vertex.Loaded,
-			})
+			if i.IsSignal() {
+				out <- i
+			} else {
+				out <- i.AddCurrent(&gdbi.DataElement{
+					ID:     v.Vertex.ID,
+					Label:  v.Vertex.Label,
+					Data:   v.Vertex.Data,
+					Loaded: v.Vertex.Loaded,
+				})
+			}
 		}
 	}()
 	return ctx
@@ -253,13 +259,13 @@ func (l *LookupVertexAdjIn) Process(ctx context.Context, man gdbi.Manager, in gd
 	go func() {
 		defer close(queryChan)
 		for t := range in {
-			if t.Signal != nil  {
-				out <- t
-				continue
-			}
-			queryChan <- gdbi.ElementLookup{
-				ID:  t.GetCurrent().ID,
-				Ref: t,
+			if t.IsSignal() {
+				queryChan <- gdbi.ElementLookup{Ref: t}
+			} else {
+				queryChan <- gdbi.ElementLookup{
+					ID:  t.GetCurrent().ID,
+					Ref: t,
+				}
 			}
 		}
 	}()
@@ -267,12 +273,16 @@ func (l *LookupVertexAdjIn) Process(ctx context.Context, man gdbi.Manager, in gd
 		defer close(out)
 		for v := range l.db.GetInChannel(ctx, queryChan, l.loadData, l.labels) {
 			i := v.Ref
-			out <- i.AddCurrent(&gdbi.DataElement{
-				ID:     v.Vertex.ID,
-				Label:  v.Vertex.Label,
-				Data:   v.Vertex.Data,
-				Loaded: v.Vertex.Loaded,
-			})
+			if i.IsSignal() {
+				out <- i
+			} else {
+				out <- i.AddCurrent(&gdbi.DataElement{
+					ID:     v.Vertex.ID,
+					Label:  v.Vertex.Label,
+					Data:   v.Vertex.Data,
+					Loaded: v.Vertex.Loaded,
+				})
+			}
 		}
 	}()
 	return ctx
@@ -293,13 +303,13 @@ func (l *LookupEdgeAdjIn) Process(ctx context.Context, man gdbi.Manager, in gdbi
 	go func() {
 		defer close(queryChan)
 		for t := range in {
-			if t.Signal != nil  {
-				out <- t
-				continue
-			}
-			queryChan <- gdbi.ElementLookup{
-				ID:  t.GetCurrent().From,
-				Ref: t,
+			if t.IsSignal() {
+				queryChan <- gdbi.ElementLookup{Ref: t}
+			} else {
+				queryChan <- gdbi.ElementLookup{
+					ID:  t.GetCurrent().From,
+					Ref: t,
+				}
 			}
 		}
 	}()
@@ -307,12 +317,16 @@ func (l *LookupEdgeAdjIn) Process(ctx context.Context, man gdbi.Manager, in gdbi
 		defer close(out)
 		for v := range l.db.GetVertexChannel(ctx, queryChan, l.loadData) {
 			i := v.Ref
-			out <- i.AddCurrent(&gdbi.DataElement{
-				ID:     v.Vertex.ID,
-				Label:  v.Vertex.Label,
-				Data:   v.Vertex.Data,
-				Loaded: v.Vertex.Loaded,
-			})
+			if i.IsSignal() {
+				out <- i
+			} else {
+				out <- i.AddCurrent(&gdbi.DataElement{
+					ID:     v.Vertex.ID,
+					Label:  v.Vertex.Label,
+					Data:   v.Vertex.Data,
+					Loaded: v.Vertex.Loaded,
+				})
+			}
 		}
 	}()
 	return ctx
@@ -333,13 +347,13 @@ func (l *InE) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out
 	go func() {
 		defer close(queryChan)
 		for t := range in {
-			if t.Signal != nil  {
-				out <- t
-				continue
-			}
-			queryChan <- gdbi.ElementLookup{
-				ID:  t.GetCurrent().ID,
-				Ref: t,
+			if t.IsSignal() {
+				queryChan <- gdbi.ElementLookup{Ref: t}
+			} else {
+				queryChan <- gdbi.ElementLookup{
+					ID:  t.GetCurrent().ID,
+					Ref: t,
+				}
 			}
 		}
 	}()
@@ -347,14 +361,18 @@ func (l *InE) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out
 		defer close(out)
 		for v := range l.db.GetInEdgeChannel(ctx, queryChan, l.loadData, l.labels) {
 			i := v.Ref
-			out <- i.AddCurrent(&gdbi.DataElement{
-				ID:     v.Edge.ID,
-				To:     v.Edge.To,
-				From:   v.Edge.From,
-				Label:  v.Edge.Label,
-				Data:   v.Edge.Data,
-				Loaded: v.Edge.Loaded,
-			})
+			if i.IsSignal() {
+				out <- i
+			} else {
+				out <- i.AddCurrent(&gdbi.DataElement{
+					ID:     v.Edge.ID,
+					To:     v.Edge.To,
+					From:   v.Edge.From,
+					Label:  v.Edge.Label,
+					Data:   v.Edge.Data,
+					Loaded: v.Edge.Loaded,
+				})
+			}
 		}
 	}()
 	return ctx
@@ -375,13 +393,13 @@ func (l *OutE) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, ou
 	go func() {
 		defer close(queryChan)
 		for t := range in {
-			if t.Signal != nil  {
-				out <- t
-				continue
-			}
-			queryChan <- gdbi.ElementLookup{
-				ID:  t.GetCurrent().ID,
-				Ref: t,
+			if t.IsSignal() {
+				queryChan <- gdbi.ElementLookup{Ref: t}
+			} else {
+				queryChan <- gdbi.ElementLookup{
+					ID:  t.GetCurrent().ID,
+					Ref: t,
+				}
 			}
 		}
 	}()

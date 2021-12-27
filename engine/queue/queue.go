@@ -19,8 +19,8 @@ type Queue interface {
 
 func New() Queue {
   o := MemQueue{
-    input: make(chan *gdbi.Traveler),
-    output: make(chan *gdbi.Traveler),
+    input: make(chan *gdbi.Traveler, 50),
+    output: make(chan *gdbi.Traveler, 50),
   }
   queue := make([]*gdbi.Traveler, 0, 1000)
   closed := false
@@ -32,7 +32,7 @@ func New() Queue {
       m.Lock()
       inCount++
       if i.Signal != nil {
-        fmt.Printf("Queue got signal\n")
+        fmt.Printf("Queue got signal %d\n", i.Signal.ID)
       }
       fmt.Printf("Queue Size: %d %d / %d\n", len(queue), inCount, outCount)
       queue = append(queue, i)

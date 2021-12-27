@@ -3,6 +3,7 @@ package logic
 import (
 	"context"
 	"fmt"
+	"time"
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/engine/queue"
@@ -89,6 +90,9 @@ func (s *JumpMark) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe
                 returnCount++
               }
             } else {
+							if signalOngoing {
+								fmt.Printf("Jumper found, canceling signal\n")
+							}
               signalOngoing = false
               jumperFound = true
               out <- msg
@@ -96,6 +100,7 @@ func (s *JumpMark) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe
           }
         default:
           //if jump input produce no messages, leave jumperFound false
+					time.Sleep(time.Nanosecond)
         }
       }
       for _, i := range closeList {
@@ -109,6 +114,7 @@ func (s *JumpMark) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe
 					curID++
 					signalOngoing = true
 					returnCount = 0
+					fmt.Printf("Sending Signal %d\n", curID)
 					out <- &gdbi.Traveler{ Signal: &gdbi.Signal{ID:curID, Dest:s.Name} }
 				} else {
 					if returnCount == len(s.inputs) {
