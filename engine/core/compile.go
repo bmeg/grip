@@ -255,7 +255,6 @@ func StatementProcessor(gs *gripql.GraphStatement, db gdbi.GraphInterface, ps *p
 
 	case *gripql.GraphStatement_Jump:
 		j := &logic.Jump{Mark:stmt.Jump.Mark, Stmt:stmt.Jump.Expression, Emit:stmt.Jump.Emit}
-		j.Init()
 		return j, nil
 
 

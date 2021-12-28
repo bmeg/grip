@@ -32,9 +32,9 @@ func New() Queue {
       m.Lock()
       inCount++
       if i.Signal != nil {
-        fmt.Printf("Queue got signal %d\n", i.Signal.ID)
+        //fmt.Printf("Queue got signal %d\n", i.Signal.ID)
       }
-      fmt.Printf("Queue Size: %d %d / %d\n", len(queue), inCount, outCount)
+      //fmt.Printf("Queue Size: %d %d / %d\n", len(queue), inCount, outCount)
       queue = append(queue, i)
       m.Unlock()
     }
