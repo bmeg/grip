@@ -25,7 +25,6 @@ def test_repeat(man):
 
     count = 0
     for row in q:
-        #print(row)
         count += 1
     if count != 11786:
         errors.append("cycle output count %d != %d" % (count, 11786))
