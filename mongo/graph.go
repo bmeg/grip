@@ -356,7 +356,7 @@ func (mg *Graph) GetInChannel(ctx context.Context, reqChan chan gdbi.ElementLook
 	go func() {
 		defer close(o)
 		for batch := range batches {
-			idBatch := make([]string, len(batch))
+			idBatch := make([]string, 0, len(batch))
 			batchMap := make(map[string][]gdbi.ElementLookup, len(batch))
 			signals := []gdbi.ElementLookup{}
 			for i := range batch {
@@ -420,12 +420,12 @@ func (mg *Graph) GetOutEdgeChannel(ctx context.Context, reqChan chan gdbi.Elemen
 	go func() {
 		defer close(o)
 		for batch := range batches {
-			idBatch := make([]string, len(batch))
+			idBatch := make([]string, 0, len(batch))
 			batchMap := make(map[string][]gdbi.ElementLookup, len(batch))
 			signals := []gdbi.ElementLookup{}
 			for i := range batch {
 				if batch[i].IsSignal() {
-						signals = append(signals, batch[i])
+					signals = append(signals, batch[i])
 				} else {
 					idBatch = append(idBatch, batch[i].ID)
 					batchMap[batch[i].ID] = append(batchMap[batch[i].ID], batch[i])
@@ -472,7 +472,7 @@ func (mg *Graph) GetInEdgeChannel(ctx context.Context, reqChan chan gdbi.Element
 	go func() {
 		defer close(o)
 		for batch := range batches {
-			idBatch := make([]string, len(batch))
+			idBatch := make([]string, 0, len(batch))
 			batchMap := make(map[string][]gdbi.ElementLookup, len(batch))
 			signals := []gdbi.ElementLookup{}
 			for i := range batch {
