@@ -3,10 +3,10 @@ package logic
 import (
 	"context"
 	"fmt"
-	"time"
+	"github.com/bmeg/grip/engine/queue"
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
-	"github.com/bmeg/grip/engine/queue"
+	"time"
 )
 
 // MarkJump creates mark where jump instruction can send travelers
@@ -21,39 +21,39 @@ func (s *JumpMark) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe
 		defer close(out)
 
 		mCount := 0
-		for inputOpen := true; inputOpen ; {
+		for inputOpen := true; inputOpen; {
 			jumperFound := false
 			if s.inputs != nil {
-        closeList := []int{}
+				closeList := []int{}
 				for i := range s.inputs {
 					select {
 					case msg, ok := <-s.inputs[i]:
 						if !ok {
-              //jump point has closed, remove it from list
-              fmt.Printf("j closed %s \n", i)
-              closeList = append(closeList, i)
-            } else {
-              //jump traveler recieved, pass on and skip reading input this cycle
+							//jump point has closed, remove it from list
+							fmt.Printf("j closed %s \n", i)
+							closeList = append(closeList, i)
+						} else {
+							//jump traveler recieved, pass on and skip reading input this cycle
 							jumperFound = true
 							out <- msg
 						}
 					default:
-            //if jump input produce no messages, leave jumperFound false
+						//if jump input produce no messages, leave jumperFound false
 					}
 				}
 				// jumps that are ahead of a mark can close before the mark
 				// gets the close
-        for _, i := range closeList {
-          s.inputs = append(s.inputs[:i], s.inputs[i+1:]...)
-        }
+				for _, i := range closeList {
+					s.inputs = append(s.inputs[:i], s.inputs[i+1:]...)
+				}
 			}
 			if !jumperFound {
 				select {
 				case msg, ok := <-in:
 					if !ok {
-            //main input has closed, move onto closing phase
+						//main input has closed, move onto closing phase
 						fmt.Printf("Got input close, messages: %d\n", mCount)
-            inputOpen = false
+						inputOpen = false
 					} else {
 						out <- msg
 						mCount++
@@ -63,67 +63,63 @@ func (s *JumpMark) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe
 			}
 		}
 
-    // during closing phase, the main input chase has been closed upstream,
-    // but the jump inputs could still produce new inputs from travelers moving
-    // in a cycle. When we observe there are now jump travelers received, we will
-    // generate a signal and see if it some back before any other messages are received
-    curID := 0  //id of signal that was sent
-    returnCount := 0  //number of jumps that have returned the current signal
+		// during closing phase, the main input chase has been closed upstream,
+		// but the jump inputs could still produce new inputs from travelers moving
+		// in a cycle. When we observe there are now jump travelers received, we will
+		// generate a signal and see if it some back before any other messages are received
+		curID := 0       //id of signal that was sent
+		returnCount := 0 //number of jumps that have returned the current signal
 		//are we waiting for a signal. This is canceled if new travelers are received.
-    signalOngoing := false
-    fmt.Printf("Starting preclose\n")
-    for closed := false; !closed; {
-      closeList := []int{}
-      jumperFound := false
-      for i := range s.inputs {
-        select {
-        case msg, ok := <-s.inputs[i]:
-          if !ok {
-            //jump point has closed, remove it from list
-            fmt.Printf("j closed %s \n", i)
-            closeList = append(closeList, i)
-						signalOngoing = false
-          } else {
-            //jump traveler recieved, pass on and skip reading input this cycle
-            if msg.Signal != nil {
-              if signalOngoing && msg.Signal.ID == curID {
-                returnCount++
-              }
-            } else {
-							if signalOngoing {
-								fmt.Printf("Jumper found, canceling signal\n")
+		signalOutdated := false
+		signalActive := false
+		fmt.Printf("Starting preclose\n")
+		for closed := false; !closed; {
+			closeList := []int{}
+			jumperFound := false
+			for i := range s.inputs {
+				select {
+				case msg, ok := <-s.inputs[i]:
+					if !ok {
+						//jump point has closed, remove it from list
+						fmt.Printf("j closed %s \n", i)
+						closeList = append(closeList, i)
+					} else {
+						//jump traveler recieved, pass on and skip reading input this cycle
+						if msg.Signal != nil {
+							returnCount++
+						} else {
+							if signalActive {
+								//fmt.Printf("Jumper found %s, signal %d outdated (%d)\n", msg.Current.ID, curID, mCount)
+								signalOutdated = true
 							}
-              signalOngoing = false
-              jumperFound = true
-              out <- msg
-            }
-          }
-        default:
-          //if jump input produce no messages, leave jumperFound false
-					time.Sleep(time.Nanosecond)
-        }
-      }
-      for _, i := range closeList {
-        s.inputs = append(s.inputs[:i], s.inputs[i+1:]...)
-      }
+							jumperFound = true
+							out <- msg
+							mCount++
+						}
+					}
+				default:
+					//if jump input produce no messages, leave jumperFound false
+					time.Sleep(time.Microsecond)
+				}
+			}
+			for _, i := range closeList {
+				s.inputs = append(s.inputs[:i], s.inputs[i+1:]...)
+			}
 
-      if jumperFound {
-        signalOngoing = false
-      } else {
-        if !signalOngoing {
+			if !jumperFound {
+				if (!signalActive && !signalOutdated) || (signalOutdated && returnCount == len(s.inputs)) {
 					curID++
-					signalOngoing = true
+					signalActive = true
+					signalOutdated = false
 					returnCount = 0
 					fmt.Printf("Sending Signal %d\n", curID)
-					out <- &gdbi.Traveler{ Signal: &gdbi.Signal{ID:curID, Dest:s.Name} }
-				} else {
-					if returnCount == len(s.inputs) {
-						fmt.Printf("Received %d of %d signals\n", returnCount, len(s.inputs))
-						closed = true
-					}
+					out <- &gdbi.Traveler{Signal: &gdbi.Signal{ID: curID, Dest: s.Name}}
+				} else if signalActive && returnCount == len(s.inputs) {
+					fmt.Printf("Received %d of %d signals, closing after %d messages\n", returnCount, len(s.inputs), mCount)
+					closed = true
 				}
-      }
-    }
+			}
+		}
 
 	}()
 	return ctx
@@ -159,11 +155,12 @@ func (s *Jump) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, ou
 	go func() {
 		defer close(out)
 		defer close(s.jumpers)
+		mCount := 0
 		for t := range in {
 			if t.Signal != nil {
-        // If receiving a signal from the destintion marker, send it forward
-        if t.Signal.Dest == s.Mark {
-          s.jumpers <- t
+				// If receiving a signal from the destintion marker, send it forward
+				if t.Signal.Dest == s.Mark {
+					s.jumpers <- t
 				}
 				out <- t
 				continue
@@ -173,9 +170,10 @@ func (s *Jump) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, ou
 			}
 			if s.Emit {
 				out <- t.Copy()
+				mCount++
 			}
 		}
-		fmt.Printf("Closing jump\n")
+		fmt.Printf("Closing jump, messages: %d\n", mCount)
 	}()
 	return ctx
 }
