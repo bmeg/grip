@@ -650,7 +650,7 @@ func (g *Graph) GetInEdgeChannel(ctx context.Context, reqChan chan gdbi.ElementL
 	go func() {
 		defer close(o)
 		for batch := range batches {
-			idBatch := make([]string, len(batch))
+			idBatch := make([]string, 0, len(batch))
 			batchMap := make(map[string][]gdbi.ElementLookup, len(batch))
 			signals := []gdbi.ElementLookup{}
 			for i := range batch {
