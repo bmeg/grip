@@ -438,6 +438,8 @@ func (ggraph *Graph) GetVertexChannel(ctx context.Context, ids chan gdbi.Element
 					continue
 				}
 				v.Loaded = true
+			} else {
+				v.Data = map[string]interface{}{}
 			}
 			d.req.Vertex = &v
 			out <- d.req
@@ -501,6 +503,8 @@ func (ggraph *Graph) GetOutChannel(ctx context.Context, reqChan chan gdbi.Elemen
 						}
 						v.Loaded = true
 					}
+				} else {
+					v.Data = map[string]interface{}{}
 				}
 				req.req.Vertex = v
 				o <- req.req
@@ -547,6 +551,8 @@ func (ggraph *Graph) GetInChannel(ctx context.Context, reqChan chan gdbi.Element
 									}
 									v.Loaded = true
 								}
+							} else {
+								v.Data = map[string]interface{}{}
 							}
 							req.Vertex = v
 							o <- req
@@ -597,6 +603,8 @@ func (ggraph *Graph) GetOutEdgeChannel(ctx context.Context, reqChan chan gdbi.El
 									}
 									e.Loaded = true
 								}
+							} else {
+								e.Data = map[string]interface{}{}
 							}
 							req.Edge = &e
 							o <- req
@@ -648,6 +656,8 @@ func (ggraph *Graph) GetInEdgeChannel(ctx context.Context, reqChan chan gdbi.Ele
 									}
 									e.Loaded = true
 								}
+							} else {
+								e.Data = map[string]interface{}{}
 							}
 							req.Edge = &e
 							o <- req
@@ -692,6 +702,8 @@ func (ggraph *Graph) GetEdge(id string, loadProp bool) *gdbi.Edge {
 					return fmt.Errorf("unmarshal error: %v", err)
 				}
 				e.Loaded = true
+			} else {
+				e.Data = map[string]interface{}{}
 			}
 		}
 		return nil
@@ -731,6 +743,8 @@ func (ggraph *Graph) GetVertexList(ctx context.Context, loadProp bool) <-chan *g
 						continue
 					}
 					v.Loaded = true
+				} else {
+					v.Data = map[string]interface{}{}
 				}
 				o <- v
 			}

@@ -245,7 +245,7 @@ func StatementProcessor(gs *gripql.GraphStatement, db gdbi.GraphInterface, ps *p
 		return &Marker{stmt.As}, nil
 
 	case *gripql.GraphStatement_Set:
-		return &ValueSet{key: stmt.Set.Key, value: stmt.Set.Value}, nil
+		return &ValueSet{key: stmt.Set.Key, value: stmt.Set.Value.AsInterface()}, nil
 
 	case *gripql.GraphStatement_Increment:
 		return &ValueIncrement{key: stmt.Increment.Key, value: stmt.Increment.Value}, nil

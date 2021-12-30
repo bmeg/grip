@@ -61,6 +61,13 @@ def test_set(man):
     errors = []
     G = man.setGraph("swapi")
 
+    q = G.query().V("Character:1").set("count", 0)
+    q = q.as_("start").render("$start._data")
+    for row in q:
+        print(row)
+        if row['count'] != 0:
+            errors.append("Incorrect increment value")
+
     q = G.query().V("Character:1").set("count", 0).as_("start").out().increment("$start.count")
     q = q.render("$start._data")
     for row in q:
