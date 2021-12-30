@@ -56,6 +56,23 @@ def test_forward(man):
 
     return errors
 
+# test basic repeat cycle
+def test_infinite(man):
+    errors = []
+    G = man.setGraph("swapi")
+
+    q = G.query().V("Character:1").mark("a").out()
+    q = q.jump("a", None, True).limit(100)
+
+    count = 0
+    for row in q:
+        count += 1
+
+    if count != 100:
+        errors.append("Loop limit returns incorrect number")
+
+    return errors
+
 
 def test_set(man):
     errors = []

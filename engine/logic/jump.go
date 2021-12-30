@@ -156,7 +156,16 @@ func (s *Jump) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, ou
 		defer close(out)
 		defer close(s.jumpers)
 		mCount := 0
+		canceled := false
 		for t := range in {
+			select {
+			case <-ctx.Done():
+				//once canceled, we will continue to pass read the input, and pass to
+				//the output, but we will stop sending jumpers, so that infinite loops
+				//don't happen
+				canceled = true
+			default:
+			}
 			if t.Signal != nil {
 				// If receiving a signal from the destintion marker, send it forward
 				if t.Signal.Dest == s.Mark {
@@ -166,7 +175,9 @@ func (s *Jump) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, ou
 				continue
 			}
 			if s.Stmt == nil || MatchesHasExpression(t, s.Stmt) {
-				s.jumpers <- t
+				if !canceled {
+					s.jumpers <- t
+				}
 			}
 			if s.Emit {
 				out <- t.Copy()
