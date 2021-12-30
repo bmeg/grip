@@ -325,7 +325,7 @@ func (g *Graph) GetVertexChannel(ctx context.Context, reqChan chan gdbi.ElementL
 					idBatch = append(idBatch, fmt.Sprintf("'%s'", batch[i].ID))
 				}
 			}
-			if len(ids) > 0 {
+			if len(idBatch) > 0 {
 				ids := strings.Join(idBatch, ", ")
 				q := fmt.Sprintf("SELECT gid, label FROM %s WHERE gid IN (%s)", g.v, ids)
 				if load {
