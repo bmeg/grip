@@ -81,7 +81,6 @@ def test_set(man):
     q = G.query().V("Character:1").set("count", 0)
     q = q.as_("start").render("$start._data")
     for row in q:
-        print(row)
         if row['count'] != 0:
             errors.append("Incorrect increment value")
 
