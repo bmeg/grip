@@ -9,15 +9,49 @@ import (
 	"google.golang.org/grpc/metadata"
 )
 
+type DirectOption func(directClientBase)
+
+type directClientBase interface {
+  setUnaryInterceptor(grpc.UnaryServerInterceptor)
+  setStreamInterceptor(grpc.StreamServerInterceptor)
+}
+
+func DirectUnaryInterceptor(g grpc.UnaryServerInterceptor) func(directClientBase) {
+  return func(d directClientBase) {
+    d.setUnaryInterceptor(g)
+  }
+}
+
+func DirectStreamInterceptor(g grpc.StreamServerInterceptor) func(directClientBase) {
+  return func(d directClientBase) {
+    d.setStreamInterceptor(g)
+  }
+}
+
 
 // QueryDirectClient is a shim to connect Query client directly server
 type QueryDirectClient struct {
+  unaryServerInt grpc.UnaryServerInterceptor
+  streamServerInt grpc.StreamServerInterceptor
 	server QueryServer
 }
  // NewQueryDirectClient creates new QueryDirectClient
-func NewQueryDirectClient(server QueryServer) *QueryDirectClient {
-	return &QueryDirectClient{server}
+func NewQueryDirectClient(server QueryServer, opts ...DirectOption) *QueryDirectClient {
+	o := &QueryDirectClient{server:server}
+  for _, opt := range opts {
+    opt(o)
+  }
+  return o
 }
+
+func (shim *QueryDirectClient) setUnaryInterceptor(a grpc.UnaryServerInterceptor) {
+  shim.unaryServerInt = a
+}
+
+func (shim *QueryDirectClient) setStreamInterceptor(a grpc.StreamServerInterceptor) {
+  shim.streamServerInt = a
+}
+
 
 //Traversal streaming output shim
 type directQueryTraversal struct {
@@ -66,42 +100,138 @@ func (dir *QueryDirectClient) Traversal(ctx context.Context, in *GraphQuery, opt
 
 //GetVertex shim
 func (shim *QueryDirectClient) GetVertex(ctx context.Context, in *ElementID, opts ...grpc.CallOption) (*Vertex, error) {
-	return shim.server.GetVertex(ctx, in)
+  md, _ := metadata.FromOutgoingContext(ctx)
+  ictx := metadata.NewIncomingContext(ctx, md)
+  if shim.unaryServerInt != nil {
+    handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+  		return shim.server.GetVertex(ctx, req.(*ElementID))
+  	}
+    o, err := shim.unaryServerInt(ictx, in, nil, handler)
+    if o == nil {
+      return nil, err
+    }
+    return o.(*Vertex), err
+  }
+	return shim.server.GetVertex(ictx, in)
 }
 
 //GetEdge shim
 func (shim *QueryDirectClient) GetEdge(ctx context.Context, in *ElementID, opts ...grpc.CallOption) (*Edge, error) {
-	return shim.server.GetEdge(ctx, in)
+  md, _ := metadata.FromOutgoingContext(ctx)
+  ictx := metadata.NewIncomingContext(ctx, md)
+  if shim.unaryServerInt != nil {
+    handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+  		return shim.server.GetEdge(ctx, req.(*ElementID))
+  	}
+    o, err := shim.unaryServerInt(ictx, in, nil, handler)
+    if o == nil {
+      return nil, err
+    }
+    return o.(*Edge), err
+  }
+	return shim.server.GetEdge(ictx, in)
 }
 
 //GetTimestamp shim
 func (shim *QueryDirectClient) GetTimestamp(ctx context.Context, in *GraphID, opts ...grpc.CallOption) (*Timestamp, error) {
-	return shim.server.GetTimestamp(ctx, in)
+  md, _ := metadata.FromOutgoingContext(ctx)
+  ictx := metadata.NewIncomingContext(ctx, md)
+  if shim.unaryServerInt != nil {
+    handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+  		return shim.server.GetTimestamp(ctx, req.(*GraphID))
+  	}
+    o, err := shim.unaryServerInt(ictx, in, nil, handler)
+    if o == nil {
+      return nil, err
+    }
+    return o.(*Timestamp), err
+  }
+	return shim.server.GetTimestamp(ictx, in)
 }
 
 //GetSchema shim
 func (shim *QueryDirectClient) GetSchema(ctx context.Context, in *GraphID, opts ...grpc.CallOption) (*Graph, error) {
-	return shim.server.GetSchema(ctx, in)
+  md, _ := metadata.FromOutgoingContext(ctx)
+  ictx := metadata.NewIncomingContext(ctx, md)
+  if shim.unaryServerInt != nil {
+    handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+  		return shim.server.GetSchema(ctx, req.(*GraphID))
+  	}
+    o, err := shim.unaryServerInt(ictx, in, nil, handler)
+    if o == nil {
+      return nil, err
+    }
+    return o.(*Graph), err
+  }
+	return shim.server.GetSchema(ictx, in)
 }
 
 //GetMapping shim
 func (shim *QueryDirectClient) GetMapping(ctx context.Context, in *GraphID, opts ...grpc.CallOption) (*Graph, error) {
-	return shim.server.GetMapping(ctx, in)
+  md, _ := metadata.FromOutgoingContext(ctx)
+  ictx := metadata.NewIncomingContext(ctx, md)
+  if shim.unaryServerInt != nil {
+    handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+  		return shim.server.GetMapping(ctx, req.(*GraphID))
+  	}
+    o, err := shim.unaryServerInt(ictx, in, nil, handler)
+    if o == nil {
+      return nil, err
+    }
+    return o.(*Graph), err
+  }
+	return shim.server.GetMapping(ictx, in)
 }
 
 //ListGraphs shim
 func (shim *QueryDirectClient) ListGraphs(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*ListGraphsResponse, error) {
-	return shim.server.ListGraphs(ctx, in)
+  md, _ := metadata.FromOutgoingContext(ctx)
+  ictx := metadata.NewIncomingContext(ctx, md)
+  if shim.unaryServerInt != nil {
+    handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+  		return shim.server.ListGraphs(ctx, req.(*Empty))
+  	}
+    o, err := shim.unaryServerInt(ictx, in, nil, handler)
+    if o == nil {
+      return nil, err
+    }
+    return o.(*ListGraphsResponse), err
+  }
+	return shim.server.ListGraphs(ictx, in)
 }
 
 //ListIndices shim
 func (shim *QueryDirectClient) ListIndices(ctx context.Context, in *GraphID, opts ...grpc.CallOption) (*ListIndicesResponse, error) {
-	return shim.server.ListIndices(ctx, in)
+  md, _ := metadata.FromOutgoingContext(ctx)
+  ictx := metadata.NewIncomingContext(ctx, md)
+  if shim.unaryServerInt != nil {
+    handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+  		return shim.server.ListIndices(ctx, req.(*GraphID))
+  	}
+    o, err := shim.unaryServerInt(ictx, in, nil, handler)
+    if o == nil {
+      return nil, err
+    }
+    return o.(*ListIndicesResponse), err
+  }
+	return shim.server.ListIndices(ictx, in)
 }
 
 //ListLabels shim
 func (shim *QueryDirectClient) ListLabels(ctx context.Context, in *GraphID, opts ...grpc.CallOption) (*ListLabelsResponse, error) {
-	return shim.server.ListLabels(ctx, in)
+  md, _ := metadata.FromOutgoingContext(ctx)
+  ictx := metadata.NewIncomingContext(ctx, md)
+  if shim.unaryServerInt != nil {
+    handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+  		return shim.server.ListLabels(ctx, req.(*GraphID))
+  	}
+    o, err := shim.unaryServerInt(ictx, in, nil, handler)
+    if o == nil {
+      return nil, err
+    }
+    return o.(*ListLabelsResponse), err
+  }
+	return shim.server.ListLabels(ictx, in)
 }
 
 //ListTables streaming output shim
@@ -151,16 +281,43 @@ func (dir *QueryDirectClient) ListTables(ctx context.Context, in *Empty, opts ..
 
 // JobDirectClient is a shim to connect Job client directly server
 type JobDirectClient struct {
+  unaryServerInt grpc.UnaryServerInterceptor
+  streamServerInt grpc.StreamServerInterceptor
 	server JobServer
 }
  // NewJobDirectClient creates new JobDirectClient
-func NewJobDirectClient(server JobServer) *JobDirectClient {
-	return &JobDirectClient{server}
+func NewJobDirectClient(server JobServer, opts ...DirectOption) *JobDirectClient {
+	o := &JobDirectClient{server:server}
+  for _, opt := range opts {
+    opt(o)
+  }
+  return o
 }
+
+func (shim *JobDirectClient) setUnaryInterceptor(a grpc.UnaryServerInterceptor) {
+  shim.unaryServerInt = a
+}
+
+func (shim *JobDirectClient) setStreamInterceptor(a grpc.StreamServerInterceptor) {
+  shim.streamServerInt = a
+}
+
 
 //Submit shim
 func (shim *JobDirectClient) Submit(ctx context.Context, in *GraphQuery, opts ...grpc.CallOption) (*QueryJob, error) {
-	return shim.server.Submit(ctx, in)
+  md, _ := metadata.FromOutgoingContext(ctx)
+  ictx := metadata.NewIncomingContext(ctx, md)
+  if shim.unaryServerInt != nil {
+    handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+  		return shim.server.Submit(ctx, req.(*GraphQuery))
+  	}
+    o, err := shim.unaryServerInt(ictx, in, nil, handler)
+    if o == nil {
+      return nil, err
+    }
+    return o.(*QueryJob), err
+  }
+	return shim.server.Submit(ictx, in)
 }
 
 //ListJobs streaming output shim
@@ -255,12 +412,36 @@ func (dir *JobDirectClient) SearchJobs(ctx context.Context, in *GraphQuery, opts
 
 //DeleteJob shim
 func (shim *JobDirectClient) DeleteJob(ctx context.Context, in *QueryJob, opts ...grpc.CallOption) (*JobStatus, error) {
-	return shim.server.DeleteJob(ctx, in)
+  md, _ := metadata.FromOutgoingContext(ctx)
+  ictx := metadata.NewIncomingContext(ctx, md)
+  if shim.unaryServerInt != nil {
+    handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+  		return shim.server.DeleteJob(ctx, req.(*QueryJob))
+  	}
+    o, err := shim.unaryServerInt(ictx, in, nil, handler)
+    if o == nil {
+      return nil, err
+    }
+    return o.(*JobStatus), err
+  }
+	return shim.server.DeleteJob(ictx, in)
 }
 
 //GetJob shim
 func (shim *JobDirectClient) GetJob(ctx context.Context, in *QueryJob, opts ...grpc.CallOption) (*JobStatus, error) {
-	return shim.server.GetJob(ctx, in)
+  md, _ := metadata.FromOutgoingContext(ctx)
+  ictx := metadata.NewIncomingContext(ctx, md)
+  if shim.unaryServerInt != nil {
+    handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+  		return shim.server.GetJob(ctx, req.(*QueryJob))
+  	}
+    o, err := shim.unaryServerInt(ictx, in, nil, handler)
+    if o == nil {
+      return nil, err
+    }
+    return o.(*JobStatus), err
+  }
+	return shim.server.GetJob(ictx, in)
 }
 
 //ViewJob streaming output shim
@@ -355,21 +536,60 @@ func (dir *JobDirectClient) ResumeJob(ctx context.Context, in *ExtendQuery, opts
 
 // EditDirectClient is a shim to connect Edit client directly server
 type EditDirectClient struct {
+  unaryServerInt grpc.UnaryServerInterceptor
+  streamServerInt grpc.StreamServerInterceptor
 	server EditServer
 }
  // NewEditDirectClient creates new EditDirectClient
-func NewEditDirectClient(server EditServer) *EditDirectClient {
-	return &EditDirectClient{server}
+func NewEditDirectClient(server EditServer, opts ...DirectOption) *EditDirectClient {
+	o := &EditDirectClient{server:server}
+  for _, opt := range opts {
+    opt(o)
+  }
+  return o
 }
+
+func (shim *EditDirectClient) setUnaryInterceptor(a grpc.UnaryServerInterceptor) {
+  shim.unaryServerInt = a
+}
+
+func (shim *EditDirectClient) setStreamInterceptor(a grpc.StreamServerInterceptor) {
+  shim.streamServerInt = a
+}
+
 
 //AddVertex shim
 func (shim *EditDirectClient) AddVertex(ctx context.Context, in *GraphElement, opts ...grpc.CallOption) (*EditResult, error) {
-	return shim.server.AddVertex(ctx, in)
+  md, _ := metadata.FromOutgoingContext(ctx)
+  ictx := metadata.NewIncomingContext(ctx, md)
+  if shim.unaryServerInt != nil {
+    handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+  		return shim.server.AddVertex(ctx, req.(*GraphElement))
+  	}
+    o, err := shim.unaryServerInt(ictx, in, nil, handler)
+    if o == nil {
+      return nil, err
+    }
+    return o.(*EditResult), err
+  }
+	return shim.server.AddVertex(ictx, in)
 }
 
 //AddEdge shim
 func (shim *EditDirectClient) AddEdge(ctx context.Context, in *GraphElement, opts ...grpc.CallOption) (*EditResult, error) {
-	return shim.server.AddEdge(ctx, in)
+  md, _ := metadata.FromOutgoingContext(ctx)
+  ictx := metadata.NewIncomingContext(ctx, md)
+  if shim.unaryServerInt != nil {
+    handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+  		return shim.server.AddEdge(ctx, req.(*GraphElement))
+  	}
+    o, err := shim.unaryServerInt(ictx, in, nil, handler)
+    if o == nil {
+      return nil, err
+    }
+    return o.(*EditResult), err
+  }
+	return shim.server.AddEdge(ictx, in)
 }
 
 //BulkAdd streaming input shim
@@ -428,64 +648,211 @@ func (dir *EditDirectClient) BulkAdd(ctx context.Context, opts ...grpc.CallOptio
 
 //AddGraph shim
 func (shim *EditDirectClient) AddGraph(ctx context.Context, in *GraphID, opts ...grpc.CallOption) (*EditResult, error) {
-	return shim.server.AddGraph(ctx, in)
+  md, _ := metadata.FromOutgoingContext(ctx)
+  ictx := metadata.NewIncomingContext(ctx, md)
+  if shim.unaryServerInt != nil {
+    handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+  		return shim.server.AddGraph(ctx, req.(*GraphID))
+  	}
+    o, err := shim.unaryServerInt(ictx, in, nil, handler)
+    if o == nil {
+      return nil, err
+    }
+    return o.(*EditResult), err
+  }
+	return shim.server.AddGraph(ictx, in)
 }
 
 //DeleteGraph shim
 func (shim *EditDirectClient) DeleteGraph(ctx context.Context, in *GraphID, opts ...grpc.CallOption) (*EditResult, error) {
-	return shim.server.DeleteGraph(ctx, in)
+  md, _ := metadata.FromOutgoingContext(ctx)
+  ictx := metadata.NewIncomingContext(ctx, md)
+  if shim.unaryServerInt != nil {
+    handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+  		return shim.server.DeleteGraph(ctx, req.(*GraphID))
+  	}
+    o, err := shim.unaryServerInt(ictx, in, nil, handler)
+    if o == nil {
+      return nil, err
+    }
+    return o.(*EditResult), err
+  }
+	return shim.server.DeleteGraph(ictx, in)
 }
 
 //DeleteVertex shim
 func (shim *EditDirectClient) DeleteVertex(ctx context.Context, in *ElementID, opts ...grpc.CallOption) (*EditResult, error) {
-	return shim.server.DeleteVertex(ctx, in)
+  md, _ := metadata.FromOutgoingContext(ctx)
+  ictx := metadata.NewIncomingContext(ctx, md)
+  if shim.unaryServerInt != nil {
+    handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+  		return shim.server.DeleteVertex(ctx, req.(*ElementID))
+  	}
+    o, err := shim.unaryServerInt(ictx, in, nil, handler)
+    if o == nil {
+      return nil, err
+    }
+    return o.(*EditResult), err
+  }
+	return shim.server.DeleteVertex(ictx, in)
 }
 
 //DeleteEdge shim
 func (shim *EditDirectClient) DeleteEdge(ctx context.Context, in *ElementID, opts ...grpc.CallOption) (*EditResult, error) {
-	return shim.server.DeleteEdge(ctx, in)
+  md, _ := metadata.FromOutgoingContext(ctx)
+  ictx := metadata.NewIncomingContext(ctx, md)
+  if shim.unaryServerInt != nil {
+    handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+  		return shim.server.DeleteEdge(ctx, req.(*ElementID))
+  	}
+    o, err := shim.unaryServerInt(ictx, in, nil, handler)
+    if o == nil {
+      return nil, err
+    }
+    return o.(*EditResult), err
+  }
+	return shim.server.DeleteEdge(ictx, in)
 }
 
 //AddIndex shim
 func (shim *EditDirectClient) AddIndex(ctx context.Context, in *IndexID, opts ...grpc.CallOption) (*EditResult, error) {
-	return shim.server.AddIndex(ctx, in)
+  md, _ := metadata.FromOutgoingContext(ctx)
+  ictx := metadata.NewIncomingContext(ctx, md)
+  if shim.unaryServerInt != nil {
+    handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+  		return shim.server.AddIndex(ctx, req.(*IndexID))
+  	}
+    o, err := shim.unaryServerInt(ictx, in, nil, handler)
+    if o == nil {
+      return nil, err
+    }
+    return o.(*EditResult), err
+  }
+	return shim.server.AddIndex(ictx, in)
 }
 
 //DeleteIndex shim
 func (shim *EditDirectClient) DeleteIndex(ctx context.Context, in *IndexID, opts ...grpc.CallOption) (*EditResult, error) {
-	return shim.server.DeleteIndex(ctx, in)
+  md, _ := metadata.FromOutgoingContext(ctx)
+  ictx := metadata.NewIncomingContext(ctx, md)
+  if shim.unaryServerInt != nil {
+    handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+  		return shim.server.DeleteIndex(ctx, req.(*IndexID))
+  	}
+    o, err := shim.unaryServerInt(ictx, in, nil, handler)
+    if o == nil {
+      return nil, err
+    }
+    return o.(*EditResult), err
+  }
+	return shim.server.DeleteIndex(ictx, in)
 }
 
 //AddSchema shim
 func (shim *EditDirectClient) AddSchema(ctx context.Context, in *Graph, opts ...grpc.CallOption) (*EditResult, error) {
-	return shim.server.AddSchema(ctx, in)
+  md, _ := metadata.FromOutgoingContext(ctx)
+  ictx := metadata.NewIncomingContext(ctx, md)
+  if shim.unaryServerInt != nil {
+    handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+  		return shim.server.AddSchema(ctx, req.(*Graph))
+  	}
+    o, err := shim.unaryServerInt(ictx, in, nil, handler)
+    if o == nil {
+      return nil, err
+    }
+    return o.(*EditResult), err
+  }
+	return shim.server.AddSchema(ictx, in)
 }
 
 //AddMapping shim
 func (shim *EditDirectClient) AddMapping(ctx context.Context, in *Graph, opts ...grpc.CallOption) (*EditResult, error) {
-	return shim.server.AddMapping(ctx, in)
+  md, _ := metadata.FromOutgoingContext(ctx)
+  ictx := metadata.NewIncomingContext(ctx, md)
+  if shim.unaryServerInt != nil {
+    handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+  		return shim.server.AddMapping(ctx, req.(*Graph))
+  	}
+    o, err := shim.unaryServerInt(ictx, in, nil, handler)
+    if o == nil {
+      return nil, err
+    }
+    return o.(*EditResult), err
+  }
+	return shim.server.AddMapping(ictx, in)
 }
 
 // ConfigureDirectClient is a shim to connect Configure client directly server
 type ConfigureDirectClient struct {
+  unaryServerInt grpc.UnaryServerInterceptor
+  streamServerInt grpc.StreamServerInterceptor
 	server ConfigureServer
 }
  // NewConfigureDirectClient creates new ConfigureDirectClient
-func NewConfigureDirectClient(server ConfigureServer) *ConfigureDirectClient {
-	return &ConfigureDirectClient{server}
+func NewConfigureDirectClient(server ConfigureServer, opts ...DirectOption) *ConfigureDirectClient {
+	o := &ConfigureDirectClient{server:server}
+  for _, opt := range opts {
+    opt(o)
+  }
+  return o
 }
+
+func (shim *ConfigureDirectClient) setUnaryInterceptor(a grpc.UnaryServerInterceptor) {
+  shim.unaryServerInt = a
+}
+
+func (shim *ConfigureDirectClient) setStreamInterceptor(a grpc.StreamServerInterceptor) {
+  shim.streamServerInt = a
+}
+
 
 //StartPlugin shim
 func (shim *ConfigureDirectClient) StartPlugin(ctx context.Context, in *PluginConfig, opts ...grpc.CallOption) (*PluginStatus, error) {
-	return shim.server.StartPlugin(ctx, in)
+  md, _ := metadata.FromOutgoingContext(ctx)
+  ictx := metadata.NewIncomingContext(ctx, md)
+  if shim.unaryServerInt != nil {
+    handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+  		return shim.server.StartPlugin(ctx, req.(*PluginConfig))
+  	}
+    o, err := shim.unaryServerInt(ictx, in, nil, handler)
+    if o == nil {
+      return nil, err
+    }
+    return o.(*PluginStatus), err
+  }
+	return shim.server.StartPlugin(ictx, in)
 }
 
 //ListPlugins shim
 func (shim *ConfigureDirectClient) ListPlugins(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*ListPluginsResponse, error) {
-	return shim.server.ListPlugins(ctx, in)
+  md, _ := metadata.FromOutgoingContext(ctx)
+  ictx := metadata.NewIncomingContext(ctx, md)
+  if shim.unaryServerInt != nil {
+    handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+  		return shim.server.ListPlugins(ctx, req.(*Empty))
+  	}
+    o, err := shim.unaryServerInt(ictx, in, nil, handler)
+    if o == nil {
+      return nil, err
+    }
+    return o.(*ListPluginsResponse), err
+  }
+	return shim.server.ListPlugins(ictx, in)
 }
 
 //ListDrivers shim
 func (shim *ConfigureDirectClient) ListDrivers(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*ListDriversResponse, error) {
-	return shim.server.ListDrivers(ctx, in)
+  md, _ := metadata.FromOutgoingContext(ctx)
+  ictx := metadata.NewIncomingContext(ctx, md)
+  if shim.unaryServerInt != nil {
+    handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+  		return shim.server.ListDrivers(ctx, req.(*Empty))
+  	}
+    o, err := shim.unaryServerInt(ictx, in, nil, handler)
+    if o == nil {
+      return nil, err
+    }
+    return o.(*ListDriversResponse), err
+  }
+	return shim.server.ListDrivers(ictx, in)
 }

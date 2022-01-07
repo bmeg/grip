@@ -10,6 +10,7 @@ require (
 	github.com/bmeg/protoc-gen-grcp-rest-direct v0.0.0-20190228222353-4d40e8b9d305 // indirect
 	github.com/boltdb/bolt v1.3.1
 	github.com/bufbuild/buf v0.37.0 // indirect
+	github.com/casbin/casbin v1.9.1 // indirect
 	github.com/ckaznocha/protoc-gen-lint v0.2.1 // indirect
 	github.com/cockroachdb/pebble v0.0.0-20210908194350-daf93f0f148d
 	github.com/davecgh/go-spew v1.1.1
