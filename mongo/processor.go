@@ -196,7 +196,8 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 									}
 								}
 							}
-							t.Path = o
+							//t.Path = o
+							t = &gdbi.BaseTraveler{Path: o}
 						}
 					}
 
