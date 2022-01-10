@@ -14,7 +14,6 @@ import (
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/kvgraph"
 	"github.com/bmeg/grip/kvi"
-	"google.golang.org/protobuf/types/known/structpb"
 
 	_ "github.com/bmeg/grip/kvi/badgerdb" // import so badger will register itself
 	_ "github.com/bmeg/grip/kvi/boltdb"   // import so bolt will register itself
@@ -67,23 +66,23 @@ func randData() map[string]interface{} {
 	return o
 }
 
-func randVertex() *gripql.Vertex {
-	randData, _ := structpb.NewStruct(randData())
-	g := gripql.Vertex{
-		Gid:   randID(),
+func randVertex() *gdbi.Vertex {
+	randData := randData()
+	g := gdbi.Vertex{
+		ID:    randID(),
 		Label: randVertexLabel(),
 		Data:  randData,
 	}
 	return &g
 }
 
-func randOneToMany(outCount int) (*gripql.Vertex, []*gripql.Edge, []*gripql.Vertex) {
+func randOneToMany(outCount int) (*gdbi.Vertex, []*gdbi.Edge, []*gdbi.Vertex) {
 	a := randVertex()
-	oV := make([]*gripql.Vertex, outCount)
-	oE := make([]*gripql.Edge, outCount)
+	oV := make([]*gdbi.Vertex, outCount)
+	oE := make([]*gdbi.Edge, outCount)
 	for i := 0; i < outCount; i++ {
 		oV[i] = randVertex()
-		oE[i] = &gripql.Edge{From: a.Gid, To: oV[i].Gid, Label: randEdgeLabel()}
+		oE[i] = &gdbi.Edge{From: a.ID, To: oV[i].ID, Label: randEdgeLabel()}
 	}
 	return a, oE, oV
 }
@@ -99,7 +98,7 @@ func logBenchmark(f func()) {
 
 func randomVertexInsert(kgraph gdbi.GraphInterface) {
 	for i := 0; i < 10000; i++ {
-		d := []*gripql.Vertex{}
+		d := []*gdbi.DataElement{}
 		for j := 0; j < 20; j++ {
 			d = append(d, randVertex())
 		}
@@ -110,7 +109,7 @@ func randomVertexInsert(kgraph gdbi.GraphInterface) {
 func randomOneToManyInsert(kgraph gdbi.GraphInterface) {
 	for i := 0; i < 50000; i++ {
 		v, oe, ov := randOneToMany(3)
-		kgraph.AddVertex([]*gripql.Vertex{v})
+		kgraph.AddVertex([]*gdbi.Vertex{v})
 		kgraph.AddVertex(ov)
 		kgraph.AddEdge(oe)
 	}
@@ -157,7 +156,7 @@ func graphBenchRunQuery(kv kvi.KVInterface, build, query func(kgraph gdbi.GraphI
 func manyToOneQuery(kgraph gdbi.GraphInterface) {
 	query := gripql.V().HasLabel("Person").Out("knows").Count()
 	comp := kgraph.Compiler()
-	pipe, err := comp.Compile(query.Statements)
+	pipe, err := comp.Compile(query.Statements, nil)
 	if err != nil {
 		log.Printf("%s", err)
 	}

@@ -1,18 +1,17 @@
 package logic
 
 import (
-  "reflect"
+	"reflect"
 
-  "github.com/spf13/cast"
+	"github.com/spf13/cast"
 
-  "github.com/bmeg/grip/log"
-  "github.com/bmeg/grip/gripql"
-  "github.com/bmeg/grip/gdbi"
-  "github.com/bmeg/grip/jsonpath"
+	"github.com/bmeg/grip/gdbi"
+	"github.com/bmeg/grip/gripql"
+	"github.com/bmeg/grip/jsonpath"
+	"github.com/bmeg/grip/log"
 )
 
-
-func MatchesCondition(trav *gdbi.Traveler, cond *gripql.HasCondition) bool {
+func MatchesCondition(trav gdbi.Traveler, cond *gripql.HasCondition) bool {
 	var val interface{}
 	var condVal interface{}
 	val = jsonpath.TravelerPathLookup(trav, cond.Key)
@@ -213,7 +212,7 @@ func MatchesCondition(trav *gdbi.Traveler, cond *gripql.HasCondition) bool {
 	}
 }
 
-func MatchesHasExpression(trav *gdbi.Traveler, stmt *gripql.HasExpression) bool {
+func MatchesHasExpression(trav gdbi.Traveler, stmt *gripql.HasExpression) bool {
 	switch stmt.Expression.(type) {
 	case *gripql.HasExpression_Condition:
 		cond := stmt.GetCondition()

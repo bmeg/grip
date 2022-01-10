@@ -87,7 +87,7 @@ func main() {
 		return
 	}
 	comp := kgraph.Compiler()
-	pipe, err := comp.Compile(query.Query)
+	pipe, err := comp.Compile(query.Query, nil)
 	if err != nil {
 		log.Printf("%s", err)
 		return

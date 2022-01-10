@@ -5,8 +5,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/bmeg/grip/gripql"
-	//"github.com/bmeg/grip/gdbi"
+	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/kvgraph"
 	"github.com/bmeg/grip/kvi"
 	"github.com/bmeg/grip/kvi/badgerdb"
@@ -33,9 +32,9 @@ func BenchmarkVertexInsert(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		v := make([]*gripql.Vertex, 1000)
+		v := make([]*gdbi.Vertex, 1000)
 		for j := 0; j < 1000; j++ {
-			v[j] = &gripql.Vertex{Gid: randID(), Label: "Person"}
+			v[j] = &gdbi.Vertex{ID: randID(), Label: "Person"}
 		}
 		graph.AddVertex(v)
 	}
@@ -55,20 +54,20 @@ func BenchmarkEdgeInsert(b *testing.B) {
 	}
 
 	gids := make([]string, 1000)
-	v := make([]*gripql.Vertex, 1000)
+	v := make([]*gdbi.Vertex, 1000)
 	for j := 0; j < 1000; j++ {
 		gids[j] = randID()
-		v[j] = &gripql.Vertex{Gid: gids[j], Label: "Person"}
+		v[j] = &gdbi.Vertex{ID: gids[j], Label: "Person"}
 	}
 	graph.AddVertex(v)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		e := make([]*gripql.Edge, 1000)
+		e := make([]*gdbi.Edge, 1000)
 		for j := 0; j < 1000; j++ {
 			src := gids[rand.Intn(len(gids))]
 			dst := gids[rand.Intn(len(gids))]
-			e[j] = &gripql.Edge{From: src, To: dst, Label: "friend"}
+			e[j] = &gdbi.Edge{From: src, To: dst, Label: "friend"}
 		}
 		graph.AddEdge(e)
 	}

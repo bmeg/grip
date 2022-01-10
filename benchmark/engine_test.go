@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/bmeg/grip/engine/pipeline"
+	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/kvgraph"
 	"github.com/bmeg/grip/kvi"
@@ -22,7 +23,7 @@ func BenchmarkBaselineV(b *testing.B) {
 
 	for i := 0; i < 1000; i++ {
 		gid := fmt.Sprintf("v-%d", i)
-		db.AddVertex([]*gripql.Vertex{{Gid: gid, Label: "Vert"}})
+		db.AddVertex([]*gdbi.Vertex{{ID: gid, Label: "Vert"}})
 	}
 
 	q := gripql.V()
@@ -30,7 +31,7 @@ func BenchmarkBaselineV(b *testing.B) {
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		p, err := db.Compiler().Compile(q.Statements)
+		p, err := db.Compiler().Compile(q.Statements, nil)
 		if err != nil {
 			b.Fatal(err)
 		}

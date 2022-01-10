@@ -22,7 +22,7 @@ type RawPathProcessor struct {
 
 type PathTraveler struct {
 	current  *RawDataElement
-	traveler *gdbi.Traveler
+	traveler gdbi.Traveler
 	path     []RawDataElementID
 }
 
@@ -61,7 +61,7 @@ func SelectPath(stmts []*gripql.GraphStatement, path []int) []*gripql.GraphState
 	return out
 }
 
-func NewPathTraveler(tr *gdbi.Traveler, isVertex bool, gg *Graph) *PathTraveler {
+func NewPathTraveler(tr gdbi.Traveler, isVertex bool, gg *Graph) *PathTraveler {
 	el := RawDataElement{}
 	cur := tr.GetCurrent()
 	el.IsVertex = isVertex
@@ -433,7 +433,7 @@ func (r *PathLabelProc) Process(ctx context.Context, in chan *PathTraveler, out 
 func (rd *RawDataElement) VertexDataElement(ggraph *Graph) *gdbi.DataElement {
 	Gid, _ := ggraph.kdb.keyMap.GetVertexID(ggraph.graphKey, rd.Gid)
 	Label, _ := ggraph.kdb.keyMap.GetLabelID(ggraph.graphKey, rd.Label)
-	return &gdbi.DataElement{ID: Gid, Label: Label, Data:map[string]interface{}{}}
+	return &gdbi.DataElement{ID: Gid, Label: Label, Data: map[string]interface{}{}}
 }
 
 func (rd *RawDataElement) EdgeDataElement(ggraph *Graph) *gdbi.DataElement {
@@ -441,7 +441,7 @@ func (rd *RawDataElement) EdgeDataElement(ggraph *Graph) *gdbi.DataElement {
 	Label, _ := ggraph.kdb.keyMap.GetLabelID(ggraph.graphKey, rd.Label)
 	To, _ := ggraph.kdb.keyMap.GetVertexID(ggraph.graphKey, rd.To)
 	From, _ := ggraph.kdb.keyMap.GetVertexID(ggraph.graphKey, rd.From)
-	return &gdbi.DataElement{ID: Gid, To: To, From: From, Label: Label, Data:map[string]interface{}{}}
+	return &gdbi.DataElement{ID: Gid, To: To, From: From, Label: Label, Data: map[string]interface{}{}}
 }
 
 func (ggraph *Graph) RawGetVertexList(ctx context.Context) <-chan *RawDataElement {

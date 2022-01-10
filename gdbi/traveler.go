@@ -26,11 +26,11 @@ const (
 )
 
 // AddCurrent creates a new copy of the travel with new 'current' value
-func (t *Traveler) AddCurrent(r *DataElement) *Traveler {
-	o := Traveler{
-		Marks:      map[string]*DataElement{},
-		Path:       make([]DataElementID, len(t.Path)+1),
-		Signal:     t.Signal,
+func (t *BaseTraveler) AddCurrent(r *DataElement) Traveler {
+	o := BaseTraveler{
+		Marks:  map[string]*DataElement{},
+		Path:   make([]DataElementID, len(t.Path)+1),
+		Signal: t.Signal,
 	}
 	for k, v := range t.Marks {
 		o.Marks[k] = v
@@ -50,11 +50,11 @@ func (t *Traveler) AddCurrent(r *DataElement) *Traveler {
 }
 
 // AddCurrent creates a new copy of the travel with new 'current' value
-func (t *Traveler) Copy() *Traveler {
-	o := Traveler{
-		Marks:      map[string]*DataElement{},
-		Path:       make([]DataElementID, len(t.Path)),
-		Signal:     t.Signal,
+func (t *BaseTraveler) Copy() Traveler {
+	o := BaseTraveler{
+		Marks:  map[string]*DataElement{},
+		Path:   make([]DataElementID, len(t.Path)),
+		Signal: t.Signal,
 	}
 	for k, v := range t.Marks {
 		o.Marks[k] = &DataElement{
@@ -73,13 +73,13 @@ func (t *Traveler) Copy() *Traveler {
 }
 
 // HasMark checks to see if a results is stored in a travelers statemap
-func (t *Traveler) HasMark(label string) bool {
+func (t *BaseTraveler) HasMark(label string) bool {
 	_, ok := t.Marks[label]
 	return ok
 }
 
 // ListMarks returns the list of marks in a travelers statemap
-func (t *Traveler) ListMarks() []string {
+func (t *BaseTraveler) ListMarks() []string {
 	marks := []string{}
 	for k := range t.Marks {
 		marks = append(marks, k)
@@ -88,8 +88,8 @@ func (t *Traveler) ListMarks() []string {
 }
 
 // AddMark adds a result to travels state map using `label` as the name
-func (t *Traveler) AddMark(label string, r *DataElement) *Traveler {
-	o := Traveler{Marks: map[string]*DataElement{}, Path: make([]DataElementID, len(t.Path))}
+func (t *BaseTraveler) AddMark(label string, r *DataElement) Traveler {
+	o := BaseTraveler{Marks: map[string]*DataElement{}, Path: make([]DataElementID, len(t.Path))}
 	for k, v := range t.Marks {
 		o.Marks[k] = v
 	}
@@ -102,13 +102,33 @@ func (t *Traveler) AddMark(label string, r *DataElement) *Traveler {
 }
 
 // GetMark gets stored result in travels state using its label
-func (t *Traveler) GetMark(label string) *DataElement {
+func (t *BaseTraveler) GetMark(label string) *DataElement {
 	return t.Marks[label]
 }
 
 // GetCurrent get current result value attached to the traveler
-func (t *Traveler) GetCurrent() *DataElement {
+func (t *BaseTraveler) GetCurrent() *DataElement {
 	return t.Current
+}
+
+func (t *BaseTraveler) GetCount() uint32 {
+	return t.Count
+}
+
+func (t *BaseTraveler) GetSelections() map[string]*DataElement {
+	return t.Selections
+}
+
+func (t *BaseTraveler) GetRender() interface{} {
+	return t.Render
+}
+
+func (t *BaseTraveler) GetPath() []DataElementID {
+	return t.Path
+}
+
+func (t BaseTraveler) GetAggregation() *Aggregate {
+	return t.Aggregation
 }
 
 func NewElementFromVertex(v *gripql.Vertex) *Vertex {

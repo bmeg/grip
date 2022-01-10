@@ -8,8 +8,8 @@ import (
 	"reflect"
 	"sort"
 
-	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/engine/logic"
+	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/jsonpath"
 	"github.com/bmeg/grip/log"
@@ -33,7 +33,7 @@ func (l *LookupVerts) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 	go func() {
 		defer close(out)
 		for t := range in {
-			if t.Signal != nil {
+			if t.IsSignal() {
 				out <- t
 				continue
 			}
@@ -119,7 +119,7 @@ func (l *LookupEdges) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 	go func() {
 		defer close(out)
 		for t := range in {
-			if t.Signal != nil  {
+			if t.IsSignal() {
 				out <- t
 				continue
 			}
@@ -432,7 +432,7 @@ func (f *Fields) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, 
 	go func() {
 		defer close(out)
 		for t := range in {
-			if t.Signal != nil  {
+			if t.IsSignal() {
 				out <- t
 				continue
 			}
@@ -455,12 +455,12 @@ func (r *Render) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, 
 	go func() {
 		defer close(out)
 		for t := range in {
-			if t.Signal != nil  {
+			if t.IsSignal() {
 				out <- t
 				continue
 			}
 			v := jsonpath.RenderTraveler(t, r.Template)
-			out <- &gdbi.Traveler{Render: v}
+			out <- &gdbi.BaseTraveler{Render: v}
 		}
 	}()
 	return ctx
@@ -478,7 +478,7 @@ func (r *Path) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, ou
 	go func() {
 		defer close(out)
 		for t := range in {
-			if t.Signal != nil  {
+			if t.IsSignal() {
 				out <- t
 				continue
 			}
@@ -500,7 +500,7 @@ func (r *Unwind) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, 
 	go func() {
 		defer close(out)
 		for t := range in {
-			if t.Signal != nil  {
+			if t.IsSignal() {
 				out <- t
 				continue
 			}
@@ -544,7 +544,7 @@ func (w *Has) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out
 	go func() {
 		defer close(out)
 		for t := range in {
-			if t.Signal != nil  {
+			if t.IsSignal() {
 				out <- t
 				continue
 			}
@@ -569,7 +569,7 @@ func (h *HasLabel) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe
 	go func() {
 		defer close(out)
 		for t := range in {
-			if t.Signal != nil  {
+			if t.IsSignal() {
 				out <- t
 				continue
 			}
@@ -594,7 +594,7 @@ func (h *HasKey) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, 
 		keys := dedupStringSlice(h.keys)
 		defer close(out)
 		for t := range in {
-			if t.Signal != nil  {
+			if t.IsSignal() {
 				out <- t
 				continue
 			}
@@ -625,7 +625,7 @@ func (h *HasID) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, o
 		defer close(out)
 		ids := dedupStringSlice(h.ids)
 		for t := range in {
-			if t.Signal != nil  {
+			if t.IsSignal() {
 				out <- t
 				continue
 			}
@@ -648,13 +648,13 @@ func (c *Count) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, o
 		defer close(out)
 		var i uint32
 		for t := range in {
-			if t.Signal != nil  {
+			if t.IsSignal() {
 				out <- t
 				continue
 			}
 			i++
 		}
-		out <- &gdbi.Traveler{Count: i}
+		out <- &gdbi.BaseTraveler{Count: i}
 	}()
 	return ctx
 }
@@ -673,7 +673,7 @@ func (l *Limit) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, o
 		defer close(out)
 		var i uint32
 		for t := range in {
-			if t.Signal != nil  {
+			if t.IsSignal() {
 				out <- t
 				continue
 			}
@@ -701,7 +701,7 @@ func (o *Skip) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, ou
 		defer close(out)
 		var i uint32
 		for t := range in {
-			if t.Signal != nil  {
+			if t.IsSignal() {
 				out <- t
 				continue
 			}
@@ -732,7 +732,7 @@ func (r *Range) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, o
 		defer close(out)
 		var i int32
 		for t := range in {
-			if t.Signal != nil  {
+			if t.IsSignal() {
 				out <- t
 				continue
 			}
@@ -760,7 +760,7 @@ func (g *Distinct) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe
 		defer close(out)
 		kv := man.GetTempKV()
 		for t := range in {
-			if t.Signal != nil  {
+			if t.IsSignal() {
 				out <- t
 				continue
 			}
@@ -797,7 +797,7 @@ func (m *Marker) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, 
 	go func() {
 		defer close(out)
 		for t := range in {
-			if t.Signal != nil  {
+			if t.IsSignal() {
 				out <- t
 				continue
 			}
@@ -819,7 +819,7 @@ func (s *Selector) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe
 	go func() {
 		defer close(out)
 		for t := range in {
-			if t.Signal != nil  {
+			if t.IsSignal() {
 				out <- t
 				continue
 			}
@@ -831,7 +831,7 @@ func (s *Selector) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe
 				}
 				res[mark] = val
 			}
-			out <- &gdbi.Traveler{Selections: res}
+			out <- &gdbi.BaseTraveler{Selections: res}
 		}
 	}()
 	return ctx
@@ -840,16 +840,15 @@ func (s *Selector) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe
 ////////////////////////////////////////////////////////////////////////////////
 
 type ValueSet struct {
-	key string
+	key   string
 	value interface{}
 }
-
 
 func (s *ValueSet) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
 	go func() {
 		defer close(out)
 		for t := range in {
-			if t.Signal != nil  {
+			if t.IsSignal() {
 				out <- t
 				continue
 			}
@@ -861,16 +860,15 @@ func (s *ValueSet) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe
 }
 
 type ValueIncrement struct {
-	key string
+	key   string
 	value int32
 }
-
 
 func (s *ValueIncrement) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
 	go func() {
 		defer close(out)
 		for t := range in {
-			if t.Signal != nil  {
+			if t.IsSignal() {
 				out <- t
 				continue
 			}
@@ -884,7 +882,6 @@ func (s *ValueIncrement) Process(ctx context.Context, man gdbi.Manager, in gdbi.
 	return ctx
 }
 
-
 ////////////////////////////////////////////////////////////////////////////////
 
 // MarkSelect moves to selected mark
@@ -897,7 +894,7 @@ func (s *MarkSelect) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPi
 	go func() {
 		defer close(out)
 		for t := range in {
-			if t.Signal != nil  {
+			if t.IsSignal() {
 				out <- t
 				continue
 			}
@@ -942,17 +939,17 @@ func (b both) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out
 				&LookupEdgeAdjOut{db: b.db, labels: b.labels, loadData: b.loadData},
 			}
 		}
-		chanIn := make([]chan *gdbi.Traveler, len(procs))
-		chanOut := make([]chan *gdbi.Traveler, len(procs))
+		chanIn := make([]chan gdbi.Traveler, len(procs))
+		chanOut := make([]chan gdbi.Traveler, len(procs))
 		for i := range procs {
-			chanIn[i] = make(chan *gdbi.Traveler, 1000)
-			chanOut[i] = make(chan *gdbi.Traveler, 1000)
+			chanIn[i] = make(chan gdbi.Traveler, 1000)
+			chanOut[i] = make(chan gdbi.Traveler, 1000)
 		}
 		for i, p := range procs {
 			p.Process(ctx, man, chanIn[i], chanOut[i])
 		}
 		for t := range in {
-			if t.Signal != nil  {
+			if t.IsSignal() {
 				out <- t
 				continue
 			}
@@ -979,18 +976,18 @@ type aggregate struct {
 }
 
 func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
-	aChans := make(map[string](chan *gdbi.Traveler))
+	aChans := make(map[string](chan gdbi.Traveler))
 	g, ctx := errgroup.WithContext(ctx)
 
 	// # of travelers to buffer for agg
 	bufferSize := 1000
 	for _, a := range agg.aggregations {
-		aChans[a.Name] = make(chan *gdbi.Traveler, bufferSize)
+		aChans[a.Name] = make(chan gdbi.Traveler, bufferSize)
 	}
 
 	g.Go(func() error {
 		for t := range in {
-			if t.Signal != nil  {
+			if t.IsSignal() {
 				out <- t
 				continue
 			}
@@ -1040,7 +1037,7 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 					if size <= 0 || count < int(size) {
 						//sTerm, _ := structpb.NewValue(term)
 						//fmt.Printf("Term: %s %s %d\n", a.Name, sTerm, tcount)
-						out <- &gdbi.Traveler{Aggregation: &gdbi.Aggregate{Name: a.Name, Key: term, Value: float64(tcount)}}
+						out <- &gdbi.BaseTraveler{Aggregation: &gdbi.Aggregate{Name: a.Name, Key: term, Value: float64(tcount)}}
 					}
 				}
 				return nil
@@ -1083,7 +1080,7 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 						}
 					}
 					//sBucket, _ := structpb.NewValue(bucket)
-					out <- &gdbi.Traveler{Aggregation: &gdbi.Aggregate{Name: a.Name, Key: bucket, Value: float64(count)}}
+					out <- &gdbi.BaseTraveler{Aggregation: &gdbi.Aggregate{Name: a.Name, Key: bucket, Value: float64(count)}}
 				}
 				return nil
 			})
@@ -1107,7 +1104,7 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 				for _, p := range percents {
 					q := td.Quantile(p / 100)
 					//sp, _ := structpb.NewValue(p)
-					out <- &gdbi.Traveler{Aggregation: &gdbi.Aggregate{Name: a.Name, Key: p, Value: q}}
+					out <- &gdbi.BaseTraveler{Aggregation: &gdbi.Aggregate{Name: a.Name, Key: p, Value: q}}
 				}
 
 				return nil
@@ -1126,7 +1123,7 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 					}
 				}
 				for term, tcount := range fieldCounts {
-					out <- &gdbi.Traveler{Aggregation: &gdbi.Aggregate{Name: a.Name, Key: term, Value: float64(tcount)}}
+					out <- &gdbi.BaseTraveler{Aggregation: &gdbi.Aggregate{Name: a.Name, Key: term, Value: float64(tcount)}}
 				}
 				return nil
 			})
@@ -1141,7 +1138,7 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 					fieldTypes[tname]++
 				}
 				for term, tcount := range fieldTypes {
-					out <- &gdbi.Traveler{Aggregation: &gdbi.Aggregate{Name: a.Name, Key: term, Value: float64(tcount)}}
+					out <- &gdbi.BaseTraveler{Aggregation: &gdbi.Aggregate{Name: a.Name, Key: term, Value: float64(tcount)}}
 				}
 				return nil
 			})
