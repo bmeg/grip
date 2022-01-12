@@ -19,19 +19,23 @@ func (ma *GDB) BuildSchema(ctx context.Context, graph string, sampleN uint32, ra
 
 	log.WithFields(log.Fields{"graph": graph}).Debug("Starting KV GetSchema call")
 
-	vSchema, eSchema, err = ma.sampleSchema(ctx, graph, sampleN, random)
-	if err != nil {
-		return nil, fmt.Errorf("getting vertex schema: %v", err)
-	}
+	if g, ok := ma.drivers[graph]; ok {
+		vSchema, eSchema, err = g.sampleSchema(ctx, sampleN, random)
+		if err != nil {
+			return nil, fmt.Errorf("getting vertex schema: %v", err)
+		}
 
-	schema := &gripql.Graph{Graph: graph, Vertices: vSchema, Edges: eSchema}
-	log.WithFields(log.Fields{"graph": graph}).Debug("Finished GetSchema call")
-	return schema, nil
+		schema := &gripql.Graph{Graph: graph, Vertices: vSchema, Edges: eSchema}
+		log.WithFields(log.Fields{"graph": graph}).Debug("Finished GetSchema call")
+		return schema, nil
+
+	}
+	return nil, fmt.Errorf("Graph not found")
 }
 
-func (ma *GDB) sampleSchema(ctx context.Context, graph string, n uint32, random bool) ([]*gripql.Vertex, []*gripql.Edge, error) {
+func (ma *Graph) sampleSchema(ctx context.Context, n uint32, random bool) ([]*gripql.Vertex, []*gripql.Edge, error) {
 
-	labelField := fmt.Sprintf("%s.v.label", graph)
+	labelField := fmt.Sprintf("v.label")
 	labels := []string{}
 	for i := range ma.idx.FieldTerms(labelField) {
 		labels = append(labels, i.(string))

@@ -3,20 +3,23 @@ package grids
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/akrylysov/pogreb"
-
-	"github.com/bmeg/grip/gdbi"
+	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/kvi"
-	"github.com/bmeg/grip/kvi/badgerdb"
+	"github.com/bmeg/grip/kvi/pebbledb"
 	"github.com/bmeg/grip/kvindex"
-	"github.com/bmeg/grip/timestamp"
-
 	"github.com/bmeg/grip/log"
+	"github.com/bmeg/grip/timestamp"
 )
 
-// GridsGDB implements the GripInterface using a generic key/value storage driver
-type GDB struct {
+// Graph implements the GDB interface using a genertic key/value storage driver
+type Graph struct {
+	kdb      *GDB
+	graphID  string
+	graphKey uint64
+
 	keyMap  *KeyMap
 	keykv   pogreb.DB
 	graphkv kvi.KVInterface
@@ -25,15 +28,33 @@ type GDB struct {
 	ts      *timestamp.Timestamp
 }
 
-// Graph implements the GDB interface using a genertic key/value storage driver
-type Graph struct {
-	kdb      *GDB
-	graphID  string
-	graphKey uint64
+// Close the connection
+func (g *Graph) Close() error {
+	g.keyMap.Close()
+	g.graphkv.Close()
+	g.indexkv.Close()
+	return nil
 }
 
-// NewKVGraphDB intitalize a new grids graph driver
-func NewGraphDB(dbPath string) (gdbi.GraphDB, error) {
+// AddGraph creates a new graph named `graph`
+func (kgraph *GDB) AddGraph(graph string) error {
+	err := gripql.ValidateGraphName(graph)
+	if err != nil {
+		return err
+	}
+	g, err := newGraph(kgraph.basePath, graph)
+	if err != nil {
+		return err
+	}
+	kgraph.drivers[graph] = g
+	return nil
+}
+
+func newGraph(baseDir, name string) (*Graph, error) {
+	dbPath := filepath.Join(baseDir, name)
+
+	log.Infof("Creating new GRIDS graph %s", name)
+
 	_, err := os.Stat(dbPath)
 	if os.IsNotExist(err) {
 		os.Mkdir(dbPath, 0700)
@@ -45,27 +66,30 @@ func NewGraphDB(dbPath string) (gdbi.GraphDB, error) {
 	if err != nil {
 		return nil, err
 	}
-	graphkv, err := badgerdb.NewKVInterface(graphkvPath, kvi.Options{})
+	graphkv, err := pebbledb.NewKVInterface(graphkvPath, kvi.Options{})
 	if err != nil {
 		return nil, err
 	}
-	indexkv, err := badgerdb.NewKVInterface(indexkvPath, kvi.Options{})
+	indexkv, err := pebbledb.NewKVInterface(indexkvPath, kvi.Options{})
 	if err != nil {
 		return nil, err
 	}
 	ts := timestamp.NewTimestamp()
-	o := &GDB{keyMap: NewKeyMap(keykv), graphkv: graphkv, indexkv: indexkv, ts: &ts, idx: kvindex.NewIndex(indexkv)}
-	for _, i := range o.ListGraphs() {
-		o.ts.Touch(i)
-	}
-	log.Infof("Starting GRIDS driver")
+	o := &Graph{keyMap: NewKeyMap(keykv), graphkv: graphkv, indexkv: indexkv, ts: &ts, idx: kvindex.NewIndex(indexkv)}
+
 	return o, nil
 }
 
-// Close the connection
-func (gridb *GDB) Close() error {
-	gridb.keyMap.Close()
-	gridb.graphkv.Close()
-	gridb.indexkv.Close()
+// DeleteGraph deletes `graph`
+func (kgraph *GDB) DeleteGraph(graph string) error {
+	err := gripql.ValidateGraphName(graph)
+	if err != nil {
+		return nil
+	}
+	if d, ok := kgraph.drivers[graph]; ok {
+		d.Close()
+	}
+	dbPath := filepath.Join(kgraph.basePath, graph)
+	os.RemoveAll(dbPath)
 	return nil
 }
