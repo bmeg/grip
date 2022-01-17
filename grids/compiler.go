@@ -4,12 +4,10 @@ import (
 	"fmt"
 
 	"github.com/bmeg/grip/engine/core"
-	"github.com/bmeg/grip/engine/inspect"
 	"github.com/bmeg/grip/engine/pipeline"
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
-	"github.com/bmeg/grip/log"
-	"github.com/bmeg/grip/util/setcmp"
+	"github.com/bmeg/grip/util/protoutil"
 )
 
 // Compiler gets a compiler that will use the graph the execute the compiled query
@@ -21,16 +19,26 @@ type Compiler struct {
 	graph *Graph
 }
 
+func SelectPath(stmts []*gripql.GraphStatement, path []int) []*gripql.GraphStatement {
+	out := []*gripql.GraphStatement{}
+	for _, p := range path {
+		out = append(out, stmts[p])
+	}
+	return out
+}
+
 func NewCompiler(ggraph *Graph) gdbi.Compiler {
 	return Compiler{graph: ggraph}
 }
 
 func (comp Compiler) Compile(stmts []*gripql.GraphStatement, opts *gdbi.CompileOptions) (gdbi.Pipeline, error) {
+	fmt.Printf("Doing compile\n")
 	if len(stmts) == 0 {
 		return &core.DefaultPipeline{}, nil
 	}
 
 	if err := core.Validate(stmts, opts); err != nil {
+		fmt.Printf("Failing validation\n")
 		return &core.DefaultPipeline{}, fmt.Errorf("invalid statments: %s", err)
 	}
 
@@ -42,51 +50,62 @@ func (comp Compiler) Compile(stmts []*gripql.GraphStatement, opts *gdbi.CompileO
 		ps.MarkTypes = opts.ExtensionMarkTypes
 	}
 
-	noLoadPaths := inspect.PipelineNoLoadPath(stmts, 2)
 	procs := make([]gdbi.Processor, 0, len(stmts))
 
-	//log.Printf("Starting Grids Compiler: %s", stmts)
+	fmt.Printf("Starting Grids Compiler: %s\n", stmts)
 	for i := 0; i < len(stmts); i++ {
-		foundPath := -1
-		for p := range noLoadPaths {
-			if setcmp.ContainsInt(noLoadPaths[p], i) {
-				foundPath = p
-			}
-		}
-		optimized := false
-		if foundPath != -1 {
-			//log.Printf("Compile Statements: %s", noLoadPaths[foundPath])
-			curPathSteps := noLoadPaths[foundPath]
-			path := SelectPath(stmts, curPathSteps)
-			//log.Printf("Compile step %d: %s (%s)", i, path, curPathSteps)
-			p, err := RawPathCompile(comp.graph, ps, path)
-			if err == nil {
-				procs = append(procs, p)
-				i = curPathSteps[len(curPathSteps)-1]
-				optimized = true
-				//fmt.Printf("Pathway out: %s\n", ps.LastType)
-			} else {
-				//BUG: if there is a failure, the pipline state may contain variables from the aborted pipeline optimization
-				log.Errorf("Failure optimizing pipeline")
-				//something went wrong and we'll skip optimizing this path
-				tmp := [][]int{}
-				for j := range noLoadPaths {
-					if j != foundPath {
-						tmp = append(tmp, noLoadPaths[j])
-					}
-				}
-				noLoadPaths = tmp
-			}
-		}
-		if !optimized {
-			gs := stmts[i]
-			ps.SetCurStatment(i)
+		gs := stmts[i]
+		ps.SetCurStatment(i)
+		if p, err := GetRawProcessor(comp.graph, ps, gs); err == nil {
+			procs = append(procs, p)
+		} else {
 			p, err := core.StatementProcessor(gs, comp.graph, ps)
 			if err != nil {
+				fmt.Printf("Error at %d %#v", i, gs)
 				return &core.DefaultPipeline{}, err
 			}
 			procs = append(procs, p)
 		}
 	}
+	fmt.Printf("GRIDS: Pipeline: %#v\n", procs)
 	return core.NewPipeline(comp.graph, procs, ps), nil
+}
+
+func GetRawProcessor(db *Graph, ps gdbi.PipelineState, stmt *gripql.GraphStatement) (gdbi.Processor, error) {
+	switch stmt := stmt.GetStatement().(type) {
+	case *gripql.GraphStatement_V:
+		ids := protoutil.AsStringList(stmt.V)
+		ps.SetLastType(gdbi.VertexData)
+		return &PathVProc{db: db, ids: ids}, nil
+	case *gripql.GraphStatement_In:
+		if ps.GetLastType() == gdbi.VertexData {
+			labels := protoutil.AsStringList(stmt.In)
+			ps.SetLastType(gdbi.VertexData)
+			return &PathInProc{db: db, labels: labels}, nil
+		} else if ps.GetLastType() == gdbi.EdgeData {
+			ps.SetLastType(gdbi.VertexData)
+			return &PathInEdgeAdjProc{db: db}, nil
+		}
+	case *gripql.GraphStatement_Out:
+		if ps.GetLastType() == gdbi.VertexData {
+			labels := protoutil.AsStringList(stmt.Out)
+			ps.SetLastType(gdbi.VertexData)
+			return &PathOutProc{db: db, labels: labels}, nil
+		} else if ps.GetLastType() == gdbi.EdgeData {
+			ps.SetLastType(gdbi.VertexData)
+			return &PathOutEdgeAdjProc{db: db}, nil
+		}
+	case *gripql.GraphStatement_InE:
+		labels := protoutil.AsStringList(stmt.InE)
+		ps.SetLastType(gdbi.EdgeData)
+		return &PathInEProc{db: db, labels: labels}, nil
+	case *gripql.GraphStatement_OutE:
+		labels := protoutil.AsStringList(stmt.OutE)
+		ps.SetLastType(gdbi.EdgeData)
+		return &PathOutEProc{db: db, labels: labels}, nil
+	case *gripql.GraphStatement_HasLabel:
+		labels := protoutil.AsStringList(stmt.HasLabel)
+		return &PathLabelProc{db: db, labels: labels}, nil
+	}
+	return nil, fmt.Errorf("unknown command: %T", stmt)
 }

@@ -16,7 +16,6 @@ import (
 
 // Graph implements the GDB interface using a genertic key/value storage driver
 type Graph struct {
-	kdb      *GDB
 	graphID  string
 	graphKey uint64
 
@@ -88,6 +87,7 @@ func (kgraph *GDB) DeleteGraph(graph string) error {
 	}
 	if d, ok := kgraph.drivers[graph]; ok {
 		d.Close()
+		delete(kgraph.drivers, graph)
 	}
 	dbPath := filepath.Join(kgraph.basePath, graph)
 	os.RemoveAll(dbPath)

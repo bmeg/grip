@@ -13,12 +13,10 @@ import (
 type KeyMap struct {
 	db *pogreb.DB
 
-	gIncCur uint64
 	vIncCur uint64
 	eIncCur uint64
 	lIncCur uint64
 
-	gIncMut sync.Mutex
 	vIncMut sync.Mutex
 	eIncMut sync.Mutex
 	lIncMut sync.Mutex
@@ -261,8 +259,8 @@ func dbInc(inc *uint64, k []byte, db *pogreb.DB) (uint64, error) {
 			if err := db.Put(k, b); err != nil {
 				return 0, err
 			}
-			(*inc)++
-			return 0, nil
+			(*inc) += 2
+			return 1, nil
 		}
 		newInc, _ := binary.Uvarint(v)
 		*inc = newInc

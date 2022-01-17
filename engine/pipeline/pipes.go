@@ -85,7 +85,7 @@ func Run(ctx context.Context, pipe gdbi.Pipeline, workdir string) <-chan *gripql
 		markTypes := pipe.MarkTypes()
 		man := engine.NewManager(workdir)
 		for t := range Start(ctx, pipe, man, bufsize, nil, nil) {
-			if t.IsSignal() {
+			if !t.IsSignal() {
 				resch <- Convert(graph, dataType, markTypes, t)
 			}
 		}
@@ -105,7 +105,7 @@ func Resume(ctx context.Context, pipe gdbi.Pipeline, workdir string, input gdbi.
 		markTypes := pipe.MarkTypes()
 		man := engine.NewManager(workdir)
 		for t := range Start(ctx, pipe, man, bufsize, input, cancel) {
-			if t.IsSignal() {
+			if !t.IsSignal() {
 				resch <- Convert(graph, dataType, markTypes, t)
 			}
 		}
@@ -154,15 +154,27 @@ func Convert(graph gdbi.GraphInterface, dataType gdbi.DataType, markTypes map[st
 		for k, v := range t.GetSelections() {
 			switch markTypes[k] {
 			case gdbi.VertexData:
+				var ve *gripql.Vertex
+				if !v.Loaded {
+					ve = graph.GetVertex(v.ID, true).ToVertex()
+				} else {
+					ve = v.ToVertex()
+				}
 				selections[k] = &gripql.Selection{
 					Result: &gripql.Selection_Vertex{
-						Vertex: v.ToVertex(),
+						Vertex: ve,
 					},
 				}
 			case gdbi.EdgeData:
+				var ee *gripql.Edge
+				if !v.Loaded {
+					ee = graph.GetEdge(ee.Gid, true).ToEdge()
+				} else {
+					ee = v.ToEdge()
+				}
 				selections[k] = &gripql.Selection{
 					Result: &gripql.Selection_Edge{
-						Edge: v.ToEdge(),
+						Edge: ee,
 					},
 				}
 			}

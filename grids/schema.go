@@ -33,11 +33,10 @@ func (ma *GDB) BuildSchema(ctx context.Context, graph string, sampleN uint32, ra
 	return nil, fmt.Errorf("Graph not found")
 }
 
-func (ma *Graph) sampleSchema(ctx context.Context, n uint32, random bool) ([]*gripql.Vertex, []*gripql.Edge, error) {
-
+func (gi *Graph) sampleSchema(ctx context.Context, n uint32, random bool) ([]*gripql.Vertex, []*gripql.Edge, error) {
 	labelField := fmt.Sprintf("v.label")
 	labels := []string{}
-	for i := range ma.idx.FieldTerms(labelField) {
+	for i := range gi.idx.FieldTerms(labelField) {
 		labels = append(labels, i.(string))
 	}
 
@@ -45,10 +44,9 @@ func (ma *Graph) sampleSchema(ctx context.Context, n uint32, random bool) ([]*gr
 	eOutput := []*gripql.Edge{}
 	fromToPairs := make(fromto)
 
-	gi, _ := ma.Graph(graph)
 	for _, label := range labels {
 		schema := map[string]interface{}{}
-		for i := range ma.idx.GetTermMatch(context.Background(), labelField, label, int(n)) {
+		for i := range gi.idx.GetTermMatch(context.Background(), labelField, label, int(n)) {
 			v := gi.GetVertex(i, true)
 			data := v.Data
 			ds := gripql.GetDataFieldTypes(data)

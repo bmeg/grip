@@ -68,6 +68,7 @@ type Traveler interface {
 	IsSignal() bool
 	GetSignal() Signal
 	GetCurrent() *DataElement
+	GetCurrentID() string
 	AddCurrent(r *DataElement) Traveler
 	Copy() Traveler
 	HasMark(label string) bool

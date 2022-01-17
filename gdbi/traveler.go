@@ -72,6 +72,20 @@ func (t *BaseTraveler) Copy() Traveler {
 	return &o
 }
 
+func (tr *BaseTraveler) GetSignal() Signal {
+	if tr.Signal == nil {
+		return Signal{}
+	}
+	return *tr.Signal
+}
+
+func (tr *BaseTraveler) IsSignal() bool {
+	if tr.Signal != nil {
+		return true
+	}
+	return false
+}
+
 // HasMark checks to see if a results is stored in a travelers statemap
 func (t *BaseTraveler) HasMark(label string) bool {
 	_, ok := t.Marks[label]
@@ -109,6 +123,10 @@ func (t *BaseTraveler) GetMark(label string) *DataElement {
 // GetCurrent get current result value attached to the traveler
 func (t *BaseTraveler) GetCurrent() *DataElement {
 	return t.Current
+}
+
+func (t *BaseTraveler) GetCurrentID() string {
+	return t.Current.ID
 }
 
 func (t *BaseTraveler) GetCount() uint32 {

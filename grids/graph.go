@@ -58,17 +58,17 @@ func insertEdge(tx kvi.KVBulkWrite, keyMap *KeyMap, edge *gdbi.Edge) error {
 	var data []byte
 
 	if edge.ID == "" {
-		return fmt.Errorf("Inserting null key edge")
+		return fmt.Errorf("inserting null key edge")
 	}
 
 	eid, lid := keyMap.GetsertEdgeKey(edge.ID, edge.Label)
 	src, ok := keyMap.GetVertexKey(edge.From)
 	if !ok {
-		return fmt.Errorf("Vertex %s not found", edge.From)
+		return fmt.Errorf("vertex %s not found", edge.From)
 	}
 	dst, ok := keyMap.GetVertexKey(edge.To)
 	if !ok {
-		return fmt.Errorf("Vertex %s not found", edge.To)
+		return fmt.Errorf("vertex %s not found", edge.To)
 	}
 
 	ekey := EdgeKey(eid, src, dst, lid)
@@ -216,7 +216,7 @@ func (ggraph *Graph) BulkAdd(stream <-chan *gdbi.GraphElement) error {
 func (ggraph *Graph) DelEdge(eid string) error {
 	edgeKey, ok := ggraph.keyMap.GetEdgeKey(eid)
 	if !ok {
-		return fmt.Errorf("Edge not found")
+		return fmt.Errorf("edge not found")
 	}
 	ekeyPrefix := EdgeKeyPrefix(edgeKey)
 	var ekey []byte
@@ -228,7 +228,7 @@ func (ggraph *Graph) DelEdge(eid string) error {
 	})
 
 	if ekey == nil {
-		return fmt.Errorf("Edge Not Found")
+		return fmt.Errorf("edge not found")
 	}
 
 	_, sid, did, _ := EdgeKeyParse(ekey)
@@ -257,7 +257,7 @@ func (ggraph *Graph) DelEdge(eid string) error {
 func (ggraph *Graph) DelVertex(id string) error {
 	vertexKey, ok := ggraph.keyMap.GetVertexKey(id)
 	if !ok {
-		return fmt.Errorf("Vertex %s not found", id)
+		return fmt.Errorf("vertex %s not found", id)
 	}
 	vid := VertexKey(vertexKey)
 	skeyPrefix := SrcEdgePrefix(vertexKey)
@@ -562,9 +562,9 @@ func (ggraph *Graph) GetInChannel(ctx context.Context, reqChan chan gdbi.Element
 							if len(edgeLabelKeys) == 0 || setcmp.ContainsUint(edgeLabelKeys, label) {
 								vkey := VertexKey(src)
 								srcID, _ := ggraph.keyMap.GetVertexID(src)
-								lID := ggraph.keyMap.GetVertexLabel(src)
-								lKey, _ := ggraph.keyMap.GetLabelID(lID)
-								v := &gdbi.Vertex{ID: srcID, Label: lKey}
+								lKey := ggraph.keyMap.GetVertexLabel(src)
+								lID, _ := ggraph.keyMap.GetLabelID(lKey)
+								v := &gdbi.Vertex{ID: srcID, Label: lID}
 								if load {
 									dataValue, err := it.Get(vkey)
 									if err == nil {

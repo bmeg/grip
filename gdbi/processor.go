@@ -11,20 +11,6 @@ type RetrievedData struct {
 	Data interface{}
 }
 
-func (tr *BaseTraveler) GetSignal() Signal {
-	if tr.Signal == nil {
-		return Signal{}
-	}
-	return *tr.Signal
-}
-
-func (tr *BaseTraveler) IsSignal() bool {
-	if tr.Signal != nil {
-		return true
-	}
-	return false
-}
-
 func (req ElementLookup) IsSignal() bool {
 	if req.Ref != nil && req.Ref.IsSignal() {
 		return true
