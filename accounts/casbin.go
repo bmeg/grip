@@ -1,20 +1,20 @@
-package auth
+package accounts
 
 import (
-  "github.com/casbin/casbin"
+	"github.com/casbin/casbin"
 )
 
 type CasbinAccess struct {
-  encforcer *casbin.Enforcer
+	encforcer *casbin.Enforcer
 }
 
 func NewCasbinAccess(modelPath string, policyPath string) Access {
-  e := casbin.NewEnforcer(modelPath, policyPath)
-  return &CasbinAccess{e}
+	e := casbin.NewEnforcer(modelPath, policyPath)
+	return &CasbinAccess{e}
 }
 
 func (ce *CasbinAccess) Enforce(user string, graph string, operation Operation) error {
-  return nil
+	return nil
 }
 
 /*

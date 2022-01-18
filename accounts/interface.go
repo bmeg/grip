@@ -1,9 +1,7 @@
-package auth
+package accounts
 
-import (
-  //"context"
-  //"github.com/bmeg/grip/gdbi"
-)
+//"context"
+//"github.com/bmeg/grip/gdbi"
 
 type Operation string
 
@@ -18,7 +16,7 @@ const (
 type MetaData map[string][]string
 
 type Authenticate interface {
-  Validate(md MetaData) (string, error)
+	Validate(md MetaData) (string, error)
 }
 
 type Access interface {
@@ -26,17 +24,17 @@ type Access interface {
 }
 
 type AuthConfig struct {
-  Basic *BasicAuth
+	Basic *BasicAuth
 }
 
 type AccessConfig struct {
-  Null   *NullAccess
-  Casbin *CasbinAccess
+	Null   *NullAccess
+	Casbin *CasbinAccess
 }
 
 type Config struct {
-  Auth   *AuthConfig
-  Access    *AccessConfig
-  auth             Authenticate
-  access           Access
+	Auth   *AuthConfig
+	Access *AccessConfig
+	auth   Authenticate
+	access Access
 }

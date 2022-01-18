@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/bmeg/grip/accounts"
 	"github.com/bmeg/grip/config"
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
@@ -37,7 +38,12 @@ func TestBasicAuthFail(t *testing.T) {
 	conf.AddBadgerDefault()
 	config.TestifyConfig(conf)
 
-	conf.Server.BasicAuth = []config.BasicCredential{{User: "testuser", Password: "abc123"}}
+	conf.Server.Accounts = accounts.Config{
+		Auth: &accounts.AuthConfig{
+			Basic: &accounts.BasicAuth{accounts.BasicCredential{User: "testuser", Password: "abc123"}},
+		},
+	}
+
 	defer os.RemoveAll(conf.Server.WorkDir)
 	srv, err := server.NewGripServer(conf, "./", nil)
 	if err != nil {
@@ -82,7 +88,11 @@ func TestBasicAuth(t *testing.T) {
 	conf := config.DefaultConfig()
 	config.TestifyConfig(conf)
 
-	conf.Server.BasicAuth = []config.BasicCredential{{User: "testuser", Password: "abc123"}}
+	conf.Server.Accounts = accounts.Config{
+		Auth: &accounts.AuthConfig{
+			Basic: &accounts.BasicAuth{accounts.BasicCredential{User: "testuser", Password: "abc123"}},
+		},
+	}
 	defer os.RemoveAll(conf.Server.WorkDir)
 
 	os.Setenv("GRIP_USER", "testuser")

@@ -3,9 +3,9 @@ package config
 import (
 	"time"
 
+	"github.com/bmeg/grip/accounts"
 	"github.com/bmeg/grip/util"
 	"github.com/bmeg/grip/util/duration"
-	"github.com/bmeg/grip/auth"
 )
 
 // Config describes configuration for the server.
@@ -19,7 +19,7 @@ type ServerConfig struct {
 	EnablePlugins    bool
 	PluginDir        string
 	NoJobs           bool
-	Auth             auth.Config
+	Accounts         accounts.Config
 	DisableHTTPCache bool
 	// Should the server periodically build the graph schemas?
 	AutoBuildSchemas bool
@@ -58,7 +58,6 @@ func (c *ServerConfig) RPCAddress() string {
 	}
 	return rpc
 }
-
 
 func testServerConfig() ServerConfig {
 	c := ServerConfig{}

@@ -1,18 +1,18 @@
-package auth
+package accounts
 
 import (
-  "fmt"
+	"fmt"
 )
 
-type NullAuth struct {}
+type NullAuth struct{}
 
-type NullAccess struct {}
+type NullAccess struct{}
 
 func (na NullAuth) Validate(md MetaData) (string, error) {
-  return "", nil
+	return "", nil
 }
 
 func (be NullAccess) Enforce(user string, graph string, operation Operation) error {
-  fmt.Printf("Enforce: %s %s %#v\n", user, graph, operation)
-  return nil
+	fmt.Printf("Enforce: %s %s %#v\n", user, graph, operation)
+	return nil
 }

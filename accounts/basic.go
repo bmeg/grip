@@ -1,8 +1,8 @@
-package auth
+package accounts
 
 import (
-  "fmt"
 	"encoding/base64"
+	"fmt"
 	"strings"
 )
 
@@ -15,27 +15,27 @@ type BasicCredential struct {
 type BasicAuth []BasicCredential
 
 func (ba BasicAuth) Validate(md MetaData) (string, error) {
-  var auth []string
-  var ok bool
+	var auth []string
+	var ok bool
 
-  fmt.Printf("Running BasicAuth: %#v\n", md)
+	fmt.Printf("Running BasicAuth: %#v\n", md)
 
-  if auth, ok = md["Authorization"]; !ok {
-    if auth, ok = md["authorization"]; !ok {
-      return "", fmt.Errorf("No Authorization") // no basic auth found
-    }
-  }
+	if auth, ok = md["Authorization"]; !ok {
+		if auth, ok = md["authorization"]; !ok {
+			return "", fmt.Errorf("no authorization") // no basic auth found
+		}
+	}
 
-  if len(auth) > 0 {
-    user, password, ok := parseBasicAuth(auth[0])
-    fmt.Printf("User: %s Password: %s OK: %s\n", user, password, ok)
-    for _, c := range ba {
-      if c.User == user && c.Password == password {
-        return user, nil
-      }
-    }
-  }
-  return "", fmt.Errorf("No Authorization")
+	if len(auth) > 0 {
+		user, password, ok := parseBasicAuth(auth[0])
+		fmt.Printf("User: %s Password: %s OK: %s\n", user, password, ok)
+		for _, c := range ba {
+			if c.User == user && c.Password == password {
+				return user, nil
+			}
+		}
+	}
+	return "", fmt.Errorf("no authorization")
 }
 
 /*
