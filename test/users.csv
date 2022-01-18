@@ -1,0 +1,4 @@
+alice, *, root
+bob, test1, read
+bob, test2, write
+bob, test3, query
