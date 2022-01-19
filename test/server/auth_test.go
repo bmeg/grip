@@ -1,9 +1,11 @@
 package server
 
 import (
+	"bytes"
 	"context"
 	"flag"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -21,6 +23,7 @@ import (
 	"github.com/bmeg/grip/util"
 	"github.com/bmeg/grip/util/duration"
 	"github.com/bmeg/grip/util/rpc"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 func TestMain(m *testing.M) {
@@ -157,4 +160,98 @@ func TestBasicAuth(t *testing.T) {
 		t.Log(string(bodyText))
 		t.Error("incorrect http return value")
 	}
+}
+
+func TestCasbinAccess(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	conf := config.DefaultConfig()
+	config.TestifyConfig(conf)
+
+	conf.Server.Accounts = accounts.Config{
+		Auth: &accounts.AuthConfig{
+			Basic: &accounts.BasicAuth{
+				accounts.BasicCredential{User: "alice", Password: "abcd"},
+				accounts.BasicCredential{User: "bob", Password: "1234"},
+			},
+		},
+		Access: &accounts.AccessConfig{
+			Casbin: &accounts.CasbinAccess{
+				Model:  "../model.conf",
+				Policy: "../users.csv",
+			},
+		},
+	}
+	defer os.RemoveAll(conf.Server.WorkDir)
+
+	tmpDB := "grip.db." + util.RandomString(6)
+	gdb, err := kvgraph.NewKVGraphDB("badger", tmpDB)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	defer os.RemoveAll(tmpDB)
+
+	srv, err := server.NewGripServer(conf, "./", map[string]gdbi.GraphDB{"badger": gdb})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	go srv.Serve(ctx)
+
+	os.Setenv("GRIP_USER", "alice")
+	os.Setenv("GRIP_PASSWORD", "abcd")
+	defer os.Unsetenv("GRIP_USER")
+	defer os.Unsetenv("GRIP_PASSWORD")
+
+	cli, err := gripql.Connect(rpc.ConfigWithDefaults(conf.Server.RPCAddress()), true)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	err = cli.AddGraph("test")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	req, err := http.NewRequest("GET", fmt.Sprintf("http://localhost:%s/v1/graph", conf.Server.HTTPPort), nil)
+	req.SetBasicAuth("alice", "abcd")
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil || resp.StatusCode != 200 {
+		t.Errorf("unexpected error: %v", err)
+	}
+
+	fmt.Printf("Doing grpc traversal\n")
+	q := &gripql.GraphQuery{Graph: "test", Query: gripql.NewQuery().V().Statements}
+	if tcli, err := cli.QueryC.Traversal(ctx, q); err == nil {
+		for {
+			t, err := tcli.Recv()
+			if err == io.EOF {
+				break
+			}
+			if err != nil {
+				fmt.Printf("Recv Error: %s\n", err)
+				break
+			}
+			fmt.Printf("Got traversal output: %#v\n", t.GetVertex())
+		}
+	} else {
+		fmt.Printf("Traversal got an error\n")
+	}
+
+	b, _ := protojson.Marshal(q)
+	fmt.Printf("%s\n", b)
+
+	fmt.Printf("Doing http traversal\n")
+
+	req, err = http.NewRequest("POST", fmt.Sprintf("http://localhost:%s/v1/graph/%s/query", conf.Server.HTTPPort, "test"), bytes.NewBuffer(b))
+	req.SetBasicAuth("bob", "1234")
+	client = &http.Client{}
+	resp, err = client.Do(req)
+	if err != nil || resp.StatusCode != 200 {
+		t.Errorf("unexpected error: %v", err)
+	}
+	o, _ := io.ReadAll(resp.Body)
+	fmt.Printf("post: %d %s\n", resp.StatusCode, o)
 }

@@ -1,4 +1,6 @@
-alice, *, root
-bob, test1, read
-bob, test2, write
-bob, test3, query
+p, alice, *, query
+p, alice, *, write
+p, alice, *, read
+p, bob, test1, read
+p, bob, test2, write
+p, bob, test3, query

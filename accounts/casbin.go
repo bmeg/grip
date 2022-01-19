@@ -1,33 +1,37 @@
 package accounts
 
 import (
-	"github.com/casbin/casbin"
+	"fmt"
+
+	"github.com/casbin/casbin/v2"
 )
 
 type CasbinAccess struct {
+	Model     string
+	Policy    string
 	encforcer *casbin.Enforcer
 }
 
-func NewCasbinAccess(modelPath string, policyPath string) Access {
-	e := casbin.NewEnforcer(modelPath, policyPath)
-	return &CasbinAccess{e}
+func (ce *CasbinAccess) init() {
+	if ce.encforcer == nil {
+		if e, err := casbin.NewEnforcer(ce.Model, ce.Policy); err == nil {
+			ce.encforcer = e
+		} else {
+			fmt.Printf("Casbin Error: %s", err)
+		}
+	}
 }
 
 func (ce *CasbinAccess) Enforce(user string, graph string, operation Operation) error {
-	return nil
+	ce.init()
+	fmt.Printf("Casbin request '%s' '%s' '%s'\n", user, graph, operation)
+	if res, err := ce.encforcer.Enforce(user, graph, string(operation)); res {
+		return nil
+	} else if err != nil {
+		fmt.Printf("casbin error: %s\n", err)
+	}
+	fmt.Printf("Not allowed: %#v\n", ce.encforcer.GetPolicy())
+	//roles, _ := ce.encforcer.GetRolesForUser(user)
+	//fmt.Printf("%#v\n", roles)
+	return fmt.Errorf("action restricted")
 }
-
-/*
-  if res := e.Enforce("alice", "data2", "write"); res {
-    fmt.Printf("Permitted\n")
-  } else {
-    fmt.Printf("Restricted\n")
-  }
-
-
-  if res := e.Enforce("bob", "data2", "read"); res {
-    fmt.Printf("Permitted\n")
-  } else {
-    fmt.Printf("Restricted\n")
-  }
-*/

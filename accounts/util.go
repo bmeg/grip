@@ -27,7 +27,11 @@ func (c *Config) init() {
 	if c.auth == nil {
 		c.auth = NullAuth{}
 	}
-
+	if c.Access != nil {
+		if c.Access.Casbin != nil {
+			c.access = c.Access.Casbin
+		}
+	}
 	if c.access == nil {
 		c.access = NullAccess{}
 	}
@@ -71,7 +75,6 @@ func unaryAuthInterceptor(auth Authenticate, access Access) grpc.UnaryServerInte
 		fmt.Printf("AuthInt: %#v\n", ctx)
 		md, _ := metadata.FromIncomingContext(ctx)
 		fmt.Printf("Metadata: %#v\n", md)
-
 		omd, _ := metadata.FromOutgoingContext(ctx)
 		fmt.Printf("Raw: %#v\n", omd)
 
@@ -86,14 +89,15 @@ func unaryAuthInterceptor(auth Authenticate, access Access) grpc.UnaryServerInte
 			//return nil, fmt.Errorf("PermissionDenied: %s", err)
 		}
 
-		op := Query
-		err = access.Enforce(user, "test", op)
-		if err != nil {
-			return nil, status.Error(codes.PermissionDenied, "PermissionDenied")
-			//return nil, fmt.Errorf("PermissionDenied: %s", err)
+		if op, ok := MethodMap[info.FullMethod]; ok {
+			err = access.Enforce(user, "test", op)
+			if err != nil {
+				return nil, status.Error(codes.PermissionDenied, "PermissionDenied")
+				//return nil, fmt.Errorf("PermissionDenied: %s", err)
+			}
+			return handler(ctx, req)
 		}
-
-		return handler(ctx, req)
+		return nil, status.Error(codes.Unknown, "Unknown method")
 	}
 }
 
@@ -101,8 +105,9 @@ func unaryAuthInterceptor(auth Authenticate, access Access) grpc.UnaryServerInte
 // using a password stored in the config.
 func streamAuthInterceptor(auth Authenticate, access Access) grpc.StreamServerInterceptor {
 	return func(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
+		fmt.Printf("Streaming query: %#v\n", info)
 		md, _ := metadata.FromIncomingContext(ss.Context())
-
+		fmt.Printf("Metadata: %#v\n", md)
 		metaData := MetaData{}
 
 		for i := range md {
@@ -114,12 +119,13 @@ func streamAuthInterceptor(auth Authenticate, access Access) grpc.StreamServerIn
 			return status.Error(codes.Unauthenticated, "PermissionDenied")
 		}
 
-		op := Query
-		err = access.Enforce(user, "test", op)
-		if err != nil {
-			return status.Error(codes.PermissionDenied, "PermissionDenied")
+		if op, ok := MethodMap[info.FullMethod]; ok {
+			err = access.Enforce(user, "test", op)
+			if err != nil {
+				return status.Error(codes.PermissionDenied, "PermissionDenied")
+			}
+			return handler(srv, ss)
 		}
-
-		return handler(srv, ss)
+		return status.Error(codes.Unknown, "Unknown method")
 	}
 }
