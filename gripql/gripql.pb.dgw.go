@@ -410,7 +410,7 @@ func (dsm *directJobListJobs) SendMsg(m interface{}) error  { return nil }
 func (dsm *directJobListJobs) RecvMsg(m interface{}) error  { return nil }
 func (dsm *directJobListJobs) Header() (metadata.MD, error) { return nil, nil }
 func (dsm *directJobListJobs) Trailer() metadata.MD         { return nil }
-func (shim *JobDirectClient) ListJobs(ctx context.Context, in *Graph, opts ...grpc.CallOption) (Job_ListJobsClient, error) {
+func (shim *JobDirectClient) ListJobs(ctx context.Context, in *GraphID, opts ...grpc.CallOption) (Job_ListJobsClient, error) {
   md, _ := metadata.FromOutgoingContext(ctx)
   ictx := metadata.NewIncomingContext(ctx, md)
 

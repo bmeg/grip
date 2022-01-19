@@ -240,18 +240,23 @@ func TestCasbinAccess(t *testing.T) {
 		fmt.Printf("Traversal got an error\n")
 	}
 
-	b, _ := protojson.Marshal(q)
-	fmt.Printf("%s\n", b)
-
 	fmt.Printf("Doing http traversal\n")
-
-	req, err = http.NewRequest("POST", fmt.Sprintf("http://localhost:%s/v1/graph/%s/query", conf.Server.HTTPPort, "test"), bytes.NewBuffer(b))
-	req.SetBasicAuth("bob", "1234")
-	client = &http.Client{}
-	resp, err = client.Do(req)
+	resp, err = httpQuery(conf.Server.HTTPPort, "test1", "bob", "1234", q)
 	if err != nil || resp.StatusCode != 200 {
 		t.Errorf("unexpected error: %v", err)
 	}
 	o, _ := io.ReadAll(resp.Body)
 	fmt.Printf("post: %d %s\n", resp.StatusCode, o)
+}
+
+func httpQuery(port, graph, user, password string, q *gripql.GraphQuery) (*http.Response, error) {
+	b, _ := protojson.Marshal(q)
+
+	req, err := http.NewRequest("POST", fmt.Sprintf("http://localhost:%s/v1/graph/%s/query", port, graph), bytes.NewBuffer(b))
+	if err != nil {
+		return nil, err
+	}
+	req.SetBasicAuth(user, password)
+	client := &http.Client{}
+	return client.Do(req)
 }

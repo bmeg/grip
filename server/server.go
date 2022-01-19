@@ -110,7 +110,7 @@ func NewGripServer(conf *config.Config, baseDir string, drivers map[string]gdbi.
 		}
 	}
 	if _, ok := gdbs[conf.Default]; !ok {
-		return nil, fmt.Errorf("Default driver '%s' does not exist", conf.Default)
+		return nil, fmt.Errorf("default driver '%s' does not exist", conf.Default)
 	}
 	fmt.Printf("Default graph driver: %s\n", conf.Default)
 	return server, nil
@@ -152,7 +152,7 @@ func (server *GripServer) getGraphDB(graph string) (gdbi.GraphDB, error) {
 			return gdb, nil
 		}
 	}
-	return nil, fmt.Errorf("Driver not found")
+	return nil, fmt.Errorf("driver not found")
 }
 
 // Serve starts the server and does not block. This will open TCP ports
@@ -163,7 +163,7 @@ func (server *GripServer) Serve(pctx context.Context) error {
 
 	lis, err := net.Listen("tcp", ":"+server.conf.Server.RPCPort)
 	if err != nil {
-		return fmt.Errorf("Cannot open port: %v", err)
+		return fmt.Errorf("cannot open port: %v", err)
 	}
 
 	unaryAuthInt := server.conf.Server.Accounts.UnaryInterceptor()

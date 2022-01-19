@@ -372,7 +372,7 @@ service Job {
 		};
 	}
 
-	rpc ListJobs(Graph) returns (stream QueryJob) {
+	rpc ListJobs(GraphID) returns (stream QueryJob) {
 		option (google.api.http) = {
 			get: "/v1/graph/{graph}/job"
 		};

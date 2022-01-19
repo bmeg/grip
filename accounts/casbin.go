@@ -30,8 +30,6 @@ func (ce *CasbinAccess) Enforce(user string, graph string, operation Operation) 
 	} else if err != nil {
 		fmt.Printf("casbin error: %s\n", err)
 	}
-	fmt.Printf("Not allowed: %#v\n", ce.encforcer.GetPolicy())
-	//roles, _ := ce.encforcer.GetRolesForUser(user)
-	//fmt.Printf("%#v\n", roles)
+	fmt.Printf("Not allowed: '%s' '%s' '%s'\n", user, graph, operation)
 	return fmt.Errorf("action restricted")
 }
