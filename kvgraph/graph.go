@@ -202,14 +202,16 @@ func (kgdb *KVInterfaceGDB) DelVertex(id string) error {
 			// get edge ID from key
 			_, sid, did, eid, label, etype := SrcEdgeKeyParse(skey)
 			ekey := EdgeKey(kgdb.graph, eid, sid, did, label, etype)
-			delKeys = append(delKeys, skey, ekey)
+			dkey := DstEdgeKey(kgdb.graph, sid, did, eid, label, etype)
+			delKeys = append(delKeys, skey, dkey, ekey)
 		}
 		for it.Seek(dkeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), dkeyPrefix); it.Next() {
 			dkey := it.Key()
 			// get edge ID from key
-			_, sid, did, eid, label, etype := SrcEdgeKeyParse(dkey)
+			_, sid, did, eid, label, etype := DstEdgeKeyParse(dkey)
 			ekey := EdgeKey(kgdb.graph, eid, sid, did, label, etype)
-			delKeys = append(delKeys, ekey)
+			skey := SrcEdgeKey(kgdb.graph, sid, did, eid, label, etype)
+			delKeys = append(delKeys, skey, dkey, ekey)
 		}
 		return nil
 	})
