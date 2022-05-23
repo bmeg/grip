@@ -222,6 +222,7 @@ func (pdb *PebbleKV) Update(u func(tx kvi.KVTransaction) error) error {
 type pebbleBulkWrite struct {
 	db    *pebble.DB
 	batch *pebble.Batch
+	highest, lowest []byte
 	curSize int
 }
 
@@ -231,6 +232,12 @@ const (
 
 func (pbw *pebbleBulkWrite) Set(id []byte, val []byte) error {
 	pbw.curSize += len(id) + len(val)
+	if pbw.highest == nil || bytes.Compare(id, pbw.highest) > 0 {
+		pbw.highest = copyBytes(id)
+	}
+	if pbw.lowest == nil || bytes.Compare(id, pbw.lowest) < 0 {
+		pbw.lowest = copyBytes(id)
+	}
 	err := pbw.batch.Set(id, val, nil)
 	if pbw.curSize > maxWriterBuffer {
 		pbw.batch.Commit(nil)
@@ -243,10 +250,13 @@ func (pbw *pebbleBulkWrite) Set(id []byte, val []byte) error {
 // BulkWrite is a replication of the regular update, no special code for bulk writes
 func (pdb *PebbleKV) BulkWrite(u func(tx kvi.KVBulkWrite) error) error {
 	batch := pdb.db.NewBatch()
-	ptx := &pebbleBulkWrite{pdb.db, batch, 0}
+	ptx := &pebbleBulkWrite{pdb.db, batch, nil, nil, 0}
 	err := u(ptx)
 	batch.Commit(nil)
 	batch.Close()
+	if ptx.lowest != nil && ptx.highest != nil {
+		pdb.db.Compact(ptx.lowest, ptx.highest)
+	}
 	return err
 }
 

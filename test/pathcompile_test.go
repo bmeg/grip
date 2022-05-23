@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"strings"
 	"testing"
 
 	"github.com/bmeg/grip/engine/inspect"
@@ -12,7 +11,7 @@ import (
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/grids"
 	"github.com/bmeg/grip/gripql"
-	"github.com/golang/protobuf/jsonpb"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 var pathVertices = []string{
@@ -59,12 +58,10 @@ func TestEngineQuery(t *testing.T) {
 		t.Error(err)
 	}
 
-	m := jsonpb.Unmarshaler{}
-
 	vset := []*gdbi.Vertex{}
 	for _, r := range pathVertices {
 		v := &gripql.Vertex{}
-		err := m.Unmarshal(strings.NewReader(r), v)
+		err := protojson.Unmarshal([]byte(r), v)
 		if err != nil {
 			t.Error(err)
 		}
@@ -75,7 +72,7 @@ func TestEngineQuery(t *testing.T) {
 	eset := []*gdbi.Edge{}
 	for _, r := range pathEdges {
 		e := &gripql.Edge{}
-		err := m.Unmarshal(strings.NewReader(r), e)
+		err := protojson.Unmarshal([]byte(r), e)
 		if err != nil {
 			t.Error(err)
 		}
