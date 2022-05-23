@@ -99,3 +99,50 @@ def test_delete(man):
             "Fail: G.query().E() %s != %d" % (count, 1))
 
     return errors
+
+
+
+def test_delete_edge(man):
+    """
+    Ensure that if a vertex is removed, that the connected edges are deleted as well
+    """
+    errors = []
+
+    G = man.writeTest()
+
+    G.addVertex("vertex1", "person", {"field1": "value1", "field2": "value2"})
+    G.addVertex("vertex2", "person")
+    G.addVertex("vertex3", "person", {"field1": "value3", "field2": "value4"})
+
+    G.addEdge("vertex1", "vertex2", "friend", gid="edge1")
+    G.addEdge("vertex2", "vertex3", "friend", gid="edge2")
+
+    count = 0
+    for i in G.query().V():
+        count += 1
+    if count != 3:
+        errors.append("Fail: G.query().V() %s != %s" % (count, 3))
+
+    count = 0
+    for i in G.query().E():
+        count += 1
+    if count != 2:
+        errors.append("Fail: G.query().E()")
+
+    G.deleteVertex("vertex2")
+
+    count = 0
+    for i in G.query().V("vertex1").outE():
+        count += 1
+    if count != 0:
+        errors.append(
+            "Fail: G.query().V(\"vertex1\").outE() %s != %d" % (count, 0))
+
+    count = 0
+    for i in G.query().V("vertex3").inE():
+        count += 1
+    if count != 0:
+        errors.append(
+            "Fail: G.query().V(\"vertex3\").inE() %s != %d" % (count, 0))
+
+    return errors
