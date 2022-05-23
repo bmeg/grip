@@ -9,7 +9,6 @@ import (
 	_ "github.com/bmeg/grip/jsengine/goja" // import goja so it registers with the driver map
 	_ "github.com/bmeg/grip/jsengine/otto" // import otto so it registers with the driver map
 	"github.com/bmeg/grip/jsengine/underscore"
-	_ "github.com/bmeg/grip/jsengine/v8" // import v8 so it registers with the driver map
 	"github.com/bmeg/grip/util/rpc"
 	"github.com/dop251/goja"
 	"github.com/spf13/cobra"

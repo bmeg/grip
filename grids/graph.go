@@ -35,6 +35,9 @@ func insertVertex(tx kvi.KVBulkWrite, keyMap *KeyMap, vertex *gdbi.Vertex) error
 	}
 	vertexKey, _ := keyMap.GetsertVertexKey(vertex.ID, vertex.Label)
 	key := VertexKey(vertexKey)
+	if vertex.Data == nil {
+		vertex.Data = map[string]interface{}{}
+	}
 	value, err := protoutil.StructMarshal(vertex.Data)
 	if err != nil {
 		return err
@@ -274,7 +277,8 @@ func (ggraph *Graph) DelVertex(id string) error {
 			// get edge ID from key
 			eid, sid, did, label := SrcEdgeKeyParse(skey)
 			ekey := EdgeKey(eid, sid, did, label)
-			delKeys = append(delKeys, skey, ekey)
+			dkey := DstEdgeKey(eid, sid, did, label)
+			delKeys = append(delKeys, ekey, skey, dkey)
 
 			edgeID, ok := ggraph.keyMap.GetEdgeID(eid)
 			if ok {
@@ -288,7 +292,8 @@ func (ggraph *Graph) DelVertex(id string) error {
 			// get edge ID from key
 			eid, sid, did, label := SrcEdgeKeyParse(dkey)
 			ekey := EdgeKey(eid, sid, did, label)
-			delKeys = append(delKeys, ekey)
+			skey := SrcEdgeKey(eid, sid, did, label)
+			delKeys = append(delKeys, ekey, skey, dkey)
 
 			edgeID, ok := ggraph.keyMap.GetEdgeID(eid)
 			if ok {
