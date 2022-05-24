@@ -71,7 +71,7 @@ edges:
 
 func TestParseYAMLGraph(t *testing.T) {
 	s := []byte(testGraph)
-	graphs, err := ParseYAMLGraph(s)
+	graphs, err := ParseYAMLGraphs(s)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -88,7 +88,7 @@ func TestParseYAMLGraph(t *testing.T) {
 	}
 
 	s = []byte(testGraph2)
-	graphs, err = ParseYAMLGraph(s)
+	graphs, err = ParseYAMLGraphs(s)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -97,7 +97,7 @@ func TestParseYAMLGraph(t *testing.T) {
 	}
 
 	s = []byte(testGraph3)
-	graphs, err = ParseYAMLGraph(s)
+	graphs, err = ParseYAMLGraphs(s)
 	if err == nil {
 		t.Fatal("expected error for graph graph with no graph name")
 	}
@@ -105,7 +105,7 @@ func TestParseYAMLGraph(t *testing.T) {
 
 func TestGraphToYAML(t *testing.T) {
 	s := []byte(testGraph)
-	graphs, err := ParseYAMLGraph(s)
+	graphs, err := ParseYAMLGraphs(s)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -146,7 +146,7 @@ vertices:
 	}
 
 	s2 := []byte(expected)
-	graphs2, err := ParseYAMLGraph(s2)
+	graphs2, err := ParseYAMLGraphs(s2)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -158,7 +158,7 @@ vertices:
 
 func TestGraphToJSON(t *testing.T) {
 	s := []byte(testGraph)
-	graphs, err := ParseYAMLGraph(s)
+	graphs, err := ParseYAMLGraphs(s)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -211,7 +211,7 @@ func TestGraphToJSON(t *testing.T) {
 	}
 
 	s2 := []byte(expected)
-	graphs2, err := ParseJSONGraph(s2)
+	graphs2, err := ParseJSONGraphs(s2)
 	if err != nil {
 		t.Fatal(err)
 	}

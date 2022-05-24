@@ -10,24 +10,24 @@ import (
 
 func TestSerializeStream(t *testing.T) {
 	totalCount := 1003
-	is := make(chan *gdbi.Traveler, 10)
+	is := make(chan gdbi.Traveler, 10)
 	bs := MarshalStream(is, 4)
 	os := UnmarshalStream(bs, 4)
 
 	go func() {
 		defer close(is)
 		for i := 0; i < totalCount; i++ {
-			t := gdbi.Traveler{Current: &gdbi.Vertex{ID: fmt.Sprintf("%d", i)}}
+			t := gdbi.BaseTraveler{Current: &gdbi.Vertex{ID: fmt.Sprintf("%d", i)}}
 			is <- &t
 		}
 	}()
 
 	count := 0
 	for o := range os {
-		if o.Current == nil {
+		if o.GetCurrent() == nil {
 			t.Errorf("Incorrect ouput")
 		} else {
-			if i, err := strconv.Atoi(o.Current.ID); err == nil {
+			if i, err := strconv.Atoi(o.GetCurrent().ID); err == nil {
 				if i != count {
 					t.Errorf("Incorrect ouput order")
 				}

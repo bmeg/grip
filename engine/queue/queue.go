@@ -7,22 +7,22 @@ import (
 )
 
 type MemQueue struct {
-  input chan *gdbi.Traveler
-  output chan *gdbi.Traveler
+  input chan gdbi.Traveler
+  output chan gdbi.Traveler
 }
 
 type Queue interface {
-  GetInput() chan *gdbi.Traveler
-  GetOutput() chan *gdbi.Traveler
+  GetInput() chan gdbi.Traveler
+  GetOutput() chan gdbi.Traveler
 }
 
 
 func New() Queue {
   o := MemQueue{
-    input: make(chan *gdbi.Traveler, 50),
-    output: make(chan *gdbi.Traveler, 50),
+    input: make(chan gdbi.Traveler, 50),
+    output: make(chan gdbi.Traveler, 50),
   }
-  queue := make([]*gdbi.Traveler, 0, 1000)
+  queue := make([]gdbi.Traveler, 0, 1000)
   closed := false
   m := &sync.Mutex{}
   inCount := 0
@@ -31,7 +31,7 @@ func New() Queue {
     for i := range o.input {
       m.Lock()
       inCount++
-      if i.Signal != nil {
+      if i.IsSignal() {
         //fmt.Printf("Queue got signal %d\n", i.Signal.ID)
       }
       //fmt.Printf("Queue Size: %d %d / %d\n", len(queue), inCount, outCount)
@@ -43,7 +43,7 @@ func New() Queue {
   go func() {
     defer close(o.output)
     for running := true; running ;{
-      var v *gdbi.Traveler
+      var v gdbi.Traveler
       m.Lock()
       if len(queue) > 0 {
         v = queue[0]
@@ -65,10 +65,10 @@ func New() Queue {
   return &o
 }
 
-func (q *MemQueue) GetInput() chan *gdbi.Traveler {
+func (q *MemQueue) GetInput() chan gdbi.Traveler {
   return q.input
 }
 
-func (q *MemQueue) GetOutput() chan *gdbi.Traveler {
+func (q *MemQueue) GetOutput() chan gdbi.Traveler {
   return q.output
 }

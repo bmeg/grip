@@ -108,6 +108,22 @@ function query() {
 			this.query.push({'hasKey': process(key)})
 			return this
 		},
+		set: function(key, value) {
+			this.query.push({'set':{'key':key, 'value':value}})
+			return this
+		},
+		increment: function(key, value) {
+			this.query.push({'increment':{'key':key, 'value':value}})
+			return this
+		},
+		jump: function(mark, expression, emit) {
+			this.query.push({"jump": {"mark":mark, "expression" : expression, "emit":emit}})
+			return this
+		},
+		mark: function(name){
+	        this.query.push({"mark": name})
+			return this
+		},
 		aggregate: function() {
 			this.query.push({'aggregate': {'aggregations': Array.prototype.slice.call(arguments)}})
 			return this

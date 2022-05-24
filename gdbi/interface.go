@@ -12,10 +12,10 @@ import (
 )
 
 // InPipe incoming traveler messages
-type InPipe <-chan *Traveler
+type InPipe <-chan Traveler
 
 // OutPipe collects output traveler messages
-type OutPipe chan<- *Traveler
+type OutPipe chan<- Traveler
 
 // DataElement is a single data element
 type DataElement struct {
@@ -48,12 +48,12 @@ type DataElementID struct {
 }
 
 type Signal struct {
-	Dest       string
-	ID         int
+	Dest string
+	ID   int
 }
 
 // Traveler is a query element that traverse the graph
-type Traveler struct {
+type BaseTraveler struct {
 	Current     *DataElement
 	Marks       map[string]*DataElement
 	Selections  map[string]*DataElement
@@ -62,6 +62,24 @@ type Traveler struct {
 	Render      interface{}
 	Path        []DataElementID
 	Signal      *Signal
+}
+
+type Traveler interface {
+	IsSignal() bool
+	GetSignal() Signal
+	GetCurrent() *DataElement
+	GetCurrentID() string
+	AddCurrent(r *DataElement) Traveler
+	Copy() Traveler
+	HasMark(label string) bool
+	GetMark(label string) *DataElement
+	AddMark(label string, r *DataElement) Traveler
+	ListMarks() []string
+	GetSelections() map[string]*DataElement
+	GetRender() interface{}
+	GetPath() []DataElementID
+	GetAggregation() *Aggregate
+	GetCount() uint32
 }
 
 // DataType is a possible output data type
@@ -82,7 +100,7 @@ const (
 // ElementLookup request to look up data
 type ElementLookup struct {
 	ID     string
-	Ref    *Traveler
+	Ref    Traveler
 	Vertex *Vertex
 	Edge   *Edge
 }

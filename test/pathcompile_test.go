@@ -4,15 +4,13 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"strings"
 	"testing"
 
-	"github.com/bmeg/grip/engine/inspect"
 	"github.com/bmeg/grip/engine/pipeline"
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/grids"
 	"github.com/bmeg/grip/gripql"
-	"github.com/golang/protobuf/jsonpb"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 var pathVertices = []string{
@@ -28,25 +26,6 @@ var pathEdges = []string{
 	`{"gid" : "e4", "label" : "knows", "from" : "3", "to" : "4", "data" : {}}`,
 }
 
-func TestPath2Step(t *testing.T) {
-	q := gripql.NewQuery()
-	q = q.V().Out().In().Has(gripql.Eq("$.test", "value"))
-
-	ps := pipeline.NewPipelineState(q.Statements)
-
-	noLoadPaths := inspect.PipelineNoLoadPath(q.Statements, 2)
-
-	if len(noLoadPaths) > 0 {
-		fmt.Printf("Found Path: %#v\n", noLoadPaths)
-		path := grids.SelectPath(q.Statements, noLoadPaths[0])
-		proc, err := grids.RawPathCompile(nil, ps, path)
-		if err != nil {
-			t.Error(err)
-		}
-		fmt.Printf("Proc: %s\n", proc)
-	}
-}
-
 func TestEngineQuery(t *testing.T) {
 	gdb, err := grids.NewGraphDB("testing.db")
 	if err != nil {
@@ -59,12 +38,10 @@ func TestEngineQuery(t *testing.T) {
 		t.Error(err)
 	}
 
-	m := jsonpb.Unmarshaler{}
-
 	vset := []*gdbi.Vertex{}
 	for _, r := range pathVertices {
 		v := &gripql.Vertex{}
-		err := m.Unmarshal(strings.NewReader(r), v)
+		err := protojson.Unmarshal([]byte(r), v)
 		if err != nil {
 			t.Error(err)
 		}
@@ -75,7 +52,7 @@ func TestEngineQuery(t *testing.T) {
 	eset := []*gdbi.Edge{}
 	for _, r := range pathEdges {
 		e := &gripql.Edge{}
-		err := m.Unmarshal(strings.NewReader(r), e)
+		err := protojson.Unmarshal([]byte(r), e)
 		if err != nil {
 			t.Error(err)
 		}

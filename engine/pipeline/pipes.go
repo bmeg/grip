@@ -19,7 +19,7 @@ import (
 func Start(ctx context.Context, pipe gdbi.Pipeline, man gdbi.Manager, bufsize int, input gdbi.InPipe, cancel func()) gdbi.InPipe {
 	procs := pipe.Processors()
 	if len(procs) == 0 {
-		ch := make(chan *gdbi.Traveler)
+		ch := make(chan gdbi.Traveler)
 		close(ch)
 		return ch
 	}
@@ -37,20 +37,20 @@ func Start(ctx context.Context, pipe gdbi.Pipeline, man gdbi.Manager, bufsize in
 				d.AddInput(p.GetJumpOutput())
 			} else {
 				log.Errorf("Missing Jump Mark")
-				ch := make(chan *gdbi.Traveler)
+				ch := make(chan gdbi.Traveler)
 				close(ch)
 				return ch
 			}
 		}
 	}
 
-	in := make(chan *gdbi.Traveler, bufsize)
-	final := make(chan *gdbi.Traveler, bufsize)
+	in := make(chan gdbi.Traveler, bufsize)
+	final := make(chan gdbi.Traveler, bufsize)
 	out := final
 	for i := len(procs) - 1; i >= 0; i-- {
 		ctx = procs[i].Process(ctx, man, in, out)
 		out = in
-		in = make(chan *gdbi.Traveler, bufsize)
+		in = make(chan gdbi.Traveler, bufsize)
 	}
 
 	go func() {
@@ -66,7 +66,7 @@ func Start(ctx context.Context, pipe gdbi.Pipeline, man gdbi.Manager, bufsize in
 			// Write an empty traveler to input
 			// to trigger the computation.
 			// Sends an empty traveler to the pipe to kick off pipelines of processors.
-			out <- &gdbi.Traveler{}
+			out <- &gdbi.BaseTraveler{}
 		}
 		close(in)
 		close(out)
@@ -85,7 +85,7 @@ func Run(ctx context.Context, pipe gdbi.Pipeline, workdir string) <-chan *gripql
 		markTypes := pipe.MarkTypes()
 		man := engine.NewManager(workdir)
 		for t := range Start(ctx, pipe, man, bufsize, nil, nil) {
-			if t.Signal == nil {
+			if !t.IsSignal() {
 				resch <- Convert(graph, dataType, markTypes, t)
 			}
 		}
@@ -105,7 +105,7 @@ func Resume(ctx context.Context, pipe gdbi.Pipeline, workdir string, input gdbi.
 		markTypes := pipe.MarkTypes()
 		man := engine.NewManager(workdir)
 		for t := range Start(ctx, pipe, man, bufsize, input, cancel) {
-			if t.Signal == nil {
+			if !t.IsSignal() {
 				resch <- Convert(graph, dataType, markTypes, t)
 			}
 		}
@@ -115,7 +115,7 @@ func Resume(ctx context.Context, pipe gdbi.Pipeline, workdir string, input gdbi.
 }
 
 // Convert takes a traveler and converts it to query output
-func Convert(graph gdbi.GraphInterface, dataType gdbi.DataType, markTypes map[string]gdbi.DataType, t *gdbi.Traveler) *gripql.QueryResult {
+func Convert(graph gdbi.GraphInterface, dataType gdbi.DataType, markTypes map[string]gdbi.DataType, t gdbi.Traveler) *gripql.QueryResult {
 	switch dataType {
 	case gdbi.VertexData:
 		ve := t.GetCurrent()
@@ -145,24 +145,36 @@ func Convert(graph gdbi.GraphInterface, dataType gdbi.DataType, markTypes map[st
 	case gdbi.CountData:
 		return &gripql.QueryResult{
 			Result: &gripql.QueryResult_Count{
-				Count: t.Count,
+				Count: t.GetCount(),
 			},
 		}
 
 	case gdbi.SelectionData:
 		selections := map[string]*gripql.Selection{}
-		for k, v := range t.Selections {
+		for k, v := range t.GetSelections() {
 			switch markTypes[k] {
 			case gdbi.VertexData:
+				var ve *gripql.Vertex
+				if !v.Loaded {
+					ve = graph.GetVertex(v.ID, true).ToVertex()
+				} else {
+					ve = v.ToVertex()
+				}
 				selections[k] = &gripql.Selection{
 					Result: &gripql.Selection_Vertex{
-						Vertex: v.ToVertex(),
+						Vertex: ve,
 					},
 				}
 			case gdbi.EdgeData:
+				var ee *gripql.Edge
+				if !v.Loaded {
+					ee = graph.GetEdge(ee.Gid, true).ToEdge()
+				} else {
+					ee = v.ToEdge()
+				}
 				selections[k] = &gripql.Selection{
 					Result: &gripql.Selection_Edge{
-						Edge: v.ToEdge(),
+						Edge: ee,
 					},
 				}
 			}
@@ -176,7 +188,7 @@ func Convert(graph gdbi.GraphInterface, dataType gdbi.DataType, markTypes map[st
 		}
 
 	case gdbi.RenderData:
-		sValue, _ := structpb.NewValue(t.Render)
+		sValue, _ := structpb.NewValue(t.GetRender())
 		return &gripql.QueryResult{
 			Result: &gripql.QueryResult_Render{
 				Render: sValue,
@@ -184,13 +196,15 @@ func Convert(graph gdbi.GraphInterface, dataType gdbi.DataType, markTypes map[st
 		}
 
 	case gdbi.PathData:
-		o := make([]interface{}, len(t.Path))
-		for i := range t.Path {
+		path := t.GetPath()
+		o := make([]interface{}, len(path))
+
+		for i := range path {
 			j := map[string]interface{}{}
-			if t.Path[i].Vertex != "" {
-				j["vertex"] = t.Path[i].Vertex
-			} else if t.Path[i].Edge != "" {
-				j["edge"] = t.Path[i].Edge
+			if path[i].Vertex != "" {
+				j["vertex"] = path[i].Vertex
+			} else if path[i].Edge != "" {
+				j["edge"] = path[i].Edge
 			}
 			o[i] = j
 		}
@@ -202,13 +216,14 @@ func Convert(graph gdbi.GraphInterface, dataType gdbi.DataType, markTypes map[st
 		}
 
 	case gdbi.AggregationData:
-		sValue, _ := structpb.NewValue(t.Aggregation.Key)
+		agg := t.GetAggregation()
+		sValue, _ := structpb.NewValue(agg.Key)
 		return &gripql.QueryResult{
 			Result: &gripql.QueryResult_Aggregations{
 				Aggregations: &gripql.NamedAggregationResult{
-					Name:  t.Aggregation.Name,
+					Name:  agg.Name,
 					Key:   sValue,
-					Value: t.Aggregation.Value,
+					Value: agg.Value,
 				},
 			},
 		}
