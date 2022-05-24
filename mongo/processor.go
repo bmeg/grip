@@ -174,16 +174,6 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 					}
 
 				default:
-					if marks, ok := result["marks"]; ok {
-						if marks, ok := marks.(map[string]interface{}); ok {
-							for k, v := range marks {
-								if v, ok := v.(map[string]interface{}); ok {
-									de := getDataElement(v)
-									t = t.AddMark(k, de)
-								}
-							}
-						}
-					}
 					if path, ok := result["path"]; ok {
 						if pathA, ok := path.(bson.A); ok {
 							o := make([]gdbi.DataElementID, len(pathA))
@@ -198,6 +188,16 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 							}
 							//t.Path = o
 							t = &gdbi.BaseTraveler{Path: o}
+						}
+					}
+					if marks, ok := result["marks"]; ok {
+						if marks, ok := marks.(map[string]interface{}); ok {
+							for k, v := range marks {
+								if v, ok := v.(map[string]interface{}); ok {
+									de := getDataElement(v)
+									t = t.AddMark(k, de)
+								}
+							}
 						}
 					}
 
