@@ -3,16 +3,17 @@ package logic
 import (
 	"context"
 	"fmt"
+	"time"
+
 	"github.com/bmeg/grip/engine/queue"
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
-	"time"
 )
 
 // MarkJump creates mark where jump instruction can send travelers
 type JumpMark struct {
 	Name   string
-	inputs []chan *gdbi.Traveler
+	inputs []chan gdbi.Traveler
 }
 
 // Process runs Selector
@@ -30,7 +31,7 @@ func (s *JumpMark) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe
 					case msg, ok := <-s.inputs[i]:
 						if !ok {
 							//jump point has closed, remove it from list
-							fmt.Printf("j closed %s \n", i)
+							fmt.Printf("j closed %d \n", i)
 							closeList = append(closeList, i)
 						} else {
 							//jump traveler recieved, pass on and skip reading input this cycle
@@ -81,11 +82,11 @@ func (s *JumpMark) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe
 				case msg, ok := <-s.inputs[i]:
 					if !ok {
 						//jump point has closed, remove it from list
-						fmt.Printf("j closed %s \n", i)
+						fmt.Printf("j closed %d \n", i)
 						closeList = append(closeList, i)
 					} else {
 						//jump traveler recieved, pass on and skip reading input this cycle
-						if msg.Signal != nil {
+						if msg.IsSignal() {
 							returnCount++
 						} else {
 							if signalActive {
@@ -113,7 +114,7 @@ func (s *JumpMark) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe
 					signalOutdated = false
 					returnCount = 0
 					fmt.Printf("Sending Signal %d\n", curID)
-					out <- &gdbi.Traveler{Signal: &gdbi.Signal{ID: curID, Dest: s.Name}}
+					out <- &gdbi.BaseTraveler{Signal: &gdbi.Signal{ID: curID, Dest: s.Name}}
 				} else if signalActive && returnCount == len(s.inputs) {
 					fmt.Printf("Received %d of %d signals, closing after %d messages\n", returnCount, len(s.inputs), mCount)
 					closed = true
@@ -125,9 +126,9 @@ func (s *JumpMark) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe
 	return ctx
 }
 
-func (s *JumpMark) AddInput(in chan *gdbi.Traveler) {
+func (s *JumpMark) AddInput(in chan gdbi.Traveler) {
 	if s.inputs == nil {
-		s.inputs = []chan *gdbi.Traveler{in}
+		s.inputs = []chan gdbi.Traveler{in}
 	} else {
 		s.inputs = append(s.inputs, in)
 	}
@@ -137,7 +138,7 @@ type Jump struct {
 	Mark    string
 	Stmt    *gripql.HasExpression
 	Emit    bool
-	jumpers chan *gdbi.Traveler
+	jumpers chan gdbi.Traveler
 	queue   queue.Queue
 }
 
@@ -147,7 +148,7 @@ func (s *Jump) Init() {
 	s.queue = q
 }
 
-func (s *Jump) GetJumpOutput() chan *gdbi.Traveler {
+func (s *Jump) GetJumpOutput() chan gdbi.Traveler {
 	return s.queue.GetOutput()
 }
 
@@ -166,9 +167,9 @@ func (s *Jump) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, ou
 				canceled = true
 			default:
 			}
-			if t.Signal != nil {
+			if t.IsSignal() {
 				// If receiving a signal from the destintion marker, send it forward
-				if t.Signal.Dest == s.Mark {
+				if t.GetSignal().Dest == s.Mark {
 					s.jumpers <- t
 				}
 				out <- t

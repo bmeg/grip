@@ -23,25 +23,25 @@ type aggregateDisk struct {
 }
 
 func (agg *aggregateDisk) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
-	aChans := make(map[string](chan []*gdbi.Traveler))
+	aChans := make(map[string](chan []gdbi.Traveler))
 	g, ctx := errgroup.WithContext(ctx)
 
 	go func() {
 		for _, a := range agg.aggregations {
-			aChans[a.Name] = make(chan []*gdbi.Traveler, 100)
+			aChans[a.Name] = make(chan []gdbi.Traveler, 100)
 			defer close(aChans[a.Name])
 		}
 
 		batchSize := 100
 		i := 0
-		batch := []*gdbi.Traveler{}
+		batch := []gdbi.Traveler{}
 		for t := range in {
 			if i == batchSize {
 				for _, a := range agg.aggregations {
 					aChans[a.Name] <- batch
 				}
 				i = 0
-				batch = []*gdbi.Traveler{}
+				batch = []gdbi.Traveler{}
 			}
 			batch = append(batch, t)
 			i++
@@ -93,7 +93,7 @@ func (agg *aggregateDisk) Process(ctx context.Context, man gdbi.Manager, in gdbi
 						t, _ = structpb.NewValue(tcount.Number)
 					}
 					if size <= 0 || count < int(size) {
-						out <- &gdbi.Traveler{Aggregation: &gdbi.Aggregate{Name: a.Name, Key: t, Value: float64(tcount.Count)}}
+						out <- &gdbi.BaseTraveler{Aggregation: &gdbi.Aggregate{Name: a.Name, Key: t, Value: float64(tcount.Count)}}
 					}
 					count++
 				}
@@ -140,7 +140,7 @@ func (agg *aggregateDisk) Process(ctx context.Context, man gdbi.Manager, in gdbi
 						count += tcount.Count
 					}
 					sBucket, _ := structpb.NewValue(bucket)
-					out <- &gdbi.Traveler{Aggregation: &gdbi.Aggregate{Name: a.Name, Key: sBucket, Value: float64(count)}}
+					out <- &gdbi.BaseTraveler{Aggregation: &gdbi.Aggregate{Name: a.Name, Key: sBucket, Value: float64(count)}}
 				}
 				return nil
 			})
@@ -183,7 +183,7 @@ func (agg *aggregateDisk) Process(ctx context.Context, man gdbi.Manager, in gdbi
 				for _, p := range percents {
 					q := td.Quantile(p / 100)
 					sp, _ := structpb.NewValue(p)
-					out <- &gdbi.Traveler{Aggregation: &gdbi.Aggregate{Name: a.Name, Key: sp, Value: q}}
+					out <- &gdbi.BaseTraveler{Aggregation: &gdbi.Aggregate{Name: a.Name, Key: sp, Value: q}}
 				}
 				return nil
 			})

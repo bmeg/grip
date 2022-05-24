@@ -22,7 +22,7 @@ func TestQuerySizeLimit(t *testing.T) {
 	Q = Q.V(ids...)
 
 	c := NewCompiler(&Graph{})
-	_, err := c.Compile(Q.Statements)
+	_, err := c.Compile(Q.Statements, nil)
 	t.Log(err)
 	if err == nil {
 		t.Error("expected an error on compile")

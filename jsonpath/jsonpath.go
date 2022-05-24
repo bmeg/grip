@@ -92,7 +92,7 @@ func GetJSONPath(path string) string {
 //     }
 //   }
 // }
-func GetDoc(traveler *gdbi.Traveler, namespace string) map[string]interface{} {
+func GetDoc(traveler gdbi.Traveler, namespace string) map[string]interface{} {
 	var tmap map[string]interface{}
 	if namespace == Current {
 		tmap = traveler.GetCurrent().ToDict()
@@ -124,7 +124,7 @@ func GetDoc(traveler *gdbi.Traveler, namespace string) map[string]interface{} {
 // }
 //
 // TravelerPathLookup(travler, "$gene.symbol.ensembl") returns "ENSG00000012048"
-func TravelerPathLookup(traveler *gdbi.Traveler, path string) interface{} {
+func TravelerPathLookup(traveler gdbi.Traveler, path string) interface{} {
 	namespace := GetNamespace(path)
 	field := GetJSONPath(path)
 	if field == "" {
@@ -139,7 +139,7 @@ func TravelerPathLookup(traveler *gdbi.Traveler, path string) interface{} {
 }
 
 // TravelerSetValue(travler, "$gene.symbol.ensembl", "hi") inserts the value in the location"
-func TravelerSetValue(traveler *gdbi.Traveler, path string, val interface{}) error {
+func TravelerSetValue(traveler gdbi.Traveler, path string, val interface{}) error {
 	namespace := GetNamespace(path)
 	field := GetJSONPath(path)
 	if field == "" {
@@ -150,7 +150,7 @@ func TravelerSetValue(traveler *gdbi.Traveler, path string, val interface{}) err
 }
 
 // TravelerPathExists returns true if the field exists in the given Traveler
-func TravelerPathExists(traveler *gdbi.Traveler, path string) bool {
+func TravelerPathExists(traveler gdbi.Traveler, path string) bool {
 	namespace := GetNamespace(path)
 	field := GetJSONPath(path)
 	if field == "" {
@@ -162,7 +162,7 @@ func TravelerPathExists(traveler *gdbi.Traveler, path string) bool {
 }
 
 // RenderTraveler takes a template and fills in the values using the data structure
-func RenderTraveler(traveler *gdbi.Traveler, template interface{}) interface{} {
+func RenderTraveler(traveler gdbi.Traveler, template interface{}) interface{} {
 	switch elem := template.(type) {
 	case string:
 		return TravelerPathLookup(traveler, elem)
@@ -186,7 +186,7 @@ func RenderTraveler(traveler *gdbi.Traveler, template interface{}) interface{} {
 }
 
 // SelectTravelerFields returns a new copy of the traveler with only the selected fields
-func SelectTravelerFields(t *gdbi.Traveler, keys ...string) *gdbi.Traveler {
+func SelectTravelerFields(t gdbi.Traveler, keys ...string) gdbi.Traveler {
 	includePaths := []string{}
 	excludePaths := []string{}
 KeyLoop:
@@ -214,7 +214,7 @@ KeyLoop:
 		}
 	}
 
-	out := &gdbi.Traveler{}
+	var out gdbi.Traveler = &gdbi.BaseTraveler{}
 	out = out.AddCurrent(&gdbi.DataElement{
 		Data: map[string]interface{}{},
 	})
