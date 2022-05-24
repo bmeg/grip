@@ -28,7 +28,8 @@ func SelectPath(stmts []*gripql.GraphStatement, path []int) []*gripql.GraphState
 }
 
 func NewCompiler(ggraph *Graph) gdbi.Compiler {
-	return Compiler{graph: ggraph}
+	return core.NewCompiler(ggraph, core.IndexStartOptimize)
+	//return Compiler{graph: ggraph}
 }
 
 func (comp Compiler) Compile(stmts []*gripql.GraphStatement, opts *gdbi.CompileOptions) (gdbi.Pipeline, error) {
@@ -49,19 +50,22 @@ func (comp Compiler) Compile(stmts []*gripql.GraphStatement, opts *gdbi.CompileO
 		ps.LastType = opts.PipelineExtension
 		ps.MarkTypes = opts.ExtensionMarkTypes
 	}
+	fmt.Printf("GRIDS compile: %#v %#v\n", *ps, opts)
 
 	procs := make([]gdbi.Processor, 0, len(stmts))
+
+	optimizeOn := false
 
 	fmt.Printf("Starting Grids Compiler: %s\n", stmts)
 	for i := 0; i < len(stmts); i++ {
 		gs := stmts[i]
 		ps.SetCurStatment(i)
-		if p, err := GetRawProcessor(comp.graph, ps, gs); err == nil {
+		if p, err := GetRawProcessor(comp.graph, ps, gs); err == nil && optimizeOn {
 			procs = append(procs, p)
 		} else {
 			p, err := core.StatementProcessor(gs, comp.graph, ps)
 			if err != nil {
-				fmt.Printf("Error at %d %#v", i, gs)
+				fmt.Printf("Error %s at %d %#v", err, i, gs)
 				return &core.DefaultPipeline{}, err
 			}
 			procs = append(procs, p)

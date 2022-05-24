@@ -7,6 +7,7 @@ import (
 
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
+	"github.com/bmeg/grip/log"
 )
 
 // GridsGDB implements the GripInterface using a generic key/value storage driver
@@ -17,6 +18,7 @@ type GDB struct {
 
 // NewKVGraphDB intitalize a new grids graph driver
 func NewGraphDB(baseDir string) (gdbi.GraphDB, error) {
+	log.Warning("GRIP driver is development. Do not use")
 	_, err := os.Stat(baseDir)
 	if os.IsNotExist(err) {
 		os.Mkdir(baseDir, 0700)
