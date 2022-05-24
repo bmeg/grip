@@ -175,7 +175,7 @@ func (l *LookupVertexAdjOut) Process(ctx context.Context, man gdbi.Manager, in g
 				}
 			} else {
 				queryChan <- gdbi.ElementLookup{
-					ID:  t.GetCurrent().ID,
+					ID:  t.GetCurrentID(),
 					Ref: t,
 				}
 			}
@@ -263,7 +263,7 @@ func (l *LookupVertexAdjIn) Process(ctx context.Context, man gdbi.Manager, in gd
 				queryChan <- gdbi.ElementLookup{Ref: t}
 			} else {
 				queryChan <- gdbi.ElementLookup{
-					ID:  t.GetCurrent().ID,
+					ID:  t.GetCurrentID(),
 					Ref: t,
 				}
 			}
@@ -351,7 +351,7 @@ func (l *InE) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out
 				queryChan <- gdbi.ElementLookup{Ref: t}
 			} else {
 				queryChan <- gdbi.ElementLookup{
-					ID:  t.GetCurrent().ID,
+					ID:  t.GetCurrentID(),
 					Ref: t,
 				}
 			}
@@ -397,7 +397,7 @@ func (l *OutE) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, ou
 				queryChan <- gdbi.ElementLookup{Ref: t}
 			} else {
 				queryChan <- gdbi.ElementLookup{
-					ID:  t.GetCurrent().ID,
+					ID:  t.GetCurrentID(),
 					Ref: t,
 				}
 			}
@@ -629,7 +629,7 @@ func (h *HasID) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, o
 				out <- t
 				continue
 			}
-			if contains(ids, t.GetCurrent().ID) {
+			if contains(ids, t.GetCurrentID()) {
 				out <- t
 			}
 		}

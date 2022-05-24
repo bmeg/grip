@@ -1,104 +1,71 @@
 package grids
 
 import (
-	"bytes"
 	"fmt"
+	"os"
+	"path/filepath"
 
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
-	"github.com/bmeg/grip/kvi"
-	multierror "github.com/hashicorp/go-multierror"
+	"github.com/bmeg/grip/log"
 )
 
-// AddGraph creates a new graph named `graph`
-func (kgraph *GDB) AddGraph(graph string) error {
-	err := gripql.ValidateGraphName(graph)
-	if err != nil {
-		return err
-	}
-
-	kgraph.ts.Touch(graph)
-	err = kgraph.setupGraphIndex(graph)
-	if err != nil {
-		return err
-	}
-	gkey, err := kgraph.keyMap.GetGraphKey(graph)
-	if err != nil {
-		return err
-	}
-	return kgraph.graphkv.Set(GraphKey(gkey), []byte{})
+// GridsGDB implements the GripInterface using a generic key/value storage driver
+type GDB struct {
+	basePath string
+	drivers  map[string]*Graph
 }
 
-// DeleteGraph deletes `graph`
-func (kgraph *GDB) DeleteGraph(graph string) error {
-	kgraph.ts.Touch(graph)
-
-	gkey, err := kgraph.keyMap.GetGraphKey(graph)
-	if err != nil {
-		return err
+// NewKVGraphDB intitalize a new grids graph driver
+func NewGraphDB(baseDir string) (gdbi.GraphDB, error) {
+	log.Warning("GRIP driver is development. Do not use")
+	_, err := os.Stat(baseDir)
+	if os.IsNotExist(err) {
+		os.Mkdir(baseDir, 0700)
 	}
-	var bulkErr *multierror.Error
-
-	eprefix := EdgeListPrefix(gkey)
-	if err := kgraph.graphkv.DeletePrefix(eprefix); err != nil {
-		bulkErr = multierror.Append(bulkErr, err)
-	}
-
-	vprefix := VertexListPrefix(gkey)
-	if err := kgraph.graphkv.DeletePrefix(vprefix); err != nil {
-		bulkErr = multierror.Append(bulkErr, err)
-	}
-
-	sprefix := SrcEdgeListPrefix(gkey)
-	if err := kgraph.graphkv.DeletePrefix(sprefix); err != nil {
-		bulkErr = multierror.Append(bulkErr, err)
-	}
-
-	dprefix := DstEdgeListPrefix(gkey)
-	if err := kgraph.graphkv.DeletePrefix(dprefix); err != nil {
-		bulkErr = multierror.Append(bulkErr, err)
-	}
-
-	graphKey := GraphKey(gkey)
-	if err := kgraph.graphkv.Delete(graphKey); err != nil {
-		bulkErr = multierror.Append(bulkErr, err)
-	}
-
-	if err := kgraph.deleteGraphIndex(graph); err != nil {
-		bulkErr = multierror.Append(bulkErr, err)
-	}
-
-	return bulkErr.ErrorOrNil()
+	return &GDB{basePath: baseDir, drivers: map[string]*Graph{}}, nil
 }
 
 // Graph obtains the gdbi.DBI for a particular graph
 func (kgraph *GDB) Graph(graph string) (gdbi.GraphInterface, error) {
-	found := false
-	for _, gname := range kgraph.ListGraphs() {
-		if graph == gname {
-			found = true
-		}
-	}
-	if !found {
-		return nil, fmt.Errorf("graph '%s' was not found", graph)
-	}
-	gkey, err := kgraph.keyMap.GetGraphKey(graph)
+	err := gripql.ValidateGraphName(graph)
 	if err != nil {
 		return nil, err
 	}
-	return &Graph{kdb: kgraph, graphID: graph, graphKey: gkey}, nil
+	if g, ok := kgraph.drivers[graph]; ok {
+		return g, nil
+	}
+	dbPath := filepath.Join(kgraph.basePath, graph)
+	if _, err := os.Stat(dbPath); err == nil {
+		g, err := newGraph(kgraph.basePath, graph)
+		if err != nil {
+			return nil, err
+		}
+		kgraph.drivers[graph] = g
+		return g, nil
+	}
+	return nil, fmt.Errorf("graph '%s' was not found", graph)
 }
 
 // ListGraphs lists the graphs managed by this driver
-func (kgraph *GDB) ListGraphs() []string {
+func (gdb *GDB) ListGraphs() []string {
 	out := []string{}
-	gPrefix := GraphPrefix()
-	kgraph.graphkv.View(func(it kvi.KVIterator) error {
-		for it.Seek(gPrefix); it.Valid() && bytes.HasPrefix(it.Key(), gPrefix); it.Next() {
-			g := kgraph.keyMap.GetGraphID(GraphKeyParse(it.Key()))
-			out = append(out, g)
+	for k := range gdb.drivers {
+		out = append(out, k)
+	}
+	if ds, err := filepath.Glob(filepath.Join(gdb.basePath, "*")); err == nil {
+		for _, d := range ds {
+			b := filepath.Base(d)
+			out = append(out, b)
 		}
-		return nil
-	})
+	}
 	return out
+}
+
+// Close the graphs
+func (kgraph *GDB) Close() error {
+	for _, g := range kgraph.drivers {
+		g.Close()
+	}
+	return nil
 }
