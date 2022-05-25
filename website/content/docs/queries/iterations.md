@@ -39,7 +39,7 @@ copy down the processing chain. If condition is None, always do the jump.
 Set values within the travelers memory. These values be used to store cycle counts
 
 ### increment(field, value)
-Increment field, ie data[field] = data[field] + value. Can be used to increment counter every cycle
+Increment field, ie `data[field] = data[field] + value`. Can be used to increment counter every cycle
 
 
 ## Example queries
