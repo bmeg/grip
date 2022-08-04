@@ -13,6 +13,6 @@ func (na NullAuth) Validate(md MetaData) (string, error) {
 }
 
 func (be NullAccess) Enforce(user string, graph string, operation Operation) error {
-	fmt.Printf("Enforce: %s %s %#v\n", user, graph, operation)
+	fmt.Printf("Enforce= user:'%s' graph:%s operation:%#v\n", user, graph, operation)
 	return nil
 }

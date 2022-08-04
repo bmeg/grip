@@ -69,7 +69,7 @@ func unaryAuthInterceptor(auth Authenticate, access Access) grpc.UnaryServerInte
 		if op, ok := MethodMap[info.FullMethod]; ok {
 			graph, err := getUnaryRequestGraph(req, info)
 			if err != nil {
-				return nil, status.Error(codes.Unknown, "Unknown graph")
+				return nil, status.Error(codes.Unknown, fmt.Sprintf("Unable to get graph: %s", err))
 			}
 			err = access.Enforce(user, graph, op)
 			if err != nil {
@@ -85,7 +85,7 @@ func unaryAuthInterceptor(auth Authenticate, access Access) grpc.UnaryServerInte
 // using a password stored in the config.
 func streamAuthInterceptor(auth Authenticate, access Access) grpc.StreamServerInterceptor {
 	return func(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
-		//fmt.Printf("Streaming query: %#v\n", info)
+		fmt.Printf("Streaming query: %#v\n", info)
 		md, _ := metadata.FromIncomingContext(ss.Context())
 		//fmt.Printf("Metadata: %#v\n", md)
 		metaData := MetaData{}
@@ -116,10 +116,10 @@ func getUnaryRequestGraph(req interface{}, info *grpc.UnaryServerInfo) (string, 
 		"/gripql.Job/SearchJobs":
 		o := req.(*gripql.GraphQuery)
 		return o.Graph, nil
-	case "/gripql.Query/GetVertex", "/gripql/Query/GetEdge":
+	case "/gripql.Query/GetVertex", "/gripql.Query/GetEdge":
 		o := req.(*gripql.ElementID)
 		return o.Graph, nil
-	case "/gripql.Query/GetTimestamp", "/gripql/Query/GetSchema",
+	case "/gripql.Query/GetTimestamp", "/gripql.Query/GetSchema",
 		"/gripql.Query/GetMapping", "/gripql.Query/ListIndices",
 		"/gripql.Query/ListLabels", "/gripql.Job/ListJobs",
 		"/gripql.Edit/AddGraph", "/gripql.Edit/DeleteGraph":
@@ -148,5 +148,5 @@ func getUnaryRequestGraph(req interface{}, info *grpc.UnaryServerInfo) (string, 
 		return o.Graph, nil
 	}
 
-	return "", fmt.Errorf("unknown op")
+	return "", fmt.Errorf("unknown op: %s", info.FullMethod)
 }
