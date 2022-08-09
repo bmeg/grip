@@ -86,7 +86,6 @@ func TestBasicAuthFail(t *testing.T) {
 
 func TestBasicAuth(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
 
 	conf := config.DefaultConfig()
 	config.TestifyConfig(conf)
@@ -160,11 +159,11 @@ func TestBasicAuth(t *testing.T) {
 		t.Log(string(bodyText))
 		t.Error("incorrect http return value")
 	}
+	cancel()
 }
 
 func TestCasbinAccess(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
 
 	conf := config.DefaultConfig()
 	config.TestifyConfig(conf)
@@ -214,6 +213,16 @@ func TestCasbinAccess(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
+	err = cli.AddGraph("test1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	err = cli.AddGraph("test2")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
 	req, err := http.NewRequest("GET", fmt.Sprintf("http://localhost:%s/v1/graph", conf.Server.HTTPPort), nil)
 	req.SetBasicAuth("alice", "abcd")
 	client := &http.Client{}
@@ -245,8 +254,26 @@ func TestCasbinAccess(t *testing.T) {
 	if err != nil || resp.StatusCode != 200 {
 		t.Errorf("unexpected error: %v", err)
 	}
+
+	/*
+		//this would test is write access inherits attributes of read access
+			fmt.Printf("Doing http traversal\n")
+			resp, err = httpQuery(conf.Server.HTTPPort, "test2", "bob", "1234", q)
+			if err != nil || resp.StatusCode != 200 {
+				t.Errorf("unexpected error: %v", err)
+			}
+	*/
+
+	fmt.Printf("Doing http traversal\n")
+	resp, err = httpQuery(conf.Server.HTTPPort, "test1", "bob", "abcd", q)
+	if err != nil || resp.StatusCode != 401 {
+		t.Errorf("Did not receive expected auth error error: %v", err)
+	}
+
 	o, _ := io.ReadAll(resp.Body)
 	fmt.Printf("post: %d %s\n", resp.StatusCode, o)
+
+	cancel()
 }
 
 func httpQuery(port, graph, user, password string, q *gripql.GraphQuery) (*http.Response, error) {
