@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/bmeg/grip/gripql"
+	"github.com/bmeg/grip/log"
 	"google.golang.org/grpc"
 
 	"google.golang.org/grpc/codes"
@@ -85,11 +86,11 @@ func unaryAuthInterceptor(auth Authenticate, access Access) grpc.UnaryServerInte
 // using a password stored in the config.
 func streamAuthInterceptor(auth Authenticate, access Access) grpc.StreamServerInterceptor {
 	return func(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
-		fmt.Printf("Streaming query: %#v\n", info)
+		//fmt.Printf("Streaming query: %#v\n", info)
 		md, _ := metadata.FromIncomingContext(ss.Context())
+
 		//fmt.Printf("Metadata: %#v\n", md)
 		metaData := MetaData{}
-
 		for i := range md {
 			metaData[i] = md[i]
 		}
@@ -99,13 +100,50 @@ func streamAuthInterceptor(auth Authenticate, access Access) grpc.StreamServerIn
 			return status.Error(codes.Unauthenticated, "PermissionDenied")
 		}
 
-		if op, ok := MethodMap[info.FullMethod]; ok {
-			err = access.Enforce(user, "test", op)
-			if err != nil {
-				return status.Error(codes.PermissionDenied, "PermissionDenied")
+		//current GripQL schema does not support bi-directional streaming
+		//mainly because it can't be offered via HTTP based interface
+		if info.IsServerStream {
+			//ssWrapper := ServerStreamWrapper{ss}
+
+			switch info.FullMethod {
+			case "/gripql.Query/Traversal":
+				w, err := NewStreamOutWrapper[gripql.GraphQuery](ss)
+				if err != nil {
+					return status.Error(codes.Unknown, "Request error")
+				}
+				err = access.Enforce(user, w.Request.Graph, Read)
+				if err != nil {
+					return status.Error(codes.PermissionDenied, "PermissionDenied")
+				}
+				return handler(srv, w)
+			case "/gripql.Job/ListJobs":
+				//TODO: filter list of jobs
+				return handler(srv, ss)
+			case "/gripql.Job/ResumeJob":
+				//TODO: filter list of jobs
+				return handler(srv, ss)
+			case "/gripql.Job/ViewJob":
+				//TODO: filter list of jobs
+				return handler(srv, ss)
+			case "/gripql.Job/SearchJobs":
+				//TODO: filter list of jobs
+				return handler(srv, ss)
 			}
+			log.Errorf("Unknown streaming output: %#v", info)
 			return handler(srv, ss)
+		} else if info.IsClientStream {
+			if info.FullMethod == "/gripql.Edit/BulkAdd" {
+				//This checks permission on a per entity basis
+				//unfortunatly because of limitations in Protobuf input
+				//stream URL formatting, each write request can
+				//reference a different graph
+				return handler(srv, &BulkWriteFilter{ss, user, access})
+			} else {
+				log.Errorf("Unknown input streaming op %#v!!!", info)
+				return handler(srv, ss)
+			}
 		}
+
 		return status.Error(codes.Unknown, "Unknown method")
 	}
 }
