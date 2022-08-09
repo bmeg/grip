@@ -13,7 +13,7 @@ import (
 	"github.com/bmeg/grip/engine/pipeline"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/util"
-	"github.com/golang/protobuf/jsonpb"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -439,15 +439,14 @@ type data map[string]interface{}
 // TODO this will break sort tests
 func compare(expect []*gripql.QueryResult) checker {
 	return func(t *testing.T, actual <-chan *gripql.QueryResult) {
-		mar := jsonpb.Marshaler{}
 		actualS := []string{}
 		expectS := []string{}
 		for r := range actual {
-			s, _ := mar.MarshalToString(r)
+			s := protojson.Format(r)
 			actualS = append(actualS, s)
 		}
 		for _, r := range expect {
-			s, _ := mar.MarshalToString(r)
+			s := protojson.Format(r)
 			expectS = append(expectS, s)
 		}
 

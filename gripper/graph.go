@@ -399,6 +399,17 @@ func (t *TabularGraph) GetEdgeList(ctx context.Context, load bool) <-chan *gdbi.
 	return out
 }
 
+func copyPipeline() (chan interface{}, chan interface{}) {
+	in := make(chan interface{}, 10)
+	out := make(chan interface{}, 10)
+	go func() {
+		for i := range in {
+			out <- i
+		}
+	}()
+	return in, out
+}
+
 func rowRequestVertexPipeline(ctx context.Context, prefix string,
 	label string, client *GripperClient, source string, collection string) (chan interface{}, chan interface{}) {
 	reqSync := &sync.Mutex{}
@@ -462,17 +473,29 @@ func (t *TabularGraph) GetVertexChannel(ctx context.Context, req chan gdbi.Eleme
 	}()
 
 	go func() {
+		var signalPipe *int
 		for r := range req {
-			for _, vPrefix := range t.vertexSourceOrder {
-				if strings.HasPrefix(r.ID, vPrefix) && ctx.Err() != context.Canceled {
-					v := t.vertices[vPrefix]
-					if x, ok := prefixMap[v.prefix]; ok {
-						mux.Put(x, r)
-					} else {
-						in, out := rowRequestVertexPipeline(ctx, v.prefix, v.config.Label, t.client, v.config.Data.Source, v.config.Data.Collection)
-						x, _ := mux.AddPipeline(in, out)
-						prefixMap[v.prefix] = x
-						mux.Put(x, r)
+			if r.IsSignal() {
+				if signalPipe == nil {
+					in, out := copyPipeline()
+					x, _ := mux.AddPipeline(in, out)
+					signalPipe = &x
+					mux.Put(*signalPipe, r)
+				} else {
+					mux.Put(*signalPipe, r)
+				}
+			} else {
+				for _, vPrefix := range t.vertexSourceOrder {
+					if strings.HasPrefix(r.ID, vPrefix) && ctx.Err() != context.Canceled {
+						v := t.vertices[vPrefix]
+						if x, ok := prefixMap[v.prefix]; ok {
+							mux.Put(x, r)
+						} else {
+							in, out := rowRequestVertexPipeline(ctx, v.prefix, v.config.Label, t.client, v.config.Data.Source, v.config.Data.Collection)
+							x, _ := mux.AddPipeline(in, out)
+							prefixMap[v.prefix] = x
+							mux.Put(x, r)
+						}
 					}
 				}
 			}
@@ -491,36 +514,40 @@ func (t *TabularGraph) GetOutChannel(ctx context.Context, req chan gdbi.ElementL
 	go func() {
 		defer close(vReqs)
 		for r := range req {
-			select {
-			case <-ctx.Done():
-			default:
-				for _, vPrefix := range t.edgeSourceOrder {
-					edgeList := t.outEdges[vPrefix]
-					if strings.HasPrefix(r.ID, vPrefix) && ctx.Err() != context.Canceled {
-						id := r.ID[len(vPrefix):len(r.ID)]
-						if id != "" {
-							for _, edge := range edgeList {
-								if len(edgeLabels) == 0 || setcmp.ContainsString(edgeLabels, edge.config.Label) {
-									res, err := t.client.GetRowsByField(ctx,
-										edge.config.Data.Source,
-										edge.config.Data.Collection,
-										edge.config.Data.FromField, id)
-									if err == nil {
-										for row := range res {
-											data := row.Data.AsMap()
-											if dstStr, err := getFieldString(data, edge.config.Data.ToField); err == nil {
-												if dstStr != "" {
-													dstID := edge.config.To + dstStr
-													nReq := gdbi.ElementLookup{ID: dstID, Ref: r.Ref}
-													vReqs <- nReq
+			if r.IsSignal() {
+				vReqs <- r
+			} else {
+				select {
+				case <-ctx.Done():
+				default:
+					for _, vPrefix := range t.edgeSourceOrder {
+						edgeList := t.outEdges[vPrefix]
+						if strings.HasPrefix(r.ID, vPrefix) && ctx.Err() != context.Canceled {
+							id := r.ID[len(vPrefix):len(r.ID)]
+							if id != "" {
+								for _, edge := range edgeList {
+									if len(edgeLabels) == 0 || setcmp.ContainsString(edgeLabels, edge.config.Label) {
+										res, err := t.client.GetRowsByField(ctx,
+											edge.config.Data.Source,
+											edge.config.Data.Collection,
+											edge.config.Data.FromField, id)
+										if err == nil {
+											for row := range res {
+												data := row.Data.AsMap()
+												if dstStr, err := getFieldString(data, edge.config.Data.ToField); err == nil {
+													if dstStr != "" {
+														dstID := edge.config.To + dstStr
+														nReq := gdbi.ElementLookup{ID: dstID, Ref: r.Ref}
+														vReqs <- nReq
+													}
+												} else {
+													log.Errorf("Lookup Error %s", err)
 												}
-											} else {
-												log.Errorf("Lookup Error %s", err)
 											}
-										}
-									} else {
-										if ctx.Err() != context.Canceled {
-											log.Errorf("Row Error: %s\n", err)
+										} else {
+											if ctx.Err() != context.Canceled {
+												log.Errorf("Row Error: %s\n", err)
+											}
 										}
 									}
 								}
@@ -542,35 +569,39 @@ func (t *TabularGraph) GetInChannel(ctx context.Context, req chan gdbi.ElementLo
 		defer close(vReqs)
 
 		for r := range req {
-			select {
-			case <-ctx.Done():
-			default:
-				for _, vPrefix := range t.edgeSourceOrder {
-					edgeList := t.inEdges[vPrefix]
-					if strings.HasPrefix(r.ID, vPrefix) && ctx.Err() != context.Canceled {
-						id := r.ID[len(vPrefix):len(r.ID)]
-						if id != "" {
-							for _, edge := range edgeList {
-								if len(edgeLabels) == 0 || setcmp.ContainsString(edgeLabels, edge.config.Label) {
-									res, err := t.client.GetRowsByField(ctx,
-										edge.config.Data.Source,
-										edge.config.Data.Collection,
-										edge.config.Data.FromField, id)
-									if err == nil {
-										for row := range res {
-											//log.Infof("Found %s", row)
-											data := row.Data.AsMap()
-											if dstStr, err := getFieldString(data, edge.config.Data.ToField); err == nil {
-												if dstStr != "" {
-													dstID := edge.config.To + dstStr
-													nReq := gdbi.ElementLookup{ID: dstID, Ref: r.Ref}
-													vReqs <- nReq
+			if r.IsSignal() {
+				vReqs <- r
+			} else {
+				select {
+				case <-ctx.Done():
+				default:
+					for _, vPrefix := range t.edgeSourceOrder {
+						edgeList := t.inEdges[vPrefix]
+						if strings.HasPrefix(r.ID, vPrefix) && ctx.Err() != context.Canceled {
+							id := r.ID[len(vPrefix):len(r.ID)]
+							if id != "" {
+								for _, edge := range edgeList {
+									if len(edgeLabels) == 0 || setcmp.ContainsString(edgeLabels, edge.config.Label) {
+										res, err := t.client.GetRowsByField(ctx,
+											edge.config.Data.Source,
+											edge.config.Data.Collection,
+											edge.config.Data.FromField, id)
+										if err == nil {
+											for row := range res {
+												//log.Infof("Found %s", row)
+												data := row.Data.AsMap()
+												if dstStr, err := getFieldString(data, edge.config.Data.ToField); err == nil {
+													if dstStr != "" {
+														dstID := edge.config.To + dstStr
+														nReq := gdbi.ElementLookup{ID: dstID, Ref: r.Ref}
+														vReqs <- nReq
+													}
 												}
 											}
-										}
-									} else {
-										if ctx.Err() != context.Canceled {
-											log.Errorf("Row Error: %s", err)
+										} else {
+											if ctx.Err() != context.Canceled {
+												log.Errorf("Row Error: %s", err)
+											}
 										}
 									}
 								}
@@ -591,40 +622,44 @@ func (t *TabularGraph) GetOutEdgeChannel(ctx context.Context, req chan gdbi.Elem
 		defer close(out)
 
 		for r := range req {
-			select {
-			case <-ctx.Done():
-			default:
-				for _, vPrefix := range t.edgeSourceOrder {
-					edgeList := t.outEdges[vPrefix]
-					if strings.HasPrefix(r.ID, vPrefix) && ctx.Err() != context.Canceled {
-						id := r.ID[len(vPrefix):len(r.ID)]
-						if id != "" {
-							for _, edge := range edgeList {
-								if len(edgeLabels) == 0 || setcmp.ContainsString(edgeLabels, edge.config.Label) {
-									res, err := t.client.GetRowsByField(ctx,
-										edge.config.Data.Source,
-										edge.config.Data.Collection,
-										edge.config.Data.FromField, id)
-									if err == nil {
-										for row := range res {
-											data := row.Data.AsMap()
-											if dstStr, err := getFieldString(data, edge.config.Data.ToField); err == nil {
-												if dstStr != "" {
-													o := gdbi.Edge{
-														ID:     edge.GenID(id, dstStr),
-														From:   edge.config.From + id,
-														To:     edge.config.To + dstStr,
-														Label:  edge.config.Label,
-														Data:   row.Data.AsMap(),
-														Loaded: true,
+			if r.IsSignal() {
+				out <- r
+			} else {
+				select {
+				case <-ctx.Done():
+				default:
+					for _, vPrefix := range t.edgeSourceOrder {
+						edgeList := t.outEdges[vPrefix]
+						if strings.HasPrefix(r.ID, vPrefix) && ctx.Err() != context.Canceled {
+							id := r.ID[len(vPrefix):len(r.ID)]
+							if id != "" {
+								for _, edge := range edgeList {
+									if len(edgeLabels) == 0 || setcmp.ContainsString(edgeLabels, edge.config.Label) {
+										res, err := t.client.GetRowsByField(ctx,
+											edge.config.Data.Source,
+											edge.config.Data.Collection,
+											edge.config.Data.FromField, id)
+										if err == nil {
+											for row := range res {
+												data := row.Data.AsMap()
+												if dstStr, err := getFieldString(data, edge.config.Data.ToField); err == nil {
+													if dstStr != "" {
+														o := gdbi.Edge{
+															ID:     edge.GenID(id, dstStr),
+															From:   edge.config.From + id,
+															To:     edge.config.To + dstStr,
+															Label:  edge.config.Label,
+															Data:   row.Data.AsMap(),
+															Loaded: true,
+														}
+														out <- gdbi.ElementLookup{Ref: r.Ref, Edge: &o}
 													}
-													out <- gdbi.ElementLookup{Ref: r.Ref, Edge: &o}
 												}
 											}
-										}
-									} else {
-										if ctx.Err() != context.Canceled {
-											log.Errorf("Row Error: %s", err)
+										} else {
+											if ctx.Err() != context.Canceled {
+												log.Errorf("Row Error: %s", err)
+											}
 										}
 									}
 								}
@@ -645,40 +680,44 @@ func (t *TabularGraph) GetInEdgeChannel(ctx context.Context, req chan gdbi.Eleme
 		defer close(out)
 
 		for r := range req {
-			select {
-			case <-ctx.Done():
-			default:
-				for _, vPrefix := range t.edgeSourceOrder {
-					edgeList := t.inEdges[vPrefix]
-					if strings.HasPrefix(r.ID, vPrefix) && ctx.Err() != context.Canceled {
-						id := r.ID[len(vPrefix):len(r.ID)]
-						if id != "" {
-							for _, edge := range edgeList {
-								if len(edgeLabels) == 0 || setcmp.ContainsString(edgeLabels, edge.config.Label) {
-									res, err := t.client.GetRowsByField(ctx,
-										edge.config.Data.Source,
-										edge.config.Data.Collection,
-										edge.config.Data.FromField, id)
-									if err == nil {
-										for row := range res {
-											data := row.Data.AsMap()
-											if dstStr, err := getFieldString(data, edge.config.Data.ToField); err == nil {
-												if dstStr != "" {
-													o := gdbi.Edge{
-														ID:     edge.GenID(dstStr, id),
-														From:   edge.toVertex.prefix + dstStr,
-														To:     edge.fromVertex.prefix + id,
-														Label:  edge.config.Label,
-														Data:   row.Data.AsMap(),
-														Loaded: true,
+			if r.IsSignal() {
+				out <- r
+			} else {
+				select {
+				case <-ctx.Done():
+				default:
+					for _, vPrefix := range t.edgeSourceOrder {
+						edgeList := t.inEdges[vPrefix]
+						if strings.HasPrefix(r.ID, vPrefix) && ctx.Err() != context.Canceled {
+							id := r.ID[len(vPrefix):len(r.ID)]
+							if id != "" {
+								for _, edge := range edgeList {
+									if len(edgeLabels) == 0 || setcmp.ContainsString(edgeLabels, edge.config.Label) {
+										res, err := t.client.GetRowsByField(ctx,
+											edge.config.Data.Source,
+											edge.config.Data.Collection,
+											edge.config.Data.FromField, id)
+										if err == nil {
+											for row := range res {
+												data := row.Data.AsMap()
+												if dstStr, err := getFieldString(data, edge.config.Data.ToField); err == nil {
+													if dstStr != "" {
+														o := gdbi.Edge{
+															ID:     edge.GenID(dstStr, id),
+															From:   edge.toVertex.prefix + dstStr,
+															To:     edge.fromVertex.prefix + id,
+															Label:  edge.config.Label,
+															Data:   row.Data.AsMap(),
+															Loaded: true,
+														}
+														out <- gdbi.ElementLookup{Ref: r.Ref, Edge: &o}
 													}
-													out <- gdbi.ElementLookup{Ref: r.Ref, Edge: &o}
 												}
 											}
-										}
-									} else {
-										if ctx.Err() != context.Canceled {
-											log.Errorf("Row Error: %s", err)
+										} else {
+											if ctx.Err() != context.Canceled {
+												log.Errorf("Row Error: %s", err)
+											}
 										}
 									}
 								}

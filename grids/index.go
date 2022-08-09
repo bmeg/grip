@@ -11,7 +11,7 @@ import (
 	"github.com/bmeg/grip/log"
 )
 
-func (kgraph *GDB) setupGraphIndex(graph string) error {
+func (kgraph *Graph) setupGraphIndex(graph string) error {
 	err := kgraph.idx.AddField(fmt.Sprintf("%s.v.label", graph))
 	if err != nil {
 		return fmt.Errorf("failed to setup index on vertex label")
@@ -23,7 +23,7 @@ func (kgraph *GDB) setupGraphIndex(graph string) error {
 	return nil
 }
 
-func (kgraph *GDB) deleteGraphIndex(graph string) error {
+func (kgraph *Graph) deleteGraphIndex(graph string) error {
 	var anyError error
 	fields := kgraph.idx.ListFields()
 	for _, f := range fields {
@@ -69,14 +69,14 @@ func (ggraph *Graph) AddVertexIndex(label string, field string) error {
 	log.WithFields(log.Fields{"label": label, "field": field}).Info("Adding vertex index")
 	field = normalizePath(field)
 	//TODO kick off background process to reindex existing data
-	return ggraph.kdb.idx.AddField(fmt.Sprintf("%s.v.%s.%s", ggraph.graphID, label, field))
+	return ggraph.idx.AddField(fmt.Sprintf("%s.v.%s.%s", ggraph.graphID, label, field))
 }
 
 //DeleteVertexIndex delete index from vertices
 func (ggraph *Graph) DeleteVertexIndex(label string, field string) error {
 	log.WithFields(log.Fields{"label": label, "field": field}).Info("Deleting vertex index")
 	field = normalizePath(field)
-	return ggraph.kdb.idx.RemoveField(fmt.Sprintf("%s.v.%s.%s", ggraph.graphID, label, field))
+	return ggraph.idx.RemoveField(fmt.Sprintf("%s.v.%s.%s", ggraph.graphID, label, field))
 }
 
 //GetVertexIndexList lists out all the vertex indices for a graph
@@ -85,7 +85,7 @@ func (ggraph *Graph) GetVertexIndexList() <-chan *gripql.IndexID {
 	out := make(chan *gripql.IndexID)
 	go func() {
 		defer close(out)
-		fields := ggraph.kdb.idx.ListFields()
+		fields := ggraph.idx.ListFields()
 		for _, f := range fields {
 			t := strings.Split(f, ".")
 			if len(t) > 3 {
@@ -105,7 +105,7 @@ func (ggraph *Graph) VertexLabelScan(ctx context.Context, label string) chan str
 	go func() {
 		defer close(out)
 		//log.Printf("Searching %s %s", fmt.Sprintf("%s.label", ggraph.graph), label)
-		for i := range ggraph.kdb.idx.GetTermMatch(ctx, fmt.Sprintf("%s.v.label", ggraph.graphID), label, 0) {
+		for i := range ggraph.idx.GetTermMatch(ctx, fmt.Sprintf("%s.v.label", ggraph.graphID), label, 0) {
 			//log.Printf("Found: %s", i)
 			out <- i
 		}

@@ -81,7 +81,7 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 				//fmt.Printf("Data: %s\n", result)
 				switch proc.dataType {
 				case gdbi.CountData:
-					eo := &gdbi.Traveler{}
+					eo := &gdbi.BaseTraveler{}
 					if x, ok := result["count"]; ok {
 						eo.Count = uint32(x.(int32))
 					}
@@ -99,7 +99,7 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 							}
 						}
 					}
-					out <- &gdbi.Traveler{Selections: selections}
+					out <- &gdbi.BaseTraveler{Selections: selections}
 
 				case gdbi.AggregationData:
 
@@ -128,7 +128,7 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 								stepSize := float64(proc.aggTypes[k].GetHistogram().Interval)
 								if i != 0 {
 									for nv := lastBucket + stepSize; nv < curPos; nv += stepSize {
-										out <- &gdbi.Traveler{Aggregation: &gdbi.Aggregate{Name: k, Key: nv, Value: float64(0.0)}}
+										out <- &gdbi.BaseTraveler{Aggregation: &gdbi.Aggregate{Name: k, Key: nv, Value: float64(0.0)}}
 									}
 								}
 								lastBucket = curPos
@@ -159,13 +159,13 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 							switch bucket["count"].(type) {
 							case int:
 								count := bucket["count"].(int)
-								out <- &gdbi.Traveler{Aggregation: &gdbi.Aggregate{Name: k, Key: term, Value: float64(count)}}
+								out <- &gdbi.BaseTraveler{Aggregation: &gdbi.Aggregate{Name: k, Key: term, Value: float64(count)}}
 							case int32:
 								count := bucket["count"].(int32)
-								out <- &gdbi.Traveler{Aggregation: &gdbi.Aggregate{Name: k, Key: term, Value: float64(count)}}
+								out <- &gdbi.BaseTraveler{Aggregation: &gdbi.Aggregate{Name: k, Key: term, Value: float64(count)}}
 							case float64:
 								count := bucket["count"].(float64)
-								out <- &gdbi.Traveler{Aggregation: &gdbi.Aggregate{Name: k, Key: term, Value: float64(count)}}
+								out <- &gdbi.BaseTraveler{Aggregation: &gdbi.Aggregate{Name: k, Key: term, Value: float64(count)}}
 							default:
 								plog.Errorf("unexpected aggregation result type: %T", bucket["count"])
 								continue
@@ -174,6 +174,22 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 					}
 
 				default:
+					if path, ok := result["path"]; ok {
+						if pathA, ok := path.(bson.A); ok {
+							o := make([]gdbi.DataElementID, len(pathA))
+							for i := range pathA {
+								if elem, ok := pathA[i].(map[string]interface{}); ok {
+									if v, ok := elem["vertex"]; ok {
+										o[i] = gdbi.DataElementID{Vertex: removePrimatives(v).(string)}
+									} else if v, ok := elem["edge"]; ok {
+										o[i] = gdbi.DataElementID{Edge: removePrimatives(v).(string)}
+									}
+								}
+							}
+							//t.Path = o
+							t = &gdbi.BaseTraveler{Path: o}
+						}
+					}
 					if marks, ok := result["marks"]; ok {
 						if marks, ok := marks.(map[string]interface{}); ok {
 							for k, v := range marks {
@@ -184,25 +200,10 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 							}
 						}
 					}
-					if path, ok := result["path"]; ok {
-						if pathA, ok := path.(bson.A); ok {
-							o := make([]gdbi.DataElementID, len(pathA))
-							for i := range pathA {
-								if elem, ok := pathA[i].(map[string]interface{}); ok {
-									if v, ok := elem["vertex"]; ok {
-										o[i] = gdbi.DataElementID{Vertex: v.(string)}
-									} else if v, ok := elem["edge"]; ok {
-										o[i] = gdbi.DataElementID{Edge: v.(string)}
-									}
-								}
-							}
-							t.Path = o
-						}
-					}
 
 					de := &gdbi.DataElement{}
 					if x, ok := result["_id"]; ok {
-						de.ID = x.(string)
+						de.ID = removePrimatives(x).(string)
 					}
 					if x, ok := result["label"]; ok {
 						de.Label = x.(string)
@@ -225,7 +226,7 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 				continue
 			}
 			if nResults == 0 && proc.dataType == gdbi.CountData {
-				out <- &gdbi.Traveler{Count: 0}
+				out <- &gdbi.BaseTraveler{Count: 0}
 			}
 		}
 		plog.Debug("Mongo Processor Finished")

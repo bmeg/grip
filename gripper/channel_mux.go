@@ -28,6 +28,8 @@ The order is preserved, regardless of runtime of pipeline between in1 -> out1
 and in2 -> out2
 */
 
+var QueueSize = 50
+
 type ChannelMux struct {
 	messageOrder chan int
 	inputs       []chan<- interface{}
@@ -45,10 +47,10 @@ func runMux(m *ChannelMux) {
 
 func NewChannelMux() *ChannelMux {
 	out := ChannelMux{
-		messageOrder: make(chan int, 10),
-		inputs:       make([]chan<- interface{}, 0, 10),
-		outputs:      make([]<-chan interface{}, 0, 10),
-		outChannel:   make(chan interface{}, 10),
+		messageOrder: make(chan int, QueueSize*5),
+		inputs:       make([]chan<- interface{}, 0, QueueSize),
+		outputs:      make([]<-chan interface{}, 0, QueueSize),
+		outChannel:   make(chan interface{}, QueueSize),
 	}
 	go runMux(&out)
 	return &out

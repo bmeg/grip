@@ -1,4 +1,4 @@
-package util
+package copy
 
 func DeepCopy(i interface{}) interface{} {
 	if m, ok := i.(map[string]interface{}); ok {

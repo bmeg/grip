@@ -51,6 +51,7 @@ func UnpackVertex(i map[string]interface{}) *gdbi.Vertex {
 		o.Loaded = true
 	} else {
 		o.Loaded = false
+		o.Data = map[string]interface{}{}
 	}
 	return o
 }
@@ -68,6 +69,7 @@ func UnpackEdge(i map[string]interface{}) *gdbi.Edge {
 		o.Loaded = true
 	} else {
 		o.Loaded = false
+		o.Data = map[string]interface{}{}
 	}
 	return o
 }
@@ -82,6 +84,9 @@ func removePrimatives(i interface{}) interface{} {
 			out[i] = removePrimatives(x[i])
 		}
 		return out
+	}
+	if x, ok := i.(primitive.ObjectID); ok {
+		return x.String()
 	}
 	if x, ok := i.(map[string]interface{}); ok {
 		out := make(map[string]interface{})

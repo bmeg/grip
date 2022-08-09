@@ -8,11 +8,11 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var traveler *gdbi.Traveler
+var traveler gdbi.Traveler
 
 func TestMain(m *testing.M) {
 	// test traveler
-	traveler = &gdbi.Traveler{}
+	traveler = &gdbi.BaseTraveler{}
 	traveler = traveler.AddCurrent(&gdbi.DataElement{
 		ID:    "vertex1",
 		Label: "foo",
@@ -222,8 +222,7 @@ func TestExcludeFields(t *testing.T) {
 }
 
 func TestSelectFields(t *testing.T) {
-	expected := &gdbi.Traveler{}
-	expected = expected.AddMark("testMark", traveler.GetMark("testMark"))
+	expected := (&gdbi.BaseTraveler{}).AddMark("testMark", traveler.GetMark("testMark"))
 	expected = expected.AddCurrent(&gdbi.DataElement{
 		ID:    "vertex1",
 		Label: "foo",

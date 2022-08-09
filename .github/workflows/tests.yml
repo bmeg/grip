@@ -24,6 +24,18 @@ jobs:
         name: gripBin
         path: grip
 
+  unitTests:
+    needs: build
+    name: Unit tests
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check out code
+      uses: actions/checkout@v2
+    - name: run unit tests
+      run: |
+        go test ./test/... -config badger.yml
+
+
   badgerTest:
     needs: build
     name: Badger Conformance
@@ -43,9 +55,6 @@ jobs:
         ./grip server --rpc-port 18202 --http-port 18201 --config ./test/badger.yml &
         sleep 5
         make test-conformance
-    - name: GRIP unit tests
-      run: |
-        go test ./test/... -config badger.yml
 
   pebbleTest:
     needs: build
@@ -67,28 +76,28 @@ jobs:
         sleep 5
         make test-conformance
 
-  gridsTest:
-    needs: build
-    name: GRIDs Conformance
-    runs-on: ubuntu-latest
-    steps:
-    - name: Check out code
-      uses: actions/checkout@v2
-    - name: Python Dependencies for Conformance
-      run: pip install requests numpy
-    - name: Download grip
-      uses: actions/download-artifact@v2
-      with:
-        name: gripBin
-    - name: GRIDs unit tests
-      run: |
-        chmod +x grip
-        go test ./test -config grids.yml
-    - name: GRIDs Test
-      run: |
-        ./grip server --rpc-port 18202 --http-port 18201 --config ./test/grids.yml &
-        sleep 5
-        make test-conformance
+  #gridsTest:
+  #  needs: build
+  #  name: GRIDs Conformance
+  #  runs-on: ubuntu-latest
+  #  steps:
+  #  - name: Check out code
+  #    uses: actions/checkout@v2
+  #  - name: Python Dependencies for Conformance
+  #    run: pip install requests numpy
+  #  - name: Download grip
+  #    uses: actions/download-artifact@v2
+  #    with:
+  #      name: gripBin
+  #  - name: GRIDs unit tests
+  #    run: |
+  #      chmod +x grip
+  #      go test ./test -config grids.yml
+  #  - name: GRIDs Test
+  #    run: |
+  #      ./grip server --rpc-port 18202 --http-port 18201 --config ./test/grids.yml &
+  #      sleep 5
+  #      make test-conformance
 
   mongoTest:
     needs: build
