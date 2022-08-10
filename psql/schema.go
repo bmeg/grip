@@ -4,18 +4,16 @@ import (
 	"context"
 	"fmt"
 
-	"golang.org/x/sync/errgroup"
-	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/gripql"
 	gripSchema "github.com/bmeg/grip/gripql/schema"
+	"github.com/bmeg/grip/log"
+	"golang.org/x/sync/errgroup"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
 // BuildSchema returns the schema of a specific graph in the database
 func (db *GraphDB) BuildSchema(ctx context.Context, graphID string, sampleN uint32, random bool) (*gripql.Graph, error) {
 
-
-	fmt.Printf("Starting postgres schema check\n")
 	var g errgroup.Group
 
 	gi, err := db.Graph(graphID)
@@ -25,7 +23,8 @@ func (db *GraphDB) BuildSchema(ctx context.Context, graphID string, sampleN uint
 
 	graph := gi.(*Graph)
 
-	schemaChan := make(chan *gripql.Vertex)
+	vSchemaChan := make(chan *gripql.Vertex)
+	eSchemaChan := make(chan *gripql.Edge)
 
 	vLabels, err := graph.ListVertexLabels()
 	if err != nil {
@@ -62,7 +61,7 @@ func (db *GraphDB) BuildSchema(ctx context.Context, graphID string, sampleN uint
 
 			sSchema, _ := structpb.NewStruct(schema)
 			vSchema := &gripql.Vertex{Gid: label, Label: label, Data: sSchema}
-			schemaChan <- vSchema
+			vSchemaChan <- vSchema
 
 			return nil
 		})
@@ -85,7 +84,7 @@ func (db *GraphDB) BuildSchema(ctx context.Context, graphID string, sampleN uint
 				graph.v, graph.e, graph.v,
 				label, sampleN,
 			)
-			fmt.Printf("Query: %s\n", q)
+			//fmt.Printf("Query: %s\n", q)
 			rows, err := graph.db.QueryxContext(ctx, q)
 			if err != nil {
 				log.WithFields(log.Fields{"error": err}).Error("BuildSchema: QueryxContext")
@@ -98,7 +97,14 @@ func (db *GraphDB) BuildSchema(ctx context.Context, graphID string, sampleN uint
 					log.WithFields(log.Fields{"error": err}).Error("BuildSchema: SliceScan")
 					continue
 				} else {
-					fmt.Printf("Found: %s\n", row)
+					eSchema := &gripql.Edge{
+						Gid:   fmt.Sprintf("(%s)--%s->(%s)", row[0], row[1], row[2]),
+						Label: label,
+						From:  row[0].(string),
+						To:    row[2].(string),
+					}
+					eSchemaChan <- eSchema
+					//fmt.Printf("Found: %s\n", row)
 				}
 			}
 			return nil
@@ -112,14 +118,21 @@ func (db *GraphDB) BuildSchema(ctx context.Context, graphID string, sampleN uint
 	eSchema := []*gripql.Edge{}
 
 	wg.Go(func() error {
-		for s := range schemaChan {
+		for s := range vSchemaChan {
 			vSchema = append(vSchema, s)
+		}
+		return nil
+	})
+	wg.Go(func() error {
+		for s := range eSchemaChan {
+			eSchema = append(eSchema, s)
 		}
 		return nil
 	})
 
 	g.Wait()
- 	close(schemaChan)
+	close(vSchemaChan)
+	close(eSchemaChan)
 
 	wg.Wait()
 

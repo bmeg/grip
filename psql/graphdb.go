@@ -181,7 +181,7 @@ func (db *GraphDB) DeleteGraph(graph string) error {
 
 // ListGraphs lists the graphs managed by this driver
 func (db *GraphDB) ListGraphs() []string {
-	fmt.Printf("PSQL listing graphs\n")
+	//fmt.Printf("PSQL listing graphs\n")
 	out := []string{}
 	rows, err := db.db.Queryx("SELECT graph_name FROM graphs")
 	if err != nil {
@@ -203,7 +203,7 @@ func (db *GraphDB) ListGraphs() []string {
 		log.WithFields(log.Fields{"error": err}).Error("ListGraphs: iterating")
 		return out
 	}
-	fmt.Printf("Graphs: %s\n", out)
+	//fmt.Printf("Graphs: %s\n", out)
 	return out
 }
 
