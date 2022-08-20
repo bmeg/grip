@@ -6,8 +6,8 @@ import (
 
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
-	gripSchema "github.com/bmeg/grip/gripql/schema"
 	"github.com/bmeg/grip/log"
+	"github.com/bmeg/grip/util"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -48,7 +48,7 @@ func (ma *KVGraph) sampleSchema(ctx context.Context, graph string, n uint32, ran
 			v := gi.GetVertex(i, true)
 			data := v.Data
 			ds := gripql.GetDataFieldTypes(data)
-			gripSchema.MergeMaps(schema, ds)
+			util.MergeMaps(schema, ds)
 
 			reqChan := make(chan gdbi.ElementLookup, 1)
 			reqChan <- gdbi.ElementLookup{ID: i}
@@ -58,7 +58,7 @@ func (ma *KVGraph) sampleSchema(ctx context.Context, graph string, n uint32, ran
 				k := fromtokey{from: v.Label, to: o.Label, label: e.Edge.Label}
 				ds := gripql.GetDataFieldTypes(e.Edge.Data)
 				if p, ok := fromToPairs[k]; ok {
-					fromToPairs[k] = gripSchema.MergeMaps(p, ds)
+					fromToPairs[k] = util.MergeMaps(p, ds)
 				} else {
 					fromToPairs[k] = ds
 				}

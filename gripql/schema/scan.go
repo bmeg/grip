@@ -5,6 +5,7 @@ import (
 
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/log"
+	"github.com/bmeg/grip/util"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -47,7 +48,7 @@ func ScanSchema(conn gripql.Client, graph string, sampleCount uint32, exclude []
 				v := row.GetVertex()
 				data := v.Data.AsMap()
 				ds := gripql.GetDataFieldTypes(data)
-				MergeMaps(schema, ds)
+				util.MergeMaps(schema, ds)
 			}
 			sValue, err := structpb.NewStruct(schema)
 			if err != nil {
@@ -77,7 +78,7 @@ func ScanSchema(conn gripql.Client, graph string, sampleCount uint32, exclude []
 				ds := gripql.GetDataFieldTypes(edge.Data.AsMap())
 				k := edgeKey{to: dst.Label, from: src.Label, label: edge.Label}
 				if p, ok := labelSchema[k]; ok {
-					labelSchema[k] = MergeMaps(p, ds)
+					labelSchema[k] = util.MergeMaps(p, ds)
 				} else {
 					labelSchema[k] = ds
 				}

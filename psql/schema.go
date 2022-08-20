@@ -5,8 +5,8 @@ import (
 	"fmt"
 
 	"github.com/bmeg/grip/gripql"
-	gripSchema "github.com/bmeg/grip/gripql/schema"
 	"github.com/bmeg/grip/log"
+	"github.com/bmeg/grip/util"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/protobuf/types/known/structpb"
 )
@@ -56,7 +56,7 @@ func (db *GraphDB) BuildSchema(ctx context.Context, graphID string, sampleN uint
 					log.WithFields(log.Fields{"error": err}).Error("BuildSchema: convertVertexRow")
 					continue
 				}
-				gripSchema.MergeMaps(schema, v.Data)
+				util.MergeMaps(schema, v.Data)
 			}
 
 			sSchema, _ := structpb.NewStruct(schema)

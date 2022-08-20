@@ -6,8 +6,8 @@ import (
 
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
-	gripSchema "github.com/bmeg/grip/gripql/schema"
 	"github.com/bmeg/grip/log"
+	"github.com/bmeg/grip/util"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -79,7 +79,7 @@ func (g *TabularGDB) sampleSchema(ctx context.Context, graph string, n uint32, r
 		for v := range vChan {
 			data := v.Data
 			ds := gripql.GetDataFieldTypes(data)
-			gripSchema.MergeMaps(schema, ds)
+			util.MergeMaps(schema, ds)
 		}
 		vLabelSchemas[tLabel] = schema
 	}
@@ -101,8 +101,8 @@ func (g *TabularGDB) sampleSchema(ctx context.Context, graph string, n uint32, r
 								if srcStr != "" {
 									e := &gdbi.Edge{
 										ID:     table.GenID(srcStr, dstStr),
-										To:     gi.vertices[ table.config.To ].config.Label,
-										From:   gi.vertices[ table.config.From ].config.Label,
+										To:     gi.vertices[table.config.To].config.Label,
+										From:   gi.vertices[table.config.From].config.Label,
 										Label:  table.config.Label,
 										Data:   data,
 										Loaded: true,
@@ -123,7 +123,7 @@ func (g *TabularGDB) sampleSchema(ctx context.Context, graph string, n uint32, r
 				k := fromtokey{from: e.From, to: e.To, label: e.Label}
 				ds := gripql.GetDataFieldTypes(e.Data)
 				if p, ok := fromToPairs[k]; ok {
-					fromToPairs[k] = gripSchema.MergeMaps(p, ds)
+					fromToPairs[k] = util.MergeMaps(p, ds)
 				} else {
 					fromToPairs[k] = ds
 				}
