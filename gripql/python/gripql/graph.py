@@ -38,6 +38,16 @@ class Graph(BaseConnection):
         raise_for_status(response)
         return response.json()
 
+    def sampleSchema(self):
+        """
+        Get the schema for a graph.
+        """
+        response = self.session.get(
+            self.url + "/schema-sample"
+        )
+        raise_for_status(response)
+        return response.json()
+
     def addVertex(self, gid, label, data={}):
         """
         Add vertex to a graph.

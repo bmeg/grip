@@ -2,7 +2,6 @@ package gdbi
 
 import (
 	"context"
-	"fmt"
 	"time"
 )
 
@@ -72,7 +71,7 @@ func LookupBatcher(req chan ElementLookup, batchSize int, timeout time.Duration)
 				if ok {
 					o = append(o, e)
 				} else {
-					fmt.Printf("Batcher input closed\n")
+					//fmt.Printf("Batcher input closed\n")
 					open = false
 				}
 			default:
