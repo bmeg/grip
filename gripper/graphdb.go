@@ -1,7 +1,6 @@
 package gripper
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/bmeg/grip/log"
@@ -82,10 +81,6 @@ func (g *TabularGDB) Graph(graphID string) (gdbi.GraphInterface, error) {
 		return i, nil
 	}
 	return nil, fmt.Errorf("Graph %s not found", graphID)
-}
-
-func (g *TabularGDB) BuildSchema(ctx context.Context, graphID string, sampleN uint32, random bool) (*gripql.Graph, error) {
-	return nil, fmt.Errorf("BuildSchema not implemented")
 }
 
 func (g *TabularGDB) Close() error {

@@ -1,4 +1,4 @@
-package schema
+package util
 
 // MergeMaps deeply merges two schema maps
 func MergeMaps(x1, x2 interface{}) interface{} {

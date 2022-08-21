@@ -359,6 +359,12 @@ func (server *GripServer) Serve(pctx context.Context) error {
 		if err != nil {
 			return fmt.Errorf("registering plugin endpoint: %v", err)
 		}
+	} else {
+		gripql.RegisterConfigureServer(grpcServer, &nullPluginServer{})
+		err = gripql.RegisterConfigureHandlerClient(ctx, grpcMux, gripql.NewConfigureDirectClient(&nullPluginServer{}))
+		if err != nil {
+			return fmt.Errorf("registering plugin endpoint: %v", err)
+		}
 	}
 
 	httpServer := &http.Server{

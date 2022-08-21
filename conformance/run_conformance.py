@@ -97,6 +97,11 @@ class Manager:
         G = self._conn.graph(self.curGraph)
         return G
 
+    def getConnection(self):
+        return self._conn
+        
+    def getGraphName(self):
+        return self.curGraph
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(

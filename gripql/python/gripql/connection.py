@@ -58,7 +58,19 @@ class Connection(BaseConnection):
         """
         response = self.session.post(
             self.url + "/" + name + "/schema",
-            {"vertices" : vertices, "edges" : edges}
+            json={"vertices" : vertices, "edges" : edges}
+        )
+        raise_for_status(response)
+        return response.json()
+
+    def sampleSchema(self, name):
+        """
+        Get the schema of a graph, based on sampling data.
+        This may be incorrect if the data source is schema free and only a minor
+        subset of records have a field
+        """
+        response = self.session.get(
+            self.url + "/" + name + "/schema-sample"
         )
         raise_for_status(response)
         return response.json()
