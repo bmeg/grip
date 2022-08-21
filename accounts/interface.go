@@ -43,6 +43,7 @@ var MethodMap = map[string]Operation{
 	"/gripql.Edit/AddIndex":     Write,
 	"/gripql.Edit/AddSchema":    Write,
 	"/gripql.Edit/AddMapping":   Write,
+	"/gripql.Edit/SampleSchema": Write, //Maybe exec?
 
 	"/gripql.Configure/StartPlugin": Admin,
 	"/gripql.Configure/ListPlugin":  Admin,
