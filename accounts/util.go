@@ -187,6 +187,8 @@ func getUnaryRequestGraph(req interface{}, info *grpc.UnaryServerInfo) (string, 
 	case "/gripql.Edit/SampleSchema":
 		o := req.(*gripql.GraphID)
 		return o.Graph, nil
+	case "/gripql.Configure/StartPlugin", "/gripql.Configure/ListPlugins", "/gripql.Configure/ListDrivers":
+		return "*", nil //these operations effect all graphs
 	}
 
 	return "", fmt.Errorf("unknown op: %s", info.FullMethod)
