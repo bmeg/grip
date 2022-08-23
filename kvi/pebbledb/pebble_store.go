@@ -220,10 +220,10 @@ func (pdb *PebbleKV) Update(u func(tx kvi.KVTransaction) error) error {
 }
 
 type pebbleBulkWrite struct {
-	db    *pebble.DB
-	batch *pebble.Batch
+	db              *pebble.DB
+	batch           *pebble.Batch
 	highest, lowest []byte
-	curSize int
+	curSize         int
 }
 
 const (
@@ -255,7 +255,7 @@ func (pdb *PebbleKV) BulkWrite(u func(tx kvi.KVBulkWrite) error) error {
 	batch.Commit(nil)
 	batch.Close()
 	if ptx.lowest != nil && ptx.highest != nil {
-		pdb.db.Compact(ptx.lowest, ptx.highest)
+		pdb.db.Compact(ptx.lowest, ptx.highest, true)
 	}
 	return err
 }

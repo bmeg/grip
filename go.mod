@@ -9,7 +9,7 @@ require (
 	github.com/bmeg/jsonpath v0.0.0-20210207014051-cca5355553ad
 	github.com/boltdb/bolt v1.3.1
 	github.com/casbin/casbin/v2 v2.40.6
-	github.com/cockroachdb/pebble v0.0.0-20210908194350-daf93f0f148d
+	github.com/cockroachdb/pebble v0.0.0-20220822231555-9c2bc013e39c
 	github.com/davecgh/go-spew v1.1.1
 	github.com/dgraph-io/badger/v2 v2.0.1
 	github.com/dop251/goja v0.0.0-20190429205339-8d6ee3d16611
@@ -17,7 +17,7 @@ require (
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-sql-driver/mysql v1.5.0
 	github.com/golang/protobuf v1.5.2
-	github.com/graphql-go/graphql v0.7.8
+	github.com/graphql-go/graphql v0.8.0
 	github.com/graphql-go/handler v0.2.3
 	github.com/grpc-ecosystem/go-grpc-middleware v1.0.0
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.5.0
@@ -56,6 +56,7 @@ require (
 require (
 	cloud.google.com/go v0.65.0 // indirect
 	github.com/DataDog/zstd v1.4.5 // indirect
+	github.com/HdrHistogram/hdrhistogram-go v1.1.2 // indirect
 	github.com/Knetic/govaluate v3.0.1-0.20171022003610-9aa49832a739+incompatible // indirect
 	github.com/aws/aws-sdk-go v1.34.28 // indirect
 	github.com/cespare/xxhash v1.1.0 // indirect
@@ -87,7 +88,7 @@ require (
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/klauspost/compress v1.11.7 // indirect
 	github.com/konsorten/go-windows-terminal-sequences v1.0.2 // indirect
-	github.com/kr/text v0.1.0 // indirect
+	github.com/kr/text v0.2.0 // indirect
 	github.com/mailru/easyjson v0.0.0-20180730094502-03f2033d19d5 // indirect
 	github.com/matryer/is v1.4.0 // indirect
 	github.com/mattn/go-colorable v0.1.7 // indirect
@@ -106,7 +107,7 @@ require (
 	go.opencensus.io v0.22.6 // indirect
 	golang.org/x/exp v0.0.0-20200513190911-00229845015e // indirect
 	golang.org/x/oauth2 v0.0.0-20210615190721-d04028783cf1 // indirect
-	golang.org/x/sys v0.0.0-20210510120138-977fb7262007 // indirect
+	golang.org/x/sys v0.0.0-20210909193231-528a39cd75f3 // indirect
 	golang.org/x/text v0.3.5 // indirect
 	google.golang.org/appengine v1.6.6 // indirect
 	gopkg.in/sourcemap.v1 v1.0.5 // indirect
