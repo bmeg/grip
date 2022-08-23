@@ -1,0 +1,4 @@
+p, alice, *, *
+p, bob, test1, read
+p, bob, test2, write
+p, bob, test3, query

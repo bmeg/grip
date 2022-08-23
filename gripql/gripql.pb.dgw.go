@@ -409,7 +409,7 @@ func (shim *JobDirectClient) Submit(ctx context.Context, in *GraphQuery, opts ..
 type directJobListJobs struct {
   ctx context.Context
   c   chan *QueryJob
-  in  *Graph
+  in  *GraphID
   e   error
 }
 
@@ -444,7 +444,7 @@ func (dsm *directJobListJobs) SetTrailer(metadata.MD)       {}
 func (dsm *directJobListJobs) SetHeader(metadata.MD) error  { return nil }
 func (dsm *directJobListJobs) SendHeader(metadata.MD) error { return nil }
 func (dsm *directJobListJobs) RecvMsg(m interface{}) error  { 
-	mPtr := m.(*Graph)
+	mPtr := m.(*GraphID)
 	*mPtr = *dsm.in
 	return nil
 }
@@ -452,7 +452,7 @@ func (dsm *directJobListJobs) Header() (metadata.MD, error) { return nil, nil }
 func (dsm *directJobListJobs) Trailer() metadata.MD         { return nil }
 /* End JobListJobs call output server  */
 
-func (shim *JobDirectClient) ListJobs(ctx context.Context, in *Graph, opts ...grpc.CallOption) (Job_ListJobsClient, error) {
+func (shim *JobDirectClient) ListJobs(ctx context.Context, in *GraphID, opts ...grpc.CallOption) (Job_ListJobsClient, error) {
   md, _ := metadata.FromOutgoingContext(ctx)
   ictx := metadata.NewIncomingContext(ctx, md)
 

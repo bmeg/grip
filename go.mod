@@ -8,6 +8,7 @@ require (
 	github.com/akrylysov/pogreb v0.8.1
 	github.com/bmeg/jsonpath v0.0.0-20210207014051-cca5355553ad
 	github.com/boltdb/bolt v1.3.1
+	github.com/casbin/casbin/v2 v2.40.6
 	github.com/cockroachdb/pebble v0.0.0-20210908194350-daf93f0f148d
 	github.com/davecgh/go-spew v1.1.1
 	github.com/dgraph-io/badger/v2 v2.0.1
@@ -55,6 +56,7 @@ require (
 require (
 	cloud.google.com/go v0.65.0 // indirect
 	github.com/DataDog/zstd v1.4.5 // indirect
+	github.com/Knetic/govaluate v3.0.1-0.20171022003610-9aa49832a739+incompatible // indirect
 	github.com/aws/aws-sdk-go v1.34.28 // indirect
 	github.com/cespare/xxhash v1.1.0 // indirect
 	github.com/cespare/xxhash/v2 v2.1.1 // indirect

@@ -64,12 +64,12 @@ proto:
 
 proto-depends:
 	@git submodule update --init --recursive
-	@go get github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-grpc-gateway
-	@go get github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2
-	@go get google.golang.org/protobuf/cmd/protoc-gen-go
-	@go get google.golang.org/grpc/cmd/protoc-gen-go-grpc
-	@go get github.com/ckaznocha/protoc-gen-lint
-	@go get github.com/bmeg/protoc-gen-grcp-rest-direct
+	@go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-grpc-gateway@v2.11.1
+	@go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2@v2.11.1
+	@go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.28.1
+	@go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+	@go install github.com/ckaznocha/protoc-gen-lint@v0.2.4
+	@go install github.com/bmeg/protoc-gen-grcp-rest-direct@feature/interceptors
 
 
 # ---------------------

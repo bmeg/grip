@@ -62,7 +62,7 @@ func (server *GripServer) DeleteJob(ctx context.Context, job *gripql.QueryJob) (
 	}, nil
 }
 
-func (server *GripServer) ListJobs(graph *gripql.Graph, srv gripql.Job_ListJobsServer) error {
+func (server *GripServer) ListJobs(graph *gripql.GraphID, srv gripql.Job_ListJobsServer) error {
 	stream, err := server.jStorage.List(graph.Graph)
 	if err != nil {
 		return err
@@ -97,6 +97,9 @@ func (server *GripServer) ViewJob(job *gripql.QueryJob, srv gripql.Job_ViewJobSe
 		return err
 	}
 	graph, err := gdb.Graph(job.Graph)
+	if err != nil {
+		return err
+	}
 	for o := range stream.Pipe {
 		res := pipeline.Convert(graph, stream.DataType, stream.MarkTypes, o)
 		srv.Send(res)

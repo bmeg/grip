@@ -580,12 +580,8 @@ func local_request_Job_Submit_0(ctx context.Context, marshaler runtime.Marshaler
 
 }
 
-var (
-	filter_Job_ListJobs_0 = &utilities.DoubleArray{Encoding: map[string]int{"graph": 0}, Base: []int{1, 1, 0}, Check: []int{0, 1, 2}}
-)
-
 func request_Job_ListJobs_0(ctx context.Context, marshaler runtime.Marshaler, client JobClient, req *http.Request, pathParams map[string]string) (Job_ListJobsClient, runtime.ServerMetadata, error) {
-	var protoReq Graph
+	var protoReq GraphID
 	var metadata runtime.ServerMetadata
 
 	var (
@@ -603,13 +599,6 @@ func request_Job_ListJobs_0(ctx context.Context, marshaler runtime.Marshaler, cl
 	protoReq.Graph, err = runtime.String(val)
 	if err != nil {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "graph", err)
-	}
-
-	if err := req.ParseForm(); err != nil {
-		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
-	}
-	if err := runtime.PopulateQueryParameters(&protoReq, req.Form, filter_Job_ListJobs_0); err != nil {
-		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
 
 	stream, err := client.ListJobs(ctx, &protoReq)

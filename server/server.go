@@ -110,7 +110,7 @@ func NewGripServer(conf *config.Config, baseDir string, drivers map[string]gdbi.
 		}
 	}
 	if _, ok := gdbs[conf.Default]; !ok {
-		return nil, fmt.Errorf("Default driver '%s' does not exist", conf.Default)
+		return nil, fmt.Errorf("default driver '%s' does not exist", conf.Default)
 	}
 	fmt.Printf("Default graph driver: %s\n", conf.Default)
 	return server, nil
@@ -152,7 +152,7 @@ func (server *GripServer) getGraphDB(graph string) (gdbi.GraphDB, error) {
 			return gdb, nil
 		}
 	}
-	return nil, fmt.Errorf("Driver not found")
+	return nil, fmt.Errorf("driver not found")
 }
 
 // Serve starts the server and does not block. This will open TCP ports
@@ -163,22 +163,29 @@ func (server *GripServer) Serve(pctx context.Context) error {
 
 	lis, err := net.Listen("tcp", ":"+server.conf.Server.RPCPort)
 	if err != nil {
-		return fmt.Errorf("Cannot open port: %v", err)
+		return fmt.Errorf("cannot open port: %v", err)
 	}
 
+	unaryAuthInt := server.conf.Server.Accounts.UnaryInterceptor()
+	streamAuthInt := server.conf.Server.Accounts.StreamInterceptor()
+
+	chainUnaryInt := grpc.UnaryInterceptor(
+		grpc_middleware.ChainUnaryServer(
+			unaryAuthInt,
+			unaryInterceptor(server.conf.Server.RequestLogging.Enable, server.conf.Server.RequestLogging.HeaderWhitelist),
+		),
+	)
+
+	chainStreamInt := grpc.StreamInterceptor(
+		grpc_middleware.ChainStreamServer(
+			streamAuthInt,
+			streamInterceptor(server.conf.Server.RequestLogging.Enable, server.conf.Server.RequestLogging.HeaderWhitelist),
+		),
+	)
+
 	grpcServer := grpc.NewServer(
-		grpc.UnaryInterceptor(
-			grpc_middleware.ChainUnaryServer(
-				unaryAuthInterceptor(server.conf.Server.BasicAuth),
-				unaryInterceptor(server.conf.Server.RequestLogging.Enable, server.conf.Server.RequestLogging.HeaderWhitelist),
-			),
-		),
-		grpc.StreamInterceptor(
-			grpc_middleware.ChainStreamServer(
-				streamAuthInterceptor(server.conf.Server.BasicAuth),
-				streamInterceptor(server.conf.Server.RequestLogging.Enable, server.conf.Server.RequestLogging.HeaderWhitelist),
-			),
-		),
+		chainUnaryInt,
+		chainStreamInt,
 		grpc.MaxSendMsgSize(1024*1024*16),
 		grpc.MaxRecvMsgSize(1024*1024*16),
 	)
@@ -208,7 +215,13 @@ func (server *GripServer) Serve(pctx context.Context) error {
 		if err != nil {
 			return fmt.Errorf("setting up GraphQL handler: %v", err)
 		}*/
-	gqlHandler, err := graphql.NewClientHTTPHandler(gripql.WrapClient(gripql.NewQueryDirectClient(server), nil, nil, nil))
+	gqlHandler, err := graphql.NewClientHTTPHandler(
+		gripql.WrapClient(gripql.NewQueryDirectClient(
+			server,
+			gripql.DirectUnaryInterceptor(unaryAuthInt),
+			gripql.DirectStreamInterceptor(streamAuthInt),
+		),
+			nil, nil, nil))
 
 	mux.Handle("/graphql/", gqlHandler)
 
@@ -225,24 +238,26 @@ func (server *GripServer) Serve(pctx context.Context) error {
 	mux.HandleFunc("/", func(resp http.ResponseWriter, req *http.Request) {
 		start := time.Now()
 
-		if len(server.conf.Server.BasicAuth) > 0 {
-			resp.Header().Set("WWW-Authenticate", "Basic")
-			u, p, ok := req.BasicAuth()
-			if !ok {
-				http.Error(resp, "authorization failed", http.StatusUnauthorized)
-				return
-			}
-			authorized := false
-			for _, cred := range server.conf.Server.BasicAuth {
-				if cred.User == u && cred.Password == p {
-					authorized = true
+		/*
+			if len(server.conf.Server.BasicAuth) > 0 {
+				resp.Header().Set("WWW-Authenticate", "Basic")
+				u, p, ok := req.BasicAuth()
+				if !ok {
+					http.Error(resp, "authorization failed", http.StatusUnauthorized)
+					return
+				}
+				authorized := false
+				for _, cred := range server.conf.Server.BasicAuth {
+					if cred.User == u && cred.Password == p {
+						authorized = true
+					}
+				}
+				if !authorized {
+					http.Error(resp, "permission denied", http.StatusForbidden)
+					return
 				}
 			}
-			if !authorized {
-				http.Error(resp, "permission denied", http.StatusForbidden)
-				return
-			}
-		}
+		*/
 
 		switch strings.HasPrefix(req.URL.Path, "/v1/") {
 		case true:
@@ -289,7 +304,13 @@ func (server *GripServer) Serve(pctx context.Context) error {
 	// Regsiter Query Service
 	gripql.RegisterQueryServer(grpcServer, server)
 	//TODO: Put in some sort of logic that will allow web server to be configured to use GRPC client
-	err = gripql.RegisterQueryHandlerClient(ctx, grpcMux, gripql.NewQueryDirectClient(server))
+	err = gripql.RegisterQueryHandlerClient(
+		ctx, grpcMux,
+		gripql.NewQueryDirectClient(
+			server,
+			gripql.DirectUnaryInterceptor(unaryAuthInt),
+			gripql.DirectStreamInterceptor(streamAuthInt),
+		))
 	//err = gripql.RegisterQueryHandlerFromEndpoint(ctx, grpcMux, ":"+server.conf.RPCPort, []grpc.DialOption{grpc.WithInsecure()})
 	if err != nil {
 		return fmt.Errorf("registering query endpoint: %v", err)
@@ -299,7 +320,13 @@ func (server *GripServer) Serve(pctx context.Context) error {
 	if !server.conf.Server.ReadOnly {
 		gripql.RegisterEditServer(grpcServer, server)
 		//TODO: Put in some sort of logic that will allow web server to be configured to use GRPC client
-		err = gripql.RegisterEditHandlerClient(ctx, grpcMux, gripql.NewEditDirectClient(server))
+		err = gripql.RegisterEditHandlerClient(
+			ctx, grpcMux,
+			gripql.NewEditDirectClient(
+				server,
+				gripql.DirectUnaryInterceptor(unaryAuthInt),
+				gripql.DirectStreamInterceptor(streamAuthInt),
+			))
 		//err = gripql.RegisterEditHandlerFromEndpoint(ctx, grpcMux, ":"+server.conf.RPCPort, []grpc.DialOption{grpc.WithInsecure()})
 		if err != nil {
 			return fmt.Errorf("registering edit endpoint: %v", err)
@@ -308,7 +335,12 @@ func (server *GripServer) Serve(pctx context.Context) error {
 
 	if !server.conf.Server.NoJobs {
 		gripql.RegisterJobServer(grpcServer, server)
-		err = gripql.RegisterJobHandlerClient(ctx, grpcMux, gripql.NewJobDirectClient(server))
+		err = gripql.RegisterJobHandlerClient(ctx, grpcMux,
+			gripql.NewJobDirectClient(
+				server,
+				gripql.DirectUnaryInterceptor(unaryAuthInt),
+				gripql.DirectStreamInterceptor(streamAuthInt),
+			))
 		if err != nil {
 			return fmt.Errorf("registering job endpoint: %v", err)
 		}
@@ -318,7 +350,12 @@ func (server *GripServer) Serve(pctx context.Context) error {
 
 	if server.conf.Server.EnablePlugins {
 		gripql.RegisterConfigureServer(grpcServer, server)
-		err = gripql.RegisterConfigureHandlerClient(ctx, grpcMux, gripql.NewConfigureDirectClient(server))
+		err = gripql.RegisterConfigureHandlerClient(ctx, grpcMux,
+			gripql.NewConfigureDirectClient(
+				server,
+				gripql.DirectUnaryInterceptor(unaryAuthInt),
+				gripql.DirectStreamInterceptor(streamAuthInt),
+			))
 		if err != nil {
 			return fmt.Errorf("registering plugin endpoint: %v", err)
 		}

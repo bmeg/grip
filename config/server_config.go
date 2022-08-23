@@ -3,6 +3,7 @@ package config
 import (
 	"time"
 
+	"github.com/bmeg/grip/accounts"
 	"github.com/bmeg/grip/util"
 	"github.com/bmeg/grip/util/duration"
 )
@@ -18,7 +19,7 @@ type ServerConfig struct {
 	EnablePlugins    bool
 	PluginDir        string
 	NoJobs           bool
-	BasicAuth        []BasicCredential
+	Accounts         accounts.Config
 	DisableHTTPCache bool
 	// Should the server periodically build the graph schemas?
 	AutoBuildSchemas bool
@@ -56,12 +57,6 @@ func (c *ServerConfig) RPCAddress() string {
 		rpc = rpc + ":" + c.RPCPort
 	}
 	return rpc
-}
-
-// BasicCredential describes a username and password for use with Funnel's basic auth.
-type BasicCredential struct {
-	User     string
-	Password string
 }
 
 func testServerConfig() ServerConfig {
