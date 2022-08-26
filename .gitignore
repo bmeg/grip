@@ -31,3 +31,7 @@ gripql/R/*.tar.gz
 .Rproj.user
 .Rhistory
 .RData
+
+# Dev tools
+.vscode/
+
