@@ -134,6 +134,16 @@ if __name__ == "__main__":
         "-r",
         default=None
     )
+    parser.add_argument(
+        "--user",
+        "-u",
+        default=None
+    )    
+    parser.add_argument(
+        "--password",
+        "-p",
+        default=None
+    )    
     args = parser.parse_args()
     server = args.server
     if len(args.tests) > 0:
@@ -143,7 +153,12 @@ if __name__ == "__main__":
     # filter out excluded tests
     tests = [t for t in tests if t[3:] not in args.exclude]
 
-    conn = gripql.Connection(server)
+    
+    # setup connection based on passed credentials
+    if args.user:
+        conn = gripql.Connection(server, user=args.user, password=args.password)
+    else:
+        conn = gripql.Connection(server)
 
     correct = 0
     total = 0

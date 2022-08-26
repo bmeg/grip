@@ -200,3 +200,26 @@ jobs:
         ./grip server --rpc-port 18202 --http-port 18201 --config ./gripper/test-graph/config.yaml --er tableServer=localhost:50051 &
         sleep 5
         python conformance/run_conformance.py http://localhost:18201 --readOnly swapi
+
+  authTest:
+    needs: build
+    name: Auth Conformance
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check out code
+      uses: actions/checkout@v2
+    - name: Python Dependencies for Conformance
+      run: pip install requests numpy
+    - name: Download grip
+      uses: actions/download-artifact@v2
+      with:
+        name: gripBin
+    - name: Badger Test
+      run: |
+        chmod +x grip
+        ./grip server --rpc-port 18202 --http-port 18201 --config ./test/badger-auth.yml &
+        sleep 5
+        # run tests without credentials
+        make test-conformance || echo "Got expected auth error" 
+        # run tests with credentials
+        make test-authorization 

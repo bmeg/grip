@@ -1,0 +1,10 @@
+Default: badger
+
+Drivers:
+  badger:
+    Badger: grip-badger.db
+
+Server:
+  BasicAuth:
+    - User: testuser
+      Password: abc123
