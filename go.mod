@@ -51,6 +51,7 @@ require (
 	google.golang.org/grpc v1.38.0
 	google.golang.org/protobuf v1.27.1
 	gopkg.in/olivere/elastic.v5 v5.0.80
+	sigs.k8s.io/yaml v1.3.0
 )
 
 require (

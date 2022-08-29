@@ -20,7 +20,7 @@ import (
 	"github.com/bmeg/grip/util"
 	"github.com/bmeg/grip/util/duration"
 	"github.com/bmeg/grip/util/rpc"
-	"github.com/ghodss/yaml"
+	"sigs.k8s.io/yaml"
 )
 
 func init() {
@@ -103,7 +103,6 @@ func (conf *Config) AddMongoDefault() {
 	conf.Default = "mongo"
 }
 
-
 // TestifyConfig randomizes ports and database paths/names
 func TestifyConfig(c *Config) {
 	rand := strings.ToLower(util.RandomString(6))
@@ -151,7 +150,7 @@ func ParseConfig(raw []byte, conf *Config) error {
 	//if err != nil {
 	//	return err
 	//}
-	err := yaml.Unmarshal(raw, conf)
+	err := yaml.UnmarshalStrict(raw, conf)
 	if err != nil {
 		return err
 	}
