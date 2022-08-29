@@ -14,7 +14,6 @@ require (
 	github.com/dgraph-io/badger/v2 v2.0.1
 	github.com/dop251/goja v0.0.0-20190429205339-8d6ee3d16611
 	github.com/felixge/httpsnoop v1.0.1
-	github.com/ghodss/yaml v1.0.0
 	github.com/go-sql-driver/mysql v1.5.0
 	github.com/golang/protobuf v1.5.2
 	github.com/graphql-go/graphql v0.8.0
