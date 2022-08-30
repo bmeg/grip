@@ -1,4 +1,4 @@
-// Code generated from Cypher.g4 by ANTLR 4.7.1. DO NOT EDIT.
+// Code generated from Cypher.g4 by ANTLR 4.10.1. DO NOT EDIT.
 
 package parser // Cypher
 
@@ -177,23 +177,23 @@ func (s *BaseCypherListener) EnterOC_Return(ctx *OC_ReturnContext) {}
 // ExitOC_Return is called when production oC_Return is exited.
 func (s *BaseCypherListener) ExitOC_Return(ctx *OC_ReturnContext) {}
 
-// EnterOC_ReturnBody is called when production oC_ReturnBody is entered.
-func (s *BaseCypherListener) EnterOC_ReturnBody(ctx *OC_ReturnBodyContext) {}
+// EnterOC_ProjectionBody is called when production oC_ProjectionBody is entered.
+func (s *BaseCypherListener) EnterOC_ProjectionBody(ctx *OC_ProjectionBodyContext) {}
 
-// ExitOC_ReturnBody is called when production oC_ReturnBody is exited.
-func (s *BaseCypherListener) ExitOC_ReturnBody(ctx *OC_ReturnBodyContext) {}
+// ExitOC_ProjectionBody is called when production oC_ProjectionBody is exited.
+func (s *BaseCypherListener) ExitOC_ProjectionBody(ctx *OC_ProjectionBodyContext) {}
 
-// EnterOC_ReturnItems is called when production oC_ReturnItems is entered.
-func (s *BaseCypherListener) EnterOC_ReturnItems(ctx *OC_ReturnItemsContext) {}
+// EnterOC_ProjectionItems is called when production oC_ProjectionItems is entered.
+func (s *BaseCypherListener) EnterOC_ProjectionItems(ctx *OC_ProjectionItemsContext) {}
 
-// ExitOC_ReturnItems is called when production oC_ReturnItems is exited.
-func (s *BaseCypherListener) ExitOC_ReturnItems(ctx *OC_ReturnItemsContext) {}
+// ExitOC_ProjectionItems is called when production oC_ProjectionItems is exited.
+func (s *BaseCypherListener) ExitOC_ProjectionItems(ctx *OC_ProjectionItemsContext) {}
 
-// EnterOC_ReturnItem is called when production oC_ReturnItem is entered.
-func (s *BaseCypherListener) EnterOC_ReturnItem(ctx *OC_ReturnItemContext) {}
+// EnterOC_ProjectionItem is called when production oC_ProjectionItem is entered.
+func (s *BaseCypherListener) EnterOC_ProjectionItem(ctx *OC_ProjectionItemContext) {}
 
-// ExitOC_ReturnItem is called when production oC_ReturnItem is exited.
-func (s *BaseCypherListener) ExitOC_ReturnItem(ctx *OC_ReturnItemContext) {}
+// ExitOC_ProjectionItem is called when production oC_ProjectionItem is exited.
+func (s *BaseCypherListener) ExitOC_ProjectionItem(ctx *OC_ProjectionItemContext) {}
 
 // EnterOC_Order is called when production oC_Order is entered.
 func (s *BaseCypherListener) EnterOC_Order(ctx *OC_OrderContext) {}
@@ -352,7 +352,8 @@ func (s *BaseCypherListener) EnterOC_ComparisonExpression(ctx *OC_ComparisonExpr
 func (s *BaseCypherListener) ExitOC_ComparisonExpression(ctx *OC_ComparisonExpressionContext) {}
 
 // EnterOC_AddOrSubtractExpression is called when production oC_AddOrSubtractExpression is entered.
-func (s *BaseCypherListener) EnterOC_AddOrSubtractExpression(ctx *OC_AddOrSubtractExpressionContext) {}
+func (s *BaseCypherListener) EnterOC_AddOrSubtractExpression(ctx *OC_AddOrSubtractExpressionContext) {
+}
 
 // ExitOC_AddOrSubtractExpression is called when production oC_AddOrSubtractExpression is exited.
 func (s *BaseCypherListener) ExitOC_AddOrSubtractExpression(ctx *OC_AddOrSubtractExpressionContext) {}
@@ -448,7 +449,8 @@ func (s *BaseCypherListener) ExitOC_PartialComparisonExpression(ctx *OC_PartialC
 }
 
 // EnterOC_ParenthesizedExpression is called when production oC_ParenthesizedExpression is entered.
-func (s *BaseCypherListener) EnterOC_ParenthesizedExpression(ctx *OC_ParenthesizedExpressionContext) {}
+func (s *BaseCypherListener) EnterOC_ParenthesizedExpression(ctx *OC_ParenthesizedExpressionContext) {
+}
 
 // ExitOC_ParenthesizedExpression is called when production oC_ParenthesizedExpression is exited.
 func (s *BaseCypherListener) ExitOC_ParenthesizedExpression(ctx *OC_ParenthesizedExpressionContext) {}
@@ -482,6 +484,12 @@ func (s *BaseCypherListener) EnterOC_FunctionName(ctx *OC_FunctionNameContext) {
 
 // ExitOC_FunctionName is called when production oC_FunctionName is exited.
 func (s *BaseCypherListener) ExitOC_FunctionName(ctx *OC_FunctionNameContext) {}
+
+// EnterOC_ExistentialSubquery is called when production oC_ExistentialSubquery is entered.
+func (s *BaseCypherListener) EnterOC_ExistentialSubquery(ctx *OC_ExistentialSubqueryContext) {}
+
+// ExitOC_ExistentialSubquery is called when production oC_ExistentialSubquery is exited.
+func (s *BaseCypherListener) ExitOC_ExistentialSubquery(ctx *OC_ExistentialSubqueryContext) {}
 
 // EnterOC_ExplicitProcedureInvocation is called when production oC_ExplicitProcedureInvocation is entered.
 func (s *BaseCypherListener) EnterOC_ExplicitProcedureInvocation(ctx *OC_ExplicitProcedureInvocationContext) {
@@ -541,11 +549,11 @@ func (s *BaseCypherListener) EnterOC_CaseExpression(ctx *OC_CaseExpressionContex
 // ExitOC_CaseExpression is called when production oC_CaseExpression is exited.
 func (s *BaseCypherListener) ExitOC_CaseExpression(ctx *OC_CaseExpressionContext) {}
 
-// EnterOC_CaseAlternatives is called when production oC_CaseAlternatives is entered.
-func (s *BaseCypherListener) EnterOC_CaseAlternatives(ctx *OC_CaseAlternativesContext) {}
+// EnterOC_CaseAlternative is called when production oC_CaseAlternative is entered.
+func (s *BaseCypherListener) EnterOC_CaseAlternative(ctx *OC_CaseAlternativeContext) {}
 
-// ExitOC_CaseAlternatives is called when production oC_CaseAlternatives is exited.
-func (s *BaseCypherListener) ExitOC_CaseAlternatives(ctx *OC_CaseAlternativesContext) {}
+// ExitOC_CaseAlternative is called when production oC_CaseAlternative is exited.
+func (s *BaseCypherListener) ExitOC_CaseAlternative(ctx *OC_CaseAlternativeContext) {}
 
 // EnterOC_Variable is called when production oC_Variable is entered.
 func (s *BaseCypherListener) EnterOC_Variable(ctx *OC_VariableContext) {}

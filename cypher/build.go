@@ -169,7 +169,7 @@ func (c *cypherListener) EnterOC_Return(ctx *parser.OC_ReturnContext) {
 	c.returns = []string{}
 }
 
-func (c *cypherListener) EnterOC_ReturnItem(ctx *parser.OC_ReturnItemContext) {
+func (c *cypherListener) EnterOC_ReturnItem(ctx *parser.OC_ReturnContext) {
 	log.Printf("Return: %s", ctx.GetText())
 	c.returns = append(c.returns, ctx.GetText())
 }

@@ -6,7 +6,7 @@ require (
 	github.com/Shopify/sarama v1.22.1
 	github.com/Workiva/go-datastructures v1.0.52
 	github.com/akrylysov/pogreb v0.8.1
-	github.com/antlr/antlr4 v0.0.0-20190726171924-e4737db19f4f
+	github.com/antlr/antlr4/runtime/Go/antlr v0.0.0-20220826213629-cd8f367ca010
 	github.com/bmeg/jsonpath v0.0.0-20210207014051-cca5355553ad
 	github.com/boltdb/bolt v1.3.1
 	github.com/casbin/casbin/v2 v2.40.6

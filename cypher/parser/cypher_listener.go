@@ -1,4 +1,4 @@
-// Code generated from Cypher.g4 by ANTLR 4.7.1. DO NOT EDIT.
+// Code generated from Cypher.g4 by ANTLR 4.10.1. DO NOT EDIT.
 
 package parser // Cypher
 
@@ -86,14 +86,14 @@ type CypherListener interface {
 	// EnterOC_Return is called when entering the oC_Return production.
 	EnterOC_Return(c *OC_ReturnContext)
 
-	// EnterOC_ReturnBody is called when entering the oC_ReturnBody production.
-	EnterOC_ReturnBody(c *OC_ReturnBodyContext)
+	// EnterOC_ProjectionBody is called when entering the oC_ProjectionBody production.
+	EnterOC_ProjectionBody(c *OC_ProjectionBodyContext)
 
-	// EnterOC_ReturnItems is called when entering the oC_ReturnItems production.
-	EnterOC_ReturnItems(c *OC_ReturnItemsContext)
+	// EnterOC_ProjectionItems is called when entering the oC_ProjectionItems production.
+	EnterOC_ProjectionItems(c *OC_ProjectionItemsContext)
 
-	// EnterOC_ReturnItem is called when entering the oC_ReturnItem production.
-	EnterOC_ReturnItem(c *OC_ReturnItemContext)
+	// EnterOC_ProjectionItem is called when entering the oC_ProjectionItem production.
+	EnterOC_ProjectionItem(c *OC_ProjectionItemContext)
 
 	// EnterOC_Order is called when entering the oC_Order production.
 	EnterOC_Order(c *OC_OrderContext)
@@ -233,6 +233,9 @@ type CypherListener interface {
 	// EnterOC_FunctionName is called when entering the oC_FunctionName production.
 	EnterOC_FunctionName(c *OC_FunctionNameContext)
 
+	// EnterOC_ExistentialSubquery is called when entering the oC_ExistentialSubquery production.
+	EnterOC_ExistentialSubquery(c *OC_ExistentialSubqueryContext)
+
 	// EnterOC_ExplicitProcedureInvocation is called when entering the oC_ExplicitProcedureInvocation production.
 	EnterOC_ExplicitProcedureInvocation(c *OC_ExplicitProcedureInvocationContext)
 
@@ -260,8 +263,8 @@ type CypherListener interface {
 	// EnterOC_CaseExpression is called when entering the oC_CaseExpression production.
 	EnterOC_CaseExpression(c *OC_CaseExpressionContext)
 
-	// EnterOC_CaseAlternatives is called when entering the oC_CaseAlternatives production.
-	EnterOC_CaseAlternatives(c *OC_CaseAlternativesContext)
+	// EnterOC_CaseAlternative is called when entering the oC_CaseAlternative production.
+	EnterOC_CaseAlternative(c *OC_CaseAlternativeContext)
 
 	// EnterOC_Variable is called when entering the oC_Variable production.
 	EnterOC_Variable(c *OC_VariableContext)
@@ -383,14 +386,14 @@ type CypherListener interface {
 	// ExitOC_Return is called when exiting the oC_Return production.
 	ExitOC_Return(c *OC_ReturnContext)
 
-	// ExitOC_ReturnBody is called when exiting the oC_ReturnBody production.
-	ExitOC_ReturnBody(c *OC_ReturnBodyContext)
+	// ExitOC_ProjectionBody is called when exiting the oC_ProjectionBody production.
+	ExitOC_ProjectionBody(c *OC_ProjectionBodyContext)
 
-	// ExitOC_ReturnItems is called when exiting the oC_ReturnItems production.
-	ExitOC_ReturnItems(c *OC_ReturnItemsContext)
+	// ExitOC_ProjectionItems is called when exiting the oC_ProjectionItems production.
+	ExitOC_ProjectionItems(c *OC_ProjectionItemsContext)
 
-	// ExitOC_ReturnItem is called when exiting the oC_ReturnItem production.
-	ExitOC_ReturnItem(c *OC_ReturnItemContext)
+	// ExitOC_ProjectionItem is called when exiting the oC_ProjectionItem production.
+	ExitOC_ProjectionItem(c *OC_ProjectionItemContext)
 
 	// ExitOC_Order is called when exiting the oC_Order production.
 	ExitOC_Order(c *OC_OrderContext)
@@ -530,6 +533,9 @@ type CypherListener interface {
 	// ExitOC_FunctionName is called when exiting the oC_FunctionName production.
 	ExitOC_FunctionName(c *OC_FunctionNameContext)
 
+	// ExitOC_ExistentialSubquery is called when exiting the oC_ExistentialSubquery production.
+	ExitOC_ExistentialSubquery(c *OC_ExistentialSubqueryContext)
+
 	// ExitOC_ExplicitProcedureInvocation is called when exiting the oC_ExplicitProcedureInvocation production.
 	ExitOC_ExplicitProcedureInvocation(c *OC_ExplicitProcedureInvocationContext)
 
@@ -557,8 +563,8 @@ type CypherListener interface {
 	// ExitOC_CaseExpression is called when exiting the oC_CaseExpression production.
 	ExitOC_CaseExpression(c *OC_CaseExpressionContext)
 
-	// ExitOC_CaseAlternatives is called when exiting the oC_CaseAlternatives production.
-	ExitOC_CaseAlternatives(c *OC_CaseAlternativesContext)
+	// ExitOC_CaseAlternative is called when exiting the oC_CaseAlternative production.
+	ExitOC_CaseAlternative(c *OC_CaseAlternativeContext)
 
 	// ExitOC_Variable is called when exiting the oC_Variable production.
 	ExitOC_Variable(c *OC_VariableContext)
