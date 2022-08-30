@@ -8,7 +8,8 @@ import (
 	"github.com/bmeg/grip/cypher/parser"
 
 	"github.com/bmeg/grip/gripql"
-	log "github.com/sirupsen/logrus"
+	"github.com/bmeg/grip/log"
+	//log "github.com/sirupsen/logrus"
 )
 
 type vertexSelect struct {
@@ -65,48 +66,48 @@ func (c *cypherListener) BuildQuery() (*gripql.Query, error) {
 			q = q.As(c.vertexPath[i].name)
 		}
 		if len(c.returns) > 0 {
-			q = q.Select(c.returns...)
+			q = q.Render("$" + c.returns[0])
 		}
-		log.Printf("Query: %s", q.String())
+		log.Debugf("Query: %s", q.String())
 		return q, nil
 	} else if c.queryType == "CREATE" {
-		log.Printf("Query Build: %#v", c)
+		log.Debugf("Query Build: %#v", c)
 	}
 	return nil, fmt.Errorf("Unknown query type")
 }
 
 func (c *cypherListener) EnterOC_Statement(ctx *parser.OC_StatementContext) {
-	log.Printf("Entering Statement %#v", ctx.GetText())
+	log.Debugf("Entering Statement %#v", ctx.GetText())
 }
 
 func (c *cypherListener) EnterOC_Match(ctx *parser.OC_MatchContext) {
-	log.Printf("Is Match")
+	log.Debugf("Is Match")
 	c.vertexPath = make([]vertexSelect, 0, 10)
 	c.edgePath = make([]edgeSelect, 0, 10)
 }
 
 func (c *cypherListener) ExitOC_Match(ctx *parser.OC_MatchContext) {
-	log.Printf("Building Query: %#v", c.vertexPath)
+	log.Debugf("Building Query: %#v", c.vertexPath)
 	c.queryType = "MATCH"
 }
 
 func (c *cypherListener) EnterOC_Create(ctx *parser.OC_CreateContext) {
-	log.Printf("Is Create")
+	log.Debugf("Is Create")
 	c.vertexPath = make([]vertexSelect, 0, 10)
 	c.edgePath = make([]edgeSelect, 0, 10)
 }
 
 func (c *cypherListener) ExitOC_Create(ctx *parser.OC_CreateContext) {
-	log.Printf("Building Query: %#v", c.vertexPath)
+	log.Debugf("Building Query: %#v", c.vertexPath)
 	c.queryType = "CREATE"
 }
 
 func (c *cypherListener) EnterOC_PatternElement(ctx *parser.OC_PatternElementContext) {
-	log.Printf("Is pattern %s", ctx.GetText())
+	log.Debugf("Is pattern %s", ctx.GetText())
 }
 
 func (c *cypherListener) EnterOC_NodePattern(ctx *parser.OC_NodePatternContext) {
-	log.Printf("NodePattern: %s", ctx.GetText())
+	log.Debugf("NodePattern: %s", ctx.GetText())
 	c.curVariable = ""
 	c.curLabels = []string{}
 	c.curMap = map[string]string{}
@@ -121,12 +122,12 @@ func (c *cypherListener) ExitOC_NodePattern(ctx *parser.OC_NodePatternContext) {
 }
 
 func (c *cypherListener) EnterOC_Variable(ctx *parser.OC_VariableContext) {
-	log.Printf("Variable: %s", ctx.GetText())
+	log.Debugf("Variable: %s", ctx.GetText())
 	c.curVariable = ctx.GetText()
 }
 
 func (c *cypherListener) EnterOC_MapLiteral(ctx *parser.OC_MapLiteralContext) {
-	log.Printf("MapLiteral: %s", ctx.GetText())
+	log.Debugf("MapLiteral: %s", ctx.GetText())
 	c.curMapKey = []string{}
 	c.curExpression = []string{}
 }
@@ -144,33 +145,34 @@ func (c *cypherListener) EnterOC_PropertyKeyName(ctx *parser.OC_PropertyKeyNameC
 }
 
 func (c *cypherListener) EnterOC_Expression(ctx *parser.OC_ExpressionContext) {
-	log.Printf("Expression: %s", ctx.GetText())
+	log.Debugf("Expression: %s", ctx.GetText())
 	c.curExpression = append(c.curExpression, ctx.GetText())
 }
 
 func (c *cypherListener) EnterOC_RelationshipPattern(ctx *parser.OC_RelationshipPatternContext) {
-	log.Printf("RelationshipPattern: %s", ctx.GetText())
+	log.Debugf("RelationshipPattern: %s", ctx.GetText())
 	c.curVariable = ""
 	c.curLabels = []string{}
 }
 
 func (c *cypherListener) ExitOC_RelationshipPattern(ctx *parser.OC_RelationshipPatternContext) {
 	e := edgeSelect{name: c.curVariable, label: c.curLabels}
-	log.Printf("RelationshipPattern: %s", e)
+	log.Debugf("RelationshipPattern: %s", e)
 	c.edgePath = append(c.edgePath, e)
 }
 
 func (c *cypherListener) EnterOC_LabelName(ctx *parser.OC_LabelNameContext) {
-	log.Printf("Label: %s", ctx.GetText())
+	log.Debugf("Label: %s", ctx.GetText())
 	c.curLabels = append(c.curLabels, ctx.GetText())
 }
 
 func (c *cypherListener) EnterOC_Return(ctx *parser.OC_ReturnContext) {
+	log.Debugf("Returns: %s", ctx.GetText())
 	c.returns = []string{}
 }
 
-func (c *cypherListener) EnterOC_ReturnItem(ctx *parser.OC_ReturnContext) {
-	log.Printf("Return: %s", ctx.GetText())
+func (c *cypherListener) EnterOC_ProjectionItem(ctx *parser.OC_ProjectionItemContext) {
+	log.Debugf("Return Projections: %s", ctx.GetText())
 	c.returns = append(c.returns, ctx.GetText())
 }
 

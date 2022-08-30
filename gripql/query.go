@@ -264,7 +264,7 @@ func (q *Query) String() string {
 			add("Aggregate")
 
 		case *GraphStatement_Render:
-			add("Render")
+			add("Render", stmt.Render.String())
 		}
 	}
 

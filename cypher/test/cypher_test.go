@@ -4,38 +4,52 @@ import (
 	"fmt"
 	"testing"
 
+	"google.golang.org/protobuf/proto"
+
 	"github.com/bmeg/grip/cypher"
+	"github.com/bmeg/grip/gripql"
 )
 
-/*
-func TestWrite(t *testing.T) {
-	t1 := "CREATE (n {prop: 'foo'}) RETURN n.prop AS p"
-	q, err := RunParser(t1)
-	if err != nil {
-		t.Error(err)
-		return
+func QueryCompare(a *gripql.Query, b *gripql.Query) bool {
+
+	if len(a.Statements) != len(b.Statements) {
+		return false
 	}
-	fmt.Printf("%s\n", q.String())
+	for i := range a.Statements {
+		x := a.Statements[i]
+		y := b.Statements[i]
+
+		if !proto.Equal(x, y) {
+			fmt.Printf("%#v != %#v\n", (x.Statement.(*gripql.GraphStatement_Has)).Has, (y.Statement.(*gripql.GraphStatement_Has).Has))
+			return false
+		}
+	}
+	return true
 }
-*/
+
+type testPair struct {
+	cypher string
+	gripql *gripql.Query
+}
+
+var pairs = []testPair{
+	{
+		"MATCH (n:Person {name: 'Bob'}) RETURN n",
+		gripql.NewQuery().V().HasLabel("Person").Has(gripql.Eq("name", "Bob")).As("n").Render("$n"),
+	},
+}
 
 func TestMatch1(t *testing.T) {
-	resetKVInterface()
 
-	//t1 := "MATCH (p:Person)-[:LIKES]->(t:Technology) RETURN p"
-	//RunParser(t1)
-	//fmt.Printf("Done\n")
-
-	//t2 := "MATCH p = (a {name: 'A'})-[rel1]->(b)-[rel2]->(c) RETURN p"
-	//RunParser(t2)
-
-	t3 := "MATCH (n:Person {name: 'Bob'}) RETURN n"
-	o3, err := cypher.RunParser(t3)
-	if err != nil {
-		t.Error(err)
-		return
+	for i := range pairs {
+		p := pairs[i].gripql
+		ct := pairs[i].cypher
+		o, err := cypher.RunParser(ct)
+		if err != nil {
+			t.Error(err)
+		}
+		if !QueryCompare(o, p) {
+			t.Errorf("Compiled query %s results in\n %s !=\n %s", ct, o.String(), p.String())
+		}
 	}
-
-	fmt.Printf("%s\n", t3)
-	fmt.Printf("%s\n", o3.String())
 }
