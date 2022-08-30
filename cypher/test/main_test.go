@@ -3,16 +3,15 @@ package test
 import (
 	"fmt"
 	"os"
-	"testing"
 	"strings"
+	"testing"
 
+	"github.com/bmeg/grip/config"
+	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/kvgraph"
 	"github.com/bmeg/grip/kvi"
 	_ "github.com/bmeg/grip/kvi/badgerdb" // import so badger will register itself
 	"github.com/bmeg/grip/util"
-	"github.com/bmeg/grip/gdbi"
-	"github.com/bmeg/grip/config"
-
 )
 
 var dbname string
