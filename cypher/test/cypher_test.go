@@ -36,6 +36,27 @@ var pairs = []testPair{
 	{
 		"MATCH (n:Person {name: 'Bob'}) RETURN n",
 		gripql.NewQuery().V().HasLabel("Person").Has(gripql.Eq("name", "Bob")).As("n").Render("$n"),
+	}, {
+		`MATCH (n {name: 'John'})-[:FRIEND]-(friend) 
+		WITH n, count(friend) AS friendsCount
+		WHERE friendsCount > 3
+		RETURN n, friendsCount`,
+		gripql.NewQuery().V(), //FIXME
+	}, {
+		`MATCH (n {name: 'John'})-[:FRIEND]-(friend)
+		WITH n, count(friend) AS friendsCount
+		SET n.friendsCount = friendsCount
+		RETURN n.friendsCount`,
+		gripql.NewQuery().V(), //FIXME
+	}, {
+		`MATCH (user:User {name: 'Adam'})-[r1:FRIEND]-()-[r2:FRIEND]-(friend_of_a_friend)
+		RETURN friend_of_a_friend.name AS fofName`,
+		gripql.NewQuery().V(), //FIXME
+	}, {
+		`MATCH (me)-[:KNOWS*1..2]-(remote_friend)
+		WHERE me.name = 'Filipa'
+		RETURN remote_friend.name`,
+		gripql.NewQuery().V(), //FIXME
 	},
 }
 
