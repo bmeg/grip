@@ -1,0 +1,19 @@
+Default: badger
+
+Drivers:
+  badger:
+    Badger: grip-badger.db
+
+Server:
+  Accounts:
+    Auth:
+      Basic:
+        # casbin users
+        - User: bob
+          Password: abc123
+        - User: alice
+          Password: abc123
+  # config for https://github.com/casbin/casbin
+  Access:
+    Model: ./test/model.conf
+    Policy: ./test/users.csv
