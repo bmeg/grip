@@ -1,12 +1,10 @@
 package config
 
 import (
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
 	"path/filepath"
-	"reflect"
 	"strings"
 	"time"
 
@@ -20,7 +18,7 @@ import (
 	"github.com/bmeg/grip/util"
 	"github.com/bmeg/grip/util/duration"
 	"github.com/bmeg/grip/util/rpc"
-	"github.com/ghodss/yaml"
+	"sigs.k8s.io/yaml"
 )
 
 func init() {
@@ -103,7 +101,6 @@ func (conf *Config) AddMongoDefault() {
 	conf.Default = "mongo"
 }
 
-
 // TestifyConfig randomizes ports and database paths/names
 func TestifyConfig(c *Config) {
 	rand := strings.ToLower(util.RandomString(6))
@@ -151,7 +148,7 @@ func ParseConfig(raw []byte, conf *Config) error {
 	//if err != nil {
 	//	return err
 	//}
-	err := yaml.Unmarshal(raw, conf)
+	err := yaml.UnmarshalStrict(raw, conf)
 	if err != nil {
 		return err
 	}
@@ -205,101 +202,5 @@ func ParseConfigFile(relpath string, conf *Config) error {
 			}
 		}
 	}
-	return nil
-}
-
-// GetKeys takes a struct or map and returns all keys that are present.
-// Example:
-// {"data": {"foo": "bar"}} => ["data", "data.foo"]
-func GetKeys(obj interface{}) []string {
-	keys := []string{}
-
-	v := reflect.ValueOf(obj)
-	if v.Kind() == reflect.Ptr {
-		v = v.Elem()
-	}
-
-	switch v.Kind() {
-	case reflect.Struct:
-		for i := 0; i < v.NumField(); i++ {
-			field := v.Field(i)
-			embedded := v.Type().Field(i).Anonymous
-			name := v.Type().Field(i).Name
-			keys = append(keys, name)
-
-			valKeys := GetKeys(field.Interface())
-			vk := []string{}
-			for _, v := range valKeys {
-				if embedded {
-					vk = append(vk, v)
-				}
-				vk = append(vk, name+"."+v)
-			}
-			keys = append(keys, vk...)
-		}
-	case reflect.Map:
-		for _, key := range v.MapKeys() {
-			name := key.String()
-			keys = append(keys, key.String())
-
-			valKeys := GetKeys(v.MapIndex(key).Interface())
-			for i, v := range valKeys {
-				valKeys[i] = name + "." + v
-			}
-			keys = append(keys, valKeys...)
-		}
-	}
-	return keys
-}
-
-// CheckForUnknownKeys takes a json byte array and checks that all keys are fields
-// in the reference object
-func CheckForUnknownKeys(jsonStr []byte, obj interface{}, exclude []string) error {
-	fmt.Printf("Checking: %#v\n", obj)
-	if _, ok := obj.(map[string]DriverConfig); ok {
-		fmt.Printf("Is map\n")
-		return nil
-	}
-	knownMap := make(map[string]interface{})
-	known := GetKeys(obj)
-	for _, k := range known {
-		knownMap[k] = nil
-	}
-
-	var anon interface{}
-	err := json.Unmarshal(jsonStr, &anon)
-	if err != nil {
-		return err
-	}
-
-	unknown := []string{}
-	all := GetKeys(anon)
-	for _, k := range all {
-		if _, found := knownMap[k]; !found {
-			for _, e := range exclude {
-				if strings.HasPrefix(k, e) {
-					found = true
-				}
-			}
-			if !found {
-				unknown = append(unknown, k)
-			}
-		}
-	}
-
-	errs := []string{}
-	if len(unknown) > 0 {
-		for _, k := range unknown {
-			parts := strings.Split(k, ".")
-			field := parts[len(parts)-1]
-			path := parts[:len(parts)-1]
-			errs = append(
-				errs,
-				fmt.Sprintf("\t field %s not found in %s", field, strings.Join(path, ".")),
-			)
-		}
-		return fmt.Errorf("%v", strings.Join(errs, "\n"))
-	}
-
 	return nil
 }
