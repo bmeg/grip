@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import requests
+
 
 def test_current_user_has_policy(manager):
     """Ensure current user has a policy defined."""
@@ -16,27 +18,26 @@ def test_current_user_can_query(manager):
     account = manager.current_user_account()
     assert account, f"Could not find account for {manager.user}"
     policies = account.policies
-    print(f"policies {manager.user} for {policies}")
     assert len(policies) > 0, f"Should have at least one policy"
-    graph_names = set(policy.obj for policy in policies if policy.obj != '*')
     errors = []
-    # non admin user
-    if len(graph_names) > 0:
-        for graph_name in graph_names:
-            manager.test_query(graph_name)
-            print(f"{manager.user} query {graph_name}")
 
-        try:
-            manager.test_query('dummy')
-            errors.append(f"{manager.user} should not be able to query dummy graph")
-        except Exception as e:
-            pass
+    if not account.is_admin:
+        # non admin user
+        for policy in policies:
+            graph_name = policy.obj
+            if policy.act == 'query':
+                manager.test_query(graph_name)
+            else:
+                try:
+                    manager.test_query(graph_name)
+                    errors.append(f"{manager.user} should not be able to read {graph_name} graph")
+                except AssertionError:
+                    pass
     else:
         # admin user
-        assert account.is_admin, f"{manager.user} should be admin since all objs where '*'"
         for graph_name in manager.all_graph_names:
+            assert graph_name != '*'
             manager.test_query(graph_name)
-            print(f"{manager.user}, an admin query {graph_name}")
     return errors
 
 
@@ -46,53 +47,56 @@ def test_current_user_can_read(manager):
     account = manager.current_user_account()
     assert account, f"Could not find account for {manager.user}"
     policies = account.policies
-    print(f"policies {manager.user} for {policies}")
     assert len(policies) > 0, f"Should have at least one policy"
-    graph_names = set(policy.obj for policy in policies if policy.obj != '*')
     errors = []
     # non admin user
-    if len(graph_names) > 0:
-        for graph_name in graph_names:
-            manager.test_read(graph_name)
-            print(f"{manager.user} query {graph_name}")
-        try:
-            manager.test_read('dummy')
-            errors.append(f"{manager.user} should not be able to read dummy graph")
-        except Exception as e:
-            pass
+    if not account.is_admin:
+        for policy in policies:
+            graph_name = policy.obj
+            if policy.act == 'read':
+                manager.test_read(graph_name)
+            else:
+                try:
+                    manager.test_read(graph_name)
+                    errors.append(f"{manager.user} should not be able to read {graph_name} graph")
+                except AssertionError:
+                    pass
     else:
         # admin user
-        assert account.is_admin, f"{manager.user} should be admin since all objs where '*'"
         for graph_name in manager.all_graph_names:
             manager.test_read(graph_name)
-            print(f"{manager.user}, an admin read {graph_name}")
+
     return errors
 
 
 def test_current_user_can_write(manager):
-    """Ensure current user can read."""
+    """Ensure current user can write."""
 
     account = manager.current_user_account()
     assert account, f"Could not find account for {manager.user}"
     policies = account.policies
-    print(f"policies {manager.user} for {policies}")
     assert len(policies) > 0, f"Should have at least one policy"
-    graph_names = set(policy.obj for policy in policies if policy.obj != '*')
     errors = []
     # non admin user
-    if len(graph_names) > 0:
-        for graph_name in graph_names:
-            manager.test_read(graph_name)
-            print(f"{manager.user} query {graph_name}")
+    if not account.is_admin:
+        for policy in policies:
+            graph_name = policy.obj
+            if policy.act == 'write':
+                manager.test_write(graph_name)
+            else:
+                try:
+                    manager.test_write(graph_name)
+                    errors.append(f"{manager.user} should not be able to write {graph_name} graph")
+                except AssertionError:
+                    pass
         try:
             manager.test_write('dummy')
             errors.append(f"{manager.user} should not be able to write dummy graph")
-        except Exception as e:
+        except AssertionError as e:
             pass
+
     else:
         # admin user
-        assert account.is_admin, f"{manager.user} should be admin since all objs where '*'"
         for graph_name in manager.all_graph_names:
             manager.test_write(graph_name)
-            print(f"{manager.user}, an admin write {graph_name}")
     return errors
