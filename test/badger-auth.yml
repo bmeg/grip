@@ -13,7 +13,8 @@ Server:
           Password: abc123
         - User: alice
           Password: abc123
-  # config for https://github.com/casbin/casbin
-  Access:
-    Model: ./test/model.conf
-    Policy: ./test/users.csv
+    # config for https://github.com/casbin/casbin
+    Access:
+      Casbin:
+        Model: ./test/model.conf
+        Policy: ./test/users.csv

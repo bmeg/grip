@@ -12,6 +12,8 @@ import traceback
 import uuid
 from collections import namedtuple
 from glob import glob
+
+import requests
 import yaml
 
 # import grip from source
@@ -112,13 +114,19 @@ class Manager:
         self.curGraph = ""
         self.curName = ""
         self.grip_config = self.parse_grip_config(grip_config_file_path)
-        self.access = None
+        self.access_casbin = None
         self.policies = None
         self.accounts = []
         self.all_graph_names = []
         if self.grip_config:
-            self.access = self.grip_config['Server']['Access']
-            self.policies = self.load_policies(self.access['Policy'])
+            assert 'Server' in self.grip_config, f"Missing expected key Server {self.grip_config}"
+            assert 'Accounts' in self.grip_config['Server'], f"Missing expected key Server.Accounts {self.grip_config}"
+            assert 'Access' in self.grip_config['Server']['Accounts'], \
+                f"Missing expected key Server.Accounts.Access {self.grip_config}"
+            assert 'Casbin' in self.grip_config['Server']['Accounts']['Access'], \
+                f"Missing expected key Server.Accounts.Access.Casbin {self.grip_config}"
+            self.access_casbin = self.grip_config['Server']['Accounts']['Access']['Casbin']
+            self.policies = self.load_policies(self.access_casbin['Policy'])
             self.all_graph_names = list(set(policy.obj for policy in self.policies if policy.obj != '*')) + ['dummy']
             self.accounts = []
             for account in self.grip_config['Server']['Accounts']['Auth']['Basic']:
@@ -274,14 +282,22 @@ class Manager:
     def test_query(self, graph_name):
         """Ensure the current user can query graph_name."""
         G = self._conn.graph(graph_name)
-        results = [v for v in G.query().V().hasLabel("Foo").count().execute()]
-        assert results[0]['count'] > 0, f"test_read {results}"
+        try:
+            # this raises an HTTP error
+            results = [v for v in G.query().V().hasLabel("Foo").count().execute()]
+            assert results[0]['count'] > 0, f"test_query {results}"
+        except requests.HTTPError as e:
+            assert False, f"test_query graph {graph_name} {self.current_user_policies()} {e}"
 
     def test_read(self, graph_name):
         """Ensure the current user can query graph_name."""
         G = self._conn.graph(graph_name)
-        results = [G.getVertex("Foo:1")]
-        assert len(results) == 1, f"test_read {results}"
+        try:
+            # this raises an HTTP error
+            results = [G.getVertex("Foo:1")]
+            assert len(results) == 1, f"test_read {results} graph {graph_name} {self.current_user_policies()}"
+        except requests.HTTPError as e:
+            assert False, f"test_read graph {graph_name} {self.current_user_policies()} {e}"
 
     def test_write(self, graph_name):
         """Ensure the current user can write to graph_name."""
@@ -289,8 +305,10 @@ class Manager:
         bulk = G.bulkAdd()
         id_ = uuid.uuid1()
         bulk.addVertex(f"Foo:{id_}", "Foo", {"bar": "foo-bar"})
+        # this does not raise an HTTP error
         err = bulk.execute()
-        assert err['insertCount'] == 1 and err['errorCount'] == 0, f"Did not insert 1 row {err}"
+        assert err['insertCount'] == 1 and err['errorCount'] == 0, \
+            f"Did not insert 1 row {err} graph {graph_name} {self.current_user_policies()}"
 
     def current_user_policies(self):
         """Get all policies for current connection user."""
