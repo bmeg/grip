@@ -111,7 +111,7 @@ func streamAuthInterceptor(auth Authenticate, access Access) grpc.StreamServerIn
 				if err != nil {
 					return status.Error(codes.Unknown, "Request error")
 				}
-				err = access.Enforce(user, w.Request.Graph, Read)
+				err = access.Enforce(user, w.Request.Graph, Query)
 				if err != nil {
 					return status.Error(codes.PermissionDenied, "PermissionDenied")
 				}
