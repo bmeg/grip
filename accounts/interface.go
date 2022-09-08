@@ -62,6 +62,7 @@ type Access interface {
 
 type AuthConfig struct {
 	Basic *BasicAuth
+	Proxy *ProxyAuth
 }
 
 type AccessConfig struct {
