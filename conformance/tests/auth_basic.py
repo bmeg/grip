@@ -23,14 +23,23 @@ def test_current_user_can_query(manager):
 
     if not account.is_admin:
         # non admin user
+
+        users = {}
         for policy in policies:
-            graph_name = policy.obj
-            if policy.act == 'query':
+            if policy.sub not in users:
+                users[policy.sub] = {}
+            if policy.obj not in users[policy.sub]:
+                users[policy.sub][policy.obj] = [policy.act]
+            else:
+                users[policy.sub][policy.obj].append(policy.act)
+
+        for graph_name in users[manager.user]:
+            if 'query' in users[manager.user][graph_name]:
                 manager.test_query(graph_name)
             else:
                 try:
                     manager.test_query(graph_name)
-                    errors.append(f"{manager.user} should not be able to read {graph_name} graph")
+                    errors.append(f"{manager.user} should not be able to query {graph_name} graph")
                 except AssertionError:
                     pass
     else:
@@ -51,9 +60,17 @@ def test_current_user_can_read(manager):
     errors = []
     # non admin user
     if not account.is_admin:
+        users = {}
         for policy in policies:
-            graph_name = policy.obj
-            if policy.act == 'read':
+            if policy.sub not in users:
+                users[policy.sub] = {}
+            if policy.obj not in users[policy.sub]:
+                users[policy.sub][policy.obj] = [policy.act]
+            else:
+                users[policy.sub][policy.obj].append(policy.act)
+
+        for graph_name in users[manager.user]:
+            if 'read' in users[manager.user][graph_name]:
                 manager.test_read(graph_name)
             else:
                 try:

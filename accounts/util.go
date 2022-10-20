@@ -23,6 +23,9 @@ func (c *Config) init() {
 		if c.Auth.Basic != nil {
 			c.auth = c.Auth.Basic
 		}
+		if c.Auth.Proxy != nil {
+			c.auth = c.Auth.Proxy
+		}
 	}
 	if c.auth == nil {
 		c.auth = NullAuth{}
