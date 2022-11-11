@@ -8,7 +8,7 @@ import (
 	"encoding/json"
 
 	"github.com/bmeg/grip/gripql"
-	"github.com/ghodss/yaml"
+	"sigs.k8s.io/yaml"
 )
 
 // Config is the component in the global GRIP config file

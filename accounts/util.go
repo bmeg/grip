@@ -23,6 +23,9 @@ func (c *Config) init() {
 		if c.Auth.Basic != nil {
 			c.auth = c.Auth.Basic
 		}
+		if c.Auth.Proxy != nil {
+			c.auth = c.Auth.Proxy
+		}
 	}
 	if c.auth == nil {
 		c.auth = NullAuth{}
@@ -111,7 +114,7 @@ func streamAuthInterceptor(auth Authenticate, access Access) grpc.StreamServerIn
 				if err != nil {
 					return status.Error(codes.Unknown, "Request error")
 				}
-				err = access.Enforce(user, w.Request.Graph, Read)
+				err = access.Enforce(user, w.Request.Graph, Query)
 				if err != nil {
 					return status.Error(codes.PermissionDenied, "PermissionDenied")
 				}

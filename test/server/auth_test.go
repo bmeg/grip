@@ -252,7 +252,7 @@ func TestCasbinAccess(t *testing.T) {
 	fmt.Printf("Doing http traversal\n")
 	resp, err = httpQuery(conf.Server.HTTPPort, "test1", "bob", "1234", q)
 	if err != nil || resp.StatusCode != 200 {
-		t.Errorf("unexpected error: %v", err)
+		t.Errorf("unexpected error: %v, status: %d", err, resp.StatusCode)
 	}
 
 	/*
