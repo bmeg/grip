@@ -29,8 +29,6 @@ func TestKeyInsert(t *testing.T) {
 
 	keymap := grids.NewKeyMap(keykv)
 
-	graphKey, _ := keymap.GetGraphKey("test")
-
 	vertexKeys := make([]uint64, 100)
 	var evenLabel uint64
 	for i := range vertexKeys {
@@ -38,7 +36,7 @@ func TestKeyInsert(t *testing.T) {
 		if i%2 == 1 {
 			label = "odd"
 		}
-		k, l := keymap.GetsertVertexKey(graphKey, fmt.Sprintf("vertex_%d", i), label)
+		k, l := keymap.GetsertVertexKey(fmt.Sprintf("vertex_%d", i), label)
 		if i == 0 {
 			evenLabel = l
 		} else {
@@ -64,15 +62,15 @@ func TestKeyInsert(t *testing.T) {
 		}
 	}
 	for i := range vertexKeys {
-		id, ok := keymap.GetVertexID(graphKey, vertexKeys[i])
+		id, ok := keymap.GetVertexID(vertexKeys[i])
 		if !ok {
 			t.Errorf("Vertex %d not found", vertexKeys[i])
 		}
 		if id != fmt.Sprintf("vertex_%d", i) {
 			t.Errorf("ID test_%d != %s", i, id)
 		}
-		lkey := keymap.GetVertexLabel(graphKey, vertexKeys[i])
-		lid, ok := keymap.GetLabelID(graphKey, lkey)
+		lkey := keymap.GetVertexLabel(vertexKeys[i])
+		lid, ok := keymap.GetLabelID(lkey)
 		if !ok {
 			t.Errorf("Vertex label %d not found", lkey)
 		}
@@ -93,7 +91,7 @@ func TestKeyInsert(t *testing.T) {
 		if i%2 == 1 {
 			label = "odd_edge"
 		}
-		k, _ := keymap.GetsertEdgeKey(graphKey, fmt.Sprintf("edge_%d", i), label)
+		k, _ := keymap.GetsertEdgeKey(fmt.Sprintf("edge_%d", i), label)
 		edgeKeys[i] = k
 	}
 	for i := range edgeKeys {
@@ -106,7 +104,7 @@ func TestKeyInsert(t *testing.T) {
 		}
 	}
 	for i := range edgeKeys {
-		id, ok := keymap.GetEdgeID(graphKey, edgeKeys[i])
+		id, ok := keymap.GetEdgeID(edgeKeys[i])
 		if !ok {
 			t.Errorf("Edge %d not found", edgeKeys[i])
 		}
@@ -115,30 +113,9 @@ func TestKeyInsert(t *testing.T) {
 		}
 	}
 
-	graphKeys := make([]uint64, 100)
-	for i := range graphKeys {
-		k, _ := keymap.GetGraphKey(fmt.Sprintf("graph_%d", i))
-		graphKeys[i] = k
-	}
-	for i := range graphKeys {
-		for j := range graphKeys {
-			if i != j {
-				if graphKeys[i] == graphKeys[j] {
-					t.Errorf("Non unique keys: %d %d", graphKeys[i], graphKeys[j])
-				}
-			}
-		}
-	}
-	for i := range graphKeys {
-		id := keymap.GetGraphID(graphKeys[i])
-		if id != fmt.Sprintf("graph_%d", i) {
-			t.Errorf("ID graph_%d != %s", i, id)
-		}
-	}
-
 	labelKeys := make([]uint64, 100)
 	for i := range labelKeys {
-		k := keymap.GetsertLabelKey(graphKey, fmt.Sprintf("label_%d", i))
+		k := keymap.GetsertLabelKey(fmt.Sprintf("label_%d", i))
 		labelKeys[i] = k
 	}
 	for i := range labelKeys {
@@ -151,7 +128,7 @@ func TestKeyInsert(t *testing.T) {
 		}
 	}
 	for i := range labelKeys {
-		id, ok := keymap.GetLabelID(graphKey, labelKeys[i])
+		id, ok := keymap.GetLabelID(labelKeys[i])
 		if !ok {
 			t.Errorf("Label %d not found", labelKeys[i])
 		}

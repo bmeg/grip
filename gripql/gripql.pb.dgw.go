@@ -9,20 +9,59 @@ import (
 	"google.golang.org/grpc/metadata"
 )
 
+// use io module, incase generated sections don't to avoid 'import not used' error
+var _ = io.EOF 
+
+type DirectOption func(directClientBase)
+
+type directClientBase interface {
+  setUnaryInterceptor(grpc.UnaryServerInterceptor)
+  setStreamInterceptor(grpc.StreamServerInterceptor)
+}
+
+func DirectUnaryInterceptor(g grpc.UnaryServerInterceptor) func(directClientBase) {
+  return func(d directClientBase) {
+    d.setUnaryInterceptor(g)
+  }
+}
+
+func DirectStreamInterceptor(g grpc.StreamServerInterceptor) func(directClientBase) {
+  return func(d directClientBase) {
+    d.setStreamInterceptor(g)
+  }
+}
+
 
 // QueryDirectClient is a shim to connect Query client directly server
 type QueryDirectClient struct {
+  unaryServerInt grpc.UnaryServerInterceptor
+  streamServerInt grpc.StreamServerInterceptor
 	server QueryServer
 }
  // NewQueryDirectClient creates new QueryDirectClient
-func NewQueryDirectClient(server QueryServer) *QueryDirectClient {
-	return &QueryDirectClient{server}
+func NewQueryDirectClient(server QueryServer, opts ...DirectOption) *QueryDirectClient {
+	o := &QueryDirectClient{server:server}
+  for _, opt := range opts {
+    opt(o)
+  }
+  return o
 }
 
-//Traversal streaming output shim
+func (shim *QueryDirectClient) setUnaryInterceptor(a grpc.UnaryServerInterceptor) {
+  shim.unaryServerInt = a
+}
+
+func (shim *QueryDirectClient) setStreamInterceptor(a grpc.StreamServerInterceptor) {
+  shim.streamServerInt = a
+}
+
+
+
+/* Start QueryTraversal call output server  */
 type directQueryTraversal struct {
   ctx context.Context
   c   chan *QueryResult
+  in  *GraphQuery
   e   error
 }
 
@@ -36,10 +75,16 @@ func (dsm *directQueryTraversal) Recv() (*QueryResult, error) {
 	}
 	return value, dsm.e
 }
+
 func (dsm *directQueryTraversal) Send(a *QueryResult) error {
-	dsm.c <- a
-	return nil
+	return dsm.SendMsg(a)
 }
+
+func (dsm *directQueryTraversal) SendMsg(m interface{}) error  { 
+	dsm.c <- m.(*QueryResult)
+	return nil 
+}
+
 func (dsm *directQueryTraversal) close() {
 	close(dsm.c)
 }
@@ -50,15 +95,34 @@ func (dsm *directQueryTraversal) CloseSend() error             { return nil }
 func (dsm *directQueryTraversal) SetTrailer(metadata.MD)       {}
 func (dsm *directQueryTraversal) SetHeader(metadata.MD) error  { return nil }
 func (dsm *directQueryTraversal) SendHeader(metadata.MD) error { return nil }
-func (dsm *directQueryTraversal) SendMsg(m interface{}) error  { return nil }
-func (dsm *directQueryTraversal) RecvMsg(m interface{}) error  { return nil }
+func (dsm *directQueryTraversal) RecvMsg(m interface{}) error  { 
+	mPtr := m.(*GraphQuery)
+	*mPtr = *dsm.in
+	return nil
+}
 func (dsm *directQueryTraversal) Header() (metadata.MD, error) { return nil, nil }
 func (dsm *directQueryTraversal) Trailer() metadata.MD         { return nil }
-func (dir *QueryDirectClient) Traversal(ctx context.Context, in *GraphQuery, opts ...grpc.CallOption) (Query_TraversalClient, error) {
-	w := &directQueryTraversal{ctx, make(chan *QueryResult, 100), nil}
+/* End QueryTraversal call output server  */
+
+func (shim *QueryDirectClient) Traversal(ctx context.Context, in *GraphQuery, opts ...grpc.CallOption) (Query_TraversalClient, error) {
+  md, _ := metadata.FromOutgoingContext(ctx)
+  ictx := metadata.NewIncomingContext(ctx, md)
+
+	w := &directQueryTraversal{ictx, make(chan *QueryResult, 100), in, nil}
+  if shim.streamServerInt != nil {
+    go func() {
+      defer w.close()
+      info := grpc.StreamServerInfo{
+        FullMethod: "/gripql.Query/Traversal",
+        IsServerStream: true,
+      }
+      w.e = shim.streamServerInt(shim.server, w, &info, _Query_Traversal_Handler)
+    } ()
+    return w, nil
+  }
 	go func() {
     defer w.close()
-		w.e = dir.server.Traversal(in, w)
+		w.e = shim.server.Traversal(in, w)
 	}()
 	return w, nil
 }
@@ -66,48 +130,170 @@ func (dir *QueryDirectClient) Traversal(ctx context.Context, in *GraphQuery, opt
 
 //GetVertex shim
 func (shim *QueryDirectClient) GetVertex(ctx context.Context, in *ElementID, opts ...grpc.CallOption) (*Vertex, error) {
-	return shim.server.GetVertex(ctx, in)
+  md, _ := metadata.FromOutgoingContext(ctx)
+  ictx := metadata.NewIncomingContext(ctx, md)
+  if shim.unaryServerInt != nil {
+    handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+  		return shim.server.GetVertex(ctx, req.(*ElementID))
+  	}
+    info := grpc.UnaryServerInfo{
+      FullMethod: "/gripql.Query/GetVertex",
+    }
+    o, err := shim.unaryServerInt(ictx, in, &info, handler)
+    if o == nil {
+      return nil, err
+    }
+    return o.(*Vertex), err
+  }
+	return shim.server.GetVertex(ictx, in)
 }
 
 //GetEdge shim
 func (shim *QueryDirectClient) GetEdge(ctx context.Context, in *ElementID, opts ...grpc.CallOption) (*Edge, error) {
-	return shim.server.GetEdge(ctx, in)
+  md, _ := metadata.FromOutgoingContext(ctx)
+  ictx := metadata.NewIncomingContext(ctx, md)
+  if shim.unaryServerInt != nil {
+    handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+  		return shim.server.GetEdge(ctx, req.(*ElementID))
+  	}
+    info := grpc.UnaryServerInfo{
+      FullMethod: "/gripql.Query/GetEdge",
+    }
+    o, err := shim.unaryServerInt(ictx, in, &info, handler)
+    if o == nil {
+      return nil, err
+    }
+    return o.(*Edge), err
+  }
+	return shim.server.GetEdge(ictx, in)
 }
 
 //GetTimestamp shim
 func (shim *QueryDirectClient) GetTimestamp(ctx context.Context, in *GraphID, opts ...grpc.CallOption) (*Timestamp, error) {
-	return shim.server.GetTimestamp(ctx, in)
+  md, _ := metadata.FromOutgoingContext(ctx)
+  ictx := metadata.NewIncomingContext(ctx, md)
+  if shim.unaryServerInt != nil {
+    handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+  		return shim.server.GetTimestamp(ctx, req.(*GraphID))
+  	}
+    info := grpc.UnaryServerInfo{
+      FullMethod: "/gripql.Query/GetTimestamp",
+    }
+    o, err := shim.unaryServerInt(ictx, in, &info, handler)
+    if o == nil {
+      return nil, err
+    }
+    return o.(*Timestamp), err
+  }
+	return shim.server.GetTimestamp(ictx, in)
 }
 
 //GetSchema shim
 func (shim *QueryDirectClient) GetSchema(ctx context.Context, in *GraphID, opts ...grpc.CallOption) (*Graph, error) {
-	return shim.server.GetSchema(ctx, in)
+  md, _ := metadata.FromOutgoingContext(ctx)
+  ictx := metadata.NewIncomingContext(ctx, md)
+  if shim.unaryServerInt != nil {
+    handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+  		return shim.server.GetSchema(ctx, req.(*GraphID))
+  	}
+    info := grpc.UnaryServerInfo{
+      FullMethod: "/gripql.Query/GetSchema",
+    }
+    o, err := shim.unaryServerInt(ictx, in, &info, handler)
+    if o == nil {
+      return nil, err
+    }
+    return o.(*Graph), err
+  }
+	return shim.server.GetSchema(ictx, in)
 }
 
 //GetMapping shim
 func (shim *QueryDirectClient) GetMapping(ctx context.Context, in *GraphID, opts ...grpc.CallOption) (*Graph, error) {
-	return shim.server.GetMapping(ctx, in)
+  md, _ := metadata.FromOutgoingContext(ctx)
+  ictx := metadata.NewIncomingContext(ctx, md)
+  if shim.unaryServerInt != nil {
+    handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+  		return shim.server.GetMapping(ctx, req.(*GraphID))
+  	}
+    info := grpc.UnaryServerInfo{
+      FullMethod: "/gripql.Query/GetMapping",
+    }
+    o, err := shim.unaryServerInt(ictx, in, &info, handler)
+    if o == nil {
+      return nil, err
+    }
+    return o.(*Graph), err
+  }
+	return shim.server.GetMapping(ictx, in)
 }
 
 //ListGraphs shim
 func (shim *QueryDirectClient) ListGraphs(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*ListGraphsResponse, error) {
-	return shim.server.ListGraphs(ctx, in)
+  md, _ := metadata.FromOutgoingContext(ctx)
+  ictx := metadata.NewIncomingContext(ctx, md)
+  if shim.unaryServerInt != nil {
+    handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+  		return shim.server.ListGraphs(ctx, req.(*Empty))
+  	}
+    info := grpc.UnaryServerInfo{
+      FullMethod: "/gripql.Query/ListGraphs",
+    }
+    o, err := shim.unaryServerInt(ictx, in, &info, handler)
+    if o == nil {
+      return nil, err
+    }
+    return o.(*ListGraphsResponse), err
+  }
+	return shim.server.ListGraphs(ictx, in)
 }
 
 //ListIndices shim
 func (shim *QueryDirectClient) ListIndices(ctx context.Context, in *GraphID, opts ...grpc.CallOption) (*ListIndicesResponse, error) {
-	return shim.server.ListIndices(ctx, in)
+  md, _ := metadata.FromOutgoingContext(ctx)
+  ictx := metadata.NewIncomingContext(ctx, md)
+  if shim.unaryServerInt != nil {
+    handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+  		return shim.server.ListIndices(ctx, req.(*GraphID))
+  	}
+    info := grpc.UnaryServerInfo{
+      FullMethod: "/gripql.Query/ListIndices",
+    }
+    o, err := shim.unaryServerInt(ictx, in, &info, handler)
+    if o == nil {
+      return nil, err
+    }
+    return o.(*ListIndicesResponse), err
+  }
+	return shim.server.ListIndices(ictx, in)
 }
 
 //ListLabels shim
 func (shim *QueryDirectClient) ListLabels(ctx context.Context, in *GraphID, opts ...grpc.CallOption) (*ListLabelsResponse, error) {
-	return shim.server.ListLabels(ctx, in)
+  md, _ := metadata.FromOutgoingContext(ctx)
+  ictx := metadata.NewIncomingContext(ctx, md)
+  if shim.unaryServerInt != nil {
+    handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+  		return shim.server.ListLabels(ctx, req.(*GraphID))
+  	}
+    info := grpc.UnaryServerInfo{
+      FullMethod: "/gripql.Query/ListLabels",
+    }
+    o, err := shim.unaryServerInt(ictx, in, &info, handler)
+    if o == nil {
+      return nil, err
+    }
+    return o.(*ListLabelsResponse), err
+  }
+	return shim.server.ListLabels(ictx, in)
 }
 
-//ListTables streaming output shim
+
+/* Start QueryListTables call output server  */
 type directQueryListTables struct {
   ctx context.Context
   c   chan *TableInfo
+  in  *Empty
   e   error
 }
 
@@ -121,10 +307,16 @@ func (dsm *directQueryListTables) Recv() (*TableInfo, error) {
 	}
 	return value, dsm.e
 }
+
 func (dsm *directQueryListTables) Send(a *TableInfo) error {
-	dsm.c <- a
-	return nil
+	return dsm.SendMsg(a)
 }
+
+func (dsm *directQueryListTables) SendMsg(m interface{}) error  { 
+	dsm.c <- m.(*TableInfo)
+	return nil 
+}
+
 func (dsm *directQueryListTables) close() {
 	close(dsm.c)
 }
@@ -135,15 +327,34 @@ func (dsm *directQueryListTables) CloseSend() error             { return nil }
 func (dsm *directQueryListTables) SetTrailer(metadata.MD)       {}
 func (dsm *directQueryListTables) SetHeader(metadata.MD) error  { return nil }
 func (dsm *directQueryListTables) SendHeader(metadata.MD) error { return nil }
-func (dsm *directQueryListTables) SendMsg(m interface{}) error  { return nil }
-func (dsm *directQueryListTables) RecvMsg(m interface{}) error  { return nil }
+func (dsm *directQueryListTables) RecvMsg(m interface{}) error  { 
+	mPtr := m.(*Empty)
+	*mPtr = *dsm.in
+	return nil
+}
 func (dsm *directQueryListTables) Header() (metadata.MD, error) { return nil, nil }
 func (dsm *directQueryListTables) Trailer() metadata.MD         { return nil }
-func (dir *QueryDirectClient) ListTables(ctx context.Context, in *Empty, opts ...grpc.CallOption) (Query_ListTablesClient, error) {
-	w := &directQueryListTables{ctx, make(chan *TableInfo, 100), nil}
+/* End QueryListTables call output server  */
+
+func (shim *QueryDirectClient) ListTables(ctx context.Context, in *Empty, opts ...grpc.CallOption) (Query_ListTablesClient, error) {
+  md, _ := metadata.FromOutgoingContext(ctx)
+  ictx := metadata.NewIncomingContext(ctx, md)
+
+	w := &directQueryListTables{ictx, make(chan *TableInfo, 100), in, nil}
+  if shim.streamServerInt != nil {
+    go func() {
+      defer w.close()
+      info := grpc.StreamServerInfo{
+        FullMethod: "/gripql.Query/ListTables",
+        IsServerStream: true,
+      }
+      w.e = shim.streamServerInt(shim.server, w, &info, _Query_ListTables_Handler)
+    } ()
+    return w, nil
+  }
 	go func() {
     defer w.close()
-		w.e = dir.server.ListTables(in, w)
+		w.e = shim.server.ListTables(in, w)
 	}()
 	return w, nil
 }
@@ -151,22 +362,54 @@ func (dir *QueryDirectClient) ListTables(ctx context.Context, in *Empty, opts ..
 
 // JobDirectClient is a shim to connect Job client directly server
 type JobDirectClient struct {
+  unaryServerInt grpc.UnaryServerInterceptor
+  streamServerInt grpc.StreamServerInterceptor
 	server JobServer
 }
  // NewJobDirectClient creates new JobDirectClient
-func NewJobDirectClient(server JobServer) *JobDirectClient {
-	return &JobDirectClient{server}
+func NewJobDirectClient(server JobServer, opts ...DirectOption) *JobDirectClient {
+	o := &JobDirectClient{server:server}
+  for _, opt := range opts {
+    opt(o)
+  }
+  return o
 }
+
+func (shim *JobDirectClient) setUnaryInterceptor(a grpc.UnaryServerInterceptor) {
+  shim.unaryServerInt = a
+}
+
+func (shim *JobDirectClient) setStreamInterceptor(a grpc.StreamServerInterceptor) {
+  shim.streamServerInt = a
+}
+
 
 //Submit shim
 func (shim *JobDirectClient) Submit(ctx context.Context, in *GraphQuery, opts ...grpc.CallOption) (*QueryJob, error) {
-	return shim.server.Submit(ctx, in)
+  md, _ := metadata.FromOutgoingContext(ctx)
+  ictx := metadata.NewIncomingContext(ctx, md)
+  if shim.unaryServerInt != nil {
+    handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+  		return shim.server.Submit(ctx, req.(*GraphQuery))
+  	}
+    info := grpc.UnaryServerInfo{
+      FullMethod: "/gripql.Job/Submit",
+    }
+    o, err := shim.unaryServerInt(ictx, in, &info, handler)
+    if o == nil {
+      return nil, err
+    }
+    return o.(*QueryJob), err
+  }
+	return shim.server.Submit(ictx, in)
 }
 
-//ListJobs streaming output shim
+
+/* Start JobListJobs call output server  */
 type directJobListJobs struct {
   ctx context.Context
   c   chan *QueryJob
+  in  *GraphID
   e   error
 }
 
@@ -180,10 +423,16 @@ func (dsm *directJobListJobs) Recv() (*QueryJob, error) {
 	}
 	return value, dsm.e
 }
+
 func (dsm *directJobListJobs) Send(a *QueryJob) error {
-	dsm.c <- a
-	return nil
+	return dsm.SendMsg(a)
 }
+
+func (dsm *directJobListJobs) SendMsg(m interface{}) error  { 
+	dsm.c <- m.(*QueryJob)
+	return nil 
+}
+
 func (dsm *directJobListJobs) close() {
 	close(dsm.c)
 }
@@ -194,24 +443,45 @@ func (dsm *directJobListJobs) CloseSend() error             { return nil }
 func (dsm *directJobListJobs) SetTrailer(metadata.MD)       {}
 func (dsm *directJobListJobs) SetHeader(metadata.MD) error  { return nil }
 func (dsm *directJobListJobs) SendHeader(metadata.MD) error { return nil }
-func (dsm *directJobListJobs) SendMsg(m interface{}) error  { return nil }
-func (dsm *directJobListJobs) RecvMsg(m interface{}) error  { return nil }
+func (dsm *directJobListJobs) RecvMsg(m interface{}) error  { 
+	mPtr := m.(*GraphID)
+	*mPtr = *dsm.in
+	return nil
+}
 func (dsm *directJobListJobs) Header() (metadata.MD, error) { return nil, nil }
 func (dsm *directJobListJobs) Trailer() metadata.MD         { return nil }
-func (dir *JobDirectClient) ListJobs(ctx context.Context, in *Graph, opts ...grpc.CallOption) (Job_ListJobsClient, error) {
-	w := &directJobListJobs{ctx, make(chan *QueryJob, 100), nil}
+/* End JobListJobs call output server  */
+
+func (shim *JobDirectClient) ListJobs(ctx context.Context, in *GraphID, opts ...grpc.CallOption) (Job_ListJobsClient, error) {
+  md, _ := metadata.FromOutgoingContext(ctx)
+  ictx := metadata.NewIncomingContext(ctx, md)
+
+	w := &directJobListJobs{ictx, make(chan *QueryJob, 100), in, nil}
+  if shim.streamServerInt != nil {
+    go func() {
+      defer w.close()
+      info := grpc.StreamServerInfo{
+        FullMethod: "/gripql.Job/ListJobs",
+        IsServerStream: true,
+      }
+      w.e = shim.streamServerInt(shim.server, w, &info, _Job_ListJobs_Handler)
+    } ()
+    return w, nil
+  }
 	go func() {
     defer w.close()
-		w.e = dir.server.ListJobs(in, w)
+		w.e = shim.server.ListJobs(in, w)
 	}()
 	return w, nil
 }
 
 
-//SearchJobs streaming output shim
+
+/* Start JobSearchJobs call output server  */
 type directJobSearchJobs struct {
   ctx context.Context
   c   chan *JobStatus
+  in  *GraphQuery
   e   error
 }
 
@@ -225,10 +495,16 @@ func (dsm *directJobSearchJobs) Recv() (*JobStatus, error) {
 	}
 	return value, dsm.e
 }
+
 func (dsm *directJobSearchJobs) Send(a *JobStatus) error {
-	dsm.c <- a
-	return nil
+	return dsm.SendMsg(a)
 }
+
+func (dsm *directJobSearchJobs) SendMsg(m interface{}) error  { 
+	dsm.c <- m.(*JobStatus)
+	return nil 
+}
+
 func (dsm *directJobSearchJobs) close() {
 	close(dsm.c)
 }
@@ -239,15 +515,34 @@ func (dsm *directJobSearchJobs) CloseSend() error             { return nil }
 func (dsm *directJobSearchJobs) SetTrailer(metadata.MD)       {}
 func (dsm *directJobSearchJobs) SetHeader(metadata.MD) error  { return nil }
 func (dsm *directJobSearchJobs) SendHeader(metadata.MD) error { return nil }
-func (dsm *directJobSearchJobs) SendMsg(m interface{}) error  { return nil }
-func (dsm *directJobSearchJobs) RecvMsg(m interface{}) error  { return nil }
+func (dsm *directJobSearchJobs) RecvMsg(m interface{}) error  { 
+	mPtr := m.(*GraphQuery)
+	*mPtr = *dsm.in
+	return nil
+}
 func (dsm *directJobSearchJobs) Header() (metadata.MD, error) { return nil, nil }
 func (dsm *directJobSearchJobs) Trailer() metadata.MD         { return nil }
-func (dir *JobDirectClient) SearchJobs(ctx context.Context, in *GraphQuery, opts ...grpc.CallOption) (Job_SearchJobsClient, error) {
-	w := &directJobSearchJobs{ctx, make(chan *JobStatus, 100), nil}
+/* End JobSearchJobs call output server  */
+
+func (shim *JobDirectClient) SearchJobs(ctx context.Context, in *GraphQuery, opts ...grpc.CallOption) (Job_SearchJobsClient, error) {
+  md, _ := metadata.FromOutgoingContext(ctx)
+  ictx := metadata.NewIncomingContext(ctx, md)
+
+	w := &directJobSearchJobs{ictx, make(chan *JobStatus, 100), in, nil}
+  if shim.streamServerInt != nil {
+    go func() {
+      defer w.close()
+      info := grpc.StreamServerInfo{
+        FullMethod: "/gripql.Job/SearchJobs",
+        IsServerStream: true,
+      }
+      w.e = shim.streamServerInt(shim.server, w, &info, _Job_SearchJobs_Handler)
+    } ()
+    return w, nil
+  }
 	go func() {
     defer w.close()
-		w.e = dir.server.SearchJobs(in, w)
+		w.e = shim.server.SearchJobs(in, w)
 	}()
 	return w, nil
 }
@@ -255,18 +550,50 @@ func (dir *JobDirectClient) SearchJobs(ctx context.Context, in *GraphQuery, opts
 
 //DeleteJob shim
 func (shim *JobDirectClient) DeleteJob(ctx context.Context, in *QueryJob, opts ...grpc.CallOption) (*JobStatus, error) {
-	return shim.server.DeleteJob(ctx, in)
+  md, _ := metadata.FromOutgoingContext(ctx)
+  ictx := metadata.NewIncomingContext(ctx, md)
+  if shim.unaryServerInt != nil {
+    handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+  		return shim.server.DeleteJob(ctx, req.(*QueryJob))
+  	}
+    info := grpc.UnaryServerInfo{
+      FullMethod: "/gripql.Job/DeleteJob",
+    }
+    o, err := shim.unaryServerInt(ictx, in, &info, handler)
+    if o == nil {
+      return nil, err
+    }
+    return o.(*JobStatus), err
+  }
+	return shim.server.DeleteJob(ictx, in)
 }
 
 //GetJob shim
 func (shim *JobDirectClient) GetJob(ctx context.Context, in *QueryJob, opts ...grpc.CallOption) (*JobStatus, error) {
-	return shim.server.GetJob(ctx, in)
+  md, _ := metadata.FromOutgoingContext(ctx)
+  ictx := metadata.NewIncomingContext(ctx, md)
+  if shim.unaryServerInt != nil {
+    handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+  		return shim.server.GetJob(ctx, req.(*QueryJob))
+  	}
+    info := grpc.UnaryServerInfo{
+      FullMethod: "/gripql.Job/GetJob",
+    }
+    o, err := shim.unaryServerInt(ictx, in, &info, handler)
+    if o == nil {
+      return nil, err
+    }
+    return o.(*JobStatus), err
+  }
+	return shim.server.GetJob(ictx, in)
 }
 
-//ViewJob streaming output shim
+
+/* Start JobViewJob call output server  */
 type directJobViewJob struct {
   ctx context.Context
   c   chan *QueryResult
+  in  *QueryJob
   e   error
 }
 
@@ -280,10 +607,16 @@ func (dsm *directJobViewJob) Recv() (*QueryResult, error) {
 	}
 	return value, dsm.e
 }
+
 func (dsm *directJobViewJob) Send(a *QueryResult) error {
-	dsm.c <- a
-	return nil
+	return dsm.SendMsg(a)
 }
+
+func (dsm *directJobViewJob) SendMsg(m interface{}) error  { 
+	dsm.c <- m.(*QueryResult)
+	return nil 
+}
+
 func (dsm *directJobViewJob) close() {
 	close(dsm.c)
 }
@@ -294,24 +627,45 @@ func (dsm *directJobViewJob) CloseSend() error             { return nil }
 func (dsm *directJobViewJob) SetTrailer(metadata.MD)       {}
 func (dsm *directJobViewJob) SetHeader(metadata.MD) error  { return nil }
 func (dsm *directJobViewJob) SendHeader(metadata.MD) error { return nil }
-func (dsm *directJobViewJob) SendMsg(m interface{}) error  { return nil }
-func (dsm *directJobViewJob) RecvMsg(m interface{}) error  { return nil }
+func (dsm *directJobViewJob) RecvMsg(m interface{}) error  { 
+	mPtr := m.(*QueryJob)
+	*mPtr = *dsm.in
+	return nil
+}
 func (dsm *directJobViewJob) Header() (metadata.MD, error) { return nil, nil }
 func (dsm *directJobViewJob) Trailer() metadata.MD         { return nil }
-func (dir *JobDirectClient) ViewJob(ctx context.Context, in *QueryJob, opts ...grpc.CallOption) (Job_ViewJobClient, error) {
-	w := &directJobViewJob{ctx, make(chan *QueryResult, 100), nil}
+/* End JobViewJob call output server  */
+
+func (shim *JobDirectClient) ViewJob(ctx context.Context, in *QueryJob, opts ...grpc.CallOption) (Job_ViewJobClient, error) {
+  md, _ := metadata.FromOutgoingContext(ctx)
+  ictx := metadata.NewIncomingContext(ctx, md)
+
+	w := &directJobViewJob{ictx, make(chan *QueryResult, 100), in, nil}
+  if shim.streamServerInt != nil {
+    go func() {
+      defer w.close()
+      info := grpc.StreamServerInfo{
+        FullMethod: "/gripql.Job/ViewJob",
+        IsServerStream: true,
+      }
+      w.e = shim.streamServerInt(shim.server, w, &info, _Job_ViewJob_Handler)
+    } ()
+    return w, nil
+  }
 	go func() {
     defer w.close()
-		w.e = dir.server.ViewJob(in, w)
+		w.e = shim.server.ViewJob(in, w)
 	}()
 	return w, nil
 }
 
 
-//ResumeJob streaming output shim
+
+/* Start JobResumeJob call output server  */
 type directJobResumeJob struct {
   ctx context.Context
   c   chan *QueryResult
+  in  *ExtendQuery
   e   error
 }
 
@@ -325,10 +679,16 @@ func (dsm *directJobResumeJob) Recv() (*QueryResult, error) {
 	}
 	return value, dsm.e
 }
+
 func (dsm *directJobResumeJob) Send(a *QueryResult) error {
-	dsm.c <- a
-	return nil
+	return dsm.SendMsg(a)
 }
+
+func (dsm *directJobResumeJob) SendMsg(m interface{}) error  { 
+	dsm.c <- m.(*QueryResult)
+	return nil 
+}
+
 func (dsm *directJobResumeJob) close() {
 	close(dsm.c)
 }
@@ -339,15 +699,34 @@ func (dsm *directJobResumeJob) CloseSend() error             { return nil }
 func (dsm *directJobResumeJob) SetTrailer(metadata.MD)       {}
 func (dsm *directJobResumeJob) SetHeader(metadata.MD) error  { return nil }
 func (dsm *directJobResumeJob) SendHeader(metadata.MD) error { return nil }
-func (dsm *directJobResumeJob) SendMsg(m interface{}) error  { return nil }
-func (dsm *directJobResumeJob) RecvMsg(m interface{}) error  { return nil }
+func (dsm *directJobResumeJob) RecvMsg(m interface{}) error  { 
+	mPtr := m.(*ExtendQuery)
+	*mPtr = *dsm.in
+	return nil
+}
 func (dsm *directJobResumeJob) Header() (metadata.MD, error) { return nil, nil }
 func (dsm *directJobResumeJob) Trailer() metadata.MD         { return nil }
-func (dir *JobDirectClient) ResumeJob(ctx context.Context, in *ExtendQuery, opts ...grpc.CallOption) (Job_ResumeJobClient, error) {
-	w := &directJobResumeJob{ctx, make(chan *QueryResult, 100), nil}
+/* End JobResumeJob call output server  */
+
+func (shim *JobDirectClient) ResumeJob(ctx context.Context, in *ExtendQuery, opts ...grpc.CallOption) (Job_ResumeJobClient, error) {
+  md, _ := metadata.FromOutgoingContext(ctx)
+  ictx := metadata.NewIncomingContext(ctx, md)
+
+	w := &directJobResumeJob{ictx, make(chan *QueryResult, 100), in, nil}
+  if shim.streamServerInt != nil {
+    go func() {
+      defer w.close()
+      info := grpc.StreamServerInfo{
+        FullMethod: "/gripql.Job/ResumeJob",
+        IsServerStream: true,
+      }
+      w.e = shim.streamServerInt(shim.server, w, &info, _Job_ResumeJob_Handler)
+    } ()
+    return w, nil
+  }
 	go func() {
     defer w.close()
-		w.e = dir.server.ResumeJob(in, w)
+		w.e = shim.server.ResumeJob(in, w)
 	}()
 	return w, nil
 }
@@ -355,24 +734,72 @@ func (dir *JobDirectClient) ResumeJob(ctx context.Context, in *ExtendQuery, opts
 
 // EditDirectClient is a shim to connect Edit client directly server
 type EditDirectClient struct {
+  unaryServerInt grpc.UnaryServerInterceptor
+  streamServerInt grpc.StreamServerInterceptor
 	server EditServer
 }
  // NewEditDirectClient creates new EditDirectClient
-func NewEditDirectClient(server EditServer) *EditDirectClient {
-	return &EditDirectClient{server}
+func NewEditDirectClient(server EditServer, opts ...DirectOption) *EditDirectClient {
+	o := &EditDirectClient{server:server}
+  for _, opt := range opts {
+    opt(o)
+  }
+  return o
 }
+
+func (shim *EditDirectClient) setUnaryInterceptor(a grpc.UnaryServerInterceptor) {
+  shim.unaryServerInt = a
+}
+
+func (shim *EditDirectClient) setStreamInterceptor(a grpc.StreamServerInterceptor) {
+  shim.streamServerInt = a
+}
+
 
 //AddVertex shim
 func (shim *EditDirectClient) AddVertex(ctx context.Context, in *GraphElement, opts ...grpc.CallOption) (*EditResult, error) {
-	return shim.server.AddVertex(ctx, in)
+  md, _ := metadata.FromOutgoingContext(ctx)
+  ictx := metadata.NewIncomingContext(ctx, md)
+  if shim.unaryServerInt != nil {
+    handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+  		return shim.server.AddVertex(ctx, req.(*GraphElement))
+  	}
+    info := grpc.UnaryServerInfo{
+      FullMethod: "/gripql.Edit/AddVertex",
+    }
+    o, err := shim.unaryServerInt(ictx, in, &info, handler)
+    if o == nil {
+      return nil, err
+    }
+    return o.(*EditResult), err
+  }
+	return shim.server.AddVertex(ictx, in)
 }
 
 //AddEdge shim
 func (shim *EditDirectClient) AddEdge(ctx context.Context, in *GraphElement, opts ...grpc.CallOption) (*EditResult, error) {
-	return shim.server.AddEdge(ctx, in)
+  md, _ := metadata.FromOutgoingContext(ctx)
+  ictx := metadata.NewIncomingContext(ctx, md)
+  if shim.unaryServerInt != nil {
+    handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+  		return shim.server.AddEdge(ctx, req.(*GraphElement))
+  	}
+    info := grpc.UnaryServerInfo{
+      FullMethod: "/gripql.Edit/AddEdge",
+    }
+    o, err := shim.unaryServerInt(ictx, in, &info, handler)
+    if o == nil {
+      return nil, err
+    }
+    return o.(*EditResult), err
+  }
+	return shim.server.AddEdge(ictx, in)
 }
 
-//BulkAdd streaming input shim
+// Streaming data 'server' shim. Provides the Send/Recv funcs expected by the
+// user server code when dealing with a streaming input
+
+/* Start EditBulkAdd streaming input server */
 type directEditBulkAdd struct {
   ctx context.Context
   c   chan *GraphElement
@@ -403,24 +830,45 @@ func (dsm *directEditBulkAdd) SendAndClose(o *BulkEditResult) error {
 }
 
 func (dsm *directEditBulkAdd) CloseAndRecv() (*BulkEditResult, error) {
-  close(dsm.c)
+  //close(dsm.c)
   out := <- dsm.out
   return out, nil
 }
 
-func (dsm *directEditBulkAdd) CloseSend() error             { return nil }
+func (dsm *directEditBulkAdd) CloseSend() error             { close(dsm.c); return nil }
 func (dsm *directEditBulkAdd) SetTrailer(metadata.MD)       {}
 func (dsm *directEditBulkAdd) SetHeader(metadata.MD) error  { return nil }
 func (dsm *directEditBulkAdd) SendHeader(metadata.MD) error { return nil }
-func (dsm *directEditBulkAdd) SendMsg(m interface{}) error  { return nil }
-func (dsm *directEditBulkAdd) RecvMsg(m interface{}) error  { return nil }
+func (dsm *directEditBulkAdd) SendMsg(m interface{}) error  { dsm.out <- m.(*BulkEditResult); return nil }
+
+func (dsm *directEditBulkAdd) RecvMsg(m interface{}) error  { 
+	t, err := dsm.Recv()
+	mPtr := m.(*GraphElement) 
+	if t != nil {
+    	*mPtr = *t
+	}
+	return err
+}
+
 func (dsm *directEditBulkAdd) Header() (metadata.MD, error) { return nil, nil }
 func (dsm *directEditBulkAdd) Trailer() metadata.MD         { return nil }
+/* End EditBulkAdd streaming input server */
 
-func (dir *EditDirectClient) BulkAdd(ctx context.Context, opts ...grpc.CallOption) (Edit_BulkAddClient, error) {
-	w := &directEditBulkAdd{ctx, make(chan *GraphElement, 100), make(chan *BulkEditResult, 3)}
+
+func (shim *EditDirectClient) BulkAdd(ctx context.Context, opts ...grpc.CallOption) (Edit_BulkAddClient, error) {
+  md, _ := metadata.FromOutgoingContext(ctx)
+  ictx := metadata.NewIncomingContext(ctx, md)
+  w := &directEditBulkAdd{ictx, make(chan *GraphElement, 100), make(chan *BulkEditResult, 3)}
+  if shim.streamServerInt != nil {
+    info := grpc.StreamServerInfo{
+      FullMethod: "/gripql.Edit/BulkAdd",
+      IsClientStream: true,
+    }
+    go shim.streamServerInt(shim.server, w, &info, _Edit_BulkAdd_Handler)
+    return w, nil
+  }
 	go func() {
-		dir.server.BulkAdd(w)
+		shim.server.BulkAdd(w)
 	}()
 	return w, nil
 }
@@ -428,64 +876,264 @@ func (dir *EditDirectClient) BulkAdd(ctx context.Context, opts ...grpc.CallOptio
 
 //AddGraph shim
 func (shim *EditDirectClient) AddGraph(ctx context.Context, in *GraphID, opts ...grpc.CallOption) (*EditResult, error) {
-	return shim.server.AddGraph(ctx, in)
+  md, _ := metadata.FromOutgoingContext(ctx)
+  ictx := metadata.NewIncomingContext(ctx, md)
+  if shim.unaryServerInt != nil {
+    handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+  		return shim.server.AddGraph(ctx, req.(*GraphID))
+  	}
+    info := grpc.UnaryServerInfo{
+      FullMethod: "/gripql.Edit/AddGraph",
+    }
+    o, err := shim.unaryServerInt(ictx, in, &info, handler)
+    if o == nil {
+      return nil, err
+    }
+    return o.(*EditResult), err
+  }
+	return shim.server.AddGraph(ictx, in)
 }
 
 //DeleteGraph shim
 func (shim *EditDirectClient) DeleteGraph(ctx context.Context, in *GraphID, opts ...grpc.CallOption) (*EditResult, error) {
-	return shim.server.DeleteGraph(ctx, in)
+  md, _ := metadata.FromOutgoingContext(ctx)
+  ictx := metadata.NewIncomingContext(ctx, md)
+  if shim.unaryServerInt != nil {
+    handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+  		return shim.server.DeleteGraph(ctx, req.(*GraphID))
+  	}
+    info := grpc.UnaryServerInfo{
+      FullMethod: "/gripql.Edit/DeleteGraph",
+    }
+    o, err := shim.unaryServerInt(ictx, in, &info, handler)
+    if o == nil {
+      return nil, err
+    }
+    return o.(*EditResult), err
+  }
+	return shim.server.DeleteGraph(ictx, in)
 }
 
 //DeleteVertex shim
 func (shim *EditDirectClient) DeleteVertex(ctx context.Context, in *ElementID, opts ...grpc.CallOption) (*EditResult, error) {
-	return shim.server.DeleteVertex(ctx, in)
+  md, _ := metadata.FromOutgoingContext(ctx)
+  ictx := metadata.NewIncomingContext(ctx, md)
+  if shim.unaryServerInt != nil {
+    handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+  		return shim.server.DeleteVertex(ctx, req.(*ElementID))
+  	}
+    info := grpc.UnaryServerInfo{
+      FullMethod: "/gripql.Edit/DeleteVertex",
+    }
+    o, err := shim.unaryServerInt(ictx, in, &info, handler)
+    if o == nil {
+      return nil, err
+    }
+    return o.(*EditResult), err
+  }
+	return shim.server.DeleteVertex(ictx, in)
 }
 
 //DeleteEdge shim
 func (shim *EditDirectClient) DeleteEdge(ctx context.Context, in *ElementID, opts ...grpc.CallOption) (*EditResult, error) {
-	return shim.server.DeleteEdge(ctx, in)
+  md, _ := metadata.FromOutgoingContext(ctx)
+  ictx := metadata.NewIncomingContext(ctx, md)
+  if shim.unaryServerInt != nil {
+    handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+  		return shim.server.DeleteEdge(ctx, req.(*ElementID))
+  	}
+    info := grpc.UnaryServerInfo{
+      FullMethod: "/gripql.Edit/DeleteEdge",
+    }
+    o, err := shim.unaryServerInt(ictx, in, &info, handler)
+    if o == nil {
+      return nil, err
+    }
+    return o.(*EditResult), err
+  }
+	return shim.server.DeleteEdge(ictx, in)
 }
 
 //AddIndex shim
 func (shim *EditDirectClient) AddIndex(ctx context.Context, in *IndexID, opts ...grpc.CallOption) (*EditResult, error) {
-	return shim.server.AddIndex(ctx, in)
+  md, _ := metadata.FromOutgoingContext(ctx)
+  ictx := metadata.NewIncomingContext(ctx, md)
+  if shim.unaryServerInt != nil {
+    handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+  		return shim.server.AddIndex(ctx, req.(*IndexID))
+  	}
+    info := grpc.UnaryServerInfo{
+      FullMethod: "/gripql.Edit/AddIndex",
+    }
+    o, err := shim.unaryServerInt(ictx, in, &info, handler)
+    if o == nil {
+      return nil, err
+    }
+    return o.(*EditResult), err
+  }
+	return shim.server.AddIndex(ictx, in)
 }
 
 //DeleteIndex shim
 func (shim *EditDirectClient) DeleteIndex(ctx context.Context, in *IndexID, opts ...grpc.CallOption) (*EditResult, error) {
-	return shim.server.DeleteIndex(ctx, in)
+  md, _ := metadata.FromOutgoingContext(ctx)
+  ictx := metadata.NewIncomingContext(ctx, md)
+  if shim.unaryServerInt != nil {
+    handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+  		return shim.server.DeleteIndex(ctx, req.(*IndexID))
+  	}
+    info := grpc.UnaryServerInfo{
+      FullMethod: "/gripql.Edit/DeleteIndex",
+    }
+    o, err := shim.unaryServerInt(ictx, in, &info, handler)
+    if o == nil {
+      return nil, err
+    }
+    return o.(*EditResult), err
+  }
+	return shim.server.DeleteIndex(ictx, in)
 }
 
 //AddSchema shim
 func (shim *EditDirectClient) AddSchema(ctx context.Context, in *Graph, opts ...grpc.CallOption) (*EditResult, error) {
-	return shim.server.AddSchema(ctx, in)
+  md, _ := metadata.FromOutgoingContext(ctx)
+  ictx := metadata.NewIncomingContext(ctx, md)
+  if shim.unaryServerInt != nil {
+    handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+  		return shim.server.AddSchema(ctx, req.(*Graph))
+  	}
+    info := grpc.UnaryServerInfo{
+      FullMethod: "/gripql.Edit/AddSchema",
+    }
+    o, err := shim.unaryServerInt(ictx, in, &info, handler)
+    if o == nil {
+      return nil, err
+    }
+    return o.(*EditResult), err
+  }
+	return shim.server.AddSchema(ictx, in)
+}
+
+//SampleSchema shim
+func (shim *EditDirectClient) SampleSchema(ctx context.Context, in *GraphID, opts ...grpc.CallOption) (*Graph, error) {
+  md, _ := metadata.FromOutgoingContext(ctx)
+  ictx := metadata.NewIncomingContext(ctx, md)
+  if shim.unaryServerInt != nil {
+    handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+  		return shim.server.SampleSchema(ctx, req.(*GraphID))
+  	}
+    info := grpc.UnaryServerInfo{
+      FullMethod: "/gripql.Edit/SampleSchema",
+    }
+    o, err := shim.unaryServerInt(ictx, in, &info, handler)
+    if o == nil {
+      return nil, err
+    }
+    return o.(*Graph), err
+  }
+	return shim.server.SampleSchema(ictx, in)
 }
 
 //AddMapping shim
 func (shim *EditDirectClient) AddMapping(ctx context.Context, in *Graph, opts ...grpc.CallOption) (*EditResult, error) {
-	return shim.server.AddMapping(ctx, in)
+  md, _ := metadata.FromOutgoingContext(ctx)
+  ictx := metadata.NewIncomingContext(ctx, md)
+  if shim.unaryServerInt != nil {
+    handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+  		return shim.server.AddMapping(ctx, req.(*Graph))
+  	}
+    info := grpc.UnaryServerInfo{
+      FullMethod: "/gripql.Edit/AddMapping",
+    }
+    o, err := shim.unaryServerInt(ictx, in, &info, handler)
+    if o == nil {
+      return nil, err
+    }
+    return o.(*EditResult), err
+  }
+	return shim.server.AddMapping(ictx, in)
 }
 
 // ConfigureDirectClient is a shim to connect Configure client directly server
 type ConfigureDirectClient struct {
+  unaryServerInt grpc.UnaryServerInterceptor
+  streamServerInt grpc.StreamServerInterceptor
 	server ConfigureServer
 }
  // NewConfigureDirectClient creates new ConfigureDirectClient
-func NewConfigureDirectClient(server ConfigureServer) *ConfigureDirectClient {
-	return &ConfigureDirectClient{server}
+func NewConfigureDirectClient(server ConfigureServer, opts ...DirectOption) *ConfigureDirectClient {
+	o := &ConfigureDirectClient{server:server}
+  for _, opt := range opts {
+    opt(o)
+  }
+  return o
 }
+
+func (shim *ConfigureDirectClient) setUnaryInterceptor(a grpc.UnaryServerInterceptor) {
+  shim.unaryServerInt = a
+}
+
+func (shim *ConfigureDirectClient) setStreamInterceptor(a grpc.StreamServerInterceptor) {
+  shim.streamServerInt = a
+}
+
 
 //StartPlugin shim
 func (shim *ConfigureDirectClient) StartPlugin(ctx context.Context, in *PluginConfig, opts ...grpc.CallOption) (*PluginStatus, error) {
-	return shim.server.StartPlugin(ctx, in)
+  md, _ := metadata.FromOutgoingContext(ctx)
+  ictx := metadata.NewIncomingContext(ctx, md)
+  if shim.unaryServerInt != nil {
+    handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+  		return shim.server.StartPlugin(ctx, req.(*PluginConfig))
+  	}
+    info := grpc.UnaryServerInfo{
+      FullMethod: "/gripql.Configure/StartPlugin",
+    }
+    o, err := shim.unaryServerInt(ictx, in, &info, handler)
+    if o == nil {
+      return nil, err
+    }
+    return o.(*PluginStatus), err
+  }
+	return shim.server.StartPlugin(ictx, in)
 }
 
 //ListPlugins shim
 func (shim *ConfigureDirectClient) ListPlugins(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*ListPluginsResponse, error) {
-	return shim.server.ListPlugins(ctx, in)
+  md, _ := metadata.FromOutgoingContext(ctx)
+  ictx := metadata.NewIncomingContext(ctx, md)
+  if shim.unaryServerInt != nil {
+    handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+  		return shim.server.ListPlugins(ctx, req.(*Empty))
+  	}
+    info := grpc.UnaryServerInfo{
+      FullMethod: "/gripql.Configure/ListPlugins",
+    }
+    o, err := shim.unaryServerInt(ictx, in, &info, handler)
+    if o == nil {
+      return nil, err
+    }
+    return o.(*ListPluginsResponse), err
+  }
+	return shim.server.ListPlugins(ictx, in)
 }
 
 //ListDrivers shim
 func (shim *ConfigureDirectClient) ListDrivers(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*ListDriversResponse, error) {
-	return shim.server.ListDrivers(ctx, in)
+  md, _ := metadata.FromOutgoingContext(ctx)
+  ictx := metadata.NewIncomingContext(ctx, md)
+  if shim.unaryServerInt != nil {
+    handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+  		return shim.server.ListDrivers(ctx, req.(*Empty))
+  	}
+    info := grpc.UnaryServerInfo{
+      FullMethod: "/gripql.Configure/ListDrivers",
+    }
+    o, err := shim.unaryServerInt(ictx, in, &info, handler)
+    if o == nil {
+      return nil, err
+    }
+    return o.(*ListDriversResponse), err
+  }
+	return shim.server.ListDrivers(ictx, in)
 }

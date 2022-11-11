@@ -6,7 +6,6 @@ import (
 	"os"
 	"testing"
 
-	"github.com/bmeg/grip/engine/inspect"
 	"github.com/bmeg/grip/engine/pipeline"
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/grids"
@@ -25,25 +24,6 @@ var pathEdges = []string{
 	`{"gid" : "e1", "label" : "knows", "from" : "1", "to" : "2", "data" : {}}`,
 	`{"gid" : "e3", "label" : "knows", "from" : "2", "to" : "3", "data" : {}}`,
 	`{"gid" : "e4", "label" : "knows", "from" : "3", "to" : "4", "data" : {}}`,
-}
-
-func TestPath2Step(t *testing.T) {
-	q := gripql.NewQuery()
-	q = q.V().Out().In().Has(gripql.Eq("$.test", "value"))
-
-	ps := pipeline.NewPipelineState(q.Statements)
-
-	noLoadPaths := inspect.PipelineNoLoadPath(q.Statements, 2)
-
-	if len(noLoadPaths) > 0 {
-		fmt.Printf("Found Path: %#v\n", noLoadPaths)
-		path := grids.SelectPath(q.Statements, noLoadPaths[0])
-		proc, err := grids.RawPathCompile(nil, ps, path)
-		if err != nil {
-			t.Error(err)
-		}
-		fmt.Printf("Proc: %s\n", proc)
-	}
 }
 
 func TestEngineQuery(t *testing.T) {

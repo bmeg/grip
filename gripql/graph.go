@@ -6,8 +6,8 @@ import (
 	"io/ioutil"
 	"path/filepath"
 
-	"github.com/ghodss/yaml"
 	"google.golang.org/protobuf/encoding/protojson"
+	"sigs.k8s.io/yaml"
 )
 
 // ParseYAMLGraph parses a YAML doc into the given Graph instance.
@@ -29,7 +29,6 @@ func ParseYAMLGraph(raw []byte) (*Graph, error) {
 	return g, nil
 }
 
-
 func ParseYAMLGraphPath(relpath string) (*Graph, error) {
 	// Try to get absolute path. If it fails, fall back to relative path.
 	path, err := filepath.Abs(relpath)
@@ -43,7 +42,6 @@ func ParseYAMLGraphPath(relpath string) (*Graph, error) {
 	}
 	return ParseYAMLGraph(source)
 }
-
 
 // ParseYAMLGraph parses a YAML doc into the given Graph instance.
 func ParseYAMLGraphs(raw []byte) ([]*Graph, error) {

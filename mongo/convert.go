@@ -51,6 +51,7 @@ func UnpackVertex(i map[string]interface{}) *gdbi.Vertex {
 		o.Loaded = true
 	} else {
 		o.Loaded = false
+		o.Data = map[string]interface{}{}
 	}
 	return o
 }
@@ -68,6 +69,7 @@ func UnpackEdge(i map[string]interface{}) *gdbi.Edge {
 		o.Loaded = true
 	} else {
 		o.Loaded = false
+		o.Data = map[string]interface{}{}
 	}
 	return o
 }

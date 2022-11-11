@@ -67,3 +67,25 @@ func (server *GripServer) ListDrivers(context.Context, *gripql.Empty) (*gripql.L
 	}
 	return &gripql.ListDriversResponse{Drivers: out}, nil
 }
+
+
+//-------------
+
+
+type nullPluginServer struct {
+	gripql.UnimplementedConfigureServer
+}
+
+func (server *nullPluginServer) StartPlugin(ctx context.Context, config *gripql.PluginConfig) (*gripql.PluginStatus, error) {
+	return nil, fmt.Errorf("Plugins not enabled")
+}
+
+func (server *nullPluginServer) ListPlugins(context.Context, *gripql.Empty) (*gripql.ListPluginsResponse, error) {
+	out := []string{}
+	return &gripql.ListPluginsResponse{Plugins: out}, nil
+}
+
+func (server *nullPluginServer) ListDrivers(context.Context, *gripql.Empty) (*gripql.ListDriversResponse, error) {
+	out := []string{}
+	return &gripql.ListDriversResponse{Drivers: out}, nil
+}

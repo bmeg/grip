@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/bmeg/grip/engine/pipeline"
+	"github.com/bmeg/grip/engine/logic"
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/jsonpath"
@@ -243,6 +244,20 @@ func StatementProcessor(gs *gripql.GraphStatement, db gdbi.GraphInterface, ps *p
 		ps.MarkTypes[stmt.As] = ps.LastType
 		return &Marker{stmt.As}, nil
 
+	case *gripql.GraphStatement_Set:
+		return &ValueSet{key: stmt.Set.Key, value: stmt.Set.Value.AsInterface()}, nil
+
+	case *gripql.GraphStatement_Increment:
+		return &ValueIncrement{key: stmt.Increment.Key, value: stmt.Increment.Value}, nil
+
+	case *gripql.GraphStatement_Mark:
+		return &logic.JumpMark{Name:stmt.Mark}, nil
+
+	case *gripql.GraphStatement_Jump:
+		j := &logic.Jump{Mark:stmt.Jump.Mark, Stmt:stmt.Jump.Expression, Emit:stmt.Jump.Emit}
+		return j, nil
+
+
 	case *gripql.GraphStatement_Select:
 		if ps.LastType != gdbi.VertexData && ps.LastType != gdbi.EdgeData {
 			return nil, fmt.Errorf(`"select" statement is only valid for edge or vertex types not: %s`, ps.LastType.String())
@@ -252,7 +267,7 @@ func StatementProcessor(gs *gripql.GraphStatement, db gdbi.GraphInterface, ps *p
 			return nil, fmt.Errorf(`"select" statement has an empty list of mark names`)
 		case 1:
 			ps.LastType = ps.MarkTypes[stmt.Select.Marks[0]]
-			return &Jump{stmt.Select.Marks[0]}, nil
+			return &MarkSelect{stmt.Select.Marks[0]}, nil
 		default:
 			ps.LastType = gdbi.SelectionData
 			return &Selector{stmt.Select.Marks}, nil

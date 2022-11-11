@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"time"
 
 	"github.com/bmeg/grip/engine/core"
 	"github.com/bmeg/grip/gdbi"
@@ -338,52 +339,47 @@ func (es *Graph) GetVertexChannel(ctx context.Context, req chan gdbi.ElementLook
 	g, ctx := errgroup.WithContext(ctx)
 
 	// Create query batches
-	batches := make(chan []gdbi.ElementLookup, es.pageSize)
-	g.Go(func() error {
-		defer close(batches)
-		o := make([]gdbi.ElementLookup, 0, es.batchSize)
-		count := 0
-		for req := range req {
-			count++
-			o = append(o, req)
-			if len(o) >= es.batchSize {
-				batches <- o
-				o = make([]gdbi.ElementLookup, 0, es.batchSize)
-			}
-		}
-		batches <- o
-		return nil
-	})
+	batches := gdbi.LookupBatcher(req, es.pageSize, time.Microsecond)
 
 	// Find all vertices
 	o := make(chan gdbi.ElementLookup, es.pageSize)
 	g.Go(func() error {
 		for batch := range batches {
-			idBatch := make([]string, len(batch))
+			idBatch := make([]string, 0, len(batch))
 			batchMap := make(map[string][]gdbi.ElementLookup, len(batch))
+			signals := []gdbi.ElementLookup{}
 			for i := range batch {
-				idBatch[i] = batch[i].ID
-				batchMap[batch[i].ID] = append(batchMap[batch[i].ID], batch[i])
+				if batch[i].IsSignal() {
+					signals = append(signals, batch[i])
+				} else {
+					idBatch = append(idBatch, batch[i].ID)
+					batchMap[batch[i].ID] = append(batchMap[batch[i].ID], batch[i])
+				}
 			}
-			q := es.client.Search().Index(es.vertexIndex).Size(es.pageSize)
-			q = q.Query(elastic.NewBoolQuery().Must(elastic.NewIdsQuery().Ids(idBatch...)))
-			if !load {
-				q = q.FetchSource(true).FetchSourceContext(elastic.NewFetchSourceContext(true).Exclude("data"))
-			}
+			if len(idBatch) > 0 {
+				q := es.client.Search().Index(es.vertexIndex).Size(es.pageSize)
+				q = q.Query(elastic.NewBoolQuery().Must(elastic.NewIdsQuery().Ids(idBatch...)))
+				if !load {
+					q = q.FetchSource(true).FetchSourceContext(elastic.NewFetchSourceContext(true).Exclude("data"))
+				}
 
-			for hit := range paginateQuery(ctx, q, es.pageSize) {
-				// Deserialize
-				vertex := &gripql.Vertex{}
-				err := protojson.Unmarshal(*hit.Source, vertex)
-				if err != nil {
-					return fmt.Errorf("Failed to unmarshal vertex: %s", err)
+				for hit := range paginateQuery(ctx, q, es.pageSize) {
+					// Deserialize
+					vertex := &gripql.Vertex{}
+					err := protojson.Unmarshal(*hit.Source, vertex)
+					if err != nil {
+						return fmt.Errorf("Failed to unmarshal vertex: %s", err)
+					}
+					r := batchMap[vertex.Gid]
+					for _, ri := range r {
+						ri.Vertex = gdbi.NewElementFromVertex(vertex)
+						ri.Vertex.Loaded = load
+						o <- ri
+					}
 				}
-				r := batchMap[vertex.Gid]
-				for _, ri := range r {
-					ri.Vertex = gdbi.NewElementFromVertex(vertex)
-					ri.Vertex.Loaded = load
-					o <- ri
-				}
+			}
+			for i := range signals {
+				o <- signals[i]
 			}
 		}
 
@@ -406,59 +402,55 @@ func (es *Graph) GetOutChannel(ctx context.Context, req chan gdbi.ElementLookup,
 	g, ctx := errgroup.WithContext(ctx)
 
 	// Create query batches
-	batches := make(chan []gdbi.ElementLookup, es.pageSize)
-	g.Go(func() error {
-		defer close(batches)
-		o := make([]gdbi.ElementLookup, 0, es.batchSize)
-		for req := range req {
-			o = append(o, req)
-			if len(o) >= es.batchSize {
-				batches <- o
-				o = make([]gdbi.ElementLookup, 0, es.batchSize)
-			}
-		}
-		batches <- o
-		return nil
-	})
+	batches := gdbi.LookupBatcher(req, es.pageSize, time.Microsecond)
 
 	// Find all outgoing edges
 	edgeBatches := make(chan []gdbi.ElementLookup, es.pageSize)
 	g.Go(func() error {
 		defer close(edgeBatches)
 		for batch := range batches {
-			idBatch := make([]interface{}, len(batch))
+			idBatch := make([]interface{}, 0, len(batch))
 			batchMap := make(map[string][]gdbi.ElementLookup, len(batch))
+			signals := []gdbi.ElementLookup{}
 			for i := range batch {
-				idBatch[i] = batch[i].ID
-				batchMap[batch[i].ID] = append(batchMap[batch[i].ID], batch[i])
-			}
-
-			q := es.client.Search().Index(es.edgeIndex)
-			qParts := []elastic.Query{elastic.NewTermsQuery("from", idBatch...)}
-			if len(edgeLabels) > 0 {
-				labels := make([]interface{}, len(edgeLabels))
-				for i, v := range edgeLabels {
-					labels[i] = v
+				if batch[i].IsSignal() {
+					signals = append(signals, batch[i])
+				} else {
+					idBatch = append(idBatch, batch[i].ID)
+					batchMap[batch[i].ID] = append(batchMap[batch[i].ID], batch[i])
 				}
-				qParts = append(qParts, elastic.NewTermsQuery("label", labels...))
 			}
-			q = q.Query(elastic.NewBoolQuery().Must(qParts...))
-			q = q.FetchSource(true).FetchSourceContext(elastic.NewFetchSourceContext(true).Include("from", "to"))
-			q = q.Sort("gid", true).Size(es.pageSize)
-
 			b := []gdbi.ElementLookup{}
-			for hit := range paginateQuery(ctx, q, es.pageSize) {
-				// Deserialize
-				edge := &gripql.Edge{}
-				err := protojson.Unmarshal(*hit.Source, edge)
-				if err != nil {
-					return fmt.Errorf("Failed to unmarshal edge: %s", err)
+			if len(idBatch) > 0 {
+				q := es.client.Search().Index(es.edgeIndex)
+				qParts := []elastic.Query{elastic.NewTermsQuery("from", idBatch...)}
+				if len(edgeLabels) > 0 {
+					labels := make([]interface{}, len(edgeLabels))
+					for i, v := range edgeLabels {
+						labels[i] = v
+					}
+					qParts = append(qParts, elastic.NewTermsQuery("label", labels...))
 				}
-				r := batchMap[edge.From]
-				for _, ri := range r {
-					ri.Vertex = &gdbi.Vertex{ID: edge.To}
-					b = append(b, ri)
+				q = q.Query(elastic.NewBoolQuery().Must(qParts...))
+				q = q.FetchSource(true).FetchSourceContext(elastic.NewFetchSourceContext(true).Include("from", "to"))
+				q = q.Sort("gid", true).Size(es.pageSize)
+
+				for hit := range paginateQuery(ctx, q, es.pageSize) {
+					// Deserialize
+					edge := &gripql.Edge{}
+					err := protojson.Unmarshal(*hit.Source, edge)
+					if err != nil {
+						return fmt.Errorf("Failed to unmarshal edge: %s", err)
+					}
+					r := batchMap[edge.From]
+					for _, ri := range r {
+						ri.Vertex = &gdbi.Vertex{ID: edge.To}
+						b = append(b, ri)
+					}
 				}
+			}
+			for i := range signals {
+				b = append(b, signals[i])
 			}
 			edgeBatches <- b
 		}
@@ -470,33 +462,42 @@ func (es *Graph) GetOutChannel(ctx context.Context, req chan gdbi.ElementLookup,
 	o := make(chan gdbi.ElementLookup, es.pageSize)
 	g.Go(func() error {
 		for batch := range edgeBatches {
-			idBatch := make([]string, len(batch))
+			idBatch := make([]string, 0, len(batch))
 			batchMap := make(map[string][]gdbi.ElementLookup, len(batch))
+			signals := []gdbi.ElementLookup{}
 			for i := range batch {
-				idBatch[i] = batch[i].Vertex.ID
-				batchMap[batch[i].Vertex.ID] = append(batchMap[batch[i].Vertex.ID], batch[i])
-			}
-
-			q := es.client.Search().Index(es.vertexIndex)
-			q = q.Query(elastic.NewBoolQuery().Must(elastic.NewIdsQuery().Ids(idBatch...)))
-			if !load {
-				q = q.FetchSource(true).FetchSourceContext(elastic.NewFetchSourceContext(true).Exclude("data"))
-			}
-			q = q.Sort("gid", true).Size(es.pageSize)
-
-			for hit := range paginateQuery(ctx, q, es.pageSize) {
-				// Deserialize
-				vertex := &gripql.Vertex{}
-				err := protojson.Unmarshal(*hit.Source, vertex)
-				if err != nil {
-					return fmt.Errorf("Failed to unmarshal vertex: %s", err)
+				if batch[i].IsSignal() {
+					signals = append(signals, batch[i])
+				} else {
+					idBatch = append(idBatch, batch[i].Vertex.ID)
+					batchMap[batch[i].Vertex.ID] = append(batchMap[batch[i].Vertex.ID], batch[i])
 				}
-				r := batchMap[vertex.Gid]
-				for _, ri := range r {
-					ri.Vertex = gdbi.NewElementFromVertex(vertex)
-					ri.Vertex.Loaded = load
-					o <- ri
+			}
+			if len(idBatch) > 0 {
+				q := es.client.Search().Index(es.vertexIndex)
+				q = q.Query(elastic.NewBoolQuery().Must(elastic.NewIdsQuery().Ids(idBatch...)))
+				if !load {
+					q = q.FetchSource(true).FetchSourceContext(elastic.NewFetchSourceContext(true).Exclude("data"))
 				}
+				q = q.Sort("gid", true).Size(es.pageSize)
+
+				for hit := range paginateQuery(ctx, q, es.pageSize) {
+					// Deserialize
+					vertex := &gripql.Vertex{}
+					err := protojson.Unmarshal(*hit.Source, vertex)
+					if err != nil {
+						return fmt.Errorf("Failed to unmarshal vertex: %s", err)
+					}
+					r := batchMap[vertex.Gid]
+					for _, ri := range r {
+						ri.Vertex = gdbi.NewElementFromVertex(vertex)
+						ri.Vertex.Loaded = load
+						o <- ri
+					}
+				}
+			}
+			for i := range signals {
+				o <- signals[i]
 			}
 		}
 
@@ -519,59 +520,55 @@ func (es *Graph) GetInChannel(ctx context.Context, req chan gdbi.ElementLookup, 
 	g, ctx := errgroup.WithContext(ctx)
 
 	// Create query batches
-	batches := make(chan []gdbi.ElementLookup, es.pageSize)
-	g.Go(func() error {
-		defer close(batches)
-		o := make([]gdbi.ElementLookup, 0, es.batchSize)
-		for req := range req {
-			o = append(o, req)
-			if len(o) >= es.batchSize {
-				batches <- o
-				o = make([]gdbi.ElementLookup, 0, es.batchSize)
-			}
-		}
-		batches <- o
-		return nil
-	})
+	batches := gdbi.LookupBatcher(req, es.pageSize, time.Microsecond)
 
 	// Find all incoming edges
 	edgeBatches := make(chan []gdbi.ElementLookup, es.pageSize)
 	g.Go(func() error {
 		defer close(edgeBatches)
 		for batch := range batches {
-			idBatch := make([]interface{}, len(batch))
+			idBatch := make([]interface{}, 0, len(batch))
 			batchMap := make(map[string][]gdbi.ElementLookup, len(batch))
+			signals := []gdbi.ElementLookup{}
 			for i := range batch {
-				idBatch[i] = batch[i].ID
-				batchMap[batch[i].ID] = append(batchMap[batch[i].ID], batch[i])
-			}
-
-			q := es.client.Search().Index(es.edgeIndex)
-			qParts := []elastic.Query{elastic.NewTermsQuery("to", idBatch...)}
-			if len(edgeLabels) > 0 {
-				labels := make([]interface{}, len(edgeLabels))
-				for i, v := range edgeLabels {
-					labels[i] = v
+				if batch[i].IsSignal() {
+					signals = append(signals, batch[i])
+				} else {
+					idBatch = append(idBatch, batch[i].ID)
+					batchMap[batch[i].ID] = append(batchMap[batch[i].ID], batch[i])
 				}
-				qParts = append(qParts, elastic.NewTermsQuery("label", labels...))
 			}
-			q = q.Query(elastic.NewBoolQuery().Must(qParts...))
-			q = q.FetchSource(true).FetchSourceContext(elastic.NewFetchSourceContext(true).Include("from", "to"))
-			q = q.Sort("gid", true).Size(es.pageSize)
-
 			b := []gdbi.ElementLookup{}
-			for hit := range paginateQuery(ctx, q, es.pageSize) {
-				// Deserialize
-				edge := &gripql.Edge{}
-				err := protojson.Unmarshal(*hit.Source, edge)
-				if err != nil {
-					return fmt.Errorf("Failed to unmarshal edge: %s", err)
+			if len(idBatch) > 0 {
+				q := es.client.Search().Index(es.edgeIndex)
+				qParts := []elastic.Query{elastic.NewTermsQuery("to", idBatch...)}
+				if len(edgeLabels) > 0 {
+					labels := make([]interface{}, len(edgeLabels))
+					for i, v := range edgeLabels {
+						labels[i] = v
+					}
+					qParts = append(qParts, elastic.NewTermsQuery("label", labels...))
 				}
-				r := batchMap[edge.To]
-				for _, ri := range r {
-					ri.Vertex = &gdbi.Vertex{ID: edge.From}
-					b = append(b, ri)
+				q = q.Query(elastic.NewBoolQuery().Must(qParts...))
+				q = q.FetchSource(true).FetchSourceContext(elastic.NewFetchSourceContext(true).Include("from", "to"))
+				q = q.Sort("gid", true).Size(es.pageSize)
+
+				for hit := range paginateQuery(ctx, q, es.pageSize) {
+					// Deserialize
+					edge := &gripql.Edge{}
+					err := protojson.Unmarshal(*hit.Source, edge)
+					if err != nil {
+						return fmt.Errorf("Failed to unmarshal edge: %s", err)
+					}
+					r := batchMap[edge.To]
+					for _, ri := range r {
+						ri.Vertex = &gdbi.Vertex{ID: edge.From}
+						b = append(b, ri)
+					}
 				}
+			}
+			for i := range signals {
+				b = append(b, signals[i])
 			}
 			edgeBatches <- b
 		}
@@ -583,31 +580,41 @@ func (es *Graph) GetInChannel(ctx context.Context, req chan gdbi.ElementLookup, 
 	o := make(chan gdbi.ElementLookup, es.pageSize)
 	g.Go(func() error {
 		for batch := range edgeBatches {
-			idBatch := make([]string, len(batch))
+			idBatch := make([]string, 0, len(batch))
 			batchMap := make(map[string][]gdbi.ElementLookup, len(batch))
+			signals := []gdbi.ElementLookup{}
 			for i := range batch {
-				idBatch[i] = batch[i].Vertex.ID
-				batchMap[batch[i].Vertex.ID] = append(batchMap[batch[i].Vertex.ID], batch[i])
-			}
-			q := es.client.Search().Index(es.vertexIndex)
-			q = q.Query(elastic.NewBoolQuery().Must(elastic.NewIdsQuery().Ids(idBatch...)))
-			if !load {
-				q = q.FetchSource(true).FetchSourceContext(elastic.NewFetchSourceContext(true).Exclude("data"))
-			}
-			q = q.Sort("gid", true).Size(es.pageSize)
-
-			for hit := range paginateQuery(ctx, q, es.pageSize) {
-				// Deserialize
-				vertex := &gripql.Vertex{}
-				err := protojson.Unmarshal(*hit.Source, vertex)
-				if err != nil {
-					return fmt.Errorf("Failed to unmarshal vertex: %s", err)
+				if batch[i].IsSignal() {
+					signals = append(signals, batch[i])
+				} else {
+					idBatch = append(idBatch, batch[i].Vertex.ID)
+					batchMap[batch[i].Vertex.ID] = append(batchMap[batch[i].Vertex.ID], batch[i])
 				}
-				r := batchMap[vertex.Gid]
-				for _, ri := range r {
-					ri.Vertex = gdbi.NewElementFromVertex(vertex)
-					ri.Vertex.Loaded = load
-					o <- ri
+			}
+			if len(idBatch) > 0 {
+				q := es.client.Search().Index(es.vertexIndex)
+				q = q.Query(elastic.NewBoolQuery().Must(elastic.NewIdsQuery().Ids(idBatch...)))
+				if !load {
+					q = q.FetchSource(true).FetchSourceContext(elastic.NewFetchSourceContext(true).Exclude("data"))
+				}
+				q = q.Sort("gid", true).Size(es.pageSize)
+
+				for hit := range paginateQuery(ctx, q, es.pageSize) {
+					// Deserialize
+					vertex := &gripql.Vertex{}
+					err := protojson.Unmarshal(*hit.Source, vertex)
+					if err != nil {
+						return fmt.Errorf("Failed to unmarshal vertex: %s", err)
+					}
+					r := batchMap[vertex.Gid]
+					for _, ri := range r {
+						ri.Vertex = gdbi.NewElementFromVertex(vertex)
+						ri.Vertex.Loaded = load
+						o <- ri
+					}
+				}
+				for i := range signals {
+					o <- signals[i]
 				}
 			}
 		}
@@ -631,60 +638,56 @@ func (es *Graph) GetOutEdgeChannel(ctx context.Context, req chan gdbi.ElementLoo
 	g, ctx := errgroup.WithContext(ctx)
 
 	// Create query batches
-	batches := make(chan []gdbi.ElementLookup, es.pageSize)
-	g.Go(func() error {
-		defer close(batches)
-		o := make([]gdbi.ElementLookup, 0, es.batchSize)
-		for req := range req {
-			o = append(o, req)
-			if len(o) >= es.batchSize {
-				batches <- o
-				o = make([]gdbi.ElementLookup, 0, es.batchSize)
-			}
-		}
-		batches <- o
-		return nil
-	})
+	batches := gdbi.LookupBatcher(req, es.pageSize, time.Microsecond)
 
 	// Find all outgoing edges
 	o := make(chan gdbi.ElementLookup, es.pageSize)
 	g.Go(func() error {
 		for batch := range batches {
-			idBatch := make([]interface{}, len(batch))
+			idBatch := make([]interface{}, 0, len(batch))
 			batchMap := make(map[string][]gdbi.ElementLookup, len(batch))
+			signals := []gdbi.ElementLookup{}
 			for i := range batch {
-				idBatch[i] = batch[i].ID
-				batchMap[batch[i].ID] = append(batchMap[batch[i].ID], batch[i])
+				if batch[i].IsSignal() {
+					signals = append(signals, batch[i])
+				} else {
+					idBatch = append(idBatch, batch[i].ID)
+					batchMap[batch[i].ID] = append(batchMap[batch[i].ID], batch[i])
+				}
 			}
+			if len(idBatch) > 0 {
+				q := es.client.Search().Index(es.edgeIndex)
+				qParts := []elastic.Query{elastic.NewTermsQuery("from", idBatch...)}
+				if len(edgeLabels) > 0 {
+					labels := make([]interface{}, len(edgeLabels))
+					for i, v := range edgeLabels {
+						labels[i] = v
+					}
+					qParts = append(qParts, elastic.NewTermsQuery("label", labels...))
+				}
+				q = q.Query(elastic.NewBoolQuery().Must(qParts...))
+				if !load {
+					q = q.FetchSource(true).FetchSourceContext(elastic.NewFetchSourceContext(true).Exclude("data"))
+				}
+				q = q.Sort("gid", true).Size(es.pageSize)
 
-			q := es.client.Search().Index(es.edgeIndex)
-			qParts := []elastic.Query{elastic.NewTermsQuery("from", idBatch...)}
-			if len(edgeLabels) > 0 {
-				labels := make([]interface{}, len(edgeLabels))
-				for i, v := range edgeLabels {
-					labels[i] = v
+				for hit := range paginateQuery(ctx, q, es.pageSize) {
+					// Deserialize
+					edge := &gripql.Edge{}
+					err := protojson.Unmarshal(*hit.Source, edge)
+					if err != nil {
+						return fmt.Errorf("Failed to unmarshal edge: %s", err)
+					}
+					r := batchMap[edge.From]
+					for _, ri := range r {
+						ri.Edge = gdbi.NewElementFromEdge(edge)
+						ri.Edge.Loaded = load
+						o <- ri
+					}
 				}
-				qParts = append(qParts, elastic.NewTermsQuery("label", labels...))
 			}
-			q = q.Query(elastic.NewBoolQuery().Must(qParts...))
-			if !load {
-				q = q.FetchSource(true).FetchSourceContext(elastic.NewFetchSourceContext(true).Exclude("data"))
-			}
-			q = q.Sort("gid", true).Size(es.pageSize)
-
-			for hit := range paginateQuery(ctx, q, es.pageSize) {
-				// Deserialize
-				edge := &gripql.Edge{}
-				err := protojson.Unmarshal(*hit.Source, edge)
-				if err != nil {
-					return fmt.Errorf("Failed to unmarshal edge: %s", err)
-				}
-				r := batchMap[edge.From]
-				for _, ri := range r {
-					ri.Edge = gdbi.NewElementFromEdge(edge)
-					ri.Edge.Loaded = load
-					o <- ri
-				}
+			for i := range signals {
+				o <- signals[i]
 			}
 		}
 
@@ -707,60 +710,57 @@ func (es *Graph) GetInEdgeChannel(ctx context.Context, req chan gdbi.ElementLook
 	g, ctx := errgroup.WithContext(ctx)
 
 	// Create query batches
-	batches := make(chan []gdbi.ElementLookup, es.pageSize)
-	g.Go(func() error {
-		defer close(batches)
-		o := make([]gdbi.ElementLookup, 0, es.batchSize)
-		for req := range req {
-			o = append(o, req)
-			if len(o) >= es.batchSize {
-				batches <- o
-				o = make([]gdbi.ElementLookup, 0, es.batchSize)
-			}
-		}
-		batches <- o
-		return nil
-	})
+	batches := gdbi.LookupBatcher(req, es.pageSize, time.Microsecond)
 
 	// Find all incoming edges
 	o := make(chan gdbi.ElementLookup, es.pageSize)
 	g.Go(func() error {
 		for batch := range batches {
-			idBatch := make([]interface{}, len(batch))
+			idBatch := make([]interface{}, 0, len(batch))
 			batchMap := make(map[string][]gdbi.ElementLookup, len(batch))
+			signals := []gdbi.ElementLookup{}
 			for i := range batch {
-				idBatch[i] = batch[i].ID
-				batchMap[batch[i].ID] = append(batchMap[batch[i].ID], batch[i])
+				if batch[i].IsSignal() {
+					signals = append(signals, batch[i])
+				} else {
+					idBatch = append(idBatch, batch[i].ID)
+					batchMap[batch[i].ID] = append(batchMap[batch[i].ID], batch[i])
+				}
 			}
 
-			q := es.client.Search().Index(es.edgeIndex)
-			qParts := []elastic.Query{elastic.NewTermsQuery("to", idBatch...)}
-			if len(edgeLabels) > 0 {
-				labels := make([]interface{}, len(edgeLabels))
-				for i, v := range edgeLabels {
-					labels[i] = v
+			if len(idBatch) > 0 {
+				q := es.client.Search().Index(es.edgeIndex)
+				qParts := []elastic.Query{elastic.NewTermsQuery("to", idBatch...)}
+				if len(edgeLabels) > 0 {
+					labels := make([]interface{}, len(edgeLabels))
+					for i, v := range edgeLabels {
+						labels[i] = v
+					}
+					qParts = append(qParts, elastic.NewTermsQuery("label", labels...))
 				}
-				qParts = append(qParts, elastic.NewTermsQuery("label", labels...))
-			}
-			q = q.Query(elastic.NewBoolQuery().Must(qParts...))
-			if !load {
-				q = q.FetchSource(true).FetchSourceContext(elastic.NewFetchSourceContext(true).Exclude("data"))
-			}
-			q = q.Sort("gid", true).Size(es.pageSize)
+				q = q.Query(elastic.NewBoolQuery().Must(qParts...))
+				if !load {
+					q = q.FetchSource(true).FetchSourceContext(elastic.NewFetchSourceContext(true).Exclude("data"))
+				}
+				q = q.Sort("gid", true).Size(es.pageSize)
 
-			for hit := range paginateQuery(ctx, q, es.pageSize) {
-				// Deserialize
-				edge := &gripql.Edge{}
-				err := protojson.Unmarshal(*hit.Source, edge)
-				if err != nil {
-					return fmt.Errorf("Failed to unmarshal edge: %s", err)
+				for hit := range paginateQuery(ctx, q, es.pageSize) {
+					// Deserialize
+					edge := &gripql.Edge{}
+					err := protojson.Unmarshal(*hit.Source, edge)
+					if err != nil {
+						return fmt.Errorf("Failed to unmarshal edge: %s", err)
+					}
+					r := batchMap[edge.To]
+					for _, ri := range r {
+						ri.Edge = gdbi.NewElementFromEdge(edge)
+						ri.Edge.Loaded = load
+						o <- ri
+					}
 				}
-				r := batchMap[edge.To]
-				for _, ri := range r {
-					ri.Edge = gdbi.NewElementFromEdge(edge)
-					ri.Edge.Loaded = load
-					o <- ri
-				}
+			}
+			for i := range signals {
+				o <- signals[i]
 			}
 		}
 

@@ -52,6 +52,13 @@ func (client Client) GetSchema(graph string) (*Graph, error) {
 	return client.QueryC.GetSchema(context.Background(), &GraphID{Graph: graph})
 }
 
+// SampleSchema asks server to scan data to determine possible schema
+func (client Client) SampleSchema(graph string) (*Graph, error)  {
+	out, err := client.EditC.SampleSchema(context.Background(), &GraphID{Graph: graph})
+	return out, err
+}
+
+
 // AddSchema adds a schema for a graph.
 func (client Client) AddSchema(graph *Graph) error {
 	_, err := client.EditC.AddSchema(context.Background(), graph)
@@ -201,10 +208,9 @@ func (client Client) Traversal(query *GraphQuery) (chan *QueryResult, error) {
 	return out, nil
 }
 
-
 func (client Client) ListJobs(graph string) ([]*QueryJob, error) {
 	out := []*QueryJob{}
-	tclient, err := client.JobC.ListJobs(context.Background(), &Graph{Graph:graph})
+	tclient, err := client.JobC.ListJobs(context.Background(), &GraphID{Graph: graph})
 	if err != nil {
 		return nil, err
 	}
@@ -232,12 +238,11 @@ func (client Client) Submit(query *GraphQuery) (*QueryJob, error) {
 }
 
 func (client Client) DeleteJob(graph string, jobID string) (*JobStatus, error) {
-	return client.JobC.DeleteJob(context.Background(), &QueryJob{Graph:graph, Id:jobID})
+	return client.JobC.DeleteJob(context.Background(), &QueryJob{Graph: graph, Id: jobID})
 }
 
-
 func (client Client) GetJob(graph string, jobID string) (*JobStatus, error) {
-	return client.JobC.GetJob(context.Background(), &QueryJob{Graph:graph, Id:jobID})
+	return client.JobC.GetJob(context.Background(), &QueryJob{Graph: graph, Id: jobID})
 }
 
 /*

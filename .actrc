@@ -1,0 +1,12 @@
+# sample .actrc file see https://github.com/nektos/act
+
+#  see https://github.com/nektos/act#runners
+-P ubuntu-latest=catthehacker/ubuntu:full-latest
+
+# apple silicon
+--container-architecture linux/amd64 
+
+# for actions actions/upload-artifact and actions/download-artifact
+# https://github.com/nektos/act/issues/329#issuecomment-1187246629
+# don't forget to create this path 
+--artifact-server-path /tmp/artifacts

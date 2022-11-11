@@ -56,6 +56,23 @@ func NewCompiler(db *Graph) gdbi.Compiler {
 // Compile compiles a set of graph traversal statements into a mongo aggregation pipeline
 func (comp *Compiler) Compile(stmts []*gripql.GraphStatement, opts *gdbi.CompileOptions) (gdbi.Pipeline, error) {
 
+	//The following operations are not yet supported by the native Mongo compiler:
+	// - Jump
+	// - Set
+	// - Increment
+	//If they are present, the system will default to using the core driver
+	unsupportedOps := false
+	for _, gs := range stmts {
+		switch gs.GetStatement().(type) {
+		case *gripql.GraphStatement_Jump, *gripql.GraphStatement_Set,
+			*gripql.GraphStatement_Increment:
+			unsupportedOps = true
+		}
+	}
+	if unsupportedOps {
+		cmpl := core.NewCompiler(comp.db)
+		return cmpl.Compile(stmts, opts)
+	}
 	//in the case of a pipeline extension, switch over the the
 	//core based engine. Until the mongo aggregation pipeline engine
 	//is updated to support

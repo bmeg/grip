@@ -12,8 +12,8 @@ import (
 	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/util"
 	"golang.org/x/net/context"
-	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 // Traversal parses a traversal request and streams the results back
@@ -79,7 +79,7 @@ func (server *GripServer) GetVertex(ctx context.Context, elem *gripql.ElementID)
 	}
 	o := graph.GetVertex(elem.Id, true)
 	if o == nil {
-		return nil, grpc.Errorf(codes.NotFound, fmt.Sprintf("vertex %s not found", elem.Id))
+		return nil, status.Errorf(codes.NotFound, fmt.Sprintf("vertex %s not found", elem.Id))
 	}
 	return o.ToVertex(), nil
 }
@@ -96,7 +96,7 @@ func (server *GripServer) GetEdge(ctx context.Context, elem *gripql.ElementID) (
 	}
 	o := graph.GetEdge(elem.Id, true)
 	if o == nil {
-		return nil, grpc.Errorf(codes.NotFound, fmt.Sprintf("edge %s not found", elem.Id))
+		return nil, status.Errorf(codes.NotFound, fmt.Sprintf("edge %s not found", elem.Id))
 	}
 	return o.ToEdge(), nil
 }
@@ -431,20 +431,38 @@ func (server *GripServer) ListLabels(ctx context.Context, idx *gripql.GraphID) (
 // GetSchema returns the schema of a specific graph in the database
 func (server *GripServer) GetSchema(ctx context.Context, elem *gripql.GraphID) (*gripql.Graph, error) {
 	if !server.graphExists(elem.Graph) {
-		return nil, grpc.Errorf(codes.NotFound, fmt.Sprintf("graph %s: not found", elem.Graph))
+		return nil, status.Errorf(codes.NotFound, fmt.Sprintf("graph %s: not found", elem.Graph))
 	}
 	schema, ok := server.schemas[elem.Graph]
 	if !ok {
 		if server.conf.Server.AutoBuildSchemas {
-			return nil, grpc.Errorf(codes.Unavailable, fmt.Sprintf("graph %s: schema not available; try again later", elem.Graph))
+			return nil, status.Errorf(codes.Unavailable, fmt.Sprintf("graph %s: schema not available; try again later", elem.Graph))
 		}
-		return nil, grpc.Errorf(codes.NotFound, fmt.Sprintf("graph %s: schema not found", elem.Graph))
+		return nil, status.Errorf(codes.NotFound, fmt.Sprintf("graph %s: schema not found", elem.Graph))
 	}
 
 	if schema.Graph == "" {
 		schema.Graph = elem.Graph
 	}
 	return schema, nil
+}
+
+// GetSchema returns the schema of a specific graph in the database
+func (server *GripServer) SampleSchema(ctx context.Context, elem *gripql.GraphID) (*gripql.Graph, error) {
+	if !server.graphExists(elem.Graph) {
+		return nil, status.Errorf(codes.NotFound, fmt.Sprintf("graph %s: not found", elem.Graph))
+	}
+	if gdb, err := server.getGraphDB(elem.Graph); err == nil {
+		schema, err := gdb.BuildSchema(ctx, elem.Graph, 50, true)
+		if err != nil {
+			return nil, err
+		}
+		if schema.Graph == "" {
+			schema.Graph = elem.Graph
+		}
+		return schema, err
+	}
+	return nil, fmt.Errorf("Graph driver not found")
 }
 
 // AddSchema caches a graph schema on the server
@@ -460,7 +478,7 @@ func (server *GripServer) AddSchema(ctx context.Context, req *gripql.Graph) (*gr
 // GetMapping returns the schema of a specific graph in the database
 func (server *GripServer) GetMapping(ctx context.Context, elem *gripql.GraphID) (*gripql.Graph, error) {
 	if !server.graphExists(elem.Graph) {
-		return nil, grpc.Errorf(codes.NotFound, fmt.Sprintf("graph %s: not found", elem.Graph))
+		return nil, status.Errorf(codes.NotFound, fmt.Sprintf("graph %s: not found", elem.Graph))
 	}
 	mapping, err := server.getGraph(elem.Graph + mappingSuffix)
 	if err != nil {
