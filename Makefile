@@ -44,7 +44,8 @@ proto:
 		--grpc-gateway_out ./ \
 		--grpc-gateway_opt logtostderr=true \
 		--grpc-gateway_opt paths=source_relative \
-		--grcp-rest-direct_out . \
+		--grpc-rest-direct_out . \
+		--grpc-http-client_out . \
 		gripql.proto
 	@cd kvindex && protoc \
 		-I ./ \
@@ -69,8 +70,8 @@ proto-depends:
 	@go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.28.1
 	@go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
 	@go install github.com/ckaznocha/protoc-gen-lint@v0.2.4
-	@go install github.com/bmeg/protoc-gen-grcp-rest-direct@feature/interceptors
-
+	@go install github.com/bmeg/protoc-gen-grpc-rest-direct@latest
+	@go install github.com/ckaznocha/protoc-gen-lint@latest
 
 # ---------------------
 # Code Style
