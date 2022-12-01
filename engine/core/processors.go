@@ -998,7 +998,7 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 		for _, a := range agg.aggregations {
 			if aChans[a.Name] != nil {
 				close(aChans[a.Name])
-				aChans[a.Name] = nil
+				//aChans[a.Name] = nil
 			}
 		}
 		return nil
@@ -1018,15 +1018,20 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 				tagg := a.GetTerm()
 				size := tagg.Size
 
+				// Collect error to return. Because we are reading a channel, it must be fully emptied
+				// If we return error before fully emptying channel, upstream processes will lock
+				var outErr error
 				fieldTermCounts := map[interface{}]int{}
 				for t := range aChans[a.Name] {
-					val := jsonpath.TravelerPathLookup(t, tagg.Field)
-					if val != nil {
-						k := reflect.TypeOf(val).Kind()
-						if k != reflect.Array && k != reflect.Slice && k != reflect.Map {
-							fieldTermCounts[val]++
-							if len(fieldTermCounts) > maxTerms {
-								return fmt.Errorf("term aggreagtion: collected more unique terms (%v) than allowed (%v)", len(fieldTermCounts), maxTerms)
+					if len(fieldTermCounts) > maxTerms {
+						outErr = fmt.Errorf("term aggreagtion: collected more unique terms (%v) than allowed (%v)", len(fieldTermCounts), maxTerms)
+					} else {
+						val := jsonpath.TravelerPathLookup(t, tagg.Field)
+						if val != nil {
+							k := reflect.TypeOf(val).Kind()
+							if k != reflect.Array && k != reflect.Slice && k != reflect.Map {
+								fieldTermCounts[val]++
+
 							}
 						}
 					}
@@ -1040,7 +1045,7 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 						out <- &gdbi.BaseTraveler{Aggregation: &gdbi.Aggregate{Name: a.Name, Key: term, Value: float64(tcount)}}
 					}
 				}
-				return nil
+				return outErr
 			})
 
 		case *gripql.Aggregate_Histogram:
@@ -1054,16 +1059,20 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 
 				c := 0
 				fieldValues := []float64{}
+
+				// Collect error to return. Because we are reading a channel, it must be fully emptied
+				// If we return error before fully emptying channel, upstream processes will lock
+				var outErr error
 				for t := range aChans[a.Name] {
 					val := jsonpath.TravelerPathLookup(t, hagg.Field)
 					if val != nil {
 						fval, err := cast.ToFloat64E(val)
 						if err != nil {
-							return fmt.Errorf("histogram aggregation: can't convert %v to float64", val)
+							outErr = fmt.Errorf("histogram aggregation: can't convert %v to float64", val)
 						}
 						fieldValues = append(fieldValues, fval)
 						if c > maxValues {
-							return fmt.Errorf("histogram aggreagtion: collected more values (%v) than allowed (%v)", c, maxValues)
+							outErr = fmt.Errorf("histogram aggreagtion: collected more values (%v) than allowed (%v)", c, maxValues)
 						}
 						c++
 					}
@@ -1082,7 +1091,7 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 					//sBucket, _ := structpb.NewValue(bucket)
 					out <- &gdbi.BaseTraveler{Aggregation: &gdbi.Aggregate{Name: a.Name, Key: bucket, Value: float64(count)}}
 				}
-				return nil
+				return outErr
 			})
 
 		case *gripql.Aggregate_Percentile:
@@ -1091,12 +1100,13 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 				pagg := a.GetPercentile()
 				percents := pagg.Percents
 
+				var outErr error
 				td := tdigest.New()
 				for t := range aChans[a.Name] {
 					val := jsonpath.TravelerPathLookup(t, pagg.Field)
 					fval, err := cast.ToFloat64E(val)
 					if err != nil {
-						return fmt.Errorf("percentile aggregation: can't convert %v to float64", val)
+						outErr = fmt.Errorf("percentile aggregation: can't convert %v to float64", val)
 					}
 					td.Add(fval, 1)
 				}
@@ -1107,7 +1117,7 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 					out <- &gdbi.BaseTraveler{Aggregation: &gdbi.Aggregate{Name: a.Name, Key: p, Value: q}}
 				}
 
-				return nil
+				return outErr
 			})
 
 		case *gripql.Aggregate_Field:

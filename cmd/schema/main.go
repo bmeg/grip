@@ -7,6 +7,7 @@ import (
 
 	"github.com/bmeg/grip/gripql"
 	gripql_schema "github.com/bmeg/grip/gripql/schema"
+	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/util/rpc"
 	"github.com/spf13/cobra"
 )
@@ -93,6 +94,7 @@ var postCmd = &cobra.Command{
 				if err != nil {
 					return err
 				}
+				log.Debug("Posted schema: %s", g.Graph)
 			}
 		}
 
