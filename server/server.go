@@ -23,7 +23,6 @@ import (
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
-	"google.golang.org/protobuf/encoding/protojson"
 
 	"github.com/bmeg/grip/elastic"
 	esql "github.com/bmeg/grip/existing-sql"
@@ -191,16 +190,8 @@ func (server *GripServer) Serve(pctx context.Context) error {
 	)
 
 	// Setup RESTful proxy
-	marsh := MarshalClean{
-		m: &runtime.JSONPb{
-			protojson.MarshalOptions{EmitUnpopulated: true},
-			protojson.UnmarshalOptions{},
-			//EnumsAsInts:  false,
-			//EmitDefaults: true,
-			//OrigName:     true,
-		},
-	}
-	grpcMux := runtime.NewServeMux(runtime.WithMarshalerOption("*/*", &marsh))
+	marsh := NewMarshaler()
+	grpcMux := runtime.NewServeMux(runtime.WithMarshalerOption("*/*", marsh))
 	mux := http.NewServeMux()
 
 	// Setup GraphQL handler

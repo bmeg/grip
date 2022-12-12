@@ -4,6 +4,7 @@ import (
 	"io"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 // MarshalClean is a shim class to 'fix' outgoing streamed messages
@@ -12,6 +13,18 @@ import (
 // removes the wrapper
 type MarshalClean struct {
 	m runtime.Marshaler
+}
+
+func NewMarshaler() runtime.Marshaler {
+	return &MarshalClean{
+		m: &runtime.JSONPb{
+			protojson.MarshalOptions{EmitUnpopulated: true},
+			protojson.UnmarshalOptions{},
+			//EnumsAsInts:  false,
+			//EmitDefaults: true,
+			//OrigName:     true,
+		},
+	}
 }
 
 // ContentType return content type of marshler

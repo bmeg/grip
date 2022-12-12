@@ -14,3 +14,9 @@ menu:
       parent: Developers
       url: https://godoc.org/github.com/bmeg/grip
       weight: 100
+
+security:
+  funcs:
+    getenv:
+    - ^HUGO_
+    - GRIP_VERSION
