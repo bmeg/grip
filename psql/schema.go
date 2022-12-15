@@ -60,7 +60,7 @@ func (db *GraphDB) BuildSchema(ctx context.Context, graphID string, sampleN uint
 			}
 
 			sSchema, _ := structpb.NewStruct(schema)
-			vSchema := &gripql.Vertex{Gid: label, Label: label, Data: sSchema}
+			vSchema := &gripql.Vertex{Gid: label, Label: "Vertex", Data: sSchema}
 			vSchemaChan <- vSchema
 
 			return nil

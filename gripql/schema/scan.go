@@ -54,7 +54,7 @@ func ScanSchema(conn gripql.Client, graph string, sampleCount uint32, exclude []
 			if err != nil {
 				log.Error(err)
 			}
-			vList = append(vList, &gripql.Vertex{Gid: label, Label: label, Data: sValue})
+			vList = append(vList, &gripql.Vertex{Gid: label, Label: "Vertex", Data: sValue})
 		} else {
 			log.Errorf("Traversal error: %s", err)
 		}

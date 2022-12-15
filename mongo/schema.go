@@ -108,7 +108,7 @@ func (ma *GraphDB) getVertexSchema(ctx context.Context, graph string, n uint32, 
 				return err
 			}
 			sSchema, _ := structpb.NewStruct(schema)
-			vSchema := &gripql.Vertex{Gid: label, Label: label, Data: sSchema}
+			vSchema := &gripql.Vertex{Gid: label, Label: "Vertex", Data: sSchema}
 			schemaChan <- vSchema
 			log.WithFields(log.Fields{"graph": graph, "label": label, "elapsed_time": time.Since(start).String()}).Debug("getVertexSchema: Finished schema build")
 			return nil

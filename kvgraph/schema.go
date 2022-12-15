@@ -65,7 +65,7 @@ func (ma *KVGraph) sampleSchema(ctx context.Context, graph string, n uint32, ran
 			}
 		}
 		sSchema, _ := structpb.NewStruct(schema)
-		vSchema := &gripql.Vertex{Gid: label, Label: label, Data: sSchema}
+		vSchema := &gripql.Vertex{Gid: label, Label: "Vertex", Data: sSchema}
 		vOutput = append(vOutput, vSchema)
 	}
 	for k, v := range fromToPairs {
