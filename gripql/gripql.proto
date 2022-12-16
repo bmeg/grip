@@ -24,7 +24,6 @@ message QuerySet {
 
 message GraphStatement {
   oneof statement {
-    // Tinkerpop methods
     google.protobuf.ListValue v = 1;
     google.protobuf.ListValue e = 2;
 
@@ -34,6 +33,11 @@ message GraphStatement {
     google.protobuf.ListValue in_e = 12;
     google.protobuf.ListValue out_e = 13;
     google.protobuf.ListValue both_e = 15;
+
+    google.protobuf.ListValue in_null = 16;
+    google.protobuf.ListValue out_null = 17;
+    google.protobuf.ListValue in_e_null = 18;
+    google.protobuf.ListValue out_e_null = 19;
 
     string as = 20;
     SelectStatement select = 21;

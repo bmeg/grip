@@ -146,10 +146,10 @@ type GraphInterface interface {
 	GetEdgeList(ctx context.Context, load bool) <-chan *Edge
 
 	GetVertexChannel(ctx context.Context, req chan ElementLookup, load bool) chan ElementLookup
-	GetOutChannel(ctx context.Context, req chan ElementLookup, load bool, edgeLabels []string) chan ElementLookup
-	GetInChannel(ctx context.Context, req chan ElementLookup, load bool, edgeLabels []string) chan ElementLookup
-	GetOutEdgeChannel(ctx context.Context, req chan ElementLookup, load bool, edgeLabels []string) chan ElementLookup
-	GetInEdgeChannel(ctx context.Context, req chan ElementLookup, load bool, edgeLabels []string) chan ElementLookup
+	GetOutChannel(ctx context.Context, req chan ElementLookup, load bool, emitNull bool, edgeLabels []string) chan ElementLookup
+	GetInChannel(ctx context.Context, req chan ElementLookup, load bool, emitNull bool, edgeLabels []string) chan ElementLookup
+	GetOutEdgeChannel(ctx context.Context, req chan ElementLookup, load bool, emitNull bool, edgeLabels []string) chan ElementLookup
+	GetInEdgeChannel(ctx context.Context, req chan ElementLookup, load bool, emitNull bool, edgeLabels []string) chan ElementLookup
 }
 
 // Manager is a resource manager that is passed to processors to allow them ]

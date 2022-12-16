@@ -161,6 +161,7 @@ type LookupVertexAdjOut struct {
 	db       gdbi.GraphInterface
 	labels   []string
 	loadData bool
+	emitNull bool
 }
 
 // Process runs out vertex
@@ -251,6 +252,7 @@ type LookupVertexAdjIn struct {
 	db       gdbi.GraphInterface
 	labels   []string
 	loadData bool
+	emitNull bool
 }
 
 // Process runs LookupVertexAdjIn
