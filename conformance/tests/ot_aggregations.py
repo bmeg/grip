@@ -231,12 +231,11 @@ def test_count_aggregation(man):
     G = man.setGraph("swapi")
     count = 0
     for row in G.query().V().hasLabel("Planet").aggregate(gripql.count("total")):
-        print(row)
         if row["value"] != 3:
             errors.append("Incorrect count returned")
         count += 1
 
     if count != 1:
-        errors.append("Incorrect number of results returned")
+        errors.append("Incorrect number of results returned: %d" % (count))
 
     return errors

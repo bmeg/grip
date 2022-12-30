@@ -788,6 +788,15 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement, opts *gdbi.Compile
 					aggTypes[a.Name] = a
 					aggs[a.Name] = stmt
 
+				case *gripql.Aggregate_Count:
+					stmt := []bson.M{
+						{
+							"$count": "count",
+						},
+					}
+					aggTypes[a.Name] = a
+					aggs[a.Name] = stmt
+
 				case *gripql.Aggregate_Field:
 					agg := a.GetField()
 					field := jsonpath.GetJSONPath(agg.Field)
