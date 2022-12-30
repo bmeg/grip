@@ -182,6 +182,10 @@ func (q *Query) Render(template interface{}) *Query {
 	return q.with(&GraphStatement{Statement: &GraphStatement_Render{value}})
 }
 
+func (q *Query) Aggregate(agg []*Aggregate) *Query {
+	return q.with(&GraphStatement{Statement: &GraphStatement_Aggregate{Aggregate: &Aggregations{Aggregations: agg}}})
+}
+
 func (q *Query) String() string {
 	parts := []string{}
 	add := func(name string, x ...string) {
