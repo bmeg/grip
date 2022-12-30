@@ -16,7 +16,7 @@ import (
 	"github.com/graphql-go/handler"
 )
 
-//handle the graphql queries for a single endpoint
+// handle the graphql queries for a single endpoint
 type graphHandler struct {
 	graph      string
 	gqlHandler *handler.Handler
@@ -211,11 +211,11 @@ func buildObjectMap(client gripql.Client, graph string, schema *gripql.Graph) (m
 			continue
 		}
 		props["id"] = "STRING"
-		gqlObj, err := buildObject(obj.Label, props)
+		gqlObj, err := buildObject(obj.Gid, props)
 		if err != nil {
 			return nil, err
 		}
-		objects[obj.Label] = gqlObj
+		objects[obj.Gid] = gqlObj
 	}
 
 	// Setup outgoing edge fields
@@ -249,7 +249,9 @@ func buildObjectMap(client gripql.Client, graph string, schema *gripql.Graph) (m
 				return out, nil
 			},
 		}
-		objects[obj.From].AddFieldConfig(fname, f)
+		if _, ok := objects[obj.From]; ok {
+			objects[obj.From].AddFieldConfig(fname, f)
+		}
 	}
 
 	return objects, nil

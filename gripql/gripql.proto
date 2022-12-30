@@ -84,6 +84,7 @@ message Aggregate {
     HistogramAggregation histogram = 4;
 		FieldAggregation field = 5;
 		TypeAggregation type = 6;
+    CountAggregation count = 7;
   }
 }
 
@@ -108,6 +109,10 @@ message FieldAggregation {
 
 message TypeAggregation {
 	string field = 2;
+}
+
+message CountAggregation {
+
 }
 
 message NamedAggregationResult {
