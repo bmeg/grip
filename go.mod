@@ -42,8 +42,8 @@ require (
 	github.com/stretchr/testify v1.7.0
 	github.com/syndtr/goleveldb v1.0.0
 	go.mongodb.org/mongo-driver v1.5.1
-	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
-	golang.org/x/net v0.0.0-20210405180319-a5a99cb37ef4
+	golang.org/x/crypto v0.1.0
+	golang.org/x/net v0.1.0
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	google.golang.org/api v0.30.0
 	google.golang.org/genproto v0.0.0-20210617175327-b9e0b3197ced
@@ -107,8 +107,9 @@ require (
 	go.opencensus.io v0.22.6 // indirect
 	golang.org/x/exp v0.0.0-20200513190911-00229845015e // indirect
 	golang.org/x/oauth2 v0.0.0-20210615190721-d04028783cf1 // indirect
-	golang.org/x/sys v0.0.0-20210909193231-528a39cd75f3 // indirect
-	golang.org/x/text v0.3.5 // indirect
+	golang.org/x/sys v0.1.0 // indirect
+	golang.org/x/term v0.1.0 // indirect
+	golang.org/x/text v0.4.0 // indirect
 	google.golang.org/appengine v1.6.6 // indirect
 	gopkg.in/sourcemap.v1 v1.0.5 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
