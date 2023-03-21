@@ -1,6 +1,7 @@
 package gripql
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -228,7 +229,7 @@ func (q *Query) String() string {
 			add("BothE", ids...)
 
 		case *GraphStatement_Has:
-			add("Has")
+			add("Has", HasExpressionString(stmt.Has))
 
 		case *GraphStatement_HasLabel:
 			labels := protoutil.AsStringList(stmt.HasLabel)
@@ -268,9 +269,19 @@ func (q *Query) String() string {
 			add("Aggregate")
 
 		case *GraphStatement_Render:
-			add("Render")
+			rmap := stmt.Render.GetStructValue().AsMap()
+			rtxt, _ := json.Marshal(rmap)
+			add("Render", string(rtxt))
 		}
 	}
 
 	return strings.Join(parts, ".")
+}
+
+func HasExpressionString(stmt *HasExpression) string {
+	if exp := stmt.GetCondition(); exp != nil {
+		//exp.Condition
+		return fmt.Sprintf("%s = %s", exp.Key, exp.Value)
+	}
+	return ""
 }
