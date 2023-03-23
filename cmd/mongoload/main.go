@@ -168,6 +168,7 @@ var Cmd = &cobra.Command{
 					SetOrdered(false).
 					SetUpsert(true)
 				for _, vertexFile := range glob {
+					log.Infof("Loading vertex file: %s", vertexFile)
 					vertChan, err := util.StreamVerticesFromFile(vertexFile, workerCount)
 					if err != nil {
 						return err
@@ -191,6 +192,7 @@ var Cmd = &cobra.Command{
 					SetOrdered(false).
 					SetUpsert(true)
 				for _, edgeFile := range glob {
+					log.Infof("Loading edge file: %s", edgeFile)
 					edgeChan, err := util.StreamEdgesFromFile(edgeFile, workerCount)
 					if err != nil {
 						return err
