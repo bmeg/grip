@@ -3,6 +3,7 @@ package mongoload
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 	"sync"
 
 	//"io"
@@ -26,6 +27,7 @@ var database = "gripdb"
 var graph string
 var vertexFile string
 var edgeFile string
+var dirPath string
 
 var bulkBufferSize = 1000
 var workerCount = 1
@@ -157,6 +159,55 @@ var Cmd = &cobra.Command{
 			}
 			edgeInserter.Flush()
 		}
+
+		if dirPath != "" {
+			if glob, err := filepath.Glob(filepath.Join(dirPath, "*.vertex.json.gz")); err == nil {
+				vertexCount := 0
+				vertInserter := db.NewUnorderedBufferedBulkInserter(vertexCol, bulkBufferSize).
+					SetBypassDocumentValidation(true).
+					SetOrdered(false).
+					SetUpsert(true)
+				for _, vertexFile := range glob {
+					vertChan, err := util.StreamVerticesFromFile(vertexFile, workerCount)
+					if err != nil {
+						return err
+					}
+					dataChan := vertexSerialize(vertChan, workerCount)
+					for d := range dataChan {
+						vertInserter.InsertRaw(d)
+						if vertexCount%logRate == 0 {
+							log.Infof("Loaded %d vertices", vertexCount)
+						}
+						vertexCount++
+					}
+				}
+				vertInserter.Flush()
+			}
+
+			if glob, err := filepath.Glob(filepath.Join(dirPath, "*.edge.json.gz")); err == nil {
+				edgeCount := 0
+				edgeInserter := db.NewUnorderedBufferedBulkInserter(edgeCol, bulkBufferSize).
+					SetBypassDocumentValidation(true).
+					SetOrdered(false).
+					SetUpsert(true)
+				for _, edgeFile := range glob {
+					edgeChan, err := util.StreamEdgesFromFile(edgeFile, workerCount)
+					if err != nil {
+						return err
+					}
+					dataChan := edgeSerialize(edgeChan, workerCount)
+					for d := range dataChan {
+						edgeInserter.InsertRaw(d)
+						if edgeCount%logRate == 0 {
+							log.Infof("Loaded %d edges", edgeCount)
+						}
+						edgeCount++
+					}
+				}
+				edgeInserter.Flush()
+			}
+		}
+
 		return nil
 	},
 }
@@ -167,6 +218,7 @@ func init() {
 	flags.StringVar(&database, "database", database, "database name in mongo to store graph")
 	flags.StringVar(&vertexFile, "vertex", "", "vertex file")
 	flags.StringVar(&edgeFile, "edge", "", "edge file")
+	flags.StringVarP(&dirPath, "dir", "d", "", "dir file")
 	flags.BoolVarP(&createGraph, "create", "c", false, "create graph")
 	flags.IntVarP(&workerCount, "workers", "n", workerCount, "number of processing threads")
 	flags.IntVar(&bulkBufferSize, "batch-size", bulkBufferSize, "mongo bulk load batch size")
