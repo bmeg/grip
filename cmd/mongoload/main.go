@@ -89,7 +89,7 @@ var Cmd = &cobra.Command{
 	Long:  ``,
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if vertexFile == "" && edgeFile == "" {
+		if vertexFile == "" && edgeFile == "" && dirPath == "" {
 			return fmt.Errorf("no edge or vertex files were provided")
 		}
 
