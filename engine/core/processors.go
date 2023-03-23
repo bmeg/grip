@@ -168,15 +168,23 @@ func (l *LookupVertexAdjOut) Process(ctx context.Context, man gdbi.Manager, in g
 	queryChan := make(chan gdbi.ElementLookup, 100)
 	go func() {
 		defer close(queryChan)
+		cont := true
 		for t := range in {
-			if t.IsSignal() {
-				queryChan <- gdbi.ElementLookup{
-					Ref: t,
+			if cont {
+				select {
+				case <-ctx.Done():
+					cont = false
+				default:
 				}
-			} else {
-				queryChan <- gdbi.ElementLookup{
-					ID:  t.GetCurrentID(),
-					Ref: t,
+				if t.IsSignal() {
+					queryChan <- gdbi.ElementLookup{
+						Ref: t,
+					}
+				} else {
+					queryChan <- gdbi.ElementLookup{
+						ID:  t.GetCurrentID(),
+						Ref: t,
+					}
 				}
 			}
 		}
