@@ -28,6 +28,7 @@ var graph string
 var vertexFile string
 var edgeFile string
 var dirPath string
+var edgeUUID bool
 
 var bulkBufferSize = 1000
 var workerCount = 1
@@ -66,6 +67,9 @@ func edgeSerialize(edgeChan chan *gripql.Edge, workers int) chan []byte {
 		wg.Add(1)
 		go func() {
 			for e := range edgeChan {
+				if edgeUUID && e.Gid == "" {
+					e.Gid = util.UUID()
+				}
 				doc := mongo.PackEdge(gdbi.NewElementFromEdge(e))
 				rawBytes, err := bson.Marshal(doc)
 				if err == nil {
@@ -222,6 +226,7 @@ func init() {
 	flags.StringVar(&edgeFile, "edge", "", "edge file")
 	flags.StringVarP(&dirPath, "dir", "d", "", "dir file")
 	flags.BoolVarP(&createGraph, "create", "c", false, "create graph")
+	flags.BoolVar(&edgeUUID, "edge-uuid", edgeUUID, "fill in blank edge ids with uuid")
 	flags.IntVarP(&workerCount, "workers", "n", workerCount, "number of processing threads")
 	flags.IntVar(&bulkBufferSize, "batch-size", bulkBufferSize, "mongo bulk load batch size")
 }
