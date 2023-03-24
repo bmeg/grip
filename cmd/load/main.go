@@ -19,7 +19,7 @@ var edgeFile string
 var jsonFile string
 var yamlFile string
 var dirPath string
-var edgeUUID bool
+var edgeUID bool
 
 var workerCount = 1
 
@@ -102,7 +102,7 @@ var Cmd = &cobra.Command{
 				if count%logRate == 0 {
 					log.Infof("Loaded %d edges", count)
 				}
-				if edgeUUID && e.Gid == "" {
+				if edgeUID && e.Gid == "" {
 					e.Gid = util.UUID()
 				}
 				elemChan <- &gripql.GraphElement{Graph: graph, Edge: e}
@@ -141,7 +141,7 @@ var Cmd = &cobra.Command{
 						if edgeCount%logRate == 0 {
 							log.Infof("Loaded %d edges", edgeCount)
 						}
-						if edgeUUID && e.Gid == "" {
+						if edgeUID && e.Gid == "" {
 							e.Gid = util.UUID()
 						}
 						elemChan <- &gripql.GraphElement{Graph: graph, Edge: e}
@@ -204,6 +204,6 @@ func init() {
 	flags.StringVar(&jsonFile, "json", "", "JSON graph file")
 	flags.StringVar(&yamlFile, "yaml", "", "YAML graph file")
 	flags.StringVar(&dirPath, "dir", "", "Load graph elements from directory")
-	flags.BoolVar(&edgeUUID, "edge-uuid", edgeUUID, "fill in blank edge ids with uuid")
+	flags.BoolVar(&edgeUID, "edge-uid", edgeUID, "fill in blank edge ids")
 	flags.IntVarP(&workerCount, "workers", "n", workerCount, "number of processing threads")
 }
