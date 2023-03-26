@@ -3,7 +3,6 @@ package mongoload
 import (
 	"context"
 	"fmt"
-	"path/filepath"
 	"sync"
 
 	//"io"
@@ -165,7 +164,7 @@ var Cmd = &cobra.Command{
 		}
 
 		if dirPath != "" {
-			if glob, err := filepath.Glob(filepath.Join(dirPath, "*.vertex.json.gz")); err == nil {
+			if glob, err := util.DirScan(dirPath, "*.vertex.json.gz"); err == nil {
 				vertexCount := 0
 				vertInserter := db.NewUnorderedBufferedBulkInserter(vertexCol, bulkBufferSize).
 					SetBypassDocumentValidation(true).
@@ -189,7 +188,7 @@ var Cmd = &cobra.Command{
 				vertInserter.Flush()
 			}
 
-			if glob, err := filepath.Glob(filepath.Join(dirPath, "*.edge.json.gz")); err == nil {
+			if glob, err := util.DirScan(dirPath, "*.edge.json.gz"); err == nil {
 				edgeCount := 0
 				edgeInserter := db.NewUnorderedBufferedBulkInserter(edgeCol, bulkBufferSize).
 					SetBypassDocumentValidation(true).

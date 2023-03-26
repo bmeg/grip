@@ -2,7 +2,6 @@ package load
 
 import (
 	"fmt"
-	"path/filepath"
 
 	"github.com/bmeg/grip/cmd/load/example"
 	"github.com/bmeg/grip/gripql"
@@ -112,7 +111,7 @@ var Cmd = &cobra.Command{
 
 		if dirPath != "" {
 			vertexCount := 0
-			if glob, err := filepath.Glob(filepath.Join(dirPath, "*.vertex.json.gz")); err == nil {
+			if glob, err := util.DirScan(dirPath, "*.vertex.json.gz"); err == nil {
 				for _, vertexFile := range glob {
 					log.Infof("Loading vertex file: %s", vertexFile)
 					vertChan, err := util.StreamVerticesFromFile(vertexFile, workerCount)
@@ -129,7 +128,7 @@ var Cmd = &cobra.Command{
 				}
 			}
 			edgeCount := 0
-			if glob, err := filepath.Glob(filepath.Join(dirPath, "*.edge.json.gz")); err == nil {
+			if glob, err := util.DirScan(dirPath, "*.edge.json.gz"); err == nil {
 				for _, edgeFile := range glob {
 					log.Infof("Loading edge file: %s", edgeFile)
 					edgeChan, err := util.StreamEdgesFromFile(edgeFile, workerCount)
