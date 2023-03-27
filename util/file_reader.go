@@ -3,23 +3,83 @@ package util
 import (
 	"bufio"
 	"compress/gzip"
+	"context"
+	"fmt"
+	"io"
+	"net/url"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/log"
+	"github.com/minio/minio-go/v7"
+	"github.com/minio/minio-go/v7/pkg/credentials"
 
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
-// StreamLines returns a channel of lines from a file.
-func StreamLines(file string, chanSize int) (chan string, error) {
-	fh, err := os.Open(file)
-	if err != nil {
-		return nil, err
+func getS3Client(u *url.URL) (*minio.Client, error) {
+
+	useSSL := false
+	if u.Scheme == "s3+https" {
+		useSSL = true
 	}
 
+	accessKeyID := os.Getenv("AWS_ACCESS_KEY_ID")
+	if accessKeyID == "" {
+		log.Info("AWS_ACCESS_KEY_ID not set")
+	}
+	secretAccessKey := os.Getenv("AWS_SECRET_ACCESS_KEY")
+	if secretAccessKey == "" {
+		log.Info("AWS_SECRET_ACCESS_KEY not set")
+	}
+
+	mc, err := minio.New(u.Host, &minio.Options{
+		Creds:  credentials.NewStaticV4(accessKeyID, secretAccessKey, ""),
+		Secure: useSSL,
+	})
+	return mc, err
+}
+
+func getS3URL(path string) *url.URL {
+	if strings.HasPrefix(path, "s3+http://") || strings.HasPrefix(path, "s3+https://") {
+		u, err := url.Parse(path)
+		if err != nil {
+			return nil
+		}
+		return u
+	}
+	return nil
+}
+
+// StreamLines returns a channel of lines from a file.
+func StreamLines(file string, chanSize int) (chan string, error) {
+
+	var fh io.ReadCloser
+	var err error
+	if u := getS3URL(file); u != nil {
+		if minioClient, err := getS3Client(u); err != nil {
+			return nil, err
+		} else {
+			spath := strings.SplitN(u.Path, "/", 3)
+			if len(spath) != 3 {
+				return nil, fmt.Errorf("incorrectly formatted path: %s", u.Path)
+			}
+			log.Infof("Downloading S3: %s %s", spath[1], spath[2])
+			obj, err := minioClient.GetObject(context.Background(), spath[1], spath[2], minio.GetObjectOptions{})
+			if err != nil {
+				return nil, err
+			}
+			fh = obj
+		}
+	} else {
+		fh, err = os.Open(file)
+		if err != nil {
+			return nil, err
+		}
+	}
 	var scanner *bufio.Scanner
 
 	if strings.HasSuffix(file, ".gz") {
@@ -137,4 +197,39 @@ func StreamEdgesFromFile(file string, workers int) (chan *gripql.Edge, error) {
 	}()
 
 	return edgeChan, nil
+}
+
+func DirScan(baseDir string, fileGlob string) ([]string, error) {
+	if u := getS3URL(baseDir); u != nil {
+		if client, err := getS3Client(u); err == nil {
+			log.Infof("Scanning %s", u)
+			out := []string{}
+			spath := strings.SplitN(u.Path, "/", 3)
+			if len(spath) != 3 {
+				return nil, fmt.Errorf("incorrectly formatted path: %s", u.Path)
+			}
+			dirPrefix := spath[2]
+			if !strings.HasSuffix(dirPrefix, "/") {
+				dirPrefix = dirPrefix + "/"
+			}
+			globStr := dirPrefix + fileGlob
+			log.Infof("GlobStr: %s", globStr)
+			log.Infof("Listing %s %s", spath[1], dirPrefix)
+			for obj := range client.ListObjects(context.Background(), spath[1],
+				minio.ListObjectsOptions{
+					Recursive: true,
+					Prefix:    dirPrefix,
+				}) {
+				if match, err := filepath.Match(globStr, obj.Key); match && err == nil {
+					out = append(out, fmt.Sprintf("%s://%s/%s/%s", u.Scheme, u.Host, spath[1], obj.Key))
+				} else if err != nil {
+					log.Infof("Match error: %s", err)
+				}
+			}
+			return out, nil
+		} else {
+			return nil, err
+		}
+	}
+	return filepath.Glob(filepath.Join(baseDir, fileGlob))
 }

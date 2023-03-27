@@ -26,6 +26,8 @@ var database = "gripdb"
 var graph string
 var vertexFile string
 var edgeFile string
+var dirPath string
+var edgeUID bool
 
 var bulkBufferSize = 1000
 var workerCount = 1
@@ -64,6 +66,9 @@ func edgeSerialize(edgeChan chan *gripql.Edge, workers int) chan []byte {
 		wg.Add(1)
 		go func() {
 			for e := range edgeChan {
+				if edgeUID && e.Gid == "" {
+					e.Gid = util.UUID()
+				}
 				doc := mongo.PackEdge(gdbi.NewElementFromEdge(e))
 				rawBytes, err := bson.Marshal(doc)
 				if err == nil {
@@ -87,7 +92,7 @@ var Cmd = &cobra.Command{
 	Long:  ``,
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if vertexFile == "" && edgeFile == "" {
+		if vertexFile == "" && edgeFile == "" && dirPath == "" {
 			return fmt.Errorf("no edge or vertex files were provided")
 		}
 
@@ -157,6 +162,57 @@ var Cmd = &cobra.Command{
 			}
 			edgeInserter.Flush()
 		}
+
+		if dirPath != "" {
+			if glob, err := util.DirScan(dirPath, "*.vertex.json.gz"); err == nil {
+				vertexCount := 0
+				vertInserter := db.NewUnorderedBufferedBulkInserter(vertexCol, bulkBufferSize).
+					SetBypassDocumentValidation(true).
+					SetOrdered(false).
+					SetUpsert(true)
+				for _, vertexFile := range glob {
+					log.Infof("Loading vertex file: %s", vertexFile)
+					vertChan, err := util.StreamVerticesFromFile(vertexFile, workerCount)
+					if err != nil {
+						return err
+					}
+					dataChan := vertexSerialize(vertChan, workerCount)
+					for d := range dataChan {
+						vertInserter.InsertRaw(d)
+						if vertexCount%logRate == 0 {
+							log.Infof("Loaded %d vertices", vertexCount)
+						}
+						vertexCount++
+					}
+				}
+				vertInserter.Flush()
+			}
+
+			if glob, err := util.DirScan(dirPath, "*.edge.json.gz"); err == nil {
+				edgeCount := 0
+				edgeInserter := db.NewUnorderedBufferedBulkInserter(edgeCol, bulkBufferSize).
+					SetBypassDocumentValidation(true).
+					SetOrdered(false).
+					SetUpsert(true)
+				for _, edgeFile := range glob {
+					log.Infof("Loading edge file: %s", edgeFile)
+					edgeChan, err := util.StreamEdgesFromFile(edgeFile, workerCount)
+					if err != nil {
+						return err
+					}
+					dataChan := edgeSerialize(edgeChan, workerCount)
+					for d := range dataChan {
+						edgeInserter.InsertRaw(d)
+						if edgeCount%logRate == 0 {
+							log.Infof("Loaded %d edges", edgeCount)
+						}
+						edgeCount++
+					}
+				}
+				edgeInserter.Flush()
+			}
+		}
+
 		return nil
 	},
 }
@@ -167,7 +223,9 @@ func init() {
 	flags.StringVar(&database, "database", database, "database name in mongo to store graph")
 	flags.StringVar(&vertexFile, "vertex", "", "vertex file")
 	flags.StringVar(&edgeFile, "edge", "", "edge file")
+	flags.StringVarP(&dirPath, "dir", "d", "", "dir file")
 	flags.BoolVarP(&createGraph, "create", "c", false, "create graph")
+	flags.BoolVar(&edgeUID, "edge-uid", edgeUID, "fill in blank edge ids")
 	flags.IntVarP(&workerCount, "workers", "n", workerCount, "number of processing threads")
 	flags.IntVar(&bulkBufferSize, "batch-size", bulkBufferSize, "mongo bulk load batch size")
 }
