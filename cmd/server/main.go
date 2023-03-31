@@ -19,6 +19,8 @@ var conf = &config.Config{}
 var configFile string
 var driver = "badger"
 
+var endPoints = map[string]string{}
+
 var pluginDir = ""
 
 // Run runs an Grip server.
@@ -40,6 +42,12 @@ func Run(conf *config.Config, baseDir string) error {
 	srv, err := server.NewGripServer(conf, baseDir, nil)
 	if err != nil {
 		return err
+	}
+
+	for k, v := range endPoints {
+		if err := srv.AddEndpoint(k, v); err != nil {
+			log.Errorf("Error loading pluging %s: %s", k, err)
+		}
 	}
 
 	// Start server
@@ -111,6 +119,8 @@ func init() {
 
 	flags.StringVarP(&pluginDir, "plugins", "p", pluginDir, "Directory with GRIPPER plugins")
 	flags.StringVarP(&driver, "driver", "d", driver, "Default Driver")
+
+	flags.StringToStringVarP(&endPoints, "endpoint", "w", endPoints, "web endpoint plugins")
 
 	flags.StringToStringVarP(&conf.Sources, "er", "e", conf.Sources, "GRIPPER source address")
 }
