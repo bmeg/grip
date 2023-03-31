@@ -59,9 +59,7 @@ func (gh *Handler) ServeHTTP(writer http.ResponseWriter, request *http.Request) 
 		writer.Write([]byte(sandBox))
 		return
 	}
-	fmt.Printf("Handling: %s\n", request.URL.Path)
 	pathRE := regexp.MustCompile("/.*/(.+)$")
-	fmt.Printf("Match: %#v\n", pathRE.FindStringSubmatch(request.URL.Path))
 	graphName := pathRE.FindStringSubmatch(request.URL.Path)[1]
 	var handler *graphHandler
 	var ok bool
