@@ -7,3 +7,5 @@ graphql.so : $(shell find graphql -name "*.go")
 cypher.so :  $(shell find cypher -name "*.go")
 	go build --buildmode=plugin ./cypher
 
+clean:
+	rm *.so

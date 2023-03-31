@@ -1,11 +1,12 @@
 package gripql
 
 import (
-	"encoding/json"
 	"fmt"
 	"strings"
 
+	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/util/protoutil"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -179,7 +180,10 @@ func (q *Query) Distinct(args ...string) *Query {
 
 // Render adds a render step to the query
 func (q *Query) Render(template interface{}) *Query {
-	value, _ := structpb.NewValue(template)
+	value, err := structpb.NewValue(template)
+	if err != nil {
+		log.Errorf("render error: %s", err)
+	}
 	return q.with(&GraphStatement{Statement: &GraphStatement_Render{value}})
 }
 
@@ -269,9 +273,11 @@ func (q *Query) String() string {
 			add("Aggregate")
 
 		case *GraphStatement_Render:
-			rmap := stmt.Render.GetStructValue().AsMap()
-			rtxt, _ := json.Marshal(rmap)
-			add("Render", string(rtxt))
+			jtxt, err := protojson.Marshal(stmt.Render)
+			if err != nil {
+				log.Errorf("serialization error: %s", err)
+			}
+			add("Render", string(jtxt))
 		}
 	}
 

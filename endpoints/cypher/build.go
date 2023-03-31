@@ -66,14 +66,19 @@ func (c *cypherListener) BuildQuery() (*gripql.Query, error) {
 			q = q.As(c.vertexPath[i].name)
 		}
 		if len(c.returns) > 0 {
-			q = q.Render("$" + c.returns[0])
+			log.Infof("Render: $" + c.returns[0] + "._data")
+			r := map[string]any{}
+			for _, i := range c.returns {
+				r[i] = "$" + i + "._data"
+			}
+			q = q.Render(r)
 		}
 		log.Debugf("Query: %s", q.String())
 		return q, nil
 	} else if c.queryType == "CREATE" {
 		log.Debugf("Query Build: %#v", c)
 	}
-	return nil, fmt.Errorf("Unknown query type")
+	return nil, fmt.Errorf("unknown query type")
 }
 
 func (c *cypherListener) EnterOC_Statement(ctx *parser.OC_StatementContext) {
@@ -172,7 +177,7 @@ func (c *cypherListener) EnterOC_Return(ctx *parser.OC_ReturnContext) {
 }
 
 func (c *cypherListener) EnterOC_ProjectionItem(ctx *parser.OC_ProjectionItemContext) {
-	log.Debugf("Return Projections: %s", ctx.GetText())
+	log.Infof("Return Projections: %s", ctx.GetText())
 	c.returns = append(c.returns, ctx.GetText())
 }
 
