@@ -55,12 +55,14 @@ func (ma *KVGraph) sampleSchema(ctx context.Context, graph string, n uint32, ran
 			close(reqChan)
 			for e := range gi.GetOutEdgeChannel(ctx, reqChan, true, false, []string{}) {
 				o := gi.GetVertex(e.Edge.To, false)
-				k := fromtokey{from: v.Label, to: o.Label, label: e.Edge.Label}
-				ds := gripql.GetDataFieldTypes(e.Edge.Data)
-				if p, ok := fromToPairs[k]; ok {
-					fromToPairs[k] = util.MergeMaps(p, ds)
-				} else {
-					fromToPairs[k] = ds
+				if o != nil {
+					k := fromtokey{from: v.Label, to: o.Label, label: e.Edge.Label}
+					ds := gripql.GetDataFieldTypes(e.Edge.Data)
+					if p, ok := fromToPairs[k]; ok {
+						fromToPairs[k] = util.MergeMaps(p, ds)
+					} else {
+						fromToPairs[k] = ds
+					}
 				}
 			}
 		}

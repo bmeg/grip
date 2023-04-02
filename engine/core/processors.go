@@ -1150,6 +1150,16 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 				return nil
 			})
 
+		case *gripql.Aggregate_Count:
+			g.Go(func() error {
+				count := 0
+				for range aChans[a.Name] {
+					count++
+				}
+				out <- &gdbi.BaseTraveler{Aggregation: &gdbi.Aggregate{Name: a.Name, Key: "count", Value: float64(count)}}
+				return nil
+			})
+
 		default:
 			log.Errorf("Error: unknown aggregation type: %T", a.Aggregation)
 			continue

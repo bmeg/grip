@@ -143,6 +143,8 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 								term = f
 							case *gripql.Aggregate_Field:
 								term = bucket["_id"]
+							case *gripql.Aggregate_Count:
+								term = bucket["_id"]
 							case *gripql.Aggregate_Type:
 								switch bucket["_id"] {
 								case "double":

@@ -17,6 +17,8 @@ var vertexFile string
 var edgeFile string
 var jsonFile string
 var yamlFile string
+var dirPath string
+var edgeUID bool
 
 var workerCount = 1
 
@@ -29,7 +31,7 @@ var Cmd = &cobra.Command{
 	Long:  ``,
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if vertexFile == "" && edgeFile == "" && jsonFile == "" && yamlFile == "" {
+		if vertexFile == "" && edgeFile == "" && jsonFile == "" && yamlFile == "" && dirPath == "" {
 			return fmt.Errorf("no input files were provided")
 		}
 
@@ -99,9 +101,54 @@ var Cmd = &cobra.Command{
 				if count%logRate == 0 {
 					log.Infof("Loaded %d edges", count)
 				}
+				if edgeUID && e.Gid == "" {
+					e.Gid = util.UUID()
+				}
 				elemChan <- &gripql.GraphElement{Graph: graph, Edge: e}
 			}
 			log.Infof("Loaded total of %d edges", count)
+		}
+
+		if dirPath != "" {
+			vertexCount := 0
+			if glob, err := util.DirScan(dirPath, "*.vertex.json.gz"); err == nil {
+				for _, vertexFile := range glob {
+					log.Infof("Loading vertex file: %s", vertexFile)
+					vertChan, err := util.StreamVerticesFromFile(vertexFile, workerCount)
+					if err != nil {
+						return err
+					}
+					for v := range vertChan {
+						vertexCount++
+						if vertexCount%logRate == 0 {
+							log.Infof("Loaded %d vertices", vertexCount)
+						}
+						elemChan <- &gripql.GraphElement{Graph: graph, Vertex: v}
+					}
+				}
+			}
+			edgeCount := 0
+			if glob, err := util.DirScan(dirPath, "*.edge.json.gz"); err == nil {
+				for _, edgeFile := range glob {
+					log.Infof("Loading edge file: %s", edgeFile)
+					edgeChan, err := util.StreamEdgesFromFile(edgeFile, workerCount)
+					if err != nil {
+						return err
+					}
+					for e := range edgeChan {
+						edgeCount++
+						if edgeCount%logRate == 0 {
+							log.Infof("Loaded %d edges", edgeCount)
+						}
+						if edgeUID && e.Gid == "" {
+							e.Gid = util.UUID()
+						}
+						elemChan <- &gripql.GraphElement{Graph: graph, Edge: e}
+					}
+				}
+			}
+			log.Infof("Loaded total of %d vertices", vertexCount)
+			log.Infof("Loaded total of %d edges", edgeCount)
 		}
 
 		if jsonFile != "" {
@@ -155,5 +202,7 @@ func init() {
 	flags.StringVar(&edgeFile, "edge", "", "edge file")
 	flags.StringVar(&jsonFile, "json", "", "JSON graph file")
 	flags.StringVar(&yamlFile, "yaml", "", "YAML graph file")
+	flags.StringVar(&dirPath, "dir", "", "Load graph elements from directory")
+	flags.BoolVar(&edgeUID, "edge-uid", edgeUID, "fill in blank edge ids")
 	flags.IntVarP(&workerCount, "workers", "n", workerCount, "number of processing threads")
 }

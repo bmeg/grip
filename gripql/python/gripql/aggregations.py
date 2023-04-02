@@ -41,3 +41,9 @@ def type(name, field=None):
         "name": name,
         "type": {"field":field}
     }
+
+def count(name):
+    return {
+        "name": name,
+        "count": {}
+    }
