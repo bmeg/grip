@@ -309,7 +309,7 @@ func (kgdb *KVInterfaceGDB) GetVertexChannel(ctx context.Context, ids chan gdbi.
 		kgdb.kvg.kv.View(func(it kvi.KVIterator) error {
 			for id := range ids {
 				if id.IsSignal() {
-					data <- elementData{req:id}
+					data <- elementData{req: id}
 				} else {
 					vkey := VertexKey(kgdb.graph, id.ID)
 					dataValue, err := it.Get(vkey)
@@ -348,8 +348,8 @@ func (kgdb *KVInterfaceGDB) GetVertexChannel(ctx context.Context, ids chan gdbi.
 	return out
 }
 
-//GetOutChannel process requests of vertex ids and find the connected vertices on outgoing edges
-func (kgdb *KVInterfaceGDB) GetOutChannel(ctx context.Context, reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
+// GetOutChannel process requests of vertex ids and find the connected vertices on outgoing edges
+func (kgdb *KVInterfaceGDB) GetOutChannel(ctx context.Context, reqChan chan gdbi.ElementLookup, load bool, emitNull bool, edgeLabels []string) chan gdbi.ElementLookup {
 	vertexChan := make(chan elementData, 100)
 	go func() {
 		defer close(vertexChan)
@@ -358,6 +358,7 @@ func (kgdb *KVInterfaceGDB) GetOutChannel(ctx context.Context, reqChan chan gdbi
 				if req.IsSignal() {
 					vertexChan <- elementData{req: req}
 				} else {
+					found := false
 					skeyPrefix := SrcEdgePrefix(kgdb.graph, req.ID)
 					for it.Seek(skeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), skeyPrefix); it.Next() {
 						keyValue := it.Key()
@@ -369,7 +370,14 @@ func (kgdb *KVInterfaceGDB) GetOutChannel(ctx context.Context, reqChan chan gdbi
 									data: vkey,
 									req:  req,
 								}
+								found = true
 							}
+						}
+					}
+					if !found && emitNull {
+						vertexChan <- elementData{
+							data: nil,
+							req:  req,
 						}
 					}
 				}
@@ -386,23 +394,28 @@ func (kgdb *KVInterfaceGDB) GetOutChannel(ctx context.Context, reqChan chan gdbi
 				if req.req.IsSignal() {
 					o <- req.req
 				} else {
-					dataValue, err := it.Get(req.data)
-					if err == nil {
-						_, gid := VertexKeyParse(req.data)
-						v := &gripql.Vertex{Gid: gid}
-						//if load { //TODO: can't skip loading data, because the label in the data
-						err = proto.Unmarshal(dataValue, v)
-						if err != nil {
-							log.Errorf("GetOutChannel: unmarshal error: %v", err)
-							continue
-							//}
+					if req.data != nil {
+						dataValue, err := it.Get(req.data)
+						if err == nil {
+							_, gid := VertexKeyParse(req.data)
+							v := &gripql.Vertex{Gid: gid}
+							//if load { //TODO: can't skip loading data, because the label in the data
+							err = proto.Unmarshal(dataValue, v)
+							if err != nil {
+								log.Errorf("GetOutChannel: unmarshal error: %v", err)
+								continue
+								//}
+							}
+							req.req.Vertex = &gdbi.Vertex{
+								ID:     gid,
+								Label:  v.Label,
+								Data:   v.Data.AsMap(),
+								Loaded: true,
+							}
+							o <- req.req
 						}
-						req.req.Vertex = &gdbi.Vertex{
-							ID:     gid,
-							Label:  v.Label,
-							Data:   v.Data.AsMap(),
-							Loaded: true,
-						}
+					} else {
+						req.req.Vertex = nil
 						o <- req.req
 					}
 				}
@@ -413,8 +426,8 @@ func (kgdb *KVInterfaceGDB) GetOutChannel(ctx context.Context, reqChan chan gdbi
 	return o
 }
 
-//GetInChannel process requests of vertex ids and find the connected vertices on incoming edges
-func (kgdb *KVInterfaceGDB) GetInChannel(ctx context.Context, reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
+// GetInChannel process requests of vertex ids and find the connected vertices on incoming edges
+func (kgdb *KVInterfaceGDB) GetInChannel(ctx context.Context, reqChan chan gdbi.ElementLookup, load bool, emitNull bool, edgeLabels []string) chan gdbi.ElementLookup {
 	o := make(chan gdbi.ElementLookup, 100)
 	go func() {
 		defer close(o)
@@ -457,8 +470,8 @@ func (kgdb *KVInterfaceGDB) GetInChannel(ctx context.Context, reqChan chan gdbi.
 	return o
 }
 
-//GetOutEdgeChannel process requests of vertex ids and find the connected outgoing edges
-func (kgdb *KVInterfaceGDB) GetOutEdgeChannel(ctx context.Context, reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
+// GetOutEdgeChannel process requests of vertex ids and find the connected outgoing edges
+func (kgdb *KVInterfaceGDB) GetOutEdgeChannel(ctx context.Context, reqChan chan gdbi.ElementLookup, load bool, emitNull bool, edgeLabels []string) chan gdbi.ElementLookup {
 	o := make(chan gdbi.ElementLookup, 100)
 	go func() {
 		defer close(o)
@@ -508,8 +521,8 @@ func (kgdb *KVInterfaceGDB) GetOutEdgeChannel(ctx context.Context, reqChan chan 
 	return o
 }
 
-//GetInEdgeChannel process requests of vertex ids and find the connected incoming edges
-func (kgdb *KVInterfaceGDB) GetInEdgeChannel(ctx context.Context, reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
+// GetInEdgeChannel process requests of vertex ids and find the connected incoming edges
+func (kgdb *KVInterfaceGDB) GetInEdgeChannel(ctx context.Context, reqChan chan gdbi.ElementLookup, load bool, emitNull bool, edgeLabels []string) chan gdbi.ElementLookup {
 	o := make(chan gdbi.ElementLookup, 100)
 	go func() {
 		defer close(o)

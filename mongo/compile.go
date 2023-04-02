@@ -200,7 +200,7 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement, opts *gdbi.Compile
 						},
 					}},
 				)
-				query = append(query, bson.D{primitive.E{Key: "$unwind", Value: "$dst"}})
+				query = append(query, bson.D{primitive.E{Key: "$unwind", Value: "$dst"}}) //for null returns will need to use preserveNullAndEmptyArrays
 				query = append(query, bson.D{primitive.E{Key: "$project", Value: bson.M{
 					"_id":   "$dst._id",
 					"label": "$dst.label",

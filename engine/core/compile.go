@@ -170,7 +170,7 @@ func StatementProcessor(gs *gripql.GraphStatement, db gdbi.GraphInterface, ps *p
 		return &both{db: db, labels: labels, lastType: gdbi.VertexData, toType: gdbi.EdgeData, loadData: ps.StepLoadData()}, nil
 
 	case *gripql.GraphStatement_InNull:
-		labels := protoutil.AsStringList(gs.GetIn())
+		labels := protoutil.AsStringList(gs.GetInNull())
 		if ps.LastType == gdbi.VertexData {
 			ps.LastType = gdbi.VertexData
 			return &LookupVertexAdjIn{db: db, labels: labels, loadData: ps.StepLoadData(), emitNull: true}, nil
@@ -182,7 +182,7 @@ func StatementProcessor(gs *gripql.GraphStatement, db gdbi.GraphInterface, ps *p
 		}
 
 	case *gripql.GraphStatement_OutNull:
-		labels := protoutil.AsStringList(gs.GetOut())
+		labels := protoutil.AsStringList(gs.GetOutNull())
 		if ps.LastType == gdbi.VertexData {
 			ps.LastType = gdbi.VertexData
 			return &LookupVertexAdjOut{db: db, labels: labels, loadData: ps.StepLoadData(), emitNull: true}, nil
@@ -348,7 +348,7 @@ func StatementProcessor(gs *gripql.GraphStatement, db gdbi.GraphInterface, ps *p
 	}
 }
 
-//Validate checks pipeline for chains of statements that won't work
+// Validate checks pipeline for chains of statements that won't work
 func Validate(stmts []*gripql.GraphStatement, opts *gdbi.CompileOptions) error {
 	for i, gs := range stmts {
 		// Validate that the first statement is V() or E()

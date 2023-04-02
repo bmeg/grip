@@ -398,7 +398,7 @@ func (es *Graph) GetVertexChannel(ctx context.Context, req chan gdbi.ElementLook
 }
 
 // GetOutChannel gets channel of all vertices connected to element via outgoing edge
-func (es *Graph) GetOutChannel(ctx context.Context, req chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
+func (es *Graph) GetOutChannel(ctx context.Context, req chan gdbi.ElementLookup, load bool, emitNull bool, edgeLabels []string) chan gdbi.ElementLookup {
 	g, ctx := errgroup.WithContext(ctx)
 
 	// Create query batches
@@ -516,7 +516,7 @@ func (es *Graph) GetOutChannel(ctx context.Context, req chan gdbi.ElementLookup,
 }
 
 // GetInChannel gets all vertices connected to lookup elements by incoming edges
-func (es *Graph) GetInChannel(ctx context.Context, req chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
+func (es *Graph) GetInChannel(ctx context.Context, req chan gdbi.ElementLookup, load bool, emitNull bool, edgeLabels []string) chan gdbi.ElementLookup {
 	g, ctx := errgroup.WithContext(ctx)
 
 	// Create query batches
@@ -634,7 +634,7 @@ func (es *Graph) GetInChannel(ctx context.Context, req chan gdbi.ElementLookup, 
 }
 
 // GetOutEdgeChannel gets all outgoing edges connected to lookup element
-func (es *Graph) GetOutEdgeChannel(ctx context.Context, req chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
+func (es *Graph) GetOutEdgeChannel(ctx context.Context, req chan gdbi.ElementLookup, load bool, emitNull bool, edgeLabels []string) chan gdbi.ElementLookup {
 	g, ctx := errgroup.WithContext(ctx)
 
 	// Create query batches
@@ -706,7 +706,7 @@ func (es *Graph) GetOutEdgeChannel(ctx context.Context, req chan gdbi.ElementLoo
 }
 
 // GetInEdgeChannel gets incoming edges connected to lookup element
-func (es *Graph) GetInEdgeChannel(ctx context.Context, req chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
+func (es *Graph) GetInEdgeChannel(ctx context.Context, req chan gdbi.ElementLookup, load bool, emitNull bool, edgeLabels []string) chan gdbi.ElementLookup {
 	g, ctx := errgroup.WithContext(ctx)
 
 	// Create query batches

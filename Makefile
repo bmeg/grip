@@ -38,14 +38,15 @@ proto:
 		-I ../googleapis \
 		--lint_out=. \
 		--go_out ./ \
-  	--go_opt paths=source_relative \
+	  	--go_opt paths=source_relative \
 		--go-grpc_out ./ \
 		--go-grpc_opt paths=source_relative \
 		--grpc-gateway_out ./ \
 		--grpc-gateway_opt logtostderr=true \
 		--grpc-gateway_opt paths=source_relative \
 		--grpc-rest-direct_out . \
-		--grpc-http-client_out . \
+		--grpc-gateway-client_out . \
+		--grpc-gateway-client_opt paths=source_relative \
 		gripql.proto
 	@cd kvindex && protoc \
 		-I ./ \

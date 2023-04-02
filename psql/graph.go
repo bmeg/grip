@@ -370,7 +370,7 @@ func (g *Graph) GetVertexChannel(ctx context.Context, reqChan chan gdbi.ElementL
 }
 
 // GetOutChannel is passed a channel of vertex ids and finds the connected vertices via outgoing edges
-func (g *Graph) GetOutChannel(ctx context.Context, reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
+func (g *Graph) GetOutChannel(ctx context.Context, reqChan chan gdbi.ElementLookup, load bool, emitNull bool, edgeLabels []string) chan gdbi.ElementLookup {
 	batches := gdbi.LookupBatcher(reqChan, 100, time.Microsecond)
 
 	o := make(chan gdbi.ElementLookup, 100)
@@ -465,7 +465,7 @@ func (g *Graph) GetOutChannel(ctx context.Context, reqChan chan gdbi.ElementLook
 }
 
 // GetInChannel is passed a channel of vertex ids and finds the connected vertices via incoming edges
-func (g *Graph) GetInChannel(ctx context.Context, reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
+func (g *Graph) GetInChannel(ctx context.Context, reqChan chan gdbi.ElementLookup, load bool, emitNull bool, edgeLabels []string) chan gdbi.ElementLookup {
 	batches := gdbi.LookupBatcher(reqChan, 100, time.Microsecond)
 
 	o := make(chan gdbi.ElementLookup, 100)
@@ -560,7 +560,7 @@ func (g *Graph) GetInChannel(ctx context.Context, reqChan chan gdbi.ElementLooku
 }
 
 // GetOutEdgeChannel is passed a channel of vertex ids and finds the outgoing edges
-func (g *Graph) GetOutEdgeChannel(ctx context.Context, reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
+func (g *Graph) GetOutEdgeChannel(ctx context.Context, reqChan chan gdbi.ElementLookup, load bool, emitNull bool, edgeLabels []string) chan gdbi.ElementLookup {
 	batches := gdbi.LookupBatcher(reqChan, 100, time.Microsecond)
 
 	o := make(chan gdbi.ElementLookup, 100)
@@ -643,7 +643,7 @@ func (g *Graph) GetOutEdgeChannel(ctx context.Context, reqChan chan gdbi.Element
 }
 
 // GetInEdgeChannel is passed a channel of vertex ids and finds the incoming edges
-func (g *Graph) GetInEdgeChannel(ctx context.Context, reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
+func (g *Graph) GetInEdgeChannel(ctx context.Context, reqChan chan gdbi.ElementLookup, load bool, emitNull bool, edgeLabels []string) chan gdbi.ElementLookup {
 	batches := gdbi.LookupBatcher(reqChan, 100, time.Microsecond)
 
 	o := make(chan gdbi.ElementLookup, 100)

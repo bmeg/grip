@@ -30,8 +30,8 @@ func contains(a []string, n string) bool {
 	return false
 }
 
-//PipelineSteps create an array, the same length at stmts that labels the
-//step id for each of the GraphStatements
+// PipelineSteps create an array, the same length at stmts that labels the
+// step id for each of the GraphStatements
 func PipelineSteps(stmts []*gripql.GraphStatement) []string {
 	out := []string{}
 	curState := 0
@@ -41,14 +41,16 @@ func PipelineSteps(stmts []*gripql.GraphStatement) []string {
 		//we go to the next 'step' of the traversal
 		case *gripql.GraphStatement_V, *gripql.GraphStatement_E, *gripql.GraphStatement_Out,
 			*gripql.GraphStatement_In, *gripql.GraphStatement_OutE, *gripql.GraphStatement_InE,
-			*gripql.GraphStatement_Both, *gripql.GraphStatement_BothE, *gripql.GraphStatement_Select:
+			*gripql.GraphStatement_Both, *gripql.GraphStatement_BothE, *gripql.GraphStatement_Select,
+			*gripql.GraphStatement_InNull, *gripql.GraphStatement_OutNull,
+			*gripql.GraphStatement_InENull, *gripql.GraphStatement_OutENull:
 			curState++
 		case *gripql.GraphStatement_Limit, *gripql.GraphStatement_As, *gripql.GraphStatement_Has,
 			*gripql.GraphStatement_HasId, *gripql.GraphStatement_HasKey, *gripql.GraphStatement_HasLabel,
 			*gripql.GraphStatement_Count, *gripql.GraphStatement_Skip, *gripql.GraphStatement_Distinct,
 			*gripql.GraphStatement_Range, *gripql.GraphStatement_Aggregate, *gripql.GraphStatement_Render,
 			*gripql.GraphStatement_Fields, *gripql.GraphStatement_Unwind, *gripql.GraphStatement_Path,
-			*gripql.GraphStatement_Set, *gripql.GraphStatement_Increment, 
+			*gripql.GraphStatement_Set, *gripql.GraphStatement_Increment,
 			*gripql.GraphStatement_Mark, *gripql.GraphStatement_Jump:
 		case *gripql.GraphStatement_LookupVertsIndex, *gripql.GraphStatement_EngineCustom:
 		default:
@@ -59,8 +61,8 @@ func PipelineSteps(stmts []*gripql.GraphStatement) []string {
 	return out
 }
 
-//PipelineSteps identify the variable names each step can be aliasesed using
-//the as_ operation
+// PipelineSteps identify the variable names each step can be aliasesed using
+// the as_ operation
 func PipelineAsSteps(stmts []*gripql.GraphStatement) map[string]string {
 	out := map[string]string{}
 	steps := PipelineSteps(stmts)
@@ -74,7 +76,7 @@ func PipelineAsSteps(stmts []*gripql.GraphStatement) map[string]string {
 	return out
 }
 
-//PipelineStepOutputs identify the required outputs for each step in the traversal
+// PipelineStepOutputs identify the required outputs for each step in the traversal
 func PipelineStepOutputs(stmts []*gripql.GraphStatement) map[string][]string {
 
 	steps := PipelineSteps(stmts)
@@ -135,9 +137,9 @@ func PipelineStepOutputs(stmts []*gripql.GraphStatement) map[string][]string {
 	return out
 }
 
-//PipelineNoLoadPath identifies 'paths' which are groups of statements that move
-//travelers across multiple steps, and don't require data (other then the label)
-//to be loaded
+// PipelineNoLoadPath identifies 'paths' which are groups of statements that move
+// travelers across multiple steps, and don't require data (other then the label)
+// to be loaded
 func PipelineNoLoadPath(stmts []*gripql.GraphStatement, minLen int) [][]int {
 	out := [][]int{}
 
