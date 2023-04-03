@@ -14,7 +14,6 @@ import (
 
 	"github.com/bmeg/grip/config"
 	"github.com/bmeg/grip/gdbi"
-	"github.com/bmeg/grip/graphql"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/jobstorage"
 	"github.com/bmeg/grip/log"
@@ -206,15 +205,31 @@ func (server *GripServer) Serve(pctx context.Context) error {
 		if err != nil {
 			return fmt.Errorf("setting up GraphQL handler: %v", err)
 		}*/
-	gqlHandler, err := graphql.NewClientHTTPHandler(
-		gripql.WrapClient(gripql.NewQueryDirectClient(
+	/*
+		gqlHandler, err := graphql.NewClientHTTPHandler(
+			gripql.WrapClient(gripql.NewQueryDirectClient(
+				server,
+				gripql.DirectUnaryInterceptor(unaryAuthInt),
+				gripql.DirectStreamInterceptor(streamAuthInt),
+			),
+				nil, nil, nil))
+
+		mux.Handle("/graphql/", gqlHandler)
+	*/
+
+	for name, setup := range endpointMap {
+		handler, err := setup(gripql.WrapClient(gripql.NewQueryDirectClient(
 			server,
 			gripql.DirectUnaryInterceptor(unaryAuthInt),
 			gripql.DirectStreamInterceptor(streamAuthInt),
-		),
-			nil, nil, nil))
-
-	mux.Handle("/graphql/", gqlHandler)
+		), nil, nil, nil))
+		if err == nil {
+			log.Infof("Plugin added to /%s/", name)
+			mux.Handle(fmt.Sprintf("/%s/", name), handler)
+		} else {
+			log.Errorf("Unable to load plugin %s", name)
+		}
+	}
 
 	// Setup web ui handler
 	dashmux := http.NewServeMux()
