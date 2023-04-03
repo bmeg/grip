@@ -436,6 +436,7 @@ func (kgdb *KVInterfaceGDB) GetInChannel(ctx context.Context, reqChan chan gdbi.
 				if req.IsSignal() {
 					o <- req
 				} else {
+					found := false
 					dkeyPrefix := DstEdgePrefix(kgdb.graph, req.ID)
 					for it.Seek(dkeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), dkeyPrefix); it.Next() {
 						keyValue := it.Key()
@@ -459,8 +460,13 @@ func (kgdb *KVInterfaceGDB) GetInChannel(ctx context.Context, reqChan chan gdbi.
 									Loaded: true,
 								}
 								o <- req
+								found = true
 							}
 						}
+					}
+					if !found && emitNull {
+						req.Vertex = nil
+						o <- req
 					}
 				}
 			}

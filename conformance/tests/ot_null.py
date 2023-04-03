@@ -29,7 +29,7 @@ def test_hasLabelOut(man):
             errors.append("%s should not have been found" % (i[0]))
         count_1 += 1
 
-    print("query 2")
+    #print("query 2")
     count_2 = 0
     nullFound = []
     for i in G.query().V().hasLabel("Character").as_("a").outNull("starships").as_("b").render(["$a._gid", "$b._gid", "$b._label"]):
@@ -44,5 +44,39 @@ def test_hasLabelOut(man):
         print(noStarshipCharacters)
 
     #print(count_1, count_2)
+
+    return errors
+
+
+
+def test_hasLabelIn(man):
+    errors = []
+
+    G = man.setGraph("swapi")
+
+    noResidenceCharacters = [
+        "Character:3",
+        "Character:10",
+        "Character:12",
+        "Character:13",
+        "Character:14",
+        "Character:15",
+        "Character:16",
+        "Character:18",
+        "Character:19"
+    ]
+
+    for i in G.query().V().hasLabel("Character").as_("a").in_("residents").as_("b").render(["$a._gid", "$b._gid", "$b._label"]):
+        if i[0] in noResidenceCharacters:
+            errors.append("%s should not have been found" % (i[0]))
+
+    nullFound = []
+    for i in G.query().V().hasLabel("Character").as_("a").inNull("residents").as_("b").render(["$a._gid", "$b._gid", "$b._label"]):
+        #print(i)
+        if i[0] in noResidenceCharacters:
+            nullFound.append(i[0])
+
+    if len(nullFound) != len(noResidenceCharacters):
+        errors.append("Incorrect null count %d != %d" % (len(nullFound), len(noResidenceCharacters)))
 
     return errors

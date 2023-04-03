@@ -268,17 +268,12 @@ func (l *LookupVertexAdjIn) Process(ctx context.Context, man gdbi.Manager, in gd
 	}()
 	go func() {
 		defer close(out)
-		for v := range l.db.GetInChannel(ctx, queryChan, l.loadData, false, l.labels) {
+		for v := range l.db.GetInChannel(ctx, queryChan, l.loadData, l.emitNull, l.labels) {
 			i := v.Ref
 			if i.IsSignal() {
 				out <- i
 			} else {
-				out <- i.AddCurrent(&gdbi.DataElement{
-					ID:     v.Vertex.ID,
-					Label:  v.Vertex.Label,
-					Data:   v.Vertex.Data,
-					Loaded: v.Vertex.Loaded,
-				})
+				out <- i.AddCurrent(v.Vertex)
 			}
 		}
 	}()
