@@ -225,7 +225,8 @@ func (server *GripServer) Serve(pctx context.Context) error {
 		), nil, nil, nil))
 		if err == nil {
 			log.Infof("Plugin added to /%s/", name)
-			mux.Handle(fmt.Sprintf("/%s/", name), handler)
+			prefix := fmt.Sprintf("/%s/", name)
+			mux.Handle(prefix, http.StripPrefix(prefix, handler))
 		} else {
 			log.Errorf("Unable to load plugin %s", name)
 		}

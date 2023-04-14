@@ -170,7 +170,7 @@ func (l *LookupVertexAdjOut) Process(ctx context.Context, man gdbi.Manager, in g
 	go func() {
 		defer close(queryChan)
 		for t := range in {
-			if t.IsSignal() {
+			if t.IsSignal() || t.IsNull() {
 				queryChan <- gdbi.ElementLookup{
 					Ref: t,
 				}

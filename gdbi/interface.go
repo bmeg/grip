@@ -67,6 +67,7 @@ type BaseTraveler struct {
 type Traveler interface {
 	IsSignal() bool
 	GetSignal() Signal
+	IsNull() bool
 	GetCurrent() *DataElement
 	GetCurrentID() string
 	AddCurrent(r *DataElement) Traveler

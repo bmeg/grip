@@ -80,10 +80,11 @@ func (tr *BaseTraveler) GetSignal() Signal {
 }
 
 func (tr *BaseTraveler) IsSignal() bool {
-	if tr.Signal != nil {
-		return true
-	}
-	return false
+	return tr.Signal != nil
+}
+
+func (tr *BaseTraveler) IsNull() bool {
+	return tr.Current == nil
 }
 
 // HasMark checks to see if a results is stored in a travelers statemap
