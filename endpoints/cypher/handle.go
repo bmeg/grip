@@ -9,7 +9,6 @@ import (
 	"context"
 	"io"
 	"net/http"
-	"regexp"
 
 	"github.com/bmeg/grip/gripql"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -32,8 +31,7 @@ func NewHTTPHandler(client gripql.Client) (http.Handler, error) {
 
 // ServeHTTP responds to HTTP graphql requests
 func (gh *Handler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
-	pathRE := regexp.MustCompile("/.*/(.*)$")
-	graphName := pathRE.FindStringSubmatch(request.URL.Path)[1]
+	graphName := request.URL.Path
 	if request.Method == "POST" {
 		buf := bytes.Buffer{}
 		buf.ReadFrom(request.Body)

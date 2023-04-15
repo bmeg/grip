@@ -7,7 +7,6 @@ package main
 import (
 	"fmt"
 	"net/http"
-	"regexp"
 
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/log"
@@ -55,12 +54,13 @@ var sandBox = `
 // ServeHTTP responds to HTTP graphql requests
 func (gh *Handler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 	//If no graph provided, return the Query Editor page
-	if request.URL.Path == "/graphql" || request.URL.Path == "/graphql/" {
+	if request.URL.Path == "" || request.URL.Path == "/" {
 		writer.Write([]byte(sandBox))
 		return
 	}
-	pathRE := regexp.MustCompile("/.*/(.+)$")
-	graphName := pathRE.FindStringSubmatch(request.URL.Path)[1]
+	//pathRE := regexp.MustCompile("/(.+)$")
+	//graphName := pathRE.FindStringSubmatch(request.URL.Path)[1]
+	graphName := request.URL.Path
 	var handler *graphHandler
 	var ok bool
 	if handler, ok = gh.handlers[graphName]; ok {
