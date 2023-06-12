@@ -517,6 +517,7 @@ func (t *TabularGraph) GetOutChannel(ctx context.Context, req chan gdbi.ElementL
 			if r.IsSignal() {
 				vReqs <- r
 			} else {
+				found := false
 				select {
 				case <-ctx.Done():
 				default:
@@ -539,6 +540,7 @@ func (t *TabularGraph) GetOutChannel(ctx context.Context, req chan gdbi.ElementL
 														dstID := edge.config.To + dstStr
 														nReq := gdbi.ElementLookup{ID: dstID, Ref: r.Ref}
 														vReqs <- nReq
+														found = true
 													}
 												} else {
 													log.Errorf("Lookup Error %s", err)
@@ -553,6 +555,12 @@ func (t *TabularGraph) GetOutChannel(ctx context.Context, req chan gdbi.ElementL
 								}
 							}
 						}
+					}
+				}
+				if emitNull {
+					if !found {
+						r.Vertex = nil
+						vReqs <- r
 					}
 				}
 			}
@@ -572,6 +580,7 @@ func (t *TabularGraph) GetInChannel(ctx context.Context, req chan gdbi.ElementLo
 			if r.IsSignal() {
 				vReqs <- r
 			} else {
+				found := false
 				select {
 				case <-ctx.Done():
 				default:
@@ -595,6 +604,7 @@ func (t *TabularGraph) GetInChannel(ctx context.Context, req chan gdbi.ElementLo
 														dstID := edge.config.To + dstStr
 														nReq := gdbi.ElementLookup{ID: dstID, Ref: r.Ref}
 														vReqs <- nReq
+														found = true
 													}
 												}
 											}
@@ -607,6 +617,12 @@ func (t *TabularGraph) GetInChannel(ctx context.Context, req chan gdbi.ElementLo
 								}
 							}
 						}
+					}
+				}
+				if emitNull {
+					if !found {
+						r.Vertex = nil
+						vReqs <- r
 					}
 				}
 			}
@@ -625,6 +641,7 @@ func (t *TabularGraph) GetOutEdgeChannel(ctx context.Context, req chan gdbi.Elem
 			if r.IsSignal() {
 				out <- r
 			} else {
+				found := false
 				select {
 				case <-ctx.Done():
 				default:
@@ -653,6 +670,7 @@ func (t *TabularGraph) GetOutEdgeChannel(ctx context.Context, req chan gdbi.Elem
 															Loaded: true,
 														}
 														out <- gdbi.ElementLookup{Ref: r.Ref, Edge: &o}
+														found = true
 													}
 												}
 											}
@@ -665,6 +683,12 @@ func (t *TabularGraph) GetOutEdgeChannel(ctx context.Context, req chan gdbi.Elem
 								}
 							}
 						}
+					}
+				}
+				if emitNull {
+					if !found {
+						r.Edge = nil
+						out <- r
 					}
 				}
 			}
@@ -683,6 +707,7 @@ func (t *TabularGraph) GetInEdgeChannel(ctx context.Context, req chan gdbi.Eleme
 			if r.IsSignal() {
 				out <- r
 			} else {
+				found := false
 				select {
 				case <-ctx.Done():
 				default:
@@ -711,6 +736,7 @@ func (t *TabularGraph) GetInEdgeChannel(ctx context.Context, req chan gdbi.Eleme
 															Loaded: true,
 														}
 														out <- gdbi.ElementLookup{Ref: r.Ref, Edge: &o}
+														found = true
 													}
 												}
 											}
@@ -723,6 +749,12 @@ func (t *TabularGraph) GetInEdgeChannel(ctx context.Context, req chan gdbi.Eleme
 								}
 							}
 						}
+					}
+				}
+				if emitNull {
+					if !found {
+						r.Edge = nil
+						out <- r
 					}
 				}
 			}
