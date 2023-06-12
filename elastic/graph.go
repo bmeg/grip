@@ -57,7 +57,7 @@ func (es *Graph) AddEdge(edges []*gdbi.Edge) error {
 	}
 	for _, e := range edges {
 		if e.ID == "" {
-			return fmt.Errorf("Edge Gid cannot be an empty string")
+			return fmt.Errorf("edge gid cannot be an empty string")
 		}
 		pe := PackEdge(e)
 		script := elastic.NewScript(`ctx._source.gid = params.gid;
@@ -92,7 +92,7 @@ func (es *Graph) AddVertex(vertices []*gdbi.Vertex) error {
 	}
 	for _, v := range vertices {
 		if v.ID == "" {
-			return fmt.Errorf("Vertex Gid cannot be an empty string")
+			return fmt.Errorf("vertex gid cannot be an empty string")
 		}
 		pv := PackVertex(v)
 		script := elastic.NewScript(`ctx._source.gid = params.gid;
@@ -243,7 +243,7 @@ func (es *Graph) GetEdgeList(ctx context.Context, load bool) <-chan *gdbi.Edge {
 				return nil // all results retrieved
 			}
 			if err != nil {
-				return fmt.Errorf("Scroll call failed: %v", err)
+				return fmt.Errorf("scroll call failed: %v", err)
 			}
 
 			// Send the hits to the hits channel
@@ -298,7 +298,7 @@ func (es *Graph) GetVertexList(ctx context.Context, load bool) <-chan *gdbi.Vert
 				return nil // all results retrieved
 			}
 			if err != nil {
-				return fmt.Errorf("Scroll call failed: %v", err)
+				return fmt.Errorf("scroll call failed: %v", err)
 			}
 
 			// Send the hits to the hits channel
@@ -314,7 +314,7 @@ func (es *Graph) GetVertexList(ctx context.Context, load bool) <-chan *gdbi.Vert
 			vertex := &gripql.Vertex{}
 			err := protojson.Unmarshal(hit, vertex)
 			if err != nil {
-				return fmt.Errorf("Failed to unmarshal vertex: %v", err)
+				return fmt.Errorf("failed to unmarshal vertex: %v", err)
 			}
 			i := gdbi.NewElementFromVertex(vertex)
 			i.Loaded = load
@@ -368,7 +368,7 @@ func (es *Graph) GetVertexChannel(ctx context.Context, req chan gdbi.ElementLook
 					vertex := &gripql.Vertex{}
 					err := protojson.Unmarshal(*hit.Source, vertex)
 					if err != nil {
-						return fmt.Errorf("Failed to unmarshal vertex: %s", err)
+						return fmt.Errorf("failed to unmarshal vertex: %s", err)
 					}
 					r := batchMap[vertex.Gid]
 					for _, ri := range r {
@@ -411,6 +411,7 @@ func (es *Graph) GetOutChannel(ctx context.Context, req chan gdbi.ElementLookup,
 		for batch := range batches {
 			idBatch := make([]interface{}, 0, len(batch))
 			batchMap := make(map[string][]gdbi.ElementLookup, len(batch))
+			batchMapReturnCount := make(map[string]int)
 			signals := []gdbi.ElementLookup{}
 			for i := range batch {
 				if batch[i].IsSignal() {
@@ -418,6 +419,7 @@ func (es *Graph) GetOutChannel(ctx context.Context, req chan gdbi.ElementLookup,
 				} else {
 					idBatch = append(idBatch, batch[i].ID)
 					batchMap[batch[i].ID] = append(batchMap[batch[i].ID], batch[i])
+					batchMapReturnCount[batch[i].ID] = 0
 				}
 			}
 			b := []gdbi.ElementLookup{}
@@ -440,12 +442,24 @@ func (es *Graph) GetOutChannel(ctx context.Context, req chan gdbi.ElementLookup,
 					edge := &gripql.Edge{}
 					err := protojson.Unmarshal(*hit.Source, edge)
 					if err != nil {
-						return fmt.Errorf("Failed to unmarshal edge: %s", err)
+						return fmt.Errorf("failed to unmarshal edge: %s", err)
 					}
 					r := batchMap[edge.From]
+					batchMapReturnCount[edge.From]++
 					for _, ri := range r {
 						ri.Vertex = &gdbi.Vertex{ID: edge.To}
 						b = append(b, ri)
+					}
+				}
+			}
+			if emitNull {
+				for id, count := range batchMapReturnCount {
+					if count == 0 {
+						r := batchMap[id]
+						for _, ri := range r {
+							ri.Vertex = nil
+							b = append(b, ri)
+						}
 					}
 				}
 			}
@@ -469,8 +483,12 @@ func (es *Graph) GetOutChannel(ctx context.Context, req chan gdbi.ElementLookup,
 				if batch[i].IsSignal() {
 					signals = append(signals, batch[i])
 				} else {
-					idBatch = append(idBatch, batch[i].Vertex.ID)
-					batchMap[batch[i].Vertex.ID] = append(batchMap[batch[i].Vertex.ID], batch[i])
+					if batch[i].Vertex != nil {
+						idBatch = append(idBatch, batch[i].Vertex.ID)
+						batchMap[batch[i].Vertex.ID] = append(batchMap[batch[i].Vertex.ID], batch[i])
+					} else if emitNull {
+						o <- batch[i]
+					}
 				}
 			}
 			if len(idBatch) > 0 {
@@ -486,7 +504,7 @@ func (es *Graph) GetOutChannel(ctx context.Context, req chan gdbi.ElementLookup,
 					vertex := &gripql.Vertex{}
 					err := protojson.Unmarshal(*hit.Source, vertex)
 					if err != nil {
-						return fmt.Errorf("Failed to unmarshal vertex: %s", err)
+						return fmt.Errorf("failed to unmarshal vertex: %s", err)
 					}
 					r := batchMap[vertex.Gid]
 					for _, ri := range r {
@@ -529,6 +547,7 @@ func (es *Graph) GetInChannel(ctx context.Context, req chan gdbi.ElementLookup, 
 		for batch := range batches {
 			idBatch := make([]interface{}, 0, len(batch))
 			batchMap := make(map[string][]gdbi.ElementLookup, len(batch))
+			batchMapReturnCount := make(map[string]int)
 			signals := []gdbi.ElementLookup{}
 			for i := range batch {
 				if batch[i].IsSignal() {
@@ -536,6 +555,7 @@ func (es *Graph) GetInChannel(ctx context.Context, req chan gdbi.ElementLookup, 
 				} else {
 					idBatch = append(idBatch, batch[i].ID)
 					batchMap[batch[i].ID] = append(batchMap[batch[i].ID], batch[i])
+					batchMapReturnCount[batch[i].ID] = 0
 				}
 			}
 			b := []gdbi.ElementLookup{}
@@ -558,12 +578,24 @@ func (es *Graph) GetInChannel(ctx context.Context, req chan gdbi.ElementLookup, 
 					edge := &gripql.Edge{}
 					err := protojson.Unmarshal(*hit.Source, edge)
 					if err != nil {
-						return fmt.Errorf("Failed to unmarshal edge: %s", err)
+						return fmt.Errorf("failed to unmarshal edge: %s", err)
 					}
 					r := batchMap[edge.To]
+					batchMapReturnCount[edge.To]++
 					for _, ri := range r {
 						ri.Vertex = &gdbi.Vertex{ID: edge.From}
 						b = append(b, ri)
+					}
+				}
+			}
+			if emitNull {
+				for id, count := range batchMapReturnCount {
+					if count == 0 {
+						r := batchMap[id]
+						for _, ri := range r {
+							ri.Vertex = nil
+							b = append(b, ri)
+						}
 					}
 				}
 			}
@@ -587,8 +619,12 @@ func (es *Graph) GetInChannel(ctx context.Context, req chan gdbi.ElementLookup, 
 				if batch[i].IsSignal() {
 					signals = append(signals, batch[i])
 				} else {
-					idBatch = append(idBatch, batch[i].Vertex.ID)
-					batchMap[batch[i].Vertex.ID] = append(batchMap[batch[i].Vertex.ID], batch[i])
+					if batch[i].Vertex != nil {
+						idBatch = append(idBatch, batch[i].Vertex.ID)
+						batchMap[batch[i].Vertex.ID] = append(batchMap[batch[i].Vertex.ID], batch[i])
+					} else if emitNull {
+						o <- batch[i]
+					}
 				}
 			}
 			if len(idBatch) > 0 {
@@ -604,7 +640,7 @@ func (es *Graph) GetInChannel(ctx context.Context, req chan gdbi.ElementLookup, 
 					vertex := &gripql.Vertex{}
 					err := protojson.Unmarshal(*hit.Source, vertex)
 					if err != nil {
-						return fmt.Errorf("Failed to unmarshal vertex: %s", err)
+						return fmt.Errorf("failed to unmarshal vertex: %s", err)
 					}
 					r := batchMap[vertex.Gid]
 					for _, ri := range r {
@@ -646,6 +682,7 @@ func (es *Graph) GetOutEdgeChannel(ctx context.Context, req chan gdbi.ElementLoo
 		for batch := range batches {
 			idBatch := make([]interface{}, 0, len(batch))
 			batchMap := make(map[string][]gdbi.ElementLookup, len(batch))
+			batchMapReturnCount := make(map[string]int)
 			signals := []gdbi.ElementLookup{}
 			for i := range batch {
 				if batch[i].IsSignal() {
@@ -653,6 +690,7 @@ func (es *Graph) GetOutEdgeChannel(ctx context.Context, req chan gdbi.ElementLoo
 				} else {
 					idBatch = append(idBatch, batch[i].ID)
 					batchMap[batch[i].ID] = append(batchMap[batch[i].ID], batch[i])
+					batchMapReturnCount[batch[i].ID] = 0
 				}
 			}
 			if len(idBatch) > 0 {
@@ -676,13 +714,25 @@ func (es *Graph) GetOutEdgeChannel(ctx context.Context, req chan gdbi.ElementLoo
 					edge := &gripql.Edge{}
 					err := protojson.Unmarshal(*hit.Source, edge)
 					if err != nil {
-						return fmt.Errorf("Failed to unmarshal edge: %s", err)
+						return fmt.Errorf("failed to unmarshal edge: %s", err)
 					}
 					r := batchMap[edge.From]
+					batchMapReturnCount[edge.From]++
 					for _, ri := range r {
 						ri.Edge = gdbi.NewElementFromEdge(edge)
 						ri.Edge.Loaded = load
 						o <- ri
+					}
+				}
+			}
+			if emitNull {
+				for id, count := range batchMapReturnCount {
+					if count == 0 {
+						r := batchMap[id]
+						for _, ri := range r {
+							ri.Edge = nil
+							o <- ri
+						}
 					}
 				}
 			}
@@ -718,6 +768,7 @@ func (es *Graph) GetInEdgeChannel(ctx context.Context, req chan gdbi.ElementLook
 		for batch := range batches {
 			idBatch := make([]interface{}, 0, len(batch))
 			batchMap := make(map[string][]gdbi.ElementLookup, len(batch))
+			batchMapReturnCount := make(map[string]int)
 			signals := []gdbi.ElementLookup{}
 			for i := range batch {
 				if batch[i].IsSignal() {
@@ -725,6 +776,7 @@ func (es *Graph) GetInEdgeChannel(ctx context.Context, req chan gdbi.ElementLook
 				} else {
 					idBatch = append(idBatch, batch[i].ID)
 					batchMap[batch[i].ID] = append(batchMap[batch[i].ID], batch[i])
+					batchMapReturnCount[batch[i].ID] = 0
 				}
 			}
 
@@ -749,13 +801,25 @@ func (es *Graph) GetInEdgeChannel(ctx context.Context, req chan gdbi.ElementLook
 					edge := &gripql.Edge{}
 					err := protojson.Unmarshal(*hit.Source, edge)
 					if err != nil {
-						return fmt.Errorf("Failed to unmarshal edge: %s", err)
+						return fmt.Errorf("failed to unmarshal edge: %s", err)
 					}
 					r := batchMap[edge.To]
+					batchMapReturnCount[edge.To]++
 					for _, ri := range r {
 						ri.Edge = gdbi.NewElementFromEdge(edge)
 						ri.Edge.Loaded = load
 						o <- ri
+					}
+				}
+			}
+			if emitNull {
+				for id, count := range batchMapReturnCount {
+					if count == 0 {
+						r := batchMap[id]
+						for _, ri := range r {
+							ri.Edge = nil
+							o <- ri
+						}
 					}
 				}
 			}
