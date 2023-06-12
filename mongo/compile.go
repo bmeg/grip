@@ -134,11 +134,16 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement, opts *gdbi.Compile
 				}})
 			lastType = gdbi.EdgeData
 
-		case *gripql.GraphStatement_In:
+		case *gripql.GraphStatement_In, *gripql.GraphStatement_InNull:
 			if lastType != gdbi.VertexData && lastType != gdbi.EdgeData {
 				return &Pipeline{}, fmt.Errorf(`"in" statement is only valid for edge or vertex types not: %s`, lastType.String())
 			}
-			labels := protoutil.AsStringList(gs.GetIn())
+			var labels []string
+			if gs.GetIn() != nil {
+				labels = protoutil.AsStringList(gs.GetIn())
+			} else {
+				labels = protoutil.AsStringList(gs.GetInNull())
+			}
 			if lastType == gdbi.VertexData {
 				query = append(query,
 					bson.D{primitive.E{
@@ -150,19 +155,38 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement, opts *gdbi.Compile
 						},
 					}},
 				)
-				query = append(query, bson.D{primitive.E{Key: "$unwind", Value: "$dst"}})
+				if len(labels) > 0 {
+					query = append(query, bson.D{primitive.E{Key: "$project", Value: bson.M{
+						"marks": "$marks",
+						"path":  "$path",
+						"dst": bson.M{
+							"$filter": bson.M{
+								"input": "$dst",
+								"as":    "d",
+								"cond": bson.M{
+									"$in": bson.A{"$$d.label", labels},
+								},
+							},
+						},
+					}}})
+				}
+				if gs.GetInNull() != nil {
+					query = append(query, bson.D{primitive.E{Key: "$unwind", Value: bson.M{"path": "$dst", "preserveNullAndEmptyArrays": true}}})
+				} else {
+					query = append(query, bson.D{primitive.E{Key: "$unwind", Value: "$dst"}})
+				}
 				query = append(query, bson.D{primitive.E{Key: "$project", Value: bson.M{
 					"_id":   "$dst._id",
 					"label": "$dst.label",
-					"data":  "$dst.data",
 					"to":    "$dst.to",
 					"from":  "$dst.from",
 					"marks": "$marks",
 					"path":  "$path",
 				}}})
-			}
-			if len(labels) > 0 {
-				query = append(query, bson.D{primitive.E{Key: "$match", Value: bson.M{"label": bson.M{"$in": labels}}}})
+			} else {
+				if len(labels) > 0 {
+					query = append(query, bson.D{primitive.E{Key: "$match", Value: bson.M{"label": bson.M{"$in": labels}}}})
+				}
 			}
 			query = append(query,
 				bson.D{primitive.E{
@@ -174,7 +198,11 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement, opts *gdbi.Compile
 					},
 				}},
 			)
-			query = append(query, bson.D{primitive.E{Key: "$unwind", Value: "$dst"}})
+			if gs.GetInNull() != nil {
+				query = append(query, bson.D{primitive.E{Key: "$unwind", Value: bson.M{"path": "$dst", "preserveNullAndEmptyArrays": true}}})
+			} else {
+				query = append(query, bson.D{primitive.E{Key: "$unwind", Value: "$dst"}})
+			}
 			query = append(query, bson.D{primitive.E{Key: "$project", Value: bson.M{
 				"_id":   "$dst._id",
 				"label": "$dst.label",
@@ -184,11 +212,16 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement, opts *gdbi.Compile
 			}}})
 			lastType = gdbi.VertexData
 
-		case *gripql.GraphStatement_Out:
+		case *gripql.GraphStatement_Out, *gripql.GraphStatement_OutNull:
 			if lastType != gdbi.VertexData && lastType != gdbi.EdgeData {
 				return &Pipeline{}, fmt.Errorf(`"out" statement is only valid for edge or vertex types not: %s`, lastType.String())
 			}
-			labels := protoutil.AsStringList(gs.GetOut())
+			var labels []string
+			if gs.GetOut() != nil {
+				labels = protoutil.AsStringList(gs.GetOut())
+			} else {
+				labels = protoutil.AsStringList(gs.GetOutNull())
+			}
 			if lastType == gdbi.VertexData {
 				query = append(query,
 					bson.D{primitive.E{
@@ -200,20 +233,40 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement, opts *gdbi.Compile
 						},
 					}},
 				)
-				query = append(query, bson.D{primitive.E{Key: "$unwind", Value: "$dst"}}) //for null returns will need to use preserveNullAndEmptyArrays
+				if len(labels) > 0 {
+					query = append(query, bson.D{primitive.E{Key: "$project", Value: bson.M{
+						"marks": "$marks",
+						"path":  "$path",
+						"dst": bson.M{
+							"$filter": bson.M{
+								"input": "$dst",
+								"as":    "d",
+								"cond": bson.M{
+									"$in": bson.A{"$$d.label", labels},
+								},
+							},
+						},
+					}}})
+				}
+				if gs.GetOutNull() != nil {
+					query = append(query, bson.D{primitive.E{Key: "$unwind", Value: bson.M{"path": "$dst", "preserveNullAndEmptyArrays": true}}})
+				} else {
+					query = append(query, bson.D{primitive.E{Key: "$unwind", Value: "$dst"}})
+				}
 				query = append(query, bson.D{primitive.E{Key: "$project", Value: bson.M{
 					"_id":   "$dst._id",
 					"label": "$dst.label",
-					"data":  "$dst.data",
 					"to":    "$dst.to",
 					"from":  "$dst.from",
 					"marks": "$marks",
 					"path":  "$path",
 				}}})
+			} else {
+				if len(labels) > 0 {
+					query = append(query, bson.D{primitive.E{Key: "$match", Value: bson.M{"label": bson.M{"$in": labels}}}})
+				}
 			}
-			if len(labels) > 0 {
-				query = append(query, bson.D{primitive.E{Key: "$match", Value: bson.M{"label": bson.M{"$in": labels}}}})
-			}
+
 			query = append(query,
 				bson.D{primitive.E{
 					Key: "$lookup", Value: bson.M{
@@ -224,7 +277,11 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement, opts *gdbi.Compile
 					},
 				}},
 			)
-			query = append(query, bson.D{primitive.E{Key: "$unwind", Value: "$dst"}})
+			if gs.GetOutNull() != nil {
+				query = append(query, bson.D{primitive.E{Key: "$unwind", Value: bson.M{"path": "$dst", "preserveNullAndEmptyArrays": true}}})
+			} else {
+				query = append(query, bson.D{primitive.E{Key: "$unwind", Value: "$dst"}})
+			}
 			query = append(query, bson.D{primitive.E{Key: "$project", Value: bson.M{
 				"_id":   "$dst._id",
 				"label": "$dst.label",
@@ -317,9 +374,15 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement, opts *gdbi.Compile
 			}}})
 			lastType = gdbi.VertexData
 
-		case *gripql.GraphStatement_InE:
+		case *gripql.GraphStatement_InE, *gripql.GraphStatement_InENull:
 			if lastType != gdbi.VertexData {
 				return &Pipeline{}, fmt.Errorf(`"inEdge" statement is only valid for the vertex type not: %s`, lastType.String())
+			}
+			var labels []string
+			if gs.GetInENull() != nil {
+				labels = protoutil.AsStringList(gs.GetInENull())
+			} else {
+				labels = protoutil.AsStringList(gs.GetInE())
 			}
 			query = append(query,
 				bson.D{primitive.E{
@@ -331,7 +394,26 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement, opts *gdbi.Compile
 					},
 				}},
 			)
-			query = append(query, bson.D{primitive.E{Key: "$unwind", Value: "$dst"}})
+			if len(labels) > 0 {
+				query = append(query, bson.D{primitive.E{Key: "$project", Value: bson.M{
+					"marks": "$marks",
+					"path":  "$path",
+					"dst": bson.M{
+						"$filter": bson.M{
+							"input": "$dst",
+							"as":    "d",
+							"cond": bson.M{
+								"$in": bson.A{"$$d.label", labels},
+							},
+						},
+					},
+				}}})
+			}
+			if gs.GetInENull() != nil {
+				query = append(query, bson.D{primitive.E{Key: "$unwind", Value: bson.M{"path": "$dst", "preserveNullAndEmptyArrays": true}}})
+			} else {
+				query = append(query, bson.D{primitive.E{Key: "$unwind", Value: "$dst"}})
+			}
 			query = append(query, bson.D{primitive.E{Key: "$project", Value: bson.M{
 				"_id":   "$dst._id",
 				"label": "$dst.label",
@@ -341,16 +423,19 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement, opts *gdbi.Compile
 				"marks": "$marks",
 				"path":  bson.M{"$concatArrays": []interface{}{"$path", []bson.M{{"edge": "$dst._id"}}}},
 			}}})
-			labels := protoutil.AsStringList(stmt.InE)
-			if len(labels) > 0 {
-				query = append(query, bson.D{primitive.E{Key: "$match", Value: bson.M{"label": bson.M{"$in": labels}}}})
-			}
 			lastType = gdbi.EdgeData
 
-		case *gripql.GraphStatement_OutE:
+		case *gripql.GraphStatement_OutE, *gripql.GraphStatement_OutENull:
 			if lastType != gdbi.VertexData {
 				return &Pipeline{}, fmt.Errorf(`"outEdge" statement is only valid for the vertex type not: %s`, lastType.String())
 			}
+			var labels []string
+			if gs.GetOutENull() != nil {
+				labels = protoutil.AsStringList(gs.GetOutENull())
+			} else {
+				labels = protoutil.AsStringList(gs.GetOutE())
+			}
+
 			query = append(query,
 				bson.D{primitive.E{
 					Key: "$lookup", Value: bson.M{
@@ -361,7 +446,26 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement, opts *gdbi.Compile
 					},
 				}},
 			)
-			query = append(query, bson.D{primitive.E{Key: "$unwind", Value: "$dst"}})
+			if len(labels) > 0 {
+				query = append(query, bson.D{primitive.E{Key: "$project", Value: bson.M{
+					"marks": "$marks",
+					"path":  "$path",
+					"dst": bson.M{
+						"$filter": bson.M{
+							"input": "$dst",
+							"as":    "d",
+							"cond": bson.M{
+								"$in": bson.A{"$$d.label", labels},
+							},
+						},
+					},
+				}}})
+			}
+			if gs.GetOutENull() != nil {
+				query = append(query, bson.D{primitive.E{Key: "$unwind", Value: bson.M{"path": "$dst", "preserveNullAndEmptyArrays": true}}})
+			} else {
+				query = append(query, bson.D{primitive.E{Key: "$unwind", Value: "$dst"}})
+			}
 			query = append(query, bson.D{primitive.E{Key: "$project", Value: bson.M{
 				"_id":   "$dst._id",
 				"label": "$dst.label",
@@ -371,10 +475,6 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement, opts *gdbi.Compile
 				"marks": "$marks",
 				"path":  bson.M{"$concatArrays": []interface{}{"$path", []bson.M{{"edge": "$dst._id"}}}},
 			}}})
-			labels := protoutil.AsStringList(stmt.OutE)
-			if len(labels) > 0 {
-				query = append(query, bson.D{primitive.E{Key: "$match", Value: bson.M{"label": bson.M{"$in": labels}}}})
-			}
 			lastType = gdbi.EdgeData
 
 		case *gripql.GraphStatement_BothE:

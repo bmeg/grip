@@ -486,6 +486,7 @@ func (kgdb *KVInterfaceGDB) GetOutEdgeChannel(ctx context.Context, reqChan chan 
 				if req.IsSignal() {
 					o <- req
 				} else {
+					found := false
 					skeyPrefix := SrcEdgePrefix(kgdb.graph, req.ID)
 					for it.Seek(skeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), skeyPrefix); it.Next() {
 						keyValue := it.Key()
@@ -515,8 +516,13 @@ func (kgdb *KVInterfaceGDB) GetOutEdgeChannel(ctx context.Context, reqChan chan 
 								}
 								req.Edge = &e
 								o <- req
+								found = true
 							}
 						}
+					}
+					if !found && emitNull {
+						req.Edge = nil
+						o <- req
 					}
 				}
 			}
@@ -538,6 +544,7 @@ func (kgdb *KVInterfaceGDB) GetInEdgeChannel(ctx context.Context, reqChan chan g
 					o <- req
 				} else {
 					dkeyPrefix := DstEdgePrefix(kgdb.graph, req.ID)
+					found := false
 					for it.Seek(dkeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), dkeyPrefix); it.Next() {
 						keyValue := it.Key()
 						_, src, dst, eid, label, edgeType := DstEdgeKeyParse(keyValue)
@@ -566,8 +573,13 @@ func (kgdb *KVInterfaceGDB) GetInEdgeChannel(ctx context.Context, reqChan chan g
 								}
 								req.Edge = &e
 								o <- req
+								found = true
 							}
 						}
+					}
+					if !found && emitNull {
+						req.Edge = nil
+						o <- req
 					}
 				}
 			}
