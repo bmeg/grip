@@ -6,7 +6,7 @@ import (
 
 	"google.golang.org/protobuf/proto"
 
-	"github.com/bmeg/grip/endpoints/cypher"
+	"github.com/bmeg/grip/endpoints/cypher/translate"
 	"github.com/bmeg/grip/gripql"
 )
 
@@ -65,7 +65,7 @@ func TestMatch1(t *testing.T) {
 	for i := range pairs {
 		p := pairs[i].gripql
 		ct := pairs[i].cypher
-		o, err := cypher.RunParser(ct)
+		o, err := translate.RunParser(ct)
 		if err != nil {
 			t.Error(err)
 		}
