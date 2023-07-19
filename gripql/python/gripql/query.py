@@ -86,7 +86,7 @@ class Query(BaseConnection):
         "label" can be a list.
         """
         label = _wrap_str_value(label)
-        return self.__append({"in_null": label})
+        return self.__append({"inNull": label})
 
 
     def inV(self, label=[]):
@@ -110,7 +110,7 @@ class Query(BaseConnection):
         "label" can be a list.
         """
         label = _wrap_str_value(label)
-        return self.__append({"out_null": label})
+        return self.__append({"outNull": label})
 
 
     def outV(self, label=[]):
