@@ -130,6 +130,10 @@ func (tr *GRIDTraveler) IsSignal() bool {
 	return tr.Signal != nil
 }
 
+func (tr *GRIDTraveler) IsNull() bool {
+	return tr.Current != nil
+}
+
 // AddCurrent creates a new copy of the travel with new 'current' value
 func (t *GRIDTraveler) AddCurrent(r *gdbi.DataElement) gdbi.Traveler {
 	a := t.GRIDCopy()

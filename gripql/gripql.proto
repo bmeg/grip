@@ -8,9 +8,9 @@ import "google/api/annotations.proto";
 import "google/protobuf/struct.proto";
 
 message Graph {
-	string graph = 1;
-	repeated Vertex vertices = 2;
-	repeated Edge edges = 3;
+  string graph = 1;
+  repeated Vertex vertices = 2;
+  repeated Edge edges = 3;
 }
 
 message GraphQuery {
@@ -24,7 +24,6 @@ message QuerySet {
 
 message GraphStatement {
   oneof statement {
-    // Tinkerpop methods
     google.protobuf.ListValue v = 1;
     google.protobuf.ListValue e = 2;
 
@@ -34,6 +33,11 @@ message GraphStatement {
     google.protobuf.ListValue in_e = 12;
     google.protobuf.ListValue out_e = 13;
     google.protobuf.ListValue both_e = 15;
+
+    google.protobuf.ListValue in_null = 16;
+    google.protobuf.ListValue out_null = 17;
+    google.protobuf.ListValue in_e_null = 18;
+    google.protobuf.ListValue out_e_null = 19;
 
     string as = 20;
     SelectStatement select = 21;
@@ -47,18 +51,18 @@ message GraphStatement {
 
     google.protobuf.ListValue distinct = 40;
 
-		google.protobuf.ListValue fields = 50;
-		string unwind = 51;
+    google.protobuf.ListValue fields = 50;
+    string unwind = 51;
 
-		string count = 60;
+    string count = 60;
     Aggregations aggregate = 61;
     google.protobuf.Value render = 62;
-		google.protobuf.ListValue path = 63;
+    google.protobuf.ListValue path = 63;
 
-		string mark = 70;
-		Jump jump = 71;
-		Set  set = 72;
-		Increment increment = 73;
+    string mark = 70;
+    Jump jump = 71;
+    Set  set = 72;
+    Increment increment = 73;
   }
 }
 
@@ -82,8 +86,8 @@ message Aggregate {
     TermAggregation term = 2;
     PercentileAggregation percentile = 3;
     HistogramAggregation histogram = 4;
-		FieldAggregation field = 5;
-		TypeAggregation type = 6;
+    FieldAggregation field = 5;
+    TypeAggregation type = 6;
     CountAggregation count = 7;
   }
 }
@@ -104,11 +108,11 @@ message HistogramAggregation {
 }
 
 message FieldAggregation {
-	string field = 2;
+  string field = 2;
 }
 
 message TypeAggregation {
-	string field = 2;
+  string field = 2;
 }
 
 message CountAggregation {
@@ -116,8 +120,8 @@ message CountAggregation {
 }
 
 message NamedAggregationResult {
-	string name = 1;
-	google.protobuf.Value key = 2;
+  string name = 1;
+  google.protobuf.Value key = 2;
   double value = 3;
 }
 
@@ -161,30 +165,30 @@ message SelectStatement {
 }
 
 message Selection {
-	oneof result {
-		Vertex vertex = 1;
-		Edge edge = 2;
-	}
+  oneof result {
+    Vertex vertex = 1;
+    Edge edge = 2;
+  }
 }
 
 message Selections {
-	map<string, Selection> selections = 1;
+  map<string, Selection> selections = 1;
 }
 
 message Jump {
-	string mark = 1;
-	HasExpression expression = 2;
-	bool emit = 3;
+  string mark = 1;
+  HasExpression expression = 2;
+  bool emit = 3;
 }
 
 message Set {
-	string key = 1;
-	google.protobuf.Value value = 2;
+  string key = 1;
+  google.protobuf.Value value = 2;
 }
 
 message Increment {
-	string key = 1;
-	int32  value = 2;
+  string key = 1;
+  int32  value = 2;
 }
 
 message Vertex {
@@ -202,43 +206,43 @@ message Edge {
 }
 
 message QueryResult {
-	oneof result {
-		Vertex vertex = 1;
-		Edge edge = 2;
-		NamedAggregationResult aggregations = 3;
-		Selections selections = 4;
-		google.protobuf.Value render = 5;
-		uint32 count = 6;
-		google.protobuf.ListValue path = 7;
-	}
+  oneof result {
+    Vertex vertex = 1;
+    Edge edge = 2;
+    NamedAggregationResult aggregations = 3;
+    Selections selections = 4;
+    google.protobuf.Value render = 5;
+    uint32 count = 6;
+    google.protobuf.ListValue path = 7;
+  }
 }
 
 message QueryJob {
-	string id = 1;
-	string graph = 2;
+  string id = 1;
+  string graph = 2;
 }
 
 message ExtendQuery {
-	string src_id = 1;
-	string graph = 2;
-	repeated GraphStatement query = 3;
+  string src_id = 1;
+  string graph = 2;
+  repeated GraphStatement query = 3;
 }
 
 enum JobState {
-	QUEUED = 0;
-	RUNNING = 1;
-	COMPLETE = 2;
-	ERROR = 3;
-	DELETED = 4;
+  QUEUED = 0;
+  RUNNING = 1;
+  COMPLETE = 2;
+  ERROR = 3;
+  DELETED = 4;
 }
 
 message JobStatus {
-	string id = 1;
-	string graph = 2;
-	JobState state = 3;
-	uint64   count = 4;
-	repeated GraphStatement query = 5;
-	string timestamp = 6;
+  string id = 1;
+  string graph = 2;
+  JobState state = 3;
+  uint64   count = 4;
+  repeated GraphStatement query = 5;
+  string timestamp = 6;
 }
 
 message EditResult {
@@ -280,8 +284,8 @@ enum FieldType {
   STRING  = 1;
   NUMERIC = 2;
   BOOL  = 3;
-	MAP   = 4;
-	ARRAY = 5;
+  MAP   = 4;
+  ARRAY = 5;
 }
 
 message Empty {}
@@ -300,10 +304,10 @@ message ListLabelsResponse {
 }
 
 message TableInfo {
-	string source = 1;
-	string name = 2;
-	repeated string fields = 3;
-	map<string,string> link_map = 4;
+  string source = 1;
+  string name = 2;
+  repeated string fields = 3;
+  map<string,string> link_map = 4;
 }
 
 service Query {
@@ -338,7 +342,7 @@ service Query {
     };
   }
 
-	rpc GetMapping(GraphID) returns (Graph) {
+  rpc GetMapping(GraphID) returns (Graph) {
     option (google.api.http) = {
       get: "/v1/graph/{graph}/mapping"
     };
@@ -362,59 +366,59 @@ service Query {
     };
   }
 
-	rpc ListTables(Empty) returns (stream TableInfo) {
-		option (google.api.http) = {
-			get: "/v1/table"
-		};
-	}
+  rpc ListTables(Empty) returns (stream TableInfo) {
+    option (google.api.http) = {
+      get: "/v1/table"
+    };
+  }
 }
 
 service Job {
-	rpc Submit(GraphQuery) returns (QueryJob) {
-		option (google.api.http) = {
-			post: "/v1/graph/{graph}/job"
-			body: "*"
-		};
-	}
+  rpc Submit(GraphQuery) returns (QueryJob) {
+    option (google.api.http) = {
+      post: "/v1/graph/{graph}/job"
+      body: "*"
+    };
+  }
 
-	rpc ListJobs(GraphID) returns (stream QueryJob) {
-		option (google.api.http) = {
-			get: "/v1/graph/{graph}/job"
-		};
-	}
+  rpc ListJobs(GraphID) returns (stream QueryJob) {
+    option (google.api.http) = {
+      get: "/v1/graph/{graph}/job"
+    };
+  }
 
-	rpc SearchJobs(GraphQuery) returns (stream JobStatus) {
-		option (google.api.http) = {
-			post: "/v1/graph/{graph}/job-search"
-			body: "*"
-		};
-	}
+  rpc SearchJobs(GraphQuery) returns (stream JobStatus) {
+    option (google.api.http) = {
+      post: "/v1/graph/{graph}/job-search"
+      body: "*"
+    };
+  }
 
-	rpc DeleteJob(QueryJob) returns (JobStatus) {
-		option (google.api.http) = {
-			delete: "/v1/graph/{graph}/job/{id}"
-		};
-	}
+  rpc DeleteJob(QueryJob) returns (JobStatus) {
+    option (google.api.http) = {
+      delete: "/v1/graph/{graph}/job/{id}"
+    };
+  }
 
-	rpc GetJob(QueryJob) returns (JobStatus) {
-		option (google.api.http) = {
-			get: "/v1/graph/{graph}/job/{id}"
-		};
-	}
+  rpc GetJob(QueryJob) returns (JobStatus) {
+    option (google.api.http) = {
+      get: "/v1/graph/{graph}/job/{id}"
+    };
+  }
 
-	rpc ViewJob(QueryJob) returns (stream QueryResult) {
-		option (google.api.http) = {
-			post: "/v1/graph/{graph}/job/{id}"
-			body: "*"
-		};
-	}
+  rpc ViewJob(QueryJob) returns (stream QueryResult) {
+    option (google.api.http) = {
+      post: "/v1/graph/{graph}/job/{id}"
+      body: "*"
+    };
+  }
 
-	rpc ResumeJob(ExtendQuery) returns (stream QueryResult) {
-		option (google.api.http) = {
-			post: "/v1/graph/{graph}/job-resume"
-			body: "*"
-		};
-	}
+  rpc ResumeJob(ExtendQuery) returns (stream QueryResult) {
+    option (google.api.http) = {
+      post: "/v1/graph/{graph}/job-resume"
+      body: "*"
+    };
+  }
 
 }
 
@@ -483,13 +487,13 @@ service Edit {
     };
   }
 
-	rpc SampleSchema(GraphID) returns (Graph) {
+     rpc SampleSchema(GraphID) returns (Graph) {
     option (google.api.http) = {
       get: "/v1/graph/{graph}/schema-sample"
     };
   }
 
-	rpc AddMapping(Graph) returns (EditResult) {
+     rpc AddMapping(Graph) returns (EditResult) {
     option (google.api.http) = {
       post: "/v1/graph/{graph}/mapping"
       body: "*"
@@ -500,14 +504,14 @@ service Edit {
 
 
 message PluginConfig {
-	string name = 1;
+  string name = 1;
   string driver = 2;
-	map<string, string> config = 3;
+  map<string, string> config = 3;
 }
 
 message PluginStatus {
-	string name = 1;
-	string error = 2;
+  string name = 1;
+  string error = 2;
 }
 
 message ListDriversResponse {
@@ -515,7 +519,7 @@ message ListDriversResponse {
 }
 
 message ListPluginsResponse {
-	repeated string plugins = 1;
+  repeated string plugins = 1;
 }
 
 service Configure {
@@ -526,16 +530,16 @@ service Configure {
     };
   }
 
-	rpc ListPlugins(Empty) returns (ListPluginsResponse) {
-		option (google.api.http) = {
-			get: "/v1/plugin"
-		};
-	}
+  rpc ListPlugins(Empty) returns (ListPluginsResponse) {
+    option (google.api.http) = {
+      get: "/v1/plugin"
+    };
+  }
 
-	rpc ListDrivers(Empty) returns (ListDriversResponse) {
-		option (google.api.http) = {
-			get: "/v1/driver"
-		};
-	}
+  rpc ListDrivers(Empty) returns (ListDriversResponse) {
+    option (google.api.http) = {
+      get: "/v1/driver"
+    };
+  }
 
 }

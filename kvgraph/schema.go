@@ -53,7 +53,7 @@ func (ma *KVGraph) sampleSchema(ctx context.Context, graph string, n uint32, ran
 			reqChan := make(chan gdbi.ElementLookup, 1)
 			reqChan <- gdbi.ElementLookup{ID: i}
 			close(reqChan)
-			for e := range gi.GetOutEdgeChannel(ctx, reqChan, true, []string{}) {
+			for e := range gi.GetOutEdgeChannel(ctx, reqChan, true, false, []string{}) {
 				o := gi.GetVertex(e.Edge.To, false)
 				if o != nil {
 					k := fromtokey{from: v.Label, to: o.Label, label: e.Edge.Label}

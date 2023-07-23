@@ -350,7 +350,7 @@ func (g *Graph) GetVertexChannel(ctx context.Context, reqChan chan gdbi.ElementL
 }
 
 // GetOutChannel process requests of vertex ids and find the connected vertices on outgoing edges
-func (g *Graph) GetOutChannel(ctx context.Context, reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
+func (g *Graph) GetOutChannel(ctx context.Context, reqChan chan gdbi.ElementLookup, load bool, emitNull bool, edgeLabels []string) chan gdbi.ElementLookup {
 	batches := make(map[string][]gdbi.ElementLookup)
 	for elem := range reqChan {
 		parts := strings.SplitN(elem.ID, ":", 2)
@@ -462,7 +462,7 @@ func (g *Graph) GetOutChannel(ctx context.Context, reqChan chan gdbi.ElementLook
 }
 
 // GetInChannel process requests of vertex ids and find the connected vertices on incoming edges
-func (g *Graph) GetInChannel(ctx context.Context, reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
+func (g *Graph) GetInChannel(ctx context.Context, reqChan chan gdbi.ElementLookup, load bool, emitNull bool, edgeLabels []string) chan gdbi.ElementLookup {
 	batches := make(map[string][]gdbi.ElementLookup)
 	for elem := range reqChan {
 		parts := strings.SplitN(elem.ID, ":", 2)
@@ -574,7 +574,7 @@ func (g *Graph) GetInChannel(ctx context.Context, reqChan chan gdbi.ElementLooku
 }
 
 // GetOutEdgeChannel process requests of vertex ids and find the connected outgoing edges
-func (g *Graph) GetOutEdgeChannel(ctx context.Context, reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
+func (g *Graph) GetOutEdgeChannel(ctx context.Context, reqChan chan gdbi.ElementLookup, load bool, emitNull bool, edgeLabels []string) chan gdbi.ElementLookup {
 	batches := make(map[string][]gdbi.ElementLookup)
 	for elem := range reqChan {
 		parts := strings.SplitN(elem.ID, ":", 2)
@@ -684,7 +684,7 @@ func (g *Graph) GetOutEdgeChannel(ctx context.Context, reqChan chan gdbi.Element
 }
 
 // GetInEdgeChannel process requests of vertex ids and find the connected incoming edges
-func (g *Graph) GetInEdgeChannel(ctx context.Context, reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
+func (g *Graph) GetInEdgeChannel(ctx context.Context, reqChan chan gdbi.ElementLookup, load bool, emitNull bool, edgeLabels []string) chan gdbi.ElementLookup {
 	batches := make(map[string][]gdbi.ElementLookup)
 	for elem := range reqChan {
 		parts := strings.SplitN(elem.ID, ":", 2)

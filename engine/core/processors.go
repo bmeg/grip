@@ -161,6 +161,7 @@ type LookupVertexAdjOut struct {
 	db       gdbi.GraphInterface
 	labels   []string
 	loadData bool
+	emitNull bool
 }
 
 // Process runs out vertex
@@ -169,7 +170,7 @@ func (l *LookupVertexAdjOut) Process(ctx context.Context, man gdbi.Manager, in g
 	go func() {
 		defer close(queryChan)
 		for t := range in {
-			if t.IsSignal() {
+			if t.IsSignal() || t.IsNull() {
 				queryChan <- gdbi.ElementLookup{
 					Ref: t,
 				}
@@ -183,17 +184,12 @@ func (l *LookupVertexAdjOut) Process(ctx context.Context, man gdbi.Manager, in g
 	}()
 	go func() {
 		defer close(out)
-		for ov := range l.db.GetOutChannel(ctx, queryChan, l.loadData, l.labels) {
+		for ov := range l.db.GetOutChannel(ctx, queryChan, l.loadData, l.emitNull, l.labels) {
 			if ov.IsSignal() {
 				out <- ov.Ref
 			} else {
 				i := ov.Ref
-				out <- i.AddCurrent(&gdbi.DataElement{
-					ID:     ov.Vertex.ID,
-					Label:  ov.Vertex.Label,
-					Data:   ov.Vertex.Data,
-					Loaded: ov.Vertex.Loaded,
-				})
+				out <- i.AddCurrent(ov.Vertex)
 			}
 		}
 	}()
@@ -232,12 +228,7 @@ func (l *LookupEdgeAdjOut) Process(ctx context.Context, man gdbi.Manager, in gdb
 			if i.IsSignal() {
 				out <- i
 			} else {
-				out <- i.AddCurrent(&gdbi.DataElement{
-					ID:     v.Vertex.ID,
-					Label:  v.Vertex.Label,
-					Data:   v.Vertex.Data,
-					Loaded: v.Vertex.Loaded,
-				})
+				out <- i.AddCurrent(v.Vertex)
 			}
 		}
 	}()
@@ -251,6 +242,7 @@ type LookupVertexAdjIn struct {
 	db       gdbi.GraphInterface
 	labels   []string
 	loadData bool
+	emitNull bool
 }
 
 // Process runs LookupVertexAdjIn
@@ -271,17 +263,12 @@ func (l *LookupVertexAdjIn) Process(ctx context.Context, man gdbi.Manager, in gd
 	}()
 	go func() {
 		defer close(out)
-		for v := range l.db.GetInChannel(ctx, queryChan, l.loadData, l.labels) {
+		for v := range l.db.GetInChannel(ctx, queryChan, l.loadData, l.emitNull, l.labels) {
 			i := v.Ref
 			if i.IsSignal() {
 				out <- i
 			} else {
-				out <- i.AddCurrent(&gdbi.DataElement{
-					ID:     v.Vertex.ID,
-					Label:  v.Vertex.Label,
-					Data:   v.Vertex.Data,
-					Loaded: v.Vertex.Loaded,
-				})
+				out <- i.AddCurrent(v.Vertex)
 			}
 		}
 	}()
@@ -320,12 +307,7 @@ func (l *LookupEdgeAdjIn) Process(ctx context.Context, man gdbi.Manager, in gdbi
 			if i.IsSignal() {
 				out <- i
 			} else {
-				out <- i.AddCurrent(&gdbi.DataElement{
-					ID:     v.Vertex.ID,
-					Label:  v.Vertex.Label,
-					Data:   v.Vertex.Data,
-					Loaded: v.Vertex.Loaded,
-				})
+				out <- i.AddCurrent(v.Vertex)
 			}
 		}
 	}()
@@ -339,6 +321,7 @@ type InE struct {
 	db       gdbi.GraphInterface
 	labels   []string
 	loadData bool
+	emitNull bool
 }
 
 // Process runs InE
@@ -359,19 +342,12 @@ func (l *InE) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out
 	}()
 	go func() {
 		defer close(out)
-		for v := range l.db.GetInEdgeChannel(ctx, queryChan, l.loadData, l.labels) {
+		for v := range l.db.GetInEdgeChannel(ctx, queryChan, l.loadData, l.emitNull, l.labels) {
 			i := v.Ref
 			if i.IsSignal() {
 				out <- i
 			} else {
-				out <- i.AddCurrent(&gdbi.DataElement{
-					ID:     v.Edge.ID,
-					To:     v.Edge.To,
-					From:   v.Edge.From,
-					Label:  v.Edge.Label,
-					Data:   v.Edge.Data,
-					Loaded: v.Edge.Loaded,
-				})
+				out <- i.AddCurrent(v.Edge)
 			}
 		}
 	}()
@@ -385,6 +361,7 @@ type OutE struct {
 	db       gdbi.GraphInterface
 	labels   []string
 	loadData bool
+	emitNull bool
 }
 
 // Process runs OutE
@@ -405,16 +382,9 @@ func (l *OutE) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, ou
 	}()
 	go func() {
 		defer close(out)
-		for v := range l.db.GetOutEdgeChannel(ctx, queryChan, l.loadData, l.labels) {
+		for v := range l.db.GetOutEdgeChannel(ctx, queryChan, l.loadData, l.emitNull, l.labels) {
 			i := v.Ref
-			out <- i.AddCurrent(&gdbi.DataElement{
-				ID:     v.Edge.ID,
-				To:     v.Edge.To,
-				From:   v.Edge.From,
-				Label:  v.Edge.Label,
-				Data:   v.Edge.Data,
-				Loaded: v.Edge.Loaded,
-			})
+			out <- i.AddCurrent(v.Edge)
 		}
 	}()
 	return ctx

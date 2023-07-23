@@ -285,7 +285,7 @@ func (mg *Graph) GetVertexChannel(ctx context.Context, ids chan gdbi.ElementLook
 }
 
 // GetOutChannel process requests of vertex ids and find the connected vertices on outgoing edges
-func (mg *Graph) GetOutChannel(ctx context.Context, reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
+func (mg *Graph) GetOutChannel(ctx context.Context, reqChan chan gdbi.ElementLookup, load bool, emitNull bool, edgeLabels []string) chan gdbi.ElementLookup {
 	batches := gdbi.LookupBatcher(reqChan, mg.batchSize, time.Microsecond)
 
 	o := make(chan gdbi.ElementLookup, 100)
@@ -294,6 +294,7 @@ func (mg *Graph) GetOutChannel(ctx context.Context, reqChan chan gdbi.ElementLoo
 		for batch := range batches {
 			idBatch := make([]string, 0, len(batch))
 			batchMap := make(map[string][]gdbi.ElementLookup, len(batch))
+			batchMapReturnCount := make(map[string]int, len(batch))
 			signals := []gdbi.ElementLookup{}
 			for i := range batch {
 				if batch[i].IsSignal() {
@@ -301,6 +302,7 @@ func (mg *Graph) GetOutChannel(ctx context.Context, reqChan chan gdbi.ElementLoo
 				} else {
 					idBatch = append(idBatch, batch[i].ID)
 					batchMap[batch[i].ID] = append(batchMap[batch[i].ID], batch[i])
+					batchMapReturnCount[batch[i].ID] = 0
 				}
 			}
 			query := []bson.M{{"$match": bson.M{"from": bson.M{"$in": idBatch}}}}
@@ -324,7 +326,9 @@ func (mg *Graph) GetOutChannel(ctx context.Context, reqChan chan gdbi.ElementLoo
 					if err := cursor.Decode(&result); err == nil {
 						if dst, ok := result["dst"].(map[string]interface{}); ok {
 							v := UnpackVertex(dst)
-							r := batchMap[result["from"].(string)]
+							fromID := result["from"].(string)
+							r := batchMap[fromID]
+							batchMapReturnCount[fromID]++
 							for _, ri := range r {
 								ri.Vertex = v
 								o <- ri
@@ -339,6 +343,17 @@ func (mg *Graph) GetOutChannel(ctx context.Context, reqChan chan gdbi.ElementLoo
 				if err := cursor.Close(context.TODO()); err != nil {
 					log.WithFields(log.Fields{"error": err}).Error("GetOutChannel: iter error")
 				}
+				if emitNull {
+					for id, count := range batchMapReturnCount {
+						if count == 0 {
+							r := batchMap[id]
+							for _, ri := range r {
+								ri.Vertex = nil
+								o <- ri
+							}
+						}
+					}
+				}
 			}
 			for i := range signals {
 				o <- signals[i]
@@ -349,7 +364,7 @@ func (mg *Graph) GetOutChannel(ctx context.Context, reqChan chan gdbi.ElementLoo
 }
 
 // GetInChannel process requests of vertex ids and find the connected vertices on incoming edges
-func (mg *Graph) GetInChannel(ctx context.Context, reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
+func (mg *Graph) GetInChannel(ctx context.Context, reqChan chan gdbi.ElementLookup, load bool, emitNull bool, edgeLabels []string) chan gdbi.ElementLookup {
 	batches := gdbi.LookupBatcher(reqChan, mg.batchSize, time.Microsecond)
 
 	o := make(chan gdbi.ElementLookup, 100)
@@ -358,6 +373,7 @@ func (mg *Graph) GetInChannel(ctx context.Context, reqChan chan gdbi.ElementLook
 		for batch := range batches {
 			idBatch := make([]string, 0, len(batch))
 			batchMap := make(map[string][]gdbi.ElementLookup, len(batch))
+			batchMapReturnCount := make(map[string]int, len(batch))
 			signals := []gdbi.ElementLookup{}
 			for i := range batch {
 				if batch[i].IsSignal() {
@@ -365,6 +381,7 @@ func (mg *Graph) GetInChannel(ctx context.Context, reqChan chan gdbi.ElementLook
 				} else {
 					idBatch = append(idBatch, batch[i].ID)
 					batchMap[batch[i].ID] = append(batchMap[batch[i].ID], batch[i])
+					batchMapReturnCount[batch[i].ID] = 0
 				}
 			}
 			query := []bson.M{{"$match": bson.M{"to": bson.M{"$in": idBatch}}}}
@@ -388,7 +405,9 @@ func (mg *Graph) GetInChannel(ctx context.Context, reqChan chan gdbi.ElementLook
 					if err := cursor.Decode(&result); err == nil {
 						if src, ok := result["src"].(map[string]interface{}); ok {
 							v := UnpackVertex(src)
-							r := batchMap[result["to"].(string)]
+							toID := result["to"].(string)
+							r := batchMap[toID]
+							batchMapReturnCount[toID]++
 							for _, ri := range r {
 								ri.Vertex = v
 								o <- ri
@@ -403,6 +422,17 @@ func (mg *Graph) GetInChannel(ctx context.Context, reqChan chan gdbi.ElementLook
 				if err := cursor.Close(context.TODO()); err != nil {
 					log.WithFields(log.Fields{"error": err}).Error("GetInChannel: iter error")
 				}
+				if emitNull {
+					for id, count := range batchMapReturnCount {
+						if count == 0 {
+							r := batchMap[id]
+							for _, ri := range r {
+								ri.Vertex = nil
+								o <- ri
+							}
+						}
+					}
+				}
 			}
 			for i := range signals {
 				o <- signals[i]
@@ -413,7 +443,7 @@ func (mg *Graph) GetInChannel(ctx context.Context, reqChan chan gdbi.ElementLook
 }
 
 // GetOutEdgeChannel process requests of vertex ids and find the connected outgoing edges
-func (mg *Graph) GetOutEdgeChannel(ctx context.Context, reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
+func (mg *Graph) GetOutEdgeChannel(ctx context.Context, reqChan chan gdbi.ElementLookup, load bool, emitNull bool, edgeLabels []string) chan gdbi.ElementLookup {
 	batches := gdbi.LookupBatcher(reqChan, mg.batchSize, time.Microsecond)
 
 	o := make(chan gdbi.ElementLookup, 100)
@@ -422,6 +452,7 @@ func (mg *Graph) GetOutEdgeChannel(ctx context.Context, reqChan chan gdbi.Elemen
 		for batch := range batches {
 			idBatch := make([]string, 0, len(batch))
 			batchMap := make(map[string][]gdbi.ElementLookup, len(batch))
+			batchMapReturnCount := make(map[string]int, len(batch))
 			signals := []gdbi.ElementLookup{}
 			for i := range batch {
 				if batch[i].IsSignal() {
@@ -429,6 +460,7 @@ func (mg *Graph) GetOutEdgeChannel(ctx context.Context, reqChan chan gdbi.Elemen
 				} else {
 					idBatch = append(idBatch, batch[i].ID)
 					batchMap[batch[i].ID] = append(batchMap[batch[i].ID], batch[i])
+					batchMapReturnCount[batch[i].ID] = 0
 				}
 			}
 			query := []bson.M{{"$match": bson.M{"from": bson.M{"$in": idBatch}}}}
@@ -442,7 +474,9 @@ func (mg *Graph) GetOutEdgeChannel(ctx context.Context, reqChan chan gdbi.Elemen
 				for cursor.Next(context.TODO()) {
 					if err := cursor.Decode(&result); err == nil {
 						e := UnpackEdge(result)
-						r := batchMap[result["from"].(string)]
+						fromID := result["from"].(string)
+						r := batchMap[fromID]
+						batchMapReturnCount[fromID]++
 						for _, ri := range r {
 							ri.Edge = e
 							o <- ri
@@ -453,6 +487,17 @@ func (mg *Graph) GetOutEdgeChannel(ctx context.Context, reqChan chan gdbi.Elemen
 				}
 				if err := cursor.Close(context.TODO()); err != nil {
 					log.WithFields(log.Fields{"error": err}).Error("GetOutEdgeChannel: iter error")
+				}
+				if emitNull {
+					for id, count := range batchMapReturnCount {
+						if count == 0 {
+							r := batchMap[id]
+							for _, ri := range r {
+								ri.Edge = nil
+								o <- ri
+							}
+						}
+					}
 				}
 			}
 			for i := range signals {
@@ -465,7 +510,7 @@ func (mg *Graph) GetOutEdgeChannel(ctx context.Context, reqChan chan gdbi.Elemen
 }
 
 // GetInEdgeChannel process requests of vertex ids and find the connected incoming edges
-func (mg *Graph) GetInEdgeChannel(ctx context.Context, reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
+func (mg *Graph) GetInEdgeChannel(ctx context.Context, reqChan chan gdbi.ElementLookup, load bool, emitNull bool, edgeLabels []string) chan gdbi.ElementLookup {
 	batches := gdbi.LookupBatcher(reqChan, mg.batchSize, time.Microsecond)
 
 	o := make(chan gdbi.ElementLookup, 100)
@@ -474,6 +519,7 @@ func (mg *Graph) GetInEdgeChannel(ctx context.Context, reqChan chan gdbi.Element
 		for batch := range batches {
 			idBatch := make([]string, 0, len(batch))
 			batchMap := make(map[string][]gdbi.ElementLookup, len(batch))
+			batchMapReturnCount := make(map[string]int, len(batch))
 			signals := []gdbi.ElementLookup{}
 			for i := range batch {
 				if batch[i].IsSignal() {
@@ -481,6 +527,7 @@ func (mg *Graph) GetInEdgeChannel(ctx context.Context, reqChan chan gdbi.Element
 				} else {
 					idBatch = append(idBatch, batch[i].ID)
 					batchMap[batch[i].ID] = append(batchMap[batch[i].ID], batch[i])
+					batchMapReturnCount[batch[i].ID] = 0
 				}
 			}
 			query := []bson.M{{"$match": bson.M{"to": bson.M{"$in": idBatch}}}}
@@ -494,7 +541,9 @@ func (mg *Graph) GetInEdgeChannel(ctx context.Context, reqChan chan gdbi.Element
 				for cursor.Next(context.TODO()) {
 					if err := cursor.Decode(&result); err == nil {
 						e := UnpackEdge(result)
-						r := batchMap[result["to"].(string)]
+						toID := result["to"].(string)
+						r := batchMap[toID]
+						batchMapReturnCount[toID]++
 						for _, ri := range r {
 							ri.Edge = e
 							o <- ri
@@ -505,6 +554,17 @@ func (mg *Graph) GetInEdgeChannel(ctx context.Context, reqChan chan gdbi.Element
 				}
 				if err := cursor.Close(context.TODO()); err != nil {
 					log.WithFields(log.Fields{"error": err}).Error("GetInEdgeChannel: iter error")
+				}
+				if emitNull {
+					for id, count := range batchMapReturnCount {
+						if count == 0 {
+							r := batchMap[id]
+							for _, ri := range r {
+								ri.Edge = nil
+								o <- ri
+							}
+						}
+					}
 				}
 			}
 			for i := range signals {

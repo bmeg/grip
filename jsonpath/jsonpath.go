@@ -2,6 +2,7 @@ package jsonpath
 
 import (
 	// "fmt"
+	"fmt"
 	"strings"
 
 	"github.com/bmeg/grip/gdbi"
@@ -61,37 +62,38 @@ func GetJSONPath(path string) string {
 // GetDoc returns the document referenced by the provided namespace.
 //
 // Example for a traveler containing:
-// {
-//     "current": {...},
-//     "marks": {
-//       "gene": {
-//         "gid": 1,
-//         "label": "gene",
-//         "data": {
-//           "symbol": {
-//             "ensembl": "ENSG00000012048",
-//             "hgnc": 1100,
-//             "entrez": 672
-//           }
-//         }
-//       }
-//     }
-//   }
-// }
+//
+//	{
+//	    "current": {...},
+//	    "marks": {
+//	      "gene": {
+//	        "gid": 1,
+//	        "label": "gene",
+//	        "data": {
+//	          "symbol": {
+//	            "ensembl": "ENSG00000012048",
+//	            "hgnc": 1100,
+//	            "entrez": 672
+//	          }
+//	        }
+//	      }
+//	    }
+//	  }
+//	}
 //
 // GetDoc(traveler, "gene") returns:
 //
-// {
-//   "gid": 1,
-//   "label": "gene",
-//   "data": {
-//     "symbol": {
-//       "ensembl": "ENSG00000012048",
-//       "hgnc": 1100,
-//       "entrez": 672
-//     }
-//   }
-// }
+//	{
+//	  "gid": 1,
+//	  "label": "gene",
+//	  "data": {
+//	    "symbol": {
+//	      "ensembl": "ENSG00000012048",
+//	      "hgnc": 1100,
+//	      "entrez": 672
+//	    }
+//	  }
+//	}
 func GetDoc(traveler gdbi.Traveler, namespace string) map[string]interface{} {
 	var tmap map[string]interface{}
 	if namespace == Current {
@@ -105,32 +107,34 @@ func GetDoc(traveler gdbi.Traveler, namespace string) map[string]interface{} {
 // TravelerPathLookup gets the value of a field in the given Traveler
 //
 // Example for a traveler containing:
-// {
-//     "current": {...},
-//     "marks": {
-//       "gene": {
-//         "gid": 1,
-//         "label": "gene",
-//         "data": {
-//           "symbol": {
-//             "ensembl": "ENSG00000012048",
-//             "hgnc": 1100,
-//             "entrez": 672
-//           }
-//         }
-//       }
-//     }
-//   }
-// }
+//
+//	{
+//	    "current": {...},
+//	    "marks": {
+//	      "gene": {
+//	        "gid": 1,
+//	        "label": "gene",
+//	        "data": {
+//	          "symbol": {
+//	            "ensembl": "ENSG00000012048",
+//	            "hgnc": 1100,
+//	            "entrez": 672
+//	          }
+//	        }
+//	      }
+//	    }
+//	  }
+//	}
 //
 // TravelerPathLookup(travler, "$gene.symbol.ensembl") returns "ENSG00000012048"
 func TravelerPathLookup(traveler gdbi.Traveler, path string) interface{} {
 	namespace := GetNamespace(path)
 	field := GetJSONPath(path)
-	if field == "" {
-		return nil
-	}
 	doc := GetDoc(traveler, namespace)
+	if field == "" {
+		fmt.Printf("Null field, return %#v\n", doc)
+		return doc
+	}
 	res, err := jsonpath.JsonPathLookup(doc, field)
 	if err != nil {
 		return nil

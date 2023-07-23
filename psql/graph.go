@@ -15,7 +15,7 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-const batchSize int = 1000
+const batchSize int = 100
 
 // Graph is the interface to a single graph
 type Graph struct {
@@ -310,7 +310,7 @@ func (g *Graph) GetEdgeList(ctx context.Context, load bool) <-chan *gdbi.Edge {
 
 // GetVertexChannel is passed a channel of vertex ids and it produces a channel of vertices
 func (g *Graph) GetVertexChannel(ctx context.Context, reqChan chan gdbi.ElementLookup, load bool) chan gdbi.ElementLookup {
-	batches := gdbi.LookupBatcher(reqChan, 100, time.Microsecond)
+	batches := gdbi.LookupBatcher(reqChan, batchSize, time.Microsecond)
 
 	o := make(chan gdbi.ElementLookup, 100)
 	go func() {
@@ -370,8 +370,8 @@ func (g *Graph) GetVertexChannel(ctx context.Context, reqChan chan gdbi.ElementL
 }
 
 // GetOutChannel is passed a channel of vertex ids and finds the connected vertices via outgoing edges
-func (g *Graph) GetOutChannel(ctx context.Context, reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
-	batches := gdbi.LookupBatcher(reqChan, 100, time.Microsecond)
+func (g *Graph) GetOutChannel(ctx context.Context, reqChan chan gdbi.ElementLookup, load bool, emitNull bool, edgeLabels []string) chan gdbi.ElementLookup {
+	batches := gdbi.LookupBatcher(reqChan, batchSize, time.Microsecond)
 
 	o := make(chan gdbi.ElementLookup, 100)
 	go func() {
@@ -379,6 +379,7 @@ func (g *Graph) GetOutChannel(ctx context.Context, reqChan chan gdbi.ElementLook
 		for batch := range batches {
 			idBatch := make([]string, 0, len(batch))
 			batchMap := make(map[string][]gdbi.ElementLookup, len(batch))
+			batchMapReturnCount := make(map[string]int)
 			signals := []gdbi.ElementLookup{}
 			for i := range batch {
 				if batch[i].IsSignal() {
@@ -386,6 +387,7 @@ func (g *Graph) GetOutChannel(ctx context.Context, reqChan chan gdbi.ElementLook
 				} else {
 					idBatch = append(idBatch, fmt.Sprintf("'%s'", batch[i].ID))
 					batchMap[batch[i].ID] = append(batchMap[batch[i].ID], batch[i])
+					batchMapReturnCount[batch[i].ID] = 0
 				}
 			}
 			if len(idBatch) > 0 {
@@ -446,6 +448,7 @@ func (g *Graph) GetOutChannel(ctx context.Context, reqChan chan gdbi.ElementLook
 						continue
 					}
 					r := batchMap[vrow.From]
+					batchMapReturnCount[vrow.From]++
 					for _, ri := range r {
 						ri.Vertex = v
 						o <- ri
@@ -455,6 +458,17 @@ func (g *Graph) GetOutChannel(ctx context.Context, reqChan chan gdbi.ElementLook
 					log.WithFields(log.Fields{"error": err}).Error("GetOutChannel: iterating")
 				}
 				rows.Close()
+				if emitNull {
+					for id, count := range batchMapReturnCount {
+						if count == 0 {
+							r := batchMap[id]
+							for _, ri := range r {
+								ri.Vertex = nil
+								o <- ri
+							}
+						}
+					}
+				}
 			}
 			for i := range signals {
 				o <- signals[i]
@@ -465,8 +479,8 @@ func (g *Graph) GetOutChannel(ctx context.Context, reqChan chan gdbi.ElementLook
 }
 
 // GetInChannel is passed a channel of vertex ids and finds the connected vertices via incoming edges
-func (g *Graph) GetInChannel(ctx context.Context, reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
-	batches := gdbi.LookupBatcher(reqChan, 100, time.Microsecond)
+func (g *Graph) GetInChannel(ctx context.Context, reqChan chan gdbi.ElementLookup, load bool, emitNull bool, edgeLabels []string) chan gdbi.ElementLookup {
+	batches := gdbi.LookupBatcher(reqChan, batchSize, time.Microsecond)
 
 	o := make(chan gdbi.ElementLookup, 100)
 	go func() {
@@ -474,6 +488,7 @@ func (g *Graph) GetInChannel(ctx context.Context, reqChan chan gdbi.ElementLooku
 		for batch := range batches {
 			idBatch := make([]string, 0, len(batch))
 			batchMap := make(map[string][]gdbi.ElementLookup, len(batch))
+			batchMapReturnCount := make(map[string]int)
 			signals := []gdbi.ElementLookup{}
 			for i := range batch {
 				if batch[i].IsSignal() {
@@ -481,6 +496,7 @@ func (g *Graph) GetInChannel(ctx context.Context, reqChan chan gdbi.ElementLooku
 				} else {
 					idBatch = append(idBatch, fmt.Sprintf("'%s'", batch[i].ID))
 					batchMap[batch[i].ID] = append(batchMap[batch[i].ID], batch[i])
+					batchMapReturnCount[batch[i].ID] = 0
 				}
 			}
 			if len(idBatch) > 0 {
@@ -541,6 +557,7 @@ func (g *Graph) GetInChannel(ctx context.Context, reqChan chan gdbi.ElementLooku
 						continue
 					}
 					r := batchMap[vrow.To]
+					batchMapReturnCount[vrow.To]++
 					for _, ri := range r {
 						ri.Vertex = v
 						o <- ri
@@ -550,6 +567,17 @@ func (g *Graph) GetInChannel(ctx context.Context, reqChan chan gdbi.ElementLooku
 					log.WithFields(log.Fields{"error": err}).Error("GetInChannel: iterating")
 				}
 				rows.Close()
+				if emitNull {
+					for id, count := range batchMapReturnCount {
+						if count == 0 {
+							r := batchMap[id]
+							for _, ri := range r {
+								ri.Vertex = nil
+								o <- ri
+							}
+						}
+					}
+				}
 			}
 			for i := range signals {
 				o <- signals[i]
@@ -560,8 +588,8 @@ func (g *Graph) GetInChannel(ctx context.Context, reqChan chan gdbi.ElementLooku
 }
 
 // GetOutEdgeChannel is passed a channel of vertex ids and finds the outgoing edges
-func (g *Graph) GetOutEdgeChannel(ctx context.Context, reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
-	batches := gdbi.LookupBatcher(reqChan, 100, time.Microsecond)
+func (g *Graph) GetOutEdgeChannel(ctx context.Context, reqChan chan gdbi.ElementLookup, load bool, emitNull bool, edgeLabels []string) chan gdbi.ElementLookup {
+	batches := gdbi.LookupBatcher(reqChan, batchSize, time.Microsecond)
 
 	o := make(chan gdbi.ElementLookup, 100)
 	go func() {
@@ -569,6 +597,7 @@ func (g *Graph) GetOutEdgeChannel(ctx context.Context, reqChan chan gdbi.Element
 		for batch := range batches {
 			idBatch := make([]string, 0, len(batch))
 			batchMap := make(map[string][]gdbi.ElementLookup, len(batch))
+			batchMapReturnCount := make(map[string]int)
 			signals := []gdbi.ElementLookup{}
 			for i := range batch {
 				if batch[i].IsSignal() {
@@ -576,6 +605,7 @@ func (g *Graph) GetOutEdgeChannel(ctx context.Context, reqChan chan gdbi.Element
 				} else {
 					idBatch = append(idBatch, fmt.Sprintf("'%s'", batch[i].ID))
 					batchMap[batch[i].ID] = append(batchMap[batch[i].ID], batch[i])
+					batchMapReturnCount[batch[i].ID] = 0
 				}
 			}
 			if len(idBatch) > 0 {
@@ -624,6 +654,7 @@ func (g *Graph) GetOutEdgeChannel(ctx context.Context, reqChan chan gdbi.Element
 						continue
 					}
 					r := batchMap[erow.From]
+					batchMapReturnCount[erow.From]++
 					for _, ri := range r {
 						ri.Edge = e
 						o <- ri
@@ -633,6 +664,17 @@ func (g *Graph) GetOutEdgeChannel(ctx context.Context, reqChan chan gdbi.Element
 					log.WithFields(log.Fields{"error": err}).Error("GetOutEdgeChannel: iterating")
 				}
 				rows.Close()
+				if emitNull {
+					for id, count := range batchMapReturnCount {
+						if count == 0 {
+							r := batchMap[id]
+							for _, ri := range r {
+								ri.Edge = nil
+								o <- ri
+							}
+						}
+					}
+				}
 			}
 			for i := range signals {
 				o <- signals[i]
@@ -643,8 +685,8 @@ func (g *Graph) GetOutEdgeChannel(ctx context.Context, reqChan chan gdbi.Element
 }
 
 // GetInEdgeChannel is passed a channel of vertex ids and finds the incoming edges
-func (g *Graph) GetInEdgeChannel(ctx context.Context, reqChan chan gdbi.ElementLookup, load bool, edgeLabels []string) chan gdbi.ElementLookup {
-	batches := gdbi.LookupBatcher(reqChan, 100, time.Microsecond)
+func (g *Graph) GetInEdgeChannel(ctx context.Context, reqChan chan gdbi.ElementLookup, load bool, emitNull bool, edgeLabels []string) chan gdbi.ElementLookup {
+	batches := gdbi.LookupBatcher(reqChan, batchSize, time.Microsecond)
 
 	o := make(chan gdbi.ElementLookup, 100)
 	go func() {
@@ -652,6 +694,7 @@ func (g *Graph) GetInEdgeChannel(ctx context.Context, reqChan chan gdbi.ElementL
 		for batch := range batches {
 			idBatch := make([]string, 0, len(batch))
 			batchMap := make(map[string][]gdbi.ElementLookup, len(batch))
+			batchMapReturnCount := make(map[string]int)
 			signals := []gdbi.ElementLookup{}
 			for i := range batch {
 				if batch[i].IsSignal() {
@@ -659,6 +702,7 @@ func (g *Graph) GetInEdgeChannel(ctx context.Context, reqChan chan gdbi.ElementL
 				} else {
 					idBatch = append(idBatch, fmt.Sprintf("'%s'", batch[i].ID))
 					batchMap[batch[i].ID] = append(batchMap[batch[i].ID], batch[i])
+					batchMapReturnCount[batch[i].ID] = 0
 				}
 			}
 			if len(idBatch) > 0 {
@@ -707,6 +751,7 @@ func (g *Graph) GetInEdgeChannel(ctx context.Context, reqChan chan gdbi.ElementL
 						continue
 					}
 					r := batchMap[erow.To]
+					batchMapReturnCount[erow.To]++
 					for _, ri := range r {
 						ri.Edge = e
 						o <- ri
@@ -716,6 +761,17 @@ func (g *Graph) GetInEdgeChannel(ctx context.Context, reqChan chan gdbi.ElementL
 					log.WithFields(log.Fields{"error": err}).Error("GetInEdgeChannel: iterating")
 				}
 				rows.Close()
+				if emitNull {
+					for id, count := range batchMapReturnCount {
+						if count == 0 {
+							r := batchMap[id]
+							for _, ri := range r {
+								ri.Edge = nil
+								o <- ri
+							}
+						}
+					}
+				}
 			}
 			for i := range signals {
 				o <- signals[i]

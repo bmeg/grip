@@ -3,8 +3,8 @@ package core
 import (
 	"fmt"
 
-	"github.com/bmeg/grip/engine/pipeline"
 	"github.com/bmeg/grip/engine/logic"
+	"github.com/bmeg/grip/engine/pipeline"
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/jsonpath"
@@ -121,11 +121,35 @@ func StatementProcessor(gs *gripql.GraphStatement, db gdbi.GraphInterface, ps *p
 			return nil, fmt.Errorf(`"in" statement is only valid for edge or vertex types not: %s`, ps.LastType.String())
 		}
 
+	case *gripql.GraphStatement_InNull:
+		labels := protoutil.AsStringList(gs.GetInNull())
+		if ps.LastType == gdbi.VertexData {
+			ps.LastType = gdbi.VertexData
+			return &LookupVertexAdjIn{db: db, labels: labels, loadData: ps.StepLoadData(), emitNull: true}, nil
+		} else if ps.LastType == gdbi.EdgeData {
+			ps.LastType = gdbi.VertexData
+			return &LookupEdgeAdjIn{db: db, labels: labels, loadData: ps.StepLoadData()}, nil
+		} else {
+			return nil, fmt.Errorf(`"in" statement is only valid for edge or vertex types not: %s`, ps.LastType.String())
+		}
+
 	case *gripql.GraphStatement_Out:
 		labels := protoutil.AsStringList(gs.GetOut())
 		if ps.LastType == gdbi.VertexData {
 			ps.LastType = gdbi.VertexData
 			return &LookupVertexAdjOut{db: db, labels: labels, loadData: ps.StepLoadData()}, nil
+		} else if ps.LastType == gdbi.EdgeData {
+			ps.LastType = gdbi.VertexData
+			return &LookupEdgeAdjOut{db: db, labels: labels, loadData: ps.StepLoadData()}, nil
+		} else {
+			return nil, fmt.Errorf(`"out" statement is only valid for edge or vertex types not: %s`, ps.LastType.String())
+		}
+
+	case *gripql.GraphStatement_OutNull:
+		labels := protoutil.AsStringList(gs.GetOutNull())
+		if ps.LastType == gdbi.VertexData {
+			ps.LastType = gdbi.VertexData
+			return &LookupVertexAdjOut{db: db, labels: labels, loadData: ps.StepLoadData(), emitNull: true}, nil
 		} else if ps.LastType == gdbi.EdgeData {
 			ps.LastType = gdbi.VertexData
 			return &LookupEdgeAdjOut{db: db, labels: labels, loadData: ps.StepLoadData()}, nil
@@ -153,13 +177,29 @@ func StatementProcessor(gs *gripql.GraphStatement, db gdbi.GraphInterface, ps *p
 		ps.LastType = gdbi.EdgeData
 		return &InE{db: db, labels: labels, loadData: ps.StepLoadData()}, nil
 
+	case *gripql.GraphStatement_InENull:
+		if ps.LastType != gdbi.VertexData {
+			return nil, fmt.Errorf(`"inEdge" statement is only valid for the vertex type not: %s`, ps.LastType.String())
+		}
+		labels := protoutil.AsStringList(stmt.InENull)
+		ps.LastType = gdbi.EdgeData
+		return &InE{db: db, labels: labels, loadData: ps.StepLoadData(), emitNull: true}, nil
+
 	case *gripql.GraphStatement_OutE:
 		if ps.LastType != gdbi.VertexData {
-			return nil, fmt.Errorf(`"outEdge" statement is only valid for the vertex type not: %s`, ps.LastType.String())
+			return nil, fmt.Errorf(`"outEdgeNull" statement is only valid for the vertex type not: %s`, ps.LastType.String())
 		}
 		labels := protoutil.AsStringList(stmt.OutE)
 		ps.LastType = gdbi.EdgeData
 		return &OutE{db: db, labels: labels, loadData: ps.StepLoadData()}, nil
+
+	case *gripql.GraphStatement_OutENull:
+		if ps.LastType != gdbi.VertexData {
+			return nil, fmt.Errorf(`"outEdgeNull" statement is only valid for the vertex type not: %s`, ps.LastType.String())
+		}
+		labels := protoutil.AsStringList(stmt.OutENull)
+		ps.LastType = gdbi.EdgeData
+		return &OutE{db: db, labels: labels, loadData: ps.StepLoadData(), emitNull: true}, nil
 
 	case *gripql.GraphStatement_BothE:
 		if ps.LastType != gdbi.VertexData {
@@ -251,12 +291,11 @@ func StatementProcessor(gs *gripql.GraphStatement, db gdbi.GraphInterface, ps *p
 		return &ValueIncrement{key: stmt.Increment.Key, value: stmt.Increment.Value}, nil
 
 	case *gripql.GraphStatement_Mark:
-		return &logic.JumpMark{Name:stmt.Mark}, nil
+		return &logic.JumpMark{Name: stmt.Mark}, nil
 
 	case *gripql.GraphStatement_Jump:
-		j := &logic.Jump{Mark:stmt.Jump.Mark, Stmt:stmt.Jump.Expression, Emit:stmt.Jump.Emit}
+		j := &logic.Jump{Mark: stmt.Jump.Mark, Stmt: stmt.Jump.Expression, Emit: stmt.Jump.Emit}
 		return j, nil
-
 
 	case *gripql.GraphStatement_Select:
 		if ps.LastType != gdbi.VertexData && ps.LastType != gdbi.EdgeData {
@@ -321,11 +360,11 @@ func StatementProcessor(gs *gripql.GraphStatement, db gdbi.GraphInterface, ps *p
 		return proc.GetProcessor(db, ps)
 
 	default:
-		return nil, fmt.Errorf("gridsCompile: unknown statement type: %s", gs.GetStatement())
+		return nil, fmt.Errorf("grip compile: unknown statement type: %s", gs.GetStatement())
 	}
 }
 
-//Validate checks pipeline for chains of statements that won't work
+// Validate checks pipeline for chains of statements that won't work
 func Validate(stmts []*gripql.GraphStatement, opts *gdbi.CompileOptions) error {
 	for i, gs := range stmts {
 		// Validate that the first statement is V() or E()

@@ -78,6 +78,17 @@ class Query(BaseConnection):
         label = _wrap_str_value(label)
         return self.__append({"in": label})
 
+    def inNull(self, label=[]):
+        """
+        Follow an incoming edge to the source vertex.
+
+        "label" is the label of the edge to follow.
+        "label" can be a list.
+        """
+        label = _wrap_str_value(label)
+        return self.__append({"inNull": label})
+
+
     def inV(self, label=[]):
         return self.in_(label)
 
@@ -90,6 +101,17 @@ class Query(BaseConnection):
         """
         label = _wrap_str_value(label)
         return self.__append({"out": label})
+
+    def outNull(self, label=[]):
+        """
+        Follow an outgoing edge to the destination vertex.
+
+        "label" is the label of the edge to follow.
+        "label" can be a list.
+        """
+        label = _wrap_str_value(label)
+        return self.__append({"outNull": label})
+
 
     def outV(self, label=[]):
         return self.out(label)
@@ -119,6 +141,19 @@ class Query(BaseConnection):
         label = _wrap_str_value(label)
         return self.__append({"inE": label})
 
+    def inENull(self, label=[]):
+        """
+        Move from a vertex to an incoming edge.
+
+        "label" is the label of the edge to move to.
+        "label" can be a list.
+
+        Must be called from a vertex.
+        """
+        label = _wrap_str_value(label)
+        return self.__append({"inENull": label})
+
+
     def outE(self, label=[]):
         """
         Move from a vertex to an outgoing edge.
@@ -130,6 +165,18 @@ class Query(BaseConnection):
         """
         label = _wrap_str_value(label)
         return self.__append({"outE": label})
+
+    def outENull(self, label=[]):
+        """
+        Move from a vertex to an outgoing edge.
+
+        "label" is the label of the edge to move to.
+        "label" can be a list.
+
+        Must be called from a vertex.
+        """
+        label = _wrap_str_value(label)
+        return self.__append({"outENull": label})
 
     def bothE(self, label=[]):
         """

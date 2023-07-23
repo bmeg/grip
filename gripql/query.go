@@ -58,8 +58,9 @@ func (q *Query) In(label ...string) *Query {
 }
 
 // InV follows incoming edges to adjacent vertex
-func (q *Query) InV(label ...string) *Query {
-	return q.In(label...)
+func (q *Query) InNull(label ...string) *Query {
+	vlist := protoutil.NewListFromStrings(label)
+	return q.with(&GraphStatement{Statement: &GraphStatement_InNull{vlist}})
 }
 
 // InE moves to incoming edge
@@ -75,8 +76,9 @@ func (q *Query) Out(label ...string) *Query {
 }
 
 // OutV follows outgoing edges to adjacent vertex
-func (q *Query) OutV(label ...string) *Query {
-	return q.Out(label...)
+func (q *Query) OutNull(label ...string) *Query {
+	vlist := protoutil.NewListFromStrings(label)
+	return q.with(&GraphStatement{Statement: &GraphStatement_OutNull{vlist}})
 }
 
 // OutE moves to outgoing edge
@@ -180,6 +182,13 @@ func (q *Query) Distinct(args ...string) *Query {
 
 // Render adds a render step to the query
 func (q *Query) Render(template interface{}) *Query {
+	if sList, ok := template.([]string); ok {
+		t := []any{}
+		for _, j := range sList {
+			t = append(t, j)
+		}
+		template = t
+	}
 	value, err := structpb.NewValue(template)
 	if err != nil {
 		log.Errorf("render error: %s", err)
@@ -215,6 +224,14 @@ func (q *Query) String() string {
 		case *GraphStatement_Out:
 			ids := protoutil.AsStringList(stmt.Out)
 			add("Out", ids...)
+
+		case *GraphStatement_InNull:
+			ids := protoutil.AsStringList(stmt.InNull)
+			add("InNull", ids...)
+
+		case *GraphStatement_OutNull:
+			ids := protoutil.AsStringList(stmt.OutNull)
+			add("OutNull", ids...)
 
 		case *GraphStatement_Both:
 			ids := protoutil.AsStringList(stmt.Both)

@@ -24,8 +24,16 @@ function query() {
 			this.query.push({'out': process(label)})
 			return this
 		},
+		outNull: function(label) {
+			this.query.push({'outNull': process(label)})
+			return this
+		},
 		in_: function(label) {
 			this.query.push({'in': process(label)})
+			return this
+		},
+		inNull: function(label) {
+			this.query.push({'inNull': process(label)})
 			return this
 		},
 		both: function(label) {
@@ -45,15 +53,23 @@ function query() {
 			return this
 		},
 		outE: function(label) {
-			this.query.push({'out_e': process(label)})
+			this.query.push({'outE': process(label)})
+			return this
+		},
+		outENull: function(label) {
+			this.query.push({'outENull': process(label)})
 			return this
 		},
 		inE: function(label) {
-			this.query.push({'in_e': process(label)})
+			this.query.push({'inE': process(label)})
+			return this
+		},
+		inENull: function(label) {
+			this.query.push({'inENull': process(label)})
 			return this
 		},
 		bothE: function(label) {
-			this.query.push({'both_e': process(label)})
+			this.query.push({'bothE': process(label)})
 			return this
 		},
 		as_: function(name) {

@@ -10,6 +10,7 @@ import (
 	"io"
 	"net/http"
 
+	"github.com/bmeg/grip/endpoints/cypher/translate"
 	"github.com/bmeg/grip/gripql"
 	"google.golang.org/protobuf/encoding/protojson"
 
@@ -36,7 +37,7 @@ func (gh *Handler) ServeHTTP(writer http.ResponseWriter, request *http.Request) 
 		buf := bytes.Buffer{}
 		buf.ReadFrom(request.Body)
 		cyQuery := buf.String()
-		gripQuery, err := RunParser(cyQuery)
+		gripQuery, err := translate.RunParser(cyQuery)
 		if err != nil {
 			log.Printf("Parse Error: %s", err)
 		}
