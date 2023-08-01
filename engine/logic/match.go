@@ -2,7 +2,6 @@ package logic
 
 import (
 	"reflect"
-	"strings"
 
 	"github.com/spf13/cast"
 
@@ -17,14 +16,6 @@ func MatchesCondition(trav gdbi.Traveler, cond *gripql.HasCondition) bool {
 	var condVal interface{}
 	val = jsonpath.TravelerPathLookup(trav, cond.Key)
 	condVal = cond.Value.AsInterface()
-
-	if condValStr, ok := condVal.(string); ok {
-		if strings.HasPrefix(condValStr, "$.") {
-			//log.Infof("condVal: %s\n", condValStr)
-			condVal = jsonpath.TravelerPathLookup(trav, condValStr)
-		}
-		//TODO: Add escape for $ user string
-	}
 
 	switch cond.Condition {
 	case gripql.Condition_EQ:
