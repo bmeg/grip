@@ -135,9 +135,14 @@ def test_has_prev(man):
 
     q = G.query().V().hasLabel("Character").as_("1").out("homeworld").out("residents")
     q = q.has(gripql.neq("$1._gid", "$._gid"))
+    count = 0
     for i in q.render(["$1._gid", "$._gid"]):
+        print(i)
         if i[0] == i[1]:
             errors.append("History based filter failed: %s" % (i[0]) )
+        count += 1
+    if count < 10:
+        errors.append("Not enough elements found: %d" % (count))
     return errors
 
 
