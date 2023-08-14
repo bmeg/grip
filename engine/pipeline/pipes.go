@@ -119,27 +119,35 @@ func Convert(graph gdbi.GraphInterface, dataType gdbi.DataType, markTypes map[st
 	switch dataType {
 	case gdbi.VertexData:
 		ve := t.GetCurrent()
-		if !ve.Loaded {
-			//log.Infof("Loading output vertex: %s", ve.ID)
-			//TODO: doing single vertex queries is slow.
-			// Need to rework this to do batched queries
-			ve = graph.GetVertex(ve.ID, true)
-		}
-		return &gripql.QueryResult{
-			Result: &gripql.QueryResult_Vertex{
-				Vertex: ve.ToVertex(),
-			},
+		if ve != nil {
+			if !ve.Loaded {
+				//log.Infof("Loading output vertex: %s", ve.ID)
+				//TODO: doing single vertex queries is slow.
+				// Need to rework this to do batched queries
+				ve = graph.GetVertex(ve.ID, true)
+			}
+			return &gripql.QueryResult{
+				Result: &gripql.QueryResult_Vertex{
+					Vertex: ve.ToVertex(),
+				},
+			}
+		} else {
+			return &gripql.QueryResult{Result: &gripql.QueryResult_Vertex{}}
 		}
 
 	case gdbi.EdgeData:
 		ee := t.GetCurrent()
-		if !ee.Loaded {
-			ee = graph.GetEdge(ee.ID, true)
-		}
-		return &gripql.QueryResult{
-			Result: &gripql.QueryResult_Edge{
-				Edge: ee.ToEdge(),
-			},
+		if ee != nil {
+			if !ee.Loaded {
+				ee = graph.GetEdge(ee.ID, true)
+			}
+			return &gripql.QueryResult{
+				Result: &gripql.QueryResult_Edge{
+					Edge: ee.ToEdge(),
+				},
+			}
+		} else {
+			return &gripql.QueryResult{Result: &gripql.QueryResult_Edge{}}
 		}
 
 	case gdbi.CountData:
