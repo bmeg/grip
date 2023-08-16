@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"reflect"
 	"unicode"
 
 	"github.com/bmeg/grip/gripql"
@@ -23,7 +22,7 @@ var JSONScalar = graphql.NewScalar(graphql.ScalarConfig{
 		return fmt.Sprintf("Serialize %v", value)
 	},
 	ParseValue: func(value interface{}) interface{} {
-		fmt.Printf("Unmarshal JSON: %v %T\n", value, value)
+		//fmt.Printf("Unmarshal JSON: %v %T\n", value, value)
 		return value
 	},
 	ParseLiteral: func(valueAST ast.Value) interface{} {
@@ -49,6 +48,7 @@ func buildGraphQLSchema(schema *gripql.Graph, client gripql.Client, graph string
 	}
 	// Build the set of objects for all vertex labels
 	objectMap, err := buildObjectMap(client, graph, schema)
+	fmt.Println("OBJ MAP: ", objectMap)
 	if err != nil {
 		return nil, fmt.Errorf("graphql.NewSchema error: %v", err)
 	}
@@ -134,14 +134,12 @@ func buildObject(name string, obj map[string]interface{}) (*graphql.Object, erro
 		if x, ok := val.(map[string]interface{}); ok {
 			// make object name parent_field
 			var f *graphql.Field
-			//fmt.Println("NAME: ", key, "SLICE: ", x)
 			f, err = buildObjectField(name+"_"+key, x)
 			if err == nil {
 				objFields[key] = f
 			}
 			// handle slice
 		} else if x, ok := val.([]interface{}); ok {
-			//fmt.Println("SLICE: ", key, "X: ", x)
 			var f *graphql.Field
 			f, err = buildSliceField(key, x)
 			if err == nil {
@@ -193,10 +191,7 @@ func buildObjectMap(client gripql.Client, graph string, schema *gripql.Graph) (*
 			}
 			props["id"] = "STRING"
 
-			temp := []rune(obj.Gid)
-			temp[0] = unicode.ToLower(temp[0])
-			obj.Gid = string(temp)
-
+			obj.Gid = lower_first_char(obj.Gid)
 			gqlObj, err := buildObject(obj.Gid, props)
 			if err != nil {
 				return nil, err
@@ -209,25 +204,27 @@ func buildObjectMap(client gripql.Client, graph string, schema *gripql.Graph) (*
 		edgeDstType[obj.Gid] = map[string]string{}
 	}
 
+	fmt.Println("THE VALUE OF OBJECTS: ", objects)
 	// Setup outgoing edge fields
 	// Note: edge properties are not accessible in this model
 	for i, obj := range schema.Edges {
-		//fmt.Println("schema EDGES ", schema.Edges)
+		// The froms and tos are empty for some reason
+		obj.From = lower_first_char(obj.From)
 		if _, ok := objects[obj.From]; ok {
+			obj.To = lower_first_char(obj.To)
 			if _, ok := objects[obj.To]; ok {
 				obj := obj // This makes an inner loop copy of the variable that is used by the Resolve function
 				fname := obj.Label
 
 				//ensure the fname is unique
 				for j := range schema.Edges {
-
 					if i != j {
-						//fmt.Println("HELLO? ", schema.Edges[i].Label == schema.Edges[j].Label)
 						if schema.Edges[i].From == schema.Edges[j].From && schema.Edges[i].Label == schema.Edges[j].Label {
 							fname = obj.Label + "_to_" + obj.To
 						}
 					}
 				}
+				//fmt.Println("OBJ.FROM: ", obj.From, "OBJ.TO: ", obj.To, "FNAME: ", fname, "OBJ.LABEL: ", obj.Label, "OBJ.DATA: ", obj.Data, "OBJ.GID: ", obj.Gid)
 				edgeLabel[obj.From][fname] = obj.Label
 				edgeDstType[obj.From][fname] = obj.To
 
@@ -260,7 +257,7 @@ func buildObjectMap(client gripql.Client, graph string, schema *gripql.Graph) (*
 						},
 					*/
 				}
-				fmt.Printf("building: %#v %s %s\n", f, obj.From, fname)
+				//fmt.Printf("building: %#v %s %s\n", f, obj.From, fname)
 				objects[obj.From].AddFieldConfig(fname, f)
 			}
 		}
@@ -291,6 +288,11 @@ func buildFieldConfigArgument(obj *graphql.Object) graphql.FieldConfigArgument {
 	return args
 }
 
+func lower_first_char(name string) string {
+	temp := []rune(name)
+	temp[0] = unicode.ToLower(temp[0])
+	return string(temp)
+}
 func BubblesortByCount(list []any) []any {
 	// Create a comparator that compares the "count" value of two maps.
 	comparator := func(m1, m2 any) bool {
@@ -344,7 +346,6 @@ func buildAggregationField(client gripql.Client, graph string, objects *objectMa
 				"_totalCount": &graphql.Field{Name: "_totalCount", Type: graphql.Int},
 			}
 			for k, v := range obj.Fields() {
-				//fmt.Println("FIELD: ", k, "LABEL: ", label)
 				switch v.Type {
 				case graphql.String:
 					aggFields[k] =
@@ -390,7 +391,6 @@ func buildAggregationField(client gripql.Client, graph string, objects *objectMa
 							for _, j := range i.SelectionSet.Selections {
 								if k, ok := j.(*ast.Field); ok {
 									if k.Name.Value != "_totalCount" {
-										//fmt.Println("KNAMEVALUE: ", k.Name.Value)
 										aggs = append(aggs, &gripql.Aggregate{
 											Name: k.Name.Value,
 											Aggregation: &gripql.Aggregate_Term{
@@ -433,7 +433,6 @@ func buildAggregationField(client gripql.Client, graph string, objects *objectMa
 					for key, value := range out {
 						keys = append(keys, key)
 						if key != "_totalCount" {
-							fmt.Println(reflect.TypeOf(value))
 							if t, ok := value.(map[string]any)["histogram"].([]any); ok {
 								t = BubblesortByCount(t)
 							}
@@ -447,7 +446,6 @@ func buildAggregationField(client gripql.Client, graph string, objects *objectMa
 			queryFields[k+"AggregationObject"] = queryFields[k]
 		}
 	}
-	fmt.Println("QUERY FIELDS: ", queryFields)
 
 	aggregationObject := graphql.NewObject(graphql.ObjectConfig{
 		Name:   "AggregationObject",
@@ -480,18 +478,27 @@ func (rt *renderTree) NewElement(cur string, fieldName string) string {
 	return rName
 }
 
-func (om *objectMap) traversalBuild(query *gripql.Query, vertLabel string, field *ast.Field, curElement string, rt *renderTree) *gripql.Query {
+func (om *objectMap) traversalBuild(query *gripql.Query, vertLabel string, field *ast.Field, curElement string, rt *renderTree, limit int, offset int) *gripql.Query {
+	vertLabel = lower_first_char(vertLabel)
 	moved := false
 	for _, s := range field.SelectionSet.Selections {
 		if k, ok := s.(*ast.Field); ok {
-			if edgeLabel, ok := om.edgeLabel[vertLabel][k.Name.Value]; ok {
+			fmt.Println("OM.EDGELABEL: ", om.edgeLabel)
+			fmt.Println("OM.EDGEDSTYPE", om.edgeDstType)
+			fmt.Println("vertLabel: ", vertLabel)
+			fmt.Println("k.Name.Value: ", k.Name.Value)
+			if _, ok := om.edgeLabel[vertLabel][k.Name.Value]; ok {
 				if dstLabel, ok := om.edgeDstType[vertLabel][k.Name.Value]; ok {
 					if moved {
 						query = query.Select(curElement)
 					}
 					rName := rt.NewElement(curElement, k.Name.Value)
-					query = query.OutNull(edgeLabel).As(rName)
-					query = om.traversalBuild(query, dstLabel, k, rName, rt)
+					query = query.OutNull(k.Name.Value).As(rName)
+
+					// Additionally have to control the number of outputs on the results of each traversal
+					// otherwise there are instances when you get all of the results for each traversal node
+					query = query.Skip(uint32(offset)).Limit(uint32(limit))
+					query = om.traversalBuild(query, dstLabel, k, rName, rt, limit, offset)
 					moved = true
 				}
 			}
@@ -513,7 +520,6 @@ func buildQueryObject(client gripql.Client, graph string, objects *objectMap) *g
 		temp := []rune(label)
 		temp[0] = unicode.ToUpper(temp[0])
 		label = string(temp)
-		//fmt.Println("HAS LABEL ", gripql.V().HasLabel(label))
 		f := &graphql.Field{
 			Name: objName,
 			Type: graphql.NewList(obj),
@@ -542,7 +548,7 @@ func buildQueryObject(client gripql.Client, graph string, objects *objectMap) *g
 					}
 				}
 				//if filter was passed, apply it
-				fmt.Println("FILTER HERE BEFORE: ", q, "IF EVAL: ", filter != nil)
+				fmt.Println("VALUE OF FILTER: ", params.Args, " VALUE OF QUERY: ", q.As("f0"))
 				if filter != nil {
 					var err error
 					q, err = filter.ExtendGrip(q)
@@ -550,7 +556,6 @@ func buildQueryObject(client gripql.Client, graph string, objects *objectMap) *g
 						return nil, err
 					}
 				}
-				fmt.Println("FILTER HERE AFTER: ", q)
 
 				q = q.As("f0")
 				limit := params.Args[ARG_LIMIT].(int)
@@ -562,8 +567,10 @@ func buildQueryObject(client gripql.Client, graph string, objects *objectMap) *g
 					parent:    map[string]string{},
 					fieldName: map[string]string{},
 				}
+				fmt.Println("Q1: ", q)
+
 				for _, f := range params.Info.FieldASTs {
-					q = objects.traversalBuild(q, label, f, "f0", rt)
+					q = objects.traversalBuild(q, label, f, "f0", rt, limit, offset)
 				}
 
 				render := map[string]any{}
@@ -573,7 +580,7 @@ func buildQueryObject(client gripql.Client, graph string, objects *objectMap) *g
 				}
 				q = q.Render(render)
 
-				fmt.Println("Q: ", q)
+				//fmt.Println("Q2: ", q)
 				result, err := client.Traversal(&gripql.GraphQuery{Graph: graph, Query: q.Statements})
 				if err != nil {
 					return nil, err
@@ -592,7 +599,6 @@ func buildQueryObject(client gripql.Client, graph string, objects *objectMap) *g
 							}
 						}
 					}
-					//fmt.Println("DATA: ", data)
 					for _, r := range rt.fields {
 						if parent, ok := rt.parent[r]; ok {
 							fieldName := rt.fieldName[r]
@@ -602,14 +608,13 @@ func buildQueryObject(client gripql.Client, graph string, objects *objectMap) *g
 						}
 					}
 					//jtxt, _ := json.MarshalIndent(data["f0"], "", "  ")
-					//fmt.Printf("Data: %s\n", jtxt)
 					out = append(out, data["f0"])
 					//fmt.Printf("ID query traversal: %s\n", r)
 				}
+				fmt.Println("Q2: ", q)
 				return out, nil
 			},
 		}
-
 		queryFields[objName] = f
 	}
 

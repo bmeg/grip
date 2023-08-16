@@ -1,9 +1,18 @@
 package main
 
+//grip query synthea 'V().hasLabel("DocumentReference").out("subject")'
+/*documentReference (filter:$filter) {
+  subject{
+    id
+  }
+}*/
 import (
 	"bytes"
 	"encoding/json"
 	"net/http"
+	"os/exec"
+	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -48,7 +57,10 @@ func Test_Filters(t *testing.T) {
 	}{
 		{name: "Slider and CheckBox"},
 		{name: "Aggregation and Filter"},
-		{name: "Misc_Test"},
+		{name: "Combo_test"},
+		{name: "NullOps"},
+		{name: "GraphQL_NullOps"},
+		{name: "NullOP_Results"},
 	}
 	for _, tt := range tests {
 		if tt.name == "Slider and CheckBox" {
@@ -142,7 +154,7 @@ func Test_Filters(t *testing.T) {
 				t.Error("indexing failed. Did query change?")
 			}
 		}
-		if tt.name == "Misc_Test" {
+		if tt.name == "Combo_test" {
 			payload := []byte(`{
 				"query": "query ($filter: JSON) {\n  _aggregation {\n  documentReference {\n    category {\n      histogram {\n        count\n        key\n      }\n    }\n  }\n  }\n  observation(filter: $filter) {\n    subject\n  }\n}\n",
 				"variables": {
@@ -202,6 +214,81 @@ func Test_Filters(t *testing.T) {
 
 			}
 
+		}
+		if tt.name == "NullOps" {
+			cmd := exec.Command("grip", "query", "outNull", `V(["875e3325-c2ad-4d63-82ad-be8432bd415b","1842609e-7a40-4ba3-8a82-2fa061fcf30f"]).outNull("subject_Patient")`)
+			output, err := cmd.Output()
+
+			if err != nil {
+				t.Error("Error:", err)
+			}
+
+			json_string := strings.Split(string(output), "\n")
+			var jsonMap map[string]interface{}
+			var NullOp map[string]interface{}
+
+			json.Unmarshal([]byte(json_string[0]), &jsonMap)
+			json.Unmarshal([]byte(json_string[1]), &NullOp)
+
+			if val, ok := NullOp["vertex"]; ok {
+				if val == nil || reflect.DeepEqual(val, reflect.Zero(reflect.TypeOf(val)).Interface()) {
+					t.Error("Null Op Test Failed", val)
+				}
+			}
+
+			//t.Log("NULL OP", NullOp)
+		}
+		if tt.name == "GraphQL_NullOps" {
+			payload := []byte(`{
+				"query": "query ($filter: JSON) {\n  documentReference (filter:$filter, first: 1) {\n    file_name\n    subject {\n      id\n      birthDate\n      subject_observation {\n        code\n      }\n    }   \n  }\n}\n",
+				"variables": {}
+			  }`)
+			data, status := HTTP_REQUEST("synthea", "http://localhost:8201/api/graphql/", payload, t)
+			if status == false {
+				t.Error("test failed on HTTP Request")
+			}
+			if data, ok := data["data"].(map[string]any)["documentReference"].([]any); ok {
+				if data, ok := data[0].(map[string]any); ok {
+					t.Log("CHECK: ", data["file_name"] == "output/clinical_reports/53fefa32-fcbb-4ff8-8a92-55ee120877b7")
+					if data["file_name"] != "output/clinical_reports/53fefa32-fcbb-4ff8-8a92-55ee120877b7" {
+						t.Error()
+					}
+					if data, ok := data["subject"].([]any); ok {
+						if data, ok := data[0].(map[string]any); ok {
+							t.Log("CHECK: ", data["birthDate"] == "1913-10-29" || data["id"] != "fb60e763-e799-4d59-82a3-66977cc6696c")
+							if data["birthDate"] != "1913-10-29" || data["id"] != "fb60e763-e799-4d59-82a3-66977cc6696c" {
+								t.Error()
+							}
+							if data, ok := data["subject_observation"].([]any); ok {
+								if data, ok := data[0].(map[string]any); ok {
+									t.Log("CHECK: ", data["code"] == "Bilirubin.total [Mass/volume] in Serum or Plasma")
+									if data["code"] != "Bilirubin.total [Mass/volume] in Serum or Plasma" {
+										t.Error()
+									}
+
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+		if tt.name == "NullOP_Results" {
+			payload := []byte(`{
+				"query": "query ($filter: JSON) {\n  documentReference (filter:$filter, first: 7) {\n    file_name\n    subject {\n      id\n      birthDate\n      subject_observation {\n        code\n      }\n    }   \n  }\n}\n",
+				"variables": {}
+			  }`)
+			data, status := HTTP_REQUEST("synthea", "http://localhost:8201/api/graphql/", payload, t)
+			if status == false {
+				t.Error("test failed on HTTP Request")
+			}
+			if data, ok := data["data"].(map[string]any)["documentReference"].([]any); ok {
+				if len(data) != 7 {
+					t.Error("Unexpected output length")
+				}
+			} else {
+				t.Error("Unexpected output structure")
+			}
 		}
 	}
 }
