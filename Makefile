@@ -27,7 +27,7 @@ export LAST_PR_NUMBER = 229
 # Build the code
 install:
 	@touch version/version.go
-	@go install -ldflags '$(VERSION_LDFLAGS)' .
+	@go install -trimpath -ldflags '$(VERSION_LDFLAGS)' .
 
 # --------------------------
 # Complile Protobuf Schemas
