@@ -33,8 +33,9 @@ func NewSimpleTableServer(dr map[string]Driver) *SimpleTableServicer {
 	return &SimpleTableServicer{drivers: dr}
 }
 
-func StartServer(port int, serv GRIPSourceServer) {
-	lis, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", port))
+func StartServer(host string, port int, serv GRIPSourceServer) {
+	fmt.Println("PORT: ",port)
+	lis, err := net.Listen("tcp", fmt.Sprintf("%s:%d", host, port))
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
