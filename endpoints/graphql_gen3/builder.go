@@ -319,7 +319,7 @@ func buildAggregationField(client gripql.Client, graph string, objects *objectMa
 	stringBucket := graphql.NewObject(graphql.ObjectConfig{
 		Name: "BucketsForString",
 		Fields: graphql.Fields{
-			"key":   &graphql.Field{Name: "key", Type: graphql.String},
+			"key":   &graphql.Field{Name: "key", Type: graphql.String}, //EnumValueType
 			"count": &graphql.Field{Name: "count", Type: graphql.Int},
 		},
 	})
@@ -334,6 +334,7 @@ func buildAggregationField(client gripql.Client, graph string, objects *objectMa
 	})
 
 	queryFields := graphql.Fields{}
+
 	for k, obj := range objects.objects {
 		if len(obj.Fields()) > 0 {
 			label := obj.Name()
@@ -345,7 +346,6 @@ func buildAggregationField(client gripql.Client, graph string, objects *objectMa
 				"_totalCount": &graphql.Field{Name: "_totalCount", Type: graphql.Int},
 			}
 			for k, v := range obj.Fields() {
-				fmt.Println("K: ", k, "V: ", v)
 				switch v.Type {
 				case graphql.String:
 					aggFields[k] =
@@ -390,7 +390,6 @@ func buildAggregationField(client gripql.Client, graph string, objects *objectMa
 						if i.SelectionSet != nil {
 							for _, j := range i.SelectionSet.Selections {
 								if k, ok := j.(*ast.Field); ok {
-									fmt.Println("k.Name.Value", k.Name.Value)
 									if k.Name.Value != "_totalCount" {
 										aggs = append(aggs, &gripql.Aggregate{
 											Name: k.Name.Value,

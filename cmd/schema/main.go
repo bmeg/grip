@@ -9,12 +9,10 @@ import (
 	gripql_schema "github.com/bmeg/grip/gripql/schema"
 	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/util/rpc"
-	config "github.com/bmeg/grip/config"
 	"github.com/spf13/cobra"
 )
-//var host = "localhost:8202"
-var host = "local-grip:8202"
-//var host = config.DefaultConfig().Server.HostName + ":" + config.DefaultConfig().Server.HTTPPort
+
+var host = "localhost:8202"
 var yaml = false
 var jsonFile string
 var yamlFile string
@@ -36,6 +34,7 @@ var getCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		graph := args[0]
+
 		conn, err := gripql.Connect(rpc.ConfigWithDefaults(host), true)
 		if err != nil {
 			return err
@@ -66,11 +65,10 @@ var postCmd = &cobra.Command{
 	Long:  ``,
 	Args:  cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		fmt.Println("VALUE OF HOST",host)
-
 		if jsonFile == "" && yamlFile == "" {
 			return fmt.Errorf("no schema file was provided")
 		}
+
 		conn, err := gripql.Connect(rpc.ConfigWithDefaults(host), true)
 		if err != nil {
 			return err

@@ -24,7 +24,6 @@ func (server *GripServer) ClosePlugins() {
 }
 
 func (server *GripServer) StartPlugin(ctx context.Context, config *gripql.PluginConfig) (*gripql.PluginStatus, error) {
-	fmt.Println("CONF: ",config.Config)
 	if _, ok := server.plugins[config.Name]; ok {
 		return nil, fmt.Errorf("Plugin named %s already running", config.Name)
 	}

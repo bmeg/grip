@@ -70,9 +70,6 @@ func NewGripServer(conf *config.Config, baseDir string, drivers map[string]gdbi.
 			gdbs[i] = d
 		}
 	}
-	if conf.HostOverride != ""{
-		conf.Server.HostName = conf.HostOverride
-	}
 
 	sources := map[string]gripper.GRIPSourceClient{}
 	for name, host := range conf.Sources {
@@ -395,7 +392,7 @@ func (server *GripServer) Serve(pctx context.Context) error {
 	}()
 
 	log.Infoln("TCP+RPC server listening on " + server.conf.Server.RPCPort)
-	log.Infoln("HTTP proxy connecting to ",server.conf.Server.HostName + ":" + server.conf.Server.HTTPPort)
+	log.Infoln("HTTP proxy connecting to localhost:" + server.conf.Server.HTTPPort)
 
 	// load existing schemas from db
 	for _, gdb := range server.dbs {

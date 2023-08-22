@@ -47,8 +47,6 @@ func Run(conf *config.Config, baseDir string) error {
 	for k, v := range endPoints {
 		if err := srv.AddEndpoint(k, v); err != nil {
 			log.Errorf("Error loading pluging %s: %s", k, err)
-		}else{
-			fmt.Println("K: ",k,"V: ",v)
 		}
 	}
 

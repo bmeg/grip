@@ -40,14 +40,13 @@ type DriverConfig struct {
 
 // Config describes the configuration for Grip.
 type Config struct {
-	Server    		ServerConfig
-	RPCClient 		rpc.Config
-	Logger    		log.Logger
-	Default   		string
-	Graphs    		map[string]string
-	Drivers   		map[string]DriverConfig
-	Sources   		map[string]string
-	HostOverride	string
+	Server    ServerConfig
+	RPCClient rpc.Config
+	Logger    log.Logger
+	Default   string
+	Graphs    map[string]string
+	Drivers   map[string]DriverConfig
+	Sources   map[string]string
 }
 
 type DriverParams interface {
