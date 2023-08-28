@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/bmeg/grip/log"
 	//"reflect"
+	"fmt"
 	"github.com/bmeg/grip/gripql"
 )
 
@@ -69,6 +70,8 @@ func (fb *FilterBuilder) ExtendGrip(q *gripql.Query) (*gripql.Query, error) {
 
 							// Checkbox filter style on all of the exploration pages
 							if filter_values, ok := arr_filter_values.([]any); ok {
+								fmt.Println("FILTER VALUES: ", filter_values)
+
 								if len(filter_values) > 1 {
 									final_expr := gripql.Or(gripql.Eq(filter_key, filter_values[0]), gripql.Eq(filter_key, filter_values[1]))
 									for i := 2; i < len(filter_values); i++ {

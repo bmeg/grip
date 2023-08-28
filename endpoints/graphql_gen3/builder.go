@@ -1,7 +1,9 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"google.golang.org/protobuf/encoding/protojson"
 	"unicode"
 
 	"github.com/bmeg/grip/gripql"
@@ -15,6 +17,15 @@ const ARG_OFFSET = "offset"
 const ARG_ID = "id"
 const ARG_IDS = "ids"
 const ARG_FILTER = "filter"
+const ARG_ACCESS = "accessibility"
+
+type Accessibility string
+
+const (
+	all          Accessibility = "all"
+	accessible   Accessibility = "accessible"
+	unaccessible Accessibility = "unaccessible"
+)
 
 var JSONScalar = graphql.NewScalar(graphql.ScalarConfig{
 	Name: "JSON",
@@ -273,6 +284,7 @@ func buildFieldConfigArgument(obj *graphql.Object) graphql.FieldConfigArgument {
 		ARG_LIMIT:  &graphql.ArgumentConfig{Type: graphql.Int, DefaultValue: 100},
 		ARG_OFFSET: &graphql.ArgumentConfig{Type: graphql.Int, DefaultValue: 0},
 		ARG_FILTER: &graphql.ArgumentConfig{Type: JSONScalar},
+		ARG_ACCESS: &graphql.ArgumentConfig{Type: graphql.EnumValueType, DefaultValue: all},
 	}
 	if obj == nil {
 		return args
@@ -333,6 +345,8 @@ func buildAggregationField(client gripql.Client, graph string, objects *objectMa
 		},
 	})
 
+	// need to add this to adapt grip to current data portal queries
+
 	queryFields := graphql.Fields{}
 
 	for k, obj := range objects.objects {
@@ -346,8 +360,16 @@ func buildAggregationField(client gripql.Client, graph string, objects *objectMa
 				"_totalCount": &graphql.Field{Name: "_totalCount", Type: graphql.Int},
 			}
 			for k, v := range obj.Fields() {
+				fmt.Println("OBJ FIELDS: ", k, v)
 				switch v.Type {
 				case graphql.String:
+					aggFields[k] =
+						&graphql.Field{
+							Name: k,
+							Type: histogram,
+						}
+				// add this for  x_adjusted_life_years, Float value
+				case graphql.Float:
 					aggFields[k] =
 						&graphql.Field{
 							Name: k,
@@ -364,7 +386,9 @@ func buildAggregationField(client gripql.Client, graph string, objects *objectMa
 				Name: k + "Aggregation",
 				Type: ao,
 				Args: graphql.FieldConfigArgument{
-					"filter": &graphql.ArgumentConfig{Type: JSONScalar},
+					"filter":        &graphql.ArgumentConfig{Type: JSONScalar},
+					"accessibility": &graphql.ArgumentConfig{Type: graphql.EnumValueType, DefaultValue: all},
+					"filterSelf":    &graphql.ArgumentConfig{Type: graphql.Boolean, DefaultValue: false},
 				},
 				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 					var filter *FilterBuilder
@@ -419,9 +443,12 @@ func buildAggregationField(client gripql.Client, graph string, objects *objectMa
 						if agg.Name == "_totalCount" {
 							out["_totalCount"] = int(agg.Value)
 						} else {
+							marshal, _ := protojson.Marshal(agg)
+							var unmarhsal map[string]any
+							json.Unmarshal(marshal, &unmarhsal)
 							counts[agg.Name] = append(counts[agg.Name], map[string]any{
-								"key":   agg.Key,
-								"count": agg.Value,
+								"key":   unmarhsal["key"],
+								"count": unmarhsal["value"],
 							})
 						}
 					}
@@ -542,7 +569,7 @@ func buildQueryObject(client gripql.Client, graph string, objects *objectMap) *g
 				}
 				for key, val := range params.Args {
 					switch key {
-					case ARG_ID, ARG_IDS, ARG_LIMIT, ARG_OFFSET, ARG_FILTER:
+					case ARG_ID, ARG_IDS, ARG_LIMIT, ARG_OFFSET, ARG_ACCESS, ARG_FILTER:
 					default:
 						q = q.Has(gripql.Eq(key, val))
 					}
@@ -588,6 +615,8 @@ func buildQueryObject(client gripql.Client, graph string, objects *objectMap) *g
 				out := []interface{}{}
 				for r := range result {
 					values := r.GetRender().GetStructValue().AsMap()
+					fmt.Println("VALUES: ", values)
+
 					//fmt.Printf("render: %#v\n", values)
 					data := map[string]map[string]any{}
 					for _, r := range rt.fields {
