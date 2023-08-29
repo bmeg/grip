@@ -18,6 +18,7 @@ const ARG_ID = "id"
 const ARG_IDS = "ids"
 const ARG_FILTER = "filter"
 const ARG_ACCESS = "accessibility"
+const ARG_SORT = "sort"
 
 type Accessibility string
 
@@ -285,6 +286,7 @@ func buildFieldConfigArgument(obj *graphql.Object) graphql.FieldConfigArgument {
 		ARG_OFFSET: &graphql.ArgumentConfig{Type: graphql.Int, DefaultValue: 0},
 		ARG_FILTER: &graphql.ArgumentConfig{Type: JSONScalar},
 		ARG_ACCESS: &graphql.ArgumentConfig{Type: graphql.EnumValueType, DefaultValue: all},
+		ARG_SORT:   &graphql.ArgumentConfig{Type: JSONScalar},
 	}
 	if obj == nil {
 		return args
@@ -326,6 +328,37 @@ func BubblesortByCount(list []any) []any {
 	return list
 }
 
+func buildMappingField(client gripql.Client, graph string, objects *objectMap) *graphql.Field {
+	mappingFields := graphql.Fields{}
+	for objName, obj := range objects.objects {
+		fieldNames := []string{}
+		for fieldName := range obj.Fields() {
+			fieldNames = append(fieldNames, fieldName)
+		}
+		mappingFields[objName] = &graphql.Field{
+			Name: objName,
+			Type: graphql.NewList(graphql.String),
+			Resolve: func(params graphql.ResolveParams) (interface{}, error) {
+				return fieldNames, nil
+			},
+		}
+	}
+
+	mappingObjectType := graphql.NewObject(graphql.ObjectConfig{
+		Name:   "_mapping",
+		Fields: mappingFields,
+	})
+
+	return &graphql.Field{
+		Name: "_mapping",
+		Type: mappingObjectType,
+		Resolve: func(params graphql.ResolveParams) (interface{}, error) {
+			// Return an empty map just to fulfill the GraphQL response structure
+			return map[string]interface{}{}, nil
+		},
+	}
+}
+
 func buildAggregationField(client gripql.Client, graph string, objects *objectMap) *graphql.Field {
 
 	stringBucket := graphql.NewObject(graphql.ObjectConfig{
@@ -346,7 +379,6 @@ func buildAggregationField(client gripql.Client, graph string, objects *objectMa
 	})
 
 	// need to add this to adapt grip to current data portal queries
-
 	queryFields := graphql.Fields{}
 
 	for k, obj := range objects.objects {
@@ -569,7 +601,7 @@ func buildQueryObject(client gripql.Client, graph string, objects *objectMap) *g
 				}
 				for key, val := range params.Args {
 					switch key {
-					case ARG_ID, ARG_IDS, ARG_LIMIT, ARG_OFFSET, ARG_ACCESS, ARG_FILTER:
+					case ARG_ID, ARG_IDS, ARG_LIMIT, ARG_OFFSET, ARG_ACCESS, ARG_SORT, ARG_FILTER:
 					default:
 						q = q.Has(gripql.Eq(key, val))
 					}
@@ -648,6 +680,7 @@ func buildQueryObject(client gripql.Client, graph string, objects *objectMap) *g
 	}
 
 	queryFields["_aggregation"] = buildAggregationField(client, graph, objects)
+	queryFields["_mapping"] = buildMappingField(client, graph, objects)
 
 	query := graphql.NewObject(
 		graphql.ObjectConfig{
