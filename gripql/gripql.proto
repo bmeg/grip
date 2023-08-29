@@ -59,6 +59,8 @@ message GraphStatement {
     google.protobuf.Value render = 62;
     google.protobuf.ListValue path = 63;
 
+    Sorting sort = 65;
+
     string mark = 70;
     Jump jump = 71;
     Set  set = 72;
@@ -158,6 +160,15 @@ enum Condition {
   WITHIN = 10;
   WITHOUT = 11;
   CONTAINS = 12;
+}
+
+message Sorting {
+  repeated SortField fields = 1;
+}
+
+message SortField {
+  string field = 1;
+  bool decending = 2;
 }
 
 message SelectStatement {
