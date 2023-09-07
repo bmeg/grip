@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"google.golang.org/protobuf/encoding/protojson"
+	"sort"
+	"time"
 	"unicode"
 
 	"github.com/bmeg/grip/gripql"
@@ -307,26 +309,6 @@ func lower_first_char(name string) string {
 	temp[0] = unicode.ToLower(temp[0])
 	return string(temp)
 }
-func BubblesortByCount(list []any) []any {
-	// Create a comparator that compares the "count" value of two maps.
-	comparator := func(m1, m2 any) bool {
-		count1 := m1.(map[string]any)["count"].(float64)
-		count2 := m2.(map[string]any)["count"].(float64)
-		return count2 > count1
-	}
-
-	n := len(list)
-	// bubble sort the list by count
-	for i := 0; i < n-1; i++ {
-		for j := 0; j < n-i-1; j++ {
-			if comparator(list[j], list[j+1]) {
-				list[j], list[j+1] = list[j+1], list[j]
-			}
-		}
-	}
-
-	return list
-}
 
 func buildMappingField(client gripql.Client, graph string, objects *objectMap) *graphql.Field {
 	mappingFields := graphql.Fields{}
@@ -360,7 +342,6 @@ func buildMappingField(client gripql.Client, graph string, objects *objectMap) *
 }
 
 func buildAggregationField(client gripql.Client, graph string, objects *objectMap) *graphql.Field {
-
 	stringBucket := graphql.NewObject(graphql.ObjectConfig{
 		Name: "BucketsForString",
 		Fields: graphql.Fields{
@@ -423,20 +404,7 @@ func buildAggregationField(client gripql.Client, graph string, objects *objectMa
 					"filterSelf":    &graphql.ArgumentConfig{Type: graphql.Boolean, DefaultValue: false},
 				},
 				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-					var filter *FilterBuilder
-					if filterArg, ok := p.Args[ARG_FILTER].(map[string]any); ok {
-						fmt.Printf("Filter: %#v\n", filterArg)
-						filter = NewFilterBuilder(filterArg)
-					}
-					q := gripql.V().HasLabel(label)
-					if filter != nil {
-						var err error
-						q, err = filter.ExtendGrip(q)
-						if err != nil {
-							return nil, err
-						}
-					}
-
+					T_0 := time.Now()
 					aggs := []*gripql.Aggregate{
 						{Name: "_totalCount", Aggregation: &gripql.Aggregate_Count{}},
 					}
@@ -461,42 +429,126 @@ func buildAggregationField(client gripql.Client, graph string, objects *objectMa
 							}
 						}
 					}
-					q = q.Aggregate(aggs)
-					fmt.Println("QUERY: ", q.Statements)
+					fmt.Println("AST STUFF DONE: TIME SINCE START: ", time.Since(T_0))
 
-					result, err := client.Traversal(&gripql.GraphQuery{Graph: graph, Query: q.Statements})
-					if err != nil {
-						return nil, err
-					}
-					out := map[string]any{}
+					queries := []any{}
+					if filterSelf, ok := p.Args["filterSelf"].(bool); ok {
+						if filterSelf == false && p.Args[ARG_FILTER] != nil {
 
-					for i := range result {
-						agg := i.GetAggregations()
-						if agg.Name == "_totalCount" {
-							out["_totalCount"] = int(agg.Value)
-						} else {
-							marshal, _ := protojson.Marshal(agg)
-							var unmarhsal map[string]any
-							json.Unmarshal(marshal, &unmarhsal)
-							counts[agg.Name] = append(counts[agg.Name], map[string]any{
-								"key":   unmarhsal["key"],
-								"count": unmarhsal["value"],
-							})
+							var err error
+							var filter *FilterBuilder
+							if filterArg, ok := p.Args[ARG_FILTER].(map[string]any); ok {
+								fmt.Printf("Filter: %#v\n", filterArg)
+								filter = NewFilterBuilder(filterArg)
+							}
+							for _, val := range aggs {
+								q := gripql.V().HasLabel(label)
+								q, err = filter.ExtendGrip(q, val.Name)
+								queries = append(queries, q)
+								if err != nil {
+									return nil, err
+								}
+							}
+
 						}
 					}
-					for k, v := range counts {
-						out[k] = map[string]any{"histogram": v}
-					}
+					//fmt.Println("QUERYIES HELOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO: ", queries)
+					//fmt.Println("VALUE OF Q: ", q, "VALUE OF STATEMENTS: ", q.Statements)
+					out := map[string]any{}
+					if len(queries) > 0 {
+						for i, _ := range queries {
+							T_3 := time.Now()
+							lister := []*gripql.Aggregate{aggs[i]}
+							T_4 := time.Now()
+							queries[i] = queries[i].(*gripql.Query).Aggregate(lister)
+							fmt.Println("AGGREGATION STEP DONE IN: ", time.Since(T_4))
+							T_09 := time.Now()
+							result, err := client.Traversal(&gripql.GraphQuery{Graph: graph, Query: queries[i].(*gripql.Query).Statements})
+							fmt.Println("TRAVERSAL STEP DONE IN: ", time.Since(T_09))
 
-					keys := make([]string, 0, len(out))
-					for key, value := range out {
-						keys = append(keys, key)
-						if key != "_totalCount" {
-							if t, ok := value.(map[string]any)["histogram"].([]any); ok {
-								t = BubblesortByCount(t)
+							if err != nil {
+								return nil, err
+							}
+
+							T_5 := time.Now()
+							for i := range result {
+								agg := i.GetAggregations()
+								if agg.Name == "_totalCount" {
+									out["_totalCount"] = int(agg.Value)
+								} else {
+									marshal, _ := protojson.Marshal(agg)
+									var unmarhsal map[string]any
+									json.Unmarshal(marshal, &unmarhsal)
+									counts[agg.Name] = append(counts[agg.Name], map[string]any{
+										"key":   unmarhsal["key"],
+										"count": unmarhsal["value"],
+									})
+								}
+							}
+							fmt.Println("INNER FOR LOOP DONE IN: ", time.Since(T_5))
+
+							for k, v := range counts {
+								out[k] = map[string]any{"histogram": v}
+							}
+							keys := make([]string, 0, len(out))
+							T_6 := time.Now()
+							for key, value := range out {
+								keys = append(keys, key)
+								if key != "_totalCount" {
+									if t, ok := value.(map[string]any)["histogram"].([]any); ok {
+										// sort.Slice() implements pdq sort
+										sort.Slice(t, func(i, j int) bool {
+											return t[i].(map[string]any)["count"].(float64) > t[j].(map[string]any)["count"].(float64)
+										})
+									}
+								}
+							}
+							fmt.Println("SORTING DOEN IN: ", time.Since(T_6))
+
+							fmt.Println("TRAVERSAL FOR LOOP ITERATION DONE IN: ", time.Since(T_3))
+							fmt.Println("OUT: ", out)
+
+						}
+
+					} else {
+						q := gripql.V().HasLabel(label)
+						fmt.Println("NO FILTERS )))))))))))))))))))))))))))))))))))))))))))))))))))))))(((((((((((((((((((((((((((((((((((((((((((((())))))))))))))))))))))))))))))))))))))))))))))")
+						q = q.Aggregate(aggs)
+						result, err := client.Traversal(&gripql.GraphQuery{Graph: graph, Query: q.Statements})
+						if err != nil {
+							return nil, err
+						}
+						out := map[string]any{}
+						for i := range result {
+							agg := i.GetAggregations()
+							if agg.Name == "_totalCount" {
+								out["_totalCount"] = int(agg.Value)
+							} else {
+								marshal, _ := protojson.Marshal(agg)
+								var unmarhsal map[string]any
+								json.Unmarshal(marshal, &unmarhsal)
+								counts[agg.Name] = append(counts[agg.Name], map[string]any{
+									"key":   unmarhsal["key"],
+									"count": unmarhsal["value"],
+								})
+							}
+						}
+						for k, v := range counts {
+							out[k] = map[string]any{"histogram": v}
+						}
+						keys := make([]string, 0, len(out))
+						for key, value := range out {
+							keys = append(keys, key)
+							if key != "_totalCount" {
+								if t, ok := value.(map[string]any)["histogram"].([]any); ok {
+									sort.Slice(t, func(i, j int) bool {
+										return t[i].(map[string]any)["count"].(float64) > t[j].(map[string]any)["count"].(float64)
+									})
+								}
 							}
 						}
 					}
+					fmt.Println("TOTAL TIME RESOLVER DONE IN: ", time.Since(T_0))
 
 					return out, nil
 				},
@@ -542,10 +594,6 @@ func (om *objectMap) traversalBuild(query *gripql.Query, vertLabel string, field
 	moved := false
 	for _, s := range field.SelectionSet.Selections {
 		if k, ok := s.(*ast.Field); ok {
-			fmt.Println("OM.EDGELABEL: ", om.edgeLabel)
-			fmt.Println("OM.EDGEDSTYPE", om.edgeDstType)
-			fmt.Println("vertLabel: ", vertLabel)
-			fmt.Println("k.Name.Value: ", k.Name.Value)
 			if _, ok := om.edgeLabel[vertLabel][k.Name.Value]; ok {
 				if dstLabel, ok := om.edgeDstType[vertLabel][k.Name.Value]; ok {
 					if moved {
@@ -607,10 +655,11 @@ func buildQueryObject(client gripql.Client, graph string, objects *objectMap) *g
 					}
 				}
 				//if filter was passed, apply it
-				fmt.Println("VALUE OF FILTER: ", params.Args, " VALUE OF QUERY: ", q.As("f0"))
+
+				//fmt.Println("VALUE OF FILTER: ", params.Args, " VALUE OF QUERY: ", q.As("f0"))
 				if filter != nil {
 					var err error
-					q, err = filter.ExtendGrip(q)
+					q, err = filter.ExtendGrip(q, "")
 					if err != nil {
 						return nil, err
 					}
@@ -626,7 +675,7 @@ func buildQueryObject(client gripql.Client, graph string, objects *objectMap) *g
 					parent:    map[string]string{},
 					fieldName: map[string]string{},
 				}
-				fmt.Println("Q1: ", q)
+				//fmt.Println("Q1: ", q)
 
 				for _, f := range params.Info.FieldASTs {
 					q = objects.traversalBuild(q, label, f, "f0", rt, limit, offset)
@@ -647,7 +696,7 @@ func buildQueryObject(client gripql.Client, graph string, objects *objectMap) *g
 				out := []interface{}{}
 				for r := range result {
 					values := r.GetRender().GetStructValue().AsMap()
-					fmt.Println("VALUES: ", values)
+					//fmt.Println("VALUES: ", values)
 
 					//fmt.Printf("render: %#v\n", values)
 					data := map[string]map[string]any{}
@@ -672,7 +721,7 @@ func buildQueryObject(client gripql.Client, graph string, objects *objectMap) *g
 					out = append(out, data["f0"])
 					//fmt.Printf("ID query traversal: %s\n", r)
 				}
-				fmt.Println("Q2: ", q)
+				//fmt.Println("Q2: ", q)
 				return out, nil
 			},
 		}

@@ -20,3 +20,5 @@ cypher.so :  $(shell find cypher -name "*.go")
 
 clean:
 	rm *.so
+
+.PHONY: graphql_gen3 graphql_gen3_amd64
