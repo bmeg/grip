@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"google.golang.org/protobuf/encoding/protojson"
+	"reflect"
 	"sort"
 	"time"
 	"unicode"
@@ -62,7 +63,7 @@ func buildGraphQLSchema(schema *gripql.Graph, client gripql.Client, graph string
 	}
 	// Build the set of objects for all vertex labels
 	objectMap, err := buildObjectMap(client, graph, schema)
-	fmt.Println("OBJ MAP: ", objectMap)
+	//fmt.Println("OBJ MAP: ", objectMap)
 	if err != nil {
 		return nil, fmt.Errorf("graphql.NewSchema error: %v", err)
 	}
@@ -359,6 +360,23 @@ func buildAggregationField(client gripql.Client, graph string, objects *objectMa
 		},
 	})
 
+	FloatBucket := graphql.NewObject(graphql.ObjectConfig{
+		Name: "BucketsForFloat",
+		Fields: graphql.Fields{
+			"key":   &graphql.Field{Name: "key", Type: graphql.NewList(graphql.Float)}, //EnumValueType
+			"count": &graphql.Field{Name: "count", Type: graphql.Int},
+		},
+	})
+
+	Floathistogram := graphql.NewObject(graphql.ObjectConfig{
+		Name: "HistogramFloat",
+		Fields: graphql.Fields{
+			"histogram": &graphql.Field{
+				Type: graphql.NewList(FloatBucket),
+			},
+		},
+	})
+
 	// need to add this to adapt grip to current data portal queries
 	queryFields := graphql.Fields{}
 
@@ -373,7 +391,7 @@ func buildAggregationField(client gripql.Client, graph string, objects *objectMa
 				"_totalCount": &graphql.Field{Name: "_totalCount", Type: graphql.Int},
 			}
 			for k, v := range obj.Fields() {
-				fmt.Println("OBJ FIELDS: ", k, v)
+				//fmt.Println("OBJ FIELDS: ", k, v)
 				switch v.Type {
 				case graphql.String:
 					aggFields[k] =
@@ -386,7 +404,7 @@ func buildAggregationField(client gripql.Client, graph string, objects *objectMa
 					aggFields[k] =
 						&graphql.Field{
 							Name: k,
-							Type: histogram,
+							Type: Floathistogram,
 						}
 				}
 			}
@@ -429,11 +447,10 @@ func buildAggregationField(client gripql.Client, graph string, objects *objectMa
 							}
 						}
 					}
-					fmt.Println("AST STUFF DONE: TIME SINCE START: ", time.Since(T_0))
 
 					queries := []any{}
 					if filterSelf, ok := p.Args["filterSelf"].(bool); ok {
-						if filterSelf == false && p.Args[ARG_FILTER] != nil {
+						if !filterSelf && p.Args[ARG_FILTER] != nil {
 
 							var err error
 							var filter *FilterBuilder
@@ -457,20 +474,14 @@ func buildAggregationField(client gripql.Client, graph string, objects *objectMa
 					out := map[string]any{}
 					if len(queries) > 0 {
 						for i, _ := range queries {
-							T_3 := time.Now()
 							lister := []*gripql.Aggregate{aggs[i]}
-							T_4 := time.Now()
 							queries[i] = queries[i].(*gripql.Query).Aggregate(lister)
-							fmt.Println("AGGREGATION STEP DONE IN: ", time.Since(T_4))
-							T_09 := time.Now()
 							result, err := client.Traversal(&gripql.GraphQuery{Graph: graph, Query: queries[i].(*gripql.Query).Statements})
-							fmt.Println("TRAVERSAL STEP DONE IN: ", time.Since(T_09))
 
 							if err != nil {
 								return nil, err
 							}
 
-							T_5 := time.Now()
 							for i := range result {
 								agg := i.GetAggregations()
 								if agg.Name == "_totalCount" {
@@ -479,35 +490,81 @@ func buildAggregationField(client gripql.Client, graph string, objects *objectMa
 									marshal, _ := protojson.Marshal(agg)
 									var unmarhsal map[string]any
 									json.Unmarshal(marshal, &unmarhsal)
+									//fmt.Println("UNMARSHALL: ", unmarhsal)
 									counts[agg.Name] = append(counts[agg.Name], map[string]any{
 										"key":   unmarhsal["key"],
-										"count": unmarhsal["value"],
+										"count": int(unmarhsal["value"].(float64)),
 									})
 								}
 							}
-							fmt.Println("INNER FOR LOOP DONE IN: ", time.Since(T_5))
 
 							for k, v := range counts {
 								out[k] = map[string]any{"histogram": v}
 							}
-							keys := make([]string, 0, len(out))
-							T_6 := time.Now()
 							for key, value := range out {
-								keys = append(keys, key)
 								if key != "_totalCount" {
 									if t, ok := value.(map[string]any)["histogram"].([]any); ok {
-										// sort.Slice() implements pdq sort
+										if len(t) > 0 {
+											if reflect.TypeOf(t[0].(map[string]any)["key"]) == reflect.TypeOf(3.14) {
+												// get the min and the max so that the slider range is correct
+												max := t[0].(map[string]interface{})["key"].(float64)
+												min := t[0].(map[string]interface{})["key"].(float64)
+												for i := 1; i < len(t); i++ {
+													if val, ok := t[i].(map[string]interface{})["key"].(float64); ok {
+														if val > max {
+															max = val
+														}
+														if val < min {
+															min = val
+														}
+													}
+												}
+												t[0].(map[string]any)["key"] = []float64{min, max}
+												for ind := 1; ind < len(t); {
+													//fmt.Println("INDEX1: ", ind, "T[IND]: ", t[ind], "len(t): ", len(t))
+													if val, ok := t[ind].(map[string]any)["key"].(float64); ok {
+														t[ind].(map[string]any)["key"] = []float64{val, 64.22}
+														t[ind].(map[string]any)["count"] = t[ind-1].(map[string]any)["count"].(int) + 1
+														t = t[1:]
+													}
+												}
+
+												value.(map[string]any)["histogram"] = t
+											} else if reflect.TypeOf(t[0].(map[string]any)["key"]) == reflect.TypeOf([]float64{54.22, 23.22}) {
+												max := t[0].(map[string]interface{})["key"].([]float64)[0]
+												min := t[0].(map[string]interface{})["key"].([]float64)[0]
+												// Iterate through t starting from the second element
+												t[0].(map[string]any)["key"] = []float64{min, max}
+
+												for i := 1; i < len(t); i++ {
+													if val, ok := t[i].(map[string]interface{})["key"].([]float64); ok {
+														if len(val) > 0 {
+															if val[0] > max {
+																max = val[0]
+															}
+															if val[0] < min {
+																min = val[0]
+															}
+														}
+													}
+												}
+												fmt.Println("MIN: ", min, "MAX: ", max)
+												for ind := 1; ind < len(t); {
+													if _, ok := t[ind].(map[string]any)["key"].([]float64); ok {
+														t[ind].(map[string]any)["count"] = t[ind-1].(map[string]any)["count"].(int) + 1
+														t = t[1:]
+													}
+												}
+												t[0].(map[string]any)["key"] = []float64{min, max}
+												value.(map[string]any)["histogram"] = t
+											}
+										}
 										sort.Slice(t, func(i, j int) bool {
-											return t[i].(map[string]any)["count"].(float64) > t[j].(map[string]any)["count"].(float64)
+											return t[i].(map[string]any)["count"].(int) > t[j].(map[string]any)["count"].(int)
 										})
 									}
 								}
 							}
-							fmt.Println("SORTING DOEN IN: ", time.Since(T_6))
-
-							fmt.Println("TRAVERSAL FOR LOOP ITERATION DONE IN: ", time.Since(T_3))
-							fmt.Println("OUT: ", out)
-
 						}
 
 					} else {
@@ -529,7 +586,7 @@ func buildAggregationField(client gripql.Client, graph string, objects *objectMa
 								json.Unmarshal(marshal, &unmarhsal)
 								counts[agg.Name] = append(counts[agg.Name], map[string]any{
 									"key":   unmarhsal["key"],
-									"count": unmarhsal["value"],
+									"count": int(unmarhsal["value"].(float64)),
 								})
 							}
 						}
@@ -541,15 +598,30 @@ func buildAggregationField(client gripql.Client, graph string, objects *objectMa
 							keys = append(keys, key)
 							if key != "_totalCount" {
 								if t, ok := value.(map[string]any)["histogram"].([]any); ok {
+									if len(t) > 0 && reflect.TypeOf(t[0].(map[string]any)["key"]) == reflect.TypeOf(3.14) {
+										fmt.Println("FCYGVUHBIJNK: ----------------------------__-------------------_______---------___---____--__")
+										t[0].(map[string]any)["key"] = []float64{23.32, 64.22}
+										for ind := 1; ind < len(t); {
+											fmt.Println("INDEX2: ", ind, "T[IND]: ", t[ind], "len(t): ", len(t))
+											if val, ok := t[ind].(map[string]any)["key"].(float64); ok {
+												t[ind].(map[string]any)["key"] = []float64{val, 64.22}
+												t[ind].(map[string]any)["count"] = t[ind-1].(map[string]any)["count"].(int) + 1
+												t = t[1:]
+											}
+										}
+										// write back here to out the new value of t after executing the for loop
+										fmt.Println("vALUE OF T: ", t)
+										value.(map[string]any)["histogram"] = t
+									}
+
 									sort.Slice(t, func(i, j int) bool {
-										return t[i].(map[string]any)["count"].(float64) > t[j].(map[string]any)["count"].(float64)
+										return int(t[i].(map[string]any)["count"].(int)) > int(t[j].(map[string]any)["count"].(int))
 									})
 								}
 							}
 						}
 					}
 					fmt.Println("TOTAL TIME RESOLVER DONE IN: ", time.Since(T_0))
-
 					return out, nil
 				},
 			}

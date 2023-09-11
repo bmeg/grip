@@ -58,39 +58,69 @@ func fieldMap(s string) string {
 func (fb *FilterBuilder) ExtendGrip(q *gripql.Query, filterSelfName string) (*gripql.Query, error) {
 	// isFilter filters out a top level "AND" that seems to be consistant across all queries in the exploration page
 	if is_filter, ok := isFilter(fb.filter); ok {
+		fmt.Println("FILTER: ", is_filter)
 		for _, array_filter := range is_filter.([]any) {
 			if map_array_filter, ok := array_filter.(map[string]any); ok {
-				fmt.Println("ARRAY FILTER: ", map_array_filter)
-				if eq_arr_filter, ok := isFilterEQ(map_array_filter); ok {
-					if map_eq_arr_filter, ok := eq_arr_filter.(map[string]any); ok {
+				if mis_filter, ok := isFilterEQ(map_array_filter); ok {
+					if map_eq_arr_filter, ok := mis_filter.(map[string]any); ok {
 						for filter_key, arr_filter_values := range map_eq_arr_filter {
 							filter_key = fieldMap(filter_key)
-							fmt.Println("FILTER KEY: ", filter_key, "ARR FILTER VALUES: ", arr_filter_values, "NAME: ", filterSelfName)
-							if filterSelfName != "" && filter_key == filterSelfName {
-								fmt.Println("_________________________________________________________________________")
-								log.Infof("Filter Query %s", q.String())
-								return q, nil
-							} else {
-								if filter_values, ok := arr_filter_values.([]any); ok {
-									fmt.Println("FILTER VALUES: ", filter_values, "FILTER KEY: ", filter_key, "FILTER SELF NAME: ", filterSelfName)
-									if len(filter_values) == 1 {
-										q = q.Has(gripql.Within(filter_key, filter_values[0]))
+							if filter_values, ok := arr_filter_values.([]any); ok {
+								if filterSelfName != "" && filter_key == filterSelfName {
+									log.Infof("Early Exit Filter Query %s", q.String())
+									return q, nil
 
-									} else if len(filter_values) > 1 {
-										final_expr := gripql.Or(gripql.Within(filter_key, filter_values[0]), gripql.Within(filter_key, filter_values[1]))
-										for i := 2; i < len(filter_values); i++ {
-											final_expr = gripql.Or(final_expr, gripql.Within(filter_key, filter_values[i]))
+								} else if len(filter_values) == 1 {
+									q = q.Has(gripql.Within(filter_key, filter_values[0]))
+
+								} else if len(filter_values) > 1 {
+									final_expr := gripql.Or(gripql.Within(filter_key, filter_values[0]), gripql.Within(filter_key, filter_values[1]))
+									for i := 2; i < len(filter_values); i++ {
+										final_expr = gripql.Or(final_expr, gripql.Within(filter_key, filter_values[i]))
+									}
+									q = q.Has(final_expr)
+								} else {
+									log.Error("Error state filter not populated but list was created")
+								}
+
+							}
+
+						}
+					}
+				}
+
+			}
+
+			if map_array_filter, ok := array_filter.(map[string]any); ok {
+				if is_filter, ok := isFilter(map_array_filter); ok {
+					if map_eq_arr_filter, ok := is_filter.([]any); ok {
+						for _, v := range map_eq_arr_filter {
+							if map_array_filter, ok := v.(map[string]any); ok {
+								if val, ok := isFilterGT(map_array_filter); ok {
+									if vMap, ok := val.(map[string]any); ok {
+										for k, v := range vMap {
+											k = fieldMap(k)
+											q = q.Has(gripql.Gt(k, v))
 										}
-										q = q.Has(final_expr)
-									} else {
-										log.Error("Error state filter not populated but list was created")
 									}
 								}
+
+								if val, ok := isFilterLT(map_array_filter); ok {
+									if vMap, ok := val.(map[string]any); ok {
+										for k, v := range vMap {
+											//fmt.Println("K: ", k, "V: ", v)
+											k = fieldMap(k)
+											q = q.Has(gripql.Lt(k, v))
+										}
+									}
+								}
+
 							}
 						}
 					}
 				}
 			}
+
 		}
 	}
 	log.Infof("Filter Query %s", q.String())
