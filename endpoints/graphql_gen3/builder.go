@@ -360,10 +360,11 @@ func buildAggregationField(client gripql.Client, graph string, objects *objectMa
 		},
 	})
 
+	// Need to pass a float bucket/ float histogram so that don't have to do string conversions later on
 	FloatBucket := graphql.NewObject(graphql.ObjectConfig{
 		Name: "BucketsForFloat",
 		Fields: graphql.Fields{
-			"key":   &graphql.Field{Name: "key", Type: graphql.NewList(graphql.Float)}, //EnumValueType
+			"key":   &graphql.Field{Name: "key", Type: graphql.NewList(graphql.Float)},
 			"count": &graphql.Field{Name: "count", Type: graphql.Int},
 		},
 	})
@@ -379,7 +380,6 @@ func buildAggregationField(client gripql.Client, graph string, objects *objectMa
 
 	// need to add this to adapt grip to current data portal queries
 	queryFields := graphql.Fields{}
-
 	for k, obj := range objects.objects {
 		if len(obj.Fields()) > 0 {
 			label := obj.Name()
@@ -391,7 +391,6 @@ func buildAggregationField(client gripql.Client, graph string, objects *objectMa
 				"_totalCount": &graphql.Field{Name: "_totalCount", Type: graphql.Int},
 			}
 			for k, v := range obj.Fields() {
-				//fmt.Println("OBJ FIELDS: ", k, v)
 				switch v.Type {
 				case graphql.String:
 					aggFields[k] =
@@ -399,7 +398,7 @@ func buildAggregationField(client gripql.Client, graph string, objects *objectMa
 							Name: k,
 							Type: histogram,
 						}
-				// add this for  x_adjusted_life_years, Float value
+				// add this for  x_adjusted_life_years, Float values
 				case graphql.Float:
 					aggFields[k] =
 						&graphql.Field{
@@ -413,6 +412,9 @@ func buildAggregationField(client gripql.Client, graph string, objects *objectMa
 				Name:   k + "Aggregation",
 				Fields: aggFields,
 			})
+			// higher scoped vars to keep track of min and max when moving through individual property logic
+			var max float64 = 0.0
+			var min float64 = 0.0
 			queryFields[k] = &graphql.Field{
 				Name: k + "Aggregation",
 				Type: ao,
@@ -469,30 +471,40 @@ func buildAggregationField(client gripql.Client, graph string, objects *objectMa
 
 						}
 					}
-					//fmt.Println("QUERYIES HELOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO: ", queries)
 					//fmt.Println("VALUE OF Q: ", q, "VALUE OF STATEMENTS: ", q.Statements)
 					out := map[string]any{}
 					if len(queries) > 0 {
-						for i, _ := range queries {
+						for i := range queries {
 							lister := []*gripql.Aggregate{aggs[i]}
 							queries[i] = queries[i].(*gripql.Query).Aggregate(lister)
 							result, err := client.Traversal(&gripql.GraphQuery{Graph: graph, Query: queries[i].(*gripql.Query).Statements})
-
 							if err != nil {
 								return nil, err
 							}
-
+							// if nothing returns from grip set totalcount to 0 so that dataportal doesn't panic
+							if len(result) == 0 {
+								out["_totalCount"] = 0
+								/*
+									was messing around with populating the output with a base case but it didn't end up being needed
+									for k, value := range out {
+										if reflect.TypeOf(value) != reflect.TypeOf(287) && len(value.(map[string]any)["histogram"].([]any)) == 0 {
+											value.(map[string]any)["histogram"] = []any{map[string]any{"key": k, "count": 0}}
+										}
+									}
+								*/
+							}
 							for i := range result {
 								agg := i.GetAggregations()
 								if agg.Name == "_totalCount" {
 									out["_totalCount"] = int(agg.Value)
+
 								} else {
 									marshal, _ := protojson.Marshal(agg)
 									var unmarhsal map[string]any
 									json.Unmarshal(marshal, &unmarhsal)
-									//fmt.Println("UNMARSHALL: ", unmarhsal)
 									counts[agg.Name] = append(counts[agg.Name], map[string]any{
-										"key":   unmarhsal["key"],
+										"key": unmarhsal["key"],
+										// setup count key value so that it can support float64 data
 										"count": int(unmarhsal["value"].(float64)),
 									})
 								}
@@ -503,10 +515,11 @@ func buildAggregationField(client gripql.Client, graph string, objects *objectMa
 							}
 							for key, value := range out {
 								if key != "_totalCount" {
+									// keep track of a min and a max so that initial ranges are accurate for the slider
+									// After the slider is moved new ranges are calculated.
 									if t, ok := value.(map[string]any)["histogram"].([]any); ok {
 										if len(t) > 0 {
 											if reflect.TypeOf(t[0].(map[string]any)["key"]) == reflect.TypeOf(3.14) {
-												// get the min and the max so that the slider range is correct
 												max := t[0].(map[string]interface{})["key"].(float64)
 												min := t[0].(map[string]interface{})["key"].(float64)
 												for i := 1; i < len(t); i++ {
@@ -520,35 +533,33 @@ func buildAggregationField(client gripql.Client, graph string, objects *objectMa
 													}
 												}
 												t[0].(map[string]any)["key"] = []float64{min, max}
+												// for loop counts up all of the results to create the total count.
+												// converts underlying 'checkbox' style output to 'slider' output
 												for ind := 1; ind < len(t); {
-													//fmt.Println("INDEX1: ", ind, "T[IND]: ", t[ind], "len(t): ", len(t))
 													if val, ok := t[ind].(map[string]any)["key"].(float64); ok {
-														t[ind].(map[string]any)["key"] = []float64{val, 64.22}
+														t[ind].(map[string]any)["key"] = []float64{val, max}
 														t[ind].(map[string]any)["count"] = t[ind-1].(map[string]any)["count"].(int) + 1
 														t = t[1:]
 													}
 												}
-
+												t[0].(map[string]any)["key"] = []float64{min, max}
 												value.(map[string]any)["histogram"] = t
+
+												// Some of the data also expects a list of floats
 											} else if reflect.TypeOf(t[0].(map[string]any)["key"]) == reflect.TypeOf([]float64{54.22, 23.22}) {
 												max := t[0].(map[string]interface{})["key"].([]float64)[0]
 												min := t[0].(map[string]interface{})["key"].([]float64)[0]
-												// Iterate through t starting from the second element
-												t[0].(map[string]any)["key"] = []float64{min, max}
-
 												for i := 1; i < len(t); i++ {
 													if val, ok := t[i].(map[string]interface{})["key"].([]float64); ok {
-														if len(val) > 0 {
-															if val[0] > max {
-																max = val[0]
-															}
-															if val[0] < min {
-																min = val[0]
-															}
+														if val[0] > max {
+															max = val[0]
+														}
+														if val[0] < min {
+															min = val[0]
 														}
 													}
 												}
-												fmt.Println("MIN: ", min, "MAX: ", max)
+												t[0].(map[string]any)["key"] = []float64{min, max}
 												for ind := 1; ind < len(t); {
 													if _, ok := t[ind].(map[string]any)["key"].([]float64); ok {
 														t[ind].(map[string]any)["count"] = t[ind-1].(map[string]any)["count"].(int) + 1
@@ -566,10 +577,9 @@ func buildAggregationField(client gripql.Client, graph string, objects *objectMa
 								}
 							}
 						}
-
+						// this else is needed to differentiate filtered aggregations and non filtered aggregations
 					} else {
 						q := gripql.V().HasLabel(label)
-						fmt.Println("NO FILTERS )))))))))))))))))))))))))))))))))))))))))))))))))))))))(((((((((((((((((((((((((((((((((((((((((((((())))))))))))))))))))))))))))))))))))))))))))))")
 						q = q.Aggregate(aggs)
 						result, err := client.Traversal(&gripql.GraphQuery{Graph: graph, Query: q.Statements})
 						if err != nil {
@@ -593,27 +603,22 @@ func buildAggregationField(client gripql.Client, graph string, objects *objectMa
 						for k, v := range counts {
 							out[k] = map[string]any{"histogram": v}
 						}
-						keys := make([]string, 0, len(out))
 						for key, value := range out {
-							keys = append(keys, key)
 							if key != "_totalCount" {
 								if t, ok := value.(map[string]any)["histogram"].([]any); ok {
 									if len(t) > 0 && reflect.TypeOf(t[0].(map[string]any)["key"]) == reflect.TypeOf(3.14) {
-										fmt.Println("FCYGVUHBIJNK: ----------------------------__-------------------_______---------___---____--__")
-										t[0].(map[string]any)["key"] = []float64{23.32, 64.22}
+										t[0].(map[string]any)["key"] = []float64{min, max}
 										for ind := 1; ind < len(t); {
-											fmt.Println("INDEX2: ", ind, "T[IND]: ", t[ind], "len(t): ", len(t))
 											if val, ok := t[ind].(map[string]any)["key"].(float64); ok {
-												t[ind].(map[string]any)["key"] = []float64{val, 64.22}
+												// min, max uses global variable.
+												t[ind].(map[string]any)["key"] = []float64{val, max}
 												t[ind].(map[string]any)["count"] = t[ind-1].(map[string]any)["count"].(int) + 1
 												t = t[1:]
 											}
 										}
-										// write back here to out the new value of t after executing the for loop
-										fmt.Println("vALUE OF T: ", t)
+										t[0].(map[string]any)["key"] = []float64{min, max}
 										value.(map[string]any)["histogram"] = t
 									}
-
 									sort.Slice(t, func(i, j int) bool {
 										return int(t[i].(map[string]any)["count"].(int)) > int(t[j].(map[string]any)["count"].(int))
 									})
@@ -726,11 +731,10 @@ func buildQueryObject(client gripql.Client, graph string, objects *objectMap) *g
 						q = q.Has(gripql.Eq(key, val))
 					}
 				}
-				//if filter was passed, apply it
 
-				//fmt.Println("VALUE OF FILTER: ", params.Args, " VALUE OF QUERY: ", q.As("f0"))
 				if filter != nil {
 					var err error
+					// extend grip calls the filter functions to add filters
 					q, err = filter.ExtendGrip(q, "")
 					if err != nil {
 						return nil, err
@@ -759,18 +763,15 @@ func buildQueryObject(client gripql.Client, graph string, objects *objectMap) *g
 					render[i+"_data"] = "$" + i + "._data"
 				}
 				q = q.Render(render)
-
-				//fmt.Println("Q2: ", q)
 				result, err := client.Traversal(&gripql.GraphQuery{Graph: graph, Query: q.Statements})
 				if err != nil {
 					return nil, err
 				}
-				out := []interface{}{}
+
+				out := []any{}
 				for r := range result {
 					values := r.GetRender().GetStructValue().AsMap()
-					//fmt.Println("VALUES: ", values)
 
-					//fmt.Printf("render: %#v\n", values)
 					data := map[string]map[string]any{}
 					for _, r := range rt.fields {
 						v := values[r+"_data"]
@@ -789,11 +790,9 @@ func buildQueryObject(client gripql.Client, graph string, objects *objectMap) *g
 							}
 						}
 					}
-					//jtxt, _ := json.MarshalIndent(data["f0"], "", "  ")
 					out = append(out, data["f0"])
-					//fmt.Printf("ID query traversal: %s\n", r)
 				}
-				//fmt.Println("Q2: ", q)
+				fmt.Println("OUT: ", out)
 				return out, nil
 			},
 		}

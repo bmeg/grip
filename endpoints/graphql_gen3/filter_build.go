@@ -23,7 +23,7 @@ func isFilterEQ(q map[string]any) (any, bool) {
 
 func isFilter(q map[string]any) (any, bool) {
 	// this first and doesn't seem to suit any purpose
-	// but this could be for multifaceted queries which aren't currently supported
+	// but it is consistant across exploration page queries
 	if val, ok := q["AND"]; ok {
 		return val, ok
 	}
@@ -60,16 +60,23 @@ func (fb *FilterBuilder) ExtendGrip(q *gripql.Query, filterSelfName string) (*gr
 	if is_filter, ok := isFilter(fb.filter); ok {
 		fmt.Println("FILTER: ", is_filter)
 		for _, array_filter := range is_filter.([]any) {
+			// 'Checkbox' filter logic
 			if map_array_filter, ok := array_filter.(map[string]any); ok {
 				if mis_filter, ok := isFilterEQ(map_array_filter); ok {
 					if map_eq_arr_filter, ok := mis_filter.(map[string]any); ok {
 						for filter_key, arr_filter_values := range map_eq_arr_filter {
 							filter_key = fieldMap(filter_key)
 							if filter_values, ok := arr_filter_values.([]any); ok {
+
+								// This is where the 'filterSelf' like Guppy parameter is implemented:
+								// If the current property that is being passed into the filter function
+								// is the same as the current interated key then return early and skip filtering self
 								if filterSelfName != "" && filter_key == filterSelfName {
-									log.Infof("Early Exit Filter Query %s", q.String())
+									log.Infof("FilterSelf Query Condition Hit %s", q.String())
 									return q, nil
 
+									// otherwise split filtering by 1 checked box or multiple checked boxes
+									// build the query with ORs like it is done in the current data portal
 								} else if len(filter_values) == 1 {
 									q = q.Has(gripql.Within(filter_key, filter_values[0]))
 
@@ -80,7 +87,7 @@ func (fb *FilterBuilder) ExtendGrip(q *gripql.Query, filterSelfName string) (*gr
 									}
 									q = q.Has(final_expr)
 								} else {
-									log.Error("Error state filter not populated but list was created")
+									log.Error("Error state checkbox filter not populated but list was created")
 								}
 
 							}
@@ -90,7 +97,8 @@ func (fb *FilterBuilder) ExtendGrip(q *gripql.Query, filterSelfName string) (*gr
 				}
 
 			}
-
+			// 'Slider' filter logic. Don't think filter self is needed
+			// for slider since it accepts a range of values
 			if map_array_filter, ok := array_filter.(map[string]any); ok {
 				if is_filter, ok := isFilter(map_array_filter); ok {
 					if map_eq_arr_filter, ok := is_filter.([]any); ok {
@@ -108,13 +116,14 @@ func (fb *FilterBuilder) ExtendGrip(q *gripql.Query, filterSelfName string) (*gr
 								if val, ok := isFilterLT(map_array_filter); ok {
 									if vMap, ok := val.(map[string]any); ok {
 										for k, v := range vMap {
-											//fmt.Println("K: ", k, "V: ", v)
 											k = fieldMap(k)
 											q = q.Has(gripql.Lt(k, v))
 										}
 									}
 								}
 
+							} else {
+								log.Error("Error state slider filter not populated but list was created")
 							}
 						}
 					}
