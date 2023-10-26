@@ -218,11 +218,18 @@ func (server *GripServer) Serve(pctx context.Context) error {
 	*/
 
 	for name, setup := range endpointMap {
-		handler, err := setup(gripql.WrapClient(gripql.NewQueryDirectClient(
+		queryClient := gripql.NewQueryDirectClient(
 			server,
 			gripql.DirectUnaryInterceptor(unaryAuthInt),
 			gripql.DirectStreamInterceptor(streamAuthInt),
-		), nil, nil, nil))
+		)
+		// TODO: make writeClient initialization configurable
+		writeClient := gripql.NewEditDirectClient(
+			server,
+			gripql.DirectUnaryInterceptor(unaryAuthInt),
+			gripql.DirectStreamInterceptor(streamAuthInt),
+		)
+		handler, err := setup(gripql.WrapClient(queryClient, writeClient, nil, nil))
 		if err == nil {
 			log.Infof("Plugin added to /%s/", name)
 			prefix := fmt.Sprintf("/%s/", name)
