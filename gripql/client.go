@@ -53,11 +53,10 @@ func (client Client) GetSchema(graph string) (*Graph, error) {
 }
 
 // SampleSchema asks server to scan data to determine possible schema
-func (client Client) SampleSchema(graph string) (*Graph, error)  {
+func (client Client) SampleSchema(graph string) (*Graph, error) {
 	out, err := client.EditC.SampleSchema(context.Background(), &GraphID{Graph: graph})
 	return out, err
 }
-
 
 // AddSchema adds a schema for a graph.
 func (client Client) AddSchema(graph *Graph) error {
@@ -147,6 +146,16 @@ func (client Client) AddEdge(graph string, e *Edge) error {
 	return err
 }
 
+func (client Client) DeleteEdge(graph string, id string) error {
+	_, err := client.EditC.DeleteEdge(context.Background(), &ElementID{Graph: graph, Id: id})
+	return err
+}
+
+func (client Client) DeleteVertex(graph string, id string) error {
+	_, err := client.EditC.DeleteVertex(context.Background(), &ElementID{Graph: graph, Id: id})
+	return err
+}
+
 // BulkAdd allows for bulk continuous loading of graph elements into the datastore
 func (client Client) BulkAdd(elemChan chan *GraphElement) error {
 	sc, err := client.EditC.BulkAdd(context.Background())
@@ -169,6 +178,11 @@ func (client Client) BulkAdd(elemChan chan *GraphElement) error {
 func (client Client) GetVertex(graph string, id string) (*Vertex, error) {
 	v, err := client.QueryC.GetVertex(context.Background(), &ElementID{Graph: graph, Id: id})
 	return v, err
+}
+
+func (client Client) GetEdge(graph string, id string) (*Edge, error) {
+	e, err := client.QueryC.GetEdge(context.Background(), &ElementID{Graph: graph, Id: id})
+	return e, err
 }
 
 // Traversal runs a graph traversal query
