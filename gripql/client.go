@@ -53,16 +53,30 @@ func (client Client) GetSchema(graph string) (*Graph, error) {
 }
 
 // SampleSchema asks server to scan data to determine possible schema
-func (client Client) SampleSchema(graph string) (*Graph, error)  {
+func (client Client) SampleSchema(graph string) (*Graph, error) {
 	out, err := client.EditC.SampleSchema(context.Background(), &GraphID{Graph: graph})
 	return out, err
 }
-
 
 // AddSchema adds a schema for a graph.
 func (client Client) AddSchema(graph *Graph) error {
 	_, err := client.EditC.AddSchema(context.Background(), graph)
 	return err
+}
+
+func (client Client) DeleteEdge(graph string, id string) error {
+	_, err := client.EditC.DeleteEdge(context.Background(), &ElementID{Graph: graph, Id: id})
+	return err
+}
+
+func (client Client) DeleteVertex(graph string, id string) error {
+	_, err := client.EditC.DeleteVertex(context.Background(), &ElementID{Graph: graph, Id: id})
+	return err
+}
+
+func (client Client) GetEdge(graph string, id string) (*Edge, error) {
+	e, err := client.QueryC.GetEdge(context.Background(), &ElementID{Graph: graph, Id: id})
+	return e, err
 }
 
 // GetMaping returns the mapping for the given graph.
