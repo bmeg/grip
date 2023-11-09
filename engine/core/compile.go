@@ -312,6 +312,12 @@ func StatementProcessor(gs *gripql.GraphStatement, db gdbi.GraphInterface, ps *p
 			return &Selector{stmt.Select.Marks}, nil
 		}
 
+	case *gripql.GraphStatement_Sort:
+		if len(stmt.Sort.Fields) == 0 {
+			return nil, fmt.Errorf("`sort` requires at least on sort fields")
+		}
+		return &Sort{stmt.Sort.Fields}, nil
+
 	case *gripql.GraphStatement_Render:
 		if ps.LastType != gdbi.VertexData && ps.LastType != gdbi.EdgeData {
 			return nil, fmt.Errorf(`"render" statement is only valid for edge or vertex types not: %s`, ps.LastType.String())

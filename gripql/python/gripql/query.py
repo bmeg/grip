@@ -248,6 +248,12 @@ class Query(BaseConnection):
         marks = _wrap_str_value(marks)
         return self.__append({"select": {"marks": marks}})
 
+    def sort(self, field, decending=False):
+        """
+        Sort return rows by field
+        """
+        return self.__append({"sort" : {"fields": [{"field":field, "decending":decending}]}})
+
     def limit(self, n):
         """
         Limits the number of results returned.

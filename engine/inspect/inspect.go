@@ -51,7 +51,7 @@ func PipelineSteps(stmts []*gripql.GraphStatement) []string {
 			*gripql.GraphStatement_Range, *gripql.GraphStatement_Aggregate, *gripql.GraphStatement_Render,
 			*gripql.GraphStatement_Fields, *gripql.GraphStatement_Unwind, *gripql.GraphStatement_Path,
 			*gripql.GraphStatement_Set, *gripql.GraphStatement_Increment,
-			*gripql.GraphStatement_Mark, *gripql.GraphStatement_Jump:
+			*gripql.GraphStatement_Mark, *gripql.GraphStatement_Jump, *gripql.GraphStatement_Sort:
 		case *gripql.GraphStatement_LookupVertsIndex, *gripql.GraphStatement_EngineCustom:
 		default:
 			log.Errorf("Unknown Graph Statement: %T", gs.GetStatement())
