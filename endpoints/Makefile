@@ -1,9 +1,6 @@
 
 all: graphql.so cypher.so graphqlv2.so
 
-graphql_gen3 : $(shell find graphql_gen3 -name "*.go")
-	go build --buildmode=plugin ./graphql_gen3
-
 graphql.so : $(shell find graphql -name "*.go")
 	go build --buildmode=plugin ./graphql
 
@@ -15,5 +12,3 @@ cypher.so :  $(shell find cypher -name "*.go")
 
 clean:
 	rm *.so
-
-.PHONY: graphql_gen3 graphql_gen3_amd64
