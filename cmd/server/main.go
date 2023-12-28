@@ -6,12 +6,12 @@ import (
 	"os"
 	"os/signal"
 
+	"dario.cat/mergo"
 	"github.com/bmeg/grip/config"
 	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/server"
 	_ "github.com/go-sql-driver/mysql" //import so mysql will register as a sql driver
-	"github.com/imdario/mergo"
-	_ "github.com/lib/pq" // import so postgres will register as a sql driver
+	_ "github.com/lib/pq"              // import so postgres will register as a sql driver
 	"github.com/spf13/cobra"
 )
 
