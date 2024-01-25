@@ -35,12 +35,14 @@ func ScanSchema(conn gripql.Client, graph string, sampleCount uint32, exclude []
 	}
 
 	vList := []*gripql.Vertex{}
+	eList := []*gripql.Edge{}
 	for _, label := range labelRes.VertexLabels {
 		if stringInSlice(label, exclude) {
 			continue
 		}
 		schema := map[string]interface{}{}
 		log.Infof("Scanning %s\n", label)
+
 		nodeQuery := gripql.V().HasLabel(label).Limit(sampleCount)
 		nodeRes, err := conn.Traversal(&gripql.GraphQuery{Graph: graph, Query: nodeQuery.Statements})
 		if err == nil {
@@ -58,15 +60,8 @@ func ScanSchema(conn gripql.Client, graph string, sampleCount uint32, exclude []
 		} else {
 			log.Errorf("Traversal error: %s", err)
 		}
-	}
 
-	eList := []*gripql.Edge{}
-	for _, elabel := range labelRes.EdgeLabels {
-		if stringInSlice(elabel, exclude) {
-			continue
-		}
-		log.Infof("Scanning edge %s\n", elabel)
-		edgeQuery := gripql.E().HasLabel(elabel).Limit(sampleCount).As("edge").Out().Fields().As("to").Select("edge").In().Fields().As("from").Select("edge", "from", "to")
+		edgeQuery := gripql.V().HasLabel(label).Limit(sampleCount).Fields().As("from").OutE().As("edge").Select("edge").Out().Fields().As("to").Select("edge", "from", "to")
 		edgeRes, err := conn.Traversal(&gripql.GraphQuery{Graph: graph, Query: edgeQuery.Statements})
 		if err == nil {
 			labelSchema := edgeMap{}
@@ -94,6 +89,8 @@ func ScanSchema(conn gripql.Client, graph string, sampleCount uint32, exclude []
 				}
 				eList = append(eList, eSchema)
 			}
+		} else {
+			log.Errorf("Traversal error: %s", err)
 		}
 	}
 	return &gripql.Graph{Graph: graph, Vertices: vList, Edges: eList}, nil
