@@ -63,8 +63,8 @@ github.com/Workiva/go-datastructures v1.0.52 h1:PLSK6pwn8mYdaoaCZEMsXBpBotr4HHn9
 github.com/Workiva/go-datastructures v1.0.52/go.mod h1:Z+F2Rca0qCsVYDS8z7bAGm8f3UkzuWYS/oBZz5a7VVA=
 github.com/ajg/form v1.5.1/go.mod h1:uL1WgH+h2mgNtvBq0339dVnzXdBETtL2LeUXaIv25UY=
 github.com/ajstarks/svgo v0.0.0-20180226025133-644b8db467af/go.mod h1:K08gAheRH3/J6wwsYMMT4xOr94bZjxIelGM0+d/wbFw=
-github.com/akrylysov/pogreb v0.8.1 h1:PvNdy6Xnw6WQYDo//ruRNN6uZIxLnSI2tpm0/xr7HFE=
-github.com/akrylysov/pogreb v0.8.1/go.mod h1:pNs6QmpQ1UlTJKDezuRWmaqkgUE2TuU0YTWyqJZ7+lI=
+github.com/akrylysov/pogreb v0.10.2 h1:e6PxmeyEhWyi2AKOBIJzAEi4HkiC+lKyCocRGlnDi78=
+github.com/akrylysov/pogreb v0.10.2/go.mod h1:pNs6QmpQ1UlTJKDezuRWmaqkgUE2TuU0YTWyqJZ7+lI=
 github.com/akuity/grpc-gateway-client v0.0.0-20230321170839-38ca1b4b439c h1:+TGlC7RoqCnRm7F6jvyxsnIaMM8VfsbDsDWVVifgxS4=
 github.com/akuity/grpc-gateway-client v0.0.0-20230321170839-38ca1b4b439c/go.mod h1:2LXcIC4bAFvsZitqz5qtaTfYS5vCbz4BTA/BgkJLM0g=
 github.com/alecthomas/template v0.0.0-20160405071501-a0175ee3bccc/go.mod h1:LOuyumcjzFXgccqObfd/Ljyb9UuFJ6TxHnclSeseNhc=

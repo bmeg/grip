@@ -5,6 +5,8 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/cockroachdb/pebble"
+
 	"github.com/akrylysov/pogreb"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/kvi"
@@ -19,10 +21,11 @@ type Graph struct {
 	graphID  string
 	graphKey uint64
 
-	keyMap  *KeyMap
-	keykv   pogreb.DB
-	graphkv kvi.KVInterface
-	indexkv kvi.KVInterface
+	keyMap *KeyMap
+	keykv  pogreb.DB
+
+	graphkv kvi.KVInterface // *pebble.DB
+	indexkv kvi.KVInterface // *pebble.DB
 	idx     *kvindex.KVIndex
 	ts      *timestamp.Timestamp
 }
@@ -65,16 +68,23 @@ func newGraph(baseDir, name string) (*Graph, error) {
 	if err != nil {
 		return nil, err
 	}
-	graphkv, err := pebbledb.NewKVInterface(graphkvPath, kvi.Options{})
+	graphkv, err := pebble.Open(graphkvPath, &pebble.Options{})
 	if err != nil {
 		return nil, err
 	}
-	indexkv, err := pebbledb.NewKVInterface(indexkvPath, kvi.Options{})
+	indexkv, err := pebble.Open(indexkvPath, &pebble.Options{})
 	if err != nil {
 		return nil, err
 	}
 	ts := timestamp.NewTimestamp()
-	o := &Graph{keyMap: NewKeyMap(keykv), graphkv: graphkv, indexkv: indexkv, ts: &ts, idx: kvindex.NewIndex(indexkv)}
+
+	o := &Graph{
+		keyMap:  NewKeyMap(keykv),
+		graphkv: pebbledb.WrapPebble(graphkv),
+		indexkv: pebbledb.WrapPebble(indexkv),
+		ts:      &ts,
+		idx:     kvindex.NewIndex(pebbledb.WrapPebble(indexkv)),
+	}
 
 	return o, nil
 }

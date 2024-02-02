@@ -81,6 +81,8 @@ var Cmd = &cobra.Command{
 				dconf.AddPebbleDefault()
 			} else if driver == "mongo" {
 				dconf.AddMongoDefault()
+			} else if driver == "grids" {
+				dconf.AddGridsDefault()
 			}
 		}
 		if pluginDir != "" {
