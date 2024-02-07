@@ -118,33 +118,39 @@ func Resume(ctx context.Context, pipe gdbi.Pipeline, workdir string, input gdbi.
 func Convert(graph gdbi.GraphInterface, dataType gdbi.DataType, markTypes map[string]gdbi.DataType, t gdbi.Traveler) *gripql.QueryResult {
 	switch dataType {
 	case gdbi.VertexData:
-		ve := t.GetCurrent().Get()
-		if ve != nil {
-			if !ve.Loaded {
-				//log.Infof("Loading output vertex: %s", ve.ID)
-				//TODO: doing single vertex queries is slow.
-				// Need to rework this to do batched queries
-				ve = graph.GetVertex(ve.ID, true)
-			}
-			return &gripql.QueryResult{
-				Result: &gripql.QueryResult_Vertex{
-					Vertex: ve.ToVertex(),
-				},
+		ver := t.GetCurrent()
+		if ver != nil {
+			ve := ver.Get()
+			if ve != nil {
+				if !ve.Loaded {
+					//log.Infof("Loading output vertex: %s", ve.ID)
+					//TODO: doing single vertex queries is slow.
+					// Need to rework this to do batched queries
+					ve = graph.GetVertex(ve.ID, true)
+				}
+				return &gripql.QueryResult{
+					Result: &gripql.QueryResult_Vertex{
+						Vertex: ve.ToVertex(),
+					},
+				}
 			}
 		} else {
 			return &gripql.QueryResult{Result: &gripql.QueryResult_Vertex{}}
 		}
 
 	case gdbi.EdgeData:
-		ee := t.GetCurrent().Get()
-		if ee != nil {
-			if !ee.Loaded {
-				ee = graph.GetEdge(ee.ID, true)
-			}
-			return &gripql.QueryResult{
-				Result: &gripql.QueryResult_Edge{
-					Edge: ee.ToEdge(),
-				},
+		eer := t.GetCurrent()
+		if eer != nil {
+			ee := eer.Get()
+			if ee != nil {
+				if !ee.Loaded {
+					ee = graph.GetEdge(ee.ID, true)
+				}
+				return &gripql.QueryResult{
+					Result: &gripql.QueryResult_Edge{
+						Edge: ee.ToEdge(),
+					},
+				}
 			}
 		} else {
 			return &gripql.QueryResult{Result: &gripql.QueryResult_Edge{}}
