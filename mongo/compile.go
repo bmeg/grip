@@ -666,42 +666,30 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement, opts *gdbi.Compile
 			if lastType != gdbi.VertexData && lastType != gdbi.EdgeData {
 				return &Pipeline{}, fmt.Errorf(`"select" statement is only valid for edge or vertex types not: %s`, lastType.String())
 			}
-			switch len(stmt.Select.Marks) {
-			case 0:
-				return &Pipeline{}, fmt.Errorf(`"select" statement has an empty list of mark names`)
-			case 1:
-				mark := "$marks." + stmt.Select.Marks[0]
-				switch markTypes[stmt.Select.Marks[0]] {
-				case gdbi.VertexData:
-					query = append(query, bson.D{primitive.E{Key: "$project", Value: bson.M{
-						"_id":   mark + "._id",
-						"label": mark + ".label",
-						"data":  mark + ".data",
-						"marks": 1,
-						"path":  "$path",
-						//"path":  bson.M{"$concatArrays": []interface{}{"$path", []bson.M{{"vertex": mark + "._id"}}}},
-					}}})
-					lastType = gdbi.VertexData
-				case gdbi.EdgeData:
-					query = append(query, bson.D{primitive.E{Key: "$project", Value: bson.M{
-						"_id":   mark + "._id",
-						"label": mark + ".label",
-						"from":  mark + ".from",
-						"to":    mark + ".to",
-						"data":  mark + ".data",
-						"marks": 1,
-						"path":  "$path",
-						//"path":  bson.M{"$concatArrays": []interface{}{"$path", []bson.M{{"edge": mark + "._id"}}}},
-					}}})
-					lastType = gdbi.EdgeData
-				}
-			default:
-				selection := bson.M{}
-				for _, mark := range stmt.Select.Marks {
-					selection["marks."+mark] = 1
-				}
-				query = append(query, bson.D{primitive.E{Key: "$project", Value: selection}})
-				lastType = gdbi.SelectionData
+			mark := "$marks." + stmt.Select
+			switch markTypes[stmt.Select] {
+			case gdbi.VertexData:
+				query = append(query, bson.D{primitive.E{Key: "$project", Value: bson.M{
+					"_id":   mark + "._id",
+					"label": mark + ".label",
+					"data":  mark + ".data",
+					"marks": 1,
+					"path":  "$path",
+					//"path":  bson.M{"$concatArrays": []interface{}{"$path", []bson.M{{"vertex": mark + "._id"}}}},
+				}}})
+				lastType = gdbi.VertexData
+			case gdbi.EdgeData:
+				query = append(query, bson.D{primitive.E{Key: "$project", Value: bson.M{
+					"_id":   mark + "._id",
+					"label": mark + ".label",
+					"from":  mark + ".from",
+					"to":    mark + ".to",
+					"data":  mark + ".data",
+					"marks": 1,
+					"path":  "$path",
+					//"path":  bson.M{"$concatArrays": []interface{}{"$path", []bson.M{{"edge": mark + "._id"}}}},
+				}}})
+				lastType = gdbi.EdgeData
 			}
 
 		case *gripql.GraphStatement_Render:

@@ -190,16 +190,8 @@ func (sc *DefaultStmtCompiler) Jump(stmt *gripql.GraphStatement_Jump, ps *gdbi.S
 }
 
 func (sc *DefaultStmtCompiler) Select(stmt *gripql.GraphStatement_Select, ps *gdbi.State) (gdbi.Processor, error) {
-	switch len(stmt.Select.Marks) {
-	case 0:
-		return nil, fmt.Errorf(`"select" statement has an empty list of mark names`)
-	case 1:
-		ps.LastType = ps.MarkTypes[stmt.Select.Marks[0]]
-		return &MarkSelect{stmt.Select.Marks[0]}, nil
-	default:
-		ps.LastType = gdbi.SelectionData
-		return &Selector{stmt.Select.Marks}, nil
-	}
+	ps.LastType = ps.MarkTypes[stmt.Select]
+	return &MarkSelect{stmt.Select}, nil
 }
 
 func (sc *DefaultStmtCompiler) Render(stmt *gripql.GraphStatement_Render, ps *gdbi.State) (gdbi.Processor, error) {

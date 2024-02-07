@@ -194,7 +194,7 @@ func StatementProcessor(
 			return nil, fmt.Errorf(`"select" statement is only valid for edge or vertex types not: %s`, ps.LastType.String())
 		}
 		out, err := sc.Select(stmt, ps)
-		ps.LastType = ps.MarkTypes[stmt.Select.Marks[0]]
+		ps.LastType = ps.MarkTypes[stmt.Select]
 		return out, err
 
 	case *gripql.GraphStatement_Render:

@@ -163,45 +163,6 @@ func Convert(graph gdbi.GraphInterface, dataType gdbi.DataType, markTypes map[st
 			},
 		}
 
-	case gdbi.SelectionData:
-		selections := map[string]*gripql.Selection{}
-		for k, v := range t.GetSelections() {
-			vd := v.Get()
-			switch markTypes[k] {
-			case gdbi.VertexData:
-				var ve *gripql.Vertex
-				if !vd.Loaded {
-					ve = graph.GetVertex(vd.ID, true).ToVertex()
-				} else {
-					ve = vd.ToVertex()
-				}
-				selections[k] = &gripql.Selection{
-					Result: &gripql.Selection_Vertex{
-						Vertex: ve,
-					},
-				}
-			case gdbi.EdgeData:
-				var ee *gripql.Edge
-				if !vd.Loaded {
-					ee = graph.GetEdge(ee.Gid, true).ToEdge()
-				} else {
-					ee = vd.ToEdge()
-				}
-				selections[k] = &gripql.Selection{
-					Result: &gripql.Selection_Edge{
-						Edge: ee,
-					},
-				}
-			}
-		}
-		return &gripql.QueryResult{
-			Result: &gripql.QueryResult_Selections{
-				Selections: &gripql.Selections{
-					Selections: selections,
-				},
-			},
-		}
-
 	case gdbi.RenderData:
 		sValue, _ := structpb.NewValue(t.GetRender())
 		return &gripql.QueryResult{

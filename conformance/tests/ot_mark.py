@@ -9,7 +9,7 @@ def test_mark_select_label_filter(man):
     for row in G.query().V("Film:1").as_("a").\
             both("films").\
             as_("b").\
-            select(["a", "b"]):
+            render({"a" : "$a", "b" : "$b"}):
         count += 1
         if len(row) != 2:
             errors.append("Incorrect number of marks returned")
@@ -32,7 +32,7 @@ def test_mark_select(man):
 
     count = 0
     for row in G.query().V("Character:1").as_("a").out().as_(
-            "b").out().as_("c").select(["a", "b", "c"]):
+            "b").out().as_("c").render({"a": "$a", "b": "$b", "c": "$c"}):
         count += 1
         if len(row) != 3:
             errors.append("Incorrect number of marks returned")
