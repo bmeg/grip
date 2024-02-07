@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/bmeg/grip/engine/queue"
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
 )
@@ -139,11 +138,11 @@ type Jump struct {
 	Stmt    *gripql.HasExpression
 	Emit    bool
 	jumpers chan gdbi.Traveler
-	queue   queue.Queue
+	queue   gdbi.Queue
 }
 
 func (s *Jump) Init() {
-	q := queue.New()
+	q := gdbi.NewQueue()
 	s.jumpers = q.GetInput()
 	s.queue = q
 }

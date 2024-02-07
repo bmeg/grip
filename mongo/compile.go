@@ -7,8 +7,8 @@ import (
 	"github.com/bmeg/grip/engine/core"
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
-	"github.com/bmeg/grip/jsonpath"
 	"github.com/bmeg/grip/log"
+	"github.com/bmeg/grip/travelerpath"
 	"github.com/bmeg/grip/util/protoutil"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -564,7 +564,7 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement, opts *gdbi.Compile
 			hasKeys := bson.M{}
 			keys := protoutil.AsStringList(stmt.HasKey)
 			for _, key := range keys {
-				key = jsonpath.GetJSONPath(key)
+				key = travelerpath.GetJSONPath(key)
 				key = strings.TrimPrefix(key, "$.")
 				hasKeys[key] = bson.M{"$exists": true}
 			}
@@ -602,13 +602,13 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement, opts *gdbi.Compile
 			keys := bson.M{}
 			match := bson.M{}
 			for _, f := range fields {
-				namespace := jsonpath.GetNamespace(f)
-				f = jsonpath.GetJSONPath(f)
+				namespace := travelerpath.GetNamespace(f)
+				f = travelerpath.GetJSONPath(f)
 				f = strings.TrimPrefix(f, "$.")
 				if f == "gid" {
 					f = "_id"
 				}
-				if namespace != jsonpath.Current {
+				if namespace != travelerpath.Current {
 					f = fmt.Sprintf("marks.%s.%s", namespace, f)
 				}
 				match[f] = bson.M{"$exists": true}
@@ -656,8 +656,8 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement, opts *gdbi.Compile
 			if err := gripql.ValidateFieldName(stmt.As); err != nil {
 				return &Pipeline{}, fmt.Errorf(`"as" statement invalid; %v`, err)
 			}
-			if stmt.As == jsonpath.Current {
-				return &Pipeline{}, fmt.Errorf(`"as" statement invalid; uses reserved name %s`, jsonpath.Current)
+			if stmt.As == travelerpath.Current {
+				return &Pipeline{}, fmt.Errorf(`"as" statement invalid; uses reserved name %s`, travelerpath.Current)
 			}
 			markTypes[stmt.As] = lastType
 			query = append(query, bson.D{primitive.E{Key: "$addFields", Value: bson.M{"marks": bson.M{stmt.As: "$$ROOT"}}}})
@@ -736,12 +736,12 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement, opts *gdbi.Compile
 					exclude = true
 					f = strings.TrimPrefix(f, "-")
 				}
-				namespace := jsonpath.GetNamespace(f)
-				if namespace != jsonpath.Current {
+				namespace := travelerpath.GetNamespace(f)
+				if namespace != travelerpath.Current {
 					log.Errorf("FieldsProcessor: only can select field from current traveler")
 					continue SelectLoop
 				}
-				f = jsonpath.GetJSONPath(f)
+				f = travelerpath.GetJSONPath(f)
 				f = strings.TrimPrefix(f, "$.")
 				if exclude {
 					excludeFields = append(excludeFields, f)
@@ -791,7 +791,7 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement, opts *gdbi.Compile
 				switch a.Aggregation.(type) {
 				case *gripql.Aggregate_Term:
 					agg := a.GetTerm()
-					field := jsonpath.GetJSONPath(agg.Field)
+					field := travelerpath.GetJSONPath(agg.Field)
 					field = strings.TrimPrefix(field, "$.")
 					if field == "gid" {
 						field = "_id"
@@ -814,7 +814,7 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement, opts *gdbi.Compile
 
 				case *gripql.Aggregate_Histogram:
 					agg := a.GetHistogram()
-					field := jsonpath.GetJSONPath(agg.Field)
+					field := travelerpath.GetJSONPath(agg.Field)
 					field = strings.TrimPrefix(field, "$.")
 					stmt := []bson.M{
 						{
@@ -839,7 +839,7 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement, opts *gdbi.Compile
 
 				case *gripql.Aggregate_Percentile:
 					agg := a.GetPercentile()
-					field := jsonpath.GetJSONPath(agg.Field)
+					field := travelerpath.GetJSONPath(agg.Field)
 					field = strings.TrimPrefix(field, "$.")
 					stmt := []bson.M{
 						{
@@ -873,7 +873,7 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement, opts *gdbi.Compile
 
 				case *gripql.Aggregate_Type:
 					agg := a.GetType()
-					field := jsonpath.GetJSONPath(agg.Field)
+					field := travelerpath.GetJSONPath(agg.Field)
 					field = strings.TrimPrefix(field, "$.")
 					stmt := []bson.M{
 						{
@@ -899,7 +899,7 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement, opts *gdbi.Compile
 
 				case *gripql.Aggregate_Field:
 					agg := a.GetField()
-					field := jsonpath.GetJSONPath(agg.Field)
+					field := travelerpath.GetJSONPath(agg.Field)
 					field = strings.TrimPrefix(field, "$.")
 					stmt := []bson.M{
 						{

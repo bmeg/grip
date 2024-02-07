@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/bmeg/grip/gripql"
-	"github.com/bmeg/grip/jsonpath"
+	"github.com/bmeg/grip/travelerpath"
 	"github.com/bmeg/grip/util"
 	"go.mongodb.org/mongo-driver/bson"
 )
@@ -37,14 +37,14 @@ func TestDistinctPathing(t *testing.T) {
 	keys := bson.M{}
 
 	for _, f := range fields {
-		namespace := jsonpath.GetNamespace(f)
+		namespace := travelerpath.GetNamespace(f)
 		fmt.Printf("Namespace: %s\n", namespace)
-		f = jsonpath.GetJSONPath(f)
+		f = travelerpath.GetJSONPath(f)
 		f = strings.TrimPrefix(f, "$.")
 		if f == "gid" {
 			f = "_id"
 		}
-		if namespace != jsonpath.Current {
+		if namespace != travelerpath.Current {
 			f = fmt.Sprintf("marks.%s.%s", namespace, f)
 		}
 		match[f] = bson.M{"$exists": true}

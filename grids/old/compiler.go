@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/bmeg/grip/engine/core"
-	"github.com/bmeg/grip/engine/pipeline"
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/util/protoutil"
@@ -45,7 +44,7 @@ func (comp Compiler) Compile(stmts []*gripql.GraphStatement, opts *gdbi.CompileO
 
 	stmts = core.IndexStartOptimize(stmts)
 
-	ps := pipeline.NewPipelineState(stmts)
+	ps := gdbi.NewPipelineState(stmts)
 	if opts != nil {
 		ps.LastType = opts.PipelineExtension
 		ps.MarkTypes = opts.ExtensionMarkTypes
@@ -63,7 +62,7 @@ func (comp Compiler) Compile(stmts []*gripql.GraphStatement, opts *gdbi.CompileO
 		if p, err := GetRawProcessor(comp.graph, ps, gs); err == nil && optimizeOn {
 			procs = append(procs, p)
 		} else {
-			p, err := core.StatementProcessor(gs, comp.graph, ps)
+			p, err := gdbi.StatementProcessor(gs, comp.graph, ps)
 			if err != nil {
 				fmt.Printf("Error %s at %d %#v", err, i, gs)
 				return &core.DefaultPipeline{}, err

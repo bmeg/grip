@@ -26,9 +26,9 @@ const (
 )
 
 // AddCurrent creates a new copy of the travel with new 'current' value
-func (t *BaseTraveler) AddCurrent(r *DataElement) Traveler {
+func (t *BaseTraveler) AddCurrent(r DataRef) Traveler {
 	o := BaseTraveler{
-		Marks:  map[string]*DataElement{},
+		Marks:  map[string]DataRef{},
 		Path:   make([]DataElementID, len(t.Path)+1),
 		Signal: t.Signal,
 	}
@@ -38,12 +38,13 @@ func (t *BaseTraveler) AddCurrent(r *DataElement) Traveler {
 	for i := range t.Path {
 		o.Path[i] = t.Path[i]
 	}
-	if r == nil {
+	rd := r.Get()
+	if rd == nil {
 		o.Path[len(t.Path)] = DataElementID{}
-	} else if r.To != "" {
-		o.Path[len(t.Path)] = DataElementID{Edge: r.ID}
+	} else if rd.To != "" {
+		o.Path[len(t.Path)] = DataElementID{Edge: rd.ID}
 	} else {
-		o.Path[len(t.Path)] = DataElementID{Vertex: r.ID}
+		o.Path[len(t.Path)] = DataElementID{Vertex: rd.ID}
 	}
 	o.Current = r
 	return &o
@@ -52,17 +53,18 @@ func (t *BaseTraveler) AddCurrent(r *DataElement) Traveler {
 // AddCurrent creates a new copy of the travel with new 'current' value
 func (t *BaseTraveler) Copy() Traveler {
 	o := BaseTraveler{
-		Marks:  map[string]*DataElement{},
+		Marks:  map[string]DataRef{},
 		Path:   make([]DataElementID, len(t.Path)),
 		Signal: t.Signal,
 	}
 	for k, v := range t.Marks {
+		vg := v.Get()
 		o.Marks[k] = &DataElement{
-			ID:    v.ID,
-			Label: v.Label,
-			From:  v.From, To: v.To,
-			Data:   copy.DeepCopy(v.Data).(map[string]interface{}),
-			Loaded: v.Loaded,
+			ID:    vg.ID,
+			Label: vg.Label,
+			From:  vg.From, To: vg.To,
+			Data:   copy.DeepCopy(vg.Data).(map[string]interface{}),
+			Loaded: vg.Loaded,
 		}
 	}
 	for i := range t.Path {
@@ -103,8 +105,8 @@ func (t *BaseTraveler) ListMarks() []string {
 }
 
 // AddMark adds a result to travels state map using `label` as the name
-func (t *BaseTraveler) AddMark(label string, r *DataElement) Traveler {
-	o := BaseTraveler{Marks: map[string]*DataElement{}, Path: make([]DataElementID, len(t.Path))}
+func (t *BaseTraveler) AddMark(label string, r DataRef) Traveler {
+	o := BaseTraveler{Marks: map[string]DataRef{}, Path: make([]DataElementID, len(t.Path))}
 	for k, v := range t.Marks {
 		o.Marks[k] = v
 	}
@@ -117,24 +119,24 @@ func (t *BaseTraveler) AddMark(label string, r *DataElement) Traveler {
 }
 
 // GetMark gets stored result in travels state using its label
-func (t *BaseTraveler) GetMark(label string) *DataElement {
+func (t *BaseTraveler) GetMark(label string) DataRef {
 	return t.Marks[label]
 }
 
 // GetCurrent get current result value attached to the traveler
-func (t *BaseTraveler) GetCurrent() *DataElement {
+func (t *BaseTraveler) GetCurrent() DataRef {
 	return t.Current
 }
 
 func (t *BaseTraveler) GetCurrentID() string {
-	return t.Current.ID
+	return t.Current.Get().ID
 }
 
 func (t *BaseTraveler) GetCount() uint32 {
 	return t.Count
 }
 
-func (t *BaseTraveler) GetSelections() map[string]*DataElement {
+func (t *BaseTraveler) GetSelections() map[string]DataRef {
 	return t.Selections
 }
 

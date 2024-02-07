@@ -373,7 +373,6 @@ func (es *Graph) GetVertexChannel(ctx context.Context, req chan gdbi.ElementLook
 					r := batchMap[vertex.Gid]
 					for _, ri := range r {
 						ri.Vertex = gdbi.NewElementFromVertex(vertex)
-						ri.Vertex.Loaded = load
 						o <- ri
 					}
 				}
@@ -484,8 +483,8 @@ func (es *Graph) GetOutChannel(ctx context.Context, req chan gdbi.ElementLookup,
 					signals = append(signals, batch[i])
 				} else {
 					if batch[i].Vertex != nil {
-						idBatch = append(idBatch, batch[i].Vertex.ID)
-						batchMap[batch[i].Vertex.ID] = append(batchMap[batch[i].Vertex.ID], batch[i])
+						idBatch = append(idBatch, batch[i].Vertex.Get().ID)
+						batchMap[batch[i].Vertex.Get().ID] = append(batchMap[batch[i].Vertex.Get().ID], batch[i])
 					} else if emitNull {
 						o <- batch[i]
 					}
@@ -509,7 +508,6 @@ func (es *Graph) GetOutChannel(ctx context.Context, req chan gdbi.ElementLookup,
 					r := batchMap[vertex.Gid]
 					for _, ri := range r {
 						ri.Vertex = gdbi.NewElementFromVertex(vertex)
-						ri.Vertex.Loaded = load
 						o <- ri
 					}
 				}
@@ -620,8 +618,8 @@ func (es *Graph) GetInChannel(ctx context.Context, req chan gdbi.ElementLookup, 
 					signals = append(signals, batch[i])
 				} else {
 					if batch[i].Vertex != nil {
-						idBatch = append(idBatch, batch[i].Vertex.ID)
-						batchMap[batch[i].Vertex.ID] = append(batchMap[batch[i].Vertex.ID], batch[i])
+						idBatch = append(idBatch, batch[i].Vertex.Get().ID)
+						batchMap[batch[i].Vertex.Get().ID] = append(batchMap[batch[i].Vertex.Get().ID], batch[i])
 					} else if emitNull {
 						o <- batch[i]
 					}
@@ -645,7 +643,6 @@ func (es *Graph) GetInChannel(ctx context.Context, req chan gdbi.ElementLookup, 
 					r := batchMap[vertex.Gid]
 					for _, ri := range r {
 						ri.Vertex = gdbi.NewElementFromVertex(vertex)
-						ri.Vertex.Loaded = load
 						o <- ri
 					}
 				}
@@ -720,7 +717,6 @@ func (es *Graph) GetOutEdgeChannel(ctx context.Context, req chan gdbi.ElementLoo
 					batchMapReturnCount[edge.From]++
 					for _, ri := range r {
 						ri.Edge = gdbi.NewElementFromEdge(edge)
-						ri.Edge.Loaded = load
 						o <- ri
 					}
 				}
@@ -807,7 +803,6 @@ func (es *Graph) GetInEdgeChannel(ctx context.Context, req chan gdbi.ElementLook
 					batchMapReturnCount[edge.To]++
 					for _, ri := range r {
 						ri.Edge = gdbi.NewElementFromEdge(edge)
-						ri.Edge.Loaded = load
 						o <- ri
 					}
 				}

@@ -118,7 +118,7 @@ func Resume(ctx context.Context, pipe gdbi.Pipeline, workdir string, input gdbi.
 func Convert(graph gdbi.GraphInterface, dataType gdbi.DataType, markTypes map[string]gdbi.DataType, t gdbi.Traveler) *gripql.QueryResult {
 	switch dataType {
 	case gdbi.VertexData:
-		ve := t.GetCurrent()
+		ve := t.GetCurrent().Get()
 		if ve != nil {
 			if !ve.Loaded {
 				//log.Infof("Loading output vertex: %s", ve.ID)
@@ -136,7 +136,7 @@ func Convert(graph gdbi.GraphInterface, dataType gdbi.DataType, markTypes map[st
 		}
 
 	case gdbi.EdgeData:
-		ee := t.GetCurrent()
+		ee := t.GetCurrent().Get()
 		if ee != nil {
 			if !ee.Loaded {
 				ee = graph.GetEdge(ee.ID, true)
@@ -160,13 +160,14 @@ func Convert(graph gdbi.GraphInterface, dataType gdbi.DataType, markTypes map[st
 	case gdbi.SelectionData:
 		selections := map[string]*gripql.Selection{}
 		for k, v := range t.GetSelections() {
+			vd := v.Get()
 			switch markTypes[k] {
 			case gdbi.VertexData:
 				var ve *gripql.Vertex
-				if !v.Loaded {
-					ve = graph.GetVertex(v.ID, true).ToVertex()
+				if !vd.Loaded {
+					ve = graph.GetVertex(vd.ID, true).ToVertex()
 				} else {
-					ve = v.ToVertex()
+					ve = vd.ToVertex()
 				}
 				selections[k] = &gripql.Selection{
 					Result: &gripql.Selection_Vertex{
@@ -175,10 +176,10 @@ func Convert(graph gdbi.GraphInterface, dataType gdbi.DataType, markTypes map[st
 				}
 			case gdbi.EdgeData:
 				var ee *gripql.Edge
-				if !v.Loaded {
+				if !vd.Loaded {
 					ee = graph.GetEdge(ee.Gid, true).ToEdge()
 				} else {
-					ee = v.ToEdge()
+					ee = vd.ToEdge()
 				}
 				selections[k] = &gripql.Selection{
 					Result: &gripql.Selection_Edge{

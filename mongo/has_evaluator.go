@@ -4,8 +4,8 @@ import (
 	"strings"
 
 	"github.com/bmeg/grip/gripql"
-	"github.com/bmeg/grip/jsonpath"
 	"github.com/bmeg/grip/log"
+	"github.com/bmeg/grip/travelerpath"
 	"go.mongodb.org/mongo-driver/bson"
 )
 
@@ -80,7 +80,7 @@ func convertHasExpression(stmt *gripql.HasExpression, not bool) bson.M {
 }
 
 func convertPath(key string) string {
-	key = jsonpath.GetJSONPath(key)
+	key = travelerpath.GetJSONPath(key)
 	key = strings.TrimPrefix(key, "$.")
 	if key == "gid" {
 		key = "_id"

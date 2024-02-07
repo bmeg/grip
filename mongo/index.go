@@ -6,8 +6,8 @@ import (
 	"strings"
 
 	"github.com/bmeg/grip/gripql"
-	"github.com/bmeg/grip/jsonpath"
 	"github.com/bmeg/grip/log"
+	"github.com/bmeg/grip/travelerpath"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -16,7 +16,7 @@ import (
 // AddVertexIndex add index to vertices
 func (mg *Graph) AddVertexIndex(label string, field string) error {
 	log.WithFields(log.Fields{"label": label, "field": field}).Info("Adding vertex index")
-	field = jsonpath.GetJSONPath(field)
+	field = travelerpath.GetJSONPath(field)
 	field = strings.TrimPrefix(field, "$.")
 
 	idx := mg.ar.VertexCollection(mg.graph).Indexes()
@@ -36,7 +36,7 @@ func (mg *Graph) AddVertexIndex(label string, field string) error {
 // DeleteVertexIndex delete index from vertices
 func (mg *Graph) DeleteVertexIndex(label string, field string) error {
 	log.WithFields(log.Fields{"label": label, "field": field}).Info("Deleting vertex index")
-	field = jsonpath.GetJSONPath(field)
+	field = travelerpath.GetJSONPath(field)
 	field = strings.TrimPrefix(field, "$.")
 
 	idx := mg.ar.VertexCollection(mg.graph).Indexes()

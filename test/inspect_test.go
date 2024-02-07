@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	"github.com/bmeg/grip/engine/core"
-	"github.com/bmeg/grip/engine/inspect"
 	"github.com/bmeg/grip/gripql"
+	"github.com/bmeg/grip/gripql/inspect"
 	"github.com/bmeg/grip/util/setcmp"
 )
 

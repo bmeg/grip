@@ -1,63 +1,14 @@
-package jsonpath
+package gdbi
 
 import (
 	// "fmt"
 	"fmt"
 	"strings"
 
-	"github.com/bmeg/grip/gdbi"
-	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/log"
+	"github.com/bmeg/grip/travelerpath"
 	"github.com/bmeg/jsonpath"
 )
-
-// Current represents the 'current' traveler namespace
-var Current = "__current__"
-
-// GetNamespace returns the namespace of the provided path
-//
-// Example:
-// GetNamespace("$gene.symbol.ensembl") returns "gene"
-func GetNamespace(path string) string {
-	namespace := ""
-	parts := strings.Split(path, ".")
-	if strings.HasPrefix(parts[0], "$") {
-		namespace = strings.TrimPrefix(parts[0], "$")
-	}
-	if namespace == "" {
-		namespace = Current
-	}
-	return namespace
-}
-
-// GetJSONPath strips the namespace from the path and returns the valid
-// Json path within the document referenced by the namespace
-//
-// Example:
-// GetJSONPath("gene.symbol.ensembl") returns "$.data.symbol.ensembl"
-func GetJSONPath(path string) string {
-	parts := strings.Split(path, ".")
-	if strings.HasPrefix(parts[0], "$") {
-		parts = parts[1:]
-	}
-	if len(parts) == 0 {
-		return ""
-	}
-	found := false
-	for _, v := range gripql.ReservedFields {
-		if parts[0] == v {
-			found = true
-			parts[0] = strings.TrimPrefix(parts[0], "_")
-		}
-	}
-
-	if !found {
-		parts = append([]string{"data"}, parts...)
-	}
-
-	parts = append([]string{"$"}, parts...)
-	return strings.Join(parts, ".")
-}
 
 // GetDoc returns the document referenced by the provided namespace.
 //
@@ -94,12 +45,12 @@ func GetJSONPath(path string) string {
 //	    }
 //	  }
 //	}
-func GetDoc(traveler gdbi.Traveler, namespace string) map[string]interface{} {
+func GetDoc(traveler Traveler, namespace string) map[string]interface{} {
 	var tmap map[string]interface{}
-	if namespace == Current {
-		tmap = traveler.GetCurrent().ToDict()
+	if namespace == travelerpath.Current {
+		tmap = traveler.GetCurrent().Get().ToDict()
 	} else {
-		tmap = traveler.GetMark(namespace).ToDict()
+		tmap = traveler.GetMark(namespace).Get().ToDict()
 	}
 	return tmap
 }
@@ -127,9 +78,9 @@ func GetDoc(traveler gdbi.Traveler, namespace string) map[string]interface{} {
 //	}
 //
 // TravelerPathLookup(travler, "$gene.symbol.ensembl") returns "ENSG00000012048"
-func TravelerPathLookup(traveler gdbi.Traveler, path string) interface{} {
-	namespace := GetNamespace(path)
-	field := GetJSONPath(path)
+func TravelerPathLookup(traveler Traveler, path string) interface{} {
+	namespace := travelerpath.GetNamespace(path)
+	field := travelerpath.GetJSONPath(path)
 	doc := GetDoc(traveler, namespace)
 	if field == "" {
 		fmt.Printf("Null field, return %#v\n", doc)
@@ -143,9 +94,9 @@ func TravelerPathLookup(traveler gdbi.Traveler, path string) interface{} {
 }
 
 // TravelerSetValue(travler, "$gene.symbol.ensembl", "hi") inserts the value in the location"
-func TravelerSetValue(traveler gdbi.Traveler, path string, val interface{}) error {
-	namespace := GetNamespace(path)
-	field := GetJSONPath(path)
+func TravelerSetValue(traveler Traveler, path string, val interface{}) error {
+	namespace := travelerpath.GetNamespace(path)
+	field := travelerpath.GetJSONPath(path)
 	if field == "" {
 		return nil
 	}
@@ -154,9 +105,9 @@ func TravelerSetValue(traveler gdbi.Traveler, path string, val interface{}) erro
 }
 
 // TravelerPathExists returns true if the field exists in the given Traveler
-func TravelerPathExists(traveler gdbi.Traveler, path string) bool {
-	namespace := GetNamespace(path)
-	field := GetJSONPath(path)
+func TravelerPathExists(traveler Traveler, path string) bool {
+	namespace := travelerpath.GetNamespace(path)
+	field := travelerpath.GetJSONPath(path)
 	if field == "" {
 		return false
 	}
@@ -166,7 +117,7 @@ func TravelerPathExists(traveler gdbi.Traveler, path string) bool {
 }
 
 // RenderTraveler takes a template and fills in the values using the data structure
-func RenderTraveler(traveler gdbi.Traveler, template interface{}) interface{} {
+func RenderTraveler(traveler Traveler, template interface{}) interface{} {
 	switch elem := template.(type) {
 	case string:
 		return TravelerPathLookup(traveler, elem)
@@ -190,7 +141,7 @@ func RenderTraveler(traveler gdbi.Traveler, template interface{}) interface{} {
 }
 
 // SelectTravelerFields returns a new copy of the traveler with only the selected fields
-func SelectTravelerFields(t gdbi.Traveler, keys ...string) gdbi.Traveler {
+func SelectTravelerFields(t Traveler, keys ...string) Traveler {
 	includePaths := []string{}
 	excludePaths := []string{}
 KeyLoop:
@@ -200,15 +151,15 @@ KeyLoop:
 			exclude = true
 			key = strings.TrimPrefix(key, "-")
 		}
-		namespace := GetNamespace(key)
+		namespace := travelerpath.GetNamespace(key)
 		switch namespace {
-		case Current:
+		case travelerpath.Current:
 			// noop
 		default:
 			log.Errorf("SelectTravelerFields: only can select field from current traveler")
 			continue KeyLoop
 		}
-		path := GetJSONPath(key)
+		path := travelerpath.GetJSONPath(key)
 		path = strings.TrimPrefix(path, "$.")
 
 		if exclude {
@@ -218,19 +169,19 @@ KeyLoop:
 		}
 	}
 
-	var out gdbi.Traveler = &gdbi.BaseTraveler{}
-	out = out.AddCurrent(&gdbi.DataElement{
+	var out Traveler = &BaseTraveler{}
+	out = out.AddCurrent(&DataElement{
 		Data: map[string]interface{}{},
 	})
 	for _, mark := range t.ListMarks() {
 		out = out.AddMark(mark, t.GetMark(mark))
 	}
 
-	var cde *gdbi.DataElement
-	var ode *gdbi.DataElement
+	var cde *DataElement
+	var ode *DataElement
 
-	cde = t.GetCurrent()
-	ode = out.GetCurrent()
+	cde = t.GetCurrent().Get()
+	ode = out.GetCurrent().Get()
 
 	if len(excludePaths) > 0 {
 		cde = excludeFields(cde, excludePaths)
@@ -251,7 +202,7 @@ KeyLoop:
 	return out
 }
 
-func includeFields(new, old *gdbi.DataElement, paths []string) *gdbi.DataElement {
+func includeFields(new, old *DataElement, paths []string) *DataElement {
 	newData := make(map[string]interface{})
 Include:
 	for _, path := range paths {
@@ -297,8 +248,8 @@ Include:
 	return new
 }
 
-func excludeFields(elem *gdbi.DataElement, paths []string) *gdbi.DataElement {
-	result := &gdbi.DataElement{
+func excludeFields(elem *DataElement, paths []string) *DataElement {
+	result := &DataElement{
 		ID:    elem.ID,
 		Label: elem.Label,
 		From:  elem.From,

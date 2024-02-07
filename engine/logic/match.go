@@ -7,14 +7,13 @@ import (
 
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
-	"github.com/bmeg/grip/jsonpath"
 	"github.com/bmeg/grip/log"
 )
 
 func MatchesCondition(trav gdbi.Traveler, cond *gripql.HasCondition) bool {
 	var val interface{}
 	var condVal interface{}
-	val = jsonpath.TravelerPathLookup(trav, cond.Key)
+	val = gdbi.TravelerPathLookup(trav, cond.Key)
 	condVal = cond.Value.AsInterface()
 
 	switch cond.Condition {

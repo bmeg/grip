@@ -135,7 +135,7 @@ func (tr *GRIDTraveler) IsNull() bool {
 }
 
 // AddCurrent creates a new copy of the travel with new 'current' value
-func (t *GRIDTraveler) AddCurrent(r *gdbi.DataElement) gdbi.Traveler {
+func (t *GRIDTraveler) AddCurrent(r gdbi.DataRef) gdbi.Traveler {
 	a := t.GRIDCopy()
 	c, _ := DataElementToGRID(r, t.Graph)
 	a.Current = c
@@ -216,7 +216,7 @@ func (t *GRIDTraveler) ListMarks() []string {
 }
 
 // AddMark adds a result to travels state map using `label` as the name
-func (t *GRIDTraveler) AddMark(label string, r *gdbi.DataElement) gdbi.Traveler {
+func (t *GRIDTraveler) AddMark(label string, r gdbi.DataRef) gdbi.Traveler {
 	o := t.GRIDCopy()
 	n, _ := DataElementToGRID(r, t.Graph)
 	o.Marks[label] = n

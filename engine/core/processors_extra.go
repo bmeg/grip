@@ -7,9 +7,9 @@ import (
 	"strings"
 
 	"github.com/bmeg/grip/gripql"
-	"github.com/bmeg/grip/jsonpath"
 	"github.com/bmeg/grip/kvi"
 	"github.com/bmeg/grip/kvindex"
+	"github.com/bmeg/grip/travelerpath"
 	"github.com/influxdata/tdigest"
 	"golang.org/x/sync/errgroup"
 
@@ -61,8 +61,8 @@ func (agg *aggregateDisk) Process(ctx context.Context, man gdbi.Manager, in gdbi
 				kv := man.GetTempKV()
 				idx := kvindex.NewIndex(kv)
 
-				namespace := jsonpath.GetNamespace(tagg.Field)
-				field := jsonpath.GetJSONPath(tagg.Field)
+				namespace := travelerpath.GetNamespace(tagg.Field)
+				field := travelerpath.GetJSONPath(tagg.Field)
 				field = strings.TrimPrefix(field, "$.")
 				idx.AddField(field)
 
@@ -70,7 +70,7 @@ func (agg *aggregateDisk) Process(ctx context.Context, man gdbi.Manager, in gdbi
 				for batch := range aChans[a.Name] {
 					err := kv.Update(func(tx kvi.KVTransaction) error {
 						for _, t := range batch {
-							doc := jsonpath.GetDoc(t, namespace)
+							doc := gdbi.GetDoc(t, namespace)
 							err := idx.AddDocTx(tx, fmt.Sprintf("%d", tid), doc)
 							tid++
 							if err != nil {
@@ -107,8 +107,8 @@ func (agg *aggregateDisk) Process(ctx context.Context, man gdbi.Manager, in gdbi
 				kv := man.GetTempKV()
 				idx := kvindex.NewIndex(kv)
 
-				namespace := jsonpath.GetNamespace(hagg.Field)
-				field := jsonpath.GetJSONPath(hagg.Field)
+				namespace := travelerpath.GetNamespace(hagg.Field)
+				field := travelerpath.GetJSONPath(hagg.Field)
 				field = strings.TrimPrefix(field, "$.")
 				idx.AddField(field)
 
@@ -116,7 +116,7 @@ func (agg *aggregateDisk) Process(ctx context.Context, man gdbi.Manager, in gdbi
 				for batch := range aChans[a.Name] {
 					err := kv.Update(func(tx kvi.KVTransaction) error {
 						for _, t := range batch {
-							doc := jsonpath.GetDoc(t, namespace)
+							doc := gdbi.GetDoc(t, namespace)
 							err := idx.AddDocTx(tx, fmt.Sprintf("%d", tid), doc)
 							tid++
 							if err != nil {
@@ -152,8 +152,8 @@ func (agg *aggregateDisk) Process(ctx context.Context, man gdbi.Manager, in gdbi
 				kv := man.GetTempKV()
 				idx := kvindex.NewIndex(kv)
 
-				namespace := jsonpath.GetNamespace(pagg.Field)
-				field := jsonpath.GetJSONPath(pagg.Field)
+				namespace := travelerpath.GetNamespace(pagg.Field)
+				field := travelerpath.GetJSONPath(pagg.Field)
 				field = strings.TrimPrefix(field, "$.")
 				idx.AddField(field)
 
@@ -161,7 +161,7 @@ func (agg *aggregateDisk) Process(ctx context.Context, man gdbi.Manager, in gdbi
 				for batch := range aChans[a.Name] {
 					err := kv.Update(func(tx kvi.KVTransaction) error {
 						for _, t := range batch {
-							doc := jsonpath.GetDoc(t, namespace)
+							doc := gdbi.GetDoc(t, namespace)
 							err := idx.AddDocTx(tx, fmt.Sprintf("%d", tid), doc)
 							tid++
 							if err != nil {

@@ -1,14 +1,14 @@
-package pipeline
+package gdbi
 
 import (
-	"github.com/bmeg/grip/engine/inspect"
-	"github.com/bmeg/grip/gdbi"
+	//"github.com/bmeg/grip/engine/inspect"
 	"github.com/bmeg/grip/gripql"
+	"github.com/bmeg/grip/gripql/inspect"
 )
 
 type State struct {
-	LastType    gdbi.DataType
-	MarkTypes   map[string]gdbi.DataType
+	LastType    DataType
+	MarkTypes   map[string]DataType
 	Steps       []string
 	StepOutputs map[string][]string
 	CurStep     string
@@ -28,11 +28,11 @@ func (ps *State) StepLoadData() bool {
 	return false
 }
 
-func (ps *State) GetLastType() gdbi.DataType {
+func (ps *State) GetLastType() DataType {
 	return ps.LastType
 }
 
-func (ps *State) SetLastType(a gdbi.DataType) {
+func (ps *State) SetLastType(a DataType) {
 	ps.LastType = a
 }
 
@@ -41,8 +41,8 @@ func NewPipelineState(stmts []*gripql.GraphStatement) *State {
 	stepOut := inspect.PipelineStepOutputs(stmts)
 
 	return &State{
-		LastType:    gdbi.NoData,
-		MarkTypes:   map[string]gdbi.DataType{},
+		LastType:    NoData,
+		MarkTypes:   map[string]DataType{},
 		Steps:       steps,
 		StepOutputs: stepOut,
 	}

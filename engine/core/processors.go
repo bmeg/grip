@@ -11,7 +11,6 @@ import (
 	"github.com/bmeg/grip/engine/logic"
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
-	"github.com/bmeg/grip/jsonpath"
 	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/util/copy"
 	"github.com/influxdata/tdigest"
@@ -94,12 +93,7 @@ func (l *LookupVertsIndex) Process(ctx context.Context, man gdbi.Manager, in gdb
 		defer close(out)
 		for v := range l.db.GetVertexChannel(ctx, queryChan, l.loadData) {
 			i := v.Ref
-			out <- i.AddCurrent(&gdbi.DataElement{
-				ID:     v.Vertex.ID,
-				Label:  v.Vertex.Label,
-				Data:   v.Vertex.Data,
-				Loaded: v.Vertex.Loaded,
-			})
+			out <- i.AddCurrent(v.Vertex.Copy())
 		}
 	}()
 	return ctx
@@ -215,7 +209,7 @@ func (l *LookupEdgeAdjOut) Process(ctx context.Context, man gdbi.Manager, in gdb
 				queryChan <- gdbi.ElementLookup{Ref: t}
 			} else {
 				queryChan <- gdbi.ElementLookup{
-					ID:  t.GetCurrent().To,
+					ID:  t.GetCurrent().Get().To,
 					Ref: t,
 				}
 			}
@@ -294,7 +288,7 @@ func (l *LookupEdgeAdjIn) Process(ctx context.Context, man gdbi.Manager, in gdbi
 				queryChan <- gdbi.ElementLookup{Ref: t}
 			} else {
 				queryChan <- gdbi.ElementLookup{
-					ID:  t.GetCurrent().From,
+					ID:  t.GetCurrent().Get().From,
 					Ref: t,
 				}
 			}
@@ -406,7 +400,7 @@ func (f *Fields) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, 
 				out <- t
 				continue
 			}
-			o := jsonpath.SelectTravelerFields(t, f.keys...)
+			o := gdbi.SelectTravelerFields(t, f.keys...)
 			out <- o
 		}
 	}()
@@ -429,7 +423,7 @@ func (r *Render) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, 
 				out <- t
 				continue
 			}
-			v := jsonpath.RenderTraveler(t, r.Template)
+			v := gdbi.RenderTraveler(t, r.Template)
 			out <- &gdbi.BaseTraveler{Render: v}
 		}
 	}()
@@ -474,27 +468,39 @@ func (r *Unwind) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, 
 				out <- t
 				continue
 			}
-			v := jsonpath.TravelerPathLookup(t, r.Field)
+			v := gdbi.TravelerPathLookup(t, r.Field)
 			if a, ok := v.([]interface{}); ok {
 				cur := t.GetCurrent()
 				if len(a) > 0 {
 					for _, i := range a {
-						o := gdbi.DataElement{ID: cur.ID, Label: cur.Label, From: cur.From, To: cur.To, Data: copy.DeepCopy(cur.Data).(map[string]interface{}), Loaded: true}
+						o := gdbi.DataElement{
+							ID:    cur.Get().ID,
+							Label: cur.Get().Label,
+							From:  cur.Get().From,
+							To:    cur.Get().To,
+							Data:  copy.DeepCopy(cur.Get().Data).(map[string]interface{}), Loaded: true,
+						}
 						n := t.AddCurrent(&o)
-						jsonpath.TravelerSetValue(n, r.Field, i)
+						gdbi.TravelerSetValue(n, r.Field, i)
 						out <- n
 					}
 				} else {
-					o := gdbi.DataElement{ID: cur.ID, Label: cur.Label, From: cur.From, To: cur.To, Data: copy.DeepCopy(cur.Data).(map[string]interface{}), Loaded: true}
+					o := gdbi.DataElement{ID: cur.Get().ID, Label: cur.Get().Label, From: cur.Get().From, To: cur.Get().To, Data: copy.DeepCopy(cur.Get().Data).(map[string]interface{}), Loaded: true}
 					n := t.AddCurrent(&o)
-					jsonpath.TravelerSetValue(n, r.Field, nil)
+					gdbi.TravelerSetValue(n, r.Field, nil)
 					out <- n
 				}
 			} else {
 				cur := t.GetCurrent()
-				o := gdbi.DataElement{ID: cur.ID, Label: cur.Label, From: cur.From, To: cur.To, Data: copy.DeepCopy(cur.Data).(map[string]interface{}), Loaded: true}
+				o := gdbi.DataElement{
+					ID:    cur.Get().ID,
+					Label: cur.Get().Label,
+					From:  cur.Get().From,
+					To:    cur.Get().To,
+					Data:  copy.DeepCopy(cur.Get().Data).(map[string]interface{}), Loaded: true,
+				}
 				n := t.AddCurrent(&o)
-				jsonpath.TravelerSetValue(n, r.Field, nil)
+				gdbi.TravelerSetValue(n, r.Field, nil)
 				out <- n
 			}
 		}
@@ -543,7 +549,7 @@ func (h *HasLabel) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe
 				out <- t
 				continue
 			}
-			if contains(labels, t.GetCurrent().Label) {
+			if contains(labels, t.GetCurrent().Get().Label) {
 				out <- t
 			}
 		}
@@ -570,7 +576,7 @@ func (h *HasKey) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, 
 			}
 			found := true
 			for _, key := range keys {
-				if !jsonpath.TravelerPathExists(t, key) {
+				if !gdbi.TravelerPathExists(t, key) {
 					found = false
 				}
 			}
@@ -737,8 +743,8 @@ func (g *Distinct) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe
 			s := make([][]byte, len(g.vals))
 			found := true
 			for i, v := range g.vals {
-				if jsonpath.TravelerPathExists(t, v) {
-					s[i] = []byte(fmt.Sprintf("%#v", jsonpath.TravelerPathLookup(t, v)))
+				if gdbi.TravelerPathExists(t, v) {
+					s[i] = []byte(fmt.Sprintf("%#v", gdbi.TravelerPathLookup(t, v)))
 				} else {
 					found = false
 				}
@@ -793,7 +799,7 @@ func (s *Selector) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe
 				out <- t
 				continue
 			}
-			res := map[string]*gdbi.DataElement{}
+			res := map[string]gdbi.DataRef{}
 			for _, mark := range s.marks {
 				val := t.GetMark(mark)
 				if val == nil {
@@ -822,7 +828,7 @@ func (s *ValueSet) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe
 				out <- t
 				continue
 			}
-			jsonpath.TravelerSetValue(t, s.key, s.value)
+			gdbi.TravelerSetValue(t, s.key, s.value)
 			out <- t
 		}
 	}()
@@ -842,10 +848,10 @@ func (s *ValueIncrement) Process(ctx context.Context, man gdbi.Manager, in gdbi.
 				out <- t
 				continue
 			}
-			v := jsonpath.TravelerPathLookup(t, s.key)
+			v := gdbi.TravelerPathLookup(t, s.key)
 			i := cast.ToInt(v) + int(s.value)
 			o := t.Copy()
-			jsonpath.TravelerSetValue(o, s.key, i)
+			gdbi.TravelerSetValue(o, s.key, i)
 			out <- o
 		}
 	}()
@@ -996,7 +1002,7 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 					if len(fieldTermCounts) > maxTerms {
 						outErr = fmt.Errorf("term aggreagtion: collected more unique terms (%v) than allowed (%v)", len(fieldTermCounts), maxTerms)
 					} else {
-						val := jsonpath.TravelerPathLookup(t, tagg.Field)
+						val := gdbi.TravelerPathLookup(t, tagg.Field)
 						if val != nil {
 							k := reflect.TypeOf(val).Kind()
 							if k != reflect.Array && k != reflect.Slice && k != reflect.Map {
@@ -1034,7 +1040,7 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 				// If we return error before fully emptying channel, upstream processes will lock
 				var outErr error
 				for t := range aChans[a.Name] {
-					val := jsonpath.TravelerPathLookup(t, hagg.Field)
+					val := gdbi.TravelerPathLookup(t, hagg.Field)
 					if val != nil {
 						fval, err := cast.ToFloat64E(val)
 						if err != nil {
@@ -1073,7 +1079,7 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 				var outErr error
 				td := tdigest.New()
 				for t := range aChans[a.Name] {
-					val := jsonpath.TravelerPathLookup(t, pagg.Field)
+					val := gdbi.TravelerPathLookup(t, pagg.Field)
 					fval, err := cast.ToFloat64E(val)
 					if err != nil {
 						outErr = fmt.Errorf("percentile aggregation: can't convert %v to float64", val)
@@ -1095,7 +1101,7 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 				fa := a.GetField()
 				fieldCounts := map[interface{}]int{}
 				for t := range aChans[a.Name] {
-					val := jsonpath.TravelerPathLookup(t, fa.Field)
+					val := gdbi.TravelerPathLookup(t, fa.Field)
 					if m, ok := val.(map[string]interface{}); ok {
 						for k := range m {
 							fieldCounts[k]++
@@ -1113,7 +1119,7 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 				fa := a.GetType()
 				fieldTypes := map[string]int{}
 				for t := range aChans[a.Name] {
-					val := jsonpath.TravelerPathLookup(t, fa.Field)
+					val := gdbi.TravelerPathLookup(t, fa.Field)
 					tname := gripql.GetFieldType(val)
 					fieldTypes[tname]++
 				}

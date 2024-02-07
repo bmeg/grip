@@ -2,11 +2,11 @@ package core
 
 import (
 	"github.com/bmeg/grip/gripql"
-	"github.com/bmeg/grip/jsonpath"
+	"github.com/bmeg/grip/travelerpath"
 	"github.com/bmeg/grip/util/protoutil"
 )
 
-//IndexStartOptimize looks at processor pipeline for queries like
+// IndexStartOptimize looks at processor pipeline for queries like
 // V().Has(Eq("$.label", "Person")) and V().Has(Eq("$.gid", "1")),
 // streamline into a single index lookup
 func IndexStartOptimize(pipe []*gripql.GraphStatement) []*gripql.GraphStatement {
@@ -47,7 +47,7 @@ func IndexStartOptimize(pipe []*gripql.GraphStatement) []*gripql.GraphStatement 
 				return IndexStartOptimize(newPipe)
 			}
 			if cond := s.Has.GetCondition(); cond != nil {
-				path := jsonpath.GetJSONPath(cond.Key)
+				path := travelerpath.GetJSONPath(cond.Key)
 				switch path {
 				case "$.gid":
 					hasIDIdx = append(hasIDIdx, i)
