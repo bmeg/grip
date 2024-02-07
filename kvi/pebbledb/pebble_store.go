@@ -19,6 +19,8 @@ import (
 
 var loaded = kvi.AddKVDriver("pebble", NewKVInterface)
 
+var defaultCompactLimit = uint32(10000)
+
 // PebbleKV is an implementation of the KVStore for badger
 type PebbleKV struct {
 	db           *pebble.DB
@@ -32,7 +34,7 @@ func NewKVInterface(path string, kopts kvi.Options) (kvi.KVInterface, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &PebbleKV{db: db}, nil
+	return &PebbleKV{db: db, insertCount: 0, compactLimit: defaultCompactLimit}, nil
 }
 
 func WrapPebble(db *pebble.DB) kvi.KVInterface {
@@ -269,6 +271,7 @@ func (pdb *PebbleKV) BulkWrite(u func(tx kvi.KVBulkWrite) error) error {
 
 	pdb.insertCount += ptx.totalInserts
 	if pdb.insertCount > pdb.compactLimit {
+		log.Debugf("Running pebble compact %d > %d", pdb.insertCount, pdb.compactLimit)
 		//pdb.db.Compact(ptx.lowest, ptx.highest, true)
 		pdb.db.Compact([]byte{0x00}, []byte{0xFF}, true)
 		pdb.insertCount = 0

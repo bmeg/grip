@@ -48,9 +48,17 @@ import (
 func GetDoc(traveler Traveler, namespace string) map[string]interface{} {
 	var tmap map[string]interface{}
 	if namespace == travelerpath.Current {
-		tmap = traveler.GetCurrent().Get().ToDict()
+		dr := traveler.GetCurrent()
+		if dr == nil {
+			return nil
+		}
+		tmap = dr.Get().ToDict()
 	} else {
-		tmap = traveler.GetMark(namespace).Get().ToDict()
+		dr := traveler.GetMark(namespace)
+		if dr == nil {
+			return nil
+		}
+		tmap = dr.Get().ToDict()
 	}
 	return tmap
 }

@@ -38,13 +38,15 @@ func (t *BaseTraveler) AddCurrent(r DataRef) Traveler {
 	for i := range t.Path {
 		o.Path[i] = t.Path[i]
 	}
-	rd := r.Get()
-	if rd == nil {
-		o.Path[len(t.Path)] = DataElementID{}
-	} else if rd.To != "" {
-		o.Path[len(t.Path)] = DataElementID{Edge: rd.ID}
-	} else {
-		o.Path[len(t.Path)] = DataElementID{Vertex: rd.ID}
+	if r != nil {
+		rd := r.Get()
+		if rd == nil {
+			o.Path[len(t.Path)] = DataElementID{}
+		} else if rd.To != "" {
+			o.Path[len(t.Path)] = DataElementID{Edge: rd.ID}
+		} else {
+			o.Path[len(t.Path)] = DataElementID{Vertex: rd.ID}
+		}
 	}
 	o.Current = r
 	return &o

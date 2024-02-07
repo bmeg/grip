@@ -18,6 +18,7 @@ import (
 var conf = &config.Config{}
 var configFile string
 var driver = "badger"
+var verbose bool
 
 var endPoints = map[string]string{}
 
@@ -102,6 +103,11 @@ var Cmd = &cobra.Command{
 				conf.RPCClient.ServerAddress = conf.Server.RPCAddress()
 			}
 		}
+
+		if verbose {
+			conf.Logger.Level = "debug"
+		}
+
 		return nil
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -118,6 +124,8 @@ func init() {
 	flags.StringVar(&conf.Logger.Level, "log-level", conf.Logger.Level, "Log level [info, debug, warn, error]")
 	flags.StringVar(&conf.Logger.Formatter, "log-format", conf.Logger.Formatter, "Log format [text, json]")
 	flags.BoolVar(&conf.Server.RequestLogging.Enable, "log-requests", conf.Server.RequestLogging.Enable, "Log all requests")
+
+	flags.BoolVar(&verbose, "verbose", verbose, "Verbose")
 
 	flags.StringVarP(&pluginDir, "plugins", "p", pluginDir, "Directory with GRIPPER plugins")
 	flags.StringVarP(&driver, "driver", "d", driver, "Default Driver")
