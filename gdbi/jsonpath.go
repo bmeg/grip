@@ -2,7 +2,7 @@ package gdbi
 
 import (
 	// "fmt"
-	"fmt"
+
 	"strings"
 
 	"github.com/bmeg/grip/log"
@@ -91,7 +91,7 @@ func TravelerPathLookup(traveler Traveler, path string) interface{} {
 	field := travelerpath.GetJSONPath(path)
 	doc := GetDoc(traveler, namespace)
 	if field == "" {
-		fmt.Printf("Null field, return %#v\n", doc)
+		//fmt.Printf("Null field, return %#v\n", doc)
 		return doc
 	}
 	res, err := jsonpath.JsonPathLookup(doc, field)

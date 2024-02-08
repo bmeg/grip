@@ -28,7 +28,7 @@ const (
 // AddCurrent creates a new copy of the travel with new 'current' value
 func (t *BaseTraveler) AddCurrent(r DataRef) Traveler {
 	o := BaseTraveler{
-		Marks:  map[string]DataRef{},
+		Marks:  map[string]*DataElement{},
 		Path:   make([]DataElementID, len(t.Path)+1),
 		Signal: t.Signal,
 	}
@@ -47,15 +47,15 @@ func (t *BaseTraveler) AddCurrent(r DataRef) Traveler {
 		} else {
 			o.Path[len(t.Path)] = DataElementID{Vertex: rd.ID}
 		}
+		o.Current = r.Get()
 	}
-	o.Current = r
 	return &o
 }
 
 // AddCurrent creates a new copy of the travel with new 'current' value
 func (t *BaseTraveler) Copy() Traveler {
 	o := BaseTraveler{
-		Marks:  map[string]DataRef{},
+		Marks:  map[string]*DataElement{},
 		Path:   make([]DataElementID, len(t.Path)),
 		Signal: t.Signal,
 	}
@@ -108,11 +108,11 @@ func (t *BaseTraveler) ListMarks() []string {
 
 // AddMark adds a result to travels state map using `label` as the name
 func (t *BaseTraveler) AddMark(label string, r DataRef) Traveler {
-	o := BaseTraveler{Marks: map[string]DataRef{}, Path: make([]DataElementID, len(t.Path))}
+	o := BaseTraveler{Marks: map[string]*DataElement{}, Path: make([]DataElementID, len(t.Path))}
 	for k, v := range t.Marks {
 		o.Marks[k] = v
 	}
-	o.Marks[label] = r
+	o.Marks[label] = r.Get()
 	for i := range t.Path {
 		o.Path[i] = t.Path[i]
 	}
@@ -139,7 +139,11 @@ func (t *BaseTraveler) GetCount() uint32 {
 }
 
 func (t *BaseTraveler) GetSelections() map[string]DataRef {
-	return t.Selections
+	out := map[string]DataRef{}
+	for k, v := range t.Selections {
+		out[k] = v
+	}
+	return out
 }
 
 func (t *BaseTraveler) GetRender() interface{} {

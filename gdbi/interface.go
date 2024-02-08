@@ -78,9 +78,9 @@ type Signal struct {
 
 // Traveler is a query element that traverse the graph
 type BaseTraveler struct {
-	Current     DataRef
-	Marks       map[string]DataRef
-	Selections  map[string]DataRef
+	Current     *DataElement
+	Marks       map[string]*DataElement
+	Selections  map[string]*DataElement
 	Aggregation *Aggregate
 	Count       uint32
 	Render      interface{}

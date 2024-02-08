@@ -57,7 +57,7 @@ def test_mark_edge_select(man):
 
     count = 0
     for row in G.query().V("Film:1").as_("a").outE("planets").as_(
-            "b").out().as_("c").select(["a", "b", "c"]):
+            "b").out().as_("c").render({"a":"$a", "b":"$b", "c":"$c"}):
         count += 1
         if len(row) != 3:
             errors.append("Incorrect number of marks returned")

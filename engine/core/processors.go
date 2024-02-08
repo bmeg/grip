@@ -799,13 +799,13 @@ func (s *Selector) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe
 				out <- t
 				continue
 			}
-			res := map[string]gdbi.DataRef{}
+			res := map[string]*gdbi.DataElement{}
 			for _, mark := range s.marks {
 				val := t.GetMark(mark)
 				if val == nil {
 					val = &gdbi.DataElement{}
 				}
-				res[mark] = val
+				res[mark] = val.Get()
 			}
 			out <- &gdbi.BaseTraveler{Selections: res}
 		}
