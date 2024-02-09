@@ -310,7 +310,7 @@ func (mg *Graph) GetOutChannel(ctx context.Context, reqChan chan gdbi.ElementLoo
 				query = append(query, bson.M{"$match": bson.M{FIELD_LABEL: bson.M{"$in": edgeLabels}}})
 			}
 			vertCol := fmt.Sprintf("%s_vertices", mg.graph)
-			query = append(query, bson.M{"$lookup": bson.M{FIELD_FROM: vertCol, "localField": FIELD_TO, "foreignField": FIELD_ID, "as": "dst"}})
+			query = append(query, bson.M{"$lookup": bson.M{"from": vertCol, "localField": FIELD_TO, "foreignField": FIELD_ID, "as": "dst"}})
 			query = append(query, bson.M{"$unwind": "$dst"})
 			if load {
 				//query = append(query, bson.M{"$project": bson.M{FIELD_FROM: true, "dst._id": true, "dst._label": true, "dst.data": true}})
@@ -390,11 +390,11 @@ func (mg *Graph) GetInChannel(ctx context.Context, reqChan chan gdbi.ElementLook
 				query = append(query, bson.M{"$match": bson.M{FIELD_LABEL: bson.M{"$in": edgeLabels}}})
 			}
 			vertCol := fmt.Sprintf("%s_vertices", mg.graph)
-			query = append(query, bson.M{"$lookup": bson.M{FIELD_FROM: vertCol, "localField": FIELD_FROM, "foreignField": FIELD_ID, "as": "src"}})
+			query = append(query, bson.M{"$lookup": bson.M{"from": vertCol, "localField": FIELD_FROM, "foreignField": FIELD_ID, "as": "src"}})
 			query = append(query, bson.M{"$unwind": "$src"})
 			if load {
 				//query = append(query, bson.M{"$project": bson.M{FIELD_TO: true, "src._id": true, "src._label": true, "src.data": true}}) //FIX: .data no longer used
-				query = append(query, bson.M{"$project": bson.M{FIELD_TO: true, "src._id": true, "src": true}})
+				query = append(query, bson.M{"$project": bson.M{FIELD_TO: true, "src": true}})
 			} else {
 				query = append(query, bson.M{"$project": bson.M{FIELD_TO: true, "src._id": true, "src._label": true}})
 			}

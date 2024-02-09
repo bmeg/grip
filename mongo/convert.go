@@ -3,7 +3,6 @@ package mongo
 import (
 	"github.com/bmeg/grip/gdbi"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"google.golang.org/protobuf/types/known/structpb"
 )
 
 // PackVertex take a GRIP vertex and convert it to a mongo doc
@@ -12,13 +11,12 @@ func PackVertex(v *gdbi.Vertex) map[string]interface{} {
 	if v.Data != nil {
 		p = v.Data
 	}
-	out := map[string]interface{}{
-		"_id":    v.ID,
-		"_label": v.Label,
-	}
+	out := map[string]interface{}{}
 	for k, v := range p {
 		out[k] = v
 	}
+	out["_id"] = v.ID
+	out["_label"] = v.Label
 	return out
 }
 
@@ -28,22 +26,15 @@ func PackEdge(e *gdbi.Edge) map[string]interface{} {
 	if e.Data != nil {
 		p = e.Data
 	}
-	out := map[string]interface{}{
-		"_id":    e.ID,
-		"_from":  e.From,
-		"_to":    e.To,
-		"_label": e.Label,
-	}
+	out := map[string]interface{}{}
 	for k, v := range p {
 		out[k] = v
 	}
+	out["_id"] = e.ID
+	out["_from"] = e.From
+	out["_to"] = e.To
+	out["_label"] = e.Label
 	return out
-}
-
-type pair struct {
-	key         string
-	valueMap    interface{}
-	valueStruct *structpb.Struct
 }
 
 // UnpackVertex takes a mongo doc and converts it into an gripql.Vertex
@@ -73,7 +64,7 @@ func UnpackEdge(i map[string]interface{}) *gdbi.Edge {
 	o.Data = map[string]any{}
 	d := removePrimatives(i).(map[string]any)
 	for k, v := range d {
-		if k != "_id" && k != "_label" && k != "_to" && k != "from" {
+		if k != "_id" && k != "_label" && k != "_to" && k != "_from" {
 			o.Data[k] = v
 		}
 	}
