@@ -1,8 +1,9 @@
 package gdbi
 
 import (
-	"fmt"
 	"sync"
+
+	"github.com/bmeg/grip/log"
 )
 
 type MemQueue struct {
@@ -30,7 +31,7 @@ func NewQueue() Queue {
 			m.Lock()
 			inCount++
 			if i.IsSignal() {
-				//fmt.Printf("Queue got signal %d\n", i.Signal.ID)
+				log.Debugf("Queue got signal %d\n", i.GetSignal().ID)
 			}
 			//fmt.Printf("Queue Size: %d %d / %d\n", len(queue), inCount, outCount)
 			queue = append(queue, i)
@@ -57,8 +58,8 @@ func NewQueue() Queue {
 				outCount++
 			}
 		}
-		fmt.Printf("Closing Queue Size: %d %d / %d\n", len(queue), inCount, outCount)
-		fmt.Printf("Closing Buffered Queue\n")
+		log.Debugf("Closing Queue Size: %d %d / %d\n", len(queue), inCount, outCount)
+		log.Debugf("Closing Buffered Queue\n")
 	}()
 	return &o
 }

@@ -205,13 +205,16 @@ func (elem *DataElement) ToEdge() *gripql.Edge {
 
 // ToDict converts data element to generic map
 func (elem *DataElement) ToDict() map[string]interface{} {
-	out := map[string]interface{}{
-		"gid":   "",
-		"label": "",
-		"to":    "",
-		"from":  "",
-		"data":  map[string]interface{}{},
-	}
+	/*
+		out := map[string]interface{}{
+			"gid":   "",
+			"label": "",
+			"to":    "",
+			"from":  "",
+			"data":  map[string]interface{}{},
+		}
+	*/
+	out := map[string]interface{}{}
 	if elem == nil {
 		return out
 	}

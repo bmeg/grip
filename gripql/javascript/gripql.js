@@ -76,8 +76,8 @@ function query() {
 			this.query.push({'as': name})
 			return this
 		},
-		select: function(marks) {
-			this.query.push({'select': {'marks': process(marks)}})
+		select: function(name) {
+			this.query.push({'select': name})
 			return this
 		},
 		limit: function(n) {

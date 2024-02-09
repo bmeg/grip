@@ -96,6 +96,17 @@ func PipelineStepOutputs(stmts []*gripql.GraphStatement) map[string][]string {
 				}
 				onLast = false
 			}
+
+		case *gripql.GraphStatement_Render:
+			val := gs.GetRender().AsInterface()
+			names := travelerpath.GetAllNamespaces(val)
+			for _, n := range names {
+				if a, ok := asMap[n]; ok {
+					out[a] = []string{"*"}
+				}
+			}
+			onLast = false
+
 		case *gripql.GraphStatement_Distinct:
 			//if there is a distinct step, we need to load data, but only for requested fields
 			fields := protoutil.AsStringList(gs.GetDistinct())

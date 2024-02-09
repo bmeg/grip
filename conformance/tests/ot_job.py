@@ -18,7 +18,7 @@ def test_job(man):
 
     while True:
         cJob = G.getJob(job["id"])
-        print(cJob)
+        #print(cJob)
         if cJob['state'] not in ["RUNNING", "QUEUED"]:
             break
         time.sleep(1)
