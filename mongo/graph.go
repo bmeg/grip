@@ -45,9 +45,9 @@ func (mg *Graph) GetTimestamp() string {
 func (mg *Graph) GetVertex(id string, load bool) *gdbi.Vertex {
 	opts := options.FindOne()
 	if !load {
-		opts.SetProjection(map[string]interface{}{"_id": 1, "label": 1})
+		opts.SetProjection(map[string]interface{}{FIELD_ID: 1, FIELD_LABEL: 1})
 	}
-	result := mg.ar.VertexCollection(mg.graph).FindOne(context.Background(), bson.M{"_id": id}, opts)
+	result := mg.ar.VertexCollection(mg.graph).FindOne(context.Background(), bson.M{FIELD_ID: id}, opts)
 	if result.Err() != nil {
 		return nil
 	}
@@ -63,9 +63,9 @@ func (mg *Graph) GetVertex(id string, load bool) *gdbi.Vertex {
 func (mg *Graph) GetEdge(id string, load bool) *gdbi.Edge {
 	opts := options.FindOne()
 	if !load {
-		opts.SetProjection(map[string]interface{}{"_id": 1, "label": 1, "from": 1, "to": 1})
+		opts.SetProjection(map[string]interface{}{FIELD_ID: 1, FIELD_LABEL: 1, FIELD_FROM: 1, FIELD_TO: 1})
 	}
-	result := mg.ar.EdgeCollection(mg.graph).FindOne(context.TODO(), bson.M{"_id": id}, opts)
+	result := mg.ar.EdgeCollection(mg.graph).FindOne(context.TODO(), bson.M{FIELD_ID: id}, opts)
 	if result.Err() != nil {
 		return nil
 	}
@@ -84,7 +84,7 @@ func (mg *Graph) AddVertex(vertices []*gdbi.Vertex) error {
 	var err error
 	docBatch := make([]mongo.WriteModel, 0, len(vertices))
 	for _, v := range vertices {
-		i := mongo.NewReplaceOneModel().SetUpsert(true).SetFilter(bson.M{"_id": v.ID})
+		i := mongo.NewReplaceOneModel().SetUpsert(true).SetFilter(bson.M{FIELD_ID: v.ID})
 		ent := PackVertex(v)
 		i.SetReplacement(ent)
 		docBatch = append(docBatch, i)
@@ -105,7 +105,7 @@ func (mg *Graph) AddEdge(edges []*gdbi.Edge) error {
 	var err error
 	docBatch := make([]mongo.WriteModel, 0, len(edges))
 	for _, edge := range edges {
-		i := mongo.NewReplaceOneModel().SetUpsert(true).SetFilter(bson.M{"_id": edge.ID})
+		i := mongo.NewReplaceOneModel().SetUpsert(true).SetFilter(bson.M{FIELD_ID: edge.ID})
 		ent := PackEdge(edge)
 		i.SetReplacement(ent)
 		docBatch = append(docBatch, i)
@@ -123,7 +123,7 @@ func (mg *Graph) BulkAdd(stream <-chan *gdbi.GraphElement) error {
 // deleteConnectedEdges deletes edges where `from` or `to` equal `key`
 func (mg *Graph) deleteConnectedEdges(key string) error {
 	eCol := mg.ar.EdgeCollection(mg.graph)
-	_, err := eCol.DeleteMany(context.TODO(), bson.M{"$or": []bson.M{{"from": key}, {"to": key}}})
+	_, err := eCol.DeleteMany(context.TODO(), bson.M{"$or": []bson.M{{FIELD_FROM: key}, {FIELD_TO: key}}})
 	if err != nil {
 		return fmt.Errorf("failed to delete edge(s): %s", err)
 	}
@@ -134,7 +134,7 @@ func (mg *Graph) deleteConnectedEdges(key string) error {
 // DelVertex deletes vertex with id `key`
 func (mg *Graph) DelVertex(key string) error {
 	vCol := mg.ar.VertexCollection(mg.graph)
-	_, err := vCol.DeleteOne(context.TODO(), bson.M{"_id": key})
+	_, err := vCol.DeleteOne(context.TODO(), bson.M{FIELD_ID: key})
 	if err != nil {
 		return fmt.Errorf("failed to delete vertex %s: %s", key, err)
 	}
@@ -149,7 +149,7 @@ func (mg *Graph) DelVertex(key string) error {
 // DelEdge deletes edge with id `key`
 func (mg *Graph) DelEdge(key string) error {
 	eCol := mg.ar.EdgeCollection(mg.graph)
-	_, err := eCol.DeleteOne(context.TODO(), bson.M{"_id": key})
+	_, err := eCol.DeleteOne(context.TODO(), bson.M{FIELD_ID: key})
 	if err != nil {
 		return fmt.Errorf("failed to delete edge %s: %s", key, err)
 	}
@@ -166,7 +166,7 @@ func (mg *Graph) GetVertexList(ctx context.Context, load bool) <-chan *gdbi.Vert
 		vCol := mg.ar.VertexCollection(mg.graph)
 		opts := options.Find()
 		if !load {
-			opts.SetProjection(bson.M{"_id": 1, "label": 1})
+			opts.SetProjection(bson.M{FIELD_ID: 1, FIELD_LABEL: 1})
 		}
 		query, err := vCol.Find(ctx, bson.M{}, opts)
 		if err != nil {
@@ -201,7 +201,7 @@ func (mg *Graph) GetEdgeList(ctx context.Context, loadProp bool) <-chan *gdbi.Ed
 		eCol := mg.ar.EdgeCollection(mg.graph)
 		opts := options.Find()
 		if !loadProp {
-			opts.SetProjection(bson.M{"_id": 1, "to": 1, "from": 1, "label": 1})
+			opts.SetProjection(bson.M{FIELD_ID: 1, FIELD_TO: 1, FIELD_FROM: 1, FIELD_LABEL: 1})
 		}
 		query, err := eCol.Find(ctx, bson.M{}, opts)
 		if err != nil {
@@ -216,7 +216,7 @@ func (mg *Graph) GetEdgeList(ctx context.Context, loadProp bool) <-chan *gdbi.Ed
 			default:
 			}
 			if err := query.Decode(&result); err == nil {
-				if _, ok := result["to"]; ok {
+				if _, ok := result[FIELD_TO]; ok {
 					e := UnpackEdge(result)
 					o <- e
 				}
@@ -248,10 +248,10 @@ func (mg *Graph) GetVertexChannel(ctx context.Context, ids chan gdbi.ElementLook
 					idBatch = append(idBatch, batch[i].ID)
 				}
 			}
-			query := bson.M{"_id": bson.M{"$in": idBatch}}
+			query := bson.M{FIELD_ID: bson.M{"$in": idBatch}}
 			opts := options.Find()
 			if !load {
-				opts.SetProjection(bson.M{"_id": 1, "label": 1})
+				opts.SetProjection(bson.M{FIELD_ID: 1, FIELD_LABEL: 1})
 			}
 			cursor, err := vCol.Find(context.TODO(), query, opts)
 			if err != nil {
@@ -305,17 +305,18 @@ func (mg *Graph) GetOutChannel(ctx context.Context, reqChan chan gdbi.ElementLoo
 					batchMapReturnCount[batch[i].ID] = 0
 				}
 			}
-			query := []bson.M{{"$match": bson.M{"from": bson.M{"$in": idBatch}}}}
+			query := []bson.M{{"$match": bson.M{FIELD_FROM: bson.M{"$in": idBatch}}}}
 			if len(edgeLabels) > 0 {
-				query = append(query, bson.M{"$match": bson.M{"label": bson.M{"$in": edgeLabels}}})
+				query = append(query, bson.M{"$match": bson.M{FIELD_LABEL: bson.M{"$in": edgeLabels}}})
 			}
 			vertCol := fmt.Sprintf("%s_vertices", mg.graph)
-			query = append(query, bson.M{"$lookup": bson.M{"from": vertCol, "localField": "to", "foreignField": "_id", "as": "dst"}})
+			query = append(query, bson.M{"$lookup": bson.M{FIELD_FROM: vertCol, "localField": FIELD_TO, "foreignField": FIELD_ID, "as": "dst"}})
 			query = append(query, bson.M{"$unwind": "$dst"})
 			if load {
-				query = append(query, bson.M{"$project": bson.M{"from": true, "dst._id": true, "dst.label": true, "dst.data": true}})
+				//query = append(query, bson.M{"$project": bson.M{FIELD_FROM: true, "dst._id": true, "dst._label": true, "dst.data": true}})
+				query = append(query, bson.M{"$project": bson.M{FIELD_FROM: true, "dst": true}})
 			} else {
-				query = append(query, bson.M{"$project": bson.M{"from": true, "dst._id": true, "dst.label": true}})
+				query = append(query, bson.M{"$project": bson.M{FIELD_FROM: true, "dst._id": true, "dst._label": true}})
 			}
 
 			eCol := mg.ar.EdgeCollection(mg.graph)
@@ -326,7 +327,7 @@ func (mg *Graph) GetOutChannel(ctx context.Context, reqChan chan gdbi.ElementLoo
 					if err := cursor.Decode(&result); err == nil {
 						if dst, ok := result["dst"].(map[string]interface{}); ok {
 							v := UnpackVertex(dst)
-							fromID := result["from"].(string)
+							fromID := result[FIELD_FROM].(string)
 							r := batchMap[fromID]
 							batchMapReturnCount[fromID]++
 							for _, ri := range r {
@@ -384,17 +385,18 @@ func (mg *Graph) GetInChannel(ctx context.Context, reqChan chan gdbi.ElementLook
 					batchMapReturnCount[batch[i].ID] = 0
 				}
 			}
-			query := []bson.M{{"$match": bson.M{"to": bson.M{"$in": idBatch}}}}
+			query := []bson.M{{"$match": bson.M{FIELD_TO: bson.M{"$in": idBatch}}}}
 			if len(edgeLabels) > 0 {
-				query = append(query, bson.M{"$match": bson.M{"label": bson.M{"$in": edgeLabels}}})
+				query = append(query, bson.M{"$match": bson.M{FIELD_LABEL: bson.M{"$in": edgeLabels}}})
 			}
 			vertCol := fmt.Sprintf("%s_vertices", mg.graph)
-			query = append(query, bson.M{"$lookup": bson.M{"from": vertCol, "localField": "from", "foreignField": "_id", "as": "src"}})
+			query = append(query, bson.M{"$lookup": bson.M{FIELD_FROM: vertCol, "localField": FIELD_FROM, "foreignField": FIELD_ID, "as": "src"}})
 			query = append(query, bson.M{"$unwind": "$src"})
 			if load {
-				query = append(query, bson.M{"$project": bson.M{"to": true, "src._id": true, "src.label": true, "src.data": true}})
+				//query = append(query, bson.M{"$project": bson.M{FIELD_TO: true, "src._id": true, "src._label": true, "src.data": true}}) //FIX: .data no longer used
+				query = append(query, bson.M{"$project": bson.M{FIELD_TO: true, "src._id": true, "src": true}})
 			} else {
-				query = append(query, bson.M{"$project": bson.M{"to": true, "src._id": true, "src.label": true}})
+				query = append(query, bson.M{"$project": bson.M{FIELD_TO: true, "src._id": true, "src._label": true}})
 			}
 
 			eCol := mg.ar.EdgeCollection(mg.graph)
@@ -405,7 +407,7 @@ func (mg *Graph) GetInChannel(ctx context.Context, reqChan chan gdbi.ElementLook
 					if err := cursor.Decode(&result); err == nil {
 						if src, ok := result["src"].(map[string]interface{}); ok {
 							v := UnpackVertex(src)
-							toID := result["to"].(string)
+							toID := result[FIELD_TO].(string)
 							r := batchMap[toID]
 							batchMapReturnCount[toID]++
 							for _, ri := range r {
@@ -463,9 +465,9 @@ func (mg *Graph) GetOutEdgeChannel(ctx context.Context, reqChan chan gdbi.Elemen
 					batchMapReturnCount[batch[i].ID] = 0
 				}
 			}
-			query := []bson.M{{"$match": bson.M{"from": bson.M{"$in": idBatch}}}}
+			query := []bson.M{{"$match": bson.M{FIELD_FROM: bson.M{"$in": idBatch}}}}
 			if len(edgeLabels) > 0 {
-				query = append(query, bson.M{"$match": bson.M{"label": bson.M{"$in": edgeLabels}}})
+				query = append(query, bson.M{"$match": bson.M{FIELD_LABEL: bson.M{"$in": edgeLabels}}})
 			}
 			eCol := mg.ar.EdgeCollection(mg.graph)
 			cursor, err := eCol.Aggregate(context.TODO(), query)
@@ -474,7 +476,7 @@ func (mg *Graph) GetOutEdgeChannel(ctx context.Context, reqChan chan gdbi.Elemen
 				for cursor.Next(context.TODO()) {
 					if err := cursor.Decode(&result); err == nil {
 						e := UnpackEdge(result)
-						fromID := result["from"].(string)
+						fromID := result[FIELD_FROM].(string)
 						r := batchMap[fromID]
 						batchMapReturnCount[fromID]++
 						for _, ri := range r {
@@ -530,9 +532,9 @@ func (mg *Graph) GetInEdgeChannel(ctx context.Context, reqChan chan gdbi.Element
 					batchMapReturnCount[batch[i].ID] = 0
 				}
 			}
-			query := []bson.M{{"$match": bson.M{"to": bson.M{"$in": idBatch}}}}
+			query := []bson.M{{"$match": bson.M{FIELD_TO: bson.M{"$in": idBatch}}}}
 			if len(edgeLabels) > 0 {
-				query = append(query, bson.M{"$match": bson.M{"label": bson.M{"$in": edgeLabels}}})
+				query = append(query, bson.M{"$match": bson.M{FIELD_LABEL: bson.M{"$in": edgeLabels}}})
 			}
 			eCol := mg.ar.EdgeCollection(mg.graph)
 			cursor, err := eCol.Aggregate(context.TODO(), query)
@@ -541,7 +543,7 @@ func (mg *Graph) GetInEdgeChannel(ctx context.Context, reqChan chan gdbi.Element
 				for cursor.Next(context.TODO()) {
 					if err := cursor.Decode(&result); err == nil {
 						e := UnpackEdge(result)
-						toID := result["to"].(string)
+						toID := result[FIELD_TO].(string)
 						r := batchMap[toID]
 						batchMapReturnCount[toID]++
 						for _, ri := range r {
@@ -579,7 +581,7 @@ func (mg *Graph) GetInEdgeChannel(ctx context.Context, reqChan chan gdbi.Element
 // ListVertexLabels returns a list of vertex types in the graph
 func (mg *Graph) ListVertexLabels() ([]string, error) {
 	v := mg.ar.VertexCollection(mg.graph)
-	out, err := v.Distinct(context.TODO(), "label", bson.M{})
+	out, err := v.Distinct(context.TODO(), FIELD_LABEL, bson.M{})
 	if err != nil {
 		return nil, err
 	}
@@ -593,7 +595,7 @@ func (mg *Graph) ListVertexLabels() ([]string, error) {
 // ListEdgeLabels returns a list of edge types in the graph
 func (mg *Graph) ListEdgeLabels() ([]string, error) {
 	e := mg.ar.EdgeCollection(mg.graph)
-	out, err := e.Distinct(context.TODO(), "label", bson.M{})
+	out, err := e.Distinct(context.TODO(), FIELD_LABEL, bson.M{})
 	if err != nil {
 		return nil, err
 	}

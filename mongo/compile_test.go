@@ -42,7 +42,7 @@ func TestDistinctPathing(t *testing.T) {
 		f = travelerpath.GetJSONPath(f)
 		f = strings.TrimPrefix(f, "$.")
 		if f == "gid" {
-			f = "_id"
+			f = FIELD_ID
 		}
 		if namespace != travelerpath.Current {
 			f = fmt.Sprintf("marks.%s.%s", namespace, f)

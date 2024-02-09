@@ -28,20 +28,23 @@ type Processor struct {
 
 func getDataElement(result map[string]interface{}) *gdbi.DataElement {
 	de := &gdbi.DataElement{}
-	if x, ok := result["_id"]; ok {
+	if x, ok := result[FIELD_ID]; ok {
 		de.ID = x.(string)
 	}
-	if x, ok := result["label"]; ok {
+	if x, ok := result[FIELD_LABEL]; ok {
 		de.Label = x.(string)
 	}
-	if x, ok := result["data"]; ok {
-		de.Data = removePrimatives(x).(map[string]interface{})
-		de.Loaded = true
+	de.Data = map[string]any{}
+	for k, v := range removePrimatives(result).(map[string]any) {
+		if !IsNodeField(k) {
+			de.Data[k] = v
+		}
 	}
-	if x, ok := result["to"]; ok {
+	de.Loaded = true
+	if x, ok := result[FIELD_TO]; ok {
 		de.To = x.(string)
 	}
-	if x, ok := result["from"]; ok {
+	if x, ok := result[FIELD_FROM]; ok {
 		de.From = x.(string)
 	}
 	return de
@@ -176,6 +179,8 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 					}
 
 				default:
+					//Reconstruct the traveler
+					//Extract the path
 					if path, ok := result["path"]; ok {
 						if pathA, ok := path.(bson.A); ok {
 							o := make([]gdbi.DataElementID, len(pathA))
@@ -192,6 +197,7 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 							t = &gdbi.BaseTraveler{Path: o}
 						}
 					}
+					//Extract marks
 					if marks, ok := result["marks"]; ok {
 						if marks, ok := marks.(map[string]interface{}); ok {
 							for k, v := range marks {
@@ -204,20 +210,21 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 					}
 
 					de := &gdbi.DataElement{}
-					if x, ok := result["_id"]; ok {
+					data := removePrimatives(result["data"]).(map[string]any)
+					if x, ok := data[FIELD_ID]; ok {
 						de.ID = removePrimatives(x).(string)
 					}
-					if x, ok := result["label"]; ok {
+					if x, ok := data[FIELD_LABEL]; ok {
 						de.Label = x.(string)
 					}
-					if x, ok := result["data"]; ok {
-						de.Data = removePrimatives(x).(map[string]interface{})
-						de.Loaded = true
-					}
-					if x, ok := result["to"]; ok {
+					//if x, ok := result["data"]; ok {
+					de.Data = RemoveKeyFields(data) //removePrimatives(x).(map[string]interface{})
+					de.Loaded = true
+					//}
+					if x, ok := data[FIELD_TO]; ok {
 						de.To = x.(string)
 					}
-					if x, ok := result["from"]; ok {
+					if x, ok := data[FIELD_FROM]; ok {
 						de.From = x.(string)
 					}
 					out <- t.AddCurrent(de)

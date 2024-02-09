@@ -110,11 +110,11 @@ func (mg *Graph) VertexLabelScan(ctx context.Context, label string) chan string 
 	go func() {
 		defer close(out)
 		selection := map[string]interface{}{
-			"label": label,
+			FIELD_LABEL: label,
 		}
 		vcol := mg.ar.VertexCollection(mg.graph)
 		opts := options.Find()
-		opts.SetProjection(map[string]interface{}{"_id": 1, "label": 1})
+		opts.SetProjection(map[string]interface{}{FIELD_ID: 1, FIELD_LABEL: 1})
 
 		cursor, err := vcol.Find(context.TODO(), selection, opts)
 		if err == nil {
@@ -127,7 +127,7 @@ func (mg *Graph) VertexLabelScan(ctx context.Context, label string) chan string 
 				default:
 				}
 				if nil == cursor.Decode(&result) {
-					out <- result["_id"].(string)
+					out <- result[FIELD_ID].(string)
 				}
 			}
 			if err := cursor.Close(context.TODO()); err != nil {
