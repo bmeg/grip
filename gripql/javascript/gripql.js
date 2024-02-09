@@ -256,6 +256,13 @@ function histogram(name, field, interval) {
 	}
 }
 
+function count(name) {
+	return {
+		"name": name,
+		"count": {}
+	}
+}
+
 function V(id) {
   return query().V(id)
 }

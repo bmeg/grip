@@ -515,14 +515,7 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement, opts *gdbi.Compile
 				return &Pipeline{}, fmt.Errorf(`"hasLabel" statement is only valid for edge or vertex types not: %s`, lastType.String())
 			}
 			labels := protoutil.AsStringList(stmt.HasLabel)
-			ilabels := make([]interface{}, len(labels))
-			for i, v := range labels {
-				ilabels[i] = v
-			}
-			has := gripql.Within(FIELD_LABEL, ilabels...)
-			whereExpr := convertHasExpression(has, false)
-			matchStmt := bson.D{primitive.E{Key: "$match", Value: whereExpr}}
-			query = append(query, matchStmt)
+			query = append(query, bson.D{primitive.E{Key: "$match", Value: bson.M{FIELD_CURRENT_LABEL: bson.M{"$in": labels}}}})
 
 		case *gripql.GraphStatement_HasId:
 			if lastType != gdbi.VertexData && lastType != gdbi.EdgeData {
@@ -533,7 +526,7 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement, opts *gdbi.Compile
 			for i, v := range ids {
 				iids[i] = v
 			}
-			has := gripql.Within(FIELD_ID, iids...)
+			has := gripql.Within(FIELD_CURRENT_ID, iids...)
 			whereExpr := convertHasExpression(has, false)
 			matchStmt := bson.D{primitive.E{Key: "$match", Value: whereExpr}}
 			query = append(query, matchStmt)

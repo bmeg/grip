@@ -122,7 +122,7 @@ def test_traversal_percentile_aggregation(man):
     if count != len(percents):
         errors.append(
             "Unexpected number of terms: %d != %d" %
-            (len(row["buckets"]), len(percents))
+            (len(res["buckets"]), len(percents))
         )
 
     return errors
@@ -194,7 +194,7 @@ def test_field_aggregation(man):
 
     G = man.setGraph("swapi")
     count = 0
-    for row in G.query().V().hasLabel("Planet").aggregate(gripql.field("gid-agg", "$._data")):
+    for row in G.query().V().hasLabel("Planet").aggregate(gripql.field("gid-agg", "$")):
         if row["key"] not in fields:
             errors.append("unknown field returned: %s" % (row['key']))
         if row["value"] != 3:
