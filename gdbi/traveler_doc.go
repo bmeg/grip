@@ -137,12 +137,12 @@ KeyLoop:
 			continue KeyLoop
 		}
 		path := tpath.NormalizePath(key)
-		path = strings.TrimPrefix(path, "$.") //FIXME
-
+		jpath := tpath.ToLocalPath(path)
+		spath := strings.TrimPrefix(jpath, "$.")
 		if exclude {
-			excludePaths = append(excludePaths, path)
+			excludePaths = append(excludePaths, spath)
 		} else {
-			includePaths = append(includePaths, path)
+			includePaths = append(includePaths, spath)
 		}
 	}
 
@@ -186,10 +186,6 @@ Include:
 		switch path {
 		case "_gid", "_label", "_from", "_to":
 			// noop
-		case "data":
-			for k, v := range old.Data {
-				newData[k] = v
-			}
 		default:
 			parts := strings.Split(path, ".")
 			var data map[string]interface{}
