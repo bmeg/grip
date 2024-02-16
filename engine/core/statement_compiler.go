@@ -5,8 +5,8 @@ import (
 
 	"github.com/bmeg/grip/engine/logic"
 	"github.com/bmeg/grip/gdbi"
+	"github.com/bmeg/grip/gdbi/tpath"
 	"github.com/bmeg/grip/gripql"
-	"github.com/bmeg/grip/travelerpath"
 	"github.com/bmeg/grip/util/protoutil"
 )
 
@@ -166,8 +166,8 @@ func (sc *DefaultStmtCompiler) As(stmt *gripql.GraphStatement_As, ps *gdbi.State
 	if err := gripql.ValidateFieldName(stmt.As); err != nil {
 		return nil, fmt.Errorf(`"mark" statement invalid; %v`, err)
 	}
-	if stmt.As == travelerpath.Current {
-		return nil, fmt.Errorf(`"mark" statement invalid; uses reserved name %s`, travelerpath.Current)
+	if stmt.As == tpath.CURRENT {
+		return nil, fmt.Errorf(`"mark" statement invalid; uses reserved name %s`, tpath.CURRENT)
 	}
 	ps.MarkTypes[stmt.As] = ps.LastType
 	return &Marker{stmt.As}, nil

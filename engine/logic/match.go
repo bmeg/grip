@@ -13,8 +13,11 @@ import (
 func MatchesCondition(trav gdbi.Traveler, cond *gripql.HasCondition) bool {
 	var val interface{}
 	var condVal interface{}
+
 	val = gdbi.TravelerPathLookup(trav, cond.Key)
 	condVal = cond.Value.AsInterface()
+
+	log.Debugf("match: %s %s %s", condVal, val, cond.Key)
 
 	switch cond.Condition {
 	case gripql.Condition_EQ:

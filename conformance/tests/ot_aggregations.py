@@ -190,7 +190,7 @@ def test_traversal_gid_aggregation(man):
 def test_field_aggregation(man):
     errors = []
 
-    fields = [ "id", 'orbital_period', 'gravity', 'terrain', 'name','climate', 'system', 'diameter', 'rotation_period', 'url', 'population', 'surface_water']
+    fields = [ "_gid", "_label", 'orbital_period', 'gravity', 'terrain', 'name','climate', 'system', 'diameter', 'rotation_period', 'url', 'population', 'surface_water']
 
     G = man.setGraph("swapi")
     count = 0

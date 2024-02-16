@@ -218,19 +218,21 @@ func (elem *DataElement) ToDict() map[string]interface{} {
 	if elem == nil {
 		return out
 	}
+	for k, v := range elem.Data {
+		out[k] = v
+	}
 	if elem.ID != "" {
-		out["gid"] = elem.ID
+		out["_gid"] = elem.ID
 	}
 	if elem.Label != "" {
-		out["label"] = elem.Label
+		out["_label"] = elem.Label
 	}
 	if elem.To != "" {
-		out["to"] = elem.To
+		out["_to"] = elem.To
 	}
 	if elem.From != "" {
-		out["from"] = elem.From
+		out["_from"] = elem.From
 	}
-	out["data"] = elem.Data
 	return out
 }
 

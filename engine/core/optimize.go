@@ -1,8 +1,8 @@
 package core
 
 import (
+	"github.com/bmeg/grip/gdbi/tpath"
 	"github.com/bmeg/grip/gripql"
-	"github.com/bmeg/grip/travelerpath"
 	"github.com/bmeg/grip/util/protoutil"
 )
 
@@ -47,11 +47,11 @@ func IndexStartOptimize(pipe []*gripql.GraphStatement) []*gripql.GraphStatement 
 				return IndexStartOptimize(newPipe)
 			}
 			if cond := s.Has.GetCondition(); cond != nil {
-				path := travelerpath.GetJSONPath(cond.Key)
+				path := tpath.NormalizePath(cond.Key)
 				switch path {
-				case "$.gid":
+				case "$_current._gid":
 					hasIDIdx = append(hasIDIdx, i)
-				case "$.label":
+				case "$_current._label":
 					hasLabelIdx = append(hasLabelIdx, i)
 				default:
 					// do nothing

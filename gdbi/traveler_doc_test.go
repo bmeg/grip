@@ -4,7 +4,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/bmeg/grip/travelerpath"
+	"github.com/bmeg/grip/gdbi/tpath"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -44,68 +45,68 @@ func TestMain(m *testing.M) {
 
 func TestGetNamespace(t *testing.T) {
 	expected := "foo"
-	result := travelerpath.GetNamespace("$foo.bar[1:3].baz")
+	result := tpath.GetNamespace("$foo.bar[1:3].baz")
 	assert.Equal(t, expected, result)
 
-	result = travelerpath.GetNamespace("foo.bar[1:3].baz")
+	result = tpath.GetNamespace("foo.bar[1:3].baz")
 	assert.NotEqual(t, expected, result)
 }
 
 func TestGetJSONPath(t *testing.T) {
-	expected := "$.data.a"
-	result := travelerpath.GetJSONPath("a")
+	expected := "$_current.a"
+	result := tpath.NormalizePath("a")
 	assert.Equal(t, expected, result)
 
-	expected = "$.data.a"
-	result = travelerpath.GetJSONPath("_data.a")
+	expected = "$_current.a"
+	result = tpath.NormalizePath("$.a")
 	assert.Equal(t, expected, result)
 
-	expected = "$.data.e[1].nested"
-	result = travelerpath.GetJSONPath("e[1].nested")
+	expected = "$_current.e[1].nested"
+	result = tpath.NormalizePath("e[1].nested")
 	assert.Equal(t, expected, result)
 
-	expected = "$.data.a"
-	result = travelerpath.GetJSONPath("$testMark.a")
+	expected = "$testMark.a"
+	result = tpath.NormalizePath("$testMark.a")
 	assert.Equal(t, expected, result)
 
-	expected = "$.data.a"
-	result = travelerpath.GetJSONPath("testMark.a")
-	assert.NotEqual(t, expected, result)
+	expected = "$_current.testMark.a"
+	result = tpath.NormalizePath("testMark.a")
+	assert.Equal(t, expected, result)
 }
 
-func TestGetDoc(t *testing.T) {
+func TestGetMarkDoc(t *testing.T) {
 	expected := traveler.GetMark("testMark").Get().ToDict()
-	result := GetDoc(traveler, "testMark")
+	result := TravelerGetMarkDoc(traveler, "testMark")
 	assert.Equal(t, expected, result)
 
 	expected = traveler.GetMark("i-dont-exist").Get().ToDict()
-	result = GetDoc(traveler, "i-dont-exist")
+	result = TravelerGetMarkDoc(traveler, "i-dont-exist")
 	assert.Equal(t, expected, result)
 
 	expected = traveler.GetCurrent().Get().ToDict()
-	result = GetDoc(traveler, travelerpath.Current)
+	result = TravelerGetMarkDoc(traveler, tpath.CURRENT)
 	assert.Equal(t, expected, result)
 }
 
 func TestTravelerPathExists(t *testing.T) {
 	assert.True(t, TravelerPathExists(traveler, "_gid"))
+	assert.True(t, TravelerPathExists(traveler, "$_gid"))
 	assert.True(t, TravelerPathExists(traveler, "_label"))
 	assert.True(t, TravelerPathExists(traveler, "a"))
-	assert.True(t, TravelerPathExists(traveler, "_data.a"))
+	assert.True(t, TravelerPathExists(traveler, "$a"))
+	assert.True(t, TravelerPathExists(traveler, "$_current.a"))
 	assert.False(t, TravelerPathExists(traveler, "non-existent"))
-	assert.False(t, TravelerPathExists(traveler, "_data.non-existent"))
+	assert.False(t, TravelerPathExists(traveler, "$_current.non-existent"))
 
 	assert.True(t, TravelerPathExists(traveler, "$testMark._gid"))
 	assert.True(t, TravelerPathExists(traveler, "$testMark._label"))
 	assert.True(t, TravelerPathExists(traveler, "$testMark.a"))
-	assert.True(t, TravelerPathExists(traveler, "$testMark._data.a"))
 	assert.False(t, TravelerPathExists(traveler, "$testMark.non-existent"))
-	assert.False(t, TravelerPathExists(traveler, "$testMark._data.non-existent"))
 }
 
 func TestRender(t *testing.T) {
 	expected := traveler.GetCurrent().Get().Data["a"]
-	result := RenderTraveler(traveler, "a")
+	result := RenderTraveler(traveler, "$.a")
 	assert.Equal(t, expected, result)
 
 	expected = []interface{}{
@@ -141,15 +142,15 @@ func TestRender(t *testing.T) {
 		"current.a":           "a",
 		"current.b":           "b",
 		"current.c":           "c",
-		"current.d":           "_data.d",
+		"current.d":           "d",
 		"mark.gid":            "$testMark._gid",
 		"mark.label":          "$testMark._label",
 		"mark.a":              "$testMark.a",
 		"mark.b":              "$testMark.b",
-		"mark.c":              "$testMark._data.c",
+		"mark.c":              "$testMark.c",
 		"mark.d":              "$testMark.d",
 		"mark.d[0]":           "$testMark.d[0]",
-		"current.e[0].nested": "_data.e[0].nested",
+		"current.e[0].nested": "e[0].nested",
 		"current.e.nested":    "e.nested",
 		"current.f":           "f",
 	})

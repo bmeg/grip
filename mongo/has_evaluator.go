@@ -1,11 +1,12 @@
 package mongo
 
 import (
+	"fmt"
 	"strings"
 
+	"github.com/bmeg/grip/gdbi/tpath"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/log"
-	"github.com/bmeg/grip/travelerpath"
 	"go.mongodb.org/mongo-driver/bson"
 )
 
@@ -80,11 +81,12 @@ func convertHasExpression(stmt *gripql.HasExpression, not bool) bson.M {
 }
 
 func convertPath(key string) string {
-	key = travelerpath.GetJSONPath(key)
+	key = tpath.NormalizePath(key)
 	key = strings.TrimPrefix(key, "$.")
 	if key == "gid" {
 		key = "_id"
 	}
+	fmt.Printf("Key: %s\n", key)
 	return key
 }
 

@@ -1,66 +1,47 @@
 package gdbi
 
 import (
-	// "fmt"
-
 	"strings"
 
+	"github.com/bmeg/grip/gdbi/tpath"
 	"github.com/bmeg/grip/log"
-	"github.com/bmeg/grip/travelerpath"
 	"github.com/bmeg/jsonpath"
 )
 
-// GetDoc returns the document referenced by the provided namespace.
-//
-// Example for a traveler containing:
-//
-//	{
-//	    "current": {...},
-//	    "marks": {
-//	      "gene": {
-//	        "gid": 1,
-//	        "label": "gene",
-//	        "data": {
-//	          "symbol": {
-//	            "ensembl": "ENSG00000012048",
-//	            "hgnc": 1100,
-//	            "entrez": 672
-//	          }
-//	        }
-//	      }
-//	    }
-//	  }
-//	}
-//
-// GetDoc(traveler, "gene") returns:
-//
-//	{
-//	  "gid": 1,
-//	  "label": "gene",
-//	  "data": {
-//	    "symbol": {
-//	      "ensembl": "ENSG00000012048",
-//	      "hgnc": 1100,
-//	      "entrez": 672
-//	    }
-//	  }
-//	}
-func GetDoc(traveler Traveler, namespace string) map[string]interface{} {
-	var tmap map[string]interface{}
-	if namespace == travelerpath.Current {
-		dr := traveler.GetCurrent()
-		if dr == nil {
-			return nil
+// GetDoc returns the document representing the traveler data
+func TravelerGetDoc(traveler Traveler, ns ...string) map[string]any {
+	if len(ns) == 0 {
+		out := map[string]any{}
+		out[tpath.CURRENT] = traveler.GetCurrent().Get().ToDict()
+		for _, k := range traveler.ListMarks() {
+			out[k] = traveler.GetMark(k).Get().ToDict()
 		}
-		tmap = dr.Get().ToDict()
-	} else {
-		dr := traveler.GetMark(namespace)
-		if dr == nil {
-			return nil
-		}
-		tmap = dr.Get().ToDict()
+		return out
 	}
-	return tmap
+	out := map[string]any{}
+	for _, n := range ns {
+		if n == tpath.CURRENT {
+			out[n] = traveler.GetCurrent().Get().ToDict()
+		} else {
+			m := traveler.GetMark(n)
+			if m != nil {
+				out[n] = m.Get().ToDict()
+			}
+		}
+	}
+	return out
+}
+
+// TravelerGetMarkDoc returns the document representing the traveler data
+func TravelerGetMarkDoc(traveler Traveler, ns string) map[string]any {
+	if ns == tpath.CURRENT {
+		return traveler.GetCurrent().Get().ToDict()
+	}
+	m := traveler.GetMark(ns)
+	if m != nil {
+		return m.Get().ToDict()
+	}
+	return nil
 }
 
 // TravelerPathLookup gets the value of a field in the given Traveler
@@ -68,7 +49,7 @@ func GetDoc(traveler Traveler, namespace string) map[string]interface{} {
 // Example for a traveler containing:
 //
 //	{
-//	    "current": {...},
+//	    "_current": {...},
 //	    "marks": {
 //	      "gene": {
 //	        "gid": 1,
@@ -87,14 +68,19 @@ func GetDoc(traveler Traveler, namespace string) map[string]interface{} {
 //
 // TravelerPathLookup(travler, "$gene.symbol.ensembl") returns "ENSG00000012048"
 func TravelerPathLookup(traveler Traveler, path string) interface{} {
-	namespace := travelerpath.GetNamespace(path)
-	field := travelerpath.GetJSONPath(path)
-	doc := GetDoc(traveler, namespace)
+	field := tpath.NormalizePath(path)
+	jpath := tpath.ToLocalPath(field)
+	namespace := tpath.GetNamespace(field)
+	var doc map[string]any
+	if namespace == tpath.CURRENT {
+		doc = traveler.GetCurrent().Get().ToDict()
+	} else {
+		doc = traveler.GetMark(namespace).Get().ToDict()
+	}
 	if field == "" {
-		//fmt.Printf("Null field, return %#v\n", doc)
 		return doc
 	}
-	res, err := jsonpath.JsonPathLookup(doc, field)
+	res, err := jsonpath.JsonPathLookup(doc, jpath)
 	if err != nil {
 		return nil
 	}
@@ -103,49 +89,32 @@ func TravelerPathLookup(traveler Traveler, path string) interface{} {
 
 // TravelerSetValue(travler, "$gene.symbol.ensembl", "hi") inserts the value in the location"
 func TravelerSetValue(traveler Traveler, path string, val interface{}) error {
-	namespace := travelerpath.GetNamespace(path)
-	field := travelerpath.GetJSONPath(path)
+	field := tpath.NormalizePath(path)
+	namespace := tpath.GetNamespace(field)
 	if field == "" {
 		return nil
 	}
-	doc := GetDoc(traveler, namespace)
+	doc := TravelerGetDoc(traveler, namespace)
 	return jsonpath.JsonPathSet(doc, field, val)
 }
 
 // TravelerPathExists returns true if the field exists in the given Traveler
 func TravelerPathExists(traveler Traveler, path string) bool {
-	namespace := travelerpath.GetNamespace(path)
-	field := travelerpath.GetJSONPath(path)
+	field := tpath.NormalizePath(path)
+	namespace := tpath.GetNamespace(field)
 	if field == "" {
 		return false
 	}
-	doc := GetDoc(traveler, namespace)
+	doc := TravelerGetDoc(traveler, namespace)
 	_, err := jsonpath.JsonPathLookup(doc, field)
 	return err == nil
 }
 
 // RenderTraveler takes a template and fills in the values using the data structure
 func RenderTraveler(traveler Traveler, template interface{}) interface{} {
-	switch elem := template.(type) {
-	case string:
-		return TravelerPathLookup(traveler, elem)
-	case map[string]interface{}:
-		o := make(map[string]interface{})
-		for k, v := range elem {
-			val := RenderTraveler(traveler, v)
-			o[k] = val
-		}
-		return o
-	case []interface{}:
-		o := make([]interface{}, len(elem))
-		for i := range elem {
-			val := RenderTraveler(traveler, elem[i])
-			o[i] = val
-		}
-		return o
-	default:
-		return nil
-	}
+	doc := TravelerGetDoc(traveler)
+	out, _ := tpath.Render(template, doc)
+	return out
 }
 
 // SelectTravelerFields returns a new copy of the traveler with only the selected fields
@@ -159,16 +128,16 @@ KeyLoop:
 			exclude = true
 			key = strings.TrimPrefix(key, "-")
 		}
-		namespace := travelerpath.GetNamespace(key)
+		namespace := tpath.GetNamespace(key)
 		switch namespace {
-		case travelerpath.Current:
+		case tpath.CURRENT:
 			// noop
 		default:
 			log.Errorf("SelectTravelerFields: only can select field from current traveler")
 			continue KeyLoop
 		}
-		path := travelerpath.GetJSONPath(key)
-		path = strings.TrimPrefix(path, "$.")
+		path := tpath.NormalizePath(key)
+		path = strings.TrimPrefix(path, "$.") //FIXME
 
 		if exclude {
 			excludePaths = append(excludePaths, path)
@@ -215,7 +184,7 @@ func includeFields(new, old *DataElement, paths []string) *DataElement {
 Include:
 	for _, path := range paths {
 		switch path {
-		case "gid", "label", "from", "to":
+		case "_gid", "_label", "_from", "_to":
 			// noop
 		case "data":
 			for k, v := range old.Data {
@@ -271,13 +240,13 @@ func excludeFields(elem *DataElement, paths []string) *DataElement {
 Exclude:
 	for _, path := range paths {
 		switch path {
-		case "gid":
+		case "_gid":
 			result.ID = ""
-		case "label":
+		case "_label":
 			result.Label = ""
-		case "from":
+		case "_from":
 			result.From = ""
-		case "to":
+		case "_to":
 			result.To = ""
 		case "data":
 			result.Data = map[string]interface{}{}

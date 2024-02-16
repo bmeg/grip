@@ -1053,19 +1053,21 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 						c++
 					}
 				}
-				sort.Float64s(fieldValues)
-				min := fieldValues[0]
-				max := fieldValues[len(fieldValues)-1]
+				if len(fieldValues) > 0 {
+					sort.Float64s(fieldValues)
+					min := fieldValues[0]
+					max := fieldValues[len(fieldValues)-1]
 
-				for bucket := math.Floor(min/i) * i; bucket <= max; bucket += i {
-					var count float64
-					for _, v := range fieldValues {
-						if v >= bucket && v < (bucket+i) {
-							count++
+					for bucket := math.Floor(min/i) * i; bucket <= max; bucket += i {
+						var count float64
+						for _, v := range fieldValues {
+							if v >= bucket && v < (bucket+i) {
+								count++
+							}
 						}
+						//sBucket, _ := structpb.NewValue(bucket)
+						out <- &gdbi.BaseTraveler{Aggregation: &gdbi.Aggregate{Name: a.Name, Key: bucket, Value: float64(count)}}
 					}
-					//sBucket, _ := structpb.NewValue(bucket)
-					out <- &gdbi.BaseTraveler{Aggregation: &gdbi.Aggregate{Name: a.Name, Key: bucket, Value: float64(count)}}
 				}
 				return outErr
 			})
