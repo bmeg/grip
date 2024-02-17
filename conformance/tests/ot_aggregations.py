@@ -122,7 +122,7 @@ def test_traversal_percentile_aggregation(man):
     if count != len(percents):
         errors.append(
             "Unexpected number of terms: %d != %d" %
-            (len(row["buckets"]), len(percents))
+            (len(res["buckets"]), len(percents))
         )
 
     return errors
@@ -190,11 +190,12 @@ def test_traversal_gid_aggregation(man):
 def test_field_aggregation(man):
     errors = []
 
-    fields = [ "id", 'orbital_period', 'gravity', 'terrain', 'name','climate', 'system', 'diameter', 'rotation_period', 'url', 'population', 'surface_water']
+    # TODO: find way to get gripper driver to drop id field
+    fields = [ "id", "_gid", "_label", 'orbital_period', 'gravity', 'terrain', 'name','climate', 'system', 'diameter', 'rotation_period', 'url', 'population', 'surface_water']
 
     G = man.setGraph("swapi")
     count = 0
-    for row in G.query().V().hasLabel("Planet").aggregate(gripql.field("gid-agg", "$._data")):
+    for row in G.query().V().hasLabel("Planet").aggregate(gripql.field("gid-agg", "$")):
         if row["key"] not in fields:
             errors.append("unknown field returned: %s" % (row['key']))
         if row["value"] != 3:

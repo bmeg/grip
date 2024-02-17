@@ -1,12 +1,8 @@
 package gdbi
 
 import (
-	"errors"
-	"fmt"
-
-	"github.com/bmeg/grip/gripql"
+	"github.com/bmeg/grip/gdbi/tpath"
 	"github.com/bmeg/grip/util/copy"
-	"google.golang.org/protobuf/types/known/structpb"
 )
 
 // These consts mark the type of a Pipeline traveler chan
@@ -120,6 +116,14 @@ func (t *BaseTraveler) AddMark(label string, r DataRef) Traveler {
 	return &o
 }
 
+func (t *BaseTraveler) UpdateMark(label string, r DataRef) {
+	if label == tpath.CURRENT {
+		t.Current = r.Get()
+		return
+	}
+	t.Marks[label] = r.Get()
+}
+
 // GetMark gets stored result in travels state using its label
 func (t *BaseTraveler) GetMark(label string) DataRef {
 	return t.Marks[label]
@@ -156,108 +160,4 @@ func (t *BaseTraveler) GetPath() []DataElementID {
 
 func (t BaseTraveler) GetAggregation() *Aggregate {
 	return t.Aggregation
-}
-
-func NewElementFromVertex(v *gripql.Vertex) *Vertex {
-	return &Vertex{
-		ID:     v.Gid,
-		Label:  v.Label,
-		Data:   v.Data.AsMap(),
-		Loaded: true,
-	}
-}
-
-func NewElementFromEdge(e *gripql.Edge) *Edge {
-	return &Edge{
-		ID:     e.Gid,
-		Label:  e.Label,
-		To:     e.To,
-		From:   e.From,
-		Data:   e.Data.AsMap(),
-		Loaded: true,
-	}
-}
-
-// ToVertex converts data element to vertex
-func (elem *DataElement) ToVertex() *gripql.Vertex {
-	sValue, err := structpb.NewStruct(elem.Data)
-	if err != nil {
-		fmt.Printf("Error: %s %#v\n", err, elem.Data)
-	}
-	return &gripql.Vertex{
-		Gid:   elem.ID,
-		Label: elem.Label,
-		Data:  sValue,
-	}
-}
-
-// ToEdge converts data element to edge
-func (elem *DataElement) ToEdge() *gripql.Edge {
-	sValue, _ := structpb.NewStruct(elem.Data)
-	return &gripql.Edge{
-		Gid:   elem.ID,
-		From:  elem.From,
-		To:    elem.To,
-		Label: elem.Label,
-		Data:  sValue,
-	}
-}
-
-// ToDict converts data element to generic map
-func (elem *DataElement) ToDict() map[string]interface{} {
-	/*
-		out := map[string]interface{}{
-			"gid":   "",
-			"label": "",
-			"to":    "",
-			"from":  "",
-			"data":  map[string]interface{}{},
-		}
-	*/
-	out := map[string]interface{}{}
-	if elem == nil {
-		return out
-	}
-	if elem.ID != "" {
-		out["gid"] = elem.ID
-	}
-	if elem.Label != "" {
-		out["label"] = elem.Label
-	}
-	if elem.To != "" {
-		out["to"] = elem.To
-	}
-	if elem.From != "" {
-		out["from"] = elem.From
-	}
-	out["data"] = elem.Data
-	return out
-}
-
-// Validate returns an error if the vertex is invalid
-func (vertex *Vertex) Validate() error {
-	if vertex.ID == "" {
-		return errors.New("'gid' cannot be blank")
-	}
-	if vertex.Label == "" {
-		return errors.New("'label' cannot be blank")
-	}
-	for k := range vertex.Data {
-		err := gripql.ValidateFieldName(k)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func NewGraphElement(g *gripql.GraphElement) *GraphElement {
-	o := GraphElement{Graph: g.Graph}
-	if g.Vertex != nil {
-		o.Vertex = NewElementFromVertex(g.Vertex)
-	}
-	if g.Edge != nil {
-		o.Edge = NewElementFromEdge(g.Edge)
-	}
-	return &o
 }

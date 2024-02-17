@@ -10,6 +10,7 @@ import (
 
 	"github.com/bmeg/grip/engine/logic"
 	"github.com/bmeg/grip/gdbi"
+	"github.com/bmeg/grip/gdbi/tpath"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/util/copy"
@@ -1053,19 +1054,21 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 						c++
 					}
 				}
-				sort.Float64s(fieldValues)
-				min := fieldValues[0]
-				max := fieldValues[len(fieldValues)-1]
+				if len(fieldValues) > 0 {
+					sort.Float64s(fieldValues)
+					min := fieldValues[0]
+					max := fieldValues[len(fieldValues)-1]
 
-				for bucket := math.Floor(min/i) * i; bucket <= max; bucket += i {
-					var count float64
-					for _, v := range fieldValues {
-						if v >= bucket && v < (bucket+i) {
-							count++
+					for bucket := math.Floor(min/i) * i; bucket <= max; bucket += i {
+						var count float64
+						for _, v := range fieldValues {
+							if v >= bucket && v < (bucket+i) {
+								count++
+							}
 						}
+						//sBucket, _ := structpb.NewValue(bucket)
+						out <- &gdbi.BaseTraveler{Aggregation: &gdbi.Aggregate{Name: a.Name, Key: bucket, Value: float64(count)}}
 					}
-					//sBucket, _ := structpb.NewValue(bucket)
-					out <- &gdbi.BaseTraveler{Aggregation: &gdbi.Aggregate{Name: a.Name, Key: bucket, Value: float64(count)}}
 				}
 				return outErr
 			})
@@ -1104,7 +1107,9 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 					val := gdbi.TravelerPathLookup(t, fa.Field)
 					if m, ok := val.(map[string]interface{}); ok {
 						for k := range m {
-							fieldCounts[k]++
+							if !tpath.IsGraphField(k) {
+								fieldCounts[k]++
+							}
 						}
 					}
 				}

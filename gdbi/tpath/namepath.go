@@ -1,13 +1,11 @@
-package travelerpath
+package tpath
 
 import (
 	"strings"
-
-	"github.com/bmeg/grip/gripql"
 )
 
 // Current represents the 'current' traveler namespace
-var Current = "__current__"
+const CURRENT = "_current"
 
 // GetNamespace returns the namespace of the provided path
 //
@@ -20,37 +18,36 @@ func GetNamespace(path string) string {
 		namespace = strings.TrimPrefix(parts[0], "$")
 	}
 	if namespace == "" {
-		namespace = Current
+		namespace = CURRENT
 	}
 	return namespace
 }
 
-// GetJSONPath strips the namespace from the path and returns the valid
-// Json path within the document referenced by the namespace
+// NormalizePath
 //
 // Example:
-// GetJSONPath("gene.symbol.ensembl") returns "$.data.symbol.ensembl"
-func GetJSONPath(path string) string {
+// NormalizePath("gene.symbol.ensembl") returns "$_current.symbol.ensembl"
+
+func NormalizePath(path string) string {
+	namespace := CURRENT
 	parts := strings.Split(path, ".")
+
 	if strings.HasPrefix(parts[0], "$") {
+		if len(parts[0]) > 1 {
+			namespace = parts[0][1:]
+		}
 		parts = parts[1:]
 	}
-	if len(parts) == 0 {
-		return ""
-	}
-	found := false
-	for _, v := range gripql.ReservedFields {
-		if parts[0] == v {
-			found = true
-			parts[0] = strings.TrimPrefix(parts[0], "_")
-		}
-	}
 
-	if !found {
-		parts = append([]string{"data"}, parts...)
-	}
+	parts = append([]string{"$" + namespace}, parts...)
+	return strings.Join(parts, ".")
+}
 
-	parts = append([]string{"$"}, parts...)
+func ToLocalPath(path string) string {
+	parts := strings.Split(path, ".")
+	if strings.HasPrefix(parts[0], "$") {
+		parts[0] = "$"
+	}
 	return strings.Join(parts, ".")
 }
 

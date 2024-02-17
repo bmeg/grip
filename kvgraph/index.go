@@ -7,7 +7,6 @@ import (
 
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/log"
-	"github.com/bmeg/grip/travelerpath"
 )
 
 func (kgraph *KVGraph) setupGraphIndex(graph string) error {
@@ -33,7 +32,7 @@ func (kgraph *KVGraph) deleteGraphIndex(graph string) {
 }
 
 func normalizePath(path string) string {
-	path = travelerpath.GetJSONPath(path)
+	//path = travelerpath.GetJSONPath(path)
 	path = strings.TrimPrefix(path, "$.")
 	path = strings.TrimPrefix(path, "data.")
 	return path

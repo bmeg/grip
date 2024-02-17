@@ -256,6 +256,30 @@ function histogram(name, field, interval) {
 	}
 }
 
+function count(name) {
+	return {
+		"name": name,
+		"count": {}
+	}
+}
+
+function field(name, field){
+    return {
+        "name": name,
+        "field": {
+			"field": field
+		}
+    }
+}
+
+gripql = {
+	"lt" : lt,
+	"gt" : gt,
+	"lte" : lte,
+	"gte" : gte,
+	"eq" : eq,
+}
+
 function V(id) {
   return query().V(id)
 }

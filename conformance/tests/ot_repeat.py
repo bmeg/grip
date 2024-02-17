@@ -79,20 +79,20 @@ def test_set(man):
     G = man.setGraph("swapi")
 
     q = G.query().V("Character:1").set("count", 0)
-    q = q.as_("start").render("$start._data")
+    q = q.as_("start").render("$start")
     for row in q:
         if row['count'] != 0:
             errors.append("Incorrect increment value")
 
     q = G.query().V("Character:1").set("count", 0).as_("start").out().increment("$start.count")
-    q = q.render("$start._data")
+    q = q.render("$start")
     for row in q:
         if row['count'] != 1:
             errors.append("Incorrect increment value")
 
     q = G.query().V("Character:1").set("count", 0).as_("start").out().increment("$start.count")
     q = q.increment("$start.count").has(gripql.gt("$start.count", 1.0))
-    q = q.render("$start._data")
+    q = q.render("$start")
     count = 0
     for row in q:
         count += 1
@@ -102,7 +102,7 @@ def test_set(man):
         errors.append("Incorrect number of rows returned")
 
     q = G.query().V("Character:1").set("count", 0).increment("count",2).as_("start").out().increment("$start.count")
-    q = q.render("$start._data")
+    q = q.render("$start")
     for row in q:
         if row['count'] != 3:
             errors.append("Incorrect increment value")

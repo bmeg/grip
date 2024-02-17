@@ -3,9 +3,10 @@ package inspect
 import (
 	"fmt"
 
+	"github.com/bmeg/grip/gdbi/tpath"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/log"
-	"github.com/bmeg/grip/travelerpath"
+
 	"github.com/bmeg/grip/util/protoutil"
 )
 
@@ -99,8 +100,11 @@ func PipelineStepOutputs(stmts []*gripql.GraphStatement) map[string][]string {
 
 		case *gripql.GraphStatement_Render:
 			val := gs.GetRender().AsInterface()
-			names := travelerpath.GetAllNamespaces(val)
+			names := tpath.GetAllNamespaces(val)
 			for _, n := range names {
+				if n == tpath.CURRENT {
+					out[steps[i]] = []string{"*"}
+				}
 				if a, ok := asMap[n]; ok {
 					out[a] = []string{"*"}
 				}
@@ -111,8 +115,8 @@ func PipelineStepOutputs(stmts []*gripql.GraphStatement) map[string][]string {
 			//if there is a distinct step, we need to load data, but only for requested fields
 			fields := protoutil.AsStringList(gs.GetDistinct())
 			for _, f := range fields {
-				n := travelerpath.GetNamespace(f)
-				if n == travelerpath.Current {
+				n := tpath.GetNamespace(f)
+				if n == tpath.CURRENT {
 					out[steps[i]] = []string{"*"}
 				}
 				if a, ok := asMap[n]; ok {

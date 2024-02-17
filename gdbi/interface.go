@@ -98,7 +98,10 @@ type Traveler interface {
 	Copy() Traveler
 	HasMark(label string) bool
 	GetMark(label string) DataRef
+	// AddMark adds a new mark to the data and return a duplicated Traveler
 	AddMark(label string, r DataRef) Traveler
+	// UpdateMark changes the data of a mark in the original traveler (vs AddMark which changes a copy of the traveler)
+	UpdateMark(label string, r DataRef)
 	ListMarks() []string
 	GetSelections() map[string]DataRef
 	GetRender() interface{}
