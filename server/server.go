@@ -86,6 +86,8 @@ func NewGripServer(conf *config.Config, baseDir string, drivers map[string]gdbi.
 			g, err := StartDriver(dConfig, sources)
 			if err == nil {
 				gdbs[name] = g
+			} else {
+				log.Errorf("Driver start error: %s", err)
 			}
 		}
 	}
