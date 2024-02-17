@@ -10,6 +10,7 @@ import (
 
 	"github.com/bmeg/grip/engine/logic"
 	"github.com/bmeg/grip/gdbi"
+	"github.com/bmeg/grip/gdbi/tpath"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/util/copy"
@@ -1106,7 +1107,9 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 					val := gdbi.TravelerPathLookup(t, fa.Field)
 					if m, ok := val.(map[string]interface{}); ok {
 						for k := range m {
-							fieldCounts[k]++
+							if !tpath.IsGraphField(k) {
+								fieldCounts[k]++
+							}
 						}
 					}
 				}

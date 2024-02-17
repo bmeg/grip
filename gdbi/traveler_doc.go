@@ -91,22 +91,48 @@ func TravelerPathLookup(traveler Traveler, path string) interface{} {
 func TravelerSetValue(traveler Traveler, path string, val interface{}) error {
 	field := tpath.NormalizePath(path)
 	namespace := tpath.GetNamespace(field)
+	jpath := tpath.ToLocalPath(field)
 	if field == "" {
 		return nil
 	}
-	doc := TravelerGetDoc(traveler, namespace)
-	return jsonpath.JsonPathSet(doc, field, val)
+	doc := TravelerGetMarkDoc(traveler, namespace)
+	err := jsonpath.JsonPathSet(doc, jpath, val)
+	if err != nil {
+		return err
+	}
+	r := DataElement{}
+	r.FromDict(doc)
+	traveler.UpdateMark(namespace, &r)
+	return nil
 }
+
+/*
+func TravelerSetMarkDoc(traveler Traveler, ns string, doc map[string]any ) error {
+
+	d = DataElement{}
+
+
+	if ns == tpath.CURRENT {
+		return traveler.GetCurrent().Get().ToDict()
+	}
+	m := traveler.GetMark(ns)
+	if m != nil {
+		return m.Get().ToDict()
+	}
+	return nil
+}
+*/
 
 // TravelerPathExists returns true if the field exists in the given Traveler
 func TravelerPathExists(traveler Traveler, path string) bool {
 	field := tpath.NormalizePath(path)
+	jpath := tpath.ToLocalPath(field)
 	namespace := tpath.GetNamespace(field)
-	if field == "" {
+	if jpath == "" {
 		return false
 	}
-	doc := TravelerGetDoc(traveler, namespace)
-	_, err := jsonpath.JsonPathLookup(doc, field)
+	doc := TravelerGetMarkDoc(traveler, namespace)
+	_, err := jsonpath.JsonPathLookup(doc, jpath)
 	return err == nil
 }
 
