@@ -1,9 +1,17 @@
 package mongo
 
+import (
+	"strings"
+
+	"github.com/bmeg/grip/gdbi/tpath"
+)
+
 const FIELD_ID = "_id"
 const FIELD_LABEL = "_label"
 const FIELD_TO = "_to"
 const FIELD_FROM = "_from"
+
+const FIELD_MARKS = "marks"
 
 const FIELD_CURRENT = "data"
 const FIELD_CURRENT_ID = "data._id"
@@ -29,4 +37,16 @@ func RemoveKeyFields(x map[string]any) map[string]any {
 		}
 	}
 	return out
+}
+
+func ToPipelinePath(p string) string {
+	n := tpath.NormalizePath(p)
+	ns := tpath.GetNamespace(n)
+	path := tpath.ToLocalPath(n)
+	path = strings.TrimPrefix(path, "$.")
+
+	if ns == tpath.CURRENT {
+		return FIELD_CURRENT + "." + path
+	}
+	return FIELD_MARKS + "." + ns + "." + path
 }

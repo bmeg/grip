@@ -278,6 +278,8 @@ gripql = {
 	"lte" : lte,
 	"gte" : gte,
 	"eq" : eq,
+	"without": without,
+	"within" : within,
 }
 
 function V(id) {

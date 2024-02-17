@@ -330,9 +330,9 @@ def test_out_edge_out_all(man):
     G = man.setGraph("swapi")
     for i in G.query().V().as_("a").outE().as_("b").out().as_("c").render(["$a._gid", "$b._from", "$b._to", "$c._gid"]):
         if i[0] != i[1]:
-            errors.append("outE-out _gid/from missmatch %s != %s" % (i[0], i[1]))
+            errors.append("outE-out _gid/from missmatch '%s' != '%s'" % (i[0], i[1]))
         if i[2] != i[3]:
-            errors.append("outE-out to/_gid missmatch %s != %s" % (i[0], i[1]))
+            errors.append("outE-out to/_gid missmatch '%s' != '%s'" % (i[2], i[3]))
     return errors
 
 

@@ -17,7 +17,8 @@ import (
 func (mg *Graph) AddVertexIndex(label string, field string) error {
 	log.WithFields(log.Fields{"label": label, "field": field}).Info("Adding vertex index")
 	field = tpath.NormalizePath(field)
-	field = strings.TrimPrefix(field, "$.") //FIXME
+	field = tpath.ToLocalPath(field)
+	field = strings.TrimPrefix(field, "$.")
 
 	idx := mg.ar.VertexCollection(mg.graph).Indexes()
 
@@ -37,6 +38,7 @@ func (mg *Graph) AddVertexIndex(label string, field string) error {
 func (mg *Graph) DeleteVertexIndex(label string, field string) error {
 	log.WithFields(log.Fields{"label": label, "field": field}).Info("Deleting vertex index")
 	field = tpath.NormalizePath(field)
+	field = tpath.ToLocalPath(field)
 	field = strings.TrimPrefix(field, "$.") //FIXME
 
 	idx := mg.ar.VertexCollection(mg.graph).Indexes()

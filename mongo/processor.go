@@ -199,8 +199,8 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 					}
 					//Extract marks
 					if marks, ok := result["marks"]; ok {
-						if marks, ok := marks.(map[string]interface{}); ok {
-							for k, v := range marks {
+						if markDict, ok := marks.(map[string]interface{}); ok {
+							for k, v := range markDict {
 								if v, ok := v.(map[string]interface{}); ok {
 									de := getDataElement(v)
 									t = t.AddMark(k, de)
@@ -209,24 +209,7 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 						}
 					}
 
-					de := &gdbi.DataElement{}
-					data := removePrimatives(result["data"]).(map[string]any)
-					if x, ok := data[FIELD_ID]; ok {
-						de.ID = removePrimatives(x).(string)
-					}
-					if x, ok := data[FIELD_LABEL]; ok {
-						de.Label = x.(string)
-					}
-					//if x, ok := result["data"]; ok {
-					de.Data = RemoveKeyFields(data) //removePrimatives(x).(map[string]interface{})
-					de.Loaded = true
-					//}
-					if x, ok := data[FIELD_TO]; ok {
-						de.To = x.(string)
-					}
-					if x, ok := data[FIELD_FROM]; ok {
-						de.From = x.(string)
-					}
+					de := getDataElement(result[FIELD_CURRENT].(map[string]any))
 					out <- t.AddCurrent(de)
 				}
 			}

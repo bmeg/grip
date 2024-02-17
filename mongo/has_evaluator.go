@@ -1,10 +1,6 @@
 package mongo
 
 import (
-	"fmt"
-	"strings"
-
-	"github.com/bmeg/grip/gdbi/tpath"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/log"
 	"go.mongodb.org/mongo-driver/bson"
@@ -22,7 +18,8 @@ func convertHasExpression(stmt *gripql.HasExpression, not bool) bson.M {
 			if !ok {
 				log.Error("unable to cast values from INSIDE statement")
 			} else {
-				output = convertHasExpression(gripql.And(gripql.Gt(cond.Key, lims[0]), gripql.Lt(cond.Key, lims[1])), not)
+				key := ToPipelinePath(cond.Key)
+				output = convertHasExpression(gripql.And(gripql.Gt(key, lims[0]), gripql.Lt(key, lims[1])), not)
 			}
 
 		case gripql.Condition_OUTSIDE:
@@ -31,7 +28,8 @@ func convertHasExpression(stmt *gripql.HasExpression, not bool) bson.M {
 			if !ok {
 				log.Error("unable to cast values from OUTSIDE statement")
 			} else {
-				output = convertHasExpression(gripql.Or(gripql.Lt(cond.Key, lims[0]), gripql.Gt(cond.Key, lims[1])), not)
+				key := ToPipelinePath(cond.Key)
+				output = convertHasExpression(gripql.Or(gripql.Lt(key, lims[0]), gripql.Gt(key, lims[1])), not)
 			}
 
 		case gripql.Condition_BETWEEN:
@@ -40,7 +38,8 @@ func convertHasExpression(stmt *gripql.HasExpression, not bool) bson.M {
 			if !ok {
 				log.Error("unable to cast values from BETWEEN statement")
 			} else {
-				output = convertHasExpression(gripql.And(gripql.Gte(cond.Key, lims[0]), gripql.Lt(cond.Key, lims[1])), not)
+				key := ToPipelinePath(cond.Key)
+				output = convertHasExpression(gripql.And(gripql.Gte(key, lims[0]), gripql.Lt(key, lims[1])), not)
 			}
 
 		default:
@@ -80,20 +79,10 @@ func convertHasExpression(stmt *gripql.HasExpression, not bool) bson.M {
 	return output
 }
 
-func convertPath(key string) string {
-	key = tpath.NormalizePath(key)
-	key = strings.TrimPrefix(key, "$.")
-	if key == "gid" {
-		key = "_id"
-	}
-	fmt.Printf("Key: %s\n", key)
-	return key
-}
-
 func convertCondition(cond *gripql.HasCondition, not bool) bson.M {
 	var key string
 	var val interface{}
-	key = convertPath(cond.Key)
+	key = ToPipelinePath(cond.Key)
 	val = cond.Value.AsInterface()
 	expr := bson.M{}
 	switch cond.Condition {
