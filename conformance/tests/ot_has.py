@@ -75,7 +75,7 @@ def test_hasId(man):
             errors.append("Wrong vertex returned %s" % (i))
     if count != 1:
         errors.append(
-            "Fail: G.query().V().hasId(\"01\") %s != %s" %
+            "Fail: G.query().V().hasId(\"Character:1\") %s != %s" %
             (count, 1))
 
     count = 0

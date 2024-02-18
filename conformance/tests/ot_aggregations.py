@@ -191,7 +191,7 @@ def test_field_aggregation(man):
     errors = []
 
     # TODO: find way to get gripper driver to drop id field
-    fields = [ "id", "_gid", "_label", 'orbital_period', 'gravity', 'terrain', 'name','climate', 'system', 'diameter', 'rotation_period', 'url', 'population', 'surface_water']
+    fields = [ "_id", "id", "_gid", "_label", 'orbital_period', 'gravity', 'terrain', 'name','climate', 'system', 'diameter', 'rotation_period', 'url', 'population', 'surface_water']
 
     G = man.setGraph("swapi")
     count = 0
@@ -201,8 +201,8 @@ def test_field_aggregation(man):
         if row["value"] != 3:
             errors.append("incorrect count returned: %s" % (row['value']))
         count += 1
-    if count not in [11, 12]: # gripper returns an id field as well, others dont....
-        errors.append("Incorrect number of results returned")
+    if count not in [11, 12, 13]: # gripper returns an id field as well, others dont....
+        errors.append("""V().hasLabel("Planet").aggregate(gripql.field("gid-agg", "$")) : Incorrect number of results returned %d""" % (count))
     return errors
 
 

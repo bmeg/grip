@@ -435,7 +435,7 @@ def test_both_edge(man):
 
     c = G.query().V("Character:1").bothE(["homeworld", "residents"]).count().execute()[0]["count"]
     if c != 2:
-        errors.append("Fail: G.query().V(\"Character:1\").inE([\"homeworld\", \"residents\"]).count() - %s != %s" % (c, 2))
+        errors.append("Fail: G.query().V(\"Character:1\").bothE([\"homeworld\", \"residents\"]).count() - %s != %s" % (c, 2))
 
     return errors
 

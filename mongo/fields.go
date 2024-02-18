@@ -45,8 +45,18 @@ func ToPipelinePath(p string) string {
 	path := tpath.ToLocalPath(n)
 	path = strings.TrimPrefix(path, "$.")
 
+	if path == "_gid" {
+		path = "_id"
+	}
+
 	if ns == tpath.CURRENT {
+		if path == "$" {
+			return FIELD_CURRENT
+		}
 		return FIELD_CURRENT + "." + path
+	}
+	if path == "$" {
+		return FIELD_MARKS + "." + ns
 	}
 	return FIELD_MARKS + "." + ns + "." + path
 }

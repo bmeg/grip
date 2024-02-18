@@ -369,7 +369,7 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement, opts *gdbi.Compile
 				bson.D{primitive.E{
 					Key: "$lookup", Value: bson.M{
 						"from":         edgeCol,
-						"localField":   FIELD_ID,
+						"localField":   FIELD_CURRENT_ID,
 						"foreignField": FIELD_TO,
 						"as":           "dst",
 					},
@@ -417,7 +417,7 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement, opts *gdbi.Compile
 				bson.D{primitive.E{
 					Key: "$lookup", Value: bson.M{
 						"from":         edgeCol,
-						"localField":   FIELD_ID,
+						"localField":   FIELD_CURRENT_ID,
 						"foreignField": FIELD_FROM,
 						"as":           "dst",
 					},
@@ -458,7 +458,7 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement, opts *gdbi.Compile
 				bson.D{primitive.E{
 					Key: "$lookup", Value: bson.M{
 						"from": edgeCol,
-						"let":  bson.M{"vid": "$_id", "marks": "$marks"},
+						"let":  bson.M{"vid": "$data._id", "marks": "$marks"},
 						"pipeline": []bson.M{
 							{
 								"$match": bson.M{
@@ -486,7 +486,7 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement, opts *gdbi.Compile
 			}}})
 			labels := protoutil.AsStringList(stmt.BothE)
 			if len(labels) > 0 {
-				query = append(query, bson.D{primitive.E{Key: "$match", Value: bson.M{FIELD_LABEL: bson.M{"$in": labels}}}})
+				query = append(query, bson.D{primitive.E{Key: "$match", Value: bson.M{"data._label": bson.M{"$in": labels}}}})
 			}
 			lastType = gdbi.EdgeData
 
@@ -514,7 +514,7 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement, opts *gdbi.Compile
 			for i, v := range ids {
 				iids[i] = v
 			}
-			has := gripql.Within(FIELD_CURRENT_ID, iids...)
+			has := gripql.Within("_gid", iids...)
 			whereExpr := convertHasExpression(has, false)
 			matchStmt := bson.D{primitive.E{Key: "$match", Value: whereExpr}}
 			query = append(query, matchStmt)
@@ -560,15 +560,15 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement, opts *gdbi.Compile
 			}
 			fields := protoutil.AsStringList(stmt.Distinct)
 			if len(fields) == 0 {
-				fields = append(fields, FIELD_ID)
+				fields = append(fields, "_id")
 			}
 			keys := bson.M{}
 			match := bson.M{}
 			for _, f := range fields {
 				p := ToPipelinePath(f)
 				match[p] = bson.M{"$exists": true}
-				k := strings.Replace(f, ".", "_", -1) // FIXME
-				keys[k] = f
+				k := strings.Replace(f[1:], ".", "_", -1) // FIXME
+				keys[k] = "$" + p
 			}
 			query = append(query, bson.D{primitive.E{
 				Key: "$match", Value: match,
@@ -580,24 +580,19 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement, opts *gdbi.Compile
 				},
 			},
 			})
+			fmt.Printf("Distinct: %s\n", query)
 			switch lastType {
 			case gdbi.VertexData:
 				query = append(query, bson.D{primitive.E{Key: "$project", Value: bson.M{
-					FIELD_ID:    "$dst._id",
-					FIELD_LABEL: "$dst._label",
-					"data":      "$dst.data",
-					"marks":     "$dst.marks",
-					"path":      "$dst.path",
+					"data":  "$dst.data",
+					"marks": "$dst.marks",
+					"path":  "$dst.path",
 				}}})
 			case gdbi.EdgeData:
 				query = append(query, bson.D{primitive.E{Key: "$project", Value: bson.M{
-					FIELD_ID:    "$dst._id",
-					FIELD_LABEL: "$dst.label",
-					FIELD_TO:    "$dst.to",
-					FIELD_FROM:  "$dst.from",
-					"data":      "$dst.data",
-					"marks":     "$dst.marks",
-					"path":      "$dst.path",
+					"data":  "$dst.data",
+					"marks": "$dst.marks",
+					"path":  "$dst.path",
 				}}})
 			}
 
@@ -679,7 +674,7 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement, opts *gdbi.Compile
 					log.Errorf("FieldsProcessor: only can select field from current traveler")
 					continue SelectLoop
 				}
-				f = tpath.ToLocalPath(f)
+				f = ToPipelinePath(f)
 				if exclude {
 					excludeFields = append(excludeFields, f)
 				} else {
@@ -693,16 +688,16 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement, opts *gdbi.Compile
 			}
 
 			if len(includeFields) > 0 || len(excludeFields) == 0 {
-				fieldSelect = bson.M{"_id": 1, "_label": 1, "_from": 1, "_to": 1, "marks": 1}
+				fieldSelect = bson.M{"data._id": 1, "data._label": 1, "data._from": 1, "data._to": 1, "marks": 1}
 				for _, v := range excludeFields {
 					switch v {
-					case "gid":
+					case "_gid":
 						fieldSelect["_id"] = 0
-					case "label":
+					case "_label":
 						delete(fieldSelect, "label")
-					case "from":
+					case "_from":
 						delete(fieldSelect, "from")
-					case "to":
+					case "_to":
 						delete(fieldSelect, "to")
 					}
 				}
