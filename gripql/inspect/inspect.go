@@ -78,18 +78,23 @@ func PipelineAsSteps(stmts []*gripql.GraphStatement) map[string]string {
 }
 
 // PipelineStepOutputs identify the required outputs for each step in the traversal
-func PipelineStepOutputs(stmts []*gripql.GraphStatement) map[string][]string {
+func PipelineStepOutputs(stmts []*gripql.GraphStatement, storeMarks bool) map[string][]string {
 
+	// mapping of what steps of the traversal as used at each stage of the pipeline
 	steps := PipelineSteps(stmts)
+
 	asMap := PipelineAsSteps(stmts)
+	// we're inpecting the pipeline backwards, the last step is emitted
 	onLast := true
 	out := map[string][]string{}
 	for i := len(stmts) - 1; i >= 0; i-- {
 		gs := stmts[i]
 		switch gs.GetStatement().(type) {
 		case *gripql.GraphStatement_Count:
+			//if the pipeline ends with counting, we don't need to load data
 			onLast = false
 		case *gripql.GraphStatement_Select:
+			//if the last step is jumping back to a previous mark
 			if onLast {
 				sel := gs.GetSelect()
 				if a, ok := asMap[sel]; ok {
@@ -99,6 +104,7 @@ func PipelineStepOutputs(stmts []*gripql.GraphStatement) map[string][]string {
 			}
 
 		case *gripql.GraphStatement_Render:
+			// determine every step output that is needed for the render
 			val := gs.GetRender().AsInterface()
 			names := tpath.GetAllNamespaces(val)
 			for _, n := range names {
@@ -147,12 +153,21 @@ func PipelineStepOutputs(stmts []*gripql.GraphStatement) map[string][]string {
 			out[steps[i]] = []string{"*"}
 		}
 	}
+	//if the job is a fragment, the elements marked with as_, they may be needed
+	//in followup runs
+	if storeMarks {
+		for _, v := range asMap {
+			out[v] = []string{"*"}
+		}
+	}
 	return out
 }
 
+// DEPRECATED : Was used for older version of GRIDS engine
 // PipelineNoLoadPath identifies 'paths' which are groups of statements that move
 // travelers across multiple steps, and don't require data (other then the label)
 // to be loaded
+/*
 func PipelineNoLoadPath(stmts []*gripql.GraphStatement, minLen int) [][]int {
 	out := [][]int{}
 
@@ -183,3 +198,4 @@ func PipelineNoLoadPath(stmts []*gripql.GraphStatement, minLen int) [][]int {
 	}
 	return out
 }
+*/

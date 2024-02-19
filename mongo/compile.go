@@ -76,7 +76,7 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement, opts *gdbi.Compile
 	//in the case of a pipeline extension, switch over the the
 	//core based engine. Until the mongo aggregation pipeline engine
 	//is updated to support
-	if opts != nil && opts.PipelineExtension != gdbi.NoData {
+	if opts != nil && opts.Extends != nil {
 		cmpl := core.NewCompiler(comp.db)
 		return cmpl.Compile(stmts, opts)
 	}

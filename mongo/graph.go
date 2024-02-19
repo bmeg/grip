@@ -44,9 +44,9 @@ func (mg *Graph) GetTimestamp() string {
 // GetVertex loads a vertex given an id. It returns a nil if not found
 func (mg *Graph) GetVertex(id string, load bool) *gdbi.Vertex {
 	opts := options.FindOne()
-	//if !load {
-	//	opts.SetProjection(map[string]interface{}{FIELD_ID: 1, FIELD_LABEL: 1})
-	//}
+	if !load {
+		opts.SetProjection(map[string]interface{}{FIELD_ID: 1, FIELD_LABEL: 1})
+	}
 	result := mg.ar.VertexCollection(mg.graph).FindOne(context.Background(), bson.M{FIELD_ID: id}, opts)
 	if result.Err() != nil {
 		return nil
@@ -62,9 +62,9 @@ func (mg *Graph) GetVertex(id string, load bool) *gdbi.Vertex {
 // GetEdge loads an edge given an id. It returns nil if not found
 func (mg *Graph) GetEdge(id string, load bool) *gdbi.Edge {
 	opts := options.FindOne()
-	//if !load {
-	//	opts.SetProjection(map[string]interface{}{FIELD_ID: 1, FIELD_LABEL: 1, FIELD_FROM: 1, FIELD_TO: 1})
-	//}
+	if !load {
+		opts.SetProjection(map[string]interface{}{FIELD_ID: 1, FIELD_LABEL: 1, FIELD_FROM: 1, FIELD_TO: 1})
+	}
 	result := mg.ar.EdgeCollection(mg.graph).FindOne(context.TODO(), bson.M{FIELD_ID: id}, opts)
 	if result.Err() != nil {
 		return nil
@@ -165,9 +165,9 @@ func (mg *Graph) GetVertexList(ctx context.Context, load bool) <-chan *gdbi.Vert
 		defer close(o)
 		vCol := mg.ar.VertexCollection(mg.graph)
 		opts := options.Find()
-		//if !load {
-		//	opts.SetProjection(bson.M{FIELD_ID: 1, FIELD_LABEL: 1})
-		//}
+		if !load {
+			opts.SetProjection(bson.M{FIELD_ID: 1, FIELD_LABEL: 1})
+		}
 		query, err := vCol.Find(ctx, bson.M{}, opts)
 		if err != nil {
 			return
@@ -200,9 +200,9 @@ func (mg *Graph) GetEdgeList(ctx context.Context, loadProp bool) <-chan *gdbi.Ed
 		defer close(o)
 		eCol := mg.ar.EdgeCollection(mg.graph)
 		opts := options.Find()
-		//if !loadProp {
-		//	opts.SetProjection(bson.M{FIELD_ID: 1, FIELD_TO: 1, FIELD_FROM: 1, FIELD_LABEL: 1})
-		//}
+		if !loadProp {
+			opts.SetProjection(bson.M{FIELD_ID: 1, FIELD_TO: 1, FIELD_FROM: 1, FIELD_LABEL: 1})
+		}
 		query, err := eCol.Find(ctx, bson.M{}, opts)
 		if err != nil {
 			return
@@ -250,9 +250,9 @@ func (mg *Graph) GetVertexChannel(ctx context.Context, ids chan gdbi.ElementLook
 			}
 			query := bson.M{FIELD_ID: bson.M{"$in": idBatch}}
 			opts := options.Find()
-			//if !load {
-			//	opts.SetProjection(bson.M{FIELD_ID: 1, FIELD_LABEL: 1})
-			//}
+			if !load {
+				opts.SetProjection(bson.M{FIELD_ID: 1, FIELD_LABEL: 1})
+			}
 			cursor, err := vCol.Find(context.TODO(), query, opts)
 			if err != nil {
 				return
@@ -312,12 +312,11 @@ func (mg *Graph) GetOutChannel(ctx context.Context, reqChan chan gdbi.ElementLoo
 			vertCol := fmt.Sprintf("%s_vertices", mg.graph)
 			query = append(query, bson.M{"$lookup": bson.M{"from": vertCol, "localField": FIELD_TO, "foreignField": FIELD_ID, "as": "dst"}})
 			query = append(query, bson.M{"$unwind": "$dst"})
-			//if load {
-			//query = append(query, bson.M{"$project": bson.M{FIELD_FROM: true, "dst._id": true, "dst._label": true, "dst.data": true}})
-			query = append(query, bson.M{"$project": bson.M{FIELD_FROM: true, "dst": true}})
-			//} else {
-			//	query = append(query, bson.M{"$project": bson.M{FIELD_FROM: true, "dst._id": true, "dst._label": true}})
-			//}
+			if load {
+				query = append(query, bson.M{"$project": bson.M{FIELD_FROM: true, "dst": true}})
+			} else {
+				query = append(query, bson.M{"$project": bson.M{FIELD_FROM: true, "dst._id": true, "dst._label": true}})
+			}
 
 			eCol := mg.ar.EdgeCollection(mg.graph)
 			cursor, err := eCol.Aggregate(context.TODO(), query)
@@ -392,12 +391,11 @@ func (mg *Graph) GetInChannel(ctx context.Context, reqChan chan gdbi.ElementLook
 			vertCol := fmt.Sprintf("%s_vertices", mg.graph)
 			query = append(query, bson.M{"$lookup": bson.M{"from": vertCol, "localField": FIELD_FROM, "foreignField": FIELD_ID, "as": "src"}})
 			query = append(query, bson.M{"$unwind": "$src"})
-			//if load {
-			//query = append(query, bson.M{"$project": bson.M{FIELD_TO: true, "src._id": true, "src._label": true, "src.data": true}}) //FIX: .data no longer used
-			query = append(query, bson.M{"$project": bson.M{FIELD_TO: true, "src": true}})
-			//} else {
-			//	query = append(query, bson.M{"$project": bson.M{FIELD_TO: true, "src._id": true, "src._label": true}})
-			//}
+			if load {
+				query = append(query, bson.M{"$project": bson.M{FIELD_TO: true, "src": true}})
+			} else {
+				query = append(query, bson.M{"$project": bson.M{FIELD_TO: true, "src._id": true, "src._label": true}})
+			}
 
 			eCol := mg.ar.EdgeCollection(mg.graph)
 			cursor, err := eCol.Aggregate(context.TODO(), query)
