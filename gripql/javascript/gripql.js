@@ -9,6 +9,10 @@ function process(val) {
 	return val
 }
 
+function resume() {
+	return query()
+}
+
 function query() {
 	return {
 		query: [],
@@ -278,6 +282,13 @@ gripql = {
 	"lte" : lte,
 	"gte" : gte,
 	"eq" : eq,
+	"without": without,
+	"within" : within,
+	"inside" : inside,
+	"field" : field,
+	"count" : count,
+	"histogram": histogram,
+	"percentile": percentile,
 }
 
 function V(id) {

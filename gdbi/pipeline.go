@@ -16,10 +16,15 @@ type CustomProcGen interface {
 	GetProcessor(db GraphInterface, ps PipelineState) (Processor, error)
 }
 
+type PipelineExtension struct {
+	StartType  DataType
+	MarksTypes map[string]DataType
+}
+
 type CompileOptions struct {
 	//Compile pipeline extension
-	PipelineExtension  DataType
-	ExtensionMarkTypes map[string]DataType
+	Extends    *PipelineExtension
+	StoreMarks bool
 }
 
 // Compiler takes a gripql query and turns it into an executable pipeline

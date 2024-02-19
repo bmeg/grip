@@ -75,7 +75,7 @@ def test_hasId(man):
             errors.append("Wrong vertex returned %s" % (i))
     if count != 1:
         errors.append(
-            "Fail: G.query().V().hasId(\"01\") %s != %s" %
+            "Fail: G.query().V().hasId(\"Character:1\") %s != %s" %
             (count, 1))
 
     count = 0
@@ -314,7 +314,7 @@ def test_has_without(man):
             errors.append("Wrong vertex returned %s" % (i))
     if count != 35:
         errors.append(
-            "Fail: G.query().V().has(gripql.without(\"occupation\", [\"jedi\", \"sith\"])) %s != %s" %
+            """Fail: V().has(gripql.without("eye_color", ["brown"])) %s != %s""" %
             (count, 35))
 
     count = 0

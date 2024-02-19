@@ -36,9 +36,9 @@ func (ps *State) SetLastType(a DataType) {
 	ps.LastType = a
 }
 
-func NewPipelineState(stmts []*gripql.GraphStatement) *State {
+func NewPipelineState(stmts []*gripql.GraphStatement, storeMarks bool) *State {
 	steps := inspect.PipelineSteps(stmts)
-	stepOut := inspect.PipelineStepOutputs(stmts)
+	stepOut := inspect.PipelineStepOutputs(stmts, storeMarks)
 
 	return &State{
 		LastType:    NoData,

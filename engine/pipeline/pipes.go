@@ -129,13 +129,15 @@ func Resume(ctx context.Context, pipe gdbi.Pipeline, workdir string, input gdbi.
 		man := engine.NewManager(workdir)
 		log.Debugf("resuming: out %s", dataType)
 		rPipe := Start(ctx, pipe, man, bufsize, input, cancel)
-		for t := range rPipe.Outputs {
-			if !t.IsSignal() {
-				resch <- Convert(graph, dataType, markTypes, t)
+		if rPipe != nil {
+			for t := range rPipe.Outputs {
+				if !t.IsSignal() {
+					resch <- Convert(graph, dataType, markTypes, t)
+				}
 			}
-		}
-		if debug {
-			rPipe.Logger.Log()
+			if debug {
+				rPipe.Logger.Log()
+			}
 		}
 		man.Cleanup()
 	}()

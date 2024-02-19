@@ -66,10 +66,17 @@ func (comp DefaultCompiler) Compile(stmts []*gripql.GraphStatement, opts *gdbi.C
 		stmts = o(stmts)
 	}
 
-	ps := gdbi.NewPipelineState(stmts)
+	storeMarks := false
 	if opts != nil {
-		ps.LastType = opts.PipelineExtension
-		ps.MarkTypes = opts.ExtensionMarkTypes
+		storeMarks = opts.StoreMarks
+	}
+
+	ps := gdbi.NewPipelineState(stmts, storeMarks)
+	if opts != nil {
+		if opts.Extends != nil {
+			ps.LastType = opts.Extends.StartType
+			ps.MarkTypes = opts.Extends.MarksTypes
+		}
 	}
 
 	procs := make([]gdbi.Processor, 0, len(stmts))
@@ -96,7 +103,7 @@ func Validate(stmts []*gripql.GraphStatement, opts *gdbi.CompileOptions) error {
 			switch gs.GetStatement().(type) {
 			case *gripql.GraphStatement_V, *gripql.GraphStatement_E:
 			default:
-				if opts == nil || opts.PipelineExtension == gdbi.NoData {
+				if opts == nil || opts.Extends.StartType == gdbi.NoData {
 					return fmt.Errorf("first statement is not V() or E(): %s", gs)
 				}
 			}

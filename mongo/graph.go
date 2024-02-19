@@ -173,13 +173,13 @@ func (mg *Graph) GetVertexList(ctx context.Context, load bool) <-chan *gdbi.Vert
 			return
 		}
 		defer query.Close(ctx)
-		result := map[string]interface{}{}
 		for query.Next(ctx) {
 			select {
 			case <-ctx.Done():
 				return
 			default:
 			}
+			result := map[string]interface{}{}
 			if err := query.Decode(&result); err == nil {
 				v := UnpackVertex(result)
 				o <- v
@@ -208,13 +208,13 @@ func (mg *Graph) GetEdgeList(ctx context.Context, loadProp bool) <-chan *gdbi.Ed
 			return
 		}
 		defer query.Close(ctx)
-		result := map[string]interface{}{}
 		for query.Next(ctx) {
 			select {
 			case <-ctx.Done():
 				return
 			default:
 			}
+			result := map[string]interface{}{}
 			if err := query.Decode(&result); err == nil {
 				if _, ok := result[FIELD_TO]; ok {
 					e := UnpackEdge(result)
@@ -258,8 +258,8 @@ func (mg *Graph) GetVertexChannel(ctx context.Context, ids chan gdbi.ElementLook
 				return
 			}
 			chunk := map[string]*gdbi.Vertex{}
-			result := map[string]interface{}{}
 			for cursor.Next(context.TODO()) {
+				result := map[string]interface{}{}
 				if err := cursor.Decode(&result); err == nil {
 					v := UnpackVertex(result)
 					chunk[v.ID] = v
@@ -313,7 +313,6 @@ func (mg *Graph) GetOutChannel(ctx context.Context, reqChan chan gdbi.ElementLoo
 			query = append(query, bson.M{"$lookup": bson.M{"from": vertCol, "localField": FIELD_TO, "foreignField": FIELD_ID, "as": "dst"}})
 			query = append(query, bson.M{"$unwind": "$dst"})
 			if load {
-				//query = append(query, bson.M{"$project": bson.M{FIELD_FROM: true, "dst._id": true, "dst._label": true, "dst.data": true}})
 				query = append(query, bson.M{"$project": bson.M{FIELD_FROM: true, "dst": true}})
 			} else {
 				query = append(query, bson.M{"$project": bson.M{FIELD_FROM: true, "dst._id": true, "dst._label": true}})
@@ -322,8 +321,8 @@ func (mg *Graph) GetOutChannel(ctx context.Context, reqChan chan gdbi.ElementLoo
 			eCol := mg.ar.EdgeCollection(mg.graph)
 			cursor, err := eCol.Aggregate(context.TODO(), query)
 			if err == nil {
-				result := map[string]interface{}{}
 				for cursor.Next(context.TODO()) {
+					result := map[string]interface{}{}
 					if err := cursor.Decode(&result); err == nil {
 						if dst, ok := result["dst"].(map[string]interface{}); ok {
 							v := UnpackVertex(dst)
@@ -393,7 +392,6 @@ func (mg *Graph) GetInChannel(ctx context.Context, reqChan chan gdbi.ElementLook
 			query = append(query, bson.M{"$lookup": bson.M{"from": vertCol, "localField": FIELD_FROM, "foreignField": FIELD_ID, "as": "src"}})
 			query = append(query, bson.M{"$unwind": "$src"})
 			if load {
-				//query = append(query, bson.M{"$project": bson.M{FIELD_TO: true, "src._id": true, "src._label": true, "src.data": true}}) //FIX: .data no longer used
 				query = append(query, bson.M{"$project": bson.M{FIELD_TO: true, "src": true}})
 			} else {
 				query = append(query, bson.M{"$project": bson.M{FIELD_TO: true, "src._id": true, "src._label": true}})
@@ -402,8 +400,8 @@ func (mg *Graph) GetInChannel(ctx context.Context, reqChan chan gdbi.ElementLook
 			eCol := mg.ar.EdgeCollection(mg.graph)
 			cursor, err := eCol.Aggregate(context.TODO(), query)
 			if err == nil {
-				result := map[string]interface{}{}
 				for cursor.Next(context.TODO()) {
+					result := map[string]interface{}{}
 					if err := cursor.Decode(&result); err == nil {
 						if src, ok := result["src"].(map[string]interface{}); ok {
 							v := UnpackVertex(src)
@@ -472,8 +470,8 @@ func (mg *Graph) GetOutEdgeChannel(ctx context.Context, reqChan chan gdbi.Elemen
 			eCol := mg.ar.EdgeCollection(mg.graph)
 			cursor, err := eCol.Aggregate(context.TODO(), query)
 			if err == nil {
-				result := map[string]interface{}{}
 				for cursor.Next(context.TODO()) {
+					result := map[string]interface{}{}
 					if err := cursor.Decode(&result); err == nil {
 						e := UnpackEdge(result)
 						fromID := result[FIELD_FROM].(string)
@@ -539,8 +537,8 @@ func (mg *Graph) GetInEdgeChannel(ctx context.Context, reqChan chan gdbi.Element
 			eCol := mg.ar.EdgeCollection(mg.graph)
 			cursor, err := eCol.Aggregate(context.TODO(), query)
 			if err == nil {
-				result := map[string]interface{}{}
 				for cursor.Next(context.TODO()) {
+					result := map[string]interface{}{}
 					if err := cursor.Decode(&result); err == nil {
 						e := UnpackEdge(result)
 						toID := result[FIELD_TO].(string)
