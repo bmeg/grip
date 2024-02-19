@@ -9,6 +9,10 @@ function process(val) {
 	return val
 }
 
+function resume() {
+	return query()
+}
+
 function query() {
 	return {
 		query: [],

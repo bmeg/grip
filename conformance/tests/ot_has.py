@@ -314,7 +314,7 @@ def test_has_without(man):
             errors.append("Wrong vertex returned %s" % (i))
     if count != 35:
         errors.append(
-            "Fail: G.query().V().has(gripql.without(\"occupation\", [\"jedi\", \"sith\"])) %s != %s" %
+            """Fail: V().has(gripql.without("eye_color", ["brown"])) %s != %s""" %
             (count, 35))
 
     count = 0
