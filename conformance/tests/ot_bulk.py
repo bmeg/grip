@@ -1,3 +1,79 @@
+import uuid
+import datetime
+import random
+
+
+def test_bulkload_scale(man):
+    errors = []
+    G = man.writeTest()
+
+    bulk = G.bulkAdd()
+
+    for i in range(10000):
+        random_time = str(datetime.datetime(2000, 1, 1,
+                                            random.choice(range(24)),
+                                            random.choice(range(60)),
+                                            random.choice(range(60)),
+                                            random.choice(range(1000000))))
+
+        observation_template = {"resourceType": "Observation",
+                                "id": str(uuid.uuid4()),
+                                "meta":
+                                    {"versionId": "1",
+                                     "lastUpdated": random_time,
+                                     "source": "#DmW9sueQ4yuQdyA9",
+                                     "profile": ["http://hl7.org/fhir/StructureDefinition/bodyheight",
+                                                 "http://hl7.org/fhir/StructureDefinition/vitalsigns"]
+                                     },
+                                    "status": "final",
+                                    "category": [{"coding":
+                                                 [{"system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                                                  "code": "vital-signs",
+                                                   "display": "vital-signs"}]
+                                                  }],
+                                    "code":
+                                        {"coding":
+                                            [{"system": "http://loinc.org",
+                                             "code": "8302-2", "display": "8302-2"}],
+                                         "text": "Body Height"},
+                                    "subject": {"reference": f"Patient/{str(uuid.uuid4())}"},
+                                    "effectiveDateTime": random_time,
+                                    "issued": random_time,
+                                    "valueQuantity":
+                                        {"value": str(random.choice(range(500))),
+                                            "unit": "cm",
+                                            "system": "http://unitsofmeasure.org",
+                                            "code": "cm"}
+                                }
+        bulk.addVertex(str(i), str(random.choice(["Patient", "Observation", "File"])), observation_template)
+    err = bulk.execute()
+    print(err)
+    if err.get("errorCount", 0) != 0:
+        print(err)
+        errors.append("Bulk insertion error")
+
+    res = G.query().V().count().execute()[0]
+    if res["count"] != 10000:
+        count = 10000
+        errors.append(f"Bulk Add wrong number of vertices: {res["count"]} != {count}")
+
+    npatients = G.query().V().hasLabel("Patient").count().execute()[0]["count"]
+    nobservations = G.query().V().hasLabel("Observation").count().execute()[0]["count"]
+    nfiles = G.query().V().hasLabel("File").count().execute()[0]["count"]
+
+    print(f"npatients: {npatients}, nobservations: {nobservations}, nfiles: {nfiles}")
+
+    if npatients + nobservations + nfiles != 10000:
+        errors.append("npatients + nobservations + nfiles != 10000")
+
+    if npatients == 0:
+        errors.append(f"npatients == {npatients}")
+    if nobservations == 0:
+        errors.append(f"nobservations == {nobservations}")
+    if nfiles == 0:
+        errors.append(f"nfiles == {nfiles}")
+
+    return errors
 
 
 def test_bulkload(man):
