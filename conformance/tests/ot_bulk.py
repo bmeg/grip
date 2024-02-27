@@ -55,7 +55,7 @@ def test_bulkload_scale(man):
     res = G.query().V().count().execute()[0]
     if res["count"] != 10000:
         count = 10000
-        errors.append(f"Bulk Add wrong number of vertices: {res["count"]} != {count}")
+        errors.append(f"Bulk Add wrong number of vertices: {res['count']} != {count}")
 
     npatients = G.query().V().hasLabel("Patient").count().execute()[0]["count"]
     nobservations = G.query().V().hasLabel("Observation").count().execute()[0]["count"]
