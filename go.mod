@@ -14,7 +14,7 @@ require (
 	github.com/cockroachdb/pebble v0.0.0-20230701135918-609ae80aea41
 	github.com/davecgh/go-spew v1.1.1
 	github.com/dgraph-io/badger/v2 v2.0.1
-	github.com/dop251/goja v0.0.0-20190429205339-8d6ee3d16611
+	github.com/dop251/goja v0.0.0-20240220182346-e401ed450204
 	github.com/felixge/httpsnoop v1.0.1
 	github.com/go-sql-driver/mysql v1.5.0
 	github.com/graphql-go/graphql v0.8.0
@@ -28,7 +28,7 @@ require (
 	github.com/jmoiron/sqlx v1.2.0
 	github.com/kennygrant/sanitize v1.2.4
 	github.com/knakk/rdf v0.0.0-20190304171630-8521bf4c5042
-	github.com/kr/pretty v0.2.1
+	github.com/kr/pretty v0.3.1
 	github.com/lib/pq v1.2.0
 	github.com/logrusorgru/aurora v0.0.0-20190428105938-cea283e61946
 	github.com/machinebox/graphql v0.2.2
@@ -71,18 +71,19 @@ require (
 	github.com/cockroachdb/tokenbucket v0.0.0-20230613231145-182959a1fad6 // indirect
 	github.com/dgraph-io/ristretto v0.0.0-20191025175511-c1f00be0418e // indirect
 	github.com/dgryski/go-farm v0.0.0-20190423205320-6a90982ecee2 // indirect
-	github.com/dlclark/regexp2 v1.1.6 // indirect
+	github.com/dlclark/regexp2 v1.7.0 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/eapache/go-resiliency v1.1.0 // indirect
 	github.com/eapache/go-xerial-snappy v0.0.0-20180814174437-776d5712da21 // indirect
 	github.com/eapache/queue v1.1.0 // indirect
 	github.com/fatih/color v1.7.0 // indirect
 	github.com/go-resty/resty/v2 v2.7.0 // indirect
-	github.com/go-sourcemap/sourcemap v2.1.2+incompatible // indirect
+	github.com/go-sourcemap/sourcemap v2.1.3+incompatible // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
+	github.com/google/pprof v0.0.0-20230207041349-798e818bf904 // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.2.3 // indirect
 	github.com/googleapis/gax-go/v2 v2.7.0 // indirect
@@ -117,6 +118,7 @@ require (
 	github.com/prometheus/common v0.32.1 // indirect
 	github.com/prometheus/procfs v0.7.3 // indirect
 	github.com/rcrowley/go-metrics v0.0.0-20181016184325-3113b8401b8a // indirect
+	github.com/rogpeppe/go-internal v1.9.0 // indirect
 	github.com/rs/xid v1.4.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
@@ -132,7 +134,7 @@ require (
 	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2 // indirect
 	gonum.org/v1/gonum v0.8.2 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
-	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
+	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/sourcemap.v1 v1.0.5 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect

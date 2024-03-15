@@ -31,12 +31,13 @@ func ParseQuery(queryString string) (*gripql.GraphQuery, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	queryJSON, err := json.Marshal(val)
+	obj := val.ToObject(vm)
+	obj.Delete("client")
+	queryJSON, err := json.Marshal(obj)
 	if err != nil {
 		return nil, err
 	}
-
+	fmt.Printf("%s\n", queryJSON)
 	query := gripql.GraphQuery{}
 	err = protojson.Unmarshal(queryJSON, &query)
 	if err != nil {

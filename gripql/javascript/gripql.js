@@ -13,9 +13,10 @@ function resume() {
 	return query()
 }
 
-function query() {
+function query(client=null) {
 	return {
 		query: [],
+		client: client,
 		V: function(id) {
 			this.query.push({'v': process(id)})
 			return this
@@ -147,6 +148,9 @@ function query() {
 		aggregate: function() {
 			this.query.push({'aggregate': {'aggregations': Array.prototype.slice.call(arguments)}})
 			return this
+		},
+		toList: function() {
+			return client.toList()
 		}
 	}
 }
@@ -291,10 +295,10 @@ gripql = {
 	"percentile": percentile,
 }
 
-function V(id) {
-  return query().V(id)
+function V(id, client=null) {
+  return query(client).V(id)
 }
 
-function E(id) {
-  return query().E(id)
+function E(id, client=null) {
+  return query(client).E(id)
 }
