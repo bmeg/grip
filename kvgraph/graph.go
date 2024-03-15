@@ -8,8 +8,8 @@ import (
 	"github.com/bmeg/grip/engine/core"
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
+	"github.com/bmeg/grip/index/kvindex"
 	"github.com/bmeg/grip/kvi"
-	"github.com/bmeg/grip/kvindex"
 	"github.com/bmeg/grip/log"
 	"google.golang.org/protobuf/proto"
 
@@ -35,6 +35,10 @@ func (kgdb *KVInterfaceGDB) Compiler() gdbi.Compiler {
 	return core.NewCompiler(kgdb, core.IndexStartOptimize)
 }
 
+func (kgdb *KVInterfaceGDB) Index() gdbi.IndexQuery {
+	return kgdb.index
+}
+
 type kvAddData struct {
 	key    []byte
 	value  []byte
@@ -48,7 +52,7 @@ func (kgdb *KVInterfaceGDB) AddVertex(vertices []*gdbi.Vertex) error {
 	err := kgdb.kvg.kv.BulkWrite(func(tx kvi.KVBulkWrite) error {
 		var bulkErr *multierror.Error
 		for _, vert := range vertices {
-			if err := insertVertex(tx, kgdb.kvg.idx, kgdb.graph, vert.ToVertex()); err != nil {
+			if err := insertVertex(tx, kgdb.kvg.index, kgdb.graph, vert.ToVertex()); err != nil {
 				bulkErr = multierror.Append(bulkErr, err)
 			}
 		}

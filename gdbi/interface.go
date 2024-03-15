@@ -148,6 +148,8 @@ type GraphDB interface {
 type GraphInterface interface {
 	Compiler() Compiler
 
+	Index() IndexQuery
+
 	GetTimestamp() string
 
 	GetVertex(key string, load bool) *Vertex
@@ -161,14 +163,8 @@ type GraphInterface interface {
 	DelVertex(key string) error
 	DelEdge(key string) error
 
-	VertexLabelScan(ctx context.Context, label string) chan string
-	// EdgeLabelScan(ctx context.Context, label string) chan string
 	ListVertexLabels() ([]string, error)
 	ListEdgeLabels() ([]string, error)
-
-	AddVertexIndex(label string, field string) error
-	DeleteVertexIndex(label string, field string) error
-	GetVertexIndexList() <-chan *gripql.IndexID
 
 	GetVertexList(ctx context.Context, load bool) <-chan *Vertex
 	GetEdgeList(ctx context.Context, load bool) <-chan *Edge
@@ -178,6 +174,31 @@ type GraphInterface interface {
 	GetInChannel(ctx context.Context, req chan ElementLookup, load bool, emitNull bool, edgeLabels []string) chan ElementLookup
 	GetOutEdgeChannel(ctx context.Context, req chan ElementLookup, load bool, emitNull bool, edgeLabels []string) chan ElementLookup
 	GetInEdgeChannel(ctx context.Context, req chan ElementLookup, load bool, emitNull bool, edgeLabels []string) chan ElementLookup
+}
+
+type IndexUpdate interface {
+	RebuildIndex(label string)
+	AddVertex(vertex []*Vertex) error
+	AddEdge(edge []*Edge) error
+
+	AddField(path string) error
+	RemoveField(path string) error
+
+	AddVertexIndex(label string, field string) error
+	DeleteVertexIndex(label string, field string) error
+}
+
+type IndexQuery interface {
+	ListFields() []string
+	// FieldTerms list all unique terms held by a field
+	FieldTerms(field string) chan interface{}
+	GetVertexIndexList() <-chan *gripql.IndexID
+	VertexLabelScan(ctx context.Context, label string) chan string
+}
+
+type Index interface {
+	IndexUpdate
+	IndexQuery
 }
 
 // Manager is a resource manager that is passed to processors to allow them ]

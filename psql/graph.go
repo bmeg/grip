@@ -31,6 +31,10 @@ func (g *Graph) Compiler() gdbi.Compiler {
 	return core.NewCompiler(g, core.IndexStartOptimize) //TODO: probably a better optimizer for vertex label search)
 }
 
+func (g *Graph) Index() gdbi.IndexQuery {
+	return g
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // Write methods
 ////////////////////////////////////////////////////////////////////////////////

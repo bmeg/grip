@@ -363,7 +363,7 @@ func (server *GripServer) AddIndex(ctx context.Context, idx *gripql.IndexID) (*g
 	if err != nil {
 		return nil, err
 	}
-	err = graph.AddVertexIndex(idx.Label, idx.Field)
+	err = graph.Index().AddVertexIndex(idx.Label, idx.Field)
 	if err != nil {
 		return nil, err
 	}
@@ -383,7 +383,7 @@ func (server *GripServer) DeleteIndex(ctx context.Context, idx *gripql.IndexID) 
 	if err != nil {
 		return nil, err
 	}
-	err = graph.DeleteVertexIndex(idx.Label, idx.Field)
+	err = graph.Index().DeleteVertexIndex(idx.Label, idx.Field)
 	if err != nil {
 		return nil, err
 	}
@@ -401,7 +401,7 @@ func (server *GripServer) ListIndices(ctx context.Context, idx *gripql.GraphID) 
 		return nil, err
 	}
 	indices := []*gripql.IndexID{}
-	for i := range graph.GetVertexIndexList() {
+	for i := range graph.Index().GetVertexIndexList() {
 		indices = append(indices, i)
 	}
 	return &gripql.ListIndicesResponse{Indices: indices}, nil

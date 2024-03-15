@@ -8,8 +8,8 @@ import (
 
 	"github.com/bmeg/grip/gdbi/tpath"
 	"github.com/bmeg/grip/gripql"
+	"github.com/bmeg/grip/index/kvindex"
 	"github.com/bmeg/grip/kvi"
-	"github.com/bmeg/grip/kvindex"
 	"github.com/influxdata/tdigest"
 	"golang.org/x/sync/errgroup"
 

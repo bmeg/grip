@@ -36,6 +36,10 @@ func (mg *Graph) Compiler() gdbi.Compiler {
 	return NewCompiler(mg)
 }
 
+func (mg *Graph) Index() gdbi.IndexQuery {
+	return mg
+}
+
 // GetTimestamp gets the timestamp of last update
 func (mg *Graph) GetTimestamp() string {
 	return mg.ts.Get(mg.graph)

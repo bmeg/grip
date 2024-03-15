@@ -41,6 +41,10 @@ func (es *Graph) Compiler() gdbi.Compiler {
 	return core.NewCompiler(es, core.IndexStartOptimize) //TODO: probably a better optimizer for vertex label search
 }
 
+func (es *Graph) Index() gdbi.IndexQuery {
+	return es
+}
+
 // GetTimestamp returns the change timestamp of the current graph
 func (es *Graph) GetTimestamp() string {
 	return es.ts.Get(es.graph)
