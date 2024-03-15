@@ -5,7 +5,7 @@ go 1.18
 require (
 	github.com/Shopify/sarama v1.22.1
 	github.com/Workiva/go-datastructures v1.0.52
-	github.com/akrylysov/pogreb v0.8.1
+	github.com/akrylysov/pogreb v0.10.2
 	github.com/akuity/grpc-gateway-client v0.0.0-20230321170839-38ca1b4b439c
 	github.com/antlr/antlr4/runtime/Go/antlr v1.4.10
 	github.com/bmeg/jsonpath v0.0.0-20210207014051-cca5355553ad
@@ -17,7 +17,6 @@ require (
 	github.com/dop251/goja v0.0.0-20190429205339-8d6ee3d16611
 	github.com/felixge/httpsnoop v1.0.1
 	github.com/go-sql-driver/mysql v1.5.0
-	github.com/golang/protobuf v1.5.2
 	github.com/graphql-go/graphql v0.8.0
 	github.com/graphql-go/handler v0.2.3
 	github.com/grpc-ecosystem/go-grpc-middleware v1.0.0
@@ -82,6 +81,7 @@ require (
 	github.com/go-sourcemap/sourcemap v2.1.2+incompatible // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e // indirect
+	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.2.3 // indirect

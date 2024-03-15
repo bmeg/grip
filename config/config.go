@@ -101,6 +101,12 @@ func (conf *Config) AddMongoDefault() {
 	conf.Default = "mongo"
 }
 
+func (conf *Config) AddGridsDefault() {
+	n := "grip-grids.db"
+	conf.Drivers["grids"] = DriverConfig{Grids: &n}
+	conf.Default = "grids"
+}
+
 // TestifyConfig randomizes ports and database paths/names
 func TestifyConfig(c *Config) {
 	rand := strings.ToLower(util.RandomString(6))

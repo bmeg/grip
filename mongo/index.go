@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/bmeg/grip/gdbi/tpath"
 	"github.com/bmeg/grip/gripql"
-	"github.com/bmeg/grip/jsonpath"
 	"github.com/bmeg/grip/log"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -16,7 +16,8 @@ import (
 // AddVertexIndex add index to vertices
 func (mg *Graph) AddVertexIndex(label string, field string) error {
 	log.WithFields(log.Fields{"label": label, "field": field}).Info("Adding vertex index")
-	field = jsonpath.GetJSONPath(field)
+	field = tpath.NormalizePath(field)
+	field = tpath.ToLocalPath(field)
 	field = strings.TrimPrefix(field, "$.")
 
 	idx := mg.ar.VertexCollection(mg.graph).Indexes()
@@ -36,8 +37,9 @@ func (mg *Graph) AddVertexIndex(label string, field string) error {
 // DeleteVertexIndex delete index from vertices
 func (mg *Graph) DeleteVertexIndex(label string, field string) error {
 	log.WithFields(log.Fields{"label": label, "field": field}).Info("Deleting vertex index")
-	field = jsonpath.GetJSONPath(field)
-	field = strings.TrimPrefix(field, "$.")
+	field = tpath.NormalizePath(field)
+	field = tpath.ToLocalPath(field)
+	field = strings.TrimPrefix(field, "$.") //FIXME
 
 	idx := mg.ar.VertexCollection(mg.graph).Indexes()
 	cursor, err := idx.List(context.TODO())
@@ -110,11 +112,11 @@ func (mg *Graph) VertexLabelScan(ctx context.Context, label string) chan string 
 	go func() {
 		defer close(out)
 		selection := map[string]interface{}{
-			"label": label,
+			FIELD_LABEL: label,
 		}
 		vcol := mg.ar.VertexCollection(mg.graph)
 		opts := options.Find()
-		opts.SetProjection(map[string]interface{}{"_id": 1, "label": 1})
+		opts.SetProjection(map[string]interface{}{FIELD_ID: 1, FIELD_LABEL: 1})
 
 		cursor, err := vcol.Find(context.TODO(), selection, opts)
 		if err == nil {
@@ -127,7 +129,7 @@ func (mg *Graph) VertexLabelScan(ctx context.Context, label string) chan string 
 				default:
 				}
 				if nil == cursor.Decode(&result) {
-					out <- result["_id"].(string)
+					out <- result[FIELD_ID].(string)
 				}
 			}
 			if err := cursor.Close(context.TODO()); err != nil {

@@ -40,7 +40,7 @@ message GraphStatement {
     google.protobuf.ListValue out_e_null = 19;
 
     string as = 20;
-    SelectStatement select = 21;
+    string select = 21;
     uint32 limit = 24;
     uint32 skip = 25;
     Range range = 26;
@@ -160,21 +160,6 @@ enum Condition {
   CONTAINS = 12;
 }
 
-message SelectStatement {
-  repeated string marks = 1;
-}
-
-message Selection {
-  oneof result {
-    Vertex vertex = 1;
-    Edge edge = 2;
-  }
-}
-
-message Selections {
-  map<string, Selection> selections = 1;
-}
-
 message Jump {
   string mark = 1;
   HasExpression expression = 2;
@@ -210,7 +195,6 @@ message QueryResult {
     Vertex vertex = 1;
     Edge edge = 2;
     NamedAggregationResult aggregations = 3;
-    Selections selections = 4;
     google.protobuf.Value render = 5;
     uint32 count = 6;
     google.protobuf.ListValue path = 7;
