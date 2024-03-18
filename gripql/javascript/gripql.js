@@ -150,7 +150,7 @@ function query(client=null) {
 			return this
 		},
 		toList: function() {
-			return client.toList()
+			return this.client.toList( {"query": this.query} )
 		}
 	}
 }
@@ -295,10 +295,10 @@ gripql = {
 	"percentile": percentile,
 }
 
-function V(id, client=null) {
-  return query(client).V(id)
+function V(id) {
+  return query().V(id)
 }
 
-function E(id, client=null) {
-  return query(client).E(id)
+function E(id) {
+  return query().E(id)
 }

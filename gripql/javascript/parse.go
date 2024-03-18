@@ -37,7 +37,7 @@ func ParseQuery(queryString string) (*gripql.GraphQuery, error) {
 	if err != nil {
 		return nil, err
 	}
-	fmt.Printf("%s\n", queryJSON)
+	//fmt.Printf("%s\n", queryJSON)
 	query := gripql.GraphQuery{}
 	err = protojson.Unmarshal(queryJSON, &query)
 	if err != nil {
