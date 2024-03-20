@@ -231,7 +231,8 @@ func (server *GripServer) Serve(pctx context.Context) error {
 			gripql.DirectUnaryInterceptor(unaryAuthInt),
 			gripql.DirectStreamInterceptor(streamAuthInt),
 		)
-		handler, err := setup(gripql.WrapClient(queryClient, writeClient, nil, nil))
+		cfg := endpointConfig[name]
+		handler, err := setup(gripql.WrapClient(queryClient, writeClient, nil, nil), cfg)
 		if err == nil {
 			log.Infof("Plugin added to /%s/", name)
 			prefix := fmt.Sprintf("/%s/", name)

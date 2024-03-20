@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"strings"
 
 	"github.com/bmeg/grip/config"
 	"github.com/bmeg/grip/log"
@@ -21,6 +22,7 @@ var driver = "badger"
 var verbose bool
 
 var endPoints = map[string]string{}
+var endPointConfig = map[string]string{}
 
 var pluginDir = ""
 
@@ -46,7 +48,14 @@ func Run(conf *config.Config, baseDir string) error {
 	}
 
 	for k, v := range endPoints {
-		if err := srv.AddEndpoint(k, v); err != nil {
+		c := map[string]string{}
+		for ck, cv := range endPointConfig {
+			if strings.HasPrefix(ck, k+":") {
+				nk := ck[len(k)+1:]
+				c[nk] = cv
+			}
+		}
+		if err := srv.AddEndpoint(k, v, c); err != nil {
 			log.Errorf("Error loading pluging %s: %s", k, err)
 		}
 	}
@@ -131,6 +140,7 @@ func init() {
 	flags.StringVarP(&driver, "driver", "d", driver, "Default Driver")
 
 	flags.StringToStringVarP(&endPoints, "endpoint", "w", endPoints, "web endpoint plugins")
+	flags.StringToStringVarP(&endPointConfig, "endpoint-config", "l", endPointConfig, "web endpoint configuration")
 
 	flags.StringToStringVarP(&conf.Sources, "er", "e", conf.Sources, "GRIPPER source address")
 }
