@@ -238,7 +238,7 @@ func (server *GripServer) Serve(pctx context.Context) error {
 			prefix := fmt.Sprintf("/%s/", name)
 			mux.Handle(prefix, http.StripPrefix(prefix, handler))
 		} else {
-			log.Errorf("Unable to load plugin %s", name)
+			log.Errorf("Unable to load plugin %s: %s", name, err)
 		}
 	}
 
