@@ -29,7 +29,7 @@ type Handler struct {
 }
 
 // NewClientHTTPHandler initilizes a new GraphQLHandler
-func NewHTTPHandler(client gripql.Client) (http.Handler, error) {
+func NewHTTPHandler(client gripql.Client, config map[string]string) (http.Handler, error) {
 	h := &Handler{
 		client:   client,
 		handlers: map[string]*graphHandler{},
