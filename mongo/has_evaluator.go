@@ -1,10 +1,10 @@
 package mongo
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/bmeg/grip/gripql"
-	"github.com/bmeg/grip/jsonpath"
 	"github.com/bmeg/grip/log"
 	"go.mongodb.org/mongo-driver/bson"
 )
@@ -18,28 +18,32 @@ func convertHasExpression(stmt *gripql.HasExpression, not bool) bson.M {
 		case gripql.Condition_INSIDE:
 			val := cond.Value.AsInterface()
 			lims, ok := val.([]interface{})
-			if !ok {
+			if !ok || len(lims) < 2 {
 				log.Error("unable to cast values from INSIDE statement")
 			} else {
-				output = convertHasExpression(gripql.And(gripql.Gt(cond.Key, lims[0]), gripql.Lt(cond.Key, lims[1])), not)
+				key := cond.Key
+				output = convertHasExpression(gripql.And(gripql.Gt(key, lims[0]), gripql.Lt(key, lims[1])), not)
+				fmt.Printf("inside: %#v\n", output)
 			}
 
 		case gripql.Condition_OUTSIDE:
 			val := cond.Value.AsInterface()
 			lims, ok := val.([]interface{})
-			if !ok {
+			if !ok || len(lims) < 2 {
 				log.Error("unable to cast values from OUTSIDE statement")
 			} else {
-				output = convertHasExpression(gripql.Or(gripql.Lt(cond.Key, lims[0]), gripql.Gt(cond.Key, lims[1])), not)
+				key := cond.Key
+				output = convertHasExpression(gripql.Or(gripql.Lt(key, lims[0]), gripql.Gt(key, lims[1])), not)
 			}
 
 		case gripql.Condition_BETWEEN:
 			val := cond.Value.AsInterface()
 			lims, ok := val.([]interface{})
-			if !ok {
+			if !ok || len(lims) < 2 {
 				log.Error("unable to cast values from BETWEEN statement")
 			} else {
-				output = convertHasExpression(gripql.And(gripql.Gte(cond.Key, lims[0]), gripql.Lt(cond.Key, lims[1])), not)
+				key := cond.Key
+				output = convertHasExpression(gripql.And(gripql.Gte(key, lims[0]), gripql.Lt(key, lims[1])), not)
 			}
 
 		default:
@@ -79,26 +83,17 @@ func convertHasExpression(stmt *gripql.HasExpression, not bool) bson.M {
 	return output
 }
 
-func convertPath(key string) string {
-	key = jsonpath.GetJSONPath(key)
-	key = strings.TrimPrefix(key, "$.")
-	if key == "gid" {
-		key = "_id"
-	}
-	return key
-}
-
 func convertCondition(cond *gripql.HasCondition, not bool) bson.M {
 	var key string
 	var val interface{}
-	key = convertPath(cond.Key)
+	key = ToPipelinePath(cond.Key)
 	val = cond.Value.AsInterface()
 
 	isExpr := false
 
 	if valStr, ok := val.(string); ok {
 		if strings.HasPrefix(valStr, "$") {
-			val = convertPath(valStr)
+			val = ToPipelinePath(valStr)
 		}
 		log.Infof("mongo val str: %s(%s) -- %s(%s)", cond.Key, key, valStr, val)
 		isExpr = true

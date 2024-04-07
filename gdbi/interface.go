@@ -26,9 +26,33 @@ type DataElement struct {
 	Loaded   bool
 }
 
-type Vertex = DataElement
+// DataRef is a handler interface above DataElement, that allows processing pipelines
+// to avoid loading data data required for DataElement until it is actually needed
+type DataRef interface {
+	Get() *DataElement
+	Copy() DataRef
+}
 
+func (d *DataElement) Get() *DataElement {
+	return d
+}
+
+func (d *DataElement) Copy() DataRef {
+	return &DataElement{
+		ID:     d.ID,
+		To:     d.To,
+		From:   d.From,
+		Label:  d.Label,
+		Loaded: d.Loaded,
+		Data:   d.Data,
+	}
+}
+
+type Vertex = DataElement
 type Edge = DataElement
+
+type VertexRef = DataRef
+type EdgeRef = DataRef
 
 type GraphElement struct {
 	Vertex *Vertex
@@ -68,15 +92,18 @@ type Traveler interface {
 	IsSignal() bool
 	GetSignal() Signal
 	IsNull() bool
-	GetCurrent() *DataElement
+	GetCurrent() DataRef
 	GetCurrentID() string
-	AddCurrent(r *DataElement) Traveler
+	AddCurrent(r DataRef) Traveler
 	Copy() Traveler
 	HasMark(label string) bool
-	GetMark(label string) *DataElement
-	AddMark(label string, r *DataElement) Traveler
+	GetMark(label string) DataRef
+	// AddMark adds a new mark to the data and return a duplicated Traveler
+	AddMark(label string, r DataRef) Traveler
+	// UpdateMark changes the data of a mark in the original traveler (vs AddMark which changes a copy of the traveler)
+	UpdateMark(label string, r DataRef)
 	ListMarks() []string
-	GetSelections() map[string]*DataElement
+	GetSelections() map[string]DataRef
 	GetRender() interface{}
 	GetPath() []DataElementID
 	GetAggregation() *Aggregate
@@ -102,8 +129,8 @@ const (
 type ElementLookup struct {
 	ID     string
 	Ref    Traveler
-	Vertex *Vertex
-	Edge   *Edge
+	Vertex VertexRef
+	Edge   EdgeRef
 }
 
 // GraphDB is the base interface for graph databases

@@ -3,7 +3,6 @@ package mongo
 import (
 	"github.com/bmeg/grip/gdbi"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"google.golang.org/protobuf/types/known/structpb"
 )
 
 // PackVertex take a GRIP vertex and convert it to a mongo doc
@@ -12,11 +11,13 @@ func PackVertex(v *gdbi.Vertex) map[string]interface{} {
 	if v.Data != nil {
 		p = v.Data
 	}
-	return map[string]interface{}{
-		"_id":   v.ID,
-		"label": v.Label,
-		"data":  p,
+	out := map[string]interface{}{}
+	for k, v := range p {
+		out[k] = v
 	}
+	out["_id"] = v.ID
+	out["_label"] = v.Label
+	return out
 }
 
 // PackEdge takes a GRIP edge and converts it to a mongo doc
@@ -25,34 +26,30 @@ func PackEdge(e *gdbi.Edge) map[string]interface{} {
 	if e.Data != nil {
 		p = e.Data
 	}
-	return map[string]interface{}{
-		"_id":   e.ID,
-		"from":  e.From,
-		"to":    e.To,
-		"label": e.Label,
-		"data":  p,
+	out := map[string]interface{}{}
+	for k, v := range p {
+		out[k] = v
 	}
-}
-
-type pair struct {
-	key         string
-	valueMap    interface{}
-	valueStruct *structpb.Struct
+	out["_id"] = e.ID
+	out["_from"] = e.From
+	out["_to"] = e.To
+	out["_label"] = e.Label
+	return out
 }
 
 // UnpackVertex takes a mongo doc and converts it into an gripql.Vertex
 func UnpackVertex(i map[string]interface{}) *gdbi.Vertex {
 	o := &gdbi.Vertex{}
 	o.ID = i["_id"].(string)
-	o.Label = i["label"].(string)
-	if d, ok := i["data"]; ok {
-		d = removePrimatives(d)
-		o.Data = d.(map[string]interface{})
-		o.Loaded = true
-	} else {
-		o.Loaded = false
-		o.Data = map[string]interface{}{}
+	o.Label = i["_label"].(string)
+	d := removePrimatives(i).(map[string]any)
+	o.Data = map[string]any{}
+	for k, v := range d {
+		if k != "_id" && k != "_label" {
+			o.Data[k] = v
+		}
 	}
+	o.Loaded = true
 	return o
 }
 
@@ -61,16 +58,17 @@ func UnpackEdge(i map[string]interface{}) *gdbi.Edge {
 	o := &gdbi.Edge{}
 	id := i["_id"]
 	o.ID = id.(string)
-	o.Label = i["label"].(string)
-	o.From = i["from"].(string)
-	o.To = i["to"].(string)
-	if d, ok := i["data"]; ok {
-		o.Data = d.(map[string]interface{})
-		o.Loaded = true
-	} else {
-		o.Loaded = false
-		o.Data = map[string]interface{}{}
+	o.Label = i["_label"].(string)
+	o.From = i["_from"].(string)
+	o.To = i["_to"].(string)
+	o.Data = map[string]any{}
+	d := removePrimatives(i).(map[string]any)
+	for k, v := range d {
+		if k != "_id" && k != "_label" && k != "_to" && k != "_from" {
+			o.Data[k] = v
+		}
 	}
+	o.Loaded = true
 	return o
 }
 

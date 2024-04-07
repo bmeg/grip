@@ -9,11 +9,12 @@ import (
 	"github.com/bmeg/grip/log"
 )
 
-type EndpointSetupFunc func(client gripql.Client) (http.Handler, error)
+type EndpointSetupFunc func(client gripql.Client, config map[string]string) (http.Handler, error)
 
 var endpointMap = map[string]EndpointSetupFunc{}
+var endpointConfig = map[string]map[string]string{}
 
-func (server *GripServer) AddEndpoint(name string, path string) error {
+func (server *GripServer) AddEndpoint(name string, path string, config map[string]string) error {
 
 	plg, err := plugin.Open(path)
 	if err != nil {
@@ -25,9 +26,10 @@ func (server *GripServer) AddEndpoint(name string, path string) error {
 		return err
 	}
 	fmt.Printf("Method: %#v\n", gen)
-	if x, ok := (gen).(func(client gripql.Client) (http.Handler, error)); ok {
+	if x, ok := (gen).(func(client gripql.Client, config map[string]string) (http.Handler, error)); ok {
 		log.Infof("Plugin %s loaded", path)
 		endpointMap[name] = x
+		endpointConfig[name] = config
 		return nil
 	}
 	return fmt.Errorf("unable to call NewHTTPHandler method")

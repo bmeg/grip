@@ -232,21 +232,12 @@ class Query(BaseConnection):
         """
         return self.__append({"as": name})
 
-    def select(self, marks):
+    def select(self, name):
         """
-        Returns rows of marked elements, with one item for each mark.
+        Move traveler back to a previously marked position
 
-        "marks" is a list of mark names.
-        The rows returned are all combinations of marks, e.g.
-        [
-            [A1, B1],
-            [A1, B2],
-            [A2, B1],
-            [A2, B2],
-        ]
         """
-        marks = _wrap_str_value(marks)
-        return self.__append({"select": {"marks": marks}})
+        return self.__append({"select": name})
 
     def limit(self, n):
         """

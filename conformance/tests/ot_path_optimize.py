@@ -30,13 +30,13 @@ def test_path_1(man):
             errors.append("Wrong label found at end of path: %s" % (res["label"]))
         count += 1
     if count != 1814:
-        errors.append("out-out-outE Incorrect vertex count returned: %d != %d" % (count, 1814))
+        errors.append("""V("Film:1").out().out().outE() Incorrect vertex count returned: %d != %d""" % (count, 1814))
 
     count = 0
     for res in G.query().V("Film:1").out().out().outE().out():
         count += 1
     if count != 1814:
-        errors.append("out-out-outE-out Incorrect vertex count returned: %d != %d" % (count, 1814))
+        errors.append(""".V("Film:1").out().out().outE().out() Incorrect vertex count returned: %d != %d""" % (count, 1814))
 
     return errors
 

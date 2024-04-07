@@ -8,7 +8,6 @@ import (
 	"log"
 	"os"
 	"runtime/pprof"
-	"strings"
 	"time"
 
 	"github.com/bmeg/grip/engine/pipeline"
@@ -17,7 +16,7 @@ import (
 	"github.com/bmeg/grip/kvgraph"
 	"github.com/bmeg/grip/kvi"
 	"github.com/dop251/goja"
-	"github.com/golang/protobuf/jsonpb"
+	"google.golang.org/protobuf/encoding/protojson"
 
 	gripqljs "github.com/bmeg/grip/gripql/javascript"
 
@@ -76,7 +75,7 @@ func main() {
 	}
 
 	query := gripql.GraphQuery{}
-	err = jsonpb.Unmarshal(strings.NewReader(string(queryJSON)), &query)
+	err = protojson.Unmarshal(queryJSON, &query)
 	if err != nil {
 		log.Printf("%s", err)
 		return

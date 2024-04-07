@@ -22,7 +22,7 @@ def test_bulkload(man):
     bulk.addEdge("4", "5", "created", {"weight": 1.0})
 
     err = bulk.execute()
-    print(err)
+    #print(err)
     if err.get("errorCount", 0) != 0:
         print(err)
         errors.append("Bulk insertion error")
@@ -67,5 +67,5 @@ def test_bulkload_validate(man):
 
     if err["errorCount"] == 0:
         errors.append("Validation error not detected")
-    print(err)
+    #print(err)
     return errors

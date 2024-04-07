@@ -32,10 +32,13 @@ func Connect(conf rpc.Config, write bool) (Client, error) {
 	}
 	queryOut := NewQueryClient(conn)
 	var editOut EditClient
+	var jobOut JobClient
 	if write {
 		editOut = NewEditClient(conn)
+		jobOut = NewJobClient(conn)
+
 	}
-	return Client{queryOut, editOut, nil, nil, conn}, nil
+	return Client{queryOut, editOut, jobOut, nil, conn}, nil
 }
 
 func (client Client) WithConfigureAPI() Client {
@@ -53,16 +56,30 @@ func (client Client) GetSchema(graph string) (*Graph, error) {
 }
 
 // SampleSchema asks server to scan data to determine possible schema
-func (client Client) SampleSchema(graph string) (*Graph, error)  {
+func (client Client) SampleSchema(graph string) (*Graph, error) {
 	out, err := client.EditC.SampleSchema(context.Background(), &GraphID{Graph: graph})
 	return out, err
 }
-
 
 // AddSchema adds a schema for a graph.
 func (client Client) AddSchema(graph *Graph) error {
 	_, err := client.EditC.AddSchema(context.Background(), graph)
 	return err
+}
+
+func (client Client) DeleteEdge(graph string, id string) error {
+	_, err := client.EditC.DeleteEdge(context.Background(), &ElementID{Graph: graph, Id: id})
+	return err
+}
+
+func (client Client) DeleteVertex(graph string, id string) error {
+	_, err := client.EditC.DeleteVertex(context.Background(), &ElementID{Graph: graph, Id: id})
+	return err
+}
+
+func (client Client) GetEdge(graph string, id string) (*Edge, error) {
+	e, err := client.QueryC.GetEdge(context.Background(), &ElementID{Graph: graph, Id: id})
+	return e, err
 }
 
 // GetMaping returns the mapping for the given graph.
@@ -245,11 +262,86 @@ func (client Client) GetJob(graph string, jobID string) (*JobStatus, error) {
 	return client.JobC.GetJob(context.Background(), &QueryJob{Graph: graph, Id: jobID})
 }
 
-/*
-func (client Client) ViewJob(in *QueryJob, opts ...grpc.CallOption) (Job_ViewJobClient, error) {
+func (client Client) ResumeJob(graph string, jobID string, q *GraphQuery) (chan *QueryResult, error) {
+	tclient, err := client.JobC.ResumeJob(context.Background(),
+		&ExtendQuery{Graph: graph,
+			SrcId: jobID,
+			Query: q.Query,
+		})
 
+	out := make(chan *QueryResult, 100)
+
+	if err != nil {
+		return nil, err
+	}
+
+	t, err := tclient.Recv()
+	if err == io.EOF {
+		close(out)
+		return out, nil
+	}
+	if err != nil {
+		close(out)
+		return out, err
+	}
+	out <- t
+
+	go func() {
+		defer close(out)
+		for {
+			t, err := tclient.Recv()
+			if err == io.EOF {
+				return
+			}
+			if err != nil {
+				log.WithFields(log.Fields{"error": err}).Error("Receiving traversal result")
+				return
+			}
+			out <- t
+		}
+	}()
+	return out, nil
 }
-*/
+
+func (client Client) ViewJob(graph string, jobID string, opts ...grpc.CallOption) (chan *QueryResult, error) {
+	tclient, err := client.JobC.ViewJob(context.Background(),
+		&QueryJob{Graph: graph,
+			Id: jobID,
+		})
+
+	out := make(chan *QueryResult, 100)
+
+	if err != nil {
+		return nil, err
+	}
+
+	t, err := tclient.Recv()
+	if err == io.EOF {
+		close(out)
+		return out, nil
+	}
+	if err != nil {
+		close(out)
+		return out, err
+	}
+	out <- t
+
+	go func() {
+		defer close(out)
+		for {
+			t, err := tclient.Recv()
+			if err == io.EOF {
+				return
+			}
+			if err != nil {
+				log.WithFields(log.Fields{"error": err}).Error("Receiving traversal result")
+				return
+			}
+			out <- t
+		}
+	}()
+	return out, nil
+}
 
 // ListDrivers lists avalible drivers
 func (client Client) ListDrivers() (*ListDriversResponse, error) {

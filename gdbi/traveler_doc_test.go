@@ -1,19 +1,20 @@
-package jsonpath
+package gdbi
 
 import (
 	"os"
 	"testing"
 
-	"github.com/bmeg/grip/gdbi"
+	"github.com/bmeg/grip/gdbi/tpath"
+
 	"github.com/stretchr/testify/assert"
 )
 
-var traveler gdbi.Traveler
+var traveler Traveler
 
 func TestMain(m *testing.M) {
 	// test traveler
-	traveler = &gdbi.BaseTraveler{}
-	traveler = traveler.AddCurrent(&gdbi.DataElement{
+	traveler = &BaseTraveler{}
+	traveler = traveler.AddCurrent(&DataElement{
 		ID:    "vertex1",
 		Label: "foo",
 		Data: map[string]interface{}{
@@ -28,7 +29,7 @@ func TestMain(m *testing.M) {
 			"f": nil,
 		},
 	})
-	traveler = traveler.AddMark("testMark", &gdbi.DataElement{
+	traveler = traveler.AddMark("testMark", &DataElement{
 		ID:    "vertex2",
 		Label: "bar",
 		Data: map[string]interface{}{
@@ -44,96 +45,96 @@ func TestMain(m *testing.M) {
 
 func TestGetNamespace(t *testing.T) {
 	expected := "foo"
-	result := GetNamespace("$foo.bar[1:3].baz")
+	result := tpath.GetNamespace("$foo.bar[1:3].baz")
 	assert.Equal(t, expected, result)
 
-	result = GetNamespace("foo.bar[1:3].baz")
+	result = tpath.GetNamespace("foo.bar[1:3].baz")
 	assert.NotEqual(t, expected, result)
 }
 
 func TestGetJSONPath(t *testing.T) {
-	expected := "$.data.a"
-	result := GetJSONPath("a")
+	expected := "$_current.a"
+	result := tpath.NormalizePath("a")
 	assert.Equal(t, expected, result)
 
-	expected = "$.data.a"
-	result = GetJSONPath("_data.a")
+	expected = "$_current.a"
+	result = tpath.NormalizePath("$.a")
 	assert.Equal(t, expected, result)
 
-	expected = "$.data.e[1].nested"
-	result = GetJSONPath("e[1].nested")
+	expected = "$_current.e[1].nested"
+	result = tpath.NormalizePath("e[1].nested")
 	assert.Equal(t, expected, result)
 
-	expected = "$.data.a"
-	result = GetJSONPath("$testMark.a")
+	expected = "$testMark.a"
+	result = tpath.NormalizePath("$testMark.a")
 	assert.Equal(t, expected, result)
 
-	expected = "$.data.a"
-	result = GetJSONPath("testMark.a")
-	assert.NotEqual(t, expected, result)
+	expected = "$_current.testMark.a"
+	result = tpath.NormalizePath("testMark.a")
+	assert.Equal(t, expected, result)
 }
 
-func TestGetDoc(t *testing.T) {
-	expected := traveler.GetMark("testMark").ToDict()
-	result := GetDoc(traveler, "testMark")
+func TestGetMarkDoc(t *testing.T) {
+	expected := traveler.GetMark("testMark").Get().ToDict()
+	result := TravelerGetMarkDoc(traveler, "testMark")
 	assert.Equal(t, expected, result)
 
-	expected = traveler.GetMark("i-dont-exist").ToDict()
-	result = GetDoc(traveler, "i-dont-exist")
+	expected = traveler.GetMark("i-dont-exist").Get().ToDict()
+	result = TravelerGetMarkDoc(traveler, "i-dont-exist")
 	assert.Equal(t, expected, result)
 
-	expected = traveler.GetCurrent().ToDict()
-	result = GetDoc(traveler, Current)
+	expected = traveler.GetCurrent().Get().ToDict()
+	result = TravelerGetMarkDoc(traveler, tpath.CURRENT)
 	assert.Equal(t, expected, result)
 }
 
 func TestTravelerPathExists(t *testing.T) {
 	assert.True(t, TravelerPathExists(traveler, "_gid"))
+	assert.True(t, TravelerPathExists(traveler, "$_gid"))
 	assert.True(t, TravelerPathExists(traveler, "_label"))
 	assert.True(t, TravelerPathExists(traveler, "a"))
-	assert.True(t, TravelerPathExists(traveler, "_data.a"))
+	assert.True(t, TravelerPathExists(traveler, "$a"))
+	assert.True(t, TravelerPathExists(traveler, "$_current.a"))
 	assert.False(t, TravelerPathExists(traveler, "non-existent"))
-	assert.False(t, TravelerPathExists(traveler, "_data.non-existent"))
+	assert.False(t, TravelerPathExists(traveler, "$_current.non-existent"))
 
 	assert.True(t, TravelerPathExists(traveler, "$testMark._gid"))
 	assert.True(t, TravelerPathExists(traveler, "$testMark._label"))
 	assert.True(t, TravelerPathExists(traveler, "$testMark.a"))
-	assert.True(t, TravelerPathExists(traveler, "$testMark._data.a"))
 	assert.False(t, TravelerPathExists(traveler, "$testMark.non-existent"))
-	assert.False(t, TravelerPathExists(traveler, "$testMark._data.non-existent"))
 }
 
 func TestRender(t *testing.T) {
-	expected := traveler.GetCurrent().Data["a"]
-	result := RenderTraveler(traveler, "a")
+	expected := traveler.GetCurrent().Get().Data["a"]
+	result := RenderTraveler(traveler, "$.a")
 	assert.Equal(t, expected, result)
 
 	expected = []interface{}{
-		traveler.GetCurrent().Data["a"],
-		traveler.GetCurrent().Data["b"],
-		traveler.GetCurrent().Data["c"],
-		traveler.GetCurrent().Data["d"],
+		traveler.GetCurrent().Get().Data["a"],
+		traveler.GetCurrent().Get().Data["b"],
+		traveler.GetCurrent().Get().Data["c"],
+		traveler.GetCurrent().Get().Data["d"],
 	}
 	result = RenderTraveler(traveler, []interface{}{"a", "b", "c", "d"})
 	assert.Equal(t, expected, result)
 
 	expected = map[string]interface{}{
-		"current.gid":         traveler.GetCurrent().ID,
-		"current.label":       traveler.GetCurrent().Label,
-		"current.a":           traveler.GetCurrent().Data["a"],
-		"current.b":           traveler.GetCurrent().Data["b"],
-		"current.c":           traveler.GetCurrent().Data["c"],
-		"current.d":           traveler.GetCurrent().Data["d"],
-		"mark.gid":            traveler.GetMark("testMark").ID,
-		"mark.label":          traveler.GetMark("testMark").Label,
-		"mark.a":              traveler.GetMark("testMark").Data["a"],
-		"mark.b":              traveler.GetMark("testMark").Data["b"],
-		"mark.c":              traveler.GetMark("testMark").Data["c"],
-		"mark.d":              traveler.GetMark("testMark").Data["d"],
+		"current.gid":         traveler.GetCurrent().Get().ID,
+		"current.label":       traveler.GetCurrent().Get().Label,
+		"current.a":           traveler.GetCurrent().Get().Data["a"],
+		"current.b":           traveler.GetCurrent().Get().Data["b"],
+		"current.c":           traveler.GetCurrent().Get().Data["c"],
+		"current.d":           traveler.GetCurrent().Get().Data["d"],
+		"mark.gid":            traveler.GetMark("testMark").Get().ID,
+		"mark.label":          traveler.GetMark("testMark").Get().Label,
+		"mark.a":              traveler.GetMark("testMark").Get().Data["a"],
+		"mark.b":              traveler.GetMark("testMark").Get().Data["b"],
+		"mark.c":              traveler.GetMark("testMark").Get().Data["c"],
+		"mark.d":              traveler.GetMark("testMark").Get().Data["d"],
 		"mark.d[0]":           4,
 		"current.e[0].nested": "field1",
 		"current.e.nested":    []interface{}{"field1", "field2"},
-		"current.f":           traveler.GetCurrent().Data["f"],
+		"current.f":           traveler.GetCurrent().Get().Data["f"],
 	}
 	result = RenderTraveler(traveler, map[string]interface{}{
 		"current.gid":         "_gid",
@@ -141,15 +142,15 @@ func TestRender(t *testing.T) {
 		"current.a":           "a",
 		"current.b":           "b",
 		"current.c":           "c",
-		"current.d":           "_data.d",
+		"current.d":           "d",
 		"mark.gid":            "$testMark._gid",
 		"mark.label":          "$testMark._label",
 		"mark.a":              "$testMark.a",
 		"mark.b":              "$testMark.b",
-		"mark.c":              "$testMark._data.c",
+		"mark.c":              "$testMark.c",
 		"mark.d":              "$testMark.d",
 		"mark.d[0]":           "$testMark.d[0]",
-		"current.e[0].nested": "_data.e[0].nested",
+		"current.e[0].nested": "e[0].nested",
 		"current.e.nested":    "e.nested",
 		"current.f":           "f",
 	})
@@ -157,7 +158,7 @@ func TestRender(t *testing.T) {
 }
 
 func TestIncludeFields(t *testing.T) {
-	orig := &gdbi.DataElement{
+	orig := &DataElement{
 		ID:    "vertex1",
 		Label: "foo",
 		Data: map[string]interface{}{
@@ -170,13 +171,13 @@ func TestIncludeFields(t *testing.T) {
 			"f": nil,
 		},
 	}
-	new := &gdbi.DataElement{
+	new := &DataElement{
 		ID:    "vertex1",
 		Label: "foo",
 		Data:  map[string]interface{}{},
 	}
 
-	expected := &gdbi.DataElement{
+	expected := &DataElement{
 		ID:    "vertex1",
 		Label: "foo",
 		Data: map[string]interface{}{
@@ -192,7 +193,7 @@ func TestIncludeFields(t *testing.T) {
 }
 
 func TestExcludeFields(t *testing.T) {
-	orig := &gdbi.DataElement{
+	orig := &DataElement{
 		ID:    "vertex1",
 		Label: "foo",
 		Data: map[string]interface{}{
@@ -205,7 +206,7 @@ func TestExcludeFields(t *testing.T) {
 			"f": nil,
 		},
 	}
-	expected := &gdbi.DataElement{
+	expected := &DataElement{
 		ID:    "vertex1",
 		Label: "foo",
 		Data: map[string]interface{}{
@@ -222,8 +223,8 @@ func TestExcludeFields(t *testing.T) {
 }
 
 func TestSelectFields(t *testing.T) {
-	expected := (&gdbi.BaseTraveler{}).AddMark("testMark", traveler.GetMark("testMark"))
-	expected = expected.AddCurrent(&gdbi.DataElement{
+	expected := (&BaseTraveler{}).AddMark("testMark", traveler.GetMark("testMark"))
+	expected = expected.AddCurrent(&DataElement{
 		ID:    "vertex1",
 		Label: "foo",
 		Data: map[string]interface{}{
@@ -239,7 +240,7 @@ func TestSelectFields(t *testing.T) {
 	result := SelectTravelerFields(traveler, "-a", "-_data.d")
 	assert.Equal(t, expected, result)
 
-	expected = expected.AddCurrent(&gdbi.DataElement{
+	expected = expected.AddCurrent(&DataElement{
 		ID:    "vertex1",
 		Label: "foo",
 		Data:  map[string]interface{}{},
@@ -247,7 +248,7 @@ func TestSelectFields(t *testing.T) {
 	result = SelectTravelerFields(traveler)
 	assert.Equal(t, expected, result)
 
-	expected = expected.AddCurrent(&gdbi.DataElement{
+	expected = expected.AddCurrent(&DataElement{
 		ID:    "vertex1",
 		Label: "foo",
 		Data: map[string]interface{}{
@@ -264,7 +265,7 @@ func TestSelectFields(t *testing.T) {
 	result = SelectTravelerFields(traveler, "_gid", "_label", "a", "_data.b", "$testMark.b", "$testMark._data.d")
 	assert.Equal(t, expected, result)
 
-	expected = expected.AddCurrent(&gdbi.DataElement{
+	expected = expected.AddCurrent(&DataElement{
 		ID:    "vertex1",
 		Label: "foo",
 		Data: map[string]interface{}{

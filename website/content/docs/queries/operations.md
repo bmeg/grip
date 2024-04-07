@@ -14,11 +14,13 @@ Start query from Vertex
 ```python
 G.query().V()
 ```
+
 Returns all vertices in graph
 
 ```python
-G.query().V(["vertex1]")
+G.query().V(["vertex1"])
 ```
+
 Returns:
 ```json
 {"gid" : "vertex1", "label":"TestVertex", "data":{}}
@@ -37,7 +39,7 @@ G.query().E(["edge1"])
 ```
 Returns:
 ```json
-{"gid" : "edge1", "label":"TestEdge", From: "vertex1", To: "vertex2", data":{}}
+{"gid" : "edge1", "label":"TestEdge", "from": "vertex1", "to": "vertex2", "data":{}}
 ```
 
 
@@ -176,9 +178,9 @@ G.query().V().as_("a").out().as_("b")
 ```
 
 ## .select([names])
-Output previously marked elements
+Move traveler to previously marked position
 ```python
-G.query().V().mark("a").out().mark("b").select(["a", "b"])
+G.query().V().mark("a").out().mark("b").select("a")
 ```
 
 ## .limit(count)

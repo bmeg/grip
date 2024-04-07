@@ -1,21 +1,20 @@
 package query
 
 import (
-	"encoding/json"
 	"fmt"
 
 	"github.com/bmeg/grip/gripql"
 	gripqljs "github.com/bmeg/grip/gripql/javascript"
 	_ "github.com/bmeg/grip/jsengine/goja" // import goja so it registers with the driver map
 	_ "github.com/bmeg/grip/jsengine/otto" // import otto so it registers with the driver map
-	"github.com/bmeg/grip/jsengine/underscore"
+	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/util/rpc"
-	"github.com/dop251/goja"
 	"github.com/spf13/cobra"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
 var host = "localhost:8202"
+var verbose bool
 
 // Cmd is the declaration of the command line
 var Cmd = &cobra.Command{
@@ -26,56 +25,41 @@ Example:
     grip query example-graph 'V().hasLabel("Variant").out().limit(5)'`,
 	Args: cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		vm := goja.New()
-
-		us, err := underscore.Asset("underscore.js")
-		if err != nil {
-			return fmt.Errorf("failed to load underscore.js")
-		}
-		if _, err := vm.RunString(string(us)); err != nil {
-			return err
-		}
-
-		gripqlString, err := gripqljs.Asset("gripql.js")
-		if err != nil {
-			return fmt.Errorf("failed to load gripql.js")
-		}
-		if _, err := vm.RunString(string(gripqlString)); err != nil {
-			return err
-		}
-
+		graph := args[0]
 		queryString := args[1]
-		val, err := vm.RunString(queryString)
-		if err != nil {
-			return err
+
+		if verbose {
+			c := log.DefaultLoggerConfig()
+			c.Level = "debug"
+			log.ConfigureLogger(c)
 		}
 
-		queryJSON, err := json.Marshal(val)
+		query, err := gripqljs.ParseQuery(queryString)
 		if err != nil {
+			log.Errorf("Parse error: %s", err)
 			return err
 		}
-
-		query := gripql.GraphQuery{}
-		err = protojson.Unmarshal(queryJSON, &query)
-		if err != nil {
-			return err
-		}
-		query.Graph = args[0]
-
+		query.Graph = graph
 		conn, err := gripql.Connect(rpc.ConfigWithDefaults(host), true)
 		if err != nil {
+			log.Errorf("Connect error: %s", err)
 			return err
 		}
 
-		res, err := conn.Traversal(&query)
+		log.Debugf("Query: %s\n", query.String())
+		res, err := conn.Traversal(query)
 		if err != nil {
+			log.Errorf("Traversal error: %s", err)
 			return err
 		}
 
+		count := uint64(0)
 		for row := range res {
 			rowString, _ := protojson.Marshal(row)
 			fmt.Printf("%s\n", rowString)
+			count++
 		}
+		log.Debugf("rows returned: %d", count)
 		return nil
 	},
 }
@@ -83,4 +67,6 @@ Example:
 func init() {
 	flags := Cmd.Flags()
 	flags.StringVar(&host, "host", host, "grip server url")
+	flags.BoolVar(&verbose, "verbose", verbose, "Verbose")
+
 }

@@ -5,6 +5,9 @@ import (
 	"github.com/bmeg/grip/util/protoutil"
 )
 
+// Determine if a pipeline starts with 'V().hasLabel(x)' and trim it out
+// This can be used to optimize pipelines that start with looking up vertex labels
+// using an index
 func FindVertexHasLabelStart(pipe []*gripql.GraphStatement) ([]string, []*gripql.GraphStatement) {
 	hasLabelLen := 0
 	labels := []string{}

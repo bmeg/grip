@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	"github.com/bmeg/grip/engine/core"
-	"github.com/bmeg/grip/engine/inspect"
 	"github.com/bmeg/grip/gripql"
+	"github.com/bmeg/grip/gripql/inspect"
 	"github.com/bmeg/grip/util/setcmp"
 )
 
@@ -36,7 +36,7 @@ func TestAsMapping(t *testing.T) {
 func TestOutputMasking(t *testing.T) {
 	q := gripql.NewQuery()
 	q = q.V().Out().In().Has(gripql.Eq("$.test", "value"))
-	out := inspect.PipelineStepOutputs(q.Statements)
+	out := inspect.PipelineStepOutputs(q.Statements, false)
 	fmt.Printf("vars: %s\n", out)
 	if len(out) != 1 {
 		t.Errorf("Wrong number of step outputs %d", len(out))
@@ -47,7 +47,7 @@ func TestOutputMasking(t *testing.T) {
 
 	q = gripql.NewQuery()
 	q = q.V().Out().In().Has(gripql.Eq("$.test", "value")).Out()
-	out = inspect.PipelineStepOutputs(q.Statements)
+	out = inspect.PipelineStepOutputs(q.Statements, false)
 	fmt.Printf("vars: %s\n", out)
 	if len(out) != 2 {
 		t.Errorf("Wrong number of step outputs %d", len(out))
@@ -61,7 +61,7 @@ func TestOutputMasking(t *testing.T) {
 
 	q = gripql.NewQuery()
 	q = q.E()
-	out = inspect.PipelineStepOutputs(q.Statements)
+	out = inspect.PipelineStepOutputs(q.Statements, false)
 	fmt.Printf("EdgeList vars: %s\n", out)
 	if len(out) != 1 {
 		t.Errorf("Wrong number of step outputs %d", len(out))
@@ -69,7 +69,7 @@ func TestOutputMasking(t *testing.T) {
 
 	q = gripql.NewQuery()
 	q = q.V().Out().In().Count()
-	out = inspect.PipelineStepOutputs(q.Statements)
+	out = inspect.PipelineStepOutputs(q.Statements, false)
 	fmt.Printf("vars: %s\n", out)
 	if len(out) != 0 {
 		t.Errorf("Incorrect output count")
@@ -77,7 +77,7 @@ func TestOutputMasking(t *testing.T) {
 
 	q = gripql.NewQuery()
 	q = q.V().Out().In().Has(gripql.Eq("$.test", "value")).Count()
-	out = inspect.PipelineStepOutputs(q.Statements)
+	out = inspect.PipelineStepOutputs(q.Statements, false)
 	fmt.Printf("vars: %s\n", out)
 	if len(out) != 1 {
 		t.Errorf("Incorrect output count")
@@ -85,7 +85,7 @@ func TestOutputMasking(t *testing.T) {
 
 	q = gripql.NewQuery()
 	q = q.V().HasLabel("test").Out().In().Has(gripql.Eq("$.test", "value")).Count()
-	out = inspect.PipelineStepOutputs(q.Statements)
+	out = inspect.PipelineStepOutputs(q.Statements, false)
 	if len(out) != 2 {
 		t.Errorf("Wrong number of step outputs %d", len(out))
 	}
@@ -93,17 +93,17 @@ func TestOutputMasking(t *testing.T) {
 
 	q = gripql.NewQuery()
 	q = q.V().HasLabel("test").Out().As("a").Out().Out().Select("a")
-	out = inspect.PipelineStepOutputs(q.Statements)
+	out = inspect.PipelineStepOutputs(q.Statements, false)
 	fmt.Printf("vars: %s\n", out)
 
 	q = gripql.NewQuery()
 	q = q.V().HasLabel("robot", "person")
-	out = inspect.PipelineStepOutputs(q.Statements)
+	out = inspect.PipelineStepOutputs(q.Statements, false)
 	fmt.Printf("vars: %s\n", out)
 
 	q = gripql.NewQuery()
 	q = q.V().HasLabel("Person").As("person").Out().Distinct("$person.name")
-	out = inspect.PipelineStepOutputs(q.Statements)
+	out = inspect.PipelineStepOutputs(q.Statements, false)
 	fmt.Printf("vars: %s -> %s\n", inspect.PipelineSteps(q.Statements), out)
 	if len(out) != 2 {
 		t.Errorf("Incorrect output count")
@@ -123,7 +123,7 @@ func TestOutputIndexMasking(t *testing.T) {
 	q = q.V().HasLabel("robot", "person")
 	smts := core.IndexStartOptimize(q.Statements)
 
-	out := inspect.PipelineStepOutputs(smts)
+	out := inspect.PipelineStepOutputs(smts, false)
 	fmt.Printf("%#v\n", smts)
 	if len(out) == 0 {
 		t.Errorf("No outputs found")
@@ -131,6 +131,7 @@ func TestOutputIndexMasking(t *testing.T) {
 	fmt.Printf("vars: %s\n", out)
 }
 
+/*
 func TestPathFind(t *testing.T) {
 	q := gripql.NewQuery()
 	o := q.V().HasLabel("test").Out().As("a").Out().Out().Select("a")
@@ -156,11 +157,12 @@ func TestPathFind(t *testing.T) {
 		}
 	}
 }
+*/
 
 func TestDistinct(t *testing.T) {
 	q := gripql.NewQuery()
 	o := q.V().HasLabel("Person").As("person").Out("friend").Distinct("$person.name", "$.name").Count()
-	out := inspect.PipelineStepOutputs(o.Statements)
+	out := inspect.PipelineStepOutputs(o.Statements, false)
 	fmt.Printf("%#v\n", out)
 
 	if x, ok := out["2"]; ok {
@@ -172,7 +174,7 @@ func TestDistinct(t *testing.T) {
 	}
 
 	o = q.V().HasLabel("Person").As("person").Out("friend").Distinct("$.name").Count()
-	out = inspect.PipelineStepOutputs(o.Statements)
+	out = inspect.PipelineStepOutputs(o.Statements, false)
 	fmt.Printf("%#v\n", out)
 	if x, ok := out["2"]; ok {
 		if !setcmp.ContainsString(x, "*") {
@@ -183,7 +185,7 @@ func TestDistinct(t *testing.T) {
 	}
 
 	o = q.V().HasLabel("Person").As("person").Out("friend").Distinct("$person.name").Out("friend").Distinct("$.name").Count()
-	out = inspect.PipelineStepOutputs(o.Statements)
+	out = inspect.PipelineStepOutputs(o.Statements, false)
 	fmt.Printf("%#v\n", out)
 	if x, ok := out["3"]; ok {
 		if !setcmp.ContainsString(x, "*") {

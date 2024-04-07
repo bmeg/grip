@@ -7,25 +7,25 @@ def test_distinct(man):
     for i in G.query().V().distinct():
         count += 1
     if count != 39:
-        errors.append("Distinct %s != %s" % (count, 39))
+        errors.append("V().distinct() distinct count %s != %s" % (count, 39))
 
     count = 0
     for i in G.query().V().distinct("_gid"):
         count += 1
     if count != 39:
-        errors.append("Distinct %s != %s" % (count, 39))
+        errors.append("""V().distinct("_gid") distinct count %s != %s""" % (count, 39))
 
     count = 0
     for i in G.query().V().distinct("eye_color"):
         count += 1
     if count != 8:
-        errors.append("Distinct %s != %s" % (count, 8))
+        errors.append("""V().distinct("eye_color") distinct count %s != %s""" % (count, 8))
 
     count = 0
     for i in G.query().V().distinct("gender"):
         count += 1
     if count != 4:
-        errors.append("Distinct %s != %s" % (count, 4))
+        errors.append("""V().distinct("gender") distinct count %s != %s""" % (count, 4))
 
     count = 0
     for i in G.query().V().distinct("non-existent-field"):
@@ -37,13 +37,13 @@ def test_distinct(man):
     for i in G.query().V().hasLabel("Character").as_("person").out().distinct("$person.name"):
         count += 1
     if count != 18:
-        errors.append("Distinct  G.query().V().hasLabel(\"Person\").as_(\"person\").out().distinct(\"$person.name\") %s != %s" % (count, 18))
+        errors.append("Distinct  G.query().V().hasLabel(\"Character\").as_(\"person\").out().distinct(\"$person.name\") %s != %s" % (count, 18))
 
     count = 0
     for i in G.query().V().hasLabel("Character").as_("person").out().distinct("$person.eye_color"):
         count += 1
     if count != 8:
-        errors.append("Distinct  G.query().V().hasLabel(\"Person\").as_(\"person\").out().distinct(\"$person.eye_color\") %s != %s" % (count, 8))
+        errors.append("Distinct  G.query().V().hasLabel(\"Character\").as_(\"person\").out().distinct(\"$person.eye_color\") %s != %s" % (count, 8))
 
     return errors
 

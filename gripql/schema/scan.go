@@ -1,8 +1,6 @@
 package schema
 
 import (
-	"fmt"
-
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/util"
@@ -60,41 +58,45 @@ func ScanSchema(conn gripql.Client, graph string, sampleCount uint32, exclude []
 		}
 	}
 
+	//TODO: fix this bit
 	eList := []*gripql.Edge{}
-	for _, elabel := range labelRes.EdgeLabels {
-		if stringInSlice(elabel, exclude) {
-			continue
-		}
-		log.Infof("Scanning edge %s\n", elabel)
-		edgeQuery := gripql.E().HasLabel(elabel).Limit(sampleCount).As("edge").Out().Fields().As("to").Select("edge").In().Fields().As("from").Select("edge", "from", "to")
-		edgeRes, err := conn.Traversal(&gripql.GraphQuery{Graph: graph, Query: edgeQuery.Statements})
-		if err == nil {
-			labelSchema := edgeMap{}
-			for row := range edgeRes {
-				sel := row.GetSelections().Selections
-				edge := sel["edge"].GetEdge()
-				src := sel["from"].GetVertex()
-				dst := sel["to"].GetVertex()
-				ds := gripql.GetDataFieldTypes(edge.Data.AsMap())
-				k := edgeKey{to: dst.Label, from: src.Label, label: edge.Label}
-				if p, ok := labelSchema[k]; ok {
-					labelSchema[k] = util.MergeMaps(p, ds)
-				} else {
-					labelSchema[k] = ds
+	/*
+		for _, elabel := range labelRes.EdgeLabels {
+			if stringInSlice(elabel, exclude) {
+				continue
+			}
+			log.Infof("Scanning edge %s\n", elabel)
+			edgeQuery := gripql.E().HasLabel(elabel).Limit(sampleCount).As("edge").Out().Fields().As("to").Select("edge").In().Fields().As("from").Select("edge", "from", "to")
+			edgeRes, err := conn.Traversal(&gripql.GraphQuery{Graph: graph, Query: edgeQuery.Statements})
+			if err == nil {
+				labelSchema := edgeMap{}
+				for row := range edgeRes {
+					sel := row.GetSelections().Selections
+					edge := sel["edge"].GetEdge()
+					src := sel["from"].GetVertex()
+					dst := sel["to"].GetVertex()
+					ds := gripql.GetDataFieldTypes(edge.Data.AsMap())
+					k := edgeKey{to: dst.Label, from: src.Label, label: edge.Label}
+					if p, ok := labelSchema[k]; ok {
+						labelSchema[k] = util.MergeMaps(p, ds)
+					} else {
+						labelSchema[k] = ds
+					}
+				}
+				for k, v := range labelSchema {
+					sValue, _ := structpb.NewStruct(v.(map[string]interface{}))
+					eSchema := &gripql.Edge{
+						Gid:   fmt.Sprintf("(%s)-%s->(%s)", k.from, k.label, k.to),
+						Label: k.label,
+						From:  k.from,
+						To:    k.to,
+						Data:  sValue,
+					}
+					eList = append(eList, eSchema)
 				}
 			}
-			for k, v := range labelSchema {
-				sValue, _ := structpb.NewStruct(v.(map[string]interface{}))
-				eSchema := &gripql.Edge{
-					Gid:   fmt.Sprintf("(%s)-%s->(%s)", k.from, k.label, k.to),
-					Label: k.label,
-					From:  k.from,
-					To:    k.to,
-					Data:  sValue,
-				}
-				eList = append(eList, eSchema)
-			}
 		}
-	}
+	*/
+
 	return &gripql.Graph{Graph: graph, Vertices: vList, Edges: eList}, nil
 }
