@@ -186,9 +186,9 @@ func (client Client) GetVertex(graph string, id string) (*Vertex, error) {
 }
 
 // Traversal runs a graph traversal query
-func (client Client) Traversal(query *GraphQuery) (chan *QueryResult, error) {
+func (client Client) Traversal(ctx context.Context, query *GraphQuery) (chan *QueryResult, error) {
 	out := make(chan *QueryResult, 100)
-	tclient, err := client.QueryC.Traversal(context.Background(), query)
+	tclient, err := client.QueryC.Traversal(ctx, query)
 	if err != nil {
 		return nil, err
 	}

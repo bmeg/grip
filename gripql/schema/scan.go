@@ -1,6 +1,7 @@
 package schema
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/bmeg/grip/gripql"
@@ -42,7 +43,7 @@ func ScanSchema(conn gripql.Client, graph string, sampleCount uint32, exclude []
 		schema := map[string]interface{}{}
 		log.Infof("Scanning %s\n", label)
 		nodeQuery := gripql.V().HasLabel(label).Limit(sampleCount)
-		nodeRes, err := conn.Traversal(&gripql.GraphQuery{Graph: graph, Query: nodeQuery.Statements})
+		nodeRes, err := conn.Traversal(context.Background(), &gripql.GraphQuery{Graph: graph, Query: nodeQuery.Statements})
 		if err == nil {
 			for row := range nodeRes {
 				v := row.GetVertex()
@@ -67,7 +68,7 @@ func ScanSchema(conn gripql.Client, graph string, sampleCount uint32, exclude []
 		}
 		log.Infof("Scanning edge %s\n", elabel)
 		edgeQuery := gripql.E().HasLabel(elabel).Limit(sampleCount).As("edge").Out().Fields().As("to").Select("edge").In().Fields().As("from").Select("edge", "from", "to")
-		edgeRes, err := conn.Traversal(&gripql.GraphQuery{Graph: graph, Query: edgeQuery.Statements})
+		edgeRes, err := conn.Traversal(context.Background(), &gripql.GraphQuery{Graph: graph, Query: edgeQuery.Statements})
 		if err == nil {
 			labelSchema := edgeMap{}
 			for row := range edgeRes {

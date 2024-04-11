@@ -1,6 +1,7 @@
 package query
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 
@@ -67,7 +68,7 @@ Example:
 			return err
 		}
 
-		res, err := conn.Traversal(&query)
+		res, err := conn.Traversal(context.Background(), &query)
 		if err != nil {
 			return err
 		}
