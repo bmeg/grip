@@ -1,7 +1,6 @@
 package mongo
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/bmeg/grip/gripql"
@@ -23,7 +22,7 @@ func convertHasExpression(stmt *gripql.HasExpression, not bool) bson.M {
 			} else {
 				key := cond.Key
 				output = convertHasExpression(gripql.And(gripql.Gt(key, lims[0]), gripql.Lt(key, lims[1])), not)
-				fmt.Printf("inside: %#v\n", output)
+				//fmt.Printf("inside: %#v\n", output)
 			}
 
 		case gripql.Condition_OUTSIDE:
@@ -93,7 +92,7 @@ func convertCondition(cond *gripql.HasCondition, not bool) bson.M {
 
 	if valStr, ok := val.(string); ok {
 		if strings.HasPrefix(valStr, "$") {
-			val = ToPipelinePath(valStr)
+			val = "$" + ToPipelinePath(valStr)
 		}
 		log.Infof("mongo val str: %s(%s) -- %s(%s)", cond.Key, key, valStr, val)
 		isExpr = true

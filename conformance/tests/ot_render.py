@@ -52,12 +52,21 @@ def test_render(man):
 
 
 def test_render_mark(man):
+    """
+    test_render_mark check if various mark symbols are recalled correctly
+    """
     errors = []
 
     G = man.setGraph("swapi")
 
     query = G.query().V().hasLabel("Character").as_("char").out("starships").render(["$char.name", "$._gid", "$"])
     for row in query:
-        print(row)
+        if not isinstance(row[0], str):
+            errors.append("incorrect return type: %s", row[0])
+        if '_gid' not in row[2]:
+            errors.append("incorrect return type: %s", row[2])
+        if '_label' not in row[2]:
+            errors.append("incorrect return type: %s", row[2])
+        #print(row)
 
     return errors
