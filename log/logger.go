@@ -191,8 +191,8 @@ func (f *textFormatter) Format(entry *logrus.Entry) ([]byte, error) {
 
 		fmt.Fprintf(b, "%s%-20s %v\n", f.Indent, aurora.Colorize(k, levelColor), v)
 	}
-
-	b.WriteByte('\n')
+	b.WriteString("-=-=-\n")
+	//b.WriteByte('\n')
 	return b.Bytes(), nil
 }
 

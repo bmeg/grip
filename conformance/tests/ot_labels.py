@@ -6,7 +6,7 @@ def test_list_labels(man):
     G = man.setGraph("swapi")
 
     resp = G.listLabels()
-    print(resp)
+    #print(resp)
 
     if len(resp["vertexLabels"]) != 6:
         errors.append("listLabels returned an unexpected number of vertex labels; %d != 2" % (len(resp["vertex_labels"])))

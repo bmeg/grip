@@ -86,6 +86,8 @@ func NewGripServer(conf *config.Config, baseDir string, drivers map[string]gdbi.
 			g, err := StartDriver(dConfig, sources)
 			if err == nil {
 				gdbs[name] = g
+			} else {
+				log.Errorf("Driver start error: %s", err)
 			}
 		}
 	}
@@ -229,13 +231,14 @@ func (server *GripServer) Serve(pctx context.Context) error {
 			gripql.DirectUnaryInterceptor(unaryAuthInt),
 			gripql.DirectStreamInterceptor(streamAuthInt),
 		)
-		handler, err := setup(gripql.WrapClient(queryClient, writeClient, nil, nil))
+		cfg := endpointConfig[name]
+		handler, err := setup(gripql.WrapClient(queryClient, writeClient, nil, nil), cfg)
 		if err == nil {
 			log.Infof("Plugin added to /%s/", name)
 			prefix := fmt.Sprintf("/%s/", name)
 			mux.Handle(prefix, http.StripPrefix(prefix, handler))
 		} else {
-			log.Errorf("Unable to load plugin %s", name)
+			log.Errorf("Unable to load plugin %s: %s", name, err)
 		}
 	}
 
