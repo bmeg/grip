@@ -1,6 +1,7 @@
 package dump
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/bmeg/grip/gripql"
@@ -29,7 +30,7 @@ var Cmd = &cobra.Command{
 
 		if vertexDump {
 			q := gripql.V()
-			elems, err := conn.Traversal(&gripql.GraphQuery{Graph: graph, Query: q.Statements})
+			elems, err := conn.Traversal(context.Background(), &gripql.GraphQuery{Graph: graph, Query: q.Statements})
 			if err != nil {
 				return err
 			}
@@ -44,7 +45,7 @@ var Cmd = &cobra.Command{
 
 		if edgeDump {
 			q := gripql.E()
-			elems, err := conn.Traversal(&gripql.GraphQuery{Graph: graph, Query: q.Statements})
+			elems, err := conn.Traversal(context.Background(), &gripql.GraphQuery{Graph: graph, Query: q.Statements})
 			if err != nil {
 				return err
 			}

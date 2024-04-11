@@ -1,6 +1,8 @@
 package query
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
 
 	"github.com/bmeg/grip/gripql"
@@ -46,8 +48,7 @@ Example:
 			return err
 		}
 
-		log.Debugf("Query: %s\n", query.String())
-		res, err := conn.Traversal(query)
+		res, err := conn.Traversal(context.Background(), &query)
 		if err != nil {
 			log.Errorf("Traversal error: %s", err)
 			return err
