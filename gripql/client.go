@@ -36,13 +36,12 @@ func Connect(conf rpc.Config, write bool) (Client, error) {
 	if write {
 		editOut = NewEditClient(conn)
 		jobOut = NewJobClient(conn)
-
 	}
 	return Client{queryOut, editOut, jobOut, nil, conn}, nil
 }
 
 func (client Client) WithConfigureAPI() Client {
-	return Client{client.QueryC, client.EditC, nil, NewConfigureClient(client.conn), client.conn}
+	return Client{client.QueryC, client.EditC, client.JobC, NewConfigureClient(client.conn), client.conn}
 }
 
 // Close the connection
@@ -244,11 +243,9 @@ func (client Client) ListJobs(graph string) ([]*QueryJob, error) {
 	return out, nil
 }
 
-/*
 func (client Client) SearchJobs(in *GraphQuery, opts ...grpc.CallOption) (Job_SearchJobsClient, error) {
-
+	return client.JobC.SearchJobs(context.Background(), in)
 }
-*/
 
 func (client Client) Submit(query *GraphQuery) (*QueryJob, error) {
 	return client.JobC.Submit(context.Background(), query)
