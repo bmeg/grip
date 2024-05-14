@@ -231,8 +231,19 @@ func (server *GripServer) Serve(pctx context.Context) error {
 			gripql.DirectUnaryInterceptor(unaryAuthInt),
 			gripql.DirectStreamInterceptor(streamAuthInt),
 		)
+		jobClient := gripql.NewJobDirectClient(
+			server,
+			gripql.DirectUnaryInterceptor(unaryAuthInt),
+			gripql.DirectStreamInterceptor(streamAuthInt),
+		)
+		configureClient := gripql.NewConfigureDirectClient(
+			server,
+			gripql.DirectUnaryInterceptor(unaryAuthInt),
+			gripql.DirectStreamInterceptor(streamAuthInt),
+		)
+
 		cfg := endpointConfig[name]
-		handler, err := setup(gripql.WrapClient(queryClient, writeClient, nil, nil), cfg)
+		handler, err := setup(gripql.WrapClient(queryClient, writeClient, jobClient, configureClient), cfg)
 		if err == nil {
 			log.Infof("Plugin added to /%s/", name)
 			prefix := fmt.Sprintf("/%s/", name)
