@@ -216,6 +216,9 @@ func StatementProcessor(
 	case *gripql.GraphStatement_Unwind:
 		return sc.Unwind(stmt, ps)
 
+	case *gripql.GraphStatement_FlatMap:
+		return sc.FlatMap(stmt, ps)
+
 	case *gripql.GraphStatement_Fields:
 		if ps.LastType != VertexData && ps.LastType != EdgeData {
 			return nil, fmt.Errorf(`"fields" statement is only valid for edge or vertex types not: %s`, ps.LastType.String())
