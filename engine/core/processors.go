@@ -433,6 +433,49 @@ func (r *Render) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, 
 
 ////////////////////////////////////////////////////////////////////////////////
 
+// Render takes current state and renders into requested structure
+type Pivot struct {
+	stmt *gripql.PivotStep
+}
+
+// Process runs the pivot processor
+func (r *Pivot) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
+	go func() {
+		defer close(out)
+		pivotMap := map[string]map[string]any{}
+		fmt.Printf("Doing Pivot %#v\n", r.stmt)
+		for t := range in {
+			if t.IsSignal() {
+				out <- t
+				continue
+			}
+			fmt.Printf("Checking %#v\n", t.GetCurrent())
+			id := gdbi.TravelerPathLookup(t, r.stmt.Id)
+			if idStr, ok := id.(string); ok {
+				field := gdbi.TravelerPathLookup(t, r.stmt.Field)
+				if fieldStr, ok := field.(string); ok {
+					value := gdbi.TravelerPathLookup(t, r.stmt.Value)
+					if o, ok := pivotMap[idStr]; ok {
+						o[fieldStr] = value
+						pivotMap[idStr] = o
+					} else {
+						o := map[string]any{fieldStr: value}
+						pivotMap[idStr] = o
+					}
+				}
+			}
+		}
+		fmt.Printf("Finished Pivot: %#v\n", pivotMap)
+		for k, v := range pivotMap {
+			v["_id"] = k
+			out <- &gdbi.BaseTraveler{Render: v}
+		}
+	}()
+	return ctx
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
 // Path tells system to return path data
 type Path struct {
 	Template interface{} //this isn't really used yet.

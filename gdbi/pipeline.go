@@ -76,6 +76,8 @@ type StatementCompiler interface {
 	Select(gs *gripql.GraphStatement_Select, ps *State) (Processor, error)
 
 	Render(gs *gripql.GraphStatement_Render, ps *State) (Processor, error)
+	Pivot(gs *gripql.GraphStatement_Pivot, ps *State) (Processor, error)
+
 	Path(gs *gripql.GraphStatement_Path, ps *State) (Processor, error)
 	Unwind(gs *gripql.GraphStatement_Unwind, ps *State) (Processor, error)
 	Fields(gs *gripql.GraphStatement_Fields, ps *State) (Processor, error)
