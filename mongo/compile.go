@@ -643,6 +643,13 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement, opts *gdbi.Compile
 			procs = append(procs, &core.Render{Template: stmt.Render.AsInterface()})
 			lastType = gdbi.RenderData
 
+		case *gripql.GraphStatement_Pivot:
+			if lastType != gdbi.VertexData && lastType != gdbi.EdgeData {
+				return &Pipeline{}, fmt.Errorf(`"pivot" statement is only valid for edge or vertex types not: %s`, lastType.String())
+			}
+			procs = append(procs, &core.Pivot{Stmt: stmt.Pivot})
+			lastType = gdbi.RenderData
+
 		case *gripql.GraphStatement_Path:
 			if lastType != gdbi.VertexData && lastType != gdbi.EdgeData {
 				return &Pipeline{}, fmt.Errorf(`"path" statement is only valid for edge or vertex types not: %s`, lastType.String())
