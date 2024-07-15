@@ -1,6 +1,8 @@
 module github.com/bmeg/grip
 
-go 1.18
+go 1.21
+
+toolchain go1.21.5
 
 require (
 	github.com/Shopify/sarama v1.22.1
@@ -41,7 +43,7 @@ require (
 	github.com/sirupsen/logrus v1.9.0
 	github.com/spf13/cast v1.3.0
 	github.com/spf13/cobra v1.0.1-0.20201006035406-b97b5ead31f7
-	github.com/stretchr/testify v1.8.2
+	github.com/stretchr/testify v1.9.0
 	github.com/syndtr/goleveldb v1.0.0
 	go.mongodb.org/mongo-driver v1.12.0
 	golang.org/x/crypto v0.18.0
@@ -110,6 +112,9 @@ require (
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/montanaflynn/stats v0.0.0-20171201202039-1bf9dbcd8cbe // indirect
 	github.com/oklog/run v1.0.0 // indirect
+	github.com/opensearch-project/opensearch-go v1.1.0 // indirect
+	github.com/opensearch-project/opensearch-go/v2 v2.3.0 // indirect
+	github.com/opensearch-project/opensearch-go/v4 v4.0.0 // indirect
 	github.com/pierrec/lz4 v0.0.0-20190327172049-315a67e90e41 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
@@ -126,7 +131,7 @@ require (
 	github.com/xdg-go/stringprep v1.0.4 // indirect
 	github.com/youmark/pkcs8 v0.0.0-20201027041543-1326539a0a0a // indirect
 	go.opencensus.io v0.24.0 // indirect
-	golang.org/x/exp v0.0.0-20200513190911-00229845015e // indirect
+	golang.org/x/exp v0.0.0-20231006140011-7918f672742d // indirect
 	golang.org/x/oauth2 v0.16.0 // indirect
 	golang.org/x/sys v0.16.0 // indirect
 	golang.org/x/term v0.16.0 // indirect
