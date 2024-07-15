@@ -108,7 +108,7 @@ func stringClean(cMap map[string]string, s string) string {
 	return s
 }
 
-//LoadRDFCmd is the main command line for loading RDF data
+// LoadRDFCmd is the main command line for loading RDF data
 func LoadRDFCmd(cmd *cobra.Command, args []string) error {
 	graph = args[0]
 	log.Infof("Loading data into graph: %s", graph)

@@ -35,11 +35,7 @@ func request_Query_Traversal_0(ctx context.Context, marshaler runtime.Marshaler,
 	var protoReq GraphQuery
 	var metadata runtime.ServerMetadata
 
-	newReader, berr := utilities.IOReaderFactory(req.Body)
-	if berr != nil {
-		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", berr)
-	}
-	if err := marshaler.NewDecoder(newReader()).Decode(&protoReq); err != nil && err != io.EOF {
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
 
@@ -516,11 +512,7 @@ func request_Job_Submit_0(ctx context.Context, marshaler runtime.Marshaler, clie
 	var protoReq GraphQuery
 	var metadata runtime.ServerMetadata
 
-	newReader, berr := utilities.IOReaderFactory(req.Body)
-	if berr != nil {
-		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", berr)
-	}
-	if err := marshaler.NewDecoder(newReader()).Decode(&protoReq); err != nil && err != io.EOF {
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
 
@@ -550,11 +542,7 @@ func local_request_Job_Submit_0(ctx context.Context, marshaler runtime.Marshaler
 	var protoReq GraphQuery
 	var metadata runtime.ServerMetadata
 
-	newReader, berr := utilities.IOReaderFactory(req.Body)
-	if berr != nil {
-		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", berr)
-	}
-	if err := marshaler.NewDecoder(newReader()).Decode(&protoReq); err != nil && err != io.EOF {
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
 
@@ -618,11 +606,7 @@ func request_Job_SearchJobs_0(ctx context.Context, marshaler runtime.Marshaler, 
 	var protoReq GraphQuery
 	var metadata runtime.ServerMetadata
 
-	newReader, berr := utilities.IOReaderFactory(req.Body)
-	if berr != nil {
-		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", berr)
-	}
-	if err := marshaler.NewDecoder(newReader()).Decode(&protoReq); err != nil && err != io.EOF {
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
 
@@ -804,11 +788,7 @@ func request_Job_ViewJob_0(ctx context.Context, marshaler runtime.Marshaler, cli
 	var protoReq QueryJob
 	var metadata runtime.ServerMetadata
 
-	newReader, berr := utilities.IOReaderFactory(req.Body)
-	if berr != nil {
-		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", berr)
-	}
-	if err := marshaler.NewDecoder(newReader()).Decode(&protoReq); err != nil && err != io.EOF {
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
 
@@ -856,11 +836,7 @@ func request_Job_ResumeJob_0(ctx context.Context, marshaler runtime.Marshaler, c
 	var protoReq ExtendQuery
 	var metadata runtime.ServerMetadata
 
-	newReader, berr := utilities.IOReaderFactory(req.Body)
-	if berr != nil {
-		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", berr)
-	}
-	if err := marshaler.NewDecoder(newReader()).Decode(&protoReq); err != nil && err != io.EOF {
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
 
@@ -902,11 +878,7 @@ func request_Edit_AddVertex_0(ctx context.Context, marshaler runtime.Marshaler, 
 	var protoReq GraphElement
 	var metadata runtime.ServerMetadata
 
-	newReader, berr := utilities.IOReaderFactory(req.Body)
-	if berr != nil {
-		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", berr)
-	}
-	if err := marshaler.NewDecoder(newReader()).Decode(&protoReq.Vertex); err != nil && err != io.EOF {
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq.Vertex); err != nil && err != io.EOF {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
 
@@ -943,11 +915,7 @@ func local_request_Edit_AddVertex_0(ctx context.Context, marshaler runtime.Marsh
 	var protoReq GraphElement
 	var metadata runtime.ServerMetadata
 
-	newReader, berr := utilities.IOReaderFactory(req.Body)
-	if berr != nil {
-		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", berr)
-	}
-	if err := marshaler.NewDecoder(newReader()).Decode(&protoReq.Vertex); err != nil && err != io.EOF {
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq.Vertex); err != nil && err != io.EOF {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
 
@@ -988,11 +956,7 @@ func request_Edit_AddEdge_0(ctx context.Context, marshaler runtime.Marshaler, cl
 	var protoReq GraphElement
 	var metadata runtime.ServerMetadata
 
-	newReader, berr := utilities.IOReaderFactory(req.Body)
-	if berr != nil {
-		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", berr)
-	}
-	if err := marshaler.NewDecoder(newReader()).Decode(&protoReq.Edge); err != nil && err != io.EOF {
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq.Edge); err != nil && err != io.EOF {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
 
@@ -1029,11 +993,7 @@ func local_request_Edit_AddEdge_0(ctx context.Context, marshaler runtime.Marshal
 	var protoReq GraphElement
 	var metadata runtime.ServerMetadata
 
-	newReader, berr := utilities.IOReaderFactory(req.Body)
-	if berr != nil {
-		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", berr)
-	}
-	if err := marshaler.NewDecoder(newReader()).Decode(&protoReq.Edge); err != nil && err != io.EOF {
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq.Edge); err != nil && err != io.EOF {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
 
@@ -1070,7 +1030,7 @@ func request_Edit_BulkAdd_0(ctx context.Context, marshaler runtime.Marshaler, cl
 	var metadata runtime.ServerMetadata
 	stream, err := client.BulkAdd(ctx)
 	if err != nil {
-		grpclog.Infof("Failed to start streaming: %v", err)
+		grpclog.Errorf("Failed to start streaming: %v", err)
 		return nil, metadata, err
 	}
 	dec := marshaler.NewDecoder(req.Body)
@@ -1081,25 +1041,25 @@ func request_Edit_BulkAdd_0(ctx context.Context, marshaler runtime.Marshaler, cl
 			break
 		}
 		if err != nil {
-			grpclog.Infof("Failed to decode request: %v", err)
+			grpclog.Errorf("Failed to decode request: %v", err)
 			return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 		}
 		if err = stream.Send(&protoReq); err != nil {
 			if err == io.EOF {
 				break
 			}
-			grpclog.Infof("Failed to send request: %v", err)
+			grpclog.Errorf("Failed to send request: %v", err)
 			return nil, metadata, err
 		}
 	}
 
 	if err := stream.CloseSend(); err != nil {
-		grpclog.Infof("Failed to terminate client stream: %v", err)
+		grpclog.Errorf("Failed to terminate client stream: %v", err)
 		return nil, metadata, err
 	}
 	header, err := stream.Header()
 	if err != nil {
-		grpclog.Infof("Failed to get header from client: %v", err)
+		grpclog.Errorf("Failed to get header from client: %v", err)
 		return nil, metadata, err
 	}
 	metadata.HeaderMD = header
@@ -1362,11 +1322,7 @@ func request_Edit_AddIndex_0(ctx context.Context, marshaler runtime.Marshaler, c
 	var protoReq IndexID
 	var metadata runtime.ServerMetadata
 
-	newReader, berr := utilities.IOReaderFactory(req.Body)
-	if berr != nil {
-		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", berr)
-	}
-	if err := marshaler.NewDecoder(newReader()).Decode(&protoReq); err != nil && err != io.EOF {
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
 
@@ -1406,11 +1362,7 @@ func local_request_Edit_AddIndex_0(ctx context.Context, marshaler runtime.Marsha
 	var protoReq IndexID
 	var metadata runtime.ServerMetadata
 
-	newReader, berr := utilities.IOReaderFactory(req.Body)
-	if berr != nil {
-		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", berr)
-	}
-	if err := marshaler.NewDecoder(newReader()).Decode(&protoReq); err != nil && err != io.EOF {
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
 
@@ -1542,11 +1494,7 @@ func request_Edit_AddSchema_0(ctx context.Context, marshaler runtime.Marshaler, 
 	var protoReq Graph
 	var metadata runtime.ServerMetadata
 
-	newReader, berr := utilities.IOReaderFactory(req.Body)
-	if berr != nil {
-		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", berr)
-	}
-	if err := marshaler.NewDecoder(newReader()).Decode(&protoReq); err != nil && err != io.EOF {
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
 
@@ -1576,11 +1524,7 @@ func local_request_Edit_AddSchema_0(ctx context.Context, marshaler runtime.Marsh
 	var protoReq Graph
 	var metadata runtime.ServerMetadata
 
-	newReader, berr := utilities.IOReaderFactory(req.Body)
-	if berr != nil {
-		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", berr)
-	}
-	if err := marshaler.NewDecoder(newReader()).Decode(&protoReq); err != nil && err != io.EOF {
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
 
@@ -1662,11 +1606,7 @@ func request_Edit_AddMapping_0(ctx context.Context, marshaler runtime.Marshaler,
 	var protoReq Graph
 	var metadata runtime.ServerMetadata
 
-	newReader, berr := utilities.IOReaderFactory(req.Body)
-	if berr != nil {
-		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", berr)
-	}
-	if err := marshaler.NewDecoder(newReader()).Decode(&protoReq); err != nil && err != io.EOF {
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
 
@@ -1696,11 +1636,7 @@ func local_request_Edit_AddMapping_0(ctx context.Context, marshaler runtime.Mars
 	var protoReq Graph
 	var metadata runtime.ServerMetadata
 
-	newReader, berr := utilities.IOReaderFactory(req.Body)
-	if berr != nil {
-		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", berr)
-	}
-	if err := marshaler.NewDecoder(newReader()).Decode(&protoReq); err != nil && err != io.EOF {
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
 
@@ -1730,11 +1666,7 @@ func request_Configure_StartPlugin_0(ctx context.Context, marshaler runtime.Mars
 	var protoReq PluginConfig
 	var metadata runtime.ServerMetadata
 
-	newReader, berr := utilities.IOReaderFactory(req.Body)
-	if berr != nil {
-		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", berr)
-	}
-	if err := marshaler.NewDecoder(newReader()).Decode(&protoReq); err != nil && err != io.EOF {
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
 
@@ -1764,11 +1696,7 @@ func local_request_Configure_StartPlugin_0(ctx context.Context, marshaler runtim
 	var protoReq PluginConfig
 	var metadata runtime.ServerMetadata
 
-	newReader, berr := utilities.IOReaderFactory(req.Body)
-	if berr != nil {
-		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", berr)
-	}
-	if err := marshaler.NewDecoder(newReader()).Decode(&protoReq); err != nil && err != io.EOF {
+	if err := marshaler.NewDecoder(req.Body).Decode(&protoReq); err != nil && err != io.EOF {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
 
@@ -2543,21 +2471,21 @@ func RegisterConfigureHandlerServer(ctx context.Context, mux *runtime.ServeMux, 
 // RegisterQueryHandlerFromEndpoint is same as RegisterQueryHandler but
 // automatically dials to "endpoint" and closes the connection when "ctx" gets done.
 func RegisterQueryHandlerFromEndpoint(ctx context.Context, mux *runtime.ServeMux, endpoint string, opts []grpc.DialOption) (err error) {
-	conn, err := grpc.Dial(endpoint, opts...)
+	conn, err := grpc.NewClient(endpoint, opts...)
 	if err != nil {
 		return err
 	}
 	defer func() {
 		if err != nil {
 			if cerr := conn.Close(); cerr != nil {
-				grpclog.Infof("Failed to close conn to %s: %v", endpoint, cerr)
+				grpclog.Errorf("Failed to close conn to %s: %v", endpoint, cerr)
 			}
 			return
 		}
 		go func() {
 			<-ctx.Done()
 			if cerr := conn.Close(); cerr != nil {
-				grpclog.Infof("Failed to close conn to %s: %v", endpoint, cerr)
+				grpclog.Errorf("Failed to close conn to %s: %v", endpoint, cerr)
 			}
 		}()
 	}()
@@ -2848,21 +2776,21 @@ var (
 // RegisterJobHandlerFromEndpoint is same as RegisterJobHandler but
 // automatically dials to "endpoint" and closes the connection when "ctx" gets done.
 func RegisterJobHandlerFromEndpoint(ctx context.Context, mux *runtime.ServeMux, endpoint string, opts []grpc.DialOption) (err error) {
-	conn, err := grpc.Dial(endpoint, opts...)
+	conn, err := grpc.NewClient(endpoint, opts...)
 	if err != nil {
 		return err
 	}
 	defer func() {
 		if err != nil {
 			if cerr := conn.Close(); cerr != nil {
-				grpclog.Infof("Failed to close conn to %s: %v", endpoint, cerr)
+				grpclog.Errorf("Failed to close conn to %s: %v", endpoint, cerr)
 			}
 			return
 		}
 		go func() {
 			<-ctx.Done()
 			if cerr := conn.Close(); cerr != nil {
-				grpclog.Infof("Failed to close conn to %s: %v", endpoint, cerr)
+				grpclog.Errorf("Failed to close conn to %s: %v", endpoint, cerr)
 			}
 		}()
 	}()
@@ -3075,21 +3003,21 @@ var (
 // RegisterEditHandlerFromEndpoint is same as RegisterEditHandler but
 // automatically dials to "endpoint" and closes the connection when "ctx" gets done.
 func RegisterEditHandlerFromEndpoint(ctx context.Context, mux *runtime.ServeMux, endpoint string, opts []grpc.DialOption) (err error) {
-	conn, err := grpc.Dial(endpoint, opts...)
+	conn, err := grpc.NewClient(endpoint, opts...)
 	if err != nil {
 		return err
 	}
 	defer func() {
 		if err != nil {
 			if cerr := conn.Close(); cerr != nil {
-				grpclog.Infof("Failed to close conn to %s: %v", endpoint, cerr)
+				grpclog.Errorf("Failed to close conn to %s: %v", endpoint, cerr)
 			}
 			return
 		}
 		go func() {
 			<-ctx.Done()
 			if cerr := conn.Close(); cerr != nil {
-				grpclog.Infof("Failed to close conn to %s: %v", endpoint, cerr)
+				grpclog.Errorf("Failed to close conn to %s: %v", endpoint, cerr)
 			}
 		}()
 	}()
@@ -3432,21 +3360,21 @@ var (
 // RegisterConfigureHandlerFromEndpoint is same as RegisterConfigureHandler but
 // automatically dials to "endpoint" and closes the connection when "ctx" gets done.
 func RegisterConfigureHandlerFromEndpoint(ctx context.Context, mux *runtime.ServeMux, endpoint string, opts []grpc.DialOption) (err error) {
-	conn, err := grpc.Dial(endpoint, opts...)
+	conn, err := grpc.NewClient(endpoint, opts...)
 	if err != nil {
 		return err
 	}
 	defer func() {
 		if err != nil {
 			if cerr := conn.Close(); cerr != nil {
-				grpclog.Infof("Failed to close conn to %s: %v", endpoint, cerr)
+				grpclog.Errorf("Failed to close conn to %s: %v", endpoint, cerr)
 			}
 			return
 		}
 		go func() {
 			<-ctx.Done()
 			if cerr := conn.Close(); cerr != nil {
-				grpclog.Infof("Failed to close conn to %s: %v", endpoint, cerr)
+				grpclog.Errorf("Failed to close conn to %s: %v", endpoint, cerr)
 			}
 		}()
 	}()
