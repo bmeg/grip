@@ -73,7 +73,10 @@ func (pdb *PebbleKV) DeletePrefix(prefix []byte) error {
 	for found := true; found; {
 		found = false
 		wb := make([][]byte, 0, deleteBlockSize)
-		it := pdb.db.NewIter(&pebble.IterOptions{LowerBound: prefix})
+		it, err := pdb.db.NewIter(&pebble.IterOptions{LowerBound: prefix})
+		if err != nil {
+			return err
+		}
 		for ; it.Valid() && bytes.HasPrefix(it.Key(), prefix) && len(wb) < deleteBlockSize-1; it.Next() {
 			wb = append(wb, copyBytes(it.Key()))
 		}
@@ -105,9 +108,12 @@ func (pdb *PebbleKV) Set(id []byte, val []byte) error {
 }
 
 func (pdb *PebbleKV) View(u func(it kvi.KVIterator) error) error {
-	it := pdb.db.NewIter(&pebble.IterOptions{})
+	it, err := pdb.db.NewIter(&pebble.IterOptions{})
+	if err != nil {
+		return err
+	}
 	pit := &pebbleIterator{pdb.db, it, true, nil, nil}
-	err := u(pit)
+	err = u(pit)
 	it.Close()
 	return err
 }
@@ -145,9 +151,12 @@ func (ptx pebbleTransaction) Delete(id []byte) error {
 }
 
 func (ptx pebbleTransaction) View(u func(it kvi.KVIterator) error) error {
-	it := ptx.db.NewIter(&pebble.IterOptions{})
+	it, err := ptx.db.NewIter(&pebble.IterOptions{})
+	if err != nil {
+		return err
+	}
 	pit := &pebbleIterator{ptx.db, it, true, nil, nil}
-	err := u(pit)
+	err = u(pit)
 	it.Close()
 	return err
 }
