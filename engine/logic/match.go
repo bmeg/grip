@@ -17,10 +17,22 @@ func MatchesCondition(trav gdbi.Traveler, cond *gripql.HasCondition) bool {
 	val = gdbi.TravelerPathLookup(trav, cond.Key)
 	condVal = cond.Value.AsInterface()
 
-	// If not looking for nil, but nil is found, return false.
-	if val == nil && condVal != nil {
+	/*  If not looking for nil, but nil is found
+	and not trying to do a Boolean operation on non numeric data return false.
+	Had to add in bool comparison to pass
+	TestEngine/_V_HasLabel_users_Has_details_=_string_value:"\"sex\"=>\"M\""_Count#01
+	unit test.
+	*/
+	log.Debug("val: ", val, "condVal: ", condVal)
+	if val == nil && condVal != nil &&
+		cond.Condition != gripql.Condition_EQ &&
+		cond.Condition != gripql.Condition_NEQ &&
+		cond.Condition != gripql.Condition_WITHIN &&
+		cond.Condition != gripql.Condition_WITHOUT &&
+		cond.Condition != gripql.Condition_CONTAINS {
 		return false
 	}
+
 	log.Debugf("match: %s %s %s", condVal, val, cond.Key)
 
 	switch cond.Condition {
@@ -31,6 +43,9 @@ func MatchesCondition(trav gdbi.Traveler, cond *gripql.HasCondition) bool {
 		return !reflect.DeepEqual(val, condVal)
 
 	case gripql.Condition_GT:
+		if val == nil && condVal != nil {
+			return false
+		}
 		valN, err := cast.ToFloat64E(val)
 		if err != nil {
 			return false
@@ -53,9 +68,9 @@ func MatchesCondition(trav gdbi.Traveler, cond *gripql.HasCondition) bool {
 		return valN >= condN
 
 	case gripql.Condition_LT:
-		log.Debugf("match: %#v %#v %s", condVal, val, cond.Key)
+		//log.Debugf("match: %#v %#v %s", condVal, val, cond.Key)
 		valN, err := cast.ToFloat64E(val)
-		log.Debugf("CAST: ", valN, "ERROR: ", err)
+		//log.Debugf("CAST: ", valN, "ERROR: ", err)
 		if err != nil {
 			return false
 		}
