@@ -195,21 +195,42 @@ def test_has_gt(man):
     return errors
 
 
+def test_has_gt_nil(man):
+    """None, nil translates to 0 when refering to numeric values,
+    so this evaluates to return All characters with height value greater than 0"""
+    errors = []
+    G = man.setGraph("swapi")
+    count = 0
+    for i in G.query().V().has(gripql.gt("height", None)):
+        count += 1
+    if count != 18:
+        errors.append("Fail: G.query.V().has(gripql.gt(\"height\", None)) %s != %s" % (count, 18))
+
+    return errors
+
+
 def test_has_lt(man):
     errors = []
 
     G = man.setGraph("swapi")
 
     count = 0
+
     for i in G.query().V().has(gripql.lt("height", 97)):
         count += 1
+
         if i['gid'] not in ["Character:3"]:
             errors.append("Wrong vertex returned %s" % (i))
     if count != 1:
         errors.append(
             "Fail: G.query().V().has(gripql.lt(\"height\", 97)) %s != %s" %
             (count, 1))
+    return errors
 
+
+def test_has_lte(man):
+    errors = []
+    G = man.setGraph("swapi")
     count = 0
     for i in G.query().V().has(gripql.lte("height", 97)):
         count += 1
@@ -303,6 +324,8 @@ def test_has_within(man):
 
 
 def test_has_without(man):
+    """This test used to return all objects regardless of wether they were
+    characters or not. So the correct answer has changed. 18 characters - 4 that have brown eyes"""
     errors = []
 
     G = man.setGraph("swapi")
@@ -312,18 +335,18 @@ def test_has_without(man):
         count += 1
         if i['gid'] in ["Character:5", "Character:9", "Character:14", "Character:81"]:
             errors.append("Wrong vertex returned %s" % (i))
-    if count != 35:
+    if count != 14:
         errors.append(
             """Fail: V().has(gripql.without("eye_color", ["brown"])) %s != %s""" %
-            (count, 35))
+            (count, 14))
 
     count = 0
     for i in G.query().V().has(gripql.without("occupation", 0)):
         count += 1
-    if count != 39:
+    if count != 0:
         errors.append(
             "Fail: G.query().V().has(gripql.without(\"occupation\", 0)) %s != %s" %
-            (count, 39))
+            (count, 0))
 
     return errors
 
