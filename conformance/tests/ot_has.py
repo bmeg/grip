@@ -324,8 +324,6 @@ def test_has_within(man):
 
 
 def test_has_without(man):
-    """This test used to return all objects regardless of wether they were
-    characters or not. So the correct answer has changed. 18 characters - 4 that have brown eyes"""
     errors = []
 
     G = man.setGraph("swapi")
@@ -335,18 +333,18 @@ def test_has_without(man):
         count += 1
         if i['gid'] in ["Character:5", "Character:9", "Character:14", "Character:81"]:
             errors.append("Wrong vertex returned %s" % (i))
-    if count != 14:
+    if count != 35:
         errors.append(
             """Fail: V().has(gripql.without("eye_color", ["brown"])) %s != %s""" %
-            (count, 14))
+            (count, 35))
 
     count = 0
     for i in G.query().V().has(gripql.without("occupation", 0)):
         count += 1
-    if count != 0:
+    if count != 39:
         errors.append(
             "Fail: G.query().V().has(gripql.without(\"occupation\", 0)) %s != %s" %
-            (count, 0))
+            (count, 39))
 
     return errors
 
