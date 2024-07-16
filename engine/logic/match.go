@@ -17,6 +17,10 @@ func MatchesCondition(trav gdbi.Traveler, cond *gripql.HasCondition) bool {
 	val = gdbi.TravelerPathLookup(trav, cond.Key)
 	condVal = cond.Value.AsInterface()
 
+	// If not looking for nil, but nil is found, return false.
+	if val == nil && condVal != nil {
+		return false
+	}
 	log.Debugf("match: %s %s %s", condVal, val, cond.Key)
 
 	switch cond.Condition {
@@ -49,7 +53,9 @@ func MatchesCondition(trav gdbi.Traveler, cond *gripql.HasCondition) bool {
 		return valN >= condN
 
 	case gripql.Condition_LT:
+		log.Debugf("match: %#v %#v %s", condVal, val, cond.Key)
 		valN, err := cast.ToFloat64E(val)
+		log.Debugf("CAST: ", valN, "ERROR: ", err)
 		if err != nil {
 			return false
 		}
@@ -218,6 +224,7 @@ func MatchesHasExpression(trav gdbi.Traveler, stmt *gripql.HasExpression) bool {
 	switch stmt.Expression.(type) {
 	case *gripql.HasExpression_Condition:
 		cond := stmt.GetCondition()
+		log.Debug("COND: ", cond)
 		return MatchesCondition(trav, cond)
 
 	case *gripql.HasExpression_And:
