@@ -43,9 +43,6 @@ func MatchesCondition(trav gdbi.Traveler, cond *gripql.HasCondition) bool {
 		return !reflect.DeepEqual(val, condVal)
 
 	case gripql.Condition_GT:
-		if val == nil && condVal != nil {
-			return false
-		}
 		valN, err := cast.ToFloat64E(val)
 		if err != nil {
 			return false
