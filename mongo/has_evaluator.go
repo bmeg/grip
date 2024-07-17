@@ -86,7 +86,7 @@ func convertCondition(cond *gripql.HasCondition, not bool) bson.M {
 	var key string
 	var val interface{}
 	key = ToPipelinePath(cond.Key)
-	val = cond.Value.AsInterface
+	val = cond.Value.AsInterface()
 	// Adds new behavior in float64 type casting that casts nil values to 0
 	if val == nil &&
 		cond.Condition != gripql.Condition_EQ &&
