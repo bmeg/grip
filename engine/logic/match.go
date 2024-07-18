@@ -17,14 +17,9 @@ func MatchesCondition(trav gdbi.Traveler, cond *gripql.HasCondition) bool {
 	val = gdbi.TravelerPathLookup(trav, cond.Key)
 	condVal = cond.Value.AsInterface()
 
-	/*  If not looking for nil, but nil is found
-	and not trying to do a Boolean operation on non numeric data return false.
-	Had to add in bool comparison to pass
-	TestEngine/_V_HasLabel_users_Has_details_=_string_value:"\"sex\"=>\"M\""_Count#01
-	unit test.
-	*/
+	//If filtering on nil or no match was found on float64 casting operators return false
 	log.Debug("val: ", val, "condVal: ", condVal)
-	if val == nil && condVal != nil &&
+	if (val == nil || condVal == nil) &&
 		cond.Condition != gripql.Condition_EQ &&
 		cond.Condition != gripql.Condition_NEQ &&
 		cond.Condition != gripql.Condition_WITHIN &&
