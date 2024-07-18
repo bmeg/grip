@@ -195,6 +195,21 @@ def test_has_gt(man):
     return errors
 
 
+def test_has_eq_nil(man):
+    errors = []
+    G = man.setGraph("swapi")
+    count = 0
+    for i in G.query().V().has(gripql.eq("height", None)):
+        count += 1
+
+    if count != 21:
+        errors.append(
+            "Fail: G.query().V().has(gripql.eq(\"height\", None)) %s  != %s" %
+            (count, 21))
+
+    return errors
+
+
 def test_has_gt_nil(man):
     """None, nil translates to 0 when refering to numeric values,
     so this evaluates to return All characters with height value greater than 0"""
@@ -203,8 +218,8 @@ def test_has_gt_nil(man):
     count = 0
     for i in G.query().V().has(gripql.gt("height", None)):
         count += 1
-    if count != 18:
-        errors.append("Fail: G.query.V().has(gripql.gt(\"height\", None)) %s != %s" % (count, 18))
+    if count != 0:
+        errors.append("Fail: G.query.V().has(gripql.gt(\"height\", None)) %s != %s" % (count, 0))
 
     return errors
 
