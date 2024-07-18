@@ -4,24 +4,24 @@ import (
 	"bytes"
 )
 
-//Fields
-//key: f | field
-//val:
+// Fields
+// key: f | field
+// val:
 var idxFieldPrefix = []byte("f")
 
-//Terms
-//key: t | field | TermType | term
-//val: count
+// Terms
+// key: t | field | TermType | term
+// val: count
 var idxTermPrefix = []byte("t")
 
-//Entries
-//key: i | field | TermType | term | docid
-//val:
+// Entries
+// key: i | field | TermType | term | docid
+// val:
 var idxEntryPrefix = []byte("i")
 
-//Docs
-//key: d | docid
-//val: Doc entry list
+// Docs
+// key: d | docid
+// val: Doc entry list
 var idxDocPrefix = []byte("D")
 
 // FieldPrefix returns the byte array prefix for all graph entry keys

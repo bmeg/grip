@@ -87,6 +87,7 @@ func convertCondition(cond *gripql.HasCondition, not bool) bson.M {
 	var val interface{}
 	key = ToPipelinePath(cond.Key)
 	val = cond.Value.AsInterface()
+
 	expr := bson.M{}
 	switch cond.Condition {
 	case gripql.Condition_EQ:

@@ -66,11 +66,12 @@ proto:
 
 proto-depends:
 	@git submodule update --init --recursive
-	@go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-grpc-gateway@v2.11.1
-	@go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2@v2.11.1
-	@go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.28.1
+	@go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-grpc-gateway@latest
+	@go install github.com/akuity/grpc-gateway-client/protoc-gen-grpc-gateway-client
+	@go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2@latest
+	@go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.34.2
 	@go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
-	@go install github.com/ckaznocha/protoc-gen-lint@v0.2.4
+	@go install github.com/ckaznocha/protoc-gen-lint@latest
 	@go install github.com/bmeg/protoc-gen-grpc-rest-direct@latest
 	@go install github.com/ckaznocha/protoc-gen-lint@latest
 
@@ -91,7 +92,7 @@ lint:
 	flake8 gripql/python/ conformance/
 
 lint-depends:
-	go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.35.2
+	go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.59.1
 	go install golang.org/x/tools/cmd/goimports
 
 # ---------------------
