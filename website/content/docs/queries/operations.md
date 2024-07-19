@@ -253,6 +253,26 @@ Returns the data type of requested field. For the python client, if `field` is n
 Current returned types include `NUMERIC`, `STRING` and `UNKNOWN`. If a field is always null, or has multiple types, it will 
 be returned as `UNKNOWN`.
 
+## .pivot(gid, key, value)
+
+Aggregate fields across multiple records into a single record using a pivot operations. A pivot is 
+an operation where a two column matrix, with one columns for keys and another column for values, is 
+transformed so that the keys are used to name the columns and the values are put in those columns.
+So the stream of vertices:
+```
+{"_gid":"observation_a1", "_label":"Observation", "subject":"Alice", "key":"age", "value":36}
+{"_gid":"observation_a2", "_label":"Observation", "subject":"Alice", "key":"sex", "value":"Female"}
+{"_gid":"observation_a3", "_label":"Observation", "subject":"Alice", "key":"blood_pressure", "value":"111/78"}
+{"_gid":"observation_b1", "_label":"Observation", "subject":"Bob", "key":"age", "value":42}
+{"_gid":"observation_b2", "_label":"Observation", "subject":"Bob", "key":"sex", "value":"Male"}
+{"_gid":"observation_b3", "_label":"Observation", "subject":"Bob", "key":"blood_pressure", "value":"120/80"}
+```
+with `.pivot("_gid", "key", "value")` will produce:
+```
+{"age":36, "sex":"Female", "blood_pressure":"111/78"}
+{"age":42, "sex":"Male", "blood_pressure":"120/80"}
+```
+
 ## .count()
 Return the total count of returned edges/vertices.
 
