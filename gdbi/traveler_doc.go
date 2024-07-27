@@ -81,6 +81,8 @@ func TravelerPathLookup(traveler Traveler, path string) interface{} {
 		return doc
 	}
 	res, err := jsonpath.JsonPathLookup(doc, jpath)
+	log.Debug("field: ", field, "    jpath: ", jpath, "    namespace: ", namespace, "    doc: ", doc, "    res: ", res)
+
 	if err != nil {
 		return nil
 	}

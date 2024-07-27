@@ -1,18 +1,14 @@
 package jobstorage
 
 import (
-	"bytes"
 	"context"
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"math/rand"
 	"net/http"
-	"path/filepath"
-	"time"
 
 	"github.com/bmeg/grip/gripql"
-	"github.com/bmeg/grip/log"
 	opensearch "github.com/opensearch-project/opensearch-go/v4"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
 )
@@ -38,7 +34,7 @@ func NewOpenSearchStorage(addr string, username, password string) (JobStorage, e
 		return nil, err
 	}
 
-	resp, err := client.Indices.Exists([]string{OS_INDEX_LIST})
+	resp, err := client.Indices.Exists(context.Background(), opensearchapi.IndicesExistsReq{Indices: []string{OS_INDEX_LIST}})
 	if err != nil {
 		return nil, err
 	}
@@ -81,70 +77,24 @@ func (os *OpenSearchStorage) List(graph string) (chan string, error) {
 }
 
 func (os *OpenSearchStorage) Search(graph string, Query []*gripql.GraphStatement) (chan *gripql.JobStatus, error) {
-
+	return nil, nil
 }
 
 func (os *OpenSearchStorage) Spool(graph string, stream *Stream) (string, error) {
-
 	tableName := fmt.Sprintf("grip-table-%10d", rand.Int())
 
-	_, err := os.client.Indices.Create(context.Background(), opensearchapi.IndicesCreateReq{Index: tableName})
-	if err != nil {
-		return "", err
-	}
-
-	cs, _ := TraversalChecksum(stream.Query)
-	job := &Job{
-		Status:        gripql.JobStatus{Query: stream.Query, Id: tableName, Graph: graph, Timestamp: time.Now().Format(time.RFC3339)},
-		DataType:      stream.DataType,
-		MarkTypes:     stream.MarkTypes,
-		StepChecksums: cs,
-	}
-
-	//fs.jobs.Store(jobKey(graph, tableName), job)
-
-	ctx := context.Background()
-
-	tbStream := MarshalStream(stream.Pipe, 4) //TODO: make worker count configurable
-	go func() {
-		job.Status.State = gripql.JobState_RUNNING
-		log.Infof("Starting Job: %#v", job)
-		//TODO: this could probably be accelerated using bulk insert
-		for i := range tbStream {
-			os.client.Index(ctx,
-				opensearchapi.IndexReq{
-					Index: tableName,
-					Body:  bytes.NewReader(i),
-				})
-			job.Status.Count += 1
-		}
-		statusPath := filepath.Join(spoolDir, "status")
-		statusFile, err := os.Create(statusPath)
-		if err == nil {
-			defer statusFile.Close()
-			job.Status.State = gripql.JobState_COMPLETE
-			out, err := json.Marshal(job)
-			if err == nil {
-				statusFile.Write([]byte(fmt.Sprintf("%s\n", out)))
-			}
-			log.Infof("Job Done: %s (%d results)", jobName, job.Status.Count)
-		} else {
-			job.Status.State = gripql.JobState_ERROR
-			log.Infof("Job Error: %s %s", jobName, err)
-		}
-	}()
-	return jobName, nil
+	return tableName, nil
 
 }
 
 func (os *OpenSearchStorage) Stream(ctx context.Context, graph, id string) (*Stream, error) {
-
+	return nil, nil
 }
 
 func (os *OpenSearchStorage) Delete(graph, id string) error {
-
+	return nil
 }
 
 func (os *OpenSearchStorage) Status(graph, id string) (*gripql.JobStatus, error) {
-
+	return nil, nil
 }
