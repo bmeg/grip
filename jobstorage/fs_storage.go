@@ -11,38 +11,19 @@ import (
 	"sync"
 	"time"
 
-	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/log"
 
 	"github.com/kennygrant/sanitize"
 )
 
-type Stream struct {
-	Pipe      gdbi.InPipe
-	DataType  gdbi.DataType
-	MarkTypes map[string]gdbi.DataType
-	Query     []*gripql.GraphStatement
-}
-
-type JobStorage interface {
-	List(graph string) (chan string, error)
-	Search(graph string, Query []*gripql.GraphStatement) (chan *gripql.JobStatus, error)
-	Spool(graph string, stream *Stream) (string, error)
-	Stream(ctx context.Context, graph, id string) (*Stream, error)
-	Delete(graph, id string) error
-	Status(graph, id string) (*gripql.JobStatus, error)
-}
-
-type Job struct {
-	Status        gripql.JobStatus
-	DataType      gdbi.DataType
-	MarkTypes     map[string]gdbi.DataType
-	StepChecksums []string
-}
-
 func jobKey(graph, job string) string {
 	return fmt.Sprintf("%s/%s", sanitize.Name(graph), sanitize.Name(job))
+}
+
+type FSResults struct {
+	BaseDir string
+	jobs    *sync.Map
 }
 
 func NewFSJobStorage(path string) *FSResults {
@@ -77,11 +58,6 @@ func NewFSJobStorage(path string) *FSResults {
 		}
 	}
 	return &out
-}
-
-type FSResults struct {
-	BaseDir string
-	jobs    *sync.Map
 }
 
 func (fs *FSResults) List(graph string) (chan string, error) {
