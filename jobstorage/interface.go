@@ -22,10 +22,3 @@ type JobStorage interface {
 	Delete(graph, id string) error
 	Status(graph, id string) (*gripql.JobStatus, error)
 }
-
-type Job struct {
-	Status        gripql.JobStatus
-	DataType      gdbi.DataType
-	MarkTypes     map[string]gdbi.DataType
-	StepChecksums []string
-}

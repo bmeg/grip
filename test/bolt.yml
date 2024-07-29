@@ -3,3 +3,7 @@ Default: bolt
 Drivers:
   bolt:
     Bolt: grip-bolt.db
+
+Server:
+  JobsDriver:
+    File: jobs

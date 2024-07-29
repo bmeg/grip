@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/log"
 	opensearch "github.com/opensearch-project/opensearch-go/v4"
@@ -23,7 +24,17 @@ type OpenSearchStorage struct {
 
 var OS_INDEX_LIST string = "gripql-job-status"
 
+type OpenSearchJob struct {
+	Index         string
+	Graph         string
+	Status        gripql.JobStatus
+	DataType      gdbi.DataType
+	MarkTypes     map[string]gdbi.DataType
+	StepChecksums []string
+}
+
 func NewOpenSearchStorage(addr string, username, password string) (JobStorage, error) {
+	log.Infof("OpenSearch Job Storage: %s %s", addr, username)
 	client, err := opensearchapi.NewClient(opensearchapi.Config{
 		Client: opensearch.Config{
 			Transport: &http.Transport{
@@ -40,17 +51,19 @@ func NewOpenSearchStorage(addr string, username, password string) (JobStorage, e
 
 	resp, err := client.Indices.Exists(context.Background(), opensearchapi.IndicesExistsReq{Indices: []string{OS_INDEX_LIST}})
 	if err != nil {
-		return nil, err
-	}
-	if resp.StatusCode == 404 {
-		//Create the job list index if it doesn't exist
-		_, err := client.Indices.Create(context.Background(), opensearchapi.IndicesCreateReq{Index: OS_INDEX_LIST})
-		if err != nil {
+		if resp.StatusCode == 404 {
+			//Create the job list index if it doesn't exist
+			_, err := client.Indices.Create(context.Background(), opensearchapi.IndicesCreateReq{Index: OS_INDEX_LIST})
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			log.Errorf("Contact error: %s %#v", err, resp)
 			return nil, err
 		}
 	}
 	return &OpenSearchStorage{
-		client,
+		client: client,
 	}, nil
 }
 
@@ -62,17 +75,22 @@ func (os *OpenSearchStorage) List(graph string) (chan string, error) {
 			context.Background(),
 			&opensearchapi.SearchReq{
 				Indices: []string{OS_INDEX_LIST},
-				Params:  opensearchapi.SearchParams{},
+				Params: opensearchapi.SearchParams{
+					Query: fmt.Sprintf(`Graph: "%s"`, graph),
+				},
 			},
 		)
 		if err == nil {
 			for _, i := range searchResp.Hits.Hits {
-				d := map[string]string{}
-				json.Unmarshal(i.Fields, &d)
-				if x, ok := d["index"]; ok {
-					cout <- x
+				d := map[string]any{}
+				json.Unmarshal(i.Source, &d)
+				//log.Infof("Search response: %#v", d)
+				if x, ok := d["Index"]; ok {
+					cout <- x.(string)
 				}
 			}
+		} else {
+			log.Errorf("JobList error: %s", err)
 		}
 	}()
 	return cout, nil
@@ -82,27 +100,33 @@ func (os *OpenSearchStorage) Search(graph string, Query []*gripql.GraphStatement
 	return nil, nil
 }
 
-func (os *OpenSearchStorage) putJob(id string, job *Job) error {
-	_, err := os.client.Index(context.Background(), opensearchapi.IndexReq{
+func (os *OpenSearchStorage) putJob(id string, job *OpenSearchJob) error {
+	resp, err := os.client.Index(context.Background(), opensearchapi.IndexReq{
 		Index:      OS_INDEX_LIST,
 		DocumentID: id,
 		Body:       opensearchutil.NewJSONReader(job),
 	})
+	log.Infof("Job Index resp: %#v %s", resp, err)
 	return err
 }
 
 func (os *OpenSearchStorage) Spool(graph string, stream *Stream) (string, error) {
 	jobName := fmt.Sprintf("grip-%10d", rand.Int())
+	jobID := graph + "-" + jobName
 
 	cs, _ := TraversalChecksum(stream.Query)
-	job := &Job{
+	job := &OpenSearchJob{
+		Index:         jobID,
+		Graph:         graph,
 		Status:        gripql.JobStatus{Query: stream.Query, Id: jobName, Graph: graph, Timestamp: time.Now().Format(time.RFC3339)},
 		DataType:      stream.DataType,
 		MarkTypes:     stream.MarkTypes,
 		StepChecksums: cs,
 	}
-	jobID := jobKey(graph, jobName)
-	os.putJob(jobID, job)
+	err := os.putJob(jobID, job)
+	if err != nil {
+		return "", err
+	}
 	tbStream := MarshalStream(stream.Pipe, 4) //TODO: make worker count configurable
 	go func() {
 		job.Status.State = gripql.JobState_RUNNING
