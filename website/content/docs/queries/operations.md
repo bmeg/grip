@@ -267,10 +267,10 @@ So the stream of vertices:
 {"_gid":"observation_b2", "_label":"Observation", "subject":"Bob", "key":"sex", "value":"Male"}
 {"_gid":"observation_b3", "_label":"Observation", "subject":"Bob", "key":"blood_pressure", "value":"120/80"}
 ```
-with `.pivot("_gid", "key", "value")` will produce:
+with `.pivot("subject", "key", "value")` will produce:
 ```
-{"age":36, "sex":"Female", "blood_pressure":"111/78"}
-{"age":42, "sex":"Male", "blood_pressure":"120/80"}
+{"_id":"Alice", "age":36, "sex":"Female", "blood_pressure":"111/78"}
+{"_id":"Bob", "age":42, "sex":"Male", "blood_pressure":"120/80"}
 ```
 
 ## .count()
