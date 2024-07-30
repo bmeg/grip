@@ -12,3 +12,7 @@ Drivers:
 
 Sources:
   tableServer: localhost:50051
+
+Server:
+  JobsDriver:
+    File: jobs
