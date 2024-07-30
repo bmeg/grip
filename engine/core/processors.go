@@ -482,7 +482,7 @@ func (r *Pivot) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, o
 				json.Unmarshal(value, &curData)
 				if lastKey != curKey {
 					out <- &gdbi.BaseTraveler{Render: curDict}
-					curDict = map[string]any{}
+					curDict = map[string]any{"_id": curKey}
 					curDict[curField] = curData
 					lastKey = curKey
 				} else {
