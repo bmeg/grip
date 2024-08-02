@@ -5,10 +5,12 @@ import (
 	"sync"
 
 	"github.com/bmeg/grip/gdbi"
+	"github.com/bmeg/grip/log"
 	multierror "github.com/hashicorp/go-multierror"
 )
 
-func DeleteBatch(stream <-chan *gdbi.ElementID, batchSize int, graph string, delbyId func(key string) error) error {
+func DeleteBatch(stream <-chan *gdbi.ElementID, batchSize int, graph string, delVertex func(key string) error, delEdge func(key string) error) error {
+	log.Infoln("HELLO WE IN DELETE BATCH FUNC")
 	var bulkErr *multierror.Error
 	vertCount := 0
 	elementIdBatchChan := make(chan []*gdbi.ElementID)
@@ -19,7 +21,10 @@ func DeleteBatch(stream <-chan *gdbi.ElementID, batchSize int, graph string, del
 		defer wg.Done()
 		for elemBatch := range elementIdBatchChan {
 			for _, elem := range elemBatch {
-				if err := delbyId(elem.Id); err != nil {
+				if err := delVertex(elem.Id); err != nil {
+					bulkErr = multierror.Append(bulkErr, err)
+				}
+				if err := delEdge(elem.Id); err != nil {
 					bulkErr = multierror.Append(bulkErr, err)
 				}
 			}
@@ -50,7 +55,7 @@ func DeleteBatch(stream <-chan *gdbi.ElementID, batchSize int, graph string, del
 	wg.Wait()
 
 	if vertCount != 0 {
-		fmt.Printf("%d vertices streamed to BulkAdd\n", vertCount)
+		fmt.Printf("%d vertices streamed to BulkDelete\n", vertCount)
 	}
 
 	return bulkErr.ErrorOrNil()

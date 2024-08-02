@@ -310,6 +310,71 @@ func (server *GripServer) BulkAdd(stream gripql.Edit_BulkAddServer) error {
 	return stream.SendAndClose(&gripql.BulkEditResult{InsertCount: insertCount, ErrorCount: errorCount})
 }
 
+func (server *GripServer) BulkDelete(stream gripql.Edit_BulkDeleteServer) error {
+	var graphName string
+	var insertCount int32
+	var errorCount int32
+
+	elementStream := make(chan *gdbi.ElementID, 100)
+	wg := &sync.WaitGroup{}
+
+	for {
+		element, err := stream.Recv()
+		log.Info("ELEM: ", element)
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			log.WithFields(log.Fields{"error": err}).Error("BulkDelete: streaming error")
+			errorCount++
+			break
+		}
+
+		// create a BulkAdd stream per graph
+		// close and switch when a new graph is encountered
+		if element.Graph != graphName {
+			close(elementStream)
+			gdb, err := server.getGraphDB(element.Graph)
+			if err != nil {
+				errorCount++
+				continue
+			}
+
+			graph, err := gdb.Graph(element.Graph)
+			if err != nil {
+				log.WithFields(log.Fields{"error": err}).Error("BulkAdd: error")
+				errorCount++
+				continue
+			}
+
+			graphName = element.Graph
+			elementStream = make(chan *gdbi.ElementID, 100)
+
+			wg.Add(1)
+			go func() {
+				log.WithFields(log.Fields{"graph": element.Graph}).Info("BulkAdd: streaming elements to graph")
+				err := graph.BulkDelete(elementStream)
+				if err != nil {
+					log.WithFields(log.Fields{"graph": element.Graph, "error": err}).Error("BulkAdd: error")
+					// not a good representation of the true number of errors
+					errorCount++
+				}
+				wg.Done()
+			}()
+		}
+
+		if element.Id != "" {
+			insertCount++
+			elementStream <- &gdbi.ElementID{Id: element.Id, Graph: element.Graph}
+		}
+	}
+
+	close(elementStream)
+	wg.Wait()
+
+	return stream.SendAndClose(&gripql.BulkEditResult{InsertCount: insertCount, ErrorCount: errorCount})
+}
+
 // DeleteVertex deletes a vertex from the server
 func (server *GripServer) DeleteVertex(ctx context.Context, elem *gripql.ElementID) (*gripql.EditResult, error) {
 	if isSchema(elem.Graph) {

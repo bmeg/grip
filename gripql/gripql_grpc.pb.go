@@ -1064,7 +1064,7 @@ func (c *editClient) BulkDelete(ctx context.Context, opts ...grpc.CallOption) (E
 
 type Edit_BulkDeleteClient interface {
 	Send(*ElementID) error
-	CloseAndRecv() (*EditResult, error)
+	CloseAndRecv() (*BulkEditResult, error)
 	grpc.ClientStream
 }
 
@@ -1076,11 +1076,11 @@ func (x *editBulkDeleteClient) Send(m *ElementID) error {
 	return x.ClientStream.SendMsg(m)
 }
 
-func (x *editBulkDeleteClient) CloseAndRecv() (*EditResult, error) {
+func (x *editBulkDeleteClient) CloseAndRecv() (*BulkEditResult, error) {
 	if err := x.ClientStream.CloseSend(); err != nil {
 		return nil, err
 	}
-	m := new(EditResult)
+	m := new(BulkEditResult)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
@@ -1336,7 +1336,7 @@ func _Edit_BulkDelete_Handler(srv interface{}, stream grpc.ServerStream) error {
 }
 
 type Edit_BulkDeleteServer interface {
-	SendAndClose(*EditResult) error
+	SendAndClose(*BulkEditResult) error
 	Recv() (*ElementID, error)
 	grpc.ServerStream
 }
@@ -1345,7 +1345,7 @@ type editBulkDeleteServer struct {
 	grpc.ServerStream
 }
 
-func (x *editBulkDeleteServer) SendAndClose(m *EditResult) error {
+func (x *editBulkDeleteServer) SendAndClose(m *BulkEditResult) error {
 	return x.ServerStream.SendMsg(m)
 }
 

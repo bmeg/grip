@@ -130,7 +130,7 @@ func (g *Graph) BulkAdd(stream <-chan *gdbi.GraphElement) error {
 }
 
 func (g *Graph) BulkDelete(stream <-chan *gdbi.ElementID) error {
-	return util.DeleteBatch(stream, 50, g.graph, g.DelEdge)
+	return util.DeleteBatch(stream, 50, g.graph, g.DelVertex, g.DelEdge)
 }
 
 // DelVertex is not implemented in the SQL driver
