@@ -439,6 +439,12 @@ service Edit {
     };
   }
 
+  rpc BulkDelete(stream ElementID) returns (EditResult) {
+    option (google.api.http) = {
+      delete: "/v1/graph"
+    };
+  }
+
   rpc DeleteVertex(ElementID) returns (EditResult) {
     option (google.api.http) = {
       delete: "/v1/graph/{graph}/vertex/{id}"

@@ -45,6 +45,10 @@ func (g *Graph) BulkAdd(stream <-chan *gdbi.GraphElement) error {
 	return errors.New("not implemented")
 }
 
+func (g *Graph) BulkDelete(stream <-chan *gdbi.ElementID) error {
+	return errors.New("not implemented")
+}
+
 // DelVertex is not implemented in the SQL driver
 func (g *Graph) DelVertex(key string) error {
 	return errors.New("not implemented")

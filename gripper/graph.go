@@ -175,6 +175,10 @@ func (t *TabularGraph) BulkAdd(stream <-chan *gdbi.GraphElement) error {
 	return fmt.Errorf("GRIPPER is ReadOnly")
 }
 
+func (t *TabularGraph) BulkDelete(stream <-chan *gdbi.ElementID) error {
+	return fmt.Errorf("GRIPPER is ReadOnly")
+}
+
 func (t *TabularGraph) Compiler() gdbi.Compiler {
 	return core.NewCompiler(t, TabularOptimizer)
 }
