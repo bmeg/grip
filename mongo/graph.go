@@ -121,7 +121,7 @@ func (mg *Graph) BulkAdd(stream <-chan *gdbi.GraphElement) error {
 }
 
 func (mg *Graph) BulkDelete(stream <-chan *gdbi.ElementID) error {
-	return util.DeleteBatch(stream, 50, mg.graph, mg.DelEdge)
+	return util.DeleteBatch(stream, 50, mg.graph, mg.DelVertex, mg.DelEdge)
 }
 
 // deleteConnectedEdges deletes edges where `from` or `to` equal `key`

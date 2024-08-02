@@ -184,12 +184,14 @@ func (client Client) BulkAdd(elemChan chan *GraphElement) error {
 func (client Client) BulkDelete(elemChan chan *ElementID) error {
 	sc, err := client.EditC.BulkDelete(context.Background())
 	if err != nil {
+		log.Info("HELLO ERROR THERE")
 		return err
 	}
 
 	for elem := range elemChan {
 		err := sc.Send(elem)
 		if err != nil {
+			log.Info("HELLO ERROR HERE: ", err)
 			return err
 		}
 	}

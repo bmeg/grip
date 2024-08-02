@@ -2,7 +2,6 @@ package delete
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"os"
 
@@ -25,7 +24,7 @@ var Cmd = &cobra.Command{
 	Use:   "delete <graph elem list file>",
 	Short: "bulk delete",
 	Long:  ``,
-	Args:  cobra.ExactArgs(3),
+	Args:  cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		conn, err := gripql.Connect(rpc.ConfigWithDefaults(host), true)
 		if err != nil {
@@ -37,7 +36,7 @@ var Cmd = &cobra.Command{
 			log.Errorln("No input file found")
 		}
 
-		jsonFile, err := os.Open("input.json")
+		jsonFile, err := os.Open(file)
 		if err != nil {
 			log.Errorf("Failed to open file: %s", err)
 		}
@@ -57,23 +56,28 @@ var Cmd = &cobra.Command{
 		}
 
 		// Print the list
-		fmt.Println(data.Delete)
+		//fmt.Println(data.Delete)
+
+		log.WithFields(log.Fields{"graph": graph}).Info("deleting data")
 
 		elemChan := make(chan *gripql.ElementID)
 		wait := make(chan bool)
 		go func() {
 			if err := conn.BulkDelete(elemChan); err != nil {
-				log.Errorf("bulk add error: %v", err)
+				log.Errorf("bulk delete error: %v", err)
 			}
 			wait <- false
 		}()
 
 		count := 0
-		for _, v := range data.Delete {
-			count++
-			elemChan <- &gripql.ElementID{Graph: graph, Id: v}
+		if data.Delete != nil {
+			for _, v := range data.Delete {
+				count++
+				elemChan <- &gripql.ElementID{Graph: graph, Id: v}
+				log.Infoln("ELEMCHAN:", &gripql.ElementID{Graph: graph, Id: v})
+			}
+			log.Infof("Deleted a total of %d vertices", count)
 		}
-
 		close(elemChan)
 		<-wait
 		return nil
@@ -81,8 +85,8 @@ var Cmd = &cobra.Command{
 }
 
 func init() {
-	//flags := Cmd.Flags()
-	//flags.StringVar(&host, "host", host, "grip server url")
-	//flags.StringVar(&graph, "graph", graph, "graph name")
-	// /flags.StringVar(&file, "file", file, "file name")
+	flags := Cmd.Flags()
+	flags.StringVar(&host, "host", host, "grip server url")
+	flags.StringVar(&graph, "graph", graph, "graph name")
+	flags.StringVar(&file, "file", file, "file name")
 }

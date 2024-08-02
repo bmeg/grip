@@ -156,6 +156,7 @@ func (kgdb *KVInterfaceGDB) BulkAdd(stream <-chan *gdbi.GraphElement) error {
 }
 
 func (kgdb *KVInterfaceGDB) BulkDelete(stream <-chan *gdbi.ElementID) error {
+	log.Infoln("HELLO WE IN KVGRAPH BULK DELETE")
 	err := kgdb.kvg.kv.BulkWrite(func(tx kvi.KVBulkWrite) error {
 		var bulkErr *multierror.Error
 		for elem := range stream {

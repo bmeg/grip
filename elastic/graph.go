@@ -119,7 +119,7 @@ func (es *Graph) BulkAdd(stream <-chan *gdbi.GraphElement) error {
 }
 
 func (es *Graph) BulkDelete(stream <-chan *gdbi.ElementID) error {
-	return util.DeleteBatch(stream, 50, es.graph, es.DelEdge)
+	return util.DeleteBatch(stream, 50, es.graph, es.DelVertex, es.DelEdge)
 }
 
 // DelEdge deletes edge `eid`

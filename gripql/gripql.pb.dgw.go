@@ -921,7 +921,7 @@ func (shim *EditDirectClient) DeleteGraph(ctx context.Context, in *GraphID, opts
 type directEditBulkDelete struct {
   ctx context.Context
   c   chan *ElementID
-  out chan *EditResult
+  out chan *BulkEditResult
 }
 
 func (dsm *directEditBulkDelete) Recv() (*ElementID, error) {
@@ -941,13 +941,13 @@ func (dsm *directEditBulkDelete) Context() context.Context {
 	return dsm.ctx
 }
 
-func (dsm *directEditBulkDelete) SendAndClose(o *EditResult) error {
+func (dsm *directEditBulkDelete) SendAndClose(o *BulkEditResult) error {
   dsm.out <- o
   close(dsm.out)
   return nil
 }
 
-func (dsm *directEditBulkDelete) CloseAndRecv() (*EditResult, error) {
+func (dsm *directEditBulkDelete) CloseAndRecv() (*BulkEditResult, error) {
   //close(dsm.c)
   out := <- dsm.out
   return out, nil
@@ -957,7 +957,7 @@ func (dsm *directEditBulkDelete) CloseSend() error             { close(dsm.c); r
 func (dsm *directEditBulkDelete) SetTrailer(metadata.MD)       {}
 func (dsm *directEditBulkDelete) SetHeader(metadata.MD) error  { return nil }
 func (dsm *directEditBulkDelete) SendHeader(metadata.MD) error { return nil }
-func (dsm *directEditBulkDelete) SendMsg(m interface{}) error  { dsm.out <- m.(*EditResult); return nil }
+func (dsm *directEditBulkDelete) SendMsg(m interface{}) error  { dsm.out <- m.(*BulkEditResult); return nil }
 
 func (dsm *directEditBulkDelete) RecvMsg(m interface{}) error  { 
 	t, err := dsm.Recv()
@@ -976,7 +976,7 @@ func (dsm *directEditBulkDelete) Trailer() metadata.MD         { return nil }
 func (shim *EditDirectClient) BulkDelete(ctx context.Context, opts ...grpc.CallOption) (Edit_BulkDeleteClient, error) {
   md, _ := metadata.FromOutgoingContext(ctx)
   ictx := metadata.NewIncomingContext(ctx, md)
-  w := &directEditBulkDelete{ictx, make(chan *ElementID, 100), make(chan *EditResult, 3)}
+  w := &directEditBulkDelete{ictx, make(chan *ElementID, 100), make(chan *BulkEditResult, 3)}
   if shim.streamServerInt != nil {
     info := grpc.StreamServerInfo{
       FullMethod: "/gripql.Edit/BulkDelete",
