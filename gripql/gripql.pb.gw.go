@@ -1174,6 +1174,50 @@ func local_request_Edit_DeleteGraph_0(ctx context.Context, marshaler runtime.Mar
 
 }
 
+func request_Edit_BulkDelete_0(ctx context.Context, marshaler runtime.Marshaler, client EditClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
+	var metadata runtime.ServerMetadata
+	stream, err := client.BulkDelete(ctx)
+	if err != nil {
+		grpclog.Errorf("Failed to start streaming: %v", err)
+		return nil, metadata, err
+	}
+	dec := marshaler.NewDecoder(req.Body)
+	for {
+		var protoReq ElementID
+		err = dec.Decode(&protoReq)
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			grpclog.Errorf("Failed to decode request: %v", err)
+			return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+		}
+		if err = stream.Send(&protoReq); err != nil {
+			if err == io.EOF {
+				break
+			}
+			grpclog.Errorf("Failed to send request: %v", err)
+			return nil, metadata, err
+		}
+	}
+
+	if err := stream.CloseSend(); err != nil {
+		grpclog.Errorf("Failed to terminate client stream: %v", err)
+		return nil, metadata, err
+	}
+	header, err := stream.Header()
+	if err != nil {
+		grpclog.Errorf("Failed to get header from client: %v", err)
+		return nil, metadata, err
+	}
+	metadata.HeaderMD = header
+
+	msg, err := stream.CloseAndRecv()
+	metadata.TrailerMD = stream.Trailer()
+	return msg, metadata, err
+
+}
+
 func request_Edit_DeleteVertex_0(ctx context.Context, marshaler runtime.Marshaler, client EditClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
 	var protoReq ElementID
 	var metadata runtime.ServerMetadata
@@ -1762,6 +1806,7 @@ func local_request_Configure_ListDrivers_0(ctx context.Context, marshaler runtim
 // UnaryRPC     :call QueryServer directly.
 // StreamingRPC :currently unsupported pending https://github.com/grpc/grpc-go/issues/906.
 // Note that using this registration option will cause many gRPC library features to stop working. Consider using RegisterQueryHandlerFromEndpoint instead.
+// GRPC interceptors will not work for this type of registration. To use interceptors, you must use the "runtime.WithMiddlewares" option in the "runtime.NewServeMux" call.
 func RegisterQueryHandlerServer(ctx context.Context, mux *runtime.ServeMux, server QueryServer) error {
 
 	mux.Handle("POST", pattern_Query_Traversal_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
@@ -1985,6 +2030,7 @@ func RegisterQueryHandlerServer(ctx context.Context, mux *runtime.ServeMux, serv
 // UnaryRPC     :call JobServer directly.
 // StreamingRPC :currently unsupported pending https://github.com/grpc/grpc-go/issues/906.
 // Note that using this registration option will cause many gRPC library features to stop working. Consider using RegisterJobHandlerFromEndpoint instead.
+// GRPC interceptors will not work for this type of registration. To use interceptors, you must use the "runtime.WithMiddlewares" option in the "runtime.NewServeMux" call.
 func RegisterJobHandlerServer(ctx context.Context, mux *runtime.ServeMux, server JobServer) error {
 
 	mux.Handle("POST", pattern_Job_Submit_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
@@ -2097,6 +2143,7 @@ func RegisterJobHandlerServer(ctx context.Context, mux *runtime.ServeMux, server
 // UnaryRPC     :call EditServer directly.
 // StreamingRPC :currently unsupported pending https://github.com/grpc/grpc-go/issues/906.
 // Note that using this registration option will cause many gRPC library features to stop working. Consider using RegisterEditHandlerFromEndpoint instead.
+// GRPC interceptors will not work for this type of registration. To use interceptors, you must use the "runtime.WithMiddlewares" option in the "runtime.NewServeMux" call.
 func RegisterEditHandlerServer(ctx context.Context, mux *runtime.ServeMux, server EditServer) error {
 
 	mux.Handle("POST", pattern_Edit_AddVertex_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
@@ -2204,6 +2251,13 @@ func RegisterEditHandlerServer(ctx context.Context, mux *runtime.ServeMux, serve
 
 		forward_Edit_DeleteGraph_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
 
+	})
+
+	mux.Handle("DELETE", pattern_Edit_BulkDelete_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+		err := status.Error(codes.Unimplemented, "streaming calls are not yet supported in the in-process transport")
+		_, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
+		runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
+		return
 	})
 
 	mux.Handle("DELETE", pattern_Edit_DeleteVertex_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
@@ -2388,6 +2442,7 @@ func RegisterEditHandlerServer(ctx context.Context, mux *runtime.ServeMux, serve
 // UnaryRPC     :call ConfigureServer directly.
 // StreamingRPC :currently unsupported pending https://github.com/grpc/grpc-go/issues/906.
 // Note that using this registration option will cause many gRPC library features to stop working. Consider using RegisterConfigureHandlerFromEndpoint instead.
+// GRPC interceptors will not work for this type of registration. To use interceptors, you must use the "runtime.WithMiddlewares" option in the "runtime.NewServeMux" call.
 func RegisterConfigureHandlerServer(ctx context.Context, mux *runtime.ServeMux, server ConfigureServer) error {
 
 	mux.Handle("POST", pattern_Configure_StartPlugin_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
@@ -2503,7 +2558,7 @@ func RegisterQueryHandler(ctx context.Context, mux *runtime.ServeMux, conn *grpc
 // to "mux". The handlers forward requests to the grpc endpoint over the given implementation of "QueryClient".
 // Note: the gRPC framework executes interceptors within the gRPC handler. If the passed in "QueryClient"
 // doesn't go through the normal gRPC flow (creating a gRPC client etc.) then it will be up to the passed in
-// "QueryClient" to call the correct interceptors.
+// "QueryClient" to call the correct interceptors. This client ignores the HTTP middlewares.
 func RegisterQueryHandlerClient(ctx context.Context, mux *runtime.ServeMux, client QueryClient) error {
 
 	mux.Handle("POST", pattern_Query_Traversal_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
@@ -2808,7 +2863,7 @@ func RegisterJobHandler(ctx context.Context, mux *runtime.ServeMux, conn *grpc.C
 // to "mux". The handlers forward requests to the grpc endpoint over the given implementation of "JobClient".
 // Note: the gRPC framework executes interceptors within the gRPC handler. If the passed in "JobClient"
 // doesn't go through the normal gRPC flow (creating a gRPC client etc.) then it will be up to the passed in
-// "JobClient" to call the correct interceptors.
+// "JobClient" to call the correct interceptors. This client ignores the HTTP middlewares.
 func RegisterJobHandlerClient(ctx context.Context, mux *runtime.ServeMux, client JobClient) error {
 
 	mux.Handle("POST", pattern_Job_Submit_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
@@ -3035,7 +3090,7 @@ func RegisterEditHandler(ctx context.Context, mux *runtime.ServeMux, conn *grpc.
 // to "mux". The handlers forward requests to the grpc endpoint over the given implementation of "EditClient".
 // Note: the gRPC framework executes interceptors within the gRPC handler. If the passed in "EditClient"
 // doesn't go through the normal gRPC flow (creating a gRPC client etc.) then it will be up to the passed in
-// "EditClient" to call the correct interceptors.
+// "EditClient" to call the correct interceptors. This client ignores the HTTP middlewares.
 func RegisterEditHandlerClient(ctx context.Context, mux *runtime.ServeMux, client EditClient) error {
 
 	mux.Handle("POST", pattern_Edit_AddVertex_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
@@ -3145,6 +3200,28 @@ func RegisterEditHandlerClient(ctx context.Context, mux *runtime.ServeMux, clien
 		}
 
 		forward_Edit_DeleteGraph_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
+
+	})
+
+	mux.Handle("DELETE", pattern_Edit_BulkDelete_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+		ctx, cancel := context.WithCancel(req.Context())
+		defer cancel()
+		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
+		var err error
+		var annotatedContext context.Context
+		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/gripql.Edit/BulkDelete", runtime.WithHTTPPathPattern("/v1/graph"))
+		if err != nil {
+			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
+			return
+		}
+		resp, md, err := request_Edit_BulkDelete_0(annotatedContext, inboundMarshaler, client, req, pathParams)
+		annotatedContext = runtime.NewServerMetadataContext(annotatedContext, md)
+		if err != nil {
+			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
+			return
+		}
+
+		forward_Edit_BulkDelete_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
 
 	})
 
@@ -3316,6 +3393,8 @@ var (
 
 	pattern_Edit_DeleteGraph_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 1, 0, 4, 1, 5, 1}, []string{"v1", "graph"}, ""))
 
+	pattern_Edit_BulkDelete_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"v1", "graph"}, ""))
+
 	pattern_Edit_DeleteVertex_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 1, 0, 4, 1, 5, 1, 2, 2, 1, 0, 4, 1, 5, 3}, []string{"v1", "graph", "vertex", "id"}, ""))
 
 	pattern_Edit_DeleteEdge_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 1, 0, 4, 1, 5, 1, 2, 2, 1, 0, 4, 1, 5, 3}, []string{"v1", "graph", "edge", "id"}, ""))
@@ -3341,6 +3420,8 @@ var (
 	forward_Edit_AddGraph_0 = runtime.ForwardResponseMessage
 
 	forward_Edit_DeleteGraph_0 = runtime.ForwardResponseMessage
+
+	forward_Edit_BulkDelete_0 = runtime.ForwardResponseMessage
 
 	forward_Edit_DeleteVertex_0 = runtime.ForwardResponseMessage
 
@@ -3392,7 +3473,7 @@ func RegisterConfigureHandler(ctx context.Context, mux *runtime.ServeMux, conn *
 // to "mux". The handlers forward requests to the grpc endpoint over the given implementation of "ConfigureClient".
 // Note: the gRPC framework executes interceptors within the gRPC handler. If the passed in "ConfigureClient"
 // doesn't go through the normal gRPC flow (creating a gRPC client etc.) then it will be up to the passed in
-// "ConfigureClient" to call the correct interceptors.
+// "ConfigureClient" to call the correct interceptors. This client ignores the HTTP middlewares.
 func RegisterConfigureHandlerClient(ctx context.Context, mux *runtime.ServeMux, client ConfigureClient) error {
 
 	mux.Handle("POST", pattern_Configure_StartPlugin_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
