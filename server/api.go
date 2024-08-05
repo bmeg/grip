@@ -320,7 +320,7 @@ func (server *GripServer) BulkDelete(stream gripql.Edit_BulkDeleteServer) error 
 
 	for {
 		element, err := stream.Recv()
-		log.Info("ELEM: ", element)
+		log.Infof("ELEM: %+v", element)
 		if err == io.EOF {
 			break
 		}
@@ -329,6 +329,7 @@ func (server *GripServer) BulkDelete(stream gripql.Edit_BulkDeleteServer) error 
 			errorCount++
 			break
 		}
+		log.Infof("Received Element: %+v", element)
 
 		// create a BulkAdd stream per graph
 		// close and switch when a new graph is encountered
@@ -342,7 +343,7 @@ func (server *GripServer) BulkDelete(stream gripql.Edit_BulkDeleteServer) error 
 
 			graph, err := gdb.Graph(element.Graph)
 			if err != nil {
-				log.WithFields(log.Fields{"error": err}).Error("BulkAdd: error")
+				log.WithFields(log.Fields{"error": err}).Error("BulkDelete: error")
 				errorCount++
 				continue
 			}
@@ -352,10 +353,10 @@ func (server *GripServer) BulkDelete(stream gripql.Edit_BulkDeleteServer) error 
 
 			wg.Add(1)
 			go func() {
-				log.WithFields(log.Fields{"graph": element.Graph}).Info("BulkAdd: streaming elements to graph")
+				log.WithFields(log.Fields{"graph": element.Graph}).Info("BulkDelete: streaming elements to graph")
 				err := graph.BulkDelete(elementStream)
 				if err != nil {
-					log.WithFields(log.Fields{"graph": element.Graph, "error": err}).Error("BulkAdd: error")
+					log.WithFields(log.Fields{"graph": element.Graph, "error": err}).Error("BulkDelete: error")
 					// not a good representation of the true number of errors
 					errorCount++
 				}
@@ -365,7 +366,7 @@ func (server *GripServer) BulkDelete(stream gripql.Edit_BulkDeleteServer) error 
 
 		if element.Id != "" {
 			insertCount++
-			elementStream <- &gdbi.ElementID{Id: element.Id, Graph: element.Graph}
+			elementStream <- &gdbi.ElementID{Graph: element.Graph, Id: element.Id}
 		}
 	}
 
