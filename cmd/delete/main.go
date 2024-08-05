@@ -64,7 +64,7 @@ var Cmd = &cobra.Command{
 		wait := make(chan bool)
 		go func() {
 			if err := conn.BulkDelete(elemChan); err != nil {
-				log.Errorf("bulk delete error: %v", err)
+				log.Errorf("bulk delete error: %v DEF HERE", err)
 			}
 			wait <- false
 		}()
@@ -73,6 +73,7 @@ var Cmd = &cobra.Command{
 		if data.Delete != nil {
 			for _, v := range data.Delete {
 				count++
+
 				elemChan <- &gripql.ElementID{Graph: graph, Id: v}
 				log.Infoln("ELEMCHAN:", &gripql.ElementID{Graph: graph, Id: v})
 			}
