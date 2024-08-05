@@ -1,0 +1,6 @@
+{"from":"patient_a", "to":"observation_a1", "label":"patient_observation"}
+{"from":"patient_a", "to":"observation_a2", "label":"patient_observation"}
+{"from":"patient_a", "to":"observation_a3", "label":"patient_observation"}
+{"from":"patient_b", "to":"observation_b1", "label":"patient_observation"}
+{"from":"patient_b", "to":"observation_b2", "label":"patient_observation"}
+{"from":"patient_b", "to":"observation_b3", "label":"patient_observation"}

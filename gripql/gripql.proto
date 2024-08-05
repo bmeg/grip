@@ -50,6 +50,7 @@ message GraphStatement {
     google.protobuf.ListValue has_id = 33;
 
     google.protobuf.ListValue distinct = 40;
+    PivotStep pivot = 41;
 
     google.protobuf.ListValue fields = 50;
     string unwind = 51;
@@ -117,6 +118,12 @@ message TypeAggregation {
 
 message CountAggregation {
 
+}
+
+message PivotStep {
+  string id = 1;
+  string field = 2;
+  string value = 3;
 }
 
 message NamedAggregationResult {
