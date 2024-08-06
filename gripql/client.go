@@ -182,8 +182,7 @@ func (client Client) BulkAdd(elemChan chan *GraphElement) error {
 }
 
 func (client Client) BulkDelete(delete *DeleteData) error {
-	result, err := client.EditC.BulkDelete(context.Background(), delete)
-	log.Info("RESULT: ", result)
+	_, err := client.EditC.BulkDelete(context.Background(), delete)
 	return err
 }
 
