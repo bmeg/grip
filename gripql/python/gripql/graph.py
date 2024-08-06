@@ -1,6 +1,7 @@
 from __future__ import absolute_import, print_function, unicode_literals
 
 import json
+import requests
 
 from gripql.util import BaseConnection, raise_for_status
 from gripql.query import Query
@@ -123,6 +124,22 @@ class Graph(BaseConnection):
         url = self.url + "/edge/" + gid
         response = self.session.get(
             url
+        )
+        raise_for_status(response)
+        return response.json()
+
+    def deleteData(self, name, vertices=[], edges=[]):
+        """
+        delete data from graph
+        """
+        payload = {
+            "graph": name,
+            "vertices": vertices,
+            "edges": edges
+        }
+        response = self.session.delete(
+            self.url,
+            json=payload
         )
         raise_for_status(response)
         return response.json()
