@@ -32,6 +32,23 @@ class Connection(BaseConnection):
         raise_for_status(response)
         return response.json()
 
+    def deleteData(self, vertices=[], edges=[]):
+        """
+        delete data from graph
+        """
+        print("SGOGOWERGWEGEMWOGOWEGOPEWG: ", self.curGraph)
+        payload = {
+            "graph": self.curGraph,
+            "vertices": vertices,
+            "edges": edges
+        }
+        response = self.session.delete(
+            self.url,
+            json=payload
+        )
+        raise_for_status(response)
+        return response.json()
+
     def deleteGraph(self, name):
         """
         Delete graph.

@@ -22,7 +22,7 @@ def test_bulkload(man):
     bulk.addEdge("4", "5", "created", {"weight": 1.0})
 
     err = bulk.execute()
-    #print(err)
+
     if err.get("errorCount", 0) != 0:
         print(err)
         errors.append("Bulk insertion error")
@@ -66,5 +66,50 @@ def test_bulkload_validate(man):
     err = bulk.execute()
     if err["errorCount"] == 0:
         errors.append("Validation error not detected")
+
+    return errors
+
+
+def test_bulk_delete(man):
+    errors = []
+
+    G = man.setGraph("swapi")
+
+    load = G.bulkAdd()
+
+    load.addVertex("1", "Person", {"name": "marko", "age": "29"})
+    load.addVertex("2", "Person", {"name": "vadas", "age": "27"})
+    load.addVertex("3", "Software", {"name": "lop", "lang": "java"})
+    load.addVertex("4", "Person", {"name": "josh", "age": "32"})
+    load.addVertex("5", "Software", {"name": "ripple", "lang": "java"})
+    load.addVertex("6", "Person", {"name": "peter", "age": "35"})
+
+    load.addEdge("1", "3", "created", {"weight": 0.4}, gid="7")
+    load.addEdge("1", "2", "knows", {"weight": 0.5}, gid="8")
+    load.addEdge("1", "4", "knows", {"weight": 1.0}, gid="9")
+    load.addEdge("4", "3", "created", {"weight": 0.4}, gid="10")
+    load.addEdge("6", "3", "created", {"weight": 0.2}, gid="11")
+    load.addEdge("4", "5", "created", {"weight": 1.0}, gid="12")
+
+    err = load.execute()
+    print("ERR: ", err)
+
+    if err.get("errorCount", 0) != 0:
+        print(err)
+        errors.append("Bulk insertion error")
+
+    errs = G.deleteData(name='swapi', vertices=["1", "2", "3"], edges=["7", "8", "9"])
+
+    if errs.get("errorCount", 0) != 0:
+        print(err)
+        errors.append("Bulk insertion error")
+
+    # not sure how to set the correct graph to continue doing queries
+    """
+    count = 0
+    for i in G.query().V():
+        count += 1
+    print(count)
+    """
 
     return errors
