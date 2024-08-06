@@ -55,6 +55,8 @@ var Cmd = &cobra.Command{
 		if err != nil {
 			log.Errorf("Failed to unmarshal JSON: %s", err)
 		}
+
+		log.WithFields(log.Fields{"graph": graph}).Info("deleting data")
 		conn.BulkDelete(&gripql.DeleteData{Graph: graph, Vertices: data.Vertices, Edges: data.Edges})
 
 		return nil
