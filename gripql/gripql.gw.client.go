@@ -171,6 +171,7 @@ type EditGatewayClient interface {
 	AddEdge(context.Context, *GraphElement) (*EditResult, error)
 	AddGraph(context.Context, *GraphID) (*EditResult, error)
 	DeleteGraph(context.Context, *GraphID) (*EditResult, error)
+	BulkDelete(context.Context, *DeleteData) (*EditResult, error)
 	DeleteVertex(context.Context, *ElementID) (*EditResult, error)
 	DeleteEdge(context.Context, *ElementID) (*EditResult, error)
 	AddIndex(context.Context, *IndexID) (*EditResult, error)
@@ -214,6 +215,12 @@ func (c *editGatewayClient) AddGraph(ctx context.Context, req *GraphID) (*EditRe
 func (c *editGatewayClient) DeleteGraph(ctx context.Context, req *GraphID) (*EditResult, error) {
 	gwReq := c.gwc.NewRequest("DELETE", "/v1/graph/{graph}")
 	gwReq.SetPathParam("graph", fmt.Sprintf("%v", req.Graph))
+	gwReq.SetBody(req)
+	return gateway.DoRequest[EditResult](ctx, gwReq)
+}
+
+func (c *editGatewayClient) BulkDelete(ctx context.Context, req *DeleteData) (*EditResult, error) {
+	gwReq := c.gwc.NewRequest("DELETE", "/v1/graph")
 	gwReq.SetBody(req)
 	return gateway.DoRequest[EditResult](ctx, gwReq)
 }

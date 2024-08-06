@@ -16,7 +16,8 @@ var graph = "GEN3"
 var file string
 
 type Data struct {
-	Delete []string `json:"DELETE"`
+	Edges    []string `json:"EDGES"`
+	Vertices []string `json:"VERTICES"`
 }
 
 // Cmd command line declaration
@@ -54,33 +55,8 @@ var Cmd = &cobra.Command{
 		if err != nil {
 			log.Errorf("Failed to unmarshal JSON: %s", err)
 		}
+		conn.BulkDelete(&gripql.DeleteData{Graph: graph, Vertices: data.Vertices, Edges: data.Edges})
 
-		// Print the list
-		//fmt.Println(data.Delete)
-
-		log.WithFields(log.Fields{"graph": graph}).Info("deleting data")
-
-		elemChan := make(chan *gripql.ElementID)
-		wait := make(chan bool)
-		go func() {
-			if err := conn.BulkDelete(elemChan); err != nil {
-				log.Errorf("bulk delete error: %v DEF HERE", err)
-			}
-			wait <- false
-		}()
-
-		count := 0
-		if data.Delete != nil {
-			for _, v := range data.Delete {
-				count++
-
-				elemChan <- &gripql.ElementID{Graph: graph, Id: v}
-				log.Infoln("ELEMCHAN:", &gripql.ElementID{Graph: graph, Id: v})
-			}
-			log.Infof("Deleted a total of %d vertices", count)
-		}
-		close(elemChan)
-		<-wait
 		return nil
 	},
 }

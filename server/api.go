@@ -310,70 +310,22 @@ func (server *GripServer) BulkAdd(stream gripql.Edit_BulkAddServer) error {
 	return stream.SendAndClose(&gripql.BulkEditResult{InsertCount: insertCount, ErrorCount: errorCount})
 }
 
-func (server *GripServer) BulkDelete(stream gripql.Edit_BulkDeleteServer) error {
-	var graphName string
-	var insertCount int32
-	var errorCount int32
-
-	elementStream := make(chan *gdbi.ElementID, 100)
-	wg := &sync.WaitGroup{}
-
-	for {
-		element, err := stream.Recv()
-		log.Infof("ELEM: %+v", element)
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			log.WithFields(log.Fields{"error": err}).Error("BulkDelete: streaming error")
-			errorCount++
-			break
-		}
-		log.Infof("Received Element: %+v", element)
-
-		// create a BulkAdd stream per graph
-		// close and switch when a new graph is encountered
-		if element.Graph != graphName {
-			close(elementStream)
-			gdb, err := server.getGraphDB(element.Graph)
-			if err != nil {
-				errorCount++
-				continue
-			}
-
-			graph, err := gdb.Graph(element.Graph)
-			if err != nil {
-				log.WithFields(log.Fields{"error": err}).Error("BulkDelete: error")
-				errorCount++
-				continue
-			}
-
-			graphName = element.Graph
-			elementStream = make(chan *gdbi.ElementID, 100)
-
-			wg.Add(1)
-			go func() {
-				log.WithFields(log.Fields{"graph": element.Graph}).Info("BulkDelete: streaming elements to graph")
-				err := graph.BulkDelete(elementStream)
-				if err != nil {
-					log.WithFields(log.Fields{"graph": element.Graph, "error": err}).Error("BulkDelete: error")
-					// not a good representation of the true number of errors
-					errorCount++
-				}
-				wg.Done()
-			}()
-		}
-
-		if element.Id != "" {
-			insertCount++
-			elementStream <- &gdbi.ElementID{Graph: element.Graph, Id: element.Id}
-		}
+func (server *GripServer) BulkDelete(ctx context.Context, elem *gripql.DeleteData) (*gripql.EditResult, error) {
+	gdb, err := server.getGraphDB(elem.Graph)
+	if err != nil {
+		return nil, err
 	}
+	graph, err := gdb.Graph(elem.Graph)
+	if err != nil {
+		return nil, err
+	}
+	log.Info("VERTICES: ", elem.Vertices)
+	err = graph.BulkDel(&gdbi.DeleteData{Graph: elem.Graph, Vertices: elem.Vertices, Edges: elem.Edges})
+	if err != nil {
+		return nil, err
+	}
+	return &gripql.EditResult{Id: elem.Vertices[0]}, nil
 
-	close(elementStream)
-	wg.Wait()
-
-	return stream.SendAndClose(&gripql.BulkEditResult{InsertCount: insertCount, ErrorCount: errorCount})
 }
 
 // DeleteVertex deletes a vertex from the server

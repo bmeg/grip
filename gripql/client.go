@@ -181,22 +181,9 @@ func (client Client) BulkAdd(elemChan chan *GraphElement) error {
 	return err
 }
 
-func (client Client) BulkDelete(elemChan chan *ElementID) error {
-	sc, err := client.EditC.BulkDelete(context.Background())
-	if err != nil {
-		return err
-	}
-
-	for elem := range elemChan {
-		log.Infof("Sending Element: %+v", elem)
-		err := sc.Send(elem)
-		if err != nil {
-			return err
-		}
-	}
-
-	_, err = sc.CloseAndRecv()
-
+func (client Client) BulkDelete(delete *DeleteData) error {
+	result, err := client.EditC.BulkDelete(context.Background(), delete)
+	log.Info("RESULT: ", result)
 	return err
 }
 

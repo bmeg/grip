@@ -294,6 +294,12 @@ message TableInfo {
   map<string,string> link_map = 4;
 }
 
+message DeleteData {
+  string graph = 1;
+  repeated string vertices = 2;
+  repeated string edges = 3;
+}
+
 service Query {
   rpc Traversal(GraphQuery) returns (stream QueryResult) {
     option (google.api.http) = {
@@ -439,7 +445,7 @@ service Edit {
     };
   }
 
-  rpc BulkDelete(stream ElementID) returns (BulkEditResult) {
+  rpc BulkDelete(DeleteData) returns (EditResult) {
     option (google.api.http) = {
       delete: "/v1/graph"
     };
