@@ -45,7 +45,7 @@ func (g *Graph) BulkAdd(stream <-chan *gdbi.GraphElement) error {
 	return errors.New("not implemented")
 }
 
-func (g *Graph) BulkDelete(stream <-chan *gdbi.ElementID) error {
+func (g *Graph) BulkDel(data *gdbi.DeleteData) error {
 	return errors.New("not implemented")
 }
 

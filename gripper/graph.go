@@ -175,7 +175,7 @@ func (t *TabularGraph) BulkAdd(stream <-chan *gdbi.GraphElement) error {
 	return fmt.Errorf("GRIPPER is ReadOnly")
 }
 
-func (t *TabularGraph) BulkDelete(stream <-chan *gdbi.ElementID) error {
+func (t *TabularGraph) BulkDel(*gdbi.DeleteData) error {
 	return fmt.Errorf("GRIPPER is ReadOnly")
 }
 

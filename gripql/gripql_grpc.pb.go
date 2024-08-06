@@ -959,7 +959,7 @@ type EditClient interface {
 	BulkAdd(ctx context.Context, opts ...grpc.CallOption) (Edit_BulkAddClient, error)
 	AddGraph(ctx context.Context, in *GraphID, opts ...grpc.CallOption) (*EditResult, error)
 	DeleteGraph(ctx context.Context, in *GraphID, opts ...grpc.CallOption) (*EditResult, error)
-	BulkDelete(ctx context.Context, opts ...grpc.CallOption) (Edit_BulkDeleteClient, error)
+	BulkDelete(ctx context.Context, in *DeleteData, opts ...grpc.CallOption) (*EditResult, error)
 	DeleteVertex(ctx context.Context, in *ElementID, opts ...grpc.CallOption) (*EditResult, error)
 	DeleteEdge(ctx context.Context, in *ElementID, opts ...grpc.CallOption) (*EditResult, error)
 	AddIndex(ctx context.Context, in *IndexID, opts ...grpc.CallOption) (*EditResult, error)
@@ -1052,39 +1052,14 @@ func (c *editClient) DeleteGraph(ctx context.Context, in *GraphID, opts ...grpc.
 	return out, nil
 }
 
-func (c *editClient) BulkDelete(ctx context.Context, opts ...grpc.CallOption) (Edit_BulkDeleteClient, error) {
+func (c *editClient) BulkDelete(ctx context.Context, in *DeleteData, opts ...grpc.CallOption) (*EditResult, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &Edit_ServiceDesc.Streams[1], Edit_BulkDelete_FullMethodName, cOpts...)
+	out := new(EditResult)
+	err := c.cc.Invoke(ctx, Edit_BulkDelete_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &editBulkDeleteClient{ClientStream: stream}
-	return x, nil
-}
-
-type Edit_BulkDeleteClient interface {
-	Send(*ElementID) error
-	CloseAndRecv() (*BulkEditResult, error)
-	grpc.ClientStream
-}
-
-type editBulkDeleteClient struct {
-	grpc.ClientStream
-}
-
-func (x *editBulkDeleteClient) Send(m *ElementID) error {
-	return x.ClientStream.SendMsg(m)
-}
-
-func (x *editBulkDeleteClient) CloseAndRecv() (*BulkEditResult, error) {
-	if err := x.ClientStream.CloseSend(); err != nil {
-		return nil, err
-	}
-	m := new(BulkEditResult)
-	if err := x.ClientStream.RecvMsg(m); err != nil {
-		return nil, err
-	}
-	return m, nil
+	return out, nil
 }
 
 func (c *editClient) DeleteVertex(ctx context.Context, in *ElementID, opts ...grpc.CallOption) (*EditResult, error) {
@@ -1166,7 +1141,7 @@ type EditServer interface {
 	BulkAdd(Edit_BulkAddServer) error
 	AddGraph(context.Context, *GraphID) (*EditResult, error)
 	DeleteGraph(context.Context, *GraphID) (*EditResult, error)
-	BulkDelete(Edit_BulkDeleteServer) error
+	BulkDelete(context.Context, *DeleteData) (*EditResult, error)
 	DeleteVertex(context.Context, *ElementID) (*EditResult, error)
 	DeleteEdge(context.Context, *ElementID) (*EditResult, error)
 	AddIndex(context.Context, *IndexID) (*EditResult, error)
@@ -1196,8 +1171,8 @@ func (UnimplementedEditServer) AddGraph(context.Context, *GraphID) (*EditResult,
 func (UnimplementedEditServer) DeleteGraph(context.Context, *GraphID) (*EditResult, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteGraph not implemented")
 }
-func (UnimplementedEditServer) BulkDelete(Edit_BulkDeleteServer) error {
-	return status.Errorf(codes.Unimplemented, "method BulkDelete not implemented")
+func (UnimplementedEditServer) BulkDelete(context.Context, *DeleteData) (*EditResult, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method BulkDelete not implemented")
 }
 func (UnimplementedEditServer) DeleteVertex(context.Context, *ElementID) (*EditResult, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteVertex not implemented")
@@ -1331,30 +1306,22 @@ func _Edit_DeleteGraph_Handler(srv interface{}, ctx context.Context, dec func(in
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Edit_BulkDelete_Handler(srv interface{}, stream grpc.ServerStream) error {
-	return srv.(EditServer).BulkDelete(&editBulkDeleteServer{ServerStream: stream})
-}
-
-type Edit_BulkDeleteServer interface {
-	SendAndClose(*BulkEditResult) error
-	Recv() (*ElementID, error)
-	grpc.ServerStream
-}
-
-type editBulkDeleteServer struct {
-	grpc.ServerStream
-}
-
-func (x *editBulkDeleteServer) SendAndClose(m *BulkEditResult) error {
-	return x.ServerStream.SendMsg(m)
-}
-
-func (x *editBulkDeleteServer) Recv() (*ElementID, error) {
-	m := new(ElementID)
-	if err := x.ServerStream.RecvMsg(m); err != nil {
+func _Edit_BulkDelete_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteData)
+	if err := dec(in); err != nil {
 		return nil, err
 	}
-	return m, nil
+	if interceptor == nil {
+		return srv.(EditServer).BulkDelete(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Edit_BulkDelete_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(EditServer).BulkDelete(ctx, req.(*DeleteData))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _Edit_DeleteVertex_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -1507,6 +1474,10 @@ var Edit_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _Edit_DeleteGraph_Handler,
 		},
 		{
+			MethodName: "BulkDelete",
+			Handler:    _Edit_BulkDelete_Handler,
+		},
+		{
 			MethodName: "DeleteVertex",
 			Handler:    _Edit_DeleteVertex_Handler,
 		},
@@ -1539,11 +1510,6 @@ var Edit_ServiceDesc = grpc.ServiceDesc{
 		{
 			StreamName:    "BulkAdd",
 			Handler:       _Edit_BulkAdd_Handler,
-			ClientStreams: true,
-		},
-		{
-			StreamName:    "BulkDelete",
-			Handler:       _Edit_BulkDelete_Handler,
 			ClientStreams: true,
 		},
 	},
