@@ -198,6 +198,10 @@ func (sc *DefaultStmtCompiler) Render(stmt *gripql.GraphStatement_Render, ps *gd
 	return &Render{stmt.Render.AsInterface()}, nil
 }
 
+func (sc *DefaultStmtCompiler) Pivot(stmt *gripql.GraphStatement_Pivot, ps *gdbi.State) (gdbi.Processor, error) {
+	return &Pivot{stmt.Pivot}, nil
+}
+
 func (sc *DefaultStmtCompiler) Path(stmt *gripql.GraphStatement_Path, ps *gdbi.State) (gdbi.Processor, error) {
 	return &Path{stmt.Path.AsSlice()}, nil
 }

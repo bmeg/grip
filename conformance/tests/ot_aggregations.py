@@ -178,7 +178,7 @@ def test_traversal_gid_aggregation(man):
             return errors
 
         if planet_agg_map[row["key"]] != row["value"]:
-            errors.append("Incorrect bucket count returned: %s" % res)
+            errors.append("Incorrect bucket count returned: %s" % row)
 
     if count != 2:
         errors.append(

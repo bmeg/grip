@@ -205,6 +205,14 @@ func StatementProcessor(
 		ps.LastType = RenderData
 		return out, err
 
+	case *gripql.GraphStatement_Pivot:
+		if ps.LastType != VertexData && ps.LastType != EdgeData {
+			return nil, fmt.Errorf(`"pivot" statement is only valid for edge or vertex types not: %s`, ps.LastType.String())
+		}
+		out, err := sc.Pivot(stmt, ps)
+		ps.LastType = RenderData
+		return out, err
+
 	case *gripql.GraphStatement_Path:
 		if ps.LastType != VertexData && ps.LastType != EdgeData {
 			return nil, fmt.Errorf(`"path" statement is only valid for edge or vertex types not: %s`, ps.LastType.String())
