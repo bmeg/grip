@@ -73,8 +73,7 @@ def test_bulkload_validate(man):
 def test_bulk_delete(man):
     errors = []
 
-    G = man.setGraph("swapi")
-
+    G = man.writeTest()
     load = G.bulkAdd()
 
     load.addVertex("1", "Person", {"name": "marko", "age": "29"})
@@ -92,24 +91,21 @@ def test_bulk_delete(man):
     load.addEdge("4", "5", "created", {"weight": 1.0}, gid="12")
 
     err = load.execute()
-    print("ERR: ", err)
 
     if err.get("errorCount", 0) != 0:
         print(err)
         errors.append("Bulk insertion error")
 
-    errs = G.deleteData(name='swapi', vertices=["1", "2", "3"], edges=["7", "8", "9"])
+    errs = G.deleteData(vertices=["1", "2", "3"], edges=["7", "8", "9"])
+    
+    print("DEL RES: ", errs)
 
     if errs.get("errorCount", 0) != 0:
         print(err)
         errors.append("Bulk insertion error")
 
-    # not sure how to set the correct graph to continue doing queries
-    """
-    count = 0
-    for i in G.query().V():
-        count += 1
-    print(count)
-    """
+    count = G.query().E().count().execute()
+    print("VAL OF COUNT: ", count)
+
 
     return errors

@@ -128,19 +128,20 @@ class Graph(BaseConnection):
         raise_for_status(response)
         return response.json()
 
-    def deleteData(self, name, vertices=[], edges=[]):
+    def deleteData(self, vertices=[], edges=[]):
         """
         delete data from graph
         """
         payload = {
-            "graph": name,
+            "graph": self.graph,
             "vertices": vertices,
             "edges": edges
         }
         response = self.session.delete(
-            self.url,
+            self.base_url + "/v1/graph/",
             json=payload
         )
+        print("REPONSE HERE: ", response.json())
         raise_for_status(response)
         return response.json()
 
