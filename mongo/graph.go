@@ -121,29 +121,37 @@ func (mg *Graph) BulkAdd(stream <-chan *gdbi.GraphElement) error {
 }
 
 func (mg *Graph) BulkDel(Data *gdbi.DeleteData) error {
+	var err error
 	eCol := mg.ar.EdgeCollection(mg.graph)
-	_, err := eCol.DeleteMany(context.TODO(), bson.M{"_id": bson.M{"$in": Data.Edges}})
-	if err != nil {
-		return fmt.Errorf("failed to delete edge(s): %s", err)
-	}
-	mg.ts.Touch(mg.graph)
-
 	vCol := mg.ar.VertexCollection(mg.graph)
-	_, err = vCol.DeleteMany(context.TODO(), bson.M{"_id": bson.M{"$in": Data.Vertices}})
-	if err != nil {
-		return fmt.Errorf("failed to delete list of vertices: %s", err)
-	}
-	mg.ts.Touch(mg.graph)
 
-	_, err = eCol.DeleteMany(context.TODO(), bson.M{
-		"$or": []bson.M{
-			{FIELD_FROM: bson.M{"$in": Data.Vertices}},
-			{FIELD_TO: bson.M{"$in": Data.Vertices}},
-		}})
-	if err != nil {
-		return fmt.Errorf("failed to delete connected edge(s): %s", err)
+	if Data.Edges != nil && len(Data.Edges) > 0 {
+		_, err := eCol.DeleteMany(context.TODO(), bson.M{"_id": bson.M{"$in": Data.Edges}})
+		if err != nil {
+			return fmt.Errorf("failed to delete edge(s): %s", err)
+		}
+		mg.ts.Touch(mg.graph)
 	}
-	mg.ts.Touch(mg.graph)
+
+	if Data.Vertices != nil && len(Data.Vertices) > 0 {
+		_, err = vCol.DeleteMany(context.TODO(), bson.M{"_id": bson.M{"$in": Data.Vertices}})
+		if err != nil {
+			return fmt.Errorf("failed to delete list of vertices: %s", err)
+		}
+		mg.ts.Touch(mg.graph)
+	}
+
+	if Data.Vertices != nil && Data.Edges != nil && len(Data.Vertices) > 0 && len(Data.Edges) > 0 {
+		_, err = eCol.DeleteMany(context.TODO(), bson.M{
+			"$or": []bson.M{
+				{FIELD_FROM: bson.M{"$in": Data.Vertices}},
+				{FIELD_TO: bson.M{"$in": Data.Vertices}},
+			}})
+		if err != nil {
+			return fmt.Errorf("failed to delete connected edge(s): %s", err)
+		}
+		mg.ts.Touch(mg.graph)
+	}
 
 	return nil
 }
