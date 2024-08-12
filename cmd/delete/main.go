@@ -12,12 +12,12 @@ import (
 )
 
 var host = "localhost:8202"
-var graph = "GEN3"
 var file string
 
 type Data struct {
-	Edges    []string `json:"EDGES"`
-	Vertices []string `json:"VERTICES"`
+	Graph    string   `json:"graph"`
+	Edges    []string `json:"edges"`
+	Vertices []string `json:"vertices"`
 }
 
 // Cmd command line declaration
@@ -25,14 +25,13 @@ var Cmd = &cobra.Command{
 	Use:   "delete <graph elem list file>",
 	Short: "bulk delete",
 	Long:  ``,
-	Args:  cobra.ExactArgs(2),
+	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		conn, err := gripql.Connect(rpc.ConfigWithDefaults(host), true)
 		if err != nil {
 			return err
 		}
-		graph = args[0]
-		file = args[1]
+		file = args[0]
 		if file == "" {
 			log.Errorln("No input file found")
 		}
@@ -56,8 +55,8 @@ var Cmd = &cobra.Command{
 			log.Errorf("Failed to unmarshal JSON: %s", err)
 		}
 
-		log.WithFields(log.Fields{"graph": graph}).Info("deleting data")
-		conn.BulkDelete(&gripql.DeleteData{Graph: graph, Vertices: data.Vertices, Edges: data.Edges})
+		log.WithFields(log.Fields{"graph": data.Graph}).Info("deleting data")
+		conn.BulkDelete(&gripql.DeleteData{Graph: data.Graph, Vertices: data.Vertices, Edges: data.Edges})
 
 		return nil
 	},
@@ -66,6 +65,5 @@ var Cmd = &cobra.Command{
 func init() {
 	flags := Cmd.Flags()
 	flags.StringVar(&host, "host", host, "grip server url")
-	flags.StringVar(&graph, "graph", graph, "graph name")
 	flags.StringVar(&file, "file", file, "file name")
 }

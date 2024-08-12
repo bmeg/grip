@@ -455,6 +455,7 @@ service Edit {
   rpc BulkDelete(DeleteData) returns (EditResult) {
     option (google.api.http) = {
       delete: "/v1/graph"
+      body: "*"
     };
   }
 

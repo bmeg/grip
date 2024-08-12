@@ -8,7 +8,7 @@ if __name__ == "__main__":
     print("Running Conformance with %s" % gripql.__file__)
 
     args = create_arg_parser()
-    
+
     # returns test modules starting with "ot_"
     tests = filter_tests(args, prefix="ot_")
 

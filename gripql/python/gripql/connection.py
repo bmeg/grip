@@ -91,7 +91,7 @@ class Connection(BaseConnection):
         """
         response = self.session.post(
             self.url + "/" + name + "/mapping",
-            json={"vertices" : vertices, "edges" : edges}
+            json={"vertices": vertices, "edges": edges}
         )
         raise_for_status(response)
         return response.json()
