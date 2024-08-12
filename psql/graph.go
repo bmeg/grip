@@ -129,6 +129,20 @@ func (g *Graph) BulkAdd(stream <-chan *gdbi.GraphElement) error {
 	return util.StreamBatch(stream, 50, g.graph, g.AddVertex, g.AddEdge)
 }
 
+func (g *Graph) BulkDel(Data *gdbi.DeleteData) error {
+	for _, v := range Data.Edges {
+		if err := g.DelEdge(v); err != nil {
+			return err
+		}
+	}
+	for _, v := range Data.Vertices {
+		if err := g.DelVertex(v); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // DelVertex is not implemented in the SQL driver
 func (g *Graph) DelVertex(key string) error {
 	stmt := fmt.Sprintf("DELETE FROM %s WHERE gid='%s'", g.v, key)

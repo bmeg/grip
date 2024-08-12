@@ -141,6 +141,8 @@ func streamAuthInterceptor(auth Authenticate, access Access) grpc.StreamServerIn
 				//stream URL formatting, each write request can
 				//reference a different graph
 				return handler(srv, &BulkWriteFilter{ss, user, access})
+			} else if info.FullMethod == "/gripql.Edit/BulkDelete" {
+				return handler(srv, &BulkWriteFilter{ss, user, access})
 			} else {
 				log.Errorf("Unknown input streaming op %#v!!!", info)
 				return handler(srv, ss)
@@ -189,6 +191,9 @@ func getUnaryRequestGraph(req interface{}, info *grpc.UnaryServerInfo) (string, 
 		return o.Graph, nil
 	case "/gripql.Edit/SampleSchema":
 		o := req.(*gripql.GraphID)
+		return o.Graph, nil
+	case "/gripql.Edit/BulkDelete":
+		o := req.(*gripql.DeleteData)
 		return o.Graph, nil
 	case "/gripql.Configure/StartPlugin", "/gripql.Configure/ListPlugins", "/gripql.Configure/ListDrivers":
 		return "*", nil //these operations effect all graphs

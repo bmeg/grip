@@ -940,6 +940,7 @@ const (
 	Edit_BulkAdd_FullMethodName      = "/gripql.Edit/BulkAdd"
 	Edit_AddGraph_FullMethodName     = "/gripql.Edit/AddGraph"
 	Edit_DeleteGraph_FullMethodName  = "/gripql.Edit/DeleteGraph"
+	Edit_BulkDelete_FullMethodName   = "/gripql.Edit/BulkDelete"
 	Edit_DeleteVertex_FullMethodName = "/gripql.Edit/DeleteVertex"
 	Edit_DeleteEdge_FullMethodName   = "/gripql.Edit/DeleteEdge"
 	Edit_AddIndex_FullMethodName     = "/gripql.Edit/AddIndex"
@@ -958,6 +959,7 @@ type EditClient interface {
 	BulkAdd(ctx context.Context, opts ...grpc.CallOption) (Edit_BulkAddClient, error)
 	AddGraph(ctx context.Context, in *GraphID, opts ...grpc.CallOption) (*EditResult, error)
 	DeleteGraph(ctx context.Context, in *GraphID, opts ...grpc.CallOption) (*EditResult, error)
+	BulkDelete(ctx context.Context, in *DeleteData, opts ...grpc.CallOption) (*EditResult, error)
 	DeleteVertex(ctx context.Context, in *ElementID, opts ...grpc.CallOption) (*EditResult, error)
 	DeleteEdge(ctx context.Context, in *ElementID, opts ...grpc.CallOption) (*EditResult, error)
 	AddIndex(ctx context.Context, in *IndexID, opts ...grpc.CallOption) (*EditResult, error)
@@ -1050,6 +1052,16 @@ func (c *editClient) DeleteGraph(ctx context.Context, in *GraphID, opts ...grpc.
 	return out, nil
 }
 
+func (c *editClient) BulkDelete(ctx context.Context, in *DeleteData, opts ...grpc.CallOption) (*EditResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(EditResult)
+	err := c.cc.Invoke(ctx, Edit_BulkDelete_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *editClient) DeleteVertex(ctx context.Context, in *ElementID, opts ...grpc.CallOption) (*EditResult, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(EditResult)
@@ -1129,6 +1141,7 @@ type EditServer interface {
 	BulkAdd(Edit_BulkAddServer) error
 	AddGraph(context.Context, *GraphID) (*EditResult, error)
 	DeleteGraph(context.Context, *GraphID) (*EditResult, error)
+	BulkDelete(context.Context, *DeleteData) (*EditResult, error)
 	DeleteVertex(context.Context, *ElementID) (*EditResult, error)
 	DeleteEdge(context.Context, *ElementID) (*EditResult, error)
 	AddIndex(context.Context, *IndexID) (*EditResult, error)
@@ -1157,6 +1170,9 @@ func (UnimplementedEditServer) AddGraph(context.Context, *GraphID) (*EditResult,
 }
 func (UnimplementedEditServer) DeleteGraph(context.Context, *GraphID) (*EditResult, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteGraph not implemented")
+}
+func (UnimplementedEditServer) BulkDelete(context.Context, *DeleteData) (*EditResult, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method BulkDelete not implemented")
 }
 func (UnimplementedEditServer) DeleteVertex(context.Context, *ElementID) (*EditResult, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteVertex not implemented")
@@ -1286,6 +1302,24 @@ func _Edit_DeleteGraph_Handler(srv interface{}, ctx context.Context, dec func(in
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(EditServer).DeleteGraph(ctx, req.(*GraphID))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Edit_BulkDelete_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteData)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(EditServer).BulkDelete(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Edit_BulkDelete_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(EditServer).BulkDelete(ctx, req.(*DeleteData))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1438,6 +1472,10 @@ var Edit_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeleteGraph",
 			Handler:    _Edit_DeleteGraph_Handler,
+		},
+		{
+			MethodName: "BulkDelete",
+			Handler:    _Edit_BulkDelete_Handler,
 		},
 		{
 			MethodName: "DeleteVertex",

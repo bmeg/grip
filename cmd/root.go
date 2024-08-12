@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/bmeg/grip/cmd/create"
+	"github.com/bmeg/grip/cmd/delete"
 	"github.com/bmeg/grip/cmd/drop"
 	"github.com/bmeg/grip/cmd/dump"
 	"github.com/bmeg/grip/cmd/erclient"
@@ -69,6 +70,8 @@ func init() {
 	RootCmd.AddCommand(plugin.Cmd)
 	RootCmd.AddCommand(version.Cmd)
 	RootCmd.AddCommand(kvload.Cmd)
+	RootCmd.AddCommand(delete.Cmd)
+
 }
 
 var genBashCompletionCmd = &cobra.Command{
