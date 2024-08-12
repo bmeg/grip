@@ -139,9 +139,7 @@ func (mg *Graph) BulkDel(Data *gdbi.DeleteData) error {
 			return fmt.Errorf("failed to delete list of vertices: %s", err)
 		}
 		mg.ts.Touch(mg.graph)
-	}
 
-	if Data.Vertices != nil && Data.Edges != nil && len(Data.Vertices) > 0 && len(Data.Edges) > 0 {
 		_, err = eCol.DeleteMany(context.TODO(), bson.M{
 			"$or": []bson.M{
 				{FIELD_FROM: bson.M{"$in": Data.Vertices}},
