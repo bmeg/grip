@@ -137,12 +137,10 @@ class Graph(BaseConnection):
             "vertices": vertices,
             "edges": edges
         }
-        print("VALUE OF PAYLOAD: ", payload)
         response = self.session.delete(
             self.base_url + "/v1/graph",
             json=payload
         )
-        print("REPONSE HERE: ", response.json())
         raise_for_status(response)
         return response.json()
 
