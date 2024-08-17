@@ -179,6 +179,12 @@ class Graph(BaseConnection):
         """
         return Query(self.base_url, self.graph, self.user, self.password, self.token, self.credential_file)
 
+    def V(self, *args):
+        """
+        Create a vertex query handle.
+        """
+        return Query(self.base_url, self.graph, self.user, self.password, self.token, self.credential_file).V(*args)
+
     def resume(self, job_id):
         """
         Create a query handle.
