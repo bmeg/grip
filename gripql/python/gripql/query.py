@@ -39,7 +39,6 @@ def _wrap_dict_value(value):
 class QueryBuilder:
     def __init__(self):
         self.query = []
-        print("QueryBuilder_init_")
 
     def __append(self, part):
         q = self._builder()
@@ -342,16 +341,16 @@ class QueryBuilder:
 
 
 
-class Query(BaseConnection):
+class Query(BaseConnection, QueryBuilder):
     def __init__(self, url, graph, user=None, password=None, token=None, credential_file=None, resume=None):
         super(Query, self).__init__(url, user, password, token, credential_file)
-        super(QueryBuilder, self).__init__(self.__new)
+        super(QueryBuilder, self).__init__()
         self.url = self.base_url + "/v1/graph/" + graph + "/query"
         self.graph = graph
         self.query = []
         self.resume = resume
 
-    def __new(self):
+    def _builder(self):
         return self.__class__(self.base_url, self.graph, self.user, self.password, self.token, self.credential_file, self.resume)
 
     def __iter__(self):
