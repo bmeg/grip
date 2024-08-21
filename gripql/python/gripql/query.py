@@ -36,16 +36,13 @@ def _wrap_dict_value(value):
     return _wrap_value(value, dict)
 
 
-class Query(BaseConnection):
-    def __init__(self, url, graph, user=None, password=None, token=None, credential_file=None, resume=None):
-        super(Query, self).__init__(url, user, password, token, credential_file)
-        self.url = self.base_url + "/v1/graph/" + graph + "/query"
-        self.graph = graph
+class QueryBuilder:
+    def __init__(self):
         self.query = []
-        self.resume = resume
+        print("QueryBuilder_init_")
 
     def __append(self, part):
-        q = self.__class__(self.base_url, self.graph, self.user, self.password, self.token, self.credential_file, self.resume)
+        q = self._builder()
         q.query = self.query[:]
         q.query.append(part)
         return q
@@ -342,6 +339,20 @@ class Query(BaseConnection):
         Return the query as a dictionary.
         """
         return {"query": self.query}
+
+
+
+class Query(BaseConnection):
+    def __init__(self, url, graph, user=None, password=None, token=None, credential_file=None, resume=None):
+        super(Query, self).__init__(url, user, password, token, credential_file)
+        super(QueryBuilder, self).__init__(self.__new)
+        self.url = self.base_url + "/v1/graph/" + graph + "/query"
+        self.graph = graph
+        self.query = []
+        self.resume = resume
+
+    def __new(self):
+        return self.__class__(self.base_url, self.graph, self.user, self.password, self.token, self.credential_file, self.resume)
 
     def __iter__(self):
         return self.__stream()
