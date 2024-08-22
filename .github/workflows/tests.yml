@@ -252,7 +252,8 @@ jobs:
           python setup.py install --user
       - name: unit tests
         run: |
-          python -m unittest discover -s ./test/pygrip      
+          cd test
+          python -m unittest discover -s ./pygrip_test
   
     #gridsTest:
     #  needs: build
