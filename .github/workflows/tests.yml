@@ -250,9 +250,10 @@ jobs:
       - name: install pygrip
         run: |
           python setup.py install --user
-      
-    
-
+      - name: unit tests
+        run: |
+          python -m unittest discover -s ./test/pygrip      
+  
     #gridsTest:
     #  needs: build
     #  name: GRIDs Conformance
