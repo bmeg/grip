@@ -246,10 +246,10 @@ jobs:
       - name: install gripql
         run: |
           cd gripql/python
-          python setup.py install
-      - name: install gripql
+          python setup.py install --user
+      - name: install pygrip
         run: |
-          python setup.py install
+          python setup.py install --user
       
     
 
