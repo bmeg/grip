@@ -10,6 +10,7 @@ from gripql.query import QueryBuilder
 
 cwd = os.getcwd()
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+print("cd to %s" % (currentdir))
 os.chdir(currentdir)
 _lib = cdll.LoadLibrary("./_pygrip" + sysconfig.get_config_vars()["EXT_SUFFIX"])
 os.chdir(cwd)

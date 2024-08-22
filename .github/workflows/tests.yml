@@ -233,8 +233,24 @@ jobs:
           fi          
           # run specialized role based tests
           make test-authorization ARGS="--grip_config_file_path test/badger-auth.yml"
-  
-    
+
+  pygripTest:
+    needs: build
+    name: PyGrip UnitTest
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+      - name: Python Dependencies for Conformance
+        run: pip install requests numpy PyYAML
+      - name: install gripql
+        run: |
+          cd gripql/python
+          python setup.py install
+      - name: install gripql
+        run: |
+          python setup.py install
+      
     
 
     #gridsTest:
