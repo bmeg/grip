@@ -2,7 +2,8 @@
 
 from __future__ import print_function
 from ctypes import *
-import os, inspect
+from ctypes.util import find_library
+import os, inspect, sysconfig
 import random, string
 import json
 from gripql.query import QueryBuilder
@@ -10,7 +11,7 @@ from gripql.query import QueryBuilder
 cwd = os.getcwd()
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 os.chdir(currentdir)
-_lib = cdll.LoadLibrary("./pygrip.so")
+_lib = cdll.LoadLibrary("./_pygrip" + sysconfig.get_config_vars()["EXT_SUFFIX"])
 os.chdir(cwd)
 
 _lib.ReaderNext.restype = c_char_p
