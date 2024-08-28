@@ -8,3 +8,7 @@ Drivers:
       User: postgres
       DBName: test
       SSLMode: disable
+
+Server:
+  JobsDriver:
+    File: jobs

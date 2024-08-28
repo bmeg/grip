@@ -3,3 +3,7 @@ Default: pebble
 Drivers:
   pebble:
     Pebble: grip-pebble.db
+
+Server:
+  JobsDriver:
+    File: jobs

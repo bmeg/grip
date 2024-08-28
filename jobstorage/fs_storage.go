@@ -18,23 +18,7 @@ import (
 	"github.com/kennygrant/sanitize"
 )
 
-type Stream struct {
-	Pipe      gdbi.InPipe
-	DataType  gdbi.DataType
-	MarkTypes map[string]gdbi.DataType
-	Query     []*gripql.GraphStatement
-}
-
-type JobStorage interface {
-	List(graph string) (chan string, error)
-	Search(graph string, Query []*gripql.GraphStatement) (chan *gripql.JobStatus, error)
-	Spool(graph string, stream *Stream) (string, error)
-	Stream(ctx context.Context, graph, id string) (*Stream, error)
-	Delete(graph, id string) error
-	Status(graph, id string) (*gripql.JobStatus, error)
-}
-
-type Job struct {
+type FileJob struct {
 	Status        gripql.JobStatus
 	DataType      gdbi.DataType
 	MarkTypes     map[string]gdbi.DataType
@@ -43,6 +27,11 @@ type Job struct {
 
 func jobKey(graph, job string) string {
 	return fmt.Sprintf("%s/%s", sanitize.Name(graph), sanitize.Name(job))
+}
+
+type FSResults struct {
+	BaseDir string
+	jobs    *sync.Map
 }
 
 func NewFSJobStorage(path string) *FSResults {
@@ -61,7 +50,7 @@ func NewFSJobStorage(path string) *FSResults {
 		if err == nil {
 			sData, err := io.ReadAll(file)
 			if err == nil {
-				job := Job{}
+				job := FileJob{}
 				err := json.Unmarshal(sData, &job)
 				if err == nil {
 					log.Infof("Found job %s %s", graphName, jobName)
@@ -79,17 +68,12 @@ func NewFSJobStorage(path string) *FSResults {
 	return &out
 }
 
-type FSResults struct {
-	BaseDir string
-	jobs    *sync.Map
-}
-
 func (fs *FSResults) List(graph string) (chan string, error) {
 	out := make(chan string)
 	go func() {
 		defer close(out)
 		fs.jobs.Range(func(key, value interface{}) bool {
-			vJob := value.(*Job)
+			vJob := value.(*FileJob)
 			if vJob.Status.Graph == graph {
 				out <- vJob.Status.Id
 			}
@@ -105,7 +89,7 @@ func (fs *FSResults) Search(graph string, Query []*gripql.GraphStatement) (chan 
 	go func() {
 		defer close(out)
 		fs.jobs.Range(func(key, value interface{}) bool {
-			vJob := value.(*Job)
+			vJob := value.(*FileJob)
 			if vJob.Status.Graph == graph {
 				if JobMatch(qcs, vJob.StepChecksums) {
 					out <- &vJob.Status
@@ -137,7 +121,7 @@ func (fs *FSResults) Spool(graph string, stream *Stream) (string, error) {
 	}
 
 	cs, _ := TraversalChecksum(stream.Query)
-	job := &Job{
+	job := &FileJob{
 		Status:        gripql.JobStatus{Query: stream.Query, Id: jobName, Graph: graph, Timestamp: time.Now().Format(time.RFC3339)},
 		DataType:      stream.DataType,
 		MarkTypes:     stream.MarkTypes,
@@ -174,7 +158,7 @@ func (fs *FSResults) Spool(graph string, stream *Stream) (string, error) {
 
 func (fs *FSResults) Stream(ctx context.Context, graph, id string) (*Stream, error) {
 	if v, ok := fs.jobs.Load(jobKey(graph, id)); ok {
-		vJob := v.(*Job)
+		vJob := v.(*FileJob)
 		if vJob.Status.State == gripql.JobState_COMPLETE {
 			resultFile := filepath.Join(fs.BaseDir, sanitize.Name(graph), sanitize.Name(id), "results")
 			results, err := os.Open(resultFile)
@@ -215,7 +199,7 @@ func (fs *FSResults) Stream(ctx context.Context, graph, id string) (*Stream, err
 
 func (fs *FSResults) Delete(graph, id string) error {
 	if v, ok := fs.jobs.Load(jobKey(graph, id)); ok {
-		vJob := v.(*Job)
+		vJob := v.(*FileJob)
 		if vJob.Status.State == gripql.JobState_RUNNING || vJob.Status.State == gripql.JobState_QUEUED {
 			return fmt.Errorf("Job cancel not yet implemented")
 		}
@@ -228,7 +212,7 @@ func (fs *FSResults) Delete(graph, id string) error {
 
 func (fs *FSResults) Status(graph, id string) (*gripql.JobStatus, error) {
 	if v, ok := fs.jobs.Load(jobKey(graph, id)); ok {
-		vJob := v.(*Job)
+		vJob := v.(*FileJob)
 		a := vJob.Status
 		return &a, nil
 	}

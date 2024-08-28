@@ -112,7 +112,7 @@ func NewGripServer(conf *config.Config, baseDir string, drivers map[string]gdbi.
 	if _, ok := gdbs[conf.Default]; !ok {
 		return nil, fmt.Errorf("default driver '%s' does not exist", conf.Default)
 	}
-	fmt.Printf("Default graph driver: %s\n", conf.Default)
+	log.Info("Default graph driver", "Driver", conf.Default)
 	return server, nil
 }
 
@@ -361,19 +361,33 @@ func (server *GripServer) Serve(pctx context.Context) error {
 		}
 	}
 
-	if !server.conf.Server.NoJobs {
-		gripql.RegisterJobServer(grpcServer, server)
-		err = gripql.RegisterJobHandlerClient(ctx, grpcMux,
-			gripql.NewJobDirectClient(
-				server,
-				gripql.DirectUnaryInterceptor(unaryAuthInt),
-				gripql.DirectStreamInterceptor(streamAuthInt),
-			))
+	if server.conf.Server.JobsDriver != nil {
+		if server.conf.Server.JobsDriver.File != "" {
+			jobDir := filepath.Join(server.conf.Server.WorkDir, "jobs")
+			server.jStorage = jobstorage.NewFSJobStorage(jobDir)
+		} else if server.conf.Server.JobsDriver.OpenSearch != nil {
+			server.jStorage, err = jobstorage.NewOpenSearchStorage(server.conf.Server.JobsDriver.OpenSearch.Address,
+				server.conf.Server.JobsDriver.OpenSearch.Username,
+				server.conf.Server.JobsDriver.OpenSearch.Password)
+		}
 		if err != nil {
 			return fmt.Errorf("registering job endpoint: %v", err)
 		}
-		jobDir := filepath.Join(server.conf.Server.WorkDir, "jobs")
-		server.jStorage = jobstorage.NewFSJobStorage(jobDir)
+
+		if server.jStorage != nil {
+			gripql.RegisterJobServer(grpcServer, server)
+			err = gripql.RegisterJobHandlerClient(ctx, grpcMux,
+				gripql.NewJobDirectClient(
+					server,
+					gripql.DirectUnaryInterceptor(unaryAuthInt),
+					gripql.DirectStreamInterceptor(streamAuthInt),
+				))
+		}
+		if err != nil {
+			return fmt.Errorf("registering job endpoint: %v", err)
+		}
+	} else {
+		log.Info("Jobs driver not configured")
 	}
 
 	if server.conf.Server.EnablePlugins {

@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/bmeg/grip/accounts"
+	"github.com/bmeg/grip/jobstorage"
 	"github.com/bmeg/grip/util"
 	"github.com/bmeg/grip/util/duration"
 )
@@ -18,7 +19,7 @@ type ServerConfig struct {
 	ReadOnly         bool
 	EnablePlugins    bool
 	PluginDir        string
-	NoJobs           bool
+	JobsDriver       *jobstorage.JobsConfig
 	Accounts         accounts.Config
 	DisableHTTPCache bool
 	// Should the server periodically build the graph schemas?

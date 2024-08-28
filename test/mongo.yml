@@ -4,3 +4,7 @@ Drivers:
   mongo:
     MongoDB:
       URL: mongodb://localhost:27017
+
+Server:
+  JobsDriver:
+    File: jobs

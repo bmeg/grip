@@ -35,6 +35,8 @@ require (
 	github.com/minio/minio-go/v7 v7.0.73
 	github.com/mitchellh/hashstructure/v2 v2.0.2
 	github.com/mongodb/mongo-tools v0.0.0-20240715143021-aa6a140d3f17
+	github.com/opensearch-project/opensearch-go v1.1.0
+	github.com/opensearch-project/opensearch-go/v4 v4.1.0
 	github.com/paulbellamy/ratecounter v0.2.0
 	github.com/robertkrimen/otto v0.4.0
 	github.com/segmentio/ksuid v1.0.4
