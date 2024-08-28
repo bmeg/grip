@@ -1,0 +1,1 @@
+{"resourceType":"Patient","id":"bc4e1aa6-cb52-40e9-8f20-594d9c84f920","identifier":[{"use":"official","system":"https://my_demo.org/labA","value":"patientX_1234"}],"active":true}

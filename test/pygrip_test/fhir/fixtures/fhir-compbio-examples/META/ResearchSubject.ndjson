@@ -1,0 +1,1 @@
+{"resourceType":"ResearchSubject","id":"2fc448d6-a23b-4b94-974b-c66110164851","identifier":[{"use":"official","system":"https://my_demo.org/labA","value":"subjectX_1234"}],"status":"active","study":{"reference":"ResearchStudy/7dacd4d0-3c8e-470b-bf61-103891627d45"},"subject":{"reference":"Patient/bc4e1aa6-cb52-40e9-8f20-594d9c84f920"}}
