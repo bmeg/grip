@@ -54,7 +54,8 @@ class GraphDBWrapper:
         """
         Add vertex to a graph.
         """
-        _lib.AddVertex(self._handle, getGoString(gid), getGoString(label), getGoString(json.dumps(data)))
+        _lib.AddVertex(self._handle, getGoString(gid), getGoString(label), 
+                       getGoString(json.dumps(data)))
     
     def addEdge(self, src, dst, label, data={}, gid=None):
         """

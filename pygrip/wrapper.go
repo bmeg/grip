@@ -9,7 +9,6 @@ import "C"
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 
 	"runtime/cgo"
 
@@ -21,6 +20,7 @@ import (
 	"github.com/bmeg/grip/kvgraph"
 	"github.com/bmeg/grip/kvi"
 	"github.com/bmeg/grip/kvi/leveldb"
+	"github.com/bmeg/grip/log"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
@@ -40,13 +40,17 @@ func NewMemServer() GraphHandle {
 	graphDB = kvgraph.NewKVGraph(db)
 	err := graphDB.AddGraph("default")
 	if err != nil {
-		fmt.Printf("Graph init error: %s\n", err)
+		log.Errorf("Graph init error: %s\n", err)
 	}
 	g, err := graphDB.Graph("default")
 	if err != nil {
-		fmt.Printf("Graph init error: %s\n", err)
+		log.Errorf("Graph init error: %s\n", err)
 	}
 	return GraphHandle(cgo.NewHandle(g))
+}
+
+func CloseServer(graph GraphHandle) {
+	cgo.Handle(graph).Delete()
 }
 
 //export AddVertex
@@ -54,7 +58,7 @@ func AddVertex(graph GraphHandle, gid, label, jdata string) {
 	data := map[string]any{}
 	err := json.Unmarshal([]byte(jdata), &data)
 	if err != nil {
-		fmt.Printf("Data error: %s : %s\n", err, jdata)
+		log.Errorf("Data error: %s : %s\n", err, jdata)
 	}
 
 	g := cgo.Handle(graph).Value().(gdbi.GraphInterface)
@@ -69,7 +73,7 @@ func AddEdge(graph GraphHandle, gid, src, dst, label, jdata string) {
 	data := map[string]any{}
 	err := json.Unmarshal([]byte(jdata), &data)
 	if err != nil {
-		fmt.Printf("Data error: %s : %s\n", err, jdata)
+		log.Errorf("Data error: %s : %s\n", err, jdata)
 	}
 
 	g := cgo.Handle(graph).Value().(gdbi.GraphInterface)
@@ -90,14 +94,14 @@ func Query(graph GraphHandle, jquery string) QueryReaderHandle {
 	query := gripql.GraphQuery{}
 	err := protojson.Unmarshal([]byte(jquery), &query)
 	if err != nil {
-		fmt.Printf("Query error: %s : %s\n", err)
+		log.Errorf("Query error: %s : %s\n", err)
 	}
 
 	g := cgo.Handle(graph).Value().(gdbi.GraphInterface)
 	compiler := core.NewCompiler(g)
 	pipe, err := compiler.Compile(query.Query, nil)
 	if err != nil {
-		fmt.Printf("Compile error: %s : %s\n", err)
+		log.Errorf("Compile error: %s : %s\n", err)
 	}
 
 	ctx := context.Background()
