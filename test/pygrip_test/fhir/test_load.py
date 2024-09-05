@@ -24,7 +24,7 @@ def resources() -> Generator[Dict[str, Any], None, None]:
 
 @pytest.fixture
 def expected_edges() -> list[tuple]:
-    """Return the expected edges for the resources."""
+    """Return the expected edges for the resources [(src, dst, label)]."""
     return [('21f3411d-89a4-4bcc-9ce7-b76edb1c745f', '60c67a06-ea2d-4d24-9249-418dc77a16a9', 'specimen'),
             ('21f3411d-89a4-4bcc-9ce7-b76edb1c745f', '9ae7e542-767f-4b03-a854-7ceed17152cb', 'focus'),
             ('21f3411d-89a4-4bcc-9ce7-b76edb1c745f', 'bc4e1aa6-cb52-40e9-8f20-594d9c84f920', 'subject'),
@@ -42,7 +42,7 @@ def expected_edges() -> list[tuple]:
 
 @pytest.fixture
 def expected_vertices() -> list[tuple]:
-    """Return the expected vertices (only id, label) for the resources."""
+    """Return the expected vertices [(id, label)] for the resources."""
     return [('21f3411d-89a4-4bcc-9ce7-b76edb1c745f', 'Observation'),
             ('2fc448d6-a23b-4b94-974b-c66110164851', 'ResearchSubject'),
             ('4e3c6b59-b1fd-5c26-a611-da4cde9fd061', 'Observation'),
@@ -56,6 +56,7 @@ def expected_vertices() -> list[tuple]:
 
 @pytest.fixture
 def expected_dataframe_associations():
+    """Return the expected dataframe associations for the resources. { (resource_type, resource_id): [(association_resource_type, association_resource_id)]."""
     return {
         ('ResearchSubject', '2fc448d6-a23b-4b94-974b-c66110164851'): [
             ('ResearchStudy', '7dacd4d0-3c8e-470b-bf61-103891627d45'),
@@ -137,8 +138,10 @@ def dataframe_associations(self, vertex_gid, vertex_label, labels=('ResearchStud
 
 @pytest.fixture
 def graph() -> pygrip.GraphDBWrapper:
-    """Load the resources into the graph."""
+    """Load the resources into the graph. Note: this does _not_ consider iceberg schema."""
+    # TODO - add parameter or test environment variable to switch between in-memory and remote graph
     graph = pygrip.NewMemServer()
+    # use jsonpath to find all references with a resource
     jsonpath_expr = parse('*..reference')
     for _ in resources():
         graph.addVertex(_['id'], _['resourceType'], _)
@@ -146,12 +149,16 @@ def graph() -> pygrip.GraphDBWrapper:
             # value will be something like "Specimen/60c67a06-ea2d-4d24-9249-418dc77a16a9"
             # full_path will be something like "specimen.reference" or "focus.[0].reference"
             type_, dst_id = match.value.split('/')
+            # determine label from full path
             path_parts = str(match.full_path).split('.')
+            # strip out array indices and reference
             path_parts = [part for part in path_parts if '[' not in part and part != 'reference']
+            # make it a label
             label = '_'.join(path_parts)
             graph.addEdge(_['id'], dst_id, label)
 
     # monkey patch the graph object with our methods
+    # TODO - consider a more formal subclass of pygrip.GraphDBWrapper
     graph.match_label = types.MethodType(match_label, graph)
     graph.dataframe_associations = types.MethodType(dataframe_associations, graph)
 
