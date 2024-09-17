@@ -122,7 +122,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: gripBin
-      - name: Mongo Conformance
+      - name: Mongo Core Conformance
         run: |
           chmod +x grip
           make start-mongo
@@ -190,7 +190,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: gripBin
-      - name: Postgres Conformance
+      - name: Sqlite Conformance
         run: |
           chmod +x grip
           ./grip server --rpc-port 18202 --http-port 18201 --config ./test/sqlite.yml &
