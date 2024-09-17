@@ -13,18 +13,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Set up Go 1.x
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v5
         with:
-          go-version: ^1.18
+          go-version: ^1.22.6
 
       - name: Check out code into the Go module directory
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Build
         run: go build -v ./
 
       - name: Store grip
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: gripBin
           path: grip
@@ -35,11 +35,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Set up Go 1.x
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v5
         with:
-          go-version: ^1.18
+          go-version: ^1.22.6
       - name: Check out code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       - name: run unit tests
         run: |
           go test ./test/... -config badger.yml
@@ -51,11 +51,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       - name: Python Dependencies for Conformance
         run: pip install requests numpy
       - name: Download grip
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4
         with:
           name: gripBin
       - name: Badger Test
@@ -72,11 +72,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       - name: Python Dependencies for Conformance
         run: pip install requests numpy
       - name: Download grip
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4
         with:
           name: gripBin
       - name: Pebble Test
@@ -93,11 +93,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       - name: Python Dependencies for Conformance
         run: pip install requests numpy
       - name: Download grip
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4
         with:
           name: gripBin
       - name: Mongo Conformance
@@ -115,11 +115,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       - name: Python Dependencies for Conformance
         run: pip install requests numpy
       - name: Download grip
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4
         with:
           name: gripBin
       - name: Mongo Conformance
@@ -137,11 +137,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       - name: Python Dependencies for Conformance
         run: pip install requests numpy
       - name: Download grip
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4
         with:
           name: gripBin
       - name: Elastic Conformance
@@ -160,11 +160,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       - name: Python Dependencies for Conformance
         run: pip install requests numpy
       - name: Download grip
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4
         with:
           name: gripBin
       - name: Postgres Conformance
@@ -183,11 +183,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       - name: Python Dependencies for Conformance
         run: pip install requests numpy
       - name: Download grip
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4
         with:
           name: gripBin
       - name: Postgres Conformance
@@ -204,13 +204,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       - name: Update pip
         run: pip install --upgrade pip
       - name: Python Dependencies for Conformance
         run: pip install -U requests numpy grpcio-tools protobuf
       - name: Download grip
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4
         with:
           name: gripBin
       - name: Gripper Conformance
@@ -230,11 +230,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       - name: Python Dependencies for Conformance
         run: pip install requests numpy PyYAML
       - name: Download grip
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4
         with:
           name: gripBin
       - name: Auth Test
@@ -262,11 +262,11 @@ jobs:
     #  runs-on: ubuntu-latest
     #  steps:
     #  - name: Check out code
-    #    uses: actions/checkout@v2
+    #    uses: actions/checkout@v4
     #  - name: Python Dependencies for Conformance
     #    run: pip install requests numpy
     #  - name: Download grip
-    #    uses: actions/download-artifact@v2
+    #    uses: actions/download-artifact@v4
     #    with:
     #      name: gripBin
     #  - name: GRIDs unit tests
