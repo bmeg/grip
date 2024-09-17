@@ -1,4 +1,4 @@
-package psql
+package sqlite
 
 import (
 	"context"
@@ -10,14 +10,16 @@ import (
 	"github.com/bmeg/grip/engine/core"
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/log"
+	"github.com/bmeg/grip/psql"
 	"github.com/bmeg/grip/timestamp"
 	"github.com/bmeg/grip/util"
 	"github.com/jmoiron/sqlx"
+
+	_ "github.com/mattn/go-sqlite3"
 )
 
 const batchSize int = 100
 
-// Graph is the interface to a single graph
 type Graph struct {
 	db    *sqlx.DB
 	ts    *timestamp.Timestamp
@@ -26,14 +28,10 @@ type Graph struct {
 	graph string
 }
 
-// Compiler returns a query compiler that uses the graph
-func (g *Graph) Compiler() gdbi.Compiler {
-	return core.NewCompiler(g, core.IndexStartOptimize) //TODO: probably a better optimizer for vertex label search)
+// GetTimestamp gets the timestamp of last update
+func (g *Graph) GetTimestamp() string {
+	return g.ts.Get(g.graph)
 }
-
-////////////////////////////////////////////////////////////////////////////////
-// Write methods
-////////////////////////////////////////////////////////////////////////////////
 
 // AddVertex adds a vertex to the database
 func (g *Graph) AddVertex(vertices []*gdbi.Vertex) error {
@@ -79,7 +77,6 @@ func (g *Graph) AddVertex(vertices []*gdbi.Vertex) error {
 	return nil
 }
 
-// AddEdge adds an edge to the database
 func (g *Graph) AddEdge(edges []*gdbi.Edge) error {
 	txn, err := g.db.Begin()
 	if err != nil {
@@ -88,12 +85,12 @@ func (g *Graph) AddEdge(edges []*gdbi.Edge) error {
 
 	s := fmt.Sprintf(
 		`INSERT INTO %s (gid, label, "from", "to", data) VALUES ($1, $2, $3, $4, $5)
-		ON CONFLICT (gid) DO UPDATE SET
-		gid = excluded.gid,
-		label = excluded.label,
-		"from" = excluded.from,
-		"to" = excluded.to,
-		data = excluded.data;`,
+		 ON CONFLICT (gid) DO UPDATE SET
+		 gid = excluded.gid,
+		 label = excluded.label,
+		 "from" = excluded."from",
+     	 "to" = excluded."to",
+		 data = excluded.data;`,
 		g.e,
 	)
 	stmt, err := txn.Prepare(s)
@@ -125,6 +122,44 @@ func (g *Graph) AddEdge(edges []*gdbi.Edge) error {
 	return nil
 }
 
+func (g *Graph) GetVertex(gid string, load bool) *gdbi.Vertex {
+	q := fmt.Sprintf(`SELECT gid, label FROM %s WHERE gid='%s'`, g.v, gid)
+	if load {
+		q = fmt.Sprintf(`SELECT * FROM %s WHERE gid='%s'`, g.v, gid)
+	}
+	vrow := &psql.Row{}
+	err := g.db.QueryRowx(q).StructScan(vrow)
+	if err != nil {
+		log.WithFields(log.Fields{"error": err, "query": q}).Error("GetVertex: StructScan")
+		return nil
+	}
+	vertex, err := psql.ConvertVertexRow(vrow, load)
+	if err != nil {
+		log.WithFields(log.Fields{"error": err}).Error("GetVertex: ConvertVertexRow")
+		return nil
+	}
+	return vertex
+}
+
+func (g *Graph) GetEdge(gid string, load bool) *gdbi.Edge {
+	q := fmt.Sprintf(`SELECT gid, label, "from", "to" FROM %s WHERE gid='%s'`, g.e, gid)
+	if load {
+		q = fmt.Sprintf(`SELECT * FROM %s WHERE gid='%s'`, g.e, gid)
+	}
+	erow := &psql.Row{}
+	err := g.db.QueryRowx(q).StructScan(erow)
+	if err != nil {
+		log.WithFields(log.Fields{"error": err, "query": q}).Error("GetEdge: StructScan")
+		return nil
+	}
+	edge, err := psql.ConvertEdgeRow(erow, load)
+	if err != nil {
+		log.WithFields(log.Fields{"error": err}).Error("GetEdge: convertEdgeRow")
+		return nil
+	}
+	return edge
+}
+
 func (g *Graph) BulkAdd(stream <-chan *gdbi.GraphElement) error {
 	return util.StreamBatch(stream, 50, g.graph, g.AddVertex, g.AddEdge)
 }
@@ -139,6 +174,21 @@ func (g *Graph) BulkDel(Data *gdbi.DeleteData) error {
 		if err := g.DelVertex(v); err != nil {
 			return err
 		}
+	}
+	return nil
+}
+
+// Compiler returns a query compiler that uses the graph
+func (g *Graph) Compiler() gdbi.Compiler {
+	return core.NewCompiler(g, core.IndexStartOptimize) //TODO: probably a better optimizer for vertex label search)
+}
+
+// DelEdge is not implemented in the SQL driver
+func (g *Graph) DelEdge(key string) error {
+	stmt := fmt.Sprintf("DELETE FROM %s WHERE gid='%s'", g.e, key)
+	_, err := g.db.Exec(stmt)
+	if err != nil {
+		return fmt.Errorf("deleting edge: %v", err)
 	}
 	return nil
 }
@@ -166,65 +216,6 @@ func (g *Graph) DelVertex(key string) error {
 	return nil
 }
 
-// DelEdge is not implemented in the SQL driver
-func (g *Graph) DelEdge(key string) error {
-	stmt := fmt.Sprintf("DELETE FROM %s WHERE gid='%s'", g.e, key)
-	_, err := g.db.Exec(stmt)
-	if err != nil {
-		return fmt.Errorf("deleting edge: %v", err)
-	}
-	return nil
-}
-
-////////////////////////////////////////////////////////////////////////////////
-// Read methods
-////////////////////////////////////////////////////////////////////////////////
-
-// GetTimestamp gets the timestamp of last update
-func (g *Graph) GetTimestamp() string {
-	return g.ts.Get(g.graph)
-}
-
-// GetVertex loads a vertex given an id. It returns a nil if not found.
-func (g *Graph) GetVertex(gid string, load bool) *gdbi.Vertex {
-	q := fmt.Sprintf(`SELECT gid, label FROM %s WHERE gid='%s'`, g.v, gid)
-	if load {
-		q = fmt.Sprintf(`SELECT * FROM %s WHERE gid='%s'`, g.v, gid)
-	}
-	vrow := &Row{}
-	err := g.db.QueryRowx(q).StructScan(vrow)
-	if err != nil {
-		log.WithFields(log.Fields{"error": err, "query": q}).Error("GetVertex: StructScan")
-		return nil
-	}
-	vertex, err := ConvertVertexRow(vrow, load)
-	if err != nil {
-		log.WithFields(log.Fields{"error": err}).Error("GetVertex: convertVertexRow")
-		return nil
-	}
-	return vertex
-}
-
-// GetEdge loads an edge  given an id. It returns a nil if not found.
-func (g *Graph) GetEdge(gid string, load bool) *gdbi.Edge {
-	q := fmt.Sprintf(`SELECT gid, label, "from", "to" FROM %s WHERE gid='%s'`, g.e, gid)
-	if load {
-		q = fmt.Sprintf(`SELECT * FROM %s WHERE gid='%s'`, g.e, gid)
-	}
-	erow := &Row{}
-	err := g.db.QueryRowx(q).StructScan(erow)
-	if err != nil {
-		log.WithFields(log.Fields{"error": err, "query": q}).Error("GetEdge: StructScan")
-		return nil
-	}
-	edge, err := ConvertEdgeRow(erow, load)
-	if err != nil {
-		log.WithFields(log.Fields{"error": err}).Error("GetEdge: convertEdgeRow")
-		return nil
-	}
-	return edge
-}
-
 // GetVertexList produces a channel of all vertices in the graph
 func (g *Graph) GetVertexList(ctx context.Context, load bool) <-chan *gdbi.Vertex {
 	o := make(chan *gdbi.Vertex, 100)
@@ -241,12 +232,12 @@ func (g *Graph) GetVertexList(ctx context.Context, load bool) <-chan *gdbi.Verte
 		}
 		defer rows.Close()
 		for rows.Next() {
-			vrow := &Row{}
+			vrow := &psql.Row{}
 			if err := rows.StructScan(vrow); err != nil {
 				log.WithFields(log.Fields{"error": err}).Error("GetVertexList: StructScan")
 				continue
 			}
-			v, err := ConvertVertexRow(vrow, load)
+			v, err := psql.ConvertVertexRow(vrow, load)
 			if err != nil {
 				log.WithFields(log.Fields{"error": err}).Error("GetVertexList: convertVertexRow")
 				continue
@@ -303,12 +294,12 @@ func (g *Graph) GetEdgeList(ctx context.Context, load bool) <-chan *gdbi.Edge {
 		}
 		defer rows.Close()
 		for rows.Next() {
-			erow := &Row{}
+			erow := &psql.Row{}
 			if err := rows.StructScan(erow); err != nil {
 				log.WithFields(log.Fields{"error": err}).Error("GetEdgeList: StructScan")
 				continue
 			}
-			e, err := ConvertEdgeRow(erow, load)
+			e, err := psql.ConvertEdgeRow(erow, load)
 			if err != nil {
 				log.WithFields(log.Fields{"error": err}).Error("GetEdgeList: convertEdgeRow")
 				continue
@@ -352,12 +343,12 @@ func (g *Graph) GetVertexChannel(ctx context.Context, reqChan chan gdbi.ElementL
 				}
 				chunk := map[string]*gdbi.Vertex{}
 				for rows.Next() {
-					vrow := &Row{}
+					vrow := &psql.Row{}
 					if err := rows.StructScan(vrow); err != nil {
 						log.WithFields(log.Fields{"error": err}).Error("GetVertexChannel: StructScan")
 						continue
 					}
-					v, err := ConvertVertexRow(vrow, load)
+					v, err := psql.ConvertVertexRow(vrow, load)
 					if err != nil {
 						log.WithFields(log.Fields{"error": err}).Error("GetVertexChannel: convertVertexRow")
 						continue
@@ -407,7 +398,7 @@ func (g *Graph) GetOutChannel(ctx context.Context, reqChan chan gdbi.ElementLook
 			if len(idBatch) > 0 {
 				ids := strings.Join(idBatch, ", ")
 				q := fmt.Sprintf(
-					"SELECT %s.gid, %s.label, %s.from FROM %s INNER JOIN %s ON %s.to=%s.gid WHERE %s.from IN (%s)",
+					`SELECT %s.gid, %s.label, %s."from" FROM %s INNER JOIN %s ON %s."to"=%s.gid WHERE %s."from" IN (%s)`,
 					// SELECT
 					g.v, g.v, g.e,
 					// FROM
@@ -423,7 +414,7 @@ func (g *Graph) GetOutChannel(ctx context.Context, reqChan chan gdbi.ElementLook
 				)
 				if load {
 					q = fmt.Sprintf(
-						"SELECT %s.*, %s.from FROM %s INNER JOIN %s ON %s.to=%s.gid WHERE %s.from IN (%s)",
+						`SELECT %s.*, %s."from" FROM %s INNER JOIN %s ON %s."to"=%s.gid WHERE %s."from" IN (%s)`,
 						// SELECT
 						g.v, g.e,
 						// FROM
@@ -451,12 +442,12 @@ func (g *Graph) GetOutChannel(ctx context.Context, reqChan chan gdbi.ElementLook
 					return
 				}
 				for rows.Next() {
-					vrow := &Row{}
+					vrow := &psql.Row{}
 					if err := rows.StructScan(vrow); err != nil {
 						log.WithFields(log.Fields{"error": err}).Error("GetOutChannel: StructScan")
 						continue
 					}
-					v, err := ConvertVertexRow(vrow, load)
+					v, err := psql.ConvertVertexRow(vrow, load)
 					if err != nil {
 						log.WithFields(log.Fields{"error": err}).Error("GetOutChannel: convertVertexRow")
 						continue
@@ -516,7 +507,7 @@ func (g *Graph) GetInChannel(ctx context.Context, reqChan chan gdbi.ElementLooku
 			if len(idBatch) > 0 {
 				ids := strings.Join(idBatch, ", ")
 				q := fmt.Sprintf(
-					"SELECT %s.gid, %s.label, %s.to FROM %s INNER JOIN %s ON %s.from=%s.gid WHERE %s.to IN (%s)",
+					`SELECT %s.gid, %s.label, %s."to" FROM %s INNER JOIN %s ON %s."from"=%s.gid WHERE %s."to" IN (%s)`,
 					// SELECT
 					g.v, g.v, g.e,
 					// FROM
@@ -532,7 +523,7 @@ func (g *Graph) GetInChannel(ctx context.Context, reqChan chan gdbi.ElementLooku
 				)
 				if load {
 					q = fmt.Sprintf(
-						"SELECT %s.*, %s.to FROM %s INNER JOIN %s ON %s.from=%s.gid WHERE %s.to IN (%s)",
+						`SELECT %s.*, %s."to" FROM %s INNER JOIN %s ON %s."from"=%s.gid WHERE %s."to" IN (%s)`,
 						// SELECT
 						g.v, g.e,
 						// FROM
@@ -560,12 +551,12 @@ func (g *Graph) GetInChannel(ctx context.Context, reqChan chan gdbi.ElementLooku
 					return
 				}
 				for rows.Next() {
-					vrow := &Row{}
+					vrow := &psql.Row{}
 					if err := rows.StructScan(vrow); err != nil {
 						log.WithFields(log.Fields{"error": err}).Error("GetInChannel: StructScan")
 						continue
 					}
-					v, err := ConvertVertexRow(vrow, load)
+					v, err := psql.ConvertVertexRow(vrow, load)
 					if err != nil {
 						log.WithFields(log.Fields{"error": err}).Error("GetInChannel: convertVertexRow")
 						continue
@@ -625,7 +616,7 @@ func (g *Graph) GetOutEdgeChannel(ctx context.Context, reqChan chan gdbi.Element
 			if len(idBatch) > 0 {
 				ids := strings.Join(idBatch, ", ")
 				q := fmt.Sprintf(
-					`SELECT gid, label, "from", "to" FROM %s WHERE %s.from IN (%s)`,
+					`SELECT gid, label, "from", "to" FROM %s WHERE %s."from" IN (%s)`,
 					// FROM
 					g.e,
 					// WHERE
@@ -635,7 +626,7 @@ func (g *Graph) GetOutEdgeChannel(ctx context.Context, reqChan chan gdbi.Element
 				)
 				if load {
 					q = fmt.Sprintf(
-						"SELECT * FROM %s WHERE %s.from IN (%s)",
+						`SELECT * FROM %s WHERE %s."from" IN (%s)`,
 						// FROM
 						g.e,
 						// WHERE
@@ -657,12 +648,12 @@ func (g *Graph) GetOutEdgeChannel(ctx context.Context, reqChan chan gdbi.Element
 					return
 				}
 				for rows.Next() {
-					erow := &Row{}
+					erow := &psql.Row{}
 					if err := rows.StructScan(erow); err != nil {
 						log.WithFields(log.Fields{"error": err}).Error("GetOutEdgeChannel: StructScan")
 						continue
 					}
-					e, err := ConvertEdgeRow(erow, load)
+					e, err := psql.ConvertEdgeRow(erow, load)
 					if err != nil {
 						log.WithFields(log.Fields{"error": err}).Error("GetOutEdgeChannel: convertEdgeRow")
 						continue
@@ -722,7 +713,7 @@ func (g *Graph) GetInEdgeChannel(ctx context.Context, reqChan chan gdbi.ElementL
 			if len(idBatch) > 0 {
 				ids := strings.Join(idBatch, ", ")
 				q := fmt.Sprintf(
-					`SELECT gid, label, "from", "to" FROM %s WHERE %s.to IN (%s)`,
+					`SELECT gid, label, "from", "to" FROM %s WHERE %s."to" IN (%s)`,
 					// FROM
 					g.e,
 					// WHERE
@@ -732,7 +723,7 @@ func (g *Graph) GetInEdgeChannel(ctx context.Context, reqChan chan gdbi.ElementL
 				)
 				if load {
 					q = fmt.Sprintf(
-						"SELECT * FROM %s WHERE %s.to IN (%s)",
+						`SELECT * FROM %s WHERE %s."to" IN (%s)`,
 						// FROM
 						g.e,
 						// WHERE
@@ -754,12 +745,12 @@ func (g *Graph) GetInEdgeChannel(ctx context.Context, reqChan chan gdbi.ElementL
 					return
 				}
 				for rows.Next() {
-					erow := &Row{}
+					erow := &psql.Row{}
 					if err := rows.StructScan(erow); err != nil {
 						log.WithFields(log.Fields{"error": err}).Error("GetInEdgeChannel: StructScan")
 						continue
 					}
-					e, err := ConvertEdgeRow(erow, load)
+					e, err := psql.ConvertEdgeRow(erow, load)
 					if err != nil {
 						log.WithFields(log.Fields{"error": err}).Error("GetInEdgeChannel: convertEdgeRow")
 						continue

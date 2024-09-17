@@ -1,4 +1,4 @@
-package psql
+package sqlite
 
 import (
 	"context"
@@ -6,6 +6,7 @@ import (
 
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/log"
+	"github.com/bmeg/grip/psql"
 	"github.com/bmeg/grip/util"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -46,12 +47,12 @@ func (db *GraphDB) BuildSchema(ctx context.Context, graphID string, sampleN uint
 			defer rows.Close()
 			schema := make(map[string]interface{})
 			for rows.Next() {
-				vrow := &Row{}
+				vrow := &psql.Row{}
 				if err := rows.StructScan(vrow); err != nil {
 					log.WithFields(log.Fields{"error": err}).Error("BuildSchema: StructScan")
 					continue
 				}
-				v, err := ConvertVertexRow(vrow, true)
+				v, err := psql.ConvertVertexRow(vrow, true)
 				if err != nil {
 					log.WithFields(log.Fields{"error": err}).Error("BuildSchema: convertVertexRow")
 					continue
@@ -80,7 +81,7 @@ func (db *GraphDB) BuildSchema(ctx context.Context, graphID string, sampleN uint
 
 		g.Go(func() error {
 			q := fmt.Sprintf(
-				"SELECT a.label, b.label, c.label, b.data FROM %s as a INNER JOIN %s as b ON b.to=a.gid INNER JOIN %s as c on b.from = c.gid WHERE b.label = '%s' limit %d",
+				`SELECT a.label, b.label, c.label, b.data FROM %s as a INNER JOIN %s as b ON b."to"=a.gid INNER JOIN %s as c on b."from" = c.gid WHERE b.label = '%s' limit %d`,
 				graph.v, graph.e, graph.v,
 				label, sampleN,
 			)
