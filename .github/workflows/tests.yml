@@ -43,8 +43,7 @@ jobs:
       - name: run unit tests
         run: |
           go test ./test/... -config badger.yml
-  
-  
+
 
   badgerTest:
     needs: build
@@ -65,7 +64,7 @@ jobs:
           ./grip server --rpc-port 18202 --http-port 18201 --config ./test/badger.yml &
           sleep 5
           make test-conformance
-  
+
 
   pebbleTest:
     needs: build
@@ -86,7 +85,7 @@ jobs:
           ./grip server --rpc-port 18202 --http-port 18201 --config ./test/pebble.yml &
           sleep 5
           make test-conformance
-    
+
 
   mongoTest:
     needs: build
@@ -108,7 +107,7 @@ jobs:
           ./grip server --rpc-port 18202 --http-port 18201 --config ./test/mongo.yml &
           sleep 5
           make test-conformance
-  
+
 
   mongoCoreTest:
     needs: build
@@ -130,7 +129,7 @@ jobs:
           ./grip server --rpc-port 18202 --http-port 18201 --config ./test/mongo-core-processor.yml &
           sleep 5
           make test-conformance
-  
+
 
   elasticTest:
     needs: build
@@ -153,11 +152,11 @@ jobs:
           ./grip server --rpc-port 18202 --http-port 18201 --config ./test/elastic.yml &
           sleep 5
           make test-conformance
-  
 
-  portgresTest:
+
+  postgresTest:
     needs: build
-    name: Portgres Test
+    name: Postgres Test
     runs-on: ubuntu-latest
     steps:
       - name: Check out code
@@ -176,7 +175,28 @@ jobs:
           ./grip server --rpc-port 18202 --http-port 18201 --config ./test/psql.yml &
           sleep 5
           python conformance/run_conformance.py http://localhost:18201 --exclude index aggregations
-  
+
+
+  sqliteTest:
+    needs: build
+    name: Sqlite Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+      - name: Python Dependencies for Conformance
+        run: pip install requests numpy
+      - name: Download grip
+        uses: actions/download-artifact@v2
+        with:
+          name: gripBin
+      - name: Postgres Conformance
+        run: |
+          chmod +x grip
+          ./grip server --rpc-port 18202 --http-port 18201 --config ./test/sqlite.yml &
+          sleep 5
+          python conformance/run_conformance.py http://localhost:18201 --exclude index aggregations
+
 
   gripperTest:
     needs: build
@@ -224,18 +244,17 @@ jobs:
           ./grip server --rpc-port 18202 --http-port 18201 --config ./test/badger-auth.yml &
           sleep 5
           # simple auth
-          # run tests without credentials, should fail 
+          # run tests without credentials, should fail
           if make test-conformance
           then
             echo "ERROR: Conformance tests ran without credentials." ; exit 1
           else
-            echo "Got expected auth error" 
-          fi          
+            echo "Got expected auth error"
+          fi
           # run specialized role based tests
           make test-authorization ARGS="--grip_config_file_path test/badger-auth.yml"
-  
-    
-    
+
+
 
     #gridsTest:
     #  needs: build

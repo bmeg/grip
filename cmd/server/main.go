@@ -93,6 +93,8 @@ var Cmd = &cobra.Command{
 				dconf.AddMongoDefault()
 			} else if driver == "grids" {
 				dconf.AddGridsDefault()
+			} else if driver == "sqlite" {
+				dconf.AddSqliteDefault()
 			}
 		}
 		if pluginDir != "" {
