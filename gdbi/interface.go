@@ -31,6 +31,7 @@ type DataElement struct {
 type DataRef interface {
 	Get() *DataElement
 	Copy() DataRef
+	ToDict() map[string]any
 }
 
 func (d *DataElement) Get() *DataElement {

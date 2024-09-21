@@ -1,5 +1,5 @@
 /*
-The pipeline connects togeather the processors
+The pipeline connects together the processors
 */
 
 package pipeline

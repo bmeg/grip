@@ -15,7 +15,7 @@ import (
 func BenchmarkEdgeStringScan(b *testing.B) {
 	db, err := badgerdb.NewKVInterface("test.db", kvi.Options{})
 	if err != nil {
-		log.Errorf("issue: %s", err)
+		b.Errorf("issue: %s", err)
 		return
 	}
 
@@ -24,6 +24,7 @@ func BenchmarkEdgeStringScan(b *testing.B) {
 		k := RandStringRunes(10)
 		keys = append(keys, k)
 	}
+	log.Info("KEYS:", keys)
 
 	for i := 0; i < 1000; i++ {
 		db.Update(func(tx kvi.KVTransaction) error {
@@ -59,7 +60,7 @@ func BenchmarkEdgeStringScan(b *testing.B) {
 func BenchmarkEdgeIntScan(b *testing.B) {
 	db, err := badgerdb.NewKVInterface("test.db", kvi.Options{})
 	if err != nil {
-		log.Errorf("issue: %s", err)
+		b.Errorf("issue: %s", err)
 		return
 	}
 

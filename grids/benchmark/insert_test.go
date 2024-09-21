@@ -10,7 +10,6 @@ import (
 	"github.com/akrylysov/pogreb"
 	"github.com/bmeg/grip/kvi"
 	"github.com/bmeg/grip/kvi/badgerdb"
-	"github.com/bmeg/grip/log"
 )
 
 var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
@@ -28,7 +27,7 @@ func RandStringRunes(n int) string {
 func BenchmarkStringInsert(b *testing.B) {
 	db, err := badgerdb.NewKVInterface("test.db", kvi.Options{})
 	if err != nil {
-		log.Errorf("issue: %s", err)
+		b.Errorf("issue: %s", err)
 		return
 	}
 	b.Run("insert-string", func(b *testing.B) {
@@ -52,7 +51,7 @@ func BenchmarkStringInsert(b *testing.B) {
 func BenchmarkIntInsert(b *testing.B) {
 	db, err := badgerdb.NewKVInterface("test.db", kvi.Options{})
 	if err != nil {
-		log.Errorf("issue: %s", err)
+		b.Errorf("issue: %s", err)
 		return
 	}
 
@@ -80,7 +79,7 @@ func BenchmarkHashInsert(b *testing.B) {
 	os.Mkdir("test_idx.db", 0700)
 	dbIdx, err := pogreb.Open("test_idx.db/keys", nil)
 	if err != nil {
-		log.Errorf("issue: %s", err)
+		b.Errorf("issue: %s", err)
 		return
 	}
 	b.Run("insert-hash", func(b *testing.B) {
@@ -107,12 +106,12 @@ func BenchmarkMixedInsert(b *testing.B) {
 	os.Mkdir("test_idx.db", 0700)
 	dbIdx, err := pogreb.Open("test_idx.db/keys", nil)
 	if err != nil {
-		log.Errorf("issue: %s", err)
+		b.Errorf("issue: %s", err)
 		return
 	}
 	db, err := badgerdb.NewKVInterface("test.db", kvi.Options{})
 	if err != nil {
-		log.Errorf("issue: %s", err)
+		b.Errorf("issue: %s", err)
 		return
 	}
 
@@ -145,7 +144,7 @@ func BenchmarkMixedInsert(b *testing.B) {
 func BenchmarkStringScan(b *testing.B) {
 	db, err := badgerdb.NewKVInterface("test.db", kvi.Options{})
 	if err != nil {
-		log.Errorf("issue: %s", err)
+		b.Errorf("issue: %s", err)
 		return
 	}
 	keys := [][]byte{}
@@ -183,7 +182,7 @@ func BenchmarkStringScan(b *testing.B) {
 func BenchmarkIntScan(b *testing.B) {
 	db, err := badgerdb.NewKVInterface("test.db", kvi.Options{})
 	if err != nil {
-		log.Errorf("issue: %s", err)
+		b.Errorf("issue: %s", err)
 		return
 	}
 	keys := [][]byte{}
