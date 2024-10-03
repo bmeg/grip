@@ -75,7 +75,7 @@ def test_hasId(man):
             errors.append("Wrong vertex returned %s" % (i))
     if count != 1:
         errors.append(
-            "Fail: G.query().V().hasId(\"01\") %s != %s" %
+            "Fail: G.query().V().hasId(\"Character:1\") %s != %s" %
             (count, 1))
 
     count = 0
@@ -195,21 +195,57 @@ def test_has_gt(man):
     return errors
 
 
+def test_has_eq_nil(man):
+    errors = []
+    G = man.setGraph("swapi")
+    count = 0
+    for i in G.query().V().has(gripql.eq("height", None)):
+        count += 1
+
+    if count != 21:
+        errors.append(
+            "Fail: G.query().V().has(gripql.eq(\"height\", None)) %s  != %s" %
+            (count, 21))
+
+    return errors
+
+
+def test_has_gt_nil(man):
+    """None, nil translates to 0 when refering to numeric values,
+    so this evaluates to return All characters with height value greater than 0"""
+    errors = []
+    G = man.setGraph("swapi")
+    count = 0
+    for i in G.query().V().has(gripql.gt("height", None)):
+        count += 1
+    if count != 0:
+        errors.append("Fail: G.query.V().has(gripql.gt(\"height\", None)) %s != %s" % (count, 0))
+
+    return errors
+
+
 def test_has_lt(man):
     errors = []
 
     G = man.setGraph("swapi")
 
     count = 0
+
     for i in G.query().V().has(gripql.lt("height", 97)):
         count += 1
+
         if i['gid'] not in ["Character:3"]:
             errors.append("Wrong vertex returned %s" % (i))
     if count != 1:
         errors.append(
             "Fail: G.query().V().has(gripql.lt(\"height\", 97)) %s != %s" %
             (count, 1))
+    return errors
 
+
+def test_has_lte(man):
+    errors = []
+    G = man.setGraph("swapi")
     count = 0
     for i in G.query().V().has(gripql.lte("height", 97)):
         count += 1
@@ -314,7 +350,7 @@ def test_has_without(man):
             errors.append("Wrong vertex returned %s" % (i))
     if count != 35:
         errors.append(
-            "Fail: G.query().V().has(gripql.without(\"occupation\", [\"jedi\", \"sith\"])) %s != %s" %
+            """Fail: V().has(gripql.without("eye_color", ["brown"])) %s != %s""" %
             (count, 35))
 
     count = 0

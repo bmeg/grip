@@ -46,12 +46,12 @@ func (db *GraphDB) BuildSchema(ctx context.Context, graphID string, sampleN uint
 			defer rows.Close()
 			schema := make(map[string]interface{})
 			for rows.Next() {
-				vrow := &row{}
+				vrow := &Row{}
 				if err := rows.StructScan(vrow); err != nil {
 					log.WithFields(log.Fields{"error": err}).Error("BuildSchema: StructScan")
 					continue
 				}
-				v, err := convertVertexRow(vrow, true)
+				v, err := ConvertVertexRow(vrow, true)
 				if err != nil {
 					log.WithFields(log.Fields{"error": err}).Error("BuildSchema: convertVertexRow")
 					continue

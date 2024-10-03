@@ -8,7 +8,7 @@ import (
 	"github.com/bmeg/grip/gdbi"
 )
 
-type row struct {
+type Row struct {
 	Gid   string
 	Label string
 	From  string
@@ -16,7 +16,7 @@ type row struct {
 	Data  []byte
 }
 
-func convertVertexRow(row *row, load bool) (*gdbi.Vertex, error) {
+func ConvertVertexRow(row *Row, load bool) (*gdbi.Vertex, error) {
 	props := make(map[string]interface{})
 	if load {
 		err := json.Unmarshal(row.Data, &props)
@@ -33,7 +33,7 @@ func convertVertexRow(row *row, load bool) (*gdbi.Vertex, error) {
 	return v, nil
 }
 
-func convertEdgeRow(row *row, load bool) (*gdbi.Edge, error) {
+func ConvertEdgeRow(row *Row, load bool) (*gdbi.Edge, error) {
 	props := make(map[string]interface{})
 	if load {
 		err := json.Unmarshal(row.Data, &props)

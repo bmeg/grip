@@ -129,6 +129,20 @@ func (g *Graph) BulkAdd(stream <-chan *gdbi.GraphElement) error {
 	return util.StreamBatch(stream, 50, g.graph, g.AddVertex, g.AddEdge)
 }
 
+func (g *Graph) BulkDel(Data *gdbi.DeleteData) error {
+	for _, v := range Data.Edges {
+		if err := g.DelEdge(v); err != nil {
+			return err
+		}
+	}
+	for _, v := range Data.Vertices {
+		if err := g.DelVertex(v); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // DelVertex is not implemented in the SQL driver
 func (g *Graph) DelVertex(key string) error {
 	stmt := fmt.Sprintf("DELETE FROM %s WHERE gid='%s'", g.v, key)
@@ -177,13 +191,13 @@ func (g *Graph) GetVertex(gid string, load bool) *gdbi.Vertex {
 	if load {
 		q = fmt.Sprintf(`SELECT * FROM %s WHERE gid='%s'`, g.v, gid)
 	}
-	vrow := &row{}
+	vrow := &Row{}
 	err := g.db.QueryRowx(q).StructScan(vrow)
 	if err != nil {
 		log.WithFields(log.Fields{"error": err, "query": q}).Error("GetVertex: StructScan")
 		return nil
 	}
-	vertex, err := convertVertexRow(vrow, load)
+	vertex, err := ConvertVertexRow(vrow, load)
 	if err != nil {
 		log.WithFields(log.Fields{"error": err}).Error("GetVertex: convertVertexRow")
 		return nil
@@ -197,13 +211,13 @@ func (g *Graph) GetEdge(gid string, load bool) *gdbi.Edge {
 	if load {
 		q = fmt.Sprintf(`SELECT * FROM %s WHERE gid='%s'`, g.e, gid)
 	}
-	erow := &row{}
+	erow := &Row{}
 	err := g.db.QueryRowx(q).StructScan(erow)
 	if err != nil {
 		log.WithFields(log.Fields{"error": err, "query": q}).Error("GetEdge: StructScan")
 		return nil
 	}
-	edge, err := convertEdgeRow(erow, load)
+	edge, err := ConvertEdgeRow(erow, load)
 	if err != nil {
 		log.WithFields(log.Fields{"error": err}).Error("GetEdge: convertEdgeRow")
 		return nil
@@ -227,12 +241,12 @@ func (g *Graph) GetVertexList(ctx context.Context, load bool) <-chan *gdbi.Verte
 		}
 		defer rows.Close()
 		for rows.Next() {
-			vrow := &row{}
+			vrow := &Row{}
 			if err := rows.StructScan(vrow); err != nil {
 				log.WithFields(log.Fields{"error": err}).Error("GetVertexList: StructScan")
 				continue
 			}
-			v, err := convertVertexRow(vrow, load)
+			v, err := ConvertVertexRow(vrow, load)
 			if err != nil {
 				log.WithFields(log.Fields{"error": err}).Error("GetVertexList: convertVertexRow")
 				continue
@@ -289,12 +303,12 @@ func (g *Graph) GetEdgeList(ctx context.Context, load bool) <-chan *gdbi.Edge {
 		}
 		defer rows.Close()
 		for rows.Next() {
-			erow := &row{}
+			erow := &Row{}
 			if err := rows.StructScan(erow); err != nil {
 				log.WithFields(log.Fields{"error": err}).Error("GetEdgeList: StructScan")
 				continue
 			}
-			e, err := convertEdgeRow(erow, load)
+			e, err := ConvertEdgeRow(erow, load)
 			if err != nil {
 				log.WithFields(log.Fields{"error": err}).Error("GetEdgeList: convertEdgeRow")
 				continue
@@ -338,12 +352,12 @@ func (g *Graph) GetVertexChannel(ctx context.Context, reqChan chan gdbi.ElementL
 				}
 				chunk := map[string]*gdbi.Vertex{}
 				for rows.Next() {
-					vrow := &row{}
+					vrow := &Row{}
 					if err := rows.StructScan(vrow); err != nil {
 						log.WithFields(log.Fields{"error": err}).Error("GetVertexChannel: StructScan")
 						continue
 					}
-					v, err := convertVertexRow(vrow, load)
+					v, err := ConvertVertexRow(vrow, load)
 					if err != nil {
 						log.WithFields(log.Fields{"error": err}).Error("GetVertexChannel: convertVertexRow")
 						continue
@@ -437,12 +451,12 @@ func (g *Graph) GetOutChannel(ctx context.Context, reqChan chan gdbi.ElementLook
 					return
 				}
 				for rows.Next() {
-					vrow := &row{}
+					vrow := &Row{}
 					if err := rows.StructScan(vrow); err != nil {
 						log.WithFields(log.Fields{"error": err}).Error("GetOutChannel: StructScan")
 						continue
 					}
-					v, err := convertVertexRow(vrow, load)
+					v, err := ConvertVertexRow(vrow, load)
 					if err != nil {
 						log.WithFields(log.Fields{"error": err}).Error("GetOutChannel: convertVertexRow")
 						continue
@@ -546,12 +560,12 @@ func (g *Graph) GetInChannel(ctx context.Context, reqChan chan gdbi.ElementLooku
 					return
 				}
 				for rows.Next() {
-					vrow := &row{}
+					vrow := &Row{}
 					if err := rows.StructScan(vrow); err != nil {
 						log.WithFields(log.Fields{"error": err}).Error("GetInChannel: StructScan")
 						continue
 					}
-					v, err := convertVertexRow(vrow, load)
+					v, err := ConvertVertexRow(vrow, load)
 					if err != nil {
 						log.WithFields(log.Fields{"error": err}).Error("GetInChannel: convertVertexRow")
 						continue
@@ -643,12 +657,12 @@ func (g *Graph) GetOutEdgeChannel(ctx context.Context, reqChan chan gdbi.Element
 					return
 				}
 				for rows.Next() {
-					erow := &row{}
+					erow := &Row{}
 					if err := rows.StructScan(erow); err != nil {
 						log.WithFields(log.Fields{"error": err}).Error("GetOutEdgeChannel: StructScan")
 						continue
 					}
-					e, err := convertEdgeRow(erow, load)
+					e, err := ConvertEdgeRow(erow, load)
 					if err != nil {
 						log.WithFields(log.Fields{"error": err}).Error("GetOutEdgeChannel: convertEdgeRow")
 						continue
@@ -740,12 +754,12 @@ func (g *Graph) GetInEdgeChannel(ctx context.Context, reqChan chan gdbi.ElementL
 					return
 				}
 				for rows.Next() {
-					erow := &row{}
+					erow := &Row{}
 					if err := rows.StructScan(erow); err != nil {
 						log.WithFields(log.Fields{"error": err}).Error("GetInEdgeChannel: StructScan")
 						continue
 					}
-					e, err := convertEdgeRow(erow, load)
+					e, err := ConvertEdgeRow(erow, load)
 					if err != nil {
 						log.WithFields(log.Fields{"error": err}).Error("GetInEdgeChannel: convertEdgeRow")
 						continue

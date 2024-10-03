@@ -2,12 +2,11 @@ package logic
 
 import (
 	"context"
-	"fmt"
 	"time"
 
-	"github.com/bmeg/grip/engine/queue"
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
+	"github.com/bmeg/grip/log"
 )
 
 // MarkJump creates mark where jump instruction can send travelers
@@ -31,7 +30,7 @@ func (s *JumpMark) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe
 					case msg, ok := <-s.inputs[i]:
 						if !ok {
 							//jump point has closed, remove it from list
-							fmt.Printf("j closed %d \n", i)
+							log.Debugf("j closed %d \n", i)
 							closeList = append(closeList, i)
 						} else {
 							//jump traveler recieved, pass on and skip reading input this cycle
@@ -53,7 +52,7 @@ func (s *JumpMark) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe
 				case msg, ok := <-in:
 					if !ok {
 						//main input has closed, move onto closing phase
-						fmt.Printf("Got input close, messages: %d\n", mCount)
+						log.Debugf("Got input close, messages: %d\n", mCount)
 						inputOpen = false
 					} else {
 						out <- msg
@@ -73,7 +72,7 @@ func (s *JumpMark) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe
 		//are we waiting for a signal. This is canceled if new travelers are received.
 		signalOutdated := false
 		signalActive := false
-		fmt.Printf("Starting preclose\n")
+		log.Debugf("Starting preclose\n")
 		for closed := false; !closed; {
 			closeList := []int{}
 			jumperFound := false
@@ -82,7 +81,7 @@ func (s *JumpMark) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe
 				case msg, ok := <-s.inputs[i]:
 					if !ok {
 						//jump point has closed, remove it from list
-						fmt.Printf("j closed %d \n", i)
+						log.Debugf("j closed %d \n", i)
 						closeList = append(closeList, i)
 					} else {
 						//jump traveler recieved, pass on and skip reading input this cycle
@@ -113,10 +112,10 @@ func (s *JumpMark) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe
 					signalActive = true
 					signalOutdated = false
 					returnCount = 0
-					fmt.Printf("Sending Signal %d\n", curID)
+					log.Debugf("Sending Signal %d\n", curID)
 					out <- &gdbi.BaseTraveler{Signal: &gdbi.Signal{ID: curID, Dest: s.Name}}
 				} else if signalActive && returnCount == len(s.inputs) {
-					fmt.Printf("Received %d of %d signals, closing after %d messages\n", returnCount, len(s.inputs), mCount)
+					log.Debugf("Received %d of %d signals, closing after %d messages\n", returnCount, len(s.inputs), mCount)
 					closed = true
 				}
 			}
@@ -139,11 +138,11 @@ type Jump struct {
 	Stmt    *gripql.HasExpression
 	Emit    bool
 	jumpers chan gdbi.Traveler
-	queue   queue.Queue
+	queue   gdbi.Queue
 }
 
 func (s *Jump) Init() {
-	q := queue.New()
+	q := gdbi.NewQueue()
 	s.jumpers = q.GetInput()
 	s.queue = q
 }
@@ -185,7 +184,7 @@ func (s *Jump) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, ou
 				mCount++
 			}
 		}
-		fmt.Printf("Closing jump, messages: %d\n", mCount)
+		log.Debugf("Closing jump, messages: %d\n", mCount)
 	}()
 	return ctx
 }

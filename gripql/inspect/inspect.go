@@ -3,9 +3,10 @@ package inspect
 import (
 	"fmt"
 
+	"github.com/bmeg/grip/gdbi/tpath"
 	"github.com/bmeg/grip/gripql"
-	"github.com/bmeg/grip/jsonpath"
 	"github.com/bmeg/grip/log"
+
 	"github.com/bmeg/grip/util/protoutil"
 )
 
@@ -51,7 +52,7 @@ func PipelineSteps(stmts []*gripql.GraphStatement) []string {
 			*gripql.GraphStatement_Range, *gripql.GraphStatement_Aggregate, *gripql.GraphStatement_Render,
 			*gripql.GraphStatement_Fields, *gripql.GraphStatement_Unwind, *gripql.GraphStatement_Path,
 			*gripql.GraphStatement_Set, *gripql.GraphStatement_Increment,
-			*gripql.GraphStatement_Mark, *gripql.GraphStatement_Jump:
+			*gripql.GraphStatement_Mark, *gripql.GraphStatement_Jump, *gripql.GraphStatement_Pivot:
 		case *gripql.GraphStatement_LookupVertsIndex, *gripql.GraphStatement_EngineCustom:
 		default:
 			log.Errorf("Unknown Graph Statement: %T", gs.GetStatement())
@@ -77,33 +78,55 @@ func PipelineAsSteps(stmts []*gripql.GraphStatement) map[string]string {
 }
 
 // PipelineStepOutputs identify the required outputs for each step in the traversal
-func PipelineStepOutputs(stmts []*gripql.GraphStatement) map[string][]string {
+func PipelineStepOutputs(stmts []*gripql.GraphStatement, storeMarks bool) map[string][]string {
 
+	// mapping of what steps of the traversal as used at each stage of the pipeline
 	steps := PipelineSteps(stmts)
+
 	asMap := PipelineAsSteps(stmts)
+	// we're inpecting the pipeline backwards, the last step is emitted
 	onLast := true
 	out := map[string][]string{}
 	for i := len(stmts) - 1; i >= 0; i-- {
 		gs := stmts[i]
 		switch gs.GetStatement().(type) {
 		case *gripql.GraphStatement_Count:
+			//if the pipeline ends with counting, we don't need to load data
 			onLast = false
 		case *gripql.GraphStatement_Select:
+			//if the last step is jumping back to a previous mark
 			if onLast {
-				sel := gs.GetSelect().Marks
-				for _, s := range sel {
-					if a, ok := asMap[s]; ok {
-						out[a] = []string{"*"}
-					}
+				sel := gs.GetSelect()
+				if a, ok := asMap[sel]; ok {
+					out[a] = []string{"*"}
 				}
 				onLast = false
 			}
+
+		case *gripql.GraphStatement_Render:
+			// determine every step output that is needed for the render
+			val := gs.GetRender().AsInterface()
+			names := tpath.GetAllNamespaces(val)
+			for _, n := range names {
+				if n == tpath.CURRENT {
+					out[steps[i]] = []string{"*"}
+				}
+				if a, ok := asMap[n]; ok {
+					out[a] = []string{"*"}
+				}
+			}
+			onLast = false
+
+		case *gripql.GraphStatement_Pivot:
+			//TODO: figure out which fields are referenced
+			onLast = false
+
 		case *gripql.GraphStatement_Distinct:
 			//if there is a distinct step, we need to load data, but only for requested fields
 			fields := protoutil.AsStringList(gs.GetDistinct())
 			for _, f := range fields {
-				n := jsonpath.GetNamespace(f)
-				if n == "__current__" {
+				n := tpath.GetNamespace(f)
+				if n == tpath.CURRENT {
 					out[steps[i]] = []string{"*"}
 				}
 				if a, ok := asMap[n]; ok {
@@ -134,12 +157,21 @@ func PipelineStepOutputs(stmts []*gripql.GraphStatement) map[string][]string {
 			out[steps[i]] = []string{"*"}
 		}
 	}
+	//if the job is a fragment, the elements marked with as_, they may be needed
+	//in followup runs
+	if storeMarks {
+		for _, v := range asMap {
+			out[v] = []string{"*"}
+		}
+	}
 	return out
 }
 
+// DEPRECATED : Was used for older version of GRIDS engine
 // PipelineNoLoadPath identifies 'paths' which are groups of statements that move
 // travelers across multiple steps, and don't require data (other then the label)
 // to be loaded
+/*
 func PipelineNoLoadPath(stmts []*gripql.GraphStatement, minLen int) [][]int {
 	out := [][]int{}
 
@@ -170,3 +202,4 @@ func PipelineNoLoadPath(stmts []*gripql.GraphStatement, minLen int) [][]int {
 	}
 	return out
 }
+*/

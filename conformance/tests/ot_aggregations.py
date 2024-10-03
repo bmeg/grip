@@ -122,7 +122,7 @@ def test_traversal_percentile_aggregation(man):
     if count != len(percents):
         errors.append(
             "Unexpected number of terms: %d != %d" %
-            (len(row["buckets"]), len(percents))
+            (len(res["buckets"]), len(percents))
         )
 
     return errors
@@ -178,7 +178,7 @@ def test_traversal_gid_aggregation(man):
             return errors
 
         if planet_agg_map[row["key"]] != row["value"]:
-            errors.append("Incorrect bucket count returned: %s" % res)
+            errors.append("Incorrect bucket count returned: %s" % row)
 
     if count != 2:
         errors.append(
@@ -190,18 +190,19 @@ def test_traversal_gid_aggregation(man):
 def test_field_aggregation(man):
     errors = []
 
-    fields = [ "id", 'orbital_period', 'gravity', 'terrain', 'name','climate', 'system', 'diameter', 'rotation_period', 'url', 'population', 'surface_water']
+    # TODO: find way to get gripper driver to drop id field
+    fields = [ "_id", "id", "_gid", "_label", 'orbital_period', 'gravity', 'terrain', 'name','climate', 'system', 'diameter', 'rotation_period', 'url', 'population', 'surface_water']
 
     G = man.setGraph("swapi")
     count = 0
-    for row in G.query().V().hasLabel("Planet").aggregate(gripql.field("gid-agg", "$._data")):
+    for row in G.query().V().hasLabel("Planet").aggregate(gripql.field("gid-agg", "$")):
         if row["key"] not in fields:
             errors.append("unknown field returned: %s" % (row['key']))
         if row["value"] != 3:
             errors.append("incorrect count returned: %s" % (row['value']))
         count += 1
-    if count not in [11, 12]: # gripper returns an id field as well, others dont....
-        errors.append("Incorrect number of results returned")
+    if count not in [11, 12, 13]: # gripper returns an id field as well, others dont....
+        errors.append("""V().hasLabel("Planet").aggregate(gripql.field("gid-agg", "$")) : Incorrect number of results returned %d""" % (count))
     return errors
 
 

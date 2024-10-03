@@ -425,7 +425,7 @@ func (idx *KVIndex) FieldTermNumberMax(field string) float64 {
 	return min
 }
 
-//FieldTermNumberRange gets all number term counts between min and max
+// FieldTermNumberRange gets all number term counts between min and max
 func (idx *KVIndex) FieldTermNumberRange(field string, min, max float64) chan KVTermCount {
 
 	minBytes, _ := GetTermBytes(min)

@@ -27,7 +27,7 @@ func TestSerializeStream(t *testing.T) {
 		if o.GetCurrent() == nil {
 			t.Errorf("Incorrect ouput")
 		} else {
-			if i, err := strconv.Atoi(o.GetCurrent().ID); err == nil {
+			if i, err := strconv.Atoi(o.GetCurrent().Get().ID); err == nil {
 				if i != count {
 					t.Errorf("Incorrect ouput order")
 				}

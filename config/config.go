@@ -15,6 +15,7 @@ import (
 	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/mongo"
 	"github.com/bmeg/grip/psql"
+	"github.com/bmeg/grip/sqlite"
 	"github.com/bmeg/grip/util"
 	"github.com/bmeg/grip/util/duration"
 	"github.com/bmeg/grip/util/rpc"
@@ -35,6 +36,7 @@ type DriverConfig struct {
 	MongoDB       *mongo.Config
 	PSQL          *psql.Config
 	ExistingSQL   *esql.Config
+	Sqlite        *sqlite.Config
 	Gripper       *gripper.Config
 }
 
@@ -101,6 +103,18 @@ func (conf *Config) AddMongoDefault() {
 	conf.Default = "mongo"
 }
 
+func (conf *Config) AddSqliteDefault() {
+	c := sqlite.Config{DBName: "grip-sqlite.db"}
+	conf.Drivers["sqlite"] = DriverConfig{Sqlite: &c}
+	conf.Default = "sqlite"
+}
+
+func (conf *Config) AddGridsDefault() {
+	n := "grip-grids.db"
+	conf.Drivers["grids"] = DriverConfig{Grids: &n}
+	conf.Default = "grids"
+}
+
 // TestifyConfig randomizes ports and database paths/names
 func TestifyConfig(c *Config) {
 	rand := strings.ToLower(util.RandomString(6))
@@ -123,6 +137,9 @@ func TestifyConfig(c *Config) {
 	if d.Elasticsearch != nil {
 		d.Elasticsearch.DBName = "gripdb-" + rand
 		d.Elasticsearch.Synchronous = true
+	}
+	if d.Sqlite != nil {
+		d.Sqlite.DBName = "gripdb-" + rand
 	}
 	c.Drivers[c.Default] = d
 }
