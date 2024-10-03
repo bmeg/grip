@@ -32,6 +32,7 @@ require (
 	github.com/lib/pq v1.10.9
 	github.com/logrusorgru/aurora v2.0.3+incompatible
 	github.com/machinebox/graphql v0.2.2
+	github.com/mattn/go-sqlite3 v1.14.23
 	github.com/minio/minio-go/v7 v7.0.73
 	github.com/mitchellh/hashstructure/v2 v2.0.2
 	github.com/mongodb/mongo-tools v0.0.0-20240715143021-aa6a140d3f17
