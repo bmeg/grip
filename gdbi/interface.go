@@ -60,6 +60,12 @@ type GraphElement struct {
 	Graph  string
 }
 
+type DeleteData struct {
+	Graph    string
+	Vertices []string
+	Edges    []string
+}
+
 type Aggregate struct {
 	Name  string
 	Key   interface{}
@@ -157,6 +163,7 @@ type GraphInterface interface {
 	AddEdge(edge []*Edge) error
 
 	BulkAdd(<-chan *GraphElement) error
+	BulkDel(*DeleteData) error
 
 	DelVertex(key string) error
 	DelEdge(key string) error

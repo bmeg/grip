@@ -310,6 +310,24 @@ func (server *GripServer) BulkAdd(stream gripql.Edit_BulkAddServer) error {
 	return stream.SendAndClose(&gripql.BulkEditResult{InsertCount: insertCount, ErrorCount: errorCount})
 }
 
+func (server *GripServer) BulkDelete(ctx context.Context, delete *gripql.DeleteData) (*gripql.EditResult, error) {
+	gdb, err := server.getGraphDB(delete.Graph)
+	if err != nil {
+		return nil, err
+	}
+	graph, err := gdb.Graph(delete.Graph)
+	if err != nil {
+		return nil, err
+	}
+
+	err = graph.BulkDel(&gdbi.DeleteData{Graph: delete.Graph, Vertices: delete.Vertices, Edges: delete.Edges})
+	if err != nil {
+		log.WithFields(log.Fields{"graph": delete.Graph, "error": err})
+		return nil, err
+	}
+	return &gripql.EditResult{Id: util.UUID()}, nil
+}
+
 // DeleteVertex deletes a vertex from the server
 func (server *GripServer) DeleteVertex(ctx context.Context, elem *gripql.ElementID) (*gripql.EditResult, error) {
 	if isSchema(elem.Graph) {

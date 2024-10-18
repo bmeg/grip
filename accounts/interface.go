@@ -36,6 +36,7 @@ var MethodMap = map[string]Operation{
 	"/gripql.Edit/AddVertex":    Write,
 	"/gripql.Edit/AddEdge":      Write,
 	"/gripql.Edit/BulkAdd":      Write,
+	"/gripql.Edit/BulkDelete":   Write,
 	"/gripql.Edit/AddGraph":     Write,
 	"/gripql.Edit/DeleteGraph":  Write,
 	"/gripql.Edit/DeleteVertex": Write,

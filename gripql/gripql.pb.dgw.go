@@ -914,6 +914,26 @@ func (shim *EditDirectClient) DeleteGraph(ctx context.Context, in *GraphID, opts
 	return shim.server.DeleteGraph(ictx, in)
 }
 
+//BulkDelete shim
+func (shim *EditDirectClient) BulkDelete(ctx context.Context, in *DeleteData, opts ...grpc.CallOption) (*EditResult, error) {
+  md, _ := metadata.FromOutgoingContext(ctx)
+  ictx := metadata.NewIncomingContext(ctx, md)
+  if shim.unaryServerInt != nil {
+    handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+  		return shim.server.BulkDelete(ctx, req.(*DeleteData))
+  	}
+    info := grpc.UnaryServerInfo{
+      FullMethod: "/gripql.Edit/BulkDelete",
+    }
+    o, err := shim.unaryServerInt(ictx, in, &info, handler)
+    if o == nil {
+      return nil, err
+    }
+    return o.(*EditResult), err
+  }
+	return shim.server.BulkDelete(ictx, in)
+}
+
 //DeleteVertex shim
 func (shim *EditDirectClient) DeleteVertex(ctx context.Context, in *ElementID, opts ...grpc.CallOption) (*EditResult, error) {
   md, _ := metadata.FromOutgoingContext(ctx)

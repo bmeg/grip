@@ -17,6 +17,7 @@ import (
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/jobstorage"
 	"github.com/bmeg/grip/log"
+	"github.com/bmeg/grip/sqlite"
 	"github.com/felixge/httpsnoop"
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
@@ -136,6 +137,8 @@ func StartDriver(d config.DriverConfig, sources map[string]gripper.GRIPSourceCli
 		return psql.NewGraphDB(*d.PSQL)
 	} else if d.ExistingSQL != nil {
 		return esql.NewGraphDB(*d.ExistingSQL)
+	} else if d.Sqlite != nil {
+		return sqlite.NewGraphDB(*d.Sqlite)
 	} else if d.Gripper != nil {
 		return gripper.NewGDBFromConfig(d.Gripper.Graph, d.Gripper.Mapping, sources)
 	}

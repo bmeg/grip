@@ -118,6 +118,20 @@ func (es *Graph) BulkAdd(stream <-chan *gdbi.GraphElement) error {
 	return util.StreamBatch(stream, 50, es.graph, es.AddVertex, es.AddEdge)
 }
 
+func (es *Graph) BulkDel(Data *gdbi.DeleteData) error {
+	for _, v := range Data.Edges {
+		if err := es.DelEdge(v); err != nil {
+			return err
+		}
+	}
+	for _, v := range Data.Vertices {
+		if err := es.DelVertex(v); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // DelEdge deletes edge `eid`
 func (es *Graph) DelEdge(eid string) error {
 	ctx := context.Background()

@@ -7,20 +7,21 @@ import (
 	"os"
 
 	"github.com/bmeg/grip/cmd/create"
+	"github.com/bmeg/grip/cmd/delete"
 	"github.com/bmeg/grip/cmd/drop"
 	"github.com/bmeg/grip/cmd/dump"
 	"github.com/bmeg/grip/cmd/erclient"
 	"github.com/bmeg/grip/cmd/info"
+	"github.com/bmeg/grip/cmd/job"
 	"github.com/bmeg/grip/cmd/kvload"
 	"github.com/bmeg/grip/cmd/list"
 	"github.com/bmeg/grip/cmd/load"
-	"github.com/bmeg/grip/cmd/job"
+	"github.com/bmeg/grip/cmd/mapping"
 	"github.com/bmeg/grip/cmd/mongoload"
 	"github.com/bmeg/grip/cmd/plugin"
 	"github.com/bmeg/grip/cmd/query"
 	"github.com/bmeg/grip/cmd/rdf"
 	"github.com/bmeg/grip/cmd/schema"
-	"github.com/bmeg/grip/cmd/mapping"
 	"github.com/bmeg/grip/cmd/server"
 	"github.com/bmeg/grip/cmd/stream"
 	"github.com/bmeg/grip/cmd/version"
@@ -69,6 +70,8 @@ func init() {
 	RootCmd.AddCommand(plugin.Cmd)
 	RootCmd.AddCommand(version.Cmd)
 	RootCmd.AddCommand(kvload.Cmd)
+	RootCmd.AddCommand(delete.Cmd)
+
 }
 
 var genBashCompletionCmd = &cobra.Command{

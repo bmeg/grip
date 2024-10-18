@@ -304,6 +304,13 @@ class Query(BaseConnection):
         """
         return self.__append({"render": template})
 
+    def pivot(self, id, field, value):
+        """
+        Render output of query
+        """
+        return self.__append({"pivot": {"id":id, "field":field, "value":value}})
+
+
     def path(self):
         """
         Display path of query

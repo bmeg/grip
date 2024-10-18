@@ -181,6 +181,11 @@ func (client Client) BulkAdd(elemChan chan *GraphElement) error {
 	return err
 }
 
+func (client Client) BulkDelete(delete *DeleteData) error {
+	_, err := client.EditC.BulkDelete(context.Background(), delete)
+	return err
+}
+
 // GetVertex obtains a vertex from a graph by `id`
 func (client Client) GetVertex(graph string, id string) (*Vertex, error) {
 	v, err := client.QueryC.GetVertex(context.Background(), &ElementID{Graph: graph, Id: id})
