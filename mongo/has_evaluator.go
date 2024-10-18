@@ -1,7 +1,7 @@
 package mongo
 
 import (
-	"fmt"
+	"strings"
 
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/log"
@@ -22,7 +22,7 @@ func convertHasExpression(stmt *gripql.HasExpression, not bool) bson.M {
 			} else {
 				key := cond.Key
 				output = convertHasExpression(gripql.And(gripql.Gt(key, lims[0]), gripql.Lt(key, lims[1])), not)
-				fmt.Printf("inside: %#v\n", output)
+				//fmt.Printf("inside: %#v\n", output)
 			}
 
 		case gripql.Condition_OUTSIDE:
@@ -88,12 +88,30 @@ func convertCondition(cond *gripql.HasCondition, not bool) bson.M {
 	key = ToPipelinePath(cond.Key)
 	val = cond.Value.AsInterface()
 
+	isExpr := false
+
+	if valStr, ok := val.(string); ok {
+		if strings.HasPrefix(valStr, "$") {
+			val = "$" + ToPipelinePath(valStr)
+		}
+		log.Infof("mongo val str: %s(%s) -- %s(%s)", cond.Key, key, valStr, val)
+		isExpr = true
+	}
 	expr := bson.M{}
 	switch cond.Condition {
 	case gripql.Condition_EQ:
-		expr = bson.M{"$eq": val}
+		if isExpr {
+			expr = bson.M{"$expr": bson.M{"$eq": []any{key, val}}}
+		} else {
+			expr = bson.M{"$eq": val}
+		}
 	case gripql.Condition_NEQ:
-		expr = bson.M{"$ne": val}
+		if isExpr {
+			expr = bson.M{"$expr": bson.M{"$ne": []any{key, val}}}
+			log.Infof("filter struct: %#v", expr)
+		} else {
+			expr = bson.M{"$ne": val}
+		}
 	case gripql.Condition_GT:
 		expr = bson.M{"$gt": val}
 	case gripql.Condition_GTE:
@@ -113,6 +131,9 @@ func convertCondition(cond *gripql.HasCondition, not bool) bson.M {
 	}
 	if not {
 		return bson.M{key: bson.M{"$not": expr}}
+	}
+	if isExpr {
+		return expr
 	}
 	return bson.M{key: expr}
 }

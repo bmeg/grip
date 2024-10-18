@@ -2,6 +2,7 @@ package logic
 
 import (
 	"reflect"
+	"strings"
 
 	"github.com/spf13/cast"
 
@@ -17,6 +18,13 @@ func MatchesCondition(trav gdbi.Traveler, cond *gripql.HasCondition) bool {
 	val = gdbi.TravelerPathLookup(trav, cond.Key)
 	condVal = cond.Value.AsInterface()
 
+	if condValStr, ok := condVal.(string); ok {
+		if strings.HasPrefix(condValStr, "$.") {
+			//log.Infof("condVal: %s\n", condValStr)
+			condVal = gdbi.TravelerPathLookup(trav, condValStr)
+		}
+		//TODO: Add escape for $ user string
+	}
 	//If filtering on nil or no match was found on float64 casting operators return false
 	log.Debug("val: ", val, "condVal: ", condVal)
 	if (val == nil || condVal == nil) &&
