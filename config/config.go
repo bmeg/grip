@@ -11,10 +11,10 @@ import (
 	"github.com/bmeg/grip/elastic"
 	esql "github.com/bmeg/grip/existing-sql"
 	"github.com/bmeg/grip/gripper"
-	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/mongo"
 	"github.com/bmeg/grip/psql"
+	"github.com/bmeg/grip/schema"
 	"github.com/bmeg/grip/sqlite"
 	"github.com/bmeg/grip/util"
 	"github.com/bmeg/grip/util/duration"
@@ -211,7 +211,7 @@ func ParseConfigFile(relpath string, conf *Config) error {
 				if err != nil {
 					return fmt.Errorf("failed to parse config at path %s: \n%v", path, err)
 				}
-				graph, err := gripql.GraphMapToProto(data)
+				graph, err := schema.GraphMapToProto(data)
 				if err != nil {
 					return fmt.Errorf("failed to parse config at path %s: \n%v", path, err)
 				}
