@@ -1,4 +1,4 @@
-package gripql
+package schema
 
 import (
 	"reflect"
