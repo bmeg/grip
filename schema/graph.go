@@ -18,6 +18,21 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
+func ConvertToGripqlType(field string) string {
+	switch field {
+	case "string":
+		return gripql.FieldType_STRING.String()
+	case "integer":
+		return gripql.FieldType_NUMERIC.String()
+	case "number":
+		return gripql.FieldType_NUMERIC.String()
+	case "boolean":
+		return gripql.FieldType_BOOL.String()
+	default:
+		return gripql.FieldType_UNKNOWN.String()
+	}
+}
+
 func ParseSchema(schema *jsonschema.Schema) any {
 	/* This function traverses through the compiled json schema constructing a simplified
 	schema that consists of only golang primitive types */
@@ -25,7 +40,8 @@ func ParseSchema(schema *jsonschema.Schema) any {
 	//log.Infof("ENTERING FLATTEN SCHEMA %#v\n", schema)
 	result := make(map[string]any)
 	if schema.Ref != nil && schema.Ref.Title != "" {
-		if slices.Contains([]string{"Reference", "FHIRPrimitiveExtension", "Extension", "Link"}, schema.Ref.Title) {
+		// Primitive extensions are currently not supported.
+		if slices.Contains([]string{"Reference", "Link", "FHIRPrimitiveExtension"}, schema.Ref.Title) {
 			return nil
 		}
 		return ParseSchema(schema.Ref)
@@ -33,7 +49,7 @@ func ParseSchema(schema *jsonschema.Schema) any {
 	if schema.Items2020 != nil {
 		if schema.Items2020.Ref != nil &&
 			schema.Items2020.Ref.Title != "" &&
-			slices.Contains([]string{"Reference", "FHIRPrimitiveExtension", "Extension", "Link", "Link Description Object"}, schema.Items2020.Ref.Title) {
+			slices.Contains([]string{"Reference", "Link", "Link Description Object", "FHIRPrimitiveExtension"}, schema.Items2020.Ref.Title) {
 			return nil
 		}
 		if schema.Types[0] == "array" {
@@ -44,6 +60,10 @@ func ParseSchema(schema *jsonschema.Schema) any {
 
 	if len(schema.Properties) > 0 {
 		for key, property := range schema.Properties {
+			// Not going to support inifinite nested extensions even though FHIR does.
+			if key == "extension" || key == "modifierExtension" {
+				continue
+			}
 			if val := ParseSchema(property); val != nil {
 				result[key] = val
 			}
@@ -58,7 +78,7 @@ func ParseSchema(schema *jsonschema.Schema) any {
 		}*/
 	}
 	if schema.Types != nil {
-		return schema.Types[0]
+		return ConvertToGripqlType(schema.Types[0])
 	}
 	return nil
 }
@@ -81,8 +101,7 @@ func ParseJSONSchemaGraphs(relpath string) ([]*gripql.Graph, error) {
 
 	expanded := make(map[string]any)
 	for key, value := range out.GetClass("Observation").Properties {
-		// Removing FHIRPrimitiveExtension, but it clutters up the schemas alot.
-		if value.Ref != nil && value.Ref.Title != "" && slices.Contains([]string{"Reference", "FHIRPrimitiveExtension", "Extension", "Link"}, value.Ref.Title) {
+		if value.Ref != nil && value.Ref.Title != "" && slices.Contains([]string{"Reference", "Link", "FHIRPrimitiveExtension"}, value.Ref.Title) {
 			continue
 		}
 		flattened_values := ParseSchema(value)
