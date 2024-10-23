@@ -30,12 +30,16 @@ github.com/aws/aws-sdk-go v1.29.11/go.mod h1:1KvfttTE3SPKMpo8g2c6jL3ZKfXtFvKscTg
 github.com/benbjohnson/clock v1.1.0/go.mod h1:J11/hYXuz8f4ySSvYwY0FKfm+ezbsZBKZxNJlLklBHA=
 github.com/beorn7/perks v1.0.1 h1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=
 github.com/beorn7/perks v1.0.1/go.mod h1:G2ZrVWU2WbWT9wwq4/hrbKbnv/1ERSJQ0ibhJ6rlkpw=
+github.com/bmeg/golib v0.0.0-20200725232156-e799a31439fc h1:/0v/ZcXYjGs44InmjECrls31onIbVKVu1Q/E2cmnCEU=
+github.com/bmeg/golib v0.0.0-20200725232156-e799a31439fc/go.mod h1:hoSeuZtqe58ANXHuWpeODx4bDHGV36QXlCs1yrUvK6M=
 github.com/bmeg/jsonpath v0.0.0-20210207014051-cca5355553ad h1:ICgBexeLB7iv/IQz4rsP+MimOXFZUwWSPojEypuOaQ8=
 github.com/bmeg/jsonpath v0.0.0-20210207014051-cca5355553ad/go.mod h1:ft96Irkp72C7ZrUWRenG7LrF0NKMxXdRvsypo5Njhm4=
 github.com/bmeg/jsonschema/v5 v5.3.4-0.20241021223433-465090062767 h1:Xxna7pNl+RSeb8Chpo/9kqnCpINE3UYazHAEHQfKPr8=
 github.com/bmeg/jsonschema/v5 v5.3.4-0.20241021223433-465090062767/go.mod h1:W6ZrtycDFIco8t+VZvgCgt2mUb+o8Js25o6g+Pe/CHU=
 github.com/bmeg/jsonschemagraph v0.0.3-0.20241021183544-dce95050d690 h1:f7blYURrwfFXm2a5Pk8UWVgQ3Hplx6X3/5orm6vArVQ=
 github.com/bmeg/jsonschemagraph v0.0.3-0.20241021183544-dce95050d690/go.mod h1:q2uV/fFytbCs5tnoN59Ae6we8L3N2QIZWjdaxnsEKfQ=
+github.com/bmeg/jsonschemagraph v0.0.3-0.20241023220331-fc0d420f80de h1:ruds+GrDg5RyDf8b1cSBnmk4zajcvkXBeAfPzV9my0I=
+github.com/bmeg/jsonschemagraph v0.0.3-0.20241023220331-fc0d420f80de/go.mod h1:nqCeZ/A/5zbxrwO5IBF2+xLdaP1sjtaCckmdQIo6lJM=
 github.com/boltdb/bolt v1.3.1 h1:JQmyP4ZBrce+ZQu0dY660FMfatumYDLun9hBCUVIkF4=
 github.com/boltdb/bolt v1.3.1/go.mod h1:clJnj/oiGkjum5o1McbSZDSLxVThjynRyGBgiAx27Ps=
 github.com/bufbuild/protocompile v0.4.0 h1:LbFKd2XowZvQ/kajzguUp2DC9UEIQhIq77fZZlaQsNA=
