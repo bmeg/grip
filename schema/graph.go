@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"path/filepath"
 
 	"github.com/bmeg/grip/log"
@@ -12,7 +13,6 @@ import (
 
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/jsonschema/v5"
-	"github.com/bmeg/jsonschemagraph/compile"
 	"github.com/bmeg/jsonschemagraph/graph"
 	"google.golang.org/protobuf/encoding/protojson"
 	"sigs.k8s.io/yaml"
@@ -83,52 +83,57 @@ func ParseSchema(schema *jsonschema.Schema) any {
 	return nil
 }
 
-func ParseJSONSchemaGraphs(relpath string) ([]*gripql.Graph, error) {
+func ParseSchemaGraphs(relpath string, graphName string) ([]*gripql.Graph, error) {
 	graphs := []*gripql.Graph{}
-
-	// register schema extension and compile schemas
-	compiler := jsonschema.NewCompiler()
-	compiler.ExtractAnnotations = true
-	compiler.RegisterExtension(compile.GraphExtensionTag, compile.GraphExtMeta, compile.GraphExtCompiler{})
-	out := graph.GraphSchema{Classes: map[string]*jsonschema.Schema{}, Compiler: compiler}
-	if sch, err := compiler.Compile(relpath); err == nil {
-		for _, obj := range graph.ObjectScan(sch) {
-			if obj.Title != "" {
-				out.Classes[obj.Title] = obj
+	out, err := graph.Load(relpath)
+	if err != nil {
+		log.Info("AN ERROR HAS OCCURED: ", err)
+		return nil, err
+	}
+	graphSchema := map[string]any{
+		"vertices": []map[string]any{},
+		"edges":    []map[string]any{},
+		"graph":    graphName,
+	}
+	for _, class := range out.Classes {
+		vertexData := make(map[string]any)
+		for key, sch := range class.Properties {
+			if sch.Ref != nil && sch.Ref.Title != "" && slices.Contains([]string{"Reference", "Link", "FHIRPrimitiveExtension"}, sch.Ref.Title) {
+				continue
+			}
+			vertVal := ParseSchema(sch)
+			//log.Info("FLATTENED VALUES: ", flattened_values)
+			switch vertVal.(type) {
+			case string:
+				vertexData[key] = vertVal.(string)
+			case int:
+				vertexData[key] = vertVal.(int)
+			case map[string]any:
+				vertexData[key] = vertVal.(map[string]any)
+			case []any:
+				vertexData[key] = vertVal.([]any)
 			}
 		}
+		vertex := map[string]any{"data": vertexData, "label": "Vertex", "gid": class.Title}
+		graphSchema["vertices"] = append(graphSchema["vertices"].([]map[string]any), vertex)
 	}
 
-	expanded := make(map[string]any)
-	for key, value := range out.GetClass("Observation").Properties {
-		if value.Ref != nil && value.Ref.Title != "" && slices.Contains([]string{"Reference", "Link", "FHIRPrimitiveExtension"}, value.Ref.Title) {
-			continue
-		}
-		flattened_values := ParseSchema(value)
-		//log.Info("FLATTENED VALUES: ", flattened_values)
-		switch flattened_values.(type) {
-		case string:
-			expanded[key] = flattened_values.(string)
-		case int:
-			expanded[key] = flattened_values.(int)
-		case map[string]any:
-			expanded[key] = flattened_values.(map[string]any)
-		case []any:
-			expanded[key] = flattened_values.([]any)
-		}
-	}
-
-	fmt.Println("EXPANDED: ", expanded)
-	expandedJSON, err := json.MarshalIndent(expanded, "", "  ")
+	expandedJSON, err := json.Marshal(graphSchema)
 	if err != nil {
 		log.Errorf("Failed to marshal expanded schema: %v", err)
 	}
-	log.Info(string(expandedJSON))
+	// For Testing purposes
+	err = os.WriteFile("new_dicts.json", expandedJSON, 0644)
+	if err != nil {
+		log.Errorf("Failed to write to file: %v", err)
+	}
+
+	log.Info("Posted Schema", string(expandedJSON))
 
 	return graphs, nil
 }
 
-func ParseYAMLSchemaGraphs(source []byte) ([]*gripql.Graph, error) {
+func ParseYAMLSchemaGraphs(source []byte, graphName string) ([]*gripql.Graph, error) {
 	return nil, nil
 }
 
@@ -229,7 +234,7 @@ func ParseJSONGraphs(raw []byte) ([]*gripql.Graph, error) {
 
 // ParseGraphYAMLFile parses a graph file, which is formatted in YAML,
 // and returns a slice of graph objects.
-func parseGraphFile(relpath string, format string) ([]*gripql.Graph, error) {
+func parseGraphFile(relpath string, format string, graphName string) ([]*gripql.Graph, error) {
 	var graphs []*gripql.Graph
 	var err error
 
@@ -243,10 +248,12 @@ func parseGraphFile(relpath string, format string) ([]*gripql.Graph, error) {
 		path = relpath
 	}
 
-	// Read file
-	source, err := ioutil.ReadFile(path)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read graph at path %s: \n%v", path, err)
+	var source []byte
+	if format == "yaml" || format == "json" {
+		source, err = ioutil.ReadFile(path)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read graph at path %s: \n%v", path, err)
+		}
 	}
 
 	// Parse file contents
@@ -256,9 +263,9 @@ func parseGraphFile(relpath string, format string) ([]*gripql.Graph, error) {
 	case "json":
 		graphs, err = ParseJSONGraphs(source)
 	case "jsonSchema":
-		graphs, err = ParseJSONSchemaGraphs(relpath)
+		graphs, err = ParseSchemaGraphs(path, graphName)
 	case "yamlSchema":
-		graphs, err = ParseYAMLSchemaGraphs(source)
+		graphs, err = ParseSchemaGraphs(relpath, graphName)
 	default:
 		err = fmt.Errorf("unknown file format: %s", format)
 	}
@@ -271,17 +278,21 @@ func parseGraphFile(relpath string, format string) ([]*gripql.Graph, error) {
 // ParseYAMLGraphFile parses a graph file, which is formatted in YAML,
 // and returns a slice of graph objects.
 func ParseYAMLGraphsFile(relpath string) ([]*gripql.Graph, error) {
-	return parseGraphFile(relpath, "yaml")
+	return parseGraphFile(relpath, "yaml", "")
 }
 
 // ParseJSONGraphFile parses a graph file, which is formatted in JSON,
 // and returns a slice of graph objects.
 func ParseJSONGraphsFile(relpath string) ([]*gripql.Graph, error) {
-	return parseGraphFile(relpath, "json")
+	return parseGraphFile(relpath, "json", "")
 }
 
-func ParseJSONSchemaGraphsFile(relpath string) ([]*gripql.Graph, error) {
-	return parseGraphFile(relpath, "jsonSchema")
+func ParseJSONSchemaGraphsFile(relpath string, graphName string) ([]*gripql.Graph, error) {
+	return parseGraphFile(relpath, "jsonSchema", graphName)
+}
+
+func ParseYAMLSchemaGraphsFiles(relpath string, graphName string) ([]*gripql.Graph, error) {
+	return parseGraphFile(relpath, "jsonSchema", graphName)
 }
 
 // GraphToYAMLString returns a graph formatted as a YAML string

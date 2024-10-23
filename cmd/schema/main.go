@@ -17,7 +17,9 @@ var host = "localhost:8202"
 var yaml = false
 var jsonFile string
 var yamlFile string
+var graphName string
 var jsonSchemaFile string
+var yamlSchemaDir string
 var sampleCount uint32 = 50
 var excludeLabels []string
 
@@ -67,7 +69,7 @@ var postCmd = &cobra.Command{
 	Long:  ``,
 	Args:  cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if jsonFile == "" && yamlFile == "" && jsonSchemaFile == "" {
+		if jsonFile == "" && yamlFile == "" && jsonSchemaFile == "" && yamlSchemaDir == "" {
 			return fmt.Errorf("no schema file was provided")
 		}
 
@@ -123,9 +125,9 @@ var postCmd = &cobra.Command{
 			}
 		}
 
-		if jsonSchemaFile != "" {
+		if jsonSchemaFile != "" && graphName != "" {
 			log.Infof("Loading Json Schema file: %s", jsonSchemaFile)
-			graphs, err := schema.ParseJSONSchemaGraphsFile(jsonSchemaFile)
+			graphs, err := schema.ParseJSONSchemaGraphsFile(jsonSchemaFile, graphName)
 			if err != nil {
 				return err
 			}
@@ -138,7 +140,22 @@ var postCmd = &cobra.Command{
 			}
 
 		}
+		if yamlSchemaDir != "" && graphName != "" {
+			log.Infof("Loading Yaml Schema dir: %s", yamlSchemaDir)
+			graphs, err := schema.ParseYAMLSchemaGraphsFiles(yamlSchemaDir, graphName)
+			if err != nil {
+				log.Info("HELLO ERROR HERE: ", err)
+				return err
+			}
+			for _, g := range graphs {
+				err := conn.AddSchema(g)
+				if err != nil {
+					return err
+				}
+				log.Debug("Posted schema: %s", g.Graph)
+			}
 
+		}
 		return nil
 	},
 }
@@ -152,7 +169,9 @@ func init() {
 	pflags.StringVar(&host, "host", host, "grip server url")
 	pflags.StringVar(&jsonFile, "json", "", "JSON graph file")
 	pflags.StringVar(&yamlFile, "yaml", "", "YAML graph file")
+	pflags.StringVar(&graphName, "graphName", "", "Name of schemaGraph")
 	pflags.StringVar(&jsonSchemaFile, "jsonSchema", "", "Json Schema")
+	pflags.StringVar(&yamlSchemaDir, "yamlSchemaDir", "", "Name of YAML schemas dir")
 
 	Cmd.AddCommand(getCmd)
 	Cmd.AddCommand(postCmd)
