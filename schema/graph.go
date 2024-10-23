@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/bmeg/grip/log"
 
@@ -13,6 +13,7 @@ import (
 
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/jsonschema/v5"
+	"github.com/bmeg/jsonschemagraph/compile"
 	"github.com/bmeg/jsonschemagraph/graph"
 	"google.golang.org/protobuf/encoding/protojson"
 	"sigs.k8s.io/yaml"
@@ -38,7 +39,7 @@ func ParseSchema(schema *jsonschema.Schema) any {
 	schema that consists of only golang primitive types */
 
 	//log.Infof("ENTERING FLATTEN SCHEMA %#v\n", schema)
-	result := make(map[string]any)
+	vertData := make(map[string]any)
 	if schema.Ref != nil && schema.Ref.Title != "" {
 		// Primitive extensions are currently not supported.
 		if slices.Contains([]string{"Reference", "Link", "FHIRPrimitiveExtension"}, schema.Ref.Title) {
@@ -65,10 +66,10 @@ func ParseSchema(schema *jsonschema.Schema) any {
 				continue
 			}
 			if val := ParseSchema(property); val != nil {
-				result[key] = val
+				vertData[key] = val
 			}
 		}
-		return result
+		return vertData
 	}
 	if schema.AnyOf != nil {
 		return nil
@@ -84,7 +85,6 @@ func ParseSchema(schema *jsonschema.Schema) any {
 }
 
 func ParseSchemaGraphs(relpath string, graphName string) ([]*gripql.Graph, error) {
-	graphs := []*gripql.Graph{}
 	out, err := graph.Load(relpath)
 	if err != nil {
 		log.Info("AN ERROR HAS OCCURED: ", err)
@@ -95,7 +95,21 @@ func ParseSchemaGraphs(relpath string, graphName string) ([]*gripql.Graph, error
 		"edges":    []map[string]any{},
 		"graph":    graphName,
 	}
+	edgeList := []map[string]any{}
 	for _, class := range out.Classes {
+		// Since reading from schema there should be no duplicate edges
+		if ext, ok := class.Extensions[compile.GraphExtensionTag]; ok {
+			for _, target := range ext.(compile.GraphExtension).Targets {
+				ToVertex := strings.Split(target.Rel, "_")
+				edgeList = append(edgeList, map[string]any{
+					"gid":   fmt.Sprintf("(%s)-%s->(%s)", class.Title, target.Rel, ToVertex[len(ToVertex)-1]),
+					"label": target.Rel,
+					"from":  class.Title,
+					"to":    ToVertex[len(ToVertex)-1],
+					// TODO: No data field supported
+				})
+			}
+		}
 		vertexData := make(map[string]any)
 		for key, sch := range class.Properties {
 			if sch.Ref != nil && sch.Ref.Title != "" && slices.Contains([]string{"Reference", "Link", "FHIRPrimitiveExtension"}, sch.Ref.Title) {
@@ -116,21 +130,25 @@ func ParseSchemaGraphs(relpath string, graphName string) ([]*gripql.Graph, error
 		}
 		vertex := map[string]any{"data": vertexData, "label": "Vertex", "gid": class.Title}
 		graphSchema["vertices"] = append(graphSchema["vertices"].([]map[string]any), vertex)
+		graphSchema["edges"] = edgeList
+
 	}
 
 	expandedJSON, err := json.Marshal(graphSchema)
 	if err != nil {
 		log.Errorf("Failed to marshal expanded schema: %v", err)
 	}
-	// For Testing purposes
-	err = os.WriteFile("new_dicts.json", expandedJSON, 0644)
-	if err != nil {
-		log.Errorf("Failed to write to file: %v", err)
-	}
+	/*
+		For Testing purposes
+		err = os.WriteFile("new_dicts.json", expandedJSON, 0644)
+		if err != nil {
+			log.Errorf("Failed to write to file: %v", err)
+			}
+	*/
 
-	log.Info("Posted Schema", string(expandedJSON))
-
-	return graphs, nil
+	graphs := gripql.Graph{}
+	json.Unmarshal(expandedJSON, &graphs)
+	return []*gripql.Graph{&graphs}, nil
 }
 
 func ParseYAMLSchemaGraphs(source []byte, graphName string) ([]*gripql.Graph, error) {
