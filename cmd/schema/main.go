@@ -63,6 +63,55 @@ var getCmd = &cobra.Command{
 	},
 }
 
+var loadPrimitiveSchemafromJsonSchema = &cobra.Command{
+	Use:   "load",
+	Short: "Load graph schemas",
+	Long:  ``,
+	Args:  cobra.NoArgs,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		if jsonSchemaFile == "" && yamlSchemaDir == "" {
+			return fmt.Errorf("no schema file was provided")
+		}
+
+		conn, err := gripql.Connect(rpc.ConfigWithDefaults(host), true)
+		if err != nil {
+			return err
+		}
+
+		if jsonSchemaFile != "" && graphName != "" {
+			log.Infof("Loading Json Schema file: %s", jsonSchemaFile)
+			graphs, err := schema.ParseJSONSchemaGraphsFile(jsonSchemaFile, graphName)
+			if err != nil {
+				return err
+			}
+			for _, g := range graphs {
+				err := conn.AddSchema(g)
+				if err != nil {
+					return err
+				}
+				log.Debug("Posted schema: %s", g.Graph)
+			}
+		}
+		if yamlSchemaDir != "" && graphName != "" {
+			log.Infof("Loading Yaml Schema dir: %s", yamlSchemaDir)
+			graphs, err := schema.ParseYAMLSchemaGraphsFiles(yamlSchemaDir, graphName)
+			if err != nil {
+				log.Info("HELLO ERROR HERE: ", err)
+				return err
+			}
+			for _, g := range graphs {
+				err := conn.AddSchema(g)
+				if err != nil {
+					return err
+				}
+				log.Debug("Posted schema: %s", g.Graph)
+			}
+
+		}
+		return nil
+	},
+}
+
 var postCmd = &cobra.Command{
 	Use:   "post",
 	Short: "Post graph schemas",
@@ -127,7 +176,7 @@ var postCmd = &cobra.Command{
 
 		if jsonSchemaFile != "" && graphName != "" {
 			log.Infof("Loading Json Schema file: %s", jsonSchemaFile)
-			graphs, err := schema.ParseJSONSchemaGraphsFile(jsonSchemaFile, graphName)
+			graphs, err := schema.ParseJsonSchema(jsonSchemaFile, graphName)
 			if err != nil {
 				return err
 			}
@@ -138,11 +187,10 @@ var postCmd = &cobra.Command{
 				}
 				log.Debug("Posted schema: %s", g.Graph)
 			}
-
 		}
 		if yamlSchemaDir != "" && graphName != "" {
 			log.Infof("Loading Yaml Schema dir: %s", yamlSchemaDir)
-			graphs, err := schema.ParseYAMLSchemaGraphsFiles(yamlSchemaDir, graphName)
+			graphs, err := schema.ParseYamlJsonSchema(yamlSchemaDir, graphName)
 			if err != nil {
 				log.Info("HELLO ERROR HERE: ", err)
 				return err
@@ -169,10 +217,16 @@ func init() {
 	pflags.StringVar(&host, "host", host, "grip server url")
 	pflags.StringVar(&jsonFile, "json", "", "JSON graph file")
 	pflags.StringVar(&yamlFile, "yaml", "", "YAML graph file")
-	pflags.StringVar(&graphName, "graphName", "", "Name of schemaGraph")
 	pflags.StringVar(&jsonSchemaFile, "jsonSchema", "", "Json Schema")
 	pflags.StringVar(&yamlSchemaDir, "yamlSchemaDir", "", "Name of YAML schemas dir")
+	pflags.StringVar(&graphName, "graphName", "", "Name of schemaGraph")
 
+	sflags := loadPrimitiveSchemafromJsonSchema.Flags()
+	sflags.StringVar(&jsonSchemaFile, "jsonSchema", "", "Json Schema")
+	sflags.StringVar(&yamlSchemaDir, "yamlSchemaDir", "", "Name of YAML schemas dir")
+	sflags.StringVar(&graphName, "graphName", "", "Name of schemaGraph")
+
+	Cmd.AddCommand(loadPrimitiveSchemafromJsonSchema)
 	Cmd.AddCommand(getCmd)
 	Cmd.AddCommand(postCmd)
 }

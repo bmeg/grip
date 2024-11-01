@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -284,6 +285,10 @@ func parseGraphFile(relpath string, format string, graphName string) ([]*gripql.
 		graphs, err = ParseSchemaGraphs(path, graphName)
 	case "yamlSchema":
 		graphs, err = ParseSchemaGraphs(relpath, graphName)
+	case "jSchema":
+		graphs, err = ParseJSchema(path, graphName)
+	case "yjSchema":
+		graphs, err = ParseJSchema(relpath, graphName)
 	default:
 		err = fmt.Errorf("unknown file format: %s", format)
 	}
@@ -291,6 +296,48 @@ func parseGraphFile(relpath string, format string, graphName string) ([]*gripql.
 		return nil, fmt.Errorf("failed to parse graph at path %s: \n%v", path, err)
 	}
 	return graphs, nil
+}
+
+func ParseJSchema(path string, graphName string) ([]*gripql.Graph, error) {
+	graphSchema := map[string]any{
+		"vertices": []map[string]any{},
+		"edges":    []map[string]any{},
+		"graph":    graphName,
+	}
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open file: %v", err)
+	}
+	defer file.Close()
+
+	// Read the entire file content
+	bytes, err := ioutil.ReadAll(file)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read file: %v", err)
+	}
+
+	// Parse JSON into a map
+	var data map[string]any
+	if err := json.Unmarshal(bytes, &data); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal JSON: %v", err)
+	}
+	for key, values := range data["$defs"].(map[string]any) {
+		vals := values.(map[string]any)
+		if idVal, exists := vals["$id"]; exists {
+			delete(vals, "$id")
+			vals["id"] = idVal
+		}
+		vertex := map[string]any{"data": values, "label": key, "gid": key}
+		graphSchema["vertices"] = append(graphSchema["vertices"].([]map[string]any), vertex)
+	}
+
+	expandedJSON, err := json.Marshal(graphSchema)
+	if err != nil {
+		log.Errorf("Failed to marshal expanded schema: %v", err)
+	}
+	graphs := gripql.Graph{}
+	json.Unmarshal(expandedJSON, &graphs)
+	return []*gripql.Graph{&graphs}, nil
 }
 
 // ParseYAMLGraphFile parses a graph file, which is formatted in YAML,
@@ -311,6 +358,14 @@ func ParseJSONSchemaGraphsFile(relpath string, graphName string) ([]*gripql.Grap
 
 func ParseYAMLSchemaGraphsFiles(relpath string, graphName string) ([]*gripql.Graph, error) {
 	return parseGraphFile(relpath, "jsonSchema", graphName)
+}
+
+func ParseJsonSchema(relpath string, graphName string) ([]*gripql.Graph, error) {
+	return parseGraphFile(relpath, "jSchema", graphName)
+}
+
+func ParseYamlJsonSchema(relpath string, graphName string) ([]*gripql.Graph, error) {
+	return parseGraphFile(relpath, "yjSchema", graphName)
 }
 
 // GraphToYAMLString returns a graph formatted as a YAML string
