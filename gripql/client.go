@@ -181,6 +181,21 @@ func (client Client) BulkAdd(elemChan chan *GraphElement) error {
 	return err
 }
 
+func (client Client) BulkAddRaw(elemChan chan *RawJson) error {
+	sc, err := client.EditC.BulkAddRaw(context.Background())
+	if err != nil {
+		return err
+	}
+	for elem := range elemChan {
+		err := sc.Send(elem)
+		if err != nil {
+			return err
+		}
+	}
+	_, err = sc.CloseAndRecv()
+	return err
+}
+
 func (client Client) BulkDelete(delete *DeleteData) error {
 	_, err := client.EditC.BulkDelete(context.Background(), delete)
 	return err

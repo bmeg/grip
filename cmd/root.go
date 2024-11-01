@@ -6,6 +6,7 @@ import (
 	_ "net/http/pprof" // enable pprof via a flag
 	"os"
 
+	"github.com/bmeg/grip/cmd/caliperload"
 	"github.com/bmeg/grip/cmd/create"
 	"github.com/bmeg/grip/cmd/delete"
 	"github.com/bmeg/grip/cmd/drop"
@@ -60,6 +61,7 @@ func init() {
 	RootCmd.AddCommand(job.Cmd)
 	RootCmd.AddCommand(load.Cmd)
 	RootCmd.AddCommand(mongoload.Cmd)
+	RootCmd.AddCommand(caliperload.Cmd)
 	RootCmd.AddCommand(query.Cmd)
 	RootCmd.AddCommand(erclient.Cmd)
 	RootCmd.AddCommand(rdf.Cmd)
