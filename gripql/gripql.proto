@@ -314,6 +314,10 @@ message DeleteData {
   repeated string edges = 3;
 }
 
+message RawJson {
+  google.protobuf.Struct data = 1;
+}
+
 service Query {
   rpc Traversal(GraphQuery) returns (stream QueryResult) {
     option (google.api.http) = {
@@ -444,6 +448,12 @@ service Edit {
   rpc BulkAdd(stream GraphElement) returns (BulkEditResult) {
     option (google.api.http) = {
       post: "/v1/graph"
+    };
+  }
+
+  rpc BulkAddRaw (stream RawJson) returns (BulkEditResult) {
+    option (google.api.http) = {
+      post: "/v1/rawJson"
     };
   }
 

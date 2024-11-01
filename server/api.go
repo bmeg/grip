@@ -218,6 +218,64 @@ func (server *GripServer) addEdge(ctx context.Context, elem *gripql.GraphElement
 	return &gripql.EditResult{Id: edge.Gid}, nil
 }
 
+func (server *GripServer) BulkAddRaw(stream gripql.Edit_BulkAddRawServer) error {
+	var insertCount int32
+	var errorCount int32
+	elementStream := make(chan *gripql.RawJson, 100)
+	wg := &sync.WaitGroup{}
+
+	/* 	sch, err := server.GetSchema(context.Background(), &gripql.GraphID{Graph: "CALIPER__schema__"})
+	   	if err != nil {
+	   		return err
+	   	}
+	   	schcompiler := jsonschema.NewCompiler()
+	   	schcompiler.ExtractAnnotations = true
+	   	schcompiler.RegisterExtension(compile.GraphExtensionTag, compile.GraphExtMeta, compile.GraphExtCompiler{})
+	   	//out := graph.GraphSchema{Classes: map[string]*jsonschema.Schema{}, Compiler: schcompiler}
+
+	   	for _, v := range sch.Vertices {
+	   		mapped_data := v.Data.String()
+	   		log.Info("MAPPED  DATA: ", mapped_data)
+	   		_, err := json.Marshal(mapped_data)
+	   		if err != nil {
+	   			log.Errorf("Error marshaling schema: %v", err)
+	   		}
+
+	   		log.Infoln("HELLO : ", mapped_data)
+	   		vertexData, ok := mapped_data["vertex"].(map[string]any)
+	   		if !ok {
+	   			return fmt.Errorf("ERR")
+	   		}
+	   		if err := schcompiler.AddResourceJSON(vertexData["data"].(map[string]any)["id"].(string), schemaJSON); err == nil {
+	   			if sch.Title != "" {
+	   				out.Classes[sch.Title] = sch
+	   			} else {
+	   				log.Infof("Title not found: %s %#v\n", f, sch)
+	   				}
+	   				}
+
+	   	}*/
+
+	for {
+		_, err := stream.Recv()
+		//log.Info("ROW: ", row)
+		if err == io.EOF {
+			break
+		}
+
+		//class := graph.GetClass("Observation")
+		if err != nil {
+			log.WithFields(log.Fields{"error": err}).Error("BulkAdd: streaming error")
+			errorCount++
+			break
+		}
+	}
+	close(elementStream)
+	wg.Wait()
+	return stream.SendAndClose(&gripql.BulkEditResult{InsertCount: insertCount, ErrorCount: errorCount})
+
+}
+
 // BulkAdd a stream of inputs and loads them into the graph
 func (server *GripServer) BulkAdd(stream gripql.Edit_BulkAddServer) error {
 	var graphName string

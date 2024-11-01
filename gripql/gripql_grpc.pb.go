@@ -938,6 +938,7 @@ const (
 	Edit_AddVertex_FullMethodName    = "/gripql.Edit/AddVertex"
 	Edit_AddEdge_FullMethodName      = "/gripql.Edit/AddEdge"
 	Edit_BulkAdd_FullMethodName      = "/gripql.Edit/BulkAdd"
+	Edit_BulkAddRaw_FullMethodName   = "/gripql.Edit/BulkAddRaw"
 	Edit_AddGraph_FullMethodName     = "/gripql.Edit/AddGraph"
 	Edit_DeleteGraph_FullMethodName  = "/gripql.Edit/DeleteGraph"
 	Edit_BulkDelete_FullMethodName   = "/gripql.Edit/BulkDelete"
@@ -957,6 +958,7 @@ type EditClient interface {
 	AddVertex(ctx context.Context, in *GraphElement, opts ...grpc.CallOption) (*EditResult, error)
 	AddEdge(ctx context.Context, in *GraphElement, opts ...grpc.CallOption) (*EditResult, error)
 	BulkAdd(ctx context.Context, opts ...grpc.CallOption) (Edit_BulkAddClient, error)
+	BulkAddRaw(ctx context.Context, opts ...grpc.CallOption) (Edit_BulkAddRawClient, error)
 	AddGraph(ctx context.Context, in *GraphID, opts ...grpc.CallOption) (*EditResult, error)
 	DeleteGraph(ctx context.Context, in *GraphID, opts ...grpc.CallOption) (*EditResult, error)
 	BulkDelete(ctx context.Context, in *DeleteData, opts ...grpc.CallOption) (*EditResult, error)
@@ -1022,6 +1024,41 @@ func (x *editBulkAddClient) Send(m *GraphElement) error {
 }
 
 func (x *editBulkAddClient) CloseAndRecv() (*BulkEditResult, error) {
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	m := new(BulkEditResult)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (c *editClient) BulkAddRaw(ctx context.Context, opts ...grpc.CallOption) (Edit_BulkAddRawClient, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &Edit_ServiceDesc.Streams[1], Edit_BulkAddRaw_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &editBulkAddRawClient{ClientStream: stream}
+	return x, nil
+}
+
+type Edit_BulkAddRawClient interface {
+	Send(*RawJson) error
+	CloseAndRecv() (*BulkEditResult, error)
+	grpc.ClientStream
+}
+
+type editBulkAddRawClient struct {
+	grpc.ClientStream
+}
+
+func (x *editBulkAddRawClient) Send(m *RawJson) error {
+	return x.ClientStream.SendMsg(m)
+}
+
+func (x *editBulkAddRawClient) CloseAndRecv() (*BulkEditResult, error) {
 	if err := x.ClientStream.CloseSend(); err != nil {
 		return nil, err
 	}
@@ -1139,6 +1176,7 @@ type EditServer interface {
 	AddVertex(context.Context, *GraphElement) (*EditResult, error)
 	AddEdge(context.Context, *GraphElement) (*EditResult, error)
 	BulkAdd(Edit_BulkAddServer) error
+	BulkAddRaw(Edit_BulkAddRawServer) error
 	AddGraph(context.Context, *GraphID) (*EditResult, error)
 	DeleteGraph(context.Context, *GraphID) (*EditResult, error)
 	BulkDelete(context.Context, *DeleteData) (*EditResult, error)
@@ -1164,6 +1202,9 @@ func (UnimplementedEditServer) AddEdge(context.Context, *GraphElement) (*EditRes
 }
 func (UnimplementedEditServer) BulkAdd(Edit_BulkAddServer) error {
 	return status.Errorf(codes.Unimplemented, "method BulkAdd not implemented")
+}
+func (UnimplementedEditServer) BulkAddRaw(Edit_BulkAddRawServer) error {
+	return status.Errorf(codes.Unimplemented, "method BulkAddRaw not implemented")
 }
 func (UnimplementedEditServer) AddGraph(context.Context, *GraphID) (*EditResult, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AddGraph not implemented")
@@ -1264,6 +1305,32 @@ func (x *editBulkAddServer) SendAndClose(m *BulkEditResult) error {
 
 func (x *editBulkAddServer) Recv() (*GraphElement, error) {
 	m := new(GraphElement)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func _Edit_BulkAddRaw_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(EditServer).BulkAddRaw(&editBulkAddRawServer{ServerStream: stream})
+}
+
+type Edit_BulkAddRawServer interface {
+	SendAndClose(*BulkEditResult) error
+	Recv() (*RawJson, error)
+	grpc.ServerStream
+}
+
+type editBulkAddRawServer struct {
+	grpc.ServerStream
+}
+
+func (x *editBulkAddRawServer) SendAndClose(m *BulkEditResult) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func (x *editBulkAddRawServer) Recv() (*RawJson, error) {
+	m := new(RawJson)
 	if err := x.ServerStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
@@ -1510,6 +1577,11 @@ var Edit_ServiceDesc = grpc.ServiceDesc{
 		{
 			StreamName:    "BulkAdd",
 			Handler:       _Edit_BulkAdd_Handler,
+			ClientStreams: true,
+		},
+		{
+			StreamName:    "BulkAddRaw",
+			Handler:       _Edit_BulkAddRaw_Handler,
 			ClientStreams: true,
 		},
 	},

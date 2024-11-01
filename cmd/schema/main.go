@@ -63,7 +63,7 @@ var getCmd = &cobra.Command{
 	},
 }
 
-var loadPrimitiveSchemafromJsonSchema = &cobra.Command{
+var loadGqlSchemafromJsonSchema = &cobra.Command{
 	Use:   "load",
 	Short: "Load graph schemas",
 	Long:  ``,
@@ -221,12 +221,12 @@ func init() {
 	pflags.StringVar(&yamlSchemaDir, "yamlSchemaDir", "", "Name of YAML schemas dir")
 	pflags.StringVar(&graphName, "graphName", "", "Name of schemaGraph")
 
-	sflags := loadPrimitiveSchemafromJsonSchema.Flags()
-	sflags.StringVar(&jsonSchemaFile, "jsonSchema", "", "Json Schema")
-	sflags.StringVar(&yamlSchemaDir, "yamlSchemaDir", "", "Name of YAML schemas dir")
-	sflags.StringVar(&graphName, "graphName", "", "Name of schemaGraph")
+	gqlflags := loadGqlSchemafromJsonSchema.Flags()
+	gqlflags.StringVar(&jsonSchemaFile, "jsonSchema", "", "Json Schema")
+	gqlflags.StringVar(&yamlSchemaDir, "yamlSchemaDir", "", "Name of YAML schemas dir")
+	gqlflags.StringVar(&graphName, "graphName", "", "Name of schemaGraph")
 
-	Cmd.AddCommand(loadPrimitiveSchemafromJsonSchema)
+	Cmd.AddCommand(loadGqlSchemafromJsonSchema)
 	Cmd.AddCommand(getCmd)
 	Cmd.AddCommand(postCmd)
 }
