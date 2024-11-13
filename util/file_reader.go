@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"compress/gzip"
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/url"
@@ -128,29 +127,23 @@ func StreamRawJsonFromFile(file string, workers int) (chan *gripql.RawJson, erro
 	}
 	jsonChan := make(chan *gripql.RawJson, workers)
 	var wg sync.WaitGroup
-	//jum := protojson.UnmarshalOptions{DiscardUnknown: true}
+	jum := protojson.UnmarshalOptions{DiscardUnknown: true}
 
 	for i := 0; i < workers; i++ {
 		wg.Add(1)
 		go func() {
+			defer wg.Done()
 			for line := range lineChan {
-				rawData := &gripql.RawJson{}
-				var tempData map[string]any
-				err := json.Unmarshal([]byte(line), &tempData)
+				rawData := &gripql.RawJson{
+					Data: &structpb.Struct{},
+				}
+				err := jum.Unmarshal([]byte(line), rawData.Data)
 				if err != nil {
 					log.WithFields(log.Fields{"error": err}).Errorf("Unmarshaling vertex: %s", line)
-					return
+					continue
 				}
-
-				structData, err := structpb.NewStruct(tempData)
-				if err != nil {
-					log.WithFields(log.Fields{"error": err}).Errorf("Converting to structpb.Struct: %s", line)
-					return
-				}
-				rawData.Data = structData
 				jsonChan <- rawData
 			}
-			wg.Done()
 		}()
 	}
 	go func() {

@@ -1,8 +1,10 @@
 package server
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
+	"strings"
 	"sync"
 
 	"github.com/bmeg/grip/engine/pipeline"
@@ -11,6 +13,9 @@ import (
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/util"
+	"github.com/bmeg/jsonschema/v5"
+	"github.com/bmeg/jsonschemagraph/compile"
+	"github.com/bmeg/jsonschemagraph/graph"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -221,59 +226,126 @@ func (server *GripServer) addEdge(ctx context.Context, elem *gripql.GraphElement
 func (server *GripServer) BulkAddRaw(stream gripql.Edit_BulkAddRawServer) error {
 	var insertCount int32
 	var errorCount int32
-	elementStream := make(chan *gripql.RawJson, 100)
 	wg := &sync.WaitGroup{}
+	wg.Add(1)
+	schcompiler := jsonschema.NewCompiler()
+	out := graph.GraphSchema{Classes: map[string]*jsonschema.Schema{}, Compiler: schcompiler}
+	go func() {
+		defer wg.Done()
+		sch, err := server.getGraph("CALIPER__schema__")
+		if err != nil {
+			log.Info("CALIPER__schema__ graph not found", err)
+			return
+		}
 
-	/* 	sch, err := server.GetSchema(context.Background(), &gripql.GraphID{Graph: "CALIPER__schema__"})
-	   	if err != nil {
-	   		return err
-	   	}
-	   	schcompiler := jsonschema.NewCompiler()
-	   	schcompiler.ExtractAnnotations = true
-	   	schcompiler.RegisterExtension(compile.GraphExtensionTag, compile.GraphExtMeta, compile.GraphExtCompiler{})
-	   	//out := graph.GraphSchema{Classes: map[string]*jsonschema.Schema{}, Compiler: schcompiler}
+		jsonschema.Loaders["file"] = graph.YamlLoader
+		schcompiler.ExtractAnnotations = true
+		schcompiler.RegisterExtension(compile.GraphExtensionTag, compile.GraphExtMeta, compile.GraphExtCompiler{})
 
-	   	for _, v := range sch.Vertices {
-	   		mapped_data := v.Data.String()
-	   		log.Info("MAPPED  DATA: ", mapped_data)
-	   		_, err := json.Marshal(mapped_data)
-	   		if err != nil {
-	   			log.Errorf("Error marshaling schema: %v", err)
-	   		}
+		var ids []string
+		for _, v := range sch.Vertices {
+			mappedData := v.Data
+			jsonData, err := json.Marshal(mappedData)
+			if err != nil {
+				log.Errorf("Error marshaling schema: %v", err)
+				continue
+			}
 
-	   		log.Infoln("HELLO : ", mapped_data)
-	   		vertexData, ok := mapped_data["vertex"].(map[string]any)
-	   		if !ok {
-	   			return fmt.Errorf("ERR")
-	   		}
-	   		if err := schcompiler.AddResourceJSON(vertexData["data"].(map[string]any)["id"].(string), schemaJSON); err == nil {
-	   			if sch.Title != "" {
-	   				out.Classes[sch.Title] = sch
-	   			} else {
-	   				log.Infof("Title not found: %s %#v\n", f, sch)
-	   				}
-	   				}
+			var vertexData map[string]any
+			if err := json.Unmarshal(jsonData, &vertexData); err != nil {
+				log.Errorf("Error unmarshaling JSON data: %v", err)
+				continue
+			}
+			id, ok := vertexData["id"].(string)
+			ids = append(ids, id)
+			if !ok {
+				return
+			}
 
-	   	}*/
+			err = schcompiler.AddResource(id, strings.NewReader(string(jsonData)))
+			if err != nil {
+				log.Info("ADD RESOURCE ERR: ", err)
+				return
+			}
+		}
+		for _, id := range ids {
+			sch, err := schcompiler.Compile(id)
+			if err != nil {
+				log.Info("COMPILE ERR: ", err)
+				return
+			}
+			out.Classes[id] = sch
+		}
+	}()
+	wg.Wait()
 
+	elementStream := make(chan *gdbi.GraphElement)
 	for {
-		_, err := stream.Recv()
-		//log.Info("ROW: ", row)
+		class, err := stream.Recv()
 		if err == io.EOF {
 			break
 		}
 
-		//class := graph.GetClass("Observation")
+		gdb, err := server.getGraphDB("CALIPER")
+		if err != nil {
+			errorCount++
+			continue
+		}
+
+		graph, err := gdb.Graph("CALIPER")
+		if err != nil {
+			log.WithFields(log.Fields{"error": err}).Error("BulkAdd: error")
+			errorCount++
+			continue
+		}
+
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			err := graph.BulkAdd(elementStream)
+			if err != nil {
+				log.WithFields(log.Fields{"graph": "CALIPER", "error": err}).Error("BulkAdd: error")
+				// not a good representation of the true number of errors
+				errorCount++
+			}
+		}()
+
+		classData := class.Data.AsMap()
+		result, err := out.Generate("http://graph-fhir.io/schema/0.0.2/"+classData["resourceType"].(string), classData, false, "ohsu-test")
 		if err != nil {
 			log.WithFields(log.Fields{"error": err}).Error("BulkAdd: streaming error")
 			errorCount++
 			break
 		}
+
+		for _, element := range result {
+			if element.Vertex != nil {
+				elementStream <- &gdbi.GraphElement{
+					Vertex: &gdbi.DataElement{
+						ID:    element.Vertex.Gid,
+						Data:  element.Vertex.Data.AsMap(),
+						Label: element.Vertex.Label,
+					},
+					Graph: "CALIPER",
+				}
+			} else {
+				elementStream <- &gdbi.GraphElement{
+					Edge: &gdbi.DataElement{
+						ID:    element.Edge.Gid,
+						Label: element.Edge.Label,
+						From:  element.Edge.From,
+						To:    element.Edge.To,
+						Data:  element.Edge.Data.AsMap(),
+					},
+					Graph: "CALIPER",
+				}
+			}
+		}
+
 	}
 	close(elementStream)
 	wg.Wait()
 	return stream.SendAndClose(&gripql.BulkEditResult{InsertCount: insertCount, ErrorCount: errorCount})
-
 }
 
 // BulkAdd a stream of inputs and loads them into the graph
