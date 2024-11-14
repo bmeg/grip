@@ -1,10 +1,8 @@
 package server
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
-	"strings"
 	"sync"
 
 	"github.com/bmeg/grip/engine/pipeline"
@@ -14,7 +12,6 @@ import (
 	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/util"
 	"github.com/bmeg/jsonschema/v5"
-	"github.com/bmeg/jsonschemagraph/compile"
 	"github.com/bmeg/jsonschemagraph/graph"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc/codes"
@@ -227,72 +224,38 @@ func (server *GripServer) BulkAddRaw(stream gripql.Edit_BulkAddRawServer) error 
 	var insertCount int32
 	var errorCount int32
 	wg := &sync.WaitGroup{}
-	wg.Add(1)
-	schcompiler := jsonschema.NewCompiler()
-	out := graph.GraphSchema{Classes: map[string]*jsonschema.Schema{}, Compiler: schcompiler}
-	go func() {
-		defer wg.Done()
-		sch, err := server.getGraph("CALIPER__schema__")
-		if err != nil {
-			log.Info("CALIPER__schema__ graph not found", err)
-			return
-		}
-
-		jsonschema.Loaders["file"] = graph.YamlLoader
-		schcompiler.ExtractAnnotations = true
-		schcompiler.RegisterExtension(compile.GraphExtensionTag, compile.GraphExtMeta, compile.GraphExtCompiler{})
-
-		var ids []string
-		for _, v := range sch.Vertices {
-			mappedData := v.Data
-			jsonData, err := json.Marshal(mappedData)
-			if err != nil {
-				log.Errorf("Error marshaling schema: %v", err)
-				continue
-			}
-
-			var vertexData map[string]any
-			if err := json.Unmarshal(jsonData, &vertexData); err != nil {
-				log.Errorf("Error unmarshaling JSON data: %v", err)
-				continue
-			}
-			id, ok := vertexData["id"].(string)
-			ids = append(ids, id)
-			if !ok {
-				return
-			}
-
-			err = schcompiler.AddResource(id, strings.NewReader(string(jsonData)))
-			if err != nil {
-				log.Info("ADD RESOURCE ERR: ", err)
-				return
-			}
-		}
-		for _, id := range ids {
-			sch, err := schcompiler.Compile(id)
-			if err != nil {
-				log.Info("COMPILE ERR: ", err)
-				return
-			}
-			out.Classes[id] = sch
-		}
-	}()
-	wg.Wait()
-
+	var populated bool
+	var sch *gripql.Graph
+	out := &graph.GraphSchema{Classes: map[string]*jsonschema.Schema{}, Compiler: nil}
 	elementStream := make(chan *gdbi.GraphElement)
 	for {
+		var err error
 		class, err := stream.Recv()
 		if err == io.EOF {
 			break
 		}
 
-		gdb, err := server.getGraphDB("CALIPER")
+		if !populated {
+			sch, err = server.getGraph(class.Graph + "__schema__")
+			if err != nil {
+				log.Errorf("Error loading schemas: %v", err)
+				break
+			}
+			out, err = server.LoadSchemas(class.ProjectId, sch, out)
+			if err != nil {
+				log.Errorf("Error loading schemas: %v", err)
+				break
+			}
+			populated = true
+		}
+
+		gdb, err := server.getGraphDB(class.Graph)
 		if err != nil {
 			errorCount++
 			continue
 		}
 
-		graph, err := gdb.Graph("CALIPER")
+		graph, err := gdb.Graph(class.Graph)
 		if err != nil {
 			log.WithFields(log.Fields{"error": err}).Error("BulkAdd: error")
 			errorCount++
@@ -304,16 +267,24 @@ func (server *GripServer) BulkAddRaw(stream gripql.Edit_BulkAddRawServer) error 
 			defer wg.Done()
 			err := graph.BulkAdd(elementStream)
 			if err != nil {
-				log.WithFields(log.Fields{"graph": "CALIPER", "error": err}).Error("BulkAdd: error")
+				log.WithFields(log.Fields{"graph": class.Graph, "error": err}).Error("BulkAddRaw: error")
 				// not a good representation of the true number of errors
 				errorCount++
 			}
 		}()
 
 		classData := class.Data.AsMap()
-		result, err := out.Generate("http://graph-fhir.io/schema/0.0.2/"+classData["resourceType"].(string), classData, false, "ohsu-test")
+		resourceType, ok := classData["resourceType"].(string)
+		if !ok {
+			log.WithFields(log.Fields{"error": fmt.Errorf("row %s does not have required field resourceType", classData)}).Error("BulkAddRaw: streaming error")
+			continue
+		}
+
+		// It might be better to hardcode this --> "http://graph-fhir.io/schema/0.0.2/"
+		schema_id := sch.GetVertices()[0].GetDataMap()["schema_id"].(string)
+		result, err := out.Generate(schema_id+"/"+resourceType, classData, false, class.ProjectId)
 		if err != nil {
-			log.WithFields(log.Fields{"error": err}).Error("BulkAdd: streaming error")
+			log.WithFields(log.Fields{"error": err}).Error("BulkAddRaw: streaming error")
 			errorCount++
 			break
 		}
@@ -326,7 +297,7 @@ func (server *GripServer) BulkAddRaw(stream gripql.Edit_BulkAddRawServer) error 
 						Data:  element.Vertex.Data.AsMap(),
 						Label: element.Vertex.Label,
 					},
-					Graph: "CALIPER",
+					Graph: element.Graph,
 				}
 			} else {
 				elementStream <- &gdbi.GraphElement{
@@ -337,7 +308,7 @@ func (server *GripServer) BulkAddRaw(stream gripql.Edit_BulkAddRawServer) error 
 						To:    element.Edge.To,
 						Data:  element.Edge.Data.AsMap(),
 					},
-					Graph: "CALIPER",
+					Graph: element.Graph,
 				}
 			}
 		}

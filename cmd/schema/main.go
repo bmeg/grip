@@ -64,7 +64,7 @@ var getCmd = &cobra.Command{
 }
 
 var loadGqlSchemafromJsonSchema = &cobra.Command{
-	Use:   "load",
+	Use:   "graphql",
 	Short: "Load graph schemas",
 	Long:  ``,
 	Args:  cobra.NoArgs,
@@ -114,11 +114,11 @@ var loadGqlSchemafromJsonSchema = &cobra.Command{
 
 var postCmd = &cobra.Command{
 	Use:   "post",
-	Short: "Post graph schemas",
+	Short: "Post jsonschema graph schemas",
 	Long:  ``,
 	Args:  cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if jsonFile == "" && yamlFile == "" && jsonSchemaFile == "" && yamlSchemaDir == "" {
+		if jsonFile == "" && yamlFile == "" && jsonSchemaFile == "" {
 			return fmt.Errorf("no schema file was provided")
 		}
 
@@ -173,7 +173,6 @@ var postCmd = &cobra.Command{
 				}
 			}
 		}
-
 		if jsonSchemaFile != "" && graphName != "" {
 			log.Infof("Loading Json Schema file: %s", jsonSchemaFile)
 			graphs, err := schema.ParseJsonSchema(jsonSchemaFile, graphName)
@@ -187,22 +186,6 @@ var postCmd = &cobra.Command{
 				}
 				log.Debug("Posted schema: %s", g.Graph)
 			}
-		}
-		if yamlSchemaDir != "" && graphName != "" {
-			log.Infof("Loading Yaml Schema dir: %s", yamlSchemaDir)
-			graphs, err := schema.ParseYamlJsonSchema(yamlSchemaDir, graphName)
-			if err != nil {
-				log.Info("HELLO ERROR HERE: ", err)
-				return err
-			}
-			for _, g := range graphs {
-				err := conn.AddSchema(g)
-				if err != nil {
-					return err
-				}
-				log.Debug("Posted schema: %s", g.Graph)
-			}
-
 		}
 		return nil
 	},
@@ -218,10 +201,10 @@ func init() {
 	pflags.StringVar(&jsonFile, "json", "", "JSON graph file")
 	pflags.StringVar(&yamlFile, "yaml", "", "YAML graph file")
 	pflags.StringVar(&jsonSchemaFile, "jsonSchema", "", "Json Schema")
-	pflags.StringVar(&yamlSchemaDir, "yamlSchemaDir", "", "Name of YAML schemas dir")
 	pflags.StringVar(&graphName, "graphName", "", "Name of schemaGraph")
 
 	gqlflags := loadGqlSchemafromJsonSchema.Flags()
+	gqlflags.StringVar(&host, "host", host, "grip server url")
 	gqlflags.StringVar(&jsonSchemaFile, "jsonSchema", "", "Json Schema")
 	gqlflags.StringVar(&yamlSchemaDir, "yamlSchemaDir", "", "Name of YAML schemas dir")
 	gqlflags.StringVar(&graphName, "graphName", "", "Name of schemaGraph")

@@ -308,7 +308,9 @@ message DeleteData {
 }
 
 message RawJson {
-  google.protobuf.Struct data = 1;
+  string graph = 1;
+  string project_id = 2;
+  google.protobuf.Struct data = 3;
 }
 
 service Query {
