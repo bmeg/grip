@@ -85,7 +85,7 @@ func ParseSchema(schema *jsonschema.Schema) any {
 	return nil
 }
 
-func ParseSchemaGraphs(relpath string, graphName string) ([]*gripql.Graph, error) {
+func ParseIntoGraphqlSchema(relpath string, graphName string) ([]*gripql.Graph, error) {
 	out, err := graph.Load(relpath)
 	if err != nil {
 		log.Info("AN ERROR HAS OCCURED: ", err)
@@ -282,11 +282,22 @@ func parseGraphFile(relpath string, format string, graphName string) ([]*gripql.
 	case "json":
 		graphs, err = ParseJSONGraphs(source)
 	case "jsonSchema":
-		graphs, err = ParseSchemaGraphs(path, graphName)
+		graphs, err = ParseIntoGraphqlSchema(path, graphName)
 	case "yamlSchema":
-		graphs, err = ParseSchemaGraphs(relpath, graphName)
+		graphs, err = ParseIntoGraphqlSchema(relpath, graphName)
 	case "jSchema":
-		graphs, err = ParseJSchema(path, graphName)
+		file, err := os.Open(path)
+		if err != nil {
+			return nil, fmt.Errorf("failed to open file: %v", err)
+		}
+		defer file.Close()
+
+		// Read the entire file content
+		bytes, err := ioutil.ReadAll(file)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read file: %v", err)
+		}
+		graphs, err = ParseJSchema(bytes, graphName)
 	default:
 		err = fmt.Errorf("unknown file format: %s", format)
 	}
@@ -296,22 +307,11 @@ func parseGraphFile(relpath string, format string, graphName string) ([]*gripql.
 	return graphs, nil
 }
 
-func ParseJSchema(path string, graphName string) ([]*gripql.Graph, error) {
+func ParseJSchema(bytes []byte, graphName string) ([]*gripql.Graph, error) {
 	graphSchema := map[string]any{
 		"vertices": []map[string]any{},
 		"edges":    []map[string]any{},
 		"graph":    graphName,
-	}
-	file, err := os.Open(path)
-	if err != nil {
-		return nil, fmt.Errorf("failed to open file: %v", err)
-	}
-	defer file.Close()
-
-	// Read the entire file content
-	bytes, err := ioutil.ReadAll(file)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read file: %v", err)
 	}
 
 	// Parse JSON into a map

@@ -66,6 +66,12 @@ func (client Client) AddSchema(graph *Graph) error {
 	return err
 }
 
+// AddJsonSchema adds a schema for a graph.
+func (client Client) AddJsonSchema(json *RawJson) error {
+	_, err := client.EditC.AddJsonSchema(context.Background(), json)
+	return err
+}
+
 func (client Client) DeleteEdge(graph string, id string) error {
 	_, err := client.EditC.DeleteEdge(context.Background(), &ElementID{Graph: graph, Id: id})
 	return err

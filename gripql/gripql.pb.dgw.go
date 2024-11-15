@@ -1112,6 +1112,26 @@ func (shim *EditDirectClient) AddSchema(ctx context.Context, in *Graph, opts ...
 	return shim.server.AddSchema(ictx, in)
 }
 
+//AddJsonSchema shim
+func (shim *EditDirectClient) AddJsonSchema(ctx context.Context, in *RawJson, opts ...grpc.CallOption) (*EditResult, error) {
+  md, _ := metadata.FromOutgoingContext(ctx)
+  ictx := metadata.NewIncomingContext(ctx, md)
+  if shim.unaryServerInt != nil {
+    handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+  		return shim.server.AddJsonSchema(ctx, req.(*RawJson))
+  	}
+    info := grpc.UnaryServerInfo{
+      FullMethod: "/gripql.Edit/AddJsonSchema",
+    }
+    o, err := shim.unaryServerInt(ictx, in, &info, handler)
+    if o == nil {
+      return nil, err
+    }
+    return o.(*EditResult), err
+  }
+	return shim.server.AddJsonSchema(ictx, in)
+}
+
 //SampleSchema shim
 func (shim *EditDirectClient) SampleSchema(ctx context.Context, in *GraphID, opts ...grpc.CallOption) (*Graph, error) {
   md, _ := metadata.FromOutgoingContext(ctx)
