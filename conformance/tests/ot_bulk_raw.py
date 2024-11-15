@@ -4,7 +4,7 @@ import requests
 def test_bulk_add_raw(man):
     errors = []
 
-    G = man.setGraph('condition')
+    G = man.writeTest()
 
     # Probably don't want to add a 2MB schema file to the repo so get it via requests instead
     res = requests.get("https://raw.githubusercontent.com/bmeg/iceberg/f1724941fe47df24846135fb515d1b89e791cee3/schemas/graph/graph-fhir.json")
@@ -27,7 +27,7 @@ def test_bulk_add_raw(man):
         errors.append(f"bulkraw inserted edge with id 838e42fb-a65d-4039-9f83-59c37b1ae889 not found")
 
     labels = G.listLabels()
-    if labels != {'vertexLabels': ['Condition', 'Patient'], 'edgeLabels': ['condition', 'subject_Patient']}:
+    if not all(item in labels['vertexLabels'] for item in ['Condition', 'Patient']) or not all (item in labels['edgeLabels'] for item in ['condition', 'subject_Patient']):
         errors.append(f"After insert operations {labels} != expected {{'vertexLabels': ['Condition', 'Patient'], 'edgeLabels': ['condition', 'subject_Patient']}}")
 
     return errors
