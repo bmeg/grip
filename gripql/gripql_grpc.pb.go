@@ -935,20 +935,21 @@ var Job_ServiceDesc = grpc.ServiceDesc{
 }
 
 const (
-	Edit_AddVertex_FullMethodName    = "/gripql.Edit/AddVertex"
-	Edit_AddEdge_FullMethodName      = "/gripql.Edit/AddEdge"
-	Edit_BulkAdd_FullMethodName      = "/gripql.Edit/BulkAdd"
-	Edit_BulkAddRaw_FullMethodName   = "/gripql.Edit/BulkAddRaw"
-	Edit_AddGraph_FullMethodName     = "/gripql.Edit/AddGraph"
-	Edit_DeleteGraph_FullMethodName  = "/gripql.Edit/DeleteGraph"
-	Edit_BulkDelete_FullMethodName   = "/gripql.Edit/BulkDelete"
-	Edit_DeleteVertex_FullMethodName = "/gripql.Edit/DeleteVertex"
-	Edit_DeleteEdge_FullMethodName   = "/gripql.Edit/DeleteEdge"
-	Edit_AddIndex_FullMethodName     = "/gripql.Edit/AddIndex"
-	Edit_DeleteIndex_FullMethodName  = "/gripql.Edit/DeleteIndex"
-	Edit_AddSchema_FullMethodName    = "/gripql.Edit/AddSchema"
-	Edit_SampleSchema_FullMethodName = "/gripql.Edit/SampleSchema"
-	Edit_AddMapping_FullMethodName   = "/gripql.Edit/AddMapping"
+	Edit_AddVertex_FullMethodName     = "/gripql.Edit/AddVertex"
+	Edit_AddEdge_FullMethodName       = "/gripql.Edit/AddEdge"
+	Edit_BulkAdd_FullMethodName       = "/gripql.Edit/BulkAdd"
+	Edit_BulkAddRaw_FullMethodName    = "/gripql.Edit/BulkAddRaw"
+	Edit_AddGraph_FullMethodName      = "/gripql.Edit/AddGraph"
+	Edit_DeleteGraph_FullMethodName   = "/gripql.Edit/DeleteGraph"
+	Edit_BulkDelete_FullMethodName    = "/gripql.Edit/BulkDelete"
+	Edit_DeleteVertex_FullMethodName  = "/gripql.Edit/DeleteVertex"
+	Edit_DeleteEdge_FullMethodName    = "/gripql.Edit/DeleteEdge"
+	Edit_AddIndex_FullMethodName      = "/gripql.Edit/AddIndex"
+	Edit_DeleteIndex_FullMethodName   = "/gripql.Edit/DeleteIndex"
+	Edit_AddSchema_FullMethodName     = "/gripql.Edit/AddSchema"
+	Edit_AddJsonSchema_FullMethodName = "/gripql.Edit/AddJsonSchema"
+	Edit_SampleSchema_FullMethodName  = "/gripql.Edit/SampleSchema"
+	Edit_AddMapping_FullMethodName    = "/gripql.Edit/AddMapping"
 )
 
 // EditClient is the client API for Edit service.
@@ -967,6 +968,7 @@ type EditClient interface {
 	AddIndex(ctx context.Context, in *IndexID, opts ...grpc.CallOption) (*EditResult, error)
 	DeleteIndex(ctx context.Context, in *IndexID, opts ...grpc.CallOption) (*EditResult, error)
 	AddSchema(ctx context.Context, in *Graph, opts ...grpc.CallOption) (*EditResult, error)
+	AddJsonSchema(ctx context.Context, in *RawJson, opts ...grpc.CallOption) (*EditResult, error)
 	SampleSchema(ctx context.Context, in *GraphID, opts ...grpc.CallOption) (*Graph, error)
 	AddMapping(ctx context.Context, in *Graph, opts ...grpc.CallOption) (*EditResult, error)
 }
@@ -1149,6 +1151,16 @@ func (c *editClient) AddSchema(ctx context.Context, in *Graph, opts ...grpc.Call
 	return out, nil
 }
 
+func (c *editClient) AddJsonSchema(ctx context.Context, in *RawJson, opts ...grpc.CallOption) (*EditResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(EditResult)
+	err := c.cc.Invoke(ctx, Edit_AddJsonSchema_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *editClient) SampleSchema(ctx context.Context, in *GraphID, opts ...grpc.CallOption) (*Graph, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Graph)
@@ -1185,6 +1197,7 @@ type EditServer interface {
 	AddIndex(context.Context, *IndexID) (*EditResult, error)
 	DeleteIndex(context.Context, *IndexID) (*EditResult, error)
 	AddSchema(context.Context, *Graph) (*EditResult, error)
+	AddJsonSchema(context.Context, *RawJson) (*EditResult, error)
 	SampleSchema(context.Context, *GraphID) (*Graph, error)
 	AddMapping(context.Context, *Graph) (*EditResult, error)
 	mustEmbedUnimplementedEditServer()
@@ -1229,6 +1242,9 @@ func (UnimplementedEditServer) DeleteIndex(context.Context, *IndexID) (*EditResu
 }
 func (UnimplementedEditServer) AddSchema(context.Context, *Graph) (*EditResult, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AddSchema not implemented")
+}
+func (UnimplementedEditServer) AddJsonSchema(context.Context, *RawJson) (*EditResult, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AddJsonSchema not implemented")
 }
 func (UnimplementedEditServer) SampleSchema(context.Context, *GraphID) (*Graph, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SampleSchema not implemented")
@@ -1481,6 +1497,24 @@ func _Edit_AddSchema_Handler(srv interface{}, ctx context.Context, dec func(inte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Edit_AddJsonSchema_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RawJson)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(EditServer).AddJsonSchema(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Edit_AddJsonSchema_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(EditServer).AddJsonSchema(ctx, req.(*RawJson))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _Edit_SampleSchema_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GraphID)
 	if err := dec(in); err != nil {
@@ -1563,6 +1597,10 @@ var Edit_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "AddSchema",
 			Handler:    _Edit_AddSchema_Handler,
+		},
+		{
+			MethodName: "AddJsonSchema",
+			Handler:    _Edit_AddJsonSchema_Handler,
 		},
 		{
 			MethodName: "SampleSchema",

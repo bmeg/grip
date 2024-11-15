@@ -10,12 +10,14 @@ import (
 	"github.com/bmeg/grip/gripper"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/log"
+	"github.com/bmeg/grip/schema"
 	"github.com/bmeg/grip/util"
 	"github.com/bmeg/jsonschema/v5"
 	"github.com/bmeg/jsonschemagraph/graph"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 // Traversal parses a traversal request and streams the results back
@@ -277,6 +279,7 @@ func (server *GripServer) BulkAddRaw(stream gripql.Edit_BulkAddRawServer) error 
 		resourceType, ok := classData["resourceType"].(string)
 		if !ok {
 			log.WithFields(log.Fields{"error": fmt.Errorf("row %s does not have required field resourceType", classData)}).Error("BulkAddRaw: streaming error")
+			errorCount++
 			continue
 		}
 
@@ -311,6 +314,7 @@ func (server *GripServer) BulkAddRaw(stream gripql.Edit_BulkAddRawServer) error 
 					Graph: element.Graph,
 				}
 			}
+			insertCount++
 		}
 
 	}
@@ -383,7 +387,7 @@ func (server *GripServer) BulkAdd(stream gripql.Edit_BulkAddServer) error {
 			err := element.Vertex.Validate()
 			if err != nil {
 				errorCount++
-				log.WithFields(log.Fields{"graph": element.Graph, "error": err}).Errorf("BulkAdd: vertex validation failed")
+				log.WithFields(log.Fields{"graph": element.Graph, "error": err}).Errorf("BulkAdd: vertex validation failed for vertex: %#v", element.Vertex)
 			} else {
 				insertCount++
 				elementStream <- gdbi.NewGraphElement(element)
@@ -397,7 +401,7 @@ func (server *GripServer) BulkAdd(stream gripql.Edit_BulkAddServer) error {
 			err := element.Edge.Validate()
 			if err != nil {
 				errorCount++
-				log.WithFields(log.Fields{"graph": element.Graph, "error": err}).Errorf("BulkAdd: edge validation failed")
+				log.WithFields(log.Fields{"graph": element.Graph, "error": err}).Errorf("BulkAdd: edge validation failed for edge: %#v", element.Edge)
 			} else {
 				insertCount++
 				elementStream <- gdbi.NewGraphElement(element)
@@ -592,6 +596,22 @@ func (server *GripServer) AddSchema(ctx context.Context, req *gripql.Graph) (*gr
 	}
 	server.schemas[req.Graph] = req
 	return &gripql.EditResult{Id: req.Graph}, nil
+}
+
+// AddJsonSchema adds a jsonschema to grip as a graph
+func (server *GripServer) AddJsonSchema(ctx context.Context, rawjson *gripql.RawJson) (*gripql.EditResult, error) {
+	bytes, err := protojson.Marshal(rawjson.Data)
+	if err != nil {
+		fmt.Printf("Failed to marshal data to bytes: %v\n", err)
+		return nil, err
+	}
+	req, err := schema.ParseJSchema(bytes, rawjson.Graph)
+	if err != nil {
+		fmt.Errorf("Failed to parse schema data: %v\n", err)
+		return nil, err
+	}
+	res, err := server.AddSchema(ctx, req[0])
+	return res, err
 }
 
 // GetMapping returns the schema of a specific graph in the database

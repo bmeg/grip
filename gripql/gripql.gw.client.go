@@ -177,6 +177,7 @@ type EditGatewayClient interface {
 	AddIndex(context.Context, *IndexID) (*EditResult, error)
 	DeleteIndex(context.Context, *IndexID) (*EditResult, error)
 	AddSchema(context.Context, *Graph) (*EditResult, error)
+	AddJsonSchema(context.Context, *RawJson) (*EditResult, error)
 	SampleSchema(context.Context, *GraphID) (*Graph, error)
 	AddMapping(context.Context, *Graph) (*EditResult, error)
 }
@@ -260,6 +261,13 @@ func (c *editGatewayClient) DeleteIndex(ctx context.Context, req *IndexID) (*Edi
 
 func (c *editGatewayClient) AddSchema(ctx context.Context, req *Graph) (*EditResult, error) {
 	gwReq := c.gwc.NewRequest("POST", "/v1/graph/{graph}/schema")
+	gwReq.SetPathParam("graph", fmt.Sprintf("%v", req.Graph))
+	gwReq.SetBody(req)
+	return gateway.DoRequest[EditResult](ctx, gwReq)
+}
+
+func (c *editGatewayClient) AddJsonSchema(ctx context.Context, req *RawJson) (*EditResult, error) {
+	gwReq := c.gwc.NewRequest("POST", "/v1/graph/{graph}/jsonschema")
 	gwReq.SetPathParam("graph", fmt.Sprintf("%v", req.Graph))
 	gwReq.SetBody(req)
 	return gateway.DoRequest[EditResult](ctx, gwReq)
