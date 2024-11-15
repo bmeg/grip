@@ -293,23 +293,23 @@ func (server *GripServer) BulkAddRaw(stream gripql.Edit_BulkAddRawServer) error 
 		for _, element := range result {
 			if element.Vertex != nil {
 				elementStream <- &gdbi.GraphElement{
-					Vertex: &gdbi.DataElement{
+					Vertex: &gdbi.Vertex{
 						ID:    element.Vertex.Gid,
 						Data:  element.Vertex.Data.AsMap(),
 						Label: element.Vertex.Label,
 					},
-					Graph: element.Graph,
+					Graph: class.Graph,
 				}
 			} else {
 				elementStream <- &gdbi.GraphElement{
-					Edge: &gdbi.DataElement{
+					Edge: &gdbi.Edge{
 						ID:    element.Edge.Gid,
 						Label: element.Edge.Label,
 						From:  element.Edge.From,
 						To:    element.Edge.To,
 						Data:  element.Edge.Data.AsMap(),
 					},
-					Graph: element.Graph,
+					Graph: class.Graph,
 				}
 			}
 			insertCount++
