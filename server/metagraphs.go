@@ -188,7 +188,7 @@ func (server *GripServer) LoadSchemas(project_id string, sch *gripql.Graph, out 
 			log.Error("schcompiler.Compile err: ", err)
 			return nil, err
 		}
-		out.Classes[v.Gid] = sch
+		out.Classes[v.Label] = sch
 	}
 	out.Compiler = schcompiler
 
