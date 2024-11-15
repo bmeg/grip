@@ -283,9 +283,7 @@ func (server *GripServer) BulkAddRaw(stream gripql.Edit_BulkAddRawServer) error 
 			continue
 		}
 
-		// It might be better to hardcode this --> "http://graph-fhir.io/schema/0.0.2/"
-		schema_id := sch.GetVertices()[0].GetDataMap()["schema_id"].(string)
-		result, err := out.Generate(schema_id+"/"+resourceType, classData, false, class.ProjectId)
+		result, err := out.Generate(resourceType, classData, false, class.ProjectId)
 		if err != nil {
 			log.WithFields(log.Fields{"error": err}).Error("BulkAddRaw: streaming error")
 			errorCount++

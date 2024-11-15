@@ -325,8 +325,6 @@ func ParseJSchema(bytes []byte, graphName string) ([]*gripql.Graph, error) {
 			delete(vals, "$id")
 			vals["id"] = idVal
 		}
-		// Store the type level schema id in each schema vertex so that it can be used later when generating edges
-		vals["schema_id"] = data["$id"]
 
 		vertex := map[string]any{"data": values, "label": key, "gid": data["$id"].(string) + "/" + key}
 		graphSchema["vertices"] = append(graphSchema["vertices"].([]map[string]any), vertex)
