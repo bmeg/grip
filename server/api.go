@@ -285,9 +285,9 @@ func (server *GripServer) BulkAddRaw(stream gripql.Edit_BulkAddRawServer) error 
 
 		result, err := out.Generate(resourceType, classData, false, class.ProjectId)
 		if err != nil {
-			log.WithFields(log.Fields{"error": err}).Error("BulkAddRaw: streaming error")
+			log.WithFields(log.Fields{"error": err}).Errorf("BulkAddRaw: validation error for %s: %s", resourceType, classData)
 			errorCount++
-			break
+			continue
 		}
 
 		for _, element := range result {

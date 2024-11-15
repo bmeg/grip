@@ -144,7 +144,6 @@ func streamAuthInterceptor(auth Authenticate, access Access) grpc.StreamServerIn
 			} else if info.FullMethod == "/gripql.Edit/BulkDelete" {
 				return handler(srv, &BulkWriteFilter{ss, user, access})
 			} else if info.FullMethod == "/gripql.Edit/BulkAddRaw" {
-				// Not sure if need to write custom filter for this, but existing BulkWriteFilter does not work
 				return handler(srv, &BulkWriteRawFilter{ss, user, access})
 			} else {
 				log.Errorf("Unknown input streaming op %#v!!!", info)
