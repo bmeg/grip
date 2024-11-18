@@ -8,7 +8,7 @@ from gripql.query import Query
 
 
 class Graph(BaseConnection):
-    def __init__(self, url, graph, project_id=None, user=None, password=None, token=None, credential_file=None):
+    def __init__(self, url, graph, user=None, password=None, token=None, credential_file=None):
         super(Graph, self).__init__(url, user, password, token, credential_file)
         self.url = self.base_url + "/v1/graph/" + graph
         self.graph = graph
