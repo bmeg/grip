@@ -241,11 +241,13 @@ func (server *GripServer) BulkAddRaw(stream gripql.Edit_BulkAddRawServer) error 
 			sch, err = server.getGraph(class.Graph + "__schema__")
 			if err != nil {
 				log.Errorf("Error loading schemas: %v", err)
+				errorCount++
 				break
 			}
 			out, err = server.LoadSchemas(class.ProjectId, sch, out)
 			if err != nil {
 				log.Errorf("Error loading schemas: %v", err)
+				errorCount++
 				break
 			}
 			populated = true
