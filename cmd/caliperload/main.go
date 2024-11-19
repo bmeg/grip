@@ -48,8 +48,9 @@ var Cmd = &cobra.Command{
 		elemChan := make(chan *gripql.RawJson)
 		wait := make(chan bool)
 		go func() {
-			if err := conn.BulkAddRaw(elemChan); err != nil {
-				log.Errorf("bulk add error: %v", err)
+			_, err := conn.BulkAddRaw(elemChan)
+			if err != nil {
+				log.Errorf("bulk add raw error: %v", err)
 			}
 			wait <- false
 		}()

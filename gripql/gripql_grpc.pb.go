@@ -1048,7 +1048,7 @@ func (c *editClient) BulkAddRaw(ctx context.Context, opts ...grpc.CallOption) (E
 
 type Edit_BulkAddRawClient interface {
 	Send(*RawJson) error
-	CloseAndRecv() (*BulkEditResult, error)
+	CloseAndRecv() (*BulkJsonEditResult, error)
 	grpc.ClientStream
 }
 
@@ -1060,11 +1060,11 @@ func (x *editBulkAddRawClient) Send(m *RawJson) error {
 	return x.ClientStream.SendMsg(m)
 }
 
-func (x *editBulkAddRawClient) CloseAndRecv() (*BulkEditResult, error) {
+func (x *editBulkAddRawClient) CloseAndRecv() (*BulkJsonEditResult, error) {
 	if err := x.ClientStream.CloseSend(); err != nil {
 		return nil, err
 	}
-	m := new(BulkEditResult)
+	m := new(BulkJsonEditResult)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
@@ -1332,7 +1332,7 @@ func _Edit_BulkAddRaw_Handler(srv interface{}, stream grpc.ServerStream) error {
 }
 
 type Edit_BulkAddRawServer interface {
-	SendAndClose(*BulkEditResult) error
+	SendAndClose(*BulkJsonEditResult) error
 	Recv() (*RawJson, error)
 	grpc.ServerStream
 }
@@ -1341,7 +1341,7 @@ type editBulkAddRawServer struct {
 	grpc.ServerStream
 }
 
-func (x *editBulkAddRawServer) SendAndClose(m *BulkEditResult) error {
+func (x *editBulkAddRawServer) SendAndClose(m *BulkJsonEditResult) error {
 	return x.ServerStream.SendMsg(m)
 }
 

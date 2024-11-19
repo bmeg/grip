@@ -252,6 +252,11 @@ message BulkEditResult {
   int32 error_count = 2;
 }
 
+message BulkJsonEditResult{
+    int32 insert_count = 1;
+    repeated string errors = 3;
+}
+
 message GraphElement {
   string graph = 1;
   Vertex vertex = 2;
@@ -453,7 +458,7 @@ service Edit {
     };
   }
 
-  rpc BulkAddRaw (stream RawJson) returns (BulkEditResult) {
+  rpc BulkAddRaw (stream RawJson) returns (BulkJsonEditResult) {
     option (google.api.http) = {
       post: "/v1/rawJson"
     };
