@@ -224,12 +224,12 @@ func (server *GripServer) addEdge(ctx context.Context, elem *gripql.GraphElement
 
 func (server *GripServer) BulkAddRaw(stream gripql.Edit_BulkAddRawServer) error {
 	var insertCount int32
-	var errorCount int32
 	wg := &sync.WaitGroup{}
 	var populated bool
 	var sch *gripql.Graph
 	out := &graph.GraphSchema{Classes: map[string]*jsonschema.Schema{}, Compiler: nil}
 	elementStream := make(chan *gdbi.GraphElement)
+	var retErrs []string
 	for {
 		var err error
 		class, err := stream.Recv()
@@ -241,13 +241,13 @@ func (server *GripServer) BulkAddRaw(stream gripql.Edit_BulkAddRawServer) error 
 			sch, err = server.getGraph(class.Graph + "__schema__")
 			if err != nil {
 				log.Errorf("Error loading schemas: %v", err)
-				errorCount++
+				retErrs = append(retErrs, err.Error())
 				break
 			}
 			out, err = server.LoadSchemas(class.ProjectId, sch, out)
 			if err != nil {
 				log.Errorf("Error loading schemas: %v", err)
-				errorCount++
+				retErrs = append(retErrs, err.Error())
 				break
 			}
 			populated = true
@@ -255,14 +255,14 @@ func (server *GripServer) BulkAddRaw(stream gripql.Edit_BulkAddRawServer) error 
 
 		gdb, err := server.getGraphDB(class.Graph)
 		if err != nil {
-			errorCount++
-			continue
+			retErrs = append(retErrs, err.Error())
+			break
 		}
 
 		graph, err := gdb.Graph(class.Graph)
 		if err != nil {
-			log.WithFields(log.Fields{"error": err}).Error("BulkAdd: error")
-			errorCount++
+			log.WithFields(log.Fields{"error": err}).Error("BulkAddRaw: error")
+			retErrs = append(retErrs, err.Error())
 			continue
 		}
 
@@ -272,8 +272,7 @@ func (server *GripServer) BulkAddRaw(stream gripql.Edit_BulkAddRawServer) error 
 			err := graph.BulkAdd(elementStream)
 			if err != nil {
 				log.WithFields(log.Fields{"graph": class.Graph, "error": err}).Error("BulkAddRaw: error")
-				// not a good representation of the true number of errors
-				errorCount++
+				retErrs = append(retErrs, err.Error())
 			}
 		}()
 
@@ -281,14 +280,14 @@ func (server *GripServer) BulkAddRaw(stream gripql.Edit_BulkAddRawServer) error 
 		resourceType, ok := classData["resourceType"].(string)
 		if !ok {
 			log.WithFields(log.Fields{"error": fmt.Errorf("row %s does not have required field resourceType", classData)}).Error("BulkAddRaw: streaming error")
-			errorCount++
+			retErrs = append(retErrs, err.Error())
 			continue
 		}
 
 		result, err := out.Generate(resourceType, classData, false, class.ProjectId)
 		if err != nil {
 			log.WithFields(log.Fields{"error": err}).Errorf("BulkAddRaw: validation error for %s: %s", resourceType, classData)
-			errorCount++
+			retErrs = append(retErrs, err.Error())
 			continue
 		}
 
@@ -320,7 +319,7 @@ func (server *GripServer) BulkAddRaw(stream gripql.Edit_BulkAddRawServer) error 
 	}
 	close(elementStream)
 	wg.Wait()
-	return stream.SendAndClose(&gripql.BulkEditResult{InsertCount: insertCount, ErrorCount: errorCount})
+	return stream.SendAndClose(&gripql.BulkJsonEditResult{InsertCount: insertCount, Errors: retErrs})
 }
 
 // BulkAdd a stream of inputs and loads them into the graph

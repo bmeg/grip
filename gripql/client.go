@@ -187,19 +187,19 @@ func (client Client) BulkAdd(elemChan chan *GraphElement) error {
 	return err
 }
 
-func (client Client) BulkAddRaw(elemChan chan *RawJson) error {
+func (client Client) BulkAddRaw(elemChan chan *RawJson) (error, *BulkJsonEditResult) {
 	sc, err := client.EditC.BulkAddRaw(context.Background())
 	if err != nil {
-		return err
+		return err, nil
 	}
 	for elem := range elemChan {
 		err := sc.Send(elem)
 		if err != nil {
-			return err
+			return err, nil
 		}
 	}
-	_, err = sc.CloseAndRecv()
-	return err
+	res, err := sc.CloseAndRecv()
+	return err, res
 }
 
 func (client Client) BulkDelete(delete *DeleteData) error {

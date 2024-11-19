@@ -881,7 +881,7 @@ func (shim *EditDirectClient) BulkAdd(ctx context.Context, opts ...grpc.CallOpti
 type directEditBulkAddRaw struct {
   ctx context.Context
   c   chan *RawJson
-  out chan *BulkEditResult
+  out chan *BulkJsonEditResult
 }
 
 func (dsm *directEditBulkAddRaw) Recv() (*RawJson, error) {
@@ -901,13 +901,13 @@ func (dsm *directEditBulkAddRaw) Context() context.Context {
 	return dsm.ctx
 }
 
-func (dsm *directEditBulkAddRaw) SendAndClose(o *BulkEditResult) error {
+func (dsm *directEditBulkAddRaw) SendAndClose(o *BulkJsonEditResult) error {
   dsm.out <- o
   close(dsm.out)
   return nil
 }
 
-func (dsm *directEditBulkAddRaw) CloseAndRecv() (*BulkEditResult, error) {
+func (dsm *directEditBulkAddRaw) CloseAndRecv() (*BulkJsonEditResult, error) {
   //close(dsm.c)
   out := <- dsm.out
   return out, nil
@@ -917,7 +917,7 @@ func (dsm *directEditBulkAddRaw) CloseSend() error             { close(dsm.c); r
 func (dsm *directEditBulkAddRaw) SetTrailer(metadata.MD)       {}
 func (dsm *directEditBulkAddRaw) SetHeader(metadata.MD) error  { return nil }
 func (dsm *directEditBulkAddRaw) SendHeader(metadata.MD) error { return nil }
-func (dsm *directEditBulkAddRaw) SendMsg(m interface{}) error  { dsm.out <- m.(*BulkEditResult); return nil }
+func (dsm *directEditBulkAddRaw) SendMsg(m interface{}) error  { dsm.out <- m.(*BulkJsonEditResult); return nil }
 
 func (dsm *directEditBulkAddRaw) RecvMsg(m interface{}) error  { 
 	t, err := dsm.Recv()
@@ -936,7 +936,7 @@ func (dsm *directEditBulkAddRaw) Trailer() metadata.MD         { return nil }
 func (shim *EditDirectClient) BulkAddRaw(ctx context.Context, opts ...grpc.CallOption) (Edit_BulkAddRawClient, error) {
   md, _ := metadata.FromOutgoingContext(ctx)
   ictx := metadata.NewIncomingContext(ctx, md)
-  w := &directEditBulkAddRaw{ictx, make(chan *RawJson, 100), make(chan *BulkEditResult, 3)}
+  w := &directEditBulkAddRaw{ictx, make(chan *RawJson, 100), make(chan *BulkJsonEditResult, 3)}
   if shim.streamServerInt != nil {
     info := grpc.StreamServerInfo{
       FullMethod: "/gripql.Edit/BulkAddRaw",
