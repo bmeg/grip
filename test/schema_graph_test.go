@@ -14,7 +14,7 @@ import (
 )
 
 func TestSchema(t *testing.T) {
-	if dbname == "psql" || dbname == "existing-sql" || dbname == "elastic" {
+	if dbname == "psql" || dbname == "existing-sql" {
 		t.Skip("skipping schema test")
 	}
 

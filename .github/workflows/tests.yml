@@ -130,30 +130,6 @@ jobs:
           sleep 5
           make test-conformance
 
-
-  elasticTest:
-    needs: build
-    name: Elastic Test
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check out code
-        uses: actions/checkout@v4
-      - name: Python Dependencies for Conformance
-        run: pip install requests numpy
-      - name: Download grip
-        uses: actions/download-artifact@v4
-        with:
-          name: gripBin
-      - name: Elastic Conformance
-        run: |
-          chmod +x grip
-          make start-elastic
-          sleep 15
-          ./grip server --rpc-port 18202 --http-port 18201 --config ./test/elastic.yml &
-          sleep 5
-          make test-conformance
-
-
   postgresTest:
     needs: build
     name: Postgres Test

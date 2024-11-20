@@ -8,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bmeg/grip/elastic"
 	esql "github.com/bmeg/grip/existing-sql"
 	"github.com/bmeg/grip/gripper"
 	"github.com/bmeg/grip/log"
@@ -27,17 +26,16 @@ func init() {
 }
 
 type DriverConfig struct {
-	Grids         *string
-	Badger        *string
-	Bolt          *string
-	Level         *string
-	Pebble        *string
-	Elasticsearch *elastic.Config
-	MongoDB       *mongo.Config
-	PSQL          *psql.Config
-	ExistingSQL   *esql.Config
-	Sqlite        *sqlite.Config
-	Gripper       *gripper.Config
+	Grids       *string
+	Badger      *string
+	Bolt        *string
+	Level       *string
+	Pebble      *string
+	MongoDB     *mongo.Config
+	PSQL        *psql.Config
+	ExistingSQL *esql.Config
+	Sqlite      *sqlite.Config
+	Gripper     *gripper.Config
 }
 
 // Config describes the configuration for Grip.
@@ -134,10 +132,6 @@ func TestifyConfig(c *Config) {
 	if d.MongoDB != nil {
 		d.MongoDB.DBName = "gripdb-" + rand
 	}
-	if d.Elasticsearch != nil {
-		d.Elasticsearch.DBName = "gripdb-" + rand
-		d.Elasticsearch.Synchronous = true
-	}
 	if d.Sqlite != nil {
 		d.Sqlite.DBName = "gripdb-" + rand
 	}
@@ -148,9 +142,6 @@ func (c *Config) SetDefaults() {
 	for _, d := range c.Drivers {
 		if d.MongoDB != nil {
 			d.MongoDB.SetDefaults()
-		}
-		if d.Elasticsearch != nil {
-			d.Elasticsearch.SetDefaults()
 		}
 	}
 }
