@@ -254,7 +254,7 @@ message BulkEditResult {
 
 message BulkJsonEditResult{
     int32 insert_count = 1;
-    repeated string errors = 3;
+    repeated string errors = 2;
 }
 
 message GraphElement {
