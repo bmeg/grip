@@ -1,4 +1,4 @@
-package caliperload
+package jsonload
 
 import (
 	"github.com/bmeg/grip/gripql"
@@ -16,8 +16,8 @@ var project_id string
 var logRate = 10000
 
 var Cmd = &cobra.Command{
-	Use:   "caliperload <NdJsonFile> <graph> <project_id>",
-	Short: "Load, Validate NdJson data into Caliper graph",
+	Use:   "jsonload <NdJsonFile> <graph> <project_id>",
+	Short: "Load, Validate NdJson data into grip graph",
 	Long:  ``,
 	Args:  cobra.ExactArgs(3),
 	RunE: func(cmd *cobra.Command, args []string) error {

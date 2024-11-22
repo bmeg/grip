@@ -280,7 +280,7 @@ func (server *GripServer) BulkAddRaw(stream gripql.Edit_BulkAddRawServer) error 
 		resourceType, ok := classData["resourceType"].(string)
 		if !ok {
 			log.WithFields(log.Fields{"error": fmt.Errorf("row %s does not have required field resourceType", classData)}).Error("BulkAddRaw: streaming error")
-			retErrs = append(retErrs, err.Error())
+			retErrs = append(retErrs, fmt.Sprintf("row %s does not have required field resourceType", classData))
 			continue
 		}
 
