@@ -3,3 +3,7 @@ Default: rocks
 Drivers:
   rocks:
     Rocks: grip-rocks.db
+
+Server:
+  JobsDriver:
+    File: jobs

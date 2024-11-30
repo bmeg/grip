@@ -5,3 +5,7 @@ Drivers:
     Elasticsearch:
       URL: http://localhost:19200
       Synchronous: true
+
+Server:
+  JobsDriver:
+    File: jobs

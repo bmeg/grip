@@ -3,3 +3,7 @@ Default: badger
 Drivers:
   badger:
     Badger: grip-badger.db
+
+Server:
+  JobsDriver:
+    File: jobs

@@ -1,0 +1,12 @@
+Default: pebble
+
+Drivers:
+  pebble:
+    Pebble: grip-pebble.db
+
+Server:
+  JobsDriver:
+    OpenSearch:
+      Username: admin
+      Password: Test-Demo-42
+      Address: "https://localhost:9200"
