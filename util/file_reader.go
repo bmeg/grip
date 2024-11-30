@@ -114,7 +114,7 @@ func StreamLines(file string, chanSize int) (chan string, error) {
 	return lineChan, nil
 }
 
-func StreamRawJsonFromFile(file string, workers int, graph string, project_id string) (chan *gripql.RawJson, error) {
+func StreamRawJsonFromFile(file string, workers int, graph string, extra_args map[string]any) (chan *gripql.RawJson, error) {
 	if workers < 1 {
 		workers = 1
 	}
@@ -136,11 +136,16 @@ func StreamRawJsonFromFile(file string, workers int, graph string, project_id st
 			for line := range lineChan {
 				rawData := &gripql.RawJson{
 					Data:      &structpb.Struct{},
+					ExtraArgs: &structpb.Struct{},
 					Graph:     graph,
-					ProjectId: project_id,
 				}
-				err := jum.Unmarshal([]byte(line), rawData.Data)
 
+				rawData.ExtraArgs, err = structpb.NewStruct(extra_args)
+				if err != nil {
+					log.WithFields(log.Fields{"error": err}).Errorf("Marshalling ExtraArgs: %#v", extra_args)
+					continue
+				}
+				err = jum.Unmarshal([]byte(line), rawData.Data)
 				if err != nil {
 					log.WithFields(log.Fields{"error": err}).Errorf("Unmarshaling vertex: %s", line)
 					continue

@@ -321,17 +321,18 @@ class BulkAdd(BaseConnection):
 
 
 class BulkAddRaw(BaseConnection):
-    def __init__(self, url, graph, project_id=None, user=None, password=None, token=None, credential_file=None):
+    def __init__(self, url, graph, extraArgs=None, user=None, password=None, token=None, credential_file=None):
         super(BulkAddRaw, self).__init__(url, user, password, token, credential_file)
         self.url = self.base_url + "/v1/rawJson"
         self.graph = graph
-        self.project_id = "test-data"
+        self.extraArgs = {"auth_resource_path": "test-data"}
         self.elements = []
+
 
     def addJson(self, data={}):
         payload = {
             "graph": self.graph,
-            "project_id": self.project_id,
+            "extra_args": self.extraArgs,
             "data": data
         }
         self.elements.append(json.dumps(payload))
