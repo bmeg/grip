@@ -244,7 +244,8 @@ func (server *GripServer) BulkAddRaw(stream gripql.Edit_BulkAddRawServer) error 
 				retErrs = append(retErrs, err.Error())
 				break
 			}
-			out, err = server.LoadSchemas(class.ProjectId, sch, out)
+
+			out, err = server.LoadSchemas(sch, out)
 			if err != nil {
 				log.Errorf("Error loading schemas: %v", err)
 				retErrs = append(retErrs, err.Error())
@@ -284,7 +285,8 @@ func (server *GripServer) BulkAddRaw(stream gripql.Edit_BulkAddRawServer) error 
 			continue
 		}
 
-		result, err := out.Generate(resourceType, classData, false, class.ProjectId)
+		args := class.ExtraArgs.AsMap()
+		result, err := out.Generate(resourceType, classData, false, args)
 		if err != nil {
 			log.WithFields(log.Fields{"error": err}).Errorf("BulkAddRaw: validation error for %s: %s", resourceType, classData)
 			retErrs = append(retErrs, err.Error())

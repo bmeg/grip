@@ -1,6 +1,8 @@
 package jsonload
 
 import (
+	"encoding/json"
+
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/util"
@@ -10,20 +12,29 @@ import (
 
 var host = "localhost:8202"
 var NdJsonFile string
-var workerCount = 1
+var workerCount = 5
 var graph string
-var project_id string
+var ExtraArgs string
 var logRate = 10000
 
 var Cmd = &cobra.Command{
-	Use:   "jsonload <NdJsonFile> <graph> <project_id>",
+	Use:   "jsonload <NdJsonFile> <graph> <ExtraArgs>",
 	Short: "Load, Validate NdJson data into grip graph",
 	Long:  ``,
 	Args:  cobra.ExactArgs(3),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		NdJsonFile = args[0]
 		graph = args[1]
-		project_id = args[2]
+		ExtraArgs = args[2]
+
+		var args_map map[string]any
+		if ExtraArgs != "" {
+			err := json.Unmarshal([]byte(ExtraArgs), &args_map)
+			if err != nil {
+				return err
+			}
+		}
+
 		conn, err := gripql.Connect(rpc.ConfigWithDefaults(host), true)
 		if err != nil {
 			return err
@@ -55,7 +66,7 @@ var Cmd = &cobra.Command{
 			wait <- false
 		}()
 
-		jsonChan, err := util.StreamRawJsonFromFile(NdJsonFile, workerCount, graph, project_id)
+		jsonChan, err := util.StreamRawJsonFromFile(NdJsonFile, workerCount, graph, args_map)
 		if err != nil {
 			return err
 		}

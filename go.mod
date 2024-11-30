@@ -10,7 +10,7 @@ require (
 	github.com/antlr/antlr4/runtime/Go/antlr v1.4.10
 	github.com/bmeg/jsonpath v0.0.0-20210207014051-cca5355553ad
 	github.com/bmeg/jsonschema/v5 v5.3.4-0.20241111204732-55db82022a92
-	github.com/bmeg/jsonschemagraph v0.0.3-0.20241113190142-5e57a1561020
+	github.com/bmeg/jsonschemagraph v0.0.3-0.20241130225037-5545ec0ffd4b
 	github.com/boltdb/bolt v1.3.1
 	github.com/casbin/casbin/v2 v2.97.0
 	github.com/cockroachdb/pebble v1.1.1
@@ -58,6 +58,7 @@ require (
 	github.com/DataDog/zstd v1.5.5 // indirect
 	github.com/alevinval/sse v1.0.2 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
+	github.com/bmeg/golib v0.0.0-20200725232156-e799a31439fc // indirect
 	github.com/casbin/govaluate v1.2.0 // indirect
 	github.com/cespare/xxhash v1.1.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect

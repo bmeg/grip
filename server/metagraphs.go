@@ -166,7 +166,7 @@ func (server *GripServer) addFullGraph(ctx context.Context, graphName string, sc
 	return nil
 }
 
-func (server *GripServer) LoadSchemas(project_id string, sch *gripql.Graph, out *graph.GraphSchema) (*graph.GraphSchema, error) {
+func (server *GripServer) LoadSchemas(sch *gripql.Graph, out *graph.GraphSchema) (*graph.GraphSchema, error) {
 	schcompiler := jsonschema.NewCompiler()
 	schcompiler.ExtractAnnotations = true
 	schcompiler.RegisterExtension(compile.GraphExtensionTag, compile.GraphExtMeta, compile.GraphExtCompiler{})
