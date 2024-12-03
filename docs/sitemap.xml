@@ -2,80 +2,80 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
-    <loc>http://localhost:1313/grip/docs/tutorials/pathway-commons/</loc>
+    <loc>https://bmeg.github.io/grip/docs/tutorials/pathway-commons/</loc>
   </url><url>
-    <loc>http://localhost:1313/grip/docs/tutorials/amazon/</loc>
+    <loc>https://bmeg.github.io/grip/docs/tutorials/amazon/</loc>
   </url><url>
-    <loc>http://localhost:1313/grip/docs/security/basic/</loc>
+    <loc>https://bmeg.github.io/grip/docs/security/basic/</loc>
   </url><url>
-    <loc>http://localhost:1313/grip/categories/</loc>
+    <loc>https://bmeg.github.io/grip/categories/</loc>
   </url><url>
-    <loc>http://localhost:1313/grip/docs/databases/</loc>
+    <loc>https://bmeg.github.io/grip/docs/databases/</loc>
   </url><url>
-    <loc>http://localhost:1313/grip/docs/developers/</loc>
+    <loc>https://bmeg.github.io/grip/docs/developers/</loc>
   </url><url>
-    <loc>http://localhost:1313/grip/download/</loc>
+    <loc>https://bmeg.github.io/grip/download/</loc>
   </url><url>
-    <loc>http://localhost:1313/grip/docs/commands/drop/</loc>
+    <loc>https://bmeg.github.io/grip/docs/commands/drop/</loc>
   </url><url>
-    <loc>http://localhost:1313/grip/docs/databases/kvstore/</loc>
+    <loc>https://bmeg.github.io/grip/docs/databases/kvstore/</loc>
   </url><url>
-    <loc>http://localhost:1313/grip/docs/commands/er/</loc>
+    <loc>https://bmeg.github.io/grip/docs/commands/er/</loc>
   </url><url>
-    <loc>http://localhost:1313/grip/docs/gripper/proxy/</loc>
+    <loc>https://bmeg.github.io/grip/docs/gripper/proxy/</loc>
   </url><url>
-    <loc>http://localhost:1313/grip/docs/queries/getting_started/</loc>
+    <loc>https://bmeg.github.io/grip/docs/queries/getting_started/</loc>
   </url><url>
-    <loc>http://localhost:1313/grip/docs/gripper/graphmodel/</loc>
+    <loc>https://bmeg.github.io/grip/docs/gripper/graphmodel/</loc>
   </url><url>
-    <loc>http://localhost:1313/grip/docs/graphql/graph_schemas/</loc>
+    <loc>https://bmeg.github.io/grip/docs/graphql/graph_schemas/</loc>
   </url><url>
-    <loc>http://localhost:1313/grip/docs/graphql/</loc>
+    <loc>https://bmeg.github.io/grip/docs/graphql/</loc>
   </url><url>
-    <loc>http://localhost:1313/grip/docs/graphql/graphql/</loc>
+    <loc>https://bmeg.github.io/grip/docs/graphql/graphql/</loc>
   </url><url>
-    <loc>http://localhost:1313/grip/</loc>
+    <loc>https://bmeg.github.io/grip/</loc>
   </url><url>
-    <loc>http://localhost:1313/grip/docs/commands/</loc>
+    <loc>https://bmeg.github.io/grip/docs/commands/</loc>
   </url><url>
-    <loc>http://localhost:1313/grip/docs/gripper/</loc>
+    <loc>https://bmeg.github.io/grip/docs/gripper/</loc>
   </url><url>
-    <loc>http://localhost:1313/grip/docs/databases/gripper/</loc>
+    <loc>https://bmeg.github.io/grip/docs/databases/gripper/</loc>
   </url><url>
-    <loc>http://localhost:1313/grip/docs/gripper/gripper/</loc>
+    <loc>https://bmeg.github.io/grip/docs/gripper/gripper/</loc>
   </url><url>
-    <loc>http://localhost:1313/grip/docs/queries/iterations/</loc>
+    <loc>https://bmeg.github.io/grip/docs/queries/iterations/</loc>
   </url><url>
-    <loc>http://localhost:1313/grip/docs/queries/jobs_api/</loc>
+    <loc>https://bmeg.github.io/grip/docs/queries/jobs_api/</loc>
   </url><url>
-    <loc>http://localhost:1313/grip/docs/commands/list/</loc>
+    <loc>https://bmeg.github.io/grip/docs/commands/list/</loc>
   </url><url>
-    <loc>http://localhost:1313/grip/docs/databases/mongo/</loc>
+    <loc>https://bmeg.github.io/grip/docs/databases/mongo/</loc>
   </url><url>
-    <loc>http://localhost:1313/grip/docs/commands/mongoload/</loc>
+    <loc>https://bmeg.github.io/grip/docs/commands/mongoload/</loc>
   </url><url>
-    <loc>http://localhost:1313/grip/docs/queries/operations/</loc>
+    <loc>https://bmeg.github.io/grip/docs/queries/operations/</loc>
   </url><url>
-    <loc>http://localhost:1313/grip/docs/</loc>
+    <loc>https://bmeg.github.io/grip/docs/</loc>
   </url><url>
-    <loc>http://localhost:1313/grip/docs/databases/psql/</loc>
+    <loc>https://bmeg.github.io/grip/docs/databases/psql/</loc>
   </url><url>
-    <loc>http://localhost:1313/grip/docs/commands/query/</loc>
+    <loc>https://bmeg.github.io/grip/docs/commands/query/</loc>
   </url><url>
-    <loc>http://localhost:1313/grip/docs/queries/</loc>
+    <loc>https://bmeg.github.io/grip/docs/queries/</loc>
   </url><url>
-    <loc>http://localhost:1313/grip/docs/queries/jsonpath/</loc>
+    <loc>https://bmeg.github.io/grip/docs/queries/jsonpath/</loc>
   </url><url>
-    <loc>http://localhost:1313/grip/docs/security/</loc>
+    <loc>https://bmeg.github.io/grip/docs/security/</loc>
   </url><url>
-    <loc>http://localhost:1313/grip/docs/commands/server/</loc>
+    <loc>https://bmeg.github.io/grip/docs/commands/server/</loc>
   </url><url>
-    <loc>http://localhost:1313/grip/docs/databases/sql/</loc>
+    <loc>https://bmeg.github.io/grip/docs/databases/sql/</loc>
   </url><url>
-    <loc>http://localhost:1313/grip/tags/</loc>
+    <loc>https://bmeg.github.io/grip/tags/</loc>
   </url><url>
-    <loc>http://localhost:1313/grip/docs/tutorials/tcga-rna/</loc>
+    <loc>https://bmeg.github.io/grip/docs/tutorials/tcga-rna/</loc>
   </url><url>
-    <loc>http://localhost:1313/grip/docs/tutorials/</loc>
+    <loc>https://bmeg.github.io/grip/docs/tutorials/</loc>
   </url>
 </urlset>
