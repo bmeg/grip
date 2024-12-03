@@ -7,7 +7,6 @@ import (
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/schema"
-	graphSchema "github.com/bmeg/grip/schema"
 	"github.com/bmeg/grip/util"
 	"github.com/bmeg/grip/util/rpc"
 	"github.com/spf13/cobra"
@@ -155,7 +154,7 @@ var Cmd = &cobra.Command{
 
 		if jsonFile != "" {
 			log.Infof("Loading json file: %s", jsonFile)
-			graphs, err := graphSchema.ParseJSONGraphsFile(jsonFile)
+			graphs, err := schema.ParseJSONGraphsFile(jsonFile)
 			if err != nil {
 				return err
 			}
