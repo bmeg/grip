@@ -8,8 +8,8 @@ import (
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/schema"
-	graphSchema "github.com/bmeg/grip/schema"
 	"github.com/bmeg/grip/util/rpc"
+	"github.com/bmeg/jsonschemagraph/schconv"
 	"github.com/spf13/cobra"
 )
 
@@ -18,6 +18,7 @@ var yaml = false
 var jsonFile string
 var yamlFile string
 var graphName string
+var writeSchema bool = false
 var jsonSchemaFile string
 var yamlSchemaDir string
 var sampleCount uint32 = 50
@@ -44,16 +45,16 @@ var getCmd = &cobra.Command{
 			return err
 		}
 
-		schema, err := conn.GetSchema(graph)
+		gripqlschema, err := conn.GetSchema(graph)
 		if err != nil {
 			return err
 		}
 
 		var txt string
 		if yaml {
-			txt, err = graphSchema.GraphToYAMLString(schema)
+			txt, err = schema.GraphToYAMLString(gripqlschema)
 		} else {
-			txt, err = graphSchema.GraphToJSONString(schema)
+			txt, err = schema.GraphToJSONString(gripqlschema)
 		}
 		if err != nil {
 			return err
@@ -80,7 +81,7 @@ var loadGqlSchemafromJsonSchema = &cobra.Command{
 
 		if jsonSchemaFile != "" && graphName != "" {
 			log.Infof("Loading Json Schema file: %s", jsonSchemaFile)
-			graphs, err := schema.ParseJSONSchemaGraphsFile(jsonSchemaFile, graphName)
+			graphs, err := schconv.ParseGraphFile(jsonSchemaFile, "jsonSchema", graphName)
 			if err != nil {
 				return err
 			}
@@ -94,19 +95,21 @@ var loadGqlSchemafromJsonSchema = &cobra.Command{
 		}
 		if yamlSchemaDir != "" && graphName != "" {
 			log.Infof("Loading Yaml Schema dir: %s", yamlSchemaDir)
-			graphs, err := schema.ParseYAMLSchemaGraphsFiles(yamlSchemaDir, graphName)
+			graphs, err := schconv.ParseGraphFile(yamlSchemaDir, "yamlSchema", graphName)
 			if err != nil {
 				log.Info("HELLO ERROR HERE: ", err)
 				return err
 			}
 			for _, g := range graphs {
-				err := conn.AddSchema(g)
+
+				_ = schema.GripGraphqltoGraphql(g, writeSchema)
+				//fmt.Println(graphql_string)
+				err = conn.AddSchema(g)
 				if err != nil {
 					return err
 				}
 				log.Debug("Posted schema: %s", g.Graph)
 			}
-
 		}
 		return nil
 	},
@@ -135,9 +138,9 @@ var postCmd = &cobra.Command{
 				if err != nil {
 					return err
 				}
-				graphs, err = graphSchema.ParseJSONGraphs(bytes)
+				graphs, err = schema.ParseJSONGraphs(bytes)
 			} else {
-				graphs, err = graphSchema.ParseJSONGraphsFile(jsonFile)
+				graphs, err = schema.ParseJSONGraphsFile(jsonFile)
 			}
 			if err != nil {
 				return err
@@ -159,9 +162,9 @@ var postCmd = &cobra.Command{
 				if err != nil {
 					return err
 				}
-				graphs, err = graphSchema.ParseYAMLGraphs(bytes)
+				graphs, err = schema.ParseYAMLGraphs(bytes)
 			} else {
-				graphs, err = graphSchema.ParseYAMLGraphsFile(yamlFile)
+				graphs, err = schema.ParseYAMLGraphsFile(yamlFile)
 			}
 			if err != nil {
 				return err
@@ -204,6 +207,7 @@ func init() {
 	pflags.StringVar(&graphName, "graphName", "", "Name of schemaGraph")
 
 	gqlflags := loadGqlSchemafromJsonSchema.Flags()
+	gqlflags.BoolVar(&writeSchema, "writeSchema", writeSchema, "Write graphql schema to disk")
 	gqlflags.StringVar(&host, "host", host, "grip server url")
 	gqlflags.StringVar(&jsonSchemaFile, "jsonSchema", "", "Json Schema")
 	gqlflags.StringVar(&yamlSchemaDir, "yamlSchemaDir", "", "Name of YAML schemas dir")
