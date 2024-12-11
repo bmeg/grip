@@ -55,6 +55,8 @@ github.com/bmeg/jsonschemagraph v0.0.3-0.20241210221941-3e919ec517cc h1:L2KBzHO3
 github.com/bmeg/jsonschemagraph v0.0.3-0.20241210221941-3e919ec517cc/go.mod h1:uVS5AJySmP/VVuZF5Ux/tVyPWNi9IWP5ZRf3il70F7k=
 github.com/bmeg/jsonschemagraph v0.0.3-0.20241211000114-7493b10aa2fe h1:emW8sMq9MWg5aisapvXtA12MBthjnGdJ6nGnm12eoDo=
 github.com/bmeg/jsonschemagraph v0.0.3-0.20241211000114-7493b10aa2fe/go.mod h1:uVS5AJySmP/VVuZF5Ux/tVyPWNi9IWP5ZRf3il70F7k=
+github.com/bmeg/jsonschemagraph v0.0.3-0.20241211234837-ff91c296d0a8 h1:tBnMKyTnGckEt9uM8NUaiaSi6eFRhdJncWsgfez2kQg=
+github.com/bmeg/jsonschemagraph v0.0.3-0.20241211234837-ff91c296d0a8/go.mod h1:wRzh5mRmHUv0zaqHCjFzHk+JivZRoxhuIAJyEjzq5hw=
 github.com/boltdb/bolt v1.3.1 h1:JQmyP4ZBrce+ZQu0dY660FMfatumYDLun9hBCUVIkF4=
 github.com/boltdb/bolt v1.3.1/go.mod h1:clJnj/oiGkjum5o1McbSZDSLxVThjynRyGBgiAx27Ps=
 github.com/bufbuild/protocompile v0.4.0 h1:LbFKd2XowZvQ/kajzguUp2DC9UEIQhIq77fZZlaQsNA=
