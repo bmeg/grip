@@ -11,7 +11,6 @@ def test_count(man):
     count = 0
 
     for row in q:
-        print("ROW: ", row)
         if row['key'] not in ['rainforests', 'desert', 'mountains', 'jungle', 'rainforests', 'grasslands']:
             errors.append("Incorrect value %s returned" % row['key'])
         if row['value'] != 1:
@@ -42,9 +41,8 @@ def test_unwind(man):
     q = G.query().V().hasLabel("Observation").unwind("component").has(gripql.gt("component.valueQuantity.value", 1))
     count = 0
     for r in q:
-        print("ROW: ", r)
         count +=1
-    if count != 3:
+    if count != 2:
         errors.append("There should be 2 vertices after unwind process and filter")
 
     return errors
