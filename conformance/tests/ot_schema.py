@@ -1,5 +1,5 @@
 
-import requests
+import json
 from pylint import graph
 
 def test_getscheama(man):
@@ -34,16 +34,19 @@ def test_getscheama(man):
 def test_post_json_schema(man):
     errors = []
     G = man.setGraph("swapi")
-    # Probably don't want to add a 2MB schema file to the repo so get it via requests instead
-    res = requests.get("https://raw.githubusercontent.com/bmeg/iceberg/f1724941fe47df24846135fb515d1b89e791cee3/schemas/graph/graph-fhir.json")
-    res.raise_for_status()
-    s = G.addJsonSchema(res.json())
+    G.addJsonSchema(load_json_schema("conformance/graphs/prompt-schema.json"))
     fetched_schema = G.getSchema()
     len_vertices = len(fetched_schema['vertices'])
-    if len_vertices != 137:
-        errors.append(f"incorrect number of vertices in schema {len_vertices} != 137")
+    if len_vertices != 2:
+        errors.append(f"incorrect number of vertices in schema {len_vertices} != 2")
     len_edges = len(fetched_schema['edges'])
     if len_edges != 0:
         errors.append(f"incorrect number of edges in schema {len_vertices} != 0")
 
     return errors
+
+
+def load_json_schema(path):
+    with open(path, 'r') as file:
+        content = file.read()
+        return json.loads(content)
