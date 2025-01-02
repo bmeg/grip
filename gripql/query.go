@@ -199,6 +199,15 @@ func (q *Query) Aggregate(agg []*Aggregate) *Query {
 	return q.with(&GraphStatement{Statement: &GraphStatement_Aggregate{Aggregate: &Aggregations{Aggregations: agg}}})
 }
 
+func (q *Query) Pivot(id string, field string, value string) *Query {
+	return q.with(&GraphStatement{Statement: &GraphStatement_Pivot{Pivot: &PivotStep{Id: id, Field: field, Value: value}}})
+}
+
+// Deconstruct a vertex with an array of n fields as n vertices with no array, and a dict object instead
+func (q *Query) Unwind(path string) *Query {
+	return q.with(&GraphStatement{Statement: &GraphStatement_Unwind{Unwind: path}})
+}
+
 func (q *Query) String() string {
 	parts := []string{}
 	add := func(name string, x ...string) {
