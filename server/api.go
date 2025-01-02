@@ -279,6 +279,8 @@ func (server *GripServer) BulkAddRaw(stream gripql.Edit_BulkAddRawServer) error 
 		}()
 
 		classData := class.Data.AsMap()
+
+		// to generate grip data, need to know what type the data is.
 		resourceType, ok := classData["resourceType"].(string)
 		if !ok {
 			log.WithFields(log.Fields{"error": fmt.Errorf("row %s does not have required field resourceType", classData)}).Error("BulkAddRaw: streaming error")
