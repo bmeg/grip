@@ -1,6 +1,5 @@
 
 import json
-from pylint import graph
 
 def test_getscheama(man):
     errors = []
