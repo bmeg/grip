@@ -22,11 +22,11 @@ def test_bulk_add_raw(man):
     if len(err["errors"]) != 0:
         errors.append(f"Wrong number of errors {len(err['errors'])} != 0")
 
-    edge = G.getVertex("838e42fb-a65d-4039-9f83-59c37b1ae889")
-    if "auth_resource_path" not in edge["data"] or edge["data"]["auth_resource_path"] != "test-data":
+    vertex = G.getVertex("838e42fb-a65d-4039-9f83-59c37b1ae889")
+    if "auth_resource_path" not in vertex["data"] or vertex["data"]["auth_resource_path"] != "test-data":
         errors.append("ExtraArg auth_resource_path of value test-data not added to vertex")
 
-    if "gid" not in edge or edge["gid"] != "838e42fb-a65d-4039-9f83-59c37b1ae889":
+    if "gid" not in vertex or vertex["gid"] != "838e42fb-a65d-4039-9f83-59c37b1ae889":
         errors.append("bulkraw inserted edge with id 838e42fb-a65d-4039-9f83-59c37b1ae889 not found")
 
     labels = G.listLabels()
@@ -56,7 +56,6 @@ def test_bulk_add_raw_validation_error(man):
         errors.append(f"validation error causes -1 insertCount +1 error: {err['insertCount']} != 3 or {len(err['errors'])} != 1")
 
     return errors
-
 
 
 def test_bulk_add_raw_no_schema(man):

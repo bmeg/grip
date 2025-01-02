@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/bmeg/grip/log"
 
@@ -143,6 +144,84 @@ func parseGraphFile(relpath string, format string, graphName string) ([]*gripql.
 		graphs, err = ParseYAMLGraphs(source)
 	case "json":
 		graphs, err = ParseJSONGraphs(source)
+	case "ySchema":
+		// determine if file or directory
+		info, err := os.Stat(path)
+		if err != nil {
+			if os.IsNotExist(err) {
+				return nil, fmt.Errorf("path does not exist: %s", path)
+			}
+			return nil, fmt.Errorf("error accessing path: %v", err)
+		}
+		graphSchema := map[string]any{
+			"vertices": []map[string]any{},
+			"edges":    []map[string]any{}, // Optional: if there are no edges from YAML files
+			"graph":    graphName,
+		}
+		if info.IsDir() {
+			files, err := ioutil.ReadDir(path)
+			if err != nil {
+				return nil, fmt.Errorf("failed to read directory: %v", err)
+			}
+
+			for _, file := range files {
+				if file.IsDir() || filepath.Ext(file.Name()) != ".yaml" && filepath.Ext(file.Name()) != ".yml" {
+					continue
+				}
+				filePath := filepath.Join(path, file.Name())
+				content, err := ioutil.ReadFile(filePath)
+				if err != nil {
+					return nil, fmt.Errorf("failed to read file %s: %v", file.Name(), err)
+				}
+				vertex, err := ParseYSchemaToVertex(content)
+				if err != nil {
+					return nil, fmt.Errorf("failed to parse file %s: %v", file.Name(), err)
+				}
+				graphSchema["vertices"] = append(graphSchema["vertices"].([]map[string]any), vertex)
+			}
+
+			if len(graphSchema["vertices"].([]map[string]any)) == 0 {
+				return nil, fmt.Errorf("no valid YAML files found in directory: %s", path)
+			}
+
+			expandedGraph, err := json.Marshal(graphSchema)
+			if err != nil {
+				return nil, fmt.Errorf("failed to marshal expanded graph: %v", err)
+			}
+
+			graph := gripql.Graph{}
+			if err := json.Unmarshal(expandedGraph, &graph); err != nil {
+				return nil, fmt.Errorf("failed to unmarshal expanded graph: %v", err)
+			}
+
+			return []*gripql.Graph{&graph}, nil
+		} else {
+			content, err := ioutil.ReadFile(path)
+			if err != nil {
+				return nil, fmt.Errorf("failed to read file %s: %v", path, err)
+			}
+			vertex, err := ParseYSchemaToVertex(content)
+			if err != nil {
+				return nil, fmt.Errorf("failed to parse file %s: %v", path, err)
+			}
+			graphSchema["vertices"] = append(graphSchema["vertices"].([]map[string]any), vertex)
+			if len(graphSchema["vertices"].([]map[string]any)) == 0 {
+				return nil, fmt.Errorf("%s is not a parsable YAML schema", path)
+			}
+
+			expandedGraph, err := json.Marshal(graphSchema)
+			if err != nil {
+				return nil, fmt.Errorf("failed to marshal expanded graph: %v", err)
+			}
+
+			graph := gripql.Graph{}
+			if err := json.Unmarshal(expandedGraph, &graph); err != nil {
+				return nil, fmt.Errorf("failed to unmarshal expanded graph: %v", err)
+			}
+
+			return []*gripql.Graph{&graph}, nil
+		}
+
 	case "jSchema":
 		file, err := os.Open(path)
 		if err != nil {
@@ -163,6 +242,52 @@ func parseGraphFile(relpath string, format string, graphName string) ([]*gripql.
 		return nil, fmt.Errorf("failed to parse graph at path %s: \n%v", path, err)
 	}
 	return graphs, nil
+}
+
+func traverseAndModify(data map[string]any, targetKey string) {
+	/* Since existing jsonschema lib doesn't like no url paths, convert refs to url basepath + resourceName*/
+	for key, value := range data {
+		if key == targetKey {
+			if strValue, ok := value.(string); ok {
+				strValue = strings.TrimSuffix(strValue, ".yaml")
+				if !(strings.HasPrefix(strValue, "http://") || strings.HasPrefix(strValue, "https://")) {
+					data[key] = "http://grip-schema.io/schema/0.0.1/" + strValue
+				}
+			}
+		}
+		switch v := value.(type) {
+		case map[string]any:
+			traverseAndModify(v, targetKey)
+		case []any:
+			for _, item := range v {
+				if nestedMap, ok := item.(map[string]any); ok {
+					traverseAndModify(nestedMap, targetKey)
+				}
+			}
+		}
+	}
+}
+
+func ParseYSchemaToVertex(bytes []byte) (map[string]any, error) {
+	var data map[string]any
+	if err := yaml.Unmarshal(bytes, &data); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal YAML: %v", err)
+	}
+	id, ok := data["$id"]
+	if !ok {
+		return nil, fmt.Errorf("missing $id field in YAML document")
+	}
+	data["id"] = "http://grip-schema.io/schema/0.0.1/" + id.(string)
+	delete(data, "$id")
+
+	traverseAndModify(data, "$ref")
+	vertex := map[string]any{
+		"data":  data,
+		"label": id.(string),
+		"gid":   "http://grip-schema.io/schema/0.0.1/" + id.(string),
+	}
+
+	return vertex, nil
 }
 
 func ParseJSchema(bytes []byte, graphName string) ([]*gripql.Graph, error) {
@@ -213,8 +338,8 @@ func ParseJsonSchema(relpath string, graphName string) ([]*gripql.Graph, error) 
 	return parseGraphFile(relpath, "jSchema", graphName)
 }
 
-func ParseYamlJsonSchema(relpath string, graphName string) ([]*gripql.Graph, error) {
-	return parseGraphFile(relpath, "yjSchema", graphName)
+func ParseYamlSchemaPath(relpath string, graphName string) ([]*gripql.Graph, error) {
+	return parseGraphFile(relpath, "ySchema", graphName)
 }
 
 // GraphToYAMLString returns a graph formatted as a YAML string

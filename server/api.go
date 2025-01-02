@@ -18,6 +18,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 // Traversal parses a traversal request and streams the results back
@@ -286,6 +287,7 @@ func (server *GripServer) BulkAddRaw(stream gripql.Edit_BulkAddRawServer) error 
 		}
 
 		args := class.ExtraArgs.AsMap()
+
 		result, err := out.Generate(resourceType, classData, false, args)
 		if err != nil {
 			log.WithFields(log.Fields{"error": err}).Errorf("BulkAddRaw: validation error for %s: %s", resourceType, classData)
@@ -595,7 +597,8 @@ func (server *GripServer) AddSchema(ctx context.Context, req *gripql.Graph) (*gr
 	if err != nil {
 		return nil, fmt.Errorf("failed to store new schema: %v", err)
 	}
-	server.schemas[req.Graph] = req
+
+	server.schemas[req.Graph] = server.getSchema(req.Graph + "__schema__")
 	return &gripql.EditResult{Id: req.Graph}, nil
 }
 
@@ -649,4 +652,30 @@ func (server *GripServer) graphExists(graphName string) bool {
 		}
 	}
 	return found
+}
+
+func (server *GripServer) getSchema(graphName string) *gripql.Graph {
+	gdb, err := server.getGraphDB(graphName)
+	if err != nil {
+		return &gripql.Graph{}
+	}
+	gripGraph := gripql.Graph{}
+	for _, graph := range gdb.ListGraphs() {
+		if graph == graphName {
+			found_graph, err := gdb.Graph(graph)
+			if err != nil {
+				return &gripql.Graph{}
+			}
+			for elem := range found_graph.GetVertexList(context.Background(), true) {
+				graphelem := elem.Get()
+				data, _ := structpb.NewStruct(graphelem.Data)
+				gripGraph.Vertices = append(gripGraph.Vertices, &gripql.Vertex{
+					Gid:   graphelem.ID,
+					Label: graphelem.Label,
+					Data:  data,
+				})
+			}
+		}
+	}
+	return &gripGraph
 }

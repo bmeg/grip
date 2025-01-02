@@ -141,15 +141,11 @@ func (server *GripServer) addFullGraph(ctx context.Context, graphName string, sc
 	if graphName == "" {
 		return fmt.Errorf("graph name is an empty string")
 	}
-	if server.graphExists(graphName) {
-		_, err := server.DeleteGraph(ctx, &gripql.GraphID{Graph: graphName})
+	if !server.graphExists(graphName) {
+		_, err := server.AddGraph(ctx, &gripql.GraphID{Graph: graphName})
 		if err != nil {
-			return fmt.Errorf("failed to remove previous schema: %v", err)
+			return fmt.Errorf("error creating graph '%s': %v", graphName, err)
 		}
-	}
-	_, err := server.AddGraph(ctx, &gripql.GraphID{Graph: graphName})
-	if err != nil {
-		return fmt.Errorf("error creating graph '%s': %v", graphName, err)
 	}
 	for _, v := range schema.Vertices {
 		_, err := server.addVertex(ctx, &gripql.GraphElement{Graph: graphName, Vertex: v})
