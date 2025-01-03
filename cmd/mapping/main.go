@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/bmeg/grip/gripql"
+	graphSchema "github.com/bmeg/grip/schema"
 	"github.com/bmeg/grip/util/rpc"
 	"github.com/spf13/cobra"
 )
@@ -43,9 +44,9 @@ var getCmd = &cobra.Command{
 
 		var txt string
 		if yaml {
-			txt, err = gripql.GraphToYAMLString(schema)
+			txt, err = graphSchema.GraphToYAMLString(schema)
 		} else {
-			txt, err = gripql.GraphToJSONString(schema)
+			txt, err = graphSchema.GraphToJSONString(schema)
 		}
 		if err != nil {
 			return err
@@ -78,9 +79,9 @@ var postCmd = &cobra.Command{
 				if err != nil {
 					return err
 				}
-				graphs, err = gripql.ParseJSONGraphs(bytes)
+				graphs, err = graphSchema.ParseJSONGraphs(bytes)
 			} else {
-				graphs, err = gripql.ParseJSONGraphsFile(jsonFile)
+				graphs, err = graphSchema.ParseJSONGraphsFile(jsonFile)
 			}
 			if err != nil {
 				return err
@@ -101,9 +102,9 @@ var postCmd = &cobra.Command{
 				if err != nil {
 					return err
 				}
-				graphs, err = gripql.ParseYAMLGraphs(bytes)
+				graphs, err = graphSchema.ParseYAMLGraphs(bytes)
 			} else {
-				graphs, err = gripql.ParseYAMLGraphsFile(yamlFile)
+				graphs, err = graphSchema.ParseYAMLGraphsFile(yamlFile)
 			}
 			if err != nil {
 				return err

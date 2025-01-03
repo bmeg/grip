@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -11,6 +12,9 @@ import (
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/util/rpc"
+	"github.com/bmeg/jsonschema/v5"
+	"github.com/bmeg/jsonschemagraph/compile"
+	"github.com/bmeg/jsonschemagraph/graph"
 )
 
 var schemaSuffix = "__schema__"
@@ -137,15 +141,11 @@ func (server *GripServer) addFullGraph(ctx context.Context, graphName string, sc
 	if graphName == "" {
 		return fmt.Errorf("graph name is an empty string")
 	}
-	if server.graphExists(graphName) {
-		_, err := server.DeleteGraph(ctx, &gripql.GraphID{Graph: graphName})
+	if !server.graphExists(graphName) {
+		_, err := server.AddGraph(ctx, &gripql.GraphID{Graph: graphName})
 		if err != nil {
-			return fmt.Errorf("failed to remove previous schema: %v", err)
+			return fmt.Errorf("error creating graph '%s': %v", graphName, err)
 		}
-	}
-	_, err := server.AddGraph(ctx, &gripql.GraphID{Graph: graphName})
-	if err != nil {
-		return fmt.Errorf("error creating graph '%s': %v", graphName, err)
 	}
 	for _, v := range schema.Vertices {
 		_, err := server.addVertex(ctx, &gripql.GraphElement{Graph: graphName, Vertex: v})
@@ -160,4 +160,33 @@ func (server *GripServer) addFullGraph(ctx context.Context, graphName string, sc
 		}
 	}
 	return nil
+}
+
+func (server *GripServer) LoadSchemas(sch *gripql.Graph, out *graph.GraphSchema) (*graph.GraphSchema, error) {
+	schcompiler := jsonschema.NewCompiler()
+	schcompiler.ExtractAnnotations = true
+	schcompiler.RegisterExtension(compile.GraphExtensionTag, compile.GraphExtMeta, compile.GraphExtCompiler{})
+
+	for _, v := range sch.Vertices {
+		jsonData, err := json.Marshal(v.Data)
+		if err != nil {
+			return nil, err
+		}
+		err = schcompiler.AddResource(v.Gid, strings.NewReader(string(jsonData)))
+		if err != nil {
+			log.Error("schcompiler.AddResource err: ", err)
+			return nil, err
+		}
+	}
+	for _, v := range sch.Vertices {
+		sch, err := schcompiler.Compile(v.Gid)
+		if err != nil {
+			log.Error("schcompiler.Compile err: ", err)
+			return nil, err
+		}
+		out.Classes[v.Label] = sch
+	}
+	out.Compiler = schcompiler
+
+	return out, nil
 }

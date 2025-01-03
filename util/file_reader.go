@@ -18,6 +18,7 @@ import (
 	"github.com/minio/minio-go/v7/pkg/credentials"
 
 	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 func getS3Client(u *url.URL) (*minio.Client, error) {
@@ -111,6 +112,53 @@ func StreamLines(file string, chanSize int) (chan string, error) {
 	}()
 
 	return lineChan, nil
+}
+
+func StreamRawJsonFromFile(file string, workers int, graph string, extra_args map[string]any) (chan *gripql.RawJson, error) {
+	if workers < 1 {
+		workers = 1
+	}
+	if workers > 99 {
+		workers = 99
+	}
+	lineChan, err := StreamLines(file, workers)
+	if err != nil {
+		return nil, err
+	}
+	jsonChan := make(chan *gripql.RawJson, workers)
+	var wg sync.WaitGroup
+	jum := protojson.UnmarshalOptions{DiscardUnknown: true}
+
+	for i := 0; i < workers; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for line := range lineChan {
+				rawData := &gripql.RawJson{
+					Data:      &structpb.Struct{},
+					ExtraArgs: &structpb.Struct{},
+					Graph:     graph,
+				}
+
+				rawData.ExtraArgs, err = structpb.NewStruct(extra_args)
+				if err != nil {
+					log.WithFields(log.Fields{"error": err}).Errorf("Marshalling ExtraArgs: %#v", extra_args)
+					continue
+				}
+				err = jum.Unmarshal([]byte(line), rawData.Data)
+				if err != nil {
+					log.WithFields(log.Fields{"error": err}).Errorf("Unmarshaling vertex: %s", line)
+					continue
+				}
+				jsonChan <- rawData
+			}
+		}()
+	}
+	go func() {
+		wg.Wait()
+		close(jsonChan)
+	}()
+	return jsonChan, nil
 }
 
 // StreamVerticesFromFile reads a file containing a vertex per line and

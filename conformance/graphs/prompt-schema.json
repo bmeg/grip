@@ -1,0 +1,96 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "http://grip-schema.io/schema/0.0.1",
+    "$defs": {
+        "Prompt": {
+            "$id": "http://grip-schema.io/schema/0.0.1/Prompt",
+            "additionalProperties": false,
+            "description": "User generated prompt",
+            "links": [
+                {
+                    "href": "{id}",
+                    "rel": "responses",
+                    "targetHints": {
+                        "direction": [
+                            "outbound"
+                        ],
+                        "multiplicity": [
+                            "has_many"
+                        ],
+                        "regex_match": [
+                            "response:*"
+                        ]
+                    },
+                    "targetSchema": {
+                        "$ref": "http://grip-schema.io/schema/0.0.1/Response"
+                    },
+                    "templatePointers": {
+                        "id": "/response"
+                    }
+                }
+            ],
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "text": {
+                    "type": "string"
+                },
+                "resourceType": {
+                    "type": "string"
+                },
+                "responses": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "Response": {
+            "$id": "http://grip-schema.io/schema/0.0.1/Response",
+            "additionalProperties": false,
+            "description": "User LLM generated response",
+            "links": [
+                {
+                    "href": "{id}",
+                    "rel": "prompt",
+                    "targetHints": {
+                        "direction": [
+                            "outbound"
+                        ],
+                        "multiplicity": [
+                            "has_one"
+                        ],
+                        "regex_match": [
+                            "prompt:*"
+                        ]
+                    },
+                    "targetSchema": {
+                        "$ref": "http://grip-schema.io/schema/0.0.1/Prompt"
+                    },
+                    "templatePointers": {
+                        "id": "/prompt"
+                    }
+                }
+            ],
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "text": {
+                    "type": "string"
+                },
+                "resourceType": {
+                    "type": "string"
+                },
+                "prompt": {
+                    "type": "string"
+                },
+                "model": {
+                    "type": "string"
+                }
+            }
+        }
+    }
+}

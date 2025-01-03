@@ -32,7 +32,7 @@
   <div class="global-header">
     <div class="global-header-container">
       <div class="global-header-home">
-        <a href="https://bmeg.github.io/grip"><h1>GRIP</h1></a>
+        <a href="https://bmeg.github.io/grip/"><h1>GRIP</h1></a>
       </div>
       <ul class="global-header-nav">
           <li><a href="https://bmeg.github.io/grip/download//">Download</a></li>
@@ -131,15 +131,6 @@
         <li>
           
           <span class="intermediate">Database Configuration</span></li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/databases/elastic/"
-                   class="sidebar-nav-item "
-                >Elasticsearch</a></li>
-            </ul>
-          </li>
           
           <li>
             <ul class="sidebar-nav sidebar-nav-nested">
@@ -255,6 +246,15 @@
           <li>
             <ul class="sidebar-nav sidebar-nav-nested">
               <li>
+                <a href="https://bmeg.github.io/grip/docs/queries/iterations/"
+                   class="sidebar-nav-item "
+                >Iteration</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
                 <a href="https://bmeg.github.io/grip/docs/queries/jobs_api/"
                    class="sidebar-nav-item "
                 >Jobs API</a></li>
@@ -362,18 +362,18 @@ describes how to connect the set of collections into a graph model. Each GRIPPER
 is required to provide a GRPC interface that allows access to collections stored
 in the resource.</p>
 <p>The required functions include:</p>
-<pre><code>rpc GetCollections(Empty) returns (stream Collection);
+<pre tabindex="0"><code>rpc GetCollections(Empty) returns (stream Collection);
 </code></pre><p><code>GetCollections</code> returns a list of all of the Collections accessible via this server.</p>
-<pre><code>rpc GetCollectionInfo(Collection) returns (CollectionInfo);
+<pre tabindex="0"><code>rpc GetCollectionInfo(Collection) returns (CollectionInfo);
 </code></pre><p><code>GetCollectionInfo</code> provides information, such as the list of indexed fields, in a collection.</p>
-<pre><code>rpc GetIDs(Collection) returns (stream RowID);
+<pre tabindex="0"><code>rpc GetIDs(Collection) returns (stream RowID);
 </code></pre><p><code>GetIDs</code> returns a stream of all of the IDs found in a collection.</p>
-<pre><code>rpc GetRows(Collection) returns (stream Row);
+<pre tabindex="0"><code>rpc GetRows(Collection) returns (stream Row);
 </code></pre><p><code>GetRows</code> returns a stream of all of the rows in a collection.</p>
-<pre><code>rpc GetRowsByID(stream RowRequest) returns (stream Row);
+<pre tabindex="0"><code>rpc GetRowsByID(stream RowRequest) returns (stream Row);
 </code></pre><p><code>GetRowsByID</code> accepts a stream of row requests, each one requesting a single row
-by it's id, and then returns a stream of results.</p>
-<pre><code>rpc GetRowsByField(FieldRequest) returns (stream Row);
+by it&rsquo;s id, and then returns a stream of results.</p>
+<pre tabindex="0"><code>rpc GetRowsByField(FieldRequest) returns (stream Row);
 </code></pre><p><code>GetRowsByField</code> searches a collection, looking for values found in an indexed field.</p>
 
   </div>

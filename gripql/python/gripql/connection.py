@@ -41,6 +41,20 @@ class Connection(BaseConnection):
         )
         raise_for_status(response)
         return response.json()
+    def addJsonSchema(self, fhirjson):
+        """
+        Add a Json Schema for a graph
+        """
+        payload = {
+            "graph": self.graph,
+            "data":fhirjson,
+        }
+        response = self.session.post(
+            self.url + "/jsonschema",
+            json=payload
+        )
+        raise_for_status(response)
+        return response.json()
 
     def getSchema(self, name):
         """

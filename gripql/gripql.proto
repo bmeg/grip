@@ -245,6 +245,11 @@ message BulkEditResult {
   int32 error_count = 2;
 }
 
+message BulkJsonEditResult{
+    int32 insert_count = 1;
+    repeated string errors = 2;
+}
+
 message GraphElement {
   string graph = 1;
   Vertex vertex = 2;
@@ -305,6 +310,12 @@ message DeleteData {
   string graph = 1;
   repeated string vertices = 2;
   repeated string edges = 3;
+}
+
+message RawJson {
+  string graph = 1;
+  google.protobuf.Struct extra_args = 2;
+  google.protobuf.Struct data = 3;
 }
 
 service Query {
@@ -440,6 +451,12 @@ service Edit {
     };
   }
 
+  rpc BulkAddRaw (stream RawJson) returns (BulkJsonEditResult) {
+    option (google.api.http) = {
+      post: "/v1/rawJson"
+    };
+  }
+
   rpc AddGraph(GraphID) returns (EditResult) {
     option (google.api.http) = {
       post: "/v1/graph/{graph}"
@@ -491,13 +508,20 @@ service Edit {
     };
   }
 
-     rpc SampleSchema(GraphID) returns (Graph) {
+  rpc AddJsonSchema(RawJson) returns (EditResult) {
+    option (google.api.http) = {
+        post: "/v1/graph/{graph}/jsonschema"
+        body: "*"
+    };
+  }
+
+  rpc SampleSchema(GraphID) returns (Graph) {
     option (google.api.http) = {
       get: "/v1/graph/{graph}/schema-sample"
     };
   }
 
-     rpc AddMapping(Graph) returns (EditResult) {
+  rpc AddMapping(Graph) returns (EditResult) {
     option (google.api.http) = {
       post: "/v1/graph/{graph}/mapping"
       body: "*"

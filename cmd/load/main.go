@@ -6,6 +6,7 @@ import (
 	"github.com/bmeg/grip/cmd/load/example"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/log"
+	"github.com/bmeg/grip/schema"
 	"github.com/bmeg/grip/util"
 	"github.com/bmeg/grip/util/rpc"
 	"github.com/spf13/cobra"
@@ -153,7 +154,7 @@ var Cmd = &cobra.Command{
 
 		if jsonFile != "" {
 			log.Infof("Loading json file: %s", jsonFile)
-			graphs, err := gripql.ParseJSONGraphsFile(jsonFile)
+			graphs, err := schema.ParseJSONGraphsFile(jsonFile)
 			if err != nil {
 				return err
 			}
@@ -171,7 +172,7 @@ var Cmd = &cobra.Command{
 
 		if yamlFile != "" {
 			log.Infof("Loading YAML file: %s", yamlFile)
-			graphs, err := gripql.ParseYAMLGraphsFile(yamlFile)
+			graphs, err := schema.ParseYAMLGraphsFile(yamlFile)
 			if err != nil {
 				return err
 			}
