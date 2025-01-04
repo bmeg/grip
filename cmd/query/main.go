@@ -47,8 +47,8 @@ Example:
 			return err
 		}
 
-
 		log.Debugf("Query: %s\n", query.String())
+
 		res, err := conn.Traversal(context.Background(), query)
 		if err != nil {
 			log.Errorf("Traversal error: %s", err)
