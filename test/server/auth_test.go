@@ -61,7 +61,7 @@ func TestBasicAuthFail(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, err = cli.Traversal(&gripql.GraphQuery{Graph: "test", Query: gripql.NewQuery().V().Statements})
+	_, err = cli.Traversal(context.Background(), &gripql.GraphQuery{Graph: "test", Query: gripql.NewQuery().V().Statements})
 	if err == nil || !strings.Contains(err.Error(), "PermissionDenied") {
 		t.Errorf("expected PermissionDenied error; got: %v", err)
 	}
@@ -131,7 +131,7 @@ func TestBasicAuth(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	_, err = cli.Traversal(&gripql.GraphQuery{Graph: "test", Query: gripql.NewQuery().V().Statements})
+	_, err = cli.Traversal(context.Background(), &gripql.GraphQuery{Graph: "test", Query: gripql.NewQuery().V().Statements})
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
