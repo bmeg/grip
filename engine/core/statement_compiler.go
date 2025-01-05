@@ -226,7 +226,7 @@ func (sc *DefaultStmtCompiler) Aggregate(stmt *gripql.GraphStatement_Aggregate, 
 }
 
 func (sc *DefaultStmtCompiler) FlatMap(stmt *gripql.GraphStatement_FlatMap, ps *gdbi.State) (gdbi.Processor, error) {
-	return &FlatMap{source: stmt.FlatMap.Source, func_name: stmt.FlatMap.Function}, nil
+	return &FlatMap{source: stmt.FlatMap.Source, func_name: stmt.FlatMap.Function, args: stmt.FlatMap.Args.AsMap()}, nil
 }
 
 func (sc *DefaultStmtCompiler) Custom(gs *gripql.GraphStatement, ps *gdbi.State) (gdbi.Processor, error) {

@@ -224,6 +224,7 @@ message ExtendQuery {
 message Code {
   string function = 1;
   string source = 2;
+  google.protobuf.Struct args = 3;
 }
 
 enum JobState {

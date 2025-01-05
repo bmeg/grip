@@ -12,6 +12,7 @@ import (
 type FlatMap struct {
 	source    string
 	func_name string
+	args      map[string]any
 }
 
 // Process LookupVerts
@@ -43,7 +44,11 @@ func (fm *FlatMap) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe
 				src := t.GetCurrent().Get()
 				data := src.ToDict()
 				dataObj := vm.ToValue(data)
-				fout, err := jfunc(goja.Null(), dataObj)
+
+				argsObj := vm.ToValue(fm.args)
+
+				fout, err := jfunc(goja.Null(), dataObj, argsObj)
+
 				if err == nil {
 					o := fout.Export()
 					if oList, ok := o.([]any); ok {
