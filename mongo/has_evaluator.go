@@ -93,21 +93,23 @@ func convertCondition(cond *gripql.HasCondition, not bool) bson.M {
 	if valStr, ok := val.(string); ok {
 		if strings.HasPrefix(valStr, "$") {
 			val = "$" + ToPipelinePath(valStr)
+			isExpr = true
 		}
 		log.Infof("mongo val str: %s(%s) -- %s(%s)", cond.Key, key, valStr, val)
-		isExpr = true
 	}
 	expr := bson.M{}
 	switch cond.Condition {
 	case gripql.Condition_EQ:
 		if isExpr {
-			expr = bson.M{"$expr": bson.M{"$eq": []any{key, val}}}
+			//expr = bson.M{"$expr": bson.M{"$eq": []any{"$" + key, val}}}
+			expr = bson.M{"$eq": []any{bson.M{"$getField": key}, val}}
 		} else {
 			expr = bson.M{"$eq": val}
 		}
 	case gripql.Condition_NEQ:
 		if isExpr {
-			expr = bson.M{"$expr": bson.M{"$ne": []any{key, val}}}
+			//expr = bson.M{"$expr": bson.M{"$ne": []any{"$" + key, val}}}
+			expr = bson.M{"$ne": []any{bson.M{"$getField": key}, val}}
 			log.Infof("filter struct: %#v", expr)
 		} else {
 			expr = bson.M{"$ne": val}

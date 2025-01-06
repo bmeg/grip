@@ -868,6 +868,9 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement, opts *gdbi.Compile
 		}
 	}
 
+	//queryStr, _ := json.MarshalIndent(query, "", "  ")
+	//log.Infof("Mongo query pipeline: %s", queryStr)
+
 	// query must be less than 16MB limit
 	bsonSize, err := bson.Marshal(bson.M{"pipeline": query})
 	if err != nil {
