@@ -1,9 +1,9 @@
 function process(val) {
 	if (!val) {
 		val = []
-  } else if (typeof val == "string" || typeof val == "number") {
-	  val = [val]
-  } else if (!Array.isArray(val)) {
+	} else if (typeof val == "string" || typeof val == "number") {
+		val = [val]
+	} else if (!Array.isArray(val)) {
 		throw "not something we know how to process into an array"
 	}
 	return val
@@ -13,214 +13,217 @@ function resume() {
 	return query()
 }
 
-function query(client=null) {
+function query(client = null) {
 	return {
 		query: [],
 		client: client,
-		V: function(id) {
-			this.query.push({'v': process(id)})
+		V: function (id) {
+			this.query.push({ 'v': process(id) })
 			return this
 		},
-		E: function(id) {
-			this.query.push({'e': process(id)})
+		E: function (id) {
+			this.query.push({ 'e': process(id) })
 			return this
 		},
-		out: function(label) {
-			this.query.push({'out': process(label)})
+		out: function (label) {
+			this.query.push({ 'out': process(label) })
 			return this
 		},
-		outNull: function(label) {
-			this.query.push({'outNull': process(label)})
+		outNull: function (label) {
+			this.query.push({ 'outNull': process(label) })
 			return this
 		},
-		in_: function(label) {
-			this.query.push({'in': process(label)})
+		in_: function (label) {
+			this.query.push({ 'in': process(label) })
 			return this
 		},
-		inNull: function(label) {
-			this.query.push({'inNull': process(label)})
+		inNull: function (label) {
+			this.query.push({ 'inNull': process(label) })
 			return this
 		},
-		both: function(label) {
-			this.query.push({'both': process(label)})
+		both: function (label) {
+			this.query.push({ 'both': process(label) })
 			return this
 		},
-		outV: function(label) {
-			this.query.push({'outV': process(label)})
+		outV: function (label) {
+			this.query.push({ 'outV': process(label) })
 			return this
 		},
-		inV: function(label) {
-			this.query.push({'inV': process(label)})
+		inV: function (label) {
+			this.query.push({ 'inV': process(label) })
 			return this
 		},
-		bothV: function(label) {
-			this.query.push({'bothV': process(label)})
+		bothV: function (label) {
+			this.query.push({ 'bothV': process(label) })
 			return this
 		},
-		outE: function(label) {
-			this.query.push({'outE': process(label)})
+		outE: function (label) {
+			this.query.push({ 'outE': process(label) })
 			return this
 		},
-		outENull: function(label) {
-			this.query.push({'outENull': process(label)})
+		outENull: function (label) {
+			this.query.push({ 'outENull': process(label) })
 			return this
 		},
-		inE: function(label) {
-			this.query.push({'inE': process(label)})
+		inE: function (label) {
+			this.query.push({ 'inE': process(label) })
 			return this
 		},
-		inENull: function(label) {
-			this.query.push({'inENull': process(label)})
+		inENull: function (label) {
+			this.query.push({ 'inENull': process(label) })
 			return this
 		},
-		bothE: function(label) {
-			this.query.push({'bothE': process(label)})
+		bothE: function (label) {
+			this.query.push({ 'bothE': process(label) })
 			return this
 		},
-		as_: function(name) {
-			this.query.push({'as': name})
+		as_: function (name) {
+			this.query.push({ 'as': name })
 			return this
 		},
-		select: function(name) {
-			this.query.push({'select': name})
+		select: function (name) {
+			this.query.push({ 'select': name })
 			return this
 		},
-		limit: function(n) {
-			this.query.push({'limit': n})
+		limit: function (n) {
+			this.query.push({ 'limit': n })
 			return this
 		},
-		skip: function(n) {
-			this.query.push({'skip': n})
+		skip: function (n) {
+			this.query.push({ 'skip': n })
 			return this
 		},
-		range: function(start, stop) {
-			this.query.push({'range': {'start': start, 'stop': stop}})
+		range: function (start, stop) {
+			this.query.push({ 'range': { 'start': start, 'stop': stop } })
 			return this
 		},
-		count: function() {
-			this.query.push({'count': ''})
+		count: function () {
+			this.query.push({ 'count': '' })
 			return this
 		},
-		distinct: function(val) {
-			this.query.push({'distinct': process(val)})
+		distinct: function (val) {
+			this.query.push({ 'distinct': process(val) })
 			return this
 		},
-		fields: function(fields) {
-			this.query.push({'fields': fields})
+		fields: function (fields) {
+			this.query.push({ 'fields': fields })
 			return this
 		},
-		render: function(r) {
-			this.query.push({'render': r})
+		render: function (r) {
+			this.query.push({ 'render': r })
 			return this
 		},
-		has: function(expression) {
-			this.query.push({'has': expression})
+		has: function (expression) {
+			this.query.push({ 'has': expression })
 			return this
 		},
-		hasLabel: function(label) {
-			this.query.push({'hasLabel': process(label)})
+		hasLabel: function (label) {
+			this.query.push({ 'hasLabel': process(label) })
 			return this
 		},
-		hasId: function(id) {
-			this.query.push({'hasId': process(id)})
+		hasId: function (id) {
+			this.query.push({ 'hasId': process(id) })
 			return this
 		},
-		hasKey: function(key) {
-			this.query.push({'hasKey': process(key)})
+		hasKey: function (key) {
+			this.query.push({ 'hasKey': process(key) })
 			return this
 		},
-		set: function(key, value) {
-			this.query.push({'set':{'key':key, 'value':value}})
+		set: function (key, value) {
+			this.query.push({ 'set': { 'key': key, 'value': value } })
 			return this
 		},
-		increment: function(key, value) {
-			this.query.push({'increment':{'key':key, 'value':value}})
+		increment: function (key, value) {
+			this.query.push({ 'increment': { 'key': key, 'value': value } })
 			return this
 		},
-		jump: function(mark, expression, emit) {
-			this.query.push({"jump": {"mark":mark, "expression" : expression, "emit":emit}})
+		jump: function (mark, expression, emit) {
+			this.query.push({ "jump": { "mark": mark, "expression": expression, "emit": emit } })
 			return this
 		},
-		mark: function(name){
-	        this.query.push({"mark": name})
+		mark: function (name) {
+			this.query.push({ "mark": name })
 			return this
 		},
-		aggregate: function() {
-			this.query.push({'aggregate': {'aggregations': Array.prototype.slice.call(arguments)}})
+		aggregate: function () {
+			this.query.push({ 'aggregate': { 'aggregations': Array.prototype.slice.call(arguments) } })
 			return this
 		},
-		toList: function() {
-			return this.client.toList( {"query": this.query} )
+		toList: function () {
+			return this.client.toList({ "query": this.query })
+		},
+		flatMap: function (fname, source, args) {
+			this.query.push({ "flat_map": { "function": fname, "source": source, "args": args } })
 		}
 	}
 }
 
 // Where operators
 function and_() {
-	return {'and': {'expressions': Array.prototype.slice.call(arguments)}}
+	return { 'and': { 'expressions': Array.prototype.slice.call(arguments) } }
 }
 
 function or_() {
-	return {'or': {'expressions': Array.prototype.slice.call(arguments)}}
+	return { 'or': { 'expressions': Array.prototype.slice.call(arguments) } }
 }
 
 function not_(expression) {
-	return {'not': expression}
+	return { 'not': expression }
 }
 
 function eq(key, value) {
-	return {'condition': {'key': key, 'value': value, 'condition': 'EQ'}}
+	return { 'condition': { 'key': key, 'value': value, 'condition': 'EQ' } }
 }
 
 function neq(key, value) {
-	return {'condition': {'key': key, 'value': value, 'condition': 'NEQ'}}
+	return { 'condition': { 'key': key, 'value': value, 'condition': 'NEQ' } }
 }
 
 function gt(key, value) {
-	return {'condition': {'key': key, 'value': value, 'condition': 'GT'}}
+	return { 'condition': { 'key': key, 'value': value, 'condition': 'GT' } }
 }
 
 function gte(key, value) {
-	return {'condition': {'key': key, 'value': value, 'condition': 'GTE'}}
+	return { 'condition': { 'key': key, 'value': value, 'condition': 'GTE' } }
 }
 
 function lt(key, value) {
-	return {'condition': {'key': key, 'value': value, 'condition': 'LT'}}
+	return { 'condition': { 'key': key, 'value': value, 'condition': 'LT' } }
 }
 
 function lte(key, value) {
-	return {'condition': {'key': key, 'value': value, 'condition': 'LTE'}}
+	return { 'condition': { 'key': key, 'value': value, 'condition': 'LTE' } }
 }
 
 function inside(key, values) {
-	return {'condition': {'key': key, 'value': process(values), 'condition': 'INSIDE'}}
+	return { 'condition': { 'key': key, 'value': process(values), 'condition': 'INSIDE' } }
 }
 
 function outside(key, values) {
-	return {'condition': {'key': key, 'value': process(values), 'condition': 'OUTSIDE'}}
+	return { 'condition': { 'key': key, 'value': process(values), 'condition': 'OUTSIDE' } }
 }
 
 function between(key, values) {
-	return {'condition': {'key': key, 'value': process(values), 'condition': 'BETWEEN'}}
+	return { 'condition': { 'key': key, 'value': process(values), 'condition': 'BETWEEN' } }
 }
 
 function within(key, values) {
-	return {'condition': {'key': key, 'value': process(values), 'condition': 'WITHIN'}}
+	return { 'condition': { 'key': key, 'value': process(values), 'condition': 'WITHIN' } }
 }
 
 function without(key, values) {
-	return {'condition': {'key': key, 'value': process(values), 'condition': 'WITHOUT'}}
+	return { 'condition': { 'key': key, 'value': process(values), 'condition': 'WITHOUT' } }
 }
 
 function contains(key, value) {
-	return {'condition': {'key': key, 'value': value, 'condition': 'CONTAINS'}}
+	return { 'condition': { 'key': key, 'value': value, 'condition': 'CONTAINS' } }
 }
 
 // Aggregation builders
 function term(name, field, size) {
 	agg = {
 		"name": name,
-		"term": {"field": field}
+		"term": { "field": field }
 	}
 	if (size) {
 		if (typeof size != "number") {
@@ -238,7 +241,7 @@ function percentile(name, field, percents) {
 		percents = process(percents)
 	}
 
-  if (!percents.every(function(x){ return typeof x == "number" })) {
+	if (!percents.every(function (x) { return typeof x == "number" })) {
 		throw "percents expected to be an array of numbers"
 	}
 
@@ -271,34 +274,34 @@ function count(name) {
 	}
 }
 
-function field(name, field){
-    return {
-        "name": name,
-        "field": {
+function field(name, field) {
+	return {
+		"name": name,
+		"field": {
 			"field": field
 		}
-    }
+	}
 }
 
 gripql = {
-	"lt" : lt,
-	"gt" : gt,
-	"lte" : lte,
-	"gte" : gte,
-	"eq" : eq,
+	"lt": lt,
+	"gt": gt,
+	"lte": lte,
+	"gte": gte,
+	"eq": eq,
 	"without": without,
-	"within" : within,
-	"inside" : inside,
-	"field" : field,
-	"count" : count,
+	"within": within,
+	"inside": inside,
+	"field": field,
+	"count": count,
 	"histogram": histogram,
 	"percentile": percentile,
 }
 
 function V(id) {
-  return query().V(id)
+	return query().V(id)
 }
 
 function E(id) {
-  return query().E(id)
+	return query().E(id)
 }
