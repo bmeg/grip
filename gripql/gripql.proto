@@ -55,6 +55,8 @@ message GraphStatement {
     google.protobuf.ListValue fields = 50;
     string unwind = 51;
 
+    Code flat_map = 53;
+
     string count = 60;
     Aggregations aggregate = 61;
     google.protobuf.Value render = 62;
@@ -217,6 +219,12 @@ message ExtendQuery {
   string src_id = 1;
   string graph = 2;
   repeated GraphStatement query = 3;
+}
+
+message Code {
+  string function = 1;
+  string source = 2;
+  google.protobuf.Struct args = 3;
 }
 
 enum JobState {

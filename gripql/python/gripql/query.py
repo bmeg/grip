@@ -330,6 +330,9 @@ class Query(BaseConnection):
         aggregations = _wrap_dict_value(aggregations)
         return self.__append({"aggregate": {"aggregations": aggregations}})
 
+    def flatMap(self, fname, source, args):
+        return self.__append({"flat_map": {"function":fname, "source":source, "args": args}})
+
     def to_json(self):
         """
         Return the query as a JSON string.

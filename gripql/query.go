@@ -208,6 +208,10 @@ func (q *Query) Unwind(path string) *Query {
 	return q.with(&GraphStatement{Statement: &GraphStatement_Unwind{Unwind: path}})
 }
 
+func (q *Query) FlatMap(code *Code) *Query {
+	return q.with(&GraphStatement{Statement: &GraphStatement_FlatMap{FlatMap: code}})
+}
+
 func (q *Query) String() string {
 	parts := []string{}
 	add := func(name string, x ...string) {
@@ -296,6 +300,15 @@ func (q *Query) String() string {
 
 		case *GraphStatement_Aggregate:
 			add("Aggregate")
+
+		case *GraphStatement_Unwind:
+			add("Unwind", stmt.Unwind)
+
+		case *GraphStatement_Pivot:
+			add("Pivot", fmt.Sprintf("%s", stmt.Pivot.Id), fmt.Sprintf("%s", stmt.Pivot.Field), fmt.Sprintf("%s", stmt.Pivot.Value))
+
+		case *GraphStatement_FlatMap:
+			add("FlatMap", fmt.Sprintf("%s", stmt.FlatMap.Function), fmt.Sprintf("%s", stmt.FlatMap.Source), fmt.Sprintf("%s", stmt.FlatMap.Args.String()))
 
 		case *GraphStatement_Render:
 			jtxt, err := protojson.Marshal(stmt.Render)
