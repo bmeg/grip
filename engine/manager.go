@@ -1,7 +1,6 @@
 package engine
 
 import (
-	"io/ioutil"
 	"os"
 
 	"github.com/bmeg/grip/gdbi"
@@ -21,7 +20,7 @@ type manager struct {
 }
 
 func (bm *manager) GetTempKV() kvi.KVInterface {
-	td, _ := ioutil.TempDir(bm.workDir, "kvTmp")
+	td, _ := os.MkdirTemp(bm.workDir, "kvTmp")
 	kv, _ := badgerdb.NewKVInterface(td, kvi.Options{})
 
 	bm.kvs = append(bm.kvs, kv)

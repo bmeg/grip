@@ -40,7 +40,7 @@ message GraphStatement {
     google.protobuf.ListValue out_e_null = 19;
 
     string as = 20;
-    SelectStatement select = 21;
+    string select = 21;
     uint32 limit = 24;
     uint32 skip = 25;
     Range range = 26;
@@ -50,6 +50,7 @@ message GraphStatement {
     google.protobuf.ListValue has_id = 33;
 
     google.protobuf.ListValue distinct = 40;
+    PivotStep pivot = 41;
 
     google.protobuf.ListValue fields = 50;
     string unwind = 51;
@@ -119,6 +120,12 @@ message TypeAggregation {
 
 message CountAggregation {
 
+}
+
+message PivotStep {
+  string id = 1;
+  string field = 2;
+  string value = 3;
 }
 
 message NamedAggregationResult {
@@ -221,7 +228,6 @@ message QueryResult {
     Vertex vertex = 1;
     Edge edge = 2;
     NamedAggregationResult aggregations = 3;
-    Selections selections = 4;
     google.protobuf.Value render = 5;
     uint32 count = 6;
     google.protobuf.ListValue path = 7;
@@ -263,6 +269,11 @@ message EditResult {
 message BulkEditResult {
   int32 insert_count = 1;
   int32 error_count = 2;
+}
+
+message BulkJsonEditResult{
+    int32 insert_count = 1;
+    repeated string errors = 2;
 }
 
 message GraphElement {
@@ -319,6 +330,18 @@ message TableInfo {
   string name = 2;
   repeated string fields = 3;
   map<string,string> link_map = 4;
+}
+
+message DeleteData {
+  string graph = 1;
+  repeated string vertices = 2;
+  repeated string edges = 3;
+}
+
+message RawJson {
+  string graph = 1;
+  google.protobuf.Struct extra_args = 2;
+  google.protobuf.Struct data = 3;
 }
 
 service Query {
@@ -454,6 +477,12 @@ service Edit {
     };
   }
 
+  rpc BulkAddRaw (stream RawJson) returns (BulkJsonEditResult) {
+    option (google.api.http) = {
+      post: "/v1/rawJson"
+    };
+  }
+
   rpc AddGraph(GraphID) returns (EditResult) {
     option (google.api.http) = {
       post: "/v1/graph/{graph}"
@@ -463,6 +492,13 @@ service Edit {
   rpc DeleteGraph(GraphID) returns (EditResult) {
     option (google.api.http) = {
       delete: "/v1/graph/{graph}"
+    };
+  }
+
+  rpc BulkDelete(DeleteData) returns (EditResult) {
+    option (google.api.http) = {
+      delete: "/v1/graph"
+      body: "*"
     };
   }
 
@@ -498,13 +534,20 @@ service Edit {
     };
   }
 
-     rpc SampleSchema(GraphID) returns (Graph) {
+  rpc AddJsonSchema(RawJson) returns (EditResult) {
+    option (google.api.http) = {
+        post: "/v1/graph/{graph}/jsonschema"
+        body: "*"
+    };
+  }
+
+  rpc SampleSchema(GraphID) returns (Graph) {
     option (google.api.http) = {
       get: "/v1/graph/{graph}/schema-sample"
     };
   }
 
-     rpc AddMapping(Graph) returns (EditResult) {
+  rpc AddMapping(Graph) returns (EditResult) {
     option (google.api.http) = {
       post: "/v1/graph/{graph}/mapping"
       body: "*"

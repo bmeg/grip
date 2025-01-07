@@ -155,6 +155,21 @@ func (kgdb *KVInterfaceGDB) BulkAdd(stream <-chan *gdbi.GraphElement) error {
 	return err
 }
 
+func (kgdb *KVInterfaceGDB) BulkDel(Data *gdbi.DeleteData) error {
+	var bulkErr *multierror.Error
+	for _, v := range Data.Edges {
+		if err := kgdb.DelEdge(v); err != nil {
+			bulkErr = multierror.Append(bulkErr, err)
+		}
+	}
+	for _, v := range Data.Vertices {
+		if err := kgdb.DelVertex(v); err != nil {
+			bulkErr = multierror.Append(bulkErr, err)
+		}
+	}
+	return bulkErr.ErrorOrNil()
+}
+
 // DelEdge deletes edge with id `key`
 func (kgdb *KVInterfaceGDB) DelEdge(eid string) error {
 	ekeyPrefix := EdgeKeyPrefix(kgdb.graph, eid)

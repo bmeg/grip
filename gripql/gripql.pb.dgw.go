@@ -874,6 +874,84 @@ func (shim *EditDirectClient) BulkAdd(ctx context.Context, opts ...grpc.CallOpti
 }
 
 
+// Streaming data 'server' shim. Provides the Send/Recv funcs expected by the
+// user server code when dealing with a streaming input
+
+/* Start EditBulkAddRaw streaming input server */
+type directEditBulkAddRaw struct {
+  ctx context.Context
+  c   chan *RawJson
+  out chan *BulkJsonEditResult
+}
+
+func (dsm *directEditBulkAddRaw) Recv() (*RawJson, error) {
+	value, ok := <-dsm.c
+	if !ok {
+		return nil, io.EOF
+	}
+	return value, nil
+}
+
+func (dsm *directEditBulkAddRaw) Send(a *RawJson) error {
+	dsm.c <- a
+	return nil
+}
+
+func (dsm *directEditBulkAddRaw) Context() context.Context {
+	return dsm.ctx
+}
+
+func (dsm *directEditBulkAddRaw) SendAndClose(o *BulkJsonEditResult) error {
+  dsm.out <- o
+  close(dsm.out)
+  return nil
+}
+
+func (dsm *directEditBulkAddRaw) CloseAndRecv() (*BulkJsonEditResult, error) {
+  //close(dsm.c)
+  out := <- dsm.out
+  return out, nil
+}
+
+func (dsm *directEditBulkAddRaw) CloseSend() error             { close(dsm.c); return nil }
+func (dsm *directEditBulkAddRaw) SetTrailer(metadata.MD)       {}
+func (dsm *directEditBulkAddRaw) SetHeader(metadata.MD) error  { return nil }
+func (dsm *directEditBulkAddRaw) SendHeader(metadata.MD) error { return nil }
+func (dsm *directEditBulkAddRaw) SendMsg(m interface{}) error  { dsm.out <- m.(*BulkJsonEditResult); return nil }
+
+func (dsm *directEditBulkAddRaw) RecvMsg(m interface{}) error  { 
+	t, err := dsm.Recv()
+	mPtr := m.(*RawJson) 
+	if t != nil {
+    	*mPtr = *t
+	}
+	return err
+}
+
+func (dsm *directEditBulkAddRaw) Header() (metadata.MD, error) { return nil, nil }
+func (dsm *directEditBulkAddRaw) Trailer() metadata.MD         { return nil }
+/* End EditBulkAddRaw streaming input server */
+
+
+func (shim *EditDirectClient) BulkAddRaw(ctx context.Context, opts ...grpc.CallOption) (Edit_BulkAddRawClient, error) {
+  md, _ := metadata.FromOutgoingContext(ctx)
+  ictx := metadata.NewIncomingContext(ctx, md)
+  w := &directEditBulkAddRaw{ictx, make(chan *RawJson, 100), make(chan *BulkJsonEditResult, 3)}
+  if shim.streamServerInt != nil {
+    info := grpc.StreamServerInfo{
+      FullMethod: "/gripql.Edit/BulkAddRaw",
+      IsClientStream: true,
+    }
+    go shim.streamServerInt(shim.server, w, &info, _Edit_BulkAddRaw_Handler)
+    return w, nil
+  }
+	go func() {
+		shim.server.BulkAddRaw(w)
+	}()
+	return w, nil
+}
+
+
 //AddGraph shim
 func (shim *EditDirectClient) AddGraph(ctx context.Context, in *GraphID, opts ...grpc.CallOption) (*EditResult, error) {
   md, _ := metadata.FromOutgoingContext(ctx)
@@ -912,6 +990,26 @@ func (shim *EditDirectClient) DeleteGraph(ctx context.Context, in *GraphID, opts
     return o.(*EditResult), err
   }
 	return shim.server.DeleteGraph(ictx, in)
+}
+
+//BulkDelete shim
+func (shim *EditDirectClient) BulkDelete(ctx context.Context, in *DeleteData, opts ...grpc.CallOption) (*EditResult, error) {
+  md, _ := metadata.FromOutgoingContext(ctx)
+  ictx := metadata.NewIncomingContext(ctx, md)
+  if shim.unaryServerInt != nil {
+    handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+  		return shim.server.BulkDelete(ctx, req.(*DeleteData))
+  	}
+    info := grpc.UnaryServerInfo{
+      FullMethod: "/gripql.Edit/BulkDelete",
+    }
+    o, err := shim.unaryServerInt(ictx, in, &info, handler)
+    if o == nil {
+      return nil, err
+    }
+    return o.(*EditResult), err
+  }
+	return shim.server.BulkDelete(ictx, in)
 }
 
 //DeleteVertex shim
@@ -1012,6 +1110,26 @@ func (shim *EditDirectClient) AddSchema(ctx context.Context, in *Graph, opts ...
     return o.(*EditResult), err
   }
 	return shim.server.AddSchema(ictx, in)
+}
+
+//AddJsonSchema shim
+func (shim *EditDirectClient) AddJsonSchema(ctx context.Context, in *RawJson, opts ...grpc.CallOption) (*EditResult, error) {
+  md, _ := metadata.FromOutgoingContext(ctx)
+  ictx := metadata.NewIncomingContext(ctx, md)
+  if shim.unaryServerInt != nil {
+    handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+  		return shim.server.AddJsonSchema(ctx, req.(*RawJson))
+  	}
+    info := grpc.UnaryServerInfo{
+      FullMethod: "/gripql.Edit/AddJsonSchema",
+    }
+    o, err := shim.unaryServerInt(ictx, in, &info, handler)
+    if o == nil {
+      return nil, err
+    }
+    return o.(*EditResult), err
+  }
+	return shim.server.AddJsonSchema(ictx, in)
 }
 
 //SampleSchema shim

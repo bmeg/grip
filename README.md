@@ -7,7 +7,7 @@
 
 https://bmeg.github.io/grip/
 
-GRIP stands for GRaph Integration Platform. It provides a graph interface on top of a variety of existing database technologies including: MongoDB, Elasticsearch, PostgreSQL, MySQL, MariaDB, Badger, and LevelDB.
+GRIP stands for GRaph Integration Platform. It provides a graph interface on top of a variety of existing database technologies including: MongoDB, PostgreSQL, MySQL, MariaDB, Badger, and LevelDB.
 
 Properties of an GRIP graph:
 

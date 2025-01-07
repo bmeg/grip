@@ -24,13 +24,13 @@ def test_returnNil(man):
     #print("query 1")
     count_1 = 0
     for i in G.query().V().hasLabel("Character").outNull("starships"):
-        print(i)
+        #print(i)
         count_1 += 1
 
     #print("query 1")
     count_1 = 0
     for i in G.query().V().hasLabel("Character").outENull("starships"):
-        print(i)
+        #print(i)
         count_1 += 1
 
     return errors    

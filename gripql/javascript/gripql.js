@@ -9,9 +9,14 @@ function process(val) {
 	return val
 }
 
-function query() {
+function resume() {
+	return query()
+}
+
+function query(client=null) {
 	return {
 		query: [],
+		client: client,
 		V: function(id) {
 			this.query.push({'v': process(id)})
 			return this
@@ -76,8 +81,8 @@ function query() {
 			this.query.push({'as': name})
 			return this
 		},
-		select: function(marks) {
-			this.query.push({'select': {'marks': process(marks)}})
+		select: function(name) {
+			this.query.push({'select': name})
 			return this
 		},
 		limit: function(n) {
@@ -143,6 +148,9 @@ function query() {
 		aggregate: function() {
 			this.query.push({'aggregate': {'aggregations': Array.prototype.slice.call(arguments)}})
 			return this
+		},
+		toList: function() {
+			return this.client.toList( {"query": this.query} )
 		}
 	}
 }
@@ -254,6 +262,37 @@ function histogram(name, field, interval) {
 			"field": field, "interval": interval
 		}
 	}
+}
+
+function count(name) {
+	return {
+		"name": name,
+		"count": {}
+	}
+}
+
+function field(name, field){
+    return {
+        "name": name,
+        "field": {
+			"field": field
+		}
+    }
+}
+
+gripql = {
+	"lt" : lt,
+	"gt" : gt,
+	"lte" : lte,
+	"gte" : gte,
+	"eq" : eq,
+	"without": without,
+	"within" : within,
+	"inside" : inside,
+	"field" : field,
+	"count" : count,
+	"histogram": histogram,
+	"percentile": percentile,
 }
 
 function V(id) {

@@ -171,11 +171,13 @@ type EditGatewayClient interface {
 	AddEdge(context.Context, *GraphElement) (*EditResult, error)
 	AddGraph(context.Context, *GraphID) (*EditResult, error)
 	DeleteGraph(context.Context, *GraphID) (*EditResult, error)
+	BulkDelete(context.Context, *DeleteData) (*EditResult, error)
 	DeleteVertex(context.Context, *ElementID) (*EditResult, error)
 	DeleteEdge(context.Context, *ElementID) (*EditResult, error)
 	AddIndex(context.Context, *IndexID) (*EditResult, error)
 	DeleteIndex(context.Context, *IndexID) (*EditResult, error)
 	AddSchema(context.Context, *Graph) (*EditResult, error)
+	AddJsonSchema(context.Context, *RawJson) (*EditResult, error)
 	SampleSchema(context.Context, *GraphID) (*Graph, error)
 	AddMapping(context.Context, *Graph) (*EditResult, error)
 }
@@ -218,6 +220,12 @@ func (c *editGatewayClient) DeleteGraph(ctx context.Context, req *GraphID) (*Edi
 	return gateway.DoRequest[EditResult](ctx, gwReq)
 }
 
+func (c *editGatewayClient) BulkDelete(ctx context.Context, req *DeleteData) (*EditResult, error) {
+	gwReq := c.gwc.NewRequest("DELETE", "/v1/graph")
+	gwReq.SetBody(req)
+	return gateway.DoRequest[EditResult](ctx, gwReq)
+}
+
 func (c *editGatewayClient) DeleteVertex(ctx context.Context, req *ElementID) (*EditResult, error) {
 	gwReq := c.gwc.NewRequest("DELETE", "/v1/graph/{graph}/vertex/{id}")
 	gwReq.SetPathParam("graph", fmt.Sprintf("%v", req.Graph))
@@ -253,6 +261,13 @@ func (c *editGatewayClient) DeleteIndex(ctx context.Context, req *IndexID) (*Edi
 
 func (c *editGatewayClient) AddSchema(ctx context.Context, req *Graph) (*EditResult, error) {
 	gwReq := c.gwc.NewRequest("POST", "/v1/graph/{graph}/schema")
+	gwReq.SetPathParam("graph", fmt.Sprintf("%v", req.Graph))
+	gwReq.SetBody(req)
+	return gateway.DoRequest[EditResult](ctx, gwReq)
+}
+
+func (c *editGatewayClient) AddJsonSchema(ctx context.Context, req *RawJson) (*EditResult, error) {
+	gwReq := c.gwc.NewRequest("POST", "/v1/graph/{graph}/jsonschema")
 	gwReq.SetPathParam("graph", fmt.Sprintf("%v", req.Graph))
 	gwReq.SetBody(req)
 	return gateway.DoRequest[EditResult](ctx, gwReq)

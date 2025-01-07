@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	"github.com/bmeg/grip/config"
-	"github.com/bmeg/grip/elastic"
 	esql "github.com/bmeg/grip/existing-sql"
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/grids"
@@ -132,8 +131,6 @@ func TestMain(m *testing.M) {
 		defer func() {
 			os.RemoveAll(*dbconfig.Grids)
 		}()
-	} else if dbconfig.Elasticsearch != nil {
-		gdb, err = elastic.NewGraphDB(*dbconfig.Elasticsearch)
 	} else if dbconfig.MongoDB != nil {
 		gdb, err = mongo.NewGraphDB(*dbconfig.MongoDB)
 	} else if dbconfig.PSQL != nil {

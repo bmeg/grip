@@ -11,7 +11,7 @@ def test_fields(man):
     }
     resp = G.query().V("Character:1").fields(["name"]).execute()
     if resp[0] != expected:
-        errors.append("vertex contains incorrect fields: \nexpected:%s\nresponse:%s" % (expected, resp))
+        errors.append("""Query 'V("Character:1").fields(["name"])' vertex contains incorrect fields: \nexpected:%s\nresponse:%s""" % (expected, resp))
 
     expected = {
         u"gid": u"Character:1",

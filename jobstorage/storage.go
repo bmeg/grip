@@ -5,8 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"log"
+	"io"
 	"os"
 	"path/filepath"
 	"sync"
@@ -14,6 +13,7 @@ import (
 
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
+	"github.com/bmeg/grip/log"
 
 	"github.com/kennygrant/sanitize"
 )
@@ -59,21 +59,21 @@ func NewFSJobStorage(path string) *FSResults {
 		graphName := filepath.Base(graphDir)
 		file, err := os.Open(j)
 		if err == nil {
-			sData, err := ioutil.ReadAll(file)
+			sData, err := io.ReadAll(file)
 			if err == nil {
 				job := Job{}
 				err := json.Unmarshal(sData, &job)
 				if err == nil {
-					log.Printf("Found job %s %s", graphName, jobName)
+					log.Infof("Found job %s %s", graphName, jobName)
 					out.jobs.Store(jobKey(graphName, jobName), &job)
 				} else {
-					log.Printf("Error Unmarshaling job data: %s", err)
+					log.Infof("Error Unmarshaling job data: %s", err)
 				}
 			} else {
-				log.Printf("Error reading job data: %s", err)
+				log.Infof("Error reading job data: %s", err)
 			}
 		} else {
-			log.Printf("Error opening job data: %s", err)
+			log.Infof("Error opening job data: %s", err)
 		}
 	}
 	return &out
@@ -122,7 +122,7 @@ func (fs *FSResults) Spool(graph string, stream *Stream) (string, error) {
 	if _, err := os.Stat(graphDir); os.IsNotExist(err) {
 		os.MkdirAll(graphDir, 0700)
 	}
-	spoolDir, err := ioutil.TempDir(graphDir, "job-")
+	spoolDir, err := os.MkdirTemp(graphDir, "job-")
 	if err != nil {
 		return "", err
 	}
@@ -147,7 +147,7 @@ func (fs *FSResults) Spool(graph string, stream *Stream) (string, error) {
 	tbStream := MarshalStream(stream.Pipe, 4) //TODO: make worker count configurable
 	go func() {
 		job.Status.State = gripql.JobState_RUNNING
-		log.Printf("Starting Job: %#v", job)
+		log.Infof("Starting Job: %#v", job)
 		defer resultFile.Close()
 		for i := range tbStream {
 			resultFile.Write(i)
@@ -163,10 +163,10 @@ func (fs *FSResults) Spool(graph string, stream *Stream) (string, error) {
 			if err == nil {
 				statusFile.Write([]byte(fmt.Sprintf("%s\n", out)))
 			}
-			log.Printf("Job Done: %s (%d results)", jobName, job.Status.Count)
+			log.Infof("Job Done: %s (%d results)", jobName, job.Status.Count)
 		} else {
 			job.Status.State = gripql.JobState_ERROR
-			log.Printf("Job Error: %s %s", jobName, err)
+			log.Infof("Job Error: %s %s", jobName, err)
 		}
 	}()
 	return jobName, nil
@@ -190,14 +190,17 @@ func (fs *FSResults) Stream(ctx context.Context, graph, id string) (*Stream, err
 				bufSize := 1024 * 1024 * 32
 				buf := make([]byte, bufSize)
 				scan.Buffer(buf, bufSize)
+				count := uint64(0)
 				for scan.Scan() {
 					if ctx.Err() == context.Canceled {
 						return
 					}
 					c := make([]byte, len(scan.Bytes()))
 					copy(c, scan.Bytes())
+					count++
 					os <- c
 				}
+				log.Infof("Stored job with %d records read", count)
 			}()
 			return &Stream{
 				Pipe:      out,

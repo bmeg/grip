@@ -6,6 +6,7 @@ package pipeline
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/bmeg/grip/engine"
 	"github.com/bmeg/grip/engine/logic"
@@ -15,13 +16,21 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
+var debug = true
+
+type RunningPipeline struct {
+	Outputs gdbi.InPipe
+	Logger  *PipelineLogger
+}
+
 // Start begins processing a query pipeline
-func Start(ctx context.Context, pipe gdbi.Pipeline, man gdbi.Manager, bufsize int, input gdbi.InPipe, cancel func()) gdbi.InPipe {
+func Start(ctx context.Context, pipe gdbi.Pipeline, man gdbi.Manager, bufsize int, input gdbi.InPipe, cancel func()) *RunningPipeline {
 	procs := pipe.Processors()
 	if len(procs) == 0 {
+		log.Debugf("User query has no steps")
 		ch := make(chan gdbi.Traveler)
 		close(ch)
-		return ch
+		return nil
 	}
 
 	markProcs := map[string]*logic.JumpMark{}
@@ -30,24 +39,31 @@ func Start(ctx context.Context, pipe gdbi.Pipeline, man gdbi.Manager, bufsize in
 			markProcs[p.Name] = p
 		}
 	}
+
+	// if there is a jump statement, connect to back to the mark statement
 	for i := range procs {
 		if p, ok := procs[i].(*logic.Jump); ok {
 			if d, ok := markProcs[p.Mark]; ok {
 				p.Init()
 				d.AddInput(p.GetJumpOutput())
 			} else {
-				log.Errorf("Missing Jump Mark")
+				log.Debugf("User query missing Jump Mark")
 				ch := make(chan gdbi.Traveler)
 				close(ch)
-				return ch
+				return nil
 			}
 		}
 	}
+
+	l := NewPipelineLogger()
 
 	in := make(chan gdbi.Traveler, bufsize)
 	final := make(chan gdbi.Traveler, bufsize)
 	out := final
 	for i := len(procs) - 1; i >= 0; i-- {
+		if debug {
+			in = l.AddStep(fmt.Sprintf("%T_%d", procs[i], i), in)
+		}
 		ctx = procs[i].Process(ctx, man, in, out)
 		out = in
 		in = make(chan gdbi.Traveler, bufsize)
@@ -55,13 +71,16 @@ func Start(ctx context.Context, pipe gdbi.Pipeline, man gdbi.Manager, bufsize in
 
 	go func() {
 		if input != nil {
+			inputCount := uint64(0)
 			for i := range input {
 				if ctx.Err() == context.Canceled {
 					//cancel upstream
 					cancel()
 				}
+				inputCount++
 				out <- i
 			}
+			log.Debugf("Stream input count: %d", inputCount)
 		} else {
 			// Write an empty traveler to input
 			// to trigger the computation.
@@ -71,7 +90,10 @@ func Start(ctx context.Context, pipe gdbi.Pipeline, man gdbi.Manager, bufsize in
 		close(in)
 		close(out)
 	}()
-	return final
+	return &RunningPipeline{
+		Outputs: final,
+		Logger:  l,
+	}
 }
 
 // Run starts a pipeline and converts the output to server output structures
@@ -84,7 +106,8 @@ func Run(ctx context.Context, pipe gdbi.Pipeline, workdir string) <-chan *gripql
 		dataType := pipe.DataType()
 		markTypes := pipe.MarkTypes()
 		man := engine.NewManager(workdir)
-		for t := range Start(ctx, pipe, man, bufsize, nil, nil) {
+		rPipe := Start(ctx, pipe, man, bufsize, nil, nil)
+		for t := range rPipe.Outputs {
 			if !t.IsSignal() {
 				resch <- Convert(graph, dataType, markTypes, t)
 			}
@@ -104,9 +127,16 @@ func Resume(ctx context.Context, pipe gdbi.Pipeline, workdir string, input gdbi.
 		dataType := pipe.DataType()
 		markTypes := pipe.MarkTypes()
 		man := engine.NewManager(workdir)
-		for t := range Start(ctx, pipe, man, bufsize, input, cancel) {
-			if !t.IsSignal() {
-				resch <- Convert(graph, dataType, markTypes, t)
+		log.Debugf("resuming: out %s", dataType)
+		rPipe := Start(ctx, pipe, man, bufsize, input, cancel)
+		if rPipe != nil {
+			for t := range rPipe.Outputs {
+				if !t.IsSignal() {
+					resch <- Convert(graph, dataType, markTypes, t)
+				}
+			}
+			if debug {
+				rPipe.Logger.Log()
 			}
 		}
 		man.Cleanup()
@@ -118,33 +148,39 @@ func Resume(ctx context.Context, pipe gdbi.Pipeline, workdir string, input gdbi.
 func Convert(graph gdbi.GraphInterface, dataType gdbi.DataType, markTypes map[string]gdbi.DataType, t gdbi.Traveler) *gripql.QueryResult {
 	switch dataType {
 	case gdbi.VertexData:
-		ve := t.GetCurrent()
-		if ve != nil {
-			if !ve.Loaded {
-				//log.Infof("Loading output vertex: %s", ve.ID)
-				//TODO: doing single vertex queries is slow.
-				// Need to rework this to do batched queries
-				ve = graph.GetVertex(ve.ID, true)
-			}
-			return &gripql.QueryResult{
-				Result: &gripql.QueryResult_Vertex{
-					Vertex: ve.ToVertex(),
-				},
+		ver := t.GetCurrent()
+		if ver != nil {
+			ve := ver.Get()
+			if ve != nil {
+				if !ve.Loaded {
+					//log.Infof("Loading output vertex: %s", ve.ID)
+					//TODO: doing single vertex queries is slow.
+					// Need to rework this to do batched queries
+					ve = graph.GetVertex(ve.ID, true)
+				}
+				return &gripql.QueryResult{
+					Result: &gripql.QueryResult_Vertex{
+						Vertex: ve.ToVertex(),
+					},
+				}
 			}
 		} else {
 			return &gripql.QueryResult{Result: &gripql.QueryResult_Vertex{}}
 		}
 
 	case gdbi.EdgeData:
-		ee := t.GetCurrent()
-		if ee != nil {
-			if !ee.Loaded {
-				ee = graph.GetEdge(ee.ID, true)
-			}
-			return &gripql.QueryResult{
-				Result: &gripql.QueryResult_Edge{
-					Edge: ee.ToEdge(),
-				},
+		eer := t.GetCurrent()
+		if eer != nil {
+			ee := eer.Get()
+			if ee != nil {
+				if !ee.Loaded {
+					ee = graph.GetEdge(ee.ID, true)
+				}
+				return &gripql.QueryResult{
+					Result: &gripql.QueryResult_Edge{
+						Edge: ee.ToEdge(),
+					},
+				}
 			}
 		} else {
 			return &gripql.QueryResult{Result: &gripql.QueryResult_Edge{}}
@@ -154,44 +190,6 @@ func Convert(graph gdbi.GraphInterface, dataType gdbi.DataType, markTypes map[st
 		return &gripql.QueryResult{
 			Result: &gripql.QueryResult_Count{
 				Count: t.GetCount(),
-			},
-		}
-
-	case gdbi.SelectionData:
-		selections := map[string]*gripql.Selection{}
-		for k, v := range t.GetSelections() {
-			switch markTypes[k] {
-			case gdbi.VertexData:
-				var ve *gripql.Vertex
-				if !v.Loaded {
-					ve = graph.GetVertex(v.ID, true).ToVertex()
-				} else {
-					ve = v.ToVertex()
-				}
-				selections[k] = &gripql.Selection{
-					Result: &gripql.Selection_Vertex{
-						Vertex: ve,
-					},
-				}
-			case gdbi.EdgeData:
-				var ee *gripql.Edge
-				if !v.Loaded {
-					ee = graph.GetEdge(ee.Gid, true).ToEdge()
-				} else {
-					ee = v.ToEdge()
-				}
-				selections[k] = &gripql.Selection{
-					Result: &gripql.Selection_Edge{
-						Edge: ee,
-					},
-				}
-			}
-		}
-		return &gripql.QueryResult{
-			Result: &gripql.QueryResult_Selections{
-				Selections: &gripql.Selections{
-					Selections: selections,
-				},
 			},
 		}
 

@@ -159,9 +159,8 @@ func (q *Query) As(id string) *Query {
 }
 
 // Select retreieves previously marked elemets
-func (q *Query) Select(id ...string) *Query {
-	idList := SelectStatement{Marks: id}
-	return q.with(&GraphStatement{Statement: &GraphStatement_Select{&idList}})
+func (q *Query) Select(name string) *Query {
+	return q.with(&GraphStatement{Statement: &GraphStatement_Select{name}})
 }
 
 // Fields selects which properties are returned in the result.
@@ -198,6 +197,15 @@ func (q *Query) Render(template interface{}) *Query {
 
 func (q *Query) Aggregate(agg []*Aggregate) *Query {
 	return q.with(&GraphStatement{Statement: &GraphStatement_Aggregate{Aggregate: &Aggregations{Aggregations: agg}}})
+}
+
+func (q *Query) Pivot(id string, field string, value string) *Query {
+	return q.with(&GraphStatement{Statement: &GraphStatement_Pivot{Pivot: &PivotStep{Id: id, Field: field, Value: value}}})
+}
+
+// Deconstruct a vertex with an array of n fields as n vertices with no array, and a dict object instead
+func (q *Query) Unwind(path string) *Query {
+	return q.with(&GraphStatement{Statement: &GraphStatement_Unwind{Unwind: path}})
 }
 
 func (q *Query) String() string {
@@ -280,7 +288,7 @@ func (q *Query) String() string {
 			add("As", stmt.As)
 
 		case *GraphStatement_Select:
-			add("Select", stmt.Select.Marks...)
+			add("Select", stmt.Select)
 
 		case *GraphStatement_Fields:
 			fields := protoutil.AsStringList(stmt.Fields)

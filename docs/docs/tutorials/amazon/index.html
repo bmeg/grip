@@ -32,7 +32,7 @@
   <div class="global-header">
     <div class="global-header-container">
       <div class="global-header-home">
-        <a href="https://bmeg.github.io/grip"><h1>GRIP</h1></a>
+        <a href="https://bmeg.github.io/grip/"><h1>GRIP</h1></a>
       </div>
       <ul class="global-header-nav">
           <li><a href="https://bmeg.github.io/grip/download//">Download</a></li>
@@ -131,15 +131,6 @@
         <li>
           
           <span class="intermediate">Database Configuration</span></li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/databases/elastic/"
-                   class="sidebar-nav-item "
-                >Elasticsearch</a></li>
-            </ul>
-          </li>
           
           <li>
             <ul class="sidebar-nav sidebar-nav-nested">
@@ -255,6 +246,15 @@
           <li>
             <ul class="sidebar-nav sidebar-nav-nested">
               <li>
+                <a href="https://bmeg.github.io/grip/docs/queries/iterations/"
+                   class="sidebar-nav-item "
+                >Iteration</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
                 <a href="https://bmeg.github.io/grip/docs/queries/jobs_api/"
                    class="sidebar-nav-item "
                 >Jobs API</a></li>
@@ -357,36 +357,36 @@
   <div class="main col span_8_of_12">
     <h1 id="explore-amazon-product-co-purchasing-network-metadata">Explore Amazon Product Co-Purchasing Network Metadata</h1>
 <p>Download the data</p>
-<pre><code>curl -O http://snap.stanford.edu/data/bigdata/amazon/amazon-meta.txt.gz
+<pre tabindex="0"><code>curl -O http://snap.stanford.edu/data/bigdata/amazon/amazon-meta.txt.gz
 </code></pre><p>Convert the data into vertices and edges</p>
-<pre><code>python $GOPATH/src/github.com/bmeg/grip/example/amazon_convert.py amazon-meta.txt.gz amazon.data
+<pre tabindex="0"><code>python $GOPATH/src/github.com/bmeg/grip/example/amazon_convert.py amazon-meta.txt.gz amazon.data
 </code></pre><p>Create a graph called &lsquo;amazon&rsquo;</p>
-<pre><code>grip create amazon
+<pre tabindex="0"><code>grip create amazon
 </code></pre><p>Load the vertices/edges into the graph</p>
-<pre><code>grip load amazon --edge amazon.data.edge --vertex amazon.data.vertex
+<pre tabindex="0"><code>grip load amazon --edge amazon.data.edge --vertex amazon.data.vertex
 </code></pre><p>Query the graph</p>
 <p><em>command line client</em></p>
-<pre><code>grip query amazon 'O.query().V().out()'
+<pre tabindex="0"><code>grip query amazon &#39;O.query().V().out()&#39;
 </code></pre><p><em>python client</em></p>
-<pre><code>pip install &quot;git+https://github.com/bmeg/grip.git#egg=gripql&amp;subdirectory=gripql/python/&quot;
-</code></pre><div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-python" data-lang="python"><span style="color:#f92672">import</span> gripql
-
-conn <span style="color:#f92672">=</span> gripql<span style="color:#f92672">.</span>Connection(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">http://localhost:8201</span><span style="color:#e6db74">&#34;</span>)
-
-g <span style="color:#f92672">=</span> conn<span style="color:#f92672">.</span>graph(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">amazon</span><span style="color:#e6db74">&#34;</span>)
-
-<span style="color:#75715e"># Count the Vertices</span>
-<span style="color:#66d9ef">print</span> g<span style="color:#f92672">.</span>query()<span style="color:#f92672">.</span>V()<span style="color:#f92672">.</span>count()<span style="color:#f92672">.</span>execute()
-<span style="color:#75715e"># Count the Edges</span>
-<span style="color:#66d9ef">print</span> g<span style="color:#f92672">.</span>query()<span style="color:#f92672">.</span>E()<span style="color:#f92672">.</span>count()<span style="color:#f92672">.</span>execute()
-
-<span style="color:#75715e"># Try simple travesral</span>
-<span style="color:#66d9ef">print</span> g<span style="color:#f92672">.</span>query()<span style="color:#f92672">.</span>V(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">B00000I06U</span><span style="color:#e6db74">&#34;</span>)<span style="color:#f92672">.</span>outE()<span style="color:#f92672">.</span>execute()
-
-<span style="color:#75715e"># Find every Book that is similar to a DVD</span>
-<span style="color:#66d9ef">for</span> result <span style="color:#f92672">in</span> g<span style="color:#f92672">.</span>query()<span style="color:#f92672">.</span>V()<span style="color:#f92672">.</span>has(gripql<span style="color:#f92672">.</span>eq(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">group</span><span style="color:#e6db74">&#34;</span>, <span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Book</span><span style="color:#e6db74">&#34;</span>))<span style="color:#f92672">.</span>as_(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">a</span><span style="color:#e6db74">&#34;</span>)<span style="color:#f92672">.</span>out(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">similar</span><span style="color:#e6db74">&#34;</span>)<span style="color:#f92672">.</span>has(gripql<span style="color:#f92672">.</span>eq(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">group</span><span style="color:#e6db74">&#34;</span>, <span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">DVD</span><span style="color:#e6db74">&#34;</span>))<span style="color:#f92672">.</span>as_(<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;</span>)<span style="color:#f92672">.</span>select([<span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">a</span><span style="color:#e6db74">&#34;</span>, <span style="color:#e6db74"></span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">b</span><span style="color:#e6db74">&#34;</span>]):
-    <span style="color:#66d9ef">print</span> result
-</code></pre></div>
+<pre tabindex="0"><code>pip install &#34;git+https://github.com/bmeg/grip.git#egg=gripql&amp;subdirectory=gripql/python/&#34;
+</code></pre><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span><span style="color:#f92672">import</span> gripql
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>conn <span style="color:#f92672">=</span> gripql<span style="color:#f92672">.</span>Connection(<span style="color:#e6db74">&#34;http://localhost:8201&#34;</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>g <span style="color:#f92672">=</span> conn<span style="color:#f92672">.</span>graph(<span style="color:#e6db74">&#34;amazon&#34;</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># Count the Vertices</span>
+</span></span><span style="display:flex;"><span>print g<span style="color:#f92672">.</span>query()<span style="color:#f92672">.</span>V()<span style="color:#f92672">.</span>count()<span style="color:#f92672">.</span>execute()
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># Count the Edges</span>
+</span></span><span style="display:flex;"><span>print g<span style="color:#f92672">.</span>query()<span style="color:#f92672">.</span>E()<span style="color:#f92672">.</span>count()<span style="color:#f92672">.</span>execute()
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># Try simple travesral</span>
+</span></span><span style="display:flex;"><span>print g<span style="color:#f92672">.</span>query()<span style="color:#f92672">.</span>V(<span style="color:#e6db74">&#34;B00000I06U&#34;</span>)<span style="color:#f92672">.</span>outE()<span style="color:#f92672">.</span>execute()
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># Find every Book that is similar to a DVD</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">for</span> result <span style="color:#f92672">in</span> g<span style="color:#f92672">.</span>query()<span style="color:#f92672">.</span>V()<span style="color:#f92672">.</span>has(gripql<span style="color:#f92672">.</span>eq(<span style="color:#e6db74">&#34;group&#34;</span>, <span style="color:#e6db74">&#34;Book&#34;</span>))<span style="color:#f92672">.</span>as_(<span style="color:#e6db74">&#34;a&#34;</span>)<span style="color:#f92672">.</span>out(<span style="color:#e6db74">&#34;similar&#34;</span>)<span style="color:#f92672">.</span>has(gripql<span style="color:#f92672">.</span>eq(<span style="color:#e6db74">&#34;group&#34;</span>, <span style="color:#e6db74">&#34;DVD&#34;</span>))<span style="color:#f92672">.</span>as_(<span style="color:#e6db74">&#34;b&#34;</span>)<span style="color:#f92672">.</span>select([<span style="color:#e6db74">&#34;a&#34;</span>, <span style="color:#e6db74">&#34;b&#34;</span>]):
+</span></span><span style="display:flex;"><span>    print result
+</span></span></code></pre></div>
   </div>
 
 </div>

@@ -44,7 +44,7 @@ def test_replace(man):
         errors.append("vertex has unexpected data")
 
     if G.getEdge("edge1")["data"] != {"weight": 5}:
-        errors.append("edge is missing expected data")
+        errors.append("edge is missing expected data: %s" % (G.getEdge("edge1")))
 
     return errors
 
