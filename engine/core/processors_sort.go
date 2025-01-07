@@ -17,6 +17,15 @@ type Sort struct {
 
 // compareAny compares two variables of any type.
 func compareAny(a, b any) int {
+
+	if a == nil && b != nil {
+		return -1
+	} else if a != nil && b == nil {
+		return 1
+	} else if a == nil && b == nil {
+		return 0
+	}
+
 	// Get the types of the variables.
 	ta := reflect.TypeOf(a)
 	tb := reflect.TypeOf(b)
