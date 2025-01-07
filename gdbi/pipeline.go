@@ -83,5 +83,7 @@ type StatementCompiler interface {
 	Fields(gs *gripql.GraphStatement_Fields, ps *State) (Processor, error)
 	Aggregate(gs *gripql.GraphStatement_Aggregate, ps *State) (Processor, error)
 
+	Sort(gs *gripql.GraphStatement_Sort, ps *State) (Processor, error)
+
 	Custom(gs *gripql.GraphStatement, ps *State) (Processor, error)
 }
