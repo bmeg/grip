@@ -210,6 +210,10 @@ func (sc *DefaultStmtCompiler) Unwind(stmt *gripql.GraphStatement_Unwind, ps *gd
 	return &Unwind{stmt.Unwind}, nil
 }
 
+func (sc *DefaultStmtCompiler) Group(stmt *gripql.GraphStatement_Group, ps *gdbi.State) (gdbi.Processor, error) {
+	return &Group{stmt.Group.Fields}, nil
+}
+
 func (sc *DefaultStmtCompiler) Fields(stmt *gripql.GraphStatement_Fields, ps *gdbi.State) (gdbi.Processor, error) {
 	fields := protoutil.AsStringList(stmt.Fields)
 	return &Fields{fields}, nil

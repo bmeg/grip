@@ -310,7 +310,6 @@ class Query(BaseConnection):
         """
         return self.__append({"pivot": {"id":id, "field":field, "value":value}})
 
-
     def path(self):
         """
         Display path of query
@@ -322,6 +321,15 @@ class Query(BaseConnection):
         Unwind an array
         """
         return self.__append({"unwind": field})
+
+    def group(self,fields):
+        """
+        Group togeather travelers that are on the same element
+        """
+        f = []
+        for k, v in fields.items():
+            f.append({ "dest" : k, "field" : v })
+        return self.__append({"group" : {"fields" : f }})
 
     def aggregate(self, aggregations):
         """
