@@ -78,6 +78,10 @@ func PipelineAsSteps(stmts []*gripql.GraphStatement) map[string]string {
 }
 
 // PipelineStepOutputs identify the required outputs for each step in the traversal
+// If fields, or specific steps of the traversal are not detected by this step, they
+// may be omitted from the loading. For example, in a out().out() jump the middle
+// vertex is never actual accessed, it's just part of the traversal, so the data from
+// it doesn't need to be loaded
 func PipelineStepOutputs(stmts []*gripql.GraphStatement, storeMarks bool) map[string][]string {
 
 	// mapping of what steps of the traversal as used at each stage of the pipeline
@@ -119,6 +123,15 @@ func PipelineStepOutputs(stmts []*gripql.GraphStatement, storeMarks bool) map[st
 
 		case *gripql.GraphStatement_Pivot:
 			//TODO: figure out which fields are referenced
+			onLast = false
+
+		case *gripql.GraphStatement_Group:
+			for _, f := range gs.GetGroup().Fields {
+				n := tpath.GetNamespace(f.Field)
+				if a, ok := asMap[n]; ok {
+					out[a] = []string{"*"}
+				}
+			}
 			onLast = false
 
 		case *gripql.GraphStatement_Distinct:

@@ -225,6 +225,9 @@ func StatementProcessor(
 		return sc.Unwind(stmt, ps)
 
 	case *gripql.GraphStatement_Group:
+		if ps.LastType != VertexData && ps.LastType != EdgeData {
+			return nil, fmt.Errorf(`"group" statement is only valid for edge or vertex types not: %s`, ps.LastType.String())
+		}
 		return sc.Group(stmt, ps)
 
 	case *gripql.GraphStatement_Fields:
