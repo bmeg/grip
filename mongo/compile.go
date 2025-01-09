@@ -2,6 +2,7 @@ package mongo
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/bmeg/grip/engine/core"
@@ -714,6 +715,45 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement, opts *gdbi.Compile
 			}
 
 			query = append(query, bson.D{primitive.E{Key: "$project", Value: fieldSelect}})
+
+		case *gripql.GraphStatement_Group:
+			if lastType != gdbi.VertexData && lastType != gdbi.EdgeData {
+				return &Pipeline{}, fmt.Errorf(`"group" statement is only valid for edge or vertex types not: %s`, lastType.String())
+			}
+
+			//group entiies by the primary ID
+			grouping := bson.M{
+				"_id": "$" + FIELD_CURRENT_ID,
+				"dst": bson.M{"$first": "$$ROOT"},
+			}
+			//We're only keeping the first 'current' record, for everything else
+			//accumulate all the requested fields
+			nMap := map[string]int{}
+			for i, f := range stmt.Group.Fields {
+				n := strconv.Itoa(i)
+				nMap[n] = i
+				grouping[n] = bson.M{
+					"$push": "$" + ToPipelinePath(f.Field),
+				}
+			}
+			query = append(query, bson.D{primitive.E{
+				Key: "$group", Value: grouping,
+			}})
+
+			//Take the accumulated fields and push them into the document
+			aFields := bson.M{}
+			for n, i := range nMap {
+				dstField := "dst.data." + stmt.Group.Fields[i].Dest
+				srcField := "$" + n
+				aFields[dstField] = srcField
+			}
+			query = append(query, bson.D{primitive.E{Key: "$addFields", Value: aFields}})
+			//project back into the regular shape of a traveler
+			query = append(query, bson.D{primitive.E{Key: "$project", Value: bson.M{
+				"data":  "$dst.data",
+				"marks": "$dst.marks",
+				"path":  "$dst.path",
+			}}})
 
 		case *gripql.GraphStatement_Aggregate:
 			if lastType != gdbi.VertexData && lastType != gdbi.EdgeData {

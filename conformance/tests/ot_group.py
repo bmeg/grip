@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import gripql
 
-def test_hasLabel(man):
+def test_childGroups(man):
     errors = []
     G = man.setGraph("swapi")
 
@@ -12,7 +12,7 @@ def test_hasLabel(man):
     }
 
     for i in G.query().V().hasLabel("Planet").as_("planet").out("residents").as_("character").select("planet").group( {"people" : "$character.name"}  ):
-        #print(i)
+        print(i)
         if sorted(i["data"]["people"]) != sorted(mapping[i["gid"]]):
             errors.append("grouped output not equal: %s != %s" % (sorted(i["data"]["people"]) , sorted(mapping[i["gid"]])))
     return errors
