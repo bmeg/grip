@@ -52,7 +52,8 @@ func PipelineSteps(stmts []*gripql.GraphStatement) []string {
 			*gripql.GraphStatement_Range, *gripql.GraphStatement_Aggregate, *gripql.GraphStatement_Render,
 			*gripql.GraphStatement_Fields, *gripql.GraphStatement_Unwind, *gripql.GraphStatement_Path,
 			*gripql.GraphStatement_Set, *gripql.GraphStatement_Increment,
-			*gripql.GraphStatement_Mark, *gripql.GraphStatement_Jump, *gripql.GraphStatement_Pivot:
+			*gripql.GraphStatement_Mark, *gripql.GraphStatement_Jump, *gripql.GraphStatement_Pivot,
+			*gripql.GraphStatement_Group:
 		case *gripql.GraphStatement_LookupVertsIndex, *gripql.GraphStatement_EngineCustom:
 		default:
 			log.Errorf("Unknown Graph Statement: %T", gs.GetStatement())
@@ -132,7 +133,6 @@ func PipelineStepOutputs(stmts []*gripql.GraphStatement, storeMarks bool) map[st
 					out[a] = []string{"*"}
 				}
 			}
-			onLast = false
 
 		case *gripql.GraphStatement_Distinct:
 			//if there is a distinct step, we need to load data, but only for requested fields
