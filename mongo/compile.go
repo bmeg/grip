@@ -728,12 +728,13 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement, opts *gdbi.Compile
 			}
 			//We're only keeping the first 'current' record, for everything else
 			//accumulate all the requested fields
-			nMap := map[string]int{}
-			for i, f := range stmt.Group.Fields {
+			nMap := map[string]string{}
+			i := 0
+			for dest, field := range stmt.Group.Fields {
 				n := strconv.Itoa(i)
-				nMap[n] = i
+				nMap[dest] = n
 				grouping[n] = bson.M{
-					"$push": "$" + ToPipelinePath(f.Field),
+					"$push": "$" + ToPipelinePath(field),
 				}
 			}
 			query = append(query, bson.D{primitive.E{
@@ -742,9 +743,9 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement, opts *gdbi.Compile
 
 			//Take the accumulated fields and push them into the document
 			aFields := bson.M{}
-			for n, i := range nMap {
-				dstField := "dst.data." + stmt.Group.Fields[i].Dest
-				srcField := "$" + n
+			for dest := range stmt.Group.Fields {
+				dstField := "dst.data." + dest
+				srcField := "$" + nMap[dest]
 				aFields[dstField] = srcField
 			}
 			query = append(query, bson.D{primitive.E{Key: "$addFields", Value: aFields}})

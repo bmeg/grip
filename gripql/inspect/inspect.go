@@ -128,7 +128,7 @@ func PipelineStepOutputs(stmts []*gripql.GraphStatement, storeMarks bool) map[st
 
 		case *gripql.GraphStatement_Group:
 			for _, f := range gs.GetGroup().Fields {
-				n := tpath.GetNamespace(f.Field)
+				n := tpath.GetNamespace(f)
 				if a, ok := asMap[n]; ok {
 					out[a] = []string{"*"}
 				}

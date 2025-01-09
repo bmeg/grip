@@ -584,19 +584,19 @@ func (r *Unwind) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, 
 
 // Group
 type Group struct {
-	grouping []*gripql.GroupField
+	grouping map[string]string
 }
 
 func (r *Group) reduce(curTraveler *gdbi.BaseTraveler, newTraveler *gdbi.BaseTraveler) {
-	for _, f := range r.grouping {
-		v := gdbi.TravelerPathLookup(newTraveler, f.Field)
+	for dest, field := range r.grouping {
+		v := gdbi.TravelerPathLookup(newTraveler, field)
 		if curTraveler.Current != nil {
-			if a, ok := curTraveler.Current.Data[f.Dest]; ok {
+			if a, ok := curTraveler.Current.Data[dest]; ok {
 				if aSlice, ok := a.([]any); ok {
-					curTraveler.Current.Data[f.Dest] = append(aSlice, v)
+					curTraveler.Current.Data[dest] = append(aSlice, v)
 				}
 			} else {
-				curTraveler.Current.Data[f.Dest] = []any{v}
+				curTraveler.Current.Data[dest] = []any{v}
 			}
 		}
 	}

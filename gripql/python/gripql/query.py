@@ -326,10 +326,7 @@ class Query(BaseConnection):
         """
         Group togeather travelers that are on the same element
         """
-        f = []
-        for k, v in fields.items():
-            f.append({ "dest" : k, "field" : v })
-        return self.__append({"group" : {"fields" : f }})
+        return self.__append({"group" : {"fields" : fields }})
 
     def aggregate(self, aggregations):
         """

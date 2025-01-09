@@ -121,13 +121,8 @@ message CountAggregation {
 
 }
 
-message GroupField {
-  string dest = 1;
-  string field = 2;
-}
-
 message Group {
-  repeated GroupField fields = 1;
+  map<string,string> fields = 1;
 }
 
 message PivotStep {

@@ -154,11 +154,7 @@ function query(client=null) {
 			return this
 		},
 		group: function(fields) {
-			ff = []
-			for (key in fields) {
-				ff.push({ "dest" : key, "field" : fields[key]})
-			}
-			this.query.push({"group": {"fields":ff}})
+			this.query.push({"group": {"fields":fields}})
 			return this
 		},
 		toList: function() {
