@@ -736,6 +736,7 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement, opts *gdbi.Compile
 				grouping[n] = bson.M{
 					"$push": "$" + ToPipelinePath(field),
 				}
+				i++
 			}
 			query = append(query, bson.D{primitive.E{
 				Key: "$group", Value: grouping,
