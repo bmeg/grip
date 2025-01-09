@@ -208,6 +208,10 @@ func (q *Query) Unwind(path string) *Query {
 	return q.with(&GraphStatement{Statement: &GraphStatement_Unwind{Unwind: path}})
 }
 
+func (q *Query) Group(fields map[string]string) *Query {
+	return q.with(&GraphStatement{Statement: &GraphStatement_Group{Group: &Group{Fields: fields}}})
+}
+
 func (q *Query) String() string {
 	parts := []string{}
 	add := func(name string, x ...string) {

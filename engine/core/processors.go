@@ -594,6 +594,8 @@ func (r *Group) reduce(curTraveler *gdbi.BaseTraveler, newTraveler *gdbi.BaseTra
 			if a, ok := curTraveler.Current.Data[dest]; ok {
 				if aSlice, ok := a.([]any); ok {
 					curTraveler.Current.Data[dest] = append(aSlice, v)
+				} else if !ok {
+					curTraveler.Current.Data[dest] = []any{v}
 				}
 			} else {
 				curTraveler.Current.Data[dest] = []any{v}
