@@ -201,6 +201,43 @@ As results are iterated return objects starting with lower index As traversers p
 G.query().V().range(5, 15)
 ```
 
+## .unwind(fields)
+Take an array based element and break it into single elements on different travelers
+
+For the data:
+```json
+{"_gid":"1", "_label":"Thing", "stuff" : ["1", "2", "3"]}
+```
+
+with the command
+```python
+G.query().V("1").unwind("stuff")
+```
+
+returns
+```json
+{"_gid":"1", "_label":"Thing", "stuff" : "1"}
+{"_gid":"1", "_label":"Thing", "stuff" : "2"}
+{"_gid":"1", "_label":"Thing", "stuff" : "3"}
+```
+
+## .group({"dest":"field"})
+Collect all travelers that are on the same element while aggregating specific fields
+
+For the example:
+```python
+G.query().V().hasLabel("Planet").as_("planet").out("residents").as_("character").select("planet").group( {"people" : "$character.name"}  )
+```
+All of the travelers that start on the same planet go out to residents, collect them using the `as_` and then returning to the origin 
+using the `select` statement. The group statement aggrigates the `name` fields from the character nodes that were visited and collects them 
+into a list named `people` that is added to the current planet node.
+
+Output:
+```json
+{"vertex":{"gid":"Planet:2", "label":"Planet", "data":{"climate":"temperate", "diameter":12500, "gravity":null, "name":"Alderaan", "orbital_period":364, "people":["Leia Organa", "Raymus Antilles"], "population":2000000000, "rotation_period":24, "surface_water":40, "system":{"created":"2014-12-10T11:35:48.479000Z", "edited":"2014-12-20T20:58:18.420000Z"}, "terrain":["grasslands", "mountains"], "url":"https://swapi.co/api/planets/2/"}}}
+{"vertex":{"gid":"Planet:1", "label":"Planet", "data":{"climate":"arid", "diameter":10465, "gravity":null, "name":"Tatooine", "orbital_period":304, "people":["Luke Skywalker", "C-3PO", "Darth Vader", "Owen Lars", "Beru Whitesun lars", "R5-D4", "Biggs Darklighter"], "population":200000, "rotation_period":23, "surface_water":1, "system":{"created":"2014-12-09T13:50:49.641000Z", "edited":"2014-12-21T20:48:04.175778Z"}, "terrain":["desert"], "url":"https://swapi.co/api/planets/1/"}}}
+```
+
 
 ## .fields([fields])
 Select which vertex/edge fields to return or exlucde. Operation with no arguments exlcudes all properties. 
