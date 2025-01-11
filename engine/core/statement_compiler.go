@@ -214,6 +214,10 @@ func (sc *DefaultStmtCompiler) Group(stmt *gripql.GraphStatement_Group, ps *gdbi
 	return &Group{stmt.Group.Fields}, nil
 }
 
+func (sc *DefaultStmtCompiler) ToType(stmt *gripql.GraphStatement_Totype, ps *gdbi.State) (gdbi.Processor, error) {
+	return &ToType{Field: stmt.Totype.Field, TypeName: stmt.Totype.TypeName}, nil
+}
+
 func (sc *DefaultStmtCompiler) Fields(stmt *gripql.GraphStatement_Fields, ps *gdbi.State) (gdbi.Processor, error) {
 	fields := protoutil.AsStringList(stmt.Fields)
 	return &Fields{fields}, nil

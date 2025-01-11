@@ -595,6 +595,7 @@ func (r *Group) reduce(curTraveler *gdbi.BaseTraveler, newTraveler *gdbi.BaseTra
 				if aSlice, ok := a.([]any); ok {
 					curTraveler.Current.Data[dest] = append(aSlice, v)
 				} else if !ok {
+					// overwrite existing data
 					curTraveler.Current.Data[dest] = []any{v}
 				}
 			} else {
@@ -667,6 +668,32 @@ func (r *Group) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, o
 
 ////////////////////////////////////////////////////////////////////////////////
 
+// ToType
+type ToType struct {
+	Field    string
+	TypeName string
+}
+
+func (tt *ToType) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
+	go func() {
+		defer close(out)
+		for t := range in {
+			if t.IsSignal() {
+				out <- t
+				continue
+			}
+
+			totype := logic.ConvertToType(gdbi.TravelerPathLookup(t, tt.Field), tt.TypeName)
+			gdbi.TravelerSetValue(t, tt.Field, totype)
+			out <- t
+
+		}
+	}()
+	return ctx
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
 // Has filters based on data
 type Has struct {
 	stmt *gripql.HasExpression
@@ -681,6 +708,7 @@ func (w *Has) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out
 				out <- t
 				continue
 			}
+
 			if logic.MatchesHasExpression(t, w.stmt) {
 				out <- t
 			}

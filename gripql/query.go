@@ -212,6 +212,10 @@ func (q *Query) Group(fields map[string]string) *Query {
 	return q.with(&GraphStatement{Statement: &GraphStatement_Group{Group: &Group{Fields: fields}}})
 }
 
+func (q *Query) ToType(field string, typeName string) *Query {
+	return q.with(&GraphStatement{Statement: &GraphStatement_Totype{Totype: &ToType{Field: field, TypeName: typeName}}})
+}
+
 func (q *Query) String() string {
 	parts := []string{}
 	add := func(name string, x ...string) {
