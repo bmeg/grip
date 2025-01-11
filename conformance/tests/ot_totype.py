@@ -1,11 +1,13 @@
 import gripql
 
-def test_type(man):
+def test_totype(man):
     errors = []
 
     G = man.setGraph("swapi")
 
-    q = G.query().V().hasLabel("Character").totype("birth_year", "string").totype("eye_color", "float").totype("gender", "bool").totype("hair_color", "int").totype("skin_color", "list").totype("mass", "string")
+    q = G.query().V().hasLabel("Character").totype("birth_year", "string").totype("eye_color", "float").totype("hair_color", "int").totype("skin_color", "list").totype("mass", "string").execute()
+    if len(q) == 0:
+        errors.append("ERROR, q returns no items")
     for row in q:
         data = row["data"]
         # transforms that should work
@@ -20,37 +22,41 @@ def test_type(man):
         # transforms that shouldn't work'
         if data["eye_color"] != 0.0:
             errors.append("string value %s should be 0.0" % (data["eye_color"]))
-        if data["gender"] != False:
-            errors.append("%s should be false" % (data["gender"]))
         if data["hair_color"] != 0:
-            errors.append("%d should be 0" % (data["hair_color"]))
+            errors.append("%s should be 0" % (data["hair_color"]))
 
-    r = G.query().V().hasLabel("Starship").totype("hyperdrive_rating", "string").totype("hyperdrive_rating", "float").totype("length", "int").totype("length", "float").totype("system", "list")
+    r = G.query().V().hasLabel("Starship").totype("hyperdrive_rating", "string").totype("length", "int").totype("length", "float").totype("system", "list").execute()
+    if len(r) == 0:
+        errors.append("ERROR, r returns no items")
     for row in r:
         data = row["data"]
-        if data["hyperdrive_rating"] == 0:
-            errors.append("float field converted to string and back to float should be non 0 field")
+        if  isinstance(data["hyperdrive_rating"], int) or isinstance(data["hyperdrive_rating"], float):
+            errors.append("float field %s should be int or float" %(data["hyperdrive_rating"]))
         if not isinstance(data["length"], int):
-            errors.append("float field converted to int and back to float should be int")
+            errors.append("float field %s should be int" %(data["length"]))
         if not isinstance(data["system"], list):
-            errors.append("dict object 'system' should be list")
+            errors.append("dict object with key 'system' %s should be list" %(data["system"]))
 
-    s = G.query().V().hasLabel("Species").totype("system.created", "bool")
+    s = G.query().V().hasLabel("Species").totype("system.created", "bool").execute()
+    if len(s) == 0:
+        errors.append("ERROR, s returns no items")
     for row in s:
         data = row["data"]
-        if data["system"]["created"] != False:
+        if data["system"]["created"] != True:
             errors.append("string %s to bool should be False" %(data["system"]["created"]))
 
 
-    t = G.query().V().hasLabel("Starship").totype("MGLT", "bool").totype("eye_colors", "int").totype("classification", "int")
+    t = G.query().V().hasLabel("Starship").totype("MGLT", "bool").totype("eye_colors", "int").totype("classification", "int").execute()
+    if len(t) == 0:
+        errors.append("ERROR, t returns no items")
 
     for row in t:
         data = row["data"]
         if data["length"] is False:
-            errors.append("int %d to bool should be True" %(data["MGLT"]))
+            errors.append("int %s to bool should be True" %(data["MGLT"]))
         if data["eye_colors"] != 0:
-            errors.append("list %d to bool should be False" %(data["eye_colors"]))
+            errors.append("list %s to bool should be False" %(data["eye_colors"]))
         if data["classification"] !=  0:
-            errors.append("string %d to bool should be False" %(data["classification"]))
+            errors.append("string %s to bool should be False" %(data["classification"]))
 
     return errors

@@ -21,9 +21,9 @@ func ConvertToType(input any, targetType string) any {
 		}
 	case "bool":
 		switch v := input.(type) {
+		// Trying to match mongodb behavior https://www.mongodb.com/docs/manual/reference/operator/aggregation/convert/#std-label-convert-to-bool
 		case string:
-			parsedBool, _ := strconv.ParseBool(v)
-			return parsedBool
+			return true
 		case int:
 			return v != 0
 		case float64:
