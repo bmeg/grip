@@ -611,7 +611,7 @@ func (r *Group) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, o
 		defer close(out)
 		kv := man.GetTempKV()
 		defer kv.Close()
-		fmt.Printf("Grouping: %s", r.grouping)
+
 		//collect
 		kv.BulkWrite(func(bl kvi.KVBulkWrite) error {
 			var idx uint64 = 0
