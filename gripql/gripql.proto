@@ -55,6 +55,7 @@ message GraphStatement {
     google.protobuf.ListValue fields = 50;
     string unwind = 51;
     Group group = 52;
+    ToType totype = 53;
 
     string count = 60;
     Aggregations aggregate = 61;
@@ -123,6 +124,11 @@ message CountAggregation {
 
 message Group {
   map<string,string> fields = 1;
+}
+
+message ToType {
+    string field = 1;
+    string type_name = 2;
 }
 
 message PivotStep {

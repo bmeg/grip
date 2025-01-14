@@ -662,6 +662,84 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement, opts *gdbi.Compile
 			query = append(query,
 				bson.D{primitive.E{Key: "$unwind", Value: "$data." + f}})
 
+		case *gripql.GraphStatement_Totype:
+			if lastType != gdbi.VertexData && lastType != gdbi.EdgeData {
+				return &Pipeline{}, fmt.Errorf(`"group" statement is only valid for edge or vertex types not: %s`, lastType.String())
+			}
+
+			if stmt.Totype.TypeName == "float" {
+				stmt.Totype.TypeName = "double"
+			} else if stmt.Totype.TypeName == "list" {
+				stmt.Totype.TypeName = "array"
+			}
+			f := ToPipelinePath(stmt.Totype.Field)
+			query = append(query, bson.D{
+				{Key: "$set", Value: bson.D{
+					{Key: f, Value: bson.D{
+						{Key: "$convert", Value: bson.D{
+							{Key: "input", Value: f},
+							{Key: "to", Value: stmt.Totype.TypeName},
+							{Key: "onError", Value: bson.D{
+								{Key: "$switch", Value: bson.D{
+									{Key: "branches", Value: bson.A{
+										// handle list input
+										bson.D{
+											{Key: "case", Value: bson.D{
+												{Key: "$eq", Value: bson.A{
+													bson.D{{Key: "$literal", Value: stmt.Totype.TypeName}}, "array",
+												}},
+											}},
+											{Key: "then", Value: bson.D{
+												{Key: "$concatArrays", Value: bson.A{
+													bson.A{"$" + f},
+												}},
+											}},
+										},
+										// Handle string input
+										bson.D{
+											{Key: "case", Value: bson.D{
+												{Key: "$eq", Value: bson.A{
+													bson.D{{Key: "$literal", Value: stmt.Totype.TypeName}}, "string",
+												}},
+											}},
+											{Key: "then", Value: ""},
+										},
+										// Handle boolean input
+										bson.D{
+											{Key: "case", Value: bson.D{
+												{Key: "$eq", Value: bson.A{
+													bson.D{{Key: "$literal", Value: stmt.Totype.TypeName}}, "bool",
+												}},
+											}},
+											{Key: "then", Value: false},
+										},
+										// Handle float input
+										bson.D{
+											{Key: "case", Value: bson.D{
+												{Key: "$eq", Value: bson.A{
+													bson.D{{Key: "$literal", Value: stmt.Totype.TypeName}}, "double",
+												}},
+											}},
+											{Key: "then", Value: 0.0},
+										},
+										// Handle int input
+										bson.D{
+											{Key: "case", Value: bson.D{
+												{Key: "$eq", Value: bson.A{
+													bson.D{{Key: "$literal", Value: stmt.Totype.TypeName}}, "int",
+												}},
+											}},
+											{Key: "then", Value: 0},
+										},
+									}},
+									{Key: "default", Value: nil}, // Default empty list for unhandled types
+								}},
+							}},
+						}},
+					}},
+				}},
+			})
+
 		case *gripql.GraphStatement_Fields:
 			if lastType != gdbi.VertexData && lastType != gdbi.EdgeData {
 				return &Pipeline{}, fmt.Errorf(`"fields" statement is only valid for edge or vertex types not: %s`, lastType.String())

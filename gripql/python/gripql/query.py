@@ -328,6 +328,12 @@ class Query(BaseConnection):
         """
         return self.__append({"group" : {"fields" : fields }})
 
+    def totype(self, path, typeName):
+        """
+        Cast a field located at 'path' to a primitive type or list specified as 'typeName'
+        """
+        return self.__append({"totype" : {"field" : path, "type_name": typeName }})
+
     def aggregate(self, aggregations):
         """
         Aggregate results of query output
