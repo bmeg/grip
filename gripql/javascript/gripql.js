@@ -149,6 +149,14 @@ function query(client=null) {
 			this.query.push({'aggregate': {'aggregations': Array.prototype.slice.call(arguments)}})
 			return this
 		},
+		unwind: function(field) {
+			this.query.push({"unwind": field})
+			return this
+		},
+		group: function(fields) {
+			this.query.push({"group": {"fields":fields}})
+			return this
+		},
 		toList: function() {
 			return this.client.toList( {"query": this.query} )
 		}

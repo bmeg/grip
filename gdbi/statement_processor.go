@@ -224,6 +224,18 @@ func StatementProcessor(
 	case *gripql.GraphStatement_Unwind:
 		return sc.Unwind(stmt, ps)
 
+	case *gripql.GraphStatement_Group:
+		if ps.LastType != VertexData && ps.LastType != EdgeData {
+			return nil, fmt.Errorf(`"group" statement is only valid for edge or vertex types not: %s`, ps.LastType.String())
+		}
+		return sc.Group(stmt, ps)
+
+	case *gripql.GraphStatement_Totype:
+		if ps.LastType != VertexData && ps.LastType != EdgeData {
+			return nil, fmt.Errorf(`"totype" statement is only valid for edge or vertex types not: %s`, ps.LastType.String())
+		}
+		return sc.ToType(stmt, ps)
+
 	case *gripql.GraphStatement_Fields:
 		if ps.LastType != VertexData && ps.LastType != EdgeData {
 			return nil, fmt.Errorf(`"fields" statement is only valid for edge or vertex types not: %s`, ps.LastType.String())

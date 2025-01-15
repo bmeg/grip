@@ -80,6 +80,9 @@ type StatementCompiler interface {
 
 	Path(gs *gripql.GraphStatement_Path, ps *State) (Processor, error)
 	Unwind(gs *gripql.GraphStatement_Unwind, ps *State) (Processor, error)
+	Group(gs *gripql.GraphStatement_Group, ps *State) (Processor, error)
+	ToType(gs *gripql.GraphStatement_Totype, ps *State) (Processor, error)
+
 	Fields(gs *gripql.GraphStatement_Fields, ps *State) (Processor, error)
 	Aggregate(gs *gripql.GraphStatement_Aggregate, ps *State) (Processor, error)
 
