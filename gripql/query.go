@@ -208,6 +208,14 @@ func (q *Query) Unwind(path string) *Query {
 	return q.with(&GraphStatement{Statement: &GraphStatement_Unwind{Unwind: path}})
 }
 
+func (q *Query) Group(fields map[string]string) *Query {
+	return q.with(&GraphStatement{Statement: &GraphStatement_Group{Group: &Group{Fields: fields}}})
+}
+
+func (q *Query) ToType(field string, typeName string) *Query {
+	return q.with(&GraphStatement{Statement: &GraphStatement_Totype{Totype: &ToType{Field: field, TypeName: typeName}}})
+}
+
 func (q *Query) String() string {
 	parts := []string{}
 	add := func(name string, x ...string) {
@@ -296,6 +304,18 @@ func (q *Query) String() string {
 
 		case *GraphStatement_Aggregate:
 			add("Aggregate")
+
+		case *GraphStatement_Unwind:
+			add("Unwind", stmt.Unwind)
+
+		case *GraphStatement_Pivot:
+			add("Pivot", fmt.Sprintf("%s", stmt.Pivot.Id), fmt.Sprintf("%s", stmt.Pivot.Field), fmt.Sprintf("%s", stmt.Pivot.Value))
+
+		case *GraphStatement_Group:
+			add("Group", fmt.Sprintf("%v", stmt.Group.Fields))
+
+		case *GraphStatement_Totype:
+			add("Totype", fmt.Sprintf("%s", stmt.Totype.Field), fmt.Sprintf("%s", stmt.Totype.TypeName))
 
 		case *GraphStatement_Render:
 			jtxt, err := protojson.Marshal(stmt.Render)

@@ -53,7 +53,7 @@ func PipelineSteps(stmts []*gripql.GraphStatement) []string {
 			*gripql.GraphStatement_Fields, *gripql.GraphStatement_Unwind, *gripql.GraphStatement_Path,
 			*gripql.GraphStatement_Set, *gripql.GraphStatement_Increment,
 			*gripql.GraphStatement_Mark, *gripql.GraphStatement_Jump, *gripql.GraphStatement_Sort,
-			*gripql.GraphStatement_Pivot:
+			*gripql.GraphStatement_Pivot, *gripql.GraphStatement_Group, *gripql.GraphStatement_Totype:
 		case *gripql.GraphStatement_LookupVertsIndex, *gripql.GraphStatement_EngineCustom:
 		default:
 			log.Errorf("Unknown Graph Statement: %T", gs.GetStatement())
@@ -79,6 +79,10 @@ func PipelineAsSteps(stmts []*gripql.GraphStatement) map[string]string {
 }
 
 // PipelineStepOutputs identify the required outputs for each step in the traversal
+// If fields, or specific steps of the traversal are not detected by this step, they
+// may be omitted from the loading. For example, in a out().out() jump the middle
+// vertex is never actual accessed, it's just part of the traversal, so the data from
+// it doesn't need to be loaded
 func PipelineStepOutputs(stmts []*gripql.GraphStatement, storeMarks bool) map[string][]string {
 
 	// mapping of what steps of the traversal as used at each stage of the pipeline
@@ -121,6 +125,14 @@ func PipelineStepOutputs(stmts []*gripql.GraphStatement, storeMarks bool) map[st
 		case *gripql.GraphStatement_Pivot:
 			//TODO: figure out which fields are referenced
 			onLast = false
+
+		case *gripql.GraphStatement_Group:
+			for _, f := range gs.GetGroup().Fields {
+				n := tpath.GetNamespace(f)
+				if a, ok := asMap[n]; ok {
+					out[a] = []string{"*"}
+				}
+			}
 
 		case *gripql.GraphStatement_Distinct:
 			//if there is a distinct step, we need to load data, but only for requested fields
