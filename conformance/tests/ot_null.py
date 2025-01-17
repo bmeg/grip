@@ -33,9 +33,19 @@ def test_returnNil(man):
         #print(i)
         count_1 += 1
 
-    return errors    
+    return errors
 
+def test_returnNilUnwind(man):
+    errors = []
 
+    G = man.setGraph("swapi")
+
+    # outNull generates null maps that must be skipped in the unwind step. Was causing segfault before.
+    for i in G.query().V().outNull("species").unwind('eye_colors'):
+        if i['data']['eye_colors'] is not None and not isinstance(i['data']['eye_colors'], str):
+            errors.append("expecting i['eye_colors'] to be string after unwind but got %s instead" % i['eye_colors'])
+
+    return errors
 def test_hasLabelOut(man):
     errors = []
 
