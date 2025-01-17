@@ -564,16 +564,19 @@ func (r *Unwind) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, 
 				}
 			} else {
 				cur := t.GetCurrent()
-				o := gdbi.DataElement{
-					ID:    cur.Get().ID,
-					Label: cur.Get().Label,
-					From:  cur.Get().From,
-					To:    cur.Get().To,
-					Data:  copy.DeepCopy(cur.Get().Data).(map[string]interface{}), Loaded: true,
+				// if outnull returns null cur can be empty
+				if cur.Get() != nil {
+					o := gdbi.DataElement{
+						ID:    cur.Get().ID,
+						Label: cur.Get().Label,
+						From:  cur.Get().From,
+						To:    cur.Get().To,
+						Data:  copy.DeepCopy(cur.Get().Data).(map[string]interface{}), Loaded: true,
+					}
+					n := t.AddCurrent(&o)
+					gdbi.TravelerSetValue(n, r.Field, nil)
+					out <- n
 				}
-				n := t.AddCurrent(&o)
-				gdbi.TravelerSetValue(n, r.Field, nil)
-				out <- n
 			}
 		}
 	}()
