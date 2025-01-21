@@ -1,14 +1,47 @@
 package main
 
 import (
-	"fmt"
+	"encoding/json"
 	"os"
-	"slices"
+	"strings"
 	"testing"
 
 	"github.com/bmeg/grip/engine/logic"
-	"github.com/cockroachdb/pebble"
 )
+
+type JSONCompare struct{}
+
+// Compare implements logic.SortConf.
+func (j *JSONCompare) Compare(a any, b any) int {
+	return logic.CompareAny(a, b)
+}
+
+// FromBytes implements logic.SortConf.
+func (j *JSONCompare) FromBytes(b []byte) any {
+	if b[0] == '"' {
+		var a string
+		json.Unmarshal(b, &a)
+		return a
+	} else if strings.Compare(string(b), "true") == 0 {
+		return true
+	} else if strings.Compare(string(b), "false") == 0 {
+		return false
+	} else if strings.Contains(string(b), ".") {
+		var a float64
+		json.Unmarshal(b, &a)
+		return a
+	} else {
+		var a int
+		json.Unmarshal(b, &a)
+		return a
+	}
+}
+
+// ToBytes implements logic.SortConf.
+func (j *JSONCompare) ToBytes(a any) []byte {
+	o, _ := json.Marshal(a)
+	return o
+}
 
 func TestKVSort(t *testing.T) {
 
@@ -25,44 +58,33 @@ func TestKVSort(t *testing.T) {
 		true,
 		false,
 	}
-	slices.SortFunc(keys, logic.CompareAny)
 
+	jConf := JSONCompare{}
+
+	memSort := logic.NewMemSorter[any](&jConf)
 	for _, i := range keys {
-		fmt.Printf("%#v\n", i)
+		memSort.Add(i)
 	}
 
-	c := *pebble.DefaultComparer
-
-	c.Compare = logic.CompareEncoded
-
-	db, err := pebble.Open(path, &pebble.Options{Comparer: &c})
-	if err != nil {
-		t.Errorf("error: %s\n", err)
+	out1 := []any{}
+	for i := range memSort.Sorted() {
+		out1 = append(out1, i)
 	}
 
-	fmt.Printf("===DB sort test===\n")
-
+	kvSort := logic.NewKVSorter(path, &jConf)
 	for _, i := range keys {
-		db.Set(logic.EncodeAny(i), []byte{}, nil)
+		kvSort.Add(i)
+	}
+	out2 := []any{}
+	for i := range kvSort.Sorted() {
+		out2 = append(out2, i)
 	}
 
-	iter, err := db.NewIter(nil)
-	if err != nil {
-		fmt.Printf("error: %s\n", err)
-	}
-	out := []any{}
-	for iter.First(); iter.Valid(); iter.Next() {
-		j := logic.DecodeAny(iter.Key())
-		out = append(out, j)
-		fmt.Printf("%#v\n", j)
-	}
-
-	for i := range keys {
-		if logic.CompareAny(keys[i], out[i]) != 0 {
+	for i := range out1 {
+		if logic.CompareAny(out1[i], out2[i]) != 0 {
 			t.Error("mismatch")
 		}
 	}
-	iter.Close()
-	db.Close()
+
 	os.RemoveAll(path)
 }
