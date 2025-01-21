@@ -1,8 +1,10 @@
 package engine
 
 import (
+	"io"
 	"os"
 
+	"github.com/bmeg/grip/engine/logic"
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/kvi"
 	"github.com/bmeg/grip/kvi/badgerdb"
@@ -10,13 +12,25 @@ import (
 
 // NewManager creates a resource manager
 func NewManager(workDir string) gdbi.Manager {
-	return &manager{[]kvi.KVInterface{}, []string{}, workDir}
+	return &manager{[]io.Closer{}, []string{}, workDir}
 }
 
 type manager struct {
-	kvs     []kvi.KVInterface
+	kvs     []io.Closer
 	paths   []string
 	workDir string
+}
+
+// GetSorter implements gdbi.Manager.
+func (bm *manager) GetSorter() gdbi.Sorter[gdbi.Traveler] {
+	td, _ := os.MkdirTemp(bm.workDir, "kvTmp")
+
+	s := logic.NewKVSorter[gdbi.Traveler](td)
+
+	bm.kvs = append(bm.kvs, s)
+	bm.paths = append(bm.paths, td)
+
+	return s
 }
 
 func (bm *manager) GetTempKV() kvi.KVInterface {

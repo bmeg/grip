@@ -151,6 +151,7 @@ function query(client=null) {
 		},
 		sort: function(field, decending=true) {
 			this.query.push({'sort': {'fields': [{"field":field, "decending":decending}] }})
+			return this
 		},
 		unwind: function(field) {
 			this.query.push({"unwind": field})
