@@ -187,17 +187,11 @@ type GraphInterface interface {
 	GetInEdgeChannel(ctx context.Context, req chan ElementLookup, load bool, emitNull bool, edgeLabels []string) chan ElementLookup
 }
 
-type Sorter[T any] interface {
-	Add(key any, value T)
-	Sorted() chan T
-	Close() error
-}
-
 // Manager is a resource manager that is passed to processors to allow them ]
 // to make resource requests
 type Manager interface {
 	//Get handle to temporary KeyValue store driver
 	GetTempKV() kvi.KVInterface
-	GetSorter() Sorter[Traveler]
+	GetTmpDir() string
 	Cleanup()
 }

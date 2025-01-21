@@ -4,7 +4,6 @@ import (
 	"io"
 	"os"
 
-	"github.com/bmeg/grip/engine/logic"
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/kvi"
 	"github.com/bmeg/grip/kvi/badgerdb"
@@ -21,16 +20,10 @@ type manager struct {
 	workDir string
 }
 
-// GetSorter implements gdbi.Manager.
-func (bm *manager) GetSorter() gdbi.Sorter[gdbi.Traveler] {
-	td, _ := os.MkdirTemp(bm.workDir, "kvTmp")
-
-	s := logic.NewKVSorter[gdbi.Traveler](td)
-
-	bm.kvs = append(bm.kvs, s)
-	bm.paths = append(bm.paths, td)
-
-	return s
+// GetTmpDir implements gdbi.Manager.
+func (bm *manager) GetTmpDir() string {
+	td, _ := os.MkdirTemp(bm.workDir, "tmp")
+	return td
 }
 
 func (bm *manager) GetTempKV() kvi.KVInterface {
