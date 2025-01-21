@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"os"
 	"strings"
 	"testing"
@@ -87,4 +88,12 @@ func TestKVSort(t *testing.T) {
 	}
 
 	os.RemoveAll(path)
+}
+
+var configFile string
+
+func TestMain(m *testing.M) {
+	flag.StringVar(&configFile, "config", configFile, "config file to use for tests")
+	flag.Parse()
+
 }
