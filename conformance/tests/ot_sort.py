@@ -31,8 +31,8 @@ def test_sort_units(man):
             errors.append("incorrect sort: %s < %s" % (value, last))
         last = value
 
-   
-    q = G.query().V().hasLabel("Vehicle").sort( "max_atmosphering_speed", decending=True )
+
+    q = G.query().V().hasLabel("Vehicle").sort( "max_atmosphering_speed", descending=True )
     last = 1000000000
     for row in q:
         #print(row)
@@ -42,4 +42,3 @@ def test_sort_units(man):
         last = value
 
     return errors
-
