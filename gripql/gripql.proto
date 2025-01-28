@@ -186,7 +186,7 @@ message Sorting {
 
 message SortField {
   string field = 1;
-  bool decending = 2;
+  bool descending = 2;
 }
 
 message SelectStatement {

@@ -605,7 +605,7 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement, opts *gdbi.Compile
 			for _, i := range stmt.Sort.Fields {
 				tf := tpath.NormalizePath(i.Field)
 				f := ToPipelinePath(tf)
-				if i.Decending {
+				if i.Descending {
 					sortFields = append(sortFields, primitive.E{Key: f, Value: -1})
 				} else {
 					sortFields = append(sortFields, primitive.E{Key: f, Value: 1})

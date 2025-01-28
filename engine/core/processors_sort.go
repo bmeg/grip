@@ -20,7 +20,7 @@ func (s *Sort) FromBytes(v []byte) gdbi.Traveler {
 	newTraveler := gdbi.BaseTraveler{}
 	err := json.Unmarshal(v, &newTraveler)
 	if err != nil {
-		log.Errorf("sort error: %s", err)
+		log.Errorf("sort error: %s on %s", err, v)
 	}
 	return &newTraveler
 }
@@ -38,7 +38,7 @@ func (s *Sort) Compare(a, b gdbi.Traveler) int {
 		x := logic.CompareAny(aVal, bVal)
 		//fmt.Printf("Compare %s v %s = %d\n", aVal, bVal, x)
 		if x != 0 {
-			if f.Decending {
+			if f.Descending {
 				return -x
 			} else {
 				return x

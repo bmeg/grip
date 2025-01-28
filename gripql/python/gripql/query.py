@@ -239,11 +239,11 @@ class Query(BaseConnection):
         """
         return self.__append({"select": name})
 
-    def sort(self, field, decending=False):
+    def sort(self, field, descending=False):
         """
         Sort return rows by field
         """
-        return self.__append({"sort" : {"fields": [{"field":field, "decending":decending}]}})
+        return self.__append({"sort" : {"fields": [{"field":field, "descending":descending}]}})
 
     def limit(self, n):
         """
