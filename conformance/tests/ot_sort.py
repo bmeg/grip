@@ -42,3 +42,13 @@ def test_sort_units(man):
         last = value
 
     return errors
+
+
+def test_sort_outNull(man):
+    G = man.setGraph("swapi")
+
+    # when json path does not resolve, error is caused from nil return. This should get smoothed out?
+    # See grip logs
+    for i in G.query().V().hasLabel("Character").as_("a").out().as_("b").sort("$b.system.created"):
+        print("outnull", i)
+    return []

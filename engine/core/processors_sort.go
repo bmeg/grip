@@ -36,7 +36,7 @@ func (s *Sort) Compare(a, b gdbi.Traveler) int {
 		aVal := gdbi.TravelerPathLookup(a, f.Field)
 		bVal := gdbi.TravelerPathLookup(b, f.Field)
 		x := logic.CompareAny(aVal, bVal)
-		//fmt.Printf("Compare %s v %s = %d\n", aVal, bVal, x)
+		log.Infof("Field: %s Compare %#v v %#v = %d\n", f.Field, aVal, bVal, x)
 		if x != 0 {
 			if f.Descending {
 				return -x
