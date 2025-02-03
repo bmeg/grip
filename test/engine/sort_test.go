@@ -18,23 +18,23 @@ func (j *JSONCompare) Compare(a any, b any) int {
 }
 
 // FromBytes implements logic.SortConf.
-func (j *JSONCompare) FromBytes(b []byte) any {
+func (j *JSONCompare) FromBytes(b []byte) (any, error) {
 	if b[0] == '"' {
 		var a string
 		json.Unmarshal(b, &a)
-		return a
+		return a, nil
 	} else if strings.Compare(string(b), "true") == 0 {
-		return true
+		return true, nil
 	} else if strings.Compare(string(b), "false") == 0 {
-		return false
+		return false, nil
 	} else if strings.Contains(string(b), ".") {
 		var a float64
 		json.Unmarshal(b, &a)
-		return a
+		return a, nil
 	} else {
 		var a int
 		json.Unmarshal(b, &a)
-		return a
+		return a, nil
 	}
 }
 
