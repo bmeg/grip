@@ -250,6 +250,10 @@ func StatementProcessor(
 		ps.LastType = AggregationData
 		return out, err
 
+	case *gripql.GraphStatement_Sort:
+		out, err := sc.Sort(stmt, ps)
+		return out, err
+
 	default:
 
 		return sc.Custom(gs, ps)

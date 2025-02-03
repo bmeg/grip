@@ -216,6 +216,10 @@ func (q *Query) ToType(field string, typeName string) *Query {
 	return q.with(&GraphStatement{Statement: &GraphStatement_Totype{Totype: &ToType{Field: field, TypeName: typeName}}})
 }
 
+func (q *Query) Sort(sortFields []*SortField) *Query {
+	return q.with(&GraphStatement{Statement: &GraphStatement_Sort{Sort: &Sorting{Fields: sortFields}}})
+}
+
 func (q *Query) String() string {
 	parts := []string{}
 	add := func(name string, x ...string) {
@@ -316,6 +320,9 @@ func (q *Query) String() string {
 
 		case *GraphStatement_Totype:
 			add("Totype", fmt.Sprintf("%s", stmt.Totype.Field), fmt.Sprintf("%s", stmt.Totype.TypeName))
+
+		case *GraphStatement_Sort:
+			add("Sort", fmt.Sprintf("%s", stmt.Sort.Fields))
 
 		case *GraphStatement_Render:
 			jtxt, err := protojson.Marshal(stmt.Render)

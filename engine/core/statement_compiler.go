@@ -233,6 +233,10 @@ func (sc *DefaultStmtCompiler) Aggregate(stmt *gripql.GraphStatement_Aggregate, 
 	return &aggregate{stmt.Aggregate.Aggregations}, nil
 }
 
+func (sc *DefaultStmtCompiler) Sort(gs *gripql.GraphStatement_Sort, ps *gdbi.State) (gdbi.Processor, error) {
+	return &Sort{gs.Sort.Fields}, nil
+}
+
 func (sc *DefaultStmtCompiler) Custom(gs *gripql.GraphStatement, ps *gdbi.State) (gdbi.Processor, error) {
 
 	switch stmt := gs.GetStatement().(type) {

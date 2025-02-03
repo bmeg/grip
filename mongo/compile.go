@@ -597,6 +597,22 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement, opts *gdbi.Compile
 				}}})
 			}
 
+		case *gripql.GraphStatement_Sort:
+			if len(stmt.Sort.Fields) == 0 {
+				return nil, fmt.Errorf("`sort` requires sort field")
+			}
+			sortFields := bson.D{}
+			for _, i := range stmt.Sort.Fields {
+				tf := tpath.NormalizePath(i.Field)
+				f := ToPipelinePath(tf)
+				if i.Descending {
+					sortFields = append(sortFields, primitive.E{Key: f, Value: -1})
+				} else {
+					sortFields = append(sortFields, primitive.E{Key: f, Value: 1})
+				}
+			}
+			query = append(query, bson.D{primitive.E{Key: "$sort", Value: sortFields}})
+
 		case *gripql.GraphStatement_As:
 			if lastType == gdbi.NoData {
 				return &Pipeline{}, fmt.Errorf(`"as" statement is not valid at the beginning of a traversal`)
