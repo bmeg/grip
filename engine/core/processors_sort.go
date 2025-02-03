@@ -16,13 +16,13 @@ type Sort struct {
 }
 
 // FromBytes implements logic.SortConf.
-func (s *Sort) FromBytes(v []byte) gdbi.Traveler {
+func (s *Sort) FromBytes(v []byte) (gdbi.Traveler, error) {
 	newTraveler := gdbi.BaseTraveler{}
 	err := json.Unmarshal(v, &newTraveler)
 	if err != nil {
-		log.Errorf("sort error: %s on %s", err, v)
+		return &gdbi.BaseTraveler{}, err
 	}
-	return &newTraveler
+	return &newTraveler, nil
 }
 
 // ToBytes implements logic.SortConf.
@@ -36,7 +36,7 @@ func (s *Sort) Compare(a, b gdbi.Traveler) int {
 		aVal := gdbi.TravelerPathLookup(a, f.Field)
 		bVal := gdbi.TravelerPathLookup(b, f.Field)
 		x := logic.CompareAny(aVal, bVal)
-		log.Infof("Field: %s Compare %#v v %#v = %d\n", f.Field, aVal, bVal, x)
+		log.Debugf("Field: %s Compare %#v v %#v = %d\n", f.Field, aVal, bVal, x)
 		if x != 0 {
 			if f.Descending {
 				return -x

@@ -1,6 +1,7 @@
 package logic
 
 import (
+	"github.com/bmeg/grip/log"
 	"github.com/cockroachdb/pebble"
 )
 
@@ -26,6 +27,7 @@ func (ks *KVSorter[T]) Close() error {
 
 // Add implements gdbi.Sorter.
 func (ks *KVSorter[T]) Add(value T) {
+
 	k := ks.compare.conf.ToBytes(value)
 	ks.curSize += len(k)
 	ks.batch.Set(k, nil, nil)
@@ -46,7 +48,11 @@ func (ks *KVSorter[T]) Sorted() chan T {
 		iter, _ := ks.kv.NewIter(nil)
 		for iter.First(); iter.Valid(); iter.Next() {
 			v := iter.Key()
-			var o T = ks.compare.conf.FromBytes(v)
+			var o T
+			o, err := ks.compare.conf.FromBytes(v)
+			if err != nil {
+				log.Infof("error in Sorted: %s\n", err)
+			}
 			out <- o
 		}
 		defer close(out)
@@ -55,8 +61,14 @@ func (ks *KVSorter[T]) Sorted() chan T {
 }
 
 func (ks *kvCompare[T]) compareEncoded(a, b []byte) int {
-	aT := ks.conf.FromBytes(a)
-	bT := ks.conf.FromBytes(b)
+	aT, err := ks.conf.FromBytes(a)
+	if err != nil {
+		log.Debug("error compareEncoded: %s\n", err)
+	}
+	bT, err := ks.conf.FromBytes(b)
+	if err != nil {
+		log.Debug("error compareEncoded: %s\n", err)
+	}
 	return ks.conf.Compare(aT, bT)
 }
 
