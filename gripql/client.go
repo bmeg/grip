@@ -66,6 +66,12 @@ func (client Client) AddSchema(graph *Graph) error {
 	return err
 }
 
+// AddJsonSchema adds a schema for a graph.
+func (client Client) AddJsonSchema(json *RawJson) error {
+	_, err := client.EditC.AddJsonSchema(context.Background(), json)
+	return err
+}
+
 func (client Client) DeleteEdge(graph string, id string) error {
 	_, err := client.EditC.DeleteEdge(context.Background(), &ElementID{Graph: graph, Id: id})
 	return err
@@ -179,6 +185,21 @@ func (client Client) BulkAdd(elemChan chan *GraphElement) error {
 
 	_, err = sc.CloseAndRecv()
 	return err
+}
+
+func (client Client) BulkAddRaw(elemChan chan *RawJson) (error, *BulkJsonEditResult) {
+	sc, err := client.EditC.BulkAddRaw(context.Background())
+	if err != nil {
+		return err, nil
+	}
+	for elem := range elemChan {
+		err := sc.Send(elem)
+		if err != nil {
+			return err, nil
+		}
+	}
+	res, err := sc.CloseAndRecv()
+	return err, res
 }
 
 func (client Client) BulkDelete(delete *DeleteData) error {

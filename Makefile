@@ -132,10 +132,6 @@ start-mongo:
 	@docker rm -f grip-mongodb-test > /dev/null 2>&1 || echo
 	docker run -d --name grip-mongodb-test -p 27017:27017 mongo:7.0.13-rc0-jammy > /dev/null
 
-start-elastic:
-	@docker rm -f grip-es-test > /dev/null 2>&1 || echo
-	docker run -d --name grip-es-test -p 19200:9200 -p 9300:9300 -e "discovery.type=single-node" -e "xpack.security.enabled=false" docker.elastic.co/elasticsearch/elasticsearch:5.6.3 > /dev/null
-
 start-postgres:
 	@docker rm -f grip-postgres-test > /dev/null 2>&1 || echo
 	docker run -d --name grip-postgres-test -p 15432:5432 -e POSTGRES_PASSWORD= -e POSTGRES_USER=postgres postgres:10.4 > /dev/null

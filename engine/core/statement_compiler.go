@@ -210,6 +210,14 @@ func (sc *DefaultStmtCompiler) Unwind(stmt *gripql.GraphStatement_Unwind, ps *gd
 	return &Unwind{stmt.Unwind}, nil
 }
 
+func (sc *DefaultStmtCompiler) Group(stmt *gripql.GraphStatement_Group, ps *gdbi.State) (gdbi.Processor, error) {
+	return &Group{stmt.Group.Fields}, nil
+}
+
+func (sc *DefaultStmtCompiler) ToType(stmt *gripql.GraphStatement_Totype, ps *gdbi.State) (gdbi.Processor, error) {
+	return &ToType{Field: stmt.Totype.Field, TypeName: stmt.Totype.TypeName}, nil
+}
+
 func (sc *DefaultStmtCompiler) Fields(stmt *gripql.GraphStatement_Fields, ps *gdbi.State) (gdbi.Processor, error) {
 	fields := protoutil.AsStringList(stmt.Fields)
 	return &Fields{fields}, nil
@@ -223,6 +231,10 @@ func (sc *DefaultStmtCompiler) Aggregate(stmt *gripql.GraphStatement_Aggregate, 
 		}
 	}
 	return &aggregate{stmt.Aggregate.Aggregations}, nil
+}
+
+func (sc *DefaultStmtCompiler) Sort(gs *gripql.GraphStatement_Sort, ps *gdbi.State) (gdbi.Processor, error) {
+	return &Sort{gs.Sort.Fields}, nil
 }
 
 func (sc *DefaultStmtCompiler) Custom(gs *gripql.GraphStatement, ps *gdbi.State) (gdbi.Processor, error) {

@@ -32,7 +32,7 @@
   <div class="global-header">
     <div class="global-header-container">
       <div class="global-header-home">
-        <a href="https://bmeg.github.io/grip"><h1>GRIP</h1></a>
+        <a href="https://bmeg.github.io/grip/"><h1>GRIP</h1></a>
       </div>
       <ul class="global-header-nav">
           <li><a href="https://bmeg.github.io/grip/download//">Download</a></li>
@@ -131,15 +131,6 @@
         <li>
           
           <span class="intermediate">Database Configuration</span></li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/databases/elastic/"
-                   class="sidebar-nav-item "
-                >Elasticsearch</a></li>
-            </ul>
-          </li>
           
           <li>
             <ul class="sidebar-nav sidebar-nav-nested">
@@ -255,6 +246,15 @@
           <li>
             <ul class="sidebar-nav sidebar-nav-nested">
               <li>
+                <a href="https://bmeg.github.io/grip/docs/queries/iterations/"
+                   class="sidebar-nav-item "
+                >Iteration</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
                 <a href="https://bmeg.github.io/grip/docs/queries/jobs_api/"
                    class="sidebar-nav-item "
                 >Jobs API</a></li>
@@ -356,9 +356,9 @@
 
   <div class="main col span_8_of_12">
     <p>Get Pathway Commons release</p>
-<pre><code>curl -O http://www.pathwaycommons.org/archives/PC2/v10/PathwayCommons10.All.BIOPAX.owl.gz
+<pre tabindex="0"><code>curl -O http://www.pathwaycommons.org/archives/PC2/v10/PathwayCommons10.All.BIOPAX.owl.gz
 </code></pre><p>Convert to Property Graph</p>
-<pre><code>grip rdf --dump --gzip pc PathwayCommons10.All.BIOPAX.owl.gz -m &quot;http://pathwaycommons.org/pc2/#=pc:&quot; -m &quot;http://www.biopax.org/release/biopax-level3.owl#=biopax:&quot;
+<pre tabindex="0"><code>grip rdf --dump --gzip pc PathwayCommons10.All.BIOPAX.owl.gz -m &#34;http://pathwaycommons.org/pc2/#=pc:&#34; -m &#34;http://www.biopax.org/release/biopax-level3.owl#=biopax:&#34;
 </code></pre>
   </div>
 

@@ -13,6 +13,21 @@ class Graph(BaseConnection):
         self.url = self.base_url + "/v1/graph/" + graph
         self.graph = graph
 
+    def addJsonSchema(self, fhirjson):
+       """
+       Add a Json Schema for a graph
+       """
+       payload = {
+           "graph": self.graph,
+           "data":fhirjson,
+       }
+       response = self.session.post(
+           self.url + "/jsonschema",
+           json=payload
+       )
+       raise_for_status(response)
+       return response.json()
+
     def addSchema(self, vertices=[], edges=[]):
         """
         Add the schema for a graph.
@@ -146,6 +161,9 @@ class Graph(BaseConnection):
 
     def bulkAdd(self):
         return BulkAdd(self.base_url, self.graph, self.user, self.password, self.token)
+
+    def bulkAddRaw(self):
+        return BulkAddRaw(self.base_url, self.graph, self.user, self.password, self.token)
 
     def addIndex(self, label, field):
         url = self.url + "/index/" + label
@@ -291,6 +309,34 @@ class BulkAdd(BaseConnection):
         if gid is not None:
             payload["gid"] = gid
         self.elements.append(json.dumps(payload))
+
+    def execute(self):
+        payload = "\n".join(self.elements)
+        response = self.session.post(
+            self.url,
+            data=payload
+        )
+        raise_for_status(response)
+        return response.json()
+
+
+class BulkAddRaw(BaseConnection):
+    def __init__(self, url, graph, extraArgs=None, user=None, password=None, token=None, credential_file=None):
+        super(BulkAddRaw, self).__init__(url, user, password, token, credential_file)
+        self.url = self.base_url + "/v1/rawJson"
+        self.graph = graph
+        self.extraArgs = {"auth_resource_path": "test-data"}
+        self.elements = []
+
+
+    def addJson(self, data={}):
+        payload = {
+            "graph": self.graph,
+            "extra_args": self.extraArgs,
+            "data": data
+        }
+        self.elements.append(json.dumps(payload))
+
 
     def execute(self):
         payload = "\n".join(self.elements)
