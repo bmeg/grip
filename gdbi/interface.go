@@ -192,5 +192,6 @@ type GraphInterface interface {
 type Manager interface {
 	//Get handle to temporary KeyValue store driver
 	GetTempKV() kvi.KVInterface
+	GetTmpDir() string
 	Cleanup()
 }

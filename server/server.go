@@ -17,13 +17,13 @@ import (
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/jobstorage"
 	"github.com/bmeg/grip/log"
+	"github.com/bmeg/grip/sqlite"
 	"github.com/felixge/httpsnoop"
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 
-	"github.com/bmeg/grip/elastic"
 	esql "github.com/bmeg/grip/existing-sql"
 	"github.com/bmeg/grip/grids"
 	"github.com/bmeg/grip/gripper"
@@ -128,14 +128,14 @@ func StartDriver(d config.DriverConfig, sources map[string]gripper.GRIPSourceCli
 		return kvgraph.NewKVGraphDB("pebble", *d.Pebble)
 	} else if d.Grids != nil {
 		return grids.NewGraphDB(*d.Grids)
-	} else if d.Elasticsearch != nil {
-		return elastic.NewGraphDB(*d.Elasticsearch)
 	} else if d.MongoDB != nil {
 		return mongo.NewGraphDB(*d.MongoDB)
 	} else if d.PSQL != nil {
 		return psql.NewGraphDB(*d.PSQL)
 	} else if d.ExistingSQL != nil {
 		return esql.NewGraphDB(*d.ExistingSQL)
+	} else if d.Sqlite != nil {
+		return sqlite.NewGraphDB(*d.Sqlite)
 	} else if d.Gripper != nil {
 		return gripper.NewGDBFromConfig(d.Gripper.Graph, d.Gripper.Mapping, sources)
 	}

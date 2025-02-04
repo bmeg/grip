@@ -15,6 +15,8 @@ func Render(template any, data map[string]any) (any, error) {
 			val, err := Render(v, data)
 			if err == nil {
 				o[k] = val
+			} else if vstring, ok := v.(string); ok && vstring[0] == '$' {
+				o[k] = nil
 			} else {
 				o[k] = v
 			}
@@ -26,6 +28,8 @@ func Render(template any, data map[string]any) (any, error) {
 			val, err := Render(elem[i], data)
 			if err == nil {
 				o[i] = val
+			} else if vstring, ok := elem[i].(string); ok && vstring[0] == '$' {
+				o[i] = nil
 			} else {
 				o[i] = elem[i]
 			}

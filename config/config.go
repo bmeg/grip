@@ -8,13 +8,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bmeg/grip/elastic"
 	esql "github.com/bmeg/grip/existing-sql"
 	"github.com/bmeg/grip/gripper"
-	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/mongo"
 	"github.com/bmeg/grip/psql"
+	"github.com/bmeg/grip/schema"
+	"github.com/bmeg/grip/sqlite"
 	"github.com/bmeg/grip/util"
 	"github.com/bmeg/grip/util/duration"
 	"github.com/bmeg/grip/util/rpc"
@@ -26,16 +26,16 @@ func init() {
 }
 
 type DriverConfig struct {
-	Grids         *string
-	Badger        *string
-	Bolt          *string
-	Level         *string
-	Pebble        *string
-	Elasticsearch *elastic.Config
-	MongoDB       *mongo.Config
-	PSQL          *psql.Config
-	ExistingSQL   *esql.Config
-	Gripper       *gripper.Config
+	Grids       *string
+	Badger      *string
+	Bolt        *string
+	Level       *string
+	Pebble      *string
+	MongoDB     *mongo.Config
+	PSQL        *psql.Config
+	ExistingSQL *esql.Config
+	Sqlite      *sqlite.Config
+	Gripper     *gripper.Config
 }
 
 // Config describes the configuration for Grip.
@@ -101,6 +101,12 @@ func (conf *Config) AddMongoDefault() {
 	conf.Default = "mongo"
 }
 
+func (conf *Config) AddSqliteDefault() {
+	c := sqlite.Config{DBName: "grip-sqlite.db"}
+	conf.Drivers["sqlite"] = DriverConfig{Sqlite: &c}
+	conf.Default = "sqlite"
+}
+
 func (conf *Config) AddGridsDefault() {
 	n := "grip-grids.db"
 	conf.Drivers["grids"] = DriverConfig{Grids: &n}
@@ -126,9 +132,8 @@ func TestifyConfig(c *Config) {
 	if d.MongoDB != nil {
 		d.MongoDB.DBName = "gripdb-" + rand
 	}
-	if d.Elasticsearch != nil {
-		d.Elasticsearch.DBName = "gripdb-" + rand
-		d.Elasticsearch.Synchronous = true
+	if d.Sqlite != nil {
+		d.Sqlite.DBName = "gripdb-" + rand
 	}
 	c.Drivers[c.Default] = d
 }
@@ -137,9 +142,6 @@ func (c *Config) SetDefaults() {
 	for _, d := range c.Drivers {
 		if d.MongoDB != nil {
 			d.MongoDB.SetDefaults()
-		}
-		if d.Elasticsearch != nil {
-			d.Elasticsearch.SetDefaults()
 		}
 	}
 }
@@ -200,7 +202,7 @@ func ParseConfigFile(relpath string, conf *Config) error {
 				if err != nil {
 					return fmt.Errorf("failed to parse config at path %s: \n%v", path, err)
 				}
-				graph, err := gripql.GraphMapToProto(data)
+				graph, err := schema.GraphMapToProto(data)
 				if err != nil {
 					return fmt.Errorf("failed to parse config at path %s: \n%v", path, err)
 				}

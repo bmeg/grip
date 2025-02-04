@@ -32,7 +32,7 @@
   <div class="global-header">
     <div class="global-header-container">
       <div class="global-header-home">
-        <a href="https://bmeg.github.io/grip"><h1>GRIP</h1></a>
+        <a href="https://bmeg.github.io/grip/"><h1>GRIP</h1></a>
       </div>
       <ul class="global-header-nav">
           <li><a href="https://bmeg.github.io/grip/download//">Download</a></li>
@@ -131,15 +131,6 @@
         <li>
           
           <span class="intermediate">Database Configuration</span></li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/databases/elastic/"
-                   class="sidebar-nav-item "
-                >Elasticsearch</a></li>
-            </ul>
-          </li>
           
           <li>
             <ul class="sidebar-nav sidebar-nav-nested">
@@ -255,6 +246,15 @@
           <li>
             <ul class="sidebar-nav sidebar-nav-nested">
               <li>
+                <a href="https://bmeg.github.io/grip/docs/queries/iterations/"
+                   class="sidebar-nav-item "
+                >Iteration</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
                 <a href="https://bmeg.github.io/grip/docs/queries/jobs_api/"
                    class="sidebar-nav-item "
                 >Jobs API</a></li>
@@ -357,7 +357,7 @@
   <div class="main col span_8_of_12">
     <h1 id="overview">Overview</h1>
 <p>GRIP stands for GRaph Integration Platform. It provides a graph interface on top of a variety of existing database technologies including:
-MongoDB, Elasticsearch, PostgreSQL, MySQL, MariaDB, Badger, and LevelDB.</p>
+MongoDB, PostgreSQL, MySQL, MariaDB, Badger, and LevelDB.</p>
 <p>Properties of an GRIP graph:</p>
 <ul>
 <li>Both vertices and edges in a graph can have any number of properties associated with them.</li>
@@ -377,7 +377,7 @@ to GRIP. This is the default mode if GRIP is started without any configuration. 
 is based on <a href="https://github.com/dgraph-io/badger">Badger</a>.</li>
 <li><em>Database Backends</em> : GRIP can utilize a number of different database backends to store graph data.
 In this mode, GRIP formats the database and manages the data. It provides a full Read/Write API, the same
-as the Embedded deployment. Supported systems include Mongo, Portgres SQL and Elastic Search. When deployed
+as the Embedded deployment. Supported systems include Mongo, Portgres SQL. When deployed
 using Mongo, GRIP will translate GripQL queries into <a href="https://docs.mongodb.com/manual/core/aggregation-pipeline/">Mongo Aggregation Pipeline queries</a>.</li>
 <li><em>Plugin Existing Resources</em> : This mode is designed to take advantage of existing data resources, mapping
 them into a graph framework so they can be accessed using GripQL. This mode is currently read-only.</li>

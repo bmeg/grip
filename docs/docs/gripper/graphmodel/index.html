@@ -32,7 +32,7 @@
   <div class="global-header">
     <div class="global-header-container">
       <div class="global-header-home">
-        <a href="https://bmeg.github.io/grip"><h1>GRIP</h1></a>
+        <a href="https://bmeg.github.io/grip/"><h1>GRIP</h1></a>
       </div>
       <ul class="global-header-nav">
           <li><a href="https://bmeg.github.io/grip/download//">Download</a></li>
@@ -131,15 +131,6 @@
         <li>
           
           <span class="intermediate">Database Configuration</span></li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/databases/elastic/"
-                   class="sidebar-nav-item "
-                >Elasticsearch</a></li>
-            </ul>
-          </li>
           
           <li>
             <ul class="sidebar-nav sidebar-nav-nested">
@@ -249,6 +240,15 @@
                 <a href="https://bmeg.github.io/grip/docs/queries/jsonpath/"
                    class="sidebar-nav-item "
                 >Referencing Fields</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/queries/iterations/"
+                   class="sidebar-nav-item "
+                >Iteration</a></li>
             </ul>
           </li>
           
@@ -376,11 +376,11 @@ For <code>edgeTable</code> connections, there is a single collection that repres
 two other collections that have been mapped to vertices.</p>
 <h2 id="runtime-external-resource-config">Runtime External Resource Config</h2>
 <p>External resources are passed to GRIP as command line options. For the command line:</p>
-<pre><code>grip server config.yaml --er tableServer=localhost:50051 --er pfb=localhost:50052
+<pre tabindex="0"><code>grip server config.yaml --er tableServer=localhost:50051 --er pfb=localhost:50052
 </code></pre><p><code>tableServer</code> is a ER plugin that serves table data (see <code>gripper/test-graph</code>)
 while <code>pfb</code> parses PFB based files (see <a href="https://github.com/bmeg/grip_pfb">https://github.com/bmeg/grip_pfb</a> )</p>
 <p>The <code>config.yaml</code> is</p>
-<pre><code>Default: badger
+<pre tabindex="0"><code>Default: badger
 
 Drivers:
   badger:
@@ -390,51 +390,50 @@ Drivers:
     Gripper:
       ConfigFile: ./swapi.yaml
       Graph: swapi
-
 </code></pre><p>This runs with a default <code>badger</code> based driver, but also provides a GRIPPER based
 graph from the <code>swapi</code> mapping (see example graph map below).</p>
 <h2 id="example-graph-map">Example graph map</h2>
-<pre><code>vertices:
-  - gid: &quot;Character:&quot;
+<pre tabindex="0"><code>vertices:
+  - gid: &#34;Character:&#34;
     label: Character
     data:
       source: tableServer
       collection: Character
 
-  - gid: &quot;Planet:&quot;
+  - gid: &#34;Planet:&#34;
     label: Planet
     data:
       collection: Planet
       source: tableServer
 
-  - gid: &quot;Film:&quot;
+  - gid: &#34;Film:&#34;
     label: Film
     data:
       collection: Film
       source: tableServer
 
-  - gid: &quot;Species:&quot;
+  - gid: &#34;Species:&#34;
     label: Species
     data:
       source: tableServer
       collection: Species
 
-  - gid: &quot;Starship:&quot;
+  - gid: &#34;Starship:&#34;
     label: Starship
     data:
       source: tableServer
       collection: Starship
 
-  - gid: &quot;Vehicle:&quot;
+  - gid: &#34;Vehicle:&#34;
     label: Vehicle
     data:
       source: tableServer
       collection: Vehicle
 
 edges:
-  - gid: &quot;homeworld&quot;
-    from: &quot;Character:&quot;
-    to: &quot;Planet:&quot;
+  - gid: &#34;homeworld&#34;
+    from: &#34;Character:&#34;
+    to: &#34;Planet:&#34;
     label: homeworld
     data:
       fieldToField:
@@ -442,8 +441,8 @@ edges:
         toField: $.id
 
   - gid: species
-    from: &quot;Character:&quot;
-    to: &quot;Species:&quot;
+    from: &#34;Character:&#34;
+    to: &#34;Species:&#34;
     label: species
     data:
       fieldToField:
@@ -451,8 +450,8 @@ edges:
         toField: $.id
 
   - gid: people
-    from: &quot;Species:&quot;
-    to: &quot;Character:&quot;
+    from: &#34;Species:&#34;
+    to: &#34;Character:&#34;
     label: people
     data:
       edgeTable:
@@ -462,8 +461,8 @@ edges:
         toField: $.to
 
   - gid: residents
-    from: &quot;Planet:&quot;
-    to: &quot;Character:&quot;
+    from: &#34;Planet:&#34;
+    to: &#34;Character:&#34;
     label: residents
     data:
       edgeTable:
@@ -473,136 +472,136 @@ edges:
         toField: $.to
 
   - gid: filmVehicles
-    from: &quot;Film:&quot;
-    to: &quot;Vehicle:&quot;
-    label: &quot;vehicles&quot;
+    from: &#34;Film:&#34;
+    to: &#34;Vehicle:&#34;
+    label: &#34;vehicles&#34;
     data:
       edgeTable:
         source: tableServer
         collection: filmVehicles
-        fromField: &quot;$.from&quot;
-        toField: &quot;$.to&quot;
+        fromField: &#34;$.from&#34;
+        toField: &#34;$.to&#34;
 
   - gid: vehicleFilms
-    to: &quot;Film:&quot;
-    from: &quot;Vehicle:&quot;
-    label: &quot;films&quot;
+    to: &#34;Film:&#34;
+    from: &#34;Vehicle:&#34;
+    label: &#34;films&#34;
     data:
       edgeTable:
         source: tableServer
         collection: filmVehicles
-        toField: &quot;$.from&quot;
-        fromField: &quot;$.to&quot;
+        toField: &#34;$.from&#34;
+        fromField: &#34;$.to&#34;
 
   - gid: filmStarships
-    from: &quot;Film:&quot;
-    to: &quot;Starship:&quot;
-    label: &quot;starships&quot;
+    from: &#34;Film:&#34;
+    to: &#34;Starship:&#34;
+    label: &#34;starships&#34;
     data:
       edgeTable:
         source: tableServer
         collection: filmStarships
-        fromField: &quot;$.from&quot;
-        toField: &quot;$.to&quot;
+        fromField: &#34;$.from&#34;
+        toField: &#34;$.to&#34;
 
   - gid: starshipFilms
-    to: &quot;Film:&quot;
-    from: &quot;Starship:&quot;
-    label: &quot;films&quot;
+    to: &#34;Film:&#34;
+    from: &#34;Starship:&#34;
+    label: &#34;films&#34;
     data:
       edgeTable:
         source: tableServer
         collection: filmStarships
-        toField: &quot;$.from&quot;
-        fromField: &quot;$.to&quot;
+        toField: &#34;$.from&#34;
+        fromField: &#34;$.to&#34;
 
   - gid: filmPlanets
-    from: &quot;Film:&quot;
-    to: &quot;Planet:&quot;
-    label: &quot;planets&quot;
+    from: &#34;Film:&#34;
+    to: &#34;Planet:&#34;
+    label: &#34;planets&#34;
     data:
       edgeTable:
         source: tableServer
         collection: filmPlanets
-        fromField: &quot;$.from&quot;
-        toField: &quot;$.to&quot;
+        fromField: &#34;$.from&#34;
+        toField: &#34;$.to&#34;
 
   - gid: planetFilms
-    to: &quot;Film:&quot;
-    from: &quot;Planet:&quot;
-    label: &quot;films&quot;
+    to: &#34;Film:&#34;
+    from: &#34;Planet:&#34;
+    label: &#34;films&#34;
     data:
       edgeTable:
         source: tableServer
         collection: filmPlanets
-        toField: &quot;$.from&quot;
-        fromField: &quot;$.to&quot;
+        toField: &#34;$.from&#34;
+        fromField: &#34;$.to&#34;
 
   - gid: filmSpecies
-    from: &quot;Film:&quot;
-    to: &quot;Species:&quot;
-    label: &quot;species&quot;
+    from: &#34;Film:&#34;
+    to: &#34;Species:&#34;
+    label: &#34;species&#34;
     data:
       edgeTable:
         source: tableServer
         collection: filmSpecies
-        fromField: &quot;$.from&quot;
-        toField: &quot;$.to&quot;
+        fromField: &#34;$.from&#34;
+        toField: &#34;$.to&#34;
 
   - gid: speciesFilms
-    to: &quot;Film:&quot;
-    from: &quot;Species:&quot;
-    label: &quot;films&quot;
+    to: &#34;Film:&#34;
+    from: &#34;Species:&#34;
+    label: &#34;films&#34;
     data:
       edgeTable:
         source: tableServer
         collection: filmSpecies
-        toField: &quot;$.from&quot;
-        fromField: &quot;$.to&quot;
+        toField: &#34;$.from&#34;
+        fromField: &#34;$.to&#34;
 
   - gid: filmCharacters
-    from: &quot;Film:&quot;
-    to: &quot;Character:&quot;
+    from: &#34;Film:&#34;
+    to: &#34;Character:&#34;
     label: characters
     data:
       edgeTable:
         source: tableServer
         collection: filmCharacters
-        fromField: &quot;$.from&quot;
-        toField: &quot;$.to&quot;
+        fromField: &#34;$.from&#34;
+        toField: &#34;$.to&#34;
 
   - gid: characterFilms
-    from: &quot;Character:&quot;
-    to: &quot;Film:&quot;
+    from: &#34;Character:&#34;
+    to: &#34;Film:&#34;
     label: films
     data:
       edgeTable:
         source: tableServer
         collection: filmCharacters
-        toField: &quot;$.from&quot;
-        fromField: &quot;$.to&quot;
+        toField: &#34;$.from&#34;
+        fromField: &#34;$.to&#34;
 
   - gid: characterStarships
-    from: &quot;Character:&quot;
-    to: &quot;Starship:&quot;
-    label: &quot;starships&quot;
+    from: &#34;Character:&#34;
+    to: &#34;Starship:&#34;
+    label: &#34;starships&#34;
     data:
       edgeTable:
         source: tableServer
         collection: characterStarships
-        fromField: &quot;$.from&quot;
-        toField: &quot;$.to&quot;
+        fromField: &#34;$.from&#34;
+        toField: &#34;$.to&#34;
 
   - gid: starshipCharacters
-    to: &quot;Character:&quot;
-    from: &quot;Starship:&quot;
-    label: &quot;pilots&quot;
+    to: &#34;Character:&#34;
+    from: &#34;Starship:&#34;
+    label: &#34;pilots&#34;
     data:
       edgeTable:
         source: tableServer
         collection: characterStarships
-        toField: &quot;$.from&quot;
-        fromField: &quot;$.to&quot;
+        toField: &#34;$.from&#34;
+        fromField: &#34;$.to&#34;
 </code></pre>
   </div>
 

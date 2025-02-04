@@ -52,3 +52,47 @@ func (bw *BulkWriteFilter) RecvMsg(m interface{}) error {
 		}
 	}
 }
+
+type BulkWriteRawFilter struct {
+	SS     grpc.ServerStream
+	User   string
+	Access Access
+}
+
+func (bw *BulkWriteRawFilter) SetHeader(m metadata.MD) error {
+	return bw.SS.SendHeader(m)
+}
+
+func (bw *BulkWriteRawFilter) SendHeader(m metadata.MD) error {
+	return bw.SS.SendHeader(m)
+}
+
+func (bw *BulkWriteRawFilter) SetTrailer(m metadata.MD) {
+	bw.SS.SetTrailer(m)
+}
+
+func (bw *BulkWriteRawFilter) Context() context.Context {
+	return bw.SS.Context()
+}
+
+func (bw *BulkWriteRawFilter) SendMsg(m interface{}) error {
+	return bw.SS.SendMsg(m)
+}
+
+func (bw *BulkWriteRawFilter) RecvMsg(m interface{}) error {
+	for {
+		var ge gripql.RawJson
+		err := bw.SS.RecvMsg(&ge)
+		if err != nil {
+			return err
+		}
+		err = bw.Access.Enforce(bw.User, ge.Graph, Write)
+		if err == nil {
+			mPtr := m.(*gripql.RawJson)
+			*mPtr = ge
+			return nil
+		} else {
+			log.Infof("Graph write error: %s", ge.Graph)
+		}
+	}
+}

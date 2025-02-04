@@ -1,6 +1,7 @@
 package engine
 
 import (
+	"io"
 	"os"
 
 	"github.com/bmeg/grip/gdbi"
@@ -10,13 +11,19 @@ import (
 
 // NewManager creates a resource manager
 func NewManager(workDir string) gdbi.Manager {
-	return &manager{[]kvi.KVInterface{}, []string{}, workDir}
+	return &manager{[]io.Closer{}, []string{}, workDir}
 }
 
 type manager struct {
-	kvs     []kvi.KVInterface
+	kvs     []io.Closer
 	paths   []string
 	workDir string
+}
+
+// GetTmpDir implements gdbi.Manager.
+func (bm *manager) GetTmpDir() string {
+	td, _ := os.MkdirTemp(bm.workDir, "tmp")
+	return td
 }
 
 func (bm *manager) GetTempKV() kvi.KVInterface {

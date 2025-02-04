@@ -35,3 +35,4 @@ gripql/R/*.tar.gz
 # dev tools
 .idea/
 .vscode/
+.DS_Store
