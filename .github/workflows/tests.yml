@@ -238,7 +238,7 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v2
       - name: Python Dependencies for Conformance
-        run: pip install requests numpy PyYAML
+        run: pip install requests numpy PyYAML pytest jsonpath-ng
       - name: install gripql
         run: |
           cd gripql/python
