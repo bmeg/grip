@@ -42,7 +42,7 @@ jobs:
         uses: actions/checkout@v4
       - name: run unit tests
         run: |
-          go test ./test/... -config badger.yml
+          go test ./test/... -config pebble.yml
 
 
   badgerTest:

@@ -2,7 +2,6 @@ package kvgraph
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 
 	"github.com/bmeg/grip/gdbi"
@@ -43,9 +42,6 @@ func (kgraph *KVGraph) DeleteGraph(graph string) error {
 
 	graphKey := GraphKey(graph)
 	kgraph.kv.Delete(graphKey)
-
-	kvgdb := KVInterfaceGDB{kvg: kgraph, graph: graph}
-	kvgdb.DeleteAllData(context.Background(), graph)
 
 	kgraph.deleteGraphIndex(graph)
 
