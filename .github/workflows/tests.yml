@@ -217,7 +217,7 @@ jobs:
         run: |
           # start grip server
           chmod +x grip
-          ./grip server --rpc-port 18202 --http-port 18201 --config ./test/badger-auth.yml &
+          ./grip server --rpc-port 18202 --http-port 18201 --config ./test/pebble-auth.yml &
           sleep 5
           # simple auth
           # run tests without credentials, should fail
@@ -228,7 +228,7 @@ jobs:
             echo "Got expected auth error"
           fi
           # run specialized role based tests
-          make test-authorization ARGS="--grip_config_file_path test/badger-auth.yml"
+          make test-authorization ARGS="--grip_config_file_path test/pebble-auth.yml"
 
 
 
