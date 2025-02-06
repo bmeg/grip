@@ -7,6 +7,7 @@ import (
 	"context"
 
 	"github.com/bmeg/grip/kvindex"
+	"github.com/bmeg/grip/util/setcmp"
 )
 
 var docs = `[
@@ -61,7 +62,7 @@ func TestFieldListing(t *testing.T) {
 
 	count := 0
 	for _, field := range idx.ListFields() {
-		if !contains(newFields, field) {
+		if !setcmp.ContainsString(newFields, field) {
 			t.Errorf("Bad field return: %s", field)
 		}
 		count++
@@ -89,7 +90,7 @@ func TestLoadDoc(t *testing.T) {
 
 	count := 0
 	for d := range idx.GetTermMatch(context.Background(), "v.label", "Person", -1) {
-		if !contains(personDocs, d) {
+		if !setcmp.ContainsString(personDocs, d) {
 			t.Errorf("Bad doc return: %s", d)
 		}
 		count++
@@ -100,7 +101,7 @@ func TestLoadDoc(t *testing.T) {
 
 	count = 0
 	for d := range idx.GetTermMatch(context.Background(), "v.data.firstName", "Bob", -1) {
-		if !contains(bobDocs, d) {
+		if !setcmp.ContainsString(bobDocs, d) {
 			t.Errorf("Bad doc return: %s", d)
 		}
 		count++
@@ -128,7 +129,7 @@ func TestTermEnum(t *testing.T) {
 	count := 0
 	for d := range idx.FieldTerms("v.data.lastName") {
 		count++
-		if !contains(lastNames, d.(string)) {
+		if !setcmp.ContainsString(lastNames, d.(string)) {
 			t.Errorf("Bad term return: %s", d)
 		}
 	}
@@ -139,7 +140,7 @@ func TestTermEnum(t *testing.T) {
 	count = 0
 	for d := range idx.FieldTerms("v.data.firstName") {
 		count++
-		if !contains(firstNames, d.(string)) {
+		if !setcmp.ContainsString(firstNames, d.(string)) {
 			t.Errorf("Bad term return: %s", d)
 		}
 	}
@@ -166,7 +167,7 @@ func TestTermCount(t *testing.T) {
 	count := 0
 	for d := range idx.FieldStringTermCounts("v.data.lastName") {
 		count++
-		if !contains(lastNames, d.String) {
+		if !setcmp.ContainsString(lastNames, d.String) {
 			t.Errorf("Bad term return: %s", d.String)
 		}
 		if d.String == "Smith" {
@@ -182,7 +183,7 @@ func TestTermCount(t *testing.T) {
 	count = 0
 	for d := range idx.FieldTermCounts("v.data.firstName") {
 		count++
-		if !contains(firstNames, d.String) {
+		if !setcmp.ContainsString(firstNames, d.String) {
 			t.Errorf("Bad term return: %s", d.String)
 		}
 	}
@@ -212,7 +213,7 @@ func TestDocDelete(t *testing.T) {
 	count := 0
 	for d := range idx.FieldStringTermCounts("v.data.lastName") {
 		count++
-		if !contains(lastNames, d.String) {
+		if !setcmp.ContainsString(lastNames, d.String) {
 			t.Errorf("Bad term return: %s", d.String)
 		}
 		if d.String == "Smith" {
@@ -233,7 +234,7 @@ func TestDocDelete(t *testing.T) {
 	count = 0
 	for d := range idx.FieldStringTermCounts("v.data.lastName") {
 		count++
-		if !contains(lastNames, d.String) {
+		if !setcmp.ContainsString(lastNames, d.String) {
 			t.Errorf("Bad term return: %s", d.String)
 		}
 		if d.String == "Smith" {

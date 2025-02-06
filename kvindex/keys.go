@@ -6,21 +6,25 @@ import (
 
 // Fields
 // key: f | field
+// Known as 'graph' in grip
 // val:
 var idxFieldPrefix = []byte("f")
 
 // Terms
-// key: t | field | TermType | term
+// key: t | field | TermType'
+// Known as 'label' in grip
 // val: count
 var idxTermPrefix = []byte("t")
 
 // Entries
 // key: i | field | TermType | term | docid
+// What links the graph + label to the doc via an id
 // val:
 var idxEntryPrefix = []byte("i")
 
 // Docs
 // key: d | docid
+// Known as 'data' in grip
 // val: Doc entry list
 var idxDocPrefix = []byte("D")
 
@@ -75,7 +79,7 @@ func EntryPrefix(field string) []byte {
 	return bytes.Join([][]byte{idxEntryPrefix, []byte(field), {}}, []byte{0})
 }
 
-// EntryTypePrefix get prefix for all entries for a single field
+// EntryTypePrefix get prefix for all entries for a single field an a single type
 func EntryTypePrefix(field string, ttype TermType) []byte {
 	return bytes.Join([][]byte{idxEntryPrefix, []byte(field), {byte(ttype)}, {}}, []byte{0})
 }

@@ -69,27 +69,8 @@ func (pdb *PebbleKV) Delete(id []byte) error {
 
 // DeletePrefix deletes all elements in kvstore that begin with prefix `id`
 func (pdb *PebbleKV) DeletePrefix(prefix []byte) error {
-	deleteBlockSize := 10000
-	for found := true; found; {
-		found = false
-		wb := make([][]byte, 0, deleteBlockSize)
-		it, err := pdb.db.NewIter(&pebble.IterOptions{LowerBound: prefix})
-		if err != nil {
-			return err
-		}
-		for ; it.Valid() && bytes.HasPrefix(it.Key(), prefix) && len(wb) < deleteBlockSize-1; it.Next() {
-			wb = append(wb, copyBytes(it.Key()))
-		}
-		it.Close()
-		for _, i := range wb {
-			err := pdb.db.Delete(i, nil)
-			if err != nil {
-				return err
-			}
-			found = true
-		}
-	}
-	return nil
+	nextPrefix := append(prefix, 0xFF)
+	return pdb.db.DeleteRange(prefix, nextPrefix, nil)
 }
 
 // HasKey returns true if the key is exists in kvstore

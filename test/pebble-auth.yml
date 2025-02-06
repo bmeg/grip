@@ -1,8 +1,8 @@
-Default: badger
+Default: pebble
 
 Drivers:
-  badger:
-    Badger: grip-badger.db
+  pebble:
+    Pebble: grip-pebble.db
 
 Server:
   Accounts:
