@@ -229,7 +229,7 @@ func (server *GripServer) BulkAddRaw(stream gripql.Edit_BulkAddRawServer) error 
 	var populated bool
 	var sch *gripql.Graph
 	out := &graph.GraphSchema{Classes: map[string]*jsonschema.Schema{}, Compiler: nil}
-	elementStream := make(chan *gdbi.GraphElement)
+	elementStream := make(chan *gdbi.GraphElement, 100)
 	var retErrs []string
 	for {
 		var err error
@@ -271,6 +271,11 @@ func (server *GripServer) BulkAddRaw(stream gripql.Edit_BulkAddRawServer) error 
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
+			defer func() {
+				for ge := range elementStream {
+					server.streamPool.Put(ge)
+				}
+			}()
 			err := graph.BulkAdd(elementStream)
 			if err != nil {
 				log.WithFields(log.Fields{"graph": class.Graph, "error": err}).Error("BulkAddRaw: error")
@@ -298,27 +303,24 @@ func (server *GripServer) BulkAddRaw(stream gripql.Edit_BulkAddRawServer) error 
 		}
 
 		for _, element := range result {
+			ge := server.streamPool.Get().(*gdbi.GraphElement)
+			ge.Graph = class.Graph
 			if element.Vertex != nil {
-				elementStream <- &gdbi.GraphElement{
-					Vertex: &gdbi.Vertex{
-						ID:    element.Vertex.Gid,
-						Data:  element.Vertex.Data.AsMap(),
-						Label: element.Vertex.Label,
-					},
-					Graph: class.Graph,
+				ge.Vertex = &gdbi.Vertex{
+					ID:    element.Vertex.Gid,
+					Data:  element.Vertex.Data.AsMap(),
+					Label: element.Vertex.Label,
 				}
 			} else {
-				elementStream <- &gdbi.GraphElement{
-					Edge: &gdbi.Edge{
-						ID:    element.Edge.Gid,
-						Label: element.Edge.Label,
-						From:  element.Edge.From,
-						To:    element.Edge.To,
-						Data:  element.Edge.Data.AsMap(),
-					},
-					Graph: class.Graph,
+				ge.Edge = &gdbi.Edge{
+					ID:    element.Edge.Gid,
+					Label: element.Edge.Label,
+					From:  element.Edge.From,
+					To:    element.Edge.To,
+					Data:  element.Edge.Data.AsMap(),
 				}
 			}
+			elementStream <- ge
 			insertCount++
 		}
 
@@ -410,6 +412,7 @@ func (server *GripServer) BulkAdd(stream gripql.Edit_BulkAddServer) error {
 			} else {
 				insertCount++
 				elementStream <- gdbi.NewGraphElement(element)
+
 			}
 		}
 	}
