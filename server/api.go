@@ -229,9 +229,9 @@ func (server *GripServer) BulkAddRaw(stream gripql.Edit_BulkAddRawServer) error 
 	var populated bool
 	var sch *gripql.Graph
 	out := &graph.GraphSchema{Classes: map[string]*jsonschema.Schema{}, Compiler: nil}
-	elementStream := make(chan *gdbi.GraphElement, 100)
+	elementStream := make(chan *gdbi.GraphElement, 50)
 	var retErrs []string
-	sem := make(chan struct{}, 1000)
+	sem := make(chan struct{}, 100)
 	for {
 		var err error
 		class, err := stream.Recv()
@@ -340,8 +340,15 @@ func (server *GripServer) BulkAdd(stream gripql.Edit_BulkAddServer) error {
 	var insertCount int32
 	var errorCount int32
 
-	elementStream := make(chan *gdbi.GraphElement, 100)
+	elementStream := make(chan *gdbi.GraphElement, 50)
 	wg := &sync.WaitGroup{}
+
+	defer func() {
+		if elementStream != nil {
+			close(elementStream)
+		}
+		wg.Wait()
+	}()
 
 	for {
 		element, err := stream.Recv()
@@ -364,7 +371,10 @@ func (server *GripServer) BulkAdd(stream gripql.Edit_BulkAddServer) error {
 		// create a BulkAdd stream per graph
 		// close and switch when a new graph is encountered
 		if element.Graph != graphName {
-			close(elementStream)
+			if elementStream != nil {
+				close(elementStream)
+				wg.Wait()
+			}
 			gdb, err := server.getGraphDB(element.Graph)
 			if err != nil {
 				errorCount++
@@ -379,10 +389,10 @@ func (server *GripServer) BulkAdd(stream gripql.Edit_BulkAddServer) error {
 			}
 
 			graphName = element.Graph
-			elementStream = make(chan *gdbi.GraphElement, 100)
+			elementStream = make(chan *gdbi.GraphElement, 50)
 
 			wg.Add(1)
-			go func() {
+			go func(graphName string, stream chan *gdbi.GraphElement) {
 				log.WithFields(log.Fields{"graph": element.Graph}).Info("BulkAdd: streaming elements to graph")
 				err := graph.BulkAdd(elementStream)
 				if err != nil {
@@ -391,7 +401,7 @@ func (server *GripServer) BulkAdd(stream gripql.Edit_BulkAddServer) error {
 					errorCount++
 				}
 				wg.Done()
-			}()
+			}(graphName, elementStream)
 		}
 
 		if element.Vertex != nil {
@@ -420,9 +430,6 @@ func (server *GripServer) BulkAdd(stream gripql.Edit_BulkAddServer) error {
 			}
 		}
 	}
-
-	close(elementStream)
-	wg.Wait()
 
 	return stream.SendAndClose(&gripql.BulkEditResult{InsertCount: insertCount, ErrorCount: errorCount})
 }

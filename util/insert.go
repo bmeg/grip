@@ -1,12 +1,14 @@
 package util
 
 import (
+	"context"
 	"fmt"
 	"sync"
 
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/log"
 	multierror "github.com/hashicorp/go-multierror"
+	"golang.org/x/sync/semaphore"
 )
 
 // StreamBatch a stream of inputs and loads them into the graph
@@ -20,7 +22,8 @@ func StreamBatch(stream <-chan *gdbi.GraphElement, batchSize int, graph string, 
 	vertexChan := make(chan *gdbi.Vertex, batchSize)
 	edgeChan := make(chan *gdbi.Edge, batchSize)
 
-	// Start goroutines to process vertices and edges
+	sem := semaphore.NewWeighted(int64(batchSize * 2))
+
 	wg.Add(2)
 	go func() {
 		defer wg.Done()
@@ -57,6 +60,7 @@ func StreamBatch(stream <-chan *gdbi.GraphElement, batchSize int, graph string, 
 				continue
 			}
 
+			sem.Acquire(context.Background(), 1)
 			vertexBatch = append(vertexBatch, vertex)
 			vertCount++
 
@@ -64,7 +68,8 @@ func StreamBatch(stream <-chan *gdbi.GraphElement, batchSize int, graph string, 
 				for _, v := range vertexBatch {
 					vertexChan <- v
 				}
-				vertexBatch = vertexBatch[:0] // Reset batch slice
+				vertexBatch = make([]*gdbi.Vertex, 0, batchSize)
+				sem.Release(int64(len(vertexBatch)))
 			}
 		} else if element.Edge != nil {
 			edge := element.Edge
@@ -80,6 +85,7 @@ func StreamBatch(stream <-chan *gdbi.GraphElement, batchSize int, graph string, 
 				continue
 			}
 
+			sem.Acquire(context.Background(), 1)
 			edgeBatch = append(edgeBatch, edge)
 			edgeCount++
 
@@ -87,7 +93,8 @@ func StreamBatch(stream <-chan *gdbi.GraphElement, batchSize int, graph string, 
 				for _, e := range edgeBatch {
 					edgeChan <- e
 				}
-				edgeBatch = edgeBatch[:0] // Reset batch slice
+				edgeBatch = make([]*gdbi.Edge, 0, batchSize)
+				sem.Release(int64(len(edgeBatch)))
 			}
 		}
 	}
@@ -105,6 +112,7 @@ func StreamBatch(stream <-chan *gdbi.GraphElement, batchSize int, graph string, 
 	close(edgeChan)
 
 	wg.Wait()
+	sem.Release(int64(len(vertexBatch) + len(edgeBatch)))
 
 	if vertCount != 0 {
 		log.Debugf("%d vertices streamed to BulkAdd", vertCount)
