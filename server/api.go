@@ -231,6 +231,7 @@ func (server *GripServer) BulkAddRaw(stream gripql.Edit_BulkAddRawServer) error 
 	out := &graph.GraphSchema{Classes: map[string]*jsonschema.Schema{}, Compiler: nil}
 	elementStream := make(chan *gdbi.GraphElement, 100)
 	var retErrs []string
+	sem := make(chan struct{}, 1000)
 	for {
 		var err error
 		class, err := stream.Recv()
@@ -320,13 +321,16 @@ func (server *GripServer) BulkAddRaw(stream gripql.Edit_BulkAddRawServer) error 
 					Data:  element.Edge.Data.AsMap(),
 				}
 			}
+			sem <- struct{}{}
 			elementStream <- ge
 			insertCount++
+			<-sem
 		}
 
 	}
 	close(elementStream)
 	wg.Wait()
+	close(sem)
 	return stream.SendAndClose(&gripql.BulkJsonEditResult{InsertCount: insertCount, Errors: retErrs})
 }
 

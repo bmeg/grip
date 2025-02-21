@@ -116,8 +116,63 @@ func (mg *Graph) AddEdge(edges []*gdbi.Edge) error {
 	return err
 }
 
+func (mg *Graph) StreamEdges(edgeChan <-chan *gdbi.Edge, batchsize int) error {
+	eCol := mg.ar.EdgeCollection(mg.graph)
+	var err error
+	docBatch := make([]mongo.WriteModel, 0, batchsize)
+
+	for edge := range edgeChan {
+		i := mongo.NewReplaceOneModel().SetUpsert(true).SetFilter(bson.M{FIELD_ID: edge.ID})
+		ent := PackEdge(edge)
+		i.SetReplacement(ent)
+		docBatch = append(docBatch, i)
+
+		if len(docBatch) >= batchsize {
+			_, err = eCol.BulkWrite(context.Background(), docBatch)
+			if err != nil {
+				log.Errorf("StreamEdges error: (%s) %s", docBatch, err)
+			}
+			docBatch = docBatch[:0]
+		}
+	}
+	if len(docBatch) > 0 {
+		_, err = eCol.BulkWrite(context.Background(), docBatch)
+		if err != nil {
+			log.Errorf("StreamEdges error: (%s) %s", docBatch, err)
+		}
+	}
+	return err
+}
+
+func (mg *Graph) StreamVertices(vertChan <-chan *gdbi.Vertex, batchsize int) error {
+	vCol := mg.ar.VertexCollection(mg.graph)
+	var err error
+	docBatch := make([]mongo.WriteModel, 0, batchsize)
+	for v := range vertChan {
+		i := mongo.NewReplaceOneModel().SetUpsert(true).SetFilter(bson.M{FIELD_ID: v.ID})
+		ent := PackVertex(v)
+		i.SetReplacement(ent)
+		docBatch = append(docBatch, i)
+
+		if len(docBatch) >= batchsize {
+			_, err = vCol.BulkWrite(context.Background(), docBatch)
+			if err != nil {
+				log.Errorf("StreamVertices error: (%s) %s", docBatch, err)
+			}
+			docBatch = docBatch[:0]
+		}
+	}
+	if len(docBatch) > 0 {
+		_, err = vCol.BulkWrite(context.Background(), docBatch)
+		if err != nil {
+			log.Errorf("StreamVertices error: (%s) %s", docBatch, err)
+		}
+	}
+	return err
+}
+
 func (mg *Graph) BulkAdd(stream <-chan *gdbi.GraphElement) error {
-	return util.StreamBatch(stream, 50, mg.graph, mg.AddVertex, mg.AddEdge)
+	return util.StreamBatch(stream, 100, mg.graph, mg.StreamVertices, mg.StreamEdges)
 }
 
 func (mg *Graph) BulkDel(Data *gdbi.DeleteData) error {

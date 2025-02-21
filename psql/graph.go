@@ -79,6 +79,133 @@ func (g *Graph) AddVertex(vertices []*gdbi.Vertex) error {
 	return nil
 }
 
+// AddVertex adds a vertex to the database
+func (g *Graph) StreamVertices(vertices <-chan *gdbi.Vertex, workers int) error {
+	txn, err := g.db.Begin()
+	if err != nil {
+		return fmt.Errorf("StreamVertices: Begin Txn: %v", err)
+	}
+
+	s := fmt.Sprintf(
+		`INSERT INTO %s (gid, label, data) VALUES ($1, $2, $3)
+		 ON CONFLICT (gid) DO UPDATE SET
+		 gid = excluded.gid,
+		 label = excluded.label,
+		 data = excluded.data;`,
+		g.v,
+	)
+	stmt, err := txn.Prepare(s)
+	if err != nil {
+		return fmt.Errorf("StreamVertices: Prepare Stmt: %v", err)
+	}
+
+	count := 0
+	for v := range vertices {
+		js, err := json.Marshal(v.Data)
+		if err != nil {
+			return fmt.Errorf("StreamVertices: Stmt.Exec: %v", err)
+		}
+		_, err = stmt.Exec(v.ID, v.Label, js)
+		if err != nil {
+			return fmt.Errorf("StreamVertices: Stmt.Exec: %v", err)
+		}
+		count++
+
+		if count%1000 == 0 {
+			if err := txn.Commit(); err != nil {
+				_ = stmt.Close()
+				return fmt.Errorf("StreamVertices: Txn.Commit: %v", err)
+			}
+
+			txn, err = g.db.Begin()
+			if err != nil {
+				return fmt.Errorf("StreamVertices: Begin New Txn: %v", err)
+			}
+			stmt, err = txn.Prepare(s)
+			if err != nil {
+				return fmt.Errorf("StreamVertices: Prepare New Stmt: %v", err)
+			}
+		}
+
+	}
+
+	err = stmt.Close()
+	if err != nil {
+		return fmt.Errorf("StreamVertices: Stmt.Close: %v", err)
+	}
+
+	err = txn.Commit()
+	if err != nil {
+		return fmt.Errorf("StreamVertices: Txn.Commit: %v", err)
+	}
+
+	return nil
+}
+
+// AddEdge adds an edge to the database
+func (g *Graph) StreamEdges(edges <-chan *gdbi.Edge, workers int) error {
+	txn, err := g.db.Begin()
+	if err != nil {
+		return fmt.Errorf("StreamEdges: Begin Txn: %v", err)
+	}
+
+	s := fmt.Sprintf(
+		`INSERT INTO %s (gid, label, "from", "to", data) VALUES ($1, $2, $3, $4, $5)
+		ON CONFLICT (gid) DO UPDATE SET
+		gid = excluded.gid,
+		label = excluded.label,
+		"from" = excluded.from,
+		"to" = excluded.to,
+		data = excluded.data;`,
+		g.e,
+	)
+	stmt, err := txn.Prepare(s)
+	if err != nil {
+		return fmt.Errorf("StreamEdges: Prepare Stmt: %v", err)
+	}
+
+	count := 0
+	for e := range edges {
+		js, err := json.Marshal(e.Data)
+		if err != nil {
+			return fmt.Errorf("AddEdge: Stmt.Exec: %v", err)
+		}
+		_, err = stmt.Exec(e.ID, e.Label, e.From, e.To, js)
+		if err != nil {
+			return fmt.Errorf("AddEdge: Stmt.Exec: %v", err)
+		}
+		count++
+		if count%1000 == 0 {
+			if err := txn.Commit(); err != nil {
+				_ = stmt.Close()
+				return fmt.Errorf("StreamEdges: Txn.Commit: %v", err)
+			}
+
+			txn, err = g.db.Begin()
+			if err != nil {
+				return fmt.Errorf("StreamEdges: Begin New Txn: %v", err)
+			}
+			stmt, err = txn.Prepare(s)
+			if err != nil {
+				return fmt.Errorf("StreamEdges: Prepare New Stmt: %v", err)
+			}
+		}
+
+	}
+
+	err = stmt.Close()
+	if err != nil {
+		return fmt.Errorf("StreamEdges: Stmt.Close: %v", err)
+	}
+
+	err = txn.Commit()
+	if err != nil {
+		return fmt.Errorf("StreamEdges: Txn.Commit: %v", err)
+	}
+
+	return nil
+}
+
 // AddEdge adds an edge to the database
 func (g *Graph) AddEdge(edges []*gdbi.Edge) error {
 	txn, err := g.db.Begin()
@@ -126,7 +253,7 @@ func (g *Graph) AddEdge(edges []*gdbi.Edge) error {
 }
 
 func (g *Graph) BulkAdd(stream <-chan *gdbi.GraphElement) error {
-	return util.StreamBatch(stream, 50, g.graph, g.AddVertex, g.AddEdge)
+	return util.StreamBatch(stream, 50, g.graph, g.StreamVertices, g.StreamEdges)
 }
 
 func (g *Graph) BulkDel(Data *gdbi.DeleteData) error {
