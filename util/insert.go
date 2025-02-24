@@ -65,11 +65,12 @@ func StreamBatch(stream <-chan *gdbi.GraphElement, batchSize int, graph string, 
 			vertCount++
 
 			if len(vertexBatch) >= batchSize {
+				batchSizeToRelease := len(vertexBatch)
 				for _, v := range vertexBatch {
 					vertexChan <- v
 				}
 				vertexBatch = make([]*gdbi.Vertex, 0, batchSize)
-				sem.Release(int64(len(vertexBatch)))
+				sem.Release(int64(batchSizeToRelease))
 			}
 		} else if element.Edge != nil {
 			edge := element.Edge
@@ -90,11 +91,12 @@ func StreamBatch(stream <-chan *gdbi.GraphElement, batchSize int, graph string, 
 			edgeCount++
 
 			if len(edgeBatch) >= batchSize {
+				batchSizeToRelease := len(edgeBatch)
 				for _, e := range edgeBatch {
 					edgeChan <- e
 				}
 				edgeBatch = make([]*gdbi.Edge, 0, batchSize)
-				sem.Release(int64(len(edgeBatch)))
+				sem.Release(int64(batchSizeToRelease))
 			}
 		}
 	}

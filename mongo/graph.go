@@ -172,7 +172,7 @@ func (mg *Graph) StreamVertices(vertChan <-chan *gdbi.Vertex, batchsize int) err
 }
 
 func (mg *Graph) BulkAdd(stream <-chan *gdbi.GraphElement) error {
-	return util.StreamBatch(stream, 50, mg.graph, mg.StreamVertices, mg.StreamEdges)
+	return util.StreamBatch(stream, 100, mg.graph, mg.StreamVertices, mg.StreamEdges)
 }
 
 func (mg *Graph) BulkDel(Data *gdbi.DeleteData) error {

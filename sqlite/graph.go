@@ -96,7 +96,6 @@ func (g *Graph) StreamVertices(vertices <-chan *gdbi.Vertex, workers int) error 
 		return fmt.Errorf("StreamVertices: Prepare Stmt: %v", err)
 	}
 
-	count := 0
 	for v := range vertices {
 		js, err := json.Marshal(v.Data)
 		if err != nil {
@@ -105,23 +104,6 @@ func (g *Graph) StreamVertices(vertices <-chan *gdbi.Vertex, workers int) error 
 		_, err = stmt.Exec(v.ID, v.Label, js)
 		if err != nil {
 			return fmt.Errorf("StreamVertices: Stmt.Exec: %v", err)
-		}
-		count++
-
-		if count%1000 == 0 {
-			if err := txn.Commit(); err != nil {
-				_ = stmt.Close()
-				return fmt.Errorf("StreamVertices: Txn.Commit: %v", err)
-			}
-
-			txn, err = g.db.Begin()
-			if err != nil {
-				return fmt.Errorf("StreamVertices: Begin New Txn: %v", err)
-			}
-			stmt, err = txn.Prepare(s)
-			if err != nil {
-				return fmt.Errorf("StreamVertices: Prepare New Stmt: %v", err)
-			}
 		}
 
 	}
@@ -160,7 +142,6 @@ func (g *Graph) StreamEdges(edges <-chan *gdbi.Edge, workers int) error {
 		return fmt.Errorf("StreamEdges: Prepare Stmt: %v", err)
 	}
 
-	count := 0
 	for e := range edges {
 		js, err := json.Marshal(e.Data)
 		if err != nil {
@@ -169,22 +150,6 @@ func (g *Graph) StreamEdges(edges <-chan *gdbi.Edge, workers int) error {
 		_, err = stmt.Exec(e.ID, e.Label, e.From, e.To, js)
 		if err != nil {
 			return fmt.Errorf("AddEdge: Stmt.Exec: %v", err)
-		}
-		count++
-		if count%1000 == 0 {
-			if err := txn.Commit(); err != nil {
-				_ = stmt.Close()
-				return fmt.Errorf("StreamEdges: Txn.Commit: %v", err)
-			}
-
-			txn, err = g.db.Begin()
-			if err != nil {
-				return fmt.Errorf("StreamEdges: Begin New Txn: %v", err)
-			}
-			stmt, err = txn.Prepare(s)
-			if err != nil {
-				return fmt.Errorf("StreamEdges: Prepare New Stmt: %v", err)
-			}
 		}
 
 	}
