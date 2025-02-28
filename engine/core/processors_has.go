@@ -6,6 +6,7 @@ import (
 	"github.com/bmeg/grip/engine/logic"
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
+	"github.com/bmeg/grip/util/setcmp"
 )
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -50,7 +51,7 @@ func (h *HasLabel) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe
 				out <- t
 				continue
 			}
-			if contains(labels, t.GetCurrent().Get().Label) {
+			if setcmp.ContainsString(labels, t.GetCurrent().Get().Label) {
 				out <- t
 			}
 		}
@@ -106,7 +107,7 @@ func (h *HasID) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, o
 				out <- t
 				continue
 			}
-			if contains(ids, t.GetCurrentID()) {
+			if setcmp.ContainsString(ids, t.GetCurrentID()) {
 				out <- t
 			}
 		}

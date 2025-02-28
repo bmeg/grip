@@ -11,19 +11,11 @@ import (
 	"github.com/bmeg/grip/kvi"
 	"github.com/bmeg/grip/kvindex"
 	"github.com/bmeg/grip/log"
+	"github.com/bmeg/grip/util/setcmp"
 	"google.golang.org/protobuf/proto"
 
 	multierror "github.com/hashicorp/go-multierror"
 )
-
-func contains(a []string, v string) bool {
-	for _, i := range a {
-		if i == v {
-			return true
-		}
-	}
-	return false
-}
 
 // GetTimestamp returns the update timestamp
 func (kgdb *KVInterfaceGDB) GetTimestamp() string {
@@ -199,6 +191,10 @@ func (kgdb *KVInterfaceGDB) DelEdge(eid string) error {
 	if err := kgdb.kvg.kv.Delete(dkey); err != nil {
 		return err
 	}
+	if err := kgdb.kvg.idx.RemoveDoc(eid); err != nil {
+		return err
+	}
+
 	kgdb.kvg.ts.Touch(kgdb.graph)
 	return nil
 }
@@ -235,11 +231,17 @@ func (kgdb *KVInterfaceGDB) DelVertex(id string) error {
 		if err := tx.Delete(vid); err != nil {
 			return err
 		}
+
 		for _, k := range delKeys {
 			if err := tx.Delete(k); err != nil {
 				return err
 			}
 		}
+
+		if err := kgdb.kvg.idx.RemoveDoc(kvindex.FieldKeyParse(vid)); err != nil {
+			return err
+		}
+
 		kgdb.kvg.ts.Touch(kgdb.graph)
 		return nil
 	})
@@ -378,7 +380,7 @@ func (kgdb *KVInterfaceGDB) GetOutChannel(ctx context.Context, reqChan chan gdbi
 					for it.Seek(skeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), skeyPrefix); it.Next() {
 						keyValue := it.Key()
 						_, _, dst, _, label, etype := SrcEdgeKeyParse(keyValue)
-						if len(edgeLabels) == 0 || contains(edgeLabels, label) {
+						if len(edgeLabels) == 0 || setcmp.ContainsString(edgeLabels, label) {
 							vkey := VertexKey(kgdb.graph, dst)
 							if etype == edgeSingle {
 								vertexChan <- elementData{
@@ -456,7 +458,7 @@ func (kgdb *KVInterfaceGDB) GetInChannel(ctx context.Context, reqChan chan gdbi.
 					for it.Seek(dkeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), dkeyPrefix); it.Next() {
 						keyValue := it.Key()
 						_, src, _, _, label, _ := DstEdgeKeyParse(keyValue)
-						if len(edgeLabels) == 0 || contains(edgeLabels, label) {
+						if len(edgeLabels) == 0 || setcmp.ContainsString(edgeLabels, label) {
 							vkey := VertexKey(kgdb.graph, src)
 							dataValue, err := it.Get(vkey)
 							if err == nil {
@@ -506,7 +508,7 @@ func (kgdb *KVInterfaceGDB) GetOutEdgeChannel(ctx context.Context, reqChan chan 
 					for it.Seek(skeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), skeyPrefix); it.Next() {
 						keyValue := it.Key()
 						_, src, dst, eid, label, edgeType := SrcEdgeKeyParse(keyValue)
-						if len(edgeLabels) == 0 || contains(edgeLabels, label) {
+						if len(edgeLabels) == 0 || setcmp.ContainsString(edgeLabels, label) {
 							if edgeType == edgeSingle {
 								e := gdbi.Edge{}
 								if load {
@@ -563,7 +565,7 @@ func (kgdb *KVInterfaceGDB) GetInEdgeChannel(ctx context.Context, reqChan chan g
 					for it.Seek(dkeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), dkeyPrefix); it.Next() {
 						keyValue := it.Key()
 						_, src, dst, eid, label, edgeType := DstEdgeKeyParse(keyValue)
-						if len(edgeLabels) == 0 || contains(edgeLabels, label) {
+						if len(edgeLabels) == 0 || setcmp.ContainsString(edgeLabels, label) {
 							if edgeType == edgeSingle {
 								e := gdbi.Edge{}
 								if load {

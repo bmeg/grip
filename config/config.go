@@ -129,6 +129,10 @@ func TestifyConfig(c *Config) {
 		a := "grip.db." + rand
 		d.Badger = &a
 	}
+	if d.Pebble != nil {
+		a := "grip.db." + rand
+		d.Pebble = &a
+	}
 	if d.MongoDB != nil {
 		d.MongoDB.DBName = "gripdb-" + rand
 	}

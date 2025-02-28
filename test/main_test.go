@@ -17,6 +17,8 @@ import (
 	_ "github.com/bmeg/grip/kvi/badgerdb" // import so badger will register itself
 	_ "github.com/bmeg/grip/kvi/boltdb"   // import so bolt will register itself
 	_ "github.com/bmeg/grip/kvi/leveldb"  // import so level will register itself
+	_ "github.com/bmeg/grip/kvi/pebbledb" // import so pebble will register itself
+
 	"github.com/bmeg/grip/mongo"
 	"github.com/bmeg/grip/psql"
 	"github.com/bmeg/grip/util"
@@ -93,7 +95,7 @@ func TestMain(m *testing.M) {
 			return
 		}
 	} else {
-		conf.AddBadgerDefault()
+		conf.AddPebbleDefault()
 	}
 
 	config.TestifyConfig(conf)
@@ -115,6 +117,11 @@ func TestMain(m *testing.M) {
 		gdb, err = kvgraph.NewKVGraphDB("badger", *dbconfig.Badger)
 		defer func() {
 			os.RemoveAll(*dbconfig.Badger)
+		}()
+	} else if dbconfig.Pebble != nil {
+		gdb, err = kvgraph.NewKVGraphDB("pebble", *dbconfig.Pebble)
+		defer func() {
+			os.RemoveAll(*dbconfig.Pebble)
 		}()
 	} else if dbconfig.Bolt != nil {
 		gdb, err = kvgraph.NewKVGraphDB("bolt", *dbconfig.Bolt)
@@ -159,6 +166,33 @@ func TestMain(m *testing.M) {
 		}
 	}
 
+	// After deleting graph, docs, entries, fields should no longer exist in doc
+	err = gdb.DeleteGraph("test-graph")
+	err = gdb.AddGraph("test-graph")
+	if err != nil {
+		fmt.Println("Error: failed to add graph:", err)
+		return
+	}
+	db, err = gdb.Graph("test-graph")
+	if err != nil {
+		fmt.Println("Error: failed to connect to graph:", err)
+		return
+	}
+
+	afterVertexLabels, _ := db.ListVertexLabels()
+	afterEdgeLabels, _ := db.ListEdgeLabels()
+	fmt.Printf("afterEdgeLabels: %s afterVertexLabels: %s\n", afterEdgeLabels, afterVertexLabels)
+	if len(afterVertexLabels) != 0 || len(afterEdgeLabels) != 0 {
+		panic(fmt.Errorf("afterEdgeLabels: %s or afterVertexLabels: %s are not empty\n", afterEdgeLabels, afterVertexLabels))
+	}
+
+	if dbname != "existing-sql" {
+		err = setupGraph()
+		if err != nil {
+			fmt.Println("Error: setting up graph:", err)
+			return
+		}
+	}
 	// run tests
 	exit = m.Run()
 }
