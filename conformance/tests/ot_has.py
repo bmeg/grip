@@ -137,7 +137,7 @@ def test_has_prev(man):
     q = q.has(gripql.neq("$1._gid", "$._gid"))
     count = 0
     for i in q.render(["$1._gid", "$._gid"]):
-        print(i)
+        #print(i)
         if i[0] == i[1]:
             errors.append("History based filter failed: %s" % (i[0]) )
         count += 1

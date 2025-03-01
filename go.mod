@@ -13,7 +13,7 @@ require (
 	github.com/bmeg/jsonschemagraph v0.0.3-0.20241211234837-ff91c296d0a8
 	github.com/boltdb/bolt v1.3.1
 	github.com/casbin/casbin/v2 v2.97.0
-	github.com/cockroachdb/pebble v0.0.0-20250128214837-cd1252433ca0
+	github.com/cockroachdb/pebble v1.1.4
 	github.com/davecgh/go-spew v1.1.1
 	github.com/dgraph-io/badger/v2 v2.2007.4
 	github.com/dop251/goja v0.0.0-20240707163329-b1681fb2a2f5
@@ -27,6 +27,7 @@ require (
 	github.com/influxdata/tdigest v0.0.1
 	github.com/jmoiron/sqlx v1.4.0
 	github.com/kennygrant/sanitize v1.2.4
+	github.com/klauspost/compress v1.17.9
 	github.com/knakk/rdf v0.0.0-20190304171630-8521bf4c5042
 	github.com/kr/pretty v0.3.1
 	github.com/lib/pq v1.10.9
@@ -35,13 +36,15 @@ require (
 	github.com/minio/minio-go/v7 v7.0.73
 	github.com/mitchellh/hashstructure/v2 v2.0.2
 	github.com/mongodb/mongo-tools v0.0.0-20240715143021-aa6a140d3f17
+	github.com/opensearch-project/opensearch-go v1.1.0
+	github.com/opensearch-project/opensearch-go/v4 v4.4.0
 	github.com/paulbellamy/ratecounter v0.2.0
 	github.com/robertkrimen/otto v0.4.0
 	github.com/segmentio/ksuid v1.0.4
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cast v1.6.0
 	github.com/spf13/cobra v1.8.1
-	github.com/stretchr/testify v1.9.0
+	github.com/stretchr/testify v1.10.0
 	github.com/syndtr/goleveldb v1.0.0
 	go.mongodb.org/mongo-driver v1.11.9
 	golang.org/x/crypto v0.30.0
@@ -50,7 +53,6 @@ require (
 	google.golang.org/genproto/googleapis/api v0.0.0-20240711142825-46eb208f015d
 	google.golang.org/grpc v1.65.0
 	google.golang.org/protobuf v1.35.2
-	gopkg.in/yaml.v3 v3.0.1
 	sigs.k8s.io/yaml v1.4.0
 )
 
@@ -64,10 +66,10 @@ require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/cockroachdb/crlib v0.0.0-20241112164430-1264a2edc35b // indirect
 	github.com/cockroachdb/errors v1.11.3 // indirect
-	github.com/cockroachdb/fifo v0.0.0-20240616162244-4768e80dfb9a // indirect
+	github.com/cockroachdb/fifo v0.0.0-20240606204812-0bbfbd93a7ce // indirect
 	github.com/cockroachdb/logtags v0.0.0-20230118201751-21c54148d20b // indirect
 	github.com/cockroachdb/redact v1.1.5 // indirect
-	github.com/cockroachdb/swiss v0.0.0-20240612210725-f4de07ae6964 // indirect
+	github.com/cockroachdb/swiss v0.0.0-20250228163838-b0ad90cb6c3c // indirect
 	github.com/cockroachdb/tokenbucket v0.0.0-20230807174530-cc333fc44b06 // indirect
 	github.com/dgraph-io/ristretto v0.1.1 // indirect
 	github.com/dgryski/go-farm v0.0.0-20200201041132-a6ae2369ad13 // indirect
@@ -100,7 +102,6 @@ require (
 	github.com/jcmturner/gokrb5/v8 v8.4.4 // indirect
 	github.com/jcmturner/rpc/v2 v2.0.3 // indirect
 	github.com/jessevdk/go-flags v1.6.1 // indirect
-	github.com/klauspost/compress v1.17.9 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.8 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
@@ -136,4 +137,5 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240711142825-46eb208f015d // indirect
 	gopkg.in/sourcemap.v1 v1.0.5 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
