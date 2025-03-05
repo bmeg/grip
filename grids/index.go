@@ -83,11 +83,14 @@ func (ggraph *Graph) VertexLabelScan(ctx context.Context, label string) chan str
 	log.WithFields(log.Fields{"label": label}).Debug("Running VertexLabelScan")
 	//TODO: Make this work better
 	out := make(chan string, 100)
+	if label[:2] != "v_" {
+		label = "v_" + label
+	}
 	go func() {
 		defer close(out)
-		//log.Printf("Searching %s %s", fmt.Sprintf("%s.label", ggraph.graph), label)
+		log.Infof("Searching %s %s", fmt.Sprintf("%s.label", ggraph.graphID), label)
 		for i := range ggraph.bsonkv.GetIDsForLabel(label) {
-			fmt.Printf("Found: %s", i)
+			log.Infoln("I FOUND IT: ", i)
 			out <- i
 		}
 	}()

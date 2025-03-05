@@ -44,18 +44,24 @@ func insertVertex(tx kvi.KVBulkWrite, keyMap *KeyMap, vertex *gdbi.Vertex) error
 }
 
 func (ggraph *Graph) indexVertex(vertex *gdbi.Vertex) error {
-	log.Info("VERTEX LABEL: ", vertex.Label)
-	table, ok := ggraph.bsonkv.Tables[vertex.Label]
+	vertexLabel := "v_" + vertex.Label
+	ggraph.bsonkv.Lock.Lock()
+	table, ok := ggraph.bsonkv.Tables[vertexLabel]
+	ggraph.bsonkv.Lock.Unlock()
+	fmt.Println("VALUE OF OK: ", ok)
 	if !ok {
-		newTable, err := ggraph.bsonkv.New(vertex.Label, nil)
+		log.Infof("Creating new table for: %s on graph %s", vertex.Label, ggraph.graphID)
+		newTable, err := ggraph.bsonkv.New(vertexLabel, nil)
 		if err != nil {
 			return fmt.Errorf("grids/graph.go: indexVertex: %s", err)
 		}
+		ggraph.bsonkv.Lock.Lock()
 		table = newTable.(*bsontable.BSONTable)
-		ggraph.bsonkv.Tables[vertex.Label] = table
+		ggraph.bsonkv.Tables[vertexLabel] = table
+		ggraph.bsonkv.Lock.Unlock()
 	}
 
-	if err := table.AddRow(benchtop.Row{Id: []byte(vertex.ID), Data: vertexIdxStruct(vertex)}); err != nil {
+	if err := table.AddRow(benchtop.Row{Id: []byte(vertex.ID), Label: vertexLabel, Data: vertexIdxStruct(vertex)}); err != nil {
 		return fmt.Errorf("AddVertex Error %s", err)
 	}
 	return nil
@@ -64,7 +70,6 @@ func (ggraph *Graph) indexVertex(vertex *gdbi.Vertex) error {
 func insertEdge(tx kvi.KVBulkWrite, keyMap *KeyMap, edge *gdbi.Edge) error {
 	var err error
 	var data []byte
-
 	if edge.ID == "" {
 		return fmt.Errorf("inserting null key edge")
 	}
@@ -113,17 +118,23 @@ func getTable(dr *bsontable.BSONDriver, label string) benchtop.TableStore {
 }
 
 func (ggraph *Graph) indexEdge(edge *gdbi.Edge) error {
-	log.Info("Edge LABEL: ", edge.Label)
-	table, ok := ggraph.bsonkv.Tables[edge.Label]
+	edgeLabel := "e_" + edge.Label
+	ggraph.bsonkv.Lock.Lock()
+	table, ok := ggraph.bsonkv.Tables[edgeLabel]
+	ggraph.bsonkv.Lock.Unlock()
+
 	if !ok {
-		newTable, err := ggraph.bsonkv.New(edge.Label, nil)
+		log.Infof("Creating new table for: %s on graph %s", edge.Label, ggraph.graphID)
+		newTable, err := ggraph.bsonkv.New(edgeLabel, nil)
 		if err != nil {
 			return fmt.Errorf("indexEdge: bsonkv.New: %s", err)
 		}
+		ggraph.bsonkv.Lock.Lock()
 		table = newTable.(*bsontable.BSONTable)
-		ggraph.bsonkv.Tables[edge.Label] = table
+		ggraph.bsonkv.Tables[edgeLabel] = table
+		ggraph.bsonkv.Lock.Unlock()
 	}
-	if err := table.AddRow(benchtop.Row{Id: []byte(edge.ID), Data: edge.Data}); err != nil {
+	if err := table.AddRow(benchtop.Row{Id: []byte(edge.ID), Label: edgeLabel, Data: edge.Data}); err != nil {
 		return fmt.Errorf("indexEdge: table.AddRow: %s", err)
 	}
 	return nil
@@ -194,14 +205,14 @@ func (ggraph *Graph) AddEdge(edges []*gdbi.Edge) error {
 
 func (ggraph *Graph) BulkDel(data *gdbi.DeleteData) error {
 	var bulkErr *multierror.Error
-	for _, val := range data.Vertices {
+	for _, val := range data.Edges {
 		err := ggraph.DelEdge(val)
 		if err != nil {
 			bulkErr = multierror.Append(bulkErr, err)
 		}
 	}
 	for _, val := range data.Vertices {
-		err := ggraph.DelEdge(val)
+		err := ggraph.DelVertex(val)
 		if err != nil {
 			bulkErr = multierror.Append(bulkErr, err)
 		}
@@ -273,14 +284,14 @@ func (ggraph *Graph) BulkAdd(stream <-chan *gdbi.GraphElement) error {
 		if elem.Vertex != nil {
 			indexStream <- &benchtop.Row{
 				Id:    []byte(elem.Vertex.ID),
-				Label: []byte(elem.Vertex.Label),
+				Label: "v_" + elem.Vertex.Label,
 				Data:  elem.Vertex.Data,
 			}
 		}
 		if elem.Edge != nil {
 			indexStream <- &benchtop.Row{
 				Id:    []byte(elem.Edge.ID),
-				Label: []byte(elem.Edge.Label),
+				Label: "e_" + elem.Edge.Label,
 				Data:  elem.Edge.Data,
 			}
 		}
@@ -297,7 +308,6 @@ func (ggraph *Graph) BulkAdd(stream <-chan *gdbi.GraphElement) error {
 	return errs.ErrorOrNil()
 }
 
-// DelEdge deletes edge with id `key`
 func (ggraph *Graph) DelEdge(eid string) error {
 	edgeKey, ok := ggraph.keyMap.GetEdgeKey(eid)
 	if !ok {
@@ -311,30 +321,44 @@ func (ggraph *Graph) DelEdge(eid string) error {
 		}
 		return nil
 	})
-
 	if ekey == nil {
 		return fmt.Errorf("edge not found")
 	}
 
-	_, sid, did, _ := EdgeKeyParse(ekey)
+	fmt.Printf("EKEY: %v\n", ekey)
+	fmt.Println("EID: ", eid)
 
-	skey := SrcEdgeKeyPrefix(edgeKey, sid, did)
-	dkey := DstEdgeKeyPrefix(edgeKey, sid, did)
+	eidParsed, sid, did, lbl := EdgeKeyParse(ekey)
+
+	skey := SrcEdgeKey(eidParsed, sid, did, lbl)
+	dkey := DstEdgeKey(eidParsed, sid, did, lbl)
 
 	var bulkErr *multierror.Error
-	if err := ggraph.graphkv.Delete(ekey); err != nil {
+	err := ggraph.graphkv.Update(func(tx kvi.KVTransaction) error {
+		if err := tx.Delete(ekey); err != nil {
+			return err
+		}
+		if err := tx.Delete(skey); err != nil {
+			return err
+		}
+		if err := tx.Delete(dkey); err != nil {
+			return err
+		}
+		ggraph.ts.Touch(ggraph.graphID)
+		return nil
+	})
+	if err != nil {
 		bulkErr = multierror.Append(bulkErr, err)
 	}
-	if err := ggraph.graphkv.Delete(skey); err != nil {
-		bulkErr = multierror.Append(bulkErr, err)
-	}
-	if err := ggraph.graphkv.Delete(dkey); err != nil {
-		bulkErr = multierror.Append(bulkErr, err)
-	}
+
 	if err := ggraph.keyMap.DelEdgeKey(eid); err != nil {
 		bulkErr = multierror.Append(bulkErr, err)
 	}
-	ggraph.ts.Touch(ggraph.graphID)
+	if err := ggraph.bsonkv.DeleteAnyRow([]byte(eid)); err != nil {
+		bulkErr = multierror.Append(bulkErr, err)
+	}
+
+	fmt.Println("ERRS: ", bulkErr.ErrorOrNil())
 	return bulkErr.ErrorOrNil()
 }
 
@@ -368,11 +392,14 @@ func (ggraph *Graph) DelVertex(id string) error {
 					bulkErr = multierror.Append(bulkErr, err)
 				}
 			}
+			if err := ggraph.bsonkv.DeleteAnyRow([]byte(edgeID)); err != nil {
+				bulkErr = multierror.Append(bulkErr, err)
+			}
 		}
 		for it.Seek(dkeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), dkeyPrefix); it.Next() {
 			dkey := it.Key()
 			// get edge ID from key
-			eid, sid, did, label := SrcEdgeKeyParse(dkey)
+			eid, sid, did, label := DstEdgeKeyParse(dkey)
 			ekey := EdgeKey(eid, sid, did, label)
 			skey := SrcEdgeKey(eid, sid, did, label)
 			delKeys = append(delKeys, ekey, skey, dkey)
@@ -382,6 +409,9 @@ func (ggraph *Graph) DelVertex(id string) error {
 				if err := ggraph.keyMap.DelEdgeKey(edgeID); err != nil {
 					bulkErr = multierror.Append(bulkErr, err)
 				}
+			}
+			if err := ggraph.bsonkv.DeleteAnyRow([]byte(edgeID)); err != nil {
+				bulkErr = multierror.Append(bulkErr, err)
 			}
 		}
 		return bulkErr.ErrorOrNil()
@@ -432,6 +462,7 @@ func (ggraph *Graph) GetEdgeList(ctx context.Context, loadProp bool) <-chan *gdb
 				did, _ := ggraph.keyMap.GetVertexID(dkey)
 				eid, _ := ggraph.keyMap.GetEdgeID(ekey)
 				e := &gdbi.Edge{ID: eid, Label: labelID, From: sid, To: did}
+
 				if loadProp {
 					var err error
 					edgeData, _ := it.Value()
@@ -877,7 +908,7 @@ func (ggraph *Graph) GetVertexList(ctx context.Context, loadProp bool) <-chan *g
 // ListVertexLabels returns a list of vertex types in the graph
 func (ggraph *Graph) ListVertexLabels() ([]string, error) {
 	labels := []string{}
-	for i := range ggraph.bsonkv.GetLabels() {
+	for i := range ggraph.bsonkv.GetLabels(false) {
 		labels = append(labels, i)
 	}
 	return labels, nil
@@ -886,7 +917,7 @@ func (ggraph *Graph) ListVertexLabels() ([]string, error) {
 // ListEdgeLabels returns a list of edge types in the graph
 func (ggraph *Graph) ListEdgeLabels() ([]string, error) {
 	labels := []string{}
-	for i := range ggraph.bsonkv.GetLabels() {
+	for i := range ggraph.bsonkv.GetLabels(true) {
 		labels = append(labels, i)
 	}
 	return labels, nil

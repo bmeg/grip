@@ -1,7 +1,6 @@
 package grids
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -23,10 +22,6 @@ func NewGraphDB(baseDir string) (gdbi.GraphDB, error) {
 		os.Mkdir(baseDir, 0700)
 	}
 	return &GDB{basePath: baseDir, drivers: map[string]*Graph{}}, nil
-}
-
-func (ggraph *GDB) BuildSchema(ctx context.Context, graphID string, sampleN uint32, random bool) (*gripql.Graph, error) {
-	panic("not implemented")
 }
 
 // Graph obtains the gdbi.DBI for a particular graph
@@ -56,12 +51,17 @@ func (gdb *GDB) ListGraphs() []string {
 	for k := range gdb.drivers {
 		out = append(out, k)
 	}
+	/* This is causing bugs because it's doing the same thing as above and listing 2x the actual graphs.
+		Which one is better?
 	if ds, err := filepath.Glob(filepath.Join(gdb.basePath, "*")); err == nil {
 		for _, d := range ds {
 			b := filepath.Base(d)
+			fmt.Println("BASE: ", b)
 			out = append(out, b)
 		}
-	}
+		}
+	*/
+	fmt.Println("OUT: ", out)
 	return out
 }
 

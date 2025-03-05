@@ -59,28 +59,17 @@ func newGraph(baseDir, name string) (*Graph, error) {
 		}
 	}
 
-	// Open resources with cleanup on failure
 	keykvPath := fmt.Sprintf("%s/keymap", dbPath)
 	keykv, err := pogreb.Open(keykvPath, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open keykv at %s: %v", keykvPath, err)
 	}
-	defer func() {
-		if err != nil {
-			keykv.Close()
-		}
-	}()
 
 	graphkvPath := fmt.Sprintf("%s/graph", dbPath)
 	graphkv, err := pebbledb.NewKVInterface(graphkvPath, kvi.Options{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to open graphkv at %s: %v", graphkvPath, err)
 	}
-	defer func() {
-		if err != nil {
-			graphkv.Close()
-		}
-	}()
 
 	bsonkvPath := fmt.Sprintf("%s/index", dbPath)
 	bsonkv, err := bsontable.NewBSONDriver(bsonkvPath)
@@ -88,15 +77,14 @@ func newGraph(baseDir, name string) (*Graph, error) {
 		return nil, fmt.Errorf("failed to open bsonkv at %s: %v", bsonkvPath, err)
 	}
 
-	// All resources opened successfully, construct the Graph
 	ts := timestamp.NewTimestamp()
 	o := &Graph{
 		keyMap:  NewKeyMap(keykv),
 		graphkv: graphkv,
 		bsonkv:  bsonkv.(*bsontable.BSONDriver),
 		ts:      &ts,
+		graphID: name,
 	}
-	log.Info("WE MADE IT HERE")
 	return o, nil
 }
 

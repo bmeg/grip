@@ -138,7 +138,7 @@ func SrcEdgeKeyPrefix(eid, src, dst uint64) []byte {
 }
 
 // DstEdgeKeyPrefix creates a byte array prefix for a dest edge index entry
-func DstEdgeKeyPrefix(src, dst, eid uint64) []byte {
+func DstEdgeKeyPrefix(eid, src, dst uint64) []byte {
 	out := make([]byte, 1+intSize*3)
 	out[0] = dstEdgePrefix[0]
 	binary.PutUvarint(out[1:intSize+1], dst)
