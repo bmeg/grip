@@ -19,7 +19,6 @@ func (kgraph *Graph) deleteGraphIndex(graph string) error {
 }
 
 func normalizePath(path string) string {
-	path = GetJSONPath(path)
 	path = strings.TrimPrefix(path, "$.")
 	path = strings.TrimPrefix(path, "data.")
 	return path

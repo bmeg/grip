@@ -11,7 +11,6 @@ import (
 	"github.com/bmeg/benchtop/pebblebulk"
 	"github.com/bmeg/grip/engine/core"
 	"github.com/bmeg/grip/gdbi"
-	"github.com/bmeg/grip/kvi"
 	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/util/protoutil"
 	"github.com/bmeg/grip/util/setcmp"
@@ -23,7 +22,7 @@ func (ggraph *Graph) GetTimestamp() string {
 	return ggraph.ts.Get(ggraph.graphID)
 }
 
-func insertVertex(tx kvi.KVBulkWrite, keyMap *KeyMap, vertex *gdbi.Vertex) error {
+func insertVertex(tx *pebblebulk.PebbleBulk, keyMap *KeyMap, vertex *gdbi.Vertex) error {
 	if vertex.ID == "" {
 		return fmt.Errorf("Inserting null key vertex")
 	}
@@ -36,7 +35,7 @@ func insertVertex(tx kvi.KVBulkWrite, keyMap *KeyMap, vertex *gdbi.Vertex) error
 	if err != nil {
 		return err
 	}
-	if err := tx.Set(key, value); err != nil {
+	if err := tx.Set(key, value, nil); err != nil {
 		return fmt.Errorf("AddVertex Error %s", err)
 	}
 	return nil
@@ -65,7 +64,7 @@ func (ggraph *Graph) indexVertex(vertex *gdbi.Vertex) error {
 	return nil
 }
 
-func insertEdge(tx kvi.KVBulkWrite, keyMap *KeyMap, edge *gdbi.Edge) error {
+func insertEdge(tx *pebblebulk.PebbleBulk, keyMap *KeyMap, edge *gdbi.Edge) error {
 	var err error
 	var data []byte
 	if edge.ID == "" {
@@ -87,15 +86,15 @@ func insertEdge(tx kvi.KVBulkWrite, keyMap *KeyMap, edge *gdbi.Edge) error {
 		return err
 	}
 
-	err = tx.Set(ekey, data)
+	err = tx.Set(ekey, data, nil)
 	if err != nil {
 		return err
 	}
-	err = tx.Set(skey, []byte{})
+	err = tx.Set(skey, []byte{}, nil)
 	if err != nil {
 		return err
 	}
-	err = tx.Set(dkey, []byte{})
+	err = tx.Set(dkey, []byte{}, nil)
 	if err != nil {
 		return err
 	}
@@ -132,7 +131,7 @@ func (ggraph *Graph) Compiler() gdbi.Compiler {
 // AddVertex adds an edge to the graph, if it already exists
 // in the graph, it is replaced
 func (ggraph *Graph) AddVertex(vertices []*gdbi.Vertex) error {
-	err := ggraph.graphkv.BulkWrite(func(tx kvi.KVBulkWrite) error {
+	err := ggraph.bsonkv.Pb.BulkWrite(func(tx *pebblebulk.PebbleBulk) error {
 		var bulkErr *multierror.Error
 		for _, vert := range vertices {
 			if err := insertVertex(tx, ggraph.keyMap, vert); err != nil {
@@ -161,7 +160,7 @@ func (ggraph *Graph) AddVertex(vertices []*gdbi.Vertex) error {
 // AddEdge adds an edge to the graph, if the id is not "" and in already exists
 // in the graph, it is replaced
 func (ggraph *Graph) AddEdge(edges []*gdbi.Edge) error {
-	err := ggraph.graphkv.BulkWrite(func(tx kvi.KVBulkWrite) error {
+	err := ggraph.bsonkv.Pb.BulkWrite(func(tx *pebblebulk.PebbleBulk) error {
 		for _, edge := range edges {
 			err := insertEdge(tx, ggraph.keyMap, edge)
 			if err != nil {
@@ -218,7 +217,7 @@ func (ggraph *Graph) BulkAdd(stream <-chan *gdbi.GraphElement) error {
 	// Goroutine for inserting vertices and edges into graphkv
 	go func() {
 		defer wg.Done()
-		err := ggraph.graphkv.BulkWrite(func(tx kvi.KVBulkWrite) error {
+		err := ggraph.bsonkv.Pb.BulkWrite(func(tx *pebblebulk.PebbleBulk) error {
 			for elem := range insertStream {
 				if elem.Vertex != nil {
 					if err := insertVertex(tx, ggraph.keyMap, elem.Vertex); err != nil {
@@ -300,7 +299,7 @@ func (ggraph *Graph) DelEdge(eid string) error {
 	}
 	ekeyPrefix := EdgeKeyPrefix(edgeKey)
 	var ekey []byte
-	ggraph.graphkv.View(func(it kvi.KVIterator) error {
+	ggraph.bsonkv.Pb.View(func(it *pebblebulk.PebbleIterator) error {
 		for it.Seek(ekeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), ekeyPrefix); it.Next() {
 			ekey = it.Key()
 		}
@@ -316,14 +315,14 @@ func (ggraph *Graph) DelEdge(eid string) error {
 	dkey := DstEdgeKey(eidParsed, sid, did, lbl)
 
 	var bulkErr *multierror.Error
-	err := ggraph.graphkv.Update(func(tx kvi.KVTransaction) error {
-		if err := tx.Delete(ekey); err != nil {
+	err := ggraph.bsonkv.Pb.BulkWrite(func(tx *pebblebulk.PebbleBulk) error {
+		if err := tx.Delete(ekey, nil); err != nil {
 			return err
 		}
-		if err := tx.Delete(skey); err != nil {
+		if err := tx.Delete(skey, nil); err != nil {
 			return err
 		}
-		if err := tx.Delete(dkey); err != nil {
+		if err := tx.Delete(dkey, nil); err != nil {
 			return err
 		}
 		ggraph.ts.Touch(ggraph.graphID)
@@ -357,7 +356,7 @@ func (ggraph *Graph) DelVertex(id string) error {
 
 	var bulkErr *multierror.Error
 
-	err := ggraph.graphkv.View(func(it kvi.KVIterator) error {
+	err := ggraph.bsonkv.Pb.View(func(it *pebblebulk.PebbleIterator) error {
 		var bulkErr *multierror.Error
 		for it.Seek(skeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), skeyPrefix); it.Next() {
 			skey := it.Key()
@@ -405,12 +404,12 @@ func (ggraph *Graph) DelVertex(id string) error {
 		bulkErr = multierror.Append(bulkErr, err)
 	}
 
-	err = ggraph.graphkv.Update(func(tx kvi.KVTransaction) error {
-		if err := tx.Delete(vid); err != nil {
+	err = ggraph.bsonkv.Pb.BulkWrite(func(tx *pebblebulk.PebbleBulk) error {
+		if err := tx.Delete(vid, nil); err != nil {
 			return err
 		}
 		for _, k := range delKeys {
-			if err := tx.Delete(k); err != nil {
+			if err := tx.Delete(k, nil); err != nil {
 				return err
 			}
 		}
@@ -428,7 +427,8 @@ func (ggraph *Graph) GetEdgeList(ctx context.Context, loadProp bool) <-chan *gdb
 	o := make(chan *gdbi.Edge, 100)
 	go func() {
 		defer close(o)
-		ggraph.graphkv.View(func(it kvi.KVIterator) error {
+		ggraph.bsonkv.Pb.View(func(it *pebblebulk.PebbleIterator) error {
+
 			ePrefix := EdgeListPrefix()
 			for it.Seek(ePrefix); it.Valid() && bytes.HasPrefix(it.Key(), ePrefix); it.Next() {
 				select {
@@ -473,7 +473,7 @@ func (ggraph *Graph) GetVertex(id string, loadProp bool) *gdbi.Vertex {
 	vkey := VertexKey(key)
 
 	var v *gdbi.Vertex
-	err := ggraph.graphkv.View(func(it kvi.KVIterator) error {
+	err := ggraph.bsonkv.Pb.View(func(it *pebblebulk.PebbleIterator) error {
 		lKey := ggraph.keyMap.GetVertexLabel(key)
 		lID, _ := ggraph.keyMap.GetLabelID(lKey)
 		v = &gdbi.Vertex{
@@ -510,7 +510,7 @@ func (ggraph *Graph) GetVertexChannel(ctx context.Context, ids chan gdbi.Element
 	data := make(chan elementData, 100)
 	go func() {
 		defer close(data)
-		ggraph.graphkv.View(func(it kvi.KVIterator) error {
+		ggraph.bsonkv.Pb.View(func(it *pebblebulk.PebbleIterator) error {
 			for id := range ids {
 				if id.IsSignal() {
 					data <- elementData{req: id}
@@ -573,7 +573,7 @@ func (ggraph *Graph) GetOutChannel(ctx context.Context, reqChan chan gdbi.Elemen
 	}
 	go func() {
 		defer close(vertexChan)
-		ggraph.graphkv.View(func(it kvi.KVIterator) error {
+		ggraph.bsonkv.Pb.View(func(it *pebblebulk.PebbleIterator) error {
 			for req := range reqChan {
 				if req.IsSignal() {
 					vertexChan <- elementData{req: req}
@@ -610,7 +610,7 @@ func (ggraph *Graph) GetOutChannel(ctx context.Context, reqChan chan gdbi.Elemen
 	o := make(chan gdbi.ElementLookup, 100)
 	go func() {
 		defer close(o)
-		ggraph.graphkv.View(func(it kvi.KVIterator) error {
+		ggraph.bsonkv.Pb.View(func(it *pebblebulk.PebbleIterator) error {
 			for req := range vertexChan {
 				if req.req.IsSignal() {
 					o <- req.req
@@ -660,7 +660,7 @@ func (ggraph *Graph) GetInChannel(ctx context.Context, reqChan chan gdbi.Element
 	}
 	go func() {
 		defer close(o)
-		ggraph.graphkv.View(func(it kvi.KVIterator) error {
+		ggraph.bsonkv.Pb.View(func(it *pebblebulk.PebbleIterator) error {
 			for req := range reqChan {
 				if req.IsSignal() {
 					o <- req
@@ -721,7 +721,7 @@ func (ggraph *Graph) GetOutEdgeChannel(ctx context.Context, reqChan chan gdbi.El
 	}
 	go func() {
 		defer close(o)
-		ggraph.graphkv.View(func(it kvi.KVIterator) error {
+		ggraph.bsonkv.Pb.View(func(it *pebblebulk.PebbleIterator) error {
 			for req := range reqChan {
 				if req.IsSignal() {
 					o <- req
@@ -784,7 +784,7 @@ func (ggraph *Graph) GetInEdgeChannel(ctx context.Context, reqChan chan gdbi.Ele
 	}
 	go func() {
 		defer close(o)
-		ggraph.graphkv.View(func(it kvi.KVIterator) error {
+		ggraph.bsonkv.Pb.View(func(it *pebblebulk.PebbleIterator) error {
 			for req := range reqChan {
 				if req.IsSignal() {
 					o <- req
@@ -844,7 +844,7 @@ func (ggraph *Graph) GetEdge(id string, loadProp bool) *gdbi.Edge {
 	ekeyPrefix := EdgeKeyPrefix(ekey)
 
 	var e *gdbi.Edge
-	err := ggraph.graphkv.View(func(it kvi.KVIterator) error {
+	err := ggraph.bsonkv.Pb.View(func(it *pebblebulk.PebbleIterator) error {
 		for it.Seek(ekeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), ekeyPrefix); it.Next() {
 			eid, src, dst, labelKey := EdgeKeyParse(it.Key())
 			gid, _ := ggraph.keyMap.GetEdgeID(eid)
@@ -882,7 +882,7 @@ func (ggraph *Graph) GetVertexList(ctx context.Context, loadProp bool) <-chan *g
 	o := make(chan *gdbi.Vertex, 100)
 	go func() {
 		defer close(o)
-		ggraph.graphkv.View(func(it kvi.KVIterator) error {
+		ggraph.bsonkv.Pb.View(func(it *pebblebulk.PebbleIterator) error {
 			vPrefix := VertexListPrefix()
 
 			for it.Seek(vPrefix); it.Valid() && bytes.HasPrefix(it.Key(), vPrefix); it.Next() {

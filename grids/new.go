@@ -8,8 +8,6 @@ import (
 	"github.com/akrylysov/pogreb"
 	"github.com/bmeg/benchtop/bsontable"
 	"github.com/bmeg/grip/gripql"
-	"github.com/bmeg/grip/kvi"
-	"github.com/bmeg/grip/kvi/pebbledb"
 	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/timestamp"
 )
@@ -19,17 +17,15 @@ type Graph struct {
 	graphID  string
 	graphKey uint64
 
-	keyMap  *KeyMap
-	keykv   pogreb.DB
-	graphkv kvi.KVInterface
-	bsonkv  *bsontable.BSONDriver
-	ts      *timestamp.Timestamp
+	keyMap *KeyMap
+	keykv  pogreb.DB
+	bsonkv *bsontable.BSONDriver
+	ts     *timestamp.Timestamp
 }
 
 // Close the connection
 func (g *Graph) Close() error {
 	g.keyMap.Close()
-	g.graphkv.Close()
 	g.bsonkv.Close()
 	return nil
 }
@@ -49,6 +45,7 @@ func (kgraph *GDB) AddGraph(graph string) error {
 }
 
 func newGraph(baseDir, name string) (*Graph, error) {
+	/* todo seperate this out into a new graph func and a get graph func */
 	dbPath := filepath.Join(baseDir, name)
 	log.Infof("Creating new GRIDS graph %s", name)
 
@@ -65,13 +62,7 @@ func newGraph(baseDir, name string) (*Graph, error) {
 		return nil, fmt.Errorf("failed to open keykv at %s: %v", keykvPath, err)
 	}
 
-	graphkvPath := fmt.Sprintf("%s/graph", dbPath)
-	graphkv, err := pebbledb.NewKVInterface(graphkvPath, kvi.Options{})
-	if err != nil {
-		return nil, fmt.Errorf("failed to open graphkv at %s: %v", graphkvPath, err)
-	}
-
-	bsonkvPath := fmt.Sprintf("%s/index", dbPath)
+	bsonkvPath := fmt.Sprintf("%s/graph", dbPath)
 	bsonkv, err := bsontable.NewBSONDriver(bsonkvPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open bsonkv at %s: %v", bsonkvPath, err)
@@ -80,7 +71,6 @@ func newGraph(baseDir, name string) (*Graph, error) {
 	ts := timestamp.NewTimestamp()
 	o := &Graph{
 		keyMap:  NewKeyMap(keykv),
-		graphkv: graphkv,
 		bsonkv:  bsonkv.(*bsontable.BSONDriver),
 		ts:      &ts,
 		graphID: name,
@@ -88,7 +78,36 @@ func newGraph(baseDir, name string) (*Graph, error) {
 	return o, nil
 }
 
-// DeleteGraph deletes `graph`
+func getGraph(baseDir, name string) (*Graph, error) {
+	dbPath := filepath.Join(baseDir, name)
+	log.Infof("fetching GRIDS graph %s", name)
+
+	keykvPath := fmt.Sprintf("%s/keymap", dbPath)
+	keykv, err := pogreb.Open(keykvPath, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open keykv at %s: %v", keykvPath, err)
+	}
+
+	bsonkvPath := fmt.Sprintf("%s/graph", dbPath)
+	bsonkv, err := bsontable.LoadBSONDriver(bsonkvPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open bsonkv at %s: %v", bsonkvPath, err)
+	}
+
+	ts := timestamp.NewTimestamp()
+	o := &Graph{
+		keyMap:  NewKeyMap(keykv),
+		bsonkv:  bsonkv.(*bsontable.BSONDriver),
+		ts:      &ts,
+		graphID: name,
+	}
+	return o, nil
+
+}
+
+/*
+Since each graph has its own directory, delete the directory to delete the graph
+*/
 func (kgraph *GDB) DeleteGraph(graph string) error {
 	err := gripql.ValidateGraphName(graph)
 	if err != nil {
