@@ -47,8 +47,8 @@ func (km *KeyMap) Close() {
 	km.db.Close()
 }
 
-//GetsertVertexKey : Get or Insert Vertex Key
-func (km *KeyMap) GetsertVertexKey(id, label string) (uint64, uint64) {
+// GetsertVertexKey : Get or Insert Vertex Key
+func (km *KeyMap) GetsertVertexKeyLabel(id, label string) (uint64, uint64) {
 	o, ok := getIDKey(vIDPrefix, id, km.db)
 	if !ok {
 		km.vIncMut.Lock()
@@ -72,11 +72,33 @@ func (km *KeyMap) GetsertVertexKey(id, label string) (uint64, uint64) {
 	return o, lkey
 }
 
+func (km *KeyMap) GetsertVertexKey(id string) uint64 {
+	o, ok := getIDKey(vIDPrefix, id, km.db)
+	if !ok {
+		km.vIncMut.Lock()
+		var err error
+		o, err = dbInc(&km.vIncCur, vInc, km.db)
+		if err != nil {
+			log.Errorf("%s", err)
+		}
+		km.vIncMut.Unlock()
+		err = setKeyID(vKeyPrefix, id, o, km.db)
+		if err != nil {
+			log.Errorf("%s", err)
+		}
+		err = setIDKey(vIDPrefix, id, o, km.db)
+		if err != nil {
+			log.Errorf("%s", err)
+		}
+	}
+	return o
+}
+
 func (km *KeyMap) GetVertexKey(id string) (uint64, bool) {
 	return getIDKey(vIDPrefix, id, km.db)
 }
 
-//GetVertexID
+// GetVertexID
 func (km *KeyMap) GetVertexID(key uint64) (string, bool) {
 	return getKeyID(vKeyPrefix, key, km.db)
 }
@@ -86,7 +108,7 @@ func (km *KeyMap) GetVertexLabel(key uint64) uint64 {
 	return k
 }
 
-//GetsertEdgeKey gets or inserts a new uint64 id for a given edge GID string
+// GetsertEdgeKey gets or inserts a new uint64 id for a given edge GID string
 func (km *KeyMap) GetsertEdgeKey(id, label string) (uint64, uint64) {
 	o, ok := getIDKey(eIDPrefix, id, km.db)
 	if !ok {
@@ -107,12 +129,12 @@ func (km *KeyMap) GetsertEdgeKey(id, label string) (uint64, uint64) {
 	return o, lkey
 }
 
-//GetEdgeKey gets the uint64 key for a given GID string
+// GetEdgeKey gets the uint64 key for a given GID string
 func (km *KeyMap) GetEdgeKey(id string) (uint64, bool) {
 	return getIDKey(eIDPrefix, id, km.db)
 }
 
-//GetEdgeID gets the GID string for a given edge id uint64
+// GetEdgeID gets the GID string for a given edge id uint64
 func (km *KeyMap) GetEdgeID(key uint64) (string, bool) {
 	return getKeyID(eKeyPrefix, key, km.db)
 }
@@ -122,7 +144,7 @@ func (km *KeyMap) GetEdgeLabel(key uint64) uint64 {
 	return k
 }
 
-//DelVertexKey
+// DelVertexKey
 func (km *KeyMap) DelVertexKey(id string) error {
 	key, ok := km.GetVertexKey(id)
 	if !ok {
@@ -137,7 +159,7 @@ func (km *KeyMap) DelVertexKey(id string) error {
 	return nil
 }
 
-//DelEdgeKey
+// DelEdgeKey
 func (km *KeyMap) DelEdgeKey(id string) error {
 	key, ok := km.GetEdgeKey(id)
 	if !ok {
@@ -152,7 +174,7 @@ func (km *KeyMap) DelEdgeKey(id string) error {
 	return nil
 }
 
-//GetsertLabelKey gets-or-inserts a new label key uint64 for a given string
+// GetsertLabelKey gets-or-inserts a new label key uint64 for a given string
 func (km *KeyMap) GetsertLabelKey(id string) uint64 {
 	u, ok := getIDKey(lIDPrefix, id, km.db)
 	if ok {
@@ -174,7 +196,7 @@ func (km *KeyMap) GetLabelKey(id string) (uint64, bool) {
 	return getIDKey(lIDPrefix, id, km.db)
 }
 
-//GetLabelID gets the GID for a given uint64 label key
+// GetLabelID gets the GID for a given uint64 label key
 func (km *KeyMap) GetLabelID(key uint64) (string, bool) {
 	return getKeyID(lKeyPrefix, key, km.db)
 }

@@ -20,15 +20,14 @@ import (
 
 // GetTimestamp returns the update timestamp
 func (ggraph *Graph) GetTimestamp() string {
-	//return ggraph.kdb.ts.Get(ggraph.graphID)
-	return "" //FIXME
+	return ggraph.ts.Get(ggraph.graphID)
 }
 
 func insertVertex(tx kvi.KVBulkWrite, keyMap *KeyMap, vertex *gdbi.Vertex) error {
 	if vertex.ID == "" {
 		return fmt.Errorf("Inserting null key vertex")
 	}
-	vertexKey, _ := keyMap.GetsertVertexKey(vertex.ID, vertex.Label)
+	vertexKey, _ := keyMap.GetsertVertexKeyLabel(vertex.ID, vertex.Label)
 	key := VertexKey(vertexKey)
 	if vertex.Data == nil {
 		vertex.Data = map[string]any{}
@@ -48,12 +47,11 @@ func (ggraph *Graph) indexVertex(vertex *gdbi.Vertex) error {
 	ggraph.bsonkv.Lock.Lock()
 	table, ok := ggraph.bsonkv.Tables[vertexLabel]
 	ggraph.bsonkv.Lock.Unlock()
-	fmt.Println("VALUE OF OK: ", ok)
 	if !ok {
 		log.Infof("Creating new table for: %s on graph %s", vertex.Label, ggraph.graphID)
 		newTable, err := ggraph.bsonkv.New(vertexLabel, nil)
 		if err != nil {
-			return fmt.Errorf("grids/graph.go: indexVertex: %s", err)
+			return fmt.Errorf("indexVertex: %s", err)
 		}
 		ggraph.bsonkv.Lock.Lock()
 		table = newTable.(*bsontable.BSONTable)
@@ -75,14 +73,10 @@ func insertEdge(tx kvi.KVBulkWrite, keyMap *KeyMap, edge *gdbi.Edge) error {
 	}
 
 	eid, lid := keyMap.GetsertEdgeKey(edge.ID, edge.Label)
-	src, ok := keyMap.GetVertexKey(edge.From)
-	if !ok {
-		return fmt.Errorf("vertex %s not found", edge.From)
-	}
-	dst, ok := keyMap.GetVertexKey(edge.To)
-	if !ok {
-		return fmt.Errorf("vertex %s not found", edge.To)
-	}
+	/* providing a label doesn't matter if not going to use the label key anyway.
+	It can get set in the insertvertex func later */
+	src := keyMap.GetsertVertexKey(edge.From)
+	dst := keyMap.GetsertVertexKey(edge.To)
 
 	ekey := EdgeKey(eid, src, dst, lid)
 	skey := SrcEdgeKey(eid, src, dst, lid)
@@ -106,15 +100,6 @@ func insertEdge(tx kvi.KVBulkWrite, keyMap *KeyMap, edge *gdbi.Edge) error {
 		return err
 	}
 	return nil
-}
-
-func getTable(dr *bsontable.BSONDriver, label string) benchtop.TableStore {
-	ts, err := dr.Get(label)
-	if err != nil {
-		ts, _ = dr.New(label, nil)
-		return ts
-	}
-	return ts
 }
 
 func (ggraph *Graph) indexEdge(edge *gdbi.Edge) error {
@@ -325,9 +310,6 @@ func (ggraph *Graph) DelEdge(eid string) error {
 		return fmt.Errorf("edge not found")
 	}
 
-	fmt.Printf("EKEY: %v\n", ekey)
-	fmt.Println("EID: ", eid)
-
 	eidParsed, sid, did, lbl := EdgeKeyParse(ekey)
 
 	skey := SrcEdgeKey(eidParsed, sid, did, lbl)
@@ -358,7 +340,6 @@ func (ggraph *Graph) DelEdge(eid string) error {
 		bulkErr = multierror.Append(bulkErr, err)
 	}
 
-	fmt.Println("ERRS: ", bulkErr.ErrorOrNil())
 	return bulkErr.ErrorOrNil()
 }
 
@@ -597,6 +578,7 @@ func (ggraph *Graph) GetOutChannel(ctx context.Context, reqChan chan gdbi.Elemen
 				if req.IsSignal() {
 					vertexChan <- elementData{req: req}
 				} else {
+					found := false
 					key, ok := ggraph.keyMap.GetVertexKey(req.ID)
 					if ok {
 						skeyPrefix := SrcEdgePrefix(key)
@@ -609,7 +591,14 @@ func (ggraph *Graph) GetOutChannel(ctx context.Context, reqChan chan gdbi.Elemen
 									data: vkey,
 									req:  req,
 								}
+								found = true
 							}
+						}
+					}
+					if !found && emitNull {
+						vertexChan <- elementData{
+							data: nil,
+							req:  req,
 						}
 					}
 				}
@@ -626,6 +615,11 @@ func (ggraph *Graph) GetOutChannel(ctx context.Context, reqChan chan gdbi.Elemen
 				if req.req.IsSignal() {
 					o <- req.req
 				} else {
+					if req.data == nil {
+						req.req.Vertex = nil
+						o <- req.req
+						continue
+					}
 					vkey := VertexKeyParse(req.data)
 					gid, _ := ggraph.keyMap.GetVertexID(vkey)
 					lkey := ggraph.keyMap.GetVertexLabel(vkey)
@@ -671,6 +665,7 @@ func (ggraph *Graph) GetInChannel(ctx context.Context, reqChan chan gdbi.Element
 				if req.IsSignal() {
 					o <- req
 				} else {
+					found := false
 					vkey, ok := ggraph.keyMap.GetVertexKey(req.ID)
 					if ok {
 						dkeyPrefix := DstEdgePrefix(vkey)
@@ -698,8 +693,13 @@ func (ggraph *Graph) GetInChannel(ctx context.Context, reqChan chan gdbi.Element
 								}
 								req.Vertex = v
 								o <- req
+								found = true
 							}
 						}
+					}
+					if !found && emitNull {
+						req.Vertex = nil
+						o <- req
 					}
 				}
 			}
@@ -726,6 +726,7 @@ func (ggraph *Graph) GetOutEdgeChannel(ctx context.Context, reqChan chan gdbi.El
 				if req.IsSignal() {
 					o <- req
 				} else {
+					found := false
 					vkey, ok := ggraph.keyMap.GetVertexKey(req.ID)
 					if ok {
 						skeyPrefix := SrcEdgePrefix(vkey)
@@ -754,8 +755,13 @@ func (ggraph *Graph) GetOutEdgeChannel(ctx context.Context, reqChan chan gdbi.El
 								}
 								req.Edge = &e
 								o <- req
+								found = true
 							}
 						}
+					}
+					if !found && emitNull {
+						req.Edge = nil
+						o <- req
 					}
 				}
 			}
@@ -784,6 +790,7 @@ func (ggraph *Graph) GetInEdgeChannel(ctx context.Context, reqChan chan gdbi.Ele
 					o <- req
 				} else {
 					vkey, ok := ggraph.keyMap.GetVertexKey(req.ID)
+					found := false
 					if ok {
 						dkeyPrefix := DstEdgePrefix(vkey)
 						for it.Seek(dkeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), dkeyPrefix); it.Next() {
@@ -811,8 +818,13 @@ func (ggraph *Graph) GetInEdgeChannel(ctx context.Context, reqChan chan gdbi.Ele
 								}
 								req.Edge = &e
 								o <- req
+								found = true
 							}
 						}
+					}
+					if !found && emitNull {
+						req.Edge = nil
+						o <- req
 					}
 				}
 			}

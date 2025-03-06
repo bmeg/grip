@@ -61,7 +61,6 @@ func (gdb *GDB) ListGraphs() []string {
 		}
 		}
 	*/
-	fmt.Println("OUT: ", out)
 	return out
 }
 

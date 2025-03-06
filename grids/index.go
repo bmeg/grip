@@ -90,7 +90,6 @@ func (ggraph *Graph) VertexLabelScan(ctx context.Context, label string) chan str
 		defer close(out)
 		log.Infof("Searching %s %s", fmt.Sprintf("%s.label", ggraph.graphID), label)
 		for i := range ggraph.bsonkv.GetIDsForLabel(label) {
-			log.Infoln("I FOUND IT: ", i)
 			out <- i
 		}
 	}()
