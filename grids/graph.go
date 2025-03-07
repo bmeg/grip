@@ -47,7 +47,7 @@ func (ggraph *Graph) indexVertex(vertex *gdbi.Vertex) error {
 	table, ok := ggraph.bsonkv.Tables[vertexLabel]
 	ggraph.bsonkv.Lock.Unlock()
 	if !ok {
-		log.Infof("Creating new table for: %s on graph %s", vertex.Label, ggraph.graphID)
+		log.Debugf("Creating new table for: %s on graph %s", vertex.Label, ggraph.graphID)
 		newTable, err := ggraph.bsonkv.New(vertexLabel, nil)
 		if err != nil {
 			return fmt.Errorf("indexVertex: %s", err)
@@ -108,7 +108,7 @@ func (ggraph *Graph) indexEdge(edge *gdbi.Edge) error {
 	ggraph.bsonkv.Lock.Unlock()
 
 	if !ok {
-		log.Infof("Creating new table for: %s on graph %s", edge.Label, ggraph.graphID)
+		log.Debugf("Creating new table for: %s on graph %s", edge.Label, ggraph.graphID)
 		newTable, err := ggraph.bsonkv.New(edgeLabel, nil)
 		if err != nil {
 			return fmt.Errorf("indexEdge: bsonkv.New: %s", err)
