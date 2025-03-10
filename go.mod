@@ -8,7 +8,7 @@ require (
 	github.com/akrylysov/pogreb v0.10.2
 	github.com/akuity/grpc-gateway-client v0.0.0-20231116134900-80c401329778
 	github.com/antlr/antlr4/runtime/Go/antlr v1.4.10
-	github.com/bmeg/benchtop v0.0.0-20250306233154-60e6eba1ae67
+	github.com/bmeg/benchtop v0.0.0-20250310183450-1baa5bb9fb5c
 	github.com/bmeg/jsonpath v0.0.0-20210207014051-cca5355553ad
 	github.com/bmeg/jsonschema/v5 v5.3.4-0.20241111204732-55db82022a92
 	github.com/bmeg/jsonschemagraph v0.0.3-0.20241211234837-ff91c296d0a8

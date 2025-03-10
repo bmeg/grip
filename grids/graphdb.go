@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sync"
 
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
@@ -30,9 +31,14 @@ func (kgraph *GDB) Graph(graph string) (gdbi.GraphInterface, error) {
 	if err != nil {
 		return nil, err
 	}
-	if g, ok := kgraph.drivers[graph]; ok {
+	mu := sync.Mutex{}
+	mu.Lock()
+	g, ok := kgraph.drivers[graph]
+	mu.Unlock()
+	if ok {
 		return g, nil
 	}
+
 	dbPath := filepath.Join(kgraph.basePath, graph)
 	if _, err := os.Stat(dbPath); err == nil {
 		// This also fetches an existing graph if it doesn't exist in kgraph.drivers

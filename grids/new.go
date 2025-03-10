@@ -63,7 +63,7 @@ func newGraph(baseDir, name string) (*Graph, error) {
 	}
 
 	bsonkvPath := fmt.Sprintf("%s/graph", dbPath)
-	bsonkv, err := bsontable.NewBSONDriver(bsonkvPath)
+	bsonkv, err := bsontable.NewBSONDriver(bsonkvPath, keykv)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open bsonkv at %s: %v", bsonkvPath, err)
 	}
@@ -89,7 +89,7 @@ func getGraph(baseDir, name string) (*Graph, error) {
 	}
 
 	bsonkvPath := fmt.Sprintf("%s/graph", dbPath)
-	bsonkv, err := bsontable.LoadBSONDriver(bsonkvPath)
+	bsonkv, err := bsontable.LoadBSONDriver(bsonkvPath, keykv)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open bsonkv at %s: %v", bsonkvPath, err)
 	}

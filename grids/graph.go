@@ -58,7 +58,7 @@ func (ggraph *Graph) indexVertex(vertex *gdbi.Vertex) error {
 		ggraph.bsonkv.Lock.Unlock()
 	}
 
-	if err := table.AddRow(benchtop.Row{Id: []byte(vertex.ID), Label: vertexLabel, Data: vertexIdxStruct(vertex)}); err != nil {
+	if err := table.AddRow(benchtop.Row{Id: []byte(vertex.ID), TableName: vertexLabel, Data: vertexIdxStruct(vertex)}); err != nil {
 		return fmt.Errorf("AddVertex Error %s", err)
 	}
 	return nil
@@ -118,7 +118,7 @@ func (ggraph *Graph) indexEdge(edge *gdbi.Edge) error {
 		ggraph.bsonkv.Tables[edgeLabel] = table
 		ggraph.bsonkv.Lock.Unlock()
 	}
-	if err := table.AddRow(benchtop.Row{Id: []byte(edge.ID), Label: edgeLabel, Data: edge.Data}); err != nil {
+	if err := table.AddRow(benchtop.Row{Id: []byte(edge.ID), TableName: edgeLabel, Data: edge.Data}); err != nil {
 		return fmt.Errorf("indexEdge: table.AddRow: %s", err)
 	}
 	return nil
@@ -267,16 +267,16 @@ func (ggraph *Graph) BulkAdd(stream <-chan *gdbi.GraphElement) error {
 		insertStream <- elem
 		if elem.Vertex != nil {
 			indexStream <- &benchtop.Row{
-				Id:    []byte(elem.Vertex.ID),
-				Label: "v_" + elem.Vertex.Label,
-				Data:  elem.Vertex.Data,
+				Id:        []byte(elem.Vertex.ID),
+				TableName: "v_" + elem.Vertex.Label,
+				Data:      elem.Vertex.Data,
 			}
 		}
 		if elem.Edge != nil {
 			indexStream <- &benchtop.Row{
-				Id:    []byte(elem.Edge.ID),
-				Label: "e_" + elem.Edge.Label,
-				Data:  elem.Edge.Data,
+				Id:        []byte(elem.Edge.ID),
+				TableName: "e_" + elem.Edge.Label,
+				Data:      elem.Edge.Data,
 			}
 		}
 	}
