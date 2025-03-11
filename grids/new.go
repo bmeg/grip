@@ -1,14 +1,15 @@
 package grids
 
 import (
+	"bufio"
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/akrylysov/pogreb"
 	"github.com/bmeg/benchtop/bsontable"
 	"github.com/bmeg/grip/gripql"
-	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/timestamp"
 )
 
@@ -43,11 +44,9 @@ func (kgraph *GDB) AddGraph(graph string) error {
 	kgraph.drivers[graph] = g
 	return nil
 }
-
 func newGraph(baseDir, name string) (*Graph, error) {
-	/* todo seperate this out into a new graph func and a get graph func */
 	dbPath := filepath.Join(baseDir, name)
-	log.Infof("Creating new GRIDS graph %s", name)
+	fmt.Printf("Creating new GRIDS graph %s\n", name)
 
 	// Create directory if it doesn't exist
 	if _, err := os.Stat(dbPath); os.IsNotExist(err) {
@@ -56,13 +55,19 @@ func newGraph(baseDir, name string) (*Graph, error) {
 		}
 	}
 
-	keykvPath := fmt.Sprintf("%s/keymap", dbPath)
+	// Create VERSION file
+	versionPath := filepath.Join(dbPath, "VERSION")
+	if err := os.WriteFile(versionPath, []byte("0.0.1"), 0644); err != nil {
+		return nil, fmt.Errorf("failed to create VERSION file: %v", err)
+	}
+
+	keykvPath := fmt.Sprintf("%s/KEYMAP", dbPath)
 	keykv, err := pogreb.Open(keykvPath, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open keykv at %s: %v", keykvPath, err)
 	}
 
-	bsonkvPath := fmt.Sprintf("%s/graph", dbPath)
+	bsonkvPath := fmt.Sprintf("%s", dbPath)
 	bsonkv, err := bsontable.NewBSONDriver(bsonkvPath, keykv)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open bsonkv at %s: %v", bsonkvPath, err)
@@ -80,15 +85,36 @@ func newGraph(baseDir, name string) (*Graph, error) {
 
 func getGraph(baseDir, name string) (*Graph, error) {
 	dbPath := filepath.Join(baseDir, name)
-	log.Infof("fetching GRIDS graph %s", name)
+	fmt.Printf("fetching GRIDS graph %s\n", name)
 
-	keykvPath := fmt.Sprintf("%s/keymap", dbPath)
+	versionPath := filepath.Join(dbPath, "VERSION")
+	file, err := os.Open(versionPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open VERSION file at %s: %v", versionPath, err)
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	if scanner.Scan() {
+		version := scanner.Text()
+		if strings.TrimSpace(version) != "0.0.1" {
+			return nil, fmt.Errorf("VERSION file at %s does not have '0.0.1' on the first line", versionPath)
+		}
+	} else {
+		return nil, fmt.Errorf("VERSION file at %s is empty", versionPath)
+	}
+
+	if err := scanner.Err(); err != nil {
+		return nil, fmt.Errorf("error reading VERSION file at %s: %v", versionPath, err)
+	}
+
+	keykvPath := fmt.Sprintf("%s/KEYMAP", dbPath)
 	keykv, err := pogreb.Open(keykvPath, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open keykv at %s: %v", keykvPath, err)
 	}
 
-	bsonkvPath := fmt.Sprintf("%s/graph", dbPath)
+	bsonkvPath := fmt.Sprintf("%s", dbPath)
 	bsonkv, err := bsontable.LoadBSONDriver(bsonkvPath, keykv)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open bsonkv at %s: %v", bsonkvPath, err)
@@ -102,7 +128,6 @@ func getGraph(baseDir, name string) (*Graph, error) {
 		graphID: name,
 	}
 	return o, nil
-
 }
 
 /*

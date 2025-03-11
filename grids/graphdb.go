@@ -55,16 +55,18 @@ func (kgraph *GDB) Graph(graph string) (gdbi.GraphInterface, error) {
 // ListGraphs lists the graphs managed by this driver
 func (gdb *GDB) ListGraphs() []string {
 	out := []string{}
-	// If gdb.drivers has not been refreshed, load graphs from Disk.
-	if len(gdb.drivers) > 0 {
-		for k := range gdb.drivers {
-			out = append(out, k)
-		}
-	} else {
-		if ds, err := filepath.Glob(filepath.Join(gdb.basePath, "*")); err == nil {
-			for _, d := range ds {
-				b := filepath.Base(d)
-				out = append(out, b)
+	if ds, err := filepath.Glob(filepath.Join(gdb.basePath, "*")); err == nil {
+		for _, d := range ds {
+			fi, err := os.Stat(d)
+			if err != nil {
+				continue
+			}
+			if fi.IsDir() {
+				versionPath := filepath.Join(d, "VERSION")
+				if _, err := os.Stat(versionPath); err == nil {
+					b := filepath.Base(d)
+					out = append(out, b)
+				}
 			}
 		}
 	}

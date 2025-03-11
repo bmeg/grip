@@ -205,11 +205,10 @@ func (ggraph *Graph) BulkDel(data *gdbi.DeleteData) error {
 }
 
 func (ggraph *Graph) BulkAdd(stream <-chan *gdbi.GraphElement) error {
-	var mu sync.Mutex
-	var errs *multierror.Error // Use multierror to collect all errors
-
+	var errs *multierror.Error
 	insertStream := make(chan *gdbi.GraphElement, 100)
 	indexStream := make(chan *benchtop.Row, 100)
+	errChan := make(chan error, 2)
 
 	var wg sync.WaitGroup
 	wg.Add(2)
@@ -221,72 +220,65 @@ func (ggraph *Graph) BulkAdd(stream <-chan *gdbi.GraphElement) error {
 			for elem := range insertStream {
 				if elem.Vertex != nil {
 					if err := insertVertex(tx, ggraph.keyMap, elem.Vertex); err != nil {
-						mu.Lock()
-						errs = multierror.Append(errs, fmt.Errorf("vertex insert error: %v", err))
-						mu.Unlock()
+						return fmt.Errorf("vertex insert error: %v", err)
 					}
 				}
 				if elem.Edge != nil {
 					if err := insertEdge(tx, ggraph.keyMap, elem.Edge); err != nil {
-						mu.Lock()
-						errs = multierror.Append(errs, fmt.Errorf("edge insert error: %v", err))
-						mu.Unlock()
+						return fmt.Errorf("edge insert error: %v", err)
 					}
 				}
 			}
 			ggraph.ts.Touch(ggraph.graphID)
 			return nil
 		})
-		if err != nil {
-			mu.Lock()
-			errs = multierror.Append(errs, fmt.Errorf("graphkv bulk write error: %v", err))
-			mu.Unlock()
-		}
+		errChan <- err
 	}()
 
-	// Goroutine for indexing data into bsonkv
 	go func() {
 		defer wg.Done()
 		err := ggraph.bsonkv.Pb.BulkWrite(func(tx *pebblebulk.PebbleBulk) error {
-			// Call BulkLoad with the indexStream
 			if err := ggraph.bsonkv.BulkLoad(indexStream); err != nil {
 				return fmt.Errorf("bsonkv bulk load error: %v", err)
 			}
 			ggraph.ts.Touch(ggraph.graphID)
 			return nil
 		})
-		if err != nil {
-			mu.Lock()
-			errs = multierror.Append(errs, err)
-			mu.Unlock()
+		errChan <- err
+	}()
+
+	go func() {
+		defer func() {
+			close(insertStream)
+			close(indexStream)
+		}()
+		for elem := range stream {
+			insertStream <- elem
+			if elem.Vertex != nil {
+				indexStream <- &benchtop.Row{
+					Id:        []byte(elem.Vertex.ID),
+					TableName: "v_" + elem.Vertex.Label,
+					Data:      elem.Vertex.Data,
+				}
+			}
+			if elem.Edge != nil {
+				indexStream <- &benchtop.Row{
+					Id:        []byte(elem.Edge.ID),
+					TableName: "e_" + elem.Edge.Label,
+					Data:      elem.Edge.Data,
+				}
+			}
 		}
 	}()
 
-	// Feed data from the input stream into both insertStream and indexStream
-	for elem := range stream {
-		insertStream <- elem
-		if elem.Vertex != nil {
-			indexStream <- &benchtop.Row{
-				Id:        []byte(elem.Vertex.ID),
-				TableName: "v_" + elem.Vertex.Label,
-				Data:      elem.Vertex.Data,
-			}
-		}
-		if elem.Edge != nil {
-			indexStream <- &benchtop.Row{
-				Id:        []byte(elem.Edge.ID),
-				TableName: "e_" + elem.Edge.Label,
-				Data:      elem.Edge.Data,
-			}
+	wg.Wait()
+	close(errChan)
+
+	for err := range errChan {
+		if err != nil {
+			errs = multierror.Append(errs, err)
 		}
 	}
-
-	// Close the streams to signal completion
-	close(insertStream)
-	close(indexStream)
-
-	// Wait for both goroutines to finish
-	wg.Wait()
 
 	// Return any accumulated errors
 	return errs.ErrorOrNil()
