@@ -5,43 +5,14 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/log"
 )
-
-func (kgraph *Graph) deleteGraphIndex(graph string) error {
-	if err := kgraph.bsonkv.Delete(graph); err != nil {
-		return err
-	}
-	return nil
-
-}
 
 func normalizePath(path string) string {
 	path = strings.TrimPrefix(path, "$.")
 	path = strings.TrimPrefix(path, "data.")
 	return path
-}
-
-func vertexIdxStruct(v *gdbi.Vertex) map[string]any {
-	k := map[string]any{
-		"v": map[string]any{
-			"label": v.Label,
-			v.Label: v.Data,
-		},
-	}
-	return k
-}
-
-func edgeIdxStruct(e *gdbi.Edge) map[string]any {
-	k := map[string]any{
-		"e": map[string]any{
-			"label": e.Label,
-			e.Label: e.Data,
-		},
-	}
-	return k
 }
 
 // AddVertexIndex add index to vertices

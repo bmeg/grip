@@ -2,9 +2,9 @@ package gdbi
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/bmeg/grip/gripql"
+	"github.com/bmeg/grip/log"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -12,7 +12,7 @@ import (
 func (elem *DataElement) ToVertex() *gripql.Vertex {
 	sValue, err := structpb.NewStruct(elem.Data)
 	if err != nil {
-		fmt.Printf("Error: %s %#v\n", err, elem.Data)
+		log.Errorf("Error: %s For elem.Data: '%#v'\n", err, elem.Data)
 	}
 	return &gripql.Vertex{
 		Gid:   elem.ID,
@@ -23,7 +23,10 @@ func (elem *DataElement) ToVertex() *gripql.Vertex {
 
 // ToEdge converts data element to edge
 func (elem *DataElement) ToEdge() *gripql.Edge {
-	sValue, _ := structpb.NewStruct(elem.Data)
+	sValue, err := structpb.NewStruct(elem.Data)
+	if err != nil {
+		log.Errorf("ToEdge: %s For elem.Data: '%#v'\n", err, elem.Data)
+	}
 	return &gripql.Edge{
 		Gid:   elem.ID,
 		From:  elem.From,
