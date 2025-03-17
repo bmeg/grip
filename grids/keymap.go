@@ -6,12 +6,17 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/akrylysov/pogreb"
+	"github.com/cockroachdb/pebble"
+
 	"github.com/bmeg/grip/log"
+
+	ristretto "github.com/dgraph-io/ristretto/v2"
 )
 
 type KeyMap struct {
-	db *pogreb.DB
+	db *pebble.DB
+
+	cache ristretto.Cache[string, uint64]
 
 	vIncCur uint64
 	eIncCur uint64
@@ -39,7 +44,7 @@ var vInc = []byte{'i', 'v'}
 var eInc = []byte{'i', 'e'}
 var lInc = []byte{'i', 'l'}
 
-func NewKeyMap(kv *pogreb.DB) *KeyMap {
+func NewKeyMap(kv *pebble.DB) *KeyMap {
 	return &KeyMap{db: kv}
 }
 
@@ -201,41 +206,43 @@ func (km *KeyMap) GetLabelID(key uint64) (string, bool) {
 	return getKeyID(lKeyPrefix, key, km.db)
 }
 
-func getIDKey(prefix []byte, id string, db *pogreb.DB) (uint64, bool) {
+func getIDKey(prefix []byte, id string, db *pebble.DB) (uint64, bool) {
 	k := bytes.Join([][]byte{prefix, []byte(id)}, []byte{})
-	v, err := db.Get(k)
+	v, closer, err := db.Get(k)
 	if v == nil || err != nil {
 		return 0, false
 	}
 	key, _ := binary.Uvarint(v)
+	closer.Close()
 	return key, true
 }
 
-func setIDKey(prefix []byte, id string, key uint64, db *pogreb.DB) error {
+func setIDKey(prefix []byte, id string, key uint64, db *pebble.DB) error {
 	k := bytes.Join([][]byte{prefix, []byte(id)}, []byte{})
 	b := make([]byte, binary.MaxVarintLen64)
 	binary.PutUvarint(b, key)
-	return db.Put(k, b)
+	return db.Set(k, b, nil)
 }
 
-func delIDKey(prefix []byte, id string, db *pogreb.DB) error {
+func delIDKey(prefix []byte, id string, db *pebble.DB) error {
 	k := bytes.Join([][]byte{prefix, []byte(id)}, []byte{})
-	return db.Delete(k)
+	return db.Delete(k, nil)
 }
 
-func getIDLabel(prefix byte, key uint64, db *pogreb.DB) (uint64, bool) {
+func getIDLabel(prefix byte, key uint64, db *pebble.DB) (uint64, bool) {
 	k := make([]byte, 1+binary.MaxVarintLen64)
 	k[0] = prefix
 	binary.PutUvarint(k[1:binary.MaxVarintLen64+1], key)
-	v, err := db.Get(k)
+	v, closer, err := db.Get(k)
 	if v == nil || err != nil {
 		return 0, false
 	}
 	label, _ := binary.Uvarint(v)
+	closer.Close()
 	return label, true
 }
 
-func setIDLabel(prefix byte, key uint64, label uint64, db *pogreb.DB) error {
+func setIDLabel(prefix byte, key uint64, label uint64, db *pebble.DB) error {
 	k := make([]byte, binary.MaxVarintLen64+1)
 	k[0] = prefix
 	binary.PutUvarint(k[1:binary.MaxVarintLen64+1], key)
@@ -243,51 +250,53 @@ func setIDLabel(prefix byte, key uint64, label uint64, db *pogreb.DB) error {
 	b := make([]byte, binary.MaxVarintLen64)
 	binary.PutUvarint(b, label)
 
-	err := db.Put(k, b)
+	err := db.Set(k, b, nil)
 	return err
 }
 
-func setKeyID(prefix byte, id string, key uint64, db *pogreb.DB) error {
+func setKeyID(prefix byte, id string, key uint64, db *pebble.DB) error {
 	k := make([]byte, binary.MaxVarintLen64+1)
 	k[0] = prefix
 	binary.PutUvarint(k[1:binary.MaxVarintLen64+1], key)
-	return db.Put(k, []byte(id))
+	return db.Set(k, []byte(id), nil)
 }
 
-func getKeyID(prefix byte, key uint64, db *pogreb.DB) (string, bool) {
+func getKeyID(prefix byte, key uint64, db *pebble.DB) (string, bool) {
 	k := make([]byte, binary.MaxVarintLen64+1)
 	k[0] = prefix
 	binary.PutUvarint(k[1:binary.MaxVarintLen64+1], key)
-	b, err := db.Get(k)
+	b, closer, err := db.Get(k)
+	closer.Close()
 	if b == nil || err != nil {
 		return "", false
 	}
 	return string(b), true
 }
 
-func delKeyID(prefix byte, key uint64, db *pogreb.DB) error {
+func delKeyID(prefix byte, key uint64, db *pebble.DB) error {
 	k := make([]byte, binary.MaxVarintLen64+1)
 	k[0] = prefix
 	binary.PutUvarint(k[1:binary.MaxVarintLen64+1], key)
-	return db.Delete(k)
+	return db.Delete(k, nil)
 }
 
-func dbInc(inc *uint64, k []byte, db *pogreb.DB) (uint64, error) {
+func dbInc(inc *uint64, k []byte, db *pebble.DB) (uint64, error) {
 	b := make([]byte, binary.MaxVarintLen64)
 	if *inc == 0 {
-		v, _ := db.Get(k)
+		v, closer, _ := db.Get(k)
 		if v == nil {
 			binary.PutUvarint(b, incMod)
-			if err := db.Put(k, b); err != nil {
+			if err := db.Set(k, b, nil); err != nil {
 				return 0, err
 			}
 			(*inc) += 2
 			return 1, nil
 		}
+		closer.Close()
 		newInc, _ := binary.Uvarint(v)
 		*inc = newInc
 		binary.PutUvarint(b, (*inc)+incMod)
-		if err := db.Put(k, b); err != nil {
+		if err := db.Set(k, b, nil); err != nil {
 			return 0, err
 		}
 		o := (*inc)
@@ -298,7 +307,7 @@ func dbInc(inc *uint64, k []byte, db *pogreb.DB) (uint64, error) {
 	(*inc)++
 	if *inc%incMod == 0 {
 		binary.PutUvarint(b, *inc+incMod)
-		if err := db.Put(k, b); err != nil {
+		if err := db.Set(k, b, nil); err != nil {
 			return 0, err
 		}
 	}

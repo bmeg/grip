@@ -17,6 +17,11 @@ import (
 	multierror "github.com/hashicorp/go-multierror"
 )
 
+const (
+	VTABLE_PREFIX = "v_"
+	ETABLE_PREFIX = "e_"
+)
+
 // GetTimestamp returns the update timestamp
 func (ggraph *Graph) GetTimestamp() string {
 	return ggraph.ts.Get(ggraph.graphID)
@@ -24,7 +29,7 @@ func (ggraph *Graph) GetTimestamp() string {
 
 func insertVertex(tx *pebblebulk.PebbleBulk, keyMap *KeyMap, vertex *gdbi.Vertex) error {
 	if vertex.ID == "" {
-		return fmt.Errorf("Inserting null key vertex")
+		return fmt.Errorf("inserting null key vertex")
 	}
 	vertexKey, _ := keyMap.GetsertVertexKeyLabel(vertex.ID, vertex.Label)
 	key := VertexKey(vertexKey)
@@ -35,7 +40,7 @@ func insertVertex(tx *pebblebulk.PebbleBulk, keyMap *KeyMap, vertex *gdbi.Vertex
 }
 
 func (ggraph *Graph) indexVertex(vertex *gdbi.Vertex) error {
-	vertexLabel := "v_" + vertex.Label
+	vertexLabel := VTABLE_PREFIX + vertex.Label
 	ggraph.bsonkv.Lock.Lock()
 	table, ok := ggraph.bsonkv.Tables[vertexLabel]
 	ggraph.bsonkv.Lock.Unlock()
@@ -88,7 +93,7 @@ func insertEdge(tx *pebblebulk.PebbleBulk, keyMap *KeyMap, edge *gdbi.Edge) erro
 }
 
 func (ggraph *Graph) indexEdge(edge *gdbi.Edge) error {
-	edgeLabel := "e_" + edge.Label
+	edgeLabel := ETABLE_PREFIX + edge.Label
 	ggraph.bsonkv.Lock.Lock()
 	table, ok := ggraph.bsonkv.Tables[edgeLabel]
 	ggraph.bsonkv.Lock.Unlock()
@@ -224,7 +229,7 @@ func (ggraph *Graph) BulkAdd(stream <-chan *gdbi.GraphElement) error {
 	go func() {
 		defer wg.Done()
 		err := ggraph.bsonkv.Pb.BulkWrite(func(tx *pebblebulk.PebbleBulk) error {
-			if err := ggraph.bsonkv.BulkLoad(indexStream); err != nil {
+			if err := ggraph.bsonkv.BulkLoad(indexStream, tx); err != nil {
 				return fmt.Errorf("bsonkv bulk load error: %v", err)
 			}
 			ggraph.ts.Touch(ggraph.graphID)
@@ -243,14 +248,14 @@ func (ggraph *Graph) BulkAdd(stream <-chan *gdbi.GraphElement) error {
 			if elem.Vertex != nil {
 				indexStream <- &benchtop.Row{
 					Id:        []byte(elem.Vertex.ID),
-					TableName: "v_" + elem.Vertex.Label,
+					TableName: VTABLE_PREFIX + elem.Vertex.Label,
 					Data:      elem.Vertex.Data,
 				}
 			}
 			if elem.Edge != nil {
 				indexStream <- &benchtop.Row{
 					Id:        []byte(elem.Edge.ID),
-					TableName: "e_" + elem.Edge.Label,
+					TableName: ETABLE_PREFIX + elem.Edge.Label,
 					Data:      elem.Edge.Data,
 				}
 			}
@@ -422,7 +427,7 @@ func (ggraph *Graph) GetEdgeList(ctx context.Context, loadProp bool) <-chan *gdb
 				e := &gdbi.Edge{ID: eid, Label: labelID, From: sid, To: did}
 				if loadProp {
 					var err error
-					e.Data, err = ggraph.bsonkv.Tables["e_"+labelID].GetRow([]byte(eid))
+					e.Data, err = ggraph.bsonkv.Tables[ETABLE_PREFIX+labelID].GetRow([]byte(eid))
 					if err != nil {
 						log.Errorf("GetEdgeList: GetRow error: %v", err)
 						continue
@@ -454,7 +459,7 @@ func (ggraph *Graph) GetVertex(id string, loadProp bool) *gdbi.Vertex {
 	}
 	if loadProp {
 		var err error
-		v.Data, err = ggraph.bsonkv.Tables["v_"+lID].GetRow([]byte(id))
+		v.Data, err = ggraph.bsonkv.Tables[VTABLE_PREFIX+lID].GetRow([]byte(id))
 		if err != nil {
 			return nil
 		}
@@ -486,7 +491,7 @@ func (ggraph *Graph) GetVertexChannel(ctx context.Context, ids chan gdbi.Element
 				if load {
 					lKey := ggraph.keyMap.GetVertexLabel(key)
 					lID, _ := ggraph.keyMap.GetLabelID(lKey)
-					vData, err := ggraph.bsonkv.Tables["v_"+lID].GetRow([]byte(id.ID))
+					vData, err := ggraph.bsonkv.Tables[VTABLE_PREFIX+lID].GetRow([]byte(id.ID))
 					if err != nil {
 						log.Errorf("GetVertexChannel: GetRow error for ID %s: %v", id.ID, err)
 						continue
@@ -593,7 +598,7 @@ func (ggraph *Graph) GetOutChannel(ctx context.Context, reqChan chan gdbi.Elemen
 				v := &gdbi.Vertex{ID: gid, Label: lid}
 				if load {
 					var err error
-					v.Data, err = ggraph.bsonkv.Tables["v_"+lid].GetRow([]byte(gid))
+					v.Data, err = ggraph.bsonkv.Tables[VTABLE_PREFIX+lid].GetRow([]byte(gid))
 					if err != nil {
 						log.Errorf("GetOutChannel: GetRow error: %v", err)
 						continue
@@ -641,7 +646,7 @@ func (ggraph *Graph) GetInChannel(ctx context.Context, reqChan chan gdbi.Element
 								v := &gdbi.Vertex{ID: srcID, Label: lID}
 								if load {
 									var err error
-									v.Data, err = ggraph.bsonkv.Tables["v_"+lID].GetRow([]byte(srcID))
+									v.Data, err = ggraph.bsonkv.Tables[VTABLE_PREFIX+lID].GetRow([]byte(srcID))
 									if err != nil {
 										log.Errorf("GetInChannel: GetRow error: %v", err)
 										continue
@@ -700,7 +705,7 @@ func (ggraph *Graph) GetOutEdgeChannel(ctx context.Context, reqChan chan gdbi.El
 								e.Label, _ = ggraph.keyMap.GetLabelID(label)
 								if load {
 									var err error
-									e.Data, err = ggraph.bsonkv.Tables["e_"+e.Label].GetRow([]byte(e.ID))
+									e.Data, err = ggraph.bsonkv.Tables[ETABLE_PREFIX+e.Label].GetRow([]byte(e.ID))
 									if err != nil {
 										log.Errorf("GetOutEdgeChannel: GetRow error: %v", err)
 										continue
@@ -760,7 +765,7 @@ func (ggraph *Graph) GetInEdgeChannel(ctx context.Context, reqChan chan gdbi.Ele
 								e.Label, _ = ggraph.keyMap.GetLabelID(label)
 								if load {
 									var err error
-									e.Data, err = ggraph.bsonkv.Tables["e_"+e.Label].GetRow([]byte(e.ID))
+									e.Data, err = ggraph.bsonkv.Tables[ETABLE_PREFIX+e.Label].GetRow([]byte(e.ID))
 									if err != nil {
 										log.Errorf("GetInEdgeChannel: GetRow error: %v", err)
 										continue
@@ -813,7 +818,7 @@ func (ggraph *Graph) GetEdge(id string, loadProp bool) *gdbi.Edge {
 			}
 			if loadProp {
 				var err error
-				e.Data, err = ggraph.bsonkv.Tables["e_"+label].GetRow([]byte(gid))
+				e.Data, err = ggraph.bsonkv.Tables[ETABLE_PREFIX+label].GetRow([]byte(gid))
 				if err != nil {
 					log.Errorf("GetEdge: GetRow error: %v", err)
 					continue
@@ -852,7 +857,7 @@ func (ggraph *Graph) GetVertexList(ctx context.Context, loadProp bool) <-chan *g
 				v.Label, _ = ggraph.keyMap.GetLabelID(lKey)
 				if loadProp {
 					var err error
-					v.Data, err = ggraph.bsonkv.Tables["v_"+v.Label].GetRow([]byte(v.ID))
+					v.Data, err = ggraph.bsonkv.Tables[VTABLE_PREFIX+v.Label].GetRow([]byte(v.ID))
 					if err != nil {
 						log.Errorf("GetVertexList: GetRow error: %v", err)
 						continue

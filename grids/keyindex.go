@@ -4,10 +4,10 @@ import (
 	"encoding/binary"
 )
 
-var vertexPrefix = []byte("v")
-var edgePrefix = []byte("e")
-var srcEdgePrefix = []byte("s")
-var dstEdgePrefix = []byte("d")
+var vertexPrefix = []byte(".")
+var edgePrefix = []byte("-")
+var srcEdgePrefix = []byte("<")
+var dstEdgePrefix = []byte(">")
 
 var intSize = 10
 
