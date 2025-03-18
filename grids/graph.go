@@ -31,7 +31,7 @@ func insertVertex(tx *pebblebulk.PebbleBulk, keyMap *KeyMap, vertex *gdbi.Vertex
 	if vertex.ID == "" {
 		return fmt.Errorf("inserting null key vertex")
 	}
-	vertexKey, _ := keyMap.GetsertVertexKeyLabel(vertex.ID, vertex.Label)
+	vertexKey, _ := keyMap.GetsertVertexKeyLabel(vertex.ID, vertex.Label, tx)
 	key := VertexKey(vertexKey)
 	if err := tx.Set(key, nil, nil); err != nil {
 		return fmt.Errorf("AddVertex Error %s", err)
@@ -67,11 +67,11 @@ func insertEdge(tx *pebblebulk.PebbleBulk, keyMap *KeyMap, edge *gdbi.Edge) erro
 		return fmt.Errorf("inserting null key edge")
 	}
 
-	eid, lid := keyMap.GetsertEdgeKey(edge.ID, edge.Label)
+	eid, lid := keyMap.GetsertEdgeKey(edge.ID, edge.Label, tx)
 	/* providing a label doesn't matter if not going to use the label key anyway.
 	It can get set in the insertvertex func later */
-	src := keyMap.GetsertVertexKey(edge.From)
-	dst := keyMap.GetsertVertexKey(edge.To)
+	src := keyMap.GetsertVertexKey(edge.From, tx)
+	dst := keyMap.GetsertVertexKey(edge.To, tx)
 
 	ekey := EdgeKey(eid, src, dst, lid)
 	skey := SrcEdgeKey(eid, src, dst, lid)
@@ -276,7 +276,7 @@ func (ggraph *Graph) BulkAdd(stream <-chan *gdbi.GraphElement) error {
 }
 
 func (ggraph *Graph) DelEdge(eid string) error {
-	edgeKey, ok := ggraph.keyMap.GetEdgeKey(eid)
+	edgeKey, ok := ggraph.keyMap.GetEdgeKey(eid, ggraph.bsonkv.Pb.Db)
 	if !ok {
 		return fmt.Errorf("edge not found")
 	}
@@ -315,7 +315,7 @@ func (ggraph *Graph) DelEdge(eid string) error {
 		bulkErr = multierror.Append(bulkErr, err)
 	}
 
-	if err := ggraph.keyMap.DelEdgeKey(eid); err != nil {
+	if err := ggraph.keyMap.DelEdgeKey(eid, ggraph.bsonkv.Pb.Db); err != nil {
 		bulkErr = multierror.Append(bulkErr, err)
 	}
 	if err := ggraph.bsonkv.DeleteAnyRow([]byte(eid)); err != nil {
@@ -327,7 +327,7 @@ func (ggraph *Graph) DelEdge(eid string) error {
 
 // DelVertex deletes vertex with id `key`
 func (ggraph *Graph) DelVertex(id string) error {
-	vertexKey, ok := ggraph.keyMap.GetVertexKey(id)
+	vertexKey, ok := ggraph.keyMap.GetVertexKey(id, ggraph.bsonkv.Pb.Db)
 	if !ok {
 		return fmt.Errorf("vertex %s not found", id)
 	}
@@ -349,9 +349,9 @@ func (ggraph *Graph) DelVertex(id string) error {
 			dkey := DstEdgeKey(eid, sid, did, label)
 			delKeys = append(delKeys, ekey, skey, dkey)
 
-			edgeID, ok := ggraph.keyMap.GetEdgeID(eid)
+			edgeID, ok := ggraph.keyMap.GetEdgeID(eid, ggraph.bsonkv.Pb.Db)
 			if ok {
-				if err := ggraph.keyMap.DelEdgeKey(edgeID); err != nil {
+				if err := ggraph.keyMap.DelEdgeKey(edgeID, ggraph.bsonkv.Pb.Db); err != nil {
 					bulkErr = multierror.Append(bulkErr, err)
 				}
 			}
@@ -367,9 +367,9 @@ func (ggraph *Graph) DelVertex(id string) error {
 			skey := SrcEdgeKey(eid, sid, did, label)
 			delKeys = append(delKeys, ekey, skey, dkey)
 
-			edgeID, ok := ggraph.keyMap.GetEdgeID(eid)
+			edgeID, ok := ggraph.keyMap.GetEdgeID(eid, ggraph.bsonkv.Pb.Db)
 			if ok {
-				if err := ggraph.keyMap.DelEdgeKey(edgeID); err != nil {
+				if err := ggraph.keyMap.DelEdgeKey(edgeID, ggraph.bsonkv.Pb.Db); err != nil {
 					bulkErr = multierror.Append(bulkErr, err)
 				}
 			}
@@ -383,7 +383,7 @@ func (ggraph *Graph) DelVertex(id string) error {
 		bulkErr = multierror.Append(bulkErr, err)
 	}
 
-	if err := ggraph.keyMap.DelVertexKey(id); err != nil {
+	if err := ggraph.keyMap.DelVertexKey(id, ggraph.bsonkv.Pb.Db); err != nil {
 		bulkErr = multierror.Append(bulkErr, err)
 	}
 
@@ -420,10 +420,10 @@ func (ggraph *Graph) GetEdgeList(ctx context.Context, loadProp bool) <-chan *gdb
 				}
 				keyValue := it.Key()
 				ekey, skey, dkey, label := EdgeKeyParse(keyValue)
-				labelID, _ := ggraph.keyMap.GetLabelID(label)
-				sid, _ := ggraph.keyMap.GetVertexID(skey)
-				did, _ := ggraph.keyMap.GetVertexID(dkey)
-				eid, _ := ggraph.keyMap.GetEdgeID(ekey)
+				labelID, _ := ggraph.keyMap.GetLabelID(label, ggraph.bsonkv.Pb.Db)
+				sid, _ := ggraph.keyMap.GetVertexID(skey, ggraph.bsonkv.Pb.Db)
+				did, _ := ggraph.keyMap.GetVertexID(dkey, ggraph.bsonkv.Pb.Db)
+				eid, _ := ggraph.keyMap.GetEdgeID(ekey, ggraph.bsonkv.Pb.Db)
 				e := &gdbi.Edge{ID: eid, Label: labelID, From: sid, To: did}
 				if loadProp {
 					var err error
@@ -446,13 +446,13 @@ func (ggraph *Graph) GetEdgeList(ctx context.Context, loadProp bool) <-chan *gdb
 
 // GetVertex loads a vertex given an id. It returns a nil if not found
 func (ggraph *Graph) GetVertex(id string, loadProp bool) *gdbi.Vertex {
-	key, ok := ggraph.keyMap.GetVertexKey(id)
+	key, ok := ggraph.keyMap.GetVertexKey(id, ggraph.bsonkv.Pb.Db)
 	if !ok {
 		return nil
 	}
 	var v *gdbi.Vertex
-	lKey := ggraph.keyMap.GetVertexLabel(key)
-	lID, _ := ggraph.keyMap.GetLabelID(lKey)
+	lKey := ggraph.keyMap.GetVertexLabel(key, ggraph.bsonkv.Pb.Db)
+	lID, _ := ggraph.keyMap.GetLabelID(lKey, ggraph.bsonkv.Pb.Db)
 	v = &gdbi.Vertex{
 		ID:    id,
 		Label: lID,
@@ -486,11 +486,11 @@ func (ggraph *Graph) GetVertexChannel(ctx context.Context, ids chan gdbi.Element
 			if id.IsSignal() {
 				data <- elementData{req: id}
 			} else {
-				key, _ := ggraph.keyMap.GetVertexKey(id.ID)
+				key, _ := ggraph.keyMap.GetVertexKey(id.ID, ggraph.bsonkv.Pb.Db)
 				ed := elementData{key: key, req: id}
 				if load {
-					lKey := ggraph.keyMap.GetVertexLabel(key)
-					lID, _ := ggraph.keyMap.GetLabelID(lKey)
+					lKey := ggraph.keyMap.GetVertexLabel(key, ggraph.bsonkv.Pb.Db)
+					lID, _ := ggraph.keyMap.GetLabelID(lKey, ggraph.bsonkv.Pb.Db)
 					vData, err := ggraph.bsonkv.Tables[VTABLE_PREFIX+lID].GetRow([]byte(id.ID))
 					if err != nil {
 						log.Errorf("GetVertexChannel: GetRow error for ID %s: %v", id.ID, err)
@@ -511,8 +511,8 @@ func (ggraph *Graph) GetVertexChannel(ctx context.Context, ids chan gdbi.Element
 			if d.req.IsSignal() {
 				out <- d.req
 			} else {
-				lKey := ggraph.keyMap.GetVertexLabel(d.key)
-				lID, _ := ggraph.keyMap.GetLabelID(lKey)
+				lKey := ggraph.keyMap.GetVertexLabel(d.key, ggraph.bsonkv.Pb.Db)
+				lID, _ := ggraph.keyMap.GetLabelID(lKey, ggraph.bsonkv.Pb.Db)
 				v := gdbi.Vertex{ID: d.req.ID, Label: lID}
 				if load {
 					var err error
@@ -538,7 +538,7 @@ func (ggraph *Graph) GetOutChannel(ctx context.Context, reqChan chan gdbi.Elemen
 	vertexChan := make(chan elementData, 100)
 	edgeLabelKeys := make([]uint64, 0, len(edgeLabels))
 	for i := range edgeLabels {
-		el, ok := ggraph.keyMap.GetLabelKey(edgeLabels[i])
+		el, ok := ggraph.keyMap.GetLabelKey(edgeLabels[i], ggraph.bsonkv.Pb.Db)
 		if ok {
 			edgeLabelKeys = append(edgeLabelKeys, el)
 		}
@@ -551,7 +551,7 @@ func (ggraph *Graph) GetOutChannel(ctx context.Context, reqChan chan gdbi.Elemen
 					vertexChan <- elementData{req: req}
 				} else {
 					found := false
-					key, ok := ggraph.keyMap.GetVertexKey(req.ID)
+					key, ok := ggraph.keyMap.GetVertexKey(req.ID, ggraph.bsonkv.Pb.Db)
 					if ok {
 						skeyPrefix := SrcEdgePrefix(key)
 						for it.Seek(skeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), skeyPrefix); it.Next() {
@@ -592,9 +592,9 @@ func (ggraph *Graph) GetOutChannel(ctx context.Context, reqChan chan gdbi.Elemen
 					continue
 				}
 				vkey := VertexKeyParse(req.data)
-				gid, _ := ggraph.keyMap.GetVertexID(vkey)
-				lkey := ggraph.keyMap.GetVertexLabel(vkey)
-				lid, _ := ggraph.keyMap.GetLabelID(lkey)
+				gid, _ := ggraph.keyMap.GetVertexID(vkey, ggraph.bsonkv.Pb.Db)
+				lkey := ggraph.keyMap.GetVertexLabel(vkey, ggraph.bsonkv.Pb.Db)
+				lid, _ := ggraph.keyMap.GetLabelID(lkey, ggraph.bsonkv.Pb.Db)
 				v := &gdbi.Vertex{ID: gid, Label: lid}
 				if load {
 					var err error
@@ -620,7 +620,7 @@ func (ggraph *Graph) GetInChannel(ctx context.Context, reqChan chan gdbi.Element
 	o := make(chan gdbi.ElementLookup, 100)
 	edgeLabelKeys := make([]uint64, 0, len(edgeLabels))
 	for i := range edgeLabels {
-		el, ok := ggraph.keyMap.GetLabelKey(edgeLabels[i])
+		el, ok := ggraph.keyMap.GetLabelKey(edgeLabels[i], ggraph.bsonkv.Pb.Db)
 		if ok {
 			edgeLabelKeys = append(edgeLabelKeys, el)
 		}
@@ -633,16 +633,16 @@ func (ggraph *Graph) GetInChannel(ctx context.Context, reqChan chan gdbi.Element
 					o <- req
 				} else {
 					found := false
-					vkey, ok := ggraph.keyMap.GetVertexKey(req.ID)
+					vkey, ok := ggraph.keyMap.GetVertexKey(req.ID, ggraph.bsonkv.Pb.Db)
 					if ok {
 						dkeyPrefix := DstEdgePrefix(vkey)
 						for it.Seek(dkeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), dkeyPrefix); it.Next() {
 							keyValue := it.Key()
 							_, src, _, label := DstEdgeKeyParse(keyValue)
 							if len(edgeLabelKeys) == 0 || setcmp.ContainsUint(edgeLabelKeys, label) {
-								srcID, _ := ggraph.keyMap.GetVertexID(src)
-								lKey := ggraph.keyMap.GetVertexLabel(src)
-								lID, _ := ggraph.keyMap.GetLabelID(lKey)
+								srcID, _ := ggraph.keyMap.GetVertexID(src, ggraph.bsonkv.Pb.Db)
+								lKey := ggraph.keyMap.GetVertexLabel(src, ggraph.bsonkv.Pb.Db)
+								lID, _ := ggraph.keyMap.GetLabelID(lKey, ggraph.bsonkv.Pb.Db)
 								v := &gdbi.Vertex{ID: srcID, Label: lID}
 								if load {
 									var err error
@@ -678,7 +678,7 @@ func (ggraph *Graph) GetOutEdgeChannel(ctx context.Context, reqChan chan gdbi.El
 	o := make(chan gdbi.ElementLookup, 100)
 	edgeLabelKeys := make([]uint64, 0, len(edgeLabels))
 	for i := range edgeLabels {
-		el, ok := ggraph.keyMap.GetLabelKey(edgeLabels[i])
+		el, ok := ggraph.keyMap.GetLabelKey(edgeLabels[i], ggraph.bsonkv.Pb.Db)
 		if ok {
 			edgeLabelKeys = append(edgeLabelKeys, el)
 		}
@@ -691,7 +691,7 @@ func (ggraph *Graph) GetOutEdgeChannel(ctx context.Context, reqChan chan gdbi.El
 					o <- req
 				} else {
 					found := false
-					vkey, ok := ggraph.keyMap.GetVertexKey(req.ID)
+					vkey, ok := ggraph.keyMap.GetVertexKey(req.ID, ggraph.bsonkv.Pb.Db)
 					if ok {
 						skeyPrefix := SrcEdgePrefix(vkey)
 						for it.Seek(skeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), skeyPrefix); it.Next() {
@@ -699,10 +699,10 @@ func (ggraph *Graph) GetOutEdgeChannel(ctx context.Context, reqChan chan gdbi.El
 							eid, src, dst, label := SrcEdgeKeyParse(keyValue)
 							if len(edgeLabelKeys) == 0 || setcmp.ContainsUint(edgeLabelKeys, label) {
 								e := gdbi.Edge{}
-								e.ID, _ = ggraph.keyMap.GetEdgeID(eid)
-								e.From, _ = ggraph.keyMap.GetVertexID(src)
-								e.To, _ = ggraph.keyMap.GetVertexID(dst)
-								e.Label, _ = ggraph.keyMap.GetLabelID(label)
+								e.ID, _ = ggraph.keyMap.GetEdgeID(eid, ggraph.bsonkv.Pb.Db)
+								e.From, _ = ggraph.keyMap.GetVertexID(src, ggraph.bsonkv.Pb.Db)
+								e.To, _ = ggraph.keyMap.GetVertexID(dst, ggraph.bsonkv.Pb.Db)
+								e.Label, _ = ggraph.keyMap.GetLabelID(label, ggraph.bsonkv.Pb.Db)
 								if load {
 									var err error
 									e.Data, err = ggraph.bsonkv.Tables[ETABLE_PREFIX+e.Label].GetRow([]byte(e.ID))
@@ -738,7 +738,7 @@ func (ggraph *Graph) GetInEdgeChannel(ctx context.Context, reqChan chan gdbi.Ele
 	o := make(chan gdbi.ElementLookup, 100)
 	edgeLabelKeys := make([]uint64, 0, len(edgeLabels))
 	for i := range edgeLabels {
-		el, ok := ggraph.keyMap.GetLabelKey(edgeLabels[i])
+		el, ok := ggraph.keyMap.GetLabelKey(edgeLabels[i], ggraph.bsonkv.Pb.Db)
 		if ok {
 			edgeLabelKeys = append(edgeLabelKeys, el)
 		}
@@ -750,7 +750,7 @@ func (ggraph *Graph) GetInEdgeChannel(ctx context.Context, reqChan chan gdbi.Ele
 				if req.IsSignal() {
 					o <- req
 				} else {
-					vkey, ok := ggraph.keyMap.GetVertexKey(req.ID)
+					vkey, ok := ggraph.keyMap.GetVertexKey(req.ID, ggraph.bsonkv.Pb.Db)
 					found := false
 					if ok {
 						dkeyPrefix := DstEdgePrefix(vkey)
@@ -759,10 +759,10 @@ func (ggraph *Graph) GetInEdgeChannel(ctx context.Context, reqChan chan gdbi.Ele
 							eid, src, dst, label := DstEdgeKeyParse(keyValue)
 							if len(edgeLabelKeys) == 0 || setcmp.ContainsUint(edgeLabelKeys, label) {
 								e := gdbi.Edge{}
-								e.ID, _ = ggraph.keyMap.GetEdgeID(eid)
-								e.From, _ = ggraph.keyMap.GetVertexID(src)
-								e.To, _ = ggraph.keyMap.GetVertexID(dst)
-								e.Label, _ = ggraph.keyMap.GetLabelID(label)
+								e.ID, _ = ggraph.keyMap.GetEdgeID(eid, ggraph.bsonkv.Pb.Db)
+								e.From, _ = ggraph.keyMap.GetVertexID(src, ggraph.bsonkv.Pb.Db)
+								e.To, _ = ggraph.keyMap.GetVertexID(dst, ggraph.bsonkv.Pb.Db)
+								e.Label, _ = ggraph.keyMap.GetLabelID(label, ggraph.bsonkv.Pb.Db)
 								if load {
 									var err error
 									e.Data, err = ggraph.bsonkv.Tables[ETABLE_PREFIX+e.Label].GetRow([]byte(e.ID))
@@ -796,7 +796,7 @@ func (ggraph *Graph) GetInEdgeChannel(ctx context.Context, reqChan chan gdbi.Ele
 
 // GetEdge loads an edge given an id. It returns nil if not found
 func (ggraph *Graph) GetEdge(id string, loadProp bool) *gdbi.Edge {
-	ekey, ok := ggraph.keyMap.GetEdgeKey(id)
+	ekey, ok := ggraph.keyMap.GetEdgeKey(id, ggraph.bsonkv.Pb.Db)
 	if !ok {
 		return nil
 	}
@@ -806,10 +806,10 @@ func (ggraph *Graph) GetEdge(id string, loadProp bool) *gdbi.Edge {
 	err := ggraph.bsonkv.Pb.View(func(it *pebblebulk.PebbleIterator) error {
 		for it.Seek(ekeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), ekeyPrefix); it.Next() {
 			eid, src, dst, labelKey := EdgeKeyParse(it.Key())
-			gid, _ := ggraph.keyMap.GetEdgeID(eid)
-			from, _ := ggraph.keyMap.GetVertexID(src)
-			to, _ := ggraph.keyMap.GetVertexID(dst)
-			label, _ := ggraph.keyMap.GetLabelID(labelKey)
+			gid, _ := ggraph.keyMap.GetEdgeID(eid, ggraph.bsonkv.Pb.Db)
+			from, _ := ggraph.keyMap.GetVertexID(src, ggraph.bsonkv.Pb.Db)
+			to, _ := ggraph.keyMap.GetVertexID(dst, ggraph.bsonkv.Pb.Db)
+			label, _ := ggraph.keyMap.GetLabelID(labelKey, ggraph.bsonkv.Pb.Db)
 			e = &gdbi.Edge{
 				ID:    gid,
 				From:  from,
@@ -852,9 +852,9 @@ func (ggraph *Graph) GetVertexList(ctx context.Context, loadProp bool) <-chan *g
 				v := &gdbi.Vertex{}
 				keyValue := it.Key()
 				vKey := VertexKeyParse(keyValue)
-				lKey := ggraph.keyMap.GetVertexLabel(vKey)
-				v.ID, _ = ggraph.keyMap.GetVertexID(vKey)
-				v.Label, _ = ggraph.keyMap.GetLabelID(lKey)
+				lKey := ggraph.keyMap.GetVertexLabel(vKey, ggraph.bsonkv.Pb.Db)
+				v.ID, _ = ggraph.keyMap.GetVertexID(vKey, ggraph.bsonkv.Pb.Db)
+				v.Label, _ = ggraph.keyMap.GetLabelID(lKey, ggraph.bsonkv.Pb.Db)
 				if loadProp {
 					var err error
 					v.Data, err = ggraph.bsonkv.Tables[VTABLE_PREFIX+v.Label].GetRow([]byte(v.ID))

@@ -68,7 +68,7 @@ func newGraph(baseDir, name string) (*Graph, error) {
 	ts := timestamp.NewTimestamp()
 
 	o := &Graph{
-		keyMap:  NewKeyMap(bsonkv.Pb.Db),
+		keyMap:  NewKeyMap(),
 		bsonkv:  bsonkv,
 		ts:      &ts,
 		graphID: name,
@@ -112,7 +112,7 @@ func getGraph(baseDir, name string) (*Graph, error) {
 
 	ts := timestamp.NewTimestamp()
 	o := &Graph{
-		keyMap:  NewKeyMap(bsonkv.Pb.Db),
+		keyMap:  NewKeyMap(),
 		bsonkv:  bsonkv,
 		ts:      &ts,
 		graphID: name,
