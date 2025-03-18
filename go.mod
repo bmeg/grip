@@ -2,15 +2,13 @@ module github.com/bmeg/grip
 
 go 1.23.6
 
-replace github.com/bmeg/benchtop => /Users/ellrott/workspaces/benchtop
-
 require (
 	github.com/Shopify/sarama v1.38.1
 	github.com/Workiva/go-datastructures v1.1.5
 	github.com/akrylysov/pogreb v0.10.2
 	github.com/akuity/grpc-gateway-client v0.0.0-20231116134900-80c401329778
 	github.com/antlr/antlr4/runtime/Go/antlr v1.4.10
-	github.com/bmeg/benchtop v0.0.0-20250313211154-e2c55a3da752
+	github.com/bmeg/benchtop v0.0.0-20250318160738-bfa523dd1dc9
 	github.com/bmeg/jsonpath v0.0.0-20210207014051-cca5355553ad
 	github.com/bmeg/jsonschema/v5 v5.3.4-0.20241111204732-55db82022a92
 	github.com/bmeg/jsonschemagraph v0.0.3-0.20241211234837-ff91c296d0a8
