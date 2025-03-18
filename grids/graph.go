@@ -547,6 +547,7 @@ func (ggraph *Graph) GetOutChannel(ctx context.Context, reqChan chan gdbi.Elemen
 		defer close(vertexChan)
 		ggraph.bsonkv.Pb.View(func(it *pebblebulk.PebbleIterator) error {
 			for req := range reqChan {
+
 				if req.IsSignal() {
 					vertexChan <- elementData{req: req}
 				} else {
@@ -594,7 +595,11 @@ func (ggraph *Graph) GetOutChannel(ctx context.Context, reqChan chan gdbi.Elemen
 				vkey := VertexKeyParse(req.data)
 				gid, _ := ggraph.keyMap.GetVertexID(vkey, ggraph.bsonkv.Pb.Db)
 				lkey := ggraph.keyMap.GetVertexLabel(vkey, ggraph.bsonkv.Pb.Db)
-				lid, _ := ggraph.keyMap.GetLabelID(lkey, ggraph.bsonkv.Pb.Db)
+				lid, ok := ggraph.keyMap.GetLabelID(lkey, ggraph.bsonkv.Pb.Db)
+				if !ok || lid == "" {
+					log.Debugln("No LID for lkey: ", lkey)
+					continue
+				}
 				v := &gdbi.Vertex{ID: gid, Label: lid}
 				if load {
 					var err error
