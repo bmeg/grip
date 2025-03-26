@@ -8,7 +8,7 @@ require (
 	github.com/akrylysov/pogreb v0.10.2
 	github.com/akuity/grpc-gateway-client v0.0.0-20231116134900-80c401329778
 	github.com/antlr/antlr4/runtime/Go/antlr v1.4.10
-	github.com/bmeg/benchtop v0.0.0-20250313211154-e2c55a3da752
+	github.com/bmeg/benchtop v0.0.0-20250318160738-bfa523dd1dc9
 	github.com/bmeg/jsonpath v0.0.0-20210207014051-cca5355553ad
 	github.com/bmeg/jsonschema/v5 v5.3.4-0.20241111204732-55db82022a92
 	github.com/bmeg/jsonschemagraph v0.0.3-0.20241211234837-ff91c296d0a8
@@ -72,6 +72,7 @@ require (
 	github.com/cockroachdb/redact v1.1.5 // indirect
 	github.com/cockroachdb/tokenbucket v0.0.0-20230807174530-cc333fc44b06 // indirect
 	github.com/dgraph-io/ristretto v0.1.1 // indirect
+	github.com/dgraph-io/ristretto/v2 v2.1.0 // indirect
 	github.com/dgryski/go-farm v0.0.0-20200201041132-a6ae2369ad13 // indirect
 	github.com/dlclark/regexp2 v1.11.2 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect

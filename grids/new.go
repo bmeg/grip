@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/akrylysov/pogreb"
 	"github.com/bmeg/benchtop/bsontable"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/timestamp"
@@ -15,18 +14,15 @@ import (
 
 // Graph implements the GDB interface using a genertic key/value storage driver
 type Graph struct {
-	graphID  string
-	graphKey uint64
+	graphID string
 
 	keyMap *KeyMap
-	keykv  pogreb.DB
 	bsonkv *bsontable.BSONDriver
 	ts     *timestamp.Timestamp
 }
 
 // Close the connection
 func (g *Graph) Close() error {
-	g.keyMap.Close()
 	g.bsonkv.Close()
 	return nil
 }
@@ -61,22 +57,19 @@ func newGraph(baseDir, name string) (*Graph, error) {
 		return nil, fmt.Errorf("failed to create VERSION file: %v", err)
 	}
 
-	keykvPath := fmt.Sprintf("%s/KEYMAP", dbPath)
-	keykv, err := pogreb.Open(keykvPath, nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to open keykv at %s: %v", keykvPath, err)
-	}
-
-	bsonkvPath := fmt.Sprintf("%s", dbPath)
-	bsonkv, err := bsontable.NewBSONDriver(bsonkvPath, keykv)
+	//bsonkvPath := fmt.Sprintf("%s", dbPath)
+	bsonkvPath := dbPath
+	tabledr, err := bsontable.NewBSONDriver(bsonkvPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open bsonkv at %s: %v", bsonkvPath, err)
 	}
+	bsonkv := tabledr.(*bsontable.BSONDriver)
 
 	ts := timestamp.NewTimestamp()
+
 	o := &Graph{
-		keyMap:  NewKeyMap(keykv),
-		bsonkv:  bsonkv.(*bsontable.BSONDriver),
+		keyMap:  NewKeyMap(),
+		bsonkv:  bsonkv,
 		ts:      &ts,
 		graphID: name,
 	}
@@ -108,22 +101,19 @@ func getGraph(baseDir, name string) (*Graph, error) {
 		return nil, fmt.Errorf("error reading VERSION file at %s: %v", versionPath, err)
 	}
 
-	keykvPath := fmt.Sprintf("%s/KEYMAP", dbPath)
-	keykv, err := pogreb.Open(keykvPath, nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to open keykv at %s: %v", keykvPath, err)
-	}
-
-	bsonkvPath := fmt.Sprintf("%s", dbPath)
-	bsonkv, err := bsontable.LoadBSONDriver(bsonkvPath, keykv)
+	//bsonkvPath := fmt.Sprintf("%s", dbPath)
+	bsonkvPath := dbPath
+	tabledr, err := bsontable.LoadBSONDriver(bsonkvPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open bsonkv at %s: %v", bsonkvPath, err)
 	}
 
+	bsonkv := tabledr.(*bsontable.BSONDriver)
+
 	ts := timestamp.NewTimestamp()
 	o := &Graph{
-		keyMap:  NewKeyMap(keykv),
-		bsonkv:  bsonkv.(*bsontable.BSONDriver),
+		keyMap:  NewKeyMap(),
+		bsonkv:  bsonkv,
 		ts:      &ts,
 		graphID: name,
 	}
