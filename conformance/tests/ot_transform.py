@@ -63,7 +63,7 @@ def test_unwind_group_totype(man):
         orig_row = i
 
     for i in G.query().V().hasLabel("Observation").as_("f0").out("focus_Specimen").unwind("component").unwind("component.code.coding").as_("f1").totype("$f1.component.code.coding","list").group({"component":"$f1.component"}):
-        if not isinstance(i["data"]["component"][0]["code"]["coding"], list) and  isinstance(orig_row["data"]["component"][0]["code"]["coding"], list):
+        if not isinstance(i["component"][0]["code"]["coding"], list) and  isinstance(orig_row["component"][0]["code"]["coding"], list):
             errors.append("Original row list format not preserved: %s !=\n\n %s" % (orig_row, i))
 
     return errors
