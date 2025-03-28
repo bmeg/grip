@@ -1,6 +1,6 @@
 module github.com/bmeg/grip
 
-go 1.22.5
+go 1.23.6
 
 require (
 	github.com/Shopify/sarama v1.38.1
@@ -8,14 +8,16 @@ require (
 	github.com/akrylysov/pogreb v0.10.2
 	github.com/akuity/grpc-gateway-client v0.0.0-20231116134900-80c401329778
 	github.com/antlr/antlr4/runtime/Go/antlr v1.4.10
+	github.com/bmeg/benchtop v0.0.0-20250326173915-4c331b2f4087
 	github.com/bmeg/jsonpath v0.0.0-20210207014051-cca5355553ad
 	github.com/bmeg/jsonschema/v5 v5.3.4-0.20241111204732-55db82022a92
 	github.com/bmeg/jsonschemagraph v0.0.3-0.20241211234837-ff91c296d0a8
 	github.com/boltdb/bolt v1.3.1
 	github.com/casbin/casbin/v2 v2.97.0
-	github.com/cockroachdb/pebble v0.0.0-20250128214837-cd1252433ca0
+	github.com/cockroachdb/pebble v1.1.2
 	github.com/davecgh/go-spew v1.1.1
 	github.com/dgraph-io/badger/v2 v2.2007.4
+	github.com/dgraph-io/ristretto/v2 v2.1.0
 	github.com/dop251/goja v0.0.0-20240707163329-b1681fb2a2f5
 	github.com/felixge/httpsnoop v1.0.4
 	github.com/go-sql-driver/mysql v1.8.1
@@ -34,40 +36,41 @@ require (
 	github.com/mattn/go-sqlite3 v1.14.23
 	github.com/minio/minio-go/v7 v7.0.73
 	github.com/mitchellh/hashstructure/v2 v2.0.2
-	github.com/mongodb/mongo-tools v0.0.0-20240715143021-aa6a140d3f17
+	github.com/mongodb/mongo-tools v0.0.0-20250131183507-b8a566a7f38f
 	github.com/paulbellamy/ratecounter v0.2.0
 	github.com/robertkrimen/otto v0.4.0
 	github.com/segmentio/ksuid v1.0.4
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cast v1.6.0
 	github.com/spf13/cobra v1.8.1
-	github.com/stretchr/testify v1.9.0
+	github.com/stretchr/testify v1.10.0
 	github.com/syndtr/goleveldb v1.0.0
-	go.mongodb.org/mongo-driver v1.11.9
-	golang.org/x/crypto v0.30.0
-	golang.org/x/net v0.32.0
-	golang.org/x/sync v0.10.0
-	google.golang.org/genproto/googleapis/api v0.0.0-20240711142825-46eb208f015d
-	google.golang.org/grpc v1.65.0
-	google.golang.org/protobuf v1.35.2
-	gopkg.in/yaml.v3 v3.0.1
+	go.mongodb.org/mongo-driver v1.17.0
+	golang.org/x/crypto v0.33.0
+	golang.org/x/net v0.34.0
+	golang.org/x/sync v0.11.0
+	google.golang.org/genproto/googleapis/api v0.0.0-20250224174004-546df14abb99
+	google.golang.org/grpc v1.67.1
+	google.golang.org/protobuf v1.36.5
 	sigs.k8s.io/yaml v1.4.0
 )
 
 require (
 	filippo.io/edwards25519 v1.1.0 // indirect
+	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.17.0 // indirect
+	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.8.0 // indirect
+	github.com/Azure/azure-sdk-for-go/sdk/internal v1.10.0 // indirect
+	github.com/AzureAD/microsoft-authentication-library-for-go v1.3.2 // indirect
 	github.com/DataDog/zstd v1.5.6-0.20230824185856-869dae002e5e // indirect
 	github.com/alevinval/sse v1.0.2 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/casbin/govaluate v1.2.0 // indirect
 	github.com/cespare/xxhash v1.1.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
-	github.com/cockroachdb/crlib v0.0.0-20241112164430-1264a2edc35b // indirect
 	github.com/cockroachdb/errors v1.11.3 // indirect
 	github.com/cockroachdb/fifo v0.0.0-20240616162244-4768e80dfb9a // indirect
 	github.com/cockroachdb/logtags v0.0.0-20230118201751-21c54148d20b // indirect
 	github.com/cockroachdb/redact v1.1.5 // indirect
-	github.com/cockroachdb/swiss v0.0.0-20240612210725-f4de07ae6964 // indirect
 	github.com/cockroachdb/tokenbucket v0.0.0-20230807174530-cc333fc44b06 // indirect
 	github.com/dgraph-io/ristretto v0.1.1 // indirect
 	github.com/dgryski/go-farm v0.0.0-20200201041132-a6ae2369ad13 // indirect
@@ -84,6 +87,7 @@ require (
 	github.com/go-sourcemap/sourcemap v2.1.4+incompatible // indirect
 	github.com/goccy/go-json v0.10.3 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
+	github.com/golang-jwt/jwt/v5 v5.2.1 // indirect
 	github.com/golang/glog v1.2.2 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/golang/snappy v0.0.5-0.20231225225746-43d5d4cd4e0e // indirect
@@ -103,6 +107,7 @@ require (
 	github.com/klauspost/compress v1.17.9 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.8 // indirect
 	github.com/kr/text v0.2.0 // indirect
+	github.com/kylelemons/godebug v1.1.0 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/minio/md5-simd v1.1.2 // indirect
@@ -113,6 +118,7 @@ require (
 	github.com/onsi/ginkgo v1.13.0 // indirect
 	github.com/onsi/gomega v1.33.1 // indirect
 	github.com/pierrec/lz4/v4 v4.1.21 // indirect
+	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/client_golang v1.19.1 // indirect
@@ -127,13 +133,14 @@ require (
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
 	github.com/xdg-go/scram v1.1.2 // indirect
 	github.com/xdg-go/stringprep v1.0.4 // indirect
-	github.com/youmark/pkcs8 v0.0.0-20240424034433-3c2c7870ae76 // indirect
+	github.com/youmark/pkcs8 v0.0.0-20240726163527-a2c0da244d78 // indirect
 	golang.org/x/exp v0.0.0-20240707233637-46b078467d37 // indirect
-	golang.org/x/sys v0.28.0 // indirect
-	golang.org/x/term v0.27.0 // indirect
-	golang.org/x/text v0.21.0 // indirect
+	golang.org/x/sys v0.30.0 // indirect
+	golang.org/x/term v0.29.0 // indirect
+	golang.org/x/text v0.22.0 // indirect
 	gonum.org/v1/gonum v0.8.2 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20240711142825-46eb208f015d // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20250224174004-546df14abb99 // indirect
 	gopkg.in/sourcemap.v1 v1.0.5 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
