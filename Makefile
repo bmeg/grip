@@ -45,8 +45,6 @@ proto:
 		--grpc-gateway_opt logtostderr=true \
 		--grpc-gateway_opt paths=source_relative \
 		--grpc-rest-direct_out . \
-		--grpc-gateway-client_out . \
-		--grpc-gateway-client_opt paths=source_relative \
 		gripql.proto
 	@cd kvindex && protoc \
 		-I ./ \
@@ -67,7 +65,6 @@ proto:
 proto-depends:
 	@git submodule update --init --recursive
 	@go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-grpc-gateway@latest
-	@go install github.com/akuity/grpc-gateway-client/protoc-gen-grpc-gateway-client
 	@go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2@latest
 	@go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.34.2
 	@go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest

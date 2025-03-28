@@ -5,27 +5,27 @@ import json
 
 
 def vertex_compare(val, expected):
-    if val["gid"] != expected["gid"]:
+    if val["_gid"] != expected["_gid"]:
         return False
-    if val["label"] != expected["label"]:
+    if val["_label"] != expected["_label"]:
         return False
-    for k in expected['data']:
-        if expected['data'][k] != val['data'].get(k, None):
+    for k in expected:
+        if expected[k] != val.get(k, None):
             return False
     return True
 
 
 def edge_compare(val, expected):
-    if val["gid"] != expected["gid"]:
+    if val["_gid"] != expected["_gid"]:
         return False
-    if val["to"] != expected["to"]:
+    if val["_to"] != expected["_to"]:
         return False
-    if val["from"] != expected["from"]:
+    if val["_from"] != expected["_from"]:
         return False
-    if val["label"] != expected["label"]:
+    if val["_label"] != expected["_label"]:
         return False
-    for k in expected['data']:
-        if expected['data'][k] != val['data'].get(k, None):
+    for k in expected:
+        if expected[k] != val.get(k, None):
             return False
     return True
 
@@ -36,23 +36,21 @@ def test_get_vertex(man):
     G = man.setGraph("swapi")
 
     expected = {
-        "gid": "Character:1",
-        "label": "Character",
-        "data": {
-            "system": {
-                "created": "2014-12-09T13:50:51.644000Z",
-                "edited": "2014-12-20T21:17:56.891000Z"
-            },
-            "name": "Luke Skywalker",
-            "height": 172,
-            "mass": 77,
-            "hair_color": "blond",
-            "skin_color": "fair",
-            "eye_color": "blue",
-            "birth_year": "19BBY",
-            "gender": "male",
-            "url": "https://swapi.co/api/people/1/"
-        }
+        "_gid": "Character:1",
+        "_label": "Character",
+        "system": {
+            "created": "2014-12-09T13:50:51.644000Z",
+            "edited": "2014-12-20T21:17:56.891000Z"
+        },
+        "name": "Luke Skywalker",
+        "height": 172,
+        "mass": 77,
+        "hair_color": "blond",
+        "skin_color": "fair",
+        "eye_color": "blue",
+        "birth_year": "19BBY",
+        "gender": "male",
+        "url": "https://swapi.co/api/people/1/"
     }
 
     try:
@@ -79,11 +77,10 @@ def test_get_edge(man):
     G = man.setGraph("swapi")
 
     expected = {
-        "gid": "Film:1-characters-Character:1",
-        "label": "characters",
-        "from": "Film:1",
-        "to": "Character:1",
-        "data": {}
+        "_gid": "Film:1-characters-Character:1",
+        "_label": "characters",
+        "_from": "Film:1",
+        "_to": "Character:1",
     }
 
     try:
@@ -119,9 +116,9 @@ def test_V(man):
     count = 0
     for i in G.query().V("Character:1"):
         count += 1
-        if i['gid'] != "Character:1":
+        if i["_gid"] != "Character:1":
             errors.append(
-                "Fail: G.query().V(\"Character:1\") - Wrong vertex %s" % (i['gid'])
+                "Fail: G.query().V(\"Character:1\") - Wrong vertex %s" % (i["_gid"])
             )
     if count != 1:
         errors.append("Fail: G.query().V(\"Character:1\") %s != %s" % (count, 1))
@@ -142,9 +139,9 @@ def test_E(man):
 
     count = 0
     for i in G.query().E("Film:1-characters-Character:1"):
-        if i['gid'] != "Film:1-characters-Character:1":
+        if i["_gid"] != "Film:1-characters-Character:1":
             errors.append(
-                "Fail: G.query().E(\"Film:1-characters-Character:1\") - Wrong edge %s" % (i['gid'])
+                "Fail: G.query().E(\"Film:1-characters-Character:1\") - Wrong edge %s" % (i["_gid"])
             )
         count += 1
     if count != 1:
@@ -161,7 +158,7 @@ def test_outgoing(man):
 
     count = 0
     for i in G.query().V("Starship:12").out():
-        if i['gid'] not in ['Character:1', 'Character:18', 'Character:19', 'Character:9', 'Film:1']:
+        if i['_gid'] not in ['Character:1', 'Character:18', 'Character:19', 'Character:9', 'Film:1']:
             errors.append(
                 "Fail: G.query().V(\"Starship:12\").out() - Wrong vertex %s" % (i['gid'])
             )
@@ -172,7 +169,7 @@ def test_outgoing(man):
 
     count = 0
     for i in G.query().V("Starship:12").out("pilots"):
-        if i['gid'] not in ['Character:1', 'Character:18', 'Character:19', 'Character:9']:
+        if i['_gid'] not in ['Character:1', 'Character:18', 'Character:19', 'Character:9']:
             errors.append(
                 "Fail: G.query().V(\"Starship:12\").out(\"pilots\") - Wrong vertex %s" % (i['gid'])
             )
@@ -184,7 +181,7 @@ def test_outgoing(man):
 
     count = 0
     for i in G.query().E("Film:1-characters-Character:1").out():
-        if i['gid'] != "Character:1":
+        if i['_gid'] != "Character:1":
             errors.append(
                 "Fail: G.query().E(\"Film:1-characters-Character:1\").out() - Wrong vertex %s" % (i['gid'])
             )
@@ -204,7 +201,7 @@ def test_incoming(man):
 
     count = 0
     for i in G.query().V("Starship:12").in_():
-        if i['gid'] not in ['Character:1', 'Character:18', 'Character:19', 'Character:9', 'Film:1']:
+        if i['_gid'] not in ['Character:1', 'Character:18', 'Character:19', 'Character:9', 'Film:1']:
             errors.append(
                 "Fail: G.query().V(\"Starship:12\").in_() - Wrong vertex %s" % (i['gid'])
             )
@@ -215,7 +212,7 @@ def test_incoming(man):
 
     count = 0
     for i in G.query().V("Starship:12").in_("starships"):
-        if i['gid'] not in ['Character:1', 'Character:18', 'Character:19', 'Character:9', 'Film:1']:
+        if i['_gid'] not in ['Character:1', 'Character:18', 'Character:19', 'Character:9', 'Film:1']:
             errors.append(
                 "Fail: G.query().V(\"Starship:12\").in_(\"starships\") - Wrong vertex %s" % (i['gid'])
             )
@@ -236,7 +233,7 @@ def test_incoming(man):
 
     count = 0
     for i in G.query().E("Film:1-characters-Character:1").in_():
-        if i['gid'] != "Film:1":
+        if i['_gid'] != "Film:1":
             errors.append(
                 "Fail: G.query().E(\"Film:1-characters-Character:1\").in_() - Wrong vertex %s" % (i['gid'])
             )
@@ -259,14 +256,14 @@ def test_outgoing_edge(man):
         errors.append("Fail: G.query().V(\"Character:1\").outE().count() %d != %d" % (c, 4))
 
     for i in G.query().V("Character:1").outE():
-        if not i['gid'].startswith("Character:1"):
+        if not i['_gid'].startswith("Character:1"):
             errors.append("Fail: G.query().V(\"Character:1\").outE() - \
             Wrong edge '%s'" % (i['gid']))
 
     for i in G.query().V("Character:1").outE().out():
-        if i['gid'] not in ['Film:1', 'Planet:1', 'Species:1', 'Starship:12']:
+        if i['_gid'] not in ['Film:1', 'Planet:1', 'Species:1', 'Starship:12']:
             errors.append("Fail: G.query().V(\"Character:1\").outE().out() - \
-            Wrong vertex %s" % (i['gid']))
+            Wrong vertex %s" % (i['_gid']))
 
     c = G.query().V("Character:1").outE("homeworld").count().execute()[0]["count"]
     if c != 1:
@@ -285,14 +282,14 @@ def test_incoming_edge(man):
         errors.append("Fail: G.query().V(\"Character:1\").inE().count() %d != %d" % (c, 4))
 
     for i in G.query().V("Character:1").inE():
-        if not i['gid'].endswith("Character:1"):
+        if not i['_gid'].endswith("Character:1"):
             errors.append("Fail: G.query().V(\"Character:1\").inE() - \
             Wrong edge %s" % (i['gid']))
 
     for i in G.query().V("Character:1").inE().in_():
-        if i['gid'] not in ['Film:1', 'Planet:1', 'Species:1', 'Starship:12']:
+        if i['_gid'] not in ['Film:1', 'Planet:1', 'Species:1', 'Starship:12']:
             errors.append("Fail: G.query().V(\"Character:1\").inE().in() - \
-            Wrong vertex %s" % (i['gid']))
+            Wrong vertex %s" % (i['_gid']))
 
     c = G.query().V("Character:1").inE("residents").count().execute()[0]["count"]
     if c != 1:
@@ -375,7 +372,7 @@ def test_both(man):
 
     count = 0
     for i in G.query().V("Starship:12").both():
-        if i['gid'] not in ['Character:1', 'Character:18', 'Character:19', 'Character:9', 'Film:1']:
+        if i['_gid'] not in ['Character:1', 'Character:18', 'Character:19', 'Character:9', 'Film:1']:
             errors.append(
                 "Fail: G.query().V(\"Starship:12\").both() - \
                 Wrong vertex %s" % (i['gid'])
@@ -387,10 +384,10 @@ def test_both(man):
 
     count = 0
     for i in G.query().V("Starship:12").both(["pilots", "starships"]):
-        if i['gid'] not in ['Character:1', 'Character:18', 'Character:19', 'Character:9', 'Film:1']:
+        if i['_gid'] not in ['Character:1', 'Character:18', 'Character:19', 'Character:9', 'Film:1']:
             errors.append(
                 "Fail: G.query().V(\"Starship:12\").both([\"pilots\", \"starships\"]) - \
-                Wrong vertex %s" % (i['gid'])
+                Wrong vertex %s" % (i['_gid'])
             )
         count += 1
     if count != 9:
@@ -400,10 +397,10 @@ def test_both(man):
 
     count = 0
     for i in G.query().E("Film:1-characters-Character:1").both():
-        if i['gid'] not in ["Film:1", "Character:1"]:
+        if i['_gid'] not in ["Film:1", "Character:1"]:
             errors.append(
                 "Fail: G.query().E(\"Film:1-characters-Character:1\").both() - \
-                Wrong vertex %s" % (i['gid'])
+                Wrong vertex %s" % (i['_gid'])
             )
         count += 1
     if count != 2:
@@ -424,14 +421,14 @@ def test_both_edge(man):
         errors.append("Fail: G.query().V(\"Character:1\").bothE().count() %d != %d" % (c, 8))
 
     for i in G.query().V("Character:1").inE():
-        if not (i['gid'].startswith("Character:1") or i['gid'].endswith("Character:1")):
+        if not (i["_gid"].startswith("Character:1") or i["_gid"].endswith("Character:1")):
             errors.append("Fail: G.query().V(\"Character:1\").bothE() - \
-            Wrong edge %s" % (i['gid']))
+            Wrong edge %s" % (i["_gid"]))
 
     for i in G.query().V("Character:1").bothE().out():
-        if i['gid'] not in ['Character:1', 'Character:1', 'Character:1', 'Character:1', 'Film:1', 'Planet:1', 'Species:1', 'Starship:12']:
+        if i["_gid"] not in ['Character:1', 'Character:1', 'Character:1', 'Character:1', 'Film:1', 'Planet:1', 'Species:1', 'Starship:12']:
             errors.append("Fail: G.query().V(\"Character:1\").bothE().out() - \
-            Wrong vertex %s" % (i['gid']))
+            Wrong vertex %s" % (i["_gid"]))
 
     c = G.query().V("Character:1").bothE(["homeworld", "residents"]).count().execute()[0]["count"]
     if c != 2:
@@ -451,13 +448,13 @@ def test_limit(man):
     ]
 
     expected_results = [
-        list(i["gid"] for i in G.query().V().execute())[:3],
-        list(i["gid"] for i in G.query().E().execute())[:3]
+        list(i["_gid"] for i in G.query().V().execute())[:3],
+        list(i["_gid"] for i in G.query().E().execute())[:3]
     ]
 
     for test, expected in zip(tests, expected_results):
         results = eval(test).execute()
-        actual = [x["gid"] for x in results]
+        actual = [x["_gid"] for x in results]
 
         # check contents
         for x in actual:
@@ -488,13 +485,13 @@ def test_skip(man):
     ]
 
     expected_results = [
-        list(i["gid"] for i in G.query().V().execute())[3:6],
-        list(i["gid"] for i in G.query().E().execute())[3:6]
+        list(i["_gid"] for i in G.query().V().execute())[3:6],
+        list(i["_gid"] for i in G.query().E().execute())[3:6]
     ]
 
     for test, expected in zip(tests, expected_results):
         results = eval(test).execute()
-        actual = [x["gid"] for x in results]
+        actual = [x["_gid"] for x in results]
 
         # check contents
         for x in actual:
@@ -527,15 +524,15 @@ def test_range(man):
     ]
 
     expected_results = [
-        list(i["gid"] for i in G.query().V().execute())[3:5],
-        list(i["gid"] for i in G.query().V().execute())[34:],
-        list(i["gid"] for i in G.query().E().execute())[120:123],
-        list(i["gid"] for i in G.query().E().execute())[140:]
+        list(i["_gid"] for i in G.query().V().execute())[3:5],
+        list(i["_gid"] for i in G.query().V().execute())[34:],
+        list(i["_gid"] for i in G.query().E().execute())[120:123],
+        list(i["_gid"] for i in G.query().E().execute())[140:]
     ]
 
     for test, expected in zip(tests, expected_results):
         results = eval(test).execute()
-        actual = [x["gid"] for x in results]
+        actual = [x["_gid"] for x in results]
 
         # check contents
         for x in actual:
