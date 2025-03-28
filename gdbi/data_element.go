@@ -15,7 +15,7 @@ func (elem *DataElement) ToVertex() *gripql.Vertex {
 		log.Errorf("Error: %s For elem.Data: '%#v'\n", err, elem.Data)
 	}
 	return &gripql.Vertex{
-		Gid:   elem.ID,
+		Id:    elem.ID,
 		Label: elem.Label,
 		Data:  sValue,
 	}
@@ -28,7 +28,7 @@ func (elem *DataElement) ToEdge() *gripql.Edge {
 		log.Errorf("ToEdge: %s For elem.Data: '%#v'\n", err, elem.Data)
 	}
 	return &gripql.Edge{
-		Gid:   elem.ID,
+		Id:    elem.ID,
 		From:  elem.From,
 		To:    elem.To,
 		Label: elem.Label,
@@ -128,7 +128,7 @@ func NewGraphElement(g *gripql.GraphElement) *GraphElement {
 
 func NewElementFromVertex(v *gripql.Vertex) *Vertex {
 	return &Vertex{
-		ID:     v.Gid,
+		ID:     v.Id,
 		Label:  v.Label,
 		Data:   v.Data.AsMap(),
 		Loaded: true,
@@ -137,7 +137,7 @@ func NewElementFromVertex(v *gripql.Vertex) *Vertex {
 
 func NewElementFromEdge(e *gripql.Edge) *Edge {
 	return &Edge{
-		ID:     e.Gid,
+		ID:     e.Id,
 		Label:  e.Label,
 		To:     e.To,
 		From:   e.From,

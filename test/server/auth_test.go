@@ -126,7 +126,7 @@ func TestBasicAuth(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	err = cli.AddVertex("test", &gripql.Vertex{Gid: "1", Label: "test"})
+	err = cli.AddVertex("test", &gripql.Vertex{Id: "1", Label: "test"})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

@@ -23,12 +23,12 @@ func (mflat *MarshalFlatten) Marshal(d interface{}) ([]byte, error) {
 	switch x := d.(type) {
 	case *Vertex:
 		out := x.Data.AsMap()
-		out["_gid"] = x.Gid
+		out["_id"] = x.Id
 		out["_label"] = x.Label
 		return json.Marshal(out)
 	case *Edge:
 		out := x.Data.AsMap()
-		out["_gid"] = x.Gid
+		out["_id"] = x.Id
 		out["_label"] = x.Label
 		out["_to"] = x.To
 		out["_from"] = x.From
@@ -36,12 +36,12 @@ func (mflat *MarshalFlatten) Marshal(d interface{}) ([]byte, error) {
 	case *QueryResult:
 		if e := x.GetVertex(); e != nil {
 			out := e.Data.AsMap()
-			out["_gid"] = e.Gid
+			out["_id"] = e.Id
 			out["_label"] = e.Label
 			return json.Marshal(map[string]any{"vertex": out})
 		} else if e := x.GetEdge(); e != nil {
 			out := e.Data.AsMap()
-			out["_gid"] = e.Gid
+			out["_id"] = e.Id
 			out["_label"] = e.Label
 			out["_to"] = e.To
 			out["_from"] = e.From

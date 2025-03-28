@@ -381,7 +381,7 @@ func TestEngine(t *testing.T) {
 func vertex(gid, label string, d data) *gripql.Vertex {
 	ds, _ := structpb.NewStruct(d)
 	return &gripql.Vertex{
-		Gid:   gid,
+		Id:    gid,
 		Label: label,
 		Data:  ds,
 	}
@@ -390,7 +390,7 @@ func vertex(gid, label string, d data) *gripql.Vertex {
 func edge(gid interface{}, from, to string, label string, d data) *gripql.Edge {
 	ds, _ := structpb.NewStruct(d)
 	return &gripql.Edge{
-		Gid:   fmt.Sprintf("%v", gid),
+		Id:    fmt.Sprintf("%v", gid),
 		From:  from,
 		To:    to,
 		Label: label,
@@ -444,7 +444,7 @@ func pick(gids ...string) checker {
 
 func getVertex(gid string) *gripql.Vertex {
 	for _, v := range vertices {
-		if v.Gid == gid {
+		if v.Id == gid {
 			return v
 		}
 	}
@@ -453,7 +453,7 @@ func getVertex(gid string) *gripql.Vertex {
 
 func getEdge(gid string) *gripql.Edge {
 	for _, e := range edges {
-		if e.Gid == gid {
+		if e.Id == gid {
 			return e
 		}
 	}

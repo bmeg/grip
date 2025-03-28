@@ -52,7 +52,7 @@ func (vertex *Vertex) HasProperty(key string) bool {
 
 // Validate returns an error if the vertex is invalid
 func (vertex *Vertex) Validate() error {
-	if vertex.Gid == "" {
+	if vertex.Id == "" {
 		return errors.New("'gid' cannot be blank")
 	}
 	if vertex.Label == "" {
@@ -109,7 +109,7 @@ func (edge *Edge) HasProperty(key string) bool {
 
 // Validate returns an error if the edge is invalid
 func (edge *Edge) Validate() error {
-	if edge.Gid == "" {
+	if edge.Id == "" {
 		return errors.New("'gid' cannot be blank")
 	}
 	if edge.Label == "" {

@@ -186,7 +186,7 @@ func (server *GripServer) addVertex(ctx context.Context, elem *gripql.GraphEleme
 	if err != nil {
 		return nil, err
 	}
-	return &gripql.EditResult{Id: elem.Vertex.Gid}, nil
+	return &gripql.EditResult{Id: elem.Vertex.Id}, nil
 }
 
 // AddEdge adds an edge to the graph
@@ -208,8 +208,8 @@ func (server *GripServer) addEdge(ctx context.Context, elem *gripql.GraphElement
 	}
 
 	edge := elem.Edge
-	if edge.Gid == "" {
-		edge.Gid = util.UUID()
+	if edge.Id == "" {
+		edge.Id = util.UUID()
 	}
 	err = edge.Validate()
 	if err != nil {
@@ -220,7 +220,7 @@ func (server *GripServer) addEdge(ctx context.Context, elem *gripql.GraphElement
 	if err != nil {
 		return nil, err
 	}
-	return &gripql.EditResult{Id: edge.Gid}, nil
+	return &gripql.EditResult{Id: edge.Id}, nil
 }
 
 func (server *GripServer) BulkAddRaw(stream gripql.Edit_BulkAddRawServer) error {
@@ -312,7 +312,7 @@ func (server *GripServer) BulkAddRaw(stream gripql.Edit_BulkAddRawServer) error 
 			if element.Vertex != nil {
 				elementStream <- &gdbi.GraphElement{
 					Vertex: &gdbi.Vertex{
-						ID:    element.Vertex.Gid,
+						ID:    element.Vertex.Id,
 						Data:  element.Vertex.Data.AsMap(),
 						Label: element.Vertex.Label,
 					},
@@ -320,7 +320,7 @@ func (server *GripServer) BulkAddRaw(stream gripql.Edit_BulkAddRawServer) error 
 			} else {
 				elementStream <- &gdbi.GraphElement{
 					Edge: &gdbi.Edge{
-						ID:    element.Edge.Gid,
+						ID:    element.Edge.Id,
 						Label: element.Edge.Label,
 						From:  element.Edge.From,
 						To:    element.Edge.To,
@@ -451,8 +451,8 @@ func (server *GripServer) BulkAdd(stream gripql.Edit_BulkAddServer) error {
 
 		// Process edges
 		if element.Edge != nil {
-			if element.Edge.Gid == "" {
-				element.Edge.Gid = util.UUID()
+			if element.Edge.Id == "" {
+				element.Edge.Id = util.UUID()
 			}
 			if err := element.Edge.Validate(); err != nil {
 				mu.Lock()
@@ -727,7 +727,7 @@ func (server *GripServer) getSchema(graphName string) *gripql.Graph {
 				graphelem := elem.Get()
 				data, _ := structpb.NewStruct(graphelem.Data)
 				gripGraph.Vertices = append(gripGraph.Vertices, &gripql.Vertex{
-					Gid:   graphelem.ID,
+					Id:    graphelem.ID,
 					Label: graphelem.Label,
 					Data:  data,
 				})

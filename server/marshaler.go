@@ -68,12 +68,12 @@ func FlattenRewriter(_ context.Context, response proto.Message) (interface{}, er
 	switch v := response.(type) {
 	case *gripql.Vertex:
 		out := v.Data.AsMap()
-		out["_gid"] = v.Gid
+		out["_id"] = v.Id
 		out["_label"] = v.Label
 		return out, nil
 	case *gripql.Edge:
 		out := v.Data.AsMap()
-		out["_gid"] = v.Gid
+		out["_id"] = v.Id
 		out["_label"] = v.Label
 		out["_to"] = v.To
 		out["_from"] = v.From
@@ -81,12 +81,12 @@ func FlattenRewriter(_ context.Context, response proto.Message) (interface{}, er
 	case *gripql.QueryResult:
 		if e := v.GetVertex(); e != nil {
 			out := e.Data.AsMap()
-			out["_gid"] = e.Gid
+			out["_id"] = e.Id
 			out["_label"] = e.Label
 			return map[string]any{"vertex": out}, nil
 		} else if e := v.GetEdge(); e != nil {
 			out := e.Data.AsMap()
-			out["_gid"] = e.Gid
+			out["_id"] = e.Id
 			out["_label"] = e.Label
 			out["_to"] = e.To
 			out["_from"] = e.From

@@ -221,13 +221,13 @@ message Increment {
 }
 
 message Vertex {
-  string gid = 1;
+  string id = 1;
   string label = 2;
   google.protobuf.Struct data = 3;
 }
 
 message Edge {
-  string gid = 1;
+  string id = 1;
   string label = 2;
   string from = 3;
   string to = 4;

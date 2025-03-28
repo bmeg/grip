@@ -172,14 +172,14 @@ func (server *GripServer) LoadSchemas(sch *gripql.Graph, out *graph.GraphSchema)
 		if err != nil {
 			return nil, err
 		}
-		err = schcompiler.AddResource(v.Gid, strings.NewReader(string(jsonData)))
+		err = schcompiler.AddResource(v.Id, strings.NewReader(string(jsonData)))
 		if err != nil {
 			log.Error("schcompiler.AddResource err: ", err)
 			return nil, err
 		}
 	}
 	for _, v := range sch.Vertices {
-		sch, err := schcompiler.Compile(v.Gid)
+		sch, err := schcompiler.Compile(v.Id)
 		if err != nil {
 			log.Error("schcompiler.Compile err: ", err)
 			return nil, err

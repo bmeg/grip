@@ -35,7 +35,7 @@ var edges = []*gripql.Edge{}
 func setupGraph() error {
 	// sort edges/vertices and insert one at a time to ensure the same write order
 	sort.Slice(vertices[:], func(i, j int) bool {
-		return vertices[i].Gid < vertices[j].Gid
+		return vertices[i].Id < vertices[j].Id
 	})
 	for _, v := range vertices {
 		err := db.AddVertex([]*gdbi.Vertex{gdbi.NewElementFromVertex(v)})
@@ -45,7 +45,7 @@ func setupGraph() error {
 	}
 
 	sort.Slice(edges[:], func(i, j int) bool {
-		return edges[i].Gid < edges[j].Gid
+		return edges[i].Id < edges[j].Id
 	})
 	for _, e := range edges {
 		err := db.AddEdge([]*gdbi.Edge{gdbi.NewElementFromEdge(e)})
