@@ -65,212 +65,190 @@ graph from the `swapi` mapping (see example graph map below).
 
 ```
 vertices:
-  - gid: "Character:"
-    label: Character
-    data:
-      source: tableServer
-      collection: Character
+  - _gid: "Character:"
+    _label: Character
+    source: tableServer
+    collection: Character
 
-  - gid: "Planet:"
-    label: Planet
-    data:
-      collection: Planet
-      source: tableServer
+  - _gid: "Planet:"
+    _label: Planet
+    collection: Planet
+    source: tableServer
 
-  - gid: "Film:"
-    label: Film
-    data:
-      collection: Film
-      source: tableServer
+  - _gid: "Film:"
+    _label: Film
+    collection: Film
+    source: tableServer
 
-  - gid: "Species:"
-    label: Species
-    data:
-      source: tableServer
-      collection: Species
+  - _gid: "Species:"
+    _label: Species
+    source: tableServer
+    collection: Species
 
-  - gid: "Starship:"
-    label: Starship
-    data:
-      source: tableServer
-      collection: Starship
+  - _gid: "Starship:"
+    _label: Starship
+    source: tableServer
+    collection: Starship
 
-  - gid: "Vehicle:"
-    label: Vehicle
-    data:
-      source: tableServer
-      collection: Vehicle
+  - _gid: "Vehicle:"
+    _label: Vehicle
+    source: tableServer
+    collection: Vehicle
 
 edges:
-  - gid: "homeworld"
-    from: "Character:"
-    to: "Planet:"
-    label: homeworld
-    data:
-      fieldToField:
-        fromField: $.homeworld
-        toField: $.id
+  - _gid: "homeworld"
+    _from: "Character:"
+    _to: "Planet:"
+    _label: homeworld
+    fieldToField:
+      fromField: $.homeworld
+      toField: $.id
 
-  - gid: species
-    from: "Character:"
-    to: "Species:"
-    label: species
-    data:
-      fieldToField:
-        fromField: $.species
-        toField: $.id
+  - _gid: species
+    _from: "Character:"
+    _to: "Species:"
+    _label: species
+    fieldToField:
+      fromField: $.species
+      toField: $.id
 
-  - gid: people
-    from: "Species:"
-    to: "Character:"
-    label: people
-    data:
-      edgeTable:
-        source: tableServer
-        collection: speciesCharacter
-        fromField: $.from
-        toField: $.to
+  - _gid: people
+    _from: "Species:"
+    _to: "Character:"
+    _label: people
+    edgeTable:
+      source: tableServer
+      collection: speciesCharacter
+      fromField: $.from
+      toField: $.to
 
-  - gid: residents
-    from: "Planet:"
-    to: "Character:"
-    label: residents
-    data:
-      edgeTable:
-        source: tableServer
-        collection: planetCharacter
-        fromField: $.from
-        toField: $.to
+  - _gid: residents
+    _from: "Planet:"
+    _to: "Character:"
+    _label: residents
+    edgeTable:
+      source: tableServer
+      collection: planetCharacter
+      fromField: $.from
+      toField: $.to
 
-  - gid: filmVehicles
-    from: "Film:"
-    to: "Vehicle:"
-    label: "vehicles"
-    data:
-      edgeTable:
-        source: tableServer
-        collection: filmVehicles
-        fromField: "$.from"
-        toField: "$.to"
+  - _gid: filmVehicles
+    _from: "Film:"
+    _to: "Vehicle:"
+    _label: "vehicles"
+    edgeTable:
+      source: tableServer
+      collection: filmVehicles
+      fromField: "$.from"
+      toField: "$.to"
 
-  - gid: vehicleFilms
-    to: "Film:"
-    from: "Vehicle:"
-    label: "films"
-    data:
-      edgeTable:
-        source: tableServer
-        collection: filmVehicles
-        toField: "$.from"
-        fromField: "$.to"
+  - _gid: vehicleFilms
+    _to: "Film:"
+    _from: "Vehicle:"
+    _label: "films"
+    edgeTable:
+      source: tableServer
+      collection: filmVehicles
+      toField: "$.from"
+      fromField: "$.to"
 
-  - gid: filmStarships
-    from: "Film:"
-    to: "Starship:"
-    label: "starships"
-    data:
-      edgeTable:
-        source: tableServer
-        collection: filmStarships
-        fromField: "$.from"
-        toField: "$.to"
+  - _gid: filmStarships
+    _from: "Film:"
+    _to: "Starship:"
+    _label: "starships"
+    edgeTable:
+      source: tableServer
+      collection: filmStarships
+      fromField: "$.from"
+      toField: "$.to"
 
-  - gid: starshipFilms
-    to: "Film:"
-    from: "Starship:"
-    label: "films"
-    data:
-      edgeTable:
-        source: tableServer
-        collection: filmStarships
-        toField: "$.from"
-        fromField: "$.to"
+  - _gid: starshipFilms
+    _to: "Film:"
+    _from: "Starship:"
+    _label: "films"
+    edgeTable:
+      source: tableServer
+      collection: filmStarships
+      toField: "$.from"
+      fromField: "$.to"
 
-  - gid: filmPlanets
-    from: "Film:"
-    to: "Planet:"
-    label: "planets"
-    data:
-      edgeTable:
-        source: tableServer
-        collection: filmPlanets
-        fromField: "$.from"
-        toField: "$.to"
+  - _gid: filmPlanets
+    _from: "Film:"
+    _to: "Planet:"
+    _label: "planets"
+    edgeTable:
+      source: tableServer
+      collection: filmPlanets
+      fromField: "$.from"
+      toField: "$.to"
 
-  - gid: planetFilms
-    to: "Film:"
-    from: "Planet:"
-    label: "films"
-    data:
-      edgeTable:
-        source: tableServer
-        collection: filmPlanets
-        toField: "$.from"
-        fromField: "$.to"
+  - _gid: planetFilms
+    _to: "Film:"
+    _from: "Planet:"
+    _label: "films"
+    edgeTable:
+      source: tableServer
+      collection: filmPlanets
+      toField: "$.from"
+      fromField: "$.to"
 
-  - gid: filmSpecies
-    from: "Film:"
-    to: "Species:"
-    label: "species"
-    data:
-      edgeTable:
-        source: tableServer
-        collection: filmSpecies
-        fromField: "$.from"
-        toField: "$.to"
+  - _gid: filmSpecies
+    _from: "Film:"
+    _to: "Species:"
+    _label: "species"
+    edgeTable:
+      source: tableServer
+      collection: filmSpecies
+      fromField: "$.from"
+      toField: "$.to"
 
-  - gid: speciesFilms
-    to: "Film:"
-    from: "Species:"
-    label: "films"
-    data:
-      edgeTable:
-        source: tableServer
-        collection: filmSpecies
-        toField: "$.from"
-        fromField: "$.to"
+  - _gid: speciesFilms
+    _to: "Film:"
+    _from: "Species:"
+    _label: "films"
+    edgeTable:
+      source: tableServer
+      collection: filmSpecies
+      toField: "$.from"
+      fromField: "$.to"
 
-  - gid: filmCharacters
-    from: "Film:"
-    to: "Character:"
-    label: characters
-    data:
-      edgeTable:
-        source: tableServer
-        collection: filmCharacters
-        fromField: "$.from"
-        toField: "$.to"
+  - _gid: filmCharacters
+    _from: "Film:"
+    _to: "Character:"
+    _label: characters
+    edgeTable:
+      source: tableServer
+      collection: filmCharacters
+      fromField: "$.from"
+      toField: "$.to"
 
-  - gid: characterFilms
-    from: "Character:"
-    to: "Film:"
-    label: films
-    data:
-      edgeTable:
-        source: tableServer
-        collection: filmCharacters
-        toField: "$.from"
-        fromField: "$.to"
+  - _gid: characterFilms
+    _from: "Character:"
+    _to: "Film:"
+    _label: films
+    edgeTable:
+      source: tableServer
+      collection: filmCharacters
+      toField: "$.from"
+      fromField: "$.to"
 
-  - gid: characterStarships
-    from: "Character:"
-    to: "Starship:"
-    label: "starships"
-    data:
-      edgeTable:
-        source: tableServer
-        collection: characterStarships
-        fromField: "$.from"
-        toField: "$.to"
+  - _gid: characterStarships
+    _from: "Character:"
+    _to: "Starship:"
+    _label: "starships"
+    edgeTable:
+      source: tableServer
+      collection: characterStarships
+      fromField: "$.from"
+      toField: "$.to"
 
-  - gid: starshipCharacters
-    to: "Character:"
-    from: "Starship:"
-    label: "pilots"
-    data:
-      edgeTable:
-        source: tableServer
-        collection: characterStarships
-        toField: "$.from"
-        fromField: "$.to"
+  - _gid: starshipCharacters
+    _to: "Character:"
+    _from: "Starship:"
+    _label: "pilots"
+    edgeTable:
+      source: tableServer
+      collection: characterStarships
+      toField: "$.from"
+      fromField: "$.to"
 ```
