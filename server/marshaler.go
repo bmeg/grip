@@ -42,7 +42,7 @@ func (mclean *MarshalClean) ContentType(i interface{}) string {
 func (mclean *MarshalClean) Marshal(v interface{}) ([]byte, error) {
 	if x, ok := v.(map[string]interface{}); ok {
 		if val, ok := x["result"]; ok {
-			return mclean.m.Marshal(val)
+			return mclean.Marshal(val)
 		}
 	}
 	return mclean.m.Marshal(v)

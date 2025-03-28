@@ -127,7 +127,7 @@ func StreamRawJsonFromFile(file string, workers int, graph string, extra_args ma
 	}
 	jsonChan := make(chan *gripql.RawJson, workers)
 	var wg sync.WaitGroup
-	jum := protojson.UnmarshalOptions{DiscardUnknown: true}
+	jum := gripql.NewFlattenMarshaler()
 
 	for i := 0; i < workers; i++ {
 		wg.Add(1)
@@ -178,7 +178,7 @@ func StreamVerticesFromFile(file string, workers int) (chan *gripql.Vertex, erro
 	vertChan := make(chan *gripql.Vertex, workers)
 	var wg sync.WaitGroup
 
-	jum := protojson.UnmarshalOptions{DiscardUnknown: true}
+	jum := gripql.NewFlattenMarshaler()
 
 	for i := 0; i < workers; i++ {
 		wg.Add(1)
