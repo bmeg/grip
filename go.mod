@@ -10,7 +10,7 @@ require (
 	github.com/bmeg/benchtop v0.0.0-20250326173915-4c331b2f4087
 	github.com/bmeg/jsonpath v0.0.0-20210207014051-cca5355553ad
 	github.com/bmeg/jsonschema/v5 v5.3.4-0.20241111204732-55db82022a92
-	github.com/bmeg/jsonschemagraph v0.0.3-0.20241211234837-ff91c296d0a8
+	github.com/bmeg/jsonschemagraph v0.0.3-0.20250330060023-8f61d8bfec9a
 	github.com/boltdb/bolt v1.3.1
 	github.com/casbin/casbin/v2 v2.97.0
 	github.com/cockroachdb/pebble v1.1.2

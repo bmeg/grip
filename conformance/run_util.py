@@ -181,13 +181,13 @@ class Manager:
         with open(os.path.join(BASE, "graphs", "%s.vertices" % (name))) as handle:
             for line in handle:
                 data = json.loads(line)
-                G.addVertex(data["gid"], data["label"], data.get("data", {}))
+                G.addVertex(data["id"], data["label"], data.get("data", {}))
 
         with open(os.path.join(BASE, "graphs", "%s.edges" % (name))) as handle:
             for line in handle:
                 data = json.loads(line)
                 G.addEdge(src=data["from"], dst=data["to"],
-                          gid=data.get("gid", None), label=data["label"],
+                          gid=data.get("id", None), label=data["label"],
                           data=data.get("data", {}))
         self.curName = name
         return G

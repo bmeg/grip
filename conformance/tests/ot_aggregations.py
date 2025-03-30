@@ -171,7 +171,7 @@ def test_traversal_gid_aggregation(man):
     }
 
     count = 0
-    for row in G.query().V().hasLabel("Planet").as_("a").out("residents").select("a").aggregate(gripql.term("gid-agg", "_gid")):
+    for row in G.query().V().hasLabel("Planet").as_("a").out("residents").select("a").aggregate(gripql.term("gid-agg", "_id")):
         count += 1
         if 'gid-agg' != row['name']:
             errors.append("Result had Incorrect aggregation name")
@@ -191,7 +191,7 @@ def test_field_aggregation(man):
     errors = []
 
     # TODO: find way to get gripper driver to drop id field
-    fields = [ "_id", "id", "_gid", "_label", 'orbital_period', 'gravity', 'terrain', 'name','climate', 'system', 'diameter', 'rotation_period', 'url', 'population', 'surface_water']
+    fields = [ "_id", "id", "_label", 'orbital_period', 'gravity', 'terrain', 'name','climate', 'system', 'diameter', 'rotation_period', 'url', 'population', 'surface_water']
 
     G = man.setGraph("swapi")
     count = 0

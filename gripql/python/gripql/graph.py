@@ -69,7 +69,7 @@ class Graph(BaseConnection):
         Add vertex to a graph.
         """
         payload = {
-            "gid": gid,
+            "id": gid,
             "label": label,
             "data": data
         }
@@ -113,7 +113,7 @@ class Graph(BaseConnection):
             "data": data
         }
         if gid is not None:
-            payload["gid"] = gid
+            payload["id"] = gid
         response = self.session.post(
             self.url + "/edge",
             json=payload
@@ -289,7 +289,7 @@ class BulkAdd(BaseConnection):
         payload = {
             "graph": self.graph,
             "vertex": {
-                "gid": gid,
+                "id": gid,
                 "label": label,
                 "data": data
             }
@@ -307,7 +307,7 @@ class BulkAdd(BaseConnection):
             }
         }
         if gid is not None:
-            payload["gid"] = gid
+            payload["id"] = gid
         self.elements.append(json.dumps(payload))
 
     def execute(self):

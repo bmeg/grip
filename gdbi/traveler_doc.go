@@ -52,14 +52,12 @@ func TravelerGetMarkDoc(traveler Traveler, ns string) map[string]any {
 //	    "_current": {...},
 //	    "marks": {
 //	      "gene": {
-//	        "gid": 1,
-//	        "label": "gene",
-//	        "data": {
-//	          "symbol": {
-//	            "ensembl": "ENSG00000012048",
-//	            "hgnc": 1100,
-//	            "entrez": 672
-//	          }
+//	        "_id": 1,
+//	        "_label": "gene",
+//	        "symbol": {
+//	           "ensembl": "ENSG00000012048",
+//	           "hgnc": 1100,
+//	           "entrez": 672
 //	        }
 //	      }
 //	    }
@@ -212,7 +210,7 @@ func includeFields(new, old *DataElement, paths []string) *DataElement {
 Include:
 	for _, path := range paths {
 		switch path {
-		case "_gid", "_label", "_from", "_to":
+		case "_id", "_label", "_from", "_to":
 			// noop
 		default:
 			parts := strings.Split(path, ".")
@@ -264,7 +262,7 @@ func excludeFields(elem *DataElement, paths []string) *DataElement {
 Exclude:
 	for _, path := range paths {
 		switch path {
-		case "_gid":
+		case "_id":
 			result.ID = ""
 		case "_label":
 			result.Label = ""

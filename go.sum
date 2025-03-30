@@ -38,8 +38,8 @@ github.com/bmeg/jsonpath v0.0.0-20210207014051-cca5355553ad h1:ICgBexeLB7iv/IQz4
 github.com/bmeg/jsonpath v0.0.0-20210207014051-cca5355553ad/go.mod h1:ft96Irkp72C7ZrUWRenG7LrF0NKMxXdRvsypo5Njhm4=
 github.com/bmeg/jsonschema/v5 v5.3.4-0.20241111204732-55db82022a92 h1:Myx/j+WxfEg+P3nDaizR1hBpjKSLgvr4ydzgp1/1pAU=
 github.com/bmeg/jsonschema/v5 v5.3.4-0.20241111204732-55db82022a92/go.mod h1:6v27bSBKXyIDFqlKQbUSnHlekE1y6bDkgWCuVEaDPng=
-github.com/bmeg/jsonschemagraph v0.0.3-0.20241211234837-ff91c296d0a8 h1:tBnMKyTnGckEt9uM8NUaiaSi6eFRhdJncWsgfez2kQg=
-github.com/bmeg/jsonschemagraph v0.0.3-0.20241211234837-ff91c296d0a8/go.mod h1:wRzh5mRmHUv0zaqHCjFzHk+JivZRoxhuIAJyEjzq5hw=
+github.com/bmeg/jsonschemagraph v0.0.3-0.20250330060023-8f61d8bfec9a h1:fpn3HUX8qr4RE/0EUinlW9mmKlWAFEDglU9XKlcISqU=
+github.com/bmeg/jsonschemagraph v0.0.3-0.20250330060023-8f61d8bfec9a/go.mod h1:X2hsoNXo8YEmLtVox3ro9hx63E30uXGkQ5SDl8zapp8=
 github.com/boltdb/bolt v1.3.1 h1:JQmyP4ZBrce+ZQu0dY660FMfatumYDLun9hBCUVIkF4=
 github.com/boltdb/bolt v1.3.1/go.mod h1:clJnj/oiGkjum5o1McbSZDSLxVThjynRyGBgiAx27Ps=
 github.com/bufbuild/protocompile v0.4.0 h1:LbFKd2XowZvQ/kajzguUp2DC9UEIQhIq77fZZlaQsNA=
