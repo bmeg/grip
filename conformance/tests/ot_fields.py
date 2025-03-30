@@ -5,7 +5,7 @@ def test_fields(man):
     G = man.setGraph("swapi")
 
     expected = {
-        u"_gid": u"Character:1",
+        u"_id": u"Character:1",
         u"_label": u"Character",
         u"name": u"Luke Skywalker"
     }
@@ -14,7 +14,7 @@ def test_fields(man):
         errors.append("""Query 'V("Character:1").fields(["name"])' vertex contains incorrect fields: \nexpected:%s\nresponse:%s""" % (expected, resp))
 
     expected = {
-        u"_gid": u"Character:1",
+        u"_id": u"Character:1",
         u"_label": u"Character",
     }
     resp = G.query().V("Character:1").fields(["non-existent"]).execute()

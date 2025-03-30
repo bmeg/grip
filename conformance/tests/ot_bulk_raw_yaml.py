@@ -39,4 +39,4 @@ def process_graph_schema(path):
         content = file.read()
         vertex = yaml.safe_load(content)
         id = vertex["id"].split("/")[-1]
-    return [{"data":vertex, "label": id, "gid": vertex["id"] }]
+    return [{"data":vertex, "label": id, "id": vertex["id"] }]

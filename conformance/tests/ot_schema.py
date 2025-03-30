@@ -8,7 +8,7 @@ def test_getscheama(man):
 
     s = G.sampleSchema()
 
-    vLabels = sorted( list(v['gid'] for v in s['vertices']) )
+    vLabels = sorted( list(v['id'] for v in s['vertices']) )
 
     vExpectedLabels = [
         'Character', 'Film', 'Planet', 'Species', 'Starship', 'Vehicle'
