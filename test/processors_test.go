@@ -310,7 +310,7 @@ func TestEngine(t *testing.T) {
 			pickRes(vertex("users:1", "users", data{"email": "Earlean.Bonacci@yahoo.com", "id": 1})),
 		},
 		{
-			Q.V("users:1").Fields("-_gid", "-_label", "email", "id"),
+			Q.V("users:1").Fields("-_id", "-_label", "email", "id"),
 			pickRes(vertex("", "", data{"email": "Earlean.Bonacci@yahoo.com", "id": 1})),
 		},
 		{
@@ -347,16 +347,16 @@ func TestEngine(t *testing.T) {
 			count(2),
 		},
 		{
-			Q.V("users:11").As("a").OutE().As("b").Out().Has(gripql.Neq("_gid", "purchases:4")).Select("b").Count(),
+			Q.V("users:11").As("a").OutE().As("b").Out().Has(gripql.Neq("_id", "purchases:4")).Select("b").Count(),
 			count(1),
 		},
 		{
-			Q.V("users:11").As("a").OutE().As("b").Out().Has(gripql.Neq("_gid", "purchases:4")).Select("b").Out(),
+			Q.V("users:11").As("a").OutE().As("b").Out().Has(gripql.Neq("_id", "purchases:4")).Select("b").Out(),
 			pick("purchases:26"),
 		},
 		{
 			Q.V("users:1").As("a").Out().As("b").
-				Render(map[string]interface{}{"user_id": "$a._gid", "purchase_id": "$b._gid", "purchaser": "$b.name"}),
+				Render(map[string]interface{}{"user_id": "$a._id", "purchase_id": "$b._id", "purchaser": "$b.name"}),
 			render(map[string]interface{}{"user_id": "users:1", "purchase_id": "purchases:57", "purchaser": "Letitia Sprau"}),
 		},
 	}

@@ -40,11 +40,11 @@ func (elem *DataElement) ToEdge() *gripql.Edge {
 func (elem *DataElement) ToDict() map[string]interface{} {
 	/*
 		out := map[string]interface{}{
-			"gid":   "",
-			"label": "",
-			"to":    "",
-			"from":  "",
-			"data":  map[string]interface{}{},
+			"_id":   "",
+			"_label": "",
+			"_to":    "",
+			"_from":  "",
+			"*":  map[string]interface{}{},
 		}
 	*/
 	out := map[string]interface{}{}
@@ -55,7 +55,7 @@ func (elem *DataElement) ToDict() map[string]interface{} {
 		out[k] = v
 	}
 	if elem.ID != "" {
-		out["_gid"] = elem.ID
+		out["_id"] = elem.ID
 	}
 	if elem.Label != "" {
 		out["_label"] = elem.Label
@@ -83,7 +83,7 @@ func (elem *DataElement) FromDict(d map[string]any) {
 			if vStr, ok := v.(string); ok {
 				elem.From = vStr
 			}
-		case "_gid":
+		case "_id":
 			if vStr, ok := v.(string); ok {
 				elem.ID = vStr
 			}
@@ -101,10 +101,10 @@ func (elem *DataElement) FromDict(d map[string]any) {
 // Validate returns an error if the vertex is invalid
 func (vertex *Vertex) Validate() error {
 	if vertex.ID == "" {
-		return errors.New("'gid' cannot be blank")
+		return errors.New("'_id' cannot be blank")
 	}
 	if vertex.Label == "" {
-		return errors.New("'label' cannot be blank")
+		return errors.New("'_label' cannot be blank")
 	}
 	for k := range vertex.Data {
 		err := gripql.ValidateFieldName(k)
