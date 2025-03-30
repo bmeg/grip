@@ -171,9 +171,9 @@ def test_traversal_gid_aggregation(man):
     }
 
     count = 0
-    for row in G.query().V().hasLabel("Planet").as_("a").out("residents").select("a").aggregate(gripql.term("gid-agg", "_id")):
+    for row in G.query().V().hasLabel("Planet").as_("a").out("residents").select("a").aggregate(gripql.term("id-agg", "_id")):
         count += 1
-        if 'gid-agg' != row['name']:
+        if 'id-agg' != row['name']:
             errors.append("Result had Incorrect aggregation name")
             return errors
 
@@ -195,14 +195,14 @@ def test_field_aggregation(man):
 
     G = man.setGraph("swapi")
     count = 0
-    for row in G.query().V().hasLabel("Planet").aggregate(gripql.field("gid-agg", "$")):
+    for row in G.query().V().hasLabel("Planet").aggregate(gripql.field("id-agg", "$")):
         if row["key"] not in fields:
             errors.append("unknown field returned: %s" % (row['key']))
         if row["value"] != 3:
             errors.append("incorrect count returned: %s" % (row['value']))
         count += 1
     if count not in [11, 12, 13]: # gripper returns an id field as well, others dont....
-        errors.append("""V().hasLabel("Planet").aggregate(gripql.field("gid-agg", "$")) : Incorrect number of results returned %d""" % (count))
+        errors.append("""V().hasLabel("Planet").aggregate(gripql.field("id-agg", "$")) : Incorrect number of results returned %d""" % (count))
     return errors
 
 

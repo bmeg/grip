@@ -13,7 +13,7 @@ def test_mark_select_label_filter(man):
         count += 1
         if len(row) != 2:
             errors.append("Incorrect number of marks returned")
-        if row["a"]["_gid"] != "Film:1":
+        if row["a"]["_id"] != "Film:1":
             errors.append("Incorrect vertex returned for 'a': %s" % row["a"])
         if row["b"]["_label"] not in ["Vehicle", "Starship", "Species", "Planet", "Character"]:
             errors.append("Incorrect vertex returned for 'b': %s" % row["b"])
@@ -36,7 +36,7 @@ def test_mark_select(man):
         count += 1
         if len(row) != 3:
             errors.append("Incorrect number of marks returned")
-        if row["a"]["_gid"] != "Character:1":
+        if row["a"]["_id"] != "Character:1":
             errors.append("Incorrect vertex returned for 'a': %s" % row["a"])
         if row["a"]["height"] != 172:
             errors.append("Missing data for 'a'")
@@ -61,7 +61,7 @@ def test_mark_edge_select(man):
         count += 1
         if len(row) != 3:
             errors.append("Incorrect number of marks returned")
-        if row["a"]["_gid"] != "Film:1":
+        if row["a"]["_id"] != "Film:1":
             errors.append("Incorrect as selection")
         if row["b"]["_label"] != "planets":
             errors.append("Incorrect as edge selection: %s" % row["b"])

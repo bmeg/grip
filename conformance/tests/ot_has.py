@@ -11,7 +11,7 @@ def test_hasLabel(man):
     count = 0
     for i in G.query().V().hasLabel("Vehicle"):
         count += 1
-        if not i["_gid"].startswith("Vehicle:"):
+        if not i["_id"].startswith("Vehicle:"):
             errors.append("Wrong vertex returned %s" % (i))
     if count != 4:
         errors.append(
@@ -19,13 +19,13 @@ def test_hasLabel(man):
             (count, 4))
 
     for i in G.query().V().hasLabel("Starship"):
-        if not i["_gid"].startswith("Starship:"):
+        if not i["_id"].startswith("Starship:"):
             errors.append("Wrong vertex returned %s" % (i))
 
     count = 0
     for i in G.query().V().hasLabel(["Vehicle", "Starship"]):
         if "name" not in i:
-            errors.append("vertex %s returned without data" % (i.gid))
+            errors.append("vertex %s returned without data" % (i._id))
         count += 1
     if count != 12:
         errors.append(
@@ -43,7 +43,7 @@ def test_hasKey(man):
     count = 0
     for i in G.query().V().hasKey("manufacturer"):
         count += 1
-        if not i["_gid"].startswith("Vehicle:") and not i["_gid"].startswith("Starship:"):
+        if not i["_id"].startswith("Vehicle:") and not i["_id"].startswith("Starship:"):
             errors.append("Wrong vertex returned %s" % (i))
     if count != 12:
         errors.append(
@@ -53,7 +53,7 @@ def test_hasKey(man):
     count = 0
     for i in G.query().V().hasKey(["hyperdrive_rating", "manufacturer"]):
         count += 1
-        if not i["_gid"].startswith("Starship:"):
+        if not i["_id"].startswith("Starship:"):
             errors.append("Wrong vertex returned %s" % (i))
     if count != 8:
         errors.append(
@@ -71,7 +71,7 @@ def test_hasId(man):
     count = 0
     for i in G.query().V().hasId("Character:1"):
         count += 1
-        if i["_gid"] != "Character:1":
+        if i["_id"] != "Character:1":
             errors.append("Wrong vertex returned %s" % (i))
     if count != 1:
         errors.append(
@@ -81,7 +81,7 @@ def test_hasId(man):
     count = 0
     for i in G.query().V().hasId(["Character:1", "Character:2"]):
         count += 1
-        if i["_gid"] not in ["Character:1", "Character:2"]:
+        if i["_id"] not in ["Character:1", "Character:2"]:
             errors.append("Wrong vertex returned %s" % (i))
     if count != 2:
         errors.append(
@@ -97,13 +97,13 @@ def test_has_eq(man):
     G = man.setGraph("swapi")
 
     count = 0
-    for i in G.query().V().has(gripql.eq("_gid", "Character:3")):
+    for i in G.query().V().has(gripql.eq("_id", "Character:3")):
         count += 1
-        if i["_gid"] != "Character:3":
+        if i["_id"] != "Character:3":
             errors.append("Wrong vertex returned %s" % (i))
     if count != 1:
         errors.append(
-            "Fail: G.query().V().has(gripql.eq(\"_gid\", \"Character:3\")) %s != %s" %
+            "Fail: G.query().V().has(gripql.eq(\"_id\", \"Character:3\")) %s != %s" %
             (count, 1))
 
     count = 0
@@ -119,7 +119,7 @@ def test_has_eq(man):
     count = 0
     for i in G.query().V().has(gripql.eq("eye_color", "brown")):
         count += 1
-        if i["_gid"] not in ["Character:14", "Character:5", "Character:81", "Character:9"]:
+        if i["_id"] not in ["Character:14", "Character:5", "Character:81", "Character:9"]:
             errors.append("Wrong vertex returned %s" % (i))
     if count != 4:
         errors.append(
@@ -135,13 +135,13 @@ def test_has_neq(man):
     G = man.setGraph("swapi")
 
     count = 0
-    for i in G.query().V().has(gripql.neq("_gid", "Character:1")):
+    for i in G.query().V().has(gripql.neq("_id", "Character:1")):
         count += 1
-        if i["_gid"] == "Character:1":
+        if i["_id"] == "Character:1":
             errors.append("Wrong vertex returned %s" % (i))
     if count != 38:
         errors.append(
-            "Fail: G.query().V().has(gripql.not_(gripql.eq(\"_gid\", \"Character:1\"))) %s != %s" %
+            "Fail: G.query().V().has(gripql.not_(gripql.eq(\"_id\", \"Character:1\"))) %s != %s" %
             (count, 38))
 
     count = 0
@@ -175,7 +175,7 @@ def test_has_gt(man):
     count = 0
     for i in G.query().V().has(gripql.gt("height", 202)):
         count += 1
-        if i["_gid"] not in ["Character:13"]:
+        if i["_id"] not in ["Character:13"]:
             errors.append("Wrong vertex returned %s" % (i))
     if count != 1:
         errors.append(
@@ -185,7 +185,7 @@ def test_has_gt(man):
     count = 0
     for i in G.query().V().has(gripql.gte("height", 202)):
         count += 1
-        if i["_gid"] not in ["Character:4", "Character:13"]:
+        if i["_id"] not in ["Character:4", "Character:13"]:
             errors.append("Wrong vertex returned %s" % (i))
     if count != 2:
         errors.append(
@@ -234,7 +234,7 @@ def test_has_lt(man):
     for i in G.query().V().has(gripql.lt("height", 97)):
         count += 1
 
-        if i["_gid"] not in ["Character:3"]:
+        if i["_id"] not in ["Character:3"]:
             errors.append("Wrong vertex returned %s" % (i))
     if count != 1:
         errors.append(
@@ -249,7 +249,7 @@ def test_has_lte(man):
     count = 0
     for i in G.query().V().has(gripql.lte("height", 97)):
         count += 1
-        if i["_gid"] not in ["Character:3", "Character:8"]:
+        if i["_id"] not in ["Character:3", "Character:8"]:
             errors.append("Wrong vertex returned %s" % (i))
     if count != 2:
         errors.append(
@@ -267,7 +267,7 @@ def test_has_inside(man):
     count = 0
     for i in G.query().V().has(gripql.inside("height", 100, 200)):
         count += 1
-        if i["_gid"] in ["Character:3", "Character:4", "Character:8", "Character:13"]:
+        if i["_id"] in ["Character:3", "Character:4", "Character:8", "Character:13"]:
             errors.append("Wrong vertex returned %s" % (i))
     if count != 14:
         errors.append(
@@ -285,7 +285,7 @@ def test_has_outside(man):
     count = 0
     for i in G.query().V().has(gripql.outside("height", 100, 200)):
         count += 1
-        if i["_gid"] not in ["Character:3", "Character:4", "Character:8", "Character:13"]:
+        if i["_id"] not in ["Character:3", "Character:4", "Character:8", "Character:13"]:
             errors.append("Wrong vertex returned %s" % (i))
     if count != 4:
         errors.append(
@@ -303,7 +303,7 @@ def test_has_between(man):
     count = 0
     for i in G.query().V().has(gripql.between("height", 180, 200)):
         count += 1
-        if i["_gid"] not in ["Character:10", "Character:12", "Character:14", "Character:19", "Character:81", "Character:9"]:
+        if i["_id"] not in ["Character:10", "Character:12", "Character:14", "Character:19", "Character:81", "Character:9"]:
             errors.append("Wrong vertex returned %s" % (i))
     if count != 6:
         errors.append(
@@ -320,7 +320,7 @@ def test_has_within(man):
     count = 0
     for i in G.query().V().has(gripql.within("eye_color", ["brown", "hazel"])):
         count += 1
-        if i["_gid"] not in ["Character:14", "Character:18", "Character:5", "Character:81", "Character:9"]:
+        if i["_id"] not in ["Character:14", "Character:18", "Character:5", "Character:81", "Character:9"]:
             errors.append("Wrong vertex returned %s" % (i))
     if count != 5:
         errors.append(
@@ -346,7 +346,7 @@ def test_has_without(man):
     count = 0
     for i in G.query().V().has(gripql.without("eye_color", ["brown"])):
         count += 1
-        if i["_gid"] in ["Character:5", "Character:9", "Character:14", "Character:81"]:
+        if i["_id"] in ["Character:5", "Character:9", "Character:14", "Character:81"]:
             errors.append("Wrong vertex returned %s" % (i))
     if count != 35:
         errors.append(
@@ -372,7 +372,7 @@ def test_has_contains(man):
     count = 0
     for i in G.query().V().has(gripql.contains("terrain", "jungle")):
         count += 1
-        if i["_gid"] not in ["Planet:3"]:
+        if i["_id"] not in ["Planet:3"]:
             errors.append("Wrong vertex returned %s" % (i))
     if count != 1:
         errors.append(
@@ -390,7 +390,7 @@ def test_has_and(man):
     count = 0
     for i in G.query().V().has(gripql.and_(gripql.eq("_label", "Character"), gripql.eq("eye_color", "blue"))):
         count += 1
-        if i["_gid"] not in ["Character:1", "Character:12", "Character:13", "Character:19", "Character:6", "Character:7"]:
+        if i["_id"] not in ["Character:1", "Character:12", "Character:13", "Character:19", "Character:6", "Character:7"]:
             errors.append("Wrong vertex returned %s" % (i))
     if count != 6:
         errors.append(
@@ -408,7 +408,7 @@ def test_has_or(man):
     count = 0
     for i in G.query().V().has(gripql.or_(gripql.eq("eye_color", "blue"), gripql.eq("eye_color", "hazel"))):
         count += 1
-        if i["_gid"] not in ["Character:1", "Character:12", "Character:13", "Character:18", "Character:19", "Character:6", "Character:7"]:
+        if i["_id"] not in ["Character:1", "Character:12", "Character:13", "Character:18", "Character:19", "Character:6", "Character:7"]:
             errors.append("Wrong vertex returned %s" % (i))
     if count != 7:
         errors.append(
@@ -426,7 +426,7 @@ def test_has_not(man):
     count = 0
     for i in G.query().V().has(gripql.not_(gripql.eq("_label", "Character"))):
         count += 1
-        if i["_gid"].startswith("Character"):
+        if i["_id"].startswith("Character"):
             errors.append("Wrong vertex returned %s" % (i))
     if count != 21:
         errors.append(
@@ -436,7 +436,7 @@ def test_has_not(man):
     count = 0
     for i in G.query().V().has(gripql.not_(gripql.neq("_label", "Character"))):
         count += 1
-        if not i["_gid"].startswith("Character"):
+        if not i["_id"].startswith("Character"):
             errors.append("Wrong vertex returned %s" % (i))
     if count != 18:
         errors.append(
@@ -503,9 +503,9 @@ def test_has_complex(man):
             )
     ):
         count += 1
-        if not i["_gid"].startswith("Vehicle:") \
-            and not i["_gid"].startswith("Starship:") and not i["_gid"].startswith("Species:") \
-                and not i["_gid"].startswith("Planet:") and not i["_gid"].startswith("Film:"):
+        if not i["_id"].startswith("Vehicle:") \
+            and not i["_id"].startswith("Starship:") and not i["_id"].startswith("Species:") \
+                and not i["_id"].startswith("Planet:") and not i["_id"].startswith("Film:"):
             errors.append("Wrong vertex returned %s" % (i))
     if count != 19:
         errors.append(
