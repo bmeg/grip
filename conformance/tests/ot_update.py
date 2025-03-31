@@ -45,11 +45,11 @@ def test_replace(man):
         errors.append("vertex has unexpected label")
 
     # TODO: Fix these
-    #if G.getVertex("vertex1") != {"_gid":"vertex1", "_label" : "person", "otherdata": "foo"}:
-    #    errors.append("vertex has unexpected data")
+    if G.getVertex("vertex1") != {"_id":"vertex1", "_label" : "clone", "otherdata": "foo"}:
+        errors.append("vertex has unexpected data: %s" % (G.getVertexw("vertex1")))
 
-    #if G.getEdge("edge1") != {"weight": 5}:
-    #    errors.append("edge is missing expected data: %s" % (G.getEdge("edge1")))
+    if G.getEdge("edge1")["weight"] != 5:
+        errors.append("edge is missing expected data: %s" % (G.getEdge("edge1")))
 
     return errors
 
