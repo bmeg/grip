@@ -8,6 +8,7 @@ import (
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/kvi"
+	"github.com/bmeg/grip/log"
 )
 
 // Pivot take an ID, field and value triple an turns it into a merged element
@@ -27,7 +28,7 @@ func (r *Pivot) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, o
 					out <- t
 					continue
 				}
-				//fmt.Printf("Checking %#v\n", t.GetCurrent())
+				log.Debugf("Checking %#v\n", t.GetCurrent())
 				id := gdbi.TravelerPathLookup(t, r.Stmt.Id)
 				if idStr, ok := id.(string); ok {
 					field := gdbi.TravelerPathLookup(t, r.Stmt.Field)
@@ -50,6 +51,7 @@ func (r *Pivot) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, o
 				tmp := bytes.Split(it.Key(), []byte{0})
 				curKey := string(tmp[0])
 				curField := string(tmp[1])
+				log.Debugln("CURKEY: ", curKey, "CURFIELD: ", curField)
 				if lastKey == "" {
 					lastKey = curKey
 				}
