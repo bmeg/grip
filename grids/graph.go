@@ -490,7 +490,11 @@ func (ggraph *Graph) GetVertexChannel(ctx context.Context, ids chan gdbi.Element
 				ed := elementData{key: key, req: id}
 				if load {
 					lKey := ggraph.keyMap.GetVertexLabel(key, ggraph.bsonkv.Pb.Db)
-					lID, _ := ggraph.keyMap.GetLabelID(lKey, ggraph.bsonkv.Pb.Db)
+					lID, ok := ggraph.keyMap.GetLabelID(lKey, ggraph.bsonkv.Pb.Db)
+					if !ok || lID == "" {
+						log.Debugln("No LID for lkey: ", lKey)
+						continue
+					}
 					vData, err := ggraph.bsonkv.Tables[VTABLE_PREFIX+lID].GetRow([]byte(id.ID))
 					if err != nil {
 						log.Errorf("GetVertexChannel: GetRow error for ID %s: %v", id.ID, err)
@@ -514,17 +518,14 @@ func (ggraph *Graph) GetVertexChannel(ctx context.Context, ids chan gdbi.Element
 				lKey := ggraph.keyMap.GetVertexLabel(d.key, ggraph.bsonkv.Pb.Db)
 				lID, _ := ggraph.keyMap.GetLabelID(lKey, ggraph.bsonkv.Pb.Db)
 				v := gdbi.Vertex{ID: d.req.ID, Label: lID}
-				if load {
-					var err error
-					v.Data, err = protoutil.StructUnMarshal(d.data)
-					if err != nil {
-						log.Errorf("GetVertexChannel: unmarshal error: %v", err)
-						continue
-					}
-					v.Loaded = true
-				} else {
-					v.Data = map[string]any{}
+				var err error
+				v.Data, err = protoutil.StructUnMarshal(d.data)
+				v.Loaded = true
+				if err != nil {
+					log.Errorf("GetVertexChannel: unmarshal error: %v", err)
+					continue
 				}
+
 				d.req.Vertex = &v
 				out <- d.req
 			}
@@ -601,17 +602,14 @@ func (ggraph *Graph) GetOutChannel(ctx context.Context, reqChan chan gdbi.Elemen
 					continue
 				}
 				v := &gdbi.Vertex{ID: gid, Label: lid}
-				if load {
-					var err error
-					v.Data, err = ggraph.bsonkv.Tables[VTABLE_PREFIX+lid].GetRow([]byte(gid))
-					if err != nil {
-						log.Errorf("GetOutChannel: GetRow error: %v", err)
-						continue
-					}
-					v.Loaded = true
-				} else {
-					v.Data = map[string]any{}
+				var err error
+				v.Data, err = ggraph.bsonkv.Tables[VTABLE_PREFIX+lid].GetRow([]byte(gid))
+				v.Loaded = true
+				if err != nil {
+					log.Errorf("GetOutChannel: GetRow error: %v", err)
+					continue
 				}
+
 				req.req.Vertex = v
 				o <- req.req
 			}
