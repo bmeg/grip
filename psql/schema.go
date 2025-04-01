@@ -80,7 +80,7 @@ func (db *GraphDB) BuildSchema(ctx context.Context, graphID string, sampleN uint
 
 		g.Go(func() error {
 			q := fmt.Sprintf(
-				"SELECT a.label, b.label, c.label, b.data FROM %s as a INNER JOIN %s as b ON b.to=a.gid INNER JOIN %s as c on b.from = c.gid WHERE b.label = '%s' limit %d",
+				"SELECT a.label, b.label, c.label, b.data FROM %s as a INNER JOIN %s as b ON b.to=a.id INNER JOIN %s as c on b.from = c.id WHERE b.label = '%s' limit %d",
 				graph.v, graph.e, graph.v,
 				label, sampleN,
 			)

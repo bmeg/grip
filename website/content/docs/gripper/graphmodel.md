@@ -13,14 +13,14 @@ GRIP Plugable External Resources
 
 ## Graph Model
 
-The graph model describes how GRIP will access multiple gripper servers. The mapping 
-of these data resources is done using a graph. The `vertices` represent how each vertex 
+The graph model describes how GRIP will access multiple gripper servers. The mapping
+of these data resources is done using a graph. The `vertices` represent how each vertex
 type will be mapped, and the `edges` describe how edges will be created. The `gid`
-of each vertex represents the prefix domain of all vertices that can be found in that 
-source.  
+of each vertex represents the prefix domain of all vertices that can be found in that
+source.
 
-The `sources` referenced by the graph are provided to GRIP at run time, each named resource is a 
-different GRIPPER plugin that abstracts an external resource. 
+The `sources` referenced by the graph are provided to GRIP at run time, each named resource is a
+different GRIPPER plugin that abstracts an external resource.
 The `vertices` section describes how different collections
 found in these sources will be turned into Vertex found in the graph. Finally, the
 `edges` section describes the different kinds of rules that can be used build the
@@ -35,14 +35,16 @@ two other collections that have been mapped to vertices.
 ## Runtime External Resource Config
 
 External resources are passed to GRIP as command line options. For the command line:
+
 ```
 grip server config.yaml --er tableServer=localhost:50051 --er pfb=localhost:50052
 ```
 
-`tableServer` is a ER plugin that serves table data (see `gripper/test-graph`) 
+`tableServer` is a ER plugin that serves table data (see `gripper/test-graph`)
 while `pfb` parses PFB based files (see https://github.com/bmeg/grip_pfb )
 
-The `config.yaml` is 
+The `config.yaml` is
+
 ```
 Default: badger
 
@@ -57,46 +59,45 @@ Drivers:
 
 ```
 
-This runs with a default `badger` based driver, but also provides a GRIPPER based 
+This runs with a default `badger` based driver, but also provides a GRIPPER based
 graph from the `swapi` mapping (see example graph map below).
-
 
 ## Example graph map
 
 ```
 vertices:
-  - _gid: "Character:"
+  - _id: "Character:"
     _label: Character
     source: tableServer
     collection: Character
 
-  - _gid: "Planet:"
+  - _id: "Planet:"
     _label: Planet
     collection: Planet
     source: tableServer
 
-  - _gid: "Film:"
+  - _id: "Film:"
     _label: Film
     collection: Film
     source: tableServer
 
-  - _gid: "Species:"
+  - _id: "Species:"
     _label: Species
     source: tableServer
     collection: Species
 
-  - _gid: "Starship:"
+  - _id: "Starship:"
     _label: Starship
     source: tableServer
     collection: Starship
 
-  - _gid: "Vehicle:"
+  - _id: "Vehicle:"
     _label: Vehicle
     source: tableServer
     collection: Vehicle
 
 edges:
-  - _gid: "homeworld"
+  - _id: "homeworld"
     _from: "Character:"
     _to: "Planet:"
     _label: homeworld
@@ -104,7 +105,7 @@ edges:
       fromField: $.homeworld
       toField: $.id
 
-  - _gid: species
+  - _id: species
     _from: "Character:"
     _to: "Species:"
     _label: species
@@ -112,7 +113,7 @@ edges:
       fromField: $.species
       toField: $.id
 
-  - _gid: people
+  - _id: people
     _from: "Species:"
     _to: "Character:"
     _label: people
@@ -122,7 +123,7 @@ edges:
       fromField: $.from
       toField: $.to
 
-  - _gid: residents
+  - _id: residents
     _from: "Planet:"
     _to: "Character:"
     _label: residents
@@ -132,7 +133,7 @@ edges:
       fromField: $.from
       toField: $.to
 
-  - _gid: filmVehicles
+  - _id: filmVehicles
     _from: "Film:"
     _to: "Vehicle:"
     _label: "vehicles"
@@ -142,7 +143,7 @@ edges:
       fromField: "$.from"
       toField: "$.to"
 
-  - _gid: vehicleFilms
+  - _id: vehicleFilms
     _to: "Film:"
     _from: "Vehicle:"
     _label: "films"
@@ -152,7 +153,7 @@ edges:
       toField: "$.from"
       fromField: "$.to"
 
-  - _gid: filmStarships
+  - _id: filmStarships
     _from: "Film:"
     _to: "Starship:"
     _label: "starships"
@@ -162,7 +163,7 @@ edges:
       fromField: "$.from"
       toField: "$.to"
 
-  - _gid: starshipFilms
+  - _id: starshipFilms
     _to: "Film:"
     _from: "Starship:"
     _label: "films"
@@ -172,7 +173,7 @@ edges:
       toField: "$.from"
       fromField: "$.to"
 
-  - _gid: filmPlanets
+  - _id: filmPlanets
     _from: "Film:"
     _to: "Planet:"
     _label: "planets"
@@ -182,7 +183,7 @@ edges:
       fromField: "$.from"
       toField: "$.to"
 
-  - _gid: planetFilms
+  - _id: planetFilms
     _to: "Film:"
     _from: "Planet:"
     _label: "films"
@@ -192,7 +193,7 @@ edges:
       toField: "$.from"
       fromField: "$.to"
 
-  - _gid: filmSpecies
+  - _id: filmSpecies
     _from: "Film:"
     _to: "Species:"
     _label: "species"
@@ -202,7 +203,7 @@ edges:
       fromField: "$.from"
       toField: "$.to"
 
-  - _gid: speciesFilms
+  - _id: speciesFilms
     _to: "Film:"
     _from: "Species:"
     _label: "films"
@@ -212,7 +213,7 @@ edges:
       toField: "$.from"
       fromField: "$.to"
 
-  - _gid: filmCharacters
+  - _id: filmCharacters
     _from: "Film:"
     _to: "Character:"
     _label: characters
@@ -222,7 +223,7 @@ edges:
       fromField: "$.from"
       toField: "$.to"
 
-  - _gid: characterFilms
+  - _id: characterFilms
     _from: "Character:"
     _to: "Film:"
     _label: films
@@ -232,7 +233,7 @@ edges:
       toField: "$.from"
       fromField: "$.to"
 
-  - _gid: characterStarships
+  - _id: characterStarships
     _from: "Character:"
     _to: "Starship:"
     _label: "starships"
@@ -242,7 +243,7 @@ edges:
       fromField: "$.from"
       toField: "$.to"
 
-  - _gid: starshipCharacters
+  - _id: starshipCharacters
     _to: "Character:"
     _from: "Starship:"
     _label: "pilots"

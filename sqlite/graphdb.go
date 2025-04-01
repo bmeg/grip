@@ -94,7 +94,7 @@ func (db *GraphDB) AddGraph(graph string) error {
 		return fmt.Errorf("inserting row into graphs table: %v", err)
 	}
 
-	stmt = fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s (gid varchar PRIMARY KEY, label varchar NOT NULL, data jsonb)", vertexTable)
+	stmt = fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s (id varchar PRIMARY KEY, label varchar NOT NULL, data jsonb)", vertexTable)
 	_, err = db.db.Exec(stmt)
 	if err != nil {
 		return fmt.Errorf("creating vertex table: %v", err)
@@ -108,7 +108,7 @@ func (db *GraphDB) AddGraph(graph string) error {
 		}
 	}
 
-	stmt = fmt.Sprintf(`CREATE TABLE IF NOT EXISTS %s (gid varchar PRIMARY KEY, label varchar NOT NULL, "from" varchar NOT NULL, "to" varchar NOT NULL, data jsonb)`, edgeTable)
+	stmt = fmt.Sprintf(`CREATE TABLE IF NOT EXISTS %s (id varchar PRIMARY KEY, label varchar NOT NULL, "from" varchar NOT NULL, "to" varchar NOT NULL, data jsonb)`, edgeTable)
 	_, err = db.db.Exec(stmt)
 	if err != nil {
 		return fmt.Errorf("creating edge table: %v", err)

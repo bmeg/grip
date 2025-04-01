@@ -414,8 +414,8 @@ func (kgdb *KVInterfaceGDB) GetOutChannel(ctx context.Context, reqChan chan gdbi
 					if req.data != nil {
 						dataValue, err := it.Get(req.data)
 						if err == nil {
-							_, gid := VertexKeyParse(req.data)
-							v := &gripql.Vertex{Id: gid}
+							_, id := VertexKeyParse(req.data)
+							v := &gripql.Vertex{Id: id}
 							//if load { //TODO: can't skip loading data, because the label in the data
 							err = proto.Unmarshal(dataValue, v)
 							if err != nil {
@@ -424,7 +424,7 @@ func (kgdb *KVInterfaceGDB) GetOutChannel(ctx context.Context, reqChan chan gdbi
 								//}
 							}
 							req.req.Vertex = &gdbi.Vertex{
-								ID:     gid,
+								ID:     id,
 								Label:  v.Label,
 								Data:   v.Data.AsMap(),
 								Loaded: true,

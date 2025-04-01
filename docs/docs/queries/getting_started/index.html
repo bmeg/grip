@@ -387,8 +387,9 @@ authorization headers in its requests.</p>
 </span></span></code></pre></div><p>A couple things about this first and simplest query. We start with <code>O</code>, our grip client instance connected to the &ldquo;bmeg&rdquo; graph, and create a new query with <code>.query()</code>. This query is now being constructed. You can chain along as many operations as you want, and nothing will actually get sent to the server until you print the results.</p>
 <p>Once we make this query, we get a result:</p>
 <div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span>[
-</span></span><span style="display:flex;"><span>  {<span style="color:#e6db74">u</span><span style="color:#e6db74">&#39;gid&#39;</span>: <span style="color:#e6db74">u</span><span style="color:#e6db74">&#39;ENSG00000141510&#39;</span>,
-</span></span><span style="display:flex;"><span>  <span style="color:#e6db74">u</span><span style="color:#e6db74">&#39;data&#39;</span>: {
+</span></span><span style="display:flex;"><span>  {
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">u</span><span style="color:#e6db74">&#39;_gid&#39;</span>: <span style="color:#e6db74">u</span><span style="color:#e6db74">&#39;ENSG00000141510&#39;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">u</span><span style="color:#e6db74">&#39;_label&#39;</span>: <span style="color:#e6db74">u</span><span style="color:#e6db74">&#39;Gene&#39;</span>
 </span></span><span style="display:flex;"><span>    <span style="color:#e6db74">u</span><span style="color:#e6db74">&#39;end&#39;</span>: <span style="color:#ae81ff">7687550</span>,
 </span></span><span style="display:flex;"><span>    <span style="color:#e6db74">u</span><span style="color:#e6db74">&#39;description&#39;</span>: <span style="color:#e6db74">u</span><span style="color:#e6db74">&#39;tumor protein p53 [Source:HGNC Symbol%3BAcc:HGNC:11998]&#39;</span>,
 </span></span><span style="display:flex;"><span>    <span style="color:#e6db74">u</span><span style="color:#e6db74">&#39;symbol&#39;</span>: <span style="color:#e6db74">u</span><span style="color:#e6db74">&#39;TP53&#39;</span>,
@@ -397,8 +398,7 @@ authorization headers in its requests.</p>
 </span></span><span style="display:flex;"><span>    <span style="color:#e6db74">u</span><span style="color:#e6db74">&#39;strand&#39;</span>: <span style="color:#e6db74">u</span><span style="color:#e6db74">&#39;-&#39;</span>,
 </span></span><span style="display:flex;"><span>    <span style="color:#e6db74">u</span><span style="color:#e6db74">&#39;id&#39;</span>: <span style="color:#e6db74">u</span><span style="color:#e6db74">&#39;ENSG00000141510&#39;</span>,
 </span></span><span style="display:flex;"><span>    <span style="color:#e6db74">u</span><span style="color:#e6db74">&#39;chromosome&#39;</span>: <span style="color:#e6db74">u</span><span style="color:#e6db74">&#39;17&#39;</span>
-</span></span><span style="display:flex;"><span>  },
-</span></span><span style="display:flex;"><span>  <span style="color:#e6db74">u</span><span style="color:#e6db74">&#39;label&#39;</span>: <span style="color:#e6db74">u</span><span style="color:#e6db74">&#39;Gene&#39;</span>})
+</span></span><span style="display:flex;"><span>  }
 </span></span><span style="display:flex;"><span>]
 </span></span></code></pre></div><p>This represents the vertex we queried for above. All vertexes in the system will have a similar structure, basically:</p>
 <ul>
@@ -409,12 +409,12 @@ authorization headers in its requests.</p>
 <p>The data on a query result can be accessed as properties on the result object; for example <code>result[0].data.symbol</code> would return:</p>
 <div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span><span style="color:#e6db74">u</span><span style="color:#e6db74">&#39;TP53&#39;</span>
 </span></span></code></pre></div><p>You can also do a <code>has</code> query with a list of items using <code>gripql.within([...])</code> (other conditions exist, see the <code>Conditions</code> section below):</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span>result <span style="color:#f92672">=</span> G<span style="color:#f92672">.</span>query()<span style="color:#f92672">.</span>V()<span style="color:#f92672">.</span>hasLabel(<span style="color:#e6db74">&#34;Gene&#34;</span>)<span style="color:#f92672">.</span>has(gripql<span style="color:#f92672">.</span>within(<span style="color:#e6db74">&#34;symbol&#34;</span>, [<span style="color:#e6db74">&#34;TP53&#34;</span>, <span style="color:#e6db74">&#34;BRCA1&#34;</span>]))<span style="color:#f92672">.</span>render({<span style="color:#e6db74">&#34;gid&#34;</span>: <span style="color:#e6db74">&#34;_gid&#34;</span>, <span style="color:#e6db74">&#34;symbol&#34;</span>:<span style="color:#e6db74">&#34;symbol&#34;</span>})<span style="color:#f92672">.</span>execute()
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span>result <span style="color:#f92672">=</span> G<span style="color:#f92672">.</span>query()<span style="color:#f92672">.</span>V()<span style="color:#f92672">.</span>hasLabel(<span style="color:#e6db74">&#34;Gene&#34;</span>)<span style="color:#f92672">.</span>has(gripql<span style="color:#f92672">.</span>within(<span style="color:#e6db74">&#34;symbol&#34;</span>, [<span style="color:#e6db74">&#34;TP53&#34;</span>, <span style="color:#e6db74">&#34;BRCA1&#34;</span>]))<span style="color:#f92672">.</span>render({<span style="color:#e6db74">&#34;_gid&#34;</span>: <span style="color:#e6db74">&#34;_gid&#34;</span>, <span style="color:#e6db74">&#34;symbol&#34;</span>:<span style="color:#e6db74">&#34;symbol&#34;</span>})<span style="color:#f92672">.</span>execute()
 </span></span><span style="display:flex;"><span>print(result)
 </span></span></code></pre></div><p>This returns both Gene vertexes:</p>
 <pre tabindex="0"><code>[
-  {u&#39;symbol&#39;: u&#39;TP53&#39;, u&#39;gid&#39;: u&#39;ENSG00000141510&#39;},
-  {u&#39;symbol&#39;: u&#39;BRCA1&#39;, u&#39;gid&#39;: u&#39;ENSG00000012048&#39;}
+  {u&#39;symbol&#39;: u&#39;TP53&#39;, u&#39;_gid&#39;: u&#39;ENSG00000141510&#39;},
+  {u&#39;symbol&#39;: u&#39;BRCA1&#39;, u&#39;_gid&#39;: u&#39;ENSG00000012048&#39;}
 ]
 </code></pre><p>Once you are on a vertex, you can travel through that vertex&rsquo;s edges to find the vertexes it is connected to. Sometimes you don&rsquo;t even need to go all the way to the next vertex, the information on the edge between them may be sufficient.</p>
 <p>Edges in the graph are directional, so there are both incoming and outgoing edges from each vertex, leading to other vertexes in the graph. Edges also have a <em>label</em>, which distinguishes the kind of connections different vertexes can have with one another.</p>

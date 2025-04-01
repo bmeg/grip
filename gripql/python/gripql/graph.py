@@ -64,12 +64,12 @@ class Graph(BaseConnection):
         raise_for_status(response)
         return response.json()
 
-    def addVertex(self, gid, label, data={}):
+    def addVertex(self, id, label, data={}):
         """
         Add vertex to a graph.
         """
         payload = {
-            "id": gid,
+            "id": id,
             "label": label,
             "data": data
         }
@@ -80,29 +80,29 @@ class Graph(BaseConnection):
         raise_for_status(response)
         return response.json()
 
-    def deleteVertex(self, gid):
+    def deleteVertex(self, id):
         """
         Delete a vertex from the graph.
         """
-        url = self.url + "/vertex/" + gid
+        url = self.url + "/vertex/" + id
         response = self.session.delete(
             url
         )
         raise_for_status(response)
         return response.json()
 
-    def getVertex(self, gid):
+    def getVertex(self, id):
         """
         Get a vertex by id.
         """
-        url = self.url + "/vertex/" + gid
+        url = self.url + "/vertex/" + id
         response = self.session.get(
             url
         )
         raise_for_status(response)
         return response.json()
 
-    def addEdge(self, src, dst, label, data={}, gid=None):
+    def addEdge(self, src, dst, label, data={}, id=None):
         """
         Add edge to the graph.
         """
@@ -112,8 +112,8 @@ class Graph(BaseConnection):
             "label": label,
             "data": data
         }
-        if gid is not None:
-            payload["id"] = gid
+        if id is not None:
+            payload["id"] = id
         response = self.session.post(
             self.url + "/edge",
             json=payload
@@ -121,22 +121,22 @@ class Graph(BaseConnection):
         raise_for_status(response)
         return response.json()
 
-    def deleteEdge(self, gid):
+    def deleteEdge(self, id):
         """
         Delete an edge from the graph.
         """
-        url = self.url + "/edge/" + gid
+        url = self.url + "/edge/" + id
         response = self.session.delete(
             url
         )
         raise_for_status(response)
         return response.json()
 
-    def getEdge(self, gid):
+    def getEdge(self, id):
         """
         Get an edge by id.
         """
-        url = self.url + "/edge/" + gid
+        url = self.url + "/edge/" + id
         response = self.session.get(
             url
         )
@@ -285,18 +285,18 @@ class BulkAdd(BaseConnection):
         self.graph = graph
         self.elements = []
 
-    def addVertex(self, gid, label, data={}):
+    def addVertex(self, id, label, data={}):
         payload = {
             "graph": self.graph,
             "vertex": {
-                "id": gid,
+                "id": id,
                 "label": label,
                 "data": data
             }
         }
         self.elements.append(json.dumps(payload))
 
-    def addEdge(self, src, dst, label, data={}, gid=None):
+    def addEdge(self, src, dst, label, data={}, id=None):
         payload = {
             "graph": self.graph,
             "edge": {
@@ -306,8 +306,8 @@ class BulkAdd(BaseConnection):
                 "data": data
             }
         }
-        if gid is not None:
-            payload["id"] = gid
+        if id is not None:
+            payload["id"] = id
         self.elements.append(json.dumps(payload))
 
     def execute(self):

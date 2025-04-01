@@ -12,37 +12,29 @@ import (
 
 var docs = `[
 {
-  "gid" : "vertex1",
-  "label" : "Person",
-  "data" : {
-    "firstName" : "Bob",
-    "lastName" : "Smith",
-    "age" : 35
-  }
+  "_id" : "vertex1",
+  "_label" : "Person",
+  "firstName" : "Bob",
+  "lastName" : "Smith",
+  "age" : 35
 },{
-  "gid" : "vertex2",
-  "label" : "Person",
-  "data" : {
-    "firstName" : "Jack",
-    "lastName" : "Smith",
-    "age" : 50.2
-  }
+  "_id" : "vertex2",
+  "_label" : "Person",
+  "firstName" : "Jack",
+  "lastName" : "Smith",
+  "age" : 50.2
 },{
-  "gid" : "vertex3",
-  "label" : "Person",
-  "data" : {
-    "firstName" : "Jill",
-    "lastName" : "Jones",
-    "age" : 35.1
-  }
+  "_id" : "vertex3",
+  "_label" : "Person",
+  "firstName" : "Jill",
+  "lastName" : "Jones",
+  "age" : 35.1
 },{
-	"gid" : "vertex4",
-  "label" : "Dog",
-  "data" : {
-    "firstName" : "Fido",
-    "lastName" : "Ruff",
-    "age" : 3
-  }
+  "_id" : "vertex4",
+  "_label" : "Dog",
+  "firstName" : "Fido",
+  "lastName" : "Ruff",
+  "age" : 3
 }]
 `
 
@@ -55,7 +47,7 @@ func TestFieldListing(t *testing.T) {
 	resetKVInterface()
 	idx := kvindex.NewIndex(kvdriver)
 
-	newFields := []string{"label", "data.firstName", "data.lastName"}
+	newFields := []string{"_label", "data.firstName", "data.lastName"}
 	for _, s := range newFields {
 		idx.AddField(s)
 	}
@@ -79,17 +71,17 @@ func TestLoadDoc(t *testing.T) {
 	resetKVInterface()
 	idx := kvindex.NewIndex(kvdriver)
 
-	newFields := []string{"v.label", "v.data.firstName", "v.data.lastName"}
+	newFields := []string{"v._label", "v.firstName", "v.lastName"}
 	for _, s := range newFields {
 		idx.AddField(s)
 	}
 
 	for _, d := range data {
-		idx.AddDoc(d["gid"].(string), map[string]interface{}{"v": d})
+		idx.AddDoc(d["_id"].(string), map[string]interface{}{"v": d})
 	}
 
 	count := 0
-	for d := range idx.GetTermMatch(context.Background(), "v.label", "Person", -1) {
+	for d := range idx.GetTermMatch(context.Background(), "v._label", "Person", -1) {
 		if !setcmp.ContainsString(personDocs, d) {
 			t.Errorf("Bad doc return: %s", d)
 		}
@@ -100,7 +92,7 @@ func TestLoadDoc(t *testing.T) {
 	}
 
 	count = 0
-	for d := range idx.GetTermMatch(context.Background(), "v.data.firstName", "Bob", -1) {
+	for d := range idx.GetTermMatch(context.Background(), "v.firstName", "Bob", -1) {
 		if !setcmp.ContainsString(bobDocs, d) {
 			t.Errorf("Bad doc return: %s", d)
 		}
@@ -118,16 +110,16 @@ func TestTermEnum(t *testing.T) {
 	resetKVInterface()
 	idx := kvindex.NewIndex(kvdriver)
 
-	newFields := []string{"v.label", "v.data.firstName", "v.data.lastName"}
+	newFields := []string{"v._label", "v.firstName", "v.lastName"}
 	for _, s := range newFields {
 		idx.AddField(s)
 	}
 	for _, d := range data {
-		idx.AddDoc(d["gid"].(string), map[string]interface{}{"v": d})
+		idx.AddDoc(d["_id"].(string), map[string]interface{}{"v": d})
 	}
 
 	count := 0
-	for d := range idx.FieldTerms("v.data.lastName") {
+	for d := range idx.FieldTerms("v.lastName") {
 		count++
 		if !setcmp.ContainsString(lastNames, d.(string)) {
 			t.Errorf("Bad term return: %s", d)
@@ -138,7 +130,7 @@ func TestTermEnum(t *testing.T) {
 	}
 
 	count = 0
-	for d := range idx.FieldTerms("v.data.firstName") {
+	for d := range idx.FieldTerms("v.firstName") {
 		count++
 		if !setcmp.ContainsString(firstNames, d.(string)) {
 			t.Errorf("Bad term return: %s", d)
@@ -156,16 +148,16 @@ func TestTermCount(t *testing.T) {
 	resetKVInterface()
 	idx := kvindex.NewIndex(kvdriver)
 
-	newFields := []string{"v.label", "v.data.firstName", "v.data.lastName"}
+	newFields := []string{"v._label", "v.firstName", "v.lastName"}
 	for _, s := range newFields {
 		idx.AddField(s)
 	}
 	for _, d := range data {
-		idx.AddDoc(d["gid"].(string), map[string]interface{}{"v": d})
+		idx.AddDoc(d["_id"].(string), map[string]interface{}{"v": d})
 	}
 
 	count := 0
-	for d := range idx.FieldStringTermCounts("v.data.lastName") {
+	for d := range idx.FieldStringTermCounts("v.lastName") {
 		count++
 		if !setcmp.ContainsString(lastNames, d.String) {
 			t.Errorf("Bad term return: %s", d.String)
@@ -181,7 +173,7 @@ func TestTermCount(t *testing.T) {
 	}
 
 	count = 0
-	for d := range idx.FieldTermCounts("v.data.firstName") {
+	for d := range idx.FieldTermCounts("v.firstName") {
 		count++
 		if !setcmp.ContainsString(firstNames, d.String) {
 			t.Errorf("Bad term return: %s", d.String)
@@ -199,7 +191,7 @@ func TestDocDelete(t *testing.T) {
 	resetKVInterface()
 	idx := kvindex.NewIndex(kvdriver)
 
-	newFields := []string{"v.label", "v.data.firstName", "v.data.lastName"}
+	newFields := []string{"v._label", "v.firstName", "v.lastName"}
 	for _, s := range newFields {
 		idx.AddField(s)
 	}
@@ -211,7 +203,7 @@ func TestDocDelete(t *testing.T) {
 	}
 
 	count := 0
-	for d := range idx.FieldStringTermCounts("v.data.lastName") {
+	for d := range idx.FieldStringTermCounts("v.lastName") {
 		count++
 		if !setcmp.ContainsString(lastNames, d.String) {
 			t.Errorf("Bad term return: %s", d.String)
@@ -232,7 +224,7 @@ func TestDocDelete(t *testing.T) {
 	}
 
 	count = 0
-	for d := range idx.FieldStringTermCounts("v.data.lastName") {
+	for d := range idx.FieldStringTermCounts("v.lastName") {
 		count++
 		if !setcmp.ContainsString(lastNames, d.String) {
 			t.Errorf("Bad term return: %s", d.String)
@@ -247,7 +239,7 @@ func TestDocDelete(t *testing.T) {
 		t.Errorf("Wrong return count %d != %d", count, 3)
 	}
 
-	for d := range idx.FieldTermCounts("v.data.firstName") {
+	for d := range idx.FieldTermCounts("v.firstName") {
 		if d.String == "Bob" {
 			if d.Count != 0 {
 				t.Errorf("Bad term count return: %d", d.Count)
@@ -256,7 +248,7 @@ func TestDocDelete(t *testing.T) {
 	}
 
 	count = 0
-	for range idx.GetTermMatch(context.Background(), "v.data.firstName", "Bob", -1) {
+	for range idx.GetTermMatch(context.Background(), "v.firstName", "Bob", -1) {
 		count++
 	}
 	if count != 0 {
@@ -270,15 +262,15 @@ func TestNumField(t *testing.T) {
 
 	resetKVInterface()
 	idx := kvindex.NewIndex(kvdriver)
-	newFields := []string{"v.label", "v.data.age"}
+	newFields := []string{"v._label", "v.age"}
 	for _, s := range newFields {
 		idx.AddField(s)
 	}
 	for _, d := range data {
-		idx.AddDoc(d["gid"].(string), map[string]interface{}{"v": d})
+		idx.AddDoc(d["_id"].(string), map[string]interface{}{"v": d})
 	}
 	count := 0
-	for d := range idx.FieldTerms("v.data.age") {
+	for d := range idx.FieldTerms("v.age") {
 		count++
 		t.Logf("Age: %v", d)
 	}

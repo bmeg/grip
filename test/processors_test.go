@@ -378,19 +378,19 @@ func TestEngine(t *testing.T) {
 	}
 }
 
-func vertex(gid, label string, d data) *gripql.Vertex {
+func vertex(id, label string, d data) *gripql.Vertex {
 	ds, _ := structpb.NewStruct(d)
 	return &gripql.Vertex{
-		Id:    gid,
+		Id:    id,
 		Label: label,
 		Data:  ds,
 	}
 }
 
-func edge(gid interface{}, from, to string, label string, d data) *gripql.Edge {
+func edge(id interface{}, from, to string, label string, d data) *gripql.Edge {
 	ds, _ := structpb.NewStruct(d)
 	return &gripql.Edge{
-		Id:    fmt.Sprintf("%v", gid),
+		Id:    fmt.Sprintf("%v", id),
 		From:  from,
 		To:    to,
 		Label: label,
@@ -433,47 +433,47 @@ func compare(expect []*gripql.QueryResult) checker {
 	}
 }
 
-func pick(gids ...string) checker {
+func pick(ids ...string) checker {
 	expect := []*gripql.QueryResult{}
-	for _, id := range gids {
-		res := pickgid(id)
+	for _, id := range ids {
+		res := pickid(id)
 		expect = append(expect, res)
 	}
 	return compare(expect)
 }
 
-func getVertex(gid string) *gripql.Vertex {
+func getVertex(id string) *gripql.Vertex {
 	for _, v := range vertices {
-		if v.Id == gid {
+		if v.Id == id {
 			return v
 		}
 	}
 	return nil
 }
 
-func getEdge(gid string) *gripql.Edge {
+func getEdge(id string) *gripql.Edge {
 	for _, e := range edges {
-		if e.Id == gid {
+		if e.Id == id {
 			return e
 		}
 	}
 	return nil
 }
 
-func pickgid(gid string) *gripql.QueryResult {
-	v := getVertex(gid)
+func pickid(id string) *gripql.QueryResult {
+	v := getVertex(id)
 	if v != nil {
 		return &gripql.QueryResult{
 			Result: &gripql.QueryResult_Vertex{Vertex: v},
 		}
 	}
-	e := getEdge(gid)
+	e := getEdge(id)
 	if e != nil {
 		return &gripql.QueryResult{
 			Result: &gripql.QueryResult_Edge{Edge: e},
 		}
 	}
-	panic("no vertex or edge found for gid")
+	panic("no vertex or edge found for id")
 }
 
 func pickRes(ival ...interface{}) checker {
