@@ -422,10 +422,10 @@ func (g *Graph) GetVertexChannel(ctx context.Context, reqChan chan gdbi.ElementL
 			}
 			if len(idBatch) > 0 {
 				ids := strings.Join(idBatch, ", ")
-				q := fmt.Sprintf("SELECT gid, label FROM %s WHERE gid IN (%s)", g.v, ids)
-				if load {
-					q = fmt.Sprintf("SELECT * FROM %s WHERE gid IN (%s)", g.v, ids)
-				}
+				//q := fmt.Sprintf("SELECT gid, label FROM %s WHERE gid IN (%s)", g.v, ids)
+				//if load {
+				q := fmt.Sprintf("SELECT * FROM %s WHERE gid IN (%s)", g.v, ids)
+				//}
 				rows, err := g.db.Queryx(q)
 				if err != nil {
 					log.WithFields(log.Fields{"error": err}).Error("GetVertexChannel: Queryx")
@@ -438,7 +438,8 @@ func (g *Graph) GetVertexChannel(ctx context.Context, reqChan chan gdbi.ElementL
 						log.WithFields(log.Fields{"error": err}).Error("GetVertexChannel: StructScan")
 						continue
 					}
-					v, err := psql.ConvertVertexRow(vrow, load)
+					//v, err := psql.ConvertVertexRow(vrow, load)
+					v, err := psql.ConvertVertexRow(vrow, true)
 					if err != nil {
 						log.WithFields(log.Fields{"error": err}).Error("GetVertexChannel: convertVertexRow")
 						continue
@@ -487,10 +488,26 @@ func (g *Graph) GetOutChannel(ctx context.Context, reqChan chan gdbi.ElementLook
 			}
 			if len(idBatch) > 0 {
 				ids := strings.Join(idBatch, ", ")
+				/*q := fmt.Sprintf(
+				`SELECT %s.gid, %s.label, %s."from" FROM %s INNER JOIN %s ON %s."to"=%s.gid WHERE %s."from" IN (%s)`,
+				// SELECT
+				g.v, g.v, g.e,
+				// FROM
+				g.v,
+				// INNER JOIN
+				g.e,
+				// ON
+				g.e, g.v,
+				// WHERE
+				g.e,
+				// IN
+				ids,
+				)*/
+				//if load {
 				q := fmt.Sprintf(
-					`SELECT %s.gid, %s.label, %s."from" FROM %s INNER JOIN %s ON %s."to"=%s.gid WHERE %s."from" IN (%s)`,
+					`SELECT %s.*, %s."from" FROM %s INNER JOIN %s ON %s."to"=%s.gid WHERE %s."from" IN (%s)`,
 					// SELECT
-					g.v, g.v, g.e,
+					g.v, g.e,
 					// FROM
 					g.v,
 					// INNER JOIN
@@ -502,23 +519,7 @@ func (g *Graph) GetOutChannel(ctx context.Context, reqChan chan gdbi.ElementLook
 					// IN
 					ids,
 				)
-				if load {
-					q = fmt.Sprintf(
-						`SELECT %s.*, %s."from" FROM %s INNER JOIN %s ON %s."to"=%s.gid WHERE %s."from" IN (%s)`,
-						// SELECT
-						g.v, g.e,
-						// FROM
-						g.v,
-						// INNER JOIN
-						g.e,
-						// ON
-						g.e, g.v,
-						// WHERE
-						g.e,
-						// IN
-						ids,
-					)
-				}
+				//}
 				if len(edgeLabels) > 0 {
 					labels := make([]string, len(edgeLabels))
 					for i := range edgeLabels {
@@ -537,7 +538,8 @@ func (g *Graph) GetOutChannel(ctx context.Context, reqChan chan gdbi.ElementLook
 						log.WithFields(log.Fields{"error": err}).Error("GetOutChannel: StructScan")
 						continue
 					}
-					v, err := psql.ConvertVertexRow(vrow, load)
+					//v, err := psql.ConvertVertexRow(vrow, load)
+					v, err := psql.ConvertVertexRow(vrow, true)
 					if err != nil {
 						log.WithFields(log.Fields{"error": err}).Error("GetOutChannel: convertVertexRow")
 						continue

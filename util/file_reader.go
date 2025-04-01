@@ -17,7 +17,6 @@ import (
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 
-	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -221,7 +220,7 @@ func StreamEdgesFromFile(file string, workers int) (chan *gripql.Edge, error) {
 	edgeChan := make(chan *gripql.Edge, workers)
 	var wg sync.WaitGroup
 
-	jum := protojson.UnmarshalOptions{DiscardUnknown: true}
+	jum := gripql.NewFlattenMarshaler()
 
 	for i := 0; i < workers; i++ {
 		wg.Add(1)

@@ -189,7 +189,7 @@ func TestMain(m *testing.M) {
 	if dbname != "existing-sql" {
 		err = setupGraph()
 		if err != nil {
-			fmt.Printf("Error: 1st setting up %s graph: %s", dbname, err)
+			fmt.Printf("Error 1st setting up %s graph: %s", dbname, err)
 			return
 		}
 	}

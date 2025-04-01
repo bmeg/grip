@@ -28,7 +28,6 @@ require (
 	github.com/influxdata/tdigest v0.0.1
 	github.com/jmoiron/sqlx v1.4.0
 	github.com/kennygrant/sanitize v1.2.4
-	github.com/klauspost/compress v1.17.9
 	github.com/knakk/rdf v0.0.0-20190304171630-8521bf4c5042
 	github.com/kr/pretty v0.3.1
 	github.com/lib/pq v1.10.9
@@ -37,8 +36,6 @@ require (
 	github.com/minio/minio-go/v7 v7.0.73
 	github.com/mitchellh/hashstructure/v2 v2.0.2
 	github.com/mongodb/mongo-tools v0.0.0-20250131183507-b8a566a7f38f
-	github.com/opensearch-project/opensearch-go v1.1.0
-	github.com/opensearch-project/opensearch-go/v4 v4.4.0
 	github.com/paulbellamy/ratecounter v0.2.0
 	github.com/robertkrimen/otto v0.4.0
 	github.com/segmentio/ksuid v1.0.4
@@ -104,6 +101,7 @@ require (
 	github.com/jcmturner/gokrb5/v8 v8.4.4 // indirect
 	github.com/jcmturner/rpc/v2 v2.0.3 // indirect
 	github.com/jessevdk/go-flags v1.6.1 // indirect
+	github.com/klauspost/compress v1.17.9 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.8 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/kylelemons/godebug v1.1.0 // indirect
