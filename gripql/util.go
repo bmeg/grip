@@ -53,10 +53,10 @@ func (vertex *Vertex) HasProperty(key string) bool {
 // Validate returns an error if the vertex is invalid
 func (vertex *Vertex) Validate() error {
 	if vertex.Id == "" {
-		return errors.New("'gid' cannot be blank")
+		return errors.New("'_id' cannot be blank")
 	}
 	if vertex.Label == "" {
-		return errors.New("'label' cannot be blank")
+		return errors.New("'_label' cannot be blank")
 	}
 	for k := range vertex.GetDataMap() {
 		err := ValidateFieldName(k)
@@ -110,16 +110,16 @@ func (edge *Edge) HasProperty(key string) bool {
 // Validate returns an error if the edge is invalid
 func (edge *Edge) Validate() error {
 	if edge.Id == "" {
-		return errors.New("'gid' cannot be blank")
+		return errors.New("'_id' cannot be blank")
 	}
 	if edge.Label == "" {
-		return errors.New("'label' cannot be blank")
+		return errors.New("'_label' cannot be blank")
 	}
 	if edge.From == "" {
-		return errors.New("'from' cannot be blank")
+		return errors.New("'_from' cannot be blank")
 	}
 	if edge.To == "" {
-		return errors.New("'to' cannot be blank")
+		return errors.New("'_to' cannot be blank")
 	}
 	for k := range edge.GetDataMap() {
 		err := ValidateFieldName(k)

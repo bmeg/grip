@@ -2,9 +2,11 @@ package gripql
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 type MarshalFlatten struct {
@@ -56,6 +58,68 @@ func (mflat *MarshalFlatten) Marshal(d interface{}) ([]byte, error) {
 
 func (mflat *MarshalFlatten) Unmarshal(data []byte, v interface{}) error {
 	if x, ok := v.(proto.Message); ok {
+		if y, ok := v.(*Vertex); ok {
+			z := map[string]any{}
+			err := json.Unmarshal(data, &z)
+			if err != nil {
+				return err
+			}
+			data := map[string]any{}
+			for k, v := range z {
+				if k == "_id" {
+					if kStr, ok := v.(string); ok {
+						y.Id = kStr
+					}
+				} else if k == "_label" {
+					if kStr, ok := v.(string); ok {
+						y.Label = kStr
+					}
+				} else {
+					data[k] = v
+				}
+			}
+			s, err := structpb.NewStruct(data)
+			if err != nil {
+				fmt.Printf("NewStruct error: %s", err)
+			}
+			if err == nil {
+				y.Data = s
+				return nil
+			}
+		} else if y, ok := v.(*Edge); ok {
+			z := map[string]any{}
+			err := json.Unmarshal(data, &z)
+			if err != nil {
+				return err
+			}
+			data := map[string]any{}
+			for k, v := range z {
+				if k == "_id" {
+					if kStr, ok := v.(string); ok {
+						y.Id = kStr
+					}
+				} else if k == "_label" {
+					if kStr, ok := v.(string); ok {
+						y.Label = kStr
+					}
+				} else if k == "_to" {
+					if kStr, ok := v.(string); ok {
+						y.To = kStr
+					}
+				} else if k == "_from" {
+					if kStr, ok := v.(string); ok {
+						y.From = kStr
+					}
+				} else {
+					data[k] = v
+				}
+			}
+			s, err := structpb.NewStruct(data)
+			if err == nil {
+				y.Data = s
+				return nil
+			}
+		}
 		return mflat.unmarshal.Unmarshal(data, x)
 	}
 	return json.Unmarshal(data, v)

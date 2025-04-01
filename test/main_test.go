@@ -70,6 +70,7 @@ func TestMain(m *testing.M) {
 		panic(err)
 	}
 	for v := range vertChan {
+		fmt.Printf("Adding vertex: %s %#v\n", v.Id, v.Data.AsMap())
 		vertices = append(vertices, v)
 	}
 	edgeChan, err := util.StreamEdgesFromFile("./resources/smtest_edges.txt", 2)
@@ -109,41 +110,68 @@ func TestMain(m *testing.M) {
 	if dbconfig.ExistingSQL != nil {
 		err = setupSQLGraph()
 		if err != nil {
-			fmt.Println("Error: setting up graph:", err)
+			fmt.Println("Error: setting up sql graph:", err)
 			return
 		}
 		gdb, err = esql.NewGraphDB(*dbconfig.ExistingSQL)
+		if err != nil {
+			fmt.Printf("Init error: %s\n", err)
+		}
 	} else if dbconfig.Badger != nil {
 		gdb, err = kvgraph.NewKVGraphDB("badger", *dbconfig.Badger)
 		defer func() {
 			os.RemoveAll(*dbconfig.Badger)
 		}()
+		if err != nil {
+			fmt.Printf("Init error: %s\n", err)
+		}
 	} else if dbconfig.Pebble != nil {
 		gdb, err = kvgraph.NewKVGraphDB("pebble", *dbconfig.Pebble)
 		defer func() {
 			os.RemoveAll(*dbconfig.Pebble)
 		}()
+		if err != nil {
+			fmt.Printf("Init error: %s\n", err)
+		}
 	} else if dbconfig.Bolt != nil {
 		gdb, err = kvgraph.NewKVGraphDB("bolt", *dbconfig.Bolt)
 		defer func() {
 			os.RemoveAll(*dbconfig.Bolt)
 		}()
+		if err != nil {
+			fmt.Printf("Init error: %s\n", err)
+		}
 	} else if dbconfig.Level != nil {
 		gdb, err = kvgraph.NewKVGraphDB("badger", *dbconfig.Level)
 		defer func() {
 			os.RemoveAll(*dbconfig.Level)
 		}()
+		if err != nil {
+			fmt.Printf("Init error: %s\n", err)
+		}
 	} else if dbconfig.Grids != nil {
 		gdb, err = grids.NewGraphDB(*dbconfig.Grids)
 		defer func() {
 			os.RemoveAll(*dbconfig.Grids)
 		}()
+		if err != nil {
+			fmt.Printf("Init error: %s\n", err)
+		}
 	} else if dbconfig.MongoDB != nil {
 		gdb, err = mongo.NewGraphDB(*dbconfig.MongoDB)
+		if err != nil {
+			fmt.Printf("Init error: %s\n", err)
+		}
 	} else if dbconfig.PSQL != nil {
 		gdb, err = psql.NewGraphDB(*dbconfig.PSQL)
+		if err != nil {
+			fmt.Printf("Init error: %s\n", err)
+		}
 	} else {
 		err = fmt.Errorf("unknown database")
+	}
+	if err != nil {
+		fmt.Printf("Init error: %s\n", err)
 	}
 
 	err = gdb.AddGraph("test-graph")
@@ -161,13 +189,16 @@ func TestMain(m *testing.M) {
 	if dbname != "existing-sql" {
 		err = setupGraph()
 		if err != nil {
-			fmt.Println("Error: setting up graph:", err)
+			fmt.Printf("Error: 1st setting up %s graph: %s", dbname, err)
 			return
 		}
 	}
 
 	// After deleting graph, docs, entries, fields should no longer exist in doc
 	err = gdb.DeleteGraph("test-graph")
+	if err != nil {
+		fmt.Printf("Init error: %s\n", err)
+	}
 	err = gdb.AddGraph("test-graph")
 	if err != nil {
 		fmt.Println("Error: failed to add graph:", err)
@@ -189,7 +220,7 @@ func TestMain(m *testing.M) {
 	if dbname != "existing-sql" {
 		err = setupGraph()
 		if err != nil {
-			fmt.Println("Error: setting up graph:", err)
+			fmt.Printf("Error: 2nd setting up %s graph: %s\n", dbname, err)
 			return
 		}
 	}
