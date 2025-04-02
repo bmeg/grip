@@ -154,7 +154,7 @@ func (sc *DefaultStmtCompiler) Count(stmt *gripql.GraphStatement_Count, ps *gdbi
 func (sc *DefaultStmtCompiler) Distinct(stmt *gripql.GraphStatement_Distinct, ps *gdbi.State) (gdbi.Processor, error) {
 	fields := protoutil.AsStringList(stmt.Distinct)
 	if len(fields) == 0 {
-		fields = append(fields, "_gid")
+		fields = append(fields, "_id")
 	}
 	return &Distinct{fields}, nil
 }

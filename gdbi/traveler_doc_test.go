@@ -89,8 +89,8 @@ func TestGetMarkDoc(t *testing.T) {
 }
 
 func TestTravelerPathExists(t *testing.T) {
-	assert.True(t, TravelerPathExists(traveler, "_gid"))
-	assert.True(t, TravelerPathExists(traveler, "$_gid"))
+	assert.True(t, TravelerPathExists(traveler, "_id"))
+	assert.True(t, TravelerPathExists(traveler, "$_id"))
 	assert.True(t, TravelerPathExists(traveler, "_label"))
 	assert.True(t, TravelerPathExists(traveler, "a"))
 	assert.True(t, TravelerPathExists(traveler, "$a"))
@@ -98,7 +98,7 @@ func TestTravelerPathExists(t *testing.T) {
 	assert.False(t, TravelerPathExists(traveler, "non-existent"))
 	assert.False(t, TravelerPathExists(traveler, "$_current.non-existent"))
 
-	assert.True(t, TravelerPathExists(traveler, "$testMark._gid"))
+	assert.True(t, TravelerPathExists(traveler, "$testMark._id"))
 	assert.True(t, TravelerPathExists(traveler, "$testMark._label"))
 	assert.True(t, TravelerPathExists(traveler, "$testMark.a"))
 	assert.False(t, TravelerPathExists(traveler, "$testMark.non-existent"))
@@ -119,13 +119,13 @@ func TestRender(t *testing.T) {
 	assert.Equal(t, expected, result)
 
 	expected = map[string]interface{}{
-		"current.gid":         traveler.GetCurrent().Get().ID,
+		"current.id":          traveler.GetCurrent().Get().ID,
 		"current.label":       traveler.GetCurrent().Get().Label,
 		"current.a":           traveler.GetCurrent().Get().Data["a"],
 		"current.b":           traveler.GetCurrent().Get().Data["b"],
 		"current.c":           traveler.GetCurrent().Get().Data["c"],
 		"current.d":           traveler.GetCurrent().Get().Data["d"],
-		"mark.gid":            traveler.GetMark("testMark").Get().ID,
+		"mark.id":             traveler.GetMark("testMark").Get().ID,
 		"mark.label":          traveler.GetMark("testMark").Get().Label,
 		"mark.a":              traveler.GetMark("testMark").Get().Data["a"],
 		"mark.b":              traveler.GetMark("testMark").Get().Data["b"],
@@ -137,13 +137,13 @@ func TestRender(t *testing.T) {
 		"current.f":           traveler.GetCurrent().Get().Data["f"],
 	}
 	result = RenderTraveler(traveler, map[string]interface{}{
-		"current.gid":         "_gid",
+		"current.id":          "_id",
 		"current.label":       "_label",
 		"current.a":           "a",
 		"current.b":           "b",
 		"current.c":           "c",
 		"current.d":           "d",
-		"mark.gid":            "$testMark._gid",
+		"mark.id":             "$testMark._id",
 		"mark.label":          "$testMark._label",
 		"mark.a":              "$testMark.a",
 		"mark.b":              "$testMark.b",
@@ -259,10 +259,10 @@ func TestSelectFields(t *testing.T) {
 	result = SelectTravelerFields(traveler, "a", "_data.b")
 	assert.Equal(t, expected, result)
 
-	result = SelectTravelerFields(traveler, "_gid", "_label", "a", "_data.b")
+	result = SelectTravelerFields(traveler, "_id", "_label", "a", "_data.b")
 	assert.Equal(t, expected, result)
 
-	result = SelectTravelerFields(traveler, "_gid", "_label", "a", "_data.b", "$testMark.b", "$testMark._data.d")
+	result = SelectTravelerFields(traveler, "_id", "_label", "a", "_data.b", "$testMark.b", "$testMark._data.d")
 	assert.Equal(t, expected, result)
 
 	expected = expected.AddCurrent(&DataElement{

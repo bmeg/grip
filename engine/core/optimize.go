@@ -7,7 +7,7 @@ import (
 )
 
 // IndexStartOptimize looks at processor pipeline for queries like
-// V().Has(Eq("$.label", "Person")) and V().Has(Eq("$.gid", "1")),
+// V().Has(Eq("$._label", "Person")) and V().Has(Eq("$._id", "1")),
 // streamline into a single index lookup
 func IndexStartOptimize(pipe []*gripql.GraphStatement) []*gripql.GraphStatement {
 	optimized := []*gripql.GraphStatement{}
@@ -49,7 +49,7 @@ func IndexStartOptimize(pipe []*gripql.GraphStatement) []*gripql.GraphStatement 
 			if cond := s.Has.GetCondition(); cond != nil {
 				path := tpath.NormalizePath(cond.Key)
 				switch path {
-				case "$_current._gid":
+				case "$_current._id":
 					hasIDIdx = append(hasIDIdx, i)
 				case "$_current._label":
 					hasLabelIdx = append(hasLabelIdx, i)

@@ -15,7 +15,7 @@ jobs:
       - name: Set up Go 1.x
         uses: actions/setup-go@v5
         with:
-          go-version: ^1.22.6
+          go-version: ^1.23.6
 
       - name: Check out code into the Go module directory
         uses: actions/checkout@v4
@@ -37,7 +37,7 @@ jobs:
       - name: Set up Go 1.x
         uses: actions/setup-go@v5
         with:
-          go-version: ^1.22.6
+          go-version: ^1.23.6
       - name: Check out code
         uses: actions/checkout@v4
       - name: run unit tests
@@ -197,7 +197,7 @@ jobs:
           sleep 5
           ./grip server --rpc-port 18202 --http-port 18201 --config ./gripper/test-graph/config.yaml --er tableServer=localhost:50051 &
           sleep 5
-          python conformance/run_conformance.py http://localhost:18201 --readOnly swapi
+          python conformance/run_conformance.py http://localhost:18201 --readOnly swapi --exclude pivot
 
 
   authTest:

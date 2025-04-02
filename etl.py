@@ -8,17 +8,17 @@ def extract_ids_from_ndjson(input_file, output_file):
     with open(input_file, 'r') as f:
         for line in f:
             data = json.loads(line.strip())
-            ids.append(data['gid'])
+            ids.append(data['_id'])
 
     with open(input_file_edge, 'r') as f:
         for line in f:
             data = json.loads(line.strip())
-            ids.append(data['gid'])
+            ids.append(data['_id'])
 
 
     # Write the IDs to the output file in the specified format
     with open(output_file, 'w') as f:
-        f.write('[' + ','.join([f'"{gid}"' for gid in ids]) + ']')
+        f.write('[' + ','.join([f'"{id}"' for id in ids]) + ']')
 
 # Specify the input and output file paths
 input_file = 'OUT/Observation.vertex.json'

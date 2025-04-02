@@ -10,7 +10,7 @@ def test_vertex_struct(man):
     count = 0
     for i in G.query().V():
         count += 1
-        p = i['data']['field1']
+        p = i['field1']
         if not isinstance(p, dict):
             errors.append("Dictionary data failed")
             continue
@@ -37,11 +37,11 @@ def test_edge_struct(man):
     G.addEdge("vertex1", "vertex2", "friend", {"edgevals": {"weight": 3.14, "count": 15}})
 
     for i in G.query().V("vertex1").outE():
-        if 'weight' not in i['data']['edgevals'] or i['data']['edgevals']['weight'] != 3.14:
+        if 'weight' not in i['edgevals'] or i['edgevals']['weight'] != 3.14:
             errors.append("out edge data not found")
 
     for i in G.query().V("vertex2").inE():
-        if 'weight' not in i['data']['edgevals'] or i['data']['edgevals']['weight'] != 3.14:
+        if 'weight' not in i['edgevals'] or i['edgevals']['weight'] != 3.14:
             errors.append("in edge data not found")
 
     return errors
@@ -60,13 +60,13 @@ def test_nested_struct(man):
     for i in G.query().V():
         count += 1
         try:
-            p = i['data']["field1"]['nested']["array"][0]["value"]["entry"]
+            p = i["field1"]['nested']["array"][0]["value"]["entry"]
             if p != 1:
                 errors.append("Incorrect values in structure")
         except KeyError:
             errors.append(
                 "Vertex not packed correctly %s != %s" %
-                (data, i['data']))
+                (data, i))
 
     if count != 1:
         errors.append("Vertex struct property count failed")

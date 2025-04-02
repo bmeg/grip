@@ -202,7 +202,7 @@ func (g *Graph) VertexLabelScan(ctx context.Context, label string) chan string {
 						return
 					}
 					v := rowDataToVertex(v, data, types, false)
-					o <- v.Gid
+					o <- v.Id
 				}
 				if err := rows.Err(); err != nil {
 					log.WithFields(log.Fields{"error": err}).Error("VertexLabelScan: iterating")
@@ -337,7 +337,7 @@ func (g *Graph) GetVertexChannel(ctx context.Context, reqChan chan gdbi.ElementL
 					return
 				}
 				v := rowDataToVertex(g.schema.GetVertex(table), data, types, load)
-				r := batchMap[v.Gid]
+				r := batchMap[v.Id]
 				for _, ri := range r {
 					ri.Vertex = gdbi.NewElementFromVertex(v)
 					o <- ri

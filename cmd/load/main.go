@@ -102,8 +102,8 @@ var Cmd = &cobra.Command{
 				if count%logRate == 0 {
 					log.Infof("Loaded %d edges", count)
 				}
-				if edgeUID && e.Gid == "" {
-					e.Gid = util.UUID()
+				if edgeUID && e.Id == "" {
+					e.Id = util.UUID()
 				}
 				elemChan <- &gripql.GraphElement{Graph: graph, Edge: e}
 			}
@@ -141,8 +141,8 @@ var Cmd = &cobra.Command{
 						if edgeCount%logRate == 0 {
 							log.Infof("Loaded %d edges", edgeCount)
 						}
-						if edgeUID && e.Gid == "" {
-							e.Gid = util.UUID()
+						if edgeUID && e.Id == "" {
+							e.Id = util.UUID()
 						}
 						elemChan <- &gripql.GraphElement{Graph: graph, Edge: e}
 					}

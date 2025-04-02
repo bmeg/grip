@@ -202,7 +202,10 @@ func (server *GripServer) Serve(pctx context.Context) error {
 
 	// Setup RESTful proxy
 	marsh := NewMarshaler()
-	grpcMux := runtime.NewServeMux(runtime.WithMarshalerOption("*/*", marsh))
+	grpcMux := runtime.NewServeMux(
+		runtime.WithForwardResponseRewriter(FlattenRewriter),
+		runtime.WithMarshalerOption(runtime.MIMEWildcard, marsh),
+	)
 	mux := http.NewServeMux()
 
 	// Setup GraphQL handler

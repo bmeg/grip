@@ -339,9 +339,10 @@ func (mg *Graph) GetVertexChannel(ctx context.Context, ids chan gdbi.ElementLook
 			}
 			query := bson.M{FIELD_ID: bson.M{"$in": idBatch}}
 			opts := options.Find()
-			if !load {
-				opts.SetProjection(bson.M{FIELD_ID: 1, FIELD_LABEL: 1})
-			}
+			// Todo: Need to optimize to pass load arg as true when doing pivot operation
+			/*if !load {
+			opts.SetProjection(bson.M{FIELD_ID: 1, FIELD_LABEL: 1})
+			}*/
 			cursor, err := vCol.Find(context.TODO(), query, opts)
 			if err != nil {
 				return
@@ -401,11 +402,11 @@ func (mg *Graph) GetOutChannel(ctx context.Context, reqChan chan gdbi.ElementLoo
 			vertCol := fmt.Sprintf("%s_vertices", mg.graph)
 			query = append(query, bson.M{"$lookup": bson.M{"from": vertCol, "localField": FIELD_TO, "foreignField": FIELD_ID, "as": "dst"}})
 			query = append(query, bson.M{"$unwind": "$dst"})
-			if load {
-				query = append(query, bson.M{"$project": bson.M{FIELD_FROM: true, "dst": true}})
-			} else {
+			//if load {
+			query = append(query, bson.M{"$project": bson.M{FIELD_FROM: true, "dst": true}})
+			/* 	} else {
 				query = append(query, bson.M{"$project": bson.M{FIELD_FROM: true, "dst._id": true, "dst._label": true}})
-			}
+			}*/
 
 			eCol := mg.ar.EdgeCollection(mg.graph)
 			cursor, err := eCol.Aggregate(context.TODO(), query)

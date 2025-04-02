@@ -67,13 +67,13 @@ func (ma *KVGraph) sampleSchema(ctx context.Context, graph string, n uint32, ran
 			}
 		}
 		sSchema, _ := structpb.NewStruct(schema)
-		vSchema := &gripql.Vertex{Gid: label, Label: "Vertex", Data: sSchema}
+		vSchema := &gripql.Vertex{Id: label, Label: "Vertex", Data: sSchema}
 		vOutput = append(vOutput, vSchema)
 	}
 	for k, v := range fromToPairs {
 		sV, _ := structpb.NewStruct(v.(map[string]interface{}))
 		eSchema := &gripql.Edge{
-			Gid:   fmt.Sprintf("(%s)--%s->(%s)", k.from, k.label, k.to),
+			Id:    fmt.Sprintf("(%s)--%s->(%s)", k.from, k.label, k.to),
 			Label: k.label,
 			From:  k.from,
 			To:    k.to,

@@ -385,49 +385,41 @@ The schemas are automatically added to the database following the naming pattern
 <div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#f92672">graph</span>: <span style="color:#ae81ff">example-graph</span>
 </span></span><span style="display:flex;"><span>
 </span></span><span style="display:flex;"><span><span style="color:#f92672">edges</span>:
-</span></span><span style="display:flex;"><span>- <span style="color:#f92672">data</span>: {}
-</span></span><span style="display:flex;"><span> <span style="color:#f92672">from</span>: <span style="color:#ae81ff">Human</span>
-</span></span><span style="display:flex;"><span> <span style="color:#f92672">gid</span>: <span style="color:#ae81ff">(Human)--starship-&gt;(Starship)</span>
-</span></span><span style="display:flex;"><span> <span style="color:#f92672">label</span>: <span style="color:#ae81ff">starship</span>
-</span></span><span style="display:flex;"><span> <span style="color:#f92672">to</span>: <span style="color:#ae81ff">Starship</span>
-</span></span><span style="display:flex;"><span>- <span style="color:#f92672">data</span>: {}
-</span></span><span style="display:flex;"><span> <span style="color:#f92672">from</span>: <span style="color:#ae81ff">Human</span>
-</span></span><span style="display:flex;"><span> <span style="color:#f92672">gid</span>: <span style="color:#ae81ff">(Human)--friend-&gt;(Human)</span>
-</span></span><span style="display:flex;"><span> <span style="color:#f92672">label</span>: <span style="color:#ae81ff">friend</span>
-</span></span><span style="display:flex;"><span> <span style="color:#f92672">to</span>: <span style="color:#ae81ff">Human</span>
-</span></span><span style="display:flex;"><span>- <span style="color:#f92672">data</span>: {}
-</span></span><span style="display:flex;"><span> <span style="color:#f92672">from</span>: <span style="color:#ae81ff">Human</span>
-</span></span><span style="display:flex;"><span> <span style="color:#f92672">gid</span>: <span style="color:#ae81ff">(Human)--friend-&gt;(Droid)</span>
-</span></span><span style="display:flex;"><span> <span style="color:#f92672">label</span>: <span style="color:#ae81ff">friend</span>
-</span></span><span style="display:flex;"><span> <span style="color:#f92672">to</span>: <span style="color:#ae81ff">Droid</span>
-</span></span><span style="display:flex;"><span>- <span style="color:#f92672">data</span>: {}
-</span></span><span style="display:flex;"><span> <span style="color:#f92672">from</span>: <span style="color:#ae81ff">Human</span>
-</span></span><span style="display:flex;"><span> <span style="color:#f92672">gid</span>: <span style="color:#ae81ff">(Human)--appearsIn-&gt;(Movie)</span>
-</span></span><span style="display:flex;"><span> <span style="color:#f92672">label</span>: <span style="color:#ae81ff">appearsIn</span>
-</span></span><span style="display:flex;"><span> <span style="color:#f92672">to</span>: <span style="color:#ae81ff">Movie</span>
+</span></span><span style="display:flex;"><span>- <span style="color:#f92672">_from</span>: <span style="color:#ae81ff">Human</span>
+</span></span><span style="display:flex;"><span> <span style="color:#f92672">_gid</span>: <span style="color:#ae81ff">(Human)--starship-&gt;(Starship)</span>
+</span></span><span style="display:flex;"><span> <span style="color:#f92672">_label</span>: <span style="color:#ae81ff">starship</span>
+</span></span><span style="display:flex;"><span> <span style="color:#f92672">_to</span>: <span style="color:#ae81ff">Starship</span>
+</span></span><span style="display:flex;"><span>- <span style="color:#f92672">_from</span>: <span style="color:#ae81ff">Human</span>
+</span></span><span style="display:flex;"><span> <span style="color:#f92672">_gid</span>: <span style="color:#ae81ff">(Human)--friend-&gt;(Human)</span>
+</span></span><span style="display:flex;"><span> <span style="color:#f92672">_label</span>: <span style="color:#ae81ff">friend</span>
+</span></span><span style="display:flex;"><span> <span style="color:#f92672">_to</span>: <span style="color:#ae81ff">Human</span>
+</span></span><span style="display:flex;"><span>- <span style="color:#f92672">_from</span>: <span style="color:#ae81ff">Human</span>
+</span></span><span style="display:flex;"><span> <span style="color:#f92672">_gid</span>: <span style="color:#ae81ff">(Human)--friend-&gt;(Droid)</span>
+</span></span><span style="display:flex;"><span> <span style="color:#f92672">_label</span>: <span style="color:#ae81ff">friend</span>
+</span></span><span style="display:flex;"><span> <span style="color:#f92672">_to</span>: <span style="color:#ae81ff">Droid</span>
+</span></span><span style="display:flex;"><span>- <span style="color:#f92672">_from</span>: <span style="color:#ae81ff">Human</span>
+</span></span><span style="display:flex;"><span> <span style="color:#f92672">_gid</span>: <span style="color:#ae81ff">(Human)--appearsIn-&gt;(Movie)</span>
+</span></span><span style="display:flex;"><span> <span style="color:#f92672">_label</span>: <span style="color:#ae81ff">appearsIn</span>
+</span></span><span style="display:flex;"><span> <span style="color:#f92672">_to</span>: <span style="color:#ae81ff">Movie</span>
 </span></span><span style="display:flex;"><span>
 </span></span><span style="display:flex;"><span><span style="color:#f92672">vertices</span>:
-</span></span><span style="display:flex;"><span>- <span style="color:#f92672">data</span>:
-</span></span><span style="display:flex;"><span>   <span style="color:#f92672">name</span>: <span style="color:#ae81ff">STRING</span>
-</span></span><span style="display:flex;"><span> <span style="color:#f92672">gid</span>: <span style="color:#ae81ff">Movie</span>
-</span></span><span style="display:flex;"><span> <span style="color:#f92672">label</span>: <span style="color:#ae81ff">Movie</span>
-</span></span><span style="display:flex;"><span>- <span style="color:#f92672">data</span>:
-</span></span><span style="display:flex;"><span>   <span style="color:#f92672">length</span>: <span style="color:#ae81ff">NUMERIC</span>
-</span></span><span style="display:flex;"><span>   <span style="color:#f92672">name</span>: <span style="color:#ae81ff">STRING</span>
-</span></span><span style="display:flex;"><span> <span style="color:#f92672">gid</span>: <span style="color:#ae81ff">Starship</span>
-</span></span><span style="display:flex;"><span> <span style="color:#f92672">label</span>: <span style="color:#ae81ff">Starship</span>
-</span></span><span style="display:flex;"><span>- <span style="color:#f92672">data</span>:
-</span></span><span style="display:flex;"><span>   <span style="color:#f92672">name</span>: <span style="color:#ae81ff">STRING</span>
-</span></span><span style="display:flex;"><span>   <span style="color:#f92672">primaryFunction</span>: <span style="color:#ae81ff">STRING</span>
-</span></span><span style="display:flex;"><span> <span style="color:#f92672">gid</span>: <span style="color:#ae81ff">Droid</span>
-</span></span><span style="display:flex;"><span> <span style="color:#f92672">label</span>: <span style="color:#ae81ff">Droid</span>
-</span></span><span style="display:flex;"><span>- <span style="color:#f92672">data</span>:
-</span></span><span style="display:flex;"><span>   <span style="color:#f92672">height</span>: <span style="color:#ae81ff">NUMERIC</span>
-</span></span><span style="display:flex;"><span>   <span style="color:#f92672">homePlanet</span>: <span style="color:#ae81ff">STRING</span>
-</span></span><span style="display:flex;"><span>   <span style="color:#f92672">mass</span>: <span style="color:#ae81ff">NUMERIC</span>
-</span></span><span style="display:flex;"><span>   <span style="color:#f92672">name</span>: <span style="color:#ae81ff">STRING</span>
-</span></span><span style="display:flex;"><span> <span style="color:#f92672">gid</span>: <span style="color:#ae81ff">Human</span>
-</span></span><span style="display:flex;"><span> <span style="color:#f92672">label</span>: <span style="color:#ae81ff">Human</span>
+</span></span><span style="display:flex;"><span>- <span style="color:#f92672">name</span>: <span style="color:#ae81ff">STRING</span>
+</span></span><span style="display:flex;"><span> <span style="color:#f92672">_gid</span>: <span style="color:#ae81ff">Movie</span>
+</span></span><span style="display:flex;"><span> <span style="color:#f92672">_label</span>: <span style="color:#ae81ff">Movie</span>
+</span></span><span style="display:flex;"><span>- <span style="color:#f92672">length</span>: <span style="color:#ae81ff">NUMERIC</span>
+</span></span><span style="display:flex;"><span> <span style="color:#f92672">name</span>: <span style="color:#ae81ff">STRING</span>
+</span></span><span style="display:flex;"><span> <span style="color:#f92672">_gid</span>: <span style="color:#ae81ff">Starship</span>
+</span></span><span style="display:flex;"><span> <span style="color:#f92672">_label</span>: <span style="color:#ae81ff">Starship</span>
+</span></span><span style="display:flex;"><span>- <span style="color:#f92672">name</span>: <span style="color:#ae81ff">STRING</span>
+</span></span><span style="display:flex;"><span> <span style="color:#f92672">primaryFunction</span>: <span style="color:#ae81ff">STRING</span>
+</span></span><span style="display:flex;"><span> <span style="color:#f92672">_gid</span>: <span style="color:#ae81ff">Droid</span>
+</span></span><span style="display:flex;"><span> <span style="color:#f92672">_label</span>: <span style="color:#ae81ff">Droid</span>
+</span></span><span style="display:flex;"><span>- <span style="color:#f92672">height</span>: <span style="color:#ae81ff">NUMERIC</span>
+</span></span><span style="display:flex;"><span> <span style="color:#f92672">homePlanet</span>: <span style="color:#ae81ff">STRING</span>
+</span></span><span style="display:flex;"><span> <span style="color:#f92672">mass</span>: <span style="color:#ae81ff">NUMERIC</span>
+</span></span><span style="display:flex;"><span> <span style="color:#f92672">name</span>: <span style="color:#ae81ff">STRING</span>
+</span></span><span style="display:flex;"><span> <span style="color:#f92672">_gid</span>: <span style="color:#ae81ff">Human</span>
+</span></span><span style="display:flex;"><span> <span style="color:#f92672">_label</span>: <span style="color:#ae81ff">Human</span>
 </span></span></code></pre></div>
   </div>
 

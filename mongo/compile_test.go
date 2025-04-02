@@ -31,7 +31,7 @@ func TestQuerySizeLimit(t *testing.T) {
 
 func TestDistinctPathing(t *testing.T) {
 
-	fields := []string{"$case._gid", "$compound._gid"}
+	fields := []string{"$case._id", "$compound._id"}
 
 	match := bson.M{}
 	keys := bson.M{}
@@ -41,7 +41,7 @@ func TestDistinctPathing(t *testing.T) {
 		fmt.Printf("Namespace: %s\n", namespace)
 		f = tpath.NormalizePath(f)
 		f = strings.TrimPrefix(f, "$.")
-		if f == "gid" {
+		if f == "id" {
 			f = FIELD_ID
 		}
 		if namespace != tpath.CURRENT {

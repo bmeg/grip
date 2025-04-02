@@ -70,13 +70,13 @@ func (gi *Graph) sampleSchema(ctx context.Context, n uint32, random bool) ([]*gr
 			}
 		}
 		sSchema, _ := structpb.NewStruct(schema)
-		vSchema := &gripql.Vertex{Gid: label[2:], Label: label, Data: sSchema}
+		vSchema := &gripql.Vertex{Id: label[2:], Label: label, Data: sSchema}
 		vOutput = append(vOutput, vSchema)
 	}
 	for k, v := range fromToPairs {
 		sV, _ := structpb.NewStruct(v.(map[string]interface{}))
 		eSchema := &gripql.Edge{
-			Gid:   fmt.Sprintf("(%s)--%s->(%s)", k.from, k.label, k.to),
+			Id:    fmt.Sprintf("(%s)--%s->(%s)", k.from, k.label, k.to),
 			Label: k.label,
 			From:  k.from,
 			To:    k.to,

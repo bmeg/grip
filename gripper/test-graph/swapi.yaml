@@ -1,43 +1,43 @@
 
 vertices:
-  - gid: "Character:"
+  - id: "Character:"
     label: Character
     data:
       source: tableServer
       collection: Character
 
-  - gid: "Planet:"
+  - id: "Planet:"
     label: Planet
     data:
       collection: Planet
       source: tableServer
 
-  - gid: "Film:"
+  - id: "Film:"
     label: Film
     data:
       collection: Film
       source: tableServer
 
-  - gid: "Species:"
+  - id: "Species:"
     label: Species
     data:
       source: tableServer
       collection: Species
 
-  - gid: "Starship:"
+  - id: "Starship:"
     label: Starship
     data:
       source: tableServer
       collection: Starship
 
-  - gid: "Vehicle:"
+  - id: "Vehicle:"
     label: Vehicle
     data:
       source: tableServer
       collection: Vehicle
 
 edges:
-  - gid: "homeworld"
+  - id: "homeworld"
     from: "Character:"
     to: "Planet:"
     label: homeworld
@@ -47,7 +47,7 @@ edges:
       toField: homeworld
       fromField: id
 
-  - gid: species
+  - id: species
     from: "Character:"
     to: "Species:"
     label: species
@@ -57,7 +57,7 @@ edges:
       toField: species
       fromField: id
 
-  - gid: people
+  - id: people
     from: "Species:"
     to: "Character:"
     label: people
@@ -67,7 +67,7 @@ edges:
       fromField: from
       toField: to
 
-  - gid: residents
+  - id: residents
     from: "Planet:"
     to: "Character:"
     label: residents
@@ -77,7 +77,7 @@ edges:
       fromField: from
       toField: to
 
-  - gid: filmVehicles
+  - id: filmVehicles
     from: "Film:"
     to: "Vehicle:"
     label: "vehicles"
@@ -87,7 +87,7 @@ edges:
       fromField: from
       toField: to
 
-  - gid: vehicleFilms
+  - id: vehicleFilms
     to: "Film:"
     from: "Vehicle:"
     label: "films"
@@ -97,7 +97,7 @@ edges:
       toField: from
       fromField: to
 
-  - gid: filmStarships
+  - id: filmStarships
     from: "Film:"
     to: "Starship:"
     label: "starships"
@@ -107,7 +107,7 @@ edges:
       fromField: from
       toField: to
 
-  - gid: starshipFilms
+  - id: starshipFilms
     to: "Film:"
     from: "Starship:"
     label: "films"
@@ -117,7 +117,7 @@ edges:
       toField: from
       fromField: to
 
-  - gid: filmPlanets
+  - id: filmPlanets
     from: "Film:"
     to: "Planet:"
     label: "planets"
@@ -127,7 +127,7 @@ edges:
       fromField: from
       toField: to
 
-  - gid: planetFilms
+  - id: planetFilms
     to: "Film:"
     from: "Planet:"
     label: "films"
@@ -137,7 +137,7 @@ edges:
       toField: from
       fromField: to
 
-  - gid: filmSpecies
+  - id: filmSpecies
     from: "Film:"
     to: "Species:"
     label: "species"
@@ -147,7 +147,7 @@ edges:
       fromField: from
       toField: to
 
-  - gid: speciesFilms
+  - id: speciesFilms
     to: "Film:"
     from: "Species:"
     label: "films"
@@ -157,7 +157,7 @@ edges:
       toField: from
       fromField: to
 
-  - gid: filmCharacters
+  - id: filmCharacters
     from: "Film:"
     to: "Character:"
     label: characters
@@ -167,7 +167,7 @@ edges:
       fromField: from
       toField: to
 
-  - gid: characterFilms
+  - id: characterFilms
     from: "Character:"
     to: "Film:"
     label: films
@@ -177,7 +177,7 @@ edges:
       toField: from
       fromField: to
 
-  - gid: characterStarships
+  - id: characterStarships
     from: "Character:"
     to: "Starship:"
     label: "starships"
@@ -187,7 +187,7 @@ edges:
       fromField: from
       toField: to
 
-  - gid: starshipCharacters
+  - id: starshipCharacters
     to: "Character:"
     from: "Starship:"
     label: "pilots"

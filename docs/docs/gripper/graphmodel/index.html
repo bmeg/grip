@@ -394,214 +394,192 @@ Drivers:
 graph from the <code>swapi</code> mapping (see example graph map below).</p>
 <h2 id="example-graph-map">Example graph map</h2>
 <pre tabindex="0"><code>vertices:
-  - gid: &#34;Character:&#34;
-    label: Character
-    data:
-      source: tableServer
-      collection: Character
+  - _id: &#34;Character:&#34;
+    _label: Character
+    source: tableServer
+    collection: Character
 
-  - gid: &#34;Planet:&#34;
-    label: Planet
-    data:
-      collection: Planet
-      source: tableServer
+  - _id: &#34;Planet:&#34;
+    _label: Planet
+    collection: Planet
+    source: tableServer
 
-  - gid: &#34;Film:&#34;
-    label: Film
-    data:
-      collection: Film
-      source: tableServer
+  - _id: &#34;Film:&#34;
+    _label: Film
+    collection: Film
+    source: tableServer
 
-  - gid: &#34;Species:&#34;
-    label: Species
-    data:
-      source: tableServer
-      collection: Species
+  - _id: &#34;Species:&#34;
+    _label: Species
+    source: tableServer
+    collection: Species
 
-  - gid: &#34;Starship:&#34;
-    label: Starship
-    data:
-      source: tableServer
-      collection: Starship
+  - _id: &#34;Starship:&#34;
+    _label: Starship
+    source: tableServer
+    collection: Starship
 
-  - gid: &#34;Vehicle:&#34;
-    label: Vehicle
-    data:
-      source: tableServer
-      collection: Vehicle
+  - _id: &#34;Vehicle:&#34;
+    _label: Vehicle
+    source: tableServer
+    collection: Vehicle
 
 edges:
-  - gid: &#34;homeworld&#34;
-    from: &#34;Character:&#34;
-    to: &#34;Planet:&#34;
-    label: homeworld
-    data:
-      fieldToField:
-        fromField: $.homeworld
-        toField: $.id
+  - _id: &#34;homeworld&#34;
+    _from: &#34;Character:&#34;
+    _to: &#34;Planet:&#34;
+    _label: homeworld
+    fieldToField:
+      fromField: $.homeworld
+      toField: $.id
 
-  - gid: species
-    from: &#34;Character:&#34;
-    to: &#34;Species:&#34;
-    label: species
-    data:
-      fieldToField:
-        fromField: $.species
-        toField: $.id
+  - _id: species
+    _from: &#34;Character:&#34;
+    _to: &#34;Species:&#34;
+    _label: species
+    fieldToField:
+      fromField: $.species
+      toField: $.id
 
-  - gid: people
-    from: &#34;Species:&#34;
-    to: &#34;Character:&#34;
-    label: people
-    data:
-      edgeTable:
-        source: tableServer
-        collection: speciesCharacter
-        fromField: $.from
-        toField: $.to
+  - _id: people
+    _from: &#34;Species:&#34;
+    _to: &#34;Character:&#34;
+    _label: people
+    edgeTable:
+      source: tableServer
+      collection: speciesCharacter
+      fromField: $.from
+      toField: $.to
 
-  - gid: residents
-    from: &#34;Planet:&#34;
-    to: &#34;Character:&#34;
-    label: residents
-    data:
-      edgeTable:
-        source: tableServer
-        collection: planetCharacter
-        fromField: $.from
-        toField: $.to
+  - _id: residents
+    _from: &#34;Planet:&#34;
+    _to: &#34;Character:&#34;
+    _label: residents
+    edgeTable:
+      source: tableServer
+      collection: planetCharacter
+      fromField: $.from
+      toField: $.to
 
-  - gid: filmVehicles
-    from: &#34;Film:&#34;
-    to: &#34;Vehicle:&#34;
-    label: &#34;vehicles&#34;
-    data:
-      edgeTable:
-        source: tableServer
-        collection: filmVehicles
-        fromField: &#34;$.from&#34;
-        toField: &#34;$.to&#34;
+  - _id: filmVehicles
+    _from: &#34;Film:&#34;
+    _to: &#34;Vehicle:&#34;
+    _label: &#34;vehicles&#34;
+    edgeTable:
+      source: tableServer
+      collection: filmVehicles
+      fromField: &#34;$.from&#34;
+      toField: &#34;$.to&#34;
 
-  - gid: vehicleFilms
-    to: &#34;Film:&#34;
-    from: &#34;Vehicle:&#34;
-    label: &#34;films&#34;
-    data:
-      edgeTable:
-        source: tableServer
-        collection: filmVehicles
-        toField: &#34;$.from&#34;
-        fromField: &#34;$.to&#34;
+  - _id: vehicleFilms
+    _to: &#34;Film:&#34;
+    _from: &#34;Vehicle:&#34;
+    _label: &#34;films&#34;
+    edgeTable:
+      source: tableServer
+      collection: filmVehicles
+      toField: &#34;$.from&#34;
+      fromField: &#34;$.to&#34;
 
-  - gid: filmStarships
-    from: &#34;Film:&#34;
-    to: &#34;Starship:&#34;
-    label: &#34;starships&#34;
-    data:
-      edgeTable:
-        source: tableServer
-        collection: filmStarships
-        fromField: &#34;$.from&#34;
-        toField: &#34;$.to&#34;
+  - _id: filmStarships
+    _from: &#34;Film:&#34;
+    _to: &#34;Starship:&#34;
+    _label: &#34;starships&#34;
+    edgeTable:
+      source: tableServer
+      collection: filmStarships
+      fromField: &#34;$.from&#34;
+      toField: &#34;$.to&#34;
 
-  - gid: starshipFilms
-    to: &#34;Film:&#34;
-    from: &#34;Starship:&#34;
-    label: &#34;films&#34;
-    data:
-      edgeTable:
-        source: tableServer
-        collection: filmStarships
-        toField: &#34;$.from&#34;
-        fromField: &#34;$.to&#34;
+  - _id: starshipFilms
+    _to: &#34;Film:&#34;
+    _from: &#34;Starship:&#34;
+    _label: &#34;films&#34;
+    edgeTable:
+      source: tableServer
+      collection: filmStarships
+      toField: &#34;$.from&#34;
+      fromField: &#34;$.to&#34;
 
-  - gid: filmPlanets
-    from: &#34;Film:&#34;
-    to: &#34;Planet:&#34;
-    label: &#34;planets&#34;
-    data:
-      edgeTable:
-        source: tableServer
-        collection: filmPlanets
-        fromField: &#34;$.from&#34;
-        toField: &#34;$.to&#34;
+  - _id: filmPlanets
+    _from: &#34;Film:&#34;
+    _to: &#34;Planet:&#34;
+    _label: &#34;planets&#34;
+    edgeTable:
+      source: tableServer
+      collection: filmPlanets
+      fromField: &#34;$.from&#34;
+      toField: &#34;$.to&#34;
 
-  - gid: planetFilms
-    to: &#34;Film:&#34;
-    from: &#34;Planet:&#34;
-    label: &#34;films&#34;
-    data:
-      edgeTable:
-        source: tableServer
-        collection: filmPlanets
-        toField: &#34;$.from&#34;
-        fromField: &#34;$.to&#34;
+  - _id: planetFilms
+    _to: &#34;Film:&#34;
+    _from: &#34;Planet:&#34;
+    _label: &#34;films&#34;
+    edgeTable:
+      source: tableServer
+      collection: filmPlanets
+      toField: &#34;$.from&#34;
+      fromField: &#34;$.to&#34;
 
-  - gid: filmSpecies
-    from: &#34;Film:&#34;
-    to: &#34;Species:&#34;
-    label: &#34;species&#34;
-    data:
-      edgeTable:
-        source: tableServer
-        collection: filmSpecies
-        fromField: &#34;$.from&#34;
-        toField: &#34;$.to&#34;
+  - _id: filmSpecies
+    _from: &#34;Film:&#34;
+    _to: &#34;Species:&#34;
+    _label: &#34;species&#34;
+    edgeTable:
+      source: tableServer
+      collection: filmSpecies
+      fromField: &#34;$.from&#34;
+      toField: &#34;$.to&#34;
 
-  - gid: speciesFilms
-    to: &#34;Film:&#34;
-    from: &#34;Species:&#34;
-    label: &#34;films&#34;
-    data:
-      edgeTable:
-        source: tableServer
-        collection: filmSpecies
-        toField: &#34;$.from&#34;
-        fromField: &#34;$.to&#34;
+  - _id: speciesFilms
+    _to: &#34;Film:&#34;
+    _from: &#34;Species:&#34;
+    _label: &#34;films&#34;
+    edgeTable:
+      source: tableServer
+      collection: filmSpecies
+      toField: &#34;$.from&#34;
+      fromField: &#34;$.to&#34;
 
-  - gid: filmCharacters
-    from: &#34;Film:&#34;
-    to: &#34;Character:&#34;
-    label: characters
-    data:
-      edgeTable:
-        source: tableServer
-        collection: filmCharacters
-        fromField: &#34;$.from&#34;
-        toField: &#34;$.to&#34;
+  - _id: filmCharacters
+    _from: &#34;Film:&#34;
+    _to: &#34;Character:&#34;
+    _label: characters
+    edgeTable:
+      source: tableServer
+      collection: filmCharacters
+      fromField: &#34;$.from&#34;
+      toField: &#34;$.to&#34;
 
-  - gid: characterFilms
-    from: &#34;Character:&#34;
-    to: &#34;Film:&#34;
-    label: films
-    data:
-      edgeTable:
-        source: tableServer
-        collection: filmCharacters
-        toField: &#34;$.from&#34;
-        fromField: &#34;$.to&#34;
+  - _id: characterFilms
+    _from: &#34;Character:&#34;
+    _to: &#34;Film:&#34;
+    _label: films
+    edgeTable:
+      source: tableServer
+      collection: filmCharacters
+      toField: &#34;$.from&#34;
+      fromField: &#34;$.to&#34;
 
-  - gid: characterStarships
-    from: &#34;Character:&#34;
-    to: &#34;Starship:&#34;
-    label: &#34;starships&#34;
-    data:
-      edgeTable:
-        source: tableServer
-        collection: characterStarships
-        fromField: &#34;$.from&#34;
-        toField: &#34;$.to&#34;
+  - _id: characterStarships
+    _from: &#34;Character:&#34;
+    _to: &#34;Starship:&#34;
+    _label: &#34;starships&#34;
+    edgeTable:
+      source: tableServer
+      collection: characterStarships
+      fromField: &#34;$.from&#34;
+      toField: &#34;$.to&#34;
 
-  - gid: starshipCharacters
-    to: &#34;Character:&#34;
-    from: &#34;Starship:&#34;
-    label: &#34;pilots&#34;
-    data:
-      edgeTable:
-        source: tableServer
-        collection: characterStarships
-        toField: &#34;$.from&#34;
-        fromField: &#34;$.to&#34;
+  - _id: starshipCharacters
+    _to: &#34;Character:&#34;
+    _from: &#34;Starship:&#34;
+    _label: &#34;pilots&#34;
+    edgeTable:
+      source: tableServer
+      collection: characterStarships
+      toField: &#34;$.from&#34;
+      fromField: &#34;$.to&#34;
 </code></pre>
   </div>
 

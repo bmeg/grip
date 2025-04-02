@@ -19,41 +19,37 @@ O.query().V(["ENSG00000012048"]).as_("gene").out("variant")
 
 Starts at vertex `ENSG00000012048` and marks as `gene`:
 
-```
+```json
 {
-  "gid": "ENSG00000012048",
-  "label": "gene",
-  "data": {
-    "symbol": {
-      "ensembl": "ENSG00000012048",
-      "hgnc": 1100,
-      "entrez": 672,
-      "hugo": "BRCA1"
-    }
-    "transcipts": ["ENST00000471181.7", "ENST00000357654.8", "ENST00000493795.5"]
+  "_gid": "ENSG00000012048",
+  "_label": "gene",
+  "symbol": {
+    "ensembl": "ENSG00000012048",
+    "hgnc": 1100,
+    "entrez": 672,
+    "hugo": "BRCA1"
   }
+  "transcipts": ["ENST00000471181.7", "ENST00000357654.8", "ENST00000493795.5"]  
 }
 ```
 
 as "gene" and traverses the graph to:
 
-```
+```json
 {
-  "gid": "NM_007294.3:c.4963_4981delTGGCCTGACCCCAGAAG",
-  "label": "variant",
-  "data": {
-    "type": "deletion"
-    "publications": [
-      {
-        "pmid": 29480828,
-        "doi": "10.1097/MD.0000000000009380"
-      },
-      {
-        "pmid": 23666017,
-        "doi": "10.1097/IGC.0b013e31829527bd"
-      }
-    ]
-  }
+  "_gid": "NM_007294.3:c.4963_4981delTGGCCTGACCCCAGAAG",
+  "_label": "variant",
+  "type": "deletion"
+  "publications": [
+    {
+      "pmid": 29480828,
+      "doi": "10.1097/MD.0000000000009380"
+    },
+    {
+      "pmid": 23666017,
+      "doi": "10.1097/IGC.0b013e31829527bd"
+    }
+  ]  
 }
 ```
 
