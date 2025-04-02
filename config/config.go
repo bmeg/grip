@@ -1,26 +1,24 @@
 package config
 
 import (
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
 	"path/filepath"
-	"reflect"
 	"strings"
 	"time"
 
-	"github.com/bmeg/grip/elastic"
 	esql "github.com/bmeg/grip/existing-sql"
 	"github.com/bmeg/grip/gripper"
-	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/mongo"
 	"github.com/bmeg/grip/psql"
+	"github.com/bmeg/grip/schema"
+	"github.com/bmeg/grip/sqlite"
 	"github.com/bmeg/grip/util"
 	"github.com/bmeg/grip/util/duration"
 	"github.com/bmeg/grip/util/rpc"
-	"github.com/ghodss/yaml"
+	"sigs.k8s.io/yaml"
 )
 
 func init() {
@@ -28,16 +26,16 @@ func init() {
 }
 
 type DriverConfig struct {
-	Grids         *string
-	Badger        *string
-	Bolt          *string
-	Level         *string
-	Pebble        *string
-	Elasticsearch *elastic.Config
-	MongoDB       *mongo.Config
-	PSQL          *psql.Config
-	ExistingSQL   *esql.Config
-	Gripper       *gripper.Config
+	Grids       *string
+	Badger      *string
+	Bolt        *string
+	Level       *string
+	Pebble      *string
+	MongoDB     *mongo.Config
+	PSQL        *psql.Config
+	ExistingSQL *esql.Config
+	Sqlite      *sqlite.Config
+	Gripper     *gripper.Config
 }
 
 // Config describes the configuration for Grip.
@@ -103,6 +101,17 @@ func (conf *Config) AddMongoDefault() {
 	conf.Default = "mongo"
 }
 
+func (conf *Config) AddSqliteDefault() {
+	c := sqlite.Config{DBName: "grip-sqlite.db"}
+	conf.Drivers["sqlite"] = DriverConfig{Sqlite: &c}
+	conf.Default = "sqlite"
+}
+
+func (conf *Config) AddGridsDefault() {
+	n := "grip-grids.db"
+	conf.Drivers["grids"] = DriverConfig{Grids: &n}
+	conf.Default = "grids"
+}
 
 // TestifyConfig randomizes ports and database paths/names
 func TestifyConfig(c *Config) {
@@ -120,12 +129,15 @@ func TestifyConfig(c *Config) {
 		a := "grip.db." + rand
 		d.Badger = &a
 	}
+	if d.Pebble != nil {
+		a := "grip.db." + rand
+		d.Pebble = &a
+	}
 	if d.MongoDB != nil {
 		d.MongoDB.DBName = "gripdb-" + rand
 	}
-	if d.Elasticsearch != nil {
-		d.Elasticsearch.DBName = "gripdb-" + rand
-		d.Elasticsearch.Synchronous = true
+	if d.Sqlite != nil {
+		d.Sqlite.DBName = "gripdb-" + rand
 	}
 	c.Drivers[c.Default] = d
 }
@@ -134,9 +146,6 @@ func (c *Config) SetDefaults() {
 	for _, d := range c.Drivers {
 		if d.MongoDB != nil {
 			d.MongoDB.SetDefaults()
-		}
-		if d.Elasticsearch != nil {
-			d.Elasticsearch.SetDefaults()
 		}
 	}
 }
@@ -151,7 +160,7 @@ func ParseConfig(raw []byte, conf *Config) error {
 	//if err != nil {
 	//	return err
 	//}
-	err := yaml.Unmarshal(raw, conf)
+	err := yaml.UnmarshalStrict(raw, conf)
 	if err != nil {
 		return err
 	}
@@ -197,7 +206,7 @@ func ParseConfigFile(relpath string, conf *Config) error {
 				if err != nil {
 					return fmt.Errorf("failed to parse config at path %s: \n%v", path, err)
 				}
-				graph, err := gripql.GraphMapToProto(data)
+				graph, err := schema.GraphMapToProto(data)
 				if err != nil {
 					return fmt.Errorf("failed to parse config at path %s: \n%v", path, err)
 				}
@@ -205,101 +214,5 @@ func ParseConfigFile(relpath string, conf *Config) error {
 			}
 		}
 	}
-	return nil
-}
-
-// GetKeys takes a struct or map and returns all keys that are present.
-// Example:
-// {"data": {"foo": "bar"}} => ["data", "data.foo"]
-func GetKeys(obj interface{}) []string {
-	keys := []string{}
-
-	v := reflect.ValueOf(obj)
-	if v.Kind() == reflect.Ptr {
-		v = v.Elem()
-	}
-
-	switch v.Kind() {
-	case reflect.Struct:
-		for i := 0; i < v.NumField(); i++ {
-			field := v.Field(i)
-			embedded := v.Type().Field(i).Anonymous
-			name := v.Type().Field(i).Name
-			keys = append(keys, name)
-
-			valKeys := GetKeys(field.Interface())
-			vk := []string{}
-			for _, v := range valKeys {
-				if embedded {
-					vk = append(vk, v)
-				}
-				vk = append(vk, name+"."+v)
-			}
-			keys = append(keys, vk...)
-		}
-	case reflect.Map:
-		for _, key := range v.MapKeys() {
-			name := key.String()
-			keys = append(keys, key.String())
-
-			valKeys := GetKeys(v.MapIndex(key).Interface())
-			for i, v := range valKeys {
-				valKeys[i] = name + "." + v
-			}
-			keys = append(keys, valKeys...)
-		}
-	}
-	return keys
-}
-
-// CheckForUnknownKeys takes a json byte array and checks that all keys are fields
-// in the reference object
-func CheckForUnknownKeys(jsonStr []byte, obj interface{}, exclude []string) error {
-	fmt.Printf("Checking: %#v\n", obj)
-	if _, ok := obj.(map[string]DriverConfig); ok {
-		fmt.Printf("Is map\n")
-		return nil
-	}
-	knownMap := make(map[string]interface{})
-	known := GetKeys(obj)
-	for _, k := range known {
-		knownMap[k] = nil
-	}
-
-	var anon interface{}
-	err := json.Unmarshal(jsonStr, &anon)
-	if err != nil {
-		return err
-	}
-
-	unknown := []string{}
-	all := GetKeys(anon)
-	for _, k := range all {
-		if _, found := knownMap[k]; !found {
-			for _, e := range exclude {
-				if strings.HasPrefix(k, e) {
-					found = true
-				}
-			}
-			if !found {
-				unknown = append(unknown, k)
-			}
-		}
-	}
-
-	errs := []string{}
-	if len(unknown) > 0 {
-		for _, k := range unknown {
-			parts := strings.Split(k, ".")
-			field := parts[len(parts)-1]
-			path := parts[:len(parts)-1]
-			errs = append(
-				errs,
-				fmt.Sprintf("\t field %s not found in %s", field, strings.Join(path, ".")),
-			)
-		}
-		return fmt.Errorf("%v", strings.Join(errs, "\n"))
-	}
-
 	return nil
 }

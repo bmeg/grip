@@ -38,13 +38,13 @@ proto:
 		-I ../googleapis \
 		--lint_out=. \
 		--go_out ./ \
-  	--go_opt paths=source_relative \
+	  	--go_opt paths=source_relative \
 		--go-grpc_out ./ \
 		--go-grpc_opt paths=source_relative \
-		--grpc-gateway_out ./ \
+		--grpc-gateway_out allow_delete_body=true:./ \
 		--grpc-gateway_opt logtostderr=true \
 		--grpc-gateway_opt paths=source_relative \
-		--grcp-rest-direct_out . \
+		--grpc-rest-direct_out . \
 		gripql.proto
 	@cd kvindex && protoc \
 		-I ./ \
@@ -64,13 +64,13 @@ proto:
 
 proto-depends:
 	@git submodule update --init --recursive
-	@go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-grpc-gateway@v2.11.1
-	@go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2@v2.11.1
-	@go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.28.1
+	@go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-grpc-gateway@latest
+	@go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2@latest
+	@go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.34.2
 	@go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
-	@go install github.com/ckaznocha/protoc-gen-lint@v0.2.4
-	@go install github.com/bmeg/protoc-gen-grcp-rest-direct@feature/interceptors
-
+	@go install github.com/ckaznocha/protoc-gen-lint@latest
+	@go install github.com/bmeg/protoc-gen-grpc-rest-direct@latest
+	@go install github.com/ckaznocha/protoc-gen-lint@latest
 
 # ---------------------
 # Code Style
@@ -89,7 +89,7 @@ lint:
 	flake8 gripql/python/ conformance/
 
 lint-depends:
-	go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.35.2
+	go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.59.1
 	go install golang.org/x/tools/cmd/goimports
 
 # ---------------------
@@ -119,16 +119,15 @@ test:
 test-conformance:
 	python conformance/run_conformance.py http://localhost:18201
 
+test-authorization:
+	python conformance/run_auth.py http://localhost:18201 $(ARGS)
+
 # ---------------------
 # Database development
 # ---------------------
 start-mongo:
 	@docker rm -f grip-mongodb-test > /dev/null 2>&1 || echo
-	docker run -d --name grip-mongodb-test -p 27017:27017 docker.io/mongo:3.6.4 > /dev/null
-
-start-elastic:
-	@docker rm -f grip-es-test > /dev/null 2>&1 || echo
-	docker run -d --name grip-es-test -p 19200:9200 -p 9300:9300 -e "discovery.type=single-node" -e "xpack.security.enabled=false" docker.elastic.co/elasticsearch/elasticsearch:5.6.3 > /dev/null
+	docker run -d --name grip-mongodb-test -p 27017:27017 mongo:7.0.13-rc0-jammy > /dev/null
 
 start-postgres:
 	@docker rm -f grip-postgres-test > /dev/null 2>&1 || echo

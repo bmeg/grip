@@ -18,7 +18,7 @@ def test_job(man):
 
     while True:
         cJob = G.getJob(job["id"])
-        print(cJob)
+        #print(cJob)
         if cJob['state'] not in ["RUNNING", "QUEUED"]:
             break
         time.sleep(1)
@@ -41,29 +41,33 @@ def test_job(man):
         errors.append("Job not found in search: %d" % (count))
 
     fullResults = []
+    fullCount = 0
     for res in G.query().V().hasLabel("Planet").out().out().count():
         fullResults.append(res)
+        fullCount = res["count"]
 
     resumedResults = []
     for res in G.resume(job["id"]).out().count().execute():
         resumedResults.append(res)
+        if res["count"] != fullCount:
+            errors.append("Incorrect saved count returned: %d != %d" % (res["count"], fullCount))
 
     if len(fullResults) != len(resumedResults):
-        errors.append( "Missmatch on resumed result" )
+        errors.append( """Missmatch on resumed result: G.query().V().hasLabel("Planet").out().out().count()""" )
 
     fullResults = []
     for res in G.query().V().hasLabel("Planet").as_("a").out().out().select("a"):
         fullResults.append(res)
     #TODO: in the future, this 'fix' may need to be removed.
     #Always producing elements in the same order may become a requirement.
-    fullResults.sort(key=lambda x:x["gid"])
+    fullResults.sort(key=lambda x:x["_id"])
     resumedResults = []
     for res in G.resume(job["id"]).out().select("a").execute():
         resumedResults.append(res)
-    resumedResults.sort(key=lambda x:x["gid"])
+    resumedResults.sort(key=lambda x:x["_id"])
 
     if len(fullResults) != len(resumedResults):
-        errors.append( "Missmatch on resumed result" )
+        errors.append( """Missmatch on resumed result: G.query().V().hasLabel("Planet").as_("a").out().out().select("a")""" )
 
     for a, b in zip(fullResults, resumedResults):
         if a != b:

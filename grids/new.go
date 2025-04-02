@@ -1,37 +1,29 @@
 package grids
 
 import (
+	"bufio"
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
-	"github.com/akrylysov/pogreb"
+	"github.com/bmeg/benchtop/bsontable"
 	"github.com/bmeg/grip/gripql"
-	"github.com/bmeg/grip/kvi"
-	"github.com/bmeg/grip/kvi/pebbledb"
-	"github.com/bmeg/grip/kvindex"
-	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/timestamp"
 )
 
 // Graph implements the GDB interface using a genertic key/value storage driver
 type Graph struct {
-	graphID  string
-	graphKey uint64
+	graphID string
 
-	keyMap  *KeyMap
-	keykv   pogreb.DB
-	graphkv kvi.KVInterface
-	indexkv kvi.KVInterface
-	idx     *kvindex.KVIndex
-	ts      *timestamp.Timestamp
+	keyMap *KeyMap
+	bsonkv *bsontable.BSONDriver
+	ts     *timestamp.Timestamp
 }
 
 // Close the connection
 func (g *Graph) Close() error {
-	g.keyMap.Close()
-	g.graphkv.Close()
-	g.indexkv.Close()
+	g.bsonkv.Close()
 	return nil
 }
 
@@ -48,38 +40,89 @@ func (kgraph *GDB) AddGraph(graph string) error {
 	kgraph.drivers[graph] = g
 	return nil
 }
-
 func newGraph(baseDir, name string) (*Graph, error) {
 	dbPath := filepath.Join(baseDir, name)
+	fmt.Printf("Creating new GRIDS graph %s\n", name)
 
-	log.Infof("Creating new GRIDS graph %s", name)
+	// Create directory if it doesn't exist
+	if _, err := os.Stat(dbPath); os.IsNotExist(err) {
+		if err := os.Mkdir(dbPath, 0700); err != nil {
+			return nil, fmt.Errorf("failed to create directory %s: %v", dbPath, err)
+		}
+	}
 
-	_, err := os.Stat(dbPath)
-	if os.IsNotExist(err) {
-		os.Mkdir(dbPath, 0700)
+	// Create VERSION file
+	versionPath := filepath.Join(dbPath, "VERSION")
+	if err := os.WriteFile(versionPath, []byte("0.0.1"), 0644); err != nil {
+		return nil, fmt.Errorf("failed to create VERSION file: %v", err)
 	}
-	keykvPath := fmt.Sprintf("%s/keymap", dbPath)
-	graphkvPath := fmt.Sprintf("%s/graph", dbPath)
-	indexkvPath := fmt.Sprintf("%s/index", dbPath)
-	keykv, err := pogreb.Open(keykvPath, nil)
+
+	//bsonkvPath := fmt.Sprintf("%s", dbPath)
+	bsonkvPath := dbPath
+	tabledr, err := bsontable.NewBSONDriver(bsonkvPath)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to open bsonkv at %s: %v", bsonkvPath, err)
 	}
-	graphkv, err := pebbledb.NewKVInterface(graphkvPath, kvi.Options{})
-	if err != nil {
-		return nil, err
-	}
-	indexkv, err := pebbledb.NewKVInterface(indexkvPath, kvi.Options{})
-	if err != nil {
-		return nil, err
-	}
+	bsonkv := tabledr.(*bsontable.BSONDriver)
+
 	ts := timestamp.NewTimestamp()
-	o := &Graph{keyMap: NewKeyMap(keykv), graphkv: graphkv, indexkv: indexkv, ts: &ts, idx: kvindex.NewIndex(indexkv)}
 
+	o := &Graph{
+		keyMap:  NewKeyMap(),
+		bsonkv:  bsonkv,
+		ts:      &ts,
+		graphID: name,
+	}
 	return o, nil
 }
 
-// DeleteGraph deletes `graph`
+func getGraph(baseDir, name string) (*Graph, error) {
+	dbPath := filepath.Join(baseDir, name)
+	fmt.Printf("fetching GRIDS graph %s\n", name)
+
+	versionPath := filepath.Join(dbPath, "VERSION")
+	file, err := os.Open(versionPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open VERSION file at %s: %v", versionPath, err)
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	if scanner.Scan() {
+		version := scanner.Text()
+		if strings.TrimSpace(version) != "0.0.1" {
+			return nil, fmt.Errorf("VERSION file at %s does not have '0.0.1' on the first line", versionPath)
+		}
+	} else {
+		return nil, fmt.Errorf("VERSION file at %s is empty", versionPath)
+	}
+
+	if err := scanner.Err(); err != nil {
+		return nil, fmt.Errorf("error reading VERSION file at %s: %v", versionPath, err)
+	}
+
+	//bsonkvPath := fmt.Sprintf("%s", dbPath)
+	bsonkvPath := dbPath
+	tabledr, err := bsontable.LoadBSONDriver(bsonkvPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open bsonkv at %s: %v", bsonkvPath, err)
+	}
+
+	bsonkv := tabledr.(*bsontable.BSONDriver)
+
+	ts := timestamp.NewTimestamp()
+	o := &Graph{
+		keyMap:  NewKeyMap(),
+		bsonkv:  bsonkv,
+		ts:      &ts,
+		graphID: name,
+	}
+	return o, nil
+}
+
+/*
+Since each graph has its own directory, delete the directory to delete the graph
+*/
 func (kgraph *GDB) DeleteGraph(graph string) error {
 	err := gripql.ValidateGraphName(graph)
 	if err != nil {

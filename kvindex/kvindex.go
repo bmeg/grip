@@ -16,15 +16,6 @@ import (
 
 const bufferSize = 1000
 
-func contains(c string, s []string) bool {
-	for _, i := range s {
-		if c == i {
-			return true
-		}
-	}
-	return false
-}
-
 func containsPrefix(c string, s []string) bool {
 	for _, i := range s {
 		if strings.HasPrefix(i, c) {
@@ -64,8 +55,12 @@ func (idx *KVIndex) RemoveField(path string) error {
 	fk := FieldKey(path)
 	fkt := TermPrefix(path)
 	ed := EntryPrefix(path)
+	dk := DocKey(path)
+
 	idx.KV.DeletePrefix(fkt)
 	idx.KV.DeletePrefix(ed)
+	idx.KV.DeletePrefix(dk)
+
 	delete(idx.Fields, path)
 	return idx.KV.Delete(fk)
 }
@@ -101,19 +96,19 @@ func (idx *KVIndex) AddDocTx(tx kvi.KVBulkWrite, docID string, doc map[string]in
 	docKey := DocKey(docID)
 
 	for field, p := range idx.Fields {
-		x := mapDig(doc, p)
-		if x != nil {
-			term, t := GetTermBytes(x)
+		term := getTermOnField(doc, p)
+		if term != nil {
+			termBytes, t := GetTermBytes(term)
 			switch t {
 			case TermString, TermNumber:
-				entryKey := EntryKey(field, t, term, docID)
+				entryKey := EntryKey(field, t, termBytes, docID)
 				err := tx.Set(entryKey, []byte{})
 				if err != nil {
 					return fmt.Errorf("failed to set entry key %s: %v", entryKey, err)
 				}
 				sdoc.Entries = append(sdoc.Entries, entryKey)
 
-				termKey := TermKey(field, t, term)
+				termKey := TermKey(field, t, termBytes)
 				//set the term count to 0 to invalidate it. Later on, if other code trying
 				//to get the term count will have to recount
 				//previously, it was a set(get+1), but for bulk loading, its better
@@ -425,7 +420,7 @@ func (idx *KVIndex) FieldTermNumberMax(field string) float64 {
 	return min
 }
 
-//FieldTermNumberRange gets all number term counts between min and max
+// FieldTermNumberRange gets all number term counts between min and max
 func (idx *KVIndex) FieldTermNumberRange(field string, min, max float64) chan KVTermCount {
 
 	minBytes, _ := GetTermBytes(min)

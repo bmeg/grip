@@ -1,0 +1,6 @@
+{"_id":"patient_a-observation_a1", "_from":"patient_a", "_to":"observation_a1", "_label":"patient_observation"}
+{"_id":"patient_a-observation_a2", "_from":"patient_a", "_to":"observation_a2", "_label":"patient_observation"}
+{"_id":"patient_a-observation_a3", "_from":"patient_a", "_to":"observation_a3", "_label":"patient_observation"}
+{"_id":"patient_b-observation_b1", "_from":"patient_b", "_to":"observation_b1", "_label":"patient_observation"}
+{"_id":"patient_b-observation_b2", "_from":"patient_b", "_to":"observation_b2", "_label":"patient_observation"}
+{"_id":"patient_b-observation_b3", "_from":"patient_b", "_to":"observation_b3", "_label":"patient_observation"}

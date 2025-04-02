@@ -1,6 +1,7 @@
 from __future__ import absolute_import, print_function, unicode_literals
 
 import json
+import requests
 
 from gripql.util import BaseConnection, raise_for_status
 from gripql.query import Query
@@ -11,6 +12,21 @@ class Graph(BaseConnection):
         super(Graph, self).__init__(url, user, password, token, credential_file)
         self.url = self.base_url + "/v1/graph/" + graph
         self.graph = graph
+
+    def addJsonSchema(self, fhirjson):
+       """
+       Add a Json Schema for a graph
+       """
+       payload = {
+           "graph": self.graph,
+           "data":fhirjson,
+       }
+       response = self.session.post(
+           self.url + "/jsonschema",
+           json=payload
+       )
+       raise_for_status(response)
+       return response.json()
 
     def addSchema(self, vertices=[], edges=[]):
         """
@@ -48,12 +64,12 @@ class Graph(BaseConnection):
         raise_for_status(response)
         return response.json()
 
-    def addVertex(self, gid, label, data={}):
+    def addVertex(self, id, label, data={}):
         """
         Add vertex to a graph.
         """
         payload = {
-            "gid": gid,
+            "id": id,
             "label": label,
             "data": data
         }
@@ -64,29 +80,29 @@ class Graph(BaseConnection):
         raise_for_status(response)
         return response.json()
 
-    def deleteVertex(self, gid):
+    def deleteVertex(self, id):
         """
         Delete a vertex from the graph.
         """
-        url = self.url + "/vertex/" + gid
+        url = self.url + "/vertex/" + id
         response = self.session.delete(
             url
         )
         raise_for_status(response)
         return response.json()
 
-    def getVertex(self, gid):
+    def getVertex(self, id):
         """
         Get a vertex by id.
         """
-        url = self.url + "/vertex/" + gid
+        url = self.url + "/vertex/" + id
         response = self.session.get(
             url
         )
         raise_for_status(response)
         return response.json()
 
-    def addEdge(self, src, dst, label, data={}, gid=None):
+    def addEdge(self, src, dst, label, data={}, id=None):
         """
         Add edge to the graph.
         """
@@ -96,8 +112,8 @@ class Graph(BaseConnection):
             "label": label,
             "data": data
         }
-        if gid is not None:
-            payload["gid"] = gid
+        if id is not None:
+            payload["id"] = id
         response = self.session.post(
             self.url + "/edge",
             json=payload
@@ -105,30 +121,49 @@ class Graph(BaseConnection):
         raise_for_status(response)
         return response.json()
 
-    def deleteEdge(self, gid):
+    def deleteEdge(self, id):
         """
         Delete an edge from the graph.
         """
-        url = self.url + "/edge/" + gid
+        url = self.url + "/edge/" + id
         response = self.session.delete(
             url
         )
         raise_for_status(response)
         return response.json()
 
-    def getEdge(self, gid):
+    def getEdge(self, id):
         """
         Get an edge by id.
         """
-        url = self.url + "/edge/" + gid
+        url = self.url + "/edge/" + id
         response = self.session.get(
             url
         )
         raise_for_status(response)
         return response.json()
 
+    def delete(self, vertices=[], edges=[]):
+        """
+        delete data from graph
+        """
+        payload = {
+            "graph": self.graph,
+            "vertices": vertices,
+            "edges": edges
+        }
+        response = self.session.delete(
+            self.base_url + "/v1/graph",
+            json=payload
+        )
+        raise_for_status(response)
+        return response.json()
+
     def bulkAdd(self):
         return BulkAdd(self.base_url, self.graph, self.user, self.password, self.token)
+
+    def bulkAddRaw(self):
+        return BulkAddRaw(self.base_url, self.graph, self.user, self.password, self.token)
 
     def addIndex(self, label, field):
         url = self.url + "/index/" + label
@@ -250,18 +285,18 @@ class BulkAdd(BaseConnection):
         self.graph = graph
         self.elements = []
 
-    def addVertex(self, gid, label, data={}):
+    def addVertex(self, id, label, data={}):
         payload = {
             "graph": self.graph,
             "vertex": {
-                "gid": gid,
+                "id": id,
                 "label": label,
                 "data": data
             }
         }
         self.elements.append(json.dumps(payload))
 
-    def addEdge(self, src, dst, label, data={}, gid=None):
+    def addEdge(self, src, dst, label, data={}, id=None):
         payload = {
             "graph": self.graph,
             "edge": {
@@ -271,9 +306,37 @@ class BulkAdd(BaseConnection):
                 "data": data
             }
         }
-        if gid is not None:
-            payload["gid"] = gid
+        if id is not None:
+            payload["id"] = id
         self.elements.append(json.dumps(payload))
+
+    def execute(self):
+        payload = "\n".join(self.elements)
+        response = self.session.post(
+            self.url,
+            data=payload
+        )
+        raise_for_status(response)
+        return response.json()
+
+
+class BulkAddRaw(BaseConnection):
+    def __init__(self, url, graph, extraArgs=None, user=None, password=None, token=None, credential_file=None):
+        super(BulkAddRaw, self).__init__(url, user, password, token, credential_file)
+        self.url = self.base_url + "/v1/rawJson"
+        self.graph = graph
+        self.extraArgs = {"auth_resource_path": "test-data"}
+        self.elements = []
+
+
+    def addJson(self, data={}):
+        payload = {
+            "graph": self.graph,
+            "extra_args": self.extraArgs,
+            "data": data
+        }
+        self.elements.append(json.dumps(payload))
+
 
     def execute(self):
         payload = "\n".join(self.elements)

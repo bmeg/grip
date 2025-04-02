@@ -73,7 +73,7 @@ func (ma *GraphDB) getVertexSchema(ctx context.Context, graph string, n uint32, 
 			pipe := []bson.M{
 				{
 					"$match": bson.M{
-						"label": bson.M{"$eq": label},
+						FIELD_LABEL: bson.M{"$eq": label},
 					},
 				},
 			}
@@ -84,7 +84,10 @@ func (ma *GraphDB) getVertexSchema(ctx context.Context, graph string, n uint32, 
 				pipe = append(pipe, bson.M{"$limit": n})
 			}
 
-			cursor, _ := ma.VertexCollection(graph).Aggregate(context.TODO(), pipe)
+			cursor, err := ma.VertexCollection(graph).Aggregate(context.TODO(), pipe)
+			if err != nil {
+				log.Errorf("Vertex schema scan error: %s", err)
+			}
 			result := make(map[string]interface{})
 			schema := make(map[string]interface{})
 			for cursor.Next(context.TODO()) {
@@ -94,8 +97,8 @@ func (ma *GraphDB) getVertexSchema(ctx context.Context, graph string, n uint32, 
 
 				default:
 					if err := cursor.Decode(&result); err == nil {
-						if result["data"] != nil {
-							ds := gripql.GetDataFieldTypes(result["data"].(map[string]interface{}))
+						if result != nil {
+							ds := gripql.GetDataFieldTypes(result)
 							util.MergeMaps(schema, ds)
 						}
 					} else {
@@ -108,7 +111,7 @@ func (ma *GraphDB) getVertexSchema(ctx context.Context, graph string, n uint32, 
 				return err
 			}
 			sSchema, _ := structpb.NewStruct(schema)
-			vSchema := &gripql.Vertex{Gid: label, Label: label, Data: sSchema}
+			vSchema := &gripql.Vertex{Id: label, Label: "Vertex", Data: sSchema}
 			schemaChan <- vSchema
 			log.WithFields(log.Fields{"graph": graph, "label": label, "elapsed_time": time.Since(start).String()}).Debug("getVertexSchema: Finished schema build")
 			return nil
@@ -153,7 +156,7 @@ func (ma *GraphDB) getEdgeSchema(ctx context.Context, graph string, n uint32, ra
 			pipe := []bson.M{
 				{
 					"$match": bson.M{
-						"label": bson.M{"$eq": label},
+						FIELD_LABEL: bson.M{"$eq": label},
 					},
 				},
 			}
@@ -177,9 +180,9 @@ func (ma *GraphDB) getEdgeSchema(ctx context.Context, graph string, n uint32, ra
 
 				default:
 					if err := cursor.Decode(&result); err == nil {
-						fromToPairs.Add(fromtokey{result["from"].(string), result["to"].(string)})
-						if result["data"] != nil {
-							ds := gripql.GetDataFieldTypes(result["data"].(map[string]interface{}))
+						fromToPairs.Add(fromtokey{result[FIELD_FROM].(string), result[FIELD_TO].(string)})
+						if result != nil {
+							ds := gripql.GetDataFieldTypes(result)
 							util.MergeMaps(schema, ds)
 						}
 					} else {
@@ -199,7 +202,7 @@ func (ma *GraphDB) getEdgeSchema(ctx context.Context, graph string, n uint32, ra
 			for j := 0; j < len(from); j++ {
 				sSchema, _ := structpb.NewStruct(schema)
 				eSchema := &gripql.Edge{
-					Gid:   fmt.Sprintf("(%s)--%s->(%s)", from[j], label, to[j]),
+					Id:    fmt.Sprintf("(%s)--%s->(%s)", from[j], label, to[j]),
 					Label: label,
 					From:  from[j],
 					To:    to[j],
@@ -277,18 +280,18 @@ func (ma *GraphDB) resolveLabels(graph string, ft fromto) fromto {
 			to := ""
 			result := map[string]string{}
 			opts := options.FindOne()
-			opts.SetProjection(bson.M{"_id": -1, "label": 1})
+			opts.SetProjection(bson.M{"_id": -1, "_label": 1})
 			cursor := v.FindOne(context.TODO(), bson.M{"_id": fromID}, opts)
 			if cursor.Err() == nil {
 				if nil == cursor.Decode(&result) {
-					from = result["label"]
+					from = result["_label"]
 				}
 			}
 			result = map[string]string{}
 			cursor = v.FindOne(context.TODO(), bson.M{"_id": toID}, opts)
 			if cursor.Err() == nil {
 				if nil == cursor.Decode(&result) {
-					to = result["label"]
+					to = result["_label"]
 				}
 			}
 			if from != "" && to != "" {

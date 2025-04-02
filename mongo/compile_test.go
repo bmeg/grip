@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/bmeg/grip/gdbi/tpath"
 	"github.com/bmeg/grip/gripql"
-	"github.com/bmeg/grip/jsonpath"
 	"github.com/bmeg/grip/util"
 	"go.mongodb.org/mongo-driver/bson"
 )
@@ -31,20 +31,20 @@ func TestQuerySizeLimit(t *testing.T) {
 
 func TestDistinctPathing(t *testing.T) {
 
-	fields := []string{"$case._gid", "$compound._gid"}
+	fields := []string{"$case._id", "$compound._id"}
 
 	match := bson.M{}
 	keys := bson.M{}
 
 	for _, f := range fields {
-		namespace := jsonpath.GetNamespace(f)
+		namespace := tpath.GetNamespace(f)
 		fmt.Printf("Namespace: %s\n", namespace)
-		f = jsonpath.GetJSONPath(f)
+		f = tpath.NormalizePath(f)
 		f = strings.TrimPrefix(f, "$.")
-		if f == "gid" {
-			f = "_id"
+		if f == "id" {
+			f = FIELD_ID
 		}
-		if namespace != jsonpath.Current {
+		if namespace != tpath.CURRENT {
 			f = fmt.Sprintf("marks.%s.%s", namespace, f)
 		}
 		match[f] = bson.M{"$exists": true}

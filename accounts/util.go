@@ -23,6 +23,9 @@ func (c *Config) init() {
 		if c.Auth.Basic != nil {
 			c.auth = c.Auth.Basic
 		}
+		if c.Auth.Proxy != nil {
+			c.auth = c.Auth.Proxy
+		}
 	}
 	if c.auth == nil {
 		c.auth = NullAuth{}
@@ -111,7 +114,7 @@ func streamAuthInterceptor(auth Authenticate, access Access) grpc.StreamServerIn
 				if err != nil {
 					return status.Error(codes.Unknown, "Request error")
 				}
-				err = access.Enforce(user, w.Request.Graph, Read)
+				err = access.Enforce(user, w.Request.Graph, Query)
 				if err != nil {
 					return status.Error(codes.PermissionDenied, "PermissionDenied")
 				}
@@ -138,6 +141,10 @@ func streamAuthInterceptor(auth Authenticate, access Access) grpc.StreamServerIn
 				//stream URL formatting, each write request can
 				//reference a different graph
 				return handler(srv, &BulkWriteFilter{ss, user, access})
+			} else if info.FullMethod == "/gripql.Edit/BulkDelete" {
+				return handler(srv, &BulkWriteFilter{ss, user, access})
+			} else if info.FullMethod == "/gripql.Edit/BulkAddRaw" {
+				return handler(srv, &BulkWriteRawFilter{ss, user, access})
 			} else {
 				log.Errorf("Unknown input streaming op %#v!!!", info)
 				return handler(srv, ss)
@@ -184,8 +191,14 @@ func getUnaryRequestGraph(req interface{}, info *grpc.UnaryServerInfo) (string, 
 	case "/gripql.Edit/AddSchema", "/gripql.Edit/AddMapping":
 		o := req.(*gripql.Graph)
 		return o.Graph, nil
+	case "/gripql.Edit/AddJsonSchema":
+		o := req.(*gripql.RawJson)
+		return o.Graph, nil
 	case "/gripql.Edit/SampleSchema":
 		o := req.(*gripql.GraphID)
+		return o.Graph, nil
+	case "/gripql.Edit/BulkDelete":
+		o := req.(*gripql.DeleteData)
 		return o.Graph, nil
 	case "/gripql.Configure/StartPlugin", "/gripql.Configure/ListPlugins", "/gripql.Configure/ListDrivers":
 		return "*", nil //these operations effect all graphs

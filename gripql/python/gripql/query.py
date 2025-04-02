@@ -78,6 +78,17 @@ class Query(BaseConnection):
         label = _wrap_str_value(label)
         return self.__append({"in": label})
 
+    def inNull(self, label=[]):
+        """
+        Follow an incoming edge to the source vertex.
+
+        "label" is the label of the edge to follow.
+        "label" can be a list.
+        """
+        label = _wrap_str_value(label)
+        return self.__append({"inNull": label})
+
+
     def inV(self, label=[]):
         return self.in_(label)
 
@@ -90,6 +101,17 @@ class Query(BaseConnection):
         """
         label = _wrap_str_value(label)
         return self.__append({"out": label})
+
+    def outNull(self, label=[]):
+        """
+        Follow an outgoing edge to the destination vertex.
+
+        "label" is the label of the edge to follow.
+        "label" can be a list.
+        """
+        label = _wrap_str_value(label)
+        return self.__append({"outNull": label})
+
 
     def outV(self, label=[]):
         return self.out(label)
@@ -119,6 +141,19 @@ class Query(BaseConnection):
         label = _wrap_str_value(label)
         return self.__append({"inE": label})
 
+    def inENull(self, label=[]):
+        """
+        Move from a vertex to an incoming edge.
+
+        "label" is the label of the edge to move to.
+        "label" can be a list.
+
+        Must be called from a vertex.
+        """
+        label = _wrap_str_value(label)
+        return self.__append({"inENull": label})
+
+
     def outE(self, label=[]):
         """
         Move from a vertex to an outgoing edge.
@@ -130,6 +165,18 @@ class Query(BaseConnection):
         """
         label = _wrap_str_value(label)
         return self.__append({"outE": label})
+
+    def outENull(self, label=[]):
+        """
+        Move from a vertex to an outgoing edge.
+
+        "label" is the label of the edge to move to.
+        "label" can be a list.
+
+        Must be called from a vertex.
+        """
+        label = _wrap_str_value(label)
+        return self.__append({"outENull": label})
 
     def bothE(self, label=[]):
         """
@@ -185,21 +232,18 @@ class Query(BaseConnection):
         """
         return self.__append({"as": name})
 
-    def select(self, marks):
+    def select(self, name):
         """
-        Returns rows of marked elements, with one item for each mark.
+        Move traveler back to a previously marked position
 
-        "marks" is a list of mark names.
-        The rows returned are all combinations of marks, e.g.
-        [
-            [A1, B1],
-            [A1, B2],
-            [A2, B1],
-            [A2, B2],
-        ]
         """
-        marks = _wrap_str_value(marks)
-        return self.__append({"select": {"marks": marks}})
+        return self.__append({"select": name})
+
+    def sort(self, field, descending=False):
+        """
+        Sort return rows by field
+        """
+        return self.__append({"sort" : {"fields": [{"field":field, "descending":descending}]}})
 
     def limit(self, n):
         """
@@ -266,6 +310,12 @@ class Query(BaseConnection):
         """
         return self.__append({"render": template})
 
+    def pivot(self, id, field, value):
+        """
+        Render output of query
+        """
+        return self.__append({"pivot": {"id":id, "field":field, "value":value}})
+
     def path(self):
         """
         Display path of query
@@ -277,6 +327,18 @@ class Query(BaseConnection):
         Unwind an array
         """
         return self.__append({"unwind": field})
+
+    def group(self,fields):
+        """
+        Group togeather travelers that are on the same element
+        """
+        return self.__append({"group" : {"fields" : fields }})
+
+    def totype(self, path, typeName):
+        """
+        Cast a field located at 'path' to a primitive type or list specified as 'typeName'
+        """
+        return self.__append({"totype" : {"field" : path, "type_name": typeName }})
 
     def aggregate(self, aggregations):
         """

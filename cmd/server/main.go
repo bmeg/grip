@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"strings"
 
 	"github.com/bmeg/grip/config"
 	"github.com/bmeg/grip/log"
@@ -17,7 +18,11 @@ import (
 
 var conf = &config.Config{}
 var configFile string
-var driver = "badger"
+var driver = "pebble"
+var verbose bool
+
+var endPoints = map[string]string{}
+var endPointConfig = map[string]string{}
 
 var pluginDir = ""
 
@@ -40,6 +45,19 @@ func Run(conf *config.Config, baseDir string) error {
 	srv, err := server.NewGripServer(conf, baseDir, nil)
 	if err != nil {
 		return err
+	}
+
+	for k, v := range endPoints {
+		c := map[string]string{}
+		for ck, cv := range endPointConfig {
+			if strings.HasPrefix(ck, k+":") {
+				nk := ck[len(k)+1:]
+				c[nk] = cv
+			}
+		}
+		if err := srv.AddEndpoint(k, v, c); err != nil {
+			log.Errorf("Error loading pluging %s: %s", k, err)
+		}
 	}
 
 	// Start server
@@ -73,6 +91,10 @@ var Cmd = &cobra.Command{
 				dconf.AddPebbleDefault()
 			} else if driver == "mongo" {
 				dconf.AddMongoDefault()
+			} else if driver == "grids" {
+				dconf.AddGridsDefault()
+			} else if driver == "sqlite" {
+				dconf.AddSqliteDefault()
 			}
 		}
 		if pluginDir != "" {
@@ -92,6 +114,11 @@ var Cmd = &cobra.Command{
 				conf.RPCClient.ServerAddress = conf.Server.RPCAddress()
 			}
 		}
+
+		if verbose {
+			conf.Logger.Level = "debug"
+		}
+
 		return nil
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -109,8 +136,13 @@ func init() {
 	flags.StringVar(&conf.Logger.Formatter, "log-format", conf.Logger.Formatter, "Log format [text, json]")
 	flags.BoolVar(&conf.Server.RequestLogging.Enable, "log-requests", conf.Server.RequestLogging.Enable, "Log all requests")
 
+	flags.BoolVar(&verbose, "verbose", verbose, "Verbose")
+
 	flags.StringVarP(&pluginDir, "plugins", "p", pluginDir, "Directory with GRIPPER plugins")
 	flags.StringVarP(&driver, "driver", "d", driver, "Default Driver")
+
+	flags.StringToStringVarP(&endPoints, "endpoint", "w", endPoints, "web endpoint plugins")
+	flags.StringToStringVarP(&endPointConfig, "endpoint-config", "l", endPointConfig, "web endpoint configuration")
 
 	flags.StringToStringVarP(&conf.Sources, "er", "e", conf.Sources, "GRIPPER source address")
 }

@@ -1,0 +1,8 @@
+{"_id":"patient_a", "_label":"Patient", "name":"Alice"}
+{"_id":"patient_b", "_label":"Patient", "name":"Bob"}
+{"_id":"observation_a1", "_label":"Observation", "key":"age", "value":36}
+{"_id":"observation_a2", "_label":"Observation", "key":"sex", "value":"Female"}
+{"_id":"observation_a3", "_label":"Observation", "key":"blood_pressure", "value":"111/78"}
+{"_id":"observation_b1", "_label":"Observation", "key":"age", "value":42}
+{"_id":"observation_b2", "_label":"Observation", "key":"sex", "value":"Male"}
+{"_id":"observation_b3", "_label":"Observation", "key":"blood_pressure", "value":"120/80"}

@@ -4,6 +4,8 @@ import (
 	"encoding/binary"
 	"fmt"
 	"math"
+
+	"github.com/bmeg/grip/util/setcmp"
 )
 
 // TermType defines in a term is a Number or a String
@@ -37,18 +39,19 @@ func fieldScan(docID string, doc map[string]interface{}, fieldPrefix string, fie
 		if containsPrefix(f, fields) {
 			if x, ok := v.(map[string]interface{}); ok {
 				fieldScan(docID, x, fmt.Sprintf("%s.%s", fieldPrefix, k), fields, out)
-			} else if contains(f, fields) {
+			} else if setcmp.ContainsString(fields, f) {
 				out <- newEntry(docID, f, v)
 			}
 		}
 	}
 }
 
-func mapDig(i map[string]interface{}, path []string) interface{} {
+// Given a list of fields (graphs), return term (label) of doc (graph element) if it exists on field
+func getTermOnField(i map[string]interface{}, path []string) interface{} {
 	if x, ok := i[path[0]]; ok {
 		if len(path) > 1 {
 			if y, ok := x.(map[string]interface{}); ok {
-				return mapDig(y, path[1:])
+				return getTermOnField(y, path[1:])
 			}
 		} else {
 			return x

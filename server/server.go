@@ -10,23 +10,22 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/bmeg/grip/config"
 	"github.com/bmeg/grip/cypher"
 	"github.com/bmeg/grip/gdbi"
-	"github.com/bmeg/grip/graphql"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/jobstorage"
 	"github.com/bmeg/grip/log"
+	"github.com/bmeg/grip/sqlite"
 	"github.com/felixge/httpsnoop"
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
-	"google.golang.org/protobuf/encoding/protojson"
 
-	"github.com/bmeg/grip/elastic"
 	esql "github.com/bmeg/grip/existing-sql"
 	"github.com/bmeg/grip/grids"
 	"github.com/bmeg/grip/gripper"
@@ -34,7 +33,7 @@ import (
 	_ "github.com/bmeg/grip/kvi/badgerdb" // import so badger will register itself
 	_ "github.com/bmeg/grip/kvi/boltdb"   // import so bolt will register itself
 	_ "github.com/bmeg/grip/kvi/leveldb"  // import so level will register itself
-	_ "github.com/bmeg/grip/kvi/pebbledb" // import so level will register itself
+	_ "github.com/bmeg/grip/kvi/pebbledb" // import so pebbledb will register itself
 	"github.com/bmeg/grip/mongo"
 	"github.com/bmeg/grip/psql"
 )
@@ -45,15 +44,16 @@ type GripServer struct {
 	gripql.UnimplementedEditServer
 	gripql.UnimplementedJobServer
 	gripql.UnimplementedConfigureServer
-	dbs      map[string]gdbi.GraphDB  //graph database drivers
-	graphMap map[string]string        //mapping from graph name to graph database driver
-	conf     *config.Config           //global configuration
-	schemas  map[string]*gripql.Graph //cached schemas
-	mappings map[string]*gripql.Graph //cached gripper graph mappings
-	plugins  map[string]*Plugin
-	sources  map[string]gripper.GRIPSourceClient
-	baseDir  string
-	jStorage jobstorage.JobStorage
+	dbs        map[string]gdbi.GraphDB  //graph database drivers
+	graphMap   map[string]string        //mapping from graph name to graph database driver
+	conf       *config.Config           //global configuration
+	schemas    map[string]*gripql.Graph //cached schemas
+	mappings   map[string]*gripql.Graph //cached gripper graph mappings
+	plugins    map[string]*Plugin
+	sources    map[string]gripper.GRIPSourceClient
+	baseDir    string
+	jStorage   jobstorage.JobStorage
+	streamPool *sync.Pool
 }
 
 // NewGripServer initializes a GRPC server to connect to the graph store
@@ -89,17 +89,27 @@ func NewGripServer(conf *config.Config, baseDir string, drivers map[string]gdbi.
 			g, err := StartDriver(dConfig, sources)
 			if err == nil {
 				gdbs[name] = g
+			} else {
+				log.Errorf("Driver start error: %s", err)
 			}
 		}
 	}
 
+	// Add an element pool for managing resources when streaming data
+	var graphElementPool = &sync.Pool{
+		New: func() interface{} {
+			return &gdbi.GraphElement{}
+		},
+	}
+
 	server := &GripServer{
-		dbs:      gdbs,
-		conf:     conf,
-		schemas:  schemas,
-		mappings: map[string]*gripql.Graph{},
-		plugins:  map[string]*Plugin{},
-		sources:  sources,
+		dbs:        gdbs,
+		conf:       conf,
+		schemas:    schemas,
+		mappings:   map[string]*gripql.Graph{},
+		plugins:    map[string]*Plugin{},
+		sources:    sources,
+		streamPool: graphElementPool,
 	}
 
 	if conf.Default == "" {
@@ -129,14 +139,14 @@ func StartDriver(d config.DriverConfig, sources map[string]gripper.GRIPSourceCli
 		return kvgraph.NewKVGraphDB("pebble", *d.Pebble)
 	} else if d.Grids != nil {
 		return grids.NewGraphDB(*d.Grids)
-	} else if d.Elasticsearch != nil {
-		return elastic.NewGraphDB(*d.Elasticsearch)
 	} else if d.MongoDB != nil {
 		return mongo.NewGraphDB(*d.MongoDB)
 	} else if d.PSQL != nil {
 		return psql.NewGraphDB(*d.PSQL)
 	} else if d.ExistingSQL != nil {
 		return esql.NewGraphDB(*d.ExistingSQL)
+	} else if d.Sqlite != nil {
+		return sqlite.NewGraphDB(*d.Sqlite)
 	} else if d.Gripper != nil {
 		return gripper.NewGDBFromConfig(d.Gripper.Graph, d.Gripper.Mapping, sources)
 	}
@@ -192,16 +202,11 @@ func (server *GripServer) Serve(pctx context.Context) error {
 	)
 
 	// Setup RESTful proxy
-	marsh := MarshalClean{
-		m: &runtime.JSONPb{
-			protojson.MarshalOptions{EmitUnpopulated: true},
-			protojson.UnmarshalOptions{},
-			//EnumsAsInts:  false,
-			//EmitDefaults: true,
-			//OrigName:     true,
-		},
-	}
-	grpcMux := runtime.NewServeMux(runtime.WithMarshalerOption("*/*", &marsh))
+	marsh := NewMarshaler()
+	grpcMux := runtime.NewServeMux(
+		runtime.WithForwardResponseRewriter(FlattenRewriter),
+		runtime.WithMarshalerOption(runtime.MIMEWildcard, marsh),
+	)
 	mux := http.NewServeMux()
 
 	// Setup GraphQL handler
@@ -216,15 +221,51 @@ func (server *GripServer) Serve(pctx context.Context) error {
 		if err != nil {
 			return fmt.Errorf("setting up GraphQL handler: %v", err)
 		}*/
-	gqlHandler, err := graphql.NewClientHTTPHandler(
-		gripql.WrapClient(gripql.NewQueryDirectClient(
+	/*
+		gqlHandler, err := graphql.NewClientHTTPHandler(
+			gripql.WrapClient(gripql.NewQueryDirectClient(
+				server,
+				gripql.DirectUnaryInterceptor(unaryAuthInt),
+				gripql.DirectStreamInterceptor(streamAuthInt),
+			),
+				nil, nil, nil))
+
+		mux.Handle("/graphql/", gqlHandler)
+	*/
+
+	for name, setup := range endpointMap {
+		queryClient := gripql.NewQueryDirectClient(
 			server,
 			gripql.DirectUnaryInterceptor(unaryAuthInt),
 			gripql.DirectStreamInterceptor(streamAuthInt),
-		),
-			nil, nil, nil))
+		)
+		// TODO: make writeClient initialization configurable
+		writeClient := gripql.NewEditDirectClient(
+			server,
+			gripql.DirectUnaryInterceptor(unaryAuthInt),
+			gripql.DirectStreamInterceptor(streamAuthInt),
+		)
+		jobClient := gripql.NewJobDirectClient(
+			server,
+			gripql.DirectUnaryInterceptor(unaryAuthInt),
+			gripql.DirectStreamInterceptor(streamAuthInt),
+		)
+		configureClient := gripql.NewConfigureDirectClient(
+			server,
+			gripql.DirectUnaryInterceptor(unaryAuthInt),
+			gripql.DirectStreamInterceptor(streamAuthInt),
+		)
 
-	mux.Handle("/graphql/", gqlHandler)
+		cfg := endpointConfig[name]
+		handler, err := setup(gripql.WrapClient(queryClient, writeClient, jobClient, configureClient), cfg)
+		if err == nil {
+			log.Infof("Plugin added to /%s/", name)
+			prefix := fmt.Sprintf("/%s/", name)
+			mux.Handle(prefix, http.StripPrefix(prefix, handler))
+		} else {
+			log.Errorf("Unable to load plugin %s: %s", name, err)
+		}
+	}
 
 	cypherHandler, err := cypher.NewHTTPHandler(
 		gripql.WrapClient(gripql.NewQueryDirectClient(

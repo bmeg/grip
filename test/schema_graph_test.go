@@ -14,7 +14,7 @@ import (
 )
 
 func TestSchema(t *testing.T) {
-	if dbname == "psql" || dbname == "existing-sql" || dbname == "elastic" {
+	if dbname == "psql" || dbname == "existing-sql" {
 		t.Skip("skipping schema test")
 	}
 
@@ -65,7 +65,7 @@ func TestSchema(t *testing.T) {
 	expected := &gripql.QueryResult{
 		Result: &gripql.QueryResult_Vertex{
 			Vertex: &gripql.Vertex{
-				Gid:   "users",
+				Id:    "users",
 				Label: "users",
 				Data:  ds,
 			},

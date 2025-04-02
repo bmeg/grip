@@ -3,7 +3,11 @@ package server
 import (
 	"io"
 
+	"github.com/bmeg/grip/gripql"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
+	"golang.org/x/net/context"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 )
 
 // MarshalClean is a shim class to 'fix' outgoing streamed messages
@@ -12,6 +16,18 @@ import (
 // removes the wrapper
 type MarshalClean struct {
 	m runtime.Marshaler
+}
+
+func NewMarshaler() runtime.Marshaler {
+	return &MarshalClean{
+		m: &runtime.JSONPb{
+			protojson.MarshalOptions{EmitUnpopulated: true},
+			protojson.UnmarshalOptions{},
+			//EnumsAsInts:  false,
+			//EmitDefaults: true,
+			//OrigName:     true,
+		},
+	}
 }
 
 // ContentType return content type of marshler
@@ -26,7 +42,7 @@ func (mclean *MarshalClean) ContentType(i interface{}) string {
 func (mclean *MarshalClean) Marshal(v interface{}) ([]byte, error) {
 	if x, ok := v.(map[string]interface{}); ok {
 		if val, ok := x["result"]; ok {
-			return mclean.m.Marshal(val)
+			return mclean.Marshal(val)
 		}
 	}
 	return mclean.m.Marshal(v)
@@ -45,4 +61,38 @@ func (mclean *MarshalClean) NewEncoder(w io.Writer) runtime.Encoder {
 // Unmarshal shims runtime.Marshaler.Unmarshal
 func (mclean *MarshalClean) Unmarshal(data []byte, v interface{}) error {
 	return mclean.m.Unmarshal(data, v)
+}
+
+func FlattenRewriter(_ context.Context, response proto.Message) (interface{}, error) {
+	//fmt.Printf("Calling re-writer\n")
+	switch v := response.(type) {
+	case *gripql.Vertex:
+		out := v.Data.AsMap()
+		out["_id"] = v.Id
+		out["_label"] = v.Label
+		return out, nil
+	case *gripql.Edge:
+		out := v.Data.AsMap()
+		out["_id"] = v.Id
+		out["_label"] = v.Label
+		out["_to"] = v.To
+		out["_from"] = v.From
+		return out, nil
+	case *gripql.QueryResult:
+		if e := v.GetVertex(); e != nil {
+			out := e.Data.AsMap()
+			out["_id"] = e.Id
+			out["_label"] = e.Label
+			return map[string]any{"vertex": out}, nil
+		} else if e := v.GetEdge(); e != nil {
+			out := e.Data.AsMap()
+			out["_id"] = e.Id
+			out["_label"] = e.Label
+			out["_to"] = e.To
+			out["_from"] = e.From
+			return map[string]any{"edge": out}, nil
+
+		}
+	}
+	return response, nil
 }

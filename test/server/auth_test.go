@@ -61,7 +61,7 @@ func TestBasicAuthFail(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, err = cli.Traversal(&gripql.GraphQuery{Graph: "test", Query: gripql.NewQuery().V().Statements})
+	_, err = cli.Traversal(context.Background(), &gripql.GraphQuery{Graph: "test", Query: gripql.NewQuery().V().Statements})
 	if err == nil || !strings.Contains(err.Error(), "PermissionDenied") {
 		t.Errorf("expected PermissionDenied error; got: %v", err)
 	}
@@ -126,12 +126,12 @@ func TestBasicAuth(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	err = cli.AddVertex("test", &gripql.Vertex{Gid: "1", Label: "test"})
+	err = cli.AddVertex("test", &gripql.Vertex{Id: "1", Label: "test"})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	_, err = cli.Traversal(&gripql.GraphQuery{Graph: "test", Query: gripql.NewQuery().V().Statements})
+	_, err = cli.Traversal(context.Background(), &gripql.GraphQuery{Graph: "test", Query: gripql.NewQuery().V().Statements})
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -252,7 +252,7 @@ func TestCasbinAccess(t *testing.T) {
 	fmt.Printf("Doing http traversal\n")
 	resp, err = httpQuery(conf.Server.HTTPPort, "test1", "bob", "1234", q)
 	if err != nil || resp.StatusCode != 200 {
-		t.Errorf("unexpected error: %v", err)
+		t.Errorf("unexpected error: %v, status: %d", err, resp.StatusCode)
 	}
 
 	/*

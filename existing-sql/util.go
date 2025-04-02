@@ -89,7 +89,7 @@ func convertData(data map[string]interface{}, types map[string]*sql.ColumnType) 
 
 func rowDataToVertex(schema *Vertex, data map[string]interface{}, types map[string]*sql.ColumnType, load bool) *gripql.Vertex {
 	v := &gripql.Vertex{
-		Gid:   fmt.Sprintf("%v:%v", schema.Table, data[schema.GidField]),
+		Id:    fmt.Sprintf("%v:%v", schema.Table, data[schema.GidField]),
 		Label: schema.Label,
 	}
 	if load {
@@ -101,7 +101,7 @@ func rowDataToVertex(schema *Vertex, data map[string]interface{}, types map[stri
 
 func rowDataToEdge(schema *Edge, data map[string]interface{}, types map[string]*sql.ColumnType, load bool) *gripql.Edge {
 	e := &gripql.Edge{
-		Gid:   fmt.Sprintf("%v:%v", schema.Table, data[schema.GidField]),
+		Id:    fmt.Sprintf("%v:%v", schema.Table, data[schema.GidField]),
 		Label: schema.Label,
 		From:  fmt.Sprintf("%v:%v", schema.From.DestTable, data[schema.From.SourceField]),
 		To:    fmt.Sprintf("%v:%v", schema.To.DestTable, data[schema.To.SourceField]),
@@ -133,7 +133,7 @@ func (geid generatedEdgeID) String() string {
 
 func (geid generatedEdgeID) Edge() *gripql.Edge {
 	return &gripql.Edge{
-		Gid:   geid.String(),
+		Id:    geid.String(),
 		Label: geid.Label,
 		From:  fmt.Sprintf("%v:%v", geid.FromTable, geid.FromID),
 		To:    fmt.Sprintf("%v:%v", geid.ToTable, geid.ToID),

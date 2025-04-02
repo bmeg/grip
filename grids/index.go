@@ -5,87 +5,38 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
-	"github.com/bmeg/grip/jsonpath"
 	"github.com/bmeg/grip/log"
 )
 
-func (kgraph *Graph) setupGraphIndex(graph string) error {
-	err := kgraph.idx.AddField(fmt.Sprintf("%s.v.label", graph))
-	if err != nil {
-		return fmt.Errorf("failed to setup index on vertex label")
-	}
-	err = kgraph.idx.AddField(fmt.Sprintf("%s.e.label", graph))
-	if err != nil {
-		return fmt.Errorf("failed to setup index on edge label")
-	}
-	return nil
-}
-
-func (kgraph *Graph) deleteGraphIndex(graph string) error {
-	var anyError error
-	fields := kgraph.idx.ListFields()
-	for _, f := range fields {
-		t := strings.Split(f, ".")
-		if t[0] == graph {
-			if err := kgraph.idx.RemoveField(f); err != nil {
-				anyError = err
-			}
-		}
-	}
-	return anyError
-}
-
 func normalizePath(path string) string {
-	path = jsonpath.GetJSONPath(path)
 	path = strings.TrimPrefix(path, "$.")
 	path = strings.TrimPrefix(path, "data.")
 	return path
 }
 
-func vertexIdxStruct(v *gdbi.Vertex) map[string]interface{} {
-	k := map[string]interface{}{
-		"v": map[string]interface{}{
-			"label": v.Label,
-			v.Label: v.Data,
-		},
-	}
-	return k
-}
-
-func edgeIdxStruct(e *gdbi.Edge) map[string]interface{} {
-	k := map[string]interface{}{
-		"e": map[string]interface{}{
-			"label": e.Label,
-			e.Label: e.Data,
-		},
-	}
-	return k
-}
-
-//AddVertexIndex add index to vertices
+// AddVertexIndex add index to vertices
 func (ggraph *Graph) AddVertexIndex(label string, field string) error {
 	log.WithFields(log.Fields{"label": label, "field": field}).Info("Adding vertex index")
 	field = normalizePath(field)
 	//TODO kick off background process to reindex existing data
-	return ggraph.idx.AddField(fmt.Sprintf("%s.v.%s.%s", ggraph.graphID, label, field))
+	return ggraph.bsonkv.AddField(fmt.Sprintf("%s.v.%s.%s", ggraph.graphID, label, field))
 }
 
-//DeleteVertexIndex delete index from vertices
+// DeleteVertexIndex delete index from vertices
 func (ggraph *Graph) DeleteVertexIndex(label string, field string) error {
 	log.WithFields(log.Fields{"label": label, "field": field}).Info("Deleting vertex index")
 	field = normalizePath(field)
-	return ggraph.idx.RemoveField(fmt.Sprintf("%s.v.%s.%s", ggraph.graphID, label, field))
+	return ggraph.bsonkv.RemoveField(fmt.Sprintf("%s.v.%s.%s", ggraph.graphID, label, field))
 }
 
-//GetVertexIndexList lists out all the vertex indices for a graph
+// GetVertexIndexList lists out all the vertex indices for a graph
 func (ggraph *Graph) GetVertexIndexList() <-chan *gripql.IndexID {
 	log.Debug("Running GetVertexIndexList")
 	out := make(chan *gripql.IndexID)
 	go func() {
 		defer close(out)
-		fields := ggraph.idx.ListFields()
+		fields := ggraph.bsonkv.ListFields()
 		for _, f := range fields {
 			t := strings.Split(f, ".")
 			if len(t) > 3 {
@@ -96,17 +47,19 @@ func (ggraph *Graph) GetVertexIndexList() <-chan *gripql.IndexID {
 	return out
 }
 
-//VertexLabelScan produces a channel of all vertex ids in a graph
-//that match a given label
+// VertexLabelScan produces a channel of all vertex ids in a graph
+// that match a given label
 func (ggraph *Graph) VertexLabelScan(ctx context.Context, label string) chan string {
 	log.WithFields(log.Fields{"label": label}).Debug("Running VertexLabelScan")
 	//TODO: Make this work better
 	out := make(chan string, 100)
+	if label[:2] != "v_" {
+		label = "v_" + label
+	}
 	go func() {
 		defer close(out)
-		//log.Printf("Searching %s %s", fmt.Sprintf("%s.label", ggraph.graph), label)
-		for i := range ggraph.idx.GetTermMatch(ctx, fmt.Sprintf("%s.v.label", ggraph.graphID), label, 0) {
-			//log.Printf("Found: %s", i)
+		log.Infof("Searching %s %s", fmt.Sprintf("%s.label", ggraph.graphID), label)
+		for i := range ggraph.bsonkv.GetIDsForLabel(label) {
 			out <- i
 		}
 	}()

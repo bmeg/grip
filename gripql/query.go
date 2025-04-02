@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/util/protoutil"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -56,8 +58,9 @@ func (q *Query) In(label ...string) *Query {
 }
 
 // InV follows incoming edges to adjacent vertex
-func (q *Query) InV(label ...string) *Query {
-	return q.In(label...)
+func (q *Query) InNull(label ...string) *Query {
+	vlist := protoutil.NewListFromStrings(label)
+	return q.with(&GraphStatement{Statement: &GraphStatement_InNull{vlist}})
 }
 
 // InE moves to incoming edge
@@ -73,8 +76,9 @@ func (q *Query) Out(label ...string) *Query {
 }
 
 // OutV follows outgoing edges to adjacent vertex
-func (q *Query) OutV(label ...string) *Query {
-	return q.Out(label...)
+func (q *Query) OutNull(label ...string) *Query {
+	vlist := protoutil.NewListFromStrings(label)
+	return q.with(&GraphStatement{Statement: &GraphStatement_OutNull{vlist}})
 }
 
 // OutE moves to outgoing edge
@@ -155,9 +159,8 @@ func (q *Query) As(id string) *Query {
 }
 
 // Select retreieves previously marked elemets
-func (q *Query) Select(id ...string) *Query {
-	idList := SelectStatement{Marks: id}
-	return q.with(&GraphStatement{Statement: &GraphStatement_Select{&idList}})
+func (q *Query) Select(name string) *Query {
+	return q.with(&GraphStatement{Statement: &GraphStatement_Select{name}})
 }
 
 // Fields selects which properties are returned in the result.
@@ -178,8 +181,43 @@ func (q *Query) Distinct(args ...string) *Query {
 
 // Render adds a render step to the query
 func (q *Query) Render(template interface{}) *Query {
-	value, _ := structpb.NewValue(template)
+	if sList, ok := template.([]string); ok {
+		t := []any{}
+		for _, j := range sList {
+			t = append(t, j)
+		}
+		template = t
+	}
+	value, err := structpb.NewValue(template)
+	if err != nil {
+		log.Errorf("render error: %s", err)
+	}
 	return q.with(&GraphStatement{Statement: &GraphStatement_Render{value}})
+}
+
+func (q *Query) Aggregate(agg []*Aggregate) *Query {
+	return q.with(&GraphStatement{Statement: &GraphStatement_Aggregate{Aggregate: &Aggregations{Aggregations: agg}}})
+}
+
+func (q *Query) Pivot(id string, field string, value string) *Query {
+	return q.with(&GraphStatement{Statement: &GraphStatement_Pivot{Pivot: &PivotStep{Id: id, Field: field, Value: value}}})
+}
+
+// Deconstruct a vertex with an array of n fields as n vertices with no array, and a dict object instead
+func (q *Query) Unwind(path string) *Query {
+	return q.with(&GraphStatement{Statement: &GraphStatement_Unwind{Unwind: path}})
+}
+
+func (q *Query) Group(fields map[string]string) *Query {
+	return q.with(&GraphStatement{Statement: &GraphStatement_Group{Group: &Group{Fields: fields}}})
+}
+
+func (q *Query) ToType(field string, typeName string) *Query {
+	return q.with(&GraphStatement{Statement: &GraphStatement_Totype{Totype: &ToType{Field: field, TypeName: typeName}}})
+}
+
+func (q *Query) Sort(sortFields []*SortField) *Query {
+	return q.with(&GraphStatement{Statement: &GraphStatement_Sort{Sort: &Sorting{Fields: sortFields}}})
 }
 
 func (q *Query) String() string {
@@ -207,6 +245,14 @@ func (q *Query) String() string {
 			ids := protoutil.AsStringList(stmt.Out)
 			add("Out", ids...)
 
+		case *GraphStatement_InNull:
+			ids := protoutil.AsStringList(stmt.InNull)
+			add("InNull", ids...)
+
+		case *GraphStatement_OutNull:
+			ids := protoutil.AsStringList(stmt.OutNull)
+			add("OutNull", ids...)
+
 		case *GraphStatement_Both:
 			ids := protoutil.AsStringList(stmt.Both)
 			add("Both", ids...)
@@ -224,7 +270,7 @@ func (q *Query) String() string {
 			add("BothE", ids...)
 
 		case *GraphStatement_Has:
-			add("Has", stmt.Has.String())
+			add("Has", HasExpressionString(stmt.Has))
 
 		case *GraphStatement_HasLabel:
 			labels := protoutil.AsStringList(stmt.HasLabel)
@@ -254,7 +300,7 @@ func (q *Query) String() string {
 			add("As", stmt.As)
 
 		case *GraphStatement_Select:
-			add("Select", stmt.Select.Marks...)
+			add("Select", stmt.Select)
 
 		case *GraphStatement_Fields:
 			fields := protoutil.AsStringList(stmt.Fields)
@@ -263,10 +309,37 @@ func (q *Query) String() string {
 		case *GraphStatement_Aggregate:
 			add("Aggregate")
 
+		case *GraphStatement_Unwind:
+			add("Unwind", stmt.Unwind)
+
+		case *GraphStatement_Pivot:
+			add("Pivot", fmt.Sprintf("%s", stmt.Pivot.Id), fmt.Sprintf("%s", stmt.Pivot.Field), fmt.Sprintf("%s", stmt.Pivot.Value))
+
+		case *GraphStatement_Group:
+			add("Group", fmt.Sprintf("%v", stmt.Group.Fields))
+
+		case *GraphStatement_Totype:
+			add("Totype", fmt.Sprintf("%s", stmt.Totype.Field), fmt.Sprintf("%s", stmt.Totype.TypeName))
+
+		case *GraphStatement_Sort:
+			add("Sort", fmt.Sprintf("%s", stmt.Sort.Fields))
+
 		case *GraphStatement_Render:
-			add("Render", stmt.Render.String())
+			jtxt, err := protojson.Marshal(stmt.Render)
+			if err != nil {
+				log.Errorf("serialization error: %s", err)
+			}
+			add("Render", string(jtxt))
 		}
 	}
 
 	return strings.Join(parts, ".")
+}
+
+func HasExpressionString(stmt *HasExpression) string {
+	if exp := stmt.GetCondition(); exp != nil {
+		//exp.Condition
+		return fmt.Sprintf("%s = %s", exp.Key, exp.Value)
+	}
+	return ""
 }

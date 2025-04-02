@@ -1,4 +1,5 @@
 
+from re import I
 import gripql
 
 def test_count(man):
@@ -8,6 +9,7 @@ def test_count(man):
 
     q = G.query().V().hasLabel("Planet").unwind("terrain").aggregate(gripql.term("t", "terrain"))
     count = 0
+
     for row in q:
         if row['key'] not in ['rainforests', 'desert', 'mountains', 'jungle', 'rainforests', 'grasslands']:
             errors.append("Incorrect value %s returned" % row['key'])
@@ -17,5 +19,51 @@ def test_count(man):
 
     if count != 5:
         errors.append("Incorrect # elements returned")
+
+    return errors
+
+
+def test_unwind(man):
+    errors = []
+    G = man.writeTest()
+    bulk = G.bulkAdd()
+    bulk.addVertex("1", "Observation", {"resourceType": "Observation", "id": "e87cecef-c91d-3861-a35e-6eaed41580c8", "status": "final", "category": [{"coding": [{"system": "http://terminology.hl7.org/CodeSystem/observation-category", "code": "laboratory", "display": "laboratory"}]}], "code": {"coding": [{"system": "http://loinc.org", "code": "81247-9", "display": "Master HL7 genetic variant reporting panel"}]}, "subject": {"reference": "Patient/ac0d7a82-82cb-4aec-b859-e37375f3de8b"}, "specimen": {"reference": "Specimen/dc48f578-193c-4740-93f3-61a78e3c6ba0"}, "focus": [{"reference": "Specimen/dc48f578-193c-4740-93f3-61a78e3c6ba0"}], "effectiveDateTime": "2024-06-03T08:00:00+00:00", "valueString": "Sequencing parameters", "component": [{"code": {"coding": [{"system": "https://cadsr.cancer.gov/sample_laboratory_observation", "code": "concentration", "display": "concentration"}], "text": "concentration"}, "valueQuantity": {"value": 0.16}}, {"code": {"coding": [{"system": "https://cadsr.cancer.gov/sample_laboratory_observation", "code": "aliquot_quantity", "display": "aliquot_quantity"}], "text": "aliquot_quantity"}, "valueQuantity": {"value": 2.13}}, {"code": {"coding": [{"system": "https://cadsr.cancer.gov/sample_laboratory_observation", "code": "aliquot_volume", "display": "aliquot_volume"}], "text": "aliquot_volume"}, "valueQuantity": {"value": 13.3}}]})
+    err = bulk.execute()
+
+    q = G.query().V().hasLabel("Observation").unwind("component")
+    count = 0
+    for row in q:
+        #print("ROW: ", row)
+        count +=1
+    if count != 3:
+        errors.append("There should be 3 vertices after unwind process")
+
+    q = G.query().V().hasLabel("Observation").unwind("component").has(gripql.gt("component.valueQuantity.value", 1))
+    count = 0
+    for r in q:
+        count +=1
+    if count != 2:
+        errors.append("There should be 2 vertices after unwind process and filter")
+
+    return errors
+
+
+def test_unwind_group_totype(man):
+    errors = []
+    G = man.writeTest()
+    bulk = G.bulkAdd()
+    bulk.addVertex("1", "Observation", {"resourceType": "Observation", "id": "e87cecef-c91d-3861-a35e-6eaed41580c8", "status": "final", "category": [{"coding": [{"system": "http://terminology.hl7.org/CodeSystem/observation-category", "code": "laboratory", "display": "laboratory"}]}], "code": {"coding": [{"system": "http://loinc.org", "code": "81247-9", "display": "Master HL7 genetic variant reporting panel"}]}, "subject": {"reference": "Patient/ac0d7a82-82cb-4aec-b859-e37375f3de8b"}, "specimen": {"reference": "Specimen/dc48f578-193c-4740-93f3-61a78e3c6ba0"}, "focus": [{"reference": "Specimen/dc48f578-193c-4740-93f3-61a78e3c6ba0"}], "effectiveDateTime": "2024-06-03T08:00:00+00:00", "valueString": "Sequencing parameters", "component": [{"code": {"coding": [{"system": "https://cadsr.cancer.gov/sample_laboratory_observation", "code": "concentration", "display": "concentration"}], "text": "concentration"}, "valueQuantity": {"value": 0.16}}, {"code": {"coding": [{"system": "https://cadsr.cancer.gov/sample_laboratory_observation", "code": "aliquot_quantity", "display": "aliquot_quantity"}], "text": "aliquot_quantity"}, "valueQuantity": {"value": 2.13}}, {"code": {"coding": [{"system": "https://cadsr.cancer.gov/sample_laboratory_observation", "code": "aliquot_volume", "display": "aliquot_volume"}], "text": "aliquot_volume"}, "valueQuantity": {"value": 13.3}}]})
+
+    bulk.addVertex("2", "Specimen", {"resourceType": "Specimen", "id": "dc48f578-193c-4740-93f3-61a78e3c6ba0", "status": "final", "category": [{"coding": [{"system": "http://terminology.hl7.org/CodeSystem/observation-category", "code": "laboratory", "display": "laboratory"}]}], "code": {"coding": [{"system": "http://loinc.org", "code": "81247-9", "display": "Master HL7 genetic variant reporting panel"}]}, "subject": {"reference": "Patient/ac0d7a82-82cb-4aec-b859-e37375f3de8b"}, "specimen": {"reference": "Specimen/dc48f578-193c-4740-93f3-61a78e3c6ba0"}, "focus": [{"reference": "Specimen/dc48f578-193c-4740-93f3-61a78e3c6ba0"}], "effectiveDateTime": "2024-06-03T08:00:00+00:00", "valueString": "Sequencing parameters", "component": [{"code": {"coding": [{"system": "https://cadsr.cancer.gov/sample_laboratory_observation1", "code": "concentration", "display": "concentration"}], "text": "concentration"}, "valueQuantity": {"value": 0.16}}, {"code": {"coding": [{"system": "https://cadsr.cancer.gov/sample_laboratory_observation2", "code": "aliquot_quantity", "display": "aliquot_quantity"}], "text": "aliquot_quantity"}, "valueQuantity": {"value": 2.13}}, {"code": {"coding": [{"system": "https://cadsr.cancer.gov/sample_laboratory_observation3", "code": "aliquot_volume", "display": "aliquot_volume"}], "text": "aliquot_volume"}, "valueQuantity": {"value": 13.3}}]})
+    bulk.addEdge("1", "2", "focus_Specimen")
+    err = bulk.execute()
+
+    orig_row = {}
+    for i in G.query().V().hasLabel("Observation").as_("f0").out("focus_Specimen"):
+        orig_row = i
+
+    for i in G.query().V().hasLabel("Observation").as_("f0").out("focus_Specimen").unwind("component").unwind("component.code.coding").as_("f1").totype("$f1.component.code.coding","list").group({"component":"$f1.component"}):
+        if not isinstance(i["component"][0]["code"]["coding"], list) and  isinstance(orig_row["component"][0]["code"]["coding"], list):
+            errors.append("Original row list format not preserved: %s !=\n\n %s" % (orig_row, i))
 
     return errors

@@ -53,25 +53,27 @@ func (ma *KVGraph) sampleSchema(ctx context.Context, graph string, n uint32, ran
 			reqChan := make(chan gdbi.ElementLookup, 1)
 			reqChan <- gdbi.ElementLookup{ID: i}
 			close(reqChan)
-			for e := range gi.GetOutEdgeChannel(ctx, reqChan, true, []string{}) {
-				o := gi.GetVertex(e.Edge.To, false)
-				k := fromtokey{from: v.Label, to: o.Label, label: e.Edge.Label}
-				ds := gripql.GetDataFieldTypes(e.Edge.Data)
-				if p, ok := fromToPairs[k]; ok {
-					fromToPairs[k] = util.MergeMaps(p, ds)
-				} else {
-					fromToPairs[k] = ds
+			for e := range gi.GetOutEdgeChannel(ctx, reqChan, true, false, []string{}) {
+				o := gi.GetVertex(e.Edge.Get().To, false)
+				if o != nil {
+					k := fromtokey{from: v.Label, to: o.Label, label: e.Edge.Get().Label}
+					ds := gripql.GetDataFieldTypes(e.Edge.Get().Data)
+					if p, ok := fromToPairs[k]; ok {
+						fromToPairs[k] = util.MergeMaps(p, ds)
+					} else {
+						fromToPairs[k] = ds
+					}
 				}
 			}
 		}
 		sSchema, _ := structpb.NewStruct(schema)
-		vSchema := &gripql.Vertex{Gid: label, Label: label, Data: sSchema}
+		vSchema := &gripql.Vertex{Id: label, Label: "Vertex", Data: sSchema}
 		vOutput = append(vOutput, vSchema)
 	}
 	for k, v := range fromToPairs {
 		sV, _ := structpb.NewStruct(v.(map[string]interface{}))
 		eSchema := &gripql.Edge{
-			Gid:   fmt.Sprintf("(%s)--%s->(%s)", k.from, k.label, k.to),
+			Id:    fmt.Sprintf("(%s)--%s->(%s)", k.from, k.label, k.to),
 			Label: k.label,
 			From:  k.from,
 			To:    k.to,

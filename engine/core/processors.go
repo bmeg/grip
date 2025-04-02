@@ -4,19 +4,11 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"math"
-	"reflect"
-	"sort"
 
 	"github.com/bmeg/grip/engine/logic"
 	"github.com/bmeg/grip/gdbi"
-	"github.com/bmeg/grip/gripql"
-	"github.com/bmeg/grip/jsonpath"
-	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/util/copy"
-	"github.com/influxdata/tdigest"
 	"github.com/spf13/cast"
-	"golang.org/x/sync/errgroup"
 )
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -94,12 +86,7 @@ func (l *LookupVertsIndex) Process(ctx context.Context, man gdbi.Manager, in gdb
 		defer close(out)
 		for v := range l.db.GetVertexChannel(ctx, queryChan, l.loadData) {
 			i := v.Ref
-			out <- i.AddCurrent(&gdbi.DataElement{
-				ID:     v.Vertex.ID,
-				Label:  v.Vertex.Label,
-				Data:   v.Vertex.Data,
-				Loaded: v.Vertex.Loaded,
-			})
+			out <- i.AddCurrent(v.Vertex.Copy())
 		}
 	}()
 	return ctx
@@ -156,272 +143,6 @@ func (l *LookupEdges) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 
 ////////////////////////////////////////////////////////////////////////////////
 
-// LookupVertexAdjOut finds out vertex
-type LookupVertexAdjOut struct {
-	db       gdbi.GraphInterface
-	labels   []string
-	loadData bool
-}
-
-// Process runs out vertex
-func (l *LookupVertexAdjOut) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
-	queryChan := make(chan gdbi.ElementLookup, 100)
-	go func() {
-		defer close(queryChan)
-		for t := range in {
-			if t.IsSignal() {
-				queryChan <- gdbi.ElementLookup{
-					Ref: t,
-				}
-			} else {
-				queryChan <- gdbi.ElementLookup{
-					ID:  t.GetCurrentID(),
-					Ref: t,
-				}
-			}
-		}
-	}()
-	go func() {
-		defer close(out)
-		for ov := range l.db.GetOutChannel(ctx, queryChan, l.loadData, l.labels) {
-			if ov.IsSignal() {
-				out <- ov.Ref
-			} else {
-				i := ov.Ref
-				out <- i.AddCurrent(&gdbi.DataElement{
-					ID:     ov.Vertex.ID,
-					Label:  ov.Vertex.Label,
-					Data:   ov.Vertex.Data,
-					Loaded: ov.Vertex.Loaded,
-				})
-			}
-		}
-	}()
-	return ctx
-}
-
-////////////////////////////////////////////////////////////////////////////////
-
-// LookupEdgeAdjOut finds out edge
-type LookupEdgeAdjOut struct {
-	db       gdbi.GraphInterface
-	labels   []string
-	loadData bool
-}
-
-// Process runs LookupEdgeAdjOut
-func (l *LookupEdgeAdjOut) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
-	queryChan := make(chan gdbi.ElementLookup, 100)
-	go func() {
-		defer close(queryChan)
-		for t := range in {
-			if t.IsSignal() {
-				queryChan <- gdbi.ElementLookup{Ref: t}
-			} else {
-				queryChan <- gdbi.ElementLookup{
-					ID:  t.GetCurrent().To,
-					Ref: t,
-				}
-			}
-		}
-	}()
-	go func() {
-		defer close(out)
-		for v := range l.db.GetVertexChannel(ctx, queryChan, l.loadData) {
-			i := v.Ref
-			if i.IsSignal() {
-				out <- i
-			} else {
-				out <- i.AddCurrent(&gdbi.DataElement{
-					ID:     v.Vertex.ID,
-					Label:  v.Vertex.Label,
-					Data:   v.Vertex.Data,
-					Loaded: v.Vertex.Loaded,
-				})
-			}
-		}
-	}()
-	return ctx
-}
-
-////////////////////////////////////////////////////////////////////////////////
-
-// LookupVertexAdjIn finds incoming vertex
-type LookupVertexAdjIn struct {
-	db       gdbi.GraphInterface
-	labels   []string
-	loadData bool
-}
-
-// Process runs LookupVertexAdjIn
-func (l *LookupVertexAdjIn) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
-	queryChan := make(chan gdbi.ElementLookup, 100)
-	go func() {
-		defer close(queryChan)
-		for t := range in {
-			if t.IsSignal() {
-				queryChan <- gdbi.ElementLookup{Ref: t}
-			} else {
-				queryChan <- gdbi.ElementLookup{
-					ID:  t.GetCurrentID(),
-					Ref: t,
-				}
-			}
-		}
-	}()
-	go func() {
-		defer close(out)
-		for v := range l.db.GetInChannel(ctx, queryChan, l.loadData, l.labels) {
-			i := v.Ref
-			if i.IsSignal() {
-				out <- i
-			} else {
-				out <- i.AddCurrent(&gdbi.DataElement{
-					ID:     v.Vertex.ID,
-					Label:  v.Vertex.Label,
-					Data:   v.Vertex.Data,
-					Loaded: v.Vertex.Loaded,
-				})
-			}
-		}
-	}()
-	return ctx
-}
-
-////////////////////////////////////////////////////////////////////////////////
-
-// LookupEdgeAdjIn finds incoming edge
-type LookupEdgeAdjIn struct {
-	db       gdbi.GraphInterface
-	labels   []string
-	loadData bool
-}
-
-// Process runs LookupEdgeAdjIn
-func (l *LookupEdgeAdjIn) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
-	queryChan := make(chan gdbi.ElementLookup, 100)
-	go func() {
-		defer close(queryChan)
-		for t := range in {
-			if t.IsSignal() {
-				queryChan <- gdbi.ElementLookup{Ref: t}
-			} else {
-				queryChan <- gdbi.ElementLookup{
-					ID:  t.GetCurrent().From,
-					Ref: t,
-				}
-			}
-		}
-	}()
-	go func() {
-		defer close(out)
-		for v := range l.db.GetVertexChannel(ctx, queryChan, l.loadData) {
-			i := v.Ref
-			if i.IsSignal() {
-				out <- i
-			} else {
-				out <- i.AddCurrent(&gdbi.DataElement{
-					ID:     v.Vertex.ID,
-					Label:  v.Vertex.Label,
-					Data:   v.Vertex.Data,
-					Loaded: v.Vertex.Loaded,
-				})
-			}
-		}
-	}()
-	return ctx
-}
-
-////////////////////////////////////////////////////////////////////////////////
-
-// InE finds the incoming edges
-type InE struct {
-	db       gdbi.GraphInterface
-	labels   []string
-	loadData bool
-}
-
-// Process runs InE
-func (l *InE) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
-	queryChan := make(chan gdbi.ElementLookup, 100)
-	go func() {
-		defer close(queryChan)
-		for t := range in {
-			if t.IsSignal() {
-				queryChan <- gdbi.ElementLookup{Ref: t}
-			} else {
-				queryChan <- gdbi.ElementLookup{
-					ID:  t.GetCurrentID(),
-					Ref: t,
-				}
-			}
-		}
-	}()
-	go func() {
-		defer close(out)
-		for v := range l.db.GetInEdgeChannel(ctx, queryChan, l.loadData, l.labels) {
-			i := v.Ref
-			if i.IsSignal() {
-				out <- i
-			} else {
-				out <- i.AddCurrent(&gdbi.DataElement{
-					ID:     v.Edge.ID,
-					To:     v.Edge.To,
-					From:   v.Edge.From,
-					Label:  v.Edge.Label,
-					Data:   v.Edge.Data,
-					Loaded: v.Edge.Loaded,
-				})
-			}
-		}
-	}()
-	return ctx
-}
-
-////////////////////////////////////////////////////////////////////////////////
-
-// OutE finds the outgoing edges
-type OutE struct {
-	db       gdbi.GraphInterface
-	labels   []string
-	loadData bool
-}
-
-// Process runs OutE
-func (l *OutE) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
-	queryChan := make(chan gdbi.ElementLookup, 100)
-	go func() {
-		defer close(queryChan)
-		for t := range in {
-			if t.IsSignal() {
-				queryChan <- gdbi.ElementLookup{Ref: t}
-			} else {
-				queryChan <- gdbi.ElementLookup{
-					ID:  t.GetCurrentID(),
-					Ref: t,
-				}
-			}
-		}
-	}()
-	go func() {
-		defer close(out)
-		for v := range l.db.GetOutEdgeChannel(ctx, queryChan, l.loadData, l.labels) {
-			i := v.Ref
-			out <- i.AddCurrent(&gdbi.DataElement{
-				ID:     v.Edge.ID,
-				To:     v.Edge.To,
-				From:   v.Edge.From,
-				Label:  v.Edge.Label,
-				Data:   v.Edge.Data,
-				Loaded: v.Edge.Loaded,
-			})
-		}
-	}()
-	return ctx
-}
-
-////////////////////////////////////////////////////////////////////////////////
-
 // Fields selects fields from current element
 type Fields struct {
 	keys []string
@@ -436,7 +157,7 @@ func (f *Fields) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, 
 				out <- t
 				continue
 			}
-			o := jsonpath.SelectTravelerFields(t, f.keys...)
+			o := gdbi.SelectTravelerFields(t, f.keys...)
 			out <- o
 		}
 	}()
@@ -459,7 +180,7 @@ func (r *Render) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, 
 				out <- t
 				continue
 			}
-			v := jsonpath.RenderTraveler(t, r.Template)
+			v := gdbi.RenderTraveler(t, r.Template)
 			out <- &gdbi.BaseTraveler{Render: v}
 		}
 	}()
@@ -504,109 +225,44 @@ func (r *Unwind) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, 
 				out <- t
 				continue
 			}
-			v := jsonpath.TravelerPathLookup(t, r.Field)
+			v := gdbi.TravelerPathLookup(t, r.Field)
 			if a, ok := v.([]interface{}); ok {
 				cur := t.GetCurrent()
 				if len(a) > 0 {
 					for _, i := range a {
-						o := gdbi.DataElement{ID: cur.ID, Label: cur.Label, From: cur.From, To: cur.To, Data: copy.DeepCopy(cur.Data).(map[string]interface{}), Loaded: true}
+						o := gdbi.DataElement{
+							ID:    cur.Get().ID,
+							Label: cur.Get().Label,
+							From:  cur.Get().From,
+							To:    cur.Get().To,
+							Data:  copy.DeepCopy(cur.Get().Data).(map[string]interface{}), Loaded: true,
+						}
 						n := t.AddCurrent(&o)
-						jsonpath.TravelerSetValue(n, r.Field, i)
+						gdbi.TravelerSetValue(n, r.Field, i)
 						out <- n
 					}
 				} else {
-					o := gdbi.DataElement{ID: cur.ID, Label: cur.Label, From: cur.From, To: cur.To, Data: copy.DeepCopy(cur.Data).(map[string]interface{}), Loaded: true}
+					o := gdbi.DataElement{ID: cur.Get().ID, Label: cur.Get().Label, From: cur.Get().From, To: cur.Get().To, Data: copy.DeepCopy(cur.Get().Data).(map[string]interface{}), Loaded: true}
 					n := t.AddCurrent(&o)
-					jsonpath.TravelerSetValue(n, r.Field, nil)
+					gdbi.TravelerSetValue(n, r.Field, nil)
 					out <- n
 				}
 			} else {
 				cur := t.GetCurrent()
-				o := gdbi.DataElement{ID: cur.ID, Label: cur.Label, From: cur.From, To: cur.To, Data: copy.DeepCopy(cur.Data).(map[string]interface{}), Loaded: true}
-				n := t.AddCurrent(&o)
-				jsonpath.TravelerSetValue(n, r.Field, nil)
-				out <- n
-			}
-		}
-	}()
-	return ctx
-}
-
-////////////////////////////////////////////////////////////////////////////////
-
-// Has filters based on data
-type Has struct {
-	stmt *gripql.HasExpression
-}
-
-// Process runs Has
-func (w *Has) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
-	go func() {
-		defer close(out)
-		for t := range in {
-			if t.IsSignal() {
-				out <- t
-				continue
-			}
-			if logic.MatchesHasExpression(t, w.stmt) {
-				out <- t
-			}
-		}
-	}()
-	return ctx
-}
-
-////////////////////////////////////////////////////////////////////////////////
-
-// HasLabel filters elements based on their label.
-type HasLabel struct {
-	labels []string
-}
-
-// Process runs Count
-func (h *HasLabel) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
-	labels := dedupStringSlice(h.labels)
-	go func() {
-		defer close(out)
-		for t := range in {
-			if t.IsSignal() {
-				out <- t
-				continue
-			}
-			if contains(labels, t.GetCurrent().Label) {
-				out <- t
-			}
-		}
-	}()
-	return ctx
-}
-
-////////////////////////////////////////////////////////////////////////////////
-
-// HasKey filters elements based on whether it has one or more properties.
-type HasKey struct {
-	keys []string
-}
-
-// Process runs Count
-func (h *HasKey) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
-	go func() {
-		keys := dedupStringSlice(h.keys)
-		defer close(out)
-		for t := range in {
-			if t.IsSignal() {
-				out <- t
-				continue
-			}
-			found := true
-			for _, key := range keys {
-				if !jsonpath.TravelerPathExists(t, key) {
-					found = false
+				// if outnull returns null cur can be empty
+				if cur.Get() != nil {
+					o := gdbi.DataElement{
+						ID:    cur.Get().ID,
+						Label: cur.Get().Label,
+						From:  cur.Get().From,
+						To:    cur.Get().To,
+						Data:  copy.DeepCopy(cur.Get().Data).(map[string]interface{}), Loaded: true,
+					}
+					n := t.AddCurrent(&o)
+					gdbi.TravelerSetValue(n, r.Field, nil)
+					out <- n
 				}
 			}
-			if found {
-				out <- t
-			}
 		}
 	}()
 	return ctx
@@ -614,24 +270,25 @@ func (h *HasKey) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, 
 
 ////////////////////////////////////////////////////////////////////////////////
 
-// HasID filters elements based on their id.
-type HasID struct {
-	ids []string
+// ToType
+type ToType struct {
+	Field    string
+	TypeName string
 }
 
-// Process runs Count
-func (h *HasID) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
+func (tt *ToType) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
 	go func() {
 		defer close(out)
-		ids := dedupStringSlice(h.ids)
 		for t := range in {
 			if t.IsSignal() {
 				out <- t
 				continue
 			}
-			if contains(ids, t.GetCurrentID()) {
-				out <- t
-			}
+
+			totype := logic.ConvertToType(gdbi.TravelerPathLookup(t, tt.Field), tt.TypeName)
+			gdbi.TravelerSetValue(t, tt.Field, totype)
+			out <- t
+
 		}
 	}()
 	return ctx
@@ -759,6 +416,7 @@ func (g *Distinct) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe
 	go func() {
 		defer close(out)
 		kv := man.GetTempKV()
+		defer kv.Close()
 		for t := range in {
 			if t.IsSignal() {
 				out <- t
@@ -767,8 +425,8 @@ func (g *Distinct) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe
 			s := make([][]byte, len(g.vals))
 			found := true
 			for i, v := range g.vals {
-				if jsonpath.TravelerPathExists(t, v) {
-					s[i] = []byte(fmt.Sprintf("%#v", jsonpath.TravelerPathLookup(t, v)))
+				if gdbi.TravelerPathExists(t, v) {
+					s[i] = []byte(fmt.Sprintf("%#v", gdbi.TravelerPathLookup(t, v)))
 				} else {
 					found = false
 				}
@@ -829,7 +487,7 @@ func (s *Selector) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe
 				if val == nil {
 					val = &gdbi.DataElement{}
 				}
-				res[mark] = val
+				res[mark] = val.Get()
 			}
 			out <- &gdbi.BaseTraveler{Selections: res}
 		}
@@ -852,7 +510,7 @@ func (s *ValueSet) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe
 				out <- t
 				continue
 			}
-			jsonpath.TravelerSetValue(t, s.key, s.value)
+			gdbi.TravelerSetValue(t, s.key, s.value)
 			out <- t
 		}
 	}()
@@ -872,10 +530,10 @@ func (s *ValueIncrement) Process(ctx context.Context, man gdbi.Manager, in gdbi.
 				out <- t
 				continue
 			}
-			v := jsonpath.TravelerPathLookup(t, s.key)
+			v := gdbi.TravelerPathLookup(t, s.key)
 			i := cast.ToInt(v) + int(s.value)
 			o := t.Copy()
-			jsonpath.TravelerSetValue(o, s.key, i)
+			gdbi.TravelerSetValue(o, s.key, i)
 			out <- o
 		}
 	}()
@@ -902,259 +560,5 @@ func (s *MarkSelect) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPi
 			out <- t.AddCurrent(m)
 		}
 	}()
-	return ctx
-}
-
-////////////////////////////////////////////////////////////////////////////////
-
-type both struct {
-	db       gdbi.GraphInterface
-	labels   []string
-	lastType gdbi.DataType
-	toType   gdbi.DataType
-	loadData bool
-}
-
-func (b both) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
-	go func() {
-		defer close(out)
-		var procs []gdbi.Processor
-		switch b.lastType {
-		case gdbi.VertexData:
-			switch b.toType {
-			case gdbi.EdgeData:
-				procs = []gdbi.Processor{
-					&InE{db: b.db, loadData: b.loadData, labels: b.labels},
-					&OutE{db: b.db, loadData: b.loadData, labels: b.labels},
-				}
-			default:
-				procs = []gdbi.Processor{
-					&LookupVertexAdjIn{db: b.db, labels: b.labels, loadData: b.loadData},
-					&LookupVertexAdjOut{db: b.db, labels: b.labels, loadData: b.loadData},
-				}
-			}
-		case gdbi.EdgeData:
-			procs = []gdbi.Processor{
-				&LookupEdgeAdjIn{db: b.db, labels: b.labels, loadData: b.loadData},
-				&LookupEdgeAdjOut{db: b.db, labels: b.labels, loadData: b.loadData},
-			}
-		}
-		chanIn := make([]chan gdbi.Traveler, len(procs))
-		chanOut := make([]chan gdbi.Traveler, len(procs))
-		for i := range procs {
-			chanIn[i] = make(chan gdbi.Traveler, 1000)
-			chanOut[i] = make(chan gdbi.Traveler, 1000)
-		}
-		for i, p := range procs {
-			p.Process(ctx, man, chanIn[i], chanOut[i])
-		}
-		for t := range in {
-			if t.IsSignal() {
-				out <- t
-				continue
-			}
-			for _, ch := range chanIn {
-				ch <- t
-			}
-		}
-		for _, ch := range chanIn {
-			close(ch)
-		}
-		for i := range procs {
-			for c := range chanOut[i] {
-				out <- c
-			}
-		}
-	}()
-	return ctx
-}
-
-////////////////////////////////////////////////////////////////////////////////
-
-type aggregate struct {
-	aggregations []*gripql.Aggregate
-}
-
-func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
-	aChans := make(map[string](chan gdbi.Traveler))
-	g, ctx := errgroup.WithContext(ctx)
-
-	// # of travelers to buffer for agg
-	bufferSize := 1000
-	for _, a := range agg.aggregations {
-		aChans[a.Name] = make(chan gdbi.Traveler, bufferSize)
-	}
-
-	g.Go(func() error {
-		for t := range in {
-			if t.IsSignal() {
-				out <- t
-				continue
-			}
-			for _, a := range agg.aggregations {
-				aChans[a.Name] <- t
-			}
-		}
-		for _, a := range agg.aggregations {
-			if aChans[a.Name] != nil {
-				close(aChans[a.Name])
-				aChans[a.Name] = nil
-			}
-		}
-		return nil
-	})
-
-	for _, a := range agg.aggregations {
-		a := a
-		switch a.Aggregation.(type) {
-		case *gripql.Aggregate_Term:
-			g.Go(func() error {
-				// max # of terms to collect before failing
-				// since the term can be a string this still isn't particularly safe
-				// the terms could be arbitrarily large strings and storing this many could eat up
-				// lots of memory.
-				maxTerms := 100000
-
-				tagg := a.GetTerm()
-				size := tagg.Size
-
-				fieldTermCounts := map[interface{}]int{}
-				for t := range aChans[a.Name] {
-					val := jsonpath.TravelerPathLookup(t, tagg.Field)
-					if val != nil {
-						k := reflect.TypeOf(val).Kind()
-						if k != reflect.Array && k != reflect.Slice && k != reflect.Map {
-							fieldTermCounts[val]++
-							if len(fieldTermCounts) > maxTerms {
-								return fmt.Errorf("term aggreagtion: collected more unique terms (%v) than allowed (%v)", len(fieldTermCounts), maxTerms)
-							}
-						}
-					}
-				}
-
-				count := 0
-				for term, tcount := range fieldTermCounts {
-					if size <= 0 || count < int(size) {
-						//sTerm, _ := structpb.NewValue(term)
-						//fmt.Printf("Term: %s %s %d\n", a.Name, sTerm, tcount)
-						out <- &gdbi.BaseTraveler{Aggregation: &gdbi.Aggregate{Name: a.Name, Key: term, Value: float64(tcount)}}
-					}
-				}
-				return nil
-			})
-
-		case *gripql.Aggregate_Histogram:
-
-			g.Go(func() error {
-				// max # of values to collect before failing
-				maxValues := 10000000
-
-				hagg := a.GetHistogram()
-				i := float64(hagg.Interval)
-
-				c := 0
-				fieldValues := []float64{}
-				for t := range aChans[a.Name] {
-					val := jsonpath.TravelerPathLookup(t, hagg.Field)
-					if val != nil {
-						fval, err := cast.ToFloat64E(val)
-						if err != nil {
-							return fmt.Errorf("histogram aggregation: can't convert %v to float64", val)
-						}
-						fieldValues = append(fieldValues, fval)
-						if c > maxValues {
-							return fmt.Errorf("histogram aggreagtion: collected more values (%v) than allowed (%v)", c, maxValues)
-						}
-						c++
-					}
-				}
-				sort.Float64s(fieldValues)
-				min := fieldValues[0]
-				max := fieldValues[len(fieldValues)-1]
-
-				for bucket := math.Floor(min/i) * i; bucket <= max; bucket += i {
-					var count float64
-					for _, v := range fieldValues {
-						if v >= bucket && v < (bucket+i) {
-							count++
-						}
-					}
-					//sBucket, _ := structpb.NewValue(bucket)
-					out <- &gdbi.BaseTraveler{Aggregation: &gdbi.Aggregate{Name: a.Name, Key: bucket, Value: float64(count)}}
-				}
-				return nil
-			})
-
-		case *gripql.Aggregate_Percentile:
-
-			g.Go(func() error {
-				pagg := a.GetPercentile()
-				percents := pagg.Percents
-
-				td := tdigest.New()
-				for t := range aChans[a.Name] {
-					val := jsonpath.TravelerPathLookup(t, pagg.Field)
-					fval, err := cast.ToFloat64E(val)
-					if err != nil {
-						return fmt.Errorf("percentile aggregation: can't convert %v to float64", val)
-					}
-					td.Add(fval, 1)
-				}
-
-				for _, p := range percents {
-					q := td.Quantile(p / 100)
-					//sp, _ := structpb.NewValue(p)
-					out <- &gdbi.BaseTraveler{Aggregation: &gdbi.Aggregate{Name: a.Name, Key: p, Value: q}}
-				}
-
-				return nil
-			})
-
-		case *gripql.Aggregate_Field:
-			g.Go(func() error {
-				fa := a.GetField()
-				fieldCounts := map[interface{}]int{}
-				for t := range aChans[a.Name] {
-					val := jsonpath.TravelerPathLookup(t, fa.Field)
-					if m, ok := val.(map[string]interface{}); ok {
-						for k := range m {
-							fieldCounts[k]++
-						}
-					}
-				}
-				for term, tcount := range fieldCounts {
-					out <- &gdbi.BaseTraveler{Aggregation: &gdbi.Aggregate{Name: a.Name, Key: term, Value: float64(tcount)}}
-				}
-				return nil
-			})
-
-		case *gripql.Aggregate_Type:
-			g.Go(func() error {
-				fa := a.GetType()
-				fieldTypes := map[string]int{}
-				for t := range aChans[a.Name] {
-					val := jsonpath.TravelerPathLookup(t, fa.Field)
-					tname := gripql.GetFieldType(val)
-					fieldTypes[tname]++
-				}
-				for term, tcount := range fieldTypes {
-					out <- &gdbi.BaseTraveler{Aggregation: &gdbi.Aggregate{Name: a.Name, Key: term, Value: float64(tcount)}}
-				}
-				return nil
-			})
-
-		default:
-			log.Errorf("Error: unknown aggregation type: %T", a.Aggregation)
-			continue
-		}
-	}
-
-	go func() {
-		if err := g.Wait(); err != nil {
-			log.WithFields(log.Fields{"error": err}).Error("one or more aggregation failed")
-		}
-		close(out)
-	}()
-
 	return ctx
 }

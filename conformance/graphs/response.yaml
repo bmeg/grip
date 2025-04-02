@@ -1,0 +1,30 @@
+id: http://grip-schema.io/schema/0.0.1/Response
+additionalProperties: false
+description: User LLM generated response
+links:
+- href: '{id}'
+  rel: prompt
+  targetHints:
+    direction:
+    - outbound
+    multiplicity:
+    - has_one
+    regex_match:
+    - prompt:*
+  targetSchema:
+    $ref: http://grip-schema.io/schema/0.0.1/Prompt
+  templatePointers:
+    id: /prompt
+
+properties:
+  id:
+    type: string
+  text:
+    type: string
+  resourceType:
+    type: string
+  prompt:
+    type: string
+  model:
+    type: string
+

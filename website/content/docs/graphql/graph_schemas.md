@@ -45,47 +45,39 @@ Server:
  graph: example-graph
 
  edges:
-- data: {}
-  from: Human
-  gid: (Human)--starship->(Starship)
-  label: starship
-  to: Starship
-- data: {}
-  from: Human
-  gid: (Human)--friend->(Human)
-  label: friend
-  to: Human
-- data: {}
-  from: Human
-  gid: (Human)--friend->(Droid)
-  label: friend
-  to: Droid
-- data: {}
-  from: Human
-  gid: (Human)--appearsIn->(Movie)
-  label: appearsIn
-  to: Movie
+- _from: Human
+  _gid: (Human)--starship->(Starship)
+  _label: starship
+  _to: Starship
+- _from: Human
+  _gid: (Human)--friend->(Human)
+  _label: friend
+  _to: Human
+- _from: Human
+  _gid: (Human)--friend->(Droid)
+  _label: friend
+  _to: Droid
+- _from: Human
+  _gid: (Human)--appearsIn->(Movie)
+  _label: appearsIn
+  _to: Movie
 
 vertices:
-- data:
-    name: STRING
-  gid: Movie
-  label: Movie
-- data:
-    length: NUMERIC
-    name: STRING
-  gid: Starship
-  label: Starship
-- data:
-    name: STRING
-    primaryFunction: STRING
-  gid: Droid
-  label: Droid
-- data:
-    height: NUMERIC
-    homePlanet: STRING
-    mass: NUMERIC
-    name: STRING
-  gid: Human
-  label: Human
+- name: STRING
+  _gid: Movie
+  _label: Movie
+- length: NUMERIC
+  name: STRING
+  _gid: Starship
+  _label: Starship
+- name: STRING
+  primaryFunction: STRING
+  _gid: Droid
+  _label: Droid
+- height: NUMERIC
+  homePlanet: STRING
+  mass: NUMERIC
+  name: STRING
+  _gid: Human
+  _label: Human
  ```

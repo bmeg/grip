@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/bmeg/grip/gripql"
-	"github.com/bmeg/grip/jsonpath"
 	"github.com/bmeg/grip/log"
 )
 
@@ -33,7 +32,7 @@ func (kgraph *KVGraph) deleteGraphIndex(graph string) {
 }
 
 func normalizePath(path string) string {
-	path = jsonpath.GetJSONPath(path)
+	//path = travelerpath.GetJSONPath(path)
 	path = strings.TrimPrefix(path, "$.")
 	path = strings.TrimPrefix(path, "data.")
 	return path
@@ -59,7 +58,7 @@ func edgeIdxStruct(e *gripql.Edge) map[string]interface{} {
 	return k
 }
 
-//AddVertexIndex add index to vertices
+// AddVertexIndex add index to vertices
 func (kgdb *KVInterfaceGDB) AddVertexIndex(label string, field string) error {
 	log.WithFields(log.Fields{"label": label, "field": field}).Info("Adding vertex index")
 	field = normalizePath(field)
@@ -67,14 +66,14 @@ func (kgdb *KVInterfaceGDB) AddVertexIndex(label string, field string) error {
 	return kgdb.kvg.idx.AddField(fmt.Sprintf("%s.v.%s.%s", kgdb.graph, label, field))
 }
 
-//DeleteVertexIndex delete index from vertices
+// DeleteVertexIndex delete index from vertices
 func (kgdb *KVInterfaceGDB) DeleteVertexIndex(label string, field string) error {
 	log.WithFields(log.Fields{"label": label, "field": field}).Info("Deleting vertex index")
 	field = normalizePath(field)
 	return kgdb.kvg.idx.RemoveField(fmt.Sprintf("%s.v.%s.%s", kgdb.graph, label, field))
 }
 
-//GetVertexIndexList lists out all the vertex indices for a graph
+// GetVertexIndexList lists out all the vertex indices for a graph
 func (kgdb *KVInterfaceGDB) GetVertexIndexList() <-chan *gripql.IndexID {
 	log.Debug("Running GetVertexIndexList")
 	out := make(chan *gripql.IndexID)
@@ -91,8 +90,8 @@ func (kgdb *KVInterfaceGDB) GetVertexIndexList() <-chan *gripql.IndexID {
 	return out
 }
 
-//VertexLabelScan produces a channel of all vertex ids in a graph
-//that match a given label
+// VertexLabelScan produces a channel of all vertex ids in a graph
+// that match a given label
 func (kgdb *KVInterfaceGDB) VertexLabelScan(ctx context.Context, label string) chan string {
 	log.WithFields(log.Fields{"label": label}).Debug("Running VertexLabelScan")
 	//TODO: Make this work better

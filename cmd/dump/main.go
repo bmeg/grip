@@ -1,12 +1,12 @@
 package dump
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/util/rpc"
 	"github.com/spf13/cobra"
-	"google.golang.org/protobuf/encoding/protojson"
 )
 
 var host = "localhost:8202"
@@ -27,14 +27,16 @@ var Cmd = &cobra.Command{
 			return err
 		}
 
+		fm := gripql.NewFlattenMarshaler()
+
 		if vertexDump {
 			q := gripql.V()
-			elems, err := conn.Traversal(&gripql.GraphQuery{Graph: graph, Query: q.Statements})
+			elems, err := conn.Traversal(context.Background(), &gripql.GraphQuery{Graph: graph, Query: q.Statements})
 			if err != nil {
 				return err
 			}
 			for v := range elems {
-				txt, err := protojson.Marshal(v.GetVertex())
+				txt, err := fm.Marshal(v.GetVertex())
 				if err != nil {
 					return err
 				}
@@ -44,12 +46,12 @@ var Cmd = &cobra.Command{
 
 		if edgeDump {
 			q := gripql.E()
-			elems, err := conn.Traversal(&gripql.GraphQuery{Graph: graph, Query: q.Statements})
+			elems, err := conn.Traversal(context.Background(), &gripql.GraphQuery{Graph: graph, Query: q.Statements})
 			if err != nil {
 				return err
 			}
 			for v := range elems {
-				txt, err := protojson.Marshal(v.GetEdge())
+				txt, err := fm.Marshal(v.GetEdge())
 				if err != nil {
 					return err
 				}

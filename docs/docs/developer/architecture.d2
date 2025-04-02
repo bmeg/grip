@@ -1,0 +1,90 @@
+
+
+gripql-python: "gripql/python" {
+    text: |md  
+# gripql
+
+Python library
+|
+}
+
+gripql-python -> gripql.http
+
+grip-client : "cmd/" {
+    graph {
+        create
+        drop
+        stream    
+        list
+        schema
+    }
+
+    data {
+        kvload
+        load
+        dump
+        mongoload
+        query    
+        delete
+    }
+
+    config {
+        mapping
+        plugin		
+        info    
+    }
+
+    jobs {
+        job
+    }
+}
+
+grip-client -> gripql.grpc
+
+gripql : "gripql/" {
+
+    text: |md
+Protobuf defined code
+|
+    grpc
+    grpc-gateway
+
+    http -> grpc-gateway 
+    grpc-gateway -> grpc : protobuf via network
+
+    http -> grpc-dgw
+}
+
+
+gripql.grpc -> server
+gripql.grpc-dgw -> server
+
+server : "server/" {
+
+}
+
+server -> pipeline
+
+pipeline {
+    gripql-parser
+    compiler
+}
+
+gdbi {
+    mongo
+    mongo-core
+    pebble
+}
+
+pipeline.compiler -> gdbi
+
+server -> jobs
+
+jobs {
+    store
+    search
+    drivers : {
+        opensearch
+        flat file
+    }
+}

@@ -4,389 +4,253 @@
     <title>GRIP</title>
     <link>https://bmeg.github.io/grip/</link>
     <description>Recent content on GRIP</description>
-    <generator>Hugo -- gohugo.io</generator>
+    <generator>Hugo</generator>
     <language>en-us</language>
-    
-	<atom:link href="https://bmeg.github.io/grip/index.xml" rel="self" type="application/rss+xml" />
-    
-    
+    <atom:link href="https://bmeg.github.io/grip/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title></title>
       <link>https://bmeg.github.io/grip/docs/tutorials/pathway-commons/</link>
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
-      
       <guid>https://bmeg.github.io/grip/docs/tutorials/pathway-commons/</guid>
-      <description>Get Pathway Commons release
-curl -O http://www.pathwaycommons.org/archives/PC2/v10/PathwayCommons10.All.BIOPAX.owl.gz Convert to Property Graph
-grip rdf --dump --gzip pc PathwayCommons10.All.BIOPAX.owl.gz -m &amp;quot;http://pathwaycommons.org/pc2/#=pc:&amp;quot; -m &amp;quot;http://www.biopax.org/release/biopax-level3.owl#=biopax:&amp;quot; </description>
+      <description>&lt;p&gt;Get Pathway Commons release&lt;/p&gt;&#xA;&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;curl -O http://www.pathwaycommons.org/archives/PC2/v10/PathwayCommons10.All.BIOPAX.owl.gz&#xA;&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;Convert to Property Graph&lt;/p&gt;&#xA;&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;grip rdf --dump --gzip pc PathwayCommons10.All.BIOPAX.owl.gz -m &amp;#34;http://pathwaycommons.org/pc2/#=pc:&amp;#34; -m &amp;#34;http://www.biopax.org/release/biopax-level3.owl#=biopax:&amp;#34;&#xA;&lt;/code&gt;&lt;/pre&gt;</description>
     </item>
-    
     <item>
       <title>Amazon Purchase Network</title>
       <link>https://bmeg.github.io/grip/docs/tutorials/amazon/</link>
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
-      
       <guid>https://bmeg.github.io/grip/docs/tutorials/amazon/</guid>
-      <description>Explore Amazon Product Co-Purchasing Network Metadata Download the data
-curl -O http://snap.stanford.edu/data/bigdata/amazon/amazon-meta.txt.gz Convert the data into vertices and edges
-python $GOPATH/src/github.com/bmeg/grip/example/amazon_convert.py amazon-meta.txt.gz amazon.data Create a graph called &amp;lsquo;amazon&amp;rsquo;
-grip create amazon Load the vertices/edges into the graph
-grip load amazon --edge amazon.data.edge --vertex amazon.data.vertex Query the graph
-command line client
-grip query amazon &#39;O.query().V().out()&#39; python client
-pip install &amp;quot;git+https://github.com/bmeg/grip.git#egg=gripql&amp;amp;subdirectory=gripql/python/&amp;quot; import gripql conn = gripql.Connection(&amp;#34;http://localhost:8201&amp;#34;) g = conn.graph(&amp;#34;amazon&amp;#34;) # Count the Vertices print g.</description>
+      <description>&lt;h1 id=&#34;explore-amazon-product-co-purchasing-network-metadata&#34;&gt;Explore Amazon Product Co-Purchasing Network Metadata&lt;/h1&gt;&#xA;&lt;p&gt;Download the data&lt;/p&gt;&#xA;&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;curl -O http://snap.stanford.edu/data/bigdata/amazon/amazon-meta.txt.gz&#xA;&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;Convert the data into vertices and edges&lt;/p&gt;&#xA;&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;python $GOPATH/src/github.com/bmeg/grip/example/amazon_convert.py amazon-meta.txt.gz amazon.data&#xA;&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;Create a graph called &amp;lsquo;amazon&amp;rsquo;&lt;/p&gt;&#xA;&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;grip create amazon&#xA;&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;Load the vertices/edges into the graph&lt;/p&gt;&#xA;&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;grip load amazon --edge amazon.data.edge --vertex amazon.data.vertex&#xA;&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;Query the graph&lt;/p&gt;&#xA;&lt;p&gt;&lt;em&gt;command line client&lt;/em&gt;&lt;/p&gt;&#xA;&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;grip query amazon &amp;#39;O.query().V().out()&amp;#39;&#xA;&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;&lt;em&gt;python client&lt;/em&gt;&lt;/p&gt;&#xA;&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;pip install &amp;#34;git+https://github.com/bmeg/grip.git#egg=gripql&amp;amp;subdirectory=gripql/python/&amp;#34;&#xA;&lt;/code&gt;&lt;/pre&gt;&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-python&#34; data-lang=&#34;python&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f92672&#34;&gt;import&lt;/span&gt; gripql&#xA;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&#xA;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;conn &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; gripql&lt;span style=&#34;color:#f92672&#34;&gt;.&lt;/span&gt;Connection(&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;http://localhost:8201&amp;#34;&lt;/span&gt;)&#xA;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&#xA;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;g &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; conn&lt;span style=&#34;color:#f92672&#34;&gt;.&lt;/span&gt;graph(&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;amazon&amp;#34;&lt;/span&gt;)&#xA;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&#xA;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;# Count the Vertices&lt;/span&gt;&#xA;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;print g&lt;span style=&#34;color:#f92672&#34;&gt;.&lt;/span&gt;query()&lt;span style=&#34;color:#f92672&#34;&gt;.&lt;/span&gt;V()&lt;span style=&#34;color:#f92672&#34;&gt;.&lt;/span&gt;count()&lt;span style=&#34;color:#f92672&#34;&gt;.&lt;/span&gt;execute()&#xA;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;# Count the Edges&lt;/span&gt;&#xA;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;print g&lt;span style=&#34;color:#f92672&#34;&gt;.&lt;/span&gt;query()&lt;span style=&#34;color:#f92672&#34;&gt;.&lt;/span&gt;E()&lt;span style=&#34;color:#f92672&#34;&gt;.&lt;/span&gt;count()&lt;span style=&#34;color:#f92672&#34;&gt;.&lt;/span&gt;execute()&#xA;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&#xA;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;# Try simple travesral&lt;/span&gt;&#xA;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;print g&lt;span style=&#34;color:#f92672&#34;&gt;.&lt;/span&gt;query()&lt;span style=&#34;color:#f92672&#34;&gt;.&lt;/span&gt;V(&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;B00000I06U&amp;#34;&lt;/span&gt;)&lt;span style=&#34;color:#f92672&#34;&gt;.&lt;/span&gt;outE()&lt;span style=&#34;color:#f92672&#34;&gt;.&lt;/span&gt;execute()&#xA;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&#xA;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;# Find every Book that is similar to a DVD&lt;/span&gt;&#xA;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#66d9ef&#34;&gt;for&lt;/span&gt; result &lt;span style=&#34;color:#f92672&#34;&gt;in&lt;/span&gt; g&lt;span style=&#34;color:#f92672&#34;&gt;.&lt;/span&gt;query()&lt;span style=&#34;color:#f92672&#34;&gt;.&lt;/span&gt;V()&lt;span style=&#34;color:#f92672&#34;&gt;.&lt;/span&gt;has(gripql&lt;span style=&#34;color:#f92672&#34;&gt;.&lt;/span&gt;eq(&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;group&amp;#34;&lt;/span&gt;, &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;Book&amp;#34;&lt;/span&gt;))&lt;span style=&#34;color:#f92672&#34;&gt;.&lt;/span&gt;as_(&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;a&amp;#34;&lt;/span&gt;)&lt;span style=&#34;color:#f92672&#34;&gt;.&lt;/span&gt;out(&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;similar&amp;#34;&lt;/span&gt;)&lt;span style=&#34;color:#f92672&#34;&gt;.&lt;/span&gt;has(gripql&lt;span style=&#34;color:#f92672&#34;&gt;.&lt;/span&gt;eq(&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;group&amp;#34;&lt;/span&gt;, &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;DVD&amp;#34;&lt;/span&gt;))&lt;span style=&#34;color:#f92672&#34;&gt;.&lt;/span&gt;as_(&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;b&amp;#34;&lt;/span&gt;)&lt;span style=&#34;color:#f92672&#34;&gt;.&lt;/span&gt;select([&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;a&amp;#34;&lt;/span&gt;, &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;b&amp;#34;&lt;/span&gt;]):&#xA;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    print result&#xA;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;</description>
     </item>
-    
     <item>
       <title>Basic Auth</title>
       <link>https://bmeg.github.io/grip/docs/security/basic/</link>
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
-      
       <guid>https://bmeg.github.io/grip/docs/security/basic/</guid>
-      <description>Basic Auth By default, an GRIP server allows open access to its API endpoints, but it can be configured to require basic password authentication. To enable this, include users and passwords in your config file:
-Server: BasicAuth: - User: testuser Password: abc123 Make sure to properly protect the configuration file so that it&#39;s not readable by everyone:
-$ chmod 600 grip.config.yml To use the password, set the GRIP_USER and GRIP_PASSWORD environment variables:</description>
+      <description>&lt;h1 id=&#34;basic-auth&#34;&gt;Basic Auth&lt;/h1&gt;&#xA;&lt;p&gt;By default, an GRIP server allows open access to its API endpoints, but it&#xA;can be configured to require basic password authentication. To enable this,&#xA;include users and passwords in your config file:&lt;/p&gt;&#xA;&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-yaml&#34; data-lang=&#34;yaml&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f92672&#34;&gt;Server&lt;/span&gt;:&#xA;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;  &lt;span style=&#34;color:#f92672&#34;&gt;BasicAuth&lt;/span&gt;:&#xA;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    - &lt;span style=&#34;color:#f92672&#34;&gt;User&lt;/span&gt;: &lt;span style=&#34;color:#ae81ff&#34;&gt;testuser&lt;/span&gt;&#xA;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;      &lt;span style=&#34;color:#f92672&#34;&gt;Password&lt;/span&gt;: &lt;span style=&#34;color:#ae81ff&#34;&gt;abc123&lt;/span&gt;&#xA;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;Make sure to properly protect the configuration file so that it&amp;rsquo;s not readable&#xA;by everyone:&lt;/p&gt;&#xA;&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;$ chmod &lt;span style=&#34;color:#ae81ff&#34;&gt;600&lt;/span&gt; grip.config.yml&#xA;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;To use the password, set the &lt;code&gt;GRIP_USER&lt;/code&gt; and &lt;code&gt;GRIP_PASSWORD&lt;/code&gt; environment variables:&lt;/p&gt;&#xA;&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;$ export GRIP_USER&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;testuser&#xA;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;$ export GRIP_PASSWORD&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;abc123&#xA;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;$ grip list&#xA;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h2 id=&#34;using-the-python-client&#34;&gt;Using the Python Client&lt;/h2&gt;&#xA;&lt;p&gt;Some GRIP servers may require authorizaiton to access its API endpoints. The client can be configured to pass&#xA;authorization headers in its requests:&lt;/p&gt;</description>
     </item>
-    
     <item>
       <title>Database Configuration</title>
       <link>https://bmeg.github.io/grip/docs/databases/</link>
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
-      
       <guid>https://bmeg.github.io/grip/docs/databases/</guid>
       <description></description>
     </item>
-    
     <item>
       <title>Developers</title>
       <link>https://bmeg.github.io/grip/docs/developers/</link>
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
-      
       <guid>https://bmeg.github.io/grip/docs/developers/</guid>
       <description></description>
     </item>
-    
     <item>
       <title>Download</title>
       <link>https://bmeg.github.io/grip/download/</link>
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
-      
       <guid>https://bmeg.github.io/grip/download/</guid>
-      <description> Download 0.7.0  Linux MacOS Windows is not supported sorry!  Release History See the Releases page for release history.
-Docker docker pull bmeg/grip docker run bmeg/grip grip server $ git clone https://github.com/bmeg/grip.git $ cd grip $ make </description>
+      <description>&lt;h3&gt;Download 0.7.0&lt;/h3&gt;&#xA;&#xA;&lt;ul&gt;&#xA;  &lt;li&gt;&lt;a href=&#34;https://github.com/bmeg/grip/releases/download/0.7.0/grip-linux-amd64-0.7.0.tar.gz&#34;&gt;Linux&lt;/a&gt;&lt;/li&gt;&#xA;  &lt;li&gt;&lt;a href=&#34;https://github.com/bmeg/grip/releases/download/0.7.0/grip-darwin-amd64-0.7.0.tar.gz&#34;&gt;MacOS&lt;/a&gt;&lt;/li&gt;&#xA;  &lt;li&gt;&lt;small&gt;Windows is not supported sorry!&lt;/small&gt;&lt;/li&gt;&#xA;&lt;/ul&gt;&#xA;&#xA;&lt;h3 id=&#34;release-history&#34;&gt;Release History&lt;/h3&gt;&#xA;&lt;p&gt;See the &lt;a href=&#34;https://github.com/bmeg/grip/releases&#34;&gt;Releases&lt;/a&gt; page for release history.&lt;/p&gt;&#xA;&lt;h2 id=&#34;docker&#34;&gt;Docker&lt;/h2&gt;&#xA;&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-shell&#34; data-lang=&#34;shell&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;docker pull bmeg/grip&#xA;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;docker run bmeg/grip grip server&#xA;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;!-- raw HTML omitted --&gt;&#xA;&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-shell&#34; data-lang=&#34;shell&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;$ git clone https://github.com/bmeg/grip.git&#xA;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;$ cd grip&#xA;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;$ make&#xA;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;</description>
     </item>
-    
     <item>
       <title>drop</title>
       <link>https://bmeg.github.io/grip/docs/commands/drop/</link>
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
-      
       <guid>https://bmeg.github.io/grip/docs/commands/drop/</guid>
-      <description>grip drop &amp;lt;graph&amp;gt; Deletes a graph.</description>
+      <description>&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;grip drop &amp;lt;graph&amp;gt;&#xA;&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;Deletes a graph.&lt;/p&gt;</description>
     </item>
-    
-    <item>
-      <title>Elasticsearch</title>
-      <link>https://bmeg.github.io/grip/docs/databases/elastic/</link>
-      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
-      
-      <guid>https://bmeg.github.io/grip/docs/databases/elastic/</guid>
-      <description>Elasticsearch GRIP supports storing vertices and edges in Elasticsearch.
-Config:
-Default: elastic Drivers: elastic: Elasticsearch: URL: &amp;#34;http://localhost:9200&amp;#34; DBName: &amp;#34;gripdb&amp;#34; Username: &amp;#34;&amp;#34; Password: &amp;#34;&amp;#34; </description>
-    </item>
-    
     <item>
       <title>Embedded KV Store</title>
       <link>https://bmeg.github.io/grip/docs/databases/kvstore/</link>
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
-      
       <guid>https://bmeg.github.io/grip/docs/databases/kvstore/</guid>
-      <description>Embedded Key Value Stores GRIP supports storing vertices and edges in a variety of key-value stores including:
- Badger BoltDB LevelDB  Config:
-Default: kv Driver: kv: Badger: grip.db </description>
+      <description>&lt;h1 id=&#34;embedded-key-value-stores&#34;&gt;Embedded Key Value Stores&lt;/h1&gt;&#xA;&lt;p&gt;GRIP supports storing vertices and edges in a variety of key-value stores including:&lt;/p&gt;&#xA;&lt;ul&gt;&#xA;&lt;li&gt;&lt;a href=&#34;https://github.com/dgraph-io/badger&#34;&gt;Badger&lt;/a&gt;&lt;/li&gt;&#xA;&lt;li&gt;&lt;a href=&#34;https://github.com/boltdb/bolt&#34;&gt;BoltDB&lt;/a&gt;&lt;/li&gt;&#xA;&lt;li&gt;&lt;a href=&#34;https://github.com/syndtr/goleveldb&#34;&gt;LevelDB&lt;/a&gt;&lt;/li&gt;&#xA;&lt;/ul&gt;&#xA;&lt;p&gt;Config:&lt;/p&gt;&#xA;&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-yaml&#34; data-lang=&#34;yaml&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f92672&#34;&gt;Default&lt;/span&gt;: &lt;span style=&#34;color:#ae81ff&#34;&gt;kv&lt;/span&gt;&#xA;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&#xA;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f92672&#34;&gt;Driver&lt;/span&gt;:&#xA;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;  &lt;span style=&#34;color:#f92672&#34;&gt;kv&lt;/span&gt;:&#xA;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    &lt;span style=&#34;color:#f92672&#34;&gt;Badger&lt;/span&gt;: &lt;span style=&#34;color:#ae81ff&#34;&gt;grip.db&lt;/span&gt;&#xA;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;</description>
     </item>
-    
     <item>
       <title>er</title>
       <link>https://bmeg.github.io/grip/docs/commands/er/</link>
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
-      
       <guid>https://bmeg.github.io/grip/docs/commands/er/</guid>
-      <description>grip er The External Resource system allows GRIP to plug into existing data systems and integrate them into queriable graphs. The grip er sub command acts as a client to the external resource plugin proxies, issues command and displays the results. This is often useful for debugging external resources before making them part of an actual graph.
-List collections provided by external resource
-grip er list Get info about a collection</description>
+      <description>&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;grip er&#xA;&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;The &lt;em&gt;External Resource&lt;/em&gt; system allows GRIP to plug into existing data systems and&#xA;integrate them into queriable graphs. The &lt;code&gt;grip er&lt;/code&gt; sub command acts as a client&#xA;to the external resource plugin proxies, issues command and displays the results.&#xA;This is often useful for debugging external resources before making them part of&#xA;an actual graph.&lt;/p&gt;&#xA;&lt;p&gt;List collections provided by external resource&lt;/p&gt;&#xA;&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;grip er list&#xA;&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;Get info about a collection&lt;/p&gt;&#xA;&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;grip er info&#xA;&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;List ids from a collection&lt;/p&gt;</description>
     </item>
-    
     <item>
       <title>External Resource Proxies</title>
       <link>https://bmeg.github.io/grip/docs/gripper/proxy/</link>
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
-      
       <guid>https://bmeg.github.io/grip/docs/gripper/proxy/</guid>
-      <description>GRIPPER GRIPPER proxy With the external resources normalized to a single data model, the graph model describes how to connect the set of collections into a graph model. Each GRIPPER is required to provide a GRPC interface that allows access to collections stored in the resource.
-The required functions include:
-rpc GetCollections(Empty) returns (stream Collection); GetCollections returns a list of all of the Collections accessible via this server.
-rpc GetCollectionInfo(Collection) returns (CollectionInfo); GetCollectionInfo provides information, such as the list of indexed fields, in a collection.</description>
+      <description>&lt;h1 id=&#34;gripper&#34;&gt;GRIPPER&lt;/h1&gt;&#xA;&lt;h2 id=&#34;gripper-proxy&#34;&gt;GRIPPER proxy&lt;/h2&gt;&#xA;&lt;p&gt;With the external resources normalized to a single data model, the graph model&#xA;describes how to connect the set of collections into a graph model. Each GRIPPER&#xA;is required to provide a GRPC interface that allows access to collections stored&#xA;in the resource.&lt;/p&gt;&#xA;&lt;p&gt;The required functions include:&lt;/p&gt;&#xA;&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;rpc GetCollections(Empty) returns (stream Collection);&#xA;&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;&lt;code&gt;GetCollections&lt;/code&gt; returns a list of all of the Collections accessible via this server.&lt;/p&gt;&#xA;&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;rpc GetCollectionInfo(Collection) returns (CollectionInfo);&#xA;&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;&lt;code&gt;GetCollectionInfo&lt;/code&gt; provides information, such as the list of indexed fields, in a collection.&lt;/p&gt;</description>
     </item>
-    
     <item>
       <title>Getting Started</title>
       <link>https://bmeg.github.io/grip/docs/queries/getting_started/</link>
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
-      
       <guid>https://bmeg.github.io/grip/docs/queries/getting_started/</guid>
-      <description>Getting Started GRIP has an API for making graph queries using structured data. Queries are defined using a series of step operations.
-Install the Python Client Available on PyPI.
-pip install gripql Or install the latest development version:
-pip install &amp;quot;git+https://github.com/bmeg/grip.git#subdirectory=gripql/python&amp;quot; Using the Python Client Let&#39;s go through the features currently supported in the python client.
-First, import the client and create a connection to an GRIP server:
-import gripql G = gripql.</description>
+      <description>&lt;h1 id=&#34;getting-started&#34;&gt;Getting Started&lt;/h1&gt;&#xA;&lt;p&gt;GRIP has an API for making graph queries using structured data. Queries are defined using a series of step &lt;a href=&#34;https://bmeg.github.io/grip/docs/queries/operations&#34;&gt;operations&lt;/a&gt;.&lt;/p&gt;&#xA;&lt;h2 id=&#34;install-the-python-client&#34;&gt;Install the Python Client&lt;/h2&gt;&#xA;&lt;p&gt;Available on &lt;a href=&#34;https://pypi.org/project/gripql/&#34;&gt;PyPI&lt;/a&gt;.&lt;/p&gt;&#xA;&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;pip install gripql&#xA;&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;Or install the latest development version:&lt;/p&gt;&#xA;&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;pip install &amp;#34;git+https://github.com/bmeg/grip.git#subdirectory=gripql/python&amp;#34;&#xA;&lt;/code&gt;&lt;/pre&gt;&lt;h2 id=&#34;using-the-python-client&#34;&gt;Using the Python Client&lt;/h2&gt;&#xA;&lt;p&gt;Let&amp;rsquo;s go through the features currently supported in the python client.&lt;/p&gt;&#xA;&lt;p&gt;First, import the client and create a connection to an GRIP server:&lt;/p&gt;&#xA;&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-python&#34; data-lang=&#34;python&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f92672&#34;&gt;import&lt;/span&gt; gripql&#xA;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;G &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; gripql&lt;span style=&#34;color:#f92672&#34;&gt;.&lt;/span&gt;Connection(&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;https://bmeg.io&amp;#34;&lt;/span&gt;)&lt;span style=&#34;color:#f92672&#34;&gt;.&lt;/span&gt;graph(&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;bmeg&amp;#34;&lt;/span&gt;)&#xA;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;Some GRIP servers may require authorizaiton to access its API endpoints. The client can be configured to pass&#xA;authorization headers in its requests.&lt;/p&gt;</description>
     </item>
-    
     <item>
       <title>Graph Model</title>
       <link>https://bmeg.github.io/grip/docs/gripper/graphmodel/</link>
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
-      
       <guid>https://bmeg.github.io/grip/docs/gripper/graphmodel/</guid>
-      <description>GRIPPER GRIP Plugable External Resources
-Graph Model The graph model describes how GRIP will access multiple gripper servers. The mapping of these data resources is done using a graph. The vertices represent how each vertex type will be mapped, and the edges describe how edges will be created. The gid of each vertex represents the prefix domain of all vertices that can be found in that source.
-The sources referenced by the graph are provided to GRIP at run time, each named resource is a different GRIPPER plugin that abstracts an external resource.</description>
+      <description>&lt;h1 id=&#34;gripper&#34;&gt;GRIPPER&lt;/h1&gt;&#xA;&lt;p&gt;GRIP Plugable External Resources&lt;/p&gt;&#xA;&lt;h2 id=&#34;graph-model&#34;&gt;Graph Model&lt;/h2&gt;&#xA;&lt;p&gt;The graph model describes how GRIP will access multiple gripper servers. The mapping&#xA;of these data resources is done using a graph. The &lt;code&gt;vertices&lt;/code&gt; represent how each vertex&#xA;type will be mapped, and the &lt;code&gt;edges&lt;/code&gt; describe how edges will be created. The &lt;code&gt;gid&lt;/code&gt;&#xA;of each vertex represents the prefix domain of all vertices that can be found in that&#xA;source.&lt;/p&gt;&#xA;&lt;p&gt;The &lt;code&gt;sources&lt;/code&gt; referenced by the graph are provided to GRIP at run time, each named resource is a&#xA;different GRIPPER plugin that abstracts an external resource.&#xA;The &lt;code&gt;vertices&lt;/code&gt; section describes how different collections&#xA;found in these sources will be turned into Vertex found in the graph. Finally, the&#xA;&lt;code&gt;edges&lt;/code&gt; section describes the different kinds of rules that can be used build the&#xA;edges in the graph.&lt;/p&gt;</description>
     </item>
-    
     <item>
       <title>Graph Schemas</title>
       <link>https://bmeg.github.io/grip/docs/graphql/graph_schemas/</link>
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
-      
       <guid>https://bmeg.github.io/grip/docs/graphql/graph_schemas/</guid>
-      <description>Graph Schemas Most GRIP based graphs are not required to have a strict schema. However, GraphQL requires a graph schema as part of it&#39;s API. To utilize the GraphQL endpoint, there must be a Graph Schema provided to be used by the GRIP engine to determine how to render a GraphQL endpoint. Graph schemas are themselves an instance of a graph. As such, they can be traversed like any other graph.</description>
+      <description>&lt;h1 id=&#34;graph-schemas&#34;&gt;Graph Schemas&lt;/h1&gt;&#xA;&lt;p&gt;Most GRIP based graphs are not required to have a strict schema. However, GraphQL requires&#xA;a graph schema as part of it&amp;rsquo;s API. To utilize the GraphQL endpoint, there must be a&#xA;Graph Schema provided to be used by the GRIP engine to determine how to render a GraphQL endpoint.&#xA;Graph schemas are themselves an instance of a graph. As such, they can be traversed like any other graph.&#xA;The schemas are automatically added to the database following the naming pattern. &lt;code&gt;{graph-name}__schema__&lt;/code&gt;&lt;/p&gt;</description>
     </item>
-    
     <item>
       <title>GraphQL</title>
       <link>https://bmeg.github.io/grip/docs/graphql/</link>
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
-      
       <guid>https://bmeg.github.io/grip/docs/graphql/</guid>
       <description></description>
     </item>
-    
     <item>
       <title>GraphQL</title>
       <link>https://bmeg.github.io/grip/docs/graphql/graphql/</link>
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
-      
       <guid>https://bmeg.github.io/grip/docs/graphql/graphql/</guid>
-      <description>GraphQL GraphQL support is considered Alpha. The code is not stable and the API will likely change. GraphQL access is only supported when using the MongoDB driver
-GRIP supports GraphQL access of the property graphs. Currently this is read-only access to the graph.
-Load built-in example graph Loading the example data and the example schema:
-grip load example-graph See the example graph
-grip dump example-graph --vertex --edge Sample components of the graph to produce a schema and store to a file</description>
+      <description>&lt;h1 id=&#34;graphql&#34;&gt;GraphQL&lt;/h1&gt;&#xA;&lt;p&gt;&lt;strong&gt;GraphQL support is considered Alpha. The code is not stable and the API will likely change.&lt;/strong&gt;&#xA;&lt;strong&gt;&lt;em&gt;GraphQL access is only supported when using the MongoDB driver&lt;/em&gt;&lt;/strong&gt;&lt;/p&gt;&#xA;&lt;p&gt;GRIP supports GraphQL access of the property graphs. Currently this is read-only access to the graph.&lt;/p&gt;&#xA;&lt;h3 id=&#34;load-built-in-example-graph&#34;&gt;Load built-in example graph&lt;/h3&gt;&#xA;&lt;p&gt;Loading the example data and the example schema:&lt;/p&gt;&#xA;&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;grip load example-graph&#xA;&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;See the example graph&lt;/p&gt;&#xA;&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;grip dump example-graph --vertex --edge&#xA;&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;Sample components of the graph to produce a schema and store to a file&lt;/p&gt;</description>
     </item>
-    
     <item>
       <title>GRIP Commands</title>
       <link>https://bmeg.github.io/grip/docs/commands/</link>
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
-      
       <guid>https://bmeg.github.io/grip/docs/commands/</guid>
       <description></description>
     </item>
-    
     <item>
       <title>GRIP Plugable External Resources</title>
       <link>https://bmeg.github.io/grip/docs/gripper/</link>
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
-      
       <guid>https://bmeg.github.io/grip/docs/gripper/</guid>
       <description></description>
     </item>
-    
     <item>
       <title>GRIPPER</title>
       <link>https://bmeg.github.io/grip/docs/databases/gripper/</link>
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
-      
       <guid>https://bmeg.github.io/grip/docs/databases/gripper/</guid>
-      <description>GRIPPER GRIP Plugable External Resources are data systems that GRIP can combine together to create graphs.
-Example:
-Drivers: swapi-driver: Gripper: ConfigFile: ./swapi.yaml Graph: swapi ConfigFile - Path to GRIPPER graph map
-Graph - Name of the graph for the mapped external resources.</description>
+      <description>&lt;h1 id=&#34;gripper&#34;&gt;GRIPPER&lt;/h1&gt;&#xA;&lt;p&gt;GRIP Plugable External Resources are data systems that GRIP can combine together&#xA;to create graphs.&lt;/p&gt;&#xA;&lt;p&gt;Example:&lt;/p&gt;&#xA;&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-yaml&#34; data-lang=&#34;yaml&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f92672&#34;&gt;Drivers&lt;/span&gt;:&#xA;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;  &lt;span style=&#34;color:#f92672&#34;&gt;swapi-driver&lt;/span&gt;:&#xA;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    &lt;span style=&#34;color:#f92672&#34;&gt;Gripper&lt;/span&gt;:&#xA;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;      &lt;span style=&#34;color:#f92672&#34;&gt;ConfigFile&lt;/span&gt;: &lt;span style=&#34;color:#ae81ff&#34;&gt;./swapi.yaml&lt;/span&gt;&#xA;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;      &lt;span style=&#34;color:#f92672&#34;&gt;Graph&lt;/span&gt;: &lt;span style=&#34;color:#ae81ff&#34;&gt;swapi&lt;/span&gt;&#xA;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;&lt;code&gt;ConfigFile&lt;/code&gt; - Path to GRIPPER graph map&lt;/p&gt;&#xA;&lt;p&gt;&lt;code&gt;Graph&lt;/code&gt; - Name of the graph for the mapped external resources.&lt;/p&gt;</description>
     </item>
-    
     <item>
       <title>Intro</title>
       <link>https://bmeg.github.io/grip/docs/gripper/gripper/</link>
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
-      
       <guid>https://bmeg.github.io/grip/docs/gripper/gripper/</guid>
-      <description>GRIPPER GRIP Plugin External Resources GRIP Plugin External Resources (GRIPPERs) are GRIP drivers that take external resources and allow GRIP to access them are part of a unified graph. To integrate new resources into the graph, you first deploy griper proxies that plug into the external resources. They are unique and configured to access specific resources. These provide a view into external resources as a series of document collections. For example, an SQL gripper would plug into an SQL server and provide the tables as a set of collections with each every row a document.</description>
+      <description>&lt;h1 id=&#34;gripper&#34;&gt;GRIPPER&lt;/h1&gt;&#xA;&lt;h2 id=&#34;grip-plugin-external-resources&#34;&gt;GRIP Plugin External Resources&lt;/h2&gt;&#xA;&lt;p&gt;GRIP Plugin External Resources (GRIPPERs) are GRIP drivers that take external&#xA;resources and allow GRIP to access them are part of a unified graph.&#xA;To integrate new resources into the graph, you&#xA;first deploy griper proxies that plug into the external resources. They are unique&#xA;and configured to access specific resources. These provide a view into external&#xA;resources as a series of document collections. For example, an SQL gripper would&#xA;plug into an SQL server and provide the tables as a set of collections with each&#xA;every row a document. A gripper is written as a gRPC server.&lt;/p&gt;</description>
     </item>
-    
+    <item>
+      <title>Iteration</title>
+      <link>https://bmeg.github.io/grip/docs/queries/iterations/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      <guid>https://bmeg.github.io/grip/docs/queries/iterations/</guid>
+      <description>&lt;h1 id=&#34;iteration-api&#34;&gt;Iteration API&lt;/h1&gt;&#xA;&lt;p&gt;A common operation in graph search is the ability to iterative repeat a search pattern.&#xA;For example, a &amp;lsquo;friend of a friend&amp;rsquo; search may become a &amp;lsquo;friend of a friend of a friend&amp;rsquo; search.&lt;/p&gt;&#xA;&lt;p&gt;In the GripQL language cycles, iterations and conditional operations are encoded using&#xA;&amp;lsquo;mark&amp;rsquo; and &amp;lsquo;jump&amp;rsquo; based interface. This operations are similar to using a &amp;lsquo;goto&amp;rsquo;&#xA;statement in a traditional programming language. While more primitive than the&#xA;repeat mechanisms seen in Gremlin, this pattern allows for a much more simple&#xA;query compilation and implementation.&lt;/p&gt;</description>
+    </item>
     <item>
       <title>Jobs API</title>
       <link>https://bmeg.github.io/grip/docs/queries/jobs_api/</link>
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
-      
       <guid>https://bmeg.github.io/grip/docs/queries/jobs_api/</guid>
-      <description>Jobs API Not all queries return instantaneously, additionally some queries elements are used repeatedly. The query Jobs API provides a mechanism to submit graph traversals that will be evaluated asynchronously and can be retrieved at a later time.
-Submitting a job job = G.query().V().hasLabel(&amp;quot;Planet&amp;quot;).out().submit() Getting job status jinfo = G.getJob(job[&amp;quot;id&amp;quot;]) Example job info:
-{ &amp;#34;id&amp;#34;: &amp;#34;job-326392951&amp;#34;, &amp;#34;graph&amp;#34;: &amp;#34;test_graph_qd7rs7&amp;#34;, &amp;#34;state&amp;#34;: &amp;#34;COMPLETE&amp;#34;, &amp;#34;count&amp;#34;: &amp;#34;12&amp;#34;, &amp;#34;query&amp;#34;: [{&amp;#34;v&amp;#34;: []}, {&amp;#34;hasLabel&amp;#34;: [&amp;#34;Planet&amp;#34;]}, {&amp;#34;as&amp;#34;: &amp;#34;a&amp;#34;}, {&amp;#34;out&amp;#34;: []}], &amp;#34;timestamp&amp;#34;: &amp;#34;2021-03-30T23:12:01-07:00&amp;#34; } Reading job results for row in G.</description>
+      <description>&lt;h1 id=&#34;jobs-api&#34;&gt;Jobs API&lt;/h1&gt;&#xA;&lt;p&gt;Not all queries return instantaneously, additionally some queries elements are used&#xA;repeatedly. The query Jobs API provides a mechanism to submit graph traversals&#xA;that will be evaluated asynchronously and can be retrieved at a later time.&lt;/p&gt;&#xA;&lt;h3 id=&#34;submitting-a-job&#34;&gt;Submitting a job&lt;/h3&gt;&#xA;&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;job = G.query().V().hasLabel(&amp;#34;Planet&amp;#34;).out().submit()&#xA;&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;getting-job-status&#34;&gt;Getting job status&lt;/h3&gt;&#xA;&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;jinfo = G.getJob(job[&amp;#34;id&amp;#34;])&#xA;&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;Example job info:&lt;/p&gt;&#xA;&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-json&#34; data-lang=&#34;json&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;{&#xA;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;  &lt;span style=&#34;color:#f92672&#34;&gt;&amp;#34;id&amp;#34;&lt;/span&gt;: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;job-326392951&amp;#34;&lt;/span&gt;,&#xA;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;  &lt;span style=&#34;color:#f92672&#34;&gt;&amp;#34;graph&amp;#34;&lt;/span&gt;: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;test_graph_qd7rs7&amp;#34;&lt;/span&gt;,&#xA;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;  &lt;span style=&#34;color:#f92672&#34;&gt;&amp;#34;state&amp;#34;&lt;/span&gt;: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;COMPLETE&amp;#34;&lt;/span&gt;,&#xA;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;  &lt;span style=&#34;color:#f92672&#34;&gt;&amp;#34;count&amp;#34;&lt;/span&gt;: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;12&amp;#34;&lt;/span&gt;,&#xA;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;  &lt;span style=&#34;color:#f92672&#34;&gt;&amp;#34;query&amp;#34;&lt;/span&gt;: [{&lt;span style=&#34;color:#f92672&#34;&gt;&amp;#34;v&amp;#34;&lt;/span&gt;: []}, {&lt;span style=&#34;color:#f92672&#34;&gt;&amp;#34;hasLabel&amp;#34;&lt;/span&gt;: [&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;Planet&amp;#34;&lt;/span&gt;]}, {&lt;span style=&#34;color:#f92672&#34;&gt;&amp;#34;as&amp;#34;&lt;/span&gt;: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;a&amp;#34;&lt;/span&gt;}, {&lt;span style=&#34;color:#f92672&#34;&gt;&amp;#34;out&amp;#34;&lt;/span&gt;: []}],&#xA;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;  &lt;span style=&#34;color:#f92672&#34;&gt;&amp;#34;timestamp&amp;#34;&lt;/span&gt;: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;2021-03-30T23:12:01-07:00&amp;#34;&lt;/span&gt;&#xA;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;}&#xA;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h3 id=&#34;reading-job-results&#34;&gt;Reading job results&lt;/h3&gt;&#xA;&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;for row in G.readJob(job[&amp;#34;id&amp;#34;]):&#xA;   print(row)&#xA;&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;search-for-jobs&#34;&gt;Search for jobs&lt;/h3&gt;&#xA;&lt;p&gt;Find jobs that match the prefix of the current request (example should find job from G.query().V().hasLabel(&amp;ldquo;Planet&amp;rdquo;).out())&lt;/p&gt;</description>
     </item>
-    
     <item>
       <title>list</title>
       <link>https://bmeg.github.io/grip/docs/commands/list/</link>
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
-      
       <guid>https://bmeg.github.io/grip/docs/commands/list/</guid>
-      <description>grip list graphs grip list graphs </description>
+      <description>&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;grip list&#xA;&lt;/code&gt;&lt;/pre&gt;&lt;h1 id=&#34;graphs&#34;&gt;graphs&lt;/h1&gt;&#xA;&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;grip list graphs&#xA;&lt;/code&gt;&lt;/pre&gt;</description>
     </item>
-    
     <item>
       <title>MongoDB</title>
       <link>https://bmeg.github.io/grip/docs/databases/mongo/</link>
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
-      
       <guid>https://bmeg.github.io/grip/docs/databases/mongo/</guid>
-      <description>MongoDB GRIP supports storing vertices and edges in MongoDB.
-Config:
-Default: mongo Drivers: mongo: MongoDB: URL: &amp;#34;mongodb://localhost:27000&amp;#34; DBName: &amp;#34;gripdb&amp;#34; Username: &amp;#34;&amp;#34; Password: &amp;#34;&amp;#34; UseCorePipeline: False BatchSize: 0 UseCorePipeline - Default is to use Mongo pipeline API to do graph traversals. By enabling UseCorePipeline, GRIP will do the traversal logic itself, only using Mongo for graph storage.
-BatchSize - For core engine operations, GRIP dispatches element lookups in batches to minimize query overhead.</description>
+      <description>&lt;h1 id=&#34;mongodb&#34;&gt;MongoDB&lt;/h1&gt;&#xA;&lt;p&gt;GRIP supports storing vertices and edges in &lt;a href=&#34;https://www.mongodb.com/&#34;&gt;MongoDB&lt;/a&gt;.&lt;/p&gt;&#xA;&lt;p&gt;Config:&lt;/p&gt;&#xA;&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-yaml&#34; data-lang=&#34;yaml&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f92672&#34;&gt;Default&lt;/span&gt;: &lt;span style=&#34;color:#ae81ff&#34;&gt;mongo&lt;/span&gt;&#xA;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&#xA;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f92672&#34;&gt;Drivers&lt;/span&gt;:&#xA;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;  &lt;span style=&#34;color:#f92672&#34;&gt;mongo&lt;/span&gt;:&#xA;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    &lt;span style=&#34;color:#f92672&#34;&gt;MongoDB&lt;/span&gt;:&#xA;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;      &lt;span style=&#34;color:#f92672&#34;&gt;URL&lt;/span&gt;: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;mongodb://localhost:27000&amp;#34;&lt;/span&gt;&#xA;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;      &lt;span style=&#34;color:#f92672&#34;&gt;DBName&lt;/span&gt;: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;gripdb&amp;#34;&lt;/span&gt;&#xA;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;      &lt;span style=&#34;color:#f92672&#34;&gt;Username&lt;/span&gt;: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;&amp;#34;&lt;/span&gt;&#xA;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;      &lt;span style=&#34;color:#f92672&#34;&gt;Password&lt;/span&gt;: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;&amp;#34;&lt;/span&gt;&#xA;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;      &lt;span style=&#34;color:#f92672&#34;&gt;UseCorePipeline&lt;/span&gt;: &lt;span style=&#34;color:#66d9ef&#34;&gt;False&lt;/span&gt;&#xA;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;      &lt;span style=&#34;color:#f92672&#34;&gt;BatchSize&lt;/span&gt;: &lt;span style=&#34;color:#ae81ff&#34;&gt;0&lt;/span&gt;&#xA;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;&lt;code&gt;UseCorePipeline&lt;/code&gt; - Default is to use Mongo pipeline API to do graph traversals.&#xA;By enabling &lt;code&gt;UseCorePipeline&lt;/code&gt;, GRIP will do the traversal logic itself, only using&#xA;Mongo for graph storage.&lt;/p&gt;&#xA;&lt;p&gt;&lt;code&gt;BatchSize&lt;/code&gt; - For core engine operations, GRIP dispatches element lookups in&#xA;batches to minimize query overhead. If missing from config file (which defaults to 0)&#xA;the engine will default to 1000.&lt;/p&gt;</description>
     </item>
-    
     <item>
       <title>mongoload</title>
       <link>https://bmeg.github.io/grip/docs/commands/mongoload/</link>
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
-      
       <guid>https://bmeg.github.io/grip/docs/commands/mongoload/</guid>
-      <description>grip mongoload </description>
+      <description>&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;grip mongoload&#xA;&lt;/code&gt;&lt;/pre&gt;</description>
     </item>
-    
     <item>
       <title>Operations</title>
       <link>https://bmeg.github.io/grip/docs/queries/operations/</link>
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
-      
       <guid>https://bmeg.github.io/grip/docs/queries/operations/</guid>
-      <description>Start a Traversal .V([ids]) Start query from Vertex
-G.query().V() Returns all vertices in graph
-G.query().V([&amp;#34;vertex1]&amp;#34;) Returns:
-{&amp;#34;gid&amp;#34; : &amp;#34;vertex1&amp;#34;, &amp;#34;label&amp;#34;:&amp;#34;TestVertex&amp;#34;, &amp;#34;data&amp;#34;:{}} .E([ids]) Start query from Edge
-G.query().E() Returns all edges in graph
-G.query().E([&amp;#34;edge1&amp;#34;]) Returns:
-{&amp;#34;gid&amp;#34; : &amp;#34;edge1&amp;#34;, &amp;#34;label&amp;#34;:&amp;#34;TestEdge&amp;#34;, From: &amp;#34;vertex1&amp;#34;, To: &amp;#34;vertex2&amp;#34;, data&amp;#34;:{}} Traverse the graph .in_(), inV() Following incoming edges. Optional argument is the edge label (or list of labels) that should be followed. If no argument is provided, all incoming edges.</description>
+      <description>&lt;h1 id=&#34;start-a-traversal&#34;&gt;Start a Traversal&lt;/h1&gt;&#xA;&lt;h2 id=&#34;vids&#34;&gt;.V([ids])&lt;/h2&gt;&#xA;&lt;p&gt;Start query from Vertex&lt;/p&gt;&#xA;&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-python&#34; data-lang=&#34;python&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;G&lt;span style=&#34;color:#f92672&#34;&gt;.&lt;/span&gt;query()&lt;span style=&#34;color:#f92672&#34;&gt;.&lt;/span&gt;V()&#xA;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;Returns all vertices in graph&lt;/p&gt;&#xA;&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-python&#34; data-lang=&#34;python&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;G&lt;span style=&#34;color:#f92672&#34;&gt;.&lt;/span&gt;query()&lt;span style=&#34;color:#f92672&#34;&gt;.&lt;/span&gt;V([&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;vertex1&amp;#34;&lt;/span&gt;])&#xA;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;Returns:&lt;/p&gt;&#xA;&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-json&#34; data-lang=&#34;json&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;{&lt;span style=&#34;color:#f92672&#34;&gt;&amp;#34;_gid&amp;#34;&lt;/span&gt; : &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;vertex1&amp;#34;&lt;/span&gt;, &lt;span style=&#34;color:#f92672&#34;&gt;&amp;#34;_label&amp;#34;&lt;/span&gt;:&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;TestVertex&amp;#34;&lt;/span&gt;}&#xA;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h2 id=&#34;eids&#34;&gt;.E([ids])&lt;/h2&gt;&#xA;&lt;p&gt;Start query from Edge&lt;/p&gt;&#xA;&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-python&#34; data-lang=&#34;python&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;G&lt;span style=&#34;color:#f92672&#34;&gt;.&lt;/span&gt;query()&lt;span style=&#34;color:#f92672&#34;&gt;.&lt;/span&gt;E()&#xA;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;Returns all edges in graph&lt;/p&gt;&#xA;&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-python&#34; data-lang=&#34;python&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;G&lt;span style=&#34;color:#f92672&#34;&gt;.&lt;/span&gt;query()&lt;span style=&#34;color:#f92672&#34;&gt;.&lt;/span&gt;E([&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;edge1&amp;#34;&lt;/span&gt;])&#xA;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;Returns:&lt;/p&gt;&#xA;&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-json&#34; data-lang=&#34;json&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;{&lt;span style=&#34;color:#f92672&#34;&gt;&amp;#34;_gid&amp;#34;&lt;/span&gt; : &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;edge1&amp;#34;&lt;/span&gt;, &lt;span style=&#34;color:#f92672&#34;&gt;&amp;#34;_label&amp;#34;&lt;/span&gt;:&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;TestEdge&amp;#34;&lt;/span&gt;, &lt;span style=&#34;color:#f92672&#34;&gt;&amp;#34;_from&amp;#34;&lt;/span&gt;: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;vertex1&amp;#34;&lt;/span&gt;, &lt;span style=&#34;color:#f92672&#34;&gt;&amp;#34;_to&amp;#34;&lt;/span&gt;: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;vertex2&amp;#34;&lt;/span&gt;}&#xA;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h1 id=&#34;traverse-the-graph&#34;&gt;Traverse the graph&lt;/h1&gt;&#xA;&lt;h2 id=&#34;in_-inv&#34;&gt;.in_(), inV()&lt;/h2&gt;&#xA;&lt;p&gt;Following incoming edges. Optional argument is the edge label (or list of labels) that should be followed. If no argument is provided, all incoming edges.&lt;/p&gt;&#xA;&lt;h2 id=&#34;out-outv&#34;&gt;.out(), .outV()&lt;/h2&gt;&#xA;&lt;p&gt;Following outgoing edges. Optional argument is the edge label (or list of labels) that should be followed. If no argument is provided, all outgoing edges.&lt;/p&gt;</description>
     </item>
-    
     <item>
       <title>Overview</title>
       <link>https://bmeg.github.io/grip/docs/</link>
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
-      
       <guid>https://bmeg.github.io/grip/docs/</guid>
-      <description>Overview GRIP stands for GRaph Integration Platform. It provides a graph interface on top of a variety of existing database technologies including: MongoDB, Elasticsearch, PostgreSQL, MySQL, MariaDB, Badger, and LevelDB.
-Properties of an GRIP graph:
- Both vertices and edges in a graph can have any number of properties associated with them. There are many types of vertices and edges in a graph. Two vertices may have many types of edges connecting them, thus reflecting a myriad of relationship types.</description>
+      <description>&lt;h1 id=&#34;overview&#34;&gt;Overview&lt;/h1&gt;&#xA;&lt;p&gt;GRIP stands for GRaph Integration Platform. It provides a graph interface on top of a variety of existing database technologies including:&#xA;MongoDB, PostgreSQL, MySQL, MariaDB, Badger, and LevelDB.&lt;/p&gt;&#xA;&lt;p&gt;Properties of an GRIP graph:&lt;/p&gt;&#xA;&lt;ul&gt;&#xA;&lt;li&gt;Both vertices and edges in a graph can have any number of properties associated with them.&lt;/li&gt;&#xA;&lt;li&gt;There are many types of vertices and edges in a graph. Two vertices may have many types of edges&#xA;connecting them, thus reflecting a myriad of relationship types.&lt;/li&gt;&#xA;&lt;li&gt;Edges in the graph are directed, meaning they have a source and destination.&lt;/li&gt;&#xA;&lt;/ul&gt;&#xA;&lt;p&gt;GRIP also provides a query API for the traversing, analyzing and manipulating your graphs. Its syntax is inspired by&#xA;&lt;a href=&#34;http://tinkerpop.apache.org/&#34;&gt;Apache TinkerPop&lt;/a&gt;. Learn more &lt;a href=&#34;https://bmeg.github.io/grip/docs/queries/getting_started&#34;&gt;here&lt;/a&gt; about GRIP and its&#xA;application for querying the Bio Medical Evidence Graph (&lt;a href=&#34;https://bmeg.io&#34;&gt;BMEG&lt;/a&gt;).&lt;/p&gt;</description>
     </item>
-    
     <item>
       <title>PostgreSQL</title>
       <link>https://bmeg.github.io/grip/docs/databases/psql/</link>
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
-      
       <guid>https://bmeg.github.io/grip/docs/databases/psql/</guid>
-      <description>PostgreSQL GRIP supports storing vertices and edges in PostgreSQL.
-Config:
-Default: psql Drivers: psql: PSQL: Host: localhost Port: 15432 User: &amp;#34;&amp;#34; Password: &amp;#34;&amp;#34; DBName: &amp;#34;grip&amp;#34; SSLMode: disable </description>
+      <description>&lt;h1 id=&#34;postgresql&#34;&gt;PostgreSQL&lt;/h1&gt;&#xA;&lt;p&gt;GRIP supports storing vertices and edges in &lt;a href=&#34;https://www.postgresql.org/&#34;&gt;PostgreSQL&lt;/a&gt;.&lt;/p&gt;&#xA;&lt;p&gt;Config:&lt;/p&gt;&#xA;&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-yaml&#34; data-lang=&#34;yaml&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f92672&#34;&gt;Default&lt;/span&gt;: &lt;span style=&#34;color:#ae81ff&#34;&gt;psql&lt;/span&gt;&#xA;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&#xA;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f92672&#34;&gt;Drivers&lt;/span&gt;:&#xA;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;  &lt;span style=&#34;color:#f92672&#34;&gt;psql&lt;/span&gt;:&#xA;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    &lt;span style=&#34;color:#f92672&#34;&gt;PSQL&lt;/span&gt;:&#xA;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;      &lt;span style=&#34;color:#f92672&#34;&gt;Host&lt;/span&gt;: &lt;span style=&#34;color:#ae81ff&#34;&gt;localhost&lt;/span&gt;&#xA;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;      &lt;span style=&#34;color:#f92672&#34;&gt;Port&lt;/span&gt;: &lt;span style=&#34;color:#ae81ff&#34;&gt;15432&lt;/span&gt;&#xA;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;      &lt;span style=&#34;color:#f92672&#34;&gt;User&lt;/span&gt;: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;&amp;#34;&lt;/span&gt;&#xA;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;      &lt;span style=&#34;color:#f92672&#34;&gt;Password&lt;/span&gt;: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;&amp;#34;&lt;/span&gt;&#xA;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;      &lt;span style=&#34;color:#f92672&#34;&gt;DBName&lt;/span&gt;: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;grip&amp;#34;&lt;/span&gt;&#xA;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;      &lt;span style=&#34;color:#f92672&#34;&gt;SSLMode&lt;/span&gt;: &lt;span style=&#34;color:#ae81ff&#34;&gt;disable&lt;/span&gt;&#xA;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;</description>
     </item>
-    
     <item>
       <title>query</title>
       <link>https://bmeg.github.io/grip/docs/commands/query/</link>
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
-      
       <guid>https://bmeg.github.io/grip/docs/commands/query/</guid>
-      <description>grip query &amp;lt;graph&amp;gt; &amp;lt;query&amp;gt; Run a query on a graph.</description>
+      <description>&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;grip query &amp;lt;graph&amp;gt; &amp;lt;query&amp;gt;&#xA;&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;Run a query on a graph.&lt;/p&gt;</description>
     </item>
-    
     <item>
       <title>Query a Graph</title>
       <link>https://bmeg.github.io/grip/docs/queries/</link>
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
-      
       <guid>https://bmeg.github.io/grip/docs/queries/</guid>
       <description></description>
     </item>
-    
     <item>
       <title>Referencing Fields</title>
       <link>https://bmeg.github.io/grip/docs/queries/jsonpath/</link>
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
-      
       <guid>https://bmeg.github.io/grip/docs/queries/jsonpath/</guid>
-      <description>Referencing Vertex/Edge Properties Several operations (where, fields, render, etc.) reference properties of the vertices/edges during the traversal. GRIP uses a variation on JSONPath syntax as described in http://goessner.net/articles/ to reference fields during traversals.
-The following query:
-O.query().V([&amp;quot;ENSG00000012048&amp;quot;]).as_(&amp;quot;gene&amp;quot;).out(&amp;quot;variant&amp;quot;) Starts at vertex ENSG00000012048 and marks as gene:
-{ &amp;quot;gid&amp;quot;: &amp;quot;ENSG00000012048&amp;quot;, &amp;quot;label&amp;quot;: &amp;quot;gene&amp;quot;, &amp;quot;data&amp;quot;: { &amp;quot;symbol&amp;quot;: { &amp;quot;ensembl&amp;quot;: &amp;quot;ENSG00000012048&amp;quot;, &amp;quot;hgnc&amp;quot;: 1100, &amp;quot;entrez&amp;quot;: 672, &amp;quot;hugo&amp;quot;: &amp;quot;BRCA1&amp;quot; } &amp;quot;transcipts&amp;quot;: [&amp;quot;ENST00000471181.7&amp;quot;, &amp;quot;ENST00000357654.8&amp;quot;, &amp;quot;ENST00000493795.5&amp;quot;] } } as &amp;ldquo;gene&amp;rdquo; and traverses the graph to:</description>
+      <description>&lt;h1 id=&#34;referencing-vertexedge-properties&#34;&gt;Referencing Vertex/Edge Properties&lt;/h1&gt;&#xA;&lt;p&gt;Several operations (where, fields, render, etc.) reference properties of the vertices/edges during the traversal.&#xA;GRIP uses a variation on JSONPath syntax as described in &lt;a href=&#34;http://goessner.net/articles/&#34;&gt;http://goessner.net/articles/&lt;/a&gt; to reference fields during traversals.&lt;/p&gt;&#xA;&lt;p&gt;The following query:&lt;/p&gt;&#xA;&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;O.query().V([&amp;#34;ENSG00000012048&amp;#34;]).as_(&amp;#34;gene&amp;#34;).out(&amp;#34;variant&amp;#34;)&#xA;&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;Starts at vertex &lt;code&gt;ENSG00000012048&lt;/code&gt; and marks as &lt;code&gt;gene&lt;/code&gt;:&lt;/p&gt;&#xA;&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-json&#34; data-lang=&#34;json&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;{&#xA;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;  &lt;span style=&#34;color:#f92672&#34;&gt;&amp;#34;_gid&amp;#34;&lt;/span&gt;: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;ENSG00000012048&amp;#34;&lt;/span&gt;,&#xA;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;  &lt;span style=&#34;color:#f92672&#34;&gt;&amp;#34;_label&amp;#34;&lt;/span&gt;: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;gene&amp;#34;&lt;/span&gt;,&#xA;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;  &lt;span style=&#34;color:#f92672&#34;&gt;&amp;#34;symbol&amp;#34;&lt;/span&gt;: {&#xA;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    &lt;span style=&#34;color:#f92672&#34;&gt;&amp;#34;ensembl&amp;#34;&lt;/span&gt;: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;ENSG00000012048&amp;#34;&lt;/span&gt;,&#xA;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    &lt;span style=&#34;color:#f92672&#34;&gt;&amp;#34;hgnc&amp;#34;&lt;/span&gt;: &lt;span style=&#34;color:#ae81ff&#34;&gt;1100&lt;/span&gt;,&#xA;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    &lt;span style=&#34;color:#f92672&#34;&gt;&amp;#34;entrez&amp;#34;&lt;/span&gt;: &lt;span style=&#34;color:#ae81ff&#34;&gt;672&lt;/span&gt;,&#xA;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    &lt;span style=&#34;color:#f92672&#34;&gt;&amp;#34;hugo&amp;#34;&lt;/span&gt;: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;BRCA1&amp;#34;&lt;/span&gt;&#xA;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;  }&#xA;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;  &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;transcipts&amp;#34;&lt;/span&gt;: [&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;ENST00000471181.7&amp;#34;&lt;/span&gt;, &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;ENST00000357654.8&amp;#34;&lt;/span&gt;, &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;ENST00000493795.5&amp;#34;&lt;/span&gt;]  &#xA;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;}&#xA;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;as &amp;ldquo;gene&amp;rdquo; and traverses the graph to:&lt;/p&gt;&#xA;&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-json&#34; data-lang=&#34;json&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;{&#xA;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;  &lt;span style=&#34;color:#f92672&#34;&gt;&amp;#34;_gid&amp;#34;&lt;/span&gt;: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;NM_007294.3:c.4963_4981delTGGCCTGACCCCAGAAG&amp;#34;&lt;/span&gt;,&#xA;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;  &lt;span style=&#34;color:#f92672&#34;&gt;&amp;#34;_label&amp;#34;&lt;/span&gt;: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;variant&amp;#34;&lt;/span&gt;,&#xA;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;  &lt;span style=&#34;color:#f92672&#34;&gt;&amp;#34;type&amp;#34;&lt;/span&gt;: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;deletion&amp;#34;&lt;/span&gt;&#xA;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;  &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;publications&amp;#34;&lt;/span&gt;: [&#xA;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    {&#xA;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;      &lt;span style=&#34;color:#f92672&#34;&gt;&amp;#34;pmid&amp;#34;&lt;/span&gt;: &lt;span style=&#34;color:#ae81ff&#34;&gt;29480828&lt;/span&gt;,&#xA;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;      &lt;span style=&#34;color:#f92672&#34;&gt;&amp;#34;doi&amp;#34;&lt;/span&gt;: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;10.1097/MD.0000000000009380&amp;#34;&lt;/span&gt;&#xA;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    },&#xA;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    {&#xA;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;      &lt;span style=&#34;color:#f92672&#34;&gt;&amp;#34;pmid&amp;#34;&lt;/span&gt;: &lt;span style=&#34;color:#ae81ff&#34;&gt;23666017&lt;/span&gt;,&#xA;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;      &lt;span style=&#34;color:#f92672&#34;&gt;&amp;#34;doi&amp;#34;&lt;/span&gt;: &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;10.1097/IGC.0b013e31829527bd&amp;#34;&lt;/span&gt;&#xA;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    }&#xA;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;  ]  &#xA;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;}&#xA;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;Below is a table of field and the values they would reference in subsequent traversal operations.&lt;/p&gt;</description>
     </item>
-    
     <item>
       <title>Security</title>
       <link>https://bmeg.github.io/grip/docs/security/</link>
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
-      
       <guid>https://bmeg.github.io/grip/docs/security/</guid>
       <description></description>
     </item>
-    
     <item>
       <title>server</title>
       <link>https://bmeg.github.io/grip/docs/commands/server/</link>
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
-      
       <guid>https://bmeg.github.io/grip/docs/commands/server/</guid>
-      <description>grip server The server command starts up a graph server and waits for incoming requests.
-Default Configuration If invoked with no arguments or config files, GRIP will start up in embedded mode, using a Badger based graph driver.
-Networking By default the GRIP server operates on 2 ports, 8201 is the HTTP based interface. Port 8202 is a GRPC based interface. Python, R and Javascript clients are designed to connect to the HTTP interface on 8201.</description>
+      <description>&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;grip server&#xA;&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;The server command starts up a graph server and waits for incoming requests.&lt;/p&gt;&#xA;&lt;h2 id=&#34;default-configuration&#34;&gt;Default Configuration&lt;/h2&gt;&#xA;&lt;p&gt;If invoked with no arguments or config files, GRIP will start up in embedded mode,&#xA;using a Badger based graph driver.&lt;/p&gt;&#xA;&lt;h2 id=&#34;networking&#34;&gt;Networking&lt;/h2&gt;&#xA;&lt;p&gt;By default the GRIP server operates on 2 ports, &lt;code&gt;8201&lt;/code&gt; is the HTTP based interface.&#xA;Port &lt;code&gt;8202&lt;/code&gt; is a GRPC based interface. Python, R and Javascript clients are designed&#xA;to connect to the HTTP interface on &lt;code&gt;8201&lt;/code&gt;. The &lt;code&gt;grip&lt;/code&gt; command will often use&#xA;port &lt;code&gt;8202&lt;/code&gt; in order to complete operations. For example if you call &lt;code&gt;grip list graphs&lt;/code&gt;&#xA;it will contact port &lt;code&gt;8202&lt;/code&gt;, rather then using the HTTP port. This means that if&#xA;you are working with a server that is behind a firewall, and only the HTTP port is&#xA;available, then the grip command line program will not be able to issue commands,&#xA;even if the server is visible to client libraries.&lt;/p&gt;</description>
     </item>
-    
     <item>
       <title>SQL</title>
       <link>https://bmeg.github.io/grip/docs/databases/sql/</link>
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
-      
       <guid>https://bmeg.github.io/grip/docs/databases/sql/</guid>
-      <description>Connect to an existing SQL database Note: This driver is being superseded by the GRIPPER engine
-GRIP supports modeling an existing SQL database as a graph. GRIP has been tested against PostgreSQL, but should work with MySQL (4.1+) and MariaDB.
-Since GRIP uses Go&#39;s database/sql package, we could (in thoery) support any SQL databases listed on: https://github.com/golang/go/wiki/SQLDrivers. Open an issue if you would like to request support for your favorite SQL database.</description>
+      <description>&lt;h1 id=&#34;connect-to-an-existing-sql-database&#34;&gt;Connect to an existing SQL database&lt;/h1&gt;&#xA;&lt;p&gt;Note: This driver is being superseded by the &lt;a href=&#34;https://bmeg.github.io/grip/docs/gripper/gripper/&#34;&gt;GRIPPER engine&lt;/a&gt;&lt;/p&gt;&#xA;&lt;p&gt;GRIP supports modeling an existing SQL database as a graph. GRIP has been tested against &lt;a href=&#34;https://www.postgresql.org/&#34;&gt;PostgreSQL&lt;/a&gt;, but should  work with&#xA;&lt;a href=&#34;https://www.mysql.com/&#34;&gt;MySQL&lt;/a&gt; (4.1+) and &lt;a href=&#34;https://mariadb.org/&#34;&gt;MariaDB&lt;/a&gt;.&lt;/p&gt;&#xA;&lt;p&gt;Since GRIP uses Go&amp;rsquo;s &lt;code&gt;database/sql&lt;/code&gt; package, we could (in thoery) support any SQL databases listed on:&#xA;&lt;a href=&#34;https://github.com/golang/go/wiki/SQLDrivers&#34;&gt;https://github.com/golang/go/wiki/SQLDrivers&lt;/a&gt;. Open an &lt;a href=&#34;https://github.com/bmeg/grip/issues/new&#34;&gt;issue&lt;/a&gt; if you&#xA;would like to request support for your favorite SQL database.&lt;/p&gt;&#xA;&lt;h2 id=&#34;configuration-notes&#34;&gt;Configuration Notes&lt;/h2&gt;&#xA;&lt;ul&gt;&#xA;&lt;li&gt;&#xA;&lt;p&gt;&lt;code&gt;DataSourceName&lt;/code&gt; is a driver-specific data source name, usually consisting of at least a database name and connection information. Here are links for&#xA;to documentation for this field for each supported driver:&lt;/p&gt;</description>
     </item>
-    
     <item>
       <title>TCGA RNA Expression</title>
       <link>https://bmeg.github.io/grip/docs/tutorials/tcga-rna/</link>
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
-      
       <guid>https://bmeg.github.io/grip/docs/tutorials/tcga-rna/</guid>
-      <description>Explore TCGA RNA Expression Data Create the graph
-grip create tcga-rna Get the data
-curl -O http://download.cbioportal.org/gbm_tcga_pub2013.tar.gz tar xvzf gbm_tcga_pub2013.tar.gz Load clinical data
-./example/load_matrix.py tcga-rna gbm_tcga_pub2013/data_clinical.txt --row-label &#39;Donor&#39; Load RNASeq data
-./example/load_matrix.py tcga-rna gbm_tcga_pub2013/data_RNA_Seq_v2_expression_median.txt -t --index-col 1 --row-label RNASeq --row-prefix &amp;quot;RNA:&amp;quot; --exclude RNA:Hugo_Symbol Connect RNASeq data to Clinical data
-./example/load_matrix.py tcga-rna gbm_tcga_pub2013/data_RNA_Seq_v2_expression_median.txt -t --index-col 1 --no-vertex --edge &#39;RNA:{_gid}&#39; rna Connect Clinical data to subtypes
-./example/load_matrix.py tcga-rna gbm_tcga_pub2013/data_clinical.txt --no-vertex -e &amp;quot;{EXPRESSION_SUBTYPE}&amp;quot; subtype --dst-vertex &amp;quot;{EXPRESSION_SUBTYPE}&amp;quot; Subtype Load Hugo Symbol to EntrezID translation table from RNA matrix annotations</description>
+      <description>&lt;h3 id=&#34;explore-tcga-rna-expression-data&#34;&gt;Explore TCGA RNA Expression Data&lt;/h3&gt;&#xA;&lt;p&gt;Create the graph&lt;/p&gt;&#xA;&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;grip create tcga-rna&#xA;&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;Get the data&lt;/p&gt;&#xA;&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;curl -O http://download.cbioportal.org/gbm_tcga_pub2013.tar.gz&#xA;tar xvzf gbm_tcga_pub2013.tar.gz&#xA;&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;Load clinical data&lt;/p&gt;&#xA;&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;./example/load_matrix.py tcga-rna gbm_tcga_pub2013/data_clinical.txt --row-label &amp;#39;Donor&amp;#39;&#xA;&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;Load RNASeq data&lt;/p&gt;&#xA;&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;./example/load_matrix.py tcga-rna gbm_tcga_pub2013/data_RNA_Seq_v2_expression_median.txt -t  --index-col 1 --row-label RNASeq --row-prefix &amp;#34;RNA:&amp;#34; --exclude RNA:Hugo_Symbol&#xA;&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;Connect RNASeq data to Clinical data&lt;/p&gt;&#xA;&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;./example/load_matrix.py tcga-rna gbm_tcga_pub2013/data_RNA_Seq_v2_expression_median.txt -t  --index-col 1 --no-vertex --edge &amp;#39;RNA:{_id}&amp;#39; rna&#xA;&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;Connect Clinical data to subtypes&lt;/p&gt;&#xA;&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;./example/load_matrix.py tcga-rna gbm_tcga_pub2013/data_clinical.txt --no-vertex -e &amp;#34;{EXPRESSION_SUBTYPE}&amp;#34; subtype --dst-vertex &amp;#34;{EXPRESSION_SUBTYPE}&amp;#34; Subtype&#xA;&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;Load Hugo Symbol to EntrezID translation table from RNA matrix annotations&lt;/p&gt;</description>
     </item>
-    
     <item>
       <title>Tutorials</title>
       <link>https://bmeg.github.io/grip/docs/tutorials/</link>
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
-      
       <guid>https://bmeg.github.io/grip/docs/tutorials/</guid>
       <description></description>
     </item>
-    
   </channel>
 </rss>

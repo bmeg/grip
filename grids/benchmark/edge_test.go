@@ -7,13 +7,13 @@ import (
 	"testing"
 
 	"github.com/bmeg/grip/kvi"
-	"github.com/bmeg/grip/kvi/badgerdb"
+	"github.com/bmeg/grip/kvi/pebbledb"
 	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/util"
 )
 
 func BenchmarkEdgeStringScan(b *testing.B) {
-	db, err := badgerdb.NewKVInterface("test.db", kvi.Options{})
+	db, err := pebbledb.NewKVInterface("test.db", kvi.Options{})
 	if err != nil {
 		log.Errorf("issue: %s", err)
 		return
@@ -57,7 +57,7 @@ func BenchmarkEdgeStringScan(b *testing.B) {
 }
 
 func BenchmarkEdgeIntScan(b *testing.B) {
-	db, err := badgerdb.NewKVInterface("test.db", kvi.Options{})
+	db, err := pebbledb.NewKVInterface("test.db", kvi.Options{})
 	if err != nil {
 		log.Errorf("issue: %s", err)
 		return

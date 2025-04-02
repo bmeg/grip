@@ -1,8 +1,8 @@
-// Code generated from Cypher.g4 by ANTLR 4.10.1. DO NOT EDIT.
+// Code generated from Cypher.g4 by ANTLR 4.13.2. DO NOT EDIT.
 
 package parser // Cypher
 
-import "github.com/antlr/antlr4/runtime/Go/antlr"
+import "github.com/antlr4-go/antlr/v4"
 
 // CypherListener is a complete listener for a parse tree produced by CypherParser.
 type CypherListener interface {
@@ -122,6 +122,9 @@ type CypherListener interface {
 	// EnterOC_PatternElement is called when entering the oC_PatternElement production.
 	EnterOC_PatternElement(c *OC_PatternElementContext)
 
+	// EnterOC_RelationshipsPattern is called when entering the oC_RelationshipsPattern production.
+	EnterOC_RelationshipsPattern(c *OC_RelationshipsPatternContext)
+
 	// EnterOC_NodePattern is called when entering the oC_NodePattern production.
 	EnterOC_NodePattern(c *OC_NodePatternContext)
 
@@ -155,6 +158,9 @@ type CypherListener interface {
 	// EnterOC_RelTypeName is called when entering the oC_RelTypeName production.
 	EnterOC_RelTypeName(c *OC_RelTypeNameContext)
 
+	// EnterOC_PropertyExpression is called when entering the oC_PropertyExpression production.
+	EnterOC_PropertyExpression(c *OC_PropertyExpressionContext)
+
 	// EnterOC_Expression is called when entering the oC_Expression production.
 	EnterOC_Expression(c *OC_ExpressionContext)
 
@@ -173,6 +179,21 @@ type CypherListener interface {
 	// EnterOC_ComparisonExpression is called when entering the oC_ComparisonExpression production.
 	EnterOC_ComparisonExpression(c *OC_ComparisonExpressionContext)
 
+	// EnterOC_PartialComparisonExpression is called when entering the oC_PartialComparisonExpression production.
+	EnterOC_PartialComparisonExpression(c *OC_PartialComparisonExpressionContext)
+
+	// EnterOC_StringListNullPredicateExpression is called when entering the oC_StringListNullPredicateExpression production.
+	EnterOC_StringListNullPredicateExpression(c *OC_StringListNullPredicateExpressionContext)
+
+	// EnterOC_StringPredicateExpression is called when entering the oC_StringPredicateExpression production.
+	EnterOC_StringPredicateExpression(c *OC_StringPredicateExpressionContext)
+
+	// EnterOC_ListPredicateExpression is called when entering the oC_ListPredicateExpression production.
+	EnterOC_ListPredicateExpression(c *OC_ListPredicateExpressionContext)
+
+	// EnterOC_NullPredicateExpression is called when entering the oC_NullPredicateExpression production.
+	EnterOC_NullPredicateExpression(c *OC_NullPredicateExpressionContext)
+
 	// EnterOC_AddOrSubtractExpression is called when entering the oC_AddOrSubtractExpression production.
 	EnterOC_AddOrSubtractExpression(c *OC_AddOrSubtractExpressionContext)
 
@@ -185,44 +206,41 @@ type CypherListener interface {
 	// EnterOC_UnaryAddOrSubtractExpression is called when entering the oC_UnaryAddOrSubtractExpression production.
 	EnterOC_UnaryAddOrSubtractExpression(c *OC_UnaryAddOrSubtractExpressionContext)
 
-	// EnterOC_StringListNullOperatorExpression is called when entering the oC_StringListNullOperatorExpression production.
-	EnterOC_StringListNullOperatorExpression(c *OC_StringListNullOperatorExpressionContext)
+	// EnterOC_NonArithmeticOperatorExpression is called when entering the oC_NonArithmeticOperatorExpression production.
+	EnterOC_NonArithmeticOperatorExpression(c *OC_NonArithmeticOperatorExpressionContext)
 
 	// EnterOC_ListOperatorExpression is called when entering the oC_ListOperatorExpression production.
 	EnterOC_ListOperatorExpression(c *OC_ListOperatorExpressionContext)
 
-	// EnterOC_StringOperatorExpression is called when entering the oC_StringOperatorExpression production.
-	EnterOC_StringOperatorExpression(c *OC_StringOperatorExpressionContext)
-
-	// EnterOC_NullOperatorExpression is called when entering the oC_NullOperatorExpression production.
-	EnterOC_NullOperatorExpression(c *OC_NullOperatorExpressionContext)
-
-	// EnterOC_PropertyOrLabelsExpression is called when entering the oC_PropertyOrLabelsExpression production.
-	EnterOC_PropertyOrLabelsExpression(c *OC_PropertyOrLabelsExpressionContext)
+	// EnterOC_PropertyLookup is called when entering the oC_PropertyLookup production.
+	EnterOC_PropertyLookup(c *OC_PropertyLookupContext)
 
 	// EnterOC_Atom is called when entering the oC_Atom production.
 	EnterOC_Atom(c *OC_AtomContext)
 
-	// EnterOC_Literal is called when entering the oC_Literal production.
-	EnterOC_Literal(c *OC_LiteralContext)
+	// EnterOC_CaseExpression is called when entering the oC_CaseExpression production.
+	EnterOC_CaseExpression(c *OC_CaseExpressionContext)
 
-	// EnterOC_BooleanLiteral is called when entering the oC_BooleanLiteral production.
-	EnterOC_BooleanLiteral(c *OC_BooleanLiteralContext)
+	// EnterOC_CaseAlternative is called when entering the oC_CaseAlternative production.
+	EnterOC_CaseAlternative(c *OC_CaseAlternativeContext)
 
-	// EnterOC_ListLiteral is called when entering the oC_ListLiteral production.
-	EnterOC_ListLiteral(c *OC_ListLiteralContext)
+	// EnterOC_ListComprehension is called when entering the oC_ListComprehension production.
+	EnterOC_ListComprehension(c *OC_ListComprehensionContext)
 
-	// EnterOC_PartialComparisonExpression is called when entering the oC_PartialComparisonExpression production.
-	EnterOC_PartialComparisonExpression(c *OC_PartialComparisonExpressionContext)
+	// EnterOC_PatternComprehension is called when entering the oC_PatternComprehension production.
+	EnterOC_PatternComprehension(c *OC_PatternComprehensionContext)
 
-	// EnterOC_ParenthesizedExpression is called when entering the oC_ParenthesizedExpression production.
-	EnterOC_ParenthesizedExpression(c *OC_ParenthesizedExpressionContext)
-
-	// EnterOC_RelationshipsPattern is called when entering the oC_RelationshipsPattern production.
-	EnterOC_RelationshipsPattern(c *OC_RelationshipsPatternContext)
+	// EnterOC_Quantifier is called when entering the oC_Quantifier production.
+	EnterOC_Quantifier(c *OC_QuantifierContext)
 
 	// EnterOC_FilterExpression is called when entering the oC_FilterExpression production.
 	EnterOC_FilterExpression(c *OC_FilterExpressionContext)
+
+	// EnterOC_PatternPredicate is called when entering the oC_PatternPredicate production.
+	EnterOC_PatternPredicate(c *OC_PatternPredicateContext)
+
+	// EnterOC_ParenthesizedExpression is called when entering the oC_ParenthesizedExpression production.
+	EnterOC_ParenthesizedExpression(c *OC_ParenthesizedExpressionContext)
 
 	// EnterOC_IdInColl is called when entering the oC_IdInColl production.
 	EnterOC_IdInColl(c *OC_IdInCollContext)
@@ -251,44 +269,35 @@ type CypherListener interface {
 	// EnterOC_Namespace is called when entering the oC_Namespace production.
 	EnterOC_Namespace(c *OC_NamespaceContext)
 
-	// EnterOC_ListComprehension is called when entering the oC_ListComprehension production.
-	EnterOC_ListComprehension(c *OC_ListComprehensionContext)
-
-	// EnterOC_PatternComprehension is called when entering the oC_PatternComprehension production.
-	EnterOC_PatternComprehension(c *OC_PatternComprehensionContext)
-
-	// EnterOC_PropertyLookup is called when entering the oC_PropertyLookup production.
-	EnterOC_PropertyLookup(c *OC_PropertyLookupContext)
-
-	// EnterOC_CaseExpression is called when entering the oC_CaseExpression production.
-	EnterOC_CaseExpression(c *OC_CaseExpressionContext)
-
-	// EnterOC_CaseAlternative is called when entering the oC_CaseAlternative production.
-	EnterOC_CaseAlternative(c *OC_CaseAlternativeContext)
-
 	// EnterOC_Variable is called when entering the oC_Variable production.
 	EnterOC_Variable(c *OC_VariableContext)
 
+	// EnterOC_Literal is called when entering the oC_Literal production.
+	EnterOC_Literal(c *OC_LiteralContext)
+
+	// EnterOC_BooleanLiteral is called when entering the oC_BooleanLiteral production.
+	EnterOC_BooleanLiteral(c *OC_BooleanLiteralContext)
+
 	// EnterOC_NumberLiteral is called when entering the oC_NumberLiteral production.
 	EnterOC_NumberLiteral(c *OC_NumberLiteralContext)
-
-	// EnterOC_MapLiteral is called when entering the oC_MapLiteral production.
-	EnterOC_MapLiteral(c *OC_MapLiteralContext)
-
-	// EnterOC_Parameter is called when entering the oC_Parameter production.
-	EnterOC_Parameter(c *OC_ParameterContext)
-
-	// EnterOC_PropertyExpression is called when entering the oC_PropertyExpression production.
-	EnterOC_PropertyExpression(c *OC_PropertyExpressionContext)
-
-	// EnterOC_PropertyKeyName is called when entering the oC_PropertyKeyName production.
-	EnterOC_PropertyKeyName(c *OC_PropertyKeyNameContext)
 
 	// EnterOC_IntegerLiteral is called when entering the oC_IntegerLiteral production.
 	EnterOC_IntegerLiteral(c *OC_IntegerLiteralContext)
 
 	// EnterOC_DoubleLiteral is called when entering the oC_DoubleLiteral production.
 	EnterOC_DoubleLiteral(c *OC_DoubleLiteralContext)
+
+	// EnterOC_ListLiteral is called when entering the oC_ListLiteral production.
+	EnterOC_ListLiteral(c *OC_ListLiteralContext)
+
+	// EnterOC_MapLiteral is called when entering the oC_MapLiteral production.
+	EnterOC_MapLiteral(c *OC_MapLiteralContext)
+
+	// EnterOC_PropertyKeyName is called when entering the oC_PropertyKeyName production.
+	EnterOC_PropertyKeyName(c *OC_PropertyKeyNameContext)
+
+	// EnterOC_Parameter is called when entering the oC_Parameter production.
+	EnterOC_Parameter(c *OC_ParameterContext)
 
 	// EnterOC_SchemaName is called when entering the oC_SchemaName production.
 	EnterOC_SchemaName(c *OC_SchemaNameContext)
@@ -422,6 +431,9 @@ type CypherListener interface {
 	// ExitOC_PatternElement is called when exiting the oC_PatternElement production.
 	ExitOC_PatternElement(c *OC_PatternElementContext)
 
+	// ExitOC_RelationshipsPattern is called when exiting the oC_RelationshipsPattern production.
+	ExitOC_RelationshipsPattern(c *OC_RelationshipsPatternContext)
+
 	// ExitOC_NodePattern is called when exiting the oC_NodePattern production.
 	ExitOC_NodePattern(c *OC_NodePatternContext)
 
@@ -455,6 +467,9 @@ type CypherListener interface {
 	// ExitOC_RelTypeName is called when exiting the oC_RelTypeName production.
 	ExitOC_RelTypeName(c *OC_RelTypeNameContext)
 
+	// ExitOC_PropertyExpression is called when exiting the oC_PropertyExpression production.
+	ExitOC_PropertyExpression(c *OC_PropertyExpressionContext)
+
 	// ExitOC_Expression is called when exiting the oC_Expression production.
 	ExitOC_Expression(c *OC_ExpressionContext)
 
@@ -473,6 +488,21 @@ type CypherListener interface {
 	// ExitOC_ComparisonExpression is called when exiting the oC_ComparisonExpression production.
 	ExitOC_ComparisonExpression(c *OC_ComparisonExpressionContext)
 
+	// ExitOC_PartialComparisonExpression is called when exiting the oC_PartialComparisonExpression production.
+	ExitOC_PartialComparisonExpression(c *OC_PartialComparisonExpressionContext)
+
+	// ExitOC_StringListNullPredicateExpression is called when exiting the oC_StringListNullPredicateExpression production.
+	ExitOC_StringListNullPredicateExpression(c *OC_StringListNullPredicateExpressionContext)
+
+	// ExitOC_StringPredicateExpression is called when exiting the oC_StringPredicateExpression production.
+	ExitOC_StringPredicateExpression(c *OC_StringPredicateExpressionContext)
+
+	// ExitOC_ListPredicateExpression is called when exiting the oC_ListPredicateExpression production.
+	ExitOC_ListPredicateExpression(c *OC_ListPredicateExpressionContext)
+
+	// ExitOC_NullPredicateExpression is called when exiting the oC_NullPredicateExpression production.
+	ExitOC_NullPredicateExpression(c *OC_NullPredicateExpressionContext)
+
 	// ExitOC_AddOrSubtractExpression is called when exiting the oC_AddOrSubtractExpression production.
 	ExitOC_AddOrSubtractExpression(c *OC_AddOrSubtractExpressionContext)
 
@@ -485,44 +515,41 @@ type CypherListener interface {
 	// ExitOC_UnaryAddOrSubtractExpression is called when exiting the oC_UnaryAddOrSubtractExpression production.
 	ExitOC_UnaryAddOrSubtractExpression(c *OC_UnaryAddOrSubtractExpressionContext)
 
-	// ExitOC_StringListNullOperatorExpression is called when exiting the oC_StringListNullOperatorExpression production.
-	ExitOC_StringListNullOperatorExpression(c *OC_StringListNullOperatorExpressionContext)
+	// ExitOC_NonArithmeticOperatorExpression is called when exiting the oC_NonArithmeticOperatorExpression production.
+	ExitOC_NonArithmeticOperatorExpression(c *OC_NonArithmeticOperatorExpressionContext)
 
 	// ExitOC_ListOperatorExpression is called when exiting the oC_ListOperatorExpression production.
 	ExitOC_ListOperatorExpression(c *OC_ListOperatorExpressionContext)
 
-	// ExitOC_StringOperatorExpression is called when exiting the oC_StringOperatorExpression production.
-	ExitOC_StringOperatorExpression(c *OC_StringOperatorExpressionContext)
-
-	// ExitOC_NullOperatorExpression is called when exiting the oC_NullOperatorExpression production.
-	ExitOC_NullOperatorExpression(c *OC_NullOperatorExpressionContext)
-
-	// ExitOC_PropertyOrLabelsExpression is called when exiting the oC_PropertyOrLabelsExpression production.
-	ExitOC_PropertyOrLabelsExpression(c *OC_PropertyOrLabelsExpressionContext)
+	// ExitOC_PropertyLookup is called when exiting the oC_PropertyLookup production.
+	ExitOC_PropertyLookup(c *OC_PropertyLookupContext)
 
 	// ExitOC_Atom is called when exiting the oC_Atom production.
 	ExitOC_Atom(c *OC_AtomContext)
 
-	// ExitOC_Literal is called when exiting the oC_Literal production.
-	ExitOC_Literal(c *OC_LiteralContext)
+	// ExitOC_CaseExpression is called when exiting the oC_CaseExpression production.
+	ExitOC_CaseExpression(c *OC_CaseExpressionContext)
 
-	// ExitOC_BooleanLiteral is called when exiting the oC_BooleanLiteral production.
-	ExitOC_BooleanLiteral(c *OC_BooleanLiteralContext)
+	// ExitOC_CaseAlternative is called when exiting the oC_CaseAlternative production.
+	ExitOC_CaseAlternative(c *OC_CaseAlternativeContext)
 
-	// ExitOC_ListLiteral is called when exiting the oC_ListLiteral production.
-	ExitOC_ListLiteral(c *OC_ListLiteralContext)
+	// ExitOC_ListComprehension is called when exiting the oC_ListComprehension production.
+	ExitOC_ListComprehension(c *OC_ListComprehensionContext)
 
-	// ExitOC_PartialComparisonExpression is called when exiting the oC_PartialComparisonExpression production.
-	ExitOC_PartialComparisonExpression(c *OC_PartialComparisonExpressionContext)
+	// ExitOC_PatternComprehension is called when exiting the oC_PatternComprehension production.
+	ExitOC_PatternComprehension(c *OC_PatternComprehensionContext)
 
-	// ExitOC_ParenthesizedExpression is called when exiting the oC_ParenthesizedExpression production.
-	ExitOC_ParenthesizedExpression(c *OC_ParenthesizedExpressionContext)
-
-	// ExitOC_RelationshipsPattern is called when exiting the oC_RelationshipsPattern production.
-	ExitOC_RelationshipsPattern(c *OC_RelationshipsPatternContext)
+	// ExitOC_Quantifier is called when exiting the oC_Quantifier production.
+	ExitOC_Quantifier(c *OC_QuantifierContext)
 
 	// ExitOC_FilterExpression is called when exiting the oC_FilterExpression production.
 	ExitOC_FilterExpression(c *OC_FilterExpressionContext)
+
+	// ExitOC_PatternPredicate is called when exiting the oC_PatternPredicate production.
+	ExitOC_PatternPredicate(c *OC_PatternPredicateContext)
+
+	// ExitOC_ParenthesizedExpression is called when exiting the oC_ParenthesizedExpression production.
+	ExitOC_ParenthesizedExpression(c *OC_ParenthesizedExpressionContext)
 
 	// ExitOC_IdInColl is called when exiting the oC_IdInColl production.
 	ExitOC_IdInColl(c *OC_IdInCollContext)
@@ -551,44 +578,35 @@ type CypherListener interface {
 	// ExitOC_Namespace is called when exiting the oC_Namespace production.
 	ExitOC_Namespace(c *OC_NamespaceContext)
 
-	// ExitOC_ListComprehension is called when exiting the oC_ListComprehension production.
-	ExitOC_ListComprehension(c *OC_ListComprehensionContext)
-
-	// ExitOC_PatternComprehension is called when exiting the oC_PatternComprehension production.
-	ExitOC_PatternComprehension(c *OC_PatternComprehensionContext)
-
-	// ExitOC_PropertyLookup is called when exiting the oC_PropertyLookup production.
-	ExitOC_PropertyLookup(c *OC_PropertyLookupContext)
-
-	// ExitOC_CaseExpression is called when exiting the oC_CaseExpression production.
-	ExitOC_CaseExpression(c *OC_CaseExpressionContext)
-
-	// ExitOC_CaseAlternative is called when exiting the oC_CaseAlternative production.
-	ExitOC_CaseAlternative(c *OC_CaseAlternativeContext)
-
 	// ExitOC_Variable is called when exiting the oC_Variable production.
 	ExitOC_Variable(c *OC_VariableContext)
 
+	// ExitOC_Literal is called when exiting the oC_Literal production.
+	ExitOC_Literal(c *OC_LiteralContext)
+
+	// ExitOC_BooleanLiteral is called when exiting the oC_BooleanLiteral production.
+	ExitOC_BooleanLiteral(c *OC_BooleanLiteralContext)
+
 	// ExitOC_NumberLiteral is called when exiting the oC_NumberLiteral production.
 	ExitOC_NumberLiteral(c *OC_NumberLiteralContext)
-
-	// ExitOC_MapLiteral is called when exiting the oC_MapLiteral production.
-	ExitOC_MapLiteral(c *OC_MapLiteralContext)
-
-	// ExitOC_Parameter is called when exiting the oC_Parameter production.
-	ExitOC_Parameter(c *OC_ParameterContext)
-
-	// ExitOC_PropertyExpression is called when exiting the oC_PropertyExpression production.
-	ExitOC_PropertyExpression(c *OC_PropertyExpressionContext)
-
-	// ExitOC_PropertyKeyName is called when exiting the oC_PropertyKeyName production.
-	ExitOC_PropertyKeyName(c *OC_PropertyKeyNameContext)
 
 	// ExitOC_IntegerLiteral is called when exiting the oC_IntegerLiteral production.
 	ExitOC_IntegerLiteral(c *OC_IntegerLiteralContext)
 
 	// ExitOC_DoubleLiteral is called when exiting the oC_DoubleLiteral production.
 	ExitOC_DoubleLiteral(c *OC_DoubleLiteralContext)
+
+	// ExitOC_ListLiteral is called when exiting the oC_ListLiteral production.
+	ExitOC_ListLiteral(c *OC_ListLiteralContext)
+
+	// ExitOC_MapLiteral is called when exiting the oC_MapLiteral production.
+	ExitOC_MapLiteral(c *OC_MapLiteralContext)
+
+	// ExitOC_PropertyKeyName is called when exiting the oC_PropertyKeyName production.
+	ExitOC_PropertyKeyName(c *OC_PropertyKeyNameContext)
+
+	// ExitOC_Parameter is called when exiting the oC_Parameter production.
+	ExitOC_Parameter(c *OC_ParameterContext)
 
 	// ExitOC_SchemaName is called when exiting the oC_SchemaName production.
 	ExitOC_SchemaName(c *OC_SchemaNameContext)

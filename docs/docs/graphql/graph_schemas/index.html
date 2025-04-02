@@ -32,7 +32,7 @@
   <div class="global-header">
     <div class="global-header-container">
       <div class="global-header-home">
-        <a href="https://bmeg.github.io/grip"><h1>GRIP</h1></a>
+        <a href="https://bmeg.github.io/grip/"><h1>GRIP</h1></a>
       </div>
       <ul class="global-header-nav">
           <li><a href="https://bmeg.github.io/grip/download//">Download</a></li>
@@ -131,15 +131,6 @@
         <li>
           
           <span class="intermediate">Database Configuration</span></li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/databases/elastic/"
-                   class="sidebar-nav-item "
-                >Elasticsearch</a></li>
-            </ul>
-          </li>
           
           <li>
             <ul class="sidebar-nav sidebar-nav-nested">
@@ -255,6 +246,15 @@
           <li>
             <ul class="sidebar-nav sidebar-nav-nested">
               <li>
+                <a href="https://bmeg.github.io/grip/docs/queries/iterations/"
+                   class="sidebar-nav-item "
+                >Iteration</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
                 <a href="https://bmeg.github.io/grip/docs/queries/jobs_api/"
                    class="sidebar-nav-item "
                 >Jobs API</a></li>
@@ -357,7 +357,7 @@
   <div class="main col span_8_of_12">
     <h1 id="graph-schemas">Graph Schemas</h1>
 <p>Most GRIP based graphs are not required to have a strict schema. However, GraphQL requires
-a graph schema as part of it's API. To utilize the GraphQL endpoint, there must be a
+a graph schema as part of it&rsquo;s API. To utilize the GraphQL endpoint, there must be a
 Graph Schema provided to be used by the GRIP engine to determine how to render a GraphQL endpoint.
 Graph schemas are themselves an instance of a graph. As such, they can be traversed like any other graph.
 The schemas are automatically added to the database following the naming pattern. <code>{graph-name}__schema__</code></p>
@@ -371,64 +371,56 @@ The schemas are automatically added to the database following the naming pattern
 <li>POST the schema <code>/v1/graph/{graph-name}/schema</code> via curl or use the CLI. <code>grip schema post --yaml {file} --json {file}</code></li>
 <li>Configure GRIP to build the schema by sampling the data in each graph.</li>
 </ul>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-yaml" data-lang="yaml">Server:
-  <span style="color:#75715e"># Should the server periodically build the graph schemas?</span>
-  AutoBuildSchemas: <span style="color:#66d9ef">true</span>
-  <span style="color:#75715e"># How often the server should rebuild the graph schemas. Set to 0 to turn off</span>
-  SchemaRefreshInterval: <span style="color:#e6db74">&#34;24h&#34;</span>
-  <span style="color:#75715e"># How many vertices/edges to inspect to infer the schema</span>
-  SchemaInspectN: <span style="color:#ae81ff">500</span>
-  <span style="color:#75715e"># Strategy to use for selecting the vertices/edges to inspect.</span>
-  <span style="color:#75715e"># Random if True; first N otherwise</span>
-  SchemaRandomSample: <span style="color:#66d9ef">true</span>
-</code></pre></div><h2 id="example-schema">Example schema</h2>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-yaml" data-lang="yaml">graph: example-graph
-
-edges:
-- data: {}
- from: Human
- gid: (Human)--starship-&gt;(Starship)
- label: starship
- to: Starship
-- data: {}
- from: Human
- gid: (Human)--friend-&gt;(Human)
- label: friend
- to: Human
-- data: {}
- from: Human
- gid: (Human)--friend-&gt;(Droid)
- label: friend
- to: Droid
-- data: {}
- from: Human
- gid: (Human)--appearsIn-&gt;(Movie)
- label: appearsIn
- to: Movie
-
-vertices:
-- data:
-   name: STRING
- gid: Movie
- label: Movie
-- data:
-   length: NUMERIC
-   name: STRING
- gid: Starship
- label: Starship
-- data:
-   name: STRING
-   primaryFunction: STRING
- gid: Droid
- label: Droid
-- data:
-   height: NUMERIC
-   homePlanet: STRING
-   mass: NUMERIC
-   name: STRING
- gid: Human
- label: Human
-</code></pre></div>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#f92672">Server</span>:
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e"># Should the server periodically build the graph schemas?</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">AutoBuildSchemas</span>: <span style="color:#66d9ef">true</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e"># How often the server should rebuild the graph schemas. Set to 0 to turn off</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">SchemaRefreshInterval</span>: <span style="color:#e6db74">&#34;24h&#34;</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e"># How many vertices/edges to inspect to infer the schema</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">SchemaInspectN</span>: <span style="color:#ae81ff">500</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e"># Strategy to use for selecting the vertices/edges to inspect.</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e"># Random if True; first N otherwise</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">SchemaRandomSample</span>: <span style="color:#66d9ef">true</span>
+</span></span></code></pre></div><h2 id="example-schema">Example schema</h2>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#f92672">graph</span>: <span style="color:#ae81ff">example-graph</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">edges</span>:
+</span></span><span style="display:flex;"><span>- <span style="color:#f92672">_from</span>: <span style="color:#ae81ff">Human</span>
+</span></span><span style="display:flex;"><span> <span style="color:#f92672">_gid</span>: <span style="color:#ae81ff">(Human)--starship-&gt;(Starship)</span>
+</span></span><span style="display:flex;"><span> <span style="color:#f92672">_label</span>: <span style="color:#ae81ff">starship</span>
+</span></span><span style="display:flex;"><span> <span style="color:#f92672">_to</span>: <span style="color:#ae81ff">Starship</span>
+</span></span><span style="display:flex;"><span>- <span style="color:#f92672">_from</span>: <span style="color:#ae81ff">Human</span>
+</span></span><span style="display:flex;"><span> <span style="color:#f92672">_gid</span>: <span style="color:#ae81ff">(Human)--friend-&gt;(Human)</span>
+</span></span><span style="display:flex;"><span> <span style="color:#f92672">_label</span>: <span style="color:#ae81ff">friend</span>
+</span></span><span style="display:flex;"><span> <span style="color:#f92672">_to</span>: <span style="color:#ae81ff">Human</span>
+</span></span><span style="display:flex;"><span>- <span style="color:#f92672">_from</span>: <span style="color:#ae81ff">Human</span>
+</span></span><span style="display:flex;"><span> <span style="color:#f92672">_gid</span>: <span style="color:#ae81ff">(Human)--friend-&gt;(Droid)</span>
+</span></span><span style="display:flex;"><span> <span style="color:#f92672">_label</span>: <span style="color:#ae81ff">friend</span>
+</span></span><span style="display:flex;"><span> <span style="color:#f92672">_to</span>: <span style="color:#ae81ff">Droid</span>
+</span></span><span style="display:flex;"><span>- <span style="color:#f92672">_from</span>: <span style="color:#ae81ff">Human</span>
+</span></span><span style="display:flex;"><span> <span style="color:#f92672">_gid</span>: <span style="color:#ae81ff">(Human)--appearsIn-&gt;(Movie)</span>
+</span></span><span style="display:flex;"><span> <span style="color:#f92672">_label</span>: <span style="color:#ae81ff">appearsIn</span>
+</span></span><span style="display:flex;"><span> <span style="color:#f92672">_to</span>: <span style="color:#ae81ff">Movie</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">vertices</span>:
+</span></span><span style="display:flex;"><span>- <span style="color:#f92672">name</span>: <span style="color:#ae81ff">STRING</span>
+</span></span><span style="display:flex;"><span> <span style="color:#f92672">_gid</span>: <span style="color:#ae81ff">Movie</span>
+</span></span><span style="display:flex;"><span> <span style="color:#f92672">_label</span>: <span style="color:#ae81ff">Movie</span>
+</span></span><span style="display:flex;"><span>- <span style="color:#f92672">length</span>: <span style="color:#ae81ff">NUMERIC</span>
+</span></span><span style="display:flex;"><span> <span style="color:#f92672">name</span>: <span style="color:#ae81ff">STRING</span>
+</span></span><span style="display:flex;"><span> <span style="color:#f92672">_gid</span>: <span style="color:#ae81ff">Starship</span>
+</span></span><span style="display:flex;"><span> <span style="color:#f92672">_label</span>: <span style="color:#ae81ff">Starship</span>
+</span></span><span style="display:flex;"><span>- <span style="color:#f92672">name</span>: <span style="color:#ae81ff">STRING</span>
+</span></span><span style="display:flex;"><span> <span style="color:#f92672">primaryFunction</span>: <span style="color:#ae81ff">STRING</span>
+</span></span><span style="display:flex;"><span> <span style="color:#f92672">_gid</span>: <span style="color:#ae81ff">Droid</span>
+</span></span><span style="display:flex;"><span> <span style="color:#f92672">_label</span>: <span style="color:#ae81ff">Droid</span>
+</span></span><span style="display:flex;"><span>- <span style="color:#f92672">height</span>: <span style="color:#ae81ff">NUMERIC</span>
+</span></span><span style="display:flex;"><span> <span style="color:#f92672">homePlanet</span>: <span style="color:#ae81ff">STRING</span>
+</span></span><span style="display:flex;"><span> <span style="color:#f92672">mass</span>: <span style="color:#ae81ff">NUMERIC</span>
+</span></span><span style="display:flex;"><span> <span style="color:#f92672">name</span>: <span style="color:#ae81ff">STRING</span>
+</span></span><span style="display:flex;"><span> <span style="color:#f92672">_gid</span>: <span style="color:#ae81ff">Human</span>
+</span></span><span style="display:flex;"><span> <span style="color:#f92672">_label</span>: <span style="color:#ae81ff">Human</span>
+</span></span></code></pre></div>
   </div>
 
 </div>

@@ -27,7 +27,7 @@ type Config struct {
 
 func (c *Config) SetDefaults() {
 	if c.URL == "" {
-		c.URL = "mongodb://localhost:27000"
+		c.URL = "mongodb://localhost:27017"
 	}
 	if c.DBName == "" {
 		c.DBName = "gripdb"

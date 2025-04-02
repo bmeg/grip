@@ -68,9 +68,7 @@ func (server *GripServer) ListDrivers(context.Context, *gripql.Empty) (*gripql.L
 	return &gripql.ListDriversResponse{Drivers: out}, nil
 }
 
-
 //-------------
-
 
 type nullPluginServer struct {
 	gripql.UnimplementedConfigureServer

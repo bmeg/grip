@@ -25,12 +25,12 @@ def load_matrix(args):
     if args.dump is not None:
         dump_vertex_file = open(args.dump + ".vertex", "w")
         dump_edge_file = open(args.dump + ".edge", "w")
-        def dump_vertex(gid, label, data):
-            print("Add Vertex: %s" % (gid))
-            dump_vertex_file.write(json.dumps({"gid":gid, "label":label, "data":data}) + "\n")
+        def dump_vertex(id, label, data):
+            print("Add Vertex: %s" % (id))
+            dump_vertex_file.write(json.dumps({"_id":id, "_label":label}.update(data)) + "\n")
         def dump_edge(src, dst, label, data):
             print("Add Edge: %s %s" % (src, dst))
-            dump_edge_file.write(json.dumps({"from":src, "to":dst, "label": label, "data":data})+"\n")
+            dump_edge_file.write(json.dumps({"_from":src, "_to":dst, "_label": label}.update(data))+"\n")
 
     if args.connect:
         if not args.no_vertex:
@@ -88,7 +88,7 @@ def load_matrix(args):
                 else:
                     O.addVertex(rname, args.row_label, data)
             data["_rowname"] = name
-            data["_gid"] = rname
+            data["_id"] = rname
             for dst, edge in args.edge:
                 try:
                     dstFmt = dst.format(**data)
@@ -124,13 +124,13 @@ if __name__ == "__main__":
     parser.add_argument("--sep", default="\t", help="TSV delimiter")
     parser.add_argument("--server", default="http://localhost:8201", help="Server Address")
     parser.add_argument("--row-label", dest="row_label", default="Row", help="Vertex Label used when loading rows")
-    parser.add_argument("--row-prefix", default="", help="Prefix added to row vertex gid")
+    parser.add_argument("--row-prefix", default="", help="Prefix added to row vertex id")
     parser.add_argument("-t", "--transpose", action="store_true", default=False, help="Transpose matrix")
-    parser.add_argument("--index-col", default=0, type=int, help="Column number to use as index (and gid for vertex load)")
+    parser.add_argument("--index-col", default=0, type=int, help="Column number to use as index (and id for vertex load)")
     parser.add_argument("--skiprows", default=None, type=int, help="Skip rows at top of file")
     parser.add_argument("--connect", action="store_true", default=False, help="Switch to 'fully connected mode' and load matrix cell values on edges between row and column names")
     parser.add_argument("--col-label", dest="col_label", default="Col", help="Column vertex label in 'connect' mode")
-    parser.add_argument("--col-prefix", default="", help="Prefix added to col vertex gid in 'connect' mode")
+    parser.add_argument("--col-prefix", default="", help="Prefix added to col vertex id in 'connect' mode")
     parser.add_argument("--edge-label", dest="edge_label", default="weight", help="Edge label for edges in 'connect' mode")
     parser.add_argument("--edge-prop", dest="edge_prop", default="w", help="Property name for storing value when in 'connect' mode")
 
