@@ -95,12 +95,49 @@ var listLabelsCmd = &cobra.Command{
 	},
 }
 
+var listIndicesCmd = &cobra.Command{
+	Use:   "indices",
+	Short: "List indices",
+	Long:  ``,
+	Args:  cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		graph := args[0]
+
+		conn, err := gripql.Connect(rpc.ConfigWithDefaults(host), true)
+		if err != nil {
+			return err
+		}
+
+		resp, err := conn.ListIndices(graph)
+		if err != nil {
+			return err
+		}
+
+		var prevGraph string
+		var prevLabel string
+		for _, g := range resp.Indices {
+			if g.Graph != prevGraph || g.Label != prevLabel {
+				fmt.Printf("%-10s\t%-20s\t%-60s\n", g.Graph, g.Label, "")
+				fmt.Printf("%-10s\t%-20s\t%-60s\n", "", "", g.Field)
+				prevGraph = g.Graph
+				prevLabel = g.Label
+			} else {
+				fmt.Printf("%-10s\t%-20s\t%-60s\n", "", "", g.Field) // Print empty strings for Graph and Label
+			}
+		}
+		return nil
+	},
+}
+
 func init() {
 	listGraphsCmd.Flags().StringVar(&host, "host", host, "grip server url")
 	listLabelsCmd.Flags().StringVar(&host, "host", host, "grip server url")
 	listTablesCmd.Flags().StringVar(&host, "host", host, "grip server url")
+	listIndicesCmd.Flags().StringVar(&host, "host", host, "grip server url")
 
 	Cmd.AddCommand(listGraphsCmd)
 	Cmd.AddCommand(listLabelsCmd)
 	Cmd.AddCommand(listTablesCmd)
+	Cmd.AddCommand(listIndicesCmd)
+
 }

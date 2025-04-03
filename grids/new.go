@@ -9,6 +9,7 @@ import (
 
 	"github.com/bmeg/benchtop/bsontable"
 	"github.com/bmeg/grip/gripql"
+	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/timestamp"
 )
 
@@ -78,7 +79,7 @@ func newGraph(baseDir, name string) (*Graph, error) {
 
 func getGraph(baseDir, name string) (*Graph, error) {
 	dbPath := filepath.Join(baseDir, name)
-	fmt.Printf("fetching GRIDS graph %s\n", name)
+	log.Infof("loading GRIDS graph %s\n", name)
 
 	versionPath := filepath.Join(dbPath, "VERSION")
 	file, err := os.Open(versionPath)

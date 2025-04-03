@@ -15,36 +15,30 @@ func normalizePath(path string) string {
 	return path
 }
 
+func (ggraph *Graph) BulkAddVertexIndex(idxChan <-chan *gripql.IndexID) error {
+	log.Info("BulkAddVertexIndex vertex indices")
+	err := ggraph.bsonkv.BulkAddField(idxChan)
+	return err
+}
+
 // AddVertexIndex add index to vertices
 func (ggraph *Graph) AddVertexIndex(label string, field string) error {
 	log.WithFields(log.Fields{"label": label, "field": field}).Info("Adding vertex index")
-	field = normalizePath(field)
 	//TODO kick off background process to reindex existing data
-	return ggraph.bsonkv.AddField(fmt.Sprintf("%s.v.%s.%s", ggraph.graphID, label, field))
+	return ggraph.bsonkv.AddFieldIndex(fmt.Sprintf("%s.%s", label, field))
 }
 
 // DeleteVertexIndex delete index from vertices
 func (ggraph *Graph) DeleteVertexIndex(label string, field string) error {
 	log.WithFields(log.Fields{"label": label, "field": field}).Info("Deleting vertex index")
 	field = normalizePath(field)
-	return ggraph.bsonkv.RemoveField(fmt.Sprintf("%s.v.%s.%s", ggraph.graphID, label, field))
+	return ggraph.bsonkv.RemoveFieldIndex(fmt.Sprintf("%s.%s", label, field))
 }
 
 // GetVertexIndexList lists out all the vertex indices for a graph
 func (ggraph *Graph) GetVertexIndexList() <-chan *gripql.IndexID {
 	log.Debug("Running GetVertexIndexList")
-	out := make(chan *gripql.IndexID)
-	go func() {
-		defer close(out)
-		fields := ggraph.bsonkv.ListFields()
-		for _, f := range fields {
-			t := strings.Split(f, ".")
-			if len(t) > 3 {
-				out <- &gripql.IndexID{Graph: ggraph.graphID, Label: t[2], Field: t[3]}
-			}
-		}
-	}()
-	return out
+	return ggraph.bsonkv.ListFields(ggraph.graphID)
 }
 
 // VertexLabelScan produces a channel of all vertex ids in a graph

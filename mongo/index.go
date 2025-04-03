@@ -2,6 +2,7 @@ package mongo
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -12,6 +13,10 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
+
+func (mg *Graph) BulkAddVertexIndex(<-chan *gripql.IndexID) error {
+	return errors.New("not implemented")
+}
 
 // AddVertexIndex add index to vertices
 func (mg *Graph) AddVertexIndex(label string, field string) error {

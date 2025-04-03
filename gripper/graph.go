@@ -2,6 +2,7 @@ package gripper
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -325,6 +326,10 @@ func (t *TabularGraph) ListEdgeLabels() ([]string, error) {
 		out = append(out, i)
 	}
 	return out, nil
+}
+
+func (g *TabularGraph) BulkAddVertexIndex(<-chan *gripql.IndexID) error {
+	return errors.New("not implemented")
 }
 
 func (t *TabularGraph) AddVertexIndex(label string, field string) error {

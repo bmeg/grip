@@ -2,7 +2,6 @@ package server
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -11,9 +10,9 @@ import (
 	"github.com/bmeg/grip/gripper"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/log"
+	"github.com/bmeg/grip/schema"
 	"github.com/bmeg/grip/util/rpc"
 	"github.com/bmeg/jsonschema/v5"
-	"github.com/bmeg/jsonschemagraph/compile"
 	"github.com/bmeg/jsonschemagraph/graph"
 )
 
@@ -29,7 +28,6 @@ func isMapping(graphName string) bool {
 }
 
 func (server *GripServer) getGraph(graph string) (*gripql.Graph, error) {
-
 	conn, err := gripql.Connect(rpc.ConfigWithDefaults(server.conf.Server.RPCAddress()), true)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load existing schema: %v", err)
@@ -162,31 +160,65 @@ func (server *GripServer) addFullGraph(ctx context.Context, graphName string, sc
 	return nil
 }
 
-func (server *GripServer) LoadSchemas(sch *gripql.Graph, out *graph.GraphSchema) (*graph.GraphSchema, error) {
-	schcompiler := jsonschema.NewCompiler()
-	schcompiler.ExtractAnnotations = true
-	schcompiler.RegisterExtension(compile.GraphExtensionTag, compile.GraphExtMeta, compile.GraphExtCompiler{})
+// if  __schema__ graph exists, index the base graph according to the schema
+func (server *GripServer) buildIndicesFromSchema(ctx context.Context, schemaName string, additionalPaths []string) error {
+	/* Additional Paths used to add an additional indexed path to all label types */
+	schemaGraph, err := server.getGraph(schemaName)
+	if err != nil {
+		return err
+	}
 
-	for _, v := range sch.Vertices {
-		jsonData, err := json.Marshal(v.Data)
-		if err != nil {
-			return nil, err
+	out := &graph.GraphSchema{Classes: map[string]*jsonschema.Schema{}, Compiler: nil}
+	out, err = schema.LoadSchemas(schemaGraph, out)
+	if err != nil {
+		return err
+	}
+
+	graphName := schemaName[:len(schemaName)-10]
+	log.Infof("Graph Name: %s", graphName)
+	gdb, err := server.getGraphDB(graphName)
+	if err != nil {
+		return err
+	}
+	graph, err := gdb.Graph(graphName)
+	if err != nil {
+		return err
+	}
+
+	idxChan := make(chan *gripql.IndexID, 10)
+	errChan := make(chan error, 1) // Channel to capture errors from BulkAddVertexIndex
+	go func() {
+		errChan <- graph.BulkAddVertexIndex(idxChan)
+	}()
+
+	for schema, paths := range schema.GetSchemaPaths(out) {
+		for _, path := range paths {
+			select {
+			case idxChan <- &gripql.IndexID{Graph: graphName, Label: schema, Field: path}:
+			case <-ctx.Done():
+				close(idxChan)
+				return ctx.Err()
+			}
 		}
-		err = schcompiler.AddResource(v.Id, strings.NewReader(string(jsonData)))
-		if err != nil {
-			log.Error("schcompiler.AddResource err: ", err)
-			return nil, err
+		for _, path := range additionalPaths {
+			select {
+			case idxChan <- &gripql.IndexID{Graph: graphName, Label: schema, Field: path}:
+			case <-ctx.Done():
+				close(idxChan)
+				return ctx.Err()
+			}
 		}
 	}
-	for _, v := range sch.Vertices {
-		sch, err := schcompiler.Compile(v.Id)
-		if err != nil {
-			log.Error("schcompiler.Compile err: ", err)
-			return nil, err
-		}
-		out.Classes[v.Label] = sch
-	}
-	out.Compiler = schcompiler
+	close(idxChan)
 
-	return out, nil
+	select {
+	case err := <-errChan:
+		if err != nil {
+			return err
+		}
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+
+	return nil
 }

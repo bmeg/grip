@@ -16,6 +16,10 @@ func (g *Graph) DeleteVertexIndex(label string, field string) error {
 	return errors.New("not implemented")
 }
 
+func (g *Graph) BulkAddVertexIndex(<-chan *gripql.IndexID) error {
+	return errors.New("not implemented")
+}
+
 // GetVertexIndexList lists indices
 func (g *Graph) GetVertexIndexList() <-chan *gripql.IndexID {
 	o := make(chan *gripql.IndexID)

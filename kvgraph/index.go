@@ -2,6 +2,7 @@ package kvgraph
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -64,6 +65,10 @@ func (kgdb *KVInterfaceGDB) AddVertexIndex(label string, field string) error {
 	field = normalizePath(field)
 	//TODO kick off background process to reindex existing data
 	return kgdb.kvg.idx.AddField(fmt.Sprintf("%s.v.%s.%s", kgdb.graph, label, field))
+}
+
+func (kgdb *KVInterfaceGDB) BulkAddVertexIndex(<-chan *gripql.IndexID) error {
+	return errors.New("not implemented")
 }
 
 // DeleteVertexIndex delete index from vertices

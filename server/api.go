@@ -155,6 +155,9 @@ func (server *GripServer) AddGraph(ctx context.Context, elem *gripql.GraphID) (*
 		return nil, err
 	}
 	server.updateGraphMap()
+	if server.graphExists(elem.Graph + "__schema__") {
+		server.buildIndicesFromSchema(ctx, elem.Graph+"__schema__", []string{"auth_resource_path"})
+	}
 	return &gripql.EditResult{Id: elem.Graph}, err
 }
 
@@ -275,7 +278,7 @@ func (server *GripServer) BulkAddRaw(stream gripql.Edit_BulkAddRawServer) error 
 			}
 
 			mu.Lock()
-			out, err = server.LoadSchemas(sch, out)
+			out, err = schema.LoadSchemas(sch, out)
 			mu.Unlock()
 
 			if err != nil {

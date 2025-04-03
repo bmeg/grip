@@ -175,6 +175,7 @@ type GraphInterface interface {
 
 	AddVertexIndex(label string, field string) error
 	DeleteVertexIndex(label string, field string) error
+	BulkAddVertexIndex(<-chan *gripql.IndexID) error
 	GetVertexIndexList() <-chan *gripql.IndexID
 
 	GetVertexList(ctx context.Context, load bool) <-chan *Vertex
