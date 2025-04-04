@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/bmeg/grip/config"
@@ -31,7 +32,7 @@ import (
 	_ "github.com/bmeg/grip/kvi/badgerdb" // import so badger will register itself
 	_ "github.com/bmeg/grip/kvi/boltdb"   // import so bolt will register itself
 	_ "github.com/bmeg/grip/kvi/leveldb"  // import so level will register itself
-	_ "github.com/bmeg/grip/kvi/pebbledb" // import so level will register itself
+	_ "github.com/bmeg/grip/kvi/pebbledb" // import so pebbledb will register itself
 	"github.com/bmeg/grip/mongo"
 	"github.com/bmeg/grip/psql"
 )
@@ -42,15 +43,16 @@ type GripServer struct {
 	gripql.UnimplementedEditServer
 	gripql.UnimplementedJobServer
 	gripql.UnimplementedConfigureServer
-	dbs      map[string]gdbi.GraphDB  //graph database drivers
-	graphMap map[string]string        //mapping from graph name to graph database driver
-	conf     *config.Config           //global configuration
-	schemas  map[string]*gripql.Graph //cached schemas
-	mappings map[string]*gripql.Graph //cached gripper graph mappings
-	plugins  map[string]*Plugin
-	sources  map[string]gripper.GRIPSourceClient
-	baseDir  string
-	jStorage jobstorage.JobStorage
+	dbs        map[string]gdbi.GraphDB  //graph database drivers
+	graphMap   map[string]string        //mapping from graph name to graph database driver
+	conf       *config.Config           //global configuration
+	schemas    map[string]*gripql.Graph //cached schemas
+	mappings   map[string]*gripql.Graph //cached gripper graph mappings
+	plugins    map[string]*Plugin
+	sources    map[string]gripper.GRIPSourceClient
+	baseDir    string
+	jStorage   jobstorage.JobStorage
+	streamPool *sync.Pool
 }
 
 // NewGripServer initializes a GRPC server to connect to the graph store
@@ -92,13 +94,21 @@ func NewGripServer(conf *config.Config, baseDir string, drivers map[string]gdbi.
 		}
 	}
 
+	// Add an element pool for managing resources when streaming data
+	var graphElementPool = &sync.Pool{
+		New: func() interface{} {
+			return &gdbi.GraphElement{}
+		},
+	}
+
 	server := &GripServer{
-		dbs:      gdbs,
-		conf:     conf,
-		schemas:  schemas,
-		mappings: map[string]*gripql.Graph{},
-		plugins:  map[string]*Plugin{},
-		sources:  sources,
+		dbs:        gdbs,
+		conf:       conf,
+		schemas:    schemas,
+		mappings:   map[string]*gripql.Graph{},
+		plugins:    map[string]*Plugin{},
+		sources:    sources,
+		streamPool: graphElementPool,
 	}
 
 	if conf.Default == "" {
@@ -192,7 +202,10 @@ func (server *GripServer) Serve(pctx context.Context) error {
 
 	// Setup RESTful proxy
 	marsh := NewMarshaler()
-	grpcMux := runtime.NewServeMux(runtime.WithMarshalerOption("*/*", marsh))
+	grpcMux := runtime.NewServeMux(
+		runtime.WithForwardResponseRewriter(FlattenRewriter),
+		runtime.WithMarshalerOption(runtime.MIMEWildcard, marsh),
+	)
 	mux := http.NewServeMux()
 
 	// Setup GraphQL handler

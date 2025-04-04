@@ -8,26 +8,26 @@ verts = {}
 with open("./swapi_vertices.json") as fh:
     for line in fh:
         line = json.loads(line)
-        verts[line["gid"]] = line
+        verts[line["_id"]] = line
 
 edges = {}
 with open("./swapi_edges.json") as fh:
     for line in fh:
         line = json.loads(line)
-        edges[line["gid"]] = line
+        edges[line["_id"]] = line
 
 G1 = nx.DiGraph()
-for gid, e in edges.items():
-    G1.add_edge(e["from"], e["to"])
+for _, e in edges.items():
+    G1.add_edge(e["_from"], e["_to"])
 
 G = nx.DiGraph()
 whitelist = list(G1.neighbors("Film:1")) + ["Film:1"]
 edges_sub = []
 verts_sub = [verts[x] for x in whitelist]
-for gid, e in edges.items():
-    if e["from"] not in whitelist or e["to"] not in whitelist:
+for _, e in edges.items():
+    if e["_from"] not in whitelist or e["_to"] not in whitelist:
         continue
-    G.add_edge(e["from"], e["to"])
+    G.add_edge(e["_from"], e["_to"])
     edges_sub.append(e)
 
 # write subgraph to output files

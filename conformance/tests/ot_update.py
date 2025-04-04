@@ -1,3 +1,7 @@
+
+
+
+
 def test_duplicate(man):
 
     G = man.writeTest()
@@ -9,9 +13,9 @@ def test_duplicate(man):
     G.addVertex("vertex2", "person")
     G.addVertex("vertex2", "clone")
 
-    G.addEdge("vertex1", "vertex2", "friend", data={"field": 1}, gid="edge1")
-    G.addEdge("vertex1", "vertex2", "friend", gid="edge1")
-    G.addEdge("vertex1", "vertex2", "friend", data={"weight": 5}, gid="edge1")
+    G.addEdge("vertex1", "vertex2", "friend", data={"field": 1}, id="edge1")
+    G.addEdge("vertex1", "vertex2", "friend", id="edge1")
+    G.addEdge("vertex1", "vertex2", "friend", data={"weight": 5}, id="edge1")
 
     if G.query().V().count().execute()[0]["count"] != 2:
         errors.append("duplicate vertex add error")
@@ -33,17 +37,18 @@ def test_replace(man):
     G.addVertex("vertex2", "person")
     G.addVertex("vertex2", "clone")
 
-    G.addEdge("vertex1", "vertex2", "friend", data={"field": 1}, gid="edge1")
-    G.addEdge("vertex1", "vertex2", "friend", gid="edge1")
-    G.addEdge("vertex1", "vertex2", "friend", data={"weight": 5}, gid="edge1")
+    G.addEdge("vertex1", "vertex2", "friend", data={"field": 1}, id="edge1")
+    G.addEdge("vertex1", "vertex2", "friend", id="edge1")
+    G.addEdge("vertex1", "vertex2", "friend", data={"weight": 5}, id="edge1")
 
-    if G.getVertex("vertex1")["label"] != "clone":
+    if G.getVertex("vertex1")["_label"] != "clone":
         errors.append("vertex has unexpected label")
 
-    if G.getVertex("vertex1")["data"] != {"otherdata": "foo"}:
-        errors.append("vertex has unexpected data")
+    # TODO: Fix these
+    if G.getVertex("vertex1") != {"_id":"vertex1", "_label" : "clone", "otherdata": "foo"}:
+        errors.append("vertex has unexpected data: %s" % (G.getVertexw("vertex1")))
 
-    if G.getEdge("edge1")["data"] != {"weight": 5}:
+    if G.getEdge("edge1")["weight"] != 5:
         errors.append("edge is missing expected data: %s" % (G.getEdge("edge1")))
 
     return errors
@@ -59,9 +64,9 @@ def test_delete(man):
     G.addVertex("vertex3", "person", {"field1": "value3", "field2": "value4"})
     G.addVertex("vertex4", "person")
 
-    G.addEdge("vertex1", "vertex2", "friend", gid="edge1")
-    G.addEdge("vertex2", "vertex3", "friend", gid="edge2")
-    G.addEdge("vertex2", "vertex4", "parent", gid="edge3")
+    G.addEdge("vertex1", "vertex2", "friend", id="edge1")
+    G.addEdge("vertex2", "vertex3", "friend", id="edge2")
+    G.addEdge("vertex2", "vertex4", "parent", id="edge3")
 
     count = 0
     for i in G.query().V():
@@ -114,8 +119,8 @@ def test_delete_edge(man):
     G.addVertex("vertex2", "person")
     G.addVertex("vertex3", "person", {"field1": "value3", "field2": "value4"})
 
-    G.addEdge("vertex1", "vertex2", "friend", gid="edge1")
-    G.addEdge("vertex2", "vertex3", "friend", gid="edge2")
+    G.addEdge("vertex1", "vertex2", "friend", id="edge1")
+    G.addEdge("vertex2", "vertex3", "friend", id="edge2")
 
     count = 0
     for i in G.query().V():

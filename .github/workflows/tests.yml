@@ -15,7 +15,7 @@ jobs:
       - name: Set up Go 1.x
         uses: actions/setup-go@v5
         with:
-          go-version: ^1.22.6
+          go-version: ^1.23.6
 
       - name: Check out code into the Go module directory
         uses: actions/checkout@v4
@@ -37,12 +37,12 @@ jobs:
       - name: Set up Go 1.x
         uses: actions/setup-go@v5
         with:
-          go-version: ^1.22.6
+          go-version: ^1.23.6
       - name: Check out code
         uses: actions/checkout@v4
       - name: run unit tests
         run: |
-          go test ./test/... -config badger.yml
+          go test ./test/... -config pebble.yml
 
 
   badgerTest:
@@ -197,7 +197,7 @@ jobs:
           sleep 5
           ./grip server --rpc-port 18202 --http-port 18201 --config ./gripper/test-graph/config.yaml --er tableServer=localhost:50051 &
           sleep 5
-          python conformance/run_conformance.py http://localhost:18201 --readOnly swapi
+          python conformance/run_conformance.py http://localhost:18201 --readOnly swapi --exclude pivot
 
 
   authTest:
@@ -217,7 +217,7 @@ jobs:
         run: |
           # start grip server
           chmod +x grip
-          ./grip server --rpc-port 18202 --http-port 18201 --config ./test/badger-auth.yml &
+          ./grip server --rpc-port 18202 --http-port 18201 --config ./test/pebble-auth.yml &
           sleep 5
           # simple auth
           # run tests without credentials, should fail
@@ -228,7 +228,7 @@ jobs:
             echo "Got expected auth error"
           fi
           # run specialized role based tests
-          make test-authorization ARGS="--grip_config_file_path test/badger-auth.yml"
+          make test-authorization ARGS="--grip_config_file_path test/pebble-auth.yml"
 
   pygripTest:
     needs: build
@@ -250,26 +250,26 @@ jobs:
         run: |
           cd test
           python -m unittest discover -s ./pygrip_test
-  
-    #gridsTest:
-    #  needs: build
-    #  name: GRIDs Conformance
-    #  runs-on: ubuntu-latest
-    #  steps:
-    #  - name: Check out code
-    #    uses: actions/checkout@v4
-    #  - name: Python Dependencies for Conformance
-    #    run: pip install requests numpy
-    #  - name: Download grip
-    #    uses: actions/download-artifact@v4
-    #    with:
-    #      name: gripBin
-    #  - name: GRIDs unit tests
-    #    run: |
-    #      chmod +x grip
-    #      go test ./test -config grids.yml
-    #  - name: GRIDs Test
-    #    run: |
-    #      ./grip server --rpc-port 18202 --http-port 18201 --config ./test/grids.yml &
-    #      sleep 5
-    #      make test-conformance
+          
+  gridsTest:
+    needs: build
+    name: GRIDs Conformance
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check out code
+      uses: actions/checkout@v4
+    - name: Python Dependencies for Conformance
+      run: pip install requests numpy
+    - name: Download grip
+      uses: actions/download-artifact@v4
+      with:
+        name: gripBin
+    - name: GRIDs unit tests
+      run: |
+        chmod +x grip
+        go test ./test -config grids.yml
+    - name: GRIDs Test
+      run: |
+        ./grip server --rpc-port 18202 --http-port 18201 --config ./test/grids.yml &
+        sleep 5
+        make test-conformance

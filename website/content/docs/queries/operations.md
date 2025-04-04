@@ -23,7 +23,7 @@ G.query().V(["vertex1"])
 
 Returns:
 ```json
-{"gid" : "vertex1", "label":"TestVertex", "data":{}}
+{"_gid" : "vertex1", "_label":"TestVertex"}
 ```
 
 ## .E([ids])
@@ -39,7 +39,7 @@ G.query().E(["edge1"])
 ```
 Returns:
 ```json
-{"gid" : "edge1", "label":"TestEdge", "from": "vertex1", "to": "vertex2", "data":{}}
+{"_gid" : "edge1", "_label":"TestEdge", "_from": "vertex1", "_to": "vertex2"}
 ```
 
 
@@ -234,14 +234,14 @@ into a list named `people` that is added to the current planet node.
 
 Output:
 ```json
-{"vertex":{"gid":"Planet:2", "label":"Planet", "data":{"climate":"temperate", "diameter":12500, "gravity":null, "name":"Alderaan", "orbital_period":364, "people":["Leia Organa", "Raymus Antilles"], "population":2000000000, "rotation_period":24, "surface_water":40, "system":{"created":"2014-12-10T11:35:48.479000Z", "edited":"2014-12-20T20:58:18.420000Z"}, "terrain":["grasslands", "mountains"], "url":"https://swapi.co/api/planets/2/"}}}
-{"vertex":{"gid":"Planet:1", "label":"Planet", "data":{"climate":"arid", "diameter":10465, "gravity":null, "name":"Tatooine", "orbital_period":304, "people":["Luke Skywalker", "C-3PO", "Darth Vader", "Owen Lars", "Beru Whitesun lars", "R5-D4", "Biggs Darklighter"], "population":200000, "rotation_period":23, "surface_water":1, "system":{"created":"2014-12-09T13:50:49.641000Z", "edited":"2014-12-21T20:48:04.175778Z"}, "terrain":["desert"], "url":"https://swapi.co/api/planets/1/"}}}
+{"vertex":{"_gid":"Planet:2", "_label":"Planet", "climate":"temperate", "diameter":12500, "gravity":null, "name":"Alderaan", "orbital_period":364, "people":["Leia Organa", "Raymus Antilles"], "population":2000000000, "rotation_period":24, "surface_water":40, "system":{"created":"2014-12-10T11:35:48.479000Z", "edited":"2014-12-20T20:58:18.420000Z"}, "terrain":["grasslands", "mountains"], "url":"https://swapi.co/api/planets/2/"}}
+{"vertex":{"_gid":"Planet:1", "_label":"Planet", "climate":"arid", "diameter":10465, "gravity":null, "name":"Tatooine", "orbital_period":304, "people":["Luke Skywalker", "C-3PO", "Darth Vader", "Owen Lars", "Beru Whitesun lars", "R5-D4", "Biggs Darklighter"], "population":200000, "rotation_period":23, "surface_water":1, "system":{"created":"2014-12-09T13:50:49.641000Z", "edited":"2014-12-21T20:48:04.175778Z"}, "terrain":["desert"], "url":"https://swapi.co/api/planets/1/"}}
 ```
 
 
 ## .fields([fields])
 Select which vertex/edge fields to return or exlucde. Operation with no arguments exlcudes all properties. 
-"gid", "label", "from" and "to" are included by default.
+"_gid", "_label", "from" and "to" are included by default.
 ```python
 O.query().V("vertex1").fields("symbol")     # include only symbol property
 O.query().V("vertex1").fields("-symbol")    # exclude symbol property
@@ -316,4 +316,4 @@ Return the total count of returned edges/vertices.
 
 ## .distinct([fields])
 Only return distinct elements. An array of one or more fields may be passed in to define what elements are used to identify uniqueness. If none are
-provided, the `gid` is used.
+provided, the `_gid` is used.

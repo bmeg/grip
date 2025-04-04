@@ -27,10 +27,14 @@ func TestBatchInsertValidation(t *testing.T) {
 		{Graph: "graph", Edge: &gdbi.Edge{ID: "e8", Label: "test", From: "v1", To: "v7"}},
 	}
 
-	vAdd := func([]*gdbi.Vertex) error {
+	vAdd := func(v <-chan *gdbi.Vertex, c int) error {
+		for range v {
+		}
 		return nil
 	}
-	eAdd := func([]*gdbi.Edge) error {
+	eAdd := func(e <-chan *gdbi.Edge, c int) error {
+		for range e {
+		}
 		return nil
 	}
 
@@ -69,10 +73,14 @@ func TestBatchGraphValidation(t *testing.T) {
 		{Graph: "graph", Edge: &gdbi.Edge{ID: "e8", Label: "test", From: "v1", To: "v7"}},
 	}
 
-	vAdd := func([]*gdbi.Vertex) error {
+	vAdd := func(v <-chan *gdbi.Vertex, c int) error {
+		for range v {
+		}
 		return nil
 	}
-	eAdd := func(e []*gdbi.Edge) error {
+	eAdd := func(e <-chan *gdbi.Edge, c int) error {
+		for range e {
+		}
 		return fmt.Errorf("edgeAdd test error")
 	}
 
@@ -88,7 +96,7 @@ func TestBatchGraphValidation(t *testing.T) {
 	err := StreamBatch(i, 5, "graph", vAdd, eAdd)
 
 	if merr, ok := err.(*multierror.Error); ok {
-		if len(merr.Errors) != 8 {
+		if len(merr.Errors) != 6 {
 			t.Log(merr.Error())
 			t.Errorf("incorrect number of errors returned")
 		}

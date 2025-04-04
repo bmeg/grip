@@ -8,15 +8,6 @@ func debug(i ...interface{}) {
 	pretty.Println(i...)
 }
 
-func contains(a []string, v string) bool {
-	for _, i := range a {
-		if i == v {
-			return true
-		}
-	}
-	return false
-}
-
 func dedupStringSlice(s []string) []string {
 	seen := make(map[string]struct{}, len(s))
 	j := 0

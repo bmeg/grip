@@ -149,8 +149,8 @@ function query(client=null) {
 			this.query.push({'aggregate': {'aggregations': Array.prototype.slice.call(arguments)}})
 			return this
 		},
-		sort: function(field, decending=true) {
-			this.query.push({'sort': {'fields': [{"field":field, "decending":decending}] }})
+		sort: function(field, descending=true) {
+			this.query.push({'sort': {'fields': [{"field":field, "descending":descending}] }})
 			return this
 		},
 		unwind: function(field) {

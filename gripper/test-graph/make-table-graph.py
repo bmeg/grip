@@ -22,7 +22,7 @@ def graph2tables(vFile, eFile, ePlanFile):
             if label not in tables:
                 tables[label] = []
             tables[label].append(data)
-            vTypes[data['gid']] = data['label']
+            vTypes[data['id']] = data['label']
 
     eTable = []
     with open(eFile) as handle:
@@ -52,7 +52,7 @@ def graph2tables(vFile, eFile, ePlanFile):
                 if vTypes[e['to']] == plan['to'] and vTypes[e['from']] == plan['from'] and e['label'] == plan['label']:
                     #print("add %s to %s" % (e['to'], e['from']))
                     for v in tables[vTypes[e['from']]]:
-                        if v['gid'] == e['from']:
+                        if v['id'] == e['from']:
                             dstID = e['to'].split(":")[1]
                             v['data'][ plan['field'] ] = dstID
 
@@ -82,11 +82,11 @@ if __name__ == "__main__":
         for name, rows in tables.items():
             p = os.path.join(outdir, "%s.tsv" % (name))
             with open(p, "w") as handle:
-                if 'data' in rows[0] and 'gid' in rows[0]:
+                if 'data' in rows[0] and 'id' in rows[0]:
                     headers = keyUnion( list(list(r['data'].keys()) for r in rows) )
                     handle.write("\t".join(['id'] + headers) + "\n")
                     for row in rows:
-                        id = row['gid'].split(":")[1]
+                        id = row['id'].split(":")[1]
                         handle.write("\t".join( [json.dumps(id)] + list( json.dumps(row['data'].get(k,"")) for k in headers ) ) + "\n")
                 else:
                     headers = list(rows[0].keys())

@@ -2,9 +2,9 @@ package gdbi
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/bmeg/grip/gripql"
+	"github.com/bmeg/grip/log"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -12,10 +12,10 @@ import (
 func (elem *DataElement) ToVertex() *gripql.Vertex {
 	sValue, err := structpb.NewStruct(elem.Data)
 	if err != nil {
-		fmt.Printf("Error: %s %#v\n", err, elem.Data)
+		log.Errorf("Error: %s For elem.Data: '%#v'\n", err, elem.Data)
 	}
 	return &gripql.Vertex{
-		Gid:   elem.ID,
+		Id:    elem.ID,
 		Label: elem.Label,
 		Data:  sValue,
 	}
@@ -23,9 +23,12 @@ func (elem *DataElement) ToVertex() *gripql.Vertex {
 
 // ToEdge converts data element to edge
 func (elem *DataElement) ToEdge() *gripql.Edge {
-	sValue, _ := structpb.NewStruct(elem.Data)
+	sValue, err := structpb.NewStruct(elem.Data)
+	if err != nil {
+		log.Errorf("ToEdge: %s For elem.Data: '%#v'\n", err, elem.Data)
+	}
 	return &gripql.Edge{
-		Gid:   elem.ID,
+		Id:    elem.ID,
 		From:  elem.From,
 		To:    elem.To,
 		Label: elem.Label,
@@ -37,11 +40,11 @@ func (elem *DataElement) ToEdge() *gripql.Edge {
 func (elem *DataElement) ToDict() map[string]interface{} {
 	/*
 		out := map[string]interface{}{
-			"gid":   "",
-			"label": "",
-			"to":    "",
-			"from":  "",
-			"data":  map[string]interface{}{},
+			"_id":   "",
+			"_label": "",
+			"_to":    "",
+			"_from":  "",
+			"*":  map[string]interface{}{},
 		}
 	*/
 	out := map[string]interface{}{}
@@ -52,7 +55,7 @@ func (elem *DataElement) ToDict() map[string]interface{} {
 		out[k] = v
 	}
 	if elem.ID != "" {
-		out["_gid"] = elem.ID
+		out["_id"] = elem.ID
 	}
 	if elem.Label != "" {
 		out["_label"] = elem.Label
@@ -80,7 +83,7 @@ func (elem *DataElement) FromDict(d map[string]any) {
 			if vStr, ok := v.(string); ok {
 				elem.From = vStr
 			}
-		case "_gid":
+		case "_id":
 			if vStr, ok := v.(string); ok {
 				elem.ID = vStr
 			}
@@ -98,10 +101,10 @@ func (elem *DataElement) FromDict(d map[string]any) {
 // Validate returns an error if the vertex is invalid
 func (vertex *Vertex) Validate() error {
 	if vertex.ID == "" {
-		return errors.New("'gid' cannot be blank")
+		return errors.New("'_id' cannot be blank")
 	}
 	if vertex.Label == "" {
-		return errors.New("'label' cannot be blank")
+		return errors.New("'_label' cannot be blank")
 	}
 	for k := range vertex.Data {
 		err := gripql.ValidateFieldName(k)
@@ -125,7 +128,7 @@ func NewGraphElement(g *gripql.GraphElement) *GraphElement {
 
 func NewElementFromVertex(v *gripql.Vertex) *Vertex {
 	return &Vertex{
-		ID:     v.Gid,
+		ID:     v.Id,
 		Label:  v.Label,
 		Data:   v.Data.AsMap(),
 		Loaded: true,
@@ -134,7 +137,7 @@ func NewElementFromVertex(v *gripql.Vertex) *Vertex {
 
 func NewElementFromEdge(e *gripql.Edge) *Edge {
 	return &Edge{
-		ID:     e.Gid,
+		ID:     e.Id,
 		Label:  e.Label,
 		To:     e.To,
 		From:   e.From,

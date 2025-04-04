@@ -22,15 +22,6 @@ func arrayEq(a, b []string) bool {
 	return true
 }
 
-func contains(a []string, n string) bool {
-	for _, c := range a {
-		if c == n {
-			return true
-		}
-	}
-	return false
-}
-
 // PipelineSteps create an array, the same length at stmts that labels the
 // step id for each of the GraphStatements
 func PipelineSteps(stmts []*gripql.GraphStatement) []string {

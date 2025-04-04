@@ -9,7 +9,7 @@ import (
 )
 
 type Row struct {
-	Gid   string
+	Id    string
 	Label string
 	From  string
 	To    string
@@ -25,7 +25,7 @@ func ConvertVertexRow(row *Row, load bool) (*gdbi.Vertex, error) {
 		}
 	}
 	v := &gdbi.Vertex{
-		ID:     row.Gid,
+		ID:     row.Id,
 		Label:  row.Label,
 		Data:   props,
 		Loaded: load,
@@ -42,7 +42,7 @@ func ConvertEdgeRow(row *Row, load bool) (*gdbi.Edge, error) {
 		}
 	}
 	e := &gdbi.Edge{
-		ID:     row.Gid,
+		ID:     row.Id,
 		Label:  row.Label,
 		From:   row.From,
 		To:     row.To,

@@ -28,7 +28,7 @@ def test_post_yaml_schema(man):
     if len(err["errors"]) != 0:
         errors.append(f"Wrong number of errors {len(err['errors'])} != 0")
 
-    vertex = G.getVertex("prompt:0")['data']['responses']
+    vertex = G.getVertex("prompt:0")['responses']
     if vertex != ['response:0']:
         errors.append("prompt:0 responses != ['response:0']")
 
@@ -39,4 +39,4 @@ def process_graph_schema(path):
         content = file.read()
         vertex = yaml.safe_load(content)
         id = vertex["id"].split("/")[-1]
-    return [{"data":vertex, "label": id, "gid": vertex["id"] }]
+    return [{"data":vertex, "label": id, "id": vertex["id"] }]

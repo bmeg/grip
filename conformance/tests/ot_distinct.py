@@ -10,10 +10,10 @@ def test_distinct(man):
         errors.append("V().distinct() distinct count %s != %s" % (count, 39))
 
     count = 0
-    for i in G.query().V().distinct("_gid"):
+    for i in G.query().V().distinct("_id"):
         count += 1
     if count != 39:
-        errors.append("""V().distinct("_gid") distinct count %s != %s""" % (count, 39))
+        errors.append("""V().distinct("_id") distinct count %s != %s""" % (count, 39))
 
     count = 0
     for i in G.query().V().distinct("eye_color"):
@@ -55,7 +55,7 @@ def test_distinct_multi(man):
 
     count = 0
     o = {}
-    for i in G.query().V().as_("a").out().distinct(["$a.eye_color", "_gid"]).render(["$a.eye_color", "_gid"]):
+    for i in G.query().V().as_("a").out().distinct(["$a.eye_color", "_id"]).render(["$a.eye_color", "_id"]):
         if i[0] in o and o[i[0]] != i[1]:
             errors.append("Non-unique pair returned: %s" % (i))
         count += 1

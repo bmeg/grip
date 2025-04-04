@@ -1,8 +1,8 @@
-{"gid":"patient_a", "label":"Patient", "data":{"name":"Alice"}}
-{"gid":"patient_b", "label":"Patient", "data":{"name":"Bob"}}
-{"gid":"observation_a1", "label":"Observation", "data":{"key":"age", "value":36}}
-{"gid":"observation_a2", "label":"Observation", "data":{"key":"sex", "value":"Female"}}
-{"gid":"observation_a3", "label":"Observation", "data":{"key":"blood_pressure", "value":"111/78"}}
-{"gid":"observation_b1", "label":"Observation", "data":{"key":"age", "value":42}}
-{"gid":"observation_b2", "label":"Observation", "data":{"key":"sex", "value":"Male"}}
-{"gid":"observation_b3", "label":"Observation", "data":{"key":"blood_pressure", "value":"120/80"}}
+{"_id":"patient_a", "_label":"Patient", "name":"Alice"}
+{"_id":"patient_b", "_label":"Patient", "name":"Bob"}
+{"_id":"observation_a1", "_label":"Observation", "key":"age", "value":36}
+{"_id":"observation_a2", "_label":"Observation", "key":"sex", "value":"Female"}
+{"_id":"observation_a3", "_label":"Observation", "key":"blood_pressure", "value":"111/78"}
+{"_id":"observation_b1", "_label":"Observation", "key":"age", "value":42}
+{"_id":"observation_b2", "_label":"Observation", "key":"sex", "value":"Male"}
+{"_id":"observation_b3", "_label":"Observation", "key":"blood_pressure", "value":"120/80"}

@@ -1,4 +1,4 @@
-package kvgraph
+package grids
 
 import (
 	"context"
@@ -12,39 +12,43 @@ import (
 )
 
 // BuildSchema returns the schema of a specific graph in the database
-func (ma *KVGraph) BuildSchema(ctx context.Context, graph string, sampleN uint32, random bool) (*gripql.Graph, error) {
+func (ma *GDB) BuildSchema(ctx context.Context, graph string, sampleN uint32, random bool) (*gripql.Graph, error) {
 	var vSchema []*gripql.Vertex
 	var eSchema []*gripql.Edge
 	var err error
 
 	log.WithFields(log.Fields{"graph": graph}).Debug("Starting KV GetSchema call")
 
-	vSchema, eSchema, err = ma.sampleSchema(ctx, graph, sampleN, random)
-	if err != nil {
-		return nil, fmt.Errorf("getting vertex schema: %v", err)
-	}
+	if g, ok := ma.drivers[graph]; ok {
+		vSchema, eSchema, err = g.sampleSchema(ctx, sampleN, random)
+		if err != nil {
+			return nil, fmt.Errorf("getting vertex schema: %v", err)
+		}
 
-	schema := &gripql.Graph{Graph: graph, Vertices: vSchema, Edges: eSchema}
-	log.WithFields(log.Fields{"graph": graph}).Debug("Finished GetSchema call")
-	return schema, nil
+		schema := &gripql.Graph{Graph: graph, Vertices: vSchema, Edges: eSchema}
+		log.WithFields(log.Fields{"graph": graph}).Debug("Finished GetSchema call")
+		return schema, nil
+
+	}
+	return nil, fmt.Errorf("Graph not found")
 }
 
-func (ma *KVGraph) sampleSchema(ctx context.Context, graph string, n uint32, random bool) ([]*gripql.Vertex, []*gripql.Edge, error) {
-
-	labelField := fmt.Sprintf("%s.v.label", graph)
-	labels := []string{}
-	for i := range ma.idx.FieldTerms(labelField) {
-		labels = append(labels, i.(string))
+func (gi *Graph) sampleSchema(ctx context.Context, n uint32, random bool) ([]*gripql.Vertex, []*gripql.Edge, error) {
+	labels := gi.bsonkv.List()
+	vertLabels := []string{}
+	for _, label := range labels {
+		if label[:2] == "v_" {
+			vertLabels = append(vertLabels, label)
+		}
 	}
 
 	vOutput := []*gripql.Vertex{}
 	eOutput := []*gripql.Edge{}
 	fromToPairs := make(fromto)
 
-	gi, _ := ma.Graph(graph)
-	for _, label := range labels {
+	for _, label := range vertLabels {
 		schema := map[string]interface{}{}
-		for i := range ma.idx.GetTermMatch(context.Background(), labelField, label, int(n)) {
+		for i := range gi.VertexLabelScan(context.Background(), label) {
 			v := gi.GetVertex(i, true)
 			data := v.Data
 			ds := gripql.GetDataFieldTypes(data)
@@ -54,20 +58,19 @@ func (ma *KVGraph) sampleSchema(ctx context.Context, graph string, n uint32, ran
 			reqChan <- gdbi.ElementLookup{ID: i}
 			close(reqChan)
 			for e := range gi.GetOutEdgeChannel(ctx, reqChan, true, false, []string{}) {
-				o := gi.GetVertex(e.Edge.Get().To, false)
-				if o != nil {
-					k := fromtokey{from: v.Label, to: o.Label, label: e.Edge.Get().Label}
-					ds := gripql.GetDataFieldTypes(e.Edge.Get().Data)
-					if p, ok := fromToPairs[k]; ok {
-						fromToPairs[k] = util.MergeMaps(p, ds)
-					} else {
-						fromToPairs[k] = ds
-					}
+				edge := e.Edge.Get()
+				o := gi.GetVertex(edge.To, false)
+				k := fromtokey{from: v.Label, to: o.Label, label: edge.Label}
+				ds := gripql.GetDataFieldTypes(edge.Data)
+				if p, ok := fromToPairs[k]; ok {
+					fromToPairs[k] = util.MergeMaps(p, ds)
+				} else {
+					fromToPairs[k] = ds
 				}
 			}
 		}
 		sSchema, _ := structpb.NewStruct(schema)
-		vSchema := &gripql.Vertex{Id: label, Label: "Vertex", Data: sSchema}
+		vSchema := &gripql.Vertex{Id: label[2:], Label: label, Data: sSchema}
 		vOutput = append(vOutput, vSchema)
 	}
 	for k, v := range fromToPairs {

@@ -8,65 +8,62 @@ import (
 var testGraph = `
 - graph: example1
   vertices:
-    - gid: Human
-      label: Human
-      data:
-        name: STRING
-        height: NUMERIC
-        mass: NUMERIC
-        age: NUMERIC
-        homePlanet: STRING
-    - gid: Droid
-      label: Droid
-      data:
-        name: STRING
-        primaryFunction: STRING
+    - _id: Human
+      _label: Human
+      name: STRING
+      height: NUMERIC
+      mass: NUMERIC
+      age: NUMERIC
+      homePlanet: STRING
+    - _id: Droid
+      _label: Droid
+      name: STRING
+      primaryFunction: STRING
   edges:
-    - gid: (Human)--Owns->(Droid)
-      label: Owns
-      from: Human
-      to: Droid
-      data:
-        years: NUMERIC
+    - _id: (Human)--Owns->(Droid)
+      _label: Owns
+      _from: Human
+      _to: Droid
+      years: NUMERIC
 - graph: example2
   vertices:
-    - gid: V1
-      label: V1
-    - gid: V2
-      label: V2
+    - _id: V1
+      _label: V1
+    - _id: V2
+      _label: V2
   edges:
-    - gid: (V1)--E1->(V2)
-      label: E1
-      from: V1
-      to: V2
+    - _id: (V1)--E1->(V2)
+      _label: E1
+      _from: V1
+      _to: V2
 `
 
 var testGraph2 = `
 graph: example2
 vertices:
-  - gid: V1
-    label: V1
-  - gid: V2
-    label: V2
+  - _id: V1
+    _label: V1
+  - _id: V2
+    _label: V2
 edges:
-  - gid: (V1)--E1->(V2)
-    label: E1
-    from: V1
-    to: V2
+  - _id: (V1)--E1->(V2)
+    _label: E1
+    _from: V1
+    _to: V2
 `
 
 // missing graph name
 var testGraph3 = `
 vertices:
-  - gid: V1
-    label: V1
-  - gid: V2
-    label: V2
+  - _id: V1
+    _label: V1
+  - _id: V2
+    _label: V2
 edges:
-  - gid: (V1)--E1->(V2)
-    label: E1
-    from: V1
-    to: V2
+  - _id: (V1)--E1->(V2)
+    _label: E1
+    _from: V1
+    _to: V2
 `
 
 func TestParseYAMLGraph(t *testing.T) {
@@ -111,27 +108,24 @@ func TestGraphToYAML(t *testing.T) {
 	}
 
 	expected := `edges:
-- data:
-    years: NUMERIC
+- years: NUMERIC
   from: Human
-  gid: (Human)--Owns->(Droid)
-  label: Owns
-  to: Droid
+  _id: (Human)--Owns->(Droid)
+  _label: Owns
+  _to: Droid
 graph: example1
 vertices:
-- data:
-    age: NUMERIC
-    height: NUMERIC
-    homePlanet: STRING
-    mass: NUMERIC
-    name: STRING
-  gid: Human
-  label: Human
-- data:
-    name: STRING
-    primaryFunction: STRING
-  gid: Droid
-  label: Droid
+- _id: Human
+  _label: Human
+  age: NUMERIC
+  height: NUMERIC
+  homePlanet: STRING
+  mass: NUMERIC
+  name: STRING
+- _id: Droid
+  _label: Droid
+  name: STRING
+  primaryFunction: STRING
 `
 
 	actual, err := GraphToYAMLString(graphs[0])
@@ -167,34 +161,30 @@ func TestGraphToJSON(t *testing.T) {
   "graph": "example1",
   "vertices": [
     {
-      "gid": "Human",
-      "label": "Human",
-      "data": {
-          "age": "NUMERIC",
-          "height": "NUMERIC",
-          "homePlanet": "STRING",
-          "mass": "NUMERIC",
-          "name": "STRING"
-        }
+      "_id": "Human",
+      "_label": "Human",
+      "age": "NUMERIC",
+      "height": "NUMERIC",
+      "homePlanet": "STRING",
+      "mass": "NUMERIC",
+      "name": "STRING"
+
     },
     {
-      "gid": "Droid",
-      "label": "Droid",
-      "data": {
-          "name": "STRING",
-          "primaryFunction": "STRING"
-        }
+      "_id": "Droid",
+      "_label": "Droid",
+      "name": "STRING",
+      "primaryFunction": "STRING"
+
     }
   ],
   "edges": [
     {
-      "gid": "(Human)--Owns-\u003e(Droid)",
-      "label": "Owns",
-      "from": "Human",
-      "to": "Droid",
-      "data": {
-          "years": "NUMERIC"
-        }
+      "_id": "(Human)--Owns-\u003e(Droid)",
+      "_label": "Owns",
+      "_from": "Human",
+      "_to": "Droid",
+      "years": "NUMERIC"
     }
   ]
 }`
