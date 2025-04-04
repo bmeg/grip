@@ -54,11 +54,11 @@ func (c *Config) StreamInterceptor() grpc.StreamServerInterceptor {
 // using a password stored in the config.
 func unaryAuthInterceptor(auth Authenticate, access Access) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
-		//fmt.Printf("AuthInt: %#v\n", ctx)
+		//log.Infof("AuthInt: %#v\n", ctx)
 		md, _ := metadata.FromIncomingContext(ctx)
-		//fmt.Printf("Metadata: %#v\n", md)
+		//log.Infof("Metadata: %#v\n", md)
 		//omd, _ := metadata.FromOutgoingContext(ctx)
-		//fmt.Printf("Raw: %#v\n", omd)
+		//log.Infof("Raw: %#v\n", omd)
 
 		metaData := MetaData{}
 		for i := range md {
@@ -89,10 +89,10 @@ func unaryAuthInterceptor(auth Authenticate, access Access) grpc.UnaryServerInte
 // using a password stored in the config.
 func streamAuthInterceptor(auth Authenticate, access Access) grpc.StreamServerInterceptor {
 	return func(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
-		//fmt.Printf("Streaming query: %#v\n", info)
+		//log.Infof("Streaming query: %#v\n", info)
 		md, _ := metadata.FromIncomingContext(ss.Context())
 
-		//fmt.Printf("Metadata: %#v\n", md)
+		//log.Infof("Metadata: %#v\n", md)
 		metaData := MetaData{}
 		for i := range md {
 			metaData[i] = md[i]

@@ -2,8 +2,8 @@ package gripql
 
 import (
 	"encoding/json"
-	"fmt"
 
+	"github.com/bmeg/grip/log"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -80,7 +80,7 @@ func (mflat *MarshalFlatten) Unmarshal(data []byte, v interface{}) error {
 			}
 			s, err := structpb.NewStruct(data)
 			if err != nil {
-				fmt.Printf("NewStruct error: %s", err)
+				log.Errorf("NewStruct error: %s", err)
 			}
 			if err == nil {
 				y.Data = s

@@ -5,7 +5,7 @@ from collections import defaultdict
 
 import pytest
 
-import pygrip
+import pygrip.pygrip as pygrip
 from jsonpath_ng import jsonpath, parse
 
 from typing import Generator, Dict, Any

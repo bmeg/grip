@@ -663,7 +663,7 @@ func (server *GripServer) AddSchema(ctx context.Context, req *gripql.Graph) (*gr
 func (server *GripServer) AddJsonSchema(ctx context.Context, rawjson *gripql.RawJson) (*gripql.EditResult, error) {
 	bytes, err := protojson.Marshal(rawjson.Data)
 	if err != nil {
-		fmt.Printf("Failed to marshal data to bytes: %v\n", err)
+		log.Errorf("Failed to marshal data to bytes: %v\n", err)
 		return nil, err
 	}
 	req, err := schema.ParseJSchema(bytes, rawjson.Graph)

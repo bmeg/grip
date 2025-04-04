@@ -528,10 +528,10 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement, opts *gdbi.Compile
 			keys := protoutil.AsStringList(stmt.HasKey)
 			for _, key := range keys {
 				lKey := ToPipelinePath(key)
-				fmt.Printf("Key: %s -> %s\n", key, lKey)
+				//log.Debugf("Key: %s -> %s\n", key, lKey)
 				hasKeys[lKey] = bson.M{"$exists": true}
 			}
-			fmt.Printf("hasKey: %#v\n", hasKeys)
+			//log.Debugf("hasKey: %#v\n", hasKeys)
 			query = append(query, bson.D{primitive.E{Key: "$match", Value: hasKeys}})
 
 		case *gripql.GraphStatement_Limit:
@@ -581,7 +581,7 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement, opts *gdbi.Compile
 				},
 			},
 			})
-			fmt.Printf("Distinct: %s\n", query)
+			//log.Debugf("Distinct: %s\n", query)
 			switch lastType {
 			case gdbi.VertexData:
 				query = append(query, bson.D{primitive.E{Key: "$project", Value: bson.M{

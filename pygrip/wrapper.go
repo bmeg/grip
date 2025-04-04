@@ -16,6 +16,7 @@ import (
 	"github.com/bmeg/grip/engine/core"
 	"github.com/bmeg/grip/engine/pipeline"
 	"github.com/bmeg/grip/gdbi"
+	"github.com/bmeg/grip/grids"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/kvgraph"
 	"github.com/bmeg/grip/kvi"
@@ -39,6 +40,18 @@ func NewMemServer() GraphHandle {
 	db, _ := leveldb.NewMemKVInterface("", kvi.Options{})
 	graphDB = kvgraph.NewKVGraph(db)
 	err := graphDB.AddGraph("default")
+	if err != nil {
+		log.Errorf("Graph init error: %s\n", err)
+	}
+	g, err := graphDB.Graph("default")
+	if err != nil {
+		log.Errorf("Graph init error: %s\n", err)
+	}
+	return GraphHandle(cgo.NewHandle(g))
+}
+
+func NewGRIDServer(path string) GraphHandle {
+	graphDB, err := grids.NewGraphDB(path)
 	if err != nil {
 		log.Errorf("Graph init error: %s\n", err)
 	}

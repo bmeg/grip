@@ -122,7 +122,7 @@ func NewGripServer(conf *config.Config, baseDir string, drivers map[string]gdbi.
 	if _, ok := gdbs[conf.Default]; !ok {
 		return nil, fmt.Errorf("default driver '%s' does not exist", conf.Default)
 	}
-	fmt.Printf("Default graph driver: %s\n", conf.Default)
+	log.Infof("Default graph driver: %s\n", conf.Default)
 	return server, nil
 }
 

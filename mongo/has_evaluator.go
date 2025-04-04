@@ -1,8 +1,6 @@
 package mongo
 
 import (
-	"fmt"
-
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/log"
 	"go.mongodb.org/mongo-driver/bson"
@@ -22,7 +20,7 @@ func convertHasExpression(stmt *gripql.HasExpression, not bool) bson.M {
 			} else {
 				key := cond.Key
 				output = convertHasExpression(gripql.And(gripql.Gt(key, lims[0]), gripql.Lt(key, lims[1])), not)
-				fmt.Printf("inside: %#v\n", output)
+				//log.Debugf("inside: %#v\n", output)
 			}
 
 		case gripql.Condition_OUTSIDE:

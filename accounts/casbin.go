@@ -3,6 +3,7 @@ package accounts
 import (
 	"fmt"
 
+	"github.com/bmeg/grip/log"
 	"github.com/casbin/casbin/v2"
 )
 
@@ -17,19 +18,19 @@ func (ce *CasbinAccess) init() {
 		if e, err := casbin.NewEnforcer(ce.Model, ce.Policy); err == nil {
 			ce.encforcer = e
 		} else {
-			fmt.Printf("Casbin Error: %s", err)
+			log.Errorf("Casbin Error: %s", err)
 		}
 	}
 }
 
 func (ce *CasbinAccess) Enforce(user string, graph string, operation Operation) error {
 	ce.init()
-	fmt.Printf("Casbin request '%s' '%s' '%s'\n", user, graph, operation)
+	log.Infof("Casbin request '%s' '%s' '%s'\n", user, graph, operation)
 	if res, err := ce.encforcer.Enforce(user, graph, string(operation)); res {
 		return nil
 	} else if err != nil {
-		fmt.Printf("casbin error: %s\n", err)
+		log.Errorf("casbin error: %s\n", err)
 	}
-	fmt.Printf("Not allowed: '%s' '%s' '%s'\n", user, graph, operation)
+	log.Errorf("Not allowed: '%s' '%s' '%s'\n", user, graph, operation)
 	return fmt.Errorf("action restricted")
 }

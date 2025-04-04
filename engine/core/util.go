@@ -1,13 +1,5 @@
 package core
 
-import (
-	"github.com/kr/pretty"
-)
-
-func debug(i ...interface{}) {
-	pretty.Println(i...)
-}
-
 func dedupStringSlice(s []string) []string {
 	seen := make(map[string]struct{}, len(s))
 	j := 0

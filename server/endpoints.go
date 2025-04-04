@@ -25,7 +25,7 @@ func (server *GripServer) AddEndpoint(name string, path string, config map[strin
 	if err != nil {
 		return err
 	}
-	fmt.Printf("Method: %#v\n", gen)
+	log.Infof("Method: %#v\n", gen)
 	if x, ok := (gen).(func(client gripql.Client, config map[string]string) (http.Handler, error)); ok {
 		log.Infof("Plugin %s loaded", path)
 		endpointMap[name] = x

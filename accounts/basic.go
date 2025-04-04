@@ -4,6 +4,8 @@ import (
 	"encoding/base64"
 	"fmt"
 	"strings"
+
+	"github.com/bmeg/grip/log"
 )
 
 // BasicCredential describes a username and password for use with Funnel's basic auth.
@@ -18,7 +20,7 @@ func (ba BasicAuth) Validate(md MetaData) (string, error) {
 	var auth []string
 	var ok bool
 
-	fmt.Printf("Running BasicAuth: %#v\n", md)
+	log.Infof("Running BasicAuth: %#v\n", md)
 
 	if auth, ok = md["Authorization"]; !ok {
 		if auth, ok = md["authorization"]; !ok {
@@ -28,7 +30,7 @@ func (ba BasicAuth) Validate(md MetaData) (string, error) {
 
 	if len(auth) > 0 {
 		user, password, ok := parseBasicAuth(auth[0])
-		fmt.Printf("User: %s Password: %s OK: %s\n", user, password, ok)
+		log.Debugf("User: %s Password: %s OK: %#v\n", user, password, ok)
 		for _, c := range ba {
 			if c.User == user && c.Password == password {
 				return user, nil

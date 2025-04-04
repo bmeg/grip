@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/bmeg/grip/cmd"
@@ -11,7 +10,7 @@ import (
 func main() {
 	log.ConfigureLogger(log.DefaultLoggerConfig())
 	if err := cmd.RootCmd.Execute(); err != nil {
-		fmt.Println("Error:", err.Error())
+		log.Errorf("Error:", err.Error())
 		os.Exit(1)
 	}
 }

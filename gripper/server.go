@@ -3,9 +3,9 @@ package gripper
 import (
 	"context"
 	"fmt"
-	"log"
 	"net"
 
+	"github.com/bmeg/grip/log"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/structpb"
 )
@@ -36,13 +36,13 @@ func NewSimpleTableServer(dr map[string]Driver) *SimpleTableServicer {
 func StartServer(port int, serv GRIPSourceServer) {
 	lis, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", port))
 	if err != nil {
-		log.Fatalf("failed to listen: %v", err)
+		log.Errorf("failed to listen: %v", err)
 	}
 	var opts []grpc.ServerOption
 	grpcServer := grpc.NewServer(opts...)
 
 	RegisterGRIPSourceServer(grpcServer, serv)
-	fmt.Printf("Starting: %d\n", port)
+	log.Infof("Starting: %d\n", port)
 	grpcServer.Serve(lis)
 }
 
@@ -97,7 +97,7 @@ func (st *SimpleTableServicer) GetRowsByID(srv GRIPSource_GetRowsByIDServer) err
 		if err != nil {
 			break
 		}
-		log.Printf("Request: %s %s", err, req)
+		log.Debugf("Request: %s %s", err, req)
 		if dr, ok := st.drivers[req.Collection]; ok {
 			if row, err := dr.FetchRow(req.Id); err == nil {
 				data, _ := structpb.NewStruct(row.Value)
