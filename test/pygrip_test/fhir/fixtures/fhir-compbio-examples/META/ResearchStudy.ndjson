@@ -1,0 +1,1 @@
+{"resourceType":"ResearchStudy","id":"7dacd4d0-3c8e-470b-bf61-103891627d45","identifier":[{"use":"official","system":"https://my_demo.org/labA","value":"labA"}],"name":"LabA","status":"active","description":"LabA Clinical Trial Study: FHIR Schema Chorot Integration"}
