@@ -38,6 +38,19 @@ func (ggraph *Graph) DeleteVertexIndex(label string, field string) error {
 // GetVertexIndexList lists out all the vertex indices for a graph
 func (ggraph *Graph) GetVertexIndexList() <-chan *gripql.IndexID {
 	log.Debug("Running GetVertexIndexList")
+	if len(ggraph.bsonkv.Fields) > 0 {
+		out := make(chan *gripql.IndexID, 10)
+		go func() {
+			defer close(out)
+			for label, fields := range ggraph.bsonkv.Fields {
+				for field := range fields {
+					out <- &gripql.IndexID{Label: label, Field: field}
+				}
+			}
+		}()
+		return out
+	}
+	// fallback to reading from disk
 	return ggraph.bsonkv.ListFields(ggraph.graphID)
 }
 
