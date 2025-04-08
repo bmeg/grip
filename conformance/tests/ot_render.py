@@ -59,14 +59,14 @@ def test_render_mark(man):
 
     G = man.setGraph("swapi")
 
-    query = G.query().V().hasLabel("Character").as_("char").out("starships").render(["$char.name", "$._gid", "$"])
+    query = G.query().V().hasLabel("Character").as_("char").out("starships").render(["$char.name", "$._id", "$"])
     for row in query:
         if not isinstance(row[0], str):
-            errors.append("incorrect return type: %s", row[0])
-        if '_gid' not in row[2]:
-            errors.append("incorrect return type: %s", row[2])
+            errors.append("incorrect return type: %s" % row[0])
+        if '_id' not in row[2]:
+            errors.append("incorrect return type: %s" % row[2])
         if '_label' not in row[2]:
-            errors.append("incorrect return type: %s", row[2])
+            errors.append("incorrect return type: %s" % row[2])
         #print(row)
 
     return errors
