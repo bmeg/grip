@@ -66,8 +66,8 @@ func edgeSerialize(edgeChan chan *gripql.Edge, workers int) chan []byte {
 		wg.Add(1)
 		go func() {
 			for e := range edgeChan {
-				if edgeUID && e.Gid == "" {
-					e.Gid = util.UUID()
+				if edgeUID && e.Id == "" {
+					e.Id = util.UUID()
 				}
 				doc := mongo.PackEdge(gdbi.NewElementFromEdge(e))
 				rawBytes, err := bson.Marshal(doc)

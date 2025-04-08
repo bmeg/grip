@@ -32,7 +32,7 @@ import (
 	_ "github.com/bmeg/grip/kvi/badgerdb" // import so badger will register itself
 	_ "github.com/bmeg/grip/kvi/boltdb"   // import so bolt will register itself
 	_ "github.com/bmeg/grip/kvi/leveldb"  // import so level will register itself
-	_ "github.com/bmeg/grip/kvi/pebbledb" // import so level will register itself
+	_ "github.com/bmeg/grip/kvi/pebbledb" // import so pebbledb will register itself
 	"github.com/bmeg/grip/mongo"
 	"github.com/bmeg/grip/psql"
 )
@@ -202,7 +202,10 @@ func (server *GripServer) Serve(pctx context.Context) error {
 
 	// Setup RESTful proxy
 	marsh := NewMarshaler()
-	grpcMux := runtime.NewServeMux(runtime.WithMarshalerOption("*/*", marsh))
+	grpcMux := runtime.NewServeMux(
+		runtime.WithForwardResponseRewriter(FlattenRewriter),
+		runtime.WithMarshalerOption(runtime.MIMEWildcard, marsh),
+	)
 	mux := http.NewServeMux()
 
 	// Setup GraphQL handler

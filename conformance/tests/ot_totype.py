@@ -9,7 +9,7 @@ def test_totype(man):
     if len(q) == 0:
         errors.append("ERROR, q returns no items")
     for row in q:
-        data = row["data"]
+        data = row
         # transforms that should work
         if not isinstance(data["birth_year"], str):
             errors.append("string field %s should be string" % (data["birth_year"]))
@@ -29,7 +29,7 @@ def test_totype(man):
     if len(r) == 0:
         errors.append("ERROR, r returns no items")
     for row in r:
-        data = row["data"]
+        data = row
         if  isinstance(data["hyperdrive_rating"], int) or isinstance(data["hyperdrive_rating"], float):
             errors.append("float field %s should be int or float" %(data["hyperdrive_rating"]))
         if not isinstance(data["length"], int):
@@ -41,7 +41,7 @@ def test_totype(man):
     if len(s) == 0:
         errors.append("ERROR, s returns no items")
     for row in s:
-        data = row["data"]
+        data = row
         if data["system"]["created"] != True:
             errors.append("string %s to bool should be False" %(data["system"]["created"]))
 
@@ -51,7 +51,7 @@ def test_totype(man):
         errors.append("ERROR, t returns no items")
 
     for row in t:
-        data = row["data"]
+        data = row
         if data["length"] is False:
             errors.append("int %s to bool should be True" %(data["MGLT"]))
         if data["eye_colors"] != 0:

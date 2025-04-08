@@ -11,7 +11,6 @@ import (
 	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/util/rpc"
 	"github.com/spf13/cobra"
-	"google.golang.org/protobuf/encoding/protojson"
 )
 
 var host = "localhost:8202"
@@ -54,9 +53,10 @@ Example:
 			return err
 		}
 
+		fm := gripql.NewFlattenMarshaler()
 		count := uint64(0)
 		for row := range res {
-			rowString, _ := protojson.Marshal(row)
+			rowString, _ := fm.Marshal(row)
 			fmt.Printf("%s\n", rowString)
 			count++
 		}

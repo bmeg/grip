@@ -284,7 +284,7 @@ func ParseYSchemaToVertex(bytes []byte) (map[string]any, error) {
 	vertex := map[string]any{
 		"data":  data,
 		"label": id.(string),
-		"gid":   "http://grip-schema.io/schema/0.0.1/" + id.(string),
+		"id":    "http://grip-schema.io/schema/0.0.1/" + id.(string),
 	}
 
 	return vertex, nil
@@ -309,7 +309,7 @@ func ParseJSchema(bytes []byte, graphName string) ([]*gripql.Graph, error) {
 			vals["id"] = idVal
 		}
 
-		vertex := map[string]any{"data": values, "label": key, "gid": data["$id"].(string) + "/" + key}
+		vertex := map[string]any{"data": values, "label": key, "id": data["$id"].(string) + "/" + key}
 		graphSchema["vertices"] = append(graphSchema["vertices"].([]map[string]any), vertex)
 	}
 

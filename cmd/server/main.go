@@ -18,7 +18,7 @@ import (
 
 var conf = &config.Config{}
 var configFile string
-var driver = "badger"
+var driver = "pebble"
 var verbose bool
 
 var endPoints = map[string]string{}

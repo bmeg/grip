@@ -22,8 +22,8 @@ func BenchmarkBaselineV(b *testing.B) {
 	}
 
 	for i := 0; i < 1000; i++ {
-		gid := fmt.Sprintf("v-%d", i)
-		db.AddVertex([]*gdbi.Vertex{{ID: gid, Label: "Vert"}})
+		id := fmt.Sprintf("v-%d", i)
+		db.AddVertex([]*gdbi.Vertex{{ID: id, Label: "Vert"}})
 	}
 
 	q := gripql.V()

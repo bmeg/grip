@@ -11,9 +11,9 @@ def test_sort_name(man):
     last = ""
     for row in q:
         #print(row)
-        if row["data"]["name"] < last:
-            errors.append("incorrect sort: %s < %s" % (row["data"]["name"], last))
-        last = row["data"]["name"]
+        if row["name"] < last:
+            errors.append("incorrect sort: %s < %s" % (row["name"], last))
+        last = row["name"]
     return errors
 
 
@@ -26,7 +26,7 @@ def test_sort_units(man):
     last = 0
     for row in q:
         #print(row)
-        value = row["data"]["max_atmosphering_speed"]
+        value = row["max_atmosphering_speed"]
         if value < last:
             errors.append("incorrect sort: %s < %s" % (value, last))
         last = value
@@ -36,7 +36,7 @@ def test_sort_units(man):
     last = 1000000000
     for row in q:
         #print(row)
-        value = row["data"]["max_atmosphering_speed"]
+        value = row["max_atmosphering_speed"]
         if value > last:
             errors.append("incorrect sort: %s > %s" % (value, last))
         last = value

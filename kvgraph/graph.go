@@ -55,7 +55,7 @@ func insertVertex(tx kvi.KVBulkWrite, idx *kvindex.KVIndex, graph string, vertex
 		return err
 	}
 
-	key := VertexKey(graph, vertex.Gid)
+	key := VertexKey(graph, vertex.Id)
 	value, err := proto.Marshal(vertex)
 	if err != nil {
 		return nil
@@ -64,14 +64,14 @@ func insertVertex(tx kvi.KVBulkWrite, idx *kvindex.KVIndex, graph string, vertex
 	if err := tx.Set(key, value); err != nil {
 		return fmt.Errorf("AddVertex Error %s", err)
 	}
-	if err := idx.AddDocTx(tx, vertex.Gid, doc); err != nil {
+	if err := idx.AddDocTx(tx, vertex.Id, doc); err != nil {
 		return fmt.Errorf("AddVertex Error %s", err)
 	}
 	return nil
 }
 
 func insertEdge(tx kvi.KVBulkWrite, idx *kvindex.KVIndex, graph string, edge *gripql.Edge) error {
-	eid := edge.Gid
+	eid := edge.Id
 	var err error
 	var data []byte
 
@@ -267,7 +267,7 @@ func (kgdb *KVInterfaceGDB) GetEdgeList(ctx context.Context, loadProp bool) <-ch
 						edgeData, _ := it.Value()
 						ge := &gripql.Edge{}
 						proto.Unmarshal(edgeData, ge)
-						e := &gdbi.Edge{ID: ge.Gid, Label: ge.Label, From: sid, To: did, Data: ge.Data.AsMap(), Loaded: true}
+						e := &gdbi.Edge{ID: ge.Id, Label: ge.Label, From: sid, To: did, Data: ge.Data.AsMap(), Loaded: true}
 						o <- e
 					} else {
 						e := &gdbi.Edge{ID: string(eid), Label: label, From: sid, To: did, Loaded: false}
@@ -292,7 +292,7 @@ func (kgdb *KVInterfaceGDB) GetVertex(id string, loadProp bool) *gdbi.Vertex {
 			return fmt.Errorf("get call failed: %v", err)
 		}
 		gv := &gripql.Vertex{
-			Gid: id,
+			Id: id,
 		}
 		err = proto.Unmarshal(dataValue, gv) //FIXME: this can't be skipped because vertex label is in value...
 		if err != nil {
@@ -414,8 +414,8 @@ func (kgdb *KVInterfaceGDB) GetOutChannel(ctx context.Context, reqChan chan gdbi
 					if req.data != nil {
 						dataValue, err := it.Get(req.data)
 						if err == nil {
-							_, gid := VertexKeyParse(req.data)
-							v := &gripql.Vertex{Gid: gid}
+							_, id := VertexKeyParse(req.data)
+							v := &gripql.Vertex{Id: id}
 							//if load { //TODO: can't skip loading data, because the label in the data
 							err = proto.Unmarshal(dataValue, v)
 							if err != nil {
@@ -424,7 +424,7 @@ func (kgdb *KVInterfaceGDB) GetOutChannel(ctx context.Context, reqChan chan gdbi
 								//}
 							}
 							req.req.Vertex = &gdbi.Vertex{
-								ID:     gid,
+								ID:     id,
 								Label:  v.Label,
 								Data:   v.Data.AsMap(),
 								Loaded: true,
@@ -462,7 +462,7 @@ func (kgdb *KVInterfaceGDB) GetInChannel(ctx context.Context, reqChan chan gdbi.
 							vkey := VertexKey(kgdb.graph, src)
 							dataValue, err := it.Get(vkey)
 							if err == nil {
-								v := &gripql.Vertex{Gid: src}
+								v := &gripql.Vertex{Id: src}
 								//if load { //TODO: Can't skip data load because vertex label is in data
 								err = proto.Unmarshal(dataValue, v)
 								if err != nil {

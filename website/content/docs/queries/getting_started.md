@@ -68,8 +68,9 @@ Once we make this query, we get a result:
 
 ```python
 [
-  {u'gid': u'ENSG00000141510',
-  u'data': {
+  {
+    u'_gid': u'ENSG00000141510',
+    u'_label': u'Gene'
     u'end': 7687550,
     u'description': u'tumor protein p53 [Source:HGNC Symbol%3BAcc:HGNC:11998]',
     u'symbol': u'TP53',
@@ -78,8 +79,7 @@ Once we make this query, we get a result:
     u'strand': u'-',
     u'id': u'ENSG00000141510',
     u'chromosome': u'17'
-  },
-  u'label': u'Gene'})
+  }
 ]
 ```
 
@@ -98,7 +98,7 @@ u'TP53'
 You can also do a `has` query with a list of items using `gripql.within([...])` (other conditions exist, see the `Conditions` section below):
 
 ```python
-result = G.query().V().hasLabel("Gene").has(gripql.within("symbol", ["TP53", "BRCA1"])).render({"gid": "_gid", "symbol":"symbol"}).execute()
+result = G.query().V().hasLabel("Gene").has(gripql.within("symbol", ["TP53", "BRCA1"])).render({"_gid": "_gid", "symbol":"symbol"}).execute()
 print(result)
 ```
 
@@ -106,8 +106,8 @@ This returns both Gene vertexes:
 
 ```
 [
-  {u'symbol': u'TP53', u'gid': u'ENSG00000141510'},
-  {u'symbol': u'BRCA1', u'gid': u'ENSG00000012048'}
+  {u'symbol': u'TP53', u'_gid': u'ENSG00000141510'},
+  {u'symbol': u'BRCA1', u'_gid': u'ENSG00000012048'}
 ]
 ```
 

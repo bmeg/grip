@@ -147,6 +147,9 @@ class Manager:
         else:
             self.user = None
 
+    def collect_fields_dict(self, datadict):
+          return {key: value for key, value in datadict.items() if key not in ["_id", "_label", "_from", "_to"]}
+
     @staticmethod
     def parse_grip_config(grip_config_file_path):
         """Parse grip config."""
@@ -181,14 +184,15 @@ class Manager:
         with open(os.path.join(BASE, "graphs", "%s.vertices" % (name))) as handle:
             for line in handle:
                 data = json.loads(line)
-                G.addVertex(data["gid"], data["label"], data.get("data", {}))
+
+                G.addVertex(data["_id"], data["_label"], self.collect_fields_dict(data))
 
         with open(os.path.join(BASE, "graphs", "%s.edges" % (name))) as handle:
             for line in handle:
                 data = json.loads(line)
-                G.addEdge(src=data["from"], dst=data["to"],
-                          gid=data.get("gid", None), label=data["label"],
-                          data=data.get("data", {}))
+                G.addEdge(src=data["_from"], dst=data["_to"],
+                          id=data.get("_id", None), label=data["_label"],
+                          data=self.collect_fields_dict(data))
         self.curName = name
         return G
 

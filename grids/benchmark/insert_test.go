@@ -9,7 +9,7 @@ import (
 
 	"github.com/akrylysov/pogreb"
 	"github.com/bmeg/grip/kvi"
-	"github.com/bmeg/grip/kvi/badgerdb"
+	"github.com/bmeg/grip/kvi/pebbledb"
 	"github.com/bmeg/grip/log"
 )
 
@@ -26,7 +26,7 @@ func RandStringRunes(n int) string {
 }
 
 func BenchmarkStringInsert(b *testing.B) {
-	db, err := badgerdb.NewKVInterface("test.db", kvi.Options{})
+	db, err := pebbledb.NewKVInterface("test.db", kvi.Options{})
 	if err != nil {
 		log.Errorf("issue: %s", err)
 		return
@@ -50,7 +50,7 @@ func BenchmarkStringInsert(b *testing.B) {
 }
 
 func BenchmarkIntInsert(b *testing.B) {
-	db, err := badgerdb.NewKVInterface("test.db", kvi.Options{})
+	db, err := pebbledb.NewKVInterface("test.db", kvi.Options{})
 	if err != nil {
 		log.Errorf("issue: %s", err)
 		return
@@ -110,7 +110,7 @@ func BenchmarkMixedInsert(b *testing.B) {
 		log.Errorf("issue: %s", err)
 		return
 	}
-	db, err := badgerdb.NewKVInterface("test.db", kvi.Options{})
+	db, err := pebbledb.NewKVInterface("test.db", kvi.Options{})
 	if err != nil {
 		log.Errorf("issue: %s", err)
 		return
@@ -143,7 +143,7 @@ func BenchmarkMixedInsert(b *testing.B) {
 }
 
 func BenchmarkStringScan(b *testing.B) {
-	db, err := badgerdb.NewKVInterface("test.db", kvi.Options{})
+	db, err := pebbledb.NewKVInterface("test.db", kvi.Options{})
 	if err != nil {
 		log.Errorf("issue: %s", err)
 		return
@@ -181,7 +181,7 @@ func BenchmarkStringScan(b *testing.B) {
 }
 
 func BenchmarkIntScan(b *testing.B) {
-	db, err := badgerdb.NewKVInterface("test.db", kvi.Options{})
+	db, err := pebbledb.NewKVInterface("test.db", kvi.Options{})
 	if err != nil {
 		log.Errorf("issue: %s", err)
 		return

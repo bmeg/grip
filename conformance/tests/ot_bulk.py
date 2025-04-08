@@ -79,15 +79,15 @@ def test_bulk_delete(man):
     G.addVertex("vertex5", "Software", {"name": "ripple", "lang": "java"})
     G.addVertex("vertex6", "Person", {"name": "peter", "age": "35"})
 
-    G.addEdge("vertex1", "vertex3", "created", {"weight": 0.4}, gid="edge1")
-    G.addEdge("vertex1", "vertex2", "knows", {"weight": 0.5}, gid="edge2")
-    G.addEdge("vertex1", "vertex4", "knows", {"weight": 1.0}, gid="edge3")
-    G.addEdge("vertex4", "vertex3", "created", {"weight": 0.4}, gid="edge4")
-    G.addEdge("vertex6", "vertex3", "created", {"weight": 0.2}, gid="edge5")
-    G.addEdge("vertex3", "vertex5", "created", {"weight": 1.0}, gid="edge6")
-    G.addEdge("vertex6", "vertex5", "created", {"weight": 1.0}, gid="edge7")
-    G.addEdge("vertex4", "vertex5", "created", {"weight": 0.4}, gid="edge8")
-    G.addEdge("vertex4", "vertex6", "created", {"weight": 0.4}, gid="edge9")
+    G.addEdge("vertex1", "vertex3", "created", {"weight": 0.4}, id="edge1")
+    G.addEdge("vertex1", "vertex2", "knows", {"weight": 0.5}, id="edge2")
+    G.addEdge("vertex1", "vertex4", "knows", {"weight": 1.0}, id="edge3")
+    G.addEdge("vertex4", "vertex3", "created", {"weight": 0.4}, id="edge4")
+    G.addEdge("vertex6", "vertex3", "created", {"weight": 0.2}, id="edge5")
+    G.addEdge("vertex3", "vertex5", "created", {"weight": 1.0}, id="edge6")
+    G.addEdge("vertex6", "vertex5", "created", {"weight": 1.0}, id="edge7")
+    G.addEdge("vertex4", "vertex5", "created", {"weight": 0.4}, id="edge8")
+    G.addEdge("vertex4", "vertex6", "created", {"weight": 0.4}, id="edge9")
 
     G.delete(vertices=["vertex1", "vertex2",
                        "vertex3"],
