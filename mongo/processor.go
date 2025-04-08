@@ -3,6 +3,7 @@ package mongo
 import (
 	//"fmt"
 	"context"
+	"encoding/json"
 	"strconv"
 	"strings"
 
@@ -52,7 +53,9 @@ func getDataElement(result map[string]interface{}) *gdbi.DataElement {
 
 // Process runs the mongo aggregation pipeline
 func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
-	plog := log.WithFields(log.Fields{"query_id": util.UUID(), "query": proc.query, "query_collection": proc.startCollection})
+	queryStr, _ := json.MarshalIndent(proc.query, "", "  ")
+	//queryStr, _ := bson.MarshalExtJSON(proc.query, false, false)
+	plog := log.WithFields(log.Fields{"query_id": util.UUID(), "query": string(queryStr), "query_collection": proc.startCollection})
 	plog.Debug("Running Mongo Processor")
 
 	go func() {
@@ -65,7 +68,7 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 			trueVal := true
 			cursor, err := initCol.Aggregate(ctx, proc.query, &options.AggregateOptions{AllowDiskUse: &trueVal})
 			if err != nil {
-				plog.Errorf("Query Error (%s) : %s", proc.query, err)
+				plog.Errorf("Query Error: %s", err)
 				continue
 			}
 			//defer cursor.Close(context.TODO())

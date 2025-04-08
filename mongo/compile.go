@@ -1,6 +1,7 @@
 package mongo
 
 import (
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
@@ -1003,6 +1004,18 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement, opts *gdbi.Compile
 			return &Pipeline{}, fmt.Errorf("mongoCompile: unknown statement type: %s", gs.GetStatement())
 		}
 	}
+
+	bsonDoc, err := bson.Marshal(bson.D{{"doc", query}})
+	if err != nil {
+		fmt.Printf("Error: %s\n", err)
+	}
+	var prettyDoc bson.M
+	err = bson.Unmarshal(bsonDoc, &prettyDoc)
+	if err != nil {
+		fmt.Printf("Error: %s\n", err)
+	}
+	queryStr, err := json.MarshalIndent(prettyDoc, "", "  ")
+	log.Infof("Mongo query pipeline: %s", queryStr)
 
 	// query must be less than 16MB limit
 	bsonSize, err := bson.Marshal(bson.M{"pipeline": query})
