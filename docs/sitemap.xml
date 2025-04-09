@@ -18,8 +18,6 @@
   </url><url>
     <loc>https://bmeg.github.io/grip/docs/commands/drop/</loc>
   </url><url>
-    <loc>https://bmeg.github.io/grip/docs/databases/kvstore/</loc>
-  </url><url>
     <loc>https://bmeg.github.io/grip/docs/commands/er/</loc>
   </url><url>
     <loc>https://bmeg.github.io/grip/docs/gripper/proxy/</loc>
@@ -40,8 +38,6 @@
   </url><url>
     <loc>https://bmeg.github.io/grip/docs/gripper/</loc>
   </url><url>
-    <loc>https://bmeg.github.io/grip/docs/databases/gripper/</loc>
-  </url><url>
     <loc>https://bmeg.github.io/grip/docs/gripper/gripper/</loc>
   </url><url>
     <loc>https://bmeg.github.io/grip/docs/queries/iterations/</loc>
@@ -50,15 +46,11 @@
   </url><url>
     <loc>https://bmeg.github.io/grip/docs/commands/list/</loc>
   </url><url>
-    <loc>https://bmeg.github.io/grip/docs/databases/mongo/</loc>
-  </url><url>
     <loc>https://bmeg.github.io/grip/docs/commands/mongoload/</loc>
   </url><url>
     <loc>https://bmeg.github.io/grip/docs/queries/operations/</loc>
   </url><url>
     <loc>https://bmeg.github.io/grip/docs/</loc>
-  </url><url>
-    <loc>https://bmeg.github.io/grip/docs/databases/psql/</loc>
   </url><url>
     <loc>https://bmeg.github.io/grip/docs/commands/query/</loc>
   </url><url>
@@ -69,8 +61,6 @@
     <loc>https://bmeg.github.io/grip/docs/security/</loc>
   </url><url>
     <loc>https://bmeg.github.io/grip/docs/commands/server/</loc>
-  </url><url>
-    <loc>https://bmeg.github.io/grip/docs/databases/sql/</loc>
   </url><url>
     <loc>https://bmeg.github.io/grip/tags/</loc>
   </url><url>

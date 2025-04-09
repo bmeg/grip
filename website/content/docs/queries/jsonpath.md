@@ -21,7 +21,7 @@ Starts at vertex `ENSG00000012048` and marks as `gene`:
 
 ```json
 {
-  "_gid": "ENSG00000012048",
+  "_id": "ENSG00000012048",
   "_label": "gene",
   "symbol": {
     "ensembl": "ENSG00000012048",
@@ -37,7 +37,7 @@ as "gene" and traverses the graph to:
 
 ```json
 {
-  "_gid": "NM_007294.3:c.4963_4981delTGGCCTGACCCCAGAAG",
+  "_id": "NM_007294.3:c.4963_4981delTGGCCTGACCCCAGAAG",
   "_label": "variant",
   "type": "deletion"
   "publications": [
@@ -57,7 +57,7 @@ Below is a table of field and the values they would reference in subsequent trav
 
 | jsonpath                   | result               |
 | :------------------------- | :------------------- |
-| _gid                       | "NM_007294.3:c.4963_4981delTGGCCTGACCCCAGAAG" |
+| _id                       | "NM_007294.3:c.4963_4981delTGGCCTGACCCCAGAAG" |
 | _label                     | "variant"            |
 | _data.type                 | "deletion"           |
 | type                       | "deletion"           |
@@ -71,7 +71,7 @@ Below is a table of field and the values they would reference in subsequent trav
 ## Usage Example:
 
 ```
-O.query().V(["ENSG00000012048"]).as_("gene").out("variant").render({"variant_id": "_gid", "variant_type": "type", "gene_id": "$gene._gid"})
+O.query().V(["ENSG00000012048"]).as_("gene").out("variant").render({"variant_id": "_id", "variant_type": "type", "gene_id": "$gene._id"})
 ```
 
 returns

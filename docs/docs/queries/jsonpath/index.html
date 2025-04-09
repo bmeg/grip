@@ -130,86 +130,9 @@
         
         <li>
           
-          <span class="intermediate">Database Configuration</span></li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/databases/kvstore/"
-                   class="sidebar-nav-item "
-                >Embedded KV Store</a></li>
-            </ul>
-          </li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/databases/mongo/"
-                   class="sidebar-nav-item "
-                >MongoDB</a></li>
-            </ul>
-          </li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/databases/psql/"
-                   class="sidebar-nav-item "
-                >PostgreSQL</a></li>
-            </ul>
-          </li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/databases/sql/"
-                   class="sidebar-nav-item "
-                >SQL</a></li>
-            </ul>
-          </li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/databases/gripper/"
-                   class="sidebar-nav-item "
-                >GRIPPER</a></li>
-            </ul>
-          </li>
-          
-          
-        
-        <li>
-          
-          <span class="intermediate">GRIP Plugable External Resources</span></li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/gripper/gripper/"
-                   class="sidebar-nav-item "
-                >Intro</a></li>
-            </ul>
-          </li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/gripper/proxy/"
-                   class="sidebar-nav-item "
-                >External Resource Proxies</a></li>
-            </ul>
-          </li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/gripper/graphmodel/"
-                   class="sidebar-nav-item "
-                >Graph Model</a></li>
-            </ul>
-          </li>
-          
+          <a href="https://bmeg.github.io/grip/docs/databases/"
+             class="sidebar-nav-item "
+          >Database Configuration</a></li>
           
         
         <li>
@@ -350,6 +273,39 @@
           
           
         
+        <li>
+          
+          <span class="intermediate">GRIP Plugable External Resources</span></li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/gripper/gripper/"
+                   class="sidebar-nav-item "
+                >Intro</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/gripper/proxy/"
+                   class="sidebar-nav-item "
+                >External Resource Proxies</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/gripper/graphmodel/"
+                   class="sidebar-nav-item "
+                >Graph Model</a></li>
+            </ul>
+          </li>
+          
+          
+        
       
     </ul>
   </div>
@@ -362,7 +318,7 @@ GRIP uses a variation on JSONPath syntax as described in <a href="http://goessne
 <pre tabindex="0"><code>O.query().V([&#34;ENSG00000012048&#34;]).as_(&#34;gene&#34;).out(&#34;variant&#34;)
 </code></pre><p>Starts at vertex <code>ENSG00000012048</code> and marks as <code>gene</code>:</p>
 <div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-json" data-lang="json"><span style="display:flex;"><span>{
-</span></span><span style="display:flex;"><span>  <span style="color:#f92672">&#34;_gid&#34;</span>: <span style="color:#e6db74">&#34;ENSG00000012048&#34;</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">&#34;_id&#34;</span>: <span style="color:#e6db74">&#34;ENSG00000012048&#34;</span>,
 </span></span><span style="display:flex;"><span>  <span style="color:#f92672">&#34;_label&#34;</span>: <span style="color:#e6db74">&#34;gene&#34;</span>,
 </span></span><span style="display:flex;"><span>  <span style="color:#f92672">&#34;symbol&#34;</span>: {
 </span></span><span style="display:flex;"><span>    <span style="color:#f92672">&#34;ensembl&#34;</span>: <span style="color:#e6db74">&#34;ENSG00000012048&#34;</span>,
@@ -374,7 +330,7 @@ GRIP uses a variation on JSONPath syntax as described in <a href="http://goessne
 </span></span><span style="display:flex;"><span>}
 </span></span></code></pre></div><p>as &ldquo;gene&rdquo; and traverses the graph to:</p>
 <div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-json" data-lang="json"><span style="display:flex;"><span>{
-</span></span><span style="display:flex;"><span>  <span style="color:#f92672">&#34;_gid&#34;</span>: <span style="color:#e6db74">&#34;NM_007294.3:c.4963_4981delTGGCCTGACCCCAGAAG&#34;</span>,
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">&#34;_id&#34;</span>: <span style="color:#e6db74">&#34;NM_007294.3:c.4963_4981delTGGCCTGACCCCAGAAG&#34;</span>,
 </span></span><span style="display:flex;"><span>  <span style="color:#f92672">&#34;_label&#34;</span>: <span style="color:#e6db74">&#34;variant&#34;</span>,
 </span></span><span style="display:flex;"><span>  <span style="color:#f92672">&#34;type&#34;</span>: <span style="color:#e6db74">&#34;deletion&#34;</span>
 </span></span><span style="display:flex;"><span>  <span style="color:#e6db74">&#34;publications&#34;</span>: [
@@ -398,7 +354,7 @@ GRIP uses a variation on JSONPath syntax as described in <a href="http://goessne
   </thead>
   <tbody>
       <tr>
-          <td style="text-align: left">_gid</td>
+          <td style="text-align: left">_id</td>
           <td style="text-align: left">&ldquo;NM_007294.3:c.4963_4981delTGGCCTGACCCCAGAAG&rdquo;</td>
       </tr>
       <tr>
@@ -436,7 +392,7 @@ GRIP uses a variation on JSONPath syntax as described in <a href="http://goessne
   </tbody>
 </table>
 <h2 id="usage-example">Usage Example:</h2>
-<pre tabindex="0"><code>O.query().V([&#34;ENSG00000012048&#34;]).as_(&#34;gene&#34;).out(&#34;variant&#34;).render({&#34;variant_id&#34;: &#34;_gid&#34;, &#34;variant_type&#34;: &#34;type&#34;, &#34;gene_id&#34;: &#34;$gene._gid&#34;})
+<pre tabindex="0"><code>O.query().V([&#34;ENSG00000012048&#34;]).as_(&#34;gene&#34;).out(&#34;variant&#34;).render({&#34;variant_id&#34;: &#34;_id&#34;, &#34;variant_type&#34;: &#34;type&#34;, &#34;gene_id&#34;: &#34;$gene._id&#34;})
 </code></pre><p>returns</p>
 <pre tabindex="0"><code>{
   &#34;variant_id&#34;: &#34;NM_007294.3:c.4963_4981delTGGCCTGACCCCAGAAG&#34;,
