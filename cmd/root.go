@@ -10,6 +10,7 @@ import (
 	"github.com/bmeg/grip/cmd/delete"
 	"github.com/bmeg/grip/cmd/drop"
 	"github.com/bmeg/grip/cmd/dump"
+	"github.com/bmeg/grip/cmd/embedded"
 	"github.com/bmeg/grip/cmd/erclient"
 	"github.com/bmeg/grip/cmd/info"
 	"github.com/bmeg/grip/cmd/job"
@@ -73,6 +74,7 @@ func init() {
 	RootCmd.AddCommand(version.Cmd)
 	RootCmd.AddCommand(kvload.Cmd)
 	RootCmd.AddCommand(delete.Cmd)
+	RootCmd.AddCommand(embedded.Cmd)
 
 }
 

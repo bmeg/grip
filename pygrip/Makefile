@@ -1,4 +1,4 @@
 
 
-pygrip.so: wrapper.go
-	go build -o pygrip.so -buildmode=c-shared wrapper.go
+pygrip/gripql_pb2.py: ../gripql/gripql.proto
+	protoc --proto_path=../gripql/ --python_out=./pygrip -I ../googleapis/ ../gripql/gripql.proto
