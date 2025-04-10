@@ -352,71 +352,77 @@
   </div>
 
   <div class="main col span_8_of_12">
-    <h1 id="filtering">Filtering</h1>
-<h2 id="has">.has()</h2>
-<p>Filter elements using conditional statements</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span>G<span style="color:#f92672">.</span>query()<span style="color:#f92672">.</span>V()<span style="color:#f92672">.</span>has(gripql<span style="color:#f92672">.</span>eq(<span style="color:#e6db74">&#34;_label&#34;</span>, <span style="color:#e6db74">&#34;Gene&#34;</span>))<span style="color:#f92672">.</span>has(gripql<span style="color:#f92672">.</span>eq(<span style="color:#e6db74">&#34;symbol&#34;</span>, <span style="color:#e6db74">&#34;TP53&#34;</span>))
-</span></span></code></pre></div><h2 id="conditions">Conditions</h2>
-<p>Conditions are arguments to <code>.has()</code> that define selection conditions</p>
-<h3 id="gripqleqvariable-value">gripql.eq(variable, value)</h3>
-<p>Returns rows where variable == value</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span><span style="color:#f92672">.</span>has(gripql<span style="color:#f92672">.</span>eq(<span style="color:#e6db74">&#34;symbol&#34;</span>, <span style="color:#e6db74">&#34;TP53&#34;</span>))
-</span></span></code></pre></div><hr>
-<h3 id="gripqlneqvariable-value">gripql.neq(variable, value)</h3>
-<p>Returns rows where variable != value</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span><span style="color:#f92672">.</span>has(gripql<span style="color:#f92672">.</span>neq(<span style="color:#e6db74">&#34;symbol&#34;</span>, <span style="color:#e6db74">&#34;TP53&#34;</span>))
-</span></span></code></pre></div><hr>
-<h3 id="gripqlgtvariable-value">gripql.gt(variable, value)</h3>
-<p>Returns rows where variable &gt; value</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span><span style="color:#f92672">.</span>has(gripql<span style="color:#f92672">.</span>gt(<span style="color:#e6db74">&#34;age&#34;</span>, <span style="color:#ae81ff">45</span>))
-</span></span></code></pre></div><hr>
-<h3 id="gripqlltvariable-value">gripql.lt(variable, value)</h3>
-<p>Returns rows where variable &lt; value</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span><span style="color:#f92672">.</span>has(gripql<span style="color:#f92672">.</span>lt(<span style="color:#e6db74">&#34;age&#34;</span>, <span style="color:#ae81ff">45</span>))
-</span></span></code></pre></div><hr>
-<h3 id="gripqlgtevariable-value">gripql.gte(variable, value)</h3>
-<p>Returns rows where variable &gt;= value</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span><span style="color:#f92672">.</span>has(gripql<span style="color:#f92672">.</span>gte(<span style="color:#e6db74">&#34;age&#34;</span>, <span style="color:#ae81ff">45</span>))
-</span></span></code></pre></div><hr>
-<h3 id="gripqlltevariable-value">gripql.lte(variable, value)</h3>
-<p>Returns rows where variable &lt;= value</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span><span style="color:#f92672">.</span>has(gripql<span style="color:#f92672">.</span>lte(<span style="color:#e6db74">&#34;age&#34;</span>, <span style="color:#ae81ff">45</span>))
-</span></span></code></pre></div><hr>
-<h3 id="gripqlinsidevariable-lower_bound-upper_bound">gripql.inside(variable, [lower_bound, upper_bound])</h3>
-<p>Returns rows where variable &gt; lower_bound &amp;&amp; variable &lt; upper_bound</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span><span style="color:#f92672">.</span>has(gripql<span style="color:#f92672">.</span>inside(<span style="color:#e6db74">&#34;age&#34;</span>, [<span style="color:#ae81ff">30</span>, <span style="color:#ae81ff">45</span>]))
-</span></span></code></pre></div><hr>
-<h3 id="gripqloutsidevariable-lower_bound-upper_bound">gripql.outside(variable, [lower_bound, upper_bound])</h3>
-<p>Returns rows where variable &lt; lower_bound || variable &gt; upper_bound</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span><span style="color:#f92672">.</span>has(gripql<span style="color:#f92672">.</span>outside(<span style="color:#e6db74">&#34;age&#34;</span>, [<span style="color:#ae81ff">30</span>, <span style="color:#ae81ff">45</span>]))
-</span></span></code></pre></div><hr>
-<h3 id="gripqlbetweenvariable-lower_bound-upper_bound">gripql.between(variable, [lower_bound, upper_bound])</h3>
-<p>Returns rows where variable &gt;= lower_bound &amp;&amp; variable &lt; upper_bound</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span><span style="color:#f92672">.</span>has(gripql<span style="color:#f92672">.</span>between(<span style="color:#e6db74">&#34;age&#34;</span>, [<span style="color:#ae81ff">30</span>, <span style="color:#ae81ff">45</span>]))
-</span></span></code></pre></div><hr>
-<h3 id="gripqlwithinvariable-value">gripql.within(variable, value)</h3>
-<p>Returns rows where variable is within provided values</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span><span style="color:#f92672">.</span>has(gripql<span style="color:#f92672">.</span>within(<span style="color:#e6db74">&#34;symbol&#34;</span>, [<span style="color:#e6db74">&#34;TP53&#34;</span>, <span style="color:#e6db74">&#34;BRCA1&#34;</span>]))
-</span></span></code></pre></div><hr>
-<h3 id="gripqlwithoutvariable-value">gripql.without(variable, value)</h3>
-<p>Returns rows where variable is not within provided values</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span><span style="color:#f92672">.</span>has(gripql<span style="color:#f92672">.</span>within(<span style="color:#e6db74">&#34;symbol&#34;</span>, [<span style="color:#e6db74">&#34;TP53&#34;</span>, <span style="color:#e6db74">&#34;BRCA1&#34;</span>]))
-</span></span></code></pre></div><hr>
-<h3 id="gripqlcontainsvariable-value">gripql.contains(variable, value)</h3>
-<p>Returns rows where variable contains value</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span><span style="color:#f92672">.</span>has(gripql<span style="color:#f92672">.</span>in_(<span style="color:#e6db74">&#34;groups&#34;</span>, <span style="color:#e6db74">&#34;group1&#34;</span>))
-</span></span></code></pre></div><p>An example returned record</p>
-<pre tabindex="0"><code>{&#34;groups&#34; : [&#34;group1&#34;, &#34;group2&#34;]}
-</code></pre><hr>
-<h3 id="gripqland_conditions">gripql.and_([conditions])</h3>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span><span style="color:#f92672">.</span>has(gripql<span style="color:#f92672">.</span>and_( [gripql<span style="color:#f92672">.</span>lte(<span style="color:#e6db74">&#34;age&#34;</span>, <span style="color:#ae81ff">45</span>), gripql<span style="color:#f92672">.</span>gte(<span style="color:#e6db74">&#34;age&#34;</span>, <span style="color:#ae81ff">35</span>)] ))
-</span></span></code></pre></div><hr>
-<h3 id="gripqlor_conditions">gripql.or_([conditions])</h3>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span><span style="color:#f92672">.</span>has(gripql<span style="color:#f92672">.</span>or_( [<span style="color:#f92672">...</span>] ))
-</span></span></code></pre></div><hr>
-<h3 id="gripqlnot_condition">gripql.not_(condition)</h3>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span><span style="color:#f92672">.</span>has(gripql<span style="color:#f92672">.</span>not_( [<span style="color:#f92672">...</span>] ))
-</span></span></code></pre></div>
+    <h1 id="filtering-in-gripql">Filtering in GripQL</h1>
+<p>GripQL provides powerful filtering capabilities using the .has() method and various condition functions.
+Here&rsquo;s a comprehensive guide:.has()The .has() method is used to filter elements (vertices or edges) based on specified conditions.</p>
+<p>Conditions are functions provided by the gripql module that define the filtering criteria.</p>
+<h2 id="comparison-operators">Comparison Operators</h2>
+<h3 id="gripqleqvariable-value">gripql.eq(variable, value):</h3>
+<p>Equal to (==)</p>
+<pre tabindex="0"><code>G.query().V().has(gripql.eq(&#34;symbol&#34;, &#34;TP53&#34;))
+# Returns vertices where the &#39;symbol&#39; property is equal to &#39;TP53&#39;.
+</code></pre><h3 id="gripqlneqvariable-value">gripql.neq(variable, value):</h3>
+<p>Not equal to (!=)</p>
+<pre tabindex="0"><code>G.query().V().has(gripql.neq(&#34;symbol&#34;, &#34;TP53&#34;))
+# Returns vertices where the &#39;symbol&#39; property is not equal to &#39;TP53&#39;.
+</code></pre><h3 id="gripqlgtvariable-value">gripql.gt(variable, value):</h3>
+<p>Greater than (&gt;)</p>
+<pre tabindex="0"><code>G.query().V().has(gripql.gt(&#34;age&#34;, 45))
+# Returns vertices where the &#39;age&#39; property is greater than 45.
+</code></pre><h3 id="gripqlltvariable-value">gripql.lt(variable, value):</h3>
+<p>Less than (&lt;)</p>
+<pre tabindex="0"><code>G.query().V().has(gripql.lt(&#34;age&#34;, 45))
+# Returns vertices where the &#39;age&#39; property is less than 45.
+</code></pre><h3 id="gripqlgtevariable-value">gripql.gte(variable, value):</h3>
+<p>Greater than or equal to (&gt;=)</p>
+<pre tabindex="0"><code>G.query().V().has(gripql.gte(&#34;age&#34;, 45))
+# Returns vertices where the &#39;age&#39; property is greater than or equal to 45.
+</code></pre><p>gripql.lte(variable, value):
+Less than or equal to (&lt;=)</p>
+<pre tabindex="0"><code>G.query().V().has(gripql.lte(&#34;age&#34;, 45))
+# Returns vertices where the &#39;age&#39; property is less than or equal to 45.
+</code></pre><h2 id="range-operators">Range Operators</h2>
+<h3 id="gripqlinsidevariable-lower_bound-upper_bound">gripql.inside(variable, [lower_bound, upper_bound]):</h3>
+<p>lower_bound &lt; variable &lt; upper_bound (exclusive)</p>
+<pre tabindex="0"><code>G.query().V().has(gripql.inside(&#34;age&#34;, [30, 45]))
+# Returns vertices where the &#39;age&#39; property is greater than 30 and less than 45.
+</code></pre><h3 id="gripqloutsidevariable-lower_bound-upper_bound">gripql.outside(variable, [lower_bound, upper_bound]):</h3>
+<p>variable &lt; lower_bound OR variable &gt; upper_bound</p>
+<pre tabindex="0"><code>G.query().V().has(gripql.outside(&#34;age&#34;, [30, 45]))
+# Returns vertices where the &#39;age&#39; property is less than 30 or greater than 45.
+</code></pre><h3 id="gripqlbetweenvariable-lower_bound-upper_bound">gripql.between(variable, [lower_bound, upper_bound]):</h3>
+<p>lower_bound &lt;= variable &lt; upper_bound</p>
+<pre tabindex="0"><code>G.query().V().has(gripql.between(&#34;age&#34;, [30, 45]))
+# Returns vertices where the &#39;age&#39; property is greater than or equal to 30 and less than 45.
+</code></pre><h2 id="set-membership-operators">Set Membership Operators</h2>
+<h3 id="gripqlwithinvariable-values">gripql.within(variable, values):</h3>
+<p>variable is in values</p>
+<pre tabindex="0"><code>G.query().V().has(gripql.within(&#34;symbol&#34;, [&#34;TP53&#34;, &#34;BRCA1&#34;]))
+# Returns vertices where the &#39;symbol&#39; property is either &#39;TP53&#39; or &#39;BRCA1&#39;.
+</code></pre><h3 id="gripqlwithoutvariable-values">gripql.without(variable, values):</h3>
+<p>variable is not in values</p>
+<pre tabindex="0"><code>G.query().V().has(gripql.without(&#34;symbol&#34;, [&#34;TP53&#34;, &#34;BRCA1&#34;]))
+# Returns vertices where the &#39;symbol&#39; property is neither &#39;TP53&#39; nor &#39;BRCA1&#39;.
+</code></pre><h2 id="stringarray-containment">String/Array Containment</h2>
+<h3 id="gripqlcontainsvariable-value">gripql.contains(variable, value):</h3>
+<p>The variable (which is typically a list/array) contains value.</p>
+<pre tabindex="0"><code>G.query().V().has(gripql.contains(&#34;groups&#34;, &#34;group1&#34;))
+# Returns vertices where the &#39;groups&#39; property (which is a list) contains the value &#34;group1&#34;.
+# Example: {&#34;groups&#34;: [&#34;group1&#34;, &#34;group2&#34;, &#34;group3&#34;]} would match.
+</code></pre><h2 id="logical-operators">Logical Operators</h2>
+<h3 id="gripqland_condition1-condition2-">gripql.and_([condition1, condition2, &hellip;]):</h3>
+<p>Logical AND; all conditions must be true.</p>
+<pre tabindex="0"><code>G.query().V().has(gripql.and_([gripql.lte(&#34;age&#34;, 45), gripql.gte(&#34;age&#34;, 35)]))
+# Returns vertices where the &#39;age&#39; property is less than or equal to 45 AND greater than or equal to 35.
+</code></pre><h3 id="gripqlor_condition1-condition2-">gripql.or_([condition1, condition2, &hellip;]):</h3>
+<p>Logical OR; at least one condition must be true.</p>
+<pre tabindex="0"><code>G.query().V().has(gripql.or_([gripql.eq(&#34;symbol&#34;, &#34;TP53&#34;), gripql.eq(&#34;symbol&#34;, &#34;BRCA1&#34;)]))
+# Returns vertices where the &#39;symbol&#39; property is either &#39;TP53&#39; OR &#39;BRCA1&#39;.
+</code></pre><h3 id="gripqlnot_condition">gripql.not_(condition):</h3>
+<p>Logical NOT; negates the condition</p>
+<pre tabindex="0"><code>G.query().V().has(gripql.not_(gripql.eq(&#34;symbol&#34;, &#34;TP53&#34;)))
+# Returns vertices where the &#39;symbol&#39; property is NOT equal to &#39;TP53&#39;.
+</code></pre>
   </div>
 
 </div>

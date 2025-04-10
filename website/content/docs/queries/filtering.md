@@ -6,134 +6,138 @@ menu:
     weight: 4
 ---
 
+# Filtering in GripQL
 
-# Filtering
-## .has()
-Filter elements using conditional statements
+GripQL provides powerful filtering capabilities using the .has() method and various condition functions.
+Here's a comprehensive guide:.has()The .has() method is used to filter elements (vertices or edges) based on specified conditions.
 
-```python
-G.query().V().has(gripql.eq("_label", "Gene")).has(gripql.eq("symbol", "TP53"))
+Conditions are functions provided by the gripql module that define the filtering criteria.
+
+## Comparison Operators
+
+### gripql.eq(variable, value):
+Equal to (==)
+
+```
+G.query().V().has(gripql.eq("symbol", "TP53"))
+# Returns vertices where the 'symbol' property is equal to 'TP53'.
 ```
 
-## Conditions
-Conditions are arguments to `.has()` that define selection conditions
+### gripql.neq(variable, value):
+Not equal to (!=)
 
-### gripql.eq(variable, value)
-Returns rows where variable == value
-```python
-.has(gripql.eq("symbol", "TP53"))
+```
+G.query().V().has(gripql.neq("symbol", "TP53"))
+# Returns vertices where the 'symbol' property is not equal to 'TP53'.
 ```
 
----
+### gripql.gt(variable, value):
+Greater than (>)
 
-### gripql.neq(variable, value)
-Returns rows where variable != value
-```python
-.has(gripql.neq("symbol", "TP53"))
+```
+G.query().V().has(gripql.gt("age", 45))
+# Returns vertices where the 'age' property is greater than 45.
 ```
 
----
-
-### gripql.gt(variable, value)
-Returns rows where variable > value
-```python
-.has(gripql.gt("age", 45))
+### gripql.lt(variable, value):
+Less than (<)
+```
+G.query().V().has(gripql.lt("age", 45))
+# Returns vertices where the 'age' property is less than 45.
 ```
 
----
-
-### gripql.lt(variable, value)
-Returns rows where variable < value
-```python
-.has(gripql.lt("age", 45))
+### gripql.gte(variable, value):
+Greater than or equal to (>=)
+```
+G.query().V().has(gripql.gte("age", 45))
+# Returns vertices where the 'age' property is greater than or equal to 45.
 ```
 
----
+gripql.lte(variable, value):
+Less than or equal to (<=)
 
-### gripql.gte(variable, value)
-Returns rows where variable >= value
-```python
-.has(gripql.gte("age", 45))
+```
+G.query().V().has(gripql.lte("age", 45))
+# Returns vertices where the 'age' property is less than or equal to 45.
 ```
 
----
+## Range Operators
 
-### gripql.lte(variable, value)
-Returns rows where variable <= value
-```python
-.has(gripql.lte("age", 45))
+### gripql.inside(variable, [lower_bound, upper_bound]):
+lower_bound < variable < upper_bound (exclusive)
+
+```
+G.query().V().has(gripql.inside("age", [30, 45]))
+# Returns vertices where the 'age' property is greater than 30 and less than 45.
 ```
 
----
+### gripql.outside(variable, [lower_bound, upper_bound]):
+variable < lower_bound OR variable > upper_bound
 
-### gripql.inside(variable, [lower_bound, upper_bound])
-Returns rows where variable > lower_bound && variable < upper_bound
-```python
-.has(gripql.inside("age", [30, 45]))
+```
+G.query().V().has(gripql.outside("age", [30, 45]))
+# Returns vertices where the 'age' property is less than 30 or greater than 45.
 ```
 
----
+### gripql.between(variable, [lower_bound, upper_bound]):
+lower_bound <= variable < upper_bound
 
-### gripql.outside(variable, [lower_bound, upper_bound])
-Returns rows where variable < lower_bound || variable > upper_bound
-```python
-.has(gripql.outside("age", [30, 45]))
+```
+G.query().V().has(gripql.between("age", [30, 45]))
+# Returns vertices where the 'age' property is greater than or equal to 30 and less than 45.
 ```
 
----
+## Set Membership Operators
 
-### gripql.between(variable, [lower_bound, upper_bound])
-Returns rows where variable >= lower_bound && variable < upper_bound
-```python
-.has(gripql.between("age", [30, 45]))
+### gripql.within(variable, values):
+variable is in values
+
+```
+G.query().V().has(gripql.within("symbol", ["TP53", "BRCA1"]))
+# Returns vertices where the 'symbol' property is either 'TP53' or 'BRCA1'.
 ```
 
----
+### gripql.without(variable, values):
+variable is not in values
 
-### gripql.within(variable, value)
-Returns rows where variable is within provided values
-```python
-.has(gripql.within("symbol", ["TP53", "BRCA1"]))
+```
+G.query().V().has(gripql.without("symbol", ["TP53", "BRCA1"]))
+# Returns vertices where the 'symbol' property is neither 'TP53' nor 'BRCA1'.
 ```
 
----
+## String/Array Containment
 
-### gripql.without(variable, value)
-Returns rows where variable is not within provided values
-```python
-.has(gripql.within("symbol", ["TP53", "BRCA1"]))
+### gripql.contains(variable, value):
+The variable (which is typically a list/array) contains value.
+
+```
+G.query().V().has(gripql.contains("groups", "group1"))
+# Returns vertices where the 'groups' property (which is a list) contains the value "group1".
+# Example: {"groups": ["group1", "group2", "group3"]} would match.
 ```
 
----
+## Logical Operators
 
-### gripql.contains(variable, value)
-Returns rows where variable contains value
-```python
-.has(gripql.in_("groups", "group1"))
+### gripql.and_([condition1, condition2, ...]):
+Logical AND; all conditions must be true.
+
+```
+G.query().V().has(gripql.and_([gripql.lte("age", 45), gripql.gte("age", 35)]))
+# Returns vertices where the 'age' property is less than or equal to 45 AND greater than or equal to 35.
 ```
 
-An example returned record
-```
-{"groups" : ["group1", "group2"]}
-```
+### gripql.or_([condition1, condition2, ...]):
+Logical OR; at least one condition must be true.
 
----
-
-### gripql.and_([conditions])
-```python
-.has(gripql.and_( [gripql.lte("age", 45), gripql.gte("age", 35)] ))
+```
+G.query().V().has(gripql.or_([gripql.eq("symbol", "TP53"), gripql.eq("symbol", "BRCA1")]))
+# Returns vertices where the 'symbol' property is either 'TP53' OR 'BRCA1'.
 ```
 
----
+### gripql.not_(condition):
+Logical NOT; negates the condition
 
-### gripql.or_([conditions])
-```python
-.has(gripql.or_( [...] ))
 ```
-
----
-
-### gripql.not_(condition)
-```python
-.has(gripql.not_( [...] ))
+G.query().V().has(gripql.not_(gripql.eq("symbol", "TP53")))
+# Returns vertices where the 'symbol' property is NOT equal to 'TP53'.
 ```

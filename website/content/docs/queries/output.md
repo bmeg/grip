@@ -15,7 +15,7 @@ Limit number of total output rows
 ```python
 G.query().V().limit(5)
 ```
-
+---
 ## .skip(count)
 Start return after offset
 
@@ -25,14 +25,14 @@ G.query().V().skip(10).limit(5)
 
 ```
 This query skips the first 10 vertices and then returns the next 5.
-
+---
 ## .range(start, stop)
 Selects a subset of the results based on their index.  `start` is inclusive, and `stop` is exclusive.
 Example:
 ```python
 G.query().V().range(5, 10)
 ```
-
+---
 ## .fields([fields])
 Specifies which fields of a vertex or edge to include or exclude in the output. By default, `_id`, `_label`, `_from`, and `_to` are included.
 
@@ -56,7 +56,7 @@ Exclude all properties:
 G.query().V("vertex1").fields([])
 ```
 
-
+---
 
 ## .render(template)
 
