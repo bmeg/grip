@@ -8,7 +8,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
 
   
-  <title>drop &middot; GRIP</title>
+  <title>Output Control &middot; GRIP</title>
   
 
   
@@ -103,7 +103,7 @@
             <ul class="sidebar-nav sidebar-nav-nested">
               <li>
                 <a href="https://bmeg.github.io/grip/docs/commands/drop/"
-                   class="sidebar-nav-item  active"
+                   class="sidebar-nav-item "
                 >drop</a></li>
             </ul>
           </li>
@@ -204,7 +204,7 @@
             <ul class="sidebar-nav sidebar-nav-nested">
               <li>
                 <a href="https://bmeg.github.io/grip/docs/queries/output/"
-                   class="sidebar-nav-item "
+                   class="sidebar-nav-item  active"
                 >Output Control</a></li>
             </ul>
           </li>
@@ -352,9 +352,39 @@
   </div>
 
   <div class="main col span_8_of_12">
-    <pre tabindex="0"><code>grip drop &lt;graph&gt;
-</code></pre><p>Deletes a graph.</p>
-
+    <hr>
+<h1 id="output-control">Output control</h1>
+<h2 id="limitcount">.limit(count)</h2>
+<p>Limit number of total output rows</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span>G<span style="color:#f92672">.</span>query()<span style="color:#f92672">.</span>V()<span style="color:#f92672">.</span>limit(<span style="color:#ae81ff">5</span>)
+</span></span></code></pre></div><h2 id="skipcount">.skip(count)</h2>
+<p>Start return after offset</p>
+<p>Example:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span>G<span style="color:#f92672">.</span>query()<span style="color:#f92672">.</span>V()<span style="color:#f92672">.</span>skip(<span style="color:#ae81ff">10</span>)<span style="color:#f92672">.</span>limit(<span style="color:#ae81ff">5</span>)
+</span></span></code></pre></div><p>This query skips the first 10 vertices and then returns the next 5.</p>
+<h2 id="rangestart-stop">.range(start, stop)</h2>
+<p>Selects a subset of the results based on their index.  <code>start</code> is inclusive, and <code>stop</code> is exclusive.
+Example:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span>G<span style="color:#f92672">.</span>query()<span style="color:#f92672">.</span>V()<span style="color:#f92672">.</span>range(<span style="color:#ae81ff">5</span>, <span style="color:#ae81ff">10</span>)
+</span></span></code></pre></div><h2 id="fieldsfields">.fields([fields])</h2>
+<p>Specifies which fields of a vertex or edge to include or exclude in the output. By default, <code>_id</code>, <code>_label</code>, <code>_from</code>, and <code>_to</code> are included.</p>
+<p>If <code>fields</code> is empty, all properties are excluded.
+If <code>fields</code> contains field names, only those properties are included.
+If <code>fields</code> contains field names prefixed with <code>-</code>, those properties are excluded, and all others are included.</p>
+<p>Examples:</p>
+<p>Include only the &lsquo;symbol&rsquo; property:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span>G<span style="color:#f92672">.</span>query()<span style="color:#f92672">.</span>V(<span style="color:#e6db74">&#34;vertex1&#34;</span>)<span style="color:#f92672">.</span>fields([<span style="color:#e6db74">&#34;symbol&#34;</span>])
+</span></span></code></pre></div><p>Exclude the &lsquo;symbol&rsquo; property:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span>G<span style="color:#f92672">.</span>query()<span style="color:#f92672">.</span>V(<span style="color:#e6db74">&#34;vertex1&#34;</span>)<span style="color:#f92672">.</span>fields([<span style="color:#e6db74">&#34;-symbol&#34;</span>])
+</span></span></code></pre></div><p>Exclude all properties:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span>G<span style="color:#f92672">.</span>query()<span style="color:#f92672">.</span>V(<span style="color:#e6db74">&#34;vertex1&#34;</span>)<span style="color:#f92672">.</span>fields([])
+</span></span></code></pre></div><h2 id="rendertemplate">.render(template)</h2>
+<p>Transforms the current selection into an arbitrary data structure defined by the <code>template</code>. The <code>template</code> is a string that can include placeholders for vertex/edge properties.</p>
+<p>Example:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span>G<span style="color:#f92672">.</span>query()<span style="color:#f92672">.</span>V(<span style="color:#e6db74">&#34;vertex1&#34;</span>)<span style="color:#f92672">.</span>render( {<span style="color:#e6db74">&#34;node_info&#34;</span> : {<span style="color:#e6db74">&#34;id&#34;</span>: <span style="color:#e6db74">&#34;$._id&#34;</span>, <span style="color:#e6db74">&#34;label&#34;</span>: <span style="color:#e6db74">&#34;$._label&#34;</span>}, <span style="color:#e6db74">&#34;data&#34;</span> : {<span style="color:#e6db74">&#34;whatToExpect&#34;</span>: <span style="color:#e6db74">&#34;$.climate&#34;</span>}} )
+</span></span></code></pre></div><p>Assuming <code>vertex1</code> has <code>_id</code>, <code>_label</code>, and <code>symbol</code> properties, this would return a JSON object with those fields.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-json" data-lang="json"><span style="display:flex;"><span>{<span style="color:#f92672">&#34;node_info&#34;</span> : {<span style="color:#f92672">&#34;id&#34;</span> :<span style="color:#e6db74">&#34;Planet:2&#34;</span>, <span style="color:#f92672">&#34;label&#34;</span>:<span style="color:#e6db74">&#34;Planet&#34;</span>}, <span style="color:#f92672">&#34;data&#34;</span>:{<span style="color:#f92672">&#34;whatToExpect&#34;</span>:<span style="color:#e6db74">&#34;arid&#34;</span>} }
+</span></span></code></pre></div>
   </div>
 
 </div>

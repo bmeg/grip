@@ -4,11 +4,15 @@
   <url>
     <loc>https://bmeg.github.io/grip/docs/tutorials/pathway-commons/</loc>
   </url><url>
+    <loc>https://bmeg.github.io/grip/docs/queries/aggregation/</loc>
+  </url><url>
     <loc>https://bmeg.github.io/grip/docs/tutorials/amazon/</loc>
   </url><url>
     <loc>https://bmeg.github.io/grip/docs/security/basic/</loc>
   </url><url>
     <loc>https://bmeg.github.io/grip/categories/</loc>
+  </url><url>
+    <loc>https://bmeg.github.io/grip/docs/clients/</loc>
   </url><url>
     <loc>https://bmeg.github.io/grip/docs/databases/</loc>
   </url><url>
@@ -22,7 +26,7 @@
   </url><url>
     <loc>https://bmeg.github.io/grip/docs/gripper/proxy/</loc>
   </url><url>
-    <loc>https://bmeg.github.io/grip/docs/queries/getting_started/</loc>
+    <loc>https://bmeg.github.io/grip/docs/queries/filtering/</loc>
   </url><url>
     <loc>https://bmeg.github.io/grip/docs/gripper/graphmodel/</loc>
   </url><url>
@@ -42,13 +46,13 @@
   </url><url>
     <loc>https://bmeg.github.io/grip/docs/queries/iterations/</loc>
   </url><url>
-    <loc>https://bmeg.github.io/grip/docs/queries/jobs_api/</loc>
+    <loc>https://bmeg.github.io/grip/docs/jobs_api/</loc>
   </url><url>
     <loc>https://bmeg.github.io/grip/docs/commands/list/</loc>
   </url><url>
     <loc>https://bmeg.github.io/grip/docs/commands/mongoload/</loc>
   </url><url>
-    <loc>https://bmeg.github.io/grip/docs/queries/operations/</loc>
+    <loc>https://bmeg.github.io/grip/docs/queries/output/</loc>
   </url><url>
     <loc>https://bmeg.github.io/grip/docs/</loc>
   </url><url>
@@ -56,15 +60,21 @@
   </url><url>
     <loc>https://bmeg.github.io/grip/docs/queries/</loc>
   </url><url>
+    <loc>https://bmeg.github.io/grip/docs/queries/record_transforms/</loc>
+  </url><url>
     <loc>https://bmeg.github.io/grip/docs/queries/jsonpath/</loc>
   </url><url>
     <loc>https://bmeg.github.io/grip/docs/security/</loc>
   </url><url>
     <loc>https://bmeg.github.io/grip/docs/commands/server/</loc>
   </url><url>
+    <loc>https://bmeg.github.io/grip/docs/queries/traversal_start/</loc>
+  </url><url>
     <loc>https://bmeg.github.io/grip/tags/</loc>
   </url><url>
     <loc>https://bmeg.github.io/grip/docs/tutorials/tcga-rna/</loc>
+  </url><url>
+    <loc>https://bmeg.github.io/grip/docs/queries/traverse_graph/</loc>
   </url><url>
     <loc>https://bmeg.github.io/grip/docs/tutorials/</loc>
   </url>

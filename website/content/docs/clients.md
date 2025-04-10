@@ -1,10 +1,11 @@
 ---
-title: Getting Started
+title: Client Library
 menu:
   main:
-    parent: Queries
-    weight: -10
+    identifier: clients
+    weight: 25
 ---
+
 
 # Getting Started
 

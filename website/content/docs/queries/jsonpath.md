@@ -3,7 +3,7 @@ title: Referencing Fields
 menu:
   main:
     parent: Queries
-    weight: 5
+    weight: 2
 ---
 
 # Referencing Vertex/Edge Properties
@@ -28,7 +28,7 @@ Starts at vertex `ENSG00000012048` and marks as `gene`:
     "hgnc": 1100,
     "entrez": 672,
     "hugo": "BRCA1"
-  }
+  },
   "transcipts": ["ENST00000471181.7", "ENST00000357654.8", "ENST00000493795.5"]  
 }
 ```
@@ -39,7 +39,7 @@ as "gene" and traverses the graph to:
 {
   "_id": "NM_007294.3:c.4963_4981delTGGCCTGACCCCAGAAG",
   "_label": "variant",
-  "type": "deletion"
+  "type": "deletion",
   "publications": [
     {
       "pmid": 29480828,
@@ -59,7 +59,6 @@ Below is a table of field and the values they would reference in subsequent trav
 | :------------------------- | :------------------- |
 | _id                       | "NM_007294.3:c.4963_4981delTGGCCTGACCCCAGAAG" |
 | _label                     | "variant"            |
-| _data.type                 | "deletion"           |
 | type                       | "deletion"           |
 | publications[0].pmid       | 29480828             |
 | publications[:].pmid       | [29480828, 23666017] |

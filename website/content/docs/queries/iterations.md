@@ -3,10 +3,10 @@ title: Iteration
 menu:
   main:
     parent: Queries
-    weight: 10
+    weight: 16
 ---
 
-# Iteration API
+# Iteration Commands
 
 A common operation in graph search is the ability to iterative repeat a search pattern.
 For example, a 'friend of a friend' search may become a 'friend of a friend of a friend' search.

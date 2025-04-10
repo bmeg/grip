@@ -2,8 +2,8 @@
 title: Jobs API
 menu:
   main:
-    parent: Queries
-    weight: 20
+    identifier: Jobs
+    weight: 40
 ---
 
 # Jobs API
