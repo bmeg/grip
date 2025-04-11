@@ -130,9 +130,17 @@
         
         <li>
           
-          <a href="https://bmeg.github.io/grip/docs/databases/"
-             class="sidebar-nav-item "
-          >Database Configuration</a></li>
+          <span class="intermediate">Database Configuration</span></li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/databases/sqlite/"
+                   class="sidebar-nav-item "
+                >SQLite</a></li>
+            </ul>
+          </li>
+          
           
         
         <li>
@@ -353,9 +361,16 @@
 
   <div class="main col span_8_of_12">
     <h1 id="graphql">GraphQL</h1>
-<p><strong>GraphQL support is considered Alpha. The code is not stable and the API will likely change.</strong>
-<strong><em>GraphQL access is only supported when using the MongoDB driver</em></strong></p>
-<p>GRIP supports GraphQL access of the property graphs. Currently this is read-only access to the graph.</p>
+<p>Grip graphql tools are defined as go standard library plugins and are located at <a href="https://github.com/bmeg/grip-graphql">https://github.com/bmeg/grip-graphql</a>.
+A schema based approach was used for defining read plugins.</p>
+<h2 id="json-schema">Json Schema</h2>
+<p>grip also supports using jsonschema with hypermedia extensions. Given an existing graph called TEST</p>
+<pre tabindex="0"><code>./grip schema post TEST --jsonSchema schema.json
+</code></pre><p>This schema will attach to the TEST graph, and subsequent calls to the bulkAddRaw method with raw Json
+as defined by the attached the jsonschema will load directly into grip.</p>
+<p>see conformance/tests/ot_bulk_raw.py for an example</p>
+<h3 id="legacy-graphql-patterns">Legacy Graphql Patterns</h3>
+<p>Grip still contains support for defining graphql schema using the below Patterns</p>
 <h3 id="load-built-in-example-graph">Load built-in example graph</h3>
 <p>Loading the example data and the example schema:</p>
 <pre tabindex="0"><code>grip load example-graph

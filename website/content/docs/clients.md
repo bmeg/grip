@@ -135,3 +135,7 @@ Additionally, we have provided `TranscriptFor` as an argument to `.in_()`. This 
 ```
 
 View a list of all available query operations [here](/docs/queries/operations).
+
+### Using the command line
+
+Grip command line syntax is defined at gripql/javascript/gripql.js

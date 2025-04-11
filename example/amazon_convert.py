@@ -28,7 +28,7 @@ class Writer:
         self.vert_handle.write(json.dumps(q) + "\n")
 
         for i in rec.get('similar', []):
-            e = { "from" : rec['ASIN'], "to" : i, "label" : "similar" }
+            e = { "_from" : rec['ASIN'], "_to" : i, "_label" : "similar" }
             self.edge_handle.write(json.dumps(e) + "\n")
 
         self.record_count += 1
