@@ -44,6 +44,25 @@ jobs:
         run: |
           go test ./test/... -config pebble.yml
 
+  kafkaTest:
+    needs: build
+    name: Kafka tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+      - name: Download grip
+        uses: actions/download-artifact@v4
+        with:
+          name: gripBin
+      - name: Kafka Test
+        run: |
+          chmod +x grip
+          make start-kafka
+          ./grip server -c test/kafka.yml &
+          sleep 5
+          go test ./test -config kafka.yml
+
 
   badgerTest:
     needs: build

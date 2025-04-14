@@ -4,15 +4,16 @@ package server
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
+	"io"
+	"maps"
 	"net"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
-	"sync"
 	"time"
 
+	"github.com/IBM/sarama"
 	"github.com/bmeg/grip/config"
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
@@ -43,16 +44,16 @@ type GripServer struct {
 	gripql.UnimplementedEditServer
 	gripql.UnimplementedJobServer
 	gripql.UnimplementedConfigureServer
-	dbs        map[string]gdbi.GraphDB  //graph database drivers
-	graphMap   map[string]string        //mapping from graph name to graph database driver
-	conf       *config.Config           //global configuration
-	schemas    map[string]*gripql.Graph //cached schemas
-	mappings   map[string]*gripql.Graph //cached gripper graph mappings
-	plugins    map[string]*Plugin
-	sources    map[string]gripper.GRIPSourceClient
-	baseDir    string
-	jStorage   jobstorage.JobStorage
-	streamPool *sync.Pool
+	dbs           map[string]gdbi.GraphDB  //graph database drivers
+	graphMap      map[string]string        //mapping from graph name to graph database driver
+	conf          *config.Config           //global configuration
+	schemas       map[string]*gripql.Graph //cached schemas
+	mappings      map[string]*gripql.Graph //cached gripper graph mappings
+	plugins       map[string]*Plugin
+	sources       map[string]gripper.GRIPSourceClient
+	baseDir       string
+	jStorage      jobstorage.JobStorage
+	kafkaProducer sarama.SyncProducer
 }
 
 // NewGripServer initializes a GRPC server to connect to the graph store
@@ -68,9 +69,7 @@ func NewGripServer(conf *config.Config, baseDir string, drivers map[string]gdbi.
 
 	gdbs := map[string]gdbi.GraphDB{}
 	if drivers != nil {
-		for i, d := range drivers {
-			gdbs[i] = d
-		}
+		maps.Copy(gdbs, drivers)
 	}
 
 	sources := map[string]gripper.GRIPSourceClient{}
@@ -94,21 +93,75 @@ func NewGripServer(conf *config.Config, baseDir string, drivers map[string]gdbi.
 		}
 	}
 
-	// Add an element pool for managing resources when streaming data
-	var graphElementPool = &sync.Pool{
-		New: func() interface{} {
-			return &gdbi.GraphElement{}
-		},
+	server := &GripServer{
+		dbs:      gdbs,
+		conf:     conf,
+		schemas:  schemas,
+		mappings: map[string]*gripql.Graph{},
+		plugins:  map[string]*Plugin{},
+		sources:  sources,
 	}
 
-	server := &GripServer{
-		dbs:        gdbs,
-		conf:       conf,
-		schemas:    schemas,
-		mappings:   map[string]*gripql.Graph{},
-		plugins:    map[string]*Plugin{},
-		sources:    sources,
-		streamPool: graphElementPool,
+	if conf.Kafka.Username != nil &&
+		conf.Kafka.Password != nil &&
+		conf.Kafka.Hostname != nil &&
+		len(conf.Kafka.Topics) > 0 {
+
+		brokers := []string{*conf.Kafka.Hostname} //hostname in format "localhost:9092"
+
+		config := sarama.NewConfig()
+		config.Version = sarama.V2_8_0_0
+
+		config.Net.SASL.Enable = true
+		config.Net.SASL.User = *conf.Kafka.Username
+		config.Net.SASL.Password = *conf.Kafka.Password
+		config.Net.SASL.Mechanism = sarama.SASLTypePlaintext
+		config.Producer.Return.Successes = true
+		config.Net.SASL.Handshake = true
+		config.Net.TLS.Enable = false
+
+		admin, err := sarama.NewClusterAdmin(brokers, config)
+		if err != nil {
+			log.Errorf("Error creating cluster admin: %v", err)
+		}
+
+		topics, err := admin.ListTopics()
+		if err != nil {
+			log.Errorf("Error listing topics: %v", err)
+		}
+
+		// Made topic creation more on an init db step but optionally it could be done here
+		for _, KafkaTopic := range conf.Kafka.Topics {
+			if _, exists := topics[*KafkaTopic]; exists {
+				fmt.Printf("✅ Kafka Topic '%s' exists.\n", *KafkaTopic)
+			} else {
+				// If even one of the topics that you specify does not exist, the server errors out
+				return nil, fmt.Errorf("Kafka Topic '%s' not found", *KafkaTopic)
+			}
+		}
+
+		// Close this for now we shouldn't need it anymore
+		error := admin.Close()
+		if error != nil {
+			log.Errorf("Error closing Kafka admin client: %v", err)
+			return nil, error
+		}
+
+		producer, err := sarama.NewSyncProducer(brokers, config)
+		if err != nil {
+			log.Errorf("Failed to create Kafka producer: %v", err)
+			return nil, fmt.Errorf("failed to create Kafka producer: %w", err)
+		}
+		server.kafkaProducer = producer
+
+		defer func() {
+			if server.kafkaProducer != nil {
+				if err := server.kafkaProducer.Close(); err != nil {
+					log.Errorf("Error closing Kafka producer: %v", err)
+				}
+			}
+		}()
+
 	}
 
 	if conf.Default == "" {
@@ -308,9 +361,23 @@ func (server *GripServer) Serve(pctx context.Context) error {
 
 			// copy body and return it to request
 			var body []byte
-			if server.conf.Server.RequestLogging.Enable {
-				body, _ = ioutil.ReadAll(req.Body)
-				req.Body = ioutil.NopCloser(bytes.NewBuffer(body))
+			if server.conf.Server.RequestLogging.Enable || server.kafkaProducer != nil {
+				body, _ = io.ReadAll(req.Body)
+				req.Body = io.NopCloser(bytes.NewBuffer(body))
+
+				if server.kafkaProducer != nil {
+					msg := &sarama.ProducerMessage{
+						// This needs to be specified somehow
+						Topic: *server.conf.Kafka.Topics[0],
+						Value: sarama.ByteEncoder(body),
+					}
+					partition, offset, err := server.kafkaProducer.SendMessage(msg)
+					if err != nil {
+						log.Errorf("Failed to send Kafka message: %v", err)
+						return
+					}
+					log.Infof("Message sent to Kafka topic %s [partition %d, offset %d]", "my-topic", partition, offset)
+				}
 			}
 
 			// handle the request

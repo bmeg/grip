@@ -668,7 +668,7 @@ func (server *GripServer) AddJsonSchema(ctx context.Context, rawjson *gripql.Raw
 	}
 	req, err := schema.ParseJSchema(bytes, rawjson.Graph)
 	if err != nil {
-		fmt.Errorf("Failed to parse schema data: %v\n", err)
+		log.Errorf("Failed to parse schema data: %v\n", err)
 		return nil, err
 	}
 	res, err := server.AddSchema(ctx, req[0])

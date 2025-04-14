@@ -3,7 +3,7 @@ package delete
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 
 	"github.com/bmeg/grip/gripql"
@@ -57,7 +57,7 @@ comma delimited --edges or --vertices arguments are also supported ex:
 			defer jsonFile.Close()
 
 			// Read the JSON file
-			byteValue, err := ioutil.ReadAll(jsonFile)
+			byteValue, err := io.ReadAll(jsonFile)
 			if err != nil {
 				log.Errorf("Failed to read file: %s", err)
 			}

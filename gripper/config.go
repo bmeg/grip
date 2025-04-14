@@ -2,7 +2,7 @@ package gripper
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 
 	//"path/filepath"
 	"encoding/json"
@@ -47,7 +47,7 @@ type EdgeConfig struct {
 func LoadConfig(path string) (*GraphConfig, error) {
 	conf := &GraphConfig{}
 	// Read file
-	source, err := ioutil.ReadFile(path)
+	source, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read config at path %s: \n%v", path, err)
 	}
