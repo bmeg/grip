@@ -51,6 +51,8 @@ jobs:
     steps:
       - name: Check out code
         uses: actions/checkout@v4
+      - name: Python Dependencies for Conformance
+        run: pip install requests numpy kafka-python
       - name: Download grip
         uses: actions/download-artifact@v4
         with:
@@ -61,7 +63,7 @@ jobs:
           make start-kafka
           ./grip server -c test/kafka.yml &
           sleep 5
-          go test ./test -config kafka.yml
+          ./conformance/run_kafka.py
 
 
   badgerTest:

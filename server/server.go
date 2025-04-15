@@ -107,11 +107,10 @@ func NewGripServer(conf *config.Config, baseDir string, drivers map[string]gdbi.
 		conf.Kafka.Hostname != nil &&
 		len(conf.Kafka.Topics) > 0 {
 
-		brokers := []string{*conf.Kafka.Hostname} //hostname in format "localhost:9092"
+		brokers := []string{*conf.Kafka.Hostname} // e.g., "localhost:9092"
 
 		config := sarama.NewConfig()
 		config.Version = sarama.V2_8_0_0
-
 		config.Net.SASL.Enable = true
 		config.Net.SASL.User = *conf.Kafka.Username
 		config.Net.SASL.Password = *conf.Kafka.Password
@@ -120,48 +119,42 @@ func NewGripServer(conf *config.Config, baseDir string, drivers map[string]gdbi.
 		config.Net.SASL.Handshake = true
 		config.Net.TLS.Enable = false
 
+		// Validate brokers are reachable
 		admin, err := sarama.NewClusterAdmin(brokers, config)
 		if err != nil {
 			log.Errorf("Error creating cluster admin: %v", err)
+			return nil, fmt.Errorf("failed to create Kafka cluster admin: %w", err)
 		}
 
 		topics, err := admin.ListTopics()
 		if err != nil {
 			log.Errorf("Error listing topics: %v", err)
+			admin.Close()
+			return nil, fmt.Errorf("failed to list Kafka topics: %w", err)
 		}
 
-		// Made topic creation more on an init db step but optionally it could be done here
-		for _, KafkaTopic := range conf.Kafka.Topics {
-			if _, exists := topics[*KafkaTopic]; exists {
-				fmt.Printf("✅ Kafka Topic '%s' exists.\n", *KafkaTopic)
-			} else {
-				// If even one of the topics that you specify does not exist, the server errors out
-				return nil, fmt.Errorf("Kafka Topic '%s' not found", *KafkaTopic)
+		// Verify all configured topics exist
+		for _, kafkaTopic := range conf.Kafka.Topics {
+			if _, exists := topics[*kafkaTopic]; !exists {
+				admin.Close()
+				return nil, fmt.Errorf("Kafka topic '%s' not found", *kafkaTopic)
 			}
 		}
 
-		// Close this for now we shouldn't need it anymore
-		error := admin.Close()
-		if error != nil {
+		err = admin.Close()
+		if err != nil {
 			log.Errorf("Error closing Kafka admin client: %v", err)
-			return nil, error
+			return nil, fmt.Errorf("failed to close Kafka admin client: %w", err)
 		}
 
+		// Create producer
 		producer, err := sarama.NewSyncProducer(brokers, config)
 		if err != nil {
 			log.Errorf("Failed to create Kafka producer: %v", err)
 			return nil, fmt.Errorf("failed to create Kafka producer: %w", err)
 		}
 		server.kafkaProducer = producer
-
-		defer func() {
-			if server.kafkaProducer != nil {
-				if err := server.kafkaProducer.Close(); err != nil {
-					log.Errorf("Error closing Kafka producer: %v", err)
-				}
-			}
-		}()
-
+		log.Infof("Kafka producer initialized for brokers: %v, topic: %s", brokers, *conf.Kafka.Topics[0])
 	}
 
 	if conf.Default == "" {
@@ -367,16 +360,16 @@ func (server *GripServer) Serve(pctx context.Context) error {
 
 				if server.kafkaProducer != nil {
 					msg := &sarama.ProducerMessage{
-						// This needs to be specified somehow
 						Topic: *server.conf.Kafka.Topics[0],
 						Value: sarama.ByteEncoder(body),
 					}
 					partition, offset, err := server.kafkaProducer.SendMessage(msg)
 					if err != nil {
-						log.Errorf("Failed to send Kafka message: %v", err)
-						return
+						log.Errorf("Failed to send Kafka message to topic %s: %v", *server.conf.Kafka.Topics[0], err)
+						// Continue processing the request instead of returning
+					} else {
+						log.Infof("Message sent to Kafka topic %s [partition %d, offset %d]", *server.conf.Kafka.Topics[0], partition, offset)
 					}
-					log.Infof("Message sent to Kafka topic %s [partition %d, offset %d]", "my-topic", partition, offset)
 				}
 			}
 
@@ -537,6 +530,15 @@ func (server *GripServer) Serve(pctx context.Context) error {
 		if err != nil {
 			log.Errorln("db.Close() error:", err)
 		}
+	}
+
+	if server.kafkaProducer != nil {
+		if err := server.kafkaProducer.Close(); err != nil {
+			log.Errorf("Error closing Kafka producer: %v", err)
+			return fmt.Errorf("failed to close Kafka producer: %w", err)
+		}
+		server.kafkaProducer = nil
+		log.Infof("Kafka producer closed")
 	}
 
 	server.ClosePlugins()

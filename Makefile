@@ -169,14 +169,7 @@ start-kafka:
 	docker cp sasl-config.properties kafka:/tmp/sasl-config.properties
 	docker exec kafka kafka-topics.sh \
 		--create \
-		--topic grip_edge \
-		--bootstrap-server localhost:9092 \
-		--partitions 1 \
-		--replication-factor 1 \
-		--command-config /tmp/sasl-config.properties
-	docker exec kafka kafka-topics.sh \
-		--create \
-		--topic grip_vertex \
+		--topic gripHistory \
 		--bootstrap-server localhost:9092 \
 		--partitions 1 \
 		--replication-factor 1 \
