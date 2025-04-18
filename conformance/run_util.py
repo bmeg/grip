@@ -205,7 +205,7 @@ class Manager:
             raise SkipTest
         self.clean()
         self.curName = ""
-        self.curGraph = "test_graph_" + id_generator()
+        self.curGraph = "test_graph_" + self.id_generator()
         self._conn.addGraph(self.curGraph)
         G = self._conn.graph(self.curGraph)
         return G

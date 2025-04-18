@@ -61,7 +61,7 @@ jobs:
         run: |
           chmod +x grip
           make start-kafka
-          ./grip server -c test/kafka.yml &
+          ./grip server -c ./test/kafka.yml &
           sleep 5
           python conformance/run_kafka.py
 
