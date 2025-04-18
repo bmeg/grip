@@ -63,7 +63,7 @@ jobs:
           make start-kafka
           ./grip server -c test/kafka.yml &
           sleep 5
-          ./conformance/run_kafka.py
+          python conformance/run_kafka.py
 
 
   badgerTest:

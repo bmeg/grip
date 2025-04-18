@@ -42,7 +42,8 @@ type KafkaConfig struct {
 	Username *string
 	Password *string
 	Hostname *string
-	Topics   []*string
+	// Limit to one topic stream for now
+	Topic *string
 }
 
 // Config describes the configuration for Grip.

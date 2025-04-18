@@ -105,9 +105,9 @@ func NewGripServer(conf *config.Config, baseDir string, drivers map[string]gdbi.
 	if conf.Kafka.Username != nil &&
 		conf.Kafka.Password != nil &&
 		conf.Kafka.Hostname != nil &&
-		len(conf.Kafka.Topics) > 0 {
+		conf.Kafka.Topic != nil {
 
-		brokers := []string{*conf.Kafka.Hostname} // e.g., "localhost:9092"
+		brokers := []string{*conf.Kafka.Hostname}
 
 		config := sarama.NewConfig()
 		config.Version = sarama.V2_8_0_0
@@ -134,11 +134,9 @@ func NewGripServer(conf *config.Config, baseDir string, drivers map[string]gdbi.
 		}
 
 		// Verify all configured topics exist
-		for _, kafkaTopic := range conf.Kafka.Topics {
-			if _, exists := topics[*kafkaTopic]; !exists {
-				admin.Close()
-				return nil, fmt.Errorf("Kafka topic '%s' not found", *kafkaTopic)
-			}
+		if _, exists := topics[*conf.Kafka.Topic]; !exists {
+			admin.Close()
+			return nil, fmt.Errorf("Kafka topic '%s' not found", *conf.Kafka.Topic)
 		}
 
 		err = admin.Close()
@@ -154,7 +152,7 @@ func NewGripServer(conf *config.Config, baseDir string, drivers map[string]gdbi.
 			return nil, fmt.Errorf("failed to create Kafka producer: %w", err)
 		}
 		server.kafkaProducer = producer
-		log.Infof("Kafka producer initialized for brokers: %v, topic: %s", brokers, *conf.Kafka.Topics[0])
+		log.Infof("Kafka producer initialized for brokers: %v, topic: %s", brokers, *conf.Kafka.Topic)
 	}
 
 	if conf.Default == "" {
@@ -324,7 +322,6 @@ func (server *GripServer) Serve(pctx context.Context) error {
 	// HTTP middleware is injected here as well
 	mux.HandleFunc("/", func(resp http.ResponseWriter, req *http.Request) {
 		start := time.Now()
-
 		/*
 			if len(server.conf.Server.BasicAuth) > 0 {
 				resp.Header().Set("WWW-Authenticate", "Basic")
@@ -357,19 +354,23 @@ func (server *GripServer) Serve(pctx context.Context) error {
 			if server.conf.Server.RequestLogging.Enable || server.kafkaProducer != nil {
 				body, _ = io.ReadAll(req.Body)
 				req.Body = io.NopCloser(bytes.NewBuffer(body))
-
 				if server.kafkaProducer != nil {
+					// This should cover BulkAdd, Addvertex, Addedge, BulkDelete, DeleteVertex, DeleteEdge
+					// Metadata used on replication side to determine what action to do with message
 					msg := &sarama.ProducerMessage{
-						Topic: *server.conf.Kafka.Topics[0],
+						Headers: []sarama.RecordHeader{
+							{Key: []byte("PATH"), Value: []byte(req.URL.Path)},
+							{Key: []byte("METHOD"), Value: []byte(req.Method)}},
+						Topic: "gripHistory",
 						Value: sarama.ByteEncoder(body),
 					}
 					partition, offset, err := server.kafkaProducer.SendMessage(msg)
 					if err != nil {
-						log.Errorf("Failed to send Kafka message to topic %s: %v", *server.conf.Kafka.Topics[0], err)
-						// Continue processing the request instead of returning
+						log.Errorf("Failed to send Kafka message to topic %s: %v", *&server.conf.Kafka.Topic, err)
 					} else {
-						log.Infof("Message sent to Kafka topic %s [partition %d, offset %d]", *server.conf.Kafka.Topics[0], partition, offset)
+						log.Infof("Message sent to Kafka topic %s [partition %d, offset %d]", *server.conf.Kafka.Topic, partition, offset)
 					}
+
 				}
 			}
 
