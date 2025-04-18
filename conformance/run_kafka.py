@@ -5,7 +5,7 @@ import os
 import sys
 import string
 import random
-import gripql
+from run_util import gripql, create_connection, Manager
 import re
 from kafka import KafkaConsumer
 import logging
@@ -26,54 +26,19 @@ PASSWORD = "adminpassword"
 TIMEOUTMS = "1000"
 
 
-class SkipTest(Exception):
-    """A target test can raise this to ignore test."""
-    pass
-
-class Manager:
+class KafkaManager(Manager):
     """Common test methods."""
     def __init__(self, conn, readOnly=False, server=None, grip_config_file_path=None):
-        self.readOnly = readOnly
-        self.curGraph = ""
-        self.curName = ""
-        self.grip_config = None
-        self.access_casbin = None
-        self.policies = None
-        self.accounts = []
-        self.all_graph_names = []
-        self.graphs = None
-        self._conn = None
-        self.user = None
-        self.server = server
-        self.set_connection(conn)
-        self.kafka_consumer = self.init_kafka_consumer()
-        self.loadgraphname = "swapi"
+           super().__init__(conn, readOnly, server, grip_config_file_path)
+           self.loadgraphname = "swapi"
+           self.kafka_consumer = None
 
-    def set_connection(self, conn):
-        """Set conn and user property"""
-        self._conn = conn
-        if self._conn:
-            self.user = self._conn.user
-        else:
-            self.user = None
 
-    def collect_fields_dict(self, datadict):
-        """Filter out reserved fields."""
-        if not isinstance(datadict, dict):
-            logger.error(f"Expected dict, got {type(datadict)}: {datadict}")
-            return {}
-        return {key: value for key, value in datadict.items() if key not in ["_id", "_label", "_from", "_to"]}
-
-    def clean(self, edges, vertices):
+    def cleanKafka(self, edges, vertices):
         """Delete current graph if not in readOnly mode."""
         if edges is not None and len(edges) > 0 and vertices is not None and len(vertices) > 0:
             self._conn.graph(self.curGraph).delete(edges=edges, vertices=vertices)
             self._conn.deleteGraph(self.curGraph)
-
-
-    def id_generator(self, size=6, chars=string.ascii_uppercase + string.digits):
-        """Random 6 alphanumeric string."""
-        return ''.join(random.choice(chars) for _ in range(size)).lower()
 
     def init_kafka_consumer(self):
         """Initialize Kafka consumer for TOPIC."""
@@ -96,6 +61,7 @@ class Manager:
             logger.error(f"Failed to connect to Kafka consumer: {e}")
             return None
 
+
     def deserialize_message(self, data):
         """Safely deserialize Kafka message."""
         if not data:
@@ -110,6 +76,7 @@ class Manager:
             logger.warning(f"Failed to decode message: {data!r}")
             return None
 
+
     def test_load_test_graph(self):
         """Test loading data into TEST graph and print Kafka messages."""
         errors, edges, vertices = [], [], []
@@ -117,7 +84,6 @@ class Manager:
         logger.info(f"Creating graph: {self.curGraph}")
         self._conn.addGraph(self.curGraph)
         G = self._conn.graph(self.curGraph)
-
         vertex_file = os.path.join(BASE, "graphs", f"{self.loadgraphname}.vertices")
         logger.info(f"Loading vertices from: {vertex_file}")
         if os.path.exists(vertex_file):
@@ -171,7 +137,6 @@ class Manager:
         logger.info(f"Creating graph: {self.curGraph}")
         self._conn.addGraph(self.curGraph)
         G = self._conn.graph(self.curGraph)
-
         vertex_file = os.path.join(BASE, "graphs", f"{self.loadgraphname}.vertices")
         logger.info(f"Loading vertices from: {vertex_file}")
         if os.path.exists(vertex_file):
@@ -202,7 +167,6 @@ class Manager:
                         label=data["_label"],
                         data=self.collect_fields_dict(data))
                 _ = bulk.execute()
-
         else:
             raise FileNotFoundError(f"Edge file not found: {edge_file}")
 
@@ -336,30 +300,20 @@ class Manager:
             logger.info(f"Loaded {vertex_count} vertices and {edge_count} edges")
 
 
-def create_connection(server, user=None, password=None):
-    """Setup connection based on credentials."""
-    try:
-        conn = gripql.Connection(server, user=user, password=password)
-        logger.info(f"Connected to GRIP server: {server}")
-        return conn
-    except Exception as e:
-        logger.error(f"Failed to connect to GRIP: {e}")
-        return None
-
 def main():
     conn = create_connection(GRIP_SERVER_URL, None, None)
     if not conn:
         sys.exit(1)
 
-    manager = Manager(conn=conn, readOnly=False, server=GRIP_SERVER_URL)
+    manager = KafkaManager(conn=conn, readOnly=False, server=GRIP_SERVER_URL)
     _, vertices, edges = manager.test_load_test_graph()
-    manager.clean(vertices=vertices, edges=edges)
+    manager.cleanKafka(vertices=vertices, edges=edges)
     manager.test_write_from_kafka(toggle_delete_method=False, toggle_post_method=True, orig_vertex_counts=len(vertices), orig_edge_counts=len(edges))
     manager.test_write_from_kafka(toggle_delete_method=True, toggle_post_method=False, orig_vertex_counts=None, orig_edge_counts=None)
 
-    bulkManager = Manager(conn=conn, readOnly=False, server=GRIP_SERVER_URL)
+    bulkManager = KafkaManager(conn=conn, readOnly=False, server=GRIP_SERVER_URL)
     _, bulkvertices, bulkedges = bulkManager.test_bulk_load_test_graph()
-    bulkManager.clean(vertices=bulkvertices, edges=bulkedges)
+    bulkManager.cleanKafka(vertices=bulkvertices, edges=bulkedges)
     #  Kafka is going to pickup the logs from the test before this  too, so delete everything
     bulkManager.test_write_from_kafka(toggle_delete_method=True, toggle_post_method=True, orig_vertex_counts=None, orig_edge_counts=None)
 
