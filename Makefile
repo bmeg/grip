@@ -160,13 +160,20 @@ start-kafka:
 		-e KAFKA_CFG_SASL_ENABLED_MECHANISMS=PLAIN \
 		-e KAFKA_CFG_SASL_MECHANISM_INTER_BROKER_PROTOCOL=PLAIN \
 		bitnami/kafka:latest
-	sleep 10
 	printf '%s\n' \
 		'security.protocol=SASL_PLAINTEXT' \
 		'sasl.mechanism=PLAIN' \
 		'sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required username="admin" password="adminpassword";' \
 		> sasl-config.properties
 	docker cp sasl-config.properties kafka:/tmp/sasl-config.properties
+	@echo "Waiting for Kafka to become ready..."
+	@until docker exec kafka kafka-topics.sh \
+		--list \
+		--bootstrap-server localhost:9092 \
+		--command-config /tmp/sasl-config.properties > /dev/null 2>&1; do \
+		echo "Still waiting..."; \
+		sleep 2; \
+	done
 	docker exec kafka kafka-topics.sh \
 		--create \
 		--topic gripHistory \
