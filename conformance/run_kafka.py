@@ -31,14 +31,7 @@ class KafkaManager(Manager):
     def __init__(self, conn, readOnly=False, server=None, grip_config_file_path=None):
            super().__init__(conn, readOnly, server, grip_config_file_path)
            self.loadgraphname = "swapi"
-           self.kafka_consumer = None
-
-
-    def cleanKafka(self, edges, vertices):
-        """Delete current graph if not in readOnly mode."""
-        if edges is not None and len(edges) > 0 and vertices is not None and len(vertices) > 0:
-            self._conn.graph(self.curGraph).delete(edges=edges, vertices=vertices)
-            self._conn.deleteGraph(self.curGraph)
+           self.kafka_consumer = self.init_kafka_consumer()
 
     def init_kafka_consumer(self):
         """Initialize Kafka consumer for TOPIC."""
@@ -127,12 +120,13 @@ class KafkaManager(Manager):
         edge_count_result = list(G.query().E().count())
         edge_count = edge_count_result[0]['count'] if edge_count_result else 0
         logger.info(f"Loaded {vertex_count} vertices and {edge_count} edges")
+        self._conn.deleteGraph(self.curGraph)
         return errors, vertices, edges
 
 
     def test_bulk_load_test_graph(self):
         """Test loading data into TEST graph and print Kafka messages."""
-        errors, edges, vertices = [], [], []
+        errors= []
         self.curGraph = "TEST" + self.id_generator()
         logger.info(f"Creating graph: {self.curGraph}")
         self._conn.addGraph(self.curGraph)
@@ -144,9 +138,7 @@ class KafkaManager(Manager):
                 bulk = G.bulkAdd()
                 for line in handle:
                     data = json.loads(line.strip())
-                    id = data.get("_id", None)
-                    vertices.append(id)
-                    bulk.addVertex(id=id, label=data["_label"], data=self.collect_fields_dict(data))
+                    bulk.addVertex(id= data.get("_id", None), label=data["_label"], data=self.collect_fields_dict(data))
                 _ = bulk.execute()
         else:
             raise FileNotFoundError(f"Vertex file not found: {vertex_file}")
@@ -158,12 +150,10 @@ class KafkaManager(Manager):
                 bulk = G.bulkAdd()
                 for line in handle:
                     data = json.loads(line.strip())
-                    id = data.get("_id", None)
-                    edges.append(id)
                     G.addEdge(
                         src=data["_from"],
                         dst=data["_to"],
-                        id=id,
+                        id=data.get("_id", None),
                         label=data["_label"],
                         data=self.collect_fields_dict(data))
                 _ = bulk.execute()
@@ -179,7 +169,9 @@ class KafkaManager(Manager):
         edge_count_result = list(G.query().E().count())
         edge_count = edge_count_result[0]['count'] if edge_count_result else 0
         logger.info(f"Loaded {vertex_count} vertices and {edge_count} edges")
-        return errors, vertices, edges
+        self._conn.deleteGraph(self.curGraph)
+
+        return errors
 
 
     def test_write_from_kafka(self, toggle_delete_method, toggle_post_method, orig_vertex_counts, orig_edge_counts):
@@ -191,7 +183,6 @@ class KafkaManager(Manager):
         add_edge_re = re.compile(r"^/v1/graph/([^/]+)/edge$")
         # No addSchema or add RawJson because these methods call lower level methods like bulk add and addgraph
 
-        self.kafka_consumer = self.init_kafka_consumer()
         logger.info(f"Consuming Kafka messages from {TOPIC} topic...")
         last_message_time = time.time()
         while True:
@@ -307,15 +298,13 @@ def main():
 
     manager = KafkaManager(conn=conn, readOnly=False, server=GRIP_SERVER_URL)
     _, vertices, edges = manager.test_load_test_graph()
-    manager.cleanKafka(vertices=vertices, edges=edges)
     manager.test_write_from_kafka(toggle_delete_method=False, toggle_post_method=True, orig_vertex_counts=len(vertices), orig_edge_counts=len(edges))
     manager.test_write_from_kafka(toggle_delete_method=True, toggle_post_method=False, orig_vertex_counts=None, orig_edge_counts=None)
 
-    bulkManager = KafkaManager(conn=conn, readOnly=False, server=GRIP_SERVER_URL)
-    _, bulkvertices, bulkedges = bulkManager.test_bulk_load_test_graph()
-    bulkManager.cleanKafka(vertices=bulkvertices, edges=bulkedges)
+    _ = manager.test_bulk_load_test_graph()
     #  Kafka is going to pickup the logs from the test before this  too, so delete everything
-    bulkManager.test_write_from_kafka(toggle_delete_method=True, toggle_post_method=True, orig_vertex_counts=None, orig_edge_counts=None)
+    print("Test bulk delete")
+    manager.test_write_from_kafka(toggle_delete_method=True, toggle_post_method=True, orig_vertex_counts=None, orig_edge_counts=None)
 
 if __name__ == "__main__":
     main()
