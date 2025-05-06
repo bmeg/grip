@@ -23,7 +23,7 @@ KAFKA_HOST = "localhost:9092"
 GRIP_SERVER_URL = "http://localhost:8201"
 USERNAME = "admin"
 PASSWORD = "adminpassword"
-TIMEOUTMS = "1000"
+TIMEOUTMS = "5000"
 
 
 class KafkaManager(Manager):
