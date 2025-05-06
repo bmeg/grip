@@ -43,17 +43,17 @@ class KafkaManager(Manager):
                 sasl_mechanism='PLAIN',
                 sasl_plain_username=USERNAME,
                 sasl_plain_password=PASSWORD,
-                auto_offset_reset='earliest',
+                auto_offset_reset='earliest',  # Start from latest messages
                 enable_auto_commit=True,
                 value_deserializer=lambda x: self.deserialize_message(x),
                 session_timeout_ms=TIMEOUTMS
             )
-            logger.info("Connected to Kafka consumer")
+
+            logger.info("Connected to Kafka consumer and reset to latest offset")
             return consumer
         except Exception as e:
             logger.error(f"Failed to connect to Kafka consumer: {e}")
             return None
-
 
     def deserialize_message(self, data):
         """Safely deserialize Kafka message."""
@@ -69,64 +69,9 @@ class KafkaManager(Manager):
             logger.warning(f"Failed to decode message: {data!r}")
             return None
 
-
-    def test_load_test_graph(self):
-        """Test loading data into TEST graph and print Kafka messages."""
-        errors, edges, vertices = [], [], []
-        self.curGraph = "TEST" + self.id_generator()
-        logger.info(f"Creating graph: {self.curGraph}")
-        self._conn.addGraph(self.curGraph)
-        G = self._conn.graph(self.curGraph)
-        vertex_file = os.path.join(BASE, "graphs", f"{self.loadgraphname}.vertices")
-        logger.info(f"Loading vertices from: {vertex_file}")
-        if os.path.exists(vertex_file):
-            with open(vertex_file) as handle:
-                for line in handle:
-                    data = json.loads(line.strip())
-                    id = data.get("_id", None)
-                    if id is not None:
-                        vertices.append(id)
-                    logger.debug(f"Adding vertex: {id}")
-                    G.addVertex(id, data["_label"], self.collect_fields_dict(data))
-        else:
-            raise FileNotFoundError(f"Vertex file not found: {vertex_file}")
-
-        # Load edges
-        edge_file = os.path.join(BASE, "graphs", f"{self.loadgraphname}.edges")
-        logger.info(f"Loading edges from: {edge_file}")
-        if os.path.exists(edge_file):
-            with open(edge_file) as handle:
-                for line in handle:
-                    data = json.loads(line.strip())
-                    id = data.get("_id", None)
-                    if id is not None:
-                        edges.append(id)
-                    logger.debug(f"Adding edge: {data['_from']} -> {data['_to']}")
-                    G.addEdge(
-                        src=data["_from"],
-                        dst=data["_to"],
-                        id=id,
-                        label=data["_label"],
-                        data=self.collect_fields_dict(data))
-        else:
-            raise FileNotFoundError(f"Edge file not found: {edge_file}")
-
-        # Verify graph data
-        vertex_count_result = list(G.query().V().count())
-        if not vertex_count_result or len(vertex_count_result) <= 0 or 'count' not in vertex_count_result[0]:
-            raise ValueError("Invalid vertex count response")
-        vertex_count = vertex_count_result[0]['count']
-        assert vertex_count > 0, f"No vertices loaded into {self.curGraph}"
-        edge_count_result = list(G.query().E().count())
-        edge_count = edge_count_result[0]['count'] if edge_count_result else 0
-        logger.info(f"Loaded {vertex_count} vertices and {edge_count} edges")
-        self._conn.deleteGraph(self.curGraph)
-        return errors, vertices, edges
-
-
     def test_bulk_load_test_graph(self):
         """Test loading data into TEST graph and print Kafka messages."""
-        errors= []
+        errors, edges, vertices = [], [], []
         self.curGraph = "TEST" + self.id_generator()
         logger.info(f"Creating graph: {self.curGraph}")
         self._conn.addGraph(self.curGraph)
@@ -138,7 +83,10 @@ class KafkaManager(Manager):
                 bulk = G.bulkAdd()
                 for line in handle:
                     data = json.loads(line.strip())
-                    bulk.addVertex(id= data.get("_id", None), label=data["_label"], data=self.collect_fields_dict(data))
+                    id = data.get("_id", None)
+                    if id is not None:
+                        vertices.append(id)
+                    bulk.addVertex(id= id, label=data["_label"], data=self.collect_fields_dict(data))
                 _ = bulk.execute()
         else:
             raise FileNotFoundError(f"Vertex file not found: {vertex_file}")
@@ -150,6 +98,9 @@ class KafkaManager(Manager):
                 bulk = G.bulkAdd()
                 for line in handle:
                     data = json.loads(line.strip())
+                    id = data.get("_id", None)
+                    if id is not None:
+                        edges.append(id)
                     G.addEdge(
                         src=data["_from"],
                         dst=data["_to"],
@@ -171,7 +122,7 @@ class KafkaManager(Manager):
         logger.info(f"Loaded {vertex_count} vertices and {edge_count} edges")
         self._conn.deleteGraph(self.curGraph)
 
-        return errors
+        return errors, edges, vertices
 
 
     def test_write_from_kafka(self, toggle_delete_method, toggle_post_method, orig_vertex_counts, orig_edge_counts):
@@ -262,7 +213,6 @@ class KafkaManager(Manager):
                         elif graph_re.match(path):
                             graph_name = path.split('/')[-1]
                             err = self._conn.addGraph(graph_name)
-                            print("ADD GRAPHERR: ", err)
 
 
             current_time = time.time()
@@ -286,6 +236,7 @@ class KafkaManager(Manager):
             if orig_vertex_counts is not None and orig_edge_counts is not None:
                 assert orig_vertex_counts == vertex_count, f"original_vertex_counts {orig_vertex_counts} != vertex_count {vertex_count}"
                 assert orig_edge_counts == edge_count, f"original_edge_counts {orig_edge_counts} != edge_count {edge_count}"
+                logger.info("assert statements passed")
             elif toggle_delete_method:
                 assert vertex_count == 0 and edge_count == 0, "edges and vertices should have been deleted"
             logger.info(f"Loaded {vertex_count} vertices and {edge_count} edges")
@@ -297,14 +248,13 @@ def main():
         sys.exit(1)
 
     manager = KafkaManager(conn=conn, readOnly=False, server=GRIP_SERVER_URL)
-    _, vertices, edges = manager.test_load_test_graph()
+    errors, edges, vertices = manager.test_bulk_load_test_graph()
+
+    # run load operations from kafka, and check load
     manager.test_write_from_kafka(toggle_delete_method=False, toggle_post_method=True, orig_vertex_counts=len(vertices), orig_edge_counts=len(edges))
+    # run delete operations from kafka, and check delete
     manager.test_write_from_kafka(toggle_delete_method=True, toggle_post_method=False, orig_vertex_counts=None, orig_edge_counts=None)
 
-    _ = manager.test_bulk_load_test_graph()
-    #  Kafka is going to pickup the logs from the test before this  too, so delete everything
-    print("Test bulk delete")
-    manager.test_write_from_kafka(toggle_delete_method=True, toggle_post_method=True, orig_vertex_counts=None, orig_edge_counts=None)
 
 if __name__ == "__main__":
     main()
