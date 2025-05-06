@@ -249,6 +249,7 @@ def main():
 
     manager = KafkaManager(conn=conn, readOnly=False, server=GRIP_SERVER_URL)
     errors, edges, vertices = manager.test_bulk_load_test_graph()
+    time.sleep(5)
 
     # run load operations from kafka, and check load
     manager.test_write_from_kafka(toggle_delete_method=False, toggle_post_method=True, orig_vertex_counts=len(vertices), orig_edge_counts=len(edges))
