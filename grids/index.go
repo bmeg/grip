@@ -2,7 +2,6 @@ package grids
 
 import (
 	"context"
-	"fmt"
 	"strings"
 
 	"github.com/bmeg/grip/gripql"
@@ -16,18 +15,15 @@ func normalizePath(path string) string {
 }
 
 // AddVertexIndex add index to vertices
-func (ggraph *Graph) AddVertexIndex(label string, field string) error {
+func (ggraph *Graph) AddVertexIndex(label, field string) error {
 	log.WithFields(log.Fields{"label": label, "field": field}).Info("Adding vertex index")
-	field = normalizePath(field)
-	//TODO kick off background process to reindex existing data
-	return ggraph.bsonkv.AddField(fmt.Sprintf("%s.v.%s.%s", ggraph.graphID, label, field))
+	return ggraph.bsonkv.AddField(VTABLE_PREFIX+label, field)
 }
 
 // DeleteVertexIndex delete index from vertices
-func (ggraph *Graph) DeleteVertexIndex(label string, field string) error {
+func (ggraph *Graph) DeleteVertexIndex(label, field string) error {
 	log.WithFields(log.Fields{"label": label, "field": field}).Info("Deleting vertex index")
-	field = normalizePath(field)
-	return ggraph.bsonkv.RemoveField(fmt.Sprintf("%s.v.%s.%s", ggraph.graphID, label, field))
+	return ggraph.bsonkv.RemoveField(VTABLE_PREFIX+label, field)
 }
 
 // GetVertexIndexList lists out all the vertex indices for a graph
@@ -36,29 +32,42 @@ func (ggraph *Graph) GetVertexIndexList() <-chan *gripql.IndexID {
 	out := make(chan *gripql.IndexID)
 	go func() {
 		defer close(out)
-		fields := ggraph.bsonkv.ListFields()
-		for _, f := range fields {
-			t := strings.Split(f, ".")
-			if len(t) > 3 {
-				out <- &gripql.IndexID{Graph: ggraph.graphID, Label: t[2], Field: t[3]}
-			}
+		for _, f := range ggraph.bsonkv.ListFields() {
+			out <- &gripql.IndexID{Graph: ggraph.graphID, Label: f.Label, Field: f.Field}
 		}
 	}()
 	return out
 }
 
+// Vertex Filter Scan produces a channel of all vertex ids in a graph that match the field - value filter
+func (ggraph *Graph) VertexFilterScan(ctx context.Context, label string, field string, value string) (chan string, error) {
+	log.WithFields(log.Fields{"field": field, "value": value}).Info("Running VertexFilterScan")
+	if label[:2] != VTABLE_PREFIX {
+		label = VTABLE_PREFIX + label
+	}
+	return ggraph.bsonkv.RowIdsByFieldValue(field, value)
+}
+
+// Vertex Filter Scan produces a channel of all vertex ids in a graph that match the field - value filter
+func (ggraph *Graph) VertexFilterLabelScan(ctx context.Context, label string, field string, value string) (chan string, error) {
+	log.WithFields(log.Fields{"label": label, "field": field, "value": value}).Info("Running VertexFilterLabelScan")
+	if label[:2] != VTABLE_PREFIX {
+		label = VTABLE_PREFIX + label
+	}
+	return ggraph.bsonkv.RowIdsByLabelFieldValue(label, field, value)
+}
+
 // VertexLabelScan produces a channel of all vertex ids in a graph
 // that match a given label
 func (ggraph *Graph) VertexLabelScan(ctx context.Context, label string) chan string {
-	log.WithFields(log.Fields{"label": label}).Debug("Running VertexLabelScan")
+	log.WithFields(log.Fields{"label": label}).Info("Running VertexLabelScan")
 	//TODO: Make this work better
 	out := make(chan string, 100)
-	if label[:2] != "v_" {
-		label = "v_" + label
+	if label[:2] != VTABLE_PREFIX {
+		label = VTABLE_PREFIX + label
 	}
 	go func() {
 		defer close(out)
-		log.Infof("Searching %s %s", fmt.Sprintf("%s.label", ggraph.graphID), label)
 		for i := range ggraph.bsonkv.GetIDsForLabel(label) {
 			out <- i
 		}
