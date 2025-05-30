@@ -1,6 +1,8 @@
 package core
 
 import (
+	"github.com/bmeg/grip/log"
+
 	"github.com/bmeg/grip/gdbi/tpath"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/util/protoutil"
@@ -13,8 +15,7 @@ func IndexStartOptimize(pipe []*gripql.GraphStatement) []*gripql.GraphStatement 
 	optimized := []*gripql.GraphStatement{}
 
 	//var lookupV *gripql.GraphStatement_V
-	hasIDIdx := []int{}
-	hasLabelIdx := []int{}
+	hasIDIdx, hasLabelIdx, hasCondIdx := []int{}, []int{}, []int{}
 	isDone := false
 	for i, step := range pipe {
 		if isDone {
@@ -48,13 +49,14 @@ func IndexStartOptimize(pipe []*gripql.GraphStatement) []*gripql.GraphStatement 
 			}
 			if cond := s.Has.GetCondition(); cond != nil {
 				path := tpath.NormalizePath(cond.Key)
+				log.Infof("KEY: %s PATH: %s", cond.Key, path)
 				switch path {
 				case "$_current._id":
 					hasIDIdx = append(hasIDIdx, i)
 				case "$_current._label":
 					hasLabelIdx = append(hasLabelIdx, i)
 				default:
-					// do nothing
+					hasCondIdx = append(hasCondIdx, i)
 				}
 			}
 		default:
@@ -91,13 +93,28 @@ func IndexStartOptimize(pipe []*gripql.GraphStatement) []*gripql.GraphStatement 
 		}
 		if len(labels) > 0 {
 			labelOpt = true
-			hIdx := &gripql.GraphStatement_LookupVertsIndex{Labels: labels}
+			hIdx := &gripql.GraphStatement_LookupVertsLabelIndex{Labels: labels}
 			optimized = append(optimized, &gripql.GraphStatement{Statement: hIdx})
 		}
 	}
 
+	hasCondOpt := false
+	if len(hasCondIdx) > 0 {
+		idx := hasCondIdx[0]
+		if has, ok := pipe[idx].GetStatement().(*gripql.GraphStatement_Has); ok {
+			cond := has.Has.GetCondition()
+			optimized = append(optimized,
+				&gripql.GraphStatement{Statement: &gripql.GraphStatement_LookupVertexHasCondIndex{
+					Key: cond.Key, Value: cond.GetValue().String(),
+				}},
+			)
+			hasCondOpt = true
+			log.Infoln("OPTIMiZED: ", optimized)
+		}
+	}
+
 	for i, step := range pipe {
-		if idOpt || labelOpt {
+		if idOpt || labelOpt || hasCondOpt {
 			if i == 0 {
 				continue
 			}
@@ -111,6 +128,11 @@ func IndexStartOptimize(pipe []*gripql.GraphStatement) []*gripql.GraphStatement 
 		}
 		if labelOpt {
 			if i != hasLabelIdx[0] {
+				optimized = append(optimized, step)
+			}
+		}
+		if hasCondOpt {
+			if i != hasCondIdx[0] {
 				optimized = append(optimized, step)
 			}
 		}

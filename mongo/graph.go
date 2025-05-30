@@ -693,3 +693,7 @@ func (mg *Graph) ListEdgeLabels() ([]string, error) {
 	}
 	return labels, nil
 }
+
+func (mg *Graph) VertexHasConditionScan(ctx context.Context, key, value string) chan string {
+	panic("not implemented")
+}

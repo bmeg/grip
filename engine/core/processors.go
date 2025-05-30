@@ -7,6 +7,7 @@ import (
 
 	"github.com/bmeg/grip/engine/logic"
 	"github.com/bmeg/grip/gdbi"
+	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/util/copy"
 	"github.com/spf13/cast"
 )
@@ -56,17 +57,52 @@ func (l *LookupVerts) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 	return ctx
 }
 
+// //////////////////////////////////////////////////////////////////////////////
+// LookupVertsCondIndex look up vertices by indexed
+type LookupVertsCondIndex struct {
+	db       gdbi.GraphInterface
+	key      string
+	value    string
+	loadData bool
+}
+
+func (l *LookupVertsCondIndex) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
+	queryChan := make(chan gdbi.ElementLookup, 100)
+	go func() {
+		defer close(queryChan)
+		for t := range in {
+			log.Infof("HELLO: %s %s", l.key, l.value)
+			for id := range l.db.VertexHasConditionScan(ctx, l.key, l.value) {
+				queryChan <- gdbi.ElementLookup{
+					ID:  id,
+					Ref: t,
+				}
+			}
+
+		}
+	}()
+
+	go func() {
+		defer close(out)
+		for v := range l.db.GetVertexChannel(ctx, queryChan, l.loadData) {
+			i := v.Ref
+			out <- i.AddCurrent(v.Vertex.Copy())
+		}
+	}()
+	return ctx
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 
 // LookupVertsIndex look up vertices by indexed based feature
-type LookupVertsIndex struct {
+type LookupVertsLabelIndex struct {
 	db       gdbi.GraphInterface
 	labels   []string
 	loadData bool
 }
 
 // Process LookupVertsIndex
-func (l *LookupVertsIndex) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
+func (l *LookupVertsLabelIndex) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
 	queryChan := make(chan gdbi.ElementLookup, 100)
 	go func() {
 		defer close(queryChan)

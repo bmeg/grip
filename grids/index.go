@@ -40,11 +40,8 @@ func (ggraph *Graph) GetVertexIndexList() <-chan *gripql.IndexID {
 }
 
 // Vertex Filter Scan produces a channel of all vertex ids in a graph that match the field - value filter
-func (ggraph *Graph) VertexFilterScan(ctx context.Context, label string, field string, value string) (chan string, error) {
+func (ggraph *Graph) VertexHasConditionScan(ctx context.Context, field string, value string) chan string {
 	log.WithFields(log.Fields{"field": field, "value": value}).Info("Running VertexFilterScan")
-	if label[:2] != VTABLE_PREFIX {
-		label = VTABLE_PREFIX + label
-	}
 	return ggraph.bsonkv.RowIdsByFieldValue(field, value)
 }
 
@@ -61,16 +58,8 @@ func (ggraph *Graph) VertexFilterLabelScan(ctx context.Context, label string, fi
 // that match a given label
 func (ggraph *Graph) VertexLabelScan(ctx context.Context, label string) chan string {
 	log.WithFields(log.Fields{"label": label}).Info("Running VertexLabelScan")
-	//TODO: Make this work better
-	out := make(chan string, 100)
 	if label[:2] != VTABLE_PREFIX {
 		label = VTABLE_PREFIX + label
 	}
-	go func() {
-		defer close(out)
-		for i := range ggraph.bsonkv.GetIDsForLabel(label) {
-			out <- i
-		}
-	}()
-	return out
+	return ggraph.bsonkv.GetIDsForLabel(label)
 }

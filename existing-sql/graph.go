@@ -814,3 +814,7 @@ func (g *Graph) ListEdgeLabels() ([]string, error) {
 	}
 	return labels, nil
 }
+
+func (g *Graph) VertexHasConditionScan(ctx context.Context, key, value string) chan string {
+	panic("not implemented")
+}

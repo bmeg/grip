@@ -168,6 +168,7 @@ type GraphInterface interface {
 	DelVertex(key string) error
 	DelEdge(key string) error
 
+	VertexHasConditionScan(ctx context.Context, key, value string) chan string
 	VertexLabelScan(ctx context.Context, label string) chan string
 	// EdgeLabelScan(ctx context.Context, label string) chan string
 	ListVertexLabels() ([]string, error)

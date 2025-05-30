@@ -1,4 +1,4 @@
-
+import gripql
 
 def test_index(man):
     errors = []
@@ -25,9 +25,15 @@ def test_index(man):
     resp = G.listIndices()
     found = False
     for i in resp:
+        print("I: ", i)
         if i["field"] == "name" and i["label"] == "Person":
             found = True
     if not found:
         errors.append("Expected index not found")
+
+
+    resp2 = G.query().V().has(gripql.eq("name","marko"))
+    for i in resp2:
+        print("I: ", i)
 
     return errors

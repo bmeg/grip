@@ -112,6 +112,15 @@ func (ggraph *Graph) indexEdge(edge *gdbi.Edge) error {
 	if err := table.AddRow(benchtop.Row{Id: []byte(edge.ID), TableName: edgeLabel, Data: edge.Data}); err != nil {
 		return fmt.Errorf("indexEdge: table.AddRow: %s", err)
 	}
+
+	_, fieldsExist := ggraph.bsonkv.Fields[edgeLabel]
+	if fieldsExist {
+		for field := range ggraph.bsonkv.Fields[edgeLabel] {
+			if val, ok := edge.Data[field]; ok {
+				table.Pb.Db.Set(benchtop.FieldKey(edgeLabel, field, val, []byte(edge.ID)), []byte{}, nil)
+			}
+		}
+	}
 	return nil
 }
 

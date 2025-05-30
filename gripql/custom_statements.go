@@ -7,11 +7,19 @@ package gripql
 //in the traversal that the optimizer may add in, but can't be coded by a
 //serialized user request
 
-type GraphStatement_LookupVertsIndex struct {
+type GraphStatement_LookupVertsLabelIndex struct {
 	Labels []string `protobuf:"bytes,1,rep,name=labels" json:"labels,omitempty"`
 }
 
-func (*GraphStatement_LookupVertsIndex) isGraphStatement_Statement() {}
+func (*GraphStatement_LookupVertsLabelIndex) isGraphStatement_Statement() {}
+
+type GraphStatement_LookupVertexHasCondIndex struct {
+	Key string 		`protobuf:"bytes,1,opt,name=key" json:"key,omitempty"`
+	Value string	`protobuf:"bytes,1,opt,name=value" json:"value,omitempty"`
+}
+
+func (*GraphStatement_LookupVertexHasCondIndex) isGraphStatement_Statement() {}
+
 
 type GraphStatement_EngineCustom struct {
 	Desc   string      `protobuf:"bytes,1,opt,name=desc" json:"desc,omitempty"`
