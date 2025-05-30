@@ -766,7 +766,3 @@ func (t *TabularGraph) GetInEdgeChannel(ctx context.Context, req chan gdbi.Eleme
 	}()
 	return out
 }
-
-func (T *TabularGraph) VertexHasConditionScan(ctx context.Context, key, value string) chan string {
-	panic("not implemented")
-}

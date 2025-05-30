@@ -13,14 +13,6 @@ type GraphStatement_LookupVertsLabelIndex struct {
 
 func (*GraphStatement_LookupVertsLabelIndex) isGraphStatement_Statement() {}
 
-type GraphStatement_LookupVertexHasCondIndex struct {
-	Key string 		`protobuf:"bytes,1,opt,name=key" json:"key,omitempty"`
-	Value string	`protobuf:"bytes,1,opt,name=value" json:"value,omitempty"`
-}
-
-func (*GraphStatement_LookupVertexHasCondIndex) isGraphStatement_Statement() {}
-
-
 type GraphStatement_EngineCustom struct {
 	Desc   string      `protobuf:"bytes,1,opt,name=desc" json:"desc,omitempty"`
 	Custom interface{} `protobuf:"bytes,2,opt,name=custom" json:"custom,omitempty"`

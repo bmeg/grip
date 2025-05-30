@@ -125,7 +125,7 @@ func (ggraph *Graph) indexEdge(edge *gdbi.Edge) error {
 }
 
 func (ggraph *Graph) Compiler() gdbi.Compiler {
-	return core.NewCompiler(ggraph, core.IndexStartOptimize)
+	return core.NewCompiler(ggraph, GripOptimizer, core.IndexStartOptimize)
 }
 
 // AddVertex adds an edge to the graph, if it already exists

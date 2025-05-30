@@ -2,17 +2,10 @@ package grids
 
 import (
 	"context"
-	"strings"
 
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/log"
 )
-
-func normalizePath(path string) string {
-	path = strings.TrimPrefix(path, "$.")
-	path = strings.TrimPrefix(path, "data.")
-	return path
-}
 
 // AddVertexIndex add index to vertices
 func (ggraph *Graph) AddVertexIndex(label, field string) error {

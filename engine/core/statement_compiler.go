@@ -245,10 +245,6 @@ func (sc *DefaultStmtCompiler) Custom(gs *gripql.GraphStatement, ps *gdbi.State)
 	case *gripql.GraphStatement_LookupVertsLabelIndex:
 		ps.LastType = gdbi.VertexData
 		return &LookupVertsLabelIndex{db: sc.db, labels: stmt.Labels, loadData: ps.StepLoadData()}, nil
-	case *gripql.GraphStatement_LookupVertexHasCondIndex:
-		ps.LastType = gdbi.VertexData
-		return &LookupVertsCondIndex{db: sc.db, key: stmt.Key, value: stmt.Value, loadData: ps.StepLoadData()}, nil
-
 	case *gripql.GraphStatement_EngineCustom:
 		proc := stmt.Custom.(gdbi.CustomProcGen)
 		ps.LastType = proc.GetType()
