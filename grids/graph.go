@@ -39,7 +39,7 @@ func insertVertex(tx *pebblebulk.PebbleBulk, keyMap *KeyMap, vertex *gdbi.Vertex
 	return nil
 }
 
-func (ggraph *Graph) indexVertex(vertex *gdbi.Vertex) error {
+func (ggraph *Graph) indexVertex(vertex *gdbi.Vertex, tx *pebblebulk.PebbleBulk) error {
 	vertexLabel := VTABLE_PREFIX + vertex.Label
 	ggraph.bsonkv.Lock.Lock()
 	table, ok := ggraph.bsonkv.Tables[vertexLabel]
@@ -55,9 +55,20 @@ func (ggraph *Graph) indexVertex(vertex *gdbi.Vertex) error {
 		ggraph.bsonkv.Tables[vertexLabel] = table
 		ggraph.bsonkv.Lock.Unlock()
 	}
-	if err := table.AddRow(benchtop.Row{Id: []byte(vertex.ID), TableName: vertexLabel, Data: vertex.Data}); err != nil {
+	if err := table.AddRow(benchtop.Row{Id: []byte(vertex.ID), TableName: vertexLabel, Data: vertex.Data}, tx); err != nil {
 		return fmt.Errorf("AddVertex Error %s", err)
 	}
+
+	_, fieldsExist := ggraph.bsonkv.Fields[vertexLabel]
+	if fieldsExist {
+		for field := range ggraph.bsonkv.Fields[vertexLabel] {
+			if val, ok := vertex.Data[field]; ok {
+				log.Debugln("Field: ", field, "Value: ", val, "Id: ", vertex.ID)
+				tx.Set(benchtop.FieldKey(vertexLabel, field, val, []byte(vertex.ID)), []byte{}, nil)
+			}
+		}
+	}
+
 	return nil
 }
 
@@ -92,7 +103,7 @@ func insertEdge(tx *pebblebulk.PebbleBulk, keyMap *KeyMap, edge *gdbi.Edge) erro
 	return nil
 }
 
-func (ggraph *Graph) indexEdge(edge *gdbi.Edge) error {
+func (ggraph *Graph) indexEdge(edge *gdbi.Edge, tx *pebblebulk.PebbleBulk) error {
 	edgeLabel := ETABLE_PREFIX + edge.Label
 	ggraph.bsonkv.Lock.Lock()
 	table, ok := ggraph.bsonkv.Tables[edgeLabel]
@@ -109,7 +120,7 @@ func (ggraph *Graph) indexEdge(edge *gdbi.Edge) error {
 		ggraph.bsonkv.Tables[edgeLabel] = table
 		ggraph.bsonkv.Lock.Unlock()
 	}
-	if err := table.AddRow(benchtop.Row{Id: []byte(edge.ID), TableName: edgeLabel, Data: edge.Data}); err != nil {
+	if err := table.AddRow(benchtop.Row{Id: []byte(edge.ID), TableName: edgeLabel, Data: edge.Data}, tx); err != nil {
 		return fmt.Errorf("indexEdge: table.AddRow: %s", err)
 	}
 
@@ -117,7 +128,7 @@ func (ggraph *Graph) indexEdge(edge *gdbi.Edge) error {
 	if fieldsExist {
 		for field := range ggraph.bsonkv.Fields[edgeLabel] {
 			if val, ok := edge.Data[field]; ok {
-				table.Pb.Db.Set(benchtop.FieldKey(edgeLabel, field, val, []byte(edge.ID)), []byte{}, nil)
+				tx.Set(benchtop.FieldKey(edgeLabel, field, val, []byte(edge.ID)), []byte{}, nil)
 			}
 		}
 	}
@@ -146,7 +157,7 @@ func (ggraph *Graph) AddVertex(vertices []*gdbi.Vertex) error {
 	err = ggraph.bsonkv.Pb.BulkWrite(func(tx *pebblebulk.PebbleBulk) error {
 		var bulkErr *multierror.Error
 		for _, vert := range vertices {
-			if err := ggraph.indexVertex(vert); err != nil {
+			if err := ggraph.indexVertex(vert, tx); err != nil {
 				bulkErr = multierror.Append(bulkErr, err)
 				log.Errorf("IndexVertex Error %s", err)
 			}
@@ -176,7 +187,7 @@ func (ggraph *Graph) AddEdge(edges []*gdbi.Edge) error {
 	err = ggraph.bsonkv.Pb.BulkWrite(func(tx *pebblebulk.PebbleBulk) error {
 		var bulkErr *multierror.Error
 		for _, edge := range edges {
-			if err := ggraph.indexEdge(edge); err != nil {
+			if err := ggraph.indexEdge(edge, tx); err != nil {
 				bulkErr = multierror.Append(bulkErr, err)
 			}
 		}

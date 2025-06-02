@@ -4,9 +4,11 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/bmeg/benchtop"
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gdbi/tpath"
 	"github.com/bmeg/grip/gripql"
+	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/util/protoutil"
 )
 
@@ -89,6 +91,151 @@ var startOptimizations = []OptimizationRule{
 			return append(optimized, pipe[2:]...)
 		},
 	},
+	{
+		Match: func(pipe []*gripql.GraphStatement) bool {
+			if len(pipe) < 3 {
+				return false
+			}
+			if _, ok := pipe[0].GetStatement().(*gripql.GraphStatement_V); !ok {
+				return false
+			}
+			if hasLabel, ok := pipe[1].GetStatement().(*gripql.GraphStatement_HasLabel); ok {
+				return len(hasLabel.HasLabel.GetValues()) > 0
+			}
+			if has, ok := pipe[2].GetStatement().(*gripql.GraphStatement_Has); ok {
+				cond := has.Has.GetCondition()
+				return cond != nil && cond.Condition == gripql.Condition_EQ
+			}
+			return false
+		},
+		Replace: func(pipe []*gripql.GraphStatement) []*gripql.GraphStatement {
+			has := pipe[2].GetHas()
+			cond := has.GetCondition()
+			path := tpath.NormalizePath(cond.Key)
+			value := cond.Value.GetStringValue()
+			var optimized []*gripql.GraphStatement
+			switch path {
+			default:
+				optimized = []*gripql.GraphStatement{
+					{
+						Statement: &gripql.GraphStatement_EngineCustom{
+							Desc:   "Grids Has Level Indexing",
+							Custom: lookupVertsHasLabelCondIndexStep{key: cond.Key, value: value},
+						},
+					},
+				}
+			}
+			return append(optimized, pipe[3:]...)
+		},
+	},
+}
+
+// //////////////////////////////////////////////////////////////////////////////
+// LookupVertexHasLabelCondIndex look up vertices has label
+type lookupVertsHasLabelCondIndexStep struct {
+	key   string
+	label string
+	value string
+	op    benchtop.OperatorType
+}
+
+func (t lookupVertsHasLabelCondIndexStep) GetProcessor(db gdbi.GraphInterface, ps gdbi.PipelineState) (gdbi.Processor, error) {
+	graph := db.(*Graph)
+	// If Field is indexed, use the special processor
+	for _, fields := range graph.bsonkv.Fields {
+		for field := range fields {
+			if field == t.key {
+				return &lookupVertsHasLabelCondIndexProc{
+					db:       graph,
+					key:      t.key,
+					value:    t.value,
+					label:    t.label,
+					op:       t.op,
+					fallback: false,
+					loadData: true}, nil
+			}
+		}
+	}
+	return &lookupVertsHasLabelCondIndexProc{
+		db:       graph,
+		key:      t.key,
+		value:    t.value,
+		label:    t.label,
+		op:       t.op,
+		fallback: true,
+		loadData: true}, nil
+}
+
+func (t lookupVertsHasLabelCondIndexStep) GetType() gdbi.DataType {
+	return gdbi.VertexData
+}
+
+type lookupVertsHasLabelCondIndexProc struct {
+	db       *Graph
+	key      string
+	value    string
+	label    string
+	op       benchtop.OperatorType
+	loadData bool
+	fallback bool
+}
+
+func (l *lookupVertsHasLabelCondIndexProc) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
+	queryChan := make(chan gdbi.ElementLookup, 100)
+	if l.fallback {
+		log.Debugf("No index found for %s falling back to GetVertexList", l.key)
+		go func() {
+			defer close(queryChan)
+			for t := range in {
+				rowChan, err := l.db.bsonkv.Tables[l.label].Scan(
+					true,
+					[]benchtop.FieldFilter{
+						{Field: l.key, Value: l.value, Operator: benchtop.OpEqual},
+					},
+				)
+				if err != nil {
+					log.Errorln("Scan Process Err: ", err)
+				}
+				for v := range rowChan {
+					val, keyExists := v[l.key]
+					id, idExists := v["_id"].(string)
+					// In cases where eq comparisons to 'None' values are made
+					if l.value == "" && (!keyExists && idExists || val == nil) {
+						queryChan <- gdbi.ElementLookup{ID: id, Ref: t}
+					} else if (keyExists && idExists) && (val == l.value || fmt.Sprintf("%v", val) == l.value) {
+						queryChan <- gdbi.ElementLookup{ID: id, Ref: t}
+					}
+				}
+			}
+		}()
+	} else {
+		go func() {
+			defer close(queryChan)
+			for t := range in {
+				rowChan, err := l.db.VertexFilterLabelScan(ctx, l.label, l.key, l.value)
+				if err != nil {
+					log.Errorln("VertexFilterLabelScan Process Err: ", err)
+				}
+				for id := range rowChan {
+					queryChan <- gdbi.ElementLookup{
+						ID:  id,
+						Ref: t,
+					}
+				}
+
+			}
+		}()
+	}
+
+	go func() {
+		defer close(out)
+		for v := range l.db.GetVertexChannel(ctx, queryChan, l.loadData) {
+			i := v.Ref
+			out <- i.AddCurrent(v.Vertex.Copy())
+		}
+	}()
+	return ctx
+
 }
 
 // //////////////////////////////////////////////////////////////////////////////
@@ -104,11 +251,11 @@ func (t lookupVertsCondIndexStep) GetProcessor(db gdbi.GraphInterface, ps gdbi.P
 	for _, fields := range graph.bsonkv.Fields {
 		for field := range fields {
 			if field == t.key {
-				return &lookupVertsCondIndexProc{db: graph, key: t.key, value: t.value, fallback: false}, nil
+				return &lookupVertsCondIndexProc{db: graph, key: t.key, value: t.value, fallback: false, loadData: true}, nil
 			}
 		}
 	}
-	return &lookupVertsCondIndexProc{db: graph, key: t.key, value: t.value, fallback: true}, nil
+	return &lookupVertsCondIndexProc{db: graph, key: t.key, value: t.value, fallback: true, loadData: true}, nil
 }
 
 func (t lookupVertsCondIndexStep) GetType() gdbi.DataType {
@@ -126,6 +273,7 @@ type lookupVertsCondIndexProc struct {
 func (l *lookupVertsCondIndexProc) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
 	queryChan := make(chan gdbi.ElementLookup, 100)
 	if l.fallback {
+		log.Debugf("No index found for %s falling back to GetVertexList", l.key)
 		go func() {
 			defer close(queryChan)
 			for t := range in {
