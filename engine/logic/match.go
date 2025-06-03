@@ -12,8 +12,8 @@ import (
 )
 
 func MatchesCondition(trav gdbi.Traveler, cond *gripql.HasCondition) bool {
-	var val interface{}
-	var condVal interface{}
+	var val any
+	var condVal any
 
 	val = gdbi.TravelerPathLookup(trav, cond.Key)
 	condVal = cond.Value.AsInterface()
@@ -194,7 +194,7 @@ func MatchesCondition(trav gdbi.Traveler, cond *gripql.HasCondition) bool {
 	case gripql.Condition_WITHOUT:
 		found := false
 		switch condVal := condVal.(type) {
-		case []interface{}:
+		case []any:
 			for _, v := range condVal {
 				if reflect.DeepEqual(val, v) {
 					found = true

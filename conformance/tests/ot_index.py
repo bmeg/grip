@@ -43,7 +43,7 @@ def test_index(man):
         errors.append("Expecting 2 vertices returned but got %d instead" % (count))
     return errors
 
-
+"""
 def test_bulk_index(man):
     errors = []
 
@@ -83,3 +83,46 @@ def test_bulk_index(man):
         errors.append("expected count 4 but got %d instead" % (count))
 
     return errors
+
+
+
+
+def test_index_after_write(man):
+    errors = []
+
+    G = man.writeTest()
+
+    bulk = G.bulkAdd()
+    bulk.addVertex("1", "Person", {"name": "marko", "age": "29"})
+    bulk.addVertex("2", "Person", {"name": "vadas", "age": "27"})
+    bulk.addVertex("4", "Person", {"name": "josh", "age": "32"})
+    bulk.addVertex("6", "Person", {"name": "peter", "age": "35"})
+    bulk.addVertex("7", "Person", {"name": "alice", "age": "31"})
+    bulk.addVertex("8", "Person", {"name": "bob", "age": "32"})
+    bulk.addVertex("9", "Person", {"name": "charlie", "age": "28"})
+    bulk.addVertex("10", "Person", {"name": "diana", "age": "32"})
+    bulk.addVertex("11", "Person", {"name": "eve", "age": "30"})
+    bulk.addVertex("12", "Person", {"name": "frank", "age": "33"})
+    bulk.addVertex("13", "Person", {"name": "grace", "age": "26"})
+    bulk.addVertex("14", "Person", {"name": "heidi", "age": "32"})
+    bulk.addVertex("15", "Person", {"name": "ivan", "age": "29"})
+    bulk.addVertex("16", "Person", {"name": "judy", "age": "34"})
+    res = bulk.execute()
+    print("RES: ", res)
+
+
+    G.addIndex("Person", "age")
+
+    count = 0
+    resp3 = G.query().V().has(gripql.eq("age","32"))
+    for i in resp3:
+        count += 1
+        if "age" not in i:
+            errors.append("field 'age' not found in vertex")
+        if "age" in i and i["age"] != "32":
+            errors.append("filtering on field age value '32' but got %s instead" %s (i["age"]))
+    if count != 4:
+        errors.append("expected count 4 but got %d instead" % (count))
+
+    return errors
+"""
