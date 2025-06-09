@@ -1,7 +1,6 @@
 package core
 
 import (
-	"github.com/bmeg/grip/gdbi/tpath"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/util/protoutil"
 )
@@ -54,41 +53,6 @@ var startOptimizations = []OptimizationRule{
 			labels := protoutil.AsStringList(pipe[1].GetHasLabel())
 			optimized := []*gripql.GraphStatement{
 				{Statement: &gripql.GraphStatement_LookupVertsLabelIndex{Labels: labels}},
-			}
-			return append(optimized, pipe[2:]...)
-		},
-	},
-	{
-		// Matches V().Has(Eq(key, value)) for _id, _label, or other conditions
-		Match: func(pipe []*gripql.GraphStatement) bool {
-			if len(pipe) < 2 {
-				return false
-			}
-			if _, ok := pipe[0].GetStatement().(*gripql.GraphStatement_V); !ok {
-				return false
-			}
-			if has, ok := pipe[1].GetStatement().(*gripql.GraphStatement_Has); ok {
-				cond := has.Has.GetCondition()
-				return cond != nil && cond.Condition == gripql.Condition_EQ
-			}
-			return false
-		},
-		Replace: func(pipe []*gripql.GraphStatement) []*gripql.GraphStatement {
-			has := pipe[1].GetHas()
-			cond := has.GetCondition()
-			path := tpath.NormalizePath(cond.Key)
-			value := cond.Value.String()
-			var optimized []*gripql.GraphStatement
-			switch path {
-			case "$_current._id":
-				optimized = []*gripql.GraphStatement{
-					{Statement: &gripql.GraphStatement_V{V: protoutil.NewListFromStrings([]string{value})}},
-				}
-			case "$_current._label":
-				optimized = []*gripql.GraphStatement{
-					{Statement: &gripql.GraphStatement_LookupVertsLabelIndex{Labels: []string{value}}},
-				}
-			default:
 			}
 			return append(optimized, pipe[2:]...)
 		},

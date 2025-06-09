@@ -26,7 +26,6 @@ func MatchesCondition(trav gdbi.Traveler, cond *gripql.HasCondition) bool {
 		//TODO: Add escape for $ user string
 	}
 	//If filtering on nil or no match was found on float64 casting operators return false
-	log.Debug("val: ", val, "condVal: ", condVal)
 	if (val == nil || condVal == nil) &&
 		cond.Condition != gripql.Condition_EQ &&
 		cond.Condition != gripql.Condition_NEQ &&
@@ -239,7 +238,7 @@ func MatchesHasExpression(trav gdbi.Traveler, stmt *gripql.HasExpression) bool {
 	switch stmt.Expression.(type) {
 	case *gripql.HasExpression_Condition:
 		cond := stmt.GetCondition()
-		log.Debug("COND: ", cond)
+		log.Debug("COND IN ENGINE: ", cond)
 		return MatchesCondition(trav, cond)
 
 	case *gripql.HasExpression_And:

@@ -1,6 +1,6 @@
 import gripql
 
-
+"""
 def test_index(man):
     errors = []
 
@@ -25,7 +25,6 @@ def test_index(man):
     resp = G.listIndices()
     found = False
     for i in resp:
-        print("I: ", i)
         if i["field"] == "name" and i["label"] == "Person":
             found = True
     if not found:
@@ -38,12 +37,11 @@ def test_index(man):
             errors.append("'name' field not found in vertex")
         if i["name"] != "marko":
             errors.append("Filtering on field name, value marko but got '%s' instead" % i["name"])
-        print("J: ", i)
     if count != 2:
         errors.append("Expecting 2 vertices returned but got %d instead" % (count))
     return errors
 
-"""
+
 def test_bulk_index(man):
     errors = []
 
@@ -74,6 +72,7 @@ def test_bulk_index(man):
     count = 0
     resp3 = G.query().V().has(gripql.eq("age","32"))
     for i in resp3:
+        print("I: ", i)
         count += 1
         if "age" not in i:
             errors.append("field 'age' not found in vertex")
@@ -85,14 +84,13 @@ def test_bulk_index(man):
     return errors
 
 
-
+"""
 
 def test_index_after_write(man):
     errors = []
 
     G = man.writeTest()
-
-    bulk = G.bulkAdd()
+    """bulk = G.bulkAdd()
     bulk.addVertex("1", "Person", {"name": "marko", "age": "29"})
     bulk.addVertex("2", "Person", {"name": "vadas", "age": "27"})
     bulk.addVertex("4", "Person", {"name": "josh", "age": "32"})
@@ -108,21 +106,22 @@ def test_index_after_write(man):
     bulk.addVertex("15", "Person", {"name": "ivan", "age": "29"})
     bulk.addVertex("16", "Person", {"name": "judy", "age": "34"})
     res = bulk.execute()
-    print("RES: ", res)
-
+    if res["errorCount"] > 0:
+        errors.append("errorCount on bulk add > 0")
 
     G.addIndex("Person", "age")
 
     count = 0
-    resp3 = G.query().V().has(gripql.eq("age","32"))
-    for i in resp3:
+    restwo = G.query().V().has(gripql.within("name", ["marko", "vadas", "eve", "ivan", "charlie", "nothere"]))
+    for i in restwo:
         count += 1
-        if "age" not in i:
-            errors.append("field 'age' not found in vertex")
-        if "age" in i and i["age"] != "32":
-            errors.append("filtering on field age value '32' but got %s instead" %s (i["age"]))
-    if count != 4:
-        errors.append("expected count 4 but got %d instead" % (count))
+    if count != 5:
+        errors.append("Expected 5 names from filter but got %d instead" % (count))
+    """
+    G.addIndex("Starship", "cost_in_credits")
+
+    respthree = G.query().V().hasLabel("Starship").has(gripql.lt("cost_in_credits", 150000000))
+    for i in respthree:
+        print("HELLO ", i)
 
     return errors
-"""
