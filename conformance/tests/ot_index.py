@@ -1,6 +1,6 @@
 import gripql
 
-"""
+
 def test_index(man):
     errors = []
 
@@ -21,14 +21,6 @@ def test_index(man):
     G.addEdge("4", "3", "created", {"weight": 0.4})
     G.addEdge("6", "3", "created", {"weight": 0.2})
     G.addEdge("4", "5", "created", {"weight": 1.0})
-
-    resp = G.listIndices()
-    found = False
-    for i in resp:
-        if i["field"] == "name" and i["label"] == "Person":
-            found = True
-    if not found:
-        errors.append("Expected index not found")
 
     count = 0
     for i in G.query().V().has(gripql.eq("name","marko")):
@@ -67,12 +59,10 @@ def test_bulk_index(man):
 
 
     res = bulk.execute()
-    print("RES: ", res)
 
     count = 0
     resp3 = G.query().V().has(gripql.eq("age","32"))
     for i in resp3:
-        print("I: ", i)
         count += 1
         if "age" not in i:
             errors.append("field 'age' not found in vertex")
@@ -84,13 +74,12 @@ def test_bulk_index(man):
     return errors
 
 
-"""
-
 def test_index_after_write(man):
     errors = []
 
     G = man.writeTest()
-    """bulk = G.bulkAdd()
+
+    bulk = G.bulkAdd()
     bulk.addVertex("1", "Person", {"name": "marko", "age": "29"})
     bulk.addVertex("2", "Person", {"name": "vadas", "age": "27"})
     bulk.addVertex("4", "Person", {"name": "josh", "age": "32"})
@@ -117,11 +106,73 @@ def test_index_after_write(man):
         count += 1
     if count != 5:
         errors.append("Expected 5 names from filter but got %d instead" % (count))
-    """
+
+    return errors
+
+
+def test_index_filter(man):
+    errors = []
+    G = man.setGraph("swapi")
+
     G.addIndex("Starship", "cost_in_credits")
+    G.addIndex("Starship", "cargo_capacity")
+
 
     respthree = G.query().V().hasLabel("Starship").has(gripql.lt("cost_in_credits", 150000000))
+    count = 0
     for i in respthree:
-        print("HELLO ", i)
+        count += 1
+        if i['cost_in_credits'] > 149999999:
+            errors.append("filtering on ships that cost less than 150000000, but %d > 149999999" % (i['cost_in_credits']))
+
+    if count != 5:
+        errors.append("Expected 5 results got %d instead" % (count))
+
+    indices = G.listIndices()
+    found = False
+    count = 0
+    for i in indices:
+        count +=1
+        if i["field"] == "cost_in_credits" and i["label"] == "Starship":
+            found = True
+    if not found:
+        errors.append("Expected index not found")
+    if count != 2:
+        errors.append("Expected to find 2 indices but found %d instead" % (count))
+
+    G.deleteIndex("Starship", "cost_in_credits")
+    count = 0
+    indices_two = G.listIndices()
+    found = False
+    for i in indices_two:
+        count += 1
+        if i["field"] == "cost_in_credits" and i["label"] == "Starship":
+            found = True
+    if found:
+        errors.append("Expected index not found, but it was found")
+    if count != 1:
+        errors.append("Expected to find 1 index but found %d instead" % (count))
+
+    return errors
+
+
+def test_consistent_results(man):
+    errors = []
+    G = man.setGraph("swapi")
+
+    resp = G.query().V().has(gripql.contains("eye_colors", "yellow"))
+    count = 0
+    for i in resp:
+        count += 1
+    if count != 2:
+        errors.append("Expected 2 results but got %d instead" % (count))
+
+    G.addIndex("Species", "eye_colors")
+    resp = G.query().V().has(gripql.contains("eye_colors", "yellow"))
+    count = 0
+    for i in resp:
+        count += 1
+    if count != 2:
+        errors.append("Expected 2 results but got %d instead" % (count))
 
     return errors

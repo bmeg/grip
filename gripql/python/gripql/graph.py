@@ -174,6 +174,14 @@ class Graph(BaseConnection):
         raise_for_status(response)
         return response.json()
 
+    def deleteIndex(self, label, field):
+        url = self.url + f"/index/{label}/{field}"
+        response = self.session.delete(
+            url,
+        )
+        raise_for_status(response)
+        return response.json()
+
     def listIndices(self):
         url = self.url + "/index"
         response = self.session.get(

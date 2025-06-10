@@ -188,7 +188,6 @@ func (l *lookupVertsHasLabelCondIndexProc) Process(ctx context.Context, man gdbi
 						log.Errorf("BSONTable for label '%s' is nil. Cannot scan.", label)
 						continue
 					}
-					log.Debugln("OP: ", l.op, "KEY: ", l.key, "VAL: ", l.value)
 					rowChan, err := tableFound.Scan(
 						true,
 						[]benchtop.FieldFilter{
@@ -212,11 +211,7 @@ func (l *lookupVertsHasLabelCondIndexProc) Process(ctx context.Context, man gdbi
 			defer close(queryChan)
 			for t := range in {
 				for _, label := range l.labels {
-					rowChan, err := l.db.bsonkv.RowIdsByLabelFieldValue(label, l.key, l.value, l.op)
-					if err != nil {
-						log.Errorln("VertexFilterLabelScan Process Err: ", err)
-					}
-					for id := range rowChan {
+					for id := range l.db.bsonkv.RowIdsByLabelFieldValue(label, l.key, l.value, l.op) {
 						queryChan <- gdbi.ElementLookup{
 							ID:  id,
 							Ref: t,

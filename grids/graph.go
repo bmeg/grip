@@ -45,7 +45,7 @@ func (ggraph *Graph) indexVertex(vertex *gdbi.Vertex, tx *pebblebulk.PebbleBulk)
 	table, ok := ggraph.bsonkv.Tables[vertexLabel]
 	ggraph.bsonkv.Lock.Unlock()
 	if !ok {
-		log.Debugf("Creating new table for: %s on graph %s", vertex.Label, ggraph.graphID)
+		log.Debugf("Creating new table %s for label %s on graph %s", vertexLabel, vertex.Label, ggraph.graphID)
 		newTable, err := ggraph.bsonkv.New(vertexLabel, nil)
 		if err != nil {
 			return fmt.Errorf("indexVertex: %s", err)
@@ -63,8 +63,7 @@ func (ggraph *Graph) indexVertex(vertex *gdbi.Vertex, tx *pebblebulk.PebbleBulk)
 	if fieldsExist {
 		for field := range ggraph.bsonkv.Fields[vertexLabel] {
 			if val, ok := vertex.Data[field]; ok {
-				log.Debugln("Field: ", field, "Value: ", val, "Id: ", vertex.ID)
-				tx.Set(benchtop.FieldKey(vertexLabel, field, val, []byte(vertex.ID)), []byte{}, nil)
+				tx.Set(benchtop.FieldKey(field, vertexLabel, val, []byte(vertex.ID)), []byte{}, nil)
 			}
 		}
 	}
@@ -110,7 +109,7 @@ func (ggraph *Graph) indexEdge(edge *gdbi.Edge, tx *pebblebulk.PebbleBulk) error
 	ggraph.bsonkv.Lock.Unlock()
 
 	if !ok {
-		log.Debugf("Creating new table for: %s on graph %s", edge.Label, ggraph.graphID)
+		log.Debugf("Creating new table %s for label %s on graph %s", edgeLabel, edge.Label, ggraph.graphID)
 		newTable, err := ggraph.bsonkv.New(edgeLabel, nil)
 		if err != nil {
 			return fmt.Errorf("indexEdge: bsonkv.New: %s", err)
@@ -128,7 +127,7 @@ func (ggraph *Graph) indexEdge(edge *gdbi.Edge, tx *pebblebulk.PebbleBulk) error
 	if fieldsExist {
 		for field := range ggraph.bsonkv.Fields[edgeLabel] {
 			if val, ok := edge.Data[field]; ok {
-				tx.Set(benchtop.FieldKey(edgeLabel, field, val, []byte(edge.ID)), []byte{}, nil)
+				tx.Set(benchtop.FieldKey(field, edgeLabel, val, []byte(edge.ID)), []byte{}, nil)
 			}
 		}
 	}
@@ -506,6 +505,7 @@ func (ggraph *Graph) GetVertexChannel(ctx context.Context, ids chan gdbi.Element
 			if id.IsSignal() {
 				data <- elementData{req: id}
 			} else {
+				log.Debugln("ID: ", id.ID)
 				key, _ := ggraph.keyMap.GetVertexKey(id.ID, ggraph.bsonkv.Pb.Db)
 				ed := elementData{key: key, req: id}
 				if load {

@@ -17,7 +17,7 @@ func (ggraph *Graph) AddVertexIndex(label, field string) error {
 // DeleteVertexIndex delete index from vertices
 func (ggraph *Graph) DeleteVertexIndex(label, field string) error {
 	log.WithFields(log.Fields{"label": label, "field": field}).Info("Deleting vertex index")
-	return ggraph.bsonkv.RemoveField(VTABLE_PREFIX+label, field, nil, nil)
+	return ggraph.bsonkv.RemoveField(VTABLE_PREFIX+label, field)
 }
 
 // GetVertexIndexList lists out all the vertex indices for a graph
