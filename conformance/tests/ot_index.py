@@ -1,6 +1,31 @@
 import gripql
 
 
+def test_index_create_and_delete(man):
+    errors = []
+    G = man.writeTest()
+    G.addIndex("Person", "name")
+    found = False
+    indices = G.listIndices()
+    for i in indices:
+        if i["field"] == "name" and i["label"] == "Person":
+            found = True
+    if not found:
+        errors.append("Expected index to be found")
+
+    G.deleteIndex("Person", "name")
+    indices = G.listIndices()
+
+    found = False
+    for i in indices:
+        if i["field"] == "name" and i["label"] == "Person":
+            found = True
+    if found:
+        errors.append("Expected index not found")
+
+    return errors
+
+
 def test_index(man):
     errors = []
 
@@ -31,6 +56,7 @@ def test_index(man):
             errors.append("Filtering on field name, value marko but got '%s' instead" % i["name"])
     if count != 2:
         errors.append("Expecting 2 vertices returned but got %d instead" % (count))
+
     return errors
 
 
@@ -56,9 +82,9 @@ def test_bulk_index(man):
     bulk.addVertex("14", "Person", {"name": "heidi", "age": "32"})
     bulk.addVertex("15", "Person", {"name": "ivan", "age": "29"})
     bulk.addVertex("16", "Person", {"name": "judy", "age": "34"})
-
-
     res = bulk.execute()
+    if res["errorCount"] > 0:
+        errors.append("errorCount on bulk add > 0")
 
     count = 0
     resp3 = G.query().V().has(gripql.eq("age","32"))
@@ -76,9 +102,7 @@ def test_bulk_index(man):
 
 def test_index_after_write(man):
     errors = []
-
     G = man.writeTest()
-
     bulk = G.bulkAdd()
     bulk.addVertex("1", "Person", {"name": "marko", "age": "29"})
     bulk.addVertex("2", "Person", {"name": "vadas", "age": "27"})
@@ -113,10 +137,8 @@ def test_index_after_write(man):
 def test_index_filter(man):
     errors = []
     G = man.setGraph("swapi")
-
     G.addIndex("Starship", "cost_in_credits")
     G.addIndex("Starship", "cargo_capacity")
-
 
     respthree = G.query().V().hasLabel("Starship").has(gripql.lt("cost_in_credits", 150000000))
     count = 0
@@ -127,6 +149,7 @@ def test_index_filter(man):
 
     if count != 5:
         errors.append("Expected 5 results got %d instead" % (count))
+
 
     indices = G.listIndices()
     found = False

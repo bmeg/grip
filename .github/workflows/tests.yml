@@ -171,7 +171,7 @@ jobs:
           sleep 15
           ./grip server --rpc-port 18202 --http-port 18201 --config ./test/psql.yml &
           sleep 5
-          python conformance/run_conformance.py http://localhost:18201 --exclude index aggregations
+          python conformance/run_conformance.py http://localhost:18201 --exclude aggregations
 
 
   sqliteTest:
@@ -192,7 +192,7 @@ jobs:
           chmod +x grip
           ./grip server --rpc-port 18202 --http-port 18201 --config ./test/sqlite.yml &
           sleep 5
-          python conformance/run_conformance.py http://localhost:18201 --exclude index aggregations
+          python conformance/run_conformance.py http://localhost:18201 --exclude aggregations
 
 
   gripperTest:
