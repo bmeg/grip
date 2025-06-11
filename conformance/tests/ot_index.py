@@ -93,7 +93,7 @@ def test_bulk_index(man):
         if "age" not in i:
             errors.append("field 'age' not found in vertex")
         if "age" in i and i["age"] != "32":
-            errors.append("filtering on field age value '32' but got %s instead" %s (i["age"]))
+            errors.append("filtering on field age value '32' but got %s instead" % (i["age"]))
     if count != 4:
         errors.append("expected count 4 but got %d instead" % (count))
 
@@ -192,6 +192,20 @@ def test_consistent_results(man):
 
     G.addIndex("Species", "eye_colors")
     resp = G.query().V().has(gripql.contains("eye_colors", "yellow"))
+    count = 0
+    for i in resp:
+        count += 1
+    if count != 2:
+        errors.append("Expected 2 results but got %d instead" % (count))
+
+    return errors
+
+
+def test_hasLabel_contains(man):
+    # If using the grids driver + no indexing this test uses the optimized scan function pipeline
+    errors = []
+    G = man.setGraph("swapi")
+    resp = G.query().V().hasLabel("Species").has(gripql.contains("eye_colors", "yellow"))
     count = 0
     for i in resp:
         count += 1

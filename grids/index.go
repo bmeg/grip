@@ -2,7 +2,6 @@ package grids
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/log"
@@ -39,7 +38,6 @@ func (ggraph *Graph) VertexLabelScan(ctx context.Context, label string) chan str
 	if label[:2] != VTABLE_PREFIX {
 		label = VTABLE_PREFIX + label
 	}
-	fmt.Println("HELLO LABEL:", label)
 	log.WithFields(log.Fields{"label": label}).Info("Running VertexLabelScan")
 	return ggraph.bsonkv.GetIDsForLabel(label)
 }

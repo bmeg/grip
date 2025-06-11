@@ -29,6 +29,7 @@ jobs:
           name: gripBin
           path: grip
 
+
   unitTests:
     needs: build
     name: Unit tests
@@ -65,7 +66,6 @@ jobs:
           sleep 5
           python conformance/run_kafka.py
 
-
   badgerTest:
     needs: build
     name: Badger Conformance
@@ -85,7 +85,6 @@ jobs:
           ./grip server --rpc-port 18202 --http-port 18201 --config ./test/badger.yml &
           sleep 5
           make test-conformance
-
 
   pebbleTest:
     needs: build
@@ -107,7 +106,6 @@ jobs:
           sleep 5
           make test-conformance
 
-
   mongoTest:
     needs: build
     name: Mongo Test
@@ -128,7 +126,6 @@ jobs:
           ./grip server --rpc-port 18202 --http-port 18201 --config ./test/mongo.yml &
           sleep 5
           make test-conformance
-
 
   mongoCoreTest:
     needs: build
@@ -173,7 +170,6 @@ jobs:
           sleep 5
           python conformance/run_conformance.py http://localhost:18201 --exclude aggregations
 
-
   sqliteTest:
     needs: build
     name: Sqlite Test
@@ -193,7 +189,6 @@ jobs:
           ./grip server --rpc-port 18202 --http-port 18201 --config ./test/sqlite.yml &
           sleep 5
           python conformance/run_conformance.py http://localhost:18201 --exclude aggregations
-
 
   gripperTest:
     needs: build
@@ -219,7 +214,6 @@ jobs:
           ./grip server --rpc-port 18202 --http-port 18201 --config ./gripper/test-graph/config.yaml --er tableServer=localhost:50051 &
           sleep 5
           python conformance/run_conformance.py http://localhost:18201 --readOnly swapi --exclude pivot
-
 
   authTest:
     needs: build
@@ -250,8 +244,6 @@ jobs:
           fi
           # run specialized role based tests
           make test-authorization ARGS="--grip_config_file_path test/pebble-auth.yml"
-
-
 
   gridsTest:
     needs: build

@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import gripql
 import time
 
 def test_job(man):

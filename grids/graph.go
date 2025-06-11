@@ -505,7 +505,6 @@ func (ggraph *Graph) GetVertexChannel(ctx context.Context, ids chan gdbi.Element
 			if id.IsSignal() {
 				data <- elementData{req: id}
 			} else {
-				log.Debugln("ID: ", id.ID)
 				key, _ := ggraph.keyMap.GetVertexKey(id.ID, ggraph.bsonkv.Pb.Db)
 				ed := elementData{key: key, req: id}
 				if load {
@@ -531,6 +530,7 @@ func (ggraph *Graph) GetVertexChannel(ctx context.Context, ids chan gdbi.Element
 	out := make(chan gdbi.ElementLookup, 100)
 	go func() {
 		defer close(out)
+		var err error
 		for d := range data {
 			if d.req.IsSignal() {
 				out <- d.req
@@ -538,7 +538,6 @@ func (ggraph *Graph) GetVertexChannel(ctx context.Context, ids chan gdbi.Element
 				lKey := ggraph.keyMap.GetVertexLabel(d.key, ggraph.bsonkv.Pb.Db)
 				lID, _ := ggraph.keyMap.GetLabelID(lKey, ggraph.bsonkv.Pb.Db)
 				v := gdbi.Vertex{ID: d.req.ID, Label: lID}
-				var err error
 				v.Data, err = protoutil.StructUnMarshal(d.data)
 				v.Loaded = true
 				if err != nil {
@@ -568,7 +567,6 @@ func (ggraph *Graph) GetOutChannel(ctx context.Context, reqChan chan gdbi.Elemen
 		defer close(vertexChan)
 		ggraph.bsonkv.Pb.View(func(it *pebblebulk.PebbleIterator) error {
 			for req := range reqChan {
-
 				if req.IsSignal() {
 					vertexChan <- elementData{req: req}
 				} else {
@@ -605,6 +603,7 @@ func (ggraph *Graph) GetOutChannel(ctx context.Context, reqChan chan gdbi.Elemen
 	go func() {
 		defer close(o)
 		for req := range vertexChan {
+			var err error
 			if req.req.IsSignal() {
 				o <- req.req
 			} else {
@@ -622,7 +621,6 @@ func (ggraph *Graph) GetOutChannel(ctx context.Context, reqChan chan gdbi.Elemen
 					continue
 				}
 				v := &gdbi.Vertex{ID: id, Label: lid}
-				var err error
 				v.Data, err = ggraph.bsonkv.Tables[VTABLE_PREFIX+lid].GetRow([]byte(id))
 				v.Loaded = true
 				if err != nil {

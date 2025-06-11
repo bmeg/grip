@@ -63,11 +63,11 @@ func (ks *KVSorter[T]) Sorted() chan T {
 func (ks *kvCompare[T]) compareEncoded(a, b []byte) int {
 	aT, err := ks.conf.FromBytes(a)
 	if err != nil {
-		log.Debug("error compareEncoded: %s\n", err)
+		log.Debugf("error compareEncoded: %s\n", err)
 	}
 	bT, err := ks.conf.FromBytes(b)
 	if err != nil {
-		log.Debug("error compareEncoded: %s\n", err)
+		log.Debugf("error compareEncoded: %s\n", err)
 	}
 	return ks.conf.Compare(aT, bT)
 }

@@ -25,7 +25,7 @@ func (mg *Graph) AddVertexIndex(label string, field string) error {
 	_, err := idx.CreateOne(
 		context.Background(),
 		mongo.IndexModel{
-			Keys:    bson.D{{"label", 1}, {field, 1}},
+			Keys:    bson.D{{Key: "label", Value: 1}, {Key: field, Value: 1}},
 			Options: options.Index().SetUnique(false).SetSparse(true).SetBackground(true),
 		})
 	if err != nil {

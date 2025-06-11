@@ -1005,7 +1005,7 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement, opts *gdbi.Compile
 		}
 	}
 
-	bsonDoc, err := bson.Marshal(bson.D{{"doc", query}})
+	bsonDoc, err := bson.Marshal(bson.D{{Key: "doc", Value: query}})
 	if err != nil {
 		fmt.Printf("Error: %s\n", err)
 	}

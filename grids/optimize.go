@@ -178,7 +178,7 @@ func (l *lookupVertsHasLabelCondIndexProc) Process(ctx context.Context, man gdbi
 	log.Debugln("Entering lookupVertsHasLabelCondIndexProc custom processor")
 	queryChan := make(chan gdbi.ElementLookup, 100)
 	if l.fallback {
-		log.Debugf("lookupVertsHasLabelCondIndexProc: No index found for %s falling back to GetVertexList", l.key)
+		log.Debugf("lookupVertsHasLabelCondIndexProc: No index found for %s falling back to bsontable.Scan", l.key)
 		go func() {
 			defer close(queryChan)
 			for t := range in {
@@ -188,20 +188,14 @@ func (l *lookupVertsHasLabelCondIndexProc) Process(ctx context.Context, man gdbi
 						log.Errorf("BSONTable for label '%s' is nil. Cannot scan.", label)
 						continue
 					}
-					rowChan, err := tableFound.Scan(
+					for id := range tableFound.Scan(
 						true,
 						[]benchtop.FieldFilter{
 							{Field: l.key, Value: l.value, Operator: l.op},
 						},
-					)
-					if err != nil {
-						log.Errorln("Scan Process Err: ", err)
-					}
-					for v := range rowChan {
-						id, idExists := v["_key"].(string)
-						if idExists {
-							queryChan <- gdbi.ElementLookup{ID: id, Ref: t}
-						}
+					) {
+						queryChan <- gdbi.ElementLookup{ID: id.(string), Ref: t}
+
 					}
 				}
 			}

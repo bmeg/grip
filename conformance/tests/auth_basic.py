@@ -1,7 +1,5 @@
 from __future__ import absolute_import
 
-import requests
-
 
 def test_current_user_has_policy(manager):
     """Ensure current user has a policy defined."""
@@ -18,7 +16,7 @@ def test_current_user_can_query(manager):
     account = manager.current_user_account()
     assert account, f"Could not find account for {manager.user}"
     policies = account.policies
-    assert len(policies) > 0, f"Should have at least one policy"
+    assert len(policies) > 0, "Should have at least one policy"
     errors = []
 
     if not account.is_admin:
@@ -56,7 +54,7 @@ def test_current_user_can_read(manager):
     account = manager.current_user_account()
     assert account, f"Could not find account for {manager.user}"
     policies = account.policies
-    assert len(policies) > 0, f"Should have at least one policy"
+    assert len(policies) > 0, "Should have at least one policy"
     errors = []
     # non admin user
     if not account.is_admin:
@@ -92,7 +90,7 @@ def test_current_user_can_write(manager):
     account = manager.current_user_account()
     assert account, f"Could not find account for {manager.user}"
     policies = account.policies
-    assert len(policies) > 0, f"Should have at least one policy"
+    assert len(policies) > 0, "Should have at least one policy"
     errors = []
     # non admin user
     if not account.is_admin:
@@ -109,7 +107,7 @@ def test_current_user_can_write(manager):
         try:
             manager.test_write('dummy')
             errors.append(f"{manager.user} should not be able to write dummy graph")
-        except AssertionError as e:
+        except AssertionError:
             pass
 
     else:

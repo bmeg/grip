@@ -64,6 +64,10 @@ class Rate:
         if self.i == 0:
             return
 
+        if self.start is None:
+            self.logger.error("Rate.close() called but Rate.init() was never called. self.start is None.")
+            return
+
         now = datetime.now()
         dt = now - self.start
         rate = self.i / dt.total_seconds()

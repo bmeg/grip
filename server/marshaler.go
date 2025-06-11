@@ -21,8 +21,8 @@ type MarshalClean struct {
 func NewMarshaler() runtime.Marshaler {
 	return &MarshalClean{
 		m: &runtime.JSONPb{
-			protojson.MarshalOptions{EmitUnpopulated: true},
-			protojson.UnmarshalOptions{},
+			MarshalOptions:   protojson.MarshalOptions{EmitUnpopulated: true},
+			UnmarshalOptions: protojson.UnmarshalOptions{},
 			//EnumsAsInts:  false,
 			//EmitDefaults: true,
 			//OrigName:     true,
