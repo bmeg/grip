@@ -4,9 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	//"io"
-	//"strings"
-
 	"time"
 
 	"github.com/bmeg/grip/engine/core"
@@ -45,13 +42,13 @@ func (mg *Graph) GetTimestamp() string {
 func (mg *Graph) GetVertex(id string, load bool) *gdbi.Vertex {
 	opts := options.FindOne()
 	if !load {
-		opts.SetProjection(map[string]interface{}{FIELD_ID: 1, FIELD_LABEL: 1})
+		opts.SetProjection(map[string]any{FIELD_ID: 1, FIELD_LABEL: 1})
 	}
 	result := mg.ar.VertexCollection(mg.graph).FindOne(context.Background(), bson.M{FIELD_ID: id}, opts)
 	if result.Err() != nil {
 		return nil
 	}
-	d := map[string]interface{}{}
+	d := map[string]any{}
 	if nil == result.Decode(d) {
 		v := UnpackVertex(d)
 		return v
@@ -63,13 +60,13 @@ func (mg *Graph) GetVertex(id string, load bool) *gdbi.Vertex {
 func (mg *Graph) GetEdge(id string, load bool) *gdbi.Edge {
 	opts := options.FindOne()
 	if !load {
-		opts.SetProjection(map[string]interface{}{FIELD_ID: 1, FIELD_LABEL: 1, FIELD_FROM: 1, FIELD_TO: 1})
+		opts.SetProjection(map[string]any{FIELD_ID: 1, FIELD_LABEL: 1, FIELD_FROM: 1, FIELD_TO: 1})
 	}
 	result := mg.ar.EdgeCollection(mg.graph).FindOne(context.TODO(), bson.M{FIELD_ID: id}, opts)
 	if result.Err() != nil {
 		return nil
 	}
-	d := map[string]interface{}{}
+	d := map[string]any{}
 	if nil == result.Decode(d) {
 		v := UnpackEdge(d)
 		return v
@@ -268,7 +265,7 @@ func (mg *Graph) GetVertexList(ctx context.Context, load bool) <-chan *gdbi.Vert
 				return
 			default:
 			}
-			result := map[string]interface{}{}
+			result := map[string]any{}
 			if err := query.Decode(&result); err == nil {
 				v := UnpackVertex(result)
 				o <- v
@@ -303,7 +300,7 @@ func (mg *Graph) GetEdgeList(ctx context.Context, loadProp bool) <-chan *gdbi.Ed
 				return
 			default:
 			}
-			result := map[string]interface{}{}
+			result := map[string]any{}
 			if err := query.Decode(&result); err == nil {
 				if _, ok := result[FIELD_TO]; ok {
 					e := UnpackEdge(result)
@@ -349,7 +346,7 @@ func (mg *Graph) GetVertexChannel(ctx context.Context, ids chan gdbi.ElementLook
 			}
 			chunk := map[string]*gdbi.Vertex{}
 			for cursor.Next(context.TODO()) {
-				result := map[string]interface{}{}
+				result := map[string]any{}
 				if err := cursor.Decode(&result); err == nil {
 					v := UnpackVertex(result)
 					chunk[v.ID] = v
@@ -412,9 +409,9 @@ func (mg *Graph) GetOutChannel(ctx context.Context, reqChan chan gdbi.ElementLoo
 			cursor, err := eCol.Aggregate(context.TODO(), query)
 			if err == nil {
 				for cursor.Next(context.TODO()) {
-					result := map[string]interface{}{}
+					result := map[string]any{}
 					if err := cursor.Decode(&result); err == nil {
-						if dst, ok := result["dst"].(map[string]interface{}); ok {
+						if dst, ok := result["dst"].(map[string]any); ok {
 							v := UnpackVertex(dst)
 							fromID := result[FIELD_FROM].(string)
 							r := batchMap[fromID]
@@ -424,7 +421,7 @@ func (mg *Graph) GetOutChannel(ctx context.Context, reqChan chan gdbi.ElementLoo
 								o <- ri
 							}
 						} else {
-							log.WithFields(log.Fields{"result": result["dst"]}).Error("GetOutChannel: unable to cast result to map[string]interface{}")
+							log.WithFields(log.Fields{"result": result["dst"]}).Error("GetOutChannel: unable to cast result to map[string]any")
 						}
 					} else {
 						log.WithFields(log.Fields{"result": result, "error": err}).Error("GetOutChannel: decode error")
@@ -491,9 +488,9 @@ func (mg *Graph) GetInChannel(ctx context.Context, reqChan chan gdbi.ElementLook
 			cursor, err := eCol.Aggregate(context.TODO(), query)
 			if err == nil {
 				for cursor.Next(context.TODO()) {
-					result := map[string]interface{}{}
+					result := map[string]any{}
 					if err := cursor.Decode(&result); err == nil {
-						if src, ok := result["src"].(map[string]interface{}); ok {
+						if src, ok := result["src"].(map[string]any); ok {
 							v := UnpackVertex(src)
 							toID := result[FIELD_TO].(string)
 							r := batchMap[toID]
@@ -503,7 +500,7 @@ func (mg *Graph) GetInChannel(ctx context.Context, reqChan chan gdbi.ElementLook
 								o <- ri
 							}
 						} else {
-							log.WithFields(log.Fields{"result": result["src"]}).Error("GetInChannel: unable to cast result to map[string]interface{}")
+							log.WithFields(log.Fields{"result": result["src"]}).Error("GetInChannel: unable to cast result to map[string]any")
 						}
 					} else {
 						log.WithFields(log.Fields{"error": err}).Error("Decode")
@@ -561,7 +558,7 @@ func (mg *Graph) GetOutEdgeChannel(ctx context.Context, reqChan chan gdbi.Elemen
 			cursor, err := eCol.Aggregate(context.TODO(), query)
 			if err == nil {
 				for cursor.Next(context.TODO()) {
-					result := map[string]interface{}{}
+					result := map[string]any{}
 					if err := cursor.Decode(&result); err == nil {
 						e := UnpackEdge(result)
 						fromID := result[FIELD_FROM].(string)
@@ -628,7 +625,7 @@ func (mg *Graph) GetInEdgeChannel(ctx context.Context, reqChan chan gdbi.Element
 			cursor, err := eCol.Aggregate(context.TODO(), query)
 			if err == nil {
 				for cursor.Next(context.TODO()) {
-					result := map[string]interface{}{}
+					result := map[string]any{}
 					if err := cursor.Decode(&result); err == nil {
 						e := UnpackEdge(result)
 						toID := result[FIELD_TO].(string)

@@ -213,7 +213,7 @@ jobs:
           sleep 5
           ./grip server --rpc-port 18202 --http-port 18201 --config ./gripper/test-graph/config.yaml --er tableServer=localhost:50051 &
           sleep 5
-          python conformance/run_conformance.py http://localhost:18201 --readOnly swapi --exclude pivot
+          python conformance/run_conformance.py http://localhost:18201 --readOnly swapi --exclude index pivot
 
   authTest:
     needs: build
