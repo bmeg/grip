@@ -46,7 +46,9 @@ func (kgraph *GDB) Graph(graph string) (gdbi.GraphInterface, error) {
 		if err != nil {
 			return nil, err
 		}
+		mu.Lock()
 		kgraph.drivers[graph] = g
+		mu.Unlock()
 		return g, nil
 	}
 	return nil, fmt.Errorf("graph '%s' was not found", graph)

@@ -210,8 +210,7 @@ func (km *KeyMap) GetLabelID(key uint64, db GetSet) (string, bool) {
 }
 
 func getIDKey(prefix []byte, id string, db GetSet) (uint64, bool) {
-	k := bytes.Join([][]byte{prefix, []byte(id)}, []byte{})
-	v, closer, err := db.Get(k)
+	v, closer, err := db.Get(bytes.Join([][]byte{prefix, []byte(id)}, []byte{}))
 	if v == nil || err != nil {
 		return 0, false
 	}
