@@ -62,7 +62,7 @@ func (ggraph *Graph) indexVertex(vertex *gdbi.Vertex, tx *pebblebulk.PebbleBulk)
 	_, fieldsExist := ggraph.bsonkv.Fields[vertexLabel]
 	if fieldsExist {
 		for field := range ggraph.bsonkv.Fields[vertexLabel] {
-			if val, ok := vertex.Data[field]; ok {
+			if val := bsontable.PathLookup(vertex.Data, field); val != nil {
 				tx.Set(benchtop.FieldKey(field, vertexLabel, val, []byte(vertex.ID)), []byte{}, nil)
 			}
 		}
@@ -126,7 +126,7 @@ func (ggraph *Graph) indexEdge(edge *gdbi.Edge, tx *pebblebulk.PebbleBulk) error
 	_, fieldsExist := ggraph.bsonkv.Fields[edgeLabel]
 	if fieldsExist {
 		for field := range ggraph.bsonkv.Fields[edgeLabel] {
-			if val, ok := edge.Data[field]; ok {
+			if val := bsontable.PathLookup(edge.Data, field); val != nil {
 				tx.Set(benchtop.FieldKey(field, edgeLabel, val, []byte(edge.ID)), []byte{}, nil)
 			}
 		}
@@ -135,7 +135,7 @@ func (ggraph *Graph) indexEdge(edge *gdbi.Edge, tx *pebblebulk.PebbleBulk) error
 }
 
 func (ggraph *Graph) Compiler() gdbi.Compiler {
-	return core.NewCompiler(ggraph, GripOptimizer, core.IndexStartOptimize)
+	return core.NewCompiler(ggraph, GridsOptimizer, core.IndexStartOptimize)
 }
 
 // AddVertex adds an edge to the graph, if it already exists

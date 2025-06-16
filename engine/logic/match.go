@@ -35,7 +35,7 @@ func MatchesCondition(trav gdbi.Traveler, cond *gripql.HasCondition) bool {
 		return false
 	}
 
-	log.Debugf("match: %s %s %s", condVal, val, cond.Key)
+	//log.Debugf("match: %s %s %s", condVal, val, cond.Key)
 
 	switch cond.Condition {
 	case gripql.Condition_EQ:
@@ -67,7 +67,6 @@ func MatchesCondition(trav gdbi.Traveler, cond *gripql.HasCondition) bool {
 		return valN >= condN
 
 	case gripql.Condition_LT:
-		//log.Debugf("match: %#v %#v %s", condVal, val, cond.Key)
 		valN, err := cast.ToFloat64E(val)
 		//log.Debugf("CAST: ", valN, "ERROR: ", err)
 		if err != nil {
@@ -238,7 +237,6 @@ func MatchesHasExpression(trav gdbi.Traveler, stmt *gripql.HasExpression) bool {
 	switch stmt.Expression.(type) {
 	case *gripql.HasExpression_Condition:
 		cond := stmt.GetCondition()
-		log.Debug("COND IN ENGINE: ", cond)
 		return MatchesCondition(trav, cond)
 
 	case *gripql.HasExpression_And:
