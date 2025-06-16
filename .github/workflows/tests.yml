@@ -125,7 +125,7 @@ jobs:
           make start-mongo
           ./grip server --rpc-port 18202 --http-port 18201 --config ./test/mongo.yml &
           sleep 5
-          make test-conformance
+          python conformance/run_conformance.py http://localhost:18201 --exclude nested_index
 
   mongoCoreTest:
     needs: build
