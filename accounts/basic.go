@@ -30,7 +30,7 @@ func (ba BasicAuth) Validate(md MetaData) (string, error) {
 
 	if len(auth) > 0 {
 		user, password, ok := parseBasicAuth(auth[0])
-		log.Infof("User: %s Password: %s OK: %t\n", user, password, ok)
+		log.Infof("Authenticating as User: %s OK: %t\n", user, ok)
 		for _, c := range ba {
 			if c.User == user && c.Password == password {
 				return user, nil
