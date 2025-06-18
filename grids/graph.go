@@ -511,7 +511,7 @@ func (ggraph *Graph) GetVertexChannel(ctx context.Context, ids chan gdbi.Element
 					lKey := ggraph.keyMap.GetVertexLabel(key, ggraph.bsonkv.Pb.Db)
 					lID, ok := ggraph.keyMap.GetLabelID(lKey, ggraph.bsonkv.Pb.Db)
 					if !ok || lID == "" {
-						log.Debugln("No LID for lkey: ", lKey)
+						log.Debugln("No LID for lkey: ", lKey, "and ID: ", id.ID)
 						continue
 					}
 					vData, err := ggraph.bsonkv.Tables[VTABLE_PREFIX+lID].GetRow([]byte(id.ID))

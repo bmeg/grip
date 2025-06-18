@@ -41,13 +41,19 @@ type lookupVertsHasLabelCondIndexProc struct {
 func (l *lookupVertsHasLabelCondIndexProc) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
 	log.Debugln("Entering lookupVertsHasLabelCondIndexProc custom processor")
 	queryChan := make(chan gdbi.ElementLookup, 100)
-	cond := l.expr.GetCondition()
 	var exists = false
 	if len(l.db.bsonkv.Fields) > 0 {
-		_, exists = l.db.bsonkv.Fields[cond.Key]
+		for _, label := range l.labels {
+			log.Debugln("Checking indexed fields %v", l.db.bsonkv.Fields, "LABEL: ", label)
+			_, exists = l.db.bsonkv.Fields[label]
+			if exists {
+				break
+			}
+		}
 	}
-	if cond == nil || !exists {
-		log.Debugf("lookupVertsHasLabelCondIndexProc: No index found")
+
+	if l.expr.GetCondition() == nil || !exists {
+		log.Debugf("cond == nil || !exists: ", l.expr.GetCondition(), exists)
 		go func() {
 			defer close(queryChan)
 			for t := range in {
@@ -59,7 +65,6 @@ func (l *lookupVertsHasLabelCondIndexProc) Process(ctx context.Context, man gdbi
 					}
 					for id := range tableFound.Scan(true, &GripQLFilter{Expression: l.expr}) {
 						queryChan <- gdbi.ElementLookup{ID: id.(string), Ref: t}
-
 					}
 				}
 			}
@@ -70,19 +75,10 @@ func (l *lookupVertsHasLabelCondIndexProc) Process(ctx context.Context, man gdbi
 			for t := range in {
 				cond := l.expr.GetCondition()
 				for _, label := range l.labels {
-					for id := range l.db.bsonkv.RowIdsByLabelFieldValue(
-						label,
-						cond.Key,
-						cond.Value.AsInterface(),
-						MapConditionToOperator(cond.Condition),
-					) {
-						queryChan <- gdbi.ElementLookup{
-							ID:  id,
-							Ref: t,
-						}
+					for id := range l.db.bsonkv.RowIdsByLabelFieldValue(label, cond.Key, cond.Value.AsInterface(), MapConditionToOperator(cond.Condition)) {
+						queryChan <- gdbi.ElementLookup{ID: id, Ref: t}
 					}
 				}
-
 			}
 		}()
 	}
@@ -95,7 +91,6 @@ func (l *lookupVertsHasLabelCondIndexProc) Process(ctx context.Context, man gdbi
 		}
 	}()
 	return ctx
-
 }
 
 // //////////////////////////////////////////////////////////////////////////////
