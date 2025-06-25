@@ -16,7 +16,6 @@ import (
 type Graph struct {
 	graphID string
 
-	keyMap *KeyMap
 	bsonkv *bsontable.BSONDriver
 	ts     *timestamp.Timestamp
 }
@@ -68,7 +67,6 @@ func newGraph(baseDir, name string) (*Graph, error) {
 	ts := timestamp.NewTimestamp()
 
 	o := &Graph{
-		keyMap:  NewKeyMap(),
 		bsonkv:  bsonkv,
 		ts:      &ts,
 		graphID: name,
@@ -112,7 +110,6 @@ func getGraph(baseDir, name string) (*Graph, error) {
 
 	ts := timestamp.NewTimestamp()
 	o := &Graph{
-		keyMap:  NewKeyMap(),
 		bsonkv:  bsonkv,
 		ts:      &ts,
 		graphID: name,

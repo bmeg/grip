@@ -495,7 +495,9 @@ func (server *GripServer) Serve(pctx context.Context) error {
 			if isSchema(graph) {
 				log.WithFields(log.Fields{"graph": graph}).Debug("Loading existing schema into cache")
 				schema, err := server.getGraph(graph)
-				if err == nil {
+				if err != nil {
+					log.Errorln("Error in server.getGraph: ", err)
+				} else {
 					server.schemas[strings.TrimSuffix(graph, schemaSuffix)] = schema
 				}
 			} else if isMapping(graph) {

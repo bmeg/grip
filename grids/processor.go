@@ -39,12 +39,11 @@ type lookupVertsHasLabelCondIndexProc struct {
 }
 
 func (l *lookupVertsHasLabelCondIndexProc) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
-	log.Debugln("Entering lookupVertsHasLabelCondIndexProc custom processor")
-	queryChan := make(chan gdbi.ElementLookup, 100)
+	log.Debugln("Entering lookupVertsHasLabelCondIndexProc custom processor", l.expr, l.labels, len(l.db.bsonkv.Fields))
 	var exists = false
 	if len(l.db.bsonkv.Fields) > 0 {
 		for _, label := range l.labels {
-			log.Debugln("Checking indexed fields %v", l.db.bsonkv.Fields, "LABEL: ", label)
+			log.Debugln("Checking indexed fields ", l.db.bsonkv.Fields, "LABEL: ", label)
 			_, exists = l.db.bsonkv.Fields[label]
 			if exists {
 				break
@@ -52,10 +51,9 @@ func (l *lookupVertsHasLabelCondIndexProc) Process(ctx context.Context, man gdbi
 		}
 	}
 
-	if l.expr.GetCondition() == nil || !exists {
-		log.Debugf("cond == nil || !exists: ", l.expr.GetCondition(), exists)
+	if !exists || (l.expr == nil && l.expr.GetCondition() == nil) {
 		go func() {
-			defer close(queryChan)
+			defer close(out)
 			for t := range in {
 				for _, label := range l.labels {
 					tableFound, ok := l.db.bsonkv.Tables[label]
@@ -63,13 +61,21 @@ func (l *lookupVertsHasLabelCondIndexProc) Process(ctx context.Context, man gdbi
 						log.Errorf("BSONTable for label '%s' is nil. Cannot scan.", label)
 						continue
 					}
-					for id := range tableFound.Scan(true, &GripQLFilter{Expression: l.expr}) {
-						queryChan <- gdbi.ElementLookup{ID: id.(string), Ref: t}
+					for roMaps := range tableFound.Scan(false, &GripQLFilter{Expression: l.expr}) {
+						v := gdbi.Vertex{
+							ID:     roMaps.(map[string]any)["_id"].(string),
+							Label:  label[2:],
+							Data:   roMaps.(map[string]any),
+							Loaded: true,
+						}
+						out <- t.AddCurrent(v.Copy())
+
 					}
 				}
 			}
 		}()
 	} else {
+		queryChan := make(chan gdbi.ElementLookup, 100)
 		go func() {
 			defer close(queryChan)
 			for t := range in {
@@ -81,15 +87,15 @@ func (l *lookupVertsHasLabelCondIndexProc) Process(ctx context.Context, man gdbi
 				}
 			}
 		}()
+		go func() {
+			defer close(out)
+			for v := range l.db.GetVertexChannel(ctx, queryChan, l.loadData) {
+				i := v.Ref
+				out <- i.AddCurrent(v.Vertex.Copy())
+			}
+		}()
 	}
 
-	go func() {
-		defer close(out)
-		for v := range l.db.GetVertexChannel(ctx, queryChan, l.loadData) {
-			i := v.Ref
-			out <- i.AddCurrent(v.Vertex.Copy())
-		}
-	}()
 	return ctx
 }
 

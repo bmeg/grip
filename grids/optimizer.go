@@ -90,4 +90,38 @@ var startOptimizations = []OptimizationRule{
 			return append(optimized, pipe[3:]...)
 		},
 	},
+	{
+		Match: func(pipe []*gripql.GraphStatement) bool {
+			if len(pipe) < 2 {
+				return false
+			}
+			if _, ok := pipe[0].GetStatement().(*gripql.GraphStatement_V); !ok {
+				return false
+			}
+			if _, ok := pipe[1].GetStatement().(*gripql.GraphStatement_HasLabel); ok {
+				return true
+			}
+			return false
+		},
+		Replace: func(pipe []*gripql.GraphStatement) []*gripql.GraphStatement {
+			labels := protoutil.AsStringList(pipe[1].GetHasLabel())
+			for i, label := range labels {
+				if label[:2] != VTABLE_PREFIX {
+					labels[i] = VTABLE_PREFIX + label
+				}
+			}
+			var optimized = []*gripql.GraphStatement{
+				{
+					Statement: &gripql.GraphStatement_EngineCustom{
+						Desc: "Grids V().HasLabel()",
+						Custom: lookupVertsHasLabelCondIndexStep{
+							expr:   nil,
+							labels: labels,
+						},
+					},
+				},
+			}
+			return append(optimized, pipe[2:]...)
+		},
+	},
 }

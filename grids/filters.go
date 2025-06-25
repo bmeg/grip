@@ -21,6 +21,11 @@ func (f *GripQLFilter) RequiredFields() []string {
 	return extractKeys(f.Expression)
 }
 
+func (f *GripQLFilter) IsNoOp() bool {
+	// A GripQLFilter is a no-op if its Expression is nil
+	return f.Expression == nil
+}
+
 func extractKeys(expr *gripql.HasExpression) []string {
 	keys := map[string]struct{}{}
 
@@ -55,7 +60,9 @@ func extractKeys(expr *gripql.HasExpression) []string {
 }
 
 func MatchesHasExpression(val any, stmt *gripql.HasExpression) bool {
+
 	switch stmt.Expression.(type) {
+
 	case *gripql.HasExpression_Condition:
 		cond := stmt.GetCondition()
 		return filters.ApplyFilterCondition(
