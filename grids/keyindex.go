@@ -84,35 +84,67 @@ func EdgeKeyParse(key []byte) (eid string, sid string, did string, label string)
 }
 
 // SrcEdgeKey creates a src edge index key
-func SrcEdgeKey(eid, src, dst, label string) []byte {
+func SrcEdgeKey(eid, src, dst, label string, fromLabel []byte) []byte {
 	return bytes.Join([][]byte{
 		srcEdgePrefix,
 		[]byte(src),
 		[]byte(dst),
 		[]byte(eid),
 		[]byte(label),
+		fromLabel,
 	}, []byte{0})
 }
 
-func SrcEdgeKeyParse(key []byte) (eid string, sid string, did string, label string) {
+func SrcEdgeKeyParse(key []byte) (eid string, sid string, did string, label string, fromLabel string) {
 	tmp := bytes.Split(key, []byte{0})
-	return string(tmp[3]), string(tmp[1]), string(tmp[2]), string(tmp[4])
+	return string(tmp[3]), string(tmp[1]), string(tmp[2]), string(tmp[4]), string(tmp[5])
 }
 
 // DstEdgeKey creates a dest edge index key
-func DstEdgeKey(eid, src, dst, label string) []byte {
+func DstEdgeKey(eid, src, dst, label string, toLabel []byte) []byte {
 	return bytes.Join([][]byte{
 		dstEdgePrefix,
 		[]byte(dst),
 		[]byte(src),
 		[]byte(eid),
 		[]byte(label),
+		toLabel,
 	}, []byte{0})
 }
 
-func DstEdgeKeyParse(key []byte) (eid string, sid string, did string, label string) {
+func DstEdgeKeyParse(key []byte) (eid string, sid string, did string, label string, toLabel string) {
+	tmp := bytes.Split(key, []byte{0})
+	return string(tmp[3]), string(tmp[2]), string(tmp[1]), string(tmp[4]), string(tmp[5])
+}
+
+func DstEdgeKeyPrefix(eid, sid, did, lbl string) []byte {
+	return bytes.Join([][]byte{
+		srcEdgePrefix,
+		[]byte(did),
+		[]byte(sid),
+		[]byte(eid),
+		[]byte(lbl),
+	}, []byte{0})
+}
+
+func DstEdgeKeyPrefixParse(key []byte) (eid string, sid string, did string, label string) {
 	tmp := bytes.Split(key, []byte{0})
 	return string(tmp[3]), string(tmp[2]), string(tmp[1]), string(tmp[4])
+}
+
+func SrcEdgeKeyPrefix(eid, sid, did, lbl string) []byte {
+	return bytes.Join([][]byte{
+		srcEdgePrefix,
+		[]byte(sid),
+		[]byte(did),
+		[]byte(eid),
+		[]byte(lbl),
+	}, []byte{0})
+}
+
+func SrcEdgeKeyPrefixParse(key []byte) (eid string, sid string, did string, label string) {
+	tmp := bytes.Split(key, []byte{0})
+	return string(tmp[3]), string(tmp[1]), string(tmp[2]), string(tmp[4])
 }
 
 // VertexListPrefix returns a byte array prefix for all vertices in a graph
