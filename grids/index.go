@@ -5,6 +5,7 @@ import (
 
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/log"
+	"github.com/cockroachdb/pebble"
 )
 
 // AddVertexIndex add index to vertices
@@ -40,4 +41,24 @@ func (ggraph *Graph) VertexLabelScan(ctx context.Context, label string) chan str
 	}
 	log.WithFields(log.Fields{"label": label}).Info("Running VertexLabelScan")
 	return ggraph.bsonkv.GetIDsForLabel(label)
+}
+
+func (ggraph *Graph) DeleteAnyRow(id string, label string, edgeFlag bool) error {
+	ggraph.bsonkv.Lock.Lock()
+	defer ggraph.bsonkv.Lock.Unlock()
+
+	var prefix string = "v_"
+	if edgeFlag {
+		prefix = "e_"
+	}
+
+	err := ggraph.bsonkv.Tables[prefix+label].DeleteRow([]byte(id))
+	if err != nil {
+		if err == pebble.ErrNotFound{
+			log.Debugln("Pebble not Found: %s", err)
+			return nil
+		}
+		return err
+	}
+	return nil
 }

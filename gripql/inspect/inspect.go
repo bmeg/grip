@@ -115,7 +115,9 @@ func PipelineStepOutputs(stmts []*gripql.GraphStatement, storeMarks bool) map[st
 			onLast = false
 
 		case *gripql.GraphStatement_Pivot:
-			//TODO: figure out which fields are referenced
+			if onLast {
+				out[steps[i]] = []string{"*"}
+			}
 			onLast = false
 
 		case *gripql.GraphStatement_Group:

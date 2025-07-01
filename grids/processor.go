@@ -58,18 +58,21 @@ func (l *lookupVertsHasLabelCondIndexProc) Process(ctx context.Context, man gdbi
 				for _, label := range l.labels {
 					tableFound, ok := l.db.bsonkv.Tables[label]
 					if !ok {
-						log.Errorf("BSONTable for label '%s' is nil. Cannot scan.", label)
+						log.Debugf("BSONTable for label '%s' is nil. Cannot scan.", label)
 						continue
 					}
 					for roMaps := range tableFound.Scan(false, &GripQLFilter{Expression: l.expr}) {
+						log.Debugln("RES RETURNED: ", roMaps.(map[string]any))
+
+						id := roMaps.(map[string]any)["_id"].(string)
+						delete(roMaps.(map[string]any), "_id")
 						v := gdbi.Vertex{
-							ID:     roMaps.(map[string]any)["_id"].(string),
+							ID:     id,
 							Label:  label[2:],
 							Data:   roMaps.(map[string]any),
 							Loaded: true,
 						}
 						out <- t.AddCurrent(v.Copy())
-
 					}
 				}
 			}
@@ -130,12 +133,14 @@ func (l *lookupVertsCondIndexProc) Process(ctx context.Context, man gdbi.Manager
 	cond := l.expr.GetCondition()
 	var exists = false
 	if len(l.db.bsonkv.Fields) > 0 {
-		_, exists = l.db.bsonkv.Fields[cond.Key]
+		_, exists = l.db.bsonkv.Fields[VTABLE_PREFIX+cond.Key]
 	}
 	/*  Optimized indexing only works for Simple filters.			  /
 	/ 	If compound filter or index doesn't exist use backup method */
+	log.Debugln("COND: ", cond, cond == nil, l.db.bsonkv.Fields)
+
 	if cond == nil || !exists {
-		log.Debugf("lookupVertsCondIndexProc: falling back to GetVertexList since filter is not basic Condition filter")
+		log.Debugf("lookupVertsCondIndexProc: falling back to GetVertexList since filter is not basic Condition filter or not indexed")
 		go func() {
 			defer close(queryChan)
 			for t := range in {

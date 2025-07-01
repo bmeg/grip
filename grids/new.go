@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/bmeg/benchtop/bsontable"
 	"github.com/bmeg/grip/gripql"
@@ -14,10 +15,12 @@ import (
 
 // Graph implements the GDB interface using a genertic key/value storage driver
 type Graph struct {
-	graphID string
+	graphID 		string
 
-	bsonkv *bsontable.BSONDriver
-	ts     *timestamp.Timestamp
+	bsonkv 			*bsontable.BSONDriver
+	ts    			 *timestamp.Timestamp
+	tempDeletedEdges map[string]struct{}
+	edgesMutex      sync.Mutex
 }
 
 // Close the connection
@@ -39,6 +42,7 @@ func (kgraph *GDB) AddGraph(graph string) error {
 	kgraph.drivers[graph] = g
 	return nil
 }
+
 func newGraph(baseDir, name string) (*Graph, error) {
 	dbPath := filepath.Join(baseDir, name)
 	fmt.Printf("Creating new GRIDS graph %s\n", name)
@@ -70,6 +74,8 @@ func newGraph(baseDir, name string) (*Graph, error) {
 		bsonkv:  bsonkv,
 		ts:      &ts,
 		graphID: name,
+		tempDeletedEdges: make(map[string]struct{}),
+		edgesMutex: sync.Mutex{},
 	}
 	return o, nil
 }

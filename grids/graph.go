@@ -30,7 +30,7 @@ func insertVertex(tx *pebblebulk.PebbleBulk, vertex *gdbi.Vertex) error {
 	if vertex.ID == "" {
 		return fmt.Errorf("inserting null key vertex")
 	}
-	if err := tx.Set(VertexKey(vertex.ID, vertex.Label), nil, nil); err != nil {
+	if err := tx.Set(VertexKey(vertex.ID), []byte(vertex.Label), nil); err != nil {
 		return fmt.Errorf("AddVertex Error %s", err)
 	}
 	return nil
@@ -105,15 +105,23 @@ func (ggraph *Graph) bulkGet(edges []*completeEdge) <-chan *completeEdge {
 		defer close(resultsChan)
 		err := ggraph.bsonkv.Pb.View(func(it *pebblebulk.PebbleIterator) error {
 			for i, edge := range edges {
-				err := it.Seek(VertexKeyPrefix(edge.OEdge.From))
+				err := it.Seek(VertexKey(edge.OEdge.From))
 				if err == nil {
-					tmp := bytes.Split(it.Key(), []byte{0})
-					edges[i].FromLabel = tmp[2]
+					label, err := it.Value()
+					if err != nil {
+						log.Errorf("Err getting vertex label: %s", err)
+						continue
+					}
+					edges[i].FromLabel = label
 				}
-				err = it.Seek(VertexKeyPrefix(edge.OEdge.To))
+				err = it.Seek(VertexKey(edge.OEdge.To))
 				if err == nil {
-					tmp := bytes.Split(it.Key(), []byte{0})
-					edges[i].ToLabel = tmp[2]
+					label, err := it.Value()
+					if err != nil {
+						log.Errorf("Err getting vertex label: %s", err)
+						continue
+					}
+					edges[i].ToLabel = label
 				}
 				resultsChan <- edges[i]
 			}
@@ -200,18 +208,28 @@ func (ggraph *Graph) AddEdge(edges []*gdbi.Edge) error {
 		err = ggraph.bsonkv.Pb.View(func(it *pebblebulk.PebbleIterator) error {
 			for _, edge := range edges {
 				var fromLabel, toLabel []byte
-				err = it.Seek(VertexKeyPrefix(edge.From))
+				err = it.Seek(VertexKey(edge.From))
 				if err == nil {
-					tmp := bytes.Split(it.Key(), []byte{0})
-					fromLabel = tmp[2]
+					label, err := it.Value()
+					if err != nil {
+						log.Errorf("Err getting vertex label: %s", err)
+						continue
+					}
+					fromLabel = label
 				}
-				err = it.Seek(VertexKeyPrefix(edge.To))
+				err = it.Seek(VertexKey(edge.To))
 				if err == nil {
-					tmp := bytes.Split(it.Key(), []byte{0})
-					toLabel = tmp[2]
+					label, err := it.Value()
+					if err != nil {
+						log.Errorf("Err getting vertex label: %s", err)
+						continue
+					}
+					toLabel = label
 				}
+
 				err = insertEdge(tx, &completeEdge{OEdge: edge, FromLabel: fromLabel, ToLabel: toLabel})
 				if err != nil {
+					log.Errorln("Err insertEdge: ", err)
 					return err
 				}
 			}
@@ -239,18 +257,29 @@ func (ggraph *Graph) AddEdge(edges []*gdbi.Edge) error {
 
 func (ggraph *Graph) BulkDel(data *gdbi.DeleteData) error {
 	var bulkErr *multierror.Error
-	for _, val := range data.Edges {
-		err := ggraph.DelEdge(val)
-		if err != nil {
-			bulkErr = multierror.Append(bulkErr, err)
-		}
-	}
+	ggraph.tempDeletedEdges = make(map[string]struct{})
+	ggraph.edgesMutex.Lock()
+
 	for _, val := range data.Vertices {
 		err := ggraph.DelVertex(val)
 		if err != nil {
 			bulkErr = multierror.Append(bulkErr, err)
 		}
 	}
+
+	for _, val := range data.Edges {
+		if _, ok := ggraph.tempDeletedEdges[val]; ok {
+			log.Debugf("Skipping edge %s: already deleted during vertex deletion", val)
+			continue
+		}
+		err := ggraph.DelEdge(val)
+		if err != nil {
+			bulkErr = multierror.Append(bulkErr, err)
+		}
+	}
+
+	ggraph.tempDeletedEdges = nil // Clean up
+	defer ggraph.edgesMutex.Unlock()
 	return bulkErr.ErrorOrNil()
 }
 
@@ -301,7 +330,7 @@ func (ggraph *Graph) BulkAdd(stream <-chan *gdbi.GraphElement) error {
 			return nil
 		})
 		if err != nil {
-			log.Errorf("ERR in BulkWrite: ", err)
+			log.Errorf("ERR in BulkWrite: %s", err)
 			return
 		}
 	}()
@@ -351,100 +380,81 @@ func (ggraph *Graph) BulkAdd(stream <-chan *gdbi.GraphElement) error {
 		}
 	}
 
-	// Return any accumulated errors
 	return errs.ErrorOrNil()
 }
 
-func (ggraph *Graph) DelEdge(eid string) error {
-	ekeyPrefix := EdgeKeyPrefix(eid)
-	var ekey []byte
-	ggraph.bsonkv.Pb.View(func(it *pebblebulk.PebbleIterator) error {
-		for it.Seek(ekeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), ekeyPrefix); it.Next() {
-			ekey = it.Key()
-		}
-		return nil
-	})
-	if ekey == nil {
-		return fmt.Errorf("edge not found")
-	}
-
-	eid, sid, did, lbl := EdgeKeyParse(ekey)
-
-	skey := SrcEdgeKeyPrefix(sid, did, eid, lbl)
-	dkey := DstEdgeKeyPrefix(sid, did, eid, lbl)
-
-	var bulkErr *multierror.Error
-	err := ggraph.bsonkv.Pb.BulkWrite(func(tx *pebblebulk.PebbleBulk) error {
-		if err := tx.Delete(ekey, nil); err != nil {
-			return err
-		}
-		if err := tx.DeletePrefix(skey); err != nil {
-			return err
-		}
-		if err := tx.DeletePrefix(dkey); err != nil {
-			return err
-		}
-		ggraph.ts.Touch(ggraph.graphID)
-		return nil
-	})
-	if err != nil {
-		bulkErr = multierror.Append(bulkErr, err)
-	}
-	if err := ggraph.bsonkv.DeleteAnyRow([]byte(eid)); err != nil {
-		bulkErr = multierror.Append(bulkErr, err)
-	}
-	return bulkErr.ErrorOrNil()
-}
-
-// DelVertex deletes vertex with id `key`
 func (ggraph *Graph) DelVertex(id string) error {
-
-	vid := VertexKeyPrefix(id)
+	vid := VertexKey(id)
 	skeyPrefix := SrcEdgePrefix(id)
 	dkeyPrefix := DstEdgePrefix(id)
 
 	delKeys := make([][]byte, 0, 1000)
+	edgesToDelete := make(map[string]string)
 
 	var bulkErr *multierror.Error
 
 	err := ggraph.bsonkv.Pb.View(func(it *pebblebulk.PebbleIterator) error {
-		var bulkErr *multierror.Error
 		for it.Seek(skeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), skeyPrefix); it.Next() {
 			skey := it.Key()
-			// get edge ID from key
-			eid, sid, did, label, _ := SrcEdgeKeyParse(skey)
+			eid, sid, did, label := SrcEdgeKeyPrefixParse(skey)
+
+			if ggraph.tempDeletedEdges != nil {
+				if _, exists := ggraph.tempDeletedEdges[eid]; exists {
+					continue
+				}
+			}
+			if _, exists := edgesToDelete[eid]; exists {
+				continue
+			}
+
 			ekey := EdgeKey(eid, sid, did, label)
 			dkey := DstEdgeKeyPrefix(eid, sid, did, label)
 			delKeys = append(delKeys, ekey, skey, dkey)
-
-			if err := ggraph.bsonkv.DeleteAnyRow([]byte(eid)); err != nil {
-				bulkErr = multierror.Append(bulkErr, err)
-			}
+			edgesToDelete[eid] = label
 		}
+
 		for it.Seek(dkeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), dkeyPrefix); it.Next() {
 			dkey := it.Key()
-			// get edge ID from key
 			eid, sid, did, label := DstEdgeKeyPrefixParse(dkey)
+
+			if ggraph.tempDeletedEdges != nil {
+				if _, exists := ggraph.tempDeletedEdges[eid]; exists {
+					continue
+				}
+			}
+			if _, exists := edgesToDelete[eid]; exists {
+				continue
+			}
+
 			ekey := EdgeKey(eid, sid, did, label)
 			skey := SrcEdgeKeyPrefix(eid, sid, did, label)
 			delKeys = append(delKeys, ekey, skey, dkey)
-
-			if err := ggraph.bsonkv.DeleteAnyRow([]byte(eid)); err != nil {
-				bulkErr = multierror.Append(bulkErr, err)
-			}
+			edgesToDelete[eid] = label
 		}
-		return bulkErr.ErrorOrNil()
+		return nil
 	})
+
 	if err != nil {
-		bulkErr = multierror.Append(bulkErr, err)
+		return err
+	}
+
+	for eid, label := range edgesToDelete {
+		if err := ggraph.DeleteAnyRow(eid, label, true); err != nil {
+			bulkErr = multierror.Append(bulkErr, err)
+		}
+
+		if ggraph.tempDeletedEdges != nil {
+			ggraph.tempDeletedEdges[eid] = struct{}{}
+		}
 	}
 
 	err = ggraph.bsonkv.Pb.BulkWrite(func(tx *pebblebulk.PebbleBulk) error {
-		if err := tx.DeletePrefix(vid); err != nil {
+		if err := tx.Delete(vid, nil); err != nil {
 			return err
 		}
 		for _, k := range delKeys {
 			if err := tx.Delete(k, nil); err != nil {
+				log.Errorf("BulkWrite failed to delete key %s: %v", string(k), err)
 				return err
 			}
 		}
@@ -454,6 +464,55 @@ func (ggraph *Graph) DelVertex(id string) error {
 	if err != nil {
 		bulkErr = multierror.Append(bulkErr, err)
 	}
+
+	return bulkErr.ErrorOrNil()
+}
+
+func (ggraph *Graph) DelEdge(eid string) error {
+	ekeyPrefix := EdgeKeyPrefix(eid)
+	var ekey []byte
+	err := ggraph.bsonkv.Pb.View(func(it *pebblebulk.PebbleIterator) error {
+		for it.Seek(ekeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), ekeyPrefix); it.Next() {
+			ekey = it.Key()
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	if ekey == nil {
+		log.Debugf("Edge %s not found", eid)
+		return nil
+	}
+
+	_, sid, did, lbl := EdgeKeyParse(ekey)
+	skey := SrcEdgeKeyPrefix(sid, did, eid, lbl)
+	dkey := DstEdgeKeyPrefix(sid, did, eid, lbl)
+
+	var bulkErr *multierror.Error
+	err = ggraph.bsonkv.Pb.BulkWrite(func(tx *pebblebulk.PebbleBulk) error {
+		if err := tx.Delete(ekey, nil); err != nil {
+			bulkErr = multierror.Append(bulkErr, err)
+		}
+		if err := tx.Delete(skey, nil); err != nil {
+			bulkErr = multierror.Append(bulkErr, err)
+		}
+		if err := tx.Delete(dkey, nil); err != nil {
+			bulkErr = multierror.Append(bulkErr, err)
+		}
+		ggraph.ts.Touch(ggraph.graphID)
+		return nil
+	})
+
+	if err != nil {
+		bulkErr = multierror.Append(bulkErr, err)
+	}
+
+	if err := ggraph.DeleteAnyRow(eid, lbl, true); err != nil {
+		bulkErr = multierror.Append(bulkErr, err)
+	}
+
 	return bulkErr.ErrorOrNil()
 }
 
@@ -463,6 +522,7 @@ func (ggraph *Graph) GetEdgeList(ctx context.Context, loadProp bool) <-chan *gdb
 	go func() {
 		defer close(o)
 		ggraph.bsonkv.Pb.View(func(it *pebblebulk.PebbleIterator) error {
+			var err error = nil
 			ePrefix := EdgeListPrefix()
 			for it.Seek(ePrefix); it.Valid() && bytes.HasPrefix(it.Key(), ePrefix); it.Next() {
 				select {
@@ -473,7 +533,6 @@ func (ggraph *Graph) GetEdgeList(ctx context.Context, loadProp bool) <-chan *gdb
 				eid, sid, did, label := EdgeKeyParse(it.Key())
 				e := &gdbi.Edge{ID: eid, Label: label, From: sid, To: did}
 				if loadProp {
-					var err error
 					e.Data, err = ggraph.bsonkv.Tables[ETABLE_PREFIX+label].GetRow([]byte(eid))
 					if err != nil {
 						log.Errorf("GetEdgeList: GetRow error: %v", err)
@@ -493,21 +552,26 @@ func (ggraph *Graph) GetEdgeList(ctx context.Context, loadProp bool) <-chan *gdb
 
 // GetVertex loads a vertex given an id. It returns a nil if not found
 func (ggraph *Graph) GetVertex(id string, loadProp bool) *gdbi.Vertex {
-	var v *gdbi.Vertex
-	rtasockey := benchtop.NewRowTableAsocKey([]byte(id))
-	rtasocval, closer, err := ggraph.bsonkv.Pb.Db.Get(rtasockey)
-	if err != nil {
+	ekeyPrefix := VertexKey(id)
+	var byteLabel []byte = nil
+	var err error = nil
+	err = ggraph.bsonkv.Pb.View(func(it *pebblebulk.PebbleIterator) error {
+		for it.Seek(ekeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), ekeyPrefix); it.Next() {
+			byteLabel, err = it.Value()
+		}
+		return nil
+	})
+	if err != nil || byteLabel == nil {
 		return nil
 	}
-	defer closer.Close()
-	label := string(rtasocval)
-	v = &gdbi.Vertex{
+	label := string(byteLabel)
+
+	v := &gdbi.Vertex{
 		ID:    id,
-		Label: label[2:],
+		Label: string(label),
 	}
 	if loadProp {
-		var err error
-		v.Data, err = ggraph.bsonkv.Tables[label].GetRow([]byte(id))
+		v.Data, err = ggraph.bsonkv.Tables[VTABLE_PREFIX+label].GetRow([]byte(id))
 		if err != nil {
 			return nil
 		}
@@ -536,22 +600,21 @@ func (ggraph *Graph) GetVertexChannel(ctx context.Context, ids chan gdbi.Element
 				} else {
 					if load {
 						v := gdbi.Vertex{ID: id.ID}
-						prefix := benchtop.NewRowTableAsocKey([]byte(id.ID))
+						prefix := VertexKey(id.ID)
 						for it.Seek(prefix); it.Valid() && bytes.HasPrefix(it.Key(), prefix); it.Next() {
-							fetchLabel, err := it.Value()
+							label, err := it.Value()
 							if err != nil {
-								log.Errorf("GetVertexChannel: GetRow error for ID %s: %v", id.ID, err)
+								log.Errorln("GetVertexChannel it.Value() err: ", err)
 								continue
 							}
-							label := string(fetchLabel)
-							v.Label = label[2:]
-							v.Data, err = ggraph.bsonkv.Tables[label].GetRow([]byte(id.ID))
+							vLabel := string(label)
+							v.Label = vLabel
+							v.Data, err = ggraph.bsonkv.Tables[VTABLE_PREFIX+vLabel].GetRow([]byte(id.ID))
 							if err != nil {
 								log.Errorf("GetVertexChannel: GetRow error for ID %s: %v", id.ID, err)
 								continue
 							}
 							v.Loaded = true
-							break
 						}
 						id.Vertex = &v
 						out <- id
@@ -574,7 +637,7 @@ func (ggraph *Graph) GetOutChannel(ctx context.Context, reqChan chan gdbi.Elemen
 	go func() {
 		defer close(o)
 		ggraph.bsonkv.Pb.View(func(it *pebblebulk.PebbleIterator) error {
-			var err error
+			var err error = nil
 			for req := range reqChan {
 				if req.IsSignal() {
 					o <- req
@@ -600,11 +663,11 @@ func (ggraph *Graph) GetOutChannel(ctx context.Context, reqChan chan gdbi.Elemen
 							found = true
 						}
 					}
+
 					if !found && emitNull {
 						req.Vertex = nil
 						o <- req
 					}
-
 				}
 			}
 			return nil
@@ -620,6 +683,7 @@ func (ggraph *Graph) GetInChannel(ctx context.Context, reqChan chan gdbi.Element
 	go func() {
 		defer close(o)
 		ggraph.bsonkv.Pb.View(func(it *pebblebulk.PebbleIterator) error {
+			var err error = nil
 			for req := range reqChan {
 				if req.IsSignal() {
 					o <- req
@@ -629,11 +693,9 @@ func (ggraph *Graph) GetInChannel(ctx context.Context, reqChan chan gdbi.Element
 					for it.Seek(dkeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), dkeyPrefix); it.Next() {
 						keyValue := it.Key()
 						_, sid, _, label, vLabel := DstEdgeKeyParse(keyValue)
-						log.Debugln("GET IN CHAN VLABEL: ", vLabel)
 						if len(edgeLabels) == 0 || setcmp.ContainsString(edgeLabels, label) {
 							v := &gdbi.Vertex{ID: sid, Label: vLabel}
 							if load {
-								var err error
 
 								v.Data, err = ggraph.bsonkv.Tables[VTABLE_PREFIX+vLabel].GetRow([]byte(sid))
 								if err != nil {
@@ -668,6 +730,7 @@ func (ggraph *Graph) GetOutEdgeChannel(ctx context.Context, reqChan chan gdbi.El
 	go func() {
 		defer close(o)
 		ggraph.bsonkv.Pb.View(func(it *pebblebulk.PebbleIterator) error {
+			var err error = nil
 			for req := range reqChan {
 				if req.IsSignal() {
 					o <- req
@@ -684,8 +747,6 @@ func (ggraph *Graph) GetOutEdgeChannel(ctx context.Context, reqChan chan gdbi.El
 								ID:    eid,
 							}
 							if load {
-								var err error
-
 								e.Data, err = ggraph.bsonkv.Tables[ETABLE_PREFIX+label].GetRow([]byte(e.ID))
 								if err != nil {
 									log.Errorf("GetOutEdgeChannel: GetRow error: %v", err)
@@ -720,6 +781,7 @@ func (ggraph *Graph) GetInEdgeChannel(ctx context.Context, reqChan chan gdbi.Ele
 	go func() {
 		defer close(o)
 		ggraph.bsonkv.Pb.View(func(it *pebblebulk.PebbleIterator) error {
+			var err error = nil
 			for req := range reqChan {
 				if req.IsSignal() {
 					o <- req
@@ -736,7 +798,6 @@ func (ggraph *Graph) GetInEdgeChannel(ctx context.Context, reqChan chan gdbi.Ele
 								Label: label,
 							}
 							if load {
-								var err error
 								e.Data, err = ggraph.bsonkv.Tables[ETABLE_PREFIX+label].GetRow([]byte(e.ID))
 								if err != nil {
 									log.Errorf("GetInEdgeChannel: GetRow error: %v", err)
@@ -751,8 +812,8 @@ func (ggraph *Graph) GetInEdgeChannel(ctx context.Context, reqChan chan gdbi.Ele
 							o <- req
 							found = true
 						}
-
 					}
+
 					if !found && emitNull {
 						req.Edge = nil
 						o <- req
@@ -771,6 +832,7 @@ func (ggraph *Graph) GetEdge(id string, loadProp bool) *gdbi.Edge {
 	ekeyPrefix := EdgeKeyPrefix(id)
 	var e *gdbi.Edge
 	err := ggraph.bsonkv.Pb.View(func(it *pebblebulk.PebbleIterator) error {
+		var err error = nil
 		for it.Seek(ekeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), ekeyPrefix); it.Next() {
 			eid, src, dst, label := EdgeKeyParse(it.Key())
 			e = &gdbi.Edge{
@@ -781,7 +843,6 @@ func (ggraph *Graph) GetEdge(id string, loadProp bool) *gdbi.Edge {
 			}
 
 			if loadProp {
-				var err error
 				e.Data, err = ggraph.bsonkv.Tables[ETABLE_PREFIX+label].GetRow([]byte(id))
 				if err != nil {
 					log.Errorf("GetEdge: GetRow error: %v", err)
@@ -813,15 +874,17 @@ func (ggraph *Graph) GetVertexList(ctx context.Context, loadProp bool) <-chan *g
 					return nil
 				default:
 				}
-
-				id, label := VertexKeyParse(it.Key())
+				id := VertexKeyParse(it.Key())
+				byteLabel, err := it.Value()
+				if err != nil {
+					log.Errorf("GetVertexList it.Value() error: %s", err)
+				}
+				label := string(byteLabel)
 				v := &gdbi.Vertex{
 					ID:    id,
 					Label: label,
 				}
 				if loadProp {
-					var err error
-
 					v.Data, err = ggraph.bsonkv.Tables[VTABLE_PREFIX+label].GetRow([]byte(v.ID))
 					if err != nil {
 						log.Errorf("GetVertexList: GetRow error: %v", err)

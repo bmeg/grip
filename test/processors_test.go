@@ -419,15 +419,15 @@ func compare(expect []*gripql.QueryResult) checker {
 		sort.Strings(expectS)
 
 		if !reflect.DeepEqual(actualS, expectS) {
-			for _, s := range actualS {
-				t.Log("actual", s)
-			}
-			for _, s := range expectS {
-				t.Log("expect", s)
-			}
 			if len(expectS) != len(actualS) {
 				t.Logf("expected # results: %d actual # results: %d", len(expectS), len(actualS))
+			} else {
+				for i, s := range actualS {
+					t.Log("actual", s)
+					t.Log("expect", expectS[i])
+				}
 			}
+
 			t.Errorf("not equal")
 		}
 	}

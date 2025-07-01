@@ -12,28 +12,14 @@ var dstEdgePrefix = []byte(">")
 var intSize = 10
 
 // VertexKey generates the key given a vertexId
-func VertexKey(id, label string) []byte {
+func VertexKey(id string) []byte {
 	return bytes.Join([][]byte{
 		vertexPrefix,
 		[]byte(id),
-		[]byte(label),
 	}, []byte{0})
 }
 
-func VertexKeyParse(key []byte) (id, label string) {
-	tmp := bytes.Split(key, []byte{0})
-	return string(tmp[1]), string(tmp[2])
-}
-
-func VertexKeyPrefix(id string) []byte {
-	return bytes.Join([][]byte{
-		vertexPrefix,
-		[]byte(id),
-		{},
-	}, []byte{0})
-}
-
-func VertexKeyPrefixParse(key []byte) (id string) {
+func VertexKeyParse(key []byte) (id string) {
 	tmp := bytes.Split(key, []byte{0})
 	return string(tmp[1])
 }
