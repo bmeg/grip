@@ -180,19 +180,22 @@ class Manager:
         self._conn.addGraph(self.curGraph)
 
         G = self._conn.graph(self.curGraph)
+        bulk = G.bulkAdd()
 
         with open(os.path.join(BASE, "graphs", "%s.vertices" % (name))) as handle:
             for line in handle:
                 data = json.loads(line)
 
-                G.addVertex(data["_id"], data["_label"], self.collect_fields_dict(data))
+                bulk.addVertex(data["_id"], data["_label"], self.collect_fields_dict(data))
 
         with open(os.path.join(BASE, "graphs", "%s.edges" % (name))) as handle:
             for line in handle:
                 data = json.loads(line)
-                G.addEdge(src=data["_from"], dst=data["_to"],
+                bulk.addEdge(src=data["_from"], dst=data["_to"],
                           id=data.get("_id", None), label=data["_label"],
                           data=self.collect_fields_dict(data))
+
+        bulk.execute()
         self.curName = name
         return G
 

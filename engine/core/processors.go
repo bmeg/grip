@@ -7,6 +7,7 @@ import (
 
 	"github.com/bmeg/grip/engine/logic"
 	"github.com/bmeg/grip/gdbi"
+	//"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/util/copy"
 	"github.com/spf13/cast"
 )
@@ -226,6 +227,7 @@ func (r *Unwind) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, 
 				continue
 			}
 			v := gdbi.TravelerPathLookup(t, r.Field)
+			//log.Debugln("UNWIND V RES: ", v)
 			if a, ok := v.([]interface{}); ok {
 				cur := t.GetCurrent()
 				if len(a) > 0 {

@@ -315,7 +315,7 @@ class BulkAdd(BaseConnection):
             }
         }
         if id is not None:
-            payload["id"] = id
+            payload["edge"]["id"] = id
         self.elements.append(json.dumps(payload))
 
     def execute(self):

@@ -39,7 +39,7 @@ type lookupVertsHasLabelCondIndexProc struct {
 }
 
 func (l *lookupVertsHasLabelCondIndexProc) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
-	log.Debugln("Entering lookupVertsHasLabelCondIndexProc custom processor", l.expr, l.labels, len(l.db.bsonkv.Fields))
+	log.Debugln("Entering lookupVertsHasLabelCondIndexProc custom processor")
 	var exists = false
 	if len(l.db.bsonkv.Fields) > 0 {
 		for _, label := range l.labels {
@@ -62,8 +62,6 @@ func (l *lookupVertsHasLabelCondIndexProc) Process(ctx context.Context, man gdbi
 						continue
 					}
 					for roMaps := range tableFound.Scan(false, &GripQLFilter{Expression: l.expr}) {
-						log.Debugln("RES RETURNED: ", roMaps.(map[string]any))
-
 						id := roMaps.(map[string]any)["_id"].(string)
 						delete(roMaps.(map[string]any), "_id")
 						v := gdbi.Vertex{
@@ -128,7 +126,7 @@ type lookupVertsCondIndexProc struct {
 }
 
 func (l *lookupVertsCondIndexProc) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
-	log.Debugln("Entering lookupVertsCondIndexProc custom processor", l.expr.Expression)
+	log.Debugln("Entering lookupVertsCondIndexProc custom processor")
 	queryChan := make(chan gdbi.ElementLookup, 100)
 	cond := l.expr.GetCondition()
 	var exists = false

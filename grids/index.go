@@ -54,11 +54,13 @@ func (ggraph *Graph) DeleteAnyRow(id string, label string, edgeFlag bool) error 
 
 	err := ggraph.bsonkv.Tables[prefix+label].DeleteRow([]byte(id))
 	if err != nil {
-		if err == pebble.ErrNotFound{
+		if err == pebble.ErrNotFound {
 			log.Debugln("Pebble not Found: %s", err)
 			return nil
 		}
 		return err
 	}
+	ggraph.bsonkv.PageCache.Invalidate(id)
+
 	return nil
 }
