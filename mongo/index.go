@@ -21,7 +21,8 @@ func (mg *Graph) AddVertexIndex(label string, field string) error {
 	field = strings.TrimPrefix(field, "$.")
 
 	idx := mg.ar.VertexCollection(mg.graph).Indexes()
-
+	indexName := fmt.Sprintf("label_%s_%s_idx", label, field)
+	
 	// Create a compound index on _label and the specified field, filtered by the specific label
 	_, err := idx.CreateOne(
 		context.Background(),
@@ -31,6 +32,7 @@ func (mg *Graph) AddVertexIndex(label string, field string) error {
 				{Key: field, Value: 1},
 			},
 			Options: options.Index().
+				SetName(indexName).
 				SetUnique(false).
 				SetBackground(true).
 				SetPartialFilterExpression(bson.M{FIELD_LABEL: label}),
