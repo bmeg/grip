@@ -595,55 +595,39 @@ func (ggraph *Graph) GetVertexChannel(ctx context.Context, ids chan gdbi.Element
 	return out
 }
 
+type lookup struct {
+	req gdbi.ElementLookup
+	key string
+}
+
 // GetOutChannel process requests of vertex ids and find the connected vertices on outgoing edges
 func (ggraph *Graph) GetOutChannel(ctx context.Context, reqChan chan gdbi.ElementLookup, load bool, emitNull bool, edgeLabels []string) chan gdbi.ElementLookup {
-	o := make(chan gdbi.ElementLookup, 100)
+	// Todo: implement bulk cache get + bulk get row to try to make this faster 
+	lookupChan := make(chan lookup, 1000)
 	go func() {
-		defer close(o)
+		defer close(lookupChan)
 		ggraph.bsonkv.Pb.View(func(it *pebblebulk.PebbleIterator) error {
 			for req := range reqChan {
 				if req.IsSignal() {
-					o <- req
+					lookupChan <- lookup{req: req}
 				} else {
 					found := false
 					skeyPrefix := SrcEdgePrefix(req.ID)
 					for it.Seek(skeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), skeyPrefix); it.Next() {
 						_, _, dst, label := SrcEdgeKeyParse(it.Key())
 						if len(edgeLabels) == 0 || setcmp.ContainsString(edgeLabels, label) {
-							entry, err := ggraph.bsonkv.PageCache.Get(ctx, dst, ggraph.bsonkv.PageLoader)
-							if err != nil {
-								log.Errorf("GetOutChannel: PageCache.Get( error: %v", err)
-								continue
+							lookupChan <- lookup{
+								key: dst,
+								req: req,
 							}
-							
-							vLabel, ok := ggraph.bsonkv.LabelLookup[entry.Label]
-							if !ok {
-								log.Errorf("GetOutChannel: Label not a string %s", vLabel)
-								continue
-							}
-
-							//log.Debugln("USING VLABEL: ", vLabel, "LOOKUP: ", dst, "LOAD: ", load)
-
-							v := &gdbi.Vertex{ID: dst, Label: vLabel}
-							if load {
-								v.Data, err = ggraph.bsonkv.Tables[VTABLE_PREFIX+v.Label].GetRow(entry)
-								if err != nil {
-									log.Errorf("GetOutChannel: GetRow on %s: %s error: %v", vLabel, dst, err)
-									continue
-								}
-								v.Loaded = true
-							} else {
-								v.Data = map[string]any{}
-							}
-							req.Vertex = v
-							o <- req
 							found = true
 						}
 					}
-
 					if !found && emitNull {
-						req.Vertex = nil
-						o <- req
+						lookupChan <- lookup{
+							req: req,
+							key: "",
+						}
 					}
 				}
 			}
@@ -651,6 +635,42 @@ func (ggraph *Graph) GetOutChannel(ctx context.Context, reqChan chan gdbi.Elemen
 		})
 	}()
 
+	o := make(chan gdbi.ElementLookup, 100)
+	go func() {
+		defer close(o)
+		for req := range lookupChan {
+			if req.req.IsSignal() {
+				o <- req.req
+			} else {
+				if req.key != "" {
+					entry, err := ggraph.bsonkv.PageCache.Get(ctx, req.key, ggraph.bsonkv.PageLoader)
+					if err != nil {
+						log.Errorf("GetOutChannel: PageCache.Get( error: %v", err)
+						continue
+					}
+					vLabel, ok := ggraph.bsonkv.LabelLookup[entry.Label]
+					if !ok {
+						log.Errorf("GetOutChannel: Label not a string %s", vLabel)
+						continue
+					}
+					v := &gdbi.Vertex{ID: req.key, Label: vLabel}
+					if load {
+						v.Data, err = ggraph.bsonkv.Tables[VTABLE_PREFIX+v.Label].GetRow(entry)
+						if err != nil {
+							log.Errorf("GetOutChannel: GetRow on %s: %s error: %v", vLabel, req.key, err)
+							continue
+						}
+						v.Loaded = true
+					}
+					req.req.Vertex = v
+					o <- req.req
+				} else {
+					req.req.Vertex = nil
+					o <- req.req
+				}
+			}
+		}
+	}()
 	return o
 }
 
@@ -674,13 +694,13 @@ func (ggraph *Graph) GetInChannel(ctx context.Context, reqChan chan gdbi.Element
 								log.Errorf("GetInChannel: PageCache.Get( error: %v", err)
 								continue
 							}
-							
+
 							vLabel, ok := ggraph.bsonkv.LabelLookup[entry.Label]
-							if ! ok {
+							if !ok {
 								log.Errorf("GetInChannel Label lookup failed")
 								continue
 							}
-	
+
 							v := &gdbi.Vertex{ID: sid, Label: vLabel}
 							if load {
 								v.Data, err = ggraph.bsonkv.Tables[VTABLE_PREFIX+v.Label].GetRow(entry)
@@ -730,14 +750,14 @@ func (ggraph *Graph) GetOutEdgeChannel(ctx context.Context, reqChan chan gdbi.El
 								To:    dst,
 								Label: label,
 								ID:    eid,
-							}	
+							}
 							if load {
 								entry, err := ggraph.bsonkv.PageCache.Get(ctx, e.ID, ggraph.bsonkv.PageLoader)
 								if err != nil {
 									log.Errorf("GetOutEdgeChannel: PageCache.Get( error: %v", err)
 									continue
 								}
-																e.Data, err = ggraph.bsonkv.Tables[ETABLE_PREFIX+e.Label].GetRow(entry)
+								e.Data, err = ggraph.bsonkv.Tables[ETABLE_PREFIX+e.Label].GetRow(entry)
 								if err != nil {
 									log.Errorf("GetOutEdgeChannel: GetRow error: %v", err)
 									continue
@@ -840,7 +860,7 @@ func (ggraph *Graph) GetEdge(id string, loadProp bool) *gdbi.Edge {
 					log.Errorf("GetEdge: PageCache.Get( error: %v", err)
 					continue
 				}
-		
+
 				e.Data, err = ggraph.bsonkv.Tables[ETABLE_PREFIX+e.Label].GetRow(entry)
 				if err != nil {
 					log.Errorf("GetEdge: GetRow error: %v", err)
@@ -883,10 +903,10 @@ func (ggraph *Graph) GetVertexList(ctx context.Context, loadProp bool) <-chan *g
 				if loadProp {
 					entry, err := ggraph.bsonkv.PageCache.Get(context.Background(), v.ID, ggraph.bsonkv.PageLoader)
 					if err != nil {
-						log.Errorf("GetVertexList: PageCache.Get on %s error: %s",v.ID, err)
+						log.Errorf("GetVertexList: PageCache.Get on %s error: %s", v.ID, err)
 						continue
 					}
-		
+
 					v.Data, err = ggraph.bsonkv.Tables[VTABLE_PREFIX+v.Label].GetRow(entry)
 					if err != nil {
 						log.Errorf("GetVertexList: table.GetRow error: %s", err)
@@ -907,7 +927,7 @@ func (ggraph *Graph) GetVertexList(ctx context.Context, loadProp bool) <-chan *g
 // ListVertexLabels returns a list of vertex types in the graph
 func (ggraph *Graph) ListVertexLabels() ([]string, error) {
 	labels := []string{}
-	for i := range ggraph.bsonkv.GetLabels(false) {
+	for i := range ggraph.bsonkv.GetLabels(false, true) {
 		labels = append(labels, i)
 	}
 	return labels, nil
@@ -916,7 +936,7 @@ func (ggraph *Graph) ListVertexLabels() ([]string, error) {
 // ListEdgeLabels returns a list of edge types in the graph
 func (ggraph *Graph) ListEdgeLabels() ([]string, error) {
 	labels := []string{}
-	for i := range ggraph.bsonkv.GetLabels(true) {
+	for i := range ggraph.bsonkv.GetLabels(true, true) {
 		labels = append(labels, i)
 	}
 	return labels, nil

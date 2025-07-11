@@ -213,3 +213,35 @@ def test_hasLabel_contains(man):
         errors.append("Expected 2 results but got %d instead" % (count))
 
     return errors
+
+
+def test_multiple_labels_and_indices(man):
+    """ In this scenario both Starship:13 and Vehicle:6 and Vehicle:8 have the speed of 1200
+    but since only one index has been declared, in the grids driver the general v.has() should be used"""
+
+    errors = []
+    G = man.setGraph("swapi")
+    G.addIndex("Vehicle", "max_atmosphering_speed")
+
+    count = 0
+    for i in  G.query().V().has(gripql.eq("max_atmosphering_speed", 1200)):
+        count += 1
+    if count != 3:
+        errors.append("Expected 3 results but got %d instead" % (count))
+
+    #Every vertex needs to be indexed for this "index" feature to work in grids driver
+    G.addIndex("Starship", "max_atmosphering_speed")
+    G.addIndex("Character", "max_atmosphering_speed")
+    G.addIndex("Planet", "max_atmosphering_speed")
+    G.addIndex("Species", "max_atmosphering_speed")
+    G.addIndex("Film", "max_atmosphering_speed")
+
+    # Add the other index to verify that using the other execution pipline path won't change the end result
+
+    count = 0
+    for i in  G.query().V().has(gripql.eq("max_atmosphering_speed", 1200)):
+        count += 1
+    if count != 3:
+        errors.append("Expected 3 results but got %d instead" % (count))
+
+    return errors

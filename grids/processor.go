@@ -40,15 +40,18 @@ type lookupVertsHasLabelCondIndexProc struct {
 
 func (l *lookupVertsHasLabelCondIndexProc) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
 	log.Debugln("Entering lookupVertsHasLabelCondIndexProc custom processor")
-	var exists = false
+	var exists = true
+	// Here if one of l.labels doesn't exist then not going to be querying all the data so leave it like this.
 	if len(l.db.bsonkv.Fields) > 0 {
 		for _, label := range l.labels {
 			log.Debugln("Checking indexed fields ", l.db.bsonkv.Fields, "LABEL: ", label)
 			_, exists = l.db.bsonkv.Fields[label]
-			if exists {
+			if !exists {
 				break
 			}
 		}
+	}else {
+		exists = false
 	}
 
 	if !exists || (l.expr == nil && l.expr.GetCondition() == nil) {
@@ -129,16 +132,46 @@ func (l *lookupVertsCondIndexProc) Process(ctx context.Context, man gdbi.Manager
 	log.Debugln("Entering lookupVertsCondIndexProc custom processor")
 	queryChan := make(chan gdbi.ElementLookup, 100)
 	cond := l.expr.GetCondition()
-	var exists = false
+	var allMatch = true
+	// Indexing only works if every vertex label is indexed for that specific field and it's only a condition Filter
+	// otherwise this lookup will not fetch everything that was asked for
 	if len(l.db.bsonkv.Fields) > 0 {
-		_, exists = l.db.bsonkv.Fields[VTABLE_PREFIX+cond.Key]
+		for lbl := range l.db.bsonkv.GetLabels(false, false){
+			if val, exists := l.db.bsonkv.Fields[lbl]; exists{
+				if _, ok := val[cond.Key]; !ok{
+					allMatch = false
+					break
+				}	
+			}else {
+				allMatch = false
+				break
+			}
+		}
+	} else {
+		allMatch = false
 	}
+
 	/*  Optimized indexing only works for Simple filters.			  /
 	/ 	If compound filter or index doesn't exist use backup method */
-	log.Debugln("COND: ", cond, cond == nil, l.db.bsonkv.Fields)
-
-	if cond == nil || !exists {
-		log.Debugf("lookupVertsCondIndexProc: falling back to GetVertexList since filter is not basic Condition filter or not indexed")
+	if cond != nil && allMatch {
+		log.Debugln("Chose index optimized V().Has() statement path")
+		go func() {
+			defer close(queryChan)
+			for t := range in {
+				for id := range l.db.bsonkv.RowIdsByHas(
+					cond.Key,
+					cond.Value.AsInterface(),
+					MapConditionToOperator(cond.Condition),
+				) {
+					queryChan <- gdbi.ElementLookup{
+						ID:  id,
+						Ref: t,
+					}
+				}
+			}
+		}()
+	} else {
+		log.Debugf("Base case GetVertexList is used. No indexing")
 		go func() {
 			defer close(queryChan)
 			for t := range in {
@@ -151,24 +184,6 @@ func (l *lookupVertsCondIndexProc) Process(ctx context.Context, man gdbi.Manager
 					}
 
 				}
-			}
-		}()
-	} else {
-		go func() {
-			defer close(queryChan)
-			for t := range in {
-				cond := l.expr.GetCondition()
-				for id := range l.db.bsonkv.RowIdsByHas(
-					cond.Key,
-					cond.Value.AsInterface(),
-					MapConditionToOperator(cond.Condition),
-				) {
-					queryChan <- gdbi.ElementLookup{
-						ID:  id,
-						Ref: t,
-					}
-				}
-
 			}
 		}()
 	}
