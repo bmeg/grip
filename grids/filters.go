@@ -6,16 +6,14 @@ import (
 	"github.com/bmeg/benchtop/bsontable/filters"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/log"
+	"github.com/bytedance/sonic"
+	"github.com/bytedance/sonic/ast"
 )
 
 type GripQLFilter struct {
 	Expression *gripql.HasExpression
 }
 
-// This method makes GripQLFilter satisfy the bsontable.RowFilter interface.
-func (f *GripQLFilter) Matches(row map[string]any) bool {
-	return MatchesHasExpression(row, f.Expression)
-}
 
 func (f *GripQLFilter) RequiredFields() []string {
 	return extractKeys(f.Expression)
@@ -25,6 +23,11 @@ func (f *GripQLFilter) IsNoOp() bool {
 	// A GripQLFilter is a no-op if its Expression is nil
 	return f.Expression == nil
 }
+
+func (f *GripQLFilter) Matches(row any) bool {
+	return MatchesHasExpression(row, f.Expression)
+}
+
 
 func extractKeys(expr *gripql.HasExpression) []string {
 	keys := map[string]struct{}{}
@@ -58,21 +61,48 @@ func extractKeys(expr *gripql.HasExpression) []string {
 	}
 	return out
 }
-
 func MatchesHasExpression(val any, stmt *gripql.HasExpression) bool {
-
 	switch stmt.Expression.(type) {
-
 	case *gripql.HasExpression_Condition:
 		cond := stmt.GetCondition()
+		var lookupVal any
+
+		// Handle lookup based on input type
+		switch v := val.(type) {
+		case map[string]any:
+			lookupVal = bsontable.PathLookup(v, cond.Key)
+		case []byte:
+			pathArr, err := bsontable.ConvertJSONPathToArray(cond.Key)
+			if err != nil {
+				log.Errorf("Error converting JSON path: %v", err)
+				return false
+			}
+			node, err := sonic.Get(v, pathArr...)
+			if err != nil {
+				if err != ast.ErrNotExist{
+					log.Errorf("Sonic Fetch err for path: %s on doc %#v: %v", pathArr, string(v), err)
+				}
+				return false
+			}
+			lookupVal, err = node.Interface()
+			if err != nil {
+				log.Errorf("Error unmarshaling node: %v", err)
+				return false
+			}
+		default:
+			log.Errorf("Unsupported input type: %T", val)
+			return false
+		}
+
 		return filters.ApplyFilterCondition(
-			bsontable.PathLookup(val.(map[string]any), cond.Key),
+			lookupVal,
 			&benchtop.FieldFilter{
 				Operator: MapConditionToOperator(cond.Condition),
 				Field:    cond.Key,
 				Value:    cond.Value.AsInterface(),
 			},
 		)
+
 	case *gripql.HasExpression_And:
 		and := stmt.GetAnd()
 		andRes := []bool{}

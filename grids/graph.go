@@ -661,6 +661,8 @@ func (ggraph *Graph) GetOutChannel(ctx context.Context, reqChan chan gdbi.Elemen
 							continue
 						}
 						v.Loaded = true
+					}else {
+						v.Data = map[string]any{}
 					}
 					req.req.Vertex = v
 					o <- req.req

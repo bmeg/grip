@@ -12,8 +12,9 @@ import (
 // LookupVertexHasLabelCondIndex look up vertices has label
 
 type lookupVertsHasLabelCondIndexStep struct {
-	labels []string
-	expr   *gripql.HasExpression
+	labels   []string
+	expr     *gripql.HasExpression
+	loadData bool
 }
 
 func (t lookupVertsHasLabelCondIndexStep) GetProcessor(db gdbi.GraphInterface, ps gdbi.PipelineState) (gdbi.Processor, error) {
@@ -22,7 +23,7 @@ func (t lookupVertsHasLabelCondIndexStep) GetProcessor(db gdbi.GraphInterface, p
 		db:       graph,
 		expr:     t.expr,
 		labels:   t.labels,
-		loadData: true,
+		loadData: ps.StepLoadData(),
 	}, nil
 
 }
@@ -39,22 +40,27 @@ type lookupVertsHasLabelCondIndexProc struct {
 }
 
 func (l *lookupVertsHasLabelCondIndexProc) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
-	log.Debugln("Entering lookupVertsHasLabelCondIndexProc custom processor")
+	log.Debugln("Entering lookupVertsHasLabelCondIndexProc custom processor", l.loadData)
 	var exists = true
 	// Here if one of l.labels doesn't exist then not going to be querying all the data so leave it like this.
-	if len(l.db.bsonkv.Fields) > 0 {
-		for _, label := range l.labels {
-			log.Debugln("Checking indexed fields ", l.db.bsonkv.Fields, "LABEL: ", label)
-			_, exists = l.db.bsonkv.Fields[label]
-			if !exists {
+	cond :=  l.expr.GetCondition()
+	exists = len(l.db.bsonkv.Fields) > 0 && cond != nil
+	if exists {
+		for _, iterLabel := range l.labels {
+			label, ok := l.db.bsonkv.Fields[iterLabel]
+			if !ok {
+				exists = false
+				break
+			}
+			_, exists = label[cond.Key]
+			if !exists{
 				break
 			}
 		}
-	}else {
-		exists = false
 	}
 
-	if !exists || (l.expr == nil && l.expr.GetCondition() == nil) {
+	count :=0
+	if !exists || (l.expr == nil && cond == nil) {
 		go func() {
 			defer close(out)
 			for t := range in {
@@ -64,15 +70,20 @@ func (l *lookupVertsHasLabelCondIndexProc) Process(ctx context.Context, man gdbi
 						log.Debugf("BSONTable for label '%s' is nil. Cannot scan.", label)
 						continue
 					}
-					for roMaps := range tableFound.Scan(false, &GripQLFilter{Expression: l.expr}) {
-						id := roMaps.(map[string]any)["_id"].(string)
-						delete(roMaps.(map[string]any), "_id")
+					for roMaps := range tableFound.Scan(l.loadData, &GripQLFilter{Expression: l.expr}) {
 						v := gdbi.Vertex{
-							ID:     id,
 							Label:  label[2:],
-							Data:   roMaps.(map[string]any),
-							Loaded: true,
+							Loaded: l.loadData,
 						}
+						if l.loadData {
+							v.ID = roMaps.(map[string]any)["_id"].(string)
+							delete(roMaps.(map[string]any), "_id")
+							v.Data = roMaps.(map[string]any)
+						} else {
+							v.ID = roMaps.(string)
+							v.Data = map[string]any{}
+						}
+						count += 1
 						out <- t.AddCurrent(v.Copy())
 					}
 				}
@@ -114,7 +125,7 @@ func (t lookupVertsCondIndexStep) GetProcessor(db gdbi.GraphInterface, ps gdbi.P
 	return &lookupVertsCondIndexProc{
 		db:       graph,
 		expr:     t.expr,
-		loadData: true}, nil
+		loadData: ps.StepLoadData()}, nil
 }
 
 func (t lookupVertsCondIndexStep) GetType() gdbi.DataType {
@@ -132,25 +143,23 @@ func (l *lookupVertsCondIndexProc) Process(ctx context.Context, man gdbi.Manager
 	log.Debugln("Entering lookupVertsCondIndexProc custom processor")
 	queryChan := make(chan gdbi.ElementLookup, 100)
 	cond := l.expr.GetCondition()
-	var allMatch = true
-	// Indexing only works if every vertex label is indexed for that specific field and it's only a condition Filter
-	// otherwise this lookup will not fetch everything that was asked for
-	if len(l.db.bsonkv.Fields) > 0 {
-		for lbl := range l.db.bsonkv.GetLabels(false, false){
-			if val, exists := l.db.bsonkv.Fields[lbl]; exists{
-				if _, ok := val[cond.Key]; !ok{
+	
+	/*  Indexing only works if every vertex label is indexed for that specific field and it's only a condition Filter
+	 otherwise this lookup will not fetch everything that was asked for */
+	allMatch := len(l.db.bsonkv.Fields) > 0 && cond != nil
+	if allMatch {
+		for lbl := range l.db.bsonkv.GetLabels(false, false) {
+			if val, exists := l.db.bsonkv.Fields[lbl]; exists {
+				if _, ok := val[cond.Key]; !ok {
 					allMatch = false
 					break
-				}	
-			}else {
+				}
+			} else {
 				allMatch = false
 				break
 			}
 		}
-	} else {
-		allMatch = false
-	}
-
+	} 
 	/*  Optimized indexing only works for Simple filters.			  /
 	/ 	If compound filter or index doesn't exist use backup method */
 	if cond != nil && allMatch {

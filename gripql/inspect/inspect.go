@@ -148,6 +148,14 @@ func PipelineStepOutputs(stmts []*gripql.GraphStatement, storeMarks bool) map[st
 				out[steps[i]] = []string{"*"}
 			}
 			onLast = false
+
+		case *gripql.GraphStatement_Sort, *gripql.GraphStatement_Totype,
+			*gripql.GraphStatement_Unwind, *gripql.GraphStatement_Aggregate:
+			if onLast {
+				out[steps[i]] = []string{"*"}
+			}
+			onLast = false
+
 		case *gripql.GraphStatement_LookupVertsLabelIndex:
 			if onLast {
 				out[steps[i]] = []string{"*"}
