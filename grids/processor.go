@@ -43,7 +43,7 @@ func (l *lookupVertsHasLabelCondIndexProc) Process(ctx context.Context, man gdbi
 	log.Debugln("Entering lookupVertsHasLabelCondIndexProc custom processor", l.loadData)
 	var exists = true
 	// Here if one of l.labels doesn't exist then not going to be querying all the data so leave it like this.
-	cond :=  l.expr.GetCondition()
+	cond := l.expr.GetCondition()
 	exists = len(l.db.bsonkv.Fields) > 0 && cond != nil
 	if exists {
 		for _, iterLabel := range l.labels {
@@ -53,13 +53,13 @@ func (l *lookupVertsHasLabelCondIndexProc) Process(ctx context.Context, man gdbi
 				break
 			}
 			_, exists = label[cond.Key]
-			if !exists{
+			if !exists {
 				break
 			}
 		}
 	}
 
-	count :=0
+	count := 0
 	if !exists || (l.expr == nil && cond == nil) {
 		go func() {
 			defer close(out)
@@ -96,7 +96,7 @@ func (l *lookupVertsHasLabelCondIndexProc) Process(ctx context.Context, man gdbi
 			for t := range in {
 				cond := l.expr.GetCondition()
 				for _, label := range l.labels {
-					for id := range l.db.bsonkv.RowIdsByLabelFieldValue(label, cond.Key, cond.Value.AsInterface(), MapConditionToOperator(cond.Condition)) {
+					for id := range l.db.bsonkv.RowIdsByLabelFieldValue(label, cond.Key, cond.Value.AsInterface(), cond.Condition) {
 						queryChan <- gdbi.ElementLookup{ID: id, Ref: t}
 					}
 				}
@@ -143,9 +143,9 @@ func (l *lookupVertsCondIndexProc) Process(ctx context.Context, man gdbi.Manager
 	log.Debugln("Entering lookupVertsCondIndexProc custom processor")
 	queryChan := make(chan gdbi.ElementLookup, 100)
 	cond := l.expr.GetCondition()
-	
+
 	/*  Indexing only works if every vertex label is indexed for that specific field and it's only a condition Filter
-	 otherwise this lookup will not fetch everything that was asked for */
+	otherwise this lookup will not fetch everything that was asked for */
 	allMatch := len(l.db.bsonkv.Fields) > 0 && cond != nil
 	if allMatch {
 		for lbl := range l.db.bsonkv.GetLabels(false, false) {
@@ -159,7 +159,7 @@ func (l *lookupVertsCondIndexProc) Process(ctx context.Context, man gdbi.Manager
 				break
 			}
 		}
-	} 
+	}
 	/*  Optimized indexing only works for Simple filters.			  /
 	/ 	If compound filter or index doesn't exist use backup method */
 	if cond != nil && allMatch {
@@ -170,7 +170,7 @@ func (l *lookupVertsCondIndexProc) Process(ctx context.Context, man gdbi.Manager
 				for id := range l.db.bsonkv.RowIdsByHas(
 					cond.Key,
 					cond.Value.AsInterface(),
-					MapConditionToOperator(cond.Condition),
+					cond.Condition,
 				) {
 					queryChan <- gdbi.ElementLookup{
 						ID:  id,
