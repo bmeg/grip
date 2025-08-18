@@ -80,7 +80,6 @@ func (ggraph *Graph) indexVertex(vertex *gdbi.Vertex, tx *pebblebulk.PebbleBulk)
 			}
 		}
 	}
-
 	return nil
 }
 
@@ -602,7 +601,7 @@ type lookup struct {
 
 // GetOutChannel process requests of vertex ids and find the connected vertices on outgoing edges
 func (ggraph *Graph) GetOutChannel(ctx context.Context, reqChan chan gdbi.ElementLookup, load bool, emitNull bool, edgeLabels []string) chan gdbi.ElementLookup {
-	// Todo: implement bulk cache get + bulk get row to try to make this faster 
+	// Todo: implement bulk cache get + bulk get row to try to make this faster
 	lookupChan := make(chan lookup, 1000)
 	go func() {
 		defer close(lookupChan)
@@ -661,7 +660,7 @@ func (ggraph *Graph) GetOutChannel(ctx context.Context, reqChan chan gdbi.Elemen
 							continue
 						}
 						v.Loaded = true
-					}else {
+					} else {
 						v.Data = map[string]any{}
 					}
 					req.req.Vertex = v

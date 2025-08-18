@@ -70,7 +70,7 @@ func (l *lookupVertsHasLabelCondIndexProc) Process(ctx context.Context, man gdbi
 						log.Debugf("BSONTable for label '%s' is nil. Cannot scan.", label)
 						continue
 					}
-					for roMaps := range tableFound.Scan(l.loadData, &GripQLFilter{Expression: l.expr}) {
+					for roMaps := range tableFound.Scan(l.loadData, NewGripQLFilter(l.expr)) {
 						v := gdbi.Vertex{
 							Label:  label[2:],
 							Loaded: l.loadData,
@@ -183,11 +183,12 @@ func (l *lookupVertsCondIndexProc) Process(ctx context.Context, man gdbi.Manager
 		log.Debugf("Base case GetVertexList is used. No indexing")
 		go func() {
 			defer close(queryChan)
+			filt := NewGripQLFilter(l.expr)
 			for t := range in {
 				for v := range l.db.GetVertexList(ctx, true) {
-					if MatchesHasExpression(
+					log.Debugln("FILT: ", filt)
+					if filt.Matches(
 						AddSpecialFields(v),
-						l.expr,
 					) {
 						queryChan <- gdbi.ElementLookup{ID: v.ID, Ref: t}
 					}

@@ -25,7 +25,6 @@ func (w *Has) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out
 				out <- t
 				continue
 			}
-
 			if logic.MatchesHasExpression(t, w.stmt) {
 				out <- t
 			}

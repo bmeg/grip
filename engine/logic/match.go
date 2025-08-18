@@ -15,6 +15,7 @@ func MatchesCondition(trav gdbi.Traveler, cond *gripql.HasCondition) bool {
 	var val any
 	var condVal any
 
+	log.Debugln("TRAV: ", trav, "KEY: ", cond.Key)
 	val = gdbi.TravelerPathLookup(trav, cond.Key)
 	condVal = cond.Value.AsInterface()
 
