@@ -11,13 +11,13 @@ import (
 	"strings"
 	"time"
 
+	"golang.org/x/term"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 
 	"github.com/kr/pretty"
 	"github.com/logrusorgru/aurora"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/crypto/ssh/terminal"
 )
 
 var PanicLevel = logrus.PanicLevel
@@ -110,7 +110,7 @@ type textFormatter struct {
 func checkIfTerminal(w io.Writer) bool {
 	switch v := w.(type) {
 	case *os.File:
-		return terminal.IsTerminal(int(v.Fd()))
+		return term.IsTerminal(int(v.Fd()))
 	default:
 		return false
 	}
@@ -141,7 +141,7 @@ func (f *textFormatter) Format(entry *logrus.Entry) ([]byte, error) {
 	case logrus.DebugLevel:
 		levelColor = aurora.MagentaFg
 	case logrus.WarnLevel:
-		levelColor = aurora.BrownFg
+		levelColor = aurora.YellowFg
 	case logrus.ErrorLevel, logrus.FatalLevel, logrus.PanicLevel:
 		levelColor = aurora.RedFg
 	default:
@@ -276,67 +276,67 @@ func ConfigureLogger(conf Logger) {
 }
 
 // Debug log message
-func Debug(args ...interface{}) {
+func Debug(args ...any) {
 	logger.Debug(args...)
 }
 
 // Debugln log message
-func Debugln(args ...interface{}) {
+func Debugln(args ...any) {
 	logger.Debugln(args...)
 }
 
 // Debugf log message
-func Debugf(format string, args ...interface{}) {
+func Debugf(format string, args ...any) {
 	logger.Debugf(format, args...)
 }
 
 // Info log message
-func Info(args ...interface{}) {
+func Info(args ...any) {
 	logger.Info(args...)
 }
 
 // Infoln log message
-func Infoln(args ...interface{}) {
+func Infoln(args ...any) {
 	logger.Infoln(args...)
 }
 
 // Infof log message
-func Infof(format string, args ...interface{}) {
+func Infof(format string, args ...any) {
 	logger.Infof(format, args...)
 }
 
 // Warning log message
-func Warning(args ...interface{}) {
+func Warning(args ...any) {
 	logger.Warning(args...)
 }
 
 // Warningln log message
-func Warningln(args ...interface{}) {
+func Warningln(args ...any) {
 	logger.Warningln(fmt.Sprint(args...))
 }
 
 // Warningf log message
-func Warningf(format string, args ...interface{}) {
+func Warningf(format string, args ...any) {
 	logger.Warningf(format, args...)
 }
 
 // Error log message
-func Error(args ...interface{}) {
+func Error(args ...any) {
 	logger.Error(args...)
 }
 
 // Errorln log message
-func Errorln(args ...interface{}) {
+func Errorln(args ...any) {
 	logger.Errorln(args...)
 }
 
 // Errorf log message
-func Errorf(format string, args ...interface{}) {
+func Errorf(format string, args ...any) {
 	logger.Errorf(format, args...)
 }
 
 // WithField creates an entry from the standard logger and adds a field to it.
-func WithField(key string, value interface{}) *Entry {
+func WithField(key string, value any) *Entry {
 	return logger.WithField(key, value)
 }
 
@@ -357,4 +357,17 @@ func GetLogger() *logrus.Logger {
 // which inherits the parent's configuration but changes the namespace.
 func Sub(ns string) *Entry {
 	return logger.WithFields(Fields{"namespace": ns})
+}
+
+func Redf(format string, args ...any) {
+	if tf, ok := logger.Formatter.(*textFormatter); ok {
+		isColored := (tf.ForceColors || isColorTerminal(logger.Out)) && !tf.DisableColors
+		if isColored {
+			msg := fmt.Sprintf(format, args...)
+			redMsg := aurora.Red(msg).String()
+			fmt.Fprintln(logger.Out, redMsg)
+			return
+		}
+	}
+	logger.Errorf(format, args...)
 }
