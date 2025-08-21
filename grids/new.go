@@ -8,24 +8,24 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/bmeg/benchtop/bsontable"
+	"github.com/bmeg/benchtop/jsontable"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/timestamp"
 )
 
 // Graph implements the GDB interface using a genertic key/value storage driver
 type Graph struct {
-	graphID 		string
+	graphID string
 
-	bsonkv 			*bsontable.BSONDriver
-	ts    			 *timestamp.Timestamp
+	jsonkv           *jsontable.JSONDriver
+	ts               *timestamp.Timestamp
 	tempDeletedEdges map[string]struct{}
-	edgesMutex      sync.Mutex
+	edgesMutex       sync.Mutex
 }
 
 // Close the connection
 func (g *Graph) Close() error {
-	g.bsonkv.Close()
+	g.jsonkv.Close()
 	return nil
 }
 
@@ -62,20 +62,20 @@ func newGraph(baseDir, name string) (*Graph, error) {
 
 	//bsonkvPath := fmt.Sprintf("%s", dbPath)
 	bsonkvPath := dbPath
-	tabledr, err := bsontable.NewBSONDriver(bsonkvPath)
+	tabledr, err := jsontable.NewJSONDriver(bsonkvPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open bsonkv at %s: %v", bsonkvPath, err)
 	}
-	bsonkv := tabledr.(*bsontable.BSONDriver)
+	bsonkv := tabledr.(*jsontable.JSONDriver)
 
 	ts := timestamp.NewTimestamp()
 
 	o := &Graph{
-		bsonkv:  bsonkv,
-		ts:      &ts,
-		graphID: name,
+		jsonkv:           bsonkv,
+		ts:               &ts,
+		graphID:          name,
 		tempDeletedEdges: make(map[string]struct{}),
-		edgesMutex: sync.Mutex{},
+		edgesMutex:       sync.Mutex{},
 	}
 	return o, nil
 }
@@ -107,16 +107,16 @@ func getGraph(baseDir, name string) (*Graph, error) {
 
 	//bsonkvPath := fmt.Sprintf("%s", dbPath)
 	bsonkvPath := dbPath
-	tabledr, err := bsontable.LoadBSONDriver(bsonkvPath)
+	tabledr, err := jsontable.LoadBSONDriver(bsonkvPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open bsonkv at %s: %v", bsonkvPath, err)
 	}
 
-	bsonkv := tabledr.(*bsontable.BSONDriver)
+	bsonkv := tabledr.(*jsontable.JSONDriver)
 
 	ts := timestamp.NewTimestamp()
 	o := &Graph{
-		bsonkv:  bsonkv,
+		jsonkv:  bsonkv,
 		ts:      &ts,
 		graphID: name,
 	}
