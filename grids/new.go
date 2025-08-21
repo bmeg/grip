@@ -61,17 +61,17 @@ func newGraph(baseDir, name string) (*Graph, error) {
 	}
 
 	//bsonkvPath := fmt.Sprintf("%s", dbPath)
-	bsonkvPath := dbPath
-	tabledr, err := jsontable.NewJSONDriver(bsonkvPath)
+	jsonkvPath := dbPath
+	tabledr, err := jsontable.NewJSONDriver(jsonkvPath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to open bsonkv at %s: %v", bsonkvPath, err)
+		return nil, fmt.Errorf("failed to open jsonkv at %s: %v", jsonkvPath, err)
 	}
-	bsonkv := tabledr.(*jsontable.JSONDriver)
+	jsonkv := tabledr.(*jsontable.JSONDriver)
 
 	ts := timestamp.NewTimestamp()
 
 	o := &Graph{
-		jsonkv:           bsonkv,
+		jsonkv:           jsonkv,
 		ts:               &ts,
 		graphID:          name,
 		tempDeletedEdges: make(map[string]struct{}),
@@ -106,17 +106,17 @@ func getGraph(baseDir, name string) (*Graph, error) {
 	}
 
 	//bsonkvPath := fmt.Sprintf("%s", dbPath)
-	bsonkvPath := dbPath
-	tabledr, err := jsontable.LoadBSONDriver(bsonkvPath)
+	jsonkvPath := dbPath
+	tabledr, err := jsontable.LoadJSONDriver(jsonkvPath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to open bsonkv at %s: %v", bsonkvPath, err)
+		return nil, fmt.Errorf("failed to open bsonkv at %s: %v", jsonkvPath, err)
 	}
 
-	bsonkv := tabledr.(*jsontable.JSONDriver)
+	jsonkv := tabledr.(*jsontable.JSONDriver)
 
 	ts := timestamp.NewTimestamp()
 	o := &Graph{
-		jsonkv:  bsonkv,
+		jsonkv:  jsonkv,
 		ts:      &ts,
 		graphID: name,
 	}

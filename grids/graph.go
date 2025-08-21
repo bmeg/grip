@@ -127,7 +127,7 @@ func (ggraph *Graph) indexEdge(edge *gdbi.Edge, tx *pebblebulk.PebbleBulk) error
 		log.Debugf("Creating new table %s for label %s on graph %s", edgeLabel, edge.Label, ggraph.graphID)
 		newTable, err := ggraph.jsonkv.New(edgeLabel, nil)
 		if err != nil {
-			return fmt.Errorf("indexEdge: bsonkv.New: %s", err)
+			return fmt.Errorf("indexEdge: jsonkv.New: %s", err)
 		}
 		ggraph.jsonkv.Lock.Lock()
 		table = newTable.(*jsontable.JSONTable)
@@ -290,7 +290,7 @@ func (ggraph *Graph) BulkAdd(stream <-chan *gdbi.GraphElement) error {
 		defer wg.Done()
 		err := ggraph.jsonkv.Pb.BulkWrite(func(tx *pebblebulk.PebbleBulk) error {
 			if err := ggraph.jsonkv.BulkLoad(indexStream, tx); err != nil {
-				return fmt.Errorf("bsonkv bulk load error: %v", err)
+				return fmt.Errorf("jsonkv bulk load error: %v", err)
 			}
 			ggraph.ts.Touch(ggraph.graphID)
 			return nil

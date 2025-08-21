@@ -4,15 +4,13 @@ go 1.24
 
 toolchain go1.24.2
 
-replace github.com/bmeg/benchtop v0.0.0-20250714172932-08f649a9f1c3 => ../benchtop
-
 require (
 	github.com/IBM/sarama v1.45.1
 	github.com/Shopify/sarama v1.38.1
 	github.com/Workiva/go-datastructures v1.1.5
 	github.com/akrylysov/pogreb v0.10.2
 	github.com/antlr/antlr4/runtime/Go/antlr v1.4.10
-	github.com/bmeg/benchtop v0.0.0-20250821165736-18d0cca965bb
+	github.com/bmeg/benchtop v0.0.0-20250821231639-df57ed2bb713
 	github.com/bmeg/jsonpath v0.0.0-20210207014051-cca5355553ad
 	github.com/bmeg/jsonschema/v5 v5.3.4-0.20241111204732-55db82022a92
 	github.com/bmeg/jsonschemagraph v0.0.3-0.20250330060023-8f61d8bfec9a
