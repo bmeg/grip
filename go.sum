@@ -39,6 +39,10 @@ github.com/bmeg/benchtop v0.0.0-20250818194308-7b4d6a6bfa36 h1:frNXEP0pgmYHu7WDg
 github.com/bmeg/benchtop v0.0.0-20250818194308-7b4d6a6bfa36/go.mod h1:Jy39KqCHrPeU9J3SEAdVnZ5dxE6VZm8tX899z5n6ud8=
 github.com/bmeg/benchtop v0.0.0-20250818195147-fd718212c311 h1:oEc44MjeTPX8DArCOrg/DBQDtT7xrfhz6q8ScfYmJj8=
 github.com/bmeg/benchtop v0.0.0-20250818195147-fd718212c311/go.mod h1:Jy39KqCHrPeU9J3SEAdVnZ5dxE6VZm8tX899z5n6ud8=
+github.com/bmeg/benchtop v0.0.0-20250821165736-18d0cca965bb h1:k3md0eKLb80Ve/fYuNh8komOw9qD00NVho+n/G9ZQus=
+github.com/bmeg/benchtop v0.0.0-20250821165736-18d0cca965bb/go.mod h1:Jy39KqCHrPeU9J3SEAdVnZ5dxE6VZm8tX899z5n6ud8=
+github.com/bmeg/benchtop v0.0.0-20250821231639-df57ed2bb713 h1:VsdsDhvfnagpEOBc6Hu8SNxYbMvyxkYGr1pVARmktEQ=
+github.com/bmeg/benchtop v0.0.0-20250821231639-df57ed2bb713/go.mod h1:Jy39KqCHrPeU9J3SEAdVnZ5dxE6VZm8tX899z5n6ud8=
 github.com/bmeg/jsonpath v0.0.0-20210207014051-cca5355553ad h1:ICgBexeLB7iv/IQz4rsP+MimOXFZUwWSPojEypuOaQ8=
 github.com/bmeg/jsonpath v0.0.0-20210207014051-cca5355553ad/go.mod h1:ft96Irkp72C7ZrUWRenG7LrF0NKMxXdRvsypo5Njhm4=
 github.com/bmeg/jsonschema/v5 v5.3.4-0.20241111204732-55db82022a92 h1:Myx/j+WxfEg+P3nDaizR1hBpjKSLgvr4ydzgp1/1pAU=

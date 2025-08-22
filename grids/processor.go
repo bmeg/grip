@@ -44,10 +44,10 @@ func (l *lookupVertsHasLabelCondIndexProc) Process(ctx context.Context, man gdbi
 	var exists = true
 	// Here if one of l.labels doesn't exist then not going to be querying all the data so leave it like this.
 	cond := l.expr.GetCondition()
-	exists = len(l.db.bsonkv.Fields) > 0 && cond != nil
+	exists = len(l.db.jsonkv.Fields) > 0 && cond != nil
 	if exists {
 		for _, iterLabel := range l.labels {
-			label, ok := l.db.bsonkv.Fields[iterLabel]
+			label, ok := l.db.jsonkv.Fields[iterLabel]
 			if !ok {
 				exists = false
 				break
@@ -65,7 +65,7 @@ func (l *lookupVertsHasLabelCondIndexProc) Process(ctx context.Context, man gdbi
 			defer close(out)
 			for t := range in {
 				for _, label := range l.labels {
-					tableFound, ok := l.db.bsonkv.Tables[label]
+					tableFound, ok := l.db.jsonkv.Tables[label]
 					if !ok {
 						log.Debugf("BSONTable for label '%s' is nil. Cannot scan.", label)
 						continue
@@ -96,7 +96,7 @@ func (l *lookupVertsHasLabelCondIndexProc) Process(ctx context.Context, man gdbi
 			for t := range in {
 				cond := l.expr.GetCondition()
 				for _, label := range l.labels {
-					for id := range l.db.bsonkv.RowIdsByLabelFieldValue(label, cond.Key, cond.Value.AsInterface(), cond.Condition) {
+					for id := range l.db.jsonkv.RowIdsByLabelFieldValue(label, cond.Key, cond.Value.AsInterface(), cond.Condition) {
 						queryChan <- gdbi.ElementLookup{ID: id, Ref: t}
 					}
 				}
@@ -146,10 +146,10 @@ func (l *lookupVertsCondIndexProc) Process(ctx context.Context, man gdbi.Manager
 
 	/*  Indexing only works if every vertex label is indexed for that specific field and it's only a condition Filter
 	otherwise this lookup will not fetch everything that was asked for */
-	allMatch := len(l.db.bsonkv.Fields) > 0 && cond != nil
+	allMatch := len(l.db.jsonkv.Fields) > 0 && cond != nil
 	if allMatch {
-		for lbl := range l.db.bsonkv.GetLabels(false, false) {
-			if val, exists := l.db.bsonkv.Fields[lbl]; exists {
+		for lbl := range l.db.jsonkv.GetLabels(false, false) {
+			if val, exists := l.db.jsonkv.Fields[lbl]; exists {
 				if _, ok := val[cond.Key]; !ok {
 					allMatch = false
 					break
@@ -167,7 +167,7 @@ func (l *lookupVertsCondIndexProc) Process(ctx context.Context, man gdbi.Manager
 		go func() {
 			defer close(queryChan)
 			for t := range in {
-				for id := range l.db.bsonkv.RowIdsByHas(
+				for id := range l.db.jsonkv.RowIdsByHas(
 					cond.Key,
 					cond.Value.AsInterface(),
 					cond.Condition,
