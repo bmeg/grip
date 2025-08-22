@@ -161,7 +161,7 @@ class Manager:
 
     def newGraph(self):
         if self.readOnly is None:
-            self.curGraph = "test_graph_" + id_generator()
+            self.curGraph = "test_graph_" + self.id_generator()
             self._conn.addGraph(self.curGraph)
         else:
             self.curGraph = args.readOnly
@@ -176,7 +176,7 @@ class Manager:
         if self.curGraph != "":
             self.clean()
 
-        self.curGraph = "test_graph_" + id_generator()
+        self.curGraph = "test_graph_" + self.id_generator()
         self._conn.addGraph(self.curGraph)
 
         G = self._conn.graph(self.curGraph)
@@ -205,7 +205,7 @@ class Manager:
             raise SkipTest
         self.clean()
         self.curName = ""
-        self.curGraph = "test_graph_" + id_generator()
+        self.curGraph = "test_graph_" + self.id_generator()
         self._conn.addGraph(self.curGraph)
         G = self._conn.graph(self.curGraph)
         return G
@@ -323,9 +323,9 @@ class Manager:
         return next(iter(account for account in self.accounts if account.user == self.user), None)
 
 
-def id_generator(size=6, chars=string.ascii_uppercase + string.digits):
-    """Random 6 alpha numeric string."""
-    return ''.join(random.choice(chars) for _ in range(size)).lower()
+    def id_generator(self, size=6, chars=string.ascii_uppercase + string.digits):
+        """Random 6 alpha numeric string."""
+        return ''.join(random.choice(chars) for _ in range(size)).lower()
 
 
 def filter_tests(args, prefix="ot_"):

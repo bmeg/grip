@@ -2,8 +2,8 @@ package config
 
 import (
 	"fmt"
-	"io/ioutil"
 	"math/rand"
+	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -38,6 +38,14 @@ type DriverConfig struct {
 	Gripper     *gripper.Config
 }
 
+type KafkaConfig struct {
+	Username *string
+	Password *string
+	Hostname *string
+	// Limit to one topic stream for now
+	Topic *string
+}
+
 // Config describes the configuration for Grip.
 type Config struct {
 	Server    ServerConfig
@@ -47,6 +55,7 @@ type Config struct {
 	Graphs    map[string]string
 	Drivers   map[string]DriverConfig
 	Sources   map[string]string
+	Kafka     KafkaConfig
 }
 
 type DriverParams interface {
@@ -79,6 +88,9 @@ func DefaultConfig() *Config {
 	c.Sources = map[string]string{}
 
 	c.Logger = log.DefaultLoggerConfig()
+
+	c.Kafka = KafkaConfig{}
+
 	return c
 }
 
@@ -181,7 +193,7 @@ func ParseConfigFile(relpath string, conf *Config) error {
 	}
 
 	// Read file
-	source, err := ioutil.ReadFile(path)
+	source, err := os.ReadFile(path)
 	if err != nil {
 		return fmt.Errorf("failed to read config at path %s: \n%v", path, err)
 	}
@@ -196,7 +208,7 @@ func ParseConfigFile(relpath string, conf *Config) error {
 			if conf.Drivers[i].Gripper.MappingFile != "" {
 				gpath := filepath.Join(filepath.Dir(path), conf.Drivers[i].Gripper.MappingFile)
 
-				gsource, err := ioutil.ReadFile(gpath)
+				gsource, err := os.ReadFile(gpath)
 				if err != nil {
 					return fmt.Errorf("failed to read graph at path %s: \n%v", gpath, err)
 				}

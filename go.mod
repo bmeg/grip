@@ -3,11 +3,12 @@ module github.com/bmeg/grip
 go 1.23.6
 
 require (
+	github.com/IBM/sarama v1.45.1
 	github.com/Shopify/sarama v1.38.1
 	github.com/Workiva/go-datastructures v1.1.5
 	github.com/akrylysov/pogreb v0.10.2
 	github.com/antlr/antlr4/runtime/Go/antlr v1.4.10
-	github.com/bmeg/benchtop v0.0.0-20250407225705-b34b3f7eeae3
+	github.com/bmeg/benchtop v0.0.0-20250418205623-cbcef7cb3ad1
 	github.com/bmeg/jsonpath v0.0.0-20210207014051-cca5355553ad
 	github.com/bmeg/jsonschema/v5 v5.3.4-0.20241111204732-55db82022a92
 	github.com/bmeg/jsonschemagraph v0.0.3-0.20250330060023-8f61d8bfec9a
@@ -74,7 +75,7 @@ require (
 	github.com/dgryski/go-farm v0.0.0-20200201041132-a6ae2369ad13 // indirect
 	github.com/dlclark/regexp2 v1.11.2 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
-	github.com/eapache/go-resiliency v1.6.0 // indirect
+	github.com/eapache/go-resiliency v1.7.0 // indirect
 	github.com/eapache/go-xerial-snappy v0.0.0-20230731223053-c322873962e3 // indirect
 	github.com/eapache/queue v1.1.0 // indirect
 	github.com/fatih/color v1.17.0 // indirect
@@ -101,7 +102,7 @@ require (
 	github.com/jcmturner/gokrb5/v8 v8.4.4 // indirect
 	github.com/jcmturner/rpc/v2 v2.0.3 // indirect
 	github.com/jessevdk/go-flags v1.6.1 // indirect
-	github.com/klauspost/compress v1.17.9 // indirect
+	github.com/klauspost/compress v1.17.11 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.8 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/kylelemons/godebug v1.1.0 // indirect
@@ -114,7 +115,7 @@ require (
 	github.com/oklog/run v1.1.0 // indirect
 	github.com/onsi/ginkgo v1.13.0 // indirect
 	github.com/onsi/gomega v1.33.1 // indirect
-	github.com/pierrec/lz4/v4 v4.1.21 // indirect
+	github.com/pierrec/lz4/v4 v4.1.22 // indirect
 	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect

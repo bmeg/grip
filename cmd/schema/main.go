@@ -2,7 +2,7 @@ package schema
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 
 	"github.com/bmeg/grip/gripql"
@@ -82,7 +82,7 @@ var postCmd = &cobra.Command{
 			var graphs []*gripql.Graph
 			var err error
 			if jsonFile == "-" {
-				bytes, err := ioutil.ReadAll(os.Stdin)
+				bytes, err := io.ReadAll(os.Stdin)
 				if err != nil {
 					return err
 				}
@@ -98,7 +98,7 @@ var postCmd = &cobra.Command{
 				if err != nil {
 					return err
 				}
-				log.Debug("Posted schema: %s", g.Graph)
+				log.Debugf("Posted schema: %s", g.Graph)
 			}
 		}
 
@@ -106,7 +106,7 @@ var postCmd = &cobra.Command{
 			var graphs []*gripql.Graph
 			var err error
 			if jsonFile == "-" {
-				bytes, err := ioutil.ReadAll(os.Stdin)
+				bytes, err := io.ReadAll(os.Stdin)
 				if err != nil {
 					return err
 				}
@@ -135,7 +135,7 @@ var postCmd = &cobra.Command{
 				if err != nil {
 					return err
 				}
-				log.Debug("Posted schema: %s", g.Graph)
+				log.Debugf("Posted schema: %s", g.Graph)
 			}
 		}
 		if yamlSchemaPath != "" {
@@ -149,7 +149,7 @@ var postCmd = &cobra.Command{
 				if err != nil {
 					return err
 				}
-				log.Debug("Posted schema: %s", g.Graph)
+				log.Debugf("Posted schema: %s", g.Graph)
 			}
 		}
 		return nil

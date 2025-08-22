@@ -140,6 +140,52 @@ start-mysql:
 start-gripper-test:
 	@cd ./gripper/test-graph && ./gripper-table -m swapi/table.map &
 
+start-kafka:
+	@docker rm -f kafka > /dev/null 2>&1 || echo
+	docker run -d --name kafka \
+		-p 9092:9092 \
+		-e KAFKA_ENABLE_KRAFT=yes \
+		-e KAFKA_KRAFT_CLUSTER_ID=abcdefghijklmnopqrstuv== \
+		-e KAFKA_CFG_NODE_ID=1 \
+		-e KAFKA_CFG_PROCESS_ROLES=controller,broker \
+		-e KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=1@localhost:9093 \
+		-e KAFKA_CFG_LISTENERS=CONTROLLER://:9093,INTERNAL://:9092 \
+		-e KAFKA_CFG_ADVERTISED_LISTENERS=INTERNAL://localhost:9092 \
+		-e KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=INTERNAL:SASL_PLAINTEXT,CONTROLLER:PLAINTEXT \
+		-e KAFKA_CFG_INTER_BROKER_LISTENER_NAME=INTERNAL \
+		-e KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER \
+		-e KAFKA_CFG_SUPER_USERS=User:admin \
+		-e KAFKA_CLIENT_USERS=admin \
+		-e KAFKA_CLIENT_PASSWORDS=adminpassword \
+		-e KAFKA_CFG_SASL_ENABLED_MECHANISMS=PLAIN \
+		-e KAFKA_CFG_SASL_MECHANISM_INTER_BROKER_PROTOCOL=PLAIN \
+		bitnami/kafka:latest
+	printf '%s\n' \
+		'security.protocol=SASL_PLAINTEXT' \
+		'sasl.mechanism=PLAIN' \
+		'sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required username="admin" password="adminpassword";' \
+		> sasl-config.properties
+	docker cp sasl-config.properties kafka:/tmp/sasl-config.properties
+	@echo "Waiting for Kafka to become ready..."
+	@until docker exec kafka kafka-topics.sh \
+		--list \
+		--bootstrap-server localhost:9092 \
+		--command-config /tmp/sasl-config.properties > /dev/null 2>&1; do \
+		echo "Still waiting..."; \
+		sleep 2; \
+	done
+	docker exec kafka kafka-topics.sh \
+		--create \
+		--topic gripHistory \
+		--bootstrap-server localhost:9092 \
+		--partitions 1 \
+		--replication-factor 1 \
+		--command-config /tmp/sasl-config.properties
+	docker exec kafka kafka-topics.sh \
+		--list \
+		--bootstrap-server localhost:9092 \
+		--command-config /tmp/sasl-config.properties
+
 # ---------------------
 # Website
 # ---------------------
@@ -154,3 +200,4 @@ website-dev:
 # Other
 # ---------------------
 .PHONY: test rocksdb website
+

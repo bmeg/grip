@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -54,7 +53,7 @@ func LaunchPluginClient(plugindir string, name string, workdir string, params ma
 	if err != nil {
 		return nil, err
 	}
-	err = ioutil.WriteFile(confPath, message, 0644)
+	err = os.WriteFile(confPath, message, 0644)
 	if err != nil {
 		return nil, err
 	}

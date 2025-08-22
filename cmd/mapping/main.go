@@ -2,7 +2,7 @@ package mapping
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 
 	"github.com/bmeg/grip/gripql"
@@ -75,7 +75,7 @@ var postCmd = &cobra.Command{
 			var graphs []*gripql.Graph
 			var err error
 			if jsonFile == "-" {
-				bytes, err := ioutil.ReadAll(os.Stdin)
+				bytes, err := io.ReadAll(os.Stdin)
 				if err != nil {
 					return err
 				}
@@ -98,7 +98,7 @@ var postCmd = &cobra.Command{
 			var graphs []*gripql.Graph
 			var err error
 			if jsonFile == "-" {
-				bytes, err := ioutil.ReadAll(os.Stdin)
+				bytes, err := io.ReadAll(os.Stdin)
 				if err != nil {
 					return err
 				}

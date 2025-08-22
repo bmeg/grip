@@ -6,7 +6,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"strings"
@@ -154,7 +153,7 @@ func TestBasicAuth(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 	returnString := `{"graphs":["test"]}`
-	bodyText, err := ioutil.ReadAll(resp.Body)
+	bodyText, err := io.ReadAll(resp.Body)
 	if string(bodyText) != returnString {
 		t.Log(string(bodyText))
 		t.Error("incorrect http return value")

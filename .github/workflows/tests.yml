@@ -44,6 +44,27 @@ jobs:
         run: |
           go test ./test/... -config pebble.yml
 
+  kafkaTest:
+    needs: build
+    name: Kafka tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+      - name: Python Dependencies for Conformance
+        run: pip install requests numpy kafka-python
+      - name: Download grip
+        uses: actions/download-artifact@v4
+        with:
+          name: gripBin
+      - name: Kafka Test
+        run: |
+          chmod +x grip
+          make start-kafka
+          ./grip server -c ./test/kafka.yml &
+          sleep 5
+          python conformance/run_kafka.py
+
 
   badgerTest:
     needs: build

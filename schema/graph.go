@@ -3,7 +3,7 @@ package schema
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -45,7 +45,7 @@ func ParseYAMLGraphPath(relpath string) (*gripql.Graph, error) {
 		path = relpath
 	}
 	// Read file
-	source, err := ioutil.ReadFile(path)
+	source, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read graph at path %s: \n%v", path, err)
 	}
@@ -132,7 +132,7 @@ func parseGraphFile(relpath string, format string, graphName string) ([]*gripql.
 
 	var source []byte
 	if format == "yaml" || format == "json" {
-		source, err = ioutil.ReadFile(path)
+		source, err = os.ReadFile(path)
 		if err != nil {
 			return nil, fmt.Errorf("failed to read graph at path %s: \n%v", path, err)
 		}
@@ -159,7 +159,7 @@ func parseGraphFile(relpath string, format string, graphName string) ([]*gripql.
 			"graph":    graphName,
 		}
 		if info.IsDir() {
-			files, err := ioutil.ReadDir(path)
+			files, err := os.ReadDir(path)
 			if err != nil {
 				return nil, fmt.Errorf("failed to read directory: %v", err)
 			}
@@ -169,7 +169,7 @@ func parseGraphFile(relpath string, format string, graphName string) ([]*gripql.
 					continue
 				}
 				filePath := filepath.Join(path, file.Name())
-				content, err := ioutil.ReadFile(filePath)
+				content, err := os.ReadFile(filePath)
 				if err != nil {
 					return nil, fmt.Errorf("failed to read file %s: %v", file.Name(), err)
 				}
@@ -196,7 +196,7 @@ func parseGraphFile(relpath string, format string, graphName string) ([]*gripql.
 
 			return []*gripql.Graph{&graph}, nil
 		} else {
-			content, err := ioutil.ReadFile(path)
+			content, err := os.ReadFile(path)
 			if err != nil {
 				return nil, fmt.Errorf("failed to read file %s: %v", path, err)
 			}
@@ -230,7 +230,7 @@ func parseGraphFile(relpath string, format string, graphName string) ([]*gripql.
 		defer file.Close()
 
 		// Read the entire file content
-		bytes, err := ioutil.ReadAll(file)
+		bytes, err := io.ReadAll(file)
 		if err != nil {
 			return nil, fmt.Errorf("failed to read file: %v", err)
 		}
