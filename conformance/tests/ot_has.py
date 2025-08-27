@@ -137,7 +137,6 @@ def test_has_prev(man):
     q = q.has(gripql.neq("$1._id", "$._id"))
     count = 0
     for i in q.render(["$1._id", "$._id"]):
-        print(i)
         if i[0] == i[1]:
             errors.append("History based filter failed: %s" % (i[0]) )
         count += 1
@@ -171,6 +170,7 @@ def test_has_neq(man):
             "Fail: G.query().V().has(gripql.not_(gripql.eq(\"_label\", \"Character\"))) %s != %s" %
             (count, 21))
 
+
     count = 0
     for i in G.query().V().hasLabel("Character").has(gripql.neq("eye_color", "brown")):
         count += 1
@@ -180,6 +180,7 @@ def test_has_neq(man):
         errors.append(
             "Fail: G.query().V().has(gripql.not_(gripql.eq(\"eye_color\", \"brown\"))) %s != %s" %
             (count, 14))
+
 
     return errors
 

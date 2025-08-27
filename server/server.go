@@ -366,7 +366,7 @@ func (server *GripServer) Serve(pctx context.Context) error {
 					}
 					partition, offset, err := server.kafkaProducer.SendMessage(msg)
 					if err != nil {
-						log.Errorf("Failed to send Kafka message to topic %s: %v", *&server.conf.Kafka.Topic, err)
+						log.Errorf("Failed to send Kafka message to topic %#v: %v", *&server.conf.Kafka.Topic, err)
 					} else {
 						log.Infof("Message sent to Kafka topic %s [partition %d, offset %d]", *server.conf.Kafka.Topic, partition, offset)
 					}
@@ -495,7 +495,9 @@ func (server *GripServer) Serve(pctx context.Context) error {
 			if isSchema(graph) {
 				log.WithFields(log.Fields{"graph": graph}).Debug("Loading existing schema into cache")
 				schema, err := server.getGraph(graph)
-				if err == nil {
+				if err != nil {
+					log.Errorln("Error in server.getGraph: ", err)
+				} else {
 					server.schemas[strings.TrimSuffix(graph, schemaSuffix)] = schema
 				}
 			} else if isMapping(graph) {

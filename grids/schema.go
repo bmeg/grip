@@ -34,7 +34,7 @@ func (ma *GDB) BuildSchema(ctx context.Context, graph string, sampleN uint32, ra
 }
 
 func (gi *Graph) sampleSchema(ctx context.Context, n uint32, random bool) ([]*gripql.Vertex, []*gripql.Edge, error) {
-	labels := gi.bsonkv.List()
+	labels := gi.jsonkv.List()
 	vertLabels := []string{}
 	for _, label := range labels {
 		if label[:2] == "v_" {

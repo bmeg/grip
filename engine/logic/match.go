@@ -12,8 +12,8 @@ import (
 )
 
 func MatchesCondition(trav gdbi.Traveler, cond *gripql.HasCondition) bool {
-	var val interface{}
-	var condVal interface{}
+	var val any
+	var condVal any
 
 	val = gdbi.TravelerPathLookup(trav, cond.Key)
 	condVal = cond.Value.AsInterface()
@@ -26,7 +26,6 @@ func MatchesCondition(trav gdbi.Traveler, cond *gripql.HasCondition) bool {
 		//TODO: Add escape for $ user string
 	}
 	//If filtering on nil or no match was found on float64 casting operators return false
-	log.Debug("val: ", val, "condVal: ", condVal)
 	if (val == nil || condVal == nil) &&
 		cond.Condition != gripql.Condition_EQ &&
 		cond.Condition != gripql.Condition_NEQ &&
@@ -36,7 +35,7 @@ func MatchesCondition(trav gdbi.Traveler, cond *gripql.HasCondition) bool {
 		return false
 	}
 
-	log.Debugf("match: %s %s %s", condVal, val, cond.Key)
+	//log.Debugf("match: %s %s %s", condVal, val, cond.Key)
 
 	switch cond.Condition {
 	case gripql.Condition_EQ:
@@ -68,7 +67,6 @@ func MatchesCondition(trav gdbi.Traveler, cond *gripql.HasCondition) bool {
 		return valN >= condN
 
 	case gripql.Condition_LT:
-		//log.Debugf("match: %#v %#v %s", condVal, val, cond.Key)
 		valN, err := cast.ToFloat64E(val)
 		//log.Debugf("CAST: ", valN, "ERROR: ", err)
 		if err != nil {
@@ -194,7 +192,7 @@ func MatchesCondition(trav gdbi.Traveler, cond *gripql.HasCondition) bool {
 	case gripql.Condition_WITHOUT:
 		found := false
 		switch condVal := condVal.(type) {
-		case []interface{}:
+		case []any:
 			for _, v := range condVal {
 				if reflect.DeepEqual(val, v) {
 					found = true
@@ -239,7 +237,6 @@ func MatchesHasExpression(trav gdbi.Traveler, stmt *gripql.HasExpression) bool {
 	switch stmt.Expression.(type) {
 	case *gripql.HasExpression_Condition:
 		cond := stmt.GetCondition()
-		log.Debug("COND: ", cond)
 		return MatchesCondition(trav, cond)
 
 	case *gripql.HasExpression_And:

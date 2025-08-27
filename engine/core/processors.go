@@ -7,6 +7,7 @@ import (
 
 	"github.com/bmeg/grip/engine/logic"
 	"github.com/bmeg/grip/gdbi"
+	//"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/util/copy"
 	"github.com/spf13/cast"
 )
@@ -59,14 +60,14 @@ func (l *LookupVerts) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 ////////////////////////////////////////////////////////////////////////////////
 
 // LookupVertsIndex look up vertices by indexed based feature
-type LookupVertsIndex struct {
+type LookupVertsLabelIndex struct {
 	db       gdbi.GraphInterface
 	labels   []string
 	loadData bool
 }
 
 // Process LookupVertsIndex
-func (l *LookupVertsIndex) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
+func (l *LookupVertsLabelIndex) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
 	queryChan := make(chan gdbi.ElementLookup, 100)
 	go func() {
 		defer close(queryChan)
@@ -226,6 +227,7 @@ func (r *Unwind) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, 
 				continue
 			}
 			v := gdbi.TravelerPathLookup(t, r.Field)
+			//log.Debugln("UNWIND V RES: ", v)
 			if a, ok := v.([]interface{}); ok {
 				cur := t.GetCurrent()
 				if len(a) > 0 {

@@ -12,7 +12,7 @@ import (
 func (elem *DataElement) ToVertex() *gripql.Vertex {
 	sValue, err := structpb.NewStruct(elem.Data)
 	if err != nil {
-		log.Errorf("Error: %s For elem.Data: '%#v'\n", err, elem.Data)
+		log.Errorf("ToVertex: %s For elem.Data: '%#v'\n", err, elem.Data)
 	}
 	return &gripql.Vertex{
 		Id:    elem.ID,

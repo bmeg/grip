@@ -9,6 +9,7 @@ import (
 type PipelineState interface {
 	GetLastType() DataType
 	SetLastType(DataType)
+	StepLoadData() bool
 }
 
 type CustomProcGen interface {

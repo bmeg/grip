@@ -6,8 +6,9 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 
-	"github.com/bmeg/benchtop/bsontable"
+	"github.com/bmeg/benchtop/jsontable"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/timestamp"
 )
@@ -16,14 +17,15 @@ import (
 type Graph struct {
 	graphID string
 
-	keyMap *KeyMap
-	bsonkv *bsontable.BSONDriver
-	ts     *timestamp.Timestamp
+	jsonkv           *jsontable.JSONDriver
+	ts               *timestamp.Timestamp
+	tempDeletedEdges map[string]struct{}
+	edgesMutex       sync.Mutex
 }
 
 // Close the connection
 func (g *Graph) Close() error {
-	g.bsonkv.Close()
+	g.jsonkv.Close()
 	return nil
 }
 
@@ -40,6 +42,7 @@ func (kgraph *GDB) AddGraph(graph string) error {
 	kgraph.drivers[graph] = g
 	return nil
 }
+
 func newGraph(baseDir, name string) (*Graph, error) {
 	dbPath := filepath.Join(baseDir, name)
 	fmt.Printf("Creating new GRIDS graph %s\n", name)
@@ -58,20 +61,21 @@ func newGraph(baseDir, name string) (*Graph, error) {
 	}
 
 	//bsonkvPath := fmt.Sprintf("%s", dbPath)
-	bsonkvPath := dbPath
-	tabledr, err := bsontable.NewBSONDriver(bsonkvPath)
+	jsonkvPath := dbPath
+	tabledr, err := jsontable.NewJSONDriver(jsonkvPath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to open bsonkv at %s: %v", bsonkvPath, err)
+		return nil, fmt.Errorf("failed to open jsonkv at %s: %v", jsonkvPath, err)
 	}
-	bsonkv := tabledr.(*bsontable.BSONDriver)
+	jsonkv := tabledr.(*jsontable.JSONDriver)
 
 	ts := timestamp.NewTimestamp()
 
 	o := &Graph{
-		keyMap:  NewKeyMap(),
-		bsonkv:  bsonkv,
-		ts:      &ts,
-		graphID: name,
+		jsonkv:           jsonkv,
+		ts:               &ts,
+		graphID:          name,
+		tempDeletedEdges: make(map[string]struct{}),
+		edgesMutex:       sync.Mutex{},
 	}
 	return o, nil
 }
@@ -102,18 +106,17 @@ func getGraph(baseDir, name string) (*Graph, error) {
 	}
 
 	//bsonkvPath := fmt.Sprintf("%s", dbPath)
-	bsonkvPath := dbPath
-	tabledr, err := bsontable.LoadBSONDriver(bsonkvPath)
+	jsonkvPath := dbPath
+	tabledr, err := jsontable.LoadJSONDriver(jsonkvPath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to open bsonkv at %s: %v", bsonkvPath, err)
+		return nil, fmt.Errorf("failed to open bsonkv at %s: %v", jsonkvPath, err)
 	}
 
-	bsonkv := tabledr.(*bsontable.BSONDriver)
+	jsonkv := tabledr.(*jsontable.JSONDriver)
 
 	ts := timestamp.NewTimestamp()
 	o := &Graph{
-		keyMap:  NewKeyMap(),
-		bsonkv:  bsonkv,
+		jsonkv:  jsonkv,
 		ts:      &ts,
 		graphID: name,
 	}
