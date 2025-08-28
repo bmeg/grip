@@ -2,7 +2,6 @@ package server
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -12,7 +11,7 @@ import (
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/util/rpc"
-	"github.com/bmeg/jsonschema/v5"
+	"github.com/bmeg/jsonschema/v6"
 	"github.com/bmeg/jsonschemagraph/compile"
 	"github.com/bmeg/jsonschemagraph/graph"
 )
@@ -163,30 +162,27 @@ func (server *GripServer) addFullGraph(ctx context.Context, graphName string, sc
 }
 
 func (server *GripServer) LoadSchemas(sch *gripql.Graph, out *graph.GraphSchema) (*graph.GraphSchema, error) {
-	schcompiler := jsonschema.NewCompiler()
-	schcompiler.ExtractAnnotations = true
-	schcompiler.RegisterExtension(compile.GraphExtensionTag, compile.GraphExtMeta, compile.GraphExtCompiler{})
+	compiler := jsonschema.NewCompiler()
+	compiler.AssertVocabs()
+	vc, err := compile.GetHyperMediaVocab()
+	if err != nil {
+		return nil, fmt.Errorf("Hypermedia Vocab loading err %s", err)
+	}
+	compiler.RegisterVocabulary(vc)
+	out.Compiler = compiler
 
 	for _, v := range sch.Vertices {
-		jsonData, err := json.Marshal(v.Data)
+		err = compiler.AddResource(v.Id, v.Data.AsMap())
 		if err != nil {
-			return nil, err
-		}
-		err = schcompiler.AddResource(v.Id, strings.NewReader(string(jsonData)))
-		if err != nil {
-			log.Error("schcompiler.AddResource err: ", err)
-			return nil, err
+			return nil, fmt.Errorf("error adding resource for '%s': %w", v, err)
 		}
 	}
 	for _, v := range sch.Vertices {
-		sch, err := schcompiler.Compile(v.Id)
+		sch, err := compiler.Compile(v.Id)
 		if err != nil {
-			log.Error("schcompiler.Compile err: ", err)
-			return nil, err
+			return nil, fmt.Errorf("error compiling schema for '%s': %w", v.Id, err)
 		}
 		out.Classes[v.Label] = sch
 	}
-	out.Compiler = schcompiler
-
 	return out, nil
 }

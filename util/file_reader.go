@@ -128,7 +128,7 @@ func StreamRawJsonFromFile(file string, workers int, graph string, extra_args ma
 	var wg sync.WaitGroup
 	jum := gripql.NewFlattenMarshaler()
 
-	for i := 0; i < workers; i++ {
+	for range workers {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -179,9 +179,10 @@ func StreamVerticesFromFile(file string, workers int) (chan *gripql.Vertex, erro
 
 	jum := gripql.NewFlattenMarshaler()
 
-	for i := 0; i < workers; i++ {
+	for range workers {
 		wg.Add(1)
 		go func() {
+			defer wg.Done()
 			for line := range lineChan {
 				v := &gripql.Vertex{}
 				err := jum.Unmarshal([]byte(line), v)
@@ -191,7 +192,6 @@ func StreamVerticesFromFile(file string, workers int) (chan *gripql.Vertex, erro
 					vertChan <- v
 				}
 			}
-			wg.Done()
 		}()
 	}
 
@@ -222,9 +222,10 @@ func StreamEdgesFromFile(file string, workers int) (chan *gripql.Edge, error) {
 
 	jum := gripql.NewFlattenMarshaler()
 
-	for i := 0; i < workers; i++ {
+	for range workers {
 		wg.Add(1)
 		go func() {
+			defer wg.Done()
 			for line := range lineChan {
 				e := &gripql.Edge{}
 				err := jum.Unmarshal([]byte(line), e)
@@ -234,7 +235,6 @@ func StreamEdgesFromFile(file string, workers int) (chan *gripql.Edge, error) {
 					edgeChan <- e
 				}
 			}
-			wg.Done()
 		}()
 	}
 

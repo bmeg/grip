@@ -13,12 +13,9 @@ import (
 )
 
 var host = "localhost:8202"
-var yaml = false
 var jsonFile string
-var yamlFile string
 var graphName string
 var jsonSchemaFile string
-var yamlSchemaPath string
 
 // Cmd line declaration
 var Cmd = &cobra.Command{
@@ -45,11 +42,8 @@ var getCmd = &cobra.Command{
 		}
 
 		var txt string
-		if yaml {
-			txt, err = schema.GraphToYAMLString(gripqlschema)
-		} else {
-			txt, err = schema.GraphToJSONString(gripqlschema)
-		}
+
+		txt, err = schema.GraphToJSONString(gripqlschema)
 		if err != nil {
 			return err
 		}
@@ -69,7 +63,7 @@ var postCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		graphName := args[0]
-		if jsonFile == "" && yamlFile == "" && jsonSchemaFile == "" && yamlSchemaPath == "" {
+		if jsonFile == "" && jsonSchemaFile == "" {
 			return fmt.Errorf("no schema file was provided")
 		}
 
@@ -102,45 +96,9 @@ var postCmd = &cobra.Command{
 			}
 		}
 
-		if yamlFile != "" {
-			var graphs []*gripql.Graph
-			var err error
-			if jsonFile == "-" {
-				bytes, err := io.ReadAll(os.Stdin)
-				if err != nil {
-					return err
-				}
-				graphs, err = schema.ParseYAMLGraphs(bytes)
-			} else {
-				graphs, err = schema.ParseYAMLGraphsFile(yamlFile)
-			}
-			if err != nil {
-				return err
-			}
-			for _, g := range graphs {
-				err := conn.AddSchema(g)
-				if err != nil {
-					return err
-				}
-			}
-		}
 		if jsonSchemaFile != "" {
 			log.Infof("Loading Json Schema file: %s", jsonSchemaFile)
 			graphs, err := schema.ParseJsonSchema(jsonSchemaFile, graphName)
-			if err != nil {
-				return err
-			}
-			for _, g := range graphs {
-				err := conn.AddSchema(g)
-				if err != nil {
-					return err
-				}
-				log.Debugf("Posted schema: %s", g.Graph)
-			}
-		}
-		if yamlSchemaPath != "" {
-			log.Infof("Loading Yaml Schema path: %s", yamlSchemaPath)
-			graphs, err := schema.ParseYamlSchemaPath(yamlSchemaPath, graphName)
 			if err != nil {
 				return err
 			}
@@ -159,14 +117,11 @@ var postCmd = &cobra.Command{
 func init() {
 	gflags := getCmd.Flags()
 	gflags.StringVar(&host, "host", host, "grip server url")
-	gflags.BoolVar(&yaml, "yaml", yaml, "output schema in YAML rather than JSON format")
 
 	pflags := postCmd.Flags()
 	pflags.StringVar(&host, "host", host, "grip server url")
 	pflags.StringVar(&jsonFile, "json", "", "JSON graph file")
-	pflags.StringVar(&yamlFile, "yaml", "", "YAML graph file")
 	pflags.StringVar(&jsonSchemaFile, "jsonSchema", "", "Json Schema")
-	pflags.StringVar(&yamlSchemaPath, "yamlSchemaPath", "", "Name of the dir that contains YAML schemas")
 
 	Cmd.AddCommand(getCmd)
 	Cmd.AddCommand(postCmd)
