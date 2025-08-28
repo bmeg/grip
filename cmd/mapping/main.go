@@ -12,9 +12,7 @@ import (
 )
 
 var host = "localhost:8202"
-var yaml = false
 var jsonFile string
-var yamlFile string
 var sampleCount uint32 = 50
 var excludeLabels []string
 
@@ -43,11 +41,7 @@ var getCmd = &cobra.Command{
 		}
 
 		var txt string
-		if yaml {
-			txt, err = graphSchema.GraphToYAMLString(schema)
-		} else {
-			txt, err = graphSchema.GraphToJSONString(schema)
-		}
+		txt, err = graphSchema.GraphToJSONString(schema)
 		if err != nil {
 			return err
 		}
@@ -62,7 +56,7 @@ var postCmd = &cobra.Command{
 	Long:  ``,
 	Args:  cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if jsonFile == "" && yamlFile == "" {
+		if jsonFile == "" {
 			return fmt.Errorf("no schema file was provided")
 		}
 
@@ -94,28 +88,6 @@ var postCmd = &cobra.Command{
 			}
 		}
 
-		if yamlFile != "" {
-			var graphs []*gripql.Graph
-			var err error
-			if jsonFile == "-" {
-				bytes, err := io.ReadAll(os.Stdin)
-				if err != nil {
-					return err
-				}
-				graphs, err = graphSchema.ParseYAMLGraphs(bytes)
-			} else {
-				graphs, err = graphSchema.ParseYAMLGraphsFile(yamlFile)
-			}
-			if err != nil {
-				return err
-			}
-			for _, g := range graphs {
-				err := conn.AddMapping(g)
-				if err != nil {
-					return err
-				}
-			}
-		}
 		return nil
 	},
 }
@@ -123,12 +95,10 @@ var postCmd = &cobra.Command{
 func init() {
 	gflags := getCmd.Flags()
 	gflags.StringVar(&host, "host", host, "grip server url")
-	gflags.BoolVar(&yaml, "yaml", yaml, "output schema in YAML rather than JSON format")
 
 	pflags := postCmd.Flags()
 	pflags.StringVar(&host, "host", host, "grip server url")
 	pflags.StringVar(&jsonFile, "json", "", "JSON graph file")
-	pflags.StringVar(&yamlFile, "yaml", "", "YAML graph file")
 
 	Cmd.AddCommand(getCmd)
 	Cmd.AddCommand(postCmd)
