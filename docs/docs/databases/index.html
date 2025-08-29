@@ -84,9 +84,27 @@
           <li>
             <ul class="sidebar-nav sidebar-nav-nested">
               <li>
+                <a href="https://bmeg.github.io/grip/docs/commands/create/"
+                   class="sidebar-nav-item "
+                >create</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
                 <a href="https://bmeg.github.io/grip/docs/commands/query/"
                    class="sidebar-nav-item "
                 >query</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/commands/delete/"
+                   class="sidebar-nav-item "
+                >delete</a></li>
             </ul>
           </li>
           
@@ -130,17 +148,9 @@
         
         <li>
           
-          <span class="intermediate">Database Configuration</span></li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/databases/sqlite/"
-                   class="sidebar-nav-item "
-                >SQLite</a></li>
-            </ul>
-          </li>
-          
+          <a href="https://bmeg.github.io/grip/docs/databases/"
+             class="sidebar-nav-item  active"
+          >Database Configuration</a></li>
           
         
         <li>
@@ -363,7 +373,7 @@
     <h1 id="embedded-key-value-stores">Embedded Key Value Stores</h1>
 <p>GRIP supports storing vertices and edges in a variety of key-value stores including:</p>
 <ul>
-<li></li>
+<li><a href="https://github.com/cockroachdb/pebble">Pebble</a></li>
 <li><a href="https://github.com/dgraph-io/badger">Badger</a></li>
 <li><a href="https://github.com/boltdb/bolt">BoltDB</a></li>
 <li><a href="https://github.com/syndtr/goleveldb">LevelDB</a></li>
@@ -419,6 +429,16 @@ the engine will default to 1000.</p>
 </span></span><span style="display:flex;"><span>      <span style="color:#f92672">Password</span>: <span style="color:#e6db74">&#34;&#34;</span>
 </span></span><span style="display:flex;"><span>      <span style="color:#f92672">DBName</span>: <span style="color:#e6db74">&#34;grip&#34;</span>
 </span></span><span style="display:flex;"><span>      <span style="color:#f92672">SSLMode</span>: <span style="color:#ae81ff">disable</span>
+</span></span></code></pre></div><hr>
+<h1 id="sqlite">SQLite</h1>
+<p>GRIP supports storing vertices and edges in [SQLite]</p>
+<p>Config:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#f92672">Default</span>: <span style="color:#ae81ff">sqlite</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">Drivers</span>:
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">sqlite</span>:
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">Sqlite</span>:
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">DBName</span>: <span style="color:#ae81ff">tester/sqliteDB</span>
 </span></span></code></pre></div>
   </div>
 

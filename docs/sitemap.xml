@@ -2,6 +2,8 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
+    <loc>https://bmeg.github.io/grip/docs/queries/jobs/</loc>
+  </url><url>
     <loc>https://bmeg.github.io/grip/docs/tutorials/pathway-commons/</loc>
   </url><url>
     <loc>https://bmeg.github.io/grip/docs/queries/aggregation/</loc>
@@ -14,7 +16,11 @@
   </url><url>
     <loc>https://bmeg.github.io/grip/docs/clients/</loc>
   </url><url>
+    <loc>https://bmeg.github.io/grip/docs/commands/create/</loc>
+  </url><url>
     <loc>https://bmeg.github.io/grip/docs/databases/</loc>
+  </url><url>
+    <loc>https://bmeg.github.io/grip/docs/commands/delete/</loc>
   </url><url>
     <loc>https://bmeg.github.io/grip/docs/developers/</loc>
   </url><url>
@@ -67,8 +73,6 @@
     <loc>https://bmeg.github.io/grip/docs/security/</loc>
   </url><url>
     <loc>https://bmeg.github.io/grip/docs/commands/server/</loc>
-  </url><url>
-    <loc>https://bmeg.github.io/grip/docs/databases/sqlite/</loc>
   </url><url>
     <loc>https://bmeg.github.io/grip/docs/queries/traversal_start/</loc>
   </url><url>

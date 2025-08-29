@@ -84,9 +84,27 @@
           <li>
             <ul class="sidebar-nav sidebar-nav-nested">
               <li>
+                <a href="https://bmeg.github.io/grip/docs/commands/create/"
+                   class="sidebar-nav-item "
+                >create</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
                 <a href="https://bmeg.github.io/grip/docs/commands/query/"
                    class="sidebar-nav-item "
                 >query</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/commands/delete/"
+                   class="sidebar-nav-item "
+                >delete</a></li>
             </ul>
           </li>
           
@@ -130,17 +148,9 @@
         
         <li>
           
-          <span class="intermediate">Database Configuration</span></li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/databases/sqlite/"
-                   class="sidebar-nav-item "
-                >SQLite</a></li>
-            </ul>
-          </li>
-          
+          <a href="https://bmeg.github.io/grip/docs/databases/"
+             class="sidebar-nav-item "
+          >Database Configuration</a></li>
           
         
         <li>
@@ -360,10 +370,49 @@
   </div>
 
   <div class="main col span_8_of_12">
-    <pre tabindex="0"><code>grip list
-</code></pre><h1 id="graphs">graphs</h1>
-<pre tabindex="0"><code>grip list graphs
-</code></pre>
+    <p>The <code>list tables</code> command is used to display all available tables in the grip server. Each table is represented by its source, name, fields, and link map. Here&rsquo;s a breakdown of how to use this command:</p>
+<ul>
+<li><strong>Usage:</strong> <code>gripql list tables</code></li>
+<li><strong>Short Description:</strong> List all available tables in the grip server.</li>
+<li><strong>Long Description:</strong> This command connects to the grip server and retrieves information about all available tables. It then prints each table&rsquo;s source, name, fields, and link map to the console.</li>
+<li><strong>Arguments:</strong> None</li>
+<li><strong>Flags:</strong>
+<ul>
+<li><code>--host</code>: The URL of the grip server (default: &ldquo;localhost:8202&rdquo;)</li>
+</ul>
+</li>
+</ul>
+<h2 id="gripql-list-graphs-command-documentation"><code>gripql list graphs</code> Command Documentation</h2>
+<p>The <code>list graphs</code> command is used to display all available graphs in the grip server. Here&rsquo;s a breakdown of how to use this command:</p>
+<ul>
+<li><strong>Usage:</strong> <code>gripql list graphs</code></li>
+<li><strong>Short Description:</strong> List all available graphs in the grip server.</li>
+<li><strong>Long Description:</strong> This command connects to the grip server and retrieves information about all available graphs. It then prints each graph&rsquo;s name to the console.</li>
+<li><strong>Arguments:</strong> None</li>
+<li><strong>Flags:</strong>
+<ul>
+<li><code>--host</code>: The URL of the grip server (default: &ldquo;localhost:8202&rdquo;)</li>
+</ul>
+</li>
+</ul>
+<h2 id="gripql-list-labels-command-documentation"><code>gripql list labels</code> Command Documentation</h2>
+<p>The <code>list labels</code> command is used to display all available vertex and edge labels in a specific graph. Here&rsquo;s a breakdown of how to use this command:</p>
+<ul>
+<li><strong>Usage:</strong> <code>gripql list labels &lt;graph&gt;</code></li>
+<li><strong>Short Description:</strong> List the vertex and edge labels in a specific graph.</li>
+<li><strong>Long Description:</strong> This command takes one argument, the name of the graph, and connects to the grip server. It retrieves information about all available vertex and edge labels in that graph and prints them to the console in JSON format.</li>
+<li><strong>Arguments:</strong>
+<ul>
+<li><code>&lt;graph&gt;</code>: The name of the graph to list labels for.</li>
+</ul>
+</li>
+<li><strong>Flags:</strong>
+<ul>
+<li><code>--host</code>: The URL of the grip server (default: &ldquo;localhost:8202&rdquo;)</li>
+</ul>
+</li>
+</ul>
+
   </div>
 
 </div>

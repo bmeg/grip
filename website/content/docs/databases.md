@@ -11,7 +11,7 @@ menu:
 
 GRIP supports storing vertices and edges in a variety of key-value stores including:
 
- * 
+ * [Pebble](https://github.com/cockroachdb/pebble)
  * [Badger](https://github.com/dgraph-io/badger)
  * [BoltDB](https://github.com/boltdb/bolt)
  * [LevelDB](https://github.com/syndtr/goleveldb)
@@ -100,3 +100,21 @@ Drivers:
 
 [psql]: https://www.postgresql.org/
 
+---
+
+# SQLite
+
+GRIP supports storing vertices and edges in [SQLite]
+
+Config:
+
+```yaml
+Default: sqlite
+
+Drivers:
+  sqlite:
+    Sqlite:
+      DBName: tester/sqliteDB
+```
+
+[psql]: https://sqlite.org/

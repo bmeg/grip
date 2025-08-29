@@ -80,7 +80,7 @@ class Query(BaseConnection):
 
     def inNull(self, label=[]):
         """
-        Follow an incoming edge to the source vertex.
+        Follow an incoming edge to the source vertex. If there are no incoming edges then a null value is emitted.
 
         "label" is the label of the edge to follow.
         "label" can be a list.
@@ -104,7 +104,7 @@ class Query(BaseConnection):
 
     def outNull(self, label=[]):
         """
-        Follow an outgoing edge to the destination vertex.
+        Follow an outgoing edge to the destination vertex. If there are no outgoing edges then a null is emitted.
 
         "label" is the label of the edge to follow.
         "label" can be a list.
@@ -114,6 +114,9 @@ class Query(BaseConnection):
 
 
     def outV(self, label=[]):
+        """
+        Move from an edge to the vertex on the outgoing side. Same as calling `out` on an edge (may be depricated)
+        """
         return self.out(label)
 
     def both(self, label=[]):
@@ -127,6 +130,12 @@ class Query(BaseConnection):
         return self.__append({"both": label})
 
     def bothV(self, label=[]):
+        """
+        Follow both incoming and outgoing vertices from an edge. Only valid when called on an edge and provides same function as `both` (may be depricated)
+
+        "label" is the label of the edge to follow.
+        "label" can be a list.
+        """
         return self.both(label)
 
     def inE(self, label=[]):
@@ -143,7 +152,7 @@ class Query(BaseConnection):
 
     def inENull(self, label=[]):
         """
-        Move from a vertex to an incoming edge.
+        Move from a vertex to an incoming edge. If there are no incoming edges, emit a null.
 
         "label" is the label of the edge to move to.
         "label" can be a list.
@@ -168,7 +177,7 @@ class Query(BaseConnection):
 
     def outENull(self, label=[]):
         """
-        Move from a vertex to an outgoing edge.
+        Move from a vertex to an outgoing edge. If there are no outgoing edges emit a null.
 
         "label" is the label of the edge to move to.
         "label" can be a list.
@@ -193,12 +202,33 @@ class Query(BaseConnection):
     def has(self, expression):
         """
         Filter vertex/edge based on properties.
+
+        Expression is composed using arguments built with 
+         - gripql.and_
+         - gripql.or_
+         - gripql.not_
+         - gripql.eq
+         - gripql.neq
+         - gripql.gt
+         - gripql.gte
+         - gripql.lt
+         - gripql.lte
+         - gripql.inside
+         - gripql.outside
+         - gripql.between
+         - gripql.within
+         - gripql.without
+         - gripql.contains
         """
         return self.__append({"has": expression})
 
     def hasLabel(self, label):
         """
         Filter vertex/edge based on label.
+
+        q.hasLabel("LabelName)
+        is the same as invoking 
+        q.has( gripql.eq("_label", "LabelName"))
         """
         label = _wrap_str_value(label)
         return self.__append({"hasLabel": label})
@@ -206,6 +236,10 @@ class Query(BaseConnection):
     def hasId(self, id):
         """
         Filter vertex/edge based on id.
+
+        q.hasId("vertexID)
+        is the same as invoking 
+        q.has( gripql.eq("_id", "vertexID"))
         """
         id = _wrap_str_value(id)
         return self.__append({"hasId": id})
@@ -220,13 +254,17 @@ class Query(BaseConnection):
     def fields(self, field=[]):
         """
         Select document properties to be returned in document.
+
+        G.query().V("vertex1").fields("symbol")     # include only symbol field
+        G.query().V("vertex1").fields("-symbol")    # exclude symbol field
+        G.query().V("vertex1").fields()             # exclude all field
         """
         field = _wrap_str_value(field)
         return self.__append({"fields": field})
 
     def as_(self, name):
         """
-        Mark the current vertex/edge with the given name.
+        Annotate the current vertex/edge with the given name.
 
         Used to return elements from select().
         """
@@ -234,8 +272,9 @@ class Query(BaseConnection):
 
     def select(self, name):
         """
-        Move traveler back to a previously marked position
+        Move traveler back to a previously annotated position
 
+        G.query().V().as_("a").out().as_("b").select(["a", "b"])
         """
         return self.__append({"select": name})
 
@@ -282,6 +321,14 @@ class Query(BaseConnection):
     def set(self, key, value):
         """
         Set field to constant value
+
+        Typically used with `increment`
+        q = G.query().V("Character:1").set("count", 0)
+
+        returns
+        ```
+        {"_id":"Character:1"" : "_label" : "Character: "count" : 0}
+        ```
         """
         return self.__append({"set": {"key":key, "value":value}})
 
@@ -291,22 +338,32 @@ class Query(BaseConnection):
         """
         return self.__append({"increment": {"key":key, "value":value}})
 
+    def mark(self, name):
+        """
+        Mark a labeled step in the query operation list that can recieve travelers from `jump` command
+        """
+        return self.__append({"mark": name})
+
     def jump(self, mark, expression, emit=False):
         """
         Jump to marked instruction if condition is true. If `emit` is true
-        send copy to next step inm chain
+        send copy to next step in the chain
+
+        Example command 
+
+        q = G.query().V("Character:1").set("count", 0).as_("start").mark("a").out().increment("$start.count")
+        q = q.has(gripql.lt("$start.count", 2))
+        q = q.jump("a", None, True)
+
         """
         return self.__append({"jump": {"mark":mark, "expression" : expression, "emit":emit}})
-
-    def mark(self, name):
-        """
-        Mark a labeled step that can recieve travelers from `jump` command
-        """
-        return self.__append({"mark": name})
 
     def render(self, template):
         """
         Render output of query
+
+        Example:
+        query = G.query().V().hasLabel("Character").as_("char").out("starships").render(["$char.name", "$._id", "$"])
         """
         return self.__append({"render": template})
 
