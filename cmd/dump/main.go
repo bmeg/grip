@@ -45,7 +45,7 @@ var Cmd = &cobra.Command{
 		}
 
 		if edgeDump {
-			q := gripql.E()
+			q := gripql.V().OutE()
 			elems, err := conn.Traversal(context.Background(), &gripql.GraphQuery{Graph: graph, Query: q.Statements})
 			if err != nil {
 				return err

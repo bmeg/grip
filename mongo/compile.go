@@ -112,25 +112,6 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement, opts *gdbi.Compile
 				}})
 			lastType = gdbi.VertexData
 
-		case *gripql.GraphStatement_E:
-			if lastType != gdbi.NoData {
-				return &Pipeline{}, fmt.Errorf(`"E" statement is only valid at the beginning of the traversal`)
-			}
-			startCollection = edgeCol
-			ids := protoutil.AsStringList(stmt.E)
-			if len(ids) > 0 {
-				query = append(query, bson.D{primitive.E{Key: "$match", Value: bson.M{FIELD_ID: bson.M{"$in": ids}}}})
-			}
-			query = append(query,
-				bson.D{primitive.E{Key: "$project", Value: bson.M{
-					FIELD_CURRENT: "$$CURRENT",
-					"marks":       "$marks",
-					"path":        []interface{}{bson.M{"edge": FIELD_ID}},
-				},
-				}})
-
-			lastType = gdbi.EdgeData
-
 		case *gripql.GraphStatement_In, *gripql.GraphStatement_InNull:
 			if lastType != gdbi.VertexData && lastType != gdbi.EdgeData {
 				return &Pipeline{}, fmt.Errorf(`"in" statement is only valid for edge or vertex types not: %s`, lastType.String())

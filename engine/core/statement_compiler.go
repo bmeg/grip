@@ -19,11 +19,6 @@ func (sc *DefaultStmtCompiler) V(stmt *gripql.GraphStatement_V, ps *gdbi.State) 
 	return &LookupVerts{db: sc.db, ids: ids, loadData: ps.StepLoadData()}, nil
 }
 
-func (sc *DefaultStmtCompiler) E(stmt *gripql.GraphStatement_E, ps *gdbi.State) (gdbi.Processor, error) {
-	ids := protoutil.AsStringList(stmt.E)
-	return &LookupEdges{db: sc.db, ids: ids, loadData: ps.StepLoadData()}, nil
-}
-
 func (sc *DefaultStmtCompiler) In(stmt *gripql.GraphStatement_In, ps *gdbi.State) (gdbi.Processor, error) {
 	labels := protoutil.AsStringList(stmt.In)
 	if ps.LastType == gdbi.VertexData {
