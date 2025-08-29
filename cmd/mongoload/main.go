@@ -29,17 +29,17 @@ var edgeFile string
 var dirPath string
 var edgeUID bool
 
-var bulkBufferSize = 1000
+var bulkBufferSize = 5_000
 var workerCount = 1
 
-var logRate = 10000
+var logRate = 10_000
 
 var createGraph = false
 
 func vertexSerialize(vertChan chan *gripql.Vertex, workers int) chan []byte {
 	dataChan := make(chan []byte, workers)
 	var wg sync.WaitGroup
-	for i := 0; i < workers; i++ {
+	for range workers {
 		wg.Add(1)
 		go func() {
 			for v := range vertChan {
@@ -62,7 +62,7 @@ func vertexSerialize(vertChan chan *gripql.Vertex, workers int) chan []byte {
 func edgeSerialize(edgeChan chan *gripql.Edge, workers int) chan []byte {
 	dataChan := make(chan []byte, workers)
 	var wg sync.WaitGroup
-	for i := 0; i < workers; i++ {
+	for range workers {
 		wg.Add(1)
 		go func() {
 			for e := range edgeChan {
@@ -100,11 +100,7 @@ var Cmd = &cobra.Command{
 
 		// Connect to mongo and start the bulk load process
 		log.Infof("Loading data into graph: %s", graph)
-		client, err := mgo.NewClient(options.Client().ApplyURI(mongoHost))
-		if err != nil {
-			return err
-		}
-		err = client.Connect(context.TODO())
+		client, err := mgo.Connect(context.Background(), options.Client().ApplyURI(mongoHost))
 		if err != nil {
 			return err
 		}
