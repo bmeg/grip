@@ -20,7 +20,7 @@ def test_duplicate(man):
     if G.query().V().count().execute()[0]["count"] != 2:
         errors.append("duplicate vertex add error")
 
-    if G.query().V().OutE().count().execute()[0]["count"] != 1:
+    if G.query().V().outE().count().execute()[0]["count"] != 1:
         errors.append("duplicate edge add error")
 
     return errors
@@ -75,10 +75,10 @@ def test_delete(man):
         errors.append("Fail: G.query().V() %s != %s" % (count, 4))
 
     count = 0
-    for i in G.query().V().OutE():
+    for i in G.query().V().outE():
         count += 1
     if count != 3:
-        errors.append("Fail: G.query().V().OutE()")
+        errors.append("Fail: G.query().V().outE()")
 
     G.deleteVertex("vertex1")
     count = 0
@@ -89,19 +89,19 @@ def test_delete(man):
             "Fail: G.query().V() %s != %d" % (count, 3))
 
     count = 0
-    for i in G.query().V().OutE():
+    for i in G.query().V().outE():
         count += 1
     if count != 2:
         errors.append(
-            "Fail: G.query().V().OutE() %s != %d" % (count, 2))
+            "Fail: G.query().V().outE() %s != %d" % (count, 2))
 
     G.deleteEdge("edge2")
     count = 0
-    for i in G.query().V().OutE():
+    for i in G.query().V().outE():
         count += 1
     if count != 1:
         errors.append(
-            "Fail: G.query().V().OutE() %s != %d" % (count, 1))
+            "Fail: G.query().V().outE() %s != %d" % (count, 1))
 
     return errors
 
@@ -129,10 +129,10 @@ def test_delete_edge(man):
         errors.append("Fail: G.query().V() %s != %s" % (count, 3))
 
     count = 0
-    for i in G.query().V().OutE():
+    for i in G.query().V().outE():
         count += 1
     if count != 2:
-        errors.append("Fail: G.query().V().OutE()")
+        errors.append("Fail: G.query().V().outE()")
 
     G.deleteVertex("vertex2")
 
