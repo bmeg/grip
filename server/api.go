@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"runtime"
+	"strings"
 	"sync"
 	"sync/atomic"
 
@@ -20,7 +21,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
-	"google.golang.org/protobuf/types/known/structpb"
 )
 
 // Traversal parses a traversal request and streams the results back
@@ -650,7 +650,6 @@ func (server *GripServer) GetSchema(ctx context.Context, elem *gripql.GraphID) (
 		}
 		return nil, status.Errorf(codes.NotFound, fmt.Sprintf("graph %s: schema not found", elem.Graph))
 	}
-
 	if schema.Graph == "" {
 		schema.Graph = elem.Graph
 	}
@@ -682,7 +681,10 @@ func (server *GripServer) AddSchema(ctx context.Context, req *gripql.Graph) (*gr
 		return nil, fmt.Errorf("failed to store new schema: %v", err)
 	}
 
-	server.schemas[req.Graph] = server.getSchema(req.Graph + "__schema__")
+	if !strings.HasSuffix(req.Graph, schemaSuffix) {
+		req.Graph = req.Graph + schemaSuffix
+	}
+	server.schemas[strings.TrimSuffix(req.Graph, schemaSuffix)] = req
 	return &gripql.EditResult{Id: req.Graph}, nil
 }
 
@@ -736,30 +738,4 @@ func (server *GripServer) graphExists(graphName string) bool {
 		}
 	}
 	return found
-}
-
-func (server *GripServer) getSchema(graphName string) *gripql.Graph {
-	gdb, err := server.getGraphDB(graphName)
-	if err != nil {
-		return &gripql.Graph{}
-	}
-	gripGraph := gripql.Graph{}
-	for _, graph := range gdb.ListGraphs() {
-		if graph == graphName {
-			found_graph, err := gdb.Graph(graph)
-			if err != nil {
-				return &gripql.Graph{}
-			}
-			for elem := range found_graph.GetVertexList(context.Background(), true) {
-				graphelem := elem.Get()
-				data, _ := structpb.NewStruct(graphelem.Data)
-				gripGraph.Vertices = append(gripGraph.Vertices, &gripql.Vertex{
-					Id:    graphelem.ID,
-					Label: graphelem.Label,
-					Data:  data,
-				})
-			}
-		}
-	}
-	return &gripGraph
 }
