@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"sync/atomic"
 
 	//"io"
 	//"strings"
@@ -37,6 +38,7 @@ var logRate = 10_000
 var createGraph = false
 
 func vertexSerialize(vertChan chan *gripql.Vertex, workers int) chan []byte {
+	var serializeCount atomic.Int64
 	dataChan := make(chan []byte, workers)
 	var wg sync.WaitGroup
 	for range workers {
@@ -46,6 +48,9 @@ func vertexSerialize(vertChan chan *gripql.Vertex, workers int) chan []byte {
 				doc := mongo.PackVertex(gdbi.NewElementFromVertex(v))
 				rawBytes, err := bson.Marshal(doc)
 				if err == nil {
+					if serializeCount.Add(1)%10000 == 0 {
+						log.Infof("Serialized %d vertices", serializeCount.Load())
+					}
 					dataChan <- rawBytes
 				}
 			}
@@ -117,24 +122,32 @@ var Cmd = &cobra.Command{
 
 		if vertexFile != "" {
 			log.Infof("Loading vertex file: %s", vertexFile)
-			vertInserter := db.NewUnorderedBufferedBulkInserter(vertexCol, bulkBufferSize).
-				SetBypassDocumentValidation(true).
-				SetOrdered(false).
-				SetUpsert(true)
 			vertChan, err := util.StreamVerticesFromFile(vertexFile, workerCount)
 			if err != nil {
 				return err
 			}
 			dataChan := vertexSerialize(vertChan, workerCount)
-			count := 0
-			for d := range dataChan {
-				vertInserter.InsertRaw(d)
-				if count%logRate == 0 {
-					log.Infof("Loaded %d vertices", count)
-				}
-				count++
+			var wg sync.WaitGroup
+			var vertexCount atomic.Int64
+			for range workerCount {
+				wg.Add(1)
+				go func() {
+					defer wg.Done()
+					inserter := db.NewUnorderedBufferedBulkInserter(vertexCol, bulkBufferSize).
+						SetBypassDocumentValidation(true).
+						SetOrdered(false).
+						SetUpsert(false)
+					defer inserter.Flush()
+					for d := range dataChan {
+						inserter.InsertRaw(d)
+						newCount := vertexCount.Add(1)
+						if newCount%10000 == 0 {
+							log.Infof("Processed %d vertices...", newCount)
+						}
+					}
+				}()
 			}
-			vertInserter.Flush()
+			wg.Wait()
 		}
 
 		if edgeFile != "" {

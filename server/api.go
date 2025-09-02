@@ -1,6 +1,7 @@
 package server
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"runtime"
@@ -18,6 +19,7 @@ import (
 	"github.com/bmeg/jsonschema/v6"
 	"github.com/bmeg/jsonschemagraph/graph"
 	"golang.org/x/net/context"
+	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -391,48 +393,52 @@ func (server *GripServer) BulkAddRaw(stream gripql.Edit_BulkAddRawServer) error 
 func (server *GripServer) BulkAdd(stream gripql.Edit_BulkAddServer) error {
 	var insertCount int32
 	var errorCount int32
-	var mu sync.Mutex
-
-	wg := &sync.WaitGroup{}
 	currentGraph := ""
 	var elementStream chan *gdbi.GraphElement
+	var processErr error
+
+	ctx := stream.Context()
+	eg, opCtx := errgroup.WithContext(ctx)
 
 	// Function to start a new BulkAdd goroutine for a graph
 	startBulkAdd := func(graphName string, gdb gdbi.GraphInterface) chan *gdbi.GraphElement {
 		newStream := make(chan *gdbi.GraphElement, 100)
-		wg.Add(1)
-		go func(g gdbi.GraphInterface, stream chan *gdbi.GraphElement) {
-			defer wg.Done()
+		eg.Go(func() error {
 			log.WithFields(log.Fields{"graph": graphName}).Info("BulkAdd: streaming elements to graph")
-			if err := g.BulkAdd(stream); err != nil {
+			if err := gdb.BulkAdd(newStream); err != nil {
 				log.WithFields(log.Fields{"graph": graphName, "error": err}).Error("BulkAdd: error")
-				mu.Lock()
-				errorCount++
-				mu.Unlock()
+				atomic.AddInt32(&errorCount, 1)
+				return err
 			}
-		}(gdb, newStream)
+			return nil
+		})
 		return newStream
 	}
 
 	for {
+		// Check if context is done (client cancellation or goroutine error)
+		select {
+		case <-opCtx.Done():
+			break
+		default:
+			// Continue processing
+		}
+
 		element, err := stream.Recv()
 		if err == io.EOF {
 			break
 		}
 		if err != nil {
 			log.WithFields(log.Fields{"error": err}).Error("BulkAdd: streaming error")
-			mu.Lock()
-			errorCount++
-			mu.Unlock()
+			atomic.AddInt32(&errorCount, 1)
+			processErr = err
 			break
 		}
 
 		if isSchema(element.Graph) {
-			err := "cannot add element to schema graph"
+			err := errors.New("cannot add element to schema graph")
 			log.WithFields(log.Fields{"error": err}).Error("BulkAdd: error")
-			mu.Lock()
-			errorCount++
-			mu.Unlock()
+			atomic.AddInt32(&errorCount, 1)
 			continue
 		}
 
@@ -444,18 +450,15 @@ func (server *GripServer) BulkAdd(stream gripql.Edit_BulkAddServer) error {
 
 			gdb, err := server.getGraphDB(element.Graph)
 			if err != nil {
-				mu.Lock()
-				errorCount++
-				mu.Unlock()
+				log.WithFields(log.Fields{"error": err}).Error("BulkAdd: error getting graph DB")
+				atomic.AddInt32(&errorCount, 1)
 				continue
 			}
 
 			graph, err := gdb.Graph(element.Graph)
 			if err != nil {
 				log.WithFields(log.Fields{"error": err}).Error("BulkAdd: error")
-				mu.Lock()
-				errorCount++
-				mu.Unlock()
+				atomic.AddInt32(&errorCount, 1)
 				continue
 			}
 
@@ -463,32 +466,33 @@ func (server *GripServer) BulkAdd(stream gripql.Edit_BulkAddServer) error {
 			elementStream = startBulkAdd(currentGraph, graph)
 		}
 
-		// Process vertices
 		if element.Vertex != nil {
 			if err := element.Vertex.Validate(); err != nil {
-				mu.Lock()
-				errorCount++
-				mu.Unlock()
 				log.WithFields(log.Fields{"graph": element.Graph, "error": err}).Errorf("BulkAdd: vertex validation failed for vertex: %#v", element.Vertex)
+				atomic.AddInt32(&errorCount, 1)
 			} else {
-				insertCount++
-				elementStream <- gdbi.NewGraphElement(element)
+				select {
+				case <-opCtx.Done():
+					// Context done, stop processing
+				case elementStream <- gdbi.NewGraphElement(element):
+					atomic.AddInt32(&insertCount, 1)
+				}
 			}
 		}
-
-		// Process edges
 		if element.Edge != nil {
 			if element.Edge.Id == "" {
 				element.Edge.Id = util.UUID()
 			}
 			if err := element.Edge.Validate(); err != nil {
-				mu.Lock()
-				errorCount++
-				mu.Unlock()
 				log.WithFields(log.Fields{"graph": element.Graph, "error": err}).Errorf("BulkAdd: edge validation failed for edge: %#v", element.Edge)
+				atomic.AddInt32(&errorCount, 1)
 			} else {
-				insertCount++
-				elementStream <- gdbi.NewGraphElement(element)
+				select {
+				case <-opCtx.Done():
+					// Context done, stop processing
+				case elementStream <- gdbi.NewGraphElement(element):
+					atomic.AddInt32(&insertCount, 1)
+				}
 			}
 		}
 	}
@@ -496,9 +500,13 @@ func (server *GripServer) BulkAdd(stream gripql.Edit_BulkAddServer) error {
 	if elementStream != nil {
 		close(elementStream)
 	}
-
-	wg.Wait()
-
+	egErr := eg.Wait()
+	if processErr != nil {
+		return processErr
+	}
+	if egErr != nil {
+		return egErr
+	}
 	return stream.SendAndClose(&gripql.BulkEditResult{InsertCount: insertCount, ErrorCount: errorCount})
 }
 
