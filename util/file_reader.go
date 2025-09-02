@@ -54,48 +54,6 @@ func getS3URL(path string) *url.URL {
 	return nil
 }
 
-func StreamDataFromFile(file string, workers int) (chan string, error) {
-	fi, err := os.Stat(file)
-	if err != nil {
-		return nil, err
-	}
-	if fi.Size() == 0 {
-		return nil, fmt.Errorf("file is empty: %s", file)
-	}
-
-	lineChan := make(chan string, workers*2) // Use a buffered channel for better performance
-	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		defer close(lineChan)
-
-		fh, err := os.Open(file)
-		if err != nil {
-			fmt.Printf("ERROR opening file: %v\n", err)
-			return
-		}
-		defer fh.Close()
-
-		reader := bufio.NewReader(fh)
-		for {
-			line, err := reader.ReadString('\n')
-			if err != nil {
-				if err != io.EOF {
-					fmt.Printf("ERROR reading file: %v\n", err)
-				}
-				break
-			}
-			line = strings.TrimSpace(line)
-			if len(line) > 0 {
-				lineChan <- line
-			}
-		}
-	}()
-
-	return lineChan, nil
-}
-
 // StreamLines returns a channel of lines from a file.
 func StreamLines(file string, chanSize int) (chan string, error) {
 	var fh io.ReadCloser
@@ -203,7 +161,7 @@ func StreamRawJsonFromFile(file string, workers int, graph string, extra_args ma
 
 // StreamEdgesFromFile reads a file of JSON edges and streams *gripql.Edge objects.
 func StreamEdgesFromFile(file string, workers int) (chan *gripql.Edge, error) {
-	lineChan, err := StreamDataFromFile(file, workers)
+	lineChan, err := StreamLines(file, workers)
 	if err != nil {
 		return nil, err
 	}
@@ -234,7 +192,7 @@ func StreamEdgesFromFile(file string, workers int) (chan *gripql.Edge, error) {
 
 // StreamVerticesFromFile reads a file of JSON vertices and streams *gripql.Vertex objects.
 func StreamVerticesFromFile(file string, workers int) (chan *gripql.Vertex, error) {
-	lineChan, err := StreamDataFromFile(file, workers)
+	lineChan, err := StreamLines(file, workers)
 	if err != nil {
 		return nil, err
 	}
