@@ -1,17 +1,17 @@
 package gripql
 
 // GetDataFieldTypes iterates over the data map and determines the type of each field
-func GetDataFieldTypes(data map[string]interface{}) map[string]interface{} {
-	out := make(map[string]interface{})
+func GetDataFieldTypes(data map[string]any) map[string]any {
+	out := make(map[string]any)
 	for key, val := range data {
-		if vMap, ok := val.(map[string]interface{}); ok {
+		if vMap, ok := val.(map[string]any); ok {
 			out[key] = GetDataFieldTypes(vMap)
 			continue
-		} else if vSlice, ok := val.([]interface{}); ok {
-			var vType interface{} = []interface{}{FieldType_UNKNOWN.String()}
+		} else if vSlice, ok := val.([]any); ok {
+			var vType any = []any{FieldType_UNKNOWN.String()}
 			if len(vSlice) > 0 {
 				vSliceVal := vSlice[0]
-				vType = []interface{}{GetFieldType(vSliceVal)}
+				vType = []any{GetFieldType(vSliceVal)}
 			}
 			out[key] = vType
 			continue
@@ -22,7 +22,7 @@ func GetDataFieldTypes(data map[string]interface{}) map[string]interface{} {
 }
 
 // GetFieldType returns the FieldType for a value
-func GetFieldType(field interface{}) string {
+func GetFieldType(field any) string {
 	switch field.(type) {
 	case string:
 		return FieldType_STRING.String()

@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"sync/atomic"
 
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/log"
@@ -198,6 +199,7 @@ func StreamVerticesFromFile(file string, workers int) (chan *gripql.Vertex, erro
 	}
 	vertChan := make(chan *gripql.Vertex, workers)
 	var wg sync.WaitGroup
+	var unmarshalCount atomic.Int64
 	for range workers {
 		wg.Add(1)
 		go func() {
@@ -206,6 +208,9 @@ func StreamVerticesFromFile(file string, workers int) (chan *gripql.Vertex, erro
 			for line := range lineChan {
 				v := &gripql.Vertex{}
 				err := jum.Unmarshal([]byte(line), v)
+				if unmarshalCount.Add(1)%10000 == 0 {
+					log.Infof("Unmarshaled %d vertices", unmarshalCount.Load())
+				}
 				if err != nil {
 					log.WithFields(log.Fields{"error": err}).Errorf("Unmarshaling edge: %s", line)
 				} else {

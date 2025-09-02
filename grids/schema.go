@@ -47,7 +47,7 @@ func (gi *Graph) sampleSchema(ctx context.Context, n uint32, random bool) ([]*gr
 	fromToPairs := make(fromto)
 
 	for _, label := range vertLabels {
-		schema := map[string]interface{}{}
+		schema := map[string]any{}
 		for i := range gi.VertexLabelScan(context.Background(), label) {
 			v := gi.GetVertex(i, true)
 			data := v.Data
@@ -74,7 +74,7 @@ func (gi *Graph) sampleSchema(ctx context.Context, n uint32, random bool) ([]*gr
 		vOutput = append(vOutput, vSchema)
 	}
 	for k, v := range fromToPairs {
-		sV, _ := structpb.NewStruct(v.(map[string]interface{}))
+		sV, _ := structpb.NewStruct(v.(map[string]any))
 		eSchema := &gripql.Edge{
 			Id:    fmt.Sprintf("(%s)--%s->(%s)", k.from, k.label, k.to),
 			Label: k.label,
@@ -91,4 +91,4 @@ type fromtokey struct {
 	from, to, label string
 }
 
-type fromto map[fromtokey]interface{}
+type fromto map[fromtokey]any
