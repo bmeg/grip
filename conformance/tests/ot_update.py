@@ -106,7 +106,6 @@ def test_delete(man):
     return errors
 
 
-
 def test_delete_edge(man):
     """
     Ensure that if a vertex is removed, that the connected edges are deleted as well

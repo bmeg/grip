@@ -219,7 +219,7 @@ func (sc *DefaultStmtCompiler) Fields(stmt *gripql.GraphStatement_Fields, ps *gd
 }
 
 func (sc *DefaultStmtCompiler) Aggregate(stmt *gripql.GraphStatement_Aggregate, ps *gdbi.State) (gdbi.Processor, error) {
-	aggs := make(map[string]interface{})
+	aggs := make(map[string]any)
 	for _, a := range stmt.Aggregate.Aggregations {
 		if _, ok := aggs[a.Name]; ok {
 			return nil, fmt.Errorf("duplicate aggregation name '%s' found; all aggregations must have a unique name", a.Name)

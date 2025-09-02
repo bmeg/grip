@@ -213,7 +213,7 @@ func ParseConfigFile(relpath string, conf *Config) error {
 					return fmt.Errorf("failed to read graph at path %s: \n%v", gpath, err)
 				}
 				// Parse file
-				data := map[string]interface{}{}
+				data := map[string]any{}
 				err = yaml.Unmarshal(gsource, &data)
 				if err != nil {
 					return fmt.Errorf("failed to parse config at path %s: \n%v", path, err)

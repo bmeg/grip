@@ -119,7 +119,7 @@ class KafkaManager(Manager):
             raise ValueError("Invalid vertex count response")
         vertex_count = vertex_count_result[0]['count']
         assert vertex_count > 0, f"No vertices loaded into {self.curGraph}"
-        edge_count_result = list(G.query().E().count())
+        edge_count_result = list(G.query().V().outE().count())
         edge_count = edge_count_result[0]['count'] if edge_count_result else 0
         logger.info(f"Loaded {vertex_count} vertices and {edge_count} edges")
         logger.info("CALLING DELETE GRAPH ------------------------------------------")
@@ -272,7 +272,7 @@ class KafkaManager(Manager):
                 vertex_count_result = list(G.query().V().count())
                 vertex_count = vertex_count_result[0]['count']
                 assert vertex_count > 0, f"No vertices loaded into {self.curGraph}"
-                edge_count_result = list(G.query().E().count())
+                edge_count_result = list(G.query().V().outE().count())
                 edge_count = edge_count_result[0]['count'] if edge_count_result else 0
                 if orig_vertex_counts is not None and orig_edge_counts is not None:
                     assert orig_vertex_counts == vertex_count, f"original_vertex_counts {orig_vertex_counts} != vertex_count {vertex_count}"

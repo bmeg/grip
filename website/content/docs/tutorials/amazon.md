@@ -64,7 +64,7 @@ g = conn.graph("amazon")
 # Count the Vertices
 print("Total vertices: ", g.query().V().count().execute())
 # Count the Edges
-print("Total edges: ", g.query().E().count().execute())
+print("Total edges: ", g.query().V().outE().count().execute())
 
 # Try simple travesral
 print("Edges connected to 'B00000I06U' vertex: %s" %g.query().V("B00000I06U").outE().execute())

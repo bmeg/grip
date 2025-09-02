@@ -178,7 +178,7 @@ func (mg *Graph) BulkDel(Data *gdbi.DeleteData) error {
 	vCol := mg.ar.VertexCollection(mg.graph)
 
 	if Data.Edges != nil && len(Data.Edges) > 0 {
-		_, err := eCol.DeleteMany(context.TODO(), bson.M{"_id": bson.M{"$in": Data.Edges}})
+		_, err := eCol.DeleteMany(context.TODO(), bson.M{FIELD_ID: bson.M{"$in": Data.Edges}})
 		if err != nil {
 			return fmt.Errorf("failed to delete edge(s): %s", err)
 		}
@@ -232,7 +232,7 @@ func (mg *Graph) DelVertex(key string) error {
 	return nil
 }
 
-// DelEdge deletes edge with id `key`
+// DelEdge deletes edge with _id `key`
 func (mg *Graph) DelEdge(key string) error {
 	eCol := mg.ar.EdgeCollection(mg.graph)
 	_, err := eCol.DeleteOne(context.TODO(), bson.M{FIELD_ID: key})
@@ -476,12 +476,12 @@ func (mg *Graph) GetInChannel(ctx context.Context, reqChan chan gdbi.ElementLook
 				query = append(query, bson.M{"$match": bson.M{FIELD_LABEL: bson.M{"$in": edgeLabels}}})
 			}
 			vertCol := fmt.Sprintf("%s_vertices", mg.graph)
-			query = append(query, bson.M{"$lookup": bson.M{"from": vertCol, "localField": FIELD_FROM, "foreignField": FIELD_ID, "as": "src"}})
+			query = append(query, bson.M{"$lookup": bson.M{"from": vertCol, "localField": FIELD_FROM, "foreignField": FIELD_ID, "as": FIELD_SRC}})
 			query = append(query, bson.M{"$unwind": "$src"})
 			if load {
-				query = append(query, bson.M{"$project": bson.M{FIELD_TO: true, "src": true}})
+				query = append(query, bson.M{"$project": bson.M{FIELD_TO: true, FIELD_SRC: true}})
 			} else {
-				query = append(query, bson.M{"$project": bson.M{FIELD_TO: true, "src._id": true, "src._label": true}})
+				query = append(query, bson.M{"$project": bson.M{FIELD_TO: true, FIELD_SRC_ID: true, FIELD_SRC_LABEL: true}})
 			}
 
 			eCol := mg.ar.EdgeCollection(mg.graph)
@@ -490,7 +490,7 @@ func (mg *Graph) GetInChannel(ctx context.Context, reqChan chan gdbi.ElementLook
 				for cursor.Next(context.TODO()) {
 					result := map[string]any{}
 					if err := cursor.Decode(&result); err == nil {
-						if src, ok := result["src"].(map[string]any); ok {
+						if src, ok := result[FIELD_SRC].(map[string]any); ok {
 							v := UnpackVertex(src)
 							toID := result[FIELD_TO].(string)
 							r := batchMap[toID]
@@ -500,7 +500,7 @@ func (mg *Graph) GetInChannel(ctx context.Context, reqChan chan gdbi.ElementLook
 								o <- ri
 							}
 						} else {
-							log.WithFields(log.Fields{"result": result["src"]}).Error("GetInChannel: unable to cast result to map[string]any")
+							log.WithFields(log.Fields{"result": result[FIELD_SRC]}).Error("GetInChannel: unable to cast result to map[string]any")
 						}
 					} else {
 						log.WithFields(log.Fields{"error": err}).Error("Decode")

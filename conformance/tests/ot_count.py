@@ -18,17 +18,17 @@ def test_count(man):
     elif i[0]["count"] != 0:
         errors.append("Fail: G.query().V(\"non-existent\").count() %s != %s" % (i[0]["count"], 0))
 
-    i = list(G.query().E().count())
+    i = list(G.query().V().outE().count())
     if len(i) < 1:
-        errors.append("Fail: nothing returned for O.query().E().count()")
+        errors.append("Fail: nothing returned for O.query().V().outE().count()")
     elif i[0]["count"] != 144:
-        errors.append("Fail: G.query().E().count() %s != %s" % (i[0]["count"], 144))
+        errors.append("Fail: G.query().V().outE().count() %s != %s" % (i[0]["count"], 144))
 
-    i = list(G.query().E("non-existent").count())
+    i = list(G.query().V().outE("non-existent").count())
     if len(i) < 1:
         errors.append("Fail: nothing returned for G.query().E(\"non-existent\").count()")
     elif i[0]["count"] != 0:
-        errors.append("Fail: G.query().E(\"non-existent\").count() %s != %s" % (i[0]["count"], 0))
+        errors.append("Fail: G.query().V().outE(\"non-existent\").count() %s != %s" % (i[0]["count"], 0))
 
     return errors
 
@@ -53,16 +53,16 @@ def test_count_when_no_data(man):
     elif i[0]["count"] != 0:
         errors.append("Fail: G.query().V(\"non-existent\").count() %s != %s" % (i[0]["count"], 0))
 
-    i = list(G.query().E().count())
+    i = list(G.query().V().outE().count())
     if len(i) < 1:
-        errors.append("Fail: nothing returned for G.query().E().count()")
+        errors.append("Fail: nothing returned for G.query().V().outE().count()")
     elif i[0]["count"] != 0:
-        errors.append("Fail: G.query().E().count() %s != %s" % (i[0]["count"], 0))
+        errors.append("Fail: G.query().V().outE().count() %s != %s" % (i[0]["count"], 0))
 
-    i = list(G.query().E("non-existent").count())
+    i = list(G.query().V().outE("non-existent").count())
     if len(i) < 1:
         errors.append("Fail: nothing returned for G.query().E(\"non-existent\").count()")
     elif i[0]["count"] != 0:
-        errors.append("Fail: G.query().E(\"non-existent\").count() %s != %s" % (i[0]["count"], 0))
+        errors.append("Fail: G.query().V().outE(\"non-existent\").count() %s != %s" % (i[0]["count"], 0))
 
     return errors

@@ -8,45 +8,45 @@ func percentileCalc(percent float64) bson.M {
 	p := percent / 100
 
 	return bson.M{
-		"$add": []interface{}{
+		"$add": []any{
 			bson.M{
-				"$arrayElemAt": []interface{}{
+				"$arrayElemAt": []any{
 					"$values",
 					bson.M{
 						"$floor": bson.M{
-							"$multiply": []interface{}{
+							"$multiply": []any{
 								p,
-								bson.M{"$subtract": []interface{}{bson.M{"$size": "$values"}, 1}},
+								bson.M{"$subtract": []any{bson.M{"$size": "$values"}, 1}},
 							},
 						},
 					},
 				},
 			},
 			bson.M{
-				"$multiply": []interface{}{
+				"$multiply": []any{
 					bson.M{
-						"$subtract": []interface{}{
+						"$subtract": []any{
 							bson.M{
-								"$arrayElemAt": []interface{}{
+								"$arrayElemAt": []any{
 									"$values",
 									bson.M{
 										"$ceil": bson.M{
-											"$multiply": []interface{}{
+											"$multiply": []any{
 												p,
-												bson.M{"$subtract": []interface{}{bson.M{"$size": "$values"}, 1}},
+												bson.M{"$subtract": []any{bson.M{"$size": "$values"}, 1}},
 											},
 										},
 									},
 								},
 							},
 							bson.M{
-								"$arrayElemAt": []interface{}{
+								"$arrayElemAt": []any{
 									"$values",
 									bson.M{
 										"$floor": bson.M{
-											"$multiply": []interface{}{
+											"$multiply": []any{
 												p,
-												bson.M{"$subtract": []interface{}{bson.M{"$size": "$values"}, 1}},
+												bson.M{"$subtract": []any{bson.M{"$size": "$values"}, 1}},
 											},
 										},
 									},
@@ -56,11 +56,11 @@ func percentileCalc(percent float64) bson.M {
 					},
 
 					bson.M{
-						"$mod": []interface{}{
+						"$mod": []any{
 							bson.M{
-								"$multiply": []interface{}{
+								"$multiply": []any{
 									p,
-									bson.M{"$subtract": []interface{}{bson.M{"$size": "$values"}, 1}},
+									bson.M{"$subtract": []any{bson.M{"$size": "$values"}, 1}},
 								},
 							},
 							1,
@@ -76,45 +76,45 @@ func percentileCalc(percent float64) bson.M {
 // 	"$project": bson.M{
 // 		"values": "$values",
 // 		"val": bson.M{
-// 			"$add": []interface{}{
+// 			"$add": []any{
 // 				bson.M{
-// 					"$arrayElemAt": []interface{}{
+// 					"$arrayElemAt": []any{
 // 						"$values",
 // 						bson.M{
 // 							"$floor": bson.M{
-// 								"$multiply": []interface{}{
+// 								"$multiply": []any{
 // 									0.95,
-// 									bson.M{"$subtract": []interface{}{bson.M{"$size": "$values"}, 1}},
+// 									bson.M{"$subtract": []any{bson.M{"$size": "$values"}, 1}},
 // 								},
 // 							},
 // 						},
 // 					},
 // 				},
 // 				bson.M{
-// 					"$multiply": []interface{}{
+// 					"$multiply": []any{
 // 						bson.M{
-// 							"$subtract": []interface{}{
+// 							"$subtract": []any{
 // 								bson.M{
-// 									"$arrayElemAt": []interface{}{
+// 									"$arrayElemAt": []any{
 // 										"$values",
 // 										bson.M{
 // 											"$ceil": bson.M{
-// 												"$multiply": []interface{}{
+// 												"$multiply": []any{
 // 													0.95,
-// 													bson.M{"$subtract": []interface{}{bson.M{"$size": "$values"}, 1}},
+// 													bson.M{"$subtract": []any{bson.M{"$size": "$values"}, 1}},
 // 												},
 // 											},
 // 										},
 // 									},
 // 								},
 // 								bson.M{
-// 									"$arrayElemAt": []interface{}{
+// 									"$arrayElemAt": []any{
 // 										"$values",
 // 										bson.M{
 // 											"$floor": bson.M{
-// 												"$multiply": []interface{}{
+// 												"$multiply": []any{
 // 													0.95,
-// 													bson.M{"$subtract": []interface{}{bson.M{"$size": "$values"}, 1}},
+// 													bson.M{"$subtract": []any{bson.M{"$size": "$values"}, 1}},
 // 												},
 // 											},
 // 										},
@@ -124,11 +124,11 @@ func percentileCalc(percent float64) bson.M {
 // 						},
 
 // 						bson.M{
-// 							"$mod": []interface{}{
+// 							"$mod": []any{
 // 								bson.M{
-// 									"$multiply": []interface{}{
+// 									"$multiply": []any{
 // 										0.95,
-// 										bson.M{"$subtract": []interface{}{bson.M{"$size": "$values"}, 1}},
+// 										bson.M{"$subtract": []any{bson.M{"$size": "$values"}, 1}},
 // 									},
 // 								},
 // 								1,

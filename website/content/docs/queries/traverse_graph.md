@@ -29,7 +29,7 @@ G.query().V().out(label='edgeLabel')
 Following all edges (both in and out). Optional argument is the edge label (or list of labels) that should be followed. If no argument is provided, all edges.
 
 ```python
-G.query().E().both(label='edgeLabel')
+G.query().V().outE().both(label='edgeLabel')
 ```
 ---
 

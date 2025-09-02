@@ -132,21 +132,10 @@ def test_E(man):
     G = man.setGraph("swapi")
 
     count = 0
-    for i in G.query().E():
+    for _ in G.query().V().outE():
         count += 1
     if count != 144:
-        errors.append("Fail: G.query().E() %s != %d" % (count, 144))
-
-    count = 0
-    for i in G.query().E("Film:1-characters-Character:1"):
-        if i["_id"] != "Film:1-characters-Character:1":
-            errors.append(
-                "Fail: G.query().E(\"Film:1-characters-Character:1\") - Wrong edge %s" % (i["_id"])
-            )
-        count += 1
-    if count != 1:
-        errors.append(
-            "Fail: G.query().E(\"Film:1-characters-Character:1\") %s != %d" % (count, 1))
+        errors.append("Fail: G.query().V().outE() %s != %d" % (count, 144))
 
     return errors
 
@@ -177,18 +166,6 @@ def test_outgoing(man):
     if count != 4:
         errors.append(
             "Fail: G.query().V(\"Starship:12\").out(\"pilots\") %s != %d" % (count, 4)
-        )
-
-    count = 0
-    for i in G.query().E("Film:1-characters-Character:1").out():
-        if i['_id'] != "Character:1":
-            errors.append(
-                "Fail: G.query().E(\"Film:1-characters-Character:1\").out() - Wrong vertex %s" % (i['_id'])
-            )
-        count += 1
-    if count != 1:
-        errors.append(
-            "Fail: G.query().E(\"Film:1-characters-Character:1\").out() %s != %d" % (count, 1)
         )
 
     return errors
@@ -229,18 +206,6 @@ def test_incoming(man):
     if count != 0:
         errors.append(
             "Fail: G.query().V(\"Starship:12\").in_(\"piolots\") %s != %d" % (count, 0)
-        )
-
-    count = 0
-    for i in G.query().E("Film:1-characters-Character:1").in_():
-        if i['_id'] != "Film:1":
-            errors.append(
-                "Fail: G.query().E(\"Film:1-characters-Character:1\").in_() - Wrong vertex %s" % (i['_id'])
-            )
-        count += 1
-    if count != 1:
-        errors.append(
-            "Fail: G.query().E(\"Film:1-characters-Character:1\").in_() %s != %d" % (count, 1)
         )
 
     return errors
@@ -395,19 +360,6 @@ def test_both(man):
             "Fail: G.query().V(\"Starship:12\").both([\"pilots\", \"starships\"]) %s != %d" % (count, 9)
         )
 
-    count = 0
-    for i in G.query().E("Film:1-characters-Character:1").both():
-        if i['_id'] not in ["Film:1", "Character:1"]:
-            errors.append(
-                "Fail: G.query().E(\"Film:1-characters-Character:1\").both() - \
-                Wrong vertex %s" % (i['_id'])
-            )
-        count += 1
-    if count != 2:
-        errors.append(
-            "Fail: G.query().E(\"Film:1-characters-Character:1\").both() %s != %d" % (count, 2)
-        )
-
     return errors
 
 
@@ -444,12 +396,12 @@ def test_limit(man):
 
     tests = [
         "G.query().V().limit(3)",
-        "G.query().E().limit(3)"
+        "G.query().V().outE().limit(3)"
     ]
 
     expected_results = [
         list(i["_id"] for i in G.query().V().execute())[:3],
-        list(i["_id"] for i in G.query().E().execute())[:3]
+        list(i["_id"] for i in G.query().V().outE().execute())[:3]
     ]
 
     for test, expected in zip(tests, expected_results):
@@ -481,12 +433,12 @@ def test_skip(man):
 
     tests = [
         "G.query().V().skip(3).limit(3)",
-        "G.query().E().skip(3).limit(3)"
+        "G.query().V().outE().skip(3).limit(3)"
     ]
 
     expected_results = [
         list(i["_id"] for i in G.query().V().execute())[3:6],
-        list(i["_id"] for i in G.query().E().execute())[3:6]
+        list(i["_id"] for i in G.query().V().outE().execute())[3:6]
     ]
 
     for test, expected in zip(tests, expected_results):
@@ -519,15 +471,15 @@ def test_range(man):
     tests = [
         "G.query().V().range(3, 5)",
         "G.query().V().range(34, -1)",
-        "G.query().E().range(120, 123)",
-        "G.query().E().range(140, -1)"
+        "G.query().V().outE().range(120, 123)",
+        "G.query().V().outE().range(140, -1)"
     ]
 
     expected_results = [
         list(i["_id"] for i in G.query().V().execute())[3:5],
         list(i["_id"] for i in G.query().V().execute())[34:],
-        list(i["_id"] for i in G.query().E().execute())[120:123],
-        list(i["_id"] for i in G.query().E().execute())[140:]
+        list(i["_id"] for i in G.query().V().outE().execute())[120:123],
+        list(i["_id"] for i in G.query().V().outE().execute())[140:]
     ]
 
     for test, expected in zip(tests, expected_results):

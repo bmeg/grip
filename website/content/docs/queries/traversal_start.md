@@ -35,7 +35,7 @@ It is also possible to start queries on the edges of a graph. This method is les
 Start query from Edge
 
 ```python
-G.query().E()
+G.query().V().outE()
 ```
 Returns all edges in graph
 

@@ -27,7 +27,7 @@ type Processor struct {
 	aggTypes        map[string]*gripql.Aggregate
 }
 
-func getDataElement(result map[string]interface{}) *gdbi.DataElement {
+func getDataElement(result map[string]any) *gdbi.DataElement {
 	de := &gdbi.DataElement{}
 	if x, ok := result[FIELD_ID]; ok {
 		de.ID = x.(string)
@@ -72,7 +72,7 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 				continue
 			}
 			//defer cursor.Close(context.TODO())
-			result := map[string]interface{}{}
+			result := map[string]any{}
 			for cursor.Next(ctx) {
 				nResults++
 				select {
@@ -96,9 +96,9 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 				case gdbi.SelectionData:
 					selections := map[string]*gdbi.DataElement{}
 					if marks, ok := result["marks"]; ok {
-						if marks, ok := marks.(map[string]interface{}); ok {
+						if marks, ok := marks.(map[string]any); ok {
 							for k, v := range marks {
-								if v, ok := v.(map[string]interface{}); ok {
+								if v, ok := v.(map[string]any); ok {
 									de := getDataElement(v)
 									selections[k] = de
 								}
@@ -118,19 +118,19 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 
 						var lastBucket float64
 						for i, bucket := range buckets {
-							bucket, ok := bucket.(map[string]interface{})
+							bucket, ok := bucket.(map[string]any)
 							if !ok {
 								plog.Errorf("Failed to convert Mongo aggregation result bucket: %+v", bucket)
 								continue
 							}
 
-							var term interface{}
+							var term any
 							switch proc.aggTypes[k].GetAggregation().(type) {
 							case *gripql.Aggregate_Term:
-								term = bucket["_id"]
+								term = bucket[FIELD_ID]
 							case *gripql.Aggregate_Histogram:
-								term = bucket["_id"]
-								curPos := bucket["_id"].(float64)
+								term = bucket[FIELD_ID]
+								curPos := bucket[FIELD_ID].(float64)
 								stepSize := float64(proc.aggTypes[k].GetHistogram().Interval)
 								if i != 0 {
 									for nv := lastBucket + stepSize; nv < curPos; nv += stepSize {
@@ -140,7 +140,7 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 								lastBucket = curPos
 
 							case *gripql.Aggregate_Percentile:
-								bid := strings.Replace(bucket["_id"].(string), "_", ".", -1)
+								bid := strings.Replace(bucket[FIELD_ID].(string), "_", ".", -1)
 								f, err := strconv.ParseFloat(bid, 64)
 								if err != nil {
 									plog.Errorf("failed to parse percentile aggregation result key: %v", err)
@@ -148,11 +148,11 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 								}
 								term = f
 							case *gripql.Aggregate_Field:
-								term = bucket["_id"]
+								term = bucket[FIELD_ID]
 							case *gripql.Aggregate_Count:
-								term = bucket["_id"]
+								term = bucket[FIELD_ID]
 							case *gripql.Aggregate_Type:
-								switch bucket["_id"] {
+								switch bucket[FIELD_ID] {
 								case "double":
 									term = "NUMERIC"
 								case "null":
@@ -202,9 +202,9 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 					}
 					//Extract marks
 					if marks, ok := result["marks"]; ok {
-						if markDict, ok := marks.(map[string]interface{}); ok {
+						if markDict, ok := marks.(map[string]any); ok {
 							for k, v := range markDict {
-								if v, ok := v.(map[string]interface{}); ok {
+								if v, ok := v.(map[string]any); ok {
 									de := getDataElement(v)
 									t = t.AddMark(k, de)
 								}
