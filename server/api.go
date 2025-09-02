@@ -680,11 +680,15 @@ func (server *GripServer) AddSchema(ctx context.Context, req *gripql.Graph) (*gr
 	if err != nil {
 		return nil, fmt.Errorf("failed to store new schema: %v", err)
 	}
-
 	if !strings.HasSuffix(req.Graph, schemaSuffix) {
 		req.Graph = req.Graph + schemaSuffix
 	}
-	server.schemas[strings.TrimSuffix(req.Graph, schemaSuffix)] = req
+	schema, err := server.getGraph(req.Graph)
+	if err != nil {
+		log.Errorln("Error in server.getGraph: ", err)
+	} else {
+		server.schemas[strings.TrimSuffix(req.Graph, schemaSuffix)] = schema
+	}
 	return &gripql.EditResult{Id: req.Graph}, nil
 }
 
