@@ -267,7 +267,7 @@ jobs:
 
   gridsUnitTest:
     needs: build
-    name: GRIDs Conformance
+    name: GRIDs Unit Test
     runs-on: ubuntu-latest
     steps:
     - name: Check out code
