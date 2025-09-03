@@ -260,6 +260,7 @@ jobs:
         name: gripBin
     - name: GRIDs Test
       run: |
+        chmod +x grip
         ./grip server --rpc-port 18202 --http-port 18201 --config ./test/grids.yml &
         sleep 5
         make test-conformance
