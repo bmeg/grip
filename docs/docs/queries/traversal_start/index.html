@@ -372,22 +372,13 @@
   <div class="main col span_8_of_12">
     <h1 id="start-a-traversal">Start a Traversal</h1>
 <p>All traversal based queries must start with a <code>V()</code> command, starting the travalers on the vertices of the graph.</p>
-<h2 id="vids">.V([ids])</h2>
+<h2 id="vids"><code>.V([ids])</code></h2>
 <p>Start query from Vertex</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span>G<span style="color:#f92672">.</span>query()<span style="color:#f92672">.</span>V()
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span>G<span style="color:#f92672">.</span>V()
 </span></span></code></pre></div><p>Returns all vertices in graph</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span>G<span style="color:#f92672">.</span>query()<span style="color:#f92672">.</span>V([<span style="color:#e6db74">&#34;vertex1&#34;</span>])
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span>G<span style="color:#f92672">.</span>V([<span style="color:#e6db74">&#34;vertex1&#34;</span>])
 </span></span></code></pre></div><p>Returns:</p>
 <div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-json" data-lang="json"><span style="display:flex;"><span>{<span style="color:#f92672">&#34;_id&#34;</span> : <span style="color:#e6db74">&#34;vertex1&#34;</span>, <span style="color:#f92672">&#34;_label&#34;</span>:<span style="color:#e6db74">&#34;TestVertex&#34;</span>}
-</span></span></code></pre></div><hr>
-<h2 id="eids">.E([ids])</h2>
-<p>It is also possible to start queries on the edges of a graph. This method is less often used and may be depricated in the future
-Start query from Edge</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span>G<span style="color:#f92672">.</span>query()<span style="color:#f92672">.</span>E()
-</span></span></code></pre></div><p>Returns all edges in graph</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span>G<span style="color:#f92672">.</span>query()<span style="color:#f92672">.</span>E([<span style="color:#e6db74">&#34;edge1&#34;</span>])
-</span></span></code></pre></div><p>Returns:</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-json" data-lang="json"><span style="display:flex;"><span>{<span style="color:#f92672">&#34;_id&#34;</span> : <span style="color:#e6db74">&#34;edge1&#34;</span>, <span style="color:#f92672">&#34;_label&#34;</span>:<span style="color:#e6db74">&#34;TestEdge&#34;</span>, <span style="color:#f92672">&#34;_from&#34;</span>: <span style="color:#e6db74">&#34;vertex1&#34;</span>, <span style="color:#f92672">&#34;_to&#34;</span>: <span style="color:#e6db74">&#34;vertex2&#34;</span>}
 </span></span></code></pre></div>
   </div>
 

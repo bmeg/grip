@@ -9,25 +9,28 @@ menu:
 
 # Record Manipulation
 
-## .unwind(fields)
+## `.unwind(fields)`
 Expands an array-valued field into multiple rows, one for each element in the array.
 Example:
 
+Graph
 ```python
-data = {"_id":"1", "_label":"Thing", "stuff" : ["1", "2", "3"]}
+{"vertex" : {"_id":"1", "_label":"Thing", "stuff" : ["1", "2", "3"]}}
+```
 
-Assuming this data is in the graph
+Query
+```python
 G.V("1").unwind("stuff")
 ```
 
-Returns:
+Result
 ```json
 {"_id":"1", "_label":"Thing", "stuff" : "1"}
 {"_id":"1", "_label":"Thing", "stuff" : "2"}
 {"_id":"1", "_label":"Thing", "stuff" : "3"}
 ```
 
-## .group({"dest":"field"})
+## `.group({"dest":"field"})`
 Collect all travelers that are on the same element while aggregating specific fields
 
 For the example:
@@ -43,11 +46,67 @@ into a list named `people` that is added to the current planet node.
 
 Output:
 ```json
-{"vertex":{"_id":"Planet:2", "_label":"Planet", "climate":"temperate", "diameter":12500, "gravity":null, "name":"Alderaan", "orbital_period":364, "people":["Leia Organa", "Raymus Antilles"], "population":2000000000, "rotation_period":24, "surface_water":40, "system":{"created":"2014-12-10T11:35:48.479000Z", "edited":"2014-12-20T20:58:18.420000Z"}, "terrain":["grasslands", "mountains"], "url":"https://swapi.co/api/planets/2/"}}
-{"vertex":{"_id":"Planet:1", "_label":"Planet", "climate":"arid", "diameter":10465, "gravity":null, "name":"Tatooine", "orbital_period":304, "people":["Luke Skywalker", "C-3PO", "Darth Vader", "Owen Lars", "Beru Whitesun lars", "R5-D4", "Biggs Darklighter"], "population":200000, "rotation_period":23, "surface_water":1, "system":{"created":"2014-12-09T13:50:49.641000Z", "edited":"2014-12-21T20:48:04.175778Z"}, "terrain":["desert"], "url":"https://swapi.co/api/planets/1/"}}
+{
+  "vertex": {
+    "_id": "Planet:2",
+    "_label": "Planet",
+    "climate": "temperate",
+    "diameter": 12500,
+    "gravity": null,
+    "name": "Alderaan",
+    "orbital_period": 364,
+    "people": [
+      "Leia Organa",
+      "Raymus Antilles"
+    ],
+    "population": 2000000000,
+    "rotation_period": 24,
+    "surface_water": 40,
+    "system": {
+      "created": "2014-12-10T11:35:48.479000Z",
+      "edited": "2014-12-20T20:58:18.420000Z"
+    },
+    "terrain": [
+      "grasslands",
+      "mountains"
+    ],
+    "url": "https://swapi.co/api/planets/2/"
+  }
+}
+{
+  "vertex": {
+    "_id": "Planet:1",
+    "_label": "Planet",
+    "climate": "arid",
+    "diameter": 10465,
+    "gravity": null,
+    "name": "Tatooine",
+    "orbital_period": 304,
+    "people": [
+      "Luke Skywalker",
+      "C-3PO",
+      "Darth Vader",
+      "Owen Lars",
+      "Beru Whitesun lars",
+      "R5-D4",
+      "Biggs Darklighter"
+    ],
+    "population": 200000,
+    "rotation_period": 23,
+    "surface_water": 1,
+    "system": {
+      "created": "2014-12-09T13:50:49.641000Z",
+      "edited": "2014-12-21T20:48:04.175778Z"
+    },
+    "terrain": [
+      "desert"
+    ],
+    "url": "https://swapi.co/api/planets/1/"
+  }
+}
 ```
 
-## .pivot(id, key, value)
+## `.pivot(id, key, value)`
 
 Aggregate fields across multiple records into a single record using a pivot operations. A pivot is
 an operation where a two column matrix, with one columns for keys and another column for values, is

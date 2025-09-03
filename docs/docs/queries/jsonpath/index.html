@@ -1,502 +1,382 @@
-<!doctype html>
+<!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
-    <head>
-        <link href="http://gmpg.org/xfn/11" rel="profile" />
-        <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<head>
+  <link href="http://gmpg.org/xfn/11" rel="profile">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
 
-        <meta
-            name="viewport"
-            content="width=device-width, initial-scale=1.0, maximum-scale=1"
-        />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
 
-        <title>Referencing Fields &middot; GRIP</title>
+  
+  <title>Referencing Fields &middot; GRIP</title>
+  
 
-        <link
-            rel="stylesheet"
-            href="https://bmeg.github.io/grip/css/poole.css"
-        />
-        <link
-            rel="stylesheet"
-            href="https://bmeg.github.io/grip/css/darcula.css"
-        />
-        <link
-            rel="stylesheet"
-            href="https://bmeg.github.io/grip/css/syntax.css"
-        />
-        <link
-            rel="stylesheet"
-            href="https://bmeg.github.io/grip/css/theme.css"
-        />
-        <link
-            rel="stylesheet"
-            href="https://bmeg.github.io/grip/css/funnel.css"
-        />
-        <link
-            rel="stylesheet"
-            href="https://fonts.googleapis.com/css?family=PT+Sans:400,400italic,700"
-        />
+  
+  <link rel="stylesheet" href="https://bmeg.github.io/grip/css/poole.css">
+  <link rel="stylesheet" href="https://bmeg.github.io/grip/css/darcula.css">
+  <link rel="stylesheet" href="https://bmeg.github.io/grip/css/syntax.css">
+  <link rel="stylesheet" href="https://bmeg.github.io/grip/css/theme.css">
+  <link rel="stylesheet" href="https://bmeg.github.io/grip/css/funnel.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=PT+Sans:400,400italic,700">
 
-        <link
-            rel="apple-touch-icon-precomposed"
-            sizes="144x144"
-            href="https://bmeg.github.io/grip/apple-touch-icon-144-precomposed.png"
-        />
-        <link
-            rel="shortcut icon"
-            href="https://bmeg.github.io/grip/favicon.png"
-        />
+  
+  <link rel="apple-touch-icon-precomposed" sizes="144x144" href="https://bmeg.github.io/grip/apple-touch-icon-144-precomposed.png">
+  <link rel="shortcut icon" href="https://bmeg.github.io/grip/favicon.png">
 
-        <script src="https://bmeg.github.io/grip/js/highlight.pack.js"></script>
-        <script>
-            hljs.initHighlightingOnLoad();
-        </script>
-    </head>
-    <body>
-        <div class="global-header">
-            <div class="global-header-container">
-                <div class="global-header-home">
-                    <a href="https://bmeg.github.io/grip/"><h1>GRIP</h1></a>
-                </div>
-                <ul class="global-header-nav">
-                    <li>
-                        <a href="https://bmeg.github.io/grip/download//"
-                            >Download</a
-                        >
-                    </li>
-                    <li>
-                        <a href="https://bmeg.github.io/grip/docs/">Docs</a>
-                    </li>
-                    <li><a href="https://github.com/bmeg/grip">GitHub</a></li>
-                    <li><a href="https://gitter.im/bmeg/grip">Chat</a></li>
-                </ul>
-                <div class="global-header-ohsucb">
-                    <a href="https://www.ohsu.edu/compbio/"
-                        ><h2>OHSU Comp Bio</h2></a
-                    >
-                </div>
-            </div>
-        </div>
+  <script src="https://bmeg.github.io/grip/js/highlight.pack.js"></script>
+  <script>hljs.initHighlightingOnLoad();</script>
 
-        <div class="content section group">
-            <div class="sidebar col span_3_of_12">
-                <ul class="sidebar-nav">
-                    <li>
-                        <a
-                            href="https://bmeg.github.io/grip/docs/"
-                            class="sidebar-nav-item"
-                            >Overview</a
-                        >
-                    </li>
+</head>
+<body>
 
-                    <li>
-                        <a
-                            href="https://bmeg.github.io/grip/download/"
-                            class="sidebar-nav-item"
-                            >Download</a
-                        >
-                    </li>
+  <div class="global-header">
+    <div class="global-header-container">
+      <div class="global-header-home">
+        <a href="https://bmeg.github.io/grip/"><h1>GRIP</h1></a>
+      </div>
+      <ul class="global-header-nav">
+          <li><a href="https://bmeg.github.io/grip/download//">Download</a></li>
+          <li><a href="https://bmeg.github.io/grip/docs/">Docs</a></li>
+          <li><a href="https://github.com/bmeg/grip">GitHub</a></li>
+          <li><a href="https://gitter.im/bmeg/grip">Chat</a></li>
+        </ul>
+      <div class="global-header-ohsucb">
+        <a href="https://www.ohsu.edu/compbio/"><h2>OHSU Comp Bio</h2></a>
+      </div>
+    </div>
+  </div>
 
-                    <li>
-                        <span class="intermediate">GRIP Commands</span>
-                    </li>
 
-                    <li>
-                        <ul class="sidebar-nav sidebar-nav-nested">
-                            <li>
-                                <a
-                                    href="https://bmeg.github.io/grip/docs/commands/server/"
-                                    class="sidebar-nav-item"
-                                    >server</a
-                                >
-                            </li>
-                        </ul>
-                    </li>
+<div class="content section group">
 
-                    <li>
-                        <ul class="sidebar-nav sidebar-nav-nested">
-                            <li>
-                                <a
-                                    href="https://bmeg.github.io/grip/docs/commands/create/"
-                                    class="sidebar-nav-item"
-                                    >create</a
-                                >
-                            </li>
-                        </ul>
-                    </li>
+  <div class="sidebar col span_3_of_12">
+    <ul class="sidebar-nav">
+      
+      
+        
+        <li>
+          
+          <a href="https://bmeg.github.io/grip/docs/"
+             class="sidebar-nav-item "
+          >Overview</a></li>
+          
+        
+        <li>
+          
+          <a href="https://bmeg.github.io/grip/download/"
+             class="sidebar-nav-item "
+          >Download</a></li>
+          
+        
+        <li>
+          
+          <span class="intermediate">GRIP Commands</span></li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/commands/server/"
+                   class="sidebar-nav-item "
+                >server</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/commands/create/"
+                   class="sidebar-nav-item "
+                >create</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/commands/query/"
+                   class="sidebar-nav-item "
+                >query</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/commands/delete/"
+                   class="sidebar-nav-item "
+                >delete</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/commands/list/"
+                   class="sidebar-nav-item "
+                >list</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/commands/drop/"
+                   class="sidebar-nav-item "
+                >drop</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/commands/mongoload/"
+                   class="sidebar-nav-item "
+                >mongoload</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/commands/er/"
+                   class="sidebar-nav-item "
+                >er</a></li>
+            </ul>
+          </li>
+          
+          
+        
+        <li>
+          
+          <a href="https://bmeg.github.io/grip/docs/databases/"
+             class="sidebar-nav-item "
+          >Database Configuration</a></li>
+          
+        
+        <li>
+          
+          <a href="https://bmeg.github.io/grip/docs/clients/"
+             class="sidebar-nav-item "
+          >Client Library</a></li>
+          
+        
+        <li>
+          
+          <span class="intermediate">Query a Graph</span></li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/queries/traversal_start/"
+                   class="sidebar-nav-item "
+                >Start a Traversal</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/queries/jsonpath/"
+                   class="sidebar-nav-item  active"
+                >Referencing Fields</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/queries/traverse_graph/"
+                   class="sidebar-nav-item "
+                >Traverse the Graph</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/queries/filtering/"
+                   class="sidebar-nav-item "
+                >Filtering</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/queries/record_transforms/"
+                   class="sidebar-nav-item "
+                >Record Transforms</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/queries/aggregation/"
+                   class="sidebar-nav-item "
+                >Aggregation</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/queries/output/"
+                   class="sidebar-nav-item "
+                >Output Control</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/queries/iterations/"
+                   class="sidebar-nav-item "
+                >Iteration</a></li>
+            </ul>
+          </li>
+          
+          
+        
+        <li>
+          
+          <a href="https://bmeg.github.io/grip/docs/jobs_api/"
+             class="sidebar-nav-item "
+          >Jobs API</a></li>
+          
+        
+        <li>
+          
+          <span class="intermediate">Tutorials</span></li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/tutorials/amazon/"
+                   class="sidebar-nav-item "
+                >Amazon Purchase Network</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/tutorials/tcga-rna/"
+                   class="sidebar-nav-item "
+                >TCGA RNA Expression</a></li>
+            </ul>
+          </li>
+          
+          
+        
+        <li>
+          
+          <span class="intermediate">Security</span></li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/security/basic/"
+                   class="sidebar-nav-item "
+                >Basic Auth</a></li>
+            </ul>
+          </li>
+          
+          
+        
+        <li>
+          
+          <span class="intermediate">GraphQL</span></li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/graphql/graphql/"
+                   class="sidebar-nav-item "
+                >GraphQL</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/graphql/graph_schemas/"
+                   class="sidebar-nav-item "
+                >Graph Schemas</a></li>
+            </ul>
+          </li>
+          
+          
+        
+        <li>
+          
+          <span class="intermediate">Developers</span></li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://github.com/bmeg/grip/blob/master/gripql/gripql.proto"
+                   class="sidebar-nav-item "
+                >API</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://godoc.org/github.com/bmeg/grip"
+                   class="sidebar-nav-item "
+                >GoDoc</a></li>
+            </ul>
+          </li>
+          
+          
+        
+        <li>
+          
+          <span class="intermediate">GRIP Plugable External Resources</span></li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/gripper/gripper/"
+                   class="sidebar-nav-item "
+                >Intro</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/gripper/proxy/"
+                   class="sidebar-nav-item "
+                >External Resource Proxies</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/gripper/graphmodel/"
+                   class="sidebar-nav-item "
+                >Graph Model</a></li>
+            </ul>
+          </li>
+          
+          
+        
+      
+    </ul>
+  </div>
 
-                    <li>
-                        <ul class="sidebar-nav sidebar-nav-nested">
-                            <li>
-                                <a
-                                    href="https://bmeg.github.io/grip/docs/commands/query/"
-                                    class="sidebar-nav-item"
-                                    >query</a
-                                >
-                            </li>
-                        </ul>
-                    </li>
-
-                    <li>
-                        <ul class="sidebar-nav sidebar-nav-nested">
-                            <li>
-                                <a
-                                    href="https://bmeg.github.io/grip/docs/commands/delete/"
-                                    class="sidebar-nav-item"
-                                    >delete</a
-                                >
-                            </li>
-                        </ul>
-                    </li>
-
-                    <li>
-                        <ul class="sidebar-nav sidebar-nav-nested">
-                            <li>
-                                <a
-                                    href="https://bmeg.github.io/grip/docs/commands/list/"
-                                    class="sidebar-nav-item"
-                                    >list</a
-                                >
-                            </li>
-                        </ul>
-                    </li>
-
-                    <li>
-                        <ul class="sidebar-nav sidebar-nav-nested">
-                            <li>
-                                <a
-                                    href="https://bmeg.github.io/grip/docs/commands/drop/"
-                                    class="sidebar-nav-item"
-                                    >drop</a
-                                >
-                            </li>
-                        </ul>
-                    </li>
-
-                    <li>
-                        <ul class="sidebar-nav sidebar-nav-nested">
-                            <li>
-                                <a
-                                    href="https://bmeg.github.io/grip/docs/commands/mongoload/"
-                                    class="sidebar-nav-item"
-                                    >mongoload</a
-                                >
-                            </li>
-                        </ul>
-                    </li>
-
-                    <li>
-                        <ul class="sidebar-nav sidebar-nav-nested">
-                            <li>
-                                <a
-                                    href="https://bmeg.github.io/grip/docs/commands/er/"
-                                    class="sidebar-nav-item"
-                                    >er</a
-                                >
-                            </li>
-                        </ul>
-                    </li>
-
-                    <li>
-                        <a
-                            href="https://bmeg.github.io/grip/docs/databases/"
-                            class="sidebar-nav-item"
-                            >Database Configuration</a
-                        >
-                    </li>
-
-                    <li>
-                        <a
-                            href="https://bmeg.github.io/grip/docs/clients/"
-                            class="sidebar-nav-item"
-                            >Client Library</a
-                        >
-                    </li>
-
-                    <li>
-                        <span class="intermediate">Query a Graph</span>
-                    </li>
-
-                    <li>
-                        <ul class="sidebar-nav sidebar-nav-nested">
-                            <li>
-                                <a
-                                    href="https://bmeg.github.io/grip/docs/queries/traversal_start/"
-                                    class="sidebar-nav-item"
-                                    >Start a Traversal</a
-                                >
-                            </li>
-                        </ul>
-                    </li>
-
-                    <li>
-                        <ul class="sidebar-nav sidebar-nav-nested">
-                            <li>
-                                <a
-                                    href="https://bmeg.github.io/grip/docs/queries/jsonpath/"
-                                    class="sidebar-nav-item active"
-                                    >Referencing Fields</a
-                                >
-                            </li>
-                        </ul>
-                    </li>
-
-                    <li>
-                        <ul class="sidebar-nav sidebar-nav-nested">
-                            <li>
-                                <a
-                                    href="https://bmeg.github.io/grip/docs/queries/traverse_graph/"
-                                    class="sidebar-nav-item"
-                                    >Traverse the Graph</a
-                                >
-                            </li>
-                        </ul>
-                    </li>
-
-                    <li>
-                        <ul class="sidebar-nav sidebar-nav-nested">
-                            <li>
-                                <a
-                                    href="https://bmeg.github.io/grip/docs/queries/filtering/"
-                                    class="sidebar-nav-item"
-                                    >Filtering</a
-                                >
-                            </li>
-                        </ul>
-                    </li>
-
-                    <li>
-                        <ul class="sidebar-nav sidebar-nav-nested">
-                            <li>
-                                <a
-                                    href="https://bmeg.github.io/grip/docs/queries/record_transforms/"
-                                    class="sidebar-nav-item"
-                                    >Record Transforms</a
-                                >
-                            </li>
-                        </ul>
-                    </li>
-
-                    <li>
-                        <ul class="sidebar-nav sidebar-nav-nested">
-                            <li>
-                                <a
-                                    href="https://bmeg.github.io/grip/docs/queries/aggregation/"
-                                    class="sidebar-nav-item"
-                                    >Aggregation</a
-                                >
-                            </li>
-                        </ul>
-                    </li>
-
-                    <li>
-                        <ul class="sidebar-nav sidebar-nav-nested">
-                            <li>
-                                <a
-                                    href="https://bmeg.github.io/grip/docs/queries/output/"
-                                    class="sidebar-nav-item"
-                                    >Output Control</a
-                                >
-                            </li>
-                        </ul>
-                    </li>
-
-                    <li>
-                        <ul class="sidebar-nav sidebar-nav-nested">
-                            <li>
-                                <a
-                                    href="https://bmeg.github.io/grip/docs/queries/iterations/"
-                                    class="sidebar-nav-item"
-                                    >Iteration</a
-                                >
-                            </li>
-                        </ul>
-                    </li>
-
-                    <li>
-                        <a
-                            href="https://bmeg.github.io/grip/docs/jobs_api/"
-                            class="sidebar-nav-item"
-                            >Jobs API</a
-                        >
-                    </li>
-
-                    <li>
-                        <span class="intermediate">Tutorials</span>
-                    </li>
-
-                    <li>
-                        <ul class="sidebar-nav sidebar-nav-nested">
-                            <li>
-                                <a
-                                    href="https://bmeg.github.io/grip/docs/tutorials/amazon/"
-                                    class="sidebar-nav-item"
-                                    >Amazon Purchase Network</a
-                                >
-                            </li>
-                        </ul>
-                    </li>
-
-                    <li>
-                        <ul class="sidebar-nav sidebar-nav-nested">
-                            <li>
-                                <a
-                                    href="https://bmeg.github.io/grip/docs/tutorials/tcga-rna/"
-                                    class="sidebar-nav-item"
-                                    >TCGA RNA Expression</a
-                                >
-                            </li>
-                        </ul>
-                    </li>
-
-                    <li>
-                        <span class="intermediate">Security</span>
-                    </li>
-
-                    <li>
-                        <ul class="sidebar-nav sidebar-nav-nested">
-                            <li>
-                                <a
-                                    href="https://bmeg.github.io/grip/docs/security/basic/"
-                                    class="sidebar-nav-item"
-                                    >Basic Auth</a
-                                >
-                            </li>
-                        </ul>
-                    </li>
-
-                    <li>
-                        <span class="intermediate">GraphQL</span>
-                    </li>
-
-                    <li>
-                        <ul class="sidebar-nav sidebar-nav-nested">
-                            <li>
-                                <a
-                                    href="https://bmeg.github.io/grip/docs/graphql/graphql/"
-                                    class="sidebar-nav-item"
-                                    >GraphQL</a
-                                >
-                            </li>
-                        </ul>
-                    </li>
-
-                    <li>
-                        <ul class="sidebar-nav sidebar-nav-nested">
-                            <li>
-                                <a
-                                    href="https://bmeg.github.io/grip/docs/graphql/graph_schemas/"
-                                    class="sidebar-nav-item"
-                                    >Graph Schemas</a
-                                >
-                            </li>
-                        </ul>
-                    </li>
-
-                    <li>
-                        <span class="intermediate">Developers</span>
-                    </li>
-
-                    <li>
-                        <ul class="sidebar-nav sidebar-nav-nested">
-                            <li>
-                                <a
-                                    href="https://github.com/bmeg/grip/blob/master/gripql/gripql.proto"
-                                    class="sidebar-nav-item"
-                                    >API</a
-                                >
-                            </li>
-                        </ul>
-                    </li>
-
-                    <li>
-                        <ul class="sidebar-nav sidebar-nav-nested">
-                            <li>
-                                <a
-                                    href="https://godoc.org/github.com/bmeg/grip"
-                                    class="sidebar-nav-item"
-                                    >GoDoc</a
-                                >
-                            </li>
-                        </ul>
-                    </li>
-
-                    <li>
-                        <span class="intermediate"
-                            >GRIP Plugable External Resources</span
-                        >
-                    </li>
-
-                    <li>
-                        <ul class="sidebar-nav sidebar-nav-nested">
-                            <li>
-                                <a
-                                    href="https://bmeg.github.io/grip/docs/gripper/gripper/"
-                                    class="sidebar-nav-item"
-                                    >Intro</a
-                                >
-                            </li>
-                        </ul>
-                    </li>
-
-                    <li>
-                        <ul class="sidebar-nav sidebar-nav-nested">
-                            <li>
-                                <a
-                                    href="https://bmeg.github.io/grip/docs/gripper/proxy/"
-                                    class="sidebar-nav-item"
-                                    >External Resource Proxies</a
-                                >
-                            </li>
-                        </ul>
-                    </li>
-
-                    <li>
-                        <ul class="sidebar-nav sidebar-nav-nested">
-                            <li>
-                                <a
-                                    href="https://bmeg.github.io/grip/docs/gripper/graphmodel/"
-                                    class="sidebar-nav-item"
-                                    >Graph Model</a
-                                >
-                            </li>
-                        </ul>
-                    </li>
-                </ul>
-            </div>
-
-            <div class="main col span_8_of_12">
-                <h1 id="referencing-vertexedge-properties">
-                    Referencing Vertex/Edge Properties
-                </h1>
-                <p>
-                    Several operations (where, fields, render, etc.) reference
-                    properties of the vertices/edges during the traversal. GRIP
-                    uses a variation on JSONPath syntax as described in
-                    <a href="http://goessner.net/articles/"
-                        >http://goessner.net/articles/</a
-                    >
-                    to reference fields during traversals.
-                </p>
-                <p>The following query:</p>
-                <pre
-                    tabindex="0"
-                ><code>O.V([&#34;ENSG00000012048&#34;]).as_(&#34;gene&#34;).out(&#34;variant&#34;)
-</code></pre>
-                <p>
-                    Starts at vertex <code>ENSG00000012048</code> and marks as
-                    <code>gene</code>:
-                </p>
-                <div class="highlight">
-                    <pre
-                        tabindex="0"
-                        style="
-                            color: #f8f8f2;
-                            background-color: #272822;
-                            -moz-tab-size: 4;
-                            -o-tab-size: 4;
-                            tab-size: 4;
-                        "
-                    ><code class="language-json" data-lang="json"><span style="display:flex;"><span>{
+  <div class="main col span_8_of_12">
+    <h1 id="referencing-vertexedge-properties">Referencing Vertex/Edge Properties</h1>
+<p>Several operations (where, fields, render, etc.) reference properties of the vertices/edges during the traversal.
+GRIP uses a variation on JSONPath syntax as described in <a href="http://goessner.net/articles/">http://goessner.net/articles/</a> to reference fields during traversals.</p>
+<p>The following query:</p>
+<pre tabindex="0"><code>O.V([&#34;ENSG00000012048&#34;]).as_(&#34;gene&#34;).out(&#34;variant&#34;)
+</code></pre><p>Starts at vertex <code>ENSG00000012048</code> and marks as <code>gene</code>:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-json" data-lang="json"><span style="display:flex;"><span>{
 </span></span><span style="display:flex;"><span>  <span style="color:#f92672">&#34;_id&#34;</span>: <span style="color:#e6db74">&#34;ENSG00000012048&#34;</span>,
 </span></span><span style="display:flex;"><span>  <span style="color:#f92672">&#34;_label&#34;</span>: <span style="color:#e6db74">&#34;gene&#34;</span>,
 </span></span><span style="display:flex;"><span>  <span style="color:#f92672">&#34;symbol&#34;</span>: {
@@ -507,20 +387,8 @@
 </span></span><span style="display:flex;"><span>  },
 </span></span><span style="display:flex;"><span>  <span style="color:#f92672">&#34;transcipts&#34;</span>: [<span style="color:#e6db74">&#34;ENST00000471181.7&#34;</span>, <span style="color:#e6db74">&#34;ENST00000357654.8&#34;</span>, <span style="color:#e6db74">&#34;ENST00000493795.5&#34;</span>]
 </span></span><span style="display:flex;"><span>}
-</span></span></code></pre>
-                </div>
-                <p>as &ldquo;gene&rdquo; and traverses the graph to:</p>
-                <div class="highlight">
-                    <pre
-                        tabindex="0"
-                        style="
-                            color: #f8f8f2;
-                            background-color: #272822;
-                            -moz-tab-size: 4;
-                            -o-tab-size: 4;
-                            tab-size: 4;
-                        "
-                    ><code class="language-json" data-lang="json"><span style="display:flex;"><span>{
+</span></span></code></pre></div><p>as &ldquo;gene&rdquo; and traverses the graph to:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-json" data-lang="json"><span style="display:flex;"><span>{
 </span></span><span style="display:flex;"><span>  <span style="color:#f92672">&#34;_id&#34;</span>: <span style="color:#e6db74">&#34;NM_007294.3:c.4963_4981delTGGCCTGACCCCAGAAG&#34;</span>,
 </span></span><span style="display:flex;"><span>  <span style="color:#f92672">&#34;_label&#34;</span>: <span style="color:#e6db74">&#34;variant&#34;</span>,
 </span></span><span style="display:flex;"><span>  <span style="color:#f92672">&#34;type&#34;</span>: <span style="color:#e6db74">&#34;deletion&#34;</span>,
@@ -535,87 +403,60 @@
 </span></span><span style="display:flex;"><span>    }
 </span></span><span style="display:flex;"><span>  ]
 </span></span><span style="display:flex;"><span>}
-</span></span></code></pre>
-                </div>
-                <p>
-                    Below is a table of field and the values they would
-                    reference in subsequent traversal operations.
-                </p>
-                <table>
-                    <thead>
-                        <tr>
-                            <th style="text-align: left">jsonpath</th>
-                            <th style="text-align: left">result</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td style="text-align: left">_id</td>
-                            <td style="text-align: left">
-                                &ldquo;NM_007294.3:c.4963_4981delTGGCCTGACCCCAGAAG&rdquo;
-                            </td>
-                        </tr>
-                        <tr>
-                            <td style="text-align: left">_label</td>
-                            <td style="text-align: left">
-                                &ldquo;variant&rdquo;
-                            </td>
-                        </tr>
-                        <tr>
-                            <td style="text-align: left">type</td>
-                            <td style="text-align: left">
-                                &ldquo;deletion&rdquo;
-                            </td>
-                        </tr>
-                        <tr>
-                            <td style="text-align: left">
-                                publications[0].pmid
-                            </td>
-                            <td style="text-align: left">29480828</td>
-                        </tr>
-                        <tr>
-                            <td style="text-align: left">
-                                publications[:].pmid
-                            </td>
-                            <td style="text-align: left">
-                                [29480828, 23666017]
-                            </td>
-                        </tr>
-                        <tr>
-                            <td style="text-align: left">publications.pmid</td>
-                            <td style="text-align: left">
-                                [29480828, 23666017]
-                            </td>
-                        </tr>
-                        <tr>
-                            <td style="text-align: left">$gene.symbol.hugo</td>
-                            <td style="text-align: left">
-                                &ldquo;BRCA1&rdquo;
-                            </td>
-                        </tr>
-                        <tr>
-                            <td style="text-align: left">
-                                $gene.transcripts[0]
-                            </td>
-                            <td style="text-align: left">
-                                &ldquo;ENST00000471181.7&rdquo;
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-                <h2 id="usage-example">Usage Example:</h2>
-                <pre
-                    tabindex="0"
-                ><code>O.V([&#34;ENSG00000012048&#34;]).as_(&#34;gene&#34;).out(&#34;variant&#34;).render({&#34;variant_id&#34;: &#34;_id&#34;, &#34;variant_type&#34;: &#34;type&#34;, &#34;gene_id&#34;: &#34;$gene._id&#34;})
-</code></pre>
-                <p>returns</p>
-                <pre tabindex="0"><code>{
+</span></span></code></pre></div><p>Below is a table of field and the values they would reference in subsequent traversal operations.</p>
+<table>
+  <thead>
+      <tr>
+          <th style="text-align: left">jsonpath</th>
+          <th style="text-align: left">result</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td style="text-align: left">_id</td>
+          <td style="text-align: left">&ldquo;NM_007294.3:c.4963_4981delTGGCCTGACCCCAGAAG&rdquo;</td>
+      </tr>
+      <tr>
+          <td style="text-align: left">_label</td>
+          <td style="text-align: left">&ldquo;variant&rdquo;</td>
+      </tr>
+      <tr>
+          <td style="text-align: left">type</td>
+          <td style="text-align: left">&ldquo;deletion&rdquo;</td>
+      </tr>
+      <tr>
+          <td style="text-align: left">publications[0].pmid</td>
+          <td style="text-align: left">29480828</td>
+      </tr>
+      <tr>
+          <td style="text-align: left">publications[:].pmid</td>
+          <td style="text-align: left">[29480828, 23666017]</td>
+      </tr>
+      <tr>
+          <td style="text-align: left">publications.pmid</td>
+          <td style="text-align: left">[29480828, 23666017]</td>
+      </tr>
+      <tr>
+          <td style="text-align: left">$gene.symbol.hugo</td>
+          <td style="text-align: left">&ldquo;BRCA1&rdquo;</td>
+      </tr>
+      <tr>
+          <td style="text-align: left">$gene.transcripts[0]</td>
+          <td style="text-align: left">&ldquo;ENST00000471181.7&rdquo;</td>
+      </tr>
+  </tbody>
+</table>
+<h2 id="usage-example">Usage Example:</h2>
+<pre tabindex="0"><code>O.V([&#34;ENSG00000012048&#34;]).as_(&#34;gene&#34;).out(&#34;variant&#34;).render({&#34;variant_id&#34;: &#34;_id&#34;, &#34;variant_type&#34;: &#34;type&#34;, &#34;gene_id&#34;: &#34;$gene._id&#34;})
+</code></pre><p>returns</p>
+<pre tabindex="0"><code>{
   &#34;variant_id&#34;: &#34;NM_007294.3:c.4963_4981delTGGCCTGACCCCAGAAG&#34;,
   &#34;variant_type&#34;: &#34;deletion&#34;,
   &#34;gene_id&#34;: &#34;ENSG00000012048&#34;
 }
 </code></pre>
-            </div>
-        </div>
-    </body>
+  </div>
+
+</div>
+</body>
 </html>

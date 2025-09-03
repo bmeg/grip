@@ -372,38 +372,38 @@
   <div class="main col span_8_of_12">
     <h1 id="traverse-the-graph">Traverse the graph</h1>
 <p>To move travelers between different elements of the graph, the traversal commands <code>in_</code> and <code>out</code> move along the edges, respecting the directionality. The <code>out</code> commands follow <code>_from</code> to <code>_to</code>, while the <code>in_</code> command follows <code>_to</code> to <code>_from</code>.</p>
-<h2 id="in_-inv">.in_(), inV()</h2>
+<h2 id="in_-inv"><code>.in_(), inV()</code></h2>
 <p>Following incoming edges. Optional argument is the edge label (or list of labels) that should be followed. If no argument is provided, all incoming edges.</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span>G<span style="color:#f92672">.</span>query()<span style="color:#f92672">.</span>V()<span style="color:#f92672">.</span>in_(label<span style="color:#f92672">=</span>[<span style="color:#e6db74">&#39;edgeLabel1&#39;</span>, <span style="color:#e6db74">&#39;edgeLabel2&#39;</span>])
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span>G<span style="color:#f92672">.</span>V()<span style="color:#f92672">.</span>in_(label<span style="color:#f92672">=</span>[<span style="color:#e6db74">&#39;edgeLabel1&#39;</span>, <span style="color:#e6db74">&#39;edgeLabel2&#39;</span>])
 </span></span></code></pre></div><hr>
-<h2 id="out-outv">.out(), .outV()</h2>
+<h2 id="out-outv"><code>.out(), .outV()</code></h2>
 <p>Following outgoing edges. Optional argument is the edge label (or list of labels) that should be followed. If no argument is provided, all outgoing edges.</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span>G<span style="color:#f92672">.</span>query()<span style="color:#f92672">.</span>V()<span style="color:#f92672">.</span>out(label<span style="color:#f92672">=</span><span style="color:#e6db74">&#39;edgeLabel&#39;</span>)
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span>G<span style="color:#f92672">.</span>V()<span style="color:#f92672">.</span>out(label<span style="color:#f92672">=</span><span style="color:#e6db74">&#39;edgeLabel&#39;</span>)
 </span></span></code></pre></div><hr>
-<h2 id="both-bothv">.both(), .bothV()</h2>
+<h2 id="both-bothv"><code>.both(), .bothV()</code></h2>
 <p>Following all edges (both in and out). Optional argument is the edge label (or list of labels) that should be followed. If no argument is provided, all edges.</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span>G<span style="color:#f92672">.</span>query()<span style="color:#f92672">.</span>E()<span style="color:#f92672">.</span>both(label<span style="color:#f92672">=</span><span style="color:#e6db74">&#39;edgeLabel&#39;</span>)
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span>G<span style="color:#f92672">.</span>V()<span style="color:#f92672">.</span>outE()<span style="color:#f92672">.</span>both(label<span style="color:#f92672">=</span><span style="color:#e6db74">&#39;edgeLabel&#39;</span>)
 </span></span></code></pre></div><hr>
-<h2 id="ine">.inE()</h2>
+<h2 id="ine"><code>.inE()</code></h2>
 <p>Following incoming edges, but return the edge as the next element. This can be used to inspect edge properties. Optional argument is the edge label (or list of labels) that should be followed. To return back to a vertex, use <code>.in_</code> or <code>.out</code></p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span>G<span style="color:#f92672">.</span>query()<span style="color:#f92672">.</span>V()<span style="color:#f92672">.</span>inE(label<span style="color:#f92672">=</span><span style="color:#e6db74">&#39;edgeLabel&#39;</span>)
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span>G<span style="color:#f92672">.</span>V()<span style="color:#f92672">.</span>inE(label<span style="color:#f92672">=</span><span style="color:#e6db74">&#39;edgeLabel&#39;</span>)
 </span></span></code></pre></div><hr>
-<h2 id="oute">.outE()</h2>
+<h2 id="oute"><code>.outE()</code></h2>
 <p>Following outgoing edges, but return the edge as the next element. This can be used to inspect edge properties. Optional argument is the edge label (or list of labels) that should be followed. To return back to a vertex, use <code>.in_</code> or <code>.out</code></p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span>G<span style="color:#f92672">.</span>query()<span style="color:#f92672">.</span>V()<span style="color:#f92672">.</span>outE(label<span style="color:#f92672">=</span><span style="color:#e6db74">&#39;edgeLabel&#39;</span>)
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span>G<span style="color:#f92672">.</span>V()<span style="color:#f92672">.</span>outE(label<span style="color:#f92672">=</span><span style="color:#e6db74">&#39;edgeLabel&#39;</span>)
 </span></span></code></pre></div><hr>
-<h2 id="bothe">.bothE()</h2>
+<h2 id="bothe"><code>.bothE()</code></h2>
 <p>Following all edges, but return the edge as the next element. This can be used to inspect edge properties. Optional argument is the edge label (or list of labels) that should be followed. To return back to a vertex, use <code>.in_</code> or <code>.out</code></p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span>G<span style="color:#f92672">.</span>query()<span style="color:#f92672">.</span>V()<span style="color:#f92672">.</span>bothE(label<span style="color:#f92672">=</span><span style="color:#e6db74">&#39;edgeLabel&#39;</span>)
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span>G<span style="color:#f92672">.</span>V()<span style="color:#f92672">.</span>bothE(label<span style="color:#f92672">=</span><span style="color:#e6db74">&#39;edgeLabel&#39;</span>)
 </span></span></code></pre></div><hr>
 <h1 id="as-and-select">AS and SELECT</h1>
 <p>The <code>as_</code> and <code>select</code> commands allow a traveler to mark a step in the traversal and return to it as a later step.</p>
-<h2 id="as_name">.as_(name)</h2>
+<h2 id="as_name"><code>.as_(name)</code></h2>
 <p>Store current row for future reference</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span>G<span style="color:#f92672">.</span>query()<span style="color:#f92672">.</span>V()<span style="color:#f92672">.</span>as_(<span style="color:#e6db74">&#34;a&#34;</span>)<span style="color:#f92672">.</span>out()<span style="color:#f92672">.</span>as_(<span style="color:#e6db74">&#34;b&#34;</span>)
-</span></span></code></pre></div><h2 id="selectname">.select(name)</h2>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span>G<span style="color:#f92672">.</span>V()<span style="color:#f92672">.</span>as_(<span style="color:#e6db74">&#34;a&#34;</span>)<span style="color:#f92672">.</span>out()<span style="color:#f92672">.</span>as_(<span style="color:#e6db74">&#34;b&#34;</span>)
+</span></span></code></pre></div><h2 id="selectname"><code>.select(name)</code></h2>
 <p>Move traveler to previously marked position</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span>G<span style="color:#f92672">.</span>query()<span style="color:#f92672">.</span>V()<span style="color:#f92672">.</span>mark(<span style="color:#e6db74">&#34;a&#34;</span>)<span style="color:#f92672">.</span>out()<span style="color:#f92672">.</span>mark(<span style="color:#e6db74">&#34;b&#34;</span>)<span style="color:#f92672">.</span>select(<span style="color:#e6db74">&#34;a&#34;</span>)
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span>G<span style="color:#f92672">.</span>V()<span style="color:#f92672">.</span>mark(<span style="color:#e6db74">&#34;a&#34;</span>)<span style="color:#f92672">.</span>out()<span style="color:#f92672">.</span>mark(<span style="color:#e6db74">&#34;b&#34;</span>)<span style="color:#f92672">.</span>select(<span style="color:#e6db74">&#34;a&#34;</span>)
 </span></span></code></pre></div>
   </div>
 

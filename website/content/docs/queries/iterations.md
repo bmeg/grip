@@ -13,7 +13,7 @@ A common operation in graph search is the ability to iteratively repeat a search
 However, due to security concerns regarding potential denial of service attacks that could be created with the use of 'mark' and 'jump', these operations are restricted in most accounts. This is enforced by the server rejecting any queries from unauthorized users that utilize these commands without execution. In future upgrades, a proposed security feature will also allow the server to track the total number of iterations a traveler has made in a cycle and provide a hard cutoff. For example, a user could submit code with a maximum of 5 iterations.
 
 ## Operation Commands
-### mark(name)
+### `.mark(name)`
 Mark a segment in the stream processor, with a name, that can receive jumps. This command is used to label sections of the query operation list that can accept travelers from the `jump` command.
 
 **Parameters:**
@@ -27,14 +27,14 @@ If a condition is true, send traveler to mark. If `emit` is True, also send a co
 - `condition` (_expr_ or None): An expression that determines if the traveler should jump. If it evaluates to True, the traveler jumps to the specified destination. If None, the traveler always jumps to the specified destination.
 - `emit` (bool): Determines whether a copy of the traveler is emitted down the processing chain after jumping. If False, only the original traveler is processed.
 
-### set(field, value)
+### `.set(field, value)`
 Set values within the traveler's memory. These values can be used to store cycle counts. This command sets a field in the traveler's memory to a specified value.
 
 **Parameters:**
 - `field` (str): The name of the field to set.
 - `value` (_expr_): The value to set for the specified field. This can be any valid GripQL expression that resolves to a scalar value.
 
-### increment(field, value)
+### `.increment(field, value)`
 Increment a field by a specified value. This command increments a field in the traveler's memory by a specified amount.
 
 **Parameters:**

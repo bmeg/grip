@@ -10,13 +10,13 @@ menu:
 
 # Output control
 
-## .limit(count)
+## `.limit(count)`
 Limit number of total output rows
 ```python
 G.V().limit(5)
 ```
 ---
-## .skip(count)
+## `.skip(count)`
 Start return after offset
 
 Example:
@@ -26,14 +26,14 @@ G.V().skip(10).limit(5)
 ```
 This query skips the first 10 vertices and then returns the next 5.
 ---
-## .range(start, stop)
+## `.range(start, stop)`
 Selects a subset of the results based on their index.  `start` is inclusive, and `stop` is exclusive.
 Example:
 ```python
 G.V().range(5, 10)
 ```
 ---
-## .fields([fields])
+## `.fields([fields])`
 Specifies which fields of a vertex or edge to include or exclude in the output. By default, `_id`, `_label`, `_from`, and `_to` are included.
 
 If `fields` is empty, all properties are excluded.
@@ -58,7 +58,7 @@ G.V("vertex1").fields([])
 
 ---
 
-## .render(template)
+## `.render(template)`
 
 Transforms the current selection into an arbitrary data structure defined by the `template`. The `template` is a string that can include placeholders for vertex/edge properties.
 

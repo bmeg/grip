@@ -11,7 +11,7 @@ menu:
 
 All traversal based queries must start with a `V()` command, starting the travalers on the vertices of the graph.
 
-## .V([ids])
+## `.V([ids])`
 Start query from Vertex
 
 ```python
@@ -27,22 +27,4 @@ G.V(["vertex1"])
 Returns:
 ```json
 {"_id" : "vertex1", "_label":"TestVertex"}
-```
-
----
-## .E([ids])
-It is also possible to start queries on the edges of a graph. This method is less often used and may be depricated in the future
-Start query from Edge
-
-```python
-G.V().outE()
-```
-Returns all edges in graph
-
-```python
-G.E(["edge1"])
-```
-Returns:
-```json
-{"_id" : "edge1", "_label":"TestEdge", "_from": "vertex1", "_to": "vertex2"}
 ```
