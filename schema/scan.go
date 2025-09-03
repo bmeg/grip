@@ -13,7 +13,7 @@ type edgeKey struct {
 	label, to, from string
 }
 
-type edgeMap map[edgeKey]interface{}
+type edgeMap map[edgeKey]any
 
 func stringInSlice(a string, list []string) bool {
 	for _, b := range list {
@@ -39,7 +39,7 @@ func ScanSchema(conn gripql.Client, graph string, sampleCount uint32, exclude []
 		if stringInSlice(label, exclude) {
 			continue
 		}
-		schema := map[string]interface{}{}
+		schema := map[string]any{}
 		log.Infof("Scanning %s\n", label)
 		nodeQuery := gripql.V().HasLabel(label).Limit(sampleCount)
 		nodeRes, err := conn.Traversal(context.Background(), &gripql.GraphQuery{Graph: graph, Query: nodeQuery.Statements})

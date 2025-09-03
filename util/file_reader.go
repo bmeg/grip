@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"sync/atomic"
 
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/log"
@@ -56,7 +57,6 @@ func getS3URL(path string) *url.URL {
 
 // StreamLines returns a channel of lines from a file.
 func StreamLines(file string, chanSize int) (chan string, error) {
-
 	var fh io.ReadCloser
 	var err error
 	if u := getS3URL(file); u != nil {
@@ -128,7 +128,7 @@ func StreamRawJsonFromFile(file string, workers int, graph string, extra_args ma
 	var wg sync.WaitGroup
 	jum := gripql.NewFlattenMarshaler()
 
-	for i := 0; i < workers; i++ {
+	for range workers {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -160,71 +160,19 @@ func StreamRawJsonFromFile(file string, workers int, graph string, extra_args ma
 	return jsonChan, nil
 }
 
-// StreamVerticesFromFile reads a file containing a vertex per line and
-// streams *gripql.Vertex objects out on a channel
-func StreamVerticesFromFile(file string, workers int) (chan *gripql.Vertex, error) {
-	if workers < 1 {
-		workers = 1
-	}
-	if workers > 99 {
-		workers = 99
-	}
-	lineChan, err := StreamLines(file, workers)
-	if err != nil {
-		return nil, err
-	}
-
-	vertChan := make(chan *gripql.Vertex, workers)
-	var wg sync.WaitGroup
-
-	jum := gripql.NewFlattenMarshaler()
-
-	for i := 0; i < workers; i++ {
-		wg.Add(1)
-		go func() {
-			for line := range lineChan {
-				v := &gripql.Vertex{}
-				err := jum.Unmarshal([]byte(line), v)
-				if err != nil {
-					log.WithFields(log.Fields{"error": err}).Errorf("Unmarshaling vertex: %s", line)
-				} else {
-					vertChan <- v
-				}
-			}
-			wg.Done()
-		}()
-	}
-
-	go func() {
-		wg.Wait()
-		close(vertChan)
-	}()
-
-	return vertChan, nil
-}
-
-// StreamEdgesFromFile reads a file containing an edge per line and
-// streams gripql.Edge objects on a channel
+// StreamEdgesFromFile reads a file of JSON edges and streams *gripql.Edge objects.
 func StreamEdgesFromFile(file string, workers int) (chan *gripql.Edge, error) {
-	if workers < 1 {
-		workers = 1
-	}
-	if workers > 99 {
-		workers = 99
-	}
 	lineChan, err := StreamLines(file, workers)
 	if err != nil {
 		return nil, err
 	}
-
 	edgeChan := make(chan *gripql.Edge, workers)
 	var wg sync.WaitGroup
-
-	jum := gripql.NewFlattenMarshaler()
-
-	for i := 0; i < workers; i++ {
+	for range workers {
 		wg.Add(1)
 		go func() {
+			defer wg.Done()
+			jum := gripql.NewFlattenMarshaler()
 			for line := range lineChan {
 				e := &gripql.Edge{}
 				err := jum.Unmarshal([]byte(line), e)
@@ -234,16 +182,49 @@ func StreamEdgesFromFile(file string, workers int) (chan *gripql.Edge, error) {
 					edgeChan <- e
 				}
 			}
-			wg.Done()
 		}()
 	}
-
 	go func() {
 		wg.Wait()
 		close(edgeChan)
 	}()
-
 	return edgeChan, nil
+}
+
+// StreamVerticesFromFile reads a file of JSON vertices and streams *gripql.Vertex objects.
+func StreamVerticesFromFile(file string, workers int) (chan *gripql.Vertex, error) {
+	lineChan, err := StreamLines(file, workers)
+	if err != nil {
+		return nil, err
+	}
+	vertChan := make(chan *gripql.Vertex, workers)
+	var wg sync.WaitGroup
+	var unmarshalCount atomic.Int64
+	for range workers {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			jum := gripql.NewFlattenMarshaler()
+			for line := range lineChan {
+				v := &gripql.Vertex{}
+				err := jum.Unmarshal([]byte(line), v)
+				if unmarshalCount.Add(1)%10000 == 0 {
+					log.Infof("Unmarshaled %d vertices", unmarshalCount.Load())
+				}
+				if err != nil {
+					log.WithFields(log.Fields{"error": err}).Errorf("Unmarshaling edge: %s", line)
+				} else {
+					vertChan <- v
+				}
+			}
+		}()
+	}
+	go func() {
+		wg.Wait()
+		close(vertChan)
+	}()
+
+	return vertChan, nil
 }
 
 func DirScan(baseDir string, fileGlob string) ([]string, error) {

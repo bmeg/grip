@@ -12,10 +12,10 @@ require (
 	github.com/antlr/antlr4/runtime/Go/antlr v1.4.10
 	github.com/bmeg/benchtop v0.0.0-20250827195345-9810354883b9
 	github.com/bmeg/jsonpath v0.0.0-20210207014051-cca5355553ad
-	github.com/bmeg/jsonschema/v5 v5.3.4-0.20241111204732-55db82022a92
-	github.com/bmeg/jsonschemagraph v0.0.3-0.20250330060023-8f61d8bfec9a
+	github.com/bmeg/jsonschema/v6 v6.0.4
+	github.com/bmeg/jsonschemagraph v0.0.4-0.20250828230703-257ca9afd85a
 	github.com/boltdb/bolt v1.3.1
-	github.com/bytedance/sonic v1.13.3
+	github.com/bytedance/sonic v1.14.0
 	github.com/casbin/casbin/v2 v2.97.0
 	github.com/cockroachdb/pebble v1.1.2
 	github.com/davecgh/go-spew v1.1.1
@@ -65,7 +65,7 @@ require (
 	github.com/AzureAD/microsoft-authentication-library-for-go v1.3.2 // indirect
 	github.com/DataDog/zstd v1.5.6-0.20230824185856-869dae002e5e // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
-	github.com/bytedance/sonic/loader v0.2.4 // indirect
+	github.com/bytedance/sonic/loader v0.3.0 // indirect
 	github.com/casbin/govaluate v1.2.0 // indirect
 	github.com/cespare/xxhash v1.1.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
@@ -131,7 +131,6 @@ require (
 	github.com/rcrowley/go-metrics v0.0.0-20201227073835-cf1acfcdf475 // indirect
 	github.com/rogpeppe/go-internal v1.12.0 // indirect
 	github.com/rs/xid v1.5.0 // indirect
-	github.com/santhosh-tekuri/jsonschema/v5 v5.3.1 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
