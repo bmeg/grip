@@ -14,7 +14,7 @@ GRIP uses a variation on JSONPath syntax as described in http://goessner.net/art
 The following query:
 
 ```
-O.query().V(["ENSG00000012048"]).as_("gene").out("variant")
+O.V(["ENSG00000012048"]).as_("gene").out("variant")
 ```
 
 Starts at vertex `ENSG00000012048` and marks as `gene`:
@@ -29,7 +29,7 @@ Starts at vertex `ENSG00000012048` and marks as `gene`:
     "entrez": 672,
     "hugo": "BRCA1"
   },
-  "transcipts": ["ENST00000471181.7", "ENST00000357654.8", "ENST00000493795.5"]  
+  "transcipts": ["ENST00000471181.7", "ENST00000357654.8", "ENST00000493795.5"]
 }
 ```
 
@@ -49,7 +49,7 @@ as "gene" and traverses the graph to:
       "pmid": 23666017,
       "doi": "10.1097/IGC.0b013e31829527bd"
     }
-  ]  
+  ]
 }
 ```
 
@@ -70,7 +70,7 @@ Below is a table of field and the values they would reference in subsequent trav
 ## Usage Example:
 
 ```
-O.query().V(["ENSG00000012048"]).as_("gene").out("variant").render({"variant_id": "_id", "variant_type": "type", "gene_id": "$gene._id"})
+O.V(["ENSG00000012048"]).as_("gene").out("variant").render({"variant_id": "_id", "variant_type": "type", "gene_id": "$gene._id"})
 ```
 
 returns

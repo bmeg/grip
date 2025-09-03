@@ -67,10 +67,10 @@ import gripql
 conn = gripql.Connection("http://localhost:8201")
 g = conn.graph("tcga-rna")
 genes = {}
-for k, v in g.query().V().hasLabel("Gene").render(["_id", "Hugo_Symbol"]):
+for k, v in g.V().hasLabel("Gene").render(["_id", "Hugo_Symbol"]):
     genes[k] = v
 data = {}
-for row in g.query().V("Proneural").in_().out("rna").render(["_id", "_data"]):
+for row in g.V("Proneural").in_().out("rna").render(["_id", "_data"]):
     data[row[0]] = row[1]
 samples = pandas.DataFrame(data).rename(genes).transpose().fillna(0.0)
 ```

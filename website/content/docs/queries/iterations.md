@@ -20,7 +20,7 @@ Mark a segment in the stream processor, with a name, that can receive jumps. Thi
 - `name` (str): The name given to the marked segment.
 
 ### jump(dest, condition, emit)
-If a condition is true, send traveler to mark. If `emit` is True, also send a copy down the processing chain. If `condition` is None, always do the jump. This command is used to move travelers from one marked segment to another based on a specified condition. 
+If a condition is true, send traveler to mark. If `emit` is True, also send a copy down the processing chain. If `condition` is None, always do the jump. This command is used to move travelers from one marked segment to another based on a specified condition.
 
 **Parameters:**
 - `dest` (str): The name of the destination mark segment. Travelers are moved to this point when their position matches the `condition` parameter.
@@ -28,14 +28,14 @@ If a condition is true, send traveler to mark. If `emit` is True, also send a co
 - `emit` (bool): Determines whether a copy of the traveler is emitted down the processing chain after jumping. If False, only the original traveler is processed.
 
 ### set(field, value)
-Set values within the traveler's memory. These values can be used to store cycle counts. This command sets a field in the traveler's memory to a specified value. 
+Set values within the traveler's memory. These values can be used to store cycle counts. This command sets a field in the traveler's memory to a specified value.
 
 **Parameters:**
 - `field` (str): The name of the field to set.
 - `value` (_expr_): The value to set for the specified field. This can be any valid GripQL expression that resolves to a scalar value.
 
 ### increment(field, value)
-Increment a field by a specified value. This command increments a field in the traveler's memory by a specified amount. 
+Increment a field by a specified value. This command increments a field in the traveler's memory by a specified amount.
 
 **Parameters:**
 - `field` (str): The name of the field to increment.
@@ -45,17 +45,17 @@ Increment a field by a specified value. This command increments a field in the t
 The following examples demonstrate how to use these commands in a query:
 
 ```python
-q = G.query().V("Character:1").set("count", 0).as_("start").mark("a").out().increment("$start.count")
+q = G.V("Character:1").set("count", 0).as_("start").mark("a").out().increment("$start.count")
 q = q.has(gripql.lt("$start.count", 2))
 q = q.jump("a", None, True)
 ```
 This query starts from a vertex with the ID "Character:1". It sets a field named "count" to 0 and annotates this vertex as "start". Then it marks this position in the operation list for future reference. The `out` command moves travelers to the outgoing edges of their current positions, incrementing the "count" field each time. If the count is less than 2, the traveler jumps back to the marked location, effectively creating a loop.
 
 ```python
-q = G.query().V("Character:1").set("count", 0).as_("start").mark("a").out().increment("$start.count")
+q = G.V("Character:1").set("count", 0).as_("start").mark("a").out().increment("$start.count")
 q = q.has(gripql.lt("$start.count", 2))
 q = q.jump("a", None, False)
 ```
-This query is similar to the previous one, but in this case, the traveler only jumps back without emitting a copy down the processing chain. The result is that only one vertex will be included in the output, even though there are multiple iterations due to the jump command. 
+This query is similar to the previous one, but in this case, the traveler only jumps back without emitting a copy down the processing chain. The result is that only one vertex will be included in the output, even though there are multiple iterations due to the jump command.
 
 In both examples, the use of `mark` and `jump` commands create an iterative pattern within the query operation list, effectively creating a 'friend of a friend' search that can repeat as many times as desired. These patterns are crucial for complex graph traversals in GripQL.

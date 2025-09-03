@@ -13,6 +13,26 @@ class Graph(BaseConnection):
         self.url = self.base_url + "/v1/graph/" + graph
         self.graph = graph
 
+    # This method is what makes it possible to call query methods directly from a Graph object.
+    def __getattr__(self, name):
+        """
+        Dynamically handles method calls that don't exist in Graph.
+        If the method exists in the Query class, it is called on a new Query object.
+        """
+        # Create a new Query object
+        q = Query(self.base_url, self.graph, self.user, self.password, self.token, self.credential_file)
+
+        # Check if the requested method exists in the Query class
+        if hasattr(q, name) and callable(getattr(q, name)):
+            # Return a wrapper function that calls the method on the Query object
+            def method_wrapper(*args, **kwargs):
+                return getattr(q, name)(*args, **kwargs)
+            return method_wrapper
+
+        # If the method is not found, raise the default AttributeError
+        raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{name}'")
+
+
     def addJsonSchema(self, fhirjson):
        """
        Add a Json Schema for a graph
@@ -198,12 +218,6 @@ class Graph(BaseConnection):
         )
         raise_for_status(response)
         return response.json()
-
-    def query(self):
-        """
-        Create a query handle.
-        """
-        return Query(self.base_url, self.graph, self.user, self.password, self.token, self.credential_file)
 
     def resume(self, job_id):
         """

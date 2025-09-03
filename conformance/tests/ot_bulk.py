@@ -25,13 +25,13 @@ def test_bulkload(man):
         print(err)
         errors.append("Bulk insertion error")
 
-    res = G.query().V().count().execute()[0]
+    res = G.V().count().execute()[0]
     if res["count"] != 6:
         errors.append(
             "Bulk Add wrong number of vertices: %s != %s" %
             (res["count"], 6))
 
-    res = G.query().V().outE().count().execute()[0]
+    res = G.V().outE().count().execute()[0]
     if res["count"] != 6:
         errors.append(
             "Bulk Add wrong number of edges: %s != %s" %
@@ -93,16 +93,16 @@ def test_bulk_delete(man):
                        "vertex3"],
              edges=[])
 
-    Ecount = G.query().V().outE().count().execute()[0]["count"]
-    Vcount = G.query().V().count().execute()[0]["count"]
+    Ecount = G.V().outE().count().execute()[0]["count"]
+    Vcount = G.V().count().execute()[0]["count"]
     if Ecount != 3:
         errors.append(f"Wrong number of edges {Ecount} != 3")
     if Vcount != 3:
         errors.append(f"Wrong number of vertices {Vcount} != 3")
 
     G.delete(vertices=[], edges=["edge7"])
-    Ecount = G.query().V().outE().count().execute()[0]["count"]
-    Vcount = G.query().V().count().execute()[0]["count"]
+    Ecount = G.V().outE().count().execute()[0]["count"]
+    Vcount = G.V().count().execute()[0]["count"]
     if Ecount != 2:
         errors.append(f"Wrong number of edges {Ecount} != 2")
     if Vcount != 3:
@@ -110,8 +110,8 @@ def test_bulk_delete(man):
 
 
     G.delete(vertices=["vertex5", "vertex6"], edges=["edge9"])
-    Ecount = G.query().V().outE().count().execute()[0]["count"]
-    Vcount = G.query().V().count().execute()[0]["count"]
+    Ecount = G.V().outE().count().execute()[0]["count"]
+    Vcount = G.V().count().execute()[0]["count"]
     if Ecount != 0:
         errors.append(f"Wrong number of edges {Ecount} != 0")
     if Vcount != 1:

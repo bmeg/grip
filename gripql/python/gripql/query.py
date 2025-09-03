@@ -59,15 +59,6 @@ class Query(BaseConnection):
         id = _wrap_str_value(id)
         return self.__append({"v": id})
 
-    def E(self, id=[]):
-        """
-        Start the query at an edge.
-
-        "id" is an ID to start from. Optional.
-        """
-        id = _wrap_str_value(id)
-        return self.__append({"e": id})
-
     def in_(self, label=[]):
         """
         Follow an incoming edge to the source vertex.
@@ -203,7 +194,7 @@ class Query(BaseConnection):
         """
         Filter vertex/edge based on properties.
 
-        Expression is composed using arguments built with 
+        Expression is composed using arguments built with
          - gripql.and_
          - gripql.or_
          - gripql.not_
@@ -227,7 +218,7 @@ class Query(BaseConnection):
         Filter vertex/edge based on label.
 
         q.hasLabel("LabelName)
-        is the same as invoking 
+        is the same as invoking
         q.has( gripql.eq("_label", "LabelName"))
         """
         label = _wrap_str_value(label)
@@ -238,7 +229,7 @@ class Query(BaseConnection):
         Filter vertex/edge based on id.
 
         q.hasId("vertexID)
-        is the same as invoking 
+        is the same as invoking
         q.has( gripql.eq("_id", "vertexID"))
         """
         id = _wrap_str_value(id)
@@ -255,9 +246,9 @@ class Query(BaseConnection):
         """
         Select document properties to be returned in document.
 
-        G.query().V("vertex1").fields("symbol")     # include only symbol field
-        G.query().V("vertex1").fields("-symbol")    # exclude symbol field
-        G.query().V("vertex1").fields()             # exclude all field
+        G.V("vertex1").fields("symbol")     # include only symbol field
+        G.V("vertex1").fields("-symbol")    # exclude symbol field
+        G.V("vertex1").fields()             # exclude all field
         """
         field = _wrap_str_value(field)
         return self.__append({"fields": field})
@@ -274,7 +265,7 @@ class Query(BaseConnection):
         """
         Move traveler back to a previously annotated position
 
-        G.query().V().as_("a").out().as_("b").select(["a", "b"])
+        G.V().as_("a").out().as_("b").select(["a", "b"])
         """
         return self.__append({"select": name})
 
@@ -323,7 +314,7 @@ class Query(BaseConnection):
         Set field to constant value
 
         Typically used with `increment`
-        q = G.query().V("Character:1").set("count", 0)
+        q = G.V("Character:1").set("count", 0)
 
         returns
         ```
@@ -349,9 +340,9 @@ class Query(BaseConnection):
         Jump to marked instruction if condition is true. If `emit` is true
         send copy to next step in the chain
 
-        Example command 
+        Example command
 
-        q = G.query().V("Character:1").set("count", 0).as_("start").mark("a").out().increment("$start.count")
+        q = G.V("Character:1").set("count", 0).as_("start").mark("a").out().increment("$start.count")
         q = q.has(gripql.lt("$start.count", 2))
         q = q.jump("a", None, True)
 
@@ -363,7 +354,7 @@ class Query(BaseConnection):
         Render output of query
 
         Example:
-        query = G.query().V().hasLabel("Character").as_("char").out("starships").render(["$char.name", "$._id", "$"])
+        query = G.V().hasLabel("Character").as_("char").out("starships").render(["$char.name", "$._id", "$"])
         """
         return self.__append({"render": template})
 

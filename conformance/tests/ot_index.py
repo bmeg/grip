@@ -48,7 +48,7 @@ def test_index(man):
     G.addEdge("4", "5", "created", {"weight": 1.0})
 
     count = 0
-    for i in G.query().V().has(gripql.eq("name","marko")):
+    for i in G.V().has(gripql.eq("name","marko")):
         count += 1
         if "name" not in i:
             errors.append("'name' field not found in vertex")
@@ -87,7 +87,7 @@ def test_bulk_index(man):
         errors.append("errorCount on bulk add > 0")
 
     count = 0
-    resp3 = G.query().V().has(gripql.eq("age","32"))
+    resp3 = G.V().has(gripql.eq("age","32"))
     for i in resp3:
         count += 1
         if "age" not in i:
@@ -125,7 +125,7 @@ def test_index_after_write(man):
     G.addIndex("Person", "age")
 
     count = 0
-    restwo = G.query().V().has(gripql.within("name", ["marko", "vadas", "eve", "ivan", "charlie", "nothere"]))
+    restwo = G.V().has(gripql.within("name", ["marko", "vadas", "eve", "ivan", "charlie", "nothere"]))
     for i in restwo:
         count += 1
     if count != 5:
@@ -140,7 +140,7 @@ def test_index_filter(man):
     G.addIndex("Starship", "cost_in_credits")
     G.addIndex("Starship", "cargo_capacity")
 
-    respthree = G.query().V().hasLabel("Starship").has(gripql.lt("cost_in_credits", 150000000))
+    respthree = G.V().hasLabel("Starship").has(gripql.lt("cost_in_credits", 150000000))
     count = 0
     for i in respthree:
         count += 1
@@ -183,7 +183,7 @@ def test_consistent_results(man):
     errors = []
     G = man.setGraph("swapi")
 
-    resp = G.query().V().has(gripql.contains("eye_colors", "yellow"))
+    resp = G.V().has(gripql.contains("eye_colors", "yellow"))
     count = 0
     for i in resp:
         count += 1
@@ -191,7 +191,7 @@ def test_consistent_results(man):
         errors.append("Expected 2 results but got %d instead" % (count))
 
     G.addIndex("Species", "eye_colors")
-    resp = G.query().V().has(gripql.contains("eye_colors", "yellow"))
+    resp = G.V().has(gripql.contains("eye_colors", "yellow"))
     count = 0
     for i in resp:
         count += 1
@@ -205,7 +205,7 @@ def test_hasLabel_contains(man):
     # If using the grids driver + no indexing this test uses the optimized scan function pipeline
     errors = []
     G = man.setGraph("swapi")
-    resp = G.query().V().hasLabel("Species").has(gripql.contains("eye_colors", "yellow"))
+    resp = G.V().hasLabel("Species").has(gripql.contains("eye_colors", "yellow"))
     count = 0
     for i in resp:
         count += 1
@@ -224,7 +224,7 @@ def test_multiple_labels_and_indices(man):
     G.addIndex("Vehicle", "max_atmosphering_speed")
 
     count = 0
-    for i in  G.query().V().has(gripql.eq("max_atmosphering_speed", 1200)):
+    for i in  G.V().has(gripql.eq("max_atmosphering_speed", 1200)):
         count += 1
     if count != 3:
         errors.append("Expected 3 results but got %d instead" % (count))
@@ -239,7 +239,7 @@ def test_multiple_labels_and_indices(man):
     # Add the other index to verify that using the other execution pipline path won't change the end result
 
     count = 0
-    for i in  G.query().V().has(gripql.eq("max_atmosphering_speed", 1200)):
+    for i in  G.V().has(gripql.eq("max_atmosphering_speed", 1200)):
         count += 1
     if count != 3:
         errors.append("Expected 3 results but got %d instead" % (count))

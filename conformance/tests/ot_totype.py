@@ -5,7 +5,7 @@ def test_totype(man):
 
     G = man.setGraph("swapi")
 
-    q = G.query().V().hasLabel("Character").totype("birth_year", "string").totype("eye_color", "float").totype("hair_color", "int").totype("skin_color", "list").totype("mass", "string").execute()
+    q = G.V().hasLabel("Character").totype("birth_year", "string").totype("eye_color", "float").totype("hair_color", "int").totype("skin_color", "list").totype("mass", "string").execute()
     if len(q) == 0:
         errors.append("ERROR, q returns no items")
     for row in q:
@@ -25,7 +25,7 @@ def test_totype(man):
         if data["hair_color"] != 0:
             errors.append("%s should be 0" % (data["hair_color"]))
 
-    r = G.query().V().hasLabel("Starship").totype("hyperdrive_rating", "string").totype("length", "int").totype("length", "float").totype("system", "list").execute()
+    r = G.V().hasLabel("Starship").totype("hyperdrive_rating", "string").totype("length", "int").totype("length", "float").totype("system", "list").execute()
     if len(r) == 0:
         errors.append("ERROR, r returns no items")
     for row in r:
@@ -37,7 +37,7 @@ def test_totype(man):
         if not isinstance(data["system"], list):
             errors.append("dict object with key 'system' %s should be list" %(data["system"]))
 
-    s = G.query().V().hasLabel("Species").totype("system.created", "bool").execute()
+    s = G.V().hasLabel("Species").totype("system.created", "bool").execute()
     if len(s) == 0:
         errors.append("ERROR, s returns no items")
     for row in s:
@@ -46,7 +46,7 @@ def test_totype(man):
             errors.append("string %s to bool should be False" %(data["system"]["created"]))
 
 
-    t = G.query().V().hasLabel("Starship").totype("MGLT", "bool").totype("eye_colors", "int").totype("classification", "int").execute()
+    t = G.V().hasLabel("Starship").totype("MGLT", "bool").totype("eye_colors", "int").totype("classification", "int").execute()
     if len(t) == 0:
         errors.append("ERROR, t returns no items")
 

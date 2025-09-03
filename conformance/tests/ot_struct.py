@@ -8,7 +8,7 @@ def test_vertex_struct(man):
     G.addVertex("vertex1", "person", {"field1": {"test": 1, "value": False}})
 
     count = 0
-    for i in G.query().V():
+    for i in G.V():
         count += 1
         p = i['field1']
         if not isinstance(p, dict):
@@ -36,11 +36,11 @@ def test_edge_struct(man):
 
     G.addEdge("vertex1", "vertex2", "friend", {"edgevals": {"weight": 3.14, "count": 15}})
 
-    for i in G.query().V("vertex1").outE():
+    for i in G.V("vertex1").outE():
         if 'weight' not in i['edgevals'] or i['edgevals']['weight'] != 3.14:
             errors.append("out edge data not found")
 
-    for i in G.query().V("vertex2").inE():
+    for i in G.V("vertex2").inE():
         if 'weight' not in i['edgevals'] or i['edgevals']['weight'] != 3.14:
             errors.append("in edge data not found")
 
@@ -57,7 +57,7 @@ def test_nested_struct(man):
     G.addVertex("vertex1", "person", data)
 
     count = 0
-    for i in G.query().V():
+    for i in G.V():
         count += 1
         try:
             p = i["field1"]['nested']["array"][0]["value"]["entry"]

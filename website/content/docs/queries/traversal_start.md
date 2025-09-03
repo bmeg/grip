@@ -15,13 +15,13 @@ All traversal based queries must start with a `V()` command, starting the traval
 Start query from Vertex
 
 ```python
-G.query().V()
+G.V()
 ```
 
 Returns all vertices in graph
 
 ```python
-G.query().V(["vertex1"])
+G.V(["vertex1"])
 ```
 
 Returns:
@@ -35,12 +35,12 @@ It is also possible to start queries on the edges of a graph. This method is les
 Start query from Edge
 
 ```python
-G.query().V().outE()
+G.V().outE()
 ```
 Returns all edges in graph
 
 ```python
-G.query().E(["edge1"])
+G.E(["edge1"])
 ```
 Returns:
 ```json

@@ -9,27 +9,27 @@ def test_hasLabel(man):
     G = man.setGraph("swapi")
 
     count = 0
-    for i in G.query().V().hasLabel("Vehicle"):
+    for i in G.V().hasLabel("Vehicle"):
         count += 1
         if not i["_id"].startswith("Vehicle:"):
             errors.append("Wrong vertex returned %s" % (i))
     if count != 4:
         errors.append(
-            "Fail: G.query().V().hasLabel(\"Vehicle\") %s != %s" %
+            "Fail: G.V().hasLabel(\"Vehicle\") %s != %s" %
             (count, 4))
 
-    for i in G.query().V().hasLabel("Starship"):
+    for i in G.V().hasLabel("Starship"):
         if not i["_id"].startswith("Starship:"):
             errors.append("Wrong vertex returned %s" % (i))
 
     count = 0
-    for i in G.query().V().hasLabel(["Vehicle", "Starship"]):
+    for i in G.V().hasLabel(["Vehicle", "Starship"]):
         if "name" not in i:
             errors.append("vertex %s returned without data" % (i._id))
         count += 1
     if count != 12:
         errors.append(
-            "Fail: G.query().V().hasLabel([\"Vehicle\", \"Starship\"]) %s != %s" %
+            "Fail: G.V().hasLabel([\"Vehicle\", \"Starship\"]) %s != %s" %
             (count, 12))
 
     return errors
@@ -41,23 +41,23 @@ def test_hasKey(man):
     G = man.setGraph("swapi")
 
     count = 0
-    for i in G.query().V().hasKey("manufacturer"):
+    for i in G.V().hasKey("manufacturer"):
         count += 1
         if not i["_id"].startswith("Vehicle:") and not i["_id"].startswith("Starship:"):
             errors.append("Wrong vertex returned %s" % (i))
     if count != 12:
         errors.append(
-            "Fail: G.query().V().hasKey(\"manufacturer\") %s != %s" %
+            "Fail: G.V().hasKey(\"manufacturer\") %s != %s" %
             (count, 12))
 
     count = 0
-    for i in G.query().V().hasKey(["hyperdrive_rating", "manufacturer"]):
+    for i in G.V().hasKey(["hyperdrive_rating", "manufacturer"]):
         count += 1
         if not i["_id"].startswith("Starship:"):
             errors.append("Wrong vertex returned %s" % (i))
     if count != 8:
         errors.append(
-            "Fail: G.query().V().hasKey([\"hyperdrive_rating\", \"manufacturer\"]) %s != %s" %
+            "Fail: G.V().hasKey([\"hyperdrive_rating\", \"manufacturer\"]) %s != %s" %
             (count, 8))
 
     return errors
@@ -69,23 +69,23 @@ def test_hasId(man):
     G = man.setGraph("swapi")
 
     count = 0
-    for i in G.query().V().hasId("Character:1"):
+    for i in G.V().hasId("Character:1"):
         count += 1
         if i["_id"] != "Character:1":
             errors.append("Wrong vertex returned %s" % (i))
     if count != 1:
         errors.append(
-            "Fail: G.query().V().hasId(\"Character:1\") %s != %s" %
+            "Fail: G.V().hasId(\"Character:1\") %s != %s" %
             (count, 1))
 
     count = 0
-    for i in G.query().V().hasId(["Character:1", "Character:2"]):
+    for i in G.V().hasId(["Character:1", "Character:2"]):
         count += 1
         if i["_id"] not in ["Character:1", "Character:2"]:
             errors.append("Wrong vertex returned %s" % (i))
     if count != 2:
         errors.append(
-            "Fail: G.query().V().hasId([\"Character:1\", \"Character:2\"]) %s != %s" %
+            "Fail: G.V().hasId([\"Character:1\", \"Character:2\"]) %s != %s" %
             (count, 2))
 
     return errors
@@ -97,33 +97,33 @@ def test_has_eq(man):
     G = man.setGraph("swapi")
 
     count = 0
-    for i in G.query().V().has(gripql.eq("_id", "Character:3")):
+    for i in G.V().has(gripql.eq("_id", "Character:3")):
         count += 1
         if i["_id"] != "Character:3":
             errors.append("Wrong vertex returned %s" % (i))
     if count != 1:
         errors.append(
-            "Fail: G.query().V().has(gripql.eq(\"_id\", \"Character:3\")) %s != %s" %
+            "Fail: G.V().has(gripql.eq(\"_id\", \"Character:3\")) %s != %s" %
             (count, 1))
 
     count = 0
-    for i in G.query().V().has(gripql.eq("_label", "Character")):
+    for i in G.V().has(gripql.eq("_label", "Character")):
         count += 1
         if i["_label"] != "Character":
             errors.append("Wrong vertex label %s" % (i["_label"]))
     if count != 18:
         errors.append(
-            "Fail: G.query().V().has(gripql.eq(\"_label\", \"person\")) %s != %s" %
+            "Fail: G.V().has(gripql.eq(\"_label\", \"person\")) %s != %s" %
             (count, 18))
 
     count = 0
-    for i in G.query().V().has(gripql.eq("eye_color", "brown")):
+    for i in G.V().has(gripql.eq("eye_color", "brown")):
         count += 1
         if i["_id"] not in ["Character:14", "Character:5", "Character:81", "Character:9"]:
             errors.append("Wrong vertex returned %s" % (i))
     if count != 4:
         errors.append(
-            "Fail: G.query().V().has(gripql.eq(\"eye_color\", \"brown\")) %s != %s" %
+            "Fail: G.V().has(gripql.eq(\"eye_color\", \"brown\")) %s != %s" %
             (count, 4))
 
     return errors
@@ -133,7 +133,7 @@ def test_has_prev(man):
     errors = []
     G = man.setGraph("swapi")
 
-    q = G.query().V().hasLabel("Character").as_("1").out("homeworld").out("residents")
+    q = G.V().hasLabel("Character").as_("1").out("homeworld").out("residents")
     q = q.has(gripql.neq("$1._id", "$._id"))
     count = 0
     for i in q.render(["$1._id", "$._id"]):
@@ -151,34 +151,34 @@ def test_has_neq(man):
     G = man.setGraph("swapi")
 
     count = 0
-    for i in G.query().V().has(gripql.neq("_id", "Character:1")):
+    for i in G.V().has(gripql.neq("_id", "Character:1")):
         count += 1
         if i["_id"] == "Character:1":
             errors.append("Wrong vertex returned %s" % (i))
     if count != 38:
         errors.append(
-            "Fail: G.query().V().has(gripql.not_(gripql.eq(\"_id\", \"Character:1\"))) %s != %s" %
+            "Fail: G.V().has(gripql.not_(gripql.eq(\"_id\", \"Character:1\"))) %s != %s" %
             (count, 38))
 
     count = 0
-    for i in G.query().V().has(gripql.neq("_label", "Character")):
+    for i in G.V().has(gripql.neq("_label", "Character")):
         count += 1
         if i["_label"] == "Character":
             errors.append("Wrong vertex label %s" % (i["_label"]))
     if count != 21:
         errors.append(
-            "Fail: G.query().V().has(gripql.not_(gripql.eq(\"_label\", \"Character\"))) %s != %s" %
+            "Fail: G.V().has(gripql.not_(gripql.eq(\"_label\", \"Character\"))) %s != %s" %
             (count, 21))
 
 
     count = 0
-    for i in G.query().V().hasLabel("Character").has(gripql.neq("eye_color", "brown")):
+    for i in G.V().hasLabel("Character").has(gripql.neq("eye_color", "brown")):
         count += 1
         if i["eye_color"] == "brown":
             errors.append("Wrong vertex returned %s" % (i))
     if count != 14:
         errors.append(
-            "Fail: G.query().V().has(gripql.not_(gripql.eq(\"eye_color\", \"brown\"))) %s != %s" %
+            "Fail: G.V().has(gripql.not_(gripql.eq(\"eye_color\", \"brown\"))) %s != %s" %
             (count, 14))
 
 
@@ -191,23 +191,23 @@ def test_has_gt(man):
     G = man.setGraph("swapi")
 
     count = 0
-    for i in G.query().V().has(gripql.gt("height", 202)):
+    for i in G.V().has(gripql.gt("height", 202)):
         count += 1
         if i["_id"] not in ["Character:13"]:
             errors.append("Wrong vertex returned %s" % (i))
     if count != 1:
         errors.append(
-            "Fail: G.query().V().has(gripql.gt(\"height\", 200)) %s != %s" %
+            "Fail: G.V().has(gripql.gt(\"height\", 200)) %s != %s" %
             (count, 1))
 
     count = 0
-    for i in G.query().V().has(gripql.gte("height", 202)):
+    for i in G.V().has(gripql.gte("height", 202)):
         count += 1
         if i["_id"] not in ["Character:4", "Character:13"]:
             errors.append("Wrong vertex returned %s" % (i))
     if count != 2:
         errors.append(
-            "Fail: G.query().V().has(gripql.gte(\"height\", 202)) %s != %s" %
+            "Fail: G.V().has(gripql.gte(\"height\", 202)) %s != %s" %
             (count, 2))
 
     return errors
@@ -217,12 +217,12 @@ def test_has_eq_nil(man):
     errors = []
     G = man.setGraph("swapi")
     count = 0
-    for i in G.query().V().has(gripql.eq("height", None)):
+    for i in G.V().has(gripql.eq("height", None)):
         count += 1
 
     if count != 21:
         errors.append(
-            "Fail: G.query().V().has(gripql.eq(\"height\", None)) %s  != %s" %
+            "Fail: G.V().has(gripql.eq(\"height\", None)) %s  != %s" %
             (count, 21))
 
     return errors
@@ -234,7 +234,7 @@ def test_has_gt_nil(man):
     errors = []
     G = man.setGraph("swapi")
     count = 0
-    for i in G.query().V().has(gripql.gt("height", None)):
+    for i in G.V().has(gripql.gt("height", None)):
         count += 1
     if count != 0:
         errors.append("Fail: G.query.V().has(gripql.gt(\"height\", None)) %s != %s" % (count, 0))
@@ -249,14 +249,14 @@ def test_has_lt(man):
 
     count = 0
 
-    for i in G.query().V().has(gripql.lt("height", 97)):
+    for i in G.V().has(gripql.lt("height", 97)):
         count += 1
 
         if i["_id"] not in ["Character:3"]:
             errors.append("Wrong vertex returned %s" % (i))
     if count != 1:
         errors.append(
-            "Fail: G.query().V().has(gripql.lt(\"height\", 97)) %s != %s" %
+            "Fail: G.V().has(gripql.lt(\"height\", 97)) %s != %s" %
             (count, 1))
     return errors
 
@@ -265,13 +265,13 @@ def test_has_lte(man):
     errors = []
     G = man.setGraph("swapi")
     count = 0
-    for i in G.query().V().has(gripql.lte("height", 97)):
+    for i in G.V().has(gripql.lte("height", 97)):
         count += 1
         if i["_id"] not in ["Character:3", "Character:8"]:
             errors.append("Wrong vertex returned %s" % (i))
     if count != 2:
         errors.append(
-            "Fail: G.query().V().has(gripql.lte(\"height\", 97)) %s != %s" %
+            "Fail: G.V().has(gripql.lte(\"height\", 97)) %s != %s" %
             (count, 2))
 
     return errors
@@ -283,13 +283,13 @@ def test_has_inside(man):
     G = man.setGraph("swapi")
 
     count = 0
-    for i in G.query().V().has(gripql.inside("height", 100, 200)):
+    for i in G.V().has(gripql.inside("height", 100, 200)):
         count += 1
         if i["_id"] in ["Character:3", "Character:4", "Character:8", "Character:13"]:
             errors.append("Wrong vertex returned %s" % (i))
     if count != 14:
         errors.append(
-            "Fail: G.query().V().has(gripql.inside(\"age\", 30, 60)) %s != %s" %
+            "Fail: G.V().has(gripql.inside(\"age\", 30, 60)) %s != %s" %
             (count, 14))
 
     return errors
@@ -301,13 +301,13 @@ def test_has_outside(man):
     G = man.setGraph("swapi")
 
     count = 0
-    for i in G.query().V().has(gripql.outside("height", 100, 200)):
+    for i in G.V().has(gripql.outside("height", 100, 200)):
         count += 1
         if i["_id"] not in ["Character:3", "Character:4", "Character:8", "Character:13"]:
             errors.append("Wrong vertex returned %s" % (i))
     if count != 4:
         errors.append(
-            "Fail: G.query().V().has(gripql.outside(\"age\", 30, 60)) %s != %s" %
+            "Fail: G.V().has(gripql.outside(\"age\", 30, 60)) %s != %s" %
             (count, 4))
 
     return errors
@@ -319,13 +319,13 @@ def test_has_between(man):
     G = man.setGraph("swapi")
 
     count = 0
-    for i in G.query().V().has(gripql.between("height", 180, 200)):
+    for i in G.V().has(gripql.between("height", 180, 200)):
         count += 1
         if i["_id"] not in ["Character:10", "Character:12", "Character:14", "Character:19", "Character:81", "Character:9"]:
             errors.append("Wrong vertex returned %s" % (i))
     if count != 6:
         errors.append(
-            "Fail: G.query().V().has(gripql.between(\"height\", 180, 200)) %s != %s" %
+            "Fail: G.V().has(gripql.between(\"height\", 180, 200)) %s != %s" %
             (count, 5))
 
     return errors
@@ -336,21 +336,21 @@ def test_has_within(man):
     G = man.setGraph("swapi")
 
     count = 0
-    for i in G.query().V().has(gripql.within("eye_color", ["brown", "hazel"])):
+    for i in G.V().has(gripql.within("eye_color", ["brown", "hazel"])):
         count += 1
         if i["_id"] not in ["Character:14", "Character:18", "Character:5", "Character:81", "Character:9"]:
             errors.append("Wrong vertex returned %s" % (i))
     if count != 5:
         errors.append(
-            "Fail: G.query().V().has(gripql.within(\"eye_color\", [\"brown\", \"hazel\"])) %s != %s" %
+            "Fail: G.V().has(gripql.within(\"eye_color\", [\"brown\", \"hazel\"])) %s != %s" %
             (count, 5))
 
     count = 0
-    for i in G.query().V().has(gripql.within("eye_color", 0)):
+    for i in G.V().has(gripql.within("eye_color", 0)):
         count += 1
     if count != 0:
         errors.append(
-            "Fail: G.query().V().has(gripql.within(\"eye_color\", 0)) %s != %s" %
+            "Fail: G.V().has(gripql.within(\"eye_color\", 0)) %s != %s" %
             (count, 0))
 
     return errors
@@ -362,7 +362,7 @@ def test_has_without(man):
     G = man.setGraph("swapi")
 
     count = 0
-    for i in G.query().V().has(gripql.without("eye_color", ["brown"])):
+    for i in G.V().has(gripql.without("eye_color", ["brown"])):
         count += 1
         if i["_id"] in ["Character:5", "Character:9", "Character:14", "Character:81"]:
             errors.append("Wrong vertex returned %s" % (i))
@@ -372,11 +372,11 @@ def test_has_without(man):
             (count, 35))
 
     count = 0
-    for i in G.query().V().has(gripql.without("occupation", 0)):
+    for i in G.V().has(gripql.without("occupation", 0)):
         count += 1
     if count != 39:
         errors.append(
-            "Fail: G.query().V().has(gripql.without(\"occupation\", 0)) %s != %s" %
+            "Fail: G.V().has(gripql.without(\"occupation\", 0)) %s != %s" %
             (count, 39))
 
     return errors
@@ -388,13 +388,13 @@ def test_has_contains(man):
     G = man.setGraph("swapi")
 
     count = 0
-    for i in G.query().V().has(gripql.contains("terrain", "jungle")):
+    for i in G.V().has(gripql.contains("terrain", "jungle")):
         count += 1
         if i["_id"] not in ["Planet:3"]:
             errors.append("Wrong vertex returned %s" % (i))
     if count != 1:
         errors.append(
-            "Fail: G.query().V().has(gripql.contains(\"terrain\", \"jungle\")) %s != %s" %
+            "Fail: G.V().has(gripql.contains(\"terrain\", \"jungle\")) %s != %s" %
             (count, 1))
 
     return errors
@@ -406,13 +406,13 @@ def test_has_and(man):
     G = man.setGraph("swapi")
 
     count = 0
-    for i in G.query().V().has(gripql.and_(gripql.eq("_label", "Character"), gripql.eq("eye_color", "blue"))):
+    for i in G.V().has(gripql.and_(gripql.eq("_label", "Character"), gripql.eq("eye_color", "blue"))):
         count += 1
         if i["_id"] not in ["Character:1", "Character:12", "Character:13", "Character:19", "Character:6", "Character:7"]:
             errors.append("Wrong vertex returned %s" % (i))
     if count != 6:
         errors.append(
-            "Fail: G.query().V().has(gripql.and_(gripql.eq(\"_label\", \"Character\"), gripql.eq(\"eye_color\", \"blue\"))) %s != %s" %
+            "Fail: G.V().has(gripql.and_(gripql.eq(\"_label\", \"Character\"), gripql.eq(\"eye_color\", \"blue\"))) %s != %s" %
             (count, 6))
 
     return errors
@@ -424,13 +424,13 @@ def test_has_or(man):
     G = man.setGraph("swapi")
 
     count = 0
-    for i in G.query().V().has(gripql.or_(gripql.eq("eye_color", "blue"), gripql.eq("eye_color", "hazel"))):
+    for i in G.V().has(gripql.or_(gripql.eq("eye_color", "blue"), gripql.eq("eye_color", "hazel"))):
         count += 1
         if i["_id"] not in ["Character:1", "Character:12", "Character:13", "Character:18", "Character:19", "Character:6", "Character:7"]:
             errors.append("Wrong vertex returned %s" % (i))
     if count != 7:
         errors.append(
-            "Fail: G.query().V().has(gripql.or_(gripql.eq(\"eye_color\", \"blue\"), gripql.eq(\"eye_color\", \"hazel\"))) %s != %s" %
+            "Fail: G.V().has(gripql.or_(gripql.eq(\"eye_color\", \"blue\"), gripql.eq(\"eye_color\", \"hazel\"))) %s != %s" %
             (count, 7))
 
     return errors
@@ -442,23 +442,23 @@ def test_has_not(man):
     G = man.setGraph("swapi")
 
     count = 0
-    for i in G.query().V().has(gripql.not_(gripql.eq("_label", "Character"))):
+    for i in G.V().has(gripql.not_(gripql.eq("_label", "Character"))):
         count += 1
         if i["_id"].startswith("Character"):
             errors.append("Wrong vertex returned %s" % (i))
     if count != 21:
         errors.append(
-            "Fail: G.query().V().has(gripql.not_(gripql.eq(\"_label\", \"Character\"))) %s != %s" %
+            "Fail: G.V().has(gripql.not_(gripql.eq(\"_label\", \"Character\"))) %s != %s" %
             (count, 21))
 
     count = 0
-    for i in G.query().V().has(gripql.not_(gripql.neq("_label", "Character"))):
+    for i in G.V().has(gripql.not_(gripql.neq("_label", "Character"))):
         count += 1
         if not i["_id"].startswith("Character"):
             errors.append("Wrong vertex returned %s" % (i))
     if count != 18:
         errors.append(
-            "Fail: G.query().V().has(gripql.not_(gripql.neq(\"_label\", \"Character\"))) %s != %s" %
+            "Fail: G.V().has(gripql.not_(gripql.neq(\"_label\", \"Character\"))) %s != %s" %
             (count, 18))
 
     return errors
@@ -470,7 +470,7 @@ def test_has_complex(man):
     G = man.setGraph("swapi")
 
     count = 0
-    for i in G.query().V().has(
+    for i in G.V().has(
             gripql.and_(
                 gripql.eq("_label", "Character"),
                 gripql.not_(
@@ -486,12 +486,12 @@ def test_has_complex(man):
             errors.append("Wrong vertex returned %s" % (i))
     if count != 13:
         errors.append(
-            "Fail: G.query().V().has(gripql.and_(gripql.eq(\"_label\", \"Character\"), gripql.not_(gripql.or_(gripql.eq(\"eye_color\", \"brown\"), gripql.eq(\"eye_color\", \"hazel\"))))) %s != %s" %
+            "Fail: G.V().has(gripql.and_(gripql.eq(\"_label\", \"Character\"), gripql.not_(gripql.or_(gripql.eq(\"eye_color\", \"brown\"), gripql.eq(\"eye_color\", \"hazel\"))))) %s != %s" %
             (count, 13)
         )
 
     count = 0
-    for i in G.query().V().has(
+    for i in G.V().has(
             gripql.not_(
                 gripql.or_(
                     gripql.eq("_label", "Character"),
@@ -504,12 +504,12 @@ def test_has_complex(man):
             errors.append("Wrong vertex returned %s" % (i))
     if count != 20:
         errors.append(
-            "Fail: G.query().V().has(gripql.not_(gripql.and_(gripql.eq(\"_label\", \"Character\"), gripql.eq(\"name\", \"Human\")))) %s != %s" %
+            "Fail: G.V().has(gripql.not_(gripql.and_(gripql.eq(\"_label\", \"Character\"), gripql.eq(\"name\", \"Human\")))) %s != %s" %
             (count, 20)
         )
 
     count = 0
-    for i in G.query().V().has(
+    for i in G.V().has(
             gripql.not_(
                 gripql.or_(
                     gripql.eq("_label", "Character"),
@@ -527,12 +527,12 @@ def test_has_complex(man):
             errors.append("Wrong vertex returned %s" % (i))
     if count != 19:
         errors.append(
-            "Fail: G.query().V().has(gripql.not_(gripql.or_(gripql.eq(\"_label\", \"Character\"), gripql.or_(gripql.eq(\"name\", \"Human\"),  gripql.contains(\"terrain\", \"jungle\"))))) %s != %s" %
+            "Fail: G.V().has(gripql.not_(gripql.or_(gripql.eq(\"_label\", \"Character\"), gripql.or_(gripql.eq(\"name\", \"Human\"),  gripql.contains(\"terrain\", \"jungle\"))))) %s != %s" %
             (count, 19)
         )
 
     count = 0
-    for i in G.query().V().has(
+    for i in G.V().has(
             gripql.not_(
                 gripql.and_(
                     gripql.eq("_label", "Planet"),
@@ -546,7 +546,7 @@ def test_has_complex(man):
         count += 1
     if count != 37:
         errors.append(
-            "Fail: G.query().V().has(gripql.not_(gripql.and_(gripql.eq(\"_label\", \"Planet\"), gripql.or_(gripql.eq(\"surface_water\", 1),  gripql.contains(\"terrain\", \"jungle\"))))) %s != %s" %
+            "Fail: G.V().has(gripql.not_(gripql.and_(gripql.eq(\"_label\", \"Planet\"), gripql.or_(gripql.eq(\"surface_water\", 1),  gripql.contains(\"terrain\", \"jungle\"))))) %s != %s" %
             (count, 37)
         )
 

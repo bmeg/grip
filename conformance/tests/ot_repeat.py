@@ -7,7 +7,7 @@ def test_repeat(man):
     errors = []
     G = man.setGraph("swapi")
 
-    q = G.query().V("Character:1").set("count", 0).as_("start").mark("a").out().increment("$start.count")
+    q = G.V("Character:1").set("count", 0).as_("start").mark("a").out().increment("$start.count")
     q = q.has(gripql.lt("$start.count", 2))
     q = q.jump("a", None, True)
 
@@ -19,7 +19,7 @@ def test_repeat(man):
         errors.append("cycle output count %d != %d" % (count, 4))
 
     #do a deeper search, to see if channels are overloaded
-    q = G.query().V().set("count", 0).as_("start").mark("a").increment("$start.count")
+    q = G.V().set("count", 0).as_("start").mark("a").increment("$start.count")
     q = q.has(gripql.lt("$start.count", 4)).out()
     q = q.jump("a", None, True)
 
@@ -36,7 +36,7 @@ def test_forward(man):
     errors = []
     G = man.setGraph("swapi")
 
-    q = G.query().V().jump("skip", gripql.eq( "_label", "Character" ), True).out()
+    q = G.V().jump("skip", gripql.eq( "_label", "Character" ), True).out()
     q = q.has(gripql.eq( "_label", "Character" ))
     q = q.mark("skip").path()
 
@@ -61,7 +61,7 @@ def test_infinite(man):
     errors = []
     G = man.setGraph("swapi")
 
-    q = G.query().V("Character:1").mark("a").out()
+    q = G.V("Character:1").mark("a").out()
     q = q.jump("a", None, True).limit(100)
 
     count = 0
@@ -78,19 +78,19 @@ def test_set(man):
     errors = []
     G = man.setGraph("swapi")
 
-    q = G.query().V("Character:1").set("count", 0)
+    q = G.V("Character:1").set("count", 0)
     q = q.as_("start").render("$start")
     for row in q:
         if row['count'] != 0:
             errors.append("Incorrect increment value")
 
-    q = G.query().V("Character:1").set("count", 0).as_("start").out().increment("$start.count")
+    q = G.V("Character:1").set("count", 0).as_("start").out().increment("$start.count")
     q = q.render("$start")
     for row in q:
         if row['count'] != 1:
             errors.append("Incorrect increment value")
 
-    q = G.query().V("Character:1").set("count", 0).as_("start").out().increment("$start.count")
+    q = G.V("Character:1").set("count", 0).as_("start").out().increment("$start.count")
     q = q.increment("$start.count").has(gripql.gt("$start.count", 1.0))
     q = q.render("$start")
     count = 0
@@ -101,7 +101,7 @@ def test_set(man):
     if count != 4:
         errors.append("Incorrect number of rows returned")
 
-    q = G.query().V("Character:1").set("count", 0).increment("count",2).as_("start").out().increment("$start.count")
+    q = G.V("Character:1").set("count", 0).increment("count",2).as_("start").out().increment("$start.count")
     q = q.render("$start")
     for row in q:
         if row['count'] != 3:

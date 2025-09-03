@@ -6,7 +6,7 @@ def test_job(man):
     errors = []
 
     G = man.setGraph("swapi")
-    job = G.query().V().hasLabel("Planet").as_("a").out().submit()
+    job = G.V().hasLabel("Planet").as_("a").out().submit()
 
     count = 0
     for j in G.listJobs():
@@ -29,7 +29,7 @@ def test_job(man):
     if count != 12:
         errors.append("Incorrect # elements returned %d != %d" % (count, 12))
 
-    jobs = G.query().V().hasLabel("Planet").as_("a").out().out().count().searchJobs()
+    jobs = G.V().hasLabel("Planet").as_("a").out().out().count().searchJobs()
     count = 0
     for cJob in jobs:
         if cJob["id"] != job["id"]:
@@ -41,7 +41,7 @@ def test_job(man):
 
     fullResults = []
     fullCount = 0
-    for res in G.query().V().hasLabel("Planet").out().out().count():
+    for res in G.V().hasLabel("Planet").out().out().count():
         fullResults.append(res)
         fullCount = res["count"]
 
@@ -52,10 +52,10 @@ def test_job(man):
             errors.append("Incorrect saved count returned: %d != %d" % (res["count"], fullCount))
 
     if len(fullResults) != len(resumedResults):
-        errors.append( """Missmatch on resumed result: G.query().V().hasLabel("Planet").out().out().count()""" )
+        errors.append( """Missmatch on resumed result: G.V().hasLabel("Planet").out().out().count()""" )
 
     fullResults = []
-    for res in G.query().V().hasLabel("Planet").as_("a").out().out().select("a"):
+    for res in G.V().hasLabel("Planet").as_("a").out().out().select("a"):
         fullResults.append(res)
     #TODO: in the future, this 'fix' may need to be removed.
     #Always producing elements in the same order may become a requirement.
@@ -66,7 +66,7 @@ def test_job(man):
     resumedResults.sort(key=lambda x:x["_id"])
 
     if len(fullResults) != len(resumedResults):
-        errors.append( """Missmatch on resumed result: G.query().V().hasLabel("Planet").as_("a").out().out().select("a")""" )
+        errors.append( """Missmatch on resumed result: G.V().hasLabel("Planet").as_("a").out().out().select("a")""" )
 
     for a, b in zip(fullResults, resumedResults):
         if a != b:

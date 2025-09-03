@@ -6,7 +6,7 @@ def test_fields(man):
     G = man.setGraph("swapi")
 
     try:
-        for i in G.query().out():
+        for i in G.out():
             pass
         errors.append("Bad traversal query returned without exception")
     except Exception:
