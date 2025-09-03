@@ -34,7 +34,7 @@ func TestEngine(t *testing.T) {
 			count(len(vertices)),
 		},
 		{
-			Q.E().Count(),
+			Q.V().OutE().Count(),
 			count(len(edges)),
 		},
 		{
@@ -42,7 +42,7 @@ func TestEngine(t *testing.T) {
 			pickAllVertices(),
 		},
 		{
-			Q.E(),
+			Q.V().OutE(),
 			pickAllEdges(),
 		},
 		{
@@ -62,11 +62,11 @@ func TestEngine(t *testing.T) {
 			count(170),
 		},
 		{
-			Q.E().HasLabel("purchasedProducts").Count(),
+			Q.V().OutE().HasLabel("purchasedProducts").Count(),
 			count(100),
 		},
 		{
-			Q.E().HasLabel("userPurchases").Count(),
+			Q.V().OutE().HasLabel("userPurchases").Count(),
 			count(100),
 		},
 		{
@@ -74,7 +74,7 @@ func TestEngine(t *testing.T) {
 			count(0),
 		},
 		{
-			Q.E().HasLabel("does-not-exist").Count(),
+			Q.V().OutE().HasLabel("does-not-exist").Count(),
 			count(0),
 		},
 		{

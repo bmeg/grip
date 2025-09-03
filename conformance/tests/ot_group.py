@@ -15,17 +15,17 @@ def test_childGroups(man):
         'Planet:2' : ["brown", "brown"]
     }
 
-    for i in G.query().V().hasLabel("Planet").as_("planet").out("residents").as_("character").select("planet").group( {"people" : "$character.name"}  ):
+    for i in G.V().hasLabel("Planet").as_("planet").out("residents").as_("character").select("planet").group( {"people" : "$character.name"}  ):
         #print(i)
         if sorted(i["people"]) != sorted(mapping[i["_id"]]):
             errors.append("grouped output not equal: %s != %s" % (sorted(i["people"]) , sorted(mapping[i["_id"]])))
 
-    for i in G.query().V().hasLabel("Planet").as_("planet").out("residents").as_("character").select("planet").group( 
+    for i in G.V().hasLabel("Planet").as_("planet").out("residents").as_("character").select("planet").group(
         {"people" : "$character.name", "hair":"$character.hair_color"}  ):
         #print(i)
         if sorted(i["people"]) != sorted(mapping[i["_id"]]):
             errors.append("grouped output not equal: %s != %s" % (sorted(i["people"]) , sorted(mapping[i["_id"]])))
 
         if sorted(i["hair"], key=lambda x: (x is None, x)) != sorted(mapping_hair[i["_id"]], key=lambda x: (x is None, x)):
-            errors.append("grouped output not equal: %s != %s" % (sorted(i["hair"], key=lambda x: (x is None, x)) , sorted(mapping_hair[i["_id"]], key=lambda x: (x is None, x))))  
+            errors.append("grouped output not equal: %s != %s" % (sorted(i["hair"], key=lambda x: (x is None, x)) , sorted(mapping_hair[i["_id"]], key=lambda x: (x is None, x))))
     return errors

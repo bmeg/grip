@@ -36,7 +36,7 @@ var Cmd = &cobra.Command{
 			fmt.Printf("Vertex Count: %v\n", row.GetCount())
 		}
 
-		q = gripql.E().Count()
+		q = gripql.V().OutE().Count()
 		res, err = conn.Traversal(context.Background(), &gripql.GraphQuery{Graph: graph, Query: q.Statements})
 		if err != nil {
 			return err

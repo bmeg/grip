@@ -17,7 +17,7 @@ Example:
 data = {"_id":"1", "_label":"Thing", "stuff" : ["1", "2", "3"]}
 
 Assuming this data is in the graph
-G.query().V("1").unwind("stuff")
+G.V("1").unwind("stuff")
 ```
 
 Returns:
@@ -32,7 +32,7 @@ Collect all travelers that are on the same element while aggregating specific fi
 
 For the example:
 ```python
-G.query().V().hasLabel("Planet").as_("planet").out("residents").as_("character").select("planet").group( {"people" : "$character.name"} )
+G.V().hasLabel("Planet").as_("planet").out("residents").as_("character").select("planet").group( {"people" : "$character.name"} )
 ```
 
 All of the travelers that start on the same planet go out to residents, collect them using the `as_` and then returning to the origin

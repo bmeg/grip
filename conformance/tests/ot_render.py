@@ -6,7 +6,7 @@ def test_render(man):
 
     G = man.setGraph("swapi")
 
-    query = G.query().V().hasLabel("Character").render(
+    query = G.V().hasLabel("Character").render(
         {
             "Name": "name",
             "Age": "age"
@@ -19,7 +19,7 @@ def test_render(man):
             errors.append("Missing fields")
     if count != 18:
         errors.append("Incorrect number of rows returned")
-    query = G.query().V().hasLabel("Character").render(
+    query = G.V().hasLabel("Character").render(
         {
             "Name": "name",
             "NonExistent": "non-existent"
@@ -33,7 +33,7 @@ def test_render(man):
     if count != 18:
         errors.append("Incorrect number of rows returned")
 
-    query = G.query().V().hasLabel("Character").render(["name", "age"])
+    query = G.V().hasLabel("Character").render(["name", "age"])
     for row in query:
         count += 1
         if not isinstance(row, list):
@@ -41,7 +41,7 @@ def test_render(man):
         if len(row) != 2:
             errors.append("Missing fields")
 
-    query = G.query().V().hasLabel("Character").render(["name", "non-existent"])
+    query = G.V().hasLabel("Character").render(["name", "non-existent"])
     for row in query:
         if not isinstance(row, list):
             errors.append("unexpected output format")
@@ -59,7 +59,7 @@ def test_render_mark(man):
 
     G = man.setGraph("swapi")
 
-    query = G.query().V().hasLabel("Character").as_("char").out("starships").render(["$char.name", "$._id", "$"])
+    query = G.V().hasLabel("Character").as_("char").out("starships").render(["$char.name", "$._id", "$"])
     for row in query:
         if not isinstance(row[0], str):
             errors.append("incorrect return type: %s" % row[0])

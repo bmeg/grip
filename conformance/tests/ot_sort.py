@@ -7,7 +7,7 @@ def test_sort_name(man):
 
     G = man.setGraph("swapi")
 
-    q = G.query().V().hasLabel("Character").sort( "name" )
+    q = G.V().hasLabel("Character").sort( "name" )
     last = ""
     for row in q:
         #print(row)
@@ -22,7 +22,7 @@ def test_sort_units(man):
     errors = []
     G = man.setGraph("swapi")
 
-    q = G.query().V().hasLabel("Vehicle").sort( "max_atmosphering_speed" )
+    q = G.V().hasLabel("Vehicle").sort( "max_atmosphering_speed" )
     last = 0
     for row in q:
         #print(row)
@@ -32,7 +32,7 @@ def test_sort_units(man):
         last = value
 
 
-    q = G.query().V().hasLabel("Vehicle").sort( "max_atmosphering_speed", descending=True )
+    q = G.V().hasLabel("Vehicle").sort( "max_atmosphering_speed", descending=True )
     last = 1000000000
     for row in q:
         #print(row)

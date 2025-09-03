@@ -4,7 +4,7 @@ import (
 	"github.com/kr/pretty"
 )
 
-func debug(i ...interface{}) {
+func debug(i ...any) {
 	pretty.Println(i...)
 }
 

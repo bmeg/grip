@@ -25,7 +25,6 @@ message QuerySet {
 message GraphStatement {
   oneof statement {
     google.protobuf.ListValue v = 1;
-    google.protobuf.ListValue e = 2;
 
     google.protobuf.ListValue in = 10;
     google.protobuf.ListValue out = 11;

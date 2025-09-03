@@ -17,7 +17,7 @@ func convertHasExpression(stmt *gripql.HasExpression, not bool) bson.M {
 		switch cond.Condition {
 		case gripql.Condition_INSIDE:
 			val := cond.Value.AsInterface()
-			lims, ok := val.([]interface{})
+			lims, ok := val.([]any)
 			if !ok || len(lims) < 2 {
 				log.Error("unable to cast values from INSIDE statement")
 			} else {
@@ -28,7 +28,7 @@ func convertHasExpression(stmt *gripql.HasExpression, not bool) bson.M {
 
 		case gripql.Condition_OUTSIDE:
 			val := cond.Value.AsInterface()
-			lims, ok := val.([]interface{})
+			lims, ok := val.([]any)
 			if !ok || len(lims) < 2 {
 				log.Error("unable to cast values from OUTSIDE statement")
 			} else {
@@ -38,7 +38,7 @@ func convertHasExpression(stmt *gripql.HasExpression, not bool) bson.M {
 
 		case gripql.Condition_BETWEEN:
 			val := cond.Value.AsInterface()
-			lims, ok := val.([]interface{})
+			lims, ok := val.([]any)
 			if !ok || len(lims) < 2 {
 				log.Error("unable to cast values from BETWEEN statement")
 			} else {
@@ -86,7 +86,7 @@ func convertHasExpression(stmt *gripql.HasExpression, not bool) bson.M {
 
 func convertCondition(cond *gripql.HasCondition, not bool) bson.M {
 	var key string
-	var val interface{}
+	var val any
 	key = ToPipelinePath(cond.Key)
 	val = cond.Value.AsInterface()
 

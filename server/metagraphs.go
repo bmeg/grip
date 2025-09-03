@@ -41,7 +41,7 @@ func (server *GripServer) getGraph(graph string) (*gripql.Graph, error) {
 	for row := range res {
 		vertices = append(vertices, row.GetVertex())
 	}
-	res, err = conn.Traversal(context.Background(), &gripql.GraphQuery{Graph: graph, Query: gripql.NewQuery().E().Statements})
+	res, err = conn.Traversal(context.Background(), &gripql.GraphQuery{Graph: graph, Query: gripql.NewQuery().V().OutE().Statements})
 	if err != nil {
 		return nil, fmt.Errorf("failed to load existing schema: %v", err)
 	}

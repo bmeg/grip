@@ -282,7 +282,7 @@ class Manager:
             bulk.addVertex("Foo:1", "Foo", {"bar": "foo-bar"})
             err = bulk.execute()
             assert err['insertCount'] == 1 and err['errorCount'] == 0, f"Did not insert 1 row {err}"
-            results = [v for v in G.query().V().hasLabel("Foo").count()]
+            results = [v for v in G.V().hasLabel("Foo").count()]
             assert results[0]['count'] == 1, f"Could not query Foo vertex. {results}"
         return graph_names
 
@@ -291,7 +291,7 @@ class Manager:
         G = self._conn.graph(graph_name)
         try:
             # this raises an HTTP error
-            results = [v for v in G.query().V().hasLabel("Foo").count().execute()]
+            results = [v for v in G.V().hasLabel("Foo").count().execute()]
             assert results[0]['count'] > 0, f"test_query {results}"
         except requests.HTTPError as e:
             assert False, f"test_query graph {graph_name} {self.current_user_policies()} {e}"

@@ -101,10 +101,10 @@ func Validate(stmts []*gripql.GraphStatement, opts *gdbi.CompileOptions) error {
 		// Validate that the first statement is V() or E()
 		if i == 0 {
 			switch gs.GetStatement().(type) {
-			case *gripql.GraphStatement_V, *gripql.GraphStatement_E:
+			case *gripql.GraphStatement_V:
 			default:
 				if opts == nil || opts.Extends.StartType == gdbi.NoData {
-					return fmt.Errorf("first statement is not V() or E(): %s", gs)
+					return fmt.Errorf("first statement is not V(): %s", gs)
 				}
 			}
 		}

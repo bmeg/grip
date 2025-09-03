@@ -23,6 +23,6 @@ class TestUrlBuilding(unittest.TestCase):
         self.assertEqual(ba.base_url, self.mock_url)
         self.assertEqual(ba.url, self.mock_url + "/v1/graph")
 
-        q = g.query()
+        q = g
         self.assertEqual(q.base_url, self.mock_url)
         self.assertEqual(q.url, self.mock_url + "/v1/graph/test/query")

@@ -31,7 +31,7 @@ func PipelineSteps(stmts []*gripql.GraphStatement) []string {
 		switch gs.GetStatement().(type) {
 		//These commands all change the position of the traveler. When that happens,
 		//we go to the next 'step' of the traversal
-		case *gripql.GraphStatement_V, *gripql.GraphStatement_E, *gripql.GraphStatement_Out,
+		case *gripql.GraphStatement_V, *gripql.GraphStatement_Out,
 			*gripql.GraphStatement_In, *gripql.GraphStatement_OutE, *gripql.GraphStatement_InE,
 			*gripql.GraphStatement_Both, *gripql.GraphStatement_BothE, *gripql.GraphStatement_Select,
 			*gripql.GraphStatement_InNull, *gripql.GraphStatement_OutNull,
@@ -140,7 +140,7 @@ func PipelineStepOutputs(stmts []*gripql.GraphStatement, storeMarks bool) map[st
 					out[a] = []string{"*"}
 				}
 			}
-		case *gripql.GraphStatement_V, *gripql.GraphStatement_E,
+		case *gripql.GraphStatement_V,
 			*gripql.GraphStatement_Out, *gripql.GraphStatement_In,
 			*gripql.GraphStatement_OutE, *gripql.GraphStatement_InE,
 			*gripql.GraphStatement_Both, *gripql.GraphStatement_BothE:

@@ -1,448 +1,610 @@
-<!DOCTYPE html>
+<!doctype html>
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
-<head>
-  <link href="http://gmpg.org/xfn/11" rel="profile">
-  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+    <head>
+        <link href="http://gmpg.org/xfn/11" rel="profile" />
+        <meta http-equiv="content-type" content="text/html; charset=utf-8" />
 
-  
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+        <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1.0, maximum-scale=1"
+        />
 
-  
-  <title>Filtering &middot; GRIP</title>
-  
+        <title>Filtering &middot; GRIP</title>
 
-  
-  <link rel="stylesheet" href="https://bmeg.github.io/grip/css/poole.css">
-  <link rel="stylesheet" href="https://bmeg.github.io/grip/css/darcula.css">
-  <link rel="stylesheet" href="https://bmeg.github.io/grip/css/syntax.css">
-  <link rel="stylesheet" href="https://bmeg.github.io/grip/css/theme.css">
-  <link rel="stylesheet" href="https://bmeg.github.io/grip/css/funnel.css">
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=PT+Sans:400,400italic,700">
+        <link
+            rel="stylesheet"
+            href="https://bmeg.github.io/grip/css/poole.css"
+        />
+        <link
+            rel="stylesheet"
+            href="https://bmeg.github.io/grip/css/darcula.css"
+        />
+        <link
+            rel="stylesheet"
+            href="https://bmeg.github.io/grip/css/syntax.css"
+        />
+        <link
+            rel="stylesheet"
+            href="https://bmeg.github.io/grip/css/theme.css"
+        />
+        <link
+            rel="stylesheet"
+            href="https://bmeg.github.io/grip/css/funnel.css"
+        />
+        <link
+            rel="stylesheet"
+            href="https://fonts.googleapis.com/css?family=PT+Sans:400,400italic,700"
+        />
 
-  
-  <link rel="apple-touch-icon-precomposed" sizes="144x144" href="https://bmeg.github.io/grip/apple-touch-icon-144-precomposed.png">
-  <link rel="shortcut icon" href="https://bmeg.github.io/grip/favicon.png">
+        <link
+            rel="apple-touch-icon-precomposed"
+            sizes="144x144"
+            href="https://bmeg.github.io/grip/apple-touch-icon-144-precomposed.png"
+        />
+        <link
+            rel="shortcut icon"
+            href="https://bmeg.github.io/grip/favicon.png"
+        />
 
-  <script src="https://bmeg.github.io/grip/js/highlight.pack.js"></script>
-  <script>hljs.initHighlightingOnLoad();</script>
+        <script src="https://bmeg.github.io/grip/js/highlight.pack.js"></script>
+        <script>
+            hljs.initHighlightingOnLoad();
+        </script>
+    </head>
+    <body>
+        <div class="global-header">
+            <div class="global-header-container">
+                <div class="global-header-home">
+                    <a href="https://bmeg.github.io/grip/"><h1>GRIP</h1></a>
+                </div>
+                <ul class="global-header-nav">
+                    <li>
+                        <a href="https://bmeg.github.io/grip/download//"
+                            >Download</a
+                        >
+                    </li>
+                    <li>
+                        <a href="https://bmeg.github.io/grip/docs/">Docs</a>
+                    </li>
+                    <li><a href="https://github.com/bmeg/grip">GitHub</a></li>
+                    <li><a href="https://gitter.im/bmeg/grip">Chat</a></li>
+                </ul>
+                <div class="global-header-ohsucb">
+                    <a href="https://www.ohsu.edu/compbio/"
+                        ><h2>OHSU Comp Bio</h2></a
+                    >
+                </div>
+            </div>
+        </div>
 
-</head>
-<body>
+        <div class="content section group">
+            <div class="sidebar col span_3_of_12">
+                <ul class="sidebar-nav">
+                    <li>
+                        <a
+                            href="https://bmeg.github.io/grip/docs/"
+                            class="sidebar-nav-item"
+                            >Overview</a
+                        >
+                    </li>
 
-  <div class="global-header">
-    <div class="global-header-container">
-      <div class="global-header-home">
-        <a href="https://bmeg.github.io/grip/"><h1>GRIP</h1></a>
-      </div>
-      <ul class="global-header-nav">
-          <li><a href="https://bmeg.github.io/grip/download//">Download</a></li>
-          <li><a href="https://bmeg.github.io/grip/docs/">Docs</a></li>
-          <li><a href="https://github.com/bmeg/grip">GitHub</a></li>
-          <li><a href="https://gitter.im/bmeg/grip">Chat</a></li>
-        </ul>
-      <div class="global-header-ohsucb">
-        <a href="https://www.ohsu.edu/compbio/"><h2>OHSU Comp Bio</h2></a>
-      </div>
-    </div>
-  </div>
+                    <li>
+                        <a
+                            href="https://bmeg.github.io/grip/download/"
+                            class="sidebar-nav-item"
+                            >Download</a
+                        >
+                    </li>
 
+                    <li>
+                        <span class="intermediate">GRIP Commands</span>
+                    </li>
 
-<div class="content section group">
+                    <li>
+                        <ul class="sidebar-nav sidebar-nav-nested">
+                            <li>
+                                <a
+                                    href="https://bmeg.github.io/grip/docs/commands/server/"
+                                    class="sidebar-nav-item"
+                                    >server</a
+                                >
+                            </li>
+                        </ul>
+                    </li>
 
-  <div class="sidebar col span_3_of_12">
-    <ul class="sidebar-nav">
-      
-      
-        
-        <li>
-          
-          <a href="https://bmeg.github.io/grip/docs/"
-             class="sidebar-nav-item "
-          >Overview</a></li>
-          
-        
-        <li>
-          
-          <a href="https://bmeg.github.io/grip/download/"
-             class="sidebar-nav-item "
-          >Download</a></li>
-          
-        
-        <li>
-          
-          <span class="intermediate">GRIP Commands</span></li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/commands/server/"
-                   class="sidebar-nav-item "
-                >server</a></li>
-            </ul>
-          </li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/commands/create/"
-                   class="sidebar-nav-item "
-                >create</a></li>
-            </ul>
-          </li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/commands/query/"
-                   class="sidebar-nav-item "
-                >query</a></li>
-            </ul>
-          </li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/commands/delete/"
-                   class="sidebar-nav-item "
-                >delete</a></li>
-            </ul>
-          </li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/commands/list/"
-                   class="sidebar-nav-item "
-                >list</a></li>
-            </ul>
-          </li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/commands/drop/"
-                   class="sidebar-nav-item "
-                >drop</a></li>
-            </ul>
-          </li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/commands/mongoload/"
-                   class="sidebar-nav-item "
-                >mongoload</a></li>
-            </ul>
-          </li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/commands/er/"
-                   class="sidebar-nav-item "
-                >er</a></li>
-            </ul>
-          </li>
-          
-          
-        
-        <li>
-          
-          <a href="https://bmeg.github.io/grip/docs/databases/"
-             class="sidebar-nav-item "
-          >Database Configuration</a></li>
-          
-        
-        <li>
-          
-          <a href="https://bmeg.github.io/grip/docs/clients/"
-             class="sidebar-nav-item "
-          >Client Library</a></li>
-          
-        
-        <li>
-          
-          <span class="intermediate">Query a Graph</span></li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/queries/traversal_start/"
-                   class="sidebar-nav-item "
-                >Start a Traversal</a></li>
-            </ul>
-          </li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/queries/jsonpath/"
-                   class="sidebar-nav-item "
-                >Referencing Fields</a></li>
-            </ul>
-          </li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/queries/traverse_graph/"
-                   class="sidebar-nav-item "
-                >Traverse the Graph</a></li>
-            </ul>
-          </li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/queries/filtering/"
-                   class="sidebar-nav-item  active"
-                >Filtering</a></li>
-            </ul>
-          </li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/queries/record_transforms/"
-                   class="sidebar-nav-item "
-                >Record Transforms</a></li>
-            </ul>
-          </li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/queries/aggregation/"
-                   class="sidebar-nav-item "
-                >Aggregation</a></li>
-            </ul>
-          </li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/queries/output/"
-                   class="sidebar-nav-item "
-                >Output Control</a></li>
-            </ul>
-          </li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/queries/iterations/"
-                   class="sidebar-nav-item "
-                >Iteration</a></li>
-            </ul>
-          </li>
-          
-          
-        
-        <li>
-          
-          <a href="https://bmeg.github.io/grip/docs/jobs_api/"
-             class="sidebar-nav-item "
-          >Jobs API</a></li>
-          
-        
-        <li>
-          
-          <span class="intermediate">Tutorials</span></li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/tutorials/amazon/"
-                   class="sidebar-nav-item "
-                >Amazon Purchase Network</a></li>
-            </ul>
-          </li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/tutorials/tcga-rna/"
-                   class="sidebar-nav-item "
-                >TCGA RNA Expression</a></li>
-            </ul>
-          </li>
-          
-          
-        
-        <li>
-          
-          <span class="intermediate">Security</span></li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/security/basic/"
-                   class="sidebar-nav-item "
-                >Basic Auth</a></li>
-            </ul>
-          </li>
-          
-          
-        
-        <li>
-          
-          <span class="intermediate">GraphQL</span></li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/graphql/graphql/"
-                   class="sidebar-nav-item "
-                >GraphQL</a></li>
-            </ul>
-          </li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/graphql/graph_schemas/"
-                   class="sidebar-nav-item "
-                >Graph Schemas</a></li>
-            </ul>
-          </li>
-          
-          
-        
-        <li>
-          
-          <span class="intermediate">Developers</span></li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://github.com/bmeg/grip/blob/master/gripql/gripql.proto"
-                   class="sidebar-nav-item "
-                >API</a></li>
-            </ul>
-          </li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://godoc.org/github.com/bmeg/grip"
-                   class="sidebar-nav-item "
-                >GoDoc</a></li>
-            </ul>
-          </li>
-          
-          
-        
-        <li>
-          
-          <span class="intermediate">GRIP Plugable External Resources</span></li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/gripper/gripper/"
-                   class="sidebar-nav-item "
-                >Intro</a></li>
-            </ul>
-          </li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/gripper/proxy/"
-                   class="sidebar-nav-item "
-                >External Resource Proxies</a></li>
-            </ul>
-          </li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/gripper/graphmodel/"
-                   class="sidebar-nav-item "
-                >Graph Model</a></li>
-            </ul>
-          </li>
-          
-          
-        
-      
-    </ul>
-  </div>
+                    <li>
+                        <ul class="sidebar-nav sidebar-nav-nested">
+                            <li>
+                                <a
+                                    href="https://bmeg.github.io/grip/docs/commands/create/"
+                                    class="sidebar-nav-item"
+                                    >create</a
+                                >
+                            </li>
+                        </ul>
+                    </li>
 
-  <div class="main col span_8_of_12">
-    <h1 id="filtering-in-gripql">Filtering in GripQL</h1>
-<p>GripQL provides powerful filtering capabilities using the .has() method and various condition functions.
-Here&rsquo;s a comprehensive guide:.has()The .has() method is used to filter elements (vertices or edges) based on specified conditions.</p>
-<p>Conditions are functions provided by the gripql module that define the filtering criteria.</p>
-<h2 id="comparison-operators">Comparison Operators</h2>
-<h3 id="gripqleqvariable-value">gripql.eq(variable, value):</h3>
-<p>Equal to (==)</p>
-<pre tabindex="0"><code>G.query().V().has(gripql.eq(&#34;symbol&#34;, &#34;TP53&#34;))
+                    <li>
+                        <ul class="sidebar-nav sidebar-nav-nested">
+                            <li>
+                                <a
+                                    href="https://bmeg.github.io/grip/docs/commands/query/"
+                                    class="sidebar-nav-item"
+                                    >query</a
+                                >
+                            </li>
+                        </ul>
+                    </li>
+
+                    <li>
+                        <ul class="sidebar-nav sidebar-nav-nested">
+                            <li>
+                                <a
+                                    href="https://bmeg.github.io/grip/docs/commands/delete/"
+                                    class="sidebar-nav-item"
+                                    >delete</a
+                                >
+                            </li>
+                        </ul>
+                    </li>
+
+                    <li>
+                        <ul class="sidebar-nav sidebar-nav-nested">
+                            <li>
+                                <a
+                                    href="https://bmeg.github.io/grip/docs/commands/list/"
+                                    class="sidebar-nav-item"
+                                    >list</a
+                                >
+                            </li>
+                        </ul>
+                    </li>
+
+                    <li>
+                        <ul class="sidebar-nav sidebar-nav-nested">
+                            <li>
+                                <a
+                                    href="https://bmeg.github.io/grip/docs/commands/drop/"
+                                    class="sidebar-nav-item"
+                                    >drop</a
+                                >
+                            </li>
+                        </ul>
+                    </li>
+
+                    <li>
+                        <ul class="sidebar-nav sidebar-nav-nested">
+                            <li>
+                                <a
+                                    href="https://bmeg.github.io/grip/docs/commands/mongoload/"
+                                    class="sidebar-nav-item"
+                                    >mongoload</a
+                                >
+                            </li>
+                        </ul>
+                    </li>
+
+                    <li>
+                        <ul class="sidebar-nav sidebar-nav-nested">
+                            <li>
+                                <a
+                                    href="https://bmeg.github.io/grip/docs/commands/er/"
+                                    class="sidebar-nav-item"
+                                    >er</a
+                                >
+                            </li>
+                        </ul>
+                    </li>
+
+                    <li>
+                        <a
+                            href="https://bmeg.github.io/grip/docs/databases/"
+                            class="sidebar-nav-item"
+                            >Database Configuration</a
+                        >
+                    </li>
+
+                    <li>
+                        <a
+                            href="https://bmeg.github.io/grip/docs/clients/"
+                            class="sidebar-nav-item"
+                            >Client Library</a
+                        >
+                    </li>
+
+                    <li>
+                        <span class="intermediate">Query a Graph</span>
+                    </li>
+
+                    <li>
+                        <ul class="sidebar-nav sidebar-nav-nested">
+                            <li>
+                                <a
+                                    href="https://bmeg.github.io/grip/docs/queries/traversal_start/"
+                                    class="sidebar-nav-item"
+                                    >Start a Traversal</a
+                                >
+                            </li>
+                        </ul>
+                    </li>
+
+                    <li>
+                        <ul class="sidebar-nav sidebar-nav-nested">
+                            <li>
+                                <a
+                                    href="https://bmeg.github.io/grip/docs/queries/jsonpath/"
+                                    class="sidebar-nav-item"
+                                    >Referencing Fields</a
+                                >
+                            </li>
+                        </ul>
+                    </li>
+
+                    <li>
+                        <ul class="sidebar-nav sidebar-nav-nested">
+                            <li>
+                                <a
+                                    href="https://bmeg.github.io/grip/docs/queries/traverse_graph/"
+                                    class="sidebar-nav-item"
+                                    >Traverse the Graph</a
+                                >
+                            </li>
+                        </ul>
+                    </li>
+
+                    <li>
+                        <ul class="sidebar-nav sidebar-nav-nested">
+                            <li>
+                                <a
+                                    href="https://bmeg.github.io/grip/docs/queries/filtering/"
+                                    class="sidebar-nav-item active"
+                                    >Filtering</a
+                                >
+                            </li>
+                        </ul>
+                    </li>
+
+                    <li>
+                        <ul class="sidebar-nav sidebar-nav-nested">
+                            <li>
+                                <a
+                                    href="https://bmeg.github.io/grip/docs/queries/record_transforms/"
+                                    class="sidebar-nav-item"
+                                    >Record Transforms</a
+                                >
+                            </li>
+                        </ul>
+                    </li>
+
+                    <li>
+                        <ul class="sidebar-nav sidebar-nav-nested">
+                            <li>
+                                <a
+                                    href="https://bmeg.github.io/grip/docs/queries/aggregation/"
+                                    class="sidebar-nav-item"
+                                    >Aggregation</a
+                                >
+                            </li>
+                        </ul>
+                    </li>
+
+                    <li>
+                        <ul class="sidebar-nav sidebar-nav-nested">
+                            <li>
+                                <a
+                                    href="https://bmeg.github.io/grip/docs/queries/output/"
+                                    class="sidebar-nav-item"
+                                    >Output Control</a
+                                >
+                            </li>
+                        </ul>
+                    </li>
+
+                    <li>
+                        <ul class="sidebar-nav sidebar-nav-nested">
+                            <li>
+                                <a
+                                    href="https://bmeg.github.io/grip/docs/queries/iterations/"
+                                    class="sidebar-nav-item"
+                                    >Iteration</a
+                                >
+                            </li>
+                        </ul>
+                    </li>
+
+                    <li>
+                        <a
+                            href="https://bmeg.github.io/grip/docs/jobs_api/"
+                            class="sidebar-nav-item"
+                            >Jobs API</a
+                        >
+                    </li>
+
+                    <li>
+                        <span class="intermediate">Tutorials</span>
+                    </li>
+
+                    <li>
+                        <ul class="sidebar-nav sidebar-nav-nested">
+                            <li>
+                                <a
+                                    href="https://bmeg.github.io/grip/docs/tutorials/amazon/"
+                                    class="sidebar-nav-item"
+                                    >Amazon Purchase Network</a
+                                >
+                            </li>
+                        </ul>
+                    </li>
+
+                    <li>
+                        <ul class="sidebar-nav sidebar-nav-nested">
+                            <li>
+                                <a
+                                    href="https://bmeg.github.io/grip/docs/tutorials/tcga-rna/"
+                                    class="sidebar-nav-item"
+                                    >TCGA RNA Expression</a
+                                >
+                            </li>
+                        </ul>
+                    </li>
+
+                    <li>
+                        <span class="intermediate">Security</span>
+                    </li>
+
+                    <li>
+                        <ul class="sidebar-nav sidebar-nav-nested">
+                            <li>
+                                <a
+                                    href="https://bmeg.github.io/grip/docs/security/basic/"
+                                    class="sidebar-nav-item"
+                                    >Basic Auth</a
+                                >
+                            </li>
+                        </ul>
+                    </li>
+
+                    <li>
+                        <span class="intermediate">GraphQL</span>
+                    </li>
+
+                    <li>
+                        <ul class="sidebar-nav sidebar-nav-nested">
+                            <li>
+                                <a
+                                    href="https://bmeg.github.io/grip/docs/graphql/graphql/"
+                                    class="sidebar-nav-item"
+                                    >GraphQL</a
+                                >
+                            </li>
+                        </ul>
+                    </li>
+
+                    <li>
+                        <ul class="sidebar-nav sidebar-nav-nested">
+                            <li>
+                                <a
+                                    href="https://bmeg.github.io/grip/docs/graphql/graph_schemas/"
+                                    class="sidebar-nav-item"
+                                    >Graph Schemas</a
+                                >
+                            </li>
+                        </ul>
+                    </li>
+
+                    <li>
+                        <span class="intermediate">Developers</span>
+                    </li>
+
+                    <li>
+                        <ul class="sidebar-nav sidebar-nav-nested">
+                            <li>
+                                <a
+                                    href="https://github.com/bmeg/grip/blob/master/gripql/gripql.proto"
+                                    class="sidebar-nav-item"
+                                    >API</a
+                                >
+                            </li>
+                        </ul>
+                    </li>
+
+                    <li>
+                        <ul class="sidebar-nav sidebar-nav-nested">
+                            <li>
+                                <a
+                                    href="https://godoc.org/github.com/bmeg/grip"
+                                    class="sidebar-nav-item"
+                                    >GoDoc</a
+                                >
+                            </li>
+                        </ul>
+                    </li>
+
+                    <li>
+                        <span class="intermediate"
+                            >GRIP Plugable External Resources</span
+                        >
+                    </li>
+
+                    <li>
+                        <ul class="sidebar-nav sidebar-nav-nested">
+                            <li>
+                                <a
+                                    href="https://bmeg.github.io/grip/docs/gripper/gripper/"
+                                    class="sidebar-nav-item"
+                                    >Intro</a
+                                >
+                            </li>
+                        </ul>
+                    </li>
+
+                    <li>
+                        <ul class="sidebar-nav sidebar-nav-nested">
+                            <li>
+                                <a
+                                    href="https://bmeg.github.io/grip/docs/gripper/proxy/"
+                                    class="sidebar-nav-item"
+                                    >External Resource Proxies</a
+                                >
+                            </li>
+                        </ul>
+                    </li>
+
+                    <li>
+                        <ul class="sidebar-nav sidebar-nav-nested">
+                            <li>
+                                <a
+                                    href="https://bmeg.github.io/grip/docs/gripper/graphmodel/"
+                                    class="sidebar-nav-item"
+                                    >Graph Model</a
+                                >
+                            </li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="main col span_8_of_12">
+                <h1 id="filtering-in-gripql">Filtering in GripQL</h1>
+                <p>
+                    GripQL provides powerful filtering capabilities using the
+                    .has() method and various condition functions. Here&rsquo;s
+                    a comprehensive guide:.has()The .has() method is used to
+                    filter elements (vertices or edges) based on specified
+                    conditions.
+                </p>
+                <p>
+                    Conditions are functions provided by the gripql module that
+                    define the filtering criteria.
+                </p>
+                <h2 id="comparison-operators">Comparison Operators</h2>
+                <h3 id="gripqleqvariable-value">gripql.eq(variable, value):</h3>
+                <p>Equal to (==)</p>
+                <pre
+                    tabindex="0"
+                ><code>G.V().has(gripql.eq(&#34;symbol&#34;, &#34;TP53&#34;))
 # Returns vertices where the &#39;symbol&#39; property is equal to &#39;TP53&#39;.
-</code></pre><h3 id="gripqlneqvariable-value">gripql.neq(variable, value):</h3>
-<p>Not equal to (!=)</p>
-<pre tabindex="0"><code>G.query().V().has(gripql.neq(&#34;symbol&#34;, &#34;TP53&#34;))
+</code></pre>
+                <h3 id="gripqlneqvariable-value">
+                    gripql.neq(variable, value):
+                </h3>
+                <p>Not equal to (!=)</p>
+                <pre
+                    tabindex="0"
+                ><code>G.V().has(gripql.neq(&#34;symbol&#34;, &#34;TP53&#34;))
 # Returns vertices where the &#39;symbol&#39; property is not equal to &#39;TP53&#39;.
-</code></pre><h3 id="gripqlgtvariable-value">gripql.gt(variable, value):</h3>
-<p>Greater than (&gt;)</p>
-<pre tabindex="0"><code>G.query().V().has(gripql.gt(&#34;age&#34;, 45))
+</code></pre>
+                <h3 id="gripqlgtvariable-value">gripql.gt(variable, value):</h3>
+                <p>Greater than (&gt;)</p>
+                <pre tabindex="0"><code>G.V().has(gripql.gt(&#34;age&#34;, 45))
 # Returns vertices where the &#39;age&#39; property is greater than 45.
-</code></pre><h3 id="gripqlltvariable-value">gripql.lt(variable, value):</h3>
-<p>Less than (&lt;)</p>
-<pre tabindex="0"><code>G.query().V().has(gripql.lt(&#34;age&#34;, 45))
+</code></pre>
+                <h3 id="gripqlltvariable-value">gripql.lt(variable, value):</h3>
+                <p>Less than (&lt;)</p>
+                <pre tabindex="0"><code>G.V().has(gripql.lt(&#34;age&#34;, 45))
 # Returns vertices where the &#39;age&#39; property is less than 45.
-</code></pre><h3 id="gripqlgtevariable-value">gripql.gte(variable, value):</h3>
-<p>Greater than or equal to (&gt;=)</p>
-<pre tabindex="0"><code>G.query().V().has(gripql.gte(&#34;age&#34;, 45))
+</code></pre>
+                <h3 id="gripqlgtevariable-value">
+                    gripql.gte(variable, value):
+                </h3>
+                <p>Greater than or equal to (&gt;=)</p>
+                <pre tabindex="0"><code>G.V().has(gripql.gte(&#34;age&#34;, 45))
 # Returns vertices where the &#39;age&#39; property is greater than or equal to 45.
-</code></pre><p>gripql.lte(variable, value):
-Less than or equal to (&lt;=)</p>
-<pre tabindex="0"><code>G.query().V().has(gripql.lte(&#34;age&#34;, 45))
+</code></pre>
+                <p>
+                    gripql.lte(variable, value): Less than or equal to (&lt;=)
+                </p>
+                <pre tabindex="0"><code>G.V().has(gripql.lte(&#34;age&#34;, 45))
 # Returns vertices where the &#39;age&#39; property is less than or equal to 45.
-</code></pre><h2 id="range-operators">Range Operators</h2>
-<h3 id="gripqlinsidevariable-lower_bound-upper_bound">gripql.inside(variable, [lower_bound, upper_bound]):</h3>
-<p>lower_bound &lt; variable &lt; upper_bound (exclusive)</p>
-<pre tabindex="0"><code>G.query().V().has(gripql.inside(&#34;age&#34;, [30, 45]))
+</code></pre>
+                <h2 id="range-operators">Range Operators</h2>
+                <h3 id="gripqlinsidevariable-lower_bound-upper_bound">
+                    gripql.inside(variable, [lower_bound, upper_bound]):
+                </h3>
+                <p>lower_bound &lt; variable &lt; upper_bound (exclusive)</p>
+                <pre
+                    tabindex="0"
+                ><code>G.V().has(gripql.inside(&#34;age&#34;, [30, 45]))
 # Returns vertices where the &#39;age&#39; property is greater than 30 and less than 45.
-</code></pre><h3 id="gripqloutsidevariable-lower_bound-upper_bound">gripql.outside(variable, [lower_bound, upper_bound]):</h3>
-<p>variable &lt; lower_bound OR variable &gt; upper_bound</p>
-<pre tabindex="0"><code>G.query().V().has(gripql.outside(&#34;age&#34;, [30, 45]))
+</code></pre>
+                <h3 id="gripqloutsidevariable-lower_bound-upper_bound">
+                    gripql.outside(variable, [lower_bound, upper_bound]):
+                </h3>
+                <p>variable &lt; lower_bound OR variable &gt; upper_bound</p>
+                <pre
+                    tabindex="0"
+                ><code>G.V().has(gripql.outside(&#34;age&#34;, [30, 45]))
 # Returns vertices where the &#39;age&#39; property is less than 30 or greater than 45.
-</code></pre><h3 id="gripqlbetweenvariable-lower_bound-upper_bound">gripql.between(variable, [lower_bound, upper_bound]):</h3>
-<p>lower_bound &lt;= variable &lt; upper_bound</p>
-<pre tabindex="0"><code>G.query().V().has(gripql.between(&#34;age&#34;, [30, 45]))
+</code></pre>
+                <h3 id="gripqlbetweenvariable-lower_bound-upper_bound">
+                    gripql.between(variable, [lower_bound, upper_bound]):
+                </h3>
+                <p>lower_bound &lt;= variable &lt; upper_bound</p>
+                <pre
+                    tabindex="0"
+                ><code>G.V().has(gripql.between(&#34;age&#34;, [30, 45]))
 # Returns vertices where the &#39;age&#39; property is greater than or equal to 30 and less than 45.
-</code></pre><h2 id="set-membership-operators">Set Membership Operators</h2>
-<h3 id="gripqlwithinvariable-values">gripql.within(variable, values):</h3>
-<p>variable is in values</p>
-<pre tabindex="0"><code>G.query().V().has(gripql.within(&#34;symbol&#34;, [&#34;TP53&#34;, &#34;BRCA1&#34;]))
+</code></pre>
+                <h2 id="set-membership-operators">Set Membership Operators</h2>
+                <h3 id="gripqlwithinvariable-values">
+                    gripql.within(variable, values):
+                </h3>
+                <p>variable is in values</p>
+                <pre
+                    tabindex="0"
+                ><code>G.V().has(gripql.within(&#34;symbol&#34;, [&#34;TP53&#34;, &#34;BRCA1&#34;]))
 # Returns vertices where the &#39;symbol&#39; property is either &#39;TP53&#39; or &#39;BRCA1&#39;.
-</code></pre><h3 id="gripqlwithoutvariable-values">gripql.without(variable, values):</h3>
-<p>variable is not in values</p>
-<pre tabindex="0"><code>G.query().V().has(gripql.without(&#34;symbol&#34;, [&#34;TP53&#34;, &#34;BRCA1&#34;]))
+</code></pre>
+                <h3 id="gripqlwithoutvariable-values">
+                    gripql.without(variable, values):
+                </h3>
+                <p>variable is not in values</p>
+                <pre
+                    tabindex="0"
+                ><code>G.V().has(gripql.without(&#34;symbol&#34;, [&#34;TP53&#34;, &#34;BRCA1&#34;]))
 # Returns vertices where the &#39;symbol&#39; property is neither &#39;TP53&#39; nor &#39;BRCA1&#39;.
-</code></pre><h2 id="stringarray-containment">String/Array Containment</h2>
-<h3 id="gripqlcontainsvariable-value">gripql.contains(variable, value):</h3>
-<p>The variable (which is typically a list/array) contains value.</p>
-<pre tabindex="0"><code>G.query().V().has(gripql.contains(&#34;groups&#34;, &#34;group1&#34;))
+</code></pre>
+                <h2 id="stringarray-containment">String/Array Containment</h2>
+                <h3 id="gripqlcontainsvariable-value">
+                    gripql.contains(variable, value):
+                </h3>
+                <p>
+                    The variable (which is typically a list/array) contains
+                    value.
+                </p>
+                <pre
+                    tabindex="0"
+                ><code>G.V().has(gripql.contains(&#34;groups&#34;, &#34;group1&#34;))
 # Returns vertices where the &#39;groups&#39; property (which is a list) contains the value &#34;group1&#34;.
 # Example: {&#34;groups&#34;: [&#34;group1&#34;, &#34;group2&#34;, &#34;group3&#34;]} would match.
-</code></pre><h2 id="logical-operators">Logical Operators</h2>
-<h3 id="gripqland_condition1-condition2-">gripql.and_([condition1, condition2, &hellip;]):</h3>
-<p>Logical AND; all conditions must be true.</p>
-<pre tabindex="0"><code>G.query().V().has(gripql.and_([gripql.lte(&#34;age&#34;, 45), gripql.gte(&#34;age&#34;, 35)]))
+</code></pre>
+                <h2 id="logical-operators">Logical Operators</h2>
+                <h3 id="gripqland_condition1-condition2-">
+                    gripql.and_([condition1, condition2, &hellip;]):
+                </h3>
+                <p>Logical AND; all conditions must be true.</p>
+                <pre
+                    tabindex="0"
+                ><code>G.V().has(gripql.and_([gripql.lte(&#34;age&#34;, 45), gripql.gte(&#34;age&#34;, 35)]))
 # Returns vertices where the &#39;age&#39; property is less than or equal to 45 AND greater than or equal to 35.
-</code></pre><h3 id="gripqlor_condition1-condition2-">gripql.or_([condition1, condition2, &hellip;]):</h3>
-<p>Logical OR; at least one condition must be true.</p>
-<pre tabindex="0"><code>G.query().V().has(gripql.or_([gripql.eq(&#34;symbol&#34;, &#34;TP53&#34;), gripql.eq(&#34;symbol&#34;, &#34;BRCA1&#34;)]))
+</code></pre>
+                <h3 id="gripqlor_condition1-condition2-">
+                    gripql.or_([condition1, condition2, &hellip;]):
+                </h3>
+                <p>Logical OR; at least one condition must be true.</p>
+                <pre
+                    tabindex="0"
+                ><code>G.V().has(gripql.or_([gripql.eq(&#34;symbol&#34;, &#34;TP53&#34;), gripql.eq(&#34;symbol&#34;, &#34;BRCA1&#34;)]))
 # Returns vertices where the &#39;symbol&#39; property is either &#39;TP53&#39; OR &#39;BRCA1&#39;.
-</code></pre><h3 id="gripqlnot_condition">gripql.not_(condition):</h3>
-<p>Logical NOT; negates the condition</p>
-<pre tabindex="0"><code>G.query().V().has(gripql.not_(gripql.eq(&#34;symbol&#34;, &#34;TP53&#34;)))
+</code></pre>
+                <h3 id="gripqlnot_condition">gripql.not_(condition):</h3>
+                <p>Logical NOT; negates the condition</p>
+                <pre
+                    tabindex="0"
+                ><code>G.V().has(gripql.not_(gripql.eq(&#34;symbol&#34;, &#34;TP53&#34;)))
 # Returns vertices where the &#39;symbol&#39; property is NOT equal to &#39;TP53&#39;.
 </code></pre>
-  </div>
-
-</div>
-</body>
+            </div>
+        </div>
+    </body>
 </html>

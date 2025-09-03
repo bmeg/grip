@@ -49,7 +49,7 @@ class TestTableList(unittest.TestCase):
 
             G = conn.graph(graphName)
             count = 0
-            for v in G.query().V():
+            for v in G.V():
                 count += 1
             self.assertTrue( count == 39 )
         except Exception as e:

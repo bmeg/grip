@@ -68,7 +68,7 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 				// Collect error to return. Because we are reading a channel, it must be fully emptied
 				// If we return error before fully emptying channel, upstream processes will lock
 				var outErr error
-				fieldTermCounts := map[interface{}]int{}
+				fieldTermCounts := map[any]int{}
 				for t := range aChans[a.Name] {
 					if len(fieldTermCounts) > maxTerms {
 						outErr = fmt.Errorf("term aggreagtion: collected more unique terms (%v) than allowed (%v)", len(fieldTermCounts), maxTerms)
@@ -172,10 +172,10 @@ func (agg *aggregate) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 		case *gripql.Aggregate_Field:
 			g.Go(func() error {
 				fa := a.GetField()
-				fieldCounts := map[interface{}]int{}
+				fieldCounts := map[any]int{}
 				for t := range aChans[a.Name] {
 					val := gdbi.TravelerPathLookup(t, fa.Field)
-					if m, ok := val.(map[string]interface{}); ok {
+					if m, ok := val.(map[string]any); ok {
 						for k := range m {
 							if !tpath.IsGraphField(k) {
 								fieldCounts[k]++

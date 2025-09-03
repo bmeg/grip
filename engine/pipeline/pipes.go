@@ -203,10 +203,10 @@ func Convert(graph gdbi.GraphInterface, dataType gdbi.DataType, markTypes map[st
 
 	case gdbi.PathData:
 		path := t.GetPath()
-		o := make([]interface{}, len(path))
+		o := make([]any, len(path))
 
 		for i := range path {
-			j := map[string]interface{}{}
+			j := map[string]any{}
 			if path[i].Vertex != "" {
 				j["vertex"] = path[i].Vertex
 			} else if path[i].Edge != "" {

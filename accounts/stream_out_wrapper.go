@@ -37,11 +37,11 @@ func (bw *StreamOutWrapper[X]) Context() context.Context {
 	return bw.SS.Context()
 }
 
-func (bw *StreamOutWrapper[X]) SendMsg(m interface{}) error {
+func (bw *StreamOutWrapper[X]) SendMsg(m any) error {
 	return bw.SS.SendMsg(m)
 }
 
-func (bw *StreamOutWrapper[X]) RecvMsg(m interface{}) error {
+func (bw *StreamOutWrapper[X]) RecvMsg(m any) error {
 	mPtr := m.(*X)
 	*mPtr = bw.Request
 	return nil

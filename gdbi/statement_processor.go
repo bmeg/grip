@@ -23,14 +23,6 @@ func StatementProcessor(
 		ps.LastType = VertexData
 		return o, err
 
-	case *gripql.GraphStatement_E:
-		if ps.LastType != NoData {
-			return nil, fmt.Errorf(`"E" statement is only valid at the beginning of the traversal`)
-		}
-		o, err := sc.E(stmt, ps)
-		ps.LastType = EdgeData
-		return o, err
-
 	case *gripql.GraphStatement_In:
 		if ps.LastType != VertexData && ps.LastType != EdgeData {
 			return nil, fmt.Errorf(`"in" statement is only valid for edge or vertex types not: %s`, ps.LastType.String())

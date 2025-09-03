@@ -19,11 +19,6 @@ func (sc *DefaultStmtCompiler) V(stmt *gripql.GraphStatement_V, ps *gdbi.State) 
 	return &LookupVerts{db: sc.db, ids: ids, loadData: ps.StepLoadData()}, nil
 }
 
-func (sc *DefaultStmtCompiler) E(stmt *gripql.GraphStatement_E, ps *gdbi.State) (gdbi.Processor, error) {
-	ids := protoutil.AsStringList(stmt.E)
-	return &LookupEdges{db: sc.db, ids: ids, loadData: ps.StepLoadData()}, nil
-}
-
 func (sc *DefaultStmtCompiler) In(stmt *gripql.GraphStatement_In, ps *gdbi.State) (gdbi.Processor, error) {
 	labels := protoutil.AsStringList(stmt.In)
 	if ps.LastType == gdbi.VertexData {
@@ -224,7 +219,7 @@ func (sc *DefaultStmtCompiler) Fields(stmt *gripql.GraphStatement_Fields, ps *gd
 }
 
 func (sc *DefaultStmtCompiler) Aggregate(stmt *gripql.GraphStatement_Aggregate, ps *gdbi.State) (gdbi.Processor, error) {
-	aggs := make(map[string]interface{})
+	aggs := make(map[string]any)
 	for _, a := range stmt.Aggregate.Aggregations {
 		if _, ok := aggs[a.Name]; ok {
 			return nil, fmt.Errorf("duplicate aggregation name '%s' found; all aggregations must have a unique name", a.Name)

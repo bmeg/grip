@@ -22,7 +22,7 @@ func (mg *Graph) AddVertexIndex(label string, field string) error {
 
 	idx := mg.ar.VertexCollection(mg.graph).Indexes()
 	indexName := fmt.Sprintf("label_%s_%s_idx", label, field)
-	
+
 	// Create a compound index on _label and the specified field, filtered by the specific label
 	_, err := idx.CreateOne(
 		context.Background(),
@@ -67,7 +67,6 @@ func (mg *Graph) DeleteVertexIndex(label string, field string) error {
 				if _, hasField := recKeys[field]; hasField {
 					if partialFilter, ok := rec["partialFilterExpression"].(bson.M); ok {
 						if partialLabel, ok := partialFilter[FIELD_LABEL].(string); ok && partialLabel == label {
-							log.Debugln("HELLO ", partialLabel)
 							if _, err := idx.DropOne(context.TODO(), rec["name"].(string)); err != nil {
 								return fmt.Errorf("failed to delete index for label %s on field %s: %s", label, field, err)
 							}
@@ -108,7 +107,6 @@ func (mg *Graph) GetVertexIndexList() <-chan *gripql.IndexID {
 						if key != FIELD_LABEL {
 							f := strings.TrimPrefix(key, "data.")
 							if partialFilter, ok := rec["partialFilterExpression"].(bson.M); ok {
-								log.Debugln("HELLO2 ", partialFilter)
 								if label, ok := partialFilter[FIELD_LABEL].(string); ok {
 									out <- &gripql.IndexID{Graph: mg.graph, Label: label, Field: f}
 								}
@@ -129,17 +127,17 @@ func (mg *Graph) VertexLabelScan(ctx context.Context, label string) chan string 
 	out := make(chan string, 100)
 	go func() {
 		defer close(out)
-		selection := map[string]interface{}{
+		selection := map[string]any{
 			FIELD_LABEL: label,
 		}
 		vcol := mg.ar.VertexCollection(mg.graph)
 		opts := options.Find()
-		opts.SetProjection(map[string]interface{}{FIELD_ID: 1, FIELD_LABEL: 1})
+		opts.SetProjection(map[string]any{FIELD_ID: 1, FIELD_LABEL: 1})
 
 		cursor, err := vcol.Find(context.TODO(), selection, opts)
 		if err == nil {
 			defer cursor.Close(context.TODO())
-			result := map[string]interface{}{}
+			result := map[string]any{}
 			for cursor.Next(context.TODO()) {
 				select {
 				case <-ctx.Done():

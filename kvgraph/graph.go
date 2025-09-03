@@ -185,10 +185,10 @@ func (kgdb *KVInterfaceGDB) DelEdge(eid string) error {
 	if err := kgdb.kvg.kv.Delete(ekey); err != nil {
 		return err
 	}
-	if err := kgdb.kvg.kv.Delete(skey); err != nil {
+	if err := kgdb.kvg.kv.DeletePrefix(skey); err != nil {
 		return err
 	}
-	if err := kgdb.kvg.kv.Delete(dkey); err != nil {
+	if err := kgdb.kvg.kv.DeletePrefix(dkey); err != nil {
 		return err
 	}
 	if err := kgdb.kvg.idx.RemoveDoc(eid); err != nil {
