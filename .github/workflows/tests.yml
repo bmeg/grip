@@ -279,4 +279,4 @@ jobs:
     - name: GRIDs unit tests
       run: |
         chmod +x grip
-        go test ./test -config grids.ymls
+        go test ./test -config grids.yml
