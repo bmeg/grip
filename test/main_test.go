@@ -78,6 +78,7 @@ func TestMain(m *testing.M) {
 		panic(err)
 	}
 	for e := range edgeChan {
+		fmt.Printf("Adding edge: %s %#v\n", e.Id, e.Data.AsMap())
 		edges = append(edges, e)
 	}
 

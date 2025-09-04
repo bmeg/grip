@@ -53,7 +53,7 @@ func (c *Config) StreamInterceptor() grpc.StreamServerInterceptor {
 // Return a new interceptor function that authorizes RPCs
 // using a password stored in the config.
 func unaryAuthInterceptor(auth Authenticate, access Access) grpc.UnaryServerInterceptor {
-	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
 		//fmt.Printf("AuthInt: %#v\n", ctx)
 		md, _ := metadata.FromIncomingContext(ctx)
 		//fmt.Printf("Metadata: %#v\n", md)
@@ -88,7 +88,7 @@ func unaryAuthInterceptor(auth Authenticate, access Access) grpc.UnaryServerInte
 // Return a new interceptor function that authorizes RPCs
 // using a password stored in the config.
 func streamAuthInterceptor(auth Authenticate, access Access) grpc.StreamServerInterceptor {
-	return func(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
+	return func(srv any, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
 		//fmt.Printf("Streaming query: %#v\n", info)
 		md, _ := metadata.FromIncomingContext(ss.Context())
 
@@ -155,7 +155,7 @@ func streamAuthInterceptor(auth Authenticate, access Access) grpc.StreamServerIn
 	}
 }
 
-func getUnaryRequestGraph(req interface{}, info *grpc.UnaryServerInfo) (string, error) {
+func getUnaryRequestGraph(req any, info *grpc.UnaryServerInfo) (string, error) {
 	switch info.FullMethod {
 	case "/gripql.Query/Traversal", "/gripql.Job/Submit",
 		"/gripql.Job/SearchJobs":

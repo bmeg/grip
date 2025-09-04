@@ -31,11 +31,11 @@ func (bw *BulkWriteFilter) Context() context.Context {
 	return bw.SS.Context()
 }
 
-func (bw *BulkWriteFilter) SendMsg(m interface{}) error {
+func (bw *BulkWriteFilter) SendMsg(m any) error {
 	return bw.SS.SendMsg(m)
 }
 
-func (bw *BulkWriteFilter) RecvMsg(m interface{}) error {
+func (bw *BulkWriteFilter) RecvMsg(m any) error {
 	for {
 		var ge gripql.GraphElement
 		err := bw.SS.RecvMsg(&ge)
@@ -75,11 +75,11 @@ func (bw *BulkWriteRawFilter) Context() context.Context {
 	return bw.SS.Context()
 }
 
-func (bw *BulkWriteRawFilter) SendMsg(m interface{}) error {
+func (bw *BulkWriteRawFilter) SendMsg(m any) error {
 	return bw.SS.SendMsg(m)
 }
 
-func (bw *BulkWriteRawFilter) RecvMsg(m interface{}) error {
+func (bw *BulkWriteRawFilter) RecvMsg(m any) error {
 	for {
 		var ge gripql.RawJson
 		err := bw.SS.RecvMsg(&ge)

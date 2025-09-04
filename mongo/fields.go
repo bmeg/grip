@@ -22,8 +22,12 @@ const FIELD_CURRENT_LABEL = "data._label"
 const FIELD_DST = "dst"
 const FIELD_DST_ID = "dst._id"
 const FIELD_DST_TO = "dst._to"
-const FIELD_DST_FROM = "dst._from"
 const FIELD_DST_LABEL = "dst._label"
+
+const FIELD_SRC = "src"
+const FIELD_SRC_ID = "src._id"
+const FIELD_SRC_TO = "src._to"
+const FIELD_SRC_LABEL = "src._label"
 
 func IsNodeField(f string) bool {
 	return f == FIELD_ID || f == FIELD_LABEL || f == FIELD_TO || f == FIELD_FROM
@@ -46,7 +50,7 @@ func ToPipelinePath(p string) string {
 	path = strings.TrimPrefix(path, "$.")
 
 	if path == "_gid" {
-		path = "_id"
+		path = FIELD_ID
 	}
 
 	if ns == tpath.CURRENT {

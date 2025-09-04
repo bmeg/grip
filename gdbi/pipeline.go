@@ -9,6 +9,7 @@ import (
 type PipelineState interface {
 	GetLastType() DataType
 	SetLastType(DataType)
+	StepLoadData() bool
 }
 
 type CustomProcGen interface {
@@ -47,7 +48,6 @@ type Pipeline interface {
 
 type StatementCompiler interface {
 	V(gs *gripql.GraphStatement_V, ps *State) (Processor, error)
-	E(gs *gripql.GraphStatement_E, ps *State) (Processor, error)
 	In(gs *gripql.GraphStatement_In, ps *State) (Processor, error)
 	Out(gs *gripql.GraphStatement_Out, ps *State) (Processor, error)
 	InNull(gs *gripql.GraphStatement_InNull, ps *State) (Processor, error)

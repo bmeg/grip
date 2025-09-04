@@ -15,7 +15,7 @@ GRIP Plugable External Resources
 
 The graph model describes how GRIP will access multiple gripper servers. The mapping
 of these data resources is done using a graph. The `vertices` represent how each vertex
-type will be mapped, and the `edges` describe how edges will be created. The `gid`
+type will be mapped, and the `edges` describe how edges will be created. The `_id`
 of each vertex represents the prefix domain of all vertices that can be found in that
 source.
 

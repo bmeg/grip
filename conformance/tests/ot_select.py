@@ -8,7 +8,7 @@ def test_simple(man):
 
     G = man.setGraph("swapi")
 
-    q = G.query().V().hasLabel("Character").as_("a").out().select("a")
+    q = G.V().hasLabel("Character").as_("a").out().select("a")
 
     count = 0
     for row in q:
@@ -25,7 +25,7 @@ def test_select(man):
 
     G = man.setGraph("swapi")
 
-    q = G.query().V().hasLabel("Character").as_("person")
+    q = G.V().hasLabel("Character").as_("person")
     q = q.out("homeworld").has(gripql.eq("name", "Tatooine")).select("person")
     q = q.out("species")
 

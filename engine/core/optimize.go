@@ -1,142 +1,93 @@
 package core
 
 import (
-	"github.com/bmeg/grip/gdbi/tpath"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/util/protoutil"
 )
 
-// IndexStartOptimize looks at processor pipeline for queries like
-// V().Has(Eq("$._label", "Person")) and V().Has(Eq("$._id", "1")),
-// streamline into a single index lookup
-func IndexStartOptimize(pipe []*gripql.GraphStatement) []*gripql.GraphStatement {
-	optimized := []*gripql.GraphStatement{}
-
-	//var lookupV *gripql.GraphStatement_V
-	hasIDIdx := []int{}
-	hasLabelIdx := []int{}
-	isDone := false
-	for i, step := range pipe {
-		if isDone {
-			break
-		}
-		if i == 0 {
-			if v, ok := step.GetStatement().(*gripql.GraphStatement_V); ok {
-				if v.V != nil && len(v.V.Values) > 0 {
-					break
-				}
-			} else {
-				break
-			}
-			continue
-		}
-		switch s := step.GetStatement().(type) {
-		case *gripql.GraphStatement_HasId:
-			hasIDIdx = append(hasIDIdx, i)
-		case *gripql.GraphStatement_HasLabel:
-			hasLabelIdx = append(hasLabelIdx, i)
-		case *gripql.GraphStatement_Has:
-			if and := s.Has.GetAnd(); and != nil {
-				stmts := and.GetExpressions()
-				newPipe := []*gripql.GraphStatement{}
-				newPipe = append(newPipe, pipe[:i]...)
-				for _, stmt := range stmts {
-					newPipe = append(newPipe, &gripql.GraphStatement{Statement: &gripql.GraphStatement_Has{Has: stmt}})
-				}
-				newPipe = append(newPipe, pipe[i+1:]...)
-				return IndexStartOptimize(newPipe)
-			}
-			if cond := s.Has.GetCondition(); cond != nil {
-				path := tpath.NormalizePath(cond.Key)
-				switch path {
-				case "$_current._id":
-					hasIDIdx = append(hasIDIdx, i)
-				case "$_current._label":
-					hasLabelIdx = append(hasLabelIdx, i)
-				default:
-					// do nothing
-				}
-			}
-		default:
-			isDone = true
-		}
-	}
-
-	idOpt := false
-	if len(hasIDIdx) > 0 {
-		ids := []string{}
-		idx := hasIDIdx[0]
-		if has, ok := pipe[idx].GetStatement().(*gripql.GraphStatement_Has); ok {
-			ids = append(ids, extractHasVals(has)...)
-		}
-		if has, ok := pipe[idx].GetStatement().(*gripql.GraphStatement_HasId); ok {
-			ids = append(ids, protoutil.AsStringList(has.HasId)...)
-		}
-		if len(ids) > 0 {
-			idOpt = true
-			hIdx := &gripql.GraphStatement_V{V: protoutil.NewListFromStrings(ids)}
-			optimized = append(optimized, &gripql.GraphStatement{Statement: hIdx})
-		}
-	}
-
-	labelOpt := false
-	if len(hasLabelIdx) > 0 && !idOpt {
-		labels := []string{}
-		idx := hasLabelIdx[0]
-		if has, ok := pipe[idx].GetStatement().(*gripql.GraphStatement_Has); ok {
-			labels = append(labels, extractHasVals(has)...)
-		}
-		if has, ok := pipe[idx].GetStatement().(*gripql.GraphStatement_HasLabel); ok {
-			labels = append(labels, protoutil.AsStringList(has.HasLabel)...)
-		}
-		if len(labels) > 0 {
-			labelOpt = true
-			hIdx := &gripql.GraphStatement_LookupVertsIndex{Labels: labels}
-			optimized = append(optimized, &gripql.GraphStatement{Statement: hIdx})
-		}
-	}
-
-	for i, step := range pipe {
-		if idOpt || labelOpt {
-			if i == 0 {
-				continue
-			}
-		} else {
-			optimized = append(optimized, step)
-		}
-		if idOpt {
-			if i != hasIDIdx[0] {
-				optimized = append(optimized, step)
-			}
-		}
-		if labelOpt {
-			if i != hasLabelIdx[0] {
-				optimized = append(optimized, step)
-			}
-		}
-	}
-
-	return optimized
+// OptimizationRule defines a structure for matching and replacing query pipeline patterns.
+type OptimizationRule struct {
+	Match   func(pipe []*gripql.GraphStatement) bool
+	Replace func(pipe []*gripql.GraphStatement) []*gripql.GraphStatement
 }
 
-func extractHasVals(h *gripql.GraphStatement_Has) []string {
-	vals := []string{}
-	if cond := h.Has.GetCondition(); cond != nil {
-		// path := jsonpath.GetJSONPath(cond.Key)
-		val := cond.Value.AsInterface()
-		switch cond.Condition {
-		case gripql.Condition_EQ:
-			if l, ok := val.(string); ok {
-				vals = []string{l}
+// startOptimizations is a list of rules to optimize the query pipeline.
+var startOptimizations = []OptimizationRule{
+	{
+		// Matches V().HasId(...)
+		Match: func(pipe []*gripql.GraphStatement) bool {
+			if len(pipe) < 2 {
+				return false
 			}
-		case gripql.Condition_WITHIN:
-			v := val.([]interface{})
-			for _, x := range v {
-				vals = append(vals, x.(string))
+			if _, ok := pipe[0].GetStatement().(*gripql.GraphStatement_V); !ok {
+				return false
 			}
-		default:
-			// do nothing
+			if hasId, ok := pipe[1].GetStatement().(*gripql.GraphStatement_HasId); ok {
+				return len(hasId.HasId.Values) > 0
+			}
+			return false
+		},
+		Replace: func(pipe []*gripql.GraphStatement) []*gripql.GraphStatement {
+			ids := protoutil.AsStringList(pipe[1].GetHasId())
+			optimized := []*gripql.GraphStatement{
+				{Statement: &gripql.GraphStatement_V{V: protoutil.NewListFromStrings(ids)}},
+			}
+			return append(optimized, pipe[2:]...)
+		},
+	},
+	{
+		// Matches V().HasLabel(...)
+		Match: func(pipe []*gripql.GraphStatement) bool {
+			if len(pipe) < 2 {
+				return false
+			}
+			if _, ok := pipe[0].GetStatement().(*gripql.GraphStatement_V); !ok {
+				return false
+			}
+			if hasLabel, ok := pipe[1].GetStatement().(*gripql.GraphStatement_HasLabel); ok {
+				return len(hasLabel.HasLabel.GetValues()) > 0
+			}
+			return false
+		},
+		Replace: func(pipe []*gripql.GraphStatement) []*gripql.GraphStatement {
+			labels := protoutil.AsStringList(pipe[1].GetHasLabel())
+			optimized := []*gripql.GraphStatement{
+				{Statement: &gripql.GraphStatement_LookupVertsLabelIndex{Labels: labels}},
+			}
+			return append(optimized, pipe[2:]...)
+		},
+	},
+}
+
+// expandHasAnd preprocesses the pipeline to split Has statements with And expressions.
+func expandHasAnd(pipe []*gripql.GraphStatement) []*gripql.GraphStatement {
+	expanded := []*gripql.GraphStatement{}
+	for _, step := range pipe {
+		if has, ok := step.GetStatement().(*gripql.GraphStatement_Has); ok {
+			if and := has.Has.GetAnd(); and != nil {
+				for _, expr := range and.Expressions {
+					expanded = append(expanded, &gripql.GraphStatement{Statement: &gripql.GraphStatement_Has{Has: expr}})
+				}
+			} else {
+				expanded = append(expanded, step)
+			}
+		} else {
+			expanded = append(expanded, step)
 		}
 	}
-	return vals
+	return expanded
+}
+
+// IndexStartOptimize applies optimization rules to the query pipeline.
+func IndexStartOptimize(pipe []*gripql.GraphStatement) []*gripql.GraphStatement {
+	// Preprocess to handle Has with And expressions
+	pipe = expandHasAnd(pipe)
+	// Apply the first matching optimization rule
+	for _, rule := range startOptimizations {
+		if rule.Match(pipe) {
+			return rule.Replace(pipe)
+		}
+	}
+	// Return the original pipeline if no optimizations apply
+	return pipe
 }

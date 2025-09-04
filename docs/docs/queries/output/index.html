@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head>
+  <link href="http://gmpg.org/xfn/11" rel="profile">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+
+  
+  <title>Output Control &middot; GRIP</title>
+  
+
+  
+  <link rel="stylesheet" href="https://bmeg.github.io/grip/css/poole.css">
+  <link rel="stylesheet" href="https://bmeg.github.io/grip/css/darcula.css">
+  <link rel="stylesheet" href="https://bmeg.github.io/grip/css/syntax.css">
+  <link rel="stylesheet" href="https://bmeg.github.io/grip/css/theme.css">
+  <link rel="stylesheet" href="https://bmeg.github.io/grip/css/funnel.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=PT+Sans:400,400italic,700">
+
+  
+  <link rel="apple-touch-icon-precomposed" sizes="144x144" href="https://bmeg.github.io/grip/apple-touch-icon-144-precomposed.png">
+  <link rel="shortcut icon" href="https://bmeg.github.io/grip/favicon.png">
+
+  <script src="https://bmeg.github.io/grip/js/highlight.pack.js"></script>
+  <script>hljs.initHighlightingOnLoad();</script>
+
+</head>
+<body>
+
+  <div class="global-header">
+    <div class="global-header-container">
+      <div class="global-header-home">
+        <a href="https://bmeg.github.io/grip/"><h1>GRIP</h1></a>
+      </div>
+      <ul class="global-header-nav">
+          <li><a href="https://bmeg.github.io/grip/download//">Download</a></li>
+          <li><a href="https://bmeg.github.io/grip/docs/">Docs</a></li>
+          <li><a href="https://github.com/bmeg/grip">GitHub</a></li>
+          <li><a href="https://gitter.im/bmeg/grip">Chat</a></li>
+        </ul>
+      <div class="global-header-ohsucb">
+        <a href="https://www.ohsu.edu/compbio/"><h2>OHSU Comp Bio</h2></a>
+      </div>
+    </div>
+  </div>
+
+
+<div class="content section group">
+
+  <div class="sidebar col span_3_of_12">
+    <ul class="sidebar-nav">
+      
+      
+        
+        <li>
+          
+          <a href="https://bmeg.github.io/grip/docs/"
+             class="sidebar-nav-item "
+          >Overview</a></li>
+          
+        
+        <li>
+          
+          <a href="https://bmeg.github.io/grip/download/"
+             class="sidebar-nav-item "
+          >Download</a></li>
+          
+        
+        <li>
+          
+          <span class="intermediate">GRIP Commands</span></li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/commands/server/"
+                   class="sidebar-nav-item "
+                >server</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/commands/create/"
+                   class="sidebar-nav-item "
+                >create</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/commands/query/"
+                   class="sidebar-nav-item "
+                >query</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/commands/delete/"
+                   class="sidebar-nav-item "
+                >delete</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/commands/list/"
+                   class="sidebar-nav-item "
+                >list</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/commands/drop/"
+                   class="sidebar-nav-item "
+                >drop</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/commands/mongoload/"
+                   class="sidebar-nav-item "
+                >mongoload</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/commands/er/"
+                   class="sidebar-nav-item "
+                >er</a></li>
+            </ul>
+          </li>
+          
+          
+        
+        <li>
+          
+          <a href="https://bmeg.github.io/grip/docs/databases/"
+             class="sidebar-nav-item "
+          >Database Configuration</a></li>
+          
+        
+        <li>
+          
+          <a href="https://bmeg.github.io/grip/docs/clients/"
+             class="sidebar-nav-item "
+          >Client Library</a></li>
+          
+        
+        <li>
+          
+          <span class="intermediate">Query a Graph</span></li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/queries/traversal_start/"
+                   class="sidebar-nav-item "
+                >Start a Traversal</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/queries/jsonpath/"
+                   class="sidebar-nav-item "
+                >Referencing Fields</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/queries/traverse_graph/"
+                   class="sidebar-nav-item "
+                >Traverse the Graph</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/queries/filtering/"
+                   class="sidebar-nav-item "
+                >Filtering</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/queries/record_transforms/"
+                   class="sidebar-nav-item "
+                >Record Transforms</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/queries/aggregation/"
+                   class="sidebar-nav-item "
+                >Aggregation</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/queries/output/"
+                   class="sidebar-nav-item  active"
+                >Output Control</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/queries/iterations/"
+                   class="sidebar-nav-item "
+                >Iteration</a></li>
+            </ul>
+          </li>
+          
+          
+        
+        <li>
+          
+          <a href="https://bmeg.github.io/grip/docs/jobs_api/"
+             class="sidebar-nav-item "
+          >Jobs API</a></li>
+          
+        
+        <li>
+          
+          <span class="intermediate">Tutorials</span></li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/tutorials/amazon/"
+                   class="sidebar-nav-item "
+                >Amazon Purchase Network</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/tutorials/tcga-rna/"
+                   class="sidebar-nav-item "
+                >TCGA RNA Expression</a></li>
+            </ul>
+          </li>
+          
+          
+        
+        <li>
+          
+          <span class="intermediate">Security</span></li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/security/basic/"
+                   class="sidebar-nav-item "
+                >Basic Auth</a></li>
+            </ul>
+          </li>
+          
+          
+        
+        <li>
+          
+          <span class="intermediate">GraphQL</span></li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/graphql/graphql/"
+                   class="sidebar-nav-item "
+                >GraphQL</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/graphql/graph_schemas/"
+                   class="sidebar-nav-item "
+                >Graph Schemas</a></li>
+            </ul>
+          </li>
+          
+          
+        
+        <li>
+          
+          <span class="intermediate">Developers</span></li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://github.com/bmeg/grip/blob/master/gripql/gripql.proto"
+                   class="sidebar-nav-item "
+                >API</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://godoc.org/github.com/bmeg/grip"
+                   class="sidebar-nav-item "
+                >GoDoc</a></li>
+            </ul>
+          </li>
+          
+          
+        
+        <li>
+          
+          <span class="intermediate">GRIP Plugable External Resources</span></li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/gripper/gripper/"
+                   class="sidebar-nav-item "
+                >Intro</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/gripper/proxy/"
+                   class="sidebar-nav-item "
+                >External Resource Proxies</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/gripper/graphmodel/"
+                   class="sidebar-nav-item "
+                >Graph Model</a></li>
+            </ul>
+          </li>
+          
+          
+        
+      
+    </ul>
+  </div>
+
+  <div class="main col span_8_of_12">
+    <hr>
+<h1 id="output-control">Output control</h1>
+<h2 id="limitcount"><code>.limit(count)</code></h2>
+<p>Limit number of total output rows</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span>G<span style="color:#f92672">.</span>V()<span style="color:#f92672">.</span>limit(<span style="color:#ae81ff">5</span>)
+</span></span></code></pre></div><hr>
+<h2 id="skipcount"><code>.skip(count)</code></h2>
+<p>Start return after offset</p>
+<p>Example:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span>G<span style="color:#f92672">.</span>V()<span style="color:#f92672">.</span>skip(<span style="color:#ae81ff">10</span>)<span style="color:#f92672">.</span>limit(<span style="color:#ae81ff">5</span>)
+</span></span></code></pre></div><h2 id="this-query-skips-the-first-10-vertices-and-then-returns-the-next-5">This query skips the first 10 vertices and then returns the next 5.</h2>
+<h2 id="rangestart-stop"><code>.range(start, stop)</code></h2>
+<p>Selects a subset of the results based on their index.  <code>start</code> is inclusive, and <code>stop</code> is exclusive.
+Example:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span>G<span style="color:#f92672">.</span>V()<span style="color:#f92672">.</span>range(<span style="color:#ae81ff">5</span>, <span style="color:#ae81ff">10</span>)
+</span></span></code></pre></div><hr>
+<h2 id="fieldsfields"><code>.fields([fields])</code></h2>
+<p>Specifies which fields of a vertex or edge to include or exclude in the output. By default, <code>_id</code>, <code>_label</code>, <code>_from</code>, and <code>_to</code> are included.</p>
+<p>If <code>fields</code> is empty, all properties are excluded.
+If <code>fields</code> contains field names, only those properties are included.
+If <code>fields</code> contains field names prefixed with <code>-</code>, those properties are excluded, and all others are included.</p>
+<p>Examples:</p>
+<p>Include only the &lsquo;symbol&rsquo; property:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span>G<span style="color:#f92672">.</span>V(<span style="color:#e6db74">&#34;vertex1&#34;</span>)<span style="color:#f92672">.</span>fields([<span style="color:#e6db74">&#34;symbol&#34;</span>])
+</span></span></code></pre></div><p>Exclude the &lsquo;symbol&rsquo; property:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span>G<span style="color:#f92672">.</span>V(<span style="color:#e6db74">&#34;vertex1&#34;</span>)<span style="color:#f92672">.</span>fields([<span style="color:#e6db74">&#34;-symbol&#34;</span>])
+</span></span></code></pre></div><p>Exclude all properties:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span>G<span style="color:#f92672">.</span>V(<span style="color:#e6db74">&#34;vertex1&#34;</span>)<span style="color:#f92672">.</span>fields([])
+</span></span></code></pre></div><hr>
+<h2 id="rendertemplate"><code>.render(template)</code></h2>
+<p>Transforms the current selection into an arbitrary data structure defined by the <code>template</code>. The <code>template</code> is a string that can include placeholders for vertex/edge properties.</p>
+<p>Example:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span>G<span style="color:#f92672">.</span>V(<span style="color:#e6db74">&#34;vertex1&#34;</span>)<span style="color:#f92672">.</span>render( {<span style="color:#e6db74">&#34;node_info&#34;</span> : {<span style="color:#e6db74">&#34;id&#34;</span>: <span style="color:#e6db74">&#34;$._id&#34;</span>, <span style="color:#e6db74">&#34;label&#34;</span>: <span style="color:#e6db74">&#34;$._label&#34;</span>}, <span style="color:#e6db74">&#34;data&#34;</span> : {<span style="color:#e6db74">&#34;whatToExpect&#34;</span>: <span style="color:#e6db74">&#34;$.climate&#34;</span>}} )
+</span></span></code></pre></div><p>Assuming <code>vertex1</code> has <code>_id</code>, <code>_label</code>, and <code>symbol</code> properties, this would return a JSON object with those fields.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-json" data-lang="json"><span style="display:flex;"><span>{<span style="color:#f92672">&#34;node_info&#34;</span> : {<span style="color:#f92672">&#34;id&#34;</span> :<span style="color:#e6db74">&#34;Planet:2&#34;</span>, <span style="color:#f92672">&#34;label&#34;</span>:<span style="color:#e6db74">&#34;Planet&#34;</span>}, <span style="color:#f92672">&#34;data&#34;</span>:{<span style="color:#f92672">&#34;whatToExpect&#34;</span>:<span style="color:#e6db74">&#34;arid&#34;</span>} }
+</span></span></code></pre></div>
+  </div>
+
+</div>
+</body>
+</html>

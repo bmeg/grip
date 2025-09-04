@@ -7,6 +7,8 @@ import (
 
 	"github.com/bmeg/grip/engine/logic"
 	"github.com/bmeg/grip/gdbi"
+
+	//"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/util/copy"
 	"github.com/spf13/cast"
 )
@@ -59,14 +61,14 @@ func (l *LookupVerts) Process(ctx context.Context, man gdbi.Manager, in gdbi.InP
 ////////////////////////////////////////////////////////////////////////////////
 
 // LookupVertsIndex look up vertices by indexed based feature
-type LookupVertsIndex struct {
+type LookupVertsLabelIndex struct {
 	db       gdbi.GraphInterface
 	labels   []string
 	loadData bool
 }
 
 // Process LookupVertsIndex
-func (l *LookupVertsIndex) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
+func (l *LookupVertsLabelIndex) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
 	queryChan := make(chan gdbi.ElementLookup, 100)
 	go func() {
 		defer close(queryChan)
@@ -168,7 +170,7 @@ func (f *Fields) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, 
 
 // Render takes current state and renders into requested structure
 type Render struct {
-	Template interface{}
+	Template any
 }
 
 // Process runs the render processor
@@ -191,7 +193,7 @@ func (r *Render) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, 
 
 // Path tells system to return path data
 type Path struct {
-	Template interface{} //this isn't really used yet.
+	Template any //this isn't really used yet.
 }
 
 // Process runs the render processor
@@ -226,7 +228,8 @@ func (r *Unwind) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, 
 				continue
 			}
 			v := gdbi.TravelerPathLookup(t, r.Field)
-			if a, ok := v.([]interface{}); ok {
+			//log.Debugln("UNWIND V RES: ", v)
+			if a, ok := v.([]any); ok {
 				cur := t.GetCurrent()
 				if len(a) > 0 {
 					for _, i := range a {
@@ -235,7 +238,7 @@ func (r *Unwind) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, 
 							Label: cur.Get().Label,
 							From:  cur.Get().From,
 							To:    cur.Get().To,
-							Data:  copy.DeepCopy(cur.Get().Data).(map[string]interface{}), Loaded: true,
+							Data:  copy.DeepCopy(cur.Get().Data).(map[string]any), Loaded: true,
 						}
 						n := t.AddCurrent(&o)
 						gdbi.TravelerSetValue(n, r.Field, i)
@@ -256,7 +259,7 @@ func (r *Unwind) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, 
 						Label: cur.Get().Label,
 						From:  cur.Get().From,
 						To:    cur.Get().To,
-						Data:  copy.DeepCopy(cur.Get().Data).(map[string]interface{}), Loaded: true,
+						Data:  copy.DeepCopy(cur.Get().Data).(map[string]any), Loaded: true,
 					}
 					n := t.AddCurrent(&o)
 					gdbi.TravelerSetValue(n, r.Field, nil)
@@ -499,7 +502,7 @@ func (s *Selector) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe
 
 type ValueSet struct {
 	key   string
-	value interface{}
+	value any
 }
 
 func (s *ValueSet) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {

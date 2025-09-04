@@ -317,7 +317,7 @@ func CompareBooleans(a, b bool) int {
 }
 
 // ComparePointers compares two pointers.
-func ComparePointers(a, b interface{}) int {
+func ComparePointers(a, b any) int {
 	ptrA := reflect.ValueOf(a).Pointer()
 	ptrB := reflect.ValueOf(b).Pointer()
 	if ptrA < ptrB {

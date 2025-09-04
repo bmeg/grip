@@ -6,7 +6,7 @@ def test_mark_select_label_filter(man):
     G = man.setGraph("swapi")
 
     count = 0
-    for row in G.query().V("Film:1").as_("a").\
+    for row in G.V("Film:1").as_("a").\
             both("films").\
             as_("b").\
             render({"a" : "$a", "b" : "$b"}):
@@ -31,7 +31,7 @@ def test_mark_select(man):
     G = man.setGraph("swapi")
 
     count = 0
-    for row in G.query().V("Character:1").as_("a").out().as_(
+    for row in G.V("Character:1").as_("a").out().as_(
             "b").out().as_("c").render({"a": "$a", "b": "$b", "c": "$c"}):
         count += 1
         if len(row) != 3:
@@ -56,7 +56,7 @@ def test_mark_edge_select(man):
     G = man.setGraph("swapi")
 
     count = 0
-    for row in G.query().V("Film:1").as_("a").outE("planets").as_(
+    for row in G.V("Film:1").as_("a").outE("planets").as_(
             "b").out().as_("c").render({"a":"$a", "b":"$b", "c":"$c"}):
         count += 1
         if len(row) != 3:

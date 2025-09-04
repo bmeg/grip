@@ -1,0 +1,11 @@
+Default: grids
+
+Drivers:
+  grids:
+    Grids: grip-grids.db
+
+Kafka:
+  Username: admin
+  Password: adminpassword
+  Hostname: localhost:9092
+  Topic: gripHistory

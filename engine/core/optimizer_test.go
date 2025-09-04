@@ -211,7 +211,7 @@ func TestIndexStartOptimize(t *testing.T) {
 	}
 
 	expected = []*gripql.GraphStatement{
-		{Statement: &gripql.GraphStatement_LookupVertsIndex{Labels: []string{"foo", "bar"}}},
+		{Statement: &gripql.GraphStatement_LookupVertsLabelIndex{Labels: []string{"foo", "bar"}}},
 		{Statement: &gripql.GraphStatement_Out{}},
 	}
 
@@ -266,7 +266,7 @@ func TestIndexStartOptimize(t *testing.T) {
 	}
 
 	expected = []*gripql.GraphStatement{
-		{Statement: &gripql.GraphStatement_LookupVertsIndex{Labels: []string{"foo", "bar"}}},
+		{Statement: &gripql.GraphStatement_LookupVertsLabelIndex{Labels: []string{"foo", "bar"}}},
 		{Statement: &gripql.GraphStatement_Out{}},
 	}
 
@@ -294,7 +294,7 @@ func TestIndexStartOptimize(t *testing.T) {
 
 	barValue, _ := structpb.NewValue("bar")
 	expected = []*gripql.GraphStatement{
-		{Statement: &gripql.GraphStatement_LookupVertsIndex{Labels: []string{"foo", "bar"}}},
+		{Statement: &gripql.GraphStatement_LookupVertsLabelIndex{Labels: []string{"foo", "bar"}}},
 		{Statement: &gripql.GraphStatement_Has{
 			Has: &gripql.HasExpression{Expression: &gripql.HasExpression_Condition{
 				Condition: &gripql.HasCondition{
@@ -339,7 +339,7 @@ func TestIndexStartOptimize(t *testing.T) {
 
 	bazValue, _ := structpb.NewValue("baz")
 	expected = []*gripql.GraphStatement{
-		{Statement: &gripql.GraphStatement_LookupVertsIndex{Labels: []string{"foo", "bar"}}},
+		{Statement: &gripql.GraphStatement_LookupVertsLabelIndex{Labels: []string{"foo", "bar"}}},
 		{Statement: &gripql.GraphStatement_Has{
 			Has: &gripql.HasExpression{Expression: &gripql.HasExpression_Condition{
 				Condition: &gripql.HasCondition{
@@ -440,7 +440,7 @@ func TestIndexStartOptimize(t *testing.T) {
 	// handle 'and' statements
 
 	expected = []*gripql.GraphStatement{
-		{Statement: &gripql.GraphStatement_LookupVertsIndex{Labels: []string{"foo", "bar"}}},
+		{Statement: &gripql.GraphStatement_LookupVertsLabelIndex{Labels: []string{"foo", "bar"}}},
 		{Statement: &gripql.GraphStatement_Has{
 			Has: &gripql.HasExpression{Expression: &gripql.HasExpression_Condition{
 				Condition: &gripql.HasCondition{

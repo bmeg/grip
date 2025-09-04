@@ -3,7 +3,7 @@ package server
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -27,7 +27,7 @@ func (server *GripServer) StartPlugin(ctx context.Context, config *gripql.Plugin
 	if _, ok := server.plugins[config.Name]; ok {
 		return nil, fmt.Errorf("Plugin named %s already running", config.Name)
 	}
-	workdir, err := ioutil.TempDir(server.conf.Server.WorkDir, "gripper-")
+	workdir, err := os.MkdirTemp(server.conf.Server.WorkDir, "gripper-")
 	if err != nil {
 		return nil, err
 	}

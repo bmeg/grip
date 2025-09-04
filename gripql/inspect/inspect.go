@@ -31,7 +31,7 @@ func PipelineSteps(stmts []*gripql.GraphStatement) []string {
 		switch gs.GetStatement().(type) {
 		//These commands all change the position of the traveler. When that happens,
 		//we go to the next 'step' of the traversal
-		case *gripql.GraphStatement_V, *gripql.GraphStatement_E, *gripql.GraphStatement_Out,
+		case *gripql.GraphStatement_V, *gripql.GraphStatement_Out,
 			*gripql.GraphStatement_In, *gripql.GraphStatement_OutE, *gripql.GraphStatement_InE,
 			*gripql.GraphStatement_Both, *gripql.GraphStatement_BothE, *gripql.GraphStatement_Select,
 			*gripql.GraphStatement_InNull, *gripql.GraphStatement_OutNull,
@@ -45,7 +45,8 @@ func PipelineSteps(stmts []*gripql.GraphStatement) []string {
 			*gripql.GraphStatement_Set, *gripql.GraphStatement_Increment,
 			*gripql.GraphStatement_Mark, *gripql.GraphStatement_Jump, *gripql.GraphStatement_Sort,
 			*gripql.GraphStatement_Pivot, *gripql.GraphStatement_Group, *gripql.GraphStatement_Totype:
-		case *gripql.GraphStatement_LookupVertsIndex, *gripql.GraphStatement_EngineCustom:
+		case *gripql.GraphStatement_LookupVertsLabelIndex,
+			*gripql.GraphStatement_EngineCustom:
 		default:
 			log.Errorf("Unknown Graph Statement: %T", gs.GetStatement())
 		}
@@ -114,7 +115,9 @@ func PipelineStepOutputs(stmts []*gripql.GraphStatement, storeMarks bool) map[st
 			onLast = false
 
 		case *gripql.GraphStatement_Pivot:
-			//TODO: figure out which fields are referenced
+			if onLast {
+				out[steps[i]] = []string{"*"}
+			}
 			onLast = false
 
 		case *gripql.GraphStatement_Group:
@@ -137,7 +140,7 @@ func PipelineStepOutputs(stmts []*gripql.GraphStatement, storeMarks bool) map[st
 					out[a] = []string{"*"}
 				}
 			}
-		case *gripql.GraphStatement_V, *gripql.GraphStatement_E,
+		case *gripql.GraphStatement_V,
 			*gripql.GraphStatement_Out, *gripql.GraphStatement_In,
 			*gripql.GraphStatement_OutE, *gripql.GraphStatement_InE,
 			*gripql.GraphStatement_Both, *gripql.GraphStatement_BothE:
@@ -145,7 +148,15 @@ func PipelineStepOutputs(stmts []*gripql.GraphStatement, storeMarks bool) map[st
 				out[steps[i]] = []string{"*"}
 			}
 			onLast = false
-		case *gripql.GraphStatement_LookupVertsIndex:
+
+		case *gripql.GraphStatement_Sort, *gripql.GraphStatement_Totype,
+			*gripql.GraphStatement_Unwind, *gripql.GraphStatement_Aggregate:
+			if onLast {
+				out[steps[i]] = []string{"*"}
+			}
+			onLast = false
+
+		case *gripql.GraphStatement_LookupVertsLabelIndex:
 			if onLast {
 				out[steps[i]] = []string{"*"}
 			}

@@ -44,4 +44,4 @@ class TestRequestHeaderFormat(unittest.TestCase):
         # test header propagation to Graph and Query classes
         c = Connection(self.mock_url, token="iamnotarealtoken")
         self.assertEqual(c.session.headers, c.graph('test').session.headers)
-        self.assertEqual(c.session.headers, c.graph('test').query().session.headers)
+        self.assertEqual(c.session.headers, c.graph('test').session.headers)

@@ -108,20 +108,20 @@ def test_V(man):
     G = man.setGraph("swapi")
 
     count = 0
-    for i in G.query().V():
+    for i in G.V():
         count += 1
     if count != 39:
-        errors.append("Fail: G.query().V() %s != %s" % (count, 25))
+        errors.append("Fail: G.V() %s != %s" % (count, 25))
 
     count = 0
-    for i in G.query().V("Character:1"):
+    for i in G.V("Character:1"):
         count += 1
         if i["_id"] != "Character:1":
             errors.append(
-                "Fail: G.query().V(\"Character:1\") - Wrong vertex %s" % (i["_id"])
+                "Fail: G.V(\"Character:1\") - Wrong vertex %s" % (i["_id"])
             )
     if count != 1:
-        errors.append("Fail: G.query().V(\"Character:1\") %s != %s" % (count, 1))
+        errors.append("Fail: G.V(\"Character:1\") %s != %s" % (count, 1))
 
     return errors
 
@@ -132,21 +132,10 @@ def test_E(man):
     G = man.setGraph("swapi")
 
     count = 0
-    for i in G.query().E():
+    for _ in G.V().outE():
         count += 1
     if count != 144:
-        errors.append("Fail: G.query().E() %s != %d" % (count, 144))
-
-    count = 0
-    for i in G.query().E("Film:1-characters-Character:1"):
-        if i["_id"] != "Film:1-characters-Character:1":
-            errors.append(
-                "Fail: G.query().E(\"Film:1-characters-Character:1\") - Wrong edge %s" % (i["_id"])
-            )
-        count += 1
-    if count != 1:
-        errors.append(
-            "Fail: G.query().E(\"Film:1-characters-Character:1\") %s != %d" % (count, 1))
+        errors.append("Fail: G.V().outE() %s != %d" % (count, 144))
 
     return errors
 
@@ -157,38 +146,26 @@ def test_outgoing(man):
     G = man.setGraph("swapi")
 
     count = 0
-    for i in G.query().V("Starship:12").out():
+    for i in G.V("Starship:12").out():
         if i['_id'] not in ['Character:1', 'Character:18', 'Character:19', 'Character:9', 'Film:1']:
             errors.append(
-                "Fail: G.query().V(\"Starship:12\").out() - Wrong vertex %s" % (i['_id'])
+                "Fail: G.V(\"Starship:12\").out() - Wrong vertex %s" % (i['_id'])
             )
         count += 1
     if count != 5:
         errors.append(
-            "Fail: G.query().V(\"Starship:12\").out() %s != %d" % (count, 5))
+            "Fail: G.V(\"Starship:12\").out() %s != %d" % (count, 5))
 
     count = 0
-    for i in G.query().V("Starship:12").out("pilots"):
+    for i in G.V("Starship:12").out("pilots"):
         if i['_id'] not in ['Character:1', 'Character:18', 'Character:19', 'Character:9']:
             errors.append(
-                "Fail: G.query().V(\"Starship:12\").out(\"pilots\") - Wrong vertex %s" % (i['_id'])
+                "Fail: G.V(\"Starship:12\").out(\"pilots\") - Wrong vertex %s" % (i['_id'])
             )
         count += 1
     if count != 4:
         errors.append(
-            "Fail: G.query().V(\"Starship:12\").out(\"pilots\") %s != %d" % (count, 4)
-        )
-
-    count = 0
-    for i in G.query().E("Film:1-characters-Character:1").out():
-        if i['_id'] != "Character:1":
-            errors.append(
-                "Fail: G.query().E(\"Film:1-characters-Character:1\").out() - Wrong vertex %s" % (i['_id'])
-            )
-        count += 1
-    if count != 1:
-        errors.append(
-            "Fail: G.query().E(\"Film:1-characters-Character:1\").out() %s != %d" % (count, 1)
+            "Fail: G.V(\"Starship:12\").out(\"pilots\") %s != %d" % (count, 4)
         )
 
     return errors
@@ -200,47 +177,35 @@ def test_incoming(man):
     G = man.setGraph("swapi")
 
     count = 0
-    for i in G.query().V("Starship:12").in_():
+    for i in G.V("Starship:12").in_():
         if i['_id'] not in ['Character:1', 'Character:18', 'Character:19', 'Character:9', 'Film:1']:
             errors.append(
-                "Fail: G.query().V(\"Starship:12\").in_() - Wrong vertex %s" % (i['_id'])
+                "Fail: G.V(\"Starship:12\").in_() - Wrong vertex %s" % (i['_id'])
             )
         count += 1
     if count != 5:
         errors.append(
-            "Fail: G.query().V(\"Starship:12\").in_() %s != %d" % (count, 5))
+            "Fail: G.V(\"Starship:12\").in_() %s != %d" % (count, 5))
 
     count = 0
-    for i in G.query().V("Starship:12").in_("starships"):
+    for i in G.V("Starship:12").in_("starships"):
         if i['_id'] not in ['Character:1', 'Character:18', 'Character:19', 'Character:9', 'Film:1']:
             errors.append(
-                "Fail: G.query().V(\"Starship:12\").in_(\"starships\") - Wrong vertex %s" % (i['_id'])
+                "Fail: G.V(\"Starship:12\").in_(\"starships\") - Wrong vertex %s" % (i['_id'])
             )
         count += 1
     if count != 5:
         errors.append(
-            "Fail: G.query().V(\"Starship:12\").in_(\"starships\") %s != %d" % (count, 5)
+            "Fail: G.V(\"Starship:12\").in_(\"starships\") %s != %d" % (count, 5)
         )
 
     # sanity check since vertices are connected by multipled edges
     count = 0
-    for i in G.query().V("Starship:12").in_("pilots"):
+    for i in G.V("Starship:12").in_("pilots"):
         count += 0
     if count != 0:
         errors.append(
-            "Fail: G.query().V(\"Starship:12\").in_(\"piolots\") %s != %d" % (count, 0)
-        )
-
-    count = 0
-    for i in G.query().E("Film:1-characters-Character:1").in_():
-        if i['_id'] != "Film:1":
-            errors.append(
-                "Fail: G.query().E(\"Film:1-characters-Character:1\").in_() - Wrong vertex %s" % (i['_id'])
-            )
-        count += 1
-    if count != 1:
-        errors.append(
-            "Fail: G.query().E(\"Film:1-characters-Character:1\").in_() %s != %d" % (count, 1)
+            "Fail: G.V(\"Starship:12\").in_(\"piolots\") %s != %d" % (count, 0)
         )
 
     return errors
@@ -251,23 +216,23 @@ def test_outgoing_edge(man):
 
     G = man.setGraph("swapi")
 
-    c = G.query().V("Character:1").outE().count().execute()[0]["count"]
+    c = G.V("Character:1").outE().count().execute()[0]["count"]
     if c != 4:
-        errors.append("Fail: G.query().V(\"Character:1\").outE().count() %d != %d" % (c, 4))
+        errors.append("Fail: G.V(\"Character:1\").outE().count() %d != %d" % (c, 4))
 
-    for i in G.query().V("Character:1").outE():
+    for i in G.V("Character:1").outE():
         if not i['_id'].startswith("Character:1"):
-            errors.append("Fail: G.query().V(\"Character:1\").outE() - \
+            errors.append("Fail: G.V(\"Character:1\").outE() - \
             Wrong edge '%s'" % (i['_id']))
 
-    for i in G.query().V("Character:1").outE().out():
+    for i in G.V("Character:1").outE().out():
         if i['_id'] not in ['Film:1', 'Planet:1', 'Species:1', 'Starship:12']:
-            errors.append("Fail: G.query().V(\"Character:1\").outE().out() - \
+            errors.append("Fail: G.V(\"Character:1\").outE().out() - \
             Wrong vertex %s" % (i['_id']))
 
-    c = G.query().V("Character:1").outE("homeworld").count().execute()[0]["count"]
+    c = G.V("Character:1").outE("homeworld").count().execute()[0]["count"]
     if c != 1:
-        errors.append("Fail: G.query().V(\"Character:1\").outE(\"homeworld\").count() - %s != %s" % (c, 1))
+        errors.append("Fail: G.V(\"Character:1\").outE(\"homeworld\").count() - %s != %s" % (c, 1))
 
     return errors
 
@@ -277,23 +242,23 @@ def test_incoming_edge(man):
 
     G = man.setGraph("swapi")
 
-    c = G.query().V("Character:1").inE().count().execute()[0]["count"]
+    c = G.V("Character:1").inE().count().execute()[0]["count"]
     if c != 4:
-        errors.append("Fail: G.query().V(\"Character:1\").inE().count() %d != %d" % (c, 4))
+        errors.append("Fail: G.V(\"Character:1\").inE().count() %d != %d" % (c, 4))
 
-    for i in G.query().V("Character:1").inE():
+    for i in G.V("Character:1").inE():
         if not i['_id'].endswith("Character:1"):
-            errors.append("Fail: G.query().V(\"Character:1\").inE() - \
+            errors.append("Fail: G.V(\"Character:1\").inE() - \
             Wrong edge %s" % (i['_id']))
 
-    for i in G.query().V("Character:1").inE().in_():
+    for i in G.V("Character:1").inE().in_():
         if i['_id'] not in ['Film:1', 'Planet:1', 'Species:1', 'Starship:12']:
-            errors.append("Fail: G.query().V(\"Character:1\").inE().in() - \
+            errors.append("Fail: G.V(\"Character:1\").inE().in() - \
             Wrong vertex %s" % (i['_id']))
 
-    c = G.query().V("Character:1").inE("residents").count().execute()[0]["count"]
+    c = G.V("Character:1").inE("residents").count().execute()[0]["count"]
     if c != 1:
-        errors.append("Fail: G.query().V(\"Character:1\").inE(\"residents\").count() - %s != %s" % (c, 1))
+        errors.append("Fail: G.V(\"Character:1\").inE(\"residents\").count() - %s != %s" % (c, 1))
 
     return errors
 
@@ -301,7 +266,7 @@ def test_incoming_edge(man):
 def test_outgoing_edge_all(man):
     errors = []
     G = man.setGraph("swapi")
-    for i in G.query().V().as_("a").outE().as_("b").render(["$a._id", "$b._from", "$b._to", "$b._id"]):
+    for i in G.V().as_("a").outE().as_("b").render(["$a._id", "$b._from", "$b._to", "$b._id"]):
         if i[0] != i[1]:
             errors.append("outE _id/from missmatch %s != %s" % (i[0], i[1]))
         if i[1] == i[2]:
@@ -314,7 +279,7 @@ def test_outgoing_edge_all(man):
 def test_incoming_edge_all(man):
     errors = []
     G = man.setGraph("swapi")
-    for i in G.query().V().as_("a").inE().as_("b").render(["$a._id", "$b._to", "$b._id"]):
+    for i in G.V().as_("a").inE().as_("b").render(["$a._id", "$b._to", "$b._id"]):
         if i[0] != i[1]:
             errors.append("inE _id/to missmatch %s != %s" % (i[0], i[1]))
         if not i[2].endswith(i[0]):
@@ -325,7 +290,7 @@ def test_incoming_edge_all(man):
 def test_out_edge_out_all(man):
     errors = []
     G = man.setGraph("swapi")
-    for i in G.query().V().as_("a").outE().as_("b").out().as_("c").render(["$a._id", "$b._from", "$b._to", "$c._id"]):
+    for i in G.V().as_("a").outE().as_("b").out().as_("c").render(["$a._id", "$b._from", "$b._to", "$c._id"]):
         if i[0] != i[1]:
             errors.append("outE-out _id/from missmatch '%s' != '%s'" % (i[0], i[1]))
         if i[2] != i[3]:
@@ -337,11 +302,11 @@ def test_in_out_equal(man):
     G = man.setGraph("swapi")
     errors = []
     count1 = 0
-    for i in G.query().V().out():
+    for i in G.V().out():
         count1 += 1
 
     count2 = 0
-    for i in G.query().V().in_():
+    for i in G.V().in_():
         count2 += 1
 
     if count1 != count2:
@@ -353,11 +318,11 @@ def test_ine_oute_equal(man):
     G = man.setGraph("swapi")
     errors = []
     count1 = 0
-    for i in G.query().V().outE():
+    for i in G.V().outE():
         count1 += 1
 
     count2 = 0
-    for i in G.query().V().inE():
+    for i in G.V().inE():
         count2 += 1
 
     if count1 != count2:
@@ -371,41 +336,28 @@ def test_both(man):
     G = man.setGraph("swapi")
 
     count = 0
-    for i in G.query().V("Starship:12").both():
+    for i in G.V("Starship:12").both():
         if i['_id'] not in ['Character:1', 'Character:18', 'Character:19', 'Character:9', 'Film:1']:
             errors.append(
-                "Fail: G.query().V(\"Starship:12\").both() - \
+                "Fail: G.V(\"Starship:12\").both() - \
                 Wrong vertex %s" % (i['_id'])
             )
         count += 1
     if count != 10:
         errors.append(
-            "Fail: G.query().V(\"Starship:12\").both() %s != %d" % (count, 10))
+            "Fail: G.V(\"Starship:12\").both() %s != %d" % (count, 10))
 
     count = 0
-    for i in G.query().V("Starship:12").both(["pilots", "starships"]):
+    for i in G.V("Starship:12").both(["pilots", "starships"]):
         if i['_id'] not in ['Character:1', 'Character:18', 'Character:19', 'Character:9', 'Film:1']:
             errors.append(
-                "Fail: G.query().V(\"Starship:12\").both([\"pilots\", \"starships\"]) - \
+                "Fail: G.V(\"Starship:12\").both([\"pilots\", \"starships\"]) - \
                 Wrong vertex %s" % (i['_id'])
             )
         count += 1
     if count != 9:
         errors.append(
-            "Fail: G.query().V(\"Starship:12\").both([\"pilots\", \"starships\"]) %s != %d" % (count, 9)
-        )
-
-    count = 0
-    for i in G.query().E("Film:1-characters-Character:1").both():
-        if i['_id'] not in ["Film:1", "Character:1"]:
-            errors.append(
-                "Fail: G.query().E(\"Film:1-characters-Character:1\").both() - \
-                Wrong vertex %s" % (i['_id'])
-            )
-        count += 1
-    if count != 2:
-        errors.append(
-            "Fail: G.query().E(\"Film:1-characters-Character:1\").both() %s != %d" % (count, 2)
+            "Fail: G.V(\"Starship:12\").both([\"pilots\", \"starships\"]) %s != %d" % (count, 9)
         )
 
     return errors
@@ -416,23 +368,23 @@ def test_both_edge(man):
 
     G = man.setGraph("swapi")
 
-    c = G.query().V("Character:1").bothE().count().execute()[0]["count"]
+    c = G.V("Character:1").bothE().count().execute()[0]["count"]
     if c != 8:
-        errors.append("Fail: G.query().V(\"Character:1\").bothE().count() %d != %d" % (c, 8))
+        errors.append("Fail: G.V(\"Character:1\").bothE().count() %d != %d" % (c, 8))
 
-    for i in G.query().V("Character:1").inE():
+    for i in G.V("Character:1").inE():
         if not (i["_id"].startswith("Character:1") or i["_id"].endswith("Character:1")):
-            errors.append("Fail: G.query().V(\"Character:1\").bothE() - \
+            errors.append("Fail: G.V(\"Character:1\").bothE() - \
             Wrong edge %s" % (i["_id"]))
 
-    for i in G.query().V("Character:1").bothE().out():
+    for i in G.V("Character:1").bothE().out():
         if i["_id"] not in ['Character:1', 'Character:1', 'Character:1', 'Character:1', 'Film:1', 'Planet:1', 'Species:1', 'Starship:12']:
-            errors.append("Fail: G.query().V(\"Character:1\").bothE().out() - \
+            errors.append("Fail: G.V(\"Character:1\").bothE().out() - \
             Wrong vertex %s" % (i["_id"]))
 
-    c = G.query().V("Character:1").bothE(["homeworld", "residents"]).count().execute()[0]["count"]
+    c = G.V("Character:1").bothE(["homeworld", "residents"]).count().execute()[0]["count"]
     if c != 2:
-        errors.append("Fail: G.query().V(\"Character:1\").bothE([\"homeworld\", \"residents\"]).count() - %s != %s" % (c, 2))
+        errors.append("Fail: G.V(\"Character:1\").bothE([\"homeworld\", \"residents\"]).count() - %s != %s" % (c, 2))
 
     return errors
 
@@ -443,13 +395,13 @@ def test_limit(man):
     G = man.setGraph("swapi")
 
     tests = [
-        "G.query().V().limit(3)",
-        "G.query().E().limit(3)"
+        "G.V().limit(3)",
+        "G.V().outE().limit(3)"
     ]
 
     expected_results = [
-        list(i["_id"] for i in G.query().V().execute())[:3],
-        list(i["_id"] for i in G.query().E().execute())[:3]
+        list(i["_id"] for i in G.V().execute())[:3],
+        list(i["_id"] for i in G.V().outE().execute())[:3]
     ]
 
     for test, expected in zip(tests, expected_results):
@@ -480,13 +432,11 @@ def test_skip(man):
     G = man.setGraph("swapi")
 
     tests = [
-        "G.query().V().skip(3).limit(3)",
-        "G.query().E().skip(3).limit(3)"
+        "G.V().skip(3).limit(3)",
     ]
 
     expected_results = [
-        list(i["_id"] for i in G.query().V().execute())[3:6],
-        list(i["_id"] for i in G.query().E().execute())[3:6]
+        list(i["_id"] for i in G.V().execute())[3:6],
     ]
 
     for test, expected in zip(tests, expected_results):
@@ -517,17 +467,13 @@ def test_range(man):
     G = man.setGraph("swapi")
 
     tests = [
-        "G.query().V().range(3, 5)",
-        "G.query().V().range(34, -1)",
-        "G.query().E().range(120, 123)",
-        "G.query().E().range(140, -1)"
+        "G.V().range(3, 5)",
+        "G.V().range(34, -1)",
     ]
 
     expected_results = [
-        list(i["_id"] for i in G.query().V().execute())[3:5],
-        list(i["_id"] for i in G.query().V().execute())[34:],
-        list(i["_id"] for i in G.query().E().execute())[120:123],
-        list(i["_id"] for i in G.query().E().execute())[140:]
+        list(i["_id"] for i in G.V().execute())[3:5],
+        list(i["_id"] for i in G.V().execute())[34:],
     ]
 
     for test, expected in zip(tests, expected_results):

@@ -2,8 +2,8 @@
 title: Jobs API
 menu:
   main:
-    parent: Queries
-    weight: 20
+    identifier: Jobs
+    weight: 40
 ---
 
 # Jobs API
@@ -16,7 +16,7 @@ that will be evaluated asynchronously and can be retrieved at a later time.
 ### Submitting a job
 
 ```
-job = G.query().V().hasLabel("Planet").out().submit()
+job = G.V().hasLabel("Planet").out().submit()
 ```
 
 ### Getting job status
@@ -44,10 +44,10 @@ for row in G.readJob(job["id"]):
 
 ### Search for jobs
 
-Find jobs that match the prefix of the current request (example should find job from G.query().V().hasLabel("Planet").out())
+Find jobs that match the prefix of the current request (example should find job from G.V().hasLabel("Planet").out())
 
 ```
-jobs = G.query().V().hasLabel("Planet").out().out().count().searchJobs()
+jobs = G.V().hasLabel("Planet").out().out().count().searchJobs()
 ```
 
 If there are multiple jobs that match the prefix of the search, all of them will be returned. It will be a client side

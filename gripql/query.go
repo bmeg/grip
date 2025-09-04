@@ -15,11 +15,6 @@ func V(ids ...string) *Query {
 	return NewQuery().V(ids...)
 }
 
-// E starts a new vertex query, short for `NewQuery().E()`.
-func E(ids ...string) *Query {
-	return NewQuery().E(ids...)
-}
-
 // NewQuery creates a new Query instance.
 func NewQuery() *Query {
 	return &Query{}
@@ -43,12 +38,6 @@ func (q *Query) with(st *GraphStatement) *Query {
 func (q *Query) V(id ...string) *Query {
 	vlist := protoutil.NewListFromStrings(id)
 	return q.with(&GraphStatement{Statement: &GraphStatement_V{vlist}})
-}
-
-// E adds a edge selection step to the query
-func (q *Query) E(id ...string) *Query {
-	elist := protoutil.NewListFromStrings(id)
-	return q.with(&GraphStatement{Statement: &GraphStatement_E{elist}})
 }
 
 // In follows incoming edges to adjacent vertex
@@ -232,10 +221,6 @@ func (q *Query) String() string {
 		case *GraphStatement_V:
 			ids := protoutil.AsStringList(stmt.V)
 			add("V", ids...)
-
-		case *GraphStatement_E:
-			ids := protoutil.AsStringList(stmt.E)
-			add("E", ids...)
 
 		case *GraphStatement_In:
 			ids := protoutil.AsStringList(stmt.In)

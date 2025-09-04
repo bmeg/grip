@@ -18,19 +18,19 @@ def test_subkey(man):
     G.addEdge("Workflow", "OtherGuy", "edge")
 
     count = 0
-    for i in G.query().V("Work").out():
+    for i in G.V("Work").out():
         count += 1
     if count != 1:
         errors.append("Incorrect outgoing vertex count %d != %d" % (count, 1))
 
     count = 0
-    for i in G.query().V("Work").outE():
+    for i in G.V("Work").outE():
         count += 1
     if count != 1:
         errors.append("Incorrect outgoing edge count %d != %d" % (count, 1))
 
     count = 0
-    for i in G.query().V("Other").inE():
+    for i in G.V("Other").inE():
         count += 1
     if count != 1:
         errors.append("Incorrect incoming edge count %d != %d" % (count, 1))

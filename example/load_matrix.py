@@ -37,14 +37,14 @@ def load_matrix(args):
             #every row x col creates an edge with the weight value
             for c in matrix.columns:
                 cname = "%s%s" % (args.col_prefix, c)
-                if list(O.query().V(c).count())[0]['count'] == 0:
+                if list(O.V(c).count())[0]['count'] == 0:
                     if args.dump is not None:
                         dump_vertex(c, args.col_label, {})
                     else:
                         O.addVertex(c, args.col_label)
             for r in matrix.index:
                 rname = "%s%s" % (args.row_prefix, r)
-                if list(O.query().V(r).count())[0]['count'] == 0:
+                if list(O.V(r).count())[0]['count'] == 0:
                     if args.dump:
                         dump_vertex(r, args.row_label, {})
                     else:
@@ -106,7 +106,7 @@ def load_matrix(args):
                 except KeyError:
                     dstFmt = None
                 if dstFmt is not None:
-                    if list(O.query().V(dstFmt).count())[0]['count'] == 0:
+                    if list(O.V(dstFmt).count())[0]['count'] == 0:
                         if args.dump:
                             dump_vertex(dstFmt, label, {})
                         else:

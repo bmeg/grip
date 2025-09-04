@@ -41,43 +41,52 @@ Server:
 
 ## Example schema
 
- ```yaml
- graph: example-graph
-
- edges:
-- _from: Human
-  _gid: (Human)--starship->(Starship)
-  _label: starship
-  _to: Starship
-- _from: Human
-  _gid: (Human)--friend->(Human)
-  _label: friend
-  _to: Human
-- _from: Human
-  _gid: (Human)--friend->(Droid)
-  _label: friend
-  _to: Droid
-- _from: Human
-  _gid: (Human)--appearsIn->(Movie)
-  _label: appearsIn
-  _to: Movie
+```yaml
+graph: example-graph
 
 vertices:
-- name: STRING
-  _gid: Movie
+- 
+  _id: Movie
   _label: Movie
-- length: NUMERIC
   name: STRING
-  _gid: Starship
+- 
+  _id: Starship
   _label: Starship
-- name: STRING
-  primaryFunction: STRING
-  _gid: Droid
+  length: NUMERIC
+  name: STRING
+- 
+  _id: Droid
   _label: Droid
-- height: NUMERIC
+  name: STRING
+  primaryFunction: STRING
+- 
+  _id: Human
+  _label: Human
+  height: NUMERIC
   homePlanet: STRING
   mass: NUMERIC
   name: STRING
-  _gid: Human
-  _label: Human
- ```
+
+edges:
+- 
+  _id: (Human)--starship->(Starship)
+  _label: starship
+  _from: Human
+  _to: Starship
+- 
+  _id: (Human)--friend->(Human)
+  _label: friend
+  _from: Human
+  _to: Human
+- 
+  _id: (Human)--friend->(Droid)
+  _label: friend
+  _from: Human
+  _to: Droid
+- 
+  _id: (Human)--appearsIn->(Movie)
+  _label: appearsIn
+  _from: Human
+  _to: Movie
+
+```

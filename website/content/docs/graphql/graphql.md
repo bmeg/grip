@@ -8,11 +8,24 @@ menu:
 
 # GraphQL
 
-**GraphQL support is considered Alpha. The code is not stable and the API will likely change.**
-**_GraphQL access is only supported when using the MongoDB driver_**
+Grip graphql tools are defined as go standard library plugins and are located at https://github.com/bmeg/grip-graphql.
+A schema based approach was used for defining read plugins.
 
-GRIP supports GraphQL access of the property graphs. Currently this is read-only access to the graph.
+## Json Schema
+grip also supports using jsonschema with hypermedia extensions. Given an existing graph called TEST
 
+```
+./grip schema post TEST --jsonSchema schema.json
+```
+
+This schema will attach to the TEST graph, and subsequent calls to the bulkAddRaw method with raw Json
+as defined by the attached the jsonschema will load directly into grip.
+
+see conformance/tests/ot_bulk_raw.py for an example
+
+### Legacy Graphql Patterns
+
+Grip still contains support for defining graphql schema using the below Patterns
 
 ### Load built-in example graph
 

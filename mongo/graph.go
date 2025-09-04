@@ -4,9 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	//"io"
-	//"strings"
-
 	"time"
 
 	"github.com/bmeg/grip/engine/core"
@@ -45,13 +42,13 @@ func (mg *Graph) GetTimestamp() string {
 func (mg *Graph) GetVertex(id string, load bool) *gdbi.Vertex {
 	opts := options.FindOne()
 	if !load {
-		opts.SetProjection(map[string]interface{}{FIELD_ID: 1, FIELD_LABEL: 1})
+		opts.SetProjection(map[string]any{FIELD_ID: 1, FIELD_LABEL: 1})
 	}
 	result := mg.ar.VertexCollection(mg.graph).FindOne(context.Background(), bson.M{FIELD_ID: id}, opts)
 	if result.Err() != nil {
 		return nil
 	}
-	d := map[string]interface{}{}
+	d := map[string]any{}
 	if nil == result.Decode(d) {
 		v := UnpackVertex(d)
 		return v
@@ -63,13 +60,13 @@ func (mg *Graph) GetVertex(id string, load bool) *gdbi.Vertex {
 func (mg *Graph) GetEdge(id string, load bool) *gdbi.Edge {
 	opts := options.FindOne()
 	if !load {
-		opts.SetProjection(map[string]interface{}{FIELD_ID: 1, FIELD_LABEL: 1, FIELD_FROM: 1, FIELD_TO: 1})
+		opts.SetProjection(map[string]any{FIELD_ID: 1, FIELD_LABEL: 1, FIELD_FROM: 1, FIELD_TO: 1})
 	}
 	result := mg.ar.EdgeCollection(mg.graph).FindOne(context.TODO(), bson.M{FIELD_ID: id}, opts)
 	if result.Err() != nil {
 		return nil
 	}
-	d := map[string]interface{}{}
+	d := map[string]any{}
 	if nil == result.Decode(d) {
 		v := UnpackEdge(d)
 		return v
@@ -181,7 +178,7 @@ func (mg *Graph) BulkDel(Data *gdbi.DeleteData) error {
 	vCol := mg.ar.VertexCollection(mg.graph)
 
 	if Data.Edges != nil && len(Data.Edges) > 0 {
-		_, err := eCol.DeleteMany(context.TODO(), bson.M{"_id": bson.M{"$in": Data.Edges}})
+		_, err := eCol.DeleteMany(context.TODO(), bson.M{FIELD_ID: bson.M{"$in": Data.Edges}})
 		if err != nil {
 			return fmt.Errorf("failed to delete edge(s): %s", err)
 		}
@@ -235,7 +232,7 @@ func (mg *Graph) DelVertex(key string) error {
 	return nil
 }
 
-// DelEdge deletes edge with id `key`
+// DelEdge deletes edge with _id `key`
 func (mg *Graph) DelEdge(key string) error {
 	eCol := mg.ar.EdgeCollection(mg.graph)
 	_, err := eCol.DeleteOne(context.TODO(), bson.M{FIELD_ID: key})
@@ -268,7 +265,7 @@ func (mg *Graph) GetVertexList(ctx context.Context, load bool) <-chan *gdbi.Vert
 				return
 			default:
 			}
-			result := map[string]interface{}{}
+			result := map[string]any{}
 			if err := query.Decode(&result); err == nil {
 				v := UnpackVertex(result)
 				o <- v
@@ -303,7 +300,7 @@ func (mg *Graph) GetEdgeList(ctx context.Context, loadProp bool) <-chan *gdbi.Ed
 				return
 			default:
 			}
-			result := map[string]interface{}{}
+			result := map[string]any{}
 			if err := query.Decode(&result); err == nil {
 				if _, ok := result[FIELD_TO]; ok {
 					e := UnpackEdge(result)
@@ -349,7 +346,7 @@ func (mg *Graph) GetVertexChannel(ctx context.Context, ids chan gdbi.ElementLook
 			}
 			chunk := map[string]*gdbi.Vertex{}
 			for cursor.Next(context.TODO()) {
-				result := map[string]interface{}{}
+				result := map[string]any{}
 				if err := cursor.Decode(&result); err == nil {
 					v := UnpackVertex(result)
 					chunk[v.ID] = v
@@ -412,9 +409,9 @@ func (mg *Graph) GetOutChannel(ctx context.Context, reqChan chan gdbi.ElementLoo
 			cursor, err := eCol.Aggregate(context.TODO(), query)
 			if err == nil {
 				for cursor.Next(context.TODO()) {
-					result := map[string]interface{}{}
+					result := map[string]any{}
 					if err := cursor.Decode(&result); err == nil {
-						if dst, ok := result["dst"].(map[string]interface{}); ok {
+						if dst, ok := result["dst"].(map[string]any); ok {
 							v := UnpackVertex(dst)
 							fromID := result[FIELD_FROM].(string)
 							r := batchMap[fromID]
@@ -424,7 +421,7 @@ func (mg *Graph) GetOutChannel(ctx context.Context, reqChan chan gdbi.ElementLoo
 								o <- ri
 							}
 						} else {
-							log.WithFields(log.Fields{"result": result["dst"]}).Error("GetOutChannel: unable to cast result to map[string]interface{}")
+							log.WithFields(log.Fields{"result": result["dst"]}).Error("GetOutChannel: unable to cast result to map[string]any")
 						}
 					} else {
 						log.WithFields(log.Fields{"result": result, "error": err}).Error("GetOutChannel: decode error")
@@ -479,21 +476,21 @@ func (mg *Graph) GetInChannel(ctx context.Context, reqChan chan gdbi.ElementLook
 				query = append(query, bson.M{"$match": bson.M{FIELD_LABEL: bson.M{"$in": edgeLabels}}})
 			}
 			vertCol := fmt.Sprintf("%s_vertices", mg.graph)
-			query = append(query, bson.M{"$lookup": bson.M{"from": vertCol, "localField": FIELD_FROM, "foreignField": FIELD_ID, "as": "src"}})
+			query = append(query, bson.M{"$lookup": bson.M{"from": vertCol, "localField": FIELD_FROM, "foreignField": FIELD_ID, "as": FIELD_SRC}})
 			query = append(query, bson.M{"$unwind": "$src"})
 			if load {
-				query = append(query, bson.M{"$project": bson.M{FIELD_TO: true, "src": true}})
+				query = append(query, bson.M{"$project": bson.M{FIELD_TO: true, FIELD_SRC: true}})
 			} else {
-				query = append(query, bson.M{"$project": bson.M{FIELD_TO: true, "src._id": true, "src._label": true}})
+				query = append(query, bson.M{"$project": bson.M{FIELD_TO: true, FIELD_SRC_ID: true, FIELD_SRC_LABEL: true}})
 			}
 
 			eCol := mg.ar.EdgeCollection(mg.graph)
 			cursor, err := eCol.Aggregate(context.TODO(), query)
 			if err == nil {
 				for cursor.Next(context.TODO()) {
-					result := map[string]interface{}{}
+					result := map[string]any{}
 					if err := cursor.Decode(&result); err == nil {
-						if src, ok := result["src"].(map[string]interface{}); ok {
+						if src, ok := result[FIELD_SRC].(map[string]any); ok {
 							v := UnpackVertex(src)
 							toID := result[FIELD_TO].(string)
 							r := batchMap[toID]
@@ -503,7 +500,7 @@ func (mg *Graph) GetInChannel(ctx context.Context, reqChan chan gdbi.ElementLook
 								o <- ri
 							}
 						} else {
-							log.WithFields(log.Fields{"result": result["src"]}).Error("GetInChannel: unable to cast result to map[string]interface{}")
+							log.WithFields(log.Fields{"result": result[FIELD_SRC]}).Error("GetInChannel: unable to cast result to map[string]any")
 						}
 					} else {
 						log.WithFields(log.Fields{"error": err}).Error("Decode")
@@ -561,7 +558,7 @@ func (mg *Graph) GetOutEdgeChannel(ctx context.Context, reqChan chan gdbi.Elemen
 			cursor, err := eCol.Aggregate(context.TODO(), query)
 			if err == nil {
 				for cursor.Next(context.TODO()) {
-					result := map[string]interface{}{}
+					result := map[string]any{}
 					if err := cursor.Decode(&result); err == nil {
 						e := UnpackEdge(result)
 						fromID := result[FIELD_FROM].(string)
@@ -628,7 +625,7 @@ func (mg *Graph) GetInEdgeChannel(ctx context.Context, reqChan chan gdbi.Element
 			cursor, err := eCol.Aggregate(context.TODO(), query)
 			if err == nil {
 				for cursor.Next(context.TODO()) {
-					result := map[string]interface{}{}
+					result := map[string]any{}
 					if err := cursor.Decode(&result); err == nil {
 						e := UnpackEdge(result)
 						toID := result[FIELD_TO].(string)

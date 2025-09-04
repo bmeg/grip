@@ -79,7 +79,7 @@ func (g *Graph) GetVertex(key string, load bool) *gdbi.Vertex {
 	id := parts[1]
 	gidField := g.schema.GetVertexGid(table)
 	q := fmt.Sprintf("SELECT * FROM %s WHERE %s=%s", table, gidField, id)
-	data := make(map[string]interface{})
+	data := make(map[string]any)
 	row := g.db.QueryRowx(q)
 	types, err := rowColumnTypeMap(row)
 	if err != nil {
@@ -113,7 +113,7 @@ func (g *Graph) getTableBackedEdge(key string, load bool) *gripql.Edge {
 	edgeSchema := g.schema.GetEdge(table)
 	gidField := edgeSchema.GidField
 	q := fmt.Sprintf("SELECT * FROM %s WHERE %s=%s", table, gidField, id)
-	data := make(map[string]interface{})
+	data := make(map[string]any)
 	row := g.db.QueryRowx(q)
 	types, err := rowColumnTypeMap(row)
 	if err != nil {
@@ -160,7 +160,7 @@ func (g *Graph) GetVertexList(ctx context.Context, load bool) <-chan *gdbi.Verte
 			}
 			defer rows.Close()
 			for rows.Next() {
-				data := make(map[string]interface{})
+				data := make(map[string]any)
 				if err := rows.MapScan(data); err != nil {
 					log.WithFields(log.Fields{"error": err}).Error("GetVertexList: MapScan")
 					return

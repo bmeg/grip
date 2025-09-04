@@ -43,13 +43,6 @@ func FindEdgeHasLabelStart(pipe []*gripql.GraphStatement) ([]string, []*gripql.G
 		if isDone {
 			break
 		}
-		if i == 0 {
-			if _, ok := step.GetStatement().(*gripql.GraphStatement_E); ok {
-			} else {
-				break
-			}
-			continue
-		}
 		switch s := step.GetStatement().(type) {
 		case *gripql.GraphStatement_HasLabel:
 			labels = protoutil.AsStringList(s.HasLabel)
