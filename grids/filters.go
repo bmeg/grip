@@ -2,7 +2,8 @@ package grids
 
 import (
 	bFilters "github.com/bmeg/benchtop/filters"
-	"github.com/bmeg/benchtop/jsontable"
+	"github.com/bmeg/benchtop/jsontable/table"
+	"github.com/bmeg/benchtop/jsontable/tpath"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/log"
 	"github.com/bytedance/sonic"
@@ -70,9 +71,9 @@ func MatchesHasExpression(val any, stmt *gripql.HasExpression) bool {
 		// Handle lookup based on input type
 		switch v := val.(type) {
 		case map[string]any:
-			lookupVal = jsontable.PathLookup(v, cond.Key)
+			lookupVal = tpath.PathLookup(v, cond.Key)
 		case []byte:
-			pathArr, err := jsontable.ConvertJSONPathToArray(cond.Key)
+			pathArr, err := table.ConvertJSONPathToArray(cond.Key)
 			if err != nil {
 				log.Errorf("Error converting JSON path: %v", err)
 				return false

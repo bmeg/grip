@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/bmeg/benchtop"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/log"
 	"github.com/cockroachdb/pebble"
@@ -52,7 +53,7 @@ func (ggraph *Graph) DeleteAnyRow(id string, label string, edgeFlag bool) error 
 		prefix = "e_"
 	}
 
-	loc, err := ggraph.jsonkv.PageCache.Get(context.Background(), id, ggraph.jsonkv.PageLoader)
+	loc, err := ggraph.jsonkv.LocCache.Get(context.Background(), id)
 	if err != nil {
 		return err
 	}
@@ -77,14 +78,19 @@ func (ggraph *Graph) DeleteAnyRow(id string, label string, edgeFlag bool) error 
 		return bulkErr.ErrorOrNil()
 	}
 
-	err = table.DeleteRow(loc, []byte(id))
+	bId := []byte(id)
+	err = ggraph.jsonkv.Pkv.Delete(benchtop.NewPosKey(table.TableId, bId), nil)
+	if err != nil {
+		return err
+	}
+	err = table.DeleteRow(loc, bId)
 	if err != nil {
 		if err == pebble.ErrNotFound {
-			log.Debugf("Pebble not Found: %s", err)
+			log.Debugf("Pebble not Found: %	s", err)
 			return nil
 		}
 		bulkErr = multierror.Append(bulkErr, err)
 	}
-	ggraph.jsonkv.PageCache.Invalidate(id)
+	ggraph.jsonkv.LocCache.Invalidate(id)
 	return bulkErr.ErrorOrNil()
 }

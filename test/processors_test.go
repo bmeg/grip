@@ -258,15 +258,15 @@ func TestEngine(t *testing.T) {
 			count(15),
 		},
 		{
-			Q.V().HasLabel("products").Has(gripql.Inside("price", []interface{}{9.99, 19.99})).Count(),
+			Q.V().HasLabel("products").Has(gripql.Inside("price", []any{9.99, 19.99})).Count(),
 			count(5),
 		},
 		{
-			Q.V().HasLabel("products").Has(gripql.Between("price", []interface{}{9.99, 19.99})).Count(),
+			Q.V().HasLabel("products").Has(gripql.Between("price", []any{9.99, 19.99})).Count(),
 			count(11),
 		},
 		{
-			Q.V().HasLabel("products").Has(gripql.Outside("price", []interface{}{9.99, 19.99})).Count(),
+			Q.V().HasLabel("products").Has(gripql.Outside("price", []any{9.99, 19.99})).Count(),
 			count(9),
 		},
 		{
@@ -356,8 +356,8 @@ func TestEngine(t *testing.T) {
 		},
 		{
 			Q.V("users:1").As("a").Out().As("b").
-				Render(map[string]interface{}{"user_id": "$a._id", "purchase_id": "$b._id", "purchaser": "$b.name"}),
-			render(map[string]interface{}{"user_id": "users:1", "purchase_id": "purchases:57", "purchaser": "Letitia Sprau"}),
+				Render(map[string]any{"user_id": "$a._id", "purchase_id": "$b._id", "purchaser": "$b.name"}),
+			render(map[string]any{"user_id": "users:1", "purchase_id": "purchases:57", "purchaser": "Letitia Sprau"}),
 		},
 	}
 
@@ -387,7 +387,7 @@ func vertex(id, label string, d data) *gripql.Vertex {
 	}
 }
 
-func edge(id interface{}, from, to string, label string, d data) *gripql.Edge {
+func edge(id any, from, to string, label string, d data) *gripql.Edge {
 	ds, _ := structpb.NewStruct(d)
 	return &gripql.Edge{
 		Id:    fmt.Sprintf("%v", id),
@@ -398,7 +398,7 @@ func edge(id interface{}, from, to string, label string, d data) *gripql.Edge {
 	}
 }
 
-type data map[string]interface{}
+type data map[string]any
 
 // This sorts the results to account for non-determinstic ordering from the db.
 // TODO this will break sort tests
@@ -476,7 +476,7 @@ func pickid(id string) *gripql.QueryResult {
 	panic("no vertex or edge found for id")
 }
 
-func pickRes(ival ...interface{}) checker {
+func pickRes(ival ...any) checker {
 	expect := []*gripql.QueryResult{}
 	for _, val := range ival {
 		switch v := val.(type) {
@@ -530,7 +530,7 @@ func count(i int) checker {
 	return compare(expect)
 }
 
-func render(v interface{}) checker {
+func render(v any) checker {
 	vs, _ := structpb.NewValue(v)
 	expect := []*gripql.QueryResult{
 		{
