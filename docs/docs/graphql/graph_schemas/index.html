@@ -379,71 +379,16 @@ The schemas are automatically added to the database following the naming pattern
 <h2 id="get-the-schema-of-a-graph">Get the Schema of a Graph</h2>
 <p>The schema of a graph can be accessed via a GET request to <code>/v1/graph/{graph-name}/schema</code></p>
 <p>Alternatively, you can use the grip CLI. <code>grip schema get {graph-name}</code></p>
-<h2 id="describing-graph-schemas">Describing Graph Schemas</h2>
-<p>There are several methods for describing the schema of a graph.</p>
-<ul>
-<li>Provide the schema (as a YAML file) to the server at runtime. <code>grip server --schema {schema-file}</code></li>
-<li>POST the schema <code>/v1/graph/{graph-name}/schema</code> via curl or use the CLI. <code>grip schema post --yaml {file} --json {file}</code></li>
-<li>Configure GRIP to build the schema by sampling the data in each graph.</li>
-</ul>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#f92672">Server</span>:
-</span></span><span style="display:flex;"><span>  <span style="color:#75715e"># Should the server periodically build the graph schemas?</span>
-</span></span><span style="display:flex;"><span>  <span style="color:#f92672">AutoBuildSchemas</span>: <span style="color:#66d9ef">true</span>
-</span></span><span style="display:flex;"><span>  <span style="color:#75715e"># How often the server should rebuild the graph schemas. Set to 0 to turn off</span>
-</span></span><span style="display:flex;"><span>  <span style="color:#f92672">SchemaRefreshInterval</span>: <span style="color:#e6db74">&#34;24h&#34;</span>
-</span></span><span style="display:flex;"><span>  <span style="color:#75715e"># How many vertices/edges to inspect to infer the schema</span>
-</span></span><span style="display:flex;"><span>  <span style="color:#f92672">SchemaInspectN</span>: <span style="color:#ae81ff">500</span>
-</span></span><span style="display:flex;"><span>  <span style="color:#75715e"># Strategy to use for selecting the vertices/edges to inspect.</span>
-</span></span><span style="display:flex;"><span>  <span style="color:#75715e"># Random if True; first N otherwise</span>
-</span></span><span style="display:flex;"><span>  <span style="color:#f92672">SchemaRandomSample</span>: <span style="color:#66d9ef">true</span>
-</span></span></code></pre></div><h2 id="example-schema">Example schema</h2>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#f92672">graph</span>: <span style="color:#ae81ff">example-graph</span>
-</span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span><span style="color:#f92672">vertices</span>:
-</span></span><span style="display:flex;"><span>- 
-</span></span><span style="display:flex;"><span>  <span style="color:#f92672">_id</span>: <span style="color:#ae81ff">Movie</span>
-</span></span><span style="display:flex;"><span>  <span style="color:#f92672">_label</span>: <span style="color:#ae81ff">Movie</span>
-</span></span><span style="display:flex;"><span>  <span style="color:#f92672">name</span>: <span style="color:#ae81ff">STRING</span>
-</span></span><span style="display:flex;"><span>- 
-</span></span><span style="display:flex;"><span>  <span style="color:#f92672">_id</span>: <span style="color:#ae81ff">Starship</span>
-</span></span><span style="display:flex;"><span>  <span style="color:#f92672">_label</span>: <span style="color:#ae81ff">Starship</span>
-</span></span><span style="display:flex;"><span>  <span style="color:#f92672">length</span>: <span style="color:#ae81ff">NUMERIC</span>
-</span></span><span style="display:flex;"><span>  <span style="color:#f92672">name</span>: <span style="color:#ae81ff">STRING</span>
-</span></span><span style="display:flex;"><span>- 
-</span></span><span style="display:flex;"><span>  <span style="color:#f92672">_id</span>: <span style="color:#ae81ff">Droid</span>
-</span></span><span style="display:flex;"><span>  <span style="color:#f92672">_label</span>: <span style="color:#ae81ff">Droid</span>
-</span></span><span style="display:flex;"><span>  <span style="color:#f92672">name</span>: <span style="color:#ae81ff">STRING</span>
-</span></span><span style="display:flex;"><span>  <span style="color:#f92672">primaryFunction</span>: <span style="color:#ae81ff">STRING</span>
-</span></span><span style="display:flex;"><span>- 
-</span></span><span style="display:flex;"><span>  <span style="color:#f92672">_id</span>: <span style="color:#ae81ff">Human</span>
-</span></span><span style="display:flex;"><span>  <span style="color:#f92672">_label</span>: <span style="color:#ae81ff">Human</span>
-</span></span><span style="display:flex;"><span>  <span style="color:#f92672">height</span>: <span style="color:#ae81ff">NUMERIC</span>
-</span></span><span style="display:flex;"><span>  <span style="color:#f92672">homePlanet</span>: <span style="color:#ae81ff">STRING</span>
-</span></span><span style="display:flex;"><span>  <span style="color:#f92672">mass</span>: <span style="color:#ae81ff">NUMERIC</span>
-</span></span><span style="display:flex;"><span>  <span style="color:#f92672">name</span>: <span style="color:#ae81ff">STRING</span>
-</span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span><span style="color:#f92672">edges</span>:
-</span></span><span style="display:flex;"><span>- 
-</span></span><span style="display:flex;"><span>  <span style="color:#f92672">_id</span>: <span style="color:#ae81ff">(Human)--starship-&gt;(Starship)</span>
-</span></span><span style="display:flex;"><span>  <span style="color:#f92672">_label</span>: <span style="color:#ae81ff">starship</span>
-</span></span><span style="display:flex;"><span>  <span style="color:#f92672">_from</span>: <span style="color:#ae81ff">Human</span>
-</span></span><span style="display:flex;"><span>  <span style="color:#f92672">_to</span>: <span style="color:#ae81ff">Starship</span>
-</span></span><span style="display:flex;"><span>- 
-</span></span><span style="display:flex;"><span>  <span style="color:#f92672">_id</span>: <span style="color:#ae81ff">(Human)--friend-&gt;(Human)</span>
-</span></span><span style="display:flex;"><span>  <span style="color:#f92672">_label</span>: <span style="color:#ae81ff">friend</span>
-</span></span><span style="display:flex;"><span>  <span style="color:#f92672">_from</span>: <span style="color:#ae81ff">Human</span>
-</span></span><span style="display:flex;"><span>  <span style="color:#f92672">_to</span>: <span style="color:#ae81ff">Human</span>
-</span></span><span style="display:flex;"><span>- 
-</span></span><span style="display:flex;"><span>  <span style="color:#f92672">_id</span>: <span style="color:#ae81ff">(Human)--friend-&gt;(Droid)</span>
-</span></span><span style="display:flex;"><span>  <span style="color:#f92672">_label</span>: <span style="color:#ae81ff">friend</span>
-</span></span><span style="display:flex;"><span>  <span style="color:#f92672">_from</span>: <span style="color:#ae81ff">Human</span>
-</span></span><span style="display:flex;"><span>  <span style="color:#f92672">_to</span>: <span style="color:#ae81ff">Droid</span>
-</span></span><span style="display:flex;"><span>- 
-</span></span><span style="display:flex;"><span>  <span style="color:#f92672">_id</span>: <span style="color:#ae81ff">(Human)--appearsIn-&gt;(Movie)</span>
-</span></span><span style="display:flex;"><span>  <span style="color:#f92672">_label</span>: <span style="color:#ae81ff">appearsIn</span>
-</span></span><span style="display:flex;"><span>  <span style="color:#f92672">_from</span>: <span style="color:#ae81ff">Human</span>
-</span></span><span style="display:flex;"><span>  <span style="color:#f92672">_to</span>: <span style="color:#ae81ff">Movie</span>
-</span></span></code></pre></div>
+<h2 id="post-a-graph-schema">Post a graph schema</h2>
+<p>A schema can be attached to an existing graph via a POST request to <code>/v1/graph/{graph-name}/schema</code></p>
+<p>Alternatively, you can use the grip CLI. <code>grip schema post [graph_name] --jsonSchema {file}</code></p>
+<p>Schemas must be loaded as a json file in JSON schema format. see <a href="https://json-schema.org/">jsonschema</a> spec for more details</p>
+<h2 id="raw-bulk-loading">Raw bulk loading</h2>
+<p>Once a schema is attached to a graph, raw json records can be loaded directly to grip without having to be in native grip vertex/edge format.
+Schema validation is enforced when using this POST <code>/v1/rawJson</code> method.</p>
+<p>A grip CLI alternative is also available with <code>grip jsonload [ndjson_file_path] [graph_name]</code>
+See <a href="https://github.com/bmeg/grip/blob/develop/conformance/tests/ot_bulk_raw.py">https://github.com/bmeg/grip/blob/develop/conformance/tests/ot_bulk_raw.py</a> for a full example using gripql python package.</p>
+
   </div>
 
 </div>
