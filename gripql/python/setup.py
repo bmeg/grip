@@ -37,9 +37,9 @@ setup(
     url="https://github.com/bmeg/grip/gripql/python",
     license='MIT',
     packages=find_packages(),
-    python_requires='>=2.7, <4',
+    python_requires='>=3.9, <4',
     install_requires=[
-        "requests>=2.19.1"
+        "requests>=2.32.5"
     ],
     zip_safe=True,
     classifiers=[
@@ -48,9 +48,8 @@ setup(
         'Natural Language :: English',
         'License :: OSI Approved :: MIT License',
         'Topic :: Software Development :: Libraries',
-        'Programming Language :: Python :: 2.7',
-        'Programming Language :: Python :: 3.5',
-        'Programming Language :: Python :: 3.6',
-        'Programming Language :: Python :: 3.7'
+        'Programming Language :: Python :: 3.9',
+        'Programming Language :: Python :: 3.12'
+
     ],
 )
