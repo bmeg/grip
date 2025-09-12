@@ -92,6 +92,23 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement, opts *gdbi.Compile
 	vertCol := fmt.Sprintf("%s_vertices", comp.db.graph)
 	edgeCol := fmt.Sprintf("%s_edges", comp.db.graph)
 
+	if core.OptimizeHasLabelMatch(stmts) {
+		stmt := stmts[1].GetHasLabel()
+		labels := protoutil.AsStringList(stmt)
+		//find by label first
+		query = append(query, bson.D{primitive.E{Key: "$match", Value: bson.M{FIELD_LABEL: bson.M{"$in": labels}}}})
+		startCollection = vertCol
+		query = append(query,
+			bson.D{primitive.E{Key: "$project", Value: bson.M{
+				FIELD_CURRENT: "$$CURRENT",
+				"marks":       "$marks",
+				"path":        []any{bson.M{"vertex": "$_id"}},
+			},
+			}})
+		lastType = gdbi.VertexData
+		stmts = stmts[2:]
+	}
+
 	for _, gs := range stmts {
 		switch stmt := gs.GetStatement().(type) {
 		case *gripql.GraphStatement_V:
