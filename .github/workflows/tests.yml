@@ -1,4 +1,6 @@
 name: Go
+permissions:
+  contents: read
 
 #
 # git hub actions config file. https://docs.github.com/en/actions
