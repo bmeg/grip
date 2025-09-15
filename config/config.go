@@ -77,8 +77,8 @@ func DefaultConfig() *Config {
 	c.Server.SchemaInspectN = 500
 	c.Server.SchemaRandomSample = true
 	c.Server.RequestLogging.HeaderWhitelist = []string{
-		"authorization", "oauthemail", "content-type", "content-length",
-		"forwarded", "x-forwarded-for", "x-forwarded-host", "user-agent",
+		"content-type", "content-length", "forwarded",
+		"x-forwarded-for", "x-forwarded-host", "user-agent",
 	}
 
 	c.RPCClient = rpc.ConfigWithDefaults(c.Server.RPCAddress())
