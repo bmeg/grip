@@ -82,9 +82,9 @@ func (ggraph *Graph) indexVertex(vertex *gdbi.Vertex, tx *pebblebulk.PebbleBulk)
 		ggraph.jsonkv.LocCache.Set(vertex.ID, rowLoc)
 	}
 
-	_, fieldsExist := ggraph.jsonkv.Fields[vertexLabel]
-	if fieldsExist {
-		for field := range ggraph.jsonkv.Fields[vertexLabel] {
+	table, tableExists := ggraph.jsonkv.Tables[vertexLabel]
+	if tableExists && len(table.Fields) > 0 {
+		for field := range ggraph.jsonkv.Tables[vertexLabel].Fields {
 			if val := tpath.PathLookup(vertex.Data, field); val != nil {
 				err := tx.Set(benchtop.FieldKey(field, vertexLabel, val, []byte(vertex.ID)), []byte{}, nil)
 				if err != nil {
@@ -170,9 +170,9 @@ func (ggraph *Graph) indexEdge(edge *gdbi.Edge, tx *pebblebulk.PebbleBulk) error
 		ggraph.jsonkv.LocCache.Set(edge.ID, rowLoc)
 	}
 
-	_, fieldsExist := ggraph.jsonkv.Fields[edgeLabel]
-	if fieldsExist {
-		for field := range ggraph.jsonkv.Fields[edgeLabel] {
+	table, tableExists := ggraph.jsonkv.Tables[edgeLabel]
+	if tableExists && len(table.Fields) > 0 {
+		for field := range table.Fields {
 			if val := tpath.PathLookup(edge.Data, field); val != nil {
 				err := tx.Set(benchtop.FieldKey(field, edgeLabel, val, []byte(edge.ID)), []byte{}, nil)
 				if err != nil {
@@ -1103,8 +1103,10 @@ func (ggraph *Graph) BulkDel(data *gdbi.DeleteData) error {
 				ggraph.jsonkv.LocCache.Invalidate(item.id)
 
 				// Send field infos
-				if fields, exists := ggraph.jsonkv.Fields[item.tbl]; exists {
-					for field := range fields {
+				//
+				table, tableExists := ggraph.jsonkv.Tables[item.tbl]
+				if tableExists && len(table.Fields) > 0 {
+					for field := range table.Fields {
 						rKey := benchtop.RFieldKey(item.tbl, field, item.id)
 						select {
 						case fieldChan <- fieldInfo{rKey: rKey, field: field, tbl: item.tbl, id: []byte(item.id)}:

@@ -40,19 +40,19 @@ type lookupVertsHasLabelCondIndexProc struct {
 }
 
 func (l *lookupVertsHasLabelCondIndexProc) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
-	log.Debugln("Entering lookupVertsHasLabelCondIndexProc custom processor", l.loadData)
 	var exists = true
 	// Here if one of l.labels doesn't exist then not going to be querying all the data so leave it like this.
 	cond := l.expr.GetCondition()
-	exists = len(l.db.jsonkv.Fields) > 0 && cond != nil
-	if exists {
+	if cond != nil {
 		for _, iterLabel := range l.labels {
-			label, ok := l.db.jsonkv.Fields[iterLabel]
+			/*fmt.Println("LABEL: ", iterLabel)
+			fmt.Println("TABLES: ", l.db.jsonkv.Tables)*/
+			tabel, ok := l.db.jsonkv.Tables[iterLabel]
 			if !ok {
 				exists = false
 				break
 			}
-			_, exists = label[cond.Key]
+			_, exists = tabel.Fields[cond.Key]
 			if !exists {
 				break
 			}
@@ -61,6 +61,7 @@ func (l *lookupVertsHasLabelCondIndexProc) Process(ctx context.Context, man gdbi
 
 	count := 0
 	if !exists || (l.expr == nil && cond == nil) {
+		log.Debugln("Using base case processor lookupVertsHasLabelCondIndexProc")
 		go func() {
 			defer close(out)
 			for t := range in {
@@ -90,12 +91,17 @@ func (l *lookupVertsHasLabelCondIndexProc) Process(ctx context.Context, man gdbi
 			}
 		}()
 	} else {
+		log.Debugln("Using optimized custom processor lookupVertsHasLabelCondIndexProc")
 		queryChan := make(chan gdbi.ElementLookup, 100)
 		go func() {
 			defer close(queryChan)
 			for t := range in {
 				cond := l.expr.GetCondition()
 				for _, label := range l.labels {
+					/*fmt.Println("LABEL: ", label)
+					fmt.Println("CONDITION: ", cond.Condition.String())
+					fmt.Println("KEY: ", cond.Key)
+					fmt.Println("VALUE: ", cond.Value.AsInterface())*/
 					for id := range l.db.jsonkv.RowIdsByLabelFieldValue(label, cond.Key, cond.Value.AsInterface(), cond.Condition) {
 						queryChan <- gdbi.ElementLookup{ID: id, Ref: t}
 					}
@@ -146,11 +152,11 @@ func (l *lookupVertsCondIndexProc) Process(ctx context.Context, man gdbi.Manager
 
 	/*  Indexing only works if every vertex label is indexed for that specific field and it's only a condition Filter
 	otherwise this lookup will not fetch everything that was asked for */
-	allMatch := len(l.db.jsonkv.Fields) > 0 && cond != nil
+	allMatch := cond != nil
 	if allMatch {
 		for lbl := range l.db.jsonkv.GetLabels(false, false) {
-			if val, exists := l.db.jsonkv.Fields[lbl]; exists {
-				if _, ok := val[cond.Key]; !ok {
+			if table, exists := l.db.jsonkv.Tables[lbl]; exists {
+				if _, ok := table.Fields[cond.Key]; !ok {
 					allMatch = false
 					break
 				}

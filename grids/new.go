@@ -105,7 +105,6 @@ func getGraph(baseDir, name string) (*Graph, error) {
 		return nil, fmt.Errorf("error reading VERSION file at %s: %v", versionPath, err)
 	}
 
-	//bsonkvPath := fmt.Sprintf("%s", dbPath)
 	jsonkvPath := dbPath
 	tabledr, err := jsontable.LoadJSONDriver(jsonkvPath)
 	if err != nil {

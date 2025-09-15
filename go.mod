@@ -4,6 +4,8 @@ go 1.24
 
 toolchain go1.24.2
 
+replace github.com/bmeg/benchtop v0.0.0-20250827195345-9810354883b9 => ../benchtop
+
 require (
 	github.com/IBM/sarama v1.45.1
 	github.com/Shopify/sarama v1.38.1
@@ -17,7 +19,7 @@ require (
 	github.com/boltdb/bolt v1.3.1
 	github.com/bytedance/sonic v1.14.0
 	github.com/casbin/casbin/v2 v2.97.0
-	github.com/cockroachdb/pebble v1.1.2
+	github.com/cockroachdb/pebble v1.1.5
 	github.com/davecgh/go-spew v1.1.1
 	github.com/dgraph-io/badger/v2 v2.2007.4
 	github.com/dop251/goja v0.0.0-20240707163329-b1681fb2a2f5
@@ -106,7 +108,7 @@ require (
 	github.com/jcmturner/gokrb5/v8 v8.4.4 // indirect
 	github.com/jcmturner/rpc/v2 v2.0.3 // indirect
 	github.com/jessevdk/go-flags v1.6.1 // indirect
-	github.com/klauspost/compress v1.17.11 // indirect
+	github.com/klauspost/compress v1.18.0 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.8 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/kylelemons/godebug v1.1.0 // indirect

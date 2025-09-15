@@ -19,7 +19,6 @@ func (ggraph *Graph) AddVertexIndex(label, field string) error {
 
 // DeleteVertexIndex delete index from vertices
 func (ggraph *Graph) DeleteVertexIndex(label, field string) error {
-	fmt.Println("HELLO WE HARE HERE")
 	log.WithFields(log.Fields{"label": label, "field": field}).Info("Deleting vertex index")
 	return ggraph.jsonkv.RemoveField(VTABLE_PREFIX+label, field)
 }
@@ -60,8 +59,8 @@ func (ggraph *Graph) DeleteAnyRow(id string, label string, edgeFlag bool) error 
 
 	tableLabel := prefix + label
 	var bulkErr *multierror.Error
-	if fields, exists := ggraph.jsonkv.Fields[tableLabel]; exists {
-		for field := range fields {
+	if table, exists := ggraph.jsonkv.Tables[tableLabel]; exists {
+		for field := range table.Fields {
 			if err := ggraph.jsonkv.DeleteRowField(tableLabel, field, id); err != nil {
 				log.Errorf("Failed to delete index for field '%s' in table '%s' for row '%s': %v", field, tableLabel, id, err)
 				bulkErr = multierror.Append(bulkErr, err)
