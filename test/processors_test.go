@@ -34,7 +34,7 @@ func TestEngine(t *testing.T) {
 			count(len(vertices)),
 		},
 		{
-			Q.E().Count(),
+			Q.V().OutE().Count(),
 			count(len(edges)),
 		},
 		{
@@ -42,7 +42,7 @@ func TestEngine(t *testing.T) {
 			pickAllVertices(),
 		},
 		{
-			Q.E(),
+			Q.V().OutE(),
 			pickAllEdges(),
 		},
 		{
@@ -62,11 +62,11 @@ func TestEngine(t *testing.T) {
 			count(170),
 		},
 		{
-			Q.E().HasLabel("purchasedProducts").Count(),
+			Q.V().OutE().HasLabel("purchasedProducts").Count(),
 			count(100),
 		},
 		{
-			Q.E().HasLabel("userPurchases").Count(),
+			Q.V().OutE().HasLabel("userPurchases").Count(),
 			count(100),
 		},
 		{
@@ -74,7 +74,7 @@ func TestEngine(t *testing.T) {
 			count(0),
 		},
 		{
-			Q.E().HasLabel("does-not-exist").Count(),
+			Q.V().OutE().HasLabel("does-not-exist").Count(),
 			count(0),
 		},
 		{
@@ -310,7 +310,7 @@ func TestEngine(t *testing.T) {
 			pickRes(vertex("users:1", "users", data{"email": "Earlean.Bonacci@yahoo.com", "id": 1})),
 		},
 		{
-			Q.V("users:1").Fields("-_gid", "-_label", "email", "id"),
+			Q.V("users:1").Fields("-_id", "-_label", "email", "id"),
 			pickRes(vertex("", "", data{"email": "Earlean.Bonacci@yahoo.com", "id": 1})),
 		},
 		{
@@ -347,51 +347,16 @@ func TestEngine(t *testing.T) {
 			count(2),
 		},
 		{
-			Q.V("users:11").As("a").OutE().As("b").Out().Has(gripql.Neq("_gid", "purchases:4")).Select("b").Count(),
+			Q.V("users:11").As("a").OutE().As("b").Out().Has(gripql.Neq("_id", "purchases:4")).Select("b").Count(),
 			count(1),
 		},
 		{
-			Q.V("users:11").As("a").OutE().As("b").Out().Has(gripql.Neq("_gid", "purchases:4")).Select("b").Out(),
+			Q.V("users:11").As("a").OutE().As("b").Out().Has(gripql.Neq("_id", "purchases:4")).Select("b").Out(),
 			pick("purchases:26"),
 		},
 		{
-			Q.V("users:1").As("a").Out().As("b").Select("a", "b"),
-			pickSelection(map[string]interface{}{
-				"a": getVertex("users:1"),
-				"b": getVertex("purchases:57"),
-			}),
-		},
-		{
-			Q.V("users:1").Fields().As("a").Out().Fields().As("b").Select("a", "b"),
-			pickSelection(map[string]interface{}{
-				"a": vertex("users:1", "users", nil),
-				"b": vertex("purchases:57", "purchases", nil),
-			}),
-		},
-		{
-			Q.V("users:1").Fields("-created_at", "-deleted_at", "-details", "-id", "-password").As("a").Out().Fields().As("b").Select("a", "b"),
-			pickSelection(map[string]interface{}{
-				"a": vertex("users:1", "users", data{"email": "Earlean.Bonacci@yahoo.com"}),
-				"b": vertex("purchases:57", "purchases", nil),
-			}),
-		},
-		{
-			Q.V("users:1").Fields().As("a").Out().Fields("state").As("b").Select("a", "b"),
-			pickSelection(map[string]interface{}{
-				"a": vertex("users:1", "users", nil),
-				"b": vertex("purchases:57", "purchases", data{"state": "IL"}),
-			}),
-		},
-		{
-			Q.V("users:1").As("a").Fields().Out().As("b").Fields().Select("a", "b"),
-			pickSelection(map[string]interface{}{
-				"a": getVertex("users:1"),
-				"b": getVertex("purchases:57"),
-			}),
-		},
-		{
 			Q.V("users:1").As("a").Out().As("b").
-				Render(map[string]interface{}{"user_id": "$a._gid", "purchase_id": "$b._gid", "purchaser": "$b.name"}),
+				Render(map[string]interface{}{"user_id": "$a._id", "purchase_id": "$b._id", "purchaser": "$b.name"}),
 			render(map[string]interface{}{"user_id": "users:1", "purchase_id": "purchases:57", "purchaser": "Letitia Sprau"}),
 		},
 	}
@@ -413,19 +378,19 @@ func TestEngine(t *testing.T) {
 	}
 }
 
-func vertex(gid, label string, d data) *gripql.Vertex {
+func vertex(id, label string, d data) *gripql.Vertex {
 	ds, _ := structpb.NewStruct(d)
 	return &gripql.Vertex{
-		Gid:   gid,
+		Id:    id,
 		Label: label,
 		Data:  ds,
 	}
 }
 
-func edge(gid interface{}, from, to string, label string, d data) *gripql.Edge {
+func edge(id interface{}, from, to string, label string, d data) *gripql.Edge {
 	ds, _ := structpb.NewStruct(d)
 	return &gripql.Edge{
-		Gid:   fmt.Sprintf("%v", gid),
+		Id:    fmt.Sprintf("%v", id),
 		From:  from,
 		To:    to,
 		Label: label,
@@ -454,61 +419,61 @@ func compare(expect []*gripql.QueryResult) checker {
 		sort.Strings(expectS)
 
 		if !reflect.DeepEqual(actualS, expectS) {
-			for _, s := range actualS {
-				t.Log("actual", s)
-			}
-			for _, s := range expectS {
-				t.Log("expect", s)
-			}
 			if len(expectS) != len(actualS) {
 				t.Logf("expected # results: %d actual # results: %d", len(expectS), len(actualS))
+			} else {
+				for i, s := range actualS {
+					t.Log("actual", s)
+					t.Log("expect", expectS[i])
+				}
 			}
+
 			t.Errorf("not equal")
 		}
 	}
 }
 
-func pick(gids ...string) checker {
+func pick(ids ...string) checker {
 	expect := []*gripql.QueryResult{}
-	for _, id := range gids {
-		res := pickgid(id)
+	for _, id := range ids {
+		res := pickid(id)
 		expect = append(expect, res)
 	}
 	return compare(expect)
 }
 
-func getVertex(gid string) *gripql.Vertex {
+func getVertex(id string) *gripql.Vertex {
 	for _, v := range vertices {
-		if v.Gid == gid {
+		if v.Id == id {
 			return v
 		}
 	}
 	return nil
 }
 
-func getEdge(gid string) *gripql.Edge {
+func getEdge(id string) *gripql.Edge {
 	for _, e := range edges {
-		if e.Gid == gid {
+		if e.Id == id {
 			return e
 		}
 	}
 	return nil
 }
 
-func pickgid(gid string) *gripql.QueryResult {
-	v := getVertex(gid)
+func pickid(id string) *gripql.QueryResult {
+	v := getVertex(id)
 	if v != nil {
 		return &gripql.QueryResult{
 			Result: &gripql.QueryResult_Vertex{Vertex: v},
 		}
 	}
-	e := getEdge(gid)
+	e := getEdge(id)
 	if e != nil {
 		return &gripql.QueryResult{
 			Result: &gripql.QueryResult_Edge{Edge: e},
 		}
 	}
-	panic("no vertex or edge found for gid")
+	panic("no vertex or edge found for id")
 }
 
 func pickRes(ival ...interface{}) checker {
@@ -550,36 +515,6 @@ func pickAllEdges() checker {
 			Result: &gripql.QueryResult_Edge{Edge: e},
 		}
 		expect = append(expect, res)
-	}
-	return compare(expect)
-}
-
-func pickSelection(selection map[string]interface{}) checker {
-	s := map[string]*gripql.Selection{}
-	for mark, ival := range selection {
-		switch val := ival.(type) {
-		case *gripql.Vertex:
-			s[mark] = &gripql.Selection{
-				Result: &gripql.Selection_Vertex{
-					Vertex: val,
-				},
-			}
-		case *gripql.Edge:
-			s[mark] = &gripql.Selection{
-				Result: &gripql.Selection_Edge{
-					Edge: val,
-				},
-			}
-		default:
-			panic(fmt.Sprintf("unhandled type %T", ival))
-		}
-	}
-	expect := []*gripql.QueryResult{
-		{
-			Result: &gripql.QueryResult_Selections{
-				Selections: &gripql.Selections{Selections: s},
-			},
-		},
 	}
 	return compare(expect)
 }

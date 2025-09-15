@@ -16,7 +16,7 @@ VERSION_LDFLAGS=\
  -X "github.com/bmeg/grip/version.GitBranch=$(git_branch)" \
  -X "github.com/bmeg/grip/version.GitUpstream=$(git_upstream)"
 
-export GRIP_VERSION = 0.7.0
+export GRIP_VERSION = 0.8.0
 # LAST_PR_NUMBER is used by the release notes builder to generate notes
 # based on pull requests (PR) up until the last release.
 export LAST_PR_NUMBER = 229
@@ -41,12 +41,10 @@ proto:
 	  	--go_opt paths=source_relative \
 		--go-grpc_out ./ \
 		--go-grpc_opt paths=source_relative \
-		--grpc-gateway_out ./ \
+		--grpc-gateway_out allow_delete_body=true:./ \
 		--grpc-gateway_opt logtostderr=true \
 		--grpc-gateway_opt paths=source_relative \
 		--grpc-rest-direct_out . \
-		--grpc-gateway-client_out . \
-		--grpc-gateway-client_opt paths=source_relative \
 		gripql.proto
 	@cd kvindex && protoc \
 		-I ./ \
@@ -66,11 +64,11 @@ proto:
 
 proto-depends:
 	@git submodule update --init --recursive
-	@go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-grpc-gateway@v2.11.1
-	@go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2@v2.11.1
-	@go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.28.1
+	@go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-grpc-gateway@latest
+	@go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2@latest
+	@go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.34.2
 	@go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
-	@go install github.com/ckaznocha/protoc-gen-lint@v0.2.4
+	@go install github.com/ckaznocha/protoc-gen-lint@latest
 	@go install github.com/bmeg/protoc-gen-grpc-rest-direct@latest
 	@go install github.com/ckaznocha/protoc-gen-lint@latest
 
@@ -91,7 +89,7 @@ lint:
 	flake8 gripql/python/ conformance/
 
 lint-depends:
-	go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.35.2
+	go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.59.1
 	go install golang.org/x/tools/cmd/goimports
 
 # ---------------------
@@ -129,11 +127,7 @@ test-authorization:
 # ---------------------
 start-mongo:
 	@docker rm -f grip-mongodb-test > /dev/null 2>&1 || echo
-	docker run -d --name grip-mongodb-test -p 27017:27017 docker.io/mongo:3.6.4 > /dev/null
-
-start-elastic:
-	@docker rm -f grip-es-test > /dev/null 2>&1 || echo
-	docker run -d --name grip-es-test -p 19200:9200 -p 9300:9300 -e "discovery.type=single-node" -e "xpack.security.enabled=false" docker.elastic.co/elasticsearch/elasticsearch:5.6.3 > /dev/null
+	docker run -d --name grip-mongodb-test -p 27017:27017 mongo:7.0.13-rc0-jammy > /dev/null
 
 start-postgres:
 	@docker rm -f grip-postgres-test > /dev/null 2>&1 || echo
@@ -145,6 +139,52 @@ start-mysql:
 
 start-gripper-test:
 	@cd ./gripper/test-graph && ./gripper-table -m swapi/table.map &
+
+start-kafka:
+	@docker rm -f kafka > /dev/null 2>&1 || echo
+	docker run -d --name kafka \
+		-p 9092:9092 \
+		-e KAFKA_ENABLE_KRAFT=yes \
+		-e KAFKA_KRAFT_CLUSTER_ID=abcdefghijklmnopqrstuv== \
+		-e KAFKA_CFG_NODE_ID=1 \
+		-e KAFKA_CFG_PROCESS_ROLES=controller,broker \
+		-e KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=1@localhost:9093 \
+		-e KAFKA_CFG_LISTENERS=CONTROLLER://:9093,INTERNAL://:9092 \
+		-e KAFKA_CFG_ADVERTISED_LISTENERS=INTERNAL://localhost:9092 \
+		-e KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=INTERNAL:SASL_PLAINTEXT,CONTROLLER:PLAINTEXT \
+		-e KAFKA_CFG_INTER_BROKER_LISTENER_NAME=INTERNAL \
+		-e KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER \
+		-e KAFKA_CFG_SUPER_USERS=User:admin \
+		-e KAFKA_CLIENT_USERS=admin \
+		-e KAFKA_CLIENT_PASSWORDS=adminpassword \
+		-e KAFKA_CFG_SASL_ENABLED_MECHANISMS=PLAIN \
+		-e KAFKA_CFG_SASL_MECHANISM_INTER_BROKER_PROTOCOL=PLAIN \
+		bitnami/kafka:latest
+	printf '%s\n' \
+		'security.protocol=SASL_PLAINTEXT' \
+		'sasl.mechanism=PLAIN' \
+		'sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required username="admin" password="adminpassword";' \
+		> sasl-config.properties
+	docker cp sasl-config.properties kafka:/tmp/sasl-config.properties
+	@echo "Waiting for Kafka to become ready..."
+	@until docker exec kafka kafka-topics.sh \
+		--list \
+		--bootstrap-server localhost:9092 \
+		--command-config /tmp/sasl-config.properties > /dev/null 2>&1; do \
+		echo "Still waiting..."; \
+		sleep 2; \
+	done
+	docker exec kafka kafka-topics.sh \
+		--create \
+		--topic gripHistory \
+		--bootstrap-server localhost:9092 \
+		--partitions 1 \
+		--replication-factor 1 \
+		--command-config /tmp/sasl-config.properties
+	docker exec kafka kafka-topics.sh \
+		--list \
+		--bootstrap-server localhost:9092 \
+		--command-config /tmp/sasl-config.properties
 
 # ---------------------
 # Website
@@ -160,3 +200,4 @@ website-dev:
 # Other
 # ---------------------
 .PHONY: test rocksdb website
+

@@ -9,6 +9,7 @@ import (
 	_ "github.com/bmeg/grip/kvi/badgerdb" // import so badger will register itself
 	_ "github.com/bmeg/grip/kvi/boltdb"   // import so bolt will register itself
 	_ "github.com/bmeg/grip/kvi/leveldb"  // import so level will register itself
+	_ "github.com/bmeg/grip/kvi/pebbledb" // import so pebble will register itself
 	"github.com/bmeg/grip/util"
 )
 
@@ -28,15 +29,6 @@ func resetKVInterface() {
 	}
 }
 
-func contains(a []string, v string) bool {
-	for _, i := range a {
-		if i == v {
-			return true
-		}
-	}
-	return false
-}
-
 func TestMain(m *testing.M) {
 	var err error
 	var exit = 1
@@ -49,7 +41,7 @@ func TestMain(m *testing.M) {
 		os.RemoveAll(dbpath)
 	}()
 
-	for _, dbname = range []string{"badger", "bolt", "level"} {
+	for _, dbname = range []string{"badger", "bolt", "level", "pebble"} {
 		dbpath = "test.db." + util.RandomString(6)
 
 		kvdriver, err = kvi.NewKVInterface(dbname, dbpath, nil)

@@ -2,7 +2,7 @@ package gripper
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 
 	//"path/filepath"
 	"encoding/json"
@@ -31,13 +31,13 @@ type ElementConfig struct {
 }
 
 type VertexConfig struct {
-	Gid   string        `json:"gid"`
+	Id    string        `json:"id"`
 	Label string        `json:"label"`
 	Data  ElementConfig `json:"data"`
 }
 
 type EdgeConfig struct {
-	Gid   string        `json:"gid"`
+	Id    string        `json:"id"`
 	To    string        `json:"to"`
 	From  string        `json:"from"`
 	Label string        `json:"label"`
@@ -47,7 +47,7 @@ type EdgeConfig struct {
 func LoadConfig(path string) (*GraphConfig, error) {
 	conf := &GraphConfig{}
 	// Read file
-	source, err := ioutil.ReadFile(path)
+	source, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read config at path %s: \n%v", path, err)
 	}
@@ -72,22 +72,22 @@ func GraphToConfig(graph *gripql.Graph) (*GraphConfig, error) {
 		s, _ := json.Marshal(d)
 		vc := VertexConfig{}
 		json.Unmarshal(s, &vc)
-		vc.Gid = vert.Gid
+		vc.Id = vert.Id
 		vc.Label = vert.Label
 		vc.Data = dataToElementConfig(vert.Data.AsMap())
-		out.Vertices[vert.Gid] = vc
+		out.Vertices[vert.Id] = vc
 	}
 	for _, edge := range graph.Edges {
 		d := edge.Data.AsMap()
 		s, _ := json.Marshal(d)
 		ec := EdgeConfig{}
 		json.Unmarshal(s, &ec)
-		ec.Gid = edge.Gid
+		ec.Id = edge.Id
 		ec.Label = edge.Label
 		ec.To = edge.To
 		ec.From = edge.From
 		ec.Data = dataToElementConfig(edge.Data.AsMap())
-		out.Edges[edge.Gid] = ec
+		out.Edges[edge.Id] = ec
 	}
 	return &out, nil
 }

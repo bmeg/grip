@@ -11,6 +11,9 @@ import (
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/util/rpc"
+	"github.com/bmeg/jsonschema/v6"
+	"github.com/bmeg/jsonschemagraph/compile"
+	"github.com/bmeg/jsonschemagraph/graph"
 )
 
 var schemaSuffix = "__schema__"
@@ -30,7 +33,7 @@ func (server *GripServer) getGraph(graph string) (*gripql.Graph, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to load existing schema: %v", err)
 	}
-	res, err := conn.Traversal(&gripql.GraphQuery{Graph: graph, Query: gripql.NewQuery().V().Statements})
+	res, err := conn.Traversal(context.Background(), &gripql.GraphQuery{Graph: graph, Query: gripql.NewQuery().V().Statements})
 	if err != nil {
 		return nil, fmt.Errorf("failed to load existing schema: %v", err)
 	}
@@ -38,7 +41,7 @@ func (server *GripServer) getGraph(graph string) (*gripql.Graph, error) {
 	for row := range res {
 		vertices = append(vertices, row.GetVertex())
 	}
-	res, err = conn.Traversal(&gripql.GraphQuery{Graph: graph, Query: gripql.NewQuery().E().Statements})
+	res, err = conn.Traversal(context.Background(), &gripql.GraphQuery{Graph: graph, Query: gripql.NewQuery().V().OutE().Statements})
 	if err != nil {
 		return nil, fmt.Errorf("failed to load existing schema: %v", err)
 	}
@@ -137,15 +140,11 @@ func (server *GripServer) addFullGraph(ctx context.Context, graphName string, sc
 	if graphName == "" {
 		return fmt.Errorf("graph name is an empty string")
 	}
-	if server.graphExists(graphName) {
-		_, err := server.DeleteGraph(ctx, &gripql.GraphID{Graph: graphName})
+	if !server.graphExists(graphName) {
+		_, err := server.AddGraph(ctx, &gripql.GraphID{Graph: graphName})
 		if err != nil {
-			return fmt.Errorf("failed to remove previous schema: %v", err)
+			return fmt.Errorf("error creating graph '%s': %v", graphName, err)
 		}
-	}
-	_, err := server.AddGraph(ctx, &gripql.GraphID{Graph: graphName})
-	if err != nil {
-		return fmt.Errorf("error creating graph '%s': %v", graphName, err)
 	}
 	for _, v := range schema.Vertices {
 		_, err := server.addVertex(ctx, &gripql.GraphElement{Graph: graphName, Vertex: v})
@@ -160,4 +159,30 @@ func (server *GripServer) addFullGraph(ctx context.Context, graphName string, sc
 		}
 	}
 	return nil
+}
+
+func (server *GripServer) LoadSchemas(sch *gripql.Graph, out *graph.GraphSchema) (*graph.GraphSchema, error) {
+	compiler := jsonschema.NewCompiler()
+	compiler.AssertVocabs()
+	vc, err := compile.GetHyperMediaVocab()
+	if err != nil {
+		return nil, fmt.Errorf("Hypermedia Vocab loading err %s", err)
+	}
+	compiler.RegisterVocabulary(vc)
+	out.Compiler = compiler
+
+	for _, v := range sch.Vertices {
+		err = compiler.AddResource(v.Id, v.Data.AsMap())
+		if err != nil {
+			return nil, fmt.Errorf("error adding resource for '%s': %w", v, err)
+		}
+	}
+	for _, v := range sch.Vertices {
+		sch, err := compiler.Compile(v.Id)
+		if err != nil {
+			return nil, fmt.Errorf("error compiling schema for '%s': %w", v.Id, err)
+		}
+		out.Classes[v.Label] = sch
+	}
+	return out, nil
 }

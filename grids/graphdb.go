@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sync"
 
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
@@ -18,7 +19,7 @@ type GDB struct {
 
 // NewKVGraphDB intitalize a new grids graph driver
 func NewGraphDB(baseDir string) (gdbi.GraphDB, error) {
-	log.Warning("GRIP driver is development. Do not use")
+	log.Redf("Disclaimer: the Grids driver is an experimental database driver. Use with caution.")
 	_, err := os.Stat(baseDir)
 	if os.IsNotExist(err) {
 		os.Mkdir(baseDir, 0700)
@@ -32,16 +33,25 @@ func (kgraph *GDB) Graph(graph string) (gdbi.GraphInterface, error) {
 	if err != nil {
 		return nil, err
 	}
-	if g, ok := kgraph.drivers[graph]; ok {
+	mu := sync.Mutex{}
+	mu.Lock()
+	g, ok := kgraph.drivers[graph]
+	mu.Unlock()
+	if ok {
 		return g, nil
 	}
+
 	dbPath := filepath.Join(kgraph.basePath, graph)
 	if _, err := os.Stat(dbPath); err == nil {
-		g, err := newGraph(kgraph.basePath, graph)
+		// This also fetches an existing graph if it doesn't exist in kgraph.drivers
+		g, err := getGraph(kgraph.basePath, graph)
 		if err != nil {
 			return nil, err
 		}
+		mu.Lock()
 		kgraph.drivers[graph] = g
+		mu.Unlock()
+
 		return g, nil
 	}
 	return nil, fmt.Errorf("graph '%s' was not found", graph)
@@ -50,13 +60,19 @@ func (kgraph *GDB) Graph(graph string) (gdbi.GraphInterface, error) {
 // ListGraphs lists the graphs managed by this driver
 func (gdb *GDB) ListGraphs() []string {
 	out := []string{}
-	for k := range gdb.drivers {
-		out = append(out, k)
-	}
 	if ds, err := filepath.Glob(filepath.Join(gdb.basePath, "*")); err == nil {
 		for _, d := range ds {
-			b := filepath.Base(d)
-			out = append(out, b)
+			fi, err := os.Stat(d)
+			if err != nil {
+				continue
+			}
+			if fi.IsDir() {
+				versionPath := filepath.Join(d, "VERSION")
+				if _, err := os.Stat(versionPath); err == nil {
+					b := filepath.Base(d)
+					out = append(out, b)
+				}
+			}
 		}
 	}
 	return out

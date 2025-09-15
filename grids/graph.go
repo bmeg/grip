@@ -4,112 +4,198 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"runtime"
+	"slices"
+	"sort"
 	"sync"
+	"sync/atomic"
 
+	"github.com/bmeg/benchtop"
+	"github.com/bmeg/benchtop/jsontable"
+	"github.com/bmeg/benchtop/pebblebulk"
+	"github.com/bmeg/grip/engine/core"
 	"github.com/bmeg/grip/gdbi"
-	"github.com/bmeg/grip/gripql"
-	"github.com/bmeg/grip/kvi"
-	"github.com/bmeg/grip/kvindex"
 	"github.com/bmeg/grip/log"
-	"github.com/bmeg/grip/util/protoutil"
 	"github.com/bmeg/grip/util/setcmp"
+	"github.com/bytedance/sonic"
+	"github.com/cockroachdb/pebble"
 	multierror "github.com/hashicorp/go-multierror"
+)
+
+const (
+	VTABLE_PREFIX = "v_"
+	ETABLE_PREFIX = "e_"
 )
 
 // GetTimestamp returns the update timestamp
 func (ggraph *Graph) GetTimestamp() string {
-	//return ggraph.kdb.ts.Get(ggraph.graphID)
-	return "" //FIXME
+	return ggraph.ts.Get(ggraph.graphID)
 }
 
-type kvAddData struct {
-	key    []byte
-	value  []byte
-	vertex *gripql.Vertex
-	doc    map[string]interface{}
-}
-
-func insertVertex(tx kvi.KVBulkWrite, keyMap *KeyMap, vertex *gdbi.Vertex) error {
+func insertVertex(tx *pebblebulk.PebbleBulk, vertex *gdbi.Vertex) error {
 	if vertex.ID == "" {
-		return fmt.Errorf("Inserting null key vertex")
+		return fmt.Errorf("inserting null key vertex")
 	}
-	vertexKey, _ := keyMap.GetsertVertexKey(vertex.ID, vertex.Label)
-	key := VertexKey(vertexKey)
-	if vertex.Data == nil {
-		vertex.Data = map[string]interface{}{}
+	if err := tx.Set(VertexKey(vertex.ID), []byte(vertex.Label), nil); err != nil {
+		return fmt.Errorf("AddVertex Error %s", err)
 	}
-	value, err := protoutil.StructMarshal(vertex.Data)
+	return nil
+}
+
+func (ggraph *Graph) indexVertex(vertex *gdbi.Vertex, tx *pebblebulk.PebbleBulk) error {
+	vertexLabel := VTABLE_PREFIX + vertex.Label
+	ggraph.jsonkv.Lock.Lock()
+	table, ok := ggraph.jsonkv.Tables[vertexLabel]
+	ggraph.jsonkv.Lock.Unlock()
+	if !ok {
+		log.Debugf("Creating new table %s for label %s on graph %s", vertexLabel, vertex.Label, ggraph.graphID)
+		newTable, err := ggraph.jsonkv.New(vertexLabel, nil)
+		if err != nil {
+			return fmt.Errorf("indexVertex: %s", err)
+		}
+		ggraph.jsonkv.Lock.Lock()
+		table = newTable.(*jsontable.JSONTable)
+		ggraph.jsonkv.Tables[vertexLabel] = table
+		ggraph.jsonkv.Lock.Unlock()
+	}
+
+	rowLoc, err := table.AddRow(
+		benchtop.Row{
+			Id:        []byte(vertex.ID),
+			TableName: vertexLabel,
+			Data:      vertex.Data,
+		},
+	)
 	if err != nil {
-		return err
-	}
-	if err := tx.Set(key, value); err != nil {
 		return fmt.Errorf("AddVertex Error %s", err)
 	}
+	table.AddTableEntryInfo(tx, []byte(vertex.ID), *rowLoc)
+
+	_, ok = ggraph.jsonkv.PageCache.Set(vertex.ID, *rowLoc)
+	if !ok {
+		ggraph.jsonkv.PageCache.Invalidate(vertex.ID)
+		ggraph.jsonkv.PageCache.Set(vertex.ID, *rowLoc)
+		//log.Debugln("Replaced vals: ", vertex.ID, oldVal, newVal)
+	}
+
+	_, fieldsExist := ggraph.jsonkv.Fields[vertexLabel]
+	if fieldsExist {
+		for field := range ggraph.jsonkv.Fields[vertexLabel] {
+			if val := jsontable.PathLookup(vertex.Data, field); val != nil {
+				err := tx.Set(benchtop.FieldKey(field, vertexLabel, val, []byte(vertex.ID)), []byte{}, nil)
+				if err != nil {
+					return err
+				}
+				Mval, err := sonic.ConfigFastest.Marshal(val)
+				if err != nil {
+					return err
+				}
+				err = tx.Set(benchtop.RFieldKey(vertexLabel, field, vertex.ID), Mval, nil)
+				if err != nil {
+					return err
+				}
+			}
+		}
+	}
+
 	return nil
 }
 
-func indexVertex(tx kvi.KVBulkWrite, idx *kvindex.KVIndex, vertex *gdbi.Vertex) error {
-	doc := vertexIdxStruct(vertex)
-	if err := idx.AddDocTx(tx, vertex.ID, doc); err != nil {
-		return fmt.Errorf("AddVertex Error %s", err)
-	}
-	return nil
-}
-
-func insertEdge(tx kvi.KVBulkWrite, keyMap *KeyMap, edge *gdbi.Edge) error {
-	var err error
-	var data []byte
-
-	if edge.ID == "" {
+func insertEdge(tx *pebblebulk.PebbleBulk, edge *gdbi.Edge) error {
+	if edge.ID == "" ||
+		edge.From == "" ||
+		edge.To == "" ||
+		edge.Label == "" {
+		log.Errorln("insertEdge Err: ", edge)
 		return fmt.Errorf("inserting null key edge")
 	}
-
-	eid, lid := keyMap.GetsertEdgeKey(edge.ID, edge.Label)
-	src, ok := keyMap.GetVertexKey(edge.From)
-	if !ok {
-		return fmt.Errorf("vertex %s not found", edge.From)
-	}
-	dst, ok := keyMap.GetVertexKey(edge.To)
-	if !ok {
-		return fmt.Errorf("vertex %s not found", edge.To)
-	}
-
-	ekey := EdgeKey(eid, src, dst, lid)
-	skey := SrcEdgeKey(eid, src, dst, lid)
-	dkey := DstEdgeKey(eid, src, dst, lid)
-
-	data, err = protoutil.StructMarshal(edge.Data)
+	err := tx.Set(EdgeKey(edge.ID, edge.From, edge.To, edge.Label), nil, nil)
 	if err != nil {
 		return err
 	}
-
-	err = tx.Set(ekey, data)
+	err = tx.Set(DstEdgeKey(
+		edge.ID,
+		edge.From,
+		edge.To,
+		edge.Label,
+	), []byte{}, nil)
 	if err != nil {
 		return err
 	}
-	err = tx.Set(skey, []byte{})
-	if err != nil {
-		return err
-	}
-	err = tx.Set(dkey, []byte{})
+	err = tx.Set(SrcEdgeKey(
+		edge.ID,
+		edge.From,
+		edge.To,
+		edge.Label,
+	), []byte{}, nil)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func indexEdge(tx kvi.KVBulkWrite, idx *kvindex.KVIndex, edge *gdbi.Edge) error {
-	err := idx.AddDocTx(tx, edge.ID, edgeIdxStruct(edge))
-	return err
+func (ggraph *Graph) indexEdge(edge *gdbi.Edge, tx *pebblebulk.PebbleBulk) error {
+	edgeLabel := ETABLE_PREFIX + edge.Label
+	ggraph.jsonkv.Lock.Lock()
+	table, ok := ggraph.jsonkv.Tables[edgeLabel]
+	ggraph.jsonkv.Lock.Unlock()
+
+	if !ok {
+		log.Debugf("Creating new table %s for label %s on graph %s", edgeLabel, edge.Label, ggraph.graphID)
+		newTable, err := ggraph.jsonkv.New(edgeLabel, nil)
+		if err != nil {
+			return fmt.Errorf("indexEdge: jsonkv.New: %s", err)
+		}
+		ggraph.jsonkv.Lock.Lock()
+		table = newTable.(*jsontable.JSONTable)
+		ggraph.jsonkv.Tables[edgeLabel] = table
+		ggraph.jsonkv.Lock.Unlock()
+	}
+	rowLoc, err := table.AddRow(benchtop.Row{Id: []byte(edge.ID), TableName: edgeLabel, Data: edge.Data})
+	if err != nil {
+		return fmt.Errorf("indexEdge: table.AddRow: %s", err)
+	}
+	table.AddTableEntryInfo(tx, []byte(edge.ID), *rowLoc)
+
+	_, ok = ggraph.jsonkv.PageCache.Set(edge.ID, *rowLoc)
+	if !ok {
+		ggraph.jsonkv.PageCache.Invalidate(edge.ID)
+		ggraph.jsonkv.PageCache.Set(edge.ID, *rowLoc)
+	}
+
+	_, fieldsExist := ggraph.jsonkv.Fields[edgeLabel]
+	if fieldsExist {
+		for field := range ggraph.jsonkv.Fields[edgeLabel] {
+			if val := jsontable.PathLookup(edge.Data, field); val != nil {
+				err := tx.Set(benchtop.FieldKey(field, edgeLabel, val, []byte(edge.ID)), []byte{}, nil)
+				if err != nil {
+					return err
+				}
+				eMarsh, err := sonic.ConfigFastest.Marshal(val)
+				if err != nil {
+					return err
+				}
+				err = tx.Set(benchtop.RFieldKey(edgeLabel, field, edge.ID), eMarsh, nil)
+				if err != nil {
+					return err
+				}
+			}
+		}
+	}
+	return nil
+}
+
+func (ggraph *Graph) Compiler() gdbi.Compiler {
+	return core.NewCompiler(ggraph, GridsOptimizer, core.IndexStartOptimize)
 }
 
 // AddVertex adds an edge to the graph, if it already exists
 // in the graph, it is replaced
 func (ggraph *Graph) AddVertex(vertices []*gdbi.Vertex) error {
-	err := ggraph.graphkv.BulkWrite(func(tx kvi.KVBulkWrite) error {
+	err := ggraph.jsonkv.Pb.BulkWrite(func(tx *pebblebulk.PebbleBulk) error {
 		var bulkErr *multierror.Error
 		for _, vert := range vertices {
-			if err := insertVertex(tx, ggraph.keyMap, vert); err != nil {
+			if err := insertVertex(tx, vert); err != nil {
 				bulkErr = multierror.Append(bulkErr, err)
 				log.Errorf("AddVertex Error %s", err)
 			}
@@ -117,10 +203,11 @@ func (ggraph *Graph) AddVertex(vertices []*gdbi.Vertex) error {
 		ggraph.ts.Touch(ggraph.graphID)
 		return bulkErr.ErrorOrNil()
 	})
-	err = ggraph.indexkv.BulkWrite(func(tx kvi.KVBulkWrite) error {
+
+	err = ggraph.jsonkv.Pb.BulkWrite(func(tx *pebblebulk.PebbleBulk) error {
 		var bulkErr *multierror.Error
 		for _, vert := range vertices {
-			if err := indexVertex(tx, ggraph.idx, vert); err != nil {
+			if err := ggraph.indexVertex(vert, tx); err != nil {
 				bulkErr = multierror.Append(bulkErr, err)
 				log.Errorf("IndexVertex Error %s", err)
 			}
@@ -134,23 +221,28 @@ func (ggraph *Graph) AddVertex(vertices []*gdbi.Vertex) error {
 // AddEdge adds an edge to the graph, if the id is not "" and in already exists
 // in the graph, it is replaced
 func (ggraph *Graph) AddEdge(edges []*gdbi.Edge) error {
-	err := ggraph.graphkv.BulkWrite(func(tx kvi.KVBulkWrite) error {
-		for _, edge := range edges {
-			err := insertEdge(tx, ggraph.keyMap, edge)
-			if err != nil {
-				return err
+	var err error = nil
+	err = ggraph.jsonkv.Pb.BulkWrite(func(tx *pebblebulk.PebbleBulk) error {
+		err = ggraph.jsonkv.Pb.View(func(it *pebblebulk.PebbleIterator) error {
+			for _, edge := range edges {
+				err = insertEdge(tx, edge)
+				if err != nil {
+					log.Errorln("Err insertEdge: ", err)
+					return err
+				}
 			}
-		}
+			return err
+		})
 		ggraph.ts.Touch(ggraph.graphID)
-		return nil
+		return err
 	})
 	if err != nil {
 		return err
 	}
-	err = ggraph.indexkv.BulkWrite(func(tx kvi.KVBulkWrite) error {
+	err = ggraph.jsonkv.Pb.BulkWrite(func(tx *pebblebulk.PebbleBulk) error {
 		var bulkErr *multierror.Error
 		for _, edge := range edges {
-			if err := indexEdge(tx, ggraph.idx, edge); err != nil {
+			if err := ggraph.indexEdge(edge, tx); err != nil {
 				bulkErr = multierror.Append(bulkErr, err)
 			}
 		}
@@ -162,162 +254,170 @@ func (ggraph *Graph) AddEdge(edges []*gdbi.Edge) error {
 }
 
 func (ggraph *Graph) BulkAdd(stream <-chan *gdbi.GraphElement) error {
-	var anyErr error
+	var errs *multierror.Error
 	insertStream := make(chan *gdbi.GraphElement, 100)
-	indexStream := make(chan *gdbi.GraphElement, 100)
-	s := &sync.WaitGroup{}
-	s.Add(2)
+	indexStream := make(chan *benchtop.Row, 100)
+	errChan := make(chan error, 2)
+
+	var wg sync.WaitGroup
+	wg.Add(2)
+
 	go func() {
-		ggraph.graphkv.BulkWrite(func(tx kvi.KVBulkWrite) error {
+		defer wg.Done()
+		err := ggraph.jsonkv.Pb.BulkWrite(func(tx *pebblebulk.PebbleBulk) error {
 			for elem := range insertStream {
 				if elem.Vertex != nil {
-					if err := insertVertex(tx, ggraph.keyMap, elem.Vertex); err != nil {
-						anyErr = err
+					if err := insertVertex(tx, elem.Vertex); err != nil {
+						return fmt.Errorf("vertex insert error: %v", err)
 					}
 				}
 				if elem.Edge != nil {
-					if err := insertEdge(tx, ggraph.keyMap, elem.Edge); err != nil {
-						anyErr = err
+					if err := insertEdge(tx, elem.Edge); err != nil {
+						return fmt.Errorf("edge insert error: %v", err)
 					}
 				}
 			}
-			s.Done()
-			return anyErr
+			return nil
 		})
+		if err != nil {
+			log.Errorf("ERR in graph Bulk Add: %s", err)
+			return
+		}
+
 	}()
 
 	go func() {
-		ggraph.indexkv.BulkWrite(func(tx kvi.KVBulkWrite) error {
-			for elem := range indexStream {
-				if elem.Vertex != nil {
-					if err := indexVertex(tx, ggraph.idx, elem.Vertex); err != nil {
-						anyErr = err
-					}
-				}
-				if elem.Edge != nil {
-					if err := indexEdge(tx, ggraph.idx, elem.Edge); err != nil {
-						anyErr = err
-					}
-				}
+		defer wg.Done()
+		err := ggraph.jsonkv.Pb.BulkWrite(func(tx *pebblebulk.PebbleBulk) error {
+			if err := ggraph.jsonkv.BulkLoad(indexStream, tx); err != nil {
+				return fmt.Errorf("jsonkv bulk load error: %v", err)
 			}
-			s.Done()
-			return anyErr
+			ggraph.ts.Touch(ggraph.graphID)
+			return nil
 		})
+		errChan <- err
 	}()
 
-	for i := range stream {
-		insertStream <- i
-		indexStream <- i
+	go func() {
+		defer func() {
+			close(insertStream)
+			close(indexStream)
+		}()
+		for elem := range stream {
+			insertStream <- elem
+			if elem.Vertex != nil {
+				indexStream <- &benchtop.Row{
+					Id:        []byte(elem.Vertex.ID),
+					TableName: VTABLE_PREFIX + elem.Vertex.Label,
+					Data:      elem.Vertex.Data,
+				}
+			}
+			if elem.Edge != nil {
+				indexStream <- &benchtop.Row{
+					Id:        []byte(elem.Edge.ID),
+					TableName: ETABLE_PREFIX + elem.Edge.Label,
+					Data:      elem.Edge.Data,
+				}
+			}
+		}
+	}()
+
+	wg.Wait()
+	close(errChan)
+
+	for err := range errChan {
+		if err != nil {
+			errs = multierror.Append(errs, err)
+		}
 	}
-	close(insertStream)
-	close(indexStream)
-	s.Wait()
-	return anyErr
+
+	return errs.ErrorOrNil()
 }
 
-// DelEdge deletes edge with id `key`
-func (ggraph *Graph) DelEdge(eid string) error {
-	edgeKey, ok := ggraph.keyMap.GetEdgeKey(eid)
-	if !ok {
-		return fmt.Errorf("edge not found")
-	}
-	ekeyPrefix := EdgeKeyPrefix(edgeKey)
-	var ekey []byte
-	ggraph.graphkv.View(func(it kvi.KVIterator) error {
-		for it.Seek(ekeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), ekeyPrefix); it.Next() {
-			ekey = it.Key()
+func (ggraph *Graph) DelVertex(id string) error {
+	vid := VertexKey(id)
+	skeyPrefix := SrcEdgePrefix(id)
+	dkeyPrefix := DstEdgePrefix(id)
+
+	delKeys := make([][]byte, 0, 1000)
+	edgesToDelete := make(map[string]string)
+
+	var bulkErr *multierror.Error
+	err := ggraph.jsonkv.Pb.View(func(it *pebblebulk.PebbleIterator) error {
+		for it.Seek(skeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), skeyPrefix); it.Next() {
+			skey := it.Key()
+			eid, sid, did, label := SrcEdgeKeyParse(skey)
+
+			if ggraph.tempDeletedEdges != nil {
+				if _, exists := ggraph.tempDeletedEdges[eid]; exists {
+					continue
+				}
+			}
+			if _, exists := edgesToDelete[eid]; exists {
+				continue
+			}
+
+			ekey := EdgeKey(eid, sid, did, label)
+			dkey := DstEdgeKey(eid, sid, did, label)
+			delKeys = append(delKeys, ekey, skey, dkey)
+			edgesToDelete[eid] = label
+		}
+
+		for it.Seek(dkeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), dkeyPrefix); it.Next() {
+			dkey := it.Key()
+			eid, sid, did, label := DstEdgeKeyParse(dkey)
+
+			if ggraph.tempDeletedEdges != nil {
+				if _, exists := ggraph.tempDeletedEdges[eid]; exists {
+					continue
+				}
+			}
+			if _, exists := edgesToDelete[eid]; exists {
+				continue
+			}
+
+			ekey := EdgeKey(eid, sid, did, label)
+			skey := SrcEdgeKey(eid, sid, did, label)
+			delKeys = append(delKeys, ekey, skey, dkey)
+			edgesToDelete[eid] = label
 		}
 		return nil
 	})
 
-	if ekey == nil {
-		return fmt.Errorf("edge not found")
-	}
-
-	_, sid, did, _ := EdgeKeyParse(ekey)
-
-	skey := SrcEdgeKeyPrefix(edgeKey, sid, did)
-	dkey := DstEdgeKeyPrefix(edgeKey, sid, did)
-
-	var bulkErr *multierror.Error
-	if err := ggraph.graphkv.Delete(ekey); err != nil {
-		bulkErr = multierror.Append(bulkErr, err)
-	}
-	if err := ggraph.graphkv.Delete(skey); err != nil {
-		bulkErr = multierror.Append(bulkErr, err)
-	}
-	if err := ggraph.graphkv.Delete(dkey); err != nil {
-		bulkErr = multierror.Append(bulkErr, err)
-	}
-	if err := ggraph.keyMap.DelEdgeKey(eid); err != nil {
-		bulkErr = multierror.Append(bulkErr, err)
-	}
-	ggraph.ts.Touch(ggraph.graphID)
-	return bulkErr.ErrorOrNil()
-}
-
-// DelVertex deletes vertex with id `key`
-func (ggraph *Graph) DelVertex(id string) error {
-	vertexKey, ok := ggraph.keyMap.GetVertexKey(id)
-	if !ok {
-		return fmt.Errorf("vertex %s not found", id)
-	}
-	vid := VertexKey(vertexKey)
-	skeyPrefix := SrcEdgePrefix(vertexKey)
-	dkeyPrefix := DstEdgePrefix(vertexKey)
-
-	delKeys := make([][]byte, 0, 1000)
-
-	var bulkErr *multierror.Error
-
-	err := ggraph.graphkv.View(func(it kvi.KVIterator) error {
-		var bulkErr *multierror.Error
-		for it.Seek(skeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), skeyPrefix); it.Next() {
-			skey := it.Key()
-			// get edge ID from key
-			eid, sid, did, label := SrcEdgeKeyParse(skey)
-			ekey := EdgeKey(eid, sid, did, label)
-			dkey := DstEdgeKey(eid, sid, did, label)
-			delKeys = append(delKeys, ekey, skey, dkey)
-
-			edgeID, ok := ggraph.keyMap.GetEdgeID(eid)
-			if ok {
-				if err := ggraph.keyMap.DelEdgeKey(edgeID); err != nil {
-					bulkErr = multierror.Append(bulkErr, err)
-				}
-			}
-		}
-		for it.Seek(dkeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), dkeyPrefix); it.Next() {
-			dkey := it.Key()
-			// get edge ID from key
-			eid, sid, did, label := SrcEdgeKeyParse(dkey)
-			ekey := EdgeKey(eid, sid, did, label)
-			skey := SrcEdgeKey(eid, sid, did, label)
-			delKeys = append(delKeys, ekey, skey, dkey)
-
-			edgeID, ok := ggraph.keyMap.GetEdgeID(eid)
-			if ok {
-				if err := ggraph.keyMap.DelEdgeKey(edgeID); err != nil {
-					bulkErr = multierror.Append(bulkErr, err)
-				}
-			}
-		}
-		return bulkErr.ErrorOrNil()
-	})
 	if err != nil {
+		return err
+	}
+
+	for eid, label := range edgesToDelete {
+		if err := ggraph.DeleteAnyRow(eid, label, true); err != nil {
+			bulkErr = multierror.Append(bulkErr, err)
+		}
+
+		if ggraph.tempDeletedEdges != nil {
+			ggraph.tempDeletedEdges[eid] = struct{}{}
+		}
+	}
+
+	loc, err := ggraph.jsonkv.PageCache.Get(context.Background(), id, ggraph.jsonkv.PageLoader)
+	if err != nil {
+		return err
+	}
+
+	label := ggraph.jsonkv.LabelLookup[loc.Label]
+	if label == "" {
+		bulkErr = multierror.Append(bulkErr, fmt.Errorf("Failed to lookup table label %d", loc.Label))
+	}
+	if err := ggraph.DeleteAnyRow(id, label, false); err != nil {
 		bulkErr = multierror.Append(bulkErr, err)
 	}
 
-	if err := ggraph.keyMap.DelVertexKey(id); err != nil {
-		bulkErr = multierror.Append(bulkErr, err)
-	}
-
-	err = ggraph.graphkv.Update(func(tx kvi.KVTransaction) error {
-		if err := tx.Delete(vid); err != nil {
+	err = ggraph.jsonkv.Pb.BulkWrite(func(tx *pebblebulk.PebbleBulk) error {
+		if err := tx.DeletePrefix(vid); err != nil {
 			return err
 		}
 		for _, k := range delKeys {
-			if err := tx.Delete(k); err != nil {
+			if err := tx.DeletePrefix(k); err != nil {
+				log.Errorf("BulkWrite failed to delete key %s: %v", string(k), err)
 				return err
 			}
 		}
@@ -327,6 +427,55 @@ func (ggraph *Graph) DelVertex(id string) error {
 	if err != nil {
 		bulkErr = multierror.Append(bulkErr, err)
 	}
+
+	return bulkErr.ErrorOrNil()
+}
+
+func (ggraph *Graph) DelEdge(eid string) error {
+	ekeyPrefix := EdgeKeyPrefix(eid)
+	var ekey []byte
+	err := ggraph.jsonkv.Pb.View(func(it *pebblebulk.PebbleIterator) error {
+		for it.Seek(ekeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), ekeyPrefix); it.Next() {
+			ekey = it.Key()
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	if ekey == nil {
+		log.Debugf("Edge %s not found", eid)
+		return nil
+	}
+
+	_, sid, did, lbl := EdgeKeyParse(ekey)
+	skey := SrcEdgeKey(sid, did, eid, lbl)
+	dkey := DstEdgeKey(sid, did, eid, lbl)
+
+	var bulkErr *multierror.Error
+	err = ggraph.jsonkv.Pb.BulkWrite(func(tx *pebblebulk.PebbleBulk) error {
+		if err := tx.Delete(ekey, nil); err != nil {
+			bulkErr = multierror.Append(bulkErr, err)
+		}
+		if err := tx.Delete(skey, nil); err != nil {
+			bulkErr = multierror.Append(bulkErr, err)
+		}
+		if err := tx.Delete(dkey, nil); err != nil {
+			bulkErr = multierror.Append(bulkErr, err)
+		}
+		ggraph.ts.Touch(ggraph.graphID)
+		return nil
+	})
+
+	if err != nil {
+		bulkErr = multierror.Append(bulkErr, err)
+	}
+
+	if err := ggraph.DeleteAnyRow(eid, lbl, true); err != nil {
+		bulkErr = multierror.Append(bulkErr, err)
+	}
+
 	return bulkErr.ErrorOrNil()
 }
 
@@ -335,7 +484,7 @@ func (ggraph *Graph) GetEdgeList(ctx context.Context, loadProp bool) <-chan *gdb
 	o := make(chan *gdbi.Edge, 100)
 	go func() {
 		defer close(o)
-		ggraph.graphkv.View(func(it kvi.KVIterator) error {
+		ggraph.jsonkv.Pb.View(func(it *pebblebulk.PebbleIterator) error {
 			ePrefix := EdgeListPrefix()
 			for it.Seek(ePrefix); it.Valid() && bytes.HasPrefix(it.Key(), ePrefix); it.Next() {
 				select {
@@ -343,24 +492,22 @@ func (ggraph *Graph) GetEdgeList(ctx context.Context, loadProp bool) <-chan *gdb
 					return nil
 				default:
 				}
-				keyValue := it.Key()
-				ekey, skey, dkey, label := EdgeKeyParse(keyValue)
-				labelID, _ := ggraph.keyMap.GetLabelID(label)
-				sid, _ := ggraph.keyMap.GetVertexID(skey)
-				did, _ := ggraph.keyMap.GetVertexID(dkey)
-				eid, _ := ggraph.keyMap.GetEdgeID(ekey)
-				e := &gdbi.Edge{ID: eid, Label: labelID, From: sid, To: did}
+				eid, sid, did, label := EdgeKeyParse(it.Key())
+				e := &gdbi.Edge{ID: eid, Label: label, From: sid, To: did}
 				if loadProp {
-					var err error
-					edgeData, _ := it.Value()
-					e.Data, err = protoutil.StructUnMarshal(edgeData)
-					e.Loaded = true
+					entry, err := ggraph.jsonkv.PageCache.Get(ctx, eid, ggraph.jsonkv.PageLoader)
 					if err != nil {
-						log.Errorf("GetEdgeList: unmarshal error: %v", err)
+						log.Errorf("GetEdgeList: PageCache.Get( error: %v", err)
 						continue
 					}
+					e.Data, err = ggraph.jsonkv.Tables[ETABLE_PREFIX+label].GetRow(entry)
+					if err != nil {
+						log.Errorf("GetEdgeList: GetRow error: %v", err)
+						continue
+					}
+					e.Loaded = true
 				} else {
-					e.Data = map[string]interface{}{}
+					e.Data = map[string]any{}
 				}
 				o <- e
 			}
@@ -372,131 +519,126 @@ func (ggraph *Graph) GetEdgeList(ctx context.Context, loadProp bool) <-chan *gdb
 
 // GetVertex loads a vertex given an id. It returns a nil if not found
 func (ggraph *Graph) GetVertex(id string, loadProp bool) *gdbi.Vertex {
-	key, ok := ggraph.keyMap.GetVertexKey(id)
-	if !ok {
-		return nil
-	}
-	vkey := VertexKey(key)
-
-	var v *gdbi.Vertex
-	err := ggraph.graphkv.View(func(it kvi.KVIterator) error {
-		lKey := ggraph.keyMap.GetVertexLabel(key)
-		lID, _ := ggraph.keyMap.GetLabelID(lKey)
-		v = &gdbi.Vertex{
-			ID:    id,
-			Label: lID,
-		}
-		if loadProp {
-			dataValue, err := it.Get(vkey)
-			v.Data, err = protoutil.StructUnMarshal(dataValue)
-			v.Loaded = true
-			if err != nil {
-				return fmt.Errorf("unmarshal error: %v", err)
-			}
-		} else {
-			v.Data = map[string]interface{}{}
+	ekeyPrefix := VertexKey(id)
+	var byteLabel []byte = nil
+	var err error = nil
+	err = ggraph.jsonkv.Pb.View(func(it *pebblebulk.PebbleIterator) error {
+		for it.Seek(ekeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), ekeyPrefix); it.Next() {
+			byteLabel, err = it.Value()
 		}
 		return nil
 	})
-	if err != nil {
+	if err != nil || byteLabel == nil {
 		return nil
+	}
+
+	v := &gdbi.Vertex{
+		ID:    id,
+		Label: string(byteLabel),
+	}
+	if loadProp {
+		entry, err := ggraph.jsonkv.PageCache.Get(context.Background(), id, ggraph.jsonkv.PageLoader)
+		if err != nil {
+			log.Errorf("GetVertex: PageCache.Get( error: %v", err)
+			return nil
+		}
+		v.Data, err = ggraph.jsonkv.Tables[VTABLE_PREFIX+v.Label].GetRow(entry)
+		if err != nil {
+			log.Errorf("GetVertex: table.GetRow( error: %v", err)
+			return nil
+		}
+		v.Loaded = true
+	} else {
+		v.Data = map[string]any{}
 	}
 	return v
 }
 
 type elementData struct {
-	key  uint64
-	req  gdbi.ElementLookup
-	data []byte
+	label string
+	req   gdbi.ElementLookup
+	data  []byte
 }
 
-// GetVertexChannel is passed a channel of vertex ids and it produces a channel
-// of vertices
 func (ggraph *Graph) GetVertexChannel(ctx context.Context, ids chan gdbi.ElementLookup, load bool) chan gdbi.ElementLookup {
-	data := make(chan elementData, 100)
+	out := make(chan gdbi.ElementLookup, 100)
 	go func() {
-		defer close(data)
-		ggraph.graphkv.View(func(it kvi.KVIterator) error {
+		defer close(out)
+		ggraph.jsonkv.Pb.View(func(it *pebblebulk.PebbleIterator) error {
 			for id := range ids {
 				if id.IsSignal() {
-					data <- elementData{req: id}
+					out <- id
 				} else {
-					key, _ := ggraph.keyMap.GetVertexKey(id.ID)
-					ed := elementData{key: key, req: id}
 					if load {
-						vkey := VertexKey(key)
-						dataValue, err := it.Get(vkey)
-						if err == nil {
-							ed.data = dataValue
+						prefix := VertexKey(id.ID)
+						v := gdbi.Vertex{ID: id.ID}
+						for it.Seek(prefix); it.Valid() && bytes.HasPrefix(it.Key(), prefix); it.Next() {
+							label, err := it.Value()
+							if err != nil {
+								log.Errorln("GetVertexChannel it.Value() err: ", err)
+								continue
+							}
+							v.Label = string(label)
+
+							entry, err := ggraph.jsonkv.PageCache.Get(ctx, id.ID, ggraph.jsonkv.PageLoader)
+							if err != nil {
+								log.Errorf("GetVertexChannel: PageCache.Get( error: %v", err)
+								continue
+							}
+							v.Data, err = ggraph.jsonkv.Tables[VTABLE_PREFIX+v.Label].GetRow(entry)
+							if err != nil {
+								log.Errorf("GetVertexChannel: GetRow error for ID %s: %v", id.ID, err)
+								continue
+							}
+							v.Loaded = true
 						}
+						id.Vertex = &v
+						out <- id
+
+					} else {
+						id.Vertex = &gdbi.Vertex{ID: id.ID}
+						out <- id
 					}
-					data <- ed
 				}
 			}
 			return nil
 		})
 	}()
-
-	out := make(chan gdbi.ElementLookup, 100)
-	go func() {
-		defer close(out)
-		for d := range data {
-			if d.req.IsSignal() {
-				out <- d.req
-			} else {
-				lKey := ggraph.keyMap.GetVertexLabel(d.key)
-				lID, _ := ggraph.keyMap.GetLabelID(lKey)
-				v := gdbi.Vertex{ID: d.req.ID, Label: lID}
-				if load {
-					var err error
-					v.Data, err = protoutil.StructUnMarshal(d.data)
-					if err != nil {
-						log.Errorf("GetVertexChannel: unmarshal error: %v", err)
-						continue
-					}
-					v.Loaded = true
-				} else {
-					v.Data = map[string]interface{}{}
-				}
-				d.req.Vertex = &v
-				out <- d.req
-			}
-		}
-	}()
-
 	return out
+}
+
+type lookup struct {
+	req gdbi.ElementLookup
+	key string
 }
 
 // GetOutChannel process requests of vertex ids and find the connected vertices on outgoing edges
 func (ggraph *Graph) GetOutChannel(ctx context.Context, reqChan chan gdbi.ElementLookup, load bool, emitNull bool, edgeLabels []string) chan gdbi.ElementLookup {
-	vertexChan := make(chan elementData, 100)
-	edgeLabelKeys := make([]uint64, 0, len(edgeLabels))
-	for i := range edgeLabels {
-		el, ok := ggraph.keyMap.GetLabelKey(edgeLabels[i])
-		if ok {
-			edgeLabelKeys = append(edgeLabelKeys, el)
-		}
-	}
+	// Todo: implement bulk cache get + bulk get row to try to make this faster
+	lookupChan := make(chan lookup, 1000)
 	go func() {
-		defer close(vertexChan)
-		ggraph.graphkv.View(func(it kvi.KVIterator) error {
+		defer close(lookupChan)
+		ggraph.jsonkv.Pb.View(func(it *pebblebulk.PebbleIterator) error {
 			for req := range reqChan {
 				if req.IsSignal() {
-					vertexChan <- elementData{req: req}
+					lookupChan <- lookup{req: req}
 				} else {
-					key, ok := ggraph.keyMap.GetVertexKey(req.ID)
-					if ok {
-						skeyPrefix := SrcEdgePrefix(key)
-						for it.Seek(skeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), skeyPrefix); it.Next() {
-							keyValue := it.Key()
-							_, _, dst, label := SrcEdgeKeyParse(keyValue)
-							if len(edgeLabelKeys) == 0 || setcmp.ContainsUint(edgeLabelKeys, label) {
-								vkey := VertexKey(dst)
-								vertexChan <- elementData{
-									data: vkey,
-									req:  req,
-								}
+					found := false
+					skeyPrefix := SrcEdgePrefix(req.ID)
+					for it.Seek(skeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), skeyPrefix); it.Next() {
+						_, _, dst, label := SrcEdgeKeyParse(it.Key())
+						if len(edgeLabels) == 0 || setcmp.ContainsString(edgeLabels, label) {
+							lookupChan <- lookup{
+								key: dst,
+								req: req,
 							}
+							found = true
+						}
+					}
+					if !found && emitNull {
+						lookupChan <- lookup{
+							req: req,
+							key: "",
 						}
 					}
 				}
@@ -508,35 +650,40 @@ func (ggraph *Graph) GetOutChannel(ctx context.Context, reqChan chan gdbi.Elemen
 	o := make(chan gdbi.ElementLookup, 100)
 	go func() {
 		defer close(o)
-		ggraph.graphkv.View(func(it kvi.KVIterator) error {
-			for req := range vertexChan {
-				if req.req.IsSignal() {
-					o <- req.req
-				} else {
-					vkey := VertexKeyParse(req.data)
-					gid, _ := ggraph.keyMap.GetVertexID(vkey)
-					lkey := ggraph.keyMap.GetVertexLabel(vkey)
-					lid, _ := ggraph.keyMap.GetLabelID(lkey)
-					v := &gdbi.Vertex{ID: gid, Label: lid}
+		for req := range lookupChan {
+			if req.req.IsSignal() {
+				o <- req.req
+			} else {
+				if req.key != "" {
+					entry, err := ggraph.jsonkv.PageCache.Get(ctx, req.key, ggraph.jsonkv.PageLoader)
+					if err != nil {
+						log.Errorf("GetOutChannel: PageCache.Get( error: %v", err)
+						continue
+					}
+					vLabel, ok := ggraph.jsonkv.LabelLookup[entry.Label]
+					if !ok {
+						log.Errorf("GetOutChannel: Label not a string %s", vLabel)
+						continue
+					}
+					v := &gdbi.Vertex{ID: req.key, Label: vLabel}
 					if load {
-						dataValue, err := it.Get(req.data)
-						if err == nil {
-							v.Data, err = protoutil.StructUnMarshal(dataValue)
-							if err != nil {
-								log.Errorf("GetOutChannel: unmarshal error: %v", err)
-								continue
-							}
-							v.Loaded = true
+						v.Data, err = ggraph.jsonkv.Tables[VTABLE_PREFIX+v.Label].GetRow(entry)
+						if err != nil {
+							log.Errorf("GetOutChannel: GetRow on %s: %s error: %v", vLabel, req.key, err)
+							continue
 						}
+						v.Loaded = true
 					} else {
-						v.Data = map[string]interface{}{}
+						v.Data = map[string]any{}
 					}
 					req.req.Vertex = v
 					o <- req.req
+				} else {
+					req.req.Vertex = nil
+					o <- req.req
 				}
 			}
-			return nil
-		})
+		}
 	}()
 	return o
 }
@@ -544,49 +691,50 @@ func (ggraph *Graph) GetOutChannel(ctx context.Context, reqChan chan gdbi.Elemen
 // GetInChannel process requests of vertex ids and find the connected vertices on incoming edges
 func (ggraph *Graph) GetInChannel(ctx context.Context, reqChan chan gdbi.ElementLookup, load bool, emitNull bool, edgeLabels []string) chan gdbi.ElementLookup {
 	o := make(chan gdbi.ElementLookup, 100)
-	edgeLabelKeys := make([]uint64, 0, len(edgeLabels))
-	for i := range edgeLabels {
-		el, ok := ggraph.keyMap.GetLabelKey(edgeLabels[i])
-		if ok {
-			edgeLabelKeys = append(edgeLabelKeys, el)
-		}
-	}
 	go func() {
 		defer close(o)
-		ggraph.graphkv.View(func(it kvi.KVIterator) error {
+		ggraph.jsonkv.Pb.View(func(it *pebblebulk.PebbleIterator) error {
 			for req := range reqChan {
 				if req.IsSignal() {
 					o <- req
 				} else {
-					vkey, ok := ggraph.keyMap.GetVertexKey(req.ID)
-					if ok {
-						dkeyPrefix := DstEdgePrefix(vkey)
-						for it.Seek(dkeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), dkeyPrefix); it.Next() {
-							keyValue := it.Key()
-							_, src, _, label := DstEdgeKeyParse(keyValue)
-							if len(edgeLabelKeys) == 0 || setcmp.ContainsUint(edgeLabelKeys, label) {
-								vkey := VertexKey(src)
-								srcID, _ := ggraph.keyMap.GetVertexID(src)
-								lKey := ggraph.keyMap.GetVertexLabel(src)
-								lID, _ := ggraph.keyMap.GetLabelID(lKey)
-								v := &gdbi.Vertex{ID: srcID, Label: lID}
-								if load {
-									dataValue, err := it.Get(vkey)
-									if err == nil {
-										v.Data, err = protoutil.StructUnMarshal(dataValue)
-										if err != nil {
-											log.Errorf("GetInChannel: unmarshal error: %v", err)
-											continue
-										}
-										v.Loaded = true
-									}
-								} else {
-									v.Data = map[string]interface{}{}
-								}
-								req.Vertex = v
-								o <- req
+					found := false
+					dkeyPrefix := DstEdgePrefix(req.ID)
+					for it.Seek(dkeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), dkeyPrefix); it.Next() {
+						_, sid, _, label := DstEdgeKeyParse(it.Key())
+						if len(edgeLabels) == 0 || setcmp.ContainsString(edgeLabels, label) {
+							entry, err := ggraph.jsonkv.PageCache.Get(ctx, sid, ggraph.jsonkv.PageLoader)
+							if err != nil {
+								log.Errorf("GetInChannel: PageCache.Get( error: %v", err)
+								continue
 							}
+
+							vLabel, ok := ggraph.jsonkv.LabelLookup[entry.Label]
+							if !ok {
+								log.Errorf("GetInChannel Label lookup failed")
+								continue
+							}
+
+							v := &gdbi.Vertex{ID: sid, Label: vLabel}
+							if load {
+								v.Data, err = ggraph.jsonkv.Tables[VTABLE_PREFIX+v.Label].GetRow(entry)
+								if err != nil {
+									log.Errorf("GetInChannel: GetRow on %s: %s error: %v", vLabel, sid, err)
+									continue
+								}
+								v.Loaded = true
+							} else {
+								v.Data = map[string]any{}
+							}
+							req.Vertex = v
+							o <- req
+							found = true
 						}
+					}
+
+					if !found && emitNull {
+						req.Vertex = nil
+						o <- req
 					}
 				}
 			}
@@ -599,56 +747,53 @@ func (ggraph *Graph) GetInChannel(ctx context.Context, reqChan chan gdbi.Element
 // GetOutEdgeChannel process requests of vertex ids and find the connected outgoing edges
 func (ggraph *Graph) GetOutEdgeChannel(ctx context.Context, reqChan chan gdbi.ElementLookup, load bool, emitNull bool, edgeLabels []string) chan gdbi.ElementLookup {
 	o := make(chan gdbi.ElementLookup, 100)
-	edgeLabelKeys := make([]uint64, 0, len(edgeLabels))
-	for i := range edgeLabels {
-		el, ok := ggraph.keyMap.GetLabelKey(edgeLabels[i])
-		if ok {
-			edgeLabelKeys = append(edgeLabelKeys, el)
-		}
-	}
 	go func() {
 		defer close(o)
-		ggraph.graphkv.View(func(it kvi.KVIterator) error {
+		ggraph.jsonkv.Pb.View(func(it *pebblebulk.PebbleIterator) error {
 			for req := range reqChan {
 				if req.IsSignal() {
 					o <- req
 				} else {
-					vkey, ok := ggraph.keyMap.GetVertexKey(req.ID)
-					if ok {
-						skeyPrefix := SrcEdgePrefix(vkey)
-						for it.Seek(skeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), skeyPrefix); it.Next() {
-							keyValue := it.Key()
-							eid, src, dst, label := SrcEdgeKeyParse(keyValue)
-							if len(edgeLabelKeys) == 0 || setcmp.ContainsUint(edgeLabelKeys, label) {
-								e := gdbi.Edge{}
-								e.ID, _ = ggraph.keyMap.GetEdgeID(eid)
-								e.From, _ = ggraph.keyMap.GetVertexID(src)
-								e.To, _ = ggraph.keyMap.GetVertexID(dst)
-								e.Label, _ = ggraph.keyMap.GetLabelID(label)
-								if load {
-									ekey := EdgeKey(eid, src, dst, label)
-									dataValue, err := it.Get(ekey)
-									if err == nil {
-										e.Data, err = protoutil.StructUnMarshal(dataValue)
-										if err != nil {
-											log.Errorf("GetOutEdgeChannel: unmarshal error: %v", err)
-											continue
-										}
-										e.Loaded = true
-									}
-								} else {
-									e.Data = map[string]interface{}{}
-								}
-								req.Edge = &e
-								o <- req
+					found := false
+					skeyPrefix := SrcEdgePrefix(req.ID)
+					for it.Seek(skeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), skeyPrefix); it.Next() {
+						eid, src, dst, label := SrcEdgeKeyParse(it.Key())
+						if len(edgeLabels) == 0 || setcmp.ContainsString(edgeLabels, label) {
+							e := gdbi.Edge{
+								From:  src,
+								To:    dst,
+								Label: label,
+								ID:    eid,
 							}
+							if load {
+								entry, err := ggraph.jsonkv.PageCache.Get(ctx, e.ID, ggraph.jsonkv.PageLoader)
+								if err != nil {
+									log.Errorf("GetOutEdgeChannel: PageCache.Get( error: %v", err)
+									continue
+								}
+								e.Data, err = ggraph.jsonkv.Tables[ETABLE_PREFIX+e.Label].GetRow(entry)
+								if err != nil {
+									log.Errorf("GetOutEdgeChannel: GetRow error: %v", err)
+									continue
+								}
+								e.Loaded = true
+							} else {
+								e.Data = map[string]any{}
+							}
+							req.Edge = &e
+							o <- req
+							found = true
 						}
+					}
+
+					if !found && emitNull {
+						req.Edge = nil
+						o <- req
 					}
 				}
 			}
 			return nil
 		})
-
 	}()
 	return o
 }
@@ -656,50 +801,50 @@ func (ggraph *Graph) GetOutEdgeChannel(ctx context.Context, reqChan chan gdbi.El
 // GetInEdgeChannel process requests of vertex ids and find the connected incoming edges
 func (ggraph *Graph) GetInEdgeChannel(ctx context.Context, reqChan chan gdbi.ElementLookup, load bool, emitNull bool, edgeLabels []string) chan gdbi.ElementLookup {
 	o := make(chan gdbi.ElementLookup, 100)
-	edgeLabelKeys := make([]uint64, 0, len(edgeLabels))
-	for i := range edgeLabels {
-		el, ok := ggraph.keyMap.GetLabelKey(edgeLabels[i])
-		if ok {
-			edgeLabelKeys = append(edgeLabelKeys, el)
-		}
-	}
 	go func() {
 		defer close(o)
-		ggraph.graphkv.View(func(it kvi.KVIterator) error {
+		ggraph.jsonkv.Pb.View(func(it *pebblebulk.PebbleIterator) error {
 			for req := range reqChan {
 				if req.IsSignal() {
 					o <- req
 				} else {
-					vkey, ok := ggraph.keyMap.GetVertexKey(req.ID)
-					if ok {
-						dkeyPrefix := DstEdgePrefix(vkey)
-						for it.Seek(dkeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), dkeyPrefix); it.Next() {
-							keyValue := it.Key()
-							eid, src, dst, label := DstEdgeKeyParse(keyValue)
-							if len(edgeLabelKeys) == 0 || setcmp.ContainsUint(edgeLabelKeys, label) {
-								e := gdbi.Edge{}
-								e.ID, _ = ggraph.keyMap.GetEdgeID(eid)
-								e.From, _ = ggraph.keyMap.GetVertexID(src)
-								e.To, _ = ggraph.keyMap.GetVertexID(dst)
-								e.Label, _ = ggraph.keyMap.GetLabelID(label)
-								if load {
-									ekey := EdgeKey(eid, src, dst, label)
-									dataValue, err := it.Get(ekey)
-									if err == nil {
-										e.Data, err = protoutil.StructUnMarshal(dataValue)
-										if err != nil {
-											log.Errorf("GetInEdgeChannel: unmarshal error: %v", err)
-											continue
-										}
-										e.Loaded = true
-									}
-								} else {
-									e.Data = map[string]interface{}{}
-								}
-								req.Edge = &e
-								o <- req
+					found := false
+					dkeyPrefix := DstEdgePrefix(req.ID)
+					for it.Seek(dkeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), dkeyPrefix); it.Next() {
+						eid, src, dst, label := DstEdgeKeyParse(it.Key())
+						if len(edgeLabels) == 0 || setcmp.ContainsString(edgeLabels, label) {
+							e := gdbi.Edge{
+								ID:    eid,
+								From:  src,
+								To:    dst,
+								Label: label,
 							}
+							if load {
+								entry, err := ggraph.jsonkv.PageCache.Get(ctx, e.ID, ggraph.jsonkv.PageLoader)
+								if err != nil {
+									log.Errorf("GetInEdgeChannel: PageCache.Get( error: %v", err)
+									continue
+								}
+								//log.Debugln("IN EDGE LABEL: ", e.Label, "ENTRY: ", entry, "ID: ", e.ID)
+
+								e.Data, err = ggraph.jsonkv.Tables[ETABLE_PREFIX+e.Label].GetRow(entry)
+								if err != nil {
+									log.Errorf("GetInEdgeChannel: GetRow error: %v", err)
+									continue
+								}
+								e.Loaded = true
+							} else {
+								e.Data = map[string]any{}
+							}
+							req.Edge = &e
+							o <- req
+							found = true
 						}
+					}
+
+					if !found && emitNull {
+						req.Edge = nil
+						o <- req
 					}
 				}
 			}
@@ -712,36 +857,32 @@ func (ggraph *Graph) GetInEdgeChannel(ctx context.Context, reqChan chan gdbi.Ele
 
 // GetEdge loads an edge given an id. It returns nil if not found
 func (ggraph *Graph) GetEdge(id string, loadProp bool) *gdbi.Edge {
-	ekey, ok := ggraph.keyMap.GetEdgeKey(id)
-	if !ok {
-		return nil
-	}
-	ekeyPrefix := EdgeKeyPrefix(ekey)
-
+	ekeyPrefix := EdgeKeyPrefix(id)
 	var e *gdbi.Edge
-	err := ggraph.graphkv.View(func(it kvi.KVIterator) error {
+	err := ggraph.jsonkv.Pb.View(func(it *pebblebulk.PebbleIterator) error {
 		for it.Seek(ekeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), ekeyPrefix); it.Next() {
-			eid, src, dst, labelKey := EdgeKeyParse(it.Key())
-			gid, _ := ggraph.keyMap.GetEdgeID(eid)
-			from, _ := ggraph.keyMap.GetVertexID(src)
-			to, _ := ggraph.keyMap.GetVertexID(dst)
-			label, _ := ggraph.keyMap.GetLabelID(labelKey)
+			eid, src, dst, label := EdgeKeyParse(it.Key())
 			e = &gdbi.Edge{
-				ID:    gid,
-				From:  from,
-				To:    to,
+				ID:    eid,
+				From:  src,
+				To:    dst,
 				Label: label,
 			}
 			if loadProp {
-				var err error
-				d, _ := it.Value()
-				e.Data, err = protoutil.StructUnMarshal(d)
+				entry, err := ggraph.jsonkv.PageCache.Get(context.Background(), e.ID, ggraph.jsonkv.PageLoader)
 				if err != nil {
-					return fmt.Errorf("unmarshal error: %v", err)
+					log.Errorf("GetEdge: PageCache.Get( error: %v", err)
+					continue
+				}
+
+				e.Data, err = ggraph.jsonkv.Tables[ETABLE_PREFIX+e.Label].GetRow(entry)
+				if err != nil {
+					log.Errorf("GetEdge: GetRow error: %v", err)
+					continue
 				}
 				e.Loaded = true
 			} else {
-				e.Data = map[string]interface{}{}
+				e.Data = map[string]any{}
 			}
 		}
 		return nil
@@ -757,32 +898,37 @@ func (ggraph *Graph) GetVertexList(ctx context.Context, loadProp bool) <-chan *g
 	o := make(chan *gdbi.Vertex, 100)
 	go func() {
 		defer close(o)
-		ggraph.graphkv.View(func(it kvi.KVIterator) error {
+		ggraph.jsonkv.Pb.View(func(it *pebblebulk.PebbleIterator) error {
 			vPrefix := VertexListPrefix()
-
 			for it.Seek(vPrefix); it.Valid() && bytes.HasPrefix(it.Key(), vPrefix); it.Next() {
 				select {
 				case <-ctx.Done():
 					return nil
 				default:
 				}
-				v := &gdbi.Vertex{}
-				keyValue := it.Key()
-				vKey := VertexKeyParse(keyValue)
-				lKey := ggraph.keyMap.GetVertexLabel(vKey)
-				v.ID, _ = ggraph.keyMap.GetVertexID(vKey)
-				v.Label, _ = ggraph.keyMap.GetLabelID(lKey)
+				byteLabel, err := it.Value()
+				if err != nil {
+					log.Errorf("GetVertexList it.Value() error: %s", err)
+				}
+				v := &gdbi.Vertex{
+					ID:    VertexKeyParse(it.Key()),
+					Label: string(byteLabel),
+				}
 				if loadProp {
-					var err error
-					dataValue, _ := it.Value()
-					v.Data, err = protoutil.StructUnMarshal(dataValue)
+					entry, err := ggraph.jsonkv.PageCache.Get(context.Background(), v.ID, ggraph.jsonkv.PageLoader)
 					if err != nil {
-						log.Errorf("GetVertexList: unmarshal error: %v", err)
+						log.Errorf("GetVertexList: PageCache.Get on %s error: %s", v.ID, err)
+						continue
+					}
+
+					v.Data, err = ggraph.jsonkv.Tables[VTABLE_PREFIX+v.Label].GetRow(entry)
+					if err != nil {
+						log.Errorf("GetVertexList: table.GetRow error: %s", err)
 						continue
 					}
 					v.Loaded = true
 				} else {
-					v.Data = map[string]interface{}{}
+					v.Data = map[string]any{}
 				}
 				o <- v
 			}
@@ -794,20 +940,469 @@ func (ggraph *Graph) GetVertexList(ctx context.Context, loadProp bool) <-chan *g
 
 // ListVertexLabels returns a list of vertex types in the graph
 func (ggraph *Graph) ListVertexLabels() ([]string, error) {
-	labelField := fmt.Sprintf("%s.v.label", ggraph.graphID)
 	labels := []string{}
-	for i := range ggraph.idx.FieldTerms(labelField) {
-		labels = append(labels, i.(string))
+	for i := range ggraph.jsonkv.GetLabels(false, true) {
+		labels = append(labels, i)
 	}
 	return labels, nil
 }
 
 // ListEdgeLabels returns a list of edge types in the graph
 func (ggraph *Graph) ListEdgeLabels() ([]string, error) {
-	labelField := fmt.Sprintf("%s.e.label", ggraph.graphID)
 	labels := []string{}
-	for i := range ggraph.idx.FieldTerms(labelField) {
-		labels = append(labels, i.(string))
+	for i := range ggraph.jsonkv.GetLabels(true, true) {
+		labels = append(labels, i)
 	}
 	return labels, nil
+}
+
+// New Bulk Delete Function. Testing...
+// BulkDel deletes vertices and edges in bulk.
+func (ggraph *Graph) BulkDel(data *gdbi.DeleteData) error {
+	type keyBatch struct {
+		singles [][]byte
+		ranges  [][2][]byte
+		posKeys [][]byte
+	}
+
+	type itemInfo struct {
+		id     string
+		label  string
+		isEdge bool
+		tbl    string
+	}
+
+	type fieldInfo struct {
+		rKey  []byte
+		field string
+		tbl   string
+		id    []byte
+	}
+
+	const shardSize = 64
+	const bufferSize = 8192
+	numCpus := runtime.NumCPU()
+	ctx := context.Background()
+
+	var bulkErr *multierror.Error
+	addErr := func(err error) {
+		if err != nil {
+			bulkErr = multierror.Append(bulkErr, err)
+		}
+	}
+
+	// Sharded bitmap for edge deduplication (lock-free for reads)
+	type shard struct {
+		mu    sync.Mutex
+		set   map[string]struct{}
+		count uint32 // Atomic counter for seen edges
+	}
+	shards := make([]*shard, shardSize)
+	for i := range shards {
+		shards[i] = &shard{set: make(map[string]struct{}, bufferSize/shardSize)}
+	}
+	hasSeenEdge := func(eid string) bool {
+		h := fnv32a(eid) % uint32(shardSize)
+		shard := shards[h]
+		shard.mu.Lock()
+		defer shard.mu.Unlock()
+		if _, exists := shard.set[eid]; exists {
+			return true
+		}
+		shard.set[eid] = struct{}{}
+		atomic.AddUint32(&shard.count, 1)
+		return false
+	}
+	getSeenCount := func() uint64 {
+		var total uint64
+		for _, shard := range shards {
+			total += uint64(atomic.LoadUint32(&shard.count))
+		}
+		return total
+	}
+
+	// Channels and wait groups
+	itemChan := make(chan itemInfo, bufferSize)
+	fieldChan := make(chan fieldInfo, bufferSize)
+	keyChan := make(chan keyBatch, bufferSize)
+	var prodWG, consWG, aggWG, fieldWG sync.WaitGroup
+
+	// Aggregator for keys
+	var singles [][]byte
+	var ranges [][2][]byte
+	var posKeys [][]byte
+	aggWG.Add(1)
+	go func() {
+		defer aggWG.Done()
+		for batch := range keyChan {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+				singles = append(singles, batch.singles...)
+				ranges = append(ranges, batch.ranges...)
+				posKeys = append(posKeys, batch.posKeys...)
+			}
+		}
+	}()
+
+	// Aggregator for fields
+	var allFields []fieldInfo
+	fieldWG.Add(1)
+	go func() {
+		defer fieldWG.Done()
+		for fi := range fieldChan {
+			allFields = append(allFields, fi)
+		}
+	}()
+
+	// Workers for items
+	consWG.Add(numCpus)
+	for range numCpus {
+		go func() {
+			defer consWG.Done()
+			localBatch := keyBatch{posKeys: make([][]byte, 0, bufferSize)}
+			i := 0
+			for item := range itemChan {
+				select {
+				case <-ctx.Done():
+					return
+				default:
+				}
+				if i%100_000 == 0 && i != 0 {
+					log.Debugf("[BulkDel worker] processed %d items", i)
+				}
+				i++
+
+				// Fetch from page cache
+				loc, err := ggraph.jsonkv.PageCache.Get(ctx, item.id, ggraph.jsonkv.PageLoader)
+				if err != nil {
+					addErr(err)
+					continue
+				}
+
+				// Mark table for deletion
+				table, ok := ggraph.jsonkv.Tables[item.tbl]
+				if !ok {
+					addErr(fmt.Errorf("table %s not found", item.tbl))
+					continue
+				}
+				if err := table.MarkDeleteTable(loc); err != nil {
+					addErr(err)
+				}
+
+				// Position key
+				localBatch.posKeys = append(localBatch.posKeys, benchtop.NewPosKey(loc.Label, []byte(item.id)))
+				ggraph.jsonkv.PageCache.Invalidate(item.id)
+
+				// Send field infos
+				if fields, exists := ggraph.jsonkv.Fields[item.tbl]; exists {
+					for field := range fields {
+						rKey := benchtop.RFieldKey(item.tbl, field, item.id)
+						select {
+						case fieldChan <- fieldInfo{rKey: rKey, field: field, tbl: item.tbl, id: []byte(item.id)}:
+						case <-ctx.Done():
+							return
+						}
+					}
+				}
+
+				if len(localBatch.posKeys) >= 500_000 {
+					keyChan <- localBatch
+					localBatch = keyBatch{posKeys: make([][]byte, 0, bufferSize)}
+				}
+			}
+
+			if len(localBatch.posKeys) > 0 {
+				keyChan <- localBatch
+			}
+		}()
+	}
+
+	// Prepare vertex producers
+	slices.Sort(data.Vertices)
+	vertexSlices := make([][]string, numCpus)
+	for i, vid := range data.Vertices {
+		vertexSlices[i%numCpus] = append(vertexSlices[i%numCpus], vid)
+	}
+	for i := range vertexSlices {
+		slices.Sort(vertexSlices[i])
+	}
+
+	for _, slice := range vertexSlices {
+		if len(slice) == 0 {
+			continue
+		}
+		prodWG.Add(1)
+		go func(slice []string) {
+			defer prodWG.Done()
+			localBatch := keyBatch{singles: make([][]byte, 0, 256), ranges: make([][2][]byte, 0, 256)}
+
+			err := ggraph.jsonkv.Pb.View(func(it *pebblebulk.PebbleIterator) error {
+				for _, vid := range slice {
+					select {
+					case <-ctx.Done():
+						return ctx.Err()
+					default:
+					}
+
+					sPrefix := SrcEdgePrefix(vid)
+					if err := it.Seek(sPrefix); err != nil {
+						return err
+					}
+					if it.Valid() && bytes.HasPrefix(it.Key(), sPrefix) {
+						nextPrefix := upperBound(sPrefix)
+						if nextPrefix != nil {
+							localBatch.ranges = append(localBatch.ranges, [2][]byte{sPrefix, nextPrefix})
+						}
+						for it.Valid() && bytes.HasPrefix(it.Key(), sPrefix) {
+							eid, sid, did, lbl := SrcEdgeKeyParse(it.Key())
+							if !hasSeenEdge(eid) {
+								localBatch.singles = append(localBatch.singles,
+									EdgeKey(eid, sid, did, lbl),
+									bytes.Clone(it.Key()),
+									DstEdgeKey(eid, sid, did, lbl))
+								select {
+								case itemChan <- itemInfo{id: eid, label: lbl, isEdge: true, tbl: ETABLE_PREFIX + lbl}:
+								case <-ctx.Done():
+									return ctx.Err()
+								}
+							}
+							it.Next()
+						}
+					}
+
+					dPrefix := DstEdgePrefix(vid)
+					if err := it.Seek(dPrefix); err != nil {
+						return err
+					}
+					if it.Valid() && bytes.HasPrefix(it.Key(), dPrefix) {
+						nextPrefix := upperBound(dPrefix)
+						if nextPrefix != nil {
+							localBatch.ranges = append(localBatch.ranges, [2][]byte{dPrefix, nextPrefix})
+						}
+						for it.Valid() && bytes.HasPrefix(it.Key(), dPrefix) {
+							eid, sid, did, lbl := DstEdgeKeyParse(it.Key())
+							if !hasSeenEdge(eid) {
+								localBatch.singles = append(localBatch.singles,
+									EdgeKey(eid, sid, did, lbl),
+									SrcEdgeKey(eid, sid, did, lbl),
+									bytes.Clone(it.Key()))
+								select {
+								case itemChan <- itemInfo{id: eid, label: lbl, isEdge: true, tbl: ETABLE_PREFIX + lbl}:
+								case <-ctx.Done():
+									return ctx.Err()
+								}
+							}
+							it.Next()
+						}
+					}
+
+					vkey := VertexKey(vid)
+					if err := it.Seek(vkey); err != nil {
+						return err
+					}
+					var label string
+					if it.Valid() && bytes.Equal(it.Key(), vkey) {
+						labelBytes, err := it.Value()
+						if err != nil {
+							return err
+						}
+						label = string(labelBytes)
+					}
+					localBatch.singles = append(localBatch.singles, vkey)
+					if label != "" {
+						select {
+						case itemChan <- itemInfo{id: vid, label: label, isEdge: false, tbl: VTABLE_PREFIX + label}:
+						case <-ctx.Done():
+							return ctx.Err()
+						}
+					}
+				}
+				return nil
+			})
+			addErr(err)
+
+			if len(localBatch.singles) > 0 || len(localBatch.ranges) > 0 {
+				select {
+				case keyChan <- localBatch:
+				case <-ctx.Done():
+				}
+			}
+		}(slice)
+	}
+
+	// Prepare edge producers
+	slices.Sort(data.Edges)
+	edgeSlices := make([][]string, numCpus)
+	for i, eid := range data.Edges {
+		edgeSlices[i%numCpus] = append(edgeSlices[i%numCpus], eid)
+	}
+	for i := range edgeSlices {
+		slices.Sort(edgeSlices[i])
+	}
+
+	for _, slice := range edgeSlices {
+		if len(slice) == 0 {
+			continue
+		}
+		prodWG.Add(1)
+		go func(slice []string) {
+			defer prodWG.Done()
+			localBatch := keyBatch{singles: make([][]byte, 0, 12), ranges: make([][2][]byte, 0, 12)}
+
+			err := ggraph.jsonkv.Pb.View(func(it *pebblebulk.PebbleIterator) error {
+				for _, eid := range slice {
+					select {
+					case <-ctx.Done():
+						return ctx.Err()
+					default:
+					}
+
+					if hasSeenEdge(eid) {
+						continue
+					}
+
+					prefix := EdgeKeyPrefix(eid)
+					if err := it.Seek(prefix); err != nil {
+						return err
+					}
+					if it.Valid() && bytes.HasPrefix(it.Key(), prefix) {
+						nextPrefix := upperBound(prefix)
+						if nextPrefix != nil {
+							localBatch.ranges = append(localBatch.ranges, [2][]byte{prefix, nextPrefix})
+						}
+						var label string
+						for it.Valid() && bytes.HasPrefix(it.Key(), prefix) {
+							_, sid, did, lbl := EdgeKeyParse(it.Key())
+							label = lbl
+							localBatch.singles = append(localBatch.singles,
+								SrcEdgeKey(eid, sid, did, lbl),
+								DstEdgeKey(eid, sid, did, lbl))
+							it.Next()
+						}
+						if label != "" {
+							select {
+							case itemChan <- itemInfo{id: eid, label: label, isEdge: true, tbl: ETABLE_PREFIX + label}:
+							case <-ctx.Done():
+								return ctx.Err()
+							}
+						}
+					}
+				}
+				return nil
+			})
+			addErr(err)
+
+			if len(localBatch.singles) > 0 || len(localBatch.ranges) > 0 {
+				select {
+				case keyChan <- localBatch:
+				case <-ctx.Done():
+				}
+			}
+		}(slice)
+	}
+
+	// Close channels and wait
+	go func() {
+		prodWG.Wait()
+		close(itemChan)
+	}()
+	consWG.Wait()
+	close(keyChan)
+	aggWG.Wait()
+	close(fieldChan)
+	fieldWG.Wait()
+
+	// Process field indices with single iterator
+	var indexDelKeys [][]byte
+	if len(allFields) > 0 {
+		sort.Slice(allFields, func(i, j int) bool {
+			return bytes.Compare(allFields[i].rKey, allFields[j].rKey) < 0
+		})
+		err := ggraph.jsonkv.Pb.View(func(it *pebblebulk.PebbleIterator) error {
+			for _, fi := range allFields {
+				if err := it.Seek(fi.rKey); err != nil {
+					return err
+				}
+				if it.Valid() && bytes.Equal(it.Key(), fi.rKey) {
+					valueBytes, err := it.Value()
+					if err != nil {
+						return err
+					}
+					var fieldValue any
+					if err := sonic.ConfigFastest.Unmarshal(valueBytes, &fieldValue); err != nil {
+						return err
+					}
+					if fieldValue != nil {
+						fKey := benchtop.FieldKey(fi.field, fi.tbl, fieldValue, fi.id)
+						indexDelKeys = append(indexDelKeys, fKey, fi.rKey)
+					}
+				}
+			}
+			return nil
+		})
+		addErr(err)
+	}
+
+	// Chunked deletes with Pebble batch
+	chunked := func(singles [][]byte, ranges [][2][]byte, posKeys [][]byte, indexDelKeys [][]byte) error {
+		batch := ggraph.jsonkv.Pb.Db.NewBatch()
+		defer batch.Close()
+		for _, k := range singles {
+			if err := batch.Delete(k, nil); err != nil {
+				return err
+			}
+		}
+		for _, r := range ranges {
+			if err := batch.DeleteRange(r[0], r[1], nil); err != nil {
+				return err
+			}
+		}
+		for _, k := range posKeys {
+			if err := batch.Delete(k, nil); err != nil {
+				return err
+			}
+		}
+		for _, k := range indexDelKeys {
+			if err := batch.Delete(k, nil); err != nil {
+				return err
+			}
+		}
+		return batch.Commit(pebble.Sync)
+	}
+
+	// Perform deletes
+	ggraph.jsonkv.PebbleLock.Lock()
+	if err := chunked(singles, ranges, posKeys, indexDelKeys); err != nil {
+		addErr(err)
+	}
+	ggraph.ts.Touch(ggraph.graphID)
+	ggraph.jsonkv.PebbleLock.Unlock()
+
+	log.Debugf("Total edges seen: %d", getSeenCount())
+	return bulkErr.ErrorOrNil()
+}
+
+// upperBound computes the tight upper bound for range delete
+func upperBound(prefix []byte) []byte {
+	ub := make([]byte, len(prefix))
+	copy(ub, prefix)
+	for i := len(ub) - 1; i >= 0; i-- {
+		if ub[i] < 0xFF {
+			ub[i]++
+			return ub[:i+1]
+		}
+	}
+	return nil
+}
+
+// fnv32a computes FNV-1a 32-bit hash
+func fnv32a(s string) uint32 {
+	var h uint32 = 2166136261
+	for i := range s {
+		h ^= uint32(s[i])
+		h *= 16777619
+	}
+	return h
 }

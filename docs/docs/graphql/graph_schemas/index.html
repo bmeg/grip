@@ -32,7 +32,7 @@
   <div class="global-header">
     <div class="global-header-container">
       <div class="global-header-home">
-        <a href="https://bmeg.github.io/grip"><h1>GRIP</h1></a>
+        <a href="https://bmeg.github.io/grip/"><h1>GRIP</h1></a>
       </div>
       <ul class="global-header-nav">
           <li><a href="https://bmeg.github.io/grip/download//">Download</a></li>
@@ -84,9 +84,27 @@
           <li>
             <ul class="sidebar-nav sidebar-nav-nested">
               <li>
+                <a href="https://bmeg.github.io/grip/docs/commands/create/"
+                   class="sidebar-nav-item "
+                >create</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
                 <a href="https://bmeg.github.io/grip/docs/commands/query/"
                    class="sidebar-nav-item "
                 >query</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/commands/delete/"
+                   class="sidebar-nav-item "
+                >delete</a></li>
             </ul>
           </li>
           
@@ -130,95 +148,16 @@
         
         <li>
           
-          <span class="intermediate">Database Configuration</span></li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/databases/elastic/"
-                   class="sidebar-nav-item "
-                >Elasticsearch</a></li>
-            </ul>
-          </li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/databases/kvstore/"
-                   class="sidebar-nav-item "
-                >Embedded KV Store</a></li>
-            </ul>
-          </li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/databases/mongo/"
-                   class="sidebar-nav-item "
-                >MongoDB</a></li>
-            </ul>
-          </li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/databases/psql/"
-                   class="sidebar-nav-item "
-                >PostgreSQL</a></li>
-            </ul>
-          </li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/databases/sql/"
-                   class="sidebar-nav-item "
-                >SQL</a></li>
-            </ul>
-          </li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/databases/gripper/"
-                   class="sidebar-nav-item "
-                >GRIPPER</a></li>
-            </ul>
-          </li>
-          
+          <a href="https://bmeg.github.io/grip/docs/databases/"
+             class="sidebar-nav-item "
+          >Database Configuration</a></li>
           
         
         <li>
           
-          <span class="intermediate">GRIP Plugable External Resources</span></li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/gripper/gripper/"
-                   class="sidebar-nav-item "
-                >Intro</a></li>
-            </ul>
-          </li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/gripper/proxy/"
-                   class="sidebar-nav-item "
-                >External Resource Proxies</a></li>
-            </ul>
-          </li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/gripper/graphmodel/"
-                   class="sidebar-nav-item "
-                >Graph Model</a></li>
-            </ul>
-          </li>
-          
+          <a href="https://bmeg.github.io/grip/docs/clients/"
+             class="sidebar-nav-item "
+          >Client Library</a></li>
           
         
         <li>
@@ -228,18 +167,9 @@
           <li>
             <ul class="sidebar-nav sidebar-nav-nested">
               <li>
-                <a href="https://bmeg.github.io/grip/docs/queries/getting_started/"
+                <a href="https://bmeg.github.io/grip/docs/queries/traversal_start/"
                    class="sidebar-nav-item "
-                >Getting Started</a></li>
-            </ul>
-          </li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/queries/operations/"
-                   class="sidebar-nav-item "
-                >Operations</a></li>
+                >Start a Traversal</a></li>
             </ul>
           </li>
           
@@ -255,12 +185,64 @@
           <li>
             <ul class="sidebar-nav sidebar-nav-nested">
               <li>
-                <a href="https://bmeg.github.io/grip/docs/queries/jobs_api/"
+                <a href="https://bmeg.github.io/grip/docs/queries/traverse_graph/"
                    class="sidebar-nav-item "
-                >Jobs API</a></li>
+                >Traverse the Graph</a></li>
             </ul>
           </li>
           
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/queries/filtering/"
+                   class="sidebar-nav-item "
+                >Filtering</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/queries/record_transforms/"
+                   class="sidebar-nav-item "
+                >Record Transforms</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/queries/aggregation/"
+                   class="sidebar-nav-item "
+                >Aggregation</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/queries/output/"
+                   class="sidebar-nav-item "
+                >Output Control</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/queries/iterations/"
+                   class="sidebar-nav-item "
+                >Iteration</a></li>
+            </ul>
+          </li>
+          
+          
+        
+        <li>
+          
+          <a href="https://bmeg.github.io/grip/docs/jobs_api/"
+             class="sidebar-nav-item "
+          >Jobs API</a></li>
           
         
         <li>
@@ -350,6 +332,39 @@
           
           
         
+        <li>
+          
+          <span class="intermediate">GRIP Plugable External Resources</span></li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/gripper/gripper/"
+                   class="sidebar-nav-item "
+                >Intro</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/gripper/proxy/"
+                   class="sidebar-nav-item "
+                >External Resource Proxies</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/gripper/graphmodel/"
+                   class="sidebar-nav-item "
+                >Graph Model</a></li>
+            </ul>
+          </li>
+          
+          
+        
       
     </ul>
   </div>
@@ -357,78 +372,23 @@
   <div class="main col span_8_of_12">
     <h1 id="graph-schemas">Graph Schemas</h1>
 <p>Most GRIP based graphs are not required to have a strict schema. However, GraphQL requires
-a graph schema as part of it's API. To utilize the GraphQL endpoint, there must be a
+a graph schema as part of it&rsquo;s API. To utilize the GraphQL endpoint, there must be a
 Graph Schema provided to be used by the GRIP engine to determine how to render a GraphQL endpoint.
 Graph schemas are themselves an instance of a graph. As such, they can be traversed like any other graph.
 The schemas are automatically added to the database following the naming pattern. <code>{graph-name}__schema__</code></p>
 <h2 id="get-the-schema-of-a-graph">Get the Schema of a Graph</h2>
 <p>The schema of a graph can be accessed via a GET request to <code>/v1/graph/{graph-name}/schema</code></p>
 <p>Alternatively, you can use the grip CLI. <code>grip schema get {graph-name}</code></p>
-<h2 id="describing-graph-schemas">Describing Graph Schemas</h2>
-<p>There are several methods for describing the schema of a graph.</p>
-<ul>
-<li>Provide the schema (as a YAML file) to the server at runtime. <code>grip server --schema {schema-file}</code></li>
-<li>POST the schema <code>/v1/graph/{graph-name}/schema</code> via curl or use the CLI. <code>grip schema post --yaml {file} --json {file}</code></li>
-<li>Configure GRIP to build the schema by sampling the data in each graph.</li>
-</ul>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-yaml" data-lang="yaml">Server:
-  <span style="color:#75715e"># Should the server periodically build the graph schemas?</span>
-  AutoBuildSchemas: <span style="color:#66d9ef">true</span>
-  <span style="color:#75715e"># How often the server should rebuild the graph schemas. Set to 0 to turn off</span>
-  SchemaRefreshInterval: <span style="color:#e6db74">&#34;24h&#34;</span>
-  <span style="color:#75715e"># How many vertices/edges to inspect to infer the schema</span>
-  SchemaInspectN: <span style="color:#ae81ff">500</span>
-  <span style="color:#75715e"># Strategy to use for selecting the vertices/edges to inspect.</span>
-  <span style="color:#75715e"># Random if True; first N otherwise</span>
-  SchemaRandomSample: <span style="color:#66d9ef">true</span>
-</code></pre></div><h2 id="example-schema">Example schema</h2>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-yaml" data-lang="yaml">graph: example-graph
+<h2 id="post-a-graph-schema">Post a graph schema</h2>
+<p>A schema can be attached to an existing graph via a POST request to <code>/v1/graph/{graph-name}/schema</code></p>
+<p>Alternatively, you can use the grip CLI. <code>grip schema post [graph_name] --jsonSchema {file}</code></p>
+<p>Schemas must be loaded as a json file in JSON schema format. see <a href="https://json-schema.org/">jsonschema</a> spec for more details</p>
+<h2 id="raw-bulk-loading">Raw bulk loading</h2>
+<p>Once a schema is attached to a graph, raw json records can be loaded directly to grip without having to be in native grip vertex/edge format.
+Schema validation is enforced when using this POST <code>/v1/rawJson</code> method.</p>
+<p>A grip CLI alternative is also available with <code>grip jsonload [ndjson_file_path] [graph_name]</code>
+See <a href="https://github.com/bmeg/grip/blob/develop/conformance/tests/ot_bulk_raw.py">https://github.com/bmeg/grip/blob/develop/conformance/tests/ot_bulk_raw.py</a> for a full example using gripql python package.</p>
 
-edges:
-- data: {}
- from: Human
- gid: (Human)--starship-&gt;(Starship)
- label: starship
- to: Starship
-- data: {}
- from: Human
- gid: (Human)--friend-&gt;(Human)
- label: friend
- to: Human
-- data: {}
- from: Human
- gid: (Human)--friend-&gt;(Droid)
- label: friend
- to: Droid
-- data: {}
- from: Human
- gid: (Human)--appearsIn-&gt;(Movie)
- label: appearsIn
- to: Movie
-
-vertices:
-- data:
-   name: STRING
- gid: Movie
- label: Movie
-- data:
-   length: NUMERIC
-   name: STRING
- gid: Starship
- label: Starship
-- data:
-   name: STRING
-   primaryFunction: STRING
- gid: Droid
- label: Droid
-- data:
-   height: NUMERIC
-   homePlanet: STRING
-   mass: NUMERIC
-   name: STRING
- gid: Human
- label: Human
-</code></pre></div>
   </div>
 
 </div>

@@ -1,0 +1,16 @@
+Default: pebble
+
+Drivers:
+  pebble:
+    Pebble: grip-pebble.db
+
+Server:
+  Accounts:
+    Auth:
+      Proxy:
+        Field: USER-NAME
+    # config for https://github.com/casbin/casbin
+    Access:
+      Casbin:
+        Model: ./test/model.conf
+        Policy: ./test/users.csv

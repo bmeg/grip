@@ -1,0 +1,7 @@
+Default: sqlite
+
+Drivers:
+  sqlite:
+    Sqlite:
+      DBName: tester/sqliteDB
+

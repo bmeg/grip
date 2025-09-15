@@ -3,112 +3,88 @@ package grids
 import (
 	"context"
 	"fmt"
-	"strings"
 
-	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
-	"github.com/bmeg/grip/jsonpath"
 	"github.com/bmeg/grip/log"
+	"github.com/cockroachdb/pebble"
+	multierror "github.com/hashicorp/go-multierror"
 )
 
-func (kgraph *Graph) setupGraphIndex(graph string) error {
-	err := kgraph.idx.AddField(fmt.Sprintf("%s.v.label", graph))
-	if err != nil {
-		return fmt.Errorf("failed to setup index on vertex label")
-	}
-	err = kgraph.idx.AddField(fmt.Sprintf("%s.e.label", graph))
-	if err != nil {
-		return fmt.Errorf("failed to setup index on edge label")
-	}
-	return nil
-}
-
-func (kgraph *Graph) deleteGraphIndex(graph string) error {
-	var anyError error
-	fields := kgraph.idx.ListFields()
-	for _, f := range fields {
-		t := strings.Split(f, ".")
-		if t[0] == graph {
-			if err := kgraph.idx.RemoveField(f); err != nil {
-				anyError = err
-			}
-		}
-	}
-	return anyError
-}
-
-func normalizePath(path string) string {
-	path = jsonpath.GetJSONPath(path)
-	path = strings.TrimPrefix(path, "$.")
-	path = strings.TrimPrefix(path, "data.")
-	return path
-}
-
-func vertexIdxStruct(v *gdbi.Vertex) map[string]interface{} {
-	k := map[string]interface{}{
-		"v": map[string]interface{}{
-			"label": v.Label,
-			v.Label: v.Data,
-		},
-	}
-	return k
-}
-
-func edgeIdxStruct(e *gdbi.Edge) map[string]interface{} {
-	k := map[string]interface{}{
-		"e": map[string]interface{}{
-			"label": e.Label,
-			e.Label: e.Data,
-		},
-	}
-	return k
-}
-
-//AddVertexIndex add index to vertices
-func (ggraph *Graph) AddVertexIndex(label string, field string) error {
+// AddVertexIndex add index to vertices
+func (ggraph *Graph) AddVertexIndex(label, field string) error {
 	log.WithFields(log.Fields{"label": label, "field": field}).Info("Adding vertex index")
-	field = normalizePath(field)
-	//TODO kick off background process to reindex existing data
-	return ggraph.idx.AddField(fmt.Sprintf("%s.v.%s.%s", ggraph.graphID, label, field))
+	return ggraph.jsonkv.AddField(VTABLE_PREFIX+label, field)
 }
 
-//DeleteVertexIndex delete index from vertices
-func (ggraph *Graph) DeleteVertexIndex(label string, field string) error {
+// DeleteVertexIndex delete index from vertices
+func (ggraph *Graph) DeleteVertexIndex(label, field string) error {
+	fmt.Println("HELLO WE HARE HERE")
 	log.WithFields(log.Fields{"label": label, "field": field}).Info("Deleting vertex index")
-	field = normalizePath(field)
-	return ggraph.idx.RemoveField(fmt.Sprintf("%s.v.%s.%s", ggraph.graphID, label, field))
+	return ggraph.jsonkv.RemoveField(VTABLE_PREFIX+label, field)
 }
 
-//GetVertexIndexList lists out all the vertex indices for a graph
+// GetVertexIndexList lists out all the vertex indices for a graph
 func (ggraph *Graph) GetVertexIndexList() <-chan *gripql.IndexID {
 	log.Debug("Running GetVertexIndexList")
 	out := make(chan *gripql.IndexID)
 	go func() {
 		defer close(out)
-		fields := ggraph.idx.ListFields()
-		for _, f := range fields {
-			t := strings.Split(f, ".")
-			if len(t) > 3 {
-				out <- &gripql.IndexID{Graph: ggraph.graphID, Label: t[2], Field: t[3]}
-			}
+		for _, f := range ggraph.jsonkv.ListFields() {
+			out <- &gripql.IndexID{Graph: ggraph.graphID, Label: f.Label, Field: f.Field}
 		}
 	}()
 	return out
 }
 
-//VertexLabelScan produces a channel of all vertex ids in a graph
-//that match a given label
+// VertexLabelScan produces a channel of all vertex ids in a graph
+// that match a given label
 func (ggraph *Graph) VertexLabelScan(ctx context.Context, label string) chan string {
-	log.WithFields(log.Fields{"label": label}).Debug("Running VertexLabelScan")
-	//TODO: Make this work better
-	out := make(chan string, 100)
-	go func() {
-		defer close(out)
-		//log.Printf("Searching %s %s", fmt.Sprintf("%s.label", ggraph.graph), label)
-		for i := range ggraph.idx.GetTermMatch(ctx, fmt.Sprintf("%s.v.label", ggraph.graphID), label, 0) {
-			//log.Printf("Found: %s", i)
-			out <- i
+	if label[:2] != VTABLE_PREFIX {
+		label = VTABLE_PREFIX + label
+	}
+	log.WithFields(log.Fields{"label": label}).Info("Running VertexLabelScan")
+	return ggraph.jsonkv.GetIDsForLabel(label)
+}
+
+func (ggraph *Graph) DeleteAnyRow(id string, label string, edgeFlag bool) error {
+	var prefix string = "v_"
+	if edgeFlag {
+		prefix = "e_"
+	}
+
+	loc, err := ggraph.jsonkv.PageCache.Get(context.Background(), id, ggraph.jsonkv.PageLoader)
+	if err != nil {
+		return err
+	}
+
+	tableLabel := prefix + label
+	var bulkErr *multierror.Error
+	if fields, exists := ggraph.jsonkv.Fields[tableLabel]; exists {
+		for field := range fields {
+			if err := ggraph.jsonkv.DeleteRowField(tableLabel, field, id); err != nil {
+				log.Errorf("Failed to delete index for field '%s' in table '%s' for row '%s': %v", field, tableLabel, id, err)
+				bulkErr = multierror.Append(bulkErr, err)
+			}
 		}
-	}()
-	return out
+	}
+
+	ggraph.jsonkv.PebbleLock.Lock()
+	defer ggraph.jsonkv.PebbleLock.Unlock()
+
+	table, ok := ggraph.jsonkv.Tables[prefix+label]
+	if !ok {
+		bulkErr = multierror.Append(bulkErr, fmt.Errorf("table %s not found in jsonkv.Tables: %#v", prefix+label, ggraph.jsonkv.Tables))
+		return bulkErr.ErrorOrNil()
+	}
+
+	err = table.DeleteRow(loc, []byte(id))
+	if err != nil {
+		if err == pebble.ErrNotFound {
+			log.Debugf("Pebble not Found: %s", err)
+			return nil
+		}
+		bulkErr = multierror.Append(bulkErr, err)
+	}
+	ggraph.jsonkv.PageCache.Invalidate(id)
+	return bulkErr.ErrorOrNil()
 }

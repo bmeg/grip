@@ -32,7 +32,7 @@
   <div class="global-header">
     <div class="global-header-container">
       <div class="global-header-home">
-        <a href="https://bmeg.github.io/grip"><h1>GRIP</h1></a>
+        <a href="https://bmeg.github.io/grip/"><h1>GRIP</h1></a>
       </div>
       <ul class="global-header-nav">
           <li><a href="https://bmeg.github.io/grip/download//">Download</a></li>
@@ -84,9 +84,27 @@
           <li>
             <ul class="sidebar-nav sidebar-nav-nested">
               <li>
+                <a href="https://bmeg.github.io/grip/docs/commands/create/"
+                   class="sidebar-nav-item "
+                >create</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
                 <a href="https://bmeg.github.io/grip/docs/commands/query/"
                    class="sidebar-nav-item "
                 >query</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/commands/delete/"
+                   class="sidebar-nav-item "
+                >delete</a></li>
             </ul>
           </li>
           
@@ -130,95 +148,16 @@
         
         <li>
           
-          <span class="intermediate">Database Configuration</span></li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/databases/elastic/"
-                   class="sidebar-nav-item "
-                >Elasticsearch</a></li>
-            </ul>
-          </li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/databases/kvstore/"
-                   class="sidebar-nav-item "
-                >Embedded KV Store</a></li>
-            </ul>
-          </li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/databases/mongo/"
-                   class="sidebar-nav-item "
-                >MongoDB</a></li>
-            </ul>
-          </li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/databases/psql/"
-                   class="sidebar-nav-item "
-                >PostgreSQL</a></li>
-            </ul>
-          </li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/databases/sql/"
-                   class="sidebar-nav-item "
-                >SQL</a></li>
-            </ul>
-          </li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/databases/gripper/"
-                   class="sidebar-nav-item "
-                >GRIPPER</a></li>
-            </ul>
-          </li>
-          
+          <a href="https://bmeg.github.io/grip/docs/databases/"
+             class="sidebar-nav-item "
+          >Database Configuration</a></li>
           
         
         <li>
           
-          <span class="intermediate">GRIP Plugable External Resources</span></li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/gripper/gripper/"
-                   class="sidebar-nav-item "
-                >Intro</a></li>
-            </ul>
-          </li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/gripper/proxy/"
-                   class="sidebar-nav-item "
-                >External Resource Proxies</a></li>
-            </ul>
-          </li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/gripper/graphmodel/"
-                   class="sidebar-nav-item "
-                >Graph Model</a></li>
-            </ul>
-          </li>
-          
+          <a href="https://bmeg.github.io/grip/docs/clients/"
+             class="sidebar-nav-item "
+          >Client Library</a></li>
           
         
         <li>
@@ -228,18 +167,9 @@
           <li>
             <ul class="sidebar-nav sidebar-nav-nested">
               <li>
-                <a href="https://bmeg.github.io/grip/docs/queries/getting_started/"
+                <a href="https://bmeg.github.io/grip/docs/queries/traversal_start/"
                    class="sidebar-nav-item "
-                >Getting Started</a></li>
-            </ul>
-          </li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/queries/operations/"
-                   class="sidebar-nav-item "
-                >Operations</a></li>
+                >Start a Traversal</a></li>
             </ul>
           </li>
           
@@ -255,12 +185,64 @@
           <li>
             <ul class="sidebar-nav sidebar-nav-nested">
               <li>
-                <a href="https://bmeg.github.io/grip/docs/queries/jobs_api/"
+                <a href="https://bmeg.github.io/grip/docs/queries/traverse_graph/"
                    class="sidebar-nav-item "
-                >Jobs API</a></li>
+                >Traverse the Graph</a></li>
             </ul>
           </li>
           
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/queries/filtering/"
+                   class="sidebar-nav-item "
+                >Filtering</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/queries/record_transforms/"
+                   class="sidebar-nav-item "
+                >Record Transforms</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/queries/aggregation/"
+                   class="sidebar-nav-item "
+                >Aggregation</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/queries/output/"
+                   class="sidebar-nav-item "
+                >Output Control</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/queries/iterations/"
+                   class="sidebar-nav-item "
+                >Iteration</a></li>
+            </ul>
+          </li>
+          
+          
+        
+        <li>
+          
+          <a href="https://bmeg.github.io/grip/docs/jobs_api/"
+             class="sidebar-nav-item "
+          >Jobs API</a></li>
           
         
         <li>
@@ -350,12 +332,45 @@
           
           
         
+        <li>
+          
+          <span class="intermediate">GRIP Plugable External Resources</span></li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/gripper/gripper/"
+                   class="sidebar-nav-item "
+                >Intro</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/gripper/proxy/"
+                   class="sidebar-nav-item "
+                >External Resource Proxies</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/gripper/graphmodel/"
+                   class="sidebar-nav-item "
+                >Graph Model</a></li>
+            </ul>
+          </li>
+          
+          
+        
       
     </ul>
   </div>
 
   <div class="main col span_8_of_12">
-    <pre><code>grip drop &lt;graph&gt;
+    <pre tabindex="0"><code>grip drop &lt;graph&gt;
 </code></pre><p>Deletes a graph.</p>
 
   </div>

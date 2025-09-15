@@ -1,13 +1,12 @@
 from __future__ import absolute_import
 
-import gripql
 import time
 
 def test_job(man):
     errors = []
 
     G = man.setGraph("swapi")
-    job = G.query().V().hasLabel("Planet").as_("a").out().submit()
+    job = G.V().hasLabel("Planet").as_("a").out().submit()
 
     count = 0
     for j in G.listJobs():
@@ -18,7 +17,7 @@ def test_job(man):
 
     while True:
         cJob = G.getJob(job["id"])
-        print(cJob)
+        #print(cJob)
         if cJob['state'] not in ["RUNNING", "QUEUED"]:
             break
         time.sleep(1)
@@ -30,7 +29,7 @@ def test_job(man):
     if count != 12:
         errors.append("Incorrect # elements returned %d != %d" % (count, 12))
 
-    jobs = G.query().V().hasLabel("Planet").as_("a").out().out().count().searchJobs()
+    jobs = G.V().hasLabel("Planet").as_("a").out().out().count().searchJobs()
     count = 0
     for cJob in jobs:
         if cJob["id"] != job["id"]:
@@ -41,29 +40,33 @@ def test_job(man):
         errors.append("Job not found in search: %d" % (count))
 
     fullResults = []
-    for res in G.query().V().hasLabel("Planet").out().out().count():
+    fullCount = 0
+    for res in G.V().hasLabel("Planet").out().out().count():
         fullResults.append(res)
+        fullCount = res["count"]
 
     resumedResults = []
     for res in G.resume(job["id"]).out().count().execute():
         resumedResults.append(res)
+        if res["count"] != fullCount:
+            errors.append("Incorrect saved count returned: %d != %d" % (res["count"], fullCount))
 
     if len(fullResults) != len(resumedResults):
-        errors.append( "Missmatch on resumed result" )
+        errors.append( """Missmatch on resumed result: G.V().hasLabel("Planet").out().out().count()""" )
 
     fullResults = []
-    for res in G.query().V().hasLabel("Planet").as_("a").out().out().select("a"):
+    for res in G.V().hasLabel("Planet").as_("a").out().out().select("a"):
         fullResults.append(res)
     #TODO: in the future, this 'fix' may need to be removed.
     #Always producing elements in the same order may become a requirement.
-    fullResults.sort(key=lambda x:x["gid"])
+    fullResults.sort(key=lambda x:x["_id"])
     resumedResults = []
     for res in G.resume(job["id"]).out().select("a").execute():
         resumedResults.append(res)
-    resumedResults.sort(key=lambda x:x["gid"])
+    resumedResults.sort(key=lambda x:x["_id"])
 
     if len(fullResults) != len(resumedResults):
-        errors.append( "Missmatch on resumed result" )
+        errors.append( """Missmatch on resumed result: G.V().hasLabel("Planet").as_("a").out().out().select("a")""" )
 
     for a, b in zip(fullResults, resumedResults):
         if a != b:

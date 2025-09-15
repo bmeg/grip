@@ -15,11 +15,6 @@ func V(ids ...string) *Query {
 	return NewQuery().V(ids...)
 }
 
-// E starts a new vertex query, short for `NewQuery().E()`.
-func E(ids ...string) *Query {
-	return NewQuery().E(ids...)
-}
-
 // NewQuery creates a new Query instance.
 func NewQuery() *Query {
 	return &Query{}
@@ -43,12 +38,6 @@ func (q *Query) with(st *GraphStatement) *Query {
 func (q *Query) V(id ...string) *Query {
 	vlist := protoutil.NewListFromStrings(id)
 	return q.with(&GraphStatement{Statement: &GraphStatement_V{vlist}})
-}
-
-// E adds a edge selection step to the query
-func (q *Query) E(id ...string) *Query {
-	elist := protoutil.NewListFromStrings(id)
-	return q.with(&GraphStatement{Statement: &GraphStatement_E{elist}})
 }
 
 // In follows incoming edges to adjacent vertex
@@ -159,9 +148,8 @@ func (q *Query) As(id string) *Query {
 }
 
 // Select retreieves previously marked elemets
-func (q *Query) Select(id ...string) *Query {
-	idList := SelectStatement{Marks: id}
-	return q.with(&GraphStatement{Statement: &GraphStatement_Select{&idList}})
+func (q *Query) Select(name string) *Query {
+	return q.with(&GraphStatement{Statement: &GraphStatement_Select{name}})
 }
 
 // Fields selects which properties are returned in the result.
@@ -200,6 +188,27 @@ func (q *Query) Aggregate(agg []*Aggregate) *Query {
 	return q.with(&GraphStatement{Statement: &GraphStatement_Aggregate{Aggregate: &Aggregations{Aggregations: agg}}})
 }
 
+func (q *Query) Pivot(id string, field string, value string) *Query {
+	return q.with(&GraphStatement{Statement: &GraphStatement_Pivot{Pivot: &PivotStep{Id: id, Field: field, Value: value}}})
+}
+
+// Deconstruct a vertex with an array of n fields as n vertices with no array, and a dict object instead
+func (q *Query) Unwind(path string) *Query {
+	return q.with(&GraphStatement{Statement: &GraphStatement_Unwind{Unwind: path}})
+}
+
+func (q *Query) Group(fields map[string]string) *Query {
+	return q.with(&GraphStatement{Statement: &GraphStatement_Group{Group: &Group{Fields: fields}}})
+}
+
+func (q *Query) ToType(field string, typeName string) *Query {
+	return q.with(&GraphStatement{Statement: &GraphStatement_Totype{Totype: &ToType{Field: field, TypeName: typeName}}})
+}
+
+func (q *Query) Sort(sortFields []*SortField) *Query {
+	return q.with(&GraphStatement{Statement: &GraphStatement_Sort{Sort: &Sorting{Fields: sortFields}}})
+}
+
 func (q *Query) String() string {
 	parts := []string{}
 	add := func(name string, x ...string) {
@@ -212,10 +221,6 @@ func (q *Query) String() string {
 		case *GraphStatement_V:
 			ids := protoutil.AsStringList(stmt.V)
 			add("V", ids...)
-
-		case *GraphStatement_E:
-			ids := protoutil.AsStringList(stmt.E)
-			add("E", ids...)
 
 		case *GraphStatement_In:
 			ids := protoutil.AsStringList(stmt.In)
@@ -280,7 +285,7 @@ func (q *Query) String() string {
 			add("As", stmt.As)
 
 		case *GraphStatement_Select:
-			add("Select", stmt.Select.Marks...)
+			add("Select", stmt.Select)
 
 		case *GraphStatement_Fields:
 			fields := protoutil.AsStringList(stmt.Fields)
@@ -288,6 +293,21 @@ func (q *Query) String() string {
 
 		case *GraphStatement_Aggregate:
 			add("Aggregate")
+
+		case *GraphStatement_Unwind:
+			add("Unwind", stmt.Unwind)
+
+		case *GraphStatement_Pivot:
+			add("Pivot", fmt.Sprintf("%s", stmt.Pivot.Id), fmt.Sprintf("%s", stmt.Pivot.Field), fmt.Sprintf("%s", stmt.Pivot.Value))
+
+		case *GraphStatement_Group:
+			add("Group", fmt.Sprintf("%v", stmt.Group.Fields))
+
+		case *GraphStatement_Totype:
+			add("Totype", fmt.Sprintf("%s", stmt.Totype.Field), fmt.Sprintf("%s", stmt.Totype.TypeName))
+
+		case *GraphStatement_Sort:
+			add("Sort", fmt.Sprintf("%s", stmt.Sort.Fields))
 
 		case *GraphStatement_Render:
 			jtxt, err := protojson.Marshal(stmt.Render)

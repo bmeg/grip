@@ -22,7 +22,7 @@ func (server *GripServer) Submit(ctx context.Context, query *gripql.GraphQuery) 
 		return nil, err
 	}
 	compiler := graph.Compiler()
-	pipe, err := compiler.Compile(query.Query, nil)
+	pipe, err := compiler.Compile(query.Query, &gdbi.CompileOptions{StoreMarks: true})
 	if err != nil {
 		return nil, err
 	}
@@ -37,7 +37,7 @@ func (server *GripServer) Submit(ctx context.Context, query *gripql.GraphQuery) 
 		&jobstorage.Stream{
 			DataType:  dataType,
 			MarkTypes: markTypes,
-			Pipe:      res,
+			Pipe:      res.Outputs,
 			Query:     query.Query,
 		})
 	return &gripql.QueryJob{
@@ -125,9 +125,12 @@ func (server *GripServer) ResumeJob(query *gripql.ExtendQuery, srv gripql.Job_Re
 		return err
 	}
 	compiler := graph.Compiler()
-	log.Infof("Compiling resume pipeline: %s", stream.DataType)
-	pipe, err := compiler.Compile(query.Query, &gdbi.CompileOptions{PipelineExtension: stream.DataType, ExtensionMarkTypes: stream.MarkTypes})
+	log.Debugf("Compiling resume pipeline: %s -> %s", stream.DataType, query.String())
+	pipe, err := compiler.Compile(query.Query,
+		&gdbi.CompileOptions{Extends: &gdbi.PipelineExtension{StartType: stream.DataType, MarksTypes: stream.MarkTypes}},
+	)
 	if err != nil {
+		log.Debugf("User query compile error: %s", err)
 		cancel()
 		go func() {
 			for range stream.Pipe {

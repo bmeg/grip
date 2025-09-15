@@ -34,19 +34,21 @@ func (ma *GDB) BuildSchema(ctx context.Context, graph string, sampleN uint32, ra
 }
 
 func (gi *Graph) sampleSchema(ctx context.Context, n uint32, random bool) ([]*gripql.Vertex, []*gripql.Edge, error) {
-	labelField := fmt.Sprintf("v.label")
-	labels := []string{}
-	for i := range gi.idx.FieldTerms(labelField) {
-		labels = append(labels, i.(string))
+	labels := gi.jsonkv.List()
+	vertLabels := []string{}
+	for _, label := range labels {
+		if label[:2] == "v_" {
+			vertLabels = append(vertLabels, label)
+		}
 	}
 
 	vOutput := []*gripql.Vertex{}
 	eOutput := []*gripql.Edge{}
 	fromToPairs := make(fromto)
 
-	for _, label := range labels {
-		schema := map[string]interface{}{}
-		for i := range gi.idx.GetTermMatch(context.Background(), labelField, label, int(n)) {
+	for _, label := range vertLabels {
+		schema := map[string]any{}
+		for i := range gi.VertexLabelScan(context.Background(), label) {
 			v := gi.GetVertex(i, true)
 			data := v.Data
 			ds := gripql.GetDataFieldTypes(data)
@@ -56,9 +58,10 @@ func (gi *Graph) sampleSchema(ctx context.Context, n uint32, random bool) ([]*gr
 			reqChan <- gdbi.ElementLookup{ID: i}
 			close(reqChan)
 			for e := range gi.GetOutEdgeChannel(ctx, reqChan, true, false, []string{}) {
-				o := gi.GetVertex(e.Edge.To, false)
-				k := fromtokey{from: v.Label, to: o.Label, label: e.Edge.Label}
-				ds := gripql.GetDataFieldTypes(e.Edge.Data)
+				edge := e.Edge.Get()
+				o := gi.GetVertex(edge.To, false)
+				k := fromtokey{from: v.Label, to: o.Label, label: edge.Label}
+				ds := gripql.GetDataFieldTypes(edge.Data)
 				if p, ok := fromToPairs[k]; ok {
 					fromToPairs[k] = util.MergeMaps(p, ds)
 				} else {
@@ -67,13 +70,13 @@ func (gi *Graph) sampleSchema(ctx context.Context, n uint32, random bool) ([]*gr
 			}
 		}
 		sSchema, _ := structpb.NewStruct(schema)
-		vSchema := &gripql.Vertex{Gid: label, Label: label, Data: sSchema}
+		vSchema := &gripql.Vertex{Id: label[2:], Label: label, Data: sSchema}
 		vOutput = append(vOutput, vSchema)
 	}
 	for k, v := range fromToPairs {
-		sV, _ := structpb.NewStruct(v.(map[string]interface{}))
+		sV, _ := structpb.NewStruct(v.(map[string]any))
 		eSchema := &gripql.Edge{
-			Gid:   fmt.Sprintf("(%s)--%s->(%s)", k.from, k.label, k.to),
+			Id:    fmt.Sprintf("(%s)--%s->(%s)", k.from, k.label, k.to),
 			Label: k.label,
 			From:  k.from,
 			To:    k.to,
@@ -88,4 +91,4 @@ type fromtokey struct {
 	from, to, label string
 }
 
-type fromto map[fromtokey]interface{}
+type fromto map[fromtokey]any

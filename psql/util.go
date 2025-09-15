@@ -8,15 +8,15 @@ import (
 	"github.com/bmeg/grip/gdbi"
 )
 
-type row struct {
-	Gid   string
+type Row struct {
+	Id    string
 	Label string
 	From  string
 	To    string
 	Data  []byte
 }
 
-func convertVertexRow(row *row, load bool) (*gdbi.Vertex, error) {
+func ConvertVertexRow(row *Row, load bool) (*gdbi.Vertex, error) {
 	props := make(map[string]interface{})
 	if load {
 		err := json.Unmarshal(row.Data, &props)
@@ -25,7 +25,7 @@ func convertVertexRow(row *row, load bool) (*gdbi.Vertex, error) {
 		}
 	}
 	v := &gdbi.Vertex{
-		ID:     row.Gid,
+		ID:     row.Id,
 		Label:  row.Label,
 		Data:   props,
 		Loaded: load,
@@ -33,7 +33,7 @@ func convertVertexRow(row *row, load bool) (*gdbi.Vertex, error) {
 	return v, nil
 }
 
-func convertEdgeRow(row *row, load bool) (*gdbi.Edge, error) {
+func ConvertEdgeRow(row *Row, load bool) (*gdbi.Edge, error) {
 	props := make(map[string]interface{})
 	if load {
 		err := json.Unmarshal(row.Data, &props)
@@ -42,7 +42,7 @@ func convertEdgeRow(row *row, load bool) (*gdbi.Edge, error) {
 		}
 	}
 	e := &gdbi.Edge{
-		ID:     row.Gid,
+		ID:     row.Id,
 		Label:  row.Label,
 		From:   row.From,
 		To:     row.To,

@@ -32,14 +32,16 @@ func Connect(conf rpc.Config, write bool) (Client, error) {
 	}
 	queryOut := NewQueryClient(conn)
 	var editOut EditClient
+	var jobOut JobClient
 	if write {
 		editOut = NewEditClient(conn)
+		jobOut = NewJobClient(conn)
 	}
-	return Client{queryOut, editOut, nil, nil, conn}, nil
+	return Client{queryOut, editOut, jobOut, nil, conn}, nil
 }
 
 func (client Client) WithConfigureAPI() Client {
-	return Client{client.QueryC, client.EditC, nil, NewConfigureClient(client.conn), client.conn}
+	return Client{client.QueryC, client.EditC, client.JobC, NewConfigureClient(client.conn), client.conn}
 }
 
 // Close the connection
@@ -61,6 +63,12 @@ func (client Client) SampleSchema(graph string) (*Graph, error) {
 // AddSchema adds a schema for a graph.
 func (client Client) AddSchema(graph *Graph) error {
 	_, err := client.EditC.AddSchema(context.Background(), graph)
+	return err
+}
+
+// AddJsonSchema adds a schema for a graph.
+func (client Client) AddJsonSchema(json *RawJson) error {
+	_, err := client.EditC.AddJsonSchema(context.Background(), json)
 	return err
 }
 
@@ -179,6 +187,26 @@ func (client Client) BulkAdd(elemChan chan *GraphElement) error {
 	return err
 }
 
+func (client Client) BulkAddRaw(elemChan chan *RawJson) (error, *BulkJsonEditResult) {
+	sc, err := client.EditC.BulkAddRaw(context.Background())
+	if err != nil {
+		return err, nil
+	}
+	for elem := range elemChan {
+		err := sc.Send(elem)
+		if err != nil {
+			return err, nil
+		}
+	}
+	res, err := sc.CloseAndRecv()
+	return err, res
+}
+
+func (client Client) BulkDelete(delete *DeleteData) error {
+	_, err := client.EditC.BulkDelete(context.Background(), delete)
+	return err
+}
+
 // GetVertex obtains a vertex from a graph by `id`
 func (client Client) GetVertex(graph string, id string) (*Vertex, error) {
 	v, err := client.QueryC.GetVertex(context.Background(), &ElementID{Graph: graph, Id: id})
@@ -186,9 +214,9 @@ func (client Client) GetVertex(graph string, id string) (*Vertex, error) {
 }
 
 // Traversal runs a graph traversal query
-func (client Client) Traversal(query *GraphQuery) (chan *QueryResult, error) {
+func (client Client) Traversal(ctx context.Context, query *GraphQuery) (chan *QueryResult, error) {
 	out := make(chan *QueryResult, 100)
-	tclient, err := client.QueryC.Traversal(context.Background(), query)
+	tclient, err := client.QueryC.Traversal(ctx, query)
 	if err != nil {
 		return nil, err
 	}
@@ -241,11 +269,9 @@ func (client Client) ListJobs(graph string) ([]*QueryJob, error) {
 	return out, nil
 }
 
-/*
 func (client Client) SearchJobs(in *GraphQuery, opts ...grpc.CallOption) (Job_SearchJobsClient, error) {
-
+	return client.JobC.SearchJobs(context.Background(), in)
 }
-*/
 
 func (client Client) Submit(query *GraphQuery) (*QueryJob, error) {
 	return client.JobC.Submit(context.Background(), query)
@@ -259,11 +285,86 @@ func (client Client) GetJob(graph string, jobID string) (*JobStatus, error) {
 	return client.JobC.GetJob(context.Background(), &QueryJob{Graph: graph, Id: jobID})
 }
 
-/*
-func (client Client) ViewJob(in *QueryJob, opts ...grpc.CallOption) (Job_ViewJobClient, error) {
+func (client Client) ResumeJob(graph string, jobID string, q *GraphQuery) (chan *QueryResult, error) {
+	tclient, err := client.JobC.ResumeJob(context.Background(),
+		&ExtendQuery{Graph: graph,
+			SrcId: jobID,
+			Query: q.Query,
+		})
 
+	out := make(chan *QueryResult, 100)
+
+	if err != nil {
+		return nil, err
+	}
+
+	t, err := tclient.Recv()
+	if err == io.EOF {
+		close(out)
+		return out, nil
+	}
+	if err != nil {
+		close(out)
+		return out, err
+	}
+	out <- t
+
+	go func() {
+		defer close(out)
+		for {
+			t, err := tclient.Recv()
+			if err == io.EOF {
+				return
+			}
+			if err != nil {
+				log.WithFields(log.Fields{"error": err}).Error("Receiving traversal result")
+				return
+			}
+			out <- t
+		}
+	}()
+	return out, nil
 }
-*/
+
+func (client Client) ViewJob(graph string, jobID string, opts ...grpc.CallOption) (chan *QueryResult, error) {
+	tclient, err := client.JobC.ViewJob(context.Background(),
+		&QueryJob{Graph: graph,
+			Id: jobID,
+		})
+
+	out := make(chan *QueryResult, 100)
+
+	if err != nil {
+		return nil, err
+	}
+
+	t, err := tclient.Recv()
+	if err == io.EOF {
+		close(out)
+		return out, nil
+	}
+	if err != nil {
+		close(out)
+		return out, err
+	}
+	out <- t
+
+	go func() {
+		defer close(out)
+		for {
+			t, err := tclient.Recv()
+			if err == io.EOF {
+				return
+			}
+			if err != nil {
+				log.WithFields(log.Fields{"error": err}).Error("Receiving traversal result")
+				return
+			}
+			out <- t
+		}
+	}()
+	return out, nil
+}
 
 // ListDrivers lists avalible drivers
 func (client Client) ListDrivers() (*ListDriversResponse, error) {

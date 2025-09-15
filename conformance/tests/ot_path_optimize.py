@@ -13,30 +13,30 @@ def test_path_1(man):
     G = man.setGraph("swapi")
 
     count = 0
-    for res in G.query().V("Film:1").out().out().out():
+    for res in G.V("Film:1").out().out().out():
         count += 1
     if count != 1814:
         errors.append("out-out-out Incorrect vertex count returned: %d != %d" % (count, 1814))
 
     count = 0
-    for res in G.query().V("Film:1").in_().in_().in_():
+    for res in G.V("Film:1").in_().in_().in_():
         count += 1
     if count != 1814:
         errors.append("in-in-in Incorrect vertex count returned: %d != %d" % (count, 1814))
 
     count = 0
-    for res in G.query().V("Film:1").out().out().outE():
-        if res["label"] not in ["vehicles", "species", "planets", "characters", "enemy", "starships", "films", "homeworld", "people", "pilots", "residents"]:
-            errors.append("Wrong label found at end of path: %s" % (res["label"]))
+    for res in G.V("Film:1").out().out().outE():
+        if res["_label"] not in ["vehicles", "species", "planets", "characters", "enemy", "starships", "films", "homeworld", "people", "pilots", "residents"]:
+            errors.append("Wrong label found at end of path: %s" % (res["_label"]))
         count += 1
     if count != 1814:
-        errors.append("out-out-outE Incorrect vertex count returned: %d != %d" % (count, 1814))
+        errors.append("""V("Film:1").out().out().outE() Incorrect vertex count returned: %d != %d""" % (count, 1814))
 
     count = 0
-    for res in G.query().V("Film:1").out().out().outE().out():
+    for res in G.V("Film:1").out().out().outE().out():
         count += 1
     if count != 1814:
-        errors.append("out-out-outE-out Incorrect vertex count returned: %d != %d" % (count, 1814))
+        errors.append(""".V("Film:1").out().out().outE().out() Incorrect vertex count returned: %d != %d""" % (count, 1814))
 
     return errors
 
@@ -47,7 +47,7 @@ def test_path_2(man):
     G = man.setGraph("swapi")
 
     count = 0
-    for res in G.query().V().out().hasLabel("Starship").out().out():
+    for res in G.V().out().hasLabel("Starship").out().out():
         count += 1
     if count != 666:
         errors.append("out-hasLabel-out-out Incorrect vertex count returned: %d != %d" % (count, 666))

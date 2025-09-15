@@ -1,6 +1,7 @@
 package info
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/bmeg/grip/gripql"
@@ -27,7 +28,7 @@ var Cmd = &cobra.Command{
 		fmt.Printf("Graph: %s\n", graph)
 
 		q := gripql.V().Count()
-		res, err := conn.Traversal(&gripql.GraphQuery{Graph: graph, Query: q.Statements})
+		res, err := conn.Traversal(context.Background(), &gripql.GraphQuery{Graph: graph, Query: q.Statements})
 		if err != nil {
 			return err
 		}
@@ -35,8 +36,8 @@ var Cmd = &cobra.Command{
 			fmt.Printf("Vertex Count: %v\n", row.GetCount())
 		}
 
-		q = gripql.E().Count()
-		res, err = conn.Traversal(&gripql.GraphQuery{Graph: graph, Query: q.Statements})
+		q = gripql.V().OutE().Count()
+		res, err = conn.Traversal(context.Background(), &gripql.GraphQuery{Graph: graph, Query: q.Statements})
 		if err != nil {
 			return err
 		}

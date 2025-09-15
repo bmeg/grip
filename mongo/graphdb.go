@@ -156,10 +156,10 @@ func (ma *GraphDB) ListGraphs() []string {
 		log.WithFields(log.Fields{"error": err}).Error("ListGraphs: MongoDB: list error")
 		return nil
 	}
-	result := map[string]interface{}{}
+	result := map[string]any{}
 	for cursor.Next(context.TODO()) {
 		if nil == cursor.Decode(&result) {
-			out = append(out, result["_id"].(string))
+			out = append(out, result[FIELD_ID].(string))
 		}
 	}
 	if err := cursor.Close(context.TODO()); err != nil {

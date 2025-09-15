@@ -32,7 +32,7 @@
   <div class="global-header">
     <div class="global-header-container">
       <div class="global-header-home">
-        <a href="https://bmeg.github.io/grip"><h1>GRIP</h1></a>
+        <a href="https://bmeg.github.io/grip/"><h1>GRIP</h1></a>
       </div>
       <ul class="global-header-nav">
           <li><a href="https://bmeg.github.io/grip/download//">Download</a></li>
@@ -84,9 +84,27 @@
           <li>
             <ul class="sidebar-nav sidebar-nav-nested">
               <li>
+                <a href="https://bmeg.github.io/grip/docs/commands/create/"
+                   class="sidebar-nav-item "
+                >create</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
                 <a href="https://bmeg.github.io/grip/docs/commands/query/"
                    class="sidebar-nav-item "
                 >query</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/commands/delete/"
+                   class="sidebar-nav-item "
+                >delete</a></li>
             </ul>
           </li>
           
@@ -130,95 +148,16 @@
         
         <li>
           
-          <span class="intermediate">Database Configuration</span></li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/databases/elastic/"
-                   class="sidebar-nav-item "
-                >Elasticsearch</a></li>
-            </ul>
-          </li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/databases/kvstore/"
-                   class="sidebar-nav-item "
-                >Embedded KV Store</a></li>
-            </ul>
-          </li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/databases/mongo/"
-                   class="sidebar-nav-item "
-                >MongoDB</a></li>
-            </ul>
-          </li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/databases/psql/"
-                   class="sidebar-nav-item "
-                >PostgreSQL</a></li>
-            </ul>
-          </li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/databases/sql/"
-                   class="sidebar-nav-item "
-                >SQL</a></li>
-            </ul>
-          </li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/databases/gripper/"
-                   class="sidebar-nav-item "
-                >GRIPPER</a></li>
-            </ul>
-          </li>
-          
+          <a href="https://bmeg.github.io/grip/docs/databases/"
+             class="sidebar-nav-item "
+          >Database Configuration</a></li>
           
         
         <li>
           
-          <span class="intermediate">GRIP Plugable External Resources</span></li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/gripper/gripper/"
-                   class="sidebar-nav-item "
-                >Intro</a></li>
-            </ul>
-          </li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/gripper/proxy/"
-                   class="sidebar-nav-item "
-                >External Resource Proxies</a></li>
-            </ul>
-          </li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/gripper/graphmodel/"
-                   class="sidebar-nav-item  active"
-                >Graph Model</a></li>
-            </ul>
-          </li>
-          
+          <a href="https://bmeg.github.io/grip/docs/clients/"
+             class="sidebar-nav-item "
+          >Client Library</a></li>
           
         
         <li>
@@ -228,18 +167,9 @@
           <li>
             <ul class="sidebar-nav sidebar-nav-nested">
               <li>
-                <a href="https://bmeg.github.io/grip/docs/queries/getting_started/"
+                <a href="https://bmeg.github.io/grip/docs/queries/traversal_start/"
                    class="sidebar-nav-item "
-                >Getting Started</a></li>
-            </ul>
-          </li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/queries/operations/"
-                   class="sidebar-nav-item "
-                >Operations</a></li>
+                >Start a Traversal</a></li>
             </ul>
           </li>
           
@@ -255,12 +185,64 @@
           <li>
             <ul class="sidebar-nav sidebar-nav-nested">
               <li>
-                <a href="https://bmeg.github.io/grip/docs/queries/jobs_api/"
+                <a href="https://bmeg.github.io/grip/docs/queries/traverse_graph/"
                    class="sidebar-nav-item "
-                >Jobs API</a></li>
+                >Traverse the Graph</a></li>
             </ul>
           </li>
           
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/queries/filtering/"
+                   class="sidebar-nav-item "
+                >Filtering</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/queries/record_transforms/"
+                   class="sidebar-nav-item "
+                >Record Transforms</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/queries/aggregation/"
+                   class="sidebar-nav-item "
+                >Aggregation</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/queries/output/"
+                   class="sidebar-nav-item "
+                >Output Control</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/queries/iterations/"
+                   class="sidebar-nav-item "
+                >Iteration</a></li>
+            </ul>
+          </li>
+          
+          
+        
+        <li>
+          
+          <a href="https://bmeg.github.io/grip/docs/jobs_api/"
+             class="sidebar-nav-item "
+          >Jobs API</a></li>
           
         
         <li>
@@ -350,6 +332,39 @@
           
           
         
+        <li>
+          
+          <span class="intermediate">GRIP Plugable External Resources</span></li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/gripper/gripper/"
+                   class="sidebar-nav-item "
+                >Intro</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/gripper/proxy/"
+                   class="sidebar-nav-item "
+                >External Resource Proxies</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/gripper/graphmodel/"
+                   class="sidebar-nav-item  active"
+                >Graph Model</a></li>
+            </ul>
+          </li>
+          
+          
+        
       
     </ul>
   </div>
@@ -360,7 +375,7 @@
 <h2 id="graph-model">Graph Model</h2>
 <p>The graph model describes how GRIP will access multiple gripper servers. The mapping
 of these data resources is done using a graph. The <code>vertices</code> represent how each vertex
-type will be mapped, and the <code>edges</code> describe how edges will be created. The <code>gid</code>
+type will be mapped, and the <code>edges</code> describe how edges will be created. The <code>_id</code>
 of each vertex represents the prefix domain of all vertices that can be found in that
 source.</p>
 <p>The <code>sources</code> referenced by the graph are provided to GRIP at run time, each named resource is a
@@ -376,11 +391,11 @@ For <code>edgeTable</code> connections, there is a single collection that repres
 two other collections that have been mapped to vertices.</p>
 <h2 id="runtime-external-resource-config">Runtime External Resource Config</h2>
 <p>External resources are passed to GRIP as command line options. For the command line:</p>
-<pre><code>grip server config.yaml --er tableServer=localhost:50051 --er pfb=localhost:50052
+<pre tabindex="0"><code>grip server config.yaml --er tableServer=localhost:50051 --er pfb=localhost:50052
 </code></pre><p><code>tableServer</code> is a ER plugin that serves table data (see <code>gripper/test-graph</code>)
 while <code>pfb</code> parses PFB based files (see <a href="https://github.com/bmeg/grip_pfb">https://github.com/bmeg/grip_pfb</a> )</p>
 <p>The <code>config.yaml</code> is</p>
-<pre><code>Default: badger
+<pre tabindex="0"><code>Default: badger
 
 Drivers:
   badger:
@@ -390,219 +405,196 @@ Drivers:
     Gripper:
       ConfigFile: ./swapi.yaml
       Graph: swapi
-
 </code></pre><p>This runs with a default <code>badger</code> based driver, but also provides a GRIPPER based
 graph from the <code>swapi</code> mapping (see example graph map below).</p>
 <h2 id="example-graph-map">Example graph map</h2>
-<pre><code>vertices:
-  - gid: &quot;Character:&quot;
-    label: Character
-    data:
-      source: tableServer
-      collection: Character
+<pre tabindex="0"><code>vertices:
+  - _id: &#34;Character:&#34;
+    _label: Character
+    source: tableServer
+    collection: Character
 
-  - gid: &quot;Planet:&quot;
-    label: Planet
-    data:
-      collection: Planet
-      source: tableServer
+  - _id: &#34;Planet:&#34;
+    _label: Planet
+    collection: Planet
+    source: tableServer
 
-  - gid: &quot;Film:&quot;
-    label: Film
-    data:
-      collection: Film
-      source: tableServer
+  - _id: &#34;Film:&#34;
+    _label: Film
+    collection: Film
+    source: tableServer
 
-  - gid: &quot;Species:&quot;
-    label: Species
-    data:
-      source: tableServer
-      collection: Species
+  - _id: &#34;Species:&#34;
+    _label: Species
+    source: tableServer
+    collection: Species
 
-  - gid: &quot;Starship:&quot;
-    label: Starship
-    data:
-      source: tableServer
-      collection: Starship
+  - _id: &#34;Starship:&#34;
+    _label: Starship
+    source: tableServer
+    collection: Starship
 
-  - gid: &quot;Vehicle:&quot;
-    label: Vehicle
-    data:
-      source: tableServer
-      collection: Vehicle
+  - _id: &#34;Vehicle:&#34;
+    _label: Vehicle
+    source: tableServer
+    collection: Vehicle
 
 edges:
-  - gid: &quot;homeworld&quot;
-    from: &quot;Character:&quot;
-    to: &quot;Planet:&quot;
-    label: homeworld
-    data:
-      fieldToField:
-        fromField: $.homeworld
-        toField: $.id
+  - _id: &#34;homeworld&#34;
+    _from: &#34;Character:&#34;
+    _to: &#34;Planet:&#34;
+    _label: homeworld
+    fieldToField:
+      fromField: $.homeworld
+      toField: $.id
 
-  - gid: species
-    from: &quot;Character:&quot;
-    to: &quot;Species:&quot;
-    label: species
-    data:
-      fieldToField:
-        fromField: $.species
-        toField: $.id
+  - _id: species
+    _from: &#34;Character:&#34;
+    _to: &#34;Species:&#34;
+    _label: species
+    fieldToField:
+      fromField: $.species
+      toField: $.id
 
-  - gid: people
-    from: &quot;Species:&quot;
-    to: &quot;Character:&quot;
-    label: people
-    data:
-      edgeTable:
-        source: tableServer
-        collection: speciesCharacter
-        fromField: $.from
-        toField: $.to
+  - _id: people
+    _from: &#34;Species:&#34;
+    _to: &#34;Character:&#34;
+    _label: people
+    edgeTable:
+      source: tableServer
+      collection: speciesCharacter
+      fromField: $.from
+      toField: $.to
 
-  - gid: residents
-    from: &quot;Planet:&quot;
-    to: &quot;Character:&quot;
-    label: residents
-    data:
-      edgeTable:
-        source: tableServer
-        collection: planetCharacter
-        fromField: $.from
-        toField: $.to
+  - _id: residents
+    _from: &#34;Planet:&#34;
+    _to: &#34;Character:&#34;
+    _label: residents
+    edgeTable:
+      source: tableServer
+      collection: planetCharacter
+      fromField: $.from
+      toField: $.to
 
-  - gid: filmVehicles
-    from: &quot;Film:&quot;
-    to: &quot;Vehicle:&quot;
-    label: &quot;vehicles&quot;
-    data:
-      edgeTable:
-        source: tableServer
-        collection: filmVehicles
-        fromField: &quot;$.from&quot;
-        toField: &quot;$.to&quot;
+  - _id: filmVehicles
+    _from: &#34;Film:&#34;
+    _to: &#34;Vehicle:&#34;
+    _label: &#34;vehicles&#34;
+    edgeTable:
+      source: tableServer
+      collection: filmVehicles
+      fromField: &#34;$.from&#34;
+      toField: &#34;$.to&#34;
 
-  - gid: vehicleFilms
-    to: &quot;Film:&quot;
-    from: &quot;Vehicle:&quot;
-    label: &quot;films&quot;
-    data:
-      edgeTable:
-        source: tableServer
-        collection: filmVehicles
-        toField: &quot;$.from&quot;
-        fromField: &quot;$.to&quot;
+  - _id: vehicleFilms
+    _to: &#34;Film:&#34;
+    _from: &#34;Vehicle:&#34;
+    _label: &#34;films&#34;
+    edgeTable:
+      source: tableServer
+      collection: filmVehicles
+      toField: &#34;$.from&#34;
+      fromField: &#34;$.to&#34;
 
-  - gid: filmStarships
-    from: &quot;Film:&quot;
-    to: &quot;Starship:&quot;
-    label: &quot;starships&quot;
-    data:
-      edgeTable:
-        source: tableServer
-        collection: filmStarships
-        fromField: &quot;$.from&quot;
-        toField: &quot;$.to&quot;
+  - _id: filmStarships
+    _from: &#34;Film:&#34;
+    _to: &#34;Starship:&#34;
+    _label: &#34;starships&#34;
+    edgeTable:
+      source: tableServer
+      collection: filmStarships
+      fromField: &#34;$.from&#34;
+      toField: &#34;$.to&#34;
 
-  - gid: starshipFilms
-    to: &quot;Film:&quot;
-    from: &quot;Starship:&quot;
-    label: &quot;films&quot;
-    data:
-      edgeTable:
-        source: tableServer
-        collection: filmStarships
-        toField: &quot;$.from&quot;
-        fromField: &quot;$.to&quot;
+  - _id: starshipFilms
+    _to: &#34;Film:&#34;
+    _from: &#34;Starship:&#34;
+    _label: &#34;films&#34;
+    edgeTable:
+      source: tableServer
+      collection: filmStarships
+      toField: &#34;$.from&#34;
+      fromField: &#34;$.to&#34;
 
-  - gid: filmPlanets
-    from: &quot;Film:&quot;
-    to: &quot;Planet:&quot;
-    label: &quot;planets&quot;
-    data:
-      edgeTable:
-        source: tableServer
-        collection: filmPlanets
-        fromField: &quot;$.from&quot;
-        toField: &quot;$.to&quot;
+  - _id: filmPlanets
+    _from: &#34;Film:&#34;
+    _to: &#34;Planet:&#34;
+    _label: &#34;planets&#34;
+    edgeTable:
+      source: tableServer
+      collection: filmPlanets
+      fromField: &#34;$.from&#34;
+      toField: &#34;$.to&#34;
 
-  - gid: planetFilms
-    to: &quot;Film:&quot;
-    from: &quot;Planet:&quot;
-    label: &quot;films&quot;
-    data:
-      edgeTable:
-        source: tableServer
-        collection: filmPlanets
-        toField: &quot;$.from&quot;
-        fromField: &quot;$.to&quot;
+  - _id: planetFilms
+    _to: &#34;Film:&#34;
+    _from: &#34;Planet:&#34;
+    _label: &#34;films&#34;
+    edgeTable:
+      source: tableServer
+      collection: filmPlanets
+      toField: &#34;$.from&#34;
+      fromField: &#34;$.to&#34;
 
-  - gid: filmSpecies
-    from: &quot;Film:&quot;
-    to: &quot;Species:&quot;
-    label: &quot;species&quot;
-    data:
-      edgeTable:
-        source: tableServer
-        collection: filmSpecies
-        fromField: &quot;$.from&quot;
-        toField: &quot;$.to&quot;
+  - _id: filmSpecies
+    _from: &#34;Film:&#34;
+    _to: &#34;Species:&#34;
+    _label: &#34;species&#34;
+    edgeTable:
+      source: tableServer
+      collection: filmSpecies
+      fromField: &#34;$.from&#34;
+      toField: &#34;$.to&#34;
 
-  - gid: speciesFilms
-    to: &quot;Film:&quot;
-    from: &quot;Species:&quot;
-    label: &quot;films&quot;
-    data:
-      edgeTable:
-        source: tableServer
-        collection: filmSpecies
-        toField: &quot;$.from&quot;
-        fromField: &quot;$.to&quot;
+  - _id: speciesFilms
+    _to: &#34;Film:&#34;
+    _from: &#34;Species:&#34;
+    _label: &#34;films&#34;
+    edgeTable:
+      source: tableServer
+      collection: filmSpecies
+      toField: &#34;$.from&#34;
+      fromField: &#34;$.to&#34;
 
-  - gid: filmCharacters
-    from: &quot;Film:&quot;
-    to: &quot;Character:&quot;
-    label: characters
-    data:
-      edgeTable:
-        source: tableServer
-        collection: filmCharacters
-        fromField: &quot;$.from&quot;
-        toField: &quot;$.to&quot;
+  - _id: filmCharacters
+    _from: &#34;Film:&#34;
+    _to: &#34;Character:&#34;
+    _label: characters
+    edgeTable:
+      source: tableServer
+      collection: filmCharacters
+      fromField: &#34;$.from&#34;
+      toField: &#34;$.to&#34;
 
-  - gid: characterFilms
-    from: &quot;Character:&quot;
-    to: &quot;Film:&quot;
-    label: films
-    data:
-      edgeTable:
-        source: tableServer
-        collection: filmCharacters
-        toField: &quot;$.from&quot;
-        fromField: &quot;$.to&quot;
+  - _id: characterFilms
+    _from: &#34;Character:&#34;
+    _to: &#34;Film:&#34;
+    _label: films
+    edgeTable:
+      source: tableServer
+      collection: filmCharacters
+      toField: &#34;$.from&#34;
+      fromField: &#34;$.to&#34;
 
-  - gid: characterStarships
-    from: &quot;Character:&quot;
-    to: &quot;Starship:&quot;
-    label: &quot;starships&quot;
-    data:
-      edgeTable:
-        source: tableServer
-        collection: characterStarships
-        fromField: &quot;$.from&quot;
-        toField: &quot;$.to&quot;
+  - _id: characterStarships
+    _from: &#34;Character:&#34;
+    _to: &#34;Starship:&#34;
+    _label: &#34;starships&#34;
+    edgeTable:
+      source: tableServer
+      collection: characterStarships
+      fromField: &#34;$.from&#34;
+      toField: &#34;$.to&#34;
 
-  - gid: starshipCharacters
-    to: &quot;Character:&quot;
-    from: &quot;Starship:&quot;
-    label: &quot;pilots&quot;
-    data:
-      edgeTable:
-        source: tableServer
-        collection: characterStarships
-        toField: &quot;$.from&quot;
-        fromField: &quot;$.to&quot;
+  - _id: starshipCharacters
+    _to: &#34;Character:&#34;
+    _from: &#34;Starship:&#34;
+    _label: &#34;pilots&#34;
+    edgeTable:
+      source: tableServer
+      collection: characterStarships
+      toField: &#34;$.from&#34;
+      fromField: &#34;$.to&#34;
 </code></pre>
   </div>
 

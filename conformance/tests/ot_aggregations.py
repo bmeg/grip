@@ -21,7 +21,7 @@ def test_simple(man):
     G = man.setGraph("swapi")
 
     count = 0
-    for row in G.query().V().aggregate(gripql.term("simple-agg", "eye_color")):
+    for row in G.V().aggregate(gripql.term("simple-agg", "eye_color")):
         if row['name'] != 'simple-agg':
             errors.append("Result had Incorrect aggregation name")
             return errors
@@ -39,7 +39,7 @@ def test_traversal_term_aggregation(man):
     G = man.setGraph("swapi")
 
     count = 0
-    for row in G.query().V("Film:1").out().hasLabel("Character").aggregate(gripql.term("traversal-agg", "eye_color")):
+    for row in G.V("Film:1").out().hasLabel("Character").aggregate(gripql.term("traversal-agg", "eye_color")):
         if row['name'] != 'traversal-agg':
             errors.append("Result had Incorrect aggregation name")
             return errors
@@ -73,7 +73,7 @@ def test_traversal_histogram_aggregation(man):
     }
 
     count = 0
-    for row in G.query().V("Film:1").out().hasLabel("Character").aggregate(gripql.histogram("traversal-agg", "height", 25)):
+    for row in G.V("Film:1").out().hasLabel("Character").aggregate(gripql.histogram("traversal-agg", "height", 25)):
         count += 1
         if row['name'] != 'traversal-agg':
             errors.append("Result had Incorrect aggregation name")
@@ -98,7 +98,7 @@ def test_traversal_percentile_aggregation(man):
     heights = np.array([96, 97, 150, 165, 167, 170, 172, 173, 175, 178, 180, 180, 180, 182, 183, 188, 202, 228])
 
     data = []
-    for row in G.query().V("Film:1").out().hasLabel("Character").aggregate(gripql.percentile("traversal-agg", "height", percents)):
+    for row in G.V("Film:1").out().hasLabel("Character").aggregate(gripql.percentile("traversal-agg", "height", percents)):
         count += 1
         if row['name'] != 'traversal-agg':
             errors.append("Result had Incorrect aggregation name")
@@ -122,7 +122,7 @@ def test_traversal_percentile_aggregation(man):
     if count != len(percents):
         errors.append(
             "Unexpected number of terms: %d != %d" %
-            (len(row["buckets"]), len(percents))
+            (len(res["buckets"]), len(percents))
         )
 
     return errors
@@ -141,7 +141,7 @@ def test_traversal_edge_histogram_aggregation(man):
     }
 
     count = 0
-    for row in G.query().V().hasLabel("Film").outE().aggregate(gripql.histogram("edge-agg", "scene_count", 4)):
+    for row in G.V().hasLabel("Film").outE().aggregate(gripql.histogram("edge-agg", "scene_count", 4)):
         count += 1
         if row['name'] != 'edge-agg':
             errors.append("Result had Incorrect aggregation name")
@@ -171,14 +171,14 @@ def test_traversal_gid_aggregation(man):
     }
 
     count = 0
-    for row in G.query().V().hasLabel("Planet").as_("a").out("residents").select("a").aggregate(gripql.term("gid-agg", "_gid")):
+    for row in G.V().hasLabel("Planet").as_("a").out("residents").select("a").aggregate(gripql.term("id-agg", "_id")):
         count += 1
-        if 'gid-agg' != row['name']:
+        if 'id-agg' != row['name']:
             errors.append("Result had Incorrect aggregation name")
             return errors
 
         if planet_agg_map[row["key"]] != row["value"]:
-            errors.append("Incorrect bucket count returned: %s" % res)
+            errors.append("Incorrect bucket count returned: %s" % row)
 
     if count != 2:
         errors.append(
@@ -190,18 +190,19 @@ def test_traversal_gid_aggregation(man):
 def test_field_aggregation(man):
     errors = []
 
-    fields = [ "id", 'orbital_period', 'gravity', 'terrain', 'name','climate', 'system', 'diameter', 'rotation_period', 'url', 'population', 'surface_water']
+    # TODO: find way to get gripper driver to drop id field
+    fields = [ "_id", "id", "_label", 'orbital_period', 'gravity', 'terrain', 'name','climate', 'system', 'diameter', 'rotation_period', 'url', 'population', 'surface_water']
 
     G = man.setGraph("swapi")
     count = 0
-    for row in G.query().V().hasLabel("Planet").aggregate(gripql.field("gid-agg", "$._data")):
+    for row in G.V().hasLabel("Planet").aggregate(gripql.field("id-agg", "$")):
         if row["key"] not in fields:
             errors.append("unknown field returned: %s" % (row['key']))
         if row["value"] != 3:
             errors.append("incorrect count returned: %s" % (row['value']))
         count += 1
-    if count not in [11, 12]: # gripper returns an id field as well, others dont....
-        errors.append("Incorrect number of results returned")
+    if count not in [11, 12, 13]: # gripper returns an id field as well, others dont....
+        errors.append("""V().hasLabel("Planet").aggregate(gripql.field("id-agg", "$")) : Incorrect number of results returned %d""" % (count))
     return errors
 
 
@@ -216,7 +217,7 @@ def test_field_type_aggregation(man):
     }
     G = man.setGraph("swapi")
     count = 0
-    for row in G.query().V().hasLabel("Planet").aggregate(list( gripql.type(a) for a in ["population", "name", "gravity", "diameter"])):
+    for row in G.V().hasLabel("Planet").aggregate(list( gripql.type(a) for a in ["population", "name", "gravity", "diameter"])):
         if types[row['name']] != row['key']:
             errors.append("Wrong type: %s != %s" % (types[row['name']], row['key']))
         count += 1
@@ -230,7 +231,7 @@ def test_count_aggregation(man):
 
     G = man.setGraph("swapi")
     count = 0
-    for row in G.query().V().hasLabel("Planet").aggregate(gripql.count("total")):
+    for row in G.V().hasLabel("Planet").aggregate(gripql.count("total")):
         if row["value"] != 3:
             errors.append("Incorrect count returned")
         count += 1

@@ -46,12 +46,12 @@ func (db *GraphDB) BuildSchema(ctx context.Context, graphID string, sampleN uint
 			defer rows.Close()
 			schema := make(map[string]interface{})
 			for rows.Next() {
-				vrow := &row{}
+				vrow := &Row{}
 				if err := rows.StructScan(vrow); err != nil {
 					log.WithFields(log.Fields{"error": err}).Error("BuildSchema: StructScan")
 					continue
 				}
-				v, err := convertVertexRow(vrow, true)
+				v, err := ConvertVertexRow(vrow, true)
 				if err != nil {
 					log.WithFields(log.Fields{"error": err}).Error("BuildSchema: convertVertexRow")
 					continue
@@ -60,7 +60,7 @@ func (db *GraphDB) BuildSchema(ctx context.Context, graphID string, sampleN uint
 			}
 
 			sSchema, _ := structpb.NewStruct(schema)
-			vSchema := &gripql.Vertex{Gid: label, Label: "Vertex", Data: sSchema}
+			vSchema := &gripql.Vertex{Id: label, Label: "Vertex", Data: sSchema}
 			vSchemaChan <- vSchema
 
 			return nil
@@ -80,7 +80,7 @@ func (db *GraphDB) BuildSchema(ctx context.Context, graphID string, sampleN uint
 
 		g.Go(func() error {
 			q := fmt.Sprintf(
-				"SELECT a.label, b.label, c.label, b.data FROM %s as a INNER JOIN %s as b ON b.to=a.gid INNER JOIN %s as c on b.from = c.gid WHERE b.label = '%s' limit %d",
+				"SELECT a.label, b.label, c.label, b.data FROM %s as a INNER JOIN %s as b ON b.to=a.id INNER JOIN %s as c on b.from = c.id WHERE b.label = '%s' limit %d",
 				graph.v, graph.e, graph.v,
 				label, sampleN,
 			)
@@ -98,7 +98,7 @@ func (db *GraphDB) BuildSchema(ctx context.Context, graphID string, sampleN uint
 					continue
 				} else {
 					eSchema := &gripql.Edge{
-						Gid:   fmt.Sprintf("(%s)--%s->(%s)", row[0], row[1], row[2]),
+						Id:    fmt.Sprintf("(%s)--%s->(%s)", row[0], row[1], row[2]),
 						Label: label,
 						From:  row[0].(string),
 						To:    row[2].(string),

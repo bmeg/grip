@@ -3,6 +3,7 @@ package mongo
 import (
 	//"fmt"
 	"context"
+	"encoding/json"
 	"strconv"
 	"strings"
 
@@ -26,22 +27,25 @@ type Processor struct {
 	aggTypes        map[string]*gripql.Aggregate
 }
 
-func getDataElement(result map[string]interface{}) *gdbi.DataElement {
+func getDataElement(result map[string]any) *gdbi.DataElement {
 	de := &gdbi.DataElement{}
-	if x, ok := result["_id"]; ok {
+	if x, ok := result[FIELD_ID]; ok {
 		de.ID = x.(string)
 	}
-	if x, ok := result["label"]; ok {
+	if x, ok := result[FIELD_LABEL]; ok {
 		de.Label = x.(string)
 	}
-	if x, ok := result["data"]; ok {
-		de.Data = removePrimatives(x).(map[string]interface{})
-		de.Loaded = true
+	de.Data = map[string]any{}
+	for k, v := range removePrimatives(result).(map[string]any) {
+		if !IsNodeField(k) {
+			de.Data[k] = v
+		}
 	}
-	if x, ok := result["to"]; ok {
+	de.Loaded = true
+	if x, ok := result[FIELD_TO]; ok {
 		de.To = x.(string)
 	}
-	if x, ok := result["from"]; ok {
+	if x, ok := result[FIELD_FROM]; ok {
 		de.From = x.(string)
 	}
 	return de
@@ -49,7 +53,9 @@ func getDataElement(result map[string]interface{}) *gdbi.DataElement {
 
 // Process runs the mongo aggregation pipeline
 func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
-	plog := log.WithFields(log.Fields{"query_id": util.UUID(), "query": proc.query, "query_collection": proc.startCollection})
+	queryStr, _ := json.MarshalIndent(proc.query, "", "  ")
+	//queryStr, _ := bson.MarshalExtJSON(proc.query, false, false)
+	plog := log.WithFields(log.Fields{"query_id": util.UUID(), "query": string(queryStr), "query_collection": proc.startCollection})
 	plog.Debug("Running Mongo Processor")
 
 	go func() {
@@ -62,11 +68,11 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 			trueVal := true
 			cursor, err := initCol.Aggregate(ctx, proc.query, &options.AggregateOptions{AllowDiskUse: &trueVal})
 			if err != nil {
-				plog.Errorf("Query Error (%s) : %s", proc.query, err)
+				plog.Errorf("Query Error: %s", err)
 				continue
 			}
 			//defer cursor.Close(context.TODO())
-			result := map[string]interface{}{}
+			result := map[string]any{}
 			for cursor.Next(ctx) {
 				nResults++
 				select {
@@ -90,9 +96,9 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 				case gdbi.SelectionData:
 					selections := map[string]*gdbi.DataElement{}
 					if marks, ok := result["marks"]; ok {
-						if marks, ok := marks.(map[string]interface{}); ok {
+						if marks, ok := marks.(map[string]any); ok {
 							for k, v := range marks {
-								if v, ok := v.(map[string]interface{}); ok {
+								if v, ok := v.(map[string]any); ok {
 									de := getDataElement(v)
 									selections[k] = de
 								}
@@ -112,19 +118,19 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 
 						var lastBucket float64
 						for i, bucket := range buckets {
-							bucket, ok := bucket.(map[string]interface{})
+							bucket, ok := bucket.(map[string]any)
 							if !ok {
 								plog.Errorf("Failed to convert Mongo aggregation result bucket: %+v", bucket)
 								continue
 							}
 
-							var term interface{}
+							var term any
 							switch proc.aggTypes[k].GetAggregation().(type) {
 							case *gripql.Aggregate_Term:
-								term = bucket["_id"]
+								term = bucket[FIELD_ID]
 							case *gripql.Aggregate_Histogram:
-								term = bucket["_id"]
-								curPos := bucket["_id"].(float64)
+								term = bucket[FIELD_ID]
+								curPos := bucket[FIELD_ID].(float64)
 								stepSize := float64(proc.aggTypes[k].GetHistogram().Interval)
 								if i != 0 {
 									for nv := lastBucket + stepSize; nv < curPos; nv += stepSize {
@@ -134,7 +140,7 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 								lastBucket = curPos
 
 							case *gripql.Aggregate_Percentile:
-								bid := strings.Replace(bucket["_id"].(string), "_", ".", -1)
+								bid := strings.Replace(bucket[FIELD_ID].(string), "_", ".", -1)
 								f, err := strconv.ParseFloat(bid, 64)
 								if err != nil {
 									plog.Errorf("failed to parse percentile aggregation result key: %v", err)
@@ -142,11 +148,11 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 								}
 								term = f
 							case *gripql.Aggregate_Field:
-								term = bucket["_id"]
+								term = bucket[FIELD_ID]
 							case *gripql.Aggregate_Count:
-								term = bucket["_id"]
+								term = bucket[FIELD_ID]
 							case *gripql.Aggregate_Type:
-								switch bucket["_id"] {
+								switch bucket[FIELD_ID] {
 								case "double":
 									term = "NUMERIC"
 								case "null":
@@ -176,6 +182,8 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 					}
 
 				default:
+					//Reconstruct the traveler
+					//Extract the path
 					if path, ok := result["path"]; ok {
 						if pathA, ok := path.(bson.A); ok {
 							o := make([]gdbi.DataElementID, len(pathA))
@@ -192,10 +200,11 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 							t = &gdbi.BaseTraveler{Path: o}
 						}
 					}
+					//Extract marks
 					if marks, ok := result["marks"]; ok {
-						if marks, ok := marks.(map[string]interface{}); ok {
-							for k, v := range marks {
-								if v, ok := v.(map[string]interface{}); ok {
+						if markDict, ok := marks.(map[string]any); ok {
+							for k, v := range markDict {
+								if v, ok := v.(map[string]any); ok {
 									de := getDataElement(v)
 									t = t.AddMark(k, de)
 								}
@@ -203,23 +212,7 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 						}
 					}
 
-					de := &gdbi.DataElement{}
-					if x, ok := result["_id"]; ok {
-						de.ID = removePrimatives(x).(string)
-					}
-					if x, ok := result["label"]; ok {
-						de.Label = x.(string)
-					}
-					if x, ok := result["data"]; ok {
-						de.Data = removePrimatives(x).(map[string]interface{})
-						de.Loaded = true
-					}
-					if x, ok := result["to"]; ok {
-						de.To = x.(string)
-					}
-					if x, ok := result["from"]; ok {
-						de.From = x.(string)
-					}
+					de := getDataElement(result[FIELD_CURRENT].(map[string]any))
 					out <- t.AddCurrent(de)
 				}
 			}

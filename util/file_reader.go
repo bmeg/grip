@@ -11,13 +11,14 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"sync/atomic"
 
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/log"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 
-	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 func getS3Client(u *url.URL) (*minio.Client, error) {
@@ -56,7 +57,6 @@ func getS3URL(path string) *url.URL {
 
 // StreamLines returns a channel of lines from a file.
 func StreamLines(file string, chanSize int) (chan string, error) {
-
 	var fh io.ReadCloser
 	var err error
 	if u := getS3URL(file); u != nil {
@@ -113,9 +113,7 @@ func StreamLines(file string, chanSize int) (chan string, error) {
 	return lineChan, nil
 }
 
-// StreamVerticesFromFile reads a file containing a vertex per line and
-// streams *gripql.Vertex objects out on a channel
-func StreamVerticesFromFile(file string, workers int) (chan *gripql.Vertex, error) {
+func StreamRawJsonFromFile(file string, workers int, graph string, extra_args map[string]any) (chan *gripql.RawJson, error) {
 	if workers < 1 {
 		workers = 1
 	}
@@ -126,58 +124,55 @@ func StreamVerticesFromFile(file string, workers int) (chan *gripql.Vertex, erro
 	if err != nil {
 		return nil, err
 	}
-
-	vertChan := make(chan *gripql.Vertex, workers)
+	jsonChan := make(chan *gripql.RawJson, workers)
 	var wg sync.WaitGroup
+	jum := gripql.NewFlattenMarshaler()
 
-	jum := protojson.UnmarshalOptions{DiscardUnknown: true}
-
-	for i := 0; i < workers; i++ {
+	for range workers {
 		wg.Add(1)
 		go func() {
+			defer wg.Done()
 			for line := range lineChan {
-				v := &gripql.Vertex{}
-				err := jum.Unmarshal([]byte(line), v)
+				rawData := &gripql.RawJson{
+					Data:      &structpb.Struct{},
+					ExtraArgs: &structpb.Struct{},
+					Graph:     graph,
+				}
+
+				rawData.ExtraArgs, err = structpb.NewStruct(extra_args)
+				if err != nil {
+					log.WithFields(log.Fields{"error": err}).Errorf("Marshalling ExtraArgs: %#v", extra_args)
+					continue
+				}
+				err = jum.Unmarshal([]byte(line), rawData.Data)
 				if err != nil {
 					log.WithFields(log.Fields{"error": err}).Errorf("Unmarshaling vertex: %s", line)
-				} else {
-					vertChan <- v
+					continue
 				}
+				jsonChan <- rawData
 			}
-			wg.Done()
 		}()
 	}
-
 	go func() {
 		wg.Wait()
-		close(vertChan)
+		close(jsonChan)
 	}()
-
-	return vertChan, nil
+	return jsonChan, nil
 }
 
-// StreamEdgesFromFile reads a file containing an edge per line and
-// streams gripql.Edge objects on a channel
+// StreamEdgesFromFile reads a file of JSON edges and streams *gripql.Edge objects.
 func StreamEdgesFromFile(file string, workers int) (chan *gripql.Edge, error) {
-	if workers < 1 {
-		workers = 1
-	}
-	if workers > 99 {
-		workers = 99
-	}
 	lineChan, err := StreamLines(file, workers)
 	if err != nil {
 		return nil, err
 	}
-
 	edgeChan := make(chan *gripql.Edge, workers)
 	var wg sync.WaitGroup
-
-	jum := protojson.UnmarshalOptions{DiscardUnknown: true}
-
-	for i := 0; i < workers; i++ {
+	for range workers {
 		wg.Add(1)
 		go func() {
+			defer wg.Done()
+			jum := gripql.NewFlattenMarshaler()
 			for line := range lineChan {
 				e := &gripql.Edge{}
 				err := jum.Unmarshal([]byte(line), e)
@@ -187,16 +182,49 @@ func StreamEdgesFromFile(file string, workers int) (chan *gripql.Edge, error) {
 					edgeChan <- e
 				}
 			}
-			wg.Done()
 		}()
 	}
-
 	go func() {
 		wg.Wait()
 		close(edgeChan)
 	}()
-
 	return edgeChan, nil
+}
+
+// StreamVerticesFromFile reads a file of JSON vertices and streams *gripql.Vertex objects.
+func StreamVerticesFromFile(file string, workers int) (chan *gripql.Vertex, error) {
+	lineChan, err := StreamLines(file, workers)
+	if err != nil {
+		return nil, err
+	}
+	vertChan := make(chan *gripql.Vertex, workers)
+	var wg sync.WaitGroup
+	var unmarshalCount atomic.Int64
+	for range workers {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			jum := gripql.NewFlattenMarshaler()
+			for line := range lineChan {
+				v := &gripql.Vertex{}
+				err := jum.Unmarshal([]byte(line), v)
+				if unmarshalCount.Add(1)%10000 == 0 {
+					log.Infof("Unmarshaled %d vertices", unmarshalCount.Load())
+				}
+				if err != nil {
+					log.WithFields(log.Fields{"error": err}).Errorf("Unmarshaling edge: %s", line)
+				} else {
+					vertChan <- v
+				}
+			}
+		}()
+	}
+	go func() {
+		wg.Wait()
+		close(vertChan)
+	}()
+
+	return vertChan, nil
 }
 
 func DirScan(baseDir string, fileGlob string) ([]string, error) {

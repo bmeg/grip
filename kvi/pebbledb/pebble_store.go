@@ -19,9 +19,13 @@ import (
 
 var loaded = kvi.AddKVDriver("pebble", NewKVInterface)
 
+var defaultCompactLimit = uint32(10000)
+
 // PebbleKV is an implementation of the KVStore for badger
 type PebbleKV struct {
-	db *pebble.DB
+	db           *pebble.DB
+	insertCount  uint32
+	compactLimit uint32
 }
 
 // NewKVInterface creates new BoltDB backed KVInterface at `path`
@@ -30,7 +34,15 @@ func NewKVInterface(path string, kopts kvi.Options) (kvi.KVInterface, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &PebbleKV{db: db}, nil
+	return &PebbleKV{db: db, insertCount: 0, compactLimit: defaultCompactLimit}, nil
+}
+
+func WrapPebble(db *pebble.DB) kvi.KVInterface {
+	return &PebbleKV{
+		db:           db,
+		insertCount:  0,
+		compactLimit: 10000,
+	}
 }
 
 // Close closes the badger connection
@@ -57,24 +69,8 @@ func (pdb *PebbleKV) Delete(id []byte) error {
 
 // DeletePrefix deletes all elements in kvstore that begin with prefix `id`
 func (pdb *PebbleKV) DeletePrefix(prefix []byte) error {
-	deleteBlockSize := 10000
-	for found := true; found; {
-		found = false
-		wb := make([][]byte, 0, deleteBlockSize)
-		it := pdb.db.NewIter(&pebble.IterOptions{LowerBound: prefix})
-		for ; it.Valid() && bytes.HasPrefix(it.Key(), prefix) && len(wb) < deleteBlockSize-1; it.Next() {
-			wb = append(wb, copyBytes(it.Key()))
-		}
-		it.Close()
-		for _, i := range wb {
-			err := pdb.db.Delete(i, nil)
-			if err != nil {
-				return err
-			}
-			found = true
-		}
-	}
-	return nil
+	nextPrefix := append(prefix, 0xFF)
+	return pdb.db.DeleteRange(prefix, nextPrefix, nil)
 }
 
 // HasKey returns true if the key is exists in kvstore
@@ -93,9 +89,12 @@ func (pdb *PebbleKV) Set(id []byte, val []byte) error {
 }
 
 func (pdb *PebbleKV) View(u func(it kvi.KVIterator) error) error {
-	it := pdb.db.NewIter(&pebble.IterOptions{})
+	it, err := pdb.db.NewIter(&pebble.IterOptions{})
+	if err != nil {
+		return err
+	}
 	pit := &pebbleIterator{pdb.db, it, true, nil, nil}
-	err := u(pit)
+	err = u(pit)
 	it.Close()
 	return err
 }
@@ -133,9 +132,12 @@ func (ptx pebbleTransaction) Delete(id []byte) error {
 }
 
 func (ptx pebbleTransaction) View(u func(it kvi.KVIterator) error) error {
-	it := ptx.db.NewIter(&pebble.IterOptions{})
+	it, err := ptx.db.NewIter(&pebble.IterOptions{})
+	if err != nil {
+		return err
+	}
 	pit := &pebbleIterator{ptx.db, it, true, nil, nil}
-	err := u(pit)
+	err = u(pit)
 	it.Close()
 	return err
 }
@@ -224,6 +226,7 @@ type pebbleBulkWrite struct {
 	batch           *pebble.Batch
 	highest, lowest []byte
 	curSize         int
+	totalInserts    uint32
 }
 
 const (
@@ -232,6 +235,7 @@ const (
 
 func (pbw *pebbleBulkWrite) Set(id []byte, val []byte) error {
 	pbw.curSize += len(id) + len(val)
+	pbw.totalInserts++
 	if pbw.highest == nil || bytes.Compare(id, pbw.highest) > 0 {
 		pbw.highest = copyBytes(id)
 	}
@@ -250,12 +254,17 @@ func (pbw *pebbleBulkWrite) Set(id []byte, val []byte) error {
 // BulkWrite is a replication of the regular update, no special code for bulk writes
 func (pdb *PebbleKV) BulkWrite(u func(tx kvi.KVBulkWrite) error) error {
 	batch := pdb.db.NewBatch()
-	ptx := &pebbleBulkWrite{pdb.db, batch, nil, nil, 0}
+	ptx := &pebbleBulkWrite{pdb.db, batch, nil, nil, 0, 0}
 	err := u(ptx)
 	batch.Commit(nil)
 	batch.Close()
-	if ptx.lowest != nil && ptx.highest != nil {
-		pdb.db.Compact(ptx.lowest, ptx.highest, true)
+
+	pdb.insertCount += ptx.totalInserts
+	if pdb.insertCount > pdb.compactLimit {
+		log.Debugf("Running pebble compact %d > %d", pdb.insertCount, pdb.compactLimit)
+		//pdb.db.Compact(ptx.lowest, ptx.highest, true)
+		pdb.db.Compact([]byte{0x00}, []byte{0xFF}, true)
+		pdb.insertCount = 0
 	}
 	return err
 }

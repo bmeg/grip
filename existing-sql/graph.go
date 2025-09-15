@@ -45,6 +45,10 @@ func (g *Graph) BulkAdd(stream <-chan *gdbi.GraphElement) error {
 	return errors.New("not implemented")
 }
 
+func (g *Graph) BulkDel(data *gdbi.DeleteData) error {
+	return errors.New("not implemented")
+}
+
 // DelVertex is not implemented in the SQL driver
 func (g *Graph) DelVertex(key string) error {
 	return errors.New("not implemented")
@@ -75,7 +79,7 @@ func (g *Graph) GetVertex(key string, load bool) *gdbi.Vertex {
 	id := parts[1]
 	gidField := g.schema.GetVertexGid(table)
 	q := fmt.Sprintf("SELECT * FROM %s WHERE %s=%s", table, gidField, id)
-	data := make(map[string]interface{})
+	data := make(map[string]any)
 	row := g.db.QueryRowx(q)
 	types, err := rowColumnTypeMap(row)
 	if err != nil {
@@ -109,7 +113,7 @@ func (g *Graph) getTableBackedEdge(key string, load bool) *gripql.Edge {
 	edgeSchema := g.schema.GetEdge(table)
 	gidField := edgeSchema.GidField
 	q := fmt.Sprintf("SELECT * FROM %s WHERE %s=%s", table, gidField, id)
-	data := make(map[string]interface{})
+	data := make(map[string]any)
 	row := g.db.QueryRowx(q)
 	types, err := rowColumnTypeMap(row)
 	if err != nil {
@@ -156,7 +160,7 @@ func (g *Graph) GetVertexList(ctx context.Context, load bool) <-chan *gdbi.Verte
 			}
 			defer rows.Close()
 			for rows.Next() {
-				data := make(map[string]interface{})
+				data := make(map[string]any)
 				if err := rows.MapScan(data); err != nil {
 					log.WithFields(log.Fields{"error": err}).Error("GetVertexList: MapScan")
 					return
@@ -198,7 +202,7 @@ func (g *Graph) VertexLabelScan(ctx context.Context, label string) chan string {
 						return
 					}
 					v := rowDataToVertex(v, data, types, false)
-					o <- v.Gid
+					o <- v.Id
 				}
 				if err := rows.Err(); err != nil {
 					log.WithFields(log.Fields{"error": err}).Error("VertexLabelScan: iterating")
@@ -333,7 +337,7 @@ func (g *Graph) GetVertexChannel(ctx context.Context, reqChan chan gdbi.ElementL
 					return
 				}
 				v := rowDataToVertex(g.schema.GetVertex(table), data, types, load)
-				r := batchMap[v.Gid]
+				r := batchMap[v.Id]
 				for _, ri := range r {
 					ri.Vertex = gdbi.NewElementFromVertex(v)
 					o <- ri

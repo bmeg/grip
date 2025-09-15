@@ -108,7 +108,7 @@ func stringClean(cMap map[string]string, s string) string {
 	return s
 }
 
-//LoadRDFCmd is the main command line for loading RDF data
+// LoadRDFCmd is the main command line for loading RDF data
 func LoadRDFCmd(cmd *cobra.Command, args []string) error {
 	graph = args[0]
 	log.Infof("Loading data into graph: %s", graph)
@@ -165,12 +165,12 @@ func LoadRDFCmd(cmd *cobra.Command, args []string) error {
 			curSubj = subj
 			if triple.Obj.Type() == rdf.TermLiteral {
 				if curVertex == nil {
-					curVertex = &gripql.Vertex{Gid: subj}
+					curVertex = &gripql.Vertex{Id: subj}
 				}
 				curVertex.SetProperty(stringClean(uMap, triple.Pred.String()), triple.Obj.String())
 			} else if triple.Pred.String() == RdfType {
 				if curVertex == nil {
-					curVertex = &gripql.Vertex{Gid: subj}
+					curVertex = &gripql.Vertex{Id: subj}
 				}
 				curVertex.Label = stringClean(uMap, triple.Obj.String())
 			} else {
@@ -189,7 +189,7 @@ func LoadRDFCmd(cmd *cobra.Command, args []string) error {
 	}()
 	for element := range elementChan {
 		if element.vertex != nil {
-			if element.vertex.Gid != "" && element.vertex.Label != "" {
+			if element.vertex.Id != "" && element.vertex.Label != "" {
 				err := emit.AddVertex(graph, element.vertex)
 				if err != nil {
 					log.Errorf("%s", err)

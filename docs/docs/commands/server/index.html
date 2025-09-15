@@ -32,7 +32,7 @@
   <div class="global-header">
     <div class="global-header-container">
       <div class="global-header-home">
-        <a href="https://bmeg.github.io/grip"><h1>GRIP</h1></a>
+        <a href="https://bmeg.github.io/grip/"><h1>GRIP</h1></a>
       </div>
       <ul class="global-header-nav">
           <li><a href="https://bmeg.github.io/grip/download//">Download</a></li>
@@ -84,9 +84,27 @@
           <li>
             <ul class="sidebar-nav sidebar-nav-nested">
               <li>
+                <a href="https://bmeg.github.io/grip/docs/commands/create/"
+                   class="sidebar-nav-item "
+                >create</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
                 <a href="https://bmeg.github.io/grip/docs/commands/query/"
                    class="sidebar-nav-item "
                 >query</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/commands/delete/"
+                   class="sidebar-nav-item "
+                >delete</a></li>
             </ul>
           </li>
           
@@ -130,95 +148,16 @@
         
         <li>
           
-          <span class="intermediate">Database Configuration</span></li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/databases/elastic/"
-                   class="sidebar-nav-item "
-                >Elasticsearch</a></li>
-            </ul>
-          </li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/databases/kvstore/"
-                   class="sidebar-nav-item "
-                >Embedded KV Store</a></li>
-            </ul>
-          </li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/databases/mongo/"
-                   class="sidebar-nav-item "
-                >MongoDB</a></li>
-            </ul>
-          </li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/databases/psql/"
-                   class="sidebar-nav-item "
-                >PostgreSQL</a></li>
-            </ul>
-          </li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/databases/sql/"
-                   class="sidebar-nav-item "
-                >SQL</a></li>
-            </ul>
-          </li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/databases/gripper/"
-                   class="sidebar-nav-item "
-                >GRIPPER</a></li>
-            </ul>
-          </li>
-          
+          <a href="https://bmeg.github.io/grip/docs/databases/"
+             class="sidebar-nav-item "
+          >Database Configuration</a></li>
           
         
         <li>
           
-          <span class="intermediate">GRIP Plugable External Resources</span></li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/gripper/gripper/"
-                   class="sidebar-nav-item "
-                >Intro</a></li>
-            </ul>
-          </li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/gripper/proxy/"
-                   class="sidebar-nav-item "
-                >External Resource Proxies</a></li>
-            </ul>
-          </li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/gripper/graphmodel/"
-                   class="sidebar-nav-item "
-                >Graph Model</a></li>
-            </ul>
-          </li>
-          
+          <a href="https://bmeg.github.io/grip/docs/clients/"
+             class="sidebar-nav-item "
+          >Client Library</a></li>
           
         
         <li>
@@ -228,18 +167,9 @@
           <li>
             <ul class="sidebar-nav sidebar-nav-nested">
               <li>
-                <a href="https://bmeg.github.io/grip/docs/queries/getting_started/"
+                <a href="https://bmeg.github.io/grip/docs/queries/traversal_start/"
                    class="sidebar-nav-item "
-                >Getting Started</a></li>
-            </ul>
-          </li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/queries/operations/"
-                   class="sidebar-nav-item "
-                >Operations</a></li>
+                >Start a Traversal</a></li>
             </ul>
           </li>
           
@@ -255,12 +185,64 @@
           <li>
             <ul class="sidebar-nav sidebar-nav-nested">
               <li>
-                <a href="https://bmeg.github.io/grip/docs/queries/jobs_api/"
+                <a href="https://bmeg.github.io/grip/docs/queries/traverse_graph/"
                    class="sidebar-nav-item "
-                >Jobs API</a></li>
+                >Traverse the Graph</a></li>
             </ul>
           </li>
           
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/queries/filtering/"
+                   class="sidebar-nav-item "
+                >Filtering</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/queries/record_transforms/"
+                   class="sidebar-nav-item "
+                >Record Transforms</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/queries/aggregation/"
+                   class="sidebar-nav-item "
+                >Aggregation</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/queries/output/"
+                   class="sidebar-nav-item "
+                >Output Control</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/queries/iterations/"
+                   class="sidebar-nav-item "
+                >Iteration</a></li>
+            </ul>
+          </li>
+          
+          
+        
+        <li>
+          
+          <a href="https://bmeg.github.io/grip/docs/jobs_api/"
+             class="sidebar-nav-item "
+          >Jobs API</a></li>
           
         
         <li>
@@ -350,26 +332,85 @@
           
           
         
+        <li>
+          
+          <span class="intermediate">GRIP Plugable External Resources</span></li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/gripper/gripper/"
+                   class="sidebar-nav-item "
+                >Intro</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/gripper/proxy/"
+                   class="sidebar-nav-item "
+                >External Resource Proxies</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/gripper/graphmodel/"
+                   class="sidebar-nav-item "
+                >Graph Model</a></li>
+            </ul>
+          </li>
+          
+          
+        
       
     </ul>
   </div>
 
   <div class="main col span_8_of_12">
-    <pre><code>grip server
-</code></pre><p>The server command starts up a graph server and waits for incoming requests.</p>
+    <h1 id="server"><code>server</code></h1>
+<p>The server command starts up a graph server and waits for incoming requests.</p>
 <h2 id="default-configuration">Default Configuration</h2>
-<p>If invoked with no arguments or config files, GRIP will start up in embedded mode,
-using a Badger based graph driver.</p>
+<p>If invoked with no arguments or config files, GRIP will start up in embedded mode, using a Badger based graph driver.</p>
 <h2 id="networking">Networking</h2>
-<p>By default the GRIP server operates on 2 ports, <code>8201</code> is the HTTP based interface.
-Port <code>8202</code> is a GRPC based interface. Python, R and Javascript clients are designed
-to connect to the HTTP interface on <code>8201</code>. The <code>grip</code> command will often use
-port <code>8202</code> in order to complete operations. For example if you call <code>grip list graphs</code>
-it will contact port <code>8202</code>, rather then using the HTTP port. This means that if
-you are working with a server that is behind a firewall, and only the HTTP port is
-available, then the grip command line program will not be able to issue commands,
-even if the server is visible to client libraries.</p>
-
+<p>By default the GRIP server operates on 2 ports, <code>8201</code> is the HTTP based interface. Port <code>8202</code> is a GRPC based interface. Python, R and Javascript clients are designed to connect to the HTTP interface on <code>8201</code>. The <code>grip</code> command will often use port <code>8202</code> in order to complete operations. For example if you call <code>grip list graphs</code> it will contact port <code>8202</code>, rather then using the HTTP port. This means that if you are working with a server that is behind a firewall, and only the HTTP port is available, then the grip command line program will not be able to issue commands, even if the server is visible to client libraries.</p>
+<h2 id="cli-usage">CLI Usage</h2>
+<p>The <code>server</code> command can take several flags for configuration:</p>
+<ul>
+<li><code>--config</code> or <code>-c</code> - Specifies a YAML config file with server settings. This overwrites all other settings. Defaults to &quot;&quot; (empty string).</li>
+<li><code>--http-port</code> - Sets the port used by the HTTP interface. Defaults to &ldquo;8201&rdquo;.</li>
+<li><code>--rpc-port</code> - Sets the port used by the GRPC interface. Defaults to &ldquo;8202&rdquo;.</li>
+<li><code>--read-only</code> - Start server in read-only mode. Defaults to false.</li>
+<li><code>--log-level</code> or <code>--log-format</code> - Set logging level and format, respectively. Defaults are &ldquo;info&rdquo; for log level and &ldquo;text&rdquo; for format.</li>
+<li><code>--log-requests</code> - Log all requests. Defaults to false.</li>
+<li><code>--verbose</code> - Sets the log level to debug if true.</li>
+<li><code>--plugins</code> or <code>-p</code> - Specifies a directory with GRIPPER plugins to load. If not specified, no plugins will be loaded by default.</li>
+<li><code>--driver</code> or <code>-d</code> - Specifies the default driver for graph storage. Defaults to &ldquo;badger&rdquo;. Other possible options are: &ldquo;pebble&rdquo;, &ldquo;mongo&rdquo;, &ldquo;grids&rdquo;, and &ldquo;sqlite&rdquo;.</li>
+<li><code>--endpoint</code> or <code>-w</code> - Load a web endpoint plugin. Use multiple times to load multiple plugins. The format is key=value where key is the plugin name and value is the configuration string for the plugin.</li>
+<li><code>--endpoint-config</code> or <code>-l</code> - Configure a loaded web endpoint plugin. Use multiple times to configure multiple plugins. The format is key=value where key is in the form &lsquo;pluginname:key&rsquo; and value is the configuration value for that key.</li>
+<li><code>--er</code> or <code>-e</code> - Set GRIPPER source addresses. This flag can be used multiple times to specify multiple addresses. Defaults to an empty map.</li>
+</ul>
+<h2 id="examples">Examples</h2>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#75715e"># Load server with a specific config file</span>
+</span></span><span style="display:flex;"><span>grip server --config /path/to/your_config.yaml
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># Set the HTTP port to 9001</span>
+</span></span><span style="display:flex;"><span>grip server --http-port <span style="color:#ae81ff">9001</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># Start in read-only mode</span>
+</span></span><span style="display:flex;"><span>grip server --read-only
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># Enable verbose logging (sets log level to debug)</span>
+</span></span><span style="display:flex;"><span>grip server --verbose
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># Load a web endpoint plugin named &#39;foo&#39; with configuration string &#39;config=value&#39;</span>
+</span></span><span style="display:flex;"><span>grip server --endpoint foo<span style="color:#f92672">=</span>config<span style="color:#f92672">=</span>value
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># Configure the loaded &#39;foo&#39; web endpoint plugin, setting its key &#39;key1&#39; to value &#39;val1&#39;</span>
+</span></span><span style="display:flex;"><span>grip server --endpoint-config foo:key1<span style="color:#f92672">=</span>val1
+</span></span></code></pre></div>
   </div>
 
 </div>

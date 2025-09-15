@@ -32,7 +32,7 @@
   <div class="global-header">
     <div class="global-header-container">
       <div class="global-header-home">
-        <a href="https://bmeg.github.io/grip"><h1>GRIP</h1></a>
+        <a href="https://bmeg.github.io/grip/"><h1>GRIP</h1></a>
       </div>
       <ul class="global-header-nav">
           <li><a href="https://bmeg.github.io/grip/download//">Download</a></li>
@@ -84,9 +84,27 @@
           <li>
             <ul class="sidebar-nav sidebar-nav-nested">
               <li>
+                <a href="https://bmeg.github.io/grip/docs/commands/create/"
+                   class="sidebar-nav-item "
+                >create</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
                 <a href="https://bmeg.github.io/grip/docs/commands/query/"
                    class="sidebar-nav-item "
                 >query</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/commands/delete/"
+                   class="sidebar-nav-item "
+                >delete</a></li>
             </ul>
           </li>
           
@@ -130,95 +148,16 @@
         
         <li>
           
-          <span class="intermediate">Database Configuration</span></li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/databases/elastic/"
-                   class="sidebar-nav-item "
-                >Elasticsearch</a></li>
-            </ul>
-          </li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/databases/kvstore/"
-                   class="sidebar-nav-item "
-                >Embedded KV Store</a></li>
-            </ul>
-          </li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/databases/mongo/"
-                   class="sidebar-nav-item "
-                >MongoDB</a></li>
-            </ul>
-          </li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/databases/psql/"
-                   class="sidebar-nav-item "
-                >PostgreSQL</a></li>
-            </ul>
-          </li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/databases/sql/"
-                   class="sidebar-nav-item "
-                >SQL</a></li>
-            </ul>
-          </li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/databases/gripper/"
-                   class="sidebar-nav-item "
-                >GRIPPER</a></li>
-            </ul>
-          </li>
-          
+          <a href="https://bmeg.github.io/grip/docs/databases/"
+             class="sidebar-nav-item  active"
+          >Database Configuration</a></li>
           
         
         <li>
           
-          <span class="intermediate">GRIP Plugable External Resources</span></li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/gripper/gripper/"
-                   class="sidebar-nav-item "
-                >Intro</a></li>
-            </ul>
-          </li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/gripper/proxy/"
-                   class="sidebar-nav-item "
-                >External Resource Proxies</a></li>
-            </ul>
-          </li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/gripper/graphmodel/"
-                   class="sidebar-nav-item "
-                >Graph Model</a></li>
-            </ul>
-          </li>
-          
+          <a href="https://bmeg.github.io/grip/docs/clients/"
+             class="sidebar-nav-item "
+          >Client Library</a></li>
           
         
         <li>
@@ -228,18 +167,9 @@
           <li>
             <ul class="sidebar-nav sidebar-nav-nested">
               <li>
-                <a href="https://bmeg.github.io/grip/docs/queries/getting_started/"
+                <a href="https://bmeg.github.io/grip/docs/queries/traversal_start/"
                    class="sidebar-nav-item "
-                >Getting Started</a></li>
-            </ul>
-          </li>
-          
-          <li>
-            <ul class="sidebar-nav sidebar-nav-nested">
-              <li>
-                <a href="https://bmeg.github.io/grip/docs/queries/operations/"
-                   class="sidebar-nav-item "
-                >Operations</a></li>
+                >Start a Traversal</a></li>
             </ul>
           </li>
           
@@ -255,12 +185,64 @@
           <li>
             <ul class="sidebar-nav sidebar-nav-nested">
               <li>
-                <a href="https://bmeg.github.io/grip/docs/queries/jobs_api/"
+                <a href="https://bmeg.github.io/grip/docs/queries/traverse_graph/"
                    class="sidebar-nav-item "
-                >Jobs API</a></li>
+                >Traverse the Graph</a></li>
             </ul>
           </li>
           
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/queries/filtering/"
+                   class="sidebar-nav-item "
+                >Filtering</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/queries/record_transforms/"
+                   class="sidebar-nav-item "
+                >Record Transforms</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/queries/aggregation/"
+                   class="sidebar-nav-item "
+                >Aggregation</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/queries/output/"
+                   class="sidebar-nav-item "
+                >Output Control</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/queries/iterations/"
+                   class="sidebar-nav-item "
+                >Iteration</a></li>
+            </ul>
+          </li>
+          
+          
+        
+        <li>
+          
+          <a href="https://bmeg.github.io/grip/docs/jobs_api/"
+             class="sidebar-nav-item "
+          >Jobs API</a></li>
           
         
         <li>
@@ -350,12 +332,114 @@
           
           
         
+        <li>
+          
+          <span class="intermediate">GRIP Plugable External Resources</span></li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/gripper/gripper/"
+                   class="sidebar-nav-item "
+                >Intro</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/gripper/proxy/"
+                   class="sidebar-nav-item "
+                >External Resource Proxies</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/gripper/graphmodel/"
+                   class="sidebar-nav-item "
+                >Graph Model</a></li>
+            </ul>
+          </li>
+          
+          
+        
       
     </ul>
   </div>
 
   <div class="main col span_8_of_12">
-    
+    <h1 id="embedded-key-value-stores">Embedded Key Value Stores</h1>
+<p>GRIP supports storing vertices and edges in a variety of key-value stores including:</p>
+<ul>
+<li><a href="https://github.com/cockroachdb/pebble">Pebble</a></li>
+<li><a href="https://github.com/dgraph-io/badger">Badger</a></li>
+<li><a href="https://github.com/boltdb/bolt">BoltDB</a></li>
+<li><a href="https://github.com/syndtr/goleveldb">LevelDB</a></li>
+</ul>
+<p>Config:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#f92672">Default</span>: <span style="color:#ae81ff">kv</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">Driver</span>:
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">kv</span>:
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">Badger</span>: <span style="color:#ae81ff">grip.db</span>
+</span></span></code></pre></div><hr>
+<h1 id="mongodb">MongoDB</h1>
+<p>GRIP supports storing vertices and edges in <a href="https://www.mongodb.com/">MongoDB</a>.</p>
+<p>Config:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#f92672">Default</span>: <span style="color:#ae81ff">mongo</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">Drivers</span>:
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">mongo</span>:
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">MongoDB</span>:
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">URL</span>: <span style="color:#e6db74">&#34;mongodb://localhost:27000&#34;</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">DBName</span>: <span style="color:#e6db74">&#34;gripdb&#34;</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">Username</span>: <span style="color:#e6db74">&#34;&#34;</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">Password</span>: <span style="color:#e6db74">&#34;&#34;</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">UseCorePipeline</span>: <span style="color:#66d9ef">False</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">BatchSize</span>: <span style="color:#ae81ff">0</span>
+</span></span></code></pre></div><p><code>UseCorePipeline</code> - Default is to use Mongo pipeline API to do graph traversals.
+By enabling <code>UseCorePipeline</code>, GRIP will do the traversal logic itself, only using
+Mongo for graph storage.</p>
+<p><code>BatchSize</code> - For core engine operations, GRIP dispatches element lookups in
+batches to minimize query overhead. If missing from config file (which defaults to 0)
+the engine will default to 1000.</p>
+<hr>
+<h1 id="grids">GRIDS</h1>
+<p>This is an indevelopment high performance graph storage system.</p>
+<p>Config:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#f92672">Default</span>: <span style="color:#ae81ff">db</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">Drivers</span>:
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">db</span>:
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">Grids</span>: <span style="color:#ae81ff">grip-grids.db</span>
+</span></span></code></pre></div><hr>
+<h1 id="postgresql">PostgreSQL</h1>
+<p>GRIP supports storing vertices and edges in <a href="https://www.postgresql.org/">PostgreSQL</a>.</p>
+<p>Config:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#f92672">Default</span>: <span style="color:#ae81ff">psql</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">Drivers</span>:
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">psql</span>:
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">PSQL</span>:
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">Host</span>: <span style="color:#ae81ff">localhost</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">Port</span>: <span style="color:#ae81ff">15432</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">User</span>: <span style="color:#e6db74">&#34;&#34;</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">Password</span>: <span style="color:#e6db74">&#34;&#34;</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">DBName</span>: <span style="color:#e6db74">&#34;grip&#34;</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">SSLMode</span>: <span style="color:#ae81ff">disable</span>
+</span></span></code></pre></div><hr>
+<h1 id="sqlite">SQLite</h1>
+<p>GRIP supports storing vertices and edges in [SQLite]</p>
+<p>Config:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#f92672">Default</span>: <span style="color:#ae81ff">sqlite</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">Drivers</span>:
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">sqlite</span>:
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">Sqlite</span>:
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">DBName</span>: <span style="color:#ae81ff">tester/sqliteDB</span>
+</span></span></code></pre></div>
   </div>
 
 </div>

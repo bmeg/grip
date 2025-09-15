@@ -21,10 +21,10 @@ Convert the data into vertices and edges
 python $GOPATH/src/github.com/bmeg/grip/example/amazon_convert.py amazon-meta.txt.gz amazon.data
 ```
 
-Create a graph called 'amazon'
+Turn on grip and create a graph called 'amazon'
 
 ```
-grip create amazon
+grip server & ; sleep 1 ; grip create amazon
 ```
 
 Load the vertices/edges into the graph
@@ -38,14 +38,21 @@ Query the graph
 _command line client_
 
 ```
-grip query amazon 'O.query().V().out()'
+grip query amazon 'V().hasLabel("Video").out()'
 ```
+
+The full command syntax and command list can be found at grip/gripql/javascript/gripql.js
 
 _python client_
 
+Initialize a virtual environment and install gripql python package
+
 ```
-pip install "git+https://github.com/bmeg/grip.git#egg=gripql&subdirectory=gripql/python/"
+python -m venv venv ; source venv/bin/activate
+pip install -e gripql/python
 ```
+
+Example code
 
 ```python
 import gripql
@@ -55,14 +62,14 @@ conn = gripql.Connection("http://localhost:8201")
 g = conn.graph("amazon")
 
 # Count the Vertices
-print g.query().V().count().execute()
+print("Total vertices: ", g.V().count().execute())
 # Count the Edges
-print g.query().E().count().execute()
+print("Total edges: ", g.V().outE().count().execute())
 
 # Try simple travesral
-print g.query().V("B00000I06U").outE().execute()
+print("Edges connected to 'B00000I06U' vertex: %s" %g.V("B00000I06U").outE().execute())
 
 # Find every Book that is similar to a DVD
-for result in g.query().V().has(gripql.eq("group", "Book")).as_("a").out("similar").has(gripql.eq("group", "DVD")).as_("b").select(["a", "b"]):
-    print result
+for result in g.V().has(gripql.eq("group", "Book")).as_("a").out("similar").has(gripql.eq("group", "DVD")).as_("b").select("a"):
+    print(result)
 ```

@@ -5,30 +5,30 @@ def test_count(man):
 
     G = man.setGraph("swapi")
 
-    i = list(G.query().V().count())
+    i = list(G.V().count())
     if len(i) < 1:
-        errors.append("Fail: nothing returned for O.query().V().count()")
+        errors.append("Fail: nothing returned for O.V().count()")
     elif i[0]["count"] != 39:
-        errors.append("Fail: G.query().V().count() %s != %s" % (i[0]["count"], 39))
+        errors.append("Fail: G.V().count() %s != %s" % (i[0]["count"], 39))
 
-    i = list(G.query().V("non-existent").count())
-    print(i)
+    i = list(G.V("non-existent").count())
+    #print(i)
     if len(i) < 1:
-        errors.append("Fail: nothing returned for O.query().V(\"non-existent\").count()")
+        errors.append("Fail: nothing returned for O.V(\"non-existent\").count()")
     elif i[0]["count"] != 0:
-        errors.append("Fail: G.query().V(\"non-existent\").count() %s != %s" % (i[0]["count"], 0))
+        errors.append("Fail: G.V(\"non-existent\").count() %s != %s" % (i[0]["count"], 0))
 
-    i = list(G.query().E().count())
+    i = list(G.V().outE().count())
     if len(i) < 1:
-        errors.append("Fail: nothing returned for O.query().E().count()")
+        errors.append("Fail: nothing returned for O.V().outE().count()")
     elif i[0]["count"] != 144:
-        errors.append("Fail: G.query().E().count() %s != %s" % (i[0]["count"], 144))
+        errors.append("Fail: G.V().outE().count() %s != %s" % (i[0]["count"], 144))
 
-    i = list(G.query().E("non-existent").count())
+    i = list(G.V().outE("non-existent").count())
     if len(i) < 1:
-        errors.append("Fail: nothing returned for G.query().E(\"non-existent\").count()")
+        errors.append("Fail: nothing returned for G.E(\"non-existent\").count()")
     elif i[0]["count"] != 0:
-        errors.append("Fail: G.query().E(\"non-existent\").count() %s != %s" % (i[0]["count"], 0))
+        errors.append("Fail: G.V().outE(\"non-existent\").count() %s != %s" % (i[0]["count"], 0))
 
     return errors
 
@@ -40,29 +40,29 @@ def test_count_when_no_data(man):
 
     G = man.writeTest()
 
-    i = list(G.query().V().count())
-    print(i)
+    i = list(G.V().count())
+    #print(i)
     if len(i) < 1:
-        errors.append("Fail: nothing returned for G.query().V().count()")
+        errors.append("Fail: nothing returned for G.V().count()")
     elif i[0]["count"] != 0:
-        errors.append("Fail: G.query().V().count() %s != %s" % (i[0]["count"], 0))
+        errors.append("Fail: G.V().count() %s != %s" % (i[0]["count"], 0))
 
-    i = list(G.query().V("non-existent").count())
+    i = list(G.V("non-existent").count())
     if len(i) < 1:
-        errors.append("Fail: nothing returned for G.query().V(\"non-existent\").count()")
+        errors.append("Fail: nothing returned for G.V(\"non-existent\").count()")
     elif i[0]["count"] != 0:
-        errors.append("Fail: G.query().V(\"non-existent\").count() %s != %s" % (i[0]["count"], 0))
+        errors.append("Fail: G.V(\"non-existent\").count() %s != %s" % (i[0]["count"], 0))
 
-    i = list(G.query().E().count())
+    i = list(G.V().outE().count())
     if len(i) < 1:
-        errors.append("Fail: nothing returned for G.query().E().count()")
+        errors.append("Fail: nothing returned for G.V().outE().count()")
     elif i[0]["count"] != 0:
-        errors.append("Fail: G.query().E().count() %s != %s" % (i[0]["count"], 0))
+        errors.append("Fail: G.V().outE().count() %s != %s" % (i[0]["count"], 0))
 
-    i = list(G.query().E("non-existent").count())
+    i = list(G.V().outE("non-existent").count())
     if len(i) < 1:
-        errors.append("Fail: nothing returned for G.query().E(\"non-existent\").count()")
+        errors.append("Fail: nothing returned for G.E(\"non-existent\").count()")
     elif i[0]["count"] != 0:
-        errors.append("Fail: G.query().E(\"non-existent\").count() %s != %s" % (i[0]["count"], 0))
+        errors.append("Fail: G.V().outE(\"non-existent\").count() %s != %s" % (i[0]["count"], 0))
 
     return errors

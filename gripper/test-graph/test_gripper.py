@@ -39,7 +39,7 @@ class TestTableList(unittest.TestCase):
             self.assertTrue(found)
 
             with open(os.path.join(BASE, "test-graph/swapi.yaml")) as handle:
-                mappingGraph = yaml.load(handle.read())
+                mappingGraph = yaml.load(handle.read(), Loader=yaml.BaseLoader)
             conn = gripql.Connection(SERVER)
             graphName = "posted_tabledata_%s" % (''.join(random.choices(string.ascii_uppercase + string.digits, k=4)))
             conn.postMapping(graphName, mappingGraph['vertices'], mappingGraph['edges'])
@@ -49,7 +49,7 @@ class TestTableList(unittest.TestCase):
 
             G = conn.graph(graphName)
             count = 0
-            for v in G.query().V():
+            for v in G.V():
                 count += 1
             self.assertTrue( count == 39 )
         except Exception as e:

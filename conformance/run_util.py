@@ -147,6 +147,9 @@ class Manager:
         else:
             self.user = None
 
+    def collect_fields_dict(self, datadict):
+          return {key: value for key, value in datadict.items() if key not in ["_id", "_label", "_from", "_to"]}
+
     @staticmethod
     def parse_grip_config(grip_config_file_path):
         """Parse grip config."""
@@ -158,7 +161,7 @@ class Manager:
 
     def newGraph(self):
         if self.readOnly is None:
-            self.curGraph = "test_graph_" + id_generator()
+            self.curGraph = "test_graph_" + self.id_generator()
             self._conn.addGraph(self.curGraph)
         else:
             self.curGraph = args.readOnly
@@ -173,22 +176,26 @@ class Manager:
         if self.curGraph != "":
             self.clean()
 
-        self.curGraph = "test_graph_" + id_generator()
+        self.curGraph = "test_graph_" + self.id_generator()
         self._conn.addGraph(self.curGraph)
 
         G = self._conn.graph(self.curGraph)
+        bulk = G.bulkAdd()
 
         with open(os.path.join(BASE, "graphs", "%s.vertices" % (name))) as handle:
             for line in handle:
                 data = json.loads(line)
-                G.addVertex(data["gid"], data["label"], data.get("data", {}))
+
+                bulk.addVertex(data["_id"], data["_label"], self.collect_fields_dict(data))
 
         with open(os.path.join(BASE, "graphs", "%s.edges" % (name))) as handle:
             for line in handle:
                 data = json.loads(line)
-                G.addEdge(src=data["from"], dst=data["to"],
-                          gid=data.get("gid", None), label=data["label"],
-                          data=data.get("data", {}))
+                bulk.addEdge(src=data["_from"], dst=data["_to"],
+                          id=data.get("_id", None), label=data["_label"],
+                          data=self.collect_fields_dict(data))
+
+        bulk.execute()
         self.curName = name
         return G
 
@@ -201,7 +208,7 @@ class Manager:
             raise SkipTest
         self.clean()
         self.curName = ""
-        self.curGraph = "test_graph_" + id_generator()
+        self.curGraph = "test_graph_" + self.id_generator()
         self._conn.addGraph(self.curGraph)
         G = self._conn.graph(self.curGraph)
         return G
@@ -275,7 +282,7 @@ class Manager:
             bulk.addVertex("Foo:1", "Foo", {"bar": "foo-bar"})
             err = bulk.execute()
             assert err['insertCount'] == 1 and err['errorCount'] == 0, f"Did not insert 1 row {err}"
-            results = [v for v in G.query().V().hasLabel("Foo").count()]
+            results = [v for v in G.V().hasLabel("Foo").count()]
             assert results[0]['count'] == 1, f"Could not query Foo vertex. {results}"
         return graph_names
 
@@ -284,7 +291,7 @@ class Manager:
         G = self._conn.graph(graph_name)
         try:
             # this raises an HTTP error
-            results = [v for v in G.query().V().hasLabel("Foo").count().execute()]
+            results = [v for v in G.V().hasLabel("Foo").count().execute()]
             assert results[0]['count'] > 0, f"test_query {results}"
         except requests.HTTPError as e:
             assert False, f"test_query graph {graph_name} {self.current_user_policies()} {e}"
@@ -319,9 +326,9 @@ class Manager:
         return next(iter(account for account in self.accounts if account.user == self.user), None)
 
 
-def id_generator(size=6, chars=string.ascii_uppercase + string.digits):
-    """Random 6 alpha numeric string."""
-    return ''.join(random.choice(chars) for _ in range(size)).lower()
+    def id_generator(self, size=6, chars=string.ascii_uppercase + string.digits):
+        """Random 6 alpha numeric string."""
+        return ''.join(random.choice(chars) for _ in range(size)).lower()
 
 
 def filter_tests(args, prefix="ot_"):

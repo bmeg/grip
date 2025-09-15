@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+<head>
+  <link href="http://gmpg.org/xfn/11" rel="profile">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+
+  
+  <title>Aggregation &middot; GRIP</title>
+  
+
+  
+  <link rel="stylesheet" href="https://bmeg.github.io/grip/css/poole.css">
+  <link rel="stylesheet" href="https://bmeg.github.io/grip/css/darcula.css">
+  <link rel="stylesheet" href="https://bmeg.github.io/grip/css/syntax.css">
+  <link rel="stylesheet" href="https://bmeg.github.io/grip/css/theme.css">
+  <link rel="stylesheet" href="https://bmeg.github.io/grip/css/funnel.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=PT+Sans:400,400italic,700">
+
+  
+  <link rel="apple-touch-icon-precomposed" sizes="144x144" href="https://bmeg.github.io/grip/apple-touch-icon-144-precomposed.png">
+  <link rel="shortcut icon" href="https://bmeg.github.io/grip/favicon.png">
+
+  <script src="https://bmeg.github.io/grip/js/highlight.pack.js"></script>
+  <script>hljs.initHighlightingOnLoad();</script>
+
+</head>
+<body>
+
+  <div class="global-header">
+    <div class="global-header-container">
+      <div class="global-header-home">
+        <a href="https://bmeg.github.io/grip/"><h1>GRIP</h1></a>
+      </div>
+      <ul class="global-header-nav">
+          <li><a href="https://bmeg.github.io/grip/download//">Download</a></li>
+          <li><a href="https://bmeg.github.io/grip/docs/">Docs</a></li>
+          <li><a href="https://github.com/bmeg/grip">GitHub</a></li>
+          <li><a href="https://gitter.im/bmeg/grip">Chat</a></li>
+        </ul>
+      <div class="global-header-ohsucb">
+        <a href="https://www.ohsu.edu/compbio/"><h2>OHSU Comp Bio</h2></a>
+      </div>
+    </div>
+  </div>
+
+
+<div class="content section group">
+
+  <div class="sidebar col span_3_of_12">
+    <ul class="sidebar-nav">
+      
+      
+        
+        <li>
+          
+          <a href="https://bmeg.github.io/grip/docs/"
+             class="sidebar-nav-item "
+          >Overview</a></li>
+          
+        
+        <li>
+          
+          <a href="https://bmeg.github.io/grip/download/"
+             class="sidebar-nav-item "
+          >Download</a></li>
+          
+        
+        <li>
+          
+          <span class="intermediate">GRIP Commands</span></li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/commands/server/"
+                   class="sidebar-nav-item "
+                >server</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/commands/create/"
+                   class="sidebar-nav-item "
+                >create</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/commands/query/"
+                   class="sidebar-nav-item "
+                >query</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/commands/delete/"
+                   class="sidebar-nav-item "
+                >delete</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/commands/list/"
+                   class="sidebar-nav-item "
+                >list</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/commands/drop/"
+                   class="sidebar-nav-item "
+                >drop</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/commands/mongoload/"
+                   class="sidebar-nav-item "
+                >mongoload</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/commands/er/"
+                   class="sidebar-nav-item "
+                >er</a></li>
+            </ul>
+          </li>
+          
+          
+        
+        <li>
+          
+          <a href="https://bmeg.github.io/grip/docs/databases/"
+             class="sidebar-nav-item "
+          >Database Configuration</a></li>
+          
+        
+        <li>
+          
+          <a href="https://bmeg.github.io/grip/docs/clients/"
+             class="sidebar-nav-item "
+          >Client Library</a></li>
+          
+        
+        <li>
+          
+          <span class="intermediate">Query a Graph</span></li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/queries/traversal_start/"
+                   class="sidebar-nav-item "
+                >Start a Traversal</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/queries/jsonpath/"
+                   class="sidebar-nav-item "
+                >Referencing Fields</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/queries/traverse_graph/"
+                   class="sidebar-nav-item "
+                >Traverse the Graph</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/queries/filtering/"
+                   class="sidebar-nav-item "
+                >Filtering</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/queries/record_transforms/"
+                   class="sidebar-nav-item "
+                >Record Transforms</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/queries/aggregation/"
+                   class="sidebar-nav-item  active"
+                >Aggregation</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/queries/output/"
+                   class="sidebar-nav-item "
+                >Output Control</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/queries/iterations/"
+                   class="sidebar-nav-item "
+                >Iteration</a></li>
+            </ul>
+          </li>
+          
+          
+        
+        <li>
+          
+          <a href="https://bmeg.github.io/grip/docs/jobs_api/"
+             class="sidebar-nav-item "
+          >Jobs API</a></li>
+          
+        
+        <li>
+          
+          <span class="intermediate">Tutorials</span></li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/tutorials/amazon/"
+                   class="sidebar-nav-item "
+                >Amazon Purchase Network</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/tutorials/tcga-rna/"
+                   class="sidebar-nav-item "
+                >TCGA RNA Expression</a></li>
+            </ul>
+          </li>
+          
+          
+        
+        <li>
+          
+          <span class="intermediate">Security</span></li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/security/basic/"
+                   class="sidebar-nav-item "
+                >Basic Auth</a></li>
+            </ul>
+          </li>
+          
+          
+        
+        <li>
+          
+          <span class="intermediate">GraphQL</span></li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/graphql/graphql/"
+                   class="sidebar-nav-item "
+                >GraphQL</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/graphql/graph_schemas/"
+                   class="sidebar-nav-item "
+                >Graph Schemas</a></li>
+            </ul>
+          </li>
+          
+          
+        
+        <li>
+          
+          <span class="intermediate">Developers</span></li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://github.com/bmeg/grip/blob/master/gripql/gripql.proto"
+                   class="sidebar-nav-item "
+                >API</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://godoc.org/github.com/bmeg/grip"
+                   class="sidebar-nav-item "
+                >GoDoc</a></li>
+            </ul>
+          </li>
+          
+          
+        
+        <li>
+          
+          <span class="intermediate">GRIP Plugable External Resources</span></li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/gripper/gripper/"
+                   class="sidebar-nav-item "
+                >Intro</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/gripper/proxy/"
+                   class="sidebar-nav-item "
+                >External Resource Proxies</a></li>
+            </ul>
+          </li>
+          
+          <li>
+            <ul class="sidebar-nav sidebar-nav-nested">
+              <li>
+                <a href="https://bmeg.github.io/grip/docs/gripper/graphmodel/"
+                   class="sidebar-nav-item "
+                >Graph Model</a></li>
+            </ul>
+          </li>
+          
+          
+        
+      
+    </ul>
+  </div>
+
+  <div class="main col span_8_of_12">
+    <h1 id="aggregation">Aggregation</h1>
+<p>These methods provide a powerful way to analyze and summarize data in your GripQL graph database. They allow you to perform various types of aggregations, including term frequency, histograms, percentiles, and more. By combining these with other traversal functions like <code>has</code>, <code>hasLabel</code>, etc., you can create complex queries that extract specific insights from your data.</p>
+<h2 id="aggregateaggregations"><code>.aggregate([aggregations])</code></h2>
+<p>Groups and summarizes data from the graph. It allows you to perform calculations on vertex or edge properties. The following aggregation types are available:</p>
+<h2 id="aggregation-types">Aggregation Types</h2>
+<h3 id="gripqltermname-field-size"><code>.gripql.term(name, field, size)</code></h3>
+<p>Return top n terms and their counts for a field.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span>G<span style="color:#f92672">.</span>V()<span style="color:#f92672">.</span>hasLabel(<span style="color:#e6db74">&#34;Person&#34;</span>)<span style="color:#f92672">.</span>aggregate(gripql<span style="color:#f92672">.</span>term(<span style="color:#e6db74">&#34;top-names&#34;</span>, <span style="color:#e6db74">&#34;name&#34;</span>, <span style="color:#ae81ff">10</span>))
+</span></span></code></pre></div><p>Counts <code>name</code> occurrences across <code>Person</code> vertices and returns the 10 most frequent <code>name</code> values.</p>
+<h3 id="gripqlhistogramname-field-interval"><code>.gripql.histogram(name, field, interval)</code></h3>
+<p>Return binned counts for a field.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span>G<span style="color:#f92672">.</span>V()<span style="color:#f92672">.</span>hasLabel(<span style="color:#e6db74">&#34;Person&#34;</span>)<span style="color:#f92672">.</span>aggregate(gripql<span style="color:#f92672">.</span>histogram(<span style="color:#e6db74">&#34;age-hist&#34;</span>, <span style="color:#e6db74">&#34;age&#34;</span>, <span style="color:#ae81ff">5</span>))
+</span></span></code></pre></div><p>Creates a histogram of <code>age</code> values with bins of width 5 across <code>Person</code> vertices.</p>
+<h3 id="gripqlpercentilename-field-percents"><code>.gripql.percentile(name, field, percents=[])</code></h3>
+<p>Return percentiles for a field.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span>G<span style="color:#f92672">.</span>V()<span style="color:#f92672">.</span>hasLabel(<span style="color:#e6db74">&#34;Person&#34;</span>)<span style="color:#f92672">.</span>aggregate(gripql<span style="color:#f92672">.</span>percentile(<span style="color:#e6db74">&#34;age-percentiles&#34;</span>, <span style="color:#e6db74">&#34;age&#34;</span>, [<span style="color:#ae81ff">25</span>, <span style="color:#ae81ff">50</span>, <span style="color:#ae81ff">75</span>]))
+</span></span></code></pre></div><p>Calculates the 25th, 50th, and 75th percentiles for <code>age</code> values across <code>Person</code> vertices.</p>
+<h3 id="gripqlfieldfields-"><code>.gripql.field(&quot;fields&quot;, &quot;$&quot;)</code></h3>
+<p>Returns all of the fields found in the data structure. Use <code>$</code> to get a listing of all fields found at the root level of the <code>data</code> property of vertices or edges.</p>
+<hr>
+<h2 id="count"><code>.count()</code></h2>
+<p>Returns the total number of elements in the traversal.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span>G<span style="color:#f92672">.</span>V()<span style="color:#f92672">.</span>hasLabel(<span style="color:#e6db74">&#34;Person&#34;</span>)<span style="color:#f92672">.</span>count()
+</span></span></code></pre></div><p>This query returns the total number of vertices with the label &ldquo;Person&rdquo;.</p>
+<hr>
+<h2 id="distinctfields"><code>.distinct([fields])</code></h2>
+<p>Filters the traversal to return only unique elements. If <code>fields</code> are provided, uniqueness is determined by the combination of values in those fields; otherwise, the <code>_id</code> is used.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span>G<span style="color:#f92672">.</span>V()<span style="color:#f92672">.</span>hasLabel(<span style="color:#e6db74">&#34;Person&#34;</span>)<span style="color:#f92672">.</span>distinct([<span style="color:#e6db74">&#34;name&#34;</span>, <span style="color:#e6db74">&#34;age&#34;</span>])
+</span></span></code></pre></div><p>This query returns only unique &ldquo;Person&rdquo; vertices, where uniqueness is determined by the combination of &ldquo;name&rdquo; and &ldquo;age&rdquo; values.</p>
+<hr>
+<h2 id="sortfields"><code>.sort([fields])</code></h2>
+<p>Sort the output using the field values. You can sort in ascending or descending order by providing <code>descending=True</code> as an argument to <code>sort()</code> method.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span>G<span style="color:#f92672">.</span>V()<span style="color:#f92672">.</span>hasLabel(<span style="color:#e6db74">&#34;Person&#34;</span>)<span style="color:#f92672">.</span>sort(<span style="color:#e6db74">&#34;age&#34;</span>)
+</span></span></code></pre></div><p>This query sorts &ldquo;Person&rdquo; vertices based on their age in ascending order.</p>
+<h2 id="limitn"><code>.limit(n)</code></h2>
+<p>Limits the number of results returned by your query.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span>G<span style="color:#f92672">.</span>V()<span style="color:#f92672">.</span>hasLabel(<span style="color:#e6db74">&#34;Person&#34;</span>)<span style="color:#f92672">.</span>limit(<span style="color:#ae81ff">10</span>)
+</span></span></code></pre></div><p>This query limits the results to the first 10 &ldquo;Person&rdquo; vertices found.</p>
+<hr>
+<h2 id="skipn"><code>.skip(n)</code></h2>
+<p>Offsets the results returned by your query.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-python" data-lang="python"><span style="display:flex;"><span>G<span style="color:#f92672">.</span>V()<span style="color:#f92672">.</span>hasLabel(<span style="color:#e6db74">&#34;Person&#34;</span>)<span style="color:#f92672">.</span>skip(<span style="color:#ae81ff">5</span>)
+</span></span></code></pre></div><p>This query skips the first 5 &ldquo;Person&rdquo; vertices and returns the rest.</p>
+
+  </div>
+
+</div>
+</body>
+</html>

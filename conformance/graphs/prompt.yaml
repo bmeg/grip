@@ -1,0 +1,29 @@
+id: http://grip-schema.io/schema/0.0.1/Prompt
+additionalProperties: false
+description: User generated prompt
+links:
+- href: '{id}'
+  rel: responses
+  targetHints:
+    direction:
+    - outbound
+    multiplicity:
+    - has_many
+    regex_match:
+    - response:*
+  targetSchema:
+    $ref: http://grip-schema.io/schema/0.0.1/Response
+  templatePointers:
+    id: /response
+
+properties:
+  id:
+    type: string
+  text:
+    type: string
+  resourceType:
+    type: string
+  responses:
+    type: array
+    items:
+      type: string

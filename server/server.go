@@ -4,7 +4,8 @@ package server
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
+	"io"
+	"maps"
 	"net"
 	"net/http"
 	"os"
@@ -12,18 +13,19 @@ import (
 	"strings"
 	"time"
 
+	"github.com/IBM/sarama"
 	"github.com/bmeg/grip/config"
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/jobstorage"
 	"github.com/bmeg/grip/log"
+	"github.com/bmeg/grip/sqlite"
 	"github.com/felixge/httpsnoop"
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 
-	"github.com/bmeg/grip/elastic"
 	esql "github.com/bmeg/grip/existing-sql"
 	"github.com/bmeg/grip/grids"
 	"github.com/bmeg/grip/gripper"
@@ -31,7 +33,7 @@ import (
 	_ "github.com/bmeg/grip/kvi/badgerdb" // import so badger will register itself
 	_ "github.com/bmeg/grip/kvi/boltdb"   // import so bolt will register itself
 	_ "github.com/bmeg/grip/kvi/leveldb"  // import so level will register itself
-	_ "github.com/bmeg/grip/kvi/pebbledb" // import so level will register itself
+	_ "github.com/bmeg/grip/kvi/pebbledb" // import so pebbledb will register itself
 	"github.com/bmeg/grip/mongo"
 	"github.com/bmeg/grip/psql"
 )
@@ -42,15 +44,16 @@ type GripServer struct {
 	gripql.UnimplementedEditServer
 	gripql.UnimplementedJobServer
 	gripql.UnimplementedConfigureServer
-	dbs      map[string]gdbi.GraphDB  //graph database drivers
-	graphMap map[string]string        //mapping from graph name to graph database driver
-	conf     *config.Config           //global configuration
-	schemas  map[string]*gripql.Graph //cached schemas
-	mappings map[string]*gripql.Graph //cached gripper graph mappings
-	plugins  map[string]*Plugin
-	sources  map[string]gripper.GRIPSourceClient
-	baseDir  string
-	jStorage jobstorage.JobStorage
+	dbs           map[string]gdbi.GraphDB  //graph database drivers
+	graphMap      map[string]string        //mapping from graph name to graph database driver
+	conf          *config.Config           //global configuration
+	schemas       map[string]*gripql.Graph //cached schemas
+	mappings      map[string]*gripql.Graph //cached gripper graph mappings
+	plugins       map[string]*Plugin
+	sources       map[string]gripper.GRIPSourceClient
+	baseDir       string
+	jStorage      jobstorage.JobStorage
+	kafkaProducer sarama.SyncProducer
 }
 
 // NewGripServer initializes a GRPC server to connect to the graph store
@@ -66,9 +69,7 @@ func NewGripServer(conf *config.Config, baseDir string, drivers map[string]gdbi.
 
 	gdbs := map[string]gdbi.GraphDB{}
 	if drivers != nil {
-		for i, d := range drivers {
-			gdbs[i] = d
-		}
+		maps.Copy(gdbs, drivers)
 	}
 
 	sources := map[string]gripper.GRIPSourceClient{}
@@ -86,6 +87,8 @@ func NewGripServer(conf *config.Config, baseDir string, drivers map[string]gdbi.
 			g, err := StartDriver(dConfig, sources)
 			if err == nil {
 				gdbs[name] = g
+			} else {
+				log.Errorf("Driver start error: %s", err)
 			}
 		}
 	}
@@ -97,6 +100,59 @@ func NewGripServer(conf *config.Config, baseDir string, drivers map[string]gdbi.
 		mappings: map[string]*gripql.Graph{},
 		plugins:  map[string]*Plugin{},
 		sources:  sources,
+	}
+
+	if conf.Kafka.Username != nil &&
+		conf.Kafka.Password != nil &&
+		conf.Kafka.Hostname != nil &&
+		conf.Kafka.Topic != nil {
+
+		brokers := []string{*conf.Kafka.Hostname}
+
+		config := sarama.NewConfig()
+		config.Version = sarama.V2_8_0_0
+		config.Net.SASL.Enable = true
+		config.Net.SASL.User = *conf.Kafka.Username
+		config.Net.SASL.Password = *conf.Kafka.Password
+		config.Net.SASL.Mechanism = sarama.SASLTypePlaintext
+		config.Producer.Return.Successes = true
+		config.Net.SASL.Handshake = true
+		config.Net.TLS.Enable = false
+
+		// Validate brokers are reachable
+		admin, err := sarama.NewClusterAdmin(brokers, config)
+		if err != nil {
+			log.Errorf("Error creating cluster admin: %v", err)
+			return nil, fmt.Errorf("failed to create Kafka cluster admin: %w", err)
+		}
+
+		topics, err := admin.ListTopics()
+		if err != nil {
+			log.Errorf("Error listing topics: %v", err)
+			admin.Close()
+			return nil, fmt.Errorf("failed to list Kafka topics: %w", err)
+		}
+
+		// Verify all configured topics exist
+		if _, exists := topics[*conf.Kafka.Topic]; !exists {
+			admin.Close()
+			return nil, fmt.Errorf("Kafka topic '%s' not found", *conf.Kafka.Topic)
+		}
+
+		err = admin.Close()
+		if err != nil {
+			log.Errorf("Error closing Kafka admin client: %v", err)
+			return nil, fmt.Errorf("failed to close Kafka admin client: %w", err)
+		}
+
+		// Create producer
+		producer, err := sarama.NewSyncProducer(brokers, config)
+		if err != nil {
+			log.Errorf("Failed to create Kafka producer: %v", err)
+			return nil, fmt.Errorf("failed to create Kafka producer: %w", err)
+		}
+		server.kafkaProducer = producer
+		log.Infof("Kafka producer initialized for brokers: %v, topic: %s", brokers, *conf.Kafka.Topic)
 	}
 
 	if conf.Default == "" {
@@ -126,14 +182,14 @@ func StartDriver(d config.DriverConfig, sources map[string]gripper.GRIPSourceCli
 		return kvgraph.NewKVGraphDB("pebble", *d.Pebble)
 	} else if d.Grids != nil {
 		return grids.NewGraphDB(*d.Grids)
-	} else if d.Elasticsearch != nil {
-		return elastic.NewGraphDB(*d.Elasticsearch)
 	} else if d.MongoDB != nil {
 		return mongo.NewGraphDB(*d.MongoDB)
 	} else if d.PSQL != nil {
 		return psql.NewGraphDB(*d.PSQL)
 	} else if d.ExistingSQL != nil {
 		return esql.NewGraphDB(*d.ExistingSQL)
+	} else if d.Sqlite != nil {
+		return sqlite.NewGraphDB(*d.Sqlite)
 	} else if d.Gripper != nil {
 		return gripper.NewGDBFromConfig(d.Gripper.Graph, d.Gripper.Mapping, sources)
 	}
@@ -190,7 +246,10 @@ func (server *GripServer) Serve(pctx context.Context) error {
 
 	// Setup RESTful proxy
 	marsh := NewMarshaler()
-	grpcMux := runtime.NewServeMux(runtime.WithMarshalerOption("*/*", marsh))
+	grpcMux := runtime.NewServeMux(
+		runtime.WithForwardResponseRewriter(FlattenRewriter),
+		runtime.WithMarshalerOption(runtime.MIMEWildcard, marsh),
+	)
 	mux := http.NewServeMux()
 
 	// Setup GraphQL handler
@@ -229,13 +288,25 @@ func (server *GripServer) Serve(pctx context.Context) error {
 			gripql.DirectUnaryInterceptor(unaryAuthInt),
 			gripql.DirectStreamInterceptor(streamAuthInt),
 		)
-		handler, err := setup(gripql.WrapClient(queryClient, writeClient, nil, nil))
+		jobClient := gripql.NewJobDirectClient(
+			server,
+			gripql.DirectUnaryInterceptor(unaryAuthInt),
+			gripql.DirectStreamInterceptor(streamAuthInt),
+		)
+		configureClient := gripql.NewConfigureDirectClient(
+			server,
+			gripql.DirectUnaryInterceptor(unaryAuthInt),
+			gripql.DirectStreamInterceptor(streamAuthInt),
+		)
+
+		cfg := endpointConfig[name]
+		handler, err := setup(gripql.WrapClient(queryClient, writeClient, jobClient, configureClient), cfg)
 		if err == nil {
 			log.Infof("Plugin added to /%s/", name)
 			prefix := fmt.Sprintf("/%s/", name)
 			mux.Handle(prefix, http.StripPrefix(prefix, handler))
 		} else {
-			log.Errorf("Unable to load plugin %s", name)
+			log.Errorf("Unable to load plugin %s: %s", name, err)
 		}
 	}
 
@@ -251,7 +322,6 @@ func (server *GripServer) Serve(pctx context.Context) error {
 	// HTTP middleware is injected here as well
 	mux.HandleFunc("/", func(resp http.ResponseWriter, req *http.Request) {
 		start := time.Now()
-
 		/*
 			if len(server.conf.Server.BasicAuth) > 0 {
 				resp.Header().Set("WWW-Authenticate", "Basic")
@@ -281,9 +351,27 @@ func (server *GripServer) Serve(pctx context.Context) error {
 
 			// copy body and return it to request
 			var body []byte
-			if server.conf.Server.RequestLogging.Enable {
-				body, _ = ioutil.ReadAll(req.Body)
-				req.Body = ioutil.NopCloser(bytes.NewBuffer(body))
+			if server.conf.Server.RequestLogging.Enable || server.kafkaProducer != nil {
+				body, _ = io.ReadAll(req.Body)
+				req.Body = io.NopCloser(bytes.NewBuffer(body))
+				if server.kafkaProducer != nil {
+					// This should cover BulkAdd, Addvertex, Addedge, BulkDelete, DeleteVertex, DeleteEdge
+					// Metadata used on replication side to determine what action to do with message
+					msg := &sarama.ProducerMessage{
+						Headers: []sarama.RecordHeader{
+							{Key: []byte("PATH"), Value: []byte(req.URL.Path)},
+							{Key: []byte("METHOD"), Value: []byte(req.Method)}},
+						Topic: "gripHistory",
+						Value: sarama.ByteEncoder(body),
+					}
+					partition, offset, err := server.kafkaProducer.SendMessage(msg)
+					if err != nil {
+						log.Errorf("Failed to send Kafka message to topic %#v: %v", *&server.conf.Kafka.Topic, err)
+					} else {
+						log.Infof("Message sent to Kafka topic %s [partition %d, offset %d]", *server.conf.Kafka.Topic, partition, offset)
+					}
+
+				}
 			}
 
 			// handle the request
@@ -407,7 +495,9 @@ func (server *GripServer) Serve(pctx context.Context) error {
 			if isSchema(graph) {
 				log.WithFields(log.Fields{"graph": graph}).Debug("Loading existing schema into cache")
 				schema, err := server.getGraph(graph)
-				if err == nil {
+				if err != nil {
+					log.Errorln("Error in server.getGraph: ", err)
+				} else {
 					server.schemas[strings.TrimSuffix(graph, schemaSuffix)] = schema
 				}
 			} else if isMapping(graph) {
@@ -422,11 +512,14 @@ func (server *GripServer) Serve(pctx context.Context) error {
 
 	server.updateGraphMap()
 
-	if server.conf.Server.AutoBuildSchemas {
-		go func() {
-			server.cacheSchemas(ctx)
-		}()
-	}
+	/*
+		*  Deprecate / remove this for now. Add support for autogenerated schema another time
+			if server.conf.Server.AutoBuildSchemas {
+				go func() {
+					server.cacheSchemas(ctx)
+				}()
+			}
+	*/
 
 	<-ctx.Done() //This will hold until canceled, usually from kill signal
 	log.Infoln("shutting down RPC server...")
@@ -443,6 +536,15 @@ func (server *GripServer) Serve(pctx context.Context) error {
 		if err != nil {
 			log.Errorln("db.Close() error:", err)
 		}
+	}
+
+	if server.kafkaProducer != nil {
+		if err := server.kafkaProducer.Close(); err != nil {
+			log.Errorf("Error closing Kafka producer: %v", err)
+			return fmt.Errorf("failed to close Kafka producer: %w", err)
+		}
+		server.kafkaProducer = nil
+		log.Infof("Kafka producer closed")
 	}
 
 	server.ClosePlugins()

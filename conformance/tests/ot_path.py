@@ -8,7 +8,7 @@ def test_path_out_out_out(man):
     G = man.setGraph("swapi")
 
     count = 0
-    for res in G.query().V("Film:1").out().out().out().path():
+    for res in G.V("Film:1").out().out().out().path():
         if res[0]['vertex'] != "Film:1":
             errors.append("Wrong first step %s != %s" % (res[0]['vertex'], "Film:1"))
         count += 1
@@ -22,7 +22,7 @@ def test_path_in_in(man):
     G = man.setGraph("swapi")
 
     count = 0
-    for res in G.query().V("Film:1").in_().in_().path():
+    for res in G.V("Film:1").in_().in_().path():
         if res[0]['vertex'] != "Film:1":
             errors.append("Wrong first step %s != %s" % (res[0]['vertex'], "Film:1"))
         count += 1
@@ -34,7 +34,7 @@ def test_path_outE_out_select(man):
     errors = []
     G = man.setGraph("swapi")
     count = 0
-    for res in G.query().V("Film:1").as_("a").outE().as_("b").out().select("b").path():
+    for res in G.V("Film:1").as_("a").outE().as_("b").out().select("b").path():
         count += 1
         if len(res) != 4:
             errors.append("Wrong path length %d != %d" % (4, len(res)))
@@ -49,7 +49,7 @@ def test_path_out_out_select(man):
     errors = []
     G = man.setGraph("swapi")
     count = 0
-    for res in G.query().V("Film:1").as_("a").out().as_("b").out().select("a").path():
+    for res in G.V("Film:1").as_("a").out().as_("b").out().select("a").path():
         if len(res) != 4:
             errors.append("Wrong path length %d != %d" % (4, len(res)))
         else:

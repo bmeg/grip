@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"sync/atomic"
 
 	//"io"
 	//"strings"
@@ -29,23 +30,27 @@ var edgeFile string
 var dirPath string
 var edgeUID bool
 
-var bulkBufferSize = 1000
+var bulkBufferSize = 5_000
 var workerCount = 1
 
-var logRate = 10000
+var logRate = 10_000
 
 var createGraph = false
 
 func vertexSerialize(vertChan chan *gripql.Vertex, workers int) chan []byte {
+	var serializeCount atomic.Int64
 	dataChan := make(chan []byte, workers)
 	var wg sync.WaitGroup
-	for i := 0; i < workers; i++ {
+	for range workers {
 		wg.Add(1)
 		go func() {
 			for v := range vertChan {
 				doc := mongo.PackVertex(gdbi.NewElementFromVertex(v))
 				rawBytes, err := bson.Marshal(doc)
 				if err == nil {
+					if serializeCount.Add(1)%10000 == 0 {
+						log.Infof("Serialized %d vertices", serializeCount.Load())
+					}
 					dataChan <- rawBytes
 				}
 			}
@@ -62,12 +67,12 @@ func vertexSerialize(vertChan chan *gripql.Vertex, workers int) chan []byte {
 func edgeSerialize(edgeChan chan *gripql.Edge, workers int) chan []byte {
 	dataChan := make(chan []byte, workers)
 	var wg sync.WaitGroup
-	for i := 0; i < workers; i++ {
+	for range workers {
 		wg.Add(1)
 		go func() {
 			for e := range edgeChan {
-				if edgeUID && e.Gid == "" {
-					e.Gid = util.UUID()
+				if edgeUID && e.Id == "" {
+					e.Id = util.UUID()
 				}
 				doc := mongo.PackEdge(gdbi.NewElementFromEdge(e))
 				rawBytes, err := bson.Marshal(doc)
@@ -100,11 +105,7 @@ var Cmd = &cobra.Command{
 
 		// Connect to mongo and start the bulk load process
 		log.Infof("Loading data into graph: %s", graph)
-		client, err := mgo.NewClient(options.Client().ApplyURI(mongoHost))
-		if err != nil {
-			return err
-		}
-		err = client.Connect(context.TODO())
+		client, err := mgo.Connect(context.Background(), options.Client().ApplyURI(mongoHost))
 		if err != nil {
 			return err
 		}
@@ -121,24 +122,32 @@ var Cmd = &cobra.Command{
 
 		if vertexFile != "" {
 			log.Infof("Loading vertex file: %s", vertexFile)
-			vertInserter := db.NewUnorderedBufferedBulkInserter(vertexCol, bulkBufferSize).
-				SetBypassDocumentValidation(true).
-				SetOrdered(false).
-				SetUpsert(true)
 			vertChan, err := util.StreamVerticesFromFile(vertexFile, workerCount)
 			if err != nil {
 				return err
 			}
 			dataChan := vertexSerialize(vertChan, workerCount)
-			count := 0
-			for d := range dataChan {
-				vertInserter.InsertRaw(d)
-				if count%logRate == 0 {
-					log.Infof("Loaded %d vertices", count)
-				}
-				count++
+			var wg sync.WaitGroup
+			var vertexCount atomic.Int64
+			for range workerCount {
+				wg.Add(1)
+				go func() {
+					defer wg.Done()
+					inserter := db.NewUnorderedBufferedBulkInserter(vertexCol, bulkBufferSize).
+						SetBypassDocumentValidation(true).
+						SetOrdered(false).
+						SetUpsert(false)
+					defer inserter.Flush()
+					for d := range dataChan {
+						inserter.InsertRaw(d)
+						newCount := vertexCount.Add(1)
+						if newCount%10000 == 0 {
+							log.Infof("Processed %d vertices...", newCount)
+						}
+					}
+				}()
 			}
-			vertInserter.Flush()
+			wg.Wait()
 		}
 
 		if edgeFile != "" {

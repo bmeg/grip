@@ -23,19 +23,29 @@ def test_returnNil(man):
 
     #print("query 1")
     count_1 = 0
-    for i in G.query().V().hasLabel("Character").outNull("starships"):
-        print(i)
+    for i in G.V().hasLabel("Character").outNull("starships"):
+        #print(i)
         count_1 += 1
 
     #print("query 1")
     count_1 = 0
-    for i in G.query().V().hasLabel("Character").outENull("starships"):
-        print(i)
+    for i in G.V().hasLabel("Character").outENull("starships"):
+        #print(i)
         count_1 += 1
 
-    return errors    
+    return errors
 
+def test_returnNilUnwind(man):
+    errors = []
 
+    G = man.setGraph("swapi")
+
+    # outNull generates null maps that must be skipped in the unwind step. Was causing segfault before.
+    for i in G.V().outNull("species").unwind('eye_colors'):
+        if i['eye_colors'] is not None and not isinstance(i['eye_colors'], str):
+            errors.append("expecting i['eye_colors'] to be string after unwind but got %s instead" % i['eye_colors'])
+
+    return errors
 def test_hasLabelOut(man):
     errors = []
 
@@ -43,7 +53,7 @@ def test_hasLabelOut(man):
 
     #print("query 1")
     count_1 = 0
-    for i in G.query().V().hasLabel("Character").as_("a").out("starships").as_("b").render(["$a._gid", "$b._gid", "$b._label"]):
+    for i in G.V().hasLabel("Character").as_("a").out("starships").as_("b").render(["$a._id", "$b._id", "$b._label"]):
         #print("out", i)
         if i[0] in noStarshipCharacters:
             errors.append("%s should not have been found" % (i[0]))
@@ -52,7 +62,7 @@ def test_hasLabelOut(man):
     #print("query 2")
     count_2 = 0
     nullFound = []
-    for i in G.query().V().hasLabel("Character").as_("a").outNull("starships").as_("b").render(["$a._gid", "$b._gid", "$b._label"]):
+    for i in G.V().hasLabel("Character").as_("a").outNull("starships").as_("b").render(["$a._id", "$b._id", "$b._label"]):
         #print("outnull", i)
         if i[0] in noStarshipCharacters:
             nullFound.append(i[0])
@@ -73,7 +83,7 @@ def test_hasLabelOutE(man):
 
     #print("query 1")
     count_1 = 0
-    for i in G.query().V().hasLabel("Character").as_("a").outE("starships").as_("b").render(["$a._gid", "$b._gid", "$b._label"]):
+    for i in G.V().hasLabel("Character").as_("a").outE("starships").as_("b").render(["$a._id", "$b._id", "$b._label"]):
         #print("out", i)
         if i[0] in noStarshipCharacters:
             errors.append("%s should not have been found" % (i[0]))
@@ -82,7 +92,7 @@ def test_hasLabelOutE(man):
     #print("query 2")
     count_2 = 0
     nullFound = []
-    for i in G.query().V().hasLabel("Character").as_("a").outENull("starships").as_("b").render(["$a._gid", "$b._gid", "$b._label"]):
+    for i in G.V().hasLabel("Character").as_("a").outENull("starships").as_("b").render(["$a._id", "$b._id", "$b._label"]):
         #print("outnull", i)
         if i[0] in noStarshipCharacters:
             nullFound.append(i[0])
@@ -116,13 +126,13 @@ def test_hasLabelIn(man):
 
     G = man.setGraph("swapi")
 
-    for i in G.query().V().hasLabel("Character").as_("a").in_("residents").as_("b").render(["$a._gid", "$b._gid", "$b._label"]):
+    for i in G.V().hasLabel("Character").as_("a").in_("residents").as_("b").render(["$a._id", "$b._id", "$b._label"]):
         #print("in:", i)
         if i[0] in noResidenceCharacters:
             errors.append("%s should not have been found" % (i[0]))
 
     nullFound = []
-    for i in G.query().V().hasLabel("Character").as_("a").inNull("residents").as_("b").render(["$a._gid", "$b._gid", "$b._label"]):
+    for i in G.V().hasLabel("Character").as_("a").inNull("residents").as_("b").render(["$a._id", "$b._id", "$b._label"]):
         #print("inNull:", i)
         if i[0] in noResidenceCharacters:
             nullFound.append(i[0])
@@ -138,13 +148,13 @@ def test_hasLabelInE(man):
 
     G = man.setGraph("swapi")
 
-    for i in G.query().V().hasLabel("Character").as_("a").inE("residents").as_("b").render(["$a._gid", "$b._gid", "$b._label"]):
+    for i in G.V().hasLabel("Character").as_("a").inE("residents").as_("b").render(["$a._id", "$b._id", "$b._label"]):
         #print("in:", i)
         if i[0] in noResidenceCharacters:
             errors.append("%s should not have been found" % (i[0]))
 
     nullFound = []
-    for i in G.query().V().hasLabel("Character").as_("a").inENull("residents").as_("b").render(["$a._gid", "$b._gid", "$b._label"]):
+    for i in G.V().hasLabel("Character").as_("a").inENull("residents").as_("b").render(["$a._id", "$b._id", "$b._label"]):
         #print("inNull:", i)
         if i[0] in noResidenceCharacters:
             nullFound.append(i[0])

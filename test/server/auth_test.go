@@ -6,7 +6,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"strings"
@@ -61,7 +60,7 @@ func TestBasicAuthFail(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, err = cli.Traversal(&gripql.GraphQuery{Graph: "test", Query: gripql.NewQuery().V().Statements})
+	_, err = cli.Traversal(context.Background(), &gripql.GraphQuery{Graph: "test", Query: gripql.NewQuery().V().Statements})
 	if err == nil || !strings.Contains(err.Error(), "PermissionDenied") {
 		t.Errorf("expected PermissionDenied error; got: %v", err)
 	}
@@ -126,12 +125,12 @@ func TestBasicAuth(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	err = cli.AddVertex("test", &gripql.Vertex{Gid: "1", Label: "test"})
+	err = cli.AddVertex("test", &gripql.Vertex{Id: "1", Label: "test"})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	_, err = cli.Traversal(&gripql.GraphQuery{Graph: "test", Query: gripql.NewQuery().V().Statements})
+	_, err = cli.Traversal(context.Background(), &gripql.GraphQuery{Graph: "test", Query: gripql.NewQuery().V().Statements})
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -154,7 +153,7 @@ func TestBasicAuth(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 	returnString := `{"graphs":["test"]}`
-	bodyText, err := ioutil.ReadAll(resp.Body)
+	bodyText, err := io.ReadAll(resp.Body)
 	if string(bodyText) != returnString {
 		t.Log(string(bodyText))
 		t.Error("incorrect http return value")

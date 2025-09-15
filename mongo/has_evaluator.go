@@ -1,10 +1,10 @@
 package mongo
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/bmeg/grip/gripql"
-	"github.com/bmeg/grip/jsonpath"
 	"github.com/bmeg/grip/log"
 	"go.mongodb.org/mongo-driver/bson"
 )
@@ -17,29 +17,33 @@ func convertHasExpression(stmt *gripql.HasExpression, not bool) bson.M {
 		switch cond.Condition {
 		case gripql.Condition_INSIDE:
 			val := cond.Value.AsInterface()
-			lims, ok := val.([]interface{})
-			if !ok {
+			lims, ok := val.([]any)
+			if !ok || len(lims) < 2 {
 				log.Error("unable to cast values from INSIDE statement")
 			} else {
-				output = convertHasExpression(gripql.And(gripql.Gt(cond.Key, lims[0]), gripql.Lt(cond.Key, lims[1])), not)
+				key := cond.Key
+				output = convertHasExpression(gripql.And(gripql.Gt(key, lims[0]), gripql.Lt(key, lims[1])), not)
+				//fmt.Printf("inside: %#v\n", output)
 			}
 
 		case gripql.Condition_OUTSIDE:
 			val := cond.Value.AsInterface()
-			lims, ok := val.([]interface{})
-			if !ok {
+			lims, ok := val.([]any)
+			if !ok || len(lims) < 2 {
 				log.Error("unable to cast values from OUTSIDE statement")
 			} else {
-				output = convertHasExpression(gripql.Or(gripql.Lt(cond.Key, lims[0]), gripql.Gt(cond.Key, lims[1])), not)
+				key := cond.Key
+				output = convertHasExpression(gripql.Or(gripql.Lt(key, lims[0]), gripql.Gt(key, lims[1])), not)
 			}
 
 		case gripql.Condition_BETWEEN:
 			val := cond.Value.AsInterface()
-			lims, ok := val.([]interface{})
-			if !ok {
+			lims, ok := val.([]any)
+			if !ok || len(lims) < 2 {
 				log.Error("unable to cast values from BETWEEN statement")
 			} else {
-				output = convertHasExpression(gripql.And(gripql.Gte(cond.Key, lims[0]), gripql.Lt(cond.Key, lims[1])), not)
+				key := cond.Key
+				output = convertHasExpression(gripql.And(gripql.Gte(key, lims[0]), gripql.Lt(key, lims[1])), not)
 			}
 
 		default:
@@ -71,6 +75,7 @@ func convertHasExpression(stmt *gripql.HasExpression, not bool) bson.M {
 	case *gripql.HasExpression_Not:
 		notRes := convertHasExpression(stmt.GetNot(), true)
 		output = notRes
+		fmt.Printf("not: %#v\n", output)
 
 	default:
 		log.Error("unknown where expression type")
@@ -79,45 +84,88 @@ func convertHasExpression(stmt *gripql.HasExpression, not bool) bson.M {
 	return output
 }
 
-func convertPath(key string) string {
-	key = jsonpath.GetJSONPath(key)
-	key = strings.TrimPrefix(key, "$.")
-	if key == "gid" {
-		key = "_id"
-	}
-	return key
-}
-
 func convertCondition(cond *gripql.HasCondition, not bool) bson.M {
 	var key string
-	var val interface{}
-	key = convertPath(cond.Key)
+	var val any
+	key = ToPipelinePath(cond.Key)
 	val = cond.Value.AsInterface()
-	expr := bson.M{}
+
+	isExpr := false
+
+	if valStr, ok := val.(string); ok {
+		if strings.HasPrefix(valStr, "$") {
+			//user has a field reference to compare to, rather then a value
+			//we'll need to use the '$expr' and refer to the fields using the '$' prefix
+			val = "$" + ToPipelinePath(valStr)
+			key = "$" + key
+			isExpr = true
+		}
+		log.Infof("mongo val str: %s(%s) -- %s(%s)", cond.Key, key, valStr, val)
+	}
+	bCond := bson.M{}
 	switch cond.Condition {
 	case gripql.Condition_EQ:
-		expr = bson.M{"$eq": val}
+		if isExpr {
+			bCond = bson.M{"$expr": bson.M{"$eq": []any{key, val}}}
+		} else {
+			bCond = bson.M{"$eq": val}
+		}
 	case gripql.Condition_NEQ:
-		expr = bson.M{"$ne": val}
+		if isExpr {
+			bCond = bson.M{"$expr": bson.M{"$ne": []any{key, val}}}
+		} else {
+			bCond = bson.M{"$ne": val}
+		}
 	case gripql.Condition_GT:
-		expr = bson.M{"$gt": val}
+		if isExpr {
+			bCond = bson.M{"$expr": bson.M{"$gt": []any{key, val}}}
+		} else {
+			bCond = bson.M{"$gt": val}
+		}
 	case gripql.Condition_GTE:
-		expr = bson.M{"$gte": val}
+		if isExpr {
+			bCond = bson.M{"$expr": bson.M{"$gte": []any{key, val}}}
+		} else {
+			bCond = bson.M{"$gte": val}
+		}
 	case gripql.Condition_LT:
-		expr = bson.M{"$lt": val}
+		if isExpr {
+			bCond = bson.M{"$expr": bson.M{"$lt": []any{key, val}}}
+		} else {
+			bCond = bson.M{"$lt": val}
+		}
 	case gripql.Condition_LTE:
-		expr = bson.M{"$lte": val}
+		if isExpr {
+			bCond = bson.M{"$expr": bson.M{"$lte": []any{key, val}}}
+		} else {
+			bCond = bson.M{"$lte": val}
+		}
 	case gripql.Condition_WITHIN:
-		expr = bson.M{"$in": val}
+		if isExpr {
+			bCond = bson.M{"$expr": bson.M{"$in": []any{key, val}}}
+		} else {
+			bCond = bson.M{"$in": val}
+		}
 	case gripql.Condition_WITHOUT:
-		expr = bson.M{"$not": bson.M{"$in": val}}
+		if isExpr {
+			bCond = bson.M{"$not": bson.M{"$expr": bson.M{"$in": []any{key, val}}}}
+		} else {
+			bCond = bson.M{"$not": bson.M{"$in": val}}
+		}
 	case gripql.Condition_CONTAINS:
-		expr = bson.M{"$in": []interface{}{val}}
+		if isExpr {
+			bCond = bson.M{"$expr": bson.M{"$in": []any{key, val}}}
+		} else {
+			bCond = bson.M{"$in": []any{val}}
+		}
 	default:
 		log.Error("unknown where condition type")
 	}
 	if not {
-		return bson.M{key: bson.M{"$not": expr}}
+		return bson.M{key: bson.M{"$not": bCond}}
 	}
-	return bson.M{key: expr}
+	if isExpr {
+		return bCond
+	}
+	return bson.M{key: bCond}
 }

@@ -7,6 +7,7 @@ menu:
 ---
 
 # Graph Schemas
+
 Most GRIP based graphs are not required to have a strict schema. However, GraphQL requires
 a graph schema as part of it's API. To utilize the GraphQL endpoint, there must be a
 Graph Schema provided to be used by the GRIP engine to determine how to render a GraphQL endpoint.
@@ -19,73 +20,18 @@ The schema of a graph can be accessed via a GET request to `/v1/graph/{graph-nam
 
 Alternatively, you can use the grip CLI. `grip schema get {graph-name}`
 
-## Describing Graph Schemas
-There are several methods for describing the schema of a graph.
+## Post a graph schema
 
-- Provide the schema (as a YAML file) to the server at runtime. `grip server --schema {schema-file}`
-- POST the schema `/v1/graph/{graph-name}/schema` via curl or use the CLI. `grip schema post --yaml {file} --json {file}`
-- Configure GRIP to build the schema by sampling the data in each graph.
+A schema can be attached to an existing graph via a POST request to `/v1/graph/{graph-name}/schema`
 
-```yaml
-Server:
-  # Should the server periodically build the graph schemas?
-  AutoBuildSchemas: true
-  # How often the server should rebuild the graph schemas. Set to 0 to turn off
-  SchemaRefreshInterval: "24h"
-  # How many vertices/edges to inspect to infer the schema
-  SchemaInspectN: 500
-  # Strategy to use for selecting the vertices/edges to inspect.
-  # Random if True; first N otherwise
-  SchemaRandomSample: true
-```
+Alternatively, you can use the grip CLI. `grip schema post [graph_name] --jsonSchema {file}`
 
-## Example schema
+Schemas must be loaded as a json file in JSON schema format. see [jsonschema](https://json-schema.org/) spec for more details
 
- ```yaml
- graph: example-graph
+## Raw bulk loading
 
- edges:
-- data: {}
-  from: Human
-  gid: (Human)--starship->(Starship)
-  label: starship
-  to: Starship
-- data: {}
-  from: Human
-  gid: (Human)--friend->(Human)
-  label: friend
-  to: Human
-- data: {}
-  from: Human
-  gid: (Human)--friend->(Droid)
-  label: friend
-  to: Droid
-- data: {}
-  from: Human
-  gid: (Human)--appearsIn->(Movie)
-  label: appearsIn
-  to: Movie
+Once a schema is attached to a graph, raw json records can be loaded directly to grip without having to be in native grip vertex/edge format.
+Schema validation is enforced when using this POST `/v1/rawJson` method.
 
-vertices:
-- data:
-    name: STRING
-  gid: Movie
-  label: Movie
-- data:
-    length: NUMERIC
-    name: STRING
-  gid: Starship
-  label: Starship
-- data:
-    name: STRING
-    primaryFunction: STRING
-  gid: Droid
-  label: Droid
-- data:
-    height: NUMERIC
-    homePlanet: STRING
-    mass: NUMERIC
-    name: STRING
-  gid: Human
-  label: Human
- ```
+A grip CLI alternative is also available with `grip jsonload [ndjson_file_path] [graph_name]`
+See https://github.com/bmeg/grip/blob/develop/conformance/tests/ot_bulk_raw.py for a full example using gripql python package.
