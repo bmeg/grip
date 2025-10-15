@@ -1,8 +1,6 @@
 module github.com/bmeg/grip
 
-go 1.24
-
-toolchain go1.24.2
+go 1.24.2
 
 require (
 	github.com/IBM/sarama v1.45.1
@@ -13,7 +11,7 @@ require (
 	github.com/bmeg/benchtop v0.0.0-20250827195345-9810354883b9
 	github.com/bmeg/jsonpath v0.0.0-20210207014051-cca5355553ad
 	github.com/bmeg/jsonschema/v6 v6.0.4
-	github.com/bmeg/jsonschemagraph v0.0.4-0.20250828230703-257ca9afd85a
+	github.com/bmeg/jsonschemagraph v0.0.4-0.20251015150525-9ed100499f63
 	github.com/boltdb/bolt v1.3.1
 	github.com/bytedance/sonic v1.14.0
 	github.com/casbin/casbin/v2 v2.97.0
