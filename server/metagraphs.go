@@ -163,6 +163,15 @@ func (server *GripServer) addFullGraph(ctx context.Context, graphName string, sc
 
 func (server *GripServer) LoadSchemas(sch *gripql.Graph, out *graph.GraphSchema) (*graph.GraphSchema, error) {
 	compiler := jsonschema.NewCompiler()
+
+	compiler.AssertFormat()
+	compiler.RegisterFormat(&jsonschema.Format{Name: "date-time", Validate: compile.ValidateFhirDateTime})
+	compiler.RegisterFormat(&jsonschema.Format{Name: "date", Validate: compile.ValidateFhirDate})
+	compiler.RegisterFormat(&jsonschema.Format{Name: "binary", Validate: compile.ValidateFhirBinary})
+	compiler.RegisterFormat(&jsonschema.Format{Name: "binary", Validate: compile.ValidateFhirTime})
+	compiler.RegisterFormat(&jsonschema.Format{Name: "uuid", Validate: compile.ValidateFhirUUID})
+	compiler.RegisterFormat(&jsonschema.Format{Name: "uri", Validate: compile.ValidateFhirURI})
+
 	compiler.AssertVocabs()
 	vc, err := compile.GetHyperMediaVocab()
 	if err != nil {
