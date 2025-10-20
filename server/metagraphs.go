@@ -168,7 +168,7 @@ func (server *GripServer) LoadSchemas(sch *gripql.Graph, out *graph.GraphSchema)
 	compiler.RegisterFormat(&jsonschema.Format{Name: "date-time", Validate: compile.ValidateFhirDateTime})
 	compiler.RegisterFormat(&jsonschema.Format{Name: "date", Validate: compile.ValidateFhirDate})
 	compiler.RegisterFormat(&jsonschema.Format{Name: "binary", Validate: compile.ValidateFhirBinary})
-	compiler.RegisterFormat(&jsonschema.Format{Name: "binary", Validate: compile.ValidateFhirTime})
+	compiler.RegisterFormat(&jsonschema.Format{Name: "time", Validate: compile.ValidateFhirTime})
 	compiler.RegisterFormat(&jsonschema.Format{Name: "uuid", Validate: compile.ValidateFhirUUID})
 	compiler.RegisterFormat(&jsonschema.Format{Name: "uri", Validate: compile.ValidateFhirURI})
 
