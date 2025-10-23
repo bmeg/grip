@@ -45,8 +45,6 @@ func (l *lookupVertsHasLabelCondIndexProc) Process(ctx context.Context, man gdbi
 	cond := l.expr.GetCondition()
 	if cond != nil {
 		for _, iterLabel := range l.labels {
-			/*fmt.Println("LABEL: ", iterLabel)
-			fmt.Println("TABLES: ", l.db.jsonkv.Tables)*/
 			tabel, ok := l.db.jsonkv.Tables[iterLabel]
 			if !ok {
 				exists = false
@@ -98,10 +96,6 @@ func (l *lookupVertsHasLabelCondIndexProc) Process(ctx context.Context, man gdbi
 			for t := range in {
 				cond := l.expr.GetCondition()
 				for _, label := range l.labels {
-					/*fmt.Println("LABEL: ", label)
-					fmt.Println("CONDITION: ", cond.Condition.String())
-					fmt.Println("KEY: ", cond.Key)
-					fmt.Println("VALUE: ", cond.Value.AsInterface())*/
 					for id := range l.db.jsonkv.RowIdsByLabelFieldValue(label, cond.Key, cond.Value.AsInterface(), cond.Condition) {
 						queryChan <- gdbi.ElementLookup{ID: id, Ref: t}
 					}
