@@ -162,7 +162,7 @@ func (ggraph *Graph) indexEdge(edge *gdbi.Edge, tx *pebblebulk.PebbleBulk) error
 	err = ggraph.jsonkv.AddTableEntryInfo(tx, []byte(edge.ID), rowLoc)
 	if err != nil {
 		return fmt.Errorf("indexEdge: jsonkv.AddTableEntryInfo: %s", err)
-<<<<<<< HEAD
+
 	}
 
 	_, ok = ggraph.jsonkv.LocCache.Set(edge.ID, rowLoc)
@@ -174,25 +174,6 @@ func (ggraph *Graph) indexEdge(edge *gdbi.Edge, tx *pebblebulk.PebbleBulk) error
 	table, tableExists := ggraph.jsonkv.Tables[edgeLabel]
 	if tableExists && len(table.Fields) > 0 {
 		for field := range table.Fields {
-=======
-	}
-
-	_, ok = ggraph.jsonkv.LocCache.Set(edge.ID, rowLoc)
-	if !ok {
-		ggraph.jsonkv.LocCache.Invalidate(edge.ID)
-		ggraph.jsonkv.LocCache.Set(edge.ID, rowLoc)
-	}
-
-<<<<<<< HEAD
-	_, fieldsExist := ggraph.jsonkv.Fields[edgeLabel]
-	if fieldsExist {
-		for field := range ggraph.jsonkv.Fields[edgeLabel] {
->>>>>>> 68f8e438 (update funcs)
-=======
-	table, tableExists := ggraph.jsonkv.Tables[edgeLabel]
-	if tableExists && len(table.Fields) > 0 {
-		for field := range table.Fields {
->>>>>>> f59d7ce0 (commit construction code)
 			if val := tpath.PathLookup(edge.Data, field); val != nil {
 				err := tx.Set(benchtop.FieldKey(field, edgeLabel, val, []byte(edge.ID)), []byte{}, nil)
 				if err != nil {
