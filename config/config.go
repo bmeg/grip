@@ -77,8 +77,8 @@ func DefaultConfig() *Config {
 	c.Server.SchemaInspectN = 500
 	c.Server.SchemaRandomSample = true
 	c.Server.RequestLogging.HeaderWhitelist = []string{
-		"authorization", "oauthemail", "content-type", "content-length",
-		"forwarded", "x-forwarded-for", "x-forwarded-host", "user-agent",
+		"content-type", "content-length", "forwarded",
+		"x-forwarded-for", "x-forwarded-host", "user-agent",
 	}
 
 	c.RPCClient = rpc.ConfigWithDefaults(c.Server.RPCAddress())
@@ -227,4 +227,95 @@ func ParseConfigFile(relpath string, conf *Config) error {
 		}
 	}
 	return nil
+}
+
+func DeepCopyRedactedConfig(conf *Config) *Config {
+	if conf == nil {
+		return nil
+	}
+
+	cpyConf := &Config{
+		Server: conf.Server,
+		RPCClient: rpc.Config{
+			ServerAddress: conf.RPCClient.ServerAddress,
+			Timeout:       conf.RPCClient.Timeout,
+			MaxRetries:    conf.RPCClient.MaxRetries,
+			User:          conf.RPCClient.User,
+			Password:      "[REDACTED]",
+		},
+		Logger:  conf.Logger,
+		Default: conf.Default,
+		Graphs:  make(map[string]string, len(conf.Graphs)),
+		Drivers: make(map[string]DriverConfig, len(conf.Drivers)),
+		Sources: make(map[string]string, len(conf.Sources)),
+		Kafka:   KafkaConfig{},
+	}
+
+	for k, v := range conf.Graphs {
+		cpyConf.Graphs[k] = v
+	}
+
+	for k, v := range conf.Sources {
+		cpyConf.Sources[k] = v
+	}
+
+	for k, driver := range conf.Drivers {
+		cpyDriver := DriverConfig{}
+		if driver.Grids != nil {
+			grids := *driver.Grids
+			cpyDriver.Grids = &grids
+		}
+		if driver.Badger != nil {
+			badger := *driver.Badger
+			cpyDriver.Badger = &badger
+		}
+		if driver.Bolt != nil {
+			bolt := *driver.Bolt
+			cpyDriver.Bolt = &bolt
+		}
+		if driver.Level != nil {
+			level := *driver.Level
+			cpyDriver.Level = &level
+		}
+		if driver.Pebble != nil {
+			pebble := *driver.Pebble
+			cpyDriver.Pebble = &pebble
+		}
+		if driver.MongoDB != nil {
+			mongoDB := &mongo.Config{DBName: "[REDACTED]", Password: "[REDACTED]"}
+			cpyDriver.MongoDB = mongoDB
+		}
+		if driver.PSQL != nil {
+			psql := &psql.Config{DBName: "[REDACTED]", Password: "[REDACTED]"}
+			cpyDriver.PSQL = psql
+		}
+		if driver.ExistingSQL != nil {
+			existingSQL := &esql.Config{DataSourceName: "[REDACTED]"}
+			cpyDriver.ExistingSQL = existingSQL
+		}
+		if driver.Sqlite != nil {
+			sqlite := *driver.Sqlite
+			cpyDriver.Sqlite = &sqlite
+		}
+		if driver.Gripper != nil {
+			gripper := &gripper.Config{MappingFile: "[REDACTED]"}
+			cpyDriver.Gripper = gripper
+		}
+		cpyConf.Drivers[k] = cpyDriver
+	}
+	if conf.Kafka.Username != nil {
+		cpyConf.Kafka.Username = conf.Kafka.Username
+	}
+	if conf.Kafka.Password != nil {
+		password := "[REDACTED]" // Redact (tagged as sensitive)
+		cpyConf.Kafka.Password = &password
+	}
+	if conf.Kafka.Hostname != nil {
+		cpyConf.Kafka.Hostname = conf.Kafka.Hostname
+	}
+	if conf.Kafka.Topic != nil {
+		topic := *conf.Kafka.Topic
+		cpyConf.Kafka.Topic = &topic
+	}
+	return cpyConf
 }

@@ -31,7 +31,9 @@ var pluginDir = ""
 // This blocks indefinitely.
 func Run(conf *config.Config, baseDir string) error {
 	log.ConfigureLogger(conf.Logger)
-	log.WithFields(log.Fields{"Config": conf}).Info("Starting Server")
+	cpyConf := config.DeepCopyRedactedConfig(conf)
+
+	log.WithFields(log.Fields{"Config": cpyConf}).Info("Starting Server")
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

@@ -2,8 +2,6 @@ package schema
 
 import (
 	"fmt"
-	"io"
-	"os"
 
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/log"
@@ -72,29 +70,31 @@ var postCmd = &cobra.Command{
 			return err
 		}
 
-		if jsonFile != "" {
-			var graphs []*gripql.Graph
-			var err error
-			if jsonFile == "-" {
-				bytes, err := io.ReadAll(os.Stdin)
+		/*
+			 *  Deprecate this for now. This expects a schema in the legacy grip schema graph format
+				* if jsonFile != "" {
+				var graphs []*gripql.Graph
+				var err error
+				if jsonFile == "-" {
+					bytes, err := io.ReadAll(os.Stdin)
+					if err != nil {
+						return err
+					}
+					graphs, err = schema.ParseJSONGraphs(bytes)
+				} else {
+					graphs, err = schema.ParseJSONGraphsFile(jsonFile)
+				}
 				if err != nil {
 					return err
 				}
-				graphs, err = schema.ParseJSONGraphs(bytes)
-			} else {
-				graphs, err = schema.ParseJSONGraphsFile(jsonFile)
-			}
-			if err != nil {
-				return err
-			}
-			for _, g := range graphs {
-				err := conn.AddSchema(g)
-				if err != nil {
-					return err
+				for _, g := range graphs {
+					err := conn.AddSchema(g)
+					if err != nil {
+						return err
+					}
+					log.Debugf("Posted schema: %s", g.Graph)
 				}
-				log.Debugf("Posted schema: %s", g.Graph)
-			}
-		}
+				}*/
 
 		if jsonSchemaFile != "" {
 			log.Infof("Loading Json Schema file: %s", jsonSchemaFile)
@@ -120,7 +120,7 @@ func init() {
 
 	pflags := postCmd.Flags()
 	pflags.StringVar(&host, "host", host, "grip server url")
-	pflags.StringVar(&jsonFile, "json", "", "JSON graph file")
+	//pflags.StringVar(&jsonFile, "json", "", "JSON graph file")
 	pflags.StringVar(&jsonSchemaFile, "jsonSchema", "", "Json Schema")
 
 	Cmd.AddCommand(getCmd)

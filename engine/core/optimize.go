@@ -11,6 +11,19 @@ type OptimizationRule struct {
 	Replace func(pipe []*gripql.GraphStatement) []*gripql.GraphStatement
 }
 
+func OptimizeHasLabelMatch(pipe []*gripql.GraphStatement) bool {
+	if len(pipe) < 2 {
+		return false
+	}
+	if _, ok := pipe[0].GetStatement().(*gripql.GraphStatement_V); !ok {
+		return false
+	}
+	if hasLabel, ok := pipe[1].GetStatement().(*gripql.GraphStatement_HasLabel); ok {
+		return len(hasLabel.HasLabel.GetValues()) > 0
+	}
+	return false
+}
+
 // startOptimizations is a list of rules to optimize the query pipeline.
 var startOptimizations = []OptimizationRule{
 	{
@@ -37,18 +50,7 @@ var startOptimizations = []OptimizationRule{
 	},
 	{
 		// Matches V().HasLabel(...)
-		Match: func(pipe []*gripql.GraphStatement) bool {
-			if len(pipe) < 2 {
-				return false
-			}
-			if _, ok := pipe[0].GetStatement().(*gripql.GraphStatement_V); !ok {
-				return false
-			}
-			if hasLabel, ok := pipe[1].GetStatement().(*gripql.GraphStatement_HasLabel); ok {
-				return len(hasLabel.HasLabel.GetValues()) > 0
-			}
-			return false
-		},
+		Match: OptimizeHasLabelMatch,
 		Replace: func(pipe []*gripql.GraphStatement) []*gripql.GraphStatement {
 			labels := protoutil.AsStringList(pipe[1].GetHasLabel())
 			optimized := []*gripql.GraphStatement{
