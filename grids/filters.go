@@ -3,7 +3,6 @@ package grids
 import (
 	bFilters "github.com/bmeg/benchtop/filters"
 	"github.com/bmeg/benchtop/jsontable/table"
-	"github.com/bmeg/benchtop/jsontable/tpath"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/log"
 	"github.com/bytedance/sonic"
@@ -22,8 +21,8 @@ func (f *GripQLFilter) IsNoOp() bool {
 	return f.Expression == nil
 }
 
-func (f *GripQLFilter) Matches(row any) bool {
-	return MatchesHasExpression(row, f.Expression)
+func (f *GripQLFilter) Matches(row []byte, tableName string) bool {
+	return MatchesHasExpression(row, f.Expression, tableName)
 }
 
 func (f *GripQLFilter) RequiredFields() []string {
@@ -62,26 +61,19 @@ func extractKeys(expr *gripql.HasExpression) []string {
 	}
 	return out
 }
-func MatchesHasExpression(val any, stmt *gripql.HasExpression) bool {
+
+func MatchesHasExpression(row []byte, stmt *gripql.HasExpression, tableName string) bool {
 	switch stmt.Expression.(type) {
 	case *gripql.HasExpression_Condition:
 		cond := stmt.GetCondition()
 		var lookupVal any
-
-		// Handle lookup based on input type
-		switch v := val.(type) {
-		case map[string]any:
-			lookupVal = tpath.PathLookup(v, cond.Key)
-		case []byte:
-			pathArr, err := table.ConvertJSONPathToArray(cond.Key)
-			if err != nil {
-				log.Errorf("Error converting JSON path: %v", err)
-				return false
-			}
-			node, err := sonic.Get(v, pathArr...)
+		if cond.Key == "_label" {
+			lookupVal = tableName[2:]
+		} else if cond.Key == "_id" {
+			node, err := sonic.Get(row, []any{"1"}...)
 			if err != nil {
 				if err != ast.ErrNotExist {
-					log.Errorf("Sonic Fetch err for path: %s on doc %#v: %v", pathArr, string(v), err)
+					log.Errorf("Sonic Fetch err for path 1 on doc %#v: %v", string(row), err)
 				}
 				return false
 			}
@@ -90,9 +82,26 @@ func MatchesHasExpression(val any, stmt *gripql.HasExpression) bool {
 				log.Errorf("Error unmarshaling node: %v", err)
 				return false
 			}
-		default:
-			log.Errorf("Unsupported input type: %T", val)
-			return false
+		} else {
+			pathArr, err := table.ConvertJSONPathToArray(cond.Key)
+			if err != nil {
+				log.Errorf("Error converting JSON path: %v", err)
+				return false
+			}
+			node, err := sonic.Get(row, pathArr...)
+			if err != nil {
+				if err != ast.ErrNotExist {
+					log.Errorf("Sonic Fetch err for path: %s on doc %#v: %v", pathArr, string(row), err)
+					return false
+				}
+				lookupVal = nil
+			} else {
+				lookupVal, err = node.Interface()
+				if err != nil {
+					log.Errorf("Error unmarshaling node: %v", err)
+					return false
+				}
+			}
 		}
 
 		return bFilters.ApplyFilterCondition(
@@ -105,34 +114,23 @@ func MatchesHasExpression(val any, stmt *gripql.HasExpression) bool {
 		)
 
 	case *gripql.HasExpression_And:
-		and := stmt.GetAnd()
-		andRes := []bool{}
-		for _, e := range and.Expressions {
-			andRes = append(andRes, MatchesHasExpression(val, e))
-		}
-		for _, r := range andRes {
-			if !r {
+		for _, e := range stmt.GetAnd().Expressions {
+			if !MatchesHasExpression(row, e, tableName) {
 				return false
 			}
 		}
 		return true
 
 	case *gripql.HasExpression_Or:
-		or := stmt.GetOr()
-		orRes := []bool{}
-		for _, e := range or.Expressions {
-			orRes = append(orRes, MatchesHasExpression(val, e))
-		}
-		for _, r := range orRes {
-			if r {
+		for _, e := range stmt.GetOr().Expressions {
+			if MatchesHasExpression(row, e, tableName) {
 				return true
 			}
 		}
 		return false
 
 	case *gripql.HasExpression_Not:
-		e := stmt.GetNot()
-		return !MatchesHasExpression(val, e)
+		return !MatchesHasExpression(row, stmt.GetNot(), tableName)
 
 	default:
 		log.Errorf("unknown where expression type: %T", stmt.Expression)

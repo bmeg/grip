@@ -506,44 +506,6 @@ func (ggraph *Graph) DelEdge(eid string) error {
 	return bulkErr.ErrorOrNil()
 }
 
-// GetEdgeList produces a channel of all edges in the graph
-func (ggraph *Graph) GetEdgeList(ctx context.Context, loadProp bool) <-chan *gdbi.Edge {
-	o := make(chan *gdbi.Edge, 100)
-	go func() {
-		defer close(o)
-		ggraph.jsonkv.Pkv.View(func(it *pebblebulk.PebbleIterator) error {
-			ePrefix := EdgeListPrefix()
-			for it.Seek(ePrefix); it.Valid() && bytes.HasPrefix(it.Key(), ePrefix); it.Next() {
-				select {
-				case <-ctx.Done():
-					return nil
-				default:
-				}
-				eid, sid, did, label := EdgeKeyParse(it.Key())
-				e := &gdbi.Edge{ID: eid, Label: label, From: sid, To: did}
-				if loadProp {
-					entry, err := ggraph.jsonkv.LocCache.Get(ctx, eid)
-					if err != nil {
-						log.Errorf("GetEdgeList: PageCache.Get( error: %v", err)
-						continue
-					}
-					e.Data, err = ggraph.jsonkv.Tables[ETABLE_PREFIX+label].GetRow(entry)
-					if err != nil {
-						log.Errorf("GetEdgeList: GetRow error: %v", err)
-						continue
-					}
-					e.Loaded = true
-				} else {
-					e.Data = map[string]any{}
-				}
-				o <- e
-			}
-			return nil
-		})
-	}()
-	return o
-}
-
 // GetVertex loads a vertex given an id. It returns a nil if not found
 func (ggraph *Graph) GetVertex(id string, loadProp bool) *gdbi.Vertex {
 	ekeyPrefix := VertexKey(id)
@@ -587,52 +549,127 @@ type elementData struct {
 	data  []byte
 }
 
+type idEntry struct {
+	lookup gdbi.ElementLookup
+	loc    *benchtop.RowLoc
+}
+
 func (ggraph *Graph) GetVertexChannel(ctx context.Context, ids chan gdbi.ElementLookup, load bool) chan gdbi.ElementLookup {
 	out := make(chan gdbi.ElementLookup, 100)
 	go func() {
 		defer close(out)
-		ggraph.jsonkv.Pkv.View(func(it *pebblebulk.PebbleIterator) error {
+		if !load {
 			for id := range ids {
 				if id.IsSignal() {
 					out <- id
 				} else {
-					if load {
-						prefix := VertexKey(id.ID)
-						v := gdbi.Vertex{ID: id.ID}
-						for it.Seek(prefix); it.Valid() && bytes.HasPrefix(it.Key(), prefix); it.Next() {
-							label, err := it.Value()
-							if err != nil {
-								log.Errorln("GetVertexChannel it.Value() err: ", err)
-								continue
-							}
-							v.Label = string(label)
-
-							entry, err := ggraph.jsonkv.LocCache.Get(ctx, id.ID)
-							if err != nil {
-								log.Errorf("GetVertexChannel: PageCache.Get( error: %v", err)
-								continue
-							}
-							v.Data, err = ggraph.jsonkv.Tables[VTABLE_PREFIX+v.Label].GetRow(entry)
-							if err != nil {
-								log.Errorf("GetVertexChannel: GetRow error for ID %s: %v", id.ID, err)
-								continue
-							}
-							v.Loaded = true
-						}
-						id.Vertex = &v
-						out <- id
-
-					} else {
-						id.Vertex = &gdbi.Vertex{ID: id.ID}
-						out <- id
-					}
+					id.Vertex = &gdbi.Vertex{ID: id.ID}
+					out <- id
 				}
 			}
-			return nil
-		})
+			return
+		}
+		var batch []idEntry
+		for id := range ids {
+			if id.IsSignal() {
+				out <- id
+				continue
+			}
+			entry, err := ggraph.jsonkv.LocCache.Get(ctx, id.ID)
+			if err != nil {
+				log.Errorf("GetVertexChannel: PageCache.Get error: %v", err)
+				continue
+			}
+			batch = append(batch, idEntry{lookup: id, loc: entry})
+			if len(batch) >= 1000 {
+				processBatchWithLabelCache(ggraph, batch, out)
+				batch = nil
+			}
+		}
+		if len(batch) > 0 {
+			processBatchWithLabelCache(ggraph, batch, out)
+		}
 	}()
 	return out
 }
+
+type groupKey struct {
+	TableId uint16
+	Section uint16
+}
+
+func processBatchWithLabelCache(ggraph *Graph, batch []idEntry, out chan gdbi.ElementLookup) {
+	var wg sync.WaitGroup
+	sem := make(chan struct{}, 10)
+	byKey := make(map[groupKey][]idEntry)
+	for _, entry := range batch {
+		key := groupKey{TableId: entry.loc.TableId, Section: entry.loc.Section}
+		byKey[key] = append(byKey[key], entry)
+	}
+	for key, entries := range byKey {
+		wg.Add(1)
+		go func(key groupKey, entries []idEntry) {
+			sem <- struct{}{}
+			defer func() { <-sem; wg.Done() }()
+			locs := make([]*benchtop.RowLoc, len(entries))
+			for i, entry := range entries {
+				locs[i] = entry.loc
+			}
+			Tlabel := ggraph.jsonkv.LabelLookup[key.TableId]
+			results, errors := ggraph.jsonkv.Tables[VTABLE_PREFIX+Tlabel].GetRows(locs, key.Section)
+			for i, entry := range entries {
+				if errors[i] != nil {
+					log.Errorf("GetVertexChannel: GetRows error for ID %s: %v", entry.lookup.ID, errors[i])
+					continue
+				}
+				entry.lookup.Vertex = &gdbi.Vertex{
+					Data:   results[i],
+					Label:  Tlabel,
+					Loaded: true,
+					ID:     entries[i].lookup.ID,
+				}
+				out <- entry.lookup
+			}
+		}(key, entries)
+	}
+	wg.Wait()
+}
+
+/*
+func processBatchWithLabelCache(ggraph *Graph, batch []idEntry, out chan gdbi.ElementLookup) {
+	var wg sync.WaitGroup
+	sem := make(chan struct{}, 10)
+	bySection := make(map[uint16][]idEntry)
+	for _, entry := range batch {
+		bySection[entry.loc.Section] = append(bySection[entry.loc.Section], entry)
+	}
+	for sectionID, entries := range bySection {
+		wg.Add(1)
+		go func(sectionID uint16, entries []idEntry) {
+			sem <- struct{}{}
+			defer func() { <-sem; wg.Done() }()
+			sort.Slice(entries, func(i, j int) bool {
+				return entries[i].loc.Offset < entries[j].loc.Offset
+			})
+			for _, entry := range entries {
+				v := gdbi.Vertex{
+					ID:    entry.lookup.ID,
+					Label: ggraph.jsonkv.LabelLookup[entry.loc.TableId],
+				}
+				data, err := ggraph.jsonkv.Tables[VTABLE_PREFIX+v.Label].GetRow(entry.loc)
+				if err != nil {
+					log.Errorf("GetVertexChannel: GetRow error for ID %s: %v", entry.lookup.ID, err)
+					continue
+				}
+				v.Data = data
+				v.Loaded = true
+				entry.lookup.Vertex = &v
+				out <- entry.lookup
+			}
+		}(sectionID, entries)
+	}
+	wg.Wait()
+	}*/
 
 type lookup struct {
 	req gdbi.ElementLookup
@@ -648,7 +685,12 @@ func (ggraph *Graph) GetOutChannel(ctx context.Context, reqChan chan gdbi.Elemen
 		ggraph.jsonkv.Pkv.View(func(it *pebblebulk.PebbleIterator) error {
 			for req := range reqChan {
 				if req.IsSignal() {
-					lookupChan <- lookup{req: req}
+					// Use a select statement to send to lookupChan or check for cancellation
+					select {
+					case lookupChan <- lookup{req: req}:
+					case <-ctx.Done():
+						return ctx.Err() // Stop if cancelled while trying to send
+					}
 				} else {
 					found := false
 					skeyPrefix := SrcEdgePrefix(req.ID)
@@ -679,7 +721,11 @@ func (ggraph *Graph) GetOutChannel(ctx context.Context, reqChan chan gdbi.Elemen
 		defer close(o)
 		for req := range lookupChan {
 			if req.req.IsSignal() {
-				o <- req.req
+				select {
+				case o <- req.req:
+				case <-ctx.Done():
+					return
+				}
 			} else {
 				if req.key != "" {
 					entry, err := ggraph.jsonkv.LocCache.Get(ctx, req.key)

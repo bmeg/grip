@@ -56,7 +56,6 @@ func (l *lookupVertsHasLabelCondIndexProc) Process(ctx context.Context, man gdbi
 			}
 		}
 	}
-
 	count := 0
 	if !exists || (l.expr == nil && cond == nil) {
 		log.Debugln("Using base case processor lookupVertsHasLabelCondIndexProc")
@@ -69,21 +68,29 @@ func (l *lookupVertsHasLabelCondIndexProc) Process(ctx context.Context, man gdbi
 						log.Debugf("BSONTable for label '%s' is nil. Cannot scan.", label)
 						continue
 					}
-					for roMaps := range tableFound.Scan(l.loadData, &GripQLFilter{Expression: l.expr}) {
-						v := gdbi.Vertex{
-							Label:  label[2:],
-							Loaded: l.loadData,
+					if l.loadData {
+						for roMaps := range tableFound.ScanDoc(&GripQLFilter{Expression: l.expr}) {
+							v := gdbi.Vertex{
+								Label:  label[2:],
+								Loaded: l.loadData,
+								ID:     roMaps["_id"].(string),
+							}
+							delete(roMaps, "_id")
+							v.Data = roMaps
+							count += 1
+							out <- t.AddCurrent(v.Copy())
 						}
-						if l.loadData {
-							v.ID = roMaps.(map[string]any)["_id"].(string)
-							delete(roMaps.(map[string]any), "_id")
-							v.Data = roMaps.(map[string]any)
-						} else {
-							v.ID = roMaps.(string)
-							v.Data = map[string]any{}
+					} else {
+						for roMaps := range tableFound.ScanId(&GripQLFilter{Expression: l.expr}) {
+							v := gdbi.Vertex{
+								Label:  label[2:],
+								Loaded: l.loadData,
+								ID:     roMaps,
+								Data:   map[string]any{},
+							}
+							count += 1
+							out <- t.AddCurrent(v.Copy())
 						}
-						count += 1
-						out <- t.AddCurrent(v.Copy())
 					}
 				}
 			}
@@ -110,7 +117,6 @@ func (l *lookupVertsHasLabelCondIndexProc) Process(ctx context.Context, man gdbi
 			}
 		}()
 	}
-
 	return ctx
 }
 
@@ -141,11 +147,10 @@ type lookupVertsCondIndexProc struct {
 
 func (l *lookupVertsCondIndexProc) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
 	log.Debugln("Entering lookupVertsCondIndexProc custom processor")
-	queryChan := make(chan gdbi.ElementLookup, 100)
 	cond := l.expr.GetCondition()
 
-	/*  Indexing only works if every vertex label is indexed for that specific field and it's only a condition Filter
-	otherwise this lookup will not fetch everything that was asked for */
+	/* Indexing only works if every vertex label is indexed for that specific field and it's only a condition Filter
+	   otherwise this lookup will not fetch everything that was asked for */
 	allMatch := cond != nil
 	if allMatch {
 		for lbl := range l.db.jsonkv.GetLabels(false, false) {
@@ -160,10 +165,12 @@ func (l *lookupVertsCondIndexProc) Process(ctx context.Context, man gdbi.Manager
 			}
 		}
 	}
-	/*  Optimized indexing only works for Simple filters.			  /
-	/ 	If compound filter or index doesn't exist use backup method */
+
+	/* Optimized indexing only works for Simple filters.
+	   If compound filter or index doesn't exist, use backup method */
 	if cond != nil && allMatch {
 		log.Debugln("Chose index optimized V().Has() statement path")
+		queryChan := make(chan gdbi.ElementLookup, 100)
 		go func() {
 			defer close(queryChan)
 			for t := range in {
@@ -179,36 +186,35 @@ func (l *lookupVertsCondIndexProc) Process(ctx context.Context, man gdbi.Manager
 				}
 			}
 		}()
+		// Process queryChan with GetVertexChannel for indexed case
+		go func() {
+			defer close(out)
+			for v := range l.db.GetVertexChannel(ctx, queryChan, l.loadData) {
+				i := v.Ref
+				out <- i.AddCurrent(v.Vertex.Copy())
+			}
+		}()
 	} else {
 		log.Debugf("Base case GetVertexList is used. No indexing")
 		go func() {
-			defer close(queryChan)
+			defer close(out)
 			for t := range in {
-				for v := range l.db.GetVertexList(ctx, true) {
-					if MatchesHasExpression(
-						AddSpecialFields(v),
-						l.expr,
-					) {
-						queryChan <- gdbi.ElementLookup{ID: v.ID, Ref: t}
+				for tLabel, table := range l.db.jsonkv.Tables {
+					if tLabel[:2] == VTABLE_PREFIX {
+						for v := range table.ScanDoc(&GripQLFilter{Expression: l.expr}) {
+							vertex := gdbi.Vertex{
+								ID:     v["_id"].(string),
+								Label:  tLabel[len(VTABLE_PREFIX):], // Extract label from table name
+								Data:   v,                           // Use full data from ScanDoc
+								Loaded: l.loadData,                  // Set Loaded based on l.loadData
+							}
+							// Send directly to out channel
+							out <- t.AddCurrent(vertex.Copy())
+						}
 					}
-
 				}
 			}
 		}()
 	}
-
-	go func() {
-		defer close(out)
-		for v := range l.db.GetVertexChannel(ctx, queryChan, l.loadData) {
-			i := v.Ref
-			out <- i.AddCurrent(v.Vertex.Copy())
-		}
-	}()
 	return ctx
-}
-
-func AddSpecialFields(v *gdbi.Vertex) any {
-	v.Data["_label"] = v.Label
-	v.Data["_id"] = v.ID
-	return v.Data
 }

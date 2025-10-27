@@ -2,15 +2,13 @@ module github.com/bmeg/grip
 
 go 1.24.2
 
-replace github.com/bmeg/benchtop v0.0.0-20250827195345-9810354883b9 => ../benchtop
-
 require (
 	github.com/IBM/sarama v1.45.1
 	github.com/Shopify/sarama v1.38.1
 	github.com/Workiva/go-datastructures v1.1.5
 	github.com/akrylysov/pogreb v0.10.2
 	github.com/antlr/antlr4/runtime/Go/antlr v1.4.10
-	github.com/bmeg/benchtop v0.0.0-20250827195345-9810354883b9
+	github.com/bmeg/benchtop v0.0.0-20251027212658-046a256eb6fa
 	github.com/bmeg/jsonpath v0.0.0-20210207014051-cca5355553ad
 	github.com/bmeg/jsonschema/v6 v6.0.4
 	github.com/bmeg/jsonschemagraph v0.0.4-0.20251017205345-236d2de9887c

@@ -214,80 +214,6 @@ func (g *Graph) VertexLabelScan(ctx context.Context, label string) chan string {
 	return o
 }
 
-// GetEdgeList produces a channel of all edges in the graph
-func (g *Graph) GetEdgeList(ctx context.Context, load bool) <-chan *gdbi.Edge {
-	o := make(chan *gdbi.Edge, 100)
-	go func() {
-		defer close(o)
-		for _, edgeSchema := range g.schema.Edges {
-			q := ""
-			switch edgeSchema.Table {
-			case "":
-				q = fmt.Sprintf("SELECT %s.%s, %s.%s FROM %s INNER JOIN %s ON %s.%s=%s.%s",
-					// SELECT
-					edgeSchema.From.DestTable, g.schema.GetVertexGid(edgeSchema.From.DestTable),
-					edgeSchema.To.DestTable, g.schema.GetVertexGid(edgeSchema.To.DestTable),
-					// FROM
-					edgeSchema.From.DestTable,
-					// INNER JOIN
-					edgeSchema.To.DestTable,
-					// ON
-					edgeSchema.From.DestTable, edgeSchema.From.DestField,
-					edgeSchema.To.DestTable, edgeSchema.To.DestField,
-				)
-				rows, err := g.db.QueryxContext(ctx, q)
-				if err != nil {
-					log.WithFields(log.Fields{"error": err}).Error("GetEdgeList: QueryxContext")
-					return
-				}
-				defer rows.Close()
-				for rows.Next() {
-					var fromGid, toGid string
-					if err := rows.Scan(&fromGid, &toGid); err != nil {
-						log.WithFields(log.Fields{"error": err}).Error("GetEdgeList: Scan")
-						return
-					}
-					geid := &generatedEdgeID{edgeSchema.Label, edgeSchema.From.DestTable, fromGid, edgeSchema.To.DestTable, toGid}
-					edge := geid.Edge()
-					o <- gdbi.NewElementFromEdge(edge)
-				}
-				if err := rows.Err(); err != nil {
-					log.WithFields(log.Fields{"error": err}).Error("GetEdgeList: iterating")
-					return
-				}
-
-			default:
-				q = fmt.Sprintf("SELECT * FROM %s", edgeSchema.Table)
-				rows, err := g.db.QueryxContext(ctx, q)
-				if err != nil {
-					log.WithFields(log.Fields{"error": err}).Error("GetEdgeList: QueryxContext")
-					return
-				}
-				types, err := columnTypeMap(rows)
-				if err != nil {
-					log.WithFields(log.Fields{"error": err}).Error("GetEdgeList: columnTypeMap")
-					return
-				}
-
-				defer rows.Close()
-				for rows.Next() {
-					data := make(map[string]interface{})
-					if err := rows.MapScan(data); err != nil {
-						log.WithFields(log.Fields{"error": err}).Error("GetEdgeList: MapScan")
-						return
-					}
-					o <- gdbi.NewElementFromEdge(rowDataToEdge(edgeSchema, data, types, load))
-				}
-				if err := rows.Err(); err != nil {
-					log.WithFields(log.Fields{"error": err}).Error("GetEdgeList: iterating")
-					return
-				}
-			}
-		}
-	}()
-	return o
-}
-
 // GetVertexChannel is passed a channel of vertex ids and it produces a channel
 // of vertices
 func (g *Graph) GetVertexChannel(ctx context.Context, reqChan chan gdbi.ElementLookup, load bool) chan gdbi.ElementLookup {
@@ -331,7 +257,7 @@ func (g *Graph) GetVertexChannel(ctx context.Context, reqChan chan gdbi.ElementL
 			}
 			defer rows.Close()
 			for rows.Next() {
-				data := make(map[string]interface{})
+				data := make(map[string]any)
 				if err := rows.MapScan(data); err != nil {
 					log.WithFields(log.Fields{"error": err}).Error("GetVertexChannel: MapScan")
 					return

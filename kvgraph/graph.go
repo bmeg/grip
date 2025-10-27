@@ -247,40 +247,6 @@ func (kgdb *KVInterfaceGDB) DelVertex(id string) error {
 	})
 }
 
-// GetEdgeList produces a channel of all edges in the graph
-func (kgdb *KVInterfaceGDB) GetEdgeList(ctx context.Context, loadProp bool) <-chan *gdbi.Edge {
-	o := make(chan *gdbi.Edge, 100)
-	go func() {
-		defer close(o)
-		kgdb.kvg.kv.View(func(it kvi.KVIterator) error {
-			ePrefix := EdgeListPrefix(kgdb.graph)
-			for it.Seek(ePrefix); it.Valid() && bytes.HasPrefix(it.Key(), ePrefix); it.Next() {
-				select {
-				case <-ctx.Done():
-					return nil
-				default:
-				}
-				keyValue := it.Key()
-				_, eid, sid, did, label, etype := EdgeKeyParse(keyValue)
-				if etype == edgeSingle {
-					if loadProp {
-						edgeData, _ := it.Value()
-						ge := &gripql.Edge{}
-						proto.Unmarshal(edgeData, ge)
-						e := &gdbi.Edge{ID: ge.Id, Label: ge.Label, From: sid, To: did, Data: ge.Data.AsMap(), Loaded: true}
-						o <- e
-					} else {
-						e := &gdbi.Edge{ID: string(eid), Label: label, From: sid, To: did, Loaded: false}
-						o <- e
-					}
-				}
-			}
-			return nil
-		})
-	}()
-	return o
-}
-
 // GetVertex loads a vertex given an id. It returns a nil if not found
 func (kgdb *KVInterfaceGDB) GetVertex(id string, loadProp bool) *gdbi.Vertex {
 	vkey := VertexKey(kgdb.graph, id)
