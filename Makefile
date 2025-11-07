@@ -159,7 +159,7 @@ start-kafka:
 		-e KAFKA_CLIENT_PASSWORDS=adminpassword \
 		-e KAFKA_CFG_SASL_ENABLED_MECHANISMS=PLAIN \
 		-e KAFKA_CFG_SASL_MECHANISM_INTER_BROKER_PROTOCOL=PLAIN \
-		bitnami/kafka:latest
+		soldevelo/kafka:latest
 	printf '%s\n' \
 		'security.protocol=SASL_PLAINTEXT' \
 		'sasl.mechanism=PLAIN' \
