@@ -119,7 +119,9 @@ window.addEventListener('DOMContentLoaded', (event) => {
         dialog.showModal();
         document.body.toggleAttribute('data-search-modal-open', true);
         event?.stopPropagation();
-        window.addEventListener('click', onClick);
+        setTimeout(() => {
+            window.addEventListener('click', onClick);
+        }, 0);
         // Since autofocus: true is set on PagefindUI, focus is often automatic.
         // A short delay can ensure the input is ready to be focused.
         setTimeout(() => {
