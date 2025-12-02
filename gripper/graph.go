@@ -362,47 +362,6 @@ func (t *TabularGraph) GetVertexList(ctx context.Context, load bool) <-chan *gdb
 	return out
 }
 
-func (t *TabularGraph) GetEdgeList(ctx context.Context, load bool) <-chan *gdbi.Edge {
-	out := make(chan *gdbi.Edge, 100)
-	go func() {
-		log.Infof("Getting edge list")
-		defer close(out)
-		for _, source := range t.edgeSourceOrder {
-			edgeList := t.outEdges[source]
-			for _, edge := range edgeList {
-				if ctx.Err() == context.Canceled {
-					return
-				}
-				res := t.client.GetRows(ctx,
-					edge.config.Data.Source,
-					edge.config.Data.Collection)
-				for row := range res {
-					data := row.Data.AsMap()
-					if dstStr, err := getFieldString(data, edge.config.Data.ToField); err == nil {
-						if dstStr != "" {
-							if srcStr, err := getFieldString(data, edge.config.Data.FromField); err == nil {
-								if srcStr != "" {
-									e := gdbi.Edge{
-										ID:     edge.GenID(srcStr, dstStr),
-										To:     edge.toVertex.prefix + dstStr,
-										From:   edge.fromVertex.prefix + srcStr,
-										Label:  edge.config.Label,
-										Data:   row.Data.AsMap(),
-										Loaded: true,
-									}
-									out <- &e
-								}
-							}
-						}
-					}
-				}
-			}
-		}
-		log.Infof("Done with edgelist")
-	}()
-	return out
-}
-
 func copyPipeline() (chan interface{}, chan interface{}) {
 	in := make(chan interface{}, 10)
 	out := make(chan interface{}, 10)

@@ -48,6 +48,7 @@ setup(
         'Natural Language :: English',
         'License :: OSI Approved :: MIT License',
         'Topic :: Software Development :: Libraries',
+
         'Programming Language :: Python :: 3.9',
         'Programming Language :: Python :: 3.12'
 

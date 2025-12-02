@@ -178,7 +178,6 @@ type GraphInterface interface {
 	GetVertexIndexList() <-chan *gripql.IndexID
 
 	GetVertexList(ctx context.Context, load bool) <-chan *Vertex
-	GetEdgeList(ctx context.Context, load bool) <-chan *Edge
 
 	GetVertexChannel(ctx context.Context, req chan ElementLookup, load bool) chan ElementLookup
 	GetOutChannel(ctx context.Context, req chan ElementLookup, load bool, emitNull bool, edgeLabels []string) chan ElementLookup

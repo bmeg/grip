@@ -377,41 +377,6 @@ func (g *Graph) VertexLabelScan(ctx context.Context, label string) chan string {
 	return o
 }
 
-// GetEdgeList produces a channel of all edges in the graph
-func (g *Graph) GetEdgeList(ctx context.Context, load bool) <-chan *gdbi.Edge {
-	o := make(chan *gdbi.Edge, 100)
-	go func() {
-		defer close(o)
-		q := fmt.Sprintf(`SELECT id, label, "from", "to" FROM %s`, g.e)
-		if load {
-			q = fmt.Sprintf(`SELECT * FROM %s`, g.e)
-		}
-		rows, err := g.db.QueryxContext(ctx, q)
-		if err != nil {
-			log.WithFields(log.Fields{"error": err}).Error("GetEdgeList: QueryxContext")
-			return
-		}
-		defer rows.Close()
-		for rows.Next() {
-			erow := &Row{}
-			if err := rows.StructScan(erow); err != nil {
-				log.WithFields(log.Fields{"error": err}).Error("GetEdgeList: StructScan")
-				continue
-			}
-			e, err := ConvertEdgeRow(erow, load)
-			if err != nil {
-				log.WithFields(log.Fields{"error": err}).Error("GetEdgeList: convertEdgeRow")
-				continue
-			}
-			o <- e
-		}
-		if err := rows.Err(); err != nil {
-			log.WithFields(log.Fields{"error": err}).Error("GetEdgeList: iterating")
-		}
-	}()
-	return o
-}
-
 // GetVertexChannel is passed a channel of vertex ids and it produces a channel of vertices
 func (g *Graph) GetVertexChannel(ctx context.Context, reqChan chan gdbi.ElementLookup, load bool) chan gdbi.ElementLookup {
 	batches := gdbi.LookupBatcher(reqChan, batchSize, time.Microsecond)

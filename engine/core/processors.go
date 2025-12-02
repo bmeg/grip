@@ -96,55 +96,6 @@ func (l *LookupVertsLabelIndex) Process(ctx context.Context, man gdbi.Manager, i
 
 ////////////////////////////////////////////////////////////////////////////////
 
-// LookupEdges starts query by looking up edges
-type LookupEdges struct {
-	db       gdbi.GraphInterface
-	ids      []string
-	loadData bool
-}
-
-// Process runs LookupEdges
-func (l *LookupEdges) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
-	go func() {
-		defer close(out)
-		for t := range in {
-			if t.IsSignal() {
-				out <- t
-				continue
-			}
-			if len(l.ids) == 0 {
-				for v := range l.db.GetEdgeList(ctx, l.loadData) {
-					out <- t.AddCurrent(&gdbi.DataElement{
-						ID:     v.ID,
-						Label:  v.Label,
-						From:   v.From,
-						To:     v.To,
-						Data:   v.Data,
-						Loaded: v.Loaded,
-					})
-				}
-			} else {
-				for _, i := range l.ids {
-					v := l.db.GetEdge(i, l.loadData)
-					if v != nil {
-						out <- t.AddCurrent(&gdbi.DataElement{
-							ID:     v.ID,
-							Label:  v.Label,
-							From:   v.From,
-							To:     v.To,
-							Data:   v.Data,
-							Loaded: v.Loaded,
-						})
-					}
-				}
-			}
-		}
-	}()
-	return ctx
-}
-
-////////////////////////////////////////////////////////////////////////////////
-
 // Fields selects fields from current element
 type Fields struct {
 	keys []string

@@ -63,7 +63,10 @@ var startOptimizations = []OptimizationRule{
 			if _, ok := pipe[1].GetStatement().(*gripql.GraphStatement_HasLabel); !ok {
 				return false
 			}
-			if _, ok := pipe[2].GetStatement().(*gripql.GraphStatement_Has); ok {
+			if stmt, ok := pipe[2].GetStatement().(*gripql.GraphStatement_Has); ok {
+				if stmt.Has.GetCondition() == nil {
+					return false
+				}
 				return true
 			}
 			return false

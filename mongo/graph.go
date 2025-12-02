@@ -278,43 +278,6 @@ func (mg *Graph) GetVertexList(ctx context.Context, load bool) <-chan *gdbi.Vert
 	return o
 }
 
-// GetEdgeList produces a channel of all edges in the graph
-func (mg *Graph) GetEdgeList(ctx context.Context, loadProp bool) <-chan *gdbi.Edge {
-	o := make(chan *gdbi.Edge, 100)
-
-	go func() {
-		defer close(o)
-		eCol := mg.ar.EdgeCollection(mg.graph)
-		opts := options.Find()
-		if !loadProp {
-			opts.SetProjection(bson.M{FIELD_ID: 1, FIELD_TO: 1, FIELD_FROM: 1, FIELD_LABEL: 1})
-		}
-		query, err := eCol.Find(ctx, bson.M{}, opts)
-		if err != nil {
-			return
-		}
-		defer query.Close(ctx)
-		for query.Next(ctx) {
-			select {
-			case <-ctx.Done():
-				return
-			default:
-			}
-			result := map[string]any{}
-			if err := query.Decode(&result); err == nil {
-				if _, ok := result[FIELD_TO]; ok {
-					e := UnpackEdge(result)
-					o <- e
-				}
-			} else {
-				log.Errorf("Error decoding edge %#v", result)
-			}
-		}
-	}()
-
-	return o
-}
-
 // GetVertexChannel is passed a channel of vertex ids and it produces a channel
 // of vertices
 func (mg *Graph) GetVertexChannel(ctx context.Context, ids chan gdbi.ElementLookup, load bool) chan gdbi.ElementLookup {
