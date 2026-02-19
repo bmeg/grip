@@ -14,6 +14,8 @@ const (
 
 // maxEdgeLabelLen limits the size of edge labels encoded into keys.
 // This prevents integer overflow and excessively large allocations
+// when computing key sizes that include len(label).
+const maxEdgeLabelLen = 4096
 // when computing the key size as 1+8+8+8+len(label).
 const maxEdgeLabelLen = 1 << 20 // 1 MiB
 
@@ -122,6 +124,9 @@ func EdgeKeyParse(key []byte) (eid uint64, sid uint64, did uint64, label string)
 // SrcEdgeKey creates a src edge index key
 func SrcEdgeKey(eid, src, dst uint64, label string) []byte {
 	// Format: < | src(8) | dst(8) | id(8) | label(var)
+	if len(label) > maxEdgeLabelLen {
+		label = label[:maxEdgeLabelLen]
+	}
 	out := make([]byte, 1+8+8+8+len(label))
 	out[0] = srcEdgePrefix[0]
 	binary.BigEndian.PutUint64(out[1:], src)
@@ -142,6 +147,9 @@ func SrcEdgeKeyParse(key []byte) (eid uint64, sid uint64, did uint64, label stri
 // DstEdgeKey creates a dest edge index key
 func DstEdgeKey(eid, src, dst uint64, label string) []byte {
 	// Format: > | dst(8) | src(8) | id(8) | label(var)
+	if len(label) > maxEdgeLabelLen {
+		label = label[:maxEdgeLabelLen]
+	}
 	out := make([]byte, 1+8+8+8+len(label))
 	out[0] = dstEdgePrefix[0]
 	binary.BigEndian.PutUint64(out[1:], dst)
