@@ -20,7 +20,7 @@ func (ma *GDB) BuildSchema(ctx context.Context, graph string, sampleN uint32, ra
 	log.WithFields(log.Fields{"graph": graph}).Debug("Starting KV GetSchema call")
 
 	if g, ok := ma.drivers[graph]; ok {
-		vSchema, eSchema, err = g.sampleSchema(ctx, sampleN, random)
+		vSchema, eSchema, err = g.sampleSchema(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("getting vertex schema: %v", err)
 		}
@@ -33,8 +33,8 @@ func (ma *GDB) BuildSchema(ctx context.Context, graph string, sampleN uint32, ra
 	return nil, fmt.Errorf("Graph not found")
 }
 
-func (gi *Graph) sampleSchema(ctx context.Context, n uint32, random bool) ([]*gripql.Vertex, []*gripql.Edge, error) {
-	labels := gi.jsonkv.List()
+func (gi *Graph) sampleSchema(ctx context.Context) ([]*gripql.Vertex, []*gripql.Edge, error) {
+	labels := gi.driver.List()
 	vertLabels := []string{}
 	for _, label := range labels {
 		if label[:2] == "v_" {

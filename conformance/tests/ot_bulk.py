@@ -27,15 +27,67 @@ def test_bulkload(man):
 
     res = G.V().count().execute()[0]
     if res["count"] != 6:
-        errors.append(
-            "Bulk Add wrong number of vertices: %s != %s" %
-            (res["count"], 6))
+        errors.append("Bulk Add wrong number of vertices: %s != %s" % (res["count"], 6))
 
     res = G.V().outE().count().execute()[0]
     if res["count"] != 6:
-        errors.append(
-            "Bulk Add wrong number of edges: %s != %s" %
-            (res["count"], 6))
+        errors.append("Bulk Add wrong number of edges: %s != %s" % (res["count"], 6))
+
+    return errors
+
+
+def test_bulkload_duplicate(man):
+    errors = []
+
+    G = man.writeTest()
+
+    bulk = G.bulkAdd()
+
+    bulk.addVertex("1", "Person", {"name": "marko", "age": "29"})
+    bulk.addVertex("2", "Person", {"name": "vadas", "age": "27"})
+    bulk.addVertex("3", "Software", {"name": "lop", "lang": "java"})
+    bulk.addVertex("4", "Person", {"name": "josh", "age": "32"})
+    bulk.addVertex("5", "Software", {"name": "ripple", "lang": "java"})
+    bulk.addVertex("6", "Person", {"name": "peter", "age": "35"})
+
+    bulk.addEdge("1", "3", "created", {"weight": 0.4})
+    bulk.addEdge("1", "2", "knows", {"weight": 0.5})
+    bulk.addEdge("1", "4", "knows", {"weight": 1.0})
+    bulk.addEdge("4", "3", "created", {"weight": 0.4})
+    bulk.addEdge("6", "3", "created", {"weight": 0.2})
+    bulk.addEdge("4", "5", "created", {"weight": 1.0})
+
+    err = bulk.execute()
+
+    bulk = G.bulkAdd()
+
+    bulk.addVertex("1", "Person", {"name": "marko", "age": "29"})
+    bulk.addVertex("2", "Person", {"name": "vadas", "age": "27"})
+    bulk.addVertex("3", "Software", {"name": "lop", "lang": "java"})
+    bulk.addVertex("4", "Person", {"name": "josh", "age": "32"})
+    bulk.addVertex("5", "Software", {"name": "ripple", "lang": "java"})
+    bulk.addVertex("6", "Person", {"name": "peter", "age": "35"})
+
+    bulk.addEdge("1", "3", "created", {"weight": 0.4})
+    bulk.addEdge("1", "2", "knows", {"weight": 0.5})
+    bulk.addEdge("1", "4", "knows", {"weight": 1.0})
+    bulk.addEdge("4", "3", "created", {"weight": 0.4})
+    bulk.addEdge("6", "3", "created", {"weight": 0.2})
+    bulk.addEdge("4", "5", "created", {"weight": 1.0})
+
+    err = bulk.execute()
+
+    if err.get("errorCount", 0) != 0:
+        print(err)
+        errors.append("Bulk insertion error")
+
+    res = G.V().count().execute()[0]
+    if res["count"] != 6:
+        errors.append("Bulk Add wrong number of vertices: %s != %s" % (res["count"], 6))
+
+    res = G.V().outE().count().execute()[0]
+    if res["count"] != 6:
+        errors.append("Bulk Add wrong number of edges: %s != %s" % (res["count"], 6))
 
     return errors
 
@@ -89,9 +141,7 @@ def test_bulk_delete(man):
     G.addEdge("vertex4", "vertex5", "created", {"weight": 0.4}, id="edge8")
     G.addEdge("vertex4", "vertex6", "created", {"weight": 0.4}, id="edge9")
 
-    G.delete(vertices=["vertex1", "vertex2",
-                       "vertex3"],
-             edges=[])
+    G.delete(vertices=["vertex1", "vertex2", "vertex3"], edges=[])
 
     Ecount = G.V().outE().count().execute()[0]["count"]
     Vcount = G.V().count().execute()[0]["count"]
@@ -107,7 +157,6 @@ def test_bulk_delete(man):
         errors.append(f"Wrong number of edges {Ecount} != 2")
     if Vcount != 3:
         errors.append(f"Wrong number of vertices {Vcount} != 3")
-
 
     G.delete(vertices=["vertex5", "vertex6"], edges=["edge9"])
     Ecount = G.V().outE().count().execute()[0]["count"]

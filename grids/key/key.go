@@ -1,15 +1,18 @@
-package grids
+package key
 
 import (
 	"bytes"
+)
+
+const (
+	VertexTablePrefix = "v_"
+	EdgeTablePrefix   = "e_"
 )
 
 var vertexPrefix = []byte(".")
 var edgePrefix = []byte("-")
 var srcEdgePrefix = []byte("<")
 var dstEdgePrefix = []byte(">")
-
-var intSize = 10
 
 // VertexKey generates the key given a vertexId
 func VertexKey(id string) []byte {
@@ -100,7 +103,6 @@ func DstEdgeKeyParse(key []byte) (eid string, sid string, did string, label stri
 	tmp := bytes.Split(key, []byte{0})
 	return string(tmp[3]), string(tmp[2]), string(tmp[1]), string(tmp[4])
 }
-
 
 // VertexListPrefix returns a byte array prefix for all vertices in a graph
 func VertexListPrefix() []byte {

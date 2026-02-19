@@ -8,7 +8,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/bmeg/benchtop/jsontable"
+	"github.com/bmeg/grip/grids/driver"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/timestamp"
 )
@@ -17,15 +17,16 @@ import (
 type Graph struct {
 	graphID string
 
-	jsonkv           *jsontable.JSONDriver
-	ts               *timestamp.Timestamp
-	tempDeletedEdges map[string]struct{}
-	edgesMutex       sync.Mutex
+	driver            *driver.GridKVDriver
+	ts                *timestamp.Timestamp
+	tempDeletedEdges  map[string]struct{}
+	edgesMutex        sync.Mutex
+	BulkLoaderWorkers int
 }
 
 // Close the connection
 func (g *Graph) Close() error {
-	g.jsonkv.Close()
+	g.driver.Close()
 	return nil
 }
 
@@ -35,53 +36,51 @@ func (kgraph *GDB) AddGraph(graph string) error {
 	if err != nil {
 		return err
 	}
-	g, err := newGraph(kgraph.basePath, graph)
+	g, err := newGraph(kgraph.conf, graph)
 	if err != nil {
 		return err
 	}
+	kgraph.mu.Lock()
+	defer kgraph.mu.Unlock()
 	kgraph.drivers[graph] = g
 	return nil
 }
 
-func newGraph(baseDir, name string) (*Graph, error) {
-	dbPath := filepath.Join(baseDir, name)
+func newGraph(conf Config, name string) (*Graph, error) {
+	dbPath := filepath.Join(conf.GraphDir, name)
 	fmt.Printf("Creating new GRIDS graph %s\n", name)
 
-	// Create directory if it doesn't exist
 	if _, err := os.Stat(dbPath); os.IsNotExist(err) {
 		if err := os.Mkdir(dbPath, 0700); err != nil {
 			return nil, fmt.Errorf("failed to create directory %s: %v", dbPath, err)
 		}
 	}
 
-	// Create VERSION file
 	versionPath := filepath.Join(dbPath, "VERSION")
 	if err := os.WriteFile(versionPath, []byte("0.0.1"), 0644); err != nil {
 		return nil, fmt.Errorf("failed to create VERSION file: %v", err)
 	}
 
-	//bsonkvPath := fmt.Sprintf("%s", dbPath)
-	jsonkvPath := dbPath
-	tabledr, err := jsontable.NewJSONDriver(jsonkvPath)
+	drvr, err := driver.NewGridKVDriver(dbPath, conf.Driver)
 	if err != nil {
-		return nil, fmt.Errorf("failed to open jsonkv at %s: %v", jsonkvPath, err)
+		return nil, fmt.Errorf("failed to open grids storage at %s: %v", dbPath, err)
 	}
-	jsonkv := tabledr.(*jsontable.JSONDriver)
 
 	ts := timestamp.NewTimestamp()
 
 	o := &Graph{
-		jsonkv:           jsonkv,
-		ts:               &ts,
-		graphID:          name,
-		tempDeletedEdges: make(map[string]struct{}),
-		edgesMutex:       sync.Mutex{},
+		driver:            drvr,
+		ts:                &ts,
+		graphID:           name,
+		tempDeletedEdges:  make(map[string]struct{}),
+		edgesMutex:        sync.Mutex{},
+		BulkLoaderWorkers: conf.BulkLoaderWorkers,
 	}
 	return o, nil
 }
 
-func getGraph(baseDir, name string) (*Graph, error) {
-	dbPath := filepath.Join(baseDir, name)
+func getGraph(conf Config, name string) (*Graph, error) {
+	dbPath := filepath.Join(conf.GraphDir, name)
 	fmt.Printf("fetching GRIDS graph %s\n", name)
 
 	versionPath := filepath.Join(dbPath, "VERSION")
@@ -95,29 +94,24 @@ func getGraph(baseDir, name string) (*Graph, error) {
 	if scanner.Scan() {
 		version := scanner.Text()
 		if strings.TrimSpace(version) != "0.0.1" {
-			return nil, fmt.Errorf("VERSION file at %s does not have '0.0.1' on the first line", versionPath)
+			return nil, fmt.Errorf("unsupported version %s", version)
 		}
-	} else {
-		return nil, fmt.Errorf("VERSION file at %s is empty", versionPath)
 	}
 
-	if err := scanner.Err(); err != nil {
-		return nil, fmt.Errorf("error reading VERSION file at %s: %v", versionPath, err)
-	}
-
-	jsonkvPath := dbPath
-	tabledr, err := jsontable.LoadJSONDriver(jsonkvPath)
+	drvr, err := driver.NewGridKVDriver(dbPath, conf.Driver)
 	if err != nil {
-		return nil, fmt.Errorf("failed to open bsonkv at %s: %v", jsonkvPath, err)
+		return nil, fmt.Errorf("failed to open grids storage at %s: %v", dbPath, err)
 	}
-
-	jsonkv := tabledr.(*jsontable.JSONDriver)
 
 	ts := timestamp.NewTimestamp()
+
 	o := &Graph{
-		jsonkv:  jsonkv,
-		ts:      &ts,
-		graphID: name,
+		driver:            drvr,
+		ts:                &ts,
+		graphID:           name,
+		tempDeletedEdges:  make(map[string]struct{}),
+		edgesMutex:        sync.Mutex{},
+		BulkLoaderWorkers: conf.BulkLoaderWorkers,
 	}
 	return o, nil
 }
@@ -130,11 +124,13 @@ func (kgraph *GDB) DeleteGraph(graph string) error {
 	if err != nil {
 		return nil
 	}
+	kgraph.mu.Lock()
+	defer kgraph.mu.Unlock()
 	if d, ok := kgraph.drivers[graph]; ok {
 		d.Close()
 		delete(kgraph.drivers, graph)
 	}
-	dbPath := filepath.Join(kgraph.basePath, graph)
+	dbPath := filepath.Join(kgraph.conf.GraphDir, graph)
 	os.RemoveAll(dbPath)
 	return nil
 }

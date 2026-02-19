@@ -511,7 +511,21 @@ func (s *MarkSelect) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPi
 				continue
 			}
 			m := t.GetMark(s.mark)
-			out <- t.AddCurrent(m)
+			n := t.AddCurrent(m)
+			// Select should count as a path step even when selecting the same element.
+			if len(n.GetPath()) == len(t.GetPath()) {
+				if bt, ok := n.(*gdbi.BaseTraveler); ok {
+					de := m.Get()
+					if de == nil {
+						bt.Path = append(bt.Path, gdbi.DataElementID{})
+					} else if de.To != "" {
+						bt.Path = append(bt.Path, gdbi.DataElementID{Edge: de.ID})
+					} else {
+						bt.Path = append(bt.Path, gdbi.DataElementID{Vertex: de.ID})
+					}
+				}
+			}
+			out <- n
 		}
 	}()
 	return ctx

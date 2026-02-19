@@ -137,6 +137,7 @@ type ElementLookup struct {
 	Ref    Traveler
 	Vertex VertexRef
 	Edge   EdgeRef
+	Priv   any
 }
 
 // GraphDB is the base interface for graph databases

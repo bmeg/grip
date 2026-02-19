@@ -172,19 +172,16 @@ KeyLoop:
 		}
 	}
 
-	var out Traveler = &BaseTraveler{}
+	cde := t.GetCurrent().Get()
+	var out Traveler = t.Copy()
 	out = out.AddCurrent(&DataElement{
-		Data: map[string]interface{}{},
+		ID:    cde.ID,
+		Label: cde.Label,
+		From:  cde.From,
+		To:    cde.To,
+		Data:  map[string]interface{}{},
 	})
-	for _, mark := range t.ListMarks() {
-		out = out.AddMark(mark, t.GetMark(mark))
-	}
-
-	var cde *DataElement
-	var ode *DataElement
-
-	cde = t.GetCurrent().Get()
-	ode = out.GetCurrent().Get()
+	ode := out.GetCurrent().Get()
 
 	if len(excludePaths) > 0 {
 		cde = excludeFields(cde, excludePaths)
@@ -192,11 +189,6 @@ KeyLoop:
 			ode.Data[k] = v
 		}
 	}
-
-	ode.ID = cde.ID
-	ode.Label = cde.Label
-	ode.From = cde.From
-	ode.To = cde.To
 
 	if len(includePaths) > 0 {
 		ode = includeFields(ode, cde, includePaths)

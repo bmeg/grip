@@ -2,8 +2,11 @@ package grids
 
 import (
 	"context"
+	"strings"
 
 	"github.com/bmeg/grip/gdbi"
+	"github.com/bmeg/grip/grids/filter"
+	"github.com/bmeg/grip/grids/key"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/log"
 )
@@ -12,18 +15,20 @@ import (
 // LookupVertexHasLabelCondIndex look up vertices has label
 
 type lookupVertsHasLabelCondIndexStep struct {
-	labels   []string
-	expr     *gripql.HasExpression
-	loadData bool
+	labels          []string
+	expr            *gripql.HasExpression
+	loadData        bool
+	projectedFields []string
 }
 
 func (t lookupVertsHasLabelCondIndexStep) GetProcessor(db gdbi.GraphInterface, ps gdbi.PipelineState) (gdbi.Processor, error) {
 	graph := db.(*Graph)
 	return &lookupVertsHasLabelCondIndexProc{
-		db:       graph,
-		expr:     t.expr,
-		labels:   t.labels,
-		loadData: ps.StepLoadData(),
+		db:              graph,
+		expr:            t.expr,
+		labels:          t.labels,
+		loadData:        ps.StepLoadData(),
+		projectedFields: normalizeProjectedFields(ps.StepRequiredFields()),
 	}, nil
 
 }
@@ -33,20 +38,69 @@ func (t lookupVertsHasLabelCondIndexStep) GetType() gdbi.DataType {
 }
 
 type lookupVertsHasLabelCondIndexProc struct {
-	db       *Graph
-	labels   []string
-	expr     *gripql.HasExpression
-	loadData bool
+	db              *Graph
+	labels          []string
+	expr            *gripql.HasExpression
+	loadData        bool
+	projectedFields []string
+}
+
+func normalizeProjectedFields(in []string) []string {
+	if len(in) == 0 {
+		return nil
+	}
+	out := []string{}
+	seen := map[string]struct{}{}
+	for _, f := range in {
+		if f == "" || f == "*" {
+			return nil
+		}
+		if strings.HasPrefix(f, "$") {
+			// keep current-step top-level paths only
+			if strings.HasPrefix(f, "$.") {
+				f = strings.TrimPrefix(f, "$.")
+			} else if strings.HasPrefix(f, "$_current.") {
+				f = strings.TrimPrefix(f, "$_current.")
+			} else {
+				continue
+			}
+		}
+		if strings.Contains(f, ".") || strings.Contains(f, "[") {
+			continue
+		}
+		if _, ok := seen[f]; ok {
+			continue
+		}
+		seen[f] = struct{}{}
+		out = append(out, f)
+	}
+	return out
 }
 
 func (l *lookupVertsHasLabelCondIndexProc) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
 	var exists = true
 	// Here if one of l.labels doesn't exist then not going to be querying all the data so leave it like this.
 	cond := l.expr.GetCondition()
+	// If condition is simple, we check if field is indexed.
+	// But how to check without loading all tables?
+	// We iterate labels. For each label, resolve ID, get table, check if field is indexed.
 	if cond != nil {
-		for _, iterLabel := range l.labels {
-			tabel, ok := l.db.jsonkv.Tables[iterLabel]
+		for _, label := range l.labels {
+			tID, err := l.db.driver.TableDr.LookupTableID(label)
+			if err != nil {
+				exists = false
+				break
+			}
+			l.db.driver.Lock.RLock()
+			tabel, ok := l.db.driver.TablesByID[tID]
+			l.db.driver.Lock.RUnlock()
 			if !ok {
+				// Table loaded?
+				// If not loaded, we don't know if field is indexed.
+				// But fields are loaded at startup. So if table not in Tables, maybe fields are not loaded.
+				// driver.Tables should contain all tables with fields?
+				// driver.LoadFields() populates Tables for any table with fields.
+				// So if not in Tables, implies no fields indexed?
 				exists = false
 				break
 			}
@@ -63,13 +117,19 @@ func (l *lookupVertsHasLabelCondIndexProc) Process(ctx context.Context, man gdbi
 			defer close(out)
 			for t := range in {
 				for _, label := range l.labels {
-					tableFound, ok := l.db.jsonkv.Tables[label]
-					if !ok {
-						log.Debugf("BSONTable for label '%s' is nil. Cannot scan.", label)
+					// Use GetOrLoadTable
+					tableFound, err := l.db.driver.GetOrLoadTable(label)
+					if err != nil {
+						log.Debugf("Table for label '%s' not found: %v", label, err)
 						continue
 					}
 					if l.loadData {
-						for roMaps := range tableFound.ScanDoc(&GripQLFilter{Expression: l.expr}) {
+						filter := &filter.GripQLFilter{Expression: l.expr}
+						stream := tableFound.ScanDoc(filter)
+						if len(l.projectedFields) > 0 {
+							stream = tableFound.ScanDocProjected(l.projectedFields, filter)
+						}
+						for roMaps := range stream {
 							v := gdbi.Vertex{
 								Label:  label[2:],
 								Loaded: l.loadData,
@@ -81,7 +141,7 @@ func (l *lookupVertsHasLabelCondIndexProc) Process(ctx context.Context, man gdbi
 							out <- t.AddCurrent(v.Copy())
 						}
 					} else {
-						for roMaps := range tableFound.ScanId(&GripQLFilter{Expression: l.expr}) {
+						for roMaps := range tableFound.ScanId(&filter.GripQLFilter{Expression: l.expr}) {
 							v := gdbi.Vertex{
 								Label:  label[2:],
 								Loaded: l.loadData,
@@ -103,8 +163,12 @@ func (l *lookupVertsHasLabelCondIndexProc) Process(ctx context.Context, man gdbi
 			for t := range in {
 				cond := l.expr.GetCondition()
 				for _, label := range l.labels {
-					for id := range l.db.jsonkv.RowIdsByLabelFieldValue(label, cond.Key, cond.Value.AsInterface(), cond.Condition) {
-						queryChan <- gdbi.ElementLookup{ID: id, Ref: t}
+					for entry := range l.db.driver.RowIdsByLabelFieldValue(label[2:], cond.Key, cond.Value.AsInterface(), filter.ToQueryCondition(cond.Condition)) {
+						queryChan <- gdbi.ElementLookup{
+							ID:   string(entry.Key),
+							Ref:  t,
+							Priv: lookupPriv{loc: entry.Loc, fields: l.projectedFields},
+						}
 					}
 				}
 			}
@@ -129,9 +193,11 @@ type lookupVertsCondIndexStep struct {
 func (t lookupVertsCondIndexStep) GetProcessor(db gdbi.GraphInterface, ps gdbi.PipelineState) (gdbi.Processor, error) {
 	graph := db.(*Graph)
 	return &lookupVertsCondIndexProc{
-		db:       graph,
-		expr:     t.expr,
-		loadData: ps.StepLoadData()}, nil
+		db:              graph,
+		expr:            t.expr,
+		loadData:        ps.StepLoadData(),
+		projectedFields: normalizeProjectedFields(ps.StepRequiredFields()),
+	}, nil
 }
 
 func (t lookupVertsCondIndexStep) GetType() gdbi.DataType {
@@ -139,10 +205,11 @@ func (t lookupVertsCondIndexStep) GetType() gdbi.DataType {
 }
 
 type lookupVertsCondIndexProc struct {
-	db       *Graph
-	expr     *gripql.HasExpression
-	loadData bool
-	fallback bool
+	db              *Graph
+	expr            *gripql.HasExpression
+	loadData        bool
+	projectedFields []string
+	fallback        bool
 }
 
 func (l *lookupVertsCondIndexProc) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
@@ -153,13 +220,28 @@ func (l *lookupVertsCondIndexProc) Process(ctx context.Context, man gdbi.Manager
 	   otherwise this lookup will not fetch everything that was asked for */
 	allMatch := cond != nil
 	if allMatch {
-		for lbl := range l.db.jsonkv.GetLabels(false, false) {
-			if table, exists := l.db.jsonkv.Tables[lbl]; exists {
+		// Check across all vertex labels
+		for _, tableName := range l.db.driver.List() {
+			if !strings.HasPrefix(tableName, key.VertexTablePrefix) {
+				continue
+			}
+			// Check if field is indexed
+			tID, err := l.db.driver.TableDr.LookupTableID(tableName)
+			if err != nil {
+				allMatch = false
+				break
+			}
+			l.db.driver.Lock.RLock()
+			table, exists := l.db.driver.TablesByID[tID]
+			l.db.driver.Lock.RUnlock()
+
+			if exists {
 				if _, ok := table.Fields[cond.Key]; !ok {
 					allMatch = false
 					break
 				}
 			} else {
+				// Not in Tables map means no indexed fields loaded?
 				allMatch = false
 				break
 			}
@@ -174,14 +256,15 @@ func (l *lookupVertsCondIndexProc) Process(ctx context.Context, man gdbi.Manager
 		go func() {
 			defer close(queryChan)
 			for t := range in {
-				for id := range l.db.jsonkv.RowIdsByHas(
+				for entry := range l.db.driver.RowIdsByHas(
 					cond.Key,
 					cond.Value.AsInterface(),
-					cond.Condition,
+					filter.ToQueryCondition(cond.Condition),
 				) {
 					queryChan <- gdbi.ElementLookup{
-						ID:  id,
-						Ref: t,
+						ID:   string(entry.Key),
+						Ref:  t,
+						Priv: lookupPriv{loc: entry.Loc, fields: l.projectedFields},
 					}
 				}
 			}
@@ -199,14 +282,23 @@ func (l *lookupVertsCondIndexProc) Process(ctx context.Context, man gdbi.Manager
 		go func() {
 			defer close(out)
 			for t := range in {
-				for tLabel, table := range l.db.jsonkv.Tables {
-					if tLabel[:2] == VTABLE_PREFIX {
-						for v := range table.ScanDoc(&GripQLFilter{Expression: l.expr}) {
+				for _, tLabel := range l.db.driver.List() {
+					if strings.HasPrefix(tLabel, key.VertexTablePrefix) {
+						table, err := l.db.driver.GetOrLoadTable(tLabel)
+						if err != nil {
+							continue
+						}
+						filter := &filter.GripQLFilter{Expression: l.expr}
+						stream := table.ScanDoc(filter)
+						if l.loadData && len(l.projectedFields) > 0 {
+							stream = table.ScanDocProjected(l.projectedFields, filter)
+						}
+						for v := range stream {
 							vertex := gdbi.Vertex{
 								ID:     v["_id"].(string),
-								Label:  tLabel[len(VTABLE_PREFIX):], // Extract label from table name
-								Data:   v,                           // Use full data from ScanDoc
-								Loaded: l.loadData,                  // Set Loaded based on l.loadData
+								Label:  strings.TrimPrefix(tLabel, key.VertexTablePrefix), // Extract label from table name
+								Data:   v,                                                 // Use full data from ScanDoc
+								Loaded: l.loadData,                                        // Set Loaded based on l.loadData
 							}
 							// Send directly to out channel
 							out <- t.AddCurrent(vertex.Copy())

@@ -8,6 +8,7 @@ import (
 	"maps"
 	"net"
 	"net/http"
+	"net/http/pprof"
 	"os"
 	"path/filepath"
 	"strings"
@@ -252,6 +253,11 @@ func (server *GripServer) Serve(pctx context.Context) error {
 	)
 	mux := http.NewServeMux()
 
+	mux.HandleFunc("/debug/pprof/", pprof.Index)
+	mux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
+	mux.HandleFunc("/debug/pprof/profile", pprof.Profile)
+	mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
+	mux.HandleFunc("/debug/pprof/trace", pprof.Trace)
 	// Setup GraphQL handler
 	/*
 		user := ""

@@ -107,9 +107,27 @@ func Run(ctx context.Context, pipe gdbi.Pipeline, workdir string) <-chan *gripql
 		markTypes := pipe.MarkTypes()
 		man := engine.NewManager(workdir)
 		rPipe := Start(ctx, pipe, man, bufsize, nil, nil)
+		var batch []gdbi.Traveler
 		for t := range rPipe.Outputs {
 			if !t.IsSignal() {
-				resch <- Convert(graph, dataType, markTypes, t)
+				batch = append(batch, t)
+				if len(batch) >= bufsize {
+					converted := BatchConvert(ctx, graph, dataType, markTypes, batch)
+					for _, c := range converted {
+						if c != nil {
+							resch <- c
+						}
+					}
+					batch = nil
+				}
+			}
+		}
+		if len(batch) > 0 {
+			converted := BatchConvert(ctx, graph, dataType, markTypes, batch)
+			for _, c := range converted {
+				if c != nil {
+					resch <- c
+				}
 			}
 		}
 		man.Cleanup()
@@ -130,9 +148,27 @@ func Resume(ctx context.Context, pipe gdbi.Pipeline, workdir string, input gdbi.
 		log.Debugf("resuming: out %s", dataType)
 		rPipe := Start(ctx, pipe, man, bufsize, input, cancel)
 		if rPipe != nil {
+			var batch []gdbi.Traveler
 			for t := range rPipe.Outputs {
 				if !t.IsSignal() {
-					resch <- Convert(graph, dataType, markTypes, t)
+					batch = append(batch, t)
+					if len(batch) >= bufsize {
+						converted := BatchConvert(ctx, graph, dataType, markTypes, batch)
+						for _, c := range converted {
+							if c != nil {
+								resch <- c
+							}
+						}
+						batch = nil
+					}
+				}
+			}
+			if len(batch) > 0 {
+				converted := BatchConvert(ctx, graph, dataType, markTypes, batch)
+				for _, c := range converted {
+					if c != nil {
+						resch <- c
+					}
 				}
 			}
 			if debug {
@@ -153,10 +189,10 @@ func Convert(graph gdbi.GraphInterface, dataType gdbi.DataType, markTypes map[st
 			ve := ver.Get()
 			if ve != nil {
 				if !ve.Loaded {
-					//log.Infof("Loading output vertex: %s", ve.ID)
-					//TODO: doing single vertex queries is slow.
-					// Need to rework this to do batched queries
 					ve = graph.GetVertex(ve.ID, true)
+				}
+				if ve == nil {
+					return nil
 				}
 				return &gripql.QueryResult{
 					Result: &gripql.QueryResult_Vertex{
@@ -175,6 +211,9 @@ func Convert(graph gdbi.GraphInterface, dataType gdbi.DataType, markTypes map[st
 			if ee != nil {
 				if !ee.Loaded {
 					ee = graph.GetEdge(ee.ID, true)
+				}
+				if ee == nil {
+					return nil
 				}
 				return &gripql.QueryResult{
 					Result: &gripql.QueryResult_Edge{
@@ -238,4 +277,59 @@ func Convert(graph gdbi.GraphInterface, dataType gdbi.DataType, markTypes map[st
 		log.Errorf("unhandled data type %T", dataType)
 	}
 	return nil
+}
+
+func BatchConvert(ctx context.Context, graph gdbi.GraphInterface, dataType gdbi.DataType, markTypes map[string]gdbi.DataType, travelers []gdbi.Traveler) []*gripql.QueryResult {
+	if len(travelers) == 0 {
+		return nil
+	}
+	results := make([]*gripql.QueryResult, len(travelers))
+
+	if dataType == gdbi.VertexData {
+		reqChan := make(chan gdbi.ElementLookup, len(travelers))
+		pending := 0
+		for i, t := range travelers {
+			ver := t.GetCurrent()
+			if ver != nil {
+				ve := ver.Get()
+				if ve != nil {
+					if !ve.Loaded {
+						reqChan <- gdbi.ElementLookup{ID: ve.ID, Ref: t}
+						pending++
+					} else {
+						results[i] = &gripql.QueryResult{
+							Result: &gripql.QueryResult_Vertex{
+								Vertex: ve.ToVertex(),
+							},
+						}
+					}
+				}
+			}
+		}
+		close(reqChan)
+
+		if pending > 0 {
+			tToIdx := make(map[gdbi.Traveler]int)
+			for i, t := range travelers {
+				tToIdx[t] = i
+			}
+
+			outChan := graph.GetVertexChannel(ctx, reqChan, true)
+			for lookup := range outChan {
+				idx := tToIdx[lookup.Ref]
+				if lookup.Vertex != nil {
+					results[idx] = &gripql.QueryResult{
+						Result: &gripql.QueryResult_Vertex{
+							Vertex: lookup.Vertex.Get().ToVertex(),
+						},
+					}
+				}
+			}
+		}
+	} else {
+		for i, t := range travelers {
+			results[i] = Convert(graph, dataType, markTypes, t)
+		}
+	}
+	return results
 }
