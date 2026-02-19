@@ -10,13 +10,12 @@ import (
 const (
 	VertexTablePrefix = "v_"
 	EdgeTablePrefix   = "e_"
+	EdgeKeySize       = 1 + 8 + 8 + 8
 )
 
 // maxEdgeLabelLen limits the size of edge labels encoded into keys.
 // This prevents integer overflow and excessively large allocations
 // when computing key sizes that include len(label).
-const maxEdgeLabelLen = 4096
-// when computing the key size as 1+8+8+8+len(label).
 const maxEdgeLabelLen = 1 << 20 // 1 MiB
 
 var vertexPrefix = []byte(".")
@@ -104,7 +103,7 @@ func EdgeKey(id, src, dst uint64, label string) []byte {
 		// Truncate excessively long labels to avoid overflow and huge allocations.
 		label = label[:maxEdgeLabelLen]
 	}
-	out := make([]byte, 1+8+8+8+len(label))
+	out := make([]byte, EdgeKeySize+len(label))
 	out[0] = edgePrefix[0]
 	binary.BigEndian.PutUint64(out[1:], id)
 	binary.BigEndian.PutUint64(out[9:], src)
@@ -127,7 +126,7 @@ func SrcEdgeKey(eid, src, dst uint64, label string) []byte {
 	if len(label) > maxEdgeLabelLen {
 		label = label[:maxEdgeLabelLen]
 	}
-	out := make([]byte, 1+8+8+8+len(label))
+	out := make([]byte, EdgeKeySize+len(label))
 	out[0] = srcEdgePrefix[0]
 	binary.BigEndian.PutUint64(out[1:], src)
 	binary.BigEndian.PutUint64(out[9:], dst)
@@ -150,7 +149,7 @@ func DstEdgeKey(eid, src, dst uint64, label string) []byte {
 	if len(label) > maxEdgeLabelLen {
 		label = label[:maxEdgeLabelLen]
 	}
-	out := make([]byte, 1+8+8+8+len(label))
+	out := make([]byte, EdgeKeySize+len(label))
 	out[0] = dstEdgePrefix[0]
 	binary.BigEndian.PutUint64(out[1:], dst)
 	binary.BigEndian.PutUint64(out[9:], src)
