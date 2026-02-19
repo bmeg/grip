@@ -28,10 +28,12 @@ func (ggraph *Graph) GetOutChannel(ctx context.Context, reqChan chan gdbi.Elemen
 					continue
 				}
 				found := false
-				skeyPrefix := key.SrcEdgePrefix(req.ID)
+				uid, _ := ggraph.driver.GetID(req.ID)
+				skeyPrefix := key.SrcEdgePrefix(uid)
 				for it.Seek(skeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), skeyPrefix); it.Next() {
-					_, _, dst, label := key.SrcEdgeKeyParse(it.Key())
+					_, _, duid, label := key.SrcEdgeKeyParse(it.Key())
 					if len(edgeLabels) == 0 || setcmp.ContainsString(edgeLabels, label) {
+						dst, _ := ggraph.driver.TranslateID(duid)
 						if !load {
 							req.Vertex = &gdbi.Vertex{ID: dst, Label: labelFromElementID(dst)}
 							o <- req
@@ -76,15 +78,17 @@ func (ggraph *Graph) GetInChannel(ctx context.Context, reqChan chan gdbi.Element
 					continue
 				}
 				found := false
-				dkeyPrefix := key.DstEdgePrefix(req.ID)
+				uid, _ := ggraph.driver.GetID(req.ID)
+				dkeyPrefix := key.DstEdgePrefix(uid)
 				for it.Seek(dkeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), dkeyPrefix); it.Next() {
-					_, sid, _, label := key.DstEdgeKeyParse(it.Key())
+					_, suid, _, label := key.DstEdgeKeyParse(it.Key())
 					if len(edgeLabels) == 0 || setcmp.ContainsString(edgeLabels, label) {
+						src, _ := ggraph.driver.TranslateID(suid)
 						if !load {
-							req.Vertex = &gdbi.Vertex{ID: sid, Label: labelFromElementID(sid)}
+							req.Vertex = &gdbi.Vertex{ID: src, Label: labelFromElementID(src)}
 							o <- req
 						} else {
-							batch = append(batch, gdbi.ElementLookup{ID: sid, Ref: req.Ref})
+							batch = append(batch, gdbi.ElementLookup{ID: src, Ref: req.Ref})
 							if len(batch) >= 1000 {
 								ggraph.resolveBatch(ctx, batch, o, false)
 								batch = nil
@@ -125,20 +129,31 @@ func (ggraph *Graph) GetOutEdgeChannel(ctx context.Context, reqChan chan gdbi.El
 					continue
 				}
 				found := false
-				skeyPrefix := key.SrcEdgePrefix(req.ID)
+				uid, _ := ggraph.driver.GetID(req.ID)
+				skeyPrefix := key.SrcEdgePrefix(uid)
 				for it.Seek(skeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), skeyPrefix); it.Next() {
-					eid, src, dst, label := key.SrcEdgeKeyParse(it.Key())
+					euid, suid, duid, label := key.SrcEdgeKeyParse(it.Key())
 					if len(edgeLabels) == 0 || setcmp.ContainsString(edgeLabels, label) {
+						eid, _ := ggraph.driver.TranslateID(euid)
+						src, _ := ggraph.driver.TranslateID(suid)
+						dst, _ := ggraph.driver.TranslateID(duid)
+
 						byteVal, _ := it.Value()
-						_, loc := benchtop.DecodeEdgeValue(byteVal)
+						_, loc, data := benchtop.DecodeEdgeValue(byteVal)
 						e := gdbi.Edge{
 							From:  src,
 							To:    dst,
 							Label: label,
 							ID:    eid,
 						}
+						if data != nil {
+							e.Data = data
+							e.Loaded = true
+						}
 						if !load {
-							e.Data = map[string]any{}
+							if e.Data == nil {
+								e.Data = map[string]any{}
+							}
 							req.Edge = &e
 							o <- req
 						} else {
@@ -183,20 +198,31 @@ func (ggraph *Graph) GetInEdgeChannel(ctx context.Context, reqChan chan gdbi.Ele
 					continue
 				}
 				found := false
-				dkeyPrefix := key.DstEdgePrefix(req.ID)
+				uid, _ := ggraph.driver.GetID(req.ID)
+				dkeyPrefix := key.DstEdgePrefix(uid)
 				for it.Seek(dkeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), dkeyPrefix); it.Next() {
-					eid, src, dst, label := key.DstEdgeKeyParse(it.Key())
+					euid, suid, duid, label := key.DstEdgeKeyParse(it.Key())
 					if len(edgeLabels) == 0 || setcmp.ContainsString(edgeLabels, label) {
+						eid, _ := ggraph.driver.TranslateID(euid)
+						src, _ := ggraph.driver.TranslateID(suid)
+						dst, _ := ggraph.driver.TranslateID(duid)
+
 						byteVal, _ := it.Value()
-						_, loc := benchtop.DecodeEdgeValue(byteVal)
+						_, loc, data := benchtop.DecodeEdgeValue(byteVal)
 						e := gdbi.Edge{
 							From:  src,
 							To:    dst,
 							Label: label,
 							ID:    eid,
 						}
+						if data != nil {
+							e.Data = data
+							e.Loaded = true
+						}
 						if !load {
-							e.Data = map[string]any{}
+							if e.Data == nil {
+								e.Data = map[string]any{}
+							}
 							req.Edge = &e
 							o <- req
 						} else {

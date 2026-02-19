@@ -132,7 +132,8 @@ func TestDeletePersistsAcrossRestart(t *testing.T) {
 		var found bool
 		var label string
 		err := g2.driver.Pkv.View(func(it *pebblebulk.PebbleIterator) error {
-			vk := key.VertexKey(id)
+			uid, _ := g2.driver.GetID(id)
+			vk := key.VertexKey(uid)
 			if err := it.Seek(vk); err != nil {
 				return err
 			}
@@ -142,7 +143,7 @@ func TestDeletePersistsAcrossRestart(t *testing.T) {
 					return err
 				}
 				found = true
-				label = string(v)
+				label, _ = benchtop.DecodeVertexValue(v)
 			}
 			return nil
 		})

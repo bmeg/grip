@@ -17,12 +17,9 @@ import (
 	"github.com/bytedance/sonic"
 )
 
-func insertVertex(tx *pebblebulk.PebbleBulk, vertex *gdbi.Vertex, loc *benchtop.RowLoc) error {
-	if vertex.ID == "" {
-		return fmt.Errorf("inserting null key vertex")
-	}
+func insertVertex(tx *pebblebulk.PebbleBulk, id uint64, vertex *gdbi.Vertex, loc *benchtop.RowLoc) error {
 	val := benchtop.EncodeVertexValue(vertex.Label, loc)
-	if err := tx.Set(key.VertexKey(vertex.ID), val, nil); err != nil {
+	if err := tx.Set(key.VertexKey(id), val, nil); err != nil {
 		return fmt.Errorf("AddVertex Error %s", err)
 	}
 	return nil
@@ -44,7 +41,6 @@ func (ggraph *Graph) indexVertices(vertices []*gdbi.Vertex, tx *pebblebulk.Pebbl
 		if !ok {
 			tStore, err := ggraph.driver.Get(vertexLabel)
 			if err != nil {
-				// Create new
 				log.Debugf("Creating new table %s for label %s on graph %s", vertexLabel, label, ggraph.graphID)
 				tStore, err = ggraph.driver.New(vertexLabel, nil)
 				if err != nil {
@@ -55,42 +51,35 @@ func (ggraph *Graph) indexVertices(vertices []*gdbi.Vertex, tx *pebblebulk.Pebbl
 		}
 
 		rows := make([]benchtop.Row, len(verts))
+		ids := make([]string, len(verts))
 		for i, v := range verts {
+			ids[i] = v.ID
 			rows[i] = benchtop.Row{
 				Id:      []byte(v.ID),
-				TableID: table.TableId,
 				Data:    v.Data,
+				TableID: table.TableId,
 			}
 		}
 
-		locs, err := table.AddRows(rows)
+		uids, err := ggraph.driver.GetIDs(ids)
 		if err != nil {
-			return fmt.Errorf("AddVertices Error %s", err)
+			return err
 		}
 
-		if len(locs) != len(verts) {
-			return fmt.Errorf("AddVertices returned %d locs for %d vertices", len(locs), len(verts))
+		rowLocs, err := table.AddRows(rows)
+		if err != nil {
+			return err
 		}
 
 		for i, v := range verts {
-			rowLoc := locs[i]
-			// IMPORTANT: We still call AddTableEntryInfo for cache coherence,
-			// but it's the Integrated structural key that is now authoritative.
-			err = ggraph.driver.AddTableEntryInfo(tx, []byte(v.ID), rowLoc)
-			if err != nil {
-				return fmt.Errorf("AddVertex Error %s", err)
-			}
-
-			// Update the structural key with the location
-			if err := insertVertex(tx, v, rowLoc); err != nil {
+			if err := insertVertex(tx, uids[i], v, rowLocs[i]); err != nil {
 				return err
 			}
-
-			// Indices
+			// Index fields
 			if len(table.Fields) > 0 {
 				for field := range table.Fields {
 					if val := tpath.PathLookup(v.Data, field); val != nil {
-						err := tx.Set(benchtop.FieldKey(field, table.TableId, val, []byte(v.ID)), benchtop.EncodeRowLoc(rowLoc), nil)
+						err := tx.Set(benchtop.FieldKey(field, table.TableId, val, []byte(v.ID)), benchtop.EncodeRowLoc(rowLocs[i]), nil)
 						if err != nil {
 							return err
 						}
@@ -110,35 +99,15 @@ func (ggraph *Graph) indexVertices(vertices []*gdbi.Vertex, tx *pebblebulk.Pebbl
 	return nil
 }
 
-func insertEdge(tx *pebblebulk.PebbleBulk, edge *gdbi.Edge, loc *benchtop.RowLoc) error {
-	if edge.ID == "" ||
-		edge.From == "" ||
-		edge.To == "" ||
-		edge.Label == "" {
-		log.Errorln("insertEdge Err: ", edge)
-		return fmt.Errorf("inserting null key edge")
-	}
-	val := benchtop.EncodeEdgeValue(edge.Label, loc)
-	err := tx.Set(key.EdgeKey(edge.ID, edge.From, edge.To, edge.Label), val, nil)
-	if err != nil {
+func insertEdge(tx *pebblebulk.PebbleBulk, eid, sid, did uint64, edge *gdbi.Edge, loc *benchtop.RowLoc) error {
+	val := benchtop.EncodeEdgeValue(edge.Label, loc, edge.Data)
+	if err := tx.Set(key.EdgeKey(eid, sid, did, edge.Label), val, nil); err != nil {
 		return err
 	}
-	err = tx.Set(key.DstEdgeKey(
-		edge.ID,
-		edge.From,
-		edge.To,
-		edge.Label,
-	), val, nil)
-	if err != nil {
+	if err := tx.Set(key.DstEdgeKey(eid, sid, did, edge.Label), val, nil); err != nil {
 		return err
 	}
-	err = tx.Set(key.SrcEdgeKey(
-		edge.ID,
-		edge.From,
-		edge.To,
-		edge.Label,
-	), val, nil)
-	if err != nil {
+	if err := tx.Set(key.SrcEdgeKey(eid, sid, did, edge.Label), val, nil); err != nil {
 		return err
 	}
 	return nil
@@ -147,7 +116,9 @@ func insertEdge(tx *pebblebulk.PebbleBulk, edge *gdbi.Edge, loc *benchtop.RowLoc
 func (ggraph *Graph) indexEdges(edges []*gdbi.Edge, tx *pebblebulk.PebbleBulk) error {
 	byLabel := make(map[string][]*gdbi.Edge)
 	for _, e := range edges {
-		byLabel[e.Label] = append(byLabel[e.Label], e)
+		if e != nil {
+			byLabel[e.Label] = append(byLabel[e.Label], e)
+		}
 	}
 
 	for label, batch := range byLabel {
@@ -170,12 +141,25 @@ func (ggraph *Graph) indexEdges(edges []*gdbi.Edge, tx *pebblebulk.PebbleBulk) e
 		}
 
 		rows := make([]benchtop.Row, len(batch))
+		ids := make([]string, 0, len(batch)*3)
 		for i, e := range batch {
+			ids = append(ids, e.ID, e.From, e.To)
+			data := make(map[string]any, len(e.Data)+2)
+			for k, v := range e.Data {
+				data[k] = v
+			}
+			data["_from"] = e.From
+			data["_to"] = e.To
 			rows[i] = benchtop.Row{
 				Id:      []byte(e.ID),
 				TableID: table.TableId,
-				Data:    e.Data,
+				Data:    data,
 			}
+		}
+
+		uids, err := ggraph.driver.GetIDs(ids)
+		if err != nil {
+			return err
 		}
 
 		locs, err := table.AddRows(rows)
@@ -185,13 +169,10 @@ func (ggraph *Graph) indexEdges(edges []*gdbi.Edge, tx *pebblebulk.PebbleBulk) e
 
 		for i, e := range batch {
 			rowLoc := locs[i]
-			err = ggraph.driver.AddTableEntryInfo(tx, []byte(e.ID), rowLoc)
-			if err != nil {
-				return fmt.Errorf("indexEdges: driver.AddTableEntryInfo: %s", err)
-			}
+			eid, sid, did := uids[i*3], uids[i*3+1], uids[i*3+2]
 
-			// Update the structural keys with the location
-			if err := insertEdge(tx, e, rowLoc); err != nil {
+			// Update the structural keys with the location AND inlined data
+			if err := insertEdge(tx, eid, sid, did, e, rowLoc); err != nil {
 				return err
 			}
 
@@ -253,6 +234,9 @@ func (ggraph *Graph) BulkAdd(stream <-chan *gdbi.GraphElement) error {
 	type preparedItem struct {
 		elem *gdbi.GraphElement
 		row  *benchtop.Row
+		uid  uint64
+		suid uint64
+		duid uint64
 	}
 
 	const bufSize = 8192
@@ -265,19 +249,55 @@ func (ggraph *Graph) BulkAdd(stream <-chan *gdbi.GraphElement) error {
 	go func() {
 		defer wg.Done()
 		defer close(work)
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case elem, ok := <-stream:
-				if !ok {
-					return
+
+		// ─── Worker Buffer & Batching ──────────────────────────
+		const workerBatchSize = 1000
+		batch := make([]*gdbi.GraphElement, 0, workerBatchSize)
+
+		processBatch := func(b []*gdbi.GraphElement) error {
+			if len(b) == 0 {
+				return nil
+			}
+
+			// 1. Collect ALL unique IDs in this batch to resolve at once
+			uniqueIDs := make(map[string]struct{})
+			for _, elem := range b {
+				if elem == nil {
+					continue
 				}
+				if elem.Vertex != nil {
+					uniqueIDs[elem.Vertex.ID] = struct{}{}
+				} else if elem.Edge != nil {
+					uniqueIDs[elem.Edge.ID] = struct{}{}
+					uniqueIDs[elem.Edge.From] = struct{}{}
+					uniqueIDs[elem.Edge.To] = struct{}{}
+				}
+			}
+
+			// 2. Resolve IDs in bulk
+			idList := make([]string, 0, len(uniqueIDs))
+			for id := range uniqueIDs {
+				idList = append(idList, id)
+			}
+
+			idVals, err := ggraph.driver.GetIDs(idList)
+			if err != nil {
+				return err
+			}
+
+			// 3. Map string -> uint64 for fast lookup
+			idMap := make(map[string]uint64, len(idList))
+			for i, s := range idList {
+				idMap[s] = idVals[i]
+			}
+
+			// 4. Transform elements into preparedItems
+			for _, elem := range b {
 				if elem == nil {
 					continue
 				}
 
-				// Move table creation/loading outside the writer loop
+				// Determine table info
 				var tName string
 				if elem.Vertex != nil {
 					tName = key.VertexTablePrefix + elem.Vertex.Label
@@ -285,43 +305,34 @@ func (ggraph *Graph) BulkAdd(stream <-chan *gdbi.GraphElement) error {
 					tName = key.EdgeTablePrefix + elem.Edge.Label
 				}
 
+				var tid uint16
 				if tName != "" {
-					if _, err := ggraph.driver.GetOrLoadTable(tName); err != nil {
-						if _, err := ggraph.driver.New(tName, nil); err != nil {
-							log.Errorf("BulkAdd pre-warm failed for %s: %v", tName, err)
+					ts, err := ggraph.driver.GetOrLoadTable(tName)
+					if err != nil {
+						tStore, nerr := ggraph.driver.New(tName, nil)
+						if nerr == nil && tStore != nil {
+							if bt, ok := tStore.(*driver.BackendTable); ok {
+								tid = bt.TableId
+							}
 						}
+					} else if ts != nil {
+						tid = ts.TableId
 					}
 				}
 
-				select {
-				case <-ctx.Done():
-					return
-				case work <- elem:
-				}
-			}
-		}
-	}()
-
-	go func() {
-		defer wg.Done()
-		defer close(ready)
-
-		for elem := range work {
-			var row *benchtop.Row
-			if elem.Vertex != nil {
-				tName := key.VertexTablePrefix + elem.Vertex.Label
-				tid, err := ggraph.driver.TableDr.LookupTableID(tName)
-				if err == nil {
+				var row *benchtop.Row
+				var uid, suid, duid uint64
+				if elem.Vertex != nil {
+					uid = idMap[elem.Vertex.ID]
 					row = &benchtop.Row{
 						Id:      []byte(elem.Vertex.ID),
 						TableID: tid,
 						Data:    elem.Vertex.Data,
 					}
-				}
-			} else if elem.Edge != nil {
-				tName := key.EdgeTablePrefix + elem.Edge.Label
-				tid, err := ggraph.driver.TableDr.LookupTableID(tName)
-				if err == nil {
+				} else if elem.Edge != nil {
+					uid = idMap[elem.Edge.ID]
+					suid = idMap[elem.Edge.From]
+					duid = idMap[elem.Edge.To]
 					data := make(map[string]any, len(elem.Edge.Data)+2)
 					maps.Copy(data, elem.Edge.Data)
 					data["_from"] = elem.Edge.From
@@ -332,15 +343,53 @@ func (ggraph *Graph) BulkAdd(stream <-chan *gdbi.GraphElement) error {
 						Data:    data,
 					}
 				}
-			}
 
-			if row != nil {
-				select {
-				case <-ctx.Done():
-					return
-				case ready <- &preparedItem{elem: elem, row: row}:
+				if row != nil {
+					select {
+					case <-ctx.Done():
+						return ctx.Err()
+					case ready <- &preparedItem{elem: elem, row: row, uid: uid, suid: suid, duid: duid}:
+					}
 				}
 			}
+			return nil
+		}
+
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case elem, ok := <-stream:
+				if !ok {
+					// Channel closed, flush remaining
+					if len(batch) > 0 {
+						_ = processBatch(batch)
+					}
+					return
+				}
+				batch = append(batch, elem)
+				if len(batch) >= workerBatchSize {
+					if err := processBatch(batch); err != nil {
+						log.Errorf("BulkAdd worker error: %v", err)
+						return
+					}
+					batch = batch[:0]
+				}
+			}
+		}
+	}()
+
+	go func() {
+		defer wg.Done()
+		defer close(ready)
+
+		for elem := range work {
+			// This goroutine is now empty as its logic has been moved to the first goroutine.
+			// It will just drain the 'work' channel and close 'ready'.
+			// The actual work of preparing 'row' and resolving IDs is done in the first goroutine.
+			// This goroutine can be removed or refactored if 'work' channel is no longer needed.
+			// For now, keeping it to drain 'work' and close 'ready' as per original structure.
+			_ = elem // Consume the element
 		}
 	}()
 
@@ -353,41 +402,40 @@ func (ggraph *Graph) BulkAdd(stream <-chan *gdbi.GraphElement) error {
 	snap := ggraph.driver.Pkv.Db.NewSnapshot()
 	defer snap.Close()
 
-	writeErr := ggraph.driver.Pkv.BulkWrite(func(tx *pebblebulk.PebbleBulk) error {
-		it, err := snap.NewIter(nil)
-		if err != nil {
-			return err
+	// Use a shared iterator for the snapshot to avoid overhead
+	it, err := snap.NewIter(nil)
+	if err != nil {
+		return err
+	}
+	defer it.Close()
+
+	seen := make(map[string]struct{})
+
+	processBatch := func(batch []*preparedItem) error {
+		if len(batch) == 0 {
+			return nil
 		}
-		defer it.Close()
 
-		seen := make(map[string]struct{}, bufSize)
-
-		flush := func() error {
-			if len(itemBuffer) == 0 {
-				return nil
-			}
-
-			filteredItems := make([]*preparedItem, 0, len(itemBuffer))
-			for _, item := range itemBuffer {
-				id := ""
+		return ggraph.driver.Pkv.BulkWrite(func(tx *pebblebulk.PebbleBulk) error {
+			filteredItems := make([]*preparedItem, 0, len(batch))
+			for _, item := range batch {
+				id := item.row.Id
 				var dbKey []byte
 				if item.elem.Vertex != nil {
-					id = item.elem.Vertex.ID
-					dbKey = key.VertexKey(id)
+					dbKey = key.VertexKey(item.uid)
 				} else if item.elem.Edge != nil {
-					id = item.elem.Edge.ID
-					dbKey = key.EdgeKey(id, item.elem.Edge.From, item.elem.Edge.To, item.elem.Edge.Label)
+					dbKey = key.EdgeKey(item.uid, item.suid, item.duid, item.elem.Edge.Label)
 				}
 
-				if id == "" {
+				if len(id) == 0 {
 					continue
 				}
 
 				// 1. Session-level check
-				if _, ok := seen[id]; ok {
+				if _, ok := seen[string(id)]; ok {
 					continue
 				}
-				seen[id] = struct{}{}
+				seen[string(id)] = struct{}{}
 
 				// 2. Database-level check (Snapshot)
 				if dbKey != nil {
@@ -399,7 +447,6 @@ func (ggraph *Graph) BulkAdd(stream <-chan *gdbi.GraphElement) error {
 			}
 
 			if len(filteredItems) == 0 {
-				itemBuffer = itemBuffer[:0]
 				return nil
 			}
 
@@ -410,32 +457,30 @@ func (ggraph *Graph) BulkAdd(stream <-chan *gdbi.GraphElement) error {
 			}
 
 			// Bulk Load JSON/Index rows (passing snap for further row-level filtering)
-			// This will also update the structural Vertex/Edge keys with the found locations.
 			if err := ggraph.driver.BulkLoadBatch(tx, rows, snap); err != nil {
 				return err
 			}
-
-			itemBuffer = itemBuffer[:0]
 			return nil
-		}
+		})
+	}
 
-		for {
-			select {
-			case <-ctx.Done():
-				return ctx.Err()
-			case item, ok := <-ready:
-				if !ok {
-					return flush()
-				}
-				itemBuffer = append(itemBuffer, item)
-				if len(itemBuffer) >= batchSize {
-					if err := flush(); err != nil {
-						return err
-					}
-				}
+	var writeErr error
+	for item := range ready {
+		itemBuffer = append(itemBuffer, item)
+		if len(itemBuffer) >= batchSize {
+			if err := processBatch(itemBuffer); err != nil {
+				writeErr = err
+				break
 			}
+			itemBuffer = itemBuffer[:0]
 		}
-	})
+	}
+
+	if writeErr == nil && len(itemBuffer) > 0 {
+		if err := processBatch(itemBuffer); err != nil {
+			writeErr = err
+		}
+	}
 
 	wg.Wait()
 	ggraph.ts.Touch(ggraph.graphID)

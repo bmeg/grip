@@ -253,19 +253,39 @@ func (l *lookupVertsCondIndexProc) Process(ctx context.Context, man gdbi.Manager
 	if cond != nil && allMatch {
 		log.Debugln("Chose index optimized V().Has() statement path")
 		queryChan := make(chan gdbi.ElementLookup, 100)
+
+		// Optimize: Lazy load index results once, then replay for each traveler.
+		// This avoids blocking on 'in' completion (buffering) and avoids repeated scans.
 		go func() {
 			defer close(queryChan)
+
+			var cachedEntries []gdbi.ElementLookup
+			var indexLoaded bool
+
 			for t := range in {
-				for entry := range l.db.driver.RowIdsByHas(
-					cond.Key,
-					cond.Value.AsInterface(),
-					filter.ToQueryCondition(cond.Condition),
-				) {
-					queryChan <- gdbi.ElementLookup{
-						ID:   string(entry.Key),
-						Ref:  t,
-						Priv: lookupPriv{loc: entry.Loc, fields: l.projectedFields},
+				if !indexLoaded {
+					// scanGlobalIndex logic - fetch ALL matching IDs once
+					for entry := range l.db.driver.RowIdsByHas(
+						cond.Key,
+						cond.Value.AsInterface(),
+						filter.ToQueryCondition(cond.Condition),
+					) {
+						cachedEntries = append(cachedEntries, gdbi.ElementLookup{
+							ID: string(entry.Key),
+							// Ref is nil here, will be set during replay
+							Priv: lookupPriv{loc: entry.Loc, fields: l.projectedFields},
+						})
 					}
+					indexLoaded = true
+					log.Debugf("Index lookup found %d rows, caching for joining", len(cachedEntries))
+				}
+
+				// Replay cached entries for the current traveler
+				for _, entry := range cachedEntries {
+					// Create a shallow copy with the current traveler as Ref
+					e := entry
+					e.Ref = t
+					queryChan <- e
 				}
 			}
 		}()

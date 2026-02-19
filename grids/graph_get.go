@@ -19,6 +19,7 @@ type idEntry struct {
 	loc    *benchtop.RowLoc
 	label  string
 	fields []string
+	data   map[string]any
 	idx    int
 }
 
@@ -88,7 +89,7 @@ func (ggraph *Graph) resolveBatch(ctx context.Context, batch []gdbi.ElementLooku
 						fields = priv.fields
 					}
 				}
-				withLoc = append(withLoc, idEntry{lookup: id, loc: info.Loc, label: info.Label, fields: fields, idx: idx})
+				withLoc = append(withLoc, idEntry{lookup: id, loc: info.Loc, label: info.Label, fields: fields, data: info.Data, idx: idx})
 			}
 		}
 	}
@@ -196,15 +197,19 @@ func (ggraph *Graph) processVertexBatch(batch []idEntry, out chan gdbi.ElementLo
 		}
 
 		for i, entry := range entries {
-			if errors[i] != nil {
-				log.Errorf("processVertexBatch: GetRows error for ID %s: %v", entry.lookup.ID, errors[i])
-				continue
-			}
 			id := entry.lookup
 			if id.Vertex == nil {
 				id.Vertex = &gdbi.Vertex{ID: id.ID, Label: entry.label}
 			}
-			id.Vertex.Get().Data = projectRowMap(results[i], entry.fields)
+			var res map[string]any
+			if entry.data != nil {
+				res = entry.data
+			} else if errors != nil && errors[i] == nil {
+				res = results[i]
+			} else {
+				continue
+			}
+			id.Vertex.Get().Data = projectRowMap(res, entry.fields)
 			id.Vertex.Get().Loaded = true
 			ordered[entry.idx] = &id
 		}
@@ -249,15 +254,31 @@ func (ggraph *Graph) processEdgeBatch(batch []idEntry, out chan gdbi.ElementLook
 			results, errors = table.GetRows(locs)
 		}
 		for i, entry := range entries {
-			if errors[i] != nil {
-				log.Errorf("processEdgeBatch: GetRows error for ID %s: %v", entry.lookup.ID, errors[i])
-				continue
-			}
 			id := entry.lookup
 			if id.Edge == nil {
 				id.Edge = &gdbi.Edge{ID: id.ID, Label: entry.label}
 			}
-			id.Edge.Get().Data = results[i]
+			var res map[string]any
+			if entry.data != nil {
+				res = entry.data
+			} else if errors != nil && errors[i] == nil {
+				res = results[i]
+			} else {
+				continue
+			}
+			id.Edge.Get().Data = projectRowMap(res, entry.fields)
+			if from, ok := res["_from"].(string); ok {
+				id.Edge.Get().From = from
+			} else {
+				log.Errorf("processEdgeBatch: edge %s missing _from", id.ID)
+				continue
+			}
+			if to, ok := res["_to"].(string); ok {
+				id.Edge.Get().To = to
+			} else {
+				log.Errorf("processEdgeBatch: edge %s missing _to", id.ID)
+				continue
+			}
 			id.Edge.Get().Loaded = true
 			ordered[entry.idx] = &id
 		}
@@ -272,7 +293,8 @@ func (ggraph *Graph) processEdgeBatch(batch []idEntry, out chan gdbi.ElementLook
 
 // GetVertex loads a vertex given an id. It returns a nil if not found
 func (ggraph *Graph) GetVertex(id string, loadProp bool) *gdbi.Vertex {
-	vkey := key.VertexKey(id)
+	uid, _ := ggraph.driver.GetID(id)
+	vkey := key.VertexKey(uid)
 	val, closer, err := ggraph.driver.Pkv.Get(vkey)
 	if err != nil {
 		if errors.Is(err, pebble.ErrNotFound) {
@@ -309,12 +331,17 @@ func (ggraph *Graph) GetVertex(id string, loadProp bool) *gdbi.Vertex {
 
 // GetEdge loads an edge given an id. It returns nil if not found
 func (ggraph *Graph) GetEdge(id string, loadProp bool) *gdbi.Edge {
-	ekeyPrefix := key.EdgeKeyPrefix(id)
+	uid, _ := ggraph.driver.GetID(id)
+	ekeyPrefix := key.EdgeKeyPrefix(uid)
 	var e *gdbi.Edge
 	var byteVal []byte
 	err := ggraph.driver.Pkv.View(func(it *pebblebulk.PebbleIterator) error {
 		for it.Seek(ekeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), ekeyPrefix); it.Next() {
-			eid, src, dst, label := key.EdgeKeyParse(it.Key())
+			euid, suid, duid, label := key.EdgeKeyParse(it.Key())
+			eid, _ := ggraph.driver.TranslateID(euid)
+			src, _ := ggraph.driver.TranslateID(suid)
+			dst, _ := ggraph.driver.TranslateID(duid)
+
 			byteVal, _ = it.Value()
 			e = &gdbi.Edge{
 				ID:    eid,
@@ -323,24 +350,29 @@ func (ggraph *Graph) GetEdge(id string, loadProp bool) *gdbi.Edge {
 				Label: label,
 			}
 			if loadProp {
-				_, loc := benchtop.DecodeEdgeValue(byteVal)
+				lbl, loc, data := benchtop.DecodeEdgeValue(byteVal)
+				if data != nil {
+					e.Data = data
+					e.Loaded = true
+					return nil
+				}
 				if loc == nil {
 					log.Errorf("GetEdge: integrated key missing RowLoc for %s", e.ID)
 					continue
 				}
 
-				tableStore, terr := ggraph.driver.GetOrLoadTable("e_" + e.Label)
+				tableStore, terr := ggraph.driver.GetOrLoadTable("e_" + lbl)
 				if terr != nil {
 					log.Errorf("GetEdge: table load error: %v", terr)
 					continue
 				}
 
-				data, err := tableStore.GetRow(loc)
-				if err != nil {
-					log.Errorf("GetEdge: GetRow error: %v", err)
+				var gerr error
+				e.Data, gerr = tableStore.GetRow(loc)
+				if gerr != nil {
+					log.Errorf("GetEdge: GetRow error: %v", gerr)
 					continue
 				}
-				e.Data = data
 				e.Loaded = true
 			} else {
 				e.Data = map[string]any{}
@@ -372,8 +404,9 @@ func (ggraph *Graph) GetVertexList(ctx context.Context, loadProp bool) <-chan *g
 					log.Errorf("GetVertexList it.Value() error: %s", err)
 				}
 				label, loc := benchtop.DecodeVertexValue(byteVal)
+				vid, _ := ggraph.driver.TranslateID(key.VertexKeyParse(it.Key()))
 				v := &gdbi.Vertex{
-					ID:    key.VertexKeyParse(it.Key()),
+					ID:    vid,
 					Label: label,
 				}
 				if loadProp {

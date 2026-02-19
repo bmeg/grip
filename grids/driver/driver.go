@@ -28,6 +28,7 @@ var ErrNotFound = errors.New("row not found in any table")
 type IDInfo struct {
 	Label string
 	Loc   *benchtop.RowLoc
+	Data  map[string]any
 }
 
 type BackendTable struct {
@@ -87,6 +88,12 @@ type GridKVDriver struct {
 	Tables     map[string]*BackendTable
 	TablesByID map[uint16]*BackendTable
 	TableDr    benchtop.TableDriver
+
+	// ID mapping state (volatile or using pebble)
+	idMapMu sync.Mutex
+	idMap   map[string]uint64
+	ridMap  map[uint64]string
+	nextID  uint64
 }
 
 func NewGridKVDriver(path string, driver string) (*GridKVDriver, error) {
@@ -127,29 +134,156 @@ func NewGridKVDriver(path string, driver string) (*GridKVDriver, error) {
 		return nil, fmt.Errorf("unsupported grids table driver %q; supported drivers: jsontable, arrow", driver)
 	}
 
-	d := &GridKVDriver{
+	dr := &GridKVDriver{
 		Lock:       sync.RWMutex{},
 		PebbleLock: sync.RWMutex{},
+		TableDr:    td,
 		Pkv:        pkv,
 		closePkv:   closePkv,
-		Tables:     map[string]*BackendTable{},
-		TablesByID: map[uint16]*BackendTable{},
-		TableDr:    td,
+		Tables:     make(map[string]*BackendTable),
+		TablesByID: make(map[uint16]*BackendTable),
+		idMap:      make(map[string]uint64),
+		ridMap:     make(map[uint64]string),
+	}
+
+	// Load existing ID mapping stats
+	val, closer, err := dr.Pkv.Get(benchtop.MaxIDKey)
+	if err == nil {
+		dr.nextID = binary.BigEndian.Uint64(val)
+		closer.Close()
+	} else {
+		dr.nextID = 1
 	}
 
 	// We no longer PreloadCache as locations are embedded in structural keys.
 	// But we MUST discover which tables exist so label scans work.
-	for _, tableName := range d.TableDr.List() {
-		if _, err := d.GetOrLoadTable(tableName); err != nil {
+	for _, tableName := range dr.TableDr.List() {
+		if _, err := dr.GetOrLoadTable(tableName); err != nil {
 			log.Errorf("Failed to discover table %s: %v", tableName, err)
 		}
 	}
-	if err := d.LoadFields(); err != nil {
-		d.Close()
+	if err := dr.LoadFields(); err != nil {
+		dr.Close()
 		return nil, err
 	}
 
-	return d, nil
+	return dr, nil
+}
+
+func (dr *GridKVDriver) GetID(s string) (uint64, error) {
+	ids, err := dr.GetIDs([]string{s})
+	if err != nil {
+		return 0, err
+	}
+	return ids[0], nil
+}
+
+func (dr *GridKVDriver) GetIDs(ids []string) ([]uint64, error) {
+	out := make([]uint64, len(ids))
+	remaining := make(map[int]string)
+
+	dr.idMapMu.Lock()
+	for i, s := range ids {
+		if id, ok := dr.idMap[s]; ok {
+			out[i] = id
+		} else {
+			remaining[i] = s
+		}
+	}
+	dr.idMapMu.Unlock()
+
+	if len(remaining) == 0 {
+		return out, nil
+	}
+
+	// Fetch missing from Pebble
+	err := dr.Pkv.View(func(it *pebblebulk.PebbleIterator) error {
+		for i, s := range remaining {
+			ikey := key.StringToIDKey(s)
+			val, err := it.Get(ikey)
+			if err == nil {
+				id := binary.BigEndian.Uint64(val)
+				out[i] = id
+				delete(remaining, i)
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if len(remaining) == 0 {
+		// Update cache
+		dr.idMapMu.Lock()
+		for i, id := range out {
+			dr.idMap[ids[i]] = id
+			dr.ridMap[id] = ids[i]
+		}
+		dr.idMapMu.Unlock()
+		return out, nil
+	}
+
+	// Create new IDs for orphans
+	err = dr.Pkv.BulkWrite(func(tx *pebblebulk.PebbleBulk) error {
+		dr.idMapMu.Lock()
+		defer dr.idMapMu.Unlock()
+
+		for i, s := range remaining {
+			// Double check if someone else created it
+			ikey := key.StringToIDKey(s)
+			id := dr.nextID
+			dr.nextID++
+
+			idBytes := make([]byte, 8)
+			binary.BigEndian.PutUint64(idBytes, id)
+			if err := tx.Set(ikey, idBytes, nil); err != nil {
+				return err
+			}
+			if err := tx.Set(key.IDToStringKey(id), []byte(s), nil); err != nil {
+				return err
+			}
+			out[i] = id
+			dr.idMap[s] = id
+			dr.ridMap[id] = s
+		}
+
+		maxBytes := make([]byte, 8)
+		binary.BigEndian.PutUint64(maxBytes, dr.nextID)
+		if err := tx.Set(benchtop.MaxIDKey, maxBytes, nil); err != nil {
+			return err
+		}
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return out, nil
+}
+
+func (dr *GridKVDriver) TranslateID(id uint64) (string, error) {
+	dr.idMapMu.Lock()
+	if s, ok := dr.ridMap[id]; ok {
+		dr.idMapMu.Unlock()
+		return s, nil
+	}
+	dr.idMapMu.Unlock()
+
+	rkey := key.IDToStringKey(id)
+	val, closer, err := dr.Pkv.Get(rkey)
+	if err != nil {
+		return "", err
+	}
+	defer closer.Close()
+	s := string(val)
+
+	dr.idMapMu.Lock()
+	dr.idMap[s] = id
+	dr.ridMap[id] = s
+	dr.idMapMu.Unlock()
+	return s, nil
 }
 
 func (d *GridKVDriver) AddFieldIndex(label, field string) error {
@@ -633,14 +767,15 @@ func (d *GridKVDriver) BulkLoadBatch(tx *pebblebulk.PebbleBulk, entries []*bench
 
 			// Database existence check (Snapshot)
 			if it != nil {
+				uid, _ := d.GetID(string(row.Id))
 				// Check Vertex and Edge keys as they are now authoritative
-				vkey := key.VertexKey(string(row.Id))
+				vkey := key.VertexKey(uid)
 				if it.SeekGE(vkey) && bytes.Equal(it.Key(), vkey) {
 					continue
 				}
 				// For edges, we'd need Dst/Src prefix check, but VertexKey is often enough for unique IDs.
 				// However, if we want to be thorough:
-				ekeyPrefix := key.EdgeKeyPrefix(string(row.Id))
+				ekeyPrefix := key.EdgeKeyPrefix(uid)
 				if it.SeekGE(ekeyPrefix) && bytes.HasPrefix(it.Key(), ekeyPrefix) {
 					continue
 				}
@@ -675,8 +810,9 @@ func (d *GridKVDriver) BulkLoadBatch(tx *pebblebulk.PebbleBulk, entries []*bench
 
 			// Update the structural keys (Integrated Keys)
 			// Check if it's a vertex or edge based on table name prefix
+			uid, _ := d.GetID(idStr)
 			if strings.HasPrefix(t.Name, key.VertexTablePrefix) {
-				vkey := key.VertexKey(idStr)
+				vkey := key.VertexKey(uid)
 				// We need the label. BackendTable has it.
 				val := benchtop.EncodeVertexValue(t.Label, rowLoc)
 				if err := tx.Set(vkey, val, nil); err != nil {
@@ -686,18 +822,20 @@ func (d *GridKVDriver) BulkLoadBatch(tx *pebblebulk.PebbleBulk, entries []*bench
 				// For edges, we might need to update multi-keys.
 				// This is a bit complex in driver if we don't have the From/To.
 				// But we can check if data has them (BulkAdd puts them there).
-				from, fOk := row.Data["_from"].(string)
-				to, tOk := row.Data["_to"].(string)
+				fromStr, fOk := row.Data["_from"].(string)
+				toStr, tOk := row.Data["_to"].(string)
 				if fOk && tOk {
-					val := benchtop.EncodeEdgeValue(t.Label, rowLoc)
-					ekey := key.EdgeKey(idStr, from, to, t.Label)
+					fuid, _ := d.GetID(fromStr)
+					tuid, _ := d.GetID(toStr)
+					val := benchtop.EncodeEdgeValue(t.Label, rowLoc, row.Data)
+					ekey := key.EdgeKey(uid, fuid, tuid, t.Label)
 					if err := tx.Set(ekey, val, nil); err != nil {
 						return err
 					}
-					if err := tx.Set(key.SrcEdgeKey(idStr, from, to, t.Label), val, nil); err != nil {
+					if err := tx.Set(key.SrcEdgeKey(uid, fuid, tuid, t.Label), val, nil); err != nil {
 						return err
 					}
-					if err := tx.Set(key.DstEdgeKey(idStr, from, to, t.Label), val, nil); err != nil {
+					if err := tx.Set(key.DstEdgeKey(uid, fuid, tuid, t.Label), val, nil); err != nil {
 						return err
 					}
 				}
@@ -763,39 +901,48 @@ func (d *GridKVDriver) ListFields() []FieldInfo {
 
 func (d *GridKVDriver) GetLocBatch(ctx context.Context, ids []string) (map[string]*IDInfo, error) {
 	out := make(map[string]*IDInfo, len(ids))
-	for _, id := range ids {
-		// New path: check Vertex and Edge keys directly for RowLoc
+	uids, err := d.GetIDs(ids)
+	if err != nil {
+		return nil, err
+	}
+
+	for i, id := range ids {
+		uid := uids[i]
 		// 1. Check Vertex
-		vkey := key.VertexKey(id)
+		vkey := key.VertexKey(uid)
 		val, closer, err := d.Pkv.Get(vkey)
 		if err == nil {
-			defer closer.Close()
 			vlbl, loc := benchtop.DecodeVertexValue(val)
+			closer.Close()
 			if loc != nil {
 				out[id] = &IDInfo{Label: vlbl, Loc: loc}
 				continue
 			}
-		} else if closer != nil {
-			closer.Close()
 		}
 
-		// 2. Check Edges (if id might be an edge ID)
-		ekeyPrefix := key.EdgeKeyPrefix(id)
+		// 2. Check Edges
+		ekeyPrefix := key.EdgeKeyPrefix(uid)
 		var eloc *benchtop.RowLoc
 		var elbl string
+		var edata map[string]any
 		_ = d.Pkv.View(func(it *pebblebulk.PebbleIterator) error {
 			for it.Seek(ekeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), ekeyPrefix); it.Next() {
 				byteVal, _ := it.Value()
-				_, eloc = benchtop.DecodeEdgeValue(byteVal)
-				if eloc != nil {
-					_, _, _, elbl = key.EdgeKeyParse(it.Key())
+				var lbl string
+				var loc *benchtop.RowLoc
+				var data map[string]any
+				lbl, loc, data = benchtop.DecodeEdgeValue(byteVal)
+				if loc != nil {
+					eloc = loc
+					elbl = lbl
+					edata = data
 					return nil
 				}
 			}
 			return nil
 		})
 		if eloc != nil {
-			out[id] = &IDInfo{Label: elbl, Loc: eloc}
+			out[id] = &IDInfo{Label: elbl, Loc: eloc, Data: edata}
 		}
 	}
 	return out, nil

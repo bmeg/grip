@@ -47,7 +47,8 @@ func TestIntegratedKeyRowLoc(t *testing.T) {
 	}
 
 	// Verify the key in Pebble directly
-	vkey := key.VertexKey(vID)
+	uvid, _ := g.driver.GetID(vID)
+	vkey := key.VertexKey(uvid)
 	err = g.driver.Pkv.View(func(it *pebblebulk.PebbleIterator) error {
 		val, err := it.Get(vkey)
 		if err != nil {
@@ -87,13 +88,14 @@ func TestIntegratedKeyRowLoc(t *testing.T) {
 	}
 
 	// Verify edge key
-	ekey := key.EdgeKey(eID, vID, vID, eLabel)
+	ueid, _ := g.driver.GetID(eID)
+	ekey := key.EdgeKey(ueid, uvid, uvid, eLabel)
 	err = g.driver.Pkv.View(func(it *pebblebulk.PebbleIterator) error {
 		val, err := it.Get(ekey)
 		if err != nil {
 			return err
 		}
-		_, loc := benchtop.DecodeEdgeValue(val)
+		_, loc, _ := benchtop.DecodeEdgeValue(val)
 		if loc == nil {
 			t.Errorf("RowLoc should not be nil in integrated edge value")
 		} else {

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/binary"
-	"errors"
 	"fmt"
 	"runtime"
 	"slices"
@@ -24,9 +23,10 @@ import (
 )
 
 func (ggraph *Graph) DelVertex(id string) error {
-	vid := key.VertexKey(id)
-	skeyPrefix := key.SrcEdgePrefix(id)
-	dkeyPrefix := key.DstEdgePrefix(id)
+	uid, _ := ggraph.driver.GetID(id)
+	vid := key.VertexKey(uid)
+	skeyPrefix := key.SrcEdgePrefix(uid)
+	dkeyPrefix := key.DstEdgePrefix(uid)
 
 	delKeys := make([][]byte, 0, 1000)
 	type edgeDelInfo struct {
@@ -39,7 +39,8 @@ func (ggraph *Graph) DelVertex(id string) error {
 	err := ggraph.driver.Pkv.View(func(it *pebblebulk.PebbleIterator) error {
 		for it.Seek(skeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), skeyPrefix); it.Next() {
 			skey := it.Key()
-			eid, sid, did, label := key.SrcEdgeKeyParse(skey)
+			euid, suid, duid, label := key.SrcEdgeKeyParse(skey)
+			eid, _ := ggraph.driver.TranslateID(euid)
 
 			if ggraph.tempDeletedEdges != nil {
 				if _, exists := ggraph.tempDeletedEdges[eid]; exists {
@@ -50,18 +51,19 @@ func (ggraph *Graph) DelVertex(id string) error {
 				continue
 			}
 
-			ekey := key.EdgeKey(eid, sid, did, label)
-			dkey := key.DstEdgeKey(eid, sid, did, label)
+			ekey := key.EdgeKey(euid, suid, duid, label)
+			dkey := key.DstEdgeKey(euid, suid, duid, label)
 			delKeys = append(delKeys, ekey, skey, dkey)
 
 			eVal, _ := it.Value()
-			_, loc := benchtop.DecodeEdgeValue(eVal)
+			_, loc, _ := benchtop.DecodeEdgeValue(eVal)
 			edgesToDelete[eid] = edgeDelInfo{label: label, loc: loc}
 		}
 
 		for it.Seek(dkeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), dkeyPrefix); it.Next() {
 			dkey := it.Key()
-			eid, sid, did, label := key.DstEdgeKeyParse(dkey)
+			euid, suid, duid, label := key.DstEdgeKeyParse(dkey)
+			eid, _ := ggraph.driver.TranslateID(euid)
 
 			if ggraph.tempDeletedEdges != nil {
 				if _, exists := ggraph.tempDeletedEdges[eid]; exists {
@@ -72,12 +74,12 @@ func (ggraph *Graph) DelVertex(id string) error {
 				continue
 			}
 
-			ekey := key.EdgeKey(eid, sid, did, label)
-			skey := key.SrcEdgeKey(eid, sid, did, label)
+			ekey := key.EdgeKey(euid, suid, duid, label)
+			skey := key.SrcEdgeKey(euid, suid, duid, label)
 			delKeys = append(delKeys, ekey, skey, dkey)
 
 			eVal, _ := it.Value()
-			_, loc := benchtop.DecodeEdgeValue(eVal)
+			_, loc, _ := benchtop.DecodeEdgeValue(eVal)
 			edgesToDelete[eid] = edgeDelInfo{label: label, loc: loc}
 		}
 		return nil
@@ -97,36 +99,31 @@ func (ggraph *Graph) DelVertex(id string) error {
 		}
 	}
 
-	// Resolve vertex location and label directly from structural key
-	val, closer, err := ggraph.driver.Pkv.Get(vid)
-	if err != nil {
-		if errors.Is(err, pebble.ErrNotFound) {
-			return nil // Already gone
+	var vlbl string
+	var vloc *benchtop.RowLoc
+	_ = ggraph.driver.Pkv.View(func(it *pebblebulk.PebbleIterator) error {
+		val, err := it.Get(vid)
+		if err == nil {
+			vlbl, vloc = benchtop.DecodeVertexValue(val)
 		}
-		return err
-	}
-	defer closer.Close()
+		return nil
+	})
 
-	vLabel, loc := benchtop.DecodeVertexValue(val)
-	if loc == nil {
-		return fmt.Errorf("Vertex structural key missing RowLoc")
-	}
-
-	if err := ggraph.DeleteAnyRow(id, vLabel, false, loc); err != nil {
-		bulkErr = multierror.Append(bulkErr, err)
+	if vloc != nil {
+		if err := ggraph.DeleteAnyRow(id, vlbl, false, vloc); err != nil {
+			bulkErr = multierror.Append(bulkErr, err)
+		}
 	}
 
 	err = ggraph.driver.Pkv.BulkWrite(func(tx *pebblebulk.PebbleBulk) error {
-		if err := tx.DeletePrefix(vid); err != nil {
+		if err := tx.Delete(vid, nil); err != nil {
 			return err
 		}
 		for _, k := range delKeys {
-			if err := tx.DeletePrefix(k); err != nil {
-				log.Errorf("BulkWrite failed to delete key %s: %v", string(k), err)
+			if err := tx.Delete(k, nil); err != nil {
 				return err
 			}
 		}
-		ggraph.ts.Touch(ggraph.graphID)
 		return nil
 	})
 	if err != nil {
@@ -137,14 +134,15 @@ func (ggraph *Graph) DelVertex(id string) error {
 }
 
 func (ggraph *Graph) DelEdge(eid string) error {
-	ekeyPrefix := key.EdgeKeyPrefix(eid)
+	uid, _ := ggraph.driver.GetID(eid)
+	ekeyPrefix := key.EdgeKeyPrefix(uid)
 	var ekey []byte
 	var eVal []byte
 	err := ggraph.driver.Pkv.View(func(it *pebblebulk.PebbleIterator) error {
 		for it.Seek(ekeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), ekeyPrefix); it.Next() {
 			ekey = bytes.Clone(it.Key())
-			eVal, _ = it.Value()
-			eVal = bytes.Clone(eVal)
+			v, _ := it.Value()
+			eVal = bytes.Clone(v)
 		}
 		return nil
 	})
@@ -153,26 +151,18 @@ func (ggraph *Graph) DelEdge(eid string) error {
 	}
 
 	if ekey == nil {
-		log.Debugf("Edge %s not found", eid)
 		return nil
 	}
 
-	_, sid, did, lbl := key.EdgeKeyParse(ekey)
-	skey := key.SrcEdgeKey(eid, sid, did, lbl)
-	dkey := key.DstEdgeKey(eid, sid, did, lbl)
+	euid, suid, duid, lbl := key.EdgeKeyParse(ekey)
+	skey := key.SrcEdgeKey(euid, suid, duid, lbl)
+	dkey := key.DstEdgeKey(euid, suid, duid, lbl)
 
 	var bulkErr *multierror.Error
 	err = ggraph.driver.Pkv.BulkWrite(func(tx *pebblebulk.PebbleBulk) error {
-		if err := tx.Delete(ekey, nil); err != nil {
-			bulkErr = multierror.Append(bulkErr, err)
-		}
-		if err := tx.Delete(skey, nil); err != nil {
-			bulkErr = multierror.Append(bulkErr, err)
-		}
-		if err := tx.Delete(dkey, nil); err != nil {
-			bulkErr = multierror.Append(bulkErr, err)
-		}
-		ggraph.ts.Touch(ggraph.graphID)
+		tx.Delete(ekey, nil)
+		tx.Delete(skey, nil)
+		tx.Delete(dkey, nil)
 		return nil
 	})
 
@@ -180,14 +170,11 @@ func (ggraph *Graph) DelEdge(eid string) error {
 		bulkErr = multierror.Append(bulkErr, err)
 	}
 
-	// Extract RowLoc from authoritative integrated edge key
-	_, loc := benchtop.DecodeEdgeValue(eVal)
-	if loc == nil {
-		return fmt.Errorf("Edge structural key missing RowLoc")
-	}
-
-	if err := ggraph.DeleteAnyRow(eid, lbl, true, loc); err != nil {
-		bulkErr = multierror.Append(bulkErr, err)
+	_, loc, _ := benchtop.DecodeEdgeValue(eVal)
+	if loc != nil {
+		if err := ggraph.DeleteAnyRow(eid, lbl, true, loc); err != nil {
+			bulkErr = multierror.Append(bulkErr, err)
+		}
 	}
 
 	return bulkErr.ErrorOrNil()
@@ -323,6 +310,12 @@ func (ggraph *Graph) BulkDel(data *gdbi.DeleteData) error {
 				table = ggraph.driver.TablesByID[loc.TableId]
 				ggraph.driver.Lock.RUnlock()
 
+				// The provided snippet was syntactically incorrect and referred to an undefined `tName`.
+				// Assuming the intent was to ensure `table` is correctly loaded or handled.
+				// The original code already attempts to load the table if not found in `TablesByID`.
+				// The instruction's snippet seems to be a misplacement or a partial edit from another context.
+				// I will keep the existing logic for table loading and remove the malformed snippet.
+
 				if table == nil {
 					// Try to load
 					if info, err := ggraph.driver.TableDr.GetTableInfo(loc.TableId); err == nil {
@@ -426,7 +419,8 @@ func (ggraph *Graph) BulkDel(data *gdbi.DeleteData) error {
 					default:
 					}
 
-					sPrefix := key.SrcEdgePrefix(vid)
+					uid, _ := ggraph.driver.GetID(vid)
+					sPrefix := key.SrcEdgePrefix(uid)
 					if err := it.Seek(sPrefix); err != nil {
 						return err
 					}
@@ -436,14 +430,15 @@ func (ggraph *Graph) BulkDel(data *gdbi.DeleteData) error {
 							localBatch.ranges = append(localBatch.ranges, [2][]byte{sPrefix, nextPrefix})
 						}
 						for it.Valid() && bytes.HasPrefix(it.Key(), sPrefix) {
-							eid, sid, did, lbl := key.SrcEdgeKeyParse(it.Key())
+							euid, suid, duid, lbl := key.SrcEdgeKeyParse(it.Key())
+							eid, _ := ggraph.driver.TranslateID(euid)
 							eVal, _ := it.Value()
-							_, loc := benchtop.DecodeEdgeValue(eVal)
+							_, loc, _ := benchtop.DecodeEdgeValue(eVal)
 							if !hasSeenEdge(eid) {
 								localBatch.singles = append(localBatch.singles,
-									key.EdgeKey(eid, sid, did, lbl),
+									key.EdgeKey(euid, suid, duid, lbl),
 									bytes.Clone(it.Key()),
-									key.DstEdgeKey(eid, sid, did, lbl))
+									key.DstEdgeKey(euid, suid, duid, lbl))
 								tid, _ := ggraph.driver.TableDr.LookupTableID("e_" + lbl)
 								select {
 								case itemChan <- itemInfo{id: eid, label: lbl, isEdge: true, tableId: tid, loc: loc}:
@@ -455,7 +450,7 @@ func (ggraph *Graph) BulkDel(data *gdbi.DeleteData) error {
 						}
 					}
 
-					dPrefix := key.DstEdgePrefix(vid)
+					dPrefix := key.DstEdgePrefix(uid)
 					if err := it.Seek(dPrefix); err != nil {
 						return err
 					}
@@ -465,13 +460,14 @@ func (ggraph *Graph) BulkDel(data *gdbi.DeleteData) error {
 							localBatch.ranges = append(localBatch.ranges, [2][]byte{dPrefix, nextPrefix})
 						}
 						for it.Valid() && bytes.HasPrefix(it.Key(), dPrefix) {
-							eid, sid, did, lbl := key.DstEdgeKeyParse(it.Key())
+							euid, suid, duid, lbl := key.DstEdgeKeyParse(it.Key())
+							eid, _ := ggraph.driver.TranslateID(euid)
 							eVal, _ := it.Value()
-							_, loc := benchtop.DecodeEdgeValue(eVal)
+							_, loc, _ := benchtop.DecodeEdgeValue(eVal)
 							if !hasSeenEdge(eid) {
 								localBatch.singles = append(localBatch.singles,
-									key.EdgeKey(eid, sid, did, lbl),
-									key.SrcEdgeKey(eid, sid, did, lbl),
+									key.EdgeKey(euid, suid, duid, lbl),
+									key.SrcEdgeKey(euid, suid, duid, lbl),
 									bytes.Clone(it.Key()))
 								tid, _ := ggraph.driver.TableDr.LookupTableID("e_" + lbl)
 								select {
@@ -484,7 +480,7 @@ func (ggraph *Graph) BulkDel(data *gdbi.DeleteData) error {
 						}
 					}
 
-					vkey := key.VertexKey(vid)
+					vkey := key.VertexKey(uid)
 					if err := it.Seek(vkey); err != nil {
 						return err
 					}
@@ -551,7 +547,8 @@ func (ggraph *Graph) BulkDel(data *gdbi.DeleteData) error {
 						continue
 					}
 
-					prefix := key.EdgeKeyPrefix(eid)
+					uid, _ := ggraph.driver.GetID(eid)
+					prefix := key.EdgeKeyPrefix(uid)
 					if err := it.Seek(prefix); err != nil {
 						return err
 					}
@@ -563,13 +560,13 @@ func (ggraph *Graph) BulkDel(data *gdbi.DeleteData) error {
 						var eLabel string
 						var eLoc *benchtop.RowLoc
 						for it.Valid() && bytes.HasPrefix(it.Key(), prefix) {
-							_, sid, did, lbl := key.EdgeKeyParse(it.Key())
+							euid, suid, duid, lbl := key.EdgeKeyParse(it.Key())
 							eLabel = lbl
 							eVal, _ := it.Value()
-							_, eLoc = benchtop.DecodeEdgeValue(eVal)
+							_, eLoc, _ = benchtop.DecodeEdgeValue(eVal)
 							localBatch.singles = append(localBatch.singles,
-								key.SrcEdgeKey(eid, sid, did, lbl),
-								key.DstEdgeKey(eid, sid, did, lbl))
+								key.SrcEdgeKey(euid, suid, duid, lbl),
+								key.DstEdgeKey(euid, suid, duid, lbl))
 							it.Next()
 						}
 						if eLabel != "" {
