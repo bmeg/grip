@@ -12,6 +12,11 @@ const (
 	EdgeTablePrefix   = "e_"
 )
 
+// maxEdgeLabelLen limits the size of edge labels encoded into keys.
+// This prevents integer overflow and excessively large allocations
+// when computing the key size as 1+8+8+8+len(label).
+const maxEdgeLabelLen = 1 << 20 // 1 MiB
+
 var vertexPrefix = []byte(".")
 var edgePrefix = []byte("-")
 var srcEdgePrefix = []byte("<")
@@ -93,6 +98,10 @@ func DstEdgePrefix(id uint64) []byte {
 // EdgeKey takes the required components of an edge key and returns the byte array
 func EdgeKey(id, src, dst uint64, label string) []byte {
 	// Format: E | id(8) | src(8) | dst(8) | label(var)
+	if len(label) > maxEdgeLabelLen {
+		// Truncate excessively long labels to avoid overflow and huge allocations.
+		label = label[:maxEdgeLabelLen]
+	}
 	out := make([]byte, 1+8+8+8+len(label))
 	out[0] = edgePrefix[0]
 	binary.BigEndian.PutUint64(out[1:], id)
