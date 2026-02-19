@@ -66,7 +66,7 @@ func (c *cypherListener) BuildQuery() (*gripql.Query, error) {
 			q = q.As(c.vertexPath[i].name)
 		}
 		if len(c.returns) > 0 {
-			log.Infof("Render: $" + c.returns[0] + "._data")
+			log.Infof("Render: %s", "$"+c.returns[0]+"._data")
 			r := map[string]any{}
 			for _, i := range c.returns {
 				r[i] = "$" + i + "._data"

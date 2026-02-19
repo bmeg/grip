@@ -103,21 +103,26 @@ func (ggraph *Graph) resolveBatch(ctx context.Context, batch []gdbi.ElementLooku
 	}
 }
 
-func projectRowMap(row map[string]any, fields []string) map[string]any {
-	if len(fields) == 0 {
-		return row
+func cleanRowMap(row map[string]any) map[string]any {
+	if row == nil {
+		return nil
 	}
 	out := map[string]any{}
-	// Always include metadata
-	for _, f := range []string{"_id", "_label", "_from", "_to"} {
-		if v, ok := row[f]; ok {
-			out[f] = v
-		}
-	}
-	for _, f := range fields {
-		if _, ok := out[f]; ok {
+	for k, v := range row {
+		if k == "_id" || k == "_label" || k == "_from" || k == "_to" {
 			continue
 		}
+		out[k] = v
+	}
+	return out
+}
+
+func projectRowMap(row map[string]any, fields []string) map[string]any {
+	if len(fields) == 0 {
+		return cleanRowMap(row)
+	}
+	out := map[string]any{}
+	for _, f := range fields {
 		if v, ok := row[f]; ok {
 			out[f] = v
 		}
@@ -322,6 +327,7 @@ func (ggraph *Graph) GetVertex(id string, loadProp bool) *gdbi.Vertex {
 			log.Errorf("GetVertex: table.GetRow( error: %v", err)
 			return nil
 		}
+		v.Data = cleanRowMap(v.Data)
 		v.Loaded = true
 	} else {
 		v.Data = map[string]any{}
@@ -352,7 +358,7 @@ func (ggraph *Graph) GetEdge(id string, loadProp bool) *gdbi.Edge {
 			if loadProp {
 				lbl, loc, data := benchtop.DecodeEdgeValue(byteVal)
 				if data != nil {
-					e.Data = data
+					e.Data = cleanRowMap(data)
 					e.Loaded = true
 					return nil
 				}
@@ -373,6 +379,7 @@ func (ggraph *Graph) GetEdge(id string, loadProp bool) *gdbi.Edge {
 					log.Errorf("GetEdge: GetRow error: %v", gerr)
 					continue
 				}
+				e.Data = cleanRowMap(e.Data)
 				e.Loaded = true
 			} else {
 				e.Data = map[string]any{}
@@ -425,6 +432,7 @@ func (ggraph *Graph) GetVertexList(ctx context.Context, loadProp bool) <-chan *g
 						log.Errorf("GetVertexList: table.GetRow error: %s", err)
 						continue
 					}
+					v.Data = cleanRowMap(v.Data)
 					v.Loaded = true
 				} else {
 					v.Data = map[string]any{}

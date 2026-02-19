@@ -188,6 +188,10 @@ KeyLoop:
 		for k, v := range cde.Data {
 			ode.Data[k] = v
 		}
+		ode.ID = cde.ID
+		ode.Label = cde.Label
+		ode.From = cde.From
+		ode.To = cde.To
 	}
 
 	if len(includePaths) > 0 {

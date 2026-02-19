@@ -372,7 +372,7 @@ func (server *GripServer) Serve(pctx context.Context) error {
 					}
 					partition, offset, err := server.kafkaProducer.SendMessage(msg)
 					if err != nil {
-						log.Errorf("Failed to send Kafka message to topic %#v: %v", *&server.conf.Kafka.Topic, err)
+						log.Errorf("Failed to send Kafka message to topic %#v: %v", *server.conf.Kafka.Topic, err)
 					} else {
 						log.Infof("Message sent to Kafka topic %s [partition %d, offset %d]", *server.conf.Kafka.Topic, partition, offset)
 					}
