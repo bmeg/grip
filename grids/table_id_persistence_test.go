@@ -45,11 +45,15 @@ func TestTableIDPersistenceOnRestart(t *testing.T) {
 	bulkAddElems(t, g, elems)
 
 	// Get TableId and verify it's not 0
-	loc, err := g.driver.LocCache.Get(context.Background(), "p1")
+	locs, err := g.driver.GetLocBatch(context.Background(), []string{"p1"})
 	if err != nil {
-		t.Fatalf("LocCache.Get failed for p1: %v", err)
+		t.Fatalf("GetLocBatch failed for p1: %v", err)
 	}
-	initialTableID := loc.TableId
+	loc := locs["p1"]
+	if loc == nil {
+		t.Fatalf("p1 location not found in integrated key")
+	}
+	initialTableID := loc.Loc.TableId
 	dbi.Close()
 
 	// 2. Restart and verify ID metadata

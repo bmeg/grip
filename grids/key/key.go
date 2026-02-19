@@ -27,6 +27,26 @@ func VertexKeyParse(key []byte) (id string) {
 	return string(tmp[1])
 }
 
+// VertexIntegratedParse parses both vertex ID from key and label/loc from value
+func VertexIntegratedParse(k, v []byte) (id string, label string, locBytes []byte) {
+	id = VertexKeyParse(k)
+	idx := bytes.IndexByte(v, 0)
+	if idx < 0 {
+		return id, string(v), nil
+	}
+	label = string(v[:idx])
+	locBytes = v[idx+1:]
+	return id, label, locBytes
+}
+
+// IntegratedEdgeValueParse extracts RowLoc bytes from an edge index value
+func IntegratedEdgeValueParse(v []byte) []byte {
+	if len(v) >= 12 {
+		return v
+	}
+	return nil
+}
+
 // EdgeKeyPrefix returns the byte array prefix for a particular edge id
 func EdgeKeyPrefix(id string) []byte {
 	return bytes.Join([][]byte{

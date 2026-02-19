@@ -68,15 +68,14 @@ func (ggraph *Graph) VertexLabelScan(ctx context.Context, label string) chan str
 	return ggraph.driver.GetIDsForLabel(label)
 }
 
-func (ggraph *Graph) DeleteAnyRow(id string, label string, edgeFlag bool) error {
+func (ggraph *Graph) DeleteAnyRow(id string, label string, edgeFlag bool, loc *benchtop.RowLoc) error {
 	var prefix string = "v_"
 	if edgeFlag {
 		prefix = "e_"
 	}
 
-	loc, err := ggraph.driver.LocCache.Get(context.Background(), id)
-	if err != nil {
-		return err
+	if loc == nil {
+		return fmt.Errorf("DeleteAnyRow: RowLoc is nil for %s", id)
 	}
 
 	tableLabel := prefix + label
@@ -128,7 +127,7 @@ func (ggraph *Graph) DeleteAnyRow(id string, label string, edgeFlag bool) error 
 		log.Warningf("table %s not found in driver.Tables during delete of row %s; skipping data storage deletion but continuing with index cleanup", tableLabel, id)
 	}
 
-	ggraph.driver.LocCache.Invalidate(id)
+	// ggraph.driver.LocCache.Invalidate(id) // Gone
 	ggraph.driver.TableDr.InvalidateLoc(loc.TableId, id)
 	return bulkErr.ErrorOrNil()
 }

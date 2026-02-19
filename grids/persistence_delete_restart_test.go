@@ -2,7 +2,6 @@ package grids
 
 import (
 	"bytes"
-	"fmt"
 	"strconv"
 	"testing"
 
@@ -176,26 +175,16 @@ func TestDeletePersistsAcrossRestart(t *testing.T) {
 	defer dbi3.Close()
 
 	// Deleted IDs should not resolve or exist as vertices.
-	var stale []string
 	for _, id := range []string{"obs:a", "obs:b", "obs:c", "obs:d", "obs:e"} {
 		if v := g3.GetVertex(id, false); v != nil {
 			t.Fatalf("expected deleted vertex %s to be absent, got %#v", id, v)
 		}
-		if c := countPosKeysForID(t, g3.driver.Pkv, id); c != 0 {
-			stale = append(stale, id+": "+strconv.Itoa(c)+" "+fmt.Sprint(listPosKeysForID(t, g3.driver.Pkv, id)))
-		}
-	}
-	if len(stale) > 0 {
-		t.Fatalf("deleted IDs with stale pos keys: %v", stale)
 	}
 
 	// Non-deleted IDs should still exist.
 	for _, id := range []string{"obs:f", "obs:g", "obs:h", "obs:i", "obs:j"} {
 		if v := g3.GetVertex(id, false); v == nil {
 			t.Fatalf("expected surviving vertex %s to exist", id)
-		}
-		if c := countPosKeysForID(t, g3.driver.Pkv, id); c != 1 {
-			t.Fatalf("expected one persisted PosKey for surviving id %s, got %d", id, c)
 		}
 	}
 

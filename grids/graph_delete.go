@@ -29,7 +29,11 @@ func (ggraph *Graph) DelVertex(id string) error {
 	dkeyPrefix := key.DstEdgePrefix(id)
 
 	delKeys := make([][]byte, 0, 1000)
-	edgesToDelete := make(map[string]string)
+	type edgeDelInfo struct {
+		label string
+		loc   *benchtop.RowLoc
+	}
+	edgesToDelete := make(map[string]edgeDelInfo)
 
 	var bulkErr *multierror.Error
 	err := ggraph.driver.Pkv.View(func(it *pebblebulk.PebbleIterator) error {
@@ -49,7 +53,10 @@ func (ggraph *Graph) DelVertex(id string) error {
 			ekey := key.EdgeKey(eid, sid, did, label)
 			dkey := key.DstEdgeKey(eid, sid, did, label)
 			delKeys = append(delKeys, ekey, skey, dkey)
-			edgesToDelete[eid] = label
+
+			eVal, _ := it.Value()
+			_, loc := benchtop.DecodeEdgeValue(eVal)
+			edgesToDelete[eid] = edgeDelInfo{label: label, loc: loc}
 		}
 
 		for it.Seek(dkeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), dkeyPrefix); it.Next() {
@@ -68,7 +75,10 @@ func (ggraph *Graph) DelVertex(id string) error {
 			ekey := key.EdgeKey(eid, sid, did, label)
 			skey := key.SrcEdgeKey(eid, sid, did, label)
 			delKeys = append(delKeys, ekey, skey, dkey)
-			edgesToDelete[eid] = label
+
+			eVal, _ := it.Value()
+			_, loc := benchtop.DecodeEdgeValue(eVal)
+			edgesToDelete[eid] = edgeDelInfo{label: label, loc: loc}
 		}
 		return nil
 	})
@@ -77,8 +87,8 @@ func (ggraph *Graph) DelVertex(id string) error {
 		return err
 	}
 
-	for eid, label := range edgesToDelete {
-		if err := ggraph.DeleteAnyRow(eid, label, true); err != nil {
+	for eid, info := range edgesToDelete {
+		if err := ggraph.DeleteAnyRow(eid, info.label, true, info.loc); err != nil {
 			bulkErr = multierror.Append(bulkErr, err)
 		}
 
@@ -87,23 +97,22 @@ func (ggraph *Graph) DelVertex(id string) error {
 		}
 	}
 
-	loc, err := ggraph.driver.LocCache.Get(context.Background(), id)
+	// Resolve vertex location and label directly from structural key
+	val, closer, err := ggraph.driver.Pkv.Get(vid)
 	if err != nil {
+		if errors.Is(err, pebble.ErrNotFound) {
+			return nil // Already gone
+		}
 		return err
 	}
+	defer closer.Close()
 
-	// Resolve table and label
-	table, err := ggraph.driver.GetTableByID(loc.TableId)
-	if err != nil {
-		bulkErr = multierror.Append(bulkErr, fmt.Errorf("Failed to lookup table for ID %d: %v", loc.TableId, err))
-		return bulkErr.ErrorOrNil()
+	vLabel, loc := benchtop.DecodeVertexValue(val)
+	if loc == nil {
+		return fmt.Errorf("Vertex structural key missing RowLoc")
 	}
-	label := table.Label
-	if label == "" {
-		bulkErr = multierror.Append(bulkErr, fmt.Errorf("Table label empty for TableId %d", loc.TableId))
-		return bulkErr.ErrorOrNil()
-	}
-	if err := ggraph.DeleteAnyRow(id, label, false); err != nil {
+
+	if err := ggraph.DeleteAnyRow(id, vLabel, false, loc); err != nil {
 		bulkErr = multierror.Append(bulkErr, err)
 	}
 
@@ -130,9 +139,12 @@ func (ggraph *Graph) DelVertex(id string) error {
 func (ggraph *Graph) DelEdge(eid string) error {
 	ekeyPrefix := key.EdgeKeyPrefix(eid)
 	var ekey []byte
+	var eVal []byte
 	err := ggraph.driver.Pkv.View(func(it *pebblebulk.PebbleIterator) error {
 		for it.Seek(ekeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), ekeyPrefix); it.Next() {
-			ekey = it.Key()
+			ekey = bytes.Clone(it.Key())
+			eVal, _ = it.Value()
+			eVal = bytes.Clone(eVal)
 		}
 		return nil
 	})
@@ -168,7 +180,13 @@ func (ggraph *Graph) DelEdge(eid string) error {
 		bulkErr = multierror.Append(bulkErr, err)
 	}
 
-	if err := ggraph.DeleteAnyRow(eid, lbl, true); err != nil {
+	// Extract RowLoc from authoritative integrated edge key
+	_, loc := benchtop.DecodeEdgeValue(eVal)
+	if loc == nil {
+		return fmt.Errorf("Edge structural key missing RowLoc")
+	}
+
+	if err := ggraph.DeleteAnyRow(eid, lbl, true, loc); err != nil {
 		bulkErr = multierror.Append(bulkErr, err)
 	}
 
@@ -195,6 +213,7 @@ func (ggraph *Graph) BulkDel(data *gdbi.DeleteData) error {
 		label   string
 		isEdge  bool
 		tableId uint16
+		loc     *benchtop.RowLoc
 	}
 
 	const shardSize = 64
@@ -292,18 +311,13 @@ func (ggraph *Graph) BulkDel(data *gdbi.DeleteData) error {
 				}
 				i++
 
-				// Fetch from page cache
-				loc, err := ggraph.driver.LocCache.Get(ctx, item.id)
-				if err != nil {
-					if !errors.Is(err, driver.ErrNotFound) {
-						addErr(err)
-					}
+				// Use the RowLoc passed in itemInfo
+				loc := item.loc
+				if loc == nil {
 					continue
 				}
 
 				// Resolve table and mark for deletion if it exists
-				// Use GetOrLoadTable to handle case-sensitivity and on-demand loading
-				// Resolve table from authoritative LocCache ID
 				var table *driver.BackendTable
 				ggraph.driver.Lock.RLock()
 				table = ggraph.driver.TablesByID[loc.TableId]
@@ -318,10 +332,7 @@ func (ggraph *Graph) BulkDel(data *gdbi.DeleteData) error {
 
 				hasTable := (table != nil)
 				if hasTable && table.TableId != loc.TableId {
-					// Should be impossible given we looked up by Loc.TableId
 					log.Warningf("Logic error: table mismatch %d vs %d", table.TableId, loc.TableId)
-				} else if !hasTable && item.tableId != 0 && item.tableId != loc.TableId {
-					log.Warningf("index/row mismatch: index says %d, row says %d; using row", item.tableId, loc.TableId)
 				}
 
 				// Use authoritative ID
@@ -330,8 +341,7 @@ func (ggraph *Graph) BulkDel(data *gdbi.DeleteData) error {
 				// Position key matches the new P | TableId | rowID format
 				localBatch.posKeys = append(localBatch.posKeys, benchtop.NewPosKey(currentTableId, []byte(item.id)))
 
-				// Invalidate Grip's cache
-				ggraph.driver.LocCache.Invalidate(item.id)
+				// Invalidate Benchtop's table-aware cache (Grip's LocCache will be gone)
 
 				// Invalidate Benchtop's table-aware cache
 				ggraph.driver.TableDr.InvalidateLoc(currentTableId, item.id)
@@ -427,6 +437,8 @@ func (ggraph *Graph) BulkDel(data *gdbi.DeleteData) error {
 						}
 						for it.Valid() && bytes.HasPrefix(it.Key(), sPrefix) {
 							eid, sid, did, lbl := key.SrcEdgeKeyParse(it.Key())
+							eVal, _ := it.Value()
+							_, loc := benchtop.DecodeEdgeValue(eVal)
 							if !hasSeenEdge(eid) {
 								localBatch.singles = append(localBatch.singles,
 									key.EdgeKey(eid, sid, did, lbl),
@@ -434,7 +446,7 @@ func (ggraph *Graph) BulkDel(data *gdbi.DeleteData) error {
 									key.DstEdgeKey(eid, sid, did, lbl))
 								tid, _ := ggraph.driver.TableDr.LookupTableID("e_" + lbl)
 								select {
-								case itemChan <- itemInfo{id: eid, label: lbl, isEdge: true, tableId: tid}:
+								case itemChan <- itemInfo{id: eid, label: lbl, isEdge: true, tableId: tid, loc: loc}:
 								case <-ctx.Done():
 									return ctx.Err()
 								}
@@ -454,6 +466,8 @@ func (ggraph *Graph) BulkDel(data *gdbi.DeleteData) error {
 						}
 						for it.Valid() && bytes.HasPrefix(it.Key(), dPrefix) {
 							eid, sid, did, lbl := key.DstEdgeKeyParse(it.Key())
+							eVal, _ := it.Value()
+							_, loc := benchtop.DecodeEdgeValue(eVal)
 							if !hasSeenEdge(eid) {
 								localBatch.singles = append(localBatch.singles,
 									key.EdgeKey(eid, sid, did, lbl),
@@ -461,7 +475,7 @@ func (ggraph *Graph) BulkDel(data *gdbi.DeleteData) error {
 									bytes.Clone(it.Key()))
 								tid, _ := ggraph.driver.TableDr.LookupTableID("e_" + lbl)
 								select {
-								case itemChan <- itemInfo{id: eid, label: lbl, isEdge: true, tableId: tid}:
+								case itemChan <- itemInfo{id: eid, label: lbl, isEdge: true, tableId: tid, loc: loc}:
 								case <-ctx.Done():
 									return ctx.Err()
 								}
@@ -474,19 +488,20 @@ func (ggraph *Graph) BulkDel(data *gdbi.DeleteData) error {
 					if err := it.Seek(vkey); err != nil {
 						return err
 					}
-					var label string
+					var vlabel string
+					var vloc *benchtop.RowLoc
 					if it.Valid() && bytes.Equal(it.Key(), vkey) {
-						labelBytes, err := it.Value()
+						vBytes, err := it.Value()
 						if err != nil {
 							return err
 						}
-						label = string(labelBytes)
+						vlabel, vloc = benchtop.DecodeVertexValue(vBytes)
 					}
 					localBatch.singles = append(localBatch.singles, vkey)
-					if label != "" {
-						tid, _ := ggraph.driver.TableDr.LookupTableID("v_" + label)
+					if vlabel != "" {
+						tid, _ := ggraph.driver.TableDr.LookupTableID("v_" + vlabel)
 						select {
-						case itemChan <- itemInfo{id: vid, label: label, isEdge: false, tableId: tid}:
+						case itemChan <- itemInfo{id: vid, label: vlabel, isEdge: false, tableId: tid, loc: vloc}:
 						case <-ctx.Done():
 							return ctx.Err()
 						}
@@ -545,19 +560,22 @@ func (ggraph *Graph) BulkDel(data *gdbi.DeleteData) error {
 						if nextPrefix != nil {
 							localBatch.ranges = append(localBatch.ranges, [2][]byte{prefix, nextPrefix})
 						}
-						var label string
+						var eLabel string
+						var eLoc *benchtop.RowLoc
 						for it.Valid() && bytes.HasPrefix(it.Key(), prefix) {
 							_, sid, did, lbl := key.EdgeKeyParse(it.Key())
-							label = lbl
+							eLabel = lbl
+							eVal, _ := it.Value()
+							_, eLoc = benchtop.DecodeEdgeValue(eVal)
 							localBatch.singles = append(localBatch.singles,
 								key.SrcEdgeKey(eid, sid, did, lbl),
 								key.DstEdgeKey(eid, sid, did, lbl))
 							it.Next()
 						}
-						if label != "" {
-							tid, _ := ggraph.driver.TableDr.LookupTableID("e_" + label)
+						if eLabel != "" {
+							tid, _ := ggraph.driver.TableDr.LookupTableID("e_" + eLabel)
 							select {
-							case itemChan <- itemInfo{id: eid, label: label, isEdge: true, tableId: tid}:
+							case itemChan <- itemInfo{id: eid, label: eLabel, isEdge: true, tableId: tid, loc: eLoc}:
 							case <-ctx.Done():
 								return ctx.Err()
 							}

@@ -15,14 +15,14 @@ import (
 	"github.com/bmeg/grip/grids/key"
 	"github.com/bmeg/grip/log"
 	"github.com/bytedance/sonic"
-	multierror "github.com/hashicorp/go-multierror"
 )
 
-func insertVertex(tx *pebblebulk.PebbleBulk, vertex *gdbi.Vertex) error {
+func insertVertex(tx *pebblebulk.PebbleBulk, vertex *gdbi.Vertex, loc *benchtop.RowLoc) error {
 	if vertex.ID == "" {
 		return fmt.Errorf("inserting null key vertex")
 	}
-	if err := tx.Set(key.VertexKey(vertex.ID), []byte(vertex.Label), nil); err != nil {
+	val := benchtop.EncodeVertexValue(vertex.Label, loc)
+	if err := tx.Set(key.VertexKey(vertex.ID), val, nil); err != nil {
 		return fmt.Errorf("AddVertex Error %s", err)
 	}
 	return nil
@@ -42,16 +42,6 @@ func (ggraph *Graph) indexVertices(vertices []*gdbi.Vertex, tx *pebblebulk.Pebbl
 		ggraph.driver.Lock.Unlock()
 
 		if !ok {
-			// If ID found but table not in cache, GetOrLoad?
-			// Actually LookupTableID returns ID if exists.
-			// If tid == 0 (not found?), then we New.
-			// LookupTableID returns error if not found.
-			// If err != nil: New.
-			// If err == nil: table might be loaded or not.
-			// If not loaded in Tables map, we should load it.
-			// Use GetOrLoadTable-like logic, but ID-based.
-			// ggraph.driver.Get(vertexLabel) -> loads it.
-
 			tStore, err := ggraph.driver.Get(vertexLabel)
 			if err != nil {
 				// Create new
@@ -61,17 +51,7 @@ func (ggraph *Graph) indexVertices(vertices []*gdbi.Vertex, tx *pebblebulk.Pebbl
 					return fmt.Errorf("indexVertices: %s", err)
 				}
 			}
-			// Now we have tStore.
-			// Need to put in Tables map? New/Get already puts it in Tables map?
-			// Driver.Get calls GetOrLoadTable which puts in map.
-			// Driver.New puts in map.
-			// So we just need to retrieve it from map or assume it's there.
-			var ok bool
-			table, ok = tStore.(*driver.BackendTable)
-			if !ok {
-				// If implicit cast fails?
-				// Should not happen if initialized correctly.
-			}
+			table = tStore.(*driver.BackendTable)
 		}
 
 		rows := make([]benchtop.Row, len(verts))
@@ -94,22 +74,23 @@ func (ggraph *Graph) indexVertices(vertices []*gdbi.Vertex, tx *pebblebulk.Pebbl
 
 		for i, v := range verts {
 			rowLoc := locs[i]
+			// IMPORTANT: We still call AddTableEntryInfo for cache coherence,
+			// but it's the Integrated structural key that is now authoritative.
 			err = ggraph.driver.AddTableEntryInfo(tx, []byte(v.ID), rowLoc)
 			if err != nil {
 				return fmt.Errorf("AddVertex Error %s", err)
 			}
 
-			_, ok = ggraph.driver.LocCache.Set(v.ID, rowLoc)
-			if !ok {
-				ggraph.driver.LocCache.Invalidate(v.ID)
-				ggraph.driver.LocCache.Set(v.ID, rowLoc)
+			// Update the structural key with the location
+			if err := insertVertex(tx, v, rowLoc); err != nil {
+				return err
 			}
 
 			// Indices
 			if len(table.Fields) > 0 {
 				for field := range table.Fields {
 					if val := tpath.PathLookup(v.Data, field); val != nil {
-						err := tx.Set(benchtop.FieldKey(field, table.TableId, val, []byte(v.ID)), []byte{}, nil)
+						err := tx.Set(benchtop.FieldKey(field, table.TableId, val, []byte(v.ID)), benchtop.EncodeRowLoc(rowLoc), nil)
 						if err != nil {
 							return err
 						}
@@ -129,7 +110,7 @@ func (ggraph *Graph) indexVertices(vertices []*gdbi.Vertex, tx *pebblebulk.Pebbl
 	return nil
 }
 
-func insertEdge(tx *pebblebulk.PebbleBulk, edge *gdbi.Edge) error {
+func insertEdge(tx *pebblebulk.PebbleBulk, edge *gdbi.Edge, loc *benchtop.RowLoc) error {
 	if edge.ID == "" ||
 		edge.From == "" ||
 		edge.To == "" ||
@@ -137,7 +118,8 @@ func insertEdge(tx *pebblebulk.PebbleBulk, edge *gdbi.Edge) error {
 		log.Errorln("insertEdge Err: ", edge)
 		return fmt.Errorf("inserting null key edge")
 	}
-	err := tx.Set(key.EdgeKey(edge.ID, edge.From, edge.To, edge.Label), nil, nil)
+	val := benchtop.EncodeEdgeValue(edge.Label, loc)
+	err := tx.Set(key.EdgeKey(edge.ID, edge.From, edge.To, edge.Label), val, nil)
 	if err != nil {
 		return err
 	}
@@ -146,7 +128,7 @@ func insertEdge(tx *pebblebulk.PebbleBulk, edge *gdbi.Edge) error {
 		edge.From,
 		edge.To,
 		edge.Label,
-	), []byte{}, nil)
+	), val, nil)
 	if err != nil {
 		return err
 	}
@@ -155,7 +137,7 @@ func insertEdge(tx *pebblebulk.PebbleBulk, edge *gdbi.Edge) error {
 		edge.From,
 		edge.To,
 		edge.Label,
-	), []byte{}, nil)
+	), val, nil)
 	if err != nil {
 		return err
 	}
@@ -170,7 +152,6 @@ func (ggraph *Graph) indexEdges(edges []*gdbi.Edge, tx *pebblebulk.PebbleBulk) e
 
 	for label, batch := range byLabel {
 		edgeLabel := key.EdgeTablePrefix + label
-		// Same for edges
 		tid, _ := ggraph.driver.TableDr.LookupTableID(edgeLabel)
 		ggraph.driver.Lock.Lock()
 		table, ok := ggraph.driver.TablesByID[tid]
@@ -209,16 +190,15 @@ func (ggraph *Graph) indexEdges(edges []*gdbi.Edge, tx *pebblebulk.PebbleBulk) e
 				return fmt.Errorf("indexEdges: driver.AddTableEntryInfo: %s", err)
 			}
 
-			_, ok = ggraph.driver.LocCache.Set(e.ID, rowLoc)
-			if !ok {
-				ggraph.driver.LocCache.Invalidate(e.ID)
-				ggraph.driver.LocCache.Set(e.ID, rowLoc)
+			// Update the structural keys with the location
+			if err := insertEdge(tx, e, rowLoc); err != nil {
+				return err
 			}
 
 			if len(table.Fields) > 0 {
 				for field := range table.Fields {
 					if val := tpath.PathLookup(e.Data, field); val != nil {
-						err := tx.Set(benchtop.FieldKey(field, table.TableId, val, []byte(e.ID)), []byte{}, nil)
+						err := tx.Set(benchtop.FieldKey(field, table.TableId, val, []byte(e.ID)), benchtop.EncodeRowLoc(rowLoc), nil)
 						if err != nil {
 							return err
 						}
@@ -241,61 +221,29 @@ func (ggraph *Graph) indexEdges(edges []*gdbi.Edge, tx *pebblebulk.PebbleBulk) e
 // AddVertex adds an edge to the graph, if it already exists
 // in the graph, it is replaced
 func (ggraph *Graph) AddVertex(vertices []*gdbi.Vertex) error {
-	err := ggraph.driver.Pkv.BulkWrite(func(tx *pebblebulk.PebbleBulk) error {
-		var bulkErr *multierror.Error
-		for _, vert := range vertices {
-			if err := insertVertex(tx, vert); err != nil {
-				bulkErr = multierror.Append(bulkErr, err)
-				log.Errorf("AddVertex Error %s", err)
-			}
-		}
-		ggraph.ts.Touch(ggraph.graphID)
-		return bulkErr.ErrorOrNil()
-	})
-
-	err = ggraph.driver.Pkv.BulkWrite(func(tx *pebblebulk.PebbleBulk) error {
-		var bulkErr *multierror.Error
+	// indexVertices now handles the authoritative integrated key write.
+	return ggraph.driver.Pkv.BulkWrite(func(tx *pebblebulk.PebbleBulk) error {
 		if err := ggraph.indexVertices(vertices, tx); err != nil {
-			bulkErr = multierror.Append(bulkErr, err)
 			log.Errorf("IndexVertices Error %s", err)
+			return err
 		}
 		ggraph.ts.Touch(ggraph.graphID)
-		return bulkErr.ErrorOrNil()
+		return nil
 	})
-	return err
 }
 
 // AddEdge adds an edge to the graph, if the id is not "" and in already exists
 // in the graph, it is replaced
 func (ggraph *Graph) AddEdge(edges []*gdbi.Edge) error {
-	var err error = nil
-	err = ggraph.driver.Pkv.BulkWrite(func(tx *pebblebulk.PebbleBulk) error {
-		err = ggraph.driver.Pkv.View(func(it *pebblebulk.PebbleIterator) error {
-			for _, edge := range edges {
-				err = insertEdge(tx, edge)
-				if err != nil {
-					log.Errorln("Err insertEdge: ", err)
-					return err
-				}
-			}
-			return err
-		})
-		ggraph.ts.Touch(ggraph.graphID)
-		return err
-	})
-	if err != nil {
-		return err
-	}
-	err = ggraph.driver.Pkv.BulkWrite(func(tx *pebblebulk.PebbleBulk) error {
-		var bulkErr *multierror.Error
+	// indexEdges now handles the authoritative integrated key write.
+	return ggraph.driver.Pkv.BulkWrite(func(tx *pebblebulk.PebbleBulk) error {
 		if err := ggraph.indexEdges(edges, tx); err != nil {
-			bulkErr = multierror.Append(bulkErr, err)
+			log.Errorf("IndexEdges Error %s", err)
+			return err
 		}
 		ggraph.ts.Touch(ggraph.graphID)
-		return bulkErr.ErrorOrNil()
+		return nil
 	})
-	return err
-
 }
 
 func (ggraph *Graph) BulkAdd(stream <-chan *gdbi.GraphElement) error {
@@ -461,20 +409,8 @@ func (ggraph *Graph) BulkAdd(stream <-chan *gdbi.GraphElement) error {
 				rows[i] = item.row
 			}
 
-			// Structural inserts (Pebble)
-			for _, item := range filteredItems {
-				if item.elem.Vertex != nil {
-					if err := insertVertex(tx, item.elem.Vertex); err != nil {
-						return err
-					}
-				} else if item.elem.Edge != nil {
-					if err := insertEdge(tx, item.elem.Edge); err != nil {
-						return err
-					}
-				}
-			}
-
 			// Bulk Load JSON/Index rows (passing snap for further row-level filtering)
+			// This will also update the structural Vertex/Edge keys with the found locations.
 			if err := ggraph.driver.BulkLoadBatch(tx, rows, snap); err != nil {
 				return err
 			}

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 
+	"github.com/bmeg/benchtop"
 	"github.com/bmeg/benchtop/pebblebulk"
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/grids/key"
@@ -128,6 +129,8 @@ func (ggraph *Graph) GetOutEdgeChannel(ctx context.Context, reqChan chan gdbi.El
 				for it.Seek(skeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), skeyPrefix); it.Next() {
 					eid, src, dst, label := key.SrcEdgeKeyParse(it.Key())
 					if len(edgeLabels) == 0 || setcmp.ContainsString(edgeLabels, label) {
+						byteVal, _ := it.Value()
+						_, loc := benchtop.DecodeEdgeValue(byteVal)
 						e := gdbi.Edge{
 							From:  src,
 							To:    dst,
@@ -139,7 +142,7 @@ func (ggraph *Graph) GetOutEdgeChannel(ctx context.Context, reqChan chan gdbi.El
 							req.Edge = &e
 							o <- req
 						} else {
-							batch = append(batch, gdbi.ElementLookup{ID: eid, Ref: req.Ref, Edge: &e})
+							batch = append(batch, gdbi.ElementLookup{ID: eid, Ref: req.Ref, Edge: &e, Priv: loc})
 							if len(batch) >= 1000 {
 								ggraph.resolveBatch(ctx, batch, o, true)
 								batch = nil
@@ -184,6 +187,8 @@ func (ggraph *Graph) GetInEdgeChannel(ctx context.Context, reqChan chan gdbi.Ele
 				for it.Seek(dkeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), dkeyPrefix); it.Next() {
 					eid, src, dst, label := key.DstEdgeKeyParse(it.Key())
 					if len(edgeLabels) == 0 || setcmp.ContainsString(edgeLabels, label) {
+						byteVal, _ := it.Value()
+						_, loc := benchtop.DecodeEdgeValue(byteVal)
 						e := gdbi.Edge{
 							From:  src,
 							To:    dst,
@@ -195,7 +200,7 @@ func (ggraph *Graph) GetInEdgeChannel(ctx context.Context, reqChan chan gdbi.Ele
 							req.Edge = &e
 							o <- req
 						} else {
-							batch = append(batch, gdbi.ElementLookup{ID: eid, Ref: req.Ref, Edge: &e})
+							batch = append(batch, gdbi.ElementLookup{ID: eid, Ref: req.Ref, Edge: &e, Priv: loc})
 							if len(batch) >= 1000 {
 								ggraph.resolveBatch(ctx, batch, o, true)
 								batch = nil
