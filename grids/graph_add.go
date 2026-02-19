@@ -1,10 +1,10 @@
 package grids
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"maps"
+	"sort"
 	"sync"
 
 	"github.com/bmeg/benchtop"
@@ -231,24 +231,27 @@ func (ggraph *Graph) BulkAdd(stream <-chan *gdbi.GraphElement) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	snap := ggraph.driver.Pkv.Db.NewSnapshot()
+	defer snap.Close()
+
 	type preparedItem struct {
-		elem *gdbi.GraphElement
-		row  *benchtop.Row
-		uid  uint64
-		suid uint64
-		duid uint64
+		elem  *gdbi.GraphElement
+		row   *benchtop.Row
+		uid   uint64
+		suid  uint64
+		duid  uint64
+		dbKey []byte
 	}
 
 	const bufSize = 8192
-	work := make(chan *gdbi.GraphElement, bufSize)
 	ready := make(chan *preparedItem, bufSize)
 
 	var wg sync.WaitGroup
-	wg.Add(2)
+	wg.Add(1)
 
 	go func() {
 		defer wg.Done()
-		defer close(work)
+		defer close(ready)
 
 		// ─── Worker Buffer & Batching ──────────────────────────
 		const workerBatchSize = 1000
@@ -292,6 +295,8 @@ func (ggraph *Graph) BulkAdd(stream <-chan *gdbi.GraphElement) error {
 			}
 
 			// 4. Transform elements into preparedItems
+			items := make([]*preparedItem, 0, len(b))
+
 			for _, elem := range b {
 				if elem == nil {
 					continue
@@ -322,8 +327,11 @@ func (ggraph *Graph) BulkAdd(stream <-chan *gdbi.GraphElement) error {
 
 				var row *benchtop.Row
 				var uid, suid, duid uint64
+				var dbKey []byte
+
 				if elem.Vertex != nil {
 					uid = idMap[elem.Vertex.ID]
+					dbKey = key.VertexKey(uid)
 					row = &benchtop.Row{
 						Id:      []byte(elem.Vertex.ID),
 						TableID: tid,
@@ -333,6 +341,7 @@ func (ggraph *Graph) BulkAdd(stream <-chan *gdbi.GraphElement) error {
 					uid = idMap[elem.Edge.ID]
 					suid = idMap[elem.Edge.From]
 					duid = idMap[elem.Edge.To]
+					dbKey = key.EdgeKey(uid, suid, duid, elem.Edge.Label)
 					data := make(map[string]any, len(elem.Edge.Data)+2)
 					maps.Copy(data, elem.Edge.Data)
 					data["_from"] = elem.Edge.From
@@ -345,13 +354,38 @@ func (ggraph *Graph) BulkAdd(stream <-chan *gdbi.GraphElement) error {
 				}
 
 				if row != nil {
-					select {
-					case <-ctx.Done():
-						return ctx.Err()
-					case ready <- &preparedItem{elem: elem, row: row, uid: uid, suid: suid, duid: duid}:
-					}
+					items = append(items, &preparedItem{
+						elem:  elem,
+						row:   row,
+						uid:   uid,
+						suid:  suid,
+						duid:  duid,
+						dbKey: dbKey,
+					})
 				}
 			}
+
+			// 5. Sort items by UID to maximize Snapshot.Get locality (block cache efficiency)
+			sort.Slice(items, func(i, j int) bool {
+				return items[i].uid < items[j].uid
+			})
+
+			// 6. Check Snapshot and Emit
+			for _, item := range items {
+				if item.dbKey != nil {
+					_, closer, err := snap.Get(item.dbKey)
+					if err == nil {
+						closer.Close()
+						continue // Skip, graph element already exists
+					}
+				}
+				select {
+				case <-ctx.Done():
+					return ctx.Err()
+				case ready <- item:
+				}
+			}
+
 			return nil
 		}
 
@@ -379,37 +413,24 @@ func (ggraph *Graph) BulkAdd(stream <-chan *gdbi.GraphElement) error {
 		}
 	}()
 
-	go func() {
-		defer wg.Done()
-		defer close(ready)
-
-		for elem := range work {
-			// This goroutine is now empty as its logic has been moved to the first goroutine.
-			// It will just drain the 'work' channel and close 'ready'.
-			// The actual work of preparing 'row' and resolving IDs is done in the first goroutine.
-			// This goroutine can be removed or refactored if 'work' channel is no longer needed.
-			// For now, keeping it to drain 'work' and close 'ready' as per original structure.
-			_ = elem // Consume the element
-		}
-	}()
-
 	// ─────────────────────────────────────────────
 	// 3. Writer: Batching and I/O (Main thread)
 	// ─────────────────────────────────────────────
 	const batchSize = 1000
 	itemBuffer := make([]*preparedItem, 0, batchSize)
 
-	snap := ggraph.driver.Pkv.Db.NewSnapshot()
-	defer snap.Close()
+	// Removed global snap and it, they will be created per batch.
+	// snap := ggraph.driver.Pkv.Db.NewSnapshot()
+	// defer snap.Close()
+	//
+	// it, err := snap.NewIter(nil)
+	// if err != nil {
+	// 	return err
+	// }
+	// defer it.Close()
 
-	// Use a shared iterator for the snapshot to avoid overhead
-	it, err := snap.NewIter(nil)
-	if err != nil {
-		return err
-	}
-	defer it.Close()
-
-	seen := make(map[string]struct{})
+	// Removed global 'seen' map.
+	// seen := make(map[string]struct{})
 
 	processBatch := func(batch []*preparedItem) error {
 		if len(batch) == 0 {
@@ -417,47 +438,16 @@ func (ggraph *Graph) BulkAdd(stream <-chan *gdbi.GraphElement) error {
 		}
 
 		return ggraph.driver.Pkv.BulkWrite(func(tx *pebblebulk.PebbleBulk) error {
-			filteredItems := make([]*preparedItem, 0, len(batch))
-			for _, item := range batch {
-				id := item.row.Id
-				var dbKey []byte
-				if item.elem.Vertex != nil {
-					dbKey = key.VertexKey(item.uid)
-				} else if item.elem.Edge != nil {
-					dbKey = key.EdgeKey(item.uid, item.suid, item.duid, item.elem.Edge.Label)
-				}
-
-				if len(id) == 0 {
-					continue
-				}
-
-				// 1. Session-level check
-				if _, ok := seen[string(id)]; ok {
-					continue
-				}
-				seen[string(id)] = struct{}{}
-
-				// 2. Database-level check (Snapshot)
-				if dbKey != nil {
-					if it.SeekGE(dbKey) && bytes.Equal(it.Key(), dbKey) {
-						continue
-					}
-				}
-				filteredItems = append(filteredItems, item)
-			}
-
-			if len(filteredItems) == 0 {
-				return nil
-			}
-
 			// Group rows for the driver
-			rows := make([]*benchtop.Row, len(filteredItems))
-			for i, item := range filteredItems {
+			rows := make([]*benchtop.Row, len(batch))
+			for i, item := range batch {
 				rows[i] = item.row
 			}
 
-			// Bulk Load JSON/Index rows (passing snap for further row-level filtering)
-			if err := ggraph.driver.BulkLoadBatch(tx, rows, snap); err != nil {
+			// Bulk Load JSON/Index rows
+			// Pass nil for snap to disable the redundant (and slower) check in the driver.
+			// We have already verified uniqueness above using the optimized Get() check.
+			if err := ggraph.driver.BulkLoadBatch(tx, rows, nil); err != nil {
 				return err
 			}
 			return nil

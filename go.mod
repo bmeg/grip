@@ -8,7 +8,7 @@ require (
 	github.com/Workiva/go-datastructures v1.1.5
 	github.com/akrylysov/pogreb v0.10.2
 	github.com/antlr/antlr4/runtime/Go/antlr v1.4.10
-	github.com/bmeg/benchtop v0.0.0-20260219165106-f85d995b62ed
+	github.com/bmeg/benchtop v0.0.0-20260219195629-b129a38715a6
 	github.com/bmeg/jsonpath v0.0.0-20210207014051-cca5355553ad
 	github.com/bmeg/jsonschema/v6 v6.0.4
 	github.com/bmeg/jsonschemagraph v0.0.4-0.20251017205345-236d2de9887c
@@ -152,5 +152,3 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
-
-replace github.com/bmeg/benchtop v0.0.0-20260219165106-f85d995b62ed => ../benchtop
