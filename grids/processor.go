@@ -189,8 +189,7 @@ func (l *lookupVertsHasLabelCondIndexProc) Process(ctx context.Context, man gdbi
 								Loaded: loadData,
 								ID:     roMaps["_id"].(string),
 							}
-							delete(roMaps, "_id")
-							v.Data = roMaps
+							v.Data = projectRowMap(roMaps, l.projectedFields)
 							count += 1
 							out <- t.AddCurrent(&v)
 						}

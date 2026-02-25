@@ -167,17 +167,21 @@ func (ggraph *Graph) resolveBatch(ctx context.Context, batch []gdbi.ElementLooku
 }
 
 func projectRowMap(row map[string]any, fields []string) map[string]any {
+	if row == nil {
+		return nil
+	}
 	if len(fields) == 0 {
+		delete(row, "_id")
+		delete(row, "_label")
+		delete(row, "_from")
+		delete(row, "_to")
 		return row
 	}
-	out := map[string]any{}
+	out := make(map[string]any, len(fields))
 	for _, f := range fields {
-		if v, ok := row[f]; ok {
-			out[f] = v
+		if f == "_id" || f == "_label" || f == "_from" || f == "_to" {
+			continue
 		}
-	}
-	// Always preserve structural fields if present, as they might be needed for downstream processors
-	for _, f := range []string{"_id", "_label", "_from", "_to"} {
 		if v, ok := row[f]; ok {
 			out[f] = v
 		}
@@ -346,21 +350,23 @@ func (ggraph *Graph) processEdgeBatch(batch []idEntry, out chan gdbi.ElementLook
 			} else {
 				continue
 			}
-			id.Edge.Get().Data = projectRowMap(res, entry.fields)
 			if from, ok := res["_from"].(string); ok {
 				id.Edge.Get().From = from
-			} else if id.Edge.Get().From == "" {
-				log.Errorf("processEdgeBatch: edge %s missing _from", id.ID)
-				continue
 			}
 			if to, ok := res["_to"].(string); ok {
 				id.Edge.Get().To = to
-			} else if id.Edge.Get().To == "" {
-				log.Errorf("processEdgeBatch: edge %s missing _to", id.ID)
-				continue
 			}
 			if label, ok := res["_label"].(string); ok {
 				id.Edge.Get().Label = label
+			}
+			id.Edge.Get().Data = projectRowMap(res, entry.fields)
+			if id.Edge.Get().From == "" {
+				log.Errorf("processEdgeBatch: edge %s missing _from", id.ID)
+				continue
+			}
+			if id.Edge.Get().To == "" {
+				log.Errorf("processEdgeBatch: edge %s missing _to", id.ID)
+				continue
 			}
 			id.Edge.Get().Loaded = true
 			ordered[entry.idx] = &id
@@ -460,8 +466,16 @@ func (ggraph *Graph) GetEdge(id string, loadProp bool) *gdbi.Edge {
 					log.Errorf("GetEdge: GetRow error: %v", gerr)
 					continue
 				}
+				if from, ok := e.Data["_from"].(string); ok {
+					e.From = from
+				}
+				if to, ok := e.Data["_to"].(string); ok {
+					e.To = to
+				}
+				if label, ok := e.Data["_label"].(string); ok {
+					e.Label = label
+				}
 				e.Data = projectRowMap(e.Data, nil)
-
 				e.Loaded = true
 
 			} else {
