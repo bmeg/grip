@@ -424,6 +424,15 @@ func (server *GripServer) Serve(pctx context.Context) error {
 		return fmt.Errorf("registering query endpoint: %v", err)
 	}
 
+	// Override standard generated Query_Traversal grpc-gateway endpoint with fast execution path
+	err = grpcMux.HandlePath("POST", "/v1/graph/{graph}/query", func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+		graphName := pathParams["graph"]
+		server.fastQueryHandler(w, req, graphName)
+	})
+	if err != nil {
+		return fmt.Errorf("registering fast query endpoint: %v", err)
+	}
+
 	// Regsiter Edit Service
 	if !server.conf.Server.ReadOnly {
 		gripql.RegisterEditServer(grpcServer, server)
