@@ -88,7 +88,7 @@ func (l *LookupVertsLabelIndex) Process(ctx context.Context, man gdbi.Manager, i
 		defer close(out)
 		for v := range l.db.GetVertexChannel(ctx, queryChan, l.loadData) {
 			i := v.Ref
-			out <- i.AddCurrent(v.Vertex.Copy())
+			out <- i.AddCurrent(v.Vertex)
 		}
 	}()
 	return ctx

@@ -38,7 +38,7 @@ func (ggraph *Graph) GetOutChannel(ctx context.Context, reqChan chan gdbi.Elemen
 							req.Vertex = &gdbi.Vertex{ID: dst, Label: labelFromElementID(dst)}
 							o <- req
 						} else {
-							batch = append(batch, gdbi.ElementLookup{ID: dst, Ref: req.Ref})
+							batch = append(batch, gdbi.ElementLookup{ID: dst, Ref: req.Ref, Priv: lookupPriv{uid: duid}})
 							if len(batch) >= 1000 {
 								ggraph.resolveBatch(ctx, batch, o, false)
 								batch = nil
@@ -88,7 +88,7 @@ func (ggraph *Graph) GetInChannel(ctx context.Context, reqChan chan gdbi.Element
 							req.Vertex = &gdbi.Vertex{ID: src, Label: labelFromElementID(src)}
 							o <- req
 						} else {
-							batch = append(batch, gdbi.ElementLookup{ID: src, Ref: req.Ref})
+							batch = append(batch, gdbi.ElementLookup{ID: src, Ref: req.Ref, Priv: lookupPriv{uid: suid}})
 							if len(batch) >= 1000 {
 								ggraph.resolveBatch(ctx, batch, o, false)
 								batch = nil
@@ -157,7 +157,7 @@ func (ggraph *Graph) GetOutEdgeChannel(ctx context.Context, reqChan chan gdbi.El
 							req.Edge = &e
 							o <- req
 						} else {
-							batch = append(batch, gdbi.ElementLookup{ID: eid, Ref: req.Ref, Edge: &e, Priv: loc})
+							batch = append(batch, gdbi.ElementLookup{ID: eid, Ref: req.Ref, Edge: &e, Priv: lookupPriv{loc: loc, data: e.Data}})
 							if len(batch) >= 1000 {
 								ggraph.resolveBatch(ctx, batch, o, true)
 								batch = nil
@@ -226,7 +226,7 @@ func (ggraph *Graph) GetInEdgeChannel(ctx context.Context, reqChan chan gdbi.Ele
 							req.Edge = &e
 							o <- req
 						} else {
-							batch = append(batch, gdbi.ElementLookup{ID: eid, Ref: req.Ref, Edge: &e, Priv: loc})
+							batch = append(batch, gdbi.ElementLookup{ID: eid, Ref: req.Ref, Edge: &e, Priv: lookupPriv{loc: loc, data: e.Data}})
 							if len(batch) >= 1000 {
 								ggraph.resolveBatch(ctx, batch, o, true)
 								batch = nil

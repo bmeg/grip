@@ -122,7 +122,7 @@ func (conf *Config) AddSqliteDefault() {
 
 func (conf *Config) AddGridsDefault() {
 	n := "grip-grids.db"
-	c := grids.Config{GraphDir: n, BulkLoaderWorkers: 10}
+	c := grids.Config{GraphDir: n, BulkLoaderWorkers: 10, Driver: "jsontable"}
 	conf.Drivers["grids"] = DriverConfig{Grids: &c}
 	conf.Default = "grids"
 }

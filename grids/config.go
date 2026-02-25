@@ -12,4 +12,7 @@ func (c *Config) SetDefaults() {
 	if c.BulkLoaderWorkers == 0 {
 		c.BulkLoaderWorkers = runtime.NumCPU()
 	}
+	if c.Driver == "" {
+		c.Driver = "jsontable"
+	}
 }

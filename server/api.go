@@ -8,6 +8,7 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/bmeg/grip/engine/pipeline"
 	"github.com/bmeg/grip/gdbi"
@@ -27,25 +28,61 @@ import (
 
 // Traversal parses a traversal request and streams the results back
 func (server *GripServer) Traversal(query *gripql.GraphQuery, queryServer gripql.Query_TraversalServer) error {
+	start := time.Now()
 	gdb, err := server.getGraphDB(query.Graph)
 	if err != nil {
 		return err
 	}
+	graphLookupElapsed := time.Since(start)
 	graph, err := gdb.Graph(query.Graph)
 	if err != nil {
 		return err
 	}
+	graphOpenElapsed := time.Since(start) - graphLookupElapsed
 	compiler := graph.Compiler()
+	compileStart := time.Now()
 	compiledPipeline, err := compiler.Compile(query.Query, nil)
 	if err != nil {
 		return err
 	}
+	compileElapsed := time.Since(compileStart)
+	runStart := time.Now()
 	res := pipeline.Run(queryServer.Context(), compiledPipeline, server.conf.Server.WorkDir)
 	err = nil
+	var rowsSent int
+	sendStart := time.Now()
 	for row := range res {
 		if err == nil {
 			err = queryServer.Send(row)
+			if err == nil {
+				rowsSent++
+			}
 		}
+	}
+	runElapsed := time.Since(runStart)
+	sendElapsed := time.Since(sendStart)
+	totalElapsed := time.Since(start)
+	if rowsSent > 0 {
+		rps := float64(rowsSent) / sendElapsed.Seconds()
+		log.Debugf("Traversal summary graph=%s rows=%d rps=%.0f lookup=%s graphOpen=%s compile=%s run=%s send=%s total=%s",
+			query.Graph, rowsSent, rps,
+			graphLookupElapsed.Round(time.Millisecond),
+			graphOpenElapsed.Round(time.Millisecond),
+			compileElapsed.Round(time.Millisecond),
+			runElapsed.Round(time.Millisecond),
+			sendElapsed.Round(time.Millisecond),
+			totalElapsed.Round(time.Millisecond),
+		)
+	} else {
+		log.Debugf("Traversal summary graph=%s rows=0 lookup=%s graphOpen=%s compile=%s run=%s send=%s total=%s",
+			query.Graph,
+			graphLookupElapsed.Round(time.Millisecond),
+			graphOpenElapsed.Round(time.Millisecond),
+			compileElapsed.Round(time.Millisecond),
+			runElapsed.Round(time.Millisecond),
+			sendElapsed.Round(time.Millisecond),
+			totalElapsed.Round(time.Millisecond),
+		)
 	}
 	if err != nil {
 		return fmt.Errorf("error sending Traversal result: %v", err)

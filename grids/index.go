@@ -28,13 +28,26 @@ func (ggraph *Graph) AddVertexIndex(label, field string) error {
 			return fmt.Errorf("AddVertexIndex: table lookup failed after creation %s: %v", tableLabel, err)
 		}
 	}
+	if table, err := ggraph.driver.GetOrLoadTable(tableLabel); err == nil && table != nil {
+		if _, ok := table.Fields[field]; ok {
+			log.WithFields(log.Fields{"label": label, "field": field}).Debug("Vertex index already present; skipping")
+			return nil
+		}
+	}
 	return ggraph.driver.AddField(id, field)
 }
 
 // DeleteVertexIndex delete index from vertices
 func (ggraph *Graph) DeleteVertexIndex(label, field string) error {
 	log.WithFields(log.Fields{"label": label, "field": field}).Info("Deleting vertex index")
-	id, err := ggraph.driver.TableDr.LookupTableID(key.VertexTablePrefix + label)
+	tableLabel := key.VertexTablePrefix + label
+	if table, err := ggraph.driver.GetOrLoadTable(tableLabel); err == nil && table != nil {
+		if _, ok := table.Fields[field]; !ok {
+			log.WithFields(log.Fields{"label": label, "field": field}).Debug("Vertex index missing; skipping delete")
+			return nil
+		}
+	}
+	id, err := ggraph.driver.TableDr.LookupTableID(tableLabel)
 	if err != nil {
 		return err
 	}

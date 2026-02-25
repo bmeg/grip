@@ -6,6 +6,7 @@ import (
 	"maps"
 	"sort"
 	"sync"
+	"time"
 
 	"github.com/bmeg/benchtop"
 	"github.com/bmeg/benchtop/jsontable/tpath"
@@ -254,13 +255,15 @@ func (ggraph *Graph) BulkAdd(stream <-chan *gdbi.GraphElement) error {
 		defer close(ready)
 
 		// ─── Worker Buffer & Batching ──────────────────────────
-		const workerBatchSize = 1000
+		const workerBatchSize = 2000
 		batch := make([]*gdbi.GraphElement, 0, workerBatchSize)
+		seen := make(map[uint64]struct{})
 
 		processBatch := func(b []*gdbi.GraphElement) error {
 			if len(b) == 0 {
 				return nil
 			}
+			batchStart := time.Now()
 
 			// 1. Collect ALL unique IDs in this batch to resolve at once
 			uniqueIDs := make(map[string]struct{})
@@ -287,6 +290,7 @@ func (ggraph *Graph) BulkAdd(stream <-chan *gdbi.GraphElement) error {
 			if err != nil {
 				return err
 			}
+			idResolveElapsed := time.Since(batchStart)
 
 			// 3. Map string -> uint64 for fast lookup
 			idMap := make(map[string]uint64, len(idList))
@@ -332,20 +336,24 @@ func (ggraph *Graph) BulkAdd(stream <-chan *gdbi.GraphElement) error {
 				if elem.Vertex != nil {
 					uid = idMap[elem.Vertex.ID]
 					dbKey = key.VertexKey(uid)
+					data := make(map[string]any, len(elem.Vertex.Data)+1)
+					maps.Copy(data, elem.Vertex.Data)
+					data["_label"] = elem.Vertex.Label
 					row = &benchtop.Row{
 						Id:      []byte(elem.Vertex.ID),
 						TableID: tid,
-						Data:    elem.Vertex.Data,
+						Data:    data,
 					}
 				} else if elem.Edge != nil {
 					uid = idMap[elem.Edge.ID]
 					suid = idMap[elem.Edge.From]
 					duid = idMap[elem.Edge.To]
 					dbKey = key.EdgeKey(uid, suid, duid, elem.Edge.Label)
-					data := make(map[string]any, len(elem.Edge.Data)+2)
+					data := make(map[string]any, len(elem.Edge.Data)+3)
 					maps.Copy(data, elem.Edge.Data)
 					data["_from"] = elem.Edge.From
 					data["_to"] = elem.Edge.To
+					data["_label"] = elem.Edge.Label
 					row = &benchtop.Row{
 						Id:      []byte(elem.Edge.ID),
 						TableID: tid,
@@ -370,20 +378,32 @@ func (ggraph *Graph) BulkAdd(stream <-chan *gdbi.GraphElement) error {
 				return items[i].uid < items[j].uid
 			})
 
+			transformElapsed := time.Since(batchStart)
+
 			// 6. Check Snapshot and Emit
 			for _, item := range items {
 				if item.dbKey != nil {
+					if _, ok := seen[item.uid]; ok {
+						continue
+					}
 					_, closer, err := snap.Get(item.dbKey)
 					if err == nil {
 						closer.Close()
+						seen[item.uid] = struct{}{}
 						continue // Skip, graph element already exists
 					}
+					seen[item.uid] = struct{}{}
 				}
 				select {
 				case <-ctx.Done():
 					return ctx.Err()
 				case ready <- item:
 				}
+			}
+
+			totalElapsed := time.Since(batchStart)
+			if totalElapsed > 2*time.Second {
+				log.Infof("BulkAdd worker slow batch=%d uniqueIDs=%d idResolve=%s transform=%s total=%s", len(b), len(idList), idResolveElapsed.Round(time.Millisecond), transformElapsed.Round(time.Millisecond), totalElapsed.Round(time.Millisecond))
 			}
 
 			return nil
@@ -416,7 +436,7 @@ func (ggraph *Graph) BulkAdd(stream <-chan *gdbi.GraphElement) error {
 	// ─────────────────────────────────────────────
 	// 3. Writer: Batching and I/O (Main thread)
 	// ─────────────────────────────────────────────
-	const batchSize = 1000
+	const batchSize = 2000
 	itemBuffer := make([]*preparedItem, 0, batchSize)
 
 	// Removed global snap and it, they will be created per batch.
@@ -460,6 +480,7 @@ func (ggraph *Graph) BulkAdd(stream <-chan *gdbi.GraphElement) error {
 		if len(itemBuffer) >= batchSize {
 			if err := processBatch(itemBuffer); err != nil {
 				writeErr = err
+				cancel()
 				break
 			}
 			itemBuffer = itemBuffer[:0]
@@ -469,6 +490,7 @@ func (ggraph *Graph) BulkAdd(stream <-chan *gdbi.GraphElement) error {
 	if writeErr == nil && len(itemBuffer) > 0 {
 		if err := processBatch(itemBuffer); err != nil {
 			writeErr = err
+			cancel()
 		}
 	}
 

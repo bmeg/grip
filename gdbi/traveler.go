@@ -4,6 +4,20 @@ import (
 	"github.com/bmeg/grip/gdbi/tpath"
 )
 
+type identityRef interface {
+	Identity() *DataElement
+}
+
+func dataRefIdentity(r DataRef) *DataElement {
+	if r == nil {
+		return nil
+	}
+	if ir, ok := r.(identityRef); ok {
+		return ir.Identity()
+	}
+	return r.Get()
+}
+
 // These consts mark the type of a Pipeline traveler chan
 const (
 	// StateCustom The Pipeline will be emitting custom data structures
@@ -24,24 +38,32 @@ const (
 func (t *BaseTraveler) AddCurrent(r DataRef) Traveler {
 	o := *t // Copy struct values (Marks, Path, etc. pointers are shared)
 	if r != nil {
-		o.Current = r.Get()
+		o.currentRef = r.Copy()
+		o.Current = dataRefIdentity(o.currentRef)
+		if o.Current == nil {
+			o.Current = o.currentRef.Get()
+		}
+		prev := t.Current
+		if prev == nil {
+			prev = dataRefIdentity(t.currentRef)
+		}
 
 		// Some transform processors emit a DataElement with only Data set.
 		// Treat that as the same current element identity.
-		if t.Current != nil && o.Current != nil && o.Current.ID == "" && o.Current.From == "" && o.Current.To == "" {
-			o.Current.ID = t.Current.ID
-			o.Current.From = t.Current.From
-			o.Current.To = t.Current.To
+		if prev != nil && o.Current != nil && o.Current.ID == "" && o.Current.From == "" && o.Current.To == "" {
+			o.Current.ID = prev.ID
+			o.Current.From = prev.From
+			o.Current.To = prev.To
 			if o.Current.Label == "" {
-				o.Current.Label = t.Current.Label
+				o.Current.Label = prev.Label
 			}
 		}
 
 		// Preserve existing path when current element identity does not change.
-		if t.Current != nil && o.Current != nil &&
-			t.Current.ID == o.Current.ID &&
-			t.Current.From == o.Current.From &&
-			t.Current.To == o.Current.To {
+		if prev != nil && o.Current != nil &&
+			prev.ID == o.Current.ID &&
+			prev.From == o.Current.From &&
+			prev.To == o.Current.To {
 			if t.Path != nil {
 				o.Path = make([]DataElementID, len(t.Path))
 				copy(o.Path, t.Path)
@@ -68,6 +90,9 @@ func (t *BaseTraveler) AddCurrent(r DataRef) Traveler {
 // Copy creates a new copy of the traveler
 func (t *BaseTraveler) Copy() Traveler {
 	o := *t
+	if t.currentRef != nil {
+		o.currentRef = t.currentRef.Copy()
+	}
 	if len(t.Marks) > 0 {
 		o.Marks = make(map[string]*DataElement, len(t.Marks))
 		for k, v := range t.Marks {
@@ -93,7 +118,7 @@ func (tr *BaseTraveler) IsSignal() bool {
 }
 
 func (tr *BaseTraveler) IsNull() bool {
-	return tr.Current == nil
+	return tr.Current == nil && tr.currentRef == nil
 }
 
 // HasMark checks to see if a results is stored in a travelers statemap
@@ -127,7 +152,11 @@ func (t *BaseTraveler) AddMark(label string, r DataRef) Traveler {
 
 func (t *BaseTraveler) UpdateMark(label string, r DataRef) {
 	if label == tpath.CURRENT {
-		t.Current = r.Get()
+		t.currentRef = r.Copy()
+		t.Current = dataRefIdentity(t.currentRef)
+		if t.Current == nil {
+			t.Current = t.currentRef.Get()
+		}
 		return
 	}
 	if t.Marks == nil {
@@ -146,11 +175,17 @@ func (t *BaseTraveler) GetMark(label string) DataRef {
 
 // GetCurrent get current result value attached to the traveler
 func (t *BaseTraveler) GetCurrent() DataRef {
+	if t.currentRef != nil {
+		return t.currentRef
+	}
 	return t.Current
 }
 
 func (t *BaseTraveler) GetCurrentID() string {
 	if t.Current == nil {
+		if cur := dataRefIdentity(t.currentRef); cur != nil {
+			return cur.ID
+		}
 		return ""
 	}
 	return t.Current.ID

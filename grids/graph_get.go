@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/bmeg/benchtop"
 	"github.com/bmeg/benchtop/pebblebulk"
@@ -26,16 +27,23 @@ type idEntry struct {
 type lookupPriv struct {
 	loc    *benchtop.RowLoc
 	fields []string
+	data   map[string]any
+	uid    uint64
 }
+
+const resolveBatchSize = 20000
 
 func (ggraph *Graph) resolveBatch(ctx context.Context, batch []gdbi.ElementLookup, out chan gdbi.ElementLookup, isEdge bool) {
 	if len(batch) == 0 {
 		return
 	}
+	start := time.Now()
 
 	var withLoc []idEntry
 	var missingIdx []int
 	var keys []string
+	var uidMissingIdx []int
+	var uidMissingVals []uint64
 
 	for i, id := range batch {
 		var entry *benchtop.RowLoc
@@ -49,9 +57,27 @@ func (ggraph *Graph) resolveBatch(ctx context.Context, batch []gdbi.ElementLooku
 			} else if priv, ok := id.Priv.(*lookupPriv); ok && priv != nil {
 				entry = priv.loc
 				fields = priv.fields
+				if priv.data != nil {
+					withLoc = append(withLoc, idEntry{lookup: id, loc: entry, label: label, fields: fields, data: priv.data, idx: i})
+					continue
+				}
+				if entry == nil && priv.uid != 0 && !isEdge {
+					uidMissingIdx = append(uidMissingIdx, i)
+					uidMissingVals = append(uidMissingVals, priv.uid)
+					continue
+				}
 			} else if priv, ok := id.Priv.(lookupPriv); ok {
 				entry = priv.loc
 				fields = priv.fields
+				if priv.data != nil {
+					withLoc = append(withLoc, idEntry{lookup: id, loc: entry, label: label, fields: fields, data: priv.data, idx: i})
+					continue
+				}
+				if entry == nil && priv.uid != 0 && !isEdge {
+					uidMissingIdx = append(uidMissingIdx, i)
+					uidMissingVals = append(uidMissingVals, priv.uid)
+					continue
+				}
 			}
 		}
 		if id.Vertex != nil {
@@ -60,6 +86,10 @@ func (ggraph *Graph) resolveBatch(ctx context.Context, batch []gdbi.ElementLooku
 			label = id.Edge.Get().Label
 		}
 		if entry != nil {
+			if id.Edge != nil && id.Edge.Get() != nil && id.Edge.Get().Data != nil {
+				withLoc = append(withLoc, idEntry{lookup: id, loc: entry, label: label, fields: fields, data: id.Edge.Get().Data, idx: i})
+				continue
+			}
 			if label == "" {
 				if t, err := ggraph.driver.GetTableByID(entry.TableId); err == nil {
 					label = t.Label
@@ -72,8 +102,37 @@ func (ggraph *Graph) resolveBatch(ctx context.Context, batch []gdbi.ElementLooku
 		}
 	}
 
+	if len(uidMissingVals) > 0 {
+		locsByUID, err := ggraph.driver.GetVertexLocByUIDBatch(ctx, uidMissingVals)
+		if err != nil {
+			log.Errorf("resolveBatch: GetVertexLocByUIDBatch error: %v", err)
+		}
+		for j, idx := range uidMissingIdx {
+			id := batch[idx]
+			info := locsByUID[uidMissingVals[j]]
+			if info != nil {
+				var fields []string
+				if id.Priv != nil {
+					if priv, ok := id.Priv.(*lookupPriv); ok && priv != nil {
+						fields = priv.fields
+					} else if priv, ok := id.Priv.(lookupPriv); ok {
+						fields = priv.fields
+					}
+				}
+				withLoc = append(withLoc, idEntry{lookup: id, loc: info.Loc, label: info.Label, fields: fields, data: info.Data, idx: idx})
+			} else {
+				// Fallback to string-ID lookup
+				missingIdx = append(missingIdx, idx)
+				keys = append(keys, id.ID)
+			}
+		}
+	}
+
 	if len(keys) > 0 {
 		locs, err := ggraph.driver.GetLocBatch(ctx, keys)
+		if !isEdge {
+			locs, err = ggraph.driver.GetVertexLocBatch(ctx, keys)
+		}
 		if err != nil {
 			log.Errorf("resolveBatch: GetLocBatch error: %v", err)
 		}
@@ -101,28 +160,24 @@ func (ggraph *Graph) resolveBatch(ctx context.Context, batch []gdbi.ElementLooku
 			ggraph.processVertexBatch(withLoc, out)
 		}
 	}
-}
-
-func cleanRowMap(row map[string]any) map[string]any {
-	if row == nil {
-		return nil
+	if len(batch) >= 1000 {
+		unresolved := len(batch) - len(withLoc)
+		log.Debugf("resolveBatch done isEdge=%v input=%d withLoc=%d unresolved=%d elapsed=%s", isEdge, len(batch), len(withLoc), unresolved, time.Since(start).Round(time.Millisecond))
 	}
-	out := map[string]any{}
-	for k, v := range row {
-		if k == "_id" || k == "_label" || k == "_from" || k == "_to" {
-			continue
-		}
-		out[k] = v
-	}
-	return out
 }
 
 func projectRowMap(row map[string]any, fields []string) map[string]any {
 	if len(fields) == 0 {
-		return cleanRowMap(row)
+		return row
 	}
 	out := map[string]any{}
 	for _, f := range fields {
+		if v, ok := row[f]; ok {
+			out[f] = v
+		}
+	}
+	// Always preserve structural fields if present, as they might be needed for downstream processors
+	for _, f := range []string{"_id", "_label", "_from", "_to"} {
 		if v, ok := row[f]; ok {
 			out[f] = v
 		}
@@ -136,27 +191,45 @@ func (ggraph *Graph) GetVertexChannel(ctx context.Context, ids chan gdbi.Element
 		defer close(out)
 		if !load {
 			for id := range ids {
+				if ctx.Err() != nil {
+					return
+				}
 				if id.IsSignal() {
-					out <- id
+					select {
+					case <-ctx.Done():
+						return
+					case out <- id:
+					}
 					continue
 				}
 				id.Vertex = &gdbi.Vertex{ID: id.ID, Label: labelFromElementID(id.ID)}
-				out <- id
+				select {
+				case <-ctx.Done():
+					return
+				case out <- id:
+				}
 			}
 			return
 		}
 		var batch []gdbi.ElementLookup
 		for id := range ids {
+			if ctx.Err() != nil {
+				return
+			}
 			if id.IsSignal() {
 				if len(batch) > 0 {
 					ggraph.resolveBatch(ctx, batch, out, false)
 					batch = nil
 				}
-				out <- id
+				select {
+				case <-ctx.Done():
+					return
+				case out <- id:
+				}
 				continue
 			}
 			batch = append(batch, id)
-			if len(batch) >= 1000 {
+			if len(batch) >= resolveBatchSize {
 				ggraph.resolveBatch(ctx, batch, out, false)
 				batch = nil
 			}
@@ -197,6 +270,7 @@ func (ggraph *Graph) processVertexBatch(batch []idEntry, out chan gdbi.ElementLo
 			for i := range errors {
 				errors[i] = fmt.Errorf("table not found")
 			}
+			continue
 		} else {
 			results, errors = table.GetRows(locs)
 		}
@@ -255,6 +329,7 @@ func (ggraph *Graph) processEdgeBatch(batch []idEntry, out chan gdbi.ElementLook
 			for i := range errors {
 				errors[i] = fmt.Errorf("table not found")
 			}
+			continue
 		} else {
 			results, errors = table.GetRows(locs)
 		}
@@ -274,15 +349,18 @@ func (ggraph *Graph) processEdgeBatch(batch []idEntry, out chan gdbi.ElementLook
 			id.Edge.Get().Data = projectRowMap(res, entry.fields)
 			if from, ok := res["_from"].(string); ok {
 				id.Edge.Get().From = from
-			} else {
+			} else if id.Edge.Get().From == "" {
 				log.Errorf("processEdgeBatch: edge %s missing _from", id.ID)
 				continue
 			}
 			if to, ok := res["_to"].(string); ok {
 				id.Edge.Get().To = to
-			} else {
+			} else if id.Edge.Get().To == "" {
 				log.Errorf("processEdgeBatch: edge %s missing _to", id.ID)
 				continue
+			}
+			if label, ok := res["_label"].(string); ok {
+				id.Edge.Get().Label = label
 			}
 			id.Edge.Get().Loaded = true
 			ordered[entry.idx] = &id
@@ -327,7 +405,9 @@ func (ggraph *Graph) GetVertex(id string, loadProp bool) *gdbi.Vertex {
 			log.Errorf("GetVertex: table.GetRow( error: %v", err)
 			return nil
 		}
-		v.Data = cleanRowMap(v.Data)
+
+		v.Data = projectRowMap(v.Data, nil)
+
 		v.Loaded = true
 	} else {
 		v.Data = map[string]any{}
@@ -358,10 +438,11 @@ func (ggraph *Graph) GetEdge(id string, loadProp bool) *gdbi.Edge {
 			if loadProp {
 				lbl, loc, data := benchtop.DecodeEdgeValue(byteVal)
 				if data != nil {
-					e.Data = cleanRowMap(data)
+					e.Data = projectRowMap(data, nil)
 					e.Loaded = true
 					return nil
 				}
+
 				if loc == nil {
 					log.Errorf("GetEdge: integrated key missing RowLoc for %s", e.ID)
 					continue
@@ -379,8 +460,10 @@ func (ggraph *Graph) GetEdge(id string, loadProp bool) *gdbi.Edge {
 					log.Errorf("GetEdge: GetRow error: %v", gerr)
 					continue
 				}
-				e.Data = cleanRowMap(e.Data)
+				e.Data = projectRowMap(e.Data, nil)
+
 				e.Loaded = true
+
 			} else {
 				e.Data = map[string]any{}
 			}
@@ -432,8 +515,10 @@ func (ggraph *Graph) GetVertexList(ctx context.Context, loadProp bool) <-chan *g
 						log.Errorf("GetVertexList: table.GetRow error: %s", err)
 						continue
 					}
-					v.Data = cleanRowMap(v.Data)
+					v.Data = projectRowMap(v.Data, nil)
+
 					v.Loaded = true
+
 				} else {
 					v.Data = map[string]any{}
 				}

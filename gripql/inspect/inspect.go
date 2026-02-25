@@ -150,6 +150,15 @@ func PipelineStepOutputs(stmts []*gripql.GraphStatement, storeMarks bool) map[st
 				out[steps[i]] = []string{"*"}
 			}
 			onLast = false
+		case *gripql.GraphStatement_EngineCustom:
+			// Custom engine steps can be traversal-producing sources (for example,
+			// grids V().HasLabel() rewrites). When terminal, treat them as producing
+			// full current outputs so storage can load once at source instead of
+			// forcing late ID re-hydration in conversion.
+			if onLast {
+				out[steps[i]] = []string{"*"}
+			}
+			onLast = false
 
 		case *gripql.GraphStatement_HasLabel:
 			if x, ok := out[steps[i]]; ok {
