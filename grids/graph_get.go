@@ -5,11 +5,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sort"
+	"strings"
 	"time"
 
 	"github.com/bmeg/benchtop"
 	"github.com/bmeg/benchtop/pebblebulk"
 	"github.com/bmeg/grip/gdbi"
+	"github.com/bmeg/grip/grids/driver"
 	"github.com/bmeg/grip/grids/key"
 	"github.com/bmeg/grip/log"
 	"github.com/cockroachdb/pebble"
@@ -29,6 +32,17 @@ type lookupPriv struct {
 	fields []string
 	data   map[string]any
 	uid    uint64
+	euid   uint64
+	suid   uint64
+	duid   uint64
+}
+
+type projectedRowsGetter interface {
+	GetRowsProjected(locs []*benchtop.RowLoc, fields []string) ([]map[string]any, []error)
+}
+
+type rawRowsGetter interface {
+	GetRowsRawPayload(locs []*benchtop.RowLoc) ([]string, []error)
 }
 
 const resolveBatchSize = 20000
@@ -38,6 +52,91 @@ func (ggraph *Graph) resolveBatch(ctx context.Context, batch []gdbi.ElementLooku
 		return
 	}
 	start := time.Now()
+
+	// Resolve numeric IDs in one shot when callers provide only UID-based lookup
+	// metadata for traversal throughput.
+	idsToTranslate := make([]uint64, 0, len(batch)*3)
+	for i := range batch {
+		id := batch[i]
+		if id.Priv == nil {
+			continue
+		}
+		var priv lookupPriv
+		ok := false
+		if p, okp := id.Priv.(*lookupPriv); okp && p != nil {
+			priv = *p
+			ok = true
+		} else if p, okp := id.Priv.(lookupPriv); okp {
+			priv = p
+			ok = true
+		}
+		if !ok {
+			continue
+		}
+		if id.ID == "" && priv.uid != 0 {
+			idsToTranslate = append(idsToTranslate, priv.uid)
+		}
+		if isEdge && id.Edge != nil && id.Edge.Get() != nil {
+			e := id.Edge.Get()
+			if e.ID == "" && priv.euid != 0 {
+				idsToTranslate = append(idsToTranslate, priv.euid)
+			}
+			if e.From == "" && priv.suid != 0 {
+				idsToTranslate = append(idsToTranslate, priv.suid)
+			}
+			if e.To == "" && priv.duid != 0 {
+				idsToTranslate = append(idsToTranslate, priv.duid)
+			}
+		}
+	}
+	if len(idsToTranslate) > 0 {
+		rids, err := ggraph.driver.TranslateIDs(idsToTranslate)
+		if err != nil {
+			log.Errorf("resolveBatch: TranslateIDs error: %v", err)
+		} else {
+			for i := range batch {
+				id := batch[i]
+				if id.Priv == nil {
+					continue
+				}
+				var priv lookupPriv
+				ok := false
+				if p, okp := id.Priv.(*lookupPriv); okp && p != nil {
+					priv = *p
+					ok = true
+				} else if p, okp := id.Priv.(lookupPriv); okp {
+					priv = p
+					ok = true
+				}
+				if !ok {
+					continue
+				}
+				if id.ID == "" && priv.uid != 0 {
+					if rid, ok := rids[priv.uid]; ok {
+						batch[i].ID = rid
+					}
+				}
+				if isEdge && id.Edge != nil && id.Edge.Get() != nil {
+					e := id.Edge.Get()
+					if e.ID == "" && priv.euid != 0 {
+						if rid, ok := rids[priv.euid]; ok {
+							e.ID = rid
+						}
+					}
+					if e.From == "" && priv.suid != 0 {
+						if rid, ok := rids[priv.suid]; ok {
+							e.From = rid
+						}
+					}
+					if e.To == "" && priv.duid != 0 {
+						if rid, ok := rids[priv.duid]; ok {
+							e.To = rid
+						}
+					}
+				}
+			}
+		}
+	}
 
 	var withLoc []idEntry
 	var missingIdx []int
@@ -122,15 +221,22 @@ func (ggraph *Graph) resolveBatch(ctx context.Context, batch []gdbi.ElementLooku
 				withLoc = append(withLoc, idEntry{lookup: id, loc: info.Loc, label: info.Label, fields: fields, data: info.Data, idx: idx})
 			} else {
 				// Fallback to string-ID lookup
-				missingIdx = append(missingIdx, idx)
-				keys = append(keys, id.ID)
+				if id.ID != "" {
+					missingIdx = append(missingIdx, idx)
+					keys = append(keys, id.ID)
+				}
 			}
 		}
 	}
 
 	if len(keys) > 0 {
-		locs, err := ggraph.driver.GetLocBatch(ctx, keys)
-		if !isEdge {
+		var (
+			locs map[string]*driver.IDInfo
+			err  error
+		)
+		if isEdge {
+			locs, err = ggraph.driver.GetLocBatch(ctx, keys)
+		} else {
 			locs, err = ggraph.driver.GetVertexLocBatch(ctx, keys)
 		}
 		if err != nil {
@@ -187,6 +293,54 @@ func projectRowMap(row map[string]any, fields []string) map[string]any {
 		}
 	}
 	return out
+}
+
+func normalizeProjectedFetchFields(fields []string) ([]string, bool) {
+	if len(fields) == 0 {
+		return nil, false
+	}
+	out := make([]string, 0, len(fields))
+	seen := map[string]struct{}{}
+	for _, field := range fields {
+		if field == "" || field == "_id" || field == "_label" || field == "_from" || field == "_to" {
+			continue
+		}
+		if strings.Contains(field, ".") || strings.Contains(field, "[") {
+			return nil, false
+		}
+		if _, ok := seen[field]; ok {
+			continue
+		}
+		seen[field] = struct{}{}
+		out = append(out, field)
+	}
+	if len(out) == 0 {
+		return nil, false
+	}
+	sort.Strings(out)
+	return out, true
+}
+
+func normalizeProjectedEdgeFetchFields(fields []string) ([]string, bool) {
+	out, ok := normalizeProjectedFetchFields(fields)
+	if !ok {
+		return nil, false
+	}
+	seen := map[string]struct{}{}
+	for _, f := range out {
+		seen[f] = struct{}{}
+	}
+	if _, ok := seen["_from"]; !ok {
+		out = append(out, "_from")
+	}
+	if _, ok := seen["_to"]; !ok {
+		out = append(out, "_to")
+	}
+	if _, ok := seen["_label"]; !ok {
+		out = append(out, "_label")
+	}
+	sort.Strings(out)
+	return out, true
 }
 
 func (ggraph *Graph) GetVertexChannel(ctx context.Context, ids chan gdbi.ElementLookup, load bool) chan gdbi.ElementLookup {
@@ -260,13 +414,9 @@ func (ggraph *Graph) processVertexBatch(batch []idEntry, out chan gdbi.ElementLo
 	ordered := make([]*gdbi.ElementLookup, maxIdx+1)
 
 	for tid, entries := range byTable {
-		locs := make([]*benchtop.RowLoc, len(entries))
-		for i, entry := range entries {
-			locs[i] = entry.loc
-		}
-
 		table, err := ggraph.driver.GetTableByID(tid)
 		var results []map[string]any
+		var rawResults []string
 		var errors []error
 		if err != nil || table == nil {
 			log.Errorf("processVertexBatch: table ID %d not found", tid)
@@ -276,7 +426,117 @@ func (ggraph *Graph) processVertexBatch(batch []idEntry, out chan gdbi.ElementLo
 			}
 			continue
 		} else {
-			results, errors = table.GetRows(locs)
+			results = make([]map[string]any, len(entries))
+			rawResults = make([]string, len(entries))
+			errors = make([]error, len(entries))
+
+			projectedGetter, canProject := table.TableStore.(projectedRowsGetter)
+			rawGetter, canRaw := table.TableStore.(rawRowsGetter)
+			fullFetchIdx := make([]int, 0, len(entries))
+			rawFetchIdx := make([]int, 0, len(entries))
+			projectedFetchIdx := map[string][]int{}
+			projectedFetchFields := map[string][]string{}
+
+			for i, entry := range entries {
+				if entry.data != nil {
+					continue
+				}
+				if len(entry.fields) == 0 && canRaw {
+					rawFetchIdx = append(rawFetchIdx, i)
+					continue
+				}
+				if !canProject || len(entry.fields) == 0 {
+					fullFetchIdx = append(fullFetchIdx, i)
+					continue
+				}
+				fields, ok := normalizeProjectedFetchFields(entry.fields)
+				if !ok {
+					fullFetchIdx = append(fullFetchIdx, i)
+					continue
+				}
+				key := strings.Join(fields, "\x1f")
+				projectedFetchIdx[key] = append(projectedFetchIdx[key], i)
+				projectedFetchFields[key] = fields
+			}
+
+			fetchFull := func(idxs []int) {
+				if len(idxs) == 0 {
+					return
+				}
+				locs := make([]*benchtop.RowLoc, len(idxs))
+				for i, idx := range idxs {
+					locs[i] = entries[idx].loc
+				}
+				rows, errs := table.GetRows(locs)
+				for i, idx := range idxs {
+					if i < len(rows) {
+						results[idx] = rows[i]
+					}
+					if i < len(errs) {
+						errors[idx] = errs[i]
+					}
+				}
+			}
+
+			fetchFull(fullFetchIdx)
+			if canRaw && len(rawFetchIdx) > 0 {
+				locs := make([]*benchtop.RowLoc, len(rawFetchIdx))
+				for i, idx := range rawFetchIdx {
+					locs[i] = entries[idx].loc
+				}
+				rows, errs := rawGetter.GetRowsRawPayload(locs)
+				fallback := len(rows) != len(rawFetchIdx) || len(errs) != len(rawFetchIdx)
+				if !fallback {
+					for i, idx := range rawFetchIdx {
+						if errs[i] != nil || rows[i] == "" {
+							fallback = true
+							fullFetchIdx = append(fullFetchIdx, idx)
+						} else {
+							rawResults[idx] = rows[i]
+						}
+					}
+				}
+				if fallback {
+					need := make([]int, 0, len(rawFetchIdx))
+					seen := map[int]struct{}{}
+					for _, idx := range rawFetchIdx {
+						if _, ok := seen[idx]; ok {
+							continue
+						}
+						if rawResults[idx] != "" {
+							continue
+						}
+						seen[idx] = struct{}{}
+						need = append(need, idx)
+					}
+					fetchFull(need)
+				}
+			}
+			if canProject {
+				for key, idxs := range projectedFetchIdx {
+					locs := make([]*benchtop.RowLoc, len(idxs))
+					for i, idx := range idxs {
+						locs[i] = entries[idx].loc
+					}
+					rows, errs := projectedGetter.GetRowsProjected(locs, projectedFetchFields[key])
+					fallback := len(rows) != len(idxs)
+					if !fallback {
+						for i := range idxs {
+							if i < len(errs) && errs[i] != nil {
+								fallback = true
+								break
+							}
+						}
+					}
+					if fallback {
+						fetchFull(idxs)
+						continue
+					}
+					for i, idx := range idxs {
+						results[idx] = rows[i]
+					}
+				}
+			}
 		}
 
 		for i, entry := range entries {
@@ -287,12 +547,19 @@ func (ggraph *Graph) processVertexBatch(batch []idEntry, out chan gdbi.ElementLo
 			var res map[string]any
 			if entry.data != nil {
 				res = entry.data
+			} else if rawResults != nil && rawResults[i] != "" && len(entry.fields) == 0 {
+				id.Vertex.Get().Data = nil
+				id.Vertex.Get().RawJSON = rawResults[i]
+				id.Vertex.Get().Loaded = true
+				ordered[entry.idx] = &id
+				continue
 			} else if errors != nil && errors[i] == nil {
 				res = results[i]
 			} else {
 				continue
 			}
 			id.Vertex.Get().Data = projectRowMap(res, entry.fields)
+			id.Vertex.Get().RawJSON = ""
 			id.Vertex.Get().Loaded = true
 			ordered[entry.idx] = &id
 		}
@@ -320,10 +587,6 @@ func (ggraph *Graph) processEdgeBatch(batch []idEntry, out chan gdbi.ElementLook
 	ordered := make([]*gdbi.ElementLookup, maxIdx+1)
 
 	for tid, entries := range byTable {
-		locs := make([]*benchtop.RowLoc, len(entries))
-		for i, entry := range entries {
-			locs[i] = entry.loc
-		}
 		table, err := ggraph.driver.GetTableByID(tid)
 		var results []map[string]any
 		var errors []error
@@ -335,7 +598,77 @@ func (ggraph *Graph) processEdgeBatch(batch []idEntry, out chan gdbi.ElementLook
 			}
 			continue
 		} else {
-			results, errors = table.GetRows(locs)
+			results = make([]map[string]any, len(entries))
+			errors = make([]error, len(entries))
+
+			projectedGetter, canProject := table.TableStore.(projectedRowsGetter)
+			fullFetchIdx := make([]int, 0, len(entries))
+			projectedFetchIdx := map[string][]int{}
+			projectedFetchFields := map[string][]string{}
+
+			for i, entry := range entries {
+				if entry.data != nil {
+					continue
+				}
+				if !canProject || len(entry.fields) == 0 {
+					fullFetchIdx = append(fullFetchIdx, i)
+					continue
+				}
+				fields, ok := normalizeProjectedEdgeFetchFields(entry.fields)
+				if !ok {
+					fullFetchIdx = append(fullFetchIdx, i)
+					continue
+				}
+				key := strings.Join(fields, "\x1f")
+				projectedFetchIdx[key] = append(projectedFetchIdx[key], i)
+				projectedFetchFields[key] = fields
+			}
+
+			fetchFull := func(idxs []int) {
+				if len(idxs) == 0 {
+					return
+				}
+				locs := make([]*benchtop.RowLoc, len(idxs))
+				for i, idx := range idxs {
+					locs[i] = entries[idx].loc
+				}
+				rows, errs := table.GetRows(locs)
+				for i, idx := range idxs {
+					if i < len(rows) {
+						results[idx] = rows[i]
+					}
+					if i < len(errs) {
+						errors[idx] = errs[i]
+					}
+				}
+			}
+
+			fetchFull(fullFetchIdx)
+			if canProject {
+				for key, idxs := range projectedFetchIdx {
+					locs := make([]*benchtop.RowLoc, len(idxs))
+					for i, idx := range idxs {
+						locs[i] = entries[idx].loc
+					}
+					rows, errs := projectedGetter.GetRowsProjected(locs, projectedFetchFields[key])
+					fallback := len(rows) != len(idxs)
+					if !fallback {
+						for i := range idxs {
+							if i < len(errs) && errs[i] != nil {
+								fallback = true
+								break
+							}
+						}
+					}
+					if fallback {
+						fetchFull(idxs)
+						continue
+					}
+					for i, idx := range idxs {
+						results[idx] = rows[i]
+					}
+				}
+			}
 		}
 		for i, entry := range entries {
 			id := entry.lookup

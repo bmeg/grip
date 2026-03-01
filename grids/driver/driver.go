@@ -51,6 +51,7 @@ type GridKVDriver struct {
 	closePkv   func() error
 	Tables     map[string]*BackendTable
 	TablesByID map[uint16]*BackendTable
+	LabelTable map[string][]uint16
 	TableDr    benchtop.TableDriver
 
 	// ID mapping state (volatile or using pebble)
@@ -132,6 +133,7 @@ func NewGridKVDriver(path string, driver string) (*GridKVDriver, error) {
 		closePkv:   closePkv,
 		Tables:     make(map[string]*BackendTable),
 		TablesByID: make(map[uint16]*BackendTable),
+		LabelTable: make(map[string][]uint16),
 		idMap:      make(map[string]uint64),
 		ridMap:     make(map[uint64]string),
 	}
@@ -276,6 +278,68 @@ func (dr *GridKVDriver) TranslateID(id uint64) (string, error) {
 	return s, nil
 }
 
+// TranslateIDs resolves a batch of numeric IDs to string IDs using cache first,
+// then a single Pebble iterator view for misses.
+func (dr *GridKVDriver) TranslateIDs(ids []uint64) (map[uint64]string, error) {
+	out := make(map[uint64]string, len(ids))
+	if len(ids) == 0 {
+		return out, nil
+	}
+
+	missing := make([]uint64, 0, len(ids))
+	seen := make(map[uint64]struct{}, len(ids))
+
+	dr.idMapMu.Lock()
+	for _, id := range ids {
+		if id == 0 {
+			continue
+		}
+		if _, ok := seen[id]; ok {
+			continue
+		}
+		seen[id] = struct{}{}
+		if s, ok := dr.ridMap[id]; ok {
+			out[id] = s
+		} else {
+			missing = append(missing, id)
+		}
+	}
+	dr.idMapMu.Unlock()
+
+	if len(missing) == 0 {
+		return out, nil
+	}
+
+	err := dr.Pkv.View(func(it *pebblebulk.PebbleIterator) error {
+		for _, id := range missing {
+			k := key.IDToStringKey(id)
+			if err := it.Seek(k); err != nil {
+				continue
+			}
+			if !it.Valid() || !bytes.Equal(it.Key(), k) {
+				continue
+			}
+			v, err := it.Value()
+			if err != nil {
+				continue
+			}
+			out[id] = string(v)
+		}
+		return nil
+	})
+	if err != nil {
+		return out, err
+	}
+
+	dr.idMapMu.Lock()
+	for id, s := range out {
+		dr.ridMap[id] = s
+		dr.idMap[s] = id
+	}
+	dr.idMapMu.Unlock()
+	return out, nil
+}
+
 func (d *GridKVDriver) AddFieldIndex(label, field string) error {
 	id, err := d.TableDr.LookupTableID(label)
 	if err != nil {
@@ -331,8 +395,7 @@ func (d *GridKVDriver) GetOrLoadTable(name string) (*BackendTable, error) {
 		return nil, err
 	}
 	bt := newBackendTable(name, id, store)
-	d.Tables[name] = bt
-	d.TablesByID[id] = bt
+	d.registerTableLocked(bt)
 	return bt, nil
 }
 
@@ -377,8 +440,7 @@ func (d *GridKVDriver) New(name string, columns []benchtop.ColumnDef) (benchtop.
 	}
 
 	t := newBackendTable(name, id, store)
-	d.Tables[name] = t
-	d.TablesByID[id] = t
+	d.registerTableLocked(t)
 	return t, nil
 }
 
@@ -461,14 +523,69 @@ func (d *GridKVDriver) RowIdsByHas(field string, value any, op query.Condition) 
 
 func (d *GridKVDriver) tableIDsForLabel(label string) []uint16 {
 	d.Lock.RLock()
-	var tids []uint16
-	for _, t := range d.Tables {
-		if t.Label == label || t.Name == label {
-			tids = append(tids, t.TableId)
-		}
+	tids := d.LabelTable[label]
+	if len(tids) > 0 {
+		out := make([]uint16, len(tids))
+		copy(out, tids)
+		d.Lock.RUnlock()
+		return out
 	}
 	d.Lock.RUnlock()
-	return tids
+
+	// Fallback for unloaded labels/tables; keep this path cold.
+	var out []uint16
+	if info, err := d.TableDr.LookupTableID(label); err == nil {
+		out = append(out, info)
+	}
+	if !strings.HasPrefix(label, key.VertexTablePrefix) && !strings.HasPrefix(label, key.EdgeTablePrefix) {
+		if info, err := d.TableDr.LookupTableID(key.VertexTablePrefix + label); err == nil {
+			out = append(out, info)
+		}
+		if info, err := d.TableDr.LookupTableID(key.EdgeTablePrefix + label); err == nil {
+			out = append(out, info)
+		}
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	d.Lock.Lock()
+	defer d.Lock.Unlock()
+	seen := map[uint16]struct{}{}
+	for _, tid := range out {
+		if _, ok := seen[tid]; ok {
+			continue
+		}
+		seen[tid] = struct{}{}
+		if !containsTableID(d.LabelTable[label], tid) {
+			d.LabelTable[label] = append(d.LabelTable[label], tid)
+		}
+	}
+	cpy := make([]uint16, len(d.LabelTable[label]))
+	copy(cpy, d.LabelTable[label])
+	return cpy
+}
+
+func containsTableID(ids []uint16, target uint16) bool {
+	for _, id := range ids {
+		if id == target {
+			return true
+		}
+	}
+	return false
+}
+
+func (d *GridKVDriver) registerTableLocked(t *BackendTable) {
+	if t == nil {
+		return
+	}
+	d.Tables[t.Name] = t
+	d.TablesByID[t.TableId] = t
+	if !containsTableID(d.LabelTable[t.Label], t.TableId) {
+		d.LabelTable[t.Label] = append(d.LabelTable[t.Label], t.TableId)
+	}
+	if !containsTableID(d.LabelTable[t.Name], t.TableId) {
+		d.LabelTable[t.Name] = append(d.LabelTable[t.Name], t.TableId)
+	}
 }
 
 func (d *GridKVDriver) RowIdsByLabelFieldValue(label, field string, value any, op query.Condition) chan benchtop.Index {

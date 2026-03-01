@@ -5,11 +5,24 @@ import (
 
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/log"
+	"github.com/bytedance/sonic"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
+func (elem *DataElement) materializeRawData() {
+	if elem == nil || elem.RawJSON == "" || elem.Data != nil {
+		return
+	}
+	out := map[string]any{}
+	if err := sonic.UnmarshalString(elem.RawJSON, &out); err != nil {
+		return
+	}
+	elem.Data = out
+}
+
 // ToVertex converts data element to vertex
 func (elem *DataElement) ToVertex() *gripql.Vertex {
+	elem.materializeRawData()
 	sValue, err := structpb.NewStruct(elem.Data)
 	if err != nil {
 		log.Errorf("ToVertex: %s For elem.Data: '%#v'\n", err, elem.Data)
@@ -23,6 +36,7 @@ func (elem *DataElement) ToVertex() *gripql.Vertex {
 
 // ToEdge converts data element to edge
 func (elem *DataElement) ToEdge() *gripql.Edge {
+	elem.materializeRawData()
 	sValue, err := structpb.NewStruct(elem.Data)
 	if err != nil {
 		log.Errorf("ToEdge: %s For elem.Data: '%#v'\n", err, elem.Data)
@@ -51,6 +65,7 @@ func (elem *DataElement) ToDict() map[string]interface{} {
 	if elem == nil {
 		return out
 	}
+	elem.materializeRawData()
 	for k, v := range elem.Data {
 		out[k] = v
 	}

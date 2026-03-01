@@ -3,6 +3,7 @@ package server
 import (
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -27,6 +28,53 @@ func writeLineFast(resp http.ResponseWriter, out map[string]any) error {
 		return err
 	}
 	_, err = resp.Write([]byte("\n"))
+	return err
+}
+
+func appendJSONField(dst []byte, key string, val string, first *bool) []byte {
+	if !*first {
+		dst = append(dst, ',')
+	}
+	*first = false
+	dst = append(dst, '"')
+	dst = append(dst, key...)
+	dst = append(dst, '"', ':')
+	dst = strconv.AppendQuote(dst, val)
+	return dst
+}
+
+func writeVertexElementFast(resp http.ResponseWriter, v *gdbi.DataElement) error {
+	if v == nil {
+		return nil
+	}
+	var dataBytes []byte
+	if v.RawJSON != "" {
+		dataBytes = []byte(v.RawJSON)
+	} else {
+		var err error
+		dataBytes, err = sonic.ConfigFastest.Marshal(v.Data)
+		if err != nil {
+			return err
+		}
+	}
+
+	out := make([]byte, 0, len(dataBytes)+64)
+	out = append(out, `{"vertex":{`...)
+	first := true
+	if len(dataBytes) > 2 && dataBytes[0] == '{' && dataBytes[len(dataBytes)-1] == '}' {
+		if len(dataBytes) > 2 {
+			out = append(out, dataBytes[1:len(dataBytes)-1]...)
+			first = false
+		}
+	}
+	if v.ID != "" {
+		out = appendJSONField(out, "_id", v.ID, &first)
+	}
+	if v.Label != "" {
+		out = appendJSONField(out, "_label", v.Label, &first)
+	}
+	out = append(out, '}', '}', '\n')
+	_, err := resp.Write(out)
 	return err
 }
 
@@ -116,7 +164,7 @@ func (server *GripServer) fastQueryHandler(resp http.ResponseWriter, req *http.R
 						v = graph.GetVertex(v.ID, true)
 					}
 					if v != nil {
-						err = writeLineFast(resp, map[string]any{"vertex": v.ToDict()})
+						err = writeVertexElementFast(resp, v)
 					}
 				}
 			}

@@ -23,6 +23,7 @@ type DataElement struct {
 	Label    string
 	From, To string
 	Data     map[string]interface{}
+	RawJSON  string
 	Loaded   bool
 }
 
@@ -39,12 +40,13 @@ func (d *DataElement) Get() *DataElement {
 
 func (d *DataElement) Copy() DataRef {
 	return &DataElement{
-		ID:     d.ID,
-		To:     d.To,
-		From:   d.From,
-		Label:  d.Label,
-		Loaded: d.Loaded,
-		Data:   d.Data,
+		ID:      d.ID,
+		To:      d.To,
+		From:    d.From,
+		Label:   d.Label,
+		Loaded:  d.Loaded,
+		Data:    d.Data,
+		RawJSON: d.RawJSON,
 	}
 }
 

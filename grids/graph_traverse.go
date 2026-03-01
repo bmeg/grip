@@ -8,12 +8,23 @@ import (
 	"github.com/bmeg/benchtop/pebblebulk"
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/grids/key"
-	"github.com/bmeg/grip/util/setcmp"
 )
+
+func edgeLabelAllowed(labels map[string]struct{}, label string) bool {
+	if len(labels) == 0 {
+		return true
+	}
+	_, ok := labels[label]
+	return ok
+}
 
 // GetOutChannel process requests of vertex ids and find the connected vertices on outgoing edges
 func (ggraph *Graph) GetOutChannel(ctx context.Context, reqChan chan gdbi.ElementLookup, load bool, emitNull bool, edgeLabels []string) chan gdbi.ElementLookup {
 	o := make(chan gdbi.ElementLookup, 100)
+	edgeLabelSet := make(map[string]struct{}, len(edgeLabels))
+	for _, label := range edgeLabels {
+		edgeLabelSet[label] = struct{}{}
+	}
 	go func() {
 		defer close(o)
 		ggraph.driver.Pkv.View(func(it *pebblebulk.PebbleIterator) error {
@@ -32,13 +43,13 @@ func (ggraph *Graph) GetOutChannel(ctx context.Context, reqChan chan gdbi.Elemen
 				skeyPrefix := key.SrcEdgePrefix(uid)
 				for it.Seek(skeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), skeyPrefix); it.Next() {
 					_, _, duid, label := key.SrcEdgeKeyParse(it.Key())
-					if len(edgeLabels) == 0 || setcmp.ContainsString(edgeLabels, label) {
-						dst, _ := ggraph.driver.TranslateID(duid)
+					if edgeLabelAllowed(edgeLabelSet, label) {
 						if !load {
+							dst, _ := ggraph.driver.TranslateID(duid)
 							req.Vertex = &gdbi.Vertex{ID: dst, Label: labelFromElementID(dst)}
 							o <- req
 						} else {
-							batch = append(batch, gdbi.ElementLookup{ID: dst, Ref: req.Ref, Priv: lookupPriv{uid: duid}})
+							batch = append(batch, gdbi.ElementLookup{Ref: req.Ref, Priv: lookupPriv{uid: duid}})
 							if len(batch) >= 1000 {
 								ggraph.resolveBatch(ctx, batch, o, false)
 								batch = nil
@@ -64,6 +75,10 @@ func (ggraph *Graph) GetOutChannel(ctx context.Context, reqChan chan gdbi.Elemen
 // GetInChannel process requests of vertex ids and find the connected vertices on incoming edges
 func (ggraph *Graph) GetInChannel(ctx context.Context, reqChan chan gdbi.ElementLookup, load bool, emitNull bool, edgeLabels []string) chan gdbi.ElementLookup {
 	o := make(chan gdbi.ElementLookup, 100)
+	edgeLabelSet := make(map[string]struct{}, len(edgeLabels))
+	for _, label := range edgeLabels {
+		edgeLabelSet[label] = struct{}{}
+	}
 	go func() {
 		defer close(o)
 		ggraph.driver.Pkv.View(func(it *pebblebulk.PebbleIterator) error {
@@ -82,13 +97,13 @@ func (ggraph *Graph) GetInChannel(ctx context.Context, reqChan chan gdbi.Element
 				dkeyPrefix := key.DstEdgePrefix(uid)
 				for it.Seek(dkeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), dkeyPrefix); it.Next() {
 					_, suid, _, label := key.DstEdgeKeyParse(it.Key())
-					if len(edgeLabels) == 0 || setcmp.ContainsString(edgeLabels, label) {
-						src, _ := ggraph.driver.TranslateID(suid)
+					if edgeLabelAllowed(edgeLabelSet, label) {
 						if !load {
+							src, _ := ggraph.driver.TranslateID(suid)
 							req.Vertex = &gdbi.Vertex{ID: src, Label: labelFromElementID(src)}
 							o <- req
 						} else {
-							batch = append(batch, gdbi.ElementLookup{ID: src, Ref: req.Ref, Priv: lookupPriv{uid: suid}})
+							batch = append(batch, gdbi.ElementLookup{Ref: req.Ref, Priv: lookupPriv{uid: suid}})
 							if len(batch) >= 1000 {
 								ggraph.resolveBatch(ctx, batch, o, false)
 								batch = nil
@@ -115,6 +130,10 @@ func (ggraph *Graph) GetInChannel(ctx context.Context, reqChan chan gdbi.Element
 // GetOutEdgeChannel process requests of vertex ids and find the connected outgoing edges
 func (ggraph *Graph) GetOutEdgeChannel(ctx context.Context, reqChan chan gdbi.ElementLookup, load bool, emitNull bool, edgeLabels []string) chan gdbi.ElementLookup {
 	o := make(chan gdbi.ElementLookup, 100)
+	edgeLabelSet := make(map[string]struct{}, len(edgeLabels))
+	for _, label := range edgeLabels {
+		edgeLabelSet[label] = struct{}{}
+	}
 	go func() {
 		defer close(o)
 		ggraph.driver.Pkv.View(func(it *pebblebulk.PebbleIterator) error {
@@ -133,31 +152,33 @@ func (ggraph *Graph) GetOutEdgeChannel(ctx context.Context, reqChan chan gdbi.El
 				skeyPrefix := key.SrcEdgePrefix(uid)
 				for it.Seek(skeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), skeyPrefix); it.Next() {
 					euid, suid, duid, label := key.SrcEdgeKeyParse(it.Key())
-					if len(edgeLabels) == 0 || setcmp.ContainsString(edgeLabels, label) {
-						eid, _ := ggraph.driver.TranslateID(euid)
-						src, _ := ggraph.driver.TranslateID(suid)
-						dst, _ := ggraph.driver.TranslateID(duid)
-
-						byteVal, _ := it.Value()
-						_, loc, data := benchtop.DecodeEdgeValue(byteVal)
-						e := gdbi.Edge{
-							From:  src,
-							To:    dst,
-							Label: label,
-							ID:    eid,
-						}
-						if data != nil {
-							e.Data = data
-							e.Loaded = true
-						}
+					if edgeLabelAllowed(edgeLabelSet, label) {
 						if !load {
-							if e.Data == nil {
-								e.Data = map[string]any{}
+							eid, _ := ggraph.driver.TranslateID(euid)
+							src, _ := ggraph.driver.TranslateID(suid)
+							dst, _ := ggraph.driver.TranslateID(duid)
+							e := gdbi.Edge{
+								From:  src,
+								To:    dst,
+								Label: label,
+								ID:    eid,
 							}
+							e.Data = map[string]any{}
 							req.Edge = &e
 							o <- req
 						} else {
-							batch = append(batch, gdbi.ElementLookup{ID: eid, Ref: req.Ref, Edge: &e, Priv: lookupPriv{loc: loc, data: e.Data}})
+							e := gdbi.Edge{Label: label}
+							byteVal, _ := it.Value()
+							_, loc, data := benchtop.DecodeEdgeValue(byteVal)
+							if data != nil {
+								e.Data = data
+								e.Loaded = true
+							}
+							batch = append(batch, gdbi.ElementLookup{
+								Ref:  req.Ref,
+								Edge: &e,
+								Priv: lookupPriv{loc: loc, data: e.Data, euid: euid, suid: suid, duid: duid},
+							})
 							if len(batch) >= 1000 {
 								ggraph.resolveBatch(ctx, batch, o, true)
 								batch = nil
@@ -184,6 +205,10 @@ func (ggraph *Graph) GetOutEdgeChannel(ctx context.Context, reqChan chan gdbi.El
 // GetInEdgeChannel process requests of vertex ids and find the connected incoming edges
 func (ggraph *Graph) GetInEdgeChannel(ctx context.Context, reqChan chan gdbi.ElementLookup, load bool, emitNull bool, edgeLabels []string) chan gdbi.ElementLookup {
 	o := make(chan gdbi.ElementLookup, 100)
+	edgeLabelSet := make(map[string]struct{}, len(edgeLabels))
+	for _, label := range edgeLabels {
+		edgeLabelSet[label] = struct{}{}
+	}
 	go func() {
 		defer close(o)
 		ggraph.driver.Pkv.View(func(it *pebblebulk.PebbleIterator) error {
@@ -202,31 +227,33 @@ func (ggraph *Graph) GetInEdgeChannel(ctx context.Context, reqChan chan gdbi.Ele
 				dkeyPrefix := key.DstEdgePrefix(uid)
 				for it.Seek(dkeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), dkeyPrefix); it.Next() {
 					euid, suid, duid, label := key.DstEdgeKeyParse(it.Key())
-					if len(edgeLabels) == 0 || setcmp.ContainsString(edgeLabels, label) {
-						eid, _ := ggraph.driver.TranslateID(euid)
-						src, _ := ggraph.driver.TranslateID(suid)
-						dst, _ := ggraph.driver.TranslateID(duid)
-
-						byteVal, _ := it.Value()
-						_, loc, data := benchtop.DecodeEdgeValue(byteVal)
-						e := gdbi.Edge{
-							From:  src,
-							To:    dst,
-							Label: label,
-							ID:    eid,
-						}
-						if data != nil {
-							e.Data = data
-							e.Loaded = true
-						}
+					if edgeLabelAllowed(edgeLabelSet, label) {
 						if !load {
-							if e.Data == nil {
-								e.Data = map[string]any{}
+							eid, _ := ggraph.driver.TranslateID(euid)
+							src, _ := ggraph.driver.TranslateID(suid)
+							dst, _ := ggraph.driver.TranslateID(duid)
+							e := gdbi.Edge{
+								From:  src,
+								To:    dst,
+								Label: label,
+								ID:    eid,
 							}
+							e.Data = map[string]any{}
 							req.Edge = &e
 							o <- req
 						} else {
-							batch = append(batch, gdbi.ElementLookup{ID: eid, Ref: req.Ref, Edge: &e, Priv: lookupPriv{loc: loc, data: e.Data}})
+							e := gdbi.Edge{Label: label}
+							byteVal, _ := it.Value()
+							_, loc, data := benchtop.DecodeEdgeValue(byteVal)
+							if data != nil {
+								e.Data = data
+								e.Loaded = true
+							}
+							batch = append(batch, gdbi.ElementLookup{
+								Ref:  req.Ref,
+								Edge: &e,
+								Priv: lookupPriv{loc: loc, data: e.Data, euid: euid, suid: suid, duid: duid},
+							})
 							if len(batch) >= 1000 {
 								ggraph.resolveBatch(ctx, batch, o, true)
 								batch = nil
