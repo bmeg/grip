@@ -214,7 +214,7 @@ func StatementProcessor(
 		return out, err
 
 	case *gripql.GraphStatement_Unwind:
-		return sc.Unwind(stmt, ps)
+		return nil, fmt.Errorf(`"unwind" statement is no longer supported; use wildcard list paths like "items[*].field" in "has"/"render"/"set" operations`)
 
 	case *gripql.GraphStatement_Group:
 		if ps.LastType != VertexData && ps.LastType != EdgeData {

@@ -1,11 +1,18 @@
 package tpath
 
 import (
+	"strconv"
 	"strings"
 )
 
 // Current represents the 'current' traveler namespace
 const CURRENT = "_current"
+
+// WildcardToken represents a list wildcard segment in a direct path
+// (for example, `[*]` or `.*`).
+type WildcardToken struct{}
+
+var Wildcard = WildcardToken{}
 
 // GetNamespace returns the namespace of the provided path
 //
@@ -91,4 +98,63 @@ func GetAllNamespaces(d any) []string {
 		}
 	}
 	return out
+}
+
+func ParseDirectPath(path string) ([]any, bool) {
+	path = strings.TrimSpace(path)
+	path = strings.TrimPrefix(path, "$")
+	path = strings.TrimPrefix(path, ".")
+	if path == "" {
+		return nil, false
+	}
+
+	parts := []any{}
+	var token strings.Builder
+	flushToken := func() {
+		if token.Len() > 0 {
+			tok := token.String()
+			if tok == "*" {
+				parts = append(parts, Wildcard)
+			} else {
+				parts = append(parts, tok)
+			}
+			token.Reset()
+		}
+	}
+
+	for i := 0; i < len(path); i++ {
+		ch := path[i]
+		switch ch {
+		case '.':
+			flushToken()
+		case '[':
+			flushToken()
+			j := i + 1
+			for j < len(path) && path[j] != ']' {
+				j++
+			}
+			if j >= len(path) || j == i+1 {
+				return nil, false
+			}
+			segment := path[i+1 : j]
+			if segment == "*" {
+				parts = append(parts, Wildcard)
+			} else {
+				idx, err := strconv.Atoi(segment)
+				if err != nil {
+					return nil, false
+				}
+				parts = append(parts, idx)
+			}
+			i = j
+		default:
+			token.WriteByte(ch)
+		}
+	}
+	flushToken()
+
+	if len(parts) == 0 {
+		return nil, false
+	}
+	return parts, true
 }

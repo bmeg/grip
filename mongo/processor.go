@@ -94,7 +94,7 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 					out <- eo
 
 				case gdbi.SelectionData:
-					selections := map[string]*gdbi.DataElement{}
+					selections := map[string]gdbi.Row{}
 					if marks, ok := result["marks"]; ok {
 						if marks, ok := marks.(map[string]any); ok {
 							for k, v := range marks {

@@ -51,7 +51,7 @@ func (h *HasLabel) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe
 				out <- t
 				continue
 			}
-			if setcmp.ContainsString(labels, t.GetCurrent().Get().Label) {
+			if setcmp.ContainsString(labels, t.GetCurrent().GetLabel()) {
 				out <- t
 			}
 		}

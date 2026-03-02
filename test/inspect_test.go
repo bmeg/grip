@@ -117,6 +117,34 @@ func TestOutputMasking(t *testing.T) {
 	}
 }
 
+func TestRenderBarePathLoadsCurrentStep(t *testing.T) {
+	q := gripql.NewQuery()
+	q = q.V().HasLabel("Observation").Render([]any{"component[*].valueQuantity.value"})
+
+	out := inspect.PipelineStepOutputs(q.Statements, false)
+	if x, ok := out["1"]; ok {
+		if !setcmp.ContainsString(x, "*") {
+			t.Errorf("render with bare current path should require full step output")
+		}
+	} else {
+		t.Errorf("render with bare current path should mark step output")
+	}
+}
+
+func TestRenderBarePathRequiredFields(t *testing.T) {
+	q := gripql.NewQuery()
+	q = q.V().HasLabel("Observation").Render([]any{"component[*].valueQuantity.value"})
+
+	fields := inspect.PipelineStepRequiredFields(q.Statements)
+	if x, ok := fields["1"]; ok {
+		if !setcmp.ContainsString(x, "component[*].valueQuantity.value") {
+			t.Errorf("expected wildcard path in required fields: %#v", x)
+		}
+	} else {
+		t.Errorf("required fields missing render bare path refs")
+	}
+}
+
 func TestOutputIndexMasking(t *testing.T) {
 	q := gripql.NewQuery()
 	q = gripql.NewQuery()

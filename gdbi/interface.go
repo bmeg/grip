@@ -17,44 +17,109 @@ type InPipe <-chan Traveler
 // OutPipe collects output traveler messages
 type OutPipe chan<- Traveler
 
-// DataElement is a single data element
+// Row is a single row of data, which may be in different states of materialization
+type Row interface {
+	GetID() string
+	GetLabel() string
+	GetFrom() string
+	GetTo() string
+	Mode() RowMode
+	GetPayload() map[string]any // The user-defined data map
+	GetRaw() string             // The raw JSON string if available
+	IsLoaded() bool             // Whether the payload is already in memory
+	Copy() Row
+	ToDict() map[string]any // The full document including system fields (_id, _label)
+}
+
+type RowMode uint8
+
+const (
+	RowModeUnknown RowMode = iota
+	RowModeReference
+	RowModeRaw
+	RowModeProjected
+	RowModeMaterialized
+)
+
+// DataElement is a materialized row of data
 type DataElement struct {
-	ID       string
-	Label    string
-	From, To string
-	Data     map[string]interface{}
-	RawJSON  string
-	Loaded   bool
+	ID       string                 `json:"id"`
+	Label    string                 `json:"label"`
+	From     string                 `json:"from,omitempty"`
+	To       string                 `json:"to,omitempty"`
+	Data     map[string]interface{} `json:"data"`
+	RawJSON  string                 `json:"-"`
+	Loaded   bool                   `json:"-"`
+	Mutable  bool                   `json:"-"`
+	ModeHint RowMode                `json:"-"`
 }
 
-// DataRef is a handler interface above DataElement, that allows processing pipelines
-// to avoid loading data data required for DataElement until it is actually needed
-type DataRef interface {
-	Get() *DataElement
-	Copy() DataRef
+func (d *DataElement) GetID() string    { return d.ID }
+func (d *DataElement) GetLabel() string { return d.Label }
+func (d *DataElement) GetFrom() string  { return d.From }
+func (d *DataElement) GetTo() string    { return d.To }
+func (d *DataElement) GetRaw() string   { return d.RawJSON }
+func (d *DataElement) IsLoaded() bool   { return d.Loaded }
+func (d *DataElement) IsNilRow() bool   { return d == nil }
+func (d *DataElement) Mode() RowMode {
+	if d == nil {
+		return RowModeUnknown
+	}
+	if d.ModeHint != RowModeUnknown {
+		return d.ModeHint
+	}
+	if d.RawJSON != "" && d.Data == nil {
+		return RowModeRaw
+	}
+	if d.Data != nil {
+		if !d.Loaded && d.RawJSON == "" && len(d.Data) == 0 {
+			return RowModeReference
+		}
+		if d.Loaded {
+			return RowModeMaterialized
+		}
+		return RowModeProjected
+	}
+	if !d.Loaded && d.RawJSON == "" {
+		return RowModeReference
+	}
+	return RowModeUnknown
 }
-
-func (d *DataElement) Get() *DataElement {
-	return d
+func (d *DataElement) GetPayload() map[string]any {
+	d.materializeRawData()
+	return d.Data
 }
-
-func (d *DataElement) Copy() DataRef {
+func (d *DataElement) Copy() Row {
+	if d == nil {
+		return (*DataElement)(nil)
+	}
+	// Keep raw rows raw; materialization should happen only when payload data is requested.
+	if d.RawJSON != "" && d.Data == nil {
+		return &DataElement{
+			ID: d.ID, To: d.To, From: d.From, Label: d.Label,
+			Loaded: d.Loaded, Mutable: d.Mutable, ModeHint: d.ModeHint, Data: nil, RawJSON: d.RawJSON,
+		}
+	}
+	var newData map[string]any
+	if d.Data != nil {
+		if d.Mutable {
+			newData = make(map[string]any, len(d.Data))
+			for k, v := range d.Data {
+				newData[k] = v
+			}
+		} else {
+			// Immutable payloads are shared until a mutator requests write access.
+			newData = d.Data
+		}
+	}
 	return &DataElement{
-		ID:      d.ID,
-		To:      d.To,
-		From:    d.From,
-		Label:   d.Label,
-		Loaded:  d.Loaded,
-		Data:    d.Data,
-		RawJSON: d.RawJSON,
+		ID: d.ID, To: d.To, From: d.From, Label: d.Label,
+		Loaded: d.Loaded, Mutable: d.Mutable, ModeHint: d.ModeHint, Data: newData, RawJSON: d.RawJSON,
 	}
 }
 
 type Vertex = DataElement
 type Edge = DataElement
-
-type VertexRef = DataRef
-type EdgeRef = DataRef
 
 type GraphElement struct {
 	Vertex *Vertex
@@ -86,14 +151,14 @@ type Signal struct {
 
 // Traveler is a query element that traverse the graph
 type BaseTraveler struct {
-	Current     *DataElement
-	currentRef  DataRef
-	Marks       map[string]*DataElement
-	Selections  map[string]*DataElement
+	Current     Row
+	Marks       map[string]Row
+	Selections  map[string]Row
 	Aggregation *Aggregate
 	Count       uint32
 	Render      interface{}
 	Path        []DataElementID
+	TrackPath   bool
 	Signal      *Signal
 }
 
@@ -101,18 +166,18 @@ type Traveler interface {
 	IsSignal() bool
 	GetSignal() Signal
 	IsNull() bool
-	GetCurrent() DataRef
+	GetCurrent() Row
 	GetCurrentID() string
-	AddCurrent(r DataRef) Traveler
+	AddCurrent(r Row) Traveler
 	Copy() Traveler
 	HasMark(label string) bool
-	GetMark(label string) DataRef
+	GetMark(label string) Row
 	// AddMark adds a new mark to the data and return a duplicated Traveler
-	AddMark(label string, r DataRef) Traveler
+	AddMark(label string, r Row) Traveler
 	// UpdateMark changes the data of a mark in the original traveler (vs AddMark which changes a copy of the traveler)
-	UpdateMark(label string, r DataRef)
+	UpdateMark(label string, r Row)
 	ListMarks() []string
-	GetSelections() map[string]DataRef
+	GetSelections() map[string]Row
 	GetRender() interface{}
 	GetPath() []DataElementID
 	GetAggregation() *Aggregate
@@ -138,9 +203,38 @@ const (
 type ElementLookup struct {
 	ID     string
 	Ref    Traveler
-	Vertex VertexRef
-	Edge   EdgeRef
-	Priv   any
+	Vertex *DataElement
+	Edge   *DataElement
+	Meta   LookupMeta
+}
+
+// LookupMeta is the canonical execution metadata carried between lookup and traversal stages.
+// Opaque keeps driver-specific location metadata while the rest are shared core hints.
+type LookupMeta struct {
+	Opaque any
+	Fields []string
+	Data   map[string]any
+	UID    uint64
+	EUID   uint64
+	SUID   uint64
+	DUID   uint64
+}
+
+func IsLookupMetaEmpty(m LookupMeta) bool {
+	return m.Opaque == nil &&
+		len(m.Fields) == 0 &&
+		len(m.Data) == 0 &&
+		m.UID == 0 &&
+		m.EUID == 0 &&
+		m.SUID == 0 &&
+		m.DUID == 0
+}
+
+func (e ElementLookup) GetLookupMeta() (LookupMeta, bool) {
+	if !IsLookupMetaEmpty(e.Meta) {
+		return e.Meta, true
+	}
+	return LookupMeta{}, false
 }
 
 // GraphDB is the base interface for graph databases

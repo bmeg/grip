@@ -4,4 +4,4 @@ Drivers:
   grids:
     Grids:
       GraphDir: grip-grids.db
-      Driver: jsontable
+      Driver: arrow

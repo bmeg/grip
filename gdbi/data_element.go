@@ -18,6 +18,28 @@ func (elem *DataElement) materializeRawData() {
 		return
 	}
 	elem.Data = out
+	// Decoded payloads are treated as immutable by default.
+	elem.Mutable = false
+	elem.ModeHint = RowModeMaterialized
+}
+
+// EnsureMutablePayload clones the payload map on first write when the row is marked immutable.
+func (elem *DataElement) EnsureMutablePayload() {
+	if elem == nil {
+		return
+	}
+	elem.materializeRawData()
+	if elem.Mutable {
+		return
+	}
+	if elem.Data != nil {
+		cloned := make(map[string]any, len(elem.Data))
+		for k, v := range elem.Data {
+			cloned[k] = v
+		}
+		elem.Data = cloned
+	}
+	elem.Mutable = true
 }
 
 // ToVertex converts data element to vertex
@@ -69,18 +91,10 @@ func (elem *DataElement) ToDict() map[string]interface{} {
 	for k, v := range elem.Data {
 		out[k] = v
 	}
-	if elem.ID != "" {
-		out["_id"] = elem.ID
-	}
-	if elem.Label != "" {
-		out["_label"] = elem.Label
-	}
-	if elem.To != "" {
-		out["_to"] = elem.To
-	}
-	if elem.From != "" {
-		out["_from"] = elem.From
-	}
+	out["_id"] = elem.ID
+	out["_label"] = elem.Label
+	out["_to"] = elem.To
+	out["_from"] = elem.From
 	return out
 }
 
@@ -111,6 +125,8 @@ func (elem *DataElement) FromDict(d map[string]any) {
 		}
 	}
 	elem.Loaded = true
+	elem.Mutable = true
+	elem.ModeHint = RowModeMaterialized
 }
 
 // Validate returns an error if the vertex is invalid
@@ -143,20 +159,24 @@ func NewGraphElement(g *gripql.GraphElement) *GraphElement {
 
 func NewElementFromVertex(v *gripql.Vertex) *Vertex {
 	return &Vertex{
-		ID:     v.Id,
-		Label:  v.Label,
-		Data:   v.Data.AsMap(),
-		Loaded: true,
+		ID:       v.Id,
+		Label:    v.Label,
+		Data:     v.Data.AsMap(),
+		Loaded:   true,
+		Mutable:  true,
+		ModeHint: RowModeMaterialized,
 	}
 }
 
 func NewElementFromEdge(e *gripql.Edge) *Edge {
 	return &Edge{
-		ID:     e.Id,
-		Label:  e.Label,
-		To:     e.To,
-		From:   e.From,
-		Data:   e.Data.AsMap(),
-		Loaded: true,
+		ID:       e.Id,
+		Label:    e.Label,
+		To:       e.To,
+		From:     e.From,
+		Data:     e.Data.AsMap(),
+		Loaded:   true,
+		Mutable:  true,
+		ModeHint: RowModeMaterialized,
 	}
 }

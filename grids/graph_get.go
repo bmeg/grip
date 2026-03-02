@@ -27,16 +27,6 @@ type idEntry struct {
 	idx    int
 }
 
-type lookupPriv struct {
-	loc    *benchtop.RowLoc
-	fields []string
-	data   map[string]any
-	uid    uint64
-	euid   uint64
-	suid   uint64
-	duid   uint64
-}
-
 type projectedRowsGetter interface {
 	GetRowsProjected(locs []*benchtop.RowLoc, fields []string) ([]map[string]any, []error)
 }
@@ -46,6 +36,18 @@ type rawRowsGetter interface {
 }
 
 const resolveBatchSize = 20000
+
+func lookupLocFromMeta(meta gdbi.LookupMeta) *benchtop.RowLoc {
+	switch loc := meta.Opaque.(type) {
+	case *benchtop.RowLoc:
+		return loc
+	case benchtop.RowLoc:
+		l := loc
+		return &l
+	default:
+		return nil
+	}
+}
 
 func (ggraph *Graph) resolveBatch(ctx context.Context, batch []gdbi.ElementLookup, out chan gdbi.ElementLookup, isEdge bool) {
 	if len(batch) == 0 {
@@ -58,34 +60,23 @@ func (ggraph *Graph) resolveBatch(ctx context.Context, batch []gdbi.ElementLooku
 	idsToTranslate := make([]uint64, 0, len(batch)*3)
 	for i := range batch {
 		id := batch[i]
-		if id.Priv == nil {
-			continue
-		}
-		var priv lookupPriv
-		ok := false
-		if p, okp := id.Priv.(*lookupPriv); okp && p != nil {
-			priv = *p
-			ok = true
-		} else if p, okp := id.Priv.(lookupPriv); okp {
-			priv = p
-			ok = true
-		}
+		meta, ok := id.GetLookupMeta()
 		if !ok {
 			continue
 		}
-		if id.ID == "" && priv.uid != 0 {
-			idsToTranslate = append(idsToTranslate, priv.uid)
+		if id.ID == "" && meta.UID != 0 {
+			idsToTranslate = append(idsToTranslate, meta.UID)
 		}
-		if isEdge && id.Edge != nil && id.Edge.Get() != nil {
-			e := id.Edge.Get()
-			if e.ID == "" && priv.euid != 0 {
-				idsToTranslate = append(idsToTranslate, priv.euid)
+		if isEdge && id.Edge != nil {
+			e := id.Edge
+			if e.ID == "" && meta.EUID != 0 {
+				idsToTranslate = append(idsToTranslate, meta.EUID)
 			}
-			if e.From == "" && priv.suid != 0 {
-				idsToTranslate = append(idsToTranslate, priv.suid)
+			if e.From == "" && meta.SUID != 0 {
+				idsToTranslate = append(idsToTranslate, meta.SUID)
 			}
-			if e.To == "" && priv.duid != 0 {
-				idsToTranslate = append(idsToTranslate, priv.duid)
+			if e.To == "" && meta.DUID != 0 {
+				idsToTranslate = append(idsToTranslate, meta.DUID)
 			}
 		}
 	}
@@ -96,40 +87,29 @@ func (ggraph *Graph) resolveBatch(ctx context.Context, batch []gdbi.ElementLooku
 		} else {
 			for i := range batch {
 				id := batch[i]
-				if id.Priv == nil {
-					continue
-				}
-				var priv lookupPriv
-				ok := false
-				if p, okp := id.Priv.(*lookupPriv); okp && p != nil {
-					priv = *p
-					ok = true
-				} else if p, okp := id.Priv.(lookupPriv); okp {
-					priv = p
-					ok = true
-				}
+				meta, ok := id.GetLookupMeta()
 				if !ok {
 					continue
 				}
-				if id.ID == "" && priv.uid != 0 {
-					if rid, ok := rids[priv.uid]; ok {
+				if id.ID == "" && meta.UID != 0 {
+					if rid, ok := rids[meta.UID]; ok {
 						batch[i].ID = rid
 					}
 				}
-				if isEdge && id.Edge != nil && id.Edge.Get() != nil {
-					e := id.Edge.Get()
-					if e.ID == "" && priv.euid != 0 {
-						if rid, ok := rids[priv.euid]; ok {
+				if isEdge && id.Edge != nil {
+					e := id.Edge
+					if e.ID == "" && meta.EUID != 0 {
+						if rid, ok := rids[meta.EUID]; ok {
 							e.ID = rid
 						}
 					}
-					if e.From == "" && priv.suid != 0 {
-						if rid, ok := rids[priv.suid]; ok {
+					if e.From == "" && meta.SUID != 0 {
+						if rid, ok := rids[meta.SUID]; ok {
 							e.From = rid
 						}
 					}
-					if e.To == "" && priv.duid != 0 {
-						if rid, ok := rids[priv.duid]; ok {
+					if e.To == "" && meta.DUID != 0 {
+						if rid, ok := rids[meta.DUID]; ok {
 							e.To = rid
 						}
 					}
@@ -147,47 +127,35 @@ func (ggraph *Graph) resolveBatch(ctx context.Context, batch []gdbi.ElementLooku
 	for i, id := range batch {
 		var entry *benchtop.RowLoc
 		var fields []string
+		var data map[string]any
+		var uid uint64
 		var label string
-		if id.Priv != nil {
-			if loc, ok := id.Priv.(*benchtop.RowLoc); ok {
-				entry = loc
-			} else if loc, ok := id.Priv.(benchtop.RowLoc); ok {
-				entry = &loc
-			} else if priv, ok := id.Priv.(*lookupPriv); ok && priv != nil {
-				entry = priv.loc
-				fields = priv.fields
-				if priv.data != nil {
-					withLoc = append(withLoc, idEntry{lookup: id, loc: entry, label: label, fields: fields, data: priv.data, idx: i})
-					continue
-				}
-				if entry == nil && priv.uid != 0 && !isEdge {
-					uidMissingIdx = append(uidMissingIdx, i)
-					uidMissingVals = append(uidMissingVals, priv.uid)
-					continue
-				}
-			} else if priv, ok := id.Priv.(lookupPriv); ok {
-				entry = priv.loc
-				fields = priv.fields
-				if priv.data != nil {
-					withLoc = append(withLoc, idEntry{lookup: id, loc: entry, label: label, fields: fields, data: priv.data, idx: i})
-					continue
-				}
-				if entry == nil && priv.uid != 0 && !isEdge {
-					uidMissingIdx = append(uidMissingIdx, i)
-					uidMissingVals = append(uidMissingVals, priv.uid)
-					continue
-				}
-			}
+		if meta, ok := id.GetLookupMeta(); ok {
+			entry = lookupLocFromMeta(meta)
+			fields = meta.Fields
+			data = meta.Data
+			uid = meta.UID
+		}
+		if data != nil {
+			withLoc = append(withLoc, idEntry{lookup: id, loc: entry, label: label, fields: fields, data: data, idx: i})
+			continue
+		}
+		if entry == nil && uid != 0 && !isEdge {
+			uidMissingIdx = append(uidMissingIdx, i)
+			uidMissingVals = append(uidMissingVals, uid)
+			continue
 		}
 		if id.Vertex != nil {
-			label = id.Vertex.Get().Label
+			label = id.Vertex.GetLabel()
 		} else if id.Edge != nil {
-			label = id.Edge.Get().Label
+			label = id.Edge.GetLabel()
 		}
 		if entry != nil {
-			if id.Edge != nil && id.Edge.Get() != nil && id.Edge.Get().Data != nil {
-				withLoc = append(withLoc, idEntry{lookup: id, loc: entry, label: label, fields: fields, data: id.Edge.Get().Data, idx: i})
-				continue
+			if id.Edge != nil && id.Edge.Mode() != gdbi.RowModeRaw {
+				if payload := id.Edge.GetPayload(); payload != nil {
+					withLoc = append(withLoc, idEntry{lookup: id, loc: entry, label: label, fields: fields, data: payload, idx: i})
+					continue
+				}
 			}
 			if label == "" {
 				if t, err := ggraph.driver.GetTableByID(entry.TableId); err == nil {
@@ -211,12 +179,8 @@ func (ggraph *Graph) resolveBatch(ctx context.Context, batch []gdbi.ElementLooku
 			info := locsByUID[uidMissingVals[j]]
 			if info != nil {
 				var fields []string
-				if id.Priv != nil {
-					if priv, ok := id.Priv.(*lookupPriv); ok && priv != nil {
-						fields = priv.fields
-					} else if priv, ok := id.Priv.(lookupPriv); ok {
-						fields = priv.fields
-					}
+				if meta, ok := id.GetLookupMeta(); ok {
+					fields = meta.Fields
 				}
 				withLoc = append(withLoc, idEntry{lookup: id, loc: info.Loc, label: info.Label, fields: fields, data: info.Data, idx: idx})
 			} else {
@@ -247,12 +211,8 @@ func (ggraph *Graph) resolveBatch(ctx context.Context, batch []gdbi.ElementLooku
 			info := locs[id.ID]
 			if info != nil {
 				var fields []string
-				if id.Priv != nil {
-					if priv, ok := id.Priv.(*lookupPriv); ok && priv != nil {
-						fields = priv.fields
-					} else if priv, ok := id.Priv.(lookupPriv); ok {
-						fields = priv.fields
-					}
+				if meta, ok := id.GetLookupMeta(); ok {
+					fields = meta.Fields
 				}
 				withLoc = append(withLoc, idEntry{lookup: id, loc: info.Loc, label: info.Label, fields: fields, data: info.Data, idx: idx})
 			}
@@ -547,20 +507,22 @@ func (ggraph *Graph) processVertexBatch(batch []idEntry, out chan gdbi.ElementLo
 			var res map[string]any
 			if entry.data != nil {
 				res = entry.data
-			} else if rawResults != nil && rawResults[i] != "" && len(entry.fields) == 0 {
-				id.Vertex.Get().Data = nil
-				id.Vertex.Get().RawJSON = rawResults[i]
-				id.Vertex.Get().Loaded = true
+			} else if rawResults[i] != "" && len(entry.fields) == 0 {
+				de := id.Vertex
+				de.Data = nil
+				de.RawJSON = rawResults[i]
+				de.Loaded = true
 				ordered[entry.idx] = &id
 				continue
-			} else if errors != nil && errors[i] == nil {
+			} else if errors[i] == nil {
 				res = results[i]
 			} else {
 				continue
 			}
-			id.Vertex.Get().Data = projectRowMap(res, entry.fields)
-			id.Vertex.Get().RawJSON = ""
-			id.Vertex.Get().Loaded = true
+			de := id.Vertex
+			de.Data = projectRowMap(res, entry.fields)
+			de.RawJSON = ""
+			de.Loaded = true
 			ordered[entry.idx] = &id
 		}
 	}
@@ -683,25 +645,26 @@ func (ggraph *Graph) processEdgeBatch(batch []idEntry, out chan gdbi.ElementLook
 			} else {
 				continue
 			}
+			de := id.Edge
 			if from, ok := res["_from"].(string); ok {
-				id.Edge.Get().From = from
+				de.From = from
 			}
 			if to, ok := res["_to"].(string); ok {
-				id.Edge.Get().To = to
+				de.To = to
 			}
 			if label, ok := res["_label"].(string); ok {
-				id.Edge.Get().Label = label
+				de.Label = label
 			}
-			id.Edge.Get().Data = projectRowMap(res, entry.fields)
-			if id.Edge.Get().From == "" {
+			de.Data = projectRowMap(res, entry.fields)
+			if de.From == "" {
 				log.Errorf("processEdgeBatch: edge %s missing _from", id.ID)
 				continue
 			}
-			if id.Edge.Get().To == "" {
+			if de.To == "" {
 				log.Errorf("processEdgeBatch: edge %s missing _to", id.ID)
 				continue
 			}
-			id.Edge.Get().Loaded = true
+			de.Loaded = true
 			ordered[entry.idx] = &id
 		}
 	}

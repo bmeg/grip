@@ -673,9 +673,7 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement, opts *gdbi.Compile
 			lastType = gdbi.PathData
 
 		case *gripql.GraphStatement_Unwind:
-			f := strings.TrimPrefix(stmt.Unwind, "$.")
-			query = append(query,
-				bson.D{primitive.E{Key: "$unwind", Value: "$data." + f}})
+			return &Pipeline{}, fmt.Errorf(`"unwind" statement is no longer supported; use wildcard list paths like "items[*].field" in has conditions`)
 
 		case *gripql.GraphStatement_Totype:
 			if lastType != gdbi.VertexData && lastType != gdbi.EdgeData {

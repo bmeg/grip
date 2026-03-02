@@ -119,6 +119,9 @@ test:
 test-conformance:
 	python conformance/run_conformance.py http://localhost:18201
 
+benchmark-fhir:
+	./benchmark/bench_fhir.py --url http://localhost:8301 --graph grids
+
 test-authorization:
 	python conformance/run_auth.py http://localhost:18201 $(ARGS)
 

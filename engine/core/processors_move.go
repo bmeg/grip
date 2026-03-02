@@ -67,7 +67,7 @@ func (l *LookupEdgeAdjOut) Process(ctx context.Context, man gdbi.Manager, in gdb
 				queryChan <- gdbi.ElementLookup{Ref: t}
 			} else {
 				queryChan <- gdbi.ElementLookup{
-					ID:  t.GetCurrent().Get().To,
+					ID:  t.GetCurrent().GetTo(),
 					Ref: t,
 				}
 			}
@@ -146,7 +146,7 @@ func (l *LookupEdgeAdjIn) Process(ctx context.Context, man gdbi.Manager, in gdbi
 				queryChan <- gdbi.ElementLookup{Ref: t}
 			} else {
 				queryChan <- gdbi.ElementLookup{
-					ID:  t.GetCurrent().Get().From,
+					ID:  t.GetCurrent().GetFrom(),
 					Ref: t,
 				}
 			}

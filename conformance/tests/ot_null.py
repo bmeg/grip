@@ -35,17 +35,35 @@ def test_returnNil(man):
 
     return errors
 
-def test_returnNilUnwind(man):
+def test_returnNilWildcardListPaths(man):
     errors = []
 
     G = man.setGraph("swapi")
 
-    # outNull generates null maps that must be skipped in the unwind step. Was causing segfault before.
-    for i in G.V().outNull("species").unwind('eye_colors'):
-        if i['eye_colors'] is not None and not isinstance(i['eye_colors'], str):
-            errors.append("expecting i['eye_colors'] to be string after unwind but got %s instead" % i['eye_colors'])
+    # outNull produces null rows; wildcard list lookups must safely skip nulls.
+    out_count = 0
+    for _ in G.V().out("species").has(gripql.eq("eye_colors[*]", "blue")):
+        out_count += 1
+
+    out_null_count = 0
+    for _ in G.V().outNull("species").has(gripql.eq("eye_colors[*]", "blue")):
+        out_null_count += 1
+
+    if out_count != out_null_count:
+        errors.append(
+            "outNull wildcard filter count mismatch %d != %d"
+            % (out_null_count, out_count)
+        )
+
+    for i in G.V().outNull("species").render(["$.eye_colors[*]"]):
+        if i[0] is not None and not isinstance(i[0], list):
+            errors.append(
+                "expecting $.eye_colors[*] to be list or None but got %s instead"
+                % (i[0])
+            )
 
     return errors
+
 def test_hasLabelOut(man):
     errors = []
 

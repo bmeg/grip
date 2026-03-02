@@ -9,7 +9,7 @@ import (
 	"github.com/bmeg/grip/gdbi"
 
 	//"github.com/bmeg/grip/log"
-	"github.com/bmeg/grip/util/copy"
+
 	"github.com/spf13/cast"
 )
 
@@ -147,6 +147,10 @@ type Path struct {
 	Template any //this isn't really used yet.
 }
 
+func (r *Path) RequiresPathTracking() bool {
+	return true
+}
+
 // Process runs the render processor
 func (r *Path) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
 	go func() {
@@ -161,68 +165,6 @@ func (r *Path) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, ou
 	}()
 	return ctx
 }
-
-////////////////////////////////////////////////////////////////////////////////
-
-// Unwind takes an array field and replicates the message for every element in the array
-type Unwind struct {
-	Field string
-}
-
-// Process runs the render processor
-func (r *Unwind) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
-	go func() {
-		defer close(out)
-		for t := range in {
-			if t.IsSignal() {
-				out <- t
-				continue
-			}
-			v := gdbi.TravelerPathLookup(t, r.Field)
-			//log.Debugln("UNWIND V RES: ", v)
-			if a, ok := v.([]any); ok {
-				cur := t.GetCurrent()
-				if len(a) > 0 {
-					for _, i := range a {
-						o := gdbi.DataElement{
-							ID:    cur.Get().ID,
-							Label: cur.Get().Label,
-							From:  cur.Get().From,
-							To:    cur.Get().To,
-							Data:  copy.DeepCopy(cur.Get().Data).(map[string]any), Loaded: true,
-						}
-						n := t.AddCurrent(&o)
-						gdbi.TravelerSetValue(n, r.Field, i)
-						out <- n
-					}
-				} else {
-					o := gdbi.DataElement{ID: cur.Get().ID, Label: cur.Get().Label, From: cur.Get().From, To: cur.Get().To, Data: copy.DeepCopy(cur.Get().Data).(map[string]interface{}), Loaded: true}
-					n := t.AddCurrent(&o)
-					gdbi.TravelerSetValue(n, r.Field, nil)
-					out <- n
-				}
-			} else {
-				cur := t.GetCurrent()
-				// if outnull returns null cur can be empty
-				if cur.Get() != nil {
-					o := gdbi.DataElement{
-						ID:    cur.Get().ID,
-						Label: cur.Get().Label,
-						From:  cur.Get().From,
-						To:    cur.Get().To,
-						Data:  copy.DeepCopy(cur.Get().Data).(map[string]any), Loaded: true,
-					}
-					n := t.AddCurrent(&o)
-					gdbi.TravelerSetValue(n, r.Field, nil)
-					out <- n
-				}
-			}
-		}
-	}()
-	return ctx
-}
-
-////////////////////////////////////////////////////////////////////////////////
 
 // ToType
 type ToType struct {
@@ -435,15 +377,19 @@ func (s *Selector) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe
 				out <- t
 				continue
 			}
-			res := map[string]*gdbi.DataElement{}
+			res := t.Copy()
+			sel := map[string]gdbi.Row{}
 			for _, mark := range s.marks {
 				val := t.GetMark(mark)
 				if val == nil {
 					val = &gdbi.DataElement{}
 				}
-				res[mark] = val.Get()
+				sel[mark] = val.Copy()
 			}
-			out <- &gdbi.BaseTraveler{Selections: res}
+			if bt, ok := res.(*gdbi.BaseTraveler); ok {
+				bt.Selections = sel
+			}
+			out <- res
 		}
 	}()
 	return ctx
@@ -515,13 +461,12 @@ func (s *MarkSelect) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPi
 			// Select should count as a path step even when selecting the same element.
 			if len(n.GetPath()) == len(t.GetPath()) {
 				if bt, ok := n.(*gdbi.BaseTraveler); ok {
-					de := m.Get()
-					if de == nil {
+					if m == nil {
 						bt.Path = append(bt.Path, gdbi.DataElementID{})
-					} else if de.To != "" {
-						bt.Path = append(bt.Path, gdbi.DataElementID{Edge: de.ID})
+					} else if m.GetTo() != "" {
+						bt.Path = append(bt.Path, gdbi.DataElementID{Edge: m.GetID()})
 					} else {
-						bt.Path = append(bt.Path, gdbi.DataElementID{Vertex: de.ID})
+						bt.Path = append(bt.Path, gdbi.DataElementID{Vertex: m.GetID()})
 					}
 				}
 			}

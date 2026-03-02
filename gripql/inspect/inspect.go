@@ -90,13 +90,15 @@ func PipelineStepOutputs(stmts []*gripql.GraphStatement, storeMarks bool) map[st
 			}
 
 		case *gripql.GraphStatement_Render:
-			// determine every step output that is needed for the render
 			val := gs.GetRender().AsInterface()
+			refs := []string{}
+			collectCurrentRefs(val, &refs)
+			if len(refs) > 0 {
+				out[steps[i]] = []string{"*"}
+			}
+			// determine every marked step output that is needed for the render
 			names := tpath.GetAllNamespaces(val)
 			for _, n := range names {
-				if n == tpath.CURRENT {
-					out[steps[i]] = []string{"*"}
-				}
 				if a, ok := asMap[n]; ok {
 					out[a] = []string{"*"}
 				}
@@ -191,12 +193,40 @@ func collectCurrentRefs(val any, out *[]string) {
 			collectCurrentRefs(v, out)
 		}
 	case string:
-		if strings.HasPrefix(x, "$.") {
-			*out = append(*out, strings.TrimPrefix(x, "$."))
-		} else if strings.HasPrefix(x, "$_current.") {
-			*out = append(*out, strings.TrimPrefix(x, "$_current."))
+		ref, ok := currentRenderRef(x)
+		if ok {
+			*out = append(*out, ref)
 		}
 	}
+}
+
+func currentRenderRef(expr string) (string, bool) {
+	expr = strings.TrimSpace(expr)
+	if expr == "" {
+		return "", false
+	}
+	if strings.HasPrefix(expr, "$.") {
+		return strings.TrimPrefix(expr, "$."), true
+	}
+	if strings.HasPrefix(expr, "$_current.") {
+		return strings.TrimPrefix(expr, "$_current."), true
+	}
+	if strings.HasPrefix(expr, "$") {
+		// Explicit namespace reference to a mark or selection.
+		return "", false
+	}
+	// RenderTraveler resolves bare strings against the current row first and
+	// only falls back to literal output when lookup fails. Planning treats them
+	// as current-row references so load/projection decisions stay correct.
+	norm := tpath.NormalizePath(expr)
+	if tpath.GetNamespace(norm) != tpath.CURRENT {
+		return "", false
+	}
+	local := strings.TrimPrefix(tpath.ToLocalPath(norm), "$.")
+	if local == "" {
+		return "", false
+	}
+	return local, true
 }
 
 func dedupeStrings(in []string) []string {

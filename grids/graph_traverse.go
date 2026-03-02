@@ -18,6 +18,20 @@ func edgeLabelAllowed(labels map[string]struct{}, label string) bool {
 	return ok
 }
 
+func lookupUIDFromRequest(req gdbi.ElementLookup, ggraph *Graph) (uint64, bool) {
+	if meta, ok := req.GetLookupMeta(); ok && meta.UID != 0 {
+		return meta.UID, true
+	}
+	if req.ID == "" || ggraph == nil || ggraph.driver == nil {
+		return 0, false
+	}
+	uid, err := ggraph.driver.GetID(req.ID)
+	if err != nil {
+		return 0, false
+	}
+	return uid, true
+}
+
 // GetOutChannel process requests of vertex ids and find the connected vertices on outgoing edges
 func (ggraph *Graph) GetOutChannel(ctx context.Context, reqChan chan gdbi.ElementLookup, load bool, emitNull bool, edgeLabels []string) chan gdbi.ElementLookup {
 	o := make(chan gdbi.ElementLookup, 100)
@@ -39,7 +53,14 @@ func (ggraph *Graph) GetOutChannel(ctx context.Context, reqChan chan gdbi.Elemen
 					continue
 				}
 				found := false
-				uid, _ := ggraph.driver.GetID(req.ID)
+				uid, ok := lookupUIDFromRequest(req, ggraph)
+				if !ok {
+					if emitNull {
+						req.Vertex = nil
+						o <- req
+					}
+					continue
+				}
 				skeyPrefix := key.SrcEdgePrefix(uid)
 				for it.Seek(skeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), skeyPrefix); it.Next() {
 					_, _, duid, label := key.SrcEdgeKeyParse(it.Key())
@@ -49,7 +70,7 @@ func (ggraph *Graph) GetOutChannel(ctx context.Context, reqChan chan gdbi.Elemen
 							req.Vertex = &gdbi.Vertex{ID: dst, Label: labelFromElementID(dst)}
 							o <- req
 						} else {
-							batch = append(batch, gdbi.ElementLookup{Ref: req.Ref, Priv: lookupPriv{uid: duid}})
+							batch = append(batch, gdbi.ElementLookup{Ref: req.Ref, Meta: gdbi.LookupMeta{UID: duid}})
 							if len(batch) >= 1000 {
 								ggraph.resolveBatch(ctx, batch, o, false)
 								batch = nil
@@ -93,7 +114,14 @@ func (ggraph *Graph) GetInChannel(ctx context.Context, reqChan chan gdbi.Element
 					continue
 				}
 				found := false
-				uid, _ := ggraph.driver.GetID(req.ID)
+				uid, ok := lookupUIDFromRequest(req, ggraph)
+				if !ok {
+					if emitNull {
+						req.Vertex = nil
+						o <- req
+					}
+					continue
+				}
 				dkeyPrefix := key.DstEdgePrefix(uid)
 				for it.Seek(dkeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), dkeyPrefix); it.Next() {
 					_, suid, _, label := key.DstEdgeKeyParse(it.Key())
@@ -103,7 +131,7 @@ func (ggraph *Graph) GetInChannel(ctx context.Context, reqChan chan gdbi.Element
 							req.Vertex = &gdbi.Vertex{ID: src, Label: labelFromElementID(src)}
 							o <- req
 						} else {
-							batch = append(batch, gdbi.ElementLookup{Ref: req.Ref, Priv: lookupPriv{uid: suid}})
+							batch = append(batch, gdbi.ElementLookup{Ref: req.Ref, Meta: gdbi.LookupMeta{UID: suid}})
 							if len(batch) >= 1000 {
 								ggraph.resolveBatch(ctx, batch, o, false)
 								batch = nil
@@ -148,7 +176,14 @@ func (ggraph *Graph) GetOutEdgeChannel(ctx context.Context, reqChan chan gdbi.El
 					continue
 				}
 				found := false
-				uid, _ := ggraph.driver.GetID(req.ID)
+				uid, ok := lookupUIDFromRequest(req, ggraph)
+				if !ok {
+					if emitNull {
+						req.Edge = nil
+						o <- req
+					}
+					continue
+				}
 				skeyPrefix := key.SrcEdgePrefix(uid)
 				for it.Seek(skeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), skeyPrefix); it.Next() {
 					euid, suid, duid, label := key.SrcEdgeKeyParse(it.Key())
@@ -177,7 +212,7 @@ func (ggraph *Graph) GetOutEdgeChannel(ctx context.Context, reqChan chan gdbi.El
 							batch = append(batch, gdbi.ElementLookup{
 								Ref:  req.Ref,
 								Edge: &e,
-								Priv: lookupPriv{loc: loc, data: e.Data, euid: euid, suid: suid, duid: duid},
+								Meta: gdbi.LookupMeta{Opaque: loc, Data: e.Data, EUID: euid, SUID: suid, DUID: duid},
 							})
 							if len(batch) >= 1000 {
 								ggraph.resolveBatch(ctx, batch, o, true)
@@ -223,7 +258,14 @@ func (ggraph *Graph) GetInEdgeChannel(ctx context.Context, reqChan chan gdbi.Ele
 					continue
 				}
 				found := false
-				uid, _ := ggraph.driver.GetID(req.ID)
+				uid, ok := lookupUIDFromRequest(req, ggraph)
+				if !ok {
+					if emitNull {
+						req.Edge = nil
+						o <- req
+					}
+					continue
+				}
 				dkeyPrefix := key.DstEdgePrefix(uid)
 				for it.Seek(dkeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), dkeyPrefix); it.Next() {
 					euid, suid, duid, label := key.DstEdgeKeyParse(it.Key())
@@ -252,7 +294,7 @@ func (ggraph *Graph) GetInEdgeChannel(ctx context.Context, reqChan chan gdbi.Ele
 							batch = append(batch, gdbi.ElementLookup{
 								Ref:  req.Ref,
 								Edge: &e,
-								Priv: lookupPriv{loc: loc, data: e.Data, euid: euid, suid: suid, duid: duid},
+								Meta: gdbi.LookupMeta{Opaque: loc, Data: e.Data, EUID: euid, SUID: suid, DUID: duid},
 							})
 							if len(batch) >= 1000 {
 								ggraph.resolveBatch(ctx, batch, o, true)

@@ -54,10 +54,10 @@ func (ma *KVGraph) sampleSchema(ctx context.Context, graph string, n uint32, ran
 			reqChan <- gdbi.ElementLookup{ID: i}
 			close(reqChan)
 			for e := range gi.GetOutEdgeChannel(ctx, reqChan, true, false, []string{}) {
-				o := gi.GetVertex(e.Edge.Get().To, false)
+				o := gi.GetVertex(e.Edge.GetTo(), false)
 				if o != nil {
-					k := fromtokey{from: v.Label, to: o.Label, label: e.Edge.Get().Label}
-					ds := gripql.GetDataFieldTypes(e.Edge.Get().Data)
+					k := fromtokey{from: v.Label, to: o.Label, label: e.Edge.GetLabel()}
+					ds := gripql.GetDataFieldTypes(e.Edge.GetPayload())
 					if p, ok := fromToPairs[k]; ok {
 						fromToPairs[k] = util.MergeMaps(p, ds)
 					} else {

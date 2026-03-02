@@ -192,7 +192,8 @@ func (q *Query) Pivot(id string, field string, value string) *Query {
 	return q.with(&GraphStatement{Statement: &GraphStatement_Pivot{Pivot: &PivotStep{Id: id, Field: field, Value: value}}})
 }
 
-// Deconstruct a vertex with an array of n fields as n vertices with no array, and a dict object instead
+// Deprecated: unwind is no longer supported by the execution engines.
+// Use wildcard list paths (for example, "items[*].field") in Has/Render expressions.
 func (q *Query) Unwind(path string) *Query {
 	return q.with(&GraphStatement{Statement: &GraphStatement_Unwind{Unwind: path}})
 }

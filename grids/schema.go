@@ -58,10 +58,10 @@ func (gi *Graph) sampleSchema(ctx context.Context) ([]*gripql.Vertex, []*gripql.
 			reqChan <- gdbi.ElementLookup{ID: i}
 			close(reqChan)
 			for e := range gi.GetOutEdgeChannel(ctx, reqChan, true, false, []string{}) {
-				edge := e.Edge.Get()
-				o := gi.GetVertex(edge.To, false)
-				k := fromtokey{from: v.Label, to: o.Label, label: edge.Label}
-				ds := gripql.GetDataFieldTypes(edge.Data)
+				edge := e.Edge
+				o := gi.GetVertex(edge.GetTo(), false)
+				k := fromtokey{from: v.Label, to: o.Label, label: edge.GetLabel()}
+				ds := gripql.GetDataFieldTypes(edge.GetPayload())
 				if p, ok := fromToPairs[k]; ok {
 					fromToPairs[k] = util.MergeMaps(p, ds)
 				} else {

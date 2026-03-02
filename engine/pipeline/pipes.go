@@ -26,6 +26,34 @@ type RunningPipeline struct {
 	Logger  *PipelineLogger
 }
 
+func rowNeedsLoad(r gdbi.Row) bool {
+	if r == nil {
+		return false
+	}
+	switch r.Mode() {
+	case gdbi.RowModeReference:
+		return true
+	case gdbi.RowModeRaw:
+		return r.GetRaw() == ""
+	case gdbi.RowModeProjected, gdbi.RowModeMaterialized:
+		return false
+	default:
+		return !r.IsLoaded() && r.GetRaw() == ""
+	}
+}
+
+func requiresPathTracking(pipe gdbi.Pipeline, procs []gdbi.Processor) bool {
+	if pipe != nil && pipe.DataType() == gdbi.PathData {
+		return true
+	}
+	for i := range procs {
+		if p, ok := procs[i].(gdbi.PathTrackingProcessor); ok && p.RequiresPathTracking() {
+			return true
+		}
+	}
+	return false
+}
+
 // Start begins processing a query pipeline
 func Start(ctx context.Context, pipe gdbi.Pipeline, man gdbi.Manager, bufsize int, input gdbi.InPipe, cancel func()) *RunningPipeline {
 	procs := pipe.Processors()
@@ -59,6 +87,7 @@ func Start(ctx context.Context, pipe gdbi.Pipeline, man gdbi.Manager, bufsize in
 	}
 
 	l := NewPipelineLogger()
+	trackPath := requiresPathTracking(pipe, procs)
 
 	in := make(chan gdbi.Traveler, bufsize)
 	final := make(chan gdbi.Traveler, bufsize)
@@ -80,6 +109,13 @@ func Start(ctx context.Context, pipe gdbi.Pipeline, man gdbi.Manager, bufsize in
 					//cancel upstream
 					cancel()
 				}
+				if trackPath {
+					if bt, ok := i.(*gdbi.BaseTraveler); ok && !bt.TrackPath && bt.Path == nil {
+						cpy := *bt
+						cpy.TrackPath = true
+						i = &cpy
+					}
+				}
 				inputCount++
 				out <- i
 			}
@@ -88,7 +124,7 @@ func Start(ctx context.Context, pipe gdbi.Pipeline, man gdbi.Manager, bufsize in
 			// Write an empty traveler to input
 			// to trigger the computation.
 			// Sends an empty traveler to the pipe to kick off pipelines of processors.
-			out <- &gdbi.BaseTraveler{}
+			out <- &gdbi.BaseTraveler{TrackPath: trackPath}
 		}
 		close(in)
 		close(out)
@@ -217,42 +253,36 @@ func Resume(ctx context.Context, pipe gdbi.Pipeline, workdir string, input gdbi.
 func Convert(graph gdbi.GraphInterface, dataType gdbi.DataType, markTypes map[string]gdbi.DataType, t gdbi.Traveler) *gripql.QueryResult {
 	switch dataType {
 	case gdbi.VertexData:
-		ver := t.GetCurrent()
-		if ver != nil {
-			ve := ver.Get()
-			if ve != nil {
-				if !ve.Loaded {
-					ve = graph.GetVertex(ve.ID, true)
-				}
-				if ve == nil {
-					return nil
-				}
-				return &gripql.QueryResult{
-					Result: &gripql.QueryResult_Vertex{
-						Vertex: ve.ToVertex(),
-					},
-				}
+		ve := t.GetCurrent()
+		if ve != nil {
+			if rowNeedsLoad(ve) {
+				ve = graph.GetVertex(ve.GetID(), true)
+			}
+			if ve == nil {
+				return nil
+			}
+			return &gripql.QueryResult{
+				Result: &gripql.QueryResult_Vertex{
+					Vertex: gdbi.RowToVertex(ve),
+				},
 			}
 		} else {
 			return &gripql.QueryResult{Result: &gripql.QueryResult_Vertex{}}
 		}
 
 	case gdbi.EdgeData:
-		eer := t.GetCurrent()
-		if eer != nil {
-			ee := eer.Get()
-			if ee != nil {
-				if !ee.Loaded {
-					ee = graph.GetEdge(ee.ID, true)
-				}
-				if ee == nil {
-					return nil
-				}
-				return &gripql.QueryResult{
-					Result: &gripql.QueryResult_Edge{
-						Edge: ee.ToEdge(),
-					},
-				}
+		ee := t.GetCurrent()
+		if ee != nil {
+			if rowNeedsLoad(ee) {
+				ee = graph.GetEdge(ee.GetID(), true)
+			}
+			if ee == nil {
+				return nil
+			}
+			return &gripql.QueryResult{
+				Result: &gripql.QueryResult_Edge{
+					Edge: gdbi.RowToEdge(ee),
+				},
 			}
 		} else {
 			return &gripql.QueryResult{Result: &gripql.QueryResult_Edge{}}
@@ -321,22 +351,19 @@ func BatchConvert(ctx context.Context, graph gdbi.GraphInterface, dataType gdbi.
 	if dataType == gdbi.VertexData {
 		type vertexResult struct {
 			idx int
-			ve  *gdbi.DataElement
+			ve  gdbi.Row
 		}
 		loadedVerts := make([]vertexResult, 0, len(travelers))
 		reqChan := make(chan gdbi.ElementLookup, len(travelers))
 		pending := 0
 		for i, t := range travelers {
-			ver := t.GetCurrent()
-			if ver != nil {
-				ve := ver.Get()
-				if ve != nil {
-					if !ve.Loaded {
-						reqChan <- gdbi.ElementLookup{ID: ve.ID, Ref: t}
-						pending++
-					} else {
-						loadedVerts = append(loadedVerts, vertexResult{idx: i, ve: ve})
-					}
+			ve := t.GetCurrent()
+			if ve != nil {
+				if rowNeedsLoad(ve) {
+					reqChan <- gdbi.ElementLookup{ID: ve.GetID(), Ref: t}
+					pending++
+				} else {
+					loadedVerts = append(loadedVerts, vertexResult{idx: i, ve: ve})
 				}
 			}
 		}
@@ -352,7 +379,7 @@ func BatchConvert(ctx context.Context, graph gdbi.GraphInterface, dataType gdbi.
 			for lookup := range outChan {
 				idx := tToIdx[lookup.Ref]
 				if lookup.Vertex != nil {
-					loadedVerts = append(loadedVerts, vertexResult{idx: idx, ve: lookup.Vertex.Get()})
+					loadedVerts = append(loadedVerts, vertexResult{idx: idx, ve: lookup.Vertex})
 				}
 			}
 		}
@@ -371,7 +398,7 @@ func BatchConvert(ctx context.Context, graph gdbi.GraphInterface, dataType gdbi.
 				}
 				results[item.idx] = &gripql.QueryResult{
 					Result: &gripql.QueryResult_Vertex{
-						Vertex: item.ve.ToVertex(),
+						Vertex: gdbi.RowToVertex(item.ve),
 					},
 				}
 			}
@@ -388,7 +415,7 @@ func BatchConvert(ctx context.Context, graph gdbi.GraphInterface, dataType gdbi.
 						}
 						results[item.idx] = &gripql.QueryResult{
 							Result: &gripql.QueryResult_Vertex{
-								Vertex: item.ve.ToVertex(),
+								Vertex: gdbi.RowToVertex(item.ve),
 							},
 						}
 					}
@@ -403,15 +430,11 @@ func BatchConvert(ctx context.Context, graph gdbi.GraphInterface, dataType gdbi.
 	} else if dataType == gdbi.EdgeData {
 		type edgeResult struct {
 			idx int
-			ee  *gdbi.DataElement
+			ee  gdbi.Row
 		}
 		loadedEdges := make([]edgeResult, 0, len(travelers))
 		for i, t := range travelers {
-			eer := t.GetCurrent()
-			if eer == nil {
-				continue
-			}
-			ee := eer.Get()
+			ee := t.GetCurrent()
 			if ee == nil {
 				continue
 			}
@@ -430,8 +453,8 @@ func BatchConvert(ctx context.Context, graph gdbi.GraphInterface, dataType gdbi.
 				if item.ee == nil {
 					continue
 				}
-				if !item.ee.Loaded {
-					loaded := graph.GetEdge(item.ee.ID, true)
+				if rowNeedsLoad(item.ee) {
+					loaded := graph.GetEdge(item.ee.GetID(), true)
 					if loaded == nil {
 						continue
 					}
@@ -439,7 +462,7 @@ func BatchConvert(ctx context.Context, graph gdbi.GraphInterface, dataType gdbi.
 				}
 				results[item.idx] = &gripql.QueryResult{
 					Result: &gripql.QueryResult_Edge{
-						Edge: item.ee.ToEdge(),
+						Edge: gdbi.RowToEdge(item.ee),
 					},
 				}
 			}
@@ -455,8 +478,8 @@ func BatchConvert(ctx context.Context, graph gdbi.GraphInterface, dataType gdbi.
 							continue
 						}
 						ee := item.ee
-						if !ee.Loaded {
-							loaded := graph.GetEdge(ee.ID, true)
+						if rowNeedsLoad(ee) {
+							loaded := graph.GetEdge(ee.GetID(), true)
 							if loaded == nil {
 								continue
 							}
@@ -464,7 +487,7 @@ func BatchConvert(ctx context.Context, graph gdbi.GraphInterface, dataType gdbi.
 						}
 						results[item.idx] = &gripql.QueryResult{
 							Result: &gripql.QueryResult_Edge{
-								Edge: ee.ToEdge(),
+								Edge: gdbi.RowToEdge(ee),
 							},
 						}
 					}

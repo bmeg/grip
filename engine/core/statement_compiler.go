@@ -201,10 +201,6 @@ func (sc *DefaultStmtCompiler) Path(stmt *gripql.GraphStatement_Path, ps *gdbi.S
 	return &Path{stmt.Path.AsSlice()}, nil
 }
 
-func (sc *DefaultStmtCompiler) Unwind(stmt *gripql.GraphStatement_Unwind, ps *gdbi.State) (gdbi.Processor, error) {
-	return &Unwind{stmt.Unwind}, nil
-}
-
 func (sc *DefaultStmtCompiler) Group(stmt *gripql.GraphStatement_Group, ps *gdbi.State) (gdbi.Processor, error) {
 	return &Group{stmt.Group.Fields}, nil
 }

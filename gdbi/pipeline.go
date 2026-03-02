@@ -13,6 +13,10 @@ type PipelineState interface {
 	StepRequiredFields() []string
 }
 
+type PathTrackingProcessor interface {
+	RequiresPathTracking() bool
+}
+
 type CustomProcGen interface {
 	GetType() DataType
 	GetProcessor(db GraphInterface, ps PipelineState) (Processor, error)
@@ -80,7 +84,6 @@ type StatementCompiler interface {
 	Pivot(gs *gripql.GraphStatement_Pivot, ps *State) (Processor, error)
 
 	Path(gs *gripql.GraphStatement_Path, ps *State) (Processor, error)
-	Unwind(gs *gripql.GraphStatement_Unwind, ps *State) (Processor, error)
 	Group(gs *gripql.GraphStatement_Group, ps *State) (Processor, error)
 	ToType(gs *gripql.GraphStatement_Totype, ps *State) (Processor, error)
 

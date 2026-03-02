@@ -17,20 +17,35 @@ type Group struct {
 func (r *Group) reduce(curTraveler *gdbi.BaseTraveler, newTraveler *gdbi.BaseTraveler) {
 	for dest, field := range r.grouping {
 		v := gdbi.TravelerPathLookup(newTraveler, field)
-		cur := curTraveler.GetCurrent().Get()
+		cur := curTraveler.GetCurrent()
 		if cur != nil {
-			if cur.Data == nil {
-				cur.Data = map[string]any{}
+			de, ok := cur.(*gdbi.DataElement)
+			if !ok {
+				// If it's not a DataElement, we need to materialize it to mutate it
+				de = &gdbi.DataElement{
+					ID:    cur.GetID(),
+					Label: cur.GetLabel(),
+					From:  cur.GetFrom(),
+					To:    cur.GetTo(),
+					Data:  cur.GetPayload(),
+					// This path mutates grouped arrays in place.
+					Mutable: true,
+				}
+				curTraveler.Current = de
 			}
-			if a, ok := cur.Data[dest]; ok {
+			de.EnsureMutablePayload()
+			if de.Data == nil {
+				de.Data = map[string]any{}
+			}
+			if a, ok := de.Data[dest]; ok {
 				if aSlice, ok := a.([]any); ok {
-					cur.Data[dest] = append(aSlice, v)
-				} else if !ok {
+					de.Data[dest] = append(aSlice, v)
+				} else {
 					// overwrite existing data
-					cur.Data[dest] = []any{v}
+					de.Data[dest] = []any{v}
 				}
 			} else {
-				cur.Data[dest] = []any{v}
+				de.Data[dest] = []any{v}
 			}
 		}
 	}
