@@ -103,7 +103,8 @@ func EdgeKey(id, src, dst uint64, label string) []byte {
 		// Truncate excessively long labels to avoid overflow and huge allocations.
 		label = label[:maxEdgeLabelLen]
 	}
-	out := make([]byte, EdgeKeySize+len(label))
+	totalSize := int64(EdgeKeySize) + int64(len(label))
+	out := make([]byte, totalSize)
 	out[0] = edgePrefix[0]
 	binary.BigEndian.PutUint64(out[1:], id)
 	binary.BigEndian.PutUint64(out[9:], src)
@@ -126,7 +127,8 @@ func SrcEdgeKey(eid, src, dst uint64, label string) []byte {
 	if len(label) > maxEdgeLabelLen {
 		label = label[:maxEdgeLabelLen]
 	}
-	out := make([]byte, EdgeKeySize+len(label))
+	totalSize := int64(EdgeKeySize) + int64(len(label))
+	out := make([]byte, totalSize)
 	out[0] = srcEdgePrefix[0]
 	binary.BigEndian.PutUint64(out[1:], src)
 	binary.BigEndian.PutUint64(out[9:], dst)
@@ -149,7 +151,8 @@ func DstEdgeKey(eid, src, dst uint64, label string) []byte {
 	if len(label) > maxEdgeLabelLen {
 		label = label[:maxEdgeLabelLen]
 	}
-	out := make([]byte, EdgeKeySize+len(label))
+	totalSize := int64(EdgeKeySize) + int64(len(label))
+	out := make([]byte, totalSize)
 	out[0] = dstEdgePrefix[0]
 	binary.BigEndian.PutUint64(out[1:], dst)
 	binary.BigEndian.PutUint64(out[9:], src)
