@@ -26,6 +26,10 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
+// maxEdgeLabelLen defines an upper bound on edge label length accepted by the server.
+// This prevents pathological inputs from causing excessively large allocations downstream.
+const maxEdgeLabelLen = 4096
+
 // Traversal parses a traversal request and streams the results back
 func (server *GripServer) Traversal(query *gripql.GraphQuery, queryServer gripql.Query_TraversalServer) error {
 	start := time.Now()
@@ -249,6 +253,10 @@ func (server *GripServer) addEdge(ctx context.Context, elem *gripql.GraphElement
 	}
 
 	edge := elem.Edge
+	// Enforce a maximum label length to avoid excessively large allocations in downstream key/index code.
+	if len(edge.Label) > maxEdgeLabelLen {
+		return nil, fmt.Errorf("edge label too long; maximum allowed length is %d bytes", maxEdgeLabelLen)
+	}
 	if edge.Id == "" {
 		edge.Id = util.DeterministicEdgeID(edge.From, edge.To, edge.Label, edge.Data.AsMap())
 	}
