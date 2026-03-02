@@ -358,7 +358,7 @@ func (server *GripServer) Serve(pctx context.Context) error {
 			// copy body and return it to request
 			var body []byte
 			if server.conf.Server.RequestLogging.Enable || server.kafkaProducer != nil {
-				body, _ = io.ReadAll(req.Body)
+				body, _ = io.ReadAll(io.LimitReader(req.Body, 32*1024*1024))
 				req.Body = io.NopCloser(bytes.NewBuffer(body))
 				if server.kafkaProducer != nil {
 					// This should cover BulkAdd, Addvertex, Addedge, BulkDelete, DeleteVertex, DeleteEdge

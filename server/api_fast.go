@@ -52,7 +52,7 @@ func (server *GripServer) fastQueryHandler(resp http.ResponseWriter, req *http.R
 		return
 	}
 
-	body, err := io.ReadAll(req.Body)
+	body, err := io.ReadAll(io.LimitReader(req.Body, 32*1024*1024))
 	if err != nil {
 		http.Error(resp, err.Error(), http.StatusBadRequest)
 		return

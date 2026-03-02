@@ -11,10 +11,6 @@ const (
 	VertexTablePrefix = "v_"
 	EdgeTablePrefix   = "e_"
 	EdgeKeySize       = 1 + 8 + 8 + 8
-	// maxEdgeLabelLen caps the length of an edge label that can be encoded into a key.
-	// This prevents pathological or maliciously large labels from causing integer
-	// overflow or excessive allocations when sizing edge keys.
-	maxEdgeLabelLen = 1 << 20 // 1 MiB
 )
 
 // maxEdgeLabelLen limits the size of edge labels encoded into keys.
