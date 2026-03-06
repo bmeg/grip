@@ -46,6 +46,8 @@ github.com/bmeg/benchtop v0.0.0-20260225163832-a44adef1f19f h1:qnp2w69GCbbDZ99Wo
 github.com/bmeg/benchtop v0.0.0-20260225163832-a44adef1f19f/go.mod h1:oTpEABxCCloUfzCrhLWQ56J1xliB2kmQ8Xxy82g3DKY=
 github.com/bmeg/benchtop v0.0.0-20260225164157-d9b27075fc57 h1:rnQTEoVG6YxsebqmJ6VcGrhclze1IawA445Mt8fObVQ=
 github.com/bmeg/benchtop v0.0.0-20260225164157-d9b27075fc57/go.mod h1:oTpEABxCCloUfzCrhLWQ56J1xliB2kmQ8Xxy82g3DKY=
+github.com/bmeg/benchtop v0.0.0-20260306193039-ec0fe8bce973 h1:Pl0QUdyb4xkTyuqOc60bKLBOeL4pPRJexQ19732lVzQ=
+github.com/bmeg/benchtop v0.0.0-20260306193039-ec0fe8bce973/go.mod h1:oTpEABxCCloUfzCrhLWQ56J1xliB2kmQ8Xxy82g3DKY=
 github.com/bmeg/jsonpath v0.0.0-20210207014051-cca5355553ad h1:ICgBexeLB7iv/IQz4rsP+MimOXFZUwWSPojEypuOaQ8=
 github.com/bmeg/jsonpath v0.0.0-20210207014051-cca5355553ad/go.mod h1:ft96Irkp72C7ZrUWRenG7LrF0NKMxXdRvsypo5Njhm4=
 github.com/bmeg/jsonschema/v6 v6.0.4 h1:AXFAz7G05VZkKretSSU+uacMKF8+C16ONG6pzFzzA7E=

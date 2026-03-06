@@ -8,7 +8,7 @@ require (
 	github.com/Workiva/go-datastructures v1.1.5
 	github.com/akrylysov/pogreb v0.10.2
 	github.com/antlr/antlr4/runtime/Go/antlr v1.4.10
-	github.com/bmeg/benchtop v0.0.0-20260225164157-d9b27075fc57
+	github.com/bmeg/benchtop v0.0.0-20260306193039-ec0fe8bce973
 	github.com/bmeg/jsonpath v0.0.0-20210207014051-cca5355553ad
 	github.com/bmeg/jsonschema/v6 v6.0.4
 	github.com/bmeg/jsonschemagraph v0.0.4-0.20251017205345-236d2de9887c
