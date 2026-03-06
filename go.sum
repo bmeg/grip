@@ -40,8 +40,6 @@ github.com/armon/consul-api v0.0.0-20180202201655-eb2c6b5be1b6/go.mod h1:grANhF5
 github.com/benbjohnson/clock v1.1.0/go.mod h1:J11/hYXuz8f4ySSvYwY0FKfm+ezbsZBKZxNJlLklBHA=
 github.com/beorn7/perks v1.0.1 h1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=
 github.com/beorn7/perks v1.0.1/go.mod h1:G2ZrVWU2WbWT9wwq4/hrbKbnv/1ERSJQ0ibhJ6rlkpw=
-github.com/bmeg/benchtop v0.0.0-20260306193933-7cdd75fcb2fb h1:WlotSQOFfCR3oPkKLbl4qljFZDqH46shJRxT6anDJGg=
-github.com/bmeg/benchtop v0.0.0-20260306193933-7cdd75fcb2fb/go.mod h1:oTpEABxCCloUfzCrhLWQ56J1xliB2kmQ8Xxy82g3DKY=
 github.com/bmeg/jsonpath v0.0.0-20210207014051-cca5355553ad h1:ICgBexeLB7iv/IQz4rsP+MimOXFZUwWSPojEypuOaQ8=
 github.com/bmeg/jsonpath v0.0.0-20210207014051-cca5355553ad/go.mod h1:ft96Irkp72C7ZrUWRenG7LrF0NKMxXdRvsypo5Njhm4=
 github.com/bmeg/jsonschema/v6 v6.0.4 h1:AXFAz7G05VZkKretSSU+uacMKF8+C16ONG6pzFzzA7E=

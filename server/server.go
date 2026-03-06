@@ -3,6 +3,7 @@ package server
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"maps"
@@ -538,9 +539,23 @@ func (server *GripServer) Serve(pctx context.Context) error {
 
 	<-ctx.Done() //This will hold until canceled, usually from kill signal
 	log.Infoln("shutting down RPC server...")
-	grpcServer.GracefulStop()
+	shutdownTimeout := 30 * time.Second
+	grpcDone := make(chan struct{})
+	go func() {
+		grpcServer.GracefulStop()
+		close(grpcDone)
+	}()
+	select {
+	case <-grpcDone:
+		log.Infoln("RPC server gracefully stopped")
+	case <-time.After(shutdownTimeout):
+		log.Warningf("RPC graceful stop exceeded %s; forcing stop", shutdownTimeout)
+		grpcServer.Stop()
+	}
 	log.Infoln("shutting down HTTP proxy...")
-	err = httpServer.Shutdown(context.TODO())
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), shutdownTimeout)
+	err = httpServer.Shutdown(shutdownCtx)
+	shutdownCancel()
 	if err != nil {
 		log.Errorf("shutdown error: %v", err)
 	}
@@ -564,8 +579,20 @@ func (server *GripServer) Serve(pctx context.Context) error {
 
 	server.ClosePlugins()
 
-	if grpcErr != nil || httpErr != nil {
-		return fmt.Errorf("gRPC Server Error: %v\nHTTP Server Error: %v", grpcErr, httpErr)
+	if grpcErr == grpc.ErrServerStopped || errors.Is(grpcErr, net.ErrClosed) || strings.Contains(fmt.Sprint(grpcErr), "use of closed network connection") {
+		grpcErr = nil
+	}
+	if errors.Is(httpErr, http.ErrServerClosed) {
+		httpErr = nil
+	}
+	if grpcErr != nil && httpErr != nil {
+		return fmt.Errorf("gRPC Server Error: %v; HTTP Server Error: %v", grpcErr, httpErr)
+	}
+	if grpcErr != nil {
+		return fmt.Errorf("gRPC Server Error: %w", grpcErr)
+	}
+	if httpErr != nil {
+		return fmt.Errorf("HTTP Server Error: %w", httpErr)
 	}
 	return nil
 }

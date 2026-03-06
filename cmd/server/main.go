@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/signal"
 	"strings"
+	"syscall"
 
 	"github.com/bmeg/grip/config"
 	"github.com/bmeg/grip/log"
@@ -38,9 +39,11 @@ func Run(conf *config.Config, baseDir string) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+	defer signal.Stop(c)
 	go func() {
-		<-c
+		sig := <-c
+		log.Infof("Received signal %s, starting graceful shutdown", sig.String())
 		cancel()
 	}()
 

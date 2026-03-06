@@ -7,6 +7,7 @@ import (
 
 	"github.com/bmeg/benchtop"
 	"github.com/bmeg/grip/gdbi"
+	"github.com/bmeg/grip/grids/driver"
 	"github.com/bmeg/grip/grids/filter"
 	"github.com/bmeg/grip/grids/key"
 	"github.com/bmeg/grip/gripql"
@@ -130,6 +131,83 @@ func emitIndexedVertexBatches(ctx context.Context, table benchtop.TableStore, tr
 	return total
 }
 
+func emitIndexedVertexBatchesAnyTable(ctx context.Context, g *Graph, traveler gdbi.Traveler, fields []string, in <-chan benchtop.Index, out gdbi.OutPipe) int {
+	type tableBatch struct {
+		table *driver.BackendTable
+		locs  []*benchtop.RowLoc
+		ids   []string
+	}
+	batches := map[uint16]*tableBatch{}
+	pending := 0
+	total := 0
+
+	flushAll := func() bool {
+		if pending == 0 {
+			return true
+		}
+		for _, b := range batches {
+			if b == nil || b.table == nil || len(b.locs) == 0 {
+				continue
+			}
+			rows, errs := b.table.GetRows(b.locs)
+			for i := range rows {
+				if i >= len(errs) || errs[i] != nil {
+					continue
+				}
+				v := gdbi.Vertex{
+					ID:     b.ids[i],
+					Label:  b.table.Label,
+					Data:   projectRowMap(rows[i], fields),
+					Loaded: true,
+				}
+				select {
+				case <-ctx.Done():
+					return false
+				case out <- traveler.AddCurrent(&v):
+				}
+				total++
+			}
+			b.locs = b.locs[:0]
+			b.ids = b.ids[:0]
+		}
+		pending = 0
+		return true
+	}
+
+	for entry := range in {
+		if ctx.Err() != nil {
+			return total
+		}
+		if entry.Loc == nil || len(entry.Key) == 0 {
+			continue
+		}
+		tid := entry.Loc.TableId
+		b, ok := batches[tid]
+		if !ok {
+			t, err := g.driver.GetTableByID(tid)
+			if err != nil {
+				continue
+			}
+			b = &tableBatch{
+				table: t,
+				locs:  make([]*benchtop.RowLoc, 0, 1024),
+				ids:   make([]string, 0, 1024),
+			}
+			batches[tid] = b
+		}
+		b.locs = append(b.locs, entry.Loc)
+		b.ids = append(b.ids, string(entry.Key))
+		pending++
+		if pending >= resolveBatchSize {
+			if !flushAll() {
+				return total
+			}
+		}
+	}
+	flushAll()
+	return total
+}
+
 func (l *lookupVertsHasLabelCondIndexProc) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
 	loadData := l.loadData
 	var exists = true
@@ -165,45 +243,92 @@ func (l *lookupVertsHasLabelCondIndexProc) Process(ctx context.Context, man gdbi
 		}
 	}
 	count := 0
-	if !exists || (l.expr == nil && cond == nil) {
-		log.Debugln("Using base case processor lookupVertsHasLabelCondIndexProc")
+	if l.expr == nil && cond == nil {
+		log.Debugln("Using live-id base case processor lookupVertsHasLabelCondIndexProc")
 		go func() {
 			defer close(out)
 			for t := range in {
 				for _, label := range l.labels {
-					// Use GetOrLoadTable
+					if ctx.Err() != nil {
+						return
+					}
+					labelName := strings.TrimPrefix(label, key.VertexTablePrefix)
+					if !loadData {
+						for idx := range l.db.driver.RowLocsByLabel(labelName) {
+							v := gdbi.Vertex{
+								ID:     string(idx.Key),
+								Label:  labelName,
+								Data:   map[string]any{},
+								Loaded: false,
+							}
+							out <- t.AddCurrent(&v)
+						}
+						continue
+					}
 					tableFound, err := l.db.driver.GetOrLoadTable(label)
 					if err != nil {
 						log.Debugf("Table for label '%s' not found: %v", label, err)
 						continue
 					}
+					emitIndexedVertexBatches(
+						ctx,
+						tableFound,
+						t,
+						labelName,
+						l.projectedFields,
+						l.db.driver.RowLocsByLabel(labelName),
+						out,
+					)
+				}
+			}
+		}()
+		return ctx
+	}
+
+	if !exists {
+		log.Debugln("Using live fallback processor lookupVertsHasLabelCondIndexProc")
+		go func() {
+			defer close(out)
+			cond := l.expr.GetCondition()
+			for t := range in {
+				for _, label := range l.labels {
+					tableFound, err := l.db.driver.GetOrLoadTable(label)
+					if err != nil {
+						log.Debugf("Table for label '%s' not found: %v", label, err)
+						continue
+					}
+					labelName := strings.TrimPrefix(label, key.VertexTablePrefix)
 					if loadData {
-						filter := &filter.GripQLFilter{Expression: l.expr}
-						stream := tableFound.ScanDoc(filter)
-						if len(l.projectedFields) > 0 {
-							stream = tableFound.ScanDocProjected(l.projectedFields, filter)
+						count += emitIndexedVertexBatches(
+							ctx,
+							tableFound,
+							t,
+							labelName,
+							l.projectedFields,
+							l.db.driver.RowIdsByLabelFieldValue(
+								labelName,
+								cond.Key,
+								cond.Value.AsInterface(),
+								filter.ToQueryCondition(cond.Condition),
+							),
+							out,
+						)
+						continue
+					}
+					for entry := range l.db.driver.RowIdsByLabelFieldValue(
+						labelName,
+						cond.Key,
+						cond.Value.AsInterface(),
+						filter.ToQueryCondition(cond.Condition),
+					) {
+						v := gdbi.Vertex{
+							Label:  labelName,
+							Loaded: false,
+							ID:     string(entry.Key),
+							Data:   map[string]any{},
 						}
-						for roMaps := range stream {
-							v := gdbi.Vertex{
-								Label:  label[2:],
-								Loaded: loadData,
-								ID:     roMaps["_id"].(string),
-							}
-							v.Data = projectRowMap(roMaps, l.projectedFields)
-							count += 1
-							out <- t.AddCurrent(&v)
-						}
-					} else {
-						for roMaps := range tableFound.ScanId(&filter.GripQLFilter{Expression: l.expr}) {
-							v := gdbi.Vertex{
-								Label:  label[2:],
-								Loaded: loadData,
-								ID:     roMaps,
-								Data:   map[string]any{},
-							}
-							count += 1
-							out <- t.AddCurrent(&v)
-						}
+						count += 1
+						out <- t.AddCurrent(&v)
 					}
 				}
 			}
@@ -301,6 +426,11 @@ func (l *lookupVertsCondIndexProc) Process(ctx context.Context, man gdbi.Manager
 	   If compound filter or index doesn't exist, use backup method */
 	if cond != nil {
 		log.Debugln("Chose index optimized V().Has() statement path")
+		vertexLabels := []string{}
+		for label := range l.db.driver.GetLabels(false, true) {
+			vertexLabels = append(vertexLabels, label)
+		}
+
 		if loadData {
 			go func() {
 				defer close(out)
@@ -310,36 +440,26 @@ func (l *lookupVertsCondIndexProc) Process(ctx context.Context, man gdbi.Manager
 					if ctx.Err() != nil {
 						return
 					}
-					for label := range l.db.driver.GetLabels(false, true) {
-						table, err := l.db.driver.GetOrLoadTable(key.VertexTablePrefix + label)
-						if err != nil {
-							continue
-						}
-						produced += emitIndexedVertexBatches(
-							ctx,
-							table,
-							t,
-							label,
-							l.projectedFields,
-							l.db.driver.RowIdsByLabelFieldValue(
-								label,
-								cond.Key,
-								cond.Value.AsInterface(),
-								filter.ToQueryCondition(cond.Condition),
-							),
-							out,
-						)
-					}
+					produced += emitIndexedVertexBatchesAnyTable(
+						ctx,
+						l.db,
+						t,
+						l.projectedFields,
+						l.db.driver.RowIdsByLabelsFieldValue(
+							vertexLabels,
+							cond.Key,
+							cond.Value.AsInterface(),
+							filter.ToQueryCondition(cond.Condition),
+						),
+						out,
+					)
 				}
 				log.Debugf("lookupVertsCondIndexProc direct emit completed rows=%d elapsed=%s", produced, time.Since(start).Round(time.Millisecond))
 			}()
 			return ctx
 		}
+
 		queryChan := make(chan gdbi.ElementLookup, 100)
-		vertexLabels := []string{}
-		for label := range l.db.driver.GetLabels(false, true) {
-			vertexLabels = append(vertexLabels, label)
-		}
 
 		// Stream index matches per input traveler to avoid building large in-memory
 		// caches that can stall under backpressure.
@@ -374,26 +494,24 @@ func (l *lookupVertsCondIndexProc) Process(ctx context.Context, man gdbi.Manager
 						totalMatches++
 					}
 				} else {
-					for _, label := range vertexLabels {
-						for entry := range l.db.driver.RowIdsByLabelFieldValue(
-							label,
-							cond.Key,
-							cond.Value.AsInterface(),
-							filter.ToQueryCondition(cond.Condition),
-						) {
-							e := gdbi.ElementLookup{
-								ID:   string(entry.Key),
-								Ref:  t,
-								Priv: lookupPriv{loc: entry.Loc, fields: l.projectedFields},
-							}
-							select {
-							case <-ctx.Done():
-								return
-							case queryChan <- e:
-							}
-							matches++
-							totalMatches++
+					for entry := range l.db.driver.RowIdsByLabelsFieldValue(
+						vertexLabels,
+						cond.Key,
+						cond.Value.AsInterface(),
+						filter.ToQueryCondition(cond.Condition),
+					) {
+						e := gdbi.ElementLookup{
+							ID:   string(entry.Key),
+							Ref:  t,
+							Priv: lookupPriv{loc: entry.Loc, fields: l.projectedFields},
 						}
+						select {
+						case <-ctx.Done():
+							return
+						case queryChan <- e:
+						}
+						matches++
+						totalMatches++
 					}
 				}
 				log.Debugf("Index lookup streamed %d rows for traveler=%d", matches, travelers)

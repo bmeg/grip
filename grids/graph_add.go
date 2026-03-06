@@ -1,6 +1,7 @@
 package grids
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"maps"
@@ -74,6 +75,9 @@ func (ggraph *Graph) indexVertices(vertices []*gdbi.Vertex, tx *pebblebulk.Pebbl
 
 		for i, v := range verts {
 			if err := insertVertex(tx, uids[i], v, rowLocs[i]); err != nil {
+				return err
+			}
+			if err := tx.Set(benchtop.NewPosKey(table.TableId, []byte(v.ID)), benchtop.EncodeRowLoc(rowLocs[i]), nil); err != nil {
 				return err
 			}
 			// Index fields
@@ -176,6 +180,9 @@ func (ggraph *Graph) indexEdges(edges []*gdbi.Edge, tx *pebblebulk.PebbleBulk) e
 			if err := insertEdge(tx, eid, sid, did, e, rowLoc); err != nil {
 				return err
 			}
+			if err := tx.Set(benchtop.NewPosKey(table.TableId, []byte(e.ID)), benchtop.EncodeRowLoc(rowLoc), nil); err != nil {
+				return err
+			}
 
 			if len(table.Fields) > 0 {
 				for field := range table.Fields {
@@ -232,6 +239,9 @@ func (ggraph *Graph) BulkAdd(stream <-chan *gdbi.GraphElement) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	const workerBatchSize = 4000
+	const writeBatchSize = 4000
+
 	snap := ggraph.driver.Pkv.Db.NewSnapshot()
 	defer snap.Close()
 
@@ -253,11 +263,17 @@ func (ggraph *Graph) BulkAdd(stream <-chan *gdbi.GraphElement) error {
 	go func() {
 		defer wg.Done()
 		defer close(ready)
+		it, err := snap.NewIter(nil)
+		if err != nil {
+			log.Errorf("BulkAdd worker iterator init failed: %v", err)
+			return
+		}
+		defer it.Close()
 
 		// ─── Worker Buffer & Batching ──────────────────────────
-		const workerBatchSize = 2000
 		batch := make([]*gdbi.GraphElement, 0, workerBatchSize)
 		seen := make(map[uint64]struct{})
+		tableIDCache := make(map[string]uint16)
 
 		processBatch := func(b []*gdbi.GraphElement) error {
 			if len(b) == 0 {
@@ -285,6 +301,7 @@ func (ggraph *Graph) BulkAdd(stream <-chan *gdbi.GraphElement) error {
 			for id := range uniqueIDs {
 				idList = append(idList, id)
 			}
+			sort.Strings(idList)
 
 			idVals, err := ggraph.driver.GetIDs(idList)
 			if err != nil {
@@ -316,16 +333,23 @@ func (ggraph *Graph) BulkAdd(stream <-chan *gdbi.GraphElement) error {
 
 				var tid uint16
 				if tName != "" {
-					ts, err := ggraph.driver.GetOrLoadTable(tName)
-					if err != nil {
-						tStore, nerr := ggraph.driver.New(tName, nil)
-						if nerr == nil && tStore != nil {
-							if bt, ok := tStore.(*driver.BackendTable); ok {
-								tid = bt.TableId
+					if cachedTID, ok := tableIDCache[tName]; ok {
+						tid = cachedTID
+					} else {
+						ts, err := ggraph.driver.GetOrLoadTable(tName)
+						if err != nil {
+							tStore, nerr := ggraph.driver.New(tName, nil)
+							if nerr == nil && tStore != nil {
+								if bt, ok := tStore.(*driver.BackendTable); ok {
+									tid = bt.TableId
+								}
 							}
+						} else if ts != nil {
+							tid = ts.TableId
 						}
-					} else if ts != nil {
-						tid = ts.TableId
+						if tid != 0 {
+							tableIDCache[tName] = tid
+						}
 					}
 				}
 
@@ -386,9 +410,7 @@ func (ggraph *Graph) BulkAdd(stream <-chan *gdbi.GraphElement) error {
 					if _, ok := seen[item.uid]; ok {
 						continue
 					}
-					_, closer, err := snap.Get(item.dbKey)
-					if err == nil {
-						closer.Close()
+					if it.SeekGE(item.dbKey) && it.Valid() && bytes.Equal(it.Key(), item.dbKey) {
 						seen[item.uid] = struct{}{}
 						continue // Skip, graph element already exists
 					}
@@ -436,8 +458,7 @@ func (ggraph *Graph) BulkAdd(stream <-chan *gdbi.GraphElement) error {
 	// ─────────────────────────────────────────────
 	// 3. Writer: Batching and I/O (Main thread)
 	// ─────────────────────────────────────────────
-	const batchSize = 2000
-	itemBuffer := make([]*preparedItem, 0, batchSize)
+	itemBuffer := make([]*preparedItem, 0, writeBatchSize)
 
 	// Removed global snap and it, they will be created per batch.
 	// snap := ggraph.driver.Pkv.Db.NewSnapshot()
@@ -477,7 +498,7 @@ func (ggraph *Graph) BulkAdd(stream <-chan *gdbi.GraphElement) error {
 	var writeErr error
 	for item := range ready {
 		itemBuffer = append(itemBuffer, item)
-		if len(itemBuffer) >= batchSize {
+		if len(itemBuffer) >= writeBatchSize {
 			if err := processBatch(itemBuffer); err != nil {
 				writeErr = err
 				cancel()

@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/bmeg/grip/grids/driver"
 	"github.com/bmeg/grip/gripql"
@@ -61,7 +63,7 @@ func newGraph(conf Config, name string) (*Graph, error) {
 		return nil, fmt.Errorf("failed to create VERSION file: %v", err)
 	}
 
-	drvr, err := driver.NewGridKVDriver(dbPath, conf.Driver)
+	drvr, err := openGridKVDriverWithRetry(conf, dbPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open grids storage at %s: %v", dbPath, err)
 	}
@@ -98,7 +100,7 @@ func getGraph(conf Config, name string) (*Graph, error) {
 		}
 	}
 
-	drvr, err := driver.NewGridKVDriver(dbPath, conf.Driver)
+	drvr, err := openGridKVDriverWithRetry(conf, dbPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open grids storage at %s: %v", dbPath, err)
 	}
@@ -133,4 +135,61 @@ func (kgraph *GDB) DeleteGraph(graph string) error {
 	dbPath := filepath.Join(kgraph.conf.GraphDir, graph)
 	os.RemoveAll(dbPath)
 	return nil
+}
+
+func openGridKVDriverWithRetry(conf Config, dbPath string) (*driver.GridKVDriver, error) {
+	lockWaitSeconds := getenvInt("GRIDS_OPEN_LOCK_WAIT_SECONDS", 120)
+	retryMillis := getenvInt("GRIDS_OPEN_LOCK_RETRY_MILLIS", 1000)
+	if retryMillis <= 0 {
+		retryMillis = 1000
+	}
+
+	deadline := time.Now().Add(time.Duration(lockWaitSeconds) * time.Second)
+	attempt := 0
+	for {
+		drvr, err := driver.NewGridKVDriver(dbPath, conf.Driver)
+		if err == nil {
+			if attempt > 0 {
+				fmt.Printf("GRIDS lock resolved path=%s attempts=%d\n", dbPath, attempt+1)
+			}
+			return drvr, nil
+		}
+		if !isLikelyFileLockError(err) || lockWaitSeconds <= 0 || time.Now().After(deadline) {
+			return nil, err
+		}
+
+		attempt++
+		if attempt == 1 || attempt%10 == 0 {
+			remaining := time.Until(deadline).Round(time.Second)
+			fmt.Printf("GRIDS lock wait path=%s attempt=%d remaining=%s err=%v\n", dbPath, attempt, remaining, err)
+		}
+		time.Sleep(time.Duration(retryMillis) * time.Millisecond)
+	}
+}
+
+func isLikelyFileLockError(err error) bool {
+	if err == nil {
+		return false
+	}
+	s := strings.ToLower(err.Error())
+	if !strings.Contains(s, "lock") {
+		return false
+	}
+	return strings.Contains(s, "resource temporarily unavailable") ||
+		strings.Contains(s, "held by") ||
+		strings.Contains(s, "another process") ||
+		strings.Contains(s, "is locked") ||
+		strings.Contains(s, "cannot acquire")
+}
+
+func getenvInt(key string, def int) int {
+	raw := strings.TrimSpace(os.Getenv(key))
+	if raw == "" {
+		return def
+	}
+	v, err := strconv.Atoi(raw)
+	if err != nil {
+		return def
+	}
+	return v
 }
