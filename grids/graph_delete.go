@@ -261,6 +261,15 @@ func (ggraph *Graph) BulkDel(data *gdbi.DeleteData) error {
 	} else {
 		log.Infof("BulkDel row GC mode graph=%s mode=deferred", ggraph.graphID)
 	}
+	verboseBulkDel := envTruthy("GRIDS_BULK_DELETE_DEBUG")
+	stallStackDump := envTruthy("GRIDS_BULK_DELETE_STALL_STACK")
+	bulkDelLogf := func(format string, args ...any) {
+		if verboseBulkDel {
+			log.Infof(format, args...)
+			return
+		}
+		log.Debugf(format, args...)
+	}
 
 	var bulkErr *multierror.Error
 	var bulkErrMu sync.Mutex
@@ -286,6 +295,14 @@ func (ggraph *Graph) BulkDel(data *gdbi.DeleteData) error {
 	var workersInLookup int64
 	var workersInTableLoad int64
 	var workersInFieldEmit int64
+	// Channels and wait groups
+	itemChan := make(chan itemInfo, bufferSize)
+	fieldChan := make(chan fieldInfo, bufferSize)
+	keyChan := make(chan keyBatch, bufferSize)
+	var prodWG, consWG, aggWG, fieldWG sync.WaitGroup
+	var rowDeleteTasksMu sync.Mutex
+	rowDeleteTasks := make([]rowDeleteTask, 0, 1024)
+
 	progressStop := make(chan struct{})
 	defer close(progressStop)
 	addErr := func(err error) {
@@ -348,9 +365,18 @@ func (ggraph *Graph) BulkDel(data *gdbi.DeleteData) error {
 				prevBatches = curBatches
 				prevFields = curFields
 
-				log.Debugf(
-					"BulkDel progress graph=%s elapsed=%s producers=%d items=%d/%d itemBacklog=%d keyBatches=%d/%d keyParts[s=%d r=%d p=%d] fields=%d/%d rowDelete[sections=%d q=%d done=%d inFlight=%d err=%d] missingRows=%d unknownScans=%d seenEdges=%d workerState[lookup=%d load=%d emit=%d] stallTicks=%d",
+				checkpointMu.Lock()
+				cpStage := cp.Stage
+				cpRowDone := cp.RowDeleteDone
+				cpRowTotal := cp.RowDeleteTotal
+				checkpointMu.Unlock()
+
+				bulkDelLogf(
+					"BulkDel progress graph=%s stage=%s rowCP=%d/%d elapsed=%s producers=%d items=%d/%d itemBacklog=%d keyBatches=%d/%d keyParts[s=%d r=%d p=%d] fields=%d/%d rowDelete[sections=%d q=%d done=%d inFlight=%d err=%d] missingRows=%d unknownScans=%d seenEdges=%d workerState[lookup=%d load=%d emit=%d] chanDepth[item=%d/%d key=%d/%d field=%d/%d] stallTicks=%d",
 					ggraph.graphID,
+					cpStage,
+					cpRowDone,
+					cpRowTotal,
 					time.Since(start).Round(time.Second),
 					atomic.LoadInt64(&producerRuns),
 					curItems,
@@ -374,12 +400,21 @@ func (ggraph *Graph) BulkDel(data *gdbi.DeleteData) error {
 					atomic.LoadInt64(&workersInLookup),
 					atomic.LoadInt64(&workersInTableLoad),
 					atomic.LoadInt64(&workersInFieldEmit),
+					len(itemChan),
+					cap(itemChan),
+					len(keyChan),
+					cap(keyChan),
+					len(fieldChan),
+					cap(fieldChan),
 					stallTicks,
 				)
 				if stallTicks >= 3 {
 					log.Warningf(
-						"BulkDel appears stalled graph=%s stallTicks=%d producers=%d backlog=%d rowDelete[sections=%d q=%d done=%d inFlight=%d err=%d] workerState[lookup=%d load=%d emit=%d]",
+						"BulkDel appears stalled graph=%s stage=%s rowCP=%d/%d stallTicks=%d producers=%d backlog=%d rowDelete[sections=%d q=%d done=%d inFlight=%d err=%d] workerState[lookup=%d load=%d emit=%d] chanDepth[item=%d/%d key=%d/%d field=%d/%d]",
 						ggraph.graphID,
+						cpStage,
+						cpRowDone,
+						cpRowTotal,
 						stallTicks,
 						atomic.LoadInt64(&producerRuns),
 						atomic.LoadInt64(&itemQueued)-curItems,
@@ -391,19 +426,22 @@ func (ggraph *Graph) BulkDel(data *gdbi.DeleteData) error {
 						atomic.LoadInt64(&workersInLookup),
 						atomic.LoadInt64(&workersInTableLoad),
 						atomic.LoadInt64(&workersInFieldEmit),
+						len(itemChan),
+						cap(itemChan),
+						len(keyChan),
+						cap(keyChan),
+						len(fieldChan),
+						cap(fieldChan),
 					)
+					if stallStackDump && (stallTicks == 3 || stallTicks%6 == 0) {
+						buf := make([]byte, 1<<20)
+						n := runtime.Stack(buf, true)
+						log.Warningf("BulkDel stall goroutine dump graph=%s stallTicks=%d\n%s", ggraph.graphID, stallTicks, string(buf[:n]))
+					}
 				}
 			}
 		}
 	}()
-
-	// Channels and wait groups
-	itemChan := make(chan itemInfo, bufferSize)
-	fieldChan := make(chan fieldInfo, bufferSize)
-	keyChan := make(chan keyBatch, bufferSize)
-	var prodWG, consWG, aggWG, fieldWG sync.WaitGroup
-	var rowDeleteTasksMu sync.Mutex
-	rowDeleteTasks := make([]rowDeleteTask, 0, 1024)
 
 	// Aggregator for keys
 	var singles [][]byte
@@ -439,6 +477,95 @@ func (ggraph *Graph) BulkDel(data *gdbi.DeleteData) error {
 		}
 	}()
 
+	enqueueItem := func(item itemInfo, source string) error {
+		const warnEvery = 10 * time.Second
+		timer := time.NewTimer(warnEvery)
+		defer timer.Stop()
+		for {
+			select {
+			case itemChan <- item:
+				atomic.AddInt64(&itemQueued, 1)
+				return nil
+			case <-ctx.Done():
+				return ctx.Err()
+			case <-timer.C:
+				log.Warningf(
+					"BulkDel blocked enqueue item graph=%s source=%s id=%s label=%s isEdge=%t chanDepth=%d/%d backlog=%d workerState[lookup=%d load=%d emit=%d]",
+					ggraph.graphID,
+					source,
+					item.id,
+					item.label,
+					item.isEdge,
+					len(itemChan),
+					cap(itemChan),
+					atomic.LoadInt64(&itemQueued)-atomic.LoadInt64(&itemProcessed),
+					atomic.LoadInt64(&workersInLookup),
+					atomic.LoadInt64(&workersInTableLoad),
+					atomic.LoadInt64(&workersInFieldEmit),
+				)
+				timer.Reset(warnEvery)
+			}
+		}
+	}
+
+	enqueueField := func(fi fieldInfo, source string) error {
+		const warnEvery = 10 * time.Second
+		timer := time.NewTimer(warnEvery)
+		defer timer.Stop()
+		for {
+			select {
+			case fieldChan <- fi:
+				atomic.AddInt64(&fieldQueued, 1)
+				return nil
+			case <-ctx.Done():
+				return ctx.Err()
+			case <-timer.C:
+				log.Warningf(
+					"BulkDel blocked enqueue field graph=%s source=%s tableID=%d field=%s chanDepth=%d/%d backlog=%d",
+					ggraph.graphID,
+					source,
+					fi.tableId,
+					fi.field,
+					len(fieldChan),
+					cap(fieldChan),
+					atomic.LoadInt64(&fieldQueued)-atomic.LoadInt64(&fieldProcessed),
+				)
+				timer.Reset(warnEvery)
+			}
+		}
+	}
+
+	enqueueKeyBatch := func(batch keyBatch, source string) error {
+		if len(batch.singles) == 0 && len(batch.ranges) == 0 && len(batch.posKeys) == 0 {
+			return nil
+		}
+		const warnEvery = 10 * time.Second
+		timer := time.NewTimer(warnEvery)
+		defer timer.Stop()
+		for {
+			select {
+			case keyChan <- batch:
+				atomic.AddInt64(&keyBatchQueued, 1)
+				return nil
+			case <-ctx.Done():
+				return ctx.Err()
+			case <-timer.C:
+				log.Warningf(
+					"BulkDel blocked enqueue keyBatch graph=%s source=%s parts[s=%d r=%d p=%d] chanDepth=%d/%d backlog=%d",
+					ggraph.graphID,
+					source,
+					len(batch.singles),
+					len(batch.ranges),
+					len(batch.posKeys),
+					len(keyChan),
+					cap(keyChan),
+					atomic.LoadInt64(&keyBatchQueued)-atomic.LoadInt64(&keyBatchProcessed),
+				)
+				timer.Reset(warnEvery)
+			}
+		}
+	}
+
 	// Workers for items
 	consWG.Add(numCpus)
 	for range numCpus {
@@ -454,7 +581,7 @@ func (ggraph *Graph) BulkDel(data *gdbi.DeleteData) error {
 				default:
 				}
 				if i%100_000 == 0 && i != 0 {
-					log.Debugf("[BulkDel worker] processed %d items", i)
+					bulkDelLogf("[BulkDel worker] processed %d items", i)
 				}
 				i++
 
@@ -505,10 +632,7 @@ func (ggraph *Graph) BulkDel(data *gdbi.DeleteData) error {
 					atomic.AddInt64(&workersInFieldEmit, 1)
 					for field := range table.Fields {
 						rKey := benchtop.RFieldKey(currentTableId, field, item.id)
-						select {
-						case fieldChan <- fieldInfo{rKey: rKey, field: field, tableId: currentTableId, id: []byte(item.id)}:
-							atomic.AddInt64(&fieldQueued, 1)
-						case <-ctx.Done():
+						if err := enqueueField(fieldInfo{rKey: rKey, field: field, tableId: currentTableId, id: []byte(item.id)}, "item_worker"); err != nil {
 							atomic.AddInt64(&workersInFieldEmit, -1)
 							return
 						}
@@ -529,15 +653,17 @@ func (ggraph *Graph) BulkDel(data *gdbi.DeleteData) error {
 				}
 
 				if len(localBatch.posKeys) >= 500_000 {
-					atomic.AddInt64(&keyBatchQueued, 1)
-					keyChan <- localBatch
+					if err := enqueueKeyBatch(localBatch, "item_worker"); err != nil {
+						return
+					}
 					localBatch = keyBatch{posKeys: make([][]byte, 0, bufferSize)}
 				}
 			}
 
 			if len(localBatch.posKeys) > 0 {
-				atomic.AddInt64(&keyBatchQueued, 1)
-				keyChan <- localBatch
+				if err := enqueueKeyBatch(localBatch, "item_worker_flush"); err != nil {
+					return
+				}
 			}
 		}()
 	}
@@ -591,11 +717,8 @@ func (ggraph *Graph) BulkDel(data *gdbi.DeleteData) error {
 									bytes.Clone(it.Key()),
 									key.DstEdgeKey(euid, suid, duid, lbl))
 								tid, _ := ggraph.driver.TableDr.LookupTableID("e_" + lbl)
-								select {
-								case itemChan <- itemInfo{id: eid, label: lbl, isEdge: true, tableId: tid, loc: loc}:
-									atomic.AddInt64(&itemQueued, 1)
-								case <-ctx.Done():
-									return ctx.Err()
+								if err := enqueueItem(itemInfo{id: eid, label: lbl, isEdge: true, tableId: tid, loc: loc}, "vertex_src_edge"); err != nil {
+									return err
 								}
 							}
 							it.Next()
@@ -622,11 +745,8 @@ func (ggraph *Graph) BulkDel(data *gdbi.DeleteData) error {
 									key.SrcEdgeKey(euid, suid, duid, lbl),
 									bytes.Clone(it.Key()))
 								tid, _ := ggraph.driver.TableDr.LookupTableID("e_" + lbl)
-								select {
-								case itemChan <- itemInfo{id: eid, label: lbl, isEdge: true, tableId: tid, loc: loc}:
-									atomic.AddInt64(&itemQueued, 1)
-								case <-ctx.Done():
-									return ctx.Err()
+								if err := enqueueItem(itemInfo{id: eid, label: lbl, isEdge: true, tableId: tid, loc: loc}, "vertex_dst_edge"); err != nil {
+									return err
 								}
 							}
 							it.Next()
@@ -649,11 +769,8 @@ func (ggraph *Graph) BulkDel(data *gdbi.DeleteData) error {
 					localBatch.singles = append(localBatch.singles, vkey)
 					if vlabel != "" {
 						tid, _ := ggraph.driver.TableDr.LookupTableID("v_" + vlabel)
-						select {
-						case itemChan <- itemInfo{id: vid, label: vlabel, isEdge: false, tableId: tid, loc: vloc}:
-							atomic.AddInt64(&itemQueued, 1)
-						case <-ctx.Done():
-							return ctx.Err()
+						if err := enqueueItem(itemInfo{id: vid, label: vlabel, isEdge: false, tableId: tid, loc: vloc}, "vertex_record"); err != nil {
+							return err
 						}
 					}
 				}
@@ -662,10 +779,8 @@ func (ggraph *Graph) BulkDel(data *gdbi.DeleteData) error {
 			addErr(err)
 
 			if len(localBatch.singles) > 0 || len(localBatch.ranges) > 0 {
-				select {
-				case keyChan <- localBatch:
-					atomic.AddInt64(&keyBatchQueued, 1)
-				case <-ctx.Done():
+				if err := enqueueKeyBatch(localBatch, "vertex_producer_flush"); err != nil {
+					addErr(err)
 				}
 			}
 		}(slice)
@@ -727,11 +842,8 @@ func (ggraph *Graph) BulkDel(data *gdbi.DeleteData) error {
 						}
 						if eLabel != "" {
 							tid, _ := ggraph.driver.TableDr.LookupTableID("e_" + eLabel)
-							select {
-							case itemChan <- itemInfo{id: eid, label: eLabel, isEdge: true, tableId: tid, loc: eLoc}:
-								atomic.AddInt64(&itemQueued, 1)
-							case <-ctx.Done():
-								return ctx.Err()
+							if err := enqueueItem(itemInfo{id: eid, label: eLabel, isEdge: true, tableId: tid, loc: eLoc}, "edge_producer"); err != nil {
+								return err
 							}
 						}
 					}
@@ -741,10 +853,8 @@ func (ggraph *Graph) BulkDel(data *gdbi.DeleteData) error {
 			addErr(err)
 
 			if len(localBatch.singles) > 0 || len(localBatch.ranges) > 0 {
-				select {
-				case keyChan <- localBatch:
-					atomic.AddInt64(&keyBatchQueued, 1)
-				case <-ctx.Done():
+				if err := enqueueKeyBatch(localBatch, "edge_producer_flush"); err != nil {
+					addErr(err)
 				}
 			}
 		}(slice)
@@ -753,14 +863,15 @@ func (ggraph *Graph) BulkDel(data *gdbi.DeleteData) error {
 	// Close channels and wait
 	go func() {
 		prodWG.Wait()
+		bulkDelLogf("BulkDel producers complete graph=%s queuedItems=%d queuedKeyBatches=%d", ggraph.graphID, atomic.LoadInt64(&itemQueued), atomic.LoadInt64(&keyBatchQueued))
 		close(itemChan)
 	}()
-	log.Debugf("BulkDel waiting workers graph=%s", ggraph.graphID)
+	bulkDelLogf("BulkDel waiting workers graph=%s", ggraph.graphID)
 	consWG.Wait()
-	log.Debugf("BulkDel item workers complete graph=%s", ggraph.graphID)
+	bulkDelLogf("BulkDel item workers complete graph=%s processedItems=%d", ggraph.graphID, atomic.LoadInt64(&itemProcessed))
 	close(keyChan)
 	aggWG.Wait()
-	log.Debugf("BulkDel key aggregation complete graph=%s singles=%d ranges=%d posKeys=%d", ggraph.graphID, len(singles), len(ranges), len(posKeys))
+	bulkDelLogf("BulkDel key aggregation complete graph=%s singles=%d ranges=%d posKeys=%d", ggraph.graphID, len(singles), len(ranges), len(posKeys))
 
 	// Phase 2: row tombstones (single writer per section for reliability).
 	deleteTasks := make([]rowDeleteTask, 0)
@@ -783,7 +894,7 @@ func (ggraph *Graph) BulkDel(data *gdbi.DeleteData) error {
 		resumeFrom := 0
 		if cp.Stage == "row_delete" && cp.RowDeleteTotal == len(deleteTasks) && cp.RowDeleteDone > 0 && cp.RowDeleteDone < len(deleteTasks) {
 			resumeFrom = cp.RowDeleteDone
-			log.Debugf("BulkDel resuming row_delete from checkpoint graph=%s op=%s offset=%d total=%d", ggraph.graphID, opID, resumeFrom, len(deleteTasks))
+			bulkDelLogf("BulkDel resuming row_delete from checkpoint graph=%s op=%s offset=%d total=%d", ggraph.graphID, opID, resumeFrom, len(deleteTasks))
 		}
 		atomic.StoreInt64(&rowDeleteQueued, int64(len(deleteTasks)))
 		atomic.StoreInt64(&rowDeleteDone, int64(resumeFrom))
@@ -824,11 +935,29 @@ func (ggraph *Graph) BulkDel(data *gdbi.DeleteData) error {
 				}(sectionID, ch)
 			}
 			rowDeleteMu.Unlock()
-			select {
-			case ch <- task:
-				return true
-			case <-ctx.Done():
-				return false
+			const warnEvery = 10 * time.Second
+			timer := time.NewTimer(warnEvery)
+			defer timer.Stop()
+			for {
+				select {
+				case ch <- task:
+					return true
+				case <-ctx.Done():
+					return false
+				case <-timer.C:
+					log.Warningf(
+						"BulkDel blocked row tombstone dispatch graph=%s section=%d chanDepth=%d/%d rowDelete[queued=%d done=%d inFlight=%d err=%d]",
+						ggraph.graphID,
+						sectionID,
+						len(ch),
+						cap(ch),
+						atomic.LoadInt64(&rowDeleteQueued),
+						atomic.LoadInt64(&rowDeleteDone),
+						atomic.LoadInt64(&rowDeleteInFlight),
+						atomic.LoadInt64(&rowDeleteErr),
+					)
+					timer.Reset(warnEvery)
+				}
 			}
 		}
 
@@ -844,7 +973,7 @@ func (ggraph *Graph) BulkDel(data *gdbi.DeleteData) error {
 			close(ch)
 		}
 		rowDeleteMu.Unlock()
-		log.Debugf("BulkDel waiting row tombstone workers graph=%s sections=%d", ggraph.graphID, sectionCount)
+		bulkDelLogf("BulkDel waiting row tombstone workers graph=%s sections=%d", ggraph.graphID, sectionCount)
 		rowDeleteWG.Wait()
 		saveCheckpoint("row_delete_done", len(deleteTasks), int(atomic.LoadInt64(&rowDeleteDone)))
 		log.Infof(
@@ -866,7 +995,7 @@ func (ggraph *Graph) BulkDel(data *gdbi.DeleteData) error {
 	missingTableCount := len(missingRowsByTable)
 	missingRowsMu.Unlock()
 	if missingTableCount > 0 {
-		log.Debugf("BulkDel resolving unknown-table reverse indexes graph=%s tables=%d", ggraph.graphID, missingTableCount)
+		bulkDelLogf("BulkDel resolving unknown-table reverse indexes graph=%s tables=%d", ggraph.graphID, missingTableCount)
 		missingRowsMu.Lock()
 		for tableID, rowSet := range missingRowsByTable {
 			if len(rowSet) == 0 {
@@ -875,7 +1004,7 @@ func (ggraph *Graph) BulkDel(data *gdbi.DeleteData) error {
 			atomic.AddInt64(&unknownTableScans, 1)
 			tableScanStart := time.Now()
 			matched := 0
-			log.Debugf("BulkDel unknown-table scan start graph=%s tableID=%d rowTargets=%d", ggraph.graphID, tableID, len(rowSet))
+			bulkDelLogf("BulkDel unknown-table scan start graph=%s tableID=%d rowTargets=%d", ggraph.graphID, tableID, len(rowSet))
 			tableIDBytes := binary.LittleEndian.AppendUint16(nil, tableID)
 			rPrefix := bytes.Join([][]byte{benchtop.RFieldPrefix, tableIDBytes}, benchtop.FieldSep)
 			err := ggraph.driver.Pkv.View(func(it *pebblebulk.PebbleIterator) error {
@@ -896,17 +1025,14 @@ func (ggraph *Graph) BulkDel(data *gdbi.DeleteData) error {
 						continue
 					}
 					matched++
-					select {
-					case fieldChan <- fieldInfo{rKey: benchtop.RFieldKey(tableID, field, rowID), field: field, tableId: tableID, id: []byte(rowID)}:
-						atomic.AddInt64(&fieldQueued, 1)
-					case <-ctx.Done():
-						return ctx.Err()
+					if err := enqueueField(fieldInfo{rKey: benchtop.RFieldKey(tableID, field, rowID), field: field, tableId: tableID, id: []byte(rowID)}, "unknown_table_scan"); err != nil {
+						return err
 					}
 				}
 				return nil
 			})
 			addErr(err)
-			log.Debugf(
+			bulkDelLogf(
 				"BulkDel unknown-table scan done graph=%s tableID=%d rowTargets=%d matched=%d duration=%s",
 				ggraph.graphID,
 				tableID,
@@ -920,7 +1046,7 @@ func (ggraph *Graph) BulkDel(data *gdbi.DeleteData) error {
 
 	close(fieldChan)
 	fieldWG.Wait()
-	log.Debugf("BulkDel field aggregation complete graph=%s fields=%d", ggraph.graphID, len(allFields))
+	bulkDelLogf("BulkDel field aggregation complete graph=%s fields=%d", ggraph.graphID, len(allFields))
 
 	// Process field indices with single iterator
 	var indexDelKeys [][]byte
@@ -952,7 +1078,7 @@ func (ggraph *Graph) BulkDel(data *gdbi.DeleteData) error {
 		})
 		addErr(err)
 	}
-	log.Debugf("BulkDel index key collection complete graph=%s indexDelKeys=%d", ggraph.graphID, len(indexDelKeys))
+	bulkDelLogf("BulkDel index key collection complete graph=%s indexDelKeys=%d", ggraph.graphID, len(indexDelKeys))
 
 	// Chunked deletes with periodic commit so very large deletes don't block on one huge sync.
 	chunked := func(singles [][]byte, ranges [][2][]byte, posKeys [][]byte, indexDelKeys [][]byte) error {
@@ -976,7 +1102,7 @@ func (ggraph *Graph) BulkDel(data *gdbi.DeleteData) error {
 			}
 			commits++
 			if commits%5 == 0 {
-				log.Debugf("BulkDel chunk commit graph=%s commits=%d", ggraph.graphID, commits)
+				bulkDelLogf("BulkDel chunk commit graph=%s commits=%d", ggraph.graphID, commits)
 			}
 			batch = ggraph.driver.Pkv.Db.NewBatch()
 			ops = 0
@@ -1024,16 +1150,16 @@ func (ggraph *Graph) BulkDel(data *gdbi.DeleteData) error {
 			return err
 		}
 		if commits > 0 {
-			log.Debugf("BulkDel chunking complete graph=%s commits=%d", ggraph.graphID, commits)
+			bulkDelLogf("BulkDel chunking complete graph=%s commits=%d", ggraph.graphID, commits)
 		}
 		return nil
 	}
 
 	// Perform deletes
-	log.Debugf("BulkDel acquiring pebble write lock graph=%s", ggraph.graphID)
+	bulkDelLogf("BulkDel acquiring pebble write lock graph=%s", ggraph.graphID)
 	lockWaitStart := time.Now()
 	ggraph.driver.PebbleLock.Lock()
-	log.Debugf("BulkDel pebble write lock acquired graph=%s wait=%s", ggraph.graphID, time.Since(lockWaitStart))
+	bulkDelLogf("BulkDel pebble write lock acquired graph=%s wait=%s", ggraph.graphID, time.Since(lockWaitStart))
 	commitStart := time.Now()
 	if err := chunked(singles, ranges, posKeys, indexDelKeys); err != nil {
 		addErr(err)
@@ -1042,7 +1168,7 @@ func (ggraph *Graph) BulkDel(data *gdbi.DeleteData) error {
 	ggraph.driver.PebbleLock.Unlock()
 	log.Infof("BulkDel commit complete graph=%s duration=%s", ggraph.graphID, time.Since(commitStart))
 
-	log.Debugf("Total edges seen: %d", getSeenCount())
+	bulkDelLogf("Total edges seen: %d", getSeenCount())
 	outErr := bulkErr.ErrorOrNil()
 	if outErr == nil {
 		saveCheckpoint("done", len(deleteTasks), len(deleteTasks))
@@ -1108,6 +1234,16 @@ func saveBulkDeleteCheckpoint(kv *pebblebulk.PebbleKV, key []byte, cp *bulkDelet
 		return err
 	}
 	return kv.Set(key, b, nil)
+}
+
+func envTruthy(name string) bool {
+	v := strings.TrimSpace(strings.ToLower(os.Getenv(name)))
+	switch v {
+	case "1", "true", "yes", "on":
+		return true
+	default:
+		return false
+	}
 }
 
 // upperBound computes the tight upper bound for range delete
