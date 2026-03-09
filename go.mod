@@ -2,8 +2,6 @@ module github.com/bmeg/grip
 
 go 1.24.2
 
-replace github.com/bmeg/benchtop v0.0.0-20260306193933-7cdd75fcb2fb => ../benchtop
-
 require (
 	github.com/IBM/sarama v1.45.1
 	github.com/Shopify/sarama v1.38.1
