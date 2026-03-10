@@ -190,3 +190,72 @@ func TestDeletePersistsAcrossRestart(t *testing.T) {
 	}
 
 }
+
+func TestBulkDelReingestedIDsDeleteAgain(t *testing.T) {
+	conf := Config{
+		GraphDir: t.TempDir(),
+		Driver:   "jsontable",
+	}
+	const graphName = "g"
+
+	dbi, err := NewGraphDB(conf)
+	if err != nil {
+		t.Fatalf("NewGraphDB failed: %v", err)
+	}
+	defer dbi.Close()
+	if err := dbi.AddGraph(graphName); err != nil {
+		t.Fatalf("AddGraph failed: %v", err)
+	}
+	gi, err := dbi.Graph(graphName)
+	if err != nil {
+		t.Fatalf("Graph failed: %v", err)
+	}
+	g := gi.(*Graph)
+
+	ids := []string{"obs:a", "obs:b", "obs:c"}
+	load := func() {
+		elems := make([]*gdbi.GraphElement, 0, len(ids))
+		for _, id := range ids {
+			elems = append(elems, &gdbi.GraphElement{
+				Vertex: &gdbi.Vertex{
+					ID:    id,
+					Label: "Observation",
+					Data:  map[string]any{"status": "final"},
+				},
+			})
+		}
+		bulkAddElems(t, g, elems)
+	}
+
+	del := &gdbi.DeleteData{
+		Graph:    graphName,
+		Vertices: append([]string(nil), ids...),
+	}
+
+	// First load/delete should succeed.
+	load()
+	if err := g.BulkDel(del); err != nil {
+		t.Fatalf("first BulkDel failed: %v", err)
+	}
+	for _, id := range ids {
+		if v := g.GetVertex(id, false); v != nil {
+			t.Fatalf("expected %s deleted after first BulkDel", id)
+		}
+	}
+
+	// Re-load the same IDs and delete again; this must always execute and delete.
+	load()
+	for _, id := range ids {
+		if v := g.GetVertex(id, false); v == nil {
+			t.Fatalf("expected %s to exist after reload", id)
+		}
+	}
+	if err := g.BulkDel(del); err != nil {
+		t.Fatalf("second BulkDel failed: %v", err)
+	}
+	for _, id := range ids {
+		if v := g.GetVertex(id, false); v != nil {
+			t.Fatalf("expected %s deleted after second BulkDel", id)
+		}
+	}
+}
