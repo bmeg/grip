@@ -172,6 +172,13 @@ func isLikelyFileLockError(err error) bool {
 		return false
 	}
 	s := strings.ToLower(err.Error())
+	// Some backends bubble lock contention as plain EAGAIN text without the
+	// word "lock", e.g. "resource temporarily unavailable".
+	if strings.Contains(s, "resource temporarily unavailable") ||
+		strings.Contains(s, "database is locked") ||
+		strings.Contains(s, "eagain") {
+		return true
+	}
 	if !strings.Contains(s, "lock") {
 		return false
 	}
@@ -179,7 +186,8 @@ func isLikelyFileLockError(err error) bool {
 		strings.Contains(s, "held by") ||
 		strings.Contains(s, "another process") ||
 		strings.Contains(s, "is locked") ||
-		strings.Contains(s, "cannot acquire")
+		strings.Contains(s, "cannot acquire") ||
+		strings.Contains(s, "timeout")
 }
 
 func getenvInt(key string, def int) int {
