@@ -15,6 +15,7 @@ import (
 
 	"github.com/IBM/sarama"
 	"github.com/bmeg/grip/config"
+	"github.com/bmeg/grip/cypher"
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/jobstorage"
@@ -310,7 +311,17 @@ func (server *GripServer) Serve(pctx context.Context) error {
 		}
 	}
 
-	// Setup web ui handler
+	cypherHandler, err := cypher.NewHTTPHandler(
+		gripql.WrapClient(gripql.NewQueryDirectClient(
+			server,
+			gripql.DirectUnaryInterceptor(unaryAuthInt),
+			gripql.DirectStreamInterceptor(streamAuthInt),
+		), nil, nil, nil))
+	if err != nil {
+		return fmt.Errorf("setting up cypher handler: %v", err)
+	}
+	mux.Handle("/cypher/", cypherHandler)
+
 	dashmux := http.NewServeMux()
 	if server.conf.Server.ContentDir != "" {
 		httpDir := http.Dir(server.conf.Server.ContentDir)
