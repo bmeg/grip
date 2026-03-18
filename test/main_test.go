@@ -6,6 +6,8 @@ import (
 	"os"
 	"os/exec"
 	"sort"
+	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/bmeg/grip/config"
@@ -22,6 +24,7 @@ import (
 	"github.com/bmeg/grip/mongo"
 	"github.com/bmeg/grip/psql"
 	"github.com/bmeg/grip/util"
+	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq" // import so postgres will register as a sql driver
 )
 
@@ -60,6 +63,102 @@ func setupGraph() error {
 func setupSQLGraph() error {
 	cmd := exec.Command("bash", "./resources/postgres_load_test_data.sh")
 	return cmd.Run()
+}
+
+func parsePostgresDSN(dsn string) map[string]string {
+	out := map[string]string{}
+	for _, part := range strings.Fields(dsn) {
+		pair := strings.SplitN(part, "=", 2)
+		if len(pair) == 2 {
+			out[strings.TrimSpace(pair[0])] = strings.TrimSpace(pair[1])
+		}
+	}
+	return out
+}
+
+func postgresCleanupConnection(conf config.DriverConfig) (string, []string, error) {
+	dbNames := []string{}
+	host := "localhost"
+	port := uint(5432)
+	user := "postgres"
+	password := ""
+	sslMode := "disable"
+
+	if conf.PSQL != nil {
+		host = conf.PSQL.Host
+		port = conf.PSQL.Port
+		user = conf.PSQL.User
+		password = conf.PSQL.Password
+		sslMode = conf.PSQL.SSLMode
+		if conf.PSQL.DBName != "" {
+			dbNames = append(dbNames, conf.PSQL.DBName)
+		}
+	}
+
+	if conf.ExistingSQL != nil {
+		params := parsePostgresDSN(conf.ExistingSQL.DataSourceName)
+		if v := params["host"]; v != "" {
+			host = v
+		}
+		if v := params["port"]; v != "" {
+			if p, err := strconv.ParseUint(v, 10, 32); err == nil {
+				port = uint(p)
+			}
+		}
+		if v := params["user"]; v != "" {
+			user = v
+		}
+		if v := params["password"]; v != "" {
+			password = v
+		}
+		if v := params["sslmode"]; v != "" {
+			sslMode = v
+		}
+		if v := params["dbname"]; v != "" {
+			dbNames = append(dbNames, v)
+		}
+	}
+
+	if len(dbNames) == 0 {
+		return "", nil, nil
+	}
+
+	uniq := map[string]bool{}
+	filtered := []string{}
+	for _, name := range dbNames {
+		if name == "" || uniq[name] {
+			continue
+		}
+		uniq[name] = true
+		filtered = append(filtered, name)
+	}
+
+	connStr, err := util.BuildPostgresConnStr(host, port, user, password, "postgres", sslMode)
+	if err != nil {
+		return "", nil, err
+	}
+	return connStr, filtered, nil
+}
+
+func cleanupPostgresDatabases(conf config.DriverConfig) error {
+	connStr, dbNames, err := postgresCleanupConnection(conf)
+	if err != nil || connStr == "" || len(dbNames) == 0 {
+		return err
+	}
+
+	db, err := sqlx.Connect("postgres", connStr)
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+
+	for _, name := range dbNames {
+		safeName := strings.ReplaceAll(name, `"`, `""`)
+		_, _ = db.Exec("SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = $1 AND pid <> pg_backend_pid()", name)
+		_, _ = db.Exec(fmt.Sprintf("DROP DATABASE IF EXISTS \"%s\"", safeName))
+	}
+
+	return nil
 }
 
 func TestMain(m *testing.M) {
@@ -174,6 +273,18 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		fmt.Printf("Init error: %s\n", err)
 	}
+	defer func() {
+		if gdb != nil {
+			if err := gdb.Close(); err != nil {
+				fmt.Printf("cleanup warning: failed to close graph db: %v\n", err)
+			}
+		}
+		if dbconfig.PSQL != nil || dbconfig.ExistingSQL != nil {
+			if err := cleanupPostgresDatabases(dbconfig); err != nil {
+				fmt.Printf("cleanup warning: failed to clean postgres databases: %v\n", err)
+			}
+		}
+	}()
 
 	err = gdb.AddGraph("test-graph")
 	if err != nil {
