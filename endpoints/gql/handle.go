@@ -90,7 +90,7 @@ func (gh *Handler) ServeHTTP(writer http.ResponseWriter, request *http.Request) 
 	}
 
 	for row := range result {
-		rowBytes, err := protojson.Marshal(row)
+		rowBytes, err := protojson.Marshal(row.GetRender())
 		if err != nil {
 			log.Printf("Marshal Error: %s", err)
 			continue
