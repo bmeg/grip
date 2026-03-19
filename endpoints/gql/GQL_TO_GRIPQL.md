@@ -1,13 +1,13 @@
-# OpenCypher to GripQL Mapping
+# GQL to GripQL Mapping
 
-This document describes how the OpenCypher compiler in this repository translates queries into GripQL.
+This document describes how the GQL compiler in this repository translates queries into GripQL.
 
 The current implementation is intentionally minimal and read-only. Unsupported features return explicit compile errors.
 
 ## Translator Entry Point
 
-- Compiler package: `cypher/compiler/build.go`
-- Parse function: `RunParser(cypher string) (*gripql.Query, error)`
+- Compiler package: `gql/compiler/build.go`
+- Parse function: `RunParser(gql string) (*gripql.Query, error)`
 
 ## GripQL Syntax Used by the Compiler
 
@@ -24,13 +24,13 @@ The compiler currently emits these GripQL steps:
 - `Skip(...)`
 - `Limit(...)`
 
-## Supported Cypher Subset
+## Supported GQL Subset
 
 ### MATCH with one node pattern
 
-Cypher:
+GQL:
 
-```cypher
+```gql
 MATCH (n:Person {name: 'Bob'})
 RETURN n
 ```
@@ -55,9 +55,9 @@ Notes:
 
 ### MATCH with linear relationship traversal
 
-Cypher:
+GQL:
 
-```cypher
+```gql
 MATCH (n)-[:FRIEND]->(friend)
 RETURN friend
 ```
@@ -73,7 +73,7 @@ gripql.NewQuery().
   Render("$friend")
 ```
 
-Direction mapping (applied per hop in the chain):
+Direction mapping, applied per hop in the chain:
 
 - `-[:TYPE]->` maps to `Out("TYPE")`
 - `<-[:TYPE]-` maps to `In("TYPE")`
@@ -83,9 +83,9 @@ Linear multi-hop chains are supported by applying the same mapping repeatedly.
 
 ### MATCH with minimal WHERE predicate
 
-Cypher:
+GQL:
 
-```cypher
+```gql
 MATCH (n:Person)
 WHERE n.name = 'Bob'
 RETURN n
@@ -111,9 +111,9 @@ Supported WHERE forms:
 - `var.field < literal`
 - `var.field <= literal`
 
-WHERE scope rule (current implementation):
+WHERE scope rule, current implementation:
 
-- The `var` in `WHERE` must be the current traversal variable (the last node in the path).
+- The `var` in `WHERE` must be the current traversal variable, the last node in the path.
 
 ### RETURN projection forms
 
@@ -124,9 +124,9 @@ Supported RETURN forms:
 - `RETURN var.field AS alias`
 - Multi-item combinations of the above
 
-Examples:
+Example:
 
-```cypher
+```gql
 MATCH (n:Person {name: 'Bob'})
 RETURN n.name AS personName
 ```
@@ -142,9 +142,9 @@ gripql.NewQuery().
 
 ### Pagination clauses
 
-Cypher:
+GQL:
 
-```cypher
+```gql
 MATCH (n:Person)
 RETURN n
 SKIP 5
@@ -169,9 +169,9 @@ Notes:
 
 ### ORDER BY clause
 
-Cypher:
+GQL:
 
-```cypher
+```gql
 MATCH (n:Person)
 RETURN n
 ORDER BY n.name DESC
@@ -191,15 +191,15 @@ gripql.NewQuery().
 Notes:
 
 - Supported form is `ORDER BY var.field [ASC|DESC]`.
-- Multiple sort keys are supported (comma-separated).
+- Multiple sort keys are supported, comma-separated.
 - The `var` in `ORDER BY` must be the current traversal variable.
 
-## Unsupported Cypher Features (Current)
+## Unsupported GQL Features, Current
 
 The compiler currently rejects queries containing any of the following:
 
-- Variable-length relationships (for example `*1..2`)
-- Complex `WHERE` expressions (for example `AND`, `OR`, function calls, or non-literal comparisons)
+- Variable-length relationships, for example `*1..2`
+- Complex `WHERE` expressions, for example `AND`, `OR`, function calls, or non-literal comparisons
 - `WHERE` on a non-current traversal variable
 - `WITH`
 - `SET`
@@ -208,8 +208,8 @@ The compiler currently rejects queries containing any of the following:
 - `MERGE`
 - `UNWIND`
 - `UNION`
-- Complex `RETURN` expressions (for example functions like `count(n)`, arithmetic, or nested expressions)
-- `CREATE` (write operation)
+- Complex `RETURN` expressions, for example functions like `count(n)`, arithmetic, or nested expressions
+- `CREATE`, write operations
 
 ## Error Behavior
 
@@ -219,7 +219,7 @@ Unsupported features return an error from `RunParser` and do not emit partial fa
 
 When extending the translator:
 
-- Keep `cypher/compiler/build.go` as the translation source of truth.
-- Add table-driven tests in `cypher/test/cypher_test.go` for every new supported syntax shape.
+- Keep `gql/compiler/build.go` as the translation source of truth.
+- Add table-driven tests in `gql/test/gql_test.go` for every new supported syntax shape.
 - Keep unsupported features explicit until fully implemented.
 - Add new mapping examples to this document and verify they compile through `RunParser`.

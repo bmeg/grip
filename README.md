@@ -19,9 +19,9 @@ Properties of an GRIP graph:
 GRIP also provides a query API for the traversing, analyzing and manipulating your graphs. Its syntax is inspired by
 [Apache TinkerPop](http://tinkerpop.apache.org/). Learn more [here](https://bmeg.github.io/grip/).
 
-## OpenCypher Compiler
+## GQL Compiler
 
-The repository includes an OpenCypher-to-GripQL compiler module. See `cypher/CYPHER_TO_GRIPQL.md` for currently supported syntax and mapping behavior.
+The repository includes a GQL-to-GripQL compiler module. See `gql/GQL_TO_GRIPQL.md` for currently supported syntax and mapping behavior.
 
 
 

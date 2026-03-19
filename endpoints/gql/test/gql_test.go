@@ -6,7 +6,7 @@ import (
 
 	"google.golang.org/protobuf/proto"
 
-	"github.com/bmeg/grip/cypher/compiler"
+	"github.com/bmeg/grip/gql/compiler"
 	"github.com/bmeg/grip/gripql"
 )
 
@@ -28,7 +28,7 @@ func QueryCompare(a *gripql.Query, b *gripql.Query) bool {
 }
 
 type testPair struct {
-	cypher    string
+	gql       string
 	gripql    *gripql.Query
 	expectErr bool
 }
@@ -141,21 +141,21 @@ var pairs = []testPair{
 func TestMatch1(t *testing.T) {
 
 	for i := range pairs {
-		p := pairs[i].gripql
-		ct := pairs[i].cypher
-		o, err := compiler.RunParser(ct)
+		expected := pairs[i].gripql
+		gqlText := pairs[i].gql
+		compiled, err := compiler.RunParser(gqlText)
 		if pairs[i].expectErr {
 			if err == nil {
-				t.Errorf("Expected compile error for query: %s", ct)
+				t.Errorf("Expected compile error for query: %s", gqlText)
 			}
 			continue
 		}
 		if err != nil {
-			t.Errorf("Unexpected compile error for query %q: %v", ct, err)
+			t.Errorf("Unexpected compile error for query %q: %v", gqlText, err)
 			continue
 		}
-		if !QueryCompare(o, p) {
-			t.Errorf("Compiled query %s results in\n %s !=\n %s", ct, o.String(), p.String())
+		if !QueryCompare(compiled, expected) {
+			t.Errorf("Compiled query %s results in\n %s !=\n %s", gqlText, compiled.String(), expected.String())
 		}
 	}
 }

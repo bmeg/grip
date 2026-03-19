@@ -1,31 +1,32 @@
 /*
-GraphQL Web endpoint
+GQL Web endpoint
 */
 
 //go:generate ./generate.sh
 
-package cypher
+package gql
 
 import (
-	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"regexp"
+	"strings"
 
-	"github.com/bmeg/grip/cypher/compiler"
+	"github.com/bmeg/grip/endpoints/gql/compiler"
 	"github.com/bmeg/grip/gripql"
 	"google.golang.org/protobuf/encoding/protojson"
 
 	log "github.com/sirupsen/logrus"
 )
 
-// Handler is a GraphQL endpoint to query the Grip database
+// Handler is a GQL endpoint to query the Grip database.
 type Handler struct {
 	client gripql.Client
 }
 
-// NewHTTPHandler initilizes a new GraphQLHandler
+// NewHTTPHandler initializes a new GQL handler.
 func NewHTTPHandler(client gripql.Client) (http.Handler, error) {
 	h := &Handler{
 		client: client,
@@ -33,13 +34,13 @@ func NewHTTPHandler(client gripql.Client) (http.Handler, error) {
 	return h, nil
 }
 
-// ServeHTTP responds to HTTP graphql requests
+// ServeHTTP responds to HTTP GQL requests.
 func (gh *Handler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 	ctx := request.Context()
-	pathRE := regexp.MustCompile("/cypher/(.*)$")
+	pathRE := regexp.MustCompile("/gql/(.*)$")
 	parts := pathRE.FindStringSubmatch(request.URL.Path)
 	if len(parts) < 2 {
-		http.Error(writer, "invalid cypher path", http.StatusBadRequest)
+		http.Error(writer, "invalid gql path", http.StatusBadRequest)
 		return
 	}
 	graphName := parts[1]
@@ -55,16 +56,26 @@ func (gh *Handler) ServeHTTP(writer http.ResponseWriter, request *http.Request) 
 		return
 	}
 
-	buf := bytes.Buffer{}
-	buf.Write(body)
-	cyQuery := buf.String()
-	gripQuery, err := compiler.RunParser(cyQuery)
+	var requestPayload struct {
+		Query string `json:"query"`
+	}
+	if err := json.Unmarshal(body, &requestPayload); err != nil {
+		http.Error(writer, fmt.Sprintf("failed to parse request body as JSON: %s", err), http.StatusBadRequest)
+		return
+	}
+	if strings.TrimSpace(requestPayload.Query) == "" {
+		http.Error(writer, "missing query in request body", http.StatusBadRequest)
+		return
+	}
+
+	gqlQuery := requestPayload.Query
+	gripQuery, err := compiler.RunParser(gqlQuery)
 	if err != nil {
 		log.Printf("Parse Error: %s", err)
 		http.Error(writer, fmt.Sprintf("failed to parse query: %s", err), http.StatusInternalServerError)
 		return
 	}
-	log.Printf("Cypher Query: %s, %s = %s", graphName, cyQuery, gripQuery.String())
+	log.Printf("GQL Query: %s, %s = %s", graphName, gqlQuery, gripQuery.String())
 
 	result, err := gh.client.Traversal(ctx,
 		&gripql.GraphQuery{

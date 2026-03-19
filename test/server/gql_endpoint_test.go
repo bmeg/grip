@@ -20,7 +20,7 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
-type cypherQueryCase struct {
+type gqlQueryCase struct {
 	name           string
 	query          string
 	expectStatus   int
@@ -31,7 +31,7 @@ type cypherQueryCase struct {
 	validate       func(t *testing.T, rows []map[string]any, body string)
 }
 
-func TestCypherEndpointRunner(t *testing.T) {
+func TestGQLEndpointRunner(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
 
@@ -63,12 +63,12 @@ func TestCypherEndpointRunner(t *testing.T) {
 		t.Fatalf("failed to create GRPC client: %v", err)
 	}
 
-	graph := "cypher-test"
-	if err := seedCypherGraph(cli, graph); err != nil {
+	graph := "gql-test"
+	if err := seedGQLGraph(cli, graph); err != nil {
 		t.Fatalf("failed to seed graph: %v", err)
 	}
 
-	cases := []cypherQueryCase{
+	cases := []gqlQueryCase{
 		{
 			name:           "match by property",
 			query:          "MATCH (n:Person {name: 'Bob'}) RETURN n",
@@ -123,7 +123,7 @@ func TestCypherEndpointRunner(t *testing.T) {
 	for _, tc := range cases {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
-			resp, body, err := postCypherQuery(conf.Server.HTTPPort, graph, tc.query)
+			resp, body, err := postGQLQuery(conf.Server.HTTPPort, graph, tc.query)
 			if err != nil {
 				t.Fatalf("request failed: %v", err)
 			}
@@ -171,6 +171,60 @@ func TestCypherEndpointRunner(t *testing.T) {
 	}
 }
 
+func TestGQLEndpointRejectsMalformedJSON(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(cancel)
+
+	conf := config.DefaultConfig()
+	conf.AddBadgerDefault()
+	config.TestifyConfig(conf)
+
+	t.Cleanup(func() {
+		_ = os.RemoveAll(conf.Server.WorkDir)
+		if conf.Default != "" {
+			if d, ok := conf.Drivers[conf.Default]; ok && d.Badger != nil {
+				_ = os.RemoveAll(*d.Badger)
+			}
+		}
+	})
+
+	srv, err := server.NewGripServer(conf, "./", nil)
+	if err != nil {
+		t.Fatalf("failed to create server: %v", err)
+	}
+	go srv.Serve(ctx)
+
+	if err := waitForHTTP(conf.Server.HTTPPort, 10*time.Second); err != nil {
+		t.Fatalf("server did not become ready: %v", err)
+	}
+
+	url := fmt.Sprintf("http://localhost:%s/gql/%s", conf.Server.HTTPPort, "gql-test")
+	req, err := http.NewRequest("POST", url, bytes.NewBufferString("{\"query\":"))
+	if err != nil {
+		t.Fatalf("failed to build request: %v", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := (&http.Client{Timeout: 5 * time.Second}).Do(req)
+	if err != nil {
+		t.Fatalf("request failed: %v", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatalf("failed to read response body: %v", err)
+	}
+
+	if resp.StatusCode != http.StatusBadRequest {
+		t.Fatalf("unexpected status code %d: %s", resp.StatusCode, string(body))
+	}
+
+	if !strings.Contains(string(body), "failed to parse request body as JSON") {
+		t.Fatalf("unexpected response body: %s", string(body))
+	}
+}
+
 func waitForHTTP(port string, timeout time.Duration) error {
 	deadline := time.Now().Add(timeout)
 	url := fmt.Sprintf("http://localhost:%s/v1/graph", port)
@@ -187,7 +241,7 @@ func waitForHTTP(port string, timeout time.Duration) error {
 	return fmt.Errorf("timed out waiting for %s", url)
 }
 
-func seedCypherGraph(cli gripql.Client, graph string) error {
+func seedGQLGraph(cli gripql.Client, graph string) error {
 	if err := cli.AddGraph(graph); err != nil {
 		return err
 	}
@@ -225,12 +279,18 @@ func seedCypherGraph(cli gripql.Client, graph string) error {
 	return nil
 }
 
-func postCypherQuery(port, graph, query string) (*http.Response, string, error) {
-	url := fmt.Sprintf("http://localhost:%s/cypher/%s", port, graph)
-	req, err := http.NewRequest("POST", url, bytes.NewBufferString(query))
+func postGQLQuery(port, graph, query string) (*http.Response, string, error) {
+	url := fmt.Sprintf("http://localhost:%s/gql/%s", port, graph)
+	payload, err := json.Marshal(map[string]string{"query": query})
 	if err != nil {
 		return nil, "", err
 	}
+
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(payload))
+	if err != nil {
+		return nil, "", err
+	}
+	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := (&http.Client{Timeout: 5 * time.Second}).Do(req)
 	if err != nil {
