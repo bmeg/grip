@@ -19,6 +19,7 @@ import (
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/jobstorage"
 	"github.com/bmeg/grip/log"
+	"github.com/bmeg/grip/merge"
 	"github.com/bmeg/grip/sqlite"
 	"github.com/felixge/httpsnoop"
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
@@ -192,6 +193,8 @@ func StartDriver(d config.DriverConfig, sources map[string]gripper.GRIPSourceCli
 		return sqlite.NewGraphDB(*d.Sqlite)
 	} else if d.Gripper != nil {
 		return gripper.NewGDBFromConfig(d.Gripper.Graph, d.Gripper.Mapping, sources)
+	} else if d.Merge != nil {
+		return merge.NewGraphDB(d.Merge)
 	}
 	return nil, fmt.Errorf("unknown driver: %#v", d)
 }
