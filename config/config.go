@@ -13,6 +13,7 @@ import (
 	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/mongo"
 	"github.com/bmeg/grip/psql"
+	"github.com/bmeg/grip/psqlx"
 	"github.com/bmeg/grip/schema"
 	"github.com/bmeg/grip/sqlite"
 	"github.com/bmeg/grip/util"
@@ -33,6 +34,7 @@ type DriverConfig struct {
 	Pebble      *string
 	MongoDB     *mongo.Config
 	PSQL        *psql.Config
+	PSQLExt     *psqlx.Config
 	ExistingSQL *esql.Config
 	Sqlite      *sqlite.Config
 	Gripper     *gripper.Config

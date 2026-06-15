@@ -35,6 +35,24 @@ func (server *GripServer) Traversal(query *gripql.GraphQuery, queryServer gripql
 	if err != nil {
 		return err
 	}
+	if delegatedGraph, ok := graph.(interface {
+		Traversal(context.Context, []*gripql.GraphStatement) (<-chan *gripql.QueryResult, error)
+	}); ok {
+		res, err := delegatedGraph.Traversal(queryServer.Context(), query.Query)
+		if err != nil {
+			return err
+		}
+		err = nil
+		for row := range res {
+			if err == nil {
+				err = queryServer.Send(row)
+			}
+		}
+		if err != nil {
+			return fmt.Errorf("error sending delegated Traversal result: %v", err)
+		}
+		return nil
+	}
 	compiler := graph.Compiler()
 	compiledPipeline, err := compiler.Compile(query.Query, nil)
 	if err != nil {
@@ -88,7 +106,7 @@ func (server *GripServer) GetVertex(ctx context.Context, elem *gripql.ElementID)
 	}
 	o := graph.GetVertex(elem.Id, true)
 	if o == nil {
-		return nil, status.Errorf(codes.NotFound, fmt.Sprintf("vertex %s not found", elem.Id))
+		return nil, status.Errorf(codes.NotFound, "vertex %s not found", elem.Id)
 	}
 	return o.ToVertex(), nil
 }
@@ -105,7 +123,7 @@ func (server *GripServer) GetEdge(ctx context.Context, elem *gripql.ElementID) (
 	}
 	o := graph.GetEdge(elem.Id, true)
 	if o == nil {
-		return nil, status.Errorf(codes.NotFound, fmt.Sprintf("edge %s not found", elem.Id))
+		return nil, status.Errorf(codes.NotFound, "edge %s not found", elem.Id)
 	}
 	return o.ToEdge(), nil
 }
@@ -415,11 +433,13 @@ func (server *GripServer) BulkAdd(stream gripql.Edit_BulkAddServer) error {
 		return newStream
 	}
 
+	loop:
 	for {
 		// Check if context is done (client cancellation or goroutine error)
 		select {
 		case <-opCtx.Done():
-			break
+			processErr = opCtx.Err()
+			break loop
 		default:
 			// Continue processing
 		}
@@ -649,14 +669,14 @@ func (server *GripServer) ListLabels(ctx context.Context, idx *gripql.GraphID) (
 // GetSchema returns the schema of a specific graph in the database
 func (server *GripServer) GetSchema(ctx context.Context, elem *gripql.GraphID) (*gripql.Graph, error) {
 	if !server.graphExists(elem.Graph) {
-		return nil, status.Errorf(codes.NotFound, fmt.Sprintf("graph %s: not found", elem.Graph))
+		return nil, status.Errorf(codes.NotFound, "graph %s: not found", elem.Graph)
 	}
 	schema, ok := server.schemas[elem.Graph]
 	if !ok {
 		if server.conf.Server.AutoBuildSchemas {
-			return nil, status.Errorf(codes.Unavailable, fmt.Sprintf("graph %s: schema not available; try again later", elem.Graph))
+			return nil, status.Errorf(codes.Unavailable, "graph %s: schema not available; try again later", elem.Graph)
 		}
-		return nil, status.Errorf(codes.NotFound, fmt.Sprintf("graph %s: schema not found", elem.Graph))
+		return nil, status.Errorf(codes.NotFound, "graph %s: schema not found", elem.Graph)
 	}
 	if schema.Graph == "" {
 		schema.Graph = elem.Graph
@@ -667,7 +687,7 @@ func (server *GripServer) GetSchema(ctx context.Context, elem *gripql.GraphID) (
 // GetSchema returns the schema of a specific graph in the database
 func (server *GripServer) SampleSchema(ctx context.Context, elem *gripql.GraphID) (*gripql.Graph, error) {
 	if !server.graphExists(elem.Graph) {
-		return nil, status.Errorf(codes.NotFound, fmt.Sprintf("graph %s: not found", elem.Graph))
+		return nil, status.Errorf(codes.NotFound, "graph %s: not found", elem.Graph)
 	}
 	if gdb, err := server.getGraphDB(elem.Graph); err == nil {
 		schema, err := gdb.BuildSchema(ctx, elem.Graph, 50, true)
@@ -719,7 +739,7 @@ func (server *GripServer) AddJsonSchema(ctx context.Context, rawjson *gripql.Raw
 // GetMapping returns the schema of a specific graph in the database
 func (server *GripServer) GetMapping(ctx context.Context, elem *gripql.GraphID) (*gripql.Graph, error) {
 	if !server.graphExists(elem.Graph) {
-		return nil, status.Errorf(codes.NotFound, fmt.Sprintf("graph %s: not found", elem.Graph))
+		return nil, status.Errorf(codes.NotFound, "graph %s: not found", elem.Graph)
 	}
 	mapping, err := server.getGraph(elem.Graph + mappingSuffix)
 	if err != nil {

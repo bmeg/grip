@@ -1,0 +1,14 @@
+[
+  {
+    "result_type": "render",
+    "render": {
+      "plugin": "grip_ext",
+      "graph": "test-graph",
+      "statement_count": 4
+    }
+  },
+  {
+    "result_type": "count",
+    "count": 0
+  }
+]

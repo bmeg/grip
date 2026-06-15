@@ -36,6 +36,7 @@ import (
 	_ "github.com/bmeg/grip/kvi/pebbledb" // import so pebbledb will register itself
 	"github.com/bmeg/grip/mongo"
 	"github.com/bmeg/grip/psql"
+	"github.com/bmeg/grip/psqlx"
 )
 
 // GripServer is a GRPC based grip server
@@ -186,6 +187,8 @@ func StartDriver(d config.DriverConfig, sources map[string]gripper.GRIPSourceCli
 		return mongo.NewGraphDB(*d.MongoDB)
 	} else if d.PSQL != nil {
 		return psql.NewGraphDB(*d.PSQL)
+	} else if d.PSQLExt != nil {
+		return psqlx.NewGraphDB(*d.PSQLExt)
 	} else if d.ExistingSQL != nil {
 		return esql.NewGraphDB(*d.ExistingSQL)
 	} else if d.Sqlite != nil {

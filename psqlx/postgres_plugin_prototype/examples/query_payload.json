@@ -1,0 +1,8 @@
+{
+  "query": [
+    { "v": [] },
+    { "has_label": ["Person"] },
+    { "limit": 10 },
+    { "count": {} }
+  ]
+}
