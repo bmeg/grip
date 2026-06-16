@@ -3,11 +3,13 @@ package server
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"maps"
 	"net"
 	"net/http"
+	"net/http/pprof"
 	"os"
 	"path/filepath"
 	"strings"
@@ -252,6 +254,11 @@ func (server *GripServer) Serve(pctx context.Context) error {
 	)
 	mux := http.NewServeMux()
 
+	mux.HandleFunc("/debug/pprof/", pprof.Index)
+	mux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
+	mux.HandleFunc("/debug/pprof/profile", pprof.Profile)
+	mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
+	mux.HandleFunc("/debug/pprof/trace", pprof.Trace)
 	// Setup GraphQL handler
 	/*
 		user := ""
@@ -352,7 +359,7 @@ func (server *GripServer) Serve(pctx context.Context) error {
 			// copy body and return it to request
 			var body []byte
 			if server.conf.Server.RequestLogging.Enable || server.kafkaProducer != nil {
-				body, _ = io.ReadAll(req.Body)
+				body, _ = io.ReadAll(io.LimitReader(req.Body, 32*1024*1024))
 				req.Body = io.NopCloser(bytes.NewBuffer(body))
 				if server.kafkaProducer != nil {
 					// This should cover BulkAdd, Addvertex, Addedge, BulkDelete, DeleteVertex, DeleteEdge
@@ -366,7 +373,7 @@ func (server *GripServer) Serve(pctx context.Context) error {
 					}
 					partition, offset, err := server.kafkaProducer.SendMessage(msg)
 					if err != nil {
-						log.Errorf("Failed to send Kafka message to topic %#v: %v", *&server.conf.Kafka.Topic, err)
+						log.Errorf("Failed to send Kafka message to topic %#v: %v", *server.conf.Kafka.Topic, err)
 					} else {
 						log.Infof("Message sent to Kafka topic %s [partition %d, offset %d]", *server.conf.Kafka.Topic, partition, offset)
 					}
@@ -416,6 +423,15 @@ func (server *GripServer) Serve(pctx context.Context) error {
 	//err = gripql.RegisterQueryHandlerFromEndpoint(ctx, grpcMux, ":"+server.conf.RPCPort, []grpc.DialOption{grpc.WithInsecure()})
 	if err != nil {
 		return fmt.Errorf("registering query endpoint: %v", err)
+	}
+
+	// Override standard generated Query_Traversal grpc-gateway endpoint with fast execution path
+	err = grpcMux.HandlePath("POST", "/v1/graph/{graph}/query", func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+		graphName := pathParams["graph"]
+		server.fastQueryHandler(w, req, graphName)
+	})
+	if err != nil {
+		return fmt.Errorf("registering fast query endpoint: %v", err)
 	}
 
 	// Regsiter Edit Service
@@ -523,9 +539,23 @@ func (server *GripServer) Serve(pctx context.Context) error {
 
 	<-ctx.Done() //This will hold until canceled, usually from kill signal
 	log.Infoln("shutting down RPC server...")
-	grpcServer.GracefulStop()
+	shutdownTimeout := 30 * time.Second
+	grpcDone := make(chan struct{})
+	go func() {
+		grpcServer.GracefulStop()
+		close(grpcDone)
+	}()
+	select {
+	case <-grpcDone:
+		log.Infoln("RPC server gracefully stopped")
+	case <-time.After(shutdownTimeout):
+		log.Warningf("RPC graceful stop exceeded %s; forcing stop", shutdownTimeout)
+		grpcServer.Stop()
+	}
 	log.Infoln("shutting down HTTP proxy...")
-	err = httpServer.Shutdown(context.TODO())
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), shutdownTimeout)
+	err = httpServer.Shutdown(shutdownCtx)
+	shutdownCancel()
 	if err != nil {
 		log.Errorf("shutdown error: %v", err)
 	}
@@ -549,8 +579,20 @@ func (server *GripServer) Serve(pctx context.Context) error {
 
 	server.ClosePlugins()
 
-	if grpcErr != nil || httpErr != nil {
-		return fmt.Errorf("gRPC Server Error: %v\nHTTP Server Error: %v", grpcErr, httpErr)
+	if grpcErr == grpc.ErrServerStopped || errors.Is(grpcErr, net.ErrClosed) || strings.Contains(fmt.Sprint(grpcErr), "use of closed network connection") {
+		grpcErr = nil
+	}
+	if errors.Is(httpErr, http.ErrServerClosed) {
+		httpErr = nil
+	}
+	if grpcErr != nil && httpErr != nil {
+		return fmt.Errorf("gRPC Server Error: %v; HTTP Server Error: %v", grpcErr, httpErr)
+	}
+	if grpcErr != nil {
+		return fmt.Errorf("gRPC Server Error: %w", grpcErr)
+	}
+	if httpErr != nil {
+		return fmt.Errorf("HTTP Server Error: %w", httpErr)
 	}
 	return nil
 }

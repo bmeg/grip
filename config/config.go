@@ -9,6 +9,7 @@ import (
 	"time"
 
 	esql "github.com/bmeg/grip/existing-sql"
+	"github.com/bmeg/grip/grids"
 	"github.com/bmeg/grip/gripper"
 	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/mongo"
@@ -26,7 +27,7 @@ func init() {
 }
 
 type DriverConfig struct {
-	Grids       *string
+	Grids       *grids.Config
 	Badger      *string
 	Bolt        *string
 	Level       *string
@@ -121,7 +122,8 @@ func (conf *Config) AddSqliteDefault() {
 
 func (conf *Config) AddGridsDefault() {
 	n := "grip-grids.db"
-	conf.Drivers["grids"] = DriverConfig{Grids: &n}
+	c := grids.Config{GraphDir: n, BulkLoaderWorkers: 10, Driver: "jsontable"}
+	conf.Drivers["grids"] = DriverConfig{Grids: &c}
 	conf.Default = "grids"
 }
 
@@ -135,6 +137,9 @@ func TestifyConfig(c *Config) {
 
 	c.RPCClient.ServerAddress = c.Server.RPCAddress()
 
+	if c.Default == "" {
+		return
+	}
 	d := c.Drivers[c.Default]
 
 	if d.Badger != nil {
@@ -144,6 +149,11 @@ func TestifyConfig(c *Config) {
 	if d.Pebble != nil {
 		a := "grip.db." + rand
 		d.Pebble = &a
+	}
+	if d.Grids != nil {
+		c := *d.Grids
+		c.GraphDir = "grip-grids.db." + rand
+		d.Grids = &c
 	}
 	if d.MongoDB != nil {
 		d.MongoDB.DBName = "gripdb-" + rand

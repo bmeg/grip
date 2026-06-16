@@ -153,7 +153,7 @@ func TestMain(m *testing.M) {
 	} else if dbconfig.Grids != nil {
 		gdb, err = grids.NewGraphDB(*dbconfig.Grids)
 		defer func() {
-			os.RemoveAll(*dbconfig.Grids)
+			os.RemoveAll(dbconfig.Grids.GraphDir)
 		}()
 		if err != nil {
 			fmt.Printf("Init error: %s\n", err)
