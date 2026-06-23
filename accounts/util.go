@@ -40,6 +40,16 @@ func (c *Config) init() {
 	}
 }
 
+func (c *Config) GetAuth() Authenticate {
+	c.init()
+	return c.auth
+}
+
+func (c *Config) GetAccess() Access {
+	c.init()
+	return c.access
+}
+
 func (c *Config) UnaryInterceptor() grpc.UnaryServerInterceptor {
 	c.init()
 	return unaryAuthInterceptor(c.auth, c.access)

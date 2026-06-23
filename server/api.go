@@ -8,6 +8,7 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/bmeg/grip/engine/pipeline"
 	"github.com/bmeg/grip/gdbi"
@@ -25,45 +26,67 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
+// maxEdgeLabelLen defines an upper bound on edge label length accepted by the server.
+// This prevents pathological inputs from causing excessively large allocations downstream.
+const maxEdgeLabelLen = 4096
+
 // Traversal parses a traversal request and streams the results back
 func (server *GripServer) Traversal(query *gripql.GraphQuery, queryServer gripql.Query_TraversalServer) error {
+	start := time.Now()
 	gdb, err := server.getGraphDB(query.Graph)
 	if err != nil {
 		return err
 	}
+	graphLookupElapsed := time.Since(start)
 	graph, err := gdb.Graph(query.Graph)
 	if err != nil {
 		return err
 	}
-	if delegatedGraph, ok := graph.(interface {
-		Traversal(context.Context, []*gripql.GraphStatement) (<-chan *gripql.QueryResult, error)
-	}); ok {
-		res, err := delegatedGraph.Traversal(queryServer.Context(), query.Query)
-		if err != nil {
-			return err
-		}
-		err = nil
-		for row := range res {
-			if err == nil {
-				err = queryServer.Send(row)
-			}
-		}
-		if err != nil {
-			return fmt.Errorf("error sending delegated Traversal result: %v", err)
-		}
-		return nil
-	}
+	graphOpenElapsed := time.Since(start) - graphLookupElapsed
 	compiler := graph.Compiler()
+	compileStart := time.Now()
 	compiledPipeline, err := compiler.Compile(query.Query, nil)
 	if err != nil {
 		return err
 	}
+	compileElapsed := time.Since(compileStart)
+	runStart := time.Now()
 	res := pipeline.Run(queryServer.Context(), compiledPipeline, server.conf.Server.WorkDir)
 	err = nil
+	var rowsSent int
+	sendStart := time.Now()
 	for row := range res {
 		if err == nil {
 			err = queryServer.Send(row)
+			if err == nil {
+				rowsSent++
+			}
 		}
+	}
+	runElapsed := time.Since(runStart)
+	sendElapsed := time.Since(sendStart)
+	totalElapsed := time.Since(start)
+	if rowsSent > 0 {
+		rps := float64(rowsSent) / sendElapsed.Seconds()
+		log.Debugf("Traversal summary graph=%s rows=%d rps=%.0f lookup=%s graphOpen=%s compile=%s run=%s send=%s total=%s",
+			query.Graph, rowsSent, rps,
+			graphLookupElapsed.Round(time.Millisecond),
+			graphOpenElapsed.Round(time.Millisecond),
+			compileElapsed.Round(time.Millisecond),
+			runElapsed.Round(time.Millisecond),
+			sendElapsed.Round(time.Millisecond),
+			totalElapsed.Round(time.Millisecond),
+		)
+	} else {
+		log.Debugf("Traversal summary graph=%s rows=0 lookup=%s graphOpen=%s compile=%s run=%s send=%s total=%s",
+			query.Graph,
+			graphLookupElapsed.Round(time.Millisecond),
+			graphOpenElapsed.Round(time.Millisecond),
+			compileElapsed.Round(time.Millisecond),
+			runElapsed.Round(time.Millisecond),
+			sendElapsed.Round(time.Millisecond),
+			totalElapsed.Round(time.Millisecond),
+		)
 	}
 	if err != nil {
 		return fmt.Errorf("error sending Traversal result: %v", err)
@@ -230,8 +253,12 @@ func (server *GripServer) addEdge(ctx context.Context, elem *gripql.GraphElement
 	}
 
 	edge := elem.Edge
+	// Enforce a maximum label length to avoid excessively large allocations in downstream key/index code.
+	if len(edge.Label) > maxEdgeLabelLen {
+		return nil, fmt.Errorf("edge label too long; maximum allowed length is %d bytes", maxEdgeLabelLen)
+	}
 	if edge.Id == "" {
-		edge.Id = util.UUID()
+		edge.Id = util.DeterministicEdgeID(edge.From, edge.To, edge.Label, edge.Data.AsMap())
 	}
 	err = edge.Validate()
 	if err != nil {
@@ -247,15 +274,28 @@ func (server *GripServer) addEdge(ctx context.Context, elem *gripql.GraphElement
 
 func (server *GripServer) BulkAddRaw(stream gripql.Edit_BulkAddRawServer) error {
 	ctx := stream.Context()
-	inputCh := make(chan *gripql.RawJson, 100)
-	elementCh := make(chan *gdbi.GraphElement, 1000)
-	errCh := make(chan error, 100)
+	runCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	inputCh := make(chan *gripql.RawJson, 256)
+	elementCh := make(chan *gdbi.GraphElement, 2048)
+	errCh := make(chan error, 1024)
 	var insertCount int32
 	var once sync.Once
 	var schema *graph.GraphSchema
 	var schemaErr error
 	var wg sync.WaitGroup
 	var producerWG sync.WaitGroup
+	pushErr := func(err error) {
+		if err == nil {
+			return
+		}
+		select {
+		case errCh <- err:
+		default:
+			log.WithFields(log.Fields{"error": err}).Error("BulkAddRaw: dropped error due full error channel")
+		}
+	}
 
 	// Receive first class
 	firstClass, err := stream.Recv()
@@ -293,27 +333,33 @@ func (server *GripServer) BulkAddRaw(stream gripql.Edit_BulkAddRawServer) error 
 		defer wg.Done()
 		if err := gdbiGraph.BulkAdd(elementCh); err != nil {
 			log.WithFields(log.Fields{"graph": graphName, "error": err}).Error("BulkAddRaw: bulk add error")
-			errCh <- fmt.Errorf("bulk add failed: %w", err)
+			pushErr(fmt.Errorf("bulk add failed: %w", err))
+			cancel()
 		}
 	}()
 
 	// Start worker goroutines
-	for range runtime.NumCPU() {
+	workerCount := runtime.NumCPU()
+	if workerCount < 1 {
+		workerCount = 1
+	}
+	for i := 0; i < workerCount; i++ {
 		producerWG.Add(1)
 		go func() {
 			defer producerWG.Done()
 			for class := range inputCh {
 				select {
-				case <-ctx.Done():
-					errCh <- ctx.Err()
+				case <-runCtx.Done():
+					pushErr(runCtx.Err())
 					return
 				default:
 				}
 
 				once.Do(loadSchema)
 				if schemaErr != nil {
-					errCh <- schemaErr
-					continue
+					pushErr(schemaErr)
+					cancel()
+					return
 				}
 
 				classData := class.Data.AsMap()
@@ -321,20 +367,21 @@ func (server *GripServer) BulkAddRaw(stream gripql.Edit_BulkAddRawServer) error 
 				if !ok {
 					err := fmt.Errorf("row %v does not have required field resourceType", classData)
 					log.WithFields(log.Fields{"error": err}).Error("BulkAddRaw: streaming error")
-					errCh <- err
+					pushErr(err)
 					continue
 				}
 
 				result, err := schema.Generate(resourceType, classData, class.ExtraArgs.AsMap())
 				if err != nil {
 					log.WithFields(log.Fields{"error": err}).Errorf("BulkAddRaw: validation error for %s: %v", resourceType, classData)
-					errCh <- fmt.Errorf("validation failed for %s: %w", resourceType, err)
+					pushErr(fmt.Errorf("validation failed for %s: %w", resourceType, err))
 					continue
 				}
 
 				for _, element := range result {
+					var graphElement *gdbi.GraphElement
 					if element.Vertex != nil {
-						elementCh <- &gdbi.GraphElement{
+						graphElement = &gdbi.GraphElement{
 							Vertex: &gdbi.Vertex{
 								ID:    element.Vertex.Id,
 								Data:  element.Vertex.Data.AsMap(),
@@ -343,9 +390,13 @@ func (server *GripServer) BulkAddRaw(stream gripql.Edit_BulkAddRawServer) error 
 							Graph: graphName,
 						}
 					} else if element.Edge != nil {
-						elementCh <- &gdbi.GraphElement{
+						edgeID := element.Edge.Id
+						if edgeID == "" {
+							edgeID = util.DeterministicEdgeID(element.Edge.From, element.Edge.To, element.Edge.Label, element.Edge.Data.AsMap())
+						}
+						graphElement = &gdbi.GraphElement{
 							Edge: &gdbi.Edge{
-								ID:    element.Edge.Id,
+								ID:    edgeID,
 								Label: element.Edge.Label,
 								From:  element.Edge.From,
 								To:    element.Edge.To,
@@ -354,35 +405,18 @@ func (server *GripServer) BulkAddRaw(stream gripql.Edit_BulkAddRawServer) error 
 							Graph: graphName,
 						}
 					}
+					if graphElement != nil {
+						select {
+						case <-runCtx.Done():
+							return
+						case elementCh <- graphElement:
+						}
+					}
 					atomic.AddInt32(&insertCount, 1)
 				}
 			}
 		}()
 	}
-
-	// Receiver goroutine
-	inputCh <- firstClass
-	producerWG.Add(1)
-	go func() {
-		defer producerWG.Done()
-		defer close(inputCh)
-		for {
-			class, err := stream.Recv()
-			if err == io.EOF {
-				break
-			}
-			if err != nil {
-				errCh <- fmt.Errorf("receive failed: %w", err)
-				break
-			}
-			select {
-			case <-ctx.Done():
-				errCh <- ctx.Err()
-				return
-			case inputCh <- class:
-			}
-		}
-	}()
 
 	// Collect errors
 	var retErrs []string
@@ -391,6 +425,36 @@ func (server *GripServer) BulkAddRaw(stream gripql.Edit_BulkAddRawServer) error 
 		defer close(doneCollecting)
 		for err := range errCh {
 			retErrs = append(retErrs, err.Error())
+		}
+	}()
+
+	// Receiver goroutine
+	producerWG.Add(1)
+	go func() {
+		defer producerWG.Done()
+		defer close(inputCh)
+
+		select {
+		case <-runCtx.Done():
+			return
+		case inputCh <- firstClass:
+		}
+
+		for {
+			class, err := stream.Recv()
+			if err == io.EOF {
+				return
+			}
+			if err != nil {
+				pushErr(fmt.Errorf("receive failed: %w", err))
+				cancel()
+				return
+			}
+			select {
+			case <-runCtx.Done():
+				return
+			case inputCh <- class:
+			}
 		}
 	}()
 
@@ -433,13 +497,12 @@ func (server *GripServer) BulkAdd(stream gripql.Edit_BulkAddServer) error {
 		return newStream
 	}
 
-	loop:
+Loop:
 	for {
 		// Check if context is done (client cancellation or goroutine error)
 		select {
 		case <-opCtx.Done():
-			processErr = opCtx.Err()
-			break loop
+			break Loop
 		default:
 			// Continue processing
 		}
@@ -501,7 +564,7 @@ func (server *GripServer) BulkAdd(stream gripql.Edit_BulkAddServer) error {
 		}
 		if element.Edge != nil {
 			if element.Edge.Id == "" {
-				element.Edge.Id = util.UUID()
+				element.Edge.Id = util.DeterministicEdgeID(element.Edge.From, element.Edge.To, element.Edge.Label, element.Edge.Data.AsMap())
 			}
 			if err := element.Edge.Validate(); err != nil {
 				log.WithFields(log.Fields{"graph": element.Graph, "error": err}).Errorf("BulkAdd: edge validation failed for edge: %#v", element.Edge)

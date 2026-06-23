@@ -1,0 +1,1167 @@
+package driver
+
+import (
+	"bytes"
+	"context"
+	"encoding/binary"
+	"errors"
+	"fmt"
+	"sort"
+	"strings"
+	"sync"
+
+	"github.com/bmeg/benchtop"
+	"github.com/bmeg/benchtop/arrowdriver"
+	bFilters "github.com/bmeg/benchtop/filters"
+	"github.com/bmeg/benchtop/jsontable"
+	"github.com/bmeg/benchtop/jsontable/tpath"
+	"github.com/bmeg/benchtop/pebblebulk"
+	"github.com/bmeg/benchtop/query"
+	"github.com/bmeg/benchtop/util"
+	"github.com/bmeg/grip/grids/driver/indexer"
+	"github.com/bmeg/grip/grids/key"
+	"github.com/bmeg/grip/log"
+	"github.com/cockroachdb/pebble"
+)
+
+var ErrNotFound = errors.New("row not found in any table")
+
+type IDInfo struct {
+	Label string
+	Loc   *benchtop.RowLoc
+	Data  map[string]any
+}
+
+type BackendTable struct {
+	Name    string
+	Label   string
+	TableId uint16
+	Fields  map[string]struct{}
+	benchtop.TableStore
+}
+
+type FieldInfo struct {
+	Label string
+	Field string
+}
+
+type GridKVDriver struct {
+	Lock       sync.RWMutex
+	PebbleLock sync.RWMutex
+	Pkv        *pebblebulk.PebbleKV
+	closePkv   func() error
+	Tables     map[string]*BackendTable
+	TablesByID map[uint16]*BackendTable
+	TableDr    benchtop.TableDriver
+
+	// ID mapping state (volatile or using pebble)
+	idMapMu sync.Mutex
+	idMap   map[string]uint64
+	ridMap  map[uint64]string
+	nextID  uint64
+}
+
+func tableLabelFromName(name string) string {
+	if strings.HasPrefix(name, "v_") || strings.HasPrefix(name, "e_") {
+		return name[2:]
+	}
+	return name
+}
+
+func columnDefsToFieldSet(cols []benchtop.ColumnDef) map[string]struct{} {
+	fields := make(map[string]struct{}, len(cols))
+	for _, col := range cols {
+		fields[col.Key] = struct{}{}
+	}
+	return fields
+}
+
+func newBackendTable(name string, tableID uint16, store benchtop.TableStore) *BackendTable {
+	return &BackendTable{
+		Name:       name,
+		Label:      tableLabelFromName(name),
+		TableId:    tableID,
+		Fields:     columnDefsToFieldSet(store.GetColumnDefs()),
+		TableStore: store,
+	}
+}
+
+func NewGridKVDriver(path string, driver string) (*GridKVDriver, error) {
+	if driver == "" {
+		driver = "jsontable"
+	}
+	driver = strings.ToLower(driver)
+	log.Infof("Initializing grids benchtop backend driver=%s path=%s", driver, path)
+
+	var td benchtop.TableDriver
+	var pkv *pebblebulk.PebbleKV
+	var closePkv func() error
+	var err error
+	switch driver {
+	case "jsontable", "json":
+		td, err = jsontable.NewJSONDriver(path)
+		if err != nil {
+			return nil, err
+		}
+		rawKV := td.GetKV()
+		typedKV, ok := rawKV.(*pebblebulk.PebbleKV)
+		if !ok || typedKV == nil {
+			td.Close()
+			return nil, fmt.Errorf("jsontable driver returned unsupported KV type %T", rawKV)
+		}
+		pkv = typedKV
+	case "arrow":
+		pkv, err = pebblebulk.NewPebbleKV(path)
+		if err != nil {
+			return nil, err
+		}
+		closePkv = pkv.Close
+		td, err = arrowdriver.NewArrowDriver(path)
+		if err != nil {
+			pkv.Close()
+			return nil, err
+		}
+	default:
+		return nil, fmt.Errorf("unsupported grids table driver %q; supported drivers: jsontable, arrow", driver)
+	}
+
+	dr := &GridKVDriver{
+		Lock:       sync.RWMutex{},
+		PebbleLock: sync.RWMutex{},
+		TableDr:    td,
+		Pkv:        pkv,
+		closePkv:   closePkv,
+		Tables:     make(map[string]*BackendTable),
+		TablesByID: make(map[uint16]*BackendTable),
+		idMap:      make(map[string]uint64),
+		ridMap:     make(map[uint64]string),
+	}
+
+	// Load existing ID mapping stats
+	val, closer, err := dr.Pkv.Get(benchtop.MaxIDKey)
+	if err == nil {
+		dr.nextID = binary.BigEndian.Uint64(val)
+		closer.Close()
+	} else {
+		dr.nextID = 1
+	}
+
+	// We no longer PreloadCache as locations are embedded in structural keys.
+	// But we MUST discover which tables exist so label scans work.
+	for _, tableName := range dr.TableDr.List() {
+		if _, err := dr.GetOrLoadTable(tableName); err != nil {
+			log.Errorf("Failed to discover table %s: %v", tableName, err)
+		}
+	}
+	if err := dr.LoadFields(); err != nil {
+		dr.Close()
+		return nil, err
+	}
+
+	return dr, nil
+}
+
+func (dr *GridKVDriver) GetID(s string) (uint64, error) {
+	ids, err := dr.GetIDs([]string{s})
+	if err != nil {
+		return 0, err
+	}
+	return ids[0], nil
+}
+
+func (dr *GridKVDriver) GetIDs(ids []string) ([]uint64, error) {
+	out := make([]uint64, len(ids))
+	remaining := make(map[int]string)
+
+	dr.idMapMu.Lock()
+	for i, s := range ids {
+		if id, ok := dr.idMap[s]; ok {
+			out[i] = id
+		} else {
+			remaining[i] = s
+		}
+	}
+	dr.idMapMu.Unlock()
+
+	if len(remaining) == 0 {
+		return out, nil
+	}
+
+	// Fetch missing from Pebble
+	err := dr.Pkv.View(func(it *pebblebulk.PebbleIterator) error {
+		for i, s := range remaining {
+			ikey := key.StringToIDKey(s)
+			val, err := it.Get(ikey)
+			if err == nil {
+				id := binary.BigEndian.Uint64(val)
+				out[i] = id
+				delete(remaining, i)
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if len(remaining) == 0 {
+		// Update cache
+		dr.idMapMu.Lock()
+		for i, id := range out {
+			dr.idMap[ids[i]] = id
+			dr.ridMap[id] = ids[i]
+		}
+		dr.idMapMu.Unlock()
+		return out, nil
+	}
+
+	// Create new IDs for orphans
+	err = dr.Pkv.BulkWrite(func(tx *pebblebulk.PebbleBulk) error {
+		dr.idMapMu.Lock()
+		defer dr.idMapMu.Unlock()
+
+		for i, s := range remaining {
+			// Double check if someone else created it
+			ikey := key.StringToIDKey(s)
+			id := dr.nextID
+			dr.nextID++
+
+			idBytes := make([]byte, 8)
+			binary.BigEndian.PutUint64(idBytes, id)
+			if err := tx.Set(ikey, idBytes, nil); err != nil {
+				return err
+			}
+			if err := tx.Set(key.IDToStringKey(id), []byte(s), nil); err != nil {
+				return err
+			}
+			out[i] = id
+			dr.idMap[s] = id
+			dr.ridMap[id] = s
+		}
+
+		maxBytes := make([]byte, 8)
+		binary.BigEndian.PutUint64(maxBytes, dr.nextID)
+		if err := tx.Set(benchtop.MaxIDKey, maxBytes, nil); err != nil {
+			return err
+		}
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return out, nil
+}
+
+func (dr *GridKVDriver) TranslateID(id uint64) (string, error) {
+	dr.idMapMu.Lock()
+	if s, ok := dr.ridMap[id]; ok {
+		dr.idMapMu.Unlock()
+		return s, nil
+	}
+	dr.idMapMu.Unlock()
+
+	rkey := key.IDToStringKey(id)
+	val, closer, err := dr.Pkv.Get(rkey)
+	if err != nil {
+		return "", err
+	}
+	defer closer.Close()
+	s := string(val)
+
+	dr.idMapMu.Lock()
+	dr.idMap[s] = id
+	dr.ridMap[id] = s
+	dr.idMapMu.Unlock()
+	return s, nil
+}
+
+func (d *GridKVDriver) AddFieldIndex(label, field string) error {
+	id, err := d.TableDr.LookupTableID(label)
+	if err != nil {
+		return err
+	}
+	return d.AddField(id, field)
+}
+
+func (d *GridKVDriver) RemoveFieldIndex(label, field string) error {
+	id, err := d.TableDr.LookupTableID(label)
+	if err != nil {
+		return err
+	}
+	return d.RemoveField(id, field)
+}
+
+func (d *GridKVDriver) Close() {
+	d.Lock.Lock()
+	defer d.Lock.Unlock()
+	if d.TableDr != nil {
+		d.TableDr.Close()
+	}
+	if d.closePkv != nil {
+		_ = d.closePkv()
+		d.closePkv = nil
+	}
+}
+
+func (d *GridKVDriver) GetOrLoadTable(name string) (*BackendTable, error) {
+	// Resolve ID from label name
+	id, err := d.TableDr.LookupTableID(name)
+	if err != nil {
+		// Try case-insensitive lookup if direct lookup fails (optional, based on design)
+		// But TableDr should handle canonicalization or we accept error.
+		return nil, fmt.Errorf("table %s not found: %v", name, err)
+	}
+
+	d.Lock.RLock()
+	if t, ok := d.Tables[name]; ok {
+		d.Lock.RUnlock()
+		return t, nil
+	}
+	d.Lock.RUnlock()
+
+	d.Lock.Lock()
+	defer d.Lock.Unlock()
+	if t, ok := d.Tables[name]; ok {
+		return t, nil
+	}
+
+	store, err := d.TableDr.Get(id)
+	if err != nil {
+		return nil, err
+	}
+	bt := newBackendTable(name, id, store)
+	d.Tables[name] = bt
+	d.TablesByID[id] = bt
+	return bt, nil
+}
+
+func (d *GridKVDriver) GetTableByID(id uint16) (*BackendTable, error) {
+	d.Lock.RLock()
+	t, ok := d.TablesByID[id]
+	d.Lock.RUnlock()
+	if ok {
+		return t, nil
+	}
+
+	// Try to load if not in memory
+	info, err := d.TableDr.GetTableInfo(id)
+	if err != nil {
+		return nil, err
+	}
+	return d.GetOrLoadTable(info.Name)
+}
+
+func (d *GridKVDriver) New(name string, columns []benchtop.ColumnDef) (benchtop.TableStore, error) {
+	// Check if already exists? GetOrLoad checks.
+	// We can trust TableDr.New to handle existence or overwriting logic.
+
+	store, err := d.TableDr.New(name, columns)
+	if err != nil {
+		return nil, err
+	}
+
+	// We need ID to store in cache.
+	id, err := d.TableDr.LookupTableID(name)
+	if err != nil {
+		// Should not happen if New succeeded?
+		return nil, fmt.Errorf("failed to lookup ID after New(%s): %v", name, err)
+	}
+
+	d.Lock.Lock()
+	defer d.Lock.Unlock()
+
+	// Check if already in map (race condition?)
+	if t, ok := d.Tables[name]; ok {
+		return t, nil
+	}
+
+	t := newBackendTable(name, id, store)
+	d.Tables[name] = t
+	d.TablesByID[id] = t
+	return t, nil
+}
+
+func (d *GridKVDriver) Get(name string) (benchtop.TableStore, error) {
+	return d.GetOrLoadTable(name)
+}
+
+func (d *GridKVDriver) List() []string { return d.TableDr.List() }
+
+func (d *GridKVDriver) AddTableEntryInfo(tx *pebblebulk.PebbleBulk, rowID []byte, rowLoc *benchtop.RowLoc) error {
+	return tx.Set(benchtop.NewPosKey(rowLoc.TableId, rowID), benchtop.EncodeRowLoc(rowLoc), nil)
+}
+
+func (d *GridKVDriver) BulkLoad(tableID uint16, rows chan *benchtop.Row) error {
+	return d.Pkv.BulkWrite(func(tx *pebblebulk.PebbleBulk) error {
+		return d.BulkLoadInternal(tableID, rows, tx)
+	})
+}
+
+func (d *GridKVDriver) BulkLoadInternal(targetID uint16, inputs chan *benchtop.Row, tx *pebblebulk.PebbleBulk) error {
+	var wg sync.WaitGroup
+	tableChans := make(map[uint16]chan *benchtop.Row)
+
+	// Global tracker for this specific bulk load session
+	// This prevents duplicates from entering ANY table channel
+	inFlight := sync.Map{}
+
+	// We also need a snapshot here to check against the existing DB
+	snap := d.Pkv.Db.NewSnapshot()
+	defer snap.Close()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for row := range inputs {
+			if row == nil {
+				continue
+			}
+
+			// 1. Check against the DB (Snapshot)
+			pKey := benchtop.NewPosKey(row.TableID, row.Id)
+			_, closer, err := snap.Get(pKey)
+			if err == nil {
+				closer.Close()
+				continue // Already in DB
+			}
+
+			// 2. Check against "In-Flight" memory
+			idStr := string(row.Id)
+			if _, loaded := inFlight.LoadOrStore(idStr, struct{}{}); loaded {
+				continue // Already being processed by a channel
+			}
+
+			// 3. Dispatch to table channel
+			id := row.TableID
+			ch, exists := tableChans[id]
+			if !exists {
+				// ... (your existing table info loading logic)
+				ch = make(chan *benchtop.Row, 1024)
+				tableChans[id] = ch
+				wg.Add(1)
+				go func(id uint16, c chan *benchtop.Row) {
+					defer wg.Done()
+					d.TableDr.BulkLoad(id, c)
+				}(id, ch)
+			}
+			ch <- row
+		}
+		for _, ch := range tableChans {
+			close(ch)
+		}
+	}()
+	wg.Wait()
+	return nil
+}
+
+func (d *GridKVDriver) RowIdsByHas(field string, value any, op query.Condition) chan benchtop.Index {
+	return d.TableDr.RowIdsByHas(field, value, op)
+}
+
+func (d *GridKVDriver) tableIDsForLabel(label string) []uint16 {
+	d.Lock.RLock()
+	var tids []uint16
+	for _, t := range d.Tables {
+		if t.Label == label || t.Name == label {
+			tids = append(tids, t.TableId)
+		}
+	}
+	d.Lock.RUnlock()
+	return tids
+}
+
+func (d *GridKVDriver) rowIdsByTableSetFieldValue(tableIDs map[uint16]struct{}, field string, value any, op query.Condition) chan benchtop.Index {
+	out := make(chan benchtop.Index)
+	go func() {
+		defer close(out)
+		if len(tableIDs) == 0 {
+			return
+		}
+
+		emitFallback := func(fallbackIDs []uint16) {
+			var wg sync.WaitGroup
+			for _, tableID := range fallbackIDs {
+				wg.Add(1)
+				go func(tableID uint16) {
+					defer wg.Done()
+					for idx := range d.rowIdsByTableFieldValueLive(tableID, field, value, op) {
+						out <- idx
+					}
+				}(tableID)
+			}
+			wg.Wait()
+		}
+
+		if op == query.EQ {
+			// Use index only for tables known to have this field indexed.
+			indexedTables := make(map[uint16]struct{}, len(tableIDs))
+			fallbackIDs := make([]uint16, 0, len(tableIDs))
+			d.Lock.RLock()
+			for tableID := range tableIDs {
+				if tbl, ok := d.TablesByID[tableID]; ok && tbl != nil && tbl.Fields != nil {
+					if _, indexed := tbl.Fields[field]; indexed {
+						indexedTables[tableID] = struct{}{}
+						continue
+					}
+				}
+				fallbackIDs = append(fallbackIDs, tableID)
+			}
+			d.Lock.RUnlock()
+
+			usedIndex := false
+			if len(indexedTables) > 0 {
+				prefix := benchtop.FieldValueKey(field, value)
+				if prefix != nil {
+					usedIndex = true
+					prefix = append(prefix, benchtop.FieldSep...)
+					seen := make(map[string]struct{}, 4096)
+					_ = d.Pkv.View(func(it *pebblebulk.PebbleIterator) error {
+						for it.Seek(prefix); it.Valid() && bytes.HasPrefix(it.Key(), prefix); it.Next() {
+							_, tableID, _, rowID := benchtop.FieldKeyParse(it.Key())
+							if _, ok := indexedTables[tableID]; !ok {
+								continue
+							}
+
+							// Deduplicate by (tableID,rowID) in case of stale duplicate index entries.
+							seenKeyBuf := make([]byte, 2+len(rowID))
+							binary.LittleEndian.PutUint16(seenKeyBuf[0:2], tableID)
+							copy(seenKeyBuf[2:], rowID)
+							seenKey := string(seenKeyBuf)
+							if _, ok := seen[seenKey]; ok {
+								continue
+							}
+
+							val, err := it.Value()
+							if err != nil {
+								continue
+							}
+							idxLoc := benchtop.DecodeRowLoc(val)
+							if idxLoc == nil {
+								continue
+							}
+
+							// Validate against live primary index to avoid tombstoned/stale field index keys.
+							posVal, err := it.Get(benchtop.NewPosKey(tableID, rowID))
+							if err != nil {
+								continue
+							}
+							posLoc := benchtop.DecodeRowLoc(posVal)
+							if posLoc == nil || !sameRowLoc(posLoc, idxLoc) {
+								continue
+							}
+							safeID := make([]byte, len(rowID))
+							copy(safeID, rowID)
+							seen[seenKey] = struct{}{}
+							out <- benchtop.Index{Key: safeID, Loc: posLoc}
+						}
+						return nil
+					})
+				}
+			}
+
+			if !usedIndex {
+				for tableID := range indexedTables {
+					fallbackIDs = append(fallbackIDs, tableID)
+				}
+			}
+			emitFallback(fallbackIDs)
+			return
+		}
+
+		// Non-EQ operators: defer to per-table evaluator.
+		fallbackIDs := make([]uint16, 0, len(tableIDs))
+		for tableID := range tableIDs {
+			fallbackIDs = append(fallbackIDs, tableID)
+		}
+		emitFallback(fallbackIDs)
+	}()
+	return out
+}
+
+func sameRowLoc(a, b *benchtop.RowLoc) bool {
+	if a == nil || b == nil {
+		return false
+	}
+	return a.TableId == b.TableId &&
+		a.Section == b.Section &&
+		a.Offset == b.Offset &&
+		a.Size == b.Size &&
+		a.Index == b.Index
+}
+
+func (d *GridKVDriver) rowIdsByTableFieldValueLive(tableID uint16, field string, value any, op query.Condition) chan benchtop.Index {
+	out := make(chan benchtop.Index, 256)
+	go func() {
+		defer close(out)
+
+		t, err := d.GetTableByID(tableID)
+		if err != nil {
+			return
+		}
+		cond := &bFilters.FieldFilter{
+			Operator: op,
+			Field:    field,
+			Value:    value,
+		}
+
+		const batchSize = 2048
+		locs := make([]*benchtop.RowLoc, 0, batchSize)
+		ids := make([][]byte, 0, batchSize)
+
+		flush := func() {
+			if len(locs) == 0 {
+				return
+			}
+			rows, errs := t.GetRows(locs)
+			for i := range rows {
+				if i >= len(errs) || errs[i] != nil || rows[i] == nil {
+					continue
+				}
+				fieldVal := tpath.PathLookup(rows[i], field)
+				if !bFilters.ApplyFilterCondition(fieldVal, cond) {
+					continue
+				}
+				safeID := make([]byte, len(ids[i]))
+				copy(safeID, ids[i])
+				out <- benchtop.Index{Key: safeID, Loc: locs[i]}
+			}
+			locs = locs[:0]
+			ids = ids[:0]
+		}
+
+		for idx := range d.GetIndicesForTable(tableID) {
+			if idx.Loc == nil || len(idx.Key) == 0 {
+				continue
+			}
+			locs = append(locs, idx.Loc)
+			ids = append(ids, idx.Key)
+			if len(locs) >= batchSize {
+				flush()
+			}
+		}
+		flush()
+	}()
+	return out
+}
+
+func (d *GridKVDriver) RowIdsByLabelFieldValue(label, field string, value any, op query.Condition) chan benchtop.Index {
+	tids := d.tableIDsForLabel(label)
+	tableSet := make(map[uint16]struct{}, len(tids))
+	for _, tableID := range tids {
+		tableSet[tableID] = struct{}{}
+	}
+	return d.rowIdsByTableSetFieldValue(tableSet, field, value, op)
+}
+
+func (d *GridKVDriver) RowIdsByLabelsFieldValue(labels []string, field string, value any, op query.Condition) chan benchtop.Index {
+	tableSet := make(map[uint16]struct{}, len(labels))
+	for _, label := range labels {
+		for _, tableID := range d.tableIDsForLabel(label) {
+			tableSet[tableID] = struct{}{}
+		}
+	}
+	return d.rowIdsByTableSetFieldValue(tableSet, field, value, op)
+}
+
+func (d *GridKVDriver) GetLabels(edges bool, removePrefix bool) chan string {
+	return d.TableDr.GetLabels(edges, removePrefix)
+}
+
+func (d *GridKVDriver) InvalidateLoc(tableID uint16, rowID string) {
+	d.TableDr.InvalidateLoc(tableID, rowID)
+}
+
+func (d *GridKVDriver) GetIDsForLabel(label string) chan string {
+	tids := d.tableIDsForLabel(label)
+
+	out := make(chan string)
+	go func() {
+		defer close(out)
+		var wg sync.WaitGroup
+		for _, tid := range tids {
+			wg.Add(1)
+			go func(tid uint16) {
+				defer wg.Done()
+				for id := range d.GetIDsForTable(tid) {
+					out <- id
+				}
+			}(tid)
+		}
+		wg.Wait()
+	}()
+	return out
+}
+
+func (d *GridKVDriver) AddField(tableID uint16, field string) error {
+	d.Lock.Lock()
+	if t, ok := d.TablesByID[tableID]; ok {
+		if t.Fields == nil {
+			t.Fields = make(map[string]struct{})
+		}
+		t.Fields[field] = struct{}{}
+	}
+	d.Lock.Unlock()
+
+	forwardKey, reversePrefix := indexer.PresenceKeys(tableID, field)
+	if err := d.Pkv.Set(forwardKey, []byte{}, nil); err != nil {
+		return err
+	}
+	if err := d.Pkv.Set(reversePrefix, []byte{}, nil); err != nil {
+		return err
+	}
+
+	store, err := d.TableDr.Get(tableID)
+	if err != nil {
+		return err
+	}
+	return d.Pkv.BulkWrite(func(tx *pebblebulk.PebbleBulk) error {
+		for r := range store.ScanFull(nil) {
+			fieldValue := tpath.PathLookup(r.DataMap, field)
+			rowID, ok := r.DataMap["_id"].(string)
+			if !ok {
+				continue
+			}
+			if fieldValue != nil {
+				for _, e := range indexer.BuildFieldIndexEntries(tableID, field, rowID, fieldValue, r.Loc) {
+					if err := tx.Set(e.Key, e.Value, nil); err != nil {
+						return err
+					}
+				}
+			}
+		}
+		return nil
+	})
+}
+
+func (d *GridKVDriver) RemoveField(tableID uint16, field string) error {
+	d.Lock.Lock()
+	if t, ok := d.TablesByID[tableID]; ok && t.Fields != nil {
+		delete(t.Fields, field)
+	}
+	d.Lock.Unlock()
+
+	fieldPrefix := benchtop.FieldLabelKey(field, tableID)
+	_, revPrefix := indexer.PresenceKeys(tableID, field)
+	return d.Pkv.BulkWrite(func(tx *pebblebulk.PebbleBulk) error {
+		if err := tx.DeletePrefix(fieldPrefix); err != nil {
+			return err
+		}
+		if err := tx.DeletePrefix(revPrefix); err != nil {
+			return err
+		}
+		return nil
+	})
+}
+
+func (d *GridKVDriver) DeleteRowField(tableID uint16, field, rowID string) error {
+	// Deletes a singular row index field
+
+	// Get the field value from the reverse index
+	rowIndexKey := benchtop.RFieldKey(tableID, field, rowID)
+	var fieldValueBytes []byte
+	err := d.Pkv.View(func(it *pebblebulk.PebbleIterator) error {
+		val, err := it.Get(rowIndexKey)
+		if err != nil {
+			return err
+		}
+		fieldValueBytes = make([]byte, len(val))
+		copy(fieldValueBytes, val)
+		return nil
+	})
+
+	if err != nil {
+		if errors.Is(err, pebble.ErrNotFound) {
+			return nil // Already deleted or doesn't exist
+		}
+		return err
+	}
+
+	var fieldValue any
+	if len(fieldValueBytes) > 0 {
+		decoded, err := indexer.DecodeReverseFieldValue(fieldValueBytes)
+		if err != nil {
+			return err
+		}
+		fieldValue = decoded
+	}
+
+	// Delete both the forward and reverse index entries
+	return d.Pkv.BulkWrite(func(tx *pebblebulk.PebbleBulk) error {
+		if err := tx.Delete(benchtop.FieldKey(field, tableID, fieldValue, []byte(rowID)), nil); err != nil {
+			return err
+		}
+		if err := tx.Delete(rowIndexKey, nil); err != nil {
+			return err
+		}
+		return nil
+	})
+}
+
+func (d *GridKVDriver) GetIDsForTable(tableID uint16) chan string {
+	out := make(chan string, 256)
+	go func() {
+		defer close(out)
+
+		prefix := benchtop.NewPosKeyPrefix(tableID)
+		err := d.Pkv.View(func(it *pebblebulk.PebbleIterator) error {
+			for it.Seek(prefix); it.Valid() && bytes.HasPrefix(it.Key(), prefix); it.Next() {
+				_, rowID := benchtop.ParsePosKey(it.Key())
+				if len(rowID) == 0 {
+					continue
+				}
+				out <- string(rowID)
+			}
+			return nil
+		})
+		if err == nil {
+			return
+		}
+
+		// Fallback to full table scan if pos index scan fails.
+		store, storeErr := d.TableDr.Get(tableID)
+		if storeErr != nil {
+			log.Warningf("GetIDsForTable failed tableID=%d posErr=%v storeErr=%v", tableID, err, storeErr)
+			return
+		}
+		for rowID := range store.ScanId(nil) {
+			out <- rowID
+		}
+	}()
+	return out
+}
+
+func (d *GridKVDriver) GetIndicesForTable(tableID uint16) chan benchtop.Index {
+	out := make(chan benchtop.Index, 256)
+	go func() {
+		defer close(out)
+		prefix := benchtop.NewPosKeyPrefix(tableID)
+		_ = d.Pkv.View(func(it *pebblebulk.PebbleIterator) error {
+			for it.Seek(prefix); it.Valid() && bytes.HasPrefix(it.Key(), prefix); it.Next() {
+				_, rowID := benchtop.ParsePosKey(it.Key())
+				if len(rowID) == 0 {
+					continue
+				}
+				val, err := it.Value()
+				if err != nil {
+					continue
+				}
+				loc := benchtop.DecodeRowLoc(val)
+				if loc == nil {
+					continue
+				}
+				safeID := make([]byte, len(rowID))
+				copy(safeID, rowID)
+				out <- benchtop.Index{Key: safeID, Loc: loc}
+			}
+			return nil
+		})
+	}()
+	return out
+}
+
+func (d *GridKVDriver) RowLocsByLabel(label string) chan benchtop.Index {
+	tids := d.tableIDsForLabel(label)
+	out := make(chan benchtop.Index)
+	go func() {
+		defer close(out)
+		var wg sync.WaitGroup
+		for _, tid := range tids {
+			wg.Add(1)
+			go func(tid uint16) {
+				defer wg.Done()
+				for idx := range d.GetIndicesForTable(tid) {
+					out <- idx
+				}
+			}(tid)
+		}
+		wg.Wait()
+	}()
+	return out
+}
+
+func (d *GridKVDriver) LoadFields() error {
+	fPrefix := benchtop.FieldPrefix
+	return d.Pkv.View(func(it *pebblebulk.PebbleIterator) error {
+		for it.Seek(fPrefix); it.Valid() && bytes.HasPrefix(it.Key(), fPrefix); it.Next() {
+			field, tableID, _, _ := benchtop.FieldKeyParse(it.Key())
+			info, err := d.TableDr.GetTableInfo(tableID)
+			if err != nil {
+				continue
+			}
+			table, err := d.GetOrLoadTable(info.Name)
+			if err != nil {
+				continue
+			}
+			if table.Fields == nil {
+				table.Fields = map[string]struct{}{}
+			}
+			table.Fields[field] = struct{}{}
+		}
+		return nil
+	})
+}
+
+func (d *GridKVDriver) ValuesWithin(v any) []any { return util.SliceToAny(v) }
+
+func (d *GridKVDriver) BulkLoadBatch(tx *pebblebulk.PebbleBulk, entries []*benchtop.Row, snap *pebble.Snapshot) error {
+	if len(entries) == 0 {
+		return nil
+	}
+
+	var it *pebble.Iterator
+	if snap != nil {
+		it, _ = snap.NewIter(nil)
+		defer it.Close()
+	}
+
+	// 1. Group rows by TableID
+	byTable := make(map[uint16][]*benchtop.Row)
+	for _, row := range entries {
+		byTable[row.TableID] = append(byTable[row.TableID], row)
+	}
+
+	for tid, rows := range byTable {
+		t, err := d.GetTableByID(tid)
+		if err != nil {
+			return err
+		}
+
+		// Sort rows by ID to maximize iterator spatial locality during existence check
+		sort.Slice(rows, func(i, j int) bool {
+			return bytes.Compare(rows[i].Id, rows[j].Id) < 0
+		})
+
+		// 2. Process all entries (uniqueness already verified by caller)
+		filteredRows := rows
+
+		// Prepare raw rows for the table driver (JSONTable.AddRows uses []Row)
+		rawRows := make([]benchtop.Row, len(filteredRows))
+		for i, r := range filteredRows {
+			rawRows[i] = *r
+		}
+
+		// 3. Bulk add rows to the table storage (e.g. JSON/Pebble/Arrow)
+		locs, err := t.AddRows(rawRows)
+		if err != nil {
+			return err
+		}
+
+		if len(locs) != len(filteredRows) {
+			return fmt.Errorf("BulkLoadBatch: AddRows returned %d locs for %d rows", len(locs), len(filteredRows))
+		}
+
+		// 4. Process each row's index and metadata updates
+		for i, row := range filteredRows {
+			rowLoc := locs[i]
+			idStr := string(row.Id)
+
+			// Update the structural keys (Integrated Keys)
+			// Check if it's a vertex or edge based on table name prefix
+			uid, _ := d.GetID(idStr)
+			if strings.HasPrefix(t.Name, key.VertexTablePrefix) {
+				vkey := key.VertexKey(uid)
+				// We need the label. BackendTable has it.
+				val := benchtop.EncodeVertexValue(t.Label, rowLoc)
+				if err := tx.Set(vkey, val, nil); err != nil {
+					return err
+				}
+			} else if strings.HasPrefix(t.Name, key.EdgeTablePrefix) {
+				// For edges, we might need to update multi-keys.
+				// This is a bit complex in driver if we don't have the From/To.
+				// But we can check if data has them (BulkAdd puts them there).
+				fromStr, fOk := row.Data["_from"].(string)
+				toStr, tOk := row.Data["_to"].(string)
+				if fOk && tOk {
+					fuid, _ := d.GetID(fromStr)
+					tuid, _ := d.GetID(toStr)
+					val := benchtop.EncodeEdgeValue(t.Label, rowLoc, row.Data)
+					ekey := key.EdgeKey(uid, fuid, tuid, t.Label)
+					if err := tx.Set(ekey, val, nil); err != nil {
+						return err
+					}
+					if err := tx.Set(key.SrcEdgeKey(uid, fuid, tuid, t.Label), val, nil); err != nil {
+						return err
+					}
+					if err := tx.Set(key.DstEdgeKey(uid, fuid, tuid, t.Label), val, nil); err != nil {
+						return err
+					}
+				}
+			}
+
+			// Primary Index partitioned by TableID (useful for scans)
+			if err := tx.Set(benchtop.NewPosKey(tid, row.Id), benchtop.EncodeRowLoc(rowLoc), nil); err != nil {
+				return err
+			}
+
+			// Secondary Index building
+			if len(t.Fields) > 0 {
+				for field := range t.Fields {
+					if val := tpath.PathLookup(row.Data, field); val != nil {
+						for _, e := range indexer.BuildFieldIndexEntries(tid, field, idStr, val, rowLoc) {
+							if err := tx.Set(e.Key, e.Value, nil); err != nil {
+								return err
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	return nil
+}
+
+func (d *GridKVDriver) ListFields() []FieldInfo {
+	var out []FieldInfo
+	// Explicitly load all tables to ensure we have their field info
+	for _, name := range d.TableDr.List() {
+		if _, err := d.GetOrLoadTable(name); err != nil {
+			continue
+		}
+	}
+
+	d.Lock.RLock()
+	defer d.Lock.RUnlock()
+
+	for _, table := range d.Tables {
+		if table == nil {
+			continue
+		}
+		info, err := d.TableDr.GetTableInfo(table.TableId)
+		if err != nil {
+			continue
+		}
+		for field := range table.Fields {
+			out = append(out, FieldInfo{Label: info.Name, Field: field})
+		}
+	}
+	return out
+}
+
+func (d *GridKVDriver) GetLocBatch(ctx context.Context, ids []string) (map[string]*IDInfo, error) {
+	out := make(map[string]*IDInfo, len(ids))
+	uids, err := d.GetIDs(ids)
+	if err != nil {
+		return nil, err
+	}
+
+	for i, id := range ids {
+		uid := uids[i]
+		// 1. Check Vertex
+		vkey := key.VertexKey(uid)
+		val, closer, err := d.Pkv.Get(vkey)
+		if err == nil {
+			vlbl, loc := benchtop.DecodeVertexValue(val)
+			closer.Close()
+			if loc != nil {
+				out[id] = &IDInfo{Label: vlbl, Loc: loc}
+				continue
+			}
+		}
+
+		// 2. Check Edges
+		ekeyPrefix := key.EdgeKeyPrefix(uid)
+		var eloc *benchtop.RowLoc
+		var elbl string
+		var edata map[string]any
+		_ = d.Pkv.View(func(it *pebblebulk.PebbleIterator) error {
+			for it.Seek(ekeyPrefix); it.Valid() && bytes.HasPrefix(it.Key(), ekeyPrefix); it.Next() {
+				byteVal, _ := it.Value()
+				var lbl string
+				var loc *benchtop.RowLoc
+				var data map[string]any
+				lbl, loc, data = benchtop.DecodeEdgeValue(byteVal)
+				if loc != nil {
+					eloc = loc
+					elbl = lbl
+					edata = data
+					return nil
+				}
+			}
+			return nil
+		})
+		if eloc != nil {
+			out[id] = &IDInfo{Label: elbl, Loc: eloc, Data: edata}
+		}
+	}
+	return out, nil
+}
+
+// GetVertexLocBatch resolves vertex RowLocs only (no edge scan fallback).
+// This is significantly faster for V() traversal hydration paths.
+func (d *GridKVDriver) GetVertexLocBatch(ctx context.Context, ids []string) (map[string]*IDInfo, error) {
+	out := make(map[string]*IDInfo, len(ids))
+	uids, err := d.GetIDs(ids)
+	if err != nil {
+		return nil, err
+	}
+	for i, id := range ids {
+		select {
+		case <-ctx.Done():
+			return out, ctx.Err()
+		default:
+		}
+		uid := uids[i]
+		vkey := key.VertexKey(uid)
+		val, closer, err := d.Pkv.Get(vkey)
+		if err != nil {
+			continue
+		}
+		vlbl, loc := benchtop.DecodeVertexValue(val)
+		closer.Close()
+		if loc != nil {
+			out[id] = &IDInfo{Label: vlbl, Loc: loc}
+		}
+	}
+	return out, nil
+}
+
+// GetVertexLocByUIDBatch resolves vertex RowLocs by numeric UID using one iterator
+// pass in UID-sorted order to minimize random seeks.
+func (d *GridKVDriver) GetVertexLocByUIDBatch(ctx context.Context, uids []uint64) (map[uint64]*IDInfo, error) {
+	out := make(map[uint64]*IDInfo, len(uids))
+	if len(uids) == 0 {
+		return out, nil
+	}
+	dedup := make(map[uint64]struct{}, len(uids))
+	uniq := make([]uint64, 0, len(uids))
+	for _, uid := range uids {
+		if uid == 0 {
+			continue
+		}
+		if _, ok := dedup[uid]; ok {
+			continue
+		}
+		dedup[uid] = struct{}{}
+		uniq = append(uniq, uid)
+	}
+	sort.Slice(uniq, func(i, j int) bool { return uniq[i] < uniq[j] })
+
+	err := d.Pkv.View(func(it *pebblebulk.PebbleIterator) error {
+		for _, uid := range uniq {
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			default:
+			}
+			vkey := key.VertexKey(uid)
+			if err := it.Seek(vkey); err != nil {
+				continue
+			}
+			if !it.Valid() || !bytes.Equal(it.Key(), vkey) {
+				continue
+			}
+			val, err := it.Value()
+			if err != nil {
+				continue
+			}
+			vlbl, loc := benchtop.DecodeVertexValue(val)
+			if loc != nil {
+				out[uid] = &IDInfo{Label: vlbl, Loc: loc}
+			}
+		}
+		return nil
+	})
+	return out, err
+}

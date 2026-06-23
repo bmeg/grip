@@ -19,7 +19,9 @@ import (
 
 var loaded = kvi.AddKVDriver("pebble", NewKVInterface)
 
-var defaultCompactLimit = uint32(10000)
+// Default to Pebble-managed background compaction only.
+// Set to a non-zero value to enable manual compaction after N inserts.
+var defaultCompactLimit = uint32(0)
 
 // PebbleKV is an implementation of the KVStore for badger
 type PebbleKV struct {
@@ -41,7 +43,7 @@ func WrapPebble(db *pebble.DB) kvi.KVInterface {
 	return &PebbleKV{
 		db:           db,
 		insertCount:  0,
-		compactLimit: 10000,
+		compactLimit: defaultCompactLimit,
 	}
 }
 
@@ -256,14 +258,17 @@ func (pdb *PebbleKV) BulkWrite(u func(tx kvi.KVBulkWrite) error) error {
 	batch := pdb.db.NewBatch()
 	ptx := &pebbleBulkWrite{pdb.db, batch, nil, nil, 0, 0}
 	err := u(ptx)
-	batch.Commit(nil)
+	if cErr := batch.Commit(nil); cErr != nil && err == nil {
+		err = cErr
+	}
 	batch.Close()
 
 	pdb.insertCount += ptx.totalInserts
-	if pdb.insertCount > pdb.compactLimit {
+	if pdb.compactLimit > 0 && pdb.insertCount > pdb.compactLimit {
 		log.Debugf("Running pebble compact %d > %d", pdb.insertCount, pdb.compactLimit)
-		//pdb.db.Compact(ptx.lowest, ptx.highest, true)
-		pdb.db.Compact([]byte{0x00}, []byte{0xFF}, true)
+		if ptx.lowest != nil && ptx.highest != nil {
+			_ = pdb.db.Compact(ptx.lowest, ptx.highest, true)
+		}
 		pdb.insertCount = 0
 	}
 	return err
