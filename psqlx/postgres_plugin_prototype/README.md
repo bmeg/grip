@@ -39,12 +39,41 @@ without any external tables:
 - `e1` = `v1 -[knows]-> v2`
 - `e2` = `v1 -[lives_in]-> v3`
 
-## Minimal Development Flow
+## Containerized Development Flow
 
-1. Install pgrx tooling and PostgreSQL dev headers.
-2. Build/install extension from `rust/`.
-3. Apply `sql/grip_ext--0.1.0.sql`.
-4. Call:
+The prototype ships with a Docker-based test harness that builds the Rust
+extension in a dedicated builder image, bakes the packaged artifacts into a
+Postgres 15 image, and starts a database with `grip_ext` preloaded via
+`CREATE EXTENSION`.
+
+Run from this directory:
+
+```bash
+make up
+make smoke-test
+```
+
+Open a shell in the database:
+
+```bash
+make psql
+```
+
+Stop the stack:
+
+```bash
+make down
+```
+
+Reset the database volume:
+
+```bash
+make reset
+```
+
+## Manual Smoke Queries
+
+After `make up`, these are the expected entrypoints:
 
 ```sql
 SELECT grip_ext.grip_ping();
@@ -68,6 +97,7 @@ SELECT * FROM grip_ext.grip_exec(
 ## Notes
 
 - This prototype intentionally focuses on read-only traversals.
+- The builder writes packaged extension artifacts under `build/pg15-package/`.
 - Statement subset validation should match the guard in `psqlx/compiler.go`.
 - GRIP should treat extension errors as deterministic user-visible query errors.
 - If you are testing manually, start with `grip_ping()`, then `v`, `has_label`,

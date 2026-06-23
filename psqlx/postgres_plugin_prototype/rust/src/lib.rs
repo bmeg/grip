@@ -1,4 +1,5 @@
 use pgrx::prelude::*;
+use pgrx::JsonB;
 use serde::Deserialize;
 use serde_json::{json, Map, Value};
 
@@ -282,19 +283,19 @@ fn evaluate_query(graph: &str, query: &QuerySet) -> Result<Vec<Value>, String> {
         if let Some(v) = obj.get("out_e").or_else(|| obj.get("outE")) {
             let labels = as_string_list(Some(v));
             let edges = outgoing_edges(&current, &labels);
-            return Ok(rows_to_jsonb_rows(edges.into_iter().map(|edge| to_edge_row(&edge)).collect()));
+            return Ok(edges.into_iter().map(|edge| to_edge_row(&edge)).collect());
         }
 
         if let Some(v) = obj.get("both_e").or_else(|| obj.get("bothE")) {
             let labels = as_string_list(Some(v));
             let mut edges = both_edges(&current, &labels);
-            return Ok(rows_to_jsonb_rows(edges.drain(..).map(|edge| to_edge_row(&edge)).collect()));
+            return Ok(edges.drain(..).map(|edge| to_edge_row(&edge)).collect());
         }
 
         if let Some(v) = obj.get("in_e").or_else(|| obj.get("inE")) {
             let labels = as_string_list(Some(v));
             let edges = incoming_edges(&current, &labels);
-            return Ok(rows_to_jsonb_rows(edges.into_iter().map(|edge| to_edge_row(&edge)).collect()));
+            return Ok(edges.into_iter().map(|edge| to_edge_row(&edge)).collect());
         }
 
         if let Some(v) = obj.get("limit") {
@@ -339,10 +340,7 @@ impl RenderMerge for Value {
     }
 }
 
-// Prototype SQL entrypoint:
-// SELECT * FROM grip_ext.grip_exec('graph', '{"query":[...]}');
-#[pg_extern]
-fn grip_exec(graph: &str, query: JsonB) -> TableIterator<'static, (name!(row, JsonB),)> {
+fn grip_exec_rows(graph: &str, query: JsonB) -> Vec<(JsonB,)> {
     let parsed: Result<QuerySet, _> = serde_json::from_value(query.0.clone());
 
     let rows = match parsed {
@@ -365,12 +363,26 @@ fn grip_exec(graph: &str, query: JsonB) -> TableIterator<'static, (name!(row, Js
         })],
     };
 
-    TableIterator::new(rows_to_jsonb_rows(rows).into_iter())
+    rows_to_jsonb_rows(rows)
 }
 
-#[pg_extern]
-fn grip_ping() -> &'static str {
+fn grip_ping_message() -> &'static str {
     "grip_ext ready"
+}
+
+#[pg_schema]
+mod grip_ext {
+    use super::*;
+
+    #[pg_extern]
+    fn grip_exec(graph: &str, query: JsonB) -> TableIterator<'static, (name!(row, JsonB),)> {
+        TableIterator::new(super::grip_exec_rows(graph, query).into_iter())
+    }
+
+    #[pg_extern]
+    fn grip_ping() -> &'static str {
+        super::grip_ping_message()
+    }
 }
 
 #[cfg(any(test, feature = "pg_test"))]
@@ -381,14 +393,14 @@ mod tests {
     #[pg_test]
     fn test_grip_exec_returns_rows() {
         let payload = JsonB(json!({"query": [{"v": []}, {"count": {}}]}));
-        let rows: Vec<(JsonB,)> = grip_exec("test-graph", payload).collect();
+        let rows = grip_exec_rows("test-graph", payload);
         assert!(!rows.is_empty());
     }
 
     #[pg_test]
     fn test_grip_exec_can_filter_and_count() {
         let payload = JsonB(json!({"query": [{"v": []}, {"has_label": ["Person"]}, {"count": {}}]}));
-        let rows: Vec<(JsonB,)> = grip_exec("test-graph", payload).collect();
+        let rows = grip_exec_rows("test-graph", payload);
         assert_eq!(rows.len(), 1);
         assert_eq!(rows[0].0.0["result_type"], "count");
     }
@@ -396,7 +408,7 @@ mod tests {
     #[pg_test]
     fn test_grip_exec_can_traverse_out() {
         let payload = JsonB(json!({"query": [{"v": ["v1"]}, {"out": ["knows"]}]}));
-        let rows: Vec<(JsonB,)> = grip_exec("test-graph", payload).collect();
+        let rows = grip_exec_rows("test-graph", payload);
         assert_eq!(rows.len(), 1);
         assert_eq!(rows[0].0.0["result_type"], "vertex");
         assert_eq!(rows[0].0.0["vertex"]["id"], "v2");
@@ -404,6 +416,6 @@ mod tests {
 
     #[pg_test]
     fn test_grip_ping() {
-        assert_eq!(grip_ping(), "grip_ext ready");
+        assert_eq!(grip_ping_message(), "grip_ext ready");
     }
 }

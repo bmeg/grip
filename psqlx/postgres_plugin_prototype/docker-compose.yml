@@ -1,0 +1,40 @@
+services:
+  builder:
+    build:
+      context: .
+      dockerfile: docker/builder.Dockerfile
+      args:
+        PG_MAJOR: "15"
+        CARGO_PGRX_VERSION: "0.11.4"
+    working_dir: /workspace
+    environment:
+      PGRX_HOME: /workspace/.pgrx
+    volumes:
+      - .:/workspace
+      - cargo-registry:/usr/local/cargo/registry
+      - cargo-git:/usr/local/cargo/git
+      - rust-target:/workspace/rust/target
+
+  postgres:
+    build:
+      context: .
+      dockerfile: docker/postgres.Dockerfile
+      args:
+        PG_MAJOR: "15"
+        PACKAGE_DIR: build/pg15-package
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: grip_plugin_dev
+    ports:
+      - "55432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d grip_plugin_dev"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+volumes:
+  cargo-registry:
+  cargo-git:
+  rust-target:
