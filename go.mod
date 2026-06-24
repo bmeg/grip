@@ -13,7 +13,7 @@ require (
 	github.com/bmeg/jsonschema/v6 v6.0.4
 	github.com/bmeg/jsonschemagraph v0.0.4-0.20251017205345-236d2de9887c
 	github.com/boltdb/bolt v1.3.1
-	github.com/bytedance/sonic v1.14.0
+	github.com/bytedance/sonic v1.15.2
 	github.com/casbin/casbin/v2 v2.97.0
 	github.com/cockroachdb/pebble v1.1.5
 	github.com/davecgh/go-spew v1.1.1
@@ -64,11 +64,12 @@ require (
 	github.com/DataDog/zstd v1.5.7 // indirect
 	github.com/apache/arrow/go/v18 v18.0.0-20241007013041-ab95a4d25142 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
-	github.com/bytedance/sonic/loader v0.3.0 // indirect
+	github.com/bytedance/gopkg v0.1.3 // indirect
+	github.com/bytedance/sonic/loader v0.5.1 // indirect
 	github.com/casbin/govaluate v1.2.0 // indirect
 	github.com/cespare/xxhash v1.1.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
-	github.com/cloudwego/base64x v0.1.5 // indirect
+	github.com/cloudwego/base64x v0.1.6 // indirect
 	github.com/cockroachdb/errors v1.11.3 // indirect
 	github.com/cockroachdb/fifo v0.0.0-20240616162244-4768e80dfb9a // indirect
 	github.com/cockroachdb/logtags v0.0.0-20230118201751-21c54148d20b // indirect
@@ -107,7 +108,7 @@ require (
 	github.com/jcmturner/rpc/v2 v2.0.3 // indirect
 	github.com/jessevdk/go-flags v1.6.1 // indirect
 	github.com/klauspost/compress v1.18.0 // indirect
-	github.com/klauspost/cpuid/v2 v2.2.8 // indirect
+	github.com/klauspost/cpuid/v2 v2.2.9 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/kylelemons/godebug v1.1.0 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
