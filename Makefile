@@ -137,6 +137,18 @@ start-mysql:
 	@docker rm -f grip-mysql-test > /dev/null 2>&1 || echo
 	docker run -d --name grip-mysql-test -p 13306:3306 -e MYSQL_ALLOW_EMPTY_PASSWORD=yes mysql:8.0.11 --default-authentication-plugin=mysql_native_password > /dev/null
 
+start-arango:
+	@docker rm -f grip-arango-test > /dev/null 2>&1 || echo
+	docker run -d --name grip-arango-test -p 8529:8529 -e ARANGO_ROOT_PASSWORD=openSesame arangodb:3.12 > /dev/null
+	@echo "Waiting for ArangoDB to become ready..."
+	@until curl -sSf -u root:openSesame http://localhost:8529/_api/version > /dev/null 2>&1; do \
+		echo "Still waiting..."; \
+		sleep 2; \
+	done
+
+stop-arango:
+	@docker rm -f grip-arango-test > /dev/null 2>&1 || echo
+
 start-gripper-test:
 	@cd ./gripper/test-graph && ./gripper-table -m swapi/table.map &
 
@@ -199,5 +211,5 @@ website-dev:
 # ---------------------
 # Other
 # ---------------------
-.PHONY: test rocksdb website
+.PHONY: test rocksdb website start-arango stop-arango
 

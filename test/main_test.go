@@ -8,6 +8,7 @@ import (
 	"sort"
 	"testing"
 
+	"github.com/bmeg/grip/arango"
 	"github.com/bmeg/grip/config"
 	esql "github.com/bmeg/grip/existing-sql"
 	"github.com/bmeg/grip/gdbi"
@@ -155,6 +156,11 @@ func TestMain(m *testing.M) {
 		defer func() {
 			os.RemoveAll(dbconfig.Grids.GraphDir)
 		}()
+		if err != nil {
+			fmt.Printf("Init error: %s\n", err)
+		}
+	} else if dbconfig.ArangoDB != nil {
+		gdb, err = arango.NewGraphDB(*dbconfig.ArangoDB)
 		if err != nil {
 			fmt.Printf("Init error: %s\n", err)
 		}
