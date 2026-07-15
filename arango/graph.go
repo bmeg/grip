@@ -3,9 +3,9 @@ package arango
 import (
 	"context"
 	"fmt"
-	"strings"
 	"time"
 
+	"github.com/arangodb/go-driver/v2/arangodb"
 	"github.com/bmeg/grip/engine/core"
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
@@ -17,15 +17,18 @@ import (
 const (
 	fieldID    = "_key"
 	fieldLabel = "_label"
-	fieldFrom  = "from"
-	fieldTo    = "to"
+	fieldFrom  = "_from"
+	fieldTo    = "_to"
 )
 
 type Graph struct {
-	ar        *GraphDB
-	ts        *timestamp.Timestamp
-	graph     string
-	batchSize int
+	ar               *GraphDB
+	ts               *timestamp.Timestamp
+	graph            arangodb.Graph
+	graphName        string
+	vertexCollection arangodb.VertexCollection
+	edgeCollection   arangodb.Edge
+	batchSize        int
 }
 
 func (g *Graph) Compiler() gdbi.Compiler {
@@ -36,246 +39,178 @@ func (g *Graph) GetTimestamp() string {
 	if g.ts == nil {
 		return ""
 	}
-	return g.ts.Get(g.graph)
+	return g.ts.Get(g.graphName)
 }
 
-func trimSystemFields(data map[string]any) map[string]any {
-	out := map[string]any{}
-	for k, v := range data {
-		if strings.HasPrefix(k, "_") || k == fieldFrom || k == fieldTo {
-			continue
-		}
-		out[k] = v
+func (g *Graph) GetVertex(key string, load bool) *gdbi.Vertex {
+	data := map[string]any{}
+	if _, err := g.vertexCollection.ReadDocument(context.Background(), key, &data); err != nil {
+		return nil
+	}
+	out := unpackVertex(data)
+	if !load {
+		out.Data = map[string]any{}
 	}
 	return out
 }
 
-func unpackVertex(doc map[string]any) *gdbi.Vertex {
-	v := &gdbi.Vertex{Data: map[string]any{}, Loaded: true}
-	if id, ok := doc[fieldID].(string); ok {
-		v.ID = id
-	}
-	if label, ok := doc[fieldLabel].(string); ok {
-		v.Label = label
-	}
-	for k, val := range trimSystemFields(doc) {
-		v.Data[k] = val
-	}
-	return v
-}
-
-func unpackEdge(doc map[string]any) *gdbi.Edge {
-	e := &gdbi.Edge{Data: map[string]any{}, Loaded: true}
-	if id, ok := doc[fieldID].(string); ok {
-		e.ID = id
-	}
-	if label, ok := doc[fieldLabel].(string); ok {
-		e.Label = label
-	}
-	if from, ok := doc[fieldFrom].(string); ok {
-		e.From = from
-	}
-	if to, ok := doc[fieldTo].(string); ok {
-		e.To = to
-	}
-	for k, val := range trimSystemFields(doc) {
-		e.Data[k] = val
-	}
-	return e
-}
-
-func (g *Graph) GetVertex(key string, load bool) *gdbi.Vertex {
-	res, err := g.ar.queryMaps(
-		"FOR v IN @@v FILTER v._key == @id LIMIT 1 RETURN v",
-		map[string]any{"@v": vertexCollection(g.graph), "id": key},
-	)
-	if err != nil || len(res) == 0 {
-		return nil
-	}
-	v := unpackVertex(res[0])
-	if !load {
-		v.Data = map[string]any{}
-	}
-	return v
-}
-
 func (g *Graph) GetEdge(key string, load bool) *gdbi.Edge {
-	res, err := g.ar.queryMaps(
-		"FOR e IN @@e FILTER e._key == @id LIMIT 1 RETURN e",
-		map[string]any{"@e": edgeCollection(g.graph), "id": key},
-	)
-	if err != nil || len(res) == 0 {
+	data := map[string]any{}
+	if _, err := g.edgeCollection.ReadDocument(context.Background(), key, &data); err != nil {
 		return nil
 	}
-	e := unpackEdge(res[0])
+	out := unpackEdge(data)
 	if !load {
-		e.Data = map[string]any{}
+		out.Data = map[string]any{}
 	}
-	return e
+	return out
 }
 
 func (g *Graph) AddVertex(vertices []*gdbi.Vertex) error {
-	for _, v := range vertices {
-		if v == nil {
-			continue
-		}
-		if err := g.ar.execAQL(
-			`UPSERT { _key: @key }
-			 INSERT MERGE({ _key: @key, _label: @label }, @data)
-			 UPDATE MERGE({ _label: @label }, @data)
-			 IN @@v`,
-			map[string]any{
-				"@v":    vertexCollection(g.graph),
-				"key":   v.ID,
-				"label": v.Label,
-				"data":  v.Data,
-			},
-		); err != nil {
-			return err
-		}
+	if len(vertices) == 0 {
+		return nil
+	}
+	docs := make([]map[string]any, 0, len(vertices))
+	for _, vertex := range vertices {
+		docs = append(docs, packVertex(vertex))
+	}
+	if err := g.ar.execQuery(
+		"FOR doc IN @docs UPSERT { _key: doc._key } INSERT doc REPLACE doc IN @@v",
+		map[string]any{"docs": docs, "@v": g.vertexCollection.Name()},
+	); err != nil {
+		return err
 	}
 	if g.ts != nil {
-		g.ts.Touch(g.graph)
+		g.ts.Touch(g.graphName)
 	}
 	return nil
 }
 
 func (g *Graph) AddEdge(edges []*gdbi.Edge) error {
-	for _, e := range edges {
-		if e == nil {
-			continue
-		}
-		if err := g.ar.execAQL(
-			`UPSERT { _key: @key }
-			 INSERT MERGE({ _key: @key, _label: @label, from: @from, to: @to }, @data)
-			 UPDATE MERGE({ _label: @label, from: @from, to: @to }, @data)
-			 IN @@e`,
-			map[string]any{
-				"@e":    edgeCollection(g.graph),
-				"key":   e.ID,
-				"label": e.Label,
-				"from":  e.From,
-				"to":    e.To,
-				"data":  e.Data,
-			},
-		); err != nil {
-			return err
-		}
+	if len(edges) == 0 {
+		return nil
+	}
+	docs := make([]map[string]any, 0, len(edges))
+	for _, edge := range edges {
+		docs = append(docs, packEdge(g.graphName, edge))
+	}
+	if err := g.ar.execQuery(
+		"FOR doc IN @docs UPSERT { _key: doc._key } INSERT doc REPLACE doc IN @@e",
+		map[string]any{"docs": docs, "@e": g.edgeCollection.Name()},
+	); err != nil {
+		return err
 	}
 	if g.ts != nil {
-		g.ts.Touch(g.graph)
+		g.ts.Touch(g.graphName)
 	}
 	return nil
 }
 
 func (g *Graph) StreamEdges(edgeChan <-chan *gdbi.Edge, batchSize int) error {
-	batch := make([]*gdbi.Edge, 0, batchSize)
-	flush := func() error {
-		if len(batch) == 0 {
-			return nil
-		}
-		if err := g.AddEdge(batch); err != nil {
-			return err
-		}
-		batch = batch[:0]
-		return nil
+	if batchSize <= 0 {
+		batchSize = g.batchSize
 	}
-
+	batch := make([]*gdbi.Edge, 0, batchSize)
 	for edge := range edgeChan {
 		batch = append(batch, edge)
 		if len(batch) >= batchSize {
-			if err := flush(); err != nil {
+			if err := g.AddEdge(batch); err != nil {
 				return err
 			}
+			batch = make([]*gdbi.Edge, 0, batchSize)
 		}
 	}
-	return flush()
+	if len(batch) > 0 {
+		return g.AddEdge(batch)
+	}
+	return nil
 }
 
 func (g *Graph) StreamVertices(vertChan <-chan *gdbi.Vertex, batchSize int) error {
-	batch := make([]*gdbi.Vertex, 0, batchSize)
-	flush := func() error {
-		if len(batch) == 0 {
-			return nil
-		}
-		if err := g.AddVertex(batch); err != nil {
-			return err
-		}
-		batch = batch[:0]
-		return nil
+	if batchSize <= 0 {
+		batchSize = g.batchSize
 	}
-
-	for v := range vertChan {
-		batch = append(batch, v)
+	batch := make([]*gdbi.Vertex, 0, batchSize)
+	for vertex := range vertChan {
+		batch = append(batch, vertex)
 		if len(batch) >= batchSize {
-			if err := flush(); err != nil {
+			if err := g.AddVertex(batch); err != nil {
 				return err
 			}
+			batch = make([]*gdbi.Vertex, 0, batchSize)
 		}
 	}
-	return flush()
+	if len(batch) > 0 {
+		return g.AddVertex(batch)
+	}
+	return nil
 }
 
 func (g *Graph) BulkAdd(stream <-chan *gdbi.GraphElement) error {
-	return util.StreamBatch(stream, g.batchSize, g.graph, g.StreamVertices, g.StreamEdges)
+	return util.StreamBatch(stream, g.batchSize, g.graphName, g.StreamVertices, g.StreamEdges)
 }
 
 func (g *Graph) BulkDel(data *gdbi.DeleteData) error {
 	if data == nil {
 		return nil
 	}
+	if data.Graph != "" && data.Graph != g.graphName {
+		return fmt.Errorf("unexpected graph reference: %s != %s", data.Graph, g.graphName)
+	}
 	if len(data.Edges) > 0 {
-		if err := g.ar.execAQL(
-			"FOR k IN @keys REMOVE { _key: k } IN @@e OPTIONS { ignoreErrors: true }",
-			map[string]any{"@e": edgeCollection(g.graph), "keys": data.Edges},
+		if err := g.ar.execQuery(
+			"FOR key IN @keys REMOVE { _key: key } IN @@e OPTIONS { ignoreErrors: true }",
+			map[string]any{"keys": data.Edges, "@e": g.edgeCollection.Name()},
 		); err != nil {
 			return err
 		}
 	}
 	if len(data.Vertices) > 0 {
-		if err := g.ar.execAQL(
-			"FOR e IN @@e FILTER e.from IN @ids OR e.to IN @ids REMOVE e IN @@e",
-			map[string]any{"@e": edgeCollection(g.graph), "ids": data.Vertices},
+		if err := g.ar.execQuery(
+			"FOR key IN @keys REMOVE { _key: key } IN @@v OPTIONS { ignoreErrors: true }",
+			map[string]any{"keys": data.Vertices, "@v": g.vertexCollection.Name()},
 		); err != nil {
 			return err
 		}
-		if err := g.ar.execAQL(
-			"FOR k IN @keys REMOVE { _key: k } IN @@v OPTIONS { ignoreErrors: true }",
-			map[string]any{"@v": vertexCollection(g.graph), "keys": data.Vertices},
+		if err := g.ar.execQuery(
+			"LET handles = (FOR key IN @keys RETURN CONCAT(@vertexCollection, '/', key)) FOR e IN @@e FILTER e._from IN handles OR e._to IN handles REMOVE e IN @@e",
+			map[string]any{"keys": data.Vertices, "@e": g.edgeCollection.Name(), "vertexCollection": g.vertexCollection.Name()},
 		); err != nil {
 			return err
 		}
 	}
-	if g.ts != nil {
-		g.ts.Touch(g.graph)
+	if g.ts != nil && (len(data.Edges) > 0 || len(data.Vertices) > 0) {
+		g.ts.Touch(g.graphName)
 	}
+
 	return nil
 }
 
 func (g *Graph) DelVertex(key string) error {
-	if err := g.BulkDel(&gdbi.DeleteData{Graph: g.graph, Vertices: []string{key}}); err != nil {
+	if err := g.BulkDel(&gdbi.DeleteData{Graph: g.graphName, Vertices: []string{key}}); err != nil {
 		return fmt.Errorf("failed to delete vertex %s: %w", key, err)
 	}
 	return nil
 }
 
 func (g *Graph) DelEdge(key string) error {
-	if err := g.BulkDel(&gdbi.DeleteData{Graph: g.graph, Edges: []string{key}}); err != nil {
+	if err := g.BulkDel(&gdbi.DeleteData{Graph: g.graphName, Edges: []string{key}}); err != nil {
 		return fmt.Errorf("failed to delete edge %s: %w", key, err)
 	}
 	return nil
 }
 
 func (g *Graph) AddVertexIndex(label string, field string) error {
-	return nil
+	return fmt.Errorf("vertex indexes are not yet supported by the arango driver")
 }
 
 func (g *Graph) DeleteVertexIndex(label string, field string) error {
-	return nil
+	return fmt.Errorf("vertex indexes are not yet supported by the arango driver")
 }
 
 func (g *Graph) GetVertexIndexList() <-chan *gripql.IndexID {
 	out := make(chan *gripql.IndexID)
+	log.Warning("GetVertexIndexList: vertex indexes are not yet supported by the arango driver")
 	close(out)
 	return out
 }
@@ -286,7 +221,7 @@ func (g *Graph) VertexLabelScan(ctx context.Context, label string) chan string {
 		defer close(out)
 		res, err := g.ar.queryMaps(
 			"FOR v IN @@v FILTER v._label == @label RETURN { id: v._key }",
-			map[string]any{"@v": vertexCollection(g.graph), "label": label},
+			map[string]any{"@v": g.vertexCollection.Name(), "label": label},
 		)
 		if err != nil {
 			return
@@ -308,7 +243,7 @@ func (g *Graph) VertexLabelScan(ctx context.Context, label string) chan string {
 func (g *Graph) ListVertexLabels() ([]string, error) {
 	res, err := g.ar.queryMaps(
 		"FOR v IN @@v COLLECT l = v._label RETURN { label: l }",
-		map[string]any{"@v": vertexCollection(g.graph)},
+		map[string]any{"@v": g.vertexCollection.Name()},
 	)
 	if err != nil {
 		return nil, err
@@ -325,7 +260,7 @@ func (g *Graph) ListVertexLabels() ([]string, error) {
 func (g *Graph) ListEdgeLabels() ([]string, error) {
 	res, err := g.ar.queryMaps(
 		"FOR e IN @@e COLLECT l = e._label RETURN { label: l }",
-		map[string]any{"@e": edgeCollection(g.graph)},
+		map[string]any{"@e": g.edgeCollection.Name()},
 	)
 	if err != nil {
 		return nil, err
@@ -345,7 +280,7 @@ func (g *Graph) GetVertexList(ctx context.Context, load bool) <-chan *gdbi.Verte
 		defer close(out)
 		res, err := g.ar.queryMaps(
 			"FOR v IN @@v RETURN v",
-			map[string]any{"@v": vertexCollection(g.graph)},
+			map[string]any{"@v": g.vertexCollection.Name()},
 		)
 		if err != nil {
 			return
@@ -391,7 +326,7 @@ func (g *Graph) GetVertexChannel(ctx context.Context, req chan gdbi.ElementLooku
 			}
 			rows, err := g.ar.queryMaps(
 				"FOR v IN @@v FILTER v._key IN @ids RETURN v",
-				map[string]any{"@v": vertexCollection(g.graph), "ids": ids},
+				map[string]any{"@v": g.vertexCollection.Name(), "ids": ids},
 			)
 			if err != nil {
 				log.WithFields(log.Fields{"error": err}).Error("GetVertexChannel")
@@ -434,9 +369,10 @@ func (g *Graph) getNeighborEdges(reqChan chan gdbi.ElementLookup, dir string, em
 					signals = append(signals, batch[i])
 					continue
 				}
-				ids = append(ids, batch[i].ID)
-				reqMap[batch[i].ID] = append(reqMap[batch[i].ID], batch[i])
-				returnCount[batch[i].ID] = 0
+				handle := documentHandle(g.vertexCollection.Name(), batch[i].ID)
+				ids = append(ids, handle)
+				reqMap[handle] = append(reqMap[handle], batch[i])
+				returnCount[handle] = 0
 			}
 			if len(ids) == 0 {
 				for _, s := range signals {
@@ -452,7 +388,7 @@ func (g *Graph) getNeighborEdges(reqChan chan gdbi.ElementLookup, dir string, em
 				targetField = fieldFrom
 			}
 
-			bind := map[string]any{"@e": edgeCollection(g.graph), "ids": ids}
+			bind := map[string]any{"@e": g.edgeCollection.Name(), "ids": ids}
 			query := "FOR e IN @@e FILTER e." + filterField + " IN @ids"
 			if len(edgeLabels) > 0 {
 				bind["labels"] = edgeLabels
@@ -462,8 +398,8 @@ func (g *Graph) getNeighborEdges(reqChan chan gdbi.ElementLookup, dir string, em
 			if outEdges {
 				query += " RETURN { id: e." + filterField + ", edge: e }"
 			} else {
-				bind["@v"] = vertexCollection(g.graph)
-				query += " FOR v IN @@v FILTER v._key == e." + targetField + " RETURN { id: e." + filterField + ", vertex: v }"
+				bind["@v"] = g.vertexCollection.Name()
+				query += " FOR v IN @@v FILTER v._id == e." + targetField + " RETURN { id: e." + filterField + ", vertex: v }"
 			}
 
 			rows, err := g.ar.queryMaps(query, bind)

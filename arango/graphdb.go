@@ -1,29 +1,27 @@
 package arango
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
-	"net/url"
+	"maps"
 	"strings"
-	"time"
 
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/timestamp"
 	"google.golang.org/protobuf/types/known/structpb"
+
+	"github.com/arangodb/go-driver/v2/arangodb"
+	"github.com/arangodb/go-driver/v2/connection"
 )
 
 // Config describes the configuration for the ArangoDB driver.
 type Config struct {
 	URL             string
-	DBName          string
 	Username        string
 	Password        string
 	BatchSize       int
+	DBName          string
 	UseCorePipeline bool
 }
 
@@ -42,38 +40,61 @@ func (c *Config) SetDefaults() {
 
 // GraphDB is a scaffold for the Arango-backed GraphDB implementation.
 type GraphDB struct {
-	conf     Config
-	database string
-	http     *http.Client
-	ts       *timestamp.Timestamp
+	conf   Config
+	client arangodb.Client
+	db     arangodb.Database
+	ts     *timestamp.Timestamp
 }
 
 // NewGraphDB validates config and creates an Arango GraphDB scaffold.
 func NewGraphDB(conf Config) (gdbi.GraphDB, error) {
 	conf.SetDefaults()
 
-	database := strings.ToLower(conf.DBName)
-	if err := gripql.ValidateGraphName(database); err != nil {
-		return nil, fmt.Errorf("invalid database name: %v", err)
+	endpoint := connection.NewRoundRobinEndpoints([]string{conf.URL})
+	conn := connection.NewHttp2Connection(connection.DefaultHTTP2ConfigurationWrapper(endpoint /*InsecureSkipVerify*/, true))
+
+	// Add authentication
+	auth := connection.NewBasicAuth(conf.Username, conf.Password)
+	err := conn.SetAuthentication(auth)
+	if err != nil {
+		return nil, fmt.Errorf("failed to set authentication: %w", err)
 	}
 
-	db := &GraphDB{
-		conf:     conf,
-		database: database,
-		http:     &http.Client{Timeout: 30 * time.Second},
-		ts:       nil,
-	}
-	ts := timestamp.NewTimestamp()
-	db.ts = &ts
+	// Create a client
+	client := arangodb.NewClient(conn)
 
-	if err := db.ensureDatabase(); err != nil {
+	ctx := context.Background()
+	var db arangodb.Database
+	dbExists, err := client.DatabaseExists(ctx, conf.DBName)
+	if err != nil {
 		return nil, err
 	}
-	for _, g := range db.ListGraphs() {
-		db.ts.Touch(g)
+	if dbExists {
+		db, err = client.GetDatabase(ctx, conf.DBName, nil)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		db, err = client.CreateDatabase(ctx, conf.DBName, nil)
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	return db, nil
+	gDB := &GraphDB{
+		conf:   conf,
+		client: client,
+		db:     db,
+		ts:     nil,
+	}
+	ts := timestamp.NewTimestamp()
+	gDB.ts = &ts
+
+	for _, g := range gDB.ListGraphs() {
+		gDB.ts.Touch(g)
+	}
+
+	return gDB, nil
 }
 
 type arangoError struct {
@@ -94,180 +115,149 @@ func (db *GraphDB) endpoint(path string) string {
 	return strings.TrimRight(db.conf.URL, "/") + path
 }
 
-func (db *GraphDB) doJSON(method, path string, in any, out any) error {
-	var body io.Reader
-	if in != nil {
-		data, err := json.Marshal(in)
-		if err != nil {
-			return fmt.Errorf("marshal request body: %w", err)
-		}
-		body = bytes.NewReader(data)
-	}
-
-	req, err := http.NewRequest(method, db.endpoint(path), body)
-	if err != nil {
-		return fmt.Errorf("building request %s %s: %w", method, path, err)
-	}
-	if in != nil {
-		req.Header.Set("Content-Type", "application/json")
-	}
-	if db.conf.Username != "" || db.conf.Password != "" {
-		req.SetBasicAuth(db.conf.Username, db.conf.Password)
-	}
-
-	resp, err := db.http.Do(req)
-	if err != nil {
-		return fmt.Errorf("executing request %s %s: %w", method, path, err)
-	}
-	defer resp.Body.Close()
-
-	respData, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return fmt.Errorf("reading response body %s %s: %w", method, path, err)
-	}
-
-	if len(respData) > 0 {
-		apiErr := arangoError{}
-		if json.Unmarshal(respData, &apiErr) == nil && apiErr.HasError {
-			return apiErr
-		}
-	}
-
-	if resp.StatusCode >= http.StatusBadRequest {
-		return fmt.Errorf("arango request %s %s failed: HTTP %d: %s", method, path, resp.StatusCode, strings.TrimSpace(string(respData)))
-	}
-
-	if out != nil && len(respData) > 0 {
-		if err := json.Unmarshal(respData, out); err != nil {
-			return fmt.Errorf("decoding response body %s %s: %w", method, path, err)
-		}
-	}
-
-	return nil
+func vertexCollection(graphName string) string {
+	return graphName + "_nodes"
 }
 
-func isArangoErrorNum(err error, nums ...int) bool {
-	apiErr := arangoError{}
-	if !matchesArangoError(err, &apiErr) {
-		return false
+func edgeCollection(graphName string) string {
+	return graphName + "_edges"
+}
+
+func documentHandle(collectionName, key string) string {
+	return collectionName + "/" + key
+}
+
+func stripDocumentHandle(value string) string {
+	if idx := strings.LastIndex(value, "/"); idx >= 0 && idx+1 < len(value) {
+		return value[idx+1:]
 	}
-	for _, n := range nums {
-		if apiErr.ErrorNum == n {
-			return true
+	return value
+}
+
+func packVertex(v *gdbi.Vertex) map[string]any {
+	out := map[string]any{}
+	if v.Data != nil {
+		maps.Copy(out, v.Data)
+	}
+	out[fieldID] = v.ID
+	out[fieldLabel] = v.Label
+	return out
+}
+
+func packEdge(graphName string, edge *gdbi.Edge) map[string]any {
+	out := map[string]any{}
+	if edge.Data != nil {
+		maps.Copy(out, edge.Data)
+	}
+	out[fieldID] = edge.ID
+	out[fieldLabel] = edge.Label
+	out[fieldFrom] = documentHandle(vertexCollection(graphName), edge.From)
+	out[fieldTo] = documentHandle(vertexCollection(graphName), edge.To)
+	return out
+}
+
+func unpackVertex(doc map[string]any) *gdbi.Vertex {
+	out := &gdbi.Vertex{Data: map[string]any{}, Loaded: true}
+	if id, ok := doc[fieldID].(string); ok {
+		out.ID = id
+	}
+	if label, ok := doc[fieldLabel].(string); ok {
+		out.Label = label
+	}
+	for key, value := range doc {
+		if key != fieldID && key != fieldLabel {
+			out.Data[key] = value
 		}
 	}
-	return false
+	return out
 }
 
-func matchesArangoError(err error, target *arangoError) bool {
-	if err == nil {
-		return false
+func unpackEdge(doc map[string]any) *gdbi.Edge {
+	out := &gdbi.Edge{Data: map[string]any{}, Loaded: true}
+	if id, ok := doc[fieldID].(string); ok {
+		out.ID = id
 	}
-	parsed, ok := err.(arangoError)
-	if ok {
-		*target = parsed
-		return true
+	if label, ok := doc[fieldLabel].(string); ok {
+		out.Label = label
 	}
-	return false
-}
-
-func (db *GraphDB) ensureDatabase() error {
-	err := db.doJSON(http.MethodPost, "/_db/_system/_api/database", map[string]string{"name": db.database}, nil)
-	if err != nil && !isArangoErrorNum(err, 1207) {
-		return fmt.Errorf("ensuring arango database %s: %w", db.database, err)
+	if from, ok := doc[fieldFrom].(string); ok {
+		out.From = stripDocumentHandle(from)
 	}
-	err = db.createCollection("graphs")
-	if err != nil {
-		return fmt.Errorf("ensuring graphs collection: %w", err)
+	if to, ok := doc[fieldTo].(string); ok {
+		out.To = stripDocumentHandle(to)
 	}
-	return nil
-}
-
-func (db *GraphDB) aqlQuery(path string, payload map[string]any, out any) error {
-	return db.doJSON(http.MethodPost, path, payload, out)
+	for key, value := range doc {
+		if key != fieldID && key != fieldLabel && key != fieldFrom && key != fieldTo {
+			out.Data[key] = value
+		}
+	}
+	return out
 }
 
 func (db *GraphDB) queryMaps(query string, bindVars map[string]any) ([]map[string]any, error) {
-	resp := struct {
-		Result []map[string]any `json:"result"`
-	}{Result: []map[string]any{}}
-	if err := db.aqlQuery(
-		fmt.Sprintf("/_db/%s/_api/cursor", url.PathEscape(db.database)),
-		map[string]any{"query": query, "bindVars": bindVars},
-		&resp,
-	); err != nil {
+	cursor, err := db.db.Query(context.Background(), query, &arangodb.QueryOptions{
+		BindVars:  bindVars,
+		BatchSize: db.conf.BatchSize,
+	})
+	if err != nil {
 		return nil, err
 	}
-	return resp.Result, nil
+	defer cursor.Close()
+
+	out := []map[string]any{}
+	for cursor.HasMore() {
+		row := map[string]any{}
+		if _, err := cursor.ReadDocument(context.Background(), &row); err != nil {
+			return nil, err
+		}
+		out = append(out, row)
+	}
+	return out, nil
 }
 
-func (db *GraphDB) execAQL(query string, bindVars map[string]any) error {
-	return db.aqlQuery(
-		fmt.Sprintf("/_db/%s/_api/cursor", url.PathEscape(db.database)),
-		map[string]any{"query": query, "bindVars": bindVars},
-		nil,
-	)
-}
-
-func (db *GraphDB) createCollection(name string) error {
-	err := db.doJSON(http.MethodPost, fmt.Sprintf("/_db/%s/_api/collection", url.PathEscape(db.database)), map[string]any{"name": name}, nil)
-	if err != nil && !isArangoErrorNum(err, 1207) {
+func (db *GraphDB) execQuery(query string, bindVars map[string]any) error {
+	cursor, err := db.db.Query(context.Background(), query, &arangodb.QueryOptions{
+		BindVars:  bindVars,
+		BatchSize: db.conf.BatchSize,
+	})
+	if err != nil {
 		return err
 	}
-	return nil
-}
+	defer cursor.Close()
 
-func (db *GraphDB) dropCollection(name string) error {
-	err := db.doJSON(http.MethodDelete, fmt.Sprintf("/_db/%s/_api/collection/%s", url.PathEscape(db.database), url.PathEscape(name)), nil, nil)
-	if err != nil && !isArangoErrorNum(err, 1203) {
-		return err
+	for cursor.HasMore() {
+		var ignored any
+		if _, err := cursor.ReadDocument(context.Background(), &ignored); err != nil {
+			return err
+		}
 	}
 	return nil
-}
-
-func (db *GraphDB) addGraphRecord(graph string) error {
-	err := db.doJSON(http.MethodPost, fmt.Sprintf("/_db/%s/_api/document/graphs", url.PathEscape(db.database)), map[string]any{"_key": graph}, nil)
-	if err != nil && !isArangoErrorNum(err, 1210) {
-		return err
-	}
-	return nil
-}
-
-func (db *GraphDB) removeGraphRecord(graph string) error {
-	err := db.doJSON(http.MethodDelete, fmt.Sprintf("/_db/%s/_api/document/graphs/%s", url.PathEscape(db.database), url.PathEscape(graph)), nil, nil)
-	if err != nil && !isArangoErrorNum(err, 1202) {
-		return err
-	}
-	return nil
-}
-
-func vertexCollection(graph string) string {
-	return fmt.Sprintf("%s_vertices", graph)
-}
-
-func edgeCollection(graph string) string {
-	return fmt.Sprintf("%s_edges", graph)
 }
 
 // AddGraph will create a graph in ArangoDB in a follow-up change.
-func (db *GraphDB) AddGraph(graph string) error {
-	if err := gripql.ValidateGraphName(graph); err != nil {
+func (db *GraphDB) AddGraph(graphName string) error {
+	if err := gripql.ValidateGraphName(graphName); err != nil {
 		return err
 	}
-	if err := db.ensureDatabase(); err != nil {
+
+	edgeDefinition := arangodb.EdgeDefinition{
+		Collection: graphName + "_edges",           // Edge collection name
+		From:       []string{graphName + "_nodes"}, // Source vertex collections
+		To:         []string{graphName + "_nodes"}, // Target vertex collections
+	}
+
+	_, err := db.db.CreateGraph(context.Background(), graphName,
+		&arangodb.GraphDefinition{
+			EdgeDefinitions: []arangodb.EdgeDefinition{edgeDefinition},
+		},
+		nil)
+
+	if err != nil {
 		return err
 	}
-	if err := db.createCollection(vertexCollection(graph)); err != nil {
-		return fmt.Errorf("AddGraph: creating vertex collection for %s: %w", graph, err)
-	}
-	if err := db.createCollection(edgeCollection(graph)); err != nil {
-		return fmt.Errorf("AddGraph: creating edge collection for %s: %w", graph, err)
-	}
-	if err := db.addGraphRecord(graph); err != nil {
-		return fmt.Errorf("AddGraph: storing graph record for %s: %w", graph, err)
-	}
+
 	if db.ts != nil {
-		db.ts.Touch(graph)
+		db.ts.Touch(graphName)
 	}
 	return nil
 }
@@ -277,14 +267,12 @@ func (db *GraphDB) DeleteGraph(graph string) error {
 	if err := gripql.ValidateGraphName(graph); err != nil {
 		return err
 	}
-	if err := db.dropCollection(vertexCollection(graph)); err != nil {
-		return fmt.Errorf("DeleteGraph: dropping vertex collection for %s: %w", graph, err)
+	gr, err := db.db.Graph(context.Background(), graph, nil)
+	if err != nil {
+		return err
 	}
-	if err := db.dropCollection(edgeCollection(graph)); err != nil {
-		return fmt.Errorf("DeleteGraph: dropping edge collection for %s: %w", graph, err)
-	}
-	if err := db.removeGraphRecord(graph); err != nil {
-		return fmt.Errorf("DeleteGraph: deleting graph %s metadata: %w", graph, err)
+	if err := gr.Remove(context.Background(), &arangodb.RemoveGraphOptions{DropCollections: true}); err != nil {
+		return err
 	}
 	if db.ts != nil {
 		db.ts.Touch(graph)
@@ -294,27 +282,19 @@ func (db *GraphDB) DeleteGraph(graph string) error {
 
 // ListGraphs will list graphs from ArangoDB in a follow-up change.
 func (db *GraphDB) ListGraphs() []string {
-	if err := db.ensureDatabase(); err != nil {
-		return nil
-	}
-
-	result := struct {
-		Result []string `json:"result"`
-	}{Result: []string{}}
-	err := db.doJSON(
-		http.MethodPost,
-		fmt.Sprintf("/_db/%s/_api/cursor", url.PathEscape(db.database)),
-		map[string]any{
-			"query":    "FOR g IN @@c RETURN g._key",
-			"bindVars": map[string]any{"@c": "graphs"},
-		},
-		&result,
-	)
+	reader, err := db.db.Graphs(context.Background())
 	if err != nil {
-		return nil
+		return []string{}
 	}
-
-	return result.Result
+	out := []string{}
+	for {
+		graph, err := reader.Read()
+		if err != nil {
+			break
+		}
+		out = append(out, graph.Name())
+	}
+	return out
 }
 
 // Graph will return a graph handle in a follow-up change.
@@ -322,17 +302,21 @@ func (db *GraphDB) Graph(graphID string) (gdbi.GraphInterface, error) {
 	if err := gripql.ValidateGraphName(graphID); err != nil {
 		return nil, err
 	}
-	found := false
-	for _, g := range db.ListGraphs() {
-		if g == graphID {
-			found = true
-			break
-		}
+
+	graph, err := db.db.Graph(context.Background(), graphID, nil)
+	if err != nil {
+		return nil, err
 	}
-	if !found {
-		return nil, fmt.Errorf("graph '%s' was not found", graphID)
+	vertexCol, err := graph.VertexCollection(context.Background(), vertexCollection(graphID))
+	if err != nil {
+		return nil, err
 	}
-	return &Graph{ar: db, ts: db.ts, graph: graphID, batchSize: db.conf.BatchSize}, nil
+	edgeCol, err := graph.EdgeDefinition(context.Background(), edgeCollection(graphID))
+	if err != nil {
+		return nil, err
+	}
+
+	return &Graph{ar: db, graph: graph, graphName: graphID, vertexCollection: vertexCol, edgeCollection: edgeCol, ts: db.ts, batchSize: db.conf.BatchSize}, nil
 }
 
 func (db *GraphDB) BuildSchema(ctx context.Context, graphID string, sampleN uint32, random bool) (*gripql.Graph, error) {
