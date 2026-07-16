@@ -276,7 +276,7 @@ func (g *Graph) DeleteVertexIndex(label string, field string) error {
 			return g.vertexCol.DeleteIndex(context.Background(), idx.Name)
 		}
 	}
-	return fmt.Errorf("vertex index not found for deletion in graph=%s label=%s field=%s", g.graphName, label, field)
+	return fmt.Errorf("vertex index not found for deletion: graph %q, label %q, field %q", g.graphName, label, field)
 }
 
 func (g *Graph) GetVertexIndexList() <-chan *gripql.IndexID {

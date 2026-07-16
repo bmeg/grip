@@ -143,7 +143,7 @@ func encodeDocumentKey(key string) string {
 func decodeDocumentKey(key string) string {
 	data, err := base64.RawURLEncoding.DecodeString(key)
 	if err != nil {
-		log.WithFields(log.Fields{"key": key, "error": err}).Debug("decodeDocumentKey")
+		log.WithFields(log.Fields{"key": key, "error": err}).Debug("Failed to decode document key")
 		return key
 	}
 	return string(data)
