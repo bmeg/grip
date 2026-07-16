@@ -2,7 +2,9 @@ package arango
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/arangodb/go-driver/v2/arangodb"
@@ -15,10 +17,12 @@ import (
 )
 
 const (
-	fieldID    = "_key"
-	fieldLabel = "_label"
-	fieldFrom  = "_from"
-	fieldTo    = "_to"
+	fieldID        = "_key"
+	fieldLabel     = "_label"
+	fieldFrom      = "_from"
+	fieldTo        = "_to"
+	fieldArangoID  = "_id"
+	fieldArangoRev = "_rev"
 )
 
 type Graph struct {
@@ -26,9 +30,50 @@ type Graph struct {
 	ts               *timestamp.Timestamp
 	graph            arangodb.Graph
 	graphName        string
+	vertexCol        arangodb.Collection
 	vertexCollection arangodb.VertexCollection
 	edgeCollection   arangodb.Edge
 	batchSize        int
+}
+
+const (
+	indexNamePrefix = "grip."
+	indexNameSep    = "."
+)
+
+func encodeIndexPart(value string) string {
+	return base64.RawURLEncoding.EncodeToString([]byte(value))
+}
+
+func decodeIndexPart(value string) (string, error) {
+	data, err := base64.RawURLEncoding.DecodeString(value)
+	if err != nil {
+		return "", err
+	}
+	return string(data), nil
+}
+
+func vertexIndexName(label, field string) string {
+	return indexNamePrefix + encodeIndexPart(label) + indexNameSep + encodeIndexPart(field)
+}
+
+func parseVertexIndexName(name string) (string, string, bool) {
+	if !strings.HasPrefix(name, indexNamePrefix) {
+		return "", "", false
+	}
+	parts := strings.SplitN(strings.TrimPrefix(name, indexNamePrefix), indexNameSep, 2)
+	if len(parts) != 2 {
+		return "", "", false
+	}
+	label, err := decodeIndexPart(parts[0])
+	if err != nil {
+		return "", "", false
+	}
+	field, err := decodeIndexPart(parts[1])
+	if err != nil {
+		return "", "", false
+	}
+	return label, field, true
 }
 
 func (g *Graph) Compiler() gdbi.Compiler {
@@ -44,7 +89,7 @@ func (g *Graph) GetTimestamp() string {
 
 func (g *Graph) GetVertex(key string, load bool) *gdbi.Vertex {
 	data := map[string]any{}
-	if _, err := g.vertexCollection.ReadDocument(context.Background(), key, &data); err != nil {
+	if _, err := g.vertexCollection.ReadDocument(context.Background(), encodeDocumentKey(key), &data); err != nil {
 		return nil
 	}
 	out := unpackVertex(data)
@@ -56,7 +101,7 @@ func (g *Graph) GetVertex(key string, load bool) *gdbi.Vertex {
 
 func (g *Graph) GetEdge(key string, load bool) *gdbi.Edge {
 	data := map[string]any{}
-	if _, err := g.edgeCollection.ReadDocument(context.Background(), key, &data); err != nil {
+	if _, err := g.edgeCollection.ReadDocument(context.Background(), encodeDocumentKey(key), &data); err != nil {
 		return nil
 	}
 	out := unpackEdge(data)
@@ -158,23 +203,31 @@ func (g *Graph) BulkDel(data *gdbi.DeleteData) error {
 		return fmt.Errorf("unexpected graph reference: %s != %s", data.Graph, g.graphName)
 	}
 	if len(data.Edges) > 0 {
+		keys := make([]string, 0, len(data.Edges))
+		for _, key := range data.Edges {
+			keys = append(keys, encodeDocumentKey(key))
+		}
 		if err := g.ar.execQuery(
 			"FOR key IN @keys REMOVE { _key: key } IN @@e OPTIONS { ignoreErrors: true }",
-			map[string]any{"keys": data.Edges, "@e": g.edgeCollection.Name()},
+			map[string]any{"keys": keys, "@e": g.edgeCollection.Name()},
 		); err != nil {
 			return err
 		}
 	}
 	if len(data.Vertices) > 0 {
+		keys := make([]string, 0, len(data.Vertices))
+		for _, key := range data.Vertices {
+			keys = append(keys, encodeDocumentKey(key))
+		}
 		if err := g.ar.execQuery(
 			"FOR key IN @keys REMOVE { _key: key } IN @@v OPTIONS { ignoreErrors: true }",
-			map[string]any{"keys": data.Vertices, "@v": g.vertexCollection.Name()},
+			map[string]any{"keys": keys, "@v": g.vertexCollection.Name()},
 		); err != nil {
 			return err
 		}
 		if err := g.ar.execQuery(
 			"LET handles = (FOR key IN @keys RETURN CONCAT(@vertexCollection, '/', key)) FOR e IN @@e FILTER e._from IN handles OR e._to IN handles REMOVE e IN @@e",
-			map[string]any{"keys": data.Vertices, "@e": g.edgeCollection.Name(), "vertexCollection": g.vertexCollection.Name()},
+			map[string]any{"keys": keys, "@e": g.edgeCollection.Name(), "vertexCollection": g.vertexCollection.Name()},
 		); err != nil {
 			return err
 		}
@@ -201,17 +254,48 @@ func (g *Graph) DelEdge(key string) error {
 }
 
 func (g *Graph) AddVertexIndex(label string, field string) error {
-	return fmt.Errorf("vertex indexes are not yet supported by the arango driver")
+	_, _, err := g.vertexCol.EnsurePersistentIndex(
+		context.Background(),
+		[]string{field},
+		&arangodb.CreatePersistentIndexOptions{Name: vertexIndexName(label, field)},
+	)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (g *Graph) DeleteVertexIndex(label string, field string) error {
-	return fmt.Errorf("vertex indexes are not yet supported by the arango driver")
+	indexName := vertexIndexName(label, field)
+	indexes, err := g.vertexCol.Indexes(context.Background())
+	if err != nil {
+		return err
+	}
+	for _, idx := range indexes {
+		if idx.Name == indexName {
+			return g.vertexCol.DeleteIndex(context.Background(), idx.Name)
+		}
+	}
+	return fmt.Errorf("vertex index not found for deletion: graph %q, label %q, field %q", g.graphName, label, field)
 }
 
 func (g *Graph) GetVertexIndexList() <-chan *gripql.IndexID {
 	out := make(chan *gripql.IndexID)
-	log.Warning("GetVertexIndexList: vertex indexes are not yet supported by the arango driver")
-	close(out)
+	go func() {
+		defer close(out)
+		indexes, err := g.vertexCol.Indexes(context.Background())
+		if err != nil {
+			log.WithFields(log.Fields{"error": err, "graph": g.graphName}).Error("GetVertexIndexList")
+			return
+		}
+		for _, idx := range indexes {
+			label, field, ok := parseVertexIndexName(idx.Name)
+			if !ok {
+				continue
+			}
+			out <- &gripql.IndexID{Graph: g.graphName, Label: label, Field: field}
+		}
+	}()
 	return out
 }
 
@@ -233,7 +317,7 @@ func (g *Graph) VertexLabelScan(ctx context.Context, label string) chan string {
 			default:
 			}
 			if id, ok := row["id"].(string); ok {
-				out <- id
+				out <- decodeDocumentKey(id)
 			}
 		}
 	}()
@@ -321,7 +405,7 @@ func (g *Graph) GetVertexChannel(ctx context.Context, req chan gdbi.ElementLooku
 				if batch[i].IsSignal() {
 					signals = append(signals, batch[i])
 				} else {
-					ids = append(ids, batch[i].ID)
+					ids = append(ids, encodeDocumentKey(batch[i].ID))
 				}
 			}
 			rows, err := g.ar.queryMaps(

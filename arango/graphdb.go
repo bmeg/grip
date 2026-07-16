@@ -2,12 +2,14 @@ package arango
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"maps"
 	"strings"
 
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
+	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/timestamp"
 	"google.golang.org/protobuf/types/known/structpb"
 
@@ -124,14 +126,27 @@ func edgeCollection(graphName string) string {
 }
 
 func documentHandle(collectionName, key string) string {
-	return collectionName + "/" + key
+	return collectionName + "/" + encodeDocumentKey(key)
 }
 
 func stripDocumentHandle(value string) string {
 	if idx := strings.LastIndex(value, "/"); idx >= 0 && idx+1 < len(value) {
-		return value[idx+1:]
+		return decodeDocumentKey(value[idx+1:])
 	}
-	return value
+	return decodeDocumentKey(value)
+}
+
+func encodeDocumentKey(key string) string {
+	return base64.RawURLEncoding.EncodeToString([]byte(key))
+}
+
+func decodeDocumentKey(key string) string {
+	data, err := base64.RawURLEncoding.DecodeString(key)
+	if err != nil {
+		log.WithFields(log.Fields{"key": key, "error": err}).Debug("Failed to decode document key")
+		return key
+	}
+	return string(data)
 }
 
 func packVertex(v *gdbi.Vertex) map[string]any {
@@ -139,7 +154,7 @@ func packVertex(v *gdbi.Vertex) map[string]any {
 	if v.Data != nil {
 		maps.Copy(out, v.Data)
 	}
-	out[fieldID] = v.ID
+	out[fieldID] = encodeDocumentKey(v.ID)
 	out[fieldLabel] = v.Label
 	return out
 }
@@ -149,7 +164,7 @@ func packEdge(graphName string, edge *gdbi.Edge) map[string]any {
 	if edge.Data != nil {
 		maps.Copy(out, edge.Data)
 	}
-	out[fieldID] = edge.ID
+	out[fieldID] = encodeDocumentKey(edge.ID)
 	out[fieldLabel] = edge.Label
 	out[fieldFrom] = documentHandle(vertexCollection(graphName), edge.From)
 	out[fieldTo] = documentHandle(vertexCollection(graphName), edge.To)
@@ -159,13 +174,13 @@ func packEdge(graphName string, edge *gdbi.Edge) map[string]any {
 func unpackVertex(doc map[string]any) *gdbi.Vertex {
 	out := &gdbi.Vertex{Data: map[string]any{}, Loaded: true}
 	if id, ok := doc[fieldID].(string); ok {
-		out.ID = id
+		out.ID = decodeDocumentKey(id)
 	}
 	if label, ok := doc[fieldLabel].(string); ok {
 		out.Label = label
 	}
 	for key, value := range doc {
-		if key != fieldID && key != fieldLabel {
+		if key != fieldID && key != fieldLabel && key != fieldArangoID && key != fieldArangoRev {
 			out.Data[key] = value
 		}
 	}
@@ -175,7 +190,7 @@ func unpackVertex(doc map[string]any) *gdbi.Vertex {
 func unpackEdge(doc map[string]any) *gdbi.Edge {
 	out := &gdbi.Edge{Data: map[string]any{}, Loaded: true}
 	if id, ok := doc[fieldID].(string); ok {
-		out.ID = id
+		out.ID = decodeDocumentKey(id)
 	}
 	if label, ok := doc[fieldLabel].(string); ok {
 		out.Label = label
@@ -187,7 +202,7 @@ func unpackEdge(doc map[string]any) *gdbi.Edge {
 		out.To = stripDocumentHandle(to)
 	}
 	for key, value := range doc {
-		if key != fieldID && key != fieldLabel && key != fieldFrom && key != fieldTo {
+		if key != fieldID && key != fieldLabel && key != fieldFrom && key != fieldTo && key != fieldArangoID && key != fieldArangoRev {
 			out.Data[key] = value
 		}
 	}
@@ -311,12 +326,16 @@ func (db *GraphDB) Graph(graphID string) (gdbi.GraphInterface, error) {
 	if err != nil {
 		return nil, err
 	}
+	vertexCollectionHandle, err := db.db.GetCollection(context.Background(), vertexCollection(graphID), nil)
+	if err != nil {
+		return nil, err
+	}
 	edgeCol, err := graph.EdgeDefinition(context.Background(), edgeCollection(graphID))
 	if err != nil {
 		return nil, err
 	}
 
-	return &Graph{ar: db, graph: graph, graphName: graphID, vertexCollection: vertexCol, edgeCollection: edgeCol, ts: db.ts, batchSize: db.conf.BatchSize}, nil
+	return &Graph{ar: db, graph: graph, graphName: graphID, vertexCol: vertexCollectionHandle, vertexCollection: vertexCol, edgeCollection: edgeCol, ts: db.ts, batchSize: db.conf.BatchSize}, nil
 }
 
 func (db *GraphDB) BuildSchema(ctx context.Context, graphID string, sampleN uint32, random bool) (*gripql.Graph, error) {

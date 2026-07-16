@@ -1,0 +1,8 @@
+Default: arango
+
+Drivers:
+  arango:
+    ArangoDB:
+      URL: http://localhost:8529
+      Username: root
+      Password: openSesame
