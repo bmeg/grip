@@ -165,7 +165,7 @@ func unpackVertex(doc map[string]any) *gdbi.Vertex {
 		out.Label = label
 	}
 	for key, value := range doc {
-		if key != fieldID && key != fieldLabel {
+		if key != fieldID && key != fieldLabel && key != "_id" && key != "_rev" {
 			out.Data[key] = value
 		}
 	}
@@ -187,7 +187,7 @@ func unpackEdge(doc map[string]any) *gdbi.Edge {
 		out.To = stripDocumentHandle(to)
 	}
 	for key, value := range doc {
-		if key != fieldID && key != fieldLabel && key != fieldFrom && key != fieldTo {
+		if key != fieldID && key != fieldLabel && key != fieldFrom && key != fieldTo && key != "_id" && key != "_rev" {
 			out.Data[key] = value
 		}
 	}
@@ -311,12 +311,16 @@ func (db *GraphDB) Graph(graphID string) (gdbi.GraphInterface, error) {
 	if err != nil {
 		return nil, err
 	}
+	vertexCollectionHandle, err := db.db.GetCollection(context.Background(), vertexCollection(graphID), nil)
+	if err != nil {
+		return nil, err
+	}
 	edgeCol, err := graph.EdgeDefinition(context.Background(), edgeCollection(graphID))
 	if err != nil {
 		return nil, err
 	}
 
-	return &Graph{ar: db, graph: graph, graphName: graphID, vertexCollection: vertexCol, edgeCollection: edgeCol, ts: db.ts, batchSize: db.conf.BatchSize}, nil
+	return &Graph{ar: db, graph: graph, graphName: graphID, vertexCol: vertexCollectionHandle, vertexCollection: vertexCol, edgeCollection: edgeCol, ts: db.ts, batchSize: db.conf.BatchSize}, nil
 }
 
 func (db *GraphDB) BuildSchema(ctx context.Context, graphID string, sampleN uint32, random bool) (*gripql.Graph, error) {

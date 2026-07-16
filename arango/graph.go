@@ -2,7 +2,9 @@ package arango
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/arangodb/go-driver/v2/arangodb"
@@ -26,9 +28,50 @@ type Graph struct {
 	ts               *timestamp.Timestamp
 	graph            arangodb.Graph
 	graphName        string
+	vertexCol        arangodb.Collection
 	vertexCollection arangodb.VertexCollection
 	edgeCollection   arangodb.Edge
 	batchSize        int
+}
+
+const (
+	indexNamePrefix = "grip."
+	indexNameSep    = "."
+)
+
+func encodeIndexPart(value string) string {
+	return base64.RawURLEncoding.EncodeToString([]byte(value))
+}
+
+func decodeIndexPart(value string) (string, error) {
+	data, err := base64.RawURLEncoding.DecodeString(value)
+	if err != nil {
+		return "", err
+	}
+	return string(data), nil
+}
+
+func vertexIndexName(label, field string) string {
+	return indexNamePrefix + encodeIndexPart(label) + indexNameSep + encodeIndexPart(field)
+}
+
+func parseVertexIndexName(name string) (string, string, bool) {
+	if !strings.HasPrefix(name, indexNamePrefix) {
+		return "", "", false
+	}
+	parts := strings.SplitN(strings.TrimPrefix(name, indexNamePrefix), indexNameSep, 2)
+	if len(parts) != 2 {
+		return "", "", false
+	}
+	label, err := decodeIndexPart(parts[0])
+	if err != nil {
+		return "", "", false
+	}
+	field, err := decodeIndexPart(parts[1])
+	if err != nil {
+		return "", "", false
+	}
+	return label, field, true
 }
 
 func (g *Graph) Compiler() gdbi.Compiler {
@@ -201,17 +244,48 @@ func (g *Graph) DelEdge(key string) error {
 }
 
 func (g *Graph) AddVertexIndex(label string, field string) error {
-	return fmt.Errorf("vertex indexes are not yet supported by the arango driver")
+	_, _, err := g.vertexCol.EnsurePersistentIndex(
+		context.Background(),
+		[]string{field},
+		&arangodb.CreatePersistentIndexOptions{Name: vertexIndexName(label, field)},
+	)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (g *Graph) DeleteVertexIndex(label string, field string) error {
-	return fmt.Errorf("vertex indexes are not yet supported by the arango driver")
+	indexName := vertexIndexName(label, field)
+	indexes, err := g.vertexCol.Indexes(context.Background())
+	if err != nil {
+		return err
+	}
+	for _, idx := range indexes {
+		if idx.Name == indexName {
+			return g.vertexCol.DeleteIndex(context.Background(), idx.Name)
+		}
+	}
+	return fmt.Errorf("vertex index not found for label=%s field=%s", label, field)
 }
 
 func (g *Graph) GetVertexIndexList() <-chan *gripql.IndexID {
 	out := make(chan *gripql.IndexID)
-	log.Warning("GetVertexIndexList: vertex indexes are not yet supported by the arango driver")
-	close(out)
+	go func() {
+		defer close(out)
+		indexes, err := g.vertexCol.Indexes(context.Background())
+		if err != nil {
+			log.WithFields(log.Fields{"error": err, "graph": g.graphName}).Error("GetVertexIndexList")
+			return
+		}
+		for _, idx := range indexes {
+			label, field, ok := parseVertexIndexName(idx.Name)
+			if !ok {
+				continue
+			}
+			out <- &gripql.IndexID{Graph: g.graphName, Label: label, Field: field}
+		}
+	}()
 	return out
 }
 
