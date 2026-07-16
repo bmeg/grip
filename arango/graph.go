@@ -87,7 +87,7 @@ func (g *Graph) GetTimestamp() string {
 
 func (g *Graph) GetVertex(key string, load bool) *gdbi.Vertex {
 	data := map[string]any{}
-	if _, err := g.vertexCollection.ReadDocument(context.Background(), key, &data); err != nil {
+	if _, err := g.vertexCollection.ReadDocument(context.Background(), encodeDocumentKey(key), &data); err != nil {
 		return nil
 	}
 	out := unpackVertex(data)
@@ -99,7 +99,7 @@ func (g *Graph) GetVertex(key string, load bool) *gdbi.Vertex {
 
 func (g *Graph) GetEdge(key string, load bool) *gdbi.Edge {
 	data := map[string]any{}
-	if _, err := g.edgeCollection.ReadDocument(context.Background(), key, &data); err != nil {
+	if _, err := g.edgeCollection.ReadDocument(context.Background(), encodeDocumentKey(key), &data); err != nil {
 		return nil
 	}
 	out := unpackEdge(data)
@@ -201,23 +201,31 @@ func (g *Graph) BulkDel(data *gdbi.DeleteData) error {
 		return fmt.Errorf("unexpected graph reference: %s != %s", data.Graph, g.graphName)
 	}
 	if len(data.Edges) > 0 {
+		keys := make([]string, 0, len(data.Edges))
+		for _, key := range data.Edges {
+			keys = append(keys, encodeDocumentKey(key))
+		}
 		if err := g.ar.execQuery(
 			"FOR key IN @keys REMOVE { _key: key } IN @@e OPTIONS { ignoreErrors: true }",
-			map[string]any{"keys": data.Edges, "@e": g.edgeCollection.Name()},
+			map[string]any{"keys": keys, "@e": g.edgeCollection.Name()},
 		); err != nil {
 			return err
 		}
 	}
 	if len(data.Vertices) > 0 {
+		keys := make([]string, 0, len(data.Vertices))
+		for _, key := range data.Vertices {
+			keys = append(keys, encodeDocumentKey(key))
+		}
 		if err := g.ar.execQuery(
 			"FOR key IN @keys REMOVE { _key: key } IN @@v OPTIONS { ignoreErrors: true }",
-			map[string]any{"keys": data.Vertices, "@v": g.vertexCollection.Name()},
+			map[string]any{"keys": keys, "@v": g.vertexCollection.Name()},
 		); err != nil {
 			return err
 		}
 		if err := g.ar.execQuery(
 			"LET handles = (FOR key IN @keys RETURN CONCAT(@vertexCollection, '/', key)) FOR e IN @@e FILTER e._from IN handles OR e._to IN handles REMOVE e IN @@e",
-			map[string]any{"keys": data.Vertices, "@e": g.edgeCollection.Name(), "vertexCollection": g.vertexCollection.Name()},
+			map[string]any{"keys": keys, "@e": g.edgeCollection.Name(), "vertexCollection": g.vertexCollection.Name()},
 		); err != nil {
 			return err
 		}
@@ -307,7 +315,7 @@ func (g *Graph) VertexLabelScan(ctx context.Context, label string) chan string {
 			default:
 			}
 			if id, ok := row["id"].(string); ok {
-				out <- id
+				out <- decodeDocumentKey(id)
 			}
 		}
 	}()
@@ -395,7 +403,7 @@ func (g *Graph) GetVertexChannel(ctx context.Context, req chan gdbi.ElementLooku
 				if batch[i].IsSignal() {
 					signals = append(signals, batch[i])
 				} else {
-					ids = append(ids, batch[i].ID)
+					ids = append(ids, encodeDocumentKey(batch[i].ID))
 				}
 			}
 			rows, err := g.ar.queryMaps(
