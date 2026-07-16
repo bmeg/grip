@@ -9,6 +9,7 @@ import (
 
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
+	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/timestamp"
 	"google.golang.org/protobuf/types/known/structpb"
 
@@ -142,6 +143,7 @@ func encodeDocumentKey(key string) string {
 func decodeDocumentKey(key string) string {
 	data, err := base64.RawURLEncoding.DecodeString(key)
 	if err != nil {
+		log.WithFields(log.Fields{"key": key, "error": err}).Debug("decodeDocumentKey")
 		return key
 	}
 	return string(data)
@@ -178,7 +180,7 @@ func unpackVertex(doc map[string]any) *gdbi.Vertex {
 		out.Label = label
 	}
 	for key, value := range doc {
-		if key != fieldID && key != fieldLabel && key != "_id" && key != "_rev" {
+		if key != fieldID && key != fieldLabel && key != fieldArangoID && key != fieldArangoRev {
 			out.Data[key] = value
 		}
 	}
@@ -200,7 +202,7 @@ func unpackEdge(doc map[string]any) *gdbi.Edge {
 		out.To = stripDocumentHandle(to)
 	}
 	for key, value := range doc {
-		if key != fieldID && key != fieldLabel && key != fieldFrom && key != fieldTo && key != "_id" && key != "_rev" {
+		if key != fieldID && key != fieldLabel && key != fieldFrom && key != fieldTo && key != fieldArangoID && key != fieldArangoRev {
 			out.Data[key] = value
 		}
 	}

@@ -17,10 +17,12 @@ import (
 )
 
 const (
-	fieldID    = "_key"
-	fieldLabel = "_label"
-	fieldFrom  = "_from"
-	fieldTo    = "_to"
+	fieldID        = "_key"
+	fieldLabel     = "_label"
+	fieldFrom      = "_from"
+	fieldTo        = "_to"
+	fieldArangoID  = "_id"
+	fieldArangoRev = "_rev"
 )
 
 type Graph struct {
@@ -274,7 +276,7 @@ func (g *Graph) DeleteVertexIndex(label string, field string) error {
 			return g.vertexCol.DeleteIndex(context.Background(), idx.Name)
 		}
 	}
-	return fmt.Errorf("vertex index not found for label=%s field=%s", label, field)
+	return fmt.Errorf("vertex index not found for deletion in graph=%s label=%s field=%s", g.graphName, label, field)
 }
 
 func (g *Graph) GetVertexIndexList() <-chan *gripql.IndexID {
