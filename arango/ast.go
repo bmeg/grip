@@ -12,7 +12,7 @@ var funcMap = template.FuncMap{
 	},
 }
 
-type Base struct {
+type ASTBase struct {
 	ForLoop *ForLoop
 }
 
@@ -61,7 +61,7 @@ type LimitStatement struct {
 	Limit  int
 }
 
-func (b *Base) String() string {
+func (b *ASTBase) String() string {
 	if b.ForLoop != nil {
 		return "\n" + b.ForLoop.String()
 	}

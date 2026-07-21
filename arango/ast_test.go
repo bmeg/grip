@@ -56,7 +56,7 @@ FOR v0 IN [DOCUMENT("Vertices", "Character:1")]
 		},
 	}
 
-	base := &Base{
+	base := &ASTBase{
 		ForLoop: level1,
 	}
 
@@ -89,7 +89,7 @@ FOR v IN Vertices
 		},
 	}
 
-	base := &Base{
+	base := &ASTBase{
 		ForLoop: forLoop,
 	}
 
