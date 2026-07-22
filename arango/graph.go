@@ -77,7 +77,11 @@ func parseVertexIndexName(name string) (string, string, bool) {
 }
 
 func (g *Graph) Compiler() gdbi.Compiler {
-	return core.NewCompiler(g, core.IndexStartOptimize)
+	c, err := g.NewTranspiler()
+	if err != nil {
+		return core.NewCompiler(g, core.IndexStartOptimize)
+	}
+	return c
 }
 
 func (g *Graph) GetTimestamp() string {

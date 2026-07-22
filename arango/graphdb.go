@@ -52,6 +52,8 @@ type GraphDB struct {
 func NewGraphDB(conf Config) (gdbi.GraphDB, error) {
 	conf.SetDefaults()
 
+	log.Debugf("Starting Arango Graph driver %s", conf.URL)
+
 	endpoint := connection.NewRoundRobinEndpoints([]string{conf.URL})
 	conn := connection.NewHttp2Connection(connection.DefaultHTTP2ConfigurationWrapper(endpoint /*InsecureSkipVerify*/, true))
 
@@ -274,6 +276,9 @@ func (db *GraphDB) AddGraph(graphName string) error {
 	if db.ts != nil {
 		db.ts.Touch(graphName)
 	}
+
+	log.Infof("Added arango graph %s", graphName)
+
 	return nil
 }
 

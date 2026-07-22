@@ -9,10 +9,10 @@ func TestForLoopString(t *testing.T) {
 
 	expected := `
 FOR v0 IN [DOCUMENT("Vertices", "Character:1")]
-  FOR v1, e1 IN 1..1 OUTBOUND v0 GraphName
+  FOR v1, e1 IN 1..1 OUTBOUND v0 GRAPH 'GraphName'
     FILTER e1.label == "edge1"
     FILTER v1.color == "blue"
-    FOR v2, e2 IN 1..1 OUTBOUND v1 GraphName
+    FOR v2, e2 IN 1..1 OUTBOUND v1 GRAPH 'GraphName'
       FILTER e2.label == "edge2"
       RETURN v2`
 

@@ -26,6 +26,25 @@ func TranslatePipeline(stmts []*gripql.GraphStatement, graphName string) (*ASTBa
 		case *gripql.GraphStatement_V:
 			// Vertex selection resets the traversal to the Vertices collection.
 			forLoop.Collection = "Vertices"
+			ids := make([]string, 0, len(stmt.V.GetValues()))
+			for _, value := range stmt.V.GetValues() {
+				if value != nil {
+					ids = append(ids, value.GetStringValue())
+				}
+			}
+			if len(ids) > 0 {
+				var expr string
+				if len(ids) == 1 {
+					expr = fmt.Sprintf("%s._id == %q", currentVar, ids[0])
+				} else {
+					quoted := make([]string, 0, len(ids))
+					for _, id := range ids {
+						quoted = append(quoted, fmt.Sprintf("%q", id))
+					}
+					expr = fmt.Sprintf("%s._id IN [%s]", currentVar, strings.Join(quoted, ", "))
+				}
+				currentLoop.Body.Children = append(currentLoop.Body.Children, &FilterStatement{Expr: expr})
+			}
 		case *gripql.GraphStatement_HasLabel:
 			labels := make([]string, 0, len(stmt.HasLabel.GetValues()))
 			for _, value := range stmt.HasLabel.GetValues() {

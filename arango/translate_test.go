@@ -35,6 +35,19 @@ FOR v0 IN Vertices
 	assertTranslatedAQL(t, query, expected)
 }
 
+func TestTranslateSimpleVID(t *testing.T) {
+
+	query := gripql.NewQuery()
+	query = query.V("Node1")
+
+	expected := `
+FOR v0 IN Vertices
+  FILTER v0._id == "Node1"
+  RETURN v0`
+
+	assertTranslatedAQL(t, query, expected)
+}
+
 func TestTranslateSimpleStep(t *testing.T) {
 
 	query := gripql.NewQuery()
@@ -43,7 +56,7 @@ func TestTranslateSimpleStep(t *testing.T) {
 	expected := `
 FOR v0 IN Vertices
   FILTER v0._label == "Character"
-  FOR v1, e1 IN 1..1 OUTBOUND v0 test_graph
+  FOR v1, e1 IN 1..1 OUTBOUND v0 GRAPH 'test_graph'
     FILTER e1.label == "friend"
     LIMIT 10
     RETURN v1`
@@ -70,9 +83,9 @@ func TestTranslateTwoHopOutTraversal(t *testing.T) {
 	expected := `
 FOR v0 IN Vertices
   FILTER v0._label == "Character"
-  FOR v1, e1 IN 1..1 OUTBOUND v0 test_graph
+  FOR v1, e1 IN 1..1 OUTBOUND v0 GRAPH 'test_graph'
     FILTER e1.label == "friend"
-    FOR v2, e2 IN 1..1 OUTBOUND v1 test_graph
+    FOR v2, e2 IN 1..1 OUTBOUND v1 GRAPH 'test_graph'
       FILTER e2.label == "homeworld"
       RETURN v2`
 
@@ -86,7 +99,7 @@ func TestTranslateOutMultiLabelFilter(t *testing.T) {
 	expected := `
 FOR v0 IN Vertices
   FILTER v0._label == "Character"
-  FOR v1, e1 IN 1..1 OUTBOUND v0 test_graph
+  FOR v1, e1 IN 1..1 OUTBOUND v0 GRAPH 'test_graph'
     FILTER e1.label == "friend" || e1.label == "coworker"
     RETURN v1`
 
@@ -100,7 +113,7 @@ func TestTranslateOutWithoutLabelFilter(t *testing.T) {
 	expected := `
 FOR v0 IN Vertices
   FILTER v0._label == "Character"
-  FOR v1, e1 IN 1..1 OUTBOUND v0 test_graph
+  FOR v1, e1 IN 1..1 OUTBOUND v0 GRAPH 'test_graph'
     RETURN v1`
 
 	assertTranslatedAQL(t, query, expected)
@@ -142,7 +155,7 @@ func TestTranslateSortAfterTraversal(t *testing.T) {
 	expected := `
 FOR v0 IN Vertices
   FILTER v0._label == "Character"
-  FOR v1, e1 IN 1..1 OUTBOUND v0 test_graph
+  FOR v1, e1 IN 1..1 OUTBOUND v0 GRAPH 'test_graph'
     FILTER e1.label == "friend"
     SORT born DESC
     RETURN v1`
@@ -174,7 +187,7 @@ func TestTranslateLimitBeforeTraversal(t *testing.T) {
 FOR v0 IN Vertices
   FILTER v0._label == "Character"
   LIMIT 5
-  FOR v1, e1 IN 1..1 OUTBOUND v0 test_graph
+  FOR v1, e1 IN 1..1 OUTBOUND v0 GRAPH 'test_graph'
     FILTER e1.label == "friend"
     RETURN v1`
 

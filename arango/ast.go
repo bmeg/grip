@@ -89,7 +89,7 @@ func (f *ForLoop) String() string {
 	indent := f.Indent
 	var line string
 	if f.Range != "" && f.Direction != "" && f.Source != "" && f.GraphName != "" {
-		line = fmt.Sprintf("%sFOR %s IN %s %s %s %s", indent, joinStrings(f.Variables, ", "), f.Range, f.Direction, f.Source, f.GraphName)
+		line = fmt.Sprintf(`%sFOR %s IN %s %s %s GRAPH '%s'`, indent, joinStrings(f.Variables, ", "), f.Range, f.Direction, f.Source, f.GraphName)
 	} else if f.Collection != "" {
 		line = fmt.Sprintf("%sFOR %s IN %s", indent, joinStrings(f.Variables, ", "), f.Collection)
 	}

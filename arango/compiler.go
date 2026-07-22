@@ -6,6 +6,7 @@ import (
 	"github.com/bmeg/grip/engine/core"
 	"github.com/bmeg/grip/gdbi"
 	"github.com/bmeg/grip/gripql"
+	"github.com/bmeg/grip/log"
 )
 
 func (g *Graph) NewTranspiler() (gdbi.Compiler, error) {
@@ -25,6 +26,7 @@ func (t *Transpiler) Compile(stmts []*gripql.GraphStatement, opts *gdbi.CompileO
 
 	// The transpiler does not support extending an existing traveler stream yet.
 	if opts != nil && opts.Extends != nil {
+		log.Info("Skipping arango transpiler")
 		cmpl := core.NewCompiler(t.graph)
 		return cmpl.Compile(stmts, opts)
 	}
@@ -77,16 +79,20 @@ func (t *Transpiler) Compile(stmts []*gripql.GraphStatement, opts *gdbi.CompileO
 }
 
 func isTranspilableStatement(gs *gripql.GraphStatement) bool {
-	switch gs.GetStatement().(type) {
-	case *gripql.GraphStatement_V,
-		*gripql.GraphStatement_HasLabel,
-		*gripql.GraphStatement_Out,
-		*gripql.GraphStatement_Limit,
-		*gripql.GraphStatement_Sort:
-		return true
-	default:
-		return false
-	}
+
+	return true
+	/*
+		switch gs.GetStatement().(type) {
+		case *gripql.GraphStatement_V,
+			*gripql.GraphStatement_HasLabel,
+			*gripql.GraphStatement_Out,
+			*gripql.GraphStatement_Limit,
+			*gripql.GraphStatement_Sort:
+			return true
+		default:
+			return false
+		}
+	*/
 }
 
 // Pipeline a set of runnable query operations
