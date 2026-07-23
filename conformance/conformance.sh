@@ -45,7 +45,7 @@ trap cleanup EXIT INT TERM
 wait_for_port() {
     local port="$1" label="$2" max_wait="${3:-30}"
     for i in $(seq 1 "$max_wait"); do
-        if ss -tln | grep -q ":${port} "; then
+        if port_is_listening 127.0.0.1 "$port"; then
             info "${label} is ready on port ${port}."
             return 0
         fi
@@ -53,6 +53,23 @@ wait_for_port() {
     done
     error "${label} did not become ready within ${max_wait}s on port ${port}."
     return 1
+}
+
+port_is_listening() {
+    local host="$1" port="$2"
+    python - "$host" "$port" <<'PY'
+import socket
+import sys
+
+host = sys.argv[1]
+port = int(sys.argv[2])
+
+try:
+    with socket.create_connection((host, port), timeout=1):
+        pass
+except OSError:
+    sys.exit(1)
+PY
 }
 
 # ── build GRIP ────────────────────────────────────────────────────────────────
@@ -64,20 +81,16 @@ build_grip() {
 }
 
 # ── backend configs ───────────────────────────────────────────────────────────
-get_config()   { echo "${GRIP_CONFIGS[$1]:-}"; }
-get_docker()   { echo "${DOCKER_NAMES[$1]:-}"; }
-
-declare -A DOCKER_NAMES=()
-DOCKER_NAMES[arango]="grip-arango-test"
-DOCKER_NAMES[mongo]="grip-mongodb-test"
-DOCKER_NAMES[postgres]="grip-postgres-test"
-
-declare -A GRIP_CONFIGS=()
-GRIP_CONFIGS[arango]="${REPO_ROOT}/test/arango.yml"
-GRIP_CONFIGS[mongo]="${REPO_ROOT}/test/mongo.yml"
-GRIP_CONFIGS[postgres]="${REPO_ROOT}/test/psql.yml"
-GRIP_CONFIGS[badger]="${REPO_ROOT}/test/badger.yml"
-GRIP_CONFIGS[pebble]="${REPO_ROOT}/test/pebble.yml"
+get_config() {
+    case "$1" in
+        arango) echo "${REPO_ROOT}/test/arango.yml" ;;
+        mongo) echo "${REPO_ROOT}/test/mongo.yml" ;;
+        postgres) echo "${REPO_ROOT}/test/psql.yml" ;;
+        badger) echo "${REPO_ROOT}/test/badger.yml" ;;
+        pebble) echo "${REPO_ROOT}/test/pebble.yml" ;;
+        *) echo "" ;;
+    esac
+}
 
 # ── start backends ────────────────────────────────────────────────────────────
 start_backend() {
@@ -123,8 +136,13 @@ start_backend() {
             wait_for_port 15432 "PostgreSQL" 30
             ;;
 
-        badger|pebble)
-            info "${backend^} uses embedded storage — no docker backend needed."
+        badger)
+            info "Badger uses embedded storage — no docker backend needed."
+            return 0
+            ;;
+
+        pebble)
+            info "Pebble uses embedded storage — no docker backend needed."
             return 0
             ;;
 
@@ -146,7 +164,7 @@ start_server() {
 
     for i in $(seq 1 15); do
         if curl -sf http://localhost:${HTTP_PORT}/ >/dev/null 2>&1 || \
-           ss -tln | grep -q ":${HTTP_PORT} "; then
+           port_is_listening 127.0.0.1 "$HTTP_PORT"; then
             info "GRIP server is ready (PID $SERVER_PID)."
             return 0
         fi
@@ -178,7 +196,7 @@ run_conformance() {
     done
 
     # Build command
-    local cmd="python3 ${SCRIPT_DIR}/run_conformance.py http://localhost:${HTTP_PORT}"
+    local cmd="python ${SCRIPT_DIR}/run_conformance.py http://localhost:${HTTP_PORT}"
 
     # Backend-specific excludes
     case "$backend" in
