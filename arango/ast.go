@@ -46,6 +46,12 @@ type FilterStatement struct {
 	Expr   string
 }
 
+type LetStatement struct {
+	Indent string
+	Name   string
+	Expr   string
+}
+
 type ReturnStatement struct {
 	Indent   string
 	Variable string
@@ -129,12 +135,20 @@ func (f *FilterStatement) SetIndent(indent string) {
 	f.Indent = indent
 }
 
+func (l *LetStatement) SetIndent(indent string) {
+	l.Indent = indent
+}
+
 func (r *ReturnStatement) SetIndent(indent string) {
 	r.Indent = indent
 }
 
 func (f *FilterStatement) String() string {
 	return fmt.Sprintf("%sFILTER %s\n", f.Indent, f.Expr)
+}
+
+func (l *LetStatement) String() string {
+	return fmt.Sprintf("%sLET %s = %s\n", l.Indent, l.Name, l.Expr)
 }
 
 func (r *ReturnStatement) String() string {

@@ -44,7 +44,9 @@ func (t *Transpiler) Compile(stmts []*gripql.GraphStatement, opts *gdbi.CompileO
 		return cmpl.Compile(stmts, opts)
 	}
 
-	ast, err := TranslatePipeline(stmts[:prefixLen], t.graphName)
+	includePathPayload := hasPathStatement(stmts[prefixLen:])
+
+	ast, err := TranslatePipeline(stmts[:prefixLen], t.graphName, includePathPayload)
 	if err != nil {
 		return nil, err
 	}
@@ -93,6 +95,15 @@ func isTranspilableStatement(gs *gripql.GraphStatement) bool {
 	default:
 		return false
 	}
+}
+
+func hasPathStatement(stmts []*gripql.GraphStatement) bool {
+	for _, gs := range stmts {
+		if _, ok := gs.GetStatement().(*gripql.GraphStatement_Path); ok {
+			return true
+		}
+	}
+	return false
 }
 
 // Pipeline a set of runnable query operations

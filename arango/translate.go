@@ -7,7 +7,12 @@ import (
 	"github.com/bmeg/grip/gripql"
 )
 
-func TranslatePipeline(stmts []*gripql.GraphStatement, graphName string) (*ASTBase, error) {
+const (
+	transpilerCurrentField = "__current"
+	transpilerPathField    = "__path"
+)
+
+func TranslatePipeline(stmts []*gripql.GraphStatement, graphName string, includePath bool) (*ASTBase, error) {
 	out := &ASTBase{}
 
 	// Start with a root FOR loop over the Vertices collection.
@@ -22,6 +27,11 @@ func TranslatePipeline(stmts []*gripql.GraphStatement, graphName string) (*ASTBa
 
 	// Track the loop currently receiving body statements as the pipeline is translated.
 	currentLoop := forLoop
+	pathVar := ""
+	if includePath {
+		pathVar = fmt.Sprintf("p%d", level)
+		currentLoop.Body.Children = append(currentLoop.Body.Children, &LetStatement{Name: pathVar, Expr: fmt.Sprintf("[{vertex: %s._key}]", currentVar)})
+	}
 	for _, stmt := range stmts {
 		switch stmt := stmt.GetStatement().(type) {
 		case *gripql.GraphStatement_V:
@@ -105,6 +115,11 @@ func TranslatePipeline(stmts []*gripql.GraphStatement, graphName string) (*ASTBa
 				}
 				currentLoop.Body.Children = append(currentLoop.Body.Children, &FilterStatement{Expr: expr})
 			}
+			if includePath {
+				nextPathVar := fmt.Sprintf("p%d", level)
+				currentLoop.Body.Children = append(currentLoop.Body.Children, &LetStatement{Name: nextPathVar, Expr: fmt.Sprintf("APPEND(%s, [{edge: %s._key}, {vertex: %s._key}])", pathVar, nextEdge, nextVar)})
+				pathVar = nextPathVar
+			}
 		case *gripql.GraphStatement_In:
 			if currentType != "vertex" {
 				return nil, fmt.Errorf("in traversal only supported from vertex stream")
@@ -142,6 +157,11 @@ func TranslatePipeline(stmts []*gripql.GraphStatement, graphName string) (*ASTBa
 				}
 				currentLoop.Body.Children = append(currentLoop.Body.Children, &FilterStatement{Expr: expr})
 			}
+			if includePath {
+				nextPathVar := fmt.Sprintf("p%d", level)
+				currentLoop.Body.Children = append(currentLoop.Body.Children, &LetStatement{Name: nextPathVar, Expr: fmt.Sprintf("APPEND(%s, [{edge: %s._key}, {vertex: %s._key}])", pathVar, nextEdge, nextVar)})
+				pathVar = nextPathVar
+			}
 		case *gripql.GraphStatement_Both:
 			if currentType != "vertex" {
 				return nil, fmt.Errorf("both traversal only supported from vertex stream")
@@ -178,6 +198,11 @@ func TranslatePipeline(stmts []*gripql.GraphStatement, graphName string) (*ASTBa
 					expr = strings.Join(parts, " || ")
 				}
 				currentLoop.Body.Children = append(currentLoop.Body.Children, &FilterStatement{Expr: expr})
+			}
+			if includePath {
+				nextPathVar := fmt.Sprintf("p%d", level)
+				currentLoop.Body.Children = append(currentLoop.Body.Children, &LetStatement{Name: nextPathVar, Expr: fmt.Sprintf("APPEND(%s, [{edge: %s._key}, {vertex: %s._key}])", pathVar, nextEdge, nextVar)})
+				pathVar = nextPathVar
 			}
 		case *gripql.GraphStatement_Limit:
 			// Limit clauses are emitted as body statements on the current loop level.
@@ -220,8 +245,12 @@ func TranslatePipeline(stmts []*gripql.GraphStatement, graphName string) (*ASTBa
 		}
 	}
 
-	// Finish the current loop body with a RETURN of the active traversal variable.
-	currentLoop.Body.Children = append(currentLoop.Body.Children, &ReturnStatement{Variable: currentVar})
+	// Finish the current loop body with the active traversal variable.
+	if includePath {
+		currentLoop.Body.Children = append(currentLoop.Body.Children, &ReturnStatement{Variable: fmt.Sprintf("{%s: %s, %s: %s}", transpilerCurrentField, currentVar, transpilerPathField, pathVar)})
+	} else {
+		currentLoop.Body.Children = append(currentLoop.Body.Children, &ReturnStatement{Variable: currentVar})
+	}
 	out.ForLoop = forLoop
 	return out, nil
 }

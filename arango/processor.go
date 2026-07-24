@@ -9,6 +9,30 @@ import (
 	"github.com/bmeg/grip/log"
 )
 
+func decodePathPayload(raw any) ([]gdbi.DataElementID, bool) {
+	steps, ok := raw.([]any)
+	if !ok {
+		return nil, false
+	}
+
+	out := make([]gdbi.DataElementID, 0, len(steps))
+	for _, step := range steps {
+		entry, ok := step.(map[string]any)
+		if !ok {
+			continue
+		}
+		if vertex, ok := entry["vertex"].(string); ok {
+			out = append(out, gdbi.DataElementID{Vertex: decodeDocumentKey(vertex)})
+			continue
+		}
+		if edge, ok := entry["edge"].(string); ok {
+			out = append(out, gdbi.DataElementID{Edge: decodeDocumentKey(edge)})
+		}
+	}
+
+	return out, len(out) > 0
+}
+
 // Processor executes a transpiled Arango query and emits travelers.
 type Processor struct {
 	db  *Graph
@@ -49,8 +73,23 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 					break
 				}
 
-				vertex := unpackVertex(result)
-				out <- t.AddCurrent(vertex)
+				currentDoc := result
+				if v, ok := result[transpilerCurrentField].(map[string]any); ok {
+					currentDoc = v
+				}
+
+				vertex := unpackVertex(currentDoc)
+				emitTraveler := t
+
+				if pathIDs, ok := decodePathPayload(result[transpilerPathField]); ok {
+					if bt, ok := t.Copy().(*gdbi.BaseTraveler); ok {
+						bt.Path = pathIDs
+						bt.Current = &gdbi.DataElement{ID: vertex.ID, Label: vertex.Label, Loaded: true}
+						emitTraveler = bt
+					}
+				}
+
+				out <- emitTraveler.AddCurrent(vertex)
 			}
 
 			if err := cursor.Close(); err != nil {

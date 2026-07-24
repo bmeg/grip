@@ -10,7 +10,7 @@ import (
 func assertTranslatedAQL(t *testing.T, query *gripql.Query, expected string) {
 	t.Helper()
 
-	ast, err := TranslatePipeline(query.Statements, "test_graph")
+	ast, err := TranslatePipeline(query.Statements, "test_graph", false)
 	if err != nil {
 		t.Fatalf("TranslatePipeline returned error: %v", err)
 	}
@@ -141,6 +141,32 @@ FOR v0 IN Vertices
       RETURN v2`
 
 	assertTranslatedAQL(t, query, expected)
+}
+
+func TestTranslateOutTraversalWithPathPayload(t *testing.T) {
+	query := gripql.NewQuery().V("Film:1").Out("characters").Out("homeworld")
+
+	expected := `
+FOR v0 IN Vertices
+  LET p0 = [{vertex: v0._key}]
+  FILTER v0._key == "RmlsbTox"
+  FOR v1, e1 IN 1..1 OUTBOUND v0 GRAPH 'test_graph'
+    FILTER e1._label == "characters"
+    LET p1 = APPEND(p0, [{edge: e1._key}, {vertex: v1._key}])
+    FOR v2, e2 IN 1..1 OUTBOUND v1 GRAPH 'test_graph'
+      FILTER e2._label == "homeworld"
+      LET p2 = APPEND(p1, [{edge: e2._key}, {vertex: v2._key}])
+      RETURN {__current: v2, __path: p2}`
+
+	ast, err := TranslatePipeline(query.Statements, "test_graph", true)
+	if err != nil {
+		t.Fatalf("TranslatePipeline returned error: %v", err)
+	}
+
+	result := strings.TrimRight(ast.String(), "\n")
+	if result != expected {
+		t.Fatalf("Expected:\n%s\nGot:\n%s", expected, result)
+	}
 }
 
 func TestTranslateOutMultiLabelFilter(t *testing.T) {
@@ -294,7 +320,7 @@ func TestTranslateUnsupportedSpecStepsReturnError(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			_, err := TranslatePipeline(tc.query.Statements, "test_graph")
+			_, err := TranslatePipeline(tc.query.Statements, "test_graph", false)
 			if err == nil {
 				t.Fatalf("expected error for unsupported statement")
 			}

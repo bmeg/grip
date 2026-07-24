@@ -16,6 +16,7 @@ This skill describes how to use the conformance testing framework in the GRIP pr
 3. **Test Execution**
    - Run `./conformance/conformance.sh <backend>` to execute all conformance tests
    - Tests are automatically filtered by the `ot_` prefix
+   - When specific tests are requested, it is using the base name, without the `ot_` prefix
    - Backend-specific exclusions may be applied (e.g., mongo excludes nested_index)
 
 4. **Result Analysis**
