@@ -24,6 +24,10 @@ func (t *Transpiler) Compile(stmts []*gripql.GraphStatement, opts *gdbi.CompileO
 		return &Pipeline{graph: t.graph, procs: []gdbi.Processor{}, dataType: gdbi.NoData, markTypes: map[string]gdbi.DataType{}}, nil
 	}
 
+	if err := core.Validate(stmts, opts); err != nil {
+		return nil, fmt.Errorf("invalid statments: %s", err)
+	}
+
 	// The transpiler does not support extending an existing traveler stream yet.
 	if opts != nil && opts.Extends != nil {
 		log.Info("Skipping arango transpiler")
@@ -34,6 +38,7 @@ func (t *Transpiler) Compile(stmts []*gripql.GraphStatement, opts *gdbi.CompileO
 	prefixLen := 0
 	for ; prefixLen < len(stmts); prefixLen++ {
 		if !isTranspilableStatement(stmts[prefixLen]) {
+			log.Debugf("Arango Transpiler stopping at %s statement", stmts[prefixLen].String())
 			break
 		}
 	}
@@ -52,7 +57,7 @@ func (t *Transpiler) Compile(stmts []*gripql.GraphStatement, opts *gdbi.CompileO
 	}
 
 	procs := []gdbi.Processor{&Processor{db: t.graph, ast: ast}}
-	markTypes := map[string]gdbi.DataType{}
+	markTypes := collectTranspiledMarkTypes(stmts[:prefixLen])
 	lastType := gdbi.VertexData
 
 	if prefixLen < len(stmts) {
@@ -90,13 +95,32 @@ func isTranspilableStatement(gs *gripql.GraphStatement) bool {
 		*gripql.GraphStatement_Limit,
 		*gripql.GraphStatement_Skip,
 		*gripql.GraphStatement_Range,
-		*gripql.GraphStatement_Sort:
+		*gripql.GraphStatement_Sort,
+		*gripql.GraphStatement_As,
+		*gripql.GraphStatement_Select:
 		return true
 	default:
 		return false
 	}
 }
 
+func collectTranspiledMarkTypes(stmts []*gripql.GraphStatement) map[string]gdbi.DataType {
+	out := map[string]gdbi.DataType{}
+	lastType := gdbi.VertexData
+
+	for _, gs := range stmts {
+		switch stmt := gs.GetStatement().(type) {
+		case *gripql.GraphStatement_As:
+			out[stmt.As] = lastType
+		case *gripql.GraphStatement_Select:
+			if markType, ok := out[stmt.Select]; ok {
+				lastType = markType
+			}
+		}
+	}
+
+	return out
+}
 func hasPathStatement(stmts []*gripql.GraphStatement) bool {
 	for _, gs := range stmts {
 		if _, ok := gs.GetStatement().(*gripql.GraphStatement_Path); ok {

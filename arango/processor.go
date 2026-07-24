@@ -33,6 +33,32 @@ func decodePathPayload(raw any) ([]gdbi.DataElementID, bool) {
 	return out, len(out) > 0
 }
 
+func decodeMarksPayload(raw any) (map[string]*gdbi.DataElement, bool) {
+	marks, ok := raw.(map[string]any)
+	if !ok {
+		return nil, false
+	}
+
+	out := make(map[string]*gdbi.DataElement, len(marks))
+	for name, value := range marks {
+		doc, ok := value.(map[string]any)
+		if !ok {
+			continue
+		}
+
+		if _, hasFrom := doc[fieldFrom]; hasFrom {
+			e := unpackEdge(doc)
+			out[name] = &gdbi.DataElement{ID: e.ID, Label: e.Label, From: e.From, To: e.To, Data: e.Data, Loaded: true}
+			continue
+		}
+
+		v := unpackVertex(doc)
+		out[name] = &gdbi.DataElement{ID: v.ID, Label: v.Label, Data: v.Data, Loaded: true}
+	}
+
+	return out, len(out) > 0
+}
+
 // Processor executes a transpiled Arango query and emits travelers.
 type Processor struct {
 	db  *Graph
@@ -81,10 +107,21 @@ func (proc *Processor) Process(ctx context.Context, man gdbi.Manager, in gdbi.In
 				vertex := unpackVertex(currentDoc)
 				emitTraveler := t
 
-				if pathIDs, ok := decodePathPayload(result[transpilerPathField]); ok {
-					if bt, ok := t.Copy().(*gdbi.BaseTraveler); ok {
+				if bt, ok := t.Copy().(*gdbi.BaseTraveler); ok {
+					updated := false
+
+					if marks, ok := decodeMarksPayload(result[transpilerMarksField]); ok {
+						bt.Marks = marks
+						updated = true
+					}
+
+					if pathIDs, ok := decodePathPayload(result[transpilerPathField]); ok {
 						bt.Path = pathIDs
 						bt.Current = &gdbi.DataElement{ID: vertex.ID, Label: vertex.Label, Loaded: true}
+						updated = true
+					}
+
+					if updated {
 						emitTraveler = bt
 					}
 				}

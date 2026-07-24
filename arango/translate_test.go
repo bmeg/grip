@@ -146,17 +146,16 @@ FOR v0 IN Vertices
 func TestTranslateOutTraversalWithPathPayload(t *testing.T) {
 	query := gripql.NewQuery().V("Film:1").Out("characters").Out("homeworld")
 
-	expected := `
-FOR v0 IN Vertices
-  LET p0 = [{vertex: v0._key}]
-  FILTER v0._key == "RmlsbTox"
-  FOR v1, e1 IN 1..1 OUTBOUND v0 GRAPH 'test_graph'
-    FILTER e1._label == "characters"
-    LET p1 = APPEND(p0, [{edge: e1._key}, {vertex: v1._key}])
-    FOR v2, e2 IN 1..1 OUTBOUND v1 GRAPH 'test_graph'
-      FILTER e2._label == "homeworld"
-      LET p2 = APPEND(p1, [{edge: e2._key}, {vertex: v2._key}])
-      RETURN {__current: v2, __path: p2}`
+	expected := "\nFOR v0 IN Vertices\n" +
+		"  LET p0 = [{vertex: v0._key}]\n" +
+		"  FILTER v0._key == \"RmlsbTox\"\n" +
+		"  FOR v1, e1 IN 1..1 OUTBOUND v0 GRAPH 'test_graph'\n" +
+		"    FILTER e1._label == \"characters\"\n" +
+		"    LET p1 = APPEND(p0, [{vertex: v1._key}])\n" +
+		"    FOR v2, e2 IN 1..1 OUTBOUND v1 GRAPH 'test_graph'\n" +
+		"      FILTER e2._label == \"homeworld\"\n" +
+		"      LET p2 = APPEND(p1, [{vertex: v2._key}])\n" +
+		"      RETURN {__current: v2, __path: p2}"
 
 	ast, err := TranslatePipeline(query.Statements, "test_graph", true)
 	if err != nil {
@@ -285,6 +284,61 @@ FOR v0 IN Vertices
 	assertTranslatedAQL(t, query, expected)
 }
 
+func TestTranslateAsAddsMarkPayload(t *testing.T) {
+	query := gripql.NewQuery().V("Character:1").As("a").Out("friend")
+
+	expected := "\nFOR v0 IN Vertices\n" +
+		"  LET m0 = {}\n" +
+		"  FILTER v0._key == \"Q2hhcmFjdGVyOjE\"\n" +
+		"  LET m1 = MERGE(m0, {\"a\": v0})\n" +
+		"  FOR v1, e1 IN 1..1 OUTBOUND v0 GRAPH 'test_graph'\n" +
+		"    FILTER e1._label == \"friend\"\n" +
+		"    RETURN {__current: v1, __marks: m1}"
+
+	assertTranslatedAQL(t, query, expected)
+}
+
+func TestTranslateSelectUsesMarkedVertex(t *testing.T) {
+	query := gripql.NewQuery().V("Character:1").As("a").Out("friend").Select("a")
+
+	expected := "\nFOR v0 IN Vertices\n" +
+		"  LET m0 = {}\n" +
+		"  FILTER v0._key == \"Q2hhcmFjdGVyOjE\"\n" +
+		"  LET m1 = MERGE(m0, {\"a\": v0})\n" +
+		"  FOR v1, e1 IN 1..1 OUTBOUND v0 GRAPH 'test_graph'\n" +
+		"    FILTER e1._label == \"friend\"\n" +
+		"    LET v2 = m1[\"a\"]\n" +
+		"    RETURN {__current: v2, __marks: m1}"
+
+	assertTranslatedAQL(t, query, expected)
+}
+
+func TestTranslateSelectAppendsPathStep(t *testing.T) {
+	query := gripql.NewQuery().V("Film:1").As("a").Out("characters").Select("a")
+
+	expected := "\nFOR v0 IN Vertices\n" +
+		"  LET m0 = {}\n" +
+		"  LET p0 = [{vertex: v0._key}]\n" +
+		"  FILTER v0._key == \"RmlsbTox\"\n" +
+		"  LET m1 = MERGE(m0, {\"a\": v0})\n" +
+		"  FOR v1, e1 IN 1..1 OUTBOUND v0 GRAPH 'test_graph'\n" +
+		"    FILTER e1._label == \"characters\"\n" +
+		"    LET p1 = APPEND(p0, [{vertex: v1._key}])\n" +
+		"    LET v2 = m1[\"a\"]\n" +
+		"    LET p2 = APPEND(p1, [{vertex: v2._key}])\n" +
+		"    RETURN {__current: v2, __path: p2, __marks: m1}"
+
+	ast, err := TranslatePipeline(query.Statements, "test_graph", true)
+	if err != nil {
+		t.Fatalf("TranslatePipeline returned error: %v", err)
+	}
+
+	result := strings.TrimRight(ast.String(), "\n")
+	if result != expected {
+		t.Fatalf("Expected:\n%s\nGot:\n%s", expected, result)
+	}
+}
+
 func TestTranslateLimitThenSortOrder(t *testing.T) {
 	query := gripql.NewQuery()
 	query = query.V().HasLabel("Character").Limit(2).Sort([]*gripql.SortField{{Field: "name"}})
@@ -308,8 +362,6 @@ func TestTranslateUnsupportedSpecStepsReturnError(t *testing.T) {
 		{name: "has expression", query: gripql.NewQuery().V().Has(gripql.Eq("name", "Leia"))},
 		{name: "render", query: gripql.NewQuery().V().Render([]string{"name"})},
 		{name: "count", query: gripql.NewQuery().V().Count()},
-		{name: "as", query: gripql.NewQuery().V().As("a")},
-		{name: "select", query: gripql.NewQuery().V().As("a").Select("a")},
 		{name: "out edge", query: gripql.NewQuery().V().OutE("friend")},
 		{name: "out null", query: gripql.NewQuery().V().OutNull("friend")},
 		{name: "distinct", query: gripql.NewQuery().V().Distinct("$.name")},
@@ -328,5 +380,18 @@ func TestTranslateUnsupportedSpecStepsReturnError(t *testing.T) {
 				t.Fatalf("expected unsupported statement type error, got: %v", err)
 			}
 		})
+	}
+}
+
+func TestTranspilerCompileRejectsTraversalWithoutVStart(t *testing.T) {
+	transpiler := &Transpiler{}
+	query := gripql.NewQuery().Out()
+
+	_, err := transpiler.Compile(query.Statements, nil)
+	if err == nil {
+		t.Fatalf("expected compile error for traversal without V() start")
+	}
+	if !strings.Contains(err.Error(), "first statement is not V()") {
+		t.Fatalf("expected first statement validation error, got: %v", err)
 	}
 }

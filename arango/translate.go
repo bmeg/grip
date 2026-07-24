@@ -10,6 +10,7 @@ import (
 const (
 	transpilerCurrentField = "__current"
 	transpilerPathField    = "__path"
+	transpilerMarksField   = "__marks"
 )
 
 func TranslatePipeline(stmts []*gripql.GraphStatement, graphName string, includePath bool) (*ASTBase, error) {
@@ -28,6 +29,12 @@ func TranslatePipeline(stmts []*gripql.GraphStatement, graphName string, include
 	// Track the loop currently receiving body statements as the pipeline is translated.
 	currentLoop := forLoop
 	pathVar := ""
+	marksVar := ""
+	markVarLevel := 0
+	if hasAsStatement(stmts) {
+		marksVar = fmt.Sprintf("m%d", markVarLevel)
+		currentLoop.Body.Children = append(currentLoop.Body.Children, &LetStatement{Name: marksVar, Expr: "{}"})
+	}
 	if includePath {
 		pathVar = fmt.Sprintf("p%d", level)
 		currentLoop.Body.Children = append(currentLoop.Body.Children, &LetStatement{Name: pathVar, Expr: fmt.Sprintf("[{vertex: %s._key}]", currentVar)})
@@ -117,7 +124,7 @@ func TranslatePipeline(stmts []*gripql.GraphStatement, graphName string, include
 			}
 			if includePath {
 				nextPathVar := fmt.Sprintf("p%d", level)
-				currentLoop.Body.Children = append(currentLoop.Body.Children, &LetStatement{Name: nextPathVar, Expr: fmt.Sprintf("APPEND(%s, [{edge: %s._key}, {vertex: %s._key}])", pathVar, nextEdge, nextVar)})
+				currentLoop.Body.Children = append(currentLoop.Body.Children, &LetStatement{Name: nextPathVar, Expr: fmt.Sprintf("APPEND(%s, [{vertex: %s._key}])", pathVar, nextVar)})
 				pathVar = nextPathVar
 			}
 		case *gripql.GraphStatement_In:
@@ -159,7 +166,7 @@ func TranslatePipeline(stmts []*gripql.GraphStatement, graphName string, include
 			}
 			if includePath {
 				nextPathVar := fmt.Sprintf("p%d", level)
-				currentLoop.Body.Children = append(currentLoop.Body.Children, &LetStatement{Name: nextPathVar, Expr: fmt.Sprintf("APPEND(%s, [{edge: %s._key}, {vertex: %s._key}])", pathVar, nextEdge, nextVar)})
+				currentLoop.Body.Children = append(currentLoop.Body.Children, &LetStatement{Name: nextPathVar, Expr: fmt.Sprintf("APPEND(%s, [{vertex: %s._key}])", pathVar, nextVar)})
 				pathVar = nextPathVar
 			}
 		case *gripql.GraphStatement_Both:
@@ -201,7 +208,30 @@ func TranslatePipeline(stmts []*gripql.GraphStatement, graphName string, include
 			}
 			if includePath {
 				nextPathVar := fmt.Sprintf("p%d", level)
-				currentLoop.Body.Children = append(currentLoop.Body.Children, &LetStatement{Name: nextPathVar, Expr: fmt.Sprintf("APPEND(%s, [{edge: %s._key}, {vertex: %s._key}])", pathVar, nextEdge, nextVar)})
+				currentLoop.Body.Children = append(currentLoop.Body.Children, &LetStatement{Name: nextPathVar, Expr: fmt.Sprintf("APPEND(%s, [{vertex: %s._key}])", pathVar, nextVar)})
+				pathVar = nextPathVar
+			}
+		case *gripql.GraphStatement_As:
+			if marksVar == "" {
+				marksVar = fmt.Sprintf("m%d", markVarLevel)
+				currentLoop.Body.Children = append(currentLoop.Body.Children, &LetStatement{Name: marksVar, Expr: "{}"})
+			}
+			markVarLevel++
+			nextMarksVar := fmt.Sprintf("m%d", markVarLevel)
+			currentLoop.Body.Children = append(currentLoop.Body.Children, &LetStatement{Name: nextMarksVar, Expr: fmt.Sprintf("MERGE(%s, {%q: %s})", marksVar, stmt.As, currentVar)})
+			marksVar = nextMarksVar
+		case *gripql.GraphStatement_Select:
+			if marksVar == "" {
+				return nil, fmt.Errorf("select statement requires at least one prior as statement")
+			}
+			level++
+			nextVar := fmt.Sprintf("v%d", level)
+			currentLoop.Body.Children = append(currentLoop.Body.Children, &LetStatement{Name: nextVar, Expr: fmt.Sprintf("%s[%q]", marksVar, stmt.Select)})
+			currentVar = nextVar
+			currentType = "vertex"
+			if includePath {
+				nextPathVar := fmt.Sprintf("p%d", level)
+				currentLoop.Body.Children = append(currentLoop.Body.Children, &LetStatement{Name: nextPathVar, Expr: fmt.Sprintf("APPEND(%s, [{vertex: %s._key}])", pathVar, nextVar)})
 				pathVar = nextPathVar
 			}
 		case *gripql.GraphStatement_Limit:
@@ -246,11 +276,24 @@ func TranslatePipeline(stmts []*gripql.GraphStatement, graphName string, include
 	}
 
 	// Finish the current loop body with the active traversal variable.
-	if includePath {
+	if includePath && marksVar != "" {
+		currentLoop.Body.Children = append(currentLoop.Body.Children, &ReturnStatement{Variable: fmt.Sprintf("{%s: %s, %s: %s, %s: %s}", transpilerCurrentField, currentVar, transpilerPathField, pathVar, transpilerMarksField, marksVar)})
+	} else if includePath {
 		currentLoop.Body.Children = append(currentLoop.Body.Children, &ReturnStatement{Variable: fmt.Sprintf("{%s: %s, %s: %s}", transpilerCurrentField, currentVar, transpilerPathField, pathVar)})
+	} else if marksVar != "" {
+		currentLoop.Body.Children = append(currentLoop.Body.Children, &ReturnStatement{Variable: fmt.Sprintf("{%s: %s, %s: %s}", transpilerCurrentField, currentVar, transpilerMarksField, marksVar)})
 	} else {
 		currentLoop.Body.Children = append(currentLoop.Body.Children, &ReturnStatement{Variable: currentVar})
 	}
 	out.ForLoop = forLoop
 	return out, nil
+}
+
+func hasAsStatement(stmts []*gripql.GraphStatement) bool {
+	for _, gs := range stmts {
+		if _, ok := gs.GetStatement().(*gripql.GraphStatement_As); ok {
+			return true
+		}
+	}
+	return false
 }
