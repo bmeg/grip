@@ -61,6 +61,12 @@ type LimitStatement struct {
 	Limit  int
 }
 
+type OffsetLimitStatement struct {
+	Indent string
+	Offset int
+	Count  int
+}
+
 func (b *ASTBase) String() string {
 	if b.ForLoop != nil {
 		return "\n" + b.ForLoop.String()
@@ -149,4 +155,12 @@ func (l *LimitStatement) SetIndent(indent string) {
 
 func (l *LimitStatement) String() string {
 	return fmt.Sprintf("%sLIMIT %d\n", l.Indent, l.Limit)
+}
+
+func (l *OffsetLimitStatement) SetIndent(indent string) {
+	l.Indent = indent
+}
+
+func (l *OffsetLimitStatement) String() string {
+	return fmt.Sprintf("%sLIMIT %d, %d\n", l.Indent, l.Offset, l.Count)
 }

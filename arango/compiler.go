@@ -79,20 +79,20 @@ func (t *Transpiler) Compile(stmts []*gripql.GraphStatement, opts *gdbi.CompileO
 }
 
 func isTranspilableStatement(gs *gripql.GraphStatement) bool {
-
-	return true
-	/*
-		switch gs.GetStatement().(type) {
-		case *gripql.GraphStatement_V,
-			*gripql.GraphStatement_HasLabel,
-			*gripql.GraphStatement_Out,
-			*gripql.GraphStatement_Limit,
-			*gripql.GraphStatement_Sort:
-			return true
-		default:
-			return false
-		}
-	*/
+	switch gs.GetStatement().(type) {
+	case *gripql.GraphStatement_V,
+		*gripql.GraphStatement_HasLabel,
+		*gripql.GraphStatement_Out,
+		*gripql.GraphStatement_In,
+		*gripql.GraphStatement_Both,
+		*gripql.GraphStatement_Limit,
+		*gripql.GraphStatement_Skip,
+		*gripql.GraphStatement_Range,
+		*gripql.GraphStatement_Sort:
+		return true
+	default:
+		return false
+	}
 }
 
 // Pipeline a set of runnable query operations

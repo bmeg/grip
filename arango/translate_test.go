@@ -42,10 +42,61 @@ func TestTranslateSimpleVID(t *testing.T) {
 
 	expected := `
 FOR v0 IN Vertices
-  FILTER v0._id == "Node1"
+  FILTER v0._key == "Tm9kZTE"
   RETURN v0`
 
 	assertTranslatedAQL(t, query, expected)
+}
+
+func TestTranslateInTraversal(t *testing.T) {
+	query := gripql.NewQuery().V().HasLabel("Character").In("friends")
+
+	expected := `
+FOR v0 IN Vertices
+  FILTER v0._label == "Character"
+  FOR v1, e1 IN 1..1 INBOUND v0 GRAPH 'test_graph'
+    FILTER e1._label == "friends"
+    RETURN v1`
+
+	assertTranslatedAQL(t, query, expected)
+}
+
+func TestTranslateBothTraversal(t *testing.T) {
+	query := gripql.NewQuery().V().HasLabel("Character").Both("friends")
+
+	expected := `
+FOR v0 IN Vertices
+  FILTER v0._label == "Character"
+  FOR v1, e1 IN 1..1 ANY v0 GRAPH 'test_graph'
+    FILTER e1._label == "friends"
+    RETURN v1`
+
+	assertTranslatedAQL(t, query, expected)
+}
+
+func TestTranslateSkipAndRange(t *testing.T) {
+	t.Run("skip", func(t *testing.T) {
+		query := gripql.NewQuery().V().Skip(3).Limit(2)
+
+		expected := `
+FOR v0 IN Vertices
+  LIMIT 3, 2147483647
+  LIMIT 2
+  RETURN v0`
+
+		assertTranslatedAQL(t, query, expected)
+	})
+
+	t.Run("range", func(t *testing.T) {
+		query := gripql.NewQuery().V().Range(3, 5)
+
+		expected := `
+FOR v0 IN Vertices
+  LIMIT 3, 2
+  RETURN v0`
+
+		assertTranslatedAQL(t, query, expected)
+	})
 }
 
 func TestTranslateSimpleStep(t *testing.T) {
@@ -57,7 +108,7 @@ func TestTranslateSimpleStep(t *testing.T) {
 FOR v0 IN Vertices
   FILTER v0._label == "Character"
   FOR v1, e1 IN 1..1 OUTBOUND v0 GRAPH 'test_graph'
-    FILTER e1.label == "friend"
+    FILTER e1._label == "friend"
     LIMIT 10
     RETURN v1`
 
@@ -84,9 +135,9 @@ func TestTranslateTwoHopOutTraversal(t *testing.T) {
 FOR v0 IN Vertices
   FILTER v0._label == "Character"
   FOR v1, e1 IN 1..1 OUTBOUND v0 GRAPH 'test_graph'
-    FILTER e1.label == "friend"
+    FILTER e1._label == "friend"
     FOR v2, e2 IN 1..1 OUTBOUND v1 GRAPH 'test_graph'
-      FILTER e2.label == "homeworld"
+      FILTER e2._label == "homeworld"
       RETURN v2`
 
 	assertTranslatedAQL(t, query, expected)
@@ -100,7 +151,7 @@ func TestTranslateOutMultiLabelFilter(t *testing.T) {
 FOR v0 IN Vertices
   FILTER v0._label == "Character"
   FOR v1, e1 IN 1..1 OUTBOUND v0 GRAPH 'test_graph'
-    FILTER e1.label == "friend" || e1.label == "coworker"
+    FILTER e1._label == "friend" || e1._label == "coworker"
     RETURN v1`
 
 	assertTranslatedAQL(t, query, expected)
@@ -156,7 +207,7 @@ func TestTranslateSortAfterTraversal(t *testing.T) {
 FOR v0 IN Vertices
   FILTER v0._label == "Character"
   FOR v1, e1 IN 1..1 OUTBOUND v0 GRAPH 'test_graph'
-    FILTER e1.label == "friend"
+    FILTER e1._label == "friend"
     SORT born DESC
     RETURN v1`
 
@@ -188,7 +239,7 @@ FOR v0 IN Vertices
   FILTER v0._label == "Character"
   LIMIT 5
   FOR v1, e1 IN 1..1 OUTBOUND v0 GRAPH 'test_graph'
-    FILTER e1.label == "friend"
+    FILTER e1._label == "friend"
     RETURN v1`
 
 	assertTranslatedAQL(t, query, expected)
@@ -235,8 +286,6 @@ func TestTranslateUnsupportedSpecStepsReturnError(t *testing.T) {
 		{name: "select", query: gripql.NewQuery().V().As("a").Select("a")},
 		{name: "out edge", query: gripql.NewQuery().V().OutE("friend")},
 		{name: "out null", query: gripql.NewQuery().V().OutNull("friend")},
-		{name: "in", query: gripql.NewQuery().V().In("friend")},
-		{name: "both", query: gripql.NewQuery().V().Both("friend")},
 		{name: "distinct", query: gripql.NewQuery().V().Distinct("$.name")},
 		{name: "unwind", query: gripql.NewQuery().V().Unwind("component")},
 		{name: "group", query: gripql.NewQuery().V().Group(map[string]string{"people": "$person.name"})},
