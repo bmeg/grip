@@ -216,7 +216,7 @@ func TestTranslateSortAscendingAndDescending(t *testing.T) {
 	expected := `
 FOR v0 IN Vertices
   FILTER v0._label == "Character"
-  SORT name ASC, height DESC
+  SORT v0.name ASC, v0.height DESC
   RETURN v0`
 
 	assertTranslatedAQL(t, query, expected)
@@ -233,7 +233,7 @@ FOR v0 IN Vertices
   FILTER v0._label == "Character"
   FOR v1, e1 IN 1..1 OUTBOUND v0 GRAPH 'test_graph'
     FILTER e1._label == "friend"
-    SORT born DESC
+    SORT v1.born DESC
     RETURN v1`
 
 	assertTranslatedAQL(t, query, expected)
@@ -249,7 +249,7 @@ func TestTranslateSortSkipsNilFields(t *testing.T) {
 	expected := `
 FOR v0 IN Vertices
   FILTER v0._label == "Character"
-  SORT name DESC
+  SORT v0.name DESC
   RETURN v0`
 
 	assertTranslatedAQL(t, query, expected)
@@ -277,7 +277,7 @@ func TestTranslateSortThenLimitOrder(t *testing.T) {
 	expected := `
 FOR v0 IN Vertices
   FILTER v0._label == "Character"
-  SORT name ASC
+  SORT v0.name ASC
   LIMIT 2
   RETURN v0`
 
@@ -347,7 +347,7 @@ func TestTranslateLimitThenSortOrder(t *testing.T) {
 FOR v0 IN Vertices
   FILTER v0._label == "Character"
   LIMIT 2
-  SORT name ASC
+  SORT v0.name ASC
   RETURN v0`
 
 	assertTranslatedAQL(t, query, expected)

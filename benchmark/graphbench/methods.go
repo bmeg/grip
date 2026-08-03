@@ -96,16 +96,24 @@ func RandomVertexInsert(kgraph gripql.Client, graph string) {
 		for j := 0; j < 20; j++ {
 			d = append(d, RandomVertex())
 		}
-		kgraph.AddVertexArray(graph, d)
+		if err := kgraph.AddVertexArray(graph, d); err != nil {
+			log.Fatalf("RandomVertexInsert error: %v", err)
+		}
 	}
 }
 
 func RandomOneToManyInsert(kgraph gripql.Client, graph string) {
 	for i := 0; i < 50000; i++ {
 		v, oe, ov := RandOneToMany(3)
-		kgraph.AddVertex(graph, v)
-		kgraph.AddVertexArray(graph, ov)
-		kgraph.AddEdgeArray(graph, oe)
+		if err := kgraph.AddVertex(graph, v); err != nil {
+			log.Fatalf("RandomOneToManyInsert vertex error: %v", err)
+		}
+		if err := kgraph.AddVertexArray(graph, ov); err != nil {
+			log.Fatalf("RandomOneToManyInsert vertex array error: %v", err)
+		}
+		if err := kgraph.AddEdgeArray(graph, oe); err != nil {
+			log.Fatalf("RandomOneToManyInsert edge array error: %v", err)
+		}
 	}
 }
 
@@ -166,10 +174,15 @@ func randData() map[string]any {
 func randomOneToManyInsert(g gripql.Client, graph string) {
 	a, oe, ov := RandOneToMany(3)
 
-	g.AddVertex(graph, a)
-
-	g.AddVertexArray(graph, ov)
-	g.AddEdgeArray(graph, oe)
+	if err := g.AddVertex(graph, a); err != nil {
+		log.Fatalf("randomOneToManyInsert vertex error: %v", err)
+	}
+	if err := g.AddVertexArray(graph, ov); err != nil {
+		log.Fatalf("randomOneToManyInsert vertex array error: %v", err)
+	}
+	if err := g.AddEdgeArray(graph, oe); err != nil {
+		log.Fatalf("randomOneToManyInsert edge array error: %v", err)
+	}
 }
 
 func randomOneToMany(outCount int) (*gripql.Vertex, []*gripql.Edge, []*gripql.Vertex) {

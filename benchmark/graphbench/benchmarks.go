@@ -66,9 +66,10 @@ func Benchmark_QueryKnowsCount(ctx context.Context, c *gripql.Client, graph stri
 	res, err := c.Traversal(ctx, &gripql.GraphQuery{Graph: graph, Query: query.Statements})
 	if err != nil {
 		log.Fatalf("Query error: %v", err)
-		result.Error = err
 	}
-	fmt.Printf("Knows count result: %+v\n", res)
+	for r := range res {
+		fmt.Printf("Knows count result: %+v\n", r)
+	}
 	return []Result{result}
 }
 
@@ -107,7 +108,11 @@ func Benchmark_LargeVectorInsert(ctx context.Context, c *gripql.Client, graph st
 		log.Fatalf("LargeVector read error: %v", err)
 	}
 	readResults.Time = time.Since(readStart).Seconds()
-	fmt.Printf("Large vector query result count: %d\n", len(res))
+	count := 0
+	for range res {
+		count++
+	}
+	fmt.Printf("Large vector query result count: %d\n", count)
 
 	return []Result{insertResult, readResults}
 }

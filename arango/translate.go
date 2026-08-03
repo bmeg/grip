@@ -258,7 +258,7 @@ func TranslatePipeline(stmts []*gripql.GraphStatement, graphName string, include
 			fields := make([]string, 0, len(stmt.Sort.GetFields()))
 			for _, field := range stmt.Sort.GetFields() {
 				if field != nil {
-					expr := field.Field
+					expr := fmt.Sprintf("%s.%s", currentVar, field.Field)
 					if field.Descending {
 						expr += " DESC"
 					} else {

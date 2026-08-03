@@ -25,7 +25,7 @@ func (t *Transpiler) Compile(stmts []*gripql.GraphStatement, opts *gdbi.CompileO
 	}
 
 	if err := core.Validate(stmts, opts); err != nil {
-		return nil, fmt.Errorf("invalid statments: %s", err)
+		return nil, fmt.Errorf("invalid statements: %s", err)
 	}
 
 	// The transpiler does not support extending an existing traveler stream yet.
