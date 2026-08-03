@@ -150,6 +150,27 @@ jobs:
           sleep 5
           make test-conformance
 
+  arangoTest:
+    needs: build
+    name: Arango Conformance
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+      - name: Python Dependencies for Conformance
+        run: pip install -r conformance/requirements.txt
+      - name: Download grip
+        uses: actions/download-artifact@v4
+        with:
+          name: gripBin
+      - name: Arango Conformance
+        run: |
+          chmod +x grip
+          make start-arango
+          ./grip server --rpc-port 18202 --http-port 18201 --config ./test/arango.yml &
+          sleep 5
+          make test-conformance
+
   postgresTest:
     needs: build
     name: Postgres Test

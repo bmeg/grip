@@ -16,7 +16,11 @@ import (
 // Dead simple baseline tests: get all vertices from a memory-backed graph.
 func BenchmarkBaselineV(b *testing.B) {
 	kv, _ := badgerdb.NewKVInterface("test-badger.db", kvi.Options{})
-	db, err := kvgraph.NewKVGraph(kv).Graph("test-graph")
+	gd := kvgraph.NewKVGraph(kv)
+	if err := gd.AddGraph("test-graph"); err != nil && err.Error() != "graph already exists" {
+		b.Fatal(err)
+	}
+	db, err := gd.Graph("test-graph")
 	if err != nil {
 		b.Fatal(err)
 	}

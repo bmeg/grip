@@ -94,6 +94,8 @@ var Cmd = &cobra.Command{
 				dconf.AddBadgerDefault()
 			} else if driver == "pebble" {
 				dconf.AddPebbleDefault()
+			} else if driver == "arango" {
+				dconf.AddArangoDefault()
 			} else if driver == "mongo" {
 				dconf.AddMongoDefault()
 			} else if driver == "grids" {

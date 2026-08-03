@@ -28,6 +28,7 @@ import (
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 
+	"github.com/bmeg/grip/arango"
 	esql "github.com/bmeg/grip/existing-sql"
 	"github.com/bmeg/grip/grids"
 	"github.com/bmeg/grip/gripper"
@@ -184,6 +185,8 @@ func StartDriver(d config.DriverConfig, sources map[string]gripper.GRIPSourceCli
 		return kvgraph.NewKVGraphDB("pebble", *d.Pebble)
 	} else if d.Grids != nil {
 		return grids.NewGraphDB(*d.Grids)
+	} else if d.ArangoDB != nil {
+		return arango.NewGraphDB(*d.ArangoDB)
 	} else if d.MongoDB != nil {
 		return mongo.NewGraphDB(*d.MongoDB)
 	} else if d.PSQL != nil {

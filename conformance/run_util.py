@@ -97,6 +97,12 @@ def create_arg_parser():
         "--grip_config_file_path",
         default=None
     )
+    parser.add_argument(
+        "--output",
+        "-o",
+        default=None,
+        help="Write detailed test results to a YAML file"
+    )
 
     args = parser.parse_args()
     return args
@@ -216,6 +222,7 @@ class Manager:
     def run_tests(self, tests, args):
         correct = 0
         total = 0
+        test_results = []
         connections = []
         if self._conn:
             connections.append(self._conn)
@@ -231,24 +238,52 @@ class Manager:
                         func = getattr(mod, f)
                         if callable(func):
                             if len(args.methods) == 0 or f[5:] in args.methods:
+                                test_result = {
+                                    "user": connection.user,
+                                    "suite": name,
+                                    "method": f[5:],
+                                    "status": "unknown",
+                                    "errors": []
+                                }
                                 try:
                                     print("Running: %s %s " % (name, f[5:]))
                                     try:
                                         e = func(self)
                                     except SkipTest:
+                                        test_result["status"] = "skipped"
+                                        test_results.append(test_result)
                                         continue
                                     if len(e) == 0:
                                         correct += 1
+                                        test_result["status"] = "passed"
                                         print("Passed: %s %s " % (name, f[5:]))
                                     else:
+                                        test_result["status"] = "failed"
+                                        test_result["errors"] = [str(i) for i in e]
                                         print("Failed: %s %s " % (name, f[5:]))
                                         for i in e:
                                             print("\t- %s" % (i))
                                 except Exception as e:
+                                    test_result["status"] = "crashed"
+                                    test_result["errors"] = [str(e)]
+                                    test_result["traceback"] = traceback.format_exc()
                                     print("Crashed: %s %s %s" % (name, f[5:], e))
                                     traceback.print_exc()
+                                test_results.append(test_result)
                                 total += 1
             self.clean()
+
+        if args.output:
+            report = {
+                "summary": {
+                    "passed": correct,
+                    "total": total
+                },
+                "results": test_results
+            }
+            with open(args.output, "w") as out_handle:
+                yaml.safe_dump(report, out_handle, default_flow_style=False, sort_keys=False)
+
         return correct, total
 
     @staticmethod

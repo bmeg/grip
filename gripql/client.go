@@ -207,6 +207,36 @@ func (client Client) BulkDelete(delete *DeleteData) error {
 	return err
 }
 
+func (client Client) AddVertexArray(graph string, v []*Vertex) error {
+	sc, err := client.EditC.BulkAdd(context.Background())
+	if err != nil {
+		return err
+	}
+	for _, elem := range v {
+		err := sc.Send(&GraphElement{Graph: graph, Vertex: elem})
+		if err != nil {
+			return err
+		}
+	}
+	_, err = sc.CloseAndRecv()
+	return err
+}
+
+func (client Client) AddEdgeArray(graph string, e []*Edge) error {
+	sc, err := client.EditC.BulkAdd(context.Background())
+	if err != nil {
+		return err
+	}
+	for _, elem := range e {
+		err := sc.Send(&GraphElement{Graph: graph, Edge: elem})
+		if err != nil {
+			return err
+		}
+	}
+	_, err = sc.CloseAndRecv()
+	return err
+}
+
 // GetVertex obtains a vertex from a graph by `id`
 func (client Client) GetVertex(graph string, id string) (*Vertex, error) {
 	v, err := client.QueryC.GetVertex(context.Background(), &ElementID{Graph: graph, Id: id})

@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/bmeg/grip/arango"
 	esql "github.com/bmeg/grip/existing-sql"
 	"github.com/bmeg/grip/grids"
 	"github.com/bmeg/grip/gripper"
@@ -32,6 +33,7 @@ type DriverConfig struct {
 	Bolt        *string
 	Level       *string
 	Pebble      *string
+	ArangoDB    *arango.Config
 	MongoDB     *mongo.Config
 	PSQL        *psql.Config
 	ExistingSQL *esql.Config
@@ -114,6 +116,13 @@ func (conf *Config) AddMongoDefault() {
 	conf.Default = "mongo"
 }
 
+func (conf *Config) AddArangoDefault() {
+	c := arango.Config{}
+	c.SetDefaults()
+	conf.Drivers["arango"] = DriverConfig{ArangoDB: &c}
+	conf.Default = "arango"
+}
+
 func (conf *Config) AddSqliteDefault() {
 	c := sqlite.Config{DBName: "grip-sqlite.db"}
 	conf.Drivers["sqlite"] = DriverConfig{Sqlite: &c}
@@ -158,6 +167,9 @@ func TestifyConfig(c *Config) {
 	if d.MongoDB != nil {
 		d.MongoDB.DBName = "gripdb-" + rand
 	}
+	if d.ArangoDB != nil {
+		d.ArangoDB.DBName = "gripdb-" + rand
+	}
 	if d.Sqlite != nil {
 		d.Sqlite.DBName = "gripdb-" + rand
 	}
@@ -166,6 +178,9 @@ func TestifyConfig(c *Config) {
 
 func (c *Config) SetDefaults() {
 	for _, d := range c.Drivers {
+		if d.ArangoDB != nil {
+			d.ArangoDB.SetDefaults()
+		}
 		if d.MongoDB != nil {
 			d.MongoDB.SetDefaults()
 		}
@@ -290,6 +305,10 @@ func DeepCopyRedactedConfig(conf *Config) *Config {
 		if driver.Pebble != nil {
 			pebble := *driver.Pebble
 			cpyDriver.Pebble = &pebble
+		}
+		if driver.ArangoDB != nil {
+			arangoDB := &arango.Config{DBName: "[REDACTED]", Password: "[REDACTED]"}
+			cpyDriver.ArangoDB = arangoDB
 		}
 		if driver.MongoDB != nil {
 			mongoDB := &mongo.Config{DBName: "[REDACTED]", Password: "[REDACTED]"}
