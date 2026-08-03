@@ -70,6 +70,8 @@ get_config() {
         postgres) echo "$REPO_ROOT/test/psql.yml" ;;
         badger) echo "$REPO_ROOT/test/badger.yml" ;;
         pebble) echo "$REPO_ROOT/test/pebble.yml" ;;
+        sqlite) echo "$REPO_ROOT/test/sqlite.yml" ;;
+        grids) echo "$REPO_ROOT/test/grids.yml" ;;
         *)      echo "" ;;
     esac
 }
@@ -108,11 +110,12 @@ start_backend() {
             docker rm -f grip-postgres-test &>/dev/null || true
             docker run -d --name grip-postgres-test \
                 -p 15432:5432 \
-                -e POSTGRES_PASSWORD=postgres \
+                -e POSTGRES_PASSWORD= \
+                -e POSTGRES_USER=postgres \
                 postgres:10.4 > /dev/null
             wait_for_port 127.0.0.1 15432 "PostgreSQL"
             ;;
-        badger|pebble)
+        badger|pebble|sqlite|grids)
             info "$backend uses embedded storage - no docker needed."
             return 0
             ;;
@@ -147,7 +150,7 @@ start_server() {
 
 run_benchmark() {
     local backend="$1"
-    local out_file="bench-${backend}.txt"
+    local out_file="bench-${backend}.json"
     info "Running benchmark for $backend - output to ${out_file}"
     go run "$REPO_ROOT/benchmark/graphbench-cli/main.go" \
         --server "localhost:${RPC_PORT}" --output "$out_file" --backend "$backend"
@@ -166,7 +169,7 @@ main() {
 
     backends=()
     if [[ "$backend" == "all" ]]; then
-        backends=(arango mongo postgres badger pebble)
+        backends=(arango mongo postgres badger pebble sqlite)
     else
         backends=($backend)
     fi

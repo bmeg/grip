@@ -2,6 +2,7 @@ package graphbench
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"math/rand"
 	"time"
@@ -117,4 +118,75 @@ func ManyToOneQuery(kgraph gripql.Client, graph string) {
 	for i := range res {
 		log.Printf("%+v", i)
 	}
+}
+
+func randVertex() *gripql.Vertex {
+	d := randData()
+	v := gripql.Vertex{Id: randID(), Label: randVertexLabel()}
+	v.SetDataMap(d)
+	return &v
+}
+
+func randVectorElement() float64 {
+	return float64(rand.Intn(100)) / 100.0
+}
+
+func makeLargeVector(size int) []float64 {
+	v := make([]float64, size)
+	for i := 0; i < size; i++ {
+		v[i] = randVectorElement()
+	}
+	return v
+}
+
+func randLargeVertex(vectorSize int) *gripql.Vertex {
+	dataMap := map[string]any{}
+	dataMap["embedding"] = makeLargeVector(vectorSize)
+	v := gripql.Vertex{
+		Id:    fmt.Sprintf("largevec-%d", rand.Intn(100)),
+		Label: "LargeVecNode",
+	}
+	v.SetDataMap(dataMap)
+	return &v
+}
+
+func randVertexLabel() string { return vertexLabelValues[rand.Intn(len(vertexLabelValues))] }
+func randEdgeLabel() string   { return edgeLabelValues[rand.Intn(len(edgeLabelValues))] }
+
+func randData() map[string]any {
+	o := map[string]any{}
+	for _, i := range fieldNames {
+		o[i] = randID()
+	}
+	return o
+}
+
+// ---------------------------------------------------------------------------
+// One‑to‑many helpers – used only for embedded path
+func randomOneToManyInsert(g gripql.Client, graph string) {
+	a, oe, ov := RandOneToMany(3)
+
+	g.AddVertex(graph, a)
+
+	g.AddVertexArray(graph, ov)
+	g.AddEdgeArray(graph, oe)
+}
+
+func randomOneToMany(outCount int) (*gripql.Vertex, []*gripql.Edge, []*gripql.Vertex) {
+	a := randVertex()
+	oV := make([]*gripql.Vertex, outCount)
+	oE := make([]*gripql.Edge, outCount)
+	for i := 0; i < outCount; i++ {
+		oV[i] = randVertex()
+		oE[i] = &gripql.Edge{From: a.Id, To: oV[i].Id, Label: randEdgeLabel()}
+	}
+	return a, oE, oV
+}
+
+func randID() string {
+	b := make([]rune, 10)
+	for i := range b {
+		b[i] = idRunes[rand.Intn(len(idRunes))]
+	}
+	return string(b)
 }

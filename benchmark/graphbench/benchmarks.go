@@ -4,16 +4,16 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"math/rand"
 	"time"
 
 	"github.com/bmeg/grip/gripql"
 )
 
 var Benchmarks = []Benchmark{
-	clientInsertVertices,
-	clientQueryKnowsCount,
-	clientLargeVectorInsert,
+	Benchmark_InsertVerticesSingle,
+	Benchmark_InsertVerticesBulk,
+	Benchmark_QueryKnowsCount,
+	Benchmark_LargeVectorInsert,
 }
 
 func RunBenchmarks(ctx context.Context, c *gripql.Client, graph string, logBenchmark LogResult, backend string) {
@@ -34,8 +34,8 @@ func RunBenchmarks(ctx context.Context, c *gripql.Client, graph string, logBench
 	}
 }
 
-func clientInsertVertices(ctx context.Context, c *gripql.Client, graph string) []Result {
-	result := Result{Name: "clientInsertVertices", Scale: 10000, Meta: map[string]any{}}
+func Benchmark_InsertVerticesSingle(ctx context.Context, c *gripql.Client, graph string) []Result {
+	result := Result{Name: "InsertVerticesSingle", Scale: 10000, Meta: map[string]any{}}
 	for i := 0; i < 10000; i++ {
 		v := randVertex()
 		err := c.AddVertex(graph, v)
@@ -46,8 +46,22 @@ func clientInsertVertices(ctx context.Context, c *gripql.Client, graph string) [
 	return []Result{result}
 }
 
-func clientQueryKnowsCount(ctx context.Context, c *gripql.Client, graph string) []Result {
-	result := Result{Name: "clientQueryKnowsCount", Scale: 10000, Meta: map[string]any{}}
+func Benchmark_InsertVerticesBulk(ctx context.Context, c *gripql.Client, graph string) []Result {
+	result := Result{Name: "InsertVerticesBulk", Scale: 10000, Meta: map[string]any{}}
+	upload := []*gripql.Vertex{}
+	for i := 0; i < 10000; i++ {
+		v := randVertex()
+		upload = append(upload, v)
+	}
+	err := c.AddVertexArray(graph, upload)
+	if err != nil {
+		log.Fatalf("Insert error: %v", err)
+	}
+	return []Result{result}
+}
+
+func Benchmark_QueryKnowsCount(ctx context.Context, c *gripql.Client, graph string) []Result {
+	result := Result{Name: "QueryKnowsCount", Scale: 10000, Meta: map[string]any{}}
 	query := gripql.V().HasLabel("Person").Out("knows").Count()
 	res, err := c.Traversal(ctx, &gripql.GraphQuery{Graph: graph, Query: query.Statements})
 	if err != nil {
@@ -58,58 +72,9 @@ func clientQueryKnowsCount(ctx context.Context, c *gripql.Client, graph string) 
 	return []Result{result}
 }
 
-func randID() string {
-	b := make([]rune, 10)
-	for i := range b {
-		b[i] = idRunes[rand.Intn(len(idRunes))]
-	}
-	return string(b)
-}
-
-func randVertexLabel() string { return vertexLabelValues[rand.Intn(len(vertexLabelValues))] }
-func randEdgeLabel() string   { return edgeLabelValues[rand.Intn(len(edgeLabelValues))] }
-
-func randData() map[string]any {
-	o := map[string]any{}
-	for _, i := range fieldNames {
-		o[i] = randID()
-	}
-	return o
-}
-
-func randVertex() *gripql.Vertex {
-	d := randData()
-	v := gripql.Vertex{Id: randID(), Label: randVertexLabel()}
-	v.SetDataMap(d)
-	return &v
-}
-
-func randVectorElement() float64 {
-	return float64(rand.Intn(100)) / 100.0
-}
-
-func makeLargeVector(size int) []float64 {
-	v := make([]float64, size)
-	for i := 0; i < size; i++ {
-		v[i] = randVectorElement()
-	}
-	return v
-}
-
-func randLargeVertex(vectorSize int) *gripql.Vertex {
-	dataMap := map[string]any{}
-	dataMap["embedding"] = makeLargeVector(vectorSize)
-	v := gripql.Vertex{
-		Id:    fmt.Sprintf("largevec-%d", rand.Intn(100)),
-		Label: "LargeVecNode",
-	}
-	v.SetDataMap(dataMap)
-	return &v
-}
-
-func clientLargeVectorInsert(ctx context.Context, c *gripql.Client, graph string) []Result {
+func Benchmark_LargeVectorInsert(ctx context.Context, c *gripql.Client, graph string) []Result {
 	insertResult := Result{
-		Name:  "clientLargeVectorInsert",
+		Name:  "LargeVectorInsert",
 		Scale: 100,
 		Meta:  map[string]any{"vectorSize": 10000},
 	}
@@ -128,7 +93,7 @@ func clientLargeVectorInsert(ctx context.Context, c *gripql.Client, graph string
 
 	// Read back all 100 vertices and inspect vector sizes
 	readResults := Result{
-		Name:  "clientLargeVectorRead",
+		Name:  "LargeVectorRead",
 		Scale: 100,
 		Meta:  map[string]any{"vectorSize": 10000},
 	}
@@ -145,26 +110,4 @@ func clientLargeVectorInsert(ctx context.Context, c *gripql.Client, graph string
 	fmt.Printf("Large vector query result count: %d\n", len(res))
 
 	return []Result{insertResult, readResults}
-}
-
-// ---------------------------------------------------------------------------
-// One‑to‑many helpers – used only for embedded path
-func randomOneToManyInsert(g gripql.Client, graph string) {
-	a, oe, ov := RandOneToMany(3)
-
-	g.AddVertex(graph, a)
-
-	g.AddVertexArray(graph, ov)
-	g.AddEdgeArray(graph, oe)
-}
-
-func randomOneToMany(outCount int) (*gripql.Vertex, []*gripql.Edge, []*gripql.Vertex) {
-	a := randVertex()
-	oV := make([]*gripql.Vertex, outCount)
-	oE := make([]*gripql.Edge, outCount)
-	for i := 0; i < outCount; i++ {
-		oV[i] = randVertex()
-		oE[i] = &gripql.Edge{From: a.Id, To: oV[i].Id, Label: randEdgeLabel()}
-	}
-	return a, oE, oV
 }
