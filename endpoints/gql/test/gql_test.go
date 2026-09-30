@@ -2,6 +2,7 @@ package test
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
 	"google.golang.org/protobuf/proto"
@@ -190,6 +191,14 @@ var pairs = []testPair{
 		true,
 	}, {
 		"MATCH (n)-[:FRIEND]->(n) RETURN n",
+		gripql.NewQuery().V().As("n").Out("FRIEND").SameAs("n").Render("$n"),
+		false,
+	}, {
+		"MATCH (n)-[r:FRIEND]->(friend)-[r:FRIEND]->(n) RETURN n",
+		nil,
+		true,
+	}, {
+		"MATCH (n)-[n:FRIEND]->(friend) RETURN friend",
 		nil,
 		true,
 	}, {
@@ -251,5 +260,12 @@ func TestMatch1(t *testing.T) {
 		if !QueryCompare(compiled, expected) {
 			t.Errorf("Compiled query %s results in\n %s !=\n %s", gqlText, compiled.String(), expected.String())
 		}
+	}
+}
+
+func TestRepeatedEdgeVariableRejected(t *testing.T) {
+	_, err := compiler.RunParser("MATCH (n)-[r:FRIEND]->(middle)-[r:FRIEND]->(n) RETURN n")
+	if err == nil || !strings.Contains(err.Error(), `repeated edge variable "r"`) {
+		t.Fatalf("expected a repeated edge variable error, got %v", err)
 	}
 }

@@ -87,6 +87,15 @@ func TestGQLEndpointRunner(t *testing.T) {
 			expectMinLines: 1,
 		},
 		{
+			name:           "repeated node variable requires same vertex",
+			query:          "MATCH (n:Person)-[:FRIEND]->(middle)-[:FRIEND]->(n) RETURN n.name",
+			expectStatus:   http.StatusOK,
+			expectRows:     2,
+			expectContains: []string{"Alice", "Carol"},
+			expectAbsent:   []string{"Bob"},
+			expectMinLines: 2,
+		},
+		{
 			name:           "boolean WHERE filters rows",
 			query:          "MATCH (n:Person) WHERE n.age >= 33 AND (n.name = 'Bob' OR n.name = 'Alice') RETURN n.name",
 			expectStatus:   http.StatusOK,
@@ -319,6 +328,9 @@ func seedGQLGraph(cli gripql.Client, graph string) error {
 		return err
 	}
 	if err := cli.AddEdge(graph, &gripql.Edge{Id: "e2", From: "alice", To: "carol", Label: "FRIEND"}); err != nil {
+		return err
+	}
+	if err := cli.AddEdge(graph, &gripql.Edge{Id: "e3", From: "carol", To: "alice", Label: "FRIEND"}); err != nil {
 		return err
 	}
 

@@ -16,3 +16,7 @@ class TestQueryFormat(unittest.TestCase):
             q.V().in_(["foo", 1]).to_json()
         with self.assertRaises(TypeError):
             q.V().in_(1).to_json()
+
+    def test_same_as(self):
+        q = Query("localhost", "test")
+        self.assertEqual(q.V().as_("a").sameAs("a").to_dict()["query"][-1], {"sameAs": "a"})
