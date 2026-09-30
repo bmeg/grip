@@ -338,7 +338,7 @@ def filter_tests(args, prefix="ot_"):
     else:
         tests_ = [os.path.basename(a)[:-3] for a in glob(os.path.join(TESTS, f"{prefix}*.py"))]
     # filter out excluded tests
-    tests_ = [t for t in tests_ if t[3:] not in args.exclude]
+    tests_ = [t for t in tests_ if t[len(prefix):] not in args.exclude]
     return tests_
 
 
