@@ -62,6 +62,7 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement, opts *gdbi.Compile
 	// - Jump
 	// - Set
 	// - Increment
+	// - SameAs
 	//If they are present, the system will default to using the core driver
 	unsupportedOps := false
 	for _, gs := range stmts {

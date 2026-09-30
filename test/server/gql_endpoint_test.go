@@ -88,7 +88,7 @@ func TestGQLEndpointRunner(t *testing.T) {
 		},
 		{
 			name:           "repeated node variable requires same vertex",
-			query:          "MATCH (n:Person)-[:FRIEND]->(next)-[:FRIEND]->(n) RETURN n.name",
+			query:          "MATCH (n:Person)-[:FRIEND]->(middle)-[:FRIEND]->(n) RETURN n.name",
 			expectStatus:   http.StatusOK,
 			expectRows:     2,
 			expectContains: []string{"Alice", "Carol"},
