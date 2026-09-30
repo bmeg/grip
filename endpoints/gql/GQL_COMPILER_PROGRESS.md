@@ -16,6 +16,7 @@ Supported today:
 
 - `MATCH` with node labels and inline property maps using typed scalar literals
 - Linear relationship traversal with `Out`, `In`, and `Both` direction mapping
+- Repeated node variables constrained to their original vertex binding
 - Scalar comparison and `IS [NOT] NULL` `WHERE` predicates, with `AND`, `OR`, `NOT`, and parentheses
 - `RETURN var`, `RETURN var.field`, and aliased property projections
 - Minimal `ORDER BY` on the current traversal variable
@@ -52,7 +53,7 @@ This is a first-pass inventory for the compiler, not a server-wide conformance c
 | Capability area | ISO classification | Compiler status | GripQL/runtime and test evidence | Next assessment |
 |---|---|---|---|---|
 | Scalar literals and property types | Required baseline types include `STRING`, `BOOL`, signed `INTEGER`, and `FLOAT`. | Inline maps and comparisons accept strings, integers, floats, booleans, and null. GQL quote doubling, backslash/control escapes, Unicode escapes, and `@` no-escape strings are decoded. | Compiler tests cover literal decoding; endpoint coverage exercises string and boolean predicates. | Establish the server's Unicode version/collation claim separately. |
-| Graph matching and bindings | Mandatory graph-pattern capability area. | Supports labeled node patterns and linear chains with directed or undirected relationship traversal. Rejects `OPTIONAL MATCH`, path variables, unsupported directions, quantified relationships, and repeated node variables. | `Out`/`In`/`Both` cover simple traversal; endpoint tests cover multi-hop traversal. Compiler tests verify repeated-variable patterns fail explicitly. | Assess optional and quantified patterns against GripQL operations. Check optional-feature IDs before counting path extensions as required. |
+| Graph matching and bindings | Mandatory graph-pattern capability area. | Supports labeled node patterns, linear chains, and repeated node variables constrained by GripQL `SameAs`. Rejects repeated edge variables, `OPTIONAL MATCH`, path variables, unsupported directions, and quantified relationships. | `Out`/`In`/`Both` cover simple traversal; endpoint tests exercise repeated node identity against a cycle. | Assess optional and quantified patterns against GripQL operations. Check optional-feature IDs before counting path extensions as required. |
 | Predicates and boolean expressions | Comparisons and boolean expressions are mandatory functionality; `XOR` is optional feature GE07. | Supports property-to-scalar comparisons, `IS [NOT] NULL`, and `AND`/`OR`/`NOT` with parentheses and precedence. Requires references to the current variable; rejects `= NULL`, `XOR`, functions, arithmetic, and other operands. | Compiler represents each supported predicate's true and false cases separately, preserving `UNKNOWN` through `AND`/`OR`/`NOT` during filtering. Compiler and Badger endpoint tests cover null predicates and unknown comparisons. | Complete truth-table tests for the supported subset; do not generalize the guarantee to unsupported predicates or expressions. |
 | Results, ordering, and paging | `RETURN`, ordering, and paging are in the mandatory query capability area; aggregate functions are part of the mandatory value-expression inventory. | Supports bare/property projections and aliases, current-variable field sorting, `SKIP`, and `LIMIT`. Aggregations and complex return expressions are rejected. | `Render`, `Sort`, `Skip`, and `Limit` are emitted; compiler and endpoint tests cover the basic forms. | Check GripQL aggregate/group execution and result shape before selecting aggregate syntax as the next feature. |
 | Query composition and runtime services | Mandatory capability areas also cover query/conditional statements, status objects, sessions, and transactions. | The endpoint currently compiles a narrow single-query read-only form; there is no mapping for the broader statement/runtime areas. | Those concerns are not proven by compiler tests and may live outside the compiler boundary. | Audit server and client APIs separately; classify compiler gaps versus runtime/API work. |
@@ -71,7 +72,7 @@ Other optional features must be tracked separately. For example, `UNION` is opti
 ## Recent Implementation
 
 - Inline property-map values preserve string, integer, float, boolean, and null types.
-- GQL string literals decode their defined escape forms; repeated node-variable paths are rejected rather than silently rebound.
+- GQL string literals decode their defined escape forms; repeated node variables compile to an identity constraint rather than being rebound.
 - Boolean `WHERE` comparisons support `AND`, `OR`, `NOT`, and parentheses with GQL precedence; paired true/false filters preserve `UNKNOWN` for these supported forms. `XOR` remains unsupported.
 - `WHERE var.field IS NULL` and `IS NOT NULL` compile through GripQL nil equality; comparisons to `NULL` are rejected.
 - Compiler tests assert predicate trees, and the endpoint test exercises boolean filtering against a seeded graph.
@@ -79,7 +80,7 @@ Other optional features must be tracked separately. For example, `UNION` is opti
 ## Refined Development Plan
 
 1. **Complete the inventory.** The matrix above is the initial compiler view. Add evidence links/test names and audit the server/runtime rows before making any whole-product conformance statement.
-2. **Continue semantic correctness.** Complete truth-table coverage for the supported predicate subset and verify null/string behavior consistently across backends. Repeated-variable paths remain explicitly rejected until GripQL can preserve their equality semantics. Broader predicate forms remain unsupported until their truth semantics can be preserved.
+2. **Continue semantic correctness.** Complete truth-table coverage for the supported predicate subset and verify null/string behavior consistently across backends. Repeated edge variables remain unsupported until GripQL can preserve edge bindings. Broader predicate forms remain unsupported until their truth semantics can be preserved.
 3. **Expand based on backend evidence.** Assess `OPTIONAL MATCH`, aggregates, and grouped results one at a time. Document the translation and backend limitations before adding table-driven compiler and endpoint tests.
 4. **Keep scope explicit.** If the goal becomes ISO minimum conformance, separately plan graph population/management, status objects, Unicode behavior, and session/transaction APIs. Otherwise, keep the endpoint read-only and document it as a supported subset, not a conformant implementation.
 

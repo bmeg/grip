@@ -79,7 +79,7 @@ type compiledWherePredicate struct {
 	whenFalse *gripql.HasExpression
 }
 
-func addVertexStep(q *gripql.Query, v vertexSelect) (*gripql.Query, error) {
+func addVertexStep(q *gripql.Query, v vertexSelect, sameAs bool) (*gripql.Query, error) {
 	if len(v.label) > 0 {
 		q = q.HasLabel(v.label[0])
 	}
@@ -97,7 +97,9 @@ func addVertexStep(q *gripql.Query, v vertexSelect) (*gripql.Query, error) {
 			q = q.Has(gripql.Eq(key, value))
 		}
 	}
-	if v.name != "" {
+	if sameAs {
+		q = q.SameAs(v.name)
+	} else if v.name != "" {
 		q = q.As(v.name)
 	}
 	return q, nil
@@ -477,19 +479,34 @@ func (c *gqlListener) BuildQuery() (*gripql.Query, error) {
 			return nil, fmt.Errorf("invalid query: path length mismatch (vertices=%d, edges=%d)", len(c.vertexPath), len(c.edgePath))
 		}
 		seenVariables := make(map[string]struct{}, len(c.vertexPath))
+		repeatedVariables := make(map[string]bool, len(c.vertexPath))
 		for _, vertex := range c.vertexPath {
 			if vertex.name == "" {
 				continue
 			}
 			if _, exists := seenVariables[vertex.name]; exists {
-				return nil, fmt.Errorf("unsupported GQL features: repeated node variable %q", vertex.name)
+				repeatedVariables[vertex.name] = true
+				continue
 			}
 			seenVariables[vertex.name] = struct{}{}
+		}
+		seenEdgeVariables := make(map[string]struct{}, len(c.edgePath))
+		for _, edge := range c.edgePath {
+			if edge.name == "" {
+				continue
+			}
+			if _, exists := seenVariables[edge.name]; exists {
+				return nil, fmt.Errorf("unsupported GQL features: variable %q is used for both node and edge patterns", edge.name)
+			}
+			if _, exists := seenEdgeVariables[edge.name]; exists {
+				return nil, fmt.Errorf("unsupported GQL features: repeated edge variable %q", edge.name)
+			}
+			seenEdgeVariables[edge.name] = struct{}{}
 		}
 		q := gripql.NewQuery()
 		q = q.V()
 		var err error
-		q, err = addVertexStep(q, c.vertexPath[0])
+		q, err = addVertexStep(q, c.vertexPath[0], false)
 		if err != nil {
 			return nil, err
 		}
@@ -506,7 +523,8 @@ func (c *gqlListener) BuildQuery() (*gripql.Query, error) {
 			default:
 				return nil, fmt.Errorf("unsupported GQL features: relationship direction")
 			}
-			q, err = addVertexStep(q, c.vertexPath[i+1])
+			nextVertex := c.vertexPath[i+1]
+			q, err = addVertexStep(q, nextVertex, repeatedVariables[nextVertex.name])
 			if err != nil {
 				return nil, err
 			}

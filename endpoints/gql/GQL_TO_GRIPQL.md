@@ -20,6 +20,7 @@ The compiler currently emits these GripQL steps:
 - `Has(gripql.And/Or/Not(...))` for supported boolean WHERE composition
 - `Out(...)`, `In(...)`, and `Both(...)` for relationship traversal
 - `As(...)`
+- `SameAs(...)`
 - `Sort(...)`
 - `Render(...)`
 - `Skip(...)`
@@ -83,6 +84,30 @@ Direction mapping, applied per hop in the chain:
 - `-[:TYPE]-` maps to `Both("TYPE")`
 
 Linear multi-hop chains are supported by applying the same mapping repeatedly.
+
+### Repeated node variables
+
+GQL:
+
+```gql
+MATCH (n)-[:FRIEND]->(next)-[:FRIEND]->(n)
+RETURN n
+```
+
+GripQL constrains the final node to the original binding:
+
+```go
+gripql.NewQuery().
+  V().
+  As("n").
+  Out("FRIEND").
+  As("next").
+  Out("FRIEND").
+  SameAs("n").
+  Render("$n")
+```
+
+`SameAs` retains only travelers whose current vertex ID matches the vertex bound to the named variable. Repeated relationship variables are rejected until the compiler supports binding edge elements.
 
 ### MATCH with minimal WHERE predicate
 
@@ -213,7 +238,7 @@ The compiler currently rejects queries containing any of the following:
 - `WHERE XOR`, function calls, arithmetic, comparisons to `NULL`, and non-literal comparisons
 - Full three-valued boolean semantics for `UNKNOWN`
 - `WHERE` expressions that reference multiple variables
-- Repeated node variables in a path, because GripQL cannot currently enforce GQL's repeated-binding equality semantics
+- Repeated edge variables, because the current GQL mapping does not bind edge elements
 - `WHERE` on a non-current traversal variable
 - `WITH`
 - `SET`

@@ -190,6 +190,14 @@ var pairs = []testPair{
 		true,
 	}, {
 		"MATCH (n)-[:FRIEND]->(n) RETURN n",
+		gripql.NewQuery().V().As("n").Out("FRIEND").SameAs("n").Render("$n"),
+		false,
+	}, {
+		"MATCH (n)-[r:FRIEND]->(friend)-[r:FRIEND]->(n) RETURN n",
+		nil,
+		true,
+	}, {
+		"MATCH (n)-[n:FRIEND]->(friend) RETURN friend",
 		nil,
 		true,
 	}, {
