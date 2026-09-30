@@ -2,6 +2,16 @@
 
 All query conformance tests are run on a subset of the data from [SWAPI](https://swapi.co). The test graph data is [here](./graphs) and the scripts used to generate the graph are [here](./resources).
 
+## GQL Conformance
+
+Run the GQL endpoint tests against a live GRIP server with:
+
+```sh
+python3 conformance/run_gql_conformance.py http://localhost:8201
+```
+
+The runner loads the SWAPI fixture into a temporary graph and sends GQL queries to the server's `/gql/{graph}` endpoint. Run one module by appending its name without the `gql_` prefix, for example `python3 conformance/run_gql_conformance.py http://localhost:8201 basic`. Use `--readOnly GRAPH` to skip fixture loading and cleanup; that graph must already contain the SWAPI fixture data.
+
 ## Test Graph
 
 ![swapi](./resources/swapi_subgraph.png)

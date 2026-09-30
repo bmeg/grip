@@ -3,8 +3,10 @@ package compiler
 import (
 	"fmt"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/antlr4-go/antlr/v4"
 	"github.com/bmeg/grip/endpoints/gql/parser"
@@ -45,10 +47,10 @@ type gqlListener struct {
 	curMap               map[string]string
 	currentEdgeDirection string
 
-	whereExpr string
-	orderExpr string
-	skipExpr  string
-	limitExpr string
+	whereCondition parser.IValueExpressionContext
+	orderExpr      string
+	skipExpr       string
+	limitExpr      string
 }
 
 type syntaxErrorListener struct {
@@ -58,13 +60,6 @@ type syntaxErrorListener struct {
 
 func (s *syntaxErrorListener) SyntaxError(_ antlr.Recognizer, _ interface{}, line, column int, msg string, _ antlr.RecognitionException) {
 	s.errors = append(s.errors, fmt.Sprintf("line %d:%d %s", line, column, msg))
-}
-
-func evalHasExpression(key string, exp string) *gripql.HasExpression {
-	if strings.HasPrefix(exp, "'") && strings.HasSuffix(exp, "'") {
-		exp = exp[1 : len(exp)-1]
-	}
-	return gripql.Eq(key, exp)
 }
 
 var simpleVariableName = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`)
@@ -78,27 +73,111 @@ type returnProjection struct {
 	isBare bool
 }
 
-func addVertexStep(q *gripql.Query, v vertexSelect) *gripql.Query {
+type compiledWherePredicate struct {
+	variable  string
+	whenTrue  *gripql.HasExpression
+	whenFalse *gripql.HasExpression
+}
+
+func addVertexStep(q *gripql.Query, v vertexSelect) (*gripql.Query, error) {
 	if len(v.label) > 0 {
 		q = q.HasLabel(v.label[0])
 	}
 	if len(v.selectMap) > 0 {
-		for k, val := range v.selectMap {
-			e := evalHasExpression(k, val)
-			q = q.Has(e)
+		keys := make([]string, 0, len(v.selectMap))
+		for key := range v.selectMap {
+			keys = append(keys, key)
+		}
+		sort.Strings(keys)
+		for _, key := range keys {
+			value, err := parseScalarLiteral(v.selectMap[key])
+			if err != nil {
+				return nil, fmt.Errorf("unsupported GQL features: node property literal for %q: %w", key, err)
+			}
+			q = q.Has(gripql.Eq(key, value))
 		}
 	}
 	if v.name != "" {
 		q = q.As(v.name)
 	}
-	return q
+	return q, nil
+}
+
+func decodeGQLStringLiteral(raw string) (string, error) {
+	noEscape := strings.HasPrefix(raw, "@")
+	if noEscape {
+		raw = raw[1:]
+	}
+	if len(raw) < 2 || (raw[0] != '\'' && raw[0] != '"') || raw[len(raw)-1] != raw[0] {
+		return "", fmt.Errorf("invalid character string literal")
+	}
+
+	quote := raw[0]
+	content := raw[1 : len(raw)-1]
+	var decoded strings.Builder
+	decoded.Grow(len(content))
+	for i := 0; i < len(content); {
+		if content[i] == quote && i+1 < len(content) && content[i+1] == quote {
+			decoded.WriteByte(quote)
+			i += 2
+			continue
+		}
+		if content[i] != '\\' || noEscape {
+			decoded.WriteByte(content[i])
+			i++
+			continue
+		}
+
+		i++
+		if i >= len(content) {
+			return "", fmt.Errorf("incomplete character string escape")
+		}
+		switch content[i] {
+		case '\\', '\'', '"', '`':
+			decoded.WriteByte(content[i])
+			i++
+		case 't':
+			decoded.WriteByte('\t')
+			i++
+		case 'b':
+			decoded.WriteByte('\b')
+			i++
+		case 'n':
+			decoded.WriteByte('\n')
+			i++
+		case 'r':
+			decoded.WriteByte('\r')
+			i++
+		case 'f':
+			decoded.WriteByte('\f')
+			i++
+		case 'u', 'U':
+			digitCount := 4
+			if content[i] == 'U' {
+				digitCount = 6
+			}
+			i++
+			if i+digitCount > len(content) {
+				return "", fmt.Errorf("incomplete Unicode escape")
+			}
+			codePoint, err := strconv.ParseUint(content[i:i+digitCount], 16, 32)
+			if err != nil || !utf8.ValidRune(rune(codePoint)) {
+				return "", fmt.Errorf("invalid Unicode escape")
+			}
+			decoded.WriteRune(rune(codePoint))
+			i += digitCount
+		default:
+			return "", fmt.Errorf("unsupported character string escape: \\%c", content[i])
+		}
+	}
+	return decoded.String(), nil
 }
 
 func parseScalarLiteral(raw string) (any, error) {
 	raw = strings.TrimSpace(raw)
 	if len(raw) >= 2 {
-		if (raw[0] == '\'' && raw[len(raw)-1] == '\'') || (raw[0] == '"' && raw[len(raw)-1] == '"') {
-			return raw[1 : len(raw)-1], nil
+		if raw[0] == '\'' || raw[0] == '"' || strings.HasPrefix(raw, "@") {
+			return decodeGQLStringLiteral(raw)
 		}
 	}
 
@@ -123,19 +202,10 @@ func parseScalarLiteral(raw string) (any, error) {
 	return nil, fmt.Errorf("unsupported literal: %s", raw)
 }
 
-func parseWhereExpression(whereText string) (string, *gripql.HasExpression, error) {
-	expr := strings.TrimSpace(whereText)
-	if strings.HasPrefix(strings.ToUpper(expr), "WHERE") {
-		expr = strings.TrimSpace(expr[5:])
-	}
-
-	if strings.Contains(expr, " AND ") || strings.Contains(expr, " OR ") {
-		return "", nil, fmt.Errorf("unsupported GQL features: complex WHERE expression")
-	}
-
+func parseSimpleWhereExpression(expr string) (string, string, *gripql.HasExpression, error) {
 	parts := simpleWhereExpression.FindStringSubmatch(expr)
 	if len(parts) != 5 {
-		return "", nil, fmt.Errorf("unsupported GQL features: WHERE expression")
+		return "", "", nil, fmt.Errorf("unsupported GQL features: WHERE expression")
 	}
 
 	varName := parts[1]
@@ -145,25 +215,133 @@ func parseWhereExpression(whereText string) (string, *gripql.HasExpression, erro
 
 	val, err := parseScalarLiteral(rawVal)
 	if err != nil {
-		return "", nil, fmt.Errorf("unsupported GQL features: WHERE literal")
+		return "", "", nil, fmt.Errorf("unsupported GQL features: WHERE literal")
+	}
+	if val == nil {
+		return "", "", nil, fmt.Errorf("unsupported GQL features: comparison with NULL; use IS NULL or IS NOT NULL")
 	}
 
 	switch op {
 	case "=":
-		return varName, gripql.Eq(key, val), nil
+		return varName, key, gripql.Eq(key, val), nil
 	case "<>", "!=":
-		return varName, gripql.Neq(key, val), nil
+		return varName, key, gripql.Neq(key, val), nil
 	case ">":
-		return varName, gripql.Gt(key, val), nil
+		return varName, key, gripql.Gt(key, val), nil
 	case ">=":
-		return varName, gripql.Gte(key, val), nil
+		return varName, key, gripql.Gte(key, val), nil
 	case "<":
-		return varName, gripql.Lt(key, val), nil
+		return varName, key, gripql.Lt(key, val), nil
 	case "<=":
-		return varName, gripql.Lte(key, val), nil
+		return varName, key, gripql.Lte(key, val), nil
 	default:
-		return "", nil, fmt.Errorf("unsupported GQL features: WHERE operator")
+		return "", "", nil, fmt.Errorf("unsupported GQL features: WHERE operator")
 	}
+}
+
+func compileWhereExpression(expr parser.IValueExpressionContext) (*compiledWherePredicate, error) {
+	switch ctx := expr.(type) {
+	case *parser.ComparisonExprAltContext:
+		values := ctx.AllValueExpression()
+		if len(values) != 2 || ctx.CompOp() == nil {
+			return nil, fmt.Errorf("unsupported GQL features: WHERE comparison")
+		}
+		variable, property, predicate, err := parseSimpleWhereExpression(values[0].GetText() + ctx.CompOp().GetText() + values[1].GetText())
+		if err != nil {
+			return nil, err
+		}
+		nonNull := gripql.Not(gripql.Eq(property, nil))
+		return &compiledWherePredicate{
+			variable:  variable,
+			whenTrue:  gripql.And(nonNull, predicate),
+			whenFalse: gripql.And(nonNull, gripql.Not(predicate)),
+		}, nil
+	case *parser.ConjunctiveExprAltContext:
+		return compileCombinedWhereExpression(ctx.AllValueExpression(), false)
+	case *parser.DisjunctiveExprAltContext:
+		if ctx.XOR() != nil {
+			return nil, fmt.Errorf("unsupported GQL features: WHERE XOR")
+		}
+		return compileCombinedWhereExpression(ctx.AllValueExpression(), true)
+	case *parser.NotExprAltContext:
+		predicate, err := compileWhereExpression(ctx.ValueExpression())
+		if err != nil {
+			return nil, err
+		}
+		return &compiledWherePredicate{
+			variable:  predicate.variable,
+			whenTrue:  predicate.whenFalse,
+			whenFalse: predicate.whenTrue,
+		}, nil
+	case *parser.PredicateExprAltContext:
+		predicate := ctx.Predicate()
+		if predicate == nil || predicate.NullPredicate() == nil {
+			return nil, fmt.Errorf("unsupported GQL features: complex WHERE predicate")
+		}
+		nullPredicate := predicate.NullPredicate()
+		primary := nullPredicate.ValueExpressionPrimary()
+		if primary == nil || nullPredicate.NullPredicatePart2() == nil {
+			return nil, fmt.Errorf("unsupported GQL features: WHERE NULL predicate")
+		}
+		parts := simpleReturnValue.FindStringSubmatch(primary.GetText())
+		if len(parts) != 3 || parts[2] == "" {
+			return nil, fmt.Errorf("unsupported GQL features: WHERE NULL predicate expression")
+		}
+		variable := parts[1]
+		property := parts[2]
+		nullCheck := gripql.Eq(property, nil)
+		nonNullCheck := gripql.Not(nullCheck)
+		if nullPredicate.NullPredicatePart2().NOT() != nil {
+			nullCheck, nonNullCheck = nonNullCheck, nullCheck
+		}
+		return &compiledWherePredicate{variable: variable, whenTrue: nullCheck, whenFalse: nonNullCheck}, nil
+	case *parser.PrimaryExprAltContext:
+		primary := ctx.ValueExpressionPrimary()
+		if primary != nil && primary.ParenthesizedValueExpression() != nil {
+			return compileWhereExpression(primary.ParenthesizedValueExpression().ValueExpression())
+		}
+	}
+
+	return nil, fmt.Errorf("unsupported GQL features: complex WHERE expression")
+}
+
+func compileCombinedWhereExpression(expressions []parser.IValueExpressionContext, disjunction bool) (*compiledWherePredicate, error) {
+	if len(expressions) < 2 {
+		return nil, fmt.Errorf("unsupported GQL features: WHERE expression")
+	}
+
+	var variable string
+	truePredicates := make([]*gripql.HasExpression, 0, len(expressions))
+	falsePredicates := make([]*gripql.HasExpression, 0, len(expressions))
+	for _, expression := range expressions {
+		predicate, err := compileWhereExpression(expression)
+		if err != nil {
+			return nil, err
+		}
+		if variable != "" && predicate.variable != variable {
+			return nil, fmt.Errorf("unsupported GQL features: WHERE on multiple variables")
+		}
+		variable = predicate.variable
+		truePredicates = append(truePredicates, predicate.whenTrue)
+		falsePredicates = append(falsePredicates, predicate.whenFalse)
+	}
+
+	combined := &compiledWherePredicate{variable: variable}
+	if disjunction {
+		combined.whenTrue = gripql.Or(truePredicates...)
+		combined.whenFalse = gripql.And(falsePredicates...)
+	} else {
+		combined.whenTrue = gripql.And(truePredicates...)
+		combined.whenFalse = gripql.Or(falsePredicates...)
+	}
+	return combined, nil
+}
+
+func whereExpression(ctx parser.ISearchConditionContext) parser.IValueExpressionContext {
+	if ctx == nil || ctx.BooleanValueExpression() == nil {
+		return nil
+	}
+	return ctx.BooleanValueExpression().ValueExpression()
 }
 
 func parseReturnProjection(text string) (returnProjection, error) {
@@ -298,9 +476,23 @@ func (c *gqlListener) BuildQuery() (*gripql.Query, error) {
 		if len(c.edgePath) > 0 && len(c.vertexPath) != len(c.edgePath)+1 {
 			return nil, fmt.Errorf("invalid query: path length mismatch (vertices=%d, edges=%d)", len(c.vertexPath), len(c.edgePath))
 		}
+		seenVariables := make(map[string]struct{}, len(c.vertexPath))
+		for _, vertex := range c.vertexPath {
+			if vertex.name == "" {
+				continue
+			}
+			if _, exists := seenVariables[vertex.name]; exists {
+				return nil, fmt.Errorf("unsupported GQL features: repeated node variable %q", vertex.name)
+			}
+			seenVariables[vertex.name] = struct{}{}
+		}
 		q := gripql.NewQuery()
 		q = q.V()
-		q = addVertexStep(q, c.vertexPath[0])
+		var err error
+		q, err = addVertexStep(q, c.vertexPath[0])
+		if err != nil {
+			return nil, err
+		}
 
 		for i := 0; i < len(c.edgePath); i++ {
 			e := c.edgePath[i]
@@ -314,19 +506,22 @@ func (c *gqlListener) BuildQuery() (*gripql.Query, error) {
 			default:
 				return nil, fmt.Errorf("unsupported GQL features: relationship direction")
 			}
-			q = addVertexStep(q, c.vertexPath[i+1])
+			q, err = addVertexStep(q, c.vertexPath[i+1])
+			if err != nil {
+				return nil, err
+			}
 		}
 
-		if c.whereExpr != "" {
-			whereVar, whereExpr, err := parseWhereExpression(c.whereExpr)
+		if c.whereCondition != nil {
+			wherePredicate, err := compileWhereExpression(c.whereCondition)
 			if err != nil {
 				return nil, err
 			}
 			currentVar := c.vertexPath[len(c.vertexPath)-1].name
-			if currentVar == "" || whereVar != currentVar {
+			if currentVar == "" || wherePredicate.variable != currentVar {
 				return nil, fmt.Errorf("unsupported GQL features: WHERE on non-current variable")
 			}
-			q = q.Has(whereExpr)
+			q = q.Has(wherePredicate.whenTrue)
 		}
 
 		if c.orderExpr != "" {
@@ -394,7 +589,7 @@ func (c *gqlListener) EnterMatchStatement(ctx *parser.MatchStatementContext) {
 	c.vertexPath = make([]vertexSelect, 0, 10)
 	c.edgePath = make([]edgeSelect, 0, 10)
 	c.returns = nil
-	c.whereExpr = ""
+	c.whereCondition = nil
 	c.orderExpr = ""
 	c.skipExpr = ""
 	c.limitExpr = ""
@@ -528,18 +723,18 @@ func (c *gqlListener) EnterReturnItem(ctx *parser.ReturnItemContext) {
 }
 
 func (c *gqlListener) EnterWhereClause(ctx *parser.WhereClauseContext) {
-	c.whereExpr = ctx.GetText()
+	c.whereCondition = whereExpression(ctx.SearchCondition())
 }
 
 func (c *gqlListener) EnterGraphPatternWhereClause(ctx *parser.GraphPatternWhereClauseContext) {
-	if c.whereExpr == "" {
-		c.whereExpr = ctx.GetText()
+	if c.whereCondition == nil {
+		c.whereCondition = whereExpression(ctx.SearchCondition())
 	}
 }
 
 func (c *gqlListener) EnterElementPatternWhereClause(ctx *parser.ElementPatternWhereClauseContext) {
-	if c.whereExpr == "" {
-		c.whereExpr = ctx.GetText()
+	if c.whereCondition == nil {
+		c.whereCondition = whereExpression(ctx.SearchCondition())
 	}
 }
 

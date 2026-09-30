@@ -6,7 +6,7 @@ The current implementation is intentionally minimal and read-only. Unsupported f
 
 ## Translator Entry Point
 
-- Compiler package: `gql/compiler/build.go`
+- Compiler package: `endpoints/gql/compiler/build.go`
 - Parse function: `RunParser(gql string) (*gripql.Query, error)`
 
 ## GripQL Syntax Used by the Compiler
@@ -17,6 +17,7 @@ The compiler currently emits these GripQL steps:
 - `HasLabel(...)`
 - `Has(gripql.Eq(...))` for inline node map properties
 - `Has(gripql.Eq/Neq/Gt/Gte/Lt/Lte(...))` for supported WHERE predicates
+- `Has(gripql.And/Or/Not(...))` for supported boolean WHERE composition
 - `Out(...)`, `In(...)`, and `Both(...)` for relationship traversal
 - `As(...)`
 - `Sort(...)`
@@ -51,6 +52,8 @@ Notes:
 - One node pattern is supported.
 - Node labels are mapped to `HasLabel`.
 - Node inline map properties are mapped to `Has(gripql.Eq(...))`.
+- Inline map values preserve string, integer, float, boolean, and null scalar types.
+- Character strings decode GQL quote doubling, backslash/control escapes, and `\\uXXXX`/`\\UXXXXXX` Unicode escapes. The `@` no-escape prefix preserves backslashes.
 - A single projection item in `RETURN` is rendered.
 
 ### MATCH with linear relationship traversal
@@ -110,6 +113,14 @@ Supported WHERE forms:
 - `var.field >= literal`
 - `var.field < literal`
 - `var.field <= literal`
+- `var.field IS NULL`
+- `var.field IS NOT NULL`
+- Comparisons composed with `AND`, `OR`, `NOT`, and parentheses
+
+Boolean composition follows GQL precedence: `AND` binds more tightly than `OR`.
+The compiler maps these expressions to GripQL `And`, `Or`, and `Not` expression trees.
+`IS NULL` maps to `Eq(field, nil)` and `IS NOT NULL` to `Not(Eq(field, nil))`; the engine and grid filter treat a missing property as null for these predicates.
+ Ordinary comparisons to `NULL` (such as `field = NULL`) are rejected. For supported comparisons and null predicates, the compiler builds separate true/false filters so `AND`, `OR`, and `NOT` preserve `UNKNOWN` when filtering. This guarantee does not extend to unsupported predicate forms or expression operands.
 
 WHERE scope rule, current implementation:
 
@@ -199,7 +210,10 @@ Notes:
 The compiler currently rejects queries containing any of the following:
 
 - Variable-length relationships, for example `*1..2`
-- Complex `WHERE` expressions, for example `AND`, `OR`, function calls, or non-literal comparisons
+- `WHERE XOR`, function calls, arithmetic, comparisons to `NULL`, and non-literal comparisons
+- Full three-valued boolean semantics for `UNKNOWN`
+- `WHERE` expressions that reference multiple variables
+- Repeated node variables in a path, because GripQL cannot currently enforce GQL's repeated-binding equality semantics
 - `WHERE` on a non-current traversal variable
 - `WITH`
 - `SET`
