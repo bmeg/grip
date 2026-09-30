@@ -103,7 +103,11 @@ var Cmd = &cobra.Command{
 					log.Infof("Loaded %d edges", count)
 				}
 				if edgeUID && e.Id == "" {
-					e.Id = util.UUID()
+					var data map[string]interface{}
+					if e.Data != nil {
+						data = e.Data.AsMap()
+					}
+					e.Id = util.DeterministicEdgeID(e.From, e.To, e.Label, data)
 				}
 				elemChan <- &gripql.GraphElement{Graph: graph, Edge: e}
 			}
@@ -142,7 +146,11 @@ var Cmd = &cobra.Command{
 							log.Infof("Loaded %d edges", edgeCount)
 						}
 						if edgeUID && e.Id == "" {
-							e.Id = util.UUID()
+							var data map[string]interface{}
+							if e.Data != nil {
+								data = e.Data.AsMap()
+							}
+							e.Id = util.DeterministicEdgeID(e.From, e.To, e.Label, data)
 						}
 						elemChan <- &gripql.GraphElement{Graph: graph, Edge: e}
 					}

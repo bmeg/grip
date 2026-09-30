@@ -19,7 +19,7 @@ func extractHeaderKeys(input map[string][]string, whitelist []string) map[string
 	}
 	for k, v := range input {
 		for _, w := range whitelist {
-			if strings.ToLower(k) == strings.ToLower(w) {
+			if strings.EqualFold(k, w) {
 				filtered[strings.ToLower(k)] = v
 				break
 			}

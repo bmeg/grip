@@ -2,7 +2,8 @@ Default: grids
 
 Drivers:
   grids:
-    Grids: grip-grids.db
+    Grids:
+      GraphDir: grip-grids.db
 
 Kafka:
   Username: admin

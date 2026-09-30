@@ -225,6 +225,8 @@ class Graph(BaseConnection):
         """
         return Query(self.base_url, self.graph, self.user, self.password, self.token, self.credential_file, resume=job_id)
 
+
+
     def listJobs(self):
         url = self.url + "/job"
         response = self.session.get(

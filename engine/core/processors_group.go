@@ -17,16 +17,20 @@ type Group struct {
 func (r *Group) reduce(curTraveler *gdbi.BaseTraveler, newTraveler *gdbi.BaseTraveler) {
 	for dest, field := range r.grouping {
 		v := gdbi.TravelerPathLookup(newTraveler, field)
-		if curTraveler.Current != nil {
-			if a, ok := curTraveler.Current.Data[dest]; ok {
+		cur := curTraveler.GetCurrent().Get()
+		if cur != nil {
+			if cur.Data == nil {
+				cur.Data = map[string]any{}
+			}
+			if a, ok := cur.Data[dest]; ok {
 				if aSlice, ok := a.([]any); ok {
-					curTraveler.Current.Data[dest] = append(aSlice, v)
+					cur.Data[dest] = append(aSlice, v)
 				} else if !ok {
 					// overwrite existing data
-					curTraveler.Current.Data[dest] = []any{v}
+					cur.Data[dest] = []any{v}
 				}
 			} else {
-				curTraveler.Current.Data[dest] = []any{v}
+				cur.Data[dest] = []any{v}
 			}
 		}
 	}

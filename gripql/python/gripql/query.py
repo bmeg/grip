@@ -9,6 +9,7 @@ except ImportError:
 
 import logging
 import requests
+import struct
 
 from gripql.util import BaseConnection, Rate, raise_for_status
 
@@ -45,10 +46,20 @@ class Query(BaseConnection):
         self.resume = resume
 
     def __append(self, part):
-        q = self.__class__(self.base_url, self.graph, self.user, self.password, self.token, self.credential_file, self.resume)
+        q = self.__class__(
+            self.base_url,
+            self.graph,
+            self.user,
+            self.password,
+            self.token,
+            self.credential_file,
+            self.resume,
+        )
         q.query = self.query[:]
         q.query.append(part)
         return q
+
+
 
     def V(self, id=[]):
         """
@@ -408,6 +419,8 @@ class Query(BaseConnection):
         """
         return {"query": self.query}
 
+
+
     def __iter__(self):
         return self.__stream()
 
@@ -449,6 +462,7 @@ class Query(BaseConnection):
             logger.debug('POST %s', url)
         logger.debug('BODY %s', self.to_json())
         logger.debug('STATUS CODE %s', response.status_code)
+        raise_for_status(response)
 
         for result in response.iter_lines(chunk_size=None):
             try:
@@ -478,6 +492,23 @@ class Query(BaseConnection):
                 extracted = result_dict["path"]
             elif "count" in result_dict:
                 extracted = result_dict
+            elif "result" in result_dict and isinstance(result_dict["result"], dict):
+                # Bulk fallback may return proto-shaped QueryResult.
+                inner = result_dict["result"]
+                if "vertex" in inner:
+                    extracted = inner["vertex"]
+                elif "edge" in inner:
+                    extracted = inner["edge"]
+                elif "render" in inner:
+                    extracted = inner["render"]
+                elif "path" in inner:
+                    extracted = inner["path"]
+                elif "count" in inner:
+                    extracted = {"count": inner["count"]}
+                elif "aggregations" in inner:
+                    extracted = inner["aggregations"]
+                else:
+                    extracted = result_dict
             elif "error" in result_dict:
                 raise requests.HTTPError(result_dict['error']['message'])
             else:

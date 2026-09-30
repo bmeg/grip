@@ -6,7 +6,6 @@ import (
 	"github.com/bmeg/grip/gripql"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"golang.org/x/net/context"
-	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -20,13 +19,7 @@ type MarshalClean struct {
 
 func NewMarshaler() runtime.Marshaler {
 	return &MarshalClean{
-		m: &runtime.JSONPb{
-			MarshalOptions:   protojson.MarshalOptions{EmitUnpopulated: true},
-			UnmarshalOptions: protojson.UnmarshalOptions{},
-			//EnumsAsInts:  false,
-			//EmitDefaults: true,
-			//OrigName:     true,
-		},
+		m: gripql.NewFlattenMarshaler(),
 	}
 }
 

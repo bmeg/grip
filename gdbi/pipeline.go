@@ -10,6 +10,7 @@ type PipelineState interface {
 	GetLastType() DataType
 	SetLastType(DataType)
 	StepLoadData() bool
+	StepRequiredFields() []string
 }
 
 type CustomProcGen interface {

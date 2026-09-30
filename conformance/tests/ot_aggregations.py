@@ -154,7 +154,7 @@ def test_traversal_edge_histogram_aggregation(man):
     if count < 2:
         errors.append(
             "Unexpected number of terms: %d != %d" %
-            (len(row["buckets"]), 2)
+            (count, 2)
         )
 
     return errors

@@ -85,6 +85,7 @@ type Signal struct {
 // Traveler is a query element that traverse the graph
 type BaseTraveler struct {
 	Current     *DataElement
+	currentRef  DataRef
 	Marks       map[string]*DataElement
 	Selections  map[string]*DataElement
 	Aggregation *Aggregate
@@ -137,6 +138,7 @@ type ElementLookup struct {
 	Ref    Traveler
 	Vertex VertexRef
 	Edge   EdgeRef
+	Priv   any
 }
 
 // GraphDB is the base interface for graph databases

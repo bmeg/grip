@@ -75,7 +75,7 @@ func StreamBatch(stream <-chan *gdbi.GraphElement, batchSize int, graph string, 
 		} else if element.Edge != nil {
 			edge := element.Edge
 			if edge.ID == "" {
-				edge.ID = UUID()
+				edge.ID = DeterministicEdgeID(edge.From, edge.To, edge.Label, edge.Data)
 			}
 
 			if err := edge.Validate(); err != nil {

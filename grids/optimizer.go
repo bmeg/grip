@@ -1,6 +1,7 @@
 package grids
 
 import (
+	"github.com/bmeg/grip/grids/key"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/util/protoutil"
 )
@@ -75,8 +76,8 @@ var startOptimizations = []OptimizationRule{
 			has := pipe[2].GetHas()
 			labels := protoutil.AsStringList(pipe[1].GetHasLabel())
 			for i, label := range labels {
-				if label[:2] != VTABLE_PREFIX {
-					labels[i] = VTABLE_PREFIX + label
+				if label[:2] != key.VertexTablePrefix {
+					labels[i] = key.VertexTablePrefix + label
 				}
 			}
 			var optimized = []*gripql.GraphStatement{
@@ -109,8 +110,8 @@ var startOptimizations = []OptimizationRule{
 		Replace: func(pipe []*gripql.GraphStatement) []*gripql.GraphStatement {
 			labels := protoutil.AsStringList(pipe[1].GetHasLabel())
 			for i, label := range labels {
-				if label[:2] != VTABLE_PREFIX {
-					labels[i] = VTABLE_PREFIX + label
+				if label[:2] != key.VertexTablePrefix {
+					labels[i] = key.VertexTablePrefix + label
 				}
 			}
 			var optimized = []*gripql.GraphStatement{

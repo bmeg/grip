@@ -72,7 +72,11 @@ func edgeSerialize(edgeChan chan *gripql.Edge, workers int) chan []byte {
 		go func() {
 			for e := range edgeChan {
 				if edgeUID && e.Id == "" {
-					e.Id = util.UUID()
+					var data map[string]interface{}
+					if e.Data != nil {
+						data = e.Data.AsMap()
+					}
+					e.Id = util.DeterministicEdgeID(e.From, e.To, e.Label, data)
 				}
 				doc := mongo.PackEdge(gdbi.NewElementFromEdge(e))
 				rawBytes, err := bson.Marshal(doc)

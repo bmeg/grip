@@ -2,6 +2,7 @@ package inspect
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/bmeg/grip/gdbi/tpath"
 	"github.com/bmeg/grip/gripql"
@@ -9,18 +10,6 @@ import (
 
 	"github.com/bmeg/grip/util/protoutil"
 )
-
-func arrayEq(a, b []string) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i := range a {
-		if a[i] != b[i] {
-			return false
-		}
-	}
-	return true
-}
 
 // PipelineSteps create an array, the same length at stmts that labels the
 // step id for each of the GraphStatements
@@ -161,6 +150,15 @@ func PipelineStepOutputs(stmts []*gripql.GraphStatement, storeMarks bool) map[st
 				out[steps[i]] = []string{"*"}
 			}
 			onLast = false
+		case *gripql.GraphStatement_EngineCustom:
+			// Custom engine steps can be traversal-producing sources (for example,
+			// grids V().HasLabel() rewrites). When terminal, treat them as producing
+			// full current outputs so storage can load once at source instead of
+			// forcing late ID re-hydration in conversion.
+			if onLast {
+				out[steps[i]] = []string{"*"}
+			}
+			onLast = false
 
 		case *gripql.GraphStatement_HasLabel:
 			if x, ok := out[steps[i]]; ok {
@@ -177,6 +175,64 @@ func PipelineStepOutputs(stmts []*gripql.GraphStatement, storeMarks bool) map[st
 	if storeMarks {
 		for _, v := range asMap {
 			out[v] = []string{"*"}
+		}
+	}
+	return out
+}
+
+func collectCurrentRefs(val any, out *[]string) {
+	switch x := val.(type) {
+	case map[string]any:
+		for _, v := range x {
+			collectCurrentRefs(v, out)
+		}
+	case []any:
+		for _, v := range x {
+			collectCurrentRefs(v, out)
+		}
+	case string:
+		if strings.HasPrefix(x, "$.") {
+			*out = append(*out, strings.TrimPrefix(x, "$."))
+		} else if strings.HasPrefix(x, "$_current.") {
+			*out = append(*out, strings.TrimPrefix(x, "$_current."))
+		}
+	}
+}
+
+func dedupeStrings(in []string) []string {
+	seen := map[string]struct{}{}
+	out := make([]string, 0, len(in))
+	for _, v := range in {
+		if v == "" {
+			continue
+		}
+		if _, ok := seen[v]; ok {
+			continue
+		}
+		seen[v] = struct{}{}
+		out = append(out, v)
+	}
+	return out
+}
+
+// PipelineStepRequiredFields captures projection hints that can be used by
+// storage backends for columnar reads without changing existing load semantics.
+func PipelineStepRequiredFields(stmts []*gripql.GraphStatement) map[string][]string {
+	steps := PipelineSteps(stmts)
+	out := map[string][]string{}
+	for i := len(stmts) - 1; i >= 0; i-- {
+		switch gs := stmts[i].GetStatement().(type) {
+		case *gripql.GraphStatement_Fields:
+			fields := protoutil.AsStringList(gs.Fields)
+			if len(fields) > 0 {
+				out[steps[i]] = dedupeStrings(fields)
+			}
+		case *gripql.GraphStatement_Render:
+			refs := []string{}
+			collectCurrentRefs(gs.Render.AsInterface(), &refs)
+			if len(refs) > 0 {
+				out[steps[i]] = dedupeStrings(refs)
+			}
 		}
 	}
 	return out

@@ -2,8 +2,10 @@ package gripql
 
 import (
 	"fmt"
+	"io"
 
 	"github.com/bytedance/sonic"
+	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -19,6 +21,38 @@ func NewFlattenMarshaler() *MarshalFlatten {
 		protojson.MarshalOptions{EmitUnpopulated: true},
 		protojson.UnmarshalOptions{},
 	}
+}
+
+func (mflat *MarshalFlatten) ContentType(v any) string {
+	return "application/json"
+}
+
+func (mflat *MarshalFlatten) NewDecoder(r io.Reader) runtime.Decoder {
+	return (&runtime.JSONPb{
+		UnmarshalOptions: mflat.unmarshal,
+	}).NewDecoder(r)
+}
+
+type flattenEncoder struct {
+	w io.Writer
+	m *MarshalFlatten
+}
+
+func (e *flattenEncoder) Encode(v any) error {
+	b, err := e.m.Marshal(v)
+	if err != nil {
+		return err
+	}
+	_, err = e.w.Write(b)
+	if err != nil {
+		return err
+	}
+	_, err = e.w.Write([]byte("\n"))
+	return err
+}
+
+func (mflat *MarshalFlatten) NewEncoder(w io.Writer) runtime.Encoder {
+	return &flattenEncoder{w: w, m: mflat}
 }
 
 func (mflat *MarshalFlatten) Marshal(d any) ([]byte, error) {

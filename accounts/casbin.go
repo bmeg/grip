@@ -24,12 +24,12 @@ func (ce *CasbinAccess) init() {
 
 func (ce *CasbinAccess) Enforce(user string, graph string, operation Operation) error {
 	ce.init()
-	fmt.Printf("Casbin request '%s' '%s' '%s'\n", user, graph, operation)
+	// fmt.Printf("Casbin request '%s' '%s' '%s'\n", user, graph, operation)
 	if res, err := ce.encforcer.Enforce(user, graph, string(operation)); res {
 		return nil
 	} else if err != nil {
 		fmt.Printf("casbin error: %s\n", err)
 	}
-	fmt.Printf("Not allowed: '%s' '%s' '%s'\n", user, graph, operation)
+	// fmt.Printf("Not allowed: '%s' '%s' '%s'\n", user, graph, operation)
 	return fmt.Errorf("action restricted")
 }
