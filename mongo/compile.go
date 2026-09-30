@@ -62,13 +62,11 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement, opts *gdbi.Compile
 	// - Jump
 	// - Set
 	// - Increment
-	// - SameAs
 	//If they are present, the system will default to using the core driver
 	unsupportedOps := false
 	for _, gs := range stmts {
 		switch gs.GetStatement().(type) {
 		case *gripql.GraphStatement_Jump, *gripql.GraphStatement_Set,
-			*gripql.GraphStatement_SameAs,
 			*gripql.GraphStatement_Increment:
 			unsupportedOps = true
 		}
@@ -628,7 +626,34 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement, opts *gdbi.Compile
 				return &Pipeline{}, fmt.Errorf(`"as" statement invalid; uses reserved name %s`, tpath.CURRENT)
 			}
 			markTypes[stmt.As] = lastType
-			query = append(query, bson.D{primitive.E{Key: "$addFields", Value: bson.M{"marks": bson.M{stmt.As: "$" + FIELD_CURRENT}}}})
+			query = append(query, bson.D{primitive.E{Key: "$set", Value: bson.M{FIELD_MARKS + "." + stmt.As: "$" + FIELD_CURRENT}}})
+
+		case *gripql.GraphStatement_SameAs:
+			if lastType != gdbi.VertexData && lastType != gdbi.EdgeData {
+				return &Pipeline{}, fmt.Errorf(`"sameAs" statement is only valid for edge or vertex types not: %s`, lastType.String())
+			}
+			if stmt.SameAs == "" {
+				return &Pipeline{}, fmt.Errorf(`"sameAs" statement cannot have an empty name`)
+			}
+			if err := gripql.ValidateFieldName(stmt.SameAs); err != nil {
+				return &Pipeline{}, fmt.Errorf(`"sameAs" statement invalid; %v`, err)
+			}
+			if stmt.SameAs == tpath.CURRENT {
+				return &Pipeline{}, fmt.Errorf(`"sameAs" statement invalid; uses reserved name %s`, tpath.CURRENT)
+			}
+			markType, ok := markTypes[stmt.SameAs]
+			if !ok {
+				return &Pipeline{}, fmt.Errorf(`"sameAs" statement references unknown binding %q`, stmt.SameAs)
+			}
+			if markType != lastType {
+				return &Pipeline{}, fmt.Errorf(`"sameAs" statement binding %q has type %s, current element has type %s`, stmt.SameAs, markType.String(), lastType.String())
+			}
+			query = append(query, bson.D{primitive.E{Key: "$match", Value: bson.M{
+				"$expr": bson.M{"$eq": bson.A{
+					"$" + FIELD_CURRENT_ID,
+					"$" + FIELD_MARKS + "." + stmt.SameAs + "." + FIELD_CURRENT_ID,
+				}},
+			}}})
 
 		case *gripql.GraphStatement_Select:
 			if lastType != gdbi.VertexData && lastType != gdbi.EdgeData {
