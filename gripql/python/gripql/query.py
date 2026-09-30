@@ -272,6 +272,12 @@ class Query(BaseConnection):
         """
         return self.__append({"as": name})
 
+    def sameAs(self, name):
+        """
+        Filter to the current element when it matches the element bound to name.
+        """
+        return self.__append({"sameAs": name})
+
     def select(self, name):
         """
         Move traveler back to a previously annotated position

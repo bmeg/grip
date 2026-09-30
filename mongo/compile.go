@@ -67,6 +67,7 @@ func (comp *Compiler) Compile(stmts []*gripql.GraphStatement, opts *gdbi.Compile
 	for _, gs := range stmts {
 		switch gs.GetStatement().(type) {
 		case *gripql.GraphStatement_Jump, *gripql.GraphStatement_Set,
+			*gripql.GraphStatement_SameAs,
 			*gripql.GraphStatement_Increment:
 			unsupportedOps = true
 		}
