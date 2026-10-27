@@ -11,6 +11,7 @@ import (
 	"github.com/bmeg/grip/cmd/drop"
 	"github.com/bmeg/grip/cmd/dump"
 	"github.com/bmeg/grip/cmd/erclient"
+	"github.com/bmeg/grip/cmd/gql"
 	"github.com/bmeg/grip/cmd/info"
 	"github.com/bmeg/grip/cmd/job"
 	"github.com/bmeg/grip/cmd/jsonload"
@@ -63,6 +64,7 @@ func init() {
 	RootCmd.AddCommand(mongoload.Cmd)
 	RootCmd.AddCommand(jsonload.Cmd)
 	RootCmd.AddCommand(query.Cmd)
+	RootCmd.AddCommand(gql.Cmd)
 	RootCmd.AddCommand(erclient.Cmd)
 	RootCmd.AddCommand(rdf.Cmd)
 	RootCmd.AddCommand(schema.Cmd)

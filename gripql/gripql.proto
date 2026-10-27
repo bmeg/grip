@@ -67,6 +67,7 @@ message GraphStatement {
     Jump jump = 71;
     Set  set = 72;
     Increment increment = 73;
+    string same_as = 74;
   }
 }
 

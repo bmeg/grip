@@ -169,6 +169,28 @@ func StatementProcessor(
 		ps.MarkTypes[stmt.As] = ps.LastType
 		return sc.As(stmt, ps)
 
+	case *gripql.GraphStatement_SameAs:
+		if ps.LastType != VertexData && ps.LastType != EdgeData {
+			return nil, fmt.Errorf(`"sameAs" statement is only valid for edge or vertex types not: %s`, ps.LastType.String())
+		}
+		if stmt.SameAs == "" {
+			return nil, fmt.Errorf(`"sameAs" statement cannot have an empty name`)
+		}
+		if err := gripql.ValidateFieldName(stmt.SameAs); err != nil {
+			return nil, fmt.Errorf(`"sameAs" statement invalid; %v`, err)
+		}
+		if stmt.SameAs == tpath.CURRENT {
+			return nil, fmt.Errorf(`"sameAs" statement invalid; uses reserved name %s`, tpath.CURRENT)
+		}
+		markType, ok := ps.MarkTypes[stmt.SameAs]
+		if !ok {
+			return nil, fmt.Errorf(`"sameAs" statement references unknown binding %q`, stmt.SameAs)
+		}
+		if markType != ps.LastType {
+			return nil, fmt.Errorf(`"sameAs" statement binding %q has type %s, current element has type %s`, stmt.SameAs, markType.String(), ps.LastType.String())
+		}
+		return sc.SameAs(stmt, ps)
+
 	case *gripql.GraphStatement_Set:
 		return sc.Set(stmt, ps)
 

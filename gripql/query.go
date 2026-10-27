@@ -147,6 +147,11 @@ func (q *Query) As(id string) *Query {
 	return q.with(&GraphStatement{Statement: &GraphStatement_As{id}})
 }
 
+// SameAs filters the current element to the element bound to name.
+func (q *Query) SameAs(name string) *Query {
+	return q.with(&GraphStatement{Statement: &GraphStatement_SameAs{name}})
+}
+
 // Select retreieves previously marked elemets
 func (q *Query) Select(name string) *Query {
 	return q.with(&GraphStatement{Statement: &GraphStatement_Select{name}})
@@ -283,6 +288,9 @@ func (q *Query) String() string {
 
 		case *GraphStatement_As:
 			add("As", stmt.As)
+
+		case *GraphStatement_SameAs:
+			add("SameAs", stmt.SameAs)
 
 		case *GraphStatement_Select:
 			add("Select", stmt.Select)

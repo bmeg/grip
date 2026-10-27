@@ -168,6 +168,10 @@ func (sc *DefaultStmtCompiler) As(stmt *gripql.GraphStatement_As, ps *gdbi.State
 	return &Marker{stmt.As}, nil
 }
 
+func (sc *DefaultStmtCompiler) SameAs(stmt *gripql.GraphStatement_SameAs, ps *gdbi.State) (gdbi.Processor, error) {
+	return &SameAsFilter{mark: stmt.SameAs}, nil
+}
+
 func (sc *DefaultStmtCompiler) Set(stmt *gripql.GraphStatement_Set, ps *gdbi.State) (gdbi.Processor, error) {
 	return &ValueSet{key: stmt.Set.Key, value: stmt.Set.Value.AsInterface()}, nil
 }

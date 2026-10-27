@@ -419,6 +419,33 @@ func (m *Marker) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, 
 	return ctx
 }
 
+type SameAsFilter struct {
+	mark string
+}
+
+func (s *SameAsFilter) Process(ctx context.Context, man gdbi.Manager, in gdbi.InPipe, out gdbi.OutPipe) context.Context {
+	go func() {
+		defer close(out)
+		for t := range in {
+			if t.IsSignal() {
+				out <- t
+				continue
+			}
+			current := t.GetCurrent()
+			bound := t.GetMark(s.mark)
+			if current == nil || bound == nil {
+				continue
+			}
+			currentElement := current.Get()
+			boundElement := bound.Get()
+			if currentElement != nil && boundElement != nil && currentElement.ID == boundElement.ID {
+				out <- t
+			}
+		}
+	}()
+	return ctx
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 
 // Selector selects marks to return

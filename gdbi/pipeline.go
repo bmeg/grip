@@ -70,6 +70,7 @@ type StatementCompiler interface {
 	Count(gs *gripql.GraphStatement_Count, ps *State) (Processor, error)
 	Distinct(gs *gripql.GraphStatement_Distinct, ps *State) (Processor, error)
 	As(gs *gripql.GraphStatement_As, ps *State) (Processor, error)
+	SameAs(gs *gripql.GraphStatement_SameAs, ps *State) (Processor, error)
 	Set(gs *gripql.GraphStatement_Set, ps *State) (Processor, error)
 	Increment(gs *gripql.GraphStatement_Increment, ps *State) (Processor, error)
 	Mark(gs *gripql.GraphStatement_Mark, ps *State) (Processor, error)
