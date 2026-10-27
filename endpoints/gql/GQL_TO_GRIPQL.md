@@ -84,6 +84,7 @@ Direction mapping, applied per hop in the chain:
 - `-[:TYPE]-` maps to `Both("TYPE")`
 
 Linear multi-hop chains are supported by applying the same mapping repeatedly.
+Edge labels are optional: `(n)-[r]->(m)` compiles to an unfiltered `Out()`.
 
 ### Repeated node variables
 
@@ -126,9 +127,14 @@ gripql.NewQuery().
   V().
   HasLabel("Person").
   As("n").
-  Has(gripql.Eq("name", "Bob")).
+  Has(gripql.And(gripql.Not(gripql.Eq("name", nil)), gripql.Eq("name", "Bob"))).
   Render("$n")
 ```
+
+Every supported comparison is wrapped this way: `And(Not(Eq(field, nil)), <comparison>)`.
+The guard makes vertices missing the property evaluate to false, so `WHERE` behaves like GQL
+three-valued logic (`UNKNOWN` does not pass a filter). `NOT` is implemented by emitting the
+paired false-branch filter instead.
 
 Supported WHERE forms:
 
@@ -202,6 +208,7 @@ gripql.NewQuery().
 Notes:
 
 - `SKIP` and `LIMIT` currently accept only integer literals.
+- `SKIP` is the grammar's `offsetClause` (also reachable via the `OFFSET` synonym); non-literal values are rejected.
 
 ### ORDER BY clause
 
@@ -262,3 +269,7 @@ When extending the translator:
 - Add table-driven tests in `gql/test/gql_test.go` for every new supported syntax shape.
 - Keep unsupported features explicit until fully implemented.
 - Add new mapping examples to this document and verify they compile through `RunParser`.
+
+For the internal structure of the compiler (listener state, `BuildQuery` assembly order,
+WHERE predicate compilation, known quirks, and the full extension checklist), see
+`COMPILER_ARCHITECTURE.md`.

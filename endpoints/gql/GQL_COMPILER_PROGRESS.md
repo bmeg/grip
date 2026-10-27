@@ -67,7 +67,7 @@ Other optional features must be tracked separately. For example, `UNION` is opti
 - `endpoints/gql/handle.go`
 - `endpoints/gql/test/gql_test.go`
 - `endpoints/gql/GQL_TO_GRIPQL.md`
-- `endpoints/gql/GRIPQL_GQL_SUPPORT_PLAN.md`
+- `endpoints/gql/COMPILER_ARCHITECTURE.md`
 
 ## Recent Implementation
 
@@ -84,4 +84,4 @@ Other optional features must be tracked separately. For example, `UNION` is opti
 3. **Expand based on backend evidence.** Assess `OPTIONAL MATCH`, aggregates, and grouped results one at a time. Document the translation and backend limitations before adding table-driven compiler and endpoint tests.
 4. **Keep scope explicit.** If the goal becomes ISO minimum conformance, separately plan graph population/management, status objects, Unicode behavior, and session/transaction APIs. Otherwise, keep the endpoint read-only and document it as a supported subset, not a conformant implementation.
 
-For the staged GripQL protocol/runtime plan and first suggested implementation task, see `GRIPQL_GQL_SUPPORT_PLAN.md`.
+For how to structure new compiler work (extension checklist, known quirks, assembly order), see `COMPILER_ARCHITECTURE.md`.

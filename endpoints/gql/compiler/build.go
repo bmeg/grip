@@ -1,3 +1,19 @@
+// Package compiler translates a read-only subset of ISO GQL into GripQL
+// traversal queries.
+//
+// Compilation happens in two phases, both driven by RunParser:
+//
+//  1. A parse-tree listener (gqlListener) walks the ANTLR parse tree and
+//     records raw clause state: node/edge patterns, WHERE/ORDER BY/SKIP/LIMIT
+//     clauses, and any unsupported features encountered. It does not compile.
+//  2. BuildQuery validates the recorded state and assembles the *gripql.Query,
+//     emitting steps in the fixed order:
+//     V → label/property filters → Out/In/Both → Has (WHERE) → Sort → Render
+//     → Skip → Limit.
+//
+// Any syntax error or unsupported feature returns an error; partial queries
+// are never emitted. See endpoints/gql/COMPILER_ARCHITECTURE.md for the full
+// guide, including known quirks and the extension checklist.
 package compiler
 
 import (
@@ -16,43 +32,53 @@ import (
 	//log "github.com/sirupsen/logrus"
 )
 
+// vertexSelect is a single node pattern recorded during the listener walk.
+// label may hold several labels, but only label[0] is emitted (HasLabel);
+// selectMap holds raw text property values that are decoded at compile time.
 type vertexSelect struct {
 	name      string
 	label     []string
 	selectMap map[string]string
 }
 
+// edgeSelect is a single edge pattern. direction is "out", "in", or "both";
+// an empty label produces an unfiltered traversal step.
 type edgeSelect struct {
 	name      string
 	label     []string
 	direction string
 }
 
+// gqlListener records raw clause state from the ANTLR parse tree during the
+// walk. It intentionally defers all compilation to BuildQuery; the
+// inPattern/inRelation flags disambiguate the grammar's overlapping node and
+// edge pattern productions, which share the same Enter* callbacks.
 type gqlListener struct {
 	*parser.BaseGQLListener
 
-	queryType string
+	queryType   string   // "MATCH" once a match statement exits; "CREATE" is rejected.
+	unsupported []string // accumulated unsupported-feature markers; BuildQuery fails fast.
 
-	unsupported []string
+	vertexPath []vertexSelect // node patterns in path order.
+	edgePath   []edgeSelect   // edge patterns in path order.
+	returns    []string       // raw RETURN item text, in order.
 
-	vertexPath []vertexSelect
-	edgePath   []edgeSelect
-	returns    []string
-
-	curVariable string
+	curVariable string // scratch: element variable of the pattern being walked.
 	curLabels   []string
-	inRelation  bool
-	inPattern   bool
+	inRelation  bool // true while inside an edge pattern; excludes edge properties from curMap.
+	inPattern   bool // true while inside a node or edge pattern.
 
-	curMap               map[string]string
-	currentEdgeDirection string
+	curMap               map[string]string // raw inline property map of the current node pattern.
+	currentEdgeDirection string            // set by the EnterFullEdge* callbacks.
 
-	whereCondition parser.IValueExpressionContext
-	orderExpr      string
-	skipExpr       string
-	limitExpr      string
+	whereCondition parser.IValueExpressionContext // WHERE AST node, or nil if absent.
+	orderExpr      string                         // raw ORDER BY clause text.
+	skipExpr       string                         // raw SKIP/OFFSET clause text.
+	limitExpr      string                         // raw LIMIT clause text.
 }
 
+// syntaxErrorListener collects ANTLR syntax errors as "line L:C message"
+// strings so RunParser can report them all at once.
 type syntaxErrorListener struct {
 	*antlr.DefaultErrorListener
 	errors []string
@@ -62,23 +88,39 @@ func (s *syntaxErrorListener) SyntaxError(_ antlr.Recognizer, _ interface{}, lin
 	s.errors = append(s.errors, fmt.Sprintf("line %d:%d %s", line, column, msg))
 }
 
-var simpleVariableName = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`)
-var simpleWhereExpression = regexp.MustCompile(`^([A-Za-z_][A-Za-z0-9_]*)\.([A-Za-z_][A-Za-z0-9_]*)(=|<>|!=|<=|>=|<|>)(.+)$`)
-var simpleReturnValue = regexp.MustCompile(`^([A-Za-z_][A-Za-z0-9_]*)(?:\.([A-Za-z_][A-Za-z0-9_]*))?$`)
-var simpleOrderItem = regexp.MustCompile(`^([A-Za-z_][A-Za-z0-9_]*)\.([A-Za-z_][A-Za-z0-9_]*)$`)
+// Text-level regexes used to parse clause fragments (WHERE comparisons,
+// RETURN projections, ORDER BY items) from raw ctx.GetText() strings.
+// Prefer the AST when extending; these are a pragmatic shortcut for clause
+// shapes the grammar does not expose as typed contexts.
+var (
+	simpleVariableName    = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`)
+	simpleWhereExpression = regexp.MustCompile(`^([A-Za-z_][A-Za-z0-9_]*)\.([A-Za-z_][A-Za-z0-9_]*)(=|<>|!=|<=|>=|<|>)(.+)$`)
+	simpleReturnValue     = regexp.MustCompile(`^([A-Za-z_][A-Za-z0-9_]*)(?:\.([A-Za-z_][A-Za-z0-9_]*))?$`)
+	simpleOrderItem       = regexp.MustCompile(`^([A-Za-z_][A-Za-z0-9_]*)\.([A-Za-z_][A-Za-z0-9_]*)$`)
+)
 
+// returnProjection is one compiled RETURN item. key is the result field name
+// (alias, "var.field", or the bare variable); value is the render template.
 type returnProjection struct {
 	key    string
 	value  string
 	isBare bool
 }
 
+// compiledWherePredicate is one WHERE term with explicit true and false
+// branches, so NOT can be applied by swapping them and AND/OR can combine
+// them with De Morgan. A nil (missing) property is forced to false on both
+// branches via the Not(Eq(field, nil)) guard. Only whenTrue is emitted.
 type compiledWherePredicate struct {
 	variable  string
 	whenTrue  *gripql.HasExpression
 	whenFalse *gripql.HasExpression
 }
 
+// addVertexStep appends the filter and binding steps for one node pattern:
+// HasLabel (first label only), one Has(Eq(k, v)) per inline-map entry with
+// keys sorted for determinism, then As(name) — or SameAs(name) when the
+// variable repeats an earlier vertex in the path.
 func addVertexStep(q *gripql.Query, v vertexSelect, sameAs bool) (*gripql.Query, error) {
 	if len(v.label) > 0 {
 		q = q.HasLabel(v.label[0])
@@ -105,6 +147,10 @@ func addVertexStep(q *gripql.Query, v vertexSelect, sameAs bool) (*gripql.Query,
 	return q, nil
 }
 
+// decodeGQLStringLiteral decodes a GQL character string literal: quote
+// doubling, backslash/control escapes, and \uXXXX/\UXXXXXX Unicode escapes.
+// A leading "@" marks a no-escape string, in which case backslashes are
+// preserved literally.
 func decodeGQLStringLiteral(raw string) (string, error) {
 	noEscape := strings.HasPrefix(raw, "@")
 	if noEscape {
@@ -175,6 +221,9 @@ func decodeGQLStringLiteral(raw string) (string, error) {
 	return decoded.String(), nil
 }
 
+// parseScalarLiteral converts a raw GQL literal into a Go value: character
+// strings (via decodeGQLStringLiteral), booleans, null (nil), integers, or
+// floats. Anything else is unsupported.
 func parseScalarLiteral(raw string) (any, error) {
 	raw = strings.TrimSpace(raw)
 	if len(raw) >= 2 {
@@ -204,6 +253,9 @@ func parseScalarLiteral(raw string) (any, error) {
 	return nil, fmt.Errorf("unsupported literal: %s", raw)
 }
 
+// parseSimpleWhereExpression parses a "var.field op literal" comparison into
+// its variable, property, and GripQL predicate. Comparison against NULL is
+// rejected; use IS [NOT] NULL instead.
 func parseSimpleWhereExpression(expr string) (string, string, *gripql.HasExpression, error) {
 	parts := simpleWhereExpression.FindStringSubmatch(expr)
 	if len(parts) != 5 {
@@ -241,6 +293,10 @@ func parseSimpleWhereExpression(expr string) (string, string, *gripql.HasExpress
 	}
 }
 
+// compileWhereExpression compiles a WHERE value expression into a paired
+// true/false predicate. Supported forms: simple comparisons, AND/OR
+// composition, NOT (implemented by swapping the branches), IS [NOT] NULL,
+// and parenthesized expressions.
 func compileWhereExpression(expr parser.IValueExpressionContext) (*compiledWherePredicate, error) {
 	switch ctx := expr.(type) {
 	case *parser.ComparisonExprAltContext:
@@ -307,6 +363,10 @@ func compileWhereExpression(expr parser.IValueExpressionContext) (*compiledWhere
 	return nil, fmt.Errorf("unsupported GQL features: complex WHERE expression")
 }
 
+// compileCombinedWhereExpression joins predicate terms with AND
+// (disjunction=false) or OR (disjunction=true). AND combines the whenTrue
+// branches with And and the whenFalse branches with Or; OR does the reverse.
+// All terms must reference the same variable.
 func compileCombinedWhereExpression(expressions []parser.IValueExpressionContext, disjunction bool) (*compiledWherePredicate, error) {
 	if len(expressions) < 2 {
 		return nil, fmt.Errorf("unsupported GQL features: WHERE expression")
@@ -339,6 +399,8 @@ func compileCombinedWhereExpression(expressions []parser.IValueExpressionContext
 	return combined, nil
 }
 
+// whereExpression unwraps a WHERE search condition down to its value
+// expression, or returns nil if the condition is in an unsupported shape.
 func whereExpression(ctx parser.ISearchConditionContext) parser.IValueExpressionContext {
 	if ctx == nil || ctx.BooleanValueExpression() == nil {
 		return nil
@@ -346,6 +408,10 @@ func whereExpression(ctx parser.ISearchConditionContext) parser.IValueExpression
 	return ctx.BooleanValueExpression().ValueExpression()
 }
 
+// parseReturnProjection compiles one RETURN item. Supported: "var",
+// "var.field", and each with an "AS alias". Bare variables produce isBare
+// projections that render as "$var"; everything else renders "$var.field"
+// under its key.
 func parseReturnProjection(text string) (returnProjection, error) {
 	trimmed := strings.TrimSpace(text)
 	valueExpr, alias := splitReturnProjectionAlias(trimmed)
@@ -380,6 +446,9 @@ func parseReturnProjection(text string) (returnProjection, error) {
 	return returnProjection{key: key, value: value, isBare: isBare}, nil
 }
 
+// splitReturnProjectionAlias splits a RETURN item on its last " AS " keyword
+// (case-insensitive) whose right side is a simple variable name. Returns the
+// expression and the alias, or the original text with an empty alias.
 func splitReturnProjectionAlias(text string) (string, string) {
 	upper := strings.ToUpper(text)
 	for i := len(text) - 2; i >= 0; i-- {
@@ -400,6 +469,9 @@ func splitReturnProjectionAlias(text string) (string, string) {
 	return text, ""
 }
 
+// parseClauseUint parses a SKIP/OFFSET or LIMIT clause into an unsigned
+// integer. The leading clause keyword is stripped from the raw text first;
+// only plain integer literals are accepted.
 func parseClauseUint(clauseText string, keyword string) (uint32, error) {
 	expr := strings.TrimSpace(clauseText)
 	upperKeyword := strings.ToUpper(keyword)
@@ -415,6 +487,10 @@ func parseClauseUint(clauseText string, keyword string) (uint32, error) {
 	return uint32(v), nil
 }
 
+// parseOrderExpression parses an ORDER BY clause into sort fields. Items are
+// "var.field [ASC|DESC]"; the variable must be the current (last) traversal
+// variable. Note ASC/DESC are stripped as suffixes on the raw text, so a
+// property ending in those words would be mis-parsed.
 func parseOrderExpression(orderText string, currentVar string) ([]*gripql.SortField, error) {
 	expr := strings.ReplaceAll(strings.TrimSpace(orderText), " ", "")
 	upperExpr := strings.ToUpper(expr)
@@ -457,6 +533,8 @@ func parseOrderExpression(orderText string, currentVar string) ([]*gripql.SortFi
 	return sortFields, nil
 }
 
+// markUnsupported records a feature the compiler cannot translate. Duplicates
+// are ignored; BuildQuery reports all of them as a single error.
 func (c *gqlListener) markUnsupported(feature string) {
 	for _, v := range c.unsupported {
 		if v == feature {
@@ -466,6 +544,10 @@ func (c *gqlListener) markUnsupported(feature string) {
 	c.unsupported = append(c.unsupported, feature)
 }
 
+// BuildQuery validates the recorded clause state and assembles the GripQL
+// query. Step order is fixed and significant: V → filters/traversal →
+// Has (WHERE) → Sort → Render → Skip → Limit. WHERE and ORDER BY must
+// reference the last (current) path variable.
 func (c *gqlListener) BuildQuery() (*gripql.Query, error) {
 	if len(c.unsupported) > 0 {
 		return nil, fmt.Errorf("unsupported GQL features: %s", strings.Join(c.unsupported, ", "))
@@ -618,6 +700,9 @@ func (c *gqlListener) ExitMatchStatement(ctx *parser.MatchStatementContext) {
 	c.queryType = "MATCH"
 }
 
+// The callbacks below recognize grammar productions the compiler does not
+// implement and mark the whole query unsupported. This keeps rejections
+// explicit and keeps the error messages stable for tests and callers.
 func (c *gqlListener) EnterCreateSchemaStatement(ctx *parser.CreateSchemaStatementContext) {
 	c.markUnsupported("CREATE")
 }
@@ -630,6 +715,9 @@ func (c *gqlListener) EnterCreateGraphTypeStatement(ctx *parser.CreateGraphTypeS
 	c.markUnsupported("CREATE")
 }
 
+// EnterNodePattern and ExitNodePattern delimit one node pattern. The
+// inPattern flag scopes the shared ElementVariable/LabelName/
+// PropertyKeyValuePair callbacks to the pattern being walked.
 func (c *gqlListener) EnterNodePattern(ctx *parser.NodePatternContext) {
 	log.Debugf("NodePattern: %s", ctx.GetText())
 	c.inPattern = true
@@ -668,6 +756,9 @@ func (c *gqlListener) EnterPropertyKeyValuePair(ctx *parser.PropertyKeyValuePair
 	c.curMap[key] = value
 }
 
+// EnterEdgePattern delimits one edge pattern. inRelation additionally
+// suppresses property-map collection, since edge property maps are
+// intentionally unsupported.
 func (c *gqlListener) EnterEdgePattern(ctx *parser.EdgePatternContext) {
 	log.Debugf("EdgePattern: %s", ctx.GetText())
 	c.inPattern = true
@@ -678,6 +769,9 @@ func (c *gqlListener) EnterEdgePattern(ctx *parser.EdgePatternContext) {
 	c.currentEdgeDirection = "both"
 }
 
+// The EnterFullEdge* callbacks map the edge direction tokens to traversal
+// directions. The hybrid grammar alternatives (LeftOrUndirected,
+// UndirectedOrRight, LeftOrRight) are deliberately unsupported.
 func (c *gqlListener) EnterFullEdgePointingLeft(ctx *parser.FullEdgePointingLeftContext) {
 	c.currentEdgeDirection = "in"
 	_ = ctx
@@ -845,6 +939,9 @@ func (c *gqlListener) EnterGeneralQuantifier(ctx *parser.GeneralQuantifierContex
 	_ = ctx
 }
 
+// EnterFilterStatement marks FILTER unsupported, except for text that already
+// starts with "FILTERWHERE" (e.g. "FILTER WHERE ..."), which falls through to
+// the WHERE compiler and is rejected there with a WHERE error instead.
 func (c *gqlListener) EnterFilterStatement(ctx *parser.FilterStatementContext) {
 	upper := strings.ToUpper(ctx.GetText())
 	if !strings.HasPrefix(upper, "FILTERWHERE") {
@@ -864,6 +961,10 @@ func (c *gqlListener) EnterLimitClause(ctx *parser.LimitClauseContext) {
 	c.limitExpr = ctx.GetText()
 }
 
+// RunParser is the public entry point: it lexes and parses the GQL text,
+// walks the tree with gqlListener, and returns the compiled query. Any
+// syntax error, unsupported feature, or invalid query structure returns an
+// error; partial queries are never emitted.
 func RunParser(gqlText string) (*gripql.Query, error) {
 	// Setup the input
 	is := antlr.NewInputStream(gqlText)
